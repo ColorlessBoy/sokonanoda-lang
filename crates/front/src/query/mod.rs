@@ -1353,18 +1353,18 @@ impl QueryDoc {
     /// 那条 parse 诊断是**救援过程的中间产物**，不是这份文件的结论。
     ///
     /// 闭包也失败（入口 `LoadFailed`，真的有语法错误）时返回 `false` ⇒ 老契约
-    /// （`NotParsable` / parse 诊断优先）才对（G-17）。
+    /// （`NotParsable` / parse 诊断优先）才对（G-17）。**恢复式解析之后**报告里**有**
+    /// 救回来的声明也算可用，否则 Infoview 声明列表**不回来**（`docs/guard-bite.jsonl`）。
     fn usable(&self) -> bool {
-        self.report.is_some() && (self.parse_error.is_none() || self.project_entry_compiled())
+        self.report.as_ref().is_some_and(|report| {
+            report.has_content() || self.parse_error.is_none() || self.project_entry_compiled()
+        })
     }
 
     /// 源文本可解析？不可解析 ⇒ [`QueryError::NotParsable`]（"问不出来"）。
-    ///
-    /// 这是"正常的没有"（空数组 / `None`）与"问不出来"（`QueryError`）分界的
-    /// 唯一入口（设计 §4.1）：报告类查询（`goals`/`holes`/`nextHole`）在解析失败
-    /// 时必须走这里，而不是答一个空数组（G-17）。`check` **不**调它——`check`
-    /// 的答案就是"这份文本解析不了"，它把 `parse_error` 合成进 `failed`。
-    ///
+    /// "正常的没有"（空数组 / `None`）与"问不出来"分界的唯一入口（设计 §4.1）：
+    /// 报告类查询（`goals`/`holes`/`nextHole`）必须走这里，而不是答空数组（G-17）；
+    /// `check` **不**调它（它的答案就是"解析不了"，`parse_error` 合成进 `failed`）。
     /// **判据本体是 [`Self::usable`]**（别在这里另写一份，G-22 就是这么来的）。
     fn parsable(&self) -> Result<(), QueryError> {
         if self.usable() {
