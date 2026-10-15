@@ -61,9 +61,9 @@
 ### 0.2 下一步（**唯一队列**；机器入口 = `python3 scripts/ux-queue.py`）
 
 <!-- QUEUE:SUMMARY:BEGIN -->
-<!-- QUEUE:COUNTS total=8 blocker=0 high=7 medium=1 low=0 -->
-**未完成 8 条**（blocker **0** · high **7** · medium **1** · low **0**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
-最靠前的 5 条：`AGENT-DOES-NOT-PRODUCE-USER-INPUTS` · `FALSE-GREEN-SUB-ORCHESTRATOR-ATTENTION-STRUCTURE` · `G-117` · `QUEUE-ROOT-GUARD-CHECKS-SET-NOT-WHERE` · `SUB-G117-close-now`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
+<!-- QUEUE:COUNTS total=7 blocker=0 high=6 medium=1 low=0 -->
+**未完成 7 条**（blocker **0** · high **6** · medium **1** · low **0**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
+最靠前的 5 条：`AGENT-DOES-NOT-PRODUCE-USER-INPUTS` · `FALSE-GREEN-SUB-ORCHESTRATOR-ATTENTION-STRUCTURE` · `QUEUE-ROOT-GUARD-CHECKS-SET-NOT-WHERE` · `SUB-G117-close-now` · `SUB-correct-the-orchestrator-incentives`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
 <!-- QUEUE:SUMMARY:END -->
 
 > **口径（2026-10-12 清台账 + 事件调度器）**：**明细只活在脚本里** —— `--next` 取队列 · `--claim <id>` 认领（**最多 4 个并发（"4 核"）**，写锁 + 
@@ -75,7 +75,6 @@
 | 线 | 是什么 | 下一步最小动作 | 判据（可执行） |
 |---|---|---|---|
 | Q | 调度器自身的缺口（接口 agent 的 **13 条提交** + `Q-1`） | `--submit`/`--inbox`/受理四态/`--claim` 原子性（**已修**）· 其余按 `--inbox` 逐条受理 | `python3 scripts/ux-queue.py --inbox` 无 `todo` 残留 + `--selftest` exit 0 |
-| G-117 | 同一次编译的**两个视图读数不一致**：入口有 parse 错时 `query check` 算上恢复式解析救回的声明，而 `grade --json` 一条 `decl.checked` 都不发（`crates/cli/tests/query.rs` 头注释：两视图**必须一致**）—— 台账已登记（`docs/gaps/ledger.jsonl` · `open`），**根因已定性未修** | 让 `crates/cli/src/check.rs:102-126` 的单文件回退分支（`parsed` 为 `Err` 时直接印诊断返回）也走恢复式解析（`crates/front/src/project/graph/recovery.rs` 已有现成入口） | `bash docs/gaps/repro/G117-grade-json-vs-query-check-divergence.sh` ⇒ 改前 **exit 0**（缺口仍在）；修好后 **exit 1** |
 
 > **`G-110` 已收口**（2026-10-12 · commit `ead7829f`）：`assumption` 现在搜遍全部局部假设
 > （逃生门 `SOKO_ASSUMPTION_FIRST_ONLY=1` 复现旧行为）⇒ 已从本表摘除 ✓。
