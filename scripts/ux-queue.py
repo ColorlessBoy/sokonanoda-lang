@@ -1438,6 +1438,11 @@ def write_lock(claims: list[dict]) -> None:
         except OSError:
             pass
         return
+    # ⚠ **锁文件也是 UTF-8 只追加口径的落盘**（`REPOINT-SURROGATE-CRASH` 的横向排查）：
+    #    `claims` 里的 `owner` / `resources` / `id` 都是 **argv 自由文本**（`--owner`/`--touch`）
+    #    ⇒ 含孤立代理项时改前同样是写文件抛 `UnicodeEncodeError`（rc=2 + 不点名哪一格 ✗）。
+    #    闸门与事件表/来源行**同一处定义**（`_guard_written_text`）⇒ 报错指到 `claims[0].owner` ✓。
+    _guard_written_text(claims, "锁文件字段")
     # 原子替换：**别就地截断写**（读者可能正读到一半 ⇒ 半截 JSON）——
     # `os.replace` 在同一文件系统上是原子的，读者要么看到旧文件、要么看到新文件 ✓。
     tmp = path.with_suffix(".tmp")
@@ -1600,8 +1605,97 @@ def load_events() -> list[dict]:
     return out
 
 
+# ── **写盘前的文本编码闸门**（`REPOINT-SURROGATE-CRASH`，2026-10-15 · 编排者实测 ✗） ──────
+# 缺口：`--repoint <id> --reason '<自由文本>'` 的 reason 里含**孤立代理项**时，真 CLI 实测
+# （`$'\x80'` 这类**非法 UTF-8 字节** —— Python 按 `surrogateescape` 解 argv ⇒ 变成
+# U+DC80–U+DCFF 的孤立代理）：`append_event()` 的 `write()` 抛
+# `UnicodeEncodeError: surrogates not allowed` ⇒ `main()` 兜成 rc=2 + 「编码/环境错误」。
+# 那句人话**不点名哪个字段**，报的位置还是**整条 JSON 行**里的偏移（实测 361 / 479 / 503 ——
+# 与 reason 里的位置毫无关系）⇒ 拿着它没法定位（报告者那边还断在半句上 ✗）。
+# 口径（**二选一，选前者**，理由在下面）：
+#   ✅ ① **写前显式校验**：任何要写进 JSONL 的字符串都必须能编成 **UTF-8**；不能 ⇒
+#      `UsageError`（rc=2 + 人话 + **字段名 + 字段内的字符位置**），**一个字节都不写** ✓；
+#   ✗ ② 统一 `errors="surrogatepass"` / `"replace"` —— 两条都比缺口更糟：
+#      · `surrogatepass` 会把**非法 UTF-8 字节**真的写进事件表 ⇒ 那个文件不再是 UTF-8，而
+#        `load_events()` 是 `encoding="utf-8"` **严格**读 ⇒ 下一条命令起**整本账读不回来**
+#        （一条 reason 把队列打瞎 ✗）；
+#      · `replace` 会把证据文本**悄悄改成 U+FFFD** ⇒ 审计链上留下一条"看起来正常、其实被
+#        改过"的理由（静默篡改证据 ✗ —— 与 `_guard_encoding` 那句"判定类不许用 replace
+#        掩盖"同一个口径）。
+# ⚠ **一处定义、多处调用**（`AGENTS.md` 硬规则 0(b)：同一规则不许写两遍）：
+#   `append_event()`（事件表 = 唯一写操作）+ 两个写**来源行**的地方（`cmd_submit` /
+#   `cmd_schedule` 先写 extras 再写事件 ⇒ 只在 `append_event` 拦会晚一步、extras 已落盘 ✗）
+#   + `main()` 对四个自由文本选项的**入口**校验（连 `--dry-run` 也当场说清，不留"计划看着
+#   成功、真跑才炸"的缝 ✗）。
+FREE_TEXT_FIELDS = ("reason", "reading", "title", "evidence")
+
+
+def _utf8_field_problem(label: str, value: str) -> str | None:
+    """`value` 能不能编成 UTF-8；不能 ⇒ 人话（**字段名 + 字段内的位置**），否则 `None`。
+
+    ⚠ 位置取自 `UnicodeEncodeError.start/end` —— 它们是**这个字段自己**的下标（不是整条
+    JSON 行的偏移 ⇒ 与改前那句「position 503-504」的区别正在这里 ✓），这里转成**1 基**。
+    ⚠ `label` 是人话标签（`--reason` / 事件字段 `reason` / 来源行字段 `title` …）。
+    """
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError as err:
+        _bad = value[err.start:err.end]
+        _where = (f"第 {err.start + 1} 个字符" if err.end == err.start + 1
+                  else f"第 {err.start + 1}–{err.end} 个字符")
+        _cps = "、".join(f"U+{ord(ch):04X}" for ch in _bad)
+        return (f"✗ {label} 的{_where}（`{_bad!r}` = {_cps}）**编不成 UTF-8**（孤立代理项）"
+                f"⇒ 事件表 / 来源行都是 **UTF-8 只追加账**，这一条**写不进去**（改前是写文件时抛 "
+                f"`UnicodeEncodeError` ⇒ 只报「编码/环境错误」+ **整条 JSON 行**里的位置，既不"
+                f"点名字段、也说不清怎么办 ✗）。它多半来自 shell 转义 / 剪贴板 / 混合编码的"
+                f"**非法字节**（Python 按 `surrogateescape` 解 argv ⇒ 非法字节变成 "
+                f"U+DC80–U+DCFF）。正解：把这条文本**重写成合法 UTF-8** 再跑（例："
+                f"`printf '%s' '<文本>' | iconv -f <原编码> -t UTF-8`）；⚠ 别改成「原样写进账」"
+                f"—— 孤立代理项一旦落进文件，`load_events()` 读回时**整本账** "
+                f"`UnicodeDecodeError` ✗")
+    return None
+
+
+def _guard_written_text(value, label: str) -> None:
+    """**写盘前**逐字段校验（`value` 里**任何深度**的字符串）—— 编不成 UTF-8 ⇒ `UsageError`。
+
+    ⚠ **递归到底**（`_guard_problem`）：dict / list 都进（事件表的 `resources` 是字符串列表、
+    锁文件的 `claims` 是 **dict 列表** —— 两处都是 argv 自由文本落盘的路 ⇒ 只认一层会漏 ✗）；
+    非字符串标量不碰。
+    ⚠ 只报**第一个**出问题的字段（多点报错反而看不清先改哪个 ✓），且**一个字节都不写**
+    （闸门在 `open()` / `write_text()` 之前 ⇒ 与既有"零写入"口径一致 ✓）。
+    ⚠ 标签带**路径**（`claims[0].owner` 这种）⇒ 报错能直接指到那一格 ✓。
+    """
+    why = _guard_problem(value, label)
+    if why is not None:
+        raise UsageError(why)
+
+
+def _guard_problem(value, label: str) -> str | None:
+    """`_guard_written_text` 的**纯函数半边**：返回人话或 `None`（递归、不抛）。
+
+    ⚠ 拆成两个函数只是为了"第一个出问题的字段"能**短路**（在生成器里 raise 会破坏短路语义 ✗）；
+    判定仍然只有 `_utf8_field_problem()` 一处 ✓。
+    """
+    if isinstance(value, str):
+        return _utf8_field_problem(label, value)
+    if isinstance(value, dict):
+        return next((w for w in (_guard_problem(v, f"{label} `{k}`") for k, v in value.items())
+                     if w is not None), None)
+    if isinstance(value, list):
+        return next((w for w in (_guard_problem(v, f"{label}[{i}]") for i, v in enumerate(value))
+                     if w is not None), None)
+    return None
+
+
 def append_event(rec: dict) -> None:
-    """**只追加**（唯一写操作）—— 调用方负责先过 `TRANSITIONS` 与证据检查 ✓。"""
+    """**只追加**（唯一写操作）—— 调用方负责先过 `TRANSITIONS` 与证据检查 ✓。
+
+    ⚠ 写之前先过**文本编码闸门**（`_guard_written_text` ⇒ 见上面那一段的实测与二选一）：
+    孤立代理项在这里变成 **rc=2 + 点名字段 + 字段内的字符位置**，而不是写文件时的
+    `UnicodeEncodeError`（那句只报整条 JSON 行的偏移 ✗）。
+    """
+    _guard_written_text(rec, "事件字段")
     EVENTS.parent.mkdir(parents=True, exist_ok=True)
     with EVENTS.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps({"ts": _now(), **rec}, ensure_ascii=False) + "\n")
@@ -3576,16 +3670,31 @@ def cmd_submit(args: argparse.Namespace) -> int:
         src = Path(args.patch)
         if not src.exists():
             raise UsageError(f"`--patch {args.patch}` 不存在")
+        try:
+            _patch_text = src.read_text(encoding="utf-8")
+        except UnicodeDecodeError as err:
+            # ⚠ **同一个缺口的横向排查**（`REPOINT-SURROGATE-CRASH`）：补丁是**读进来再写进
+            #    inbox** 的自由文本 ⇒ 非 UTF-8 时改前只报「编码/环境错误（UnicodeDecodeError）」
+            #    （rc=2 ✓ 但**不点名是哪个文件** ✗）⇒ 这里点名 `--patch` + 字节位置 + 正解 ✓。
+            raise UsageError(
+                f"✗ `--patch {args.patch}` 不是 **UTF-8** 文本（第 {err.start + 1} 个**字节**："
+                f"{err.reason}）⇒ inbox 的补丁按 UTF-8 存（与事件表 / 来源行同一口径），"
+                f"原样拷进去会让后面**读它的人**踩 `UnicodeDecodeError` ✗。正解："
+                f"`iconv -f <原编码> -t UTF-8 < '{args.patch}' > /tmp/p.patch` 再 "
+                f"`--patch /tmp/p.patch` ✓") from err
         INBOX_DIR.mkdir(parents=True, exist_ok=True)
         dst = INBOX_DIR / f"{ident}.patch"
-        dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
-        patch_note = f" · patch `{_label(dst)}`（{len(dst.read_text(encoding='utf-8').splitlines())} 行）"
+        dst.write_text(_patch_text, encoding="utf-8")
+        patch_note = f" · patch `{_label(dst)}`（{len(_patch_text.splitlines())} 行）"
     entry = {"id": ident, "source": "external-submission", "facet": args.facet or "主线",
              "severity": args.severity or "medium",
              "repro": args.repro or "（无复现件：判据见 where）",
              "disposition": "fix", "owner": args.owner or "main",
              "why": f"[{args.submit}] {args.why}",
              "where": args.where or "（未写落点）"}
+    # ⚠ **来源行也要过编码闸门**（`REPOINT-SURROGATE-CRASH`）：extras 是**先写**的那一份 ⇒
+    #    只在 `append_event()` 拦会晚一步（那一行已经落盘 ✗）⇒ 与事件表**同一处定义** ✓。
+    _guard_written_text(entry, "来源行字段")
     with EXTRAS.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
     append_event({"event": "submit", "id": ident, "owner": args.owner or "external",
@@ -3641,6 +3750,9 @@ def cmd_schedule(args: argparse.Namespace) -> int:
              "disposition": "fix", "owner": args.owner,
              "why": f"[schedule] {args.title} —— {args.reason}",
              "where": args.where or "（未写落点）"}
+    # ⚠ **来源行也要过编码闸门**（与 `cmd_submit` 同一处定义 ✓）：`--title`/`--reason` 会同时
+    #    进 extras 与事件表，而 extras **先写** ⇒ 只在 `append_event()` 拦就晚了 ✗。
+    _guard_written_text(entry, "来源行字段")
     with EXTRAS.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
     append_event({"event": "schedule", "id": ident, "owner": args.owner,
@@ -3753,6 +3865,10 @@ def cmd_triage(ident: str, to: str, reason: str, commit: str, owner: str) -> int
                 row["disposition"] = want
                 row["triage"] = {"to": to, "commit": commit or None, "reason": reason or None,
                                  "owner": owner, "ts": _now()}
+                # ⚠ **这一条也写自由文本**（`triage.reason` = `--reason`；`owner` = `--owner`）
+                # ⇒ 与事件表 / 另两个来源行写入口**同一处闸门** ✓（`REPOINT-SURROGATE-CRASH`
+                # 的横向排查：只修 `append_event` 会漏这条**整文件重写**的路 ✗）。
+                _guard_written_text(row, "来源行字段")
                 line = json.dumps(row, ensure_ascii=False)
         out.append(line)
     EXTRAS.write_text("\n".join(out) + "\n", encoding="utf-8")
@@ -7604,21 +7720,26 @@ def selftest_id_and_encoding_gates(expect) -> None:
       ⑤ ⭐ **队列根必须齐 5 份**（`#5`，第八次复核）：缺必需文件 ⇒ `_guard_root` 抛
          `UsageError`（rc=2，**不是** `FileNotFoundError` 栈 + rc=1 ✗）且**点名**缺哪份；
       ⑥ **横向排查的守卫**：三个无条件读取的来源文件（缺口台账 / 索引 / `ONBOARDING.md`）
-         必须都在 `REQUIRED_ROOT_FILES` 里（以后换文件名忘了同步闸门 ⇒ 这一条先红 ✗）。
+         必须都在 `REQUIRED_ROOT_FILES` 里（以后换文件名忘了同步闸门 ⇒ 这一条先红 ✗）；
+       ⑨ **自由文本的编码闸门**（`REPOINT-SURROGATE-CRASH`，2026-10-15）：四个自由文本字段
+          **逐字段**过写盘闸门 + 来源行（extras 先写的那条缝）+ 锁文件（`claims` 是 dict 列表）
+          + `--patch` 的读入 + **真 CLI**（argv 里真带 `U+DC80`）rc=2 + 无栈 + **零写入**；
+          正对照 = 合法 UTF-8 照旧写得进去 ✓。
     """
     import contextlib
     import io
     import locale
     import tempfile
-    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
+    global EVENTS, EXTRAS, INDEX, GAPS_LEDGER, INBOX_DIR
     long_id = "FX-" + "A" * 3000
     with tempfile.TemporaryDirectory() as tmp:
         saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"],
-                 globals()["worktree_dirty"], globals()["probe_inventory"])
+                 globals()["worktree_dirty"], globals()["probe_inventory"], INBOX_DIR)
         EVENTS = Path(tmp) / "events.jsonl"
         EXTRAS = Path(tmp) / "extras.jsonl"
         INDEX = Path(tmp) / "index.md"
         GAPS_LEDGER = Path(tmp) / "ledger.jsonl"
+        INBOX_DIR = Path(tmp) / "inbox"      # ⑨i 的补丁落点（**不许碰仓库的 docs/inbox** ✗）
         globals()["lock_file"] = lambda: Path(tmp) / "q.lock"
         globals()["worktree_dirty"] = lambda: ""
         globals()["probe_inventory"] = lambda: []
@@ -7823,11 +7944,139 @@ def selftest_id_and_encoding_gates(expect) -> None:
             _she = (_sh.stderr or "") + (_sh.stdout or "")
             expect(f"⑧b `SOKO_QUEUE_SLOTS=8` 的容量**进了用户可见的 `--help`**（rc={_sh.returncode}"
                    f"；找 `**8 核**`）", _sh.returncode == 0 and "**8 核**" in _she)
+            # ⑨ ⭐⭐ **自由文本的编码闸门**（`REPOINT-SURROGATE-CRASH`，2026-10-15 · 编排者实测 ✗）：
+            #    真 CLI 实测 `--repoint <id> --reason '<含孤立代理项的文本>'` ⇒ 写事件时抛
+            #    `UnicodeEncodeError` ⇒ main 兜成 rc=2 + 「编码/环境错误」——**不点名哪个字段**，
+            #    位置还是**整条 JSON 行**里的偏移（实测 361/479/503，与 reason 里的位置无关 ✗）。
+            #    口径 = 写前显式校验（**二选一选它**：`surrogatepass` 会把非法字节真写进 UTF-8
+            #    账 ⇒ `load_events()` 读回时整本账 `UnicodeDecodeError`；`replace` 会静默把证据
+            #    改成 U+FFFD ⇒ 两条都比缺口更糟）。
+            #    臂：谓词正反 · **四个自由文本字段逐字段**过写盘闸门 · 来源行那条缝（extras 先写）·
+            #    真 CLI（子进程，argv 里带 `\udc80`）rc=2 + 无栈 + **零写入** · 正对照照旧能写 ✓。
+            _sur = "\u524d\udc80\u540e"          # 「前」+ 孤立代理项（= argv 里的非法字节 0x80）+「后」
+            expect(f"⑨a 合法文本 ⇒ `_utf8_field_problem` = None（实测 "
+                   f"{_utf8_field_problem('`--reason`', '正常文本')!r}）",
+                   _utf8_field_problem("`--reason`", "正常文本") is None)
+            _p_sur = _utf8_field_problem("`--reason`", _sur) or ""
+            expect("⑨a 含代理项 ⇒ 人话**点名 `--reason`** + **字段内的位置**（第 2 个字符）+ 码位"
+                   f"[{_p_sur[:60]}…]",
+                   "`--reason`" in _p_sur and "第 2 个字符" in _p_sur and "U+DC80" in _p_sur)
+            # ⑨b **四个自由文本字段**都要在**写盘闸门**上被拦（不只是 argv 那一条路）
+            for _fld in FREE_TEXT_FIELDS:
+                _before = EVENTS.read_text(encoding="utf-8")
+                try:
+                    append_event({"event": "advance", "id": "FX-SUR", "to": "done",
+                                  _fld: _sur, "owner": "t"})
+                    _rc_f, _msg_f = 0, ""
+                except UsageError as _e:
+                    _rc_f, _msg_f = 2, str(_e)
+                except UnicodeError as _e:
+                    # ⚠ 闸门被撤掉时走这条（**反向验证的靶子**）：让它变成一条 FAIL 行，
+                    # 而不是把整个 `--selftest` 崩成 rc=2（崩了也红，但读不出是哪条臂 ✗）。
+                    _rc_f, _msg_f = 1, str(_e)
+                expect(f"⑨b `{_fld}` 含代理项 ⇒ 写盘闸门抛 UsageError（rc={_rc_f}）+ 点名字段",
+                       _rc_f == 2 and f"`{_fld}`" in _msg_f and "编不成 UTF-8" in _msg_f)
+                expect(f"⑨b `{_fld}` 被拒时**一个字节都没写**（事件表逐字节不变 ✓）",
+                       EVENTS.read_text(encoding="utf-8") == _before)
+            # ⑨c **来源行那条缝**：`cmd_schedule` 是**先写 extras、再写事件** ⇒ 只在
+            #    `append_event` 拦会晚一步（那一行已落盘 ✗）⇒ 闸门必须在 extras 之前 ✓。
+            _before_all = (EVENTS.read_text(encoding="utf-8") + EXTRAS.read_text(encoding="utf-8"))
+            _ns_sur = sched_ns("FX-SUR-1")
+            _ns_sur.title = _sur
+            try:
+                cmd_schedule(_ns_sur)
+                _rc_s, _msg_s = 0, ""
+            except UsageError as _e:
+                _rc_s, _msg_s = 2, str(_e)
+            except UnicodeError as _e:
+                _rc_s, _msg_s = 1, str(_e)      # 闸门被撤掉时的靶子（见 ⑨b 的说明）
+            expect(f"⑨c `--schedule --title <代理项>` ⇒ 来源行闸门拦下（rc={_rc_s}）+ 点名"
+                   f"`来源行字段` + 位置/码位（title 在来源行里被嵌进 `why` ⇒ 点名的就是那个字段 ✓）",
+                   _rc_s == 2 and "来源行字段" in _msg_s and "编不成 UTF-8" in _msg_s
+                   and "U+DC80" in _msg_s)
+            expect("⑨c 被拒时 **extras + 事件表都零写入**（先写的那一份也不许落盘 ✗）",
+                   EVENTS.read_text(encoding="utf-8") + EXTRAS.read_text(encoding="utf-8")
+                   == _before_all)
+            # ⑨d **真 CLI**（子进程）：argv 里真带 `\udc80`（`subprocess` 按 `os.fsencode`
+            #    = `surrogateescape` 传给子进程 ⇒ 与 shell 里 `$'\x80'` 同一个形状 ✓）。
+            #    ⚠ 闸门长在 `main()` ⇒ **只有真 CLI 走得到**；且它在 `build_queue()` **之前**
+            #    ⇒ id 不需要真存在（这一条只验"入口闸门 + 契约码 + 不丢栈 + 零写入" ✓）。
+            _sur_ev = Path(tmp) / "sur-events.jsonl"
+            _ps = subprocess.run(
+                [sys.executable, str(Path(__file__)), "--advance", "FX-SUR-CLI", "--to", "blocked",
+                 "--reason", _sur],
+                capture_output=True, text=True, cwd=str(ROOT),
+                env=dict(os.environ, SOKO_QUEUE_ROOT=str(ROOT), SOKO_QUEUE_EVENTS=str(_sur_ev)))
+            expect(f"⑨d 真 CLI：`--reason` 含代理项 ⇒ **rc=2**（实测 {_ps.returncode}）"
+                   f"且**没有 Traceback**", _ps.returncode == 2
+                   and STACK_HEADER not in (_ps.stderr or ""))
+            expect("⑨d 且人话点名 `--reason` + **字段内的位置**（第 2 个字符）+ 给出正解（`iconv`）",
+                   "`--reason`" in (_ps.stderr or "") and "第 2 个字符" in (_ps.stderr or "")
+                   and "iconv" in (_ps.stderr or ""))
+            expect("⑨d 且**零写入**（事件表压根没被建出来 ✓）", not _sur_ev.exists())
+            # ⑨e **正对照**（不许误拒 ✗）：同一形状的**合法**文本照旧写得进去
+            append_event({"event": "advance", "id": "FX-SUR-OK", "to": "done",
+                          "reason": "正常理由", "reading": "正常读数", "owner": "t"})
+            expect("⑨e 正对照：合法 UTF-8 照旧写进事件表（1 行）",
+                   len(EVENTS.read_text(encoding="utf-8").splitlines()) == 1)
+            # ⑨f **横向排查不许漏**：四个自由文本字段必须都还是**真 argparse 选项**
+            #    （以后改名/新增却忘了同步 `FREE_TEXT_FIELDS` ⇒ 这一条先红 ✗）。
+            _known = {o for _a in build_arg_parser()._actions for o in _a.option_strings}  # noqa: SLF001
+            _lack = [f for f in FREE_TEXT_FIELDS if f"--{f.replace('_', '-')}" not in _known]
+            expect(f"⑨f `FREE_TEXT_FIELDS` 四项都对应真 CLI 选项（缺：{_lack}）", not _lack)
+            # ⑨g **锁文件**（`claims` 是 **dict 列表** ⇒ 递归闸门必须钻得进去）：
+            #    `--owner`/`--touch` 也是 argv 自由文本 ⇒ 改前同样是写文件抛 `UnicodeEncodeError` ✗。
+            _lk = Path(tmp) / "q.lock"
+            try:
+                write_lock([{"id": "FX-SUR", "owner": _sur, "resources": ["scripts/ux-queue.py"]}])
+                _rc_l, _msg_l = 0, ""
+            except UsageError as _e:
+                _rc_l, _msg_l = 2, str(_e)
+            except UnicodeError as _e:
+                _rc_l, _msg_l = 1, str(_e)
+            expect(f"⑨g 锁文件里的 `owner` 含代理项 ⇒ 拦下（rc={_rc_l}）+ 点名路径"
+                   f"`锁文件字段[0]`+`owner`",
+                   _rc_l == 2 and "锁文件字段[0]" in _msg_l and "`owner`" in _msg_l)
+            expect("⑨g 被拒时**锁文件一个字节都没写**（`os.replace` 之前就拦 ✓）", not _lk.exists())
+            # ⑨h **`--triage` 的 extras 重写**（整文件重写那条路；`reason`/`owner` 都是自由文本）
+            _before_tr = EXTRAS.read_text(encoding="utf-8")
+            try:
+                cmd_triage("FX-P", "deferred", _sur, "", "t")
+                _rc_t, _msg_t = 0, ""
+            except UsageError as _e:
+                _rc_t, _msg_t = 2, str(_e)
+            except UnicodeError as _e:
+                _rc_t, _msg_t = 1, str(_e)
+            expect(f"⑨h `--triage --reason <代理项>` ⇒ 来源行闸门拦下（rc={_rc_t}）+ 点名 "
+                   f"`triage`+`reason`",
+                   _rc_t == 2 and "来源行字段" in _msg_t and "`reason`" in _msg_t)
+            expect("⑨h 被拒时 extras **逐字节不变**（整文件重写不许写半截 ✗）",
+                   EXTRAS.read_text(encoding="utf-8") == _before_tr)
+            # ⑨i **`--patch` 的读入**（补丁读进来再写进 inbox）：非 UTF-8 ⇒ 点名 `--patch`
+            #    + **字节位置**（改前只有一句泛泛的「编码/环境错误」、不说是哪个文件 ✗）。
+            _bad_patch = Path(tmp) / "bad.patch"
+            _bad_patch.write_bytes(b"ok\n\x80bad\n")
+            _ns_p = submit_ns("FX-PATCH-1")
+            _ns_p.patch = str(_bad_patch)
+            _before_p = (EVENTS.read_text(encoding="utf-8") + EXTRAS.read_text(encoding="utf-8"))
+            try:
+                cmd_submit(_ns_p)
+                _rc_p, _msg_p = 0, ""
+            except UsageError as _e:
+                _rc_p, _msg_p = 2, str(_e)
+            except UnicodeError as _e:
+                _rc_p, _msg_p = 1, str(_e)
+            expect(f"⑨i 非 UTF-8 补丁 ⇒ 拦下（rc={_rc_p}）+ 点名 `--patch` + **字节位置**（第 4 个）",
+                   _rc_p == 2 and "`--patch" in _msg_p and "第 4 个**字节**" in _msg_p)
+            expect("⑨i 被拒时 **extras + 事件表 + inbox 都零写入**",
+                   EVENTS.read_text(encoding="utf-8") + EXTRAS.read_text(encoding="utf-8")
+                   == _before_p and not INBOX_DIR.exists())
         finally:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
             globals()["worktree_dirty"] = saved[5]
             globals()["probe_inventory"] = saved[6]
+            INBOX_DIR = saved[7]
 
 
 def selftest_write_gates(expect) -> None:
@@ -9363,6 +9612,17 @@ def main() -> int:
         _guard_slots_env()
         _guard_encoding()
         _guard_owner()
+        # ⭐ **自由文本的入口闸门**（`REPOINT-SURROGATE-CRASH`）：四个自由文本选项在**派发前**
+        # 就过 `_utf8_field_problem`（与写盘闸门**同一处定义** ✓）⇒ ① 任何子命令都当场得到
+        # rc=2 + 点名字段 + 字段内位置；② 连 `--dry-run` 也**不留缝**（改前：dry-run 打"计划
+        # 成功"、真跑才炸 ✗）；③ 写盘那两处（`append_event` / 来源行）仍各自兜底 ⇒
+        # 不是 argv 来的文本（将来的新字段）照样拦得住 ✓。
+        for _f in FREE_TEXT_FIELDS:
+            _v = getattr(args, _f, None)
+            if isinstance(_v, str):
+                _why = _utf8_field_problem(f"`--{_f.replace('_', '-')}`", _v)
+                if _why is not None:
+                    raise UsageError(_why)
         if args.selftest:
             return cmd_selftest(args)
         rows, undecided = build_queue()
