@@ -153,8 +153,35 @@ Claude Code 风格的 `PreToolUse` hook：
 echo '{"tool_name":"bash","tool_input":{"command":"lake build"}}' | node dsh/hooks/refuse-lean-toolchain.js; echo "EXIT=$?"
 ```
 
-匹配的是**命令位**的 `lean|lake|leanc|lean4export|elan`（可带 `.exe`，允许
-`cd x && lake …`、`$(lean …)`），所以 `grep -rn lean docs/` 这类**不会**被误拦。
+匹配的是**命令位**的 `lean|lake|leanc|lean4export|elan`（可带 `.exe`），
+所以 `grep -rn lean docs/`、`ls lean-toolchain` 这类**不会**被误拦。
+
+**口径（2026-10-15 修 `SUB-toolchain-guard-code-fence-false-positive`，用户亲报）**：
+硬规则 2 禁的是**调用**、**引用**必须放行 —— 否则守卫会挡住本仓自己要求的动作
+（「卡住 ⇒ 先读 Lean 4 源码，先交 3–6 行『Lean 4 对照』⇒ **落 commit message**」，
+2026-10-05 拍板）。旧口径把**反引号**当命令位 ⇒ markdown 围栏（三反引号 + 语言标签）
+与行内引用全命中 ✗（实测：`--submit` 被拒两次、最后靠 `sed` 替换词才过 ✗；
+最近 2000 笔 commit message 里那笔真·「Lean 4 对照」也被拦 ✗）。新口径两步：
+
+1. **先剥文档块载荷**：围栏块（三个反引号 / 三个波浪号）与 markdown 表格行
+   （行首 `|`）—— 它们不是 shell 语法，里面的行首工具链名是「引用」；
+2. **命令位 = shell 的语句起点**：串首 / 换行 / `;` `|` `&` / `$(` / `<(` / `>(` /
+   保留字后的子壳 / 分组 `(` `{`（**分组符自己也得在命令位上** —— shell 里
+   `foo (x)` 是语法错误）。**反引号不算命令位**（markdown 里它是引用语法），
+   现代写法 `$( … )` 照旧拦 ✓（`cd x && lake …` 也照旧拦 ✓）。
+
+边界由自检钉住（**改口径必须同时改它**；跑的是真程序 + 真协议，不是把正则抄一遍）：
+
+```bash
+node dsh/hooks/refuse-lean-toolchain.test.js    # 52 条用例 ⇒ rc=0
+```
+
+**残余误报**（已知、有意留着，逐条理由写在自检里）：`)` 后的散文（修它会丢掉
+`f() { … }` / `case a) …` 两个真形状）· 缩进代码块（缩进在 shell 里不改变命令位）·
+**行内**表格行（与真管道 `a | b` 无法区分）· 围栏开头**不在行首**（紧跟引号 ⇒ 按
+markdown 规则它不是围栏；把围栏写到行首即可）。**已知缺口**（旧口径也有）：
+绝对路径、`env`、`bash -c` 这类间接调用 —— 本守卫是**绊线**，不是沙箱。
+
 没开这个 hook 时，这条硬规则在 DSH 里退回为文档纪律（`AGENTS.md` 硬规则速记）。
 
 ## 换 harness 时怎么办
