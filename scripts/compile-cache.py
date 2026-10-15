@@ -397,7 +397,19 @@ def cmd_status(as_json: bool, quiet: bool) -> int:
 
 
 def cmd_env(ident: str) -> int:
-    """打印某棵工作树要 export 的受管环境（**独立 target + 共享 sccache + 队列单点** ✓）。"""
+    """打印某棵工作树要 export 的受管环境（**独立 target + 共享 sccache + 队列单点** ✓）。
+
+    ⚠ **`SOKO_QUEUE_ROOT` 必须是主工作树，不是"当前 checkout"** ✗
+    （洞 `COMPILE-CACHE-EXPORTS-QUEUE-ROOT`，2026-10-15）：队列状态是**主 checkout 单点**
+    （`scripts/agent-worktree.sh:25` 的契约：「事件/台账只在主 checkout 上写 ✓」），
+    而这里曾导出 `REPO` = **跑本脚本的那棵工作树** ⇒ 在链接工作树里 `eval "$(compile-cache.py env …)"`
+    之后，`ux-queue.py` 会去读**工作树那份开树时的副本**（`ux-queue.py` 只在**没设**该变量时才拒绝，
+    设了错值它照读 ✗）⇒ **守卫静默审错对象**：不报错、只是量的不是同一本账
+    （实测：往工作树副本塞一条合成事件 ⇒ 同一棵树、同一条命令，沿用导出值报
+    「✗ 幽灵条目」rc=1，而指回主 checkout rc=0 ✓）。
+    ⇒ 与 `scripts/ci-local.sh` 的 `ledger` 步**同一件仪器**：`git worktree list` **第一行**
+    （`main_worktree()`，git 保证主工作树排在最前 ✓）；量不到（不是 git 仓）就退回 `REPO` ✓。
+    """
     if not ident:
         raise SystemExit("用法：compile-cache.py env <id>")
     target = CACHE_ROOT / "targets" / ident
@@ -407,8 +419,10 @@ def cmd_env(ident: str) -> int:
         f'export SCCACHE_CACHE_SIZE="{int(budget_bytes() / 1024**3)}G"',
         'export RUSTC_WRAPPER="$(command -v sccache || true)"   # 没装就留空 ⇒ 优雅降级 ✓',
         'export CARGO_INCREMENTAL=0                            # incremental 是本机最大的占用（23 G ✗）',
+        # `SOKONANODA_CACHE_DIR` 与 `CARGO_TARGET_DIR` **相反**：编译产物缓存**按工作树独立**
+        # （`agent-worktree.sh:26`「独立缓存（与 G-112 同族的坑）」）⇒ 这里要的就是 `REPO` ✓。
         f'export SOKONANODA_CACHE_DIR="{(REPO / ".cache" / "soko" / ident)}"',
-        f'export SOKO_QUEUE_ROOT="{REPO}"',
+        f'export SOKO_QUEUE_ROOT="{MAIN_WORKTREE}"',
     ]
     print("\n".join(lines))
     return 0
@@ -573,12 +587,39 @@ def selftest() -> int:
             for k, v in saved.items():
                 globals()[k] = v
 
+    # `cmd_env` 的**根口径**（洞 `COMPILE-CACHE-EXPORTS-QUEUE-ROOT`，2026-10-15 ✗⇒✓）：
+    # 同一个 env 块里两个"根"**故意相反**，两边都要钉住 —— 只钉一边就会把另一边改错 ✗：
+    #   `SOKO_QUEUE_ROOT` = **主工作树**（队列状态单点，`agent-worktree.sh:25` 的契约）；
+    #   `SOKONANODA_CACHE_DIR` = **当前 checkout**（编译产物缓存按工作树独立，`agent-worktree.sh:26`）。
+    # 反向验证：把两者设成**两个不同目录** ⇒ 导出的值必须**各自**对上（谁跟错根都判红 ✓）。
+    saved_env = {k: globals()[k] for k in ("REPO", "MAIN_WORKTREE", "CACHE_ROOT")}
+    import contextlib as _cl
+    import io as _io
+
+    globals()["REPO"] = Path("/m/wt")
+    globals()["MAIN_WORKTREE"] = Path("/m/main")
+    globals()["CACHE_ROOT"] = Path("/m/main/.cache/compile")
+    try:
+        buf = _io.StringIO()
+        with _cl.redirect_stdout(buf):
+            cmd_env("probe")
+        env = buf.getvalue()
+        expect("`SOKO_QUEUE_ROOT` 导出**主工作树**（不是当前 checkout ✗）",
+               'export SOKO_QUEUE_ROOT="/m/main"' in env)
+        expect("`SOKONANODA_CACHE_DIR` 导出**当前 checkout**（编译缓存按树独立 ✓）",
+               'export SOKONANODA_CACHE_DIR="/m/wt/.cache/soko/probe"' in env)
+        expect("`CARGO_TARGET_DIR` 跟随**受管根**（主工作树 ✓）",
+               'export CARGO_TARGET_DIR="/m/main/.cache/compile/targets/probe"' in env)
+    finally:
+        for k, v in saved_env.items():
+            globals()[k] = v
+
     if bad:
         print(f"compile-cache.py selftest: {bad} 条判据不成立 ✗", file=sys.stderr)
         return 1
-    print("compile-cache.py selftest: 16 条成立 ✓（死树优先 · LRU 最旧优先 · 预算反向验证 · "
+    print("compile-cache.py selftest: 19 条成立 ✓（死树优先 · LRU 最旧优先 · 预算反向验证 · "
           "registry/默认预算 · **空 dict ≠ 没传** · **回收余量 5% / `reserve_gb` / 判红线口径不变** · "
-          "**孤儿 target 被枚举成 dead** · **受管面跟随主工作树**）")
+          "**孤儿 target 被枚举成 dead** · **受管面跟随主工作树** · **`cmd_env` 的根口径：队列单点=主工作树 / 编译缓存=当前 checkout**）")
     return 0
 
 
