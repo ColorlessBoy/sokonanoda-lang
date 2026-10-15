@@ -64,7 +64,16 @@ run_state() {
   SOKO_UNIVERSE_METAVAR="$mode" "$BIN" query check --file "$WORK/u1.sokonanoda" \
     | python3 -c '
 import json, sys
-d = json.load(sys.stdin)["data"]
+# ⭐ **零观测闸门**（2026-10-15，洞 `GATE-FALSE-GREEN-11-MORE`）：本件原来把
+# `query check` 的输出**直接 json.load** —— 零观测（零输出 / 拒跑）时 Python 抛栈
+# ⇒ 退出码 1（本件约定 = 判据不成立）⇒ **空观测被读成判据结论** ✗。⇒ 这里**只**把
+# "解析不出来"这一种情形（= 零观测 ✓）记成哨兵 `{"checked": null, ...}`，交给下面的
+# 判据打印 exit 2；**其余异常一概不吞** ✗（不许把所有异常都读成 exit 2 ✓）。
+try:
+    d = json.load(sys.stdin)["data"]
+except Exception:
+    print(json.dumps({"checked": None, "failed_lines": None}))
+    sys.exit(0)
 failed = sorted(f.get("start_line") or 0 for f in (d.get("failed") or []))
 print(json.dumps({"checked": d["counts"]["decl_checked"], "failed_lines": failed}))
 ' > "$out"
@@ -82,6 +91,16 @@ on = json.load(open(sys.argv[2]))
 T1, T2, BAD = 3, 4, 5
 bad = []
 
+# ⭐ **零观测 ⇒ exit 2**（2026-10-15，洞 `GATE-FALSE-GREEN-11-MORE`）：两态里任何一档
+# 没拿到 `query check` 的 JSON（`checked is None` = 上面记的哨兵 ✓）⇒ 这次判卷
+# **什么都没观测到** ⇒ 不是判据结论 ✗。
+for tag, r in (("开关关", off), ("开关开", on)):
+    if r.get("checked") is None:
+        print(f"U1：{tag} 观测不到 query check 的答案（零输出 / 拒跑）⇒ 环境/形状异常（exit 2），不是判据结论 ✗",
+              file=sys.stderr)
+        print("      · 常见成因：scripts/soko 拒跑（exit 3 / 无版本匹配构建）/ 量具空转 / 夹具不对",
+              file=sys.stderr)
+        sys.exit(2)
 print(f"  开关关：checked={off['checked']} 判红行={off['failed_lines']}")
 print(f"  开关开：checked={on['checked']} 判红行={on['failed_lines']}")
 

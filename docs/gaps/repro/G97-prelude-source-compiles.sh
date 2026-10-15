@@ -25,6 +25,21 @@ for f in prelude/Prelude.sokonanoda prelude/L1.sokonanoda; do
     echo "G-97: 跑不起来（scripts/soko grade $f ⇒ exit 2）" >&2
     exit 2
   fi
+  # ⭐ **零观测闸门（两个方向都堵）**（2026-10-15，洞 `GATE-FALSE-GREEN-11-MORE`）：
+  # 判据是"诊断 0 条 + exit 0" ⇒ 它**同时**有两个洞 ✗：
+  #   ① **零观测 ⇒ 假绿**：量具空转（零事件、exit 0）时 `diag=0` ⇒ 逐字读成「已修」✗；
+  #   ② **拒跑 ⇒ 假红**：`scripts/soko` 拒跑（exit 3、零事件）时 `code!=0` ⇒ 读成
+  #      「缺口仍在」✗（什么都没跑，却说缺口还在）。
+  # ⇒ 先要求这次判卷**真的吐出事件**（可归属 ✓：本夹具的 `decl.checked` 或一条诊断）；
+  # 零事件 ⇒ **exit 2 + 人话**，两个方向都不许读成结论 ✗。同族形状：G69 的「无事件行 ⇒ exit 2」。
+  events=$(printf '%s\n' "$out" | grep -cE '"type":"(decl\.checked|diagnostic)"')
+  if [ "$events" -eq 0 ]; then
+    echo "G-97：观测不到判卷事件（$f ⇒ exit=$code / 事件 0 条）⇒ 环境/形状异常（exit 2）——" >&2
+    echo "      零观测**两个方向都不许读成结论** ✗：既不是「已修」（假绿 ✗）也不是「缺口仍在」（假红 ✗）" >&2
+    echo "      · 常见成因：scripts/soko 拒跑（exit 3 / 无版本匹配构建）/ 量具空转 / 路径或模块根不对" >&2
+    printf '%s\n' "$out" | grep -v '^[[:space:]]*$' | head -3 | sed 's/^/        → /' >&2
+    exit 2
+  fi
   diag=$(printf '%s\n' "$out" | grep -c '"type":"diagnostic"')
   if [ "$code" != 0 ] || [ "$diag" != 0 ]; then
     echo "G-97 缺口仍在 ✗：$f ⇒ exit=$code / 诊断 $diag 条"

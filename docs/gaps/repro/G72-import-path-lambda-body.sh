@@ -57,15 +57,32 @@ theorem use (α : Type) (r : α → α → Prop) (a : α) (h : mkRel α r a a) :
   And.left h
 EOF
 
-run() { # $1 = 绝对路径
-  node "$SOKO" query check --file "$1" >/dev/null 2>&1
+run() { # $1 = 绝对路径 · $2 = 输出落盘（原来直接丢弃 ⇒ 没法判"有没有观测" ✗）
+  node "$SOKO" query check --file "$1" > "$2" 2>&1
   echo $?
 }
 
-A=$(run "$TMP/lib/Lib.sokonanoda")
-B=$(run "$TMP/units/u.sokonanoda")
+A=$(run "$TMP/lib/Lib.sokonanoda" "$TMP/a.json")
+B=$(run "$TMP/units/u.sokonanoda" "$TMP/b.json")
 echo "相位 A（模块单文件判卷） exit=$A   （期望 0）"
 echo "相位 B（入口 import 后判卷） exit=$B   （今天 ≠ 0）"
+
+# ⭐ **零观测闸门**（2026-10-15，洞 `GATE-FALSE-GREEN-11-MORE`）：本件的读数**只有
+# `query check` 的 exit 码**，而量具空转（零输出 / 拒跑）时它**恒为 0** ⇒ 两态都读成
+# "都绿" ⇒ 逐字落进「G-72 已修」= **假绿** ✗。⇒ 先要求两次查询真的**答出了本夹具的
+# 声明**（可归属 ✓：`query check` 的 JSON 里 `decl_checked ≥ 1` 或 `failed` 非空 ——
+# 两者都只可能来自真的跑了夹具 ✓）；观测不到 ⇒ **exit 2 + 人话**。
+need_answer() { # $1 = 档名 · $2 = JSON 文件
+  if [ ! -s "$2" ] || ! grep -qE '"decl_checked": [1-9]|"failed": \[$' "$2"; then
+    echo "G-72 $1：观测不到 query check 的答案（既没有判过的声明，也没有失败项）⇒ 环境/形状异常（exit 2），不是判据结论 ✗" >&2
+    echo "      · 本件的读数就是 query check 的退出码；零输出时它恒为 0 ⇒ 「已修」没有信息量 ✗" >&2
+    echo "      · 常见成因：scripts/soko 拒跑（exit 3 / 无版本匹配构建）/ 量具空转 / 夹具或模块根不对" >&2
+    printf '%s\n' "$(head -3 "$2" 2>/dev/null)" | sed 's/^/        → /' >&2
+    exit 2
+  fi
+}
+need_answer "相位 A（$TMP/lib/Lib.sokonanoda）" "$TMP/a.json"
+need_answer "相位 B（$TMP/units/u.sokonanoda）" "$TMP/b.json"
 
 if [ "$A" != "0" ]; then
   echo "✗ 相位 A 都不绿 ⇒ 复现件的形状变了（不是 G-72）" >&2

@@ -51,6 +51,19 @@ for line in sys.stdin:
 print(" ".join(codes))
 ')"
 
+# ⭐ **零观测闸门**（2026-10-15，洞 `GATE-FALSE-GREEN-11-MORE`）：判据是**诊断码**，
+# 而「已修」那一档要的正是"一条诊断都没有" ⇒ **量具空转（零事件 / 零输出）时读数与
+# 「已修」逐字相同** ✗ = **假绿**。⇒ 先要求这次判卷真的观测到**本夹具的声明事件**
+# （可归属 ✓）或**一条诊断**；两样都没有 ⇒ **exit 2 + 人话**，绝不报「已修」✗。
+# 同族已修好的形状：`G69` 的「无事件行 ⇒ exit 2」· `G34` 的「calls==0 ⇒ exit 2」。
+if ! printf '%s' "$out" | grep -qE '"name":"unfold_mem_univ","type"|"name":"mem_univ_holds","type"|"type":"diagnostic"'; then
+  echo "G-41：观测不到判卷事件（既没有本夹具两条定理的声明事件，也没有诊断）⇒ 环境/形状异常（exit 2），不是「已修」✗" >&2
+  echo "      · 这条判据量的就是诊断码；一条事件都没有时 codes 恒为空 ⇒ 「已修」没有信息量 ✗" >&2
+  echo "      · 常见成因：scripts/soko 拒跑（exit 3 / 无版本匹配构建）/ 量具空转 / 夹具或模块根不对" >&2
+  printf '%s\n' "$out" | grep -v '^[[:space:]]*$' | head -3 | sed 's/^/        → /' >&2
+  exit 2
+fi
+
 echo "诊断码：${codes:-（无）}"
 case "$codes" in
   *elab-tactic-failed*|*kernel-rejected*|*elab-implicit-argument-unsolved*|*elab-notation-argument-unsolved*)

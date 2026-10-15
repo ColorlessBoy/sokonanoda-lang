@@ -25,9 +25,21 @@ theorem l10_probe (alpha : Type) (F : Set (Set alpha)) (x : alpha)
   Set.mem_sInter_intro alpha F x h
 SOKO
 
-node scripts/soko query check --file "$ROOT/$PROBE" >/dev/null 2>&1
+out="$(node scripts/soko query check --file "$ROOT/$PROBE" 2>&1)"
 rc=$?
+# ⚠ 探针文件先删（提到闸门**之前** ✓）—— 否则闸门 `exit 2` 时会把探针残留在 `courses/`里 ✗
 rm -f "$PROBE"
+# ⭐ **零观测闸门**（2026-10-15，洞 `GATE-FALSE-GREEN-11-MORE` 的横向扫）：本件的判据
+# **只有 `query check` 的退出码**，而**量具空转（零输出 / 拒跑）时它恒为 0** ⇒ 逐字落进
+# 「已修」= **假绿** ✗。⇒ 先要求这次查询真的**答出了本夹具**（可归属 ✓：
+# `decl_checked ≥ 1` 或 `failed` 非空 —— 两者都只可能来自真的跑了夹具 ✓）；观测不到 ⇒
+# **exit 2 + 人话**，不拿空观测当结论 ✗。
+if ! printf '%s' "$out" | grep -qE '"decl_checked": [1-9]|"failed": \[$'; then
+  echo "L-10：观测不到 query check 的答案（既没有判过的声明，也没有失败项）⇒ 环境/形状异常（exit 2），不是判据结论 ✗" >&2
+  echo "      · 常见成因：scripts/soko 拒跑（exit 3 / 无版本匹配构建）/ 量具空转 / 夹具或模块根不对" >&2
+  printf '%s\n' "$out" | grep -v '^[[:space:]]*$' | head -3 | sed 's/^/        → /' >&2
+  exit 2
+fi
 
 if [ "$rc" -eq 0 ]; then
   echo "L-10 已修：探针判绿（Set.mem_sInter_intro 在且可用）"

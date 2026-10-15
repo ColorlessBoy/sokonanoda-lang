@@ -98,7 +98,16 @@ run_state() {
   fi
   python3 -c '
 import json, sys
-d = json.load(open(sys.argv[1]))["data"]
+# ⭐ **零观测闸门**（2026-10-15，洞 `GATE-FALSE-GREEN-11-MORE`）：本件原来把
+# `query check` 的输出**直接 json.load** —— 零观测（零输出 / 拒跑）时 Python 抛栈
+# ⇒ 退出码 1 = 「已修」= **假绿** ✗。⇒ 这里**只**把"解析不出来"这一种情形
+# （= 零观测 ✓）记成哨兵 `{"checked": null, ...}`，交给下面的判据打印 exit 2；
+# **其余异常一概不吞** ✗（不许把所有异常都读成 exit 2 ✓）。
+try:
+    d = json.load(open(sys.argv[1]))["data"]
+except Exception:
+    print(json.dumps({"checked": None, "failed_lines": None}))
+    sys.exit(0)
 failed = sorted(f.get("start_line") or 0 for f in (d.get("failed") or []))
 checked = d["counts"]["decl_checked"]
 print(json.dumps({"checked": checked, "failed_lines": failed}))
@@ -115,6 +124,18 @@ d = json.load(open(sys.argv[1]))
 e = json.load(open(sys.argv[2]))
 # 行号（见 heredoc）：t=4 · t2=5 · t3=6
 T, T2, T3 = 4, 5, 6
+
+# ⭐ **零观测 ⇒ exit 2**（不是 exit 0 / 1 ✗）：两态里任何一档没拿到 `query check` 的
+# JSON（`checked is None` = 上面记的哨兵 ✓）⇒ 这次判卷**什么都没观测到** ⇒ 既不报
+# 「已修」也不报「缺口仍在」✗。同族形状：G69 的「无事件行 ⇒ exit 2」。
+for tag, r in (("默认档", d), ("逃生门", e)):
+    if r.get("checked") is None:
+        print(f"G-30b：{tag} 观测不到 query check 的答案（零输出 / 拒跑）⇒ 环境/形状异常"
+              f"（exit 2），不是「已修」也不是「缺口仍在」✗", file=sys.stderr)
+        print("      · 常见成因：scripts/soko 拒跑（exit 3 / 无版本匹配构建）/ 量具空转 / 夹具不对",
+              file=sys.stderr)
+        sys.exit(2)
+
 print(f"  默认档：checked={d['checked']} 判红行={d['failed_lines']}")
 print(f"  逃生门：checked={e['checked']} 判红行={e['failed_lines']}")
 

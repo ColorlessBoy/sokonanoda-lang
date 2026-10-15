@@ -88,20 +88,29 @@ DIR="$(mktemp -d "${TMPDIR:-/tmp}/soko-g93-XXXXXX")"
 trap 'rm -rf "$DIR"' EXIT
 printf '[project]\nname = "g93"\n' > "$DIR/sokonanoda.toml"
 
-judge() { # $1 = 文件 ⇒ 打印「绿」或「红:<诊断>」
+judge() { # $1 = 文件 ⇒ 打印「绿」/「红:<诊断>」/「空观测」
   rm -rf "$DIR/cache"
   SOKONANODA_NO_PROJECT_ARTIFACTS=1 SOKONANODA_CACHE_DIR="$DIR/cache" \
     timeout 120 "$BIN" grade --json "$1" 2>/dev/null | python3 -c '
 import json, sys
 bad = []
+events = 0
 for line in sys.stdin:
     try:
         e = json.loads(line)
     except Exception:
         continue
+    events += 1
     if e.get("type") == "diagnostic":
         bad.append(str(e.get("code")) + ": " + str(e.get("message")))
-print("绿" if not bad else "红:" + " / ".join(bad[:2]))
+# ⭐ **零观测闸门**（2026-10-15，洞 `GATE-FALSE-GREEN-11-MORE`）：判据是"有没有诊断"，
+# 而**量具空转（零事件 / 零输出）时 bad 必然为空** ⇒ 逐字打印「绿」⇒ 五档全绿 ⇒
+# 「行为变了 ⇒ 已修」= **假绿** ✗。⇒ 零事件一律打印 `空观测`（**不是**「绿」✗），
+# 由下面的控制相位把它判成 exit 2 ✓。同族形状：G69 的「无事件行 ⇒ exit 2」。
+if events == 0:
+    print("空观测")
+else:
+    print("绿" if not bad else "红:" + " / ".join(bad[:2]))
 '
 }
 
@@ -137,6 +146,18 @@ echo "  相位 C（用户症状面 · Eq.refl 当项）: $c"
 echo "  相位 D（指向式类型 · 值位 sorry）  : $d"
 echo "  相位 E（记法类型 · 值位 sorry 对照）: $e"
 
+# ⭐ **零观测闸门**（2026-10-15，洞 `GATE-FALSE-GREEN-11-MORE`）：五档读数全部来自
+# `judge()` 的"有没有诊断"，量具空转时它恒为空 ⇒ 旧代码把五档都印成「绿」⇒ 逐字落进
+# 「行为变了 ⇒ 已修」= **假绿** ✗。⇒ 任何一档是 `空观测` ⇒ **exit 2 + 人话**，
+# 绝不拿"空观测"当判据结论 ✗（下面的 B/E 对照仍然照旧 ✓）。
+for _p in "A:$a" "B:$b" "C:$c" "D:$d" "E:$e"; do
+  if [ "${_p#*:}" = "空观测" ]; then
+    echo "G-93：相位 ${_p%%:*} 观测不到任何判卷事件 ⇒ 环境/形状异常（exit 2），不是判据结论 ✗" >&2
+    echo "      · 本件五档判据量的都是「有没有诊断」；零事件时它恒为空 ⇒ 「绿」没有信息量 ✗" >&2
+    echo "      · 常见成因：scripts/soko 拒跑（exit 3 / 无版本匹配构建）/ 量具空转 / 夹具或模块根不对" >&2
+    exit 2
+  fi
+done
 if [ "$b" != "绿" ] || [ "$e" != "绿" ]; then
   echo "环境/夹具异常：对照相位 B / E 必须判绿 ✓（它们红了 ⇒ 夹具或二进制不对 ✗）" >&2
   exit 2
