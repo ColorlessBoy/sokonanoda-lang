@@ -41,8 +41,10 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 # ── 预算常量（改这里 = 改判据 ⇒ 必须写理由 ✓）────────────────────────────────
@@ -64,6 +66,94 @@ MAX_ARCHIVE_BYTES = 2_500_000  # ⑥ 归档总量（本轮实测 2.12 MB）
 BUDGET = Path("scripts/docs-budget.json")
 DOC_REFS = Path("scripts/doc-refs-baseline.json")
 SRC_LINES = Path("scripts/src-lines-baseline.json")
+
+# ── 自检沙箱（`DOCSLINT-SELFTEST-POLLUTES-REAL-REPO`，2026-10-15 ✓）─────────────
+# **病根**：`--selftest` 靠"改真文档 ⇒ 判据必须报红 ⇒ 再还原"证明判据咬得住，
+# 而它**改的就是真仓库** ✗ ⇒ 两条漏法都实测到了：
+#   ① **并发**：两个自检互相踩 —— A 的还原把 B 读到/写下的变异当"原文"写回去
+#      ⇒ 残留（实测复现出与事故**同形**的读数：`REQUIREMENTS.md` 219→**919**、
+#      `docs/LESSONS.md` 590→**2790**、`docs/design/e2-plan.md` 604→**742** ✓）；
+#      更狠的变体：并发读撞上 `write_text` 的"先截断后写" ⇒ 读到空串 ⇒ 还原成
+#      **空文件**（内容丢失 ✗）。
+#   ② **击杀**：进程被 `timeout`/SIGTERM 打断时 `finally` **根本不会执行** ✗
+#      （实测 `kill -TERM` rc=143 ⇒ `LESSONS.md` 停在 2790 行）。
+# ⇒ 被测对象被自检破坏：之后 `docs-lint` 判红 ⑦（层/必读合计虚高）、
+#   `gate --fast` 报「**文档判据咬不住**」✗ —— 而后者的直接成因是判据 ① 的
+#   "当前总量 − 1"基线被并发进程的收放搅动（实测：并发下 `✗ ①` 假红 = 18/19 ✓）。
+# **修法**：自检全程在**临时目录的副本**上做 —— 既有文件先逐字节复制进沙箱，
+# 夹具只写沙箱。判据**读**路径 `_rp()` 优先取沙箱副本 ⇒ 读数与"真改"**等价**
+# （保真 ✓：判据量的仍是"真仓库这批文档被改后"的样子）；**写**路径 `_wp()`
+# **只可能**落在沙箱里（越界即报错，绝不静默改真仓库 ✗）。
+# 副产品 ✓：每个自检进程有**私有**沙箱 ⇒ 判据 ① 的基线不再被别的进程搅动。
+_SANDBOX: Path | None = None
+
+# `--selftest` 会改写的**既有**文件（必须先复制进沙箱，否则写会漏回真仓库 ✗）。
+# 只列既有文件 ✓：新建的夹具（`.tmp` / `__docref_*` / `__srclines_*` …）由 `_wp()`
+# 直接建在沙箱里 —— 它们靠 `tracked()` 的沙箱并集被发现（等价于真仓库里的未跟踪文件 ✓）。
+SELFTEST_MUTATED_FILES = (
+    "REQUIREMENTS.md",  # ③ +700 行
+    "docs/LESSONS.md",  # ②④ +2200 行
+    "docs/design/e2-plan.md",  # ③ +138 / +300 行
+    "docs/design/notation-subset.md",  # ④ +300 行
+    "scripts/docs-budget.json",  # ⑦ 临时改 `onboarding` 上限
+)
+
+
+def _rp(p: str | Path) -> Path:
+    """**读**路径：沙箱里有副本 ⇒ 读副本（自检的变异对判据可见 ✓），否则读真仓库。"""
+    q = Path(p)
+    if _SANDBOX is not None:
+        cand = _SANDBOX / q
+        if cand.exists():
+            return cand
+    return q
+
+
+def _wp(p: str | Path) -> Path:
+    """**写**路径：沙箱开着 ⇒ 只可能落在沙箱里（越界 ⇒ 报错，绝不静默改真仓库 ✗）。"""
+    q = Path(p)
+    if _SANDBOX is None:
+        return q
+    if q.is_absolute() or ".." in q.parts:
+        raise AssertionError(f"自检写路径越界：{q}（只允许仓库相对路径）")
+    cand = _SANDBOX / q
+    cand.parent.mkdir(parents=True, exist_ok=True)
+    return cand
+
+
+def _scan_roots(sub: str) -> list[Path]:
+    """目录级扫描的根：真仓库 + 沙箱（调用方去重 ✓）。
+
+    为什么不是"沙箱有就只扫沙箱" ✗：沙箱只镜像被改写的那几份 ⇒ 只扫沙箱会让
+    真仓库里的其它文件（别的垃圾、别的归档）**看不见** ⇒ 方向性用例失去保真 ✗。
+    """
+    roots = [Path(sub)]
+    if _SANDBOX is not None and (_SANDBOX / sub).exists():
+        roots.append(_SANDBOX / sub)
+    return roots
+
+
+def _walk_union(sub: str) -> dict[str, Path]:
+    """`sub` 下的文件：真仓库 ∪ 沙箱 ⇒ `{仓库相对路径: 实际路径}`（沙箱副本优先 ✓）。"""
+    out: dict[str, Path] = {}
+    base = Path(sub)
+    if base.exists():
+        for p in base.rglob("*"):
+            if p.is_file():
+                out[str(p)] = p
+    if _SANDBOX is not None and (_SANDBOX / sub).exists():
+        sb = _SANDBOX / sub
+        for p in sb.rglob("*"):
+            if p.is_file():
+                out[str(p.relative_to(_SANDBOX))] = p
+    return out
+
+
+def _sandbox_files() -> set[str]:
+    """沙箱里的文件（**仓库相对路径**）—— 新建的夹具要能被 `tracked()` 看见 ✓。"""
+    if _SANDBOX is None or not _SANDBOX.exists():
+        return set()
+    return {str(p.relative_to(_SANDBOX)) for p in _SANDBOX.rglob("*") if p.is_file()}
 
 # ⑨ 源码行数红线（STRUCT-SRC-LINES，2026-10-12）：`AGENTS.md` 硬规则 5
 # 「文件接近 ~500 行即拆分」此前**只有散文、没有机器判据** ✗ —— 判据 ②（单文件
@@ -147,11 +237,14 @@ def tracked() -> set[str]:
         text=True,
         check=True,
     ).stdout
-    return {p for p in out.split("\0") if p}
+    files = {p for p in out.split("\0") if p}
+    # 自检沙箱里的夹具 = "真仓库里新建的（未跟踪）文件" ⇒ 并进来
+    # （等价于 `git ls-files --others` 会列出它们 ✓ —— 见 `_sandbox_files()`）。
+    return files | _sandbox_files()
 
 
 def line_count(path: Path) -> int:
-    return len(path.read_text(encoding="utf-8", errors="replace").splitlines())
+    return len(_rp(path).read_text(encoding="utf-8", errors="replace").splitlines())
 
 
 def live_docs(files: set[str]) -> list[str]:
@@ -193,7 +286,7 @@ def scan_doc_refs(files: set[str]) -> dict[str, list[str]]:
     口径见 `DOC_REF_*` 常量上的说明（活指针 / 历史台账豁免 / 历史标记）。
     **零扫描不许当绿**：调用方负责核对"扫过的文件数 > 0"（判据 ① 已有同款地板）。
     """
-    existing = {f for f in files if Path(f).exists()}
+    existing = {f for f in files if _rp(f).exists()}
     targets = [
         f
         for f in sorted(files)
@@ -206,7 +299,7 @@ def scan_doc_refs(files: set[str]) -> dict[str, list[str]]:
     ]
     out: dict[str, list[str]] = {}
     for f in targets:
-        p = Path(f)
+        p = _rp(f)
         if not p.exists() or p.suffix in {".png", ".jpg", ".gif", ".vsix"}:
             continue
         try:
@@ -238,7 +331,7 @@ def scan_src_lines(files: set[str]) -> dict[str, int]:
             continue
         if "/src/" not in f or SRC_LINES_EXCLUDE.search(f):
             continue
-        p = Path(f)
+        p = _rp(f)
         if not p.exists():
             continue
         n = line_count(p)
@@ -250,10 +343,10 @@ def scan_src_lines(files: set[str]) -> dict[str, int]:
 def load_src_lines_baseline() -> dict:
     if _SRC_LINES_OVERRIDE is not None:  # 自检注入
         return _SRC_LINES_OVERRIDE
-    if not SRC_LINES.exists():
+    if not _rp(SRC_LINES).exists():
         return {}
     try:
-        return (json.loads(SRC_LINES.read_text(encoding="utf-8")) or {}).get("files") or {}
+        return (json.loads(_rp(SRC_LINES).read_text(encoding="utf-8")) or {}).get("files") or {}
     except (json.JSONDecodeError, OSError):
         return {}
 
@@ -295,10 +388,10 @@ def load_doc_refs_baseline() -> dict:
     """⑧ 基线：`{"paths": {path: {"count": N, "reason": "…"}}}`（缺失 ⇒ 空基线）。"""
     if _DOC_REFS_PATHS_OVERRIDE is not None:  # 自检注入（见 selftest ✓）
         return _DOC_REFS_PATHS_OVERRIDE
-    if not DOC_REFS.exists():
+    if not _rp(DOC_REFS).exists():
         return {}
     try:
-        return (json.loads(DOC_REFS.read_text(encoding="utf-8")) or {}).get("paths") or {}
+        return (json.loads(_rp(DOC_REFS).read_text(encoding="utf-8")) or {}).get("paths") or {}
     except (json.JSONDecodeError, OSError):
         return {}
 
@@ -337,30 +430,31 @@ def check_doc_refs(files: set[str]) -> tuple[list[str], dict]:
 
 
 def load_budget() -> dict[str, int]:
-    if not BUDGET.exists():
+    if not _rp(BUDGET).exists():
         return {}
-    return json.loads(BUDGET.read_text(encoding="utf-8")).get("frozen", {})
+    return json.loads(_rp(BUDGET).read_text(encoding="utf-8")).get("frozen", {})
 
 
 def load_raw_budget() -> dict:
     """整份 `docs-budget.json`（判据 ⑦ 要读 `onboarding` 一节，不只是 `frozen`）。"""
-    if not BUDGET.exists():
+    if not _rp(BUDGET).exists():
         return {}
-    return json.loads(BUDGET.read_text(encoding="utf-8"))
+    return json.loads(_rp(BUDGET).read_text(encoding="utf-8"))
 
 
 def scan_junk() -> list[str]:
-    """⑤ 扫 docs/ 下的垃圾（**含未跟踪** ✗）。"""
+    """⑤ 扫 docs/ 下的垃圾（**含未跟踪** ✗）；自检沙箱里的夹具同样算 ✓。"""
     bad = []
-    for dirpath, dirnames, filenames in os.walk("docs"):
-        for d in list(dirnames):
-            if d.endswith(JUNK_DIR_SUFFIX):
-                bad.append(f"{dirpath}/{d}/（临时目录）")
-                dirnames.remove(d)
-        for f in filenames:
-            if JUNK_FILE_RE.search(f):
-                bad.append(f"{dirpath}/{f}")
-    return sorted(bad)
+    for root in _scan_roots("docs"):
+        for dirpath, dirnames, filenames in os.walk(root):
+            for d in list(dirnames):
+                if d.endswith(JUNK_DIR_SUFFIX):
+                    bad.append(f"{dirpath}/{d}/（临时目录）")
+                    dirnames.remove(d)
+            for f in filenames:
+                if JUNK_FILE_RE.search(f):
+                    bad.append(f"{dirpath}/{f}")
+    return sorted(set(bad))
 
 
 LAYER_GLOBS = {
@@ -405,7 +499,7 @@ def check() -> tuple[list[str], dict]:
     bad: list[str] = []
 
     # ① 活文档总量
-    live_bytes = sum(Path(f).stat().st_size for f in live if Path(f).exists())
+    live_bytes = sum(_rp(f).stat().st_size for f in live if _rp(f).exists())
     if live_bytes > MAX_LIVE_BYTES:
         bad.append(
             f"① 活文档总量 {live_bytes / 1e6:.2f} MB > 上限 {MAX_LIVE_BYTES / 1e6:.2f} MB"
@@ -415,7 +509,7 @@ def check() -> tuple[list[str], dict]:
     budget = load_budget()
     raw_budget = load_raw_budget()
     for f in live:
-        p = Path(f)
+        p = _rp(f)
         if p.suffix != ".md" or not p.exists():
             continue
         n = line_count(p)
@@ -460,7 +554,7 @@ def check() -> tuple[list[str], dict]:
             if not f or not isinstance(cap, int):
                 bad.append(f"⑦ onboarding.path 条目非法：{item!r}")
                 continue
-            fp = Path(f)
+            fp = _rp(f)
             if not fp.exists():
                 bad.append(f"⑦ 必读路径里的 {f} 不存在（接手会撞空 ✗）")
                 continue
@@ -490,20 +584,18 @@ def check() -> tuple[list[str], dict]:
         bad.append("① 活文档 **0 个** ⇒ **没扫到 ≠ 绿** ✗（检查 cwd 与 `git ls-files`）")
 
     # ⑥ 归档可追溯
-    arch_files = []
-    if ARCHIVE.exists():
-        arch_files = sorted(
-            str(p) for p in ARCHIVE.rglob("*") if p.is_file() and p != ARCHIVE_INDEX
-        )
-        arch_bytes = sum(Path(f).stat().st_size for f in arch_files)
+    arch_all = _walk_union(str(ARCHIVE))
+    if ARCHIVE.exists() or arch_all:
+        arch_files = sorted(k for k in arch_all if k != str(ARCHIVE_INDEX))
+        arch_bytes = sum(arch_all[k].stat().st_size for k in arch_files)
         if arch_bytes > MAX_ARCHIVE_BYTES:
             bad.append(
                 f"⑥ 归档总量 {arch_bytes / 1e6:.2f} MB > 上限 {MAX_ARCHIVE_BYTES / 1e6:.2f} MB"
             )
-        if not ARCHIVE_INDEX.exists():
+        if not _rp(ARCHIVE_INDEX).exists():
             bad.append(f"⑥ 缺归档索引 {ARCHIVE_INDEX}（归档必须有可追溯路径）")
         else:
-            index = ARCHIVE_INDEX.read_text(encoding="utf-8")
+            index = _rp(ARCHIVE_INDEX).read_text(encoding="utf-8")
             for f in arch_files:
                 if Path(f).name not in index:
                     bad.append(f"⑥ {f} 没在 {ARCHIVE_INDEX} 里点名（归档≠销毁）")
@@ -542,21 +634,54 @@ def selftest() -> int:
 
     把判据**逐条故意弄红一次** ⇒ 每条都必须被报出来 ✗；再加**三条方向性**用例
     （用户 2026-09-26 要求 ✓）：**回胖必须判红** ✓、**正常推进必须不误红** ✓、
-    **非入口的冻结仍要咬** ✓。改完**一律还原** ✓（`finally` 里还原，跑完再核对
-    工作区回到原样 ✓）。判据：`python3 scripts/docs-lint.py --selftest` ⇒ exit 0 + `11/11`。
+    **非入口的冻结仍要咬** ✓。判据：`python3 scripts/docs-lint.py --selftest`
+    ⇒ exit 0 + `19/19`。
+
+    ⚠ **全程在临时沙箱里改，真仓库一个字节都不动** ✓（`DOCSLINT-SELFTEST-POLLUTES-REAL-REPO`，
+    2026-10-15）：旧写法直接改真文档、靠 `finally` 还原 —— 并发两个自检会互相踩
+    （还原把别人的变异写回去 ⇒ 残留），进程被 `timeout`/SIGTERM 打断时 `finally`
+    **根本不执行** ⇒ 自检把**被测对象**破坏了 ✗（详见 `_SANDBOX` 那段注释 ✓）。
+    现在：既有文件先逐字节复制进沙箱、夹具只写沙箱（`_wp()` 越界即报错 ✓），
+    判据读路径 `_rp()` 取沙箱副本 ⇒ **读数与"真改"等价**（保真 ✓）。
 
     为什么要有它 ✗：本仓**三次**出现过"判据永远绿"的摆设 ✓ —— 一条判据如果
     没人证明它咬得住，就不能算守卫 ✓；而**误红**同样是坏判据 ✗（它会把所有人的
     推送一起拦下 ⇒ 真阻塞 ✓）。
     """
+    global _SANDBOX, MAX_LIVE_BYTES, _DOC_REFS_PATHS_OVERRIDE, _SRC_LINES_OVERRIDE
+    sandbox = Path(tempfile.mkdtemp(prefix="docs-lint-selftest-"))
+    # 既有文件先复制进沙箱：判据读到的就是"真仓库这批文档被改后"的样子（逐字节 ✓）。
+    for rel in SELFTEST_MUTATED_FILES:
+        src = Path(rel)
+        if not src.exists():
+            continue  # 文件不在 ⇒ 对应夹具本来就会跳过（与旧口径一致 ✓）
+        dst = sandbox / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+    saved_cap = MAX_LIVE_BYTES
+    _SANDBOX = sandbox
+    try:
+        return _selftest_body()
+    finally:
+        _SANDBOX = None
+        MAX_LIVE_BYTES = saved_cap
+        _DOC_REFS_PATHS_OVERRIDE = None
+        _SRC_LINES_OVERRIDE = None
+        shutil.rmtree(sandbox, ignore_errors=True)
+
+
+def _selftest_body() -> int:
+    """19 条夹具本体（**只许**由 `selftest()` 调用 —— 它负责沙箱与清理 ✓）。"""
+    if _SANDBOX is None:
+        raise AssertionError("自检必须在沙箱里跑（见 selftest()）—— 否则会改真仓库 ✗")
     results: list[tuple[str, str, bool]] = []
 
     def append_lines(path: str, n: int, line: str = "x\n"):
-        """往活文档追加 n 行，返回还原函数（`finally` 里必须调 ✓）。"""
-        p = Path(path)
-        old = p.read_text(encoding="utf-8")
-        p.write_text(old + line * n, encoding="utf-8")
-        return lambda: p.write_text(old, encoding="utf-8")
+        """往沙箱里的活文档追加 n 行，返回还原函数（`finally` 里必须调 ✓）。"""
+        old = _rp(path).read_text(encoding="utf-8")
+        w = _wp(path)
+        w.write_text(old + line * n, encoding="utf-8")
+        return lambda: w.write_text(old, encoding="utf-8")
 
     # ① 活文档总量：**跟着上限走**（2026-09-26 修 ✓）——上限从 3 MB 提到 **10 MB**
     # 之后，原来写死的"灌 ≈800 KB"再也撑不破 ⇒ **自检自己报「① 咬不住」** ✗
@@ -577,21 +702,22 @@ def selftest() -> int:
     results.append(("①", "活文档总量 > 上限", any(b.startswith("①") for b in bad)))
 
     # ② 单文件行数 + ④ 冻结预算：往一份活文档灌 2200 行
-    p = Path("docs/LESSONS.md")
+    p = _rp("docs/LESSONS.md")
     if p.exists():
         old = p.read_text(encoding="utf-8")
-        p.write_text(old + ("填" * 200 + "\n") * 2200, encoding="utf-8")  # ≈800 KB / 2200 行
+        w = _wp("docs/LESSONS.md")
+        w.write_text(old + ("填" * 200 + "\n") * 2200, encoding="utf-8")  # ≈800 KB / 2200 行
         try:
             bad, _ = check()
         finally:
-            p.write_text(old, encoding="utf-8")
+            w.write_text(old, encoding="utf-8")
         results.append(("②", "单文件 > 2000 行", any(
             b.startswith("②") and "LESSONS.md" in b for b in bad)))
         results.append(("④", "冻结预算被撑大", any(
             b.startswith("④") and "LESSONS.md" in b for b in bad)))
 
     # ③ 入口文件 > 800 行
-    if Path("REQUIREMENTS.md").exists():
+    if _rp("REQUIREMENTS.md").exists():
         restore = append_lines("REQUIREMENTS.md", 700)
         try:
             bad, _ = check()
@@ -604,7 +730,7 @@ def selftest() -> int:
     # ① 正常推进（+138 行 = 「批次 N」的量级）⇒ **不误红** ✓
     # ② 回胖（+300 行）⇒ 由 ③ 判红 ✓（**不是**由冻结判红 —— 冻结不管入口文件 ✓）
     # ③ 非入口的冻结文档回胖（+300）⇒ 由 ④ 判红 ✓（棘轮仍然活着 ✓）
-    ep = Path("docs/design/e2-plan.md")
+    ep = _rp("docs/design/e2-plan.md")
     if ep.exists():
         restore = append_lines("docs/design/e2-plan.md", 138)
         try:
@@ -624,7 +750,7 @@ def selftest() -> int:
             ("③", "入口计划 +300 行（回胖）⇒ 判红", any(
                 b.startswith("③") and "e2-plan" in b for b in bad))
         )
-    nsub = Path("docs/design/notation-subset.md")
+    nsub = _rp("docs/design/notation-subset.md")
     if nsub.exists():
         restore = append_lines("docs/design/notation-subset.md", 300)
         try:
@@ -637,7 +763,7 @@ def selftest() -> int:
         )
 
     # ⑤ 垃圾残留
-    junk = Path("docs/__docs-lint-selftest.tmp")
+    junk = _wp("docs/__docs-lint-selftest.tmp")
     junk.write_text("junk", encoding="utf-8")
     try:
         bad, _ = check()
@@ -647,7 +773,7 @@ def selftest() -> int:
             b.startswith("⑤") and "__docs-lint-selftest.tmp" in b for b in bad)))
 
     # ⑥ 归档文件没被索引点名
-    stray = Path("docs/archive/__selftest-unindexed.md.gz")
+    stray = _wp("docs/archive/__selftest-unindexed.md.gz")
     stray.write_bytes(b"\x1f\x8b")
     try:
         bad, _ = check()
@@ -658,15 +784,15 @@ def selftest() -> int:
 
     # ⑦ 接手路径：把**必读表的合计上限**临时压到 1 行 ⇒ 必须判红 ✓
     # （X1，2026-09-28：这条判据自己也要能被证明咬得住 ✓）
-    budget_path = Path(BUDGET)
+    budget_path = _rp(BUDGET)
     budget_old = budget_path.read_text(encoding="utf-8")
     try:
         data = json.loads(budget_old)
         data["onboarding"]["onboarding_max_lines"] = 1
-        budget_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        _wp(BUDGET).write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         bad, _ = check()
     finally:
-        budget_path.write_text(budget_old, encoding="utf-8")
+        _wp(BUDGET).write_text(budget_old, encoding="utf-8")
     results.append(("⑦", "接手路径合计超上限", any(
             b.startswith("⑦") and "必读路径合计" in b for b in bad)))
 
@@ -674,10 +800,10 @@ def selftest() -> int:
     try:
         data = json.loads(budget_old)
         data["onboarding"]["path"][0]["max_lines"] = 1
-        budget_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        _wp(BUDGET).write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         bad, _ = check()
     finally:
-        budget_path.write_text(budget_old, encoding="utf-8")
+        _wp(BUDGET).write_text(budget_old, encoding="utf-8")
     results.append(("⑦", "必读单文件超上限", any(
             b.startswith("⑦") and "必读文件" in b for b in bad)))
 
@@ -686,7 +812,7 @@ def selftest() -> int:
     #   (b) 历史标记的指针 ⇒ **不许误红**（否则仓库惯例「原文 ⇒ git log --all -- …」
     #       会被自己的守卫拦下 ✗ —— 误红同样是坏判据 ✓）；
     #   (c) 基线里某条已归零却没删 ⇒ 判红（逼基线收紧，防"冻结了就不管"✗）。
-    tmp_doc = Path("docs/design/__docref_selftest__.md")
+    tmp_doc = _wp("docs/design/__docref_selftest__.md")
     tmp_doc.write_text("见 `docs/design/__docref_absent__.md` 的说明。\n", encoding="utf-8")
     try:
         bad, _ = check_doc_refs(tracked())
@@ -695,7 +821,7 @@ def selftest() -> int:
     results.append(("⑧", "新增悬空文档引用", any(
         b.startswith("⑧") and "__docref_absent__" in b for b in bad)))
 
-    hist_doc = Path("docs/design/__docref_hist_selftest__.md")
+    hist_doc = _wp("docs/design/__docref_hist_selftest__.md")
     hist_doc.write_text(
         "指针：`docs/design/__docref_absent__.md`（已删；原文 ⇒ git log --all -- docs/design/__docref_absent__.md）\n",
         encoding="utf-8",
@@ -719,7 +845,7 @@ def selftest() -> int:
 
     # ⑨ 源码行数红线：**三条都要咬**（与 ⑧ 同款方向性 ✓）——
     #   (a) 新文件超软线 ⇒ 判红；(b) 存量**变长** ⇒ 判红；(c) 基线过期 ⇒ 判红。
-    tmp_src = Path("crates/front/src/__srclines_selftest__.rs")
+    tmp_src = _wp("crates/front/src/__srclines_selftest__.rs")
     tmp_src.write_text("// x\n" * (SRC_SOFT_LINES + 5), encoding="utf-8")
     try:
         bad, _ = check_src_lines(tracked())
@@ -750,7 +876,7 @@ def selftest() -> int:
         b.startswith("⑨") and "基线过期" in b for b in bad)))
 
     # ⑧b **文件级历史声明**：三条方向性用例（与 ⑧ 同款 ✓）
-    m_doc = Path("docs/design/__docref_marker_selftest__.md")
+    m_doc = _wp("docs/design/__docref_marker_selftest__.md")
     m_doc.write_text(
         "<!-- " + DOC_REF_FILE_MARKER + "：本文件提到的 `docs/**` 均已删除，"
         "原文 ⇒ git log --all -- <path> -->\n见 `docs/design/__docref_absent__.md`。\n",
