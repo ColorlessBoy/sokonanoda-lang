@@ -45,6 +45,17 @@ E2E_TEST="editor/vscode/src/test/extension.test.js"
 CLI_MAIN="crates/cli/src/main.rs"
 USABLE="crates/front/src/query/mod.rs"
 
+# ── 坏版本从哪个 rev 取（**不能写 `HEAD`** ✗ —— 实测踩过）──────────────────────
+#
+# ⚠ **为什么不是 `HEAD`**（2026-10-16 实测的**假绿**）：修好之后 `HEAD` **就是修好的
+# 那一版** ⇒ `git show HEAD:<f>` 取回的是**修好的文件** ⇒ 换版**逐字节无效** ⇒
+# `bite` 命令 rc=0 ⇒ `check-guard-bite.py --all` 把这两条报成「**这条守卫咬不住**
+# 它声称咬住的那条坏输入」✗（实测读数：两条 bite 都 rc=0）。
+# ⇒ 坏版本必须是**修复之前**的那一版：`630c0869` = 本轮基线的 main（它已在 main
+# 的历史里、**不会**因本轮 rebase 而消失 ✓，同 `check-attention-budget.py` 那条
+# 证明钉 `--until c82097fe` 的先例 ✓）。
+BAD_REV="${SOKO_THIRD_LAYER_BAD_REV:-630c0869}"
+
 # ── 还原闸（**只有** bite 模式会动工作区）────────────────────────────────────
 SAVED=""
 SAVED_SHA=""
@@ -72,8 +83,23 @@ swap_in_bad_version() {
   cat "$path" > "$SAVED" || return 3
   SAVED_SHA="$(shasum -a 256 "$path" | cut -d' ' -f1)"
   SAVED_FILE="$path"
+  if ! git cat-file -e "$rev:$path" 2>/dev/null; then
+    echo "error: 坏版本的 rev 取不到：$rev:$path ⇒ **不假装咬过** ✗（rev 漂了就把 SOKO_THIRD_LAYER_BAD_REV 指到修复前那一版）" >&2
+    return 3
+  fi
   git show "$rev:$path" > "$path" || return 3
-  echo "+ 换成坏版本 ${path}（${rev}）sha256=$(shasum -a 256 "$path" | cut -d' ' -f1 | cut -c1-16)"
+  local bad_sha
+  bad_sha="$(shasum -a 256 "$path" | cut -d' ' -f1)"
+  # ⚠ **空转闸**（2026-10-16 实测踩到的假绿）：坏版本若与工作区版本**逐字节相同**，
+  # 这次"换版"什么都没换 ⇒ 证明必然 rc=0 ⇒ **判红**（不是"通过" ✗）。
+  # 第一次就是拿 `HEAD` 当坏版本（提交之后 HEAD **就是**修好的那一版）⇒ 两条 bite
+  # 都 rc=0，被 `check-guard-bite.py --all` 当场抓住 ✓。
+  if [ "$bad_sha" = "$SAVED_SHA" ]; then
+    echo "error: 「坏版本」与工作区版本**逐字节相同**（${rev} 已经是修好的那一版）⇒ 这条证明会**空转** ✗" >&2
+    echo "       把 SOKO_THIRD_LAYER_BAD_REV 指到**修复之前**的那一版（默认 630c0869 = 本轮基线的 main）" >&2
+    return 3
+  fi
+  echo "+ 换成坏版本 ${path}（${rev}）sha256=${bad_sha:0:16}"
   echo "  当前（工作区）版本 sha256=${SAVED_SHA:0:16}（跑完还原）"
 }
 
@@ -115,7 +141,7 @@ case "$MODE" in
     ;;
   e2e-bite)
     # 坏输入 = **HEAD 的 `usable()`**（用户 2026-10-15 亲报的那一格）。
-    swap_in_bad_version HEAD "$USABLE" || exit 3
+    swap_in_bad_version "$BAD_REV" "$USABLE" || exit 3
     run_e2e
     rc=$?
     restore || exit 3
@@ -123,7 +149,7 @@ case "$MODE" in
     ;;
   bridge-bite)
     # 坏输入 = **HEAD 的 `main.rs`**（那时没有 `fixtures` 子命令 ⇒ 第三层拿不到输入面）。
-    swap_in_bad_version HEAD "$CLI_MAIN" || exit 3
+    swap_in_bad_version "$BAD_REV" "$CLI_MAIN" || exit 3
     echo "+ cargo test -p sokonanoda-cli --test fixtures_dump"
     cargo test -p sokonanoda-cli --test fixtures_dump > "$LOG" 2>&1
     rc=$?
