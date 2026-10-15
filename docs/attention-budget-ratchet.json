@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "round": 0,
-  "head": "cf259d1fa59d38905a8170ea032f2de979e2831c",
-  "at": "2026-10-15T16:50:46+00:00",
+  "round": 1,
+  "head": "1942bd8a2a5716ad5e6182dfd1d5fb9a2ef59645",
+  "at": "2026-10-15T20:01:26+00:00",
   "caps": {
-    "ratio_warn": 17.0,
-    "ratio_max": 19.0,
-    "share_warn": 0.57,
-    "share_max": 0.6
+    "ratio_max": 18.0,
+    "ratio_warn": 16.0,
+    "share_max": 0.58,
+    "share_warn": 0.55
   },
   "history": [
     {
@@ -30,6 +30,27 @@
       },
       "user_reading": null,
       "user_case": null
+    },
+    {
+      "round": 1,
+      "head": "1942bd8a2a5716ad5e6182dfd1d5fb9a2ef59645",
+      "at": "2026-10-15T20:01:26+00:00",
+      "caps": {
+        "ratio_max": 18.0,
+        "ratio_warn": 16.0,
+        "share_max": 0.58,
+        "share_warn": 0.55
+      },
+      "reading": {
+        "ratio": 9.552448325411738,
+        "share": 0.5615615615615616,
+        "commits": 333,
+        "bookkeeping_commits": 187,
+        "product_lines": 9047,
+        "gen_lines": 86421
+      },
+      "user_reading": "SOKO_E2E_GREP=第三层 npx vscode-test（真 VS Code 1.138.0 + 真 LSP + 真扩展）⇒ 打开写了一半的文件：干净对照画 2 行 [a,b] 0 error · negative/missing-type 画 2 行 [a,c] 1 error（改前 0 行 + 「文件没解析成功」）",
+      "user_case": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda"
     }
   ]
 }
