@@ -33,10 +33,10 @@
 | `g58-large-elimination.md.gz` | `docs/design/g58-large-elimination.md` | **G-58 大消去设计稿（待用户批准）**—— 台账 **G-58 已 `fixed`**（`Prop` 入 `Type` 出已可用）✓ | 2026-10-15 |
 | `HANDOFF-course.md.gz` | `docs/notes/HANDOFF-course.md` | **课程线交接单（2026-10-03）**—— process 档，后续轮次已收口（结论落 `courses/set-theory/` 与 `docs/ONBOARDING.md` §0.2）✓ | 2026-10-15 |
 | `course-implicit-census.md.gz` | `docs/notes/course-implicit-census.md` | **课程侧隐式参数普查结论（2026-10-03）**—— 逐处明细本来就在活文档 `courses/set-theory/gaps/notation-ok-census.md` + `gaps/census-ledger.json` ⇒ 本件是过程记录 ✓ | 2026-10-15 |
+| `PLAN-align-lean4-rounds-20-58.md.gz` | `docs/notes/PLAN-align-lean4.md`（**切片** §13–§41 = 第 775–1580 行） | **该规划逐轮读数/负结论/落点**（第 20–58 轮）—— 2026-10-15 因判据 ① 回收，**活文档只留 §0–§12 的现行结论与判据**（主计划 §12 末尾留指针）✓ | 2026-10-15 |
 | `2026-10-10-48a2cb4c-vc1.138.0.log.gz` | `docs/e2e/logs/2026-10-10-48a2cb4c-vc1.138.0.log` | **孤儿 e2e 日志**（216 份里**唯一**没被 `docs/e2e/ledger.jsonl` 任何记录引用的一份；`latest.json` 也不指它）⇒ 归档不影响 `e2e-merge.py --check` ✓ | 2026-10-15 |
 
 > ⚠ **这批不动**的四类（不是漏了，是不该动 ✗）：① **守卫输入台账**（`docs/gaps/ledger.jsonl` · `docs/ux-queue-events.jsonl` · `docs/ux-queue-extras.jsonl` · `docs/ux-findings-2026-10-12.md` · `docs/e2e/ledger.jsonl` · `docs/perf/ledger.jsonl` —— 一字节未动，见本轮报告的五份 sha256 前后对照 ✓）；② **被活台账点名的 215 份 `docs/e2e/logs/*.log`**（`e2e-merge.py --check` 校验存在 ⇒ 动了就是死指针 ✗，即使它占 **5.2 MB**）；③ **`crates/**` / 根 `*.md` / `scripts/**` 里有活指针的活文档**（如 `docs/notes/PLAN-align-lean4.md`、`docs/design/tactic-docs.md` —— 归档会让判据 ⑧ 新增悬空引用，而那几处**改不了** ✗）；④ **`docs/inbox/*.patch`**（它们是队列 **inbox 的提交物**，`--inbox` 里状态是 `submitted` ⇒ 待受理的活件 ✗）。
 
 ## 2026-09-30 激进删档（**删除、未归档** ✗）
-
 用户 2026-09-30 强指令：**删掉 `docs/` 下 80% 的文档**，判据 = `git ls-files docs | wc -l`。本轮删掉的归档（**220 个**）覆盖：`site-rebuild-2026-09-26/`（17）· `e2e-2026-09-26/logs/`（140）+ 其 `ledger-records-older.jsonl.gz` · `gaps-work-orders-2026-09-26/`（13）· `course-lean-style-2026-09-26/`（11）· `settheory-survey-2026-09-26/`（10）· `notes-2026-09-26/`（9）· `design-deprecated-2026-09-26/`（5）· `status-2026-09/`（2）· `REQUIREMENTS-ARCHIVE.md` · 以及散篇 `.gz`（`e2-plan-full-*` / `vscode-editor-feedback-plan-full-*` / `ci-failures-*` / `status-archive-older-rounds` / `plan-v074-v078-asbuilt-*` / `handover-process-*` 等）。上一轮（2026-09-29）删掉的计划/交接类（`docs/PLAN-0.74-0.79.md` · `HANDOVER*` · `E2-HANDOVER.md` 等 11 份）同此规则 ✓。
