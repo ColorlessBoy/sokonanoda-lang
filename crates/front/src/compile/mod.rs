@@ -77,3 +77,9 @@ pub use warning::{collect_warnings, CompileWarning, WarningKind, RESERVED_SORT_N
 
 #[cfg(test)]
 mod tests;
+// `Eq.subst` 的谓词位（用户 2026-10-15 亲报 `SUB-eqsubst-clue-order-clash`）：
+// 用例落在 `tests/`（`docs-lint` 判据 ⑨ 把测试聚合文件排除在外 ✓ —— 与
+// `lib.rs` 的 `parser_boundary_tests` 同一条口径 ✓）。
+#[cfg(test)]
+#[path = "tests/eqsubst_predicate.rs"]
+mod eqsubst_predicate_tests;
