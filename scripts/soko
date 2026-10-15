@@ -2068,6 +2068,56 @@ async function main(argv) {
         }
         if ((step.status ?? 3) !== 0) return step.status ?? 3
       }
+      // ⭐ **咬住证明**（2026-10-16 · 用户 2026-10-15【④】：「任何新守卫必须自带**咬住证明**」✗→✓）：
+      // 仓库**已有**那条规则（`AGENTS.md:289`「咬不住的守卫等于没有」）—— 用户说得很准：
+      // **"只是没强制"** ✗。本步把它从纪律变成判据：`docs/guard-bite.jsonl` 里每一行
+      // 都要在**一条已存在的坏输入**上**真的报非 0**（`--check --all` 逐条真跑）✓，
+      // 且覆盖基线以来**新增/修改的每个守卫**都必须有一行 ✓（C1 覆盖）。
+      // ⚠ **为什么必须进 gate**（不是只进 CI ✗）：`--selftest` 里有一条 `--since` 夹具
+      // 专门咬"范围内改了守卫、台账里没有" ⇒ 改守卫的人**本地**就该看见红 ✓。
+      // 实测 ~1.7 秒 ⇒ `--fast` 也跑 ✓。
+      const guardBite = path.join(REPO, 'scripts', 'check-guard-bite.py')
+      if (!existsSync(guardBite)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, guardBite)} —— 咬住证明无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      for (const extra of [[], ['--selftest'], ['--check', '--all']]) {
+        const step = spawnSync(python.cmd, [...python.args, guardBite, ...extra], {
+          stdio: 'inherit',
+          cwd: REPO,
+        })
+        if (step.error) {
+          process.stderr.write(`scripts/soko gate: failed to run ${guardBite}: ${step.error.message}\n`)
+          return 3
+        }
+        if ((step.status ?? 3) !== 0) return step.status ?? 3
+      }
+      // ⭐ **簿记预算 ratchet**（2026-10-16 · 用户 2026-10-15【②】）：
+      // 改前它**只在 CI 里**跑（`ci.yml` 的 `queue-lint`）⇒ 本地 `gate` **看不见**
+      // ⇒ 改 `scripts/` 的人要等 33–35 分钟 CI 才知道 ✗。现在两处都跑 ✓。
+      // ⚠ 默认跑 = 读数 vs **本轮生效**的 caps（状态 `docs/attention-budget-ratchet.json`）
+      //   + **开轮纪律**（基点之后落太多笔还没开轮 ⇒ 判红 ⇒ ratchet 不许空转 ✓）。
+      // 实测 ~1.5 秒 ⇒ `--fast` 也跑 ✓。
+      const attentionBudget = path.join(REPO, 'scripts', 'check-attention-budget.py')
+      if (!existsSync(attentionBudget)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, attentionBudget)} —— 簿记预算无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      for (const extra of [[], ['--selftest']]) {
+        const step = spawnSync(python.cmd, [...python.args, attentionBudget, ...extra], {
+          stdio: 'inherit',
+          cwd: REPO,
+        })
+        if (step.error) {
+          process.stderr.write(`scripts/soko gate: failed to run ${attentionBudget}: ${step.error.message}\n`)
+          return 3
+        }
+        if ((step.status ?? 3) !== 0) return step.status ?? 3
+      }
       // **启动器「VS Code 扩展自带」链接**（2026-10-15 LINK-B，洞 `SOKO-EXTENSION-LINK-UNWIRED`）：
       // 那一格曾被文档写着、`extensionServer()` 写着、`canExec()` 的分支写着，**却没有调用点** ✗
       // ⇒ 通用 VSIX + 没跑过「Install CLI」+ 离线时 `scripts/soko lsp` 只能下载/被拒。
