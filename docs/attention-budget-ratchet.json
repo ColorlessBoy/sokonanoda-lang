@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "round": 0,
+  "head": "cf259d1fa59d38905a8170ea032f2de979e2831c",
+  "at": "2026-10-15T16:50:46+00:00",
+  "caps": {
+    "ratio_warn": 17.0,
+    "ratio_max": 19.0,
+    "share_warn": 0.57,
+    "share_max": 0.6
+  },
+  "history": [
+    {
+      "round": 0,
+      "head": "cf259d1fa59d38905a8170ea032f2de979e2831c",
+      "at": "2026-10-15T16:50:46+00:00",
+      "caps": {
+        "ratio_warn": 17.0,
+        "ratio_max": 19.0,
+        "share_warn": 0.57,
+        "share_max": 0.6
+      },
+      "reading": {
+        "ratio": 10.137678506041743,
+        "share": 0.5662251655629139,
+        "commits": 302,
+        "bookkeeping_commits": 171,
+        "product_lines": 8193,
+        "gen_lines": 83058
+      },
+      "user_reading": null,
+      "user_case": null
+    }
+  ]
+}
