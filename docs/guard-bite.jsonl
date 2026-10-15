@@ -1,0 +1,24 @@
+# guard-bite.jsonl —— **咬住证明**（用户 2026-10-15【④】："任何新守卫必须自带咬住证明"）
+#
+# 为什么要有这一份：仓库**已有**这条规则（`AGENTS.md:289`：「**反向验证是硬要求**：
+# 守卫必须能**咬住已知的历史 bug** …… **咬不住的守卫等于没有**」）—— 用户说得很准：
+# **"只是没强制"** ✗。本文件把它从纪律变成**判据**：每个守卫一行，`bite` 是一条
+# **已存在的坏输入**（历史 bug / 用户的 case）上的命令，**必须报非 0** ✓。
+#
+# 一行一条 JSON（`#` 开头是注释，照 `docs/ux-queue-extras.jsonl` 的先例 ✓）：
+#   guard        —— 仓库相对路径（枚举口径 = `scripts/check-guard-bite.py` 的 `GUARD_GLOBS`）
+#   bug          —— **那条已存在的坏输入是什么**（必填；写"我新造的"✗ 不算 ✓）
+#   pass         —— {"cmd", "expect_rc"}：守卫自己该绿的那条（通常是 `--selftest`）
+#   bite         —— {"cmd", "expect_rc"}：**在那条坏输入上必须报非 0** ✓
+#   queue_id     —— 可选：**它关掉的那条队列条目** ⇒ 用户【①】翻账时用它 reopen ✓
+#
+# ⚠ **`coverage_since`**（下面那行）= 覆盖基线：基线**以来**新增/修改的守卫
+#   **每一个都必须在下面有一行** ✓（C1 覆盖）。基线之前就有的守卫是 **grandfathered**
+#   —— **如实划的口径，不是豁免** ✗：`--list` 会把它们**印出来**（评审可见 ✓），
+#   要收进来就补一行 ✓。
+#
+# 判据与写法见 `scripts/check-guard-bite.py`（**唯一一处** ✓）。
+# coverage_since: cf259d1f
+{"guard": "scripts/check-attention-budget.py", "queue_id": "SUB-orchestrator-attention-structure", "bug": "**装饰性阈值**（用户 2026-10-15 实测 ✗）：两档贴在现状**上方** ⇒ 永远绿 ⇒ 守卫空转 —— `RATIO_MAX = 19.0` 而实测 **10.14 : 1** · `SHARE_MAX = 0.60** 而实测 **56.6%**；本文件自己的注释还写着第一版贴实测取 17.0 ⇒ 落地当刻判红 ⇒ **抬到 19.0** ✗（用户 2026-09-26：「不许靠抬上限达标」）。⭐ 已存在的坏输入 = **本会话实测最差点** `--until c82097fe`（那笔 53,595 行的 e2e 归档）⇒ **19.32 : 1** ⇒ 必须报红 ✓", "pass": {"cmd": "python3 scripts/check-attention-budget.py --selftest", "expect_rc": 0}, "bite": {"cmd": "python3 scripts/check-attention-budget.py --until c82097fe", "expect_rc": 1}}
+{"guard": "scripts/check-guard-bite.py", "bug": "**咬不住的守卫**（`AGENTS.md:289` 那条规则本身的历史形状 ✗）：一条台账行的 `bite` 命令**返回 0**（= 守卫在坏输入上不报红）却照样算「有证明」⇒ 守卫空转没人发现。已存在的坏输入 = `scripts/fixtures/guard-bite-nonbiting.jsonl`（**提交进仓的夹具**：`bite.cmd = true`、`expect_rc = 0`）⇒ 必须报红 ✓", "pass": {"cmd": "python3 scripts/check-guard-bite.py --check --since HEAD", "expect_rc": 0}, "bite": {"cmd": "python3 scripts/check-guard-bite.py --check --ledger scripts/fixtures/guard-bite-nonbiting.jsonl --all", "expect_rc": 1}}
+{"guard": "scripts/ux-queue.py", "bug": "**收口不是免费的**（用户 2026-10-15【①】的诊断 ✗）：`--advance <id> --to done` 若只要一个**非空字符串**就能过，账上就会留下「有 commit」的**假终态**（2026-10-12 `SUB-advance-commit-unchecked` 实测：`--commit deadbeef…` **rc=0** 通过；2026-10-14 再加**祖先性**：32 条历史 done 指针是 rebase 前的**孪生**）。已存在的坏输入 = **不给证据的收口**（`--to done` 而**没有** `--commit` + `--reading`）⇒ 必须报红 ✓（**任一状态都必须非 0**：`todo`/`done`/`blocked` 走非法迁移、`in_progress`/`submitted` 走证据闸门 ✓；**实测零写入** ✓）", "pass": {"cmd": "SOKO_QUEUE_ROOT=. python3 scripts/ux-queue.py --selftest", "expect_rc": 0}, "bite": {"cmd": "SOKO_QUEUE_ROOT=. python3 scripts/ux-queue.py --advance SUB-correct-the-orchestrator-incentives --to done", "expect_rc": 1}}

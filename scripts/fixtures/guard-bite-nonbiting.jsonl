@@ -1,0 +1,12 @@
+# guard-bite-nonbiting.jsonl —— **故意咬不住**的台账（夹具 ✓，不是真台账 ✗）
+#
+# 用途：`docs/guard-bite.jsonl` 里 `scripts/check-guard-bite.py` 那一行的 **`bite` 输入**
+# —— 它必须让判据**报红** ✓。这里两条都故意坏：
+#   ① `bite.cmd = true` 而 `expect_rc = 1` ⇒ 「期望它报红、它却返回 0」（**守卫空了** ✗）
+#   ② 另一条 `bite.expect_rc = 0` ⇒ 「它**咬不住**」（咬住证明必须是「坏输入 ⇒ 非 0」✗→✓）
+#
+# ⚠ `coverage_since: HEAD` 是**故意**的：`HEAD..HEAD` 是空范围 ⇒ **C1 覆盖为空**
+#   ⇒ 判红**只可能**来自 C2（「咬不住」那两条）⇒ 这条夹具**只考 C2**，不靠 C1 混过去 ✓。
+# coverage_since: HEAD
+{"guard": "scripts/check-attention-budget.py", "bug": "故意：`bite` 期望报红，命令却返回 0（= **守卫空了**，假绿 ✗）", "pass": {"cmd": "true", "expect_rc": 0}, "bite": {"cmd": "true", "expect_rc": 1}}
+{"guard": "scripts/ux-queue.py", "bug": "故意：`bite.expect_rc = 0` ⇒ **它咬不住**（咬住证明必须是「坏输入 ⇒ 非 0」✗→✓）", "pass": {"cmd": "true", "expect_rc": 0}, "bite": {"cmd": "true", "expect_rc": 0}}
