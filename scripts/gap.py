@@ -963,15 +963,18 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     # **真起子进程 + 真 CLI**（不是 monkeypatch 模块全局 —— 那测的是"我改的那个变量"，
     # 不是真路径 ✗；本仓自己的口径："跑真程序 + 真协议，不是把正则抄一遍" ✓）。
     # ⚠ **递归闸**：子进程里不再起子进程（否则 5^N 爆炸 ✗）—— 子进程只跑"解析 + 闸门"。
+    # ⚠ 用例表**先定义、再执行**：`total` 要把它们数进去（它们在失败时**会**加 `bad`，
+    #   不数进去就会出现 `bad > total` 这种自相矛盾的计数行 ✗）。
+    e2e_cases = [
+        ("`abc` ⇒ rc=2 + 人话（旧：栈 + rc=1 ✗）", "abc", 2, "不是整数"),
+        ("`3.5` ⇒ rc=2 + 人话（旧：栈 + rc=1 ✗）", "3.5", 2, "不是整数"),
+        ("`-5` ⇒ rc=2 + 人话（旧：rc=0 静默 ✗）", "-5", 2, "正整数"),
+        ("`0` ⇒ rc=2 + 人话（旧：rc=0 静默 ✗）", "0", 2, "正整数"),
+        ("**正对照** `300` ⇒ rc=0（合法值照旧）", "300", 0, ""),
+        ("**正对照** `600` ⇒ rc=0（合法值照旧）", "600", 0, ""),
+    ]
     if not os.environ.get("SOKO_GAP_SELFTEST_CHILD"):
-        for desc, raw, want_rc, want_tail in (
-            ("`abc` ⇒ rc=2 + 人话（旧：栈 + rc=1 ✗）", "abc", 2, "不是整数"),
-            ("`3.5` ⇒ rc=2 + 人话（旧：栈 + rc=1 ✗）", "3.5", 2, "不是整数"),
-            ("`-5` ⇒ rc=2 + 人话（旧：rc=0 静默 ✗）", "-5", 2, "正整数"),
-            ("`0` ⇒ rc=2 + 人话（旧：rc=0 静默 ✗）", "0", 2, "正整数"),
-            ("**正对照** `300` ⇒ rc=0（合法值照旧）", "300", 0, ""),
-            ("**正对照** `600` ⇒ rc=0（合法值照旧）", "600", 0, ""),
-        ):
+        for desc, raw, want_rc, want_tail in e2e_cases:
             env = dict(os.environ)
             env["SOKO_GAP_REPRO_TIMEOUT"] = raw
             env["SOKO_GAP_SELFTEST_CHILD"] = "1"
@@ -999,7 +1002,7 @@ def cmd_selftest(args: argparse.Namespace) -> int:
                 bad += 1
                 print(f"FAIL 端到端 {desc}：stderr 没点名 {want_tail!r}", file=sys.stderr)
     total = len(cases) + len(verdict_cases) + len(prompt_cases) + len(guard_cases) \
-        + len(timeout_env_cases)
+        + len(timeout_env_cases) + len(e2e_cases)
     if bad:
         print(f"gap.py selftest: {bad}/{total} 条判据不成立。", file=sys.stderr)
         return 1
@@ -1008,15 +1011,23 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"（`wo-filed`/`wontfix`/`workaround`/词表外，两向）+ {len(prompt_cases)} 条"
           f"`wo_prompt` 的 `where` 三形（dict/字符串/缺失）+ {len(timeout_env_cases)} 条"
           f"`SOKO_GAP_REPRO_TIMEOUT` 值域闸门（两向：错值必须有人话 / 合法值必须逐字节不变）"
-          f"+ clean_env 剔除覆盖 全部成立。")
+          f"+ {len(e2e_cases)} 组**真 CLI 端到端**（真子进程 + 真环境变量 + 真退出码；"
+          f"递归闸 `SOKO_GAP_SELFTEST_CHILD`）"
+          f"+ clean_env 剔除覆盖 全部成立。"
+          f"（合计 {total} 条）")
     return 0
 
 
 def main() -> int:
     # ⭐ **环境变量值域闸门**（`GAP-REPRO-TIMEOUT-ENV-NO-GUARD`）：派发**之前**判
     # ⇒ `abc` 不再丢栈、`-5`/`0` 不再静默收下，两者都给 rc=2 + 人话 + 正解 ✓。
-    # ⚠ 位置在 `argparse` **之前**：值域错是"这台机器的环境坏了" ⇒ 连 `--help` 也不该
-    # 假装正常（同 `ux-queue.py` 的 `_guard_*` 一族：它们在 `parse_args` 之前跑 ✓）。
+    # ⚠ **位置：`argparse` 之前** —— 与 `ux-queue.py` 的 `_guard_*` 一族**有意不同**
+    #   （那一族在 `parse_args()` **之后**跑：实测 `ux-queue.py:9886-9892`，因为
+    #   `_guard_owner()` 要读 `args` ✓）。这里选前置的理由：值域错是"这台机器的环境坏了"，
+    #   而 `REPRO_TIMEOUT_S` 是**导入期**就已经定下的常量 ⇒ 连 `--help` 也不该给一份
+    #   "看起来正常"的输出（旧行为在这条路上是**丢栈** ✗ ⇒ 前置严格更好 ✓）。
+    #   代价如实写：`SOKO_GAP_REPRO_TIMEOUT=abc python3 scripts/gap.py --help` 现在是
+    #   **rc=2 + 人话**，而不是打印帮助。
     rc = _guard_repro_timeout_env()
     if rc is not None:
         return rc
