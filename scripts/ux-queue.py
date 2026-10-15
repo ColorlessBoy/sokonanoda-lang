@@ -1537,6 +1537,11 @@ def load_events() -> list[dict]:
     值不认识那一格至少还把条目折出来了）。
     ⇒ 在这一处判红 —— 与"不是合法 JSON"**同一个契约**（表坏了 = rc=2 + 人话；而"账上有一条
     写侧造不出来的事件" = rc=1，见 `fold` 的 `bad_events` / `check_plan`）✓。
+
+    ⚠ **"类型"这一格同属这条契约**（`EVENT-ID-TYPE-NO-GUARD`，2026-10-15 · 第十七次独立复核
+    实测 ✗）：`id` 是**键**（`fold()` 第一行 `state.setdefault(id, …)`、`plan_domain()` 的
+    `sorted(…)`）⇒ `{"id":123}`/`true`/`["x"]` 原先抛 `TypeError` **栈 + rc=1 零点名** ✗；
+    现在与"缺 `id`"**同一档**（rc=2 + 点名行号 + 点类型名）✓ —— 判据正文见下面那一段。
     """
     if not EVENTS.exists():
         return []
@@ -1568,6 +1573,29 @@ def load_events() -> list[dict]:
                 f"（`fold()` 原先直接 `continue` ⇒ **整行静默丢掉**、连事件计数都不加 ✗）—— "
                 f"每条事件都要能被**归属**：补上 `id`（条目键）与 `event`（类型，见 "
                 f"`EVENT_KINDS`），或删掉这一行 ✓")
+        # ⭐ **`id` 必须是字符串**（`EVENT-ID-TYPE-NO-GUARD`，2026-10-15 · 第十七次独立复核实测 ✗）
+        # —— 与上面那条「缺 `id`/`event`」**同一个契约**（表坏了 = rc=2 + 人话 + 点名行号 ✓）：
+        # "缺"那一格已经判了，**"类型"这一格**原先漏了 ⇒ 非字符串真值一路穿进 `fold()`：
+        #   · `list`/`dict` ⇒ `state.setdefault(ident, …)` 抛 `TypeError: unhashable type`（10 行栈）；
+        #   · `int`/`bool`/`float` ⇒ `plan_domain()` 的 `sorted(视图 ∪ 事件表)` 抛
+        #     `'<' not supported between instances of 'int' and 'str'`（12 行栈）。
+        # 两条实测都是 **rc=1 + 丢栈 + 零点名**，而"账上有一行不是事件"按契约是 **rc=2** ✓。
+        # ⚠ **为什么判在这一层**（而不是 `fold()` 的 `bad_events`）：`id` 是**键** —— 它在
+        # `fold()` 的**第一行**就被当键用（`state.setdefault`），比任何"内容判据"都早 ⇒
+        # 与「缺 `id`/`event`」同档（**身份**字段）；而 `to`/`commit`/`parent` 那种**内容**字段
+        # 判在 `fold()`（rc=1 + 点名，见 `bad_events`）—— 两档的分界就是
+        # 「这一行**是不是**一条事件」（rc=2）vs「这一条事件**内容**对不对」（rc=1）✓。
+        # ⚠ **覆盖全部事件类型**（不是只 `advance`）：`id` 每条事件都必填 ⇒ 一处判据同时咬住
+        # `release-open`/`release-cut`（它们的 `id` 也是节点表的键 ⇒ 实测同样丢 12 行栈 ✗）✓。
+        if not isinstance(rec["id"], str):
+            raise UsageError(
+                f"{_label(EVENTS)}:{lineno} 的 `id` 是 **{type(rec['id']).__name__}**"
+                f"（{rec['id']!r}）⇒ 它不是**条目键** ✗ —— `id` 的值会被当**字典键 / 排序键**用"
+                f"（`fold()` 的 `state.setdefault(id, …)` 与 `plan_domain()` 的 `sorted(…)`），"
+                f"非字符串真值原先**一路穿过去** ⇒ `--check` 丢 `TypeError` 栈 + **rc=1**、"
+                f"零点名 ✗（而「缺 `id`」是 rc=2 ✓ ⇒ 同一格的两半必须同档）。"
+                f"正解：`id` 写成**字符串**（条目键，例 `MODULE-X-DOWNLOAD`；发版节点 "
+                f"`REL-<x.y.z>`），或删掉这一行 ✓")
         out.append(rec)
     return out
 
@@ -1676,8 +1704,9 @@ def fold(events: list[dict] | None = None) -> dict[str, dict]:
         事件从链尾漏下去（回落）⇒ 记进 `bad_events`（`unknown-kind`）由 `check_plan` 判红；
       · **缺必填字段**（`repoint` 缺 `commit`、`triage` 缺/错 `to`、`split` 缺 `parent`）：
         那一支唯一的作用就是那个字段 ⇒ 缺了"什么都不折" ⇒ 记进 `bad_events` 判红 ✓。
-    ⚠ 缺 `id`/`event` 的行**进不来这里**（`load_events()` 已判红，rc=2 —— 见那里的说明 ✓）；
-    下面那句 `continue` 只服务**显式传入的内存列表**（今天没有调用点）⇒ 不再是静默面 ✓。
+    ⚠ 缺 `id`/`event` 的行、以及 `id` **不是字符串**的行**都进不来这里**（`load_events()` 已判红，
+    rc=2 —— 见那里的说明 ✓）；下面那句 `continue` 只服务**显式传入的内存列表**
+    （今天没有调用点）⇒ 不再是静默面 ✓。
     """
     state: dict[str, dict] = {}
     for ev in (load_events() if events is None else events):
@@ -2925,6 +2954,14 @@ NOT_LOOSER_COMMANDS = (
 NOT_LOOSER_EXEMPT = {
     "--selftest": "判据通道自己的读数（臂数/expect 数）本轮**就该变** ⇒ 不在逐字节比里",
 }
+# **"没有栈"这条判据的唯一定义**（2026-10-15 · 第十七次独立复核实测的**假红** ✗）：
+# 子进程判据**必须只看 stderr、且只认真正的栈头** —— 旧写法（⑦⑧④）是
+# `"Traceback" not in (stderr + stdout)`，把 `--json` 的**数据正文**也算成了栈，而队列条目的
+# `why`/`note` 里**天然**会写"改前 Traceback + rc=1"（本轮登记的 `EVENT-ID-TYPE-NO-GUARD`
+# 就是）⇒ 那三条**正对照在基线 `cb8edd77` 上就判红 5 条**（实测：子进程 rc=0 · stderr 无
+# "Traceback" · stdout 命中 8 次）✗ = "守卫看着在、其实量的是数据"。
+# ⇒ 一处定义，全部读者用它（Python 的栈**只**走 stderr ⇒ 既咬得住真栈、又不误伤数据 ✓）。
+STACK_HEADER = "Traceback (most recent call last):"
 
 
 def check_plan(rows: list[dict], source_rows: list[dict] | None = None) -> int:
@@ -7299,8 +7336,11 @@ def selftest_id_and_encoding_gates(expect) -> None:
             _p = subprocess.run([sys.executable, str(Path(__file__)), "--json"],
                                 capture_output=True, text=True, env=_env, cwd=str(ROOT))
             _e = (_p.stderr or "") + (_p.stdout or "")
+            # ⚠ 栈判据**只看 stderr + 只认栈头**（`STACK_HEADER` 的说明：旧写法把 `--json`
+            # 的数据正文也算成栈 ⇒ 假红；④ 的 rc=2 分支 stdout 是空的 ⇒ 当时没红，
+            # 但**同一个形状**在这里 ⇒ 一起收口 ✓）。
             expect(f"④ 非 UTF-8 环境下真 CLI **没有 Traceback**（rc={_p.returncode}）",
-                   "Traceback" not in _e)
+                   STACK_HEADER not in (_p.stderr or ""))
             expect(f"④ 真 CLI rc ∈ {{0, 2}}（实测 {_p.returncode}；**不许是 1 + 栈** ✗）",
                    _p.returncode in (0, 2))
             expect("④ rc=2 时必须是**人话**（说清环境编码 + 给出正解）",
@@ -7358,9 +7398,18 @@ def selftest_id_and_encoding_gates(expect) -> None:
                     env=dict(os.environ, SOKO_QUEUE_ROOT=str(ROOT),
                              SOKO_QUEUE_EVENTS=str(_val)))
                 _pe = (_pr.stderr or "") + (_pr.stdout or "")
+                # ⚠ **栈只看 stderr、且只认真正的栈头**（2026-10-15 · 第十七次独立复核实测的
+                # **假红** ✗）：旧写法是 `"Traceback" not in (stderr + stdout)` —— 它把
+                # **stdout 的数据**也算进去了，而 `--json` 的正文里**天然**会出现
+                # "Traceback" 这个词（队列条目的 `why`/`note` 就写着"改前 Traceback + rc=1"，
+                # 本轮登记的 `EVENT-ID-TYPE-NO-GUARD` 正是如此）⇒ 这条**正对照**在基线
+                # `cb8edd77` 上就判红（实测 5 条：子进程 rc=0 · stderr 无 "Traceback" ·
+                # stdout 命中 8 次 ⇒ **判据量错了对象**："守卫看着在、其实量的是数据"）。
+                # Python 的栈**只**走 stderr ⇒ 判据钉在 stderr 的**栈头**上：既咬得住真栈，
+                # 又不被数据正文误伤 ✓（`_pe` 仍留给下面"人话"那一条 —— 它要的是两个流）。
                 expect(f"⑦ `SOKO_QUEUE_EVENTS` {_what} ⇒ rc={_pr.returncode}（期望 {_want}）"
                        f"且**没有 Traceback**", _pr.returncode == _want
-                       and "Traceback" not in _pe)
+                       and STACK_HEADER not in (_pr.stderr or ""))
                 if _needle:
                     expect(f"⑦ {_what} 的 rc=2 是**人话**（点名 + 给出正解 ✓）",
                            _needle in _pe and "SOKO_QUEUE_ROOT" in _pe)
@@ -7394,9 +7443,12 @@ def selftest_id_and_encoding_gates(expect) -> None:
                     env=dict(os.environ, SOKO_QUEUE_ROOT=str(ROOT),
                              SOKO_QUEUE_EVENTS=str(_slots_ev), SOKO_QUEUE_SLOTS=_val))
                 _se = (_sr.stderr or "") + (_sr.stdout or "")
+                # ⚠ **与 ⑦ 同一条假红、同一处修**（"栈只走 stderr"）：旧写法把 `--json` 的
+                # **数据正文**也当成了"栈"⇒ 正对照在基线上判红（见 ⑦ 的说明）✓。
                 expect(f"⑧ `SOKO_QUEUE_SLOTS={_val or '（空串）'}` {_what} ⇒ rc={_sr.returncode}"
                        f"（期望 {_want}）且**没有 Traceback**",
-                       _sr.returncode == _want and "Traceback" not in _se)
+                       _sr.returncode == _want
+                       and STACK_HEADER not in (_sr.stderr or ""))
                 if _needle:
                     expect(f"⑧ {_what} 的 rc=2 是**人话**（点名变量 + 给出正解 ✓）",
                            _needle in _se and "SOKO_QUEUE_SLOTS=4" in _se)
@@ -8115,6 +8167,53 @@ def selftest_event_vocabulary(expect) -> None:
             rc, out, err = _cli(["--check-plan"])
             expect(f"⑤ JSON 非对象行 ⇒ **rc=2 + 人话**（改前 `ev.get` 抛 `AttributeError` 栈 ✗；"
                    f"实测 {rc}）", rc == 2 and "不是**事件对象**" in err)
+            # ── ⑤b `id` **不是字符串**（`EVENT-ID-TYPE-NO-GUARD` · 第十七次独立复核） ────────
+            #   改前：非字符串真值**一路穿进** `fold()`/`plan_domain()` ⇒ `TypeError` 栈 + rc=1
+            #   + **零点名** ✗（`list`/`dict` ⇒ `unhashable type`；`int`/`bool`/`float` ⇒
+            #   `'<' not supported between instances of …`）—— 而"缺 `id`"是 rc=2 ✓ ⇒ 同格同档。
+            for _bad, _what in ((123, "int"), (True, "bool"), (["x"], "list"), ({"k": 1}, "dict"),
+                                (1.5, "float")):
+                _events({"event": "advance", "id": _bad, "to": "done", "commit": real_sha,
+                         "reading": "夹具：id 类型"})
+                rc, out, err = _cli(["--check-plan"])
+                expect(f"⑤b `id` = {_what} ⇒ **rc=2 + 点名行号 + 点类型名 + 0 栈**"
+                       f"（改前 `TypeError` 栈 + rc=1 零点名 ✗；实测 rc={rc}）",
+                       rc == 2 and ":1" in err and _what in err and STACK_HEADER not in err)
+                expect(f"⑤b 且判据**说清它是键**（出路 = 写成字符串；实测 `条目键` "
+                       f"{'在' if '条目键' in err else '不在'} err 里）", "条目键" in err)
+            # ⑤b' **一处定义覆盖全部事件类型**：`release-open`/`release-cut` 的 `id` 也是**键**
+            #     （节点表）⇒ 同一格必须同判（改前实测同样丢 12 行栈 ✗）。
+            for _ev in ({"event": "release-open", "id": 123, "version": "9.9.9"},
+                        {"event": "release-cut", "id": ["REL-9.9.9"], "commit": real_sha,
+                         "ci": "1"}):
+                _events(_ev)
+                rc, out, err = _cli(["--check-plan"])
+                expect(f"⑤b' `{_ev['event']}` 的 `id` 非字符串 ⇒ **同一格同判** rc=2 + 0 栈"
+                       f"（实测 rc={rc}）",
+                       rc == 2 and ":1" in err and "条目键" in err and STACK_HEADER not in err)
+            # ⑤c 正对照：**合法字符串** `id` ⇒ rc=0（防"整格恒红"的空转夹具 ✗）
+            _events({"event": "advance", "id": "EV-A", "to": "blocked", "reason": "夹具：合法"})
+            rc, out, err = _cli(["--check-plan"])
+            expect(f"⑤c 正对照：字符串 `id` ⇒ rc=0（不许误拒 ✗；实测 {rc}）",
+                   rc == 0 and "`EV-A`" not in err)
+            # ⑤d **回归臂**：那四条**已经**是 rc=2 的形状**一格不动**（本轮改的是"类型"那一格，
+            #     别把"缺 / 假值"那几格顺手改了口径 ✗）。
+            for _ev, _want in (({"event": "advance", "id": None, "to": "done"}, "缺 `id`"),
+                               ({"event": "advance", "id": "", "to": "done"}, "缺 `id`"),
+                               ({"event": "advance", "to": "done"}, "缺 `id`"),
+                               ({"id": "EV-A", "to": "done"}, "缺 `event`")):
+                _events(_ev)
+                rc, out, err = _cli(["--check-plan"])
+                expect(f"⑤d 已 rc=2 的形状仍 rc=2：{_ev} ⇒ 点名 `{_want}`（实测 rc={rc}）",
+                       rc == 2 and _want in err and STACK_HEADER not in err)
+            # ⑤e **横向**：`event` 非字符串**已有牙**（`fold` 的 `unknown-kind` ⇒ rc=1 + 点名）
+            #     ⇒ 本轮**不动它**（"内容"字段那一档）；这条臂钉住"它有牙"，防以后漂成静默。
+            for _bad in (123, ["x"], {"k": 1}, True):
+                _events({"event": _bad, "id": "EV-A"})
+                rc, out, err = _cli(["--check-plan"])
+                expect(f"⑤e `event` = {type(_bad).__name__} ⇒ **已有牙**：rc=1 + "
+                       f"「不是事件类型」（实测 rc={rc}）",
+                       rc == 1 and "不是事件类型" in err and STACK_HEADER not in err)
             # ⓪ 发版五族：必填字段（节点 id）**真有牙** ⇒ "不在 `fold` 里重复判"不是漏判 ✓
             _events({"event": "release-add", "id": "REL-X", "owner": "夹具"})
             rc, out, err = _cli(["--check-plan"])
