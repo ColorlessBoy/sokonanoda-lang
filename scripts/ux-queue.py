@@ -89,6 +89,28 @@ python3 scripts/ux-queue.py --selftest            # 判据通道自检（不碰�
 `--add-child` 就地拆解（子任务插在父之前、父转 umbrella）· **`--schedule <id> --title … --reason …`**
 登记**编排者（主进程）自己排的期** · 状态 = `docs/ux-queue-events.jsonl` 的**只追加**事件折叠。
 
+**⭐ 受限翻账 `--reopen-source`（用户 2026-10-15【①】："假绿必须翻账，不只是记新账"）**：
+守卫空了 ⇒ **它关掉的那条必须 reopen**（回 `todo`）—— 而**执行这个动作的角色是外部验收方
+（接口 agent）**，它的契约只有 `--submit`/`--claim`/`--advance`（**含 reopen**）、
+**没有 `--triage`** ✗（`.cache/ux/PROMPT-interface-agent.md` §1/§2）。而**来源处置已关账**时
+光写 `reopen` 事件回不去（来源才是权威 ⇒ `--check` 立刻判「来源关账 + 调度器 todo」= **反向两层
+漂移** ✗）⇒ 写侧原先**硬拒**（那是**对的**：不许主动制造一个已知必红的形状 ✓）⇒ 于是那条
+【①】的动作**恰好做不了** ✗。修法选的是**显式 + 受限**那条（不是"自动同轮翻账"）：
+```bash
+python3 scripts/ux-queue.py --advance <id> --to todo --reopen-source --reason '<为什么>'
+```
+**受限三条**（全部在写任何东西之前判 ⇒ 被拒时零写入 ✓）：① 只翻 **`fixed`**（= "已修"这个
+**工作结论**，可被证据推翻 —— 假绿正是它）✗ 不翻 `wo-filed`/`boundary`/`control`（**决策** ⇒
+仍归主进程的 `--triage` ✗）；② 只翻 **extras** 那一行（缺口台账是共享台账、用户 2026-09-28
+红线 X2 + `gap.py check` 另有契约 ⇒ 至今没有 CLI 入口 ✓）；③ 必须写 `--reason`，事件里留
+`reopen_source` **审计字段**（谁翻的、翻的哪一格 ⇒ 事后可核 ✓）。
+⚠ **两层漂移守卫没有被废掉** ✓：本路径**同一轮**翻来源 **并**写事件 ⇒ 落出**一致**形状；
+只手写一层（手改事件表 / 将来的新写路径漏一层）**照样判红 + 点名**（`--selftest` 的 ⑥⑦⑧ 三臂
+钉着：⑥ 翻账 rc=0 且两层不漂移 · ⑦ 决策硬拒 + 零写入 · ⑧ 只手写一层仍红 ✓）。
+⚠ **为什么不选"`--advance --to todo` 在 `fixed` 时自动翻来源"**：那样"只动一层"与"翻两层"在
+命令行上**分不出来**，而写侧闸门存在的理由正是"不许主动制造必红形状"；自动翻账还会把**决策**
+一起放开 ✗ ⇒ 要翻就得**显式说出来**（`--reopen-source`）✓。
+
 **`--schedule` 补的是什么**（2026-10-13 · `SUB-queue-registration-gaps` ①，**真实咬到过**）：
 上一轮明确判定「下一轮要做（有预算空间时）把 L0 减到 1533 以下」，但 `--add-child` 是给**缺口**用的
 （得先有父条目）、`--submit` 是给**外部 agent**用的（它进的是"等主流受理"的提交面）⇒ 编排者给自己
@@ -2741,7 +2763,7 @@ def cmd_claim(ident: str, owner: str, force: bool, rows: list[dict],
 
 
 def cmd_advance(ident: str, to: str, commit: str, reading: str, reason: str, owner: str,
-                force: bool, rows: list[dict]) -> int:
+                force: bool, rows: list[dict], reopen_source: bool = False) -> int:
     if to not in SCHED_STATES:
         raise UsageError(f"`--to` 只能是 {list(SCHED_STATES)}（给的是 `{to}`）")
     state = fold()
@@ -2768,12 +2790,73 @@ def cmd_advance(ident: str, to: str, commit: str, reading: str, reason: str, own
         # **来源侧**还关着账 ⇒ 光写事件改不动它（来源是权威 ⇒ `check_plan` 立刻判红）✗
         if source_closed(row):
             _d = row.get("disposition")
+            _srcs = row.get("sources") or []
+            _extra_row = "extras" in _srcs
+            # ⭐⭐ **受限翻账路径**（`--reopen-source`，用户 2026-10-15【①】）
+            #
+            # **为什么要有它**（实测，2026-10-15 · RO1）：用户【①】要的是"守卫空了 ⇒ 它关掉的
+            # 那条必须 reopen" —— 而**执行这个动作的角色是外部验收方（接口 agent）**，它的契约
+            # 只有 `--submit`/`--claim`/`--advance`（含 reopen），**没有 `--triage`** ✗
+            # （`.cache/ux/PROMPT-interface-agent.md` §1/§2）。而来源处置 `fixed` 的条目**光写
+            # `reopen` 事件回不去**（上面那条闸门）⇒ 修法有两条，选的是**显式受限**那条：
+            #   · (a) **本路径**：`--reopen-source` = **显式选择**（不是自动翻账 ⇒ 调用方必须
+            #     说出"我要翻来源"），且**受限**（见下）；
+            #   · (b) 让 `--advance --to todo` 在 `fixed` 时**自动**同轮翻来源 —— **没选**：
+            #     那样"只动一层"与"翻两层"在命令行上**分不出来**，而两层漂移守卫存在的理由
+            #     正是"写侧不许**主动制造**一个已知必红的形状"（见本函数上面那段注释）⇒
+            #     自动翻账会把**决策**（`wo-filed`/`boundary`/`control`）也一起放开 ✗。
+            #
+            # **"受限"的准确定义**（三条，全部在写任何东西之前判 ⇒ 被拒时零写入 ✓）：
+            #   ① 只翻 **`fixed`**（= "已修"这个**工作结论**，可被证据推翻 —— 假绿正是它）
+            #      ✗ 不翻 `wo-filed`（定案不做）/`boundary`（设计如此）/`control`（对照臂）：
+            #      那三个是**决策**，不是工作结论 ⇒ 翻它们 = 事后否决一个决定 ⇒ 仍归 `--triage`
+            #      （主进程）✗；
+            #   ② 只翻 **extras** 那一行（`docs/ux-queue-extras.jsonl`）✗ 不翻缺口台账
+            #      （`docs/gaps/ledger.jsonl` 是共享台账，用户 2026-09-28 红线 X2"只在 main 上
+            #      改"；且 `gap.py check` 对它有独立契约 ⇒ 脚本至今没有那条 CLI 入口 ✓）；
+            #   ③ **必须写 `--reason`**（上面那道闸门已经强制 ✓）+ 事件里留 `reopen_source`
+            #      审计字段（谁翻的、翻的是哪一格 ⇒ 事后可核 ✓）。
+            # ⚠ **两层漂移守卫没有被废掉** ✓：本路径**同一轮**把来源翻成 `fix` **并**写 `reopen`
+            # 事件 ⇒ 落出来的是**一致**形状；只手写一层（事件表被手改 / 将来的新写路径漏一层）
+            # 照样判红（`--selftest` 有一条臂钉着"只手写事件 ⇒ `--check` 必红" ✓）。
+            if reopen_source:
+                if _d != "fixed":
+                    print(f"✗ `{ident}` 的来源处置是 `{_d}` —— **决策**（`wo-filed` 定案不做 · "
+                          f"`boundary` 设计如此 · `control` 对照臂）**不许**走受限翻账路径 ✗：\n"
+                          f"    受限路径只翻 `fixed`（**工作结论**，可被证据推翻 —— 假绿正是它）✓\n"
+                          f"    要翻决策 ⇒ `--triage {ident} --to deferred --reason '<为什么>'`"
+                          f"（**只有主进程**能做 ✗）", file=sys.stderr)
+                    return 1
+                if not _extra_row:
+                    print(f"✗ `{ident}` 的来源不是 extras（sources={_srcs}）⇒ 受限翻账路径"
+                          f"**只翻 extras 那一行** ✗：\n"
+                          f"    · 缺口台账（{_label(GAPS_LEDGER)}）是**共享台账**（用户 2026-09-28 "
+                          f"红线 X2：只在 main 上改）且 `gap.py check` 对它另有契约 ⇒ 那条路仍"
+                          f"只有主进程的 `--triage` / 手改 ✓", file=sys.stderr)
+                    return 1
+                _rec = {"event": "reopen", "id": ident, "reason": reason, "owner": owner,
+                        "reopen_source": f"{_d}→fix"}
+                # ⚠ **先过事件闸门、再动来源**（`_guard_written_text` 是纯判定、不写盘 ✓）：
+                # 反过来（先写来源再 `append_event`）⇒ 自由文本编不成 UTF-8 时会留下
+                # **半途而废的写入**（来源翻了、事件没写 = 又一条两层漂移 ✗）。
+                _guard_written_text(_rec, "事件字段")
+                if not _rewrite_extras_row(ident, lambda r: r.update(disposition="fix")):
+                    raise UsageError(f"extras 里没有 `{ident}` 那一行（来源与事件表已脱钩 ✗）")
+                append_event(_rec)
+                print(f"✓ **受限翻账** `{ident}`：来源处置 `{_d}` → `fix`（同一轮）"
+                      f"+ 事件 `reopen` ⇒ {frm} → todo ✓\n"
+                      f"    （受限：只翻 `fixed` 的工作结论 · 只翻 extras 那一行 · 事件里留了 "
+                      f"`reopen_source` 审计字段；两层不漂移 ✓）")
+                return 0
             print(f"✗ `{ident}` 的**来源处置**是 `{_d}`（**已关账**）⇒ 光写 `reopen` 事件"
                   f"**回不到来源处置** ✗：来源才是权威（`--check` 会判「来源关账 + 调度器 "
                   f"todo」= **反向两层漂移**，`--next` 又会把它推出来）—— 要重开就**先把来源"
                   f"处置改回 `fix`**：\n"
                   f"    · extras 里的条目：`--triage {ident} --to deferred --reason '<为什么>'`"
                   f"（**同轮**把来源翻成 `fix` + 事件回 `todo` ✓）\n"
+                  f"    · extras 里的 `fixed` 条目 + 你是**外部验收方**（没有 `--triage` ✗）："
+                  f"加 `--reopen-source` ⇒ **受限翻账**（同轮翻来源 + 写事件，用户 2026-10-15【①】）"
+                  f"—— 只翻 `fixed` 的工作结论、只翻 extras 那一行 ✓\n"
                   f"    · 缺口台账里的条目：直接改 {_label(GAPS_LEDGER)} 那一行的 `status`"
                   f"（脚本没有 CLI 入口）\n"
                   f"  改完再 `--advance {ident} --to todo --reason '<为什么>'` ✓", file=sys.stderr)
@@ -2959,7 +3042,9 @@ def source_closed(row: dict) -> bool:
     **正常**形状：那个 `done` 正是要重开的东西）。写侧问的是"**来源**放不放行" ⇒ 只能看处置。
 
     用途（**一处定义、三处消费**）：
-      · `cmd_advance --to todo`：来源关着账 ⇒ 光写 `reopen` 事件**回不到来源处置** ✗；
+      · `cmd_advance --to todo`：来源关着账 ⇒ 光写 `reopen` 事件**回不到来源处置** ✗
+        （⭐ 2026-10-16 起：**显式受限**的 `--reopen-source` 可以在**同一轮**翻来源 ⇒ 见 docstring
+        的「受限翻账」一节；⚠ 那道闸门本身**没放松** —— 不带旗标时仍然硬拒 ✓）；
       · `cmd_add_child` 的父闸门：来源关着账的父条目**不许**再拆解（拆了必红）✗；
       · 自检的结构性守卫（`source_closed` ≡ `effective_state(row, {}) in CLOSED_STATES`）。
     """
@@ -3806,6 +3891,37 @@ def cmd_inbox(rows: list[dict]) -> int:
     return 0
 
 
+def _rewrite_extras_row(ident: str, mutate) -> bool:
+    """**逐行改写** `docs/ux-queue-extras.jsonl` 里 `ident` 那一行 ⇒ 返回是否找到。
+
+    ⚠ 逐行改写（**保住抬头的 `#` 注释**）—— 整文件重排会把那份说明段（它就是这份台账的
+    协议）整段抹掉 ✗。⚠ 每一行改写后都过 `_guard_written_text(row, "来源行字段")`
+    ⇒ 自由文本（`triage.reason` / 翻账的 `reopen_source`）编不成 UTF-8 时**一个字节都不写**
+    （闸门在 `write_text()` 之前 ⇒ 与既有"零写入"口径一致 ✓）。
+
+    ⚠ **一处定义**（`AGENTS.md` 硬规则 0(b)）：**两条**写路径都要把来源处置翻掉 ——
+    `cmd_triage`（受理/拒收/退回）与 `cmd_advance --reopen-source`（受限翻账，用户
+    2026-10-15【①】）。原先这段循环只有 `cmd_triage` 里一份 ⇒ 新写路径若各抄一遍，
+    下次加一份来源/加一条闸门（`REPOINT-SURROGATE-CRASH` 那次就是漏了这条整文件重写的路 ✗）
+    只会改一处 ⇒ 另一处静默漏闸 ✗。
+    """
+    lines = EXTRAS.read_text(encoding="utf-8").splitlines()
+    out: list[str] = []
+    found = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            row = json.loads(line)
+            if row.get("id") == ident:
+                mutate(row)
+                _guard_written_text(row, "来源行字段")
+                line = json.dumps(row, ensure_ascii=False)
+                found = True
+        out.append(line)
+    EXTRAS.write_text("\n".join(out) + "\n", encoding="utf-8")
+    return found
+
+
 def cmd_triage(ident: str, to: str, reason: str, commit: str, owner: str) -> int:
     """**主流受理提交**：applied 必须带 commit（证据）；rejected/deferred 必须带理由。
 
@@ -3853,25 +3969,16 @@ def cmd_triage(ident: str, to: str, reason: str, commit: str, owner: str) -> int
     # ⚠ **值域表只有一处**（`TRIAGE_TO_DISPOSITION`，与 `fold` 的读侧判据同源 ✓）——
     # 原先这里手写一遍字面 dict，而 `fold` 的读侧**没有**任何值域检查 ⇒ 两处各写各的 ✗。
     want = TRIAGE_TO_DISPOSITION[to]
-    # ⚠ 逐行改写（**保住抬头的 `#` 注释**）—— 整文件重排会把 `docs/ux-queue-extras.jsonl`
-    # 顶部的说明段（它就是这份台账的协议）整段抹掉 ✗。
-    lines = EXTRAS.read_text(encoding="utf-8").splitlines()
-    out = []
-    for line in lines:
-        stripped = line.strip()
-        if stripped and not stripped.startswith("#"):
-            row = json.loads(line)
-            if row.get("id") == ident:
-                row["disposition"] = want
-                row["triage"] = {"to": to, "commit": commit or None, "reason": reason or None,
-                                 "owner": owner, "ts": _now()}
-                # ⚠ **这一条也写自由文本**（`triage.reason` = `--reason`；`owner` = `--owner`）
-                # ⇒ 与事件表 / 另两个来源行写入口**同一处闸门** ✓（`REPOINT-SURROGATE-CRASH`
-                # 的横向排查：只修 `append_event` 会漏这条**整文件重写**的路 ✗）。
-                _guard_written_text(row, "来源行字段")
-                line = json.dumps(row, ensure_ascii=False)
-        out.append(line)
-    EXTRAS.write_text("\n".join(out) + "\n", encoding="utf-8")
+
+    def _apply(row: dict) -> None:
+        row["disposition"] = want
+        row["triage"] = {"to": to, "commit": commit or None, "reason": reason or None,
+                         "owner": owner, "ts": _now()}
+
+    # ⚠ 改写走 `_rewrite_extras_row()`（**一处定义**：与 `--advance --reopen-source` 共用
+    # 同一段「逐行改写 + 保住 `#` 注释 + `_guard_written_text`」✓）。
+    if not _rewrite_extras_row(ident, _apply):
+        raise UsageError(f"extras 里没有 `{ident}` 那一行（来源与事件表可能已脱钩 ✗）")
     _rec = {"event": "triage", "id": ident, "to": to, "reason": reason or None,
             "commit": commit or None, "owner": owner}
     if commit:
@@ -8097,7 +8204,14 @@ def selftest_write_gates(expect) -> None:
       ③ 正对照（**不许误拒**）：来源 `fix` + 事件 `done` ⇒ reopen **rc=0** 且转绿；
       ④ 正对照（**不许误拒**）：来源 `fix` 的父 ⇒ `--add-child` **rc=0** 且（子任务登记后）转绿；
       ⑤ **谓词只有一份**：`source_closed(row)` ≡ `effective_state(row, {}) in CLOSED_STATES`
-         逐处置成立（6 个处置全覆盖 ⇒ 以后加处置忘了归类会先红 ✗）。
+         逐处置成立（6 个处置全覆盖 ⇒ 以后加处置忘了归类会先红 ✗）；
+      ⑥ ⭐ **受限翻账**（用户 2026-10-15【①】· `--reopen-source`）：来源 `fixed` 的 extras 条目
+         ⇒ **同一轮**翻来源 + 写 `reopen`（带 `reopen_source` 审计字段）⇒ rc=0 且两层不漂移
+         （改前：这条动作**没有 CLI 出路** ⇒ 外部验收方做不了【①】的写动作 ✗）；
+      ⑦ **受限三条的反向**：`wo-filed` / `boundary`（**决策**）⇒ 受限路径硬拒 + 零写入
+         （翻决策仍归主进程的 `--triage` ✗）；
+      ⑧ ⭐ **正对照：两层漂移守卫没被废掉**：只手写一层（来源仍 `fixed`）⇒ `--check`
+         **仍判红 + 点名**（这是"`--reopen-source` 把守卫变成橡皮图章"的靶子 ✗）。
     """
     import contextlib
     import io
@@ -8124,7 +8238,11 @@ def selftest_write_gates(expect) -> None:
         GAPS_LEDGER.write_text("", encoding="utf-8")
         EXTRAS.write_text("".join(json.dumps(ext(i, d), ensure_ascii=False) + "\n" for i, d in
                                   (("X-1", "fixed"), ("X-2", "fix"), ("X-3", "fixed"),
-                                   ("P-1", "fixed"), ("P-2", "fix"))), encoding="utf-8")
+                                   ("P-1", "fixed"), ("P-2", "fix"),
+                                   # ⑥⑦ 的夹具（**受限翻账**那一族，用户 2026-10-15【①】）：
+                                   # `X-4` = 工作结论（可翻 ✓）· `X-5`/`X-6` = 决策（不许翻 ✗）。
+                                   ("X-4", "fixed"), ("X-5", "wo-filed"),
+                                   ("X-6", "boundary"))), encoding="utf-8")
         EVENTS.write_text("", encoding="utf-8")
         real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
                                   capture_output=True, text=True).stdout.strip()
@@ -8197,6 +8315,53 @@ def selftest_write_gates(expect) -> None:
             rows, state, view = snapshot()
             rc, err = capture(check_plan, view, rows)
             expect(f"④ 且**转绿**（红 {rc} 条）", rc == 0)
+            # ⑥ ⭐⭐ **受限翻账路径**（用户 2026-10-15【①】；`--reopen-source`）——
+            #    靶子 = "外部验收方做不了翻账动作"（它没有 `--triage` ✗）。
+            #    假绿的形状 = 来源 `fixed`（工作结论）+ 事件 `done`（守卫当时报绿）。
+            append_event({"event": "advance", "id": "X-4", "to": "done", "commit": real_sha,
+                          "reading": "夹具：假绿（守卫打回旧行为仍报绿 ⇒ 这条 done 不成立）",
+                          "owner": "t"})
+            rows, state, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"⑥ 前置：来源 `fixed` + 事件 `done`（假绿的形状）是**一致**的（红 {rc} 条）",
+                   rc == 0)
+            rows, state, view = snapshot()
+            rc, err = capture(cmd_advance, "X-4", "todo", "", "",
+                              "外部验收：守卫空了 ⇒ 翻账（用户【①】）", "t", False, view, True)
+            expect(f"⑥ 受限翻账 **rc=0**（改前：这条动作没有 CLI 出路 ✗；实测 {rc}）", rc == 0)
+            _rows_now = {json.loads(l)["id"]: json.loads(l)
+                         for l in EXTRAS.read_text(encoding="utf-8").splitlines() if l.strip()}
+            expect("⑥ **同一轮**把来源处置翻成 `fix`（不是只手写事件 ✗）",
+                   _rows_now["X-4"]["disposition"] == "fix")
+            _ev = [e for e in load_events() if e.get("id") == "X-4" and e.get("event") == "reopen"]
+            expect("⑥ 且写了 `reopen` 事件 + 留了 `reopen_source` 审计字段（事后可核 ✓）",
+                   len(_ev) == 1 and _ev[0].get("reopen_source") == "fixed→fix")
+            rows, state, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"⑥ 且**两层不漂移**（红 {rc} 条）", rc == 0)
+            # ⑦ **受限三条的反向**：决策（`wo-filed` 定案不做 / `boundary` 设计如此）是
+            #    **决定**、不是工作结论 ⇒ 受限路径**不许**翻它们 ✗（仍归 `--triage` 主进程）。
+            for _id, _d in (("X-5", "wo-filed"), ("X-6", "boundary")):
+                rows, state, view = snapshot()
+                rc, err = capture(cmd_advance, _id, "todo", "", "", "夹具：想翻决策", "t", False,
+                                  view, True)
+                expect(f"⑦ 决策 `{_d}`（{_id}）⇒ 受限路径**硬拒** + 说清只有主进程能做"
+                       f"（实测 rc={rc}）",
+                       rc == 1 and "决策" in err and "只有主进程" in err)
+                _now = {json.loads(l)["id"]: json.loads(l)
+                        for l in EXTRAS.read_text(encoding="utf-8").splitlines() if l.strip()}
+                expect(f"⑦ 且来源**没被翻**（{_id} 仍是 `{_d}`）", _now[_id]["disposition"] == _d)
+                expect(f"⑦ 且**零事件**落表（{_id}）",
+                       not [e for e in load_events() if e.get("id") == _id])
+            # ⑧ ⭐ **正对照：两层漂移守卫没被废掉** —— 绕过写侧、只手写一层
+            #    （= 手改事件表 / 将来的新写路径漏一层）⇒ `--check` **仍必须判红 + 点名** ✓
+            append_event({"event": "reopen", "id": "X-1", "reason": "手写：只动一层", "owner": "t"})
+            rows, state, view = snapshot()
+            rc, err = capture(check_plan, view, rows)
+            expect(f"⑧ 只手写一层（来源仍 `fixed`）⇒ **仍判红**（守卫不许被 `--reopen-source` "
+                   f"废掉；红 {rc} 条）", rc == 1)
+            expect("⑧ 且**点名 X-1** + 说出「反向两层漂移」（读数可归属 ✓）",
+                   "X-1" in err and "反向两层漂移" in err)
         finally:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
@@ -8975,7 +9140,12 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     known = set()
     for act in parser._actions:                      # noqa: SLF001 - 自检要看真定义
         known.update(act.option_strings)
-    for handler in (cmd_submit, cmd_triage, cmd_release, cmd_schedule):
+    for handler in (cmd_submit, cmd_triage, cmd_release, cmd_schedule, main):
+        # ⚠ **`main` 也要在名单里**（2026-10-16 · RO1 横向排查）：分派那一段读的是 `args.<旗标>`
+        # （例：`args.reopen_source`），而它**不在**四个 handler 里 ⇒ "handler 读的字段 parser 给不出"
+        # 这条判据**结构上看不见分派层** ✗ —— 忘了加 argparse 旗标 ⇒ 真 CLI 在 `main()` 里
+        # `AttributeError` 栈（rc=1），而 `--selftest` 全绿。加它 = 覆盖**全部** 32 个 `args.*` ✓
+        # （实测：`main()` 读的 32 个字段现在一个不缺 ✓）。
         fields = set(re.findall(r"\bargs\.([A-Za-z_][A-Za-z0-9_]*)",
                                 inspect.getsource(handler)))
         unknown = sorted(f for f in fields if f"--{f.replace('_', '-')}" not in known)
@@ -9416,10 +9586,18 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"⭐ 口径收紧后：**起点之前 / 无 `ts` 的假指针也判红**（`ts` 不再分桶 ⇒ "
           f"「存量 / 从宽」那套措辞已随豁免一起删掉 ✓）；"
           f"摘掉 `closure_pointer_problem` 或 triage 分支的 `advanced_ts` ⇒ 对应那条必红 ✗）"
-          f" + **写入口权威状态 19 条**（第六次复核 #3：来源关账的 reopen **硬拒 + 给出路 + 不写事件**/"
+          f" + **写入口权威状态 32 条**（第六次复核 #3：来源关账的 reopen **硬拒 + 给出路 + 不写事件**/"
           f"来源关账的父 `--add-child` **硬拒 + 不写 `split`**/"
           f"**不许误拒**：来源 `fix` 的 reopen 与拆解仍 rc=0 且转绿/"
-          f"`source_closed` ≡ `effective_state(row, {{}}) in CLOSED_STATES` 逐处置成立/**来源关账 + 无事件** ⇒ 也硬拒且**不许**印「非法迁移」✗）"
+          f"`source_closed` ≡ `effective_state(row, {{}}) in CLOSED_STATES` 逐处置成立/**来源关账 + 无事件** ⇒ 也硬拒且**不许**印「非法迁移」✗/"
+          f"⭐ **受限翻账**（用户 2026-10-15【①】· `--reopen-source`）：来源 `fixed` 的 extras 条目 ⇒ "
+          f"**同一轮**翻来源 + 写 `reopen`（带 `reopen_source` 审计字段）⇒ rc=0 且两层不漂移"
+          f"（改前：这条动作**没有 CLI 出路** ⇒ 外部验收方做不了【①】的写动作 ✗）/ "
+          f"**受限三条的反向**：`wo-filed`/`boundary`（**决策**）⇒ 硬拒 + 零写入 + 说清只有主进程能做 / "
+          f"⭐ **正对照**：只手写一层（来源仍 `fixed`）⇒ `--check` **仍判红 + 点名**（"
+          f"「`--reopen-source` 把两层漂移守卫变成橡皮图章」的靶子 ✗）；"
+          f"⚠ 条数 = 本族 `expect` **断言数**（= 调用点 24 + ⑤ 的 6 个处置 + ⑦ 的 2 个决策展开）"
+          f"⇒ 加臂时这个数字要跟着改 ✓）"
           f" + **切版证据闸门 9 条**（`#2`，第七次复核：`--release cut --commit` 原先**自身零闸门** ⇒ "
            f"不存在 / 非祖先的 sha **都 rc=0** 并写入 `release-cut` ✗ ⇒ 现在与入版/收口共用 "
            f"`closure_pointer_problem()`：两条假 sha **都拒 + 零写入**、正对照真祖先仍 rc=0、"
@@ -9542,6 +9720,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--commit", metavar="SHA", help="收口/切版证据①：commit（`--advance --to done` 与 `--release cut` 共用）")
     parser.add_argument("--reading", metavar="TEXT", help="收口证据②：判据读数")
     parser.add_argument("--reason", metavar="TEXT", help="wo_filed / blocked / 重开 / 排期的理由")
+    parser.add_argument("--reopen-source", action="store_true",
+                        help="**受限翻账**（配 `--advance <id> --to todo`）：来源处置 `fixed` 的 "
+                             "**extras** 条目 ⇒ **同一轮**把来源翻成 `fix` + 写 `reopen` 事件 "
+                             "（用户 2026-10-15【①】：外部验收方没有 `--triage` ✗）。"
+                             "受限三条：只翻 `fixed`（不翻决策）· 只翻 extras 那一行 · 必须写 `--reason`")
     parser.add_argument("--add-child", metavar="PARENT", help="就地拆解：给父条目加一个子任务")
     parser.add_argument("--child", metavar="ID", help="子任务 id（配 --add-child）")
     parser.add_argument("--title", metavar="TEXT", help="标题（配 --add-child / --schedule）")
@@ -9634,7 +9817,8 @@ def main() -> int:
             if not args.to:
                 raise UsageError("`--advance` 要配 `--to <state>`")
             return cmd_advance(args.advance, args.to, args.commit or "", args.reading or "",
-                               args.reason or "", args.owner, args.force, view)
+                               args.reason or "", args.owner, args.force, view,
+                               reopen_source=bool(args.reopen_source))
         if args.add_child:
             if not args.child:
                 raise UsageError("`--add-child` 要配 `--child <id>`（建议再给 `--title`）")
