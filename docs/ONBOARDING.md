@@ -61,8 +61,8 @@
 ### 0.2 下一步（**唯一队列**；机器入口 = `python3 scripts/ux-queue.py`）
 
 <!-- QUEUE:SUMMARY:BEGIN -->
-<!-- QUEUE:COUNTS total=7 blocker=0 high=6 medium=1 low=0 -->
-**未完成 7 条**（blocker **0** · high **6** · medium **1** · low **0**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
+<!-- QUEUE:COUNTS total=5 blocker=0 high=5 medium=0 low=0 -->
+**未完成 5 条**（blocker **0** · high **5** · medium **0** · low **0**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
 最靠前的 5 条：`GATE-FALSE-GREEN-11-MORE` · `SUB-eqsubst-ROOTCAUSE-correction` · `SUB-eqsubst-clue-order-clash` · `SUB-parse-error-kills-whole-file` · `SUB-produce-the-users-inputs`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
 <!-- QUEUE:SUMMARY:END -->
 
