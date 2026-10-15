@@ -60,6 +60,9 @@ unset SOKONANODA_NO_PROJECT_ARTIFACTS
 # ⇒ `gap.py` 判「环境异常」⇒ **判红** ✗。本件测的**就是**"同一版本的两个构建"，
 # 所以它天生需要两份不同 profile 的产物 —— 由它自己保证前提，别指望调用方。
 # 超时/失败仍 `exit 2`（环境异常 ⇒ 响亮，不当成"已修" ✓）。
+# ⚠ **存在 ≠ 同源**（本缺口标题里那句"**不看新不新**"）：补建只在二进制**缺**的时候发生；
+# 已经存在但**陈旧**（比引擎摘要那次改动旧）的那份，由 ③ 的**同源前提**抓
+# ⇒ `exit 2` + 人话（**绝不许** exit 0 —— 那是"缺口仍在" ✗）。
 SOKO_A=target/release/sokonanoda
 SOKO_B=target/debug/sokonanoda
 [ -x "$SOKO_A" ] || {
