@@ -179,7 +179,7 @@ python3 scripts/docs-lint.py --selftest || exit 1'
 #（pre-push 正是要拦住 `ledger` 那种红的路径 ✓）。
 # ⚠ **`--selftest` 故意没跟进来**（如实登记，不是漏了 ✓）：它 13.2s 且含**真并发**臂
 # （8 路抢同一资源 ⇒ 时序敏感）⇒ 塞进 pre-push 等于把"假红"风险加到每次推送 ✗；
-# CI 的 shard 1 仍在跑它 ✓（要本地跑：`SOKO_QUEUE_ROOT=<主 checkout> python3 scripts/ux-queue.py --selftest`）。
+# CI 的 `queue-lint` job（不设 `if:` ⇒ 每推必跑）仍在跑它 ✓（要本地跑：`SOKO_QUEUE_ROOT=<主 checkout> python3 scripts/ux-queue.py --selftest`）。
 run "gates：队列不变量（收口证据 · 祖先性 ✓）" "ledger" bash -c '
 set -u
 root=$(git worktree list --porcelain | sed -n "1s/^worktree //p")
