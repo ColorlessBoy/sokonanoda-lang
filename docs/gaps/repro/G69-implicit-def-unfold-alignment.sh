@@ -18,6 +18,14 @@
 # （`(hx : A x ∧ B x)`）**判绿** ✓ ⇒ 触发条件是「假设的类型是**点形式的应用**」✓。
 #
 # 期望：缺口**仍在**时 exit 0；修好后 exit 1。
+#
+# ⭐ **零观测闸门**（2026-10-15，洞 `G69-NO-EVENT-CHECK`）：判据是 `"code"` 的**条数**，
+# 而「已修」那一档要的正是 `bad=0 good=0` ⇒ **量具空转（一条事件都不输出）时读数与
+# 「已修」逐字相同** ✗ = **假绿**（守卫失效却不出声）。⇒ 先要求两次判卷都真的吐出
+# 事件行；一条都没有 ⇒ **exit 2（环境/形状异常）+ 说清没观测到什么** ✓。
+# 同族已修好的形状：`G25` 的 `observed===0 ⇒ exit 2`、`G27` 的
+# `hits1==0 && compiled1==0 ⇒ exit 2`、`G34` 的 `calls==0 ⇒ exit 2`
+# （那三条是**假红**方向，本条是**假绿**方向 —— 形状同、危险更大 ✗）。
 set -uo pipefail
 cd "$(dirname "$0")/../../.." || exit 2
 # **优先 `scripts/soko`**（受管环境里 `CARGO_TARGET_DIR` 指向别处 ⇒ 下面那些
@@ -59,8 +67,30 @@ theorem t (α : Type) (A B : Set α) (x : α) (hx : A x ∧ B x) : A x :=
   And.left hx
 EOF
 
-bad=$("$BIN" grade --root "$DIR" "$DIR/derived.sokonanoda" 2>&1 | grep -c '"code"')
-good=$("$BIN" grade --root "$DIR" "$DIR/explicit.sokonanoda" 2>&1 | grep -c '"code"')
+# ⚠ 两份输出都**留全**：`bad`/`good` 只是其中的 `"code"` 条数，而"有没有事件"要
+# 单独量（见下面的零观测闸门）✗ —— 旧写法把 `grade` 的输出直接喂给 `grep -c`，
+# 量具空转时读数与「已修」**逐字相同** ✗。
+bad_out=$("$BIN" grade --root "$DIR" "$DIR/derived.sokonanoda" 2>&1)
+good_out=$("$BIN" grade --root "$DIR" "$DIR/explicit.sokonanoda" 2>&1)
+bad=$(printf '%s\n' "$bad_out" | grep -c '"code"')
+good=$(printf '%s\n' "$good_out" | grep -c '"code"')
+
+# ⭐ **零观测 ⇒ exit 2**（不是 exit 1 ✗）：`grade` 的 JSON 事件流**每条都带 `"type"`**
+# ⇒ 一条都没有 = 这次判卷**什么都没观测到**（量具空转 / 拒跑 / 夹具或模块根不对）
+# ⇒ 此时 `bad=0 good=0` 是**空观测**，与「已修」不可区分 ⇒ **绝不报「已修」** ✗。
+# 实测（改前，真环境）：worktree 里没有版本匹配的仓库构建 ⇒ `scripts/soko` 对过期
+# 缓存**拒跑**（exit 3 + 人话，零事件）⇒ 本件报「已修」exit 1 ✗（假绿）。
+bad_events=$(printf '%s\n' "$bad_out" | grep -c '"type"')
+good_events=$(printf '%s\n' "$good_out" | grep -c '"type"')
+if [ "$bad_events" -eq 0 ] || [ "$good_events" -eq 0 ]; then
+  echo "G-69：观测不到判卷事件（derived=${bad_events} · explicit=${good_events} 条）⇒ 环境/形状异常（exit 2），不是「已修」✗" >&2
+  echo "      · 这条判据量的就是「诊断条数」；一条事件都没有时 bad/good 恒为 0 ⇒ 「已修」没有信息量 ✗" >&2
+  echo "      · 常见成因：scripts/soko 拒绝跑过期缓存（exit 3）/ 无版本匹配构建 / 夹具或模块根不对" >&2
+  printf '%s\n' "$bad_out" | grep -v '^[[:space:]]*$' | head -3 | sed 's/^/        derived  → /' >&2
+  printf '%s\n' "$good_out" | grep -v '^[[:space:]]*$' | head -3 | sed 's/^/        explicit → /' >&2
+  exit 2
+fi
+
 if [ "$bad" != "0" ] && [ "$good" = "0" ]; then
   echo "G-69 仍在：派生假设的点形式展开错位 ⇒ 短写解不出隐式参数" >&2
   exit 0
