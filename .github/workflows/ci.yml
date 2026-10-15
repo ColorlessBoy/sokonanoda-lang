@@ -804,6 +804,17 @@ jobs:
         shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v5
+        with:
+          # **必须全历史**（2026-10-15 · `LEDGER-SHALLOW-CHECKOUT-FALSE-RED` ✓）：本 job 的
+          # `ux-queue.py --check` 有一条**祖先性断言** —— 每个 id 的**现行收口指针**必须过
+          # `git merge-base --is-ancestor <sha> HEAD`（口径「非祖先必须 0 条，没有豁免」✓）。
+          # 默认 `depth=1` 的浅克隆里那些历史对象**根本不在** ⇒ `is-ancestor` 返回 **128**
+          # （`fatal: Not a valid commit name`，不是 1 ✗）⇒ 判据把**真祖先**读成非祖先 ✗。
+          # 实测（run 38675647735 的 `ledger (1)`）：假红 **144 条**（+ 同因的指针审计
+          # 97 条 = 不变量 **241 条红**），而同一份账在**全历史**下 `--check` **rc=0** ✓。
+          # ⇒ 正解是**给够历史**，**不是**放宽判据 ✗（同 `e2e-ledger` 那条的先例：它要
+          # rebase 的 parent 对象，也是被 depth=1 坑过 ✓）。
+          fetch-depth: 0
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
