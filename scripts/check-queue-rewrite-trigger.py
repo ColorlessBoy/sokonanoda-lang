@@ -366,9 +366,24 @@ def _fixture_repo(d: Path, ident: str) -> tuple[str, str, str]:
     message 全一样 ⇒ **sha 逐字节相同** ⇒ 指针"已经是祖先" ⇒ 触发器报 0 条 ⇒ 臂 ① 假红）。
     ⇒ 让 `main` 在孪生之前**先走一步**（多一个 `main-only.txt` 提交）⇒ parent 不同 ⇒ sha 不同，
     而 `patch-id --stable` 仍逐字节相同（diff 一样 ✓）—— 这正是 `git rebase` 重写的形状 ✓。
+
+    ⚠⚠ **身份必须写进夹具仓的 `config`**（2026-10-16 实测，CI 红 ✗→✓）：
+    本文件上面的提交都自带 `-c user.name=…`，**但被考的那一次提交不是我们打的** ——
+    是**触发器自己**在 `trigger()` 里打的（`_git(qroot, "commit", …)`，见那里为什么
+    **不**加 `-c`：`clean_git_env()` 的口径是"**提交身份应当来自仓库配置**，不该被钩子的
+    调用方注入" ✓）。⇒ runner 上没有 `user.name`/`user.email`（`actions/checkout` 只配
+    `safe.directory`）且 `git` 又**自动探测不到**（CI 上是 `runner@…(none)`）时，那一次
+    `git commit` 直接失败 ⇒ 回填**只写工作区、没进 HEAD** ⇒ 臂 ①d/⑤b 判红：
+    `✗ 自检判红 2/11 条：①d 回填**已提交**（不提交 = 本地绿、CI 红 ✗）：<sha> fixture: pointer · ⑤b …`
+    （**本地绿、CI 红** 正是这条臂的注释点名的那档 ✗）。同族先例：
+    `ux-queue.py::_fixture_commit` 的 docstring 记的 `SELFTEST-FIXTURE-FAILS-IN-CI`。
+    ⇒ 夹具**自带**身份（仓库配置，不是环境变量 —— `clean_git_env()` 会把 `GIT_*` 全摘掉 ✗）。
     """
     uxq = _load_uxq()
     uxq._fixture_queue_root(d, ident)
+    # 夹具仓自带身份：被考的那次提交由**触发器**打（它只认仓库配置 ✓）。
+    _git(d, "config", "user.name", "fixture")
+    _git(d, "config", "user.email", "fixture@local")
     _git(d, "symbolic-ref", "HEAD", "refs/heads/main")
     _git(d, "add", "-A")
     _git(d, "-c", "user.name=fixture", "-c", "user.email=f@local", "commit", "-qm", "base")
