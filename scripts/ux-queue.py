@@ -2160,6 +2160,26 @@ def _patch_id(commit: str) -> str | None:
     return _PATCH_ID_CACHE[commit]
 
 
+def _reset_git_memos() -> None:
+    """把**按 sha / 按 `HEAD` 记忆化**的 git 读数**全部作废**（换树/换 `HEAD` 时必调）。
+
+    ⚠ **为什么必须有一处**（`SELFTEST-FIXTURE-FAILS-IN-CI`，2026-10-15 · 实测 ✗）：
+    `--selftest` 的夹具臂会把**仪器**打到自建的迷你仓上（`globals()["ROOT"] = <夹具仓>`，
+    本文件既有的手法，见 `selftest_release_branch_fence` ✓）。而下面四份记忆化里
+    **三份按 sha 作键**（换仓后 sha 不同 ⇒ 天然不串 ✓），**`_ANCESTORS_BY_SUBJECT` 却按
+    「`HEAD` 的全历史」作键、一个键都没有** ⇒ 它会把**上一棵树**的 subject→sha 表喂给
+    新树的 `find_twin()` ⇒ 孪生搜索**静默查错树**（夹具 ① 假红，而根因与孪生无关 ✗）。
+    ⇒ 换树处**一处调用**（硬规则 0(b)：别在每个调用点各写一遍 `.clear()`）：
+    **进夹具前** + **出夹具后**（后者同样重要 —— 否则后面的臂会读到夹具仓的历史表 ✗）。
+    """
+    global _ANCESTORS_BY_SUBJECT
+    _TWIN_CACHE.clear()
+    _ANCESTRY_CACHE.clear()
+    _SUBJECT_CACHE.clear()
+    _PATCH_ID_CACHE.clear()
+    _ANCESTORS_BY_SUBJECT = None
+
+
 def _pointer_audit(commit: str) -> dict:
     """**指针的内容锚**（`subject` + `patch_id`）—— 所有"写指针"的事件**共用这一处** ✓。
 
@@ -4265,6 +4285,58 @@ def print_table(rows: list[dict]) -> None:
           f"终态/边界/对照 {s['queued_all'] - s['total']}）")
 
 
+def _fixture_queue_root(path: Path, ident: str, *, facet: str = "主线", repro: str = "true",
+                        why: str = "真 CLI 子进程夹具") -> Path:
+    """在 `path` 造一个**自包含的队列根**（`_guard_root` 的 5 份必需文件 + 一行 extras + `git init`）。
+
+    返回同一个 `path`（调用方接着读 `.git` / `docs/…` ✓）。
+
+    ⚠ **一处定义**（`AGENTS.md` 硬规则 0(b)，`SELFTEST-FIXTURE-FAILS-IN-CI`，2026-10-15）：
+    `--selftest` 里有**两个**臂要"真 CLI 子进程 + 它自己的根"（`selftest_scheduler` ⑪c 与
+    `selftest_repoint_and_release_gate` ⑨）—— 各抄一遍 ⇒ 下次 `REQUIRED_ROOT_FILES` 加一份、
+    只改一处 ⇒ 另一个臂**静默**退化成"根不齐"（`_guard_root` rc=2）✗。
+    ⚠ **为什么必须自带 `git init`**：锁文件落在**共享 git 目录**（`lock_file()`）⇒ 没有 `.git`
+    的夹具根会让子进程把锁写回**真仓库**（本臂的锁证据空转 + 污染真仓 ✓ 反了）。
+    """
+    (path / "scripts").mkdir(parents=True, exist_ok=True)
+    (path / "docs" / "gaps").mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init", "-q", str(path)], capture_output=True, cwd=str(path))
+    (path / "Cargo.toml").write_text("", encoding="utf-8")
+    (path / "scripts" / "ux-queue.py").write_text("# 根标记（`_guard_root` 的必需文件）\n",
+                                                 encoding="utf-8")
+    (path / "docs" / "gaps" / "ledger.jsonl").write_text("", encoding="utf-8")
+    (path / "docs" / "ux-findings-2026-10-12.md").write_text(
+        "## 2 高\n\n| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核 |\n"
+        "|---|---|---|---|---|---|---|\n"
+        f"| {ident} | {facet} | 夹具 | 中 | `{repro}` | fixtures | — |\n",
+        encoding="utf-8")
+    (path / "docs" / "ONBOARDING.md").write_text(
+        "### 0.2 队列\n\n<!-- QUEUE:SUMMARY:BEGIN -->\n"
+        "<!-- QUEUE:COUNTS total=0 blocker=0 high=0 medium=0 low=0 -->\n**占位**\n"
+        "<!-- QUEUE:SUMMARY:END -->\n\n## 3 下节\n", encoding="utf-8")
+    (path / "docs" / "ux-queue-extras.jsonl").write_text(json.dumps({
+        "id": ident, "source": "orchestrator-schedule", "facet": facet,
+        "severity": "medium", "repro": repro, "disposition": "fix",
+        "owner": "fixtures", "why": why}, ensure_ascii=False) + "\n", encoding="utf-8")
+    return path
+
+
+def _fixture_commit(repo: Path, filename: str, content: str, subject: str) -> str:
+    """往夹具仓 `repo` 里**追加一次提交** ⇒ 返回它的 sha（`HEAD`）。
+
+    ⚠ **一处定义**（硬规则 0(b)，`SELFTEST-FIXTURE-FAILS-IN-CI`）：`--selftest` 里**两个**
+    夹具臂都要"自建一个两提交、内容不同（⇒ `patch-id` 必不同）的仓"当 git 前提。
+    ⚠ 身份用 `-c` **显式给** ⇒ 不依赖 runner 上有没有 `user.name`（CI 的 `actions/checkout`
+    只配 `safe.directory`，`user.name`/`user.email` 是**没有**的 ✗ ⇒ 不显式给就提交不了）。
+    """
+    (repo / filename).write_text(content, encoding="utf-8")
+    ident = ("-c", "user.name=ux-queue-selftest", "-c", "user.email=selftest@local")
+    subprocess.run(["git", *ident, "add", filename], cwd=repo, capture_output=True)
+    subprocess.run(["git", *ident, "commit", "-qm", subject], cwd=repo, capture_output=True)
+    return subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo,
+                          capture_output=True, text=True).stdout.strip()
+
+
 def selftest_scheduler(expect) -> None:
     """调度器判据自检：**故意造非法形状，每一条都必须被拒** ✗（规则在代码里 ⇒ 必须咬得住）。
 
@@ -4517,27 +4589,8 @@ def selftest_scheduler(expect) -> None:
             #     （≠ 本进程）、`wait()` 的真退出码、以及**只有子进程写得出来**的产物
             #     （夹具根里的锁文件 + 事件表）。夹具根**自带 `git init`** ⇒ 锁是**真锁文件**，
             #     但整棵树在临时目录里 ⇒ **不碰真台账/真锁** ✓（不是 stub 掉闸门的臂 ✓）。
-            _cli = Path(tmp) / "cliroot"
-            (_cli / "scripts").mkdir(parents=True, exist_ok=True)
-            (_cli / "docs" / "gaps").mkdir(parents=True, exist_ok=True)
-            subprocess.run(["git", "init", "-q", str(_cli)], capture_output=True, cwd=str(_cli))
-            (_cli / "Cargo.toml").write_text("", encoding="utf-8")
-            (_cli / "scripts" / "ux-queue.py").write_text("# 根标记（`_guard_root` 的必需文件）\n",
-                                                          encoding="utf-8")
-            (_cli / "docs" / "gaps" / "ledger.jsonl").write_text("", encoding="utf-8")
-            (_cli / "docs" / "ux-findings-2026-10-12.md").write_text(
-                "## 2 高\n\n| id | 面 | 现象 | 严重度 | 复现命令 | 归属 | 复核 |\n"
-                "|---|---|---|---|---|---|---|\n| FX-CLI | 主线 | 夹具 | 中 | `true` | fixtures | — |\n",
-                encoding="utf-8")
-            (_cli / "docs" / "ONBOARDING.md").write_text(
-                "### 0.2 队列\n\n<!-- QUEUE:SUMMARY:BEGIN -->\n"
-                "<!-- QUEUE:COUNTS total=0 blocker=0 high=0 medium=0 low=0 -->\n**占位**\n"
-                "<!-- QUEUE:SUMMARY:END -->\n\n## 3 下节\n", encoding="utf-8")
-            (_cli / "docs" / "ux-queue-extras.jsonl").write_text(json.dumps({
-                "id": "FX-CLI", "source": "orchestrator-schedule", "facet": "主线",
-                "severity": "medium", "repro": "true", "disposition": "fix",
-                "owner": "fixtures", "why": "真 CLI 子进程夹具"}, ensure_ascii=False) + "\n",
-                encoding="utf-8")
+            _cli = _fixture_queue_root(Path(tmp) / "cliroot", "FX-CLI",
+                                       why="真 CLI 子进程夹具")
             # ⭐ **子进程的事件表 = 它自己那个根的那一份**（`EVENTS-FLAG-ABS-PATH-BREAKS-SELFTEST`，
             #    2026-10-15 · 第十五次独立复核实测 ✗）：夹具根是 `_cli`（子进程的
             #    `SOKO_QUEUE_ROOT`）⇒ 它的事件表必须是 `_cli/docs/ux-queue-events.jsonl`。
@@ -6288,12 +6341,10 @@ def selftest_repoint_and_release_gate(expect) -> None:
     import tempfile
     global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
     bad_sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
-    real_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
-                              capture_output=True, text=True).stdout.strip()
-    _TWIN_CACHE.clear()
     with tempfile.TemporaryDirectory() as tmp:
         saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"],
-                 globals()["worktree_dirty"], globals()["probe_inventory"])
+                 globals()["worktree_dirty"], globals()["probe_inventory"],
+                 globals()["ROOT"])
         EVENTS = Path(tmp) / "events.jsonl"
         EXTRAS = Path(tmp) / "extras.jsonl"
         INDEX = Path(tmp) / "index.md"
@@ -6308,40 +6359,70 @@ def selftest_repoint_and_release_gate(expect) -> None:
                          encoding="utf-8")
         GAPS_LEDGER.write_text("", encoding="utf-8")
 
+        # ── ⭐⭐ **夹具自带 git 前提**（`SELFTEST-FIXTURE-FAILS-IN-CI`，2026-10-15 · CI 实测 ✗）──
+        # 旧写法把"真孪生"建在**外层仓库的历史**上：先 `git log HEAD` 里挑一个"subject 全历史
+        # 唯一 + 有父"的提交当基，再 `commit-tree <基>^{tree} -p <基>^ -m <基的 subject>`。
+        # 它**要全历史**，而 CI 的 `ledger` job 用 `actions/checkout@v5` 的**默认浅克隆**
+        # （`fetch-depth: 1` ⇒ `git log HEAD` 只有 1 条、`HEAD^` 的**对象不存在**）⇒ 实测（`ledger (1)`
+        # run 38669510890 / job 116209082485）逐条：
+        #   · `base_sha` 搜不到（`rev-parse <sha>^` 空）⇒ `twin=""` ⇒ 夹具① 三条全红；
+        #   · `_ancestors_by_subject()` 只有 1 条 ⇒ `find_twin` 找不到孪生 ⇒ ③ 的 `--repoint`
+        #     抛 `UsageError` ⇒ **整个 `--selftest` 中途炸**（rc=2 + 不打汇总，不是 rc=1）✗
+        #     —— 这就是 CI 的 `exit code 2` ✓（本地全历史永远看不见 ✗）。
+        # ⇒ 夹具**自己 `git init` 一个迷你仓**（根 + HEAD 两提交），对象全部自造 ⇒
+        #   **不依赖外层仓库的形状**：全历史 / 浅克隆 / 连 `.git` 都没有的目录都同判 ✓。
+        #   ⚠ **不是放宽判据** ✗：三条断言（真孪生造得出 / 三关认得它 / 只比 subject 不够）
+        #   一个字没改，只是把它们的**前提**从"外层仓库够深"换成"夹具自己造得出" ✓。
+        #   ⚠ 同一棵树**也是 ⑨ 子进程的队列根**（`_fixture_queue_root`）⇒ 子进程的
+        #   `SOKO_QUEUE_ROOT` / 锁 / 事件表全在临时目录里（**不碰真台账、不碰真 `.git`** ✓）。
+        repo = _fixture_queue_root(Path(tmp) / "repo", "FX-REPO",
+                                   why="指针回填夹具：真 CLI 子进程的根")
+        _ident = ("-c", "user.name=ux-queue-selftest", "-c", "user.email=selftest@local")
+        # 孪生的**提交时刻**（见 `make_twin` 的说明：不钉住就会与基同 sha ✗）。用固定值 ⇒
+        # 夹具**逐次可复现**（不随墙钟漂 ✓）。
+        _twin_env = dict(os.environ, GIT_AUTHOR_DATE="2001-01-01T00:00:00+00:00",
+                         GIT_COMMITTER_DATE="2001-01-01T00:00:00+00:00")
+
         def git(*argv) -> str:
-            return subprocess.run(["git", *argv], cwd=ROOT, capture_output=True,
+            return subprocess.run(["git", *argv], cwd=repo, capture_output=True,
                                   text=True).stdout.strip()
 
+        # 两提交：根（内容无关的祖先）+ HEAD（孪生的基）。⚠ 身份用 `-c` 显式给 ⇒ 不依赖
+        # runner 上有没有 `user.name`（CI 的 checkout 只配 `safe.directory` ✗）。
+        unrelated_anc = _fixture_commit(repo, "a.txt", "1\n", "fixture: 内容无关的祖先（根）")
+        base_sha = real_sha = _fixture_commit(
+            repo, "b.txt", "2\n", "fixture: 孪生的基（全历史唯一 subject + 有父）")
+
+        # **仪器打到夹具仓上**（本文件既有的手法，见 `selftest_release_branch_fence`）+ 作废
+        # 按「`HEAD` 全历史」记忆化的读数 ⇒ 否则 `find_twin` 会拿**上一棵树**的 subject 表查 ✗
+        # （`_reset_git_memos()`；`finally` 里还要再来一次，否则后面的臂读到夹具仓的历史 ✗）。
+        globals()["ROOT"] = repo
+        _reset_git_memos()
+
         def make_twin(sha: str) -> str:
-            """同树 + 同父 + 同 subject ⇒ 同 `patch-id --stable`，但**不是**祖先（新对象、无 ref）。"""
-            return git("-c", "user.name=ux-queue-selftest", "-c", "user.email=selftest@local",
-                       "commit-tree", f"{sha}^{{tree}}", "-p", f"{sha}^",
-                       "-m", git("log", "-1", "--format=%s", sha))
+            """同树 + 同父 + 同 subject ⇒ 同 `patch-id --stable`，但**不是**祖先（新对象、无 ref）。
+
+            ⚠ **必须给孪生一个不同的提交时刻**（`_twin_env`）：同树 + 同父 + 同 subject +
+            **同一秒** ⇒ `git commit-tree` 产出**逐字节相同**的 commit 对象 ⇒ **同一个 sha**
+            ⇒ "孪生"退化成"基自己"（实测：夹具仓刚建好就造孪生 ⇒ `8aefc947 → 8aefc947`，
+            ①②③ 连带 8 条红 ✗）。旧写法靠"基是历史里的**旧**提交 ⇒ 时刻必然不同"侥幸成立；
+            夹具自带前提后**必须显式钉住** ✓。`patch-id` 只哈希 diff（不含 author/date）⇒
+            改时刻**不影响**第 2 关 ✓（三关的严格度一个字没动 ✓）。
+            """
+            return subprocess.run(
+                ["git", *_ident, "commit-tree", f"{sha}^{{tree}}", "-p", f"{sha}^",
+                 "-m", git("log", "-1", "--format=%s", sha)],
+                cwd=repo, capture_output=True, text=True, env=_twin_env).stdout.strip()
 
         def dangling_new(subject: str) -> str:
             """**没有孪生**的悬垂 commit（subject 独一份）。"""
-            return git("-c", "user.name=ux-queue-selftest", "-c", "user.email=selftest@local",
-                       "commit-tree", f"{real_sha}^{{tree}}", "-m", subject)
+            return git(*_ident, "commit-tree", f"{real_sha}^{{tree}}", "-m", subject)
 
-        # ⚠ `base_sha` 是**最新**的那个唯一 subject 提交（`git log` 倒序）⇒ 它**可能等于**
-        # `real_sha`(HEAD) ⇒ ⑤b 的"无关祖先"**不能**用 `real_sha`（那正是孪生的基 ✗，实测
-        # 夹具自己踩到：subject/patch-id 全一致 ⇒ 反而 rc=0）。用**根提交**：它有父的
-        # `base_sha` 的 subject 在全历史唯一 ⇒ 根的 subject 必然不同 ✓，且它一定是祖先 ✓。
-        unrelated_anc = git("rev-list", "--max-parents=0", "HEAD").splitlines()[-1] \
-            if git("rev-list", "--max-parents=0", "HEAD") else ""
-
-        # 找一个"subject 在全历史里唯一 + 有父"的真祖先当孪生的**基**
-        by_subj = _ancestors_by_subject()
-        base_sha = ""
-        for line in git("log", "--no-merges", "--format=%H%x01%s", "HEAD").splitlines():
-            if "\x01" not in line:
-                continue
-            _h, _s = line.split("\x01", 1)
-            if len(by_subj.get(_s, [])) == 1 and git("rev-parse", "--verify", "--quiet",
-                                                     f"{_h}^"):
-                base_sha = _h
-                break
-        twin = make_twin(base_sha) if base_sha else ""
+        # ⚠ `base_sha` 就是夹具仓的 HEAD（它是唯一的非 merge 提交）⇒ ⑤b 的"无关祖先"**不能**
+        # 用它（那正是孪生的基 ✗，实测夹具自己踩到：subject/patch-id 全一致 ⇒ 反而 rc=0）。
+        # 用**根提交**：孪生的基的 subject 在夹具仓全历史唯一 ⇒ 根的 subject 必然不同 ✓，
+        # 且它一定是祖先 ✓（= ⑤b 要的"**是祖先但内容无关**"那一格）。
+        twin = make_twin(base_sha)
         lonely = dangling_new("ux-queue selftest: 这条 subject 独一份（没有孪生）")
 
         def ext(ident: str) -> dict:
@@ -6522,6 +6603,10 @@ def selftest_repoint_and_release_gate(expect) -> None:
                    rc != 0 and "入版条目 `R-3` 的证据过不了闸门" in err)
 
             # ⑨ 真 CLI 路径（子进程）—— ⚠ 用 `__file__`（不是主仓那份 ⇒ 否则测到别的构建 ✗）
+            #    ⚠ 子进程的**根 = 夹具仓**（`SOKO_QUEUE_ROOT`，就是上面那个自包含的
+            #    `_fixture_queue_root`）⇒ 它的 git 前提、锁、事件表**全在临时目录里**：
+            #    改前子进程的根是**真仓库**（`str(ROOT)`）⇒ 它按真仓库的浅/全历史判祖先性 ✗
+            #    （夹具仓的 sha 在真仓库里根本不存在 ⇒ ⑨ 的正对照必红），锁还写进真 `.git` ✗。
             _me = str(Path(__file__).resolve())
             for _ver, _sha, _want in (("0.0.3", bad_sha, False), ("0.0.4", real_sha, True)):
                 _ev = Path(tmp) / f"cli-{_ver}.jsonl"
@@ -6532,8 +6617,8 @@ def selftest_repoint_and_release_gate(expect) -> None:
                 _p = subprocess.run(
                     [sys.executable, _me, "--release", "add", "--rel", f"REL-{_ver}",
                      "--id", "Z-1", "--owner", "t"],
-                    capture_output=True, text=True, cwd=str(ROOT),
-                    env=dict(os.environ, SOKO_QUEUE_ROOT=str(ROOT), SOKO_QUEUE_EVENTS=str(_ev)))
+                    capture_output=True, text=True, cwd=str(repo),
+                    env=dict(os.environ, SOKO_QUEUE_ROOT=str(repo), SOKO_QUEUE_EVENTS=str(_ev)))
                 expect(f"⑨ 真 CLI：`--release add` {'真祖先 ⇒ rc=0' if _want else '假指针 ⇒ rc≠0'}"
                        f"（实测 rc={_p.returncode}）", (_p.returncode == 0) == _want)
             # ⑩ CLI 契约：新增的四个开关真在 parser 里
@@ -6567,6 +6652,8 @@ def selftest_repoint_and_release_gate(expect) -> None:
             globals()["lock_file"] = saved[4]
             globals()["worktree_dirty"] = saved[5]
             globals()["probe_inventory"] = saved[6]
+            globals()["ROOT"] = saved[7]      # **仪器还回真仓库**（否则后面的臂全打在夹具上 ✗）
+            _reset_git_memos()                # 并按「`HEAD` 全历史」作废（别把夹具的历史表带出去 ✗）
 
 
 def selftest_release_cut_gate(expect) -> None:
@@ -7990,13 +8077,20 @@ def selftest_pointer_content_audit(expect) -> None:
          （本轮把折叠键名从 `repoint_*` 统一成 `ptr_*` ⇒ 这条臂钉住"改名没把牙改掉" ✓）。
     ⚠ 夹具只用**临时台账**（`EVENTS`/`EXTRAS`/`INDEX`/`GAPS_LEDGER` + 临时锁）⇒ 不碰真台账 ✓；
       往真仓库写的只有一个**悬垂 commit 对象**（无 ref、无副作用，gc 会回收 ✓）。
+      ⚠ **git 前提也自带**（`SELFTEST-FIXTURE-FAILS-IN-CI`，2026-10-15 · CI 实测 ✗）：本臂要
+      "**另一个祖先** sha（内容不同）"，旧写法从**外层仓库** `HEAD~1..HEAD~5` 里现找 ⇒
+      `--depth 1` 的浅克隆里**一个都找不到**（`HEAD~1` 的对象不存在）⇒ 实测 7 条红 ✗。
+      ⇒ 与 `selftest_repoint_and_release_gate` 同一手法：**夹具自己 `git init` 一个两提交的仓**
+      （内容不同 ⇒ `patch-id` 必不同），仪器打上去（`globals()["ROOT"]`）⇒ 全历史 / 浅克隆同判 ✓；
+      悬垂对象也**写进夹具仓**（不再往真仓库写对象 ✓）。
     """
     import contextlib
     import io
     import tempfile
     global EVENTS, EXTRAS, INDEX, GAPS_LEDGER
     with tempfile.TemporaryDirectory() as tmp:
-        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"])
+        saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"],
+                 globals()["ROOT"])
         EVENTS = Path(tmp) / "events.jsonl"
         EXTRAS = Path(tmp) / "extras.jsonl"
         INDEX = Path(tmp) / "index.md"
@@ -8021,11 +8115,19 @@ def selftest_pointer_content_audit(expect) -> None:
              "repro": "bash p4.sh", "disposition": "fixed", "why": "夹具：repoint 既有牙重验"},
         )), encoding="utf-8")
 
+        # ── **夹具自带 git 前提**（见本函数 docstring 的最后一段）────────────────────────
+        repo = _fixture_queue_root(Path(tmp) / "repo", "FX-ANCHOR",
+                                   why="内容锚夹具：自带 git 前提（两提交、内容不同）")
+        # 根（**另一个祖先**、内容不同）+ HEAD（收口指针的基）⇒ `other` 一定找得到 ✓。
+        _fixture_commit(repo, "a.txt", "1\n", "fixture: 内容无关的祖先（另一条补丁）")
+        real_sha = _fixture_commit(repo, "b.txt", "2\n", "fixture: 收口指针的基")
+        globals()["ROOT"] = repo
+        _reset_git_memos()
+
         def _git(*argv):
-            return subprocess.run(["git", *argv], cwd=ROOT, capture_output=True,
+            return subprocess.run(["git", *argv], cwd=repo, capture_output=True,
                                   text=True).stdout.strip()
 
-        real_sha = _git("rev-parse", "HEAD")
         # **另一个祖先**：从 `HEAD~1` 起找第一个 `patch-id` 与 `HEAD` 不同的（内容无关的祖先 ✓）。
         # ⚠ 不能写死 sha（main 会被 rebase ⇒ 数字/哈希都会漂 ✗）；也不能用 `HEAD~1` 就假定它
         # 内容不同（空提交 / 同一补丁重放都可能同 id）⇒ **现找 + 当场断言** ✓。
@@ -8178,6 +8280,8 @@ def selftest_pointer_content_audit(expect) -> None:
         finally:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
+            globals()["ROOT"] = saved[5]      # **仪器还回真仓库**（否则后面的臂全打在夹具上 ✗）
+            _reset_git_memos()                # 并按「`HEAD` 全历史」作废（别把夹具的历史表带出去 ✗）
 
 
 def selftest_event_vocabulary(expect) -> None:
