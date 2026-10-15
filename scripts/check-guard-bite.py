@@ -183,6 +183,34 @@ def changed_guards(root: Path, since: str | None) -> tuple[list[str], str | None
     return sorted({p for p in out.split() if is_guard(p)}), None
 
 
+def shallow_hint(root: Path) -> str:
+    """本仓若是**浅克隆** ⇒ 给出**可操作的**人话（否则空串 ✓）。
+
+    ⚠ 为什么要有（2026-10-16 **CI 实测** ✗→✓，`EDITOR-JOB-BITE-STEP-EXIT-3`）：
+    `editor` job 的 checkout 没有 `fetch-depth: 0` ⇒ 覆盖面基线（台账抬头的
+    `# coverage_since:`）那个对象不在 ⇒ `changed_guards` 拿到 `git` 的 rc=128 ⇒
+    本文件**只印一行原始 git 报错**，读日志的人**看不出缺什么、更不知道怎么办** ✗。
+    同族的 `check-attention-budget.py` / `check-queue-views.py` / `check-threshold-ratchet.py`
+    **早就**给了人话（"浅克隆 ⇒ CI 里给这个 job `fetch-depth: 0`"）⇒ 这里补齐，口径一致 ✓。
+
+    ⚠ **只改话术，不改判据** ✗：退出码仍是 3（"环境不在，**不假装判过**"），
+    C1/C2 一个字没动 ⇒ **绝不静默判过** ✓。
+    """
+    try:
+        out = subprocess.run(["git", "rev-parse", "--is-shallow-repository"],
+                             cwd=root, capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    if out.returncode != 0 or out.stdout.strip() != "true":
+        return ""
+    return ("本仓是**浅克隆**（`git rev-parse --is-shallow-repository` = true ⇒ "
+            "**历史深度不够**，覆盖面基线那个对象不在 ⇒ 不是『这条守卫咬不住』 ✗）"
+            "⇒ 出路：本机 `git fetch --unshallow`；**CI 里给跑这一步的那个 job 加 "
+            "`fetch-depth: 0`** ✓（实测 `editor` job 缺的正是它：run 38817419732 · "
+            "step 11；同 run 里 `queue-lint` 有它 ⇒ success ✓）。"
+            "⚠ 别改判据来消这条红 ✗ —— 缺的是**前提**。")
+
+
 def load_ledger(path: Path) -> tuple[list[dict], str, str | None]:
     """读台账 ⇒ (行, coverage_since, 错误)。`#` 开头的行是注释（照 `ux-queue-extras` 的先例 ✓）。"""
     if not path.exists():
@@ -246,7 +274,13 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
 
     scope, cerr = changed_guards(root, base)
     if cerr:
+        # ⚠ **响亮 + 印出缺什么**（2026-10-16 CI 实测）：光印 `git` 的 rc=128
+        # 读不出"缺的是历史深度" ⇒ 浅克隆时补一行**可操作**的人话 ✓。
+        # 退出码**仍是 3**（环境不在 ⇒ 不假装判过 ✗）—— 只是话术，不是放宽 ✓。
         print(f"error: {cerr}", file=sys.stderr)
+        hint = shallow_hint(root)
+        if hint:
+            print(f"error: {hint}", file=sys.stderr)
         return 3
 
     # **本 job 的那批**（C4 的分派面 ✓）：`JOB_ALL` = 不分工。

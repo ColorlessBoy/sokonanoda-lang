@@ -369,6 +369,24 @@ jobs:
         run: |
           python3 scripts/check-guard-bite.py --selftest --job queue-lint
           python3 scripts/check-guard-bite.py --check --all --job queue-lint
+      - name: "历史深度接线（跑历史判据的 job 必须有全历史）"
+        # 2026-10-16 · 洞 `EDITOR-JOB-BITE-STEP-EXIT-3` 的**类**守卫（硬规则 0(b)：
+        # 同类问题横向排查、不许修单点 ✗）。同族两次：`queue-lint`（2026-10-15，
+        # 祖先性断言在浅克隆里假红 270 条 ⇒ 手加 `fetch-depth: 0`）·
+        # `editor`（2026-10-16，run `38817419732` step 11 ⇒ 判据 `exit 3` ⇒ **job 红**，
+        # 而红的是**前提**、不是"咬不住" ✗）—— 两次都是**手工修那一个 job** ✗
+        # ⇒ 本步把"**判据要读历史，就必须把历史给它**"变成可查的判据 ✓。
+        # 判据：**R1 接线**（job 真跑了声明的历史判据 ⇒ 它的 `actions/checkout`
+        # 必须有 `fetch-depth: 0`）· **R2 表不腐烂** · **R3 空转闸**（判到 0 对 ⇒ 判红 ✗）。
+        # ⚠ **为什么在本 job**：`--selftest` 的咬住证明打在**钉死的旧 rev**
+        # （`1cd4aba0` = CI 真红那一跑的 `head_sha` ✓，**不是** `HEAD` ✗ ——
+        # pr1 的坑：写 `HEAD` 的话提交后就是修好的那版 ⇒ 证明自己失效 ✗）
+        # ⇒ **本步自己也要全历史**，而本 job 有 `fetch-depth: 0` ✓（wiring-lint **没有**
+        # ⇒ 放那边会以"环境不在"判红 ✗ —— 正是本守卫要拦的那种红 ✓）。
+        # 实测：`--check` + `--selftest` 合计 < 0.5s ⇒ 进本 job（5 分钟预算）是噪声级 ✓。
+        run: |
+          python3 scripts/check-history-depth-wiring.py
+          python3 scripts/check-history-depth-wiring.py --selftest
 
   lint-clippy:
     name: lint-clippy（clippy 全量 check）
@@ -1247,6 +1265,22 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
+        with:
+          # ⚠⚠ **`fetch-depth: 0` 不是可选项** ✗（2026-10-16 CI 实测红 ✗→✓，
+          # `EDITOR-JOB-BITE-STEP-EXIT-3`）：本 job 的第 11 步跑
+          # `check-guard-bite.py --check --all --job editor`，而它的 **C1 覆盖面**
+          # 要算 `git diff <coverage_since>..HEAD`（基线写在 `docs/guard-bite.jsonl`
+          # 抬头的 `# coverage_since:`）⇒ **浅克隆里那个对象不在** ⇒
+          # `git` rc=128 ⇒ 判据 **exit 3**（"环境不在"，**不是**"咬不住"）。
+          # 实测（run `38817419732` · job `editor` · step 11）：
+          # `fatal: ambiguous argument 'cf259d1f..HEAD': unknown revision` ✗
+          # —— 同一个 run 里 `queue-lint`（**它有 `fetch-depth: 0`** ✓）跑同一条命令
+          # 是 **success** ⇒ 唯一的差别就是历史深度 ✓。
+          # ⚠ **代价如实标注**：实测本 run 里 checkout 由 **2.03s → 5.59s**
+          # （`fetch-depth: 1` vs `queue-lint` 的 `fetch-depth: 0`，同 run 同 runner）
+          # ⇒ 约 **+3.6s**，相对 `timeout-minutes: 40` 是噪声级 ✓。
+          # ⚠ 判据不许松 ✗：这里补的是**前提**，C1/C2 一个字没改 ✓。
+          fetch-depth: 0
       - name: Infoview 视觉层级守卫（G-66 · 同族横向排查）
         # 分区标题是 `<h2>` 却**比正文更小更暗** ✗（2026-09-28 用户实测；一个月内
         # **第二次**同形反馈 ⇒ AGENTS.md 验证设计纪律第 0 条 (b)）。判据：① 标题字号
