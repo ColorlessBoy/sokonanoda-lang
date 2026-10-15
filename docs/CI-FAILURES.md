@@ -38,7 +38,6 @@
 **预防**：**「哪个 crate 有 `tests/` 契约，就必须跑全 targets」** —— `--lib` 只配当**快反馈**，
 不许当**收口判据** ✗。
 
-
 ## 2026-10-10 · 全量 e2e 里 `P7：…按 F12…` 判红 = **宿主窗口没有 OS 焦点**（本机全量跑，不是产品缺陷）
 
 **症状**：该用例单跑 3 次全绿（770ms / 886ms），**全套跑**（`scripts/vscode-e2e.sh`，48 passed / 1 failed）超时 30s；报错里 `activeTextEditor` 正是夹具、可见编辑器多一个 `extension-output-…-sokonanoda doctor`。
