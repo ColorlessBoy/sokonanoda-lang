@@ -838,8 +838,8 @@ fn update_forces_a_refresh_at_the_pinned_version() {
 }
 
 /// 7. **一条清理环境的命令**（`SUB-no-version-cleanup-command`）：`prune` 默认
-/// dry-run、`--yes` 才真删，并且一次把**三处**收口 —— 8 个扩展目录、两半不一致的
-/// cache marker、指向已删目录的 `.obsolete` 残留。
+///    dry-run、`--yes` 才真删，并且一次把**三处**收口 —— 8 个扩展目录、两半不一致的
+///    cache marker、指向已删目录的 `.obsolete` 残留。
 ///
 /// 判据绑**用户动作**（硬规则 0(a)）：跑一条命令 ⇒ 版本统一。
 /// * dry-run：**一个字节都不删**（目录还在、marker 未动）；
@@ -919,7 +919,11 @@ fn prune_is_a_dry_run_until_yes_and_unifies_the_three_sources() {
     // (a) dry-run：报出来，但**一个字节都不删**。
     let dry = repo.run_env(&["prune"], env);
     let (dry_out, dry_err) = text(&dry);
-    assert_eq!(dry.status.code(), Some(0), "dry-run must succeed:\n{dry_err}");
+    assert_eq!(
+        dry.status.code(),
+        Some(0),
+        "dry-run must succeed:\n{dry_err}"
+    );
     assert!(
         dry_out.contains("dry-run") && dry_out.contains("nothing was deleted"),
         "dry-run must say that nothing was deleted: {dry_out}"
@@ -928,7 +932,10 @@ fn prune_is_a_dry_run_until_yes_and_unifies_the_three_sources() {
         std::fs::read_dir(&ext)
             .expect("read extensions")
             .filter_map(Result::ok)
-            .filter(|e| e.file_name().to_string_lossy().starts_with("sokonanoda-lang."))
+            .filter(|e| e
+                .file_name()
+                .to_string_lossy()
+                .starts_with("sokonanoda-lang."))
             .count(),
         8,
         "a dry-run must not delete a single extension dir"
