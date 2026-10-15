@@ -69,6 +69,15 @@ run "workflow：推送范围基点（(A) 的范围语义 + 接线）" "wiring-li
 set -u
 python3 scripts/ci-push-range.py --check-wiring || exit 1
 python3 scripts/ci-push-range.py --selftest || exit 1'
+# ⭐ **「按改动范围决定跑不跑」的类守卫**（2026-10-15，洞 `PATHS-FILTER-CLASS` ✓）—— 与 CI 的
+# `wiring-lint` 里那两步**逐字同源** ✓：`--check` 咬"job 消费的每条仓库路径都必须被门控它的
+# 过滤器命中"（R1 执行路径 / R2 工作流自身 / R3 数据依赖），`--selftest` 五个对照
+# （正对照：现役 `ci.yml` 必须绿 ✓；四个负对照：撤掉历史三次的修法 + 新加一个越界 job ⇒ 必须红 ✓）。
+# 亚秒级 ⇒ 进 ⓪ ✓（**改了判据必须有人验** ✓）。
+run "workflow：改动范围门控覆盖（R1/R2/R3）" "wiring-lint" bash -c '
+set -u
+python3 scripts/check-ci-gate-coverage.py --check || exit 1
+python3 scripts/check-ci-gate-coverage.py --selftest || exit 1'
 
 # ① lint（CI job `lint`）—— 注意：**绝不** `cargo fmt --all`（kernel 的 rustfmt.toml 要 nightly ✓）
 run "lint：fmt"  "lint" cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check

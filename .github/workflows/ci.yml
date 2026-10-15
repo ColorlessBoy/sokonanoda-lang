@@ -173,6 +173,18 @@ jobs:
         run: |
           python3 scripts/ci-push-range.py --check-wiring
           python3 scripts/ci-push-range.py --selftest
+      # ⭐ **「按改动范围决定跑不跑」的类守卫**（2026-10-15，洞 `PATHS-FILTER-CLASS`）——
+      # `ci-push-range.py` 管**范围是从哪算的**（实例④），本步管**范围里有没有把 job
+      # 要读的东西藏掉**（实例①②③）。同族**六次**里有三次是**手工往 `filters:` 里加一行**
+      # 修的 ⇒ 换个触发源就再犯 ✗；这条把"job 消费的每条路径都必须被门控它的过滤器命中"
+      # 变成可查的判据 ✓。**它第一次跑就自己找出两条新实例**（`examples/**` 与
+      # `editor/vscode/scripts/**`，见 `filters:` 里那两条注释 ✓）。
+      # `--selftest` 五个对照：正对照（现役 ci.yml 必须绿）+ 四个负对照（撤掉历史三次的
+      # 修法、以及新加一个"消费 `editor/**` 却只被 `rust` 门控"的 job ⇒ 都必须判红 ✓）。
+      - name: 改动范围门控覆盖（R1 执行路径 / R2 工作流自身 / R3 数据依赖）+ 自检
+        run: |
+          python3 scripts/check-ci-gate-coverage.py --check
+          python3 scripts/check-ci-gate-coverage.py --selftest
 
   # ⭐ **队列门禁独立成 job、且不设 `if:`**（2026-10-15，洞
   # `LEDGER-JOB-SKIPPED-ON-DOC-ONLY-PUSH`，high ✓）—— 形状**照抄**上面的 `wiring-lint` ✓。
@@ -459,11 +471,28 @@ jobs:
               # 实测（G-110）：写死本机路径的复现件**本机必绿**、只有 CI 判「环境异常」✗；
               # 而**修好它的那次 push 反而什么都没跑** ✗ —— 正是用户抱怨的那种形态 ✓。
               - "docs/gaps/**"
+              # ⭐ **`editor/vscode/scripts/**` 也算"会改变验证结果"** ✓
+              # （2026-10-15 —— 同族**第五次**，由新的**类守卫**
+              #  `scripts/check-ci-gate-coverage.py` **自己找出来的** ✓，不是人撞上的 ✓）。
+              # 实测：`ledger` job 的「Stage bundled CLI + LSP for the extension repros」
+              # 那一步跑 `node editor/vscode/scripts/stage-lsp.js`（**它消费这个脚本** ✓），
+              # 而 `ledger` 的 `if` 只看 `rust`/`courses` ⇒ **只改这个脚本**时三个标志全 false
+              # ✗ ⇒ `ledger` 被 skip ✗ ⇒ **刚改的暂存逻辑永远得不到验证** ✗。
+              # 归到 `rust` 的理由与 `scripts/**` 那条**逐字相同**：它是"会改变验证结果的脚本" ✓。
+              - "editor/vscode/scripts/**"
             editor:
               - "editor/**"
             courses:
               - "courses/**"
               - "playground.sokonanoda"
+              # ⭐ **`examples/**` 也算课程语料** ✓（2026-10-15 —— 同族**第六次**，
+              # 同样是类守卫找出来的 ✓）。实测：`gates-fast` 的
+              # 「Lesson corpus is valid」那一步 `for f in examples/*.sokonanoda` 逐个判卷
+              # （**它消费这个目录** ✓），而 `gates-fast` 的 `if` 只看 `rust`/`courses`
+              # ⇒ **只改样例**时三个标志全 false ✗ ⇒ 那条语料判据被 skip ✗。
+              # 归到 `courses` 的理由与 `playground.sokonanoda` 那条**逐字相同**：
+              # 它就是课程语料 ✓（且比塞进 `rust` 便宜 —— 不会顺带拉起 4 路 crate 矩阵 ✓）。
+              - "examples/**"
       # ④ **接缝对账**（验证设计纪律 ③ ✓）：本脚本（可本地单测的那份 ✓）的读数 vs paths-filter
       # 的读数。**危险方向**（脚本说该跑重活、它说干净 ⇒ 洞还在 ✗）**判红** ✗；
       # 安全方向（脚本干净、它说脏 ⇒ 只是多跑）只 `::warning::` ✓ —— 不制造假红 ✓。
