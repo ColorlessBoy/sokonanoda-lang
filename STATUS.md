@@ -27,17 +27,20 @@
 
 ## 清台账第 8 轮（2026-10-15）—— **原文已删（只留最近 3 轮）** ⇒ `git log --all -- STATUS.md`
 
-## 清台账第 7 轮（2026-10-15）：**队列 0 · 隐变量 13/13 收口 · 构建链与缓存身份两族修完**（未发版）
-- ⭐ **队列 0 条**，三元组证明：`--json open=[] total=0` == `--next`「没有可动的条目」== §0.2 `QUEUE:COUNTS total=0` ✓（第十三/十四次复核各自独立 fold 530 条事件、与 `--json.state` 逐字段 0 差异 ✓）
-- ⭐ **隐变量 13/13 全部解锁** ✓（`implK` → `spineN` 12/13 → `lastP` 13/13）：`expected.rs`（记法头前导实参的源级补齐）· `expected_spine.rs`（**零内核调用**的类型通道：书写类型/λ 注解/**注册表签名**，`Forall` 归一成 `Arrow`）· `pp_shape.rs`（pp 形态常量脊**不当源级项用** + E19 收窄到「`Prop` 位不借」）。**13 探针 基线 0/13 ⇒ 13/13** ✓ · **`lib/Rel` 59/0 · `lib/Set` 28/0** ✓ · **课程门禁 exit 0 · 258 · 2190 · 915 · 0 判负** ✓ · **`crates/kernel/**` 一字节未动** ✓ · 标记 **709 → 698** ✓
-- ⭐ **构建链两族**：`build.stale` 此前**没人消费**（`check.py` 只拉黑 source 文案 ⇒ 拿陈旧二进制量出 **2165/14 判负**的假红）⇒ `check.py` 与 `soko gate` 现在**拒绝判绿**（exit 2/3 + 正解）；`repoBuild()` 跨 profile 只按 mtime ⇒ 改**优先 release** + **逐个试版本**（不丢能用的树），debug 仍可能选中 ⇒ **响亮警告不拒绝**
-- ⭐ **缓存身份**：全局编译缓存键**不含 front/kernel 源码** ⇒ 旧引擎 `1` → 新引擎 `0` → **旧引擎再来一次仍 `0`（回放）** ✗ ⇒ 新增 `build.rs` 编译期摘要（`SOKO_ENGINE_DIGEST`，逐文件+逐目录 `rerun-if-changed`，含包外 `crates/kernel/src`）折进**必需分量**。三步夹具 **`1 ⇒ 0 ⇒ 1`** ✓；摘要与**独立 Python 实现**当场复算逐字相符（123 文件）✓（⚠ 该串随源码变，不写死字面值 ✗）
-- ⭐ **main 上的既有测试红修好**（`solve_prefix_reads_the_expected_type`）：三档阶梯把红点钉到 **`adc4ced4` 一行**（E19 判据 `same_shape` → `borrowable`，有意收窄但**判据清单里没有 front 单测**）⇒ 定性 **断言过时** ✓；改断言 + **补上原先零守卫的那一层**（`pp_shape.rs`）⇒ **991 passed · 0 failed · 0 ignored** ✓
-- **编译缓存 131.3 GB / 60 GB 预算（真判红）⇒ `reclaim --to-budget` ⇒ 59.6 GB** ✓
-- ⚠ **第十四次复核点出两个真缺口（已登记 high）**：① §0.2 渲染块的「最靠前的 5 条」清单**零守卫**（删条目 ⇒ `--check` 仍绿而 `--next` 照推 ✗）② `advance`/`triage` 的收口指针**只有祖先性、没有内容锚**（换成另一个祖先 sha 静默通过 ✗）
-- ⚠ **独立复核连续 13 次各证伪一处** ✓（含 **8 次**抓到不实的话/数字 · **18 次**纠正判据/前提）⇒ 「队列空」这类声明**必须**用能推序的视图 + 独立复核才算数
+## `SUB-parse-error-kills-whole-file`（2026-10-15 · 用户亲报）：**一处语法错不再废掉整份文件**（未发版）
+- ⭐ **用户原话**：在 `unit01-sets-membership.sokonanoda` 里删掉 `apply Eq.subst (Eq.symm hx) h` ⇒ **整个文件都报错**，Infoview 报「目标/声明：文件没解析成功」；而"后面接着的内容很明显可以正常解析"（`theorem` 关键字 + 它前面的注释）
+- ⭐ **两条提交不是同一根因**（读了两条原文后判）：`SUB-eqsubst-clue-order-clash` 是**隐式实参求解顺序**（`elab-implicit-argument-unsolved`，本轮仍在：`counts` 3/4、诊断照发 ✓）；本条是**解析器的参数表边界** + **闭包丢掉全部命令**。同一条用户代码、两个独立根因 ⇒ 本条只修后者
+- ⭐ **复现（真课程单元，只改练习 4）**：改前 `counts = {decl_checked:0, exercise_open:0}` + 一条 `entry-parse-failed` @ line 82 col 30（`(`）✗ ⇒ **改后** `{decl_checked:3, exercise_open:5}` **与好文件逐字段相同**、0 诊断、rc=0 ✓
+- ⭐ **"文件没解析成功"从哪来**：`crates/front/src/project/graph.rs` 入口 `parse_with_inherited` 失败 ⇒ 旧代码塞 `FolFile { commands: Vec::new() }` + `failed=true` ⇒ `Closure::compilable()` 不含它 ⇒ 不编译 ⇒ `counts` 全 0、只剩入口级诊断（Infoview 的「目标/声明」读的就是这份报告）
+- ⭐ **为什么一处错废掉整份**（根因两处，都给 `文件:行`）：① `crates/front/src/parser.rs` 的 `intro` / `unfold … at` 名字串**跨行吃名字**（下一行顶格的 `theorem` 不是 tactic 关键字 ⇒ 被吃成 binder ⇒ 在 `(` 上报命令级 parse 错）；② `graph.rs` 的入口 parse 失败**丢掉全部命令**（恢复式解析早就有，只是这条路没用）
+- ⭐ **Lean 4 对照**：`Init/Tactics.lean:50` `"intro" … (ppSpace colGt term:max)*` · `:802` `"unfold" (ppSpace colGt ident)+` · `Elab/Tactic/Location.lean:28` `locationHyp := (ppSpace colGt …)+` · `Parser/Basic.lean:1512` `colGt` = 列**严格更大**（文档自己写着"保证下一条 tactic 不被当实参"）· `Parser/Module.lean:137` `parseCommand` = **逐条命令 + 恢复**（`recovering := true`、至少前进一个 token、继续下一条）⇒ 两处都按 Lean 对齐
+- ⭐ **改前/改后 + 正对照 + 反向验证**：反向验证 = 还原五处（四个 `at_or_left_of` 调用 + 恢复分支）⇒ 用户文件 `counts` 全 0 ✗、`min1` 报 `unexpected-token` ✗、真语法错条目 `counts` 全 0 ✗，且**3 条新判据全红**（994 passed · 3 failed）✓、跑完还原（`grep` = 0 ✓）。正对照（真有语法错 `def broken : Nat := )`）⇒ 改后 `{3,5}` + `entry-parse-failed`（真位置 line 78）+ **rc=1** ⇒ **错没被吞** ✓
+- **判据**：front `crates/front/src/tests/parser_boundary.rs` **2 条**（`intro` / `unfold … at` 两处出口）· `crates/front/src/project/tests.rs` **1 条**（坏块**之前与之后**都照常判定 + 出错那条不判定 + 仍判红）· 拆模块（`docs-lint` ⑨：`parser.rs` 6838→**6788**、`graph.rs` 570→**545**，新增代码进 `src/tests/parser_boundary.rs` 与 `project/graph/recovery.rs`）· `cargo test -p sokonanoda-front --lib` **997 passed · 0 failed · 0 ignored**（基线 994 + 3 ✓）· `cargo test --workspace --locked` **114 个二进制全 ok** ✓ · `crates/kernel/**` **一字节未动** ✓
+- ⚠ **改的是"诊断/恢复"面，不是判定路径**：`parser.rs`（`grep -c at_or_left_of` = 5）+ `project/graph.rs` + 新 `project/graph/recovery.rs`；**解析失败的文件**的 `--json` 事件流**变了**（`counts` 0 → 非 0 + 恢复出的 `decl.checked`）—— 这正是本洞要修的那一面；**解析成功的文件逐字节不变** ✓
+- ⚠ **边界（如实）**：① `parse_by_block` 在**未知 tactic**（`exactt h`）上**静默收块** ⇒ 恢复出的 `theorem … := by` 被判 `exercise_open`（**与单文件通道逐字段一致** ✓，既有行为、不是本条引入；Lean 那里报 "unknown tactic" 并丢整条命令 —— 另一处偏离，未修）② **只对入口**：依赖模块 parse 失败仍 `import-module-invalid` + 阻断 ③ `intro`/`unfold` 的**实参表达式**（`apply f` 跨行）仍可能吞下一条命令（`parse_expr` 的地界，未动）
+- ⚠ **同步面**：`docs/protocol.md` 的 `entry-parse-failed` 一条**已改**（+1 行，恰在 1102 上限内）✓；`docs/visible-changes.md` **未写** —— 它 90/92 行、只余 2 行而一节要 4 行 ⇒ 如实记在这里；`editor/**` 在本轮**不可写范围**内 ⇒ CHANGELOG 未写（扩展本身零改动）；`skills/**` 与 `AGENTS.md` **零改动**（命令/工作流没变；AGENTS.md 435/435 行、**无余量**）
 
-## 清台账第 6 轮（2026-10-14）：**来源可见性修复 + 两条隐藏项收口** —— **原文已删（只留最近 3 轮）** ⇒ `git log --all -- STATUS.md`
+## 清台账第 7 轮（2026-10-15）：**队列 0 · 隐变量 13/13 收口 · 构建链与缓存身份两族修完** —— **原文已删（只留最近 3 轮）** ⇒ `git log --all -- STATUS.md`
 
 ## 未决项（**权威 = `docs/ONBOARDING.md` §0.2**；**2026-10-13 订正**：这里曾写「现存 6 条」而权威表实测 3 条 ⇒ 以权威表为准，本条不再自己数 ✗）。⚠ 本节下方两条是**收口记录**，**不是**未决项 —— 2026-10-02 前它写着"只有这两条"而两条都已 ✅ ⇒ 读它的人会以为"队列空了"（#4/#5/#6 三处用户报障就这样掉线过））
 ## 已发布线：`v0.79.0`（E19 甲案 + P 组 · 批次 N 66/66）· `v0.80.0` · `v0.81.0` · `v0.82.0` · **`v0.83.0`（最新 ✓ · 2026-10-08 · Release 26 资产 ✓）** —— 逐轮记录 ⇒ `docs/archive/status-removed-rounds-2026-10-13.md.gz` ✓

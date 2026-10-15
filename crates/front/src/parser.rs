@@ -1457,7 +1457,13 @@ impl Parser {
             let ctor = ctor.clone();
             let mut binders = Vec::new();
             while let TokenKind::Ident(name) = &self.peek().kind {
-                if name == "with" || is_tactic_keyword(name) {
+                // 与 `intro` / `unfold` 同一条纪律（Lean `colGt`，`Basic.lean:1512`）：
+                // 分支的 binder 必须在**比 `|` 更深**的列上 —— 否则下一行顶格的
+                // `theorem` 会被吃成 binder，紧接着的 `(` 变成命令级 parse 错 ✗。
+                if name == "with"
+                    || is_tactic_keyword(name)
+                    || self.at_or_left_of(pipe.span.start.column)
+                {
                     break;
                 }
                 let name_tok = self.bump();
@@ -1554,6 +1560,19 @@ impl Parser {
         self.tokens[self.cursor - 1].span.end.line
     }
 
+    /// **Lean 4 的 `colGt`**（`Lean/Parser/Basic.lean:1512`：「下一个 token 的列必须
+    /// **严格更大**」）——「这个 token 在 `column` 这一列或更左」。
+    ///
+    /// tactic 的**参数表**用它把下一条命令挡在外面：`intro` 的 binder 串
+    /// （`Init/Tactics.lean:50`）· `unfold` 的常量名串（同档 `:802`）·
+    /// `unfold … at` 的假设名串（`Elab/Tactic/Location.lean:28`）在 Lean 里都写着
+    /// `ppSpace colGt …`。没有它，下一行顶格的 `theorem` 会被吃成名字 ⇒
+    /// **一处未收尾的 `by` 块让整份文件废掉**（`SUB-parse-error-kills-whole-file`，
+    /// 用户 2026-10-15 亲报；用例在 `src/tests/parser_boundary.rs`）。
+    fn at_or_left_of(&self, column: usize) -> bool {
+        self.peek().span.start.column <= column
+    }
+
     /// 下一个 token 是**换行后**出现的 tactic 关键字——tactic 边界。
     fn next_line_starts_a_tactic(&self) -> bool {
         matches!(&self.peek().kind, TokenKind::Ident(kw) if is_tactic_keyword(kw))
@@ -1578,10 +1597,16 @@ impl Parser {
                 // `exact h` / `apply f` / `assumption` 是常态，那些关键字
                 // 绝不能被当成 binder 名（改前 `intro` 无名时会把下一行的
                 // `exact` 整个吃掉，见 S2 审计的 E02）。
+                //
+                // ⚠ **还要 `colGt`**（Lean `Init/Tactics.lean:50`
+                // `(ppSpace colGt term:max)*`）：只停 tactic 关键字**挡不住**下一行
+                // 顶格的**命令**关键字（`theorem` 不是 tactic 关键字）⇒ 它会被吃成
+                // binder 名（`SUB-parse-error-kills-whole-file`）。
+                let column = tok.span.start.column;
                 let mut names: Vec<String> = Vec::new();
                 let mut end = tok.span.end;
                 while let TokenKind::Ident(name) = &self.peek().kind {
-                    if is_tactic_keyword(name) {
+                    if is_tactic_keyword(name) || self.at_or_left_of(column) {
                         break;
                     }
                     let name_tok = self.bump();
@@ -1603,14 +1628,17 @@ impl Parser {
                 // **每一处**这些常量的定义体展开出来。与 `intro` **同一条纪律**：
                 // 吃名字时**遇到 tactic 关键字就停** —— `unfold Set.mem` 换行后写
                 // `rfl` / `exact …` 是常态，那些关键字绝不能被当成常量名 ✗。
+                // ⚠ 同样要 `colGt`（Lean `Init/Tactics.lean:802`）：下一行顶格的
+                // `theorem` 不是 tactic 关键字，只停关键字会让它被吃成常量名 ✗。
                 self.bump();
+                let column = tok.span.start.column;
                 let mut names: Vec<(String, Span)> = Vec::new();
                 let mut end = tok.span.end;
                 while let TokenKind::Ident(name) = &self.peek().kind {
                     // `at` 是 `unfold` 的**上下文关键字**（名字列到这里为止）——
                     // 与 tactic 关键字同一条停法 ✓（代价：常量名恰好叫 `at` 时
                     // 展不了它；Lean 4 里 `at` 同样是保留字 ✓）。
-                    if is_tactic_keyword(name) || name == "at" {
+                    if is_tactic_keyword(name) || name == "at" || self.at_or_left_of(column) {
                         break;
                     }
                     let name_tok = self.bump();
@@ -1628,10 +1656,14 @@ impl Parser {
                 // 拿 `at` 当名字 ✓（`unfold Foo at` 之后没名字 ⇒ 当场报错 ✓）。
                 let mut at = crate::ast::UnfoldAt::Goal;
                 if matches!(&self.peek().kind, TokenKind::Ident(w) if w == "at") {
+                    // Lean 的 `at` 用 `withPosition(ppGroup(" at" …))` 存**自己这一列**，
+                    // 假设名再逐个走 `colGt`（`Elab/Tactic/Location.lean:28`）⇒
+                    // 下一行顶格的 `theorem` 进不来（`SUB-parse-error-kills-whole-file`）。
+                    let at_column = self.peek().span.start.column;
                     self.bump();
                     let mut hyps: Vec<(String, Span)> = Vec::new();
                     while let TokenKind::Ident(name) = &self.peek().kind {
-                        if is_tactic_keyword(name) {
+                        if is_tactic_keyword(name) || self.at_or_left_of(at_column) {
                             break;
                         }
                         let name_tok = self.bump();
@@ -5537,85 +5569,6 @@ end
         // `f match …`：`match` 必须让路成 term 关键字。
         let err = parse("def x : Color := red match c with | red => green\n").unwrap_err();
         assert!(!err.message.is_empty(), "err: {err:?}");
-    }
-
-    /// 取出首个 `def` 值位 `by` 块里的 tactics（无声明 binder 时直接是 By）。
-    fn by_tactics(src: &str) -> Vec<Tactic> {
-        let file = parse(src).unwrap();
-        let Command::Def { val, .. } = &file.commands[0] else {
-            panic!("expected def");
-        };
-        let val = match val {
-            Expr::Lambda { body, .. } => body.as_ref(),
-            other => other,
-        };
-        let Expr::By { tactics, .. } = val else {
-            panic!("expected a by block, got {val:?}");
-        };
-        tactics.clone()
-    }
-
-    #[test]
-    fn by_block_newlines_separate_tactics() {
-        let tactics = by_tactics("def t : Prop := by\n  intro a\n  exact a\n  assumption\n");
-        assert_eq!(tactics.len(), 3, "tactics: {tactics:?}");
-        assert!(matches!(tactics[0], Tactic::Intro { .. }));
-        assert!(matches!(tactics[1], Tactic::Exact { .. }));
-        assert!(matches!(tactics[2], Tactic::Assumption { .. }));
-    }
-
-    #[test]
-    fn by_block_newline_boundary_beats_application() {
-        // `exact f` 换行 `apply g`：`apply` 是 tactic 关键字，不能吃成 f 的实参。
-        let tactics = by_tactics("def t : Prop := by\n  exact f\n  apply g\n");
-        assert_eq!(tactics.len(), 2, "tactics: {tactics:?}");
-        let Tactic::Exact { expr, .. } = &tactics[0] else {
-            panic!("expected Exact: {:?}", tactics[0]);
-        };
-        assert!(
-            matches!(expr, Expr::Ident { name, .. } if name == "f"),
-            "`exact f` must not absorb the next tactic: {expr:?}"
-        );
-        assert!(matches!(tactics[1], Tactic::Apply { .. }));
-    }
-
-    #[test]
-    fn by_block_multiline_application_is_one_tactic() {
-        // 续行以非关键字开头时仍是同一个应用（一个 tactic）。
-        let tactics = by_tactics("def t : Prop := by\n  exact f\n    a\n    b\n  assumption\n");
-        assert_eq!(tactics.len(), 2, "tactics: {tactics:?}");
-        let Tactic::Exact { expr, .. } = &tactics[0] else {
-            panic!("expected Exact: {:?}", tactics[0]);
-        };
-        assert!(
-            matches!(expr, Expr::App { .. }),
-            "multi-line application must stay one Exact: {expr:?}"
-        );
-        assert!(matches!(tactics[1], Tactic::Assumption { .. }));
-    }
-
-    #[test]
-    fn by_block_semicolons_still_work_and_mix_with_newlines() {
-        let tactics = by_tactics("def t : Prop := by intro a; exact a\n  assumption\n");
-        assert_eq!(tactics.len(), 3, "tactics: {tactics:?}");
-        assert!(matches!(tactics[0], Tactic::Intro { .. }));
-        assert!(matches!(tactics[1], Tactic::Exact { .. }));
-        assert!(matches!(tactics[2], Tactic::Assumption { .. }));
-    }
-
-    #[test]
-    fn by_block_does_not_consume_the_next_command() {
-        // by 块收尾后必须停下，不能把 `#check` 也吞进去/当成实参。
-        let file = parse("def t : Prop := by\n  exact a\n#check t\n").unwrap();
-        assert_eq!(file.commands.len(), 2, "commands: {:?}", file.commands);
-        let Command::Def { val, .. } = &file.commands[0] else {
-            panic!("expected def");
-        };
-        let Expr::By { tactics, .. } = val else {
-            panic!("expected by block, got {val:?}");
-        };
-        assert_eq!(tactics.len(), 1);
-        assert!(matches!(&file.commands[1], Command::Check { .. }));
     }
 
     // ---- `import`（I16 P1：语法 + 置顶规则 + 模块名校验）------------------

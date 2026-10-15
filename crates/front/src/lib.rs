@@ -45,6 +45,12 @@ mod engine_digest;
 mod parser;
 mod reference_docs;
 mod span;
+// `parser.rs` 的**边界用例**（`SUB-parse-error-kills-whole-file`）：那个文件在
+// `docs-lint` 判据 ⑨ 的存量基线上（**只许减不许增**）⇒ 用例落在 `src/tests/`
+// （判据 ⑨ 明确排除测试聚合文件 ✓）。
+#[cfg(test)]
+#[path = "tests/parser_boundary.rs"]
+mod parser_boundary_tests;
 mod token;
 
 pub use ast::{

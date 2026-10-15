@@ -1125,6 +1125,88 @@ fn an_entry_parse_error_is_attributed_to_the_entry_not_to_its_imports() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// ⭐ **`SUB-parse-error-kills-whole-file`（用户 2026-10-15 亲报）· 错误隔离**：
+/// 入口里**一处**真语法错**不许**把整份文件废掉 —— 能解析的声明照常判定，
+/// 出错的那一条仍如实报 `entry-parse-failed`（带真位置）。
+///
+/// **改前（实测读数）**：`counts` 全 0、`failed` 只有一条 `entry-parse-failed`
+/// ⇒ Infoview 的「目标」「声明」全没 ✗（用户原话：「整个文件都报错了」）。
+/// **改后**：坏块**之前**与**之后**的声明都照常 `decl_checked` ✓。
+///
+/// **Lean 4 对照**：`Lean/Parser/Module.lean:137` 的 `parseCommand` 逐条命令解析 +
+/// 恢复（失败时 `recovering := true`、"advance at least one token to prevent
+/// infinite loops"，然后**继续**下一条，`:162-175`）⇒ Lean 里一处语法错不会让别的
+/// 声明从 infoview 消失。我们的 `Parser::parse_file_recovering` 早就是同一条语义，
+/// 只是闭包这条路没用它 ✗。
+///
+/// 撤掉 `graph.rs` 里那个 `is_entry` 恢复分支（回到 `FolFile { commands: vec![] }`）
+/// ⇒ 本条判红 ✓（反向验证）。
+#[test]
+fn an_entry_syntax_error_does_not_scrap_the_rest_of_the_file() {
+    let dir = tmp_dir("entry-error-isolation");
+    // 库层声明 `∈`（与 `crates/cli/tests/query.rs` 的两通道夹具同款）。
+    write(
+        &dir,
+        "lib/Set.sokonanoda",
+        "def Set (α : Type) : Type := α -> Prop\n\
+         def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+         infix:50 \" ∈ \" => Set.mem\n",
+    );
+    // 记法（`∈`）出现在**错误之前**：`is_project_source` 才会把入口判成项目源
+    // （裸 parse 先死在 `∈` 上 ⇒ `notation-unknown-symbol`）—— 这正是用户
+    // 那个课程单元的形状（签名里就有 `∈` / `⊆`）。
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import lib.Set\n\n\
+         theorem before (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := by\n\
+         \x20 exact h\n\n\
+         def broken : Nat := )\n\n\
+         def after : Nat := 1\n",
+    );
+    let report = compile(&dir, "Main.sokonanoda");
+
+    // ① 错**没被吞**：仍是 `entry-parse-failed`、仍带真位置（第 6 行那个 `)`）。
+    let diag = report
+        .diagnostics
+        .iter()
+        .find(|diag| diag.code() == "entry-parse-failed")
+        .expect("入口自己的语法错仍要如实归因");
+    assert_eq!(
+        diag.span.expect("带真位置").start.line,
+        6,
+        "真错在第 6 行：{diag:?}"
+    );
+    // ② 坏块**之前**与**之后**的声明都照常判定（改前这里是空报告 ✗）。
+    let entry = report
+        .modules
+        .iter()
+        .find(|module| module.name == "Main")
+        .expect("entry module");
+    let checked: Vec<&str> = entry
+        .report
+        .decls
+        .iter()
+        .filter(|decl| decl.status == DeclStatus::Checked)
+        .filter_map(|decl| decl.name.as_deref())
+        .collect();
+    assert!(
+        checked.contains(&"before"),
+        "坏块**之前**的声明要照常判定：{checked:?}"
+    );
+    assert!(
+        checked.contains(&"after"),
+        "坏块**之后**的声明也要照常判定：{checked:?}"
+    );
+    assert!(
+        !checked.contains(&"broken"),
+        "出错的那一条不许被判定：{checked:?}"
+    );
+    // ③ 出口码不变：入口的语法错仍然是**拒绝**。
+    assert!(report.has_errors(), "语法错必须仍然判红");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 /// **S2 步 2 的判据**（设计 `docs/design/declaration-incremental.md` §4）：入口那一趟
 /// 带上**信任前缀**（`EntryTrust`）之后 ——
 ///
