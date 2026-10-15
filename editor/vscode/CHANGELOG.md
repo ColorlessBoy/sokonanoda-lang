@@ -1,6 +1,30 @@
 // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 ## [Unreleased]
 
+## [0.91.0] - 2026-10-15
+
+### Fixed
+
+- **marker 契约跨接缝对齐**（构建/诊断链，用户可见效果：装过扩展自带二进制之后不再被启动器
+  判成陈旧）：① VSIX「Install CLI」写的版本标记从裸 `<version>` 改成规范的
+  `<version> <vsce-target>`（`editor/vscode/server.js` 的 `installBundledCli`）；② LSP 槽位
+  的**写读两端一次改齐**（新增 `serverMarkerValue` 作两端唯一词汇来源、`writeServerMarker`
+  作写端唯一入口，`cachedServerIsCurrent` 收全元组；doctor 的同一处判定也跟上）—— 只改一端
+  会让扩展认不出自己刚下的那份、每次启动重下 ✗。③ `scripts/soko` 的「VS Code 扩展自带」
+  解析链接上（此前文档写了、代码没接：`extensionServer()` 零调用、`canExec` 的 `extension`
+  分支是死分支）⇒ 通用 VSIX + 没跑过 Install CLI 时，`scripts/soko lsp` 不再只能下载。
+- **CLI 解析链补版本/陈旧判定**：`resolveCliCommand` 的 workspace 与 PATH 两条链此前按存在
+  选、零信号 ⇒ 现在判版本与陈旧并出声（只警告不拒绝，不改选谁跑；`bundled` 有意不判）。
+- **`SOKO_QUEUE_SLOTS` 取值域守卫**：非整数/非正 ⇒ rc=2 + 人话（改前是导入期栈 + rc=1；
+  `0`/`-1` 更是 rc=0 且**静默锁死调度器**）。
+
+### Changed
+
+- **`.opencode/lsp/sokonanoda-lsp.sh` 只做转发**给 `scripts/soko lsp`（自己不选二进制 ⇒
+  解析链只剩一条，与 DSH 接线同源；`SOKONANODA_BIN` 仍是逃生门）。
+
+
+
 ### Added
 
 - **诊断与补全的五条体验修复**（2026-10-12，LSP 侧；插件本体未改）：① `by` 块里点灯泡
