@@ -21,8 +21,13 @@
 //! * 不断言"渲染出来长什么样" —— 那是 e2e 那一层的事（三层各司其职 ✓）；
 //! * 不断言 `grade --json` 的**事件流** —— 实测它与 `query check` 在"入口有
 //!   parse 错"时**不一致**（`query check` 报 `decl_checked:2`、`grade --json`
-//!   一条 `decl.checked` 都不发 ✗）⇒ 已登记为缺口，见本文件末尾的
+//!   一条 `decl.checked` 都不发 ✗）⇒ 缺口本体、复现件与读数见
+//!   `docs/gaps/repro/G117-grade-json-vs-query-check-divergence.sh`（**自断言**：
+//!   exit 0 = 缺口仍在 ✓）与 `.cache/ux/fix-ui1/VERDICT.md` §8.3；
+//!   判据落本文件末尾的
 //!   [`known_gap_grade_json_emits_nothing_for_a_parse_failed_entry`]。
+//!   ⚠ **台账登记须在 `main` 上做**（红线 X2：`docs/gaps/ledger.jsonl` 只在 `main` 上改 ✗）
+//!   —— 本分支**不带**那条登记 ✓（`scripts/soko gate --fast` 会判红 ✗）。
 
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -276,7 +281,9 @@ fn known_gap_grade_json_emits_nothing_for_a_parse_failed_entry() {
     assert_eq!(
         decl_events, 0,
         "⭐ `grade --json` 现在**开始发声明事件了** ⇒ 缺口很可能已被修好 ✓ \
-         ⇒ 请把这条判据翻成「两个通道一致」（`decl_events == 2`）、关掉台账里那条缺口、\
-         并把本条改名去掉 `known_gap_` ✓。实测事件：{events:?}"
+         ⇒ 请把这条判据翻成「两个通道一致」（`decl_events == 2`）、把 \
+         `docs/gaps/repro/G117-grade-json-vs-query-check-divergence.sh` 翻成 exit 1、\
+         在 `main` 上关掉台账里那条缺口（红线 X2）、并把本条改名去掉 `known_gap_` ✓。\
+         实测事件：{events:?}"
     );
 }
