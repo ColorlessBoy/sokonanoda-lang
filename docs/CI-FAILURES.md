@@ -1,3 +1,4 @@
+## 2026-10-15 · `ledger (1)` 报「G-25 缺口仍在」= **量具瞎了**（判据的输入根本没到 ⇒ `hot<cold` 恒假 ✗）｜真因：Rust 的 `Stderr` **无缓冲** ⇒ 一次 `eprintln!` 按**格式片段**发多个 `write()`，而探针把每个 `'data'` 块当**整行** ⇒ 片段含 `LSP_TRACE compile` 却**不含 `modules=`** ⇒ 冷热两相都记 0（CI 原文 `重编模块 冷 0 vs 热 0`；本机逐块读数 `chunks=1 len=140 endsWithNewline=false tail="1 31ms publish=1 modules=3 by="`）｜修 ✓：`G25-lsp-recompiles-on-every-open.js` 改**行缓冲**（累积到 `\n` 再分行）+ 诊断后有界等那一行收尾 + **观测不到主体 ⇒ exit 2 + 人话**（结构性判据一条没松；正对照：真缺口仍 exit 0）｜预防 ⭐：凡「从流里读计数」的复现件**先累积再分行**，并把「读数为空」判成环境异常（`docs/gaps/README.md` 的退出码表已写明）
 ## 2026-10-13 · **我两次「推前没跑判据」** ⇒ `docs-lint` ⑨ 判红（第 3 轮 + 第 9 轮，**同类第二次** ✗）
 
 **症状**：`docs-lint（文档预算 + 归档索引）` 判红，报 `crates/{front,lsp}/src/*.rs` **变长**了 ✗

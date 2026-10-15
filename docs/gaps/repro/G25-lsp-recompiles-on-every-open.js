@@ -122,13 +122,56 @@ async function responseFor(lsp, id) {
   }
 }
 
+/// `LSP_TRACE compile …` 行**等多久**（毫秒）。轨迹行由服务端在 `publishDiagnostics`
+/// **之前**写，所以正常情况下它早就到了 ⇒ 这个等待只在"它被拆成片段"时才真的用上。
+const TRACE_WAIT_MS = Number(process.env.SOKO_G25_TRACE_WAIT_MS || 2000);
+
+/// **stderr 的行缓冲**（⚠ 这是本探针 2026-10-15 修掉的洞，见 `docs/gaps/README.md`）。
+///
+/// 为什么**必须**缓冲：`eprintln!` 走的是 Rust 的 `Stderr`，它是**无缓冲**的 ⇒
+/// 一次 `write_fmt` 会按**格式片段**发多个 `write()`（`"LSP_TRACE compile "` ·
+/// uri · `" v"` · version · … · `" modules="` · modules · …）⇒ 每个 `'data'` 块
+/// **可能只是一行的一段**。旧写法 `String(chunk).split('\n')` 把**每个块当整行**：
+/// 片段里照样含 `LSP_TRACE compile`（于是被收进 `traceLines`），却**不含
+/// `modules=`** ⇒ `/modules=(\d+)/` 不匹配 ⇒ **那一相记 0**。
+///
+/// 实测（2026-10-15，本机 release 仓库构建，`/tmp/g25K-chunks.js` 逐块读数）：
+/// `chunks=1 len=140 endsWithNewline=false tail="1 31ms publish=1 modules=3 by="`
+/// —— 一行 197 字节被**截成 140 字节**送达。CI（2 核 ubuntu，ledger job 第一次真跑）
+/// 读到的正是这个洞的最坏落点：冷热两相都 0 ⇒ 判据 `hot < cold` 恒假 ⇒
+/// 报「缺口仍在」✗（原文见 `docs/ux-queue-extras.jsonl` 的
+/// `G25-PROBE-DEGENERATE-IN-CI`）。
+function stderrLineReader() {
+  const traceLines = [];
+  const raw = [];
+  let pending = '';
+  return {
+    feed(chunk) {
+      pending += String(chunk);
+      for (;;) {
+        const nl = pending.indexOf('\n');
+        if (nl < 0) break;
+        const line = pending.slice(0, nl);
+        pending = pending.slice(nl + 1);
+        if (!line.trim()) continue;
+        raw.push(line);
+        if (line.includes('LSP_TRACE compile')) traceLines.push(line);
+      }
+    },
+    traceLines,
+    raw,
+    /// 已经收到、但**还没收尾**的那一段（判"观测不到"时要说清看到了什么）。
+    get pending() { return pending; },
+  };
+}
+
 /** 起一个**全新**的 LSP 进程，`didOpen` 入口，返回 `didOpen → 诊断` 的毫秒数。 */
 async function openOnce(dir, entry, cacheDir) {
   // **结构性判据的来源**（2026-10-12）：`SOKO_LSP_TRACE=1` 每次编译打一行
   // `LSP_TRACE compile … modules=<真实闭包模块重编数> …`。墙钟比值在本仓是**禁止的判据**
   // （"同一处连红 3 次"里 3 次都是假红：同代码 44ms↔2431ms）；而 `modules=` 是**计数** ⇒ 噪声免疫。
   const env = { ...process.env, SOKONANODA_CACHE_DIR: cacheDir, SOKO_LSP_TRACE: '1' };
-  const traceLines = [];
+  const reader = stderrLineReader();
   delete env.SOKONANODA_NO_CACHE;
   delete env.SOKONANODA_BIN;
   delete env.SOKONANODA_LSP_BIN;
@@ -153,11 +196,7 @@ async function openOnce(dir, entry, cacheDir) {
         else queue.push(message);
       }
     });
-    child.stderr.on('data', (chunk) => {
-      for (const line of String(chunk).split('\n')) {
-        if (line.includes('LSP_TRACE compile')) traceLines.push(line);
-      }
-    });
+    child.stderr.on('data', (chunk) => reader.feed(chunk));
     return {
       send(message) {
         const body = Buffer.from(JSON.stringify(message), 'utf8');
@@ -198,14 +237,29 @@ async function openOnce(dir, entry, cacheDir) {
         message.params && message.params.uri === uri(entry)) break;
   }
   const elapsed = Date.now() - started;
+  // **等那一行收尾**（有界）：轨迹行写在诊断**之前** ⇒ 正常情况下这里立刻满足；
+  // 只有它被拆成片段、尾巴还在管道里时才会真等（见 `stderrLineReader`）。
+  // ⚠ **不是**在等"计数变好"：等到的是**完整的一行**，`modules=` 是多少就记多少
+  // ⇒ 判据一条都没松 ✓。
+  const traceDeadline = Date.now() + TRACE_WAIT_MS;
+  while (reader.traceLines.length === 0 && Date.now() < traceDeadline) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
   // `modules=` 是**计数**（真闭包模块重编数）⇒ 结构性判据用这个，不用墙钟 ✓
   let modules = 0;
-  for (const line of traceLines) {
+  for (const line of reader.traceLines) {
     const m = /modules=(\d+)/.exec(line);
     if (m) modules += Number(m[1]);
   }
   lsp.stop();
-  return { elapsed, modules };
+  return {
+    elapsed,
+    modules,
+    /// 收到几条**完整**的 `LSP_TRACE compile` 行 —— 判"到底观测到没有"的唯一依据 ✓
+    observed: reader.traceLines.length,
+    raw: reader.raw,
+    pending: reader.pending,
+  };
 }
 
 (async () => {
@@ -237,6 +291,38 @@ async function openOnce(dir, entry, cacheDir) {
   console.log(`   冷开（全新缓存）        = ${cold.elapsed}ms · 重编模块 ${cold.modules}`);
   console.log(`   热开（CLI 预热过缓存）  = ${hot.elapsed}ms · 重编模块 ${hot.modules}` +
     `   （墙钟 ${(cold.elapsed / hot.elapsed).toFixed(1)}× · 模块 ${cold.modules}→${hot.modules}）`);
+
+  // ⭐ **观测不到主体 ⇒ exit 2（环境/形状异常），不是 exit 0（缺口仍在）** ✗
+  // （2026-10-15，洞 `G25-PROBE-DEGENERATE-IN-CI`；同族 `G112-REPRO-STALE-BLIND-SPOT`）。
+  //
+  // 判据 `hot.modules < cold.modules` 的**唯一输入**是 `modules=`，而它只出现在
+  // 服务端 stderr 的 `LSP_TRACE compile` 行里。**一行都没收到**时：
+  //   冷 = 0、热 = 0 ⇒ `0 < 0` 恒假 ⇒ 旧写法**无条件**报「缺口仍在」✗
+  //   —— 把"我没看见"说成了"缺口还在"，而台账是契约（`fixed` ⇒ 应转绿）⇒ 判红 ✗。
+  // 这正是 2026-10-15 CI `ledger (1)` 第一次真跑的读数（冷 0 / 热 0，墙钟 68ms/11ms）。
+  // ⇒ 现在：**说不清观测到什么，就不许下结论**；把"看到了什么"原样带出来 ✓。
+  // ⚠ **判据一条都没松**：观测得到时仍然走下面那条 `hot < cold`，真缺口照样 exit 0 ✓。
+  if (cold.observed === 0 || hot.observed === 0) {
+    const show = (phase, name) => {
+      const tail = phase.raw.length ? phase.raw.slice(-3).join(' ｜ ') : '（一行 stderr 都没有）';
+      const cut = phase.pending ? ` ｜未收尾的尾段：${JSON.stringify(phase.pending.slice(-60))}` : '';
+      return `   · ${name}：完整 \`LSP_TRACE compile\` 行 ${phase.observed} 条` +
+        `（收到 stderr ${phase.raw.length} 行${cut}）⇒ ${tail}`;
+    };
+    console.error(
+      '结论：**观测不到主体** ⇒ 环境/形状异常（exit 2），**不是**「缺口仍在」✗\n' +
+        show(cold, '冷相') + '\n' +
+        show(hot, '热相') + '\n' +
+        '   · 结构性判据的输入是 `modules=`，它只由服务端 stderr 的 `LSP_TRACE compile` 行提供\n' +
+        '     ⇒ 一行都没有时 `hot < cold` 恒假 ⇒ 那是**量具瞎了**，不是缺口 ✓\n' +
+        '   · 常见原因（按可能性）：`scripts/soko lsp` 解析到的**不是本仓库构建**\n' +
+        '     （旧缓存 / 下载 / VS Code 扩展自带 ⇒ 版本可能不带这条轨迹）·\n' +
+        '     `SOKO_LSP_TRACE` 没传进服务端 · 服务端 stderr 被吞掉 / 被拆成片段后没等到收尾\n' +
+        '   · 先查：`node scripts/soko version --json`（看 `lsp.source`）与\n' +
+        '     `SOKO_LSP_TRACE=1 node scripts/soko lsp`（应打 `LSP_TRACE compile …`）\n',
+    );
+    process.exit(2);
+  }
 
   // **判据 = 结构性计数**（2026-10-12 改）：热开必须**真的少重编模块**
   // —— 墙钟比值在本仓是禁止的判据（实测同代码 44ms↔2431ms；本轮 pre-push 上
