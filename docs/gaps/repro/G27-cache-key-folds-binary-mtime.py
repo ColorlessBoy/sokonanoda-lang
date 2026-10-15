@@ -106,12 +106,42 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 2
-        hits1 = int(m1.group(1))
-        hits2, compiled2 = int(m2.group(1)), int(m2.group(2))
+        hits1, compiled1, failed1 = (int(m1.group(i)) for i in (1, 2, 3))
+        hits2, compiled2, failed2 = (int(m2.group(i)) for i in (1, 2, 3))
 
         print("== 同一份二进制内容、只有 mtime 不同：第二次 build 是否命中 ==")
-        print(f"   mtime=2001 的副本（预热）= {hits1} hit")
-        print(f"   mtime=2023 的副本（再跑）= {hits2} hit, {compiled2} compiled")
+        print(f"   mtime=2001 的副本（预热）= {hits1} hit, {compiled1} compiled, {failed1} failed")
+        print(f"   mtime=2023 的副本（再跑）= {hits2} hit, {compiled2} compiled, {failed2} failed")
+
+        # ⭐ **预热那跑什么都没缓存 ⇒ 观测不到主体 ⇒ exit 2**（2026-10-15，洞
+        # `G27-ZERO-HITS-PROVES-NOTHING`；同族 `G25-PROBE-DEGENERATE-IN-CI` 与
+        # `G112-REPRO-STALE-BLIND-SPOT` 的"先核前提，前提不成立就不许下结论"）。
+        #
+        # 判据 `hits2 == 0`（"换个 mtime 就 miss"）的**前提**是：预热那跑**真的往缓存里
+        # 写了东西** ✓。`hits1 == 0 && compiled1 == 0` 说明预热**一条都没写**
+        # （`total = hit + compiled + failed`，`crates/cli/src/build.rs:862` ⇒ 三者全 0
+        # 就是"这次 build 一个文件都没处理"）⇒ 缓存目录本来就是空的 ⇒ 第二次 `hits2 == 0`
+        # 是**必然**的，与"键里有没有 mtime"**毫无关系** ✗。
+        # 旧写法在这种形状下**无条件**报「G-27 仍在」（`exit 0`）✗ —— 把"我没预热成功"
+        # 说成了"缺口还在"；而台账是契约（`fixed` ⇒ 复现件应转绿）⇒ 判红 ✗。
+        # 这正是台账 `today` 里那条「`0 hit, 0 compiled` 却报仍复现」的形状 ✓。
+        # ⇒ 现在：**说不清观测到什么，就不许下结论**；把"看到了什么"原样带出来 ✓。
+        # ⚠ **判据一条都没松**：预热真的写了东西时仍走下面那条 `hits2 >= 1`，
+        # 真缺口照样 `exit 0` ✓（正对照读数见 `.cache/ux/fix-jbZ/VERDICT.md`）。
+        if hits1 == 0 and compiled1 == 0:
+            print(
+                "结论：**观测不到主体** ⇒ 环境/形状异常（exit 2），**不是**「缺口仍在」✗\n"
+                f"   · 预热那跑（mtime=2001 的副本）= {hits1} hit, {compiled1} compiled, {failed1} failed\n"
+                "     ⇒ 它**一条缓存都没写**（`hit + compiled + failed` 就是这次 build 处理的文件数）\n"
+                "   · 于是缓存目录是空的 ⇒ 第二次 `0 hit` 是**必然**的，证明不了键里有没有 mtime ✗\n"
+                "   · 常见原因（按可能性）：预热那次 build **失败**（看上面的 `failed` 数：夹具被\n"
+                "     编译器拒 / 入口读不到）· 入口路径或模块根解析不到 · `SOKONANODA_CACHE_DIR`\n"
+                "     不可写 · `scripts/soko` 解析到的不是本仓库构建\n"
+                "   · 先查：照抄夹具手工跑一次 `build`，读那行 "
+                "`built N file(s) — H hit, C compiled, F failed`（`failed > 0` 时紧跟失败明细）\n",
+                file=sys.stderr,
+            )
+            return 2
 
         if hits2 >= 1:
             print("结论：G-27 不存在——缓存键与可执行文件的 mtime 无关，跨二进制可复用。")
