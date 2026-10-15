@@ -25,6 +25,17 @@
 #      —— 这正是用户现场的形状（"整个项目的 meta.json 已经改了"）。
 #
 # 退出码（docs/gaps/README.md）：0 = 缺口仍在 · 1 = 已修 · 2 = 环境/形状异常
+#
+# ⭐ **同源前提**（2026-10-15，第十七次复核实测的**假红**）：
+# `<stamp>` 的差异**只有**在两份二进制**同源**时才归因给本缺口 —— 否则会把"环境里
+# 混着两个不同时代的构建"读成"缺口仍在"（**exit 0**）✗，而 exit 0 与 exit 2 的语义
+# 完全不同（0 = 缺口仍在 · 1 = 已修 · 2 = 环境异常）。
+# **实测链条**：本机 `target/debug`（10-14 21:31）早于 `6ae7849b`（10-15 00:28 把
+# **引擎源码摘要**折进 `build_stamp`）⇒ 两份戳**必然**不同 ⇒ 复现件 exit 0 ⇒
+# `python3 scripts/gap.py check` rc=1（**陈旧假红，不是回归** ✗ —— 归因已复核：
+# 隔离 `CARGO_TARGET_DIR` 新建 debug 跑同一份复现件 ⇒「✓ 已修」(exit 1) ✓）。
+# ⇒ ③ 用 `stamp_of`/`SOKO_CACHE_KEY_NO_ENGINE_ID` 探针**先核同源**，不同源一律
+# **exit 2**（**绝不许报 exit 0** ✗）。
 set -u
 # 自定位（绝不写死绝对路径；⚠ 2026-10-11 CI 就是这么判红的）。
 cd "$(dirname "$0")/../../.." || exit 2
@@ -80,23 +91,102 @@ if [ "$ver_a" != "$ver_b" ]; then
   echo "形状异常：两个二进制版本不同（$ver_a vs ${ver_b}）⇒ 测的不是本缺口" >&2
   exit 2
 fi
+# 两份二进制必须是**两次不同的构建**：release 与 debug 永远不逐字节相同（debug 带调试信息
+# 与 `debug_assertions` 的代码），相同 ⇒ `target/debug` 是**拷来的**（或软链到 release）
+# ⇒ 后面"两个构建共用一份条目"是**自证空转** ✗（本件的绿会变成假绿 ✗）。
+cmp -s "$SOKO_A" "$SOKO_B" && {
+  echo "形状异常：$SOKO_A 与 $SOKO_B 逐字节相同 ⇒ 不是两次构建 ⇒ 夹具坏了（守卫会空转）" >&2
+  exit 2
+}
+
+# 夹具内容：清单 + 一条 import（与用户现场同构：零配置的单文件 `build` 不写模块根产物）。
+# **探针与主夹具共用这一份**（两边量到的戳必须一致，见 ③ 末尾的交叉断言 ✓）。
+mk_fixture() { # $1 = 目录
+  printf 'name = "demo"\n' >"$1/sokonanoda.toml"
+  cat >"$1/Lib.sokonanoda" <<'EOF'
+axiom P : Prop
+axiom proofP : P
+EOF
+  cat >"$1/Main.sokonanoda" <<'EOF'
+import Lib
+
+theorem u : P := proofP
+EOF
+}
+
+# ③ **同源前提**：量一份二进制的 `build_stamp` —— 从它**写出的条目文件名**
+#    `<compiler>+<stamp16>+<key>` 里读第二段（`project::cache::entry_stem` 的形状）。
+#
+# `$2` 给额外环境（本件只用 `SOKO_CACHE_KEY_NO_ENGINE_ID=1`）：
+# 那是 `engine_digest::engine_identity()` 的逃生门 ⇒ 戳里**不再折引擎源码摘要**。
+# 于是同一份二进制量出**一对**戳：
+#   `E` = 默认（折引擎身份）· `N` = `NO_ENGINE_ID=1`（不折）
+#   `E != N` ⇒ 这份二进制**折了**引擎身份（`6ae7849b` 之后）✓
+#   `E == N` ⇒ 它比那次改动**旧**（逃生门它不认识 ⇒ 引擎身份还没进戳）✗
+# ⚠ **为什么用引擎身份而不是 mtime**（复核者给的二选一，这里选"引擎摘要"）：
+# 戳的**源码分量就是引擎摘要**，所以"同不同源"是**内容**问题，不是"文件什么时候写下去的"
+# 问题 —— mtime 在 `cp`/`tar`/缓存恢复下会说谎（**G-27 的教训**：mtime 不是身份 ✗），
+# 而本件的夹具恰恰就是"把别处那份旧二进制搬进来"（搬完 mtime 是**新**的 ⇒ mtime 判据
+# 看不见它 ✗）。⚠ 这里**不**碰 `crates/**`（引擎摘要读不出来 ⇒ 只能从**行为**上问它）。
+stamp_of() { # $1 = 二进制 · $2 = 额外环境（可为空）⇒ stdout = 16 位戳；失败 = 空
+  local bin=$1 extra=${2:-} root cache entry stamp
+  root=$(mktemp -d) || return 1
+  cache=$(mktemp -d) || { rm -rf "$root"; return 1; }
+  mk_fixture "$root"
+  if [ -n "$extra" ]; then
+    env "$extra" SOKONANODA_CACHE_DIR="$cache" "$bin" build "$root/Main.sokonanoda" >/dev/null 2>&1
+  else
+    SOKONANODA_CACHE_DIR="$cache" "$bin" build "$root/Main.sokonanoda" >/dev/null 2>&1
+  fi
+  entry=$(ls "$root/.sokonanoda/compiled" 2>/dev/null | grep '\.json$' | head -1)
+  stamp=$(printf '%s' "$entry" | cut -d+ -f2)
+  rm -rf "$root" "$cache"
+  # 形状必须是**恰好 16 位十六进制**：旧命名 `<key>.json` 没有 `+` ⇒ `cut` 会把整行
+  # 还回来 ⇒ 拿它冒充戳就是自欺 ✗（宁可 exit 2 说"量不到"）。
+  case "$stamp" in
+    [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])
+      printf '%s' "$stamp" ;;
+    *) return 1 ;;
+  esac
+}
+
+stamp_or_die() { # $1 = 二进制 · $2 = 额外环境 · $3 = 人话里的名字
+  # ⚠ 这里**不能** `exit 2`：调用方用 `$( )` 取值 ⇒ 那是在**子 shell** 里 exit ✗
+  # （本会话实测踩到：子 shell 一退，`pe_a` 成了空串 ⇒ 前提判据**静默放行** ✗）。
+  # ⇒ 函数只**打印人话并返回 1**，由调用方（顶层）`|| exit 2` ✓。
+  local s
+  s=$(stamp_of "$1" "${2:-}")
+  [ -n "$s" ] && { printf '%s' "$s"; return 0; }
+  echo "环境异常：量不到 $3 的 build_stamp（build 失败，或条目形状不认识）" >&2
+  return 1
+}
+
+# ⚠ 变量名与下面主夹具的计数（`n_a`/`n_b` = 条目数）**不许撞** ⇒ 探针一律 `pe_`/`pn_`。
+pe_a=$(stamp_or_die "$SOKO_A" "" "release 二进制 $SOKO_A") || exit 2
+pe_b=$(stamp_or_die "$SOKO_B" "" "debug 二进制 $SOKO_B") || exit 2
+pn_a=$(stamp_or_die "$SOKO_A" SOKO_CACHE_KEY_NO_ENGINE_ID=1 "release 二进制 $SOKO_A") || exit 2
+pn_b=$(stamp_or_die "$SOKO_B" SOKO_CACHE_KEY_NO_ENGINE_ID=1 "debug 二进制 $SOKO_B") || exit 2
+eng_a=0; [ "$pe_a" != "$pn_a" ] && eng_a=1
+eng_b=0; [ "$pe_b" != "$pn_b" ] && eng_b=1
+
+# ⚠ **恰好一份**折引擎身份 ⇒ 环境里混着两个时代的构建 ⇒ 戳**不可比** ✗
+# （本件第十七次复核的**假红真身**：release 折了引擎摘要、旧 debug 没折）。
+# 两份都折、或两份都没折 ⇒ 继续（都折 = 正常；都没折 = 它们同为旧构建 ⇒ 差异仍可归因，
+# 而且将来若撤掉那条逃生门，本件**不会**因此变红 ✓ —— 前提判据要能优雅降级）。
+if [ "$eng_a" != "$eng_b" ]; then
+  echo "环境异常：两份二进制的**引擎身份**不一致（release $([ "$eng_a" = 1 ] && echo 折了 || echo 没折)·debug $([ "$eng_b" = 1 ] && echo 折了 || echo 没折)）⇒ stamp **不可比** ✗" >&2
+  echo "          一份折了引擎源码摘要、另一份没折 ⇒ 其中一份比 6ae7849b（引擎摘要折进 build_stamp）旧" >&2
+  echo "          ⇒ 先重建它：cargo build -p sokonanoda-cli --locked（release 用 --release）" >&2
+  echo "          ⚠ 本件**不**替你重建已经存在的那份二进制 —— 那会把「环境陈旧」洗成「已修」✗" >&2
+  exit 2
+fi
 
 root=$(mktemp -d) || exit 2
 cache_a=$(mktemp -d) || exit 2
 cache_b=$(mktemp -d) || exit 2
 trap 'rm -rf "$root" "$cache_a" "$cache_b"' EXIT
 
-# 清单 + 一条 import：与用户现场同构（零配置的单文件 `build` 不写模块根产物）。
-printf 'name = "demo"\n' >"$root/sokonanoda.toml"
-cat >"$root/Lib.sokonanoda" <<'EOF'
-axiom P : Prop
-axiom proofP : P
-EOF
-cat >"$root/Main.sokonanoda" <<'EOF'
-import Lib
-
-theorem u : P := proofP
-EOF
+mk_fixture "$root"
 
 entries() { ls "$root/.sokonanoda/compiled" 2>/dev/null | grep '\.json$' | sort; }
 
@@ -130,9 +220,31 @@ fi
 [ "$n_b" = 1 ] || { echo "① 构建 B 写出了 $n_b 条新条目（期望 1）⇒ 夹具坏了" >&2; exit 2; }
 stamp_b=$(printf '%s' "$b" | cut -d+ -f2)
 
+# ③ 的**交叉断言**：探针（另一份临时模块根 + 另一份临时缓存）量到的戳，必须与主夹具
+# 条目名里的戳**逐字相同** —— 同一份二进制 + 同一份夹具内容 ⇒ 同一个戳。
+# 不同 ⇒ 二进制或环境在本次运行**中途变了** ⇒ 前后读数不可比 ✗（AGENTS.md
+# 「探针读数必须带构建身份」；跨调用比读数要钉住环境）。
+[ "$stamp_a" = "$pe_a" ] && [ "$stamp_b" = "$pe_b" ] || {
+  echo "环境异常：探针量到的戳与主夹具条目里的不一致（$pe_a/$stamp_a · $pe_b/$stamp_b）" >&2
+  echo "          ⇒ 二进制或环境在本次运行中途变了 ⇒ 读数不可比 ✗" >&2
+  exit 2
+}
+
 if [ "$stamp_a" = "$stamp_b" ]; then
   echo "✓ 已修：两个构建的 build_stamp 相同（${stamp_a}）⇒ 能共用同一份条目（共 $n_all 条）"
   exit 1
+fi
+
+# 同源前提（③）已成立 ⇒ 现在 stamp 的差异**可以归因**了：
+#   · 摘掉引擎分量后两边**仍然不同** ⇒ 差异来自**非引擎**分量（profile / prelude / label）
+#     ⇒ 那正是本缺口的机制本身 ⇒ 缺口仍在（exit 0 ✓，**不许**把它洗成环境异常 ✗）；
+#   · 摘掉引擎分量后两边**相同**（且两边都折引擎身份）⇒ 差异**只**可能来自引擎源码摘要
+#     ⇒ 两份二进制不是同一份源码编出来的 ⇒ 环境异常（exit 2 ✗，**不许**报成缺口仍在 ✗）。
+if [ "$eng_a" = 1 ] && [ "$pn_a" = "$pn_b" ]; then
+  echo "环境异常：两份二进制的**引擎源码摘要**不同 —— 摘掉引擎分量后戳相同" >&2
+  echo "          （${pn_a}），⇒ 差异只可能来自引擎摘要 ⇒ 它们不是同一份源码编出来的" >&2
+  echo "          release=${pe_a} · debug=${pe_b} ⇒ 先重建：cargo build -p sokonanoda-cli --locked" >&2
+  exit 2
 fi
 
 echo "✗ 缺口仍在：同一版本 $ver_a 的两个构建，build_stamp 不同 ⇒ 键不同 ⇒ 互不命中"
