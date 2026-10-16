@@ -42,6 +42,50 @@
   ⚠ **分派的代价如实标注** ✗：`ci_job: <非默认>` 的那几条只在那个 job 的触发条件成立时
   跑（`editor` job 的条件是 `rust || editor` 改动）⇒ **纯 docs 推送不跑第三层那几条** ——
   它们**物理上**跑不进 `queue-lint` 的 5 分钟预算 ✓（不是口径松了 ✓）。
+* **C5 可达性（2026-10-16，CI 实测红 ✗→✓）**：证明里**钉的旧 rev**（"已存在的坏输入"
+  的锚点 ✓）必须**在本仓里真的存在**、**且是 `HEAD` 的祖先** ⇒ 否则判红 ✗（**两档**）。
+  ⚠ 为什么（**实测**，run `38828745723` · step 9）：`queue-lint` **有** `fetch-depth: 0`
+  （`ci.yml:256`）⇒ 缺的**不是历史深度** ✗ —— 缺的是**那个对象**：CI 只检出**一个 ref**
+  的历史，而开发机的 `.git` 里躺着 ~100 棵链接工作树/分支的对象 ⇒ 一个**只在分支上
+  存在**的 rev（`10a6a621` = `agent/ed1` 的 tip、`land` rebase **之前**的孪生）在本机
+  `git show` 得到、在 CI 里 `fatal: Not a valid object name` ⇒ 那两条证明的**空转闸**
+  grep 不中 ⇒ `exit 0` ⇒ C2 印「这条守卫咬不住」—— 而真相是**前提不在** ✗。
+  这就是"**本机绿、CI 红**"的形状 ✓（本机用 `git clone --single-branch --branch main`
+  的**全深度**夹具**逐字**复现了 CI 那两行 ✓ —— 注意它 `--is-shallow-repository` = false
+  ⇒ 与 ed1 那次**不是**同一个病 ✗）。
+  ⚠ ⭐ **两档都必须判红**（**实测踩到过** ✗）：只判"能解析、但不是祖先"那一档 ⇒ 在
+  **CI 形状的树**里（那个 rev **根本不在**）判据会**跳过**它 ⇒ 那条证明**空转** ⇒
+  **CI 仍会红** ✗✗ ⇒ 现在「本仓里不存在」与「存在但不是 `HEAD` 的祖先」**都**判红 ✓
+  ⇒ **同一份坏台账**在开发机与 CI 形状的树里**都**判红 ✓（咬住证明因此在两种树上都成立 ✓）。
+  ⚠ ⭐ **只在"台账所属的那个仓"里判**（**实测踩到过** ✗）：**夹具仓**会把**真台账**拷进去
+  （`check-attention-budget.py:_fixture_repo` 的既定形状 ——「照真仓的形状（拷真文件），
+  不是打桩 ✗」✓）⇒ 那些**真 rev 当然不在**夹具仓里 ⇒ 不设这条，**合法夹具会假红** ✗
+  （实测：那条 ④ 臂 rc=1）。⇒ 仓身份取台账**自己的** `# coverage_since:`（按定义它是
+  "台账所属那个仓"的一个提交 ✓）：**它在本仓解析不了 ⇒ 不是台账的仓 ⇒ 本跑不判**
+  （**印出来** ✓ —— 既不假红、也不假装判过 ✓）。⚠ **不是放宽** ✗：真仓里缺基线那一档
+  **照样**判红，由 **C1** 兜住（`git diff` rc=128 ⇒ **exit 3** ✓），且 C5 用的是**台账的**
+  `coverage_since`（**不看** `--since` ⇒ 没人能用 `--since` 绕开它 ✓）。
+  ⚠ **同族第三次，两半合起来才是完整前提** ✓：ed1 的
+  `scripts/check-history-depth-wiring.py`（R1）管"**那个 job 要有那份历史**"，
+  本判据管"**那份历史里真有它**" ✗→✓。
+  ⚠ **不是放宽** ✗：C5 只**加**判红，一条 `bite` 的期望 rc 都没动 ✓。
+  ⚠ **锚 = `HEAD`**（= CI **检出的那个提交** ⇒ 与 CI 同口径 ✓；推 main 时 `HEAD` =
+  推上去的那个 sha ✓）。
+  ⚠ **如实划的边界** ✗：在**链接工作树**里 `HEAD` = 分支 tip ⇒ 这一条判的是"相对
+  **本分支**可达" ⇒ 一条**只在本分支上**的 rev（`land` rebase 之后会被重写）在这里会
+  放行、而 CI 会红 —— 那一档由 **CI 自己**兜住（C2 + 下面那条**人话提示** ✓，即把
+  「咬不住」翻译成「钉的 rev 不在本仓里」✓）。
+  ⚠ **口径：不解析 shell**（**刻意收窄**，照 `check-history-depth-wiring.py` 的
+  「只认活行」「`fetch-depth` 只认那一步」两条先例 ✓）：命令里**任何** hex token 都算
+  "钉了" ⇒ `grep` 的**模式**里写了 rev 字面量**也会**被算上 ✗
+  （实测：本判据落地时它自己的第一条咬住证明就撞上了 ✓）。**为什么不去猜 shell 语义**：
+  猜错 = 假红**或**假绿，而"换个不需要字面量的 grep 写法"是**有出路**的代价 ✓
+  （判红时那条消息会直接把出路印出来 ✓）。⚠ 64 位的 sha256 **不**进这个面
+  （`{7,40}` 在 40 位处没有词边界 ⇒ 整个 token 不匹配 ✓）。
+  ⚠ **为什么没有"0 个 rev ⇒ 空转红"**：那会是一条**没有出路的红**（台账里有没有钉死的
+  rev 是**数据**条件、不是判据条件 ⇒ 照 `check-attention-budget.py` 的
+  `judge_round()`/`converged()` 先例：「再开轮也降不下去 ⇒ 判红会是一条没有出路的红」✗）
+  ⇒ 改成**印出判到的 rev 数**（评审可见 ✓）+ 自检的**正反两向**臂（见 `selftest()`）✓。
 
 ## 一处定义（`AGENTS.md` 硬规则 0(b)）
 
@@ -67,6 +111,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import os
 import re
 import subprocess
 import sys
@@ -94,6 +139,12 @@ GUARD_GLOBS = ("scripts/check-*.py", "scripts/*-lint.py",
                "scripts/audit-*.py")
 # 证明的超时（秒）：证明里可能起子进程 ⇒ 挂住会把门禁一起挂住（`gap.py` 的教训 ✓）
 PROOF_TIMEOUT_S = 300
+
+# ── **证明里钉的旧 rev**（C5；唯一一处 ✓）────────────────────────────────────
+# 只认**独立的** hex token（`\b` 两端 ✓）⇒ 64 位的 sha256 片段**不会**被当 rev
+# （`{7,40}` 在 40 位处没有词边界 ⇒ 整个 token 不匹配 ✓ —— 实测 `--list`/`--check`
+# 的输出里那些 sha256 摘要**不进** C5 的判据面 ✓）。
+REV_TOKEN_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
 
 
 def guard_scripts(root: Path = ROOT) -> list[str]:
@@ -131,6 +182,104 @@ def job_blocks(text: str) -> dict[str, str]:
         if cur is not None:
             blocks[cur].append(line)
     return {k: "\n".join(v) for k, v in blocks.items()}
+
+
+def _resolves(root: Path, rev: str) -> bool:
+    """`rev` 在本仓里能不能解析成**提交**对象（C5 的唯一判据输入 ✓）。"""
+    return subprocess.run(["git", "cat-file", "-e", f"{rev}^{{commit}}"],
+                          cwd=root, capture_output=True).returncode == 0
+
+
+def _is_ancestor(root: Path, rev: str, head: str) -> bool:
+    return subprocess.run(["git", "merge-base", "--is-ancestor", rev, head],
+                          cwd=root, capture_output=True).returncode == 0
+
+
+def rev_reachability_problems(root: Path, entries: list[dict],
+                             coverage_since: str) -> tuple[list[str], list[str], list[str], str]:
+    """**C5 可达性**：证明里钉的旧 rev 必须**在本仓里存在**且是 `HEAD` 的祖先 ⇒
+    `(红行, 判到的 rev, 全部候选, 跳过原因)` ✓。**两档都判红** ✓（"不存在" / "不是祖先"）。
+
+    ⚠ **为什么"不存在"也必须判红**（**实测踩到过** ✗）：只判"能解析但不是祖先"那一档
+    ⇒ 在 **CI 形状的树**里（那个 rev **根本不在**）判据会**跳过**它 ⇒ 那条证明**空转**
+    ⇒ 咬不住 ✗。⇒ 两档都判红之后，**同一份坏台账**在开发机与 CI 形状的树里**都**判红 ✓
+    （咬住证明因此在两种树上都成立 ✓）。
+
+    ⚠ ⭐ **只在"台账所属的那个仓"里判**（**实测踩到过** ✗）：**夹具仓**会把**真台账**
+    拷进去（`check-attention-budget.py:_fixture_repo` 的既定形状 ——「照真仓的形状（拷真
+    文件），不是打桩 ✗」✓）⇒ 那些**真 rev 当然不在**夹具仓里 ⇒ 不设这条，**合法夹具会假红**
+    ✗（实测：`check-attention-budget.py --selftest` 的 ④ 臂 rc=1）。⇒ 判据的**仓身份**取
+    台账**自己的** `# coverage_since:`（它按定义是"台账所属那个仓"的一个提交 ✓）：
+    **它在本仓解析不了 ⇒ 这不是台账的仓 ⇒ 不判**（**印出来** ✓，既不假红、也不假装判过 ✓）。
+    ⚠ **不是放宽** ✗：真仓里缺基线那一档**照样**判红 —— 由 **C1** 兜住（`git diff` rc=128
+    ⇒ **exit 3**，浅克隆那条路 ✓），而 `--since` 显式给定时 C5 用的仍是台账的
+    `coverage_since`（**不看** `--since` ⇒ 没人能用 `--since` 把这条绕开 ✓）。
+
+    ⚠ **口径：不解析 shell**（**刻意收窄**，照 `check-history-depth-wiring.py` 的
+    「只认活行」「`fetch-depth` 只认那一步」两条先例 ✓）：命令里**任何** hex token 都算
+    "钉了" ⇒ `grep` 的**模式**里写了 rev 字面量**也会**被算上 ✗
+    （实测：本判据落地时它自己的第一条咬住证明就撞上了 ✓）。**为什么不去猜 shell 语义**：
+    猜错 = 假红**或**假绿，而"换个不需要字面量的 grep 写法"是**有出路**的代价 ✓
+    （判红时那条消息会直接把出路印出来 ✓）。⚠ 64 位的 sha256 **不**进这个面
+    （`{7,40}` 在 40 位处没有词边界 ⇒ 整个 token 不匹配 ✓）。
+
+    ⚠ 判不到 `HEAD` ⇒ **判红**（"不假装判过" ✗ —— 与 C1 拿不到 `git diff` 同口径 ✓）。
+    """
+    head_out, head_err = _git(root, ["rev-parse", "HEAD"])
+    head = head_out.strip()
+    if head_err or not head:
+        return ([f"**C5 可达性** ✗：判不到 `HEAD`（{head_err or '空输出'}）⇒ "
+                 f"钉的 rev 有没有在那份历史里**判不了** ⇒ **不假装判过** ✗"], [], [], "")
+    if coverage_since and not _resolves(root, coverage_since):
+        return ([], [], [], (f"台账的覆盖基线 `{coverage_since}` **不在本仓** ⇒ 这**不是台账"
+                             f"所属的那个仓**（夹具仓 / 拷来的台账 ⇒ 真 rev 当然不在 ✓）⇒ "
+                             f"可达性**判不了** ⇒ 如实印出、**既不假红也不假装判过** ✓"
+                             f"（真仓里缺基线那一档由 **C1** 兜住 ⇒ `exit 3` ✓）"))
+    red: list[str] = []
+    judged: list[str] = []
+    candidates: list[str] = []
+    for e in entries:
+        for half in ("pass", "bite"):
+            cmd = str(e[half].get("cmd", ""))
+            for tok in sorted(set(REV_TOKEN_RE.findall(cmd))):
+                candidates.append(tok)
+                if not _resolves(root, tok):
+                    # ⚠ **这一档必须也判红**（**实测踩到过** ✗）：只判"能解析但不是祖先"
+                    #   ⇒ 在 **CI 形状的树**里（那个 rev **根本不在**）判据会**跳过**它
+                    #   ⇒ 咬住证明**空转**（grep 不中 ⇒ `exit 0`）⇒ 咬不住 ✗。
+                    red.append(
+                        f"**C5 可达性** ✗：`{e['guard']}` 的 `{half}` 钉了 rev `{tok}`，"
+                        f"它**在本仓里根本不存在**（`git cat-file -e {tok}^{{commit}}` rc≠0）"
+                        f"⇒ 那条证明**量不到**它 ⇒ 空转闸让它 `exit 0` ⇒ 印成「这条守卫咬不住」，"
+                        f"而真相是**前提不在** ✗（CI 只检出**一个 ref** 的历史 ⇒ 一条**只在别的"
+                        f"分支上**存在的 rev 就是这样 ✗）⇒ 换成 **`HEAD` 的祖先**里那个同形状的 "
+                        f"rev（`git merge-base --is-ancestor <rev> HEAD` 核 ✓；"
+                        f"**别**把证明挪到别的 job ✗ —— 没有哪个 job 有别的分支的对象 ✓）。"
+                        f"⚠ 本判据**不解析 shell**（口径见 docstring ✗）：命令里**任何** hex "
+                        f"字面量都算「钉了」⇒ 若它其实只是个 `grep` 模式，换成**不需要字面量**的"
+                        f"写法 ✓（grep **守卫名** / 中文结论 —— 本仓既有 5 条空转闸的形状 ✓）")
+                    continue
+                judged.append(tok)
+                if _is_ancestor(root, tok, head):
+                    continue
+                red.append(
+                    f"**C5 可达性** ✗：`{e['guard']}` 的 `{half}` 钉了 rev `{tok}`，"
+                    f"它**不是 `HEAD`（{head[:12]}）的祖先** ⇒ CI 只检出**一个 ref** 的"
+                    f"历史 ⇒ `git show {tok}:…` **rc=128** ⇒ 那条证明在 CI 里**量不到**"
+                    f"（空转闸让它 `exit 0` ⇒ 印成「这条守卫咬不住」，而真相是**前提不在** ✗）"
+                    f"⇒ 换成 **`HEAD` 的祖先**里那个同形状的 rev"
+                    f"（`git merge-base --is-ancestor <rev> HEAD` 核 ✓；"
+                    f"**别**把证明挪到别的 job ✗ —— 没有哪个 job 有别的分支的对象 ✓）。"
+                    f"⚠ 本判据**不解析 shell**（口径见 docstring ✗）：`grep` 模式里的 rev "
+                    f"字面量**也算**「钉了」⇒ 若它其实只是个 `grep` 模式，换成**不需要字面量**的"
+                    f"写法 ✓（grep **守卫名** / 中文结论 —— 本仓既有 5 条空转闸的形状 ✓）")
+    return red, sorted(set(judged)), sorted(set(candidates)), ""
+
+
+def unresolvable_revs(root: Path, cmd: str) -> list[str]:
+    """这条证明里**解析不了**的 rev token（C2 判红时附的人话 ✓）。**唯一一处** ✓。"""
+    return [tok for tok in sorted(set(REV_TOKEN_RE.findall(cmd)))
+            if not _resolves(root, tok)]
 
 
 def wiring_problems(root: Path, entries: list[dict]) -> list[str]:
@@ -319,6 +468,18 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
         print(f"  ✓ C4 接线：台账点名的 {len(jobs)} 个 job 都在 `{CI_YML.name}` 里且**真的跑它**"
               f"（{' · '.join(jobs)}）")
 
+    # ── C5 可达性（钉的旧 rev 必须**在本仓里**且是 `HEAD` 的祖先 ✓）───────────
+    c5, pinned, cands, c5_skip = rev_reachability_problems(root, entries, coverage_since)
+    red.extend(c5)
+    if not quiet and not c5:
+        if c5_skip:
+            print(f"  ⓘ C5 可达性：**本跑不判** —— {c5_skip}")
+        else:
+            print(f"  ✓ C5 可达性：证明里钉的 {len(pinned)} 个 rev 都在本仓里且是 `HEAD` 的祖先 ✓"
+                  + (f"（{' · '.join(pinned)}）" if pinned
+                     else "（本台账**没有任何** hex token ⇒ 这一条本跑无输入 —— 如实在此印出，"
+                          "**不**当空转判红：那会是一条没有出路的红 ✗）"))
+
     # ── C2 咬得住 ───────────────────────────────────────────────────────
     targets = pool if run_all else [e for e in pool if e["guard"] in scope]
     if run_all:
@@ -351,9 +512,20 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
             red.append(f"**C2** ✗：`{g}` 的 `pass` rc={prc}（期望 {e['pass']['expect_rc']}）"
                        f" ⇒ 守卫自己坏了：{ptail[:160]}")
         elif not b_ok:
+            # ⚠ **缺前提时给可操作的人话**（2026-10-16 CI 实测 ✗→✓，与 `shallow_hint` 同一条纪律
+            #   ✓）：证明钉的旧 rev 在 CI 的树里**不存在**时，`bite` 的空转闸会让它 `exit 0`
+            #   ⇒ 这里印的是「这条守卫咬不住」—— 而**真相是前提不在** ✗ ⇒ 指名那个 rev，
+            #   把「咬不住」翻译成「钉的 rev 不在本仓里」✓。⚠ **只改话术，不改判据** ✗：
+            #   退出码与 C1/C2/C5 一个字没动 ✓（C5 在**本机**就会先判红 ✓）。
+            missing = unresolvable_revs(root, str(e["bite"].get("cmd", "")))
+            hint = ("  ⚠ 这条命令钉的 rev " + " · ".join(f"`{m}`" for m in missing)
+                    + " 在**本仓里不存在** ⇒ CI 只检出**一个 ref** 的历史"
+                      "（`fetch-depth: 0` 给的是**那份**历史的全部，**不是**别的分支的对象 ✗）"
+                      "⇒ 钉的必须是 `HEAD` 的祖先 ✓（`git merge-base --is-ancestor <rev> HEAD`）")
             red.append(f"**C2** ✗：`{g}` 的 `bite` rc={brc}（期望 {e['bite']['expect_rc']}）"
                        f" ⇒ **这条守卫咬不住它声称咬住的那条坏输入**"
-                       f"（`{e.get('bug', '')[:80]}`）：{btail[:160]}")
+                       f"（`{e.get('bug', '')[:80]}`）：{btail[:160]}"
+                       + (hint if missing else ""))
             empty.append(e)
 
     # ── C3 翻账（用户【①】）─────────────────────────────────────────────
@@ -565,6 +737,49 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         gate("反向⑨：`--job <台账里没人声明的名字>`（0 条 = 空转）⇒ 判红 rc=1",
              rc_e == 1, f"rc={rc_e}")
 
+        # ── C5 可达性：**正反两向**（2026-10-16 CI 实测红 ✗→✓）────────────────
+        #   ⚠ 夹具的 rev 必须**确定性**地"能解析、但不是 `HEAD` 的祖先" ⇒ 用
+        #   `git commit-tree HEAD^{tree}` 造一个**无父**的提交（**不建 ref** ⇒ 不可达 ✓，
+        #   松散对象会被 gc 收掉 ✓）。⚠ **身份必须显式给**（实测踩到过 ✗）：CI 的
+        #   checkout **不保证**有 `user.name`/`user.email` ⇒ 裸 `git commit-tree` 会以
+        #   「Committer identity unknown」失败 ⇒ 自检臂在 CI 上**自己红** ✗ ⇒
+        #   `-c user.name=… -c user.email=…` + `GIT_*_DATE`（与宿主配置**无关** ✓）。
+        orphan = subprocess.run(
+            ["git", "-c", "user.name=soko-bite", "-c", "user.email=bite@invalid.invalid",
+             "commit-tree", "HEAD^{tree}", "-m", "soko-bite-selftest orphan（不可达）"],
+            cwd=ROOT, capture_output=True, text=True,
+            env={**os.environ, "GIT_AUTHOR_DATE": "2000-01-01T00:00:00+0000",
+                 "GIT_COMMITTER_DATE": "2000-01-01T00:00:00+0000"})
+        orph = orphan.stdout.strip()
+        if orphan.returncode == 0 and orph:
+            def _c5_fixture(name: str, rev: str) -> Path:
+                """同一个夹具，只换钉的 rev（⇒ 判红**可归属**到 C5 ✓）。"""
+                p = tmp / name
+                p.write_text(
+                    f"# coverage_since: {head}\n"
+                    + json.dumps({"guard": "scripts/check-attention-budget.py",
+                                  "bug": f"故意：钉一个 rev（{rev[:12]}）",
+                                  "pass": {"cmd": "true", "expect_rc": 0},
+                                  # `bite` 恒 rc=1 ⇒ C2 放行 ⇒ 判红只可能来自 C5 ✓
+                                  "bite": {"cmd": f"git cat-file -e {rev}^{{commit}}; false",
+                                           "expect_rc": 1}},
+                                 ensure_ascii=False) + "\n", encoding="utf-8")
+                return p
+
+            rc_c5ok = check(ROOT, _c5_fixture("c5-reachable.jsonl", head),
+                            None, run_all=True, quiet=True)
+            gate("正对照：**C5** —— 钉的 rev 是 `HEAD` 的祖先 ⇒ **不**判红 rc=0",
+                 rc_c5ok == 0, f"rc={rc_c5ok}（rev=HEAD={head[:12]}）")
+            rc_c5 = check(ROOT, _c5_fixture("c5-orphan.jsonl", orph),
+                          None, run_all=True, quiet=True)
+            gate("反向⑩：**C5 可达性** —— 钉的 rev **能解析**、但**不是** `HEAD` 的祖先"
+                 "（`land` rebase 之前的孪生就是这个形状）⇒ 判红 rc=1",
+                 rc_c5 == 1, f"rc={rc_c5}（rev={orph[:12]}）")
+        else:
+            gate("反向⑩：**C5 可达性** ⇒ 判红 rc=1", False,
+                 f"**夹具前提没成立**（`git commit-tree` rc={orphan.returncode}："
+                 f"{orphan.stderr.strip()[:120]}）✗")
+
     # ── 正对照：**真坏输入**被咬住的形状（`--until c82097fe` = 历史最差点）──
     entries2, _cs2, _e2 = load_ledger(LEDGER)
     hist = next((e for e in entries2
@@ -578,7 +793,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         gate("⭐ 正对照：历史最差点被咬住", False, "台账里没有 check-attention-budget 那一行 ✗")
 
     print(f"\n自检：{'✓ 全过' if bad == 0 else f'✗ {bad} 组不对'}"
-          f"（正对照 4 + 反向 9 + 真跑台账）")
+          f"（正对照 5 + 反向 10 + 真跑台账）")
     return 0 if bad == 0 else 1
 
 
