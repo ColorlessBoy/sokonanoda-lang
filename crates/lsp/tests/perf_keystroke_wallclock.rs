@@ -109,7 +109,45 @@ impl Arm {
     }
 }
 
+/// ⭐ **等本刀自己的 trace 行**（按 **`v<version>` 令牌**认，不是按行数）。
+///
+/// ## 为什么必须有它（2026-10-16 · CI run `38828745723` 的假红）
+///
+/// `LSP_TRACE` 走 **stderr**、由**另一个线程**读 ⇒ `did_change` 返回（= 那一版诊断
+/// 到了，走 **stdout**）**不等于**那一行已经进了 `Vec` ✗ —— 两条管道之间
+/// **没有顺序保证** ✓（`common/mod.rs` 的 `wait_for_trace_after` 注释里记着同一条
+/// 教训：「直接读会偶发地拿到上一行」）。本探针原先在 `did_change` 一返回就读
+/// `last_trace()` ⇒ **偶发读到上一刀那一行** ✗。
+///
+/// 而上一刀与最后一刀的读数在 `trailing_comment` 臂上**正好不同**（`by` 9 / 1）——
+/// 于是判据 `trailing.by <= 3` 在共享 runner 上**偶发判红** ✗（本地 30/30 不复现：
+/// 本机读线程从不落后）。
+///
+/// **按版本号认行**才挡得住"读线程落后 k 行、这一轮一次补交 k 行"那种情形
+///（"行数 > before"挡不住它 ✗）；版本号在本测试里**全局单调**
+///（`run_scenario` 收 `&mut version`，不再每个臂各自从 10 起 ✗ ⇒ 同一号码不会
+/// 在另一个臂里再出现一次）。
+fn wait_for_trace_version(client: &Client, version: i64) {
+    let want = format!("v{version}");
+    let deadline = Instant::now() + std::time::Duration::from_secs(120);
+    loop {
+        let line = client.last_trace();
+        if line.split_whitespace().any(|token| token == want) {
+            return;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "等 `{want}` 的 trace 行超时（最近一行：{line}）—— 判据不许静默退化 ✗"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(2));
+    }
+}
+
 /// 跑一个场景：`warmup` 一刀 + `rounds` 刀，返回毫秒样本与**最后一刀**的结构计数。
+///
+/// `version` 由调用方持有（**整个测试一份、全局单调** ✓）：见
+/// [`wait_for_trace_version`] 的注释 —— 每个臂各自从 10 起的话，`v11` 会在
+/// 每个臂里都出现一次 ⇒ 按版本号认行就认不出"这是哪一刀"了 ✗。
 fn run_scenario(
     client: &mut Client,
     uri: &str,
@@ -117,24 +155,28 @@ fn run_scenario(
     base: &str,
     flip: &dyn Fn(&str, bool) -> String,
     rounds: usize,
+    version: &mut i64,
 ) -> Arm {
     let mut current = base.to_string();
     let mut samples = Vec::with_capacity(rounds);
-    let mut version = 10i64;
     // 热身一刀（建立信任前缀/检查点，不计入 —— 同 `perf_course` 的"来回改 3 次取最小"口径）。
     for round in 0..=rounds {
         let next = flip(&current, round % 2 == 0);
         assert_ne!(next, current, "夹具前提：{scenario} 这一刀必须真的改变文本");
-        version += 1;
+        *version += 1;
         let started = Instant::now();
-        let _ = client.did_change(uri, version, &next);
+        let _ = client.did_change(uri, *version, &next);
         let elapsed = started.elapsed().as_secs_f64() * 1000.0;
+        // ⭐ **等这一刀自己的 trace 行**（stderr 与 stdout 无顺序保证 ✗）——
+        // 不等的话下面读到的可能是**上一刀**那一行（`trailing_comment` 臂上
+        // 那正好是 `by=9` vs `1` ⇒ 判据假红）。
+        wait_for_trace_version(client, *version);
         if round > 0 {
             samples.push(elapsed);
         }
         current = next;
     }
-    // 结构计数取自**最后一刀**（stderr 读线程刚收进来的那一行）。
+    // 结构计数取自**最后一刀**（上面已经等到它的那一行 ✓）。
     let line = client.last_trace();
     Arm {
         scenario,
@@ -210,6 +252,9 @@ fn perf_course_keystroke_wallclock_is_recorded() {
     let uri = Client::file_uri(&path);
     let _ = client.open(&root, &uri, &text); // 开档（冷/产物命中都行，不判它）
     let _ = client.settled_compile_count();
+    // ⭐ **整个测试一份、全局单调的 LSP 版本号**（真编辑器就是单调的 ✓）——
+    // 按版本号认 trace 行要求它**唯一**（见 `wait_for_trace_version`）。
+    let mut version = 10i64;
 
     // 场景 1：**改证明体**（陈述不变）—— 做题时每一次键入就是它。
     let proof = run_scenario(
@@ -225,6 +270,7 @@ fn perf_course_keystroke_wallclock_is_recorded() {
             }
         },
         5,
+        &mut version,
     );
     // 场景 2：**改陈述**（改名）—— 改接口那一刀（本轮规划 §8.1 的"改陈述"列）。
     let statement = run_scenario(
@@ -240,6 +286,7 @@ fn perf_course_keystroke_wallclock_is_recorded() {
             }
         },
         5,
+        &mut version,
     );
 
     // 场景 3：**连续键入**（每一刀都是**新文本**）—— 真实做题的形状。
@@ -254,6 +301,7 @@ fn perf_course_keystroke_wallclock_is_recorded() {
         &text,
         &|current, _round| add_one_space_before_y(current),
         5,
+        &mut version,
     );
 
     // 场景 4：**等长改名**（每一刀都是新文本，但**字节偏移不变**）。
@@ -275,6 +323,7 @@ fn perf_course_keystroke_wallclock_is_recorded() {
             current.replace(from, to)
         },
         5,
+        &mut version,
     );
 
     // 场景 5：**只追加尾部注释**（§16 的确认实验）—— **脏集为空**：追加在文件末尾不移动
@@ -294,6 +343,7 @@ fn perf_course_keystroke_wallclock_is_recorded() {
             }
         },
         5,
+        &mut version,
     );
 
     // ⭐ **RPC 底噪（第 84 轮）**：`soko/goals` 的 5.9ms 里有多少只是"**一来一回**"？
@@ -362,13 +412,28 @@ fn perf_course_keystroke_wallclock_is_recorded() {
         );
     }
 
-    // ⭐ **T2-B 的跨进程证据（2026-10-09 · 平行线）**：`STATUS.md` 把"**进程隔离的 A/B**"列成
-    // T2-B 的**已知验证缺口** ✓ —— 同进程那两臂会被**线程局部的 `EntryCache`** 互相喂缓存 ✗
-    // ⇒ 读数不可比。**本探针天生是跨进程的**（真 `sokonanoda-lsp` 子进程 + 真 stdio ✓）：
+    // ⭐ **T2-B 的跨进程证据（2026-10-09 · 平行线 · 2026-10-16 修了两处假红）**：
+    // `STATUS.md` 把"**进程隔离的 A/B**"列成 T2-B 的**已知验证缺口** ✓ —— 同进程那两臂
+    // 会被**线程局部的 `EntryCache`** 互相喂缓存 ✗ ⇒ 读数不可比。**本探针天生是跨进程的**
+    // （真 `sokonanoda-lsp` 子进程 + 真 stdio ✓）：
     // `trailing_comment` 那一臂只往**文件末尾**追加注释（不移动任何命令的起点 ✓）⇒ 全部命令都可信任
     // ⇒ T2-B 之后入口趟从**末尾快照**续编 ⇒ `by` 从 **9 → 1** ✓（改前/改后都实测过 ✓）。
     // 判据用**结构计数**（`by` = by 引擎调用数 ✓，不是毫秒 ✓）；上界给到 3 是为了容忍
     // "最后一条被重走一遍"这类小抖动 ✓ —— 而**旧的 9 会当场判红** ✓ ⇒ 它咬得住回归 ✓。
+    //
+    // ⚠⚠ **2026-10-16 的 CI 假红（run `38828745723` · 实得 9）有两处独立成因，都已修**：
+    // ① **探针读错了刀**：`run_scenario` 原先在 `did_change` 一返回就读 `last_trace()`
+    //    ⇒ 读线程落后时会读到**上一刀**那一行 ✗（stderr/stdout 无顺序保证，见
+    //    `wait_for_trace_version`）——而本臂**相邻两刀的 `by` 恰好不同**（见 ②）⇒
+    //    读到上一刀就是 9 ✗。现在按 **`v<version>`** 令牌等到本刀那一行才读 ✓。
+    // ② **产品侧的尾快照没续上**（真 bug）：`walk.run` 的尾快照只取在
+    //    `flat.len() - 2` 那个边界上，而续编那一趟从 `cp.idx + 1` 起走 ⇒ 取不到新快照
+    //    ⇒ 调用方「搬走 ⇒ 存回新的」那条不变式断了 ⇒ **下一刀整条重走** ✗
+    //    ⇒ 本臂的 `by` 原本是 **9 · 1 · 9 · 1 · 9 · 1 · 9**（交替！）⇒ 判据读"最后一刀"
+    //    读到 1 还是 9 **取决于奇偶**（= 之前真跑了几趟入口 pass，环境相关）✗。
+    //    修在 `crates/front/src/compile/check/mod.rs`（续编那一趟把装回来的快照原样交回）✓
+    //    ⇒ 现在**每一刀都是 1** ✓（同夹具同序列实测：`9·1·9·1·9·1·9` → `1×7`）。
+    //    根因判据在 `crates/front/tests/t2b_entry_tail_renewal.rs`（连着两刀都必须 = 1）✓。
     assert!(
         trailing.by <= 3,
         "**T2-B 的跨进程证据** ✗：只追加尾部注释时 `by` 该 ≤3（T2-B 前是 9 ✗）—— \
