@@ -288,6 +288,33 @@ run "gates：横向阈值 ratchet（状态 + 接缝 + 开轮纪律）" "queue-li
 python3 scripts/check-threshold-ratchet.py --selftest || exit 1
 python3 scripts/check-threshold-ratchet.py || exit 1'
 
+# **咬住证明台账**（2026-10-16 · 洞 `GUARD-BITE-NOT-IN-LOCAL-GATE` ✓）：`scripts/check-guard-bite.py`
+# 此前**根本不在本脚本** ✗（实测 `grep -c` = **0**，而它的兄弟 `check-threshold-ratchet.py` = **2** ✓）
+# ⇒ 又一处「**本地判据集 ⊂ CI 判据集**」：判据的红**只能走到 CI 才被发现** ✗
+#（实测代价：一轮 CI = 33–35 分钟 ⇒ 本地白等一轮 ✗）。本步与 `ci.yml` 的 `queue-lint` job
+# 那两步**逐字同源** ✓（`--job` 缺省 = `queue-lint` ✓ ⇒ 本地与 CI 的覆盖面一致 ✓）。
+# ⚠ **ROOT 口径**（与上面两条队列步**同一个坑** ✗）：`check-queue-views.py` 那条证明的 `pass`
+# 就是 `python3 scripts/check-queue-views.py`，而它在**链接工作树**里 rc=1（`ux-queue.py --json`
+# rc=2：没设 `SOKO_QUEUE_ROOT` ⇒ **合法夹具假红** ✗ —— 实测未设 ROOT 时 `--check --all` rc=1 ✓）
+# ⇒ 照上面两步的写法覆盖成**主工作树**（`git worktree list` 第一行 ✓）。
+# ⚠ **耗时**（实测 `f878f88a` · 本机 · 已设 ROOT ✓）：`--selftest` **91.3s** · `--check --all` **70.0s**
+# ⇒ 本步 **+161s**：`--fast` 从 **26.8s → ~188s**（≈3.1 分钟 ✓）—— 换来的是"台账的红在**本地**被咬住" ✓
+#（对照：漏掉它的代价是**一轮 CI 33–35 分钟** ⇒ 仍然划算 ✓，但**如实登记这个数字** ✗ 不许含糊）。
+# ⭐ **替代方案量过了、不采纳** ✗：增量口径 `--since`（不带 `--all`）实测 **63.6s** ⇒ **只省 9%**
+#（成本是"**真跑**每条证明"、不是覆盖面 ⇒ 增量**不解决**耗时 ✗）⇒ 不值得为它放弃与 CI 同源 ✗。
+# ⚠ `--selftest` 的第一条正对照**就是** `check(..., run_all=True, job=<job>)`（`check-guard-bite.py:1384`）
+# ⇒ 它**已含** `--check --all`（91.3s 里 ~70s 是那一条 ✓）；两步都留着 = 与 CI 逐字同源 ✓
+#（只留第一步可省 ~70s，但那要**假设**"selftest 永远含 --all" —— 那个假设**没有守卫** ⇒ 不省 ✗）。
+run "gates：咬住证明台账（覆盖 + 逐条真跑 + 接线/可达性）" "queue-lint" bash -c '
+set -u
+root=$(git worktree list --porcelain | sed -n "1s/^worktree //p")
+if [ -n "$root" ]; then
+  export SOKO_QUEUE_ROOT="$root"
+  echo "  （队列单点 = $root ✓）"
+fi
+python3 scripts/check-guard-bite.py --selftest || exit 1
+python3 scripts/check-guard-bite.py --check --all || exit 1'
+
 # **编译缓存判据自检**（2026-10-15 · 同族的 `LEDGER-SHARD1-REMAINING-GUARDS` ✓）：
 # 它此前**只在 CI 跑** ✗（`scripts/soko` 的 gate 段跑的是 `status --quiet` —— 那是**预算
 # 判红**，**不是**判据通道自检 ✗）⇒ 又一处"本地判据集 ⊂ CI 判据集"（本文件上面那条
