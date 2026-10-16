@@ -37,6 +37,10 @@ use crate::compile::{run_pass_with, split_report, CompileOptions, PassTables, So
 use crate::display::DisplayNotations;
 
 mod artifacts;
+mod entry_tails;
+use entry_tails::{
+    entry_command_keys, no_entry_snapshot, no_lru_keep, EntryTail, ENTRY_TAILS, MAX_ENTRY_TAILS,
+};
 // **硬规则 5**：产物层（§8.3 闸门 + 键拆分 + 读写/装载）整块拆进 `session/artifacts.rs` ✓。
 // `shared_artifacts_enabled` 是公开 API ⇒ re-export（调用方路径不变 ✓）。
 pub use artifacts::shared_artifacts_enabled;
@@ -239,71 +243,6 @@ thread_local! {
 ///
 /// 淘汰只丢**可达性**（arena 早已泄漏、无法回收 ✓）⇒ 不变量：**活着的**检查点
 /// ≤ [`MAX_MODULE_CHECKPOINTS`] 份 ✓。
-/// **T2-B（2026-10-09）**：入口趟的**命令级检查点**（跨按键）。
-///
-/// 装的是"**最后一条命令之前**那个边界"的 walk 状态（`cp.idx = 命令数 − 2`）⇒
-/// 同入口**只有最后一条变了**时从它续编 ⇒ **只 elaborate 1 条命令** ✓。
-///
-/// ⚠ **报告侧累加器不进快照、也不装回**（`out`/`ops`/`cmd_hovers`/`decl_states`）：
-/// 前缀那一段的报告由**既有的 `EntryCache` 拼接**提供（计划 §3.3 的"复用判据沿用
-/// `EntryCache`"就是这个意思 ✓）—— 两边都算会让报告里**每条声明出现两次** ✗
-/// （实测过：整趟 13 条 vs 续编 22 条 ✓ 被守卫逮到）。快照只负责**环境侧** ✓。
-///
-/// ⚠ **有界的第一步**：只留**一个**边界（W = 1）；"改第 k 条 ⇒ N−k+1"要每个边界
-/// 一份（有界窗口 W）⇒ 设计档 §6.2(b) 的下一刀 ✓。
-pub(crate) struct EntryTail<'a> {
-    key: String,
-    entry: usize,
-    keys: Vec<String>,
-    cp: crate::compile::WalkCheckpoint<'a>,
-}
-
-/// **T2-B**：入口检查点的线程局部槽（同 `LIB_CHECKPOINTS` 的纪律 ✓）—— 寿命必须是
-/// `'static`（库层检查点的 arena 由 `Box::leak` 来 ✓）；按 `(库层键, 入口)` 去重 + 有界 ✓。
-/// ⭐ **T2-B 的逃生门**（2026-10-09）：`SOKO_NO_ENTRY_SNAPSHOT=1` ⇒ 入口趟**不续编**
-/// （回到 T2-B 之前的"整条重走"✓）。用途 = **同一份构建上的 A/B**（`STATUS.md` 的已知缺口 ✓）。
-/// 读一次就缓存（它在每次编辑的热路径上 ✓）。
-fn no_entry_snapshot() -> bool {
-    static OFF: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *OFF.get_or_init(|| std::env::var_os("SOKO_NO_ENTRY_SNAPSHOT").is_some())
-}
-
-/// ⭐ **`LEAKED-LIB-ARENAS-CLIFF` 的逃生门**（2026-10-16）：`SOKO_NO_LRU_KEEP=1` ⇒
-/// 回退路**把修前的策略原样装回来** —— ① `slots.clear()`（把 LRU 里那些**已经泄漏、
-/// 键仍然有效**的检查点一起抹掉 ✗）；② 轮换闸**不看**泄漏预算（上界 ① 用尽之后
-/// 依旧按 `MAX_REUSES_PER_CHECKPOINT` 停用那一份检查点 ✗）。
-///
-/// ## 为什么留它（与 `SOKO_NO_ENTRY_SNAPSHOT` 同一类）
-///
-/// ① **同一份构建上的 A/B**：这是一处**纯性能**改动（判定路径一个字节没动）⇒
-///    两臂必须在**同一份二进制、同一份夹具、同一操作序列**上量（`AGENTS.md` 判据
-///    纪律②：跨机墙钟不可转移 ✓）；② **咬住证明**（`docs/guard-bite.jsonl`）：
-///    它把"已存在的坏输入"（修前那条路）变成一条**可执行**的输入 ✓。
-///
-/// ⚠ **默认关 ⇒ 生产零影响** ✓；读一次就缓存（在每次编辑的热路径上 ✓）。
-fn no_lru_keep() -> bool {
-    static OFF: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *OFF.get_or_init(|| std::env::var_os("SOKO_NO_LRU_KEEP").is_some())
-}
-
-const MAX_ENTRY_TAILS: usize = 8;
-thread_local! {
-    static ENTRY_TAILS: RefCell<Vec<EntryTail<'static>>> = const { RefCell::new(Vec::new()) };
-}
-
-/// 入口的**命令原文**（判据形状：文本 + 顺序；与 `EntryCache.keys` 同一口径 ✓）。
-/// ⚠ **不用哈希**（计划 §3.3 的纪律）：结构相等才作数 —— 错键 = 静默错编 ✗。
-fn entry_command_keys(units: &[SourceUnit<'_>]) -> Vec<String> {
-    let mut out = Vec::new();
-    for unit in units {
-        for command in unit.file.commands.iter() {
-            let span = command.span();
-            out.push(unit.file.src[span.start.offset..span.end.offset].to_string());
-        }
-    }
-    out
-}
-
 fn push_checkpoint(slots: &mut Vec<LibCheckpoint<'static>>, cp: LibCheckpoint<'static>) {
     slots.retain(|old| old.key != cp.key);
     slots.insert(0, cp);
