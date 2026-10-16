@@ -92,10 +92,42 @@
 **守卫的枚举**（`guard_scripts()`）与**证明怎么跑**（`run_proof()`）**只有这一份** ✓；
 `scripts/check-attention-budget.py --open-round` **调本文件**、不另抄 ✗。
 
+### ⭐ 枚举 = **两条臂的并集**（洞 `GUARD-ENUMERATION-IS-NAME-BASED`，2026-10-16 ✗→✓）
+
+修前只有**一条名字臂**（`GUARD_GLOBS` 的 glob）⇒ **改个名就绕过 C1/C6** ✗
+（rec1 实测的活例子：U1 新增的 `scripts/release-metric.py` **不在** glob 里 ⇒ 两条判据
+都看不见它，而它**本来就带着**咬住证明与锚 ✓）。现在两条臂**取并集**：
+
+* **① 名字臂**（存量，**一个字没动** ✓）：`GUARD_GLOBS` 那五个 glob。
+* **② 接线臂**（新 ✓，**位置口径**）：凡被 **`scripts/ci-local.sh`** 或
+  **`.github/workflows/ci.yml`** 的 **step 真调用**过的 `scripts/*.py`
+  —— `run:` 正文才算命令（**注释不算** ✗，`ci.yml` 的注释里到处点名脚本）、
+  **只收仓里真存在的文件**（幽灵名字不算 ✓）。
+  ⇒ **改个名绕不过去**：接线还在，它就在口径里 ✓（"能绕过去"与"该绕过去"是两件事 ✓）。
+
+⚠ **不是放宽** ✗：并集 ⇒ **只加不减** —— 名字臂里那 6 个**没被接线**的守卫
+（`check-site.py` / `target-hygiene.py` / `check-json-identity.py` / `check-one-run.py` /
+`check-queue-rewrite-trigger.py` / `check-lean4-alignment.py`）**照样在口径里** ✓
+（接线臂**不替代**名字臂：一个守卫暂时没接进 gate 不等于它不是守卫 ✗）。
+
 * **C6 覆盖 / C7 有底 / C8 预算（2026-10-16，`SUB-break-the-guard-recursion` ①）**：
   登记表 `docs/guard-anchors.jsonl` 给**每一层**钉一个底 ——
-  * **C6 覆盖**：`guard_scripts()` 口径下的**每一个守卫**都要有一条 `kind: guard` 行
-    （新守卫没分类 ⇒ 判红 ✗；表里点名了不在口径里的守卫 ⇒ 也判红，防表自己腐烂 ✗）。
+  * **C6 覆盖**：`guard_scripts()` 口径下的**每一个**都要有**分类** ——
+    `kind: guard`（判据）**或** `kind: tool`（接线臂收进来的工具 / 渲染器，见 C9 ✓）
+    （新守卫没分类 ⇒ 判红 ✗；表里点名了不在口径里的 ⇒ 也判红，防表自己腐烂 ✗）。
+  * **C9 登记（`kind: tool`，随接线臂落地 ✓）**：`tool` + `why`（**必填**：
+    它为什么**不是**独立判据）+ `covered_by`（**可选**：独立覆盖它的 `kind: guard`；
+    **悬空 ⇒ 判红** ✗）。
+    ⚠ **为什么需要它**（如实划的口径 ✗）：接线臂收进来的 8 个里有 6 个是**工具**
+    （`plan.py` / `ux-queue.py` / `compile-cache.py` / `ci-push-range.py` /
+    `e2e-merge.py` / `e2e-summary.py`）
+    —— 把它们记成 `kind: guard` 会撞 **C8 的绝对上限**（B **21/21**，用户拍板
+    "判据不许增殖"+"不许抬上限"）⇒ 两条判据**冲突**时本文件选择**如实登记 + 印出缺口**
+    （没有独立覆盖的工具进 `ⓘ`、`--counts` 有 `coverless_tools` 计数），
+    **既不抬上限、也不放宽 C8** ✓。
+    ⚠ **边界（如实写，不是密封 ✗）**：一个**新判据**若把自己登记成 `tool`，它就绕开
+    C1/C6 —— 但那**至少要写一行登记 + 一个 `why`**，且没有独立覆盖会被**印出来**；
+    修前它连一行都不用写（**改名即隐身** ✗）⇒ 仍是**收紧**，但不是密封 ✗。
   * **C7 有底**：每条守卫行必须指回一条 **A 类锚（`kind: anchor` = 用户现场）** ⇒
     `anchors` 里的每个 id 都必须在表里存在、且锚行必须写出 `site`/`action`/`reading` ✓。
     ⚠ **底是结构性的**：`anchors` **只许**填 anchor id ⇒ **B 不能指向 B**（递归到不了守卫层 ✓）。
@@ -153,11 +185,22 @@ JOB_ALL = "all"
 _JOB_KEY_RE = re.compile(r"^  ([A-Za-z0-9_-]+):(\s|$)")
 
 # ── **守卫的枚举**（唯一一处 ✓）──────────────────────────────────────────────
-# 口径 = `scripts/` 下**判红用的**脚本（`check-*` / `*-lint.py` / 两本台账 / 审计）。
+# 口径 = **两条臂的并集**（并集 ⇒ **只加不减** ✓；洞 `GUARD-ENUMERATION-IS-NAME-BASED`）：
+#   ① **名字臂**（存量，2026-10-16 之前唯一的一条）= `scripts/` 下**判红用的**脚本
+#      （`check-*` / `*-lint.py` / 两本台账 / 审计）；
+#   ② **接线臂**（新 ✓，**位置口径**）= 被 `WIRING_FILES` 的 **step 真调用**过的
+#      `scripts/*.py` ⇒ **改个名绕不过去** ✓（接线还在，它就在口径里）。
 # ⚠ 加了一类新命名 ⇒ 只改这里一处（`check-attention-budget.py` 通过 CLI 复用 ✓）。
 GUARD_GLOBS = ("scripts/check-*.py", "scripts/*-lint.py",
                "scripts/gap.py", "scripts/target-hygiene.py",
                "scripts/audit-*.py")
+# 接线臂的两份接线（**唯一一处** ✓）：本地 gate（"第一次测试永远是这条脚本"）+ CI。
+# ⚠ `ci.yml` 走 **`run:` 正文**（注释/step 名里点名脚本**不算**调用 ✗ —— 实测：注释里
+#   点名 `perf-compare.py` / `threshold_ratchet.py`，扫全文会把没人调用的文件算进来 ✗）；
+#   `ci-local.sh` 是 shell（非注释行**就是**命令）⇒ 走 `_non_comment_lines()` ✓。
+WIRING_FILES = ("scripts/ci-local.sh", ".github/workflows/ci.yml")
+_SCRIPT_PATH_RE = re.compile(r"scripts/[A-Za-z0-9_./\-]+\.py")
+_RUN_KEY_RE = re.compile(r"^(\s*)(?:-\s*)?run:\s*(.*)$")
 # 证明的超时（秒）：证明里可能起子进程 ⇒ 挂住会把门禁一起挂住（`gap.py` 的教训 ✓）
 PROOF_TIMEOUT_S = 300
 
@@ -168,18 +211,81 @@ PROOF_TIMEOUT_S = 300
 REV_TOKEN_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
 
 
+def _non_comment_lines(text: str) -> str:
+    """去掉整行注释（`#` 开头）—— 注释里点名脚本**不算调用** ✗（**唯一一处** ✓）。"""
+    return "\n".join(ln for ln in text.splitlines() if not ln.strip().startswith("#"))
+
+
+def run_bodies(text: str) -> str:
+    """`ci.yml` 里**每个 `run:` 的正文**（行内 + `|`/`>` 块）。**唯一一处** ✓。
+
+    ⚠ 为什么要挑出 `run:` 而不是扫全文（**实测** ✗）：`ci.yml` 的**注释**里到处点名
+    `scripts/*.py`（`perf-compare.py` / `threshold_ratchet.py` 只在注释里出现 ⇒ 扫全文
+    会把**没人调用**的文件算进口径 ✗）。step 名同理（`name:` 不是命令 ✓）。
+    """
+    out: list[str] = []
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        m = _RUN_KEY_RE.match(lines[i])
+        if not m:
+            i += 1
+            continue
+        indent = lines[i].index("run:")
+        rest = m.group(2).strip()
+        i += 1
+        if rest and not rest.startswith(("|", ">")):
+            out.append(rest)                     # 行内命令：`run: python3 scripts/x.py`
+            continue
+        while i < len(lines):                    # 块：收比 `run:` 缩进更深的行 ✓
+            ln = lines[i]
+            if ln.strip() == "":
+                out.append("")
+                i += 1
+                continue
+            if len(ln) - len(ln.lstrip()) <= indent:
+                break
+            out.append(ln)
+            i += 1
+    return "\n".join(out)
+
+
+def wired_scripts(root: Path = ROOT) -> list[str]:
+    """**接线臂**：被 gate / CI 的 step **真调用**过的 `scripts/*.py`（**唯一一处** ✓）。
+
+    ⚠ **只收仓里真存在的文件**（`(root / tok).is_file()`）⇒ 接线里点了一个**幽灵名字**
+    （历史残留 / 别的工作树）**不会**被算成守卫 ✓（"别把真的不存在的文件也算进去" ✓）。
+    """
+    found: set[str] = set()
+    for rel in WIRING_FILES:
+        p = root / rel
+        if not p.is_file():
+            continue
+        text = p.read_text(encoding="utf-8", errors="replace")
+        body = run_bodies(text) if rel.endswith(".yml") else text
+        for tok in _SCRIPT_PATH_RE.findall(_non_comment_lines(body)):
+            if (root / tok).is_file():
+                found.add(tok)
+    return sorted(found)
+
+
 def guard_scripts(root: Path = ROOT) -> list[str]:
-    """**全部守卫**（仓库相对路径，排序）。**唯一一处** ✓。"""
+    """**全部守卫**（仓库相对路径，排序）。**唯一一处** ✓ —— **两条臂的并集** ✓。"""
     found: set[str] = set()
     for pattern in GUARD_GLOBS:
         for path in root.glob(pattern):
             if path.is_file():
                 found.add(path.relative_to(root).as_posix())
+    found.update(wired_scripts(root))
     return sorted(found)
 
 
-def is_guard(path: str) -> bool:
-    return any(fnmatch.fnmatch(path, g) for g in GUARD_GLOBS)
+def is_guard(path: str, wired: set[str]) -> bool:
+    """`path` 算不算守卫 —— **与 `guard_scripts()` 逐字同口径**（名字臂 ∪ 接线臂 ✓）。
+
+    `wired` = 预先算好的接线臂（`changed_guards` 逐条问它 ⇒ 别每条都重扫接线 ✗）。
+    """
+    return any(fnmatch.fnmatch(path, g) for g in GUARD_GLOBS) or path in wired
 
 
 def entry_job(e: dict) -> str:
@@ -343,14 +449,19 @@ def _git(root: Path, argv: list[str]) -> tuple[str, str | None]:
 
 
 def changed_guards(root: Path, since: str | None) -> tuple[list[str], str | None]:
-    """`since..HEAD` 里**新增/修改**的守卫（`--diff-filter=AMR` ⇒ 只算加/改/改名 ✓）。"""
+    """`since..HEAD` 里**新增/修改**的守卫（`--diff-filter=AMR` ⇒ 只算加/改/改名 ✓）。
+
+    ⚠ **改名的形状**：`git diff` 报的是**新路径** ⇒ 它必须在**接线臂**里（改名后接线
+    也改了 ⇒ 还在 ✓）或名字臂里 ⇒ **改名绕不过去** ✓（洞 `GUARD-ENUMERATION-IS-NAME-BASED`）。
+    """
     if not since:
         return [], None
     out, err = _git(root, ["diff", "--name-only", "--diff-filter=AMR",
                            f"{since}..HEAD"])
     if err:
         return [], err
-    return sorted({p for p in out.split() if is_guard(p)}), None
+    wired = set(wired_scripts(root))
+    return sorted({p for p in out.split() if is_guard(p, wired)}), None
 
 
 def shallow_hint(root: Path) -> str:
@@ -413,8 +524,11 @@ def load_ledger(path: Path) -> tuple[list[dict], str, str | None]:
     return entries, coverage_since, None
 
 
-# ── **锚登记表**（C6 覆盖 / C7 有底 / C8 预算；唯一一处 ✓）─────────────────────
-ANCHOR_KINDS = ("anchor", "guard", "caps")
+# ── **锚登记表**（C6 覆盖 / C7 有底 / C8 预算 / C9 工具登记；唯一一处 ✓）────────
+# `tool`（2026-10-16，随**接线臂**落地 ✓）：接线臂收进来但**不是独立判据**的文件
+# （工具 / 渲染器 / 自检模式）⇒ 记 `tool` + `why`（必填）+ `covered_by`（可选，悬空判红 ✗）。
+# ⚠ **为什么不记成 `guard`**：那会撞 C8 的**绝对上限**（B 21/21）⇒ 见 docstring 的 C9 ✓。
+ANCHOR_KINDS = ("anchor", "guard", "caps", "tool")
 
 
 def load_anchors(path: Path) -> tuple[list[dict], str | None]:
@@ -439,6 +553,14 @@ def load_anchors(path: Path) -> tuple[list[dict], str | None]:
         if kind not in ANCHOR_KINDS:
             return [], (f"{path}:{lineno} 的 `kind` 只能是 {' / '.join(ANCHOR_KINDS)}"
                         f"（给的是 {kind!r}）")
+        if kind == "tool":
+            # ⚠ **必填两项**（C9 ✓）：没有 `why` 的 tool 行 = 一句"我不是判据"的免死金牌 ✗
+            if not str(row.get("tool", "")).strip():
+                return [], (f"{path}:{lineno} 的 `kind: tool` 行必须写 `tool`"
+                            f"（仓库相对路径 ✓）")
+            if not str(row.get("why", "")).strip():
+                return [], (f"{path}:{lineno} 的 `kind: tool` 行必须写 `why`"
+                            f"（**它为什么不是独立判据** —— 说不出来就不许登记成 tool ✗）")
         rows.append(row)
     return rows, None
 
@@ -453,19 +575,36 @@ def anchor_problems(root: Path, rows: list[dict]) -> tuple[list[str], list[str],
     info: list[str] = []
     scope = guard_scripts(root)
     guards = {r["guard"]: r for r in rows if r.get("kind") == "guard"}
+    tools = {r["tool"]: r for r in rows if r.get("kind") == "tool"}
     anchors = {r["id"]: r for r in rows if r.get("kind") == "anchor"}
     caps_row = next((r for r in rows if r.get("kind") == "caps"), None)
 
-    # ── C6 覆盖：口径里的每一个守卫都要有分类行；表里也不许点名口径外的守卫 ──
+    # ── C6 覆盖：口径里的每一个都要有**分类**（`guard` 或 `tool` ✓）；
+    #    表里也不许点名口径外的（防表自己腐烂 ✗）────────────────────────────
     for g in scope:
-        if g not in guards:
-            red.append(f"**C6 覆盖** ✗：`{g}` **没有分类**（登记表里没有它的 `kind: guard` 行）"
-                       f" ⇒ 它保护的**用户现场**说不出来 ⇒ 这一层**没有底** ✗"
-                       f"（在 `{ANCHORS.name}` 补一行：`guard` / `class` A|B / `anchors` ✓）")
-    for g in guards:
+        if g not in guards and g not in tools:
+            red.append(f"**C6 覆盖** ✗：`{g}` **没有分类**（登记表里既没有它的 "
+                       f"`kind: guard` 行、也没有 `kind: tool` 行）⇒ 它保护的**用户现场**"
+                       f"说不出来 ⇒ 这一层**没有底** ✗（在 `{ANCHORS.name}` 补一行："
+                       f"`guard` / `class` A|B / `anchors` ✓；**若它不是独立判据** ⇒ "
+                       f"`tool` / `why` / `covered_by` ✓）")
+    for g in sorted(set(guards) | set(tools)):
         if g not in scope:
             red.append(f"**C6 表腐烂** ✗：登记表点名了 `{g}`，但它**不在** `guard_scripts()` "
-                       f"口径里（文件没了 / 改了名）⇒ 表与仓库两头漂移 ✗")
+                       f"口径里（文件没了 / 改了名 / 不在 gate·CI 的接线里）⇒ 表与仓库两头漂移 ✗")
+
+    # ── C9 工具登记（`kind: tool`）：`why` 在 `load_anchors` 里必填 ✓；
+    #    `covered_by` 点名一条**独立覆盖它的守卫** ⇒ 悬空 ⇒ 判红 ✗ ────────────
+    coverless: list[str] = []
+    for t, row in sorted(tools.items()):
+        cb = str(row.get("covered_by") or "").strip()
+        if not cb:
+            coverless.append(t)
+            continue
+        if cb not in guards:
+            red.append(f"**C9 悬空覆盖** ✗：`{t}` 的 `covered_by` 点名 `{cb}`，但登记表里"
+                       f"**没有它的 `kind: guard` 行** ⇒ 它声称的独立覆盖**不存在** "
+                       f"（悬空 ⇒ 这条 `tool` 行**没底** ✗）")
 
     # ── C7 有底：每条守卫行必须指回一条**存在且写全**的 A 类锚（用户现场）──
     for g, row in sorted(guards.items()):
@@ -543,7 +682,13 @@ def anchor_problems(root: Path, rows: list[dict]) -> tuple[list[str], list[str],
                     f"{len(weak)}/{len(b_list)} 条：{' · '.join(weak)}")
     if unmeasured:
         info.append(f"ⓘ **没人量的锚**（是缺口，不是红）：{' · '.join(unmeasured)}")
-    counts = {"a": len(a_list), "b": len(b_list), "total": len(guards),
+    if coverless:
+        info.append(f"ⓘ **没有独立覆盖的工具**（`kind: tool` 里没写 `covered_by` 的 —— "
+                    f"是缺口，不是红：它们**不是判据**，但也没有第二条独立判据看着它）："
+                    f"{' · '.join(coverless)}")
+    counts = {"a": len(a_list), "b": len(b_list), "total": len(scope),
+              "guards": len(guards),
+              "tools": len(tools), "coverless_tools": coverless,
               "anchors": len(anchors), "cap": cap, "floor": floor,
               "weak_b": len(weak), "unmeasured_anchors": unmeasured,
               "b_guards": b_list, "a_guards": a_list}
@@ -665,8 +810,9 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
         red.extend(a_red)
         if not quiet:
             if not a_red:
-                print(f"  ✓ C6 覆盖：口径里 {a_counts['total']} 个守卫**每一个**都有分类"
-                      f"（A {a_counts['a']} · B {a_counts['b']}）")
+                print(f"  ✓ C6 覆盖：口径里 {a_counts['total']} 个**每一个**都有分类"
+                      f"（`guard` A {a_counts['a']} · B {a_counts['b']} · "
+                      f"`tool` {a_counts['tools']}）")
                 print(f"  ✓ C7 有底：每条都指回一条**用户现场**锚（{a_counts['anchors']} 条锚）"
                       f" —— B 只许指向锚 ⇒ **B 不能指向 B**，递归到底 ✓")
                 print(f"  ✓ C8 预算：B **{a_counts['b']} ≤ {a_counts['cap']}**（每轮 −2，目标 "
@@ -804,6 +950,14 @@ def list_coverage(root: Path, ledger_path: Path, anchors_path: Path | None = Non
         print(f"  · job `{j}`：{n} 条" + ("（默认，`--all` 就跑这批 ✓）"
                                           if j == DEFAULT_JOB else "（`--job %s` ✓）" % j))
     rest = [g for g in allg if g not in covered]
+    # ⭐ **枚举面**（洞 `GUARD-ENUMERATION-IS-NAME-BASED`）：两条臂各收了谁 ⇒ 评审可见 ✓
+    wired = wired_scripts(root)
+    named = [g for g in allg if any(fnmatch.fnmatch(g, p) for p in GUARD_GLOBS)]
+    print(f"\n口径 = **两条臂的并集**（{len(allg)} 个）：名字臂 {len(named)} · "
+          f"**接线臂 {len(wired)}**（`ci-local.sh` / `ci.yml` 的 step 真调用 ✓ —— "
+          f"**改名绕不过去** ✓）")
+    for g in wired:
+        print(f"    · {g}" + ("" if g in named else "  ← **只靠接线臂进来的** ✓"))
     print(f"\n⚠ **grandfathered**（基线之前就存在、**不在强制面内** ✗ —— "
           f"如实划的口径，不是豁免 ✓）：{len(rest)} 个")
     for g in rest:
@@ -823,6 +977,13 @@ def list_coverage(root: Path, ledger_path: Path, anchors_path: Path | None = Non
         for g in names:
             r = by.get(g) or {}
             print(f"    {g} → {' · '.join(r.get('anchors') or []) or '（**没底** ✗）'}")
+    trows = {r["tool"]: r for r in arows if r.get("kind") == "tool"}
+    if trows:
+        print(f"  【tool】接线臂里的**工具 / 渲染器**（不是独立判据 ⇒ 记 `tool` ✓，"
+              f"C9：`why` 必填 · `covered_by` 悬空判红 ✗）")
+        for t in sorted(trows):
+            cb = str(trows[t].get("covered_by") or "").strip()
+            print(f"    {t} → 独立覆盖：{cb or '（**没有** ⇒ ⓘ 缺口，不是红 ✓）'}")
     for m in a_info:
         print(f"  {m}")
     return 0
@@ -912,6 +1073,69 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         red_miss, _i, _c = anchor_problems(ROOT, [r for r in real_rows if r.get("kind") != "guard"])
         gate("反向⑬：**有守卫没分类**（C6）⇒ 判红（新守卫没分类不许进仓库）",
              any("C6 覆盖" in m for m in red_miss), f"红 {len(red_miss)} 条")
+
+        # ⭐⭐ **接线臂**（洞 `GUARD-ENUMERATION-IS-NAME-BASED`，2026-10-16 ✗→✓）：
+        #   判据 = **位置口径**（gate / CI 的 step 真调用）⇒ **改个名仍被 C1/C6 看到** ✓。
+        #   ⚠ 这一组臂**必须**打在"名字臂**抓不到**"的那个文件上（否则它证明不了新那一半 ✗）。
+        def _wire_root() -> Path:
+            """夹具：一个**改了名**的守卫（`scripts/renamed-guard.py`，**不在** glob 里）被
+            `scripts/ci-local.sh` 的 step **真调用**；外加两个**幽灵名字**（接线里有、文件
+            不在 / 只在注释里）⇒ **不许**算进口径 ✗。"""
+            r = ta / "wire"
+            (r / "scripts").mkdir(parents=True, exist_ok=True)
+            (r / "scripts" / "renamed-guard.py").write_text("# 夹具：改了名的守卫\n", encoding="utf-8")
+            (r / "scripts" / "check-fixture-a0.py").write_text("# 夹具：名字臂守卫\n", encoding="utf-8")
+            (r / "scripts" / "ci-local.sh").write_text(
+                'run "夹具" "gates" python3 scripts/renamed-guard.py\n'
+                '# 注释里点名**不算调用** ✗：python3 scripts/ghost-in-comment.py\n'
+                'run "夹具2" "gates" python3 scripts/ghost-missing.py\n', encoding="utf-8")
+            return r
+
+        wroot = _wire_root()
+        wscope = guard_scripts(wroot)
+        gate("⭐⭐ 正对照：**接线臂**（位置口径）—— 一个**改了名**的守卫"
+             "（`scripts/renamed-guard.py`：**名字臂抓不到** ✓）被 gate 真调用 ⇒ **在口径里** ✓",
+             "scripts/renamed-guard.py" in wscope
+             and not is_guard("scripts/renamed-guard.py", set()),
+             f"口径 {len(wscope)} 个：{' · '.join(wscope)}")
+        gate("⭐⭐ 正对照：接线里的**幽灵名字不进**口径（文件不在 ✗ / 只在注释里 ✗）",
+             "scripts/ghost-missing.py" not in wscope and "scripts/ghost-in-comment.py" not in wscope,
+             f"口径 {len(wscope)} 个")
+
+        def _wire_rows(tool_row: dict | None) -> list[dict]:
+            rows = [{"kind": "caps", "round": 0, "caps": {"b_class_guards": 0},
+                     "floor": {"b_class_guards": 0},
+                     "history": [{"round": 0, "caps": {"b_class_guards": 0},
+                                  "reading": {"b_class_guards": 0}, "why": "夹具：B 预算 0"}]},
+                    {"kind": "anchor", "id": "A-FIXTURE", "strength": "direct",
+                     "site": "夹具：真 VS Code", "action": "打开文件", "reading": "夹具读数"},
+                    {"kind": "guard", "guard": "scripts/check-fixture-a0.py", "class": "A",
+                     "anchors": ["A-FIXTURE"], "why": "夹具：名字臂守卫"}]
+            return rows + ([tool_row] if tool_row else [])
+
+        # ⚠ **可归属**：名字臂那个文件**有**分类行 ⇒ 唯一的红只可能来自**改了名的那一个** ✓
+        red_wire, _i, _c = anchor_problems(wroot, _wire_rows(None))
+        gate("⭐⭐ 反向⑯：**改了名的守卫没有分类** ⇒ 判红（C6 覆盖 —— 修前它对名字臂**隐身** ✗）",
+             any("C6 覆盖" in m and "renamed-guard" in m for m in red_wire),
+             f"红 {len(red_wire)} 条 · 例：{red_wire[0][:90] if red_wire else '（无红）'}")
+        red_ok, _i, _c = anchor_problems(wroot, _wire_rows(
+            {"kind": "tool", "tool": "scripts/renamed-guard.py",
+             "why": "夹具：它是工具、不是独立判据", "covered_by": "scripts/check-fixture-a0.py"}))
+        gate("⭐⭐ 正对照：同一个夹具登记成 `tool`（+ 独立覆盖）⇒ **不判红** ✓（C9 的正当用法）",
+             not red_ok, f"红 {len(red_ok)} 条")
+        red_dang2, _i, _c = anchor_problems(wroot, _wire_rows(
+            {"kind": "tool", "tool": "scripts/renamed-guard.py",
+             "why": "夹具：故意指一条不存在的独立覆盖", "covered_by": "scripts/no-such-guard.py"}))
+        gate("⭐⭐ 反向⑰：`tool` 的 `covered_by` **悬空** ⇒ 判红（C9 悬空覆盖 ⇒ 这条 tool 行没底 ✗）",
+             any("C9 悬空覆盖" in m for m in red_dang2), f"红 {len(red_dang2)} 条")
+        red_cl, info_cl, c_cl = anchor_problems(wroot, _wire_rows(
+            {"kind": "tool", "tool": "scripts/renamed-guard.py",
+             "why": "夹具：没有独立覆盖（缺口）"}))
+        gate("⭐⭐ 正对照：`tool` **没有独立覆盖** ⇒ 不判红、但**进 `ⓘ` 且 `--counts` 有计数** ✓"
+             "（缺口**可见**，不是静默放行 ✗）",
+             (not red_cl) and any("没有独立覆盖的工具" in m for m in info_cl)
+             and c_cl["coverless_tools"] == ["scripts/renamed-guard.py"],
+             f"红 {len(red_cl)} · info {len(info_cl)} · coverless {c_cl['coverless_tools']}")
 
         # ⭐⭐ 反向⑨ = **两头的那一头**：**A 类增长 ⇒ 不判红** ✓
         #   A 类**不进任何上限**（用户【①】：锚定型无限预算）⇒ 这不是"我们选择不判"，
@@ -1123,7 +1347,8 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         gate("⭐ 正对照：历史最差点被咬住", False, "台账里没有 check-attention-budget 那一行 ✗")
 
     print(f"\n自检：{'✓ 全过' if bad == 0 else f'✗ {bad} 组不对'}"
-          f"（正对照 7 + 反向 15 + 真跑台账；含**锚的两头**：B 超上限 ⇒ 判红 · A 增长 ⇒ 不判红 ✓）")
+          f"（正对照 11 + 反向 17 + 真跑台账；含**锚的两头**：B 超上限 ⇒ 判红 · A 增长 ⇒ 不判红 ✓"
+          f" · **枚举面**：改了名的守卫仍在口径里 ✓ · 幽灵名字不进 ✓ · `tool` 悬空覆盖 ⇒ 判红 ✓）")
     return 0 if bad == 0 else 1
 
 

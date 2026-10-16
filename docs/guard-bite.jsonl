@@ -6,7 +6,11 @@
 # **已存在的坏输入**（历史 bug / 用户的 case）上的命令，**必须报非 0** ✓。
 #
 # 一行一条 JSON（`#` 开头是注释，照 `docs/ux-queue-extras.jsonl` 的先例 ✓）：
-#   guard        —— 仓库相对路径（枚举口径 = `scripts/check-guard-bite.py` 的 `GUARD_GLOBS`）
+#   guard        —— 仓库相对路径（枚举口径 = `scripts/check-guard-bite.py` 的
+#                   `guard_scripts()` = **名字臂 ∪ 接线臂**：名字 glob ∪ 被
+#                   `scripts/ci-local.sh` / `.github/workflows/ci.yml` 的 step **真调用**过的
+#                   `scripts/*.py` ⇒ **改个名也绕不过去** ✓ —— 洞
+#                   `GUARD-ENUMERATION-IS-NAME-BASED`，2026-10-16 ✗→✓）
 #   bug          —— **那条已存在的坏输入是什么**（必填；写"我新造的"✗ 不算 ✓）
 #   pass         —— {"cmd", "expect_rc"}：守卫自己该绿的那条（通常是 `--selftest`）
 #   bite         —— {"cmd", "expect_rc"}：**在那条坏输入上必须报非 0** ✓
