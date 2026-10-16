@@ -180,15 +180,21 @@ const MAX_MODULE_CHECKPOINTS: usize = 32;
 static LEAKED_LIB_ARENAS: AtomicUsize = AtomicUsize::new(0);
 
 /// **诊断读数（2026-10-09）**：**上一趟"库层从哪来"** —— 0 = 没走会话 ·
-/// 1 = 线程局部检查点（①）· 2 = **磁盘产物**（①.5）· 3 = 前缀续编（②）· 4 = 整条重建（③）。
+/// 1 = 线程局部检查点（①）· 2 = **磁盘产物**（①.5 / ②.5）· 3 = 前缀续编（②）· 4 = 整条重建（③）·
+/// 5 = **回退路**（③ 的 `else` 支：栈上 arena、不建检查点）。
 ///
 /// **为什么要有它**：`crates/lsp` 的 `LSP_TRACE compile …` 行**只报结构计数**
 /// （`modules`/`by`/`prefix` ✓）⇒ 从读数**反推不出**是哪条路服务的 ✗
 /// （第 50 轮我就是拿"stderr 里没有我打的 trace"下了**错**结论 ✗ ⇒ §41 的撤回 ✓）。
 /// 有了这条，探针**只读既有 trace 行**就能回答"走没走到产物那条" ✓。
+///
+/// ⚠ **5 = `fallback` 是 2026-10-16 补的**（`ARENA-BUDGET-SHARED-BY-TWO-DRIVERS`）：
+/// 修前回退路**不写**这个 static ⇒ 它跑完读数停在上一次的值（实测新键冷开走回退路、
+/// 读数却是 `"lru"` ✗）—— 上界 ① 用尽之后回退路是常态 ⇒ 不补就读不出"走的哪条" ✗。
 static LAST_LIB_SOURCE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
 
-/// 见 [`LAST_LIB_SOURCE`]：`"lru"` / `"artifact"` / `"prefix"` / `"rebuilt"` / `"none"`。
+/// 见 [`LAST_LIB_SOURCE`]：`"lru"` / `"artifact"` / `"prefix"` / `"rebuilt"` /
+/// `"fallback"` / `"none"`。
 #[doc(hidden)]
 pub fn last_lib_source() -> &'static str {
     match LAST_LIB_SOURCE.load(Ordering::Relaxed) {
@@ -196,6 +202,7 @@ pub fn last_lib_source() -> &'static str {
         2 => "artifact",
         3 => "prefix",
         4 => "rebuilt",
+        5 => "fallback",
         _ => "none",
     }
 }
@@ -715,6 +722,52 @@ fn with_project_session_reusing_at<R>(
                 on_entry,
             );
         }
+        // ②.5 ⭐ **零泄漏的产物层**（`ARENA-BUDGET-SHARED-BY-TWO-DRIVERS` 的修 · 2026-10-16）：
+        //     上界 ① 用尽之后（`can_leak == false`）**产物层照旧可用** —— 只是装在
+        //     **栈上** arena 里、只服务本次调用（**不泄漏、不进 LRU、不建尾快照** ✓）。
+        //
+        //     ## 为什么它是一条**独立**的台阶（而不是把 ①.5 的闸门摘掉）
+        //
+        //     ①.5 装出来的检查点能**进 LRU**（下一刀直接命中 ① ✓）⇒ 它值得排在 ② 前面 ✓；
+        //     ②.5 **什么都留不下**（栈上 arena，调用结束即释放）⇒ 不该抢在"能把前缀检查点
+        //     喂回 LRU"的 ② 前面 ✗。⇒ 位置**故意不同**：①.5 在 ② 之前，②.5 在 ② 之后 ✓。
+        //
+        //     ## 为什么是"改后"而不是"修前"
+        //
+        //     修前这一格是**跳过**的（`if can_leak` 把整块 ①.5 包住）⇒ 上界用尽之后
+        //     **新键**每一刀都整条重走库层（实测 `closure_module_compiles_total` = 2 =
+        //     库层 + 入口 ✗，≈ 695ms/刀量级的白付）。产物是**跨进程**加速件、装载它
+        //     **零泄漏**（[`load_lib_checkpoint_in`] 收调用方的 arena ✓）⇒ 没有任何理由
+        //     把它一起停掉 ✗。
+        //
+        //     ⚠ **代价如实记**：栈上 arena 装不出 `'static` ⇒ `tails` 只能 `None`
+        //     ⇒ 入口趟**整条重走**（`elaborated_commands_total` = 入口命令数 N）。
+        //     这是上界 ① 的诚实代价里**剩下那一半**（另一半"库层趟"由本台阶消掉 ✓）；
+        //     要连它也消掉得让入口尾快照的 arena 可回收 ⇒ 内核改动（见队列条目的设计）。
+        if !can_leak {
+            if let Some(root) = artifacts_root {
+                let arena = stumpalo::Arena::new();
+                // ⚠ **不许写成 `read(..).and_then(|text| load_in(arena.as_arena_ref(), ..))`**：
+                // 闭包把 `arena` 的借用关在闭包体里 ⇒ `LibCheckpoint<'a>` 的 `'a` 出不来
+                // （实测 `error[E0597]: arena does not live long enough` ✗）⇒ 嵌套 `if let` ✓。
+                if let Some(text) = read_lib_artifact(root, &artifact_key, options) {
+                    if let Some(lib) =
+                        load_lib_checkpoint_in(arena.as_arena_ref(), &text, &key, lib_units)
+                    {
+                        set_last_lib_source(2); // ①.5 磁盘产物（**零泄漏**那一支）
+                        return run_entries(
+                            &lib,
+                            lib_units,
+                            entries,
+                            options,
+                            entry_trust,
+                            None,
+                            on_entry,
+                        );
+                    }
+                }
+            }
+        }
         // ③ **重建**：库层趟跑在一份**泄漏的** arena 上（`Box::leak` = 零 `unsafe`
         //    的 `'static` 来源 ✓）。库层为空（单文件）或泄漏上界用尽（上界 ①）
         //    ⇒ 不建检查点，走栈上 arena（= 今天那条路，逐字节相同）✓。
@@ -811,9 +864,24 @@ fn with_project_session_reusing_at<R>(
             if legacy {
                 slots.clear();
             }
+            // ⭐ **诊断补一格**（2026-10-16 · `ARENA-BUDGET-SHARED-BY-TWO-DRIVERS`）：
+            // 修前这条回退路**不写** [`LAST_LIB_SOURCE`] ⇒ 它跑完之后读数还停在上一次的
+            // 值（实测：新键冷开走回退路，读数却是 `"lru"` ✗ —— 上一次库层趟留下的）。
+            // 上界用尽之后回退路是**常态**，而"读数必须可归属"是硬纪律（`AGENTS.md`
+            // 「探针读数必须带构建身份 / 读数必须可归属」）⇒ 补 `5 = "fallback"` ✓。
+            set_last_lib_source(5); // ③ 回退路（栈上 arena，不建检查点）
             let arena = stumpalo::Arena::new();
             let builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
             let lib = run_library_pass(builder, PassTables::new(), lib_units, options, key);
+            // ⭐ **`ARENA-BUDGET-SHARED-BY-TWO-DRIVERS` 的修（2026-10-16）**：回退路
+            // **照旧把产物写出去** ✓ —— 写产物**零泄漏**（它只是把 `lib` 编码成字节 ✗
+            // 不碰 arena 的寿命），而写出去之后**下一刀**就能被 ②.5 接住 ⇒ 库层趟
+            // 不必再跑 ✓。修前这里不写 ⇒ 上界用尽之后的**新键**永远没有产物可命中
+            // （实测：`<模块根>/.sokonanoda/artifacts/` 条目数 = **0** ✗）⇒ 每一刀
+            // 都是"库层 + 入口"两趟，且**本进程内再也填不回来** ✗。
+            if let Some(root) = artifacts_root {
+                write_lib_artifact(root, &artifact_key, &lib, lib_units, options);
+            }
             run_entries(
                 &lib,
                 lib_units,
