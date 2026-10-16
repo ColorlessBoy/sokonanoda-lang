@@ -1,3 +1,6 @@
+## 2026-10-16 · **`editor` job 红 = 浅克隆里历史判据量不出来 ⇒ `exit 3`**（洞 `EDITOR-JOB-BITE-STEP-EXIT-3`）｜真因：`editor` 的 `actions/checkout@v5` **没写 `with: fetch-depth: 0`** ⇒ 真日志里明写 **`fetch-depth: 1`** ✓ ⇒ 第 11 步「咬住证明」的 **C1 覆盖面**要算 `git diff --name-only --diff-filter=AMR cf259d1f..HEAD`（基线写在 `docs/guard-bite.jsonl` 抬头的 `# coverage_since:`）⇒ 那个对象**不在**浅克隆里 ⇒ `git` **rc=128** ⇒ 判据自己 `return 3`（**环境不在 ⇒ 不假装判过**；调用点 `scripts/check-guard-bite.py:179`、`return 3` 在 `:284`，`:281-283` 补「历史深度不够」的人话）⇒ **job 红，而红的是"环境不在"、不是"咬不住"** ✗（读数不可归属 ✗）。真日志（`gh run view --job 116705553134 --log` · run `38817419732` · job `editor`）逐字两行：`error: `git diff --name-only --diff-filter=AMR cf259d1f..HEAD` rc=128：fatal: ambiguous argument 'cf259d1f..HEAD': unknown revision or path not in the working tree.` + `##[error]Process completed with exit code 3.` ⚠ **如实纠一处**：`f0a71c1b` 的 commit message 把这枚 `return 3` 记成 `scripts/check-guard-bite.py:250` —— 当场核（`git show f0a71c1b:…` 与 HEAD **逐字节相同**）后是 **`:284`**（`:250` 是 `run_proof` 的超时分支 ✗）⇒ 以本条为准 ✓。｜⭐ **同 run A/B（单变量）**：`queue-lint`（job `116705482302`，**它有 `fetch-depth: 0`** ✓）跑同一条命令 **success**，`editor`（浅）**failure** —— 唯一差别就是历史深度 ✓；同 run 两步 checkout 实测 **2.01s（editor · depth=1）vs 5.57s（queue-lint · depth=0）**，Δ≈**3.6s**（我自己从两份日志的时间戳算的，与 commit 记的 2.03→5.59 一致 ✓）⇒ 相对 `timeout-minutes: 40` 是噪声级 ✓。⚠ 日志里那四样**全在**（VS Code 缓存命中 ✓ · `npm ci` ✓ · `xvfb-run` ✓ · `stage-lsp.js --profile debug` ✓）⇒ **不是**缓存/依赖/显示环境问题 ✓。｜修 ✓（`f0a71c1b`）：`editor` 补 `with: fetch-depth: 0`（`.github/workflows/ci.yml:1290`）—— **C1/C2 判据一个字没改** ✓（补的是**前提** ✗）；并按硬规则 0(b) **横向成类守卫** `scripts/check-history-depth-wiring.py`（**R1 接线**：job 真跑了声明的历史判据 ⇒ 它的 checkout 必须有 `fetch-depth: 0` · **R2 表不腐烂** · **R3 空转闸**：判到 0 对 ⇒ 判红 ✗），接进 `queue-lint`（该 job 自己有全历史 ✓；放 `wiring-lint` 会以"环境不在"判红 ✗ —— 正是本守卫要拦的那种红 ✓）｜预防 ⭐：**凡判据要 `merge-base`/`rev-list`/`patch-id`/`git diff <旧 rev>..HEAD` 的 job，一律显式 `fetch-depth: 0`** ✗ —— 浅克隆里 git 的失败码是 **128**，而「只看 `rc==0`」会把「**量不出来**」读成「**判红**」（同族**第三次**，前两次都是**手加那一个 job**：`queue-lint`（`.github/workflows/ci.yml:382` 记 270 条假红）· `ledger (1)`（本文件 2026-10-15 那条：144 条）· 本条 `editor` ⇒ **现在有 R1 机械判据** ✓）
+## 2026-10-16 · **`queue-lint` step 8 红 = ratchet 的基点 sha 在 CI 里量不到**（洞 `THRESHOLD-RATCHET-STALE-BASE-SHA`）｜真日志（run `38809264081` · job `queue-lint` `116678040008` · step 8「横向阈值 ratchet」**failure**、step 9 被 **skipped**）：`阈值 ratchet：第 **0** 轮（基点 `2de19e7298c0` · 之后 None 笔）` + `✗ 阈值 ratchet：**1 条红** ✗` / `- 量不到基点 `2de19e7298c0` 之后的提交数（浅克隆 / sha 不在历史上）⇒ **不假装判过** ✗`（同形第二次：run `38798938528` · job `116643287079` · step 8 同一条红 ✓）｜⭐ **真因（当场核实，与当时那笔的自述不同 ✗）**：**不是浅克隆** —— 该 job 从 `36be6650` 起就有 `fetch-depth: 0` ✓（`git show 3f184f21:.github/workflows/ci.yml` 的 `queue-lint` 段实测在 ✓）；真因是 `docs/threshold-ratchet.json` 第 0 轮记的 `head: 2de19e7298c0` 是一枚**本地 rebase 前的 sha**：`git rev-list --all` 里**没有它**、`git merge-base --is-ancestor 2de19e7298c0 origin/main` **rc=1** ⇒ CI 的全历史克隆里**根本没有这个对象** ⇒ `git rev-list --count <sha>..HEAD` rc≠0 ⇒ `commits_since()` 返回 `None` ⇒ 判红（`scripts/check-threshold-ratchet.py:116-123` + `:135-138`）—— 脚本那句"浅克隆 / sha 不在历史上"把**两种因写进同一个括号**，读日志的人会照前半句去查历史深度 ✗（我这次差点照抄 ✗）⇒ 已在本条点名，供下一棒分辨 ✓。⭐ **而它一直是红的结构性原因**：`round` 停在 **0** ⇒ `tighten()` 从不跑 ⇒ 7 个上限**从不收紧**（ratchet 变成装饰 ✗）⇒ 那枚陈旧 `head` 也永远没人刷新 ✗；而"开轮纪律"本该抓这个，却在 `n_since is None` 时被**跳过**了 ⇒ **空转闸被同一条红遮住** ✗（`judge_idle` 只在量得到笔数时调用 ✓）。｜修 ✓（`14a7948a`）：**开第 0 → 1 轮** ⇒ `head` 刷新成 `3f184f21`（推上去的、`is-ancestor` rc=0 的真祖先 ✓）+ 7 个上限各收紧一档（`docs_live_bytes` 10.00 → **9.50 MB** · `docs_archive_bytes` 2.50 → **2.25 MB** · `status_total_lines` 240 → **230 行** · `site_text_bytes` 120.0 → **108.0 KB** · `site_hero_bytes` 400 → **360 KB** · `target_incremental_warn_bytes` 20.00 → **18.00 GiB** · `target_incremental_max_bytes` 60.00 → **54.00 GiB**）—— **判据一个字没松** ✓；读数（本机当场跑）：`python3 scripts/check-threshold-ratchet.py` **rc=0**（第 **1** 轮 · 基点之后 **31** 笔 · 接缝 7/7 消费点 + 1/1 标签 · **没空转** ✓）｜预防 ⭐：**ratchet 的基点必须是"推上去的"提交**（本地 rebase 前的 sha 一律不许当基点 ✗ —— 同族：`LAND-REBASE-STALES-CLOSURE-SHAS` 与本文件 2026-10-15 那条"收口指针记的是 rebase 前的 sha"）⇒ **开轮顺带刷新基点**是修法本身 ✓；且"量不到"要**分别点名**两种因（浅克隆 vs sha 不在历史上），别让读者照错的那半句去修 ✗
+## 2026-10-16 · **`queue-lint` step 9 红 = 咬住证明"一条命令扫全部"，而其中 4 条要的环境本 job 没有**（洞 `GUARD-BITE-NO-JOB-DISPATCH`）｜真日志（run `38809596366` · job `queue-lint` `116679915640` · step 9「咬住证明」**failure** · exit 1）：`✗ 咬住证明 **4 条红**：` —— **3 ×** `editor/vscode/src/test/extension.test.js` 的 `pass` **rc=3**（`error: editor/vscode/node_modules 不在 ⇒ 跑不了真 VS Code（先 (cd editor/vscode && npm install)）`）+ **1 ×** `scripts/check-queue-rewrite-trigger.py` 的 `pass` **rc=1**（`✗ 自检判红 2/11 条：①d 回填**已提交**… 90b654f fixture: pointer · ⑤b`）⇒ `--selftest` rc=1 ⇒ `bash -e` ⇒ 第二条 `--check --all` **一次都没跑** ✗。⚠ **如实纠两条口径**（当时交接说明里那两条是**误读** ✗）：真红**不是**"3 个守卫没有咬住证明"、**也不是** `bite.expect_rc = 0` —— 日志里那几行 `C1 覆盖 ✗` / `bite.expect_rc = 0` / `bite rc=0` 是 `--selftest` **故意**造的反向臂（打在 `empty.jsonl` / 合成台账上），**本来就该红** ✓（证明自检能抓 ✗）；**真台账**实测 `bite.expect_rc` **全部非 0**、C1 覆盖 **10/10 齐** ✓ ⇒ 真红只有上面那 **4 条 C2** ✓。｜真因（两类，各自都有**已存在的坏输入**）：**① 夹具在 CI 形状下没有身份** —— `scripts/check-queue-rewrite-trigger.py:235` 的那次提交**没有身份**（夹具里别的提交都自带 `-c user.name` ✓，**被考的那一次是触发器自己打的** —— `clean_git_env()` 的口径 = 身份应当来自仓库配置 ✓），而 runner 上没有 `user.name`/`user.email`（`actions/checkout` 只配 `safe.directory`）且 git 自动探测不到 ⇒ **提交失败** ⇒ 回填只进工作区、**没进 HEAD** ⇒ 臂 ①d/⑤b 判红（**本地绿、CI 红** ✗；同族先例：`ux-queue.py::_fixture_commit` 的 `SELFTEST-FIXTURE-FAILS-IN-CI`）；**② 证明写在了它跑不了的 job 上** —— 第三层 3 条 + 桥 1 条要 `Rust + editor/vscode/node_modules + 真 VS Code`，而 `queue-lint` 是 `timeout-minutes: 5`、**不装 node_modules、没有 VS Code** ⇒ "一条命令扫全部"在 CI 上**必然假红**，红的是"环境不在"、**不是**"咬不住" ✗（读数不可归属 ✗）。｜修 ✓（`16c63d47` 分派 + `f8f572af` 夹具身份）：台账加 **`ci_job`** 字段**分派**（缺省 `queue-lint`）+ **C4 接线闸**（每个 `ci_job` 必须在 `ci.yml` 里**真的存在**、且**真的有一跑它**（job 文本里有 `--job <名字>`）⇒ 把证明标到不存在的 job = **判红** —— 藏起来 = 空转 ✗）+ **对称空转闸**（`--job <台账里没人声明的名字>` ⇒ 0 条 ⇒ 判红 ✗）；`queue-lint` step 9 两条命令都显式 `--job queue-lint`（`.github/workflows/ci.yml:377-378`）；`editor` job 补一步 `xvfb-run -a python3 scripts/check-guard-bite.py --check --all --job editor`（`.github/workflows/ci.yml:1350`；该 job 本来就建 debug LSP/CLI + `npm ci` ✓）。⚠ **这不是放宽** ✗：判据 C1/C2 一个字没改，改的是"**在哪跑**"；读数：`--check --all --job queue-lint` **rc=0** ✓、反向（把 `ci_job` 从台账去掉再跑 `--job editor`）⇒ `本 job 0 条` ⇒ **rc=1**（`**C2 空转** ✗`）⇒ 分派是**承重**的 ✓。｜预防 ⭐：**"一条命令扫全部"的门禁必须声明"每条证明在哪个 job 里跑"**，并**机械核对**那个 job **真的存在且真的跑它** ✗ —— 否则"分派"就成了藏东西的地方（空转 ✗）；且证明要的环境必须在它被分派到的 job 里**真的具备**（否则红的是环境、不是守卫 ✗ —— 同族：本条 ① 与 2026-10-15 的 `ledger (1)`、`editor` 那条一样，都是「**量不出来**被读成**判红**」✗）
 ## 2026-10-15 · **`queue-lint` 红 = 收口指针记的是 rebase **前**的 sha，而那个对象只活在**本地分支**上**（**真红，不是假红**：那枚指针在 main 上确实解析不到）｜真因：`2a4da282` 把 `SUB-eqsubst-ROOTCAUSE-correction` / `SUB-eqsubst-clue-order-clash` 的收口指针记成 `5df79db1` —— z1 **rebase 前**的 sha，只在**本地**分支 `agent/z1` 上（`git ls-remote --heads origin` 里没有它 ✗）；main 上真落的是它的**孪生** `449bcf9d`（同 subject · 同 `git patch-id --stable` = `e18f5c387c64` · `is-ancestor` rc=0 ✓）⇒ CI 只看**推上去的对象** ⇒ `5df79db1` 不在 ⇒ `is-ancestor` **rc=128**（不是 1）⇒ 判非祖先；而本地那枚对象**在**（`refs/heads/agent/z1`）⇒ 同一份账**本地绿 / CI 红** ✗。⚠ 另有一层**遮蔽**：main 工作区里那 2 条 `repoint`（13:53:35 写的）**一直没提交** ⇒ 本地 `--check` 读的是**工作区**（已回填 ⇒ rc=0），而 push 送的是 **commit**（未回填 ⇒ 红）✗ —— `scripts/soko gate --fast` 跑的也是同一条 `--check`（`scripts/soko` 的 `queueCheck`）⇒ **推前那一次是绿的** ✗。⚠ **失败步是 run 块的第二条 `--check`，不是 `--selftest`**（同一 CI 形状下 `--selftest` **rc=0 · FAIL 0 · 14 行 ✗ 全是故意的反例臂**，输出与本机**逐字相同** ✓）｜修 ✓：**只回填账**（把那 2 条 `repoint` 提交掉，`557777ab`）—— **判据一个字没松**（`closure_pointer_problem()` / 祖先性断言 / `--check` 全未改；账只追加 ⇒ 不动 git 历史、不改旧事件）｜读数：CI 形状（`git clone --single-branch --branch main`）改前 **rc=1 · ✗ 6 行**（与 CI 日志**逐字相同** ✓）⇒ 改后 **rc=0 · ✗ 0 行**；全分支克隆（对象**在**、账未回填）⇒ 仍 **rc=1 · ✗ 4 行** ⇒ **「把对象推上去」不是修法** ✓；正对照（main 工作区）rc=0；`--selftest` 在 CI 形状 / `env -i` / 换 `TMPDIR` / Python 3.12 四种形状下**全 rc=0 且逐字相同** ✓；反向验证：撤回填 ⇒ rc=1 点名那两条、再造一条两层漂移（来源 `fix` + 调度器 `done`）⇒ rc=1 点名 ✓（跑完还原 · 残留 0）｜预防 ⭐：**①「对象在不在」与「是不是祖先」是两条判据**（`rc=128` vs `rc=1`）—— 只修前者会留下后者 ✗；**②rebase/land 之后必须把 `--repoint` 的回填一起提交**（它是账的一部分，不是本地动作 ✗）；**③本地 gate 读工作区、push 送 commit** ⇒ 账脏时「本地绿」不预言「CI 绿」（本仓 `gate --fast` 含 `--check` ⇒ 这条缝对所有 agent 生效 ✗）
 ## 2026-10-15 · **`ledger (1)` 连续 20 轮红 = 浅克隆把真祖先判成非祖先**（假红 144 条 ✗）｜真因：`ledger` job 的 `actions/checkout@v5` **没写 `with: fetch-depth: 0`** ⇒ 默认 `depth=1` ⇒ 收口指针祖先性判据（`ux-queue.py` 的 `commit_is_ancestor` = `git merge-base --is-ancestor <sha> HEAD`）**连对象都不在** ⇒ git 返回 **rc=128**（`fatal: Not a valid commit name`，**不是 1** ✗）而判据只看 `rc==0` ⇒ **真祖先整批被判成非祖先** ✗（实测 run `38675647735` 的 `ledger (1)`：现行指针非祖先 **144 条** + **同因**的指针审计 **97 条** = 不变量 **241 条红**；同一份账在**全历史**下 `--check` **rc=0** ✓；shards 2/3 恒绿 —— `ux-queue.py --check` 只在 shard 1 跑 ✓）｜修 ✓：加 `with: fetch-depth: 0`（照同文件 `e2e-ledger` 的先例 —— 它早为 rebase 的 parent 对象这么写过 ✓）⇒ 浅克隆形状下 **144 → 0**、rc **1 → 0** ✓（`--unshallow` 只改历史深度、判据一字未动 ⇒ 单变量对照 ✓）；代价 **+3–5s**（实测同仓同镜像：depth=1 的 checkout **1–2s**、`e2e-ledger` 的 `fetch-depth: 0` **5–7s**；该 job 非 Post 步合计 **222s** ⇒ ~2% ✓）｜**判据一个字没松** ✓：反向验证（造一个**对象真在、`is-ancestor` rc=1** 的提交）⇒ 写侧 `--advance` 硬拒 + **零写入**、读侧手写事件 ⇒ `--check` rc=1 且点名 ✓｜预防 ⭐：凡判据要 `merge-base`/`rev-list`/`patch-id` 的 job 一律**显式** `fetch-depth: 0` —— **浅克隆里 `is-ancestor` 的失败码是 128 而非 1** ✗ ⇒ 「只看 `rc==0`」会把「**量不出来**」读成「**判红**」（同族第二次：上次 `SELFTEST-FIXTURE-FAILS-IN-CI` 修夹具、这次修真账 ✓）
 ## 2026-10-15 · **发版 `0.91.0` 发不出去** = 纯 docs 推送把「还没被任何一轮验过的祖先」从 CI 视野里藏掉｜真因：`dorny/paths-filter` 在 push 上按**本次推送自己的范围**（`github.event.before..sha`，`src/main.ts:144,168-196`）算 ⇒ 三个标志全 false ⇒ `test`/`gates-fast`/`ledger`/`contract`/`e2e`/`gates-course` 全 **skipped**（实测 run `38663715016`：19 个 job 只跑 7 个）⇒ `auto-tag` 被 **skipped 依赖**拖成 skipped（skip 沿依赖链传播，机制见 `ci.yml` 的 `e2e-ledger` 注释）⇒ **tag 从不产生**（远端最新仍 `v0.90.0`）；而发版那一轮 run `38662022022` 自己红在 `ledger (1)`（G-25）且被 cancel ⇒ **发版改动从未被验过** ✗｜修 ✓：`changes` 的基点改成**上一个已验证点**（`scripts/ci-push-range.py`：`mark-verified` 只在"重活真跑过且全绿"时写 `actions/cache` 标记 → 最近 tag → 根提交，每步朝**更保守**退；分类仍只有 `ci.yml` 的 `filters:` 一份 ✓）+ **对账守卫**（脚本读数 vs paths-filter 读数，**危险方向判红** ✗）+ 判据进 `wiring-lint` 与 `ci-local.sh` ⓪｜预防 ⭐：同族**第四次**（`scripts/**` → `.github/workflows/**` → `docs/gaps/**` → **push 范围**）⇒ 凡「按改动范围决定跑不跑」的判据都要问一句「**范围是从哪算的？它会不会把没验过的东西藏掉？**」，并把范围算法抽成**可单测的脚本**（`--selftest` 含**正对照**：连续两次纯 docs ⇒ 仍不跑重活 ✓；含**负对照**：旧口径下同一推送 rust=false ⇒ 洞复现 ✓）
@@ -244,60 +247,6 @@ macos runner 慢 ⇒ 树还没答 ⇒ `answer` 为 `undefined` ⇒ TypeError ✓
 而 matrix 里一个 job 早挂了、整轮还在 `in_progress` ⇒ 白等几分钟 ✗。
 **改成 60–90s 逐 job 看** ✓：`gh run view <id> --json jobs | jq -r '.jobs[] | "\(.conclusion // .status)\t\(.name)"'` ✓。
 
-## 判据
-本机行为**不变** ✓（本地本来就解析仓库构建 ✓）；**CI 侧由下一轮确认** ✓
-—— 这是**必须推**的那类改动 ✓（本地绿 ≠ CI 绿 ✓ 本 session 已证 ✓）。
-
-## 2026-09-25 · **用户指出：整轮的 `in_progress` 掩盖了已发生的失败** ✗（round 182 修 ✓）
-**用户原话** ✓："ledger **立马就失败**了，但是**整个 github action 还在继续**，
-导致**你不知道已经失败了**" ✓ —— 完全成立 ✓，而且我在旁边反复撞这堵墙 ✗：
-* 实测 ✓（`#36151088821` ✓）：整轮 `in_progress` ✗，而 `ledger (3)` **15:09:04 就红了** ✗
-  （`test/*` · `gates` 还在跑 ✓，要十几分钟 ✓）⇒ **失败信号被拖住了** ✗；
-* **为什么我读不到细节** ✗：`gh run view --job <id> --log` 在**整轮结束前**回
-  `run … is still in progress` ✓ ⇒ **日志拿不到** ✗（本 session 为此刻苦了半小时 ✓）。
-
-### 两处修 ✓
-1. **`scripts/gap.py` 写 `$GITHUB_STEP_SUMMARY`** ✓ —— 每片无论红绿都写一行结论 ✓
-   （红时给出"本地复跑这一片"的命令 ✓）⇒ **页面上**一眼可见 ✓、**不必等整轮** ✓。
-2. **`scripts/ci-watch.sh`** ✓ —— **按 job 看，不看整轮** ✓：
-   `gh run view <id> --json jobs` ✓ ⇒ 逐 job 打印结论 ✓，**只要最新一轮有 job 红就 `exit 1`** ✓。
-   **实测** ✓：对用户指的那轮 ⇒ "失败 job 数 = **3**" ⇒ **它会立刻判红** ✓✓。
-3. **清队列** ✓：取消 3 个**排队中**的 run（`#36151294668` ✓ `#36151088821` ✓ `#36150927359` ✓），
-   保留最新一轮 ✓（含 `ledger` 修复 ✓）。
-
-### 教训（对"我"的 ✓）
-**监控要盯最细的可判单元** ✗：整轮状态是**聚合量** ✓，聚合会把"已经确定的失败"
-**稀释**成"还在跑" ✗。**这一条与判据设计同源** ✓：**别用聚合信号判断局部状态** ✗。
-
-## ✅ **注解链路打通**（round 199 ✓）—— `ledger (2)` 的**真凶已指名** ✓（2026-10-13 压缩存档）
-
-**结论**：`G-23` 的复现件在 CI 上撞了 **Node 自己的定时器超时**（栈含 `listOnTimeout`/`processTimers`
-= **Node 内部**，**不是**我们的 `SOKO_GAP_REPRO_TIMEOUT`）⇒ 退出码 2 ⇒ `judge` 判「环境异常」
-⇒ 与台账的 `fixed` 不一致 ⇒ 整片红 ✗。**与 round 126 同族但不同路**：那次修的是**我们自己的超时**，
-这条走的是**复现件内部的 Node 超时** ⇒ 两条路都要覆盖 ✓。
-**修法**：① 给复现件**加长 Node 侧超时**；② 把「`exit 2` + 栈含 `listOnTimeout`/`processTimers`」
-也**分档为环境异常**（响亮跳过 + `--strict` 才判红）—— **必须配本地兜底判据**，否则会掩盖真回归 ✗。
-**判据**（原文保留）：
-```bash
-SOKO_LSP_REPLY_TIMEOUT_MS=1 bash docs/gaps/repro/G23-notation-navigation.sh   # ⇒ exit 2 + Node 栈 ✓
-SOKO_LSP_REPLY_TIMEOUT_MS=1 python3 scripts/gap.py check --shard 2/3           # 期望 0（A+B 都上之后 ✓）
-SOKO_LSP_REPLY_TIMEOUT_MS=1 python3 scripts/gap.py check --shard 2/3 --strict  # 期望 1 ✓
-```
-**顺带确认**：`ledger (1)` 与 `ledger (3)` 都转绿 ✓；`gates-fast` **2 分 09 秒** ✓（原 3 分钟+）。
-
-## 2026-09-25 · `0.72.0` 发版连续红三次 —— **三条教训**（2026-10-13 压缩存档，教训一条不删）
-
-### ① **bump 其实是五处** ✗ ——「两处」是脚本替你写全之后的**表象**
-`Cargo.toml` · **`Cargo.lock`** · `editor/vscode/package.json` · **两个 `sokonanoda.toml` 的 `requires`**。
-**症状**：只改 `Cargo.toml` ⇒ `gates-fast` 红在 `cargo build --locked`（**锁文件还记着旧版本** ✗）；
-下一红又是同一类 ⇒ `bump.py --check` 报**版本漂移**（两个 `sokonanoda.toml` 的 `requires` 没跟上）。
-**规程** ✓：**bump 一律 `python3 scripts/bump.py <x.y.z>`** ⇒ **然后 `--check` 复检** ✓
-（手改两处 = 必然漏三处 ✗）。
-
-### ② **修 CI 时**：每改一处就推 ⇒ `cancel-in-progress` **帮你省时间** ✓（掐掉旧轮 ✓）
-### ③ **发版窗口里** ✗：**每一推都掐掉唯一那轮 `rust == true` 的运行** ⇒ **推一次就停手** ✓
-—— 等它跑完（**别再推，哪怕发现小错** ✗；小错留到下一批 ✓）。
-
 ## 2026-09-25 · 发版被两条**从来就红**的腿挡住 —— 而它们红了约 100 轮 ✗
 
 **症状** ✓：`0.72.0` 的 bump 推上去后，`test` 矩阵里**三条腿红** ✗：
@@ -342,33 +291,6 @@ cargo test -p sokonanoda-front --doc --locked    # 失败输出第一行就写�
 （`gh run list --limit 5` ✓）⇒ **取消注定失败的那个** ✓ ⇒ **别再推** ✗
 （**推解决不了排队** ✗ —— 它只会再加一个排队的 ✓）。
 
-## 2026-09-25 · 整轮 **success 却什么都没跑** —— `paths-filter` 看的是"**这一推的 diff**" ✗
-
-**症状** ✓：`0.72.0` 的发版推之后，整轮 **`success`** ✓ 而**只有 3 个 job** ✗
-（`changes` + `lint-fmt` + `lint-clippy` ✓）⇒ **重活与 `auto-tag` 全 `skipped`** ✗ ⇒ **没发版** ✓。
-**日志原文** ✓（`changes` job ✓）：
-```
-Run dorny/paths-filter@v4
-  **Matching files: none** ✗
-  **Changes output set to []** ✗
-```
-**根因** ✓：**`paths-filter` 只比"这一推的 `before..after`"** ✓ ——
-**不是"仓库里有什么"** ✗、**也不是"前几推带了什么"** ✗。
-⇒ 我那次推的 diff **只有 `STATUS.md`** ✓（**rust 改动在**上一推**里** ✗）⇒ **过滤器报"无 rust"是对的** ✓。
-
-**⇒ 规程（这是"发版推"的硬条件 ✓）**：**发版那一推必须自带过滤器认的路径** ✓：
-```
-crates/** · Cargo.toml · Cargo.lock · scripts/** · .github/workflows/**   ← rust ✓
-editor/** ← editor ✓    courses/** · playground.sokonanoda ← courses ✓
-```
-⇒ **而"改 `.github/workflows/**` 也算 rust"** ✓ 是一条**很有用**的性质 ✓：
-**修 CI 的推会自动触发重活** ✓ ⇒ **不用为了触发而造改动** ✓（**真实待办自己就是触发器** ✓）。
-
-**⚠ 而一个"看起来很像"的错误结论** ✗：我一度推断是 **`git pull --rebase` 让 `before` 不可达** ✗
-⇒ **错了** ✓（**快进推也一样** ✓）⇒ **真因是 diff 内容** ✓。
-**⇒ 教训** ✓：**"这推带了什么"和"仓库里有什么"是两个问题** ✗ ——
-**判据要问对**：`git diff --name-only origin/main...HEAD` ✓（**这一推的 diff** ✓）。
-
 ## 2026-09-25 · **`test` 提速：`nextest` 决策 = 不做** ✓（数字在此，不必再议 ✓）
 
 **症状**：`test` 是全轮最长的杆 ⇒ 直觉是换 `cargo nextest` 做测试级并行。
@@ -399,68 +321,6 @@ editor/** ← editor ✓    courses/** · playground.sokonanoda ← courses ✓
 后台作业）⇒ **本条只留指针** ✓（原文 ⇒ `git log --all -- docs/CI-FAILURES.md` ✓）。
 **判据** ✓：**等 CI 期间模型调用次数 = 0 或 1，而不是 N** ✓（反面教材：`STATUS.md` round 450–461
 **12 轮全是"不变"** ✗ ⇒ 本可 0 轮 ✓）。
-
-## 2026-09-26 · **整个 workflow 被 GitHub 拒绝：同一 step 里两个 `run:` 键** ✗
-
-**症状** ✓：推上去的那一轮 CI **`completed/failure`、`jobs=0`、耗时 `0s`** ✗
-—— **不是测试红，是 workflow 文件没通过校验** ✓。
-
-**根因** ✓（**我的错** ✗）：我给 `ci.yml` 加"STATUS.md 瘦身 lint"那一步时，
-把新的 `run:` **写进了上一个 step 的映射里** ✗ ⇒ 同一个 step 出现**两个 `run:` 键** ✗：
-```yaml
-      - name: 课程记法规则
-        shell: bash
-        run: python3 "$GITHUB_WORKSPACE/scripts/notation-lint.py"
-        run: python3 "$GITHUB_WORKSPACE/scripts/status-lint.py"   # ← 同一个 step ✗
-```
-
-**为什么我没发现** ✓✓（**这条最贵** ✗）：我用 `python3 -c "yaml.safe_load(...)"` 验过 ✗ ——
-**而 `yaml.safe_load` 对重复键不报错** ✗，**它静默取最后一个** ✗
-⇒ 我甚至打印出"`status-lint` 出现 1 次 ✓" ✗ —— **那正是它把 `notation-lint` 顶掉了** ✗✓。
-
-**⇒ 两个后果，第二个更糟** ✗：
-1. GitHub 拒绝整个 workflow ⇒ 0 job、0 秒失败 ✗（**响亮** ✓，所以发现了 ✓）；
-2. **如果 GitHub 接受它，`notation-lint` 会被悄悄关掉** ✗ ——
-   **一条既有的课程门禁消失** ✗，而**本地看起来全绿** ✗✓。
-
-**修复** ✓：拆成**独立的 step**（各自的 `- name:` ✓）。
-
-**⇒ 新增守卫** ✓：**`scripts/ci-yml-lint.py`** ✓ —— 用**禁止重复键的严格 loader** ✓
-（`yaml.safe_load` 不够用 ✗），并检查每个 job 有 steps、每步有 `run` 或 `uses` ✓。
-已接进 **`scripts/ci-local.sh` 的 ⓪ 号阶段**（**最前面** ✓ —— 它是唯一能在 push 前拦住的地方 ✓）
-与 **`ci.yml`** ✓。
-
-**反向验证** ✓（**咬得住** ✓）：把重复键塞回去 ⇒
-`ci-yml-lint：1 条不通过 ✗ - :518:9 YAML 不合法 ✗：重复键 \`run\`` ✓（**带精确位置** ✓）。
-
-**预防** ✓：**改 workflow 之后，验证命令只能是 `python3 scripts/ci-yml-lint.py`** ✓ ——
-**不要再用 `yaml.safe_load` 当门** ✗（**它连重复键都不报** ✗）。
-
-## 2026-09-26 · **`status-lint` 挂在过滤过的 job 里 ⇒ 只改 `STATUS.md` 时它根本不跑** ✗
-
-**症状** ✓：我把 `status-lint.py` 接进 `gates-fast` ✗ ⇒ 而 `gates-fast` 由 **`rust` 过滤器**驱动 ✓
-⇒ **只改 `STATUS.md` 的推送不碰 rust 路径** ✗ ⇒ **`gates-fast` 被 `skipped`** ✗
-⇒ **lint 永远不跑** ✗（**实测** ✓：`675491b` 只改 `docs/` + `STATUS.md` ⇒
-那一轮 **15 个 job 里只有 3 个绿、其余全 `skipped`** ✓，含 `gates-fast` ✓）。
-
-**⇒ 为什么这条最讽刺** ✗✓：**"只改 `STATUS.md`"恰恰是最常发生的情况** ✓
-—— 每轮收尾都要改它 ✓ ⇒ **我加的那条守卫，在最需要它的场景下不跑** ✗
-（**"咬不住的守卫等于没有"** ✓ 的又一个变体：**"不跑的守卫等于没有"** ✗）。
-
-**修复** ✓：**独立的 `status-lint` job** ✓，**不设 `if:`、不加过滤器** ✓ ——
-它只要 **~1 秒** ✓，所以**永远跑** ✓（**顺带避开"skipped 的依赖会拖垮 `auto-tag`"** ✗，
-见 `changes` job 的注释 ✓）。同时**从 `gates-fast` 里撤掉那一步** ✓（**避免两处重复** ✓）。
-
-**⇒ 顺带暴露的第二条** ✓：**`675491b` 那一轮 `success` 是"什么都没跑"的 success** ✗
-（**3/15 绿、其余 skipped** ✓）—— 与 2026-09-25 记的那条**同一个形态** ✓：
-**`paths-filter` 看的是"这一推的 before..after"** ✗，**不是仓库里有什么** ✗。
-
-**⇒ 第三条（我自己又犯的）** ✗：**在 run 在飞的时候又推了一次** ✗
-⇒ 顶层 `concurrency: cancel-in-progress: true` **把上一轮掐了** ✗
-（`36207207425` ⇒ **`cancelled`** ✓，**6/27 绿** ✓）⇒ ⇒
-**于是"验证 ci.yml 修复"的那一轮永远没跑完** ✗ ——
-**要验证 `.github/**` 的改动，就得让那一推带 `.github/**` 路径** ✓，
-**而且推完要等它跑完再推下一次** ✓。
 
 ## 2026-09-26 · **新 e2e 测试污染全局缓存 ⇒ 撞红一条既有测试**（只在 CI 复现 ✗）
 
@@ -497,42 +357,6 @@ AssertionError: 内容没变 ⇒ 不许写出新的缓存条目（说明闭包�
 `cacheStamp()` 把**全局缓存**算进指纹 ✓ ⇒ **任何新建文件的测试都会动它** ✗
 ⇒ **优先复用夹具** ✓；确实必须新建时，**要在测试末尾等它落盘** ✓
 （或把新文件放进工作区，让它成为闭包的一部分 ✓）。
-
-## 2026-09-26 · **改 `editor/**` 永远不会跑真宿主 e2e：skipped 的依赖把它拖走了** ✗
-
-**症状** ✓：`afceda9`（只改 `editor/vscode/src/test/extension.test.js` + docs）那一轮
-**`success`** ✓，但 **5/16 绿、11 skipped** ✗ —— **三条 e2e 全 skipped** ✗
-（而 `editor` job **success** ✓）。⇒ ⇒ **"success" 是"什么都没验"的 success** ✗。
-
-**根因** ✓：`e2e` 的条件**本来是对的** ✓：
-```yaml
-    if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.editor == 'true'
-```
-**但它还写着** ✗：`needs: [changes, lint-fmt, lint-clippy, gates-fast]`
-—— 而 **`gates-fast` 的条件是 `rust == 'true'`** ✗ ⇒ **editor-only 推送时它 `skipped`** ✗
-⇒ ⇒ **skipped 的依赖把 `e2e` 也拖成 `skipped`** ✗✓（**仓库里记过的那个坑，这次撞在自己身上** ✗）。
-
-**⇒ 这是一个真洞** ✗：**改 `editor/vscode/**` 时，真宿主 e2e 一次都不跑** ✗ ——
-而 `if:` 里写着 `|| editor == 'true'` ✓ ⇒ **本意是要跑的** ✓，**是 `needs` 列表把它废掉了** ✗。
-
-**修复** ✓（**两条 e2e 一起** ✓）：**`!cancelled()` + 逐条"依赖没失败"** ✓
-```yaml
-    if: >-
-      !cancelled()
-      && (needs.changes.outputs.rust == 'true' || needs.changes.outputs.editor == 'true')
-      && needs.lint-fmt.result != 'failure'
-      && needs.lint-clippy.result != 'failure'
-      && needs.gates-fast.result != 'failure'
-```
-⇒ **保留原意** ✓（**便宜门禁红了就别跑贵的** ✓），**同时让 skipped 的依赖不再阻塞** ✓。
-
-**⚠ 过程中守卫又咬了一次** ✓：我第一次改用的锚点是那行 `if:` 本身 ✗ ——
-而**它和 `editor` job 的那行一字不差** ✗ ⇒ **`assert count == 1` 拦住了** ✓
-（**否则会误改 `editor`** ✗）⇒ **改成带 `name:` 的锚点** ✓。
-⇒ **这就是"锚点必须先验唯一性"的价值** ✓（**`AGENTS.md` 里那条** ✓）。
-
-**预防** ✓：**新增/修改 `needs` 时，先问"它会不会在本次路径下被 skip"** ✗ ——
-**skipped 的依赖会让下游静默消失** ✗，而**整轮还报 `success`** ✗。
 
 ## 2026-09-28 · **`gates-course` 顶到 20 分钟上限**（课程涨到 375 checked ✗✓）
 
@@ -747,3 +571,5 @@ CLI 层实测 40 条声明的夹具：管道 **2.48s** vs `NO_TICK` **2.48s**（
 **预防**：新增 tactic 的"文档数"检查清单 = **六处**：`tactics.rs` 表 · `tactic_docs.rs`
 手写清单 · `semantic::KEYWORDS` · TM 语法 · `release.yml` 的 `DOCS` · **e2e 的
 `staged.length`**（最后这条只有真宿主看得见）。⇒ 以后加 tactic，**先把这六处一次改齐**，再跑一次 `SOKO_E2E_GREP` 点名的单用例（14 秒 ✓）—— 比等一轮 30 分钟的 CI 便宜得多。
+
+## 归档（判据 ④ 回收 · 2026-10-16）—— 8 段（**7 条 + 1 段无日期、无归属的 `## 判据` 残片**）⇒ `docs/archive/ci-failures-removed-2026-09-25-26.md.gz`（**原文逐字未动** ✓ · `gunzip -c … | less`）｜**选材标准与逐条理由见 `docs/archive/README.md`**：**最老（2026-09-25/26 块）× 机制已进守卫 或 已被后来的同类取代**，且每条都点得出**今天仍在的权威**（`AGENTS.md` · `ci.yml` 注释 · 守卫脚本 · 更新的同族条目）⇒ 不再需要人读叙述 ✗；⚠ **不是按「想腾多少行」倒推** ✓。本文件是「**强制追加**」类（`AGENTS.md`「CI 失败记录」）⇒ **余量由 `scripts/check-frozen-headroom.py` 守着**（余量 0 = 下一次强制追加必然撞 ④ ✗）
