@@ -764,7 +764,7 @@ pub(crate) fn substitute_names(
         Expr::Ident { name, span } => match map.get(name) {
             // The replacement keeps the hit node's span so diagnostics point
             // at the substituted site.
-            Some(replacement) => with_root_span(replacement.clone(), *span),
+            Some(replacement) => replacement.clone().with_root_span(*span),
             None => expr.clone(),
         },
         Expr::App { fun, arg, .. } => Expr::App {
@@ -772,6 +772,11 @@ pub(crate) fn substitute_names(
             arg: Box::new(substitute_names(arg, map, levels)),
             explicit_spine: false,
             span: expr.span(),
+        },
+        Expr::NamedArg { name, value, span } => Expr::NamedArg {
+            name: name.clone(),
+            value: Box::new(substitute_names(value, map, levels)),
+            span: *span,
         },
         Expr::Arrow {
             domain, codomain, ..
@@ -974,80 +979,6 @@ fn substitute_binders(
         })
         .collect();
     (binders, sub)
-}
-
-/// Clone of `expr` with its root span replaced: every variant carries a
-/// span field, so each variant is rebuilt with the given span.
-fn with_root_span(expr: Expr, span: Span) -> Expr {
-    match expr {
-        Expr::Sort { sort, .. } => Expr::Sort { sort, span },
-        Expr::Ident { name, .. } => Expr::Ident { name, span },
-        Expr::UniverseApp { name, levels, .. } => Expr::UniverseApp { name, levels, span },
-        Expr::Num { value, .. } => Expr::Num { value, span },
-        Expr::Hole { .. } => Expr::Hole { span },
-        Expr::SetLiteral { elements, .. } => Expr::SetLiteral { elements, span },
-        Expr::AnonCtor { elements, .. } => Expr::AnonCtor { elements, span },
-        Expr::App { fun, arg, .. } => Expr::App {
-            fun,
-            arg,
-            explicit_spine: false,
-            span,
-        },
-        Expr::Lambda { binders, body, .. } => Expr::Lambda {
-            binders,
-            body,
-            span,
-        },
-        Expr::Forall { binders, body, .. } => Expr::Forall {
-            binders,
-            body,
-            span,
-        },
-        Expr::Arrow {
-            domain, codomain, ..
-        } => Expr::Arrow {
-            domain,
-            codomain,
-            span,
-        },
-        Expr::Plus { lhs, rhs, .. } => Expr::Plus { lhs, rhs, span },
-        Expr::Let {
-            binder, val, body, ..
-        } => Expr::Let {
-            binder,
-            val,
-            body,
-            span,
-        },
-        Expr::Match {
-            scrutinee, arms, ..
-        } => Expr::Match {
-            scrutinee,
-            arms,
-            span,
-        },
-        Expr::By { tactics, .. } => Expr::By { tactics, span },
-        // 记号节点（G-04 / WO-011）：换根 span，保留符号/目标/结合性与操作数。
-        Expr::Notation {
-            symbol,
-            target,
-            assoc,
-            lhs,
-            rhs,
-            alternatives,
-            symbol_span,
-            ..
-        } => Expr::Notation {
-            symbol,
-            target,
-            assoc,
-            lhs,
-            rhs,
-            alternatives,
-            span,
-            symbol_span,
-        },
-    }
 }
 
 /// Expected type text for the field at position `i`, instantiated through the

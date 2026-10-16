@@ -370,3 +370,18 @@
   （写补丁脚本落盘再跑 ✓）。
 * **残留进程** ✗：长跑脚本要自己 `pgrep -f <名字>` 收 ✓。
 
+
+## B3 的 **Lean 4 对照**：命名实参（`SUB-implicit-named-args`，用户 2026-10-16 §9.25 ✓）
+
+本机源码 `~/Documents/lean/lean4/src/Lean/{Parser/Term.lean,Elab/App.lean}` ✓，行号已自核 ✓：
+
+| # | Lean 4（文件:行） | 它怎么做 | 我们怎么做 | 差异与决定 |
+|---|---|---|---|---|
+| 1 | `Parser/Term.lean:808` `namedArgument := atomic ("(" >> ident >> " := ") >> termParser >> ")"`；`:816` `argument := namedArgument <|> ellipsis <|> termParser argPrec` | 命名实参是**应用实参位**的一个候选，**不是**通用原子 | `parser.rs::named_arg_ahead` + `parse_named_arg` 只在 `parse_app` 的实参分支问 | **同构** ✓（`parse_atom` 里不问 ⇒ `(α := Nat)` 单独出现仍是语法错 ✓）。`ellipsis`（`..`）**未做** ✗ |
+| 2 | `Elab/App.lean:753-762` `main` 先 `findBinderName? s.namedArgs binderName`（`:87` 按 binder 名线性查找）；命中 ⇒ `eraseNamedArg` + 用它的值、**不消耗位置实参** | 命名匹配**优先于** binder 风格（`match binfo` 在 `\| none =>` 分支里 ⇒ implicit/strictImplicit/instImplicit/explicit 一视同仁） | `named_arg.rs::apply` 按 `implicit_msg::source_layer_names(ty_text)` 的**源级形参名**定位层 | **同构** ✓（含"优先于 `@`"：钩子见命名实参就不早退 ✓）。⚠ 我们只认**已知常量**（Lean 任何 `forall` 都有 binder 名 ⇒ 局部假设也行）✗ |
+| 3 | `Elab/App.lean:1073` `getNextArg?`：先命名、后位置；位置**只在 `binderInfo.isExplicit` 时**才吃 | 位置实参只填**没被命名占掉**的显式 binder，按 binder 顺序 | 命名层从望远镜摘掉后，位置实参按**剩余层顺序**填（`named_arg.rs` 第 4 步） | **同构** ✓；求解器（`implicit::solve_prefix_with_args`）**零改动** ✓ |
+| 4 | `Elab/App.lean:39 throwInvalidNamedArg`（`:238` 在 `namedArgs` 用不完时抛） | 一个码 + **列出可用形参名** + suggestion/code action | 新码 `elab-invalid-named-argument` + 文案列出**全部源级形参名** + 可复制改法（判据会**抠出来粘回去**重判 ✓） | 契约同 ✓；**code action 未做** ✗ |
+| 5 | `Elab/App.lean:1113` `fType := body.instantiate1 arg`（富余实参落到**结果类型**） | 命名实参与富余实参**可以同时出现** | 我们**未组合**（`positional.len() > 剩余显式层` ⇒ `Ok(None)` 交回老路给诊断） | **有意偏离** ✗（如实登记 `REQUIREMENTS.md` §9.25 边界②） |
+
+**一句话**：`findBinderName?` **优先于** binder 风格，是"命名实参才是正常形式下指定隐式的通道"
+（`App.lean:1069` 的注释）的机制本体 —— 我们照它落地，且**不新增求解器语义** ✓。

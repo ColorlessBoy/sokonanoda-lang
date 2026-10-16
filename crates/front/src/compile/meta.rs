@@ -1072,6 +1072,7 @@ fn collect_meta_ids(e: &Expr, out: &mut Vec<MetaId>) {
                 collect_meta_ids(el, out);
             }
         }
+        Expr::NamedArg { value, .. } => collect_meta_ids(value, out),
         Expr::Lambda { binders, body, .. } | Expr::Forall { binders, body, .. } => {
             for b in binders {
                 if let Some(t) = b.ty.as_deref() {

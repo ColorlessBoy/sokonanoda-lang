@@ -36,6 +36,7 @@ pub(crate) fn mentions_names(e: &Expr, names: &[String]) -> bool {
             Expr::SetLiteral { elements, .. } | Expr::AnonCtor { elements, .. } => {
                 elements.iter().any(|e| walk(e, names))
             }
+            Expr::NamedArg { value, .. } => walk(value, names),
             Expr::Forall { binders, body, .. } | Expr::Lambda { binders, body, .. } => {
                 binders
                     .iter()
@@ -97,6 +98,7 @@ pub(crate) fn mentions_any(
             Expr::SetLiteral { elements, .. } | Expr::AnonCtor { elements, .. } => {
                 elements.iter().any(|e| walk(e, names))
             }
+            Expr::NamedArg { value, .. } => walk(value, names),
             Expr::Forall { binders, body, .. } | Expr::Lambda { binders, body, .. } => {
                 binders
                     .iter()
@@ -300,6 +302,11 @@ pub(crate) fn rewrite_bottom_up(e: &Expr, f: &mut impl FnMut(&Expr) -> Option<Ex
             },
             Expr::AnonCtor { elements, span } => Expr::AnonCtor {
                 elements: elements.iter().map(|x| go(x, f)).collect(),
+                span: *span,
+            },
+            Expr::NamedArg { name, value, span } => Expr::NamedArg {
+                name: name.clone(),
+                value: Box::new(go(value, f)),
                 span: *span,
             },
             Expr::Forall {

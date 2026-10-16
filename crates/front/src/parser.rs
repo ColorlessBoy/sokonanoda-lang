@@ -2719,7 +2719,13 @@ impl Parser {
                     None => break,
                 }
             }
-            let arg = if self.starts_atom() {
+            // **命名实参**（用户 2026-10-16 第 ② 条）：`g (α := Nat) 5`。
+            // ⚠ 只在**应用实参位**认（Lean 4 同款：`Lean/Parser/Term.lean:808` 的
+            // `namedArgument` 是 `argument`（`:816`）的一个候选，**不是**通用原子）
+            // ⇒ 这里问，`parse_atom` 里**不问** ✓（`(α := Nat)` 单独出现仍是语法错）。
+            let arg = if self.named_arg_ahead() {
+                self.parse_named_arg()?
+            } else if self.starts_atom() {
                 self.parse_atom()?
             } else if self.prefix_notation_ahead() {
                 self.parse_prefix_head()?
@@ -2801,6 +2807,42 @@ impl Parser {
             span,
             tok.span,
         ))
+    }
+
+    /// `(名字 := 值)` 是不是就在眼前（**应用实参位专用**）。
+    ///
+    /// lookahead 三个 token，**零成本**：非 `(` 立即返回 ✓。歧义面为零 ——
+    /// `(α := Nat)` 在别处（`let`/`def`/`match` 之外）本来就不是合法表达式
+    /// ⇒ 放开是**纯增量**，不改任何既有程序的分组 ✓。
+    fn named_arg_ahead(&self) -> bool {
+        matches!(
+            self.tokens.get(self.cursor).map(|t| &t.kind),
+            Some(TokenKind::LParen)
+        ) && matches!(
+            self.tokens.get(self.cursor + 1).map(|t| &t.kind),
+            Some(TokenKind::Ident(_))
+        ) && matches!(
+            self.tokens.get(self.cursor + 2).map(|t| &t.kind),
+            Some(TokenKind::ColonEq)
+        )
+    }
+
+    /// 解析 `(名字 := 值)`（调用方已用 [`Self::named_arg_ahead`] 确认形状 ✓）。
+    fn parse_named_arg(&mut self) -> Result<Expr> {
+        let open = self.bump().clone();
+        let name_tok = self.bump().clone();
+        let TokenKind::Ident(name) = name_tok.kind else {
+            return Err(self.error_at(name_tok.span, "expected a parameter name"));
+        };
+        self.bump(); // `:=`
+        let value = self.parse_expr()?;
+        self.expect_kind(&TokenKind::RParen, "`)`")?;
+        let end = self.tokens[self.cursor - 1].span.end;
+        Ok(Expr::NamedArg {
+            name,
+            value: Box::new(value),
+            span: Span::new(open.span.start, end),
+        })
     }
 
     fn starts_atom(&self) -> bool {

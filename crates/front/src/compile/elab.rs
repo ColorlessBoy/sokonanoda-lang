@@ -4336,7 +4336,8 @@ fn try_implicit_application_with<'a>(
         .and_then(|e| crate::compile::expected_spine::expected_to_inductive(e, ctx, scope, known));
     let expected_src: Option<&Expr> = expected_spine.as_ref().or(expected_src);
     // Lean 的 `@`：整条脊的实参是**逐位显式**的 ⇒ 不插隐式实参（设计 §7 第 5 条）。
-    if explicit_spine {
+    // ⚠ **命名实参是例外**：`@f (α := Nat) 5` 里 `α` 仍按名字绑定（见 `named_arg`）✓。
+    if explicit_spine && !crate::compile::named_arg::spine_has_named(expr) {
         return Ok(None);
     }
     // prelude 安装期间（含 `judge_infer` 触发的嵌套安装）**一律不插**：插入要先
@@ -4419,8 +4420,9 @@ fn try_implicit_application_with<'a>(
         other => std::borrow::Cow::Borrowed(other),
     };
 
+    let has_named = crate::compile::named_arg::has_named(&args);
     let declared = match known.get(head_name) {
-        Some(k) if k.implicit_prefix() > 0 => k,
+        Some(k) if k.implicit_prefix() > 0 || has_named => k,
         _ => return Ok(None),
     };
     // 头的**源级**签名文本（注册表自带；见 `KnownName::Decl::signature`）。
@@ -4439,8 +4441,29 @@ fn try_implicit_application_with<'a>(
     // （`And.intro h1 h2`）——只有注册表知道这件事。pp 的 `{}`/`()` 与注册表的
     // 数值对同一签名必须一致（非构造子时二者相等）。
     let k = declared.implicit_prefix();
-    if k == 0 || k > layers.len() {
+    if (k == 0 && !has_named) || k > layers.len() {
         return Ok(None);
+    }
+    // **命名实参**：整条路在 `named_arg` 里（本文件受 `docs-lint` ⑨ 冻结 ✗）；
+    // `Ok(None)` ⇒ 交回下面的老路（它给自己的诊断，绝不静默 ✓）。
+    if has_named {
+        return crate::compile::named_arg::apply(
+            builder,
+            expr,
+            &head_src,
+            ty_text,
+            &layers,
+            &result,
+            k,
+            &args,
+            scope,
+            univ,
+            known,
+            hovers,
+            expected_src,
+            ctx,
+            solved_out,
+        );
     }
     // **路线③（B3，2026-09-26；缺口 G-41 / G-42 的共同前置）**：
     // 签名里**只有隐式 binder** 的常量被应用时（`Set.univ x`），富余实参落到
@@ -5683,6 +5706,12 @@ pub(crate) fn elab_expr<'a>(
         Expr::Hole { span } => Err(CompileError::elab(
             ErrorKind::ElabHoleMisplaced,
             "`sorry` is only allowed as the value of an open exercise",
+            *span,
+        )),
+        // **命名实参的兜底**：钩子认不出这个头时落到这里 ⇒ 专用码 + 明确出路 ✓。
+        Expr::NamedArg { name, span, .. } => Err(CompileError::elab(
+            ErrorKind::ElabInvalidNamedArgument,
+            crate::compile::implicit_msg::misplaced_named_arg_message(name),
             *span,
         )),
         Expr::App {
@@ -7935,6 +7964,7 @@ fn mentions_ident(e: &Expr, name: &str) -> bool {
         Expr::SetLiteral { elements, .. } | Expr::AnonCtor { elements, .. } => {
             elements.iter().any(|element| mentions_ident(element, name))
         }
+        Expr::NamedArg { value, .. } => mentions_ident(value, name),
         Expr::Plus { lhs, rhs, .. } => mentions_ident(lhs, name) || mentions_ident(rhs, name),
         Expr::Let {
             binder, val, body, ..

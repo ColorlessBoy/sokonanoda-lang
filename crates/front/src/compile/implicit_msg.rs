@@ -189,3 +189,103 @@ pub(crate) fn unsolved_message(
         escape,
     )
 }
+
+/// **命名实参点名失败**（用户 2026-10-16 第 ② 条）：`f (α := Nat)` 里的 `α`
+/// 不是 `f` 的形参名。
+///
+/// **Lean 4 对照**：`Lean/Elab/App.lean:39 throwInvalidNamedArg` —— 一个码 +
+/// **列出可用形参名** + 一条 suggestion（code action）。我们照同一条契约：
+/// 把**全部**源级形参名按位置印出来，并给**可复制**的改正形态 ✓。
+pub(crate) fn unknown_named_arg_message(
+    name: &str,
+    names: &[(String, BinderKind)],
+    ty_text: &str,
+) -> String {
+    let all: Vec<String> = names
+        .iter()
+        .enumerate()
+        .map(|(i, (n, _))| {
+            let shown = if n.is_empty() {
+                format!("第 {} 位（匿名）", i + 1)
+            } else {
+                format!("`{n}`")
+            };
+            shown
+        })
+        .collect();
+    format!(
+        "命名实参 `({} := …)` 里的 `{}` **不是**这个函数的形参名。\
+         它的签名是 `{}`，按位置可用的形参名依次是：{}。\n\
+         改法：把名字改成上面列出的某一个（例如 `({} := …)`）；\
+         或者改用 `@` + **位置**实参（隐式位也要逐位写下来）。",
+        name,
+        name,
+        ty_text,
+        if all.is_empty() {
+            "（无）".to_string()
+        } else {
+            all.join("、")
+        },
+        names
+            .iter()
+            .find(|(n, _)| !n.is_empty())
+            .map(|(n, _)| n.as_str())
+            .unwrap_or("α"),
+    )
+}
+
+/// **同一个形参给了两次**（`f (α := Nat) (α := Bool)`）。
+///
+/// **Lean 4 对照**：那边 `findBinderName?` 只取**第一个**命中并把条目从
+/// `namedArgs` 里删掉（`App.lean:1073`）⇒ 第二个**留在表里** ⇒ 走到
+/// `:238 throwInvalidNamedArg`（"unused named arguments"）⇒ 同样是**报错** ✓。
+pub(crate) fn duplicate_named_arg_message(name: &str, ty_text: &str) -> String {
+    format!(
+        "形参 `{name}` 用命名实参给了**两次**（签名 `{ty_text}`）。\
+         一个形参只能给一次 —— 删掉其中一个（Lean 4 同样报错，只是它的措辞是 \
+         `unused named arguments`）。"
+    )
+}
+
+/// **命名实参在位、但**剩下的隐式前缀仍然补不出来。
+///
+/// 与 [`unsolved_message`] 同一个码（`elab-implicit-argument-unsolved`，D6 不新增 ✓），
+/// 只把出路换成**命名实参**那条（这才是"指令明确"：用户刚用过的语法就是出路 ✓）。
+pub(crate) fn named_arg_unsolved_message(ty_text: &str, k: usize) -> String {
+    let names = source_layer_names(ty_text);
+    let implicit_list: Vec<String> = (0..k)
+        .map(|i| format!("`{}`", name_of(names.as_ref(), i)))
+        .collect();
+    format!(
+        "`{}` 的签名 `{}` 里，前 {} 个形参是**隐式**的（按位置依次是 {}）——\
+         你用命名实参给了其中一部分，**剩下那些补不出来**（本子集只按后续位置实参的\
+         类型反解，不做搜索）。\n\
+         出路 ①（**按名字给全**）⇒ 把没给的那几个也用命名实参写上，例如 `({} := …)`。\n\
+         出路 ②（**全显式**）⇒ 在函数名前加 `@`，把这 {} 个隐式实参按**位置**顺序写全。",
+        "这个函数",
+        ty_text,
+        k,
+        if implicit_list.is_empty() {
+            "（无）".to_string()
+        } else {
+            implicit_list.join("、")
+        },
+        name_of(names.as_ref(), 0),
+        k,
+    )
+}
+
+/// **命名实参落在了钩子认不出的头上**（不是已知常量、是局部假设、或与富余实参组合）。
+///
+/// **Lean 4 对照**：那边任何 `forall` 都带 binder 名，所以局部假设也能按名绑定
+/// （`App.lean:753` 的 `fType.bindingName!`）—— **我们还没有那条路**（如实 ✗，
+/// 见 `named_arg` 模块头的「与 Lean 的差异」）。这条文案就是那个边界的**明说**：
+/// 给出两条**现在就能用**的出路 ✓。
+pub(crate) fn misplaced_named_arg_message(name: &str) -> String {
+    format!(
+        "命名实参 `({name} := …)` 只能按**已知常量自己的形参名**绑定；这里的函数头不是\
+         已知常量（常见：它是 `intro`/`have` 进来的**局部假设**，或者位置实参比形参还多）。\n\
+         出路 ①（**位置实参 + `@`**）⇒ 在函数名前加 `@`，把隐式位也逐位写下来。\n\
+         出路 ②（**让推断补**）⇒ 删掉命名实参，只按显式形参的顺序写位置实参。"
+    )
+}

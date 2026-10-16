@@ -1941,6 +1941,8 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabBinderNotationUnsolved => {}
         ErrorKind::ElabSetLiteralUnknownTarget => {}
         ErrorKind::ElabAnonCtorNoExpectedType => {}
+        // 用户 2026-10-16 第 ② 条（命名实参）：码 `elab-invalid-named-argument` ✓。
+        ErrorKind::ElabInvalidNamedArgument => {}
         ErrorKind::KernelExpectedSort => {}
         ErrorKind::KernelExpectedPi => {}
         ErrorKind::KernelTheoremNotProp => {}

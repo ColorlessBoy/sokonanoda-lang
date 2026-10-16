@@ -4,12 +4,16 @@
 mod check;
 pub(crate) mod elab;
 mod error;
+// `ErrorKind::hint()` 的文案表（从 `error.rs` 拆出来腾判据 ⑨ 的行数预算，2026-10-16）。
+mod error_hint;
+// 命名实参（`g (α := Nat) 5`，用户 2026-10-16 第 ② 条）。
 mod event;
 mod expected;
 mod expected_spine;
 mod goals;
 pub mod hints;
 mod implicit;
+mod named_arg;
 // IA-5 的错误文案（**单独一个文件** ⇒ `elab.rs`/`implicit.rs` 都受判据 ⑨ 冻结，
 // **只许减不许增** ✗ ⇒ 文案长在那边会当场判红 ✓）。
 mod implicit_msg;
