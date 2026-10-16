@@ -172,6 +172,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+import threshold_ratchet  # noqa: E402  （同目录库：ratchet 状态不变量的**唯一出处** ✓
+#   —— C10 的"夹具前提"直接复用它，**不新造谓词** ✗（照 C6/C7/C8 复用锚登记表的先例 ✓））
 
 ROOT = Path(__file__).resolve().parent.parent
 LEDGER = ROOT / "docs" / "guard-bite.jsonl"
@@ -212,6 +214,13 @@ PROOF_TIMEOUT_S = 300
 # （`{7,40}` 在 40 位处没有词边界 ⇒ 整个 token 不匹配 ✓ —— 实测 `--list`/`--check`
 # 的输出里那些 sha256 摘要**不进** C5 的判据面 ✓）。
 REV_TOKEN_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
+
+# ── **证明里钉的状态夹具**（C10；唯一一处 ✓）──────────────────────────────────
+# `SOKO_RATCHET_STATE=<path>` 是 `threshold_ratchet.state_path()` 的**复现 / 咬住证明**入口
+# （它自己的 docstring 写着"**它不是旁路**"✓）⇒ 那个文件**存在**的话，它必须是**合法**状态
+# —— 判据复用 `threshold_ratchet.state_problems()`（**一处定义**：与 `docs-lint.py` /
+# `check-threshold-ratchet.py` 消费它时**同一条** ✓，**不新造谓词** ✗）。
+STATE_FIXTURE_RE = re.compile(r"\bSOKO_RATCHET_STATE=(\S+)")
 
 
 def _non_comment_lines(text: str) -> str:
@@ -418,6 +427,61 @@ def unresolvable_revs(root: Path, cmd: str) -> list[str]:
     """这条证明里**解析不了**的 rev token（C2 判红时附的人话 ✓）。**唯一一处** ✓。"""
     return [tok for tok in sorted(set(REV_TOKEN_RE.findall(cmd)))
             if not _resolves(root, tok)]
+
+
+def state_fixture_problems(root: Path, entries: list[dict]) -> tuple[list[str], list[str]]:
+    """**C10 夹具前提**：证明里钉的 `SOKO_RATCHET_STATE` 状态夹具，**存在**的话必须是
+    **合法**状态 ⇒ 否则判红 ✗（**不是**「这条守卫咬不住」✗）。
+
+    ⚠ 为什么要有这一条（**实测**，2026-10-16，洞 `GUARD-BITE-SELFTEST-ONE-GROUP-RED-ON-CI`）：
+    `4a4264bd` 修了 `threshold_ratchet.state_problems()` 的 off-by-one（history 复查从
+    "比**下一轮** caps、跳过末轮"改成"比**那一轮自己的** caps"）之后，夹具
+    `scripts/fixtures/threshold-ratchet-tight.json`（`1a3b334c` 建的、之后一字未改）第 8 轮
+    的读数（6.41 MB）越过了**它自己的**上限（6.00 MB）⇒ `caps_or_error()` 判「状态不健康」
+    ⇒ `docs-lint.py` 退 **2**（台账期望 **1**）⇒ **C2 印「这条守卫咬不住」**，而真相是
+    **夹具不再是合法状态** ✗ —— 与 C5 **逐字同一条**纪律（「印成咬不住，而真相是
+    **前提不在**」✓）。⚠ 判据是**修好的那一条照亮了本来就坏的夹具**（**不是** `4a4264bd`
+    引入的 ✗ —— 归因要准 ✓）：`open_round`（`threshold_ratchet.py:318-347`）的闸门是
+    "读数必须落进**收紧后**的上限" ⇒ 合法 history **不可能**出现"读数 > 那一轮自己的 caps"
+    ⇒ 那份夹具**本来就**不是它自称的"**合法**的第 8 轮状态" ✗。
+
+    ⚠ **文件不存在 ⇒ 不判**（那是**故意**的坏输入 ✓）：台账里有两条
+    `SOKO_RATCHET_STATE=/nonexistent`（期望 rc=3 = "不假装判过" ✓）—— 判它们红就是**假红** ✗
+    （与 C5 的"两档都判红"**不冲突**：那里"不存在"**本身**就是坏输入，这里"不存在"
+    **正是** bite 要考的那条坏输入 ✓）。
+
+    ⚠ **口径：不解析 shell**（同 C5 ✓）：`SOKO_RATCHET_STATE=` 后面**第一个**空白分隔的
+    token 就是它钉的路径 ⇒ 路径里带空格会被读成半个（**有出路**：换个不带空格的名字 ✓）。
+    """
+    red: list[str] = []
+    judged: list[str] = []
+    for e in entries:
+        for half in ("pass", "bite"):
+            cmd = str(e[half].get("cmd", ""))
+            for tok in sorted(set(STATE_FIXTURE_RE.findall(cmd))):
+                p = Path(tok)
+                if not p.is_absolute():
+                    p = root / p
+                if not p.exists():
+                    continue
+                judged.append(tok)
+                try:
+                    st = threshold_ratchet.state_load(p)
+                except threshold_ratchet.RatchetError as err:
+                    red.append(
+                        f"**C10 夹具前提** ✗：`{e['guard']}` 的 `{half}` 钉了状态夹具 `{tok}`，"
+                        f"而它**读不了**（{err}）⇒ 那条证明**量不到**它 ⇒ 会印成「这条守卫"
+                        f"咬不住」，而真相是**前提坏了** ✗ ⇒ 把夹具修成一个**合法**状态 ✓")
+                    continue
+                problems = threshold_ratchet.state_problems(st)
+                if problems:
+                    red.append(
+                        f"**C10 夹具前提** ✗：`{e['guard']}` 的 `{half}` 钉了状态夹具 `{tok}`，"
+                        f"而它**不是合法状态**（{problems[0]}）⇒ 那条证明**量不到**它 ⇒ 会印成"
+                        f"「这条守卫咬不住」，而真相是**前提坏了** ✗ ⇒ 把夹具修成**合法**状态 ✓"
+                        f"（⚠ `open_round` 只产出「读数落进**收紧后**的上限」的轮次 ⇒ 手写 "
+                        f"history 很容易越过它**自己**的 caps ✗）")
+    return red, sorted(set(judged))
 
 
 def wiring_problems(root: Path, entries: list[dict]) -> list[str]:
@@ -799,6 +863,19 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
                      else "（本台账**没有任何** hex token ⇒ 这一条本跑无输入 —— 如实在此印出，"
                           "**不**当空转判红：那会是一条没有出路的红，不是本跑判的 ✓）"))
 
+    # ── C10 夹具前提（钉的状态夹具必须是**合法**状态 ✓）──────────────────────
+    #   ⚠ 与 C5 **同一族**：都判"证明的**前提**在不在" ⇒ 不设它，前提坏了会被印成
+    #   「这条守卫咬不住」（读数**不可归属** ✗ —— 2026-10-16 实测踩到 ✓）。
+    #   ⚠ **不过滤 job**（同 C5）：夹具坏了是**台账**的缺陷，不是"哪批证明跑在哪"的事 ⇒
+    #   每个 job 都判它（否则一条声明在别的 job 的证明能把坏夹具藏起来 ✗）。
+    c10, fx_judged = state_fixture_problems(root, entries)
+    red.extend(c10)
+    if not quiet and not c10:
+        print(f"  ✓ C10 夹具前提：证明里钉的 {len(fx_judged)} 个状态夹具都是**合法**状态 ✓"
+              + (f"（{' · '.join(fx_judged)}）" if fx_judged
+                 else "（本台账**没有**钉状态夹具 ⇒ 这一条本跑无输入 —— 如实在此印出，"
+                      "**不**当空转判红：那会是一条没有出路的红，不是本跑判的 ✓）"))
+
     # ── C6/C7/C8 锚（**每一层都要有一个底** ✓ —— 用户 2026-10-16 09:5x ①）──────────
     #   ⚠ **不过滤 job**：锚是**分类面**的事，不是"哪批证明跑在哪"的事 ⇒ 每个 job 都判它 ✓。
     apath = anchors_path or (root / "docs" / "guard-anchors.jsonl")
@@ -1008,9 +1085,16 @@ def list_coverage(root: Path, ledger_path: Path, anchors_path: Path | None = Non
 # ── 判据通道自检（反向验证：故意造出该现象 ⇒ 必须判红）──────────────────────
 def selftest(job: str = DEFAULT_JOB) -> int:
     bad = 0
+    # ⚠ ⭐ **两向的组数是算出来的、不是手写的常量** ✗→✓（2026-10-16 实测：那行
+    #   `正对照 11 + 反向 17` 是**手维护**的 ⇒ 加了臂之后它**当场就旧了** ✗ ——
+    #   而它是**给人读的读数**、会被别的条目**引用**（CI 证据 / 队列条目都引过 ✓）⇒
+    #   旧数字会把读的人带偏 ✗。**在打印机上兜**：按臂名归类、末尾照实印 ✓。
+    tally: dict[str, int] = {}
 
     def gate(name: str, ok: bool, note: str = "") -> None:
         nonlocal bad
+        kind = "正对照" if "正对照" in name else ("反向" if "反向" in name else "其它")
+        tally[kind] = tally.get(kind, 0) + 1
         # ⚠ ⭐ **读数可归属**（与 `check()` 里那条**同一条规则**，这里兜住整个 `--selftest`
         #   流 ✓）：`✓` 判据行的正文里**不许**出现判红标记 —— 证明**自身的输出**可能
         #   **故意**是红的（本文件自己的 `bite` 跑的就是**故意咬不住**的夹具 ✓）⇒ 它必须
@@ -1356,6 +1440,45 @@ def selftest(job: str = DEFAULT_JOB) -> int:
                  f"**夹具前提没成立**（`git commit-tree` rc={orphan.returncode}："
                  f"{orphan.stderr.strip()[:120]}）✗")
 
+    # ── C10 夹具前提：**正反两向**（2026-10-16 · 洞 `GUARD-BITE-SELFTEST-ONE-GROUP-RED-ON-CI`）──
+    #   正对照 = **真台账**里钉的状态夹具（修好之后）都是**合法**状态 ⇒ 不判红 ✓；
+    #   反向 = 把**真夹具**的末轮读数抬到越过它**自己**的 caps ⇒ 必须判红 ✓
+    #   （⚠ 反向量**从真夹具派生** ⇒ 与"夹具长什么样"不脱钩 ✓；**钉死旧 rev** 的那条
+    #    在台账里 ✓ —— 这里不钉 rev，免得 rebase 之后 `--selftest` 自己坏 ✗）。
+    fx_red, fx_judged = state_fixture_problems(ROOT, entries)
+    gate("正对照：**真台账**里钉的状态夹具都是**合法**状态 ⇒ 不判红",
+         not fx_red, f"判到 {len(fx_judged)} 个：{' · '.join(fx_judged) or '（无）'}")
+    real_fx = ROOT / "scripts" / "fixtures" / "threshold-ratchet-tight.json"
+    if real_fx.exists():
+        with tempfile.TemporaryDirectory(prefix="soko-statefx-") as td_fx:
+            bad_fx = Path(td_fx) / "tight-broken.json"
+            st_bad = json.loads(real_fx.read_text(encoding="utf-8"))
+            last = st_bad["history"][-1]
+            # 越过**它自己的** caps（= 修前那份真夹具的形状 ✓，只是让它**确定性**地越界）
+            last["reading"]["docs_live_bytes"] = int(last["caps"]["docs_live_bytes"]) + 1
+            bad_fx.write_text(json.dumps(st_bad, ensure_ascii=False), encoding="utf-8")
+            synth = [{"guard": "scripts/docs-lint.py",
+                      "bug": "夹具：末轮读数越过它**自己**的上限",
+                      "pass": {"cmd": "true", "expect_rc": 0},
+                      "bite": {"cmd": f"SOKO_RATCHET_STATE={bad_fx} true", "expect_rc": 1}}]
+            fx_bad, _j = state_fixture_problems(ROOT, synth)
+            gate("⭐⭐ 反向⑱：证明钉的状态夹具**不是合法状态**（末轮读数越过**它自己的** caps）"
+                 "⇒ 判红（C10 夹具前提 —— 修前那份真夹具就是这个形状）",
+                 any("C10 夹具前提" in m for m in fx_bad), f"红 {len(fx_bad)} 条")
+        # ⚠ **不判不存在的那一档**（它是**故意**的坏输入 ✓）：`/nonexistent` 那两条期望 rc=3
+        #   ⇒ 判它们红就是**假红** ✗ —— 这条臂把它钉住（防止有人"顺手"把它也判红 ✗）。
+        synth_none = [{"guard": "scripts/check-site.py",
+                       "bug": "夹具：状态文件**故意**不存在",
+                       "pass": {"cmd": "true", "expect_rc": 0},
+                       "bite": {"cmd": "SOKO_RATCHET_STATE=/nonexistent true", "expect_rc": 3}}]
+        fx_none, _j2 = state_fixture_problems(ROOT, synth_none)
+        gate("⭐⭐ 正对照：状态夹具**故意不存在**（`SOKO_RATCHET_STATE=/nonexistent`，"
+             "台账里两条期望 rc=3）⇒ **不**判红（判它就是假红）",
+             not fx_none, f"红 {len(fx_none)} 条")
+    else:
+        gate("⭐⭐ 反向⑱：状态夹具越界 ⇒ 判红", False,
+             f"**夹具前提没成立**（`{real_fx}` 不在）✗")
+
     # ── 正对照：**真坏输入**被咬住的形状（`--until c82097fe` = 历史最差点）──
     entries2, _cs2, _e2 = load_ledger(LEDGER)
     hist = next((e for e in entries2
@@ -1372,8 +1495,10 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         gate("⭐ 正对照：历史最差点被咬住", False, "台账里没有 check-attention-budget 那一行 ✗")
 
     print(f"\n自检：{'✓ 全过' if bad == 0 else f'✗ {bad} 组不对'}"
-          f"（正对照 11 + 反向 17 + 真跑台账；含**锚的两头**：B 超上限 ⇒ 判红 · A 增长 ⇒ 不判红 ✓"
-          f" · **枚举面**：改了名的守卫仍在口径里 ✓ · 幽灵名字不进 ✓ · `tool` 悬空覆盖 ⇒ 判红 ✓）")
+          f"（正对照 {tally.get('正对照', 0)} + 反向 {tally.get('反向', 0)} + 真跑台账；"
+          f"含**锚的两头**：B 超上限 ⇒ 判红 · A 增长 ⇒ 不判红 ✓"
+          f" · **枚举面**：改了名的守卫仍在口径里 ✓ · 幽灵名字不进 ✓ · `tool` 悬空覆盖 ⇒ 判红 ✓"
+          f" · **夹具前提**：钉的状态夹具不是合法状态 ⇒ 判红 ✓）")
     return 0 if bad == 0 else 1
 
 

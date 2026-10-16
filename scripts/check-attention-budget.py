@@ -719,7 +719,12 @@ def _fixture_repo(tmp: Path) -> tuple[Path, str | None]:
     #   （同目录库，`FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO` 的修）⇒ 只拷守卫、不拷它的
     #   同目录依赖 ⇒ 夹具里 `ModuleNotFoundError: No module named 'git_env'` ⇒ ④ 臂
     #   会以"守卫自己坏了"判红 ✗（实测：修完第一版就踩到，`--selftest` 4 组不对 ✗）。
-    for rel in ("scripts/check-guard-bite.py", "scripts/git_env.py", "docs/guard-bite.jsonl",
+    # ⚠ **同族的第二次**（2026-10-16，洞 `GUARD-BITE-SELFTEST-ONE-GROUP-RED-ON-CI`）：C10
+    #   让 `check-guard-bite.py` 又 import 了 `scripts/threshold_ratchet.py`（ratchet 状态
+    #   不变量的**唯一出处** ✓）⇒ 同一个坑会**再踩一次**（"只拷守卫、不拷它的同目录依赖" ✗）
+    #   ⇒ 现在按**依赖闭包**拷：`git_env` + `threshold_ratchet` ✓（加依赖时**同一条**要改 ✓）。
+    for rel in ("scripts/check-guard-bite.py", "scripts/git_env.py",
+                "scripts/threshold_ratchet.py", "docs/guard-bite.jsonl",
                 ".github/workflows/ci.yml"):
         src, dst = ROOT / rel, repo / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
