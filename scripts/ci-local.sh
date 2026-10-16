@@ -158,6 +158,12 @@ run "gates：版本单一源" "gates" python3 scripts/bump.py --check
 run "gates：记法规则"   "gates" python3 scripts/notation-lint.py
 run "gates：STATUS 瘦身（用户 2026-09-26 ✓）" "gates" python3 scripts/status-lint.py
 run "gates：文档预算（用户 2026-09-26 ✓）" "gates" python3 scripts/docs-lint.py
+# **冻结余量**（2026-10-16 · 洞 `CI-FAILURES-FROZEN-BUDGET-BLOCKS-MANDATORY-APPEND` ✓）：
+# `AGENTS.md` 要求「每次 CI 红了在 `docs/CI-FAILURES.md` **追加一条**」，而它被冻结在 749 行、
+# 实测也 749 行 ⇒ **余量 0** ⇒ 下一次追加**必然**撞判据 ④（只许减不许增 ✗）；抬上限被用户
+# 2026-09-26 明令禁止 ✗ ⇒ 出路只有**归档腾行**（判据 ⑥）。本守卫把「**强制追加的文档不许把
+# 余量吃到 0**」变成判据（**别的**冻结文档余量 0 只报告、不判红 ⇒ 不造假红 ✗）。
+run "gates：冻结余量（强制追加类不许吃到 0）" "gates" python3 scripts/check-frozen-headroom.py --check
 run "gates：记法路径守卫" "gates" python3 scripts/audit-notation-paths.py
 # **UI 同族守卫**（2026-10-03 ✓，AGENTS.md 验证设计纪律第 0 条 (b) ✓）：同一类 UI 反馈
 # 复发过两次（`.decl-ty` → `.section-title` ✗）⇒ 判据落成机器可查 ✓（秒级 ✓）。
