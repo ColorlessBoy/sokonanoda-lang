@@ -31,6 +31,46 @@
 ⚠ 为什么"未分类的 job"要 exit 3 ✗✓：`ci.yml` 将来加一个重活 job 时，
   本脚本若不认识它 ⇒ 它被 skip 也不会判红 ✗ ⇒ **守卫静默腐烂** ✗。
   所以分类表是**棘轮** ✓：`ci.yml` 里出现任何未分类的 job id ⇒ **直接拒绝判定** ✓。
+
+## 2026-10-16 修的三处腐烂（洞 `CI-GREEN-READOUT-ROTTED`，medium ✓）
+
+**改前实测读数**（main `4adae13e` 那一刻，逐条都能复跑 ✓）：
+
+  ①  `python3 scripts/ci-green.py --run 38884242478`（最新 completed run）
+      ⇒ **rc=3**：`ci.yml` 有 **4 个未分类 job**（`tactic-docs-lint` · `wiring-lint` ·
+      `queue-lint` · `mark-verified`）+ **1 个认不出的显示名**（`wiring-lint（…`）✗
+      ⇒ **量具自己烂了**：没人能自动核"这一轮 CI 到底绿没绿" ✗。
+  ②  `python3 scripts/ci-green.py --selftest` ⇒ **rc=1**（**3/6 用例不符** ✗）——
+      同一个腐烂在**它自己的离线判据通道**里就红了 ✓，而**没有任何 job / gate 跑它** ✗
+      （`grep -rn ci-green .github scripts/ci-local.sh` 只命中一条注释）
+      ⇒ **守卫空转**：它红了多久都没人知道 ✗。
+  ③  `python3 scripts/ci-green.py --run 4adae13e`（**一个 sha**，不是 run id）
+      ⇒ `gh` 404 ⇒ 脚本印 `…（exit 3）` 而**实退 `1`** ✗ —— 因为
+      `sys.exit("<字符串>")` 的退出码恒为 **1** ✓，而 **`1` 在本脚本里 = 红** ✗
+      ⇒ **"前提缺失"被印成"CI 红"** ✗（读 rc 的人会照抄成"这一轮红了" ✗）。
+
+**改法**（三处，一处都没放宽判据 ✗ —— `skipped 不算绿` 那条强度层逐字未动 ✓）：
+
+  * **分类**：`tactic-docs-lint` / `wiring-lint` / `queue-lint` **无 `if:` ⇒ 每推必跑**
+    ⇒ 进 `ALWAYS`（**被 skip 属异常** ⇒ 照旧判假绿 ✓，**比"不分类"更严** ✓）；
+    `mark-verified` 有 `if:`（`always() && main push && 无 failure && rust|courses|editor`）
+    ⇒ 它是**写标记**动作、按设计可合法 skip ⇒ 进 `CONDITIONAL` ✓。
+  * **显示名截断**：GitHub API 的 `jobs[].name` **按字节截断到 100**（实测
+    `wiring-lint（…）` 118 字节 ⇒ 回来是 `…跨接缝 + ...`，62 字符 / 100 字节）✗
+    ⇒ 精确匹配**永远**认不回它 ✗ ⇒ 新增 `match_truncated()`：**只对以 `...` 结尾的名字**、
+    且**必须唯一**前缀命中某个 `ci.yml` 名字 ⇒ 才认回（**歧义 / 认不回 ⇒ 照旧 exit 3** ✓，
+    认回时**印出来** ⇒ 不是静默容忍 ✓）。
+  * **退出码**：新增 `bail()`（印 stderr + `sys.exit(EXIT_NOT_JUDGED)`）替换 4 处
+    `sys.exit("<字符串>")` ⇒ **前提缺失 = 3**，与 `1=红` 分开 ✓。
+  * **`--run` 收 sha**：`gh run list --commit` 只认**全 sha**（实测短 sha 回 `[]` ✗）
+    ⇒ 先用 `git rev-parse` 展开（**过 `git_env.clean_git_env()`** ✓，同
+    `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO` 的修法）再取该 commit 的**最新** ci 轮次，
+    并把解析结果印到 **stderr**（`--json` 的 stdout 保持干净 ✓）。
+
+⚠ **已知边界（如实 ✗）**：`always_skipped` 只抓"**在轮次里但被 skip**"的 `ALWAYS` job；
+**整个缺席**（`by_id` 里没有）不判红 —— 两条历史夹具（`36285752786` / `36291907128`）
+早于那三个 lint job ⇒ 加"缺席即假绿"会把**真历史形状**判红 ✗。实测今天每个 `ALWAYS`
+job 都在（33/33 条齐全 ✓）⇒ 本条不改变任何现行读数 ✓。
 """
 
 from __future__ import annotations
@@ -63,12 +103,33 @@ HEAVY = [
 HEAVY_MAIN_ONLY = ["e2e-ledger"]
 
 # 无 `if:` ⇒ 每轮都该跑；被 skip 属异常
-ALWAYS = ["changes", "lint-fmt", "lint-clippy", "docs-lint", "status-lint"]
+ALWAYS = [
+    "changes",
+    "lint-fmt",
+    "lint-clippy",
+    "docs-lint",
+    "status-lint",
+    # ⭐ 2026-10-16（洞 `CI-GREEN-READOUT-ROTTED`）：下面三个**都是无 `if:` 的独立
+    # lint job** —— `ci.yml` 自己的注释就写着它们"照 `status-lint`/`docs-lint` 的形状：
+    # 独立 job、不设 `if:`、不加过滤器" ✓（`wiring-lint` 那段注释还给了实测：
+    # "17 轮里 0 次 skipped" ✓）。**按定义**它们被 skip 就是异常 ⇒ 进 ALWAYS
+    # （⇒ 被 skip 判**假绿** ✓）—— ⚠ 这比"留在未分类里"**更严**，不是放宽 ✗。
+    "tactic-docs-lint",   # tactic 清单三处一致 + selftest（ci.yml:102）
+    "wiring-lint",        # harness 接线漂移 + 启动器链接 + LSP marker + 推送范围（ci.yml:154）
+    "queue-lint",         # 队列 + 多会话台账 + 编译缓存（ci.yml:248，名字自带"每推必跑"）
+]
 
 # 按设计可合法 skip
 CONDITIONAL = [
-    "auto-tag",    # 只在 main 的 push 上跑（发版动作，不是验证）
-    "fast-fail",   # 只在**已经有 failure** 时才跑 ⇒ 真绿时它必然 skipped ✓
+    "auto-tag",       # 只在 main 的 push 上跑（发版动作，不是验证）
+    "fast-fail",      # 只在**已经有 failure** 时才跑 ⇒ 真绿时它必然 skipped ✓
+    # ⭐ 2026-10-16（同洞）：它是**写标记**动作、不是验证承载 job ——
+    # `if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    #      && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    #      && (rust || courses || editor)`（ci.yml:591-596）⇒ **PR 上 / 纯 docs 推送上
+    # 按设计必然 skip** ✓。⚠ 真出错时它不会静默：`needs` 里有 failure/cancelled ⇒
+    # 那一项本身已经落在 `BAD` 里 ⇒ 先判红 ✓。
+    "mark-verified",
 ]
 
 CLASSIFIED = set(HEAVY) | set(HEAVY_MAIN_ONLY) | set(ALWAYS) | set(CONDITIONAL)
@@ -77,6 +138,22 @@ CLASSIFIED = set(HEAVY) | set(HEAVY_MAIN_ONLY) | set(ALWAYS) | set(CONDITIONAL)
 BAD = {"failure", "cancelled", "timed_out", "action_required", "stale", "startup_failure"}
 
 EXIT_TRUE_GREEN, EXIT_RED, EXIT_FAKE_GREEN, EXIT_NOT_JUDGED = 0, 1, 2, 3
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
+
+def bail(msg: str) -> None:
+    """**前提缺失 ⇒ exit 3**（⚠ 绝不 `sys.exit("<字符串>")` —— 那恒退 **1** ✗）。
+
+    ⚠ 本仓约定：`exit 3` = "前提缺失 ⇒ 判不了" ✓；而 **`1` 在本脚本里 = 红** ✗
+    ⇒ 用 `sys.exit(str)` 会把"gh 缺失 / run 不存在 / ci.yml 找不到"印成 **CI 红** ✗。
+    **实测**（2026-10-16，洞 `CI-GREEN-READOUT-ROTTED`）：`--run 4adae13e`（一个 sha，
+    不是 run id）⇒ `gh` 404 ⇒ 脚本印 `…（exit 3）`而**实退 1** ✗ ⇒ 读 rc 的人会
+    照抄成"这一轮红了" ✗。⇒ 前提缺失**一律**走这里 ✓。
+    """
+    print(msg, file=sys.stderr)
+    sys.exit(EXIT_NOT_JUDGED)
 
 
 def parse_ci_jobs(path: Path = CI_YML) -> dict[str, str | None]:
@@ -87,7 +164,7 @@ def parse_ci_jobs(path: Path = CI_YML) -> dict[str, str | None]:
     （step 的 name 在 8 空格、`if: >-` 的续行在 6 空格 ⇒ 都不会误命中 ✓）。
     """
     if not path.is_file():
-        sys.exit(
+        bail(
             f"✗ 找不到 {path} ✗ —— 本脚本按 `__file__` 定位仓库根，必须从仓库内运行\n"
             f"   （**不要**把它拷到仓库外再跑：那时仓库根会解析错 ⇒ 判定无意义 ✗）（exit 3）"
         )
@@ -143,6 +220,34 @@ def classify(name: str, exact: dict[str, str], prefix: list[tuple[str, str]]) ->
     return None
 
 
+# ── 显示名被 API 截断（2026-10-16，洞 `CI-GREEN-READOUT-ROTTED`）──────────────
+#
+# **实测**（run `38884242478`，`gh api …/runs/<id>/jobs`，**不是** gh 自己截的 ✗）：
+#   ci.yml 里 `wiring-lint` 的名字 = 66 字符 / **118 字节**
+#   回来的是 `wiring-lint（harness 接线文档漂移 + 启动器扩展链接 + LSP 槽位 marker 跨接缝 + ...`
+#     = 62 字符 / **100 字节** ⇒ **API 按字节截断到 100**（97 字节正文 + `...`）✗
+# ⇒ `classify()` 的精确/前缀两条路**都**认不回它 ✗ ⇒ `unclassified` 非空 ⇒ **exit 3** ✗
+# ⇒ 量具**永远**判不了（就算把 `wiring-lint` 加进分类表也没用 ✗）。
+#
+# ⚠ **这不是放宽** ✗：只对**以 `...` 结尾**的名字生效 ✓、且必须**唯一**命中某个
+# `ci.yml` 名字的前缀 ✓ —— **歧义 / 认不回 ⇒ 照旧 `unclassified` ⇒ exit 3** ✓
+# （`ci.yml` 里改个名字就再也认不回 ⇒ 守卫照样咬得住 ✓）。
+TRUNCATION_MARK = "..."
+
+
+def match_truncated(name: str, ci_jobs: dict[str, str | None]) -> str | None:
+    """API 截断过的显示名 ⇒ 按**唯一前缀**认回 job id（否则 `None` ⇒ 上层判 exit 3 ✓）。"""
+    if not name.endswith(TRUNCATION_MARK):
+        return None
+    stem = name[: -len(TRUNCATION_MARK)].rstrip()
+    if not stem:
+        return None
+    hits = sorted(
+        {jid for jid, nm in ci_jobs.items() if (nm or "").startswith(stem) or jid.startswith(stem)}
+    )
+    return hits[0] if len(hits) == 1 else None
+
+
 def judge(
     jobs: list[tuple[str, str]],
     ci_jobs: dict[str, str | None],
@@ -153,8 +258,16 @@ def judge(
 
     by_id: dict[str, list[str]] = {}
     unclassified: list[str] = []
+    name_truncations: dict[str, str] = {}   # 被截断但**认回**了 ⇒ 印出来（不静默 ✓）
+    ambiguous_truncations: list[str] = []   # 被截断且**歧义** ⇒ 拒绝判定 ✓
     for name, concl in jobs:
         jid = classify(name, exact, prefix)
+        if jid is None and name.endswith(TRUNCATION_MARK):
+            jid = match_truncated(name, ci_jobs)
+            if jid is not None:
+                name_truncations[name] = jid
+            else:
+                ambiguous_truncations.append(name)
         if jid is None:
             unclassified.append(name)
             continue
@@ -215,6 +328,8 @@ def judge(
         "always_skipped": always_skipped,
         "unknown_jobs": unknown_jobs,
         "unclassified_job_names": sorted(unclassified),
+        "name_truncations": dict(sorted(name_truncations.items())),
+        "ambiguous_truncations": sorted(ambiguous_truncations),
     }
 
 
@@ -227,10 +342,52 @@ def gh_json(args: list[str]) -> object:
             ["gh", *args], capture_output=True, text=True, check=True
         ).stdout
     except FileNotFoundError:
-        sys.exit("✗ 找不到 `gh`（GitHub CLI）—— 判定真绿需要它 ✗（exit 3）")
+        bail("✗ 找不到 `gh`（GitHub CLI）—— 判定真绿需要它 ✗（exit 3）")
     except subprocess.CalledProcessError as e:
-        sys.exit(f"✗ `gh {' '.join(args)}` 失败 ✗：{e.stderr.strip()[:400]}（exit 3）")
+        bail(f"✗ `gh {' '.join(args)}` 失败 ✗：{e.stderr.strip()[:400]}（exit 3）")
     return json.loads(out)
+
+
+RUN_ID_RE = re.compile(r"^\d{6,}$")
+
+
+def looks_like_run_id(arg: str) -> bool:
+    """run id 是**纯数字**（11 位左右）；sha 含 `a`–`f` 或有别的形状 ✓。"""
+    return bool(RUN_ID_RE.match(arg))
+
+
+def resolve_run_arg(arg: str) -> str:
+    """`--run` 收 **run id** 或 **commit sha**（2026-10-16 新增 ✓）。
+
+    ⚠ **为什么**（洞 `CI-GREEN-READOUT-ROTTED`）：编排者手上是**推送的那个 sha**、
+    不是 run id ⇒ 实测 `--run 4adae13e` 得到 `gh` **404** ✗（而 404 曾因
+    `sys.exit("<字符串>")` 退 **1** ⇒ 看起来像"CI 红" ✗✗）。
+    ⚠ `gh run list --commit` **只认全 sha**（实测短 sha 回 `[]` ✗）⇒ 先用
+    `git rev-parse` 展开 ✓（**过 `git_env.clean_git_env()`** ✓ —— 同
+    `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO` 的修法：`GIT_DIR` 优先于 `cwd` ✗）。
+    解析结果印到 **stderr** ⇒ `--json` 的 stdout 保持干净 ✓。
+    """
+    if looks_like_run_id(arg):
+        return arg
+    full = subprocess.run(
+        ["git", "rev-parse", "--verify", f"{arg}^{{commit}}"],
+        capture_output=True, text=True, env=git_env.clean_git_env(),
+    )
+    if full.returncode != 0:
+        bail(
+            f"✗ `--run {arg}` 既不是 run id（纯数字）也不是本仓能解析的 commit ✗："
+            f"{full.stderr.strip()[:200]}（exit 3）"
+        )
+    sha = full.stdout.strip()
+    runs = gh_json(
+        ["run", "list", "--workflow", "ci", "--commit", sha, "--limit", "5",
+         "--json", "databaseId,createdAt,status,conclusion"]
+    )
+    if not runs:
+        bail(f"✗ commit {arg}（{sha[:7]}）在 ci workflow 下**没有任何轮次** ✗（exit 3）")
+    runs.sort(key=lambda r: str(r.get("createdAt") or ""), reverse=True)
+    print(f"（--run {arg} ⇒ commit {sha[:7]} ⇒ run {runs[0]['databaseId']}）", file=sys.stderr)
+    return str(runs[0]["databaseId"])
 
 
 def fetch_run(run_id: str | None) -> dict:
@@ -240,8 +397,10 @@ def fetch_run(run_id: str | None) -> dict:
              "--json", "databaseId"]
         )
         if not runs:
-            sys.exit("✗ 取不到任何 ci 轮次 ✗（exit 3）")
+            bail("✗ 取不到任何 ci 轮次 ✗（exit 3）")
         run_id = str(runs[0]["databaseId"])
+    else:
+        run_id = resolve_run_arg(str(run_id))
     return gh_json(
         ["run", "view", str(run_id),
          "--json", "databaseId,headSha,status,conclusion,event,headBranch,displayTitle,jobs"]
@@ -279,6 +438,11 @@ def render(run: dict, res: dict) -> None:
         print(f"    ✗ 非 success 也非全 skip：{' · '.join(res['heavy_other'])}")
     if res["always_skipped"]:
         print(f"    ⚠ 本该每轮都跑却被 skip：{' · '.join(res['always_skipped'])}")
+    if res["name_truncations"]:
+        # ⚠ **印出来**（不是静默容忍 ✓）—— API 按字节截断到 100 ⇒ 按唯一前缀认回 ✓
+        print(f"    ⚠ 显示名被 API 截断、按前缀认回 {len(res['name_truncations'])} 条：")
+        for nm, jid in res["name_truncations"].items():
+            print(f"         · {nm}  ⇒ {jid}")
     print()
 
     v = res["verdict"]
@@ -306,9 +470,32 @@ def render(run: dict, res: dict) -> None:
                 f"  ⇒ ✗ 拒绝判定（exit 3）：轮次里有**认不出**的 job 显示名 ✗ "
                 f"{res['unclassified_job_names']}"
             )
+        if res["ambiguous_truncations"]:
+            print(
+                f"  ⇒ ✗ 拒绝判定（exit 3）：这些名字被 API 截断**且前缀有歧义** ⇒ "
+                f"不猜 ✗ {res['ambiguous_truncations']}\n"
+                "     ⇒ 请把 ci.yml 里那条 job 的 `name:` 缩短到 100 字节以内 ✓。"
+            )
 
 
 # ── 判据通道自检（离线 ✓，不需要 gh / 网络 ✓）──────────────────────────────
+
+
+def _bail_exit_code() -> object:
+    """前提缺失时 `gh_json` 的**退出码**（离线 ✓：把 `subprocess.run` 打成 `FileNotFoundError`）。
+
+    ⚠ **为什么值得一条断言**：`sys.exit("<字符串>")` 的退出码**恒为 1** ✗，而 `1` 在本
+    脚本里 = **红** ✗ ⇒ 一个手滑就又把"gh 缺失 / run 不存在"印成"CI 红" ✗
+    （2026-10-16 实测踩到过：`--run 4adae13e` ⇒ 404 ⇒ rc=1 ✗）。
+    """
+    import unittest.mock as mock
+
+    with mock.patch.object(subprocess, "run", side_effect=FileNotFoundError):
+        try:
+            gh_json(["run", "list"])
+        except SystemExit as e:  # noqa: PERF203
+            return e.code
+    return None
 
 
 def selftest() -> int:
@@ -365,13 +552,58 @@ def selftest() -> int:
         ("e2e ledger (commit back on main)", "skipped")
     ]
 
+    # ── 2026-10-16 新增（洞 `CI-GREEN-READOUT-ROTTED`）──────────────────────
+    # **已存在的坏输入** = `4adae13e`（main）那一刻的 `ci.yml` + 那份分类表：
+    # **4 个 job 未分类** + **1 个显示名被 API 截断** ⇒ 本 `--selftest` **在 main 上
+    # 本来就是红的**（实测 rc=1 · 3/6 用例不符 ✗），而**没有任何 job 跑它** ✗。
+    # ⇒ 下面这些用例把三处腐烂**钉死** ✓（⚠ 一条判据都没放宽 ✗：`skipped 不算绿`
+    # 那条强度层逐字未动，新增的 ALWAYS 分类只会让它**更严** ✓）。
+    wiring_full = ci.get("wiring-lint") or ""
+    wiring_trunc = wiring_full.encode("utf-8")[:97].decode("utf-8", errors="ignore").rstrip() + "..."
+    # 只有"名字真的长到会被 API 截断"时，截断那两条用例才有前提 ✓（否则如实说明、不假装 ✓）
+    trunc_shape = (
+        wiring_trunc.endswith("...")
+        and len(wiring_trunc) < len(wiring_full)
+        and wiring_full.startswith(wiring_trunc[: -len(TRUNCATION_MARK)].rstrip())
+    )
+
+    def with_concl(jobs: list, name: str, concl: str) -> list:
+        return [(n, concl if n == name else c) for n, c in jobs]
+
+    lint_now = [
+        ("tactic-docs-lint（tactic 清单三处一致 + selftest）", "success"),
+        (wiring_trunc if trunc_shape else wiring_full, "success"),
+        ("queue-lint（队列 + 多会话台账 + 编译缓存判据；不设 if 过滤器 ⇒ 每推必跑）", "success"),
+    ]
+    queue_name = lint_now[2][0]
+    # **当前形状**：真历史夹具 + 今天新增的三个"每推必跑" lint job + `mark-verified`
+    # 按设计 skip（main push 上 rust/courses/editor 没变时它就是 skip ✓ ⇒ 不误报 ✓）
+    now = true_green + lint_now + [
+        ("mark-verified（重活真跑过且全绿 ⇒ 推进「已验证点」标记）", "skipped"),
+    ]
+
     cases: list[tuple[str, list, bool, str, int]] = [
         ("真绿（main push，重活全跑）", true_green, True, "true-green", 0),
         ("**假绿**（纯 docs，重活全 skip）", fake_green, True, "fake-green", 2),
         ("红（重活里一个 failure）", red, True, "red", 1),
         ("红优先于假绿（failure 与 skip 并存）", fake_green + [("test (x, lib)", "failure")], True, "red", 1),
         ("真绿（PR：e2e-ledger 按设计 skip）", pr, False, "true-green", 0),
+        # ⭐ 当前形状：分类表补全 + 截断名认回 + `mark-verified` 按设计 skip
+        ("真绿（当前形状：三个 lint job + 截断名 + mark-verified skip）",
+         now, True, "true-green", 0),
+        # ⭐⭐ **反向验证（用户写死的形状）**：ALWAYS 类 job 被 skip ⇒ **必须不判绿** ✗
+        ("**ALWAYS 被 skip（queue-lint）⇒ 不判绿**",
+         with_concl(now, queue_name, "skipped"), True, "fake-green", 2),
+        # ⭐ failure ⇒ 必须判红（用户写死的形状）
+        ("**failure（queue-lint）⇒ 判红**",
+         with_concl(now, queue_name, "failure"), True, "red", 1),
     ]
+    if trunc_shape:
+        cases += [
+            # ⭐ **截断不是逃生门**：认回的那个 job 被 skip ⇒ 照样判假绿 ✓
+            ("**截断名被 skip ⇒ 照样不判绿（非逃生门）**",
+             with_concl(now, wiring_trunc, "skipped"), True, "fake-green", 2),
+        ]
 
     bad = 0
     for label, jobs, is_main, want_v, want_code in cases:
@@ -396,11 +628,35 @@ def selftest() -> int:
     if not okv:
         bad += 1
 
+    # ── 纯函数单元断言（不依赖 `ci.yml` 形状 ⇒ **永不空转** ✓）──────────────
+    unit: list[tuple[str, bool]] = [
+        # 截断**歧义** ⇒ **不许猜** ⇒ None（上层 ⇒ unclassified ⇒ exit 3）✓
+        ("截断歧义 ⇒ 认不回（不猜）",
+         match_truncated("job-x（前缀 + ...",
+                         {"a": "job-x（前缀 + 尾巴甲）", "b": "job-x（前缀 + 尾巴乙）"}) is None),
+        # 截断**唯一** ⇒ 认回 ✓
+        ("截断唯一 ⇒ 认回",
+         match_truncated("job-x（前缀 + ...", {"a": "job-x（前缀 + 尾巴甲）"}) == "a"),
+        # ⚠ **不以 `...` 结尾就绝不走前缀路** —— 否则就是**放宽** ✗
+        ("非截断名不走前缀路（不放宽）",
+         match_truncated("job-x（前缀", {"a": "job-x（前缀 + 尾巴）"}) is None),
+        # `--run` 两形（sha 不是 run id ⇒ 走解析；否则会 404 成"红" ✗）
+        ("--run 认 run id / sha 两形",
+         looks_like_run_id("38884242478") and not looks_like_run_id("4adae13e")),
+        # ⚠ 前提缺失 ⇒ **exit 3**（不是 `1`=红 ✗）—— 退化成 `sys.exit("<字符串>")` 就恒退 1 ✗
+        ("前提缺失 ⇒ exit 3（不是 1=红）", _bail_exit_code() == EXIT_NOT_JUDGED),
+    ]
+    for label, okv in unit:
+        print(f"  {'✓' if okv else '✗'} {label:<34} → {'ok' if okv else '不符'}")
+        if not okv:
+            bad += 1
+
+    total = len(cases) + 1 + len(unit)
     print()
     if bad:
-        print(f"✗ selftest 判红：{bad}/{len(cases) + 1} 个用例不符 ✗")
+        print(f"✗ selftest 判红：{bad}/{total} 个用例不符 ✗")
         return 1
-    print(f"✓ selftest 全过：{len(cases) + 1}/{len(cases) + 1} 个用例符合 ✓")
+    print(f"✓ selftest 全过：{total}/{total} 个用例符合 ✓")
     return 0
 
 
