@@ -337,6 +337,21 @@ run "gates：编译缓存判据自检（回收顺序 / 预算反向验证）" "q
 # ⚠ **判据一条都没放宽** ✗：照原样跑（撤掉分类表一项 ⇒ **6/15 判红**，实测 ✓）。
 run "gates：真绿判据通道自检（离线 · 不需要 gh / 网络）" "queue-lint" python3 scripts/ci-green.py --selftest
 
+# **json 身份判据通道自检**（2026-10-16 · 洞 `CHECK-JSON-IDENTITY-NOT-WIRED-AT-ALL` ✓）：同族第三例
+# —— `check-json-identity.py` 是 `AGENTS.md` 硬规则 1 的**发版红线**（全课程 `--json` 逐字节），
+# 而它在 `.github/workflows/**` / `scripts/ci-local.sh` / `scripts/githooks/*` 里**全是 0 处** ✗
+# （唯一跑到它的是 `scripts/release-preflight.sh:76` 的 `--sweep`，**opt-in** ⇒ 不传就不跑 ✗）；
+# 更糟的是它的防空转通道 `--selftest` 改前**在任何环境里都跑不成** —— 硬编码
+# `target/debug/sokonanoda`，而受管环境（本文件 :46 的 `CARGO_TARGET_DIR=/tmp/soko-target`）
+# 里产物根本不在那个路径 ⇒ `FileNotFoundError` traceback（rc=1 是**崩**出来的，不是咬出来的 ✗）
+# ⇒ 自检**接不进任何 gate** ✗。⇒ 本步：**判据通道自检**（三格：不同⇒1 · 相同⇒0 · 答不上⇒2 ✓），
+# 与 `ci.yml` 的 `queue-lint` job 里那一步**同一条命令** ✓（本地先咬住，不必等 33 分钟的 CI ✓）。
+# ⚠ 离线 ✓ 实测 1.2s ✓ **零前提**（自造假 CLI，不碰 `target/`）⇒ `--fast` 也跑 ✓。
+# ⚠ 真 CLI 的全课程对拍**不在这里** ✗：它要一份"已发布 tag 的构建"当基线、251 个入口跑两遍
+# ⇒ 属**发版大节点**（`AGENTS.md` 硬规则 1 + `scripts/release-preflight.sh --sweep` ✓），
+# 塞进每推的本地 gate 只会是**假红生成器**（这里没有基线二进制 ✗）。
+run "gates：json 身份判据通道自检（离线 · 不需要真 CLI）" "queue-lint" python3 scripts/check-json-identity.py --selftest
+
 # ④ editor（CI job `editor`）
 run "editor：stub 宿主" "editor" node editor/vscode/test-extension-host.js
 

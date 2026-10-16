@@ -304,6 +304,23 @@ jobs:
         # ⚠ 离线 ✓ 亚秒级 ✓（只读本仓 `ci.yml` + 一臂把 `subprocess.run` 打成
         # `FileNotFoundError` ✓）⇒ 塞进本 job（5 分钟预算）是噪声级 ✓。
         run: python3 scripts/ci-green.py --selftest
+      - name: "json 身份判据通道自检（离线 · 不需要真 CLI）"
+        # 2026-10-16 · 洞 `CHECK-JSON-IDENTITY-NOT-WIRED-AT-ALL`（st1 横向排查实测 ✗→✓）：
+        # `check-json-identity.py` 是 `AGENTS.md` 硬规则 1 的**发版红线**（全课程 `--json`
+        # 逐字节对拍），而它在 `.github/workflows/**` / `scripts/ci-local.sh` /
+        # `scripts/githooks/*` 里**全是 0 处** ✗ —— 唯一跑到它的是
+        # `scripts/release-preflight.sh:76` 的 `--sweep`（**opt-in** ⇒ 不传就不跑 ✗）。
+        # ⚠ 它的防空转通道 `--selftest` 改前**在任何环境里都跑不成**：硬编码
+        # `target/debug/sokonanoda`，而本仓的受管环境把产物放 `$CARGO_TARGET_DIR`
+        # （`scripts/ci-local.sh:46` 默认 `/tmp/soko-target`）⇒ `FileNotFoundError`
+        # traceback（rc=1 是**崩**出来的，不是咬出来的 ✗）⇒ 自检**接不进任何 gate** ✗。
+        # ⇒ 已把它改成**零前提**（自造假 CLI；三格：不同⇒1 · 相同⇒0 · 答不上⇒2 ✓）并显式接这一步。
+        # ⚠ **判据一条都没放宽** ✗：真 CLI 的对拍路径（`--baseline`/`--new`）逐字未动、
+        # `--min-answered` 空转闸逐字未动；自检从 1 格加到 3 格 ✓。
+        # ⚠ 全课程对拍**不在这里** ✗（要一份"已发布 tag 的构建"当基线 + 251 个入口跑两遍
+        # ⇒ 属发版大节点 ✓，见 `scripts/release-preflight.sh --sweep`）。
+        # ⚠ 离线 ✓ 实测 1.2s ✓（本 job 预算 5 分钟 ⇒ 噪声级 ✓）。
+        run: python3 scripts/check-json-identity.py --selftest
       - name: 队列**独立**复核（第二份实现 + 纯 git 事实 + 证据可复算 ratchet）
         # 2026-10-15 · `SUB-orchestrator-attention-structure`【1】/【2】 ✓。
         # 病根 = **判据的所有权**：`ux-queue.py` 同时定义队列语义/守卫/证据规则/**复核判据**
