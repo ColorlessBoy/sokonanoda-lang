@@ -296,18 +296,19 @@ def state_problems(st: dict) -> list[str]:
                     red.append(f"**caps 没比上轮低** ✗：`{cap_id}` 第 {entry.get('round')} 轮与"
                                f"上一轮都停在 {human(cap_id, cur[cap_id])}（还没到收敛目标 "
                                f"{human(cap_id, spec['floor'])}）⇒ ratchet 空转了 ✗")
-        # ⭐ **开轮闸门的复查**（`open_round` 要求"读数落进**收紧后**的上限"，而收紧后的上限
-        # = **下一轮**的 caps ⇒ 这条把那次闸门变成**可重算**的：手改 history 把越界读数塞进来
-        # ⇒ 判红 ✓（照 `check_plan` 复查收口指针的先例 ✓）。末轮没有"下一轮"⇒ 跳过。
-        if idx + 1 < len(hist):
-            nxt = hist[idx + 1].get("caps") or {}
-            for cap_id in REGISTRY:
-                val = (entry.get("reading") or {}).get(cap_id)
-                if val is not None and cap_id in nxt and val > nxt[cap_id]:
-                    red.append(f"**history 第 {entry.get('round')} 轮的读数越界** ✗：`{cap_id}` "
-                               f"实测 {human(cap_id, val)} > 当时收紧后的上限 "
-                               f"{human(cap_id, nxt[cap_id])} ⇒ 那一轮**本来开不成**"
-                               f"（history 被手改过 / `open_round` 的闸门被绕过）")
+        # ⭐ **开轮闸门的复查**（`open_round` 要求"读数落进**收紧后**的上限"，而它在开这一轮时
+        # 收紧出来的就是**这一轮自己的** `caps`（`open_round` 里 `nxt = tighten(st["caps"])`
+        # 然后 `entry["caps"] = nxt`）⇒ 复查要拿 `cur`（本轮 caps）比，**不是** `hist[idx+1]` ✗。
+        # ⚠ 2026-10-16 实测更正：原写法比的是**下一轮**的 caps ⇒ **off-by-one** ✗ ——
+        # 第 3 轮开轮时闸门只要求 `<= 8.5 MB`（它自己的 caps ✓），而复查拿第 4 轮的 8.0 MB 去比
+        # ⇒ 把"收紧的正常后果"判成了"那一轮本来开不成" ✗（逐轮读数其实**自洽** ✓）。
+        for cap_id in REGISTRY:
+            val = (entry.get("reading") or {}).get(cap_id)
+            if val is not None and cap_id in cur and val > cur[cap_id]:
+                red.append(f"**history 第 {entry.get('round')} 轮的读数越界** ✗：`{cap_id}` "
+                           f"实测 {human(cap_id, val)} > 那一轮收紧后的上限 "
+                           f"{human(cap_id, cur[cap_id])} ⇒ 那一轮**本来开不成**"
+                           f"（history 被手改过 / `open_round` 的闸门被绕过）")
         prev = cur
     if hist and (hist[-1].get("caps") or {}) != caps:
         red.append("`caps` 与 `history` 末轮不一致 ✗（同一份真相不许两处各写一份）")
