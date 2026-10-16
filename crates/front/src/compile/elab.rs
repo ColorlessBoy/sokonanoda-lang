@@ -4495,17 +4495,17 @@ fn try_implicit_application_with<'a>(
     // 开头贴合 ⇒ 这就是旧写法，路线③ **必须让位** ✓（它只该管"实参从显式层开始"的形状）。
     let starts_old_style = !strict_at
         && args.first().is_some_and(|a| {
-        type_head_fits_layer(
-            &layers[0].domain,
-            a,
-            ctx,
-            scope,
-            Some(&mut InplaceEnv {
-                builder: &mut *builder,
-                known,
-            }),
-        )
-    });
+            type_head_fits_layer(
+                &layers[0].domain,
+                a,
+                ctx,
+                scope,
+                Some(&mut InplaceEnv {
+                    builder: &mut *builder,
+                    known,
+                }),
+            )
+        });
     {
         // **闸门 = 「实参比显式层多」且「旧写法不贴合」** ✓。
         //

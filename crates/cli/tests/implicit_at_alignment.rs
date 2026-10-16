@@ -248,9 +248,8 @@ def uses : Nat := ignores 3
         .to_string();
     let filled = escape.replace("<α>", "Nat");
     assert_ne!(filled, escape, "占位符必须能被填上：{escape}");
-    let probe = format!(
-        "def ignores {{α : Type}} (n : Nat) : Nat := n\n\ndef uses : Nat := {filled}\n"
-    );
+    let probe =
+        format!("def ignores {{α : Type}} (n : Nat) : Nat := n\n\ndef uses : Nat := {filled}\n");
     let (ok, checked, diags) = grade("unsolved-escape", &probe, &[]);
     assert!(
         ok && checked.iter().any(|c| c == "uses"),

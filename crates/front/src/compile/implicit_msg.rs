@@ -151,13 +151,22 @@ pub(crate) fn unsolved_message(
     why: &str,
 ) -> String {
     let names = source_layer_names(ty_text);
-    let implicit_list: Vec<String> = (0..k).map(|i| format!("`{}`", name_of(names.as_ref(), i))).collect();
+    let implicit_list: Vec<String> = (0..k)
+        .map(|i| format!("`{}`", name_of(names.as_ref(), i)))
+        .collect();
     // 头文本与整条应用的原文都从**同一份渲染**取 ⇒ 前缀能逐字剥掉 ✓；
     // 剥不掉（渲染形状不一致）⇒ 退回只给 `@<头> …`（**绝不印一条错的出路** ✗）。
     let rest = whole_text.strip_prefix(head_text);
-    let placeholders: Vec<String> = (0..k).map(|i| format!("<{}>", name_of(names.as_ref(), i))).collect();
+    let placeholders: Vec<String> = (0..k)
+        .map(|i| format!("<{}>", name_of(names.as_ref(), i)))
+        .collect();
     let escape = match rest {
-        Some(rest) => format!("@{} {} {}", head_text, placeholders.join(" "), rest.trim_start()),
+        Some(rest) => format!(
+            "@{} {} {}",
+            head_text,
+            placeholders.join(" "),
+            rest.trim_start()
+        ),
         None => format!("@{} {} …", head_text, placeholders.join(" ")),
     };
     format!(

@@ -224,7 +224,12 @@ def fold_raw(events: list) -> dict[str, str]:
         elif kind == "repoint":
             pass                                   # 只改指针，状态一个字不动 ✓
         elif kind == "split":
-            cur = "umbrella"
+            # 规格（本函数 docstring）：`split` ⇒ **父** `umbrella`；事件的 `id` 是**子** ✓
+            # ⇒ 折到 `parent` 上，且 `cur` 属于 `ident`（子）这一轮，别误改它 ✓
+            par = ev.get("parent")
+            if isinstance(par, str) and par:
+                st[par] = "umbrella"
+            continue
         elif kind == "reopen":
             cur = "todo"
         elif kind == "triage":
