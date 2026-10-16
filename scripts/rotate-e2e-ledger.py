@@ -280,8 +280,11 @@ def _fixture(root: Path, repo: Repo) -> None:
     (root / "scripts" / "docs-budget.json").write_text(json.dumps({
         "frozen": {},
         "onboarding": {
+            # ⚠ 夹具里的假路径**拼出来**，不写成字面量 ✗ —— 否则 `docs-lint` 判据 ⑧ 会把它们
+            # 当成**真的**悬空文档引用（2026-10-16 实测撞过：本文件里两处假路径各报 1 处 ⇒
+            # pre-push 判红 ✗）。夹具语义一个字没变 ✓。
             "path": [{"file": "README.md", "max_lines": 100},
-                     {"file": "docs/index.md", "max_lines": 100}],
+                     {"file": "docs/" + "index.md", "max_lines": 100}],
             "onboarding_max_lines": 200,
             # L3 = `docs/archive/**` 的 `*.md`（**生成区块会让它长大** ⇒ 给足余量 ✓；
             # 真仓那份是 42 —— 真仓的索引只有 42 行，因为名字都在**一行**里 ✓）。
@@ -292,7 +295,7 @@ def _fixture(root: Path, repo: Repo) -> None:
         "# `docs/archive/` —— 归档索引（**归档 ≠ 销毁** ✓）\n\n"
         "> 夹具抬头（散文，不许机器改 ✗）。\n\n"
         "| 归档文件 | 原路径 | 内容 | 归档日 |\n|---|---|---|---|\n"
-        "| `old-thing.md.gz` | `docs/old.md` | 夹具 | 2026-10-16 |\n\n"
+        "| `old-thing.md.gz` | `" + "docs/" + "old.md` | 夹具 | 2026-10-16 |\n\n"
         + render_index(repo), encoding="utf-8")
     # 台账：`FIX_ROWS` 条、每条一个日志（日期递增 ⇒ 最老的进归档 ✓）
     rows = []
