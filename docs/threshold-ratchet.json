@@ -1,8 +1,8 @@
 {
   "version": 1,
   "round": 4,
-  "head": "32254937cf7aed4e15386698b02ccc53cda24b3a",
-  "at": "2026-10-16T10:31:09+00:00",
+  "head": "66fe1ed44b6ed2ff54a66e301fbdd3fb96746ffa",
+  "at": "2026-10-16T10:34:25+00:00",
   "caps": {
     "docs_live_bytes": 8000000,
     "docs_archive_bytes": 1500000,
@@ -108,8 +108,8 @@
     },
     {
       "round": 4,
-      "head": "32254937cf7aed4e15386698b02ccc53cda24b3a",
-      "at": "2026-10-16T10:31:09+00:00",
+      "head": "66fe1ed44b6ed2ff54a66e301fbdd3fb96746ffa",
+      "at": "2026-10-16T10:34:25+00:00",
       "caps": {
         "docs_live_bytes": 8000000,
         "docs_archive_bytes": 1500000,
@@ -120,7 +120,7 @@
         "target_incremental_max_bytes": 38654705664
       },
       "reading": {
-        "docs_live_bytes": 6870341,
+        "docs_live_bytes": 6874788,
         "docs_archive_bytes": 1376490,
         "status_total_lines": 81,
         "site_text_bytes": 60823,
