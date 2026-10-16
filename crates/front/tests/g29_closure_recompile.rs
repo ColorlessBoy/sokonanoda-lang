@@ -204,9 +204,19 @@ fn g29_library_checkpoint_is_bounded() {
         8,
         "泄漏 arena 数必须封顶在 `MAX_LEAKED_LIB_ARENAS`（12 轮库层改动 ⇒ 8 份封顶）"
     );
+    // ⭐ **2026-10-16 订正（`LEAKED-LIB-ARENAS-CLIFF`）**：这里原写
+    // `assert!(!lib_checkpoint_is_live(), …)` —— 它把"**不再建**新检查点"（上界 ① 的
+    // 真意，由上面那条 `lib_checkpoint_arenas_leaked() == 8` 钉住 ✓）**误**写成了
+    // "**不许留下**任何检查点" ✗。后者不是上界，而**正是本洞**：LRU 里那些检查点的
+    // arena **早就泄漏了**（抹掉它们一个字节都省不下来 ✗），键也仍然有效 ⇒ 抹掉只是把
+    // "部分退化（新键走回退路）"变成"本进程内**永久全量退化**" ✗
+    // （判据：`crates/front/tests/leaked_lib_arenas_cliff.rs` —— 修前实测回头改已建过的
+    // 入口读到 `closure_module_compiles_total` = 2 · `elaborated_commands` = 12 ✓）。
+    // ⇒ 断言改成"**LRU 不许被抹掉**"：上界 ①（内存）一个字没动，少掉的只是那道假上界 ✓。
     assert!(
-        !lib_checkpoint_is_live(),
-        "上界用尽之后不许再留检查点（回退路：栈上 arena，与今天逐字节相同）"
+        lib_checkpoint_is_live(),
+        "上界用尽只许**不再建**新检查点（`lib_checkpoint_arenas_leaked()` 恒 8 ✓）—— \
+         **不许**把已经泄漏、键仍然有效的检查点一起抹掉 ✗（那会让本进程内后续每一刀都整条重走）"
     );
     let report = doc.report.as_ref().expect("必须有报告");
     assert!(
