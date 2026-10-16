@@ -50,9 +50,24 @@ run() { # run <阶段名> <CI 里对应的 job> <命令...>
 summary() {
   printf '\n\033[1m=== 汇总 ===\033[0m\n'
   local p; for p in "${PASS[@]:-}"; do [ -n "$p" ] && printf '  ✅ %s\n' "$p"; done
+  local s; for s in "${SOFT[@]:-}"; do [ -n "$s" ] && printf '  ⚠️  %s（**读数** · 只出声不拦 ✓）\n' "$s"; done
   local f; for f in "${FAIL[@]:-}"; do [ -n "$f" ] && printf '  ❌ %s\n' "$f"; done
   [ ${#FAIL[@]} -eq 0 ] && printf '  ⇒ **本地全绿 ✓**：可以 push 了 ✓（CI 只做平台矩阵确认 ✓）\n' \
                         || printf '  ⇒ **别 push** ✗：先修上面那条 ✓\n'
+}
+SOFT=()
+soft() { # soft <读数名> <命令...> —— **只出声不判红** ✗（读数 ≠ 闸；理由见 `scripts/release-metric.py` 头部）
+  local name="$1"; shift
+  printf '\n\033[1m▶ %s\033[0m  （**读数** · 只出声不判红 ✗）\n  $ %s\n' "$name" "$*"
+  local out rc
+  out=$("$@" 2>&1); rc=$?
+  printf '%s\n' "$out"
+  if [ "$rc" -eq 0 ]; then
+    printf '  ✅ %s：绿 ✓\n' "$name"
+  else
+    printf '  ⚠️  %s：**红**（rc=%s）—— 出路 = 走一次发布闭环（bump 两处版本 → push main → auto-tag）✗ **不拦本次推送** ✓\n' "$name" "$rc"
+  fi
+  SOFT+=("$name (rc=$rc)")
 }
 
 # ⓪ **workflow 文件本身的静态校验** ✓（2026-09-26 事故 ✓）——
@@ -78,6 +93,20 @@ run "workflow：改动范围门控覆盖（R1/R2/R3）" "wiring-lint" bash -c '
 set -u
 python3 scripts/check-ci-gate-coverage.py --check || exit 1
 python3 scripts/check-ci-gate-coverage.py --selftest || exit 1'
+
+# ⭐⭐ **交付维度读数**（2026-10-16 · 用户追问「清账 Agent 不会检查还有多少没发版吧，我看它每次
+# 给我发的会话累计」✓ · 队列 `SUB-release-metric-measures-unreleased`）：
+# 报告那张「会话累计」表里的「**发版**」那一格原写「`v0.91.0` 已发布并闭环（26 资产）」——
+# 那是个**二进制**事实（历史上发过 ⇒ **永远为真**）⇒ 它**永远不会**提醒"该发版了" ✗：
+# 实测（用户报数那一刻 `05584b15`）**209 笔未发版 / 22.9 小时**，而那一格仍是 ✓ ✗。
+# ⇒ 换成**未发版量**（可数 · 会涨 · 会判红 ✓）= `python3 scripts/release-metric.py`
+# （口径 = 那个脚本的 `TIERS`，`--explain` 印出来 ✓；红线 = >50 笔 或 >24h ✓）。
+# ⚠ **为什么用 `soft` 而不是 `run`** ✗：发版是**人工 ops 动作**（bump 两处版本 → push main →
+# `ci.yml:426` 的 auto-tag），**不是代码能自己解决的事** ⇒ 判红会是一条**没有出路的红**
+# （照 `scripts/check-attention-budget.py` 的 `judge_round()` 先例）⇒ `soft()` **故意不传播 rc** ✓；
+# 但它**每次 push 都印**（`scripts/githooks/pre-push` 跑本脚本 ✓）—— 这就是"让那一格活着"的机制 ✓。
+# 亚秒级（纯 git、不联网）⇒ `--fast` 也跑 ✓。
+soft "读数：未发版量（交付维度 · 报告那一格）" python3 scripts/release-metric.py
 
 # ① lint（CI job `lint`）—— 注意：**绝不** `cargo fmt --all`（kernel 的 rustfmt.toml 要 nightly ✓）
 run "lint：fmt"  "lint" cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
