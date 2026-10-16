@@ -19,6 +19,25 @@
   B2 **簿记类提交占比**   —— 告警 `SHARE_WARN` · 红线 `SHARE_MAX`
   超告警线 ⇒ 出声（`::warning::`）**不判红** ✓；超红线 ⇒ **判红**（exit 1）✗
 
+## ⭐ 2026-10-16：两处口径**同源** + 「**红必须有出路**」（洞 `BUDGET-WARN-VS-GATE-RED-INCONSISTENT`）
+
+**改前实测的病（两个，别混成一个）**：
+
+  ① **step 标签是第二份真相** ✗：`scripts/ci-local.sh:226` 把两档**写死在标签里**
+     （`run "gates：簿记预算（告警 17:1 / 57% · 红线 19:1 / 60%）" …`）—— 那是**种子**，
+     而判据读的是 `docs/attention-budget-ratchet.json` 的**本轮 caps**（已收紧到
+     `16:1 / 55%` · `18:1 / 58%`）⇒ pre-push 印的 caps 与判据用的 caps **不是一组** ✗；
+     读数落在告警档时，人看到的是「上一轮的 caps + `exit=1`」⇒ **误诊成「告警被当成红」** ✗。
+     ⇒ 修：`--label` **从 ratchet 状态读**（本文件 = 那份状态的**唯一读者** ✓），
+     接缝判据（`seam_problems`）机械咬住"标签又被写死" ✗。
+  ② **一条没有出路的红** ✗：`judge_round()`（ratchet 空转）**无条件**判红，而它的出路
+     （`--open-round`）要求读数**严格低于上一轮** —— 读数比上一轮**差**时那条路**物理上走不通**
+     ⇒ 空转红盖住了「告警档只告警不拦」⇒ 拦住推送 ✗。
+     ⇒ 修：**有出路才判红**（照兄弟守卫 `scripts/threshold_ratchet.py` 的 `judge_idle()`：
+     「再开轮也降不下去 ⇒ 判红会是一条**没有出路的红** ✗」——同一条纪律 ✓）；
+     没出路 ⇒ **告警**（看得见 + 写明出路 = 落产品）✓。
+     ⚠ **两档 caps 一个都没动** ✓（红线只紧不松：改前改后都读同一份 `caps` ✓）。
+
 ## ⭐ 2026-10-16：从「防止变坏」改成「**逼它变好**」（真 ratchet · 用户 2026-10-15【②】）
 
 ⚠ **改前的病**（用户实测，公平且准确）：`RATIO_MAX = 19.0` 而实测 **10.14 : 1** ·
@@ -36,6 +55,10 @@
   · **谁开轮**（**不是纪律** ✓）：`state.head` 之后落了超过 `ROUND_MAX_COMMITS` 笔还没开轮
     ⇒ **默认跑就判红**（"ratchet 空转"）✗ —— 想消红只能 `--open-round`，
     而 `--open-round` 要求**读数真的降了** ⇒ **红有出路**（多落产品）✓，不是假红生成器 ✓
+    ⚠ **但"出路"必须是**那条红**当场**走得通的**（2026-10-16 修）：读数比上一轮**差**时
+    `--open-round` **物理上走不通** ⇒ 那条红**没有出路** ⇒ 降为**告警**（照兄弟守卫
+    `threshold_ratchet.judge_idle()` 的 `converged()` 先例 ✓）；读数**真的降了**而还空转
+    ⇒ **照样判红**（出路 = 一条命令，就在手边 ✓）。
   · **③ 产品面最低配额**：`--open-round` **必须**带 `--user-reading`
     （一条**真编辑器**命令 + `⇒` 实测读数 ⇒ **形状可判** ✓）；缺 ⇒ rc=1，本轮**不算收口** ✗
   · **④ 新守卫必须自带咬住证明**：`--open-round` 调 `scripts/check-guard-bite.py --check --since <基点>`
@@ -66,11 +89,15 @@
 
   0 = 在红线内（**含只超告警线** ✓） / 1 = 超红线（判红） / 2 = 用法错 /
   3 = 环境错（浅克隆 / 状态文件缺失之类，**不假装判过** ✗）
+  ⚠ **空转那条红**：**有出路**（`--open-round` 当场走得通）⇒ 1 ✓；**没出路** ⇒ 只告警 ⇒ 0 ✓。
 
 ## 用法
 
   python3 scripts/check-attention-budget.py             # 告警/判红/绿 + 读数
   python3 scripts/check-attention-budget.py --json
+  python3 scripts/check-attention-budget.py --label     # **只印 step 标签**（caps 从状态读 ⇒ 与判据同源）
+  python3 scripts/check-attention-budget.py --seam      # 接缝：step 标签**真的读 ratchet**（不是写死的字面量）
+  python3 scripts/check-attention-budget.py --seam --source-rev <旧 rev>   # 咬住证明：打在**历史版本**上
   python3 scripts/check-attention-budget.py --recent 50 # 另给一个近窗读数（**只报不判**）
   python3 scripts/check-attention-budget.py --init      # 只在落地那一次：写第 0 轮基线
   python3 scripts/check-attention-budget.py --open-round \\
@@ -159,6 +186,84 @@ _EDITOR_TOKENS = ("vscode-e2e", "npx vscode-test", "test-extension-host", "SOKO_
                   "site-screenshot", "--browser")
 # 读数的形状 = "命令 ⇒ 观测"（`⇒` / `->` / `=>` 任一；仓库里读数一律这么写 ✓）
 _READING_SEP = re.compile(r"⇒|->|=>")
+
+# ── **接缝**（A 层产出 caps、B 层消费 ⇒ 必须有 A∖B 对账；照 `audit-wire-fields.py` /
+#    `threshold_ratchet.seam_problems()` 的先例 ✓）──────────────────────────────
+# 病（2026-10-16 实测，洞 `BUDGET-WARN-VS-GATE-RED-INCONSISTENT`）：**caps 被印了两遍** ——
+# 判据读 `docs/attention-budget-ratchet.json`（对 ✓），而 gate 的 **step 标签**把种子常量
+# 写死在 `scripts/ci-local.sh:226`（`告警 17:1 / 57% · 红线 19:1 / 60%`）✗ ⇒
+# 状态收紧之后标签**不动** ⇒ pre-push 印的 caps 与判据用的 caps **不是一组** ✗
+# （读数在告警档时人看到「上一轮的 caps + exit=1」⇒ 误诊成"告警被当成红" ✗）。
+#
+# 判据 = **两个标记**（机械、可复跑 ✓）：
+#   ① 消费点里有 `check-attention-budget.py --label`（**真的从状态读标签** ✓）；
+#   ② 消费点里**没有** caps 的字面量（形状 = 改前那一行的 `告警 17:1` / `红线 19:1` ✗）。
+# `--source-rev <旧 rev>` = 从**历史版本**读源码 ⇒ 用来做**咬住证明**：改前的 `ci-local.sh`
+# **没有** `--label` 而**有**字面量 ⇒ 本判据在那份**已存在的**坏输入上**必须报红** ✓。
+_CAPS_LITERAL = re.compile(r"(告警|红线)\s*[0-9]+(\.[0-9]+)?\s*(:\s*1|%)")
+SEAM: tuple[dict, ...] = (
+    {"rel": "scripts/ci-local.sh",
+     "marker": "check-attention-budget.py --label",
+     "why": "pre-push / `ci-local.sh --fast` 的 **step 标签**必须从 ratchet 状态读 "
+            "（改前写死种子常量 ⇒ 印的是**上一轮的 caps** ✗）"},
+    {"rel": "scripts/soko",
+     "marker": "check-attention-budget.py",
+     "why": "贡献者 gate（`--fast` 也跑）必须**真的调判据**；caps 一律由本文件的报告印 ⇒ 同源 ✓"},
+    {"rel": ".github/workflows/ci.yml",
+     "marker": "check-attention-budget.py",
+     "why": "CI 的 `queue-lint` 必须**真的调判据**；step 名里不许再写死 caps ✗"},
+)
+
+
+def caps_label(caps: dict, round_no: int | None = None) -> str:
+    """**本轮 caps 的 step 标签**（`--label` 用它 ⇒ 标签与判据**同源** ✓，唯一读者在本文件）。
+
+    形状照改前那一行（`gates：簿记预算（告警 … · 红线 …）` ✓），只是数字**从状态来** ✓。
+    """
+    def num(v: float) -> str:
+        return f"{v:g}"
+
+    out = (f"簿记预算（告警 {num(caps['ratio_warn'])}:1 / "
+           f"{caps['share_warn'] * 100:.0f}% · 红线 {num(caps['ratio_max'])}:1 / "
+           f"{caps['share_max'] * 100:.0f}%")
+    if round_no is not None:
+        out += f" · 第 {round_no} 轮"
+    return out + "）"
+
+
+def seam_problems(root: Path | None = None, source_rev: str | None = None) -> list[str]:
+    """**每个消费点必须真的读 ratchet**（否则 caps 是第二份真相：状态收紧、标签不动 ✗）。
+
+    ⚠ `source_rev` 指到**历史版本**时，`git show` 失败 ⇒ **判红**（**不假装判过** ✗）。
+    """
+    root = root or ROOT
+    red: list[str] = []
+    for spec in SEAM:
+        rel, marker = spec["rel"], spec["marker"]
+        if source_rev:
+            proc = subprocess.run(["git", "show", f"{source_rev}:{rel}"], cwd=str(root),
+                                  capture_output=True, text=True, encoding="utf-8",
+                                  errors="replace")
+            if proc.returncode != 0:
+                red.append(f"`git show {source_rev}:{rel}` rc={proc.returncode} ⇒ 量不到 ⇒ "
+                           f"**不假装判过** ✗")
+                continue
+            src = proc.stdout
+        else:
+            path = root / rel
+            if not path.exists():
+                red.append(f"消费点 `{rel}` 不存在 ⇒ **量不到 ≠ 绿** ✗")
+                continue
+            src = path.read_text(encoding="utf-8")
+        if marker not in src:
+            red.append(f"消费点 `{rel}` 里找不到 `{marker}` ⇒ **它没在读 ratchet** ✗"
+                       f"（{spec['why']}）")
+        hits = [ln.strip()[:88] for ln in src.splitlines() if _CAPS_LITERAL.search(ln)]
+        if hits:
+            red.append(f"消费点 `{rel}` 里出现了 **caps 的字面量** ✗（caps 只许住在 "
+                       f"`docs/attention-budget-ratchet.json`；标签用 "
+                       f"`check-attention-budget.py --label` ✓）—— {hits[:2]}")
+    return red
 
 
 def seed_caps() -> dict:
@@ -277,21 +382,49 @@ def advance_round(st: dict, reading: dict, user_reading: str | None,
     return new, []
 
 
-def judge_round(state: dict, n_since: int,
-                round_max: int = ROUND_MAX_COMMITS) -> list[str]:
-    """**纯函数**：**开轮纪律**的机械面 —— 基点之后落太多笔还没开轮 ⇒ 判红 ✗。
+def open_round_would_pass(state: dict, reading: dict | None) -> bool:
+    """**纯函数**：`--open-round` **现在能不能成**（= 那条空转红**有没有出路** ✓）。
+
+    判据 = `advance_round()` 的 ① 闸门（**唯一一条你没法"补"的闸门** —— 另外三条
+    （`--user-reading` / `--user-case` / 守卫咬住证明）都是操作方**当场能提供**的输入 ✓）：
+    读数必须**严格低于**上一轮（B1 与 B2 都要，与 `advance_round` 逐字同口径 ✓）。
+    `history` 为空 ⇒ 没有可比的一轮 ⇒ 能开（`advance_round` 在空 history 下不做这条比较 ✓）。
+    """
+    hist = state.get("history") or []
+    if not hist or reading is None:
+        return True
+    prev = hist[-1].get("reading") or {}
+    return (reading["ratio"] < prev.get("ratio", float("inf"))
+            and reading["share"] < prev.get("share", float("inf")))
+
+
+def judge_round(state: dict, n_since: int, reading: dict | None = None,
+                round_max: int = ROUND_MAX_COMMITS) -> tuple[list[str], list[str]]:
+    """**纯函数**：**开轮纪律**的机械面 —— 基点之后落太多笔还没开轮 ⇒ `(判红, 告警)`。
 
     为什么必须有这一条：`--open-round` 如果**没人调**，ratchet 就停在原地
     ⇒ 又变成装饰 ✗（"不跑的守卫等于没有"，`docs/CI-FAILURES.md:448` ✓）。
-    ⇒ 把它做成**默认跑就判红**的约束 ✓（消红的唯一出路是 `--open-round`，
-      而它要求读数真的降了 ✓）。
+    ⇒ 把它做成**默认跑**的约束 ✓（消红的唯一出路是 `--open-round`，而它要求读数真的降了 ✓）。
+
+    ⚠ **但"红必须有出路"**（2026-10-16 修，洞 `BUDGET-WARN-VS-GATE-RED-INCONSISTENT`）：
+    读数比上一轮**差**时 `--open-round` **物理上走不通** ⇒ 无条件判红 = 一条**没有出路的红**
+    ⇒ 它盖住「告警档只告警不拦」（实测：读数 `57.1%` 在告警档、`exit=1` ⇒ 推送被拦 ✗）。
+    ⇒ **有出路才判红**（照兄弟守卫 `scripts/threshold_ratchet.py:judge_idle()` 的
+    `converged()` 先例 ✓）；没出路 ⇒ **告警**（看得见 + 写明出路 ✓）。
+    ⚠ **两档 caps 一个都没动** ✓；空转**有出路**时照样判红 ⇒ 守卫没变装饰 ✓。
     """
     if n_since <= round_max:
-        return []
-    return [f"**ratchet 空转** ✗：第 {state.get('round')} 轮的基点 `{str(state.get('head'))[:12]}` "
-            f"之后已经落了 **{n_since} 笔**提交（> `ROUND_MAX_COMMITS = {round_max}`）还没开轮 "
-            f"⇒ 阈值停在原地 = **装饰** ✗。出路：`--open-round --user-reading '…'` ✓"
-            f"（它会要求**读数真的比上轮低** ⇒ 红有出路 ✓）"]
+        return [], []
+    head = str(state.get("head"))[:12]
+    common = (f"**ratchet 空转**：第 {state.get('round')} 轮的基点 `{head}` 之后已经落了 "
+              f"**{n_since} 笔**提交（> `ROUND_MAX_COMMITS = {round_max}`）还没开轮 "
+              f"⇒ 阈值停在原地 = **装饰** ✗")
+    if open_round_would_pass(state, reading):
+        return [f"{common}。出路：`--open-round --user-reading '…'` ✓"
+                f"（读数已经比上轮低 ⇒ **那条路当场走得通** ✓ ⇒ 这条红有出路 ✓）"], []
+    return [], [f"{common} —— 但**本轮开不了轮**（读数没比上轮低 ⇒ `--open-round` 的 ① 闸门"
+                f"过不去）⇒ 那会是一条**没有出路的红** ✗ ⇒ **只告警、不拦** ✓。"
+                f"出路：**多落产品行**（`crates/` / `courses/`）把读数压下去 ⇒ 再 `--open-round` ✓"]
 
 
 def bucket(path: str) -> str:
@@ -442,6 +575,12 @@ def report(agg: dict, caps: dict, state: dict | None = None, n_since: int = 0) -
         print(f"  ⇒ **ratchet 第 {state.get('round')} 轮**"
               f"（基点 `{str(state.get('head'))[:12]}` · 之后落了 {n_since} 笔 · "
               f"开轮上限 {ROUND_MAX_COMMITS}）· 历史 {len(hist)} 轮")
+        if n_since > ROUND_MAX_COMMITS:
+            # ⭐ **空转红有没有出路**（改前这里只能从 stderr 的一条红里猜 ✗）——
+            # 出路 = `--open-round`（它的 ① 闸门 = 读数**严格低于上一轮** ✓）。
+            can = open_round_would_pass(state, _reading_of(agg))
+            print(f"     ⚠ 空转：{n_since} > {ROUND_MAX_COMMITS} ⇒ "
+                  f"`--open-round` {'**走得通** ⇒ 空转判红 ✓' if can else '**走不通**（读数没比上轮低）⇒ 空转**只告警、不拦** ✓'}")
         if hist:
             prev = hist[-1]["reading"]
             print(f"     vs 上一轮（第 {hist[-1]['round']} 轮）：比值 {prev['ratio']:.2f} → "
@@ -726,11 +865,62 @@ def selftest() -> int:
     gate("⑤ 反向：**没有** `--user-case`（收口判据没绑用户现场）⇒ 判红", bool(_r5b),
          (_r5b[0][:56] if _r5b else "**没判红** ✗"))
 
-    # ②-e **ratchet 空转**：基点之后落太多笔 ⇒ 默认跑就判红（"谁开轮"不是纪律 ✓）
-    gate("② 反向：**ratchet 空转**（基点后 > 上限笔数没开轮）⇒ 判红",
-         bool(judge_round(st, ROUND_MAX_COMMITS + 1)),
-         judge_round(st, ROUND_MAX_COMMITS + 1)[0][:60])
-    gate("② 正对照：刚开完轮（0 笔）⇒ 不判红", not judge_round(st, 0))
+    # ②-e **ratchet 空转**：基点之后落太多笔 ⇒ 判红（"谁开轮"不是纪律 ✓）；
+    # ⚠ 但**红必须有出路**（2026-10-16 修）：读数没比上轮低 ⇒ `--open-round` 走不通 ⇒ **告警** ✓
+    _idle_red, _idle_warn = judge_round(st, ROUND_MAX_COMMITS + 1, r1)
+    gate("② 反向：**ratchet 空转** + 读数**比上轮低**（`--open-round` 走得通）⇒ 判红",
+         bool(_idle_red), (_idle_red[0][:60] if _idle_red else "**没判红** ✗"))
+    gate("② 反向：空转**判红**时读数**没有**降（`--open-round` 走不通）⇒ 只告警不判红 ✗→✓",
+         not judge_round(st, ROUND_MAX_COMMITS + 1,
+                         {"ratio": 99.0, "share": 0.99})[0],
+         judge_round(st, ROUND_MAX_COMMITS + 1, {"ratio": 99.0, "share": 0.99})[1][0][:60])
+    gate("② 正对照：刚开完轮（0 笔）⇒ 不判红也不告警",
+         judge_round(st, 0, r1) == ([], []))
+    gate("② 正对照：`--open-round` 走得通/走不通的**纯函数**判定",
+         open_round_would_pass(st, r1) and not open_round_would_pass(st, {"ratio": 99.0, "share": 0.99})
+         and open_round_would_pass({"history": []}, r1),
+         f"r1={r1['ratio']} < 上轮 {st['history'][-1]['reading']['ratio']} ⇒ 走得通 ✓")
+
+    # ── ⭐ **接缝**（A 层产出 caps、B 层消费）的正反两向 ─────────────────────
+    print("\n接缝（caps **只许有一份**：step 标签必须从 ratchet 状态读 ✓）：")
+    _seam_root = Path(tempfile.mkdtemp(prefix="soko-seam-"))
+    (_seam_root / "scripts").mkdir(parents=True, exist_ok=True)
+    (_seam_root / ".github" / "workflows").mkdir(parents=True, exist_ok=True)
+    # **反向**（改前那一行的形状）：标签写死 caps 的字面量 ⇒ 必须判红
+    (_seam_root / "scripts" / "ci-local.sh").write_text(
+        'run "gates：簿记预算（告警 17:1 / 57% · 红线 19:1 / 60%）" "queue-lint" bash -c \'\n'
+        'python3 scripts/check-attention-budget.py --selftest || exit 1\n'
+        'python3 scripts/check-attention-budget.py || exit 1\'\n', encoding="utf-8")
+    (_seam_root / "scripts" / "soko").write_text("check-attention-budget.py\n", encoding="utf-8")
+    (_seam_root / ".github" / "workflows" / "ci.yml").write_text(
+        "python3 scripts/check-attention-budget.py\n", encoding="utf-8")
+    _bad = seam_problems(_seam_root)
+    gate("⭐ 反向：step 标签写死 caps 字面量（`告警 17:1`）⇒ **接缝判红**", bool(_bad),
+         (_bad[0][:70] if _bad else "**没判红** ✗"))
+    # **正对照**：标签从状态读（`--label`）⇒ 接缝齐
+    (_seam_root / "scripts" / "ci-local.sh").write_text(
+        'run "gates：$(python3 scripts/check-attention-budget.py --label)" "queue-lint" bash -c \'\n'
+        'python3 scripts/check-attention-budget.py --selftest || exit 1\n'
+        'python3 scripts/check-attention-budget.py || exit 1\'\n', encoding="utf-8")
+    gate("正对照：标签用 `--label` ⇒ 接缝齐", not seam_problems(_seam_root))
+    # **反向**：消费点根本没在读 ratchet ⇒ 判红
+    (_seam_root / "scripts" / "ci-local.sh").write_text('run "gates：簿记预算" "queue-lint" true\n',
+                                                        encoding="utf-8")
+    gate("反向：消费点**没在读 ratchet**（没有 `--label` 标记）⇒ 判红",
+         bool(seam_problems(_seam_root)),
+         (seam_problems(_seam_root)[0][:70] if seam_problems(_seam_root) else "**没判红** ✗"))
+    # **反向**：`--source-rev` 指到一个量不到的 rev ⇒ 判红（**不假装判过** ✗）
+    gate("反向：`--source-rev` 量不到 ⇒ 判红（不假装判过）",
+         bool(seam_problems(ROOT, source_rev="0000000000000000000000000000000000000000")))
+    # **正对照**：真仓的接缝齐（`ci-local.sh` 用 `--label` ✓）
+    gate("正对照：本仓的接缝齐（ci-local.sh / soko / ci.yml 三个消费点 ✓）",
+         not seam_problems(ROOT), "；".join(seam_problems(ROOT))[:70])
+    # **caps_label** 的形状（step 标签与判据**同源** ⇒ 数字必须来自传进来的 caps ✓）
+    _lbl = caps_label({"ratio_warn": 16.0, "ratio_max": 18.0,
+                       "share_warn": 0.55, "share_max": 0.58}, 1)
+    gate("正对照：`caps_label()` 的数字**来自 caps**（不是模块常量 ✓）",
+         "16:1" in _lbl and "18:1" in _lbl and "55%" in _lbl and "58%" in _lbl
+         and "第 1 轮" in _lbl, _lbl)
 
     # ── ⭐⭐ 端到端：**真 git 夹具仓**上连开两轮（② 的判据在真读数上也成立 ✓）──
     print("\n端到端（**真 git 夹具仓** · `--since` 用远古日期 ⇒ 夹具提交全进窗 ✓）：")
@@ -798,7 +988,8 @@ def selftest() -> int:
 
     print(f"\n自检：{'✓ 全过' if bad == 0 else f'✗ {bad} 组不对'}"
           f"（B1×2 + 正对照×3 · B2×1 + 正对照×1 · 分桶 {len(cases)} 格"
-          f" · ratchet ②③④ 正反两向 + 真 git 夹具端到端）")
+          f" · ratchet ②③④ 正反两向 + **空转有/无出路两向** + **接缝正反两向**"
+          f" + 真 git 夹具端到端）")
     return 0 if bad == 0 else 1
 
 
@@ -825,6 +1016,12 @@ def main(argv=None) -> int:
                     help="⑤ 用户的原始现场（他写的那段代码 / 他做的那个动作所在的路径）")
     ap.add_argument("--recent", type=int, default=0, metavar="N",
                     help="另给一个近 N 笔的读数（**只报不判** ✓）")
+    ap.add_argument("--label", action="store_true",
+                    help="只印 **step 标签**（caps 从 ratchet 状态读 ⇒ 与判据**同源** ✓）")
+    ap.add_argument("--seam", action="store_true",
+                    help="接缝：step 标签**真的读 ratchet**（不是写死的 caps 字面量 ✓）")
+    ap.add_argument("--source-rev", default=None, metavar="<rev>",
+                    help="配合 `--seam`：从**历史版本**读消费点（**咬住证明**用 ✓）")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args(argv)
@@ -842,6 +1039,30 @@ def main(argv=None) -> int:
     state_path = Path(args.state)
     if not state_path.is_absolute():
         state_path = (root / state_path).resolve()
+
+    # ── `--seam`：**caps 只许有一份**（标签必须从状态读 ✓）──────────────────
+    if args.seam:
+        problems = seam_problems(root, source_rev=args.source_rev)
+        where = f"（源 = `{args.source_rev}` 的历史版本 ✓）" if args.source_rev else ""
+        if problems:
+            print(f"✗ 簿记预算的**接缝**不齐（{len(problems)} 条）{where}：", file=sys.stderr)
+            for m in problems:
+                print(f"  · {m}", file=sys.stderr)
+            return 1
+        print(f"✓ 簿记预算接缝齐（{len(SEAM)}/{len(SEAM)} 个消费点都**真的读 ratchet** ✓ · "
+              f"caps 没有第二份字面量 ✓）{where}")
+        return 0
+
+    # ── `--label`：step 标签**从状态读**（改前是 `ci-local.sh` 里写死的种子常量 ✗）──
+    if args.label:
+        st, serr = state_load(state_path)
+        if serr:
+            # ⚠ **不假装读到了** ✗：印一条响亮的标签（**不是**旧 caps ✗），rc=3 与判据同口径 ✓
+            print("簿记预算（caps **读不到** ⇒ 见 check-attention-budget.py ✗）")
+            print(f"error: {serr}", file=sys.stderr)
+            return 3
+        print(caps_label(st["caps"], st.get("round")))
+        return 0
 
     rows, err = collect(args.since, args.until, cwd=root)
     if err:
@@ -927,14 +1148,20 @@ def main(argv=None) -> int:
     # ── 默认跑：读数 vs **本轮** caps + **开轮纪律** ─────────────────────────
     red, warn = judge(agg, caps["ratio_max"], caps["share_max"],
                       caps["ratio_warn"], caps["share_warn"])
-    red += judge_round(st, n_since)
+    # ⚠ **空转**：有出路（`--open-round` 当场走得通）⇒ 红 ✓；没出路 ⇒ **告警**（不拦 ✓）
+    idle_red, idle_warn = judge_round(st, n_since, _reading_of(agg))
+    red += idle_red
+    warn += idle_warn
+    can_open = open_round_would_pass(st, _reading_of(agg))
 
     payload = {"reading": agg, "red": red, "warn": warn, "since": args.since,
                "until": args.until, "root": str(root), "state": str(state_path),
                "ratchet": {"round": st["round"], "head": st["head"],
                            "commits_since_head": n_since,
                            "round_max_commits": ROUND_MAX_COMMITS,
+                           "open_round_possible": can_open,
                            "caps_in_force": caps, "caps_stored": st["caps"],
+                           "label": caps_label(caps, st.get("round")),
                            "seed": seed_caps(), "history_len": len(st.get("history") or []),
                            "user_readings": [h.get("user_reading")
                                              for h in (st.get("history") or [])]},

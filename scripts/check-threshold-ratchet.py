@@ -10,7 +10,11 @@
     ⇒ 红线 ①「**caps 没比上轮低 ⇒ 判红**」✓
   * **接缝**（`seam_problems`）：**每个消费点必须真的读 ratchet**（`cap("<id>")` 标记）
     —— A 层产出（状态里的 caps）、B 层消费（4 个守卫）⇒ 没有这条对账，**状态收紧而消费者
-    还用常量 = 装饰** ✗（照 `scripts/audit-wire-fields.py` 的先例 ✓）
+    还用常量 = 装饰** ✗（照 `scripts/audit-wire-fields.py` 的先例 ✓）；
+    ⭐ 另有 **标签接缝**（2026-10-16 补，同一洞的横向那一半）：**标签里不许写 ratchet 的值**
+    —— `.github/workflows/ci.yml` 的 step 名改前写着种子（`活文档 ≤10.0 MB`）而现行 caps
+    已是 `9.50 MB` ✗ ⇒ 用户/评审在 job 列表里读到的是**旧值** ✗（判据 = `label_cap_hits()`，
+    **单位必须一致** ⇒ `≤800 行`/`≤30` 这类**静态常量不误伤** ✓）。
   * **开轮纪律**（`judge_idle`）：基点之后落太多笔还没开轮 ⇒ 判红（ratchet 不许空转 ✗）；
     ⚠ **收敛之后不判**（再开轮也降不下去 ⇒ 那会是一条**没有出路**的红 ✗）
 
@@ -127,7 +131,7 @@ def check(state_path: Path, source_rev: str | None, as_json: bool) -> int:
         print(f"error: {err}", file=sys.stderr)
         return 3
     red = R.state_problems(st)
-    red += R.seam_problems(ROOT, source_rev=source_rev)
+    red += R.seam_problems(ROOT, source_rev=source_rev, caps=dict(st.get("caps") or {}))
     n_since = commits_since(st.get("head"))
     if n_since is None:
         red.append(f"量不到基点 `{str(st.get('head'))[:12]}` 之后的提交数（浅克隆 / sha 不在历史上）"
@@ -154,7 +158,9 @@ def check(state_path: Path, source_rev: str | None, as_json: bool) -> int:
         for item in red:
             print(f"  - {item}", file=sys.stderr)
         return 1
-    print("\n✓ 阈值 ratchet：状态健康（caps 单调不增、永不高于种子）· 接缝齐（7/7 消费点都读它）· 没空转 ✓")
+    print(f"\n✓ 阈值 ratchet：状态健康（caps 单调不增、永不高于种子）· 接缝齐"
+          f"（{len(R.REGISTRY)}/{len(R.REGISTRY)} 消费点都读它 + "
+          f"{len(R.LABEL_SEAM)}/{len(R.LABEL_SEAM)} 处标签里没有 ratchet 的值）· 没空转 ✓")
     return 0
 
 
@@ -316,11 +322,14 @@ def selftest() -> int:
         gate("⑥ 真 CLI：状态缺失 ⇒ **rc=3**（不假装判过）", rc == 3, f"rc={rc}")
 
     print("\n⑦ **接缝**：消费点不读 ratchet ⇒ 判红（坏输入 = **改前的源码**，`--source-rev`）")
-    gate("⑦ 正对照：**当前**源码 7/7 消费点都有标记 ⇒ 无红", not R.seam_problems(ROOT),
+    gate(f"⑦ 正对照：**当前**源码 {len(R.REGISTRY)}/{len(R.REGISTRY)} 消费点都有标记 + "
+         f"标签里没有 ratchet 的值 ⇒ 无红", not R.seam_problems(ROOT),
          str(R.seam_problems(ROOT))[:120])
     old = R.seam_problems(ROOT, source_rev="cf259d1f")
-    gate("⑦ 反向：**改前**（`cf259d1f`）的 4 个消费者**都没有**标记 ⇒ 判红 + 逐条点名",
-         len(old) == 7 and all("找不到" in r for r in old), f"{len(old)} 条")
+    gate("⑦ 反向：**改前**（`cf259d1f`）的 7 个消费者**都没有**标记 + 标签里写着 ratchet 的值 "
+         "⇒ 判红 + 逐条点名",
+         len(old) == len(R.REGISTRY) + len(R.LABEL_SEAM)
+         and all("找不到" in r or "step 标签里写着 ratchet 的值" in r for r in old), f"{len(old)} 条")
     # ⚠ 真 CLI 臂要**自带一个合法状态**（否则它量到的是"状态缺失 ⇒ rc=3"而不是
     #   "接缝判红 ⇒ rc=1" ⇒ 那是一条**量错了对象**的臂 ✗；本会话第一版就是这么错的）。
     with tempfile.TemporaryDirectory() as tmp2:
@@ -331,6 +340,55 @@ def selftest() -> int:
                          "reading": live}]}), encoding="utf-8")
         rc = main(["--state", str(ok_state), "--source-rev", "cf259d1f"])
     gate("⑦ 反向：真 CLI `--source-rev cf259d1f`（同一份合法状态）⇒ **rc=1**", rc == 1, f"rc={rc}")
+
+    print("\n⑦b **标签接缝**（caps 不许在 step 标签里写第二遍 —— 同一洞的横向那一半 ✓）")
+    with tempfile.TemporaryDirectory() as tmp3:
+        t3 = Path(tmp3)
+        (t3 / ".github" / "workflows").mkdir(parents=True)
+        (t3 / "scripts").mkdir()
+        # 夹具把**消费者那一半**先弄绿（只留标签这一格可变 ⇒ 臂**量的是标签** ✓，不是别的 ✗）。
+        # ⚠ **按文件聚合标记**（一个消费者可能消费**多个** id：`docs-lint.py` 两个 ·
+        #   `check-site.py` 两个 · `target-hygiene.py` 两个 ⇒ 逐 id 覆盖写会只剩最后一个 ✗）。
+        by_file: dict[str, list[str]] = {}
+        for _spec in R.REGISTRY.values():
+            by_file.setdefault(_spec["seam"][1], []).append(_spec["seam"][0])
+        for _rel, _markers in by_file.items():
+            _p = t3 / _rel
+            _p.parent.mkdir(parents=True, exist_ok=True)
+            _p.write_text("import threshold_ratchet\n" + "\n".join(_markers) + "\n",
+                          encoding="utf-8")
+        (t3 / ".github" / "workflows" / "ci.yml").write_text(
+            "      - name: 文档预算 lint（体积上限见 ratchet）\n", encoding="utf-8")
+        gate("⑦b 正对照：夹具的**消费者那一半**已绿（否则下面的臂量错了对象 ✗）",
+             not R.seam_problems(t3), str(R.seam_problems(t3))[:90])
+        # **反向**（改前那一行的形状）：标签里写着种子 ⇒ 必须判红
+        (t3 / ".github" / "workflows" / "ci.yml").write_text(
+            "      - name: 文档预算 lint（活文档 ≤10.0 MB · 入口 ≤800 行）\n", encoding="utf-8")
+        _lab = R.seam_problems(t3)
+        gate("⑦b 反向：标签里写着**种子**（`≤10.0 MB`）⇒ **只这一条**判红",
+             len(_lab) == 1 and "step 标签里写着 ratchet 的值" in _lab[0],
+             f"{len(_lab)} 条：{(_lab[0][:60] if _lab else '**没判红** ✗')}")
+        # **正对照**：标签只说"查什么"、不说"查到多少" ⇒ 无红（**注释**里的历史读数不算 ✗）
+        (t3 / ".github" / "workflows" / "ci.yml").write_text(
+            "      # 实测 17.13 > 17.0 ⇒ 那条红没有出路 ✗\n"
+            "      - name: 文档预算 lint（体积上限见 ratchet · 入口 ≤800 行）\n", encoding="utf-8")
+        gate("⑦b 正对照：标签不带上限数字（注释里的历史读数**不算** ✗）⇒ 无红",
+             not R.seam_problems(t3), str(R.seam_problems(t3))[:90])
+        # **精度**：静态常量（**不是**任何 id 的 seed/caps/floor）⇒ **不许误伤** ✗→✓
+        (t3 / ".github" / "workflows" / "ci.yml").write_text(
+            "      - name: 文档预算 lint（入口 ≤800 行 · 设计 ≤150 行/冻结 · 每段 ≤30 · 净增 ≤60）\n",
+            encoding="utf-8")
+        gate("⑦b 正对照：**静态常量**（`≤800 行`/`≤150 行`/`≤30`/`≤60` 都不是 ratchet 的值）不误伤",
+             not R.seam_problems(t3), str(R.seam_problems(t3))[:90])
+        # **反向**：咬的不只是种子 —— **现行 caps** 写进标签同样判红 ✓
+        _cur = R.label_cap_hits("      - name: x（活文档 ≤9.50 MB）\n",
+                                {"docs_live_bytes": 9_500_000})
+        gate("⑦b 反向：标签写着**现行 caps**（`≤9.50 MB`）也判红（不只咬种子 ✓）",
+             bool(_cur), str(_cur)[:80])
+        # **反向**：`--source-rev` 量不到 ⇒ 判红（**不假装判过** ✗；打在**真仓**上量一个假 rev ✓）
+        gate("⑦b 反向：`--source-rev` 量不到 ⇒ 判红（不假装判过）",
+             any("量不到" in r for r in
+                 R.seam_problems(ROOT, source_rev="0000000000000000000000000000000000000000")))
 
     print("\n⑧ **开轮纪律**（空转 ⇒ 判红；**收敛之后不判** ⇒ 红必须有出路 ✓）")
     gate("⑧ 基点之后 ≤ 上限笔数 ⇒ 不判",
@@ -347,7 +405,7 @@ def selftest() -> int:
         print(f"✗ selftest 判红：{bad}/{total} 条不符 ✗")
         return 1
     print(f"✓ selftest 全过：{total}/{total} 条符合 ✓（含 ① 单调/不放松 · ② 连开两轮更低 · "
-          f"③④⑤ 反向 · ⑥ 状态缺失响亮 · ⑦ 接缝打在改前源码上必红 · ⑧ 空转）")
+          f"③④⑤ 反向 · ⑥ 状态缺失响亮 · ⑦ 接缝打在改前源码上必红 · ⑦b 标签接缝（种子/现行 caps 都咬、静态常量不误伤）· ⑧ 空转）")
     return 0
 
 

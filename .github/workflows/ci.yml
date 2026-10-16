@@ -68,7 +68,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
-      - name: STATUS.md 瘦身 lint（≤200 行 · 禁词 0 · 每段 ≤30 · 净增 ≤60）
+      - name: STATUS.md 瘦身 lint（总行数上限见 ratchet · 禁词 0 · 每段 ≤30 · 净增 ≤60）
         # `--selftest` **先跑**（2026-09-27 E00 补）：故意坏的形状必须被判负 ——
         # 判据通道自己坏了要在这里就红 ✗，别等真 STATUS.md 漂移了才发现 ✓。
         run: |
@@ -87,7 +87,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
-      - name: 文档预算 lint（活文档 ≤10.0 MB · 入口 ≤800 行 · 设计 ≤150 行/冻结 · 归档索引齐）
+      - name: 文档预算 lint（活文档/归档体积上限见 ratchet · 入口 ≤800 行 · 设计 ≤150 行/冻结 · 归档索引齐）
         run: python3 scripts/docs-lint.py
 
   # `scripts/tactic-docs-lint.py`（**L4**，设计 `docs/design/tactic-docs.md` §4.2）：
@@ -331,7 +331,11 @@ jobs:
         # 把比值推高 ⇒ **假红** ✗（实测近 50 笔读数是 72.97 : 1 —— 那是**只报不判**的
         # 近窗读数 ✓，见 `--recent`）。锚点往前推 = 批次边界上的手改（评审可见 ✓）。
         # ⚠ 浅克隆 ⇒ **rc=3 + 人话**（绝不静默判过 ✗）；本 job 有 `fetch-depth: 0` ✓。
+        # ⭐ **接缝**（2026-10-16，洞 `BUDGET-WARN-VS-GATE-RED-INCONSISTENT`）：caps 只许有
+        # **一份**（`docs/attention-budget-ratchet.json`）—— `ci-local.sh` 的 step 标签
+        # 必须用 `--label` 从状态读（改前写死种子常量 ⇒ 印的是上一轮的 caps ✗）。
         run: |
+          python3 scripts/check-attention-budget.py --seam
           python3 scripts/check-attention-budget.py --selftest
           python3 scripts/check-attention-budget.py
       - name: "横向阈值 ratchet（7 个装饰性上限：状态不变量 + 接缝 + 开轮纪律）"
@@ -339,7 +343,10 @@ jobs:
         # 上面那步是**簿记**的两档；本步是**横向**那批**装饰性阈值**（上限贴在实测上方 ⇒ 永远绿 ✗）——
         # 逐处 `文件:行` + 落地实测见 `scripts/threshold_ratchet.py` 的登记表（唯一一处 ✓）。
         # 判三件：① **caps 单调不增 + 永不高于种子**（= "一个阈值都没放松"的机械面 ✓）；
-        # ② **接缝**（7/7 消费点真的读 ratchet ⇒ 谁把上限改回常量，谁当场被咬住 ✗）；
+        # ② **接缝**（7 个消费点真的读 ratchet ⇒ 谁把上限改回常量，谁当场被咬住 ✗；
+        #    ⭐ 2026-10-16 补**标签接缝**：**step 名里不许写 ratchet 的值** —— 本文件的两个
+        #    标签改前写着种子 `活文档 ≤10.0 MB`（现行 caps 已是 `9.50 MB` ✗，洞
+        #    `BUDGET-WARN-VS-GATE-RED-INCONSISTENT` 的同族）⇒ 现在只写"上限见 ratchet" ✓）；
         # ③ **开轮纪律**（基点后 > 40 笔没开轮 ⇒ 判红 ⇒ ratchet 不许空转 ✗）。
         # ⚠ 收紧是**排程的**（`tighten()` 只看上一轮、**不看实测**）；开轮 `--open-round`
         # 要求读数落进**收紧后**的上限 ⇒ **红有出路**（把指标压下去 ✓），不是假红生成器 ✓。

@@ -20,6 +20,10 @@
          新一档"）。⚠ **为什么不照抄"读数必须严格低于上轮读数"**：那对**有天然地板**的量
          （STATUS.md 行数 / 归档体积 / target 体积）是**假红生成器**（它们不可能每轮都更小 ✗）；
          照搬形状、**不照搬不适用的那半条**，理由写在这里 ✓（用户【④】："同形不同病要如实标注"）。
+  · **接缝**（`seam_problems()`，2026-10-16 补第三半）：A 层产出 caps、B 层消费 ⇒ ① **7 个
+    消费者脚本**必须真的读 ratchet（`_RATCHET_CAPS["<id>"]` 标记 ✓）；③ **标签里不许写
+    上限数字**（`.github/workflows/ci.yml` 的 step 名 —— 改前它写着种子 `≤10.0 MB` 而现行
+    caps 已是 `9.50 MB` ✗，洞 `BUDGET-WARN-VS-GATE-RED-INCONSISTENT` 的同族 ✓）。
 
 ## 登记表（**唯一一处**：种子 / 每轮步长 / 收敛目标 / 消费点）
 
@@ -70,6 +74,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -353,12 +358,85 @@ def judge_idle(st: dict, n_since: int, round_max: int) -> list[str]:
 
 
 # ── 接缝（**A 层产出、B 层消费** ⇒ 必须有 A∖B 对账；照 `audit-wire-fields.py` 的先例 ✓）──
-def seam_problems(root: Path | None = None, source_rev: str | None = None) -> list[str]:
+def _read_source(root: Path, rel: str, source_rev: str | None) -> tuple[str | None, str | None]:
+    """读一个消费点的源码 ⇒ `(源码, 错误)`。`source_rev` ⇒ 从**历史版本**读（咬住证明用 ✓）。
+
+    ⚠ `git show` 失败 ⇒ **错误**（**不假装判过** ✗）—— 判据、`--source-rev` 与标签接缝**共用**
+    这一条（**一处定义** ✓，改前那段读源码的代码在两处各写了一遍 ✗）。
+    """
+    if source_rev:
+        proc = subprocess.run(["git", "show", f"{source_rev}:{rel}"], cwd=str(root),
+                              capture_output=True, text=True, encoding="utf-8", errors="replace")
+        if proc.returncode != 0:
+            return None, (f"`git show {source_rev}:{rel}` rc={proc.returncode} ⇒ 量不到 ⇒ "
+                          f"**不假装判过** ✗")
+        return proc.stdout, None
+    path = root / rel
+    if not path.exists():
+        return None, f"消费点 `{rel}` 不存在 ⇒ **量不到 ≠ 绿** ✗"
+    return path.read_text(encoding="utf-8"), None
+
+
+# ── **标签接缝**：caps 不许在**标签**里写第二遍（同一洞的横向那一半 ✓）──────────────
+# 病（2026-10-16 实测，洞 `BUDGET-WARN-VS-GATE-RED-INCONSISTENT` 的同族）：**会随时间收紧的**
+# 数字被写在**第二处** ⇒ 状态收紧之后第二处**不动** ⇒ 印的是旧值 ✗。
+#   · 簿记那个 ratchet 的实例 = `scripts/ci-local.sh` 的 step 标签（已修 + `--seam` 咬住 ✓）；
+#   · **本 ratchet 的实例 = `.github/workflows/ci.yml` 的 step 名**（实测 2026-10-16）：
+#     `:90` 写 `活文档 ≤10.0 MB`（= **种子**）而现行 caps 已是 **9.50 MB** ✗；
+#     `:71` 写 `≤200 行`（= `status_total_lines` 的**收敛目标**）而现行 caps 是 **230** ✗。
+# 判据 = 把标签行（`- name:`）里的 `(数字, 单位)` 抠出来，与**登记表里每个 id 的三种值**
+# （种子 / 现行 caps / 收敛目标）逐个比 —— 撞上就是第二份真相 ✗。
+# ⚠ **单位必须一致** ⇒ 静态常量**不误伤**：`入口 ≤800 行` / `设计 ≤150 行` / `每段 ≤30` /
+# `净增 ≤60` 都不是任何 id 的 seed/caps/floor ⇒ **留着** ✓（它们不随轮次漂移，是另一类
+# 「文档漂移」，由 `check-doc-drift.py` 那一族管 ✗ —— 别把两类混成一条规则 ✗）。
+LABEL_SEAM: tuple[dict, ...] = (
+    {"rel": ".github/workflows/ci.yml",
+     "why": "step 名是**评审/用户在 job 列表里看得见**的一处 ⇒ 写上 ratchet 的值就是第二份真相"},
+)
+_NUM_UNIT = re.compile(r"([0-9]+(?:\.[0-9]+)?)\s*(MB|KB|GiB|GB|行)")
+
+
+def _shown_value(cap_id: str, value) -> float:
+    """`human()` 印出来的那个数（把它再抠回来 ⇒ 比较用的是**同一份**格式化 ✓）。"""
+    return float(human(cap_id, value).split()[0].replace(",", ""))
+
+
+def label_cap_hits(src: str, caps: dict | None = None) -> list[str]:
+    """标签行里**写着 ratchet 的哪个值**（种子 / 现行 caps / 收敛目标）⇒ 命中即第二份真相 ✗。
+
+    **纯函数** ✓（selftest 直接喂合成源码）。`caps=None` ⇒ 现读状态（读不到 ⇒ 退回种子，
+    仍能咬住"标签写着种子"那一半 ✓）。
+    """
+    if caps is None:
+        caps = caps_or_error()[0]
+    hits: list[str] = []
+    for ln in src.splitlines():
+        if not ln.lstrip().startswith("- name:"):
+            continue
+        for num, unit in _NUM_UNIT.findall(ln):
+            val = float(num)
+            for cap_id, spec in REGISTRY.items():
+                if spec["unit"] != unit:
+                    continue
+                for kind, v in (("种子", spec["seed"]),
+                                ("现行 caps", caps.get(cap_id)),
+                                ("收敛目标", spec["floor"])):
+                    if v is None:
+                        continue
+                    if abs(_shown_value(cap_id, v) - val) < 1e-9:
+                        hits.append(f"{ln.strip()[:70]} ← 写着 `{cap_id}` 的**{kind}**"
+                                    f"（{human(cap_id, v)}）")
+    return hits
+
+
+def seam_problems(root: Path | None = None, source_rev: str | None = None,
+                  caps: dict | None = None) -> list[str]:
     """**每个消费点必须真的读 ratchet**（否则阈值是装饰的：状态收紧、消费者还用常量 ✗）。
 
     ⚠ 判据是**两个标记**在不在消费者源码里（机械、可复跑 ✓）：
       ① `threshold_ratchet`（这个库真的被 import 了）；
       ② `_RATCHET_CAPS["<id>"]`（**那一个** id 真的被这个文件消费 —— 不是"碰巧 import 了"）✓。
+      ③ **标签接缝**（`LABEL_SEAM` + `label_cap_hits()`）：标签里**不许**出现 ratchet 的值 ✗。
     `source_rev`（例 `cf259d1f`）= 从**历史版本**读源码 ⇒ 用来做**咬住证明**：
     改前的消费者**没有**这个标记 ⇒ 本判据在那份**已存在的**坏输入上**必须报红** ✓。
     """
@@ -366,22 +444,23 @@ def seam_problems(root: Path | None = None, source_rev: str | None = None) -> li
     red: list[str] = []
     for cap_id, spec in REGISTRY.items():
         marker, rel = spec["seam"]
-        if source_rev:
-            proc = subprocess.run(["git", "show", f"{source_rev}:{rel}"], cwd=str(root),
-                                  capture_output=True, text=True, encoding="utf-8",
-                                  errors="replace")
-            if proc.returncode != 0:
-                red.append(f"`git show {source_rev}:{rel}` rc={proc.returncode} ⇒ 量不到 ⇒ "
-                           f"**不假装判过** ✗")
-                continue
-            src = proc.stdout
-        else:
-            path = root / rel
-            if not path.exists():
-                red.append(f"消费点 `{rel}` 不存在 ⇒ **量不到 ≠ 绿** ✗")
-                continue
-            src = path.read_text(encoding="utf-8")
+        src, err = _read_source(root, rel, source_rev)
+        if err:
+            red.append(err)
+            continue
         if "threshold_ratchet" not in src or marker not in src:
             red.append(f"`{cap_id}` 的消费点 `{rel}` 里找不到 `{marker}`（或没 import "
                        f"`threshold_ratchet`）⇒ **阈值还是常量**（ratchet 收紧它也不动 = 装饰 ✗）")
+    # ── ③ **标签接缝**（caps 不许在标签里写第二遍 ✓）────────────────────────
+    for spec in LABEL_SEAM:
+        rel = spec["rel"]
+        src, err = _read_source(root, rel, source_rev)
+        if err:
+            red.append(err)
+            continue
+        hits = label_cap_hits(src, caps)
+        if hits:
+            red.append(f"`{rel}` 的 **step 标签里写着 ratchet 的值** ✗（caps 只许住在 "
+                       f"`docs/threshold-ratchet.json` / 本文件的 `REGISTRY`；标签说"
+                       f"「查什么」、不说「查到多少」✓ —— {spec['why']}）—— {hits[:2]}")
     return red

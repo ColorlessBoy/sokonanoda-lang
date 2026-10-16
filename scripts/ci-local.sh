@@ -220,10 +220,18 @@ python3 scripts/check-queue-views.py || exit 1'
 
 # **簿记预算**（2026-10-15 · 同上的【5】/【5'】 ✓）：用户实测本会话
 # **生成物/台账 : 产品 ≈ 17 : 1** · **簿记类提交 56%** ⇒ 注意力结构病 ✗。
-# 判据 = **两档**（告警 17:1 / 57% ⇒ 只出声不判红 ✓ · 红线 19:1 / 60% ⇒ 判红 ✗；
+# 判据 = **两档**（告警线 ⇒ 只出声不判红 ✓ · 红线 ⇒ 判红 ✗；
 # 照 `scripts/target-hygiene.py` 的先例 —— 理由见 `ci.yml` 同一步的注释 ✓）。
 # ⚠ 要**全历史**（浅克隆 ⇒ rc=3 + 人话，绝不静默判过 ✗）；实测 ~1s ✓。
-run "gates：簿记预算（告警 17:1 / 57% · 红线 19:1 / 60%）" "queue-lint" bash -c '
+# ⭐ **两档的数字从 ratchet 状态读**（2026-10-16 修，洞 `BUDGET-WARN-VS-GATE-RED-INCONSISTENT`）：
+# 改前这一行的标签把**种子**写死（`17:1 / 57%` · `19:1 / 60%`）✗，而判据读
+# `docs/attention-budget-ratchet.json` 的**本轮 caps**（已收紧到 `16:1 / 55%` · `18:1 / 58%`）
+# ⇒ **两处口径不同源**：读数落在告警档时，人看到「上一轮的 caps + exit=1」⇒ 误诊成
+# "告警被当成红" ✗。⇒ 标签改由 `--label` 印（本脚本 = 那份状态的**唯一读者** ✓），
+# 且**接缝判据**（`--seam`）机械咬住"又被写死" ✗（咬住证明：`docs/guard-bite.jsonl`）。
+# ⚠ 本文件里**不许再出现 caps 的字面量**（`--seam` 咬这一条 ✓）—— 引用读数请只写数字。
+run "gates：$(python3 scripts/check-attention-budget.py --label)" "queue-lint" bash -c '
+python3 scripts/check-attention-budget.py --seam || exit 1
 python3 scripts/check-attention-budget.py --selftest || exit 1
 python3 scripts/check-attention-budget.py || exit 1'
 
