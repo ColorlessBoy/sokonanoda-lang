@@ -61,8 +61,8 @@
 ### 0.2 下一步（**唯一队列**；机器入口 = `python3 scripts/ux-queue.py`）
 
 <!-- QUEUE:SUMMARY:BEGIN -->
-<!-- QUEUE:COUNTS total=9 blocker=0 high=6 medium=3 low=0 -->
-**未完成 9 条**（blocker **0** · high **6** · medium **3** · low **0**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
+<!-- QUEUE:COUNTS total=8 blocker=0 high=6 medium=2 low=0 -->
+**未完成 8 条**（blocker **0** · high **6** · medium **2** · low **0**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
 最靠前的 5 条：`SUB-G117-close-now` · `SUB-break-the-guard-recursion` · `SUB-implicit-args-align-lean4` · `SUB-narrow-guards-to-one-layer` · `SUB-orchestrator-attention-structure`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
 <!-- QUEUE:SUMMARY:END -->
 
