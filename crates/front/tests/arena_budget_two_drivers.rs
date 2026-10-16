@@ -219,7 +219,10 @@ fn arena_budget_two_drivers_and_the_artifact_layer_survives_exhaustion() {
     let mut current = text.clone();
     let mut worst = 0u64;
     let mut worst_at = 0u64;
-    let mut exhaust_at = 0u64;
+    // 每一刀之后的 `leaked`（**单调不减** ✓）—— 用**末值**反推"预算用尽点"，
+    // 而不是把上界硬编在探针里：压到 2 时末值是 2、用尽点是 66 ⇒ 两条断言都读到
+    // **跟着走的数字** ✓（硬编 8 的话压到 2 只会读到 0 = "没量到"，读数不可归属 ✗）。
+    let mut leaks: Vec<usize> = vec![lib_checkpoint_arenas_leaked()];
     for press in 2..=LONG_PRESSES {
         current = toggle_last_decl(&current, press % 2 == 0);
         let r = read_by(|| doc.set_text(&current, press, None));
@@ -227,15 +230,23 @@ fn arena_budget_two_drivers_and_the_artifact_layer_survives_exhaustion() {
             worst = r.elaborated;
             worst_at = press;
         }
-        if exhaust_at == 0 && lib_checkpoint_arenas_leaked() == MAX_LEAKED {
-            exhaust_at = press;
-        }
+        leaks.push(lib_checkpoint_arenas_leaked());
     }
+    let final_leaked = *leaks.last().expect("至少量过一次");
+    let exhaust_at = 1 + leaks
+        .iter()
+        .position(|&v| v == final_leaked)
+        .expect("末值必然出现过") as u64;
     println!(
         "PERF arena-drivers 长跑：{LONG_PRESSES} 刀 · 预算用尽点={exhaust_at}（期望 {EXHAUST_AT_PRESS}）· \
-         worst elaborate={worst}（第 {worst_at} 刀）· leaked={} · reuses={}",
-        lib_checkpoint_arenas_leaked(),
+         末值 leaked={final_leaked} · worst elaborate={worst}（第 {worst_at} 刀）· reuses={}",
         lib_checkpoint_reuses()
+    );
+    assert_eq!(
+        final_leaked, MAX_LEAKED,
+        "长跑结束时泄漏的 arena 数必须**恰好**是上界 ①（实测 {final_leaked}，期望 {MAX_LEAKED}）\
+         —— 读到更少 ⇒ 轮换没有真的泄漏 arena（上界 ② 与 ① 脱钩了）；\
+         读到更多 ⇒ 上界 ① 被突破了 ✗。⚠ **反向验证**：压到 2 ⇒ 这里必须读到 **2** ✓"
     );
     assert_eq!(
         exhaust_at, EXHAUST_AT_PRESS,
@@ -243,13 +254,7 @@ fn arena_budget_two_drivers_and_the_artifact_layer_survives_exhaustion() {
          期望第 {EXHAUST_AT_PRESS} 刀（= (MAX_REUSES + 1) × MAX_LEAKED − MAX_REUSES \
          = ({MAX_REUSES} + 1) × {MAX_LEAKED} − {MAX_REUSES}）。\
          读到更早 ⇒ 上界 ① 被别的驱动源提前烧掉了；读到更晚 ⇒ 轮换没有真的泄漏 arena。\
-         ⚠ **反向验证**：把 `MAX_LEAKED_LIB_ARENAS` 压到 2 ⇒ 这里必须读到 **66** ✓。"
-    );
-    assert_eq!(
-        lib_checkpoint_arenas_leaked(),
-        MAX_LEAKED,
-        "单项目 700 刀（> 8 × 64）必须把上界 ① **恰好**走到顶 —— 这就是「两条上界共用一份预算」\
-         的形状：**轮换**（上界 ②）烧掉了 7 格，只留 1 格给冷建 ✓"
+         ⚠ **反向验证**：把 `MAX_LEAKED_LIB_ARENAS` 压到 2 ⇒ 这里必须读到 **66** ✓"
     );
     assert_eq!(
         worst, 1,
@@ -274,24 +279,16 @@ fn arena_budget_two_drivers_and_the_artifact_layer_survives_exhaustion() {
         "夹具自检：新键的产物目录一开始必须是空的（否则量不到「回退路有没有写出去」✗）"
     );
     let mut doc9 = open_doc(&entry9, &text9);
+    // ⚠ **当场读下来**（`LAST_LIB_SOURCE` 是"**上一趟**从哪来"，下面每一刀都会覆盖它 ✗）。
+    let cold_source = last_lib_source();
     println!(
-        "PERF arena-drivers 新键冷开：source={} leaked={} 产物条目={}",
-        last_lib_source(),
+        "PERF arena-drivers 新键冷开：source={cold_source} leaked={} 产物条目={}",
         lib_checkpoint_arenas_leaked(),
         artifact_entries(&entry9)
     );
-    assert_eq!(
-        last_lib_source(),
-        "fallback",
-        "上界用尽之后新键的冷开**没有**可复用的检查点 ⇒ 必然走回退路 \
-         （读数必须**可归属** ✓ —— 修前这一格读到的还是上一次的值 ✗）"
-    );
-    assert!(
-        artifact_entries(&entry9) >= 2,
-        "⭐ **本轮的修**：回退路**照旧把产物写出去**（写产物零泄漏 ✓）—— 实测条目 {} \
-         （修前 = **0** ⇒ 新键永远没有产物可命中，本进程内再也填不回来 ✗）",
-        artifact_entries(&entry9)
-    );
+    // ⚠ **断言顺序是判据的一部分**（咬住证明要咬在**修本身**上，不是咬在"读数可归属"上）：
+    // 先断"库层趟被产物层接住"（`modules`），再断产物写没写出去、最后断归属读数。
+    // 修前（`b256cc2b`）第一条就红：`modules = 2` ⇒ 咬的是本轮的修 ✓。
     let mut t9 = text9.clone();
     for press in 2..=4u64 {
         t9 = toggle_last_decl(&t9, press % 2 == 0);
@@ -302,12 +299,6 @@ fn arena_budget_two_drivers_and_the_artifact_layer_survives_exhaustion() {
             r.elaborated,
             r.by,
             last_lib_source()
-        );
-        assert_eq!(
-            last_lib_source(),
-            "artifact",
-            "第 {press} 刀必须由**产物层**服务（②.5：栈上 arena、零泄漏）—— 实测读数不是 \
-             `artifact` ⇒ 本轮的修没生效 ✗"
         );
         assert_eq!(
             r.modules, 1,
@@ -324,6 +315,12 @@ fn arena_budget_two_drivers_and_the_artifact_layer_survives_exhaustion() {
             LIB_BY + ENTRY_BY
         );
         assert_eq!(
+            last_lib_source(),
+            "artifact",
+            "第 {press} 刀必须由**产物层**服务（②.5：栈上 arena、零泄漏）—— 实测读数不是 \
+             `artifact` ⇒ 本轮的修没生效 ✗"
+        );
+        assert_eq!(
             r.elaborated, ENTRY_COMMANDS,
             "⚠ **诚实边界**（如实记 ✗，**不是**本轮的修）：栈上 arena 装不出 `'static` \
              ⇒ 入口尾快照只能 `None` ⇒ 入口趟**整条重走**（实测 {ENTRY_COMMANDS} = N）—— \
@@ -336,6 +333,17 @@ fn arena_budget_two_drivers_and_the_artifact_layer_survives_exhaustion() {
             "②.5 那条路**零泄漏** ⇒ 上界 ① 一个字不动 ✓"
         );
     }
+    assert!(
+        artifact_entries(&entry9) >= 2,
+        "⭐ **本轮的修**：回退路**照旧把产物写出去**（写产物零泄漏 ✓）—— 实测条目 {} \
+         （修前 = **0** ⇒ 新键永远没有产物可命中，本进程内再也填不回来 ✗）",
+        artifact_entries(&entry9)
+    );
+    assert_eq!(
+        cold_source, "fallback",
+        "上界用尽之后新键的冷开**没有**可复用的检查点 ⇒ 必然走回退路 \
+         （读数必须**可归属** ✓ —— 修前这一格读到的还是上一次的值 ✗）"
+    );
 
     // ══ ③ 判定路径未变：产物那支 vs 回退那支**逐字节相同** ══
     //
