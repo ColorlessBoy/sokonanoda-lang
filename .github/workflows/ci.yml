@@ -287,6 +287,21 @@ jobs:
         # 无前提（实测 `env -i` 下 rc=0 ✓）。⚠ 2026-10-16 起**不再是"纯函数级"**：GB 旋钮那几条
         # 会真起子进程跑真 CLI（`env probe` ⇒ 零写入、不扫盘 ✓）⇒ 实测 **0.5s**（原 0.17s ✓）。
         run: python3 scripts/compile-cache.py --selftest
+      - name: "真绿判据通道自检（离线 · 不需要 gh / 网络）"
+        # 2026-10-16 · 洞 `CI-GREEN-SELFTEST-NOT-WIRED`（cg2 实测 ✗→✓）：`ci-green.py --selftest`
+        # 是**本仓唯一的「真绿」判据通道**（编排者每轮写给用户看的 CI 那一格 ✓），而它此前
+        # **不在任何 job / gate 里** ✗ —— `grep -rn ci-green .github/workflows/ scripts/ci-local.sh`
+        # **只命中一条注释** ✗。⚠ 它**曾被间接跑着**（咬住证明那一行的 C2 真跑 ✓），但那是
+        # **偶然**：`ci-green.py` 不在 `guard_scripts()` 口径里（名字臂不匹配、接线臂没有它）
+        # ⇒ **C1 不要求**它有证明（`cf259d1f..HEAD` 里它明明改过，18 个守卫的名单里**没有它** ✗）
+        # ⇒ 删掉那一行**没有任何判据会出声** ✗。⇒ 这里**显式**接一步（**可 grep、可归属** ✓）。
+        # ⚠ 接线臂把它收进来 ⇒ **C1 现在要求**它有咬住证明（它已经在 ✓，`docs/guard-bite.jsonl`）；
+        # 分类登记见 `docs/guard-anchors.jsonl` 的 `kind: tool` 行（C6 / C9 ✓）。
+        # ⚠ **判据一条都没放宽** ✗：照原样跑 —— 撤掉分类表一项 ⇒ **6/15 判红**（实测 ✓，
+        # 咬住证明 = `docs/guard-bite.jsonl` 里 `scripts/ci-green.py` 那一行 ✓）。
+        # ⚠ 离线 ✓ 亚秒级 ✓（只读本仓 `ci.yml` + 一臂把 `subprocess.run` 打成
+        # `FileNotFoundError` ✓）⇒ 塞进本 job（5 分钟预算）是噪声级 ✓。
+        run: python3 scripts/ci-green.py --selftest
       - name: 队列**独立**复核（第二份实现 + 纯 git 事实 + 证据可复算 ratchet）
         # 2026-10-15 · `SUB-orchestrator-attention-structure`【1】/【2】 ✓。
         # 病根 = **判据的所有权**：`ux-queue.py` 同时定义队列语义/守卫/证据规则/**复核判据**

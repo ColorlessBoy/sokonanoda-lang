@@ -302,6 +302,14 @@ python3 scripts/check-threshold-ratchet.py || exit 1'
 # `queue-lint` job（每推必跑 ✓）都在跑它 ✓。
 run "gates：编译缓存判据自检（回收顺序 / 预算反向验证）" "queue-lint" python3 scripts/compile-cache.py --selftest
 
+# **真绿判据通道自检**（2026-10-16 · 洞 `CI-GREEN-SELFTEST-NOT-WIRED` ✓）：与上面那条**同族**
+# —— 又一处"本地判据集 ⊂ CI 判据集"（`ci-green.py --selftest` 此前**不在任何 job / gate 里** ✗，
+# `grep -rn ci-green .github/workflows/ scripts/ci-local.sh` **只命中一条注释** ✗）。
+# 本步与 `ci.yml` 的 `queue-lint` job 里那一步**同一条命令** ✓（本地能先咬住，不必等 33 分钟的 CI）。
+# ⚠ 离线 ✓ 亚秒级 ✓ 无前提（不读真台账、不碰 `target/`）⇒ 与 `docs-lint` 同档，**`--fast` 也跑** ✓。
+# ⚠ **判据一条都没放宽** ✗：照原样跑（撤掉分类表一项 ⇒ **6/15 判红**，实测 ✓）。
+run "gates：真绿判据通道自检（离线 · 不需要 gh / 网络）" "queue-lint" python3 scripts/ci-green.py --selftest
+
 # ④ editor（CI job `editor`）
 run "editor：stub 宿主" "editor" node editor/vscode/test-extension-host.js
 
