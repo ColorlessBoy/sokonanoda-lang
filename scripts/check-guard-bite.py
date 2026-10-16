@@ -92,17 +92,35 @@
 **守卫的枚举**（`guard_scripts()`）与**证明怎么跑**（`run_proof()`）**只有这一份** ✓；
 `scripts/check-attention-budget.py --open-round` **调本文件**、不另抄 ✗。
 
+* **C6 覆盖 / C7 有底 / C8 预算（2026-10-16，`SUB-break-the-guard-recursion` ①）**：
+  登记表 `docs/guard-anchors.jsonl` 给**每一层**钉一个底 ——
+  * **C6 覆盖**：`guard_scripts()` 口径下的**每一个守卫**都要有一条 `kind: guard` 行
+    （新守卫没分类 ⇒ 判红 ✗；表里点名了不在口径里的守卫 ⇒ 也判红，防表自己腐烂 ✗）。
+  * **C7 有底**：每条守卫行必须指回一条 **A 类锚（`kind: anchor` = 用户现场）** ⇒
+    `anchors` 里的每个 id 都必须在表里存在、且锚行必须写出 `site`/`action`/`reading` ✓。
+    ⚠ **底是结构性的**：`anchors` **只许**填 anchor id ⇒ **B 不能指向 B**（递归到不了守卫层 ✓）。
+  * **C8 预算**：**B 类总数 ≤ `caps.b_class_guards`**，且 `caps` **只许减**（每轮 −2，到 `floor`
+    停住）—— 绝对上限，**不是比例**（比例可以两边一起涨 ✗）。⭐ **A 类不进任何上限**：
+    "A 类增长 ⇒ 判红"是**结构性不可能**（A 不参与 C8）✓ —— 锚定型**无限预算** ✓。
+  ⚠ **为什么塞进本文件而不是新开一个 `check-anchors.py`** ✗：那正是用户说的病
+  （"判据的判据"再开一个文件 ⇒ 判据文件数 +1 ⇒ 递归）。`SUB-narrow-guards-to-one-layer` ⑥
+  的原话就是：「`check-guard-bite.py` 是「守卫必须咬得住」的底 ⇒ **不合并**，但要按 ① 的
+  要求：**每条 B 类都要能指回一条 A 类**」⇒ **本文件就是它指定的落点** ✓（判据文件数 0 增 ✓）。
+
 ## 退出码
 
-  0 = 覆盖齐 + 每条都咬得住 / 1 = 判红 / 2 = 用法错 / 3 = 环境错（台账缺失等，**不假装判过** ✗）
+  0 = 覆盖齐 + 每条都咬得住 + 分类齐且都有底 / 1 = 判红 / 2 = 用法错 /
+  3 = 环境错（台账或分类登记表缺失等，**不假装判过** ✗）
 
 ## 用法
 
-  python3 scripts/check-guard-bite.py                 # C1（基线..HEAD 的守卫）+ C2（逐条真跑）
+  python3 scripts/check-guard-bite.py                 # C1（基线..HEAD 的守卫）+ C2（逐条真跑）+ C6/C7/C8
   python3 scripts/check-guard-bite.py --since <sha>   # 覆盖面改成 <sha>..HEAD
   python3 scripts/check-guard-bite.py --all           # C2 跑**本 job 的**每一条（不只范围内的）
   python3 scripts/check-guard-bite.py --all --job all # C2 跑**台账里每一条**（开发机；CI 分派跑 ✗）
-  python3 scripts/check-guard-bite.py --list          # 只印：台账覆盖了谁 · 谁是 grandfathered
+  python3 scripts/check-guard-bite.py --list          # 只印：台账覆盖了谁 · 谁是 grandfathered · A/B 分类
+  python3 scripts/check-guard-bite.py --counts        # 只印 A/B/锚/上限的**机器可读**计数（JSON）
+  python3 scripts/check-guard-bite.py --anchors <f>   # 换一份分类登记表（复现 / 咬住证明用 ✓）
   python3 scripts/check-guard-bite.py --reopen-empty  # ⭐ ① 翻账：咬不住的 ⇒ reopen 它关掉的那条
   python3 scripts/check-guard-bite.py --selftest      # 正反两向（含"bite 返回 0 ⇒ 必须判红"）
 """
@@ -122,6 +140,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 LEDGER = ROOT / "docs" / "guard-bite.jsonl"
+ANCHORS = ROOT / "docs" / "guard-anchors.jsonl"
 NONBITING_FIXTURE = ROOT / "scripts" / "fixtures" / "guard-bite-nonbiting.jsonl"
 CI_YML = ROOT / ".github" / "workflows" / "ci.yml"
 
@@ -394,6 +413,143 @@ def load_ledger(path: Path) -> tuple[list[dict], str, str | None]:
     return entries, coverage_since, None
 
 
+# ── **锚登记表**（C6 覆盖 / C7 有底 / C8 预算；唯一一处 ✓）─────────────────────
+ANCHOR_KINDS = ("anchor", "guard", "caps")
+
+
+def load_anchors(path: Path) -> tuple[list[dict], str | None]:
+    """读分类登记表 ⇒ (行, 错误)。**缺失/坏 ⇒ 错误**（**绝不静默判过** ✗，与台账同口径 ✓）。
+
+    ⚠ 为什么缺文件是**错误**而不是"没分类 ⇒ 全绿"✗：修前那份仓库状态就是
+    「32 个守卫 · 0 条分类」—— 那正是 C6 要判红的形状 ✓（**不许**因为表不在就放行 ✗）。
+    """
+    if not path.exists():
+        return [], (f"分类登记表不存在：`{path}` ⇒ **不假装判过** ✗（C6 覆盖 / C7 有底 / C8 预算 "
+                    f"都要它）。格式与写法见本文件 docstring 的 C6/C7/C8 ✓")
+    rows: list[dict] = []
+    for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError as err:
+            return [], f"{path}:{lineno} 不是合法 JSON：{err}"
+        kind = row.get("kind")
+        if kind not in ANCHOR_KINDS:
+            return [], (f"{path}:{lineno} 的 `kind` 只能是 {' / '.join(ANCHOR_KINDS)}"
+                        f"（给的是 {kind!r}）")
+        rows.append(row)
+    return rows, None
+
+
+def anchor_problems(root: Path, rows: list[dict]) -> tuple[list[str], list[str], dict]:
+    """**纯函数**：C6 覆盖 + C7 有底 + C8 预算 ⇒ (红, 信息, 计数)。
+
+    ⚠ **A 类不进任何上限**（用户【①】：锚定型**无限预算** ✓）⇒ "A 类增长 ⇒ 判红"是
+    **结构性不可能**：`counts` 里的 A 只被**印出来**，从不与任何 cap 比较 ✓。
+    """
+    red: list[str] = []
+    info: list[str] = []
+    scope = guard_scripts(root)
+    guards = {r["guard"]: r for r in rows if r.get("kind") == "guard"}
+    anchors = {r["id"]: r for r in rows if r.get("kind") == "anchor"}
+    caps_row = next((r for r in rows if r.get("kind") == "caps"), None)
+
+    # ── C6 覆盖：口径里的每一个守卫都要有分类行；表里也不许点名口径外的守卫 ──
+    for g in scope:
+        if g not in guards:
+            red.append(f"**C6 覆盖** ✗：`{g}` **没有分类**（登记表里没有它的 `kind: guard` 行）"
+                       f" ⇒ 它保护的**用户现场**说不出来 ⇒ 这一层**没有底** ✗"
+                       f"（在 `{ANCHORS.name}` 补一行：`guard` / `class` A|B / `anchors` ✓）")
+    for g in guards:
+        if g not in scope:
+            red.append(f"**C6 表腐烂** ✗：登记表点名了 `{g}`，但它**不在** `guard_scripts()` "
+                       f"口径里（文件没了 / 改了名）⇒ 表与仓库两头漂移 ✗")
+
+    # ── C7 有底：每条守卫行必须指回一条**存在且写全**的 A 类锚（用户现场）──
+    for g, row in sorted(guards.items()):
+        cls = row.get("class")
+        if cls not in ("A", "B"):
+            red.append(f"**C7** ✗：`{g}` 的 `class` 只能是 `A` / `B`（给的是 {cls!r}）")
+            continue
+        anc = row.get("anchors")
+        if not isinstance(anc, list) or not anc:
+            red.append(f"**C7 没底** ✗：`{g}` 的 `anchors` 必须**非空**（一条守卫说不出它保护的"
+                       f"用户现场 ⇒ 它就是**收窄/合并的候选** ✗）")
+            continue
+        for aid in anc:
+            if aid not in anchors:
+                red.append(f"**C7 悬空锚** ✗：`{g}` 指向 `{aid}`，但登记表里**没有这条锚** ⇒ "
+                           f"它的底**悬空**（B 只许指向 `kind: anchor` 的**用户现场** ✓）")
+    for aid, row in sorted(anchors.items()):
+        for key in ("site", "action", "reading"):
+            if not str(row.get(key, "")).strip():
+                red.append(f"**C7 锚没写全** ✗：锚 `{aid}` 缺 `{key}` ⇒ 它**不是**一个用户现场"
+                           f"（`site` 用户在哪 / `action` 用户做什么 / `reading` 怎么量）✗")
+        if row.get("strength") not in ("direct", "process"):
+            red.append(f"**C7** ✗：锚 `{aid}` 的 `strength` 只能是 `direct` / `process`")
+
+    # ── C8 预算：B 类**绝对上限** + 只许减；A 类**不进上限** ──
+    a_list = sorted(g for g, r in guards.items() if r.get("class") == "A")
+    b_list = sorted(g for g, r in guards.items() if r.get("class") == "B")
+    if caps_row is None:
+        red.append("**C8** ✗：登记表里没有 `kind: caps` 行 ⇒ **B 类没有上限** ⇒ 判据可以无限加 ✗")
+        cap = floor = None
+    else:
+        cap = (caps_row.get("caps") or {}).get("b_class_guards")
+        floor = (caps_row.get("floor") or {}).get("b_class_guards")
+        hist = caps_row.get("history") or []
+        if not isinstance(cap, int) or not isinstance(floor, int):
+            red.append("**C8** ✗：`caps` / `floor` 里的 `b_class_guards` 必须是整数")
+        else:
+            if cap < floor:
+                red.append(f"**C8** ✗：`b_class_guards` = {cap} **低于收敛目标** {floor} ⇒ "
+                           f"状态被手改过 ✗")
+            if int(caps_row.get("round", -1)) != len(hist) - 1:
+                red.append(f"**C8** ✗：`round` = {caps_row.get('round')} 与 `history` 长度 "
+                           f"{len(hist)} 不自洽（round 应 = len(history) − 1）")
+            prev = None
+            for entry in hist:
+                cur = (entry.get("caps") or {}).get("b_class_guards")
+                if not isinstance(cur, int):
+                    red.append(f"**C8** ✗：history 第 {entry.get('round')} 轮缺 `b_class_guards`")
+                    continue
+                if prev is not None:
+                    if cur > prev:
+                        red.append(f"**C8 放松** ✗：`b_class_guards` 第 {entry.get('round')} 轮 "
+                                   f"{cur} > 上一轮 {prev} ⇒ 上限被抬过 ✗（方向只能是收紧）")
+                    elif cur == prev and cur > floor:
+                        red.append(f"**C8 空转** ✗：`b_class_guards` 第 {entry.get('round')} 轮与"
+                                   f"上一轮都停在 {cur}（还没到收敛目标 {floor}）⇒ ratchet 空转了 ✗")
+                prev = cur
+            if hist and (hist[-1].get("caps") or {}).get("b_class_guards") != cap:
+                red.append("**C8** ✗：`caps` 与 `history` 末轮不一致（同一份真相不许两处各写一份）")
+            if len(b_list) > cap:
+                red.append(f"**C8 超预算** ✗：B 类 **{len(b_list)} 条 > 上限 {cap}** ⇒ "
+                           f"守卫型判据在增殖 ✗。出路（**只许减** ✓）：把同一关注点的 B 合并成"
+                           f"一本登记表 + 一个驱动器，或删掉指不回用户现场的那条 ⇒ "
+                           f"**新加一条 B ⇒ 必须删/合并一条**（零和 ✓）")
+
+    # ── ⓘ 只报告（**不判红** ✓）：弱锚 / 没人量的锚 —— 这两条是**收窄的候选清单** ✓ ──
+    weak = sorted(g for g in b_list if any(anchors.get(x, {}).get("strength") == "process"
+                                           for x in (guards[g].get("anchors") or [])))
+    measured: set[str] = set()
+    for r in guards.values():
+        measured.update(r.get("anchors") or [])
+    unmeasured = sorted(set(anchors) - measured)
+    if weak:
+        info.append(f"ⓘ **弱锚 B**（指回的是 `process` 锚：量流程、后果落在用户身上）"
+                    f"{len(weak)}/{len(b_list)} 条：{' · '.join(weak)}")
+    if unmeasured:
+        info.append(f"ⓘ **没人量的锚**（是缺口，不是红）：{' · '.join(unmeasured)}")
+    counts = {"a": len(a_list), "b": len(b_list), "total": len(guards),
+              "anchors": len(anchors), "cap": cap, "floor": floor,
+              "weak_b": len(weak), "unmeasured_anchors": unmeasured,
+              "b_guards": b_list, "a_guards": a_list}
+    return red, info, counts
+
+
 def run_proof(cmd: str, root: Path, timeout: int = PROOF_TIMEOUT_S) -> tuple[int, str]:
     """跑一条证明 ⇒ (rc, 尾行摘要)。**唯一一处** ✓（`shell=True`：证明是**一条命令** ✓）。"""
     try:
@@ -407,8 +563,8 @@ def run_proof(cmd: str, root: Path, timeout: int = PROOF_TIMEOUT_S) -> tuple[int
 
 def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
           reopen_empty: bool = False, quiet: bool = False,
-          job: str = DEFAULT_JOB) -> int:
-    """C1 覆盖 + C2 咬得住（+ C3 翻账 + C4 接线）。返回退出码 ✓。
+          job: str = DEFAULT_JOB, anchors_path: Path | None = None) -> int:
+    """C1 覆盖 + C2 咬得住（+ C3 翻账 + C4 接线 + C6/C7/C8 锚）。
 
     `job` = 这一次跑**哪个 CI job 的那批证明**（`JOB_ALL` ⇒ 不分工，开发机用 ✓）。
     """
@@ -481,6 +637,42 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
                   + (f"（{' · '.join(pinned)}）" if pinned
                      else "（本台账**没有任何** hex token ⇒ 这一条本跑无输入 —— 如实在此印出，"
                           "**不**当空转判红：那会是一条没有出路的红，不是本跑判的 ✓）"))
+
+    # ── C6/C7/C8 锚（**每一层都要有一个底** ✓ —— 用户 2026-10-16 09:5x ①）──────────
+    #   ⚠ **不过滤 job**：锚是**分类面**的事，不是"哪批证明跑在哪"的事 ⇒ 每个 job 都判它 ✓。
+    apath = anchors_path or (root / "docs" / "guard-anchors.jsonl")
+    #   ⚠ **"这是不是台账所属的那个仓"** —— 用 **C5 的同一条口径**（`coverage_since` 能不能
+    #   在本仓里解析成提交 ✓），**不新造谓词** ✗：`check-attention-budget.py --selftest` 会造一个
+    #   **真 git 夹具仓**、把**真台账**拷进去（`_fixture_repo()`，照真仓的形状不打桩 ✓）——
+    #   那个仓里当然没有分类登记表 ⇒ 若在这里硬判 rc=3，**夹具仓会把守卫自己判红** ✗
+    #   （实测：2026-10-16 加 C6 后 `check-attention-budget.py --selftest` 立刻 4 组红 ✗→✓）。
+    #   ⇒ 夹具仓**如实印出不判**（与 C5 的 `ⓘ 本跑不判` 逐字同一条规则 ✓）；**真仓里**
+    #   缺表 ⇒ rc=3 ✓（下面那条分支）。⚠ **显式 `--anchors` 一律判**（调用方点名要它 ⇒
+    #   没有"跳过"这条路 ⇒ 咬住证明那条 bite 就是在旧树上点名它 ✓）。
+    own_repo = bool(coverage_since) and _resolves(root, coverage_since)
+    if not apath.exists() and anchors_path is None and not own_repo:
+        if not quiet:
+            print(f"  ⓘ C6/C7/C8 **本跑不判** —— 分类登记表 `{apath.name}` 不在本仓，而台账的"
+                  f"覆盖基线 `{coverage_since[:12]}` 也**不在本仓** ⇒ 这**不是台账所属的那个仓**"
+                  f"（夹具仓 / 拷来的台账 ⇒ 表本来就不在那里 ✓）⇒ 可达性判不了 ⇒ 如实印出、"
+                  f"**既不假红也不假装判过** ✓（真仓里缺表那一档由下面那条分支兜住 ⇒ `exit 3` ✓）")
+    else:
+        arows, aerr = load_anchors(apath)
+        if aerr:
+            print(f"error: {aerr}", file=sys.stderr)
+            return 3
+        a_red, a_info, a_counts = anchor_problems(root, arows)
+        red.extend(a_red)
+        if not quiet:
+            if not a_red:
+                print(f"  ✓ C6 覆盖：口径里 {a_counts['total']} 个守卫**每一个**都有分类"
+                      f"（A {a_counts['a']} · B {a_counts['b']}）")
+                print(f"  ✓ C7 有底：每条都指回一条**用户现场**锚（{a_counts['anchors']} 条锚）"
+                      f" —— B 只许指向锚 ⇒ **B 不能指向 B**，递归到底 ✓")
+                print(f"  ✓ C8 预算：B **{a_counts['b']} ≤ {a_counts['cap']}**（每轮 −2，目标 "
+                      f"{a_counts['floor']}）· ⭐ A **{a_counts['a']} 条不进任何上限**（锚定型无限预算 ✓）")
+            for m in a_info:
+                print(f"  {m}")
 
     # ── C2 咬得住 ───────────────────────────────────────────────────────
     targets = pool if run_all else [e for e in pool if e["guard"] in scope]
@@ -594,8 +786,8 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
     return 0
 
 
-def list_coverage(root: Path, ledger_path: Path) -> int:
-    """`--list`：谁有证明 · 谁是 grandfathered（**评审可见** ✓，不是豁免 ✗）。"""
+def list_coverage(root: Path, ledger_path: Path, anchors_path: Path | None = None) -> int:
+    """`--list`：谁有证明 · 谁是 grandfathered（**评审可见** ✓，不是豁免 ✗）· A/B 分类。"""
     entries, coverage_since, err = load_ledger(ledger_path)
     if err:
         print(f"error: {err}", file=sys.stderr)
@@ -616,6 +808,23 @@ def list_coverage(root: Path, ledger_path: Path) -> int:
           f"如实划的口径，不是豁免 ✓）：{len(rest)} 个")
     for g in rest:
         print(f"    · {g}")
+
+    # ── A/B 分类（C6/C7/C8 的**可读面** ✓）：评审一眼看得出"谁在量用户现场"──
+    arows, aerr = load_anchors(anchors_path or (root / "docs" / "guard-anchors.jsonl"))
+    if aerr:
+        print(f"\n⚠ 分类登记表读不了 ⇒ C6/C7/C8 判不了：{aerr}")
+        return 0
+    _a_red, a_info, c = anchor_problems(root, arows)
+    by = {r["guard"]: r for r in arows if r.get("kind") == "guard"}
+    print(f"\nA/B 分类（`docs/guard-anchors.jsonl`）：**A {c['a']}** 条（量用户现场）· "
+          f"**B {c['b']}** 条（量别的判据）· 上限 **B ≤ {c['cap']}**（每轮 −2，目标 {c['floor']}）")
+    for cls, names in (("A", c["a_guards"]), ("B", c["b_guards"])):
+        print(f"  【{cls}】{'量用户现场 ✓' if cls == 'A' else '量别的判据（必须指回 A）'}")
+        for g in names:
+            r = by.get(g) or {}
+            print(f"    {g} → {' · '.join(r.get('anchors') or []) or '（**没底** ✗）'}")
+    for m in a_info:
+        print(f"  {m}")
     return 0
 
 
@@ -664,6 +873,88 @@ def selftest(job: str = DEFAULT_JOB) -> int:
          " · ".join(f"{Path(e['guard']).name}→{e['bite']['expect_rc']}" for e in entries))
     gate("正对照：每条都有 `bug`（**已存在的坏输入**是必填 ✓）",
          all(str(e.get("bug", "")).strip() for e in entries))
+
+    # ── 锚登记表（C6/C7/C8）—— **两头都要验** ✓（B 超上限 ⇒ 判红 · A 增长 ⇒ **不**判红）──
+    real_rows, real_err = load_anchors(ANCHORS)
+    gate("正对照：真分类登记表读得进来（`docs/guard-anchors.jsonl`）",
+         not real_err and bool(real_rows), f"{len(real_rows)} 行" + (f" · {real_err}" if real_err else ""))
+    with tempfile.TemporaryDirectory(prefix="soko-anchor-") as td_a:
+        ta = Path(td_a)
+        a_red, _a_info, ac = anchor_problems(ROOT, real_rows)
+        gate("正对照：真登记表 ⇒ C6 覆盖 / C7 有底 / C8 预算**无红**",
+             not a_red, f"A {ac['a']} · B {ac['b']} · cap {ac['cap']} · 锚 {ac['anchors']}"
+                        + (f" · 红：{a_red[:1]}" if a_red else ""))
+
+        # 反向⑪：**B 超上限** ⇒ 必须判红（预算真的在拦，不是装饰 ✗）
+        over = [dict(r) for r in real_rows]
+        for r in over:
+            if r.get("kind") == "caps":
+                r["caps"] = {"b_class_guards": ac["b"] - 1}
+                r["floor"] = {"b_class_guards": min(ac["b"] - 1, r["floor"]["b_class_guards"])}
+                r["round"] = 0
+                r["history"] = [{"round": 0, "caps": dict(r["caps"]),
+                                 "reading": dict(r["caps"]), "why": "夹具：故意把上限压到 B−1"}]
+        red_over, _i, _c = anchor_problems(ROOT, over)
+        gate("反向⑪：**B 超上限**（cap = B−1）⇒ 判红（C8 超预算 + 给出路「新加一条 B 必须删/合并一条」）",
+             any("C8 超预算" in m for m in red_over), f"红 {len(red_over)} 条")
+
+        # 反向⑦：**B 指一条不存在的锚** ⇒ 必须判红（底悬空 ⇒ 递归没到底 ✗）
+        dang = [dict(r) for r in real_rows]
+        for r in dang:
+            if r.get("kind") == "guard" and r.get("class") == "B":
+                r["anchors"] = ["A-NO-SUCH-ANCHOR"]
+                break
+        red_dang, _i, _c = anchor_problems(ROOT, dang)
+        gate("反向⑫：**B 指向一条不存在的锚** ⇒ 判红（C7 悬空锚 ⇒ 它的底悬空）",
+             any("C7 悬空锚" in m for m in red_dang), f"红 {len(red_dang)} 条")
+
+        # 反向⑧：**口径里有守卫没分类** ⇒ 必须判红（C6 覆盖 —— 修前那份仓库状态就是这个形状 ✓）
+        red_miss, _i, _c = anchor_problems(ROOT, [r for r in real_rows if r.get("kind") != "guard"])
+        gate("反向⑬：**有守卫没分类**（C6）⇒ 判红（新守卫没分类不许进仓库）",
+             any("C6 覆盖" in m for m in red_miss), f"红 {len(red_miss)} 条")
+
+        # ⭐⭐ 反向⑨ = **两头的那一头**：**A 类增长 ⇒ 不判红** ✓
+        #   A 类**不进任何上限**（用户【①】：锚定型无限预算）⇒ 这不是"我们选择不判"，
+        #   是**结构性不可能**：`anchor_problems` 里 A 只被印出来、从不与任何 cap 比较 ✓。
+        def _grow_root(n: int) -> Path:
+            """造一个**只含 n 个 A 类守卫**的合成口径（真文件 ⇒ 走 `guard_scripts()` 的 glob ✓）。"""
+            r = ta / f"root{n}"
+            (r / "scripts").mkdir(parents=True, exist_ok=True)
+            for i in range(n):
+                (r / "scripts" / f"check-fixture-a{i}.py").write_text("# 夹具守卫\n", encoding="utf-8")
+            return r
+
+        def _grow_rows(n: int) -> list[dict]:
+            rows = [{"kind": "caps", "round": 0, "caps": {"b_class_guards": 0},
+                     "floor": {"b_class_guards": 0},
+                     "history": [{"round": 0, "caps": {"b_class_guards": 0},
+                                  "reading": {"b_class_guards": 0}, "why": "夹具：B 预算 0"}]},
+                    {"kind": "anchor", "id": "A-FIXTURE", "strength": "direct",
+                     "site": "夹具：真 VS Code", "action": "打开文件", "reading": "夹具读数"}]
+            for i in range(n):
+                rows.append({"kind": "guard", "guard": f"scripts/check-fixture-a{i}.py", "class": "A",
+                             "anchors": ["A-FIXTURE"], "why": "夹具：A 类守卫"})
+            return rows
+
+        red0, _i, c0 = anchor_problems(_grow_root(0), _grow_rows(0))
+        red2, _i, c2 = anchor_problems(_grow_root(2), _grow_rows(2))
+        gate("⭐⭐ 反向⑭（**两头的那一头**）：**A 类增长 0 → 2 ⇒ 不判红**（A 不进任何上限 ✓）",
+             (not red0) and (not red2) and c0["a"] == 0 and c2["a"] == 2,
+             f"cap 一个字没动 ⇒ A {c0['a']} → {c2['a']} · B {c0['b']} → {c2['b']} · "
+             f"红 {len(red0)} → {len(red2)}")
+
+        # 反向⑩：**caps 被抬过**（第 1 轮 > 第 0 轮）⇒ 判红（方向只能是收紧 ✗）
+        up = [dict(r) for r in real_rows]
+        for r in up:
+            if r.get("kind") == "caps":
+                base = r["caps"]["b_class_guards"]
+                r["round"] = 1
+                r["caps"] = {"b_class_guards": base + 2}
+                r["history"] = [{"round": 0, "caps": {"b_class_guards": base}, "reading": {}},
+                                {"round": 1, "caps": {"b_class_guards": base + 2}, "reading": {}}]
+        red_up, _i, _c = anchor_problems(ROOT, up)
+        gate("反向⑮：**caps 被抬过**（第 1 轮 > 第 0 轮）⇒ 判红（上限方向只能是收紧）",
+             any("C8 放松" in m for m in red_up), f"红 {len(red_up)} 条")
 
     # ── 反向①：**bite 返回 0** ⇒ 必须判红（"它咬不住" ✗）──────────────────
     with tempfile.TemporaryDirectory(prefix="soko-bite-") as td:
@@ -832,7 +1123,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         gate("⭐ 正对照：历史最差点被咬住", False, "台账里没有 check-attention-budget 那一行 ✗")
 
     print(f"\n自检：{'✓ 全过' if bad == 0 else f'✗ {bad} 组不对'}"
-          f"（正对照 5 + 反向 10 + 真跑台账）")
+          f"（正对照 7 + 反向 15 + 真跑台账；含**锚的两头**：B 超上限 ⇒ 判红 · A 增长 ⇒ 不判红 ✓）")
     return 0 if bad == 0 else 1
 
 
@@ -850,7 +1141,11 @@ def main(argv=None) -> int:
     ap.add_argument("--check", action="store_true",
                     help="（默认动作；显式写出来给调用方用 ✓ —— `check-attention-budget.py "
                          "--open-round` 就是这么调的 ✓）")
-    ap.add_argument("--list", action="store_true", help="只印覆盖情况（含 grandfathered 清单）")
+    ap.add_argument("--list", action="store_true", help="只印覆盖情况（含 grandfathered 清单 + A/B 分类）")
+    ap.add_argument("--counts", action="store_true",
+                    help="只印 A/B/锚/上限的**机器可读**计数（JSON；给 ratchet 读数用 ✓）")
+    ap.add_argument("--anchors", default=None,
+                    help="分类登记表路径（缺省 `docs/guard-anchors.jsonl`；复现 / 咬住证明用 ✓）")
     ap.add_argument("--reopen-empty", action="store_true",
                     help="⭐ ① 翻账：咬不住的 ⇒ reopen 它关掉的那条（回 todo）")
     ap.add_argument("--selftest", action="store_true")
@@ -869,10 +1164,23 @@ def main(argv=None) -> int:
     ledger = Path(args.ledger)
     if not ledger.is_absolute():
         ledger = (root / ledger).resolve()
+    anchors = None
+    if args.anchors:
+        anchors = Path(args.anchors)
+        if not anchors.is_absolute():
+            anchors = (root / anchors).resolve()
+    if args.counts:
+        arows, aerr = load_anchors(anchors or (root / "docs" / "guard-anchors.jsonl"))
+        if aerr:
+            print(json.dumps({"ok": False, "error": aerr}, ensure_ascii=False))
+            return 3
+        a_red, _a_info, a_counts = anchor_problems(root, arows)
+        print(json.dumps({"ok": not a_red, "red": a_red, **a_counts}, ensure_ascii=False))
+        return 1 if a_red else 0
     if args.list:
-        return list_coverage(root, ledger)
+        return list_coverage(root, ledger, anchors)
     return check(root, ledger, args.since, args.all, reopen_empty=args.reopen_empty,
-                 job=args.job)
+                 job=args.job, anchors_path=anchors)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,66 @@
+# guard-anchors.jsonl —— **锚登记表**（用户 2026-10-16 09:5x：`SUB-break-the-guard-recursion` ①）
+#
+# 它解决的是**递归没有底**：`判据 → 判据的洞 → 判据的判据 → …` 每一层都是代码、都有失败模式 ✗
+# ⇒ 本表给每一层**钉一个底**：B 类（守卫型）必须指回一条 **A 类锚 = 用户现场** ✓。
+#
+# 三类行（`kind`）：
+#   anchor —— **用户现场**（`site` 用户在哪 · `action` 用户做什么 · `reading` 怎么量 ·
+#             `strength` = direct（直接量用户现场）/ process（量流程，但后果落在用户身上））
+#   guard  —— 一条守卫（`guard` 仓库相对路径 · `class` A/B · `anchors` 它保护的锚 id · `why`）
+#             A = 输入是**产品/用户面产物**（真编辑器 / 真浏览器 / 已发布二进制的输出 / 课程正文 / 产品源码）
+#             B = 输入是**别的判据 / 台账 / CI 接线 / 流程记账 / 提交信息**（= 判据的判据）
+#   caps   —— **B 类预算**（绝对上限 · 只许减 · A 类**不进上限** = 无限预算 ✓）
+#
+# 判据与写法见 `scripts/check-guard-bite.py`（**唯一一处** ✓）：C6 覆盖 · C7 有底 · C8 预算。
+# ⚠ `anchors` **只许是 anchor id**（不许指另一条守卫）⇒ **底是结构性的**：B 不能指向 B ✓。
+# ⚠ 覆盖口径 = `check-guard-bite.py` 的 `guard_scripts()`（32 个）⇒ 新守卫没分类 ⇒ C6 判红 ✗。
+# ⚠ `strength: process` 的锚是**弱锚**：它量的是流程，只是后果落在用户身上 ⇒ 指回它的 B 是
+#   **收窄的候选**（`--list` 会把弱锚 B 数印出来 ✓，不是豁免 ✗）。
+{"kind": "caps", "round": 0, "at": "2026-10-16T05:20:00+00:00", "head": "4bd593d9", "caps": {"b_class_guards": 21}, "floor": {"b_class_guards": 5}, "history": [{"round": 0, "caps": {"b_class_guards": 21}, "reading": {"b_class_guards": 21}, "why": "落地那一刻：B 类 = 21（其中 scripts/check-*.py 那 22 个里 B = 16，与 SUB-narrow-guards-to-one-layer 的四组分类逐条一致 ✓）。A 类**不进任何上限**（用户【①】：锚定型无限预算 ✓）。floor = 5 = 收窄方案的四本登记表 + guard-bite（算术：B(22) 16 → ≤4 ⇒ 22 个判据 ≤10 ✓）。"}], "why": "B 类预算：绝对上限（不是比例 —— 比例可以两边一起涨 ✗）· 只许减 · 每轮 −2。⚠ 只卡 B：卡总数会把「量用户现场」也卡死 ✗（A 是锚，按定义要跟着用户现场长）。"}
+{"kind": "anchor", "id": "A-INFOVIEW-VISIBLE", "strength": "direct", "site": "真 VS Code + 真 sokonanoda 扩展", "action": "打开 .sokonanoda 看 Infoview", "reading": "声明/目标/分区的层级与字号：标题不许比正文更小更暗"}
+{"kind": "anchor", "id": "A-CLI-JSON-BYTES", "strength": "direct", "site": "已发布/仓库 CLI 二进制", "action": "判整门课并读 --json", "reading": "同一批输入 ⇒ 接受/拒绝不变 · 事件计数不变 · --json 逐字节不变"}
+{"kind": "anchor", "id": "A-KEYSTROKE-RECOMPILE", "strength": "direct", "site": "真编辑器里按一次键", "action": "等 Infoview 更新", "reading": "同一份闭包被编了几次（结构计数，不比墙钟）"}
+{"kind": "anchor", "id": "A-TERMINAL-CADENCE", "strength": "direct", "site": "用户看的终端", "action": "跑 build/rebuild", "reading": "逐文件有输出 · 最长无输出间隔 ≤ 上限（不是「有没有进度条」）"}
+{"kind": "anchor", "id": "A-COURSE-TEXT", "strength": "direct", "site": "用户读的课程正文", "action": "打开 courses/**/*.sokonanoda", "reading": "正文里是 Lean 4 记法（不是点名 + 前导实参）"}
+{"kind": "anchor", "id": "A-SITE-BROWSER", "strength": "direct", "site": "真 Chrome（两种语言/深色）", "action": "打开官网并点「英」「中」「深色」", "reading": "零 404 · 版本回填 · 无横向溢出 · 命中尺寸 ≥24px"}
+{"kind": "anchor", "id": "A-WIRE-FIELDS-VISIBLE", "strength": "direct", "site": "真 VS Code Infoview", "action": "看那一行有没有出现", "reading": "扩展读了就一定发（缺字段 = 静默降级 = 用户看不见）"}
+{"kind": "anchor", "id": "A-NOTATION-ON-SCREEN", "strength": "direct", "site": "用户在 Infoview / #check 里看到的式子", "action": "读那条目标/声明", "reading": "记法转化只有一个接口（四处各写一遍 ⇒ 屏幕上是点形式）"}
+{"kind": "anchor", "id": "A-TACTIC-REFERENCE", "strength": "direct", "site": "用户读的 reference/tactics/*.md", "action": "照文档写一条 tactic", "reading": "文档列的就是真能用的（绕开关键字表 ⇒ 文档在说谎）"}
+{"kind": "anchor", "id": "A-HARNESS-DOCS-MATCH", "strength": "direct", "site": "用户/agent 照文档操作", "action": "按 README/AGENTS 的命令跑", "reading": "文档说的命令与实现一致（否则用户撞墙、agent 白跑）"}
+{"kind": "anchor", "id": "A-REPORT-TRUTH", "strength": "process", "site": "用户/agent 读到的进度与收口报告", "action": "读「已修 / 已验证 / 绿」那些格子", "reading": "报告里的「已修/绿」是真的（守卫咬得住 · 读数可归属 · 不是假绿）"}
+{"kind": "anchor", "id": "A-LEDGER-TRUTH", "strength": "process", "site": "用户/agent 读的队列与缺口台账", "action": "读 §0.2 摘要 / --json", "reading": "台账里的状态与真状态一致（两份实现同数 · 收口指针可达）"}
+{"kind": "anchor", "id": "A-PRODUCT-PROGRESS", "strength": "process", "site": "用户每轮实际拿到的东西", "action": "看这一轮改了多少产品面", "reading": "产品面进展 vs 账本/工具（文档不爆 · 注意力不被簿记吃掉）"}
+{"kind": "anchor", "id": "A-RELEASE-NOT-BLOCKED", "strength": "process", "site": "用户拿到的下一个版本", "action": "等 bump + push + release", "reading": "非用户面的门禁红不许把发版拖住（阈值不许是装饰 · 磁盘/CI 配置不许炸）"}
+{"kind": "anchor", "id": "A-RELEASE-ARTIFACTS", "strength": "process", "site": "用户装到的 VSIX / CLI / LSP", "action": "装最新版本用一次", "reading": "装到的是最新代码（未发版量可数、会涨、会判红）"}
+{"kind": "guard", "guard": "scripts/check-site.py", "class": "A", "anchors": ["A-SITE-BROWSER"], "why": "真 Chrome + 真 VS Code 截图（--browser / site-screenshot.mjs）"}
+{"kind": "guard", "guard": "scripts/check-infoview-hierarchy.py", "class": "A", "anchors": ["A-INFOVIEW-VISIBLE"], "why": "读扩展的 media/infoview.css（用户看的那张样式表）"}
+{"kind": "guard", "guard": "scripts/audit-infoview-css.py", "class": "A", "anchors": ["A-INFOVIEW-VISIBLE"], "why": "同族：同一条 UI 反馈的横向（双重压暗 / 标题小于正文）"}
+{"kind": "guard", "guard": "scripts/check-json-identity.py", "class": "A", "anchors": ["A-CLI-JSON-BYTES"], "why": "真 CLI 在整门课上跑两遍，比 stdout 与退出码逐字节"}
+{"kind": "guard", "guard": "scripts/check-recompile-factor.py", "class": "A", "anchors": ["A-KEYSTROKE-RECOMPILE"], "why": "真编译管线的 by_calls/passes 结构计数（不是耗时）"}
+{"kind": "guard", "guard": "scripts/check-progress-cadence.py", "class": "A", "anchors": ["A-TERMINAL-CADENCE"], "why": "人看的那条进度（逐文件 tick），跑真 build"}
+{"kind": "guard", "guard": "scripts/check-progress-gap.py", "class": "A", "anchors": ["A-TERMINAL-CADENCE"], "why": "build --json 事件流的最长空档（机器通道，但量的是用户等待）"}
+{"kind": "guard", "guard": "scripts/notation-lint.py", "class": "A", "anchors": ["A-COURSE-TEXT"], "why": "读 courses/**/*.sokonanoda 正文"}
+{"kind": "guard", "guard": "scripts/audit-wire-fields.py", "class": "A", "anchors": ["A-WIRE-FIELDS-VISIBLE"], "why": "扩展源码的读取点 vs LSP 源码的发送点（产品接缝）"}
+{"kind": "guard", "guard": "scripts/audit-notation-paths.py", "class": "A", "anchors": ["A-NOTATION-ON-SCREEN"], "why": "产品源码里记法转化的调用点（绕开唯一接口就判红）"}
+{"kind": "guard", "guard": "scripts/tactic-docs-lint.py", "class": "A", "anchors": ["A-TACTIC-REFERENCE"], "why": "产品源码字面量 vs reference/tactics/*.md 文件名"}
+{"kind": "guard", "guard": "scripts/check-guard-bite.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量别的判据：每条守卫必须咬住一条已存在的坏输入（+ 本轮的锚/预算）"}
+{"kind": "guard", "guard": "scripts/check-timing-evidence.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量提交信息里有没有计时数字（证据完备性，不是产品）"}
+{"kind": "guard", "guard": "scripts/check-lean4-alignment.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量提交信息/交付里有没有「先读 Lean 4」的对照记录"}
+{"kind": "guard", "guard": "scripts/check-threshold-ratchet.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量别的判据的上限：装饰性阈值（贴在实测上方 ⇒ 永远绿）"}
+{"kind": "guard", "guard": "scripts/check-attention-budget.py", "class": "B", "anchors": ["A-PRODUCT-PROGRESS"], "why": "量流程本身：簿记提交占比 / 比值（ratchet）"}
+{"kind": "guard", "guard": "scripts/check-frozen-headroom.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量预算余量：强制追加类不许把冻结余量吃到 0"}
+{"kind": "guard", "guard": "scripts/docs-lint.py", "class": "B", "anchors": ["A-PRODUCT-PROGRESS"], "why": "量文档体量 + 接手路径行数 + ⑨ 源码行数冻结（冻结会管住「代码该放哪」⇒ 见 why 的备注）"}
+{"kind": "guard", "guard": "scripts/status-lint.py", "class": "B", "anchors": ["A-PRODUCT-PROGRESS"], "why": "量 STATUS.md 的体量与形状（注意力预算）"}
+{"kind": "guard", "guard": "scripts/ci-yml-lint.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量 CI 配置本身（重复键 / job 形状）"}
+{"kind": "guard", "guard": "scripts/target-hygiene.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量 cargo target/ 体积（磁盘炸 ⇒ 构建与发版跑不动）"}
+{"kind": "guard", "guard": "scripts/gap.py", "class": "B", "anchors": ["A-LEDGER-TRUTH"], "why": "量缺口台账：复现与 status 一致（账的账）"}
+{"kind": "guard", "guard": "scripts/check-queue-views.py", "class": "B", "anchors": ["A-LEDGER-TRUTH"], "why": "量队列：第二份独立实现（判据的判据）"}
+{"kind": "guard", "guard": "scripts/check-queue-rewrite-trigger.py", "class": "B", "anchors": ["A-LEDGER-TRUTH"], "why": "量队列：rebase 后收口指针回填（git 钩子）"}
+{"kind": "guard", "guard": "scripts/check-multi-session.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量并行会话/分支：只有 main 出得起的两条红线"}
+{"kind": "guard", "guard": "scripts/check-one-run.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量 CI run：一次只让一条活着（否则「本地绿就算绿」）"}
+{"kind": "guard", "guard": "scripts/check-ci-gate-coverage.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量 CI 接线：改了某范围 ⇒ 该跑的门禁跑没跑"}
+{"kind": "guard", "guard": "scripts/check-history-depth-wiring.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量 CI 接线：跑历史判据的 job 有没有全历史"}
+{"kind": "guard", "guard": "scripts/check-test-env-isolation.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量测试的环境档位隔离（混档 ⇒ 绿是假的）"}
+{"kind": "guard", "guard": "scripts/check-doc-drift.py", "class": "B", "anchors": ["A-HARNESS-DOCS-MATCH"], "why": "量声明：harness 接线文档 vs 实现"}
+{"kind": "guard", "guard": "scripts/check-launcher-extension-link.py", "class": "B", "anchors": ["A-HARNESS-DOCS-MATCH"], "why": "量声明：AGENTS 说「扩展自带」vs 启动器代码（实测是死分支）"}
+{"kind": "guard", "guard": "scripts/check-lsp-marker-seam.py", "class": "B", "anchors": ["A-HARNESS-DOCS-MATCH"], "why": "量声明：marker 文档 vs 两处写入点"}
