@@ -10,6 +10,9 @@ mod expected_spine;
 mod goals;
 pub mod hints;
 mod implicit;
+// IA-5 的错误文案（**单独一个文件** ⇒ `elab.rs`/`implicit.rs` 都受判据 ⑨ 冻结，
+// **只许减不许增** ✗ ⇒ 文案长在那边会当场判红 ✓）。
+mod implicit_msg;
 mod level;
 mod meta;
 mod pp_shape;

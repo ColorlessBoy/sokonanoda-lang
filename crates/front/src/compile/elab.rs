@@ -4463,8 +4463,15 @@ fn try_implicit_application_with<'a>(
     // **先算"旧写法是否贴合"**（G-42 的规则 ✓）—— 它决定路线③ 让不让位 ✓：
     // `And.intro a b ha hb` 逐位贴合 ⇒ 旧写法 ✓（不许被"富余实参落到结果上"抢走 ✗）；
     // `Set.image f A y` 不贴合（`f` 是函数、不是 `Type` ✗）⇒ 让给路线③ ✓。
-    // ⚠ 必须在块**外**算：下面两个分支都要用它 ✓。
-    let fits_old_style = args.len() <= layers.len()
+    // ⚠ **必须在块**外**算：下面两个分支都要用它 ✓。
+    //
+    // **IA-5**：严格档下这两个判据**恒 `false`** ✓ —— 它们存在的唯一目的是让
+    // **旧写法**（正常形式收位置隐式实参）与路线③ 分清；严格档**没有旧写法**了
+    // ⇒ 富余实参**一律**落到结果上（= Lean 4 `App.lean:1113`
+    // `fType := body.instantiate1 arg` 的同一条读法 ✓）。
+    let strict_at = crate::compile::implicit_msg::strict_at_enabled();
+    let fits_old_style = !strict_at
+        && args.len() <= layers.len()
         && args_fit_layers_in_order(
             &layers,
             &args,
@@ -4486,7 +4493,8 @@ fn try_implicit_application_with<'a>(
     // `期望 (Set.[] Two.[])，实际是 Pi (α : Sort(1)), (Set.[] $0)` ✗（实测：
     // unit08 的 `image_inter_singletons_empty`）。
     // 开头贴合 ⇒ 这就是旧写法，路线③ **必须让位** ✓（它只该管"实参从显式层开始"的形状）。
-    let starts_old_style = args.first().is_some_and(|a| {
+    let starts_old_style = !strict_at
+        && args.first().is_some_and(|a| {
         type_head_fits_layer(
             &layers[0].domain,
             a,
@@ -4683,7 +4691,7 @@ fn try_implicit_application_with<'a>(
     // 而正确读法是**旧写法**（`A := Nat` ⇒ `Nat -> Option Nat` ✓）。光看**个数**
     // 分不开（两种读法都是 1 个实参 ✗）⇒ 多一条**可判定**的入口：写出来的实参
     // **逐位贴合**对应层的域 ⇒ 这就是"把隐式位也逐位写出来" ✓。
-    if args.len() > declared.explicit_arity() || fits_old_style {
+    if !strict_at && (args.len() > declared.explicit_arity() || fits_old_style) {
         if args.len() > layers.len() {
             return Ok(None);
         }
@@ -4719,6 +4727,33 @@ fn try_implicit_application_with<'a>(
             );
         }
         return Ok(Some(out));
+    }
+    // **IA-5：严格档下「实参比显式层多」= 用户把隐式位也写成了位置实参** ✗。
+    //
+    // 路线③ 已经试过「富余实参落到**结果**上」（= Lean 4 `App.lean:1113`
+    // `fType := body.instantiate1 arg` 的同一条读法 ✓）⇒ 走到这里说明结果
+    // **不是**能再吃实参的函数（`h Nat Nat (fun …) 5` 的结果是变量 `β` ✓；
+    // `And.intro a b ha hb` 的结果 `And a b` 是归纳类型 ✓）。
+    //
+    // **Lean 4 对照**：那里报 `function expected`（`Meta/InferType.lean:76`）
+    // 或 `Application type mismatch`（`Meta/Check.lean:254`）。我们沿用**既有码**
+    // `ElabImplicitArgumentUnsolved`（不新增码，D6 ✓），但按用户 2026-10-16 第 ③ 条
+    // 把**参数名 + 位置 + 可复制出路**写进 message ✓（文案本体在
+    // `crate::compile::implicit_msg` —— `elab.rs` 受 `docs-lint` ⑨ **冻结** ✗）。
+    if strict_at && args.len() > explicit_layers {
+        return Err(CompileError::elab(
+            ErrorKind::ElabImplicitArgumentUnsolved,
+            crate::compile::implicit_msg::strict_rejection_message(
+                &render_msg(ctx, head),
+                &render_msg(ctx, expr),
+                ty_text,
+                k,
+                layers.len(),
+                explicit_layers,
+                args.len(),
+            ),
+            expr.span(),
+        ));
     }
     if layers.len() < k + args.len() {
         return Ok(None);
@@ -4811,15 +4846,16 @@ fn try_implicit_application_with<'a>(
                 }
                 _ => "（本子集按「后续显式实参的类型 + 期望类型」反解）",
             };
+            // **用户 2026-10-16 第 ③ 条**（「报错信息要完善，指令要明确」）：文案本体在
+            // `crate::compile::implicit_msg` ✓（`elab.rs` 受 `docs-lint` ⑨ **冻结** ✗）。
             return Err(CompileError::elab(
                 ErrorKind::ElabImplicitArgumentUnsolved,
-                format!(
-                    "`{}` 的签名 `{}` 里有 {} 个**隐式**参数，但补不出来{}。把参数写全，例如 `{} …` 逐位写下来",
-                    render_msg(ctx, head),
+                crate::compile::implicit_msg::unsolved_message(
+                    &render_msg(ctx, head),
+                    &render_msg(ctx, expr),
                     ty_text,
                     k,
                     why,
-                    render_msg(ctx, head)
                 ),
                 span,
             ));
