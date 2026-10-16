@@ -109,7 +109,9 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import fnmatch
+import io
 import json
 import os
 import re
@@ -478,7 +480,7 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
             print(f"  ✓ C5 可达性：证明里钉的 {len(pinned)} 个 rev 都在本仓里且是 `HEAD` 的祖先 ✓"
                   + (f"（{' · '.join(pinned)}）" if pinned
                      else "（本台账**没有任何** hex token ⇒ 这一条本跑无输入 —— 如实在此印出，"
-                          "**不**当空转判红：那会是一条没有出路的红 ✗）"))
+                          "**不**当空转判红：那会是一条没有出路的红，不是本跑判的 ✓）"))
 
     # ── C2 咬得住 ───────────────────────────────────────────────────────
     targets = pool if run_all else [e for e in pool if e["guard"] in scope]
@@ -503,8 +505,20 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
             print(f"    {'✓' if p_ok else '✗'} {g} `pass` rc={prc}"
                   f"（期望 {e['pass']['expect_rc']}）")
             print(f"    {'✓' if b_ok else '✗'} {g} `bite` rc={brc}"
-                  f"（期望 {e['bite']['expect_rc']}，**必须非 0**）"
-                  + (f" ⇒ {btail[:110]}" if b_ok else ""))
+                  f"（期望 {e['bite']['expect_rc']}，**必须非 0**）")
+            # ⚠ ⭐ **读数可归属**（2026-10-16 实测的误读 ✗→✓，洞
+            #   `BITE-EXPECTATION-GOES-STALE-WHEN-READING-IMPROVES` 的**近因**）：
+            #   证明**自身的输出**必须**单独一行**印（旧版拼在 `✓` 行尾巴上 ✗）——
+            #   它里面**故意**可能带着 `C2 ✗`：本文件自己的 `bite` 就是拿
+            #   **故意咬不住**的夹具（`scripts/fixtures/guard-bite-nonbiting.jsonl`）跑的 ✓，
+            #   而那份夹具点名的守卫正是 `scripts/check-attention-budget.py` ⇒ 旧输出里出现
+            #   `✓ … ⇒ · **C2** ✗：`scripts/check-attention-budget.py` 的 `bite` rc=0（期望 1）`
+            #   ⇒ 人和 agent 都把它读成**本跑判红**（实测：一条 high 队列条目 + 一次
+            #   「`--check --all` rc=1」的结论就是这么来的 ✗ —— 那一跑的 rc 其实是 **0**）。
+            #   ⇒ 判据行**只**放本跑的判据 ✓；证明自述另起一行、带 `↳` 与「不是本跑的判据」✓。
+            #   ⚠ **只改排印，不改判据** ✗：rc / C1–C5 一个字没动 ✓（自检里有一条臂钉住它 ✓）。
+            if b_ok and btail:
+                print(f"      ↳ 证明自身的输出（**不是本跑的判据** ✓）：{btail[:110]}")
         if e["bite"]["expect_rc"] == 0:
             red.append(f"**C2** ✗：`{g}` 的 `bite.expect_rc = 0` ⇒ **它咬不住** "
                        f"（咬住证明必须是「坏输入 ⇒ **非 0**」✗→✓）")
@@ -611,15 +625,37 @@ def selftest(job: str = DEFAULT_JOB) -> int:
 
     def gate(name: str, ok: bool, note: str = "") -> None:
         nonlocal bad
-        if not ok:
+        # ⚠ ⭐ **读数可归属**（与 `check()` 里那条**同一条规则**，这里兜住整个 `--selftest`
+        #   流 ✓）：`✓` 判据行的正文里**不许**出现判红标记 —— 证明**自身的输出**可能
+        #   **故意**是红的（本文件自己的 `bite` 跑的就是**故意咬不住**的夹具 ✓）⇒ 它必须
+        #   另起一行印（`↳ …`）✓。**在打印机上**兜 ⇒ 连臂名/注脚一起管住 ✓（同类一次改齐 ✓）。
+        mixed = ok and ("✗" in name or "✗" in note)
+        if not ok or mixed:
             bad += 1
         print(f"  {'✓' if ok else '✗'} {name}{('：' + note) if note else ''}")
+        if mixed:
+            print("      ↳ **这条 `✓` 判据行的正文里带了判红标记** ⇒ 读数**不可归属** "
+                  "（证明自述必须单独一行 ✓）")
 
     print(f"咬住证明自检（**真跑**，每条都带正反两向 ✓ · job `{job}`）：")
 
     # ── 正对照：**真台账**里**本 job 的**每条逐条跑 ⇒ 必须 rc=0，且 bite 必须真的非 0 ──
-    rc = check(ROOT, LEDGER, None, run_all=True, quiet=True, job=job)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = check(ROOT, LEDGER, None, run_all=True, quiet=False, job=job)
+    out = buf.getvalue()
+    print(out, end="")                       # 判据输出照旧**看得见** ✓（只是被抄了一份 ✓）
     gate(f"正对照：**真台账**（`--all` 逐条真跑 · job `{job}`）⇒ rc=0", rc == 0, f"rc={rc}")
+    # ⚠ ⭐ **读数可归属**（2026-10-16 实测的误读 ✗→✓）：`✓` 判据行的正文里**不许**出现
+    #   判红标记 —— 证明**自身的输出**（里面**故意**可能有 `C2 ✗`：本文件自己的 `bite`
+    #   跑的就是**故意咬不住**的夹具 ✓）必须**单独一行**印（`↳ …`）✓。
+    #   ⚠ 这条臂**不是**装饰：它钉住"`✓` 行与证明自述**不混排**"这一条，
+    #   而那个混排**真实发生过**（一条 high 队列条目把它读成「`--check --all` rc=1」✗，
+    #   而那一跑的 rc 是 0 ✓）⇒ 咬住证明：`docs/guard-bite.jsonl` 里本文件那一行
+    #   （`bite` 拿**修前**的 `b21b71c1` 跑同一条 `--check --all` ⇒ 必须复现出混排 ⇒ rc=1 ✓）。
+    traps = [ln for ln in out.splitlines() if re.match(r"^\s*✓ ", ln) and "✗" in ln]
+    gate("正对照：**读数可归属** —— 判据行里不夹带**另一条判据的判红标记**（证明自述单独一行 ✓）",
+         not traps, f"混排行 {len(traps)}" + (f" · 例：{traps[0].strip()[:70]}" if traps else ""))
     entries, _cs, err = load_ledger(LEDGER)
     gate("正对照：真台账读得进来且非空", not err and bool(entries),
          f"{len(entries)} 条" + (f" · {err}" if err else ""))
@@ -700,7 +736,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
 
         # ── 反向⑥：台账**缺失** ⇒ rc=3（**不假装判过** ✗）────────────────
         rc_m = check(ROOT, tmp / "nope.jsonl", None, run_all=True, quiet=True)
-        gate("反向⑥：台账**不存在** ⇒ rc=3（不假装判过 ✗）", rc_m == 3, f"rc={rc_m}")
+        gate("反向⑥：台账**不存在** ⇒ rc=3（**不假装判过** ✓）", rc_m == 3, f"rc={rc_m}")
 
         # ── 反向⑦：**C4 接线** —— 声明了一个 `ci.yml` 里没有的 job ⇒ 判红 ──
         #   （**分派的空转闸**：没有它，把证明标成不存在的 job 就等于藏起来 ✗）
@@ -787,8 +823,11 @@ def selftest(job: str = DEFAULT_JOB) -> int:
     if hist:
         rc_h, tail_h = run_proof(hist["bite"]["cmd"], ROOT)
         gate("⭐ 正对照：**历史最差点**（`--until c82097fe` ⇒ 19.32 : 1）**真被咬住**",
-             rc_h == hist["bite"]["expect_rc"] and rc_h != 0,
-             f"rc={rc_h} · {tail_h[:100]}")
+             rc_h == hist["bite"]["expect_rc"] and rc_h != 0, f"rc={rc_h}")
+        # ⚠ **读数可归属**（同 `check()` 那条）：证明自身的输出**单独一行** ✓ ——
+        #   它这里**必然**是红的（那条 bite 就是要把 19.32 : 1 判红 ✓）。
+        if rc_h != 0:
+            print(f"      ↳ 证明自身的输出（**不是本跑的判据** ✓）：{tail_h[:100]}")
     else:
         gate("⭐ 正对照：历史最差点被咬住", False, "台账里没有 check-attention-budget 那一行 ✗")
 
