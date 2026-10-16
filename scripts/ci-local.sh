@@ -106,7 +106,7 @@ python3 scripts/check-ci-gate-coverage.py --selftest || exit 1'
 # （照 `scripts/check-attention-budget.py` 的 `judge_round()` 先例）⇒ `soft()` **故意不传播 rc** ✓；
 # 但它**每次 push 都印**（`scripts/githooks/pre-push` 跑本脚本 ✓）—— 这就是"让那一格活着"的机制 ✓。
 # 亚秒级（纯 git、不联网）⇒ `--fast` 也跑 ✓。
-soft "读数：未发版量（交付维度 · 报告那一格）" python3 scripts/unreleased-metric.py
+soft "读数：未发版量（交付维度 · 报告那一格）" python3 scripts/release-metric.py
 
 # ① lint（CI job `lint`）—— 注意：**绝不** `cargo fmt --all`（kernel 的 rustfmt.toml 要 nightly ✓）
 run "lint：fmt"  "lint" cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
