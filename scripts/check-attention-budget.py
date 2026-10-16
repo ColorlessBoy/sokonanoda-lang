@@ -98,6 +98,7 @@
   python3 scripts/check-attention-budget.py --label     # **只印 step 标签**（caps 从状态读 ⇒ 与判据同源）
   python3 scripts/check-attention-budget.py --seam      # 接缝：step 标签**真的读 ratchet**（不是写死的字面量）
   python3 scripts/check-attention-budget.py --seam --source-rev <旧 rev>   # 咬住证明：打在**历史版本**上
+  python3 scripts/check-attention-budget.py --until <旧 rev> --head-rev <旧 rev> --state <旧状态>  # 咬住证明：**三根钉子**（窗口 · tip · 状态）⇒ 输入与今天无关
   python3 scripts/check-attention-budget.py --recent 50 # 另给一个近窗读数（**只报不判**）
   python3 scripts/check-attention-budget.py --init      # 只在落地那一次：写第 0 轮基线
   python3 scripts/check-attention-budget.py --open-round \\
@@ -625,11 +626,21 @@ def head_sha(cwd: Path) -> tuple[str, str | None]:
     return _git(["rev-parse", "HEAD"], cwd)
 
 
-def commits_since(cwd: Path, since_sha: str | None) -> tuple[int, str | None]:
-    """`since_sha..HEAD` 的**提交数**（含 merge/空提交 ✓）。`since_sha` 为空 ⇒ 0。"""
+def commits_since(cwd: Path, since_sha: str | None,
+                  tip: str = "HEAD") -> tuple[int, str | None]:
+    """`since_sha..tip` 的**提交数**（含 merge/空提交 ✓）。`since_sha` 为空 ⇒ 0。
+
+    ⚠ `tip` 默认 `HEAD`，但**咬住证明必须把它钉死**（`--head-rev <旧 rev>` ✗→✓）：
+    这个数**只增不减**，而 ratchet 一开轮（`--open-round`，它的设计就是每 ≤40 笔开一次）
+    `state.head` 就跳到**当时**的 `HEAD` ⇒ `since_sha..HEAD` **归零** ⇒ 「ratchet 空转」
+    那段文本**整段消失** ⇒ 证明里的 `grep` 不中 ⇒ 命令 `exit 0` ⇒ C2 印「这条守卫咬不住」
+    —— 而真相是**输入随时间变了**（洞 `BITE-EXPECTATION-GOES-STALE-WHEN-READING-IMPROVES`
+    的同族，实测：把 `state.head` 换成当时的 `HEAD` ⇒ `--check --all` **rc=1** ✗）。
+    ⇒ 证明给 `--head-rev` ⇒ 读数与 `HEAD` **无关** ✓（与 `--until` 钉窗口右端同一条纪律 ✓）。
+    """
     if not since_sha:
         return 0, None
-    out, err = _git(["rev-list", "--count", f"{since_sha}..HEAD"], cwd)
+    out, err = _git(["rev-list", "--count", f"{since_sha}..{tip}"], cwd)
     if err:
         return 0, err
     return int(out or 0), None
@@ -997,6 +1008,11 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="簿记预算（ratchet）")
     ap.add_argument("--since", default=WINDOW_SINCE)
     ap.add_argument("--until", default=None, help="窗口右端（默认 HEAD；反向验证用）")
+    # ⚠ **咬住证明的第二根钉子**（`--until` 钉窗口、这条钉 tip）：`--head-rev` 只影响
+    #   **只读**的 `commits_since()`（空转那条读数）⇒ 证明的输入与**当前 HEAD 无关** ✓；
+    #   `--init` / `--open-round` 写状态时**仍然**用真 `HEAD`（**不许**被这条改 ✗）。
+    ap.add_argument("--head-rev", default="HEAD", metavar="<rev>",
+                    help="把「tip」钉死（默认 HEAD；**咬住证明用** ✓ —— 空转读数随提交数变）")
     ap.add_argument("--root", default=str(ROOT), help="仓库根（夹具用；默认本仓）")
     ap.add_argument("--state", default=str(RATCHET_STATE), help="ratchet 状态文件")
     # ⚠ **默认 None**（不是模块常量 ✗）：真值一律来自状态里**本轮生效**的 caps ✓ ——
@@ -1111,7 +1127,7 @@ def main(argv=None) -> int:
         print(f"⚠ **阈值被显式覆盖**（只该用于反向验证/夹具）：{', '.join(overridden)}"
               f" —— 状态里的本轮 caps 是 {st['caps']}", file=sys.stderr)
 
-    n_since, nerr = commits_since(root, st.get("head"))
+    n_since, nerr = commits_since(root, st.get("head"), args.head_rev)
     if nerr:
         print(f"error: {nerr}", file=sys.stderr)
         return 3
@@ -1155,7 +1171,8 @@ def main(argv=None) -> int:
     can_open = open_round_would_pass(st, _reading_of(agg))
 
     payload = {"reading": agg, "red": red, "warn": warn, "since": args.since,
-               "until": args.until, "root": str(root), "state": str(state_path),
+               "until": args.until, "head_rev": args.head_rev,
+               "root": str(root), "state": str(state_path),
                "ratchet": {"round": st["round"], "head": st["head"],
                            "commits_since_head": n_since,
                            "round_max_commits": ROUND_MAX_COMMITS,
