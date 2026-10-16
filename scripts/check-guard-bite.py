@@ -1098,7 +1098,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
              "scripts/renamed-guard.py" in wscope
              and not is_guard("scripts/renamed-guard.py", set()),
              f"口径 {len(wscope)} 个：{' · '.join(wscope)}")
-        gate("⭐⭐ 正对照：接线里的**幽灵名字不进**口径（文件不在 ✗ / 只在注释里 ✗）",
+        gate("⭐⭐ 正对照：接线里的**幽灵名字不进**口径（文件不在 / 只在注释里）",
              "scripts/ghost-missing.py" not in wscope and "scripts/ghost-in-comment.py" not in wscope,
              f"口径 {len(wscope)} 个")
 
@@ -1114,10 +1114,15 @@ def selftest(job: str = DEFAULT_JOB) -> int:
             return rows + ([tool_row] if tool_row else [])
 
         # ⚠ **可归属**：名字臂那个文件**有**分类行 ⇒ 唯一的红只可能来自**改了名的那一个** ✓
+        #   ⚠ 判据行（`gate()` 的 name/note）里**不许**出现判红标记 ✗（本文件自己的纪律，
+        #   实测踩到过：第一版把判红原文塞进 note ⇒ `--selftest` 当场计 4 组不对 ✓）
+        #   ⇒ 判红原文另起一行印（`↳`，与证明自述同一条规则 ✓）。
         red_wire, _i, _c = anchor_problems(wroot, _wire_rows(None))
-        gate("⭐⭐ 反向⑯：**改了名的守卫没有分类** ⇒ 判红（C6 覆盖 —— 修前它对名字臂**隐身** ✗）",
+        gate("⭐⭐ 反向⑯：**改了名的守卫没有分类** ⇒ 判红（C6 覆盖 —— 修前它对名字臂**隐身**）",
              any("C6 覆盖" in m and "renamed-guard" in m for m in red_wire),
-             f"红 {len(red_wire)} 条 · 例：{red_wire[0][:90] if red_wire else '（无红）'}")
+             f"红 {len(red_wire)} 条")
+        if red_wire:
+            print(f"      ↳ 本臂判红原文（**不是本跑的判据** ✓）：{red_wire[0][:90]}")
         red_ok, _i, _c = anchor_problems(wroot, _wire_rows(
             {"kind": "tool", "tool": "scripts/renamed-guard.py",
              "why": "夹具：它是工具、不是独立判据", "covered_by": "scripts/check-fixture-a0.py"}))
@@ -1126,13 +1131,13 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         red_dang2, _i, _c = anchor_problems(wroot, _wire_rows(
             {"kind": "tool", "tool": "scripts/renamed-guard.py",
              "why": "夹具：故意指一条不存在的独立覆盖", "covered_by": "scripts/no-such-guard.py"}))
-        gate("⭐⭐ 反向⑰：`tool` 的 `covered_by` **悬空** ⇒ 判红（C9 悬空覆盖 ⇒ 这条 tool 行没底 ✗）",
+        gate("⭐⭐ 反向⑰：`tool` 的 `covered_by` **悬空** ⇒ 判红（C9 悬空覆盖 ⇒ 这条 tool 行没底）",
              any("C9 悬空覆盖" in m for m in red_dang2), f"红 {len(red_dang2)} 条")
         red_cl, info_cl, c_cl = anchor_problems(wroot, _wire_rows(
             {"kind": "tool", "tool": "scripts/renamed-guard.py",
              "why": "夹具：没有独立覆盖（缺口）"}))
         gate("⭐⭐ 正对照：`tool` **没有独立覆盖** ⇒ 不判红、但**进 `ⓘ` 且 `--counts` 有计数** ✓"
-             "（缺口**可见**，不是静默放行 ✗）",
+             "（缺口**可见**，不是静默放行）",
              (not red_cl) and any("没有独立覆盖的工具" in m for m in info_cl)
              and c_cl["coverless_tools"] == ["scripts/renamed-guard.py"],
              f"红 {len(red_cl)} · info {len(info_cl)} · coverless {c_cl['coverless_tools']}")
