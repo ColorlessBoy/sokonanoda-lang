@@ -86,6 +86,25 @@
   rev 是**数据**条件、不是判据条件 ⇒ 照 `check-attention-budget.py` 的
   `judge_round()`/`converged()` 先例：「再开轮也降不下去 ⇒ 判红会是一条没有出路的红」✗）
   ⇒ 改成**印出判到的 rev 数**（评审可见 ✓）+ 自检的**正反两向**臂（见 `selftest()`）✓。
+* **C11 命令前提（2026-10-16，CI 实测红 ✗→✓）**：证明的**命令位**上那个路径
+  （`scripts/foo.sh` / `/bin/foo` / `python3 scripts/foo.py`）必须**真的在树里**
+  （直接 exec 的还要**可执行位** ✓）⇒ 否则判红 ✗，消息是「**前提不在**」而**不是**
+  「这条守卫咬不住」✗。
+  ⚠ 为什么（**实测**，洞 `BITE-RC-127-COMMAND-NOT-FOUND`）：`11bc8e3f` 那一跑的
+  `editor` job 里，台账行 `crates/front/src/project/artifacts.rs` 的 `bite` 是
+  `scripts/bite-artifact-temp-name-unique.sh e2cc1012`，而那个脚本**当时还没提交**
+  （台账行 20:24 落、脚本 20:39 才落 ✗）⇒ 树里没有它 ⇒ `/bin/sh` 给 **127**
+  （`command not found`）⇒ C2 印出「**这条守卫咬不住它声称咬住的那条坏输入**」——
+  而真相是**命令根本没跑起来**（**前提不在** ✗）。
+  ⇒ 本判据管**命令自己的文件**（与 **C5** 管*钉的 rev*、**C10** 管*钉的状态夹具*
+  合起来才是"证明的前提"的**三档** ✓）；C2 那两处 `rc=126/127` 也改成印
+  「命令**根本没跑起来**」✓（**归属闸**：读数可归属 ✓）。
+  ⚠ **不是放宽** ✗：只**加**判红 —— 一条 `bite` 的期望 rc 都没动，也**不许**把
+  `expect_rc` 改成 127 / 标成 skip / 删掉那一行（那是把「咬不住」说成「咬得住」✗）。
+  ⚠ **口径：不解析 shell**（**刻意收窄**，同 C5/C10 ✓）：只认「**顶层**简单命令的
+  **命令位**是一个路径」与「解释器的**第一个参数**是一个路径」两种形状（含前导赋值里的
+  `$(…)` ✓）；其余**一律不判**并**印出来**（`ⓘ C11 不判 N 条` ✓）—— 参数里的路径
+  **故意**可能不存在（台账两条 `SOKO_RATCHET_STATE=/nonexistent` ✓）⇒ 判它就是假红 ✗。
 
 ## 一处定义（`AGENTS.md` 硬规则 0(b)）
 
@@ -484,6 +503,204 @@ def state_fixture_problems(root: Path, entries: list[dict]) -> tuple[list[str], 
     return red, sorted(set(judged))
 
 
+# ── **证明命令的前提**（C11；唯一一处 ✓）────────────────────────────────────
+# 一条 `pass`/`bite` 命令的**命令位**上如果写着**仓内路径**（`scripts/foo.sh`）或
+# **绝对路径**（`/bin/foo`），那个文件就**必须真的在树里**（直接 exec 的还要**可执行位** ✓）
+# —— 否则 shell 只会给 **127**（`command not found`）/ **126**（不可执行）⇒ 那条证明
+# **根本没跑起来** ⇒ 读数**不可归属**（C2 会把它印成「这条守卫咬不住」，而真相是
+# **前提不在** ✗）。
+#
+# ⚠ **为什么必须收窄**（照 C5/C10 的「不解析 shell」先例 ✓）：本判据**只**认
+#   「**顶层**简单命令的**命令位**是一个路径」/「解释器的**第一个参数**是一个路径」
+#   这两种形状 —— 变量赋值（`VAR=…`）、`$(…)`/反引号/引号里的 token、`-` 开头的参数、
+#   以及**任何判不了**的形状，一律**不判**（`--check` 把判到的条数印出来 ✓）。
+#   猜 shell 语义 = 假红**或**假绿 ⇒ 宁可少判 ✓（C5 的 docstring 已经把这条写死了 ✓）。
+#
+# ⚠ **为什么不是「宽一点更安全」** ✗：命令的**参数**里到处是路径，而有些路径
+#   **故意不存在**（台账里两条 `SOKO_RATCHET_STATE=/nonexistent` 就是**坏输入本身** ✓
+#   —— C10 的 docstring 专门写过这一档 ✗）⇒ 把"参数里的路径"也判红就是**假红** ✗。
+_COMMAND_SEP = ";|&\n"
+# 判不了的字符（出现在**命令位** token 里 ⇒ 那是展开/引号/子 shell ⇒ **不猜** ✓）
+_UNJUDGEABLE = set("$`\"'(){}*?<>|&;=")
+# 解释器：它的**第一个参数**若是一个路径 ⇒ 那是被读的脚本文件 ⇒ 必须存在 ✓
+_INTERPRETERS = frozenset({"python3", "python", "node", "bash", "sh", "dash", "ruby", "perl"})
+_ASSIGN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+# shell 的「**根本没跑起来**」两个退出码（C11 的**归属**面 ✓）：
+#   127 = `command not found` · 126 = 找到了但不可执行 ✓
+NOT_EXECUTED_RC = (126, 127)
+
+
+def _not_executed_reason(rc: int) -> str:
+    """`rc` 的人话（C11 归属面**唯一一处** ✓）：把 127/126 翻成"命令根本没跑起来" ✓。"""
+    if rc == 127:
+        return "rc=127 = shell 的 `command not found`（那条命令**不在** PATH / 树里）"
+    if rc == 126:
+        return "rc=126 = shell 的 `Permission denied`（找到了但**没有可执行位**）"
+    return f"rc={rc}"
+
+
+def top_level_segments(cmd: str) -> list[str]:
+    """按**顶层**分隔符（`;` `|` `&` 换行）切一段命令。**唯一一处** ✓
+
+    ⚠ **刻意收窄**（同 C5/C10 的「不解析 shell」✓）：只做**引号与括号的配对**
+    （`'…'` / `"…"` / `` `…` `` / `$(…)` / `(…)` 里的分隔符**不算** ✓），
+    不做变量展开、不认别名/函数/heredoc ⇒ **判不了的一律不判**（`<<` 整条不判 ✓）。
+    """
+    if "<<" in cmd:                     # heredoc：判不了 ⇒ 整条不判（宁可少判 ✓）
+        return []
+    out: list[str] = []
+    buf: list[str] = []
+    sq = dq = bt = False
+    depth = 0
+    i = 0
+    while i < len(cmd):
+        ch = cmd[i]
+        if sq:
+            sq = ch != "'"
+        elif dq:
+            if ch == "\\" and i + 1 < len(cmd):
+                buf.append(ch)
+                i += 1
+                ch = cmd[i]
+            dq = ch != '"'
+        elif bt:
+            bt = ch != "`"
+        elif ch == "'":
+            sq = True
+        elif ch == '"':
+            dq = True
+        elif ch == "`":
+            bt = True
+        elif ch == "$" and i + 1 < len(cmd) and cmd[i + 1] == "(":
+            depth += 1
+            buf.append("$(")
+            i += 2
+            continue
+        elif ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth = max(0, depth - 1)
+        elif depth == 0 and ch in _COMMAND_SEP:
+            out.append("".join(buf))
+            buf = []
+            i += 1
+            continue
+        buf.append(ch)
+        i += 1
+    out.append("".join(buf))
+    return [s for s in out if s.strip()]
+
+
+def judgeable_command_paths(seg: str) -> list[tuple[str, bool]]:
+    """一段的**可执行位路径** ⇒ `[(路径, 是否要可执行位)]`。判不了 ⇒ `[]`（**不猜** ✓）。
+
+    ⚠ **前导赋值里的命令替换**（`out=$(python3 scripts/x.py …)`，本仓最常见的形状 ✓）：
+    `$(` 一出现，命令位就在**它后面** ⇒ 取**赋值 token 里 `$(` 之后的那半**当命令位
+    （`python3`），**不是**把 `scripts/x.py` 当命令位 ✗ —— 否则每条
+    `out=$(python3 …)` 都会被误判成"直接 exec 一个 `.py`"（实测：14 条假红 ✗→✓）。
+
+    ⚠ `(` 开头的子 shell（`(cd … && …)`）只剥掉**前导**括号再取命令位 —— 里面的
+    分隔符已经被 `top_level_segments()` 的 `depth` 挡住 ⇒ 这一段的命令位是**第一个**
+    命令 ✓（同一段里**后面**的命令这一条**不判** —— 少判，不猜 ✓）。
+    """
+    toks = seg.strip().lstrip("(").strip().split()
+    i = 0
+    word: str | None = None
+    while i < len(toks) and _ASSIGN_RE.match(toks[i]):
+        head = toks[i]
+        if "$(" in head:                 # 赋值里起了**命令替换** ⇒ 命令位在 `$(` 之后 ✓
+            word = head.rsplit("$(", 1)[1]
+            i += 1
+            break
+        i += 1
+    if word is None:
+        if i >= len(toks):
+            return []
+        word = toks[i]
+        i += 1
+    if word.startswith("-") or (_UNJUDGEABLE & set(word)):
+        return []
+    if "/" in word:                      # 命令位就是路径 ⇒ **直接 exec** ⇒ 还要可执行位 ✓
+        return [(word, True)]
+    if word in _INTERPRETERS and i < len(toks):
+        arg = toks[i]
+        if "/" in arg and not arg.startswith("-") and not (_UNJUDGEABLE & set(arg)):
+            return [(arg, False)]        # 解释器**读**脚本 ⇒ 只要存在 ✓
+    return []
+
+
+def command_premise_problems(root: Path, entries: list[dict],
+                             own_repo: bool = True) -> tuple[list[str], list[str], list[str]]:
+    """**C11 命令前提**：证明命令**可执行位**上那个路径必须真的在树里（可执行位对 ✓）
+    ⇒ `(红行, 判到的路径, 判不了的条目)` ✓。
+
+    ⚠ **为什么要有这一条**（**CI 实测** ✗→✓，洞 `BITE-RC-127-COMMAND-NOT-FOUND`，
+    2026-10-16 · job `editor`）：台账里 `crates/front/src/project/artifacts.rs` 那一行的
+    `bite` 是 `scripts/bite-artifact-temp-name-unique.sh e2cc1012`，而那个脚本**当时还没提交**
+    （台账行先落、脚本 3 分钟后才落 ✗）⇒ `11bc8e3f` 的树里**没有它** ⇒ `/bin/sh` 给
+    **127**（`command not found`）⇒ C2 印出「**这条守卫咬不住它声称咬住的那条坏输入**」——
+    而真相是**命令根本没跑起来**（**前提不在** ✗）。⚠ 这条洞**从台账行落地起就一直在** ✗：
+    没有 C11，任何人都可以登记一条**指向还不存在的文件**的证明，而 CI 只会说"咬不住" ✗。
+
+    ⚠ **与 C5/C10 逐字同一族**（三档都是"证明的**前提**在不在"）：C5 管**钉的 rev**、
+    C10 管**钉的状态夹具**、C11 管**命令自己的文件** ✓ —— 三档的判红消息都必须是
+    「**前提不在**」而**不是**「这条守卫咬不住」✗（**读数可归属** ✓）。
+
+    ⚠ ⭐ **`own_repo=False` ⇒ 本跑不判**（与 **C5/C6 逐字同一条口径** ✓，`check()` 传进来）：
+    **夹具仓**会把**真台账**拷进去（`check-attention-budget.py:_fixture_repo` 的既定形状 ——
+    「照真仓的形状（拷真文件），不是打桩 ✗」✓）⇒ 那些命令位路径**当然不在**夹具仓里 ⇒
+    不设这条，C11 会把**合法夹具**判红 ✗（**实测**：加 C11 后
+    `check-attention-budget.py --selftest` 当场 4 组红 ✗→✓）。⚠ **不是放宽** ✗：真仓里
+    照样判红（CI 形状的 `11bc8e3f` 树上实测 **1 条红**、指名那一行 ✓），且夹具仓那条路
+    由 **C1** 兜住（`git diff` rc=128 ⇒ `exit 3` ✓）。
+
+    ⚠ **不过滤 job**（同 C5/C10）：命令文件不在是**台账**的缺陷，不是"哪批证明跑在哪"的事
+    ⇒ 每个 job 都判它（否则一条声明在别的 job 的证明能把缺文件藏起来 ✗）。
+
+    ⚠ **不判"判不了"的条目**：`judgeable_command_paths()` 只认两种形状 ⇒ 其余**如实印出**
+    （`--check` 的 `ⓘ` 行 + 计数 ✓），**不**当空转判红 —— 那会是一条**没有出路的红**
+    （命令怎么写是**数据**条件 ⇒ 照 C5 的「0 个 rev 不判红」先例 ✓）。
+    """
+    if not own_repo:
+        return [], [], []
+    referrers: dict[str, list[str]] = {}
+    need_x: dict[str, bool] = {}
+    judged: list[str] = []
+    skipped: list[str] = []
+    for e in entries:
+        for half in ("pass", "bite"):
+            cmd = str(e[half].get("cmd", ""))
+            hits = [h for seg in top_level_segments(cmd) for h in judgeable_command_paths(seg)]
+            if not hits:
+                skipped.append(f"`{e['guard']}` `{half}`")
+                continue
+            for tok, x in hits:
+                judged.append(tok)
+                need_x[tok] = need_x.get(tok, False) or x
+                referrers.setdefault(tok, []).append(f"`{e['guard']}` `{half}`")
+    red: list[str] = []
+    for tok in sorted(referrers):
+        p = Path(tok)
+        if not p.is_absolute():
+            p = root / tok
+        who = " · ".join(sorted(set(referrers[tok])))
+        if not p.exists():
+            red.append(
+                f"**C11 命令前提** ✗：{who} 的**命令位**上写着 `{tok}`，而它**不在树里**"
+                f"（`{p}`）⇒ shell 只会给 **127**（`command not found`）⇒ 那条证明"
+                f"**根本没跑起来** ⇒ 读数**不可归属**（C2 会把它印成「这条守卫咬不住」，"
+                f"而真相是**前提不在** ✗）⇒ 把那个文件**跟台账行一起提交** ✓"
+                f"（⚠ **别**把 `expect_rc` 改成 127 ✗ —— 那是把「咬不住」说成「咬得住」✗；"
+                f"**也别**把它标成 skip ✗）")
+        elif need_x[tok] and p.is_file() and not os.access(p, os.X_OK):
+            red.append(
+                f"**C11 命令前提** ✗：{who} 的**命令位**上直接 exec `{tok}`，而它**没有"
+                f"可执行位**（`os.access(…, X_OK)` = False）⇒ shell 只会给 **126**"
+                f"（`Permission denied`）⇒ 那条证明**根本没跑起来** ⇒ 读数**不可归属** ✗"
+                f"⇒ `chmod +x {tok}` 并**一起提交**（`git ls-files -s` 要看到 `100755` ✓）")
+    return red, sorted(set(judged)), skipped
+
+
 def wiring_problems(root: Path, entries: list[dict]) -> list[str]:
     """**C4 接线**：每条证明声明的 `ci_job` 都要在 `ci.yml` 里存在且**真的跑它** ✓。
 
@@ -876,6 +1093,36 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
                  else "（本台账**没有**钉状态夹具 ⇒ 这一条本跑无输入 —— 如实在此印出，"
                       "**不**当空转判红：那会是一条没有出路的红，不是本跑判的 ✓）"))
 
+    # ── C11 命令前提（证明命令**可执行位**上那个路径必须在树里 ✓）──────────────
+    #   ⚠ 与 C5/C10 **同一族**（三档都是"证明的**前提**在不在"）：C5 管**钉的 rev**、
+    #   C10 管**钉的状态夹具**、C11 管**命令自己的文件** ⇒ 三档都必须印
+    #   「**前提不在**」而**不是**「这条守卫咬不住」✗（**读数可归属** ✓）。
+    #   ⚠ **不过滤 job**（同 C5/C10）：命令文件不在是**台账**的缺陷 ✓。
+    #   ⚠ **为什么在 C2 之前判**：命令文件都不在 ⇒ 那条证明**跑不出可归属的读数** ⇒
+    #   先把它印成"前提不在"，别让 C2 的"咬不住"抢走归因 ✓（判据只加，不放宽 ✗）。
+    #   ⚠ **"这是不是台账所属的那个仓"** —— 用 **C5/C6 的同一条口径**（`coverage_since`
+    #   能不能在本仓里解析成提交 ✓），**不新造谓词** ✗：夹具仓会把**真台账**拷进去
+    #   ⇒ 命令位路径当然不在那里 ⇒ 不设这条，**合法夹具会假红** ✗（实测：
+    #   `check-attention-budget.py --selftest` 的 `_fixture_repo()` 当场 4 组红 ✗→✓）。
+    own_repo = bool(coverage_since) and _resolves(root, coverage_since)
+    c11, c11_judged, c11_skipped = command_premise_problems(root, entries, own_repo=own_repo)
+    red.extend(c11)
+    if not quiet and not c11:
+        if not own_repo:
+            print(f"  ⓘ C11 命令前提：**本跑不判** —— 台账的覆盖基线 `{coverage_since[:12]}` "
+                  f"**不在本仓** ⇒ 这**不是台账所属的那个仓**（夹具仓 / 拷来的台账 ⇒ 命令位"
+                  f"那些路径本来就不在那里 ✓）⇒ 如实印出、**既不假红也不假装判过** ✓"
+                  f"（真仓里缺文件那一档**照样**判红 ✓）")
+        else:
+            print(f"  ✓ C11 命令前提：证明命令**可执行位**上的 {len(c11_judged)} 个路径都在树里 ✓"
+                  + (f"（{' · '.join(c11_judged)}）" if c11_judged
+                     else "（本台账**没有**命令位路径 ⇒ 这一条本跑无输入 —— 如实在此印出，"
+                          "**不**当空转判红 ✓）"))
+            if c11_skipped:
+                print(f"    ⓘ C11 **不判** {len(c11_skipped)} 条（命令位不是「一个路径」/"
+                      f"「解释器 + 一个路径」这两种形状 ⇒ **不猜 shell 语义** ✓ —— "
+                      f"这是**如实划的口径**，不是判过 ✗）")
+
     # ── C6/C7/C8 锚（**每一层都要有一个底** ✓ —— 用户 2026-10-16 09:5x ①）──────────
     #   ⚠ **不过滤 job**：锚是**分类面**的事，不是"哪批证明跑在哪"的事 ⇒ 每个 job 都判它 ✓。
     apath = anchors_path or (root / "docs" / "guard-anchors.jsonl")
@@ -887,7 +1134,7 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
     #   ⇒ 夹具仓**如实印出不判**（与 C5 的 `ⓘ 本跑不判` 逐字同一条规则 ✓）；**真仓里**
     #   缺表 ⇒ rc=3 ✓（下面那条分支）。⚠ **显式 `--anchors` 一律判**（调用方点名要它 ⇒
     #   没有"跳过"这条路 ⇒ 咬住证明那条 bite 就是在旧树上点名它 ✓）。
-    own_repo = bool(coverage_since) and _resolves(root, coverage_since)
+    #   ⚠ `own_repo` 在 **C11 之前**就算好了（同一条口径，一处计算 ✓）。
     if not apath.exists() and anchors_path is None and not own_repo:
         if not quiet:
             print(f"  ⓘ C6/C7/C8 **本跑不判** —— 分类登记表 `{apath.name}` 不在本仓，而台账的"
@@ -953,9 +1200,31 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
         if e["bite"]["expect_rc"] == 0:
             red.append(f"**C2** ✗：`{g}` 的 `bite.expect_rc = 0` ⇒ **它咬不住** "
                        f"（咬住证明必须是「坏输入 ⇒ **非 0**」✗→✓）")
+        elif not p_ok and prc in NOT_EXECUTED_RC and e["pass"]["expect_rc"] not in NOT_EXECUTED_RC:
+            # ⚠ ⭐ **C11 归属面**（与 C5/C10 同一条纪律：**读数必须可归属** ✗→✓）：
+            #   `rc=127` 是 shell 的 `command not found`、`126` 是不可执行 ⇒ 那条命令
+            #   **根本没跑起来** ⇒ 把它印成「守卫自己坏了」是**误归因** ✗。
+            red.append(f"**C11 命令前提** ✗：`{g}` 的 `pass` rc={prc}（期望 "
+                       f"{e['pass']['expect_rc']}）—— **{_not_executed_reason(prc)}** ⇒ 那条命令"
+                       f"**根本没跑起来** ⇒ 这**不是**「守卫自己坏了」，是**前提不在** ✗"
+                       f"（⚠ **别**把 `expect_rc` 改成 {prc} ✗ —— 那是把「没跑」说成「跑过了」✗）："
+                       f"{ptail[:160]}")
         elif not p_ok:
             red.append(f"**C2** ✗：`{g}` 的 `pass` rc={prc}（期望 {e['pass']['expect_rc']}）"
                        f" ⇒ 守卫自己坏了：{ptail[:160]}")
+        elif not b_ok and brc in NOT_EXECUTED_RC and e["bite"]["expect_rc"] not in NOT_EXECUTED_RC:
+            # ⚠ ⭐ **C11 归属面**（**CI 实测** ✗→✓，洞 `BITE-RC-127-COMMAND-NOT-FOUND`）：
+            #   修前这里印的是「**这条守卫咬不住它声称咬住的那条坏输入**」—— 而真相是
+            #   **命令根本没跑起来**（`11bc8e3f` 的树里那个脚本**还没提交** ✗）⇒
+            #   读日志的人会去查"守卫为什么咬不住"，而**该查的是前提** ✗（误归因 ✗）。
+            red.append(f"**C11 命令前提** ✗：`{g}` 的 `bite` rc={brc}（期望 "
+                       f"{e['bite']['expect_rc']}）—— **{_not_executed_reason(brc)}** ⇒ 那条命令"
+                       f"**根本没跑起来** ⇒ 这**不是**「这条守卫咬不住它声称咬住的那条坏输入」"
+                       f"（`{e.get('bug', '')[:80]}`），是**前提不在** ✗ ⇒ 先修前提"
+                       f"（把命令位那个文件**跟台账行一起提交** ✓ / 换成两边都有的命令 ✓），"
+                       f"再谈咬不咬得住 ✓（⚠ **别**把 `expect_rc` 改成 {brc} ✗，"
+                       f"**也别**把它标成 skip / 删掉那一行 ✗）：{btail[:160]}")
+            empty.append(e)
         elif not b_ok:
             # ⚠ **缺前提时给可操作的人话**（2026-10-16 CI 实测 ✗→✓，与 `shallow_hint` 同一条纪律
             #   ✓）：证明钉的旧 rev 在 CI 的树里**不存在**时，`bite` 的空转闸会让它 `exit 0`
@@ -1479,6 +1748,53 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         gate("⭐⭐ 反向⑱：状态夹具越界 ⇒ 判红", False,
              f"**夹具前提没成立**（`{real_fx}` 不在）✗")
 
+    # ── C11 命令前提：**正反两向**（2026-10-16 · 洞 `BITE-RC-127-COMMAND-NOT-FOUND`）──
+    #   正对照 = **真台账**的命令位路径**都在树里** ⇒ 不判红 ✓；
+    #   反向 = 命令位上钉一个**不在树里**的路径 ⇒ 必须判红 ✓。
+    #   ⚠ 这一组是**纯函数**臂（`command_premise_problems` 只读 `root`）⇒ 造一个**空根**，
+    #   判红就**可归属**到 C11 ✓ —— **不钉 rev**（免得 rebase 之后 `--selftest` 自己坏 ✗）；
+    #   钉死旧 rev 的那一条在台账里 ✓（`11bc8e3f` = CI 真红的那一跑的树）。
+    c11_red, c11_judged, c11_skip = command_premise_problems(ROOT, entries)
+    gate("⭐⭐ 正对照：**真台账**的命令位路径**都在树里** ⇒ C11 不判红",
+         not c11_red, f"判到 {len(c11_judged)} 个 · 不判 {len(c11_skip)} 条")
+    with tempfile.TemporaryDirectory(prefix="soko-cmdpremise-") as td_c11:
+        empty_root = Path(td_c11)        # **空根** ⇒ 每个命令位路径都不在 ⇒ 必红 ✓
+        synth_missing = [{"guard": "scripts/check-guard-bite.py",
+                          "bug": "夹具：命令位钉了一个**不在树里**的脚本"
+                                 "（= 台账行先落、脚本后落）",
+                          "pass": {"cmd": "true", "expect_rc": 0},
+                          "bite": {"cmd": "scripts/bite-artifact-temp-name-unique.sh e2cc1012",
+                                   "expect_rc": 101}}]
+        c11_bad, _j, _s = command_premise_problems(empty_root, synth_missing)
+        gate("⭐⭐ 反向⑲：证明的**命令位**钉了一个**不在树里**的路径 ⇒ 判红"
+             "（C11 命令前提 —— 修前它被印成「这条守卫咬不住」）",
+             any("C11 命令前提" in m for m in c11_bad), f"红 {len(c11_bad)} 条")
+        if c11_bad:
+            print(f"      ↳ 本臂判红原文（**不是本跑的判据** ✓）：{c11_bad[0][:90]}")
+        # ⚠ **不判"参数里的路径"那一档**（**如实划的口径**，不是判过 ✗）：参数里到处是
+        #   路径，而有些**故意不存在**（台账里两条 `SOKO_RATCHET_STATE=/nonexistent`
+        #   期望 rc=3 ✓）⇒ 判它们红就是**假红** ✗ —— 这条臂钉住"只看命令位"这一条 ✓。
+        synth_arg = [{"guard": "scripts/check-site.py",
+                      "bug": "夹具：路径在**参数**里（而且故意不存在）",
+                      "pass": {"cmd": "true", "expect_rc": 0},
+                      "bite": {"cmd": "SOKO_RATCHET_STATE=/nonexistent python3 "
+                                       "scripts/check-site.py --only assets",
+                               "expect_rc": 3}}]
+        c11_arg, c11_arg_j, _s2 = command_premise_problems(ROOT, synth_arg)
+        gate("⭐⭐ 正对照：路径在**参数**里（`SOKO_RATCHET_STATE=/nonexistent` 那两条的形状）"
+             "⇒ **不**判红（C11 只看**命令位** ⇒ 判它就是假红）",
+             (not c11_arg) and "/nonexistent" not in c11_arg_j,
+             f"红 {len(c11_arg)} · 判到 {c11_arg_j}")
+        # ⚠ ⭐ **夹具仓 ⇒ 本跑不判**（与 C5/C6 **逐字同一条口径** ✓）：这一条臂是**实测**
+        #   逼出来的 —— C11 落地后 `check-attention-budget.py --selftest` 的
+        #   `_fixture_repo()`（把**真台账**拷进一个 `git init` 的夹具仓 ✓）当场 **4 组红** ✗
+        #   （夹具仓里那些命令位路径**当然不在**）⇒ C11 必须认「这不是台账所属的那个仓」✓。
+        #   ⚠ **不是放宽** ✗：真仓里照样判红（CI 形状的 `11bc8e3f` 树上实测 1 条红 ✓）。
+        c11_fx, _jf, _sf = command_premise_problems(empty_root, synth_missing, own_repo=False)
+        gate("⭐⭐ 正对照：**夹具仓**（`coverage_since` 不在本仓 ⇒ `own_repo=False`）"
+             "⇒ C11 **本跑不判**（与 C5/C6 同一条口径；判它就是**合法夹具假红**）",
+             not c11_fx, f"红 {len(c11_fx)} 条")
+
     # ── 正对照：**真坏输入**被咬住的形状（`--until c82097fe` = 历史最差点）──
     entries2, _cs2, _e2 = load_ledger(LEDGER)
     hist = next((e for e in entries2
@@ -1498,7 +1814,8 @@ def selftest(job: str = DEFAULT_JOB) -> int:
           f"（正对照 {tally.get('正对照', 0)} + 反向 {tally.get('反向', 0)} + 真跑台账；"
           f"含**锚的两头**：B 超上限 ⇒ 判红 · A 增长 ⇒ 不判红 ✓"
           f" · **枚举面**：改了名的守卫仍在口径里 ✓ · 幽灵名字不进 ✓ · `tool` 悬空覆盖 ⇒ 判红 ✓"
-          f" · **夹具前提**：钉的状态夹具不是合法状态 ⇒ 判红 ✓）")
+          f" · **夹具前提**：钉的状态夹具不是合法状态 ⇒ 判红 ✓"
+          f" · **命令前提**：命令位钉了一个不在树里的路径 ⇒ 判红 ✓（参数里的路径**不**判 ✓））")
     return 0 if bad == 0 else 1
 
 
