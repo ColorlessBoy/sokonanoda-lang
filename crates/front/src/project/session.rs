@@ -261,6 +261,24 @@ fn no_entry_snapshot() -> bool {
     *OFF.get_or_init(|| std::env::var_os("SOKO_NO_ENTRY_SNAPSHOT").is_some())
 }
 
+/// ⭐ **`LEAKED-LIB-ARENAS-CLIFF` 的逃生门**（2026-10-16）：`SOKO_NO_LRU_KEEP=1` ⇒
+/// 回退路**把修前的策略原样装回来** —— ① `slots.clear()`（把 LRU 里那些**已经泄漏、
+/// 键仍然有效**的检查点一起抹掉 ✗）；② 轮换闸**不看**泄漏预算（上界 ① 用尽之后
+/// 依旧按 `MAX_REUSES_PER_CHECKPOINT` 停用那一份检查点 ✗）。
+///
+/// ## 为什么留它（与 `SOKO_NO_ENTRY_SNAPSHOT` 同一类）
+///
+/// ① **同一份构建上的 A/B**：这是一处**纯性能**改动（判定路径一个字节没动）⇒
+///    两臂必须在**同一份二进制、同一份夹具、同一操作序列**上量（`AGENTS.md` 判据
+///    纪律②：跨机墙钟不可转移 ✓）；② **咬住证明**（`docs/guard-bite.jsonl`）：
+///    它把"已存在的坏输入"（修前那条路）变成一条**可执行**的输入 ✓。
+///
+/// ⚠ **默认关 ⇒ 生产零影响** ✓；读一次就缓存（在每次编辑的热路径上 ✓）。
+fn no_lru_keep() -> bool {
+    static OFF: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *OFF.get_or_init(|| std::env::var_os("SOKO_NO_LRU_KEEP").is_some())
+}
+
 const MAX_ENTRY_TAILS: usize = 8;
 thread_local! {
     static ENTRY_TAILS: RefCell<Vec<EntryTail<'static>>> = const { RefCell::new(Vec::new()) };
@@ -531,15 +549,35 @@ fn with_project_session_reusing_at<R>(
     let artifact_key = artifact_layer_key(lib_units, options);
     // **逃生门**在这里一次收口：关掉之后 `artifacts_root` 变 `None` ⇒ 读写两条路都不走 ✓。
     let artifacts_root = artifacts_root.filter(|_| module_artifacts_enabled());
+    // **上界 ① 还剩多少**：只有它还允许时才 `Box::leak` 一份**新** arena（③ 重建 / 轮换 ✓）。
+    // 修前这一格只在 ③ 里现算 ⇒ 复用判据看不见它（那正是本洞的形状 ✗）。
+    let can_leak =
+        !lib_units.is_empty() && LEAKED_LIB_ARENAS.load(Ordering::Relaxed) < MAX_LEAKED_LIB_ARENAS;
+    // **修前策略的逃生门**（`SOKO_NO_LRU_KEEP=1` ⇒ 见 `no_lru_keep()`）。
+    let legacy = no_lru_keep();
+    // **轮换闸**（上界 ②）：一份检查点复用 `MAX_REUSES_PER_CHECKPOINT` 次之后**轮换**
+    // —— 轮换的代价是**再泄漏一份 arena**（走 ③）⇒ 只有"还泄漏得起"的时候才轮换 ✓。
+    //
+    // ⭐ **`LEAKED-LIB-ARENAS-CLIFF` 的修**（2026-10-16）：上界 ① 用尽之后**不再轮换**
+    // —— 那时轮换**必然**落进回退路（下一次 miss 的 `can_leak` 依旧是假），而回退路
+    // 每次都整条重走（实测：入口命令数 N = 12 ⇒ 每一刀都重走 ✗）。改为**软上界**：
+    // 继续复用那一份（代价 = 它自己的 arena 随按键慢慢长，见下 ⚠）。
+    //
+    // ⚠ **如实记代价** ✗：软上界期间那一份 arena **不再有轮换** ⇒ 它的增长从
+    // "≤ `MAX_REUSES_PER_CHECKPOINT` 次"变成"≤ 本进程后续按键数"。这是**有意的**
+    // 取舍：另一头是**每一次按键整条重走**（≈ 700ms 量级 ✗）—— 在"内存慢慢长"
+    // 与"编辑器永久卡死"之间选前者 ✓。**上界 ① 本身一个字没动**（泄漏的 arena
+    // 数仍 ≤ `MAX_LEAKED_LIB_ARENAS` ✓），轮换一旦重新变得可支付就照旧生效 ✓。
+    let rotation_ok = |cp: &LibCheckpoint<'static>| {
+        cp.reuses < MAX_REUSES_PER_CHECKPOINT || (!can_leak && !legacy)
+    };
     LIB_CHECKPOINTS.with(|slots| {
         let mut slots = slots.borrow_mut();
-        // ① **复用判据**：摘要逐字相同 + 复用次数未到上界（上界 ②）—— 多槽里找 ✓。
+        // ① **复用判据**：摘要逐字相同 + 轮换闸放行（上界 ②）—— 多槽里找 ✓。
         let hit = if lib_units.is_empty() {
             None
         } else {
-            slots
-                .iter()
-                .position(|cp| cp.key == key && cp.reuses < MAX_REUSES_PER_CHECKPOINT)
+            slots.iter().position(|cp| cp.key == key && rotation_ok(cp))
         };
         if let Some(at) = hit {
             set_last_lib_source(1); // ① 线程局部检查点
@@ -570,9 +608,8 @@ fn with_project_session_reusing_at<R>(
         // ⚠ 三条都与"回退是默认"同一条纪律：产物读不出 / 装载失败 / 泄漏上界用尽
         // ⇒ **什么都不做**，继续往下走（前缀续编 ⇒ 整条重建），**绝不半用** ✓。
         if let Some(root) = artifacts_root {
-            if !lib_units.is_empty()
-                && LEAKED_LIB_ARENAS.load(Ordering::Relaxed) < MAX_LEAKED_LIB_ARENAS
-            {
+            // 与 ③ 同一个条件（**一处定义** ✓）：装载出来的检查点也要进 LRU ⇒ 同样要泄漏得起。
+            if can_leak {
                 if let Some(lib) = read_lib_artifact(root, &artifact_key, options)
                     .and_then(|text| load_lib_checkpoint(&text, &key, lib_units))
                 {
@@ -606,9 +643,7 @@ fn with_project_session_reusing_at<R>(
         let shape = (!lib_units.is_empty()).then(|| prelude_shape(lib_units));
         let resume_at = (0..lib_units.len().saturating_sub(1)).rev().find(|&j| {
             slots.iter().any(|cp| {
-                cp.key == prefix_keys[j]
-                    && cp.shape.as_ref() == shape.as_ref()
-                    && cp.reuses < MAX_REUSES_PER_CHECKPOINT
+                cp.key == prefix_keys[j] && cp.shape.as_ref() == shape.as_ref() && rotation_ok(cp)
             })
         });
         if let Some(j) = resume_at {
@@ -683,8 +718,7 @@ fn with_project_session_reusing_at<R>(
         // ③ **重建**：库层趟跑在一份**泄漏的** arena 上（`Box::leak` = 零 `unsafe`
         //    的 `'static` 来源 ✓）。库层为空（单文件）或泄漏上界用尽（上界 ①）
         //    ⇒ 不建检查点，走栈上 arena（= 今天那条路，逐字节相同）✓。
-        let can_leak = !lib_units.is_empty()
-            && LEAKED_LIB_ARENAS.load(Ordering::Relaxed) < MAX_LEAKED_LIB_ARENAS;
+        //    `can_leak` 在本函数开头算好（**一处定义** ✓ —— 复用判据的轮换闸要用它）。
         if can_leak {
             set_last_lib_source(4); // ③ 整条重建
             let arena: &'static ArenaRef<'static> =
@@ -761,7 +795,22 @@ fn with_project_session_reusing_at<R>(
             push_checkpoint(&mut slots, lib);
             out
         } else {
-            slots.clear();
+            // ⭐ **`LEAKED-LIB-ARENAS-CLIFF` 的修**（2026-10-16）：**不许**在这里
+            // `slots.clear()`（修前那样做 ✗）—— LRU 里那些检查点的 arena **早就泄漏了**
+            // （已计入上界 ①，抹掉它们**一个字节都省不下来** ✗），而它们的**键仍然有效** ✓
+            // ⇒ 抹掉只是把"部分退化（新键走回退路）"变成"**本进程内永久全量退化**" ✗
+            // （下一次 miss 的 `can_leak` 依旧是假 ⇒ 又清一次 ⇒ **再也填不回来**）。
+            //
+            // 实测（修前 · 8 个不同 `lib_key` 的项目用尽上界 + 第 9 个新键之后）：
+            // `lib_checkpoint_is_live()` = **假**，回头改第 1 个项目读到
+            // `closure_module_compiles_total` = **2**（库层 + 入口）、
+            // `elaborated_commands` = **12**（= 入口命令数 N，整条重走 ✗）——
+            // 判据 `crates/front/tests/leaked_lib_arenas_cliff.rs` 钉住它 ✓。
+            //
+            // ⚠ 逃生门 `SOKO_NO_LRU_KEEP=1` ⇒ 修前那一刀原样装回来（A/B + 咬住证明 ✓）。
+            if legacy {
+                slots.clear();
+            }
             let arena = stumpalo::Arena::new();
             let builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
             let lib = run_library_pass(builder, PassTables::new(), lib_units, options, key);
