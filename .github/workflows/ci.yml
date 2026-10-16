@@ -179,8 +179,10 @@ jobs:
       # 修的 ⇒ 换个触发源就再犯 ✗；这条把"job 消费的每条路径都必须被门控它的过滤器命中"
       # 变成可查的判据 ✓。**它第一次跑就自己找出两条新实例**（`examples/**` 与
       # `editor/vscode/scripts/**`，见 `filters:` 里那两条注释 ✓）。
-      # `--selftest` 五个对照：正对照（现役 ci.yml 必须绿）+ 四个负对照（撤掉历史三次的
-      # 修法、以及新加一个"消费 `editor/**` 却只被 `rust` 门控"的 job ⇒ 都必须判红 ✓）。
+      # `--selftest` 八条：正对照（现役 ci.yml 必须绿）+ 负对照（撤掉历史三次的修法、
+      # 新加一个"消费 `editor/**` 却只被 `rust` 门控"的 job ⇒ 都必须判红 ✓）+
+      # **新顶层目录**那三条（洞 `TOP-LEVEL-TABLE-GOES-BLIND`，2026-10-16：顶层条目改成
+      # 按 `git ls-files` **实际枚举** ⇒ 新加一级目录**自动**进面；写死表的话那三条当场红 ✓）。
       - name: 改动范围门控覆盖（R1 执行路径 / R2 工作流自身 / R3 数据依赖）+ 自检
         run: |
           python3 scripts/check-ci-gate-coverage.py --check

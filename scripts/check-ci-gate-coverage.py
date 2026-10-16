@@ -35,6 +35,16 @@
 要求"每个组都要有"会制造假红 ✗（实测：`.github/workflows/**` 只在 `rust` 组里，
 而每个门控 job 的 `if` 都含 `rust` ⇒ 已经够了 ✓）。
 
+## 顶层条目：**按实际仓库枚举**（洞 `TOP-LEVEL-TABLE-GOES-BLIND`，2026-10-16 ✗→✓）
+
+R1 要先回答"这个 token 像不像仓库路径"（不然 `python3` / `--json` 也会被当路径 ✗）
+—— 那一步的输入是**仓库顶层条目**。修前它是一张**硬编码的 28 条名表**，而仓里实测
+**29** 个一级条目（缺 `.gitignore`）⇒ **新加一个顶层目录 ⇒ 它下面的路径认不出来 ⇒
+R1 静默变瞎** ✗（"静默"是要害：判据照样印"违反 0 条"，没有任何读数告诉你它瞎了 ✗）。
+⇒ 现在**枚举**（`discover_top_level()`，`git ls-files` 的一级名 ✓）⇒ 新加一级条目
+**自动**进面、没有第二张表要维护 ✓；枚举坏了（不是 git 检出 / 根指错 / 地板不齐）
+⇒ **exit 2 不假装判过** ✓（详见 `TOP_LEVEL_FLOOR` 那段注释的实测读数 ✓）。
+
 ## 判据
 
 * `--check`（默认）：对**真** `ci.yml` 跑 R1 + R2 + R3，逐条印读数；违反 ⇒ exit 1。
@@ -43,8 +53,16 @@
   ② 把 `scripts/**` 从 `rust` 过滤器里删掉 ⇒ **必须判红**（实例①复现 ✓）；
   ③ 把 `.github/workflows/**` 从某个门控组删掉 ⇒ **必须判红**（实例②复现 ✓）；
   ④ 把 `docs/gaps/**` 删掉 ⇒ **必须判红**（实例③复现 ✓）；
-  ⑤ 加一个消费 `editor/**` 却只被 `rust` 门控的 job ⇒ **必须判红** ✓。
+  ⑤ 加一个消费 `editor/**` 却只被 `rust` 门控的 job ⇒ **必须判红** ✓；
+  ⑥ **动态枚举**（洞 `TOP-LEVEL-TABLE-GOES-BLIND` 的反向验证 ✓）：合成仓里
+  **新加一个顶层目录** `newtop/` ⇒ ①它必须进 `discover_top_level()` 的面（**写死表
+  ⇒ 这一臂必红** ✗）；②它下面的路径被门控 job 消费 ⇒ R1 **必须判红并点名它**
+  （改前：token 认不出来 ⇒ **静默绿** ✗）；③地板不齐的仓 ⇒ **必须拒绝判**（exit 2 ✓）。
   ⇒ **咬得住历史 bug 的守卫才算数**（`AGENTS.md` 验证设计纪律 3 ✓）。
+
+⚠ `--root <dir>` 是**夹具缝**（`--selftest` 的 ⑥ 与咬住证明用它指合成仓）：顶层条目与
+默认 `--ci` 都从它取。**不是逃生门** ✗ —— `scripts/ci-local.sh` 与 `ci.yml` 两条接线
+**逐字不传它** ⇒ 判的还是本仓 ✓。
 
 ## 与 `scripts/ci-push-range.py` 的分工（不重复实现 ✗）
 
@@ -59,22 +77,41 @@
 import argparse
 import importlib.util
 import re
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-DEFAULT_CI = HERE.parent / ".github" / "workflows" / "ci.yml"
+REPO_ROOT = HERE.parent
+DEFAULT_CI_REL = Path(".github") / "workflows" / "ci.yml"
 
-# 仓库顶层条目（`git ls-files` 的一级名）：判"这个 token 像不像仓库路径"用它 ✓。
-# 不写死全部 —— 只用来**收窄** token 识别，避免把 `python3` / `--json` 当路径 ✗。
-TOP_LEVEL = (
-    ".agents", ".devcontainer", ".github", ".opencode", ".vscode",
-    "course", "courses", "crates", "docs", "dsh", "editor", "examples",
-    "fuzz", "prelude", "reference", "scripts", "site", "skills",
-    "AGENTS.md", "Cargo.lock", "Cargo.toml", "NOTICE.md", "README.md",
-    "REQUIREMENTS.md", "ROADMAP.md", "STATUS.md", "opencode.json",
-    "playground.sokonanoda",
-)
+sys.path.insert(0, str(HERE))  # 同目录库，照 `threshold_ratchet.py` 的先例 ✓
+import git_env  # noqa: E402
+
+# ── **仓库顶层条目**：判"这个 token 像不像仓库路径"用它 ✓ ────────────────────
+#
+# ⭐ **按实际仓库枚举**（洞 `TOP-LEVEL-TABLE-GOES-BLIND`，2026-10-16 ✗→✓）。
+# 修前这里是一张**硬编码的 28 条名表**，而仓里实测 **29** 个一级条目（缺 `.gitignore`）
+# ⇒ **新加一个顶层目录 ⇒ 它下面的路径 token 认不出来 ⇒ R1 静默变瞎** ✗（"静默"是要害：
+# 判据照样印"违反 0 条"，没有任何读数告诉你它瞎了 ✗）⇒ 现在从 `git ls-files` 的一级名
+# **枚举**（`discover_top_level()`）⇒ 新加一级条目**自动**进面 ✓、没有第二张表要维护 ✓。
+#
+# ⚠ **为什么是 `git ls-files`（已跟踪）而不是"扫目录"或 `--others`**（**实测** ✓，
+# 别改成后者 ✗）：`.ci-verified/` 是 **CI 自己写出来的未跟踪目录**（`mark-verified` 的
+# `printf … > .ci-verified/sha`），它**不在** `.gitignore` 里（实测
+# `git check-ignore .ci-verified/sha` ⇒ rc=1）⇒ 一旦把未跟踪条目算进面，实测**当场
+# 2 条假红**（`R1 mark-verified 消费 .ci-verified[/sha]` ✗）—— 而那是 CI **写出去的
+# 产物**、不是仓库路径 ⇒ 假红会让这条守卫变成"叫狼来了"，而 `ci.yml` 的 `E18` 教训
+# 正是：守卫一旦叫狼来了，正确的反应就变成"加豁免" ⇒ 它就死了 ✗。
+# ⚠ **代价如实标注** ✗：一个**还没 `git add`** 的新顶层目录看不见 ⇒ 本判据量的是
+# "**仓库里**的路径"（未跟踪的东西按定义还不在仓库里 ✓）；`--selftest` 的 ⑥ 就是拿
+# "新加顶层目录"当夹具、把这条口径钉住 ✓。
+#
+# ⚠ **枚举的地板**（`TOP_LEVEL_FLOOR`）：这几个一级条目**必须**在枚举结果里 —— 少一个
+# 就说明**枚举坏了**（不是 git 检出 / 根指错 / 命令被改坏）⇒ **判环境错（exit 2）**，
+# 绝不退化成"什么都认不出" ⇒ 那正是本洞的形态（**静默变瞎** ✗）✓。
+TOP_LEVEL_FLOOR = (".github", "Cargo.toml", "courses", "crates", "docs", "scripts")
 
 # `if:` 里出现的 `needs.changes.outputs.<flag>`。
 FLAG_RE = re.compile(r"needs\.changes\.outputs\.([A-Za-z_][\w-]*)")
@@ -156,25 +193,63 @@ def job_text(job):
     return "\n".join(lines)
 
 
-def looks_like_repo_path(token):
-    """像不像**仓库相对路径**：顶层名打头（含 `/` 或以已知顶层文件打头）。"""
+def discover_top_level(root: Path) -> tuple[str, ...]:
+    """**按实际仓库枚举**顶层条目名（`git ls-files` 的一级名 ✓）。
+
+    ⚠ **三条不许静默**（静默返回一张**更窄**的表 = 本洞的形态本身 ✗）：
+    git 跑不起来 / 枚举出 0 条 / `TOP_LEVEL_FLOOR` 少一个 ⇒ 一律 `EnvError`（exit 2）
+    —— **不假装判过** ✓（与 `check-guard-bite.py` 拿不到 `git diff` 时 `exit 3` 同口径 ✓）。
+
+    ⚠ `env=git_env.clean_git_env()`（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`）：
+    `GIT_DIR` **优先于 cwd** 决定仓库发现 ⇒ 不清就会从链接工作树的 hook 里枚举到
+    **调用者的**仓 ✗（`scripts/githooks/pre-push` → `ci-local.sh` 正是这条路 ✓）。
+    """
+    proc = subprocess.run(["git", "ls-files", "--cached", "-z"], cwd=root,
+                          capture_output=True, text=True, errors="replace",
+                          env=git_env.clean_git_env())
+    if proc.returncode != 0:
+        raise EnvError(
+            f"枚举不了顶层条目：`git ls-files` 在 `{root}` 上 rc={proc.returncode}"
+            f"（{proc.stderr.strip()[:200]}）⇒ 这不是一个 git 检出 ⇒ **不假装判过** ✗"
+        )
+    names = {p.split("/", 1)[0] for p in proc.stdout.split("\0") if p}
+    if not names:
+        raise EnvError(
+            f"枚举不了顶层条目：`git ls-files` 在 `{root}` 上返回 **0 条** ⇒ 空表意味着"
+            f"**什么 token 都认不出来** = 本洞的形态 ✗ ⇒ **不假装判过** ✗"
+        )
+    missing = [n for n in TOP_LEVEL_FLOOR if n not in names]
+    if missing:
+        raise EnvError(
+            f"顶层条目枚举**退化了**：地板 {missing} 不在结果里（枚举到 {len(names)} 条："
+            f"{sorted(names)}）⇒ 这不是「仓库里没有它」、是**枚举坏了** ⇒ **不假装判过** ✗"
+            f"（要么修枚举、要么改地板 —— 别删判据 ✗）"
+        )
+    return tuple(sorted(names))
+
+
+def looks_like_repo_path(token, top_level):
+    """像不像**仓库相对路径**：顶层名打头（含 `/` 或以已知顶层文件打头）。
+
+    `top_level` = `discover_top_level()` 的结果（**每次跑现算** ⇒ 新加一级条目自动进面 ✓）。
+    """
     if token.startswith("-") or "://" in token:
         return False
     head = token.split("/")[0]
-    if head not in TOP_LEVEL:
+    if head not in top_level:
         return False
     # 纯文件名（无 `/`）只认已知的顶层文件；顶层**目录**要带 `/` 才算路径。
-    if "/" not in token and "." in head and head in TOP_LEVEL:
+    if "/" not in token and "." in head and head in top_level:
         return True
     return "/" in token
 
 
-def consumed_paths(job):
+def consumed_paths(job, top_level):
     """job 消费的**仓库路径**（去重、排序；只保留像路径的 token ✓）。"""
     out = set()
     for token in TOKEN_RE.findall(job_text(job)):
         token = token.rstrip(".,;:'\"")
-        if looks_like_repo_path(token):
+        if looks_like_repo_path(token, top_level):
             out.add(token)
     return sorted(out)
 
@@ -190,8 +265,12 @@ def classify(token, filters, glob_to_regex):
     return hits
 
 
-def check(doc, filters, glob_to_regex):
-    """R1 + R2 + R3。返回 `[(ok, 说明)]`（与 `ci-push-range.py --check-wiring` 同形 ✓）。"""
+def check(doc, filters, glob_to_regex, top_level):
+    """R1 + R2 + R3。返回 `[(ok, 说明)]`（与 `ci-push-range.py --check-wiring` 同形 ✓）。
+
+    `top_level` = `discover_top_level()` 的结果（**显式传进来** ⇒ 判据无全局状态、
+    `--selftest` 的 ⑥ 才能在**合成仓**的那份表上跑 ✓）。
+    """
     jobs = doc.get("jobs") or {}
     res = []
 
@@ -209,7 +288,7 @@ def check(doc, filters, glob_to_regex):
         #  永远得不到验证 ✗）。按 **job 级析取**判，不是"每组都要有" ✗ ——
         # `.github/workflows/**` 在 `rust` 组里，而每个门控 job 的 `if` 都含 `rust`
         # ⇒ 已经够了 ✓；要求"每个组都有"会制造假红 ✗。
-        for token in consumed_paths(job) + [".github/workflows/ci.yml"]:
+        for token in consumed_paths(job, top_level) + [".github/workflows/ci.yml"]:
             hits = classify(token, filters, glob_to_regex)
             if not hits:
                 res.append((
@@ -262,11 +341,17 @@ def check(doc, filters, glob_to_regex):
     return res
 
 
-def report(res):
+def report(res, top_level):
     bad = [msg for ok, msg in res if not ok]
     for ok, msg in res:
         if not ok:
             print(f"✗ {msg}")
+    # ⭐ **把枚举结果印出来**（评审可见 ✓）：它决定了"哪些 token 进 R1 的面"——
+    #   修前那张硬编码表**从来不印** ⇒ 少了条目没人看得见（本洞之所以"静默" ✓）。
+    print(
+        f"  ⓘ 顶层条目 {len(top_level)} 个（按 `git ls-files` **实际枚举** ✓ ⇒ 新加一级条目"
+        f"**自动**进面、没有第二张表 ✗）：{' · '.join(top_level)}"
+    )
     print(
         f"  ⓘ 判据 {len(res)} 条，违反 {len(bad)} 条 —— "
         f"口径：R1 job 消费的每条仓库路径必须被门控它的过滤器命中 · "
@@ -288,35 +373,67 @@ def _rewrite_filters(text, drop):
     return "\n".join(out) + "\n", dropped
 
 
-def _add_ungated_job(text):
-    """加一个**消费 `editor/**` 却只被 `rust` 门控**的 job（实例①的换皮 ✓）。"""
+def _add_ungated_job(text, consumed="editor/vscode/test-extension-host.js"):
+    """加一个**消费 `consumed` 却只被 `rust` 门控**的 job（实例①的换皮 ✓）。"""
     block = (
         "\n  selftest-ungated:\n"
         "    needs: changes\n"
         "    if: needs.changes.outputs.rust == 'true'\n"
         "    runs-on: ubuntu-24.04\n"
         "    steps:\n"
-        "      - run: node editor/vscode/test-extension-host.js\n"
+        f"      - run: node {consumed}\n"
     )
     return text.rstrip("\n") + "\n" + block
 
 
-def selftest(ci_path, push_range):
+# `--selftest` ⑥ 的合成仓**照真仓的形状**（拷真文件的形状、**不是打桩** ✗）：
+# 地板那几个一级条目各有一个文件在里面 —— 空目录**不进** `git ls-files` ⇒ 枚举看不见它 ✓。
+_FIXTURE_FLOOR_FILES = (".github/workflows/.keep", "Cargo.toml", "courses/.keep",
+                        "crates/.keep", "docs/.keep", "scripts/.keep")
+
+
+def _fixture_repo(tmp: Path, files: tuple[str, ...]) -> tuple[Path | None, str | None]:
+    """合成一个**真 git 仓**（`files` 逐个落盘并 `git add` ⇒ 进 `git ls-files` ✓）。
+
+    ⚠ **夹具跑 git 一律用 `git_env.clean_git_env()`**（洞
+    `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`，2026-10-16）：`GIT_DIR` **优先于 cwd** ⇒
+    不清的话夹具的 `git init` 会把 `core.bare=true` 写进**调用者的** `.git/config`、
+    并让后续每一句 `git add` 落在真仓上 ✗。
+    """
+    root = tmp / "repo"
+    root.mkdir(parents=True)
+    env = git_env.clean_git_env()
+    init = subprocess.run(["git", "init", "-q"], cwd=root, capture_output=True, env=env)
+    if init.returncode != 0:
+        return None, f"`git init` rc={init.returncode}：{init.stderr.decode('utf-8', 'replace')[:120]}"
+    for rel in files:
+        p = root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("// 夹具（照真仓的形状 ✓）\n", encoding="utf-8")
+    add = subprocess.run(["git", "add", "-A"], cwd=root, capture_output=True, env=env)
+    if add.returncode != 0:
+        return None, f"`git add -A` rc={add.returncode}：{add.stderr.decode('utf-8', 'replace')[:120]}"
+    return root, None
+
+
+def selftest(ci_path, push_range, top_level):
     """正负对照（见模块文档的判据表 ✓）。"""
     base_text = Path(ci_path).read_text(encoding="utf-8")
     results = []
 
-    def run(text, label, expect_red):
-        import tempfile
-
+    def run(text, label, expect_red, top_level=top_level, needle=None):
         with tempfile.TemporaryDirectory() as tmp:
             p = Path(tmp) / "ci.yml"
             p.write_text(text, encoding="utf-8")
             doc = load_ci(p)
             filters = push_range.load_filters(p)
-            res = check(doc, filters, push_range.glob_to_regex)
+            res = check(doc, filters, push_range.glob_to_regex, top_level)
             reds = [msg for ok, msg in res if not ok]
             ok = bool(reds) == expect_red
+            # **归属**（不许"有红就算咬住" ✗）：`needle` 给了就要求那一条红**点名它** ✓
+            if ok and expect_red and needle is not None and not any(needle in m for m in reds):
+                ok = False
+                reds = [f"夹具的红**没有点名** `{needle}`：{reds[:2]}"]
             results.append((ok, label, reds[:2]))
 
     # ① 正对照：现役 ci.yml 的逐字副本必须绿 ✓（不许制造假红 ✗）
@@ -335,6 +452,40 @@ def selftest(ci_path, push_range):
     # ⑤ 换皮：新加一个消费 `editor/**` 却只被 `rust` 门控的 job ⇒ 必须判红 ✓
     run(_add_ungated_job(base_text), "⑤ 新加消费 `editor/**` 却只被 `rust` 门控的 job ⇒ 必须**红**",
         expect_red=True)
+    # ⑥ **动态枚举**（洞 `TOP-LEVEL-TABLE-GOES-BLIND` 的反向验证 ✓）：合成仓里**新加一个
+    #   顶层目录** `newtop/` ⇒ ①枚举必须**看到**它（写死表 ⇒ 这一臂必红 ✗）；
+    #   ②它下面的路径被门控 job 消费 ⇒ R1 **必须判红并点名它**（改前：认不出来 ⇒ 静默绿 ✗）；
+    #   ③地板不齐的仓 ⇒ **必须拒绝判**（不静默退化成一张更窄的表 ✗）。
+    with tempfile.TemporaryDirectory() as tmp:
+        repo, ferr = _fixture_repo(Path(tmp), _FIXTURE_FLOOR_FILES + ("newtop/thing.js",))
+        if repo is None:
+            results.append((False, f"⑥ 合成仓夹具环境错（{ferr}）⇒ 这一臂判不了 ✗", []))
+        else:
+            found = discover_top_level(repo)
+            combined = tuple(sorted(set(top_level) | set(found)))
+            seen = "newtop" in found and looks_like_repo_path("newtop/thing.js", combined)
+            results.append((
+                seen,
+                "⑥a **动态枚举**：合成仓里新加顶层目录 `newtop/` ⇒ `discover_top_level()` "
+                "必须**看到**它（硬编码表 ⇒ 必红 ✗）",
+                [] if seen else [f"`discover_top_level(合成仓)` = {found} ✗"],
+            ))
+            run(_add_ungated_job(base_text, "newtop/thing.js"),
+                "⑥b 那个**新顶层目录**里的路径被门控 job 消费 ⇒ R1 **必须判红并点名它**"
+                "（改前：token 认不出来 ⇒ **静默绿** ✗）",
+                expect_red=True, top_level=combined, needle="newtop/thing.js")
+    with tempfile.TemporaryDirectory() as tmp:
+        bare, ferr = _fixture_repo(Path(tmp), ("newtop/thing.js",))
+        if bare is None:
+            results.append((False, f"⑥c 合成仓夹具环境错（{ferr}）⇒ 这一臂判不了 ✗", []))
+        else:
+            try:
+                got = discover_top_level(bare)
+                results.append((False, "⑥c **地板闸**：地板不齐的仓必须拒绝判 ⇒ 这一臂判不了 ✗",
+                                [f"`discover_top_level` 返回了 {got}（没拒绝 ✗）"]))
+            except EnvError as exc:
+                results.append((True, f"⑥c **地板闸**：地板不齐的仓 ⇒ 拒绝判（不静默退化 ✓）："
+                                      f"{str(exc)[:90]}…", []))
 
     bad = 0
     for ok, label, reds in results:
@@ -343,23 +494,30 @@ def selftest(ci_path, push_range):
             bad += 1
             for msg in reds:
                 print(f"    {msg}")
-    print(f"  ⓘ 自检 {len(results)} 条，未咬住 {bad} 条 —— 口径：正对照必须绿、四个负对照必须红 ✓")
+    print(f"  ⓘ 自检 {len(results)} 条，未咬住 {bad} 条 —— "
+          f"口径：正对照必须绿、负对照（②–⑤、⑥b）与两条断言（⑥a/⑥c）必须咬住 ✓")
     return 1 if bad else 0
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="「按改动范围决定跑不跑」的类守卫")
-    parser.add_argument("--ci", default=str(DEFAULT_CI), help="工作流文件（默认 ci.yml）")
+    parser.add_argument("--root", default=None,
+                        help="仓库根（默认 = 本脚本所在仓；顶层条目与默认 `--ci` 都从这里取）")
+    parser.add_argument("--ci", default=None,
+                        help="工作流文件（默认 `<root>/.github/workflows/ci.yml`）")
     parser.add_argument("--selftest", action="store_true", help="正负对照自检")
     parser.add_argument("--check", action="store_true", help="对真 ci.yml 跑 R1 + R2 + R3（默认动作）")
     args = parser.parse_args(argv)
     try:
         push_range = _load_push_range()
+        root = Path(args.root).resolve() if args.root else REPO_ROOT
+        ci = Path(args.ci).resolve() if args.ci else root / DEFAULT_CI_REL
+        top_level = discover_top_level(root)
         if args.selftest:
-            return selftest(args.ci, push_range)
-        doc = load_ci(args.ci)
-        filters = push_range.load_filters(args.ci)
-        return report(check(doc, filters, push_range.glob_to_regex))
+            return selftest(ci, push_range, top_level)
+        doc = load_ci(ci)
+        filters = push_range.load_filters(ci)
+        return report(check(doc, filters, push_range.glob_to_regex, top_level), top_level)
     except EnvError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
