@@ -60,6 +60,9 @@ import pathlib
 import subprocess
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 REGISTRY = ROOT / "scripts" / "docs-expiry.json"
 
@@ -97,6 +100,7 @@ def tracked() -> set[str]:
     out = subprocess.run(
         ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
         cwd=ROOT, capture_output=True, text=True, check=True,
+        env=git_env.clean_git_env(),   # 洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`：仓库发现只许由 cwd 决定 ✓
     ).stdout
     return {p for p in out.split("\0") if p}
 

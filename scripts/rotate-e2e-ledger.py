@@ -52,6 +52,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 DEFAULT_KEEP = 60
 
 # **点名区块的哨兵**（`docs-lint` 判据 ⑥ 的机器面）：
@@ -260,10 +263,17 @@ FIX_ROWS = 16
 
 
 def _fixture(root: Path, repo: Repo) -> None:
-    """造一个**自包含**夹具：真 git 仓 + 真台账 + 真日志 + 真归档索引（零真仓写入 ✓）。"""
+    """造一个**自包含**夹具：真 git 仓 + 真台账 + 真日志 + 真归档索引（零真仓写入 ✓）。
+
+    ⚠ "零真仓写入"要**靠 `env=` 兑现** ✗→✓（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`）：
+    `GIT_DIR` **优先于 cwd** ⇒ 从链接工作树的 hook 里跑时，下面这句 `git init` 会把
+    `core.bare=true` 写进**调用者的仓**、夹具仓根本建不起来 ✗（实测读数见
+    `scripts/git_env.py`）。
+    """
     (root / "docs" / "archive").mkdir(parents=True, exist_ok=True)
     (root / "docs" / "e2e" / "logs").mkdir(parents=True, exist_ok=True)
-    subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+    subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True,
+                   env=git_env.clean_git_env())
     (root / "README.md").write_text("# fixture\n", encoding="utf-8")
     (root / "docs" / "index.md").write_text("# fixture docs\n", encoding="utf-8")
     # `docs-lint` 要读的两份判据输入：

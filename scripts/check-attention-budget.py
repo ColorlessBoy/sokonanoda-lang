@@ -117,6 +117,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 ROOT = Path(__file__).resolve().parent.parent
 
 # ── **两档**（照 `scripts/target-hygiene.py` 的先例：告警线 / 红线 ✓）────────────
@@ -244,7 +247,7 @@ def seam_problems(root: Path | None = None, source_rev: str | None = None) -> li
         if source_rev:
             proc = subprocess.run(["git", "show", f"{source_rev}:{rel}"], cwd=str(root),
                                   capture_output=True, text=True, encoding="utf-8",
-                                  errors="replace")
+                                  errors="replace", env=git_env.clean_git_env())
             if proc.returncode != 0:
                 red.append(f"`git show {source_rev}:{rel}` rc={proc.returncode} ⇒ 量不到 ⇒ "
                            f"**不假装判过** ✗")
@@ -445,7 +448,8 @@ def collect(since: str, until: str | None = None, cwd: Path = ROOT) -> tuple[lis
     返回 (行, 环境错误)。浅克隆 ⇒ 环境错误（**不静默** ✗）。
     """
     shallow = subprocess.run(["git", "rev-parse", "--is-shallow-repository"],
-                             cwd=cwd, capture_output=True, text=True)
+                             cwd=cwd, capture_output=True, text=True,
+                             env=git_env.clean_git_env())
     if shallow.returncode != 0:
         return [], f"`git rev-parse --is-shallow-repository` rc={shallow.returncode}"
     if shallow.stdout.strip() == "true":
@@ -458,7 +462,11 @@ def collect(since: str, until: str | None = None, cwd: Path = ROOT) -> tuple[lis
             "--format=@@%H|%s"]
     if until:
         argv.insert(3, until)
-    out = subprocess.run(argv, cwd=cwd, capture_output=True, text=True)
+    # ⚠ `env=`（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`）：**读数**也必须来自 `cwd` 那个仓 ✗→✓。
+    #   实测（端到端夹具 · 带 `GIT_DIR`）：本句读的是**调用者的仓** ⇒ 夹具第 0 轮读数从
+    #   `4.25 : 1 · 25.0%` 变成 `0.96 : 1 · 16.9%`（那是真仓的历史 ✗）⇒ ② 的判据全歪 ✗。
+    out = subprocess.run(argv, cwd=cwd, capture_output=True, text=True,
+                         env=git_env.clean_git_env())
     if out.returncode != 0:
         return [], f"`git log` rc={out.returncode}：{out.stderr.strip()[:200]}"
     rows: list = []
@@ -600,7 +608,8 @@ def report(agg: dict, caps: dict, state: dict | None = None, n_since: int = 0) -
 def recent(n: int, cwd: Path = ROOT) -> tuple[dict, str | None]:
     """近窗读数（**只报不判** —— 滑窗会老化 ⇒ 拿它判红就是假红 ✗）✓。"""
     out = subprocess.run(["git", "log", "--numstat", f"-{n}",
-                          "--format=@@%H|%s"], cwd=cwd, capture_output=True, text=True)
+                          "--format=@@%H|%s"], cwd=cwd, capture_output=True, text=True,
+                          env=git_env.clean_git_env())
     if out.returncode != 0:
         return {}, f"`git log -{n}` rc={out.returncode}"
     rows, subject = [], ""
@@ -616,7 +625,13 @@ def recent(n: int, cwd: Path = ROOT) -> tuple[dict, str | None]:
 
 # ── git 小工具（ratchet 用）────────────────────────────────────────────────
 def _git(argv: list[str], cwd: Path) -> tuple[str, str | None]:
-    out = subprocess.run(["git", *argv], cwd=cwd, capture_output=True, text=True)
+    # ⚠ `env=`（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`，2026-10-16）：**夹具的 git 必须
+    #   落在夹具仓上** ✗→✓。从**链接工作树**的 hook 里跑时 `GIT_DIR` 会指到调用者的仓
+    #   （实测 `GIT_DIR=<主>/.git/worktrees/<wt>`），而它**优先于 cwd** ⇒ 本函数的
+    #   `init` / `config` / `add` / `commit` **全落到真仓**上（实测 `core.bare=true` +
+    #   2 个夹具提交 + 238 行 dirty ✗）。⇒ 仓库发现只许由 `cwd` 决定 ✓。
+    out = subprocess.run(["git", *argv], cwd=cwd, capture_output=True, text=True,
+                         env=git_env.clean_git_env())
     if out.returncode != 0:
         return "", f"`git {' '.join(argv)}` rc={out.returncode}：{out.stderr.strip()[:200]}"
     return out.stdout.strip(), None
@@ -659,8 +674,12 @@ def guard_bite_check(cwd: Path, since_sha: str | None) -> tuple[bool, str]:
     argv = [sys.executable, str(script), "--check"]
     if since_sha:
         argv += ["--since", since_sha]
+    # ⚠ `env=`：子进程**继承** `GIT_DIR` ⇒ 被调的那个守卫会量到**调用者的仓** ✗
+    #   （洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`：端到端夹具里实测 C5 因此从
+    #   "判不了"翻成"台账所属的仓" ⇒ 夹具 `--selftest` 判红 ✗）。
     out = subprocess.run(argv, cwd=cwd, capture_output=True, text=True,
-                         encoding="utf-8", errors="replace")
+                         encoding="utf-8", errors="replace",
+                         env=git_env.clean_git_env())
     detail = "\n".join(r for r in (out.stdout + out.stderr).splitlines() if r.strip())[-800:]
     return out.returncode == 0, detail
 
@@ -696,7 +715,11 @@ def _fixture_repo(tmp: Path) -> tuple[Path, str | None]:
         _git(["commit", "-q", "-m", subject], repo)
 
     # ④ 的判定入口：**照真仓的形状**（拷真文件，不打桩 ✗）
-    for rel in ("scripts/check-guard-bite.py", "docs/guard-bite.jsonl",
+    # ⚠ `scripts/git_env.py` **也得拷**（2026-10-16）：`check-guard-bite.py` 现在 import 它
+    #   （同目录库，`FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO` 的修）⇒ 只拷守卫、不拷它的
+    #   同目录依赖 ⇒ 夹具里 `ModuleNotFoundError: No module named 'git_env'` ⇒ ④ 臂
+    #   会以"守卫自己坏了"判红 ✗（实测：修完第一版就踩到，`--selftest` 4 组不对 ✗）。
+    for rel in ("scripts/check-guard-bite.py", "scripts/git_env.py", "docs/guard-bite.jsonl",
                 ".github/workflows/ci.yml"):
         src, dst = ROOT / rel, repo / rel
         dst.parent.mkdir(parents=True, exist_ok=True)

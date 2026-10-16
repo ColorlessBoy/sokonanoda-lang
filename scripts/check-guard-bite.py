@@ -170,6 +170,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 ROOT = Path(__file__).resolve().parent.parent
 LEDGER = ROOT / "docs" / "guard-bite.jsonl"
 ANCHORS = ROOT / "docs" / "guard-anchors.jsonl"
@@ -312,14 +315,22 @@ def job_blocks(text: str) -> dict[str, str]:
 
 
 def _resolves(root: Path, rev: str) -> bool:
-    """`rev` 在本仓里能不能解析成**提交**对象（C5 的唯一判据输入 ✓）。"""
+    """`rev` 在本仓里能不能解析成**提交**对象（C5 的唯一判据输入 ✓）。
+
+    ⚠ `env=`（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`）：`GIT_DIR` 优先于 `cwd` ⇒
+    不清就会拿**调用者的仓**当"本仓" ⇒ C5 会替**别人的**提交背书 ✗（实测：夹具仓里
+    本该"判不了"的那一档，因为 `GIT_DIR` 指向真仓而**误判成"台账所属的仓"** ⇒ 从
+    ⓘ 分支翻到 `error:` 分支 ⇒ 夹具 `--selftest` 判红 ✗）。
+    """
     return subprocess.run(["git", "cat-file", "-e", f"{rev}^{{commit}}"],
-                          cwd=root, capture_output=True).returncode == 0
+                          cwd=root, capture_output=True,
+                          env=git_env.clean_git_env()).returncode == 0
 
 
 def _is_ancestor(root: Path, rev: str, head: str) -> bool:
     return subprocess.run(["git", "merge-base", "--is-ancestor", rev, head],
-                          cwd=root, capture_output=True).returncode == 0
+                          cwd=root, capture_output=True,
+                          env=git_env.clean_git_env()).returncode == 0
 
 
 def rev_reachability_problems(root: Path, entries: list[dict],
@@ -442,7 +453,11 @@ def wiring_problems(root: Path, entries: list[dict]) -> list[str]:
 
 
 def _git(root: Path, argv: list[str]) -> tuple[str, str | None]:
-    out = subprocess.run(["git", *argv], cwd=root, capture_output=True, text=True)
+    # ⚠ `env=`（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`）：`GIT_DIR` **优先于 cwd** ⇒
+    #   从链接工作树的 hook 里跑时，本函数的 `git diff/log` 会量到**调用者的仓**，
+    #   而 C1 的覆盖面就是从这里来的 ⇒ **判据会审错对象** ✗（仓库发现只许由 cwd 决定 ✓）。
+    out = subprocess.run(["git", *argv], cwd=root, capture_output=True, text=True,
+                         env=git_env.clean_git_env())
     if out.returncode != 0:
         return "", f"`git {' '.join(argv)}` rc={out.returncode}：{out.stderr.strip()[:200]}"
     return out.stdout, None
@@ -479,7 +494,8 @@ def shallow_hint(root: Path) -> str:
     """
     try:
         out = subprocess.run(["git", "rev-parse", "--is-shallow-repository"],
-                             cwd=root, capture_output=True, text=True, timeout=60)
+                             cwd=root, capture_output=True, text=True, timeout=60,
+                             env=git_env.clean_git_env())
     except (OSError, subprocess.SubprocessError):
         return ""
     if out.returncode != 0 or out.stdout.strip() != "true":
@@ -1304,7 +1320,11 @@ def selftest(job: str = DEFAULT_JOB) -> int:
             ["git", "-c", "user.name=soko-bite", "-c", "user.email=bite@invalid.invalid",
              "commit-tree", "HEAD^{tree}", "-m", "soko-bite-selftest orphan（不可达）"],
             cwd=ROOT, capture_output=True, text=True,
-            env={**os.environ, "GIT_AUTHOR_DATE": "2000-01-01T00:00:00+0000",
+            # ⚠ 先摘 `GIT_*` 再补日期（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`）：
+            #   原来直接 `{**os.environ, …}` ⇒ 调用方的 `GIT_DIR` 会让 `HEAD^{tree}`
+            #   与那个松散对象都落到**调用者的仓**上 ✗（本句是**写**操作，不只是读数 ✗）。
+            env={**git_env.clean_git_env(),
+                 "GIT_AUTHOR_DATE": "2000-01-01T00:00:00+0000",
                  "GIT_COMMITTER_DATE": "2000-01-01T00:00:00+0000"})
         orph = orphan.stdout.strip()
         if orphan.returncode == 0 and orph:

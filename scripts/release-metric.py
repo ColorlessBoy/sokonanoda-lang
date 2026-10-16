@@ -80,6 +80,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 ROOT = Path(__file__).resolve().parent.parent
 
 # ── **口径（唯一一处 ✓）** ────────────────────────────────────────────────────
@@ -109,8 +112,12 @@ class ShapeError(Exception):
 
 
 def git(root: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess:
+    # ⚠ `env=`（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`）：本脚本的 `--selftest` 会
+    #   在**临时夹具仓**里 `init`/`config`/`add`/`commit`/`tag`；`GIT_DIR` 优先于 cwd
+    #   ⇒ 不清就全落到**调用者的仓**上 ✗（实测同族的 `core.bare=true` + 夹具提交 ✗）。
     p = subprocess.run(GIT + list(args), cwd=str(root), capture_output=True,
-                       text=True, encoding="utf-8", errors="replace")
+                       text=True, encoding="utf-8", errors="replace",
+                       env=git_env.clean_git_env())
     if check and p.returncode != 0:
         raise ShapeError(f"`git {' '.join(args)}` ⇒ rc={p.returncode}：{(p.stderr or p.stdout).strip()[:200]}")
     return p
@@ -246,8 +253,10 @@ def _commit(root: Path, rel: str, when: dt.datetime, subject: str) -> None:
 
 
 def _env() -> dict:
-    import os
-    e = dict(os.environ)
+    # ⚠ 先摘 `GIT_*` 再给身份（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`）：原来是
+    #   `setdefault(os.environ)` ⇒ 调用方（hook / CI）注入的 `GIT_AUTHOR_*` 会**赢**，
+    #   夹具提交的身份就不可复现 ✗；而 `GIT_DIR` 一族更会直接把提交送进调用者的仓 ✗。
+    e = git_env.clean_git_env()
     e.setdefault("GIT_AUTHOR_NAME", "fixture")
     e.setdefault("GIT_AUTHOR_EMAIL", "fixture@example.invalid")
     e.setdefault("GIT_COMMITTER_NAME", "fixture")

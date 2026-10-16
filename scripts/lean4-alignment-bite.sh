@@ -34,6 +34,14 @@
 # ⚠ **不碰** `crates/**`：夹具里那个 `crates/kernel/dummy.rs` 长在临时目录里 ✓。
 set -uo pipefail
 
+# ⚠ **摘掉 git 自己的 `GIT_*`**（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`，2026-10-16）：
+#   本脚本的 `mkfix()` 会 `git init/add/commit` 一个**临时夹具仓**，而 `GIT_DIR`
+#   **优先于 cwd** ⇒ 从**链接工作树**的钩子里跑时，那些提交会落到**调用者的仓**上 ✗
+#   （实测同族后果：`core.bare=true` + 夹具提交 + 238 行 dirty ✗）。
+#   口径 = `scripts/git_env.py`（python 侧的唯一出处 ✓）；这里是 shell 侧的同一条 ✓。
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY \
+      GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_PREFIX
+
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 GUARD_REL="scripts/check-lean4-alignment.py"
 GUARD="$ROOT/$GUARD_REL"
@@ -75,6 +83,10 @@ fi
 mkfix() {  # $1 = 目录 · $2 = 守卫源文件
   mkdir -p "$1/scripts" "$1/crates/kernel" || return 1
   cp "$2" "$1/$GUARD_REL" || return 1
+  # ⚠ **同目录依赖也得拷**（2026-10-16）：守卫 import `git_env`（同目录库）⇒ 只拷它自己
+  #   ⇒ 夹具里 `ModuleNotFoundError: No module named 'git_env'` ⇒ ④b 臂判红 ✗
+  #   （实测：本轮第一版就踩到，`check-guard-bite.py --check --all` 因此红 1 条 ✗）。
+  cp "$ROOT/scripts/git_env.py" "$1/scripts/git_env.py" || return 1
   printf 'fn main() {}\n' > "$1/crates/kernel/dummy.rs" || return 1
   git -C "$1" init -q . || return 1
   git -C "$1" add -A || return 1

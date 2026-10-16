@@ -69,6 +69,7 @@ from pathlib import Path
 # 常量，谁就当场被咬住 ✓（照 `audit-wire-fields.py` 的先例）。
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import threshold_ratchet  # noqa: E402  （同目录库：登记表 + `tighten()` 的唯一出处 ✓）
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
 
 _RATCHET_CAPS, _RATCHET_ERROR = threshold_ratchet.caps_or_error()
 MAX_LIVE_BYTES = _RATCHET_CAPS["docs_live_bytes"]  # ① 活文档总量（种子 10 MB；落地实测 6.41 MB）
@@ -260,6 +261,7 @@ def tracked() -> set[str]:
         capture_output=True,
         text=True,
         check=True,
+        env=git_env.clean_git_env(),   # 洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`：仓库发现只许由 cwd 决定 ✓
     ).stdout
     files = {p for p in out.split("\0") if p}
     # 自检沙箱里的夹具 = "真仓库里新建的（未跟踪）文件" ⇒ 并进来

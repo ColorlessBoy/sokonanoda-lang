@@ -37,6 +37,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CARGO = ROOT / "Cargo.toml"
 PACKAGE_JSON = ROOT / "editor" / "vscode" / "package.json"
@@ -60,6 +63,7 @@ def manifests() -> list[pathlib.Path]:
         capture_output=True,
         text=True,
         check=True,
+        env=git_env.clean_git_env(),   # 洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`：仓库发现只许由 cwd 决定 ✓
     ).stdout
     return [ROOT / line for line in out.splitlines() if line.strip()]
 

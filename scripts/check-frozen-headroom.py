@@ -44,6 +44,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 ROOT = Path(__file__).resolve().parent.parent
 BUDGET = ROOT / "scripts" / "docs-budget.json"
 
@@ -61,7 +64,10 @@ class EnvError(RuntimeError):
 
 
 def _git(*args: str) -> tuple[int, str, str]:
-    p = subprocess.run(["git", *args], cwd=str(ROOT), capture_output=True, text=True)
+    # ⚠ `env=`（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`）：`GIT_DIR` 优先于 `cwd` ⇒
+    #   不清就会量到**调用者的仓**（从链接工作树的 hook 里跑时）⇒ 判据审错对象 ✗。
+    p = subprocess.run(["git", *args], cwd=str(ROOT), capture_output=True, text=True,
+                       env=git_env.clean_git_env())
     return p.returncode, p.stdout, p.stderr
 
 

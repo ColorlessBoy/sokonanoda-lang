@@ -37,6 +37,9 @@ import sys
 import tempfile
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DECL_RE = re.compile(r'^\s*(theorem|def|axiom|inductive|example|opaque|instance)\s')
 
@@ -257,7 +260,8 @@ def main():
     if os.path.exists(version_file):
         version = open(version_file).read().strip()
     commit = subprocess.run(["git", "-C", ROOT, "rev-parse", "--short", "HEAD"],
-                            capture_output=True, text=True).stdout.strip() or None
+                            capture_output=True, text=True,
+                            env=git_env.clean_git_env()).stdout.strip() or None
     doc = {
         "schema": "soko.course-profile/1",
         "version": version,

@@ -79,6 +79,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 ROOT = Path(__file__).resolve().parent.parent
 STATE = ROOT / "docs" / "threshold-ratchet.json"
 GIB = 1024 ** 3
@@ -366,7 +369,8 @@ def _read_source(root: Path, rel: str, source_rev: str | None) -> tuple[str | No
     """
     if source_rev:
         proc = subprocess.run(["git", "show", f"{source_rev}:{rel}"], cwd=str(root),
-                              capture_output=True, text=True, encoding="utf-8", errors="replace")
+                              capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", env=git_env.clean_git_env())
         if proc.returncode != 0:
             return None, (f"`git show {source_rev}:{rel}` rc={proc.returncode} ⇒ 量不到 ⇒ "
                           f"**不假装判过** ✗")

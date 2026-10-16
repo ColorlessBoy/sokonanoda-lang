@@ -17,6 +17,16 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
+# ⚠ **摘掉 git 自己的 `GIT_*`**（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`，2026-10-16）：
+#   `GIT_DIR` **优先于 cwd** 决定仓库发现 ⇒ 从**链接工作树**的 `pre-push` 钩子里跑时
+#   （实测：`git push` 在链接工作树里会把 `GIT_DIR=<主>/.git/worktrees/<wt>` 交给钩子 ✓），
+#   下面每一句 `python3 scripts/…` 的**夹具**都会把 `git init`/`commit`/`config` 打到
+#   **调用者的仓**上 ✗（实测后果：`core.bare=true` + 夹具提交 + 238 行 dirty ✗）。
+#   ⚠ 这一行是**兜底**（口径 = `scripts/git_env.py`，所有 python 侧调用点**各自**已清 ✓）：
+#   它同时覆盖 `scripts/ux-queue.py` 里那些**没清**的夹具（那个文件不在本轮的改动范围 ✓）。
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY \
+      GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_PREFIX
+
 FAST=0; WANT_E2E=0
 for a in "$@"; do
   case "$a" in

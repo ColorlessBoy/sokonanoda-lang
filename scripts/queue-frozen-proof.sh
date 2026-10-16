@@ -46,6 +46,14 @@
 # 2 = 用法错。
 set -u
 
+# ⚠ **摘掉 git 自己的 `GIT_*`**（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`，2026-10-16）：
+#   本脚本 `git clone --shared` + `update-ref`/`symbolic-ref` 造**夹具仓**，而 `GIT_DIR`
+#   **优先于 cwd** ⇒ 从链接工作树的钩子里跑时，那些写操作会落到**调用者的仓**上 ✗；
+#   连开头那句 `git rev-parse --show-toplevel` 都会量到**别的树** ✗。
+#   口径 = `scripts/git_env.py`（python 侧的唯一出处 ✓）；这里是 shell 侧的同一条 ✓。
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY \
+      GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_PREFIX
+
 if [ "$#" -lt 3 ] || [ "$2" != "--" ]; then
     echo "用法：scripts/queue-frozen-proof.sh <rev> -- <cmd> [args…]" >&2
     echo "  ⇒ 把 <cmd> 钉到 <rev> 那份**冻结的队列夹具**上跑（见本文件抬头）" >&2

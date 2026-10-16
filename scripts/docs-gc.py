@@ -20,6 +20,9 @@ doc 清理机制」。⇒ 清理**不能靠人记得**，要有一条**可重复
 """
 import json, pathlib, re, subprocess, sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
 KEEP_ALWAYS = {
@@ -67,13 +70,15 @@ def corpus() -> str:
 
 def last_touch(p: pathlib.Path) -> str:
     r = subprocess.run(["git", "log", "-1", "--format=%cs", "--", str(p.relative_to(ROOT))],
-                       cwd=ROOT, capture_output=True, text=True)
+                       cwd=ROOT, capture_output=True, text=True,
+                       env=git_env.clean_git_env())
     return r.stdout.strip() or "?"
 
 
 def days_since(iso: str) -> int:
     r = subprocess.run(["git", "log", "-1", "--format=%cs", "--", "."], cwd=ROOT,
-                       capture_output=True, text=True)
+                       capture_output=True, text=True,
+                       env=git_env.clean_git_env())
     today = r.stdout.strip()
     if not iso or iso == "?" or not today:
         return 0

@@ -38,6 +38,7 @@ from pathlib import Path
 # ⚠ 状态缺失/坏 ⇒ 入口闸门**响亮退出（exit 2）**，绝不静默退回种子判过 ✗（与 ② 同口径）。
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import threshold_ratchet  # noqa: E402  （同目录库：登记表 + `tighten()` 的唯一出处 ✓）
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
 
 _RATCHET_CAPS, _RATCHET_ERROR = threshold_ratchet.caps_or_error()
 MAX_TOTAL = _RATCHET_CAPS["status_total_lines"]   # ① 总行数（种子 240；收敛目标 200）
@@ -85,7 +86,8 @@ def growth(path):
     """
     try:
         old = subprocess.run(["git", "show", f"HEAD:{path}"], capture_output=True,
-                             text=True, check=True).stdout
+                             text=True, check=True,
+                             env=git_env.clean_git_env()).stdout
     except Exception:  # noqa: BLE001
         return None
     return len(path and Path(path).read_text(encoding="utf-8").splitlines()) - len(old.splitlines())

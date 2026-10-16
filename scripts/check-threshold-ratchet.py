@@ -56,6 +56,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 import threshold_ratchet as R  # noqa: E402  （同目录库；`scripts/` 已在 sys.path 上 ✓）
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
 
 STATE = R.STATE
 ROUND_MAX_COMMITS = 40          # 与 ② 同源：基点之后落这么多笔还没开轮 ⇒ 判红
@@ -118,7 +119,8 @@ def commits_since(head: str | None) -> int | None:
     if not head:
         return None
     proc = subprocess.run(["git", "rev-list", "--count", f"{head}..HEAD"], cwd=str(ROOT),
-                          capture_output=True, text=True)
+                          capture_output=True, text=True,
+                          env=git_env.clean_git_env())
     if proc.returncode != 0:
         return None
     return int(proc.stdout.strip() or 0)
@@ -176,7 +178,7 @@ def open_round(state_path: Path, target_root: str | None = None) -> int:
               f"在**有 target/** 的树上跑（例：主 checkout）✓", file=sys.stderr)
         return 1
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(ROOT), capture_output=True,
-                          text=True).stdout.strip()
+                          text=True, env=git_env.clean_git_env()).stdout.strip()
     now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
     new, red = R.open_round(st, reading, now=now, head=head)
     if red:
@@ -200,7 +202,7 @@ def init(state_path: Path, target_root: str | None = None) -> int:
         return 1
     reading, missing = measure(verbose=True, target_root=target_root)
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(ROOT), capture_output=True,
-                          text=True).stdout.strip()
+                          text=True, env=git_env.clean_git_env()).stdout.strip()
     now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
     caps = R.seeds()
     st = {"version": 1, "round": 0, "head": head, "at": now, "caps": caps,

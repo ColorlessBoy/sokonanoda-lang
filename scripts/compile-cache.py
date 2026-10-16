@@ -61,6 +61,9 @@ import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 REPO = Path(__file__).resolve().parent.parent
 
 
@@ -79,7 +82,8 @@ def main_worktree() -> Path:
     """
     try:
         out = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=REPO,
-                             capture_output=True, text=True, timeout=30).stdout
+                             capture_output=True, text=True, timeout=30,
+                             env=git_env.clean_git_env()).stdout
     except (OSError, subprocess.SubprocessError):
         return REPO
     for line in out.splitlines():
@@ -140,7 +144,8 @@ def mtime(path: Path) -> float:
 def worktrees() -> list[dict]:
     """`git worktree list --porcelain` ⇒ [{path, branch}]（含主工作树 ✓）。"""
     out = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=REPO,
-                         capture_output=True, text=True).stdout.splitlines()
+                         capture_output=True, text=True,
+                         env=git_env.clean_git_env()).stdout.splitlines()
     trees, cur = [], {}
     for line in out:
         if line.startswith("worktree "):

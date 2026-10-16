@@ -35,6 +35,10 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
 
 # **共享台账**：只有 main 能改。加台账**必须同时加进这里**（守卫与文档同一个真相源 ✓）。
 SHARED_LEDGERS = (
@@ -49,7 +53,10 @@ WORKTREE_MARK = "/worktrees/"
 
 
 def git(*args: str, cwd: str | None = None) -> tuple[int, str]:
-    p = subprocess.run(["git", *args], capture_output=True, text=True, cwd=cwd)
+    # ⚠ `env=`（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`）：`GIT_DIR` 优先于 `cwd` ⇒
+    #   不清就会量到**调用者的仓**（本文件整条判据都建在这些读数上 ✗）。
+    p = subprocess.run(["git", *args], capture_output=True, text=True, cwd=cwd,
+                       env=git_env.clean_git_env())
     return p.returncode, (p.stdout if p.returncode == 0 else p.stderr).strip()
 
 
@@ -65,7 +72,8 @@ def blob(ref: str, path: str) -> bytes | None:
     ⇒ **尾部换行被吃掉** ⇒ 拿它比"是否逐字节一致"会**永远判不等** ✗✓。
     "逐字节"就必须真的逐字节 ✓。
     """
-    p = subprocess.run(["git", "show", f"{ref}:{path}"], capture_output=True)
+    p = subprocess.run(["git", "show", f"{ref}:{path}"], capture_output=True,
+                       env=git_env.clean_git_env())
     return p.stdout if p.returncode == 0 else None
 
 

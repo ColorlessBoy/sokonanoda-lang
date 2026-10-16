@@ -66,6 +66,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 DEFAULT_CI = ROOT / ".github" / "workflows" / "ci.yml"
@@ -204,7 +207,8 @@ def read_ci_at_rev(rev: str) -> str:
     """`git show <rev>:.github/workflows/ci.yml` ⇒ 咬住证明打在**固定旧 rev** 上 ✓。"""
     out = subprocess.run(["git", "show", f"{rev}:.github/workflows/ci.yml"],
                          cwd=ROOT, capture_output=True, text=True,
-                         encoding="utf-8", errors="replace")
+                         encoding="utf-8", errors="replace",
+                         env=git_env.clean_git_env())
     if out.returncode != 0:
         gb = _load_guard_bite()
         hint = gb.shallow_hint(ROOT)

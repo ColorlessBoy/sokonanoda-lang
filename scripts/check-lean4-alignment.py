@@ -60,6 +60,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 ROOT = Path(__file__).resolve().parent.parent
 
 # **判定路径** ✓ —— 动了这些地方就得有 Lean 4 对照（用户 2026-10-05 ✓）。
@@ -89,11 +92,17 @@ def has_marker(text: str) -> bool:
 
 
 def staged_files() -> list[str] | None:
-    """暂存区文件名；`None` = **判不了**（不是"空" ✗）。"""
+    """暂存区文件名；`None` = **判不了**（不是"空" ✗）。
+
+    ⚠ `env=`（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`）：`GIT_DIR` 优先于 `cwd` ⇒
+    不清就会读**调用者的仓**的暂存区 ⇒ 本钩子判的是**别人的** staged 集合 ✗
+    （实测：夹具 `--selftest` 里两条"无对照 ⇒ 必须判红"的臂翻绿 ✗）。
+    """
     try:
         out = subprocess.run(
             ["git", "diff", "--cached", "--name-only"],
             cwd=ROOT, capture_output=True, text=True, timeout=20,
+            env=git_env.clean_git_env(),
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -142,6 +151,7 @@ def handoff_delta() -> str:
         out = subprocess.run(
             ["git", "diff", "--cached", "--", HANDOFF],
             cwd=ROOT, capture_output=True, text=True, timeout=20,
+            env=git_env.clean_git_env(),   # 同 `staged_files()`：仓库发现只许由 cwd 决定 ✓
         )
         return out.stdout if out.returncode == 0 else ""
     except (OSError, subprocess.SubprocessError):
@@ -202,9 +212,16 @@ def selftest() -> int:
         # 夹具仓里放**本文件**（逐字节 = 被测的那一份 ✓ ⇒ 测的是真脚本，不是复制品）
         me = Path(__file__).resolve()
         shutil.copyfile(me, repo / "scripts" / me.name)
+        # ⚠ **同目录依赖也得拷**（2026-10-16）：本文件 import `git_env`（同目录库）⇒
+        #   只拷自己 ⇒ 夹具里 `ModuleNotFoundError: No module named 'git_env'` ✗
+        #   （实测：修完第一版就踩到，本 `--selftest` 直接判红 ✗）。
+        shutil.copyfile(me.parent / "git_env.py", repo / "scripts" / "git_env.py")
         (repo / "crates" / "kernel" / "dummy.rs").write_text("fn main() {}\n", encoding="utf-8")
         for argv in (["init", "-q", "."], ["add", "-A"]):
-            g = subprocess.run(["git", *argv], cwd=repo, capture_output=True, text=True)
+            # ⚠ `env=`（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`）：`GIT_DIR` 优先于 cwd
+            #   ⇒ 不清就会拿**调用者的仓**当夹具仓（`init` 改它的 config、`add -A` 动它的索引 ✗）。
+            g = subprocess.run(["git", *argv], cwd=repo, capture_output=True, text=True,
+                               env=git_env.clean_git_env())
             if g.returncode != 0:
                 print(f"  ✗ 夹具仓建不起来（`git {' '.join(argv)}` rc={g.returncode}："
                       f"{g.stderr.strip()[:120]}）⇒ **不假装判过** ✗")

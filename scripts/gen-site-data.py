@@ -33,6 +33,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(REPO_ROOT, "site", "data", "site.json")
 REPO_URL = "https://github.com/ColorlessBoy/sokonanoda-lang"
@@ -50,6 +53,7 @@ def latest_release_tag() -> str | None:
         proc = subprocess.run(
             ["git", "tag", "--list", "v*", "--sort=-v:refname"],
             cwd=REPO_ROOT, capture_output=True, text=True, timeout=30,
+            env=git_env.clean_git_env(),
         )
     except (OSError, subprocess.TimeoutExpired):
         return None

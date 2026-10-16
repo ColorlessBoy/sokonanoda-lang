@@ -72,6 +72,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 QUEUE_TOOL = ROOT / "scripts" / "ux-queue.py"
 
@@ -112,7 +115,8 @@ def base_ref() -> str:
     if override:
         return override
     r = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                       cwd=ledger_root(), capture_output=True, text=True)
+                       cwd=ledger_root(), capture_output=True, text=True,
+                       env=git_env.clean_git_env())
     ref = r.stdout.strip() if r.returncode == 0 else ""
     return ref or "HEAD"
 
@@ -323,7 +327,8 @@ def ancestry_bad(commits: list[str], base: str = "HEAD") -> tuple[list[str], str
     （rc=2 + 人话；照仓库先例：探不到就降级并出声 ✓）。
     """
     shallow = subprocess.run(["git", "rev-parse", "--is-shallow-repository"],
-                             cwd=ledger_root(), capture_output=True, text=True)
+                             cwd=ledger_root(), capture_output=True, text=True,
+                             env=git_env.clean_git_env())
     if shallow.returncode != 0:
         return [], f"`git rev-parse --is-shallow-repository` rc={shallow.returncode}"
     if shallow.stdout.strip() == "true":
@@ -332,7 +337,8 @@ def ancestry_bad(commits: list[str], base: str = "HEAD") -> tuple[list[str], str
     bad = []
     for sha in commits:
         r = subprocess.run(["git", "merge-base", "--is-ancestor", sha, base],
-                           cwd=ledger_root(), capture_output=True, text=True)
+                           cwd=ledger_root(), capture_output=True, text=True,
+                           env=git_env.clean_git_env())
         if r.returncode == 1:
             bad.append(sha)
         elif r.returncode not in (0, 1):
@@ -590,7 +596,8 @@ def selftest() -> int:
     #    而判据用的是 `base_ref()` + `ledger_root()` ⇒ 设了 `SOKO_QUEUE_ROOT` 时
     #    两者不同 ⇒ **正对照自己判红** ✗）。
     non_anc = subprocess.run(["git", "rev-list", "--all", "--not", base_ref()],
-                             cwd=ledger_root(), capture_output=True, text=True).stdout.split()
+                             cwd=ledger_root(), capture_output=True, text=True,
+                             env=git_env.clean_git_env()).stdout.split()
     if non_anc:
         case("C4 收口指针不是祖先", [ev("X", "advance", to="done", commit=non_anc[0],
                                     reading="判据：`python3 scripts/check-queue-views.py` exit 0")],
