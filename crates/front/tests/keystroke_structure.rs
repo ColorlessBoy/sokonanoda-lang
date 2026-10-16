@@ -248,10 +248,6 @@ fn edit_decl(text: &str, index: usize) -> String {
     format!("{}{}{}", &text[..at], edited, &text[end..])
 }
 
-/// 入口文件的**命令数**（`import Lib` + `DECLS` 条 `t…` + 3 条 `d…`）——
-/// T2-B 判据里的那个 N ✓。
-const ENTRY_COMMANDS: u64 = DECLS as u64 + 1 + 3;
-
 /// 一次**改最后一条命令**的按键（长度不变 ✓）：`d02` 的局部 binder 改名
 /// （`(h :` → `(k :`，`exact t00 a b h` → `exact t00 a b k`）。
 ///
@@ -271,50 +267,12 @@ fn edit_last_decl(text: &str) -> String {
     format!("{}{}{}", &text[..at], edited, &text[end..])
 }
 
-/// **T2-B 的判据**（2026-10-09 落地 · 2026-10-13 订正注释）：改**最后一条命令**时，
-/// 入口趟**只 elaborate 那一条** ✓ —— 命令级环境快照（`WalkCheckpoint` +
-/// `checkpoint()`/`restore_from()`）命中检查点 ⇒ 前缀整段跳过 ✓。
+/// **T2-B 的判据搬去了 `t2b_entry_tail_renewal.rs`**（2026-10-16）：
+/// 「改最后一条 ⇒ elaborate = 1」的两条用例（开档第一刀 + **紧接着第二刀**）
+/// 需要一个**干净进程**（`LEAKED_LIB_ARENAS` 是**进程级**预算，用尽之后
+/// `tails = None` ⇒ 本文件里并排跑会读到顺序相关的结果 ✗ —— 同
+/// `g29_closure_recompile.rs` 的先例）。本文件只留**正确性守卫**（它不依赖续编）✓。
 ///
-/// ## 判据（`PLAN-align-lean4` §3.3 T2-B）
-///
-/// 改**最后一条** ⇒ [`elaborated_commands_total`] 的增量 = **1** ✓（改前 = 入口命令数
-/// N = [`ENTRY_COMMANDS`]，另加库层那几条）；改第 k 条 ⇒ N−k+1（⚠ 通用窗口**仍未做** ✗，
-/// 见 `docs/perf/ledger.jsonl` 的 `t2b_command_level_env_snapshot` 诚实边界）。
-/// **反向验证**：改依赖文件 ⇒ 回到 N；逃生门 `SOKO_NO_ENTRY_SNAPSHOT=1`
-/// （`project/session.rs`）⇒ 回到"整条重走"⇒ 本判据**判红** ✓。
-///
-/// ## 这条名字为什么改过（`still_reelaborates…` ⇒ `reelaborates_only_that_command`）
-///
-/// 它原名 `t2b_last_command_edit_still_reelaborates_every_entry_command`，是**先建先红**
-/// 阶段的名字（那时断言的是"今天的行为 = 每刀恒 N"）。T2-B 落地后判据已经改成 `== 1`，
-/// 名字却还在说旧事 ⇒ **名字也是注释**，同样会误导下一个读它的人 ✗ ⇒ 一并订正 ✓。
-#[test]
-fn t2b_last_command_edit_reelaborates_only_that_command() {
-    let (entry, text) = gen_project("t2b");
-    let mut doc = open_doc(&entry, &text);
-    let base = Counters::now();
-    let edited = edit_last_decl(&text);
-    doc.set_text(&edited, 2, None);
-    let reading = Reading::snapshot(&doc, base);
-    println!(
-        "PERF t2b 改最后一条：elaborated_commands={}（入口命令数 N={ENTRY_COMMANDS}）",
-        reading.elaborated_commands
-    );
-    // **有牙**：读数不许是 0（那说明量具坏了、或什么都没编 ✗）。
-    assert!(
-        reading.elaborated_commands > 0,
-        "改最后一条必须真的 elaborate 了东西（读到 0 ⇒ 量具坏了 ✗）"
-    );
-    // **T2-B 的判据**：入口趟只 elaborate **最后那一条** ✓
-    // （检查点边界 = 倒数第二条之后 ⇒ 前缀整段跳过 ✓）。
-    assert_eq!(
-        reading.elaborated_commands, 1,
-        "改**最后一条**命令 ⇒ 入口趟只许 elaborate **1** 条；实测 {} ⇒ 检查点没命中 \
-         （或判据被人放宽了 ✗）",
-        reading.elaborated_commands
-    );
-}
-
 /// **T2-B 的正确性守卫**：续编出来的报告里，入口的**每条声明恰好出现一次** ✓，
 /// 且被改的那条**真的重判过**（`Checked`）✓。
 ///

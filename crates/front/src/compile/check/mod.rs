@@ -481,9 +481,7 @@ pub(crate) struct LoweredValue {
 /// `canonical_goal`（G-05）：本文件用了 `namespace`/`open` 时为 `true`，
 /// tactic 引擎把根目标先过一遍内核 pp（设计 `docs/design/namespace-open.md`
 /// §4.6）；没碰命名空间的文件零额外开销。
-// 参数已 8 个（0.62.0 起多一个 `universe`：判定合成声明要带声明的宇宙
-// 参数，见 `docs/design/by-tactics.md` §12）。为压 clippy 把参数打包成
-// 结构体只会给热路径加一层间接，得不偿失。
+// 参数已 8 个 —— 理由同 `lower_by_val`（`universe` 那一格见 `by-tactics.md` §12）✓。
 #[allow(clippy::too_many_arguments)]
 fn lower_value<'a>(
     ty: &Expr,
@@ -1720,8 +1718,7 @@ where
         snapshot_state,
         resume_out: None,
     };
-    // **T2-B**：`resume_walk` ⇒ 从命令边界快照续编；`snapshot_walk` ⇒ 跑完取一份
-    // 尾边界快照交回调用方（两者默认 `None`/`false` ⇒ **逐字节回到今天** ✓）。
+    // **T2-B**：`resume_walk` ⇒ 从命令边界快照续编；`snapshot_walk` ⇒ 跑完取尾快照交回（默认关 ✓）。
     let walk_tail = walk.run(
         units,
         &flat,
@@ -1735,6 +1732,9 @@ where
         snapshot_walk,
         count_entry_commands,
     );
+    // ⭐ **续编那一趟走不到尾边界** ⇒ 交回装回来的快照（否则下一刀整条重走 ✗；见 `docs/CI-FAILURES.md`）。
+    let keep = resume_walk.filter(|cp| snapshot_walk && cp.idx + 2 == flat.len());
+    let walk_tail = walk_tail.or(keep);
     // **T-K12b 的一致性观测**：把影子环境推进到"全部已 elaborate 的前缀"
     // （`finish_pass` 会把 `walk` 的字段移走 ⇒ 必须在这之前取数 ✓）。
     // `SOKO_SHADOW_CHECK=1` 时打印影子的规模与失败数，供与内核阶段对照
