@@ -63,7 +63,7 @@
 <!-- QUEUE:SUMMARY:BEGIN -->
 <!-- QUEUE:COUNTS total=14 blocker=0 high=8 medium=6 low=0 -->
 **未完成 14 条**（blocker **0** · high **8** · medium **6** · low **0**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
-最靠前的 5 条：`BITE-PROOF-DOES-NOT-BITE-IN-CI` · `DOCS-LIVE-TOTAL-AT-CAP-BLOCKS-ALL-PUSHES` · `SUB-G117-close-now` · `SUB-break-the-guard-recursion` · `SUB-implicit-args-align-lean4`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
+最靠前的 5 条：`DOCS-LIVE-TOTAL-AT-CAP-BLOCKS-ALL-PUSHES` · `SUB-G117-close-now` · `SUB-break-the-guard-recursion` · `SUB-day-2026-10-16-no-delivery` · `SUB-implicit-args-align-lean4`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
 <!-- QUEUE:SUMMARY:END -->
 
 > **口径（2026-10-12 清台账 + 事件调度器）**：**明细只活在脚本里** —— `--next` 取队列 · `--claim <id>` 认领（**最多 4 个并发（"4 核"）**，写锁 + 
