@@ -61,9 +61,9 @@
 ### 0.2 下一步（**唯一队列**；机器入口 = `python3 scripts/ux-queue.py`）
 
 <!-- QUEUE:SUMMARY:BEGIN -->
-<!-- QUEUE:COUNTS total=17 blocker=0 high=11 medium=6 low=0 -->
-**未完成 17 条**（blocker **0** · high **11** · medium **6** · low **0**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
-最靠前的 5 条：`DOCS-LIVE-TOTAL-AT-CAP-BLOCKS-ALL-PUSHES` · `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO` · `FLAKY-CONCURRENT-ARTIFACT-WRITERS-TEST` · `SUB-G117-close-now` · `SUB-break-the-guard-recursion`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
+<!-- QUEUE:COUNTS total=18 blocker=0 high=12 medium=6 low=0 -->
+**未完成 18 条**（blocker **0** · high **12** · medium **6** · low **0**）· 取队列：`python3 scripts/ux-queue.py --next`（或 `--json`）· 认领/收口：`--claim <id>` / `--advance <id> --to done --commit <sha> --reading '<读数>'`
+最靠前的 5 条：`CONCURRENT-WRITERS-STILL-FLAKY-AFTER-FIX` · `DOCS-LIVE-TOTAL-AT-CAP-BLOCKS-ALL-PUSHES` · `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO` · `FLAKY-CONCURRENT-ARTIFACT-WRITERS-TEST` · `SUB-G117-close-now`（全量见 `--json`；本块**由脚本渲染**，手改会被 `--check` 判红 ✗）
 <!-- QUEUE:SUMMARY:END -->
 
 > **口径（2026-10-12 清台账 + 事件调度器）**：**明细只活在脚本里** —— `--next` 取队列 · `--claim <id>` 认领（**最多 4 个并发（"4 核"）**，写锁 + 
