@@ -473,6 +473,43 @@ jobs:
         # 实测 **0.07s** ⇒ 进本 job（5 分钟预算）是噪声级 ✓。
         run: |
           python3 scripts/plan.py check
+      - name: "站点总验收（scripts/check-site.py · 10 项：结构/链接/版本/体积/已发布版本一致）"
+        # 2026-10-17 · 第 7 轮 `ng8`（`ng5` 的根因四层，证据 `.cache/ux/fix-ng5/VERDICT.md` §2）：
+        # `site/data/site.json` 是**生成物**（唯一输入 = 最新的 `vX.Y.Z` tag，唯一写者 =
+        # `gen-site-data.py`），而 `docs/RELEASE.md` §6.5「发布后重跑生成器并提交它」
+        # 是**纯手工**步骤（发版链一个 `site/**` 都不碰 ✗）⇒ 漏做时那份数据就
+        # **悄悄停在旧版本** ✗（实测：v0.91.0 落地后 **6 天**无人看见；1 小时后
+        # v0.92.0 **又发生一次** —— 是结构性的，不是偶发 ✗）。
+        # ⚠⚠ **病根 = 触发条件与失败模式互斥** ✗：此前唯一的观察者是 `pages.yml` 的
+        # `Site acceptance` 步，而它被**两道门控**挡住（`:26-30` 的**路径门控**
+        # `site/**` / `scripts/gen-site-data.py` / 它自己 + `:89` 的
+        # `steps.gate.outputs.enabled == 'true'`）⇒ **只在"有人动了 `site/**`"时跑**，
+        # 而"动了 `site/**`"恰好就是 §6.5 **做对了**的时候 ⇒ **漏做时它一次都不跑** ✗。
+        # ⚠ **为什么在本 job**：`queue-lint` **不设 `if` 过滤器 ⇒ 每推必跑** ✓
+        # （与上面 `ng1` 第 ③ 组那两步、`ng4` 那一步同一条理由 ✓）⇒ 这是
+        # **不跑 hook 的推送**（`--no-verify` / 机器人 / 没装 `core.hooksPath` 的检出）
+        # 唯一的 CI 面 ✓（本地面已在 `ci-local.sh`，第 5 轮 `ng6` 接的 ✓）。
+        # ⚠ **档位照 `ng6`**（`.cache/ux/fix-ng6/VERDICT.md` §2.1）：**默认 10 项** ✓，
+        # **不接 `--browser`** ✗ —— 那两项要真 Chrome，而 `find_chrome()` 找不到就
+        # `raise Failure` ⇒ **rc=1**（**不是** rc=3「判不了」✗）⇒ 没装 Chrome 的 runner 上
+        # **每次推送结构性假红**（E18：守卫一旦叫狼来了，正确的反应就变成加豁免 ⇒ 它就死了 ✗）。
+        # ⚠ **本步需要 tag**（不是"顺带"✗）：`data` 项 = `gen-site-data.py --check` ⇒
+        # `git tag --list v*`（**本地** tag 列表）⇒ 浅克隆里 tag 数 0 ⇒
+        # **实测 rc=1**（`✗ data 解析不出已发布 tag（浅克隆缺 tag？）—— 无法判定，不判绿`）。
+        # ⇒ 本 job 的 `fetch-depth: 0`（`:258`）是**前提**（理由与 `pages.yml:61-67` 的
+        # 「**是必需的，不是优化**」逐字同源 ✓），并已登记进
+        # `scripts/check-history-depth-wiring.py` 的 `HISTORY_DEPENDENT` ✓
+        # （谁把它挪进浅 job ⇒ R1 当场判红并点名 ✓）。
+        # ⚠ 与 `ci-local.sh` 那一步**逐字同源** ✓（本地那条带 step 标签与分组 ✓）；
+        # 实测 **0.13s**（`ng6` §5）⇒ 进本 job（5 分钟预算）是噪声级 ✓。
+        # ⚠⭐ **step 名里点名这个脚本是有意的** ✗→✓（**别"清理"它** ✗）：R1b
+        # （`scripts/check-history-depth-wiring.py`，第 6 轮 `ng7` 加）的口径正是
+        # 「**删 `run:` 正文、只留 step 名** ⇒ 判红」—— 名字里不点名的话，下面那一行
+        # 被删就**没有任何东西会响** ✗（`pages.yml` 那份还在 ⇒ C12 的 CI 面照样是
+        # `both` ✗，**按闸不按档** ⇒ 它看不见"这一跑没了" ✗）；点名之后，删掉 `run:`
+        # 行 ⇒ R1b **当场判红并点名本 job** ✓（反向验证实测读数见
+        # `.cache/ux/fix-ng8/VERDICT.md` §4 ✓）。
+        run: python3 scripts/check-site.py
 
   lint-clippy:
     name: lint-clippy（clippy 全量 check）

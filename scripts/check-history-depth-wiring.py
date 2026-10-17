@@ -117,6 +117,21 @@ HISTORY_DEPENDENT: list[tuple[str, str]] = [
     ("scripts/check-frozen-headroom.py",
      "咬住证明打在**固定旧 rev** 上（`--check --source-rev 9c8cfa90` ⇒ `git show <rev>:<path>`）"
      "；浅克隆实测 rc=3（判据/`--selftest` 本身浅克隆 rc=0 —— 同 `check-queue-rewrite-trigger.py` 的形态 ✓）"),
+    # ⚠ **2026-10-17 补**（第 7 轮 `ng8`：把 `check-site.py` 接进 `ci.yml` 的 `queue-lint` ✓）——
+    # ⭐ **本条与上面那三条"要全历史的是咬住证明"不同形** ✗：它的**判据本体**就读 tag ✓
+    # （形态同 `check-attention-budget.py` 的"窗口 = `git log`"✓）。
+    # 链路：`check-site.py:496-502` 的 `check_data()` ⇒ `gen-site-data.py --check` ⇒
+    # `latest_release_tag()`（`gen-site-data.py:46-65`）= **本地** `git tag --list v*`
+    # ⇒ 浅克隆里一个 tag 都没有 ⇒ 生成器 **rc=3** ⇒ `check_data()` 把它折成
+    # **rc=1**（`raise Failure("解析不出已发布 tag（浅克隆缺 tag？）—— 无法判定，不判绿")`）。
+    # **实测**（真 `git clone --depth 1 --no-tags file://…` 夹具，2026-10-17）：夹具 tag 数
+    # **0** · `check-site.py` **rc=1**（9/10 · `✗ data`）· `gen-site-data.py --check` **rc=3** ✓。
+    # ⚠ `pages.yml:61-67` 早就把这条前提写在注释里（"`fetch-depth: 0` **是必需的，不是优化**"）
+    # —— 只是**没有任何判据核它** ✗；登记进本表 = 把它从注释变成可查的 ✓。
+    ("scripts/check-site.py",
+     "`data` 项 = `gen-site-data.py --check` ⇒ **本地** `git tag --list v*`（站点写的是已发布"
+     "版本的事实）；浅克隆（`--depth 1 --no-tags`）里 tag 数 0 ⇒ 实测 rc=1"
+     "（`✗ data 解析不出已发布 tag（浅克隆缺 tag？）`）"),
     # ⚠ **本脚本自己也算**（如实 ✓）：`--selftest` 的咬住证明要
     # `git show 1cd4aba0:.github/workflows/ci.yml` ⇒ 浅克隆里那个对象不在 ⇒ rc=3。
     # 自指是**故意的**：R1 因此也会核"谁跑本脚本，谁就得有全历史" ✓。
