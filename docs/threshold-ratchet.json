@@ -1,16 +1,16 @@
 {
   "version": 1,
-  "round": 5,
-  "head": "2295e8a12452917a83175c754f9c1f63cacad113",
-  "at": "2026-10-17T02:01:39+00:00",
+  "round": 6,
+  "head": "72b382b3285a63727738b0b63d562dfbc608b0de",
+  "at": "2026-10-17T09:22:30+00:00",
   "caps": {
-    "docs_live_bytes": 7500000,
-    "docs_archive_bytes": 1250000,
+    "docs_live_bytes": 7000000,
+    "docs_archive_bytes": 1000000,
     "status_total_lines": 200,
     "site_text_bytes": 76800,
     "site_hero_bytes": 245760,
-    "target_incremental_warn_bytes": 10737418240,
-    "target_incremental_max_bytes": 32212254720
+    "target_incremental_warn_bytes": 8589934592,
+    "target_incremental_max_bytes": 25769803776
   },
   "history": [
     {
@@ -150,6 +150,29 @@
         "site_hero_bytes": 221763,
         "target_incremental_warn_bytes": 0,
         "target_incremental_max_bytes": 0
+      }
+    },
+    {
+      "round": 6,
+      "head": "72b382b3285a63727738b0b63d562dfbc608b0de",
+      "at": "2026-10-17T09:22:30+00:00",
+      "caps": {
+        "docs_live_bytes": 7000000,
+        "docs_archive_bytes": 1000000,
+        "status_total_lines": 200,
+        "site_text_bytes": 76800,
+        "site_hero_bytes": 245760,
+        "target_incremental_warn_bytes": 8589934592,
+        "target_incremental_max_bytes": 25769803776
+      },
+      "reading": {
+        "docs_live_bytes": 6735727,
+        "docs_archive_bytes": 374477,
+        "status_total_lines": 55,
+        "site_text_bytes": 60823,
+        "site_hero_bytes": 221763,
+        "target_incremental_warn_bytes": 1293426688,
+        "target_incremental_max_bytes": 1293426688
       }
     }
   ]
