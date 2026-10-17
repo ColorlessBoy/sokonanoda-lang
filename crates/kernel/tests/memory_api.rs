@@ -901,3 +901,171 @@ fn subst_expr_levels_tolerates_a_longer_vs_when_ks_is_empty() {
         );
     });
 }
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// **复现件（贪心三件 (a)）**：内核的静音窗口必须是**按线程**的
+// （`KERNEL-GLOBAL-QUIET-HOOK-SILENCES-PANICS`，high）。
+//
+// **病**：`ExportFile::try_check_declar_at` 原来是
+// `take_hook()` → `set_hook(|_| {})` → 还原 —— hook 是**进程全局**的，而内核从
+// CLI 的**入口级并行编译**起会在多个线程上被调用 ⇒ 静音窗口里**别的线程**的
+// panic 一个字都不打 ✗。后果是 CI 判红时日志里没有断言文本（`failures:` 紧接
+// 第二个 `failures:`，没有一句 `---- … stdout ----`；`docs/CI-FAILURES.md`
+// 2026-10-17 那条）；而且它会把 front 已经修好的**按线程** hook
+// （`crates/front/src/compile/check/mod.rs`）整个换掉 ✗。
+//
+// **判据为什么必须走子进程**：`panic hook` 装一次就永久生效（`OnceLock`），
+// 而同进程里谁先碰内核是**测试调度**决定的 ⇒ 在一个进程内既测不出"窗口里别的
+// 线程照常打印"、也测不出"窗口结束就恢复"。子进程里顺序是我们自己的。
+//
+// **窗口怎么"撑住"**：内核的窗口是**一次检查那么宽**（微秒级）⇒ 判据不能靠
+// "恰好撞上"。夹具让主线程在窗口里**连续跑内核检查**（每次检查期间窗口都开着），
+// 探针线程 panic 后经 channel 通知 ⇒ 主线程**当轮**跳出循环。
+// ⇒ 修前（进程全局 hook）探针的文本**被吞** ✗，修后（按线程计数）**必须出现** ✓。
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// 子进程侧的开关（子进程由 [`the_kernel_quiet_window_is_thread_local`] 拉起）。
+const QUIET_PROBE_CHILD_ENV: &str = "SOKO_KERNEL_QUIET_PROBE_CHILD";
+
+/// 在**本线程**的静音窗口里跑 `body`；返回它捕获到的 panic 文本（没 panic ⇒ 空串）。
+///
+/// 窗口由**连续的内核检查**撑住：`try_check_declar` 每次都在本线程进出一次静音区，
+/// 循环期间窗口基本一直开着。同时断言契约不变：**合法的声明仍然被接受** ✓
+/// （这条窗口是"内核拒绝"的静音区，不是"内核什么都拒"的静音区）。
+fn probe_quiet_window(
+    body: impl FnOnce(std::sync::mpsc::Sender<()>) -> String + Send + 'static,
+) -> (String, u64) {
+    let arena = Arena::new();
+    let mut b = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+    let one = b.succ(b.zero());
+    let sort1 = b.mk_sort(one);
+    let name = b.name_from_str("A");
+    let var0 = b.mk_var(0);
+    let ty = b.mk_pi(name, BinderStyle::Default, sort1, sort1);
+    let val = b.mk_lambda(name, BinderStyle::Default, sort1, var0);
+    let declar = Declar::Definition {
+        info: DeclarInfo {
+            name: b.name_from_str("id_quiet_probe"),
+            uparams: b.alloc_levels_slice(&[]),
+            ty,
+        },
+        val,
+        hint: ReducibilityHint::Regular(0),
+    };
+    b.add_declar(declar.clone()).expect("add declar");
+    let env = b.finish();
+    assert!(
+        env.try_check_declar(&declar).is_ok(),
+        "静音窗口只该吞掉 panic 文本，不该改变接受/拒绝"
+    );
+
+    // 窗口由**连续的内核检查**撑住：每次检查都在本线程进出一次静音区 ⇒ 循环期间
+    // 窗口基本一直开着。探针线程在这里 spawn、在循环**期间** panic；`done` 有值时
+    // 它一跑完就通知 ⇒ 主线程当轮跳出（`join` 返回 ⟺ 它的 panic hook 已执行过）；
+    // 没给 `done`（本线程自己 panic）⇒ 撑固定的几次。
+    let (tx, rx) = std::sync::mpsc::channel::<()>();
+    let probe = std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(move || body(tx))
+        .expect("spawn the probe thread");
+    let mut checks = 0u64;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    loop {
+        if rx.try_recv().is_ok() {
+            break;
+        }
+        if std::time::Instant::now() >= deadline {
+            break;
+        }
+        let ok = env.try_check_declar(&declar).is_ok();
+        assert!(ok, "窗口里合法的声明必须仍然被接受");
+        checks += 1;
+    }
+    assert!(checks > 0, "窗口至少要撑过一次内核检查");
+    let text = probe.join().expect("the probe thread joins");
+    assert!(!text.is_empty(), "探针线程必须真的 panic 过");
+    (text, checks)
+}
+
+/// 子进程的 `main`：把读数打到 stdout（父进程解析它）。
+///
+/// ⚠ 只留**一条**臂：窗口里**别的线程**的 panic。另一条"窗口里本线程的 panic
+/// 该被吞"在这里测不了 —— hook 是 `OnceLock` 装的（第一次 `try_check_declar`
+/// 时装上），而本线程的 panic 只能在**循环之外**制造 ⇒ 它本来就落在窗口外，
+/// 断言会变成空转 ✗。那条契约由 front 的
+/// `the_quiet_panic_window_is_thread_local_and_nests`（`compile/tests.rs`）钉住。
+fn quiet_probe_child_main() -> i32 {
+    let (text, checks) = probe_quiet_window(|done| {
+        // ⚠ `panic!("字面量")` 的 payload 是 `&'static str`（不是 `String`）——
+        // 两种都要认，否则这里会静默拿到空串、判据变成"空转" ✗。
+        let text = std::panic::catch_unwind(|| panic!("OTHER-THREAD-PANIC"))
+            .err()
+            .and_then(|p| {
+                p.downcast_ref::<&str>()
+                    .map(|s| (*s).to_string())
+                    .or_else(|| p.downcast_ref::<String>().cloned())
+            })
+            .unwrap_or_default();
+        // 通知主线程：hook 已经跑完 ⇒ 它当轮跳出循环（`join` 再保证一次）。
+        let _ = done.send(());
+        text
+    });
+    println!("checks={checks}");
+    println!("other={}", text.len());
+    // 探针的 panic 被 `catch_unwind` 接住 ⇒ 这里不该有 payload 冒出来。
+    i32::from(text.is_empty())
+}
+
+/// 跑一次子进程，回读它的 (status, stdout, stderr)。
+fn child_run() -> (std::process::ExitStatus, String, String) {
+    let exe = std::env::current_exe().expect("current test binary");
+    let out = std::process::Command::new(exe)
+        .args([
+            "the_kernel_quiet_window_is_thread_local",
+            "--exact",
+            "--nocapture",
+        ])
+        .env(QUIET_PROBE_CHILD_ENV, "1")
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output()
+        .expect("run the child");
+    // ⚠ **只读 `--exact` 那一个用例** ⇒ 子进程的 stderr 就是这条夹具的读数。
+    (
+        out.status,
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        String::from_utf8_lossy(&out.stderr).into_owned(),
+    )
+}
+
+/// **修前必红、修后必绿**的读数（`docs/ux-queue-extras.jsonl` 那条 high）。
+///
+/// 父进程只做一件事：**制造一个 panic，看它的文本在不在**。修前（进程全局
+/// 静音）子进程的 stderr 里**没有** `OTHER-THREAD-PANIC` ⇒ 这条判据判红 ✗；
+/// 修后（按线程计数）它必须出现 ✓。`checks` 是**窗口宽度的读数**（循环真跑了几次
+/// 内核检查）⇒ 证明窗口确实被撑开过，而不是"恰好没撞上"。
+/// ⚠ 顺序：**先断言文本、再看退出码** —— 否则红的时候只看到"子进程必须成功"，
+/// 看不到"少了哪一句"（读数不可归属 ✗）。
+#[test]
+fn the_kernel_quiet_window_is_thread_local() {
+    if std::env::var_os(QUIET_PROBE_CHILD_ENV).is_some() {
+        // 子进程分支：**不进 harness 的判据**，读数由 stdout 交给父进程。
+        std::process::exit(quiet_probe_child_main());
+    }
+    let (status, stdout, stderr) = child_run();
+    assert!(
+        stderr.contains("OTHER-THREAD-PANIC"),
+        "**静音窗口里别的线程的 panic 文本必须出现**（修前这里是空的：进程全局 hook 把它吞了）\n\
+         ---- 子进程 stdout ----\n{stdout}\n---- 子进程 stderr ----\n{stderr}"
+    );
+    assert!(
+        stdout.contains("checks=") && !stdout.contains("checks=0"),
+        "窗口必须真的被撑开过（循环跑过内核检查）\n---- 子进程 stdout ----\n{stdout}"
+    );
+    assert!(
+        status.success(),
+        "子进程必须成功：status={status:?}\n---- 子进程 stdout ----\n{stdout}\n---- 子进程 stderr ----\n{stderr}"
+    );
+}
