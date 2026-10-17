@@ -248,7 +248,10 @@ GUARD_GLOBS = ("scripts/check-*.py", "scripts/*-lint.py",
 #   `ci-local.sh` 是 shell（非注释行**就是**命令）⇒ 走 `_non_comment_lines()` ✓。
 WIRING_FILES = ("scripts/ci-local.sh", ".github/workflows/ci.yml")
 _SCRIPT_PATH_RE = re.compile(r"scripts/[A-Za-z0-9_./\-]+\.py")
-_RUN_KEY_RE = re.compile(r"^(\s*)(?:-\s*)?run:\s*(.*)$")
+# ⚠ `_RUN_KEY_RE`（`run:` 那一行的形状）**不在本文件**：它随 `run_bodies()` 一起住在
+#   `scripts/threshold_ratchet.py`（**唯一一处** ✓ —— 第 1 轮 `gs1` 把"读哪一层"的三件
+#   （`live_lines()` / `run_bodies()` / `command_layer()`）收进那里，两条接缝判据与
+#   本文件的接线臂**共用同一层定义** ✓）。
 # 证明的超时（秒）：证明里可能起子进程 ⇒ 挂住会把门禁一起挂住（`gap.py` 的教训 ✓）
 PROOF_TIMEOUT_S = 300
 
@@ -266,43 +269,13 @@ REV_TOKEN_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
 STATE_FIXTURE_RE = re.compile(r"\bSOKO_RATCHET_STATE=(\S+)")
 
 
-def _non_comment_lines(text: str) -> str:
-    """去掉整行注释（`#` 开头）—— 注释里点名脚本**不算调用** ✗（**唯一一处** ✓）。"""
-    return "\n".join(ln for ln in text.splitlines() if not ln.strip().startswith("#"))
-
-
-def run_bodies(text: str) -> str:
-    """`ci.yml` 里**每个 `run:` 的正文**（行内 + `|`/`>` 块）。**唯一一处** ✓。
-
-    ⚠ 为什么要挑出 `run:` 而不是扫全文（**实测** ✗）：`ci.yml` 的**注释**里到处点名
-    `scripts/*.py`（`perf-compare.py` / `threshold_ratchet.py` 只在注释里出现 ⇒ 扫全文
-    会把**没人调用**的文件算进口径 ✗）。step 名同理（`name:` 不是命令 ✓）。
-    """
-    out: list[str] = []
-    lines = text.splitlines()
-    i = 0
-    while i < len(lines):
-        m = _RUN_KEY_RE.match(lines[i])
-        if not m:
-            i += 1
-            continue
-        indent = lines[i].index("run:")
-        rest = m.group(2).strip()
-        i += 1
-        if rest and not rest.startswith(("|", ">")):
-            out.append(rest)                     # 行内命令：`run: python3 scripts/x.py`
-            continue
-        while i < len(lines):                    # 块：收比 `run:` 缩进更深的行 ✓
-            ln = lines[i]
-            if ln.strip() == "":
-                out.append("")
-                i += 1
-                continue
-            if len(ln) - len(ln.lstrip()) <= indent:
-                break
-            out.append(ln)
-            i += 1
-    return "\n".join(out)
+# ── **读哪一层**（`live_lines()` / `run_bodies()`）的**唯一一处**在
+#    `scripts/threshold_ratchet.py`（第 1 轮 `gs1` 收窄 ⇒ 两条**接缝判据**与本文件的
+#    **接线臂 / C4 / C12** 共用同一层定义 ✓ —— 本文件**不再自己抄一份** ✗）。
+#    保留旧私有名 ⇒ 下面**一字未动** ✓（口径逐字节相同：`ci.yml` / `ci-local.sh` 里
+#    以 `//` 开头的行 = **0**（实测）⇒ 多剥那一半对这两个输入无影响 ✓）。
+_non_comment_lines = threshold_ratchet.live_lines
+run_bodies = threshold_ratchet.run_bodies
 
 
 def wired_scripts(root: Path = ROOT) -> list[str]:

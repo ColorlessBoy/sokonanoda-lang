@@ -392,6 +392,41 @@ def selftest() -> int:
              any("量不到" in r for r in
                  R.seam_problems(ROOT, source_rev="0000000000000000000000000000000000000000")))
 
+        # ⭐⭐ ⑦c **接缝读的是哪一层**（第 1 轮 `gs1` 收窄：**提及 ≠ 读** ✓）
+        print("\n⑦c **接缝的层**（`SUB-narrow-guards-to-one-layer`：收窄成**命令层** ✓）")
+        t4 = t3 / "layer"
+        (t4 / "scripts").mkdir(parents=True)
+        (t4 / ".github" / "workflows").mkdir(parents=True)
+        for _rel, _markers in by_file.items():          # 消费者那一半先弄绿（照 ⑦b ✓）
+            _p = t4 / _rel
+            _p.parent.mkdir(parents=True, exist_ok=True)
+            _p.write_text("import threshold_ratchet\n" + "\n".join(_markers) + "\n",
+                          encoding="utf-8")
+        (t4 / ".github" / "workflows" / "ci.yml").write_text(
+            "      - name: 文档预算 lint（体积上限见 ratchet）\n", encoding="utf-8")
+        gate("⑦c 正对照：夹具的消费者都在**活行**里读 ⇒ 无红",
+             not R.seam_problems(t4), str(R.seam_problems(t4))[:90])
+        # **反向**：把 `docs-lint.py` 的两个标记**降级成注释**（活行里没有）⇒ ①b 判红。
+        # ⚠ 这正是**收窄前绿**的那条路（那时读的是**整份源码** ⇒ 注释里提一句就算"读了" ✗）。
+        (t4 / "scripts" / "docs-lint.py").write_text(
+            "# 消费点标记（**只在注释里**）：_RATCHET_CAPS[\"docs_live_bytes\"] · "
+            "_RATCHET_CAPS[\"docs_archive_bytes\"]\n"
+            "import threshold_ratchet\nMAX_LIVE_BYTES = 10_000_000\n", encoding="utf-8")
+        _ment = R.seam_problems(t4)
+        gate("⭐⭐ 反向：标记只在**注释**里 ⇒ **①b 提及不算读** 判红 + 逐条点名",
+             len(_ment) == 2 and all("①b 提及不算读" in m and "docs-lint.py" in m for m in _ment),
+             f"{len(_ment)} 条：{(_ment[0][:70] if _ment else '**没判红** ✗')}")
+        if _ment:
+            print(f"      ↳ 本臂判红原文（**不是本跑的判据** ✓）：{_ment[0][:110]}")
+        # **正对照**：标记写回**活行**（真读）⇒ 不判红 ✓（收窄没让它变松 ✓）
+        (t4 / "scripts" / "docs-lint.py").write_text(
+            "import threshold_ratchet\n"
+            "_RATCHET_CAPS, _E = threshold_ratchet.caps_or_error()\n"
+            "MAX_LIVE_BYTES = _RATCHET_CAPS[\"docs_live_bytes\"]\n"
+            "MAX_ARCHIVE_BYTES = _RATCHET_CAPS[\"docs_archive_bytes\"]\n", encoding="utf-8")
+        gate("⑦c 正对照：标记回到**活行**里 ⇒ 无红",
+             not R.seam_problems(t4), str(R.seam_problems(t4))[:90])
+
     print("\n⑧ **开轮纪律**（空转 ⇒ 判红；**收敛之后不判** ⇒ 红必须有出路 ✓）")
     gate("⑧ 基点之后 ≤ 上限笔数 ⇒ 不判",
          not R.judge_idle(st, ROUND_MAX_COMMITS, ROUND_MAX_COMMITS))
@@ -407,7 +442,8 @@ def selftest() -> int:
         print(f"✗ selftest 判红：{bad}/{total} 条不符 ✗")
         return 1
     print(f"✓ selftest 全过：{total}/{total} 条符合 ✓（含 ① 单调/不放松 · ② 连开两轮更低 · "
-          f"③④⑤ 反向 · ⑥ 状态缺失响亮 · ⑦ 接缝打在改前源码上必红 · ⑦b 标签接缝（种子/现行 caps 都咬、静态常量不误伤）· ⑧ 空转）")
+          f"③④⑤ 反向 · ⑥ 状态缺失响亮 · ⑦ 接缝打在改前源码上必红 · ⑦b 标签接缝（种子/现行 caps 都咬、静态常量不误伤）· "
+          f"⑦c 接缝的**层**（只在注释里提及 ⇒ **①b 提及不算读** 判红）· ⑧ 空转）")
     return 0
 
 

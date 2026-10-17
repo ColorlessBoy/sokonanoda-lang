@@ -119,6 +119,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+import threshold_ratchet as R  # noqa: E402  （同目录库：**读哪一层**的唯一出处 ✓ ——
+#   本文件**不另抄** `live_lines()` / `run_bodies()` / `command_layer()` ✗（第 1 轮 `gs1`）。
+#   ⚠ 只借"**层**"的定义：本文件的 ratchet 是**另一份**状态
+#   （`docs/attention-budget-ratchet.json`）⇒ **不借** caps / 登记表 ✓）
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -201,7 +205,13 @@ _READING_SEP = re.compile(r"⇒|->|=>")
 #
 # 判据 = **两个标记**（机械、可复跑 ✓）：
 #   ① 消费点里有 `check-attention-budget.py --label`（**真的从状态读标签** ✓）；
+#      ⚠ ⭐ **读哪一层**（第 1 轮 `gs1` 收窄）：**命令层** —— `.yml` = `run:` 正文 ·
+#      其余 = **活行**（定义在 `threshold_ratchet.command_layer()`，**唯一一处** ✓）。
+#      收窄前读**整份源码** ⇒ **注释里提一句**、或 `.yml` 里只在 step **名**里点名
+#      就能通过 ✗（**提及 ≠ 读** —— 与 `ng7` 的"提及 ≠ 跑"同族）⇒ 现在那条路判 **①b** ✓。
 #   ② 消费点里**没有** caps 的字面量（形状 = 改前那一行的 `告警 17:1` / `红线 19:1` ✗）。
+#      ⚠ ② 是**负向**要求 ⇒ **照旧读整份源码**（注释里的旧 caps 也是会腐烂的第二份真相 ✗；
+#      收窄它 = **放宽** ✗，不许）—— 两半读不同的层是**刻意**的（见 `seam_problems()` ✓）。
 # `--source-rev <旧 rev>` = 从**历史版本**读源码 ⇒ 用来做**咬住证明**：改前的 `ci-local.sh`
 # **没有** `--label` 而**有**字面量 ⇒ 本判据在那份**已存在的**坏输入上**必须报红** ✓。
 _CAPS_LITERAL = re.compile(r"(告警|红线)\s*[0-9]+(\.[0-9]+)?\s*(:\s*1|%)")
@@ -238,6 +248,18 @@ def caps_label(caps: dict, round_no: int | None = None) -> str:
 def seam_problems(root: Path | None = None, source_rev: str | None = None) -> list[str]:
     """**每个消费点必须真的读 ratchet**（否则 caps 是第二份真相：状态收紧、标签不动 ✗）。
 
+    ⚠ ⭐ **① 读哪一层**（第 1 轮 `gs1` 收窄）：**命令层** ——
+      `.yml` = **`run:` 正文** · 其余 = **活行**（非整行注释）；
+      定义在 `threshold_ratchet.command_layer()`（**唯一一处** ✓，与
+      `threshold_ratchet.seam_problems()` ① **共用** ⇒ 同一关注点一层 ✓）。
+      ⚠ 收窄前读的是**整份源码**（子串命中）⇒ **注释里提一句**、或 `.yml` 里只在
+      step **名**里点名，就能让"真的调判据"通过 ✗（**提及 ≠ 读** —— 与 `ng7` 的
+      "提及 ≠ 跑"同族）。收窄的读数（真仓）：**3** 个消费点**全部**在活行里命中
+      ⇒ **一条都不放走**（0 格 ✓）；只在**注释/step 名**里点名的 ⇒ **①b 判红** ✓。
+    ⚠ **② 与 ① 刻意读不同的层**（**如实标注** ✗）：② 是**负向**要求
+      （"caps 的字面量**不许写在第二处**"）⇒ 它的对象是**任何能被读到的副本**，
+      注释里的旧 caps **同样是第二份真相**（它会随 ratchet 收紧而腐烂 ✗）⇒ ② **照旧读
+      整份源码**（收窄它 = **放宽** ✗，不许）。实测：真仓三个消费点里 **0** 处字面量 ✓。
     ⚠ `source_rev` 指到**历史版本**时，`git show` 失败 ⇒ **判红**（**不假装判过** ✗）。
     """
     root = root or ROOT
@@ -259,9 +281,20 @@ def seam_problems(root: Path | None = None, source_rev: str | None = None) -> li
                 red.append(f"消费点 `{rel}` 不存在 ⇒ **量不到 ≠ 绿** ✗")
                 continue
             src = path.read_text(encoding="utf-8")
-        if marker not in src:
-            red.append(f"消费点 `{rel}` 里找不到 `{marker}` ⇒ **它没在读 ratchet** ✗"
-                       f"（{spec['why']}）")
+        if marker not in R.command_layer(src, rel):
+            if marker in src:
+                # ⭐ **①b「提及不算读」**（第 1 轮 `gs1`）：**提了**、**命令层里没有**
+                #   ⇒ 点名就是**声明**；声明了就必须**真调** ✓（`ng7` 的 R1b 同一条形状 ✓）。
+                where = ("**活行**（非注释，但**不是命令** —— `.yml` 里只有 `run:` 正文是命令，"
+                         "step 名 / `env:` / `with:` 都**不是** ✗）里点名了"
+                         if marker in R.live_lines(src) else "**只在注释里**点名了")
+                red.append(f"**①b 提及不算读** ✗：消费点 `{rel}` {where} `{marker}`，而它的"
+                           f"**命令层里没有**它 ⇒ 那只是**提及/声明**，判据**根本没跑** ✗。"
+                           f"出路二选一：①在**命令层**里真调它 ✓；②删掉那个提及"
+                           f"（**注释 / step 名都不是命令** ✓）")
+            else:
+                red.append(f"消费点 `{rel}` 里找不到 `{marker}` ⇒ **它没在读 ratchet** ✗"
+                           f"（{spec['why']}）")
         hits = [ln.strip()[:88] for ln in src.splitlines() if _CAPS_LITERAL.search(ln)]
         if hits:
             red.append(f"消费点 `{rel}` 里出现了 **caps 的字面量** ✗（caps 只许住在 "
@@ -925,14 +958,22 @@ def selftest() -> int:
     _seam_root = Path(tempfile.mkdtemp(prefix="soko-seam-"))
     (_seam_root / "scripts").mkdir(parents=True, exist_ok=True)
     (_seam_root / ".github" / "workflows").mkdir(parents=True, exist_ok=True)
+    # ⚠ 夹具的 `ci.yml` **必须是真形状**（第 1 轮 `gs1` 收窄后）：只有 `run:` 正文里是命令。
+    #   收窄前这里写的是一行**裸提及**（不在任何 `run:` 里、甚至不是合法 YAML）也照样绿 ✗
+    #   —— 那正是"判据比错对象"的现场证据 ✓（**如实留痕**，不抹掉 ✗）。
+    _ci_step = ("jobs:\n  lint:\n    steps:\n"
+                "      - name: \"簿记预算（caps 从 ratchet 状态读）\"\n"
+                "        run: python3 scripts/check-attention-budget.py\n")
+    _ci_name_only = ("jobs:\n  lint:\n    steps:\n"
+                     "      - name: \"簿记预算（scripts/check-attention-budget.py）\"\n"
+                     "        run: echo hi\n")
     # **反向**（改前那一行的形状）：标签写死 caps 的字面量 ⇒ 必须判红
     (_seam_root / "scripts" / "ci-local.sh").write_text(
         'run "gates：簿记预算（告警 17:1 / 57% · 红线 19:1 / 60%）" "queue-lint" bash -c \'\n'
         'python3 scripts/check-attention-budget.py --selftest || exit 1\n'
         'python3 scripts/check-attention-budget.py || exit 1\'\n', encoding="utf-8")
     (_seam_root / "scripts" / "soko").write_text("check-attention-budget.py\n", encoding="utf-8")
-    (_seam_root / ".github" / "workflows" / "ci.yml").write_text(
-        "python3 scripts/check-attention-budget.py\n", encoding="utf-8")
+    (_seam_root / ".github" / "workflows" / "ci.yml").write_text(_ci_step, encoding="utf-8")
     _bad = seam_problems(_seam_root)
     gate("⭐ 反向：step 标签写死 caps 字面量（`告警 17:1`）⇒ **接缝判红**", bool(_bad),
          (_bad[0][:70] if _bad else "**没判红** ✗"))
@@ -942,6 +983,19 @@ def selftest() -> int:
         'python3 scripts/check-attention-budget.py --selftest || exit 1\n'
         'python3 scripts/check-attention-budget.py || exit 1\'\n', encoding="utf-8")
     gate("正对照：标签用 `--label` ⇒ 接缝齐", not seam_problems(_seam_root))
+    # ⭐⭐ **第 1 轮 `gs1` 的反向验证**：标记只在 step **名**里（`run:` 正文没有）
+    #   ⇒ **①b 提及不算读** 判红 ✓（收窄前这条**绿** ✗ —— 它读的是整份源码 ✓）。
+    (_seam_root / ".github" / "workflows" / "ci.yml").write_text(_ci_name_only, encoding="utf-8")
+    _mention = seam_problems(_seam_root)
+    gate("⭐⭐ 反向：标记只在 step **名**里（`run:` 正文里没有）⇒ **①b 提及不算读** 判红",
+         len(_mention) == 1 and "①b 提及不算读" in _mention[0],
+         (_mention[0][:70] if _mention else "**没判红** ✗"))
+    if _mention:
+        print(f"      ↳ 本臂判红原文（**不是本跑的判据** ✓）：{_mention[0][:110]}")
+    # **正对照**：标记回到 `run:` 正文里 ⇒ 不判红 ✓
+    (_seam_root / ".github" / "workflows" / "ci.yml").write_text(_ci_step, encoding="utf-8")
+    gate("正对照：标记在 `run:` 正文里 ⇒ 接缝齐（**收窄没让它变松** ✓）",
+         not seam_problems(_seam_root))
     # **反向**：消费点根本没在读 ratchet ⇒ 判红
     (_seam_root / "scripts" / "ci-local.sh").write_text('run "gates：簿记预算" "queue-lint" true\n',
                                                         encoding="utf-8")
@@ -1028,6 +1082,7 @@ def selftest() -> int:
     print(f"\n自检：{'✓ 全过' if bad == 0 else f'✗ {bad} 组不对'}"
           f"（B1×2 + 正对照×3 · B2×1 + 正对照×1 · 分桶 {len(cases)} 格"
           f" · ratchet ②③④ 正反两向 + **空转有/无出路两向** + **接缝正反两向**"
+          f" + **接缝的层**（step 名里提及 ⇒ **①b 提及不算读** 判红）"
           f" + 真 git 夹具端到端）")
     return 0 if bad == 0 else 1
 

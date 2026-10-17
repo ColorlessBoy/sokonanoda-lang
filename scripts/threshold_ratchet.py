@@ -24,6 +24,9 @@
     消费者脚本**必须真的读 ratchet（`_RATCHET_CAPS["<id>"]` 标记 ✓）；③ **标签里不许写
     上限数字**（`.github/workflows/ci.yml` 的 step 名 —— 改前它写着种子 `≤10.0 MB` 而现行
     caps 已是 `9.50 MB` ✗，洞 `BUDGET-WARN-VS-GATE-RED-INCONSISTENT` 的同族 ✓）。
+    ⚠ ⭐ **① 的"真的读"读的是哪一层**（第 1 轮 `gs1` 收窄，见 `command_layer()` 段头）：
+    **命令层**（`.yml` = `run:` 正文 · 其余 = 活行）—— 收窄前是**整份源码的子串命中**
+    ⇒ **注释里提一句**就能通过 ✗（**提及 ≠ 读**）⇒ 收窄后那条路**判红**（**①b**）✓。
 
 ## 登记表（**唯一一处**：种子 / 每轮步长 / 收敛目标 / 消费点）
 
@@ -361,6 +364,77 @@ def judge_idle(st: dict, n_since: int, round_max: int) -> list[str]:
             f"（它要求**读数落进收紧后的上限** ⇒ 红有出路：把指标压下去 ✓）"]
 
 
+# ── **读哪一层**（洞 `SUB-narrow-guards-to-one-layer` · 第 1 轮 `gs1`；**唯一一处** ✓）──
+# 病（**实测**）：两条接缝判据（本文件的 `seam_problems()` ① 与
+# `scripts/check-attention-budget.py` 的 `seam_problems()` ①）的契约都写着
+# 「**每个消费点必须真的读 ratchet**」，而读法都是**整份源码的子串命中** ——
+# **注释里提一句**（或 `.yml` 里只在 step **名**里点名）就能通过 ✗ ⇒ **判据比错对象**
+# （与 `ng7` 收窄的 R1/C4 **同族**：那里是"**提及 ≠ 跑**"，这里是"**提及 ≠ 读**"）。
+# ⇒ 口径收窄成**一层**（用户 2026-10-16「收窄成一层」= **一层一个关注点** ✓）：
+#   **那一层里写的就是要执行的东西** ✓
+#     · `.yml` ⇒ **`run:` 正文**（YAML 里只有 `run:` 里的是命令 —— 与 `wired_scripts()`
+#       / C4 的"真的有一跑"**同一条口径** ✓）；
+#     · 其余（`.py` / `.sh` / 无扩展名的 JS）⇒ **活行**（非整行注释 —— Python / shell 里
+#       活行就是代码 / 命令 ✓）。
+# ⚠ **如实划的边界** ✗：活行**不等于**"真调" —— Python 的字符串字面量、JS 的
+#   `path.join(...)` 常量都算活行（**不解析语言**，照 C11/C5/C10 的「不解析 shell」先例 ✓）。
+#   这一档**印出来**、不判红 ✓（宁可少判，不要假红 ✗）。
+_RUN_KEY_RE = re.compile(r"^(\s*)(?:-\s*)?run:\s*(.*)$")
+
+
+def live_lines(text: str) -> str:
+    """**活行** = 去掉整行注释（`#` 或 `//` 开头）⇒ 注释里点名**不算读/调用** ✗（唯一一处 ✓）。
+
+    ⚠ `//` 那一半是给 `scripts/soko`（JS，实测 **712** 行以 `//` 开头）用的；
+    `ci.yml` / `ci-local.sh` 里以 `//` 开头的行 = **0**（实测）⇒ 对它们与只剥 `#` 逐字节同读 ✓。
+    """
+    return "\n".join(ln for ln in text.splitlines()
+                     if not (ln.strip().startswith("#") or ln.strip().startswith("//")))
+
+
+def run_bodies(text: str) -> str:
+    """`ci.yml` 里**每个 `run:` 的正文**（行内 + `|`/`>` 块）。**唯一一处** ✓。
+
+    ⚠ 为什么要挑出 `run:` 而不是扫全文（**实测** ✗）：`ci.yml` 的**注释**里到处点名
+    `scripts/*.py`（`perf-compare.py` / `threshold_ratchet.py` 只在注释里出现 ⇒ 扫全文
+    会把**没人调用**的文件算进口径 ✗）。step 名同理（`name:` 不是命令 ✓）。
+    """
+    out: list[str] = []
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        m = _RUN_KEY_RE.match(lines[i])
+        if not m:
+            i += 1
+            continue
+        indent = lines[i].index("run:")
+        rest = m.group(2).strip()
+        i += 1
+        if rest and not rest.startswith(("|", ">")):
+            out.append(rest)                     # 行内命令：`run: python3 scripts/x.py`
+            continue
+        while i < len(lines):                    # 块：收比 `run:` 缩进更深的行 ✓
+            ln = lines[i]
+            if ln.strip() == "":
+                out.append("")
+                i += 1
+                continue
+            if len(ln) - len(ln.lstrip()) <= indent:
+                break
+            out.append(ln)
+            i += 1
+    return "\n".join(out)
+
+
+def command_layer(text: str, rel: str) -> str:
+    """**命令层**：`rel` 那种文件里"写的就是要执行的东西"的那一层 ✓（**唯一一处** ✓）。
+
+    两条接缝判据（本文件 ① 与 `check-attention-budget.py` ①）**共用**这一层定义 ⇒
+    同一关注点只有**一处**维护成本（`SUB-narrow-guards-to-one-layer` ② ✓）。
+    """
+    return run_bodies(text) if rel.endswith((".yml", ".yaml")) else live_lines(text)
+
+
 # ── 接缝（**A 层产出、B 层消费** ⇒ 必须有 A∖B 对账；照 `audit-wire-fields.py` 的先例 ✓）──
 def _read_source(root: Path, rel: str, source_rev: str | None) -> tuple[str | None, str | None]:
     """读一个消费点的源码 ⇒ `(源码, 错误)`。`source_rev` ⇒ 从**历史版本**读（咬住证明用 ✓）。
@@ -438,10 +512,16 @@ def seam_problems(root: Path | None = None, source_rev: str | None = None,
                   caps: dict | None = None) -> list[str]:
     """**每个消费点必须真的读 ratchet**（否则阈值是装饰的：状态收紧、消费者还用常量 ✗）。
 
-    ⚠ 判据是**两个标记**在不在消费者源码里（机械、可复跑 ✓）：
+    ⚠ 判据是**两个标记**在**命令层**里（机械、可复跑 ✓）：
       ① `threshold_ratchet`（这个库真的被 import 了）；
       ② `_RATCHET_CAPS["<id>"]`（**那一个** id 真的被这个文件消费 —— 不是"碰巧 import 了"）✓。
       ③ **标签接缝**（`LABEL_SEAM` + `label_cap_hits()`）：标签里**不许**出现 ratchet 的值 ✗。
+    ⚠ ⭐ **读哪一层**（第 1 轮 `gs1` 收窄；见 `command_layer()` 的段头）：**命令层** ——
+      收窄前读的是**整份源码** ⇒ **注释里提一句**就能让"真的读"通过 ✗（**提及 ≠ 读**）。
+      收窄的读数（真仓 · `.cache/ux/fix-gs1/measure-seam.py`）：**7** 个消费点**全部**
+      在活行里命中 ⇒ 收窄**一条都不放走**（0 格 · 0 条红变绿 ✓）。
+      ⚠ **收窄本身是收紧**（不是放宽 ✗）：只在**注释**里点名的消费者，收窄前**绿**、
+      收窄后**判红** —— 那条红就是 **①b「提及不算读」**（与 `ng7` 的 R1b **逐字同族** ✓）。
     `source_rev`（例 `cf259d1f`）= 从**历史版本**读源码 ⇒ 用来做**咬住证明**：
     改前的消费者**没有**这个标记 ⇒ 本判据在那份**已存在的**坏输入上**必须报红** ✓。
     """
@@ -453,9 +533,23 @@ def seam_problems(root: Path | None = None, source_rev: str | None = None,
         if err:
             red.append(err)
             continue
-        if "threshold_ratchet" not in src or marker not in src:
-            red.append(f"`{cap_id}` 的消费点 `{rel}` 里找不到 `{marker}`（或没 import "
-                       f"`threshold_ratchet`）⇒ **阈值还是常量**（ratchet 收紧它也不动 = 装饰 ✗）")
+        layer = command_layer(src, rel)
+        if "threshold_ratchet" not in layer or marker not in layer:
+            if marker in src:
+                # ⭐ **①b「提及不算读」**（第 1 轮 `gs1`）：**提了**、**命令层里没有**
+                #   ⇒ 点名就是**声明**；声明了就必须**真读** ✓（`ng7` 的 R1b 同一条形状 ✓）。
+                #   ⚠ 两种形状都算"提及"：**注释里**（`#` 行）与 **`.yml` 的 step 名/env/with**
+                #   （活行、但**不是命令** ✗）—— 消息里点名是哪一种（读数可归属 ✓）。
+                where = ("**活行**（非注释，但**不是命令**）里点名了" if marker in live_lines(src)
+                         else "**只在注释里**点名了")
+                red.append(f"**①b 提及不算读** ✗：`{cap_id}` 的消费点 `{rel}` {where} "
+                           f"`{marker}`，而它的**命令层里没有**它 ⇒ 那只是**提及/声明**"
+                           f"（阈值还是常量，ratchet 收紧它也不动 = 装饰 ✗）。出路二选一："
+                           f"①在**命令层**里真读它 ✓；②删掉那个提及"
+                           f"（**注释 / step 名都不是命令** ✓）")
+            else:
+                red.append(f"`{cap_id}` 的消费点 `{rel}` 里找不到 `{marker}`（或没 import "
+                           f"`threshold_ratchet`）⇒ **阈值还是常量**（ratchet 收紧它也不动 = 装饰 ✗）")
     # ── ③ **标签接缝**（caps 不许在标签里写第二遍 ✓）────────────────────────
     for spec in LABEL_SEAM:
         rel = spec["rel"]
