@@ -158,17 +158,22 @@
   的原话就是：「`check-guard-bite.py` 是「守卫必须咬得住」的底 ⇒ **不合并**，但要按 ① 的
   要求：**每条 B 类都要能指回一条 A 类**」⇒ **本文件就是它指定的落点** ✓（判据文件数 0 增 ✓）。
 
-* **C12 双面（本地自动面 ⇄ CI 面；2026-10-17 第 4 轮 `ng4`）**：`guard_scripts()` 口径里
-  **本地面有它**的每一条，**CI 面也必须有它** —— 否则在**不跑 hook 的推送**
-  （`--no-verify` / 机器人 / 没装 `core.hooksPath` 的检出）上它**整个不存在** ✗。
+* **C12 双面（本地自动面 ⇄ CI 面；第 4 轮 `ng4` 落地 · 第 5 轮 `ng6` 收紧）**：
+  `guard_scripts()` 口径里的每一条，**两面都必须有它**（或按闭集 witness 声明**那一面上
+  对象按定义不存在**）—— 缺任一面 ⇒ **判红** ✗。CI 侧缺 = 在**不跑 hook 的推送**
+  （`--no-verify` / 机器人 / 没装 `core.hooksPath` 的检出）上它**整个不存在** ✗；
+  本地侧缺 = 那条红**只能走到 CI 才被发现**（实测一轮 CI 33–35 分钟 ✗）。
   ⚠ **为什么需要它**：修前"两面"只长在 `.cache/ux/fix-ng*/census.py`（那是**证据**、
   不是闸 ✓）—— `wired_scripts()` 是 `ci-local.sh` **∪** `ci.yml` 的**并集** ⇒
-  **只删 CI 面、本地还在** ⇒ 枚举**不变** ⇒ **C6 照样绿** ✗。
-  **豁免**只给「**CI 面上那个对象按定义不存在**」的闸：`docs/guard-anchors.jsonl` 那一行加
+  **只删一面** ⇒ 枚举**不变** ⇒ **C6 照样绿** ✗。
+  **豁免**只给「**那一面上那个对象按定义不存在**」的闸：`docs/guard-anchors.jsonl` 那一行加
   `faces` 字段 + **闭集 witness**（一档一份实现就在本文件里 ⇒ **数据只能选、不能定义** ✓）；
   witness 的事实**每次现算** ⇒ **事实消失 / 豁免腐烂（那一面其实有）都判红** ✗。
-  ⚠ **本地侧**（CI 面有、本地面没有）**只印 `ⓘ` 不判红** —— 理由与边界**逐字**写在
-  `face_problems()` 的 docstring 里 ✓（口径与逐条读数另见 `.cache/ux/fix-ng4/VERDICT.md`）。
+  ⚠ **第 4 轮刻意不对称、第 5 轮才收紧**（如实留痕 ✓）：当时本地侧**只印 `ⓘ`**，因为
+  唯一那条真洞（`scripts/check-site.py`）接上去**当场会红**（rc=1 · `site/data/site.json`
+  与最新 tag 不一致 = **没有出路的红** ✗ E18）⇒ 先修红（第 5 轮的前置 = `ng5` 的发布闭环
+  ⇒ `10/10 rc=0`）、再接线（`scripts/ci-local.sh` · **零前提**那档 ✓）、**再**把本地侧
+  收紧成判红 ✓（逐条读数见 `.cache/ux/fix-ng{4,5,6}/VERDICT.md`）。
 
 ## 退出码
 
@@ -185,7 +190,7 @@
   python3 scripts/check-guard-bite.py --counts        # 只印 A/B/锚/上限/两面的**机器可读**计数（JSON）
   python3 scripts/check-guard-bite.py --anchors <f>   # 换一份分类登记表（复现 / 咬住证明用 ✓）
   python3 scripts/check-guard-bite.py --reopen-empty  # ⭐ ① 翻账：咬不住的 ⇒ reopen 它关掉的那条
-  python3 scripts/check-guard-bite.py --selftest      # 正反两向（含"bite 返回 0 ⇒ 必须判红"·"只删 CI 面 ⇒ 判红"）
+  python3 scripts/check-guard-bite.py --selftest      # 正反两向（含"bite 返回 0 ⇒ 必须判红"·"只删任一面 ⇒ 判红"）
 """
 from __future__ import annotations
 
@@ -1013,6 +1018,9 @@ def anchor_problems(root: Path, rows: list[dict]) -> tuple[list[str], list[str],
 #
 # 口径（与 `.cache/ux/fix-ng{1..4}/census.py` 的 (d) **逐条同读** —— 实测 41 条上
 # 读数**完全相同** ✓：两面都有 29 · CI 面缺 6 · 本地面缺 6 · 两面都缺 0）：
+#   ⚠ 那两个 6 的**现状**（第 5 轮 `ng6`）：C12 判红 `plan.py` 后补上 CI 面、又把
+#   `check-site.py` 接进本地面 ⇒ **两面都有 31 · CI 面缺 5 · 本地面缺 5 · 两面都缺 0**
+#   （两个 5 全部有闭集 witness ✓ · `total` 仍 41 ✓ —— 枚举一个字没动 ✗）。
 #   * **本地面** = `scripts/ci-local.sh` 的非注释行 ∪ `scripts/githooks/*` 的非注释行
 #     （两条自动路：`pre-push` → `ci-local.sh --fast` ✓ · `core.hooksPath` 的钩子 ✓）；
 #   * **CI 面** = **任一** `.github/workflows/*.yml` 的 **`run:` 正文**（复用
@@ -1023,12 +1031,13 @@ def anchor_problems(root: Path, rows: list[dict]) -> tuple[list[str], list[str],
 #   CI 面也缺 ⇒ 照样判红 ✓）；②行内注释不剥（与 `_non_comment_lines()` **同一个口径** ✓，
 #   实测与普查逐条同读 ✓）。
 #
-# **判红（CI 侧）**：本地面有它、CI 面没有 ⇒ 在**不跑 hook 的推送**上它**整个不存在** ✗。
-# **印读数（本地侧）**：CI 面有它、本地面没有 ⇒ `ⓘ` + 计数，**不判红** ✗ —— 那只是
-#   "红**晚** 33–35 分钟被发现"，而且现存那一条（`scripts/check-site.py`）接上去
-#   **当场会红**（实测 rc=1 · `site/data/site.json` 与最新 tag 不一致）⇒ 按 E18
-#   「守卫一旦叫狼来了，正确的反应就变成加豁免 ⇒ 它就死了」**如实留洞 + 印出来**，
-#   **不许**用豁免盖住 ✗（逐条读数见 `.cache/ux/fix-ng4/VERDICT.md`）。
+# **判红（两面都判）**：第 4 轮（`ng4`）**刻意不对称** —— CI 侧缺 ⇒ 判红（不跑 hook 的
+#   推送上它**整个不存在** ✗）；本地侧缺 ⇒ **只印 `ⓘ`**（保护还在、只是红**晚** 33–35 分钟
+#   被发现 ✗），因为当时唯一那一条真洞（`scripts/check-site.py`）接上去**当场会红**
+#   （实测 rc=1 · `site/data/site.json` 与最新 tag 不一致 = **没有出路的红** · E18）。
+#   第 5 轮（`ng6`）那条前提**消失了**（`ng5` 已把红修掉 ⇒ `10/10 rc=0` ✓）⇒ 收紧成**对称**：
+#   本地侧缺**也判红**（豁免仍只走闭集 witness ✓）。逐条读数见 `.cache/ux/fix-ng4/VERDICT.md`
+#   （留洞那一刻）与 `.cache/ux/fix-ng6/VERDICT.md`（收紧这一刻）。
 #
 # **豁免**（登记表 `docs/guard-anchors.jsonl` 的 `guard`/`tool` 行加 `faces` 字段）：
 #     "faces": {"ci": {"witness": "<闭集里的一档>", "object": "<只有 local-artifact 用>"}}
@@ -1228,15 +1237,19 @@ def _face_witness_problems(root: Path, g: str, face: str, spec: dict, row: dict)
 def face_problems(root: Path = ROOT, rows: list[dict] | None = None) -> tuple[list[str], list[str], dict]:
     """**C12 双面** ⇒ (红, 信息, 计数)。**唯一一处** ✓（口径与豁免的闭集见上面那段注释 ✓）。
 
-    ⚠ **两个方向刻意不对称**（**理由**，不是随手 ✗）：
+    ⚠ **两面都判红**（**第 5 轮 `ng6` 收紧** —— 第 4 轮时本地侧刻意只印 `ⓘ` ✗）：
     * **CI 侧缺 ⇒ 判红**：本地面有、CI 面没有 ⇒ 在**不跑 hook 的推送**上它**整个不存在**
       ⇒ 那条闸的**全部**保护都蒸发了 ✗（这是"不存在"，不是"晚知道"）。
-    * **本地侧缺 ⇒ 只印 `ⓘ` 不判红**：CI 面有、本地面没有 ⇒ 保护**在**、只是红**晚**
-      33–35 分钟被发现 ✗ —— 而且现存那一条（`scripts/check-site.py`）**接上去当场会红**
-      （实测 `rc=1`：`site/data/site.json` 与最新 tag 不一致；`pages.yml` 是**路径门控**的
-      ⇒ 这条红**在真仓里已经存在**、只是没人看见）⇒ 按 `E18`「守卫一旦叫狼来了，正确的
-      反应就变成加豁免 ⇒ 它就死了」**如实留洞 + 印出来**，**不许**用豁免盖住 ✗
-      （`ng1` 普查 §3.C 把这一类逐条记着后果 ✓）。
+    * **本地侧缺 ⇒ 也判红**（第 5 轮改）：CI 面有、本地面没有 ⇒ 保护**在**、只是红**晚**
+      33–35 分钟被发现 ✗。⚠ **第 4 轮为什么只印**：当时唯一那条真洞（`scripts/check-site.py`）
+      接上去**当场会红**（实测 `rc=1`：`site/data/site.json` 与最新 tag 不一致；`pages.yml`
+      是**路径门控**的 ⇒ 这条红**在真仓里已经存在**、只是没人看见）⇒ 按 `E18`「守卫一旦叫
+      狼来了，正确的反应就变成加豁免 ⇒ 它就死了」**如实留洞 + 印出来**，**不许**用豁免盖住 ✗。
+      ⚠ **第 5 轮凭什么能收紧**：前提**消失了** —— `ng5` 走完发布闭环（`site.json` 跟到最新
+      tag ⇒ `10/10 rc=0` ✓），再把 `check-site.py` 接进 `scripts/ci-local.sh`（**零前提**那档 ✓）
+      ⇒ 本地侧**一条真洞都不剩**（`local_open` 计数照样印出来 ✓）⇒ 判红**当场不误伤任何人** ✓。
+    ⚠ **豁免路径两面共用**（`_face_witness_problems()` 一档一份实现 ✓，闭集没动 ✗）。
+    ⚠ **`info` 形参保留、C12 现在恒空**（改返回形状要动 8 条自检臂的调用 ✗ ⇒ 不值）。
     ⚠ 与 C6 的分工：**没分类的守卫由 C6 判**（这里跳过、不重复判 ✗）。
     """
     red: list[str] = []
@@ -1316,9 +1329,16 @@ def face_problems(root: Path = ROOT, rows: list[dict] | None = None) -> tuple[li
             counts["local_missing"] += 1
             if "local" not in decl:
                 counts["local_open"].append(g)
-                info.append(f"ⓘ C12 **本地侧缺**（**不判红** —— 保护还在、只是红**晚** 33–35 分钟"
-                            f"被发现 ✗）：`{g}` —— 它**没有 witness**（= 真洞，不是「本地面语义上"
-                            f"不存在」✗；接上去之前先解决它自己的前提，别用豁免盖住 ✗）")
+                red.append(
+                    f"**C12 本地面缺** ✗：`{g}` **CI 面有它**（`{FACE_WORKFLOW_GLOB}` 的 `run:` "
+                    f"正文 ✓）但 **本地面没有**（`{' / '.join(FACE_LOCAL_FILES)}` 的**非注释行** / "
+                    f"`{FACE_HOOK_DIR}/*` 里都没有它）⇒ 这条红**只能走到 CI 才被发现**"
+                    f"（实测一轮 CI 33–35 分钟 ✗）。出路二选一：①接进 "
+                    f"`{FACE_LOCAL_FILES[0]}` 的**非注释行**（**注释 / step 名里点名不算** ✗；"
+                    f"**零前提 + 亚秒级**的才该无条件跑 ✓）或 `{FACE_HOOK_DIR}/*`；②若它的判据"
+                    f"对象**在本地自动面上按定义不存在** ⇒ 在 `{ANCHORS.name}` 那一行加 "
+                    f"`\"faces\": {{\"local\": {{\"witness\": \"…\"}}}}`（闭集："
+                    f"{' / '.join(sorted(FACE_WITNESSES))} —— **数据只能选、不能定义** ✓）")
     return red, info, counts
 
 
@@ -1498,7 +1518,8 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
         if not quiet:
             if not f_red:
                 print(f"  ✓ C12 双面：两面都有 **{f_counts['both']}** 条 · **CI 面缺** "
-                      f"{f_counts['ci_missing']}（**全部有 witness** ✓）· **本地面缺** "
+                      f"{f_counts['ci_missing']}（witness {f_counts['ci_exempt']} · "
+                      f"**真洞 {len(f_counts['ci_open'])}**）· **本地面缺** "
                       f"{f_counts['local_missing']}（witness {f_counts['local_exempt']} · "
                       f"**真洞 {len(f_counts['local_open'])}**）· 两面都缺 {f_counts['neither']}")
                 print(f"    ⓘ C12 豁免分档（**数据只能选 witness、不能定义它** ✓ —— 一档一份实现"
@@ -1899,6 +1920,18 @@ def selftest(job: str = DEFAULT_JOB) -> int:
              f"红 {len(f_red2)} 条")
         if f_red2:
             print(f"      ↳ 本臂判红原文（**不是本跑的判据** ✓）：{f_red2[0][:90]}")
+        # ⭐⭐ **第 5 轮的反向验证**：只删**本地面**（CI 面还在）⇒ 必须判红 ✓
+        #   （第 4 轮这条形状**只印 `ⓘ`** —— 那时的前提是"接上去当场会红"；那条前提已随
+        #   `ng5` 的发布闭环消失 ⇒ 第 5 轮收紧成判红 ✓）
+        f_nolocal = _face_root("nolocal", "python3 scripts/check-fixture-face.py")
+        (f_nolocal / "scripts" / "ci-local.sh").write_text(
+            "# 夹具：本地面没有调用\n", encoding="utf-8")
+        f_red9, _fi9, _fc9 = face_problems(f_nolocal, _face_row())
+        gate("⭐⭐ 反向㉔：**只删本地面、CI 还在** ⇒ 判红（第 5 轮收紧 —— 修前这条只印 ⓘ）",
+             any("C12 本地面缺" in m and "check-fixture-face" in m for m in f_red9),
+             f"红 {len(f_red9)} 条")
+        if f_red9:
+            print(f"      ↳ 本臂判红原文（**不是本跑的判据** ✓）：{f_red9[0][:90]}")
         # 正对照：**豁免成立**（`masked-readout` + 本地确实是 `soft` 步）⇒ 不判红 ✓
         f_soft = _face_root("soft", None, local_kind="soft")
         f_red3, _fi3, fc3 = face_problems(f_soft, _face_row(
@@ -2243,7 +2276,8 @@ def selftest(job: str = DEFAULT_JOB) -> int:
           f" · **枚举面**：改了名的守卫仍在口径里 ✓ · 幽灵名字不进 ✓ · `tool` 悬空覆盖 ⇒ 判红 ✓"
           f" · **夹具前提**：钉的状态夹具不是合法状态 ⇒ 判红 ✓"
           f" · **命令前提**：命令位钉了一个不在树里的路径 ⇒ 判红 ✓（参数里的路径**不**判 ✓）"
-          f" · **两面**：只删 CI 面 ⇒ 判红 ✓ · 豁免腐烂 / witness 不成立 ⇒ 判红 ✓）")
+          f" · **两面**：只删 CI 面 ⇒ 判红 ✓ · **只删本地面 ⇒ 也判红 ✓**（第 5 轮收紧）"
+          f" · 豁免腐烂 / witness 不成立 ⇒ 判红 ✓）")
     return 0 if bad == 0 else 1
 
 

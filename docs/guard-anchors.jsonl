@@ -40,11 +40,6 @@
 {"kind": "anchor", "id": "A-PRODUCT-PROGRESS", "strength": "process", "site": "用户每轮实际拿到的东西", "action": "看这一轮改了多少产品面", "reading": "产品面进展 vs 账本/工具（文档不爆 · 注意力不被簿记吃掉）"}
 {"kind": "anchor", "id": "A-RELEASE-NOT-BLOCKED", "strength": "process", "site": "用户拿到的下一个版本", "action": "等 bump + push + release", "reading": "非用户面的门禁红不许把发版拖住（阈值不许是装饰 · 磁盘/CI 配置不许炸）"}
 {"kind": "anchor", "id": "A-RELEASE-ARTIFACTS", "strength": "process", "site": "用户装到的 VSIX / CLI / LSP", "action": "装最新版本用一次", "reading": "装到的是最新代码（未发版量可数、会涨、会判红）"}
-# ⚠ `scripts/check-site.py` **故意没有** `faces`：它本地侧缺是**真洞**，不是
-#   「本地面语义上不存在」（`check-guard-bite.py` 的 C12 会把它印成 ⓘ + 真洞计数 ✓）。
-#   接进本地面之前先解决它自己的前提：实测 `python3 scripts/check-site.py` rc=1
-#   （`site/data/site.json` 与最新 tag 不一致 · 出路是 `gen-site-data.py` —— 那是**发布闭环**
-#   的一步，见 `docs/RELEASE.md` §6.5）⇒ 接上去就是一条**没有出路的红** ✗（E18）。
 {"kind": "guard", "guard": "scripts/check-site.py", "class": "A", "anchors": ["A-SITE-BROWSER"], "why": "真 Chrome + 真 VS Code 截图（--browser / site-screenshot.mjs）"}
 {"kind": "guard", "guard": "scripts/check-infoview-hierarchy.py", "class": "A", "anchors": ["A-INFOVIEW-VISIBLE"], "why": "读扩展的 media/infoview.css（用户看的那张样式表）"}
 {"kind": "guard", "guard": "scripts/audit-infoview-css.py", "class": "A", "anchors": ["A-INFOVIEW-VISIBLE"], "why": "同族：同一条 UI 反馈的横向（双重压暗 / 标题小于正文）"}

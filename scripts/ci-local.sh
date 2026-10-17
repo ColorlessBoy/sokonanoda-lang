@@ -296,6 +296,21 @@ python3 scripts/audit-notation-paths.py --self-test || exit 1
 python3 scripts/audit-wire-fields.py --selftest || exit 1
 python3 scripts/docs-lint.py --selftest || exit 1' 
 
+# ⭐⭐ **站点总验收接进本地面**（2026-10-17 · 洞 `ZERO-OBS-GATE-CENSUS-BY-BEHAVIOUR` 第 5 轮 ✓）——
+# `scripts/check-site.py` 此前**只**长在 `pages.yml`（**路径门控**：`site/**` / `gen-site-data.py` /
+# 它自己 / workflow ⇒ **发版那一推不触发它** ✗），而本脚本与 `scripts/githooks/*` 里 `grep -c` = **0** ✗
+# ⇒ 实测后果：`site/data/site.json` 停在 v0.90.0、最新 tag 已是 v0.91.0，**6 天没人看见** ✗
+#（修前 rc=1 · 修法与逐条读数见 `.cache/ux/fix-ng5/VERDICT.md`）。本步与 `pages.yml` 的 `deploy`
+# job 里那一条**同一条命令** ✓（本地面补齐 ⇒ `check-guard-bite.py` 的 C12 从"本地面缺（真洞）"
+# 变成"两面都有" ✓ —— 第 5 轮同时把 C12 的本地侧由**只印 `ⓘ`** 收紧成**判红** ✓）。
+# ⚠ **为什么是默认档、不接 `--browser`** ✗：①默认 10 项**零前提**（不碰 Chrome / 网络 / `target/`），
+# 而真正腐烂过的那一项（`data`：`site.json` ⇄ 最新 tag）就在这一档里 ✓；②`--browser` 要**真 Chrome**，
+# 而 `find_chrome()` 找不到时抛 `Failure` ⇒ **rc=1**（**不是** rc=3「判不了」✗）⇒ 接进 `run` 步会在
+# 没装 Chrome 的机器上**结构性假红** = E18 的"没有出路的红" ✗（那 4.3s 也换不到新证据：`render` /
+# `layout` 两项在真仓里**一直绿** ✓）。⚠ 边际成本实测 **0.13–0.14s**（`ng5` 0.128s · 本轮中位 0.14s ✓）
+# ⇒ 与 `docs-lint` 同档，**`--fast` 也跑** ✓ —— pre-push 走的正是 `--fast`，这条红必须在**推送前**被看见 ✓。
+run "gates：站点总验收（结构/链接/版本/体积/已发布版本一致）" "deploy" python3 scripts/check-site.py
+
 # ⭐ **`target/` 体积守卫接进自动路径**（2026-10-17 · 洞 `TARGET-HYGIENE-MANUAL-ONLY` ✓）——
 # `scripts/target-hygiene.py` 此前**只**长在 `scripts/soko gate` 里（**人手敲** ✗）⇒
 # 按"**按行为**普查"的口径，它在**自动路径上一处也没有** ✗。读数（逐条可复算 ✓）：
