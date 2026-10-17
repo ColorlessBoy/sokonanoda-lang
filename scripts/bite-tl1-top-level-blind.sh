@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# **咬住证明**：`TOP-LEVEL-TABLE-GOES-BLIND` —— `check-ci-gate-coverage.py` 的
-# `TOP_LEVEL` 是**硬编码的一级条目名表**（28 条）⇒ 新加一个顶层目录，它下面的路径
+# **咬住证明**：`TOP-LEVEL-TABLE-GOES-BLIND` —— `check-ci-wiring.py` **层①**（原
+# `check-ci-gate-coverage.py`，2026-10-17 第 5 轮 `gs5` 并进来 ✓）的 `TOP_LEVEL` 曾是
+# **硬编码的一级条目名表**（28 条）⇒ 新加一个顶层目录，它下面的路径
 # token **认不出来** ⇒ 判据 R1（"按改动范围决定跑不跑"）**静默变瞎** ✗（2026-10-16 ✗→✓）。
+#
+# ⚠ **改名之后的形状**（`gs5` ✓）：**坏输入**仍然取自**旧路径**那份文件
+# （`${REV}:scripts/check-ci-gate-coverage.py` —— 那一版里它**就是**那张硬编码表 ✓，
+# **不是**新造的 ✓）；**改后读数**打在**合并后**的 `check-ci-wiring.py --layer coverage` 上 ✓。
 #
 # 用法：`scripts/bite-tl1-top-level-blind.sh <pinned-rev>` —— **必须**是 `HEAD` 的祖先
 # （C5 可达性：CI 只检出**一个 ref** 的历史 ⇒ 别的分支上的 rev `git show` rc=128 ✗）。
@@ -44,7 +49,8 @@ set -u
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_PREFIX
 
 REV=${1:?用法: scripts/bite-tl1-top-level-blind.sh <pinned-rev>（HEAD 的祖先）}
-GUARD=scripts/check-ci-gate-coverage.py
+GUARD=scripts/check-ci-wiring.py              # 现行守卫（合并后 ✓）
+OLD_GUARD=scripts/check-ci-gate-coverage.py   # 旧路径 —— **坏输入**在那一版里 ✓
 [ -f "${GUARD}" ] || { echo "✗ 不在仓库根跑（缺 ${GUARD}）"; exit 9; }
 
 T=$(mktemp -d) || exit 9
@@ -54,17 +60,18 @@ OLD="${T}/old"
 mkdir -p "${OLD}" "${R}/.github/workflows" "${R}/newtop" || exit 9
 
 # ① 旧守卫 = **已存在的坏输入**（钉死的旧 rev 上那份硬编码表 ✓）
-git show "${REV}:${GUARD}" > "${OLD}/check-ci-gate-coverage.py" || {
-    echo "✗ 取不到 ${REV}:${GUARD}（C5：钉的必须是 HEAD 的祖先）"; exit 9; }
+git show "${REV}:${OLD_GUARD}" > "${OLD}/check-ci-gate-coverage.py" || {
+    echo "✗ 取不到 ${REV}:${OLD_GUARD}（C5：钉的必须是 HEAD 的祖先）"; exit 9; }
 # 旧守卫也要它的**同目录库**（`_load_push_range()` 读 `HERE/ci-push-range.py` ✓）——
 # 少了它旧守卫会 rc=1（`FileNotFoundError`），那读数**不可归属** ✗。
 cp scripts/ci-push-range.py "${OLD}/ci-push-range.py" || exit 9
 # 空转闸 ①：钉的那个 rev 上必须**真的**是硬编码表（否则这条证明量不到东西 ✗）
 grep -q 'TOP_LEVEL = (' "${OLD}/check-ci-gate-coverage.py" || {
     echo "空转闸：${REV} 上那份守卫里没有硬编码的 \`TOP_LEVEL = (\` ⇒ 坏输入不在了 ⇒ 不许算咬住"; exit 3; }
-# 空转闸 ②：旧版与现行**逐字节相同** ⇒ 修被撤回了 ⇒ 空转 ✓
-cmp -s "${OLD}/check-ci-gate-coverage.py" "${GUARD}" && {
-    echo "空转闸：现行守卫与 ${REV} 那份**逐字节相同** ⇒ 修被撤回了 ⇒ 不许算咬住"; exit 3; }
+# 空转闸 ②（**改名后换了个量法** ✗→✓）：现行守卫必须**带着那个修**
+# （`discover_top_level` = 动态枚举 ✓）—— 修被撤回（改回硬编码表）⇒ 空转 ✓
+grep -q 'def discover_top_level' "${GUARD}" || {
+    echo "空转闸：现行 ${GUARD} 里没有 \`discover_top_level\` ⇒ 动态枚举那个修被撤回了 ⇒ 不许算咬住"; exit 3; }
 
 # ② 夹具仓（照真仓的形状 ✓）：地板那几个一级条目各有一个文件 —— **空目录不进**
 #    `git ls-files` ⇒ 枚举看不见它 ✓；再加一个**新顶层目录** `newtop/` ✓
@@ -98,8 +105,8 @@ old_rc=$?
     echo "归属不成立：旧守卫在夹具上 rc=${old_rc}（期望 0 ⇒ 它该是瞎的）⇒ 不冒充咬住"
     tail -n 2 "${T}/old.out"; exit 0; }
 
-# ④ 改后读数：现行守卫必须 rc=1 且**点名**那条路径 ✓
-python3 "${GUARD}" --check --root "${R}" > "${T}/new.out" 2>&1
+# ④ 改后读数：现行守卫（层①）必须 rc=1 且**点名**那条路径 ✓
+python3 "${GUARD}" --layer coverage --root "${R}" > "${T}/new.out" 2>&1
 new_rc=$?
 printf '%s\n' "旧守卫（${REV} 那份硬编码表）在夹具上 rc=${old_rc} ⇒ **静默变瞎** ✗"
 grep -m1 'R1 .*newtop/thing\.js' "${T}/new.out" || true

@@ -94,15 +94,19 @@ run "workflow：推送范围基点（(A) 的范围语义 + 接线）" "wiring-li
 set -u
 python3 scripts/ci-push-range.py --check-wiring || exit 1
 python3 scripts/ci-push-range.py --selftest || exit 1'
-# ⭐ **「按改动范围决定跑不跑」的类守卫**（2026-10-15，洞 `PATHS-FILTER-CLASS` ✓）—— 与 CI 的
-# `wiring-lint` 里那两步**逐字同源** ✓：`--check` 咬"job 消费的每条仓库路径都必须被门控它的
-# 过滤器命中"（R1 执行路径 / R2 工作流自身 / R3 数据依赖），`--selftest` 五个对照
-# （正对照：现役 `ci.yml` 必须绿 ✓；四个负对照：撤掉历史三次的修法 + 新加一个越界 job ⇒ 必须红 ✓）。
+# ⭐ **「CI 的某条前提在不在」的类守卫 —— 层① `coverage`**（2026-10-15，洞 `PATHS-FILTER-CLASS` ✓）
+# —— 与 CI 的 `wiring-lint` 里那一步**逐字同源** ✓：`--layer coverage` 咬"job 消费的每条仓库路径
+# 都必须被门控它的过滤器命中"（R1 执行路径 / R2 工作流自身 / R3 数据依赖）；`--selftest`
+# 是**驱动器级**的（登记表对账 + 绿跑对账 + 两层正负对照 —— 正对照：现役 `ci.yml` 必须绿 ✓；
+# 负对照：撤掉历史三次的修法 + 新加一个越界 job ⇒ 必须红 ✓）。
+# ⭐ 2026-10-17 第 5 轮 `gs5`：`check-ci-gate-coverage.py` + `check-history-depth-wiring.py`
+# **合成一条** `check-ci-wiring.py`（`SUB-narrow-guards-to-one-layer` ③ 的第一步 ✓）——
+# 两处接线点（本脚本的这两块 + `ci.yml` 的 `wiring-lint`/`queue-lint`）**一起并** ✓。
 # 亚秒级 ⇒ 进 ⓪ ✓（**改了判据必须有人验** ✓）。
-run "workflow：改动范围门控覆盖（R1/R2/R3）" "wiring-lint" bash -c '
+run "workflow：CI 接线类守卫 · 层① 改动范围门控覆盖（R1/R2/R3）" "wiring-lint" bash -c '
 set -u
-python3 scripts/check-ci-gate-coverage.py --check || exit 1
-python3 scripts/check-ci-gate-coverage.py --selftest || exit 1'
+python3 scripts/check-ci-wiring.py --layer coverage || exit 1
+python3 scripts/check-ci-wiring.py --selftest || exit 1'
 
 # ⭐ **`wiring-lint` 的另外两对判据**（2026-10-17 · 洞 `CI-ONLY-GUARDS-WIRING-LINT-TRIO` ✓；
 # ⭐ 同一天第 3/4 轮 `gs3`+`gs4` 把它们**合成一条** ✓，`SUB-narrow-guards-to-one-layer` ①
@@ -116,7 +120,7 @@ python3 scripts/check-ci-gate-coverage.py --selftest || exit 1'
 # `CHECK-JSON-IDENTITY-NOT-WIRED-AT-ALL`（`check-json-identity.py`）**逐字同族**：
 # 判据的红**只能走到 CI 才被发现** ✗（实测一轮 CI = **33–35 分钟** ⇒ 本地白等一轮 ✗）。
 # ⚠ **这不是"新口径"，是把同一条 job 补齐** ✓：同一个 `wiring-lint` 的**另外两对**
-# （`ci-push-range.py` · `check-ci-gate-coverage.py`）本脚本**早就**有 ✓ ⇒ 三缺三
+# （`ci-push-range.py` · `check-ci-wiring.py` 的层①）本脚本**早就**有 ✓ ⇒ 三缺三
 # 正是「**接了一半**」的形状 ✗（洞名里的 `TRIO` 就是这三个）。
 # ⚠ **零前提** ✓（`wiring-lint` job 只有 `checkout`、**没有**构建步 ⇒ 这条不碰
 # `target/`、不碰真缓存/真 HOME、不需要 Rust ✓）；**耗时实测**（本机 · 两条命令合计
@@ -142,7 +146,7 @@ python3 scripts/check-drift.py --selftest || exit 1'
 # ⚠ **这四条正是 `ng1` 按行为普查（41 道闸 · `.cache/ux/fix-ng1/VERDICT.md`）里 (d) 缺本地那一半的** ✓：
 # 修前逐条 `a=True b=True c1=True d=False`（ci=1 / local=0 ✓；复算 = 本目录 `.cache/ux/fix-ng2/census.py`）。
 # ⚠ **后果**（**抄 `ng1` §3.C 的表** ✓ —— 本轮**不重做普查** ✗）：
-#   · `check-history-depth-wiring.py`：「跑历史判据的 job 必须有全历史」这条**类不变量**被改坏
+#   · `check-ci-wiring.py` 的层②（原 `check-history-depth-wiring.py`）：「跑历史判据的 job 必须有全历史」这条**类不变量**被改坏
 #     ⇒ 本地看不见 ⇒ 症状是 CI 里 `git` **rc=128** ⇒ 判据 **exit 3**（红的是**前提**、不是"咬不住" ✗）。
 #   · `check-infoview-hierarchy.py`：Infoview 层级（标题字号 ≥ 正文 / 无双压暗 / 标题不用 opacity）回归
 #     ⇒ 本地看不见 —— 而这是**同类反馈复发两次**后落的守卫（`.decl-ty` → `.section-title` ✗）。
@@ -151,23 +155,23 @@ python3 scripts/check-drift.py --selftest || exit 1'
 #     ⇒ 两条判据抢同一档位 ⇒ **间歇判红**（症状是"单独跑绿、gate 里红"）⇒ 本地看不见。
 # ⚠ **零前提** ✓（四条只读仓库文本：`ci.yml` / `media/*.css` / `tactics.rs`+`parser.rs`+`reference/` /
 # `crates/*/tests/*.rs` ⇒ 不碰 `target/`、不碰真缓存/真 HOME、不需要 Rust/node/gh ✓）；
-# **耗时实测**（本机 · 八条命令逐条 **0.03–0.08s** ✓）：`check-history-depth-wiring` 0.06+0.08 ·
+# **耗时实测**（本机 · 八条命令逐条 **0.03–0.08s** ✓）：`check-ci-wiring --layer history` 0.06+0.08 ·
 # `check-infoview-hierarchy` 0.03+0.04 · `tactic-docs-lint` 0.05+0.05 · `check-test-env-isolation` 0.06+0.03
 # ⇒ 八条**一次跑完**（= 本步新增的墙钟）三轮 **0.37 / 0.38 / 0.39s**（中位 **0.38s** ✓）
 # ⇒ 亚秒级，**`--fast` 也跑** ✓。
 # ⚠ **退出码口径**（照抄既有写法 ✓ · **不掩膜** ✗）：四条一律 `|| exit 1` 传播 —— `0`=绿 · `1`=判红 ·
 # **`2`/`3`=判不了**（`check-infoview-hierarchy.py` 的 `2` = **CSS 找不到的环境错** · `tactic-docs-lint.py`
-# 的 `2` = 用法/IO 错 · `check-history-depth-wiring.py` 的 `3` = 前提不在 —— **三条都必须拦** ✓）。
+# 的 `2` = 用法/IO 错 · `check-ci-wiring.py` 层② 的 `3` = 前提不在 —— **三条都必须拦** ✓）。
 # ⚠ **别把它们当成 `target-hygiene.py` 的那个两档告警** ✗：那个档是"只报不拦"的**读数**（非 0 里的一个），
 # 这四个**没有**那一档 ⇒ **不需要**显式放行 ✓（`run()` 把任何非 0 当红，正是这里要的行为 ✓）。
-# ⚠ **如实划的边界** ✗：`check-history-depth-wiring.py --selftest` 的咬住证明打在**钉死的旧 rev**
+# ⚠ **如实划的边界** ✗：`check-ci-wiring.py --selftest`（层② 那一半）的咬住证明打在**钉死的旧 rev**
 # （`1cd4aba0`）⇒ **它自己也要全历史**（浅克隆里 `git show` 拿不到 ⇒ **exit 3 + 人话**，绝不静默判过 ✓）；
 # 本仓/本机是**全克隆** ✓，且同族先例 `check-attention-budget.py`（下面 :347 那一步）**早就**是这个形状
 # （它的注释自己写着「要全历史（浅克隆 ⇒ rc=3 + 人话）」✓）⇒ 口径一致，不是本轮新增的前提 ✗。
-run "workflow：历史深度接线（跑历史判据的 job 必须有全历史）" "queue-lint" bash -c '
+run "workflow：CI 接线类守卫 · 层② 历史深度接线（跑历史判据的 job 必须有全历史）" "queue-lint" bash -c '
 set -u
-python3 scripts/check-history-depth-wiring.py || exit 1
-python3 scripts/check-history-depth-wiring.py --selftest || exit 1'
+python3 scripts/check-ci-wiring.py --layer history || exit 1
+python3 scripts/check-ci-wiring.py --selftest || exit 1'
 run "workflow：Infoview 视觉层级（标题字号 ≥ 正文 / 无双压暗 / 标题不用 opacity）" "editor" bash -c '
 set -u
 python3 scripts/check-infoview-hierarchy.py || exit 1

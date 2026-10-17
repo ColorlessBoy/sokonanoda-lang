@@ -161,7 +161,7 @@ jobs:
   # ⚠ **`fetch-depth: 0` 是必需的，不是优化** ✗（⭐ **本轮加的** —— 2026-10-17 `gs3`）：
   # `check-drift.py` 的**咬住证明**钉在固定旧 rev（`--rev 755e5302^` ⇒ `git show <rev>:<path>`）
   # ⇒ 浅克隆里那个对象不在、判据**判不了** ⇒ 它已登记进
-  # `scripts/check-history-depth-wiring.py` 的 `HISTORY_DEPENDENT`（**本轮实测**：登记后
+  # `scripts/check-ci-wiring.py` 的 `HISTORY_DEPENDENT`（**本轮实测**：登记后
   # R1 **当场判红**「`wiring-lint` 真的跑了历史判据 `scripts/check-drift.py`，而它的
   # `actions/checkout` 没有 `fetch-depth: 0`」⇒ 本行就是那条红的出路 ✓）。
   # ⚠ **如实划的边界** ✗：本 job 跑的**默认 / `--selftest`** 两层**零 git**（全文唯一的
@@ -185,8 +185,11 @@ jobs:
         run: |
           python3 scripts/ci-push-range.py --check-wiring
           python3 scripts/ci-push-range.py --selftest
-      # ⭐ **「按改动范围决定跑不跑」的类守卫**（2026-10-15，洞 `PATHS-FILTER-CLASS`）——
-      # `ci-push-range.py` 管**范围是从哪算的**（实例④），本步管**范围里有没有把 job
+      # ⭐ **「CI 的某条前提在不在」的类守卫 —— 层① `coverage`**（2026-10-15，洞
+      # `PATHS-FILTER-CLASS`；⭐ 2026-10-17 第 5 轮 `gs5` 把 `check-ci-gate-coverage.py`
+      # 与 `check-history-depth-wiring.py` **合成一条** `check-ci-wiring.py`，
+      # `SUB-narrow-guards-to-one-layer` ③ 的第一步 ✓）——
+      # `ci-push-range.py` 管**范围是从哪算的**（实例④），本层管**范围里有没有把 job
       # 要读的东西藏掉**（实例①②③）。同族**六次**里有三次是**手工往 `filters:` 里加一行**
       # 修的 ⇒ 换个触发源就再犯 ✗；这条把"job 消费的每条路径都必须被门控它的过滤器命中"
       # 变成可查的判据 ✓。**它第一次跑就自己找出两条新实例**（`examples/**` 与
@@ -195,10 +198,13 @@ jobs:
       # 新加一个"消费 `editor/**` 却只被 `rust` 门控"的 job ⇒ 都必须判红 ✓）+
       # **新顶层目录**那三条（洞 `TOP-LEVEL-TABLE-GOES-BLIND`，2026-10-16：顶层条目改成
       # 按 `git ls-files` **实际枚举** ⇒ 新加一级目录**自动**进面；写死表的话那三条当场红 ✓）。
-      - name: 改动范围门控覆盖（R1 执行路径 / R2 工作流自身 / R3 数据依赖）+ 自检
+      # ⚠ **`--selftest` 是驱动器级的**（`gs3`/`gs4` 的判例 (v) ✓）：它跑**登记表对账 +
+      # 绿跑对账 + 两层的正负对照** ⇒ 本 job 与 `queue-lint` **各跑一遍**（都 < 0.3s ⇒
+      # 噪声级 ✓），任一处断言被删/改名都会在两处各自判红 ✓。
+      - name: "CI 接线类守卫 · 层① 改动范围门控覆盖（R1 执行路径 / R2 工作流自身 / R3 数据依赖）+ 自检"
         run: |
-          python3 scripts/check-ci-gate-coverage.py --check
-          python3 scripts/check-ci-gate-coverage.py --selftest
+          python3 scripts/check-ci-wiring.py --layer coverage
+          python3 scripts/check-ci-wiring.py --selftest
 
   # ⭐ **队列门禁独立成 job、且不设 `if:`**（2026-10-15，洞
   # `LEDGER-JOB-SKIPPED-ON-DOC-ONLY-PUSH`，high ✓）—— 形状**照抄**上面的 `wiring-lint` ✓。
@@ -428,15 +434,18 @@ jobs:
         run: |
           python3 scripts/check-guard-bite.py --selftest --job queue-lint
           python3 scripts/check-guard-bite.py --check --all --job queue-lint
-      - name: "历史深度接线（跑历史判据的 job 必须有全历史）"
+      - name: "CI 接线类守卫 · 层② 历史深度接线（跑历史判据的 job 必须有全历史）"
         # 2026-10-16 · 洞 `EDITOR-JOB-BITE-STEP-EXIT-3` 的**类**守卫（硬规则 0(b)：
         # 同类问题横向排查、不许修单点 ✗）。同族两次：`queue-lint`（2026-10-15，
         # 祖先性断言在浅克隆里假红 270 条 ⇒ 手加 `fetch-depth: 0`）·
         # `editor`（2026-10-16，run `38817419732` step 11 ⇒ 判据 `exit 3` ⇒ **job 红**，
         # 而红的是**前提**、不是"咬不住" ✗）—— 两次都是**手工修那一个 job** ✗
-        # ⇒ 本步把"**判据要读历史，就必须把历史给它**"变成可查的判据 ✓。
+        # ⇒ 本层把"**判据要读历史，就必须把历史给它**"变成可查的判据 ✓。
         # 判据：**R1 接线**（job 真跑了声明的历史判据 ⇒ 它的 `actions/checkout`
-        # 必须有 `fetch-depth: 0`）· **R2 表不腐烂** · **R3 空转闸**（判到 0 对 ⇒ 判红 ✗）。
+        # 必须有 `fetch-depth: 0`）· **R1b 提及不算跑** · **R2 表不腐烂** ·
+        # **R3 空转闸**（判到 0 对 ⇒ 判红 ✗）。
+        # ⭐ 2026-10-17 第 5 轮 `gs5`：它并进 **`check-ci-wiring.py`**（`SUB-narrow-guards-to-one-layer` ③
+        # 的第一步 ✓ —— 与 `wiring-lint` 里那一层**同一个登记表 + 同一个驱动器** ✓）。
         # ⚠ **为什么在本 job**：`--selftest` 的咬住证明打在**钉死的旧 rev**
         # （`1cd4aba0` = CI 真红那一跑的 `head_sha` ✓，**不是** `HEAD` ✗ ——
         # pr1 的坑：写 `HEAD` 的话提交后就是修好的那版 ⇒ 证明自己失效 ✗）
@@ -445,10 +454,10 @@ jobs:
         # `HISTORY_DEPENDENT` ⇒ R1 给那个 job 补了 `fetch-depth: 0` ✓；本步留在本 job 的
         # 理由不变：`--selftest` 的咬住证明打在本 job 里，放别处会以"环境不在"判红 ✗
         # —— 正是本守卫要拦的那种红 ✓）。
-        # 实测：`--check` + `--selftest` 合计 < 0.5s ⇒ 进本 job（5 分钟预算）是噪声级 ✓。
+        # 实测：`--layer history` + `--selftest` 合计 < 0.5s ⇒ 进本 job（5 分钟预算）是噪声级 ✓。
         run: |
-          python3 scripts/check-history-depth-wiring.py
-          python3 scripts/check-history-depth-wiring.py --selftest
+          python3 scripts/check-ci-wiring.py --layer history
+          python3 scripts/check-ci-wiring.py --selftest
       - name: "记法路径守卫（CI 面：不跑 hook 的推送也要有人知道）"
         # 2026-10-17 · `ng1` 普查 §3.C 的**第 ③ 组**（洞 `CI-FACE-MISSING-FOR-NOTATION-PATHS`）：
         # `scripts/audit-notation-paths.py` 此前**只有本地面**（`ci-local.sh:288` 的 `run` +
@@ -475,7 +484,7 @@ jobs:
         # （**实测**：浅克隆里 rc=0 · rc=0 ✓）；**需要全历史的是它的咬住证明**
         # （`docs/guard-bite.jsonl` 那一行的 `--check --source-rev 9c8cfa90` ⇒ `git show <rev>:<f>`
         # ⇒ 浅克隆**实测 rc=3** ✗）⇒ 它**进** `HISTORY_DEPENDENT` ✓（与表里
-        # `scripts/check-queue-integrity.py`、以及 `check-history-depth-wiring.py` 自指两条**同形**：
+        # `scripts/check-queue-integrity.py`、以及 `check-ci-wiring.py`（层②）自指两条**同形**：
         # 要全历史的是**咬住证明**，不是判据本体 ✓）。
         run: |
           python3 scripts/check-frozen-headroom.py --check
@@ -519,12 +528,12 @@ jobs:
         # **实测 rc=1**（`✗ data 解析不出已发布 tag（浅克隆缺 tag？）—— 无法判定，不判绿`）。
         # ⇒ 本 job 的 `fetch-depth: 0`（`:258`）是**前提**（理由与 `pages.yml:61-67` 的
         # 「**是必需的，不是优化**」逐字同源 ✓），并已登记进
-        # `scripts/check-history-depth-wiring.py` 的 `HISTORY_DEPENDENT` ✓
+        # `scripts/check-ci-wiring.py` 的 `HISTORY_DEPENDENT` ✓
         # （谁把它挪进浅 job ⇒ R1 当场判红并点名 ✓）。
         # ⚠ 与 `ci-local.sh` 那一步**逐字同源** ✓（本地那条带 step 标签与分组 ✓）；
         # 实测 **0.13s**（`ng6` §5）⇒ 进本 job（5 分钟预算）是噪声级 ✓。
         # ⚠⭐ **step 名里点名这个脚本是有意的** ✗→✓（**别"清理"它** ✗）：R1b
-        # （`scripts/check-history-depth-wiring.py`，第 6 轮 `ng7` 加）的口径正是
+        # （`scripts/check-ci-wiring.py` 的层②，第 6 轮 `ng7` 加）的口径正是
         # 「**删 `run:` 正文、只留 step 名** ⇒ 判红」—— 名字里不点名的话，下面那一行
         # 被删就**没有任何东西会响** ✗（`pages.yml` 那份还在 ⇒ C12 的 CI 面照样是
         # `both` ✗，**按闸不按档** ⇒ 它看不见"这一跑没了" ✗）；点名之后，删掉 `run:`
@@ -679,7 +688,7 @@ jobs:
               - "docs/gaps/**"
               # ⭐ **`editor/vscode/scripts/**` 也算"会改变验证结果"** ✓
               # （2026-10-15 —— 同族**第五次**，由新的**类守卫**
-              #  `scripts/check-ci-gate-coverage.py` **自己找出来的** ✓，不是人撞上的 ✓）。
+              #  `scripts/check-ci-wiring.py`（层①）**自己找出来的** ✓，不是人撞上的 ✓）。
               # 实测：`ledger` job 的「Stage bundled CLI + LSP for the extension repros」
               # 那一步跑 `node editor/vscode/scripts/stage-lsp.js`（**它消费这个脚本** ✓），
               # 而 `ledger` 的 `if` 只看 `rust`/`courses` ⇒ **只改这个脚本**时三个标志全 false
