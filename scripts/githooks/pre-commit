@@ -20,11 +20,55 @@ set -uo pipefail
   exit 0
 }
 
+# ⚠ `root` 要**先**取（下面两条闸都用它；`set -u` 下用未赋值的变量会直接炸 ✗）。
+root=$(git rev-parse --show-toplevel)
+
+# ── **提交路径归属校验**（洞 `WORKTREE-ISOLATION-NOT-ENFORCED`，high，2026-10-17 ✗→✓）─────
+# ⭐ **"每条会话一个 worktree"从约定变成机制**：这条闸拦的正是那个**危险动作** ——
+#   `git add -A`（**别人的活会被卷进你的提交** ✗；实测 `.worktrees/kh1` 里躺着 **20 处**
+#   不属于它的 `crates/front/**` ✗）。
+# 判据只有一条：`scripts/check-multi-session.py --staged` 的**退出码** ✓ —— **一处定义** ✓
+#   （与门禁 / `agent-worktree.sh land` 同一个谓词，这里**不重写一遍** ✗）。
+# ⚠ **只在链接工作树里判**（主 checkout 是编排者的场地 ✓）；证据面为空（没声明 / 没认领 /
+#   没收口提交 / 分支也没提交过）⇒ 判据印「判不了」并 **rc=0** —— **判不了 ≠ 判红**，
+#   但**也 ≠ 绿**：那一行照原样打出来 ✓（不许静默 ✗）。
+# ⚠ **非 0/1 的退出码 = 量不出来**（旧分支上判据还没有 `--staged` ⇒ argparse rc=2 ✗）⇒
+#   **响亮地说出来再放行**：拦一条**读不出理由**的提交会把所有人都锁死 ✗（判不了 ≠ 绿 ✓）。
+# ⚠ 逃生门：`git commit --no-verify` / `SOKO_SKIP_HOOK=1 git commit` ✓（与下面那条同口径：
+#   **必须在 STATUS.md 写明原因** ✗，不许当默认动作 ✗）。
+if [ -f "$root/scripts/check-multi-session.py" ]; then
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "[pre-commit] ⚠ 没有 python3 ⇒ **提交路径归属校验判不了**（判不了不是绿 ✗）" >&2
+    echo "            装好 python3 后这条自动生效；或 SOKO_SKIP_HOOK=1 留痕跳过 ✓" >&2
+  else
+    out=$(cd "$root" && python3 scripts/check-multi-session.py --staged 2>&1); rc=$?
+    printf '%s\n' "$out"
+    if [ "$rc" = 1 ]; then
+      cat >&2 <<'MSG'
+
+[pre-commit] ❌ **提交路径归属校验判红** ✗ ⇒ 拒绝提交 ✓（洞 WORKTREE-ISOLATION-NOT-ENFORCED）。
+  上面逐条点名了**不属于本树主人**的路径 ⇒ 这正是 `git add -A` 把**别人的活**卷进这次
+  提交的形状 ✗。处置（**别 stash / 别 revert / 别删** ✗ —— 那是别人的活）：
+    ① **不是你的**（多半是别人写进来的）⇒ `git restore --staged <路径>` 只把它**撤出暂存区**
+       （工作区**一个字节都不动** ✓），然后**报告编排者**，让真正的作者在自己的树里落它 ✓；
+    ② **是你的**（本分支还没提交过它们）⇒ 先把范围声明出来，再提交：
+       scripts/agent-worktree.sh own <id> --scope '<你的 glob,…>'   # 或 --from-claim ✓
+  逃生门：`git commit --no-verify` / `SOKO_SKIP_HOOK=1 git commit`
+  —— **必须在 STATUS.md 写明原因** ✓（不许当默认动作 ✗）。
+MSG
+      exit 1
+    fi
+    [ "$rc" = 0 ] || {
+      echo "[pre-commit] ⚠ 提交路径归属校验**量不出来**（rc=${rc}；旧分支上判据没有 --staged？）" >&2
+      echo "             ⇒ **本跑不判**（判不了 ≠ 绿 ✗）；要绕过用 \`git commit --no-verify\`，但必须留痕 ✓" >&2
+    }
+  fi
+fi
+
 # ── **卡住 ⇒ 先读 Lean 4** 的守卫（用户 2026-10-05 ✓；规则见 `AGENTS.md`）──────────
 # 动了**判定路径**（`elab.rs`/`implicit.rs`/`meta.rs`/`crates/kernel/` ✓）的提交，
 # 提交信息或本轮 `HANDOFF-kernel.md` 增量里**必须**有 `Lean 4` / `Lean4: n/a` ✓
 # —— 否则**拒绝提交** ✗（"声明与守卫之间有条缝"是本项目最常见的病 ✓）。
-root=$(git rev-parse --show-toplevel)
 # ⚠ 判红在 **`commit-msg`** 钩子里 ✓ —— `pre-commit` 阶段 git **还没写**提交信息 ✗
 # ⇒ 在这里判会**看不见**它 ✗（2026-10-05 实测 ✓）。这里只跑一遍"暂存区"预检 ✓（不判红 ✓）。
 if [ -f "$root/scripts/check-lean4-alignment.py" ] && command -v python3 >/dev/null 2>&1; then

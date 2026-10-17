@@ -5,15 +5,34 @@
 #
 # 仓库既有规矩（`scripts/check-multi-session.py`，含用户原话）就是答案：
 #   **"正解不是加锁，是 worktree 隔离"** —— 每条会话一个工作树、**独立 target（别共享，cargo 会加锁串行）**、
-#   共享台账**只在 main 上改** ✓。本脚本把这三条固化成四个子命令，省得每轮手敲、也顺手防"worktree 残留"。
+#   共享台账**只在 main 上改** ✓。本脚本把这三条固化成子命令（`new`/`own`/`list`/`land`/`rm`），省得每轮手敲、也顺手防"worktree 残留"。
 #
 # 用法：
-#   scripts/agent-worktree.sh new <id>      # 建 .worktrees/<id> + 分支 agent/<id>（从 main 的 HEAD）
+#   scripts/agent-worktree.sh new <id> [--scope <glob,…>]
+#                                           # 建 .worktrees/<id> + 分支 agent/<id>（从 main 的 HEAD）
+#                                           #   + 写**主人标记** `.worktrees/<id>/.owner`（洞
+#                                           #   `WORKTREE-ISOLATION-NOT-ENFORCED` 的"声明"那一源 ✓）
+#   scripts/agent-worktree.sh own <id> [--scope <glob,…> | --from-claim]
+#                                           # 声明 / 更新这棵树主人的**范围**（判据 ③ 用它判
+#                                           #   "本树里未提交的路径属不属于主人" ✓；`--from-claim`
+#                                           #   从队列的**活跃认领**自动取 ✓）
 #   scripts/agent-worktree.sh list          # 列出工作树 / **活没进 main** 的 agent 分支 / 每棵树干不干净
+#                                           #   + 每棵树的**主人与声明范围**（判据 ③ 的输入 ✓）
 #   scripts/agent-worktree.sh land <id>     # **只能在主工作树的 main 上跑**：rebase + 快进合回
 #                                           #   + **自动回填收口指针并提交**（rebase 孪生，见
 #                                           #   `repoint_after_land`：不靠"记得回填" ✓）
+#                                           #   ⚠ 树脏时**点名**哪些路径不属于主人（判据 ③ ✓）
 #   scripts/agent-worktree.sh rm <id>       # 清理（默认拒绝**活没进 main** 的分支；--force 才强删）
+#
+# ⭐ **"每条会话一个 worktree"从约定变成机制**（洞 `WORKTREE-ISOLATION-NOT-ENFORCED`，high，
+#   2026-10-17 · **kh1 实测** ✗→✓）：实测 `.worktrees/kh1` 里躺着 **20 处不属于它的
+#   `crates/front/**`**（"拆文件 + 新模块"的形状 ✗）。修前：`--claim` 管**队列条目**、
+#   本脚本管**目录**，但**没有任何东西强制两者对上** ✗。修后三个消费者**同一个谓词**
+#   （`scripts/check-multi-session.py` 判据 ③ —— **一处定义** ✓）：
+#     · `new` / `own` 写**声明**（本文件）→ `.owner`；
+#     · 门禁 / `land` / **pre-commit 钩子**（`--staged`）逐条判"这路径属于这棵树的主人吗" ✓。
+#   ⚠ 判据的**边界**（如实写，不是密封 ✗）：它判的是**未提交/暂存**的路径 ⇒ 必须跑在
+#     **提交之前**；一旦别人的活被提交进本分支，它就变成了"本分支自己的证据" ✗。
 #
 # ⚠ **「合没合回」的判据 = `git cherry <BASE> <branch>` 的 `+` 行**（patch-id 等价），**不是祖先性** ✗：
 #   `land` 走 **rebase + 快进**、而 `main` **自己也会被 rebase** ⇒ 已 land 的分支顶端是**孤儿 commit**
@@ -37,6 +56,124 @@ info() { printf '%s\n' "$*"; }
 
 in_main() { [ "$(git -C "$ROOT" rev-parse --git-dir)" = "$(git -C "$ROOT" rev-parse --git-common-dir)" ]; }
 
+# ── **主人标记**（`.worktrees/<id>/.owner`；洞 `WORKTREE-ISOLATION-NOT-ENFORCED`）──────
+# ⚠ 这个文件是**判据 ③ 的输入**（`scripts/check-multi-session.py` 读它）—— 格式改动要**两边
+#   一起改**（`read_owner_marker()` 是读者 ✓；字段：`id` / `branch` / `base` / `ts` / `scope`）。
+# ⚠ 它**不是**活（`check-multi-session.py` 显式把它从"未提交路径"里排掉 ✓）：真仓里
+#   `.worktrees/` 被 `.gitignore:53` 忽略 ⇒ 它根本不进 `git status` ✓。
+OWNER_MARKER=".owner"
+
+# marker_write <tree> <id> <branch> <base> <scope-csv> —— 写标记（python3 做 JSON 转义 ✓）。
+# 返回 0 = 写了；3 = 没有 python3（**响亮地降级**：new 不该因为一个可选能力就失败 ✗，
+# 但"没标记"这件事必须说出来 —— 判据 ③ 在那棵树上会落进「判不了」✓）。
+marker_write() {
+  local tree=${1:?} id=${2:?} branch=${3:?} base=${4:?} scope=${5:-}
+  command -v python3 >/dev/null 2>&1 || return 3
+  python3 - "$tree/$OWNER_MARKER" "$id" "$branch" "$base" "$scope" <<'PY' || return 3
+import json, sys, datetime
+path, ident, branch, base, scope = sys.argv[1:6]
+data = {"id": ident, "branch": branch, "base": base,
+        "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+        "scope": [s for s in scope.split(",") if s.strip()]}
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, ensure_ascii=False)
+    fh.write("\n")
+PY
+}
+
+# marker_scope <tree> —— 印出标记里的 `scope`（逗号分隔）；没有标记/没 python3 ⇒ 空 ✓。
+marker_scope() {
+  local tree=${1:?} f="$1/$OWNER_MARKER"
+  [ -f "$f" ] || return 0
+  command -v python3 >/dev/null 2>&1 || return 0
+  python3 - "$f" <<'PY' 2>/dev/null || true
+import json, sys
+try:
+    data = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    sys.exit(0)
+print(",".join(str(s) for s in (data.get("scope") or [])))
+PY
+}
+
+# live_scope <tree> —— 这棵树主人的**活跃认领资源**（判据 ③ 的"认领"源；**一处定义**：
+# 走 `check-multi-session.py --print-live-scope`，不在这里重写一遍归一化 ✗）。
+live_scope() {
+  local tree=${1:?}
+  command -v python3 >/dev/null 2>&1 || return 3
+  # ⚠ **不吞 stderr**：判据自己会给"量不出来"的人话（没有认领 / 不是链接工作树）⇒ 让它说 ✓。
+  ( cd "$tree" && python3 "$ROOT/scripts/check-multi-session.py" --print-live-scope )
+}
+
+cmd_own() {
+  local id=${1:?用法: agent-worktree.sh own <id> [--scope <glob,…> | --from-claim]}
+  shift
+  local path="$WT_DIR/$id" scope="" from_claim=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --scope) scope=${2:?--scope 要一个值（逗号分隔的 glob）}; shift 2 ;;
+      --from-claim) from_claim=1; shift ;;
+      *) die "own 不认这个参数：$1（用法见文件头）" ;;
+    esac
+  done
+  [ -d "$path" ] || die "没有这棵树：${path}（先 new ${id}，或核对 id）"
+  if [ "$from_claim" = 1 ]; then
+    [ -z "$scope" ] || die "--scope 与 --from-claim 二选一 ✗"
+    scope=$(live_scope "$path") || die "取不到活跃认领（上面那条就是原因：没有认领 / 没有 python3 / 判据不在）⇒ 用 --scope 手写 ✓"
+    [ -n "$scope" ] || die "这棵树的主人（${id}）**没有活跃认领** ⇒ 先 --claim 一条队列条目，或 --scope 手写 ✗"
+  fi
+  [ -n "$scope" ] || die "own 要一个范围：--scope 'crates/xxx/**,…' 或 --from-claim ✗"
+  local branch base
+  branch=$(git -C "$path" branch --show-current 2>/dev/null || true)
+  base=$BASE
+  if ! marker_write "$path" "$id" "${branch:-agent/$id}" "$base" "$scope"; then
+    die "写不了主人标记（没有 python3？）⇒ ${path}/${OWNER_MARKER} 没写成"
+  fi
+  info "✓ ${path}/${OWNER_MARKER}：主人 ${id} · 范围 ${scope}"
+  info "  ⇒ 之后 `python3 scripts/check-multi-session.py --ownership`（在树里跑）会逐条判"
+  info "     \"这棵树里未提交的路径属不属于 ${id}\" ✓；pre-commit 钩子在**提交前**也判一次（--staged ✓）"
+}
+
+cmd_new() {
+  local id=${1:?用法: agent-worktree.sh new <id> [--scope <glob,…>]}
+  shift
+  local scope="" branch path
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --scope) scope=${2:?--scope 要一个值（逗号分隔的 glob）}; shift 2 ;;
+      *) die "new 不认这个参数：$1（用法见文件头）" ;;
+    esac
+  done
+  branch="agent/$id"; path="$WT_DIR/$id"
+  in_main || die "已经在链接工作树里 ⇒ 别再建（每条会话一棵 ✓）。要建就在主 checkout 上跑。"
+  [ -e "${path}" ] && die "${path} 已存在（要重建先 rm ${id}）"
+  git -C "$ROOT" show-ref --verify --quiet "refs/heads/${branch}" && die "分支 ${branch} 已存在 ⇒ 换个 id，或先 land/rm"
+  mkdir -p "$WT_DIR"
+  git -C "$ROOT" worktree add -b "$branch" "$path" "$BASE" >/dev/null || die "worktree add 失败"
+  info "✓ 建好 ${path}（分支 ${branch}，基线 ${BASE}@$(git -C "$ROOT" rev-parse --short "$BASE")）"
+  # ⭐ **写主人标记**（判据 ③ 的"声明"源 ✓）：不写也照样能建（向后兼容 ✓），但那样这棵树
+  #   在判据 ③ 里会落进「判不了」⇒ 这里**如实印出来** + 给一条补的命令 ✓。
+  if marker_write "$path" "$id" "$branch" "$BASE" "$scope"; then
+    if [ -n "$scope" ]; then
+      info "✓ 主人标记：${path}/${OWNER_MARKER}（主人 ${id} · 范围 ${scope}）"
+    else
+      info "ⓘ 主人标记：${path}/${OWNER_MARKER}（主人 ${id} · 范围**未声明**）"
+      info "  ⇒ 判据 ③（本树里未提交的路径属不属于你）要靠它才判得动 —— 知道模块后补一条："
+      info "     scripts/agent-worktree.sh own ${id} --scope 'crates/xxx/**,…'   # 或 --from-claim ✓"
+    fi
+  else
+    info "⚠ 没有 python3 ⇒ **没写主人标记** ${path}/${OWNER_MARKER}"
+    info "  ⇒ 这棵树在判据 ③ 里会落进「判不了」（不是绿 ✗）；装上 python3 后补：own ${id} --scope '…'"
+  fi
+  info ""
+  info "进工作树前先把受管环境 source 进来（**独立 target · 共享 sccache · 队列单点** ✓）："
+  info "  eval \"\$(python3 \"$ROOT/scripts/compile-cache.py\" env ${id})\"   # 由编译缓存总管生成 ✓"
+  info "  （没装 sccache 也能跑：那一行会留空 ⇒ 优雅降级 ✓；预算/回收见 scripts/compile-cache.py）"
+  info ""
+  info "开工：cd ${path} && python3 \"\$SOKO_QUEUE_ROOT/scripts/ux-queue.py\" --next"
+  info "落地：主 checkout 上跑 scripts/agent-worktree.sh land ${id}"
+}
+
 # branch_missing_commits <branch> —— 打印该分支上**活还没进 $BASE** 的提交 sha（每行一个）。
 # 判据 = `git cherry "$BASE" <branch>` 的 `+` 行（patch-id 等价）——与
 # `scripts/ux-queue.py:branch_missing_commits()` **同一件仪器** ✓；**一处定义**（cmd_list 与 cmd_rm 都调它 ✓）。
@@ -50,24 +187,6 @@ branch_missing_commits() {
   out=$(git -C "$ROOT" cherry "$BASE" "$branch" 2>/dev/null) || return 1
   printf '%s\n' "$out" | awk '/^\+/{print $2}'
   return 0
-}
-
-cmd_new() {
-  local id=${1:?用法: agent-worktree.sh new <id>}
-  local branch="agent/$id" path="$WT_DIR/$id"
-  in_main || die "已经在链接工作树里 ⇒ 别再建（每条会话一棵 ✓）。要建就在主 checkout 上跑。"
-  [ -e "${path}" ] && die "${path} 已存在（要重建先 rm ${id}）"
-  git -C "$ROOT" show-ref --verify --quiet "refs/heads/${branch}" && die "分支 ${branch} 已存在 ⇒ 换个 id，或先 land/rm"
-  mkdir -p "$WT_DIR"
-  git -C "$ROOT" worktree add -b "$branch" "$path" "$BASE" >/dev/null || die "worktree add 失败"
-  info "✓ 建好 ${path}（分支 ${branch}，基线 ${BASE}@$(git -C "$ROOT" rev-parse --short "$BASE")）"
-  info ""
-  info "进工作树前先把受管环境 source 进来（**独立 target · 共享 sccache · 队列单点** ✓）："
-  info "  eval \"\$(python3 \"$ROOT/scripts/compile-cache.py\" env ${id})\"   # 由编译缓存总管生成 ✓"
-  info "  （没装 sccache 也能跑：那一行会留空 ⇒ 优雅降级 ✓；预算/回收见 scripts/compile-cache.py）"
-  info ""
-  info "开工：cd ${path} && python3 \"\$SOKO_QUEUE_ROOT/scripts/ux-queue.py\" --next"
-  info "落地：主 checkout 上跑 scripts/agent-worktree.sh land ${id}"
 }
 
 cmd_list() {
@@ -98,6 +217,37 @@ cmd_list() {
     local n; n=$(git -C "$w" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
     [ "$n" != "0" ] && info "  ⚠ ${w} 有 ${n} 处未提交改动"
   done < <(git -C "$ROOT" worktree list --porcelain | awk '/^worktree /{print $2}')
+  # ⭐ **每棵树的主人与声明范围**（洞 `WORKTREE-ISOLATION-NOT-ENFORCED` 的"声明"源 ✓）：
+  #   ⚠ 只对**有标记**的树跑判据 ③（其余 60 棵老树没有标记 ⇒ 逐棵跑 python3 是白付 ✗）；
+  #   ⚠ 判据只**读**、从不写 ✓。
+  info ""
+  info "── 主人标记与归属（判据 ③ = 本树里未提交的路径属不属于主人；只对**有标记**的树跑 ✓）──"
+  local wt id scope out rc shown=0
+  while IFS= read -r w; do
+    [ -d "$w" ] || continue
+    case "$w" in */.worktrees/*) ;; *) continue ;; esac
+    id=${w##*/}
+    scope=$(marker_scope "$w")
+    if [ ! -f "$w/$OWNER_MARKER" ]; then
+      info "  ⓘ ${id}：**没有主人标记** ⇒ 判据 ③ 在它上面落进「判不了」（不是绿 ✗）—— 补：own ${id} --scope '…'"
+      continue
+    fi
+    shown=$((shown + 1))
+    if [ -z "$scope" ]; then
+      info "  ⚠ ${id}：标记在，但**范围未声明** ⇒ 判据 ③ 判不动 —— 补：own ${id} --scope '…'（或 --from-claim）"
+      continue
+    fi
+    out=$( cd "$w" && python3 "$ROOT/scripts/check-multi-session.py" --ownership 2>&1 ); rc=$?
+    if [ "$rc" = 1 ]; then
+      info "  ✗ ${id}：主人 ${id} · 范围 ${scope} ⇒ **有未提交路径不属于它** ✗（上面判据已逐条点名）"
+      printf '%s\n' "$out" | sed -n 's/^  ✗ ③ 本树主人/      /p' | head -5
+    elif [ "$rc" = 0 ]; then
+      info "  ✓ ${id}：主人 ${id} · 范围 ${scope} ⇒ 未提交路径都在范围内 ✓"
+    else
+      info "  ⚠ ${id}：判据 ③ 量不出来（rc=${rc}）⇒ **不是绿** ✗"
+    fi
+  done < <(git -C "$ROOT" worktree list --porcelain | awk '/^worktree /{print $2}')
+  [ "$shown" = 0 ] && info "  （还没有任何一棵树有声明范围 —— 用 new --scope / own <id> --scope 补 ✓）"
   true
 }
 
@@ -166,7 +316,27 @@ cmd_land() {
   git -C "$ROOT" show-ref --verify --quiet "refs/heads/${branch}" || die "没有分支 ${branch}"
   if [ -d "$path" ]; then
     local n; n=$(git -C "$path" status --porcelain | wc -l | tr -d ' ')
-    [ "$n" != "0" ] && die "${path} 还有 ${n} 处未提交改动 ⇒ 先让那个 agent 提交干净（别替它 stash ✗）"
+    if [ "$n" != "0" ]; then
+      # ⭐ **拒绝信息必须可操作**（洞 `WORKTREE-ISOLATION-NOT-ENFORCED` 的 (b) ✓）：修前只说
+      #   "还有 N 处未提交 ⇒ 先让那个 agent 提交干净" ✗ —— 它**不说哪些是别人的** ✗，
+      #   而"哪些是别人的"正是编排者要据以决定"别把它卷进去"的那条信息 ✓。
+      #   ⚠ 这里跑的是**判据 ③**（`--ownership`，**一处定义** ✓）—— 它只**读**这棵树 ✓。
+      local own_out own_rc
+      own_out=$( cd "$path" && python3 "$ROOT/scripts/check-multi-session.py" --ownership 2>&1 ); own_rc=$?
+      if [ "$own_rc" = 1 ]; then
+        printf '%s\n' "$own_out" >&2
+        # ⚠ **反引号在双引号里 = 命令替换**（本文件 `cmd_list` 那条注释记过同一个坑 ✗）：
+        #   `die "… `git add -A` …"` 会被 shell 执行 ⇒ 消息被吃掉一半（夹具实测 ✗→✓）
+        #   ⇒ 这里的反引号一律**转义** ✓。
+        die "${path} 有 ${n} 处未提交改动，其中**有点名的不属于本树主人**（上面 ✗ 那几条）✗ ⇒ 别替它 stash、**别 \`git add -A\`**（别人的活会被卷进提交 ✗）：让那个 agent 自己处置 —— 自己的提交干净；**别人的路径原样留着并报告**（别删/别 revert ✗）"
+      fi
+      if [ "$own_rc" != 0 ]; then
+        printf '%s\n' "$own_out" >&2
+        die "${path} 还有 ${n} 处未提交改动，而判据 ③ **量不出来**（rc=${own_rc}）⇒ **不是绿** ✗：先让那个 agent 提交干净（别替它 stash ✗），或给它补一条声明（own ${id} --scope '…'）"
+      fi
+      printf '%s\n' "$own_out" >&2
+      die "${path} 还有 ${n} 处未提交改动（都在主人 ${id} 声明的范围里 ✓）⇒ 先让那个 agent 提交干净（别替它 stash ✗）"
+    fi
   fi
   info "→ 在 ${path} 里把 ${branch} rebase 到 ${BASE}（**分支被 worktree 占着 ⇒ 必须在它自己那棵树里 rebase** ✗）"
   if [ -d "$path" ]; then
@@ -212,6 +382,7 @@ cmd_rm() {
 
 case "${1:-}" in
   new) shift; cmd_new "$@" ;;
+  own) shift; cmd_own "$@" ;;
   list) shift; cmd_list "$@" ;;
   land) shift; cmd_land "$@" ;;
   rm) shift; cmd_rm "$@" ;;
