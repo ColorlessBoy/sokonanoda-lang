@@ -158,6 +158,18 @@
   的原话就是：「`check-guard-bite.py` 是「守卫必须咬得住」的底 ⇒ **不合并**，但要按 ① 的
   要求：**每条 B 类都要能指回一条 A 类**」⇒ **本文件就是它指定的落点** ✓（判据文件数 0 增 ✓）。
 
+* **C12 双面（本地自动面 ⇄ CI 面；2026-10-17 第 4 轮 `ng4`）**：`guard_scripts()` 口径里
+  **本地面有它**的每一条，**CI 面也必须有它** —— 否则在**不跑 hook 的推送**
+  （`--no-verify` / 机器人 / 没装 `core.hooksPath` 的检出）上它**整个不存在** ✗。
+  ⚠ **为什么需要它**：修前"两面"只长在 `.cache/ux/fix-ng*/census.py`（那是**证据**、
+  不是闸 ✓）—— `wired_scripts()` 是 `ci-local.sh` **∪** `ci.yml` 的**并集** ⇒
+  **只删 CI 面、本地还在** ⇒ 枚举**不变** ⇒ **C6 照样绿** ✗。
+  **豁免**只给「**CI 面上那个对象按定义不存在**」的闸：`docs/guard-anchors.jsonl` 那一行加
+  `faces` 字段 + **闭集 witness**（一档一份实现就在本文件里 ⇒ **数据只能选、不能定义** ✓）；
+  witness 的事实**每次现算** ⇒ **事实消失 / 豁免腐烂（那一面其实有）都判红** ✗。
+  ⚠ **本地侧**（CI 面有、本地面没有）**只印 `ⓘ` 不判红** —— 理由与边界**逐字**写在
+  `face_problems()` 的 docstring 里 ✓（口径与逐条读数另见 `.cache/ux/fix-ng4/VERDICT.md`）。
+
 ## 退出码
 
   0 = 覆盖齐 + 每条都咬得住 + 分类齐且都有底 / 1 = 判红 / 2 = 用法错 /
@@ -165,15 +177,15 @@
 
 ## 用法
 
-  python3 scripts/check-guard-bite.py                 # C1（基线..HEAD 的守卫）+ C2（逐条真跑）+ C6/C7/C8
+  python3 scripts/check-guard-bite.py                 # C1（基线..HEAD 的守卫）+ C2（逐条真跑）+ C6/C7/C8 + C12
   python3 scripts/check-guard-bite.py --since <sha>   # 覆盖面改成 <sha>..HEAD
   python3 scripts/check-guard-bite.py --all           # C2 跑**本 job 的**每一条（不只范围内的）
   python3 scripts/check-guard-bite.py --all --job all # C2 跑**台账里每一条**（开发机；CI 分派跑 ✗）
   python3 scripts/check-guard-bite.py --list          # 只印：台账覆盖了谁 · 谁是 grandfathered · A/B 分类
-  python3 scripts/check-guard-bite.py --counts        # 只印 A/B/锚/上限的**机器可读**计数（JSON）
+  python3 scripts/check-guard-bite.py --counts        # 只印 A/B/锚/上限/两面的**机器可读**计数（JSON）
   python3 scripts/check-guard-bite.py --anchors <f>   # 换一份分类登记表（复现 / 咬住证明用 ✓）
   python3 scripts/check-guard-bite.py --reopen-empty  # ⭐ ① 翻账：咬不住的 ⇒ reopen 它关掉的那条
-  python3 scripts/check-guard-bite.py --selftest      # 正反两向（含"bite 返回 0 ⇒ 必须判红"）
+  python3 scripts/check-guard-bite.py --selftest      # 正反两向（含"bite 返回 0 ⇒ 必须判红"·"只删 CI 面 ⇒ 判红"）
 """
 from __future__ import annotations
 
@@ -992,6 +1004,324 @@ def anchor_problems(root: Path, rows: list[dict]) -> tuple[list[str], list[str],
     return red, info, counts
 
 
+# ── **C12 双面**（本地自动面 ⇄ CI 面；**唯一一处** ✓）────────────────────────────
+#
+# 洞 `ZERO-OBS-GATE-CENSUS-BY-BEHAVIOUR` 第 4 轮（2026-10-17，`ng4`）。修前"两面"这个
+# 口径只长在 `.cache/ux/fix-ng*/census.py`（**证据**、不是闸 ✓）：`wired_scripts()` 是
+# `ci-local.sh` **∪** `ci.yml` 的**并集** ⇒ **只删 CI 面、本地还在** ⇒ 枚举不变 ⇒
+# C6 照样绿 ✗。C12 把那一格钉住。
+#
+# 口径（与 `.cache/ux/fix-ng{1..4}/census.py` 的 (d) **逐条同读** —— 实测 41 条上
+# 读数**完全相同** ✓：两面都有 29 · CI 面缺 6 · 本地面缺 6 · 两面都缺 0）：
+#   * **本地面** = `scripts/ci-local.sh` 的非注释行 ∪ `scripts/githooks/*` 的非注释行
+#     （两条自动路：`pre-push` → `ci-local.sh --fast` ✓ · `core.hooksPath` 的钩子 ✓）；
+#   * **CI 面** = **任一** `.github/workflows/*.yml` 的 **`run:` 正文**（复用
+#     `run_bodies()` ✓ —— 注释与 step 名里点名**不算**调用，同接线臂 ✓）。
+#   ⚠ **如实划的两条边界** ✗（不是密封）：①本判据**不建模** `if [ "$FAST" = 0 ]` 门控
+#   （本地面按"非注释行"算）—— 实测 41 条里**没有**任何守卫只出现在门控步里（门控步
+#   4 个 · 只在门控步里的守卫 **0** 条 ✓），且差异只可能在**更严**那一侧（只在门控步 +
+#   CI 面也缺 ⇒ 照样判红 ✓）；②行内注释不剥（与 `_non_comment_lines()` **同一个口径** ✓，
+#   实测与普查逐条同读 ✓）。
+#
+# **判红（CI 侧）**：本地面有它、CI 面没有 ⇒ 在**不跑 hook 的推送**上它**整个不存在** ✗。
+# **印读数（本地侧）**：CI 面有它、本地面没有 ⇒ `ⓘ` + 计数，**不判红** ✗ —— 那只是
+#   "红**晚** 33–35 分钟被发现"，而且现存那一条（`scripts/check-site.py`）接上去
+#   **当场会红**（实测 rc=1 · `site/data/site.json` 与最新 tag 不一致）⇒ 按 E18
+#   「守卫一旦叫狼来了，正确的反应就变成加豁免 ⇒ 它就死了」**如实留洞 + 印出来**，
+#   **不许**用豁免盖住 ✗（逐条读数见 `.cache/ux/fix-ng4/VERDICT.md`）。
+#
+# **豁免**（登记表 `docs/guard-anchors.jsonl` 的 `guard`/`tool` 行加 `faces` 字段）：
+#     "faces": {"ci": {"witness": "<闭集里的一档>", "object": "<只有 local-artifact 用>"}}
+# ⚠⭐ **数据只能「选」witness，不能「定义」它**（一档一份实现、就在下面 ✓ ⇒ 加一档 =
+#   改本判据 = 一次评审 ✓）；每档都要过**判据自己现算**的机械事实 ⇒ **事实消失 ⇒ 豁免
+#   当场失效（判红）** ✓；**豁免腐烂**（声明那一面不存在、其实有）也判红 ✗ ⇒ 这就是它
+#   **不会变成"什么都豁免"**的那条底 ✓（逐档理由见下表）。
+FACE_WITNESSES = {
+    "tool": "该行本来就是 `kind: tool`（**不是独立判据** ⇒ 没有「该在哪判」这回事 ✓）",
+    "masked-readout": "它在本地面上的调用点**全部**在 `soft()` 里（rc 不传播 ⇒ 它是"
+                      "**读数不是闸** ⇒ 两面都没有判红义务 ✓）",
+    "local-artifact": "它判的是**本机产物**（声明的 `object` **不在** `git ls-files` 里、"
+                      "且被 `git check-ignore` 命中 ⇒ CI 的干净检出里**没有这个对象** ✓）",
+    "pre-push-object": "它的自动面是 **git 钩子**（推送前那一刻）：对象是**那一刻才有的**"
+                       "（钩子实参 `\"$1\"` / `--from-hook` 对照表 / 远端未完成的 run ✓）"
+                       "⇒ CI 上没有那个时刻 ✓",
+    "binary-precondition": "它需要**一份不在仓库里的可执行产物**：喂它一个解析不到的"
+                           "`SOKONANODA_BIN` ⇒ 它**自报判不了（rc=3）**而不是判绿 ⇒ "
+                           "接进 pre-push 会在**没编过的树**里结构性假红 ✗",
+}
+FACE_NAMES = ("local", "ci")
+FACE_LOCAL_FILES = ("scripts/ci-local.sh",)
+FACE_HOOK_DIR = "scripts/githooks"
+FACE_WORKFLOW_GLOB = ".github/workflows/*.yml"
+FACE_PROBE_TIMEOUT_S = 120
+
+
+def _face_scripts(text: str, root: Path) -> set[str]:
+    """文本里**真存在**的 `scripts/*.py`（幽灵名字不算 ✓ —— 同 `wired_scripts()` 的口径 ✓）。"""
+    return {tok for tok in _SCRIPT_PATH_RE.findall(text) if (root / tok).is_file()}
+
+
+def _face_shell_lines(text: str) -> str:
+    """shell 文件的**非注释行**：整行注释 + **行内注释**都去掉 ✓。
+
+    ⚠ **行内注释必须去**（**实测** ✗，2026-10-17）：`ci-local.sh` 的 `soft()` **定义行**
+    尾巴上写着「理由见 `scripts/release-metric.py` 头部」⇒ 不去的话 `release-metric.py`
+    会被算成**一处 `run` 步**（它其实**只有**一处 `soft` 调用）⇒ `masked-readout` 的
+    witness 当场**假红** ✓（C12 自己逮到的第一件事）。口径与 `.cache/ux/fix-ng*/census.py`
+    的 `strip_comments()` **逐字同一条**（只认**前面有空白**的 `#` ✓）。
+    ⚠ **不动 `_non_comment_lines()`** ✗ —— 它是 `wired_scripts()`（接线臂 / C6 的口径）用的，
+    改它会动**枚举**（`guard_scripts()`）⇒ 那是另一件事 ✓。
+    """
+    out: list[str] = []
+    for ln in text.splitlines():
+        if ln.strip().startswith("#"):
+            continue
+        for i, ch in enumerate(ln):
+            if ch == "#" and i > 0 and ln[i - 1] in " \t":
+                ln = ln[:i]
+                break
+        out.append(ln)
+    return "\n".join(out)
+
+
+def _face_code(root: Path, rel: str) -> str:
+    """一个文件的**非注释源码**（点名要真的在**代码**里 —— 注释里点名不算 ✗）。
+
+    shell（`ci-local.sh` / `scripts/githooks/*`）走**行内注释也剥**那一档 ✓；
+    Python 守卫沿用 `_non_comment_lines()`（与接线臂**同一个口径** ✓，实测与普查逐条同读 ✓）。
+    """
+    p = root / rel
+    if not p.is_file():
+        return ""
+    text = p.read_text(encoding="utf-8", errors="replace")
+    if rel.endswith(".sh") or rel.startswith(f"{FACE_HOOK_DIR}/"):
+        return _face_shell_lines(text)
+    return _non_comment_lines(text)
+
+
+def local_face_scripts(root: Path = ROOT) -> set[str]:
+    """**本地自动面**：`ci-local.sh` 非注释行 ∪ `scripts/githooks/*` 非注释行 ✓（唯一一处 ✓）。"""
+    found: set[str] = set()
+    for rel in FACE_LOCAL_FILES:
+        found |= _face_scripts(_face_code(root, rel), root)
+    hooks = root / FACE_HOOK_DIR
+    if hooks.is_dir():
+        for h in sorted(hooks.iterdir()):
+            if h.is_file():
+                found |= _face_scripts(_face_code(root, f"{FACE_HOOK_DIR}/{h.name}"), root)
+    return found
+
+
+def ci_face_scripts(root: Path = ROOT) -> set[str]:
+    """**CI 面**：**任一** workflow 的 `run:` 正文里真调用的 `scripts/*.py` ✓（唯一一处 ✓）。"""
+    found: set[str] = set()
+    for wf in sorted(root.glob(FACE_WORKFLOW_GLOB)):
+        if wf.is_file():
+            found |= _face_scripts(run_bodies(wf.read_text(encoding="utf-8", errors="replace")), root)
+    return found
+
+
+def _face_git(root: Path, argv: list[str]) -> tuple[int, str]:
+    """C12 要**退出码**（`check-ignore` 的 0/1/128 三档语义不同 ✓）⇒ 与 `_git()` 分开这一小档。
+
+    ⚠ 同样 `env=git_env.clean_git_env()`（`GIT_DIR` **优先于 cwd** ⇒ 不清会量到**调用者**的仓 ✗）。
+    """
+    out = subprocess.run(["git", *argv], cwd=root, capture_output=True, text=True,
+                         errors="replace", env=git_env.clean_git_env())
+    return out.returncode, out.stdout
+
+
+def _face_witness_problems(root: Path, g: str, face: str, spec: dict, row: dict) -> list[str]:
+    """一条 `faces` 声明要过的**机械事实**（**一档一份实现** ✓）。空 = 成立 ✓。"""
+    red: list[str] = []
+    kind = spec.get("witness")
+    if kind not in FACE_WITNESSES:
+        return [f"**C12 witness 不认** ✗：`{g}` 的 `{face}` 面声明了 {kind!r} —— 只许闭集里的 "
+                f"{sorted(FACE_WITNESSES)}（**数据只能选、不能定义** ✗）"]
+    extra = sorted(set(spec) - {"witness", "object"})
+    if extra:
+        red.append(f"**C12 witness 多余字段** ✗：`{g}` 的 `{face}` 声明里多了 {extra}"
+                   f"（只许 `witness` / `object`）")
+    code = _face_code(root, g)
+    if kind == "tool":
+        if row.get("kind") != "tool":
+            red.append(f"**C12 witness 不成立** ✗：`{g}` 声明 `tool`，但登记表里它不是 "
+                       f"`kind: tool` 行 ⇒ 「我不是独立判据」这句话**没有登记表撑腰** ✗")
+    elif kind == "masked-readout":
+        hits = [ln for ln in _face_code(root, FACE_LOCAL_FILES[0]).splitlines()
+                if g in ln or Path(g).name in ln]
+        if not hits:
+            red.append(f"**C12 witness 不成立** ✗：`{g}` 声明 `masked-readout`，但它在 "
+                       f"`{FACE_LOCAL_FILES[0]}` 的**非注释行**里一处也没有 ⇒ 它**不在本地面** ⇒ "
+                       f"这个 witness 是空话 ✗")
+        elif not all(ln.strip().startswith("soft ") for ln in hits):
+            red.append(f"**C12 witness 不成立** ✗：`{g}` 声明 `masked-readout`，但它在本地面"
+                       f"**不是全部**被 `soft()` 包着（找到 {len(hits)} 处，其中 "
+                       f"{sum(1 for ln in hits if not ln.strip().startswith('soft '))} 处是 `run` 步 "
+                       f"⇒ **它会判红** ⇒ 判红语义存在 ⇒ 该接进 CI ✗）")
+    elif kind == "local-artifact":
+        obj = str(spec.get("object") or "").strip()
+        if not obj or obj.startswith("/") or ".." in obj.split("/"):
+            red.append(f"**C12 witness 不成立** ✗：`{g}` 的 `local-artifact` 必须写一个"
+                       f"**仓库相对**的 `object`（给的是 {obj!r}）")
+        else:
+            trc, tout = _face_git(root, ["ls-files", "--cached", "--", obj])
+            irc, _iout = _face_git(root, ["check-ignore", "-q", "--", obj])
+            if trc != 0 or irc not in (0, 1):
+                red.append(f"**C12 witness 判不了** ✗：`{g}` 的 `object` = `{obj}` 在 `{root}` 上"
+                           f"问不了 git（`ls-files` rc={trc} · `check-ignore` rc={irc}）⇒ "
+                           f"**不假装判过** ✗")
+            elif tout.strip():
+                red.append(f"**C12 witness 不成立** ✗：`{g}` 声明 `{obj}` 是**本机产物**，但它"
+                           f"**在仓库里**（`git ls-files` 命中）⇒ CI 的检出**有**这个对象 ⇒ "
+                           f"CI 面在语义上**存在** ✗")
+            elif irc != 0:
+                red.append(f"**C12 witness 不成立** ✗：`{g}` 声明 `{obj}` 是**本机产物**，但它"
+                           f"**没有被 `git check-ignore` 命中**（不是被忽略的本机产物）✗")
+            if obj and obj not in code:
+                red.append(f"**C12 witness 不成立** ✗：`{g}` 声明它的对象是 `{obj}`，但 `{obj}` "
+                           f"在**它自己的非注释源码**里一次都没出现 ⇒ 声明与闸对不上"
+                           f"（**声明不能凭空指一个别处的路径** ✗）")
+    elif kind == "pre-push-object":
+        hook_names: list[str] = []
+        hooks_dir = root / FACE_HOOK_DIR
+        if hooks_dir.is_dir():
+            for h in sorted(hooks_dir.iterdir()):
+                if not h.is_file():
+                    continue
+                htext = _face_code(root, f"{FACE_HOOK_DIR}/{h.name}")
+                if g in htext or Path(g).name in htext:
+                    hook_names.append(h.name)
+        if not hook_names:
+            red.append(f"**C12 witness 不成立** ✗：`{g}` 声明 `pre-push-object`，但它不在 "
+                       f"`{FACE_HOOK_DIR}/` 的**非注释行**里 ⇒ 它没有「推送前那一刻」这条面 ✗")
+        else:
+            hook_text = "\n".join(_face_code(root, f"{FACE_HOOK_DIR}/{n}") for n in hook_names)
+            if not ('"$1"' in hook_text or "--from-hook" in hook_text or "gh" in code):
+                red.append(f"**C12 witness 不成立** ✗：`{g}` 声明 `pre-push-object`，但它所在的"
+                           f"钩子**没传「那一刻才有的实参」**（`\"$1\"` / `--from-hook`）、"
+                           f"它的源码里也没有 `gh`（远端 run 状态）⇒ 对象**不是那一刻才有的** ✗")
+    elif kind == "binary-precondition":
+        if "SOKONANODA_BIN" not in code:
+            red.append(f"**C12 witness 不成立** ✗：`{g}` 声明 `binary-precondition`，但它的"
+                       f"非注释源码里**没有** `SOKONANODA_BIN` ⇒ 它**不吃这个前提** ✗")
+        elif (root / g).resolve() == Path(__file__).resolve():
+            red.append("**C12 witness 判不了** ✗：探针的对象是**本文件自己** ⇒ 会递归 ⇒ "
+                       "**不假装判过** ✗（换一档 witness，或把这档的探针改成不跑自己 ✗）")
+        else:
+            missing = str(Path(tempfile.gettempdir()) / "soko-c12-no-such-binary")
+            try:
+                proc = subprocess.run([sys.executable, str(root / g)], cwd=root,
+                                      capture_output=True, text=True, encoding="utf-8",
+                                      errors="replace", timeout=FACE_PROBE_TIMEOUT_S,
+                                      env={**os.environ, "SOKONANODA_BIN": missing})
+                if proc.returncode != 3:
+                    red.append(f"**C12 witness 不成立** ✗：`{g}` 声明 `binary-precondition`，但喂它 "
+                               f"`SOKONANODA_BIN={missing}` 时它 **rc={proc.returncode}**（不是 3）⇒ "
+                               f"它并不「判不了」，而是**能判** ⇒ 该接进本地面 ✗")
+            except subprocess.TimeoutExpired:
+                red.append(f"**C12 witness 判不了** ✗：`{g}` 的探针超时（>{FACE_PROBE_TIMEOUT_S}s）"
+                           f"⇒ **不假装判过** ✗")
+    return red
+
+
+def face_problems(root: Path = ROOT, rows: list[dict] | None = None) -> tuple[list[str], list[str], dict]:
+    """**C12 双面** ⇒ (红, 信息, 计数)。**唯一一处** ✓（口径与豁免的闭集见上面那段注释 ✓）。
+
+    ⚠ **两个方向刻意不对称**（**理由**，不是随手 ✗）：
+    * **CI 侧缺 ⇒ 判红**：本地面有、CI 面没有 ⇒ 在**不跑 hook 的推送**上它**整个不存在**
+      ⇒ 那条闸的**全部**保护都蒸发了 ✗（这是"不存在"，不是"晚知道"）。
+    * **本地侧缺 ⇒ 只印 `ⓘ` 不判红**：CI 面有、本地面没有 ⇒ 保护**在**、只是红**晚**
+      33–35 分钟被发现 ✗ —— 而且现存那一条（`scripts/check-site.py`）**接上去当场会红**
+      （实测 `rc=1`：`site/data/site.json` 与最新 tag 不一致；`pages.yml` 是**路径门控**的
+      ⇒ 这条红**在真仓里已经存在**、只是没人看见）⇒ 按 `E18`「守卫一旦叫狼来了，正确的
+      反应就变成加豁免 ⇒ 它就死了」**如实留洞 + 印出来**，**不许**用豁免盖住 ✗
+      （`ng1` 普查 §3.C 把这一类逐条记着后果 ✓）。
+    ⚠ 与 C6 的分工：**没分类的守卫由 C6 判**（这里跳过、不重复判 ✗）。
+    """
+    red: list[str] = []
+    info: list[str] = []
+    if rows is None:
+        rows, err = load_anchors(ANCHORS)
+        if err:
+            return [f"**C12 判不了** ✗：{err}"], [], {}
+    scope = guard_scripts(root)
+    local = local_face_scripts(root)
+    ci = ci_face_scripts(root)
+    by_path: dict[str, dict] = {}
+    for r in rows:
+        if r.get("kind") == "guard" and r.get("guard"):
+            by_path[str(r["guard"])] = r
+        elif r.get("kind") == "tool" and r.get("tool"):
+            by_path[str(r["tool"])] = r
+    counts: dict = {"total": len(scope), "both": 0, "ci_missing": 0, "local_missing": 0,
+                    "neither": 0, "ci_exempt": 0, "local_exempt": 0,
+                    "ci_open": [], "local_open": [], "neither_open": [],
+                    "witnesses": {}}
+    for g in scope:
+        row = by_path.get(g)
+        if row is None:
+            continue                      # 没分类 ⇒ **C6 覆盖**在判它（不重复判 ✗）
+        decl = row.get("faces") or {}
+        if not isinstance(decl, dict):
+            red.append(f"**C12** ✗：`{g}` 的 `faces` 必须是**对象**（面 → witness ✓）")
+            continue
+        have = {"local": g in local, "ci": g in ci}
+        for face in sorted(decl):
+            if face not in FACE_NAMES:
+                red.append(f"**C12 未知面** ✗：`{g}` 的 `faces` 里出现 `{face}`"
+                           f"（只能是 {' / '.join(FACE_NAMES)}）")
+                continue
+            if have[face]:
+                red.append(f"**C12 豁免腐烂** ✗：`{g}` 声明 `{face}` 面不存在，但它**有**那一面 "
+                           f"（接线在 `{' / '.join(FACE_LOCAL_FILES)}` 或 `{FACE_HOOK_DIR}/*` 或 "
+                           f"`{FACE_WORKFLOW_GLOB}` 的 `run:` 正文里 ✓）⇒ 豁免是**多余的** ⇒ "
+                           f"**删掉这条 `faces` 声明** ✗")
+                continue
+            spec = decl[face]
+            if not isinstance(spec, dict):
+                red.append(f"**C12** ✗：`{g}` 的 `faces.{face}` 必须是对象"
+                           f"（`{{\"witness\": …}}` ✓）")
+                continue
+            wred = _face_witness_problems(root, g, face, spec, row)
+            red.extend(wred)
+            if not wred:
+                counts[f"{face}_exempt"] += 1
+                w = str(spec.get("witness"))
+                counts["witnesses"][w] = counts["witnesses"].get(w, 0) + 1
+        if have["local"] and have["ci"]:
+            counts["both"] += 1
+        elif have["local"] and not have["ci"]:
+            counts["ci_missing"] += 1
+            if "ci" not in decl:
+                counts["ci_open"].append(g)
+                red.append(
+                    f"**C12 CI 面缺** ✗：`{g}` **本地面有它**（`{' / '.join(FACE_LOCAL_FILES)}` 的"
+                    f"非注释行 / `{FACE_HOOK_DIR}/*` ✓）但 **CI 面没有**（**任一** workflow 的 "
+                    f"`run:` 正文里都没有它）⇒ 在**不跑 hook 的推送**（`--no-verify` / 机器人 / "
+                    f"没装 `core.hooksPath` 的检出）上它**整个不存在** ✗。出路二选一："
+                    f"①接进某个 workflow 的 `run:` 正文（**注释 / step 名里点名不算** ✗）；"
+                    f"②若它的判据对象**在 CI 上按定义不存在** ⇒ 在 `{ANCHORS.name}` 那一行加 "
+                    f"`\"faces\": {{\"ci\": {{\"witness\": \"…\"}}}}`（闭集："
+                    f"{' / '.join(sorted(FACE_WITNESSES))} —— **数据只能选、不能定义** ✓）")
+        elif not have["local"] and not have["ci"]:
+            counts["neither"] += 1
+            if "local" not in decl or "ci" not in decl:
+                counts["neither_open"].append(g)
+                red.append(f"**C12 两面都缺** ✗：`{g}` 在 `{' / '.join(FACE_LOCAL_FILES)}` / "
+                           f"`{FACE_HOOK_DIR}/*` 与**任一** workflow 的 `run:` 正文里**都没有** ⇒ "
+                           f"它**谁都不跑**（名字臂收进来的守卫也可能一格都没接 ⇒ 同族病 ✗）⇒ "
+                           f"接进任一面，或按闭集 witness 声明**两面** ✓")
+        else:
+            counts["local_missing"] += 1
+            if "local" not in decl:
+                counts["local_open"].append(g)
+                info.append(f"ⓘ C12 **本地侧缺**（**不判红** —— 保护还在、只是红**晚** 33–35 分钟"
+                            f"被发现 ✗）：`{g}` —— 它**没有 witness**（= 真洞，不是「本地面语义上"
+                            f"不存在」✗；接上去之前先解决它自己的前提，别用豁免盖住 ✗）")
+    return red, info, counts
+
+
 def run_proof(cmd: str, root: Path, timeout: int = PROOF_TIMEOUT_S) -> tuple[int, str]:
     """跑一条证明 ⇒ (rc, 尾行摘要)。**唯一一处** ✓（`shell=True`：证明是**一条命令** ✓）。"""
     try:
@@ -1158,6 +1488,23 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
                 print(f"  ✓ C8 预算：B **{a_counts['b']} ≤ {a_counts['cap']}**（每轮 −2，目标 "
                       f"{a_counts['floor']}）· ⭐ A **{a_counts['a']} 条不进任何上限**（锚定型无限预算 ✓）")
             for m in a_info:
+                print(f"  {m}")
+
+        # ── **C12 双面**（本地自动面 ⇄ CI 面；第 4 轮 `ng4` ✓）───────────────────
+        #   ⚠ **不过滤 job**（与 C6/C7/C8 同一条口径 ✓）：两面是**接线**的事，不是
+        #   "哪批证明跑在哪"的事 ⇒ 每个 job 都判它 ✓。
+        f_red, f_info, f_counts = face_problems(root, arows)
+        red.extend(f_red)
+        if not quiet:
+            if not f_red:
+                print(f"  ✓ C12 双面：两面都有 **{f_counts['both']}** 条 · **CI 面缺** "
+                      f"{f_counts['ci_missing']}（**全部有 witness** ✓）· **本地面缺** "
+                      f"{f_counts['local_missing']}（witness {f_counts['local_exempt']} · "
+                      f"**真洞 {len(f_counts['local_open'])}**）· 两面都缺 {f_counts['neither']}")
+                print(f"    ⓘ C12 豁免分档（**数据只能选 witness、不能定义它** ✓ —— 一档一份实现"
+                      f"就在本文件里）：" + " · ".join(
+                          f"{k} ×{v}" for k, v in sorted(f_counts["witnesses"].items())))
+            for m in f_info:
                 print(f"  {m}")
 
     # ── C2 咬得住 ───────────────────────────────────────────────────────
@@ -1511,6 +1858,86 @@ def selftest(job: str = DEFAULT_JOB) -> int:
              and c_cl["coverless_tools"] == ["scripts/renamed-guard.py"],
              f"红 {len(red_cl)} · info {len(info_cl)} · coverless {c_cl['coverless_tools']}")
 
+        # ⭐⭐ **C12 双面**（第 4 轮 `ng4`）：**只删 CI 面、本地还在** ⇒ 必须判红 ✓
+        #   （修前这条形状**枚举不变** ⇒ C6 照样绿 ✗ —— 本轮把它变成判红 ✓）。
+        def _face_root(tag: str, ci_line: str | None, local_kind: str = "run") -> Path:
+            """夹具：一个守卫**本地面有**（`ci-local.sh` 的 `run`/`soft` 步 ✓）+ CI 面按参数 ✓。
+
+            ⚠ `tag` **必须每个臂都不一样**（**实测踩到过** ✗：同名目录会让上一条臂留下的
+            `githooks/` 影响下一条 ⇒ 反向㉓ 拿到的是"CI 面缺"而不是"两面都缺" ✓）。
+            ⚠ 夹具仓里**没有** `docs/guard-anchors.jsonl` ⇒ 真跑时 C12 会被 C6 那条
+            "不是台账所属的仓 ⇒ 本跑不判"兜住 ✓；这里**直接调** `face_problems()` ✓。
+            """
+            r = ta / f"faces-{tag}"
+            (r / "scripts").mkdir(parents=True, exist_ok=True)
+            (r / "scripts" / "check-fixture-face.py").write_text(
+                "# 夹具守卫（不吃 SOKONANODA_BIN ✓）\n", encoding="utf-8")
+            (r / "scripts" / "ci-local.sh").write_text(
+                f'{local_kind} "夹具" python3 scripts/check-fixture-face.py\n', encoding="utf-8")
+            wf = r / ".github" / "workflows"
+            wf.mkdir(parents=True, exist_ok=True)
+            step = f"      - run: {ci_line}\n" if ci_line else "      - run: echo hi\n"
+            (wf / "ci.yml").write_text(f"jobs:\n  lint:\n    steps:\n{step}", encoding="utf-8")
+            return r
+
+        def _face_row(extra: dict | None = None) -> list[dict]:
+            row = {"kind": "guard", "guard": "scripts/check-fixture-face.py", "class": "A",
+                   "anchors": ["A-FIXTURE"], "why": "夹具：双面守卫"}
+            if extra:
+                row.update(extra)
+            return [row]
+
+        f_both = _face_root("both", "python3 scripts/check-fixture-face.py")
+        f_red, _fi, fc = face_problems(f_both, _face_row())
+        gate("⭐⭐ 正对照：夹具守卫**两面都有** ⇒ C12 无红", not f_red,
+             f"两面都有 {fc.get('both')} · CI 面缺 {fc.get('ci_missing')}")
+        # ⭐⭐ **本轮的反向验证**：只删 CI 面（本地的 `run` 步还在）⇒ 必须判红并点名它 ✓
+        f_noci = _face_root("noci", None)
+        f_red2, _fi2, _fc2 = face_problems(f_noci, _face_row())
+        gate("⭐⭐ 反向⑳：**只删 CI 面、本地还在** ⇒ 判红（C12 —— 修前这条形状枚举不变、C6 绿）",
+             any("C12 CI 面缺" in m and "check-fixture-face" in m for m in f_red2),
+             f"红 {len(f_red2)} 条")
+        if f_red2:
+            print(f"      ↳ 本臂判红原文（**不是本跑的判据** ✓）：{f_red2[0][:90]}")
+        # 正对照：**豁免成立**（`masked-readout` + 本地确实是 `soft` 步）⇒ 不判红 ✓
+        f_soft = _face_root("soft", None, local_kind="soft")
+        f_red3, _fi3, fc3 = face_problems(f_soft, _face_row(
+            {"faces": {"ci": {"witness": "masked-readout"}}}))
+        gate("⭐⭐ 正对照：**豁免成立**（`masked-readout` + 本地确实是 `soft` 步）⇒ 不判红",
+             not f_red3, f"CI 面缺 {fc3.get('ci_missing')} · 豁免 {fc3.get('ci_exempt')}")
+        # 正对照：`pre-push-object`（钩子面 + 那一刻的实参）真的成立 ⇒ 不判红 ✓
+        f_hook = _face_root("hook", None)
+        (f_hook / "scripts" / "githooks").mkdir(parents=True, exist_ok=True)
+        (f_hook / "scripts" / "githooks" / "commit-msg").write_text(
+            'python3 scripts/check-fixture-face.py --check --message-file "$1"\n', encoding="utf-8")
+        f_red4, _fi4, fc4 = face_problems(f_hook, _face_row(
+            {"faces": {"ci": {"witness": "pre-push-object"}}}))
+        gate('⭐⭐ 正对照：`pre-push-object`（钩子面 + `"$1"` 那一刻的实参）⇒ 不判红',
+             not f_red4, f"CI 面缺 {fc4.get('ci_missing')} · 豁免 {fc4.get('ci_exempt')}")
+        # 正对照：`tool`（`kind: tool` 那一行）⇒ 豁免成立 ✓
+        f_red5, _fi5, fc5 = face_problems(f_noci, [
+            {"kind": "tool", "tool": "scripts/check-fixture-face.py",
+             "why": "夹具：工具、不是独立判据", "faces": {"ci": {"witness": "tool"}}}])
+        gate("⭐⭐ 正对照：`tool`（登记表那一行本来就是 `kind: tool`）⇒ 豁免成立、不判红",
+             not f_red5, f"CI 面缺 {fc5.get('ci_missing')} · 豁免 {fc5.get('ci_exempt')}")
+        # 反向：**豁免腐烂**（声明那一面不存在、其实有）⇒ 判红 ✓
+        f_red6, _fi6, _fc6 = face_problems(f_both, _face_row(
+            {"faces": {"ci": {"witness": "masked-readout"}}}))
+        gate("⭐⭐ 反向㉑：**豁免腐烂**（声明 CI 面不存在、其实两面都有）⇒ 判红",
+             any("C12 豁免腐烂" in m for m in f_red6), f"红 {len(f_red6)} 条")
+        # 反向：**witness 不成立**（声明 `binary-precondition`，夹具却**不吃** `SOKONANODA_BIN`）⇒ 判红 ✓
+        f_red7, _fi7, _fc7 = face_problems(f_noci, _face_row(
+            {"faces": {"ci": {"witness": "binary-precondition"}}}))
+        gate("⭐⭐ 反向㉒：witness **不成立**（夹具不吃 `SOKONANODA_BIN`）⇒ 判红"
+             "（**数据只能选、不能定义**）",
+             any("C12 witness 不成立" in m for m in f_red7), f"红 {len(f_red7)} 条")
+        # 反向：**两面都缺**（连本地调用也删掉）⇒ 判红（谁都不跑 ⇒ 同族病）✓
+        f_nowhere = _face_root("nowhere", None)
+        (f_nowhere / "scripts" / "ci-local.sh").write_text("# 夹具：没有调用\n", encoding="utf-8")
+        f_red8, _fi8, _fc8 = face_problems(f_nowhere, _face_row())
+        gate("⭐⭐ 反向㉓：**两面都缺**（本地调用也删掉）⇒ 判红（谁都不跑 ⇒ 同族病）",
+             any("C12 两面都缺" in m for m in f_red8), f"红 {len(f_red8)} 条")
+
         # ⭐⭐ 反向⑨ = **两头的那一头**：**A 类增长 ⇒ 不判红** ✓
         #   A 类**不进任何上限**（用户【①】：锚定型无限预算）⇒ 这不是"我们选择不判"，
         #   是**结构性不可能**：`anchor_problems` 里 A 只被印出来、从不与任何 cap 比较 ✓。
@@ -1815,7 +2242,8 @@ def selftest(job: str = DEFAULT_JOB) -> int:
           f"含**锚的两头**：B 超上限 ⇒ 判红 · A 增长 ⇒ 不判红 ✓"
           f" · **枚举面**：改了名的守卫仍在口径里 ✓ · 幽灵名字不进 ✓ · `tool` 悬空覆盖 ⇒ 判红 ✓"
           f" · **夹具前提**：钉的状态夹具不是合法状态 ⇒ 判红 ✓"
-          f" · **命令前提**：命令位钉了一个不在树里的路径 ⇒ 判红 ✓（参数里的路径**不**判 ✓））")
+          f" · **命令前提**：命令位钉了一个不在树里的路径 ⇒ 判红 ✓（参数里的路径**不**判 ✓）"
+          f" · **两面**：只删 CI 面 ⇒ 判红 ✓ · 豁免腐烂 / witness 不成立 ⇒ 判红 ✓）")
     return 0 if bad == 0 else 1
 
 
@@ -1835,7 +2263,7 @@ def main(argv=None) -> int:
                          "--open-round` 就是这么调的 ✓）")
     ap.add_argument("--list", action="store_true", help="只印覆盖情况（含 grandfathered 清单 + A/B 分类）")
     ap.add_argument("--counts", action="store_true",
-                    help="只印 A/B/锚/上限的**机器可读**计数（JSON；给 ratchet 读数用 ✓）")
+                    help="只印 A/B/锚/上限/两面的**机器可读**计数（JSON；给 ratchet 读数用 ✓）")
     ap.add_argument("--anchors", default=None,
                     help="分类登记表路径（缺省 `docs/guard-anchors.jsonl`；复现 / 咬住证明用 ✓）")
     ap.add_argument("--reopen-empty", action="store_true",
@@ -1867,8 +2295,10 @@ def main(argv=None) -> int:
             print(json.dumps({"ok": False, "error": aerr}, ensure_ascii=False))
             return 3
         a_red, _a_info, a_counts = anchor_problems(root, arows)
-        print(json.dumps({"ok": not a_red, "red": a_red, **a_counts}, ensure_ascii=False))
-        return 1 if a_red else 0
+        f_red, _f_info, f_counts = face_problems(root, arows)
+        print(json.dumps({"ok": not (a_red or f_red), "red": a_red + f_red, **a_counts,
+                          "faces": f_counts}, ensure_ascii=False))
+        return 1 if (a_red or f_red) else 0
     if args.list:
         return list_coverage(root, ledger, anchors)
     return check(root, ledger, args.since, args.all, reopen_empty=args.reopen_empty,

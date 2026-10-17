@@ -40,32 +40,37 @@
 {"kind": "anchor", "id": "A-PRODUCT-PROGRESS", "strength": "process", "site": "用户每轮实际拿到的东西", "action": "看这一轮改了多少产品面", "reading": "产品面进展 vs 账本/工具（文档不爆 · 注意力不被簿记吃掉）"}
 {"kind": "anchor", "id": "A-RELEASE-NOT-BLOCKED", "strength": "process", "site": "用户拿到的下一个版本", "action": "等 bump + push + release", "reading": "非用户面的门禁红不许把发版拖住（阈值不许是装饰 · 磁盘/CI 配置不许炸）"}
 {"kind": "anchor", "id": "A-RELEASE-ARTIFACTS", "strength": "process", "site": "用户装到的 VSIX / CLI / LSP", "action": "装最新版本用一次", "reading": "装到的是最新代码（未发版量可数、会涨、会判红）"}
+# ⚠ `scripts/check-site.py` **故意没有** `faces`：它本地侧缺是**真洞**，不是
+#   「本地面语义上不存在」（`check-guard-bite.py` 的 C12 会把它印成 ⓘ + 真洞计数 ✓）。
+#   接进本地面之前先解决它自己的前提：实测 `python3 scripts/check-site.py` rc=1
+#   （`site/data/site.json` 与最新 tag 不一致 · 出路是 `gen-site-data.py` —— 那是**发布闭环**
+#   的一步，见 `docs/RELEASE.md` §6.5）⇒ 接上去就是一条**没有出路的红** ✗（E18）。
 {"kind": "guard", "guard": "scripts/check-site.py", "class": "A", "anchors": ["A-SITE-BROWSER"], "why": "真 Chrome + 真 VS Code 截图（--browser / site-screenshot.mjs）"}
 {"kind": "guard", "guard": "scripts/check-infoview-hierarchy.py", "class": "A", "anchors": ["A-INFOVIEW-VISIBLE"], "why": "读扩展的 media/infoview.css（用户看的那张样式表）"}
 {"kind": "guard", "guard": "scripts/audit-infoview-css.py", "class": "A", "anchors": ["A-INFOVIEW-VISIBLE"], "why": "同族：同一条 UI 反馈的横向（双重压暗 / 标题小于正文）"}
 {"kind": "guard", "guard": "scripts/check-json-identity.py", "class": "A", "anchors": ["A-CLI-JSON-BYTES"], "why": "真 CLI 在整门课上跑两遍，比 stdout 与退出码逐字节"}
-{"kind": "guard", "guard": "scripts/check-recompile-factor.py", "class": "A", "anchors": ["A-KEYSTROKE-RECOMPILE"], "why": "真编译管线的 by_calls/passes 结构计数（不是耗时）"}
-{"kind": "guard", "guard": "scripts/check-progress-cadence.py", "class": "A", "anchors": ["A-TERMINAL-CADENCE"], "why": "人看的那条进度（逐文件 tick），跑真 build"}
-{"kind": "guard", "guard": "scripts/check-progress-gap.py", "class": "A", "anchors": ["A-TERMINAL-CADENCE"], "why": "build --json 事件流的最长空档（机器通道，但量的是用户等待）"}
+{"kind": "guard", "guard": "scripts/check-recompile-factor.py", "class": "A", "anchors": ["A-KEYSTROKE-RECOMPILE"], "why": "真编译管线的 by_calls/passes 结构计数（不是耗时）", "faces": {"local": {"witness": "binary-precondition"}}}
+{"kind": "guard", "guard": "scripts/check-progress-cadence.py", "class": "A", "anchors": ["A-TERMINAL-CADENCE"], "why": "人看的那条进度（逐文件 tick），跑真 build", "faces": {"local": {"witness": "binary-precondition"}}}
+{"kind": "guard", "guard": "scripts/check-progress-gap.py", "class": "A", "anchors": ["A-TERMINAL-CADENCE"], "why": "build --json 事件流的最长空档（机器通道，但量的是用户等待）", "faces": {"local": {"witness": "binary-precondition"}}}
 {"kind": "guard", "guard": "scripts/notation-lint.py", "class": "A", "anchors": ["A-COURSE-TEXT"], "why": "读 courses/**/*.sokonanoda 正文"}
 {"kind": "guard", "guard": "scripts/audit-wire-fields.py", "class": "A", "anchors": ["A-WIRE-FIELDS-VISIBLE"], "why": "扩展源码的读取点 vs LSP 源码的发送点（产品接缝）"}
 {"kind": "guard", "guard": "scripts/audit-notation-paths.py", "class": "A", "anchors": ["A-NOTATION-ON-SCREEN"], "why": "产品源码里记法转化的调用点（绕开唯一接口就判红）"}
 {"kind": "guard", "guard": "scripts/tactic-docs-lint.py", "class": "A", "anchors": ["A-TACTIC-REFERENCE"], "why": "产品源码字面量 vs reference/tactics/*.md 文件名"}
 {"kind": "guard", "guard": "scripts/check-guard-bite.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量别的判据：每条守卫必须咬住一条已存在的坏输入（+ 本轮的锚/预算）"}
 {"kind": "guard", "guard": "scripts/check-timing-evidence.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量提交信息里有没有计时数字（证据完备性，不是产品）"}
-{"kind": "guard", "guard": "scripts/check-lean4-alignment.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量提交信息/交付里有没有「先读 Lean 4」的对照记录"}
+{"kind": "guard", "guard": "scripts/check-lean4-alignment.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量提交信息/交付里有没有「先读 Lean 4」的对照记录", "faces": {"ci": {"witness": "pre-push-object"}}}
 {"kind": "guard", "guard": "scripts/check-threshold-ratchet.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量别的判据的上限：装饰性阈值（贴在实测上方 ⇒ 永远绿）"}
 {"kind": "guard", "guard": "scripts/check-attention-budget.py", "class": "B", "anchors": ["A-PRODUCT-PROGRESS"], "why": "量流程本身：簿记提交占比 / 比值（ratchet）"}
 {"kind": "guard", "guard": "scripts/check-frozen-headroom.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量预算余量：强制追加类不许把冻结余量吃到 0"}
 {"kind": "guard", "guard": "scripts/docs-lint.py", "class": "B", "anchors": ["A-PRODUCT-PROGRESS"], "why": "量文档体量 + 接手路径行数 + ⑨ 源码行数冻结（冻结会管住「代码该放哪」⇒ 见 why 的备注）"}
 {"kind": "guard", "guard": "scripts/status-lint.py", "class": "B", "anchors": ["A-PRODUCT-PROGRESS"], "why": "量 STATUS.md 的体量与形状（注意力预算）"}
 {"kind": "guard", "guard": "scripts/ci-yml-lint.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量 CI 配置本身（重复键 / job 形状）"}
-{"kind": "guard", "guard": "scripts/target-hygiene.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量 cargo target/ 体积（磁盘炸 ⇒ 构建与发版跑不动）"}
+{"kind": "guard", "guard": "scripts/target-hygiene.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量 cargo target/ 体积（磁盘炸 ⇒ 构建与发版跑不动）", "faces": {"ci": {"witness": "local-artifact", "object": "target"}}}
 {"kind": "guard", "guard": "scripts/gap.py", "class": "B", "anchors": ["A-LEDGER-TRUTH"], "why": "量缺口台账：复现与 status 一致（账的账）"}
 {"kind": "guard", "guard": "scripts/check-queue-views.py", "class": "B", "anchors": ["A-LEDGER-TRUTH"], "why": "量队列：第二份独立实现（判据的判据）"}
-{"kind": "guard", "guard": "scripts/check-queue-rewrite-trigger.py", "class": "B", "anchors": ["A-LEDGER-TRUTH"], "why": "量队列：rebase 后收口指针回填（git 钩子）"}
+{"kind": "guard", "guard": "scripts/check-queue-rewrite-trigger.py", "class": "B", "anchors": ["A-LEDGER-TRUTH"], "why": "量队列：rebase 后收口指针回填（git 钩子）", "faces": {"ci": {"witness": "pre-push-object"}}}
 {"kind": "guard", "guard": "scripts/check-multi-session.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量并行会话/分支：只有 main 出得起的两条红线"}
-{"kind": "guard", "guard": "scripts/check-one-run.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量 CI run：一次只让一条活着（否则「本地绿就算绿」）"}
+{"kind": "guard", "guard": "scripts/check-one-run.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量 CI run：一次只让一条活着（否则「本地绿就算绿」）", "faces": {"ci": {"witness": "pre-push-object"}}}
 {"kind": "guard", "guard": "scripts/check-ci-gate-coverage.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量 CI 接线：改了某范围 ⇒ 该跑的门禁跑没跑"}
 {"kind": "guard", "guard": "scripts/check-history-depth-wiring.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量 CI 接线：跑历史判据的 job 有没有全历史"}
 {"kind": "guard", "guard": "scripts/check-test-env-isolation.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量测试的环境档位隔离（混档 ⇒ 绿是假的）"}
@@ -73,12 +78,12 @@
 {"kind": "guard", "guard": "scripts/check-launcher-extension-link.py", "class": "B", "anchors": ["A-HARNESS-DOCS-MATCH"], "why": "量声明：AGENTS 说「扩展自带」vs 启动器代码（实测是死分支）"}
 {"kind": "guard", "guard": "scripts/check-lsp-marker-seam.py", "class": "B", "anchors": ["A-HARNESS-DOCS-MATCH"], "why": "量声明：marker 文档 vs 两处写入点"}
 {"kind": "anchor", "id": "A-VERSION-SOURCES", "strength": "direct", "site": "用户装到的 VSIX / CLI / LSP 的版本号", "action": "装一次、核对它与仓库版本一致", "reading": "两处版本源（Cargo.toml / editor/vscode/package.json）一致 ⇒ auto-tag 打得出来；不一致 ⇒ 发版卡住、用户装到旧版"}
-{"kind": "guard", "guard": "scripts/release-metric.py", "class": "A", "anchors": ["A-RELEASE-ARTIFACTS"], "why": "交付维度的量具：未发版 N 笔 / 距上次发版 H 小时（用户手上还是旧版）—— 后果**直接落在用户手上**（rec1 的分类 ✓；锚 A-RELEASE-ARTIFACTS 本来就在等它 ✓）。⚠ 修前它**不在** `guard_scripts()` 的名字臂里 ⇒ C1/C6 都看不见它 ✗（洞 `GUARD-ENUMERATION-IS-NAME-BASED` 的活例子）"}
+{"kind": "guard", "guard": "scripts/release-metric.py", "class": "A", "anchors": ["A-RELEASE-ARTIFACTS"], "why": "交付维度的量具：未发版 N 笔 / 距上次发版 H 小时（用户手上还是旧版）—— 后果**直接落在用户手上**（rec1 的分类 ✓；锚 A-RELEASE-ARTIFACTS 本来就在等它 ✓）。⚠ 修前它**不在** `guard_scripts()` 的名字臂里 ⇒ C1/C6 都看不见它 ✗（洞 `GUARD-ENUMERATION-IS-NAME-BASED` 的活例子）", "faces": {"ci": {"witness": "masked-readout"}}}
 {"kind": "guard", "guard": "scripts/bump.py", "class": "A", "anchors": ["A-VERSION-SOURCES"], "why": "读**产品源码**（Cargo.toml / editor/vscode/package.json）判版本单一源 —— `--check` 进 gate（`ci-local.sh:186`）与 CI（`ci.yml:1230`）"}
 {"kind": "tool", "tool": "scripts/ux-queue.py", "covered_by": "scripts/check-queue-views.py", "why": "队列**工具**（`--claim`/`--advance`/`--json`/`--next` 是它的工作模式，agent-worktree.sh 与 dsh 钩子都在用）；`--check`/`--selftest` 是**自检** ⇒ 独立复核在第二份实现里（本仓的原话：工具错=账错=过程错，**没有外部检查**能发现它 ✗）"}
 {"kind": "tool", "tool": "scripts/ci-push-range.py", "covered_by": "scripts/check-ci-gate-coverage.py", "why": "推送范围机制的**唯一实现**（`--before` 在 ci.yml:513 里算基点）；`--check-wiring`/`--selftest` 是它**自己的接线自检** ⇒ 类不变量由 `check-ci-gate-coverage.py`（复用它的 `load_filters` 判类）与 `check-history-depth-wiring.py`（历史深度那一半）独立看着"}
 {"kind": "tool", "tool": "scripts/compile-cache.py", "covered_by": "scripts/target-hygiene.py", "why": "编译缓存**总管**（`env`/`status` 是它的工作模式，ci-local.sh / agent-worktree.sh / soko 都在用）；`--selftest` 是**自检**（回收顺序 / 预算反向验证）⇒ 磁盘那一半由 `target-hygiene.py` 独立量"}
 {"kind": "tool", "tool": "scripts/plan.py", "why": "编排者**工具**（`next`/`list`/`bumps`/`done` 是它的工作模式）；`check` 是**自检**（清单与详细规格不漂移）⇒ ⓘ **没有独立判据看着它**（如实登记：把它记成 `guard` 会撞 C8 的 B **21/21** 绝对上限 ⇒ 见 `check-guard-bite.py` 的 C9）"}
-{"kind": "tool", "tool": "scripts/e2e-merge.py", "why": "合并各腿 artifact（`<dir>` 是工作模式，ci.yml:1602）+ `--check` 校验合并后的台账；ⓘ **没有独立判据**看着它（台账的真伪由**真 VS Code 那一跑本身**保证，不是脚本）"}
-{"kind": "tool", "tool": "scripts/e2e-summary.py", "why": "把 e2e 台账**渲染**成 job summary（ci.yml:1464/1530）—— **渲染器，不是判据**（它没有判红模式）"}
+{"kind": "tool", "tool": "scripts/e2e-merge.py", "why": "合并各腿 artifact（`<dir>` 是工作模式，ci.yml:1602）+ `--check` 校验合并后的台账；ⓘ **没有独立判据**看着它（台账的真伪由**真 VS Code 那一跑本身**保证，不是脚本）", "faces": {"local": {"witness": "tool"}}}
+{"kind": "tool", "tool": "scripts/e2e-summary.py", "why": "把 e2e 台账**渲染**成 job summary（ci.yml:1464/1530）—— **渲染器，不是判据**（它没有判红模式）", "faces": {"local": {"witness": "tool"}}}
 {"kind": "tool", "tool": "scripts/ci-green.py", "covered_by": "scripts/check-guard-bite.py", "why": "编排者的 **CI 读数仪器**（`--run` 读 GitHub run 元数据 ⇒ 印真绿 / 假绿 / 红）—— 它**判的不是仓库里的任何产物**，而是 CI 元数据，且**没有任何门禁消费它的判定**（`--run` 要 `gh` + 网络 ⇒ **CI 里根本跑不了** ✗）⇒ 它不是独立判据。进 CI 的只有 `--selftest`（自检：分类表 / 截断认回 / 前提缺失退 3）⇒ 由 `check-guard-bite.py` 的 C2 `pass` 证明独立驱动（期望 rc=0 ✓）+ `ci.yml` 的 `queue-lint` job 里那一步**显式**跑 ✓（2026-10-16，洞 `CI-GREEN-SELFTEST-NOT-WIRED`）。⚠ **如实标注**：它指向的用户现场是 `A-REPORT-TRUTH`（编排者每轮报告里「CI 那一格」）⇒ 按「量流程」的口径它**够 B 的形状**，而 B 已在 C8 的绝对上限 **21/21**（用户拍板「判据不许增殖 + 不许抬上限」）⇒ 按 C9 的既定边界记 `tool`、**不抬上限也不放宽 C8** ✓；⚠ `--run` 那一半（判定本身）**没有**独立判据看着它 —— 这一半的缺口是**真的**，本行只是把它写下来 ✗"}
