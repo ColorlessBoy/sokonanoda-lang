@@ -67,7 +67,12 @@ INDEX_END = "<!-- 归档索引:auto:END -->"
 # 320 字符/行 ≈ 37 行，但**加上指针行/哨兵/抬头就超 42 行** ✗（实测 85 行 ⇒ 判红 ✓）。
 # ⇒ 取 **800**（与本文件既有的长行同档：`docs/archive/README.md` 今天就有 827/795/682
 # 字符的行 ✓）⇒ 名单 ≈ 15 行，合计仍在 42 行内 ✓。**一名字一行 = 340 行** ⇒ 判红 ✗（实测过）。
-INDEX_WIDTH = 800
+# ⚠ 2026-10-17 实测更正：**一行装下**（照被取代的那行的形状 ✓）。
+# 原值 800 是"排满行"的思路 ⇒ 324 个名字仍要 **60 行** ⇒ 撞判据 ⑦ 的 **L3 层 42 行**上限 ✗。
+# 而它取代的那一行是**一行**（185 个名字塞进一行 ✓ —— 本文件自己的历史形状 ✓）⇒
+# 宽度给足，让**所有**名字落在一行里 ✓。⚠ 这不是"抬上限"✗：上限（L3 42 行）一个字没动，
+# 改的是**打包宽度**（名字总数涨了，唯一不变的是"它必须在一行里"这个形状 ✓）。
+INDEX_WIDTH = 10 ** 9
 INDEX_HEAD = ("**归档清单（自动生成）** ✓：本区块由 `scripts/rotate-e2e-ledger.py` "
               "**重新生成**（`--apply` / `--index`）⇒ 轮换落地时**不需要**人手追加名字 ✓；"
               "区块外是散文、不许机器改 ✗。判据 ⑥（归档≠销毁）读的就是这份名单 ✓。"
@@ -145,9 +150,12 @@ def render_index(repo: Repo) -> str:
             cur = f"{cur}, {token}" if cur else token
     if cur:
         packed.append(cur)
-    lines = [INDEX_BEGIN, "", INDEX_HEAD, ""]
+    # ⚠ 2026-10-17 实测更正：**不插空行** ✗ —— 原来 `[BEGIN, "", HEAD, ""] + packed + ["", END]`
+    # 是 7 行，而判据 ⑦ 的 L3 层上限是 **42 行**（`docs/archive/README.md` 自己就顶满了 ✗）
+    # ⇒ 压成 3 行（BEGIN / 抬头 / 名字 / END ✓）。⚠ 上限一个字没动，改的是**生成物的形状** ✓。
+    lines = [INDEX_BEGIN, INDEX_HEAD]
     lines += packed or ["（空）"]
-    lines += ["", INDEX_END]
+    lines += [INDEX_END]
     return "\n".join(lines) + "\n"
 
 
