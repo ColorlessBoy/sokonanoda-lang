@@ -18,7 +18,18 @@ fn spawn_json(args: &[&str]) -> Command {
 }
 
 fn run_json_stdin(input: &str) -> (Output, Vec<Value>) {
-    let mut child = spawn_json(&[])
+    run_json_stdin_env(input, &[])
+}
+
+/// 同 [`run_json_stdin`]，另注入环境变量（**先摘掉继承来的 `SOKO_STRICT_AT`** ⇒
+/// 档位由用例自己定，不随开发机/CI 的外部环境漂移 ✓）。
+fn run_json_stdin_env(input: &str, envs: &[(&str, &str)]) -> (Output, Vec<Value>) {
+    let mut cmd = spawn_json(&[]);
+    cmd.env_remove("SOKO_STRICT_AT");
+    for (k, v) in envs {
+        cmd.env(k, v);
+    }
+    let mut child = cmd
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -280,6 +291,67 @@ fn parse_error_diagnostic_shape() {
             .map(|h| !h.is_empty())
             .unwrap_or(false),
         "parse diagnostics carry a hint per docs/protocol.md: {d}"
+    );
+}
+
+/// **a1（2026-10-17）：诊断必须带得到源位置** —— `line=0 col=0` 是"谁都定位不了" ✗。
+///
+/// **为什么既有守卫咬不住它** ✗：[`assert_diagnostic_shape`] 只断言 `line`/`column`/
+/// `offset` **是整数**（`Span::default()` 全 0 也满足 ✗）⇒ 严格档下
+/// `courses/set-theory/lib/Set.sokonanoda` **13 条诊断里 8 条**报 `line=0` 而全绿 ✗。
+///
+/// **真因**：`by` 引擎把 tactic 装配成项时，`NodeKind::Apply` 产出的 `Expr::App`
+/// 一律 `Span::default()` ⇒ 之后 `elab_expr` 在它上面报的每条诊断都没有位置。
+///
+/// **形状**（最小复现，逐字）：目标头是一个 **def**（`MySet.mem`）⇒ `constructor`
+/// 展开到 `And`/`Or` 的构造子，那条**装配出来**的应用才踩到这个洞 ✓
+/// （直接写 `A ↔ A ∧ B` 时 `Iff` 走 `builtin_constructor_of`，装配路径不同 ⇒ 不踩 ✓）。
+///
+/// **Lean 4 对照**（`Init/Prelude.lean:4783`）：`SourceInfo.synthetic pos endPos`
+/// ——「synthetic syntax is annotated with **a source span from the original syntax**」，
+/// 元程序产出的语法**照样带源位置**，不是零位置 ✓。
+///
+/// **反向验证**：把 `by.rs` 的 `assemble` 还原成 `Span::default()` ⇒ 本用例当场判红 ✓。
+#[test]
+fn synthesized_tactic_terms_keep_a_real_source_position() {
+    let src = "\
+def MySet (α : Type) : Type := α → Prop
+
+namespace MySet
+def mem {α : Type} (a : α) (A : MySet α) : Prop := A a
+def union {α : Type} (A B : MySet α) : MySet α := fun (x : α) => A x ∨ B x
+end MySet
+
+theorem t {α : Type} (a : α) (A B : MySet α) :
+    MySet.mem a (MySet.union A B) ↔ MySet.mem a A ∨ MySet.mem a B := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+";
+    let (out, events) = run_json_stdin_env(src, &[("SOKO_STRICT_AT", "1")]);
+    assert!(!out.status.success(), "严格档下这条必须判红：{events:?}");
+
+    let diags = diagnostics(&events);
+    assert_eq!(diags.len(), 1, "恰好一条诊断：{events:?}");
+    let d = diags[0];
+    assert_eq!(d["code"], "elab-implicit-argument-unsolved", "{d}");
+    assert_diagnostic_shape(d, "严格档拒绝");
+    // ⭐ 本用例的牙：位置必须是**真的**（不是 `Span::default()` 那串 0 ✗）。
+    let start = &d["span"]["start"];
+    assert_ne!(
+        (start["line"].as_u64(), start["column"].as_u64()),
+        (Some(0), Some(0)),
+        "诊断位置丢了（`line=0 col=0`）—— 用户定位不了 ✗：{d}"
+    );
+    assert_eq!(
+        start["line"], 10,
+        "诊断必须落在 `constructor` 那一行（0-based 10 = 源第 11 行）：{d}"
+    );
+    assert_eq!(
+        start["column"], 3,
+        "诊断必须落在 `constructor` 那一列（0-based 3）：{d}"
     );
 }
 

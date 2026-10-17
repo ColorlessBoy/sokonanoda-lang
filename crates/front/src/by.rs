@@ -3374,7 +3374,7 @@ fn node_body(nodes: &[GoalNode], id: usize, hole_span: Span, tactic_holes: &mut 
                     fun: Box::new(app),
                     arg: Box::new(arg_expr),
                     explicit_spine: false,
-                    span: Span::default(),
+                    span: f.span(),
                 };
             }
             app
