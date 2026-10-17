@@ -428,6 +428,37 @@ jobs:
         run: |
           python3 scripts/check-history-depth-wiring.py
           python3 scripts/check-history-depth-wiring.py --selftest
+      - name: "记法路径守卫（CI 面：不跑 hook 的推送也要有人知道）"
+        # 2026-10-17 · `ng1` 普查 §3.C 的**第 ③ 组**（洞 `CI-FACE-MISSING-FOR-NOTATION-PATHS`）：
+        # `scripts/audit-notation-paths.py` 此前**只有本地面**（`ci-local.sh:288` 的 `run` +
+        # `:295` 的 `--self-test`）✗ ⇒ **不跑 hook 的推送**（`--no-verify` / 机器人 /
+        # 没装 `core.hooksPath` 的检出）上，产品源码里新长出一个绕过唯一记法接口的调用点
+        # **没人知道** ✗（后果落在别处：Infoview 顶部目标退回点形式，锚 `A-NOTATION-ON-SCREEN` ✗）。
+        # ⚠ **为什么在本 job**：`queue-lint` **不设 `if` 过滤器 ⇒ 每推必跑** ✓
+        # （放 `gates-fast` 那种 `rust || courses` 门控的 job 里，纯 docs 推送会 skip ✗）。
+        # ⚠ **本步自己不需要历史**（**实测**：浅克隆里判据 rc=0 · `--self-test` rc=0 ✓ ——
+        # 它只读工作区的 `crates/**` + `scripts/notation-paths-baseline.txt`，全文 **0 处**
+        # `git`/`subprocess` ✓）⇒ **故意不进** `HISTORY_DEPENDENT` ✗：给一条不需要全历史的
+        # 脚本登记"要全历史"⇒ 以后谁把它挪进浅 job 就吃一条**假红**（E18 的教训：
+        # 守卫一旦叫狼来了，正确的反应就变成"加豁免" ⇒ 它就死了 ✗）。本 job 的全历史是**顺带** ✓。
+        # ⚠ 判据与 `ci-local.sh:288` **逐字同源** ✓（本地那条在 `:295` 另有 `--self-test` ✓）。
+        run: |
+          python3 scripts/audit-notation-paths.py
+          python3 scripts/audit-notation-paths.py --self-test
+      - name: "冻结余量守卫（CI 面：强制追加类不许把余量吃到 0）"
+        # 2026-10-17 · 同上的第 ③ 组：`scripts/check-frozen-headroom.py` 此前只有本地面
+        # （`ci-local.sh:287`）✗ ⇒ 不跑 hook 的推送里，`docs/CI-FAILURES.md` 的冻结余量
+        # 被吃到 0 **没人知道** ✗ —— 而它的后果正是**下一次强制追加必然撞 `docs-lint` ④**
+        # （`AGENTS.md`「CI 失败记录」要求**每次 CI 红了必须追加一条** ✓ ⇒ 两条纪律顶住 ✗）。
+        # ⚠ **本步与历史的关系（如实划 ✗）**：判据 `--check` 与 `--selftest` **本身不需要全历史**
+        # （**实测**：浅克隆里 rc=0 · rc=0 ✓）；**需要全历史的是它的咬住证明**
+        # （`docs/guard-bite.jsonl` 那一行的 `--check --source-rev 9c8cfa90` ⇒ `git show <rev>:<f>`
+        # ⇒ 浅克隆**实测 rc=3** ✗）⇒ 它**进** `HISTORY_DEPENDENT` ✓（与表里
+        # `check-queue-rewrite-trigger.py`、以及 `check-history-depth-wiring.py` 自指两条**同形**：
+        # 要全历史的是**咬住证明**，不是判据本体 ✓）。
+        run: |
+          python3 scripts/check-frozen-headroom.py --check
+          python3 scripts/check-frozen-headroom.py --selftest
 
   lint-clippy:
     name: lint-clippy（clippy 全量 check）

@@ -92,6 +92,18 @@ HISTORY_DEPENDENT: list[tuple[str, str]] = [
      "收口指针的祖先性断言（`git merge-base --is-ancestor`）；浅克隆实测 rc=1"),
     ("scripts/check-queue-rewrite-trigger.py",
      "咬住证明打在**固定旧 rev** 上（`git show <rev>:…`）；浅克隆实测 rc=3"),
+    # ⚠ **2026-10-17 补**（`ng1` 普查 §3.C 第 ③ 组：它的 **CI 面**缺 ⇒ 接进 `queue-lint` ✓）——
+    # **如实划的边界** ✗：本条的**判据本体不需要全历史**（`--check` / `--selftest` 浅克隆
+    # **实测 rc=0** ✓）；**要全历史的是它的咬住证明**（`docs/guard-bite.jsonl` 那一行的
+    # `--check --source-rev 9c8cfa90` ⇒ `git show` ⇒ 浅克隆**实测 rc=3** ✗）。
+    # ⇒ 与本表里 `check-queue-rewrite-trigger.py`、以及**本脚本自指**那两条**同形** ✓
+    # （"跑它就要全历史" = **连它的咬住证明一起跑**就要全历史 ✓，不是"判据本体读历史" ✗）。
+    # ⚠ 反过来说：**同族的 `scripts/audit-notation-paths.py` 故意不登记** ✗ —— 它全文
+    # **0 处** `git`/`subprocess`，判据与 `--self-test` 浅克隆都 rc=0 ⇒ 登记它 = 给一条
+    # 不需要全历史的脚本发"要全历史"的假红（E18：守卫一旦叫狼来了就死了 ✗）。
+    ("scripts/check-frozen-headroom.py",
+     "咬住证明打在**固定旧 rev** 上（`--check --source-rev 9c8cfa90` ⇒ `git show <rev>:<path>`）"
+     "；浅克隆实测 rc=3（判据/`--selftest` 本身浅克隆 rc=0 —— 同 `check-queue-rewrite-trigger.py` 的形态 ✓）"),
     # ⚠ **本脚本自己也算**（如实 ✓）：`--selftest` 的咬住证明要
     # `git show 1cd4aba0:.github/workflows/ci.yml` ⇒ 浅克隆里那个对象不在 ⇒ rc=3。
     # 自指是**故意的**：R1 因此也会核"谁跑本脚本，谁就得有全历史" ✓。
