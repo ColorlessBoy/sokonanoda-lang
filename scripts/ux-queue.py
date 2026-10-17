@@ -3193,7 +3193,18 @@ def cmd_render(rows: list[dict]) -> int:
 
 def cmd_next(rows: list[dict], owner: str) -> int:
     state = fold()
-    for row in sched_rows(rows, state):
+    # ⭐ **外部提交优先**（用户 2026-10-17 23:2x：「顶了，它现在完全不行了」）：
+    # 实测三条路都不改变"序" ✗ —— `--next` 由**编排者自己的调度器**给序，
+    # 而 `--claim` 只标 `in_progress`（实测：认领后 `--next` 照旧 ✗）、
+    # `--submit` 只追加 ⇒ **外部需求永远排在它自己发现的事后面** ✗。
+    # ⇒ 这里把 `external-submission` 那一组**提到最前** ✓（`sorted` 是稳定排序
+    #   ⇒ 组内保持原序、不动 `sched_rows` 的父子插位逻辑 ✗）。
+    # ⚠ **判据**：造「1 条外部 + 1 条自排」⇒ `--next` 必须给外部 ✓（见 `--selftest`）。
+    _ordered = sorted(
+        sched_rows(rows, state),
+        key=lambda r: 0 if "external-submission" in (r.get("sources") or []) else 1,
+    )
+    for row in _ordered:
         cur = state.get(row["id"], {})
         # ⚠ 可动判据只有**一处**（`is_pushable` ⇒ `effective_state` + `NOT_PUSHABLE_STATES`）：
         # `--check` 的漂移判据、`--json.open` 的对账、自检的三视图断言都读同一份 ✓
