@@ -135,6 +135,10 @@
 （`check-site.py` / `target-hygiene.py` / `check-json-identity.py` / `check-one-run.py` /
 `check-queue-rewrite-trigger.py` / `check-lean4-alignment.py`）**照样在口径里** ✓
 （接线臂**不替代**名字臂：一个守卫暂时没接进 gate 不等于它不是守卫 ✗）。
+⚠ **2026-10-17 更新**（`SUB-narrow-guards-to-one-layer` 第 2 轮）：名单里的
+`check-queue-rewrite-trigger.py` 已与 `check-queue-views.py` **合并**成
+`scripts/check-queue-integrity.py`（**B 21 → 20**，上限未动 ✗）⇒ 今天名字臂里
+没被接线的是 **5** 个（上面那 6 个减掉它 ✓）；合并后的那条在**接线臂**里（ci-local.sh ∪ ci.yml ✓）。
 
 * **C6 覆盖 / C7 有底 / C8 预算（2026-10-16，`SUB-break-the-guard-recursion` ①）**：
   登记表 `docs/guard-anchors.jsonl` 给**每一层**钉一个底 ——
@@ -772,7 +776,7 @@ def shallow_hint(root: Path) -> str:
     `editor` job 的 checkout 没有 `fetch-depth: 0` ⇒ 覆盖面基线（台账抬头的
     `# coverage_since:`）那个对象不在 ⇒ `changed_guards` 拿到 `git` 的 rc=128 ⇒
     本文件**只印一行原始 git 报错**，读日志的人**看不出缺什么、更不知道怎么办** ✗。
-    同族的 `check-attention-budget.py` / `check-queue-views.py` / `check-threshold-ratchet.py`
+    同族的 `check-attention-budget.py` / `check-queue-integrity.py` / `check-threshold-ratchet.py`
     **早就**给了人话（"浅克隆 ⇒ CI 里给这个 job `fetch-depth: 0`"）⇒ 这里补齐，口径一致 ✓。
 
     ⚠ **只改话术，不改判据** ✗：退出码仍是 3（"环境不在，**不假装判过**"），
