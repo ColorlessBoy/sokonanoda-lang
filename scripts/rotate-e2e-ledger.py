@@ -33,7 +33,17 @@ python3 scripts/rotate-e2e-ledger.py --selftest # 反向验证：夹具必须被
 4. **幂等**：重复跑不改变结果 ✓（索引区块由目录**重新生成**，不是追加 ⇒ 跑两遍逐字节相同 ✓）；
 5. **判据 ⑥ 不许被绕过** ✗：`docs/archive/README.md` 里**点名区块的哨兵行缺失** ⇒
    **响亮退出（rc=2）**，**绝不**静默跳过（跳过一次 = 下一次 `docs-lint` ⑥ 判红，
-   而那时没人知道是谁把索引弄丢的 ✗ —— 照 `docs-lint` 的「缺表 ⇒ 不假装判过」口径 ✓）。
+   而那时没人知道是谁把索引弄丢的 ✗ —— 照 `docs-lint` 的「缺表 ⇒ 不假装判过」口径 ✓）；
+6. **点名区块恰好一行** ✓（判据 ⑦ 的 L3 口径）：`docs/archive/README.md` = **41 行散文
+   + 1 行区块 = 42 行 = `layer_max_lines.L3`** ⇒ 区块多一行就判红 ✗（2026-10-17 实测：
+   折行 ⇒ 区块 23 行 ⇒ 真仓 64 行 > 42 ✗）。**不是**抬上限 ✓；
+7. **绝不覆盖归档里已有的东西** ✗（**归档≠销毁** ✓）：**批次目录不复用** —— 默认名撞车 ⇒
+   自动换名 `-2`/`-3`（无人值守那条路必须继续能跑 ✓）；显式 `--batch` 撞车 ⇒ **响亮拒绝**
+   （rc=2，名字是人点名的、机器不许偷偷改 ✗）。2026-10-17 实测洞
+   `ROTATION-OVERWRITES-ARCHIVED-RECORDS`：`docs/archive/e2e-2026-10-15/` 已有 **571** 条
+   归档记录，新轮换的 **48** 条**覆盖**了它 ⇒ **523 条被销毁** ✗，而**没有任何判据报红** ✗
+   （⑥ 只查"文件有没有被点名"，不查"记录少了没有" ⇒ **咬不住** ⇒ 靠本脚本自己的
+   `--selftest` 造出撞车来咬 ✓）。
 
 ## `--root`（唯一一处）
 
@@ -62,22 +72,29 @@ DEFAULT_KEEP = 60
 # ⇒ 区块外的散文（口径、为什么只能这样、那几行指针）一个字都不动 ✗。
 INDEX_BEGIN = "<!-- 归档索引:auto:BEGIN -->"
 INDEX_END = "<!-- 归档索引:auto:END -->"
-# 每个生成行的目标字符宽度（**排满行** ⇒ 名单行数 ≈ 总字符 / 本值 ✓）。
-# ⚠ 它由**判据 ⑦ 的 L3 层上限**倒推（见 `render_index`）：292 个名字 ≈ 10.8 KB ⇒
-# 320 字符/行 ≈ 37 行，但**加上指针行/哨兵/抬头就超 42 行** ✗（实测 85 行 ⇒ 判红 ✓）。
-# ⇒ 取 **800**（与本文件既有的长行同档：`docs/archive/README.md` 今天就有 827/795/682
-# 字符的行 ✓）⇒ 名单 ≈ 15 行，合计仍在 42 行内 ✓。**一名字一行 = 340 行** ⇒ 判红 ✗（实测过）。
-# ⚠ 2026-10-17 实测更正：**一行装下**（照被取代的那行的形状 ✓）。
-# 原值 800 是"排满行"的思路 ⇒ 324 个名字仍要 **60 行** ⇒ 撞判据 ⑦ 的 **L3 层 42 行**上限 ✗。
-# 而它取代的那一行是**一行**（185 个名字塞进一行 ✓ —— 本文件自己的历史形状 ✓）⇒
-# 宽度给足，让**所有**名字落在一行里 ✓。⚠ 这不是"抬上限"✗：上限（L3 42 行）一个字没动，
-# 改的是**打包宽度**（名字总数涨了，唯一不变的是"它必须在一行里"这个形状 ✓）。
-INDEX_WIDTH = 10 ** 9
+# 区块**整体只占一行**（哨兵 + 抬头 + 名单全挤在同一行 ✓）—— 算术见 `render_index`：
+# `docs/archive/README.md` = **41 行散文 + 1 行区块 = 42 行** = 判据 ⑦ 的 `L3` 上限
+# ⇒ **区块多一行就判红** ✗（2026-10-17 实测：按 800 字符折行 ⇒ 区块 23 行 ⇒ 真仓 64 行 ✗）。
 INDEX_HEAD = ("**归档清单（自动生成）** ✓：本区块由 `scripts/rotate-e2e-ledger.py` "
               "**重新生成**（`--apply` / `--index`）⇒ 轮换落地时**不需要**人手追加名字 ✓；"
               "区块外是散文、不许机器改 ✗。判据 ⑥（归档≠销毁）读的就是这份名单 ✓。"
-              "⚠ **为什么排满行** ✗：本文件受判据 ⑦ 的 **L3 层 42 行**上限管 ⇒ 一个名字一行"
-              "放不下（**不是**抬上限 ✓，见 `scripts/docs-budget.json`）。")
+              "⚠ **为什么整块挤在一行** ✗：本文件受判据 ⑦ 的 **L3 层 42 行**上限管，"
+              "而它**正好 42 行**（41 行散文 + 本行）⇒ 区块**多一行就判红**"
+              "（2026-10-17 实测：折行 ⇒ 区块 23 行 ⇒ 本文件 64 行 ✗）。"
+              "**不是**抬上限 ✓（见 `scripts/docs-budget.json`）。")
+
+
+def _die(msg: str) -> None:
+    """**响亮退出（rc=2 = 用法/状态错 ✓）**，绝不静默继续 ✗。
+
+    ⚠ **为什么不是 `raise SystemExit(msg)`**：Python 的 `SystemExit(<字符串>)` 的退出码是
+    **1**（2026-10-17 实测）⇒ 与本脚本白纸黑字写的 **rc=2**（不变量 5）**不符** ✗ ——
+    照仓库口径「**凡写 rc=X，就核它真的是 X**」⇒ 要么把话改掉、要么把行为改成真的 2；
+    这里选后者（`2 = 用法错` 与 `docs-lint` / `check-guard-bite` 同口径 ✓）。
+    `--selftest` 直接断言 `e.code == 2` ✓（原来只断言消息里含"不覆盖" ⇒ **咬不住 rc** ✗）。
+    """
+    print(msg, file=sys.stderr)
+    raise SystemExit(2)
 
 
 class Repo:
@@ -88,9 +105,9 @@ class Repo:
         self.ledger = root / "docs" / "e2e" / "ledger.jsonl"
         self.logs = root / "docs" / "e2e" / "logs"
         self.archive = root / "docs" / "archive"
-        # **点名落点 = `docs/archive/README.md`**（判据 ⑥ 只读它的文本 ✓）—— ⚠ 见 `INDEX_WIDTH`
-        # 与 `render_index`：本文件受判据 ⑦ 的 **L3 层 42 行**上限管，而它今天**正好 42 行**
-        # ⇒ 名单必须**排满行**才放得下（一名字一行 = 340 行 ⇒ 判红 ✗，实测过）。
+        # **点名落点 = `docs/archive/README.md`**（判据 ⑥ 只读它的文本 ✓）—— ⚠ 见 `render_index`：
+        # 本文件受判据 ⑦ 的 **L3 层 42 行**上限管，而它**正好 42 行**（41 行散文 + 1 行区块 ✓）
+        # ⇒ 区块**只许占一行**（折行 / 一名字一行 ⇒ 判红 ✗，2026-10-17 实测过）。
         self.index = self.archive / "README.md"
 
     # ── 读 ────────────────────────────────────────────────────────────────
@@ -123,6 +140,14 @@ def missing_logs(repo: Repo, rows: list[dict]) -> list[str]:
     return [n for r in rows if (n := log_name(r)) and not (repo.logs / n).exists()]
 
 
+def _archived_records(path: Path) -> list[str]:
+    """归档的记录 `.jsonl.gz` 逐行（**只读**；夹具用 ✓ —— 不变量 ⑦ 的读数靠它 ✓）。"""
+    if not path.exists():
+        return []
+    with gzip.open(path, "rt", encoding="utf-8") as f:
+        return [ln for ln in f.read().splitlines() if ln.strip()]
+
+
 def missing_index(repo: Repo) -> list[str]:
     """归档里有、而 `docs/archive/README.md` 里**没点名**的文件（判据 ⑥ 的机械面 ✓）。"""
     if not repo.index.exists():
@@ -132,31 +157,24 @@ def missing_index(repo: Repo) -> list[str]:
 
 
 def render_index(repo: Repo) -> str:
-    """**重新生成**点名区块（幂等：只依赖目录内容 ⇒ 跑两遍逐字节相同 ✓）。
+    """**重新生成**点名区块 —— **恰好一行**（幂等：只依赖目录内容 ⇒ 跑两遍逐字节相同 ✓）。
 
-    ⚠ **为什么一个名字一行不行** ✗（**实测**）：`docs/archive/README.md` 受判据 ⑦ 的
-    **L3 层 42 行**上限管（`scripts/docs-budget.json` 的 `layer_max_lines.L3`），而那个文件
-    **今天正好 42 行** ⇒ 一名字一行会让它涨到 340 行 ⇒ **判据 ⑦ 判红** ✗（本轮实测撞过）。
-    出路**不是抬上限** ✗（用户 2026-09-26：「不许靠抬上限达标」）⇒ 把名单**排满行**
-    （`INDEX_WIDTH` 字符/行 ✓）：292 个名字 ⇒ 约 38 行 ⇒ 连同抬头仍在 42 行内 ✓。
+    ⚠ **为什么必须是一行**（2026-10-17 实测 ✗→✓）：`docs/archive/README.md` 受判据 ⑦ 的
+    **L3 层 42 行**上限管（`scripts/docs-budget.json` 的 `layer_max_lines.L3`），而它
+    **正好 42 行 = 41 行散文 + 1 行区块** ⇒ 区块**每多占一行，L3 就超一行** ✗。
+    修前这里把名字按 800 字符折行 ⇒ 区块 **23 行** ⇒ 本文件 **64 行** ⇒ **判据 ⑦ 判红** ✗
+    （真仓 324 个名字上的实测读数；同族的「一名字一行」= 340 行 ⇒ 更红 ✗）。
+    出路**不是抬上限** ✗（用户 2026-09-26：「不许靠抬上限达标」）⇒ 把**整块**（哨兵 +
+    抬头 + 名单）挤进**一行** —— 这**正是**它取代的那一行的形状（实测 `10 501` 字符的一行 ✓）。
+
+    行数算术（**判据 ⑦ 的机械面**）：`README.md` 行数 = 41（散文，区块外、机器不碰 ✓）
+    + 1（本区块）= **42 = L3 上限** ⇒ 区块**只许占 1 行**。`--selftest` 把这条不变量接到
+    **真的** `docs-lint` ⑦ 上：夹具的 `layer_max_lines.L3` = **散文行数 + 1** ✓（不是留余量 ✗
+    —— 2026-10-17 之前那里写死 400，余量正好把多行区块放过去了 ✗）。
     """
     names = repo.archive_files()
-    packed, cur = [], ""
-    for token in (f"`{n}`" for n in names):
-        if cur and len(cur) + 2 + len(token) > INDEX_WIDTH:
-            packed.append(cur)
-            cur = token
-        else:
-            cur = f"{cur}, {token}" if cur else token
-    if cur:
-        packed.append(cur)
-    # ⚠ 2026-10-17 实测更正：**不插空行** ✗ —— 原来 `[BEGIN, "", HEAD, ""] + packed + ["", END]`
-    # 是 7 行，而判据 ⑦ 的 L3 层上限是 **42 行**（`docs/archive/README.md` 自己就顶满了 ✗）
-    # ⇒ 压成 3 行（BEGIN / 抬头 / 名字 / END ✓）。⚠ 上限一个字没动，改的是**生成物的形状** ✓。
-    lines = [INDEX_BEGIN, INDEX_HEAD]
-    lines += packed or ["（空）"]
-    lines += [INDEX_END]
-    return "\n".join(lines) + "\n"
+    body = ", ".join(f"`{n}`" for n in names) if names else "（空）"
+    return f"{INDEX_BEGIN} {INDEX_HEAD} {body} {INDEX_END}\n"
 
 
 def write_index(repo: Repo) -> bool:
@@ -170,12 +188,12 @@ def write_index(repo: Repo) -> bool:
         new = re.sub(re.escape(INDEX_BEGIN) + r".*?" + re.escape(INDEX_END) + r"\n?",
                      block, text, count=1, flags=re.S)
     elif INDEX_BEGIN not in text and INDEX_END not in text:
-        raise SystemExit(
+        _die(
             f"error: `{repo.index}` 里找不到点名区块哨兵 `{INDEX_BEGIN}` ⇒ "
             f"**不假装写完** ✗（判据 ⑥ 会判红，而那时没人知道索引是怎么丢的 ✗）"
             f" ⇒ 先把哨兵加回去（见本脚本 `INDEX_BEGIN`）")
     else:
-        raise SystemExit(
+        _die(
             f"error: `{repo.index}` 的哨兵**只出现一个**（BEGIN/END 必须配对）⇒ "
             f"**不假装写完** ✗")
     if new == text:
@@ -204,6 +222,38 @@ def cmd_check(repo: Repo) -> int:
     return 0
 
 
+def batch_dir(repo: Repo, batch: str, explicit: bool) -> str:
+    """批次名 ⇒ **不复用**的批次名（不变量 ⑦ / 洞 `ROTATION-OVERWRITES-ARCHIVED-RECORDS` ✓）。
+
+    ⚠ **为什么**（2026-10-17 实测 ✗）：默认批次名 = `e2e-<最老被归档记录的日期>`，而**上一次**
+    轮换的批次可能正好同名 —— 真仓实测：`docs/archive/e2e-2026-10-15/` 里已有 **571** 条归档
+    记录，新的 **48** 条**覆盖**了它 ⇒ **523 条被销毁** ✗（而且没有任何判据报红 ✗）。归档层是
+    **只许加不许改**的（`docs/archive/README.md`：**归档≠销毁** ✓）⇒
+      * **默认**名撞车 ⇒ 自动换名 `-2`/`-3` …（无人值守那条路必须继续能跑 ✓；**响亮印出** ✓）；
+      * **显式** `--batch` 撞车 ⇒ **响亮拒绝**（rc=2）—— 名字是人点名的，机器不许偷偷改 ✗。
+
+    ⚠ **横向排查**（同类还有哪些）：本脚本往归档里写**两种**东西 —— 记录 `.jsonl.gz` 与日志
+    `.gz` —— 它们**共用**这一把锁（批次目录不复用）⇒ 一次挡住两个 ✓（另加记录文件那处
+    兜底断言 ✓）；不这么做就得各写一条"同名不同内容 ⇒ 拒绝"的判据，而那条**永远跑不到** ✗。
+    """
+    def taken(name: str) -> bool:
+        d = repo.archive / name
+        return d.exists() and any(d.iterdir())   # 非空 ⇒ 已属于某个批次 ⇒ 不复用 ✗
+
+    if not taken(batch):
+        return batch
+    if explicit:
+        _die(
+            f"error: 批次目录 `docs/archive/{batch}/` 已存在且非空 ⇒ **不覆盖** ✗"
+            f"（归档≠销毁 ✓；不变量 ⑦）⇒ 换一个 `--batch` 名字，或去掉 `--batch` 让脚本自动换名")
+    n = 2
+    while taken(f"{batch}-{n}"):
+        n += 1
+    print(f"⚠ 批次目录 `docs/archive/{batch}/` 已存在 ⇒ **不复用**（复用 = 覆盖归档记录 ✗）"
+          f"⇒ 本批落到 `docs/archive/{batch}-{n}/` ✓")
+    return f"{batch}-{n}"
+
+
 def cmd_rotate(repo: Repo, keep: int, batch: str | None, apply: bool) -> int:
     rows = repo.rows()
     if len(rows) <= keep:
@@ -216,11 +266,11 @@ def cmd_rotate(repo: Repo, keep: int, batch: str | None, apply: bool) -> int:
         kept_shared = sorted(old_logs & live_logs)
 
         oldest = str(old[0].get("date") or "")[:10] or "unknown"
-        batch = batch or f"e2e-{oldest}"
-        dest = repo.archive / batch
+        name = batch_dir(repo, batch or f"e2e-{oldest}", explicit=batch is not None)
+        dest = repo.archive / name
 
         print(f"台账 {len(rows)} 条 ⇒ 活 {len(live)} · 归档 {len(old)}")
-        print(f"归档批次：docs/archive/{batch}/")
+        print(f"归档批次：docs/archive/{name}/")
         print(f"  记录 ⇒ ledger-records-older.jsonl.gz（{len(old)} 条）")
         print(f"  日志 ⇒ {len(movable)} 个搬走（.gz）")
         if kept_shared:
@@ -234,9 +284,13 @@ def cmd_rotate(repo: Repo, keep: int, batch: str | None, apply: bool) -> int:
 
         dest.mkdir(parents=True, exist_ok=True)
 
-        # ① 归档记录（原文逐字，只 gzip）
+        # ① 归档记录（原文逐字，只 gzip）—— ⚠ **兜底断言**：批次目录刚判过"不复用" ✓，
+        # 所以这里**不该**已存在；真出现 ⇒ 宁可响亮失败也**绝不覆盖** ✗（不变量 ⑦）。
+        rec = dest / "ledger-records-older.jsonl.gz"
+        if rec.exists():
+            _die(f"error: `{rec}` 已存在 ⇒ **不覆盖** ✗（归档≠销毁 ✓；不变量 ⑦）")
         raw = "\n".join(json.dumps(r, ensure_ascii=False) for r in old) + "\n"
-        with gzip.open(dest / "ledger-records-older.jsonl.gz", "wt", encoding="utf-8") as f:
+        with gzip.open(rec, "wt", encoding="utf-8") as f:
             f.write(raw)
 
         # ② 归档日志（只搬 movable ✓）
@@ -295,6 +349,12 @@ def _fixture(root: Path, repo: Repo) -> None:
     (root / "scripts").mkdir(parents=True, exist_ok=True)
     shutil.copyfile(real / "docs" / "threshold-ratchet.json",
                     root / "docs" / "threshold-ratchet.json")
+    # `docs/archive/README.md` 的**散文**（区块外、机器不许碰 ✓）—— 先拼出来：判据 ⑦ 的
+    # `layer_max_lines.L3` 要按它的行数**算死**（见下 ✓）。
+    prose = ("# `docs/archive/` —— 归档索引（**归档 ≠ 销毁** ✓）\n\n"
+             "> 夹具抬头（散文，不许机器改 ✗）。\n\n"
+             "| 归档文件 | 原路径 | 内容 | 归档日 |\n|---|---|---|---|\n"
+             "| `old-thing.md.gz` | `" + "docs/" + "old.md` | 夹具 | 2026-10-16 |\n\n")
     (root / "scripts" / "docs-budget.json").write_text(json.dumps({
         "frozen": {},
         "onboarding": {
@@ -304,17 +364,16 @@ def _fixture(root: Path, repo: Repo) -> None:
             "path": [{"file": "README.md", "max_lines": 100},
                      {"file": "docs/" + "index.md", "max_lines": 100}],
             "onboarding_max_lines": 200,
-            # L3 = `docs/archive/**` 的 `*.md`（**生成区块会让它长大** ⇒ 给足余量 ✓；
-            # 真仓那份是 42 —— 真仓的索引只有 42 行，因为名字都在**一行**里 ✓）。
-            "layer_max_lines": {"L0": 200, "L1": 200, "L2": 200, "L3": 400},
+            # L3 = `docs/archive/**` 的 `*.md` = **散文行数 + 1**（生成区块**只许占一行** ✓）——
+            # 照真仓的算术：真仓 **41 行散文 + 1 = 42** = `docs-budget.json` 的 `L3` ✓。
+            # ⚠ 2026-10-17 之前这里写死 **400**（"给足余量" ✗）⇒ **余量正好把多行区块放过去了** ✗：
+            # 真仓实测 64 行 > 42 **判红**，而夹具的 `docs-lint` ⑦ 却是绿的 ⇒ 夹具**咬不住** ✗。
+            # 预算**必须与真仓同形**（区块只占 1 行）⇒ 多行区块在夹具里就会让 ⑦ 判红 ✓。
+            "layer_max_lines": {"L0": 200, "L1": 200, "L2": 200,
+                                "L3": len(prose.splitlines()) + 1},
         },
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    repo.index.write_text(
-        "# `docs/archive/` —— 归档索引（**归档 ≠ 销毁** ✓）\n\n"
-        "> 夹具抬头（散文，不许机器改 ✗）。\n\n"
-        "| 归档文件 | 原路径 | 内容 | 归档日 |\n|---|---|---|---|\n"
-        "| `old-thing.md.gz` | `" + "docs/" + "old.md` | 夹具 | 2026-10-16 |\n\n"
-        + render_index(repo), encoding="utf-8")
+    repo.index.write_text(prose + render_index(repo), encoding="utf-8")
     # 台账：`FIX_ROWS` 条、每条一个日志（日期递增 ⇒ 最老的进归档 ✓）
     rows = []
     for i in range(FIX_ROWS):
@@ -381,6 +440,85 @@ def cmd_selftest() -> int:
         write_index(repo)
         results.append(("幂等：再生成一次逐字节相同",
                         repo.index.read_text(encoding="utf-8") == first))
+
+        # ⑤b 哨兵缺失 ⇒ **响亮拒绝**，且退出码真的是 docstring 承诺的 **rc=2** ✓（不变量 5）——
+        #     ⚠ 修前这里是 `raise SystemExit(字符串)` ⇒ Python 给的是 **rc=1** ✗，而白纸黑字
+        #     写的是 rc=2（2026-10-17 实测对不上）⇒ 判据改成断言 `e.code`（不是消息文本 ✗）。
+        saved = repo.index.read_text(encoding="utf-8")
+        repo.index.write_text(re.sub(r"<!-- 归档索引:auto:(BEGIN|END) -->\n?", "", saved),
+                              encoding="utf-8")
+        try:
+            write_index(repo)
+            code = 0
+        except SystemExit as e:
+            code = e.code if isinstance(e.code, int) else 1
+        results.append((f"哨兵缺失 ⇒ 响亮拒绝 rc={code}（不变量 5 · 承诺的 rc=2 ✓）", code == 2))
+        repo.index.write_text(saved, encoding="utf-8")
+
+        # ⑥ **区块恰好一行**（判据 ⑦ 的 L3 口径的机械面 ✓）：夹具的 `layer_max_lines.L3` =
+        #    「散文行数 + 1」（照真仓 **41 + 1 = 42** ✓）⇒ 区块多一行 ⇒ **真的** `docs-lint` ⑦
+        #    判红（上面那条 `docs-lint rc=0` 就会失败 ✓）。真仓实测：折行 ⇒ 区块 23 行 ⇒ 64 行 ✗。
+        block = render_index(repo)
+        results.append((f"索引区块恰好 1 行（README "
+                        f"{len(repo.index.read_text(encoding='utf-8').splitlines())} 行 · "
+                        f"区块 {block.count(chr(10))} 行）", block.count("\n") == 1))
+
+    # ⑦ **批次撞车不许销毁归档**（不变量 ⑦ / 洞 `ROTATION-OVERWRITES-ARCHIVED-RECORDS` ✗→✓）
+    #    真仓实测（2026-10-17）：默认批次名 `e2e-2026-10-15` 撞上已有批次 ⇒ **571 条**归档记录
+    #    被 **48 条**覆盖 ⇒ **523 条销毁** ✗（而**没有任何判据报红** ✗）。这里把"撞车"造出来：
+    #      ① **默认**名撞车 ⇒ 自动换名 ⇒ 老批次**逐字节未动** ✓ + 新批次自带自己的记录 ✓；
+    #      ② **显式** `--batch` 撞车 ⇒ **响亮拒绝**（rc=2 口径 ✓）且**一个字节都没写** ✓。
+    with tempfile.TemporaryDirectory(prefix="rotate-e2e-collision-") as tmp2:
+        root2 = Path(tmp2)
+        repo2 = Repo(root2)
+        _fixture(root2, repo2)
+        cmd_rotate(repo2, FIX_KEEP, None, apply=True)
+        rec_old = repo2.archive / "e2e-2026-10-01" / "ledger-records-older.jsonl.gz"
+        old_bytes, old_rows = rec_old.read_bytes(), _archived_records(rec_old)
+
+        def _add(day: str, tag: str, rows: list[dict]) -> None:
+            name = f"{day}-{tag}-vc1.138.0.log"
+            (root2 / "docs" / "e2e" / "logs" / name).write_text("x\n" * 40, encoding="utf-8")
+            rows.append({"date": f"{day}T00:00:00Z", "commit": tag.rjust(40, "0"),
+                         "vscode": "1.138.0", "log": f"docs/e2e/logs/{name}"})
+
+        extra: list[dict] = []
+        _add("2026-10-01", "early", extra)                  # 最老 ⇒ 默认批次名仍是 10-01 ⇒ 撞车 ✓
+        for i in range(6):
+            _add(f"2026-10-{9 + i // 2:02d}", f"late{i}", extra)
+        repo2.ledger.write_text(
+            "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in extra + repo2.rows()),
+            encoding="utf-8")
+        cmd_rotate(repo2, FIX_KEEP, None, apply=True)       # 撞车 ⇒ 必须自动换名 ✓
+        new_dir = repo2.archive / "e2e-2026-10-01-2"
+        new_rows = _archived_records(new_dir / "ledger-records-older.jsonl.gz")
+        results.append((f"默认批次名撞车 ⇒ 自动换名（{new_dir.name} ✓）", new_dir.is_dir()))
+        results.append(("撞车后**老批次逐字节未动**（归档≠销毁 ✓）",
+                        rec_old.read_bytes() == old_bytes))
+        results.append((f"新批次自带记录（旧 {len(old_rows)} 条未动 · 新 {len(new_rows)} 条 ✓）",
+                        len(old_rows) == 6 and len(new_rows) == 7))
+        results.append(("撞车后 --check 仍 rc=0（点名齐 ✓）", cmd_check(repo2) == 0))
+        lint3 = subprocess.run([sys.executable, str(docs_lint)], cwd=root2,
+                               capture_output=True, text=True)
+        results.append(("撞车后 docs-lint 仍 rc=0（⑥/⑦ 都不红 ✓）", lint3.returncode == 0))
+
+        # ② 显式 `--batch` 撞车 ⇒ **响亮拒绝**，且**一个字节都没写** ✓
+        more: list[dict] = []
+        for i in range(6):
+            _add(f"2026-10-{12 + i // 2:02d}", f"more{i}", more)
+        repo2.ledger.write_text(
+            repo2.ledger.read_text(encoding="utf-8")
+            + "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in more),
+            encoding="utf-8")
+        try:
+            cmd_rotate(repo2, FIX_KEEP, "e2e-2026-10-01", apply=True)
+            code = 0
+        except SystemExit as e:
+            code = e.code if isinstance(e.code, int) else 1
+        results.append((f"显式 --batch 撞车 ⇒ 响亮拒绝 rc={code}（不覆盖 · 承诺的 rc=2 ✓）",
+                        code == 2))
+        results.append(("拒绝时**一个字节都没写**（台账仍 16 条 · 老批次未动 ✓）",
+                        len(repo2.rows()) == 16 and rec_old.read_bytes() == old_bytes))
 
     for label, ok in results:
         print(f"  {'✓' if ok else '✗'} {label}")
