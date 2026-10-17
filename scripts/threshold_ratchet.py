@@ -49,7 +49,7 @@
 200"）✓。其余 floor 取"贴着落地实测之上一点点"（照 ② 学的先例：`recompile-budget.json`
 `max_by_calls=1` 而实测 1 ⇒ **正好贴线**才是活的阈值 ✓）。
 
-## ⚠ 如实标注：**同形不同病**的那一处（`scripts/check-progress-gap.py:44`）
+## ⚠ 如实标注：**同形不同病**的那一处（`scripts/check-progress.py:610` · 层② `--layer gap`）
 
 `MAX_GAP_S = 2.5`（实测 0.12s）看起来也是"装饰性阈值"，但它是**活性界（墙钟秒）**，
 **不该**照搬 ratchet ✗ —— 理由（`AGENTS.md`「判据的两条硬规矩」②：**perf 判据不许用绝对毫秒**；
@@ -145,7 +145,7 @@ REGISTRY: dict[str, dict] = {
 
 # **不许进 ratchet 的同形项**（如实登记 + 逐条理由；"登记了但没改"不是处置 ✗ —— 这里就是处置 ✓）。
 EXCLUDED: dict[str, str] = {
-    "scripts/check-progress-gap.py:44 `MAX_GAP_S = 2.5`（实测 0.12s）":
+    "scripts/check-progress.py:610 `MAX_GAP_S = 2.5`（实测 0.12s）":
         "**同形不同病**：它是**活性界（墙钟秒）**，而 `AGENTS.md` 明文「perf 判据不许用绝对毫秒」"
         "（三次假红实测：同代码 44ms↔2431ms · 本机 37.37s vs CI 278.58s）⇒ 按轮收紧 = "
         "造一台**假红生成器** ✗（共享 runner 上墙钟不可转移）。它的出路是**结构计数**"

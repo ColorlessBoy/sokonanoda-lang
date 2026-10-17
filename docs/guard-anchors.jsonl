@@ -45,8 +45,7 @@
 {"kind": "guard", "guard": "scripts/audit-infoview-css.py", "class": "A", "anchors": ["A-INFOVIEW-VISIBLE"], "why": "同族：同一条 UI 反馈的横向（双重压暗 / 标题小于正文）"}
 {"kind": "guard", "guard": "scripts/check-json-identity.py", "class": "A", "anchors": ["A-CLI-JSON-BYTES"], "why": "真 CLI 在整门课上跑两遍，比 stdout 与退出码逐字节"}
 {"kind": "guard", "guard": "scripts/check-recompile-factor.py", "class": "A", "anchors": ["A-KEYSTROKE-RECOMPILE"], "why": "真编译管线的 by_calls/passes 结构计数（不是耗时）", "faces": {"local": {"witness": "binary-precondition"}}}
-{"kind": "guard", "guard": "scripts/check-progress-cadence.py", "class": "A", "anchors": ["A-TERMINAL-CADENCE"], "why": "人看的那条进度（逐文件 tick），跑真 build", "faces": {"local": {"witness": "binary-precondition"}}}
-{"kind": "guard", "guard": "scripts/check-progress-gap.py", "class": "A", "anchors": ["A-TERMINAL-CADENCE"], "why": "build --json 事件流的最长空档（机器通道，但量的是用户等待）", "faces": {"local": {"witness": "binary-precondition"}}}
+{"kind": "guard", "guard": "scripts/check-progress.py", "class": "A", "anchors": ["A-TERMINAL-CADENCE"], "why": "**一条用户等待的两个通道**（2026-10-17 第 7 轮 `gs7` 由 `check-progress-cadence.py` + `check-progress-gap.py` 合并 ⇒ 一本登记表 + 一个驱动器，`--layer` 点名层）：层① `--layer cadence` 量**人看**的那条（stderr 的逐文件 tick + 人话心跳，跑真 build）· 层② `--layer gap` 量**机器**那条（`build --json` 事件流的最长空档 —— 通道是机器、量的还是用户等待）", "faces": {"local": {"witness": "binary-precondition"}}}
 {"kind": "guard", "guard": "scripts/notation-lint.py", "class": "A", "anchors": ["A-COURSE-TEXT"], "why": "读 courses/**/*.sokonanoda 正文"}
 {"kind": "guard", "guard": "scripts/audit-wire-fields.py", "class": "A", "anchors": ["A-WIRE-FIELDS-VISIBLE"], "why": "扩展源码的读取点 vs LSP 源码的发送点（产品接缝）"}
 {"kind": "guard", "guard": "scripts/audit-notation-paths.py", "class": "A", "anchors": ["A-NOTATION-ON-SCREEN"], "why": "产品源码里记法转化的调用点（绕开唯一接口就判红）"}

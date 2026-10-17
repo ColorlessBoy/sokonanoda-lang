@@ -1028,22 +1028,24 @@ jobs:
         run: |
           python3 scripts/check-test-env-isolation.py
           python3 scripts/check-test-env-isolation.py --selftest
-      - name: Progress events never go quiet for long (P2)
+      - name: Progress events never go quiet for long (P2 · 机器通道 · `--layer gap`)
         # **量事件流最长空档**（不是"有没有进度条" ✗）：`build.decl` 声明级 +
         # `build.tick` 心跳（≤1/s，只报已用时、不假装百分比）两条通道 ⇒ ≤ 2.5s。
         # 改前实测冷编课程 **39.0s**（`unit08-solution`），≥5s 的空档占整轮 80%。
         # `--selftest` = 反向验证：合成一段 5s 空档**必须判红**。
+        # 2026-10-17 第 7 轮 `gs7`：与下面那条（人看通道）合并成 `check-progress.py`
+        # ⇒ **接线点一律点名层**（`--layer gap`）⇒ 一条红只属于一层 ✓。
         run: |
-          python3 scripts/check-progress-gap.py
-          python3 scripts/check-progress-gap.py --selftest
-      - name: Human-facing build progress is per-file and never goes quiet (C1)
-        # **量人看的那条**（stderr）：`check-progress-gap.py` 只看 `--json` 的事件流
+          python3 scripts/check-progress.py --layer gap
+          python3 scripts/check-progress.py --layer gap --selftest
+      - name: Human-facing build progress is per-file and never goes quiet (C1 · 人看通道 · `--layer cadence`)
+        # **量人看的那条**（stderr）：`--layer gap` 只看 `--json` 的事件流
         # （机器通道）⇒ 看不见它 ✗。判据：N=120 个文件 ⇒ 人看的进度行 **≥ N**
         # （旧的是每 10% ⇒ 10 行 = 用户报的"约 24 个文件才一条" ✗）+ 人话心跳 ≥2 条。
         # `--selftest` = 反向验证：合成"每 24 个一行"的流**必须判红**。
         run: |
-          python3 scripts/check-progress-cadence.py
-          python3 scripts/check-progress-cadence.py --selftest
+          python3 scripts/check-progress.py --layer cadence
+          python3 scripts/check-progress.py --layer cadence --selftest
       - name: Course layer is guarded (canvases, solutions, course.json)
         run: cargo test -p sokonanoda-cli --test course --locked
   gates-course:

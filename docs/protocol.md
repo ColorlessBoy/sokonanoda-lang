@@ -991,7 +991,7 @@ global fallback validates that the entry's module root matches the current one
   `build.tick` (`{type, elapsed_ms, file}`) 是**心跳**（**1s**，**契约不变**）——
   **`stdout` 是终端时默认不发**（用户实测"终端每秒刷"），**是管道时照发**（机器
   消费者仍拿得到）；`SOKO_BUILD_TICK_MS=<ms>` 强制发/换周期、`SOKO_BUILD_NO_TICK=1`
-  强制关。兜底判据「最长无输出间隔 ≤ 2.5s」见 `scripts/check-progress-gap.py`；
+  强制关。兜底判据「最长无输出间隔 ≤ 2.5s」见 `scripts/check-progress.py --layer gap`；
 - the human summary is `built K file(s) — H hit, M compiled, F failed`, followed by a **failure
   detail block on stderr** (`失败明细（N 个文件）：` + `✗ <file>: <reason>` per file) whenever anything failed.
 
