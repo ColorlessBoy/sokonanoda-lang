@@ -104,6 +104,38 @@ set -u
 python3 scripts/check-ci-gate-coverage.py --check || exit 1
 python3 scripts/check-ci-gate-coverage.py --selftest || exit 1'
 
+# ⭐ **`wiring-lint` 的另外三对判据**（2026-10-17 · 洞 `CI-ONLY-GUARDS-WIRING-LINT-TRIO` ✓）——
+# 与 `ci.yml` 的 `wiring-lint` job 里那**三步**逐字同源 ✓（`check-doc-drift` ·
+# `check-launcher-extension-link` · `check-lsp-marker-seam`，各跑「判据 + `--selftest`」）。
+# ⚠ **为什么必须补**（**实测读数** ✓）：这三条**只**长在 `ci.yml` 的 `wiring-lint` 里，
+# 本脚本里 `grep -c` = **0 / 0 / 0** ✗ ⇒ 又一处「**本地判据集 ⊂ CI 判据集**」——
+# 与 `CI-LOCAL-NO-QUEUE-CHECK`（`ux-queue.py`）· `GUARD-BITE-NOT-IN-LOCAL-GATE`
+# （`check-guard-bite.py`）· `CI-GREEN-SELFTEST-NOT-WIRED`（`ci-green.py --selftest`）·
+# `CHECK-JSON-IDENTITY-NOT-WIRED-AT-ALL`（`check-json-identity.py`）**逐字同族**：
+# 判据的红**只能走到 CI 才被发现** ✗（实测一轮 CI = **33–35 分钟** ⇒ 本地白等一轮 ✗）。
+# ⚠ **这不是"新口径"，是把同一条 job 补齐** ✓：同一个 `wiring-lint` 的**另外两对**
+# （`ci-push-range.py` · `check-ci-gate-coverage.py`）本脚本**早就**有 ✓ ⇒ 三缺三
+# 正是「**接了一半**」的形状 ✗（洞名里的 `TRIO` 就是这三个）。
+# ⚠ **零前提** ✓（`wiring-lint` job 只有 `checkout`、**没有**构建步 ⇒ 这三条不碰
+# `target/`、不碰真缓存/真 HOME、不需要 Rust ✓）；**耗时实测**（本机 · 六条命令合计
+# **8.24s** ✓）：`check-doc-drift` 0.09+0.07 · `check-launcher-extension-link` 2.12+0.66 ·
+# `check-lsp-marker-seam` 1.90+3.40 ⇒ 与 `docs-lint` 同档，**`--fast` 也跑** ✓。
+# ⚠ **`node` 不是新增前提** ✗：本脚本 :356 的 `editor：stub 宿主`（**非** FAST 门控）
+# 早就硬依赖 `node` ✓ ⇒ 后两条带 node 的守卫没有引入新的前提类 ✓；探不到 node
+# ⇒ 它们 **exit 3**（"判不了 ≠ 绿"）⇒ **拦**，正是要的行为 ✓。
+run "workflow：harness 接线的文档漂移（三处 README ↔ 实现）" "wiring-lint" bash -c '
+set -u
+python3 scripts/check-doc-drift.py || exit 1
+python3 scripts/check-doc-drift.py --selftest || exit 1'
+run "workflow：启动器「VS Code 扩展自带」链接（C1–C4，含 canExec 不许松）" "wiring-lint" bash -c '
+set -u
+python3 scripts/check-launcher-extension-link.py || exit 1
+python3 scripts/check-launcher-extension-link.py --selftest || exit 1'
+run "workflow：LSP/CLI 槽位 marker 跨接缝（C1–C7，含两条负对照不许松）" "wiring-lint" bash -c '
+set -u
+python3 scripts/check-lsp-marker-seam.py || exit 1
+python3 scripts/check-lsp-marker-seam.py --selftest || exit 1'
+
 # ⭐⭐ **交付维度读数**（2026-10-16 · 用户追问「清账 Agent 不会检查还有多少没发版吧，我看它每次
 # 给我发的会话累计」✓ · 队列 `SUB-release-metric-measures-unreleased`）：
 # 报告那张「会话累计」表里的「**发版**」那一格原写「`v0.91.0` 已发布并闭环（26 资产）」——
@@ -213,6 +245,43 @@ set -u
 python3 scripts/audit-notation-paths.py --self-test || exit 1
 python3 scripts/audit-wire-fields.py --selftest || exit 1
 python3 scripts/docs-lint.py --selftest || exit 1' 
+
+# ⭐ **`target/` 体积守卫接进自动路径**（2026-10-17 · 洞 `TARGET-HYGIENE-MANUAL-ONLY` ✓）——
+# `scripts/target-hygiene.py` 此前**只**长在 `scripts/soko gate` 里（**人手敲** ✗）⇒
+# 按"**按行为**普查"的口径，它在**自动路径上一处也没有** ✗。读数（逐条可复算 ✓）：
+#   `grep -c target-hygiene scripts/ci-local.sh` = **1**，而那一条是**注释**（:301 引用它的先例 ✗）
+#   · `grep -rc target-hygiene scripts/githooks/` = **0/0/0/0**
+#   · `grep -rc target-hygiene .github/workflows/*.yml` = **0**（四份 workflow 全 0 ✓）
+#   ⇒ 唯一的调用点是 `scripts/soko gate`（**人手敲** ⇒ 口径 (b) ✗）。
+# ⚠ **后果不是假设**（**守卫自己的 docstring 记着两次实测** ✗）：2026-09-27 `target/` 堆到
+# **205 GB**（`target/debug` 191 GB，磁盘只剩 159 GB ⇒ **开 worktree 就爆盘**）、
+# 2026-10-11 又到 **142 GiB**（61.7 万个 `.rcgu.o` + `incremental/` 53 GiB）——
+# **两次都是"用户问起才发现"** ✗（原话：「浪费我太多 ssd，好麻烦」✓）。根因是
+# **增量编译每会话往 `deps/` 吐一批新的 `*.rcgu.o`、cargo 从不回收** ✓
+# ⇒ 没有自动面 = 它会**静默**胖回去（"某个东西的前提没被验证，而它的后果落在别处" ✓）。
+# ⚠ **为什么不进 CI**（照抄 `scripts/soko` 同一步的**既定理由**，**不改判据** ✗）：CI runner
+# 是**一次性**的、`target/` 天生只有一次构建 ⇒ 在那边没有意义 ✓ ⇒ 接进**本地自动路径**
+# （`pre-push` 的 `--fast` ✓）才是这条守卫的**正确面** ✓ —— 它管的就是**开发机**的盘 ✓。
+# ⚠ **退出码口径逐字照抄 `scripts/soko`**（**只许一致、不许自创** ✗）：`0` 干净 ✓ ·
+# **`2` = 告警（40 GB / 25 万个 `.rcgu.o`）只报不拦** ✓ —— 拦在告警线上会让推送在
+# **日常规模**就常红 ✗（`run()` 把**任何**非 0 都当红 ⇒ 必须在这里**显式放行 2** ✓；
+# 这正是"照抄"而不是"顺手写 `run`"的原因 ✓）· `1`（100 GB / 60 万个 `.rcgu.o` /
+# incremental 红线）与 `3`（判不了）**真拦** ✓。
+# ⚠ **如实划的边界** ✗：`--root` 默认 = **本检出**的 `target/` ⇒ 在**还没有 target/ 的
+# 链接工作树**里它会印「跳过：没有 target/ ⇒ 无需检查」并 rc=0 ✓ —— 那是**设计语义**
+# （没有的东西无从回收 ✓），不是空转；主 checkout / 已构建过的树里它**真的量** ✓。
+# ⚠ **耗时**（实测本机 · 主 checkout `target/` = 2.9 GB / 561 个 `.rcgu.o`）：**0.09s** +
+# `--selftest` **0.09s** ✓；病态规模 16–21s（只在**该知道的时候**才慢 ✓）⇒
+# 与 `docs-lint` 同档，**`--fast` 也跑** ✓。
+run "gates：target/ 体积守卫（本地专属 · CI runner 是一次性的）" "（无 CI 对应：本地专属）" bash -c '
+set -u
+python3 scripts/target-hygiene.py; rc=$?
+python3 scripts/target-hygiene.py --selftest || exit 1
+if [ "$rc" = 2 ]; then
+  printf "  ⚠️ 告警档（未超红线）—— **只报不拦** ✓（口径与 scripts/soko 的同一步逐字一致 ✓）\n"
+  exit 0
+fi
+exit "$rc"'
 
 # **队列不变量**（洞 `CI-LOCAL-NO-QUEUE-CHECK`，2026-10-15 ✓）—— 与 CI 的 `queue-lint` job
 # **逐字同源** ✓：`ux-queue.py --check` = 覆盖自检
