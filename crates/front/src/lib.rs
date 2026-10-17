@@ -33,13 +33,9 @@ pub mod notation;
 pub mod notation_input;
 pub mod project;
 pub mod proof;
-// `proof.rs` 的无渲染依赖小工具（腾判据 ⑨ 的预算，2026-10-16）。
-mod proof_support;
 pub mod query;
 pub mod references;
 pub mod semantic;
-// 语义着色的词法前缀 + 名字表（从 `semantic.rs` 拆出来腾判据 ⑨ 的预算，2026-10-16）。
-mod semantic_names;
 pub mod session;
 pub mod spine;
 pub mod suggest;
@@ -51,9 +47,6 @@ mod diagnostic;
 // `SOKO_ENGINE_DIGEST`，生产路径的消费点是 `compile::cache::build_stamp`
 // ⇒ 折进**全局缓存键**（算法与"覆盖哪些目录"见模块自己的头注释 ✓）。
 mod engine_digest;
-// `Expr` 的遍历/查询方法（从 `ast.rs` 拆出来腾判据 ⑨ 的行数预算，
-// 2026-10-16；先例 `prefix_recovery.rs`）—— `ast.rs` 只许减不许增 ✗。
-mod expr;
 mod parser;
 // 判卷**合成前缀**的解析（严格优先、恢复式兜底）—— `judge.rs` 在 `docs-lint`
 // 判据 ⑨ 的存量基线上（**只许减不许增**）⇒ 实现落在新文件里，`judge.rs` 那边

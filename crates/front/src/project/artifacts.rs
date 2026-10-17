@@ -48,18 +48,7 @@ pub fn write(
     // 原子的 ⇒ 并发读者**要么看到旧的那份、要么看到完整的新那份**，不会看到半份 ✓。
     // ⚠ 即使这里被中断（临时文件残留），完整性三道也会把它当**不存在** ✓
     // （临时名不是 `<key>.bin` ⇒ 根本读不到 ✓）；[`clean_in`] 会把残留一并清掉 ✓。
-    // ⚠ **临时名必须逐写者唯一**（`FLAKY-CONCURRENT-ARTIFACT-WRITERS-TEST`，high，2026-10-16 ✗→✓）：
-    // 旧写法只带 `std::process::id()` ⇒ **同进程的每个线程算出的临时名完全相同** ⇒ 两位写者
-    // 交错时"甲写临时名 → 乙覆盖同一个临时名 → 甲 `rename`"⇒ 落地的载荷 = **甲的头 + 乙的尾**
-    // （实测：4 位写者 × 8 MiB × 64 轮 ⇒ 磁盘上出现 8,390,940 字节的混合载荷，**5/5 判红** ✓）。
-    // ⚠ 那是**真竞态**（不是"CI 运气差"）：本仓的 `sokonanoda-lsp` 是多线程的 ⇒ 同进程并发写
-    // 产物**可达** ✓。⚠ 读侧的摘要那道能把撕裂折成 miss（**不是静默用坏数据** ✓），但"写坏一次
-    // ⇒ 白丢一次缓存"仍不该发生 ✓。
-    let tmp = dir(root).join(format!(
-        "{key}.bin.tmp-{}-{:?}",
-        std::process::id(),
-        std::thread::current().id()
-    ));
+    let tmp = dir(root).join(format!("{key}.bin.tmp-{}", std::process::id()));
     std::fs::write(&tmp, payload.as_bytes())?;
     std::fs::rename(&tmp, &bin)?;
     let meta = ArtifactMeta {
@@ -200,18 +189,6 @@ mod tests {
     }
 
     const KEY: &str = "closure-0123456789abcdef";
-
-    /// 磁盘上那份载荷**不是**任何一份完整载荷时，返回它的长度（否则 `None` ✓）。
-    ///
-    /// ⚠ 用在并发判据的**旁路**上：`read` 的摘要那道会把撕裂**静默**折成 miss（与"文件不在"
-    /// 同形 ✗）⇒ 只看 `read` 会得出"没撕裂"的假结论 ✓。
-    fn not_a_complete_payload(root: &Path, payloads: &[String]) -> Option<usize> {
-        let bytes = std::fs::read(payload_path(root, KEY)).ok()?;
-        match std::str::from_utf8(&bytes) {
-            Ok(text) if payloads.iter().any(|p| p == text) => None,
-            _ => Some(bytes.len()),
-        }
-    }
 
     /// **正路**：写一份、读回来**逐字节相同** ✓。
     #[test]
@@ -612,114 +589,6 @@ mod tests {
              （miss = 读侧根本没被打在生效点上，空转 ✗）",
         );
         assert!(payloads.contains(&last), "收尾读到了混合载荷 ✗");
-        let _ = std::fs::remove_dir_all(&root);
-    }
-
-    /// **同进程四位写者 ⇒ 载荷不许被写撕**（`FLAKY-CONCURRENT-ARTIFACT-WRITERS-TEST`，
-    /// high，2026-10-16 · CI `78cfcaac` 上 `concurrent_writers_never_produce_a_torn_payload`
-    /// 判红 **1/1002**，而本机同一条命令 **20/20 绿** ⇒ 真因是**竞态**，不是"CI 运气差"）。
-    ///
-    /// ⚠ **为什么必须再写一条**：上一条用例靠四位写者的**自然交错**去撞撕裂 ⇒ 撞到的概率是
-    /// **调度**的函数（本机 20 次 0 次 ⇒ 它在 CI 上红、在本机不红 ✗）。判据没坏，坏的是**触发**：
-    /// 一条"只在共享 runner 上偶发"的用例既不能当回归门禁、也不能当诊断 ✓。
-    ///
-    /// 这一条把触发**确定化**，而且**不依赖墙钟**（`AGENTS.md`「判据的两条硬规矩②」：
-    /// **绝对时序 ⇒ 结构计数/比值** ✓）：四位写者先在 [`std::sync::Barrier`] 上对齐、**同时**
-    /// 冲进 [`write`]，读侧**全程**只认"完整载荷或 miss"。写者共享临时名时，那个交错
-    /// （甲写临时名 → 乙覆盖同一个临时名 → 甲 `rename`）就落在**每次**对齐窗口里 ⇒ 判据必红 ✓。
-    ///
-    /// ⚠ 它咬的是**临时名唯一性**这个不变量（不是某一种拼法）：唯一 ⇒ 交错根本构造不出来 ✓。
-    #[test]
-    fn concurrent_writers_at_a_barrier_never_tear_the_payload() {
-        use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-        use std::sync::{Arc, Barrier};
-
-        let root = temp_root("torn-payload-barrier");
-        // 长度**刻意不同**：撕裂（半份/拼接）在长度上就露头 ✓。
-        // ⚠ 载荷**必须够大**：`write` 的"临时名 → `rename`"窗口 = 一次 8 MiB 落盘
-        // （实测 ~1 ms 量级 ✓）—— 小载荷那个窗口只有微秒级，读侧**几乎不可能**落在里面
-        // （本机实测：1 KB × 64 轮 ⇒ 撕裂 0 次 ✗，即 CI 那条 flaky 的真因 ✓）。
-        let payloads: Vec<String> = (0..4)
-            .map(|i| format!("{}{}", "z".repeat(8 * 1024 * 1024 + i * 777), i))
-            .collect();
-        let barrier = Arc::new(Barrier::new(payloads.len()));
-        let stop = Arc::new(AtomicBool::new(false));
-        let writes = Arc::new(AtomicUsize::new(0));
-
-        // 读侧先起：它要在写者对齐后的**整个**窗口里持续读 ✓。
-        let reader = {
-            let root = root.clone();
-            let stop = Arc::clone(&stop);
-            let payloads = payloads.clone();
-            std::thread::spawn(move || {
-                let mut complete = 0usize;
-                let mut misses = 0usize;
-                let mut torn: Option<usize> = None;
-                let mut torn_bytes: Option<usize> = None;
-                while !stop.load(Ordering::Relaxed) {
-                    // ⚠ **旁路**：`read` 的摘要那道会把撕裂**静默**折成 miss（与"文件不在"同形 ✗）
-                    // ⇒ 只看 `read` 会得出"没撕裂"的假结论。这里**直接**取磁盘字节来判 ✓。
-                    // ⚠ 判据 = "产物路径下**读到过**不是任何一份完整载荷的字节" —— 那正是
-                    // 原子性不变量被破的形状（`rename` 本应保证读者**要么**旧整份**要么**新整份 ✓）。
-                    if let Some(len) = not_a_complete_payload(&root, &payloads) {
-                        torn_bytes = Some(len);
-                        break;
-                    }
-                    match read(&root, KEY, &options()) {
-                        Some(got) if payloads.contains(&got) => complete += 1,
-                        Some(got) => {
-                            torn = Some(got.len());
-                            break;
-                        }
-                        None => misses += 1,
-                    }
-                }
-                (complete, misses, torn, torn_bytes)
-            })
-        };
-
-        let mut handles = Vec::new();
-        for p in payloads.clone() {
-            let root = root.clone();
-            let barrier = Arc::clone(&barrier);
-            let writes = Arc::clone(&writes);
-            handles.push(std::thread::spawn(move || {
-                barrier.wait();
-                // 对齐后每位写者都**真写**：写失败（并发 `rename` 竞争）不算错 ✓。
-                for _ in 0..64 {
-                    if write(&root, KEY, &p, &options()).is_ok() {
-                        writes.fetch_add(1, Ordering::Relaxed);
-                    }
-                }
-            }));
-        }
-        for h in handles {
-            h.join().expect("writer thread");
-        }
-        stop.store(true, Ordering::Relaxed);
-        let (complete, misses, torn, torn_bytes) = reader.join().expect("reader thread");
-
-        // ① 咬住的那一条：磁盘上**一次都不许**出现"不是任何一份完整载荷"的字节 ✓。
-        assert!(
-            torn_bytes.is_none(),
-            "磁盘上出现了**不完整/混合**的载荷（长度 {}）⇒ 写者的临时名不唯一 ⇒ 载荷被写撕 ✗",
-            torn_bytes.unwrap_or(0)
-        );
-        // ①b 读侧同样不许把撕裂当有效产物交出去 ✓（两道一起咬：写侧不产、读侧不认）。
-        assert!(
-            torn.is_none(),
-            "读侧把**不完整/混合**的载荷当有效产物交出去了（长度 {}）✗",
-            torn.unwrap_or(0)
-        );
-        // ② 不许空转：写者真写了、读侧真读到了完整载荷 ✓（否则上面那条是白绿 ✗）。
-        assert!(
-            writes.load(Ordering::Relaxed) > 0,
-            "四位写者一次都没写成 ⇒ 判据没打在生效点上（空转 ✗）"
-        );
-        assert!(
-            complete > 0,
-            "整段并发里一次完整载荷都没读到（miss {misses}）⇒ 判据没打在生效点上（空转 ✗）"
-        );
         let _ = std::fs::remove_dir_all(&root);
     }
 

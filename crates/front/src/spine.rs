@@ -1353,9 +1353,49 @@ pub(crate) fn mentions_multi_implicit(expr: &Expr, defs: &crate::compile::elab::
     go(expr, defs)
 }
 
-/// 见 [`crate::expr`] 的 `Expr::mentions`（实现搬走了，这里只留转发 ✓）。
 pub(crate) fn mentions(name: &str, expr: &Expr) -> bool {
-    expr.mentions(name)
+    match expr {
+        Expr::Ident { name: n, .. } => n == name,
+        Expr::UniverseApp { .. } | Expr::Sort { .. } | Expr::Num { .. } | Expr::Hole { .. } => {
+            false
+        }
+        Expr::App { fun, arg, .. } => mentions(name, fun) || mentions(name, arg),
+        Expr::SetLiteral { elements, .. } | Expr::AnonCtor { elements, .. } => {
+            elements.iter().any(|e| mentions(name, e))
+        }
+        Expr::Lambda { binders, body, .. } | Expr::Forall { binders, body, .. } => {
+            binders
+                .iter()
+                .any(|b| b.ty.as_deref().is_some_and(|t| mentions(name, t)))
+                || mentions(name, body)
+        }
+        Expr::Arrow {
+            domain, codomain, ..
+        } => mentions(name, domain) || mentions(name, codomain),
+        Expr::Plus { lhs, rhs, .. } => mentions(name, lhs) || mentions(name, rhs),
+        Expr::Let {
+            binder, val, body, ..
+        } => {
+            binder.ty.as_deref().is_some_and(|t| mentions(name, t))
+                || mentions(name, val)
+                || mentions(name, body)
+        }
+        Expr::Match {
+            scrutinee, arms, ..
+        } => {
+            mentions(name, scrutinee)
+                || arms.iter().any(|arm| {
+                    arm.guard.as_ref().is_some_and(|g| mentions(name, g))
+                        || mentions(name, &arm.body)
+                })
+        }
+        // 记号节点（G-04 / WO-011）：符号与目标名不是标识符，只走操作数。
+        Expr::Notation { lhs, rhs, .. } => {
+            lhs.as_deref().is_some_and(|e| mentions(name, e))
+                || rhs.as_deref().is_some_and(|e| mentions(name, e))
+        }
+        Expr::By { .. } => false,
+    }
 }
 
 /// 位置 spine 合一：`codomain` 与 `goal` 同头（Ident/UniverseApp 相同）时
@@ -1608,12 +1648,6 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
         },
         Expr::AnonCtor { elements, span } => Expr::AnonCtor {
             elements: elements.iter().map(|e| substitute(e, sigma)).collect(),
-            span: *span,
-        },
-        // 命名实参（2026-10-16）：值是普通表达式，照常代换 ✓。
-        Expr::NamedArg { name, value, span } => Expr::NamedArg {
-            name: name.clone(),
-            value: Box::new(substitute(value, sigma)),
             span: *span,
         },
         Expr::Ident { name, span } => match sigma.get(name) {
