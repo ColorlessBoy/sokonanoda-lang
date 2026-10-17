@@ -321,21 +321,27 @@ jobs:
         # ⇒ 属发版大节点 ✓，见 `scripts/release-preflight.sh --sweep`）。
         # ⚠ 离线 ✓ 实测 1.2s ✓（本 job 预算 5 分钟 ⇒ 噪声级 ✓）。
         run: python3 scripts/check-json-identity.py --selftest
-      - name: 队列**独立**复核（第二份实现 + 纯 git 事实 + 证据可复算 ratchet）
+      - name: 队列独立复核 + 收口指针触发器（合并后一份：登记表 + 驱动器）
         # 2026-10-15 · `SUB-orchestrator-attention-structure`【1】/【2】 ✓。
         # 病根 = **判据的所有权**：`ux-queue.py` 同时定义队列语义/守卫/证据规则/**复核判据**
         # ⇒ 工具错 = 账错 = 过程错，**没有外部检查**能发现它 ✗（它本会话被改 54 次、
         # 自报 16 轮"独立"复核，而复核者与实现者是同一个进程 ✗）。
-        # `check-queue-views.py` **不 import** 它（`C6` 自证 + `--selftest` 钉着 ✓），
+        # `check-queue-integrity.py` 的**复核层**（R-C1…R-C6）**不 import** 它
+        # （`C6` 自证 + `--selftest` 钉着 ✓），
         # 只读**原始读数**（事件流 + 纯 git `merge-base --is-ancestor`）⇒ 它的自报结论
         # 是**被告**，不是判据 ✓。判据：C1 原始层卫生 · C2 两份实现折出**同一状态**
         # （差分测试）· C3 两层不漂移（两个方向都判）· C4 指针祖先性（折过 `repoint` 的
         # **最终**指针 ✓ —— 拿原始 sha 判会造 100+ 条假红 ✗）· C5 收口证据可独立复算
         # （**ratchet**：不可复算的条数 ≤ 冻结上限，只许减不许增 ✓）。
-        # 实测 1.5s · 本 job 本来就 `fetch-depth: 0`（C4 要全历史 ✓）。
+        # ⭐ **2026-10-17（`SUB-narrow-guards-to-one-layer` 第 2 轮）合并**：同一个关注点的两条
+        # B 类守卫（`check-queue-views.py` + `check-queue-rewrite-trigger.py`）合成本文件 ⇒
+        # **B 类 21 → 20**（C8 的上限**一个字没动** ✗）；`--selftest` 现在**两套一起跑**
+        # （复核层 + 触发器层 + 登记表对账 ✓）⇒ 本步的覆盖面**只增不减** ✓。
+        # 实测 1.5s（合并后 `--selftest` 两套合计 ~2.6s）· 本 job 本来就 `fetch-depth: 0`
+        # （C4 与触发器那条咬住证明都要全历史 ✓）。
         run: |
-          python3 scripts/check-queue-views.py --selftest
-          python3 scripts/check-queue-views.py
+          python3 scripts/check-queue-integrity.py --selftest
+          python3 scripts/check-queue-integrity.py
       - name: "簿记预算 ratchet（每轮收紧一档 · 本轮没比上轮低 ⇒ 判红）"
         # ⚠ 名字**必须加引号** ✗→✓：裸标量里的 ` : ` 会被 YAML 当成**又一层映射** ⇒
         # `ci-yml-lint` 当场判红（实测 `.github/workflows/ci.yml:292:27 mapping values are
@@ -454,7 +460,7 @@ jobs:
         # （**实测**：浅克隆里 rc=0 · rc=0 ✓）；**需要全历史的是它的咬住证明**
         # （`docs/guard-bite.jsonl` 那一行的 `--check --source-rev 9c8cfa90` ⇒ `git show <rev>:<f>`
         # ⇒ 浅克隆**实测 rc=3** ✗）⇒ 它**进** `HISTORY_DEPENDENT` ✓（与表里
-        # `check-queue-rewrite-trigger.py`、以及 `check-history-depth-wiring.py` 自指两条**同形**：
+        # `scripts/check-queue-integrity.py`、以及 `check-history-depth-wiring.py` 自指两条**同形**：
         # 要全历史的是**咬住证明**，不是判据本体 ✓）。
         run: |
           python3 scripts/check-frozen-headroom.py --check

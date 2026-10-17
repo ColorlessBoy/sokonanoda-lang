@@ -99,24 +99,25 @@ HISTORY_DEPENDENT: list[tuple[str, str]] = [
      "簿记窗口 = 固定锚点..HEAD（`git log`）；浅克隆实测 rc=3"),
     ("scripts/check-threshold-ratchet.py",
      "开轮纪律 = 基点之后的提交数（`git log`）；浅克隆实测 rc=1"),
-    ("scripts/check-queue-views.py",
-     "C4 祖先性断言（`git merge-base --is-ancestor`）；浅克隆实测 rc=1"),
+    ("scripts/check-queue-integrity.py",
+     "**两层都要**：复核层 C4 的祖先性断言（`git merge-base --is-ancestor`；浅克隆实测 rc=1）"
+     "**+** 触发器层的咬住证明打在**固定旧 rev** 上（`--bite` ⇒ `git cat-file`/`git show <rev>:…`；"
+     "浅克隆实测 rc=3）—— 2026-10-17 合并前这是**两条**（`check-queue-views.py` + "
+     "`check-queue-rewrite-trigger.py`）✓"),
     ("scripts/ux-queue.py",
      "收口指针的祖先性断言（`git merge-base --is-ancestor`）；浅克隆实测 rc=1"),
-    ("scripts/check-queue-rewrite-trigger.py",
-     "咬住证明打在**固定旧 rev** 上（`git show <rev>:…`）；浅克隆实测 rc=3"),
     # ⚠ **2026-10-17 补**（`ng1` 普查 §3.C 第 ③ 组：它的 **CI 面**缺 ⇒ 接进 `queue-lint` ✓）——
     # **如实划的边界** ✗：本条的**判据本体不需要全历史**（`--check` / `--selftest` 浅克隆
     # **实测 rc=0** ✓）；**要全历史的是它的咬住证明**（`docs/guard-bite.jsonl` 那一行的
     # `--check --source-rev 9c8cfa90` ⇒ `git show` ⇒ 浅克隆**实测 rc=3** ✗）。
-    # ⇒ 与本表里 `check-queue-rewrite-trigger.py`、以及**本脚本自指**那两条**同形** ✓
+    # ⇒ 与本表里 `check-queue-integrity.py`（触发器层的咬住证明）、以及**本脚本自指**那两条**同形** ✓
     # （"跑它就要全历史" = **连它的咬住证明一起跑**就要全历史 ✓，不是"判据本体读历史" ✗）。
     # ⚠ 反过来说：**同族的 `scripts/audit-notation-paths.py` 故意不登记** ✗ —— 它全文
     # **0 处** `git`/`subprocess`，判据与 `--self-test` 浅克隆都 rc=0 ⇒ 登记它 = 给一条
     # 不需要全历史的脚本发"要全历史"的假红（E18：守卫一旦叫狼来了就死了 ✗）。
     ("scripts/check-frozen-headroom.py",
      "咬住证明打在**固定旧 rev** 上（`--check --source-rev 9c8cfa90` ⇒ `git show <rev>:<path>`）"
-     "；浅克隆实测 rc=3（判据/`--selftest` 本身浅克隆 rc=0 —— 同 `check-queue-rewrite-trigger.py` 的形态 ✓）"),
+     "；浅克隆实测 rc=3（判据/`--selftest` 本身浅克隆 rc=0 —— 同 `check-queue-integrity.py` 触发器层的形态 ✓）"),
     # ⚠ **2026-10-17 补**（第 7 轮 `ng8`：把 `check-site.py` 接进 `ci.yml` 的 `queue-lint` ✓）——
     # ⭐ **本条与上面那三条"要全历史的是咬住证明"不同形** ✗：它的**判据本体**就读 tag ✓
     # （形态同 `check-attention-budget.py` 的"窗口 = `git log`"✓）。

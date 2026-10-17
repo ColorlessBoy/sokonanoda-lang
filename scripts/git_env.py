@@ -31,8 +31,9 @@
 ## 口径（**一处定义**，`AGENTS.md` 硬规则 0(b)）
 
 本函数是**全仓唯一一处**：所有会跑 `git` 的脚本都从这里取环境 ✓，别在每个
-`subprocess.run` 边上各写一遍 ✗（先例 `scripts/check-queue-rewrite-trigger.py` 的
-`clean_git_env()` 已改为**委托本模块** —— 它的实测读数留在那边的 docstring 里 ✓）。
+`subprocess.run` 边上各写一遍 ✗（先例 `scripts/check-queue-integrity.py` —— 它的**触发器层**
+原先自带一份 `clean_git_env()` 副本，2026-10-17 合并那一轮删掉、改成本模块 ✓；
+`GIT_DIR` 污染那条实测读数留在它的 docstring 与 `--selftest` 臂 ⑤ 里 ✓）。
 
 ⚠ **摘的是前缀 `GIT_` 全族**（不是点名的几个）：`GIT_DIR` / `GIT_WORK_TREE` /
 `GIT_INDEX_FILE` / `GIT_COMMON_DIR` / `GIT_OBJECT_DIRECTORY` /

@@ -10,7 +10,7 @@
 #   `pre-push` 同一处）⇒ 这不是"新造一条安装步骤" ✗，是**把已有的触发面接上** ✓。
 #
 # ⚠ **本文件只做转发** ✗：判据、逃生门、口径**全在**
-#   `scripts/check-queue-rewrite-trigger.py --from-hook`（**唯一一处实现** —— 钩子里再写一遍
+#   `scripts/check-queue-integrity.py --from-hook`（**唯一一处实现** —— 钩子里再写一遍
 #   就是 `AGENTS.md` 硬规则 0(b) 说的"同一规则两处写 ⇒ 下次只改一处又分叉"✗）。
 #
 # ⚠ **永不阻塞 rebase**：`git` 本来就不看 `post-rewrite` 的退出码；这里再显式 `exit 0`
@@ -23,11 +23,12 @@ set -uo pipefail
 #   `GIT_DIR`（= 那棵工作树的 git 目录，实测 `GIT_DIR=…/.git/worktrees/wt`）交给本钩子，
 #   而它**优先于 cwd** 决定仓库发现 ⇒ 从这里起每一句 `git` 都可能量到**另一棵树**
 #   （实测后果：触发器把**主 checkout** 误判成"链接工作树" ⇒ 在最需要它的那一刻空转 ✗）。
-#   `scripts/check-queue-rewrite-trigger.py` 自己也有 `clean_git_env()`（**唯一一处** ✓），
+#   `scripts/check-queue-integrity.py` 走 `scripts/git_env.py` 的 `clean_git_env()`
+#   （**全仓唯一一处** ✓；2026-10-17 合并那一轮把触发器里那份本地副本删掉了 ✓），
 #   这里只是**别在进它之前**就已经量错 ✓。
 root=$(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR -u GIT_INDEX_FILE -u GIT_PREFIX \
   git rev-parse --show-toplevel 2>/dev/null || pwd)
-trigger="$root/scripts/check-queue-rewrite-trigger.py"
+trigger="$root/scripts/check-queue-integrity.py"
 if [ ! -f "$trigger" ]; then
   printf '%s\n' "[post-rewrite] ⓘ 找不到 $trigger ⇒ 跳过（本仓没有这条触发器）✓"
   exit 0

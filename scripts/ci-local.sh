@@ -384,18 +384,24 @@ python3 scripts/ux-queue.py --check || exit 1'
 
 # **队列的独立复核**（2026-10-15 · `SUB-orchestrator-attention-structure` 【1】/【2】 ✓）：
 # 病根是**判据的所有权** —— `ux-queue.py` 同时定义队列语义/守卫/证据规则/**复核判据**
-# ⇒ 工具错 = 账错 = 过程错，没有外部检查能发现它 ✗。`check-queue-views.py` 用
+# ⇒ 工具错 = 账错 = 过程错，没有外部检查能发现它 ✗。`check-queue-integrity.py` 的
+# **复核层**用
 # **第二份实现**（自己折原始事件流）+ **纯 git 事实**（`merge-base --is-ancestor`）
 # 与它**对拍** ⇒ 工具自报的结论只是**被告**，不是判据 ✓。
 # ⚠ 它与上一步同源（都要 `SOKO_QUEUE_ROOT` 指向主 checkout ✓ —— 链接工作树里
 # 那份 `docs/ux-queue-events.jsonl` 是过期副本 ✗）。
 # 实测 1.5s（含 `ux-queue.py --json` 一次）⇒ 与 docs-lint 同档 ✓。
-run "gates：队列独立复核（第二份实现 + 纯 git 事实 + 证据可复算 ratchet）" "queue-lint" bash -c '
+# ⭐ **2026-10-17（`SUB-narrow-guards-to-one-layer` 第 2 轮）合并**：同一个关注点的两条 B 类
+# 守卫（`check-queue-views.py` + `check-queue-rewrite-trigger.py`）合成本文件 ⇒ **B 类 21 → 20**
+# （C8 的上限**一个字没动** ✗）。`--selftest` 现在**两套一起跑**（复核层 13 臂 + 触发器层 11 臂 +
+# 登记表对账 10/10）⇒ 本步的覆盖面**只增不减** ✓；`--check`/`--bite`/`--from-hook` 三个
+# 触发器模式**逐字保留** ✓（钩子那边照旧转发 ✓）。
+run "gates：队列独立复核 + 收口指针触发器（合并后一份：登记表 + 驱动器）" "queue-lint" bash -c '
 set -u
 root=$(git worktree list --porcelain | sed -n "1s/^worktree //p")
 if [ -n "$root" ]; then export SOKO_QUEUE_ROOT="$root"; fi
-python3 scripts/check-queue-views.py --selftest || exit 1
-python3 scripts/check-queue-views.py || exit 1'
+python3 scripts/check-queue-integrity.py --selftest || exit 1
+python3 scripts/check-queue-integrity.py || exit 1'
 
 # **簿记预算**（2026-10-15 · 同上的【5】/【5'】 ✓）：用户实测本会话
 # **生成物/台账 : 产品 ≈ 17 : 1** · **簿记类提交 56%** ⇒ 注意力结构病 ✗。
@@ -427,8 +433,8 @@ python3 scripts/check-threshold-ratchet.py || exit 1'
 # ⇒ 又一处「**本地判据集 ⊂ CI 判据集**」：判据的红**只能走到 CI 才被发现** ✗
 #（实测代价：一轮 CI = 33–35 分钟 ⇒ 本地白等一轮 ✗）。本步与 `ci.yml` 的 `queue-lint` job
 # 那两步**逐字同源** ✓（`--job` 缺省 = `queue-lint` ✓ ⇒ 本地与 CI 的覆盖面一致 ✓）。
-# ⚠ **ROOT 口径**（与上面两条队列步**同一个坑** ✗）：`check-queue-views.py` 那条证明的 `pass`
-# 就是 `python3 scripts/check-queue-views.py`，而它在**链接工作树**里 rc=1（`ux-queue.py --json`
+# ⚠ **ROOT 口径**（与上面两条队列步**同一个坑** ✗）：`check-queue-integrity.py` 那条证明的 `pass`
+# 就是 `python3 scripts/check-queue-integrity.py`，而它在**链接工作树**里 rc=1（`ux-queue.py --json`
 # rc=2：没设 `SOKO_QUEUE_ROOT` ⇒ **合法夹具假红** ✗ —— 实测未设 ROOT 时 `--check --all` rc=1 ✓）
 # ⇒ 照上面两步的写法覆盖成**主工作树**（`git worktree list` 第一行 ✓）。
 # ⚠ **耗时**（实测 `f878f88a` · 本机 · 已设 ROOT ✓）：`--selftest` **91.3s** · `--check --all` **70.0s**
