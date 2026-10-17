@@ -110,12 +110,13 @@ jobs:
       - name: 判据自检（控制组判绿、三个漂移方向都必须判红）
         run: python3 scripts/tactic-docs-lint.py --selftest
 
-  # **「声明说 X，实现是 Y」的漂移守卫**（2026-10-15 LINK-B 新增两条，洞 `CHECKERS-NOT-IN-CI`；
+  # **「声明/规范说 X，实现是 Y」的漂移守卫**（2026-10-15 LINK-B 新增两条，洞 `CHECKERS-NOT-IN-CI`；
   # ⭐ 2026-10-17 合并成**一条** `check-drift.py` = 一本登记表 + 一个驱动器 ✓，
-  # `SUB-narrow-guards-to-one-layer` ①：`check-doc-drift.py`（harness 接线的文档漂移：
-  # 三处 README ↔ 实现）+ `check-launcher-extension-link.py`（启动器的「VS Code 扩展自带」
-  # 链接：C1–C4 四条「用户动作 ⇒ 可见结果」）—— **同一个锚** `A-HARNESS-DOCS-MATCH` ·
-  # **同一个 job** · **同一批接线点** ⇒ 一层一个关注点 ✓）。
+  # `SUB-narrow-guards-to-one-layer` ① **C 组 3 → 1 做齐**：`check-doc-drift.py`（harness 接线的
+  # 文档漂移：三处 README ↔ 实现）+ `check-launcher-extension-link.py`（启动器的「VS Code
+  # 扩展自带」链接：C1–C4 四条「用户动作 ⇒ 可见结果」）+ `check-lsp-marker-seam.py`（marker
+  # 跨接缝：一个写端 ↔ 三个读点，原 C1–C7 ⇒ 合并后 **S1–S7**）—— **同一个锚**
+  # `A-HARNESS-DOCS-MATCH` · **同一个 job** · **同一批接线点** ⇒ 一层一个关注点 ✓）。
   # 两条都**只进了 `scripts/soko gate`**，而 CI 这条路上等于没有 ✗ —— 与「咬不住的守卫
   # 等于没有」同族 ✓。
   #
@@ -128,23 +129,24 @@ jobs:
   # 不加过滤器** ✓（顺带避开"skipped 的依赖会拖垮 `auto-tag`"那个坑 ✓）。
   # 步骤形状与 `gates-fast` 里的同名两步**逐字同源**（判据 + `--selftest`）✓。
   #
-  # 依赖：层① 只要 python3 ✓；层② 还要 `node`（runner 自带）——**探不到就 exit 3、
-  # 绝不静默通过** ✓（与 gate 其它步同一条纪律 ✓）。合并后是**一次解释器启动**跑两层
-  # ⇒ 亚秒级 ⇒ 永远跑 ✓。
+  # 依赖：层① 只要 python3 ✓；层② 还要 `node`、层③ 还要 `node` + `tar`（runner 自带）——
+  # **探不到就 exit 3、绝不静默通过** ✓（与 gate 其它步同一条纪律 ✓）。合并后是**一次解释器
+  # 启动**跑三层 ⇒ 仍是个位数秒 ⇒ 永远跑 ✓。
   #
-  # ⭐ 2026-10-15 CMT-G 增补**第二个**：`check-lsp-marker-seam.py`（洞
-  # `LSP-MARKER-NO-COMMITTED-GUARD`）—— LSP 槽位的 marker 有**一个写端 + 三个读点**
-  # （`editor/vscode/server.js` 写端与 `cachedServerIsCurrent` · `scripts/soko`
+  # ⭐ **层③ = 2026-10-15 CMT-G 那一条**（`check-lsp-marker-seam.py`，洞
+  # `LSP-MARKER-NO-COMMITTED-GUARD`；⭐ 2026-10-17 **第 4 轮 `gs4` 并进本文件** ✓ ——
+  # 条目 ① 的字面终点 `C 组 3 → 1` 由此到达 ✓）—— LSP 槽位的 marker 有**一个写端 +
+  # 三个读点**（`editor/vscode/server.js` 写端与 `cachedServerIsCurrent` · `scripts/soko`
   # `markerExpected` · `editor/vscode/extension.js` doctor 5/6）。lspF 轮（`1b6b7eb5`）
   # 把它们一次改齐，但跨接缝探针只活在 `.cache/ux/fix-lspF/`（**不 commit** ✗）
-  # ⇒ 照上面那条的形状收进 `scripts/` ✓（⚠ `check-drift.py` 的 ① 是**同一族**的第三条 ——
-  # `gs1` §9 把「漂移 3 → 1」排在后面几轮 ⇒ 那时它并进 `check-drift.py` 的登记表 ✓）。
-  # C1–C6 盖 LSP 槽位；**C7 是横向排查**（硬规则 0(b)）收的**第二个槽位**：扩展
-  # 「Install CLI」写端 `installBundledCli`（洞 `INSTALL-BUNDLED-CLI-MARKER-DRIFT`，
-  # markC `a5feb8b5`）的证据同样只在 `.cache/ux/fix-markC/`，而今天没有任何 committed
-  # 判据盖住它（`test-server.js` 只盖 LSP 槽位 · `test-extension-host.js` 把
-  # `installBundledCli` 整个 stub 掉 ✗）⇒ 一并收进来 ✓。
-  # 依赖 `node` + `tar`（runner 自带）⇒ 同一条纪律：探不到就 exit 3 ✓；约 1.5 秒 ⇒ 永远跑 ✓。
+  # ⇒ 收进 `scripts/` ✓。S1–S5 盖 LSP 槽位；**S7 是横向排查**（硬规则 0(b)）收的
+  # **第二个槽位**：扩展「Install CLI」写端 `installBundledCli`（洞
+  # `INSTALL-BUNDLED-CLI-MARKER-DRIFT`，markC `a5feb8b5`）的证据同样只在
+  # `.cache/ux/fix-markC/`，而当时没有任何 committed 判据盖住它（`test-server.js` 只盖
+  # LSP 槽位 · `test-extension-host.js` 把 `installBundledCli` 整个 stub 掉 ✗）⇒ 一并收 ✓；
+  # **S6 是结构性断言**（读 `extension.js` doctor 5/6 那一段 —— 理由见脚本抬头 ✓）。
+  # ⚠ **id 从 `C1–C7` 改名成 `S1–S7`**：合并后**一个登记表**里的 id 必须唯一（③ 原来的
+  # `C1–C4` 与②的撞名 ✗）—— 改名**不是收窄**（域一字未动 ✓）。
   #
   # ⭐ 2026-10-15 增补**第三个**：`scripts/ci-push-range.py`（洞 `PUSH-RANGE-HIDES-RELEASE`）——
   # `changes` job 的推送范围基点从"本次推送自己"改成"上一个已验证点"（见那个 job 的注释 ✓）。
@@ -168,21 +170,17 @@ jobs:
   # 跑 ✓，那个 job 本来就有）。R1 的表是**按脚本**声明的 ⇒ 跑它的每个 job 都跟着要 ✓
   # —— 与 `check-frozen-headroom.py` / `check-queue-integrity.py` 触发器层**同形** ✓。
   wiring-lint:
-    name: wiring-lint（漂移守卫「声明 ↔ 实现」+ LSP 槽位 marker 跨接缝 + 推送范围基点）
+    name: wiring-lint（漂移守卫「声明/规范 ↔ 实现」三层：① 三处 README ↔ 实现 · ② 扩展链接 C1–C4 · ③ marker 跨接缝 S1–S7 · 推送范围基点）
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: 漂移守卫（① 文档漂移：三处 README ↔ 实现 · ② 扩展链接 C1–C4）+ 两套自检
+      - name: 漂移守卫三层（① 三处 README ↔ 实现 · ② 扩展链接 C1–C4 · ③ marker 跨接缝 S1–S7）+ 三套自检
         run: |
           python3 scripts/check-drift.py
           python3 scripts/check-drift.py --selftest
-      - name: LSP/CLI 槽位 marker 跨接缝（C1–C7，含两条负对照不许松）+ 自检
-        run: |
-          python3 scripts/check-lsp-marker-seam.py
-          python3 scripts/check-lsp-marker-seam.py --selftest
       - name: 推送范围基点（(A) 的范围语义 + 接线，改了判据必须有人验）
         run: |
           python3 scripts/ci-push-range.py --check-wiring

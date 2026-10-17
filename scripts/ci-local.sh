@@ -105,10 +105,10 @@ python3 scripts/check-ci-gate-coverage.py --check || exit 1
 python3 scripts/check-ci-gate-coverage.py --selftest || exit 1'
 
 # ⭐ **`wiring-lint` 的另外两对判据**（2026-10-17 · 洞 `CI-ONLY-GUARDS-WIRING-LINT-TRIO` ✓；
-# ⭐ 同一天第 3 轮 `gs3` 把**前两条合并成一条** ✓，`SUB-narrow-guards-to-one-layer` ①：
-# `check-doc-drift.py` + `check-launcher-extension-link.py` ⇒ `check-drift.py`）——
-# 与 `ci.yml` 的 `wiring-lint` job 里那**两步**逐字同源 ✓（`check-drift` ·
-# `check-lsp-marker-seam`，各跑「判据 + `--selftest`」）。
+# ⭐ 同一天第 3/4 轮 `gs3`+`gs4` 把它们**合成一条** ✓，`SUB-narrow-guards-to-one-layer` ①
+# **C 组 3 → 1 做齐**：`check-doc-drift.py` + `check-launcher-extension-link.py` +
+# `check-lsp-marker-seam.py` ⇒ `check-drift.py`）——
+# 与 `ci.yml` 的 `wiring-lint` job 里那**一步**逐字同源 ✓（三层，跑「判据 + `--selftest`」）。
 # ⚠ **为什么必须补**（**实测读数** ✓）：这三条**只**长在 `ci.yml` 的 `wiring-lint` 里，
 # 本脚本里 `grep -c` = **0 / 0 / 0** ✗ ⇒ 又一处「**本地判据集 ⊂ CI 判据集**」——
 # 与 `CI-LOCAL-NO-QUEUE-CHECK`（`ux-queue.py`）· `GUARD-BITE-NOT-IN-LOCAL-GATE`
@@ -118,22 +118,18 @@ python3 scripts/check-ci-gate-coverage.py --selftest || exit 1'
 # ⚠ **这不是"新口径"，是把同一条 job 补齐** ✓：同一个 `wiring-lint` 的**另外两对**
 # （`ci-push-range.py` · `check-ci-gate-coverage.py`）本脚本**早就**有 ✓ ⇒ 三缺三
 # 正是「**接了一半**」的形状 ✗（洞名里的 `TRIO` 就是这三个）。
-# ⚠ **零前提** ✓（`wiring-lint` job 只有 `checkout`、**没有**构建步 ⇒ 这两条不碰
-# `target/`、不碰真缓存/真 HOME、不需要 Rust ✓）；**耗时实测**（本机 · 四条命令合计
-# **~6s** ✓）：`check-drift` 1.35 + 1.76 · `check-lsp-marker-seam` 1.90+3.40
-# ⇒ 与 `docs-lint` 同档，**`--fast` 也跑** ✓（合并前那两条是 0.09+0.07 + 2.12+0.66
-# ⇒ **一次解释器启动跑两层**，见 `gs3` 的耗时账 ✓）。
-# ⚠ **`node` 不是新增前提** ✗：本脚本 :356 的 `editor：stub 宿主`（**非** FAST 门控）
-# 早就硬依赖 `node` ✓ ⇒ 带 node 的漂移守卫没有引入新的前提类 ✓；探不到 node
-# ⇒ 它 **exit 3**（"判不了 ≠ 绿"）⇒ **拦**，正是要的行为 ✓。
-run "workflow：漂移守卫「声明 ↔ 实现」（① 文档漂移：三处 README ↔ 实现 · ② 扩展链接 C1–C4）" "wiring-lint" bash -c '
+# ⚠ **零前提** ✓（`wiring-lint` job 只有 `checkout`、**没有**构建步 ⇒ 这条不碰
+# `target/`、不碰真缓存/真 HOME、不需要 Rust ✓）；**耗时实测**（本机 · 两条命令合计
+# **~9s** ✓，见 `gs4` 的耗时账）：`check-drift`（三层）2.1 + `--selftest`（三套）7.0
+# ⇒ 与 `docs-lint` 同档，**`--fast` 也跑** ✓（合并前那三条是 1.35+1.76 + 1.90+3.40
+# ⇒ **一次解释器启动跑三层** ✓）。
+# ⚠ **`node`/`tar` 不是新增前提类** ✗：本脚本 :356 的 `editor：stub 宿主`（**非** FAST 门控）
+# 早就硬依赖 `node` ✓，`tar` 是 runner/macOS 自带 ✓ ⇒ 带它们的漂移守卫没有引入新的前提类 ✓；
+# 探不到 ⇒ 它 **exit 3**（"判不了 ≠ 绿"）⇒ **拦**，正是要的行为 ✓。
+run "workflow：漂移守卫「声明/规范 ↔ 实现」三层（① 三处 README ↔ 实现 · ② 扩展链接 C1–C4 · ③ marker 跨接缝 S1–S7）" "wiring-lint" bash -c '
 set -u
 python3 scripts/check-drift.py || exit 1
 python3 scripts/check-drift.py --selftest || exit 1'
-run "workflow：LSP/CLI 槽位 marker 跨接缝（C1–C7，含两条负对照不许松）" "wiring-lint" bash -c '
-set -u
-python3 scripts/check-lsp-marker-seam.py || exit 1
-python3 scripts/check-lsp-marker-seam.py --selftest || exit 1'
 
 # ⭐ **四条 CI-only 判据接进本地自动面**（2026-10-17 · 洞 `CI-ONLY-GUARDS-HISTORY-INFO-TACTIC-ENVISOL` ✓）——
 # 与 `ci.yml` 的 `run:` 正文**逐字同源** ✓（各跑「判据 + `--selftest`」两行；`check-infoview-hierarchy.py`

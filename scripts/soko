@@ -2042,9 +2042,10 @@ async function main(argv) {
         )
         return 3
       }
-      // **「声明说 X，实现是 Y」的漂移守卫**（2026-10-15 LINK-B 两条 → 2026-10-17 合并成一条 ✓，
-      // `SUB-narrow-guards-to-one-layer` ①：`check-doc-drift.py` + `check-launcher-extension-link.py`
-      // ⇒ `check-drift.py` = **一本登记表 + 一个驱动器**）：
+      // **「声明/规范说 X，实现是 Y」的漂移守卫**（2026-10-15 LINK-B 两条 → 2026-10-17 合并成一条 ✓，
+      // ⭐ 第 3 轮 `gs3` 并了前两条、**第 4 轮 `gs4` 并了第三条** ⇒ `SUB-narrow-guards-to-one-layer` ①
+      // **C 组 3 → 1 做齐**：`check-doc-drift.py` + `check-launcher-extension-link.py` +
+      // `check-lsp-marker-seam.py` ⇒ `check-drift.py` = **一本登记表 + 一个驱动器**）：
       // · 层① 文档漂移（洞 `DOC-DRIFT-CHECKER-NOT-COMMITTED`）：三处
       //   （`README.md` / `skills/README.md` / `editor/vscode/README.md`）刚与实现对齐过，
       //   而当时那个 checker 只是**证据件**（`.cache/**` 不 commit）⇒ 对齐做完了、**没有守卫
@@ -2057,7 +2058,7 @@ async function main(argv) {
       //   **自带夹具**（临时 HOME/缓存 + 空 `CARGO_TARGET_DIR` + offline），其中 C2/C4 专门咬
       //   "`canExec` 不许松" ✓。⚠ 与 `crates/cli/tests/launcher.rs` 互补：那是**冻结用例**
       //   且夹具不设 `HOME` ⇒ 测不了"扩展在场/版本对不对"这一格 ✓。
-      // 快（毫秒级 + 亚秒级）⇒ `--fast` 也跑 ✓；`--selftest` = **两套自检 + 登记表/绿跑对账** ✓。
+      // 快（毫秒级 + 亚秒级）⇒ `--fast` 也跑 ✓；`--selftest` = **三套自检 + 登记表/绿跑对账** ✓。
       const drift = path.join(REPO, 'scripts', 'check-drift.py')
       if (!existsSync(drift)) {
         process.stderr.write(
@@ -2126,34 +2127,19 @@ async function main(argv) {
         }
         if ((step.status ?? 3) !== 0) return step.status ?? 3
       }
-      // **LSP 槽位 marker 的跨接缝**（2026-10-15 CMT-G，洞 `LSP-MARKER-NO-COMMITTED-GUARD`）：
+      // **LSP/CLI 槽位 marker 的跨接缝**（2026-10-15 CMT-G，洞 `LSP-MARKER-NO-COMMITTED-GUARD`；
+      // ⭐ 2026-10-17 **第 4 轮 `gs4` 并进上面那条 `check-drift.py` 的层③** ✓ ——
+      // `SUB-narrow-guards-to-one-layer` ① 的字面终点 `C 组 3 → 1` 由此到达 ✓；
+      // 原来的 `scripts/check-lsp-marker-seam.py` **已删**，判据一条不少（C1–C7 ⇒ S1–S7 ✓）：
       // 同一个 marker 有**一个写端 + 三个读点**（`server.js` 写端/`cachedServerIsCurrent` ·
       // 本文件的 `markerExpected` · `extension.js` doctor 5/6）。lspF 轮把它们一次改齐，
       // 但跨接缝探针只活在 `.cache/ux/fix-lspF/`（**不 commit** ✗）⇒ 三处随时能再漂回去。
-      // 本步把它收进 `scripts/`：C1–C5 是**真写端打本机 http** 的行为读数（含两条负对照
-      // "版本那一半 / target 那一半不许松"），C6 是读点③的同源断言；**C7 是横向**
-      // （硬规则 0(b)）收的**第二个槽位** —— 扩展「Install CLI」写端 `installBundledCli`
-      // （markC `a5feb8b5`）的证据同样只在 `.cache/ux/fix-markC/`，且今天没有任何
-      // committed 判据盖住它（`test-server.js` 只盖 LSP 槽位 · 宿主测试把它 stub 掉 ✗）。
-      // `--selftest` 把四处旧写法放回去、每处都必须判红 ✓。约 1.5 秒 ⇒ `--fast` 也跑 ✓。
-      const lspSeam = path.join(REPO, 'scripts', 'check-lsp-marker-seam.py')
-      if (!existsSync(lspSeam)) {
-        process.stderr.write(
-          `scripts/soko gate: 找不到 ${path.relative(REPO, lspSeam)} —— LSP 槽位跨接缝无法判定（exit 3）。\n`,
-        )
-        return 3
-      }
-      for (const extra of [[], ['--selftest']]) {
-        const step = spawnSync(python.cmd, [...python.args, lspSeam, ...extra], {
-          stdio: 'inherit',
-          cwd: REPO,
-        })
-        if (step.error) {
-          process.stderr.write(`scripts/soko gate: failed to run ${lspSeam}: ${step.error.message}\n`)
-          return 3
-        }
-        if ((step.status ?? 3) !== 0) return step.status ?? 3
-      }
+      // 层③ 里 S1–S5 是**真写端打本机 http** 的行为读数（含两条负对照"版本那一半 /
+      // target 那一半不许松"），S6 是读点③的同源断言；**S7 是横向**（硬规则 0(b)）收的
+      // **第二个槽位** —— 扩展「Install CLI」写端 `installBundledCli`（markC `a5feb8b5`）的
+      // 证据同样只在 `.cache/ux/fix-markC/`，且当时没有任何 committed 判据盖住它
+      // （`test-server.js` 只盖 LSP 槽位 · 宿主测试把它 stub 掉 ✗）。
+      // `--selftest` 把四处旧写法放回去、每处都必须判红 ✓。合起来仍是个位数秒 ⇒ `--fast` 也跑 ✓。
       // **tactic 清单三处一致**（L4，设计 `docs/design/tactic-docs.md` §4.2）：
       // 表（`tactics.rs` 的 `name:`）↔ parser 的 tactic 臂 ↔ `reference/tactics/*.md`。
       // 为什么在 gate 里：Rust 侧那五条判据挡不住"**绕开 `is_tactic_keyword`
