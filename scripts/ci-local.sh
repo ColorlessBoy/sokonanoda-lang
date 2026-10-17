@@ -136,6 +136,56 @@ set -u
 python3 scripts/check-lsp-marker-seam.py || exit 1
 python3 scripts/check-lsp-marker-seam.py --selftest || exit 1'
 
+# ⭐ **四条 CI-only 判据接进本地自动面**（2026-10-17 · 洞 `CI-ONLY-GUARDS-HISTORY-INFO-TACTIC-ENVISOL` ✓）——
+# 与 `ci.yml` 的 `run:` 正文**逐字同源** ✓（各跑「判据 + `--selftest`」两行；`check-infoview-hierarchy.py`
+# 那一步在 CI 里还有第三行 `audit-infoview-css.py`，本脚本 **:241 早就有** ✓ ⇒ 那一步在本地**整步齐** ✓）。
+# ⚠ **为什么必须补**（**修前实测读数** ✓，逐条可复算）：这四条**只**长在 `ci.yml` 里 ——
+#   `grep -c <闸> scripts/ci-local.sh` = **0 / 0 / 0 / 0** ✗ · `grep -rc <闸> scripts/githooks/*` = **0** ✗
+# ⇒ 又一处「**本地判据集 ⊂ CI 判据集**」（同族已有五处 ✓：`CI-LOCAL-NO-QUEUE-CHECK` ·
+# `GUARD-BITE-NOT-IN-LOCAL-GATE` · `CI-GREEN-SELFTEST-NOT-WIRED` · `CHECK-JSON-IDENTITY-NOT-WIRED-AT-ALL` ·
+# `CI-ONLY-GUARDS-WIRING-LINT-TRIO`）⇒ 判据的红**只能走到 CI 才被发现** ✗（一轮 CI = **33–35 分钟** ✗）。
+# ⚠ **这四条正是 `ng1` 按行为普查（41 道闸 · `.cache/ux/fix-ng1/VERDICT.md`）里 (d) 缺本地那一半的** ✓：
+# 修前逐条 `a=True b=True c1=True d=False`（ci=1 / local=0 ✓；复算 = 本目录 `.cache/ux/fix-ng2/census.py`）。
+# ⚠ **后果**（**抄 `ng1` §3.C 的表** ✓ —— 本轮**不重做普查** ✗）：
+#   · `check-history-depth-wiring.py`：「跑历史判据的 job 必须有全历史」这条**类不变量**被改坏
+#     ⇒ 本地看不见 ⇒ 症状是 CI 里 `git` **rc=128** ⇒ 判据 **exit 3**（红的是**前提**、不是"咬不住" ✗）。
+#   · `check-infoview-hierarchy.py`：Infoview 层级（标题字号 ≥ 正文 / 无双压暗 / 标题不用 opacity）回归
+#     ⇒ 本地看不见 —— 而这是**同类反馈复发两次**后落的守卫（`.decl-ty` → `.section-title` ✗）。
+#   · `tactic-docs-lint.py`：tactic 表 / parser 臂 / 文档**三处一致**被改坏 ⇒ 本地看不见。
+#   · `check-test-env-isolation.py`：配 `env::set_var` 的集成测试文件多了一个 `#[test]`
+#     ⇒ 两条判据抢同一档位 ⇒ **间歇判红**（症状是"单独跑绿、gate 里红"）⇒ 本地看不见。
+# ⚠ **零前提** ✓（四条只读仓库文本：`ci.yml` / `media/*.css` / `tactics.rs`+`parser.rs`+`reference/` /
+# `crates/*/tests/*.rs` ⇒ 不碰 `target/`、不碰真缓存/真 HOME、不需要 Rust/node/gh ✓）；
+# **耗时实测**（本机 · 八条命令逐条 **0.03–0.08s** ✓）：`check-history-depth-wiring` 0.06+0.08 ·
+# `check-infoview-hierarchy` 0.03+0.04 · `tactic-docs-lint` 0.05+0.05 · `check-test-env-isolation` 0.06+0.03
+# ⇒ 八条**一次跑完**（= 本步新增的墙钟）三轮 **0.37 / 0.38 / 0.39s**（中位 **0.38s** ✓）
+# ⇒ 亚秒级，**`--fast` 也跑** ✓。
+# ⚠ **退出码口径**（照抄既有写法 ✓ · **不掩膜** ✗）：四条一律 `|| exit 1` 传播 —— `0`=绿 · `1`=判红 ·
+# **`2`/`3`=判不了**（`check-infoview-hierarchy.py` 的 `2` = **CSS 找不到的环境错** · `tactic-docs-lint.py`
+# 的 `2` = 用法/IO 错 · `check-history-depth-wiring.py` 的 `3` = 前提不在 —— **三条都必须拦** ✓）。
+# ⚠ **别把它们当成 `target-hygiene.py` 的那个两档告警** ✗：那个档是"只报不拦"的**读数**（非 0 里的一个），
+# 这四个**没有**那一档 ⇒ **不需要**显式放行 ✓（`run()` 把任何非 0 当红，正是这里要的行为 ✓）。
+# ⚠ **如实划的边界** ✗：`check-history-depth-wiring.py --selftest` 的咬住证明打在**钉死的旧 rev**
+# （`1cd4aba0`）⇒ **它自己也要全历史**（浅克隆里 `git show` 拿不到 ⇒ **exit 3 + 人话**，绝不静默判过 ✓）；
+# 本仓/本机是**全克隆** ✓，且同族先例 `check-attention-budget.py`（下面 :347 那一步）**早就**是这个形状
+# （它的注释自己写着「要全历史（浅克隆 ⇒ rc=3 + 人话）」✓）⇒ 口径一致，不是本轮新增的前提 ✗。
+run "workflow：历史深度接线（跑历史判据的 job 必须有全历史）" "queue-lint" bash -c '
+set -u
+python3 scripts/check-history-depth-wiring.py || exit 1
+python3 scripts/check-history-depth-wiring.py --selftest || exit 1'
+run "workflow：Infoview 视觉层级（标题字号 ≥ 正文 / 无双压暗 / 标题不用 opacity）" "editor" bash -c '
+set -u
+python3 scripts/check-infoview-hierarchy.py || exit 1
+python3 scripts/check-infoview-hierarchy.py --selftest || exit 1'
+run "gates：tactic 清单三处一致（表 ↔ parser 臂 ↔ reference/tactics/*.md）" "tactic-docs-lint" bash -c '
+set -u
+python3 scripts/tactic-docs-lint.py || exit 1
+python3 scripts/tactic-docs-lint.py --selftest || exit 1'
+run "gates：测试环境档位隔离（配 env::set_var 的文件必须恰好一个 #[test]）" "gates-fast" bash -c '
+set -u
+python3 scripts/check-test-env-isolation.py || exit 1
+python3 scripts/check-test-env-isolation.py --selftest || exit 1'
+
 # ⭐⭐ **交付维度读数**（2026-10-16 · 用户追问「清账 Agent 不会检查还有多少没发版吧，我看它每次
 # 给我发的会话累计」✓ · 队列 `SUB-release-metric-measures-unreleased`）：
 # 报告那张「会话累计」表里的「**发版**」那一格原写「`v0.91.0` 已发布并闭环（26 资产）」——
