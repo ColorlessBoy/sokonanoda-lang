@@ -45,21 +45,21 @@ theorem isEmpty_intro (α : Type) (E : α → α → Prop) (x : α)
 theorem empty_unique (α : Type) (E : α → α → Prop) (he : Extensional α E) (x y : α)
     (hx : IsEmpty α E x) (hy : IsEmpty α E y) : x = y :=
   extensional_apply α E he x y (fun (z : α) =>
-    Iff.intro (E z x) (E z y)
+    @Iff.intro (E z x) (E z y)
       (fun (hzx : E z x) => False.elim ((fun (he' : ∀ (y' : α), ¬ (E y' x)) => he' z) hx hzx))
       (fun (hzy : E z y) => False.elim ((fun (he' : ∀ (y' : α), ¬ (E y' y)) => he' z) hy hzy)))
 
 theorem extensional_sound (α : Type) (E : α → α → Prop) (x y : α) (h : x = y) :
     ∀ (z : α), E z x ↔ E z y :=
   fun (z : α) =>
-    Iff.intro (E z x) (E z y)
+    @Iff.intro (E z x) (E z y)
       (fun (hzx : E z x) => rel_subst_right α E z x y h hzx)
       (fun (hzy : E z y) => rel_subst_left α E x z y h hzy)
 
 theorem union_empty_family (α : Type) (E : α → α → Prop) (x : α)
     (h : IsUnionOf α E x ∅) : IsEmpty α E x :=
   fun (z : α) (hzx : E z x) =>
-    Exists.elim α (fun (A : α) => False ∧ E z A) False
+    @Exists.elim α (fun (A : α) => False ∧ E z A) False
       (Iff.mp ((fun (hs : ∀ (z' : α), E z' x ↔ ∃ (A : α), A ∈ ∅ ∧ E z' A) => hs z) h)
         hzx)  -- soko:notation-ok: G-73 形状 ①：定义头类型的假设必须先 λ 绑定再应用
       (fun (A : α) (hA : False ∧ E z A) => And.left hA)

@@ -16,45 +16,45 @@ theorem demo_mem_sUnion_iff (α : Type) (F : Set (Set α)) (x : α) :
   Set.mem_sUnion_iff α F x
 
 theorem isSup_singleton (α : Type) (r : α → α → Prop) (hrefl : Reflexive α r) (a : α) :
-    IsSup α r (fun (x : α) => Eq.{1} α x a) a :=  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
-  isSup_intro α r (fun (x : α) => Eq.{1} α x a) a  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
-    (fun (x : α) => fun (hx : Eq.{1} α x a) =>  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    IsSup α r (fun (x : α) => @Eq.{1} α x a) a :=  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+  isSup_intro α r (fun (x : α) => @Eq.{1} α x a) a  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    (fun (x : α) => fun (hx : @Eq.{1} α x a) =>  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
       rel_subst_right α (fun (u : α) (v : α) => r v a) a a x
-        (Eq.symm.{1} α x a hx) ((fun (hu : ∀ (y : α), r y y) => hu a) hrefl))
-    (fun (c : α) => fun (hc : UpperBound α r (fun (x : α) => Eq.{1} α x a) c) =>  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
-      (fun (hu : ∀ (x : α), Eq.{1} α x a → r x c) => hu a (Eq.refl.{1} α a)) hc)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+        (@Eq.symm.{1} α x a hx) ((fun (hu : ∀ (y : α), r y y) => hu a) hrefl))
+    (fun (c : α) => fun (hc : UpperBound α r (fun (x : α) => @Eq.{1} α x a) c) =>  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+      (fun (hu : ∀ (x : α), @Eq.{1} α x a → r x c) => hu a (@Eq.refl.{1} α a)) hc)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
 
 theorem isInf_singleton (α : Type) (r : α → α → Prop) (hrefl : Reflexive α r) (a : α) :
-    IsInf α r (fun (x : α) => Eq.{1} α x a) a :=  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
-  isInf_intro α r (fun (x : α) => Eq.{1} α x a) a  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
-    (fun (x : α) => fun (hx : Eq.{1} α x a) =>  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    IsInf α r (fun (x : α) => @Eq.{1} α x a) a :=  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+  isInf_intro α r (fun (x : α) => @Eq.{1} α x a) a  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    (fun (x : α) => fun (hx : @Eq.{1} α x a) =>  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
       rel_subst_right α (fun (u : α) (v : α) => r a v) a a x
-        (Eq.symm.{1} α x a hx) ((fun (hu : ∀ (y : α), r y y) => hu a) hrefl))
-    (fun (c : α) => fun (hc : LowerBound α r (fun (x : α) => Eq.{1} α x a) c) =>  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
-      (fun (hu : ∀ (x : α), Eq.{1} α x a → r c x) => hu a (Eq.refl.{1} α a)) hc)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+        (@Eq.symm.{1} α x a hx) ((fun (hu : ∀ (y : α), r y y) => hu a) hrefl))
+    (fun (c : α) => fun (hc : LowerBound α r (fun (x : α) => @Eq.{1} α x a) c) =>  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+      (fun (hu : ∀ (x : α), @Eq.{1} α x a → r c x) => hu a (@Eq.refl.{1} α a)) hc)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
 
 theorem sup_empty_iff_bot (α : Type) (r : α → α → Prop) (b : α) :
     IsSup α r (fun (_ : α) => False) b ↔ ∀ (c : α), r b c :=
-  Iff.intro (IsSup α r (fun (_ : α) => False) b) (∀ (c : α), r b c)
+  @Iff.intro (IsSup α r (fun (_ : α) => False) b) (∀ (c : α), r b c)
     (fun (h : IsSup α r (fun (_ : α) => False) b) =>
       (fun (hu : ∀ (c : α), UpperBound α r (fun (_ : α) => False) c → r b c) =>
-        fun (c : α) => hu c (fun (a : α) => fun (hf : False) => False.elim (r a c) hf))  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+        fun (c : α) => hu c (fun (a : α) => fun (hf : False) => @False.elim (r a c) hf))  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
         (isSup_least α r (fun (_ : α) => False) b h))
     (fun (h : ∀ (c : α), r b c) =>
       isSup_intro α r (fun (_ : α) => False) b
-        (fun (a : α) => fun (hf : False) => False.elim (r a b) hf)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+        (fun (a : α) => fun (hf : False) => @False.elim (r a b) hf)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
         (fun (c : α) => fun (hc : UpperBound α r (fun (_ : α) => False) c) => h c))
 
 theorem inf_empty_iff_top (α : Type) (r : α → α → Prop) (b : α) :
     IsInf α r (fun (_ : α) => False) b ↔ ∀ (c : α), r c b :=
-  Iff.intro (IsInf α r (fun (_ : α) => False) b) (∀ (c : α), r c b)
+  @Iff.intro (IsInf α r (fun (_ : α) => False) b) (∀ (c : α), r c b)
     (fun (h : IsInf α r (fun (_ : α) => False) b) =>
       (fun (hu : ∀ (c : α), LowerBound α r (fun (_ : α) => False) c → r c b) =>
-        fun (c : α) => hu c (fun (a : α) => fun (hf : False) => False.elim (r c a) hf))  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+        fun (c : α) => hu c (fun (a : α) => fun (hf : False) => @False.elim (r c a) hf))  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
         (isInf_greatest α r (fun (_ : α) => False) b h))
     (fun (h : ∀ (c : α), r c b) =>
       isInf_intro α r (fun (_ : α) => False) b
-        (fun (a : α) => fun (hf : False) => False.elim (r b a) hf)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+        (fun (a : α) => fun (hf : False) => @False.elim (r b a) hf)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
         (fun (c : α) => fun (hc : LowerBound α r (fun (_ : α) => False) c) => h c))
 
 theorem upper_bound_mono (α : Type) (r : α → α → Prop) (A B : α → Prop) (u : α)
@@ -88,7 +88,7 @@ theorem inf_of_lowerBounds_sup (α : Type) (r : α → α → Prop) (A : α → 
 
 theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (C : Set α) :
     (⋃₀ F) ⊆ C ↔ ∀ (A : Set α), A ∈ F → A ⊆ C :=
-  Iff.intro ((⋃₀ F) ⊆ C) (∀ (A : Set α), A ∈ F → A ⊆ C)
+  @Iff.intro ((⋃₀ F) ⊆ C) (∀ (A : Set α), A ∈ F → A ⊆ C)
     (fun (h : (⋃₀ F) ⊆ C) =>
       fun (A : Set α) => fun (hA : A ∈ F) =>
         fun (x : α) => fun (hx : A x) =>
@@ -103,7 +103,7 @@ theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (C : Set α) :
 
 theorem subset_sInter_iff (α : Type) (F : Set (Set α)) (C : Set α) :
     C ⊆ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → C ⊆ A :=
-  Iff.intro (C ⊆ (⋂₀ F)) (∀ (A : Set α), A ∈ F → C ⊆ A)
+  @Iff.intro (C ⊆ (⋂₀ F)) (∀ (A : Set α), A ∈ F → C ⊆ A)
     (fun (h : C ⊆ (⋂₀ F)) =>
       fun (A : Set α) => fun (hA : A ∈ F) =>
         fun (x : α) => fun (hx : C x) =>

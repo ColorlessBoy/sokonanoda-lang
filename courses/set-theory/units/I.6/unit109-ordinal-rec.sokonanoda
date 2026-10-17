@@ -62,7 +62,7 @@ def ordinal_rec_nat (α : Type) (E : α → α → Prop) (x : α)
 theorem ordinal_rec_nat_eq (α : Type) (E : α → α → Prop) (x : α)
     (step : ∀ (z : α), (∀ (w : α), E w z → Nat) → Nat)
     (hr : ∀ (w : α), E w x → Acc α E w) :
-    Eq.{1} Nat (ordinal_rec_nat α E x step (Acc.intro α E x hr))  -- soko:notation-ok: 等式族证明项的宇宙层级 / inductive 头（手册边界）
+    @Eq.{1} Nat (ordinal_rec_nat α E x step (@Acc.intro α E x hr))  -- soko:notation-ok: 等式族证明项的宇宙层级 / inductive 头（手册边界）
       (step x (fun (w : α) (hw : E w x) => ordinal_rec_nat α E w step (hr w hw))) := by
   sorry
 -- 练习 3（T 类，**唯一性**）：**同一递归方程的两条解相等**。

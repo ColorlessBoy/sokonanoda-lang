@@ -41,15 +41,15 @@ def BijPair (α : Type) (β : Type) (f : α → β) : Prop :=
 -- 演示：**换"函数参数格"的搬运**（格位表的第二行 ✓ —— 跨类型必须用 `Eq.subst` + 谓词 ✓）。
 theorem demo_inj_def (α : Type) (β : Type) (f : α → β) :
     Injective α β f ↔ ∀ (a : α) (b : α), f a = f b → a = b :=
-  Iff.intro (Injective α β f) (∀ (a : α) (b : α), f a = f b → a = b)
+  @Iff.intro (Injective α β f) (∀ (a : α) (b : α), f a = f b → a = b)
     (fun (h : Injective α β f) => h) (fun (h : ∀ (a : α) (b : α), f a = f b → a = b) => h)
 theorem demo_surj_def (α : Type) (β : Type) (f : α → β) :
     Surjective α β f ↔ ∀ (b : β), ∃ (a : α), f a = b :=
-  Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
+  @Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
     (fun (h : Surjective α β f) => h) (fun (h : ∀ (b : β), ∃ (a : α), f a = b) => h)
 theorem demo_arg_subst (α : Type) (β : Type) (g : α → β) (a : α) (b : α) (d : β)
     (h : b = a) (hd : g b = d) : g a = d :=
-  Eq.subst.{1} α (fun (x : α) => g x = d) b a h hd-- 练习 1（T 类）：**满射的直接用法**（给 `b` 取原像点）。
+  @Eq.subst.{1} α (fun (x : α) => g x = d) b a h hd-- 练习 1（T 类）：**满射的直接用法**（给 `b` 取原像点）。
 -- 关键件：假设直接作用（`hf b`）
 theorem surj_apply (α : Type) (β : Type) (f : α → β) (b : β)
     (hf : Surjective α β f) : ∃ (a : α), f a = b := by

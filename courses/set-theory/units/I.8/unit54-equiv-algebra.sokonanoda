@@ -38,7 +38,7 @@ theorem demo_le_def (α β : Type) (A : Set α) (B : Set β) :
   Set.le_def α β A B
 theorem demo_injOn_def (α β : Type) (f : α → β) (A : Set α) :
     Set.InjOn α β f A ↔
-      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → Eq.{1} β (f x) (f y) → Eq.{1} α x y :=  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → @Eq.{1} β (f x) (f y) → @Eq.{1} α x y :=  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
   Set.injOn_def α β f A-- 演示（**已在画布内证好**）：`≈` 的构造子（给一对互逆映射即可）。
 
 theorem demo_equiv_mk (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)

@@ -56,19 +56,19 @@ def kernel (α β : Type) (f : α → β) : Rel α α :=
 -- 演示：像的成员刻画（「存在一个原像落在 `A` 里」）。
 theorem demo_mem_relImg (α β : Type) (r : Rel α β) (A : Set α) (b : β) :
     b ∈ (relImg α β r A) ↔ ∃ (a : α), A a ∧ r a b :=
-  Iff.intro (b ∈ (relImg α β r A)) (∃ (a : α), A a ∧ r a b)
+  @Iff.intro (b ∈ (relImg α β r A)) (∃ (a : α), A a ∧ r a b)
     (fun (h : b ∈ (relImg α β r A)) => h) (fun (h : ∃ (a : α), A a ∧ r a b) => h)
 
 -- 演示：原像的成员刻画。
 theorem demo_mem_relPre (α β : Type) (r : Rel α β) (B : Set β) (a : α) :
     a ∈ (relPre α β r B) ↔ ∃ (b : β), B b ∧ r a b :=
-  Iff.intro (a ∈ (relPre α β r B)) (∃ (b : β), B b ∧ r a b)
+  @Iff.intro (a ∈ (relPre α β r B)) (∃ (b : β), B b ∧ r a b)
     (fun (h : a ∈ (relPre α β r B)) => h) (fun (h : ∃ (b : β), B b ∧ r a b) => h)
 
 -- 演示：核的成员刻画（「两个点被 `f` 送到同一个地方」）。
 theorem demo_mem_kernel (α β : Type) (f : α → β) (a b : α) :
     kernel α β f a b ↔ (f a) = (f b) :=
-  Iff.intro (kernel α β f a b) ((f a) = (f b))
+  @Iff.intro (kernel α β f a b) ((f a) = (f b))
     (fun (h : kernel α β f a b) => h) (fun (h : (f a) = (f b)) => h)
 
 -- ─────────────────────────────────────────────────────────────
@@ -115,7 +115,7 @@ theorem relImg_univ_mem (α β : Type) (r : Rel α β) (b : β) :
 -- soko:hint 关键件：`Exists.elim`（**目标直接写 `False`**，前导实参写全）·
 --   `Set.notMem_empty`（**大写 M**，参数是那个点）✓
 theorem relImg_empty (α β : Type) (r : Rel α β) (b : β) :
-    ¬ (b ∈ (relImg α β r (∅ α))) := by
+    ¬ (b ∈ (relImg α β r (@Set.empty α))) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────

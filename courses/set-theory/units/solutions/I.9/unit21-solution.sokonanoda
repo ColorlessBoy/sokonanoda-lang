@@ -31,7 +31,7 @@ theorem sUnion_subset_intro (α : Type) (F : Set (Set α)) (B : Set α)
     (h : ∀ (A : Set α), A ∈ F → A ⊆ B) : (⋃₀ F) ⊆ B :=
   fun (x : α) (hx : x ∈ (⋃₀ F)) =>
     (fun (hx' : ∃ (A : Set α), A ∈ F ∧ x ∈ A) =>
-      Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A) (x ∈ B) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+      @Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A) (x ∈ B) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
         (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) =>
           (fun (hAB : A ⊆ B) => (fun (hu : ∀ (y : α), y ∈ A → y ∈ B) => hu x (And.right hA)) hAB)
             (h A (And.left hA)))) hx
@@ -53,7 +53,7 @@ theorem subset_sInter_intro (α : Type) (F : Set (Set α)) (B : Set α)
 theorem sUnion_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) : (⋃₀ F) ⊆ (⋃₀ G) :=
   fun (x : α) (hx : x ∈ (⋃₀ F)) =>
     (fun (hx' : ∃ (A : Set α), A ∈ F ∧ x ∈ A) =>
-      Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A) (x ∈ (⋃₀ G)) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+      @Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A) (x ∈ (⋃₀ G)) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
         (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) =>
           Set.subset_sUnion α G A
             ((fun (hu : ∀ (C : Set α), C ∈ F → C ∈ G) => hu A (And.left hA)) h) x (And.right hA)))
@@ -69,7 +69,7 @@ theorem sInter_anti (α : Type) (F G : Set (Set α)) (h : F ⊆ G) : (⋂₀ G) 
 theorem sInter_subset_sUnion (α : Type) (F : Set (Set α)) (h : ∃ (A : Set α), A ∈ F) :
     (⋂₀ F) ⊆ (⋃₀ F) :=
   fun (x : α) (hx : x ∈ (⋂₀ F)) =>
-    Exists.elim (Set α) (fun (A : Set α) => A ∈ F) (x ∈ (⋃₀ F)) h  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+    @Exists.elim (Set α) (fun (A : Set α) => A ∈ F) (x ∈ (⋃₀ F)) h  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
       (fun (A : Set α) (hA : A ∈ F) =>
         Set.subset_sUnion α F A hA x
           ((fun (hs : ∀ (C : Set α), C ∈ F → x ∈ C) => hs A hA) hx))
@@ -77,7 +77,7 @@ theorem sInter_subset_sUnion (α : Type) (F : Set (Set α)) (h : ∃ (A : Set α
 theorem sUnion_empty (α : Type) : (⋃₀ (fun (A : Set α) => False)) ⊆ ∅ :=
   fun (x : α) (hx : x ∈ (⋃₀ (fun (A : Set α) => False))) =>
     (fun (hx' : ∃ (A : Set α), (fun (A' : Set α) => False) A ∧ x ∈ A) =>
-      Exists.elim (Set α) (fun (A : Set α) => (fun (A' : Set α) => False) A ∧ x ∈ A) (x ∈ ∅) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+      @Exists.elim (Set α) (fun (A : Set α) => (fun (A' : Set α) => False) A ∧ x ∈ A) (x ∈ ∅) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
         (fun (A : Set α) (hA : (fun (A' : Set α) => False) A ∧ x ∈ A) =>
-          False.elim (x ∈ ∅)  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 补不出来，必须写全
+          @False.elim (x ∈ ∅)  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 补不出来，必须写全
             (And.left hA))) hx

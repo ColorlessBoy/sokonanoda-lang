@@ -36,7 +36,7 @@ theorem demo_equiv_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
     A ≈ B ↔ ∃ (f : α → β), Set.MapsTo α β f A B ∧
       (∃ (g : β → α), Set.MapsTo β α g B A ∧
         ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))) :=
-  Iff.intro (A ≈ B) (∃ (f : α → β), Set.MapsTo α β f A B ∧
+  @Iff.intro (A ≈ B) (∃ (f : α → β), Set.MapsTo α β f A B ∧
       (∃ (g : β → α), Set.MapsTo β α g B A ∧
         ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))))
     (fun (h : A ≈ B) => h)
@@ -45,11 +45,11 @@ theorem demo_equiv_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
           ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))) => h)
 theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
     Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=
-  Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+  @Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
     (fun (h : Set.MapsTo α β f A B) => h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) => h)
 theorem demo_leftInv_def (α : Type) (β : Type) (g : β → α) (f : α → β) (A : Set α) :
     Set.LeftInvOn α β g f A ↔ ∀ (x : α), x ∈ A → g (f x) = x :=
-  Iff.intro (Set.LeftInvOn α β g f A) (∀ (x : α), x ∈ A → g (f x) = x)
+  @Iff.intro (Set.LeftInvOn α β g f A) (∀ (x : α), x ∈ A → g (f x) = x)
     (fun (h : Set.LeftInvOn α β g f A) => h)
     (fun (h : ∀ (x : α), x ∈ A → g (f x) = x) => h)-- 练习 1（T 类）：**恒等映射在 `A` 上是 `A → A`**。
 -- 关键件：定义展开（假设直接交出去）

@@ -36,7 +36,7 @@ theorem equivClass_trans (α : Type) (r : Rel α α) (he : IsEquivalence α r) (
 
 theorem equivClass_mem_iff_symm (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α) :
     b ∈ (Rel.EquivClass α r a) ↔ a ∈ (Rel.EquivClass α r b) :=
-  Iff.intro (b ∈ (Rel.EquivClass α r a)) (a ∈ (Rel.EquivClass α r b))
+  @Iff.intro (b ∈ (Rel.EquivClass α r a)) (a ∈ (Rel.EquivClass α r b))
     (fun (h : b ∈ (Rel.EquivClass α r a)) =>
       mem_equivClass_of_rel α r b a (equivClass_symm α r he a b (rel_of_mem_equivClass α r a b h)))
     (fun (h : a ∈ (Rel.EquivClass α r b)) =>
@@ -52,7 +52,7 @@ theorem equivClass_subset_of_rel (α : Type) (r : Rel α α) (he : IsEquivalence
 theorem not_mem_both_of_not_rel (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α)
     (h : ¬ (r a b)) : ¬ (∃ (c : α), c ∈ (Rel.EquivClass α r a) ∧ c ∈ (Rel.EquivClass α r b)) :=
   fun (hex : ∃ (c : α), c ∈ (Rel.EquivClass α r a) ∧ c ∈ (Rel.EquivClass α r b)) =>
-    Exists.elim α (fun (c : α) => c ∈ (Rel.EquivClass α r a) ∧ c ∈ (Rel.EquivClass α r b))
+    @Exists.elim α (fun (c : α) => c ∈ (Rel.EquivClass α r a) ∧ c ∈ (Rel.EquivClass α r b))
       False hex
       (fun (c : α) (hc : c ∈ (Rel.EquivClass α r a) ∧ c ∈ (Rel.EquivClass α r b)) =>
         h (equivClass_trans α r he a c b

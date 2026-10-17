@@ -41,15 +41,15 @@ def BijPair (α : Type) (β : Type) (f : α → β) : Prop :=
 -- 演示：单射的定义展开。
 theorem demo_bij_def (α : Type) (β : Type) (f : α → β) :
     BijPair α β f ↔ Injective α β f ∧ Surjective α β f :=
-  Iff.intro (BijPair α β f) (Injective α β f ∧ Surjective α β f)
+  @Iff.intro (BijPair α β f) (Injective α β f ∧ Surjective α β f)
     (fun (h : BijPair α β f) => h) (fun (h : Injective α β f ∧ Surjective α β f) => h)
 theorem demo_inj_def (α : Type) (β : Type) (f : α → β) :
     Injective α β f ↔ ∀ (a : α) (b : α), f a = f b → a = b :=
-  Iff.intro (Injective α β f) (∀ (a : α) (b : α), f a = f b → a = b)
+  @Iff.intro (Injective α β f) (∀ (a : α) (b : α), f a = f b → a = b)
     (fun (h : Injective α β f) => h) (fun (h : ∀ (a : α) (b : α), f a = f b → a = b) => h)
 theorem demo_surj_def (α : Type) (β : Type) (f : α → β) :
     Surjective α β f ↔ ∀ (b : β), ∃ (a : α), f a = b :=
-  Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
+  @Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
     (fun (h : Surjective α β f) => h) (fun (h : ∀ (b : β), ∃ (a : α), f a = b) => h)-- 练习 1（T 类）：**恒等映射是双射**（单射 ∧ 满射）。
 -- 关键件：`And.intro`（**前导命题写全**）· 单射那半把假设交出去 · 满射那半 `Exists.intro` + `Eq.refl`
 theorem bij_id (α : Type) : BijPair α α (fun (x : α) => x) := by

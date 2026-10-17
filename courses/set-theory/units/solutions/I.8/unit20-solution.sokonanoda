@@ -37,8 +37,8 @@ theorem prod_subset_prod (A B : Type) (s s' : Set A) (t t' : Set B)
 theorem prod_swap (A B : Type) (s : Set A) (t : Set B) :
     (s ×ˢ t) ≈ (t ×ˢ s) :=
   Set.Equiv.mk (Prod A B) (Prod B A) (s ×ˢ t) (t ×ˢ s)
-    (fun (p : Prod A B) => prod_mk B A (Prod.snd A B p) (Prod.fst A B p))
-    (fun (q : Prod B A) => prod_mk A B (Prod.snd B A q) (Prod.fst B A q))
+    (fun (p : Prod A B) => @prod_mk B A (Prod.snd A B p) (Prod.fst A B p))
+    (fun (q : Prod B A) => @prod_mk A B (Prod.snd B A q) (Prod.fst B A q))
     (fun (p : Prod A B) (hp : p ∈ (s ×ˢ t)) =>
       (fun (h : (Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) =>
         Iff.mpr (Set.mem_prod_mk B A t s (Prod.snd A B p) (Prod.fst A B p))

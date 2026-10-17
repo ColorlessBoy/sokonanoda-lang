@@ -81,13 +81,13 @@ import lib.Fun
 theorem demo_graph_single_valued (α β : Type) (f : α → β) :
     ∀ (x : α), ∀ (y : β), ∀ (z : β), f x = y → f x = z → y = z := by
   intro x y z hxy hxz
-  exact Eq.trans.{1} β y (f x) z (Eq.symm.{1} β (f x) y hxy) hxz
+  exact @Eq.trans.{1} β y (f x) z (@Eq.symm.{1} β (f x) y hxy) hxz
 
 -- 演示 2（已写好）：语言原语视角——复合算在参数上就是"先 f 后 g"（rfl 级）。
 -- 语句用 `=` 与 `∘` 写，证明体点名交出库里的定义展开引理。
 theorem demo_comp_apply (α β γ : Type) (g : β → γ) (f : α → β) (x : α) :
     (g ∘ f) x = g (f x) := by
-  exact Function.comp_apply α β γ g f x
+  exact @Function.comp_apply α β γ g f x
 
 -- 演示 3（已写好）：双射 = 单射 ∧ 满射（定义展开，两个方向都是恒等函数）。
 theorem demo_bijective_def (α β : Type) (f : α → β) :

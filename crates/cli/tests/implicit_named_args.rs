@@ -122,7 +122,12 @@ fn named_argument_binds_by_name() {
     }
 }
 
-/// ② **正对照**：正确的不许被误伤 ✗✗ —— 位置写法与 `@` 写法都照旧 ✓。
+/// ② **正对照**：正确的不许被误伤 ✗✗ —— 正常形式（隐式靠推断）与 `@` 写法都照旧 ✓；
+/// 而**位置喂隐式**（`b2`）在默认档（= 严格档）被拒 ✓、`SOKO_STRICT_AT=0` 下退回旧行为 ✓。
+///
+/// **2026-10-18 翻默认**：本条原先把 `b2` 当"默认档正对照"（那时严格档默认关 ✗）——
+/// 现在默认即严格档 ⇒ 正对照收窄到 `b1`/`b3`，`b2` 的两档读数分别由
+/// `crates/cli/tests/implicit_at_alignment.rs` 与这里下面那一半咬住 ✓。
 #[test]
 fn positive_controls_are_untouched() {
     let src = "\
@@ -133,13 +138,23 @@ def b2 : Nat := h Nat Nat (fun (n : Nat) => n) 5
 def b3 : Nat := @h Nat Nat (fun (n : Nat) => n) 5
 ";
     let (ok, checked, diags) = grade("pos", src, &[]);
-    assert!(ok, "默认档不许变：checked={checked:?} diags={diags:?}");
-    for name in ["h", "b1", "b2", "b3"] {
+    assert!(!ok, "默认档下 `b2` 该判红（其余三条不许被误伤）：diags={diags:?}");
+    for name in ["h", "b1", "b3"] {
         assert!(
             checked.iter().any(|c| c == name),
-            "`{name}` 应当 checked（**默认档零变更**）；实得 {checked:?} diags={diags:?}"
+            "`{name}` 应当 checked（**正对照**）；实得 {checked:?} diags={diags:?}"
         );
     }
+    assert!(
+        !checked.iter().any(|c| c == "b2"),
+        "`b2`（位置喂隐式）默认档必须被拒 ✗；实得 {checked:?}"
+    );
+    // 逃生门：`SOKO_STRICT_AT=0` ⇒ **四条全绿**（退回旧行为 ✓）。
+    let (ok_off, checked_off, diags_off) = grade("pos-off", src, &[("SOKO_STRICT_AT", "0")]);
+    assert!(
+        ok_off && checked_off.iter().any(|c| c == "b2"),
+        "`SOKO_STRICT_AT=0` 必须退回旧行为（`b2` 重新 checked）：{checked_off:?} diags={diags_off:?}"
+    );
 }
 
 /// ③ **按名字绑定，与书写顺序无关**（Lean `App.lean:753` 走的是 binder 顺序 ✓）。

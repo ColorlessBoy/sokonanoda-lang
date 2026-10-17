@@ -8,7 +8,7 @@ def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
 
 theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  Set.subset_def α A B
+  @Set.subset_def α A B
 
 theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=
   Iff.intro (fun (h : ¬ P) => h) (fun (h : P → False) => h)
@@ -22,13 +22,13 @@ theorem subset_antisymm_forward (α : Type) (A : Set α) (B : Set α)
     (hAB : A ⊆ B) (hBA : B ⊆ A) : ∀ (x : α), x ∈ A → x ∈ B :=
   fun (x : α) (hx : x ∈ A) =>
     (fun (hs : ∀ (z : α), z ∈ A → z ∈ B) => hs x hx)
-      ((fun (hu : A ⊆ B ↔ ∀ (z : α), z ∈ A → z ∈ B) => Iff.mp hu hAB) (Set.subset_def α A B))
+      ((fun (hu : A ⊆ B ↔ ∀ (z : α), z ∈ A → z ∈ B) => Iff.mp hu hAB) (@Set.subset_def α A B))
 
 theorem subset_antisymm_backward (α : Type) (A : Set α) (B : Set α)
     (hAB : A ⊆ B) (hBA : B ⊆ A) : ∀ (x : α), x ∈ B → x ∈ A :=
   fun (x : α) (hx : x ∈ B) =>
     (fun (hs : ∀ (z : α), z ∈ B → z ∈ A) => hs x hx)
-      ((fun (hu : B ⊆ A ↔ ∀ (z : α), z ∈ B → z ∈ A) => Iff.mp hu hBA) (Set.subset_def α B A))
+      ((fun (hu : B ⊆ A ↔ ∀ (z : α), z ∈ B → z ∈ A) => Iff.mp hu hBA) (@Set.subset_def α B A))
 
 theorem subset_antisymm_pointwise (α : Type) (A : Set α) (B : Set α)
     (hAB : A ⊆ B) (hBA : B ⊆ A) :
@@ -42,7 +42,7 @@ theorem injOn_id (α : Type) (A : Set α) : Set.InjOn α α (fun (x : α) => x) 
 theorem leOn_of_subset (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) : LeOn α α A B :=
   (fun (hs : ∀ (x : α), x ∈ A → x ∈ B) =>
     demo_leOn_intro α α A B (fun (x : α) => x) (injOn_id α A) hs)
-    ((fun (hu : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hu h) (Set.subset_def α A B))
+    ((fun (hu : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hu h) (@Set.subset_def α A B))
 
 theorem leOn_of_subset_both (α : Type) (A : Set α) (B : Set α)
     (hAB : A ⊆ B) (hBA : B ⊆ A) : LeOn α α A B ∧ LeOn α α B A :=

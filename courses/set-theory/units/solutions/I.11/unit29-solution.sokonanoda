@@ -41,8 +41,8 @@ theorem sup_unique (α : Type) (r : α → α → Prop) (A : α → Prop) (b c :
 
 theorem sup_unique_of_antisymm (α : Type) (r : α → α → Prop) (A : α → Prop) (b c : α)
     (hanti : Antisymmetric α r) (hb : IsSup α r A b) (hc : IsSup α r A c) :
-    Eq.{1} α b c :=  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
-  (fun (hu : ∀ (x : α) (y : α), r x y → r y x → Eq.{1} α x y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+    @Eq.{1} α b c :=  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
+  (fun (hu : ∀ (x : α) (y : α), r x y → r y x → @Eq.{1} α x y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq`/广义并的记法在这些位置解不出来，必须点名
     hu b c (sup_unique α r A b c hb hc) (sup_unique α r A c b hc hb)) hanti
 
 theorem inf_unique (α : Type) (r : α → α → Prop) (A : α → Prop) (b c : α)

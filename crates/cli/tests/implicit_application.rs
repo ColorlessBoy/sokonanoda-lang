@@ -119,9 +119,15 @@ theorem n4 (p : Prop) (Q : Prop \u{2192} Prop \u{2192} Prop)
 ";
 
 /// ① + ②：缺口那一形翻绿，且三个对照照旧绿。
+///
+/// **2026-10-18 翻默认**：`SHAPES` 的 `n3`/`n4` 是**旧写法**（把隐式位逐位写成位置
+/// 实参 ✗）—— 翻默认后它在默认档**必须被判红**（用户 10-16 要的语义 ✓）⇒ 本用例
+/// 显式走**逃生门** `SOKO_STRICT_AT=0`：路线③ 这条机械仍然存在、仍然值得守卫 ✓
+/// （默认档拒绝它的那一条牙在 `implicit_at_alignment.rs::default_mode_is_strict` ✓）。
 #[test]
 fn g85_overapplied_with_dropped_implicits_is_accepted() {
-    let (ok, checked, diagnostics) = grade_source("shapes", SHAPES);
+    let (ok, checked, diagnostics) =
+        grade_source_env("shapes", SHAPES, &[("SOKO_STRICT_AT", "0")]);
     assert!(
         diagnostics.is_empty(),
         "四条形状都不许有诊断（`n2` 修前是「期望 Sort(0)，实际是 And …」✗）：{diagnostics:#?}"
@@ -134,6 +140,9 @@ fn g85_overapplied_with_dropped_implicits_is_accepted() {
 ///
 /// 为什么单列：路线③ 的判据一放宽就抢旧写法 —— **实测踩过**（prelude 当场打红：
 /// `l1_prelude_is_available_in_full_mode` 报 `期望 Pi …, 实际 Sort(0)`）。
+///
+/// **2026-10-18 翻默认**：同 [`g85_overapplied_with_dropped_implicits_is_accepted`]
+/// —— 旧写法只在逃生门后面 ⇒ 本用例显式 `SOKO_STRICT_AT=0` ✓。
 #[test]
 fn g85_does_not_steal_the_old_style() {
     let src = "\
@@ -141,7 +150,7 @@ theorem old_style (p : Prop) (Q : Prop \u{2192} Prop) (h : p \u{2227} (\u{2200} 
     (x : Prop) : Q x :=
   And.right p (\u{2200} (y : Prop), Q y) h x
 ";
-    let (ok, checked, diagnostics) = grade_source("old-style", src);
+    let (ok, checked, diagnostics) = grade_source_env("old-style", src, &[("SOKO_STRICT_AT", "0")]);
     assert!(
         ok && checked == 1 && diagnostics.is_empty(),
         "旧写法（前导隐式位逐位写出）必须照旧判绿：ok={ok} checked={checked} {diagnostics:#?}"

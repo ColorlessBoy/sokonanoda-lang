@@ -9,7 +9,7 @@ theorem demo_transClosure_elim (α : Type) (r s : Rel α α) (a b : α)
   Rel.transClosure_elim α r s a b h hs hr
 
 theorem demo_reflClosure_apply (α : Type) (r : Rel α α) (a b : α) :
-    Rel.reflClosure α r a b ↔ (r a b ∨ Eq.{1} α a b) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    Rel.reflClosure α r a b ↔ (r a b ∨ @Eq.{1} α a b) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
   Rel.reflClosure_apply α r a b
 
 theorem demo_symClosure_apply (α : Type) (r : Rel α α) (a b : α) :
@@ -63,7 +63,7 @@ theorem transClosure_mono (α : Type) (r r1 : Rel α α)
 
 theorem trans_iff_transClosure_subset (α : Type) (r : Rel α α) :
     Transitive α r ↔ ∀ (a : α) (b : α), Rel.transClosure α r a b → r a b :=
-  Iff.intro (Transitive α r)
+  @Iff.intro (Transitive α r)
     (∀ (a : α) (b : α), Rel.transClosure α r a b → r a b)
     (fun (ht : Transitive α r) => fun (a : α) => fun (b : α) =>
       fun (hab : Rel.transClosure α r a b) =>
@@ -78,7 +78,7 @@ theorem transClosure_idempotent (α : Type) (r : Rel α α) :
     Rel.transClosure α (Rel.transClosure α r) = Rel.transClosure α r :=
   Rel.ext α α (Rel.transClosure α (Rel.transClosure α r)) (Rel.transClosure α r)
     (fun (a : α) (b : α) =>
-      Iff.intro (Rel.transClosure α (Rel.transClosure α r) a b)
+      @Iff.intro (Rel.transClosure α (Rel.transClosure α r) a b)
         (Rel.transClosure α r a b)
         (fun (h : Rel.transClosure α (Rel.transClosure α r) a b) =>
           transClosure_least α (Rel.transClosure α r) (Rel.transClosure α r)
@@ -91,7 +91,7 @@ theorem comp_transClosure_subset (α : Type) (r : Rel α α) :
     ∀ (a : α) (c : α), (r • Rel.transClosure α r) a c → Rel.transClosure α r a c :=
   fun (a : α) => fun (c : α) =>
     fun (hac : (r • Rel.transClosure α r) a c) =>
-      Exists.elim α (fun (b : α) => r a b ∧ Rel.transClosure α r b c)
+      @Exists.elim α (fun (b : α) => r a b ∧ Rel.transClosure α r b c)
         (Rel.transClosure α r a c) hac
         (fun (b : α) (hb : r a b ∧ Rel.transClosure α r b c) =>
           transClosure_transitive α r a b c
@@ -102,7 +102,7 @@ theorem transClosure_comp_subset (α : Type) (r : Rel α α) :
       (Rel.transClosure α r • Rel.transClosure α r) a c → Rel.transClosure α r a c :=
   fun (a : α) => fun (c : α) =>
     fun (hac : (Rel.transClosure α r • Rel.transClosure α r) a c) =>
-      Exists.elim α (fun (b : α) => Rel.transClosure α r a b ∧ Rel.transClosure α r b c)
+      @Exists.elim α (fun (b : α) => Rel.transClosure α r a b ∧ Rel.transClosure α r b c)
         (Rel.transClosure α r a c) hac
         (fun (b : α) (hb : Rel.transClosure α r a b ∧ Rel.transClosure α r b c) =>
           transClosure_transitive α r a b c (And.left hb) (And.right hb))
@@ -110,6 +110,6 @@ theorem transClosure_comp_subset (α : Type) (r : Rel α α) :
 theorem symClosure_symmetric (α : Type) (r : Rel α α) :
     Symmetric α (Rel.symClosure α r) :=
   fun (a : α) => fun (b : α) => fun (hab : Rel.symClosure α r a b) =>
-    Or.elim (r a b) (r b a) (r b a ∨ r a b)
+    @Or.elim (r a b) (r b a) (r b a ∨ r a b)
       (fun (h : r a b) => Or.inr h)
       (fun (h : r b a) => Or.inl h) hab

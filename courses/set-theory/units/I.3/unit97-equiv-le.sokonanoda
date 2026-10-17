@@ -29,7 +29,7 @@ def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
   ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B
 theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
     LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
-  Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+  @Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
     (fun (h : LeOn α β A B) => h)
     (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
 theorem demo_injOn_def (α : Type) (β : Type) (f : α → β) (A : Set α) :

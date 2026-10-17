@@ -189,7 +189,7 @@ def Nat.pred (n : Nat) : Nat := match n with
 
 theorem Nat.zero_ne_succ (n : Nat) : 0 ≠ Nat.succ n :=
   fun (h : 0 = Nat.succ n) =>
-    Eq.subst.{1} Nat (fun (m : Nat) => Nat.isZero m) 0 (Nat.succ n) h True.intro
+    @Eq.subst.{1} Nat (fun (m : Nat) => Nat.isZero m) 0 (Nat.succ n) h True.intro
 
 theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) : a = b :=
   congrArg.{1} Nat.pred h

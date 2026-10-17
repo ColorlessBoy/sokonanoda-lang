@@ -1,3 +1,9 @@
+## `SUB-implicit-args-strict-default`（2026-10-18 · **严格档翻默认**：用户 10-16 要的「只有 `@` 收隐式参数」**不带任何环境变量**就成立）（未发版）
+- ⭐⭐ **用户拿到了什么**：**默认档**（不设任何环境变量）写 `g (α := Nat) 5` **过** ✓ · 写 `g Nat 5` **被拒** ✓（= 与 Lean 4 `Elab/App.lean:706` 同构的语义）；**逃生门** `SOKO_STRICT_AT=0|off|false` ⇒ 退回旧行为 ✓。
+- ⭐ **引擎四刀（a6 实测，都在严格档下整类失效 ⇒ 翻默认的前置）**：① `compile/goals.rs` 的 `substitute_names` **丢掉 `explicit_spine`** ⇒ `cases … with` 臂里的 `right`/`left`/`constructor` 全废 ✗→✓；② `by.rs` `rfl_candidate` 的**判定用文本**补 `@`（`by rfl` 在 `n = n` 上整类红 ✗→✓）；③ `apply` **裸头**（`apply Or.inl`/`apply Set.ext`）的脊标 `@`（`apply Eq.subst (Eq.symm hx)` 那种**带实参**的**不标** —— 标了会关掉隐式前缀求解，实测 ✗）；④ `exfalso` 的 `False.elim` 脊标 `@`。
+- ⭐ **量（归属级 · 逐文件）**：全语料 **356** 个 `.sokonanoda`，同一二进制两档对拍 —— 翻前严格档 **220 从接受变拒绝 · 0 反向**；迁移后 **翻转 72**（`courses` 68 · `course` 2 · `docs/gaps/repro` 1 · `playground` 1）⇒ **148 个已迁齐** ✓。逐文件清单见 `.cache/ux/fix-a6/VERDICT.md` §2。
+- ⚠ **如实 ✗（本轮未完成）**：**72 个文件仍红**（首诊：`elab-tactic-failed` 28 · `kernel-rejected` 20 · `notation-argument-unsolved` 14 · `unknown-identifier` 9）⇒ **`courses/set-theory/tools/check.py` 与 `gap.py check` 现在会判红** ✗（下一轮：把 72 个按诊断「出路 ①」改齐）。⚠ **一个 commit**（本笔）· **未推**（并发写者占着推送面）· 分支 `agent/a6` **保留** ✓。
+- **Lean4**: `Lean/Elab/App.lean:706` `processImplicitArg`（`explicit` ⇒ 隐式 binder 也吃位置实参 · 否则插元变量）—— 本笔与它同构；`@` 的语法要求后跟**常量名**（`@∅` 是 parse error ⇒ 记法位的类型实参只能**省掉**让推断补 ✓）。
 ## 发版 `0.92.0`（2026-10-17 · **交付**：358 笔未发版收口为一次发版）（本笔即发布）
 - ⭐ **触发**：用户 2026-10-17 授权「**你发吧，我认的是发版，当然也不能一点点小改动就发版**」——
   **交付 = 发版**（用户同日口径：收口条目 / 条目状态变化**都不算**交付 ✗）。

@@ -51,11 +51,11 @@ def accConst (α : Type) (E : α → α → Prop) (x : α) (h : Acc α E x) : Na
 -- ② 等式侧判红：`Eq` 的宇宙层级反解不出来 ⇒ 「期望 Sort(0)，实际是 Sort(1)」✗
 theorem accConst_eq (α : Type) (E : α → α → Prop) (x : α)
     (hr : ∀ (y : α), E y x → Acc α E y) :
-    Eq Nat (accConst α E x (Acc.intro α E x hr)) (Nat.succ Nat.zero) :=
-  Eq.refl Nat (Nat.succ Nat.zero)
+    @Eq Nat (accConst α E x (@Acc.intro α E x hr)) (Nat.succ Nat.zero) :=
+  @Eq.refl Nat (Nat.succ Nat.zero)
 
 -- ③ 把宇宙写显式 ⇒ 判绿 ✓（课程侧的绕法，逐字同形）
 theorem accConst_eq_explicit (α : Type) (E : α → α → Prop) (x : α)
     (hr : ∀ (y : α), E y x → Acc α E y) :
-    Eq.{1} Nat (accConst α E x (Acc.intro α E x hr)) (Nat.succ Nat.zero) :=
-  Eq.refl.{1} Nat (Nat.succ Nat.zero)
+    @Eq.{1} Nat (accConst α E x (@Acc.intro α E x hr)) (Nat.succ Nat.zero) :=
+  @Eq.refl.{1} Nat (Nat.succ Nat.zero)

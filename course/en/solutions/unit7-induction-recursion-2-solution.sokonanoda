@@ -44,7 +44,7 @@ def fromOption (x : Option Nat) (d : Nat) : Nat := match x with
 
 -- Self-test: #reduce walks the Option.rec that match lowers to — the some
 -- arm is just the number inside.
-#reduce fromOption (some Nat (succ zero)) zero
+#reduce fromOption (@some Nat (succ zero)) zero
 
 -- Exercise 1: the some arm hands back the substituted field a directly.
 def valueOrZero (x : Option Nat) : Nat := match x with
@@ -52,8 +52,8 @@ def valueOrZero (x : Option Nat) : Nat := match x with
 | some a => a
 
 -- Extra internal self-checks:
-#reduce valueOrZero (some Nat (succ zero))
-#reduce valueOrZero (none Nat)
+#reduce valueOrZero (@some Nat (succ zero))
+#reduce valueOrZero (@none Nat)
 
 -- ─────────────────────────────────────────────────────────────
 -- Dependent match (induction): the nat_induction demo and the answer to
@@ -90,8 +90,8 @@ def predOpt (x : Option Nat) : Nat := match x with
 | none => zero
 
 -- Extra internal self-checks:
-#reduce isZeroOpt (some Nat zero)
-#reduce predOpt (some Nat (succ (succ zero)))
+#reduce isZeroOpt (@some Nat zero)
+#reduce predOpt (@some Nat (succ (succ zero)))
 
 -- ─────────────────────────────────────────────────────────────
 -- Indexed inductives: the vlen demo and the answer to Exercise 4.
@@ -112,4 +112,4 @@ def vhead (A : Type) (d : A) (n : Nat) (v : Vec A n) : A := match v with
 | vcons a m w => a
 
 -- Extra internal self-checks:
-#reduce vlen Nat (succ (succ zero)) (vcons Nat zero zero (vcons Nat (succ zero) zero (vnil Nat)))
+#reduce vlen Nat (succ (succ zero)) (@vcons Nat zero zero (@vcons Nat (succ zero) zero (@vnil Nat)))

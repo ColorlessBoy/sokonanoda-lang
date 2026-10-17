@@ -17,7 +17,7 @@ theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
   Set.mem_union a A B
 
 def charSet (α : Type) (f : α → Bool) : Set α :=
-  fun (x : α) => Eq.{1} Bool (f x) Bool.true  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+  fun (x : α) => @Eq.{1} Bool (f x) Bool.true  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
 
 theorem mem_powerset_apply (α : Type) (A B : Set α) :
     A ∈ (𝒫 B) ↔ A ⊆ B :=
@@ -25,8 +25,8 @@ theorem mem_powerset_apply (α : Type) (A B : Set α) :
 
 theorem powerset_inter (α : Type) (A B : Set α) :
     𝒫 (A ∩ B) = 𝒫 A ∩ 𝒫 B :=
-  Set.ext (Set α) (𝒫 (A ∩ B)) (𝒫 A ∩ 𝒫 B) (fun (C : Set α) =>
-    Iff.intro (C ∈ 𝒫 (A ∩ B)) (C ∈ (𝒫 A ∩ 𝒫 B))
+  @Set.ext (Set α) (𝒫 (A ∩ B)) (𝒫 A ∩ 𝒫 B) (fun (C : Set α) =>
+    @Iff.intro (C ∈ 𝒫 (A ∩ B)) (C ∈ (𝒫 A ∩ 𝒫 B))
       (fun (h : C ⊆ A ∩ B) =>
         And.intro
           (fun (x : α) => fun (hx : C x) =>
@@ -44,17 +44,17 @@ theorem powerset_inter (α : Type) (A B : Set α) :
 theorem powerset_union_subset (α : Type) (A B : Set α) :
     (𝒫 A ∪ 𝒫 B) ⊆ 𝒫 (A ∪ B) :=
   fun (C : Set α) => fun (h : C ∈ (𝒫 A ∪ 𝒫 B)) =>
-    Or.elim (C ∈ 𝒫 A) (C ∈ 𝒫 B) (C ⊆ A ∪ B)
+    @Or.elim (C ∈ 𝒫 A) (C ∈ 𝒫 B) (C ⊆ A ∪ B)
       (fun (hA : C ∈ 𝒫 A) => fun (x : α) => fun (hx : C x) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
-        Or.inl (A x) (B x) ((fun (hu : ∀ (y : α), C y → A y) => hu x hx) hA))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+        @Or.inl (A x) (B x) ((fun (hu : ∀ (y : α), C y → A y) => hu x hx) hA))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
       (fun (hB : C ∈ 𝒫 B) => fun (x : α) => fun (hx : C x) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
-        Or.inr (A x) (B x) ((fun (hu : ∀ (y : α), C y → B y) => hu x hx) hB))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+        @Or.inr (A x) (B x) ((fun (hu : ∀ (y : α), C y → B y) => hu x hx) hB))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
       h
 
 theorem sUnion_powerset (α : Type) (A : Set α) :
     ⋃₀ (𝒫 A) = A :=
-  Set.ext α (⋃₀ (𝒫 A)) A (fun (x : α) =>
-    Iff.intro (x ∈ ⋃₀ (𝒫 A)) (A x)
+  @Set.ext α (⋃₀ (𝒫 A)) A (fun (x : α) =>
+    @Iff.intro (x ∈ ⋃₀ (𝒫 A)) (A x)
       (fun (h : x ∈ ⋃₀ (𝒫 A)) =>
         Set.mem_sUnion_elim α (𝒫 A) x (A x) h
           (fun (B : Set α) (hB : B ∈ 𝒫 A) (hxB : x ∈ B) =>
@@ -64,30 +64,30 @@ theorem sUnion_powerset (α : Type) (A : Set α) :
           (fun (y : α) => fun (hy : A y) => hy) hx))
 
 theorem mem_charSet (α : Type) (f : α → Bool) (x : α) :
-    x ∈ (charSet α f) ↔ Eq.{1} Bool (f x) Bool.true :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
-  Iff.intro (x ∈ (charSet α f)) (Eq.{1} Bool (f x) Bool.true)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
-    (fun (h : Eq.{1} Bool (f x) Bool.true) => h)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
-    (fun (h : Eq.{1} Bool (f x) Bool.true) => h)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    x ∈ (charSet α f) ↔ @Eq.{1} Bool (f x) Bool.true :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+  @Iff.intro (x ∈ (charSet α f)) (@Eq.{1} Bool (f x) Bool.true)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    (fun (h : @Eq.{1} Bool (f x) Bool.true) => h)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    (fun (h : @Eq.{1} Bool (f x) Bool.true) => h)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
 
 theorem charSet_true (α : Type) (f : α → Bool) (x : α)
-    (h : Eq.{1} Bool (f x) Bool.true) : x ∈ (charSet α f) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    (h : @Eq.{1} Bool (f x) Bool.true) : x ∈ (charSet α f) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
   h
 
-theorem charSet_eq_of_eq (α : Type) (f g : α → Bool) (h : ∀ (a : α), Eq.{1} Bool (f a) (g a))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+theorem charSet_eq_of_eq (α : Type) (f g : α → Bool) (h : ∀ (a : α), @Eq.{1} Bool (f a) (g a))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
     (x : α) (hx : x ∈ (charSet α f)) : x ∈ (charSet α g) :=
-  Eq.trans.{1} Bool (g x) (f x) Bool.true
-    (Eq.symm.{1} Bool (f x) (g x) (h x)) hx
+  @Eq.trans.{1} Bool (g x) (f x) Bool.true
+    (@Eq.symm.{1} Bool (f x) (g x) (h x)) hx
 
-theorem powerset_empty_subset (α : Type) (C : Set α) (hC : C ∈ 𝒫 (∅ α)) :
+theorem powerset_empty_subset (α : Type) (C : Set α) (hC : C ∈ 𝒫 (@Set.empty α)) :
     ∀ (x : α), ¬ (C x) :=
   fun (x : α) => fun (hx : C x) =>
-    (fun (hu : ∀ (y : α), C y → y ∈ ∅ α) => hu x hx) hC
+    (fun (hu : ∀ (y : α), C y → y ∈ @Set.empty α) => hu x hx) hC
 
 theorem charSet_mono (α : Type) (f g : α → Bool)
-    (h : ∀ (a : α), Eq.{1} Bool (f a) Bool.true → Eq.{1} Bool (g a) Bool.true) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    (h : ∀ (a : α), @Eq.{1} Bool (f a) Bool.true → @Eq.{1} Bool (g a) Bool.true) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
     (charSet α f) ⊆ (charSet α g) :=
   fun (x : α) => fun (hx : x ∈ (charSet α f)) => h x hx
 
 theorem charSet_const_true (α : Type) (x : α) :
     x ∈ (charSet α (fun (_ : α) => Bool.true)) :=
-  Eq.refl.{1} Bool Bool.true
+  @Eq.refl.{1} Bool Bool.true

@@ -23,7 +23,7 @@ theorem no_prop_fixpoint (P : Prop) (h1 : P → ¬ P) (h2 : ¬ P → P) : False 
 theorem no_prop_fixpoint_exists :
     ¬ (∃ (P : Prop), (P → ¬ P) ∧ (¬ P → P)) :=
   fun (h : ∃ (P : Prop), (P → ¬ P) ∧ (¬ P → P)) =>
-    Exists.elim Prop (fun (P : Prop) => (P → ¬ P) ∧ (¬ P → P)) False h  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+    @Exists.elim Prop (fun (P : Prop) => (P → ¬ P) ∧ (¬ P → P)) False h  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
       (fun (P : Prop) (hh : (P → ¬ P) ∧ (¬ P → P)) =>
         no_prop_fixpoint P (And.left hh)
           (And.right hh))
@@ -34,7 +34,7 @@ theorem surjOnSets_apply (α : Type) (S : α → Set α) (h : SurjOnSets α S) (
 
 theorem diag_not_surj (α : Type) (S : α → Set α) : ¬ (SurjOnSets α S) :=
   fun (h : SurjOnSets α S) =>
-    Exists.elim α (fun (a : α) => ∀ (x : α), S a x ↔ ¬ (S x x)) False
+    @Exists.elim α (fun (a : α) => ∀ (x : α), S a x ↔ ¬ (S x x)) False
       (surjOnSets_apply α S h (fun (x : α) => ¬ (S x x)))
       (fun (a : α) (ha : ∀ (x : α), S a x ↔ ¬ (S x x)) =>
         (fun (h1 : ∀ (x : α), S a x → ¬ (S x x)) =>

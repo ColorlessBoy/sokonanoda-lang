@@ -60,7 +60,7 @@ theorem demo_empty_transitive (A : Type) : Transitive A (EmptyRelation A) := by
 -- ─────────────────────────────────────────────────────────────────────────
 theorem rel_inv_inv (A B : Type) (r : Rel A B) :
     (r ⁻¹) ⁻¹ = r := by
-  exact Eq.refl.{1} (Rel A B) r
+  exact @Eq.refl.{1} (Rel A B) r
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- 6.2 练习 2（T）：复合的结合律
@@ -78,12 +78,12 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
     (r • (s • t))
     ((r • s) • t)
     (fun (a : A) => fun (d : D) =>
-      Iff.intro
+      @Iff.intro
         ((r • (s • t)) a d)
         (((r • s) • t) a d)
         -- →：先拆出 b，再拆出 c，然后按 c、b 的顺序重新打包
         (fun (h : (r • (s • t)) a d) =>
-          Exists.elim B
+          @@Exists.elim B
             (fun (b : B) => (r a b) ∧ ((s • t) b d))
             (((r • s) • t) a d)
             h
@@ -159,15 +159,15 @@ theorem mem_equivClass_self (A : Type) (r : Rel A A) (hrefl : Reflexive A r) (a 
 theorem equivClass_eq_iff (A : Type) (r : Rel A A)
     (hrefl : Reflexive A r) (hsymm : Symmetric A r) (htrans : Transitive A r) (a b : A) :
     (EquivClass A r a = EquivClass A r b) ↔ r a b := by
-  exact Iff.intro
+  exact @Iff.intro
     ((EquivClass A r a) = (EquivClass A r b))
     (r a b)
     (fun (h : (EquivClass A r a) = (EquivClass A r b)) =>
       hsymm b a
-        (Eq.subst.{1} (Set A) (fun (X : Set A) => a ∈ X)
+        (@Eq.subst.{1} (Set A) (fun (X : Set A) => a ∈ X)
           (EquivClass A r a) (EquivClass A r b) h (hrefl a)))
     (fun (hab : r a b) =>
-      Set.ext A (EquivClass A r a) (EquivClass A r b)
+      @Set.ext A (EquivClass A r a) (EquivClass A r b)
         (fun (x : A) => Iff.intro
           (fun (hax : r a x) => htrans b a x (hsymm a b hab) hax)
           (fun (hbx : r b x) => htrans a b x hab hbx)))
@@ -203,7 +203,7 @@ def IsPartition (A : Type) (P : Set (Set A)) : Prop :=
 theorem classes_isPartition (A : Type) (r : Rel A A)
     (hrefl : Reflexive A r) (hsymm : Symmetric A r) (htrans : Transitive A r) :
     IsPartition A (classes A r) := by
-  exact And.intro
+  exact @And.intro
     (∀ (C : Set A), C ∈ (classes A r) → ¬ (C = (∅)))
     ((∀ (a : A),
             ∃ (C : Set A), (C ∈ (classes A r)) ∧ (a ∈ C)) ∧
@@ -212,14 +212,14 @@ theorem classes_isPartition (A : Type) (r : Rel A A)
             ¬ (∃ (x : A), (x ∈ C) ∧ (x ∈ D))))
     -- ① 无空块
     (fun (C : Set A) => fun (hC : C ∈ (classes A r)) =>
-      Exists.elim A
+      @Exists.elim A
         (fun (a : A) => C = (EquivClass A r a))
         (¬ (C = (∅)))
         hC
         (fun (a : A) => fun (ha : C = (EquivClass A r a)) =>
           fun (hEmpty : C = (∅)) =>
             let hEmpty2 : (EquivClass A r a) = (∅) :=
-              Eq.trans.{1} (Set A) (EquivClass A r a) C (∅)
+              @Eq.trans.{1} (Set A) (EquivClass A r a) C (∅)
                 (Eq.symm.{1} (Set A) C (EquivClass A r a) ha) hEmpty;
             let hBad : a ∈ (∅) :=
               Eq.subst.{1} (Set A) (fun (X : Set A) => a ∈ X)
@@ -322,12 +322,12 @@ theorem nearStep_counterexample :
     Reflexive Nat nearStep ∧ (Symmetric Nat nearStep ∧ ¬ (Transitive Nat nearStep)) := by
   exact And.intro
     (fun (a : Nat) =>
-      Or.inl (a = a)
+      @Or.inl (a = a)
         (((Nat.succ a) = a) ∨ (a = (Nat.succ a)))
-        (Eq.refl.{1} Nat a))
+        (@Eq.refl.{1} Nat a))
     (And.intro
       (fun (a b : Nat) => fun (h : nearStep a b) =>
-        Or.elim (a = b)
+        @Or.elim (a = b)
           (((Nat.succ a) = b) ∨ (a = (Nat.succ b)))
           (nearStep b a)
           (fun (hab : a = b) =>

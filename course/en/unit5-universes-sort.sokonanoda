@@ -85,7 +85,7 @@ example : Sort 0 := by sorry
 -- soko:hint approach: lift Unit 2's symmetry recipe to an arbitrary universe — fully isomorphic: Nat → α, .{1} → .{u}.
 -- soko:hint goal shape: the first binder is implicit — open with fun {α : Sort u} =>, then the same four funs taking a, b, h.
 -- soko:hint key piece: goal b = a with h : a = b in context — Eq.subst.{u} rewrites along h, with the predicate designed in the "x = a" shape over α (recipe in Unit 2, Exercise 3).
-theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by sorry -- soko:notation-ok: α : Sort u is polymorphic, so the `=` notation cannot solve the universe level u (engine boundary)
+theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → @Eq.{u} α a b → @Eq.{u} α b a := by sorry -- soko:notation-ok: α : Sort u is polymorphic, so the `=` notation cannot solve the universe level u (engine boundary)
 
 -- ─────────────────────────────────────────────────────────────
 -- Compute before proving: predict the #reduce result yourself before the

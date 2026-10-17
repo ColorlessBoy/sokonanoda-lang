@@ -41,13 +41,13 @@ import lib.Extensionality
 -- 演示：**依赖版函数外延**（`funext` 的取用子；非依赖版 = 族取常值 `fun _ => β`）。
 theorem demo_funext_spec (α : Type) (β : α → Type)
     (f : (x : α) → β x) (g : (x : α) → β x)
-    (h : ∀ (x : α), (f x) = (g x)) : Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (h : ∀ (x : α), (f x) = (g x)) : @Eq.{1} ((x : α) → β x) f g :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
   funext_spec α β f g h
 theorem demo_propext_spec (a b : Prop) (h : a ↔ b) : a = b :=
   propext_spec a b h
 theorem demo_comp_assoc_refl (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
     ((fun (a : α) => h (g (f a)))) = (fun (a : α) => h (g (f a))) :=
-  Eq.refl.{1} (α → δ) (fun (a : α) => h (g (f a)))
+  @Eq.refl.{1} (α → δ) (fun (a : α) => h (g (f a)))
 -- ─────────────────────────────────────────────────────────────
 -- 44.2 两条公理的取用子与**合成的等式形态**
 -- ─────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ theorem demo_comp_assoc_refl (α β γ δ : Type) (f : α → β) (g : β → γ
 -- soko:hint 关键件：`funext_spec`（**参数：论域 · 族 · 两个函数 · 逐点证据**）✓
 --   ⚠ 库里的是**依赖版**（族 `β : α → Type`）⇒ 非依赖情形要把族写成**常值函数** ✓
 theorem funext_apply (α β : Type) (f g : α → β)
-    (h : ∀ (a : α), (f a) = (g a)) : Eq.{1} (α → β) f g := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (h : ∀ (a : α), (f a) = (g a)) : @Eq.{1} (α → β) f g := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
   sorry
 
 -- 练习 2（T 类）：**命题外延**。

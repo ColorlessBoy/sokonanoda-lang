@@ -86,7 +86,7 @@ theorem emptyRelation_all_ordinals (α : Type) (x : α) :
       fun (a : α) (ha : EmptyRelation α α a y) (b : α) (hb : EmptyRelation α α b a) => ha)
     (isWellFounded_intro α (EmptyRelation α α)
       (fun (P : α → Prop) (hP : ∃ (m : α), P m) =>
-        Exists.elim α P (HasMin α (EmptyRelation α α) P) hP  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+        @Exists.elim α P (HasMin α (EmptyRelation α α) P) hP  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
           (fun (m : α) (hm : P m) =>
             hasMin_intro α (EmptyRelation α α) P m hm
               (fun (y : α) (hy : P y) (hf : EmptyRelation α α y m) => hf))))

@@ -28,28 +28,28 @@ theorem not_mem_sUnion_of_all_not (α : Type) (F : Set (Set α)) (x : α)
 
 theorem sUnion_union (α : Type) (F G : Set (Set α)) :
     ⋃₀ (F ∪ G) = ⋃₀ F ∪ ⋃₀ G :=
-  Set.ext α (⋃₀ (F ∪ G)) (⋃₀ F ∪ ⋃₀ G) (fun (x : α) =>
-    Iff.intro (x ∈ ⋃₀ (F ∪ G)) (x ∈ ⋃₀ F ∪ ⋃₀ G)
+  @Set.ext α (⋃₀ (F ∪ G)) (⋃₀ F ∪ ⋃₀ G) (fun (x : α) =>
+    @Iff.intro (x ∈ ⋃₀ (F ∪ G)) (x ∈ ⋃₀ F ∪ ⋃₀ G)
       (fun (h : x ∈ ⋃₀ (F ∪ G)) =>
         Set.mem_sUnion_elim α (F ∪ G) x (x ∈ ⋃₀ F ∪ ⋃₀ G) h
           (fun (A : Set α) (hA : A ∈ F ∪ G) (hxA : x ∈ A) =>
-            Or.elim (A ∈ F) (A ∈ G) (x ∈ ⋃₀ F ∪ ⋃₀ G)
+            @Or.elim (A ∈ F) (A ∈ G) (x ∈ ⋃₀ F ∪ ⋃₀ G)
               (fun (hF : A ∈ F) =>
-                Or.inl (x ∈ ⋃₀ F) (x ∈ ⋃₀ G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+                @Or.inl (x ∈ ⋃₀ F) (x ∈ ⋃₀ G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
                   (Set.mem_sUnion_intro α F A x hF hxA))
               (fun (hG : A ∈ G) =>
-                Or.inr (x ∈ ⋃₀ F) (x ∈ ⋃₀ G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+                @Or.inr (x ∈ ⋃₀ F) (x ∈ ⋃₀ G)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
                   (Set.mem_sUnion_intro α G A x hG hxA)) hA))
       (fun (h : x ∈ ⋃₀ F ∪ ⋃₀ G) =>
-        Or.elim (x ∈ ⋃₀ F) (x ∈ ⋃₀ G) (x ∈ ⋃₀ (F ∪ G))
+        @Or.elim (x ∈ ⋃₀ F) (x ∈ ⋃₀ G) (x ∈ ⋃₀ (F ∪ G))
           (fun (hF : x ∈ ⋃₀ F) =>
             Set.mem_sUnion_elim α F x (x ∈ ⋃₀ (F ∪ G)) hF
               (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) =>
-                Set.mem_sUnion_intro α (F ∪ G) A x (Or.inl (A ∈ F) (A ∈ G) hA) hxA))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+                Set.mem_sUnion_intro α (F ∪ G) A x (@Or.inl (A ∈ F) (A ∈ G) hA) hxA))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
           (fun (hG : x ∈ ⋃₀ G) =>
             Set.mem_sUnion_elim α G x (x ∈ ⋃₀ (F ∪ G)) hG
               (fun (A : Set α) (hA : A ∈ G) (hxA : x ∈ A) =>
-                Set.mem_sUnion_intro α (F ∪ G) A x (Or.inr (A ∈ F) (A ∈ G) hA) hxA)) h))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+                Set.mem_sUnion_intro α (F ∪ G) A x (@Or.inr (A ∈ F) (A ∈ G) hA) hxA)) h))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
 
 theorem sUnion_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
     ⋃₀ F ⊆ ⋃₀ G :=
@@ -61,12 +61,12 @@ theorem sUnion_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) :
 theorem sUnion_subset_sUnion_union_left (α : Type) (F G : Set (Set α)) :
     ⋃₀ F ⊆ ⋃₀ (F ∪ G) :=
   sUnion_mono α F (F ∪ G) (fun (A : Set α) => fun (hA : A ∈ F) =>
-    Or.inl (A ∈ F) (A ∈ G) hA)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+    @Or.inl (A ∈ F) (A ∈ G) hA)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
 
 theorem sUnion_subset_sUnion_union_right (α : Type) (F G : Set (Set α)) :
     ⋃₀ G ⊆ ⋃₀ (F ∪ G) :=
   sUnion_mono α G (F ∪ G) (fun (A : Set α) => fun (hA : A ∈ G) =>
-    Or.inr (A ∈ F) (A ∈ G) hA)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+    @Or.inr (A ∈ F) (A ∈ G) hA)  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
 
 theorem sInter_subset_sUnion_of_mem (α : Type) (F : Set (Set α)) (A : Set α)
     (hA : A ∈ F) : ⋂₀ F ⊆ ⋃₀ F :=
@@ -80,7 +80,7 @@ theorem sInter_union_subset_left (α : Type) (F G : Set (Set α)) :
     (⋂₀ (F ∪ G)) ⊆ (⋂₀ F) :=
   fun (x : α) => fun (h : x ∈ ⋂₀ (F ∪ G)) =>
     Set.mem_sInter_intro α F x (fun (B : Set α) (hB : B ∈ F) =>
-      (fun (hv : ∀ (C : Set α), C ∈ F ∪ G → x ∈ C) => hv B (Or.inl (B ∈ F) (B ∈ G) hB))  -- soko:notation-ok: G-73 形状 ②：期望类型是 def 头（`B ∈ F ∪ G`）时 `Or.inl` 补不出前导 Prop 实参（2026-10-13 实测：短写 `Or.inl hB` 判红 ✗、写全判绿 ✓）
+      (fun (hv : ∀ (C : Set α), C ∈ F ∪ G → x ∈ C) => hv B (@Or.inl (B ∈ F) (B ∈ G) hB))  -- soko:notation-ok: G-73 形状 ②：期望类型是 def 头（`B ∈ F ∪ G`）时 `Or.inl` 补不出前导 Prop 实参（2026-10-13 实测：短写 `Or.inl hB` 判红 ✗、写全判绿 ✓）
         ((fun (hu : x ∈ ⋂₀ (F ∪ G) ↔
             ∀ (C : Set α), C ∈ F ∪ G → x ∈ C) =>
           Iff.mp hu h) (Set.mem_sInter_iff α (F ∪ G) x)))

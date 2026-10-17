@@ -33,7 +33,7 @@ theorem le_refl (α : Type) (A : Set α) : A ≼ A :=
 
 theorem le_univ (α : Type) (A : Set α) : A ≼ Set.univ α :=
   Set.Le.intro α α A (Set.univ α) (fun (x : α) => x) (injOn_id α A)
-    (fun (x : α) (hx : x ∈ A) => Set.mem_univ α x)
+    (fun (x : α) (hx : x ∈ A) => @Set.mem_univ α x)
 
 theorem subset_le (α : Type) (A B : Set α) (h : A ⊆ B) : A ≼ B :=
   Set.Le.intro α α A B (fun (x : α) => x) (injOn_id α A)
@@ -41,7 +41,7 @@ theorem subset_le (α : Type) (A B : Set α) (h : A ⊆ B) : A ≼ B :=
 
 
 theorem empty_le (α : Type) (A : Set α) : ∅ ≼ A :=
-  subset_le α ∅ A (fun (x : α) (hx : x ∈ ∅) => False.elim (x ∈ A) (Set.notMem_empty α x hx))  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 在这里补不出来，必须写全
+  subset_le α @Set.empty A (fun (x : α) (hx : x ∈ ∅) => @False.elim (x ∈ A) (@Set.notMem_empty α x hx))  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 在这里补不出来，必须写全
 theorem le_trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
     (h1 : A ≼ B) (h2 : B ≼ C) : A ≼ C :=
   Set.Le.elim α β A B (A ≼ C) h1
@@ -60,10 +60,10 @@ theorem le_empty (α : Type) (A : Set α) (h : A ≼ ∅) : ∀ (x : α), ¬ (x 
   Set.Le.elim α α A ∅ (∀ (x : α), ¬ (x ∈ A)) h
     (fun (f : α → α) (hf : Set.InjOn α α f A) (hm : Set.MapsTo α α f A ∅) =>
       fun (x : α) (hx : x ∈ A) =>
-        (fun (hn : Set.MapsTo α α f A ∅) => Set.notMem_empty α (f x) (hn x hx)) hm)
+        (fun (hn : Set.MapsTo α α f A ∅) => @Set.notMem_empty α (f x) (hn x hx)) hm)
 
 theorem subset_of_le_empty (α : Type) (A : Set α) (h : A ≼ ∅) : A ⊆ ∅ :=
-  fun (x : α) (hx : x ∈ A) => False.elim (x ∈ ∅) (le_empty α A h x hx)  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 补不出来
+  fun (x : α) (hx : x ∈ A) => @False.elim (x ∈ ∅) (le_empty α A h x hx)  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 补不出来
 
 theorem le_mono (A A' B : Set Nat) (hA : A' ⊆ A) (h : A ≼ B) : A' ≼ B :=
   Set.Le.mono Nat Nat A A' B hA h

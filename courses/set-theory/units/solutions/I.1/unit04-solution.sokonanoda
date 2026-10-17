@@ -27,12 +27,12 @@ theorem union_comm (α : Type) (A B : Set α) :
   intro x
   constructor
   intro h
-  exact Or.elim (x ∈ A) (x ∈ B) (x ∈ B ∪ A)
+  exact @Or.elim (x ∈ A) (x ∈ B) (x ∈ B ∪ A)
     (fun (ha : x ∈ A) => Or.inr ha)
     (fun (hb : x ∈ B) => Or.inl hb)
     h
   intro h
-  exact Or.elim (x ∈ B) (x ∈ A) (x ∈ A ∪ B)
+  exact @Or.elim (x ∈ B) (x ∈ A) (x ∈ A ∪ B)
     (fun (hb : x ∈ B) => Or.inr hb)
     (fun (ha : x ∈ A) => Or.inl ha)
     h
@@ -81,7 +81,7 @@ theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
   intro x
   constructor
   intro h
-  exact Or.elim (x ∈ B) (x ∈ C) (x ∈ (A ∩ B) ∪ (A ∩ C))
+  exact @Or.elim (x ∈ B) (x ∈ C) (x ∈ (A ∩ B) ∪ (A ∩ C))
     (fun (hb : x ∈ B) =>
       Or.inl
         (And.intro (And.left h) hb))
@@ -90,9 +90,9 @@ theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
         (And.intro (And.left h) hc))
     (And.right h)
   intro h
-  exact Or.elim (x ∈ A ∩ B) (x ∈ A ∩ C) (x ∈ A ∩ (B ∪ C))
+  exact @Or.elim (x ∈ A ∩ B) (x ∈ A ∩ C) (x ∈ A ∩ (B ∪ C))
     (fun (hab : x ∈ A ∩ B) =>
-      And.intro (x ∈ A) (x ∈ B ∨ x ∈ C)
+      @And.intro (x ∈ A) (x ∈ B ∨ x ∈ C)
         (And.left hab)
         (Or.inl (And.right hab)))
     (fun (hac : x ∈ A ∩ C) =>
@@ -123,12 +123,12 @@ theorem sdiff_sdiff (α : Type) (A B C : Set α) :
   constructor
   intro h
   exact And.intro
-    (And.left (x ∈ A) (¬ (x ∈ B))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+    (@And.left (x ∈ A) (¬ (x ∈ B))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
       (And.left h))
     (fun (hbc : x ∈ B ∪ C) =>
-      Or.elim (x ∈ B) (x ∈ C) False
+      @Or.elim (x ∈ B) (x ∈ C) False
         (fun (hb : x ∈ B) =>
-          And.right (x ∈ A) (¬ (x ∈ B))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+          @And.right (x ∈ A) (¬ (x ∈ B))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
             (And.left h) hb)
         (fun (hcx : x ∈ C) =>
           And.right h hcx)  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
@@ -138,9 +138,9 @@ theorem sdiff_sdiff (α : Type) (A B C : Set α) :
     (And.intro
       (And.left h)
       (fun (hb : x ∈ B) =>
-        And.right h (Or.inl (x ∈ B) (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+        And.right h (@Or.inl (x ∈ B) (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
     (fun (hc : x ∈ C) =>
-      And.right h (Or.inr (x ∈ B) (x ∈ C) hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+      And.right h (@Or.inr (x ∈ B) (x ∈ C) hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
 
 -- X 类：∅ 是并的单位元 —— A ∪ ∅ = A。
 theorem union_empty (α : Type) (A : Set α) :
@@ -149,7 +149,7 @@ theorem union_empty (α : Type) (A : Set α) :
   intro x
   constructor
   intro h
-  exact Or.elim (x ∈ A) (x ∈ ∅) (x ∈ A)
+  exact @Or.elim (x ∈ A) (x ∈ ∅) (x ∈ A)
     (fun (ha : x ∈ A) => ha)
     (fun (hf : x ∈ ∅) => False.elim hf)
     h

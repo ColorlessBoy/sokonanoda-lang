@@ -32,9 +32,9 @@ theorem image_sUnion_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
           (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) =>
             Set.mem_sUnion_intro β ((fun (A' : Set α) => f '' A') '' F) (f '' A) y
               (Set.mem_image_intro (fun (A' : Set α) => f '' A') F (f '' A) A hA
-                (Eq.refl.{1} (Set β) (f '' A)))
+                (@Eq.refl.{1} (Set β) (f '' A)))
               (rel_subst_right β (fun (u : β) (v : β) => v ∈ (f '' A)) (f x) (f x) y hxy
-                (Set.mem_image_intro f A (f x) x hxA (Eq.refl.{1} β (f x))))))
+                (Set.mem_image_intro f A (f x) x hxA (@Eq.refl.{1} β (f x))))))
 
 theorem sUnion_image_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
     (⋃₀ ((fun (A : Set α) => f '' A) '' F)) ⊆ (f '' (⋃₀ F)) :=
@@ -56,7 +56,7 @@ theorem preimage_sUnion_subset (α β : Type) (f : α → β) (F : Set (Set β))
       (fun (B : Set β) (hB : B ∈ F) (hxB : f x ∈ B) =>
         Set.mem_sUnion_intro α ((fun (B' : Set β) => f ⁻¹' B') '' F) (f ⁻¹' B) x
           (Set.mem_image_intro (fun (B' : Set β) => f ⁻¹' B') F (f ⁻¹' B) B hB
-            (Eq.refl.{1} (Set α) (f ⁻¹' B)))
+            (@Eq.refl.{1} (Set α) (f ⁻¹' B)))
           (Set.mem_preimage_intro f B x hxB))
 
 theorem sUnion_preimage_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
@@ -83,7 +83,7 @@ theorem sInter_preimage_subset (α β : Type) (f : α → β) (F : Set (Set β))
             ((fun (hu : ∀ (C : Set α), C ∈ ((fun (B' : Set β) => f ⁻¹' B') '' F) → x ∈ C) =>
               hu (f ⁻¹' B)
                 (Set.mem_image_intro (fun (B' : Set β) => f ⁻¹' B') F (f ⁻¹' B) B hB
-                  (Eq.refl.{1} (Set α) (f ⁻¹' B)))) hx)
+                  (@Eq.refl.{1} (Set α) (f ⁻¹' B)))) hx)
             (fun (h : f x ∈ B) => h)))
 
 theorem preimage_sInter_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
@@ -124,4 +124,4 @@ theorem image_sInter_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
                       ((fun (hu : ∀ (A' : Set α), A' ∈ F → x ∈ A') => hu A hA)
                         (Set.mem_sInter_elim α F x (∀ (A' : Set α), A' ∈ F → x ∈ A') hx
                           (fun (h : x ∈ (⋂₀ F)) => h)))
-                      (Eq.refl.{1} β (f x)))))))
+                      (@Eq.refl.{1} β (f x)))))))

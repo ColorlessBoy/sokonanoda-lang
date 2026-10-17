@@ -37,7 +37,7 @@ import lib.Order
 
 -- 演示：单射的展开（"像相等 ⇒ 原像相等"）。
 theorem demo_injective_def (α β : Type) (f : α → β) :
-    Function.Injective α β f ↔ ∀ (x : α) (y : α), (f x) = (f y) → Eq.{1} α x y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    Function.Injective α β f ↔ ∀ (x : α) (y : α), (f x) = (f y) → @Eq.{1} α x y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
   Function.injective_def α β f
 
 -- 演示：满射的展开（"每个点都有原像"）。
@@ -69,7 +69,7 @@ theorem comp_apply_apply (α β γ : Type) (f : α → β) (g : β → γ) (x : 
 -- soko:hint 关键件：`Eq.refl`（写全宇宙层级与论域）✓
 --   ⚠ 换成"函数相等"的写法要**函数外延** —— 本语言**有**（`lib.Extensionality`）⇒ 那条见**单元㊹** ✓
 theorem comp_assoc_apply (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) (x : α) :
-    Eq.{1} δ ((fun (a : α) => h (g (f a))) x)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    @Eq.{1} δ ((fun (a : α) => h (g (f a))) x)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
       ((fun (b : α) => (fun (c : β) => h (g c)) (f b)) x) := by
   sorry
 

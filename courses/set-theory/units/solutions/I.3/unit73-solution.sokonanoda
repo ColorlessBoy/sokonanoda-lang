@@ -17,7 +17,7 @@ theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
 
 theorem mem_image_of_mem (α : Type) (β : Type) (f : α → β) (A : Set α) (x : α)
     (hx : x ∈ A) : f x ∈ (f '' A) :=
-  Set.mem_image_intro f A (f x) x hx (Eq.refl.{1} β (f x))
+  Set.mem_image_intro f A (f x) x hx (@Eq.refl.{1} β (f x))
 
 theorem mem_of_mem_image (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β)
     (h : y ∈ (f '' A)) : ∃ (x : α), x ∈ A ∧ f x = y :=
@@ -26,19 +26,19 @@ theorem mem_of_mem_image (α : Type) (β : Type) (f : α → β) (A : Set α) (y
 
 theorem mem_image_union (α : Type) (β : Type) (f : α → β) (A B : Set α) (y : β) :
     y ∈ (f '' (A ∪ B)) ↔ y ∈ ((f '' A) ∪ (f '' B)) :=
-  Iff.intro (y ∈ (f '' (A ∪ B))) (y ∈ ((f '' A) ∪ (f '' B)))
+  @Iff.intro (y ∈ (f '' (A ∪ B))) (y ∈ ((f '' A) ∪ (f '' B)))
     (fun (h : y ∈ (f '' (A ∪ B))) =>
       Set.mem_image_elim f (A ∪ B) y (y ∈ ((f '' A) ∪ (f '' B))) h
         (fun (x : α) (hx : x ∈ (A ∪ B)) (hxy : f x = y) =>
-          Or.elim (x ∈ A) (x ∈ B) (y ∈ ((f '' A) ∪ (f '' B)))
-            (fun (hA : x ∈ A) => Or.inl (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+          @Or.elim (x ∈ A) (x ∈ B) (y ∈ ((f '' A) ∪ (f '' B)))
+            (fun (hA : x ∈ A) => @Or.inl (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
               (Set.mem_image_intro f A y x hA hxy))
-            (fun (hB : x ∈ B) => Or.inr (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+            (fun (hB : x ∈ B) => @Or.inr (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
               (Set.mem_image_intro f B y x hB hxy))
             ((fun (hu : x ∈ (A ∪ B) ↔ x ∈ A ∨ x ∈ B) => Iff.mp hu hx)
               (Set.mem_union x A B))))
     (fun (h : y ∈ ((f '' A) ∪ (f '' B))) =>
-      Or.elim (y ∈ (f '' A)) (y ∈ (f '' B)) (y ∈ (f '' (A ∪ B)))
+      @Or.elim (y ∈ (f '' A)) (y ∈ (f '' B)) (y ∈ (f '' (A ∪ B)))
         (fun (hA : y ∈ (f '' A)) =>
           Set.mem_image_elim f A y (y ∈ (f '' (A ∪ B))) hA
             (fun (x : α) (hx : x ∈ A) (hxy : f x = y) =>
@@ -76,7 +76,7 @@ theorem mem_image_sUnion_of_mem_image (α : Type) (β : Type) (f : α → β)
 theorem mem_image_sUnion_of_exists (α : Type) (β : Type) (f : α → β)
     (F : Set (Set α)) (y : β)
     (h : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A)) : y ∈ (f '' (⋃₀ F)) :=
-  Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ y ∈ (f '' A))
+  @Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ y ∈ (f '' A))
     (y ∈ (f '' (⋃₀ F))) h
     (fun (A : Set α) (hA : A ∈ F ∧ y ∈ (f '' A)) =>
       mem_image_sUnion_of_mem_image α β f F A y
@@ -88,18 +88,18 @@ theorem mem_of_mem_image_sUnion (α : Type) (β : Type) (f : α → β)
   Set.mem_image_elim f (⋃₀ F) y
     (∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A)) h
     (fun (x : α) (hx : x ∈ (⋃₀ F)) (hxy : f x = y) =>
-      Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A)
+      @Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A)
         (∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A))
         (exists_mem_of_mem_sUnion α F x hx)
         (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) =>
           Exists.intro A  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
-            (And.intro (A ∈ F) (y ∈ (f '' A)) (And.left hA)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+            (@And.intro (A ∈ F) (y ∈ (f '' A)) (And.left hA)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
               (Set.mem_image_intro f A y x (And.right hA) hxy))))
 
 theorem mem_image_sUnion_iff (α : Type) (β : Type) (f : α → β) (F : Set (Set α))
     (y : β) :
     y ∈ (f '' (⋃₀ F)) ↔ ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) :=
-  Iff.intro (y ∈ (f '' (⋃₀ F))) (∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A))
+  @Iff.intro (y ∈ (f '' (⋃₀ F))) (∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A))
     (mem_of_mem_image_sUnion α β f F y)
     (mem_image_sUnion_of_exists α β f F y)
 
@@ -110,13 +110,13 @@ theorem mem_image_mono (α : Type) (β : Type) (f : α → β) (A B : Set α) (h
       Set.mem_image_intro f B y x
         ((fun (hu : ∀ (u : α), u ∈ A → u ∈ B) => hu x hx)
           ((fun (hv : A ⊆ B ↔ ∀ (u : α), u ∈ A → u ∈ B) => Iff.mp hv h)
-            (Set.subset_def α A B))) hxy)
+            (@Set.subset_def α A B))) hxy)
 
 theorem not_mem_image_empty (α : Type) (β : Type) (f : α → β) (y : β) :
-    ¬ (y ∈ (f '' (∅ α))) :=
-  fun (h : y ∈ (f '' (∅ α))) =>
-    Set.mem_image_elim f (∅ α) y False h
-      (fun (x : α) (hx : x ∈ (∅ α)) (hxy : f x = y) =>
+    ¬ (y ∈ (f '' (@Set.empty α))) :=
+  fun (h : y ∈ (f '' (@Set.empty α))) =>
+    Set.mem_image_elim f (@Set.empty α) y False h
+      (fun (x : α) (hx : x ∈ (@Set.empty α)) (hxy : f x = y) =>
         (Iff.mp (Set.mem_empty_iff_false x)) hx)
 
 theorem mem_preimage_image (α : Type) (β : Type) (f : α → β) (A : Set α) (x : α)

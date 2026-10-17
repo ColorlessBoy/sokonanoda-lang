@@ -32,7 +32,7 @@ theorem extensional_eq (α : Type) (E : α → α → Prop) (he : Extensional α
 theorem subset_extensional (α : Type) :
     Extensional (Set α) (fun (A B : Set α) => A ⊆ B) :=
   fun (A B : Set α) (h : ∀ (C : Set α), C ⊆ A ↔ C ⊆ B) =>
-    Set.ext α A B (fun (x : α) =>
+    @Set.ext α A B (fun (x : α) =>
       Iff.intro
         ((fun (hAB : A ⊆ B) => hAB x) (Iff.mp (h A) (fun (y : α) (hy : y ∈ A) => hy)))
         ((fun (hBA : B ⊆ A) => hBA x) (Iff.mpr (h B) (fun (y : α) (hy : y ∈ B) => hy))))
@@ -42,18 +42,18 @@ theorem subset_extensional (α : Type) :
 theorem asymmetric_body (α : Type) (E : α → α → Prop) (a b : α)
     (hab : E a b) (hba : E b a)
     (hm : HasMin α E (fun (z : α) => E a z ∨ E b z)) : False :=
-  Exists.elim α (fun (m : α) => (fun (z : α) => E a z ∨ E b z) m ∧
+  @Exists.elim α (fun (m : α) => (fun (z : α) => E a z ∨ E b z) m ∧
       ∀ (y : α), (fun (z : α) => E a z ∨ E b z) y → ¬ (E y m)) False
     (hasMin_elim α E (fun (z : α) => E a z ∨ E b z) hm)
     (fun (m : α) (hmm : (fun (z : α) => E a z ∨ E b z) m ∧
         ∀ (y : α), (fun (z : α) => E a z ∨ E b z) y → ¬ (E y m)) =>
       (fun (hmin : ∀ (y : α), (fun (z : α) => E a z ∨ E b z) y → ¬ (E y m)) =>
         (fun (hPm : E a m ∨ E b m) =>
-          Or.elim (E a m) (E b m) False
+          @Or.elim (E a m) (E b m) False
             (fun (ham : E a m) =>
-              (fun (hnot : ¬ (E a m)) => hnot ham) (hmin a (Or.inr (E a a) (E b a) hba)))  -- soko:notation-ok: G-30 同族：λ 体里构造子补不出前导 Prop 实参，必须写全
+              (fun (hnot : ¬ (E a m)) => hnot ham) (hmin a (@Or.inr (E a a) (E b a) hba)))  -- soko:notation-ok: G-30 同族：λ 体里构造子补不出前导 Prop 实参，必须写全
             (fun (hbm : E b m) =>
-              (fun (hnot : ¬ (E b m)) => hnot hbm) (hmin b (Or.inl (E a b) (E b b) hab)))  -- soko:notation-ok: G-30 同族（同上）
+              (fun (hnot : ¬ (E b m)) => hnot hbm) (hmin b (@Or.inl (E a b) (E b b) hab)))  -- soko:notation-ok: G-30 同族（同上）
             hPm)
         (And.left hmm))
       (And.right hmm))
@@ -70,7 +70,7 @@ theorem ordinal_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
     (h : IsOrdinal α E x) : ¬ (E x x) :=
   fun (hxx : E x x) =>
     (fun (hm : HasMin α E (fun (z : α) => E x z)) =>
-      Exists.elim α (fun (m : α) => (fun (z : α) => E x z) m ∧
+      @Exists.elim α (fun (m : α) => (fun (z : α) => E x z) m ∧
           ∀ (y : α), (fun (z : α) => E x z) y → ¬ (E y m)) False
         (hasMin_elim α E (fun (z : α) => E x z) hm)
         (fun (m : α) (hmm : (fun (z : α) => E x z) m ∧
@@ -98,7 +98,7 @@ theorem zero_no_elem_apply (α : Type) (E : α → α → Prop) (x : α)
 theorem zero_unique (α : Type) (E : α → α → Prop) (he : Extensional α E)
     (x y : α) (hx : IsZero α E x) (hy : IsZero α E y) : x = y :=
   extensional_apply α E he x y (fun (z : α) =>
-    Iff.intro (E z x) (E z y)
+    @Iff.intro (E z x) (E z y)
       (fun (hzx : E z x) => False.elim (zero_no_elem α E x hx z hzx))
       (fun (hzy : E z y) => False.elim (zero_no_elem α E y hy z hzy)))
 

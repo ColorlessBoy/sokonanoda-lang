@@ -38,7 +38,7 @@ theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
   Set.mem_sInter_iff α F x
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  Set.subset_def α A B-- 练习 1（T 类，**中心工具**）：`A ⊆ B` 用在点上。
+  @Set.subset_def α A B-- 练习 1（T 类，**中心工具**）：`A ⊆ B` 用在点上。
 
 -- soko:hint 关键件：`Set.subset_def`（**先 λ 绑定、再 `Iff.mp`** ✓）✓
 

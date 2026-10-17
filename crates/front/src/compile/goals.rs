@@ -767,10 +767,19 @@ pub(crate) fn substitute_names(
             Some(replacement) => replacement.clone().with_root_span(*span),
             None => expr.clone(),
         },
-        Expr::App { fun, arg, .. } => Expr::App {
+        // ⚠ **`explicit_spine` 必须原样带过去** ✗（a6 实测：以前写死 `false` ⇒
+        // `by` 引擎装配的 `@` 形态脊经 `cases` 的模式代入一重建就退回"正常形式"
+        // ⇒ 严格档把**引擎写的**脊当用户写的判红 ✗：`right`/`left` 在 `cases … with`
+        // 臂里整类失效，最小复现 `cases h with | inl a => right`）。
+        Expr::App {
+            fun,
+            arg,
+            explicit_spine,
+            ..
+        } => Expr::App {
             fun: Box::new(substitute_names(fun, map, levels)),
             arg: Box::new(substitute_names(arg, map, levels)),
-            explicit_spine: false,
+            explicit_spine: *explicit_spine,
             span: expr.span(),
         },
         Expr::NamedArg { name, value, span } => Expr::NamedArg {

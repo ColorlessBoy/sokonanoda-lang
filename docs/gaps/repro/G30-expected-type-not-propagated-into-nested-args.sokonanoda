@@ -57,19 +57,19 @@ theorem iff_intro_nested_set_literal
   Iff.intro
     -- (i) `{a} = {b}` ⇒ `a = b`：把 `a ∈ {a}` 沿等式搬到 `{b}` 上，再展开。
     (fun (h : {a} = {b}) =>
-      Iff.mp (a ∈ {b}) (a = b) (mem_singleton_iff a b)
-        (Eq.subst.{1} (Set α) (fun (X : Set α) => a ∈ X) {a} {b} h mem_singleton_self))
+      @Iff.mp (a ∈ {b}) (a = b) (mem_singleton_iff a b)
+        (@Eq.subst.{1} (Set α) (fun (X : Set α) => a ∈ X) {a} {b} h mem_singleton_self))
     -- (ii) `a = b` ⇒ `{a} = {b}`：外延 + 逐元素两个方向。
     (fun (h : a = b) =>
       ext {a} {b} (fun (x : α) =>
-        Iff.intro (x ∈ {a}) (x ∈ {b})
+        @Iff.intro (x ∈ {a}) (x ∈ {b})
           (fun (hx : x ∈ {a}) =>
-            Iff.mpr (x ∈ {b}) (x = b) (mem_singleton_iff x b)
-              (Eq.trans.{1} α x a b (Iff.mp (x ∈ {a}) (x = a) (mem_singleton_iff x a) hx) h))
+            @Iff.mpr (x ∈ {b}) (x = b) (mem_singleton_iff x b)
+              (@Eq.trans.{1} α x a b (@Iff.mp (x ∈ {a}) (x = a) (mem_singleton_iff x a) hx) h))
           (fun (hx : x ∈ {b}) =>
-            Iff.mpr (x ∈ {a}) (x = a) (mem_singleton_iff x a)
-              (Eq.trans.{1} α x b a (Iff.mp (x ∈ {b}) (x = b) (mem_singleton_iff x b) hx)
-                (Eq.symm.{1} α a b h)))))
+            @Iff.mpr (x ∈ {a}) (x = a) (mem_singleton_iff x a)
+              (@Eq.trans.{1} α x b a (@Iff.mp (x ∈ {b}) (x = b) (mem_singleton_iff x b) hx)
+                (@Eq.symm.{1} α a b h)))))
 
 -- ⚠ **2026-10-05 第 73 棒从 G-33 夹具移来** ✓：这条测的是**本缺口**（期望类型不传播到嵌套实参 ✓），
 -- **不是** G-33 ✗ —— 即便期望类型**语法上就是 Pi**，`And.intro` 的实参位也照样拿不到它 ✓

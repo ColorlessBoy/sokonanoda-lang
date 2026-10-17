@@ -15,19 +15,19 @@ theorem demo_isEquivalence_def (α : Type) (r : Rel α α) :
   isEquivalence_def α r
 
 def idRel (α : Type) : Rel α α :=
-  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (a : α) (b : α) => @Eq.{1} α a b  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
 
 theorem refl_iff_idRel_subset (α : Type) (r : Rel α α) :
     Reflexive α r ↔ ∀ (a : α), (idRel α) a a → r a a :=
-  Iff.intro (Reflexive α r) (∀ (a : α), (idRel α) a a → r a a)
+  @Iff.intro (Reflexive α r) (∀ (a : α), (idRel α) a a → r a a)
     (fun (h : Reflexive α r) => fun (a : α) => fun (ha : (idRel α) a a) =>
       (fun (hu : ∀ (x : α), r x x) => hu a) h)
     (fun (h : ∀ (a : α), (idRel α) a a → r a a) => fun (a : α) =>
-      h a (Eq.refl.{1} α a))
+      h a (@Eq.refl.{1} α a))
 
 theorem symm_iff_inv_subset (α : Type) (r : Rel α α) :
     Symmetric α r ↔ ∀ (a : α) (b : α), (r ⁻¹) a b → r a b :=
-  Iff.intro (Symmetric α r) (∀ (a : α) (b : α), (r ⁻¹) a b → r a b)
+  @Iff.intro (Symmetric α r) (∀ (a : α) (b : α), (r ⁻¹) a b → r a b)
     (fun (h : Symmetric α r) => fun (a : α) => fun (b : α) => fun (hab : (r ⁻¹) a b) =>
       (fun (hu : ∀ (x : α) (y : α), r x y → r y x) => hu b a hab) h)
     (fun (h : ∀ (a : α) (b : α), (r ⁻¹) a b → r a b) =>
@@ -35,9 +35,9 @@ theorem symm_iff_inv_subset (α : Type) (r : Rel α α) :
 
 theorem trans_iff_comp_subset (α : Type) (r : Rel α α) :
     Transitive α r ↔ ∀ (a : α) (c : α), (r • r) a c → r a c :=
-  Iff.intro (Transitive α r) (∀ (a : α) (c : α), (r • r) a c → r a c)
+  @Iff.intro (Transitive α r) (∀ (a : α) (c : α), (r • r) a c → r a c)
     (fun (h : Transitive α r) => fun (a : α) => fun (c : α) => fun (hac : (r • r) a c) =>
-      Exists.elim α (fun (b : α) => r a b ∧ r b c) (r a c) hac
+      @Exists.elim α (fun (b : α) => r a b ∧ r b c) (r a c) hac
         (fun (b : α) (hb : r a b ∧ r b c) =>
           (fun (hu : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
             hu a b c (And.left hb) (And.right hb)) h))
@@ -49,7 +49,7 @@ theorem trans_iff_comp_subset (α : Type) (r : Rel α α) :
 theorem comp_self_subset_of_trans (α : Type) (r : Rel α α) (h : Transitive α r) :
     ∀ (a : α) (c : α), (r • r) a c → r a c :=
   fun (a : α) => fun (c : α) => fun (hac : (r • r) a c) =>
-    Exists.elim α (fun (b : α) => r a b ∧ r b c) (r a c) hac
+    @Exists.elim α (fun (b : α) => r a b ∧ r b c) (r a c) hac
       (fun (b : α) (hb : r a b ∧ r b c) =>
         (fun (hu : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
           hu a b c (And.left hb) (And.right hb)) h)
@@ -73,10 +73,10 @@ theorem subset_comp_self_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r
 theorem comp_idRel_subset_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
     ∀ (a : α) (b : α), (idRel α • r) a b → r a b :=
   fun (a : α) => fun (b : α) => fun (hab : (idRel α • r) a b) =>
-    Exists.elim α (fun (a1 : α) => (idRel α) a a1 ∧ r a1 b) (r a b) hab
+    @Exists.elim α (fun (a1 : α) => (idRel α) a a1 ∧ r a1 b) (r a b) hab
       (fun (a1 : α) (ha : (idRel α) a a1 ∧ r a1 b) =>
         rel_subst_right α (fun (u : α) (v : α) => r v b) a1 a1 a
-          (Eq.symm.{1} α a a1 (And.left ha)) (And.right ha))
+          (@Eq.symm.{1} α a a1 (And.left ha)) (And.right ha))
 
 theorem equivalence_refl_algebraic (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
     ∀ (a : α), (idRel α) a a → r a a :=
@@ -96,7 +96,7 @@ theorem algebraic_is_equivalence (α : Type) (r : Rel α α)
     (h3 : ∀ (a : α) (c : α), (r • r) a c → r a c) :
     IsEquivalence α r :=
   isEquivalence_intro α r
-    (fun (a : α) => h1 a (Eq.refl.{1} α a))
+    (fun (a : α) => h1 a (@Eq.refl.{1} α a))
     (fun (a : α) (b : α) => fun (hab : r a b) => h2 b a hab)
     (fun (a : α) (b : α) (c : α) => fun (hab : r a b) => fun (hbc : r b c) =>
       h3 a c (Exists.intro b
@@ -108,7 +108,7 @@ theorem equivalence_comp_subset (α : Type) (r : Rel α α) (h : IsEquivalence �
 
 theorem equivalence_comp_idempotent (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
     (∀ (a : α) (c : α), (r • r) a c → r a c) ∧ (∀ (a : α) (c : α), r a c → (r • r) a c) :=
-  And.intro (∀ (a : α) (c : α), (r • r) a c → r a c)
+  @And.intro (∀ (a : α) (c : α), (r • r) a c → r a c)
     (∀ (a : α) (c : α), r a c → (r • r) a c)
     (equivalence_comp_subset α r h)
     (subset_comp_self_of_refl α r (equivalence_refl α r h))

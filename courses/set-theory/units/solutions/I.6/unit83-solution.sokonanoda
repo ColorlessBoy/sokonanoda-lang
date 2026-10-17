@@ -30,12 +30,12 @@ theorem hasMin_spec (α : Type) (E : α → α → Prop) (P : α → Prop) (h : 
 theorem ordinal_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
     (hx : IsOrdinal α E x) : ¬ (E x x) :=
   fun (hxx : E x x) =>
-    Exists.elim α (fun (m : α) => m = x ∧ ∀ (w : α), w = x → ¬ (E w m)) False
+    @Exists.elim α (fun (m : α) => m = x ∧ ∀ (w : α), w = x → ¬ (E w m)) False
       (hasMin_elim α E (fun (z : α) => z = x)
         (ordinal_min α E x hx (fun (z : α) => z = x)
-          (Exists.intro x (Eq.refl.{1} α x))))
+          (Exists.intro x (@Eq.refl.{1} α x))))
       (fun (m : α) (hm : m = x ∧ ∀ (w : α), w = x → ¬ (E w m)) =>
-        (And.right (m = x) (∀ (w : α), w = x → ¬ (E w m)) hm) x (Eq.refl.{1} α x)  -- soko:notation-ok: `HasMin`/`IsOrdinal`/`IsTransitive` 是 def 头（手册边界）
+        (@@And.right (m = x) (∀ (w : α), w = x → ¬ (E w m)) hm) x (Eq.refl.{1} α x)  -- soko:notation-ok: `HasMin`/`IsOrdinal`/`IsTransitive` 是 def 头（手册边界）
           (rel_subst_right α (fun (u : α) (v : α) => E u v) x x m
             (Eq.symm.{1} α m x (And.left hm)) hxx))
 

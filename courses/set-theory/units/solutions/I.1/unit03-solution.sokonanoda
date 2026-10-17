@@ -12,12 +12,12 @@ import lib.Set
 theorem subset_union_left (α : Type) (A B : Set α) : A ⊆ A ∪ B := by
   intro x
   intro hx
-  exact Or.inl (A x) (B x) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+  exact @Or.inl (A x) (B x) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
 
 theorem subset_union_right (α : Type) (A B : Set α) : B ⊆ A ∪ B := by
   intro x
   intro hx
-  exact Or.inr (A x) (B x) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+  exact @Or.inr (A x) (B x) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
 
 theorem union_subset_iff (α : Type) (A B C : Set α) :
     (A ∪ B ⊆ C) ↔ (A ⊆ C ∧ B ⊆ C) := by
@@ -26,16 +26,16 @@ theorem union_subset_iff (α : Type) (A B C : Set α) :
   constructor
   intro x
   intro hx
-  exact h x (Or.inl (A x) (B x) hx)  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+  exact h x (@Or.inl (A x) (B x) hx)  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
   intro x
   intro hx
-  exact h x (Or.inr (A x) (B x) hx)  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+  exact h x (@Or.inr (A x) (B x) hx)  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
   intro h
   intro x
   intro hx
-  exact Or.elim (A x) (B x) (C x)
-    (fun (ha : A x) => And.left (A ⊆ C) (B ⊆ C) h x ha)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
-    (fun (hb : B x) => And.right (A ⊆ C) (B ⊆ C) h x hb)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
+  exact @Or.elim (A x) (B x) (C x)
+    (fun (ha : A x) => @And.left (A ⊆ C) (B ⊆ C) h x ha)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
+    (fun (hb : B x) => @And.right (A ⊆ C) (B ⊆ C) h x hb)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
     hx
 
 -- ── 3.2 交 ───────────────────────────────────────────────────────────────
@@ -74,8 +74,8 @@ theorem subset_inter_iff (α : Type) (A B C : Set α) :
   intro x
   intro hx
   exact And.intro
-    (And.left (A ⊆ B) (A ⊆ C) h x hx)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
-    (And.right (A ⊆ B) (A ⊆ C) h x hx)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
+    (@And.left (A ⊆ B) (A ⊆ C) h x hx)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
+    (@And.right (A ⊆ B) (A ⊆ C) h x hx)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
 
 -- ── 3.3 差 ───────────────────────────────────────────────────────────────
 theorem sdiff_subset (α : Type) (A B : Set α) : A \ B ⊆ A := by
@@ -90,7 +90,7 @@ theorem sdiff_subset (α : Type) (A B : Set α) : A \ B ⊆ A := by
 theorem powerset_mono (α : Type) (A B : Set α) (h : A ⊆ B) :
     𝒫 A ⊆ 𝒫 B := by
   exact fun (X : Set α) => fun (hX : X ∈ 𝒫 A) =>
-    Iff.mpr (Set.mem_powerset_iff α B X)
+    Iff.mpr (@Set.mem_powerset_iff α B X)
       (fun (x : α) => fun (hx : X x) => h x (hX x hx))
 
 -- ── 3.5 D 类 ─────────────────────────────────────────────────────────────
@@ -108,4 +108,4 @@ theorem powerset_self_mem (α : Type) (A : Set α) : A ∈ 𝒫 A := by
     intro x
     intro hx
     exact hx
-  exact Iff.mpr (Set.mem_powerset_iff α A A) hAA
+  exact Iff.mpr (@Set.mem_powerset_iff α A A) hAA

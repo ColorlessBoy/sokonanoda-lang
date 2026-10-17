@@ -48,17 +48,17 @@ import lib.Set
 -- 演示：x ∈ A ∪ B 当且仅当 x ∈ A 或 x ∈ B。
 theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
     (a ∈ A ∪ B) ↔ (a ∈ A ∨ a ∈ B) := by
-  exact Set.mem_union α a A B
+  exact @Set.mem_union α a A B
 
 -- 演示：x ∈ A ∩ B 当且仅当 x ∈ A 且 x ∈ B。
 theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
     (a ∈ A ∩ B) ↔ (a ∈ A ∧ a ∈ B) := by
-  exact Set.mem_inter_iff α a A B
+  exact @Set.mem_inter_iff α a A B
 
 -- 演示：X ∈ 𝒫 A 当且仅当 X ⊆ A（注意 X 与 A 同为 Set α，而 𝒫 A 是 Set (Set α)）。
 theorem demo_mem_powerset (α : Type) (A B : Set α) :
     (B ∈ 𝒫 A) ↔ (B ⊆ A) := by
-  exact Set.mem_powerset_iff α A B
+  exact @Set.mem_powerset_iff α A B
 
 -- 演示（记法即糖）：与上一条**同一个命题**，这次用 `constructor` 把两个方向
 -- 拆开、`Iff.mp` / `Iff.mpr` 各交一次——说明 lib/Set 里**点名写下的引理**
@@ -72,9 +72,9 @@ example (α : Type) (A B : Set α) :
     (B ∈ 𝒫 A) ↔ (B ⊆ A) := by
   constructor
   intro h
-  exact Iff.mp (Set.mem_powerset_iff α A B) h
+  exact Iff.mp (@Set.mem_powerset_iff α A B) h
   intro h
-  exact Iff.mpr (Set.mem_powerset_iff α A B) h
+  exact Iff.mpr (@Set.mem_powerset_iff α A B) h
 
 -- ─────────────────────────────────────────────────────────────
 -- 3.1 并：两个"塞进去"的包含，以及 ∪ 的**泛性质**（A ∪ B 是最小的公共上界）

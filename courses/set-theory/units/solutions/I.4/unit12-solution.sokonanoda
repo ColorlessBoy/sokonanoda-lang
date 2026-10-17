@@ -43,14 +43,14 @@ import lib.Image
 -- X1：De Morgan——"既不 A 也不 B"就是"不（A 或 B）"。逐元素做命题逻辑。
 theorem xlat_compl_union (α : Type) (A B : Set α) :
     (A ∪ B)ᶜ = Aᶜ ∩ Bᶜ :=
-  Set.ext α ((A ∪ B)ᶜ) (Aᶜ ∩ Bᶜ) (fun (x : α) =>
-    Iff.intro (¬ ((A ∪ B) x)) ((Aᶜ ∩ Bᶜ) x)
+  @Set.ext α ((A ∪ B)ᶜ) (Aᶜ ∩ Bᶜ) (fun (x : α) =>
+    @Iff.intro (¬ ((A ∪ B) x)) ((Aᶜ ∩ Bᶜ) x)
       (fun (h : ¬ ((A ∪ B) x)) =>
         And.intro
-          (fun (ha : A x) => h (Or.inl (A x) (B x) ha))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-          (fun (hb : B x) => h (Or.inr (A x) (B x) hb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (fun (ha : A x) => h (@Or.inl (A x) (B x) ha))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (fun (hb : B x) => h (@Or.inr (A x) (B x) hb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (fun (h : (Aᶜ ∩ Bᶜ) x) => fun (hor : (A ∪ B) x) =>
-        Or.elim (A x) (B x) False
+        @Or.elim (A x) (B x) False
           (fun (ha : A x) => And.left h ha)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           (fun (hb : B x) => And.right h hb)
           hor))
@@ -61,10 +61,10 @@ theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
     (r • s) ⁻¹ = (s ⁻¹) • (r ⁻¹) :=
   Rel.ext C A ((r • s) ⁻¹) ((s ⁻¹) • (r ⁻¹))
     (fun (c : C) => fun (a : A) =>
-      Iff.intro (((r • s) ⁻¹) c a)
+      @Iff.intro (((r • s) ⁻¹) c a)
         (((s ⁻¹) • (r ⁻¹)) c a)
         (fun (h : ((r • s) ⁻¹) c a) =>
-          Exists.elim B (fun (b : B) => r a b ∧ s b c)
+          @Exists.elim B (fun (b : B) => r a b ∧ s b c)
             (∃ (b : B), s b c ∧ r a b) h
             (fun (b : B) => fun (hb : r a b ∧ s b c) =>
               Exists.intro b
@@ -72,7 +72,7 @@ theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
                   (And.right hb)
                   (And.left hb))))
         (fun (h : ((s ⁻¹) • (r ⁻¹)) c a) =>
-          Exists.elim B (fun (b : B) => s b c ∧ r a b)
+          @Exists.elim B (fun (b : B) => s b c ∧ r a b)
             (∃ (b : B), r a b ∧ s b c) h
             (fun (b : B) => fun (hb : s b c ∧ r a b) =>
               Exists.intro b
@@ -91,7 +91,7 @@ theorem xlat_injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
 -- X4：复合的原像 = 先拉后拉。两边展开后是同一个命题，所以逐元素是 Iff.rfl。
 theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C : Set γ) :
     f ⁻¹' (g ⁻¹' C) = (g ∘ f) ⁻¹' C :=
-  Set.ext α (f ⁻¹' (g ⁻¹' C)) ((g ∘ f) ⁻¹' C)
+  @Set.ext α (f ⁻¹' (g ⁻¹' C)) ((g ∘ f) ⁻¹' C)
     (fun (x : α) => Iff.rfl )
 
 -- R1：错证明 A 的改正版——"反向显然"里偷用的前提被摆到台面上（hC）。
@@ -100,20 +100,20 @@ theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C 
 theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
     (hC : C ⊆ f '' Set.univ α) :
     f '' (f ⁻¹' C) = C :=
-  Set.ext β (f '' (f ⁻¹' C)) C (fun (y : β) =>
-    Iff.intro (y ∈ f '' (f ⁻¹' C)) (y ∈ C)
+  @Set.ext β (f '' (f ⁻¹' C)) C (fun (y : β) =>
+    @Iff.intro (y ∈ f '' (f ⁻¹' C)) (y ∈ C)
       (fun (hy : y ∈ f '' (f ⁻¹' C)) =>
-        Exists.elim α (fun (x : α) => (x ∈ f ⁻¹' C) ∧ (f x = y)) (y ∈ C) hy
+        @Exists.elim α (fun (x : α) => (x ∈ f ⁻¹' C) ∧ (f x = y)) (y ∈ C) hy
           (fun (x : α) => fun (hx : (x ∈ f ⁻¹' C) ∧ (f x = y)) =>
-            Eq.subst.{1} β (fun (z : β) => z ∈ C) (f x) y
+            @Eq.subst.{1} β (fun (z : β) => z ∈ C) (f x) y
               (And.right hx)
               (And.left hx)))
       (fun (hy : y ∈ C) =>
         -- `cases` 只吃**局部假设名**；`hC y hy` 是应用，所以用 `Exists.elim` 摊开。
-        Exists.elim α
-          (fun (x : α) => (Set.univ α x) ∧ ((f x) = y))
+        @Exists.elim α
+          (fun (x : α) => (@Set.univ α x) ∧ ((f x) = y))
           (y ∈ f '' (f ⁻¹' C)) (hC y hy)
-          (fun (x : α) => fun (hx : (Set.univ α x) ∧ ((f x) = y)) =>
+          (fun (x : α) => fun (hx : (@Set.univ α x) ∧ ((f x) = y)) =>
             Exists.intro x
               (And.intro
                 (Eq.subst.{1} β (fun (z : β) => z ∈ C) y (f x)
@@ -125,15 +125,15 @@ theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
 theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
     (hf : Function.Injective α β f) :
     f '' (A ∩ B) = f '' A ∩ f '' B :=
-  Set.ext β (f '' (A ∩ B)) (f '' A ∩ f '' B) (fun (y : β) =>
-    Iff.intro (y ∈ f '' (A ∩ B)) (y ∈ f '' A ∩ f '' B)
+  @Set.ext β (f '' (A ∩ B)) (f '' A ∩ f '' B) (fun (y : β) =>
+    @Iff.intro (y ∈ f '' (A ∩ B)) (y ∈ f '' A ∩ f '' B)
       (fun (hy : y ∈ f '' (A ∩ B)) =>
-        Exists.elim α (fun (x : α) => ((A ∩ B) x) ∧ (f x = y)) (y ∈ f '' A ∧ y ∈ f '' B) hy
+        @Exists.elim α (fun (x : α) => ((A ∩ B) x) ∧ (f x = y)) (y ∈ f '' A ∧ y ∈ f '' B) hy
           (fun (x : α) => fun (hx : (x ∈ A ∩ B) ∧ (f x = y)) =>
             And.intro
               (Exists.intro x
                 (And.intro
-                  (And.left (And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  (@And.left (@And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                   (And.right hx)))
               (Exists.intro x
                 (And.intro
@@ -142,10 +142,10 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
       (fun (hy : y ∈ f '' A ∩ f '' B) =>
         -- `cases` 不吃 `have` 绑定的 `∈ 像` 假设（要两层 delta 才到 `Exists`），
         -- 两次消去都写成 `Exists.elim` 项。
-        Exists.elim α (fun (x : α) => (A x) ∧ ((f x) = y)) (y ∈ f '' (A ∩ B))
+        @Exists.elim α (fun (x : α) => (A x) ∧ ((f x) = y)) (y ∈ f '' (A ∩ B))
           (And.left hy)
           (fun (x1 : α) => fun (hx1 : (A x1) ∧ ((f x1) = y)) =>
-            Exists.elim α (fun (x : α) => (B x) ∧ ((f x) = y)) (y ∈ f '' (A ∩ B))
+            @Exists.elim α (fun (x : α) => (B x) ∧ ((f x) = y)) (y ∈ f '' (A ∩ B))
               (And.right hy)
               (fun (x2 : α) => fun (hx2 : (B x2) ∧ ((f x2) = y)) =>
                 Exists.intro x1
@@ -322,7 +322,7 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
     (fun (a : α) => fun (b : β) => f a = b) • (fun (b : β) => fun (c : γ) => g b = c)
       = (fun (a : α) => fun (c : γ) => g (f a) = c)
     ∧ (g ∘ f) '' A = g '' (f '' A) :=
-  And.intro
+  @And.intro
     ((fun (a : α) => fun (b : β) => f a = b) • (fun (b : β) => fun (c : γ) => g b = c)
       = (fun (a : α) => fun (c : γ) => g (f a) = c))
     ((g ∘ f) '' A = g '' (f '' A))
@@ -330,22 +330,22 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
       ((fun (a : α) => fun (b : β) => f a = b) • (fun (b : β) => fun (c : γ) => g b = c))
       (fun (a : α) => fun (c : γ) => g (f a) = c)
       (fun (a : α) => fun (c : γ) =>
-        Iff.intro
+        @Iff.intro
           (((fun (a : α) => fun (b : β) => f a = b) • (fun (b : β) => fun (c : γ) => g b = c)) a c)
           ((fun (a : α) => fun (c : γ) => g (f a) = c) a c)
           (fun (h : ((fun (a : α) => fun (b : β) => f a = b) • (fun (b : β) => fun (c : γ) => g b = c)) a c) =>
-            Exists.elim β (fun (b : β) => f a = b ∧ g b = c) (g (f a) = c) h
+            @Exists.elim β (fun (b : β) => f a = b ∧ g b = c) (g (f a) = c) h
               (fun (b : β) => fun (hb : f a = b ∧ g b = c) =>
-                Eq.trans.{1} γ (g (f a)) (g b) c
+                @Eq.trans.{1} γ (g (f a)) (g b) c
                   (congrArg.{1} g (And.left hb))
                   (And.right hb)))
           (fun (h : (fun (a : α) => fun (c : γ) => g (f a) = c) a c) =>
             Exists.intro (f a)
-              (And.intro (Eq.refl.{1} β (f a)) h))))
-    (Set.ext γ ((g ∘ f) '' A) (g '' (f '' A)) (fun (y : γ) =>
-      Iff.intro (y ∈ (g ∘ f) '' A) (y ∈ g '' (f '' A))
+              (And.intro (@Eq.refl.{1} β (f a)) h))))
+    (@Set.ext γ ((g ∘ f) '' A) (g '' (f '' A)) (fun (y : γ) =>
+      @Iff.intro (y ∈ (g ∘ f) '' A) (y ∈ g '' (f '' A))
         (fun (hy : y ∈ (g ∘ f) '' A) =>
-          Exists.elim α (fun (x : α) => (A x) ∧ (((g ∘ f) x) = y))
+          @Exists.elim α (fun (x : α) => (A x) ∧ (((g ∘ f) x) = y))
             (y ∈ g '' (f '' A)) hy
             (fun (x : α) => fun (hx : (x ∈ A) ∧ ((g ∘ f) x = y)) =>
               Exists.intro (f x)
@@ -388,12 +388,12 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
 theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
     (h : A ≈ C) (hC : C = C') :
     A ≈ C' ∧ ¬ (C' ≈ (𝒫 C')) :=
-  And.intro
+  @And.intro
     (A ≈ C')
     (¬ (C' ≈ (𝒫 C')))
     -- `cases` 需要一条**命名**的局部假设（类型要 delta 两步才到 `Exists` 的那种
     -- 假设它吃不下），所以先用 `have` 把类型摊开——记法写 `∃` 即可。
-    (Exists.elim (α → γ)
+    (@Exists.elim (α → γ)
       (fun (f : α → γ) =>
         Set.MapsTo α γ f A C ∧
           (∃ (g : γ → α),
@@ -407,12 +407,12 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
               Set.MapsTo γ α g C A ∧
                 ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)))
         ) =>
-          Exists.elim (γ → α)
+          @Exists.elim (γ → α)
             (fun (g : γ → α) =>
               Set.MapsTo γ α g C A ∧
                 ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)))
             (A ≈ C')
-            (And.right (Set.MapsTo α γ f A C)
+            (@And.right (Set.MapsTo α γ f A C)
               (∃ (g : γ → α),
                 Set.MapsTo γ α g C A ∧
                   ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C))) hf)
@@ -423,28 +423,28 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
               ) =>
                 Set.Equiv.mk α γ A C' f g
                   (fun (x : α) => fun (hx : x ∈ A) =>
-                    Eq.subst.{1} (Set γ) (fun (X : Set γ) => f x ∈ X) C C' hC
-                      (And.left (Set.MapsTo α γ f A C)
+                    @Eq.subst.{1} (Set γ) (fun (X : Set γ) => f x ∈ X) C C' hC
+                      (@And.left (Set.MapsTo α γ f A C)
                         (∃ (g2 : γ → α),
                           Set.MapsTo γ α g2 C A ∧
                             (Set.LeftInvOn α γ g2 f A) ∧ (Set.RightInvOn α γ f g2 C)) hf x hx))
                   (fun (z : γ) => fun (hz : z ∈ C') =>
-                    And.left (Set.MapsTo γ α g C A)
+                    @And.left (Set.MapsTo γ α g C A)
                       ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)) hg2 z
-                      (Eq.subst.{1} (Set γ) (fun (X : Set γ) => z ∈ X) C' C
-                        (Eq.symm.{1} (Set γ) C C' hC) hz))
-                  (And.left (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                    (And.right (Set.MapsTo γ α g C A)
+                      (@Eq.subst.{1} (Set γ) (fun (X : Set γ) => z ∈ X) C' C
+                        (@Eq.symm.{1} (Set γ) C C' hC) hz))
+                  (@And.left (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    (@And.right (Set.MapsTo γ α g C A)
                       ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)) hg2))
                   (fun (z : γ) => fun (hz : z ∈ C') =>
-                    And.right (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                      (And.right (Set.MapsTo γ α g C A)
+                    @And.right (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                      (@And.right (Set.MapsTo γ α g C A)
                         ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)) hg2)
                       z
-                      (Eq.subst.{1} (Set γ) (fun (X : Set γ) => z ∈ X) C' C
-                        (Eq.symm.{1} (Set γ) C C' hC) hz)))))
+                      (@Eq.subst.{1} (Set γ) (fun (X : Set γ) => z ∈ X) C' C
+                        (@Eq.symm.{1} (Set γ) C C' hC) hz)))))
     (fun (h2 : C' ≈ (𝒫 C')) =>
-      Exists.elim (γ → Set γ)
+      @Exists.elim (γ → Set γ)
         (fun (f : γ → Set γ) =>
           Set.MapsTo γ (Set γ) f C' (𝒫 C') ∧
             (∃ (g : Set γ → γ),
@@ -458,12 +458,12 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                 Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
                   ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C'))))
           ) =>
-            Exists.elim (Set γ → γ)
+            @Exists.elim (Set γ → γ)
               (fun (g : Set γ → γ) =>
                 Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
                   ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C'))))
               False
-              (And.right (Set.MapsTo γ (Set γ) f C' (𝒫 C'))
+              (@And.right (Set.MapsTo γ (Set γ) f C' (𝒫 C'))
                 (∃ (g : Set γ → γ),
                   Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
                     ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))) hf)
@@ -475,12 +475,12 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                   let hD : C' \ (fun (y : γ) => f y y) ∈ 𝒫 C' :=
                     fun (y : γ) => fun (hy : C' y ∧ ¬ (f y y)) => And.left hy;
                   let hC'gD : C' (g (C' \ (fun (y : γ) => f y y))) :=
-                    And.left (Set.MapsTo (Set γ) γ g (𝒫 C') C')
+                    @And.left (Set.MapsTo (Set γ) γ g (𝒫 C') C')
                       ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))
                       hg2 (C' \ (fun (y : γ) => f y y)) hD;
                   let hfg : (f (g (C' \ (fun (y : γ) => f y y)))) = (C' \ (fun (y : γ) => f y y)) :=  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                    And.right (Set.LeftInvOn γ (Set γ) g f C') (Set.RightInvOn γ (Set γ) f g (𝒫 C'))
-                      (And.right (Set.MapsTo (Set γ) γ g (𝒫 C') C')
+                    @And.right (Set.LeftInvOn γ (Set γ) g f C') (Set.RightInvOn γ (Set γ) f g (𝒫 C'))
+                      (@And.right (Set.MapsTo (Set γ) γ g (𝒫 C') C')
                         ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))
                         hg2)
                       (C' \ (fun (y : γ) => f y y)) hD;
@@ -488,14 +488,14 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                     congrArg.{1} (fun (S : Set γ) => S (g (C' \ (fun (y : γ) => f y y)))) hfg;
                   let hnot : ¬ ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))) :=
                     fun (p : (f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))) =>
-                      And.right (C' (g (C' \ (fun (y : γ) => f y y))))
+                      @And.right (C' (g (C' \ (fun (y : γ) => f y y))))
                         (¬ ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))))
-                        (Eq.subst.{1} Prop (fun (Q : Prop) => Q)
+                        (@Eq.subst.{1} Prop (fun (Q : Prop) => Q)
                           ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))) ((C' \ (fun (y : γ) => f y y)) (g (C' \ (fun (y : γ) => f y y)))) hprop p)
                         p;
                   let hp : (f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y))) :=
-                    Eq.subst.{1} Prop (fun (Q : Prop) => Q)
+                    @Eq.subst.{1} Prop (fun (Q : Prop) => Q)
                       ((C' \ (fun (y : γ) => f y y)) (g (C' \ (fun (y : γ) => f y y)))) ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y))))
-                      (Eq.symm.{1} Prop ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))) ((C' \ (fun (y : γ) => f y y)) (g (C' \ (fun (y : γ) => f y y)))) hprop)
+                      (@Eq.symm.{1} Prop ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))) ((C' \ (fun (y : γ) => f y y)) (g (C' \ (fun (y : γ) => f y y)))) hprop)
                       (And.intro hC'gD hnot);
                   hnot hp)))

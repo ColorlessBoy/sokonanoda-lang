@@ -7,7 +7,7 @@ def SurjOnSets (α : Type) (S : α → Set α) : Prop :=
 
 theorem demo_surjOnSets_def (α : Type) (S : α → Set α) :
     SurjOnSets α S ↔ ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x :=
-  Iff.intro (SurjOnSets α S) (∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x)
+  @Iff.intro (SurjOnSets α S) (∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x)
     (fun (h : SurjOnSets α S) => h)
     (fun (h : ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x) => h)
 
@@ -32,7 +32,7 @@ theorem diag_not_in_range (α : Type) (S : α → Set α) (a : α)
 
 theorem diag_not_surj (α : Type) (S : α → Set α) : ¬ (SurjOnSets α S) :=
   fun (h : SurjOnSets α S) =>
-    Exists.elim α (fun (a : α) => ∀ (x : α), S a x ↔ ¬ (S x x)) False
+    @Exists.elim α (fun (a : α) => ∀ (x : α), S a x ↔ ¬ (S x x)) False
       (surjOnSets_apply α S h (fun (x : α) => ¬ (S x x)))
       (fun (a : α) (ha : ∀ (x : α), S a x ↔ ¬ (S x x)) =>
         diag_not_in_range α S a (fun (x : α) (hx : S a x) => Iff.mp (ha x) hx)

@@ -44,10 +44,10 @@ theorem nat_equiv_nat : (Set.univ Nat) ≈ (Set.univ Nat) := by
   exact True.intro
   intro x
   intro hx
-  exact Eq.refl.{1} Nat x
+  exact @Eq.refl.{1} Nat x
   intro y
   intro hy
-  exact Eq.refl.{1} Nat y
+  exact @Eq.refl.{1} Nat y
 
 -- 练习 3（T）：对角线集合的成员判定——定义层面的相等。
 -- `x ∈ (fun y => ¬ (f y y))` 与 `¬ (f x x)` 是同一个命题（beta），
@@ -72,15 +72,15 @@ theorem diag_helper (α : Type) (f : α → Set α) (D : Set α) (g : (Set α) �
     D = (fun (y : α) => ¬ (f y y)) → f (g D) = D → False := by
   intro hDL hgD
   have hL : f (g D) = (fun (y : α) => ¬ (f y y)) :=
-    Eq.trans.{1} (Set α) (f (g D)) D (fun (y : α) => ¬ (f y y)) hgD hDL
+    @Eq.trans.{1} (Set α) (f (g D)) D (fun (y : α) => ¬ (f y y)) hgD hDL
   have e : f (g D) (g D) = ¬ (f (g D) (g D)) :=
     congrArg.{1} (fun (X : Set α) => X (g D)) hL
   have np : ¬ (f (g D) (g D)) := by
     intro p
-    exact (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f (g D) (g D))
+    exact (@@Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f (g D) (g D))
       (¬ (f (g D) (g D))) e p) p
-  exact np (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f (g D) (g D)))
-    (f (g D) (g D)) (Eq.symm.{1} Prop (f (g D) (g D)) (¬ (f (g D) (g D))) e) np)
+  exact np (@Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f (g D) (g D)))
+    (f (g D) (g D)) (@Eq.symm.{1} Prop (f (g D) (g D)) (¬ (f (g D) (g D))) e) np)
 
 theorem cantor (α : Type) :
     ¬ ((Set.univ α) ≈ (Set.univ (Set α))) :=
@@ -136,17 +136,17 @@ theorem no_surjection_powerset (α : Type) :
       D = (fun (y : α) => ¬ (f y y)) → f x = D → False := by
     intro f D x hDL hxD
     have hL : f x = (fun (y : α) => ¬ (f y y)) :=
-      Eq.trans.{1} (Set α) (f x) D (fun (y : α) => ¬ (f y y)) hxD hDL
+      @Eq.trans.{1} (Set α) (f x) D (fun (y : α) => ¬ (f y y)) hxD hDL
     have e : f x x = ¬ (f x x) :=
       congrArg.{1} (fun (X : Set α) => X x) hL
     have np : ¬ (f x x) := by
       intro p
-      exact (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f x x)
+      exact (@Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f x x)
         (¬ (f x x)) e p) p
     exact np (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f x x))
       (f x x) (Eq.symm.{1} Prop (f x x) (¬ (f x x)) e) np)
   intro h
-  exact Exists.elim (α → Set α)
+  exact @@Exists.elim (α → Set α)
     (fun (f : α → Set α) => Function.Surjective α (Set α) f)
     False h
     (fun (f : α → Set α) => fun (hf : Function.Surjective α (Set α) f) =>

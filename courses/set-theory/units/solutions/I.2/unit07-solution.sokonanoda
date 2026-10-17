@@ -22,7 +22,7 @@ import lib.Fun
 -- 这是本语言里唯一能证函数等式的方式）。目标用 `=` 写，证明体点名交 `Eq.refl`。
 theorem comp_assoc (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
     h ∘ (g ∘ f) = (h ∘ g) ∘ f := by
-  exact Eq.refl.{1} (α → δ) ((h ∘ g) ∘ f)
+  exact @Eq.refl.{1} (α → δ) ((h ∘ g) ∘ f)
 
 -- 题 2：先把复合等式经 g 的单射降到 f 层，再交给 f 的单射。
 -- `intro` 会把 `Function.Injective` 展开到 Pi；`apply` 用引理的**结论**对齐目标，
@@ -42,7 +42,7 @@ theorem surjective_comp (α β γ : Type) (f : α → β) (g : β → γ)
     (hf : Function.Surjective α β f) (hg : Function.Surjective β γ g) :
     Function.Surjective α γ (g ∘ f) := by
   intro z
-  exact Exists.elim β (fun (y : β) => g y = z)
+  exact @@Exists.elim β (fun (y : β) => g y = z)
     (∃ (x : α), (g ∘ f) x = z)
     (hg z)
     (fun (y : β) => fun (hy : g y = z) =>
@@ -57,8 +57,8 @@ theorem surjective_comp (α β γ : Type) (f : α → β) (g : β → γ)
 theorem leftInverse_injective (α β : Type) (f : α → β) (g : β → α)
     (h : Function.LeftInverse α β g f) : Function.Injective α β f := by
   intro x y hxy
-  exact Eq.trans.{1} α x (g (f x)) y
-    (Eq.symm.{1} α (g (f x)) x (h x))
+  exact @@Eq.trans.{1} α x (g (f x)) y
+    (@Eq.symm.{1} α (g (f x)) x (h x))
     (Eq.trans.{1} α (g (f x)) (g (f y)) y
       (congrArg.{1} g hxy)
       (h y))
@@ -81,7 +81,7 @@ theorem bijective_iff_inverse (α β : Type) (f : α → β) (g : β → α)
   intro hb
   constructor
   intro x
-  exact And.left (Function.Injective α β f) (Function.Surjective α β f) hb (g (f x)) x (hg (f x))  -- soko:notation-ok: R1：hb 的合取藏在 Bijective 定义后
+  exact @And.left (Function.Injective α β f) (Function.Surjective α β f) hb (g (f x)) x (hg (f x))  -- soko:notation-ok: R1：hb 的合取藏在 Bijective 定义后
   exact hg
   intro hi
   constructor
@@ -120,14 +120,14 @@ theorem swap_converse_false :
   have hbad : ∃ (y : Set Nat), ∀ (x : Set Nat), x = y :=
     h (fun (x : Set Nat) => fun (y : Set Nat) => x = y)
       (fun (x : Set Nat) =>
-        Exists.intro (Set Nat) (fun (y : Set Nat) => x = y) x (Eq.refl.{1} (Set Nat) x))  -- soko:notation-ok: R1：目标藏在 hpre 的 ∀ 后，短写补不出
-  exact Exists.elim (Set Nat) (fun (y : Set Nat) => ∀ (x : Set Nat), x = y) False hbad
+        @Exists.intro (Set Nat) (fun (y : Set Nat) => x = y) x (@Eq.refl.{1} (Set Nat) x))  -- soko:notation-ok: R1：目标藏在 hpre 的 ∀ 后，短写补不出
+  exact @Exists.elim (Set Nat) (fun (y : Set Nat) => ∀ (x : Set Nat), x = y) False hbad
     (fun (y : Set Nat) => fun (hy : ∀ (x : Set Nat), x = y) =>
-      Set.notMem_empty Nat 0
-        (Eq.subst.{1} (Set Nat)
+      @Set.notMem_empty Nat 0
+        (@Eq.subst.{1} (Set Nat)
           (fun (X : Set Nat) => 0 ∈ X)
           (Set.univ Nat) (∅)
-          (Eq.trans.{1} (Set Nat) (Set.univ Nat) y (∅)
+          (@Eq.trans.{1} (Set Nat) (Set.univ Nat) y (∅)
             (hy (Set.univ Nat))
-            (Eq.symm.{1} (Set Nat) (∅) y (hy (∅))))
-          (Set.mem_univ Nat 0)))
+            (@Eq.symm.{1} (Set Nat) (∅) y (hy (∅))))
+          (@Set.mem_univ Nat 0)))

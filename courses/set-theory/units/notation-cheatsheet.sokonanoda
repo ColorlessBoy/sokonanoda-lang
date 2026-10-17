@@ -363,7 +363,7 @@ import lib.Set
 
 -- 演示（第二刀）：`𝒫 A` 就是 `Set.powerset α A`——幂集的成员是**子集**。
 example (α : Type) (A : Set α) : Iff (Set.mem (Set α) A (𝒫 A)) (Set.subset α A A) := by
-  exact Set.mem_powerset_iff α A A
+  exact @@Set.mem_powerset_iff α A A
 
 -- 演示（第二刀）：`Aᶜ` 就是 `Set.compl α A`——补集的成员就是"不在里面"。
 example (α : Type) (a : α) (A : Set α) :
@@ -419,15 +419,15 @@ theorem demo_trans_notation (α : Type) (A B C : Set α)
 
 -- 演示 4：空集是最小元——`∅ ⊆ A`（单元②练习 4 的两种写法）。
 theorem demo_empty_subset_pointful (α : Type) (A : Set α) :
-    Set.subset α (Set.empty α) A := by
+    @@@@@@@@@@@@@@Set.subset α (Set.empty α) A := by
   intro x
   intro hx
-  exact False.elim (A x) hx
+  exact @False.elim (A x) hx
 
 theorem demo_empty_subset_notation (α : Type) (A : Set α) : ∅ ⊆ A := by
   intro x
   intro hx
-  exact False.elim (A x) hx
+  exact @False.elim (A x) hx
 
 -- 演示 5：空集没有元素——`a ∈ ∅` 是假的（注意**结论**里的 `∈ ∅` 可以写记法，
 -- 但证明里 `Set.notMem_empty` 的参数仍是点名形式——**记法是连接符的糖，
@@ -448,12 +448,12 @@ theorem demo_union_left_pointful (α : Type) (A B : Set α) :
     Set.subset α A (Set.union α A B) := by
   intro x
   intro hx
-  exact Or.inl (A x) (B x) hx
+  exact @Or.inl (A x) (B x) hx
 
 theorem demo_union_left_notation (α : Type) (A B : Set α) : A ⊆ A ∪ B := by
   intro x
   intro hx
-  exact Or.inl (A x) (B x) hx
+  exact @Or.inl (A x) (B x) hx
 
 -- 演示 7：并集的成员判定——`a ∈ A ∪ B` 展开就是 `a ∈ A ∨ a ∈ B`。
 theorem demo_mem_union_pointful (α : Type) (a : α) (A B : Set α) :
@@ -478,7 +478,7 @@ theorem demo_ext_pointful (α : Type) (A B : Set α)
   exact h2 x
 
 theorem demo_ext_notation (α : Type) (A B : Set α)
-    (h1 : A ⊆ B) (h2 : B ⊆ A) : Eq.{1} (Set α) A B := by
+    (h1 : A ⊆ B) (h2 : B ⊆ A) : @Eq.{1} (Set α) A B := by
   apply Set.ext
   intro x
   constructor
@@ -495,12 +495,12 @@ theorem demo_precedence_pointful (α : Type) (A B C : Set α) :
     Set.subset α A (Set.union α (Set.union α A B) C) := by
   intro x
   intro hx
-  exact Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
+  exact @@Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
 
 theorem demo_precedence_notation (α : Type) (A B C : Set α) : A ⊆ A ∪ B ∪ C := by
   intro x
   intro hx
-  exact Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
+  exact @@Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
 
 -- ─────────────────────────────────────────────────────────────
 -- 演示 10（G-60，0.83.0）：分离 —— `{x ∈ A | P x}` 与点名 `Set.sep A P` 是
@@ -549,5 +549,5 @@ theorem mem_union_comm (α : Type) (a : α) (A B : Set α) : a ∈ A ∪ B -> a 
 -- soko:hint 目标形态：Eq.{1} (Set α) (A ∪ ∅) A——逐元素是 x ∈ A ∪ ∅ ↔ x ∈ A。
 -- soko:hint 关键件：`Set.ext` + `Iff.intro`；`→` 方向 `Or.elim`（`x ∈ ∅` 那支用 `False.elim`），
 --                   `←` 方向 `Or.inl`。结论里的 `∅` 在 `∪` 的右操作数位置 ⇒ 记法可用（见页首边界）。
-theorem union_empty_right (α : Type) (A : Set α) : Eq.{1} (Set α) (A ∪ ∅) A := by
+theorem union_empty_right (α : Type) (A : Set α) : @Eq.{1} (Set α) (A ∪ ∅) A := by
   sorry
