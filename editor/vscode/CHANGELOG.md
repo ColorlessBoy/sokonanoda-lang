@@ -1,7 +1,19 @@
 // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
-## [Unreleased]
+## [0.92.0] - 2026-10-17
 
 ### Added
+
+- **隐式参数对齐 Lean 4：只有 `@` 形式接收隐式参数**（2026-10-16 用户亲报：「隐式参数的
+  自动推导能力要强……**关键是 sokonanoda 不需要 at 符号就可以输入隐式参数，也很难受，
+  真不如对齐 lean**：只有 `@` 形式接收隐式参数，正常形式不接受隐式参数，并且支持显式地
+  指定参数名字」）。改前：`h Nat Nat (fun n => n) 5`（位置实参喂了两个隐式）**被接受** ✗
+  —— 同一个位置两种含义 ⇒ 用户无法形成稳定预期 ✗。改后：**正常形式不吃位置隐式**
+  （对齐 `Lean/Elab/App.lean:305` 的 `if !explicit && !bi.isExplicit then`），
+  `@h Nat Nat …` 全显式照常，`h (fun n => n) 5` 照常。
+- **显式指定参数名字 `g (α := Nat) 5`**（同日，对齐 Lean 4 的命名实参，
+  `Lean/Elab/App.lean:1069`「an implicit argument which was **not provided using a
+  named argument**」）。改前该写法**语法就不过**（`unexpected-token: expected )`）✗。
+- **`sokonanoda fixtures --json`**：判据输入面的唯一出口（第三层"用户看到什么"的桥）。
 
 - **`#check <def>` 印声明卡片（带定义体 + 记法）**（2026-10-15 用户新需求，`REQUIREMENTS.md`
   §9.22）：光标放在 `#check Set.subset` 那一行时，命令输出从
@@ -23,6 +35,35 @@
 
 ### Fixed
 
+- **一处语法错不再废掉整份文件**（2026-10-16 用户亲报 `SUB-parse-error-kills-whole-file`）。
+  改前：文件里任何一处解析失败 ⇒ 整个文件一条声明都不判（`by_steps` 归零、声明列表空、
+  Infoview 退回题面）✗。改后：**恢复式解析**（`crates/front/src/project/graph/recovery.rs`）
+  救回其余声明，坏的那条单独报诊断。判据：`crates/front/src/tests/parser_boundary.rs`
+  （176 行边界用例）+ 用户原案逐条复核 ✓。
+- **`Eq.subst` 的谓词位判无效**（2026-10-15 用户亲报；根因由用户自己更正过一次归因）。
+  改前：`apply Eq.subst (Eq.symm hx) h` 报 `elab-implicit-argument-unsolved`
+  （「两条线索互相矛盾」）⇒ rc=1 ✗。**两处真根因**（`compile/meta.rs`，缺一不可）：
+  ① `unify_body` 的结构分解判否时**提前收摊** ⇒ 下面的 **delta 展开兜底**一步都进不去
+  ⇒ `A x`（模板）与 `Set.mem x A`（期望类型）只差一层 delta 却判 `No` ✗；
+  ② 那次走不通的尝试在 `first_err` 上留下**粘性 `Clash`** ⇒ 兜底判成 `Yes` 之后出口仍按
+  `Clash` 归因 ✗。**Lean 4 对照**（`Lean/Meta/ExprDefEq.lean:1990 isDefEqApp` /
+  `:1997 checkpointDefEq`）：结构分解判否**不提前收摊**、失败即 `restore` 整个回滚 ⇒
+  我们**只回滚 `first_err`**（赋值与待定队列不回滚）—— 最小刀，**如实记为偏离** ✓。
+  判据：`compile/tests/eqsubst_predicate.rs` 3 条 + `compile/meta/tests.rs` 2 条 ·
+  **反向验证**（撤"成功即回滚" ⇒ 2 failed；撤"兜底可达" ⇒ 3 failed）·
+  逐字节 `kernel-diff.sh --non-course` ⇒ 97 文件 × 2 op = 194 组零差异 ✓。
+- **G-117：两个视图同一个编译者**（`grade --json` 与 `query check` 对同一份坏文件
+  一个报 0、一个报 2 ✗）。根因：`crates/cli/src/check.rs` 的单文件回退路径打印诊断后
+  **直接返回、不走恢复式编译** ⇒ 两个通道的编译者不是同一个。改后
+  `parse_file_recovering` 统一入口 ⇒ 两处都报 2 ✓。
+- **同版本不同构建要说得清差别**（`SUB-infoview-same-version-different-build`）：
+  Infoview 的产物行现在读 `build_stamp`，"同版本号但更旧引擎"不再长得和最新构建一样。
+- **恢复式解析救回的声明要真的到得了 Infoview**（`usable()` 补齐）。
+- **`query` 通道忽略文件级 prelude 指令**（三个视图里有一个在说另一种话）✗→✓。
+- **内核：静音窗口改成按线程计数**（`quiet_catch` 的旧 hook 把**并发线程的 panic 文本
+  一起吞掉** ✗）—— 并发用例下诊断会被别的线程吃掉 ⇒ 按线程计数收口 ✓。
+- **产物临时名加线程 id**：同进程并发写会把载荷**写撕**（真竞态 ✗→✓）；
+  并发用例的空转闸也换成**结构计数**（旧闸量的是调度 ⇒ CI 真红 ✗→✓）。
 - **`scripts/soko update` 报 `HTTP 404`、缓存永远刷不成**（2026-10-15 用户实测
   `SUB-soko-update-cli-404`）。根因：`ensure(force)` 把 `resolver().version`（**对象**
   `{major,minor,patch,text}`）传给 `download()` ⇒ URL 插值成
@@ -37,6 +78,12 @@
 - **`scripts/soko doctor` 现在会报"版本不统一"**（扩展目录 / 两半 `marker` 的散布，
   `--json` 新增 `versions`）并指向 `prune`。与 `stale` 同一条纪律：**只报告、不改
   `ready`** —— `ready` 答"能不能跑"，版本散布答"环境干不干净"。
+
+### Changed
+
+- **库层 arena 上界用尽之后不再抹掉 LRU、不再空转轮换**（`LEAKED-LIB-ARENAS-CLIFF`）：
+  旧行为在上界 ① 用尽后会把已缓存的环境丢掉再重建 ⇒ 慢且白做功 ✗。现在**产物层照旧服务**
+  （`ARENA-BUDGET-SHARED-BY-TWO-DRIVERS` ②.5）。判据用**结构计数**（不用绝对毫秒 ✓）。
 
 ## [0.91.0] - 2026-10-15
 
