@@ -31,7 +31,14 @@
   **不是**只记一条新账 ✗ ⇒ **"绿"不再免费** ✓。
 * **C4 接线（2026-10-16，CI 实测红 ✗→✓）**：每条证明**声明它在哪个 CI job 里跑**
   （台账字段 `ci_job`，缺省 = `queue-lint`）⇒ 那个 job 必须在 `.github/workflows/ci.yml`
-  里**真的存在**、且**真的有一跑它**（那个 job 的文本里出现 `--job <名字>`）✗→✓。
+  里**真的存在**、且**真的有一跑它**（那个 job 的 **`run:` 正文**里出现 `--job <名字>`）✗→✓。
+  ⚠ **"真的有一跑"= `run:` 正文**（复用 `run_bodies()` ✓）：**注释与 step 名都不算** ✗ ——
+  与 `wired_scripts()`（接线臂）**同一条口径** ✓（`run_bodies()` 的 docstring 里就写着
+  「step 名同理（`name:` 不是命令 ✓）」）。⚠ **第 6 轮 `ng7` 收窄**：此前这里拿的是
+  **整个 job 块的文本**（`job_blocks()` 的原文）⇒ 只在 **step 名**里点名
+  `check-guard-bite.py` 就能让 C4 通过（= 接线只靠提及 ✗，与 `ng3` §3.5 ① 同族）。
+  收窄的读数（真 `ci.yml`）：台账声明的 **2** 个 job（`editor` / `queue-lint`）
+  **全部**有 `run:` 正文命中 ⇒ 收窄**一条都不放走**（0 格 · 0 条红变绿 ✓）。
   ⚠ 为什么必须分派（**实测**）：`queue-lint` 是 `timeout-minutes: 5`、**不装
   `editor/vscode/node_modules`、也没有真 VS Code** —— 而第三层那几条证明要的正是那些
   （`scripts/third-layer-bite.sh` 环境缺失 ⇒ **exit 3**，而 `pass` 期望 0 ⇒ 判红 ✓）。
@@ -723,6 +730,9 @@ def wiring_problems(root: Path, entries: list[dict]) -> list[str]:
 
     ⚠ 这是"分派"的**空转闸**（docstring C4）：没有它，把一条证明标成
     `ci_job: 某个不存在的 job` 就等于**把它藏起来** ✗ —— 那才是放宽 ✗。
+
+    ⚠ ⭐ **"真的跑"= `run:` 正文**（`run_bodies()` ✓ —— **注释与 step 名都不算** ✗）：
+    第 6 轮 `ng7` 收窄（此前是**整个 job 块的文本** ⇒ 只在 step 名里点名就能通过 ✗）。
     """
     jobs = sorted({entry_job(e) for e in entries})
     if not jobs:
@@ -740,13 +750,18 @@ def wiring_problems(root: Path, entries: list[dict]) -> list[str]:
                        f"而 `{yml.name}` 里**没有这个 job** ⇒ 那条证明**没有任何 CI 会跑它**"
                        f"（藏起来 = 空转 ✗）")
             continue
-        if "check-guard-bite.py" not in blk:
+        # ⭐ **只认 `run:` 正文**（第 6 轮 `ng7`）：注释与 step 名**不算"跑"** ✗ ——
+        #   否则"删 `run:` 正文、只留 step 名"就能让 C4 通过（接线只靠提及 ✗）。
+        body = run_bodies(blk)
+        if "check-guard-bite.py" not in body:
             red.append(f"**C4 接线** ✗：`ci_job: {j}` 的那个 job 里**没有任何一步**跑 "
-                       f"`check-guard-bite.py` ⇒ 那批证明在 CI 里**空转** ✗")
+                       f"`check-guard-bite.py` ⇒ 那批证明在 CI 里**空转** ✗"
+                       f"（⚠ **`run:` 正文里没有** —— 注释 / step 名里点名**不算** ✗）")
             continue
-        if j != DEFAULT_JOB and f"--job {j}" not in blk:
+        if j != DEFAULT_JOB and f"--job {j}" not in body:
             red.append(f"**C4 接线** ✗：`ci_job: {j}` 的那个 job 里**没有** `--job {j}` "
-                       f"⇒ 它跑的是**默认 job 的那批**，这批仍然没人跑 ✗")
+                       f"⇒ 它跑的是**默认 job 的那批**，这批仍然没人跑 ✗"
+                       f"（⚠ 同样只认 **`run:` 正文** ✓）")
     return red
 
 
@@ -2116,6 +2131,45 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         rc_u = check(ROOT, unwired, None, run_all=True, quiet=True)
         gate("反向⑧：job 存在但**没有那一跑**（`--job <名字>` 不在）⇒ 判红 rc=1",
              rc_u == 1, f"rc={rc_u}")
+
+        # ⭐⭐ **第 6 轮 `ng7`**：C4 的"真的跑"收窄成 **`run:` 正文** —— 两向各一条臂 ✓
+        #   （收窄前它拿的是**整个 job 块的文本** ⇒ 只在 **step 名**里点名就能通过 ✗）。
+        def _c4_root(tag: str, step: str) -> Path:
+            """夹具仓：只有一份 `ci.yml`（C4 只读它 ✓ —— 不碰别的判据的输入 ✓）。
+
+            ⚠ `tag` **每个臂都不一样**（同 `_face_root` 的实测教训 ✗）。
+            """
+            r = ta / f"c4-{tag}"
+            wf = r / ".github" / "workflows"
+            wf.mkdir(parents=True, exist_ok=True)
+            (wf / "ci.yml").write_text(
+                "jobs:\n  queue-lint:\n    runs-on: ubuntu-24.04\n    steps:\n" + step,
+                encoding="utf-8")
+            return r
+
+        def _c4_entry(job: str = DEFAULT_JOB) -> list[dict]:
+            return [{"guard": "scripts/check-attention-budget.py", "ci_job": job,
+                     "bug": "夹具：C4 的「真的跑」口径（第 6 轮收窄）",
+                     "pass": {"cmd": "true", "expect_rc": 0},
+                     "bite": {"cmd": "false", "expect_rc": 1}}]
+
+        # 正对照：`run:` 正文里**真的**跑它 ⇒ 不许红 ✓（收窄不误伤真跑 ✓）。
+        c4_real = _c4_root("real-run", "      - run: python3 scripts/check-guard-bite.py --check --all\n")
+        c4_real_red = wiring_problems(c4_real, _c4_entry())
+        gate("⭐⭐ 正对照：C4 —— `run:` 正文里**真的**跑 `check-guard-bite.py` ⇒ 不许红",
+             not c4_real_red, f"红 {len(c4_real_red)} 条")
+
+        # 反向：**删 `run:` 正文、只留 step 名** ⇒ 必须判红（提及 ≠ 跑 ✗）。
+        c4_mention = _c4_root(
+            "mention-only",
+            "      - name: 跑 scripts/check-guard-bite.py --check --all（`run:` 正文被删 ✗）\n"
+            "        run: echo hi\n")
+        c4_mention_red = wiring_problems(c4_mention, _c4_entry())
+        c4_named = any("C4 接线" in m and "queue-lint" in m for m in c4_mention_red)
+        gate("⭐⭐ 反向㉕：C4 —— **删 `run:` 正文、只留 step 名** ⇒ 判红（第 6 轮收窄；"
+             "收窄前这条**通过** ⇒ 接线只靠提及）", c4_named, f"红 {len(c4_mention_red)} 条")
+        if c4_mention_red:
+            print(f"      ↳ 本臂判红原文（**不是本跑的判据** ✓）：{c4_mention_red[0][:90]}")
 
         # ── 反向⑨：`--job <没人声明的名字>` ⇒ 判红（**空转闸**：0 条不许算绿 ✗）──
         rc_e = check(ROOT, LEDGER, None, run_all=True, quiet=True, job="no-such-job")

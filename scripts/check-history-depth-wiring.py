@@ -19,11 +19,15 @@
 ⇒ 唯一的差别就是**历史深度** ✓。本机用真 `git clone --depth 1` 夹具**逐字**复现了
 CI 的那两行（`fatal: ambiguous argument 'cf259d1f..HEAD'` + `rc=3`）✓。
 
-## 类不变量（三条，都能机械判）
+## 类不变量（四条，都能机械判）
 
 * **R1 接线**：凡 job **真的跑**声明过的历史判据脚本（`HISTORY_DEPENDENT`），
   该 job 的 `actions/checkout` 就必须带 `fetch-depth: 0` ✓。
   —— 反过来说：**判据要读历史，就必须把历史给它** ✗。
+* **R1b 提及不算跑**（2026-10-17 · 第 6 轮 `ng7` 加）：**非注释活行里点名了**声明过的脚本、
+  而它**任何一条 `run:` 正文里都没有** ⇒ **判红**（那一跑**根本不存在** = 空转 ✗）。
+  —— 反过来说：**step 名不是命令** ✗（`check-guard-bite.py` 的 `run_bodies()` docstring
+  里早就写着这一句 ✓ —— 本脚本落地时只收了"注释不算"、**漏了 step 名** ✗）。
 * **R2 表不腐烂**：`HISTORY_DEPENDENT` 点名的脚本必须**在仓库里存在** ⇒ 否则判红
   （表里留着一个已经不存在的脚本 = 表在腐烂 ✗）。
 * **R3 空转闸**：这一跑至少要判到**一个** `(job, 脚本)` 对 ⇒ 否则判红 ——
@@ -32,9 +36,18 @@ CI 的那两行（`fatal: ambiguous argument 'cf259d1f..HEAD'` + `rc=3`）✓。
 
 ## 两处刻意收窄的口径（都是**如实划的**，不是放宽 ✗）
 
-* **只认"活行"**：`#` 开头的行是**注释** ⇒ 不算"这个 job 跑了它" ✓。
-  实测理由：`wiring-lint` 的注释里有 `ux-queue.py`，**粗扫会把它当消费者** ✗
-  （本脚本落地时正是先粗扫、再逐条核实才发现这个假阳性 ✓）。
+* **只认 `run:` 正文**（复用 `check-guard-bite.py` 的 `run_bodies()` —— **不另抄一份** ✗）：
+  `#` 开头的注释行**不算**"这个 job 跑了它" ✓，**step 名（`name:`）也不算** ✓。
+  * 注释那一半的实测理由：`wiring-lint` 的注释里有 `ux-queue.py`，**粗扫会把它当消费者** ✗
+    （本脚本落地时正是先粗扫、再逐条核实才发现这个假阳性 ✓）。
+  * ⭐ **step 名那一半是 2026-10-17（第 6 轮 `ng7`）补的**：收窄前的口径是
+    「**整个 job 块的活行**」= `ng3` §3.5 ① 记的「**提及级**」⇒ 它**挡不住**
+    "删 `run:` 正文、只留 step 名"的空转 ✗（那个 job 照样被算成"跑了它"）。
+    **先量后改**（`ng7` 在真 `ci.yml` 上的读数）：R1 判到的 **8** 个 `(job, 脚本)` 对
+    **全部**有 `run:` 正文命中 ⇒ 收窄**一条都不放走**（0 格 · 0 条红变绿 ✓）；
+    全仓 25 个 job 块 × 41 个守卫里 **step 名提及 = 0 处**（注释提及 16 处，本来就不算 ✓）
+    ⇒ **收窄零代价** ✓。⭐ 并且同一轮新增 **R1b** 把那个洞**从"绿"变成"判红"**：
+    收窄前"删正文 + 有 `fetch-depth: 0`" ⇒ **绿**（空转 ✗），收窄后 ⇒ **红** ✓。
 * **`fetch-depth` 只认 checkout 那一步里的活行**（`^\\s*fetch-depth:\\s*['\\"]?0`）——
   **注释里提一句不算** ✗。实测理由：本仓的注释里**到处**在讲
   "`fetch-depth: 0` 不是可选项"（`ci.yml` 里 4 处）⇒ 按整块文本搜会**永远绿**
@@ -171,16 +184,28 @@ def checkout_fetch_depth(block: str) -> bool | None:
 
 
 def wiring_problems(ci_text: str, declared: list[tuple[str, str]]) -> tuple[list[str], list[str]]:
-    """R1 + R2 + R3 ⇒ `(红行, 判到的 (job, 脚本) 对)` ✓。"""
+    """R1（接线）+ R1b（提及不算跑）+ R2（表不腐烂）+ R3（空转闸）⇒ `(红行, 判到的对)` ✓。"""
     gb = _load_guard_bite()
     blocks = gb.job_blocks(ci_text)
     red: list[str] = []
     checked: list[str] = []
 
-    # ── R1 接线 ─────────────────────────────────────────────────────────
+    # ── R1 接线 + R1b 提及不算跑 ────────────────────────────────────────
     for job, block in sorted(blocks.items()):
         live = "\n".join(live_lines(block))
-        used = sorted(rel for rel, _why in declared if rel in live)
+        # ⭐ **"真的跑"= `run:` 正文**（`run_bodies()` —— 唯一一处 ✓）：注释**与 step 名**
+        #   都不算 ✗（第 6 轮 `ng7` 收窄；读数与理由见模块 docstring 的"刻意收窄"节 ✓）。
+        bodies = gb.run_bodies(block)
+        used = sorted(rel for rel, _why in declared if rel in bodies)
+        # ⭐ **R1b**：活行里点名了、但 `run:` 正文里没有它 ⇒ 那一跑**不存在**（空转 ✗）。
+        mentioned = sorted(rel for rel, _why in declared if rel in live and rel not in bodies)
+        if mentioned:
+            named_m = " · ".join(f"`{r}`" for r in mentioned)
+            red.append(f"**R1b 提及不算跑** ✗：`{job}` 的**活行**里点名了 {named_m}，"
+                       f"而它的 **`run:` 正文里没有**它们 ⇒ 那些步**只剩名字**"
+                       f"（`run:` 正文被删/改成别的命令 ✗）⇒ 那几条历史判据在 CI 上"
+                       f"**根本不跑**（空转 ✗）。出路二选一：①在 `run:` 正文里真跑它 ✓；"
+                       f"②把那个提及**挪进注释**（注释不算 ✓）或删掉 ✓")
         if not used:
             continue
         fd = checkout_fetch_depth(block)
@@ -244,7 +269,8 @@ def run_check(ci_text: str, declared: list[tuple[str, str]], label: str,
             print(f"  · {m}", file=sys.stderr)
         return 1
     if not quiet:
-        print("✓ 历史深度接线：跑历史判据的 job 都拿到了全历史 ✓")
+        print("✓ 历史深度接线：跑历史判据的 job 都拿到了全历史 ✓ · "
+              "接线**不靠提及**（`run:` 正文里真的跑 ✓）")
     return 0
 
 
@@ -271,6 +297,32 @@ SYNTHETIC_JOB = """
     steps:
       - uses: actions/checkout@v5
       - run: python3 scripts/check-guard-bite.py --check --all
+"""
+
+# ⭐ **第 6 轮 `ng7` 的负对照夹具**：**删 `run:` 正文、只留 step 名** ✗ ——
+# ⚠ 关键是它**带着** `fetch-depth: 0`：收窄前的提及级 R1 会把这个 job 算成
+# "跑了 check-guard-bite.py" ⇒ 有全历史 ⇒ **绿**（空转 ✗）；R1b 必须把它判红 ✓。
+SYNTHETIC_MENTION_ONLY_JOB = """
+  synthetic-mention-only-job:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: 跑历史判据 scripts/check-guard-bite.py（`run:` 正文被删掉了 ✗）
+        run: echo hi
+"""
+
+# 正对照（**不许把真跑也判成提及** ✗）：同名 step 名 + `run:` 正文里**真的**跑它 ✓。
+SYNTHETIC_REAL_RUN_JOB = """
+  synthetic-real-run-job:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: 跑历史判据（真跑 ✓）
+        run: python3 scripts/check-guard-bite.py --check --all
 """
 
 
@@ -317,6 +369,21 @@ def selftest() -> int:
     e_red, _ = wiring_problems(live, [])
     gate("⑥ 空转闸：`HISTORY_DEPENDENT` 清空 ⇒ **判红**（空转不算通过 ✗）",
          bool(e_red), f"红 {len(e_red)} 条")
+
+    # ⭐⭐ **第 6 轮 `ng7` 的反向验证**：**删 `run:` 正文、只留 step 名** ⇒ 必须判红 ✓
+    #   （⚠ 夹具**带** `fetch-depth: 0` ⇒ 它**不可能**靠 R1 判红 ⇒ 红只能来自 R1b ✓
+    #     —— 收窄前这一条是**绿**的（提及级把它算成"跑了" ✗））
+    m_red, m_checked = wiring_problems(live + SYNTHETIC_MENTION_ONLY_JOB, HISTORY_DEPENDENT)
+    m_named = any("R1b" in m and "synthetic-mention-only-job" in m for m in m_red)
+    gate("⑦ 反向（第 6 轮）：**删 `run:` 正文、只留 step 名**（且 `fetch-depth: 0` 在 ✓）"
+         "⇒ **判红** + 点名 R1b ✓",
+         m_named, f"红 {len(m_red)} 条 · 点名 R1b={m_named} · 判到 {len(m_checked)} 对")
+
+    # ⭐ 正对照（**不许把真跑也判成提及** ✗）：step 名 + `run:` 正文里真的跑它 ⇒ 不许红 ✓。
+    r_red, r_checked = wiring_problems(live + SYNTHETIC_REAL_RUN_JOB, HISTORY_DEPENDENT)
+    gate("⑧ 正对照：step 名点名了、`run:` 正文里**也真的跑**它 ⇒ **不许红**（R1b 不误伤 ✓）",
+         not r_red and f"synthetic-real-run-job:scripts/check-guard-bite.py" in r_checked,
+         f"红 {len(r_red)} 条 · 判到 {len(r_checked)} 对")
 
     print("── 历史深度接线 · selftest（正负对照）──")
     for name, ok, reading in gates:
