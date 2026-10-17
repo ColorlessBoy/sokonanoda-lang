@@ -36,10 +36,10 @@ def elim (α β γ : Type) (f : α → γ) (g : β → γ) (s : Sum α β) : γ 
 
 -- ── 展开引理（L2：`Sum.elim` 算在构造子上就还原 —— iota 级，证明是 `Eq.refl`）──
 theorem elim_inl (α β γ : Type) (f : α → γ) (g : β → γ) (a : α) :
-    elim α β γ f g (Sum.inl α β a) = f a := Eq.refl.{1} γ (f a)
+    elim α β γ f g (@Sum.inl α β a) = f a := @Eq.refl.{1} γ (f a)
 
 theorem elim_inr (α β γ : Type) (f : α → γ) (g : β → γ) (b : β) :
-    elim α β γ f g (Sum.inr α β b) = g b := Eq.refl.{1} γ (g b)
+    elim α β γ f g (@Sum.inr α β b) = g b := @Eq.refl.{1} γ (g b)
 
 end Sum
 

@@ -190,7 +190,7 @@ theorem Set.Le.intro (α β : Type) (A : Set α) (B : Set β) (f : α → β)
 theorem Set.Le.elim (α β : Type) (A : Set α) (B : Set β) (C : Prop)
     (h : A ≼ B)
     (k : ∀ (f : α → β), Set.InjOn α β f A → Set.MapsTo α β f A B → C) : C :=
-  Exists.elim (α → β)
+  @Exists.elim (α → β)
     (fun (f : α → β) => Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
     C
     ((fun (hs : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => hs) h)
@@ -203,7 +203,7 @@ theorem Set.Equiv.elim (α β : Type) (A : Set α) (B : Set β) (C : Prop)
     (h : A ≈ B)
     (k : ∀ (f : α → β) (g : β → α), Set.MapsTo α β f A B → Set.MapsTo β α g B A →
       Set.LeftInvOn α β g f A → Set.RightInvOn α β f g B → C) : C :=
-  Exists.elim (α → β)
+  @Exists.elim (α → β)
     (fun (f : α → β) => Set.MapsTo α β f A B ∧
       (∃ (g : β → α), Set.MapsTo β α g B A ∧
         ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))))
@@ -214,7 +214,7 @@ theorem Set.Equiv.elim (α β : Type) (A : Set α) (B : Set β) (C : Prop)
     (fun (f : α → β) (hf : Set.MapsTo α β f A B ∧
         (∃ (g : β → α), Set.MapsTo β α g B A ∧
           ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))) =>
-      Exists.elim (β → α)
+      @Exists.elim (β → α)
         (fun (g : β → α) => Set.MapsTo β α g B A ∧
           ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))
         C
@@ -230,11 +230,11 @@ theorem Set.Equiv.elim (α β : Type) (A : Set α) (B : Set β) (C : Prop)
 theorem Set.eq_of_leftInvOn (α β : Type) (f : α → β) (g : β → α)
     (hgf : ∀ (u : α), (g (f u)) = u) (a b : α)
     (hab : (f a) = (f b)) : a = b :=
-  Eq.trans.{1} α a (g (f a)) b
-    (Eq.symm.{1} α (g (f a)) a (hgf a))
-    (Eq.trans.{1} α (g (f a)) (g (f b)) b
+  @Eq.trans.{1} α a (g (f a)) b
+    (@Eq.symm.{1} α (g (f a)) a (hgf a))
+    (@Eq.trans.{1} α (g (f a)) (g (f b)) b
       (rel_subst_right β (fun (u : β) (v : β) => (g u) = (g v))
-        (f a) (f a) (f b) hab (Eq.refl.{1} α (g (f a))))
+        (f a) (f a) (f b) hab (@Eq.refl.{1} α (g (f a))))
       (hgf b))
 
 -- **单射 ⇒ `≼`**（L2：等势/单射这一侧最常用的入口 ✓）
@@ -250,12 +250,12 @@ theorem Set.Equiv.comp_left_aux (α β γ : Type) (A : Set α) (B : Set β)
     (l2 : ∀ (b : β), b ∈ B → (g2 (f2 b)) = b)
     (hf1 : ∀ (a : α), a ∈ A → f1 a ∈ B)
     (a : α) (ha : a ∈ A) : (g1 (g2 (f2 (f1 a)))) = a :=
-  Eq.trans.{1} α (g1 (g2 (f2 (f1 a)))) (g1 (f1 a)) a
-    (Eq.symm.{1} α (g1 (f1 a)) (g1 (g2 (f2 (f1 a))))
+  @Eq.trans.{1} α (g1 (g2 (f2 (f1 a)))) (g1 (f1 a)) a
+    (@Eq.symm.{1} α (g1 (f1 a)) (g1 (g2 (f2 (f1 a))))
       (rel_subst_right β (fun (u : β) (v : β) => (g1 u) = (g1 v))
         (f1 a) (f1 a) (g2 (f2 (f1 a)))
-        (Eq.symm.{1} β (g2 (f2 (f1 a))) (f1 a) (l2 (f1 a) (hf1 a ha)))
-        (Eq.refl.{1} α (g1 (f1 a)))))
+        (@Eq.symm.{1} β (g2 (f2 (f1 a))) (f1 a) (l2 (f1 a) (hf1 a ha)))
+        (@Eq.refl.{1} α (g1 (f1 a)))))
     (l1 a ha)
 
 -- 辅助引理 ②：`f2 ∘ f1 ∘ g1 ∘ g2 = id`（逐点、在 `C` 上）
@@ -267,11 +267,11 @@ theorem Set.Equiv.comp_right_aux (α β γ : Type) (B : Set β) (C : Set γ)
     (r2 : ∀ (c : γ), c ∈ C → (f2 (g2 c)) = c)
     (hg2 : ∀ (c : γ), c ∈ C → g2 c ∈ B)
     (c : γ) (hc : c ∈ C) : (f2 (f1 (g1 (g2 c)))) = c :=
-  Eq.trans.{1} γ (f2 (f1 (g1 (g2 c)))) (f2 (g2 c)) c
+  @Eq.trans.{1} γ (f2 (f1 (g1 (g2 c)))) (f2 (g2 c)) c
     (rel_subst_right β (fun (u : β) (v : β) => (f2 v) = (f2 u))
       (g2 c) (g2 c) (f1 (g1 (g2 c)))
-      (Eq.symm.{1} β (f1 (g1 (g2 c))) (g2 c) (r1 (g2 c) (hg2 c hc)))
-      (Eq.refl.{1} γ (f2 (g2 c))))
+      (@Eq.symm.{1} β (f1 (g1 (g2 c))) (g2 c) (r1 (g2 c) (hg2 c hc)))
+      (@Eq.refl.{1} γ (f2 (g2 c))))
     (r2 c hc)
 
 -- ⚠ **名字归属（想清楚了）**：`Set.Equiv.refl/symm/trans` 这三个名字**单元⑨ 占用着** ✓ ——
@@ -331,11 +331,11 @@ theorem Set.mem_right_of_image_eq (α β : Type) (f : α → β) (A : Set α)
     (hST : f '' S = f '' T) (x : α) : x ∈ S → x ∈ T :=
   fun (hx : x ∈ S) =>
     Set.mem_image_elim f T (f x) (x ∈ T)
-      (Eq.subst.{1} (Set β) (fun (D : Set β) => f x ∈ D) (f '' S) (f '' T) hST  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-        (Set.mem_image_intro f S (f x) x hx (Eq.refl.{1} β (f x))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (@Eq.subst.{1} (Set β) (fun (D : Set β) => f x ∈ D) (f '' S) (f '' T) hST  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (Set.mem_image_intro f S (f x) x hx (@Eq.refl.{1} β (f x))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
       (fun (y : α) (hyT : y ∈ T) (hy : f y = f x) =>
-        Eq.subst.{1} α (fun (z : α) => z ∈ T) y x  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-          (Eq.symm.{1} α x y (hf x (hSA x hx) y (hTA y hyT) (Eq.symm.{1} β (f y) (f x) hy)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        @Eq.subst.{1} α (fun (z : α) => z ∈ T) y x  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (@Eq.symm.{1} α x y (hf x (hSA x hx) y (hTA y hyT) (@Eq.symm.{1} β (f y) (f x) hy)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
           hyT)
 
 -- 像集映射在 `𝒫 A` 上是**单射**（`Set α` 作元素类型的声明 ✓ —— 这正是当年过不去的那一类 ✓）
@@ -343,26 +343,26 @@ theorem Set.image_injOn (α β : Type) (f : α → β) (A : Set α) (hf : Set.In
     Set.InjOn (Set α) (Set β) (fun (S : Set α) => f '' S) (𝒫 A) :=
   fun (S : Set α) (hS : S ∈ 𝒫 A) (T : Set α) (hT : T ∈ 𝒫 A) (hST : f '' S = f '' T) =>
     Set.ext S T (fun (x : α) =>
-      Iff.intro (x ∈ S) (x ∈ T)
+      @Iff.intro (x ∈ S) (x ∈ T)
         (Set.mem_right_of_image_eq α β f A hf S T
-          (fun (z : α) (hz : z ∈ S) => Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (Set.mem_powerset_iff α A S) hS z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
-          (fun (z : α) (hz : z ∈ T) => Iff.mp (T ∈ 𝒫 A) (T ⊆ A) (Set.mem_powerset_iff α A T) hT z hz) hST x)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+          (fun (z : α) (hz : z ∈ S) => @Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (@Set.mem_powerset_iff α A S) hS z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+          (fun (z : α) (hz : z ∈ T) => @Iff.mp (T ∈ 𝒫 A) (T ⊆ A) (@Set.mem_powerset_iff α A T) hT z hz) hST x)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
         (Set.mem_right_of_image_eq α β f A hf T S
-          (fun (z : α) (hz : z ∈ T) => Iff.mp (T ∈ 𝒫 A) (T ⊆ A) (Set.mem_powerset_iff α A T) hT z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
-          (fun (z : α) (hz : z ∈ S) => Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (Set.mem_powerset_iff α A S) hS z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
-          (Eq.symm.{1} (Set β) (f '' S) (f '' T) hST) x))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (fun (z : α) (hz : z ∈ T) => @Iff.mp (T ∈ 𝒫 A) (T ⊆ A) (@Set.mem_powerset_iff α A T) hT z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+          (fun (z : α) (hz : z ∈ S) => @Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (@Set.mem_powerset_iff α A S) hS z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+          (@Eq.symm.{1} (Set β) (f '' S) (f '' T) hST) x))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
 
 -- 像集映射把 `A` 送进 `B` ⇒ 把 `𝒫 A` 送进 `𝒫 B`
 theorem Set.image_mapsTo_powerset (α β : Type) (f : α → β) (A : Set α) (B : Set β)
     (hfm : Set.MapsTo α β f A B) :
     Set.MapsTo (Set α) (Set β) (fun (S : Set α) => f '' S) (𝒫 A) (𝒫 B) :=
   fun (S : Set α) (hS : S ∈ 𝒫 A) =>
-    Iff.mpr ((f '' S) ∈ 𝒫 B) ((f '' S) ⊆ B) (Set.mem_powerset_iff β B (f '' S))  -- soko:notation-ok: 嵌套实参位补不出前导命题（G-30 家族残留，手册边界）
+    @Iff.mpr ((f '' S) ∈ 𝒫 B) ((f '' S) ⊆ B) (@Set.mem_powerset_iff β B (f '' S))  -- soko:notation-ok: 嵌套实参位补不出前导命题（G-30 家族残留，手册边界）
       (fun (y : β) (hy : y ∈ f '' S) =>
         (fun (h : y ∈ f '' S) => Set.mem_image_elim f S y (y ∈ B) h
           (fun (x : α) (hx : x ∈ S) (hxy : f x = y) =>
-            Eq.subst.{1} β (fun (z : β) => z ∈ B) (f x) y hxy  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-              (hfm x (Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (Set.mem_powerset_iff α A S) hS x hx))))  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+            @Eq.subst.{1} β (fun (z : β) => z ∈ B) (f x) y hxy  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+              (hfm x (@Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (@Set.mem_powerset_iff α A S) hS x hx))))  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
           hy)
 
 -- **`𝒫` 单调**（C-115 的目标 ✓）：`A ≼ B` ⇒ `𝒫 A ≼ 𝒫 B`
@@ -379,11 +379,11 @@ theorem Set.Le.powerset (α β : Type) (A : Set α) (B : Set β) (h : A ≼ B) :
 theorem Set.injOn_of_leftInvOn (α β : Type) (f : α → β) (g : β → α) (A : Set α)
     (hgf : Set.LeftInvOn α β g f A) : Set.InjOn α β f A :=
   fun (x : α) (hx : x ∈ A) (y : α) (hy : y ∈ A) (h : f x = f y) =>
-    Eq.trans.{1} α x (g (f x)) y  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-      (Eq.symm.{1} α (g (f x)) x (hgf x hx))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-      (Eq.trans.{1} α (g (f x)) (g (f y)) y  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    @Eq.trans.{1} α x (g (f x)) y  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (@Eq.symm.{1} α (g (f x)) x (hgf x hx))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (@Eq.trans.{1} α (g (f x)) (g (f y)) y  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
         (rel_subst_right β (fun (u : β) (v : β) => (g u) = (g v))
-          (f x) (f x) (f y) h (Eq.refl.{1} α (g (f x))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (f x) (f x) (f y) h (@Eq.refl.{1} α (g (f x))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
         (hgf y hy))
 
 -- **`≈` ⇒ `≼`**（C-116 的目标 ✓）：等势的一对里取**前向**那半 + 左逆律 ⇒ 单射 ✓

@@ -69,7 +69,7 @@ theorem sInter_subset (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F) 
 theorem Set.sInter_singleton (α : Type) (A : Set α) :
     -- soko:notation-ok: 记法声明在本文件后部（77 行），此使用点在其前，只能点名
     Set.sInter α (fun (C : Set α) => C = A) ⊆ A :=
-  Set.sInter_subset α (fun (C : Set α) => C = A) A (Eq.refl.{1} (Set α) A)
+  Set.sInter_subset α (fun (C : Set α) => C = A) A (@Eq.refl.{1} (Set α) A)
 
 end Set
 
@@ -84,7 +84,7 @@ prefix:100 " ⋂₀ " => Set.sInter
 theorem Set.mem_sUnion_elim (α : Type) (F : Set (Set α)) (x : α) (C : Prop)
     (h : x ∈ ⋃₀ F)
     (k : ∀ (A : Set α), A ∈ F → x ∈ A → C) : C :=
-  Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A) C  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+  @Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A) C  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
     ((fun (hs : ∃ (A : Set α), A ∈ F ∧ x ∈ A) => hs) h)
     (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) => k A (And.left hA) (And.right hA))
 
@@ -149,7 +149,7 @@ theorem sUnion_subset (α : Type) (F : Set (Set α)) (B : Set α)
     (h : ∀ (A : Set α), A ∈ F → A ⊆ B) : ⋃₀ F ⊆ B :=
   fun (x : α) (hx : x ∈ ⋃₀ F) =>
     (fun (hxE : ∃ (A : Set α), A ∈ F ∧ x ∈ A) =>
-      Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A)
+      @Exists.elim (Set α) (fun (A : Set α) => A ∈ F ∧ x ∈ A)
         (B x) hxE
         (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) => h A (And.left hA) x (And.right hA))) hx
 

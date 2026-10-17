@@ -108,7 +108,7 @@ def Function.Inverse (α β : Type) (f : α → β) (g : β → α) : Prop :=
 
 -- `rfl` 级：复合算在参数上就是"先 f 后 g"（Mathlib: `Function.comp_apply`）。
 theorem Function.comp_apply {α β γ : Type} (g : β → γ) (f : α → β) (x : α) :
-    (g ∘ f) x = g (f x) :=  Eq.refl.{1} γ (g (f x))
+    (g ∘ f) x = g (f x) :=  @Eq.refl.{1} γ (g (f x))
 
 theorem Function.injective_def (α β : Type) (f : α → β) :
     Function.Injective α β f ↔ ∀ (x : α), ∀ (y : α), f x = f y → x = y :=

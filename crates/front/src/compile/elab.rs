@@ -4074,11 +4074,11 @@ fn type_head_fits_layer<'a>(
 
 /// 操作数的**类型表达式**（源级 AST），供隐式前缀求解当模板/实参用。
 ///
-/// **书写类型优先**（零内核调用）：`Ident` 取作用域里的**源级**类型；lambda 取
-/// **源级 binder 注解**拼出来的箭头类型（见 [`lambda_source_type`]）。两者都
-/// **绕开内核 pp** —— pp 会丢隐式实参（实测：`Set.image α β f A` 打成
-/// `Set.image β f A`），而这份文本会被**回读成项**再 elaborate ⇒ 静默换成另一个
-/// 解（`α := β`）✗。剩下的形状才问内核（pp 文本 → `parse_expr_text`）。
+/// **书写类型优先**（零内核调用）：`Ident` 取作用域里的**源级**类型；lambda 取 **源级 binder
+/// 注解**拼出的箭头类型（见 [`lambda_source_type`]）。两者都**绕开内核 pp**：pp 会丢隐式实参
+/// （`Set.image α β f A` 打成 `Set.image β f A`）⇒ 这份文本被**回读成项**再 elaborate 会静默
+/// 换成另一个解 ✗。剩下的形状才问内核（pp 文本 → `parse_expr_text`）；**严格档取全显式 pp**
+/// （默认 pp 的文本是"正常形式写满实参" ⇒ 严格档一律拒 ✗，见 `implicit_msg`）。
 pub(crate) fn operand_type_expr<'a>(
     ctx: &ElabCtx<'a, '_>,
     scope: &ElabScope<'a>,
@@ -4093,7 +4093,8 @@ pub(crate) fn operand_type_expr<'a>(
     if let Some(src) = lambda_source_type(operand) {
         return Some(src);
     }
-    infer_type_text(ctx, scope, operand, env, None, false)
+    let explicit = super::implicit_msg::strict_at_enabled();
+    infer_type_text(ctx, scope, operand, env, None, explicit)
         .and_then(|text| crate::proof::parse_expr_text(&text).ok())
 }
 
@@ -8648,14 +8649,14 @@ fn derive_recursor(
                     span: ctor.span,
                 });
             }
-            // R1：minor 里生成的 `C params fields` 项必须用**规范名**——
-            // 内核按名字重建比对 recursor 的 minor 与 iota 规则。
+            // R1：minor 里生成的 `C params fields` 项必须用**规范名**——内核按名字重建比对
+            // recursor 的 minor 与 iota 规则；它是**整条望远镜逐位写全**⇒ `@` 形态 ✓（`e_app_at`）。
             let canonical = &ctor_canonical[i];
             let mut c_app = params.iter().fold(e_ident(canonical, ctor.span), |acc, p| {
-                e_app(acc, e_ident(&p.name, ctor.span), ctor.span)
+                crate::expr::e_app_at(acc, e_ident(&p.name, ctor.span), ctor.span)
             });
             c_app = d.fields.iter().fold(c_app, |acc, field| {
-                e_app(acc, e_ident(&field.name, ctor.span), ctor.span)
+                crate::expr::e_app_at(acc, e_ident(&field.name, ctor.span), ctor.span)
             });
             let mut body = e_ident(&motive, ctor.span);
             for index in &d.ctor_indices {

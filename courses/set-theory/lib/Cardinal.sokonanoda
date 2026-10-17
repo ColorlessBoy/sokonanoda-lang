@@ -71,17 +71,17 @@ theorem Type.Equiv.iff (α β : Type) :
 --   ② 宇宙：`Type : Sort 2` ⇒ 要 `Quot.{2}`（`Quot.{u}` 取 `A : Sort u`、
 --      返回 `Sort u`）⇒ `Quot.{2} ((Type)) … : Sort 2 = Type 1` ✓。
 def Cardinal : Type 1 :=
-  Quot.{2} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y)
+  @Quot.{2} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y)
 
 -- 一个类型的基数（Mathlib 的 `Cardinal.mk` / `#α`；记法 `#` 本版不做 —— 见文件尾）
 def Cardinal.mk (α : Type) : Cardinal :=
-  Quot.mk.{2} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y) α
+  @Quot.mk.{2} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y) α
 
 -- ── `Quot.sound` 的直接实例（**这就是"商"给的回报**）────────────────────────
 -- 等价的类型**基数相等** —— 证明是一行：`Quot.sound` 就是那条公理 ✓。
 theorem Cardinal.sound (α β : Type) (h : Type.Equiv α β) :
     Cardinal.mk α = Cardinal.mk β :=
-  Quot.sound.{2} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y) α β h
+  @Quot.sound.{2} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y) α β h
 
 -- ── `Quot.lift` 的实例：**从类型出发的函数降到商上** ────────────────────────
 -- 这是 `Cardinal` 上一切构造（算术、序）的模板：给出一个对类型定义的函数 `f`
@@ -91,14 +91,14 @@ theorem Cardinal.sound (α β : Type) (h : Type.Equiv α β) :
 def Cardinal.lift (β : Type) (f : Type → β)
     (h : ∀ (α₁ α₂ : Type), Type.Equiv α₁ α₂ → f α₁ = f α₂) :
     Cardinal → β :=
-  Quot.lift.{2, 1} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y) β f h
+  @Quot.lift.{2, 1} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y) β f h
 
 -- L2 展开引理：`Cardinal.lift f h (Cardinal.mk α)` 算成 `f α`（`Eq.refl` 判过 ⇒
 -- 归约真的发生 ✓ —— 这正是 ST2 判据的实战检验）
 theorem Cardinal.lift_mk (β : Type) (f : Type → β)
     (h : ∀ (α₁ α₂ : Type), Type.Equiv α₁ α₂ → f α₁ = f α₂) (α : Type) :
     Cardinal.lift β f h (Cardinal.mk α) = f α :=
-  Eq.refl.{1} β (f α)
+  @Eq.refl.{1} β (f α)
 
 -- ── 本版不做（记在这里，免得后来者重复踩）──────────────────────────────────
 -- · `#α` 记法：`#` 是**词法级的行注释起点** ⇒ `scoped prefix "#"` 会撞词法 ✗；
@@ -118,7 +118,7 @@ theorem Type.Equiv.of_inverses (α β : Type) (f : α → β) (g : β → α)
 theorem Type.Equiv.refl (α : Type) : Type.Equiv α α :=
   Exists.intro (fun (a : α) => a)
     (Type.Equiv.of_inverses α α (fun (a : α) => a) (fun (a : α) => a)
-      (fun (a : α) => Eq.refl.{1} α a) (fun (b : α) => Eq.refl.{1} α b))
+      (fun (a : α) => @Eq.refl.{1} α a) (fun (b : α) => @Eq.refl.{1} α b))
 
 -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
 -- 外层包装（S-B ✓）：把 `of_inverses` 的内层 `∃` 直接包成完整 `∃ f, ∃ g, …`
@@ -169,21 +169,21 @@ theorem Type.Equiv.comp_left_aux (α β γ : Type)
     (f₁ : α → β) (g₁ : β → α) (f₂ : β → γ) (g₂ : γ → β)
     (l₁ : ∀ (a : α), g₁ (f₁ a) = a) (l₂ : ∀ (b : β), g₂ (f₂ b) = b) (a : α) :
     g₁ (g₂ (f₂ (f₁ a))) = a :=
-  Eq.trans.{1} α (g₁ (g₂ (f₂ (f₁ a)))) (g₁ (f₁ a)) a  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-    (Eq.subst.{1} β (fun (t : β) => g₁ t = g₁ (f₁ a))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  @Eq.trans.{1} α (g₁ (g₂ (f₂ (f₁ a)))) (g₁ (f₁ a)) a  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.subst.{1} β (fun (t : β) => g₁ t = g₁ (f₁ a))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
       (f₁ a) (g₂ (f₂ (f₁ a)))
-      (Eq.symm.{1} β (g₂ (f₂ (f₁ a))) (f₁ a) (l₂ (f₁ a)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-      (Eq.refl.{1} α (g₁ (f₁ a))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (@Eq.symm.{1} β (g₂ (f₂ (f₁ a))) (f₁ a) (l₂ (f₁ a)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (@Eq.refl.{1} α (g₁ (f₁ a))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
     (l₁ a)
 
 theorem Type.Equiv.comp_right_aux (α β γ : Type)
     (f₁ : α → β) (g₁ : β → α) (f₂ : β → γ) (g₂ : γ → β)
     (r₁ : ∀ (b : β), f₁ (g₁ b) = b) (r₂ : ∀ (c : γ), f₂ (g₂ c) = c) (c : γ) :
     f₂ (f₁ (g₁ (g₂ c))) = c :=
-  Eq.trans.{1} γ (f₂ (f₁ (g₁ (g₂ c)))) (f₂ (g₂ c)) c  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-    (Eq.subst.{1} β (fun (t : β) => f₂ (f₁ (g₁ (g₂ c))) = f₂ t)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  @Eq.trans.{1} γ (f₂ (f₁ (g₁ (g₂ c)))) (f₂ (g₂ c)) c  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.subst.{1} β (fun (t : β) => f₂ (f₁ (g₁ (g₂ c))) = f₂ t)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
       (f₁ (g₁ (g₂ c))) (g₂ c) (r₁ (g₂ c))
-      (Eq.refl.{1} γ (f₂ (f₁ (g₁ (g₂ c))))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (@Eq.refl.{1} γ (f₂ (f₁ (g₁ (g₂ c))))))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
     (r₂ c)
 
 -- 复合律（`α ≈ β` 与 `β ≈ γ` 的互逆对逐条复合 ✓）
@@ -214,5 +214,5 @@ theorem Type.Equiv.trans (α β γ : Type)
 -- ⇒ 这条以前写不出（C-120 挡着 ✗），今天**一次判绿** ✓。
 theorem Cardinal.mk_inj (α β : Type) (h : Cardinal.mk α = Cardinal.mk β) :
     Type.Equiv α β :=
-  Quot.exact.{2} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y)
+  @Quot.exact.{2} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y)
     Type.Equiv.refl Type.Equiv.symm Type.Equiv.trans α β h

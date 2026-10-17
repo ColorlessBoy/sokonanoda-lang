@@ -33,6 +33,13 @@ use crate::ast::{BinderKind, Expr};
 /// `docs/gaps/repro/**`**，而那个目录**不在本棒的写者范围内** ⇒ 一翻默认
 /// `scripts/gap.py check` 当场判红 ✗。账见 `.cache/ux/fix-imp1/VERDICT.md`；
 /// 翻默认 + 语料迁移 = 子任务 `SUB-implicit-args-strict-default` ✓。
+///
+/// **a5（2026-10-17）· 第二处消费者**：`elab::operand_type_expr` 的 **pp 档**。那份文本是
+/// **内核 pp** 打的，回读成项后是「正常形式写满实参」的应用（实测
+/// `Eq (fst A B (P.mk A B a b)) a`）⇒ 严格档一律拒 ✗（**诊断落在 `line 1` = 文本坐标**，
+/// 正是"这份文本不是用户写的"的指纹 ✓）。全显式 pp 打的是 `@Eq α x a` ⇒ 回读即 `@` 形态
+/// ⇒ 逐位对齐 ✓；默认档恒 `false` ⇒ **逐字节不变** ✓。同族：`expr::e_app_at`（引擎装配的
+/// 全显式脊要自己标 `@` ✓）。
 pub(crate) fn strict_at_enabled() -> bool {
     matches!(
         std::env::var("SOKO_STRICT_AT").ok().as_deref(),

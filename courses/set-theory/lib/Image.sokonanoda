@@ -69,7 +69,7 @@ theorem Set.mem_preimage {α β : Type} (f : α → β) (B : Set β) (x : α) :
 theorem Set.image_mono {α β : Type} (f : α → β) (A B : Set α)
     (h : ∀ (x : α), A x → B x) : f '' A ⊆ f '' B :=
   fun (y : β) => fun (hy : y ∈ f '' A) =>
-    Exists.elim α (fun (x : α) => A x ∧ f x = y)
+    @Exists.elim α (fun (x : α) => A x ∧ f x = y)
       (y ∈ f '' B) hy
       (fun (x : α) => fun (hx : A x ∧ f x = y) =>
         Exists.intro x
@@ -81,16 +81,16 @@ theorem Set.image_mono {α β : Type} (f : α → β) (A B : Set α)
 -- 证明体同上：两个方向都要构造 `∃`，所以是一整条 `exact` 的证明项。
 theorem Set.image_subset_iff {α β : Type} (f : α → β) (A : Set α) (B : Set β) :
     f '' A ⊆ B ↔ A ⊆ f ⁻¹' B :=
-    Iff.intro (f '' A ⊆ B) (A ⊆ f ⁻¹' B)
+    @Iff.intro (f '' A ⊆ B) (A ⊆ f ⁻¹' B)
       (fun (h : f '' A ⊆ B) =>
         fun (x : α) => fun (hx : A x) =>
           h (f x) (Exists.intro x
-            (And.intro hx (Eq.refl.{1} β (f x)))))
+            (And.intro hx (@Eq.refl.{1} β (f x)))))
       (fun (h : A ⊆ f ⁻¹' B) =>
         fun (y : β) => fun (hy : y ∈ f '' A) =>
-          Exists.elim α (fun (x : α) => A x ∧ f x = y) (y ∈ B) hy
+          @Exists.elim α (fun (x : α) => A x ∧ f x = y) (y ∈ B) hy
             (fun (x : α) => fun (hx : A x ∧ f x = y) =>
-              Eq.subst.{1} β (fun (z : β) => z ∈ B) (f x) y
+              @Eq.subst.{1} β (fun (z : β) => z ∈ B) (f x) y
                 (And.right hx)
                 (h x (And.left hx))))
 
@@ -102,7 +102,7 @@ theorem Set.mem_image_intro {α β : Type} (f : α → β) (A : Set α) (y : β)
 
 theorem Set.mem_image_elim {α β : Type} (f : α → β) (A : Set α) (y : β) (C : Prop)
     (h : y ∈ f '' A) (k : ∀ (x : α), x ∈ A → f x = y → C) : C :=
-  Exists.elim α (fun (x : α) => x ∈ A ∧ f x = y) C
+  @Exists.elim α (fun (x : α) => x ∈ A ∧ f x = y) C
     ((fun (hs : ∃ (x : α), x ∈ A ∧ f x = y) => hs) h)
     (fun (x : α) (hx : x ∈ A ∧ f x = y) => k x (And.left hx) (And.right hx))
 

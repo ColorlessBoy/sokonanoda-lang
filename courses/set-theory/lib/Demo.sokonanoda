@@ -17,10 +17,10 @@ theorem demo_and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A := by
 
 -- Set：定义展开
 theorem demo_subset_unfold (α : Type) (A B : Set α) :
-    A ⊆ B ↔ ∀ (x : α), A x → B x :=  Set.subset_def α A B
+    A ⊆ B ↔ ∀ (x : α), A x → B x :=  @Set.subset_def α A B
 
 theorem demo_mem_powerset (α : Type) (A B : Set α) (h : B ⊆ A) :
-    B ∈ 𝒫 A :=  (Iff.mpr (Set.mem_powerset_iff α A B)) h
+    B ∈ 𝒫 A :=  (Iff.mpr (@Set.mem_powerset_iff α A B)) h
 
 -- Exists：真归纳（G-03 已修，0.59.0；规范名 Exists.intro + 由 Exists.rec 定义的 Exists.elim）
 -- 两条都写成 `by` + `exact` 的证明项：`apply Exists.intro` / `use w` 交完参数后，剩下的
@@ -28,16 +28,16 @@ theorem demo_mem_powerset (α : Type) (A B : Set α) (h : B ⊆ A) :
 -- 记着同一条边界）。`Exists.intro` / `Exists.elim`（IA-2 起带隐式 binder）都能靠
 -- 期望类型补出前导实参，所以两条都写短形式。
 theorem demo_exists_intro : ∃ (n : Nat), n = n := by
-  exact Exists.intro 0 (Eq.refl.{1} Nat 0)
+  exact Exists.intro 0 (@Eq.refl.{1} Nat 0)
 
 theorem demo_exists_elim (Q : Prop) (h : Q) : Q := by
   have hex : ∃ (n : Nat), n = n :=
-    Exists.intro 0 (Eq.refl.{1} Nat 0)
+    Exists.intro 0 (@Eq.refl.{1} Nat 0)
   exact Exists.elim hex (fun (w : Nat) => fun (_ : w = w) => h)
 
 -- Prod：inductive + 投影（G-02：构造子叫 prod_mk）
 theorem demo_prod_fst (A B : Type) (a : A) (b : B) :
-    Prod.fst A B (prod_mk A B a b) = a :=  Prod.fst_mk A B a b
+    Prod.fst A B (@prod_mk A B a b) = a :=  Prod.fst_mk A B a b
 
 -- Rel：关系词汇
 theorem demo_rel_inv_inv_apply (A B : Type) (r : Rel A B) (a : A) (b : B) :
@@ -45,11 +45,11 @@ theorem demo_rel_inv_inv_apply (A B : Type) (r : Rel A B) (a : A) (b : B) :
 
 -- Fun：函数词汇
 theorem demo_fun_comp_apply (α β γ : Type) (f : α → β) (g : β → γ) (x : α) :
-    (g ∘ f) x = g (f x) :=  Function.comp_apply α β γ g f x
+    (g ∘ f) x = g (f x) :=  @Function.comp_apply α β γ g f x
 
 -- Image：像与原像
 theorem demo_mem_preimage (α β : Type) (f : α → β) (B : Set β) (x : α) :
-    x ∈ f ⁻¹' B ↔ f x ∈ B :=  Set.mem_preimage α β f B x
+    x ∈ f ⁻¹' B ↔ f x ∈ B :=  @Set.mem_preimage α β f B x
 
 -- Equiv：等势（数据版，Prop 值；见 L-06）
 theorem demo_equiv_refl (α : Type) (A : Set α) : A ≈ A := by
@@ -59,6 +59,6 @@ theorem demo_equiv_refl (α : Type) (A : Set α) : A ≈ A := by
   intro x hx
   exact hx
   intro x hx
-  exact Eq.refl.{1} α x
+  exact @Eq.refl.{1} α x
   intro x hx
-  exact Eq.refl.{1} α x
+  exact @Eq.refl.{1} α x

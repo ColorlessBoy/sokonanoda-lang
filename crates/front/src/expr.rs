@@ -246,3 +246,19 @@ impl Expr {
         }
     }
 }
+
+/// **`@` 形态**的应用节点（`explicit_spine: true`）：整条脊**逐位显式** ⇒ 前端不插隐式实参。
+///
+/// **为什么需要它**（a5，2026-10-17）：`derive_recursor` 装配的 `C params fields` 把构造子
+/// 类型的**整条望远镜**逐位写全了 —— 那本来就是 `@` 形态（与 Lean 4 同款：构造子的参数层
+/// 是隐式的，`And.intro {a b} …`）⇒ 不标 `@` 就会被严格档当成「用户写了位置隐式实参」判红 ✗
+/// （`ctor` 声明整行编不过）。同族先例：`by.rs` 的 `NodeKind::Apply::explicit`（a4，只给
+/// 构造子糖置 `true` ✓ —— 一刀切会误伤 `apply Eq.subst` 的待推断位 ✗）。
+pub(crate) fn e_app_at(fun: Expr, arg: Expr, span: Span) -> Expr {
+    Expr::App {
+        fun: Box::new(fun),
+        arg: Box::new(arg),
+        explicit_spine: true,
+        span,
+    }
+}

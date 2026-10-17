@@ -192,7 +192,7 @@ theorem isRegular_apply (α : Type) (E : α → α → Prop) (h : IsRegular α E
 theorem isPair_mem_left (α : Type) (E : α → α → Prop) (x a b : α)
     (h : IsPair α E x a b) : E a x :=
   (fun (hp : ∀ (z : α), E z x ↔ (z = a ∨ z = b)) =>
-    Iff.mpr (hp a) (Or.inl (Eq.refl.{1} α a)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Iff.mpr (hp a) (Or.inl (@Eq.refl.{1} α a)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
     (Iff.mp (isPair_def α E x a b) h)
 
 -- 配对元素的刻画（同一取件子的另一方向 ✓）

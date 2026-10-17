@@ -100,12 +100,12 @@ theorem Rel.inv_inv_apply (A B : Type) (r : Rel A B) (a : A) (b : B) :
 -- 「期望 `Sort(0)`，实际是 `Sort(1)`」（实测；与 G-72 同一族，**登记在案等语言线修**）✓
 theorem rel_subst_left (α : Type) (r : α → α → Prop) (a b c : α) (h : a = c) :
     r b c → r b a :=
-  Eq.subst.{1} α (fun (x : α) => r b x) c a (Eq.symm.{1} α a c h)
+  @Eq.subst.{1} α (fun (x : α) => r b x) c a (@Eq.symm.{1} α a c h)
 
 -- 读法：把 `r a b` 沿 `b = c` 搬成 `r a c`（把等式的**右端**换掉）。
 theorem rel_subst_right (α : Type) (r : α → α → Prop) (a b c : α) (h : b = c) :
     r a b → r a c :=
-  Eq.subst.{1} α (fun (x : α) => r a x) b c h
+  @Eq.subst.{1} α (fun (x : α) => r a x) b c h
 
 -- 读法：**一元谓词**版（集合就是一元谓词：`Set α` = `α → Prop`）——
 -- `rel_subst_mem A h` 把 `A a` 沿 `a = b` 搬成 `A b` ✓（与上面两条同族：`r` 只剩一个槽）。
@@ -116,7 +116,7 @@ theorem rel_subst_right (α : Type) (r : α → α → Prop) (a b c : α) (h : b
 -- 用法：`rel_subst_mem α A a b h : A a → A b`（`h : a = b`；要反方向就 `Eq.symm h` ✓）。
 theorem rel_subst_mem (α : Type) (A : α → Prop) (a b : α) (h : a = b) :
     A a → A b :=
-  Eq.subst.{1} α (fun (x : α) => A x) a b h
+  @Eq.subst.{1} α (fun (x : α) => A x) a b h
 
 -- ── 三种闭包（Enderton §3.5 / Halmos §10 的词汇；L2：都是"一行定义"）──────────
 -- 读法（**关键是传递闭包那条**）：不断言"反复复合"（那要递归，本语言没有 ℕ 上的递归原则
@@ -219,7 +219,7 @@ theorem Rel.comp_mono {A B C : Type} (r r' : Rel A B) (s s' : Rel B C)
     (hr : ∀ (a : A) (b : B), r a b → r' a b) (hs : ∀ (b : B) (c : C), s b c → s' b c)
     (a : A) (c : C) (h : (r • s) a c) : (r' • s') a c :=
   (fun (hE : ∃ (b : B), r a b ∧ s b c) =>
-    Exists.elim B (fun (b : B) => r a b ∧ s b c)
+    @Exists.elim B (fun (b : B) => r a b ∧ s b c)
       ((r' • s') a c) hE
       (fun (b : B) (hb : r a b ∧ s b c) =>
         Exists.intro b
@@ -240,7 +240,7 @@ theorem Rel.comp_mono_right {A B C : Type} (r : Rel A B) (s s' : Rel B C)
 -- 逆的逆（S-B ✓ I.13）：**定义等式**（`Eq.refl` 级 ✓，无需 `Rel.ext`）
 -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
 theorem Rel.inv_inv (A B : Type) (r : Rel A B) : ((r ⁻¹) ⁻¹) = r :=
-  Eq.refl.{1} (Rel A B) r
+  @Eq.refl.{1} (Rel A B) r
 
 -- `r` 含于自己的传递闭包（S-B ✓ I.13）：`transClosure` 是 `∀ s, …` 形状 ⇒ **λ 落地**即可
 theorem Rel.subset_transClosure (α : Type) (r : Rel α α) :
@@ -381,7 +381,7 @@ theorem Rel.ofPartition_refl (α : Type) (P : (α → Prop) → Prop) (A : α �
 theorem Rel.ofPartition_symm (α : Type) (P : (α → Prop) → Prop) (a b : α)
     (h : Rel.ofPartition α P a b) : Rel.ofPartition α P b a :=
   (fun (hE : ∃ (A : α → Prop), P A ∧ A a ∧ A b) =>
-    Exists.elim (α → Prop) (fun (A : α → Prop) => P A ∧ A a ∧ A b)
+    @Exists.elim (α → Prop) (fun (A : α → Prop) => P A ∧ A a ∧ A b)
       (Rel.ofPartition α P b a) hE
       (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =>
         Exists.intro A
@@ -429,7 +429,7 @@ theorem Rel.ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (h : Rel.
 -- 写法：`Iff.intro` 的**前导两个命题实参写全**（分支里含记法/`def`-应用时补不出来 ⇒ 手册 G-30 ✓）。
 theorem Rel.inv_comp_apply {A B C : Type} (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
     (r • s) ⁻¹ c a ↔ (s ⁻¹ • r ⁻¹) c a :=
-  Iff.intro ((r • s) ⁻¹ c a) ((s ⁻¹ • r ⁻¹) c a)  -- soko:notation-ok: 前导命题实参补不出来（手册 G-30）
+  @Iff.intro ((r • s) ⁻¹ c a) ((s ⁻¹ • r ⁻¹) c a)  -- soko:notation-ok: 前导命题实参补不出来（手册 G-30）
     (fun (h : (r • s) ⁻¹ c a) =>
       Exists.elim h
         (fun (b : B) (hb : r a b ∧ s b c) =>
