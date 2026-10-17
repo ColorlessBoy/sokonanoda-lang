@@ -352,7 +352,20 @@ cmd_land() {
   # ⭐ rebase 已经把分支提交重写掉 ⇒ **紧接着**把收口指针回填 + 提交（见函数头：这是本脚本
   #   唯一能保证"land 之后立刻 --check=0 且工作区干净"的地方 ✓）。
   repoint_after_land "$id" || return $?
-  info "  收尾：scripts/agent-worktree.sh rm ${id}"
+  # ⭐⭐ **合完就删**（用户 2026-10-17 23:5x：「好蠢，合了之后 worktree 为什么不删」）✗→✓
+  #   旧代码在这里只 `info "  收尾：scripts/agent-worktree.sh rm ${id}"` ⇒ **提示不执行** ✗
+  #   ⇒ 合回之后那棵树**原地留着** ✗ ⇒ 实测 5 天堆 **55 个 / 76G**（只有 1 个 subagent 在跑 ✗，
+  #   51/55 是过去 5 天的、54/55 是死的 ✗）。本脚本自己的自述还写着"顺手防 worktree 残留" ✗
+  #   —— **它没做到** ✗，因为"防"只写在注释里、没写成这一步 ✓。
+  #   ⚠ 复用 `cmd_rm`（**一处定义** ✓）：它自带安全闸 = `git cherry $BASE $branch` 的 `+` 行
+  #   （判"活有没有进 $BASE"，**不是祖先性** ✗）⇒ **刚合完必过** ✓；真有未合回的提交**照样拒** ✓。
+  #   ⚠ `rm` 失败**不许**把 `land` 判失败：合回已经成功 ⇒ 只提示、返回 0 ✓。
+  info "→ 合完就删这棵树（避免 worktree 残留 ✗）"
+  if cmd_rm "$id"; then
+    info "✓ 已清掉 .worktrees/${id} 与分支 agent/${id}"
+  else
+    info "⚠ 清树失败（**合回本身是成功的** ✓）⇒ 手工：scripts/agent-worktree.sh rm ${id} --force"
+  fi
 }
 
 cmd_rm() {
