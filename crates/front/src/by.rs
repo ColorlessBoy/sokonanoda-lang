@@ -766,6 +766,10 @@ enum NodeKind {
     Apply {
         f: Expr,
         args: Vec<ApplyArg>,
+        /// **a4**：这条脊是**全显式**的（隐式位已由合一填好）⇒ 组装时标成 `@` 形态。
+        /// 只有 `constructor`/`left`/`right`/`use`（`ctor_tactic`）置 `true` ✗ ——
+        /// `apply` 的脊可能留着待推断的位，标成 `@` 会把 IA-1 的隐式插入关掉 ✗。
+        explicit: bool,
     },
     /// `cases`（设计 `docs/design/course-lean-style.md` L3.1）：降低成一个
     /// `match`——臂体是各自组装出来的项，递归子/iota 由**既有的 `match`
@@ -2100,6 +2104,7 @@ fn run_tactics<'a>(
                         span: *span,
                     },
                     args: vec![ApplyArg::TypeParam(goal_ty), ApplyArg::SubGoal(id)],
+                    explicit: false,
                 };
                 worklist.push(id);
             }
@@ -2855,6 +2860,7 @@ fn apply_tactic<'a>(
     nodes[cur].kind = NodeKind::Apply {
         f: expr.clone(),
         args,
+        explicit: false,
     };
     // 当前目标被 apply 消耗，不再是 worklist 顶（已 pop）。
     worklist.retain(|&x| x != cur);
@@ -3363,7 +3369,7 @@ fn node_body(nodes: &[GoalNode], id: usize, hole_span: Span, tactic_holes: &mut 
             body: Box::new(assemble(nodes, *body, hole_span, tactic_holes)),
             span: Span::default(),
         },
-        NodeKind::Apply { f, args } => {
+        NodeKind::Apply { f, args, explicit } => {
             let mut app = f.clone();
             for arg in args {
                 let arg_expr = match arg {
@@ -3373,7 +3379,7 @@ fn node_body(nodes: &[GoalNode], id: usize, hole_span: Span, tactic_holes: &mut 
                 app = Expr::App {
                     fun: Box::new(app),
                     arg: Box::new(arg_expr),
-                    explicit_spine: false,
+                    explicit_spine: *explicit,
                     span: f.span(),
                 };
             }
@@ -4003,6 +4009,12 @@ fn ctor_tactic<'a>(
     })(nodes, env);
     if let Some(node) = nodes.get_mut(cur) {
         node.ty = original;
+        // **a4**：构造子糖装配出的脊**覆盖了全部层**（隐式位由合一填好）⇒ 标成
+        // `@` 形态 ✓ —— 否则严格档把它当成"用户写了位置隐式实参"而判红
+        // （`constructor` 一行都没写实参，报错却说"你写了 4 个"✗）。
+        if let NodeKind::Apply { explicit, .. } = &mut node.kind {
+            *explicit = true;
+        }
     }
     result
 }
