@@ -538,9 +538,30 @@ mod tests {
     ///
     /// 三条机制一起给这个性质：① 载荷 `rename` **原子** ✓；② **凭据最后写** ✓；
     /// ③ 完整性三道（摘要不符 ⇒ miss ✓）。
+    ///
+    /// ## ⚠ 空转闸**不许**用"读者恰好命中过"（2026-10-17，`FLAKY-CONCURRENT-ARTIFACT-WRITERS-TEST`）
+    ///
+    /// 旧版把 `assert!(reads > 0)` 当空转闸，而**命中率是调度的函数**：读者在"读凭据"与
+    /// "读载荷"之间被换下 CPU 一次，那一轮就**必然** miss（凭据与载荷来自不同写者 ⇒
+    /// 第②道拦下 ✓）⇒ 那个计数**没有下界** ✗。实测（`crates/front/tests/zz_cw2_probe.rs`，
+    /// 同一份构建）：
+    /// * 空载本机 4000 轮命中 **336–417（8.4%–10.4%）**；加压到 64–128 个争用线程时
+    ///   **72%–83%**（**同一份代码，命中率跨一个数量级** ⇒ 它量的是机器，不是代码 ✗）；
+    /// * **写者被闸门挡住时 `hits == 0` 是确定性的**（4000/4000 miss，写者放行后
+    ///   `writes=269`、静默后 `read` 命中 ✓）⇒ **产品没有缺陷也能红** ✓；
+    /// * 决定性的一笔：**空仓时 4000 轮读只要 8.4 ms**，而写者从 `spawn` 到第一次落地要
+    ///   **0.86–11.7 ms**（本机实测，仅 64 个争用线程就撞到 11.7 ms）⇒ **两个区间重叠**
+    ///   ⇒ 共享 runner（2 核 + 1003 条用例并行）上 `reads == 0` 是常态，不是意外 ✓。
+    ///   CI（run `78cfcaac` 1001/1002 · run `f878f88a` 1002/1003）红的就是这一条。
+    ///
+    /// ⇒ 换成两条**与调度无关**的空转闸（**更强**，不是放宽）：① 写者真落地了几次
+    /// （结构计数 ✓，`AGENTS.md`「判据的两条硬规矩②」：绝对时序 ⇒ 结构计数/比值 ✓）；
+    /// ② **静默后**（写者全部 join）凭据与载荷**必然**自洽 ⇒ `read` **必须**命中
+    /// （旧版这里只是 `if let`，miss 就什么都不判 ⇒ 真空转 ✗）。**载荷不许被写撕**那条
+    /// 判据（4000 轮里每一次 `Some`）**一字未动** ✓。
     #[test]
     fn concurrent_writers_never_produce_a_torn_payload() {
-        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
         use std::sync::Arc;
 
         let root = temp_root("concurrent");
@@ -549,19 +570,23 @@ mod tests {
             .map(|i| format!("{}{}", "x".repeat(1000 + i * 777), i))
             .collect();
         let stop = Arc::new(AtomicBool::new(false));
+        // **结构计数**：写者真落地了几对 —— 空转闸的输入，与读者调度无关 ✓。
+        let landed = Arc::new(AtomicUsize::new(0));
         let mut handles = Vec::new();
         for p in payloads.clone() {
             let root = root.clone();
             let stop = Arc::clone(&stop);
+            let landed = Arc::clone(&landed);
             handles.push(std::thread::spawn(move || {
                 while !stop.load(Ordering::Relaxed) {
                     // 写失败不算错（并发下 `rename` 竞争 ✓），只是这一轮不写。
-                    let _ = write(&root, KEY, &p, &options());
+                    if write(&root, KEY, &p, &options()).is_ok() {
+                        landed.fetch_add(1, Ordering::Relaxed);
+                    }
                 }
             }));
         }
         // 读侧：任何一次"读到了"的东西都必须是**某一份完整载荷** ✓。
-        let mut reads = 0usize;
         for _ in 0..4000 {
             if let Some(got) = read(&root, KEY, &options()) {
                 assert!(
@@ -569,21 +594,24 @@ mod tests {
                     "读到了**不完整/混合**的载荷（长度 {}）⇒ 原子性与完整性三道都没拦住 ✗",
                     got.len()
                 );
-                reads += 1;
             }
         }
         stop.store(true, Ordering::Relaxed);
         for h in handles {
             h.join().expect("writer thread");
         }
+        // ② 不许空转（**结构计数**版）：写者真落地过 ⇒ 判据打在生效点上 ✓。
         assert!(
-            reads > 0,
-            "整段并发里一次都没读到 ⇒ 用例没打在判据生效点上（空转 ✗）"
+            landed.load(Ordering::Relaxed) > 0,
+            "四位写者一次都没写成 ⇒ 判据没打在生效点上（空转 ✗）"
         );
-        // 收尾也要么是某一份完整的、要么不存在 ✓。
-        if let Some(last) = read(&root, KEY, &options()) {
-            assert!(payloads.contains(&last), "收尾读到了混合载荷 ✗");
-        }
+        // ③ 静默后**必须**读得到（**确定性**版，且比"读者恰好命中过"更强）：写者全停了
+        //    ⇒ 磁盘上那一对必然自洽 ⇒ 三道全过 ⇒ **不许**是 miss ✓。
+        let last = read(&root, KEY, &options()).expect(
+            "写者全部停下后凭据与载荷必然自洽 ⇒ `read` 必须命中\
+             （miss = 读侧根本没被打在生效点上，空转 ✗）",
+        );
+        assert!(payloads.contains(&last), "收尾读到了混合载荷 ✗");
         let _ = std::fs::remove_dir_all(&root);
     }
 
