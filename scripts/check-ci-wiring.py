@@ -643,10 +643,13 @@ HISTORY_DEPENDENT: list[tuple[str, str]] = [
     ("scripts/check-guard-bite.py",
      "C1 覆盖面算 `git diff <coverage_since>..HEAD`（基线 = 台账抬头的 `# coverage_since:`）"
      "；浅克隆实测 rc=3"),
-    ("scripts/check-attention-budget.py",
-     "簿记窗口 = 固定锚点..HEAD（`git log`）；浅克隆实测 rc=3"),
-    ("scripts/check-threshold-ratchet.py",
-     "开轮纪律 = 基点之后的提交数（`git log`）；浅克隆实测 rc=1"),
+    # ⚠ **2026-10-17 改名**（第 6 轮 `gs6`：`check-attention-budget.py` +
+    # `check-threshold-ratchet.py` 合并成 `check-budgets.py` ✓，`SUB-narrow-guards-to-one-layer` ②）
+    # —— 两层**各自**都要全历史（`--layer attention` 的簿记窗口 = 固定锚点..HEAD；
+    # `--layer threshold` 的开轮纪律 = 基点之后的提交数）⇒ 合并后**一条**登记覆盖两层 ✓。
+    ("scripts/check-budgets.py",
+     "**两层都要**：层① 的簿记窗口 = 固定锚点..HEAD（`git log`；浅克隆实测 rc=3）**+** "
+     "层② 的开轮纪律 = 基点之后的提交数（`git log`；浅克隆实测 rc=1）"),
     ("scripts/check-queue-integrity.py",
      "**两层都要**：复核层 C4 的祖先性断言（`git merge-base --is-ancestor`；浅克隆实测 rc=1）"
      "**+** 触发器层的咬住证明打在**固定旧 rev** 上（`--bite` ⇒ `git cat-file`/`git show <rev>:…`；"

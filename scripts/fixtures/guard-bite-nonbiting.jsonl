@@ -5,8 +5,13 @@
 #   ① `bite.cmd = true` 而 `expect_rc = 1` ⇒ 「期望它报红、它却返回 0」（**守卫空了** ✗）
 #   ② 另一条 `bite.expect_rc = 0` ⇒ 「它**咬不住**」（咬住证明必须是「坏输入 ⇒ 非 0」✗→✓）
 #
+# ⚠ **2026-10-17**（第 6 轮 `gs6`）：本行原点名 `scripts/check-attention-budget.py`，它已并进
+#   `scripts/check-budgets.py` ⇒ 换成新名 ✓ —— ⚠ **不是**为了好看：点一个**不存在**的守卫时，
+#   C2 印的是「**不在仓库里**（台账点名了一个不存在的守卫）」，而那条咬住证明的 grep 钉的是
+#   「**咬不住它声称咬住的那条坏输入**」⇒ grep 落空 ⇒ 证明 `exit 0` ⇒ C2 判红 ✗（实测踩到 ✓）。
+#
 # ⚠ `coverage_since: HEAD` 是**故意**的：`HEAD..HEAD` 是空范围 ⇒ **C1 覆盖为空**
 #   ⇒ 判红**只可能**来自 C2（「咬不住」那两条）⇒ 这条夹具**只考 C2**，不靠 C1 混过去 ✓。
 # coverage_since: HEAD
-{"guard": "scripts/check-attention-budget.py", "bug": "故意：`bite` 期望报红，命令却返回 0（= **守卫空了**，假绿 ✗）", "pass": {"cmd": "true", "expect_rc": 0}, "bite": {"cmd": "true", "expect_rc": 1}}
+{"guard": "scripts/check-budgets.py", "bug": "故意：`bite` 期望报红，命令却返回 0（= **守卫空了**，假绿 ✗）", "pass": {"cmd": "true", "expect_rc": 0}, "bite": {"cmd": "true", "expect_rc": 1}}
 {"guard": "scripts/ux-queue.py", "bug": "故意：`bite.expect_rc = 0` ⇒ **它咬不住**（咬住证明必须是「坏输入 ⇒ 非 0」✗→✓）", "pass": {"cmd": "true", "expect_rc": 0}, "bite": {"cmd": "true", "expect_rc": 0}}

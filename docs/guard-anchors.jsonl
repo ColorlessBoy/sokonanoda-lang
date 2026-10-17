@@ -54,8 +54,7 @@
 {"kind": "guard", "guard": "scripts/check-guard-bite.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量别的判据：每条守卫必须咬住一条已存在的坏输入（+ 本轮的锚/预算）"}
 {"kind": "guard", "guard": "scripts/check-timing-evidence.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量提交信息里有没有计时数字（证据完备性，不是产品）"}
 {"kind": "guard", "guard": "scripts/check-lean4-alignment.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量提交信息/交付里有没有「先读 Lean 4」的对照记录", "faces": {"ci": {"witness": "pre-push-object"}}}
-{"kind": "guard", "guard": "scripts/check-threshold-ratchet.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量别的判据的上限：装饰性阈值（贴在实测上方 ⇒ 永远绿）"}
-{"kind": "guard", "guard": "scripts/check-attention-budget.py", "class": "B", "anchors": ["A-PRODUCT-PROGRESS"], "why": "量流程本身：簿记提交占比 / 比值（ratchet）"}
+{"kind": "guard", "guard": "scripts/check-budgets.py", "class": "B", "anchors": ["A-PRODUCT-PROGRESS", "A-REPORT-TRUTH"], "why": "**一本登记表 + 一个驱动器**（`--layer attention|threshold`）：两条 ratchet **各自成条**（层① 簿记提交占比/比值 · 层② 横向 7 处装饰性阈值），但关注点是**同一条**「某个上限/预算的当前值 + 排程收紧」⇒ 合成一条 B（B 17→16；`SUB-narrow-guards-to-one-layer` ② · 第 6 轮 `gs6`）"}
 {"kind": "guard", "guard": "scripts/check-frozen-headroom.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量预算余量：强制追加类不许把冻结余量吃到 0"}
 {"kind": "guard", "guard": "scripts/docs-lint.py", "class": "B", "anchors": ["A-PRODUCT-PROGRESS"], "why": "量文档体量 + 接手路径行数 + ⑨ 源码行数冻结（冻结会管住「代码该放哪」⇒ 见 why 的备注）"}
 {"kind": "guard", "guard": "scripts/status-lint.py", "class": "B", "anchors": ["A-PRODUCT-PROGRESS"], "why": "量 STATUS.md 的体量与形状（注意力预算）"}

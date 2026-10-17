@@ -393,9 +393,9 @@ jobs:
         # **一份**（`docs/attention-budget-ratchet.json`）—— `ci-local.sh` 的 step 标签
         # 必须用 `--label` 从状态读（改前写死种子常量 ⇒ 印的是上一轮的 caps ✗）。
         run: |
-          python3 scripts/check-attention-budget.py --seam
-          python3 scripts/check-attention-budget.py --selftest
-          python3 scripts/check-attention-budget.py
+          python3 scripts/check-budgets.py --layer attention --seam
+          python3 scripts/check-budgets.py --layer attention --selftest
+          python3 scripts/check-budgets.py --layer attention
       - name: "横向阈值 ratchet（7 个装饰性上限：状态不变量 + 接缝 + 开轮纪律）"
         # 2026-10-16 · 用户 2026-10-15【②】的**横向**落地（`SUB-correct-the-orchestrator-incentives`）：
         # 上面那步是**簿记**的两档；本步是**横向**那批**装饰性阈值**（上限贴在实测上方 ⇒ 永远绿 ✗）——
@@ -410,8 +410,8 @@ jobs:
         # 要求读数落进**收紧后**的上限 ⇒ **红有出路**（把指标压下去 ✓），不是假红生成器 ✓。
         # ⚠ 浅克隆 ⇒ rc=3 + 人话（绝不静默判过 ✗）；本 job 有 `fetch-depth: 0` ✓。
         run: |
-          python3 scripts/check-threshold-ratchet.py --selftest
-          python3 scripts/check-threshold-ratchet.py
+          python3 scripts/check-budgets.py --layer threshold --selftest
+          python3 scripts/check-budgets.py --layer threshold
       - name: "咬住证明（新守卫必须自带「已存在的坏输入 ⇒ 报非 0」）"
         # 2026-10-16 · 用户 2026-10-15【④】：「停止'守卫的守卫' ⇒ 出路是端到端判据」——
         # **任何新守卫必须自带"咬住证明"**（一条**已存在的坏输入**被它咬住 + 跑给人看）✓。

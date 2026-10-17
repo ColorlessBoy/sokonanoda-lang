@@ -153,7 +153,7 @@
     C3 两层不漂移 · C4 指针祖先性（折过 `repoint` 的**最终**指针）· C5 证据可独立复算
     **ratchet** · C6 外部性自证）。同族两条：**收口证据必须可独立复算**（命令或仓库内路径；
     只指 `.cache/**`（git 忽略）**不算** —— 实测 **179/199 = 90%** 的收口证据复算不了 ✗）·
-    **簿记预算** `python3 scripts/check-attention-budget.py`（⭐ **2026-10-16 起是真 ratchet**
+    **簿记预算** `python3 scripts/check-budgets.py --layer attention`（⭐ **2026-10-16 起是真 ratchet**
     —— 用户 2026-10-15【②】）：**本轮生效的两档在 `docs/attention-budget-ratchet.json`**
     （tracked ⇒ 逐轮读数进 git ✓），由 `--open-round` **每轮降一档**（`SHARE_MAX` 每轮
     −2 个百分点 ✓），红线定义 = 「**本轮没比上轮低 ⇒ 判红**」✗→✓；**种子仍是

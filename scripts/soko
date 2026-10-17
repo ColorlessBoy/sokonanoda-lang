@@ -2109,7 +2109,7 @@ async function main(argv) {
       // ⚠ 默认跑 = 读数 vs **本轮生效**的 caps（状态 `docs/attention-budget-ratchet.json`）
       //   + **开轮纪律**（基点之后落太多笔还没开轮 ⇒ 判红 ⇒ ratchet 不许空转 ✓）。
       // 实测 ~1.5 秒 ⇒ `--fast` 也跑 ✓。
-      const attentionBudget = path.join(REPO, 'scripts', 'check-attention-budget.py')
+      const attentionBudget = path.join(REPO, 'scripts', 'check-budgets.py')
       if (!existsSync(attentionBudget)) {
         process.stderr.write(
           `scripts/soko gate: 找不到 ${path.relative(REPO, attentionBudget)} —— 簿记预算无法判定（exit 3）。\n`,
@@ -2117,7 +2117,9 @@ async function main(argv) {
         return 3
       }
       for (const extra of [[], ['--selftest']]) {
-        const step = spawnSync(python.cmd, [...python.args, attentionBudget, ...extra], {
+        // ⚠ **点名层**（第 6 轮 `gs6`：两条 ratchet 合成一个驱动器 ⇒ 一条红只属于一层 ✓）。
+        const step = spawnSync(
+          python.cmd, [...python.args, attentionBudget, '--layer', 'attention', ...extra], {
           stdio: 'inherit',
           cwd: REPO,
         })

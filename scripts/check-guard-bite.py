@@ -1549,8 +1549,8 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
             #   证明**自身的输出**必须**单独一行**印（旧版拼在 `✓` 行尾巴上 ✗）——
             #   它里面**故意**可能带着 `C2 ✗`：本文件自己的 `bite` 就是拿
             #   **故意咬不住**的夹具（`scripts/fixtures/guard-bite-nonbiting.jsonl`）跑的 ✓，
-            #   而那份夹具点名的守卫正是 `scripts/check-attention-budget.py` ⇒ 旧输出里出现
-            #   `✓ … ⇒ · **C2** ✗：`scripts/check-attention-budget.py` 的 `bite` rc=0（期望 1）`
+            #   而那份夹具点名的守卫（2026-10-17 起 = `scripts/check-budgets.py` ✓）⇒ 旧输出里出现
+            #   `✓ … ⇒ · **C2** ✗：`scripts/check-budgets.py` 的 `bite` rc=0（期望 1）`
             #   ⇒ 人和 agent 都把它读成**本跑判红**（实测：一条 high 队列条目 + 一次
             #   「`--check --all` rc=1」的结论就是这么来的 ✗ —— 那一跑的 rc 其实是 **0**）。
             #   ⇒ 判据行**只**放本跑的判据 ✓；证明自述另起一行、带 `↳` 与「不是本跑的判据」✓。
@@ -2015,7 +2015,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         nonbiting = tmp / "nonbiting.jsonl"
         nonbiting.write_text(
             f"# coverage_since: {head}\n"
-            + json.dumps({"guard": "scripts/check-attention-budget.py",
+            + json.dumps({"guard": "scripts/check-budgets.py",
                           "bug": "故意：bite 命令永远返回 0（= 咬不住）",
                           "pass": {"cmd": "true", "expect_rc": 0},
                           "bite": {"cmd": "true", "expect_rc": 0}},
@@ -2027,7 +2027,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         lying = tmp / "lying.jsonl"
         lying.write_text(
             f"# coverage_since: {head}\n"
-            + json.dumps({"guard": "scripts/check-attention-budget.py",
+            + json.dumps({"guard": "scripts/check-budgets.py",
                           "bug": "故意：期望它报红，它却返回 0",
                           "pass": {"cmd": "true", "expect_rc": 0},
                           "bite": {"cmd": "true", "expect_rc": 1}},
@@ -2040,7 +2040,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         broken = tmp / "broken.jsonl"
         broken.write_text(
             f"# coverage_since: {head}\n"
-            + json.dumps({"guard": "scripts/check-attention-budget.py",
+            + json.dumps({"guard": "scripts/check-budgets.py",
                           "bug": "故意：守卫自己坏了",
                           "pass": {"cmd": "false", "expect_rc": 0},
                           "bite": {"cmd": "false", "expect_rc": 1}},
@@ -2051,7 +2051,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         # ── 反向④：**C1 覆盖** —— 范围内有守卫但台账里没有 ⇒ 必须判红 ──────
         # 夹具：`--since` 指向一个真守卫被改过的提交 ⇒ 范围非空；台账空 ⇒ 必红。
         out, _e = _git(ROOT, ["log", "--format=%H", "--diff-filter=AMR",
-                              "-1", "--", "scripts/check-attention-budget.py"])
+                              "-1", "--", "scripts/check-budgets.py"])
         touch = out.strip().splitlines()[-1] if out.strip() else ""
         if touch:
             empty_ledger = tmp / "empty.jsonl"
@@ -2085,7 +2085,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         ghost = tmp / "ghost-job.jsonl"
         ghost.write_text(
             f"# coverage_since: {head}\n"
-            + json.dumps({"guard": "scripts/check-attention-budget.py",
+            + json.dumps({"guard": "scripts/check-budgets.py",
                           "ci_job": "no-such-job-in-ci-yml",
                           "bug": "故意：把证明声明到一个不存在的 CI job（= 藏起来）",
                           "pass": {"cmd": "true", "expect_rc": 0},
@@ -2099,7 +2099,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         unwired = tmp / "unwired-job.jsonl"
         unwired.write_text(
             f"# coverage_since: {head}\n"
-            + json.dumps({"guard": "scripts/check-attention-budget.py",
+            + json.dumps({"guard": "scripts/check-budgets.py",
                           "ci_job": "lint-fmt",
                           "bug": "故意：job 是真的，但里面没有 `--job lint-fmt` 那一跑",
                           "pass": {"cmd": "true", "expect_rc": 0},
@@ -2125,7 +2125,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
             return r
 
         def _c4_entry(job: str = DEFAULT_JOB) -> list[dict]:
-            return [{"guard": "scripts/check-attention-budget.py", "ci_job": job,
+            return [{"guard": "scripts/check-budgets.py", "ci_job": job,
                      "bug": "夹具：C4 的「真的跑」口径（第 6 轮收窄）",
                      "pass": {"cmd": "true", "expect_rc": 0},
                      "bite": {"cmd": "false", "expect_rc": 1}}]
@@ -2177,7 +2177,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
                 p = tmp / name
                 p.write_text(
                     f"# coverage_since: {head}\n"
-                    + json.dumps({"guard": "scripts/check-attention-budget.py",
+                    + json.dumps({"guard": "scripts/check-budgets.py",
                                   "bug": f"故意：钉一个 rev（{rev[:12]}）",
                                   "pass": {"cmd": "true", "expect_rc": 0},
                                   # `bite` 恒 rc=1 ⇒ C2 放行 ⇒ 判红只可能来自 C5 ✓
@@ -2289,7 +2289,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
     # ── 正对照：**真坏输入**被咬住的形状（`--until c82097fe` = 历史最差点）──
     entries2, _cs2, _e2 = load_ledger(LEDGER)
     hist = next((e for e in entries2
-                 if e["guard"].endswith("check-attention-budget.py")), None)
+                 if e["guard"].endswith("check-budgets.py")), None)
     if hist:
         rc_h, tail_h = run_proof(hist["bite"]["cmd"], ROOT)
         gate("⭐ 正对照：**历史最差点**（`--until c82097fe` ⇒ 19.32 : 1）**真被咬住**",
@@ -2299,7 +2299,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         if rc_h != 0:
             print(f"      ↳ 证明自身的输出（**不是本跑的判据** ✓）：{tail_h[:100]}")
     else:
-        gate("⭐ 正对照：历史最差点被咬住", False, "台账里没有 check-attention-budget 那一行 ✗")
+        gate("⭐ 正对照：历史最差点被咬住", False, "台账里没有 check-budgets 那一行 ✗")
 
     print(f"\n自检：{'✓ 全过' if bad == 0 else f'✗ {bad} 组不对'}"
           f"（正对照 {tally.get('正对照', 0)} + 反向 {tally.get('反向', 0)} + 真跑台账；"
@@ -2324,8 +2324,8 @@ def main(argv=None) -> int:
                          f"`{JOB_ALL}` = 不分工，开发机一次全跑 ✓）。"
                          f"⚠ 每个 `ci_job` 都必须在 `ci.yml` 里**真的有一跑** ⇒ 否则 C4 判红 ✗")
     ap.add_argument("--check", action="store_true",
-                    help="（默认动作；显式写出来给调用方用 ✓ —— `check-attention-budget.py "
-                         "--open-round` 就是这么调的 ✓）")
+                    help="（默认动作；显式写出来给调用方用 ✓ —— `check-budgets.py "
+                         "--layer attention --open-round` 就是这么调的 ✓）")
     ap.add_argument("--list", action="store_true", help="只印覆盖情况（含 grandfathered 清单 + A/B 分类）")
     ap.add_argument("--counts", action="store_true",
                     help="只印 A/B/锚/上限/两面的**机器可读**计数（JSON；给 ratchet 读数用 ✓）")

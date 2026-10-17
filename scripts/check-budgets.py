@@ -1,5 +1,339 @@
 #!/usr/bin/env python3
-"""**簿记预算**：别让"关于工作的账"吃掉注意力（ratchet，照 `docs-budget.json` 的先例 ✓）。
+"""**预算 / ratchet 判据**（一本登记表 + 一个驱动器；第 6 轮 `gs6` 合并 ✓）。
+
+## 这个文件是什么（`SUB-narrow-guards-to-one-layer` ②「预算/ratchet 守卫」）
+
+合并前是**两条** B 类守卫，量的是**同一条判据**：「**某个上限/预算的当前值 + 排程收紧**」：
+
+  · `scripts/check-attention-budget.py` —— **簿记预算**（B1 生成物/台账 : 产品 · B2 簿记提交占比）
+    的 ratchet，状态 = `docs/attention-budget-ratchet.json` ⇒ 本文件的**层① `attention`**
+    （docstring 原文见下面的 `_DOC_ATTENTION` ✓）；
+  · `scripts/check-threshold-ratchet.py` —— **横向 7 处装饰性阈值**的 ratchet，
+    状态 = `docs/threshold-ratchet.json` ⇒ 本文件的**层② `threshold`**
+    （docstring 原文见 `_DOC_THRESHOLD` ✓）。
+
+⇒ **一个驱动器**（`main()`）按 `--layer` 分派；**两层的判据正文逐字保留** ✓（只改了名与
+`_produced` 标记，见 `.cache/ux/fix-gs6/VERDICT.md` 的逐条对账 ✓）。
+
+## ⚠ 两条**不许混成一条**的红（本文件的形状就是为它设计的 ✗）
+
+`gs5` §8 候选 ② 的原话：**「注意 `check-threshold-ratchet.py` 有"本轮必须变好"的棘轮语义
+—— 合并时别让它变成"两件事一起判、一件坏了另一件也红"」**。⇒ 落法：
+
+  · **每条预算 = 一个条目 + 它自己的状态文件** ✓（**状态不并成一份** ✗ —— 照
+    `check-drift.py` 三层各带自己夹具的先例 ✓）；
+  · **接线点一律点名层**（`--layer attention` / `--layer threshold`）⇒ 一条红**只属于一层**
+    ✓（读数可归属 —— 与 `ng7` 的"提及 ≠ 跑"、`gs5` 的 `--layer` 分派同一条纪律 ✓）；
+  · 默认（不带 `--layer`）= 两层各判各的、**各印各的判据行** ✓（只为人在本机用；CI / gate /
+    `ci-local.sh` **不**用它 ✓）。
+
+## 登记表（`CRITERIA` ⇄ `REQUIRED_ASSERTIONS`；唯一一处 ✓）
+
+`CRITERIA` 逐条写「**哪一层 · 绿路还是自检臂 · 判什么 · 入口函数**」；
+`REQUIRED_ASSERTIONS` 是**冻结的期望**（与登记表**分开写** ⇒ 删一条要改两处、评审看得见 ✓，
+照 `gs2`/`gs3`/`gs4`/`gs5` 的先例 ✓）。`registry_problems()` 逐条对账：
+**缺登记** / **未登记进期望** / **没牙**（入口不可调用）/ **登记了却没有产出点** ⇒ 判红 ✗。
+
+## ⭐⭐ 断言产出（`gs3` 的 (v)：**真绿跑必须把全部断言产出** ✓）
+
+每个判据的**评估点**上都有一句 `_produced("<id>")`（`_PRODUCED` 关着时是**空操作** ✓ ⇒
+判据被别处 import 时**零副作用** ✓）。跑 `--selftest` 时：
+
+  · **绿路**（该层 CI 接线的那几条动作，**真跑**、输出捕获）必须产出全部 `green` 断言 ✓；
+  · **自检臂**必须产出全部 `selftest` 断言 ✓；
+  ⇒ **只删代码里的断言（登记表留着）⇒ 当场判红**（"断言缺产出" ✗）✓
+  —— 与 `gs5` §4 §C ② 的那条读数**逐字同族** ✓。
+
+## 用法
+
+```bash
+python3 scripts/check-budgets.py                                  # 两层各判各的（人在本机用）
+python3 scripts/check-budgets.py --layer attention                # 只判簿记预算 ratchet
+python3 scripts/check-budgets.py --layer threshold                # 只判横向阈值 ratchet
+python3 scripts/check-budgets.py --layer attention --seam         # 层① 的接缝（caps 只许有一份）
+python3 scripts/check-budgets.py --layer attention --label        # 层① 的 step 标签（从状态读）
+python3 scripts/check-budgets.py --layer threshold --measure      # 层② 的 7 个读数
+python3 scripts/check-budgets.py --layer <层> --selftest          # 该层的自检臂 + 登记表 + 断言产出
+python3 scripts/check-budgets.py --selftest                       # 登记表 + **两层**自检 + 两层的断言产出
+python3 scripts/check-budgets.py --layer attention --until <旧 rev> --state <旧状态> --head-rev <旧 rev>
+python3 scripts/check-budgets.py --layer threshold --source-rev <旧 rev>   # 咬住证明：打在历史版本上
+```
+
+## 退出码
+
+  0 = 绿 / 1 = 判红 / 2 = 用法错 / 3 = 环境错（状态缺失/坏 · 浅克隆 ⇒ **不假装判过** ✗）
+  ⚠ `--layer all`（默认）：任一层红 ⇒ 1；任一层环境错 ⇒ 3（**两层各自的判据行照印** ✓）。
+
+## 如实划的边界 ✗
+
+  1. 两层各自保留**自己的状态文件**与**自己的 CLI 动作集**（`--label`/`--seam`/`--until` 属层①，
+     `--measure`/`--target-root` 属层②）⇒ 带参数的动作用 `--layer <层>` **显式**点名 ✓
+     （两层同名的 `--state`/`--json`/`--init`/`--open-round`/`--source-rev` 由层的 argparse 各自解释 ✓）。
+  2. `threshold_ratchet.state_problems()` / `seam_problems()` 的**正文在库里**
+     （`scripts/threshold_ratchet.py` —— 7 个消费点共用 ⇒ **不许**在库里插记录器 ✗）⇒
+     层② 登记的是「**这一层真的调了它**」那一格；库内逐条不变量由层② `--selftest` 的
+     **反向臂**（`T-STATE-ARMS` / `T-OPEN-GATE` / `T-SEAM-REV` / `T-LABEL-ARMS`）咬住
+     —— 库里删掉一条检查 ⇒ 那条臂**当场判红** ✓（比"缺产出"更强 ✓）。
+  3. 登记表的期望与登记表在**同一个文件**里（同 `gs2`–`gs5` 的边界 ✓）：删一条要改两处；
+     真正的外部记录是 `docs/guard-bite.jsonl` 那一行（写的是**坏输入**与**命令** ✓）。
+"""
+from __future__ import annotations
+
+import argparse
+import collections
+import contextlib
+import datetime
+import importlib.util
+import io
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
+import threshold_ratchet as R  # noqa: E402  （同目录库：层② 的登记表 / 状态 / 接缝 ✓）
+
+ROOT = Path(__file__).resolve().parent.parent
+# ⚠ **唯一一处**（判例 iv）：原文**两处各写一遍**（层① :173 与层② :62，值都是 40、
+#   语义都是"基点之后落这么多笔还没开轮 ⇒ 判红"）⇒ 合并成一个 ✓。
+ROUND_MAX_COMMITS = 40
+
+LAYERS = ("attention", "threshold")
+# 层② 的默认状态文件（原文 `STATE = R.STATE` ✓ —— 库 `threshold_ratchet.STATE` 是
+# **唯一一处**定义 ✓；层① 的 `RATCHET_STATE` 还在层① 的正文里 ✓ ⇒ **两份状态各自成条** ✓）。
+THRESHOLD_STATE = R.STATE
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 断言产出记录器（判例 v；**唯一一处** ✓）
+# ═══════════════════════════════════════════════════════════════════════════
+_PRODUCED: set[str] | None = None
+"""`None` = 记录器**关着**（默认 ⇒ `_produced()` 是空操作，零副作用 ✓）；
+跑 `--selftest` 时开成 `set()` ⇒ 每个判据的评估点往里记一条 ✓。"""
+
+
+def _produced(assertion_id: str) -> None:
+    """记一条断言**这一次真的跑到了**（`gs3` 的 (v) ✓）。**唯一一处** ✓。"""
+    if _PRODUCED is not None:
+        _PRODUCED.add(assertion_id)
+
+
+@contextlib.contextmanager
+def recording():
+    """开着记录器跑一段 ⇒ `yield` 一个 set（跑完自动关 ✓，异常也关 ✓）。"""
+    global _PRODUCED
+    assert _PRODUCED is None, "记录器不许嵌套（嵌套会把两段的产出混在一起 ✗）"
+    _PRODUCED = set()
+    try:
+        yield _PRODUCED
+    finally:
+        _PRODUCED = None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 登记表（**唯一一处** ✓）
+# ═══════════════════════════════════════════════════════════════════════════
+# ⚠ `kind`：`green` = 该层**CI 接线的那几条动作真跑**就必须产出的断言；
+#           `selftest` = 只有自检臂（反向验证 / 真夹具）才跑到的那批 ✓。
+CRITERIA: dict[str, dict] = {
+    # ── 层① attention（原文 `scripts/check-attention-budget.py`）──────────────
+    "A-STATE": {"layer": "attention", "kind": "green", "entry": "state_load",
+                "what": "ratchet 状态可读（缺失/坏 ⇒ 不假装判过 ✗，rc=3）"},
+    "A-BUCKET": {"layer": "attention", "kind": "green", "entry": "bucket",
+                 "what": "分桶口径（gen / tools / product / docs；12 格自检钉住它）"},
+    "A-B1": {"layer": "attention", "kind": "green", "entry": "judge",
+             "what": "B1 生成物/台账 : 产品 vs **本轮**红线/告警线（两档）"},
+    "A-B2": {"layer": "attention", "kind": "green", "entry": "judge",
+             "what": "B2 簿记类提交占比 vs **本轮**红线/告警线（两档）"},
+    "A-IDLE": {"layer": "attention", "kind": "green", "entry": "judge_round",
+               "what": "开轮纪律：基点后 > ROUND_MAX_COMMITS 未开轮 ⇒ 有出路判红 / 没出路只告警"},
+    "A-LABEL": {"layer": "attention", "kind": "green", "entry": "caps_label",
+                "what": "step 标签与判据**同源**（数字来自 caps，不是模块常量 ✓）"},
+    "A-SEAM-MARK": {"layer": "attention", "kind": "green", "entry": "attention_seam_problems",
+                    "what": "3 个消费点在**命令层**真的调判据（含 ①b「提及不算读」）"},
+    "A-SEAM-LIT": {"layer": "attention", "kind": "green", "entry": "attention_seam_problems",
+                   "what": "消费点里没有 caps 的字面量（第二份真相 ✗）"},
+    "A-TIGHTEN": {"layer": "attention", "kind": "selftest", "entry": "tighten",
+                  "what": "排程收紧：40 档单调不增 + 永不高于种子 + floor 低于种子"},
+    "A-ADVANCE-DOWN": {"layer": "attention", "kind": "selftest", "entry": "advance_round",
+                       "what": "开轮①：读数必须**严格下降**（没降 / 变坏 ⇒ 判红）"},
+    "A-ADVANCE-USER": {"layer": "attention", "kind": "selftest", "entry": "advance_round",
+                       "what": "开轮③：用户面读数形状（编辑器侧 + `⇒` 读数）"},
+    "A-ADVANCE-CASE": {"layer": "attention", "kind": "selftest", "entry": "advance_round",
+                       "what": "开轮⑤：`--user-case` 必须点到**存在的**仓库路径"},
+    "A-ADVANCE-BITE": {"layer": "attention", "kind": "selftest", "entry": "advance_round",
+                       "what": "开轮④：新守卫必须自带咬住证明"},
+    "A-OPEN-POSSIBLE": {"layer": "attention", "kind": "selftest", "entry": "open_round_would_pass",
+                        "what": "空转红**有没有出路**的纯函数判定（红必须有出路 ✓）"},
+    "A-E2E": {"layer": "attention", "kind": "selftest", "entry": "_fixture_repo",
+              "what": "真 git 夹具仓端到端：`--init` + 连开两轮 caps 更低 + 反向判红"},
+    # ── 层② threshold（原文 `scripts/check-threshold-ratchet.py`）────────────
+    "T-STATE": {"layer": "threshold", "kind": "green", "entry": "R.state_problems",
+                "what": "状态不变量（caps 永不高于种子 · 不低于 floor · 同族 warn<max · "
+                        "round/history 自洽 · 逐轮严格下降 · 读数不越界 · caps 与末轮一致）"},
+    "T-SEAM": {"layer": "threshold", "kind": "green", "entry": "R.seam_problems",
+               "what": "接缝：7 个消费点在**命令层**真的读 ratchet（含 ①b）+ 标签里没有 ratchet 的值"},
+    "T-BASE": {"layer": "threshold", "kind": "green", "entry": "commits_since",
+               "what": "基点之后的提交数**量得到**（浅克隆 / 坏 sha ⇒ 判红，不假装判过 ✗）"},
+    "T-IDLE": {"layer": "threshold", "kind": "green", "entry": "R.judge_idle",
+               "what": "开轮纪律：空转 ⇒ 判红（**收敛之后不判** ⇒ 红有出路 ✓）"},
+    "T-TIGHTEN": {"layer": "threshold", "kind": "selftest", "entry": "R.tighten",
+                  "what": "排程收紧：40 轮单调不增 + 永不高于种子 + 全部停在 floor + 同族关系"},
+    "T-OPEN-GATE": {"layer": "threshold", "kind": "selftest", "entry": "R.open_round",
+                    "what": "开轮闸门：读数越界 / 读数不全 ⇒ 判红 + 状态不动"},
+    "T-STATE-ARMS": {"layer": "threshold", "kind": "selftest", "entry": "R.state_problems",
+                     "what": "状态不变量**逐条反向臂**：高于种子 / 与上轮持平 / 告警线 ≥ 红线"},
+    "T-STATE-LOUD": {"layer": "threshold", "kind": "selftest", "entry": "R.state_load",
+                     "what": "状态缺失 / 坏 JSON / 缺字段 ⇒ RatchetError + 真 CLI rc=3"},
+    "T-SEAM-REV": {"layer": "threshold", "kind": "selftest", "entry": "R.seam_problems",
+                   "what": "接缝打在**改前源码**（`--source-rev cf259d1f`）上 ⇒ 判红 + 真 CLI rc=1"},
+    "T-SEAM-LAYER": {"layer": "threshold", "kind": "selftest", "entry": "R.seam_problems",
+                     "what": "接缝的**层**：标记只在注释里 ⇒ **①b 提及不算读** 判红"},
+    "T-LABEL-ARMS": {"layer": "threshold", "kind": "selftest", "entry": "R.label_cap_hits",
+                     "what": "标签接缝正反两向：种子 / 现行 caps 都咬 · 静态常量不误伤 · 量不到 rev ⇒ 判红"},
+}
+
+# ⚠ **冻结的期望**（与 `CRITERIA` **分开写** ✓ —— 同一份真相不许两处各写一份，
+#   但"期望"与"登记"是**两个**东西：删一条要改两处 ⇒ 评审看得见 ✓）。
+REQUIRED_ASSERTIONS: frozenset[str] = frozenset({
+    "A-STATE", "A-BUCKET", "A-B1", "A-B2", "A-IDLE", "A-LABEL",
+    "A-SEAM-MARK", "A-SEAM-LIT", "A-TIGHTEN", "A-ADVANCE-DOWN", "A-ADVANCE-USER",
+    "A-ADVANCE-CASE", "A-ADVANCE-BITE", "A-OPEN-POSSIBLE", "A-E2E",
+    "T-STATE", "T-SEAM", "T-BASE", "T-IDLE", "T-TIGHTEN", "T-OPEN-GATE",
+    "T-STATE-ARMS", "T-STATE-LOUD", "T-SEAM-REV", "T-SEAM-LAYER", "T-LABEL-ARMS",
+})
+
+
+def required_of(layer: str, kind: str | None = None) -> set[str]:
+    """该层（可选：该 `kind`）的冻结期望 ✓。"""
+    return {a for a in REQUIRED_ASSERTIONS
+            if CRITERIA.get(a, {}).get("layer") == layer
+            and (kind is None or CRITERIA[a]["kind"] == kind)}
+
+
+def _source_has_marker(assertion_id: str) -> bool:
+    """本文件里有没有 `_produced("<id>")` 这个**产出点**（静态面 ✓ —— 与运行时那一半互补）。"""
+    return f'_produced("{assertion_id}")' in Path(__file__).read_text(encoding="utf-8")
+
+
+def _resolve_entry(entry: str):
+    """`entry` 的**可调用**解析：`名字` 或 `模块.属性`（层② 的判据在库里 ⇒ `R.state_problems` ✓）。
+
+    ⚠ 不解析点号 ⇒ 层② 那 10 条会被误判成"没牙"（**实测踩到过** ✗）⇒ 它是**唯一一处** ✓。
+    """
+    obj: object = globals()
+    for part in entry.split("."):
+        obj = obj.get(part) if isinstance(obj, dict) else getattr(obj, part, None)
+        if obj is None:
+            return None
+    return obj
+
+
+def registry_problems() -> list[str]:
+    """`CRITERIA` ⇄ `REQUIRED_ASSERTIONS` 逐条对账 ⇒ 红行（**纯函数** ✓）。"""
+    red: list[str] = []
+    for aid in sorted(REQUIRED_ASSERTIONS - set(CRITERIA)):
+        red.append(f"**断言缺登记** ✗：`{aid}` 在冻结期望里，但 `CRITERIA` 里没有它 "
+                   f"⇒ 那条判据**没人说得清它判什么** ✗")
+    for aid in sorted(set(CRITERIA) - REQUIRED_ASSERTIONS):
+        red.append(f"**未登记进期望** ✗：`{aid}` 在 `CRITERIA` 里，但冻结期望里没有它 "
+                   f"⇒ 要么补进期望、要么删掉（**期望是收窄的锚** ✓）")
+    for aid, spec in sorted(CRITERIA.items()):
+        if spec.get("layer") not in LAYERS:
+            red.append(f"**登记表坏** ✗：`{aid}` 的 `layer` = {spec.get('layer')!r} "
+                       f"（只许 {list(LAYERS)}）")
+        if spec.get("kind") not in ("green", "selftest"):
+            red.append(f"**登记表坏** ✗：`{aid}` 的 `kind` = {spec.get('kind')!r}"
+                       f"（只许 green / selftest）")
+        entry = str(spec.get("entry") or "")
+        if not entry:
+            red.append(f"**登记表坏** ✗：`{aid}` 没写 `entry`（判据入口）")
+        elif not callable(_resolve_entry(entry)):
+            red.append(f"**断言没牙** ✗：`{aid}` 的入口 `{entry}` 在本文件里**不可调用** "
+                       f"（名字改了 / 删了 ⇒ 那条断言**没有牙** ✗）")
+        if not _source_has_marker(aid):
+            red.append(f"**登记了却没有产出点** ✗：`{aid}` 在登记表里，但本文件里找不到 "
+                       f"`_produced('{aid}')` ⇒ 它**永远不会被产出** ⇒ (v) 的判据**空转** ✗")
+    return red
+
+
+def produced_problems(expected: set[str], produced: set[str], what: str) -> list[str]:
+    """这一跑里**缺产出的断言** ⇒ 红行（**只删代码里的断言也判红** ✓）。
+
+    ⚠ `expected` 由调用方给（`green` 那一档与 `selftest` 那一档**分开** ⇒ 混起来会把
+    "绿路没跑到自检臂"误判成缺产出 ✗ —— 本文件第一版就是这么错的，实测踩到 ✓）。
+    """
+    miss = sorted(expected - produced)
+    if not miss:
+        return []
+    return [f"**断言缺产出** ✗：{miss} 在冻结期望里，但{what}**根本没有产出它** "
+            f"⇒ 那条判据**没跑到**（被删了 / 被改名了 / 被短路了 ✗）—— "
+            f"登记表留着也没用 ✗"]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 共享 git 小工具（**唯一一处** ✓；判例 iv）
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+# ── git 小工具（ratchet 用）────────────────────────────────────────────────
+def _git(argv: list[str], cwd: Path) -> tuple[str, str | None]:
+    # ⚠ `env=`（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`，2026-10-16）：**夹具的 git 必须
+    #   落在夹具仓上** ✗→✓。从**链接工作树**的 hook 里跑时 `GIT_DIR` 会指到调用者的仓
+    #   （实测 `GIT_DIR=<主>/.git/worktrees/<wt>`），而它**优先于 cwd** ⇒ 本函数的
+    #   `init` / `config` / `add` / `commit` **全落到真仓**上（实测 `core.bare=true` +
+    #   2 个夹具提交 + 238 行 dirty ✗）。⇒ 仓库发现只许由 `cwd` 决定 ✓。
+    out = subprocess.run(["git", *argv], cwd=cwd, capture_output=True, text=True,
+                         env=git_env.clean_git_env())
+    if out.returncode != 0:
+        return "", f"`git {' '.join(argv)}` rc={out.returncode}：{out.stderr.strip()[:200]}"
+    return out.stdout.strip(), None
+
+
+
+def head_sha(cwd: Path) -> tuple[str, str | None]:
+    return _git(["rev-parse", "HEAD"], cwd)
+
+
+
+def commits_since(cwd: Path, since_sha: str | None,
+                  tip: str = "HEAD") -> tuple[int, str | None]:
+    """`since_sha..tip` 的**提交数**（含 merge/空提交 ✓）。`since_sha` 为空 ⇒ 0。
+
+    ⚠ **唯一一处**（第 6 轮 `gs6` · 判例 iv）：原文**两处各写一遍** ✗ —— 层① 的
+    `commits_since(cwd, base, tip)` 与层② 的 `commits_since(head)` 量的是**同一条
+    开轮纪律读数**（"基点之后落了几笔"）⇒ 合并成一个 ✓。
+    ⚠ **两层的域各自保留** ✗：层② 把"基点为空"当**错误**（原文 `if not head: return None`
+    ⇒ 判红）、层① 当 **0**（原文 `if not since_sha: return 0`）⇒ 那个分支留在
+    **层② 的调用点**上（塞进这里 = 改掉某一层的域 ✗）。
+    ⚠ 层② 原文的措辞（**逐字保留** ✓）：`基点之后的提交数（浅克隆/坏 sha ⇒ None ⇒
+    **不假装判过** ✗）` —— 合并后"⇒ `None`"那一档由**层② 的调用点**折成红行 ✓。
+
+    ⚠ `tip` 默认 `HEAD`，但**咬住证明必须把它钉死**（`--head-rev <旧 rev>` ✗→✓）：
+    这个数**只增不减**，而 ratchet 一开轮（`--open-round`，它的设计就是每 ≤40 笔开一次）
+    `state.head` 就跳到**当时**的 `HEAD` ⇒ `since_sha..HEAD` **归零** ⇒ 「ratchet 空转」
+    那段文本**整段消失** ⇒ 证明里的 `grep` 不中 ⇒ 命令 `exit 0` ⇒ C2 印「这条守卫咬不住」
+    —— 而真相是**输入随时间变了**（洞 `BITE-EXPECTATION-GOES-STALE-WHEN-READING-IMPROVES`
+    的同族，实测：把 `state.head` 换成当时的 `HEAD` ⇒ `--check --all` **rc=1** ✗）。
+    ⇒ 证明给 `--head-rev` ⇒ 读数与 `HEAD` **无关** ✓（与 `--until` 钉窗口右端同一条纪律 ✓）。
+    """
+    if not since_sha:
+        return 0, None
+    out, err = _git(["rev-list", "--count", f"{since_sha}..{tip}"], cwd)
+    if err:
+        return 0, err
+    return int(out or 0), None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 层① `attention` —— 原文 `scripts/check-attention-budget.py`（**判据正文逐字保留** ✓）
+# ═══════════════════════════════════════════════════════════════════════════
+# 原文的模块 docstring（逐字 ✓ —— 那一层的"为什么"与边界都在里面 ✓）：
+_DOC_ATTENTION = r'''**簿记预算**：别让"关于工作的账"吃掉注意力（ratchet，照 `docs-budget.json` 的先例 ✓）。
 
 ## 为什么要有这个文件（2026-10-15 · `SUB-orchestrator-attention-structure` 【5】/【5'】）
 
@@ -93,38 +427,19 @@
 
 ## 用法
 
-  python3 scripts/check-attention-budget.py             # 告警/判红/绿 + 读数
-  python3 scripts/check-attention-budget.py --json
-  python3 scripts/check-attention-budget.py --label     # **只印 step 标签**（caps 从状态读 ⇒ 与判据同源）
-  python3 scripts/check-attention-budget.py --seam      # 接缝：step 标签**真的读 ratchet**（不是写死的字面量）
-  python3 scripts/check-attention-budget.py --seam --source-rev <旧 rev>   # 咬住证明：打在**历史版本**上
-  python3 scripts/check-attention-budget.py --until <旧 rev> --head-rev <旧 rev> --state <旧状态>  # 咬住证明：**三根钉子**（窗口 · tip · 状态）⇒ 输入与今天无关
-  python3 scripts/check-attention-budget.py --recent 50 # 另给一个近窗读数（**只报不判**）
-  python3 scripts/check-attention-budget.py --init      # 只在落地那一次：写第 0 轮基线
-  python3 scripts/check-attention-budget.py --open-round \\
+  python3 scripts/check-budgets.py             # 告警/判红/绿 + 读数
+  python3 scripts/check-budgets.py --json
+  python3 scripts/check-budgets.py --layer attention --label     # **只印 step 标签**（caps 从状态读 ⇒ 与判据同源）
+  python3 scripts/check-budgets.py --seam      # 接缝：step 标签**真的读 ratchet**（不是写死的字面量）
+  python3 scripts/check-budgets.py --seam --source-rev <旧 rev>   # 咬住证明：打在**历史版本**上
+  python3 scripts/check-budgets.py --until <旧 rev> --head-rev <旧 rev> --state <旧状态>  # 咬住证明：**三根钉子**（窗口 · tip · 状态）⇒ 输入与今天无关
+  python3 scripts/check-budgets.py --recent 50 # 另给一个近窗读数（**只报不判**）
+  python3 scripts/check-budgets.py --init      # 只在落地那一次：写第 0 轮基线
+  python3 scripts/check-budgets.py --open-round \
       --user-reading 'code ⇒ 打开 x.sokonanoda ⇒ Infoview 显示 def 卡片第二行 := 42'
-  python3 scripts/check-attention-budget.py --selftest
-"""
-from __future__ import annotations
+  python3 scripts/check-budgets.py --selftest
+'''
 
-import argparse
-import collections
-import datetime
-import json
-import re
-import subprocess
-import sys
-import tempfile
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一出处 ✓）
-import threshold_ratchet as R  # noqa: E402  （同目录库：**读哪一层**的唯一出处 ✓ ——
-#   本文件**不另抄** `live_lines()` / `run_bodies()` / `command_layer()` ✗（第 1 轮 `gs1`）。
-#   ⚠ 只借"**层**"的定义：本文件的 ratchet 是**另一份**状态
-#   （`docs/attention-budget-ratchet.json`）⇒ **不借** caps / 登记表 ✓）
-
-ROOT = Path(__file__).resolve().parent.parent
 
 # ── **两档**（照 `scripts/target-hygiene.py` 的先例：告警线 / 红线 ✓）────────────
 #   **告警线**（超 ⇒ 出声，**不判红** ✓）· **红线**（超 ⇒ 判红 ✗）
@@ -204,7 +519,7 @@ _READING_SEP = re.compile(r"⇒|->|=>")
 # （读数在告警档时人看到「上一轮的 caps + exit=1」⇒ 误诊成"告警被当成红" ✗）。
 #
 # 判据 = **两个标记**（机械、可复跑 ✓）：
-#   ① 消费点里有 `check-attention-budget.py --label`（**真的从状态读标签** ✓）；
+#   ① 消费点里有 `check-budgets.py --layer attention --label`（**真的从状态读标签** ✓）；
 #      ⚠ ⭐ **读哪一层**（第 1 轮 `gs1` 收窄）：**命令层** —— `.yml` = `run:` 正文 ·
 #      其余 = **活行**（定义在 `threshold_ratchet.command_layer()`，**唯一一处** ✓）。
 #      收窄前读**整份源码** ⇒ **注释里提一句**、或 `.yml` 里只在 step **名**里点名
@@ -217,14 +532,14 @@ _READING_SEP = re.compile(r"⇒|->|=>")
 _CAPS_LITERAL = re.compile(r"(告警|红线)\s*[0-9]+(\.[0-9]+)?\s*(:\s*1|%)")
 SEAM: tuple[dict, ...] = (
     {"rel": "scripts/ci-local.sh",
-     "marker": "check-attention-budget.py --label",
+     "marker": "check-budgets.py --layer attention --label",
      "why": "pre-push / `ci-local.sh --fast` 的 **step 标签**必须从 ratchet 状态读 "
             "（改前写死种子常量 ⇒ 印的是**上一轮的 caps** ✗）"},
     {"rel": "scripts/soko",
-     "marker": "check-attention-budget.py",
+     "marker": "check-budgets.py",
      "why": "贡献者 gate（`--fast` 也跑）必须**真的调判据**；caps 一律由本文件的报告印 ⇒ 同源 ✓"},
     {"rel": ".github/workflows/ci.yml",
-     "marker": "check-attention-budget.py",
+     "marker": "check-budgets.py",
      "why": "CI 的 `queue-lint` 必须**真的调判据**；step 名里不许再写死 caps ✗"},
 )
 
@@ -234,6 +549,7 @@ def caps_label(caps: dict, round_no: int | None = None) -> str:
 
     形状照改前那一行（`gates：簿记预算（告警 … · 红线 …）` ✓），只是数字**从状态来** ✓。
     """
+    _produced("A-LABEL")
     def num(v: float) -> str:
         return f"{v:g}"
 
@@ -245,7 +561,7 @@ def caps_label(caps: dict, round_no: int | None = None) -> str:
     return out + "）"
 
 
-def seam_problems(root: Path | None = None, source_rev: str | None = None) -> list[str]:
+def attention_seam_problems(root: Path | None = None, source_rev: str | None = None) -> list[str]:
     """**每个消费点必须真的读 ratchet**（否则 caps 是第二份真相：状态收紧、标签不动 ✗）。
 
     ⚠ ⭐ **① 读哪一层**（第 1 轮 `gs1` 收窄）：**命令层** ——
@@ -265,6 +581,7 @@ def seam_problems(root: Path | None = None, source_rev: str | None = None) -> li
     root = root or ROOT
     red: list[str] = []
     for spec in SEAM:
+        _produced("A-SEAM-MARK")
         rel, marker = spec["rel"], spec["marker"]
         if source_rev:
             proc = subprocess.run(["git", "show", f"{source_rev}:{rel}"], cwd=str(root),
@@ -295,11 +612,12 @@ def seam_problems(root: Path | None = None, source_rev: str | None = None) -> li
             else:
                 red.append(f"消费点 `{rel}` 里找不到 `{marker}` ⇒ **它没在读 ratchet** ✗"
                            f"（{spec['why']}）")
+        _produced("A-SEAM-LIT")
         hits = [ln.strip()[:88] for ln in src.splitlines() if _CAPS_LITERAL.search(ln)]
         if hits:
             red.append(f"消费点 `{rel}` 里出现了 **caps 的字面量** ✗（caps 只许住在 "
                        f"`docs/attention-budget-ratchet.json`；标签用 "
-                       f"`check-attention-budget.py --label` ✓）—— {hits[:2]}")
+                       f"`check-budgets.py --layer attention --label` ✓）—— {hits[:2]}")
     return red
 
 
@@ -329,6 +647,7 @@ def tighten(caps: dict) -> dict:
 # ── 状态读写（**唯一一处** ✓）──────────────────────────────────────────────
 def state_load(path: Path) -> tuple[dict | None, str | None]:
     """读 ratchet 状态。返回 (状态, 错误)。**缺失/坏 ⇒ 错误**（**绝不静默判过** ✗）。"""
+    _produced("A-STATE")
     if not path.exists():
         return None, (f"ratchet 状态不存在：`{path}` ⇒ **不假装判过** ✗。"
                       f"落地那一次用 `--init` 写第 0 轮基线 ✓")
@@ -375,6 +694,7 @@ def advance_round(st: dict, reading: dict, user_reading: str | None,
     red: list[str] = []
     hist = st.get("history") or []
     if hist:
+        _produced("A-ADVANCE-DOWN")
         prev = hist[-1]["reading"]
         if not (reading["ratio"] < prev["ratio"]):
             red.append(f"**① 本轮没比上轮低** ✗：B1 比值 {reading['ratio']:.2f} : 1 "
@@ -385,6 +705,7 @@ def advance_round(st: dict, reading: dict, user_reading: str | None,
             red.append(f"**① 本轮没比上轮低** ✗：B2 簿记提交占比 {reading['share'] * 100:.1f}% "
                        f"vs 上轮 {prev['share'] * 100:.1f}% ⇒ **严格下降**才开得了下一轮。"
                        f"出路：**多落非簿记提交**（标题不含 queue/ci/ledger/lint/guard ✓）")
+    _produced("A-ADVANCE-USER")
     if not user_reading:
         red.append("**③ 产品面最低配额** ✗：本轮没有**用户面判据** ⇒ 不算收口。"
                    "必须带 `--user-reading '<真编辑器命令> ⇒ <实测读数>'` ✓")
@@ -394,6 +715,7 @@ def advance_round(st: dict, reading: dict, user_reading: str | None,
     elif not any(tok in user_reading for tok in _EDITOR_TOKENS):
         red.append(f"**③ 读数不是编辑器侧的** ✗：`{user_reading[:60]}` 里没有 "
                    f"{list(_EDITOR_TOKENS)} 任一 ⇒ ③ 要的是「**打开编辑器 ⇒ 看到什么**」✓")
+    _produced("A-ADVANCE-CASE")
     if not user_case:
         red.append("**⑤ 收口判据要绑用户现场** ✗：必须带 `--user-case <用户写的那段代码 / "
                    "他做的那个动作所在的仓库路径>`（⑤：收口判据 = **用户的原始现场**，"
@@ -401,6 +723,7 @@ def advance_round(st: dict, reading: dict, user_reading: str | None,
     elif not user_case_ok:
         red.append(f"**⑤ 用户现场** `{user_case}` **在仓库里不存在** ✗ ⇒ 收口判据绑到了一个"
                    f"**假现场**（⑤ 要的是他写的那段代码 / 他做的那个动作 ✓）")
+    _produced("A-ADVANCE-BITE")
     if not guards_ok:
         red.append(f"**④ 新守卫没有咬住证明** ✗ ⇒ 本轮不算收口：{guards_detail or '（无细节）'}")
     if red:
@@ -427,6 +750,7 @@ def open_round_would_pass(state: dict, reading: dict | None) -> bool:
     读数必须**严格低于**上一轮（B1 与 B2 都要，与 `advance_round` 逐字同口径 ✓）。
     `history` 为空 ⇒ 没有可比的一轮 ⇒ 能开（`advance_round` 在空 history 下不做这条比较 ✓）。
     """
+    _produced("A-OPEN-POSSIBLE")
     hist = state.get("history") or []
     if not hist or reading is None:
         return True
@@ -450,6 +774,7 @@ def judge_round(state: dict, n_since: int, reading: dict | None = None,
     `converged()` 先例 ✓）；没出路 ⇒ **告警**（看得见 + 写明出路 ✓）。
     ⚠ **两档 caps 一个都没动** ✓；空转**有出路**时照样判红 ⇒ 守卫没变装饰 ✓。
     """
+    _produced("A-IDLE")
     if n_since <= round_max:
         return [], []
     head = str(state.get("head"))[:12]
@@ -466,6 +791,7 @@ def judge_round(state: dict, n_since: int, reading: dict | None = None,
 
 def bucket(path: str) -> str:
     """改动路径 → 区域。**纯函数** ✓（selftest 直接喂合成路径）。"""
+    _produced("A-BUCKET")
     if path.startswith(_GEN_PREFIXES) or path.endswith(_GEN_SUFFIXES):
         return "gen"
     if path.startswith(_TOOL_PREFIXES):
@@ -579,6 +905,7 @@ def judge(agg: dict, ratio_max: float, share_max: float,
     ratio, share = agg["ratio"], agg["bookkeeping_share"]
     b1 = (f"B1 **生成物/台账 : 产品 = {ratio:.2f} : 1**"
           f"（生成物 {agg['lines'].get('gen', 0)} 行 vs 产品 {agg['lines'].get('product', 0)} 行）")
+    _produced("A-B1")
     if ratio > ratio_max:
         red.append(f"{b1} ⇒ **超过本轮红线 {ratio_max}** ✗ 这一窗的改动又在往「账」上堆 —— "
                    f"出路：**做产品**（生成物里 97.9% 是 `docs/e2e/logs/**`，"
@@ -589,6 +916,7 @@ def judge(agg: dict, ratio_max: float, share_max: float,
                     f"把它摊薄的唯一办法是**多落产品** ✓")
     b2 = (f"B2 **簿记类提交占比 = {share * 100:.1f}%**"
           f"（{agg['bookkeeping_commits']}/{agg['commits']} 笔在维护「关于工作的账」）")
+    _produced("A-B2")
     if share > share_max:
         red.append(f"{b2} ⇒ **超过本轮红线 {share_max * 100:.0f}%** ✗")
     elif share > share_warn:
@@ -654,44 +982,6 @@ def recent(n: int, cwd: Path = ROOT) -> tuple[dict, str | None]:
         if len(parts) == 3 and parts[0] != "-":
             rows.append((int(parts[0]), int(parts[1]), parts[2], subject))
     return aggregate(rows), None
-
-
-# ── git 小工具（ratchet 用）────────────────────────────────────────────────
-def _git(argv: list[str], cwd: Path) -> tuple[str, str | None]:
-    # ⚠ `env=`（洞 `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`，2026-10-16）：**夹具的 git 必须
-    #   落在夹具仓上** ✗→✓。从**链接工作树**的 hook 里跑时 `GIT_DIR` 会指到调用者的仓
-    #   （实测 `GIT_DIR=<主>/.git/worktrees/<wt>`），而它**优先于 cwd** ⇒ 本函数的
-    #   `init` / `config` / `add` / `commit` **全落到真仓**上（实测 `core.bare=true` +
-    #   2 个夹具提交 + 238 行 dirty ✗）。⇒ 仓库发现只许由 `cwd` 决定 ✓。
-    out = subprocess.run(["git", *argv], cwd=cwd, capture_output=True, text=True,
-                         env=git_env.clean_git_env())
-    if out.returncode != 0:
-        return "", f"`git {' '.join(argv)}` rc={out.returncode}：{out.stderr.strip()[:200]}"
-    return out.stdout.strip(), None
-
-
-def head_sha(cwd: Path) -> tuple[str, str | None]:
-    return _git(["rev-parse", "HEAD"], cwd)
-
-
-def commits_since(cwd: Path, since_sha: str | None,
-                  tip: str = "HEAD") -> tuple[int, str | None]:
-    """`since_sha..tip` 的**提交数**（含 merge/空提交 ✓）。`since_sha` 为空 ⇒ 0。
-
-    ⚠ `tip` 默认 `HEAD`，但**咬住证明必须把它钉死**（`--head-rev <旧 rev>` ✗→✓）：
-    这个数**只增不减**，而 ratchet 一开轮（`--open-round`，它的设计就是每 ≤40 笔开一次）
-    `state.head` 就跳到**当时**的 `HEAD` ⇒ `since_sha..HEAD` **归零** ⇒ 「ratchet 空转」
-    那段文本**整段消失** ⇒ 证明里的 `grep` 不中 ⇒ 命令 `exit 0` ⇒ C2 印「这条守卫咬不住」
-    —— 而真相是**输入随时间变了**（洞 `BITE-EXPECTATION-GOES-STALE-WHEN-READING-IMPROVES`
-    的同族，实测：把 `state.head` 换成当时的 `HEAD` ⇒ `--check --all` **rc=1** ✗）。
-    ⇒ 证明给 `--head-rev` ⇒ 读数与 `HEAD` **无关** ✓（与 `--until` 钉窗口右端同一条纪律 ✓）。
-    """
-    if not since_sha:
-        return 0, None
-    out, err = _git(["rev-list", "--count", f"{since_sha}..{tip}"], cwd)
-    if err:
-        return 0, err
-    return int(out or 0), None
 
 
 def guard_bite_check(cwd: Path, since_sha: str | None) -> tuple[bool, str]:
@@ -773,7 +1063,7 @@ def _fixture_repo(tmp: Path) -> tuple[Path, str | None]:
     return repo, None
 
 
-def selftest() -> int:
+def attention_selftest() -> int:
     bad = 0
 
     def case(name: str, rows: list, want_red: bool, expect: str = "",
@@ -856,6 +1146,7 @@ def selftest() -> int:
     caps, seed = seed_caps(), seed_caps()
     mono, above = True, []
     for i in range(1, 41):
+        _produced("A-TIGHTEN")
         nxt = tighten(caps)
         if any(nxt[k] > caps[k] for k in caps):
             mono = False
@@ -963,30 +1254,30 @@ def selftest() -> int:
     #   —— 那正是"判据比错对象"的现场证据 ✓（**如实留痕**，不抹掉 ✗）。
     _ci_step = ("jobs:\n  lint:\n    steps:\n"
                 "      - name: \"簿记预算（caps 从 ratchet 状态读）\"\n"
-                "        run: python3 scripts/check-attention-budget.py\n")
+                "        run: python3 scripts/check-budgets.py\n")
     _ci_name_only = ("jobs:\n  lint:\n    steps:\n"
-                     "      - name: \"簿记预算（scripts/check-attention-budget.py）\"\n"
+                     "      - name: \"簿记预算（scripts/check-budgets.py）\"\n"
                      "        run: echo hi\n")
     # **反向**（改前那一行的形状）：标签写死 caps 的字面量 ⇒ 必须判红
     (_seam_root / "scripts" / "ci-local.sh").write_text(
         'run "gates：簿记预算（告警 17:1 / 57% · 红线 19:1 / 60%）" "queue-lint" bash -c \'\n'
-        'python3 scripts/check-attention-budget.py --selftest || exit 1\n'
-        'python3 scripts/check-attention-budget.py || exit 1\'\n', encoding="utf-8")
-    (_seam_root / "scripts" / "soko").write_text("check-attention-budget.py\n", encoding="utf-8")
+        'python3 scripts/check-budgets.py --selftest || exit 1\n'
+        'python3 scripts/check-budgets.py || exit 1\'\n', encoding="utf-8")
+    (_seam_root / "scripts" / "soko").write_text("check-budgets.py\n", encoding="utf-8")
     (_seam_root / ".github" / "workflows" / "ci.yml").write_text(_ci_step, encoding="utf-8")
-    _bad = seam_problems(_seam_root)
+    _bad = attention_seam_problems(_seam_root)
     gate("⭐ 反向：step 标签写死 caps 字面量（`告警 17:1`）⇒ **接缝判红**", bool(_bad),
          (_bad[0][:70] if _bad else "**没判红** ✗"))
     # **正对照**：标签从状态读（`--label`）⇒ 接缝齐
     (_seam_root / "scripts" / "ci-local.sh").write_text(
-        'run "gates：$(python3 scripts/check-attention-budget.py --label)" "queue-lint" bash -c \'\n'
-        'python3 scripts/check-attention-budget.py --selftest || exit 1\n'
-        'python3 scripts/check-attention-budget.py || exit 1\'\n', encoding="utf-8")
-    gate("正对照：标签用 `--label` ⇒ 接缝齐", not seam_problems(_seam_root))
+        'run "gates：$(python3 scripts/check-budgets.py --layer attention --label)" "queue-lint" bash -c \'\n'
+        'python3 scripts/check-budgets.py --selftest || exit 1\n'
+        'python3 scripts/check-budgets.py || exit 1\'\n', encoding="utf-8")
+    gate("正对照：标签用 `--label` ⇒ 接缝齐", not attention_seam_problems(_seam_root))
     # ⭐⭐ **第 1 轮 `gs1` 的反向验证**：标记只在 step **名**里（`run:` 正文没有）
     #   ⇒ **①b 提及不算读** 判红 ✓（收窄前这条**绿** ✗ —— 它读的是整份源码 ✓）。
     (_seam_root / ".github" / "workflows" / "ci.yml").write_text(_ci_name_only, encoding="utf-8")
-    _mention = seam_problems(_seam_root)
+    _mention = attention_seam_problems(_seam_root)
     gate("⭐⭐ 反向：标记只在 step **名**里（`run:` 正文里没有）⇒ **①b 提及不算读** 判红",
          len(_mention) == 1 and "①b 提及不算读" in _mention[0],
          (_mention[0][:70] if _mention else "**没判红** ✗"))
@@ -995,19 +1286,19 @@ def selftest() -> int:
     # **正对照**：标记回到 `run:` 正文里 ⇒ 不判红 ✓
     (_seam_root / ".github" / "workflows" / "ci.yml").write_text(_ci_step, encoding="utf-8")
     gate("正对照：标记在 `run:` 正文里 ⇒ 接缝齐（**收窄没让它变松** ✓）",
-         not seam_problems(_seam_root))
+         not attention_seam_problems(_seam_root))
     # **反向**：消费点根本没在读 ratchet ⇒ 判红
     (_seam_root / "scripts" / "ci-local.sh").write_text('run "gates：簿记预算" "queue-lint" true\n',
                                                         encoding="utf-8")
     gate("反向：消费点**没在读 ratchet**（没有 `--label` 标记）⇒ 判红",
-         bool(seam_problems(_seam_root)),
-         (seam_problems(_seam_root)[0][:70] if seam_problems(_seam_root) else "**没判红** ✗"))
+         bool(attention_seam_problems(_seam_root)),
+         (attention_seam_problems(_seam_root)[0][:70] if attention_seam_problems(_seam_root) else "**没判红** ✗"))
     # **反向**：`--source-rev` 指到一个量不到的 rev ⇒ 判红（**不假装判过** ✗）
     gate("反向：`--source-rev` 量不到 ⇒ 判红（不假装判过）",
-         bool(seam_problems(ROOT, source_rev="0000000000000000000000000000000000000000")))
+         bool(attention_seam_problems(ROOT, source_rev="0000000000000000000000000000000000000000")))
     # **正对照**：真仓的接缝齐（`ci-local.sh` 用 `--label` ✓）
     gate("正对照：本仓的接缝齐（ci-local.sh / soko / ci.yml 三个消费点 ✓）",
-         not seam_problems(ROOT), "；".join(seam_problems(ROOT))[:70])
+         not attention_seam_problems(ROOT), "；".join(attention_seam_problems(ROOT))[:70])
     # **caps_label** 的形状（step 标签与判据**同源** ⇒ 数字必须来自传进来的 caps ✓）
     _lbl = caps_label({"ratio_warn": 16.0, "ratio_max": 18.0,
                        "share_warn": 0.55, "share_max": 0.58}, 1)
@@ -1020,6 +1311,7 @@ def selftest() -> int:
     try:
         with tempfile.TemporaryDirectory(prefix="soko-budget-") as td:
             tmp = Path(td)
+            _produced("A-E2E")
             repo, ferr = _fixture_repo(tmp)
             if ferr:
                 bad += 1
@@ -1028,7 +1320,7 @@ def selftest() -> int:
                 state = tmp / "ratchet.json"
                 base = ["--since", "2000-01-01T00:00:00+08:00", "--root", str(repo),
                         "--state", str(state)]
-                rc0 = main(base + ["--init"])
+                rc0 = attention_main(base + ["--init"])
                 rows, cerr = collect("2000-01-01T00:00:00+08:00", None, cwd=repo)
                 agg0 = aggregate(rows) if not cerr else {}
                 gate("端到端 `--init` 写第 0 轮（rc=0）", rc0 == 0, f"rc={rc0}")
@@ -1041,7 +1333,7 @@ def selftest() -> int:
                 p.write_text("\n".join(f"h{i}" for i in range(4000)), encoding="utf-8")
                 _git(["add", "-A"], repo)
                 _git(["commit", "-q", "-m", "feat(front): 第 1 轮产品"], repo)
-                rc1 = main(base + ["--open-round", "--user-reading",
+                rc1 = attention_main(base + ["--open-round", "--user-reading",
                                    "code ⇒ 打开 x.sokonanoda ⇒ Infoview 显示 := 42",
                                    "--user-case", "playground.sokonanoda"])
                 st_1 = state_load(state)[0] or {}
@@ -1050,7 +1342,7 @@ def selftest() -> int:
                 q.write_text("\n".join(f"i{i}" for i in range(4000)), encoding="utf-8")
                 _git(["add", "-A"], repo)
                 _git(["commit", "-q", "-m", "feat(front): 第 2 轮产品"], repo)
-                rc2 = main(base + ["--open-round", "--user-reading",
+                rc2 = attention_main(base + ["--open-round", "--user-reading",
                                    "code ⇒ 点 ∈ ⇒ 跳到声明",
                                    "--user-case", "playground.sokonanoda"])
                 st_2 = state_load(state)[0] or {}
@@ -1068,12 +1360,12 @@ def selftest() -> int:
                      len(st_2.get("history") or []) >= 3,
                      f"history {len(st_2.get('history') or [])} 条")
                 # **反向**：再开一轮但**不落任何提交** ⇒ 读数没降 ⇒ 必须判红
-                rc3 = main(base + ["--open-round", "--user-reading", "code ⇒ 没干活",
+                rc3 = attention_main(base + ["--open-round", "--user-reading", "code ⇒ 没干活",
                                    "--user-case", "playground.sokonanoda"])
                 gate("端到端 反向：**没落提交就开轮**（读数没降）⇒ 判红 rc=1",
                      rc3 == 1, f"rc={rc3}")
                 # **反向**：缺 `--user-reading` ⇒ 必须判红（③）
-                rc4 = main(base + ["--open-round"])
+                rc4 = attention_main(base + ["--open-round"])
                 gate("端到端 反向：缺 `--user-reading`（③）⇒ 判红 rc=1", rc4 == 1, f"rc={rc4}")
     except Exception as err:                                  # noqa: BLE001
         bad += 1
@@ -1087,7 +1379,7 @@ def selftest() -> int:
     return 0 if bad == 0 else 1
 
 
-def main(argv=None) -> int:
+def attention_main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="簿记预算（ratchet）")
     ap.add_argument("--since", default=WINDOW_SINCE)
     ap.add_argument("--until", default=None, help="窗口右端（默认 HEAD；反向验证用）")
@@ -1132,7 +1424,7 @@ def main(argv=None) -> int:
             pass
 
     if args.selftest:
-        return selftest()
+        return _selftest_with_produced("attention")
 
     root = Path(args.root).resolve()
     state_path = Path(args.state)
@@ -1141,7 +1433,7 @@ def main(argv=None) -> int:
 
     # ── `--seam`：**caps 只许有一份**（标签必须从状态读 ✓）──────────────────
     if args.seam:
-        problems = seam_problems(root, source_rev=args.source_rev)
+        problems = attention_seam_problems(root, source_rev=args.source_rev)
         where = f"（源 = `{args.source_rev}` 的历史版本 ✓）" if args.source_rev else ""
         if problems:
             print(f"✗ 簿记预算的**接缝**不齐（{len(problems)} 条）{where}：", file=sys.stderr)
@@ -1157,7 +1449,7 @@ def main(argv=None) -> int:
         st, serr = state_load(state_path)
         if serr:
             # ⚠ **不假装读到了** ✗：印一条响亮的标签（**不是**旧 caps ✗），rc=3 与判据同口径 ✓
-            print("簿记预算（caps **读不到** ⇒ 见 check-attention-budget.py ✗）")
+            print("簿记预算（caps **读不到** ⇒ 见 check-budgets.py ✗）")
             print(f"error: {serr}", file=sys.stderr)
             return 3
         print(caps_label(st["caps"], st.get("round")))
@@ -1291,6 +1583,623 @@ def main(argv=None) -> int:
             print("✓ 簿记预算在告警线内 ✓")
     return 0 if not red else 1
 
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 层② `threshold` —— 原文 `scripts/check-threshold-ratchet.py`（**判据正文逐字保留** ✓）
+# ═══════════════════════════════════════════════════════════════════════════
+# 原文的模块 docstring（逐字 ✓）：
+_DOC_THRESHOLD = r'''**横向阈值 ratchet 的判据**（用户 2026-10-15【②】的横向落地；形状照
+`scripts/check-budgets.py` 的 ratchet ✓ —— 登记表与 `tighten()` 在
+`scripts/threshold_ratchet.py`，本文件只**判**）。
+
+## 它判三件（都能机械判）
+
+  * **状态不变量**（`state_problems`）：caps **永不高于种子** · **逐轮严格下降**（到 floor
+    为止）· 同族关系（incremental 告警线 < 红线）· `round`/`history` 自洽
+    ⇒ 红线 ①「**caps 没比上轮低 ⇒ 判红**」✓
+  * **接缝**（`seam_problems`）：**每个消费点必须真的读 ratchet**（`cap("<id>")` 标记）
+    —— A 层产出（状态里的 caps）、B 层消费（4 个守卫）⇒ 没有这条对账，**状态收紧而消费者
+    还用常量 = 装饰** ✗（照 `scripts/audit-wire-fields.py` 的先例 ✓）；
+    ⭐ 另有 **标签接缝**（2026-10-16 补，同一洞的横向那一半）：**标签里不许写 ratchet 的值**
+    —— `.github/workflows/ci.yml` 的 step 名改前写着种子（`活文档 ≤10.0 MB`）而现行 caps
+    已是 `9.50 MB` ✗ ⇒ 用户/评审在 job 列表里读到的是**旧值** ✗（判据 = `label_cap_hits()`，
+    **单位必须一致** ⇒ `≤800 行`/`≤30` 这类**静态常量不误伤** ✓）。
+  * **开轮纪律**（`judge_idle`）：基点之后落太多笔还没开轮 ⇒ 判红（ratchet 不许空转 ✗）；
+    ⚠ **收敛之后不判**（再开轮也降不下去 ⇒ 那会是一条**没有出路**的红 ✗）
+
+## 开轮（`--open-round`）
+
+读数（7 个，一个不缺）**必须落进"收紧后"的上限** ⇒ 才 `tighten()` 一档 + 记 `history`
+（**读数进 git ⇒ 逐轮可查** ✓）。⚠ **为什么不照抄"读数必须严格低于上轮读数"**：那对
+**有天然地板**的量（STATUS 行数 / 归档体积 / target 体积）是**假红生成器** ✗ —— 理由与
+逐条对照写在 `scripts/threshold_ratchet.py` 的 docstring（**同形不同病要如实标注** ✓）。
+
+## 退出码
+
+  0 = 状态健康 + 接缝齐 + 没空转 / 1 = 判红 / 2 = 用法错 /
+  3 = 环境错（状态缺失/坏 ⇒ **不假装判过** ✗）
+
+## 用法
+
+```bash
+python3 scripts/check-budgets.py                    # 状态 + 接缝 + 开轮纪律
+python3 scripts/check-budgets.py --measure          # 另打印 7 个读数（跑 4 个守卫）
+python3 scripts/check-budgets.py --layer threshold --open-round       # 开一轮
+python3 scripts/check-budgets.py --layer threshold --init             # 只在落地那一次：写第 0 轮基线
+python3 scripts/check-budgets.py --selftest         # 正反两向（含"接缝"与"空转"）
+python3 scripts/check-budgets.py --source-rev cf259d1f   # 接缝判据打在**历史版本**上
+```
+'''
+
+ROUND_MAX_COMMITS = 40          # 与 ② 同源：基点之后落这么多笔还没开轮 ⇒ 判红
+
+
+# ── 读数（**一处定义**：直接调消费者自己的量法 ⇒ 不抄第二份口径 ✗）──────────────
+def _load_consumer(rel: str):
+    """把 4 个守卫当**模块**加载（它们的量法就是判据的读数 —— 不许在别处重算一遍 ✗）。"""
+    path = ROOT / rel
+    spec = importlib.util.spec_from_file_location(f"_consumer_{path.stem.replace('-', '_')}", path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.path.insert(0, str(ROOT / "scripts"))
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def threshold_measure(verbose: bool = False, target_root: str | None = None) -> tuple[dict, list[str]]:
+    """7 个读数 ⇒ `(读数, 量不到的项)`。⚠ **量不到 ≠ 0** ✗（0 会被读成"很干净"）。
+
+    `target_root`：量 target 体积的那个根（默认 `<repo>/target`）。⚠ worktree 里构建常落在
+    **受管编译缓存**（`scripts/compile-cache.py env` ⇒ `CARGO_TARGET_DIR` 在别处）⇒ 默认量不到；
+    这时**要么在树里有 target 的地方跑，要么显式指**（`--target-root`）—— **绝不记 0** ✗。
+    """
+    os.chdir(ROOT)                      # 消费者是 cwd 相对的（`tracked()` = git ls-files ✓）
+    out: dict = {}
+    missing: list[str] = []
+    docs = _load_consumer("scripts/docs-lint.py")
+    _bad, stats = docs.check()
+    out["docs_live_bytes"] = stats["live_bytes"]
+    out["docs_archive_bytes"] = stats["archive_bytes"]
+    status = _load_consumer("scripts/status-lint.py")
+    out.update(status.reading())
+    site = _load_consumer("scripts/check-site.py")
+    out.update(site.reading())
+    th = _load_consumer("scripts/target-hygiene.py")
+    troot = Path(target_root) if target_root else Path(th.REPO_ROOT) / "target"
+    tstats = th.scan(troot, troot.parent)
+    if not tstats.get("exists"):
+        # ⚠ 没有 target/（例：worktree 把构建放进受管缓存）⇒ **量不到**，不许记 0 ✗
+        missing += ["target_incremental_warn_bytes", "target_incremental_max_bytes"]
+    else:
+        out["target_incremental_warn_bytes"] = tstats["incremental_bytes"]
+        out["target_incremental_max_bytes"] = tstats["incremental_bytes"]
+    for cap_id in list(out):
+        if cap_id not in R.REGISTRY:
+            out.pop(cap_id)
+    if verbose:
+        print("读数（7 个；量法 = 各守卫自己的那一段 ✓）：")
+        for cap_id in R.REGISTRY:
+            if cap_id in out:
+                print(f"  {cap_id:<32} {R.human(cap_id, out[cap_id])}"
+                      f"   （上限 {R.human(cap_id, R.cap(cap_id))}）")
+            else:
+                print(f"  {cap_id:<32} **量不到**（不记 0 ✗）")
+    return out, missing
+
+
+def threshold_check(state_path: Path, source_rev: str | None, as_json: bool) -> int:
+    try:
+        st = R.state_load(state_path)
+    except R.RatchetError as err:
+        print(f"error: {err}", file=sys.stderr)
+        return 3
+    _produced("T-STATE")
+    red = R.state_problems(st)
+    _produced("T-SEAM")
+    red += R.seam_problems(ROOT, source_rev=source_rev, caps=dict(st.get("caps") or {}))
+    _produced("T-BASE")
+    # ⚠ 共享的 `commits_since` 只管"量得到吗"（判例 iv：两处各写一遍 ✗→✓）；
+    #   **"基点为空 ⇒ 判红"这一档留在本层**（层① 的域是 0 ⇒ 不许并进共享函数 ✗）。
+    n_since: int | None = None
+    base = st.get("head")
+    if not base:
+        red.append(f"量不到基点 `{str(st.get('head'))[:12]}` 之后的提交数（浅克隆 / sha 不在历史上）"
+                   f"⇒ **不假装判过** ✗（照 `check-budgets.py --layer attention` 的口径："
+                   f"CI 要 `fetch-depth: 0`）")
+    else:
+        n_since, nerr = commits_since(ROOT, base)
+        if nerr:
+            red.append(f"量不到基点 `{str(base)[:12]}` 之后的提交数（浅克隆 / sha 不在历史上）"
+                       f"⇒ **不假装判过** ✗（照 `check-budgets.py --layer attention` 的口径："
+                       f"CI 要 `fetch-depth: 0`）")
+        else:
+            _produced("T-IDLE")
+            red += R.judge_idle(st, n_since, ROUND_MAX_COMMITS)
+    if as_json:
+        print(json.dumps({"ok": not red, "round": st.get("round"), "head": st.get("head"),
+                          "caps": st.get("caps"), "commits_since": n_since, "red": red},
+                         ensure_ascii=False, indent=2))
+    else:
+        print(f"阈值 ratchet：第 **{st.get('round')}** 轮（基点 `{str(st.get('head'))[:12]}` · "
+              f"之后 {n_since} 笔）· 现行 caps：")
+        for cap_id in R.REGISTRY:
+            spec = R.REGISTRY[cap_id]
+            mark = "**已到收敛目标**" if st["caps"].get(cap_id) <= spec["floor"] else ""
+            print(f"  {cap_id:<32} {R.human(cap_id, st['caps'][cap_id]):>10}"
+                  f"   （种子 {R.human(cap_id, spec['seed'])} · 每轮 −"
+                  f"{R.human(cap_id, spec['step'])} · 目标 {R.human(cap_id, spec['floor'])}）{mark}")
+        print(f"  ⓘ 不在 ratchet 里的同形项（**登记 + 逐条理由**）：{len(R.EXCLUDED)} 条"
+              f"（见 `scripts/threshold_ratchet.py` 的 `EXCLUDED`）")
+    if red:
+        print(f"\n✗ 阈值 ratchet：**{len(red)} 条红** ✗", file=sys.stderr)
+        for item in red:
+            print(f"  - {item}", file=sys.stderr)
+        return 1
+    print(f"\n✓ 阈值 ratchet：状态健康（caps 单调不增、永不高于种子）· 接缝齐"
+          f"（{len(R.REGISTRY)}/{len(R.REGISTRY)} 消费点都读它 + "
+          f"{len(R.LABEL_SEAM)}/{len(R.LABEL_SEAM)} 处标签里没有 ratchet 的值）· 没空转 ✓")
+    return 0
+
+
+def threshold_open_round(state_path: Path, target_root: str | None = None) -> int:
+    try:
+        st = R.state_load(state_path)
+    except R.RatchetError as err:
+        print(f"error: {err}", file=sys.stderr)
+        return 3
+    reading, missing = threshold_measure(verbose=True, target_root=target_root)
+    if missing:
+        print(f"✗ **量不到 {missing}** ⇒ 开轮要**齐全**的读数（「没量到 ≠ 绿」✗）—— "
+              f"在**有 target/** 的树上跑（例：主 checkout）✓", file=sys.stderr)
+        return 1
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(ROOT), capture_output=True,
+                          text=True, env=git_env.clean_git_env()).stdout.strip()
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+    new, red = R.open_round(st, reading, now=now, head=head)
+    if red:
+        print(f"✗ **本轮不算开成**（{len(red)} 条）✗ —— ratchet **不动** "
+              f"（`{state_path}` 一个字节没写 ✓）：", file=sys.stderr)
+        for item in red:
+            print(f"  - {item}", file=sys.stderr)
+        return 1
+    R.state_save(new, state_path)
+    print(f"✓ ratchet **第 {st['round']} → {new['round']} 轮** ✓（`{state_path}`）")
+    for cap_id in R.REGISTRY:
+        print(f"  {cap_id:<32} {R.human(cap_id, st['caps'][cap_id]):>10} → "
+              f"**{R.human(cap_id, new['caps'][cap_id])}**")
+    return 0
+
+
+def threshold_init(state_path: Path, target_root: str | None = None) -> int:
+    if state_path.exists():
+        print(f"✗ `{state_path}` 已存在 ⇒ `--init` 只写**第 0 轮基线**（别覆盖历史 ✗）",
+              file=sys.stderr)
+        return 1
+    reading, missing = threshold_measure(verbose=True, target_root=target_root)
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(ROOT), capture_output=True,
+                          text=True, env=git_env.clean_git_env()).stdout.strip()
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+    caps = R.seeds()
+    st = {"version": 1, "round": 0, "head": head, "at": now, "caps": caps,
+          "history": [{"round": 0, "head": head, "at": now, "caps": caps,
+                       "reading": reading or None,
+                       "reading_missing": missing or None}]}
+    R.state_save(st, state_path)
+    print(f"✓ 第 0 轮基线写入 `{state_path}`：caps = **种子**（= 落地时那批常量 ⇒ "
+          f"本次改动**一个阈值都没放松** ✓）")
+    return 0
+
+
+# ── 自检（正反两向；每条都要有"故意坏 ⇒ 必须判红"的臂 ✓）─────────────────────
+def threshold_selftest() -> int:
+    bad = 0
+    total = 0
+
+    def gate(label: str, cond: bool, detail: str = "") -> None:
+        nonlocal bad, total
+        total += 1
+        ok = bool(cond)
+        print(f"  {'✓' if ok else '✗'} {label}" + (f" —— {detail}" if detail else ""))
+        if not ok:
+            bad += 1
+
+    print("① `tighten()`：**单调不增** + **永不高于种子** + 到 floor 停住（40 轮）")
+    caps = R.seeds()
+    mono = above = True
+    prev = dict(caps)
+    for _ in range(40):
+        _produced("T-TIGHTEN")
+        caps = R.tighten(caps)
+        if any(caps[k] > prev[k] for k in R.REGISTRY):
+            mono = False
+        if any(caps[k] > R.REGISTRY[k]["seed"] for k in R.REGISTRY):
+            above = False
+        prev = dict(caps)
+    gate("① 40 轮**单调不增**", mono)
+    gate("① 40 轮**永不高于种子**（= 一个阈值都没放松 ✓）", above)
+    gate("① 40 轮后**全部停在收敛目标**（floor 只停住收紧、不回升）",
+         all(caps[k] == R.REGISTRY[k]["floor"] for k in R.REGISTRY),
+         f"docs_live = {R.human('docs_live_bytes', caps['docs_live_bytes'])}")
+    gate("① 同族关系（incremental 告警线 < 红线）逐轮成立",
+         all(R.tighten(R.tighten(R.seeds()))["target_incremental_warn_bytes"]
+             < R.tighten(R.tighten(R.seeds()))["target_incremental_max_bytes"] for _ in [0]))
+
+    print("\n② **连开两轮 ⇒ 第二轮低于第一轮**（真状态推进；读数 = 落地实测那批）")
+    live = {"docs_live_bytes": 6_410_000, "docs_archive_bytes": 950_000,
+            "status_total_lines": 85, "site_text_bytes": 60_823,
+            "site_hero_bytes": 221_763, "target_incremental_warn_bytes": int(3.5 * R.GIB),
+            "target_incremental_max_bytes": int(3.5 * R.GIB)}
+    st = {"version": 1, "round": 0, "head": "f" * 40, "at": "t0", "caps": R.seeds(),
+          "history": [{"round": 0, "head": "f" * 40, "at": "t0", "caps": R.seeds(),
+                       "reading": live}]}
+    st1, red1 = R.open_round(st, live, now="t1", head="a" * 40)
+    st2, red2 = R.open_round(st1, live, now="t2", head="b" * 40)
+    gate("② 第 1 轮开成（无红）", not red1, str(red1))
+    gate("② 第 2 轮开成（无红）", not red2, str(red2))
+    gate("② **第二轮 caps 严格低于第一轮**（用户【②】的判据）",
+         all(st2["caps"][k] < st1["caps"][k] for k in R.REGISTRY),
+         f"docs_live {R.human('docs_live_bytes', st1['caps']['docs_live_bytes'])} → "
+         f"{R.human('docs_live_bytes', st2['caps']['docs_live_bytes'])}")
+    gate("② 两轮都**不高于种子**", all(st2["caps"][k] <= R.REGISTRY[k]["seed"] for k in R.REGISTRY))
+    gate("② 状态自洽（`state_problems` 无红）", not R.state_problems(st2))
+
+    print("\n③ 反向：**读数高于收紧后的上限 ⇒ 判红 + 状态不动**（坏输入 = **仓库自己记录的**"
+          "历史病态读数 ✓）")
+    _produced("T-OPEN-GATE")
+    hist_bad = dict(live, target_incremental_warn_bytes=82 * R.GIB,
+                    target_incremental_max_bytes=82 * R.GIB,
+                    status_total_lines=1534)          # 82 GB / 1534 行 = 两处 docstring 里的实测值
+    st_before = dict(st)
+    st_after, red3 = R.open_round(st, hist_bad, now="t1", head="a" * 40)
+    gate("③ incremental 82 GiB（实测病态值）⇒ 判红", any("target_incremental" in r for r in red3))
+    gate("③ STATUS 1534 行（实测病态值）⇒ 判红", any("status_total_lines" in r for r in red3))
+    gate("③ 判红时**状态不动**（一个字节不写 ✓）", st_after == st_before)
+
+    print("\n④ 反向：**读数不全 ⇒ 判红**（「没量到 ≠ 绿」）")
+    _st, red4 = R.open_round(st, {"docs_live_bytes": 1}, now="t1", head="a" * 40)
+    gate("④ 缺 6 个读数 ⇒ 判红 + 点名", any("读数不全" in r for r in red4))
+
+    print("\n⑤ 反向：**caps 没比上轮低 / 高于种子 ⇒ 判红**（红线 ①）")
+    _produced("T-STATE-ARMS")
+    hand = json.loads(json.dumps(st2))
+    hand["caps"]["docs_live_bytes"] = R.REGISTRY["docs_live_bytes"]["seed"] + 1
+    gate("⑤ 手改成**高于种子** ⇒ 判红（『放松阈值』）",
+         any("高于种子" in r for r in R.state_problems(hand)))
+    hand2 = json.loads(json.dumps(st2))
+    hand2["history"][-1]["caps"]["docs_live_bytes"] = hand2["history"][-2]["caps"]["docs_live_bytes"]
+    hand2["caps"]["docs_live_bytes"] = hand2["history"][-1]["caps"]["docs_live_bytes"]
+    gate("⑤ 手改成**与上轮持平**（还没到 floor）⇒ 判红（『本轮没比上轮低』）",
+         any("没比上轮低" in r for r in R.state_problems(hand2)))
+    hand3 = json.loads(json.dumps(st2))
+    hand3["caps"]["target_incremental_warn_bytes"] = hand3["caps"]["target_incremental_max_bytes"]
+    gate("⑤ 手改成**告警线 ≥ 红线** ⇒ 判红（同族关系）",
+         any("告警线 ≥ 红线" in r for r in R.state_problems(hand3)))
+
+    _produced("T-STATE-LOUD")
+    print("\n⑥ 反向：**状态缺失/坏 ⇒ 响亮**（不是静默绿 ✗）")
+    with tempfile.TemporaryDirectory() as tmp:
+        miss = Path(tmp) / "nope.json"
+        try:
+            R.state_load(miss)
+            gate("⑥ 缺状态 ⇒ `RatchetError`", False, "没抛")
+        except R.RatchetError as err:
+            gate("⑥ 缺状态 ⇒ `RatchetError`（+ 出路 `--init`）", "--init" in str(err))
+        broken = Path(tmp) / "broken.json"
+        broken.write_text("{ not json", encoding="utf-8")
+        try:
+            R.state_load(broken)
+            gate("⑥ 坏 JSON ⇒ `RatchetError`", False, "没抛")
+        except R.RatchetError:
+            gate("⑥ 坏 JSON ⇒ `RatchetError`", True)
+        empty = Path(tmp) / "empty.json"
+        empty.write_text(json.dumps({"round": 0}), encoding="utf-8")
+        try:
+            R.state_load(empty)
+            gate("⑥ 缺字段 ⇒ `RatchetError`", False, "没抛")
+        except R.RatchetError as err:
+            gate("⑥ 缺字段 ⇒ `RatchetError` + 点名缺的那个字段",
+                 "缺字段" in str(err) and "head" in str(err), str(err)[:80])
+        rc = threshold_main(["--state", str(miss)])
+        gate("⑥ 真 CLI：状态缺失 ⇒ **rc=3**（不假装判过）", rc == 3, f"rc={rc}")
+
+    _produced("T-SEAM-REV")
+    print("\n⑦ **接缝**：消费点不读 ratchet ⇒ 判红（坏输入 = **改前的源码**，`--source-rev`）")
+    gate(f"⑦ 正对照：**当前**源码 {len(R.REGISTRY)}/{len(R.REGISTRY)} 消费点都有标记 + "
+         f"标签里没有 ratchet 的值 ⇒ 无红", not R.seam_problems(ROOT),
+         str(R.seam_problems(ROOT))[:120])
+    old = R.seam_problems(ROOT, source_rev="cf259d1f")
+    gate("⑦ 反向：**改前**（`cf259d1f`）的 7 个消费者**都没有**标记 + 标签里写着 ratchet 的值 "
+         "⇒ 判红 + 逐条点名",
+         len(old) == len(R.REGISTRY) + len(R.LABEL_SEAM)
+         and all("找不到" in r or "step 标签里写着 ratchet 的值" in r for r in old), f"{len(old)} 条")
+    # ⚠ 真 CLI 臂要**自带一个合法状态**（否则它量到的是"状态缺失 ⇒ rc=3"而不是
+    #   "接缝判红 ⇒ rc=1" ⇒ 那是一条**量错了对象**的臂 ✗；本会话第一版就是这么错的）。
+    with tempfile.TemporaryDirectory() as tmp2:
+        ok_state = Path(tmp2) / "ok.json"
+        ok_state.write_text(json.dumps({
+            "version": 1, "round": 0, "head": "f" * 40, "at": "t0", "caps": R.seeds(),
+            "history": [{"round": 0, "head": "f" * 40, "at": "t0", "caps": R.seeds(),
+                         "reading": live}]}), encoding="utf-8")
+        rc = threshold_main(["--state", str(ok_state), "--source-rev", "cf259d1f"])
+    gate("⑦ 反向：真 CLI `--source-rev cf259d1f`（同一份合法状态）⇒ **rc=1**", rc == 1, f"rc={rc}")
+
+    _produced("T-LABEL-ARMS")
+    print("\n⑦b **标签接缝**（caps 不许在 step 标签里写第二遍 —— 同一洞的横向那一半 ✓）")
+    with tempfile.TemporaryDirectory() as tmp3:
+        t3 = Path(tmp3)
+        (t3 / ".github" / "workflows").mkdir(parents=True)
+        (t3 / "scripts").mkdir()
+        # 夹具把**消费者那一半**先弄绿（只留标签这一格可变 ⇒ 臂**量的是标签** ✓，不是别的 ✗）。
+        # ⚠ **按文件聚合标记**（一个消费者可能消费**多个** id：`docs-lint.py` 两个 ·
+        #   `check-site.py` 两个 · `target-hygiene.py` 两个 ⇒ 逐 id 覆盖写会只剩最后一个 ✗）。
+        by_file: dict[str, list[str]] = {}
+        for _spec in R.REGISTRY.values():
+            by_file.setdefault(_spec["seam"][1], []).append(_spec["seam"][0])
+        for _rel, _markers in by_file.items():
+            _p = t3 / _rel
+            _p.parent.mkdir(parents=True, exist_ok=True)
+            _p.write_text("import threshold_ratchet\n" + "\n".join(_markers) + "\n",
+                          encoding="utf-8")
+        (t3 / ".github" / "workflows" / "ci.yml").write_text(
+            "      - name: 文档预算 lint（体积上限见 ratchet）\n", encoding="utf-8")
+        gate("⑦b 正对照：夹具的**消费者那一半**已绿（否则下面的臂量错了对象 ✗）",
+             not R.seam_problems(t3), str(R.seam_problems(t3))[:90])
+        # **反向**（改前那一行的形状）：标签里写着种子 ⇒ 必须判红
+        (t3 / ".github" / "workflows" / "ci.yml").write_text(
+            "      - name: 文档预算 lint（活文档 ≤10.0 MB · 入口 ≤800 行）\n", encoding="utf-8")
+        _lab = R.seam_problems(t3)
+        gate("⑦b 反向：标签里写着**种子**（`≤10.0 MB`）⇒ **只这一条**判红",
+             len(_lab) == 1 and "step 标签里写着 ratchet 的值" in _lab[0],
+             f"{len(_lab)} 条：{(_lab[0][:60] if _lab else '**没判红** ✗')}")
+        # **正对照**：标签只说"查什么"、不说"查到多少" ⇒ 无红（**注释**里的历史读数不算 ✗）
+        (t3 / ".github" / "workflows" / "ci.yml").write_text(
+            "      # 实测 17.13 > 17.0 ⇒ 那条红没有出路 ✗\n"
+            "      - name: 文档预算 lint（体积上限见 ratchet · 入口 ≤800 行）\n", encoding="utf-8")
+        gate("⑦b 正对照：标签不带上限数字（注释里的历史读数**不算** ✗）⇒ 无红",
+             not R.seam_problems(t3), str(R.seam_problems(t3))[:90])
+        # **精度**：静态常量（**不是**任何 id 的 seed/caps/floor）⇒ **不许误伤** ✗→✓
+        (t3 / ".github" / "workflows" / "ci.yml").write_text(
+            "      - name: 文档预算 lint（入口 ≤800 行 · 设计 ≤150 行/冻结 · 每段 ≤30 · 净增 ≤60）\n",
+            encoding="utf-8")
+        gate("⑦b 正对照：**静态常量**（`≤800 行`/`≤150 行`/`≤30`/`≤60` 都不是 ratchet 的值）不误伤",
+             not R.seam_problems(t3), str(R.seam_problems(t3))[:90])
+        # **反向**：咬的不只是种子 —— **现行 caps** 写进标签同样判红 ✓
+        _cur = R.label_cap_hits("      - name: x（活文档 ≤9.50 MB）\n",
+                                {"docs_live_bytes": 9_500_000})
+        gate("⑦b 反向：标签写着**现行 caps**（`≤9.50 MB`）也判红（不只咬种子 ✓）",
+             bool(_cur), str(_cur)[:80])
+        # **反向**：`--source-rev` 量不到 ⇒ 判红（**不假装判过** ✗；打在**真仓**上量一个假 rev ✓）
+        gate("⑦b 反向：`--source-rev` 量不到 ⇒ 判红（不假装判过）",
+             any("量不到" in r for r in
+                 R.seam_problems(ROOT, source_rev="0000000000000000000000000000000000000000")))
+
+        # ⭐⭐ ⑦c **接缝读的是哪一层**（第 1 轮 `gs1` 收窄：**提及 ≠ 读** ✓）
+        _produced("T-SEAM-LAYER")
+        print("\n⑦c **接缝的层**（`SUB-narrow-guards-to-one-layer`：收窄成**命令层** ✓）")
+        t4 = t3 / "layer"
+        (t4 / "scripts").mkdir(parents=True)
+        (t4 / ".github" / "workflows").mkdir(parents=True)
+        for _rel, _markers in by_file.items():          # 消费者那一半先弄绿（照 ⑦b ✓）
+            _p = t4 / _rel
+            _p.parent.mkdir(parents=True, exist_ok=True)
+            _p.write_text("import threshold_ratchet\n" + "\n".join(_markers) + "\n",
+                          encoding="utf-8")
+        (t4 / ".github" / "workflows" / "ci.yml").write_text(
+            "      - name: 文档预算 lint（体积上限见 ratchet）\n", encoding="utf-8")
+        gate("⑦c 正对照：夹具的消费者都在**活行**里读 ⇒ 无红",
+             not R.seam_problems(t4), str(R.seam_problems(t4))[:90])
+        # **反向**：把 `docs-lint.py` 的两个标记**降级成注释**（活行里没有）⇒ ①b 判红。
+        # ⚠ 这正是**收窄前绿**的那条路（那时读的是**整份源码** ⇒ 注释里提一句就算"读了" ✗）。
+        (t4 / "scripts" / "docs-lint.py").write_text(
+            "# 消费点标记（**只在注释里**）：_RATCHET_CAPS[\"docs_live_bytes\"] · "
+            "_RATCHET_CAPS[\"docs_archive_bytes\"]\n"
+            "import threshold_ratchet\nMAX_LIVE_BYTES = 10_000_000\n", encoding="utf-8")
+        _ment = R.seam_problems(t4)
+        gate("⭐⭐ 反向：标记只在**注释**里 ⇒ **①b 提及不算读** 判红 + 逐条点名",
+             len(_ment) == 2 and all("①b 提及不算读" in m and "docs-lint.py" in m for m in _ment),
+             f"{len(_ment)} 条：{(_ment[0][:70] if _ment else '**没判红** ✗')}")
+        if _ment:
+            print(f"      ↳ 本臂判红原文（**不是本跑的判据** ✓）：{_ment[0][:110]}")
+        # **正对照**：标记写回**活行**（真读）⇒ 不判红 ✓（收窄没让它变松 ✓）
+        (t4 / "scripts" / "docs-lint.py").write_text(
+            "import threshold_ratchet\n"
+            "_RATCHET_CAPS, _E = threshold_ratchet.caps_or_error()\n"
+            "MAX_LIVE_BYTES = _RATCHET_CAPS[\"docs_live_bytes\"]\n"
+            "MAX_ARCHIVE_BYTES = _RATCHET_CAPS[\"docs_archive_bytes\"]\n", encoding="utf-8")
+        gate("⑦c 正对照：标记回到**活行**里 ⇒ 无红",
+             not R.seam_problems(t4), str(R.seam_problems(t4))[:90])
+
+    print("\n⑧ **开轮纪律**（空转 ⇒ 判红；**收敛之后不判** ⇒ 红必须有出路 ✓）")
+    gate("⑧ 基点之后 ≤ 上限笔数 ⇒ 不判",
+         not R.judge_idle(st, ROUND_MAX_COMMITS, ROUND_MAX_COMMITS))
+    idle = R.judge_idle(st, ROUND_MAX_COMMITS + 1, ROUND_MAX_COMMITS)
+    gate("⑧ 超过上限 ⇒ 判红 + 给出路 `--open-round`",
+         bool(idle) and "--open-round" in idle[0])
+    floored = dict(st, caps={k: v["floor"] for k, v in R.REGISTRY.items()})
+    gate("⑧ **全部到收敛目标之后不判**（否则是一条没有出路的红 ✗）",
+         not R.judge_idle(floored, 10_000, ROUND_MAX_COMMITS))
+
+    print()
+    if bad:
+        print(f"✗ selftest 判红：{bad}/{total} 条不符 ✗")
+        return 1
+    print(f"✓ selftest 全过：{total}/{total} 条符合 ✓（含 ① 单调/不放松 · ② 连开两轮更低 · "
+          f"③④⑤ 反向 · ⑥ 状态缺失响亮 · ⑦ 接缝打在改前源码上必红 · ⑦b 标签接缝（种子/现行 caps 都咬、静态常量不误伤）· "
+          f"⑦c 接缝的**层**（只在注释里提及 ⇒ **①b 提及不算读** 判红）· ⑧ 空转）")
+    return 0
+
+
+def threshold_main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description="横向阈值 ratchet（状态 + 接缝 + 开轮纪律）")
+    ap.add_argument("--state", default=str(THRESHOLD_STATE), help="ratchet 状态文件")
+    ap.add_argument("--measure", action="store_true", help="打印 7 个读数（跑 4 个守卫）")
+    ap.add_argument("--open-round", action="store_true", help="开一轮（要求读数落进收紧后的上限）")
+    ap.add_argument("--init", action="store_true", help="只在落地那一次：写第 0 轮基线")
+    ap.add_argument("--json", action="store_true", help="机器可读")
+    ap.add_argument("--target-root", default=None, metavar="DIR",
+                    help="量 target 体积的根（默认 `<repo>/target`；worktree 里构建落在别处时显式指）")
+    ap.add_argument("--source-rev", default=None, metavar="REV",
+                    help="接缝判据打在**历史版本**的消费点源码上（咬住证明用）")
+    ap.add_argument("--selftest", action="store_true", help="判据通道自检（正反两向）")
+    args = ap.parse_args(argv)
+    state_path = Path(args.state)
+
+    if args.selftest:
+        return _selftest_with_produced("threshold")
+    if args.init:
+        return threshold_init(state_path, args.target_root)
+    if args.open_round:
+        return threshold_open_round(state_path, args.target_root)
+    if args.measure:
+        _reading, missing = threshold_measure(verbose=True, target_root=args.target_root)
+        if missing:
+            print(f"⚠ 量不到：{missing}（**不记 0** ✗）", file=sys.stderr)
+        return 0
+    return threshold_check(state_path, args.source_rev, args.json)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 驱动器（**唯一一处** ✓）：`--layer` 分派 + 登记表 + 两层的断言产出
+# ═══════════════════════════════════════════════════════════════════════════
+_LAYER_MAIN = {"attention": None, "threshold": None}     # 两层定义之后填 ✓
+
+
+def _split_layer(argv: list[str]) -> tuple[str, list[str]]:
+    """`--layer attention|threshold|all`（缺省 `all`）⇒ `(层, 其余 argv)`。**唯一一处** ✓
+
+    ⚠ 只摘 `--layer` 自己（其余**原样**转给那一层的 argparse ✓ ⇒ 两层的 CLI 逐字保留 ✓）。
+    """
+    layer, rest, i = "all", [], 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--layer":
+            if i + 1 >= len(argv):
+                print("error: `--layer` 后面要跟 attention|threshold|all", file=sys.stderr)
+                raise SystemExit(2)          # ⚠ 用法错 = 2（与 argparse 同口径 ✓）
+            layer, i = argv[i + 1], i + 2
+            continue
+        if a.startswith("--layer="):
+            layer, i = a.split("=", 1)[1], i + 1
+            continue
+        rest.append(a)
+        i += 1
+    if layer not in (*LAYERS, "all"):
+        print(f"error: `--layer` 只许 {'|'.join(LAYERS)}|all（给的是 {layer!r}）", file=sys.stderr)
+        raise SystemExit(2)                  # ⚠ 用法错 = 2（实测踩到过：字串 ⇒ rc=1 ✗）
+    return layer, rest
+
+
+def _run_layer(layer: str, argv: list[str]) -> tuple[int, str]:
+    """跑一层（**捕获**它的 stdout ⇒ 供 `--layer all` 汇总 / `--json` 组合 ✓）⇒ (rc, 输出)。"""
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = _LAYER_MAIN[layer](argv)
+    return rc, buf.getvalue()
+
+
+def _green_probe(layer: str) -> tuple[set[str], list[str]]:
+    """**绿路探针**（判例 v）：把该层 **CI 接线的那几条动作**在这一进程里**真跑**一遍
+    （输出捕获 ⇒ 不污染本跑的判据行 ✓）⇒ (产出的断言, 环境红行)。
+
+    ⚠ **真跑**（调的是同一批 `main()`，不是打桩 ✓）；⚠ 判红/告警**与产出无关**（断言
+    **跑到**就产出 ✓ —— 探针只问"这些判据有没有被跑到"，不问"读数绿不绿" ✓）。
+    ⚠ 返回码 3（环境错：状态缺失 / 浅克隆）⇒ **红**（**不假装判过** ✗）。
+    """
+    actions = {"attention": [["--seam"], []], "threshold": [[]]}[layer]
+    env_red: list[str] = []
+    with recording() as produced:
+        for argv in actions:
+            rc, _out = _run_layer(layer, argv)
+            if rc == 3:
+                env_red.append(f"**绿路探针判不了** ✗：`--layer {layer} {' '.join(argv)}` "
+                               f"rc=3（环境错：状态缺失 / 浅克隆）⇒ **不假装判过** ✗")
+    return produced, env_red
+
+
+def _selftest_with_produced(layer: str) -> int:
+    """该层的 `--selftest`（**开着记录器**）+ 绿路探针 + 逐条对账 ⇒ rc。**唯一一处** ✓"""
+    print(f"═══ 层 `{layer}`：登记表 + 断言产出（判例 v）═══")
+    reg = registry_problems()
+    if reg:
+        print(f"✗ 登记表对账：**{len(reg)} 条红** ✗")
+        for m in reg:
+            print(f"  · {m}")
+    else:
+        n_g = len(required_of(layer, "green"))
+        n_s = len(required_of(layer, "selftest"))
+        print(f"✓ 登记表 {len(REQUIRED_ASSERTIONS)}/{len(REQUIRED_ASSERTIONS)} 逐条对账"
+              f"（本层 green {n_g} + selftest {n_s} ✓）")
+
+    green, env_red = _green_probe(layer)
+    miss_green = produced_problems(required_of(layer, "green"), green,
+                                   "**绿路真跑**（CI 接线的那几条动作）里")
+    if miss_green or env_red:
+        print(f"✗ 绿路产出：**{len(miss_green) + len(env_red)} 条红** ✗")
+        for m in miss_green + env_red:
+            print(f"  · {m}")
+    else:
+        print(f"✓ 绿路真跑产出 {len(required_of(layer, 'green'))} 条断言 ✓"
+              f"（{' · '.join(sorted(required_of(layer, 'green')))}）")
+
+    print(f"\n─── 层 `{layer}` 自检臂（原文逐字 ✓）───")
+    with recording() as st_prod:
+        rc = {"attention": attention_selftest, "threshold": threshold_selftest}[layer]()
+    miss_st = produced_problems(required_of(layer, "selftest"), st_prod, "**自检臂**里")
+    if miss_st:
+        print(f"✗ 自检臂产出：**{len(miss_st)} 条红** ✗")
+        for m in miss_st:
+            print(f"  · {m}")
+    else:
+        print(f"✓ 自检臂产出 {len(required_of(layer, 'selftest'))} 条断言 ✓"
+              f"（{' · '.join(sorted(required_of(layer, 'selftest')))}）")
+    return 1 if (rc or reg or miss_green or env_red or miss_st) else 0
+
+
+def _run_all(rest: list[str]) -> int:
+    """默认动作（`--layer all`）：两层**各判各的**（各印各的判据行 ✓），再汇总 rc ✓。"""
+    if "--selftest" in rest:
+        rc = _selftest_with_produced("attention")
+        rc |= _selftest_with_produced("threshold")
+        print(f"\n{'✓' if rc == 0 else '✗'} 两层自检 + 登记表 + 断言产出："
+              f"{'全过 ✓' if rc == 0 else '**有红** ✗'}")
+        return rc
+    if not rest:
+        rcs = {}
+        for layer in LAYERS:
+            print(f"─── 层 `{layer}` ───")
+            rcs[layer] = _run_layer(layer, [])[0]
+        worst = 3 if 3 in rcs.values() else (1 if 1 in rcs.values() else 0)
+        print("─── 汇总（**每条红只属于一层** ✓；汇总只为人在本机用 ✓）───")
+        for layer in LAYERS:
+            print(f"  · `{layer}`：rc={rcs[layer]}")
+        return worst
+    if "--json" in rest:
+        out: dict = {"schema": "soko-budgets-v1", "layers": {}}
+        rc_any = 0
+        for layer in LAYERS:
+            rc, text = _run_layer(layer, ["--json"])
+            try:
+                out["layers"][layer] = json.loads(text)
+            except json.JSONDecodeError:
+                out["layers"][layer] = {"ok": False, "raw": text}
+            rc_any = max(rc_any, rc)
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+        return rc_any
+    print("error: `--layer all` 只支持默认动作 / `--selftest` / `--json` ⇒ "
+          "带参数的动作用 `--layer attention` 或 `--layer threshold` **显式点名**（**一条红"
+          "只属于一层** ✓）", file=sys.stderr)
+    return 2
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    layer, rest = _split_layer(argv)
+    if layer == "all":
+        return _run_all(rest)
+    return _LAYER_MAIN[layer](rest)
+
+
+_LAYER_MAIN["attention"] = attention_main
+_LAYER_MAIN["threshold"] = threshold_main
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -414,18 +414,18 @@ python3 scripts/check-queue-integrity.py || exit 1'
 # "告警被当成红" ✗。⇒ 标签改由 `--label` 印（本脚本 = 那份状态的**唯一读者** ✓），
 # 且**接缝判据**（`--seam`）机械咬住"又被写死" ✗（咬住证明：`docs/guard-bite.jsonl`）。
 # ⚠ 本文件里**不许再出现 caps 的字面量**（`--seam` 咬这一条 ✓）—— 引用读数请只写数字。
-run "gates：$(python3 scripts/check-attention-budget.py --label)" "queue-lint" bash -c '
-python3 scripts/check-attention-budget.py --seam || exit 1
-python3 scripts/check-attention-budget.py --selftest || exit 1
-python3 scripts/check-attention-budget.py || exit 1'
+run "gates：$(python3 scripts/check-budgets.py --layer attention --label)" "queue-lint" bash -c '
+python3 scripts/check-budgets.py --layer attention --seam || exit 1
+python3 scripts/check-budgets.py --layer attention --selftest || exit 1
+python3 scripts/check-budgets.py --layer attention || exit 1'
 
 # **横向阈值 ratchet**（2026-10-16 · 用户 2026-10-15【②】的**横向**落地）：上面那条是**簿记**
 # 的两档；这条是**横向**那批装饰性上限（登记表 = 唯一出处：`scripts/threshold_ratchet.py` ✓）。
 # 判：caps 单调不增 + 永不高于种子 · **接缝**（7/7 消费点真的读 ratchet ✗ 改回常量当场红）·
 # 开轮纪律（基点后 > 40 笔没开轮 ⇒ 判红）✓。⚠ 实测 ~1.3s（**不跑** 4 个消费者 ⇒ 不需要 target/ ✓）。
 run "gates：横向阈值 ratchet（状态 + 接缝 + 开轮纪律）" "queue-lint" bash -c '
-python3 scripts/check-threshold-ratchet.py --selftest || exit 1
-python3 scripts/check-threshold-ratchet.py || exit 1'
+python3 scripts/check-budgets.py --layer threshold --selftest || exit 1
+python3 scripts/check-budgets.py --layer threshold || exit 1'
 
 # **咬住证明台账**（2026-10-16 · 洞 `GUARD-BITE-NOT-IN-LOCAL-GATE` ✓）：`scripts/check-guard-bite.py`
 # 此前**根本不在本脚本** ✗（实测 `grep -c` = **0**，而它的兄弟 `check-threshold-ratchet.py` = **2** ✓）

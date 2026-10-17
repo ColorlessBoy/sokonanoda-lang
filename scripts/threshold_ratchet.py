@@ -6,14 +6,14 @@
 【②】的原话（`docs/ux-queue-extras.jsonl` 的 `SUB-correct-the-orchestrator-incentives`）：
 **"预算阈值不许'照现状设'，必须排程收紧"** —— 现状是上限贴在实测**上方** ⇒ 永远绿 ⇒
 **装饰** ✗，而用户 2026-09-26 拍过板：**"不许靠抬上限达标 —— 上限方向只能是收紧"** ✗。
-② 已在 `scripts/check-attention-budget.py` 落地（真 ratchet：`docs/attention-budget-ratchet.json`
+② 已在 `scripts/check-budgets.py --layer attention` 落地（真 ratchet：`docs/attention-budget-ratchet.json`
 + `tighten()` + `--open-round`）。本文件把**同一个形状**用到**横向**那批阈值上 ——
 **形状逐条照 ②**（不是第二套设计 ✗）：
 
   · **状态**（读数可查 ✓）= `docs/threshold-ratchet.json`（**tracked** ⇒ 逐轮 caps 进 git）；
   · **收紧是排程的**：`tighten()` **只看上一轮的 caps、不看实测** ✓（这是"不许照现状设"的机制本身）；
   · **单调不增**、且**永不高于种子**（种子 = 落地时那批常量 ⇒ 本次改动**一个阈值都没放松** ✓）；
-  · **红线**（两半，都在 `check-threshold-ratchet.py` 里判）：
+  · **红线**（两半，都在 `check-budgets.py --layer threshold` 里判）：
       ① **caps 没比上轮低 ⇒ 判红**（状态不变量：逐轮**严格**下降，直到 floor —— 照 ② 的
          "本轮没比上轮低 ⇒ 判红" ✓）；
       ② **读数没落进收紧后的上限 ⇒ 判红**（`--open-round` 的闸门 = "这一轮真的变好到配得上
@@ -64,13 +64,13 @@
 ## 用法
 
 ```bash
-python3 scripts/check-threshold-ratchet.py                 # 状态不变量 + 开轮纪律（秒级）
-python3 scripts/check-threshold-ratchet.py --measure       # 另打印 7 个读数
-python3 scripts/check-threshold-ratchet.py --open-round    # 开一轮（要求读数落进收紧后的上限）
-python3 scripts/check-threshold-ratchet.py --selftest      # 判据通道自检（正反两向）
+python3 scripts/check-budgets.py --layer threshold                 # 状态不变量 + 开轮纪律（秒级）
+python3 scripts/check-budgets.py --layer threshold --measure       # 另打印 7 个读数
+python3 scripts/check-budgets.py --layer threshold --open-round    # 开一轮（要求读数落进收紧后的上限）
+python3 scripts/check-budgets.py --layer threshold --selftest      # 判据通道自检（正反两向）
 ```
 
-本文件是**库**（登记表 + `tighten()` + 状态读写）；**判红**在 `scripts/check-threshold-ratchet.py`
+本文件是**库**（登记表 + `tighten()` + 状态读写）；**判红**在 `scripts/check-budgets.py --layer threshold`
 （一处定义：消费点读 `cap()`，判据读同一份状态 ✓）。
 """
 from __future__ import annotations
@@ -96,7 +96,7 @@ class RatchetError(Exception):
 
 # ── 登记表（**唯一一处**）────────────────────────────────────────────────────
 # ⚠ 加一条 = ① 这里加一行（种子/步长/floor/消费点）② 消费点读 `cap("<id>")`
-#   ③ `check-threshold-ratchet.py` 的**接缝判据**（`SEAM`）里加标记 ④ `docs/threshold-ratchet.json`
+#   ③ `check-budgets.py --layer threshold` 的**接缝判据**（`SEAM`）里加标记 ④ `docs/threshold-ratchet.json`
 #    重新 `--init`（round 0 的 caps = 种子）⇒ 漏一处会被 `--selftest` 的结构性臂先咬住 ✓。
 REGISTRY: dict[str, dict] = {
     "docs_live_bytes": {
@@ -205,7 +205,7 @@ def state_load(path: Path | None = None) -> dict:
     if not path.exists():
         raise RatchetError(
             f"ratchet 状态不存在：`{path}` ⇒ **不假装判过** ✗。落地那一次用 "
-            f"`python3 scripts/check-threshold-ratchet.py --init` 写第 0 轮基线 ✓")
+            f"`python3 scripts/check-budgets.py --layer threshold --init` 写第 0 轮基线 ✓")
     try:
         st = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as err:
@@ -237,7 +237,7 @@ def caps_or_error(path: Path | None = None) -> tuple[dict, str | None]:
     problems = state_problems(st)
     if problems:
         return seeds(), ("ratchet 状态不健康 ⇒ **不假装判过** ✗：" + "；".join(problems)
-                         + f"（修：`python3 scripts/check-threshold-ratchet.py` 看红 / "
+                         + f"（修：`python3 scripts/check-budgets.py --layer threshold` 看红 / "
                            f"`--init` 重建第 0 轮）")
     caps = dict(seeds())
     caps.update({k: v for k, v in (st.get("caps") or {}).items() if k in REGISTRY})
@@ -252,7 +252,7 @@ def cap(cap_id: str, path: Path | None = None) -> int:
     return int(caps_or_error(path)[0][cap_id])
 
 
-# ── 状态不变量（**唯一一处**；`check-threshold-ratchet.py` 与 `--selftest` 都读它）──
+# ── 状态不变量（**唯一一处**；`check-budgets.py --layer threshold` 与 `--selftest` 都读它）──
 def state_problems(st: dict) -> list[str]:
     """**纯函数**：状态本身的问题（红线 ①：**caps 没比上轮低 ⇒ 判红** ✓）。
 
@@ -360,13 +360,13 @@ def judge_idle(st: dict, n_since: int, round_max: int) -> list[str]:
     return [f"**ratchet 空转** ✗：第 {st.get('round')} 轮的基点 "
             f"`{str(st.get('head'))[:12]}` 之后落了 **{n_since} 笔**（> `ROUND_MAX_COMMITS = "
             f"{round_max}`）还没开轮 ⇒ 阈值停在原地 = **装饰** ✗。出路："
-            f"`python3 scripts/check-threshold-ratchet.py --open-round` ✓"
+            f"`python3 scripts/check-budgets.py --layer threshold --open-round` ✓"
             f"（它要求**读数落进收紧后的上限** ⇒ 红有出路：把指标压下去 ✓）"]
 
 
 # ── **读哪一层**（洞 `SUB-narrow-guards-to-one-layer` · 第 1 轮 `gs1`；**唯一一处** ✓）──
 # 病（**实测**）：两条接缝判据（本文件的 `seam_problems()` ① 与
-# `scripts/check-attention-budget.py` 的 `seam_problems()` ①）的契约都写着
+# `scripts/check-budgets.py` 的 `seam_problems()` ①）的契约都写着
 # 「**每个消费点必须真的读 ratchet**」，而读法都是**整份源码的子串命中** ——
 # **注释里提一句**（或 `.yml` 里只在 step **名**里点名）就能通过 ✗ ⇒ **判据比错对象**
 # （与 `ng7` 收窄的 R1/C4 **同族**：那里是"**提及 ≠ 跑**"，这里是"**提及 ≠ 读**"）。
@@ -429,7 +429,7 @@ def run_bodies(text: str) -> str:
 def command_layer(text: str, rel: str) -> str:
     """**命令层**：`rel` 那种文件里"写的就是要执行的东西"的那一层 ✓（**唯一一处** ✓）。
 
-    两条接缝判据（本文件 ① 与 `check-attention-budget.py` ①）**共用**这一层定义 ⇒
+    两条接缝判据（本文件 ① 与 `check-budgets.py --layer attention` ①）**共用**这一层定义 ⇒
     同一关注点只有**一处**维护成本（`SUB-narrow-guards-to-one-layer` ② ✓）。
     """
     return run_bodies(text) if rel.endswith((".yml", ".yaml")) else live_lines(text)
