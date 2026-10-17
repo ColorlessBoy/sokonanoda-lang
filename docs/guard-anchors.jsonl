@@ -68,8 +68,7 @@
 {"kind": "guard", "guard": "scripts/check-ci-gate-coverage.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量 CI 接线：改了某范围 ⇒ 该跑的门禁跑没跑"}
 {"kind": "guard", "guard": "scripts/check-history-depth-wiring.py", "class": "B", "anchors": ["A-RELEASE-NOT-BLOCKED"], "why": "量 CI 接线：跑历史判据的 job 有没有全历史"}
 {"kind": "guard", "guard": "scripts/check-test-env-isolation.py", "class": "B", "anchors": ["A-REPORT-TRUTH"], "why": "量测试的环境档位隔离（混档 ⇒ 绿是假的）"}
-{"kind": "guard", "guard": "scripts/check-doc-drift.py", "class": "B", "anchors": ["A-HARNESS-DOCS-MATCH"], "why": "量声明：harness 接线文档 vs 实现"}
-{"kind": "guard", "guard": "scripts/check-launcher-extension-link.py", "class": "B", "anchors": ["A-HARNESS-DOCS-MATCH"], "why": "量声明：AGENTS 说「扩展自带」vs 启动器代码（实测是死分支）"}
+{"kind": "guard", "guard": "scripts/check-drift.py", "class": "B", "anchors": ["A-HARNESS-DOCS-MATCH"], "why": "量声明：**「声明说 X，实现是 Y」的漂移**（一本登记表 + 一个驱动器）—— ① 文档漂移：harness 接线文档（三处 README）vs 实现 · ② 扩展链接：AGENTS/头注释说「扩展自带」vs 启动器代码（实测曾是死分支）。**合并前是两条**（`scripts/check-doc-drift.py` + `scripts/check-launcher-extension-link.py`，`SUB-narrow-guards-to-one-layer` ① ⇒ 2 → 1 ✓）；同一个锚 · 同一个 job `wiring-lint` · 同一批接线点 ✓"}
 {"kind": "guard", "guard": "scripts/check-lsp-marker-seam.py", "class": "B", "anchors": ["A-HARNESS-DOCS-MATCH"], "why": "量声明：marker 文档 vs 两处写入点"}
 {"kind": "anchor", "id": "A-VERSION-SOURCES", "strength": "direct", "site": "用户装到的 VSIX / CLI / LSP 的版本号", "action": "装一次、核对它与仓库版本一致", "reading": "两处版本源（Cargo.toml / editor/vscode/package.json）一致 ⇒ auto-tag 打得出来；不一致 ⇒ 发版卡住、用户装到旧版"}
 {"kind": "guard", "guard": "scripts/release-metric.py", "class": "A", "anchors": ["A-RELEASE-ARTIFACTS"], "why": "交付维度的量具：未发版 N 笔 / 距上次发版 H 小时（用户手上还是旧版）—— 后果**直接落在用户手上**（rec1 的分类 ✓；锚 A-RELEASE-ARTIFACTS 本来就在等它 ✓）。⚠ 修前它**不在** `guard_scripts()` 的名字臂里 ⇒ C1/C6 都看不见它 ✗（洞 `GUARD-ENUMERATION-IS-NAME-BASED` 的活例子）", "faces": {"ci": {"witness": "masked-readout"}}}

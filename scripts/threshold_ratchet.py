@@ -467,7 +467,8 @@ def _read_source(root: Path, rel: str, source_rev: str | None) -> tuple[str | No
 # （种子 / 现行 caps / 收敛目标）逐个比 —— 撞上就是第二份真相 ✗。
 # ⚠ **单位必须一致** ⇒ 静态常量**不误伤**：`入口 ≤800 行` / `设计 ≤150 行` / `每段 ≤30` /
 # `净增 ≤60` 都不是任何 id 的 seed/caps/floor ⇒ **留着** ✓（它们不随轮次漂移，是另一类
-# 「文档漂移」，由 `check-doc-drift.py` 那一族管 ✗ —— 别把两类混成一条规则 ✗）。
+# 「文档漂移」，由 `check-drift.py` 的 ① 那一族管 ✗ —— 别把两类混成一条规则 ✗
+# （⚠ 2026-10-17 `gs3` 换名：原 `check-doc-drift.py` 已并进 `check-drift.py` 的层① ✓）。
 LABEL_SEAM: tuple[dict, ...] = (
     {"rel": ".github/workflows/ci.yml",
      "why": "step 名是**评审/用户在 job 列表里看得见**的一处 ⇒ 写上 ratchet 的值就是第二份真相"},

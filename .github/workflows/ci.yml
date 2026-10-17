@@ -110,31 +110,35 @@ jobs:
       - name: 判据自检（控制组判绿、三个漂移方向都必须判红）
         run: python3 scripts/tactic-docs-lint.py --selftest
 
-  # **两个接线守卫**（2026-10-15 LINK-B 新增，洞 `CHECKERS-NOT-IN-CI`）：
-  # `check-doc-drift.py`（harness 接线的文档漂移：三处 README ↔ 实现）与
-  # `check-launcher-extension-link.py`（启动器的「VS Code 扩展自带」链接：
-  # C1–C4 四条「用户动作 ⇒ 可见结果」）。两个都**只进了 `scripts/soko gate`**，
-  # 而 CI 这条路上等于没有 ✗ —— 与「咬不住的守卫等于没有」同族 ✓。
+  # **「声明说 X，实现是 Y」的漂移守卫**（2026-10-15 LINK-B 新增两条，洞 `CHECKERS-NOT-IN-CI`；
+  # ⭐ 2026-10-17 合并成**一条** `check-drift.py` = 一本登记表 + 一个驱动器 ✓，
+  # `SUB-narrow-guards-to-one-layer` ①：`check-doc-drift.py`（harness 接线的文档漂移：
+  # 三处 README ↔ 实现）+ `check-launcher-extension-link.py`（启动器的「VS Code 扩展自带」
+  # 链接：C1–C4 四条「用户动作 ⇒ 可见结果」）—— **同一个锚** `A-HARNESS-DOCS-MATCH` ·
+  # **同一个 job** · **同一批接线点** ⇒ 一层一个关注点 ✓）。
+  # 两条都**只进了 `scripts/soko gate`**，而 CI 这条路上等于没有 ✗ —— 与「咬不住的守卫
+  # 等于没有」同族 ✓。
   #
   # ⚠ **为什么不挂在 `gates-fast` 里**（虽然那是最省事的写法 ✗）：`gates-fast` 由
   # `changes` 的 `rust`/`courses` 过滤器驱动 ⇒ **只改文档 / 只改 STATUS.md 的推送
   # 根本不碰它** ✗ ⇒ 守卫**永远不跑** ✗。这正是本文件里 `status-lint` 已经踩过的坑
   # （见上面那条注释：实测 `675491b` 只改 docs ⇒ `gates-fast` skipped ✓），而
-  # `check-doc-drift.py` 恰恰是**文档**漂移的守卫 ⇒ 挂在 rust 过滤器后面是结构性错误 ✗。
+  # 漂移守卫里恰恰有**文档**漂移那一层 ⇒ 挂在 rust 过滤器后面是结构性错误 ✗。
   # ⇒ 照 `status-lint`/`docs-lint`/`tactic-docs-lint` 的形状：**独立 job、不设 `if:`、
   # 不加过滤器** ✓（顺带避开"skipped 的依赖会拖垮 `auto-tag`"那个坑 ✓）。
   # 步骤形状与 `gates-fast` 里的同名两步**逐字同源**（判据 + `--selftest`）✓。
   #
-  # 依赖：`check-doc-drift.py` 只要 python3 ✓；`check-launcher-extension-link.py`
-  # 还要 `node`（runner 自带）——**探不到就 exit 3、绝不静默通过** ✓（与 gate 其它步
-  # 同一条纪律 ✓）。两者都是亚秒级 ⇒ 永远跑 ✓。
+  # 依赖：层① 只要 python3 ✓；层② 还要 `node`（runner 自带）——**探不到就 exit 3、
+  # 绝不静默通过** ✓（与 gate 其它步同一条纪律 ✓）。合并后是**一次解释器启动**跑两层
+  # ⇒ 亚秒级 ⇒ 永远跑 ✓。
   #
-  # ⭐ 2026-10-15 CMT-G 增补**第三个**：`check-lsp-marker-seam.py`（洞
+  # ⭐ 2026-10-15 CMT-G 增补**第二个**：`check-lsp-marker-seam.py`（洞
   # `LSP-MARKER-NO-COMMITTED-GUARD`）—— LSP 槽位的 marker 有**一个写端 + 三个读点**
   # （`editor/vscode/server.js` 写端与 `cachedServerIsCurrent` · `scripts/soko`
   # `markerExpected` · `editor/vscode/extension.js` doctor 5/6）。lspF 轮（`1b6b7eb5`）
   # 把它们一次改齐，但跨接缝探针只活在 `.cache/ux/fix-lspF/`（**不 commit** ✗）
-  # ⇒ 照 `check-launcher-extension-link.py` 的形状收进 `scripts/` ✓。
+  # ⇒ 照上面那条的形状收进 `scripts/` ✓（⚠ `check-drift.py` 的 ① 是**同一族**的第三条 ——
+  # `gs1` §9 把「漂移 3 → 1」排在后面几轮 ⇒ 那时它并进 `check-drift.py` 的登记表 ✓）。
   # C1–C6 盖 LSP 槽位；**C7 是横向排查**（硬规则 0(b)）收的**第二个槽位**：扩展
   # 「Install CLI」写端 `installBundledCli`（洞 `INSTALL-BUNDLED-CLI-MARKER-DRIFT`，
   # markC `a5feb8b5`）的证据同样只在 `.cache/ux/fix-markC/`，而今天没有任何 committed
@@ -142,7 +146,7 @@ jobs:
   # `installBundledCli` 整个 stub 掉 ✗）⇒ 一并收进来 ✓。
   # 依赖 `node` + `tar`（runner 自带）⇒ 同一条纪律：探不到就 exit 3 ✓；约 1.5 秒 ⇒ 永远跑 ✓。
   #
-  # ⭐ 2026-10-15 增补**第四个**：`scripts/ci-push-range.py`（洞 `PUSH-RANGE-HIDES-RELEASE`）——
+  # ⭐ 2026-10-15 增补**第三个**：`scripts/ci-push-range.py`（洞 `PUSH-RANGE-HIDES-RELEASE`）——
   # `changes` job 的推送范围基点从"本次推送自己"改成"上一个已验证点"（见那个 job 的注释 ✓）。
   # **为什么必须挂在这条 job 上**（而不是只留在本地）：那个洞的病根就是「**改了判据却没人验**」
   # （同族第四次 ✓），而 `changes` 自己**不在任何过滤器后面** ✓ ⇒ 把它的判据挂在这里，
@@ -151,20 +155,30 @@ jobs:
   # 标记的 save/restore 前缀一致 ✗✓、写标记的 job 的 `if` 带状态函数 ✓）；`--selftest` 在
   # **合成夹具仓库**上跑范围语义（含**正对照**：连续两次纯 docs ⇒ 仍不跑重活 ✓；
   # 含**负对照**：旧口径下同一推送 rust=false ⇒ 洞复现 ✓）。亚秒级 ⇒ 永远跑 ✓。
+  #
+  # ⚠ **`fetch-depth: 0` 是必需的，不是优化** ✗（⭐ **本轮加的** —— 2026-10-17 `gs3`）：
+  # `check-drift.py` 的**咬住证明**钉在固定旧 rev（`--rev 755e5302^` ⇒ `git show <rev>:<path>`）
+  # ⇒ 浅克隆里那个对象不在、判据**判不了** ⇒ 它已登记进
+  # `scripts/check-history-depth-wiring.py` 的 `HISTORY_DEPENDENT`（**本轮实测**：登记后
+  # R1 **当场判红**「`wiring-lint` 真的跑了历史判据 `scripts/check-drift.py`，而它的
+  # `actions/checkout` 没有 `fetch-depth: 0`」⇒ 本行就是那条红的出路 ✓）。
+  # ⚠ **如实划的边界** ✗：本 job 跑的**默认 / `--selftest`** 两层**零 git**（全文唯一的
+  # `git` 在 `_git_show()` 里，只服务 `--rev`）⇒ 严格说本 job 不需要全历史；
+  # 要全历史的是**它的咬住证明**（在 `queue-lint` 里由 `check-guard-bite.py --check --all`
+  # 跑 ✓，那个 job 本来就有）。R1 的表是**按脚本**声明的 ⇒ 跑它的每个 job 都跟着要 ✓
+  # —— 与 `check-frozen-headroom.py` / `check-queue-integrity.py` 触发器层**同形** ✓。
   wiring-lint:
-    name: wiring-lint（harness 接线文档漂移 + 启动器扩展链接 + LSP 槽位 marker 跨接缝 + 推送范围基点）
+    name: wiring-lint（漂移守卫「声明 ↔ 实现」+ LSP 槽位 marker 跨接缝 + 推送范围基点）
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
-      - name: harness 接线的文档漂移（三处 README ↔ 实现）+ 自检
+        with:
+          fetch-depth: 0
+      - name: 漂移守卫（① 文档漂移：三处 README ↔ 实现 · ② 扩展链接 C1–C4）+ 两套自检
         run: |
-          python3 scripts/check-doc-drift.py
-          python3 scripts/check-doc-drift.py --selftest
-      - name: 启动器「VS Code 扩展自带」链接（C1–C4，含 canExec 不许松）+ 自检
-        run: |
-          python3 scripts/check-launcher-extension-link.py
-          python3 scripts/check-launcher-extension-link.py --selftest
+          python3 scripts/check-drift.py
+          python3 scripts/check-drift.py --selftest
       - name: LSP/CLI 槽位 marker 跨接缝（C1–C7，含两条负对照不许松）+ 自检
         run: |
           python3 scripts/check-lsp-marker-seam.py
@@ -428,8 +442,11 @@ jobs:
         # ⚠ **为什么在本 job**：`--selftest` 的咬住证明打在**钉死的旧 rev**
         # （`1cd4aba0` = CI 真红那一跑的 `head_sha` ✓，**不是** `HEAD` ✗ ——
         # pr1 的坑：写 `HEAD` 的话提交后就是修好的那版 ⇒ 证明自己失效 ✗）
-        # ⇒ **本步自己也要全历史**，而本 job 有 `fetch-depth: 0` ✓（wiring-lint **没有**
-        # ⇒ 放那边会以"环境不在"判红 ✗ —— 正是本守卫要拦的那种红 ✓）。
+        # ⇒ **本步自己也要全历史**，而本 job 有 `fetch-depth: 0` ✓（⚠ 2026-10-17 `gs3` 起
+        # `wiring-lint` **也有**了 —— `check-drift.py` 的咬住证明钉旧 rev ⇒ 它登记进
+        # `HISTORY_DEPENDENT` ⇒ R1 给那个 job 补了 `fetch-depth: 0` ✓；本步留在本 job 的
+        # 理由不变：`--selftest` 的咬住证明打在本 job 里，放别处会以"环境不在"判红 ✗
+        # —— 正是本守卫要拦的那种红 ✓）。
         # 实测：`--check` + `--selftest` 合计 < 0.5s ⇒ 进本 job（5 分钟预算）是噪声级 ✓。
         run: |
           python3 scripts/check-history-depth-wiring.py

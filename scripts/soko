@@ -2042,28 +2042,36 @@ async function main(argv) {
         )
         return 3
       }
-      // **harness 接线的文档漂移**（2026-10-15 LINK-B，洞 `DOC-DRIFT-CHECKER-NOT-COMMITTED`）：
-      // 三处（`README.md` / `skills/README.md` / `editor/vscode/README.md`）刚与实现对齐过，
-      // 而当时那个 checker 只是**证据件**（`.cache/**` 不 commit）⇒ 对齐做完了、**没有守卫
-      // 钉住它** ✗（`AGENTS.md`：**咬不住的守卫等于没有** ✓）。本步把它收进 `scripts/`
-      // 并**每次 gate 都跑**：先量事实（`opencode.json` 无 `lsp` 块 · shim 只转发 ·
-      // `scripts/soko` **读** `SOKONANODA_OFFLINE`、从不读 LSP 那个别名 · 插件改写
-      // `lsp.sokonanoda.command`），再对文档；漂移就**点名哪一处** ✗。快（毫秒级）
-      // ⇒ `--fast` 也跑 ✓；`--selftest` 把三处旧文放回去、每处都必须判红 ✓。
-      const docDrift = path.join(REPO, 'scripts', 'check-doc-drift.py')
-      if (!existsSync(docDrift)) {
+      // **「声明说 X，实现是 Y」的漂移守卫**（2026-10-15 LINK-B 两条 → 2026-10-17 合并成一条 ✓，
+      // `SUB-narrow-guards-to-one-layer` ①：`check-doc-drift.py` + `check-launcher-extension-link.py`
+      // ⇒ `check-drift.py` = **一本登记表 + 一个驱动器**）：
+      // · 层① 文档漂移（洞 `DOC-DRIFT-CHECKER-NOT-COMMITTED`）：三处
+      //   （`README.md` / `skills/README.md` / `editor/vscode/README.md`）刚与实现对齐过，
+      //   而当时那个 checker 只是**证据件**（`.cache/**` 不 commit）⇒ 对齐做完了、**没有守卫
+      //   钉住它** ✗（`AGENTS.md`：**咬不住的守卫等于没有** ✓）。先量事实（`opencode.json`
+      //   无 `lsp` 块 · shim 只转发 · `scripts/soko` **读** `SOKONANODA_OFFLINE`、从不读 LSP
+      //   那个别名 · 插件改写 `lsp.sokonanoda.command`），再对文档；漂移就**点名哪一处** ✗。
+      // · 层② 扩展链接（洞 `SOKO-EXTENSION-LINK-UNWIRED`）：那一格曾被文档写着、
+      //   `extensionServer()` 写着、`canExec()` 的分支写着，**却没有调用点** ✗ ⇒ 通用 VSIX +
+      //   没跑过「Install CLI」+ 离线时 `scripts/soko lsp` 只能下载/被拒。四条判据全用
+      //   **自带夹具**（临时 HOME/缓存 + 空 `CARGO_TARGET_DIR` + offline），其中 C2/C4 专门咬
+      //   "`canExec` 不许松" ✓。⚠ 与 `crates/cli/tests/launcher.rs` 互补：那是**冻结用例**
+      //   且夹具不设 `HOME` ⇒ 测不了"扩展在场/版本对不对"这一格 ✓。
+      // 快（毫秒级 + 亚秒级）⇒ `--fast` 也跑 ✓；`--selftest` = **两套自检 + 登记表/绿跑对账** ✓。
+      const drift = path.join(REPO, 'scripts', 'check-drift.py')
+      if (!existsSync(drift)) {
         process.stderr.write(
-          `scripts/soko gate: 找不到 ${path.relative(REPO, docDrift)} —— 接线漂移无法判定（exit 3）。\n`,
+          `scripts/soko gate: 找不到 ${path.relative(REPO, drift)} —— 接线漂移无法判定（exit 3）。\n`,
         )
         return 3
       }
       for (const extra of [[], ['--selftest']]) {
-        const step = spawnSync(python.cmd, [...python.args, docDrift, ...extra], {
+        const step = spawnSync(python.cmd, [...python.args, drift, ...extra], {
           stdio: 'inherit',
           cwd: REPO,
         })
         if (step.error) {
-          process.stderr.write(`scripts/soko gate: failed to run ${docDrift}: ${step.error.message}\n`)
+          process.stderr.write(`scripts/soko gate: failed to run ${drift}: ${step.error.message}\n`)
           return 3
         }
         if ((step.status ?? 3) !== 0) return step.status ?? 3
@@ -2114,32 +2122,6 @@ async function main(argv) {
         })
         if (step.error) {
           process.stderr.write(`scripts/soko gate: failed to run ${attentionBudget}: ${step.error.message}\n`)
-          return 3
-        }
-        if ((step.status ?? 3) !== 0) return step.status ?? 3
-      }
-      // **启动器「VS Code 扩展自带」链接**（2026-10-15 LINK-B，洞 `SOKO-EXTENSION-LINK-UNWIRED`）：
-      // 那一格曾被文档写着、`extensionServer()` 写着、`canExec()` 的分支写着，**却没有调用点** ✗
-      // ⇒ 通用 VSIX + 没跑过「Install CLI」+ 离线时 `scripts/soko lsp` 只能下载/被拒。
-      // 修好之后必须有守卫（否则下次重构又能静默拆掉 ✓）：四条判据全用**自带夹具**
-      // （临时 HOME/缓存 + 空 `CARGO_TARGET_DIR` + offline），其中 C2/C4 专门咬
-      // "`canExec` 不许松"（版本不匹配的扩展**不许** exec、CLI **不许**从扩展里跑）✓。
-      // ⚠ 与 `crates/cli/tests/launcher.rs` 互补：那是**冻结用例**且夹具不设 `HOME`
-      // ⇒ 测不了"扩展在场/版本对不对"这一格 ✓。约 0.3 秒 ⇒ `--fast` 也跑 ✓。
-      const extLink = path.join(REPO, 'scripts', 'check-launcher-extension-link.py')
-      if (!existsSync(extLink)) {
-        process.stderr.write(
-          `scripts/soko gate: 找不到 ${path.relative(REPO, extLink)} —— 扩展链接无法判定（exit 3）。\n`,
-        )
-        return 3
-      }
-      for (const extra of [[], ['--selftest']]) {
-        const step = spawnSync(python.cmd, [...python.args, extLink, ...extra], {
-          stdio: 'inherit',
-          cwd: REPO,
-        })
-        if (step.error) {
-          process.stderr.write(`scripts/soko gate: failed to run ${extLink}: ${step.error.message}\n`)
           return 3
         }
         if ((step.status ?? 3) !== 0) return step.status ?? 3

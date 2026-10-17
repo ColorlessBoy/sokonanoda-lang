@@ -118,6 +118,19 @@ HISTORY_DEPENDENT: list[tuple[str, str]] = [
     ("scripts/check-frozen-headroom.py",
      "咬住证明打在**固定旧 rev** 上（`--check --source-rev 9c8cfa90` ⇒ `git show <rev>:<path>`）"
      "；浅克隆实测 rc=3（判据/`--selftest` 本身浅克隆 rc=0 —— 同 `check-queue-integrity.py` 触发器层的形态 ✓）"),
+    # ⚠ **2026-10-17 补**（第 3 轮 `gs3`：`check-doc-drift.py` + `check-launcher-extension-link.py`
+    # 合并成 `check-drift.py` ✓，`SUB-narrow-guards-to-one-layer` ①）——
+    # **如实划的边界** ✗（**与上面那条同形** ✓）：本条的**判据本体不需要全历史**
+    # （默认 / `--json` / `--layer` / `--selftest` 浅克隆**实测 rc=0** ✓ —— 全文唯一的 `git`
+    # 调用在 `_git_show()` 里，只服务 `--rev`）；**要全历史的是它的咬住证明**：
+    # `docs/guard-bite.jsonl` 那一行的 `--rev 755e5302^` ⇒ `git show <rev>:<path>` ⇒
+    # 浅克隆里那个对象不在 ⇒ `_git_show()` 返回 `None` ⇒ **rc=2**（形状异常）⇒ 咬住证明
+    # **空转**（"这条守卫咬不住"的**假红** ✗）。
+    # ⇒ 登记进本表 = 让 R1 把"跑它的 job 必须有全历史"变成可查的 ✓（**本轮实测**：
+    # `wiring-lint` 原来**没有** `fetch-depth: 0` ⇒ 登记后 R1 **当场判红**，本轮给它补上 ✓）。
+    ("scripts/check-drift.py",
+     "咬住证明打在**固定旧 rev** 上（`--rev 755e5302^` ⇒ `git show <rev>:<path>`；"
+     "浅克隆实测 rc=2 —— 判据/`--selftest` 本身浅克隆 rc=0，同 `check-frozen-headroom.py` 的形态 ✓）"),
     # ⚠ **2026-10-17 补**（第 7 轮 `ng8`：把 `check-site.py` 接进 `ci.yml` 的 `queue-lint` ✓）——
     # ⭐ **本条与上面那三条"要全历史的是咬住证明"不同形** ✗：它的**判据本体**就读 tag ✓
     # （形态同 `check-attention-budget.py` 的"窗口 = `git log`"✓）。
