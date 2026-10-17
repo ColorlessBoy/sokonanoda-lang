@@ -303,7 +303,7 @@ fn parse_error_diagnostic_shape() {
 /// **真因**：`by` 引擎把 tactic 装配成项时，`NodeKind::Apply` 产出的 `Expr::App`
 /// 一律 `Span::default()` ⇒ 之后 `elab_expr` 在它上面报的每条诊断都没有位置。
 ///
-/// **形状**（最小复现，逐字）：目标头是一个 **def**（`MySet.mem`）⇒ `constructor`
+/// **形状**（a1 当时的夹具，逐字）：目标头是一个 **def**（`MySet.mem`）⇒ `constructor`
 /// 展开到 `And`/`Or` 的构造子，那条**装配出来**的应用才踩到这个洞 ✓
 /// （直接写 `A ↔ A ∧ B` 时 `Iff` 走 `builtin_constructor_of`，装配路径不同 ⇒ 不踩 ✓）。
 ///
@@ -311,10 +311,32 @@ fn parse_error_diagnostic_shape() {
 /// ——「synthetic syntax is annotated with **a source span from the original syntax**」，
 /// 元程序产出的语法**照样带源位置**，不是零位置 ✓。
 ///
-/// **反向验证**：把 `by.rs` 的 `assemble` 还原成 `Span::default()` ⇒ 本用例当场判红 ✓。
+/// **⚠ 2026-10-18（a7）：原夹具的"前提"过期了** —— 它靠**严格档拒绝**来逼出那条装配
+/// 出来的应用，而那个拒绝**本身就是 bug**：`a4`（`assemble` 的装配脊标 `@`）+
+/// `a5`（`derive_recursor` / pp 回读同族）修好之后，**同一个夹具现在编得过**
+/// （4 条 `decl.checked`、0 条诊断）⇒ 旧的 `!out.status.success()` 不成立 ⇒ 用例判红 ✗。
+/// **那是"代码变好了"，不是回归** ✓ —— 三条证据：① CI 日志里它**编过**且 4 条
+/// `decl.checked`；② 把 `a4` 的 `*explicit = true` 还原 ⇒ 那条诊断**原样回来**
+/// （`And.intro`、4 个位置实参 vs 2 个显式层、span `10:3` = `constructor` 那一行
+/// —— 正是原用例断言的位置 ✓）；③ 用户判据本身是「严格档下课程标准库**全部编过**」
+/// ⇒ 编过**就是**目标 ✓。（⚠ `docs/CI-FAILURES.md` 的台账条目**本轮未追加** ——
+/// 本轮边界是"只改测试"，已如实记进 `.cache/ux/fix-a7/VERDICT.md` §8 ✓。）
+///
+/// ⇒ 夹具拆成两半，**两半都不许删** ✗：
+/// * **①** 原夹具（`MySet`）⇒ 严格档下**必须编过** —— 它记着 a4/a5 修好的那件事；
+/// * **②** 新夹具（`exfalso`）⇒ **本用例的牙**：同一道严格闸门在**另一条装配出来的项**
+///   （`assemble` 造出 `False.elim <目标> <证明>`）上仍然判红 ⇒ 那条诊断的 span 取自
+///   `assemble` 产出的 `Expr::App` ⇒ **必须是真位置** ✓。
+///   （`exfalso` 与 `constructor` 走的是同一支 `NodeKind::Apply`，只是它的脊**没被**标 `@`
+///   ⇒ 仍然踩闸 ✓ —— 如实记下：这条判红是**同族的遗留**，`constructor` 那半已修 ✓。）
+///
+/// **反向验证**：把 `by.rs` 的 `assemble` 还原成 `Span::default()` ⇒ ② 的位置当场从
+/// `2:3` 变回 `line=0 col=0` ⇒ 本用例判红 ✓（2026-10-18 实测 ✓）。
 #[test]
 fn synthesized_tactic_terms_keep_a_real_source_position() {
-    let src = "\
+    // ① 前提夹具（a1 原样）：严格档下**必须编过** —— `constructor` 展开到 `And`/`Or`
+    //    的构造子，那条装配出来的应用以前被严格档误判成"用户写了位置隐式实参" ✗。
+    let accepted = "\
 def MySet (α : Type) : Type := α → Prop
 
 namespace MySet
@@ -330,7 +352,30 @@ theorem t {α : Type} (a : α) (A B : MySet α) :
   intro h
   exact h
 ";
-    let (out, events) = run_json_stdin_env(src, &[("SOKO_STRICT_AT", "1")]);
+    let (out, events) = run_json_stdin_env(accepted, &[("SOKO_STRICT_AT", "1")]);
+    assert!(
+        out.status.success(),
+        "严格档必须接受这条（装配脊是 `@` 形态，不是用户写的位置隐式实参 —— a4/a5）：{events:?}"
+    );
+    assert_eq!(
+        diagnostics(&events).len(),
+        0,
+        "编过就不该有诊断：{events:?}"
+    );
+    assert!(
+        events
+            .iter()
+            .any(|e| event_type(e) == "decl.checked" && e["name"] == "t"),
+        "严格档接受 ⇒ `t` 必须真的被判定过（`decl.checked`，不是静默跳过）：{events:?}"
+    );
+
+    // ② 牙：同族另一条装配出来的项仍然踩严格闸门 ⇒ 它的诊断必须带**真**位置。
+    let rejected = "\
+theorem t (P : Prop) (h : False) : P := by
+  exfalso
+  exact h
+";
+    let (out, events) = run_json_stdin_env(rejected, &[("SOKO_STRICT_AT", "1")]);
     assert!(!out.status.success(), "严格档下这条必须判红：{events:?}");
 
     let diags = diagnostics(&events);
@@ -346,12 +391,22 @@ theorem t {α : Type} (a : α) (A B : MySet α) :
         "诊断位置丢了（`line=0 col=0`）—— 用户定位不了 ✗：{d}"
     );
     assert_eq!(
-        start["line"], 10,
-        "诊断必须落在 `constructor` 那一行（0-based 10 = 源第 11 行）：{d}"
+        start["line"], 2,
+        "诊断必须落在 `exfalso` 那一行（1-based 2 = 源第 2 行）：{d}"
     );
     assert_eq!(
         start["column"], 3,
-        "诊断必须落在 `constructor` 那一列（0-based 3）：{d}"
+        "诊断必须落在 `exfalso` 那一列（1-based 3 = `e`）：{d}"
+    );
+    // span 的**终点**也要在同一个记号里 ⇒ 钉住"整条 `exfalso` 记号的 span"，
+    // 而不只是"起点不是 0"（零宽 span 也算位置真 ✗）。
+    assert_eq!(
+        (
+            d["span"]["end"]["line"].as_u64(),
+            d["span"]["end"]["column"].as_u64()
+        ),
+        (Some(2), Some(10)),
+        "诊断 span 的终点必须收在 `exfalso` 记号之后（1-based 2:10）：{d}"
     );
 }
 
