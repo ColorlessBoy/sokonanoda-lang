@@ -7,6 +7,7 @@ use crate::level::{Level, IMAX_HASH, MAX_HASH, PARAM_HASH, SUCC_HASH};
 use crate::name::{Name, NUM_HASH, STR_HASH};
 use crate::parser::{parse_export_file, parse_export_mapped};
 use crate::pretty_printer::{PpOptions, PrettyPrinter};
+use crate::quiet::quiet;
 use crate::tc::TypeChecker;
 use crate::value::{E, S, V};
 use hashbrown::HashTable;
@@ -842,10 +843,8 @@ impl<'p> ExportFile<'p> {
     /// cutoff — see [`ExportFile::check_declar_at`] for why a synthetic
     /// declaration cannot derive its own cutoff from its name.
     pub fn try_check_declar_at(&self, d: &Declar<'p>, limit: EnvLimit<'p>) -> Result<(), CheckError> {
-        let previous_hook = std::panic::take_hook();
-        std::panic::set_hook(Box::new(|_| {}));
+        let _quiet = quiet();
         let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| self.check_declar_at(d, limit)));
-        std::panic::set_hook(previous_hook);
         match outcome {
             Ok(()) => Ok(()),
             Err(payload) => {

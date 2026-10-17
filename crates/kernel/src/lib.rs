@@ -22,6 +22,7 @@ pub mod parser;
 pub mod pretty_printer;
 pub mod quot;
 pub mod quote;
+pub(crate) mod quiet;
 pub mod relevance;
 pub mod tc;
 #[cfg(test)]
