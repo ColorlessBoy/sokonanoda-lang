@@ -766,9 +766,7 @@ enum NodeKind {
     Apply {
         f: Expr,
         args: Vec<ApplyArg>,
-        /// **a4**：这条脊是**全显式**的（隐式位已由合一填好）⇒ 组装时标成 `@` 形态。
-        /// 只有 `constructor`/`left`/`right`/`use`（`ctor_tactic`）置 `true` ✗ ——
-        /// `apply` 的脊可能留着待推断的位，标成 `@` 会把 IA-1 的隐式插入关掉 ✗。
+        /// 全显式脊（隐式位已由合一填好）⇒ 标 `@` 形态；只有 `ctor_tactic` 置 `true` ✗。
         explicit: bool,
     },
     /// `cases`（设计 `docs/design/course-lean-style.md` L3.1）：降低成一个
@@ -3810,29 +3808,20 @@ fn short_application_here(defs: &DefTable, expr: &Expr) -> Option<String> {
 ///   原消息**一字不丢**（它是现场证据：期望什么、实际是什么），后面才是内核原话与
 ///   「谁少写了参数」。
 ///
-/// **取舍**（为什么换码而不是只补 hint）：`hint` 是按 `ErrorKind` 静态查表的，
-/// 要写进「这个常量有 N 个参数、实参只给了 M 个」就得给 `CompileError` 加一个
-/// 逐实例 hint 字段（新字段 = 全仓构造点都要动，且 `--json` 的 `hint` 语义变模糊）；
-/// 而「同一个错、同一个码」正是声明位与 `by` 路径**本来就该一致**的口径 ⇒ 换码
-/// 让两条路给同一条 hint，逐实例的细节放 message ✓。stage 随码变成 `kernel`
-/// （拒它的是内核）✓，span 仍指向**出错的那条 tactic** ✓。
+/// **取舍**：换码而不加逐实例 hint 字段（后者要动全仓构造点、且 `--json` 的 `hint` 变模糊）；
+/// 「同一个错、同一个码」正是声明位与 `by` 路径本来就该一致的口径 ✓。stage 随码变 `kernel`，
+/// span 仍指向**出错的那条 tactic** ✓。
 /// **F3：闸门按形状放宽一格。**
 ///
-/// 现场：`exact Set.subset_def`（零实参、目标 Prop、值还是 Pi 望远镜）被内核判成
-/// **普通 Mismatch**（不是「项落在类型位」）⇒ 走的是 `!kernel_says_term_in_type_position`
-/// 那一支、`note` 被**整个丢掉** ⇒ 学习者只看到「期望 `…`，实际是 `{α : Sort 1} -> …`」
-/// 并排，**看不出缺几个实参** ✗。
+/// 现场：`exact Set.subset_def`（零实参、目标 Prop、值还是 Pi 望远镜）被判**普通 Mismatch**
+/// ⇒ 走 `!kernel_says_term_in_type_position` 那支、`note` **整个丢掉** ⇒ 看不出缺几个实参 ✗。
 ///
-/// 形状判据 = `value_unfed`（值仍是 Pi 望远镜 + 点名头 + 实参不够）：两条来源，
-/// **都只说真话** ——
-/// ① [`short_application_here`]（`defs` 里有这个 `def`：声明几个、写了几个、漏的是哪个）；
-/// ② [`unfed_layers_note`]（`defs` 里没有，比如 **theorem** —— 从值自己的推断类型
-///    里数还差的**显式** Pi 层）。
+/// 形状判据 = `value_unfed`（值仍是 Pi 望远镜 + 点名头 + 实参不够），两条来源都说真话：
+/// ① [`short_application_here`]（`defs` 里有：声明几个、写了几个、漏的是哪个）；
+/// ② [`unfed_layers_note`]（`defs` 里没有，比如 **theorem** —— 数还差的**显式** Pi 层）。
 ///
-/// ⚠ **只接 note，不换码**：内核对这次拒绝的分类就是普通 Mismatch（没有项落在类型位上），
-/// 换成 `kernel-expected-sort` 会让 hint 说「① 点名调用漏了前导类型参数」—— 那是**另一件事**
-/// （`Set.subset_def` 的前导 `α` 是隐式、elab 自动补的，缺的是显式的 `A`/`B`）⇒ 说假话 ✗。
-/// 码仍是 `elab-tactic-failed`（这一句 tactic 确实没通过），note 只补进 message ✓。
+/// ⚠ **只接 note，不换码**：换成 `kernel-expected-sort` 会让 hint 说「漏了前导类型参数」——
+/// 那是另一件事（`α` 是隐式、elab 自动补，缺的是显式 `A`/`B`）⇒ 说假话 ✗。
 fn mismatch_error(
     kind: ErrorKind,
     original: String,
@@ -4009,9 +3998,7 @@ fn ctor_tactic<'a>(
     })(nodes, env);
     if let Some(node) = nodes.get_mut(cur) {
         node.ty = original;
-        // **a4**：构造子糖装配出的脊**覆盖了全部层**（隐式位由合一填好）⇒ 标成
-        // `@` 形态 ✓ —— 否则严格档把它当成"用户写了位置隐式实参"而判红
-        // （`constructor` 一行都没写实参，报错却说"你写了 4 个"✗）。
+        // 构造子糖的脊覆盖全部层 ⇒ 标 `@`，否则严格档误判"用户写了位置隐式实参" ✗。
         if let NodeKind::Apply { explicit, .. } = &mut node.kind {
             *explicit = true;
         }
