@@ -130,7 +130,9 @@ cmd_own() {
     die "写不了主人标记（没有 python3？）⇒ ${path}/${OWNER_MARKER} 没写成"
   fi
   info "✓ ${path}/${OWNER_MARKER}：主人 ${id} · 范围 ${scope}"
-  info "  ⇒ 之后 `python3 scripts/check-multi-session.py --ownership`（在树里跑）会逐条判"
+  # ⚠ **反引号在双引号里 = 命令替换**（本文件 `cmd_list` 的注释记过同一个坑 ✗；夹具实测：
+  #   这一行会把判据**当场跑一遍**、消息还被吃掉一半 ✗）⇒ 一律转义 ✓。
+  info "  ⇒ 之后 \`python3 scripts/check-multi-session.py --ownership\`（在树里跑）会逐条判"
   info "     \"这棵树里未提交的路径属不属于 ${id}\" ✓；pre-commit 钩子在**提交前**也判一次（--staged ✓）"
 }
 
