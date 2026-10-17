@@ -51,3 +51,11 @@ dsh-ci-time-*.md
 
 # 并行 agent 的工作树（2026-10-12：4 核 = 4 棵 worktree，`scripts/agent-worktree.sh`）
 .worktrees/
+# **工作树的主人标记**（洞 `WORKTREE-ISOLATION-NOT-ENFORCED` 的"声明"源 ✓；`agent-worktree.sh
+# new --scope` / `own` 写它，`check-multi-session.py` 判据 ③ 读它）。
+# ⚠ **必须忽略**：它躺在**工作树的根**（`<树根>/.owner`），而上面那条 `.worktrees/` 只匹配
+#   名为 `.worktrees` 的**目录** ⇒ 树根的 `.owner` **不在**它的覆盖面里 ✗（实测：`land` 因此
+#   把每棵有标记的树都当成「还有 1 处未提交改动」而拒收 ✗；`worktree_residue()` 同病）。
+# ⚠ 用 `/.owner`（**锚在 `.gitignore` 所在目录** = 每个工作树自己的根 ✓）：不带 `/` 会连
+#   仓库里任何一层的 `.owner` 一起忽略 ✗（那可能是真文件）。
+/.owner
