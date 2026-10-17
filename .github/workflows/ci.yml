@@ -25,7 +25,11 @@ name: ci
 #   ③ 只做 (A)：**已足够** ✓（覆盖关系就是证据 ✓，判据 `scripts/ci-push-range.py --selftest` ✓）。
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # ⚠ **main 的轮次永不取消**（2026-10-18）✗ —— 起因：用户点名「连续 3 轮 cancelled，
+  # 等于没真过门禁」✓，实测**连续 5 轮** `cancelled` ✗：每有新 push 就掐掉上一轮，
+  # 而 main 上推得比一轮 CI 快（另一个写者）⇒ **门禁一次都没真跑完** ✗。
+  # ⇒ 只在**非 main** 的 ref 上取消（PR/特性分支的快速迭代仍然省成本 ✓）。
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 on:
   push:
