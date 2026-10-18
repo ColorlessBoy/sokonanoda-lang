@@ -1,3 +1,7 @@
+## 补回 e1 —— main 的红修掉 + 用户第 ③ 条在**默认档真的成立**（2026-10-18 20:2x · 用户授权「我直接去把功能做出来」）（未发版）
+- ⭐ **用户拿到什么**：`apply Eq.subst _ h`（目标变 `a = x`）**默认档真能编过了**（`checked=1 · diag=0`；改前 `0 · 2`）—— 用户第 **③** 条 ✓。⚠ 严格档下实参位的洞**仍拒**（a14 自标的已知限制，测试里也如实断言 ✓）。
+- ⭐ **真因（决定性对照，不是推断）**：`9bde8406`（a14）**落 main 时漏了它的父提交** `b5fd5276`（e1 的「类型约束」路线）✗ —— `is-ancestor b5fd5276 main` **rc=1**（不在）· 同一条对 `d06b88d4` **rc=0**（a14 建在 e1 之上）· `diff --stat main agent/a14` 那四个文件 = **恰好 e1 的 85/33**；**A/B**（同树同宿主）：`agent/a14` **1 passed** vs main **1 failed**。**修** = `git cherry-pick b5fd5276`（作者/日期保留）+ 修它自己的门禁红 `clippy::type_complexity` ×2（起别名 `TyOfFn<'x>`，**零语义**）；**判据与测试一个字没改** ✓ ⇒ `front --lib` **1006/0**（改前 1005/1）· `clippy` rc=0（改前 rc=101）· `fmt`/`docs-lint` rc=0（`implicit.rs` 1220 ≤ 基线 1223）✓
+
 ## 接口 agent 直接交付（2026-10-18 17:2x · 用户授权「**你来做吧**」/「**你直接改吧**」）（未发版）
 
 - ⭐ **用户拿到什么**：① **编排者读的那一面（`docs/ONBOARDING.md` §0.2「最靠前的 5 条」）第一次看得见外部提交** —— 改前 36 条开着（**23 条是外部提交**）而 §0.2 印的 5 条**全是编排者自己排的** ✗；② **`vscode-input-vim-e2e` 从 worktree 跑时不再空转**（改前它测的是"**没有扩展的** VS Code" ✗）。
@@ -71,12 +75,7 @@
 ## `LSP-T2B-TRAILING-BY-LE-3-RED-ON-CI`（2026-10-16 · **CI 产品红**：T2-B 的尾快照在续编那一趟没补回来）—— **原文已删（只留最近 3 轮）** ⇒ `git log --all -- STATUS.md` ✓
 ## `E2E-COVERAGE-4-OF-36` —— **原文已删（只留最近 3 轮）** ⇒ `git log --all -- STATUS.md` ✓
 ## `AGENT-DOES-NOT-PRODUCE-USER-INPUTS` 的**第三层**（2026-10-16）—— **原文已删（只留最近 3 轮）** ⇒ `git log --all -- STATUS.md` ✓
-## 用户五条**激励纠正**（2026-10-15 23:xx 用户亲提 →「你做吧」· 2026-10-16 落地）—— **原文已删（只留最近 3 轮）** ⇒ `git log --all -- STATUS.md` ✓ —— **原文已删（只留最近 3 轮；`docs-lint` ⑦ 顶格 ⇒ 按本文件自己的规矩腾空间 ✓）** ⇒ `git log --all -- STATUS.md` ✓
-## `AGENT-DOES-NOT-PRODUCE-USER-INPUTS`（2026-10-15 · 用户结构性诊断）：**判据的输入面 = 生成式夹具** —— **原文已删（只留最近 3 轮）** ⇒ `git log --all -- STATUS.md` —— **原文已删（只留最近 3 轮；`docs-lint` ⑦ 顶格 ⇒ 按本文件自己的规矩腾空间 ✓）** ⇒ `git log --all -- STATUS.md` ✓
-## `soko update` 的 404 + `scripts/soko prune`（2026-10-15 · `SUB-soko-update-cli-404` / `SUB-no-version-cleanup-command`）—— **原文已删（只留最近 3 轮）** ⇒ `git log --all -- STATUS.md` —— **原文已删（只留最近 3 轮；`docs-lint` ⑦ 顶格 ⇒ 按本文件自己的规矩腾空间 ✓）** ⇒ `git log --all -- STATUS.md` ✓
-## `#check <def>` 带定义体 + 记法（2026-10-15 · 用户新需求，有意偏离 Lean 4 · 登记 `REQUIREMENTS.md` §9.22）—— **原文已删（只留最近 3 轮）** ⇒ `git log --all -- STATUS.md` ✓ —— **原文已删（只留最近 3 轮；`docs-lint` ⑦ 顶格 ⇒ 按本文件自己的规矩腾空间 ✓）** ⇒ `git log --all -- STATUS.md` ✓
-## 清台账第 8 轮（2026-10-15）—— **原文已删（只留最近 3 轮）** ⇒ `git log --all -- STATUS.md` —— **原文已删（只留最近 3 轮；`docs-lint` ⑦ 顶格 ⇒ 按本文件自己的规矩腾空间 ✓）** ⇒ `git log --all -- STATUS.md` ✓
-## 清台账第 7 轮（2026-10-15）：**队列 0 · 隐变量 13/13 收口 · 构建链与缓存身份两族修完** —— **原文已删（只留最近 3 轮）** ⇒ `git log --all -- STATUS.md` —— **原文已删（只留最近 3 轮；`docs-lint` ⑦ 顶格 ⇒ 按本文件自己的规矩腾空间 ✓）** ⇒ `git log --all -- STATUS.md` ✓
+## 旧轮（2026-10-15 · **原文已删，只留最近 3 轮** ⇒ `git log --all -- STATUS.md`）：用户五条**激励纠正**（23:xx 亲提 →「你做吧」）· `AGENT-DOES-NOT-PRODUCE-USER-INPUTS`（判据的输入面 = 生成式夹具）· `soko update` 的 404 + `scripts/soko prune` · `#check <def>` 带定义体 + 记法（§9.22）· 清台账第 **7/8** 轮（队列 0 · 隐变量 13/13 收口 · 构建链与缓存身份两族修完）✓
 ## 未决项（**权威 = `docs/ONBOARDING.md` §0.2**；**2026-10-13 订正**：这里曾写「现存 6 条」而权威表实测 3 条 ⇒ 以权威表为准，本条不再自己数 ✗）。⚠ 本节下方两条是**收口记录**，**不是**未决项 —— 2026-10-02 前它写着"只有这两条"而两条都已 ✅ ⇒ 读它的人会以为"队列空了"（#4/#5/#6 三处用户报障就这样掉线过））
 ## 已发布线：`v0.79.0`（E19 甲案 + P 组 · 批次 N 66/66）· `v0.80.0` · `v0.81.0` · `v0.82.0` · `v0.83.0` —— 逐轮记录 ⇒ `docs/archive/status-removed-rounds-2026-10-13.md.gz` ✓ ｜ ⭐ **「最新是哪一版 · 还有多少没发」不许写在这里**（2026-10-16：本行原写「`v0.83.0`（最新 ✓ · 2026-10-08）」而当时真实最新是 `v0.91.0` —— 落后 **15 个 release**（`v0.84.0`…`v0.91.0`，`gh release list` 实测）的**死格** ✗）⇒ **活读数 = `python3 scripts/release-metric.py`**（+ `gh release list` 核已发布资产）✓ —— **原文已删（只留最近 3 轮；`docs-lint` ⑦ 顶格 ⇒ 按本文件自己的规矩腾空间 ✓）** ⇒ `git log --all -- STATUS.md` ✓
 ## 硬事实（接手先读这 6 条 ✓） —— **原文已删（只留最近 3 轮；`docs-lint` ⑦ 顶格 ⇒ 按本文件自己的规矩腾空间 ✓）** ⇒ `git log --all -- STATUS.md` ✓
