@@ -739,12 +739,25 @@ def load_onboarding_block() -> list[str] | None:
     return None
 
 
-def render_onboarding(rows: list[dict]) -> str:
-    """把 §0.2 的摘要块渲染成文本（**由脚本生成** ⇒ 文档不可能与队列漂移 ✓）。"""
+def render_onboarding(rows: list[dict], state: dict[str, dict] | None = None) -> str:
+    """把 §0.2 的摘要块渲染成文本（**由脚本生成** ⇒ 文档不可能与队列漂移 ✓）。
+
+    ⭐⭐ **「最靠前的 5 条」必须与 `--next` 用同一份序**（`ONBOARDING-TOP5-HIDES-EXTERNAL`，
+    2026-10-18 · 接口 agent 实测 ✗）：本函数原来自己排 `(severity, id)` —— **按 id 字母序**
+    ⇒ 所有 `SUB-*`（外部提交）的 id 都以 `S` 开头，**永远排在它自己的 `C…`/`D…`/`F…`/`J…`
+    后面** ✗✗。实测（真队列，2026-10-18 17:1x）：**36 条开着、其中 23 条是外部提交**，
+    而 `render_onboarding` 的序里**第一条外部提交在第 7 名** ⇒ §0.2 印出来的 5 条
+    **全是它自己排的**（`CONCURRENT-*` · `DOCS-*` · `FIXTURE-*` · `FLAKY-*` · `JI1-*`）✗。
+    ⇒ 后果不是"排序不好看"：**§0.2 是编排者每轮真正读的那一面**（`docs/ONBOARDING.md`），
+    而 `--next`（它很少跑）说 `SUB-agent-never-lands-to-main` —— **两个视图打架，方向进不来**
+    ✗（用户 2026-10-17 23:2x：「**顶了，它现在完全不行了**」；2026-10-18：「**我拿不到结果**」）。
+    ⇒ 口径：**唯一一份序** = `next_order()`（`--next` 与 §0.2 共用 ✓），
+    在它上面取 `open_set` 的前 5 ✓（`--check` 对整块**逐行逐字节**比对 ⇒ 两个视图再漂移就判红 ✓）。
+    """
     s = summary(rows)
     counts = s["counts"]
-    top = [r for r in rows if r["id"] in open_set(rows)]
-    top.sort(key=lambda r: (SEVERITY_RANK.get(r["severity"], 9), r["id"]))
+    top = [r for r in next_order(rows, fold() if state is None else state)
+           if r["id"] in open_set(rows)]
     head = " · ".join(f"`{r['id']}`" for r in top[:5])
     block = [
         ONB_BEGIN,
@@ -2751,6 +2764,31 @@ def sched_rows(rows: list[dict], state: dict[str, dict]) -> list[dict]:
     return out
 
 
+def next_order(rows: list[dict], state: dict[str, dict]) -> list[dict]:
+    """**`--next` 与 §0.2「最靠前的 5 条」共用的唯一一份序**（`ONBOARDING-TOP5-HIDES-EXTERNAL`）。
+
+    ⭐ **外部提交（`source=external-submission`）默认排在最前**（用户 2026-10-17 23:2x：
+    「**顶了，它现在完全不行了**」）—— 实测三条路都不改变"序" ✗：`--next` 由**编排者自己的
+    调度器**给序；`--claim` 只标 `in_progress`（实测：认领后 `--next` 照旧 ✗）；
+    `--submit` 只追加 ⇒ **外部需求永远排在它自己发现的事后面** ✗。
+    ⚠ **`sorted` 是稳定排序** ⇒ 组内保持 `sched_rows` 的父子插位序、不动它的逻辑 ✗。
+
+    ⚠ **为什么必须抽成一份**（2026-10-18 实测 ✗）：`render_onboarding` 原来自己排
+    `(severity, id)`（**按 id 字母序**）⇒ `SUB-*` 永远落在 `C…`/`D…`/`F…`/`J…` 后面
+    ⇒ §0.2 那 5 条**全是它自己排的**、23 条外部提交**一条都露不出来** ✗✗；
+    而 `--next`（它很少跑）说 `SUB-agent-never-lands-to-main` ⇒ **两个视图打架**。
+    ⇒ 一处定义、两处消费（`cmd_next` + `render_onboarding`）✓；`--check` 对 §0.2 整块
+    逐行逐字节比对 ⇒ 谁再自己排一遍就判红 ✓。
+
+    ⚠ **可动判据不在这里**（`is_pushable` 才是）—— 本函数只管**序**，
+    它同时服务"未完成视图"（§0.2，`open_set`）与"下一个可动"（`--next`，`is_pushable`）✓。
+    """
+    return sorted(
+        sched_rows(rows, state),
+        key=lambda r: 0 if "external-submission" in (r.get("sources") or []) else 1,
+    )
+
+
 def check_lock_or_die(owner: str, force: bool, taking: bool) -> bool:
     """返回 True = 可以继续（拿锁/放锁）。被人持有且不是自己 ⇒ 除非 `--force` 否则判红。"""
     lock = read_lock()
@@ -3194,17 +3232,12 @@ def cmd_render(rows: list[dict]) -> int:
 def cmd_next(rows: list[dict], owner: str) -> int:
     state = fold()
     # ⭐ **外部提交优先**（用户 2026-10-17 23:2x：「顶了，它现在完全不行了」）：
-    # 实测三条路都不改变"序" ✗ —— `--next` 由**编排者自己的调度器**给序，
-    # 而 `--claim` 只标 `in_progress`（实测：认领后 `--next` 照旧 ✗）、
-    # `--submit` 只追加 ⇒ **外部需求永远排在它自己发现的事后面** ✗。
-    # ⇒ 这里把 `external-submission` 那一组**提到最前** ✓（`sorted` 是稳定排序
-    #   ⇒ 组内保持原序、不动 `sched_rows` 的父子插位逻辑 ✗）。
+    # 序**只有一处** —— `next_order()`（与 §0.2「最靠前的 5 条」共用 ✓）。
+    # ⚠ 为什么必须共用（2026-10-18 实测 ✗）：本函数原来自己排一遍，而 `render_onboarding`
+    #   **另排一遍**（`(severity, id)` = 按 id 字母序）⇒ `SUB-*` 在 §0.2 里落到第 7 名以后
+    #   ⇒ **编排者读的那一面（§0.2）一条外部提交都看不见** ✗✗（详见 `next_order` 的 docstring）。
     # ⚠ **判据**：造「1 条外部 + 1 条自排」⇒ `--next` 必须给外部 ✓（见 `--selftest`）。
-    _ordered = sorted(
-        sched_rows(rows, state),
-        key=lambda r: 0 if "external-submission" in (r.get("sources") or []) else 1,
-    )
-    for row in _ordered:
+    for row in next_order(rows, state):
         cur = state.get(row["id"], {})
         # ⚠ 可动判据只有**一处**（`is_pushable` ⇒ `effective_state` + `NOT_PUSHABLE_STATES`）：
         # `--check` 的漂移判据、`--json.open` 的对账、自检的三视图断言都读同一份 ✓
@@ -9219,6 +9252,44 @@ def selftest_event_vocabulary(expect) -> None:
             sys.argv = saved[6]
 
 
+def selftest_external_top5(expect) -> None:
+    """§0.2 的「最靠前的 5 条」必须**看得见外部提交**（`ONBOARDING-TOP5-HIDES-EXTERNAL`，2026-10-18）。
+
+    ⚠ **改前的病（真队列实测，不是推演 ✗）**：`render_onboarding` 原来自己排 `(severity, id)`
+    —— **按 id 字母序** ⇒ 真队列里 **36 条开着、其中 23 条是外部提交**，而**第一条外部提交
+    在第 7 名** ⇒ §0.2（**编排者每轮真正读的那一面**，`docs/ONBOARDING.md`）印出来的 5 条
+    **全是它自己排的**（`CONCURRENT-*` · `DOCS-*` · `FIXTURE-*` · `FLAKY-*` · `JI1-*`），
+    而 `--next`（它很少跑）说 `SUB-agent-never-lands-to-main` ⇒ **两个视图打架** ✗✗
+    ⇒ 这正是用户 2026-10-17 23:2x「**顶了，它现在完全不行了**」的机制面：
+    **方向进不来**（不是它不听 ✗，是它读的那一面**根本不显示**外部提交 ✗）。
+
+    ⇒ 三条判据（纯内存、无子进程）：① `next_order` 把外部提到最前；
+       ② `render_onboarding` 的清单句**点名**外部 id；
+       ③ ⭐ **反向验证**：照改前那样排（`(severity, id)`）⇒ 清单句**必须不再点名**它
+       —— 撤掉修法这条判据必红 ⇒ **咬得住那条病，不是恒绿** ✓。
+    """
+    def row(ident, sev, sources):
+        return {"id": ident, "facet": "队列", "severity": sev, "disposition": "fix",
+                "repro": "", "owner": "", "where": "", "sources": sources}
+
+    # 5 条"自己排的"，id 首字母全部 **< 'S'** ⇒ 改前那种字母序会把外部提交挤到第 6 名 ✗
+    rows = [row(f"{c}-INTERNAL", "high", ["orchestrator-schedule"]) for c in "CDFJK"]
+    rows.append(row("SUB-mine", "high", ["external-submission"]))
+    state: dict[str, dict] = {}
+
+    ordered = next_order(rows, state)
+    expect(f"① `next_order` 把外部提交提到最前（实测首位 `{ordered[0]['id']}`，期望 `SUB-mine`）",
+           ordered[0]["id"] == "SUB-mine")
+    _head = [ln for ln in render_onboarding(rows, state).splitlines()
+             if ln.startswith("最靠前的 5 条：")][0]
+    expect(f"② §0.2 的清单句**点名**外部提交（实测「{_head[:56]}…」）", "`SUB-mine`" in _head)
+    # ③ 反向验证：把外部优先**撤掉**（= 改前的 `(severity, id)`）⇒ 必须**不再**点名
+    _old = sorted(rows, key=lambda r: (SEVERITY_RANK.get(r["severity"], 9), r["id"]))
+    _old_head = " · ".join(f"`{r['id']}`" for r in _old[:5])
+    expect(f"③ 反向验证：照改前那样排 ⇒ 外部**掉出**前 5（实测「{_old_head[:48]}…」）"
+           f"⇒ 撤掉修法这条判据必红 ✓", "SUB-mine" not in _old_head)
+
+
 def cmd_selftest(args: argparse.Namespace) -> int:
     """判据通道自检：**故意造四种形状**，每一种都必须被判红/判绿正确。
 
@@ -9601,6 +9672,11 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     #     与 `{"event":"repoint",…}` 缺 `commit`（那一支唯一的输入）**静默忽略** ⇒ `--check`
     #     rc=0 零点名；形状照既有的 `advance.to` 非法值（第十轮 `#1`）✓）
     selftest_event_vocabulary(expect)
+    # ③n ⭐ **§0.2 的「最靠前的 5 条」必须看得见外部提交**（`ONBOARDING-TOP5-HIDES-EXTERNAL`，
+    #     2026-10-18 · 接口 agent 实测 ✗：真队列 36 条开着 / 23 条外部提交，而 §0.2 印的 5 条
+    #     **全是编排者自己排的**（按 id 字母序 ⇒ `SUB-*` 落到第 7 名以后）✗ ⇒ **编排者读的那一面
+    #     看不见任何外部提交** ⇒ `--next` 与 §0.2 打架 ⇒ 方向进不来）
+    selftest_external_top5(expect)
 
     # ④ 真来源：三张表 + 台账 + extras 都能解析
     try:
