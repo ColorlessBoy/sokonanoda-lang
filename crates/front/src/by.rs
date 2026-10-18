@@ -415,6 +415,8 @@ fn restore_universe_levels<'a>(
     if !mentions_bare_universe_const(expr, defs) {
         return expr.clone();
     }
+    // **a15**：重建的脊 =「所有形参逐位写下来」⇒ 回读只有 `@` 读法对得上 ✗（原写死 `false`）。
+    let at = crate::compile::implicit_msg::strict_at_enabled();
     match expr {
         Expr::App { .. } => {
             let (head, args) = crate::spine::spine_of(expr);
@@ -479,7 +481,7 @@ fn restore_universe_levels<'a>(
                                     out = Expr::App {
                                         fun: Box::new(out),
                                         arg: Box::new(ty),
-                                        explicit_spine: false,
+                                        explicit_spine: at,
                                         span: *span,
                                     };
                                 }
@@ -498,7 +500,7 @@ fn restore_universe_levels<'a>(
                                     ctx,
                                     binder_srcs,
                                 )),
-                                explicit_spine: false,
+                                explicit_spine: at,
                                 span: *span,
                             };
                         }
@@ -3016,10 +3018,10 @@ fn cases_tactic<'a>(
             }
         },
     };
-    let scrutinee_ty = scrutinee_text
-        .ok()
-        .and_then(|text| parse_expr_text(&text).ok())
-        .ok_or_else(|| tactic_error(format!("`cases` 读不到 `{scrutinee_name}` 的类型"), span))?;
+    // **a15**：真错**不许吞** ✗（旧写法 `.ok()` 把「假设类型里的 `Set.univ α` 被严格档拒」
+    // 换成「读不到 h 的类型」⇒ 用户看不见该改哪 ✗）；文案本体在 `implicit_msg`（本文件冻结）。
+    let scrutinee_ty =
+        crate::compile::implicit_msg::cases_scrutinee_type(scrutinee_name, &scrutinee_text, span)?;
     // 把该假设的**书写类型**换成规范形态：`cases` 降低成 `match`，而 `match`
     // 要从书写类型里取参数实参（`h : Or A B` ⇒ params `A B`）。源里写的是记法
     // `A ∨ B`（`Expr::Notation`），`src_spine` 看不见 ⇒ 报「被匹配项必须是一个
