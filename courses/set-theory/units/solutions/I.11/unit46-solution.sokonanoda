@@ -103,6 +103,6 @@ theorem symmDiff_self (α : Type) (A : Set α) :
         False.elim hf))
 
 theorem symmDiff_univ (α : Type) (A : Set α) :
-    symmDiff α A (Set.univ α) = (fun (x : α) => ¬ (A x)) :=
-  @Set.ext α (symmDiff α A (Set.univ α)) (fun (x : α) => ¬ (A x))
+    symmDiff α A (@Set.univ α) = (fun (x : α) => ¬ (A x)) :=
+  @Set.ext α (symmDiff α A (@Set.univ α)) (fun (x : α) => ¬ (A x))
     (fun (x : α) => symmDiff_univ_apply α A x)

@@ -20,6 +20,34 @@
 
 use crate::ast::{BinderKind, Expr};
 
+/// **`cases` 的被消去项类型**（a15）：类型文本读不出来时**把内层真错交出来** ✓ ——
+/// 旧文案「`cases` 读不到 `h` 的类型」把真错（假设类型里 `Set.univ α` 的严格档拒绝）
+/// **吞掉**了 ✗（a12 的「吞诊断」族：用户看不见该改哪 ✗，实测
+/// `unit04-extensionality-identities:53` —— `h : x ∈ A ∪ Set.univ α` 里的
+/// `Set.univ α` 才是真凶，而文案只报"读不到 h 的类型"）。
+/// 判定**一个字没动**：只换文案（`Err` 还是 `Err` ✓）。
+pub(crate) fn cases_scrutinee_type(
+    name: &str,
+    r: &Result<String, crate::judge::Judgement>,
+    span: crate::Span,
+) -> Result<Expr, crate::compile::CompileError> {
+    let fail = |inner: Option<&str>| {
+        crate::compile::CompileError::elab(
+            crate::compile::ErrorKind::ElabTacticFailed,
+            match inner {
+                Some(m) => format!("`cases` 读 `{name}` 的类型时失败：{m}"),
+                None => format!("`cases` 读不到 `{name}` 的类型"),
+            },
+            span,
+        )
+    };
+    match r {
+        Ok(text) => crate::proof::parse_expr_text(text).map_err(|_| fail(None)),
+        Err(crate::judge::Judgement::Error { message, .. }) => Err(fail(Some(message))),
+        Err(_) => Err(fail(None)),
+    }
+}
+
 /// **严格档开关**（**默认开** ✓；`SOKO_STRICT_AT=0|off|false` ⇒ 关）。
 ///
 /// 严格档 = **正常形式（没写 `@`）不接受位置隐式实参** ✓，与 Lean 4
@@ -50,6 +78,21 @@ pub(crate) fn strict_at_enabled() -> bool {
         std::env::var("SOKO_STRICT_AT").ok().as_deref(),
         Some("0") | Some("off") | Some("false")
     )
+}
+
+/// **a15**：引擎自己产出、**马上要回读**的文本（目标/子目标的规范形态）要不要走
+/// **全显式 pp**（`@f a b` 形态）。
+///
+/// 为什么必须（实测最小复现）：目标由 β 归约得到时（`Reflexive A (fun (a b : A) => a = b)`
+/// 走 `intro` ⇒ 目标成为 `Eq A a a`），引擎把目标 pp 成「正常形式写满实参」的文本、
+/// 再回读 ⇒ 严格档一律拒 ✗ —— **用户写对了也判红**，且诊断给的出路（`@a = a`）
+/// 在源文件里**根本不存在** ⇒ 不可执行 ✗。
+/// 对齐 Lean 4：那边 `pp.explicit`（`PrettyPrinter/Delaborator/Options.lean:154`）
+/// 打的就是 `@Eq α a b`；而 Lean 的 goal 始终是 `MVarId`+`Expr`，**从不回读自己的
+/// pp 文本** —— 我们有意偏离（`by` 引擎的目标是文本）⇒ 偏离的代价由这条补上
+/// （a5 已对 `operand_type_expr` 的 pp 档这么做 ✓）。
+pub(crate) fn engine_text_pp(on: bool) -> bool {
+    on || strict_at_enabled()
 }
 
 /// 签名文本里**源级**的形参名与风格，按位置返回。
@@ -129,18 +172,26 @@ pub(crate) fn strict_rejection_message(
     n_args: usize,
 ) -> String {
     let names = source_layer_names(ty_text);
+    // **a15**：`@` 只加在**头名**上 ✗ —— 以前加在**整条应用的渲染文本**上，
+    // 而渲染是记法感知的：`Eq.{1} A a a` 渲染成 `a = a` ⇒ 出路印成 `@a = a`
+    // （**在源文件里根本不存在** ✗，a13 点名的那条）。剥不掉（渲染形状不一致）
+    // ⇒ 退回只给 `@<头> …`（同 `unsolved_message`：**绝不印一条错的出路** ✗）。
+    let escape = match whole_text.strip_prefix(head_text) {
+        Some(rest) => format!("@{} {}", head_text, rest.trim_start()),
+        None => format!("@{} …", head_text),
+    };
     format!(
         "`{}` 的签名 `{}` 里，{}。\
          正常形式（没写 `@`）的**位置实参只按显式形参逐位绑定**，隐式形参由推断补\
          —— 这与 Lean 4 一致；你写了 {} 个位置实参，多出来的落不到任何形参上。\n\
-         出路 ①（**全显式**：连隐式位也逐位写下来）⇒ 在函数名前加 `@`：`@{}`\n\
+         出路 ①（**全显式**：连隐式位也逐位写下来）⇒ 在函数名前加 `@`：`{}`\n\
          出路 ②（**让推断补**：删掉喂给隐式位的那些实参，只留显式形参对应的）\
          ⇒ 按显式形参顺序只写 {} 个实参。",
         head_text,
         ty_text,
         shape_sentence(names.as_ref(), k, total_layers),
         n_args,
-        whole_text,
+        escape,
         explicit_layers,
     )
 }
@@ -155,6 +206,13 @@ pub(crate) fn strict_rejection_message(
 /// **补出来** ⇒ `@ignores 3` 会把 `3` 装到 `{α}` 位上 ✗（实测：报 `期望 Sort(1)` ✗）
 /// ⇒ 出路里必须**同时**让用户在最前面补上这 `k` 个隐式实参 ✓（用 `<α>` 这种占位符
 /// 点名位置 ✓）。测试会把占位符填上再判一遍 ✓（**照做就对** = 「指令明确」的唯一硬判据 ✓）。
+///
+/// ⚠⚠ **a15：旧「出路 ②」已删** ✗ —— 它写的是「给整个表达式一个类型标注
+/// （`def … : T := 这里`）或给相关实参加类型标注」，而**本子集没有 `(e : T)` 这条
+/// 语法**（实测 `(5 : Nat)` / `by exact (5 : Nat)` / `(g (α := Nat) 5 : Nat)` **一律
+/// `unexpected-token`** ✗）；`by` 位里也没有"整个表达式的类型标注"这种写法 ⇒
+/// 那条出路**不可执行** ✗。按用户 2026-10-17 硬令（「给用户的出路必须是可执行的」）
+/// **去掉它**，只留能照抄的那一条 ✓（`a1` 的教训：给用户的出路必须是可执行的 ✗）。
 pub(crate) fn unsolved_message(
     head_text: &str,
     whole_text: &str,
@@ -184,10 +242,8 @@ pub(crate) fn unsolved_message(
     format!(
         "`{}` 的签名 `{}` 里，前 {} 个形参是**隐式**的（按位置依次是 {}）——\
          这里**至少有一个没解出来**{}。\n\
-         出路 ①（**全显式**：连隐式位也逐位写下来）⇒ 在函数名前加 `@`，\
-         并在**最前面**把这 {} 个隐式实参按顺序补上（`<…>` 是占位符）：`{}`\n\
-         出路 ②（**给推断线索**：把这几位的类型从上下文里定下来）⇒ \
-         给整个表达式一个类型标注（`def … : T := 这里`）或给相关实参加类型标注。",
+         出路（**全显式**：连隐式位也逐位写下来）⇒ 在函数名前加 `@`，\
+         并在**最前面**把这 {} 个隐式实参按顺序补上（`<…>` 是占位符）：`{}`",
         head_text,
         ty_text,
         k,

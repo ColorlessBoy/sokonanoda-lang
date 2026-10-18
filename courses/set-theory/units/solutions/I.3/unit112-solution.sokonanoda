@@ -110,7 +110,7 @@ theorem cbC0_gf (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β
           Set.mem_image_elim g (B \ f '' (cbC0 α β A B f g)) (g (f x)) False h2
             (fun (b : β) (hb : b ∈ B \ f '' (cbC0 α β A B f g)) (hgb : g b = g (f x)) =>
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
-              (And.right (b ∈ B) (¬ (b ∈ f '' (cbC0 α β A B f g))) hb)
+              (@And.right (b ∈ B) (¬ (b ∈ f '' (cbC0 α β A B f g))) hb)
                 (Set.mem_image_intro f (cbC0 α β A B f g) b x hx
                   (Eq.symm.{1} β b (f x)
                     (hg_inj b (And.left hb)
@@ -318,14 +318,14 @@ theorem cbRel_surj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g :
             Exists.intro x
               (And.intro
                 (demo_cbC0_subset_A α β A B f g x hxC0)
-                (Or.inl (cbRelL α β (cbC0 α β A B f g) f x y)
+                (@Or.inl (cbRelL α β (cbC0 α β A B f g) f x y)
                   (cbRelR α β (cbC0 α β A B f g) g x y)
                   (demo_cbRelL_intro α β (cbC0 α β A B f g) f x y hxC0 hfxy)))))
       (fun (hgy : ¬ (g y ∈ cbC0 α β A B f g)) =>
         Exists.intro (g y)
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
           (And.intro (hgA y hy)
-            (Or.inr (cbRelL α β (cbC0 α β A B f g) f (g y) y)
+            (@Or.inr (cbRelL α β (cbC0 α β A B f g) f (g y) y)
               (cbRelR α β (cbC0 α β A B f g) g (g y) y)
               (demo_cbRelR_intro α β (cbC0 α β A B f g) g (g y) y hgy (Eq.refl.{1} α (g y))))))
       (Classical.em (g y ∈ cbC0 α β A B f g))

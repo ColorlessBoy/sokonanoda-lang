@@ -153,17 +153,17 @@ theorem injective_iff_kernel (α β : Type) (f : α → β) :
 theorem relImg_univ_mem (α β : Type) (r : Rel α β) (b : β) :
     b ∈ (relImg α β r (@Set.univ α)) ↔ ∃ (a : α), r a b :=
   @Iff.intro (b ∈ (relImg α β r (@Set.univ α))) (∃ (a : α), r a b)
-    (fun (h : b ∈ (relImg α β r (Set.univ α))) =>
+    (fun (h : b ∈ (relImg α β r (@Set.univ α))) =>
       @Exists.elim α (fun (a : α) => (@Set.univ α) a ∧ r a b) (∃ (a1 : α), r a1 b) h
-        (fun (a : α) (ha : (Set.univ α) a ∧ r a b) =>
+        (fun (a : α) (ha : (@Set.univ α) a ∧ r a b) =>
           Exists.intro a (And.right ha)))
     (fun (h : ∃ (a : α), r a b) =>
-      Exists.elim α (fun (a : α) => r a b)
-        (b ∈ (relImg α β r (Set.univ α))) h
+      @Exists.elim α (fun (a : α) => r a b)
+        (b ∈ (relImg α β r (@Set.univ α))) h
         (fun (a : α) (ha : r a b) =>
           Exists.intro a
             (And.intro
-              ((fun (hu : ∀ (x : α), (Set.univ α) x) => hu a) (Set.mem_univ α)) ha)))
+              ((fun (hu : ∀ (x : α), (@Set.univ α) x) => hu a) (Set.mem_univ α)) ha)))
 
 theorem relImg_mono_rel (α β : Type) (r r1 : Rel α β) (A : Set α)
     (h : ∀ (a : α) (b : β), r a b → r1 a b) :

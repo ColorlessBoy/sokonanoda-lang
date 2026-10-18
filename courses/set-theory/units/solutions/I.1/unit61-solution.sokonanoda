@@ -74,9 +74,9 @@ theorem inter_univ_eq (α : Type) (A : Set α) : @Eq.{1} (Set α) (A ∩ (@Set.u
         (@Iff.intro (a ∈ (A ∩ (@Set.univ α))) (a ∈ A)
           (fun (h : a ∈ (A ∩ (@Set.univ α))) =>
             @And.left (a ∈ A) (a ∈ (@Set.univ α))  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）
-              ((fun (hu : a ∈ (A ∩ (Set.univ α)) ↔ a ∈ A ∧ a ∈ (Set.univ α)) => Iff.mp hu h)
-                (Set.mem_inter_iff a A (Set.univ α))))
+              ((fun (hu : a ∈ (A ∩ (@Set.univ α)) ↔ a ∈ A ∧ a ∈ (@Set.univ α)) => Iff.mp hu h)
+                (Set.mem_inter_iff a A (@Set.univ α))))
           (fun (h : a ∈ A) =>
-            (fun (hu : a ∈ (A ∩ (Set.univ α)) ↔ a ∈ A ∧ a ∈ (Set.univ α)) =>
+            (fun (hu : a ∈ (A ∩ (@Set.univ α)) ↔ a ∈ A ∧ a ∈ (@Set.univ α)) =>
               Iff.mpr hu (And.intro h (@Set.mem_univ α a)))
-              (Set.mem_inter_iff a A (Set.univ α)))))
+              (Set.mem_inter_iff a A (@Set.univ α)))))

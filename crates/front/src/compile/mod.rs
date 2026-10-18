@@ -16,7 +16,8 @@ mod implicit;
 mod named_arg;
 // IA-5 的错误文案（**单独一个文件** ⇒ `elab.rs`/`implicit.rs` 都受判据 ⑨ 冻结，
 // **只许减不许增** ✗ ⇒ 文案长在那边会当场判红 ✓）。
-mod implicit_msg;
+// **a15**：`judge.rs`（在 `compile` 之外）也要读 `engine_text_pp` ⇒ 这一处放开到 crate。
+pub(crate) mod implicit_msg;
 mod level;
 mod meta;
 // 记法路径的**诊断保真**（a12）：记法解不出前缀时先逐位问一遍操作数（同上一条

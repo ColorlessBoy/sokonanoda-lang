@@ -1844,6 +1844,8 @@ pub(crate) fn judge_render_type_inplace<'a>(
     binders: &[crate::ast::Binder],
     ty: &Expr,
 ) -> Option<String> {
+    // **a15**：严格档下目标文本一律全显式（`@`）—— 见 `engine_text_pp`。
+    let _guard = ExplicitPpGuard::new(crate::compile::implicit_msg::engine_text_pp(false));
     crate::compile::elab::inplace_render_type(env, ctx, binders, ty)
 }
 
@@ -1851,13 +1853,9 @@ pub(crate) fn judge_render_type_inplace<'a>(
 /// [`judge_render_type_explicit`] 读**同一个线程局部**（`EXPLICIT_PP`）✓。
 ///
 /// 为什么需要它：慢路在 `needs_explicit`（目标里有**前导隐式 ≥ 2** 的 def 头）时
-/// 走**全显式 pp**（`judge_render_type_explicit`），而就地路的内核 pp 读的是
-/// [`explicit_pp_active`]（`elab.rs` 的 `pp_options.explicit = judge::explicit_pp_active()`）
-/// ⇒ **就地路必须把同一档置起来**，否则两条路的文本形态会分叉 ✗。
-/// G-71 闸（0.81.0）当初把就地路整个关掉就是因为这个；而 **2026-10-04 就地路已经
-/// 接上了 `explicit_pp_active()`** ⇒ 闸的理由已过期 ✓ —— 本函数就是把那一档
-/// **补到就地路上**，让两条路同源。
-///
+/// 走**全显式 pp**，而就地路的内核 pp 读的是 [`explicit_pp_active`]（`elab.rs` 的
+/// `pp_options.explicit`）⇒ **就地路必须把同一档置起来**，否则两条路的文本形态会
+/// 分叉 ✗（G-71 闸 0.81.0 关掉就地路就是这个原因；2026-10-04 已接上 ⇒ 理由过期 ✓）。
 /// `ExplicitPpGuard` 是**私有**的 ⇒ 这里开一个**受控入口**：只暴露"带档跑一次就地
 /// 渲染"，不把 guard 本身交出去 ⇒ 调用方**不可能忘记还原** ✓（RAII 在函数内收口）。
 pub(crate) fn judge_render_type_inplace_with_explicit<'a>(
@@ -1867,7 +1865,7 @@ pub(crate) fn judge_render_type_inplace_with_explicit<'a>(
     binders: &[crate::ast::Binder],
     ty: &Expr,
 ) -> Option<String> {
-    let _guard = ExplicitPpGuard::new(explicit);
+    let _guard = ExplicitPpGuard::new(crate::compile::implicit_msg::engine_text_pp(explicit));
     judge_render_type_inplace(env, ctx, binders, ty)
 }
 
@@ -3383,6 +3381,8 @@ pub fn judge_render_type(
     // 于是 `canonical_goal_with_spec` 静默退回源 AST，`rfl` 这类要读目标结构的
     // tactic 在 `= ` 记法目标上就永远拿不到规范形态（实测：`x = x` / `A = A`）。
     let term = render_type_query(ty);
+    // **a15**：严格档下目标文本一律全显式（`@`）—— 见 `engine_text_pp`。
+    let _guard = ExplicitPpGuard::new(crate::compile::implicit_msg::engine_text_pp(false));
     // `judge_infer` 交出来的文本**已经剥过 `binders.len()` 层**（见
     // `judge_infer_uncached` 的结尾）⇒ 收尾不用再剥，传 0 ✓。
     let text = judge_infer(prefix_src, options, binders, &term).ok()?;
