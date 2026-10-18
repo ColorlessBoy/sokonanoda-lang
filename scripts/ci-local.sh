@@ -497,8 +497,32 @@ run "editor：stub 宿主" "editor" node editor/vscode/test-extension-host.js
 # ⑤ e2e（CI job `e2e`）—— 慢 ✓、且要真 VS Code ✓ ⇒ 默认不跑 ✓
 if [ "$WANT_E2E" = 1 ]; then
   run "e2e：真宿主（${SOKO_VSCODE_TEST_VERSION:-默认版本}）" "e2e" scripts/vscode-e2e.sh
+  # ⑥ 记法输入：**真宿主 + 真按键**（CDP）—— 与 ⑤ 同一档（都要真 VS Code ✓）⇒ 同一条
+  #    `--e2e` 闸 ✓。⚠ 放在 ⑤ **之后**：⑤ 会把 release 二进制 stage 进 `bin/<target>/`
+  #    （扩展默认 bundled-first ✓）⇒ 探针起来时服务器解析到的是**本次构建** ✓。
+  #
+  #    ⭐ 这两条线是 **2026-10-18 接的**（用户 2026-10-17 23:1x 的硬令【③】：
+  #    「**判据要接线**」✗→✓）：它们**早就写好了、也登记了**
+  #    （`scripts/ux-queue.py` 的 `REGISTERED_SCRIPTS` ✓），而
+  #    `grep -rn vscode-input-e2e .github/workflows/ scripts/ci-local.sh scripts/githooks/`
+  #    ⇒ **0 处** ✗ ⇒ **真接线 0/2** ✗ ⇒ **判据从来没跑过**（"修了不守 ⇒ 会漂" ✗）。
+  #    判据 = `scripts/check-guard-bite.py` 的 **C13 登记接线**（登记了但没接线 ⇒ 判红 ✓）。
+  #
+  #    ⚠ **前置**（缺了 ⇒ 脚本自己 `exit 3` 前置缺失，**绝不静默跳过** ✓）：
+  #      · 真 VS Code（`/Applications/…` 或 `SOKO_VSCODE_BIN` 指过去 ✓）
+  #      · **vim 那条多要一个 VSCodeVim 扩展**（`~/.vscode/extensions/vscodevim.vim-*`
+  #        或 `SOKO_VIM_EXT` ✓）—— 没装就说人话退出，**不退化成"又跑一遍无 vim 的 e2e"** ✗
+  #        （那样判据会空转 ✗）。
+  #    ⚠ **如实划的边界** ✗：这两条**暂不接 CI**（本轮的 CI 面缺口，逐条读数见
+  #      `.cache/ux/fix-v1/VERDICT.md` §4）—— `e2e` job 的 runner 上**没有** Vim 扩展
+  #      （装它要引一条 marketplace 网络依赖 + 版本钉），且 `SOKO_VSCODE_BIN` 没指到
+  #      那份缓存里的 VS Code ⇒ 现在接上去**只会得到"前置不在"的假红** ✗
+  #      （E18：守卫一旦叫狼来了 ⇒ 正确的反应变成加豁免 ⇒ 它就死了 ✗）。
+  run "记法输入：真宿主 + 真按键（CDP · 11 用例）" "e2e" node scripts/vscode-input-e2e.mjs
+  run "vim：真宿主 + 真 vim 扩展（9 用例 × 2 臂）" "e2e" node scripts/vscode-input-vim-e2e.mjs
 else
   printf '\n▶ e2e：真宿主  —— **默认跳过** ✓（批次收尾时用 `--e2e` 跑一次 ✓，结果记 docs/e2e/ ✓）\n'
+  printf '▶ 记法输入（真按键 CDP · vim 臂）：同一档 ⇒ 也默认跳过 ✓（`--e2e` 时一起跑 ✓）\n'
 fi
 
 summary

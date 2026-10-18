@@ -49,6 +49,29 @@
   ⚠ **分派的代价如实标注** ✗：`ci_job: <非默认>` 的那几条只在那个 job 的触发条件成立时
   跑（`editor` job 的条件是 `rust || editor` 改动）⇒ **纯 docs 推送不跑第三层那几条** ——
   它们**物理上**跑不进 `queue-lint` 的 5 分钟预算 ✓（不是口径松了 ✓）。
+* **C13 登记接线（2026-10-18，用户 2026-10-17 23:1x 的硬令 ✗→✓）**：**第二本登记表**
+  （`scripts/ux-queue.py` 的 `REGISTERED_SCRIPTS` = **规范判据 / 对照臂脚本**的地面真相 ✓）
+  点名的**每一条**都必须**真的有一跑** ✗→✓ —— 否则判红（"**登记了但没接线 ⇒ 判红**" ✓）。
+  ⚠ ⭐ **"真的跑"与 C4 逐字同一条口径**（`run_bodies()` ✓ —— 注释与 step 名都不算 ✗；
+  `ci-local.sh` 走非注释行 ✓）。⚠ 两条出路写在红里：①**真跑**它 ✓；②把它从登记表里删掉 ✓。
+  ⚠ **为什么必须有它（用户原话的机制 ✓）**：用户 2026-10-17 23:1x「**它事情做不对，
+  并且还会把事情做坏，比如 vim 冲突**」⇒ 查透 = **做坏的机制 = "修了判据、但判据没接线"** ✗✗：
+  10-12 修了 vim（`abbreviation-rewriter.js` 211 行 + `package.json` 的 `input.leader`）
+  **并写了 1033 行判据**（`scripts/vscode-input-vim-e2e.mjs`，9 用例 × 2 臂 ✓ 很规范 ✓）
+  —— **真接线 0/2** ✗（`grep -rn vscode-input-vim-e2e .github/workflows/ scripts/ci-local.sh
+  scripts/githooks/` ⇒ **0 处** ✗；只命中登记清单与文档 ✗）⇒ **判据从来没跑过** ✗
+  ⇒ **"0.91.0 自称改好了" = 它自己说的** ✗（**修了不守 ⇒ 会漂** ✗）。
+  ⚠ **不是"加新守卫"** ✗：**本文件一个都没新增**（B 类 21/21 满 ⇒ 不许增殖 ✗）——
+  只是把**已有的那本登记表**接上**已有的那个接线闸形状**（C4 ✓）。
+  ⚠ **它为什么不能由 C4 覆盖**（先量后改 ✓）：C4 的面是**第一本**登记表
+  （`docs/guard-bite.jsonl` 的 `ci_job` 字段 ✓），而这两条判据是 `.mjs` ⇒ **既不在**
+  `guard_scripts()`（`GUARD_GLOBS` / `_SCRIPT_PATH_RE` 都是 `.py`-only ✓）**也不在**
+  咬住证明台账里 ⇒ 没有任何一条已有判据看得见它们 ✗（实测读数见
+  `.cache/ux/fix-v1/VERDICT.md` ✓）。
+  ⚠ **表不腐烂**（同层② R2 的形状 ✓）：登记表点名了一个**不在树里**的脚本 ⇒ 也判红 ✓。
+  ⚠ **如实划的边界** ✗：这一条管"**有没有一处真的跑它**"，**不管跑在哪一面**
+  （CI ⇄ 本地 gate）—— 哪一面**按定义不可能**跑它，由那条红的出路②或
+  `.cache/ux/fix-v1/VERDICT.md` 如实写清 ✓（**不是**在这里放豁免 ✗）。
 * **C5 可达性（2026-10-16，CI 实测红 ✗→✓）**：证明里**钉的旧 rev**（"已存在的坏输入"
   的锚点 ✓）必须**在本仓里真的存在**、**且是 `HEAD` 的祖先** ⇒ 否则判红 ✗（**两档**）。
   ⚠ 为什么（**实测**，run `38828745723` · step 9）：`queue-lint` **有** `fetch-depth: 0`
@@ -193,7 +216,7 @@
 
 ## 用法
 
-  python3 scripts/check-guard-bite.py                 # C1（基线..HEAD 的守卫）+ C2（逐条真跑）+ C6/C7/C8 + C12
+  python3 scripts/check-guard-bite.py                 # C1（基线..HEAD 的守卫）+ C2（逐条真跑）+ C4/C13 接线 + C6/C7/C8 + C12
   python3 scripts/check-guard-bite.py --since <sha>   # 覆盖面改成 <sha>..HEAD
   python3 scripts/check-guard-bite.py --all           # C2 跑**本 job 的**每一条（不只范围内的）
   python3 scripts/check-guard-bite.py --all --job all # C2 跑**台账里每一条**（开发机；CI 分派跑 ✗）
@@ -206,6 +229,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import contextlib
 import fnmatch
 import io
@@ -740,6 +764,107 @@ def wiring_problems(root: Path, entries: list[dict]) -> list[str]:
                        f"⇒ 它跑的是**默认 job 的那批**，这批仍然没人跑 ✗"
                        f"（⚠ 同样只认 **`run:` 正文** ✓）")
     return red
+
+
+# ── **第二本登记表的接线闸**（C13；唯一一处 ✓）────────────────────────────────
+# 第一本登记表是 C4 的 `docs/guard-bite.jsonl`（每条证明声明 `ci_job` ✓）；
+# 第二本是 `scripts/ux-queue.py` 的 `REGISTERED_SCRIPTS`（**规范判据 / 对照臂脚本**的
+# **地面真相**清单 ✓）。**两本的口径逐字相同**：**登记 = 声明"它是一条该跑的判据"**
+# ⇒ 那就必须**真的有一跑** ✗→✓（"真的跑" = `run:` 正文 / `ci-local.sh` 非注释行 ✓）。
+REGISTRY_FILE = "scripts/ux-queue.py"
+REGISTRY_NAME = "REGISTERED_SCRIPTS"
+# ⚠ 与 `_SCRIPT_PATH_RE`（`wired_scripts()` 用）**故意不同** —— **不是"另抄一份"** ✗：
+#   `.py`-only 是**接线臂刻意的口径**（它的输出喂 `guard_scripts()` ⇒ C6 分类面 ⇒
+#   多收一个 `.mjs` 就多一条要分类的守卫 ✗）；而 C13 这本登记表里放的就是 `.mjs` ✓
+#   ⇒ 这里必须认**任意脚本扩展名**。两层共用的仍是**同一处**「读哪一层」
+#   （`run_bodies()` / `live_lines()` ✓）。
+_ANY_SCRIPT_PATH_RE = re.compile(r"scripts/[A-Za-z0-9_./\-]+\.[A-Za-z0-9]+")
+
+
+def registered_scripts(root: Path = ROOT) -> tuple[list[str], str | None]:
+    """读登记表 `scripts/ux-queue.py` 的 `REGISTERED_SCRIPTS`（**唯一一处** ✓）。
+
+    ⚠ **用 `ast` 读那个字面量、不 import `ux-queue.py`** ✗：import 会把队列工具的执行
+    带进来（它有自己的 `ROOT`/IO 前提与副作用）—— 本判据要的只是**那本登记表**这个
+    **数据** ✓（与 `check-queue-integrity.py` 的复核层**不 import** `ux-queue.py`
+    **同一条口径** ✓）。读不出来 ⇒ 返回原因（调用方 `exit 3`，**不假装判过** ✗）。
+    """
+    p = root / REGISTRY_FILE
+    if not p.is_file():
+        return [], f"登记表 `{REGISTRY_FILE}` 不在 `{root}` ⇒ 判不了接线（**不假装判过** ✗）"
+    try:
+        tree = ast.parse(p.read_text(encoding="utf-8", errors="replace"))
+    except SyntaxError as exc:
+        return [], f"`{REGISTRY_FILE}` 解析不了（{exc}）⇒ 登记表读不出来"
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(isinstance(t, ast.Name) and t.id == REGISTRY_NAME for t in node.targets):
+            continue
+        try:
+            val = ast.literal_eval(node.value)
+        except ValueError as exc:
+            return [], (f"`{REGISTRY_FILE}` 的 `{REGISTRY_NAME}` 不是字面量集合（{exc}）"
+                        f"⇒ 登记表读不出来")
+        return sorted(str(x) for x in val), None
+    return [], f"`{REGISTRY_FILE}` 里找不到 `{REGISTRY_NAME}` ⇒ 登记表读不出来"
+
+
+def wired_script_paths(root: Path = ROOT) -> set[str]:
+    """**接线面**：被 gate / CI 的 step **真的调用**过的**脚本路径**（任意扩展名 ✓）。
+
+    与 `wired_scripts()` **同一条「读哪一层」**（`run_bodies()` / `live_lines()` ✓）——
+    只有 token 形状不同（那个刻意 `.py`-only，理由见上面那段注释 ✓）。
+    ⚠ **只收仓里真存在的文件**（幽灵名字不算 ✓，同 `wired_scripts()` ✓）。
+    """
+    found: set[str] = set()
+    for rel in WIRING_FILES:
+        p = root / rel
+        if not p.is_file():
+            continue
+        text = p.read_text(encoding="utf-8", errors="replace")
+        body = run_bodies(text) if rel.endswith(".yml") else text
+        for tok in _ANY_SCRIPT_PATH_RE.findall(_non_comment_lines(body)):
+            if (root / tok).is_file():
+                found.add(tok)
+    return found
+
+
+def registered_wiring_problems(root: Path = ROOT) -> tuple[list[str], list[str], str | None]:
+    """**C13 登记接线**：登记表点名的每一条都必须**真的被跑**（⇒ 红, 判到的登记项, 读表原因）。
+
+    ⚠ 这是"登记"的**空转闸**（与 C4 **同形**，第二本登记表）：没有它，把一条判据写进
+    `REGISTERED_SCRIPTS` 就等于**宣布它有人守** ✗ —— 而它可能**任何地方都不跑**
+    （2026-10-17 实测：`scripts/vscode-input-vim-e2e.mjs`（1033 行 · 9 用例 × 2 臂）
+    与 `scripts/vscode-input-e2e.mjs`（11 用例）**真接线 0/2** ✗ —— 修好了、写了判据、
+    **登记了**，就是**没让它跑** ✗ ⇒ 判据从来没在 CI / gate 里跑过 ⇒ "修了不守 ⇒ 会漂" ✗）。
+
+    ⚠ ⭐ **"真的跑"= `run:` 正文**（`run_bodies()` ✓ —— **注释与 step 名都不算** ✗；
+    `ci-local.sh` 走非注释行 ✓）—— 与 C4 / `wired_scripts()` **逐字同一条口径** ✓。
+    ⚠ 两条出路（写在红里 ✓）：①**真跑**它；②把它从登记表里删掉（登记 = 声明 ✗）。
+    ⚠ **表不腐烂**（同层② R2 的形状 ✓）：点名了一个**不在树里**的脚本 ⇒ 也判红
+    （那说明登记表在指一个**不存在**的判据 ✗）。
+    """
+    reg, err = registered_scripts(root)
+    if err:
+        return [], [], err
+    wired = wired_script_paths(root)
+    red: list[str] = []
+    for rel in reg:
+        if not (root / rel).is_file():
+            red.append(f"**C13 登记表腐烂** ✗：登记表（`{REGISTRY_FILE}` 的 `{REGISTRY_NAME}`）"
+                       f"点名的 `{rel}` **不在树里** ⇒ 那条判据**不存在**（登记表在指一个"
+                       f"不存在的脚本 ✗）。出路二选一：①把文件补回来 ✓；"
+                       f"②把它从登记表里删掉 ✓")
+            continue
+        if rel not in wired:
+            red.append(f"**C13 登记接线** ✗：登记表（`{REGISTRY_FILE}` 的 `{REGISTRY_NAME}`）"
+                       f"点名的 `{rel}` **没有任何一处真的跑它** ⇒ 它**登记了但没接线**"
+                       f"（空转 ✗）。⚠ **\"真的跑\" = `run:` 正文**（`run_bodies()` ✓ —— "
+                       f"注释与 step 名都不算 ✗；`{WIRING_FILES[0]}` 走非注释行 ✓）"
+                       f"⇒ 出路二选一：①在 `{'` / `'.join(WIRING_FILES)}` 的正文里**真跑**它 ✓；"
+                       f"②把它从登记表里删掉（登记 = 声明\"它是一条该跑的判据\" ✗）")
+    return red, reg, None
 
 
 def _git(root: Path, argv: list[str]) -> tuple[str, str | None]:
@@ -1348,7 +1473,7 @@ def run_proof(cmd: str, root: Path, timeout: int = PROOF_TIMEOUT_S) -> tuple[int
 def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
           reopen_empty: bool = False, quiet: bool = False,
           job: str = DEFAULT_JOB, anchors_path: Path | None = None) -> int:
-    """C1 覆盖 + C2 咬得住（+ C3 翻账 + C4 接线 + C6/C7/C8 锚）。
+    """C1 覆盖 + C2 咬得住（+ C3 翻账 + C4 接线 + C6/C7/C8 锚 + C13 登记接线）。
 
     `job` = 这一次跑**哪个 CI job 的那批证明**（`JOB_ALL` ⇒ 不分工，开发机用 ✓）。
     """
@@ -1409,6 +1534,33 @@ def check(root: Path, ledger_path: Path, since: str | None, run_all: bool,
         jobs = sorted({entry_job(e) for e in entries})
         print(f"  ✓ C4 接线：台账点名的 {len(jobs)} 个 job 都在 `{CI_YML.name}` 里且**真的跑它**"
               f"（{' · '.join(jobs)}）")
+
+    # ── C13 登记接线（**登记了但没接线 ⇒ 判红** ✓ —— C4 的同族，第二本登记表 ✓）──
+    #   ⚠ **不过滤 job**（与 C5/C6/C12 同一条口径 ✓）：接线是**全仓**的事，
+    #   不是"哪批证明跑在哪"的事 ⇒ 每个 job 都判它 ✓。
+    #   ⚠ **前提不在就不判**（夹具仓的形状，同 C6 的"表不在本仓"那条 ✓）：
+    #   `check-budgets.py` 的 `_fixture_repo()` 拷的是**真台账 + 真 `ci.yml`**、
+    #   **不拷** `ux-queue.py` ⇒ 硬判会把它判红 ✗（合法夹具假红 ✗ —— 实测踩到过
+    #   同形两次，见 C10/C11 的注释 ✓）。
+    if not (root / REGISTRY_FILE).is_file():
+        if not quiet:
+            print(f"  ⓘ C13 登记接线：**本跑不判** —— 登记表 `{REGISTRY_FILE}` 不在本仓"
+                  f"（夹具仓 / 拷来的树 ⇒ 表本来就不在那里 ✓）⇒ 如实印出、"
+                  f"**既不假红也不假装判过** ✓")
+    else:
+        c13, c13_reg, c13_err = registered_wiring_problems(root)
+        if c13_err:
+            print(f"error: {c13_err}", file=sys.stderr)
+            return 3
+        red.extend(c13)
+        if not quiet and not c13:
+            if c13_reg:
+                print(f"  ✓ C13 登记接线：登记表点名的 {len(c13_reg)} 条都在接线里"
+                      f"**真的跑** ✓（{' · '.join(c13_reg)}）")
+            else:
+                print(f"  ⓘ C13 登记接线：登记表 `{REGISTRY_NAME}` 是**空的** ⇒ 这一条本跑"
+                      f"**无输入** —— 如实在此印出，**不**当空转判红 ✓"
+                      f"（那会是一条没有出路的红，同 C5/C10 的处置 ✓）")
 
     # ── C5 可达性（钉的旧 rev 必须**在本仓里**且是 `HEAD` 的祖先 ✓）───────────
     c5, pinned, cands, c5_skip = rev_reachability_problems(root, entries, coverage_since)
@@ -2147,6 +2299,87 @@ def selftest(job: str = DEFAULT_JOB) -> int:
              "收窄前这条**通过** ⇒ 接线只靠提及）", c4_named, f"红 {len(c4_mention_red)} 条")
         if c4_mention_red:
             print(f"      ↳ 本臂判红原文（**不是本跑的判据** ✓）：{c4_mention_red[0][:90]}")
+
+        # ── C13 登记接线：**正反两向**（2026-10-18 · 用户 2026-10-17 的硬令 ✓）────────
+        #   ⚠ 夹具**照真仓的形状**（拷真形状、不打桩 ✗）：一份 `scripts/ux-queue.py`
+        #   （**只有** `REGISTERED_SCRIPTS` 那一行 —— C13 只读它 ✓）+ 一份接线
+        #   （C13 只读 `WIRING_FILES` ✓）+ 登记表点名的**真存在的**脚本文件 ✓。
+        #   ⚠ `tag` **每个臂都不一样**（同 `_c4_root` / `_face_root` 的实测教训 ✗）。
+        def _c13_root(tag: str, *, registry: str | None, wiring: str | None,
+                      scripts: tuple[str, ...] = ("scripts/fixture-a.mjs",
+                                                  "scripts/fixture-b.mjs")) -> Path:
+            r = ta / f"c13-{tag}"
+            (r / "scripts").mkdir(parents=True, exist_ok=True)
+            if registry is not None:
+                (r / REGISTRY_FILE).write_text(registry, encoding="utf-8")
+            for rel in scripts:
+                (r / rel).write_text("// 夹具（C13 只判它在不在树里 ✓）\n", encoding="utf-8")
+            if wiring is not None:
+                wf = r / ".github" / "workflows"
+                wf.mkdir(parents=True, exist_ok=True)
+                (wf / "ci.yml").write_text(
+                    "jobs:\n  queue-lint:\n    runs-on: ubuntu-24.04\n    steps:\n" + wiring,
+                    encoding="utf-8")
+            return r
+
+        _reg_a = f'{REGISTRY_NAME} = {{\n    "scripts/fixture-a.mjs",\n}}\n'
+
+        # 正对照：登记表点名的那条在 `run:` 正文里**真的跑** ⇒ 不许红 ✓。
+        c13_ok = _c13_root("real-run", registry=_reg_a,
+                           wiring="      - run: node scripts/fixture-a.mjs\n")
+        c13_ok_red, c13_ok_reg, c13_ok_err = registered_wiring_problems(c13_ok)
+        gate("⭐⭐ 正对照：C13 —— 登记表点名的脚本在 `run:` 正文里**真的跑** ⇒ 不许红",
+             not c13_ok_red and c13_ok_err is None
+             and c13_ok_reg == ["scripts/fixture-a.mjs"],
+             f"红 {len(c13_ok_red)} 条" + (f" · {c13_ok_err}" if c13_ok_err else ""))
+
+        # ⭐⭐ 反向㉖：**登记了但没接线**（登记表点名、任何地方都不跑）⇒ 必须判红 ✓ ——
+        #   这就是用户 2026-10-17 报的形状（`vscode-input-vim-e2e.mjs` **真接线 0/2** ✗）。
+        c13_bare = _c13_root("registered-not-wired", registry=_reg_a, wiring=None)
+        c13_bare_red, _c13r, _c13e = registered_wiring_problems(c13_bare)
+        gate("⭐⭐ 反向㉖：C13 —— **登记了但没接线**（`REGISTERED_SCRIPTS` 点名、"
+             "任何 `run:` 正文里都没有它）⇒ 判红（修前这条形状**没有任何判据看得见** ✗）",
+             any("C13 登记接线" in m and "fixture-a.mjs" in m for m in c13_bare_red),
+             f"红 {len(c13_bare_red)} 条")
+        if c13_bare_red:
+            print(f"      ↳ 本臂判红原文（**不是本跑的判据** ✓）：{c13_bare_red[0][:90]}")
+
+        # 反向㉗：**删 `run:` 正文、只留 step 名** ⇒ 必须判红（口径与 C4 逐字相同 ✓）。
+        c13_mention = _c13_root(
+            "mention-only", registry=_reg_a,
+            wiring="      - name: node scripts/fixture-a.mjs（`run:` 正文被删 ✗）\n"
+                    "        run: echo hi\n")
+        c13_mention_red, _c13r, _c13e = registered_wiring_problems(c13_mention)
+        gate("⭐⭐ 反向㉗：C13 —— **删 `run:` 正文、只留 step 名** ⇒ 判红"
+             "（口径与 C4 逐字相同 ✓）",
+             any("C13 登记接线" in m and "fixture-a.mjs" in m for m in c13_mention_red),
+             f"红 {len(c13_mention_red)} 条")
+
+        # 反向㉘：**登记表点名一个不在树里的脚本** ⇒ 判红（表不腐烂，同层② R2 的形状 ✓）。
+        c13_rot = _c13_root("registry-rot", registry=_reg_a, wiring=None, scripts=())
+        c13_rot_red, _c13r, _c13e = registered_wiring_problems(c13_rot)
+        gate("⭐⭐ 反向㉘：C13 —— 登记表点名**不在树里**的脚本 ⇒ 判红（表不腐烂 ✓）",
+             any("C13 登记表腐烂" in m and "fixture-a.mjs" in m for m in c13_rot_red),
+             f"红 {len(c13_rot_red)} 条")
+
+        # 正对照：`scripts/ci-local.sh` 的**非注释行**也算接线 ⇒ 不许红 ✓
+        #   （⚠ 同一份文件里那行**注释**不算 —— 正是"注释不算跑"那一半 ✓）。
+        c13_local = _c13_root("local-gate", registry=_reg_a, wiring=None)
+        (c13_local / WIRING_FILES[0]).write_text(
+            "#!/bin/sh\n# node scripts/fixture-a.mjs（**注释不算** ✗）\n"
+            "node scripts/fixture-a.mjs\n", encoding="utf-8")
+        c13_local_red, _c13r, _c13e = registered_wiring_problems(c13_local)
+        gate("⭐⭐ 正对照：C13 —— `scripts/ci-local.sh` 的**非注释行**也算接线 ⇒ 不许红"
+             "（同文件里那行注释不算 ✓）", not c13_local_red, f"红 {len(c13_local_red)} 条")
+
+        # ⭐⭐ 正对照（**本判据自己的咬住面** ✓）：**真仓**的登记表点名的每一条
+        #   都必须在接线里**真的跑** ⇒ 不许红（把接线删掉 ⇒ 这条当场红 ✓）。
+        real_reg, real_reg_err = registered_scripts(ROOT)
+        real_c13_red, _c13r, _c13e = registered_wiring_problems(ROOT)
+        gate("⭐⭐ 正对照：C13 —— **真仓**的登记表点名的每一条都在接线里真的跑 ✓",
+             not real_c13_red and real_reg_err is None,
+             f"登记 {len(real_reg)} 条（{' · '.join(real_reg)}）· 红 {len(real_c13_red)} 条"
+             + (f" · {real_reg_err}" if real_reg_err else ""))
 
         # ── 反向⑨：`--job <没人声明的名字>` ⇒ 判红（**空转闸**：0 条不许算绿 ✗）──
         rc_e = check(ROOT, LEDGER, None, run_all=True, quiet=True, job="no-such-job")
