@@ -140,6 +140,10 @@ pub(crate) fn assemble_apply(f: &Expr, args: &[Expr], is_subgoal: &[bool], expli
 /// `_` 的**唯一** elaborate 入口（`elab.rs` 的 `Expr::Hole` 臂一行调到这）。
 ///
 /// 窗口外 / 没有期望类型 ⇒ 逐字等于今天那条诊断（**零回归面** ✓）。
+// 8 参 = 上下文（builder/scope）+ 期望类型两态（`expected_src`/`expected`）+
+// 窗口四元（`at`/`arg_index`/`is_spine`/`depth`）。打成一包只会把同一批值从
+// 形参挪进结构体、调用点一行没短 ⇒ 照 `project/session.rs:1091` 的先例放行。
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn elab_hole<'a>(
     builder: &mut EnvBuilder<'a>,
     expected_src: Option<&Expr>,
