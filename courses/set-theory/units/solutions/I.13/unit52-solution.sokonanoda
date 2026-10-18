@@ -3,7 +3,7 @@ import lib.Set
 import lib.Order
 
 def idRel (α : Type) : Rel α α :=
-  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-73 形状 ②：`•`/`Rel` 是 def 头，这些位置补不出前导实参
+  fun (a : α) (b : α) => @Eq.{1} α a b  -- soko:notation-ok: G-73 形状 ②：`•`/`Rel` 是 def 头，这些位置补不出前导实参
 
 theorem demo_mem_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ) :
     (r • s) a c ↔ ∃ (b : β), r a b ∧ s b c :=
@@ -14,7 +14,7 @@ theorem demo_mem_inv (α β : Type) (r : Rel α β) (b : β) (a : α) :
   Rel.inv_apply α β r b a
 
 theorem demo_idRel_self (α : Type) (a : α) : idRel α a a :=
-  Eq.refl.{1} α a
+  @Eq.refl.{1} α a
 
 theorem comp_intro (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (b : β) (c : γ)
     (h1 : r a b) (h2 : s b c) : (r • s) a c :=
@@ -29,17 +29,17 @@ theorem comp_apply_elim (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : �
 
 theorem comp_idRel_right (α β : Type) (r : Rel α β) (a : α) (b : β) (h : r a b) :
     (r • idRel β) a b :=
-  comp_intro α β β r (idRel β) a b b h (Eq.refl.{1} β b)
+  comp_intro α β β r (idRel β) a b b h (@Eq.refl.{1} β b)
 
 theorem idRel_comp_left (α β : Type) (r : Rel α β) (a : α) (b : β) (h : r a b) :
     (idRel α • r) a b :=
-  comp_intro α α β (idRel α) r a a b (Eq.refl.{1} α a) h
+  comp_intro α α β (idRel α) r a a b (@Eq.refl.{1} α a) h
 
 theorem comp_mono_apply (α β γ : Type) (r r1 : Rel α β) (s s1 : Rel β γ)
     (hr : ∀ (a : α) (b : β), r a b → r1 a b)
     (hs : ∀ (b : β) (c : γ), s b c → s1 b c)
     (a : α) (c : γ) (h : (r • s) a c) : (r1 • s1) a c :=
-  Exists.elim β (fun (b : β) => r a b ∧ s b c) ((r1 • s1) a c)
+  @Exists.elim β (fun (b : β) => r a b ∧ s b c) ((r1 • s1) a c)
     (comp_apply_elim α β γ r s a c h)
     (fun (b : β) (hb : r a b ∧ s b c) =>
       comp_intro α β γ r1 s1 a b c (hr a b (And.left hb)) (hs b c (And.right hb)))
@@ -52,7 +52,7 @@ theorem comp_mono_left (α β γ : Type) (r r1 : Rel α β) (s : Rel β γ)
 theorem trans_comp_apply (α : Type) (r : Rel α α)
     (htrans : ∀ (a b c : α), r a b → r b c → r a c)
     (a c : α) (h : (r • r) a c) : r a c :=
-  Exists.elim α (fun (b : α) => r a b ∧ r b c) (r a c)
+  @Exists.elim α (fun (b : α) => r a b ∧ r b c) (r a c)
     (comp_apply_elim α α α r r a c h)
     (fun (b : α) (hb : r a b ∧ r b c) => htrans a b c (And.left hb) (And.right hb))
 
@@ -62,7 +62,7 @@ theorem inv_intro (α β : Type) (r : Rel α β) (a : α) (b : β) (h : r a b) :
 
 theorem comp_inv_apply (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ)
     (h : (r • s) a c) : (s ⁻¹ • (r ⁻¹)) c a :=
-  Exists.elim β (fun (b : β) => r a b ∧ s b c) ((s ⁻¹ • (r ⁻¹)) c a)
+  @Exists.elim β (fun (b : β) => r a b ∧ s b c) ((s ⁻¹ • (r ⁻¹)) c a)
     (comp_apply_elim α β γ r s a c h)
     (fun (b : β) (hb : r a b ∧ s b c) =>
       comp_intro γ β α (s ⁻¹) (r ⁻¹) c b a
@@ -73,7 +73,7 @@ theorem comp_inv_apply (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α
 
 theorem inv_comp_apply (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ)
     (h : (s ⁻¹ • (r ⁻¹)) c a) : (r • s) a c :=
-  Exists.elim β (fun (b : β) => (s ⁻¹) c b ∧ (r ⁻¹) b a) ((r • s) a c)
+  @Exists.elim β (fun (b : β) => (s ⁻¹) c b ∧ (r ⁻¹) b a) ((r • s) a c)
     (comp_apply_elim γ β α (s ⁻¹) (r ⁻¹) c a h)
     (fun (b : β) (hb : (s ⁻¹) c b ∧ (r ⁻¹) b a) =>
       comp_intro α β γ r s a b c

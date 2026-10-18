@@ -8,18 +8,18 @@ def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
 
 theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
     LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
-  Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+  @Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
     (fun (h : LeOn α β A B) => h)
     (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
 
 theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
     Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=
-  Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+  @Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
     (fun (h : Set.MapsTo α β f A B) => h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) => h)
 
 theorem demo_leftInv_def (α : Type) (β : Type) (g : β → α) (f : α → β) (A : Set α) :
     Set.LeftInvOn α β g f A ↔ ∀ (x : α), x ∈ A → g (f x) = x :=
-  Iff.intro (Set.LeftInvOn α β g f A) (∀ (x : α), x ∈ A → g (f x) = x)
+  @Iff.intro (Set.LeftInvOn α β g f A) (∀ (x : α), x ∈ A → g (f x) = x)
     (fun (h : Set.LeftInvOn α β g f A) => h)
     (fun (h : ∀ (x : α), x ∈ A → g (f x) = x) => h)
 

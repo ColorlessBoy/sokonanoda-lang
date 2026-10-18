@@ -28,7 +28,7 @@ theorem related_mem_equivClass (α : Type) (r : Rel α α) (a b : α) (h : r a b
 
 theorem equivClass_subset_iff (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α) :
     (∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) ↔ r b a :=
-  Iff.intro (∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) (r b a)
+  @Iff.intro (∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) (r b a)
     (fun (hsub : ∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) =>
       hsub a (equivClass_self α r h a))
     (fun (hba : r b a) => fun (c : α) => fun (hac : Rel.EquivClass α r a c) =>
@@ -37,12 +37,12 @@ theorem equivClass_subset_iff (α : Type) (r : Rel α α) (h : IsEquivalence α 
 
 theorem equivClass_eq_iff (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α) :
     (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) ↔ r a b :=
-  Iff.intro (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) (r a b)
+  @Iff.intro (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) (r a b)
     (fun (heq : ∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) =>
       (fun (hu : r b a) => equivalence_symm α r h b a hu)
         (Iff.mp (heq a) (equivClass_self α r h a)))
     (fun (hab : r a b) => fun (c : α) =>
-      Iff.intro (Rel.EquivClass α r a c) (Rel.EquivClass α r b c)
+      @Iff.intro (Rel.EquivClass α r a c) (Rel.EquivClass α r b c)
         (fun (hac : Rel.EquivClass α r a c) =>
           (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
             ht b a c (equivalence_symm α r h a b hab) hac) (equivalence_trans α r h))
@@ -61,7 +61,7 @@ theorem classes_mem (α : Type) (r : Rel α α) (a : α) :
 
 theorem classes_nonempty (α : Type) (r : Rel α α) (heq : IsEquivalence α r) (C : α → Prop)
     (h : Rel.Classes α r C) : ∃ (a : α), C a :=
-  Exists.elim α (fun (b : α) => ∀ (c : α), C c ↔ r b c) (∃ (a : α), C a) h
+  @Exists.elim α (fun (b : α) => ∀ (c : α), C c ↔ r b c) (∃ (a : α), C a) h
     (fun (b : α) (hb : ∀ (c : α), C c ↔ r b c) =>
       Exists.intro b (Iff.mpr (hb b) (equivalence_refl α r heq b)))
 
@@ -78,11 +78,11 @@ theorem related_equivClass_subset (α : Type) (r : Rel α α) (h : IsEquivalence
 theorem equivClass_inter_nonempty_imp_eq (α : Type) (r : Rel α α) (h : IsEquivalence α r)
     (a b : α) (hne : ∃ (c : α), Rel.EquivClass α r a c ∧ Rel.EquivClass α r b c) :
     ∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c :=
-  Exists.elim α (fun (c : α) => Rel.EquivClass α r a c ∧ Rel.EquivClass α r b c)
+  @Exists.elim α (fun (c : α) => Rel.EquivClass α r a c ∧ Rel.EquivClass α r b c)
     (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) hne
     (fun (c0 : α) (hc : Rel.EquivClass α r a c0 ∧ Rel.EquivClass α r b c0) =>
       fun (c : α) =>
-        Iff.intro (Rel.EquivClass α r a c) (Rel.EquivClass α r b c)
+        @Iff.intro (Rel.EquivClass α r a c) (Rel.EquivClass α r b c)
           (fun (hac : Rel.EquivClass α r a c) =>
             (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
               ht b a c

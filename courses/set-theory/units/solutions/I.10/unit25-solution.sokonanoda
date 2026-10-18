@@ -29,7 +29,7 @@ theorem equivClass_self (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a
 theorem equivClass_of_rel (α : Type) (r : Rel α α) (he : IsEquivalence α r)
     (a b : α) (hab : r a b) : ∀ (c : α), r a c ↔ r b c :=
   fun (c : α) =>
-    Iff.intro (r a c) (r b c)
+    @Iff.intro (r a c) (r b c)
       (fun (hac : r a c) =>
         (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =>
           ht b a c ((fun (hs : ∀ (x : α) (y : α), r x y → r y x) => hs a b hab)
@@ -46,7 +46,7 @@ theorem rel_of_equivClass_eq (α : Type) (r : Rel α α) (he : IsEquivalence α 
 
 theorem class_eq_iff_rel (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α) :
     (∀ (c : α), r a c ↔ r b c) ↔ r a b :=
-  Iff.intro (∀ (c : α), r a c ↔ r b c) (r a b)
+  @Iff.intro (∀ (c : α), r a c ↔ r b c) (r a b)
     (fun (h : ∀ (c : α), r a c ↔ r b c) => rel_of_equivClass_eq α r he a b h)
     (fun (h : r a b) => equivClass_of_rel α r he a b h)
 
@@ -60,7 +60,7 @@ theorem equivClass_disjoint (α : Type) (r : Rel α α) (he : IsEquivalence α r
 
 theorem classes_nonempty (α : Type) (r : Rel α α) (he : IsEquivalence α r)
     (C : α → Prop) (hC : Rel.Classes α r C) : ∃ (a : α), C a :=
-  Exists.elim α (fun (a : α) => ∀ (c : α), C c ↔ r a c) (∃ (a : α), C a)
+  @Exists.elim α (fun (a : α) => ∀ (c : α), C c ↔ r a c) (∃ (a : α), C a)
     ((fun (hs : ∃ (a : α), ∀ (c : α), C c ↔ r a c) => hs) hC)
     (fun (a : α) (ha : ∀ (c : α), C c ↔ r a c) =>
       Exists.intro a
@@ -72,13 +72,13 @@ theorem classes_cover (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a :
     (And.intro
       ((fun (h : ∃ (a' : α), ∀ (c : α), Rel.EquivClass α r a c ↔ r a' c) => h)
         (Exists.intro a
-          (fun (c : α) => Iff.intro (Rel.EquivClass α r a c) (r a c)
+          (fun (c : α) => @Iff.intro (Rel.EquivClass α r a c) (r a c)
             (fun (h : Rel.EquivClass α r a c) => h) (fun (h : r a c) => h))))
       (equivClass_self α r he a))
 
 theorem rel_of_meet (α : Type) (r : Rel α α) (he : IsEquivalence α r) (a b : α)
     (h : ∃ (x : α), r a x ∧ r b x) : r a b :=
-  Exists.elim α (fun (x : α) => r a x ∧ r b x) (r a b) h
+  @Exists.elim α (fun (x : α) => r a x ∧ r b x) (r a b) h
     (fun (x : α) (hx : r a x ∧ r b x) =>
       (fun (ht : ∀ (p : α) (q : α) (s : α), r p q → r q s → r p s) =>
         ht a x b (And.left hx)

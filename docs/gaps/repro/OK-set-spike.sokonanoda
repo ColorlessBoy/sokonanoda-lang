@@ -29,4 +29,4 @@ theorem subset_trans (α : Type) (A B C : Set α) (h1 : Set.subset α A B) (h2 :
 
 -- 注意：构造子是**裸名** `inl`（`Or.inl` 是 G-02：构造子没有命名空间）。
 theorem subset_union_left (α : Type) (A B : Set α) : Set.subset α A (Set.union α A B) :=
-  fun (x : α) => fun (hx : A x) => inl (A x) (B x) hx
+  fun (x : α) => fun (hx : A x) => @inl (A x) (B x) hx

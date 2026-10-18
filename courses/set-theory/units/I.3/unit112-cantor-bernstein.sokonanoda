@@ -52,13 +52,13 @@ theorem demo_cbK_mono (α β : Type) (A : Set α) (B : Set β) (f : α → β) (
     (C1 : Set α) (C2 : Set α) (h : ∀ (x : α), x ∈ C1 → x ∈ C2) :
     ∀ (x : α), x ∈ cbK α β A B f g C1 → x ∈ cbK α β A B f g C2 :=
   fun (x : α) (hx : x ∈ cbK α β A B f g C1) =>
-    And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C2)))
+    @And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C2)))
       (And.left hx)
       (fun (h2 : x ∈ g '' (B \ f '' C2)) =>
         (And.right hx)
           (Set.image_mono g (B \ f '' C2) (B \ f '' C1)
             (fun (b : β) (hb : b ∈ B \ f '' C2) =>
-              And.intro (b ∈ B) (¬ (b ∈ f '' C1))
+              @And.intro (b ∈ B) (¬ (b ∈ f '' C1))
                 (And.left hb)
                 (fun (h1 : b ∈ f '' C1) =>
                   (And.right hb)
@@ -84,7 +84,7 @@ theorem cbC0_sdiff (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g :
 
 theorem demo_cbA_in_fix (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
     A ∈ cbFix α β A B f g :=
-  And.intro (∀ (x : α), x ∈ A → x ∈ A)
+  @And.intro (∀ (x : α), x ∈ A → x ∈ A)
     (∀ (x : α), x ∈ cbK α β A B f g A → x ∈ A)
     (fun (x : α) (hx : x ∈ A) => hx)
     (fun (x : α) (hx : x ∈ cbK α β A B f g A) =>
@@ -121,7 +121,7 @@ theorem cbC0_gfy (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : �
 
 theorem demo_cbC0_subst (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
     (u v : α) (h : u = v) : u ∈ cbC0 α β A B f g → v ∈ cbC0 α β A B f g :=
-  Eq.subst.{1} α (fun (z : α) => z ∈ cbC0 α β A B f g) u v h
+  @Eq.subst.{1} α (fun (z : α) => z ∈ cbC0 α β A B f g) u v h
 
 -- ── 关系版图（第 5 步）：拆成两条「半关系」再取并 ─────────────────────────
 -- 左半：`x` 在 `C₀` 里 ⇒ 走 `f`（像就是 `y`）；
@@ -212,7 +212,7 @@ theorem demo_cbChoice_elim (α β : Type) (A : Set α) (B : Set β) (P : α → 
     (Q : Prop)
     (h : ∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x))
     (k : ∀ (f : α → β), (∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x)) → Q) : Q :=
-  Exists.elim (α → β) (fun (f : α → β) => ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x))
+  @Exists.elim (α → β) (fun (f : α → β) => ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x))
     Q h k
 
 -- 两条互逆律（把 `Set.Equiv.mk` 的四个实参拆成具名定理，读起来也清楚 ✓）

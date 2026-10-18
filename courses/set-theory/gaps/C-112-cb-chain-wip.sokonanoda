@@ -55,14 +55,14 @@ theorem cb_chain_step (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α 
     (b : β) (hb : b ∈ B) (hbf : ¬ (b ∈ f '' (cbChain α β A B f g))) :
     g b ∈ cbChain α β A B f g :=
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
-  Exists.intro Nat (fun (n : Nat) => g b ∈ Aseq α β A B f g n) (Nat.succ Nat.zero)
-    (Exists.intro β
+  @Exists.intro Nat (fun (n : Nat) => g b ∈ Aseq α β A B f g n) (Nat.succ Nat.zero)
+    (@Exists.intro β
       (fun (y : β) => y ∈ (B \ f '' (Aseq α β A B f g Nat.zero)) ∧ (g y) = (g b))
       b
-      (And.intro (b ∈ (B \ f '' (Aseq α β A B f g Nat.zero))) ((g b) = (g b))
+      (@And.intro (b ∈ (B \ f '' (Aseq α β A B f g Nat.zero))) ((g b) = (g b))
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
-        (And.intro (b ∈ B) (¬ (b ∈ f '' (Aseq α β A B f g Nat.zero))) hb
+        (@And.intro (b ∈ B) (¬ (b ∈ f '' (Aseq α β A B f g Nat.zero))) hb
           (fun (hbA : b ∈ f '' (Aseq α β A B f g Nat.zero)) =>
             hbf (Set.image_mono f (Aseq α β A B f g Nat.zero) (cbChain α β A B f g)
               (cb_chain_mono α β A B f g Nat.zero) b hbA)))
-        (Eq.refl.{1} α (g b))))
+        (@Eq.refl.{1} α (g b))))

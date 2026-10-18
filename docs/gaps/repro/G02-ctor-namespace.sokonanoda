@@ -30,10 +30,10 @@ ctor mk (a : A) : P2 A
 end
 
 -- 修前这一行报 `unknown identifier P1.mk`；现在它是规范名，正常 checked。
-def first (A : Type) (a : A) : P1 A := P1.mk A a
+def first (A : Type) (a : A) : P1 A := @P1.mk A a
 
 -- 规范名共存：第二个块用 `P2.mk` 构造，互不冲突。
-def second (A : Type) (a : A) : P2 A := P2.mk A a
+def second (A : Type) (a : A) : P2 A := @P2.mk A a
 
 -- R2 别名：裸名 `mk` 现在**有歧义**（P1 与 P2 各声明了一次）⇒ 这一行必须报
 -- `elab-ambiguous-ctor-alias`（不是 unknown identifier）。它是**负向断言**，

@@ -40,7 +40,7 @@ def fromOption (x : Option Nat) (d : Nat) : Nat := match x with
 | some a => a
 
 -- 自测：#reduce 走 match 降低出的 Option.rec —— some 那支就是里面的数。
-#reduce fromOption (some Nat (succ zero)) zero
+#reduce fromOption (@some Nat (succ zero)) zero
 
 -- 练习 1：some 分支直接交出代入后的字段 a。
 def valueOrZero (x : Option Nat) : Nat := match x with
@@ -48,8 +48,8 @@ def valueOrZero (x : Option Nat) : Nat := match x with
 | some a => a
 
 -- 额外自测（钥匙内部核对）：
-#reduce valueOrZero (some Nat (succ zero))
-#reduce valueOrZero (none Nat)
+#reduce valueOrZero (@some Nat (succ zero))
+#reduce valueOrZero (@none Nat)
 
 -- ─────────────────────────────────────────────────────────────
 -- 依赖 match（归纳法）：演示 nat_induction + 练习 2 的答案。
@@ -84,8 +84,8 @@ def predOpt (x : Option Nat) : Nat := match x with
 | none => zero
 
 -- 额外自测（钥匙内部核对）：
-#reduce isZeroOpt (some Nat zero)
-#reduce predOpt (some Nat (succ (succ zero)))
+#reduce isZeroOpt (@some Nat zero)
+#reduce predOpt (@some Nat (succ (succ zero)))
 
 -- ─────────────────────────────────────────────────────────────
 -- 带索引归纳：演示 vlen + 练习 4 的答案。
@@ -106,4 +106,4 @@ def vhead (A : Type) (d : A) (n : Nat) (v : Vec A n) : A := match v with
 | vcons a m w => a
 
 -- 额外自测（钥匙内部核对）：
-#reduce vlen Nat (succ (succ zero)) (vcons Nat zero zero (vcons Nat (succ zero) zero (vnil Nat)))
+#reduce vlen Nat (succ (succ zero)) (@vcons Nat zero zero (@vcons Nat (succ zero) zero (@vnil Nat)))

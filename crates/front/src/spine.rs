@@ -912,6 +912,24 @@ pub(crate) fn beta_apply(expr: Expr, args: &[Expr]) -> Expr {
     out
 }
 
+/// 脊上是否**跨过一条 `@` 边界**（`(@f a) b` ⇒ true）：`@` 标记的是**那条**脊，
+/// 外层实参是**结果上的应用**，两者不能摊平成一条实参表 ✗（a17 实测）。
+pub(crate) fn spine_crosses_explicit(expr: &Expr) -> bool {
+    let mut cur = expr;
+    while let Expr::App {
+        fun,
+        explicit_spine,
+        ..
+    } = cur
+    {
+        if *explicit_spine {
+            return true;
+        }
+        cur = fun;
+    }
+    false
+}
+
 /// 把 `expr` 拆成 (头, 实参列表)。
 pub(crate) fn spine_of(expr: &Expr) -> (&Expr, Vec<&Expr>) {
     let mut args = Vec::new();
@@ -1637,7 +1655,12 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
             span: *span,
         },
         Expr::Hole { span } => Expr::Hole { span: *span },
-        Expr::App { fun, arg, span, .. } => {
+        Expr::App {
+            fun,
+            arg,
+            explicit_spine,
+            span,
+        } => {
             let fun = substitute(fun, sigma);
             let arg = substitute(arg, sigma);
             // **代入即消 redex**：代入一个 lambda 之后立刻 beta 一步。内核不做
@@ -1647,10 +1670,14 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
             if matches!(fun, Expr::Lambda { .. }) {
                 return beta_normalize(&beta_apply(fun, &[arg]));
             }
+            // ⚠ **`explicit_spine` 必须原样带过去** ✗（a17 实测：delta 展开把
+            // `Set.union A (@Set.univ α)` 展成 `fun x => A x ∨ B x` 再把 `B` 代成
+            // `@Set.univ α` ⇒ 这条 `B x` 一重建就丢 `@` ⇒ 严格档把 `Set.univ α x`
+            // 当成"用户写的正常形式位置实参"判红）。
             Expr::App {
                 fun: Box::new(fun),
                 arg: Box::new(arg),
-                explicit_spine: false,
+                explicit_spine: *explicit_spine,
                 span: *span,
             }
         }

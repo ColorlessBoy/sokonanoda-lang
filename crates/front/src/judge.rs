@@ -4405,7 +4405,7 @@ mod tests {
             prefix,
             &CompileOptions::default(),
             &open,
-            &["a", "id.{u} α a"],
+            &["a", "@id.{u} α a"],
         );
         assert_eq!(judgements[0], Judgement::Match);
         assert_eq!(judgements[1], Judgement::Match);
@@ -4480,7 +4480,7 @@ mod tests {
         // def 的宇宙参数 `{u}` 原样保留在合成命令里，Sort u 目标可判定。
         let doc =
             "def idT {u} : {α : Sort u} -> (a : α) -> α := fun {α : Sort u} => fun (a : α) => a\n\
-                   theorem t {u} : {α : Sort u} -> (a : α) -> Eq.{u} α a a := \
+                   theorem t {u} : {α : Sort u} -> (a : α) -> @Eq.{u} α a a := \
                    fun {α : Sort u} => fun (a : α) => sorry\n";
         let d = open_decl(doc);
         let judgements = judge_hole_fill(
@@ -4488,7 +4488,7 @@ mod tests {
             &CompileOptions::default(),
             d.span,
             d.holes[0],
-            &["Eq.refl.{u} α a"],
+            &["@Eq.refl.{u} α a"],
         );
         assert_eq!(judgements[0], Judgement::Match);
     }
@@ -4551,13 +4551,13 @@ mod tests {
     fn value_replace_accepts_a_kernel_verified_rfl_candidate() {
         // 匿名 example：首 token 换名后整值替换。kernel 接受的 rfl 候选
         // Match，两边不同的候选被内核以 Mismatch 拒绝。
-        let doc = "example : Eq.{1} Nat 2 2 := 3\n";
+        let doc = "example : @Eq.{1} Nat 2 2 := 3\n";
         let d = failed_decl(doc);
         let judgements = judge_value_replace(
             doc,
             &CompileOptions::default(),
             d.span,
-            &["Eq.refl.{1} Nat 2", "Eq.refl.{1} Nat 3"],
+            &["@Eq.refl.{1} Nat 2", "@Eq.refl.{1} Nat 3"],
         );
         assert_eq!(judgements[0], Judgement::Match);
         assert!(
@@ -4593,7 +4593,7 @@ mod tests {
 
     #[test]
     fn value_replace_reports_unparseable_candidates_as_errors() {
-        let doc = "example : Eq.{1} Nat 2 2 := 3\n";
+        let doc = "example : @Eq.{1} Nat 2 2 := 3\n";
         let d = failed_decl(doc);
         let judgements =
             judge_value_replace(doc, &CompileOptions::default(), d.span, &["no(", "nope"]);

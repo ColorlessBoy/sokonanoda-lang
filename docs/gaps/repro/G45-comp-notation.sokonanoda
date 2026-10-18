@@ -52,7 +52,7 @@ theorem rel_comp_notation (A B C : Type) (r : Rel A B) (s : Rel B C) (a : A) (c 
 
 theorem fun_comp_notation (α β γ : Type) (g : β → γ) (f : α → β) (x : α) :
     (g ∘ f) x = g (f x) :=
-  Eq.refl.{1} γ (g (f x))
+  @Eq.refl.{1} γ (g (f x))
 
 -- 点名形式永久可用（N4.3）：同两条命题写成点名形式，与本文件上面的记法版同判。
 theorem rel_comp_pointful (A B C : Type) (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
@@ -61,4 +61,4 @@ theorem rel_comp_pointful (A B C : Type) (r : Rel A B) (s : Rel B C) (a : A) (c 
 
 theorem fun_comp_pointful (α β γ : Type) (g : β → γ) (f : α → β) (x : α) :
     Function.comp α β γ g f x = g (f x) :=
-  Eq.refl.{1} γ (g (f x))
+  @Eq.refl.{1} γ (g (f x))

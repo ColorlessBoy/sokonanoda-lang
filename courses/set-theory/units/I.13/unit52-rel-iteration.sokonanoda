@@ -44,7 +44,7 @@ theorem demo_mem_inv (α β : Type) (r : Rel α β) (b : β) (a : α) :
     (r ⁻¹) b a ↔ r a b :=
   Rel.inv_apply α β r b a
 theorem demo_idRel_self (α : Type) (a : α) : idRel α a a :=
-  Eq.refl.{1} α a
+  @Eq.refl.{1} α a
 -- ─────────────────────────────────────────────────────────────
 -- 52.2 复合的两条取用子
 -- ─────────────────────────────────────────────────────────────

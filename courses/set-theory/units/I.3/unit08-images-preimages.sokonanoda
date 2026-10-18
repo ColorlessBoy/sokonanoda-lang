@@ -51,13 +51,13 @@ import lib.Image
 -- 这就是"前推"的全部内容：把 A 里的点一个个送过去，收回来的是像。
 theorem demo_mem_image (α β : Type) (f : α → β) (A : Set α) (y : β) :
     y ∈ f '' A ↔ ∃ (x : α), A x ∧ f x = y :=
-  Set.mem_image α β f A y
+  @Set.mem_image α β f A y
 
 -- 演示 2（已写好）：x 落在原像里 ⟺ f x 落在 B 里。
 -- "回拉"没有存在量词，只有一个函数应用——**这就是原像全保、像只保并的根源**。
 theorem demo_mem_preimage (α β : Type) (f : α → β) (B : Set β) (x : α) :
     (x ∈ (f ⁻¹' B)) ↔ ((f x) ∈ B) :=
-  Set.mem_preimage α β f B x
+  @Set.mem_preimage α β f B x
 
 -- ─────────────────────────────────────────────────────────────
 -- 8.2 原像：并、交、补**全保**（三条）
@@ -111,7 +111,7 @@ theorem image_subset_iff (α β : Type) (f : α → β) (A : Set α) (B : Set β
 -- 库里的同款（`fun` 而不是 `Set.subset` 版）：`Set.image_mono`。
 theorem image_mono (α β : Type) (f : α → β) (A B : Set α)
     (h : A ⊆ B) : (f '' A) ⊆ (f '' B) :=
-  Set.image_mono α β f A B h
+  @Set.image_mono α β f A B h
 
 -- 演示（记法，G-04 第二刀）：同一句话用**数学符号**再写一遍——`f '' A` 是记法，
 -- 点名形式 `Set.image` 就是它。中缀记法 `infixr:80 " '' " => Set.image` 写在
@@ -122,7 +122,7 @@ theorem image_mono (α β : Type) (f : α → β) (A B : Set α)
 -- 课程门禁的 `decl.checked` 计数因此**一个都不动**。
 example (α β : Type) (f : α → β) (A B : Set α)
     (h : A ⊆ B) : (f '' A) ⊆ (f '' B) :=
-  Set.image_mono α β f A B h
+  @Set.image_mono α β f A B h
 
 -- 演示（记法，G-04 第三刀）：**binder 记法** `∃ (x : α), p`。
 -- `binder_notation "∃" => Exists` 声明的符号出现在 **binder 位置**：`∃ (x : α), p`
@@ -160,7 +160,7 @@ def isAa (t : Two) : Prop := match t with
 -- "Two 恰好有两个点"：两个构造子可分。
 theorem two_aa_ne_bb : ¬ (aa = bb) :=
   fun (h : aa = bb) =>
-    Eq.subst.{1} Two (fun (t : Two) => isAa t) aa bb h True.intro
+    @Eq.subst.{1} Two (fun (t : Two) => isAa t) aa bb h True.intro
 
 -- 演示 3（已写好）：映射 `f1` —— 两个点都送到 aa（"塌成一个"）。
 def f1 (t : Two) : Two := match t with
@@ -169,8 +169,8 @@ def f1 (t : Two) : Two := match t with
 
 -- 演示 4（已写好）：f1 在两个点上的值（`match` 两支都是 aa）。
 theorem f1_eq_aa (x : Two) : (f1 x) = aa := match x with
-| aa => Eq.refl.{1} Two aa
-| bb => Eq.refl.{1} Two aa
+| aa => @Eq.refl.{1} Two aa
+| bb => @Eq.refl.{1} Two aa
 
 -- 演示 5（已写好）：`U01 = {aa, bb}`（`Set.univ Two` 的摊开写法）。
 def U01 : Set Two := fun (x : Two) => (x = aa) ∨ (x = bb)
@@ -184,32 +184,32 @@ def image_preimage : Set Two := fun (y : Two) => ∃ (x : Two), (f1 x) = y
 -- 演示 6（已写好）：两个初等事实——`{aa} ∩ {bb} = ∅`、`f1 '' ∅ = ∅`。
 -- 这两条就是"像不保交"反例的两个零件。
 theorem inter_singletons_empty :
-    Eq.{1} (Set Two) (({aa}) ∩ ({bb}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    @Eq.{1} (Set Two) (({aa}) ∩ ({bb}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (∅) :=
-  Set.ext Two (({aa}) ∩ ({bb})) (∅)
+  @Set.ext Two (({aa}) ∩ ({bb})) (∅)
     (fun (x : Two) =>
-      Iff.intro (x ∈ (({aa}) ∩ ({bb})))
+      @Iff.intro (x ∈ (({aa}) ∩ ({bb})))
         (x ∈ (∅))
         (fun (hx : x ∈ (({aa}) ∩ ({bb}))) =>
-          False.elim (x ∈ (∅))
+          @False.elim (x ∈ (∅))
             (two_aa_ne_bb
-              (Eq.trans.{1} Two aa x bb
-                (Eq.symm.{1} Two x aa
-                  (And.left (x ∈ ({aa}))
+              (@Eq.trans.{1} Two aa x bb
+                (@Eq.symm.{1} Two x aa
+                  (@And.left (x ∈ ({aa}))
                     (x ∈ ({bb})) hx))
-                (And.right (x ∈ ({aa}))
+                (@And.right (x ∈ ({aa}))
                   (x ∈ ({bb})) hx))))
         (fun (h0 : x ∈ (∅)) =>
           False.elim h0))
 
 theorem image_empty (A : Set Two) :
     (f1 '' (∅)) = (∅) :=
-  Set.ext Two (f1 '' (∅)) (∅)
+  @Set.ext Two (f1 '' (∅)) (∅)
     (fun (y : Two) =>
-      Iff.intro (y ∈ (f1 '' (∅)))
+      @Iff.intro (y ∈ (f1 '' (∅)))
         (y ∈ (∅))
         (fun (hy : y ∈ (f1 '' (∅))) =>
-          Exists.elim Two
+          @Exists.elim Two
             (fun (x : Two) => (x ∈ (∅)) ∧ ((f1 x) = y))
             (y ∈ (∅)) hy
             (fun (x : Two) =>
@@ -220,10 +220,10 @@ theorem image_empty (A : Set Two) :
 
 -- 演示 7（已写好）：把"交集是空"送进 Set.image——这就是反例的左半边。
 theorem image_inter_singletons_empty :
-    Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    @Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (f1 '' (({aa}) ∩ ({bb})))
       (∅) :=
-  Eq.trans.{1} (Set Two)
+  @Eq.trans.{1} (Set Two)
     (f1 '' (({aa}) ∩ ({bb})))
     (f1 '' (∅))
     (∅)
@@ -232,16 +232,16 @@ theorem image_inter_singletons_empty :
 
 -- 演示 8（已写好）：反例的右半边——`aa` 同时落在 `f1 '' {aa}` 与 `f1 '' {bb}` 里。
 -- 这就是"f1 不单射 ⇒ 像不保交"的全部内容：交集里那个点是从**两个不同的点**塌过来的。
-example : Set.mem Two aa  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标里补不出）
+example : @Set.mem Two aa  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标里补不出）
     (Set.inter Two (f1 '' ({aa}))
       (f1 '' ({bb}))) :=
   And.intro  -- soko:notation-ok: R1/R2：同上
     (Exists.intro aa
       (And.intro
-        (Eq.refl.{1} Two aa) (Eq.refl.{1} Two aa)))
+        (@Eq.refl.{1} Two aa) (@Eq.refl.{1} Two aa)))
     (Exists.intro bb
       (And.intro
-        (Eq.refl.{1} Two bb) (Eq.refl.{1} Two aa)))
+        (@Eq.refl.{1} Two bb) (@Eq.refl.{1} Two aa)))
 
 -- ─────────────────────────────────────────────────────────────
 -- 8.5 必破（D 类）：判断真假并给反例或证明
@@ -250,22 +250,22 @@ example : Set.mem Two aa  -- soko:notation-ok: R1/R2：点名叫法写全前导�
 -- 演示（已写好）：`f '' (A ∩ B) ⊆ f '' A ∩ f '' B`——"假的"那一半里真的方向。
 -- 像把交集推过去只会更小：两个单点集都被 f1 压成 {aa} 时，右边比左边大出一截（练习 6）。
 theorem image_inter_subset (α β : Type) (f : α → β) (A B : Set α) :
-    Set.subset β (f '' (A ∩ B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    @Set.subset β (f '' (A ∩ B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       ((f '' A) ∩ (f '' B)) :=
   fun (y : β) => fun (h : y ∈ (f '' (A ∩ B))) =>
-    Exists.elim α
+    @Exists.elim α
       (fun (x : α) => (x ∈ (A ∩ B)) ∧ ((f x) = y))
       ((y ∈ (f '' A)) ∧ (y ∈ (f '' B))) h
       (fun (x : α) => fun (hx : (x ∈ (A ∩ B)) ∧ ((f x) = y)) =>
         And.intro
           (Exists.intro x
             (And.intro
-              (And.left (A x) (B x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@And.left (A x) (B x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 (And.left hx))
               (And.right hx)))
           (Exists.intro x
             (And.intro  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              (And.right (A x) (B x)
+              (@And.right (A x) (B x)
                 (And.left hx))
               (And.right hx))))
 
@@ -283,7 +283,7 @@ theorem image_inter_subset (α β : Type) (f : α → β) (A B : Set α) :
 -- soko:hint 目标形态：Not (Eq (Set Two) (Set.image Two Two f1 (Set.inter … {aa} … {bb})) (Set.inter … ))，展开是 (… = …) -> False。  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
 -- soko:hint 关键件：把 `Set.inter {aa} {bb} = ∅`（演示 6）用 congrArg 送进 Set.image，再用 Eq.subst 把右式的元素沿等式搬到左式上，就得到 `aa ∈ ∅`（Set.notMem_empty）。
 theorem not_image_inter_eq_image_inter :
-    ¬ (Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    ¬ (@Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (f1 '' (({aa}) ∩ ({bb})))
       (Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
         (f1 '' ({bb})))) := by
@@ -294,11 +294,11 @@ theorem not_image_inter_eq_image_inter :
 theorem image_preimage_subset (α β : Type) (f : α → β) (C : Set β) :
     (f '' (f ⁻¹' C)) ⊆ C :=
   fun (y : β) => fun (h : y ∈ (f '' (f ⁻¹' C))) =>
-    Exists.elim α
+    @Exists.elim α
       (fun (x : α) => (x ∈ (f ⁻¹' C)) ∧ ((f x) = y))
       (y ∈ C) h
       (fun (x : α) => fun (hx : (x ∈ (f ⁻¹' C)) ∧ ((f x) = y)) =>
-        Eq.subst.{1} β (fun (z : β) => z ∈ C) (f x) y
+        @Eq.subst.{1} β (fun (z : β) => z ∈ C) (f x) y
           (And.right hx)
           (And.left hx))
 

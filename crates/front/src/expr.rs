@@ -183,10 +183,19 @@ impl Expr {
             Expr::SetLiteral { elements, .. } => Expr::SetLiteral { elements, span },
             Expr::AnonCtor { elements, .. } => Expr::AnonCtor { elements, span },
             Expr::NamedArg { name, value, .. } => Expr::NamedArg { name, value, span },
-            Expr::App { fun, arg, .. } => Expr::App {
+            // ⚠ **`explicit_spine` 必须原样带过去** ✗（a17 实测：以前写死 `false` ⇒
+            // `substitute_names` 的 `Expr::Ident` 替换走的就是这条 ⇒ 引擎装配好的
+            // `@` 形态脊一换 span 就退回"正常形式" ⇒ 严格档判红，最小复现
+            // `inductive Box (A : Type) | box (a : A)` + 依赖 motive 的 `match`）。
+            Expr::App {
                 fun,
                 arg,
-                explicit_spine: false,
+                explicit_spine,
+                ..
+            } => Expr::App {
+                fun,
+                arg,
+                explicit_spine,
                 span,
             },
             Expr::Lambda { binders, body, .. } => Expr::Lambda {

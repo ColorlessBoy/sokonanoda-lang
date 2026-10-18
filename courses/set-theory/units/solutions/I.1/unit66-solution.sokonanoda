@@ -5,7 +5,7 @@ import lib.Rel
 
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  Set.subset_def α A B
+  @Set.subset_def α A B
 
 theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
     a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B :=
@@ -17,7 +17,7 @@ theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
 
 theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) : a ∈ B :=
   (fun (hu : ∀ (x : α), x ∈ A → x ∈ B) => hu a ha)
-    ((fun (hv : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hv h) (Set.subset_def α A B))
+    ((fun (hv : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hv h) (@Set.subset_def α A B))
 
 theorem subset_refl (α : Type) (A : Set α) : A ⊆ A :=
   fun (a : α) (ha : a ∈ A) => ha
@@ -32,12 +32,12 @@ theorem subset_union_right (α : Type) (A B : Set α) : A ⊆ (A ∪ B) :=
 
 theorem inter_subset_left (α : Type) (A B : Set α) : (A ∩ B) ⊆ A :=
   fun (a : α) (h : a ∈ (A ∩ B)) =>
-    And.left (a ∈ A) (a ∈ B)  -- soko:notation-ok: `∈`/`⊆`/`∩`/`∪` 是 def 头，这些位置补不出前导实参（手册边界）
+    @And.left (a ∈ A) (a ∈ B)  -- soko:notation-ok: `∈`/`⊆`/`∩`/`∪` 是 def 头，这些位置补不出前导实参（手册边界）
       ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) => Iff.mp hu h) (Set.mem_inter_iff a A B))
 
 theorem inter_subset_right (α : Type) (A B : Set α) : (A ∩ B) ⊆ B :=
   fun (a : α) (h : a ∈ (A ∩ B)) =>
-    And.right (a ∈ A) (a ∈ B)  -- soko:notation-ok: `∈`/`⊆`/`∩`/`∪` 是 def 头，这些位置补不出前导实参（手册边界）
+    @And.right (a ∈ A) (a ∈ B)  -- soko:notation-ok: `∈`/`⊆`/`∩`/`∪` 是 def 头，这些位置补不出前导实参（手册边界）
       ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) => Iff.mp hu h) (Set.mem_inter_iff a A B))
 
 theorem inter_subset_inter (α : Type) (A B C D : Set α) (h1 : A ⊆ C) (h2 : B ⊆ D) :
@@ -52,7 +52,7 @@ theorem inter_subset_inter (α : Type) (A B C D : Set α) (h1 : A ⊆ C) (h2 : B
 theorem union_subset_iff (α : Type) (A B C : Set α) (h1 : A ⊆ C) (h2 : B ⊆ C) :
     (A ∪ B) ⊆ C :=
   fun (a : α) (h : a ∈ (A ∪ B)) =>
-    Or.elim (a ∈ A) (a ∈ B) (a ∈ C)
+    @Or.elim (a ∈ A) (a ∈ B) (a ∈ C)
       (fun (ha : a ∈ A) => mem_of_subset α A C h1 a ha)
       (fun (hb : a ∈ B) => mem_of_subset α B C h2 a hb)
       ((fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mp hu h) (Set.mem_union a A B))

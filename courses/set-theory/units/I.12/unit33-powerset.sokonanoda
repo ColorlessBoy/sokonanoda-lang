@@ -140,7 +140,7 @@ theorem charSet_eq_of_eq (α : Type) (f g : α → Bool)
 -- soko:hint 目标形态：`(∀ a, f a = true → g a = true) → charSet α f ⊆ charSet α g`。
 -- soko:hint 关键件：直接写 λ（两个包含关系都是定义头，λ 形态对得上）✓
 theorem charSet_mono (α : Type) (f g : α → Bool)
-    (h : ∀ (a : α), (f a) = Bool.true → Eq.{1} Bool (g a) Bool.true) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
+    (h : ∀ (a : α), (f a) = Bool.true → @Eq.{1} Bool (g a) Bool.true) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来
     (charSet α f) ⊆ (charSet α g) := by
   sorry
 

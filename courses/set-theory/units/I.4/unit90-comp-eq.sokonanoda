@@ -44,15 +44,15 @@ def BijPair (α : Type) (β : Type) (f : α → β) : Prop :=
 -- 演示：满射的定义展开（`Surjective f` 就是"每个点都有原像" ✓）。
 theorem demo_bij_def (α : Type) (β : Type) (f : α → β) :
     BijPair α β f ↔ Injective α β f ∧ Surjective α β f :=
-  Iff.intro (BijPair α β f) (Injective α β f ∧ Surjective α β f)
+  @Iff.intro (BijPair α β f) (Injective α β f ∧ Surjective α β f)
     (fun (h : BijPair α β f) => h) (fun (h : Injective α β f ∧ Surjective α β f) => h)
 theorem demo_surj_def (α : Type) (β : Type) (f : α → β) :
     Surjective α β f ↔ ∀ (b : β), ∃ (a : α), f a = b :=
-  Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
+  @Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
     (fun (h : Surjective α β f) => h) (fun (h : ∀ (b : β), ∃ (a : α), f a = b) => h)
 theorem demo_arg_subst (α : Type) (β : Type) (g : α → β) (a : α) (b : α) (d : β)
     (h : b = a) (hd : g b = d) : g a = d :=
-  Eq.subst.{1} α (fun (x : α) => g x = d) b a h hd-- 练习 1（T 类）：`BijPair` 就是单射 ∧ 满射（定义展开）。
+  @Eq.subst.{1} α (fun (x : α) => g x = d) b a h hd-- 练习 1（T 类）：`BijPair` 就是单射 ∧ 满射（定义展开）。
 -- 关键件：两个方向都是恒等（`Iff.intro` 两类实参写全）
 theorem bij_iff (α : Type) (β : Type) (f : α → β) :
     BijPair α β f ↔ Injective α β f ∧ Surjective α β f := by

@@ -47,8 +47,8 @@ theorem quot_exact_expected (α : Type) (r : α → α → Prop)
     (hsymm : ∀ (a b : α), r a b → r b a)
     (htrans : ∀ (a b c : α), r a b → r b c → r a c)
     (a b : α)
-    (h : Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b)) : r a b :=
-  Quot.exact.{1} α r hrefl hsymm htrans a b h
+    (h : @Eq.{1} (@Quot.{1} α r) (@Quot.mk.{1} α r a) (@Quot.mk.{1} α r b)) : r a b :=
+  @Quot.exact.{1} α r hrefl hsymm htrans a b h
 
 -- 由它打开的用法：`Quot.mk` 在**等价关系**上是单射（`Quot.lift` 的逆用得上）
 theorem quot_mk_injective (α : Type) (r : α → α → Prop)
@@ -56,10 +56,10 @@ theorem quot_mk_injective (α : Type) (r : α → α → Prop)
     (hsymm : ∀ (a b : α), r a b → r b a)
     (htrans : ∀ (a b c : α), r a b → r b c → r a c)
     (a b : α)
-    (h : Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b)) : r a b :=
-  Quot.exact.{1} α r hrefl hsymm htrans a b h
+    (h : @Eq.{1} (@Quot.{1} α r) (@Quot.mk.{1} α r a) (@Quot.mk.{1} α r b)) : r a b :=
+  @Quot.exact.{1} α r hrefl hsymm htrans a b h
 
 -- 正向仍然照常（防止"为了反射把正向弄坏"）
 theorem quot_sound_still_works (α : Type) (r : α → α → Prop) (a b : α) (h : r a b) :
-    Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b) :=
-  Quot.sound.{1} α r a b h
+    @Eq.{1} (@Quot.{1} α r) (@Quot.mk.{1} α r a) (@Quot.mk.{1} α r b) :=
+  @Quot.sound.{1} α r a b h

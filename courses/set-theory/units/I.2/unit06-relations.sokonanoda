@@ -63,7 +63,7 @@ def EmptyRelation (A : Type) : Rel A A := fun (a b : A) => False
 -- 演示 1：等号本身（"恒等关系"）是自反的——三律的最简例子。
 theorem demo_eq_reflexive (A : Type) : Reflexive A (fun (a b : A) => a = b) := by
   intro a
-  exact Eq.refl.{1} A a
+  exact @Eq.refl.{1} A a
 
 -- 演示 2：空关系是对称的（前提永远不成立，所以"空洞成立"）。
 theorem demo_empty_symmetric (A : Type) : Symmetric A (EmptyRelation A) := by
@@ -189,7 +189,7 @@ def Nat.pred (n : Nat) : Nat := match n with
 
 theorem Nat.zero_ne_succ (n : Nat) : 0 ≠ Nat.succ n :=
   fun (h : 0 = Nat.succ n) =>
-    Eq.subst.{1} Nat (fun (m : Nat) => Nat.isZero m) 0 (Nat.succ n) h True.intro
+    @Eq.subst.{1} Nat (fun (m : Nat) => Nat.isZero m) 0 (Nat.succ n) h True.intro
 
 theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) : a = b :=
   congrArg.{1} Nat.pred h

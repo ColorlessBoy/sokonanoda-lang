@@ -29,16 +29,16 @@ import lib.Order
 import lib.Equiv
 theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
     Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=
-  Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+  @Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
     (fun (h : Set.MapsTo α β f A B) => h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) => h)
 theorem demo_leftInv_def (α : Type) (β : Type) (g : β → α) (f : α → β) (A : Set α) :
     Set.LeftInvOn α β g f A ↔ ∀ (x : α), x ∈ A → g (f x) = x :=
-  Iff.intro (Set.LeftInvOn α β g f A) (∀ (x : α), x ∈ A → g (f x) = x)
+  @Iff.intro (Set.LeftInvOn α β g f A) (∀ (x : α), x ∈ A → g (f x) = x)
     (fun (h : Set.LeftInvOn α β g f A) => h)
     (fun (h : ∀ (x : α), x ∈ A → g (f x) = x) => h)
 theorem demo_rightInv_def (α : Type) (β : Type) (f : α → β) (g : β → α) (B : Set β) :
     Set.RightInvOn α β f g B ↔ ∀ (y : β), y ∈ B → f (g y) = y :=
-  Iff.intro (Set.RightInvOn α β f g B) (∀ (y : β), y ∈ B → f (g y) = y)
+  @Iff.intro (Set.RightInvOn α β f g B) (∀ (y : β), y ∈ B → f (g y) = y)
     (fun (h : Set.RightInvOn α β f g B) => h)
     (fun (h : ∀ (y : β), y ∈ B → f (g y) = y) => h)-- 练习 1（T 类）：**复合保 `MapsTo`**（单元92 已证，本单元复用）。
 -- 关键件：两个 `MapsTo` 假设按 点 · 前提 作用

@@ -2,7 +2,7 @@ import lib.Rel
 import lib.Set
 
 theorem demo_quot_sound (α : Type) (r : α → α → Prop) (a b : α) (h : r a b) :
-    Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b) :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    @Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b) :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
   Quot.sound.{1} α r a b h
 
 theorem demo_quot_lift_iota (α β : Type) (r : α → α → Prop) (f : α → β)

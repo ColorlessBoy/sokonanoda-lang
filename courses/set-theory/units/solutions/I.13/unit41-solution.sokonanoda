@@ -33,7 +33,7 @@ theorem wf_minimal_counterexample (α : Type) (r : Rel α α) (hwf : IsWellFound
 theorem wf_irreflexive (α : Type) (r : Rel α α) (hwf : IsWellFounded α r) :
     Irreflexive α r :=
   fun (a : α) => fun (haa : r a a) =>
-    (fun (hm : HasMin α r (fun (x : α) => Eq.{1} α x a)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (hm : HasMin α r (fun (x : α) => @Eq.{1} α x a)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
       Exists.elim α (fun (m : α) => Eq.{1} α m a ∧ ∀ (y : α), Eq.{1} α y a → ¬ (r y m))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
         False (hasMin_elim α r (fun (x : α) => Eq.{1} α x a) hm)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
         (fun (m : α) (hmm : Eq.{1} α m a ∧ ∀ (y : α), Eq.{1} α y a → ¬ (r y m)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
@@ -55,7 +55,7 @@ theorem wf_of_subrel (α : Type) (r r1 : Rel α α) (hwf : IsWellFounded α r)
     (hsub : ∀ (a : α) (b : α), r1 a b → r a b) : IsWellFounded α r1 :=
   fun (P : α → Prop) => fun (hne : ∃ (x : α), P x) =>
     (fun (hm : HasMin α r P) =>
-      Exists.elim α (fun (m : α) => P m ∧ ∀ (y : α), P y → ¬ (r y m))
+      @Exists.elim α (fun (m : α) => P m ∧ ∀ (y : α), P y → ¬ (r y m))
         (∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r1 y m))
         (hasMin_elim α r P hm)
         (fun (m : α) (hmm : P m ∧ ∀ (y : α), P y → ¬ (r y m)) =>
@@ -74,7 +74,7 @@ theorem wf_strictOf (α : Type) (r : Rel α α) (hwf : IsWellFounded α r) :
 
 theorem wf_empty (α : Type) : IsWellFounded α (fun (_ : α) (_ : α) => False) :=
   fun (P : α → Prop) => fun (hne : ∃ (x : α), P x) =>
-    Exists.elim α P (∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ False) hne
+    @Exists.elim α P (∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ False) hne
       (fun (x : α) (hx : P x) =>
         Exists.intro x
           (And.intro hx  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来

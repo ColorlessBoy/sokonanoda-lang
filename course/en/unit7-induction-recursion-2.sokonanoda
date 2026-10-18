@@ -61,7 +61,7 @@ def fromOption (x : Option Nat) (d : Nat) : Nat := match x with
 
 -- Self-test: #reduce walks the Option.rec that match lowers to — the some
 -- arm is just the number inside.
-#reduce fromOption (some Nat (succ zero)) zero
+#reduce fromOption (@some Nat (succ zero)) zero
 
 -- Exercise 1 — valueOrZero extracts a "maybe" value: a at some, zero at none.
 -- soko:hint approach: match lists none and some once, and every arm must produce a Nat.
@@ -111,8 +111,8 @@ def isZeroOpt (x : Option Nat) : Nat := match x with
 | none => zero
 
 -- Self-check: `#reduce` runs the outer Option match, then the nested Nat match.
-#reduce isZeroOpt (some Nat zero)
-#reduce isZeroOpt (some Nat (succ zero))
+#reduce isZeroOpt (@some Nat zero)
+#reduce isZeroOpt (@some Nat (succ zero))
 
 -- Exercise 3 — predOpt returns the predecessor of the inner number — `some
 -- (succ k)` gives `k`, while `some zero` and `none` both give `zero`; use a
@@ -143,7 +143,7 @@ def vlen (A : Type) (n : Nat) (v : Vec A n) : Nat := match v with
 | vcons a m w => succ ih
 
 -- Self-check: `#reduce` runs through `Vec.rec`.
-#reduce vlen Nat (succ (succ zero)) (vcons Nat zero zero (vcons Nat (succ zero) zero (vnil Nat)))
+#reduce vlen Nat (succ (succ zero)) (@vcons Nat zero zero (@vcons Nat (succ zero) zero (@vnil Nat)))
 
 -- Exercise 4 — vhead returns the first element; the empty vector gives the
 -- default `d`.

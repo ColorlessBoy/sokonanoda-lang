@@ -8,7 +8,7 @@ theorem demo_mem_powerset (α : Type) (A B : Set α) :
   Set.mem_powerset_iff A B
 
 theorem demo_mem_univ (α : Type) (x : α) : x ∈ (Set.univ α) :=
-  Set.mem_univ α x
+  @Set.mem_univ α x
 
 theorem demo_mem_inter (α : Type) (x : α) (A B : Set α) :
     (A ∩ B) x ↔ A x ∧ B x :=

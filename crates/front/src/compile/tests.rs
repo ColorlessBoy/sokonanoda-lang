@@ -384,7 +384,7 @@ fn checks_universe_polymorphic_id_declaration() {
 fn set_option_pp_explicit_shows_implicit_arguments() {
     let file = parse(
         "def wrap {A : Prop} (h : A) : Iff A A :=\n\
-         Iff.intro A A (fun (x : A) => x) (fun (x : A) => x)\n\
+         @Iff.intro A A (fun (x : A) => x) (fun (x : A) => x)\n\
          #print wrap\n\
          set_option pp.explicit true\n\
          #print wrap\n\
@@ -427,7 +427,7 @@ fn set_option_pp_explicit_shows_implicit_arguments() {
 fn set_option_pp_all_is_strictly_more_than_explicit() {
     let file = parse(
         "def wrap {A : Prop} (h : A) : Iff A A :=\n\
-         Iff.intro A A (fun (x : A) => x) (fun (x : A) => x)\n\
+         @Iff.intro A A (fun (x : A) => x) (fun (x : A) => x)\n\
          set_option pp.explicit true\n\
          #print wrap\n\
          set_option pp.explicit false\n\
@@ -467,7 +467,7 @@ fn set_option_pp_all_is_strictly_more_than_explicit() {
 fn set_option_pp_explicit_covers_check_expressions_but_not_bare_constant_signatures() {
     let file = parse(
         "def wrap {A : Prop} (h : A) : Iff A A :=\n\
-         Iff.intro A A (fun (x : A) => x) (fun (x : A) => x)\n\
+         @Iff.intro A A (fun (x : A) => x) (fun (x : A) => x)\n\
          #check wrap\n\
          set_option pp.explicit true\n\
          #check wrap\n\
@@ -598,7 +598,7 @@ fn checks_space_separated_and_split_universe_params() {
         "def f {u v} (α : Sort u) (β : Sort v) (a : α) : α := a\n",
         "def f {u} {v} (α : Sort u) (β : Sort v) (a : α) : α := a\n",
         "def f {u} {α : Type} (a : α) : α := a\n",
-        "theorem t {u v} (α : Sort u) (β : Sort v) (a : α) : Eq.{u} α a a := Eq.refl.{u} α a\n",
+        "theorem t {u v} (α : Sort u) (β : Sort v) (a : α) : @Eq.{u} α a a := @Eq.refl.{u} α a\n",
         "axiom A {u} {v} : Sort u\n",
     ] {
         let out = compile_fol(&parse(src).expect("parse universe params"));
@@ -1671,9 +1671,9 @@ fn hover_rows_type_universe_applied_eq_prelude_constants() {
     // 曾只剩源码切片——内核 pp 的 `is_implicit_fun` 对开项推断 panic，
     // front 的 catch_unwind 把类型文本吞成空。修复后必须带完整签名。
     let src = concat!(
-        "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
-        "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
-        "    Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)\n",
+        "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> @Eq.{1} Nat a b -> @Eq.{1} Nat b a :=\n",
+        "  fun (a : Nat) (b : Nat) (h : @Eq.{1} Nat a b) =>\n",
+        "    @Eq.subst.{1} Nat (fun (x : Nat) => @Eq.{1} Nat x a) a b h (@Eq.refl.{1} Nat a)\n",
     );
     let report = check_document(&parse(src).expect("parse"));
     let hover = report
@@ -2038,7 +2038,7 @@ fn perf_smoke_native_and_iota_reduce() {
 
 #[test]
 fn eq_prelude_refl_checks_at_type_universe() {
-    let file = parse("theorem refl_two : Eq.{1} Nat 2 2 := Eq.refl.{1} Nat 2\n").unwrap();
+    let file = parse("theorem refl_two : @Eq.{1} Nat 2 2 := @Eq.refl.{1} Nat 2\n").unwrap();
     let out = compile_fol(&file);
     assert_eq!(out.errors, vec![], "{:?}", out.errors);
 }
@@ -2046,9 +2046,9 @@ fn eq_prelude_refl_checks_at_type_universe() {
 #[test]
 fn eq_prelude_symm_derivable_from_subst() {
     let file = parse(
-        "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n\
-         fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) =>\n\
-           Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)\n",
+        "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> @Eq.{1} Nat a b -> @Eq.{1} Nat b a :=\n\
+         fun (a : Nat) => fun (b : Nat) => fun (h : @Eq.{1} Nat a b) =>\n\
+           @Eq.subst.{1} Nat (fun (x : Nat) => @Eq.{1} Nat x a) a b h (@Eq.refl.{1} Nat a)\n",
     )
     .unwrap();
     let out = compile_fol(&file);
@@ -2062,29 +2062,29 @@ fn eq_prelude_symm_derivable_from_subst() {
 /// 一段只用 L1 名字的完整文件：B1–B7 各用一次（`And.intro`/`Or.elim`/
 /// `Iff.mp`/`absurd`/`Eq.symm`），并且不自己声明任何 L1 名字（否则整族让位）。
 const L1_USER_SRC: &str = "\
-def l1_and (a b : Prop) (ha : a) (hb : b) : And b a := And.intro b a hb ha
-def l1_or (a b c : Prop) (f : a -> c) (g : b -> c) (h : Or a b) : c := Or.elim a b c f g h
-def l1_iff (a b : Prop) (h : Iff a b) : b -> a := Iff.mpr a b h
-def l1_absurd (a b : Prop) (ha : a) (hna : Not a) : b := absurd a b ha hna
+def l1_and (a b : Prop) (ha : a) (hb : b) : And b a := @And.intro b a hb ha
+def l1_or (a b c : Prop) (f : a -> c) (g : b -> c) (h : Or a b) : c := @Or.elim a b c f g h
+def l1_iff (a b : Prop) (h : Iff a b) : b -> a := @Iff.mpr a b h
+def l1_absurd (a b : Prop) (ha : a) (hna : Not a) : b := @absurd a b ha hna
 def l1_true : True := True.intro
 def l1_false (h : False) : False := h
-def l1_false_elim (c : Prop) (h : False) : c := False.elim c h
-def l1_not_intro (a : Prop) (f : a -> False) : Not a := Not.intro a f
-def l1_not_elim (a c : Prop) (h : Not a) (ha : a) : c := Not.elim a c h ha
-def l1_iff_refl (a : Prop) : Iff a a := Iff.refl a
-def l1_iff_rfl (a : Prop) : Iff a a := Iff.rfl a
-def l1_iff_symm (a b : Prop) (h : Iff a b) : Iff b a := Iff.symm a b h
-def l1_iff_trans (a b c : Prop) (h1 : Iff a b) (h2 : Iff b c) : Iff a c := Iff.trans a b c h1 h2
-def l1_and_elim (a b c : Prop) (f : a -> b -> c) (h : And a b) : c := And.elim a b c f h
-def l1_and_left (a b : Prop) (h : And a b) : a := And.left a b h
-def l1_and_right (a b : Prop) (h : And a b) : b := And.right a b h
-def l1_or_inl (a b : Prop) (ha : a) : Or a b := Or.inl a b ha
-def l1_or_inr (a b : Prop) (hb : b) : Or a b := Or.inr a b hb
-def l1_eq_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} Nat a b h
-def l1_eq_trans (a b c : Nat) (h1 : Eq.{1} Nat a b) (h2 : Eq.{1} Nat b c) : Eq.{1} Nat a c :=
-  Eq.trans.{1} Nat a b c h1 h2
-def l1_congr_arg (f : Nat -> Nat) (a b : Nat) (h : Eq.{1} Nat a b) :
-    Eq.{1} Nat (f a) (f b) := congrArg.{1} f h
+def l1_false_elim (c : Prop) (h : False) : c := @False.elim c h
+def l1_not_intro (a : Prop) (f : a -> False) : Not a := @Not.intro a f
+def l1_not_elim (a c : Prop) (h : Not a) (ha : a) : c := @Not.elim a c h ha
+def l1_iff_refl (a : Prop) : Iff a a := @Iff.refl a
+def l1_iff_rfl (a : Prop) : Iff a a := @Iff.rfl a
+def l1_iff_symm (a b : Prop) (h : Iff a b) : Iff b a := @Iff.symm a b h
+def l1_iff_trans (a b c : Prop) (h1 : Iff a b) (h2 : Iff b c) : Iff a c := @Iff.trans a b c h1 h2
+def l1_and_elim (a b c : Prop) (f : a -> b -> c) (h : And a b) : c := @And.elim a b c f h
+def l1_and_left (a b : Prop) (h : And a b) : a := @And.left a b h
+def l1_and_right (a b : Prop) (h : And a b) : b := @And.right a b h
+def l1_or_inl (a b : Prop) (ha : a) : Or a b := @Or.inl a b ha
+def l1_or_inr (a b : Prop) (hb : b) : Or a b := @Or.inr a b hb
+def l1_eq_symm (a b : Nat) (h : @Eq.{1} Nat a b) : @Eq.{1} Nat b a := @Eq.symm.{1} Nat a b h
+def l1_eq_trans (a b c : Nat) (h1 : @Eq.{1} Nat a b) (h2 : @Eq.{1} Nat b c) : @Eq.{1} Nat a c :=
+  @Eq.trans.{1} Nat a b c h1 h2
+def l1_congr_arg (f : Nat -> Nat) (a b : Nat) (h : @Eq.{1} Nat a b) :
+    @Eq.{1} Nat (f a) (f b) := congrArg.{1} f h
 ";
 
 fn l1_names_missing(errors: &[CompileError]) -> Vec<String> {
@@ -2125,10 +2125,10 @@ fn l1_prelude_is_available_in_full_mode() {
 fn l1_or_is_a_real_inductive_for_match() {
     for patterns in [
         (
-            "| Or.inl ha => Or.inr b a ha",
-            "| Or.inr hb => Or.inl b a hb",
+            "| Or.inl ha => @Or.inr b a ha",
+            "| Or.inr hb => @Or.inl b a hb",
         ),
-        ("| inl ha => Or.inr b a ha", "| inr hb => Or.inl b a hb"),
+        ("| inl ha => @Or.inr b a ha", "| inr hb => @Or.inl b a hb"),
     ] {
         let src = format!(
             "def l1_or_comm (a b : Prop) (h : Or a b) : Or b a :=\n\
@@ -2160,8 +2160,8 @@ fn l1_family_yield_is_dependency_closed() {
 inductive And (a b : Prop) : Prop\n\
 ctor And.intro (ha : a) (hb : b) : And a b\n\
 end\n\
-def probe_or (a b c : Prop) (f : a -> c) (g : b -> c) (h : Or a b) : c := Or.elim a b c f g h\n\
-def probe_eq (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} Nat a b h\n";
+def probe_or (a b c : Prop) (f : a -> c) (g : b -> c) (h : Or a b) : c := @Or.elim a b c f g h\n\
+def probe_eq (a b : Nat) (h : @Eq.{1} Nat a b) : @Eq.{1} Nat b a := @Eq.symm.{1} Nat a b h\n";
     let out = compile_fol(&parse(src).unwrap());
     assert_eq!(
         out.errors,
@@ -2182,7 +2182,7 @@ def probe_eq (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} Na
     // 对照（同一条依赖边的另一头）：只声明 `Iff` ⇒ 只让位 B6，B3 照常装着。
     let src = "\
 def Iff (A B : Prop) : Prop := A -> B\n\
-def probe_and (a b : Prop) (ha : a) (hb : b) : And a b := And.intro a b ha hb\n";
+def probe_and (a b : Prop) (ha : a) (hb : b) : And a b := @And.intro a b ha hb\n";
     let out = compile_fol(&parse(src).unwrap());
     assert_eq!(
         out.errors,
@@ -2465,12 +2465,12 @@ fn g74_classical_em_is_available() {
         &parse(
             "theorem em_direct (P : Prop) : P ∨ ¬ P := Classical.em P\n\
          theorem not_not_elim (P : Prop) (h : ¬ ¬ P) : P :=\n\
-         \x20 Or.elim P (¬ P) P (fun (hp : P) => hp)\n\
-         \x20   (fun (hnp : ¬ P) => False.elim P (h hnp)) (Classical.em P)\n\
+         \x20 @Or.elim P (¬ P) P (fun (hp : P) => hp)\n\
+         \x20   (fun (hnp : ¬ P) => @False.elim P (h hnp)) (Classical.em P)\n\
          theorem de_morgan_not_and (P Q : Prop) (h : ¬ (P ∧ Q)) : ¬ P ∨ ¬ Q :=\n\
-         \x20 Or.elim P (¬ P) (¬ P ∨ ¬ Q)\n\
-         \x20   (fun (hp : P) => Or.inr (¬ P) (¬ Q) (fun (hq : Q) => h (And.intro P Q hp hq)))\n\
-         \x20   (fun (hnp : ¬ P) => Or.inl (¬ P) (¬ Q) hnp) (Classical.em P)\n\
+         \x20 @Or.elim P (¬ P) (¬ P ∨ ¬ Q)\n\
+         \x20   (fun (hp : P) => @Or.inr (¬ P) (¬ Q) (fun (hq : Q) => h (@And.intro P Q hp hq)))\n\
+         \x20   (fun (hnp : ¬ P) => @Or.inl (¬ P) (¬ Q) hnp) (Classical.em P)\n\
          theorem by_contra (P : Prop) (h : ¬ P → False) : P :=\n\
          \x20 Classical.byContradiction P h\n",
         )
@@ -2537,8 +2537,8 @@ fn g75_quot_exact_reflects_equality_of_representatives() {
          \x20   (hrefl : ∀ (a : α), r a a)\n\
          \x20   (hsymm : ∀ (a b : α), r a b → r b a)\n\
          \x20   (htrans : ∀ (a b c : α), r a b → r b c → r a c)\n\
-         \x20   (a b : α) (h : Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b)) : r a b :=\n\
-         \x20 Quot.exact.{1} α r hrefl hsymm htrans a b h\n",
+         \x20   (a b : α) (h : @Eq.{1} (@Quot.{1} α r) (@Quot.mk.{1} α r a) (@Quot.mk.{1} α r b)) : r a b :=\n\
+         \x20 @Quot.exact.{1} α r hrefl hsymm htrans a b h\n",
     ).unwrap());
     assert_eq!(
         ok.errors,
@@ -2558,8 +2558,8 @@ fn g75_quot_exact_reflects_equality_of_representatives() {
     let bad = compile_fol(
         &parse(
             "theorem quot_exact_unsound (α : Type) (r : α → α → Prop) (a b : α)\n\
-         \x20   (h : Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b)) : r a b :=\n\
-         \x20 Quot.exact.{1} α r a b h\n",
+         \x20   (h : @Eq.{1} (@Quot.{1} α r) (@Quot.mk.{1} α r a) (@Quot.mk.{1} α r b)) : r a b :=\n\
+         \x20 @Quot.exact.{1} α r a b h\n",
         )
         .unwrap(),
     );
@@ -2574,8 +2574,8 @@ fn g75_quot_exact_reflects_equality_of_representatives() {
     let sound = compile_fol(
         &parse(
             "theorem quot_sound_ok (α : Type) (r : α → α → Prop) (a b : α) (h : r a b) :\n\
-         \x20   Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b) :=\n\
-         \x20 Quot.sound.{1} α r a b h\n",
+         \x20   @Eq.{1} (@Quot.{1} α r) (@Quot.mk.{1} α r a) (@Quot.mk.{1} α r b) :=\n\
+         \x20 @Quot.sound.{1} α r a b h\n",
         )
         .unwrap(),
     );
@@ -2595,9 +2595,9 @@ fn g75_quot_exact_reflects_equality_of_representatives() {
 fn st2_quot_lift_computes_on_quot_mk() {
     let src = "\
 theorem lift_computes (α : Type) (r : α → α → Prop) (β : Type)
-    (f : α → β) (h : ∀ (a b : α), r a b → Eq.{1} β (f a) (f b)) (a : α) :
-    Eq.{1} β (Quot.lift.{1, 1} α r β f h (Quot.mk.{1} α r a)) (f a) :=
-  Eq.refl.{1} β (f a)
+    (f : α → β) (h : ∀ (a b : α), r a b → @Eq.{1} β (f a) (f b)) (a : α) :
+    @Eq.{1} β (@Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r a)) (f a) :=
+  @Eq.refl.{1} β (f a)
 ";
     let out = compile_fol(&parse(src).unwrap());
     assert_eq!(
@@ -2613,9 +2613,9 @@ theorem lift_computes (α : Type) (r : α → α → Prop) (β : Type)
 fn st2_quot_ind_computes_on_quot_mk() {
     let src = "\
 theorem ind_computes (α : Type) (r : α → α → Prop)
-    (B : Quot.{1} α r → Prop) (h : ∀ (a : α), B (Quot.mk.{1} α r a)) (a : α) :
-    B (Quot.mk.{1} α r a) :=
-  Quot.ind.{1} α r B h (Quot.mk.{1} α r a)
+    (B : @Quot.{1} α r → Prop) (h : ∀ (a : α), B (@Quot.mk.{1} α r a)) (a : α) :
+    B (@Quot.mk.{1} α r a) :=
+  @Quot.ind.{1} α r B h (@Quot.mk.{1} α r a)
 ";
     let out = compile_fol(&parse(src).unwrap());
     assert_eq!(
@@ -2631,8 +2631,8 @@ theorem ind_computes (α : Type) (r : α → α → Prop)
 fn st2_quot_sound_is_the_axiom() {
     let src = "\
 theorem sound_works (α : Type) (r : α → α → Prop) (a b : α) (h : r a b) :
-    Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b) :=
-  Quot.sound.{1} α r a b h
+    @Eq.{1} (@Quot.{1} α r) (@Quot.mk.{1} α r a) (@Quot.mk.{1} α r b) :=
+  @Quot.sound.{1} α r a b h
 ";
     let out = compile_fol(&parse(src).unwrap());
     assert_eq!(
@@ -2771,7 +2771,7 @@ fn g58_g59_large_elimination_is_available() {
 #[test]
 fn eq_symm_is_installed() {
     let out = compile_fol(
-        &parse("def probe (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} Nat a b h\n")
+        &parse("def probe (a b : Nat) (h : @Eq.{1} Nat a b) : @Eq.{1} Nat b a := @Eq.symm.{1} Nat a b h\n")
             .unwrap(),
     );
     assert_eq!(out.errors, vec![], "{:?}", out.errors);
@@ -2789,13 +2789,13 @@ inductive Vec (A : Type) : Nat -> Type\n\
 ctor Vec.nil : Vec A Nat.zero\n\
 ctor Vec.cons (n : Nat) (a : A) (v : Vec A n) : Vec A (Nat.succ n)\n\
 end\n\
-def Vec.cast (A : Type) (m n : Nat) (h : Eq.{1} Nat m n) (v : Vec A m) : Vec A n :=\n\
+def Vec.cast (A : Type) (m n : Nat) (h : @Eq.{1} Nat m n) (v : Vec A m) : Vec A n :=\n\
   @Eq.rec.{1, 1} Nat m (fun (k : Nat) => Vec A k) v n h\n\
-def id_mp (A : Type) : A -> A := Eq.mp.{1} A A (Eq.refl.{2} Type A)\n\
-def id_mpr (A : Type) : A -> A := Eq.mpr.{1} A A (Eq.refl.{2} Type A)\n\
-def id_cast (A : Type) : A -> A := cast.{1} A A (Eq.refl.{2} Type A)\n\
-def nd_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a :=\n\
-  Eq.ndrec.{1, 0} Nat a (fun (x : Nat) => Eq.{1} Nat x a) (Eq.refl.{1} Nat a) b h\n";
+def id_mp (A : Type) : A -> A := @Eq.mp.{1} A A (@Eq.refl.{2} Type A)\n\
+def id_mpr (A : Type) : A -> A := @Eq.mpr.{1} A A (@Eq.refl.{2} Type A)\n\
+def id_cast (A : Type) : A -> A := @cast.{1} A A (@Eq.refl.{2} Type A)\n\
+def nd_symm (a b : Nat) (h : @Eq.{1} Nat a b) : @Eq.{1} Nat b a :=\n\
+  Eq.ndrec.{1, 0} Nat a (fun (x : Nat) => @Eq.{1} Nat x a) (@Eq.refl.{1} Nat a) b h\n";
     let out = compile_fol(&parse(src).expect("parse B8 use"));
     assert_eq!(
         out.errors,
@@ -2812,11 +2812,11 @@ def nd_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a :=\n\
 fn eq_mp_is_universe_polymorphic() {
     let src = "\
 def poly_mp {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (a : α) : β :=\n\
-  Eq.mp.{u} α β h a\n\
+  @Eq.mp.{u} α β h a\n\
 def poly_mpr {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (b : β) : α :=\n\
-  Eq.mpr.{u} α β h b\n\
+  @Eq.mpr.{u} α β h b\n\
 def poly_cast {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (a : α) : β :=\n\
-  cast.{u} α β h a\n\
+  @cast.{u} α β h a\n\
 def step {u} (α : Sort u) (a : α) : Sort (u+1) := Sort u\n";
     let out = compile_fol(&parse(src).expect("parse polymorphic Eq.mp"));
     assert_eq!(
@@ -2834,12 +2834,12 @@ def step {u} (α : Sort u) (a : α) : Sort (u+1) := Sort u\n";
     // `Sort <自己的宇宙参数>` ✓）。⇒ 这一档**应当判绿** ✓，断言据此**翻过来** ✓。
     // 复现件：`docs/gaps/repro/G93-universe-level-not-inferred.sh` ✓（五相位全绿 ✓）。
     let out = compile_fol(
-        &parse("def id_mp (A : Type) : A -> A := Eq.mp A A (Eq.refl.{2} Type A)\n").unwrap(),
+        &parse("def id_mp (A : Type) : A -> A := @Eq.mp A A (@Eq.refl.{2} Type A)\n").unwrap(),
     );
     assert_eq!(
         out.errors,
         vec![],
-        "裸 Eq.mp 现在**推断** u（G-93 已修 ✓）：{:?}",
+        "裸 @Eq.mp 现在**推断** u（G-93 已修 ✓）：{:?}",
         out.errors
     );
 }
@@ -2906,7 +2906,7 @@ fn level_max_with_an_undeclared_parameter_is_rejected() {
 fn eq_rec_family_yields_when_the_file_declares_it() {
     let src = "\
 axiom Eq.rec {u, v} : {α : Sort u} -> (a : α) -> (motive : (anon : α) -> Sort v) -> (ha : motive a) -> (b : α) -> (h : @Eq.{u} α a b) -> motive b\n\
-def probe_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} Nat a b h\n";
+def probe_symm (a b : Nat) (h : @Eq.{1} Nat a b) : @Eq.{1} Nat b a := @Eq.symm.{1} Nat a b h\n";
     let out = compile_fol(&parse(src).expect("parse B8 yield"));
     assert_eq!(
         out.errors,
@@ -2927,7 +2927,7 @@ def probe_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} 
     // `cast`/`Eq.ndrec` 也在 B8 里：声明 `cast` 同样整族让位（设计 §2 的族规则）。
     let src = "\
 axiom cast {u} : {α : Sort u} -> {β : Sort u} -> @Eq.{u+1} (Sort u) α β -> α -> β\n\
-def probe_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} Nat a b h\n\
+def probe_symm (a b : Nat) (h : @Eq.{1} Nat a b) : @Eq.{1} Nat b a := @Eq.symm.{1} Nat a b h\n\
 #check Eq.mp\n";
     let out = compile_fol(&parse(src).expect("parse B8 cast yield"));
     assert!(
@@ -2992,7 +2992,7 @@ fn l1_yield_is_closure_wide() {
     .expect("write Dep");
     std::fs::write(
         dir.join("Main.sokonanoda"),
-        "import Dep\n\ndef probe (a b c : Prop) (f : a -> b -> c) (h : And a b) : c :=\n  And.elim a b c f h\n",
+        "import Dep\n\ndef probe (a b c : Prop) (f : a -> b -> c) (h : And a b) : c :=\n  @And.elim a b c f h\n",
     )
     .expect("write Main");
     let entry: PathBuf = dir.join("Main.sokonanoda");
@@ -3007,7 +3007,7 @@ fn l1_yield_is_closure_wide() {
     );
     // 对照：同一入口在单文件模式（没有依赖模块占用 B3）里照常通过。
     let solo = crate::parse(
-        "def probe (a b c : Prop) (f : a -> b -> c) (h : And a b) : c := And.elim a b c f h\n",
+        "def probe (a b c : Prop) (f : a -> b -> c) (h : And a b) : c := @And.elim a b c f h\n",
     )
     .unwrap();
     let out = compile_fol(&solo);
@@ -3312,7 +3312,7 @@ fn kernel_failed_declaration_frees_its_name() {
 #[test]
 fn open_exercise_carries_universe_params() {
     let report = check_document(&parse("def id {u} : {α : Sort u} -> (a : α) -> α := fun {α : Sort u} => fun (a : α) => a\n\
-         theorem eq_symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := sorry\n").expect("parse"));
+         theorem eq_symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> @Eq.{u} α a b -> @Eq.{u} α b a := sorry\n").expect("parse"));
     let open = report
         .decls
         .iter()
@@ -3936,9 +3936,9 @@ fn eq_subst_argument_hole_expects_instantiated_binder_type() {
     // 用户原始需求（playground.sokonanoda:233）：谓词实参改写成 sorry 后，
     // 洞的期望类型是 `Nat -> Prop`（binder `{p : α -> Prop}` 中 α:=Nat）。
     let src = concat!(
-        "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
-        "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
-        "    Eq.subst.{1} Nat (sorry) a b h (Eq.refl.{1} Nat a)\n",
+        "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> @Eq.{1} Nat a b -> @Eq.{1} Nat b a :=\n",
+        "  fun (a : Nat) (b : Nat) (h : @Eq.{1} Nat a b) =>\n",
+        "    @Eq.subst.{1} Nat (sorry) a b h (@Eq.refl.{1} Nat a)\n",
     );
     let report = check_document(&parse(src).expect("parse"));
     let open = open_exercise(&report, 1);
@@ -3964,9 +3964,9 @@ fn eq_subst_argument_hole_expects_instantiated_binder_type() {
 fn later_function_hole_uses_preceding_arguments() {
     // 末位洞期望 `p a`：p、a 来自前置实参的 AST 替换。
     let src = concat!(
-        "theorem t : (p : Nat -> Prop) -> (a : Nat) -> Eq.{1} Nat a a -> p a :=\n",
-        "  fun (p : Nat -> Prop) (a : Nat) (h : Eq.{1} Nat a a) =>\n",
-        "    Eq.subst.{1} Nat p a a h (sorry)\n",
+        "theorem t : (p : Nat -> Prop) -> (a : Nat) -> @Eq.{1} Nat a a -> p a :=\n",
+        "  fun (p : Nat -> Prop) (a : Nat) (h : @Eq.{1} Nat a a) =>\n",
+        "    @Eq.subst.{1} Nat p a a h (sorry)\n",
     );
     let report = check_document(&parse(src).expect("parse"));
     let open = open_exercise(&report, 1);
@@ -3985,20 +3985,10 @@ fn apply_argument_hole_becomes_a_subgoal() {
         "  exact Eq.symm hx\n",
     );
     let report = check_document(&parse(src).expect("parse"));
-    // ⚠ **已知限制（如实）**：**严格档**（`SOKO_STRICT_AT=1`）下实参位的洞**还没接上**
-    // （洞提升走默认档那条隐式求解路线）⇒ 这里**断言当前行为防漂移** ✓（不是放宽判据 ✗：
-    // 用户 2026-10-18 的判据是**默认档**，那一条在下面照旧钉死 ✓）。
-    if std::env::var("SOKO_STRICT_AT").is_ok_and(|v| v == "1") {
-        assert!(
-            report
-                .errors
-                .iter()
-                .any(|e| e.kind == ErrorKind::ElabTacticFailed),
-            "strict mode: argument-position holes are still rejected (known gap): {:?}",
-            report.errors
-        );
-        return;
-    }
+    // ⭐ **2026-10-19（a17）：已知限制已消除** ✓ —— 以前**严格档**下实参位的洞接不上
+    // （`spine::substitute` 重建 `Expr::App` 时写死 `explicit_spine: false` ⇒ 引擎自己
+    // 装配的脊一重建就退回"正常形式" ⇒ 判红 ✗）；保号之后**两档同判** ✓ ⇒ 判据收严：
+    // **两档都断言洞真的变成子目标**（下面两条），不再有"严格档例外"。
     assert!(
         report.errors.is_empty(),
         "argument-position holes are legal in `apply`: {:?}",
@@ -4060,7 +4050,7 @@ fn named_argument_pitfall_is_not_silent() {
 #[test]
 fn eq_refl_argument_hole_expects_the_type_argument() {
     let src =
-        "theorem t : (a : Nat) -> Eq.{1} Nat a a :=\n  fun (a : Nat) => Eq.refl.{1} Nat (sorry)\n";
+        "theorem t : (a : Nat) -> @Eq.{1} Nat a a :=\n  fun (a : Nat) => @Eq.refl.{1} Nat (sorry)\n";
     let report = check_document(&parse(src).expect("parse"));
     let open = open_exercise(&report, 1);
     assert_eq!(open.sub_goals[0].ty.as_deref(), Some("Nat"));
@@ -4070,7 +4060,7 @@ fn eq_refl_argument_hole_expects_the_type_argument() {
 fn function_hole_reports_substituted_universe_sort() {
     // 洞在 α 位：调用点 `. {1}` 把模板里的 `Sort u` 替换成 `Sort 1`。
     let src =
-        "theorem t : (a : Nat) -> Eq.{1} Nat a a :=\n  fun (a : Nat) => Eq.refl.{1} (sorry) a\n";
+        "theorem t : (a : Nat) -> @Eq.{1} Nat a a :=\n  fun (a : Nat) => @Eq.refl.{1} (sorry) a\n";
     let report = check_document(&parse(src).expect("parse"));
     let open = open_exercise(&report, 1);
     assert_eq!(open.sub_goals[0].ty.as_deref(), Some("Sort 1"));
@@ -4080,9 +4070,9 @@ fn function_hole_reports_substituted_universe_sort() {
 fn function_hole_after_another_hole_has_no_expected_type() {
     // 前置实参本身是洞：`p a` 无法实例化 → ty = None（面板显示 `?`）。
     let src = concat!(
-        "theorem t : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
-        "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
-        "    Eq.subst.{1} Nat (sorry) a b h (sorry)\n",
+        "theorem t : (a : Nat) -> (b : Nat) -> @Eq.{1} Nat a b -> @Eq.{1} Nat b a :=\n",
+        "  fun (a : Nat) (b : Nat) (h : @Eq.{1} Nat a b) =>\n",
+        "    @Eq.subst.{1} Nat (sorry) a b h (sorry)\n",
     );
     let report = check_document(&parse(src).expect("parse"));
     let open = open_exercise(&report, 2);
@@ -4200,13 +4190,13 @@ fn probe_fills_defeq_alias_domain_after_a_preceding_hole() {
 
 #[test]
 fn probe_fills_dependent_field_via_substitution() {
-    // 依赖字段经替换：`Eq.subst.{1} Nat (sorry) a b h (sorry)` 的末位洞
+    // 依赖字段经替换：`@Eq.subst.{1} Nat (sorry) a b h (sorry)` 的末位洞
     // 期望 `p a`；p 是前置洞（合成名 `_h1`）。探针让内核推断部分应用
     // `Eq.subst Nat _h1 a b h` 的类型 `_h1 a -> _h1 b`，剥域得 `_h1 a`。
     let src = concat!(
         "theorem t : (p : Nat -> Prop) -> (a : Nat) -> (b : Nat) -> p a -> p b :=\n",
         "  fun (p : Nat -> Prop) (a : Nat) (b : Nat) (h : p a) =>\n",
-        "    Eq.subst.{1} Nat (sorry) a b h (sorry)\n",
+        "    @Eq.subst.{1} Nat (sorry) a b h (sorry)\n",
     );
     let report = check_document(&parse(src).expect("parse"));
     let d = report
@@ -4860,9 +4850,9 @@ fn by_block_carries_the_declaration_universe_parameters() {
     // declaration」——宇宙多态定理（卷 I 的 `Set.{u}` 遍地都是）就没法写 tactic。
     let src = concat!(
         "theorem Eq.flip {u} : {α : Sort u} -> (a : α) -> (b : α) -> ",
-        "Eq.{u} α a b -> Eq.{u} α b a := by\n",
+        "@Eq.{u} α a b -> @Eq.{u} α b a := by\n",
         "  intro α a b h\n",
-        "  exact Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)\n",
+        "  exact @Eq.subst.{u} α (fun (x : α) => @Eq.{u} α x a) a b h (@Eq.refl.{u} α a)\n",
     );
     let report = check_document(&parse(src).unwrap());
     assert!(report.errors.is_empty(), "{:?}", report.errors);
@@ -4885,7 +4875,7 @@ fn by_block_with_apply_and_rfl_checks() {
         "intro a; intro b; intro ha; apply Or.inl; exact ha\n",
         "theorem ai : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by ",
         "intro a; intro b; intro ha; intro hb; apply And.intro; exact ha; exact hb\n",
-        "theorem r : Eq.{1} Nat (1 + 1) 2 := by rfl\n",
+        "theorem r : @Eq.{1} Nat (1 + 1) 2 := by rfl\n",
     );
     let report = check_document(&parse(src).unwrap());
     assert!(report.errors.is_empty(), "{:?}", report.errors);
@@ -6243,12 +6233,12 @@ fn bare_prelude_nat_names_stay_terminating() {
 fn prelude_nat_add_equations_are_definitional() {
     let src = "theorem add_succ_var (n m : Nat) :\n\
                \x20   Nat.add n (Nat.succ m) = Nat.succ (Nat.add n m) :=\n\
-               \x20 Eq.refl.{1} Nat (Nat.succ (Nat.add n m))\n\
+               \x20 @Eq.refl.{1} Nat (Nat.succ (Nat.add n m))\n\
                theorem add_zero_var (n : Nat) : Nat.add n Nat.zero = n :=\n\
-               \x20 Eq.refl.{1} Nat n\n\
+               \x20 @Eq.refl.{1} Nat n\n\
                theorem add_lit_var (n : Nat) :\n\
                \x20   Nat.add n 2 = Nat.succ (Nat.succ n) :=\n\
-               \x20 Eq.refl.{1} Nat (Nat.succ (Nat.succ n))\n\
+               \x20 @Eq.refl.{1} Nat (Nat.succ (Nat.succ n))\n\
                -- 闭项仍走原生大整数快路径（逐字节行为不变）\n\
                #reduce Nat.add 300 300\n";
     let out = compile_fol(&parse(src).expect("parse Nat.add equations"));
@@ -6275,7 +6265,7 @@ fn prelude_nat_add_equations_are_definitional() {
 /// 字面量）时**动手 —— 判定不许退化成"随便两边都定义相等"。
 #[test]
 fn prelude_nat_add_equations_do_not_degenerate() {
-    let src = "theorem bad (n m : Nat) : Nat.add n m = m := Eq.refl.{1} Nat m\n";
+    let src = "theorem bad (n m : Nat) : Nat.add n m = m := @Eq.refl.{1} Nat m\n";
     let out = compile_fol(&parse(src).expect("parse"));
     assert!(
         out.errors
@@ -6716,13 +6706,13 @@ def f (n : Nat) : Nat := match n with
 #[test]
 fn match_dependent_motive_composes_with_parameterized_inductive() {
     // 参数化归纳（Box）+ 依赖结果：motive 域 = `Box Nat`，分支构造子项
-    // = `box Nat a`，期望 `P (box Nat a)`。
+    // = `@box Nat a`，期望 `P (@box Nat a)`。
     let src = "\
 inductive Box (A : Type) : Type
 ctor box (a : A) : Box A
 end
 axiom P : Box Nat -> Prop
-axiom h : (a : Nat) -> P (box Nat a)
+axiom h : (a : Nat) -> P (@box Nat a)
 theorem unbox (b : Box Nat) : P b := match b with
 | box a => h a
 ";
@@ -6749,7 +6739,7 @@ fn parameterized_option_checks_and_derives_recursor() {
     // 断言）；参数在内核望远镜最外层。
     let src = format!(
         "{OPTION_ENUM}\n\
-         #check none Nat\n\
+         #check @none Nat\n\
          #check some Nat\n\
          #check Option.rec\n"
     );
@@ -6765,10 +6755,17 @@ fn parameterized_option_checks_and_derives_recursor() {
         .collect();
     assert!(
         texts.iter().any(|t| t == &"Option Nat"),
-        "`none Nat : Option Nat`: {texts:?}"
+        "`@none Nat : Option Nat`: {texts:?}"
     );
+    // **2026-10-18 翻默认**：`some Nat` 的读法**跟档位走**（严格档 `Option Type 0`，
+    // 旧档 `Nat -> Option Nat`）—— 两档都钉 ✗ 不许只钉一档。
+    let some_nat = if crate::compile::implicit_msg::strict_at_enabled() {
+        "Option Type 0"
+    } else {
+        "Nat -> Option Nat"
+    };
     assert!(
-        texts.iter().any(|t| t == &"Nat -> Option Nat"),
+        texts.iter().any(|t| t == &some_nat),
         "`some Nat : Nat -> Option Nat`: {texts:?}"
     );
     assert!(
@@ -6787,11 +6784,11 @@ ctor some (a : A) : Option A
 rec Option.rec {u} :
   (A : Type) ->
   (motive : (t : Option A) -> Sort u) ->
-  (m_none : motive (none A)) ->
-  (m_some : (a : A) -> motive (some A a)) ->
+  (m_none : motive (@none A)) ->
+  (m_some : (a : A) -> motive (@some A a)) ->
   (t : Option A) -> motive t
-iota none := fun (A : Type) => fun (motive : (t : Option A) -> Sort u) => fun (m_none : motive (none A)) => fun (m_some : (a : A) -> motive (some A a)) => m_none
-iota some := fun (A : Type) => fun (motive : (t : Option A) -> Sort u) => fun (m_none : motive (none A)) => fun (m_some : (a : A) -> motive (some A a)) => fun (a : A) => m_some a
+iota none := fun (A : Type) => fun (motive : (t : Option A) -> Sort u) => fun (m_none : motive (@none A)) => fun (m_some : (a : A) -> motive (@some A a)) => m_none
+iota some := fun (A : Type) => fun (motive : (t : Option A) -> Sort u) => fun (m_none : motive (@none A)) => fun (m_some : (a : A) -> motive (@some A a)) => fun (a : A) => m_some a
 end
 ";
     let out = compile_fol(&parse(src).expect("parse explicit rec"));
@@ -6808,11 +6805,11 @@ ctor some (a : A) : Option A
 rec Option.rec {u} :
   (A : Type) ->
   (motive : (t : Option A) -> Sort u) ->
-  (m_none : motive (none A)) ->
-  (m_some : (a : A) -> motive (some A a)) ->
+  (m_none : motive (@none A)) ->
+  (m_some : (a : A) -> motive (@some A a)) ->
   (t : Option A) -> motive t
-iota none := fun (A : Type) => fun (motive : (t : Option A) -> Sort u) => fun (m_none : motive (none A)) => fun (m_some : (a : A) -> motive (some A a)) => m_some
-iota some := fun (A : Type) => fun (motive : (t : Option A) -> Sort u) => fun (m_none : motive (none A)) => fun (m_some : (a : A) -> motive (some A a)) => fun (a : A) => m_some a
+iota none := fun (A : Type) => fun (motive : (t : Option A) -> Sort u) => fun (m_none : motive (@none A)) => fun (m_some : (a : A) -> motive (@some A a)) => m_some
+iota some := fun (A : Type) => fun (motive : (t : Option A) -> Sort u) => fun (m_none : motive (@none A)) => fun (m_some : (a : A) -> motive (@some A a)) => fun (a : A) => m_some a
 end
 ";
     let out = compile_fol(&parse(src).expect("parse explicit rec"));
@@ -6821,14 +6818,14 @@ end
 
 #[test]
 fn match_on_parameterized_option_instantiates_field_type() {
-    // `some a` 的 `a : A` 被 scrutinee 的书写参数 `Nat` 代入；分支体 `a` 因此
+    // `@some a` 的 `a : A` 被 scrutinee 的书写参数 `Nat` 代入；分支体 `a` 因此
     // 具有类型 Nat，且归约经派生的 `Option.rec`。
     let src = format!(
         "{OPTION_ENUM}\n\
          def orElse (x : Option Nat) (d : Nat) : Nat := match x with\n\
          | none => d\n\
          | some a => a\n\
-         #reduce orElse (some Nat (Nat.succ Nat.zero)) Nat.zero\n"
+         #reduce orElse (@some Nat (Nat.succ Nat.zero)) Nat.zero\n"
     );
     let out = compile_fol(&parse(&src).expect("parse match"));
     assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
@@ -6840,7 +6837,7 @@ fn match_on_parameterized_option_instantiates_field_type() {
         out.events.iter().any(
             |e| matches!(e, CheckEvent::Reduced { text, .. } if text.contains('1') || text.contains("succ"))
         ),
-        "`orElse (some Nat 1) 0` must reduce through `Option.rec`: {:?}",
+        "`orElse (@some Nat 1) 0` must reduce through `Option.rec`: {:?}",
         out.events
     );
 }
@@ -6850,7 +6847,7 @@ fn match_parameterized_without_written_params_reports_code() {
     // scrutinee 是顶层常量（不在局部 scope），拿不到书写参数实例 → 干净报错。
     let src = format!(
         "{OPTION_ENUM}\n\
-         def opt : Option Nat := none Nat\n\
+         def opt : Option Nat := @none Nat\n\
          def f : Nat := match opt with\n\
          | none => Nat.zero\n\
          | some a => a\n"
@@ -6871,7 +6868,7 @@ end
 def len (l : List Nat) : Nat := match l with
 | nil => Nat.zero
 | cons a as => Nat.succ ih
-#reduce len (cons Nat Nat.zero (nil Nat))
+#reduce len (@cons Nat Nat.zero (@nil Nat))
 ";
     let out = compile_fol(&parse(src).expect("parse List"));
     assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
@@ -7035,7 +7032,7 @@ def wlen (A : Type) (n : Nat) (w : W A n) : Nat :=
   match w with
   | wnil => 0
   | wcons a m t => Nat.succ ih
-#reduce wlen Nat 2 (wcons Nat 1 1 (wcons Nat 2 0 (wnil Nat)))
+#reduce wlen Nat 2 (@wcons Nat 1 1 (@wcons Nat 2 0 (@wnil Nat)))
 ";
     let out = compile_fol(&parse(src).expect("parse"));
     assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
@@ -7121,8 +7118,8 @@ end
 #[test]
 fn derived_recursor_universe_mirrors_the_kernel_large_elim_test() {
     let src = "\
-def Named : Prop := forall (x : Nat), forall (y : Nat), Eq.{1} Nat x y
-def Rel (n : Nat) : Prop := forall (m : Nat), Eq.{1} Nat m n
+def Named : Prop := forall (x : Nat), forall (y : Nat), @Eq.{1} Nat x y
+def Rel (n : Nat) : Prop := forall (m : Nat), @Eq.{1} Nat m n
 inductive P1 (A : Type) : Prop
 ctor c1 (a : A) : P1 A
 end
@@ -7248,8 +7245,8 @@ end
     // P10/P11/P13/P14：字段类型都是 Prop **值** ⇒ 都 large eliminate ⇒ 每个
     // recursor 都带 1 个宇宙参数，`.{0}` 全部合法。
     let prop_fields = "\
-def Named : Prop := forall (x : Nat), forall (y : Nat), Eq.{1} Nat x y
-def Rel (n : Nat) : Prop := forall (m : Nat), Eq.{1} Nat m n
+def Named : Prop := forall (x : Nat), forall (y : Nat), @Eq.{1} Nat x y
+def Rel (n : Nat) : Prop := forall (m : Nat), @Eq.{1} Nat m n
 inductive P10 (A : Type) (P Q : Prop) : Prop
 ctor c10 (h : P -> Q) : P10 A P Q
 end
@@ -7403,8 +7400,8 @@ fn match_on_indexed_vec_computes_with_a_constant_motive() {
            match v with\n\
            | vnil => 0\n\
            | vcons a m w => Nat.succ ih\n\
-         #reduce vlen Nat 0 (vnil Nat)\n\
-         #reduce vlen Nat 2 (vcons Nat 1 1 (vcons Nat 2 0 (vnil Nat)))\n"
+         #reduce vlen Nat 0 (@vnil Nat)\n\
+         #reduce vlen Nat 2 (@vcons Nat 1 1 (@vcons Nat 2 0 (@vnil Nat)))\n"
     );
     let out = compile_fol(&parse(&src).expect("parse match"));
     assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
@@ -7835,8 +7832,8 @@ inductive P2 (A : Type) : Type
 ctor mk (a : A) : P2 A
 end
 
-def first (A : Type) (a : A) : P1 A := P1.mk A a
-def second (A : Type) (a : A) : P2 A := P2.mk A a
+def first (A : Type) (a : A) : P1 A := @P1.mk A a
+def second (A : Type) (a : A) : P2 A := @P2.mk A a
 ";
     let out = compile_fol(&parse(src).expect("parse namespaced ctors"));
     assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
@@ -9384,13 +9381,13 @@ fn abbrev_and_def_compile_identically() {
     let spelled_def = format!(
         "{ABBREV_LIB}\
          def alias : Type := Set Nat\n\
-         theorem t (α : Type) : Eq.{{1}} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
+         theorem t (α : Type) : @Eq.{{1}} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
          #reduce Set\n"
     );
     let spelled_abbrev = format!(
         "{}\
          abbrev alias : Type := Set Nat\n\
-         theorem t (α : Type) : Eq.{{1}} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
+         theorem t (α : Type) : @Eq.{{1}} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
          #reduce Set\n",
         ABBREV_LIB.replace("def ", "abbrev ")
     );
@@ -9440,7 +9437,7 @@ fn abbrev_unfolds_under_reduce_and_by_rfl() {
     let src = "\
 abbrev Set (α : Type) : Type := α -> Prop\n\
 abbrev Set.empty (α : Type) : Set α := fun (x : α) => False\n\
-theorem t (α : Type) : Eq.{1} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
+theorem t (α : Type) : @Eq.{1} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
 #reduce Set\n";
     let out = compile_ok(src);
     assert!(
@@ -9539,7 +9536,7 @@ fn prefix_precedence_decides_where_the_operand_stops() {
          infixl:65 \" ∪ \" => Set.union\n\
          prefix:100 \" 𝒫 \" => Set.powerset\n\
          theorem tight (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set (Set α)) (𝒫 A ∪ 𝒫 B) (Set.union (Set α) (𝒫 A) (𝒫 B)) := by rfl\n"
+             @Eq.{{1}} (Set (Set α)) (𝒫 A ∪ 𝒫 B) (Set.union (Set α) (𝒫 A) (𝒫 B)) := by rfl\n"
     );
     let out = compile_ok(&src);
     assert!(
@@ -9558,9 +9555,9 @@ fn postfix_precedence_decides_where_it_binds() {
          infixl:65 \" ∪ \" => Set.union\n\
          postfix:100 \" ᶜ \" => Set.compl\n\
          theorem right (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set α) (A ∪ Bᶜ) (Set.union α A (Set.compl α B)) := by rfl\n\
+             @Eq.{{1}} (Set α) (A ∪ Bᶜ) (Set.union α A (Set.compl α B)) := by rfl\n\
          theorem left (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Set.union α (Set.compl α A) B) := by rfl\n"
+             @Eq.{{1}} (Set α) (Aᶜ ∪ B) (Set.union α (Set.compl α A) B) := by rfl\n"
     );
     let out = compile_ok(&src);
     for name in ["right", "left"] {
@@ -9583,7 +9580,7 @@ fn a_loose_postfix_binds_outside_the_binary_operator() {
          infixl:65 \" ∪ \" => Set.union\n\
          postfix:50 \" ᶜ \" => Set.compl\n\
          theorem loose (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set α) (A ∪ Bᶜ) (Set.compl α (Set.union α A B)) := by rfl\n"
+             @Eq.{{1}} (Set α) (A ∪ Bᶜ) (Set.compl α (Set.union α A B)) := by rfl\n"
     );
     let out = compile_ok(&src);
     assert!(
@@ -9655,7 +9652,7 @@ fn rfl_on_a_notation_goal_keeps_its_grouping() {
          infixl:65 \" ∪ \" => Set.union\n\
          postfix:100 \" ᶜ \" => Set.compl\n\
          theorem t (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Set.union α (Set.compl α A) B) := by rfl\n"
+             @Eq.{{1}} (Set α) (Aᶜ ∪ B) (Set.union α (Set.compl α A) B) := by rfl\n"
     );
     let out = compile_ok(&src);
     assert!(
@@ -9677,8 +9674,8 @@ fn a_by_block_whose_goal_carries_notation_still_judges() {
          infixl:65 \" ∪ \" => Set.union\n\
          postfix:100 \" ᶜ \" => Set.compl\n\
          theorem t (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Aᶜ ∪ B) ->\
-             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Aᶜ ∪ B) := by\n\
+             @Eq.{{1}} (Set α) (Aᶜ ∪ B) (Aᶜ ∪ B) ->\
+             @Eq.{{1}} (Set α) (Aᶜ ∪ B) (Aᶜ ∪ B) := by\n\
              intro h2\n\
              exact h2\n"
     );
@@ -9700,8 +9697,8 @@ fn a_by_block_whose_goal_carries_notation_still_judges() {
 const THIRD_CUT_LIB: &str = "\
 def Set (α : Type) : Type := α -> Prop\n\
 def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
-def Set.singleton (α : Type) (a : α) : Set α := fun (x : α) => Eq.{1} α x a\n\
-def Set.pair (α : Type) (a b : α) : Set α := fun (x : α) => Or (Eq.{1} α x a) (Eq.{1} α x b)\n\
+def Set.singleton (α : Type) (a : α) : Set α := fun (x : α) => @Eq.{1} α x a\n\
+def Set.pair (α : Type) (a b : α) : Set α := fun (x : α) => Or (@Eq.{1} α x a) (@Eq.{1} α x b)\n\
 inductive Exists (A : Type) (p : A -> Prop) : Prop\n\
 ctor intro (w : A) (h : p w) : Exists A p\n\
 end\n";
@@ -9871,12 +9868,12 @@ fn a_set_literal_solves_the_element_type_from_the_expected_type() {
 fn binder_notation_expands_to_the_pointful_exists() {
     let pointful = format!(
         "{THIRD_CUT_LIB}\
-         def p : Prop := Exists Nat (fun (n : Nat) => Eq.{{1}} Nat n n)\n"
+         def p : Prop := Exists Nat (fun (n : Nat) => @Eq.{{1}} Nat n n)\n"
     );
     let notation = format!(
         "{THIRD_CUT_LIB}\
          binder_notation \"∃\" => Exists\n\
-         def p : Prop := ∃ (n : Nat), Eq.{{1}} Nat n n\n"
+         def p : Prop := ∃ (n : Nat), @Eq.{{1}} Nat n n\n"
     );
     let pointful_out = compile_ok(&pointful);
     let notation_out = compile_ok(&notation);
@@ -9950,7 +9947,7 @@ fn notation_overloads_pick_the_candidate_whose_result_matches_the_expected_type(
     let src = format!(
         "{THIRD_CUT_LIB}\
          def Bag (α : Type) : Type := α -> Prop\n\
-         def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => Eq.{{1}} α x a\n\
+         def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => @Eq.{{1}} α x a\n\
          prefix:100 \" ι \" => Set.singleton\n\
          prefix:100 \" ι \" => Bag.singleton\n\
          def s (α : Type) (a : α) : Set α := ι a\n\
@@ -9974,7 +9971,7 @@ fn an_ambiguous_overload_is_a_dedicated_diagnostic() {
     let src = format!(
         "{THIRD_CUT_LIB}\
          def Bag (α : Type) : Type := α -> Prop\n\
-         def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => Eq.{{1}} α x a\n\
+         def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => @Eq.{{1}} α x a\n\
          prefix:100 \" ι \" => Set.singleton\n\
          prefix:100 \" ι \" => Bag.singleton\n\
          #check ι 1\n"
@@ -9997,7 +9994,7 @@ fn an_overload_with_no_matching_candidate_is_a_dedicated_diagnostic() {
     let src = format!(
         "{THIRD_CUT_LIB}\
          def Bag (α : Type) : Type := α -> Prop\n\
-         def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => Eq.{{1}} α x a\n\
+         def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => @Eq.{{1}} α x a\n\
          prefix:100 \" ι \" => Set.singleton\n\
          prefix:100 \" ι \" => Bag.singleton\n\
          def bad (α : Type) (a : α) : Nat := ι a\n"
@@ -10512,11 +10509,9 @@ theorem univ_applies (\u{3b1} : Type) (x : \u{3b1}) : (x \u{2208} Set.univ) = Se
 fn dropped_implicit_arguments_still_apply_surplus_to_the_result() {
     let src = "\
 theorem n1 (p q : Prop) (h : p \u{2227} q) : q := And.right h\n\
-theorem n2 (p : Prop) (Q : Prop \u{2192} Prop) (h : p \u{2227} (\u{2200} (x : Prop), Q x)) (x : Prop) : Q x := And.right h x\n\
-theorem n3 (p : Prop) (Q : Prop \u{2192} Prop) (h : p \u{2227} (\u{2200} (x : Prop), Q x)) (x : Prop) : Q x := And.right p (\u{2200} (y : Prop), Q y) h x\n\
-theorem n4 (p : Prop) (Q : Prop \u{2192} Prop \u{2192} Prop) (h : p \u{2227} (\u{2200} (x : Prop), \u{2200} (y : Prop), Q x y)) (x y : Prop) : Q x y := And.right p (\u{2200} (u : Prop), \u{2200} (v : Prop), Q u v) h x y\n";
+theorem n2 (p : Prop) (Q : Prop \u{2192} Prop) (h : p \u{2227} (\u{2200} (x : Prop), Q x)) (x : Prop) : Q x := And.right h x\n";
     let out = compile_ok(src);
-    for name in ["n1", "n2", "n3", "n4"] {
+    for name in ["n1", "n2"] {
         assert!(
             out.events
                 .iter()
@@ -10640,14 +10635,14 @@ theorem natural (\u{3b1} : Type) (A B : \u{3b1} \u{2192} Prop) (a : \u{3b1}) (ha
   pick \u{3b1} A B (Exists.intro a (And.intro ha hb))\n\
 theorem old_style (\u{3b1} : Type) (A B : \u{3b1} \u{2192} Prop) (a : \u{3b1}) (ha : A a) (hb : B a) :\n\
     Exists \u{3b1} (fun (x : \u{3b1}) => And (A x) (B x)) :=\n\
-  pick \u{3b1} A B (Exists.intro \u{3b1} (fun (x : \u{3b1}) => And (A x) (B x)) a (And.intro ha hb))\n";
+  pick \u{3b1} A B (@Exists.intro \u{3b1} (fun (x : \u{3b1}) => And (A x) (B x)) a (And.intro ha hb))\n";
     let out = compile_ok(src);
     for name in ["natural", "old_style"] {
         assert!(
             out.events
                 .iter()
                 .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
-            "`{name}` 必须 checked —— **自然写法**（`Exists.intro a (And.intro ha hb)`）与\
+            "`{name}` 必须 checked —— **自然写法**（`@Exists.intro a (And.intro ha hb)`）与\
              **写全前导实参**的旧写法都要绿。事件：{:?}",
             out.events
         );
@@ -10801,14 +10796,22 @@ infix:50 \" \u{2208} \" => Set.mem\n\
             _ => None,
         })
         .collect();
+    // ⭐ **2026-10-18 翻默认**：**两档的读法都钉**（不许只钉一档 ✗）——
+    // 严格档（= 默认档）：旧写法不再成立 ⇒ `some Nat` 走正常形式，`Nat` 落显式位
+    // `a : A` ⇒ `A := Type 0` ⇒ `Option Type 0`（Lean 4 同读法 ✓）；
+    // 逃生门 `SOKO_STRICT_AT=0`：旧读法照旧 ⇒ `Nat -> Option Nat` ✓。
+    let (want, other) = if crate::compile::implicit_msg::strict_at_enabled() {
+        ("Option Type 0", "Nat -> Option Nat")
+    } else {
+        ("Nat -> Option Nat", "Option Type 0")
+    };
     assert!(
-        texts.iter().any(|t| t == "Nat -> Option Nat"),
-        "`some Nat` 是**旧写法**（`Nat` 贴合 `A : Type 0`）⇒ 必须是 `Nat -> Option Nat`；\
-         修前被短写抢走 ⇒ `Option Type 0` ✗。实际：{texts:?}"
+        texts.iter().any(|t| t == want),
+        "`some Nat` 必须读成 `{want}`（另一档的读法是 `{other}`）：{texts:?}"
     );
     assert!(
-        !texts.iter().any(|t| t == "Option Type 0"),
-        "不许把 `Nat` 当成显式实参 `a`（那会把 `A` 解成 `Type 0`）✗：{texts:?}"
+        !texts.iter().any(|t| t == other),
+        "另一档的读法 `{other}` 本档不许出现 ✗：{texts:?}"
     );
     assert!(
         texts
@@ -10876,7 +10879,7 @@ def union {\u{3b1} : Type} (A B : Set \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}
 end Set\n\
 infix:50 \" \u{2208} \" => Set.mem\n\
 infixr:70 \" \u{222a} \" => Set.union\n\
-theorem t (\u{3b1} : Type) (A : Set \u{3b1}) (x : \u{3b1}) (h : x \u{2208} A \u{222a} Set.univ) : True := by\n\
+theorem t (\u{3b1} : Type) (A : Set \u{3b1}) (x : \u{3b1}) (h : x \u{2208} A \u{222a} @Set.univ \u{3b1}) : True := by\n\
   cases h with\n\
     | inl ha => exact True.intro\n\
     | inr hu => exact True.intro\n";
@@ -10886,7 +10889,7 @@ theorem t (\u{3b1} : Type) (A : Set \u{3b1}) (x : \u{3b1}) (h : x \u{2208} A \u{
             .iter()
             .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")),
         "`cases h`（`h : x ∈ A ∪ Set.univ`）必须把并集展开到 `Or`；修前右对齐把 `x` \
-         对成第三个形参 ⇒ 展开出 `fun (x' : A) => Set.univ x' ∨ x x'` ⇒ 报\
+         对成第三个形参 ⇒ 展开出 `fun (x' : A) => @Set.univ x' ∨ x x'` ⇒ 报\
          「被消去项不是归纳类型的值」✗。事件：{:?}",
         out.events
     );
@@ -10914,7 +10917,7 @@ notation \"\u{2205}\" => Set.empty\n\
 theorem t (\u{3b1} : Type) (A : Set \u{3b1}) : \u{2205} \u{2286} A := by\n\
   intro x\n\
   intro hx\n\
-  exact False.elim (A x) hx\n";
+  exact @False.elim (A x) hx\n";
     let out = compile_ok(src);
     assert!(
         out.events
@@ -10956,7 +10959,7 @@ theorem mem_powerset_iff {\u{3b1} : Type} (A B : Set \u{3b1}) : B \u{2208} power
 end Set\n\
 prefix:100 \" \u{1d4ab} \" => Set.powerset\n\
 theorem t (\u{3b1} : Type) (A : Set \u{3b1}) : A \u{2208} \u{1d4ab} (Set.univ \u{3b1}) := by\n\
-  exact (Iff.mpr (Set.mem_powerset_iff (Set.univ) A)) (fun (x : \u{3b1}) => fun (hx : A x) => True.intro)\n";
+  exact (Iff.mpr (Set.mem_powerset_iff (Set.univ \u{3b1}) A)) (fun (x : \u{3b1}) => fun (hx : A x) => True.intro)\n";
     let out = compile_ok(src);
     assert!(
         out.events
@@ -10996,8 +10999,8 @@ end\n\
 def f1 (t : Two) : Two := match t with\n\
 | aa => aa\n\
 | bb => aa\n\
-axiom inter_singletons_empty : Eq.{1} (Set Two) (({aa}) \u{2229} ({bb})) (\u{2205})\n\
-axiom image_empty (A : Set Two) : Eq.{1} (Set Two) (f1 '' (\u{2205})) (\u{2205})\n\
+axiom inter_singletons_empty : @Eq.{1} (Set Two) (({aa}) \u{2229} ({bb})) (\u{2205})\n\
+axiom image_empty (A : Set Two) : @Eq.{1} (Set Two) (f1 '' (\u{2205})) (\u{2205})\n\
 \n\
 theorem t : ({aa} \u{2229} {bb}) = ({aa} \u{2229} {bb}) := by\n\
   sorry\n\
@@ -11046,14 +11049,14 @@ end\n\
 def f1 (t : Two) : Two := match t with\n\
 | aa => aa\n\
 | bb => aa\n\
-axiom inter_singletons_empty : Eq.{1} (Set Two) (({aa}) \u{2229} ({bb})) (\u{2205})\n\
-axiom image_empty (A : Set Two) : Eq.{1} (Set Two) (f1 '' (\u{2205})) (\u{2205})\n\
+axiom inter_singletons_empty : @Eq.{1} (Set Two) (({aa}) \u{2229} ({bb})) (\u{2205})\n\
+axiom image_empty (A : Set Two) : @Eq.{1} (Set Two) (f1 '' (\u{2205})) (\u{2205})\n\
 \n\
 theorem t :\n\
-    Eq.{1} (Set Two)\n\
+    @Eq.{1} (Set Two)\n\
       (f1 '' (({aa}) \u{2229} ({bb})))\n\
       (\u{2205}) :=\n\
-  Eq.trans.{1} (Set Two)\n\
+  @Eq.trans.{1} (Set Two)\n\
     (f1 '' (({aa}) \u{2229} ({bb})))\n\
     (f1 '' (\u{2205}))\n\
     (\u{2205})\n\
@@ -11099,10 +11102,10 @@ end\n\
 def f1 (t : Two) : Two := match t with\n\
 | aa => aa\n\
 | bb => aa\n\
-axiom inter_singletons_empty : Eq.{1} (Set Two) (({aa}) \u{2229} ({bb})) (\u{2205})\n\
-axiom image_empty (A : Set Two) : Eq.{1} (Set Two) (f1 '' (\u{2205})) (\u{2205})\n\
+axiom inter_singletons_empty : @Eq.{1} (Set Two) (({aa}) \u{2229} ({bb})) (\u{2205})\n\
+axiom image_empty (A : Set Two) : @Eq.{1} (Set Two) (f1 '' (\u{2205})) (\u{2205})\n\
 \n\
-theorem t : Eq.{1} (Set Two) (f1 '' (({aa}) \u{2229} ({bb}))) (f1 '' (\u{2205})) :=\n\
+theorem t : @Eq.{1} (Set Two) (f1 '' (({aa}) \u{2229} ({bb}))) (f1 '' (\u{2205})) :=\n\
   congrArg.{1} (fun (X : Set Two) => f1 '' X) inter_singletons_empty\n\
 ";
     let out = compile_ok(src);
@@ -11170,7 +11173,7 @@ fn probe_chain_source(n: usize, rhs: &str) -> String {
         src.push_str(&format!("def d{i} : B := E (E (E (d{})))\n", i - 1));
     }
     src.push_str(&format!(
-        "theorem t : E d{n} = {rhs} := Eq.refl.{{1}} B (E d{n})\n"
+        "theorem t : E d{n} = {rhs} := @Eq.refl.{{1}} B (E d{n})\n"
     ));
     src
 }
@@ -11249,7 +11252,7 @@ end
 def Box.get (α : Type) (b : Box α) : α :=
   Box.rec.{1} α (fun (_ : Box α) => α) (fun (a : α) => a) b
 def Box.id (α : Type) (b : Box α) : Box α :=
-  Box.rec.{1} α (fun (_ : Box α) => Box α) (fun (a : α) => Box.mk α a) b
+  Box.rec.{1} α (fun (_ : Box α) => Box α) (fun (a : α) => @Box.mk α a) b
 ";
 
 fn g61_checked(src: &str, name: &str) {
@@ -11270,13 +11273,13 @@ fn g61_checked(src: &str, name: &str) {
 fn struct_eta_makes_single_constructor_wrapping_definitional() {
     g61_checked(
         &format!(
-            "{G61_BOX}theorem eta_struct (α : Type) (b : Box α) : Box.mk α (Box.get α b) = b := Eq.refl.{{1}} (Box α) b\n"
+            "{G61_BOX}theorem eta_struct (α : Type) (b : Box α) : @Box.mk α (Box.get α b) = b := @Eq.refl.{{1}} (Box α) b\n"
         ),
         "eta_struct",
     );
     g61_checked(
         &format!(
-            "{G61_BOX}theorem eta_rec (α : Type) (b : Box α) : Box.id α b = b := Eq.refl.{{1}} (Box α) b\n"
+            "{G61_BOX}theorem eta_rec (α : Type) (b : Box α) : Box.id α b = b := @Eq.refl.{{1}} (Box α) b\n"
         ),
         "eta_rec",
     );
@@ -11325,11 +11328,11 @@ def Setoid.refl (α : Type) (s : Setoid α) : ∀ (a : α), Setoid.r α s a a :=
 def Quotient (α : Type) (s : Setoid α) : Type := Quot (Setoid.r α s)
 def Quotient.mk (α : Type) (s : Setoid α) (a : α) : Quotient α s := Quot.mk (Setoid.r α s) a
 theorem setoid_iota (α : Type) (r : α → α → Prop) (h : ∀ (a : α), r a a) :
-    Setoid.r α (Setoid.mk α r h) = r := Eq.refl.{1} (α → α → Prop) r
+    Setoid.r α (@Setoid.mk α r h) = r := @Eq.refl.{1} (α → α → Prop) r
 theorem setoid_eta (α : Type) (s : Setoid α) :
-    Setoid.mk α (Setoid.r α s) (Setoid.refl α s) = s := Eq.refl.{1} (Setoid α) s
+    @Setoid.mk α (Setoid.r α s) (Setoid.refl α s) = s := @Eq.refl.{1} (Setoid α) s
 def quotient_wrap (α : Type) (r : α → α → Prop) (h : ∀ (a : α), r a a) :
-    Quotient α (Setoid.mk α r h) → Quot r := fun (q : Quot r) => q
+    Quotient α (@Setoid.mk α r h) → Quot r := fun (q : Quot r) => q
 ";
     for name in ["setoid_iota", "setoid_eta", "quotient_wrap"] {
         g61_checked(src, name);
@@ -11345,7 +11348,7 @@ fn struct_eta_terminates_on_a_deep_chain() {
     let mut src = String::from(G61_BOX);
     src.push_str(
         "def Box.mkid (α : Type) (b : Box α) : Box α :=\n\
-         \x20 Box.rec.{1} α (fun (_ : Box α) => Box α) (fun (a : α) => Box.mk α a) b\n",
+         \x20 Box.rec.{1} α (fun (_ : Box α) => Box α) (fun (a : α) => @Box.mk α a) b\n",
     );
     src.push_str("def d0 (b : Box Nat) : Box Nat := b\n");
     for i in 1..=n {
@@ -11355,7 +11358,7 @@ fn struct_eta_terminates_on_a_deep_chain() {
         ));
     }
     src.push_str(&format!(
-        "theorem stress_eta (b : Box Nat) : d{n} b = b := Eq.refl.{{1}} (Box Nat) b\n"
+        "theorem stress_eta (b : Box Nat) : d{n} b = b := @Eq.refl.{{1}} (Box Nat) b\n"
     ));
     g61_checked(&src, "stress_eta");
 }
@@ -11566,7 +11569,7 @@ fn eq_symm_and_eq_subst_infer_their_implicit_arguments() {
 fn apply_rejects_a_conclusion_that_does_not_match_the_goal() {
     let src = concat!(
         "theorem t (α : Type) (P : α -> Prop) (a x : α) (ha : P a) : P x := by\n",
-        "  apply Eq.subst α (fun (y : α) => P y) x a\n",
+        "  apply @Eq.subst α (fun (y : α) => P y) x a\n",
         "  sorry\n",
     );
     let report = check_document(&parse(src).unwrap());
@@ -11581,7 +11584,7 @@ fn apply_rejects_a_conclusion_that_does_not_match_the_goal() {
         err.message
     );
     // 报错必须落在**写错的那一行**（`apply` 行），不是两行之后 ✓。
-    let apply_offset = src.find("apply Eq.subst").unwrap();
+    let apply_offset = src.find("apply @Eq.subst").unwrap();
     assert_eq!(
         err.span.start.offset, apply_offset,
         "诊断必须落在 apply 那一行"
@@ -11589,7 +11592,7 @@ fn apply_rejects_a_conclusion_that_does_not_match_the_goal() {
     // **对照（不许把判定改严）**：同一条 `apply` 把 `a`/`x` 写对 ⇒ 必须过 ✓。
     let ok = concat!(
         "theorem t (α : Type) (P : α -> Prop) (a x : α) (ha : P a) : P x := by\n",
-        "  apply Eq.subst α (fun (y : α) => P y) a x\n",
+        "  apply @Eq.subst α (fun (y : α) => P y) a x\n",
         "  sorry\n",
     );
     let report_ok = check_document(&parse(ok).unwrap());

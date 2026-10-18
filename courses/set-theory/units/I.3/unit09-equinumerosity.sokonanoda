@@ -58,8 +58,8 @@ theorem Set.Equiv.refl (α : Type) (A : Set α) : A ≈ A :=
   Set.Equiv.mk α α A A (fun (x : α) => x) (fun (x : α) => x)
     (fun (x : α) => fun (hx : x ∈ A) => hx)
     (fun (y : α) => fun (hy : y ∈ A) => hy)
-    (fun (x : α) => fun (hx : x ∈ A) => Eq.refl.{1} α x)
-    (fun (y : α) => fun (hy : y ∈ A) => Eq.refl.{1} α y)
+    (fun (x : α) => fun (hx : x ∈ A) => @Eq.refl.{1} α x)
+    (fun (y : α) => fun (hy : y ∈ A) => @Eq.refl.{1} α y)
 
 -- ─────────────────────────────────────────────────────────────
 -- 9.2 演示 2（必证④）：从单射 + 满射（**数据**）构造等势。
@@ -104,7 +104,7 @@ def Nat.pred (n : Nat) : Nat := match n with
 
 theorem Nat.succ_ne_zero (n : Nat) : ¬ ((Nat.succ n) = Nat.zero) :=
   fun (h : (Nat.succ n) = Nat.zero) =>
-    Eq.subst.{1} Nat (fun (k : Nat) => Nat.isZero k) (Nat.succ n) Nat.zero h True.intro
+    @Eq.subst.{1} Nat (fun (k : Nat) => Nat.isZero k) (Nat.succ n) Nat.zero h True.intro
 
 def nonzero : Set Nat := fun (n : Nat) => ¬ (n = Nat.zero)
 

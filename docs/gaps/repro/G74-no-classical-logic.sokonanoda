@@ -28,9 +28,9 @@ theorem em_holds (P : Prop) : P ∨ ¬ P := Classical.em P
 
 -- ② **双重否定消去**（古典逻辑的标志性推论）—— 恰恰就是序号三歧性卡住的那一步
 theorem not_not_elim (P : Prop) (h : ¬ ¬ P) : P :=
-  Or.elim P (¬ P) P
+  @Or.elim P (¬ P) P
     (fun (hp : P) => hp)
-    (fun (hnp : ¬ P) => False.elim P (h hnp))
+    (fun (hnp : ¬ P) => @False.elim P (h hnp))
     (Classical.em P)
 
 -- ③ 三歧性的**最后一步**（形状逐字照搬台账：`¬¬(P ∨ Q ∨ R) ⇒ P ∨ Q ∨ R`）
@@ -39,17 +39,17 @@ theorem trichotomy_step (P Q R : Prop) (h : ¬ ¬ (P ∨ Q ∨ R)) : P ∨ Q ∨
 
 -- ④ 「在可比吗上分类」的最小形状：直觉主义里只有 `¬¬(P ∨ Q)`，拿不到 `P ∨ Q`
 theorem or_of_not_imp (P Q : Prop) (h : ¬ Q → P) : P ∨ Q :=
-  Or.elim Q (¬ Q) (P ∨ Q)
-    (fun (hq : Q) => Or.inr P Q hq)
-    (fun (hnq : ¬ Q) => Or.inl P Q (h hnq))
+  @Or.elim Q (¬ Q) (P ∨ Q)
+    (fun (hq : Q) => @Or.inr P Q hq)
+    (fun (hnq : ¬ Q) => @Or.inl P Q (h hnq))
     (Classical.em Q)
 
 -- ⑤ 德摩根（**古典**那一半）：`¬(P ∧ Q) ⇒ ¬P ∨ ¬Q`（直觉主义里只有反方向）
 theorem de_morgan_not_and (P Q : Prop) (h : ¬ (P ∧ Q)) : ¬ P ∨ ¬ Q :=
-  Or.elim P (¬ P) (¬ P ∨ ¬ Q)
+  @Or.elim P (¬ P) (¬ P ∨ ¬ Q)
     (fun (hp : P) =>
-      Or.inr (¬ P) (¬ Q) (fun (hq : Q) => h (And.intro P Q hp hq)))
-    (fun (hnp : ¬ P) => Or.inl (¬ P) (¬ Q) hnp)
+      @Or.inr (¬ P) (¬ Q) (fun (hq : Q) => h (@And.intro P Q hp hq)))
+    (fun (hnp : ¬ P) => @Or.inl (¬ P) (¬ Q) hnp)
     (Classical.em P)
 
 -- ⑥ 反证法（`Classical.byContradiction`，由 ① 推出的 def）

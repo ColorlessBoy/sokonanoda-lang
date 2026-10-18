@@ -73,7 +73,7 @@ theorem prod_set_swap_ne (A : Type) (a b : A) (h : a ≠ b) :
     {a} ×ˢ {b} ≠ {b} ×ˢ {a} := by
   intro e
   exact h (And.left
-    (Eq.subst.{1} (Set (Prod A A))
+    (@Eq.subst.{1} (Set (Prod A A))
       (fun (S : Set (Prod A A)) => prod_mk A A a b ∈ S)
       ({a} ×ˢ {b}) ({b} ×ˢ {a}) e
       (And.intro
@@ -86,7 +86,7 @@ theorem prod_set_swap_ne (A : Type) (a b : A) (h : a ≠ b) :
 -- `match` 需要一处**有类型标注**的位置（`have` 的标注正好提供它）。
 theorem kura_degenerate (α : Type) (a b : α) (h : a = b) :
     {{a}, {a, b}} = {{a}} := by
-  apply Set.ext (Set α)
+  apply @Set.ext (Set α)
   intro x
   constructor
   intro hX
@@ -106,4 +106,4 @@ theorem kura_degenerate (α : Type) (a b : α) (h : a = b) :
                 (fun (hya : y = a) => Or.inl hya)))
   exact hmem
   intro h1
-  exact Or.inl (x = {a}) (x = {a, b}) h1  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+  exact @Or.inl (x = {a}) (x = {a, b}) h1  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）

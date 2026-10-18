@@ -43,7 +43,7 @@ theorem mem_preimage_sUnion_of_mem (α : Type) (β : Type) (f : α → β)
 theorem mem_preimage_sUnion_of_exists (α : Type) (β : Type) (f : α → β)
     (F : Set (Set β)) (x : α)
     (h : ∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A)) : x ∈ (f ⁻¹' (⋃₀ F)) :=
-  Exists.elim (Set β) (fun (A : Set β) => A ∈ F ∧ x ∈ (f ⁻¹' A))
+  @Exists.elim (Set β) (fun (A : Set β) => A ∈ F ∧ x ∈ (f ⁻¹' A))
     (x ∈ (f ⁻¹' (⋃₀ F))) h
     (fun (A : Set β) (hA : A ∈ F ∧ x ∈ (f ⁻¹' A)) =>
       mem_preimage_sUnion_of_mem α β f F A x
@@ -52,18 +52,18 @@ theorem mem_preimage_sUnion_of_exists (α : Type) (β : Type) (f : α → β)
 theorem mem_of_mem_preimage_sUnion (α : Type) (β : Type) (f : α → β)
     (F : Set (Set β)) (x : α) (h : x ∈ (f ⁻¹' (⋃₀ F))) :
     ∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A) :=
-  Exists.elim (Set β) (fun (A : Set β) => A ∈ F ∧ f x ∈ A)
+  @Exists.elim (Set β) (fun (A : Set β) => A ∈ F ∧ f x ∈ A)
     (∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A))
     (exists_mem_of_mem_sUnion β F (f x) (mem_of_mem_preimage α β f (⋃₀ F) x h))
     (fun (A : Set β) (hA : A ∈ F ∧ f x ∈ A) =>
       Exists.intro A  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
-        (And.intro (A ∈ F) (x ∈ (f ⁻¹' A)) (And.left hA)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+        (@And.intro (A ∈ F) (x ∈ (f ⁻¹' A)) (And.left hA)  -- soko:notation-ok: `⋃`/`⋂`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
           (mem_preimage_of_mem α β f A x (And.right hA))))
 
 theorem mem_preimage_sUnion_iff (α : Type) (β : Type) (f : α → β) (F : Set (Set β))
     (x : α) :
     x ∈ (f ⁻¹' (⋃₀ F)) ↔ ∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A) :=
-  Iff.intro (x ∈ (f ⁻¹' (⋃₀ F))) (∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A))
+  @Iff.intro (x ∈ (f ⁻¹' (⋃₀ F))) (∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A))
     (mem_of_mem_preimage_sUnion α β f F x)
     (mem_preimage_sUnion_of_exists α β f F x)
 
@@ -95,6 +95,6 @@ theorem forall_of_mem_preimage_sInter (α : Type) (β : Type) (f : α → β)
 theorem mem_preimage_sInter_iff (α : Type) (β : Type) (f : α → β) (F : Set (Set β))
     (x : α) :
     x ∈ (f ⁻¹' (⋂₀ F)) ↔ ∀ (A : Set β), A ∈ F → x ∈ (f ⁻¹' A) :=
-  Iff.intro (x ∈ (f ⁻¹' (⋂₀ F))) (∀ (A : Set β), A ∈ F → x ∈ (f ⁻¹' A))
+  @Iff.intro (x ∈ (f ⁻¹' (⋂₀ F))) (∀ (A : Set β), A ∈ F → x ∈ (f ⁻¹' A))
     (forall_of_mem_preimage_sInter α β f F x)
     (mem_preimage_sInter_of_forall α β f F x)

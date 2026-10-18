@@ -1460,7 +1460,7 @@ fn a_defs_display_text_never_folds_a_partial_application() {
     let dir = project_dir("fold-partial-application");
     let entry = "import lib.Set\n\
                  \n\
-                 def eq_self {α : Type} (a : α) : Eq α a a := Eq.refl.{1} α a\n\
+                 def eq_self {α : Type} (a : α) : @Eq α a a := @Eq.refl.{1} α a\n\
                  \n\
                  theorem mem_self {α : Type} (a : α) : Set.mem a (Set.singleton a) := by\n\
                  \x20 sorry\n\

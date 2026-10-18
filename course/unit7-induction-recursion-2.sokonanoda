@@ -51,7 +51,7 @@ def fromOption (x : Option Nat) (d : Nat) : Nat := match x with
 | some a => a
 
 -- 自测：#reduce 走 match 降低出的 Option.rec —— some 那支就是里面的数。
-#reduce fromOption (some Nat (succ zero)) zero
+#reduce fromOption (@some Nat (succ zero)) zero
 
 -- 练习 1：valueOrZero 把「可能没有」的值取出来：some a 给 a，none 给 zero。
 -- soko:hint 思路：match 一次列全 none 与 some 两个构造子，分支结果都必须是 Nat。
@@ -98,8 +98,8 @@ def isZeroOpt (x : Option Nat) : Nat := match x with
 | none => zero
 
 -- 自测：#reduce 先走外层 Option 的 match，再走内层 Nat 的嵌套 match。
-#reduce isZeroOpt (some Nat zero)
-#reduce isZeroOpt (some Nat (succ zero))
+#reduce isZeroOpt (@some Nat zero)
+#reduce isZeroOpt (@some Nat (succ zero))
 
 -- 练习 3：predOpt 取出「里面那个数的前驱」：some (succ k) 给 k，
 -- some zero 与 none 都给 zero——用嵌套模式把 succ 的字段 k 绑出来。
@@ -129,7 +129,7 @@ def vlen (A : Type) (n : Nat) (v : Vec A n) : Nat := match v with
 | vcons a m w => succ ih
 
 -- 自测：#reduce 走 Vec.rec —— 两层 vcons 的长度是两层 succ。
-#reduce vlen Nat (succ (succ zero)) (vcons Nat zero zero (vcons Nat (succ zero) zero (vnil Nat)))
+#reduce vlen Nat (succ (succ zero)) (@vcons Nat zero zero (@vcons Nat (succ zero) zero (@vnil Nat)))
 
 -- 练习 4：vhead 取出第一个元素；空表返回默认值 d。
 -- soko:hint 思路：match v 分 vnil / vcons a m w 两支。

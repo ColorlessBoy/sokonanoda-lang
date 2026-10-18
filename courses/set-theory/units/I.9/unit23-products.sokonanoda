@@ -35,7 +35,7 @@ import lib.Prod
 -- 这一对就是"n 元关系 ↔ 逐次一元关系"的翻译（Enderton §3.5 的 n 元关系那一节）✓
 -- ─────────────────────────────────────────────────────────────
 def curry (A B C : Type) (f : Prod A B → C) : A → B → C :=
-  fun (a : A) (b : B) => f (prod_mk A B a b)
+  fun (a : A) (b : B) => f (@prod_mk A B a b)
 
 def uncurry (A B C : Type) (g : A → B → C) : Prod A B → C :=
   fun (p : Prod A B) => g (Prod.fst A B p) (Prod.snd A B p)

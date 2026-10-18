@@ -33,13 +33,13 @@ import lib.Rel
 
 -- 演示：空集的成员刻画（定义展开，没有数学内容）。
 theorem demo_mem_empty_iff_false (α : Type) (a : α) :
-    a ∈ (∅ α) ↔ False :=
+    a ∈ (∅) ↔ False :=
   Set.mem_empty_iff_false a
-theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (∅ α)) :=
-  fun (h : a ∈ (∅ α)) => (Iff.mp (Set.mem_empty_iff_false a) h)
+theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (∅)) :=
+  fun (h : a ∈ (∅)) => (Iff.mp (Set.mem_empty_iff_false a) h)
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  Set.subset_def α A B
+  @Set.subset_def α A B
 -- ─────────────────────────────────────────────────────────────
 -- 56.2 总纲三：驳倒 `∃`（要与每个 x 打交道）
 -- ─────────────────────────────────────────────────────────────
@@ -62,7 +62,7 @@ theorem not_exists_of_all_not (α : Type) (P : α → Prop) (h : ∀ (x : α), �
 
 -- soko:hint 关键件：练习 1（总纲三）· 演示 2（空集没有成员）✓
 
-theorem not_exists_mem_empty (α : Type) : ¬ (∃ (x : α), x ∈ (∅ α)) := by
+theorem not_exists_mem_empty (α : Type) : ¬ (∃ (x : α), x ∈ (∅)) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -97,5 +97,5 @@ theorem ne_of_mem_not_mem (α : Type) (A B : Set α) (a : α) (ha : a ∈ A)
 -- soko:hint 关键件：练习 4（总纲四，把 `B` 取成 `∅`）· 演示 2 ✓
 
 theorem not_eq_empty_of_mem (α : Type) (A : Set α) (a : α) (ha : a ∈ A) :
-    ¬ (A = (∅ α)) := by
+    ¬ (A = (∅)) := by
   sorry

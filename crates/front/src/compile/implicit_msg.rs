@@ -48,7 +48,7 @@ pub(crate) fn cases_scrutinee_type(
     }
 }
 
-/// **严格档开关**（`SOKO_STRICT_AT=1|on|true` ⇒ 开）。
+/// **严格档开关**（**默认开** ✓；`SOKO_STRICT_AT=0|off|false` ⇒ 关 = 逃生门）。
 ///
 /// 严格档 = **正常形式（没写 `@`）不接受位置隐式实参** ✓，与 Lean 4
 /// `Lean/Elab/App.lean:706` `processImplicitArg` 的
@@ -56,23 +56,39 @@ pub(crate) fn cases_scrutinee_type(
 /// **同构**（`:709` = `@` 让隐式 binder 也吃一个位置实参 ✓；`:711` = 正常形式给隐式
 /// binder 插元变量、**不碰实参表** ✓）。
 ///
-/// ⚠⚠ **默认关** ✗ —— **不是"没做"** ✓，是**语料迁移还没做完**：本轮实测
-/// **269/294** 个 `.sokonanoda` 会从"接受"变"拒绝"，其中 **19 个在
-/// `docs/gaps/repro/**`**，而那个目录**不在本棒的写者范围内** ⇒ 一翻默认
-/// `scripts/gap.py check` 当场判红 ✗。账见 `.cache/ux/fix-imp1/VERDICT.md`；
-/// 翻默认 + 语料迁移 = 子任务 `SUB-implicit-args-strict-default` ✓。
+/// ⭐ **2026-10-18 翻默认**（`SUB-implicit-args-strict-default` ✓）—— 用户 10-16 那条
+/// 需求的**最后一步**：此前默认关的**唯一**理由是**语料没迁完**（一翻默认整语料从
+/// "接受"变"拒绝" ✗），而迁移已按棒做完（a1 诊断带真实行号 · a4 构造子糖只标 `@` ·
+/// a5 引擎装配/回读的全显式脊 · a6 引擎四刀 + 语料按诊断「出路 ①」逐处加 `@` ·
+/// a13/a17 课程语料续迁）⇒ **默认开** ✓。
+///
+/// ⚠⚠ **逃生门必须留** ✗（`SOKO_STRICT_AT=0|off|false` ⇒ 关）：遇到没迁完的语料
+/// （第三方文件、旧课程仓）时，**一条环境变量就能退回旧行为**，不必回滚版本 ✓。
+/// **极性**：未设、或取值不认识 ⇒ **开**（默认即严格档）；只有上面三个字面量表示"关" ✓
+/// —— `SOKO_STRICT_AT=1|on|true` 仍照旧表示"开"（旧脚本/CI 一行不用改 ✓）。
 ///
 /// **a5（2026-10-17）· 第二处消费者**：`elab::operand_type_expr` 的 **pp 档**。那份文本是
 /// **内核 pp** 打的，回读成项后是「正常形式写满实参」的应用（实测
 /// `Eq (fst A B (P.mk A B a b)) a`）⇒ 严格档一律拒 ✗（**诊断落在 `line 1` = 文本坐标**，
 /// 正是"这份文本不是用户写的"的指纹 ✓）。全显式 pp 打的是 `@Eq α x a` ⇒ 回读即 `@` 形态
-/// ⇒ 逐位对齐 ✓；默认档恒 `false` ⇒ **逐字节不变** ✓。同族：`expr::e_app_at`（引擎装配的
-/// 全显式脊要自己标 `@` ✓）。
+/// ⇒ 逐位对齐 ✓。同族：`expr::e_app_at`（引擎装配的全显式脊要自己标 `@` ✓）。
 pub(crate) fn strict_at_enabled() -> bool {
-    matches!(
+    !matches!(
         std::env::var("SOKO_STRICT_AT").ok().as_deref(),
-        Some("1") | Some("on") | Some("true")
+        Some("0") | Some("off") | Some("false")
     )
+}
+
+/// **rfl 建议文本**：`[@]Eq.refl.{level} α a` —— 严格档带 `@`（这条文本会被回读成
+/// 项再判 ⇒ 不带 `@` 一律拒，建议一条都给不出来 ✗）；旧档逐字节不变 ✓。
+pub(crate) fn refl_text(level: &str, alpha: &str, a: &str) -> String {
+    format!("{}Eq.refl.{{{level}}} {alpha} {a}", at_prefix())
+}
+
+/// 严格档的 `@` 前缀（严格档 `"@"`、旧档 `""`）—— 引擎/建议器要**按档位选文本**时用
+/// （文本会被回读成项再判 ⇒ 严格档不带 `@` 就判红 ✗）。
+pub(crate) fn at_prefix() -> &'static str {
+    ["", "@"][strict_at_enabled() as usize]
 }
 
 /// 签名文本里**源级**的形参名与风格，按位置返回。

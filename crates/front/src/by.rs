@@ -13,6 +13,7 @@ use crate::ast::{Binder, BinderKind, Expr, HaveValue, MatchArm, Pattern, Tactic}
 use crate::compile::elab::{DefTable, InductiveTable, MatchCtor};
 use crate::compile::CompileError;
 use crate::compile::{CompileOptions, ErrorKind};
+use crate::expr::e_app_at;
 use crate::judge::{
     begin_batch, flush_batch, judge_infer, judge_infer_explicit, judge_terms, judge_terms_strict,
     GoalBinderSpec, Judgement, OpenGoalSpec,
@@ -2104,7 +2105,8 @@ fn run_tactics<'a>(
                         span: *span,
                     },
                     args: vec![ApplyArg::TypeParam(goal_ty), ApplyArg::SubGoal(id)],
-                    explicit: false,
+                    // `@` 形态：两个 arg = `False.elim` 的整条望远镜 ⇒ 不标会被严格档拒 ✗
+                    explicit: true,
                 };
                 worklist.push(id);
             }
@@ -2857,10 +2859,15 @@ fn apply_tactic<'a>(
     for id in sub_nodes.iter().rev() {
         worklist.push(*id);
     }
+    // ⚠ **裸头才标 `@`，且只在严格档**（a6 实测 + a17 的 A/B 修正）：裸头（`apply Or.inl`）时
+    // `args` 补全整条望远镜 ⇒ 严格档必须标；`expr` 已是应用时不许标。**旧档不许标**：脊里的
+    // 操作数（`Set.univ`）靠操作数级期望类型传播实例化，`@` 关掉它 ⇒ 整类绿→红（a17 实测）。
+    let bare_head = crate::compile::implicit_msg::strict_at_enabled()
+        && matches!(expr, Expr::Ident { .. } | Expr::UniverseApp { .. });
     nodes[cur].kind = NodeKind::Apply {
         f: expr.clone(),
         args,
-        explicit: false,
+        explicit: bare_head,
     };
     // 当前目标被 apply 消耗，不再是 worklist 顶（已 pop）。
     worklist.retain(|&x| x != cur);
@@ -4280,25 +4287,17 @@ fn rfl_candidate(goal: &Expr) -> Option<(String, Expr)> {
     }
     let alpha = atom_text(args[0]);
     let a = atom_text(args[1]);
-    let text = format!("Eq.refl.{{{level}}} {alpha} {a}");
+    // 判定用文本会**回读成项**再判 ⇒ 不写 `@` 就被严格档当成位置隐式实参 ✗（a6 实测）
+    let text = format!("@Eq.refl.{{{level}}} {alpha} {a}");
     let span = goal.span();
     let refl = Expr::UniverseApp {
         name: "Eq.refl".to_string(),
         levels: vec![level],
         span,
     };
-    let applied = Expr::App {
-        fun: Box::new(refl),
-        arg: Box::new(args[0].clone()),
-        explicit_spine: false,
-        span,
-    };
-    let expr = Expr::App {
-        fun: Box::new(applied),
-        arg: Box::new(args[1].clone()),
-        explicit_spine: false,
-        span,
-    };
+    // 脊标 `@`：`Eq.refl` 的整条望远镜逐位写全（`α` 是隐式位）⇒ 本来就是 `@` 形态
+    let applied = e_app_at(refl, args[0].clone(), span);
+    let expr = e_app_at(applied, args[1].clone(), span);
     Some((text, expr))
 }
 

@@ -54,7 +54,7 @@ theorem subset_antisymm (α : Type) (A B : Set α)
 
 -- 演示（已写好）：空集没有元素。
 theorem demo_notMem_empty (α : Type) (a : α) : ¬ (a ∈ ∅) := by
-  exact Set.notMem_empty α a
+  exact @Set.notMem_empty α a
 
 -- 练习 4（L 类）：∅ ⊆ A（**空洞蕴含**：前提永远不成立）。
 -- soko:hint 思路：目标是 ∀ x, x ∈ ∅ → A x；把前提拿进来，它其实是 False。

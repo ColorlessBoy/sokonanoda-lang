@@ -30,7 +30,7 @@ theorem or_ch_shape (X : Set (Set Nat))
 theorem or_elim_ch_motive (X : Set (Set Nat))
     (h : (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat))) :
     (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat)) :=
-  Or.elim ((@Set.univ Nat) ≈ X) (X ≈ (𝒫 (@Set.univ Nat)))
+  @Or.elim ((@Set.univ Nat) ≈ X) (X ≈ (𝒫 (@Set.univ Nat)))
     ((@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat)))
     (fun (h1 : (@Set.univ Nat) ≈ X) => Or.inl h1)
     (fun (h2 : X ≈ (𝒫 (@Set.univ Nat))) => Or.inr h2) h
