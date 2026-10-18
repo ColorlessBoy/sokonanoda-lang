@@ -4,7 +4,7 @@
   "head": "2de19e7298c0c3000091c23c85c3b9f9dfec0759",
   "at": "2026-10-16T00:00:00+00:00",
   "caps": {
-    "docs_live_bytes": 6000000,
+    "docs_live_bytes": 5000000,
     "docs_archive_bytes": 1000000,
     "status_total_lines": 200,
     "site_text_bytes": 76800,
@@ -202,7 +202,7 @@
       "head": "2de19e7298c0c3000091c23c85c3b9f9dfec0759",
       "at": "2026-10-16T00:00:00+00:00",
       "caps": {
-        "docs_live_bytes": 6000000,
+        "docs_live_bytes": 5000000,
         "docs_archive_bytes": 1000000,
         "status_total_lines": 200,
         "site_text_bytes": 76800,
@@ -211,7 +211,7 @@
         "target_incremental_max_bytes": 19327352832
       },
       "reading": {
-        "docs_live_bytes": 5999999,
+        "docs_live_bytes": 4900000,
         "docs_archive_bytes": 950000,
         "status_total_lines": 85,
         "site_text_bytes": 60823,
