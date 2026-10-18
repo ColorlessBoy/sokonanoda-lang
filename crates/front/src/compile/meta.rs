@@ -551,6 +551,45 @@ impl<'a> MetaCtx<'a> {
         self.unify_impl(l, r, true)
     }
 
+    /// **E1 路线 ⑤ · 类型约束**（2026-10-18 用户硬令 ②）：`?m := v` 隐含的那条方程
+    /// `T(?m) ≟ typeof(v)` —— 逐位补上。
+    ///
+    /// **Lean 4 对照**（本机 `~/Documents/lean/lean4` HEAD `d0493e4c1e` ✓）：
+    /// `Meta/ExprDefEq.lean` 的 `processAssignment` 在做完 `?m := fun a… => t` 的抽象后
+    /// **一定**走 `checkTypesAndAssign`（:1186/:1220）—— 赋值**不是**只写进去，还要
+    /// 把值的类型与元变量的声明类型合一 ✓。这正是 `apply Eq.subst _ h` 里
+    /// `?p := A` 顺带把 `?α := α` 定下来的那一步 ✓（`Elab/App.lean:1176 elabAppArgs`
+    /// 给每个隐式位建元变量、`propagateExpectedType` 再用期望类型收口 ✓）。
+    ///
+    /// ⚠ **只在判 `Yes` 时生效**：`No`/`Undef` ⇒ `first_err` 与**元变量赋值全部回滚**
+    /// ✗ —— 我们的 oracle 是**源级近似**（`operand_type_expr`，不是内核）⇒
+    /// **绝不用它造新的拒绝面** ✓（对齐 Lean 的 `checkpointDefEq`：失败即回滚 ✓）。
+    ///
+    /// ⚠ **只在「还有未解位」时由调用方进入** ✓（成功路径一次都不跑 ✓）。
+    pub(crate) fn refine_by_types(
+        &mut self,
+        ids: &[MetaId],
+        layers: &[crate::compile::implicit::Layer],
+        sigma: &HashMap<String, Expr>,
+        ty_of: &dyn Fn(&Expr) -> Option<Expr>,
+    ) {
+        for (i, id) in ids.iter().enumerate() {
+            let Some(v) = self.value(*id) else { continue };
+            let v = self.zonk(&v);
+            let Some(vty) = ty_of(&v) else { continue };
+            let ty = crate::spine::substitute(&layers[i].domain, sigma);
+            let saved_err = self.first_err.clone();
+            let snapshot: Vec<Option<Expr>> =
+                self.store.mvars.iter().map(|m| m.value.clone()).collect();
+            if self.unify_impl(&ty, &vty, true) != Tri::Yes {
+                self.first_err = saved_err;
+                for (m, v) in self.store.mvars.iter_mut().zip(snapshot) {
+                    m.value = v;
+                }
+            }
+        }
+    }
+
     fn unify_impl(&mut self, l: &Expr, r: &Expr, allow_unfold: bool) -> Tri {
         // **C 子项（2026-10-12）**：`Eq.{u} …`（模板，含**层元变量**）与 `Eq …`
         // （裸 `Ident`）是**同一个头**，但 `App` 分解会把这一对顶到刚性冲突 ✗
