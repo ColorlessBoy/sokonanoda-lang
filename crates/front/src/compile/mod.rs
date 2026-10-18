@@ -11,7 +11,9 @@ mod event;
 mod expected;
 mod expected_spine;
 mod goals;
+// 实参位的洞（`_`，a14）：`_` → 新 binder ⇒ `apply` 把它变成子目标（Lean 4 对照在文件头）。
 pub mod hints;
+pub(crate) mod hole;
 mod implicit;
 mod named_arg;
 // IA-5 的错误文案（**单独一个文件** ⇒ `elab.rs`/`implicit.rs` 都受判据 ⑨ 冻结，

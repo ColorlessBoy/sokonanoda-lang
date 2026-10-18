@@ -596,16 +596,23 @@ impl<'a> ElabScope<'a> {
             spans: Vec::new(),
         }
     }
-    fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.names.len()
     }
-    fn truncate(&mut self, len: usize) {
+    pub(crate) fn truncate(&mut self, len: usize) {
         self.names.truncate(len);
         self.tys.truncate(len);
         self.src_tys.truncate(len);
         self.spans.truncate(len);
     }
-    fn push(&mut self, name: String, ty: ExprPtr<'a>, src_ty: Option<Expr>, span: Span) {
+    pub(crate) fn var_index(&self, pos: usize) -> u16 {
+        (self.len() - 1 - pos) as u16
+    }
+    /// `name` **最后一次**出现的位置（与 `Ident` 臂的 `rposition` 遮蔽判据同款 ✓）。
+    pub(crate) fn find_last(&self, name: &str) -> Option<usize> {
+        self.names.iter().rposition(|candidate| candidate == name)
+    }
+    pub(crate) fn push(&mut self, name: String, ty: ExprPtr<'a>, src_ty: Option<Expr>, span: Span) {
         self.names.push(name);
         self.tys.push(ty);
         self.src_tys.push(src_ty);
@@ -3594,17 +3601,14 @@ pub(crate) fn infer_type_text_inplace_expected<'a>(
         "binder 筛选必须与 `judge_binders()` 完全一致（剥层数靠它）"
     );
     // ① 在活环境上 elaborate。
-    // ⚠ **G-30（2026-10-05 第 83 棒 ✓）**：宇宙表**不再一律为空** ✗ ——
-    //    调用方有真表就传进来 ✓（`application_arg_expected` 那条有 ✓）。
-    //    原先一律空表 ⇒ **宇宙多态的头顶不上** ✗ ⇒ 就地路答 `None` ✗ ⇒
-    //    `infer_type_text` 又**不回落慢路**（G-29 第一刀 ✓）⇒ 期望类型**整个丢掉** ✗ = G-30 ✓。
+    // ⚠ **G-30（2026-10-05 第 83 棒 ✓）**：宇宙表**不再一律为空** —— 调用方有真表就传进来
+    //    （`application_arg_expected` 那条有 ✓），否则**宇宙多态的头顶不上** = G-30 ✓。
     let empty_universe: UnivMap<'a> = UnivMap::new();
     let univ = univ.unwrap_or(&empty_universe);
     let mut scratch_hovers: Vec<HoverNode<'a>> = Vec::new();
     // 逐 binder：**先 elaborate 它的源类型、再推进作用域**（依赖顺序与源一致 ✓）。
     // ⚠ **内核以 panic 报拒绝**（架构 §8 gotcha 0）⇒ 每步都包 `quiet_catch`。
     let mut sc = ElabScope::new();
-    let mut tys: Vec<ExprPtr<'a>> = Vec::with_capacity(binder_srcs.len());
     for (name, src_ty) in binder_srcs {
         let ty = quiet_catch(|| {
             elab_expr(
@@ -3621,10 +3625,10 @@ pub(crate) fn infer_type_text_inplace_expected<'a>(
         })
         .map_err(|_| InplaceFail::ElabBinder)?
         .map_err(|_| InplaceFail::ElabBinder)?;
-        tys.push(ty);
         sc.push(name.clone(), ty, Some(src_ty.clone()), operand.span());
     }
-    // ② 项本身（`fun` 的体）。
+    // ② 项本身（`fun` 的体）。**实参位的洞（a14）**：先提升成**预压 binder**（见 `compile::hole`）。
+    crate::compile::hole::lift(env, operand, &mut sc, univ, expected, ctx)?;
     let body = quiet_catch(|| {
         elab_expr(
             env.builder,
@@ -3666,11 +3670,11 @@ pub(crate) fn infer_type_text_inplace_expected<'a>(
             return Err(InplaceFail::ElabOperand);
         }
     };
-    // ③ 从内往外包 λ —— 与 `elab_expr` 的 `Expr::Lambda` 分支同序同形 ✓。
+    // ③ 从内往外包 λ（与 `Expr::Lambda` 分支同序同形 ✓；**洞 binder 一并包** = a14 的子目标层 ✓）。
     let mut term = body;
-    for ((name, _), ty) in binder_srcs.iter().zip(tys).rev() {
+    for (name, ty) in sc.names.iter().zip(sc.tys.iter()).rev() {
         let nm = env.builder.name_from_str(name);
-        term = env.builder.mk_lambda(nm, BinderStyle::Default, ty, term);
+        term = env.builder.mk_lambda(nm, BinderStyle::Default, *ty, term);
     }
     // ④ 就地求类型文本：**只看"到此刻为止已落地"的声明**（= 前缀）——
     //    与合成文件里 `#check` 的 `env_at` 同一口径（`ByIndex`）✓。
@@ -4372,20 +4376,6 @@ fn try_implicit_application_with<'a>(
         } => target.as_str(),
         _ => return Ok(None),
     };
-    // ⚠ **已知缺口 G-42**（2026-09-26 实测）：这里**应该**用**解析后的规范名**
-    // 查签名表 —— `namespace Set` 里写 `subset B A` 时 AST 上是**裸名** `subset`，
-    // 而签名表按**规范名** `Set.subset` 建 ⇒ 拿裸名查**永远查不到** ⇒ 隐式插入
-    // 整条不触发 ✗（5 行最小复现见 `docs/gaps/repro/G42-*.sh`；**去掉 namespace
-    // 就好**，这正是它躲过所有既有测试的原因 ✓）。
-    //
-    // **为什么还没改**：显然的改法（先 `resolve_known`）**修好 G-42 却回归**
-    // `#check some Nat`（`Nat -> Option Nat` ⇒ `Option Type 0` ✗，撞红既有
-    // `parameterized_option_checks_and_derives_recursor`）。两者是**同一个洞**：
-    // 下面 `:2260` 那条"实参个数 > 显式层数 ⇒ 当成旧写法（隐式位也逐位写了）"的
-    // 判据，**分不清**"隐式位也写了"（`Eq.symm α a b h`）与"把结果函数又应用了
-    // 一次"（`Set.univ x`、`some Nat`）—— 一旦钩子真的被触发，这个歧义就暴露 ✓。
-    // ⇒ 修 G-42 必须**同时**给求解器加"富余实参应用到结果类型"那一档（路线③），
-    // 判据是**两条一起绿**：本文件的 Option 测试 + G-42 的复现件 ✓。
     // ⚠ **已知缺口 G-42**（2026-09-26 实测）：这里**应该**用**解析后的规范名**
     // 查签名表 —— `namespace Set` 里写 `subset B A` 时 AST 上是**裸名** `subset`，
     // 而签名表按**规范名** `Set.subset` 建 ⇒ 拿裸名查**永远查不到** ⇒ 隐式插入
@@ -5704,11 +5694,18 @@ pub(crate) fn elab_expr<'a>(
             record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
-        Expr::Hole { span } => Err(CompileError::elab(
-            ErrorKind::ElabHoleMisplaced,
-            "`sorry` is only allowed as the value of an open exercise",
+        // **实参位的洞（a14）**：`_` 与 `sorry` 同节点；提升窗口里（只有
+        // `infer_type_text_inplace_expected` 打开）变成作用域 binder ⇒ 包 λ 后就是 Π 层 ✓。
+        Expr::Hole { span } => crate::compile::hole::elab_hole(
+            builder,
+            expected_src,
+            scope,
+            univ,
+            known,
+            hovers,
+            ctx,
             *span,
-        )),
+        ),
         // **命名实参的兜底**：钩子认不出这个头时落到这里 ⇒ 专用码 + 明确出路 ✓。
         Expr::NamedArg { name, span, .. } => Err(CompileError::elab(
             ErrorKind::ElabInvalidNamedArgument,

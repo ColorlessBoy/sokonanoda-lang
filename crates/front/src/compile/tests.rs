@@ -3973,6 +3973,90 @@ fn later_function_hole_uses_preceding_arguments() {
     assert_eq!(open.sub_goals[0].ty.as_deref(), Some("p a"));
 }
 
+/// **a14 判据**：`apply Eq.subst _ h` 里**实参位的洞**变成一个**子目标** ——
+/// 判据走**内核**（硬规则 4）：`exact Eq.symm hx` 只有在目标**真的**是 `a = x` 时才过 ✓
+/// （`Eq.subst {α}{p}{a}{b} : Eq a b -> p a -> p b`，目标 `A x` ⇒ `p := A`、`b := x`，
+/// 于是洞那一位必须是 `a = x`）。
+#[test]
+fn apply_argument_hole_becomes_a_subgoal() {
+    let src = concat!(
+        "theorem subst_hole (α : Type) (A : α → Prop) (x a : α) (hx : x = a) (h : A a) : A x := by\n",
+        "  apply Eq.subst _ h\n",
+        "  exact Eq.symm hx\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    // ⚠ **已知限制（如实）**：**严格档**（`SOKO_STRICT_AT=1`）下实参位的洞**还没接上**
+    // （洞提升走默认档那条隐式求解路线）⇒ 这里**断言当前行为防漂移** ✓（不是放宽判据 ✗：
+    // 用户 2026-10-18 的判据是**默认档**，那一条在下面照旧钉死 ✓）。
+    if std::env::var("SOKO_STRICT_AT").is_ok_and(|v| v == "1") {
+        assert!(
+            report
+                .errors
+                .iter()
+                .any(|e| e.kind == ErrorKind::ElabTacticFailed),
+            "strict mode: argument-position holes are still rejected (known gap): {:?}",
+            report.errors
+        );
+        return;
+    }
+    assert!(
+        report.errors.is_empty(),
+        "argument-position holes are legal in `apply`: {:?}",
+        report.errors
+    );
+    assert_eq!(
+        report.decls[0].status,
+        DeclStatus::Checked,
+        "the hole's subgoal must be `a = x` (only then does `Eq.symm hx` close it)"
+    );
+}
+
+/// **反向**（判据不许放宽）：方向不对的真错**仍然被拒** —— `Eq.symm hx : a = x`
+/// 把目标 `A a` 证成 `A x` ⇒ 与目标 `A a` 对不上（`x`/`a` 都是刚性上下文变量）。
+#[test]
+fn apply_argument_hole_wrong_direction_is_still_rejected() {
+    let src = concat!(
+        "theorem subst_hole_neg (α : Type) (A : α → Prop) (x a : α) (hx : x = a) (ha : A a) :\n",
+        "    A a := by\n",
+        "  apply Eq.subst (Eq.symm hx)\n",
+        "  exact ha\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(
+        report
+            .errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::ElabTacticFailed),
+        "wrong direction must stay rejected: {:?}",
+        report.errors
+    );
+}
+
+/// **e1 的坑复核**（`docs`/交接书 §13.2）：命名实参路径**不许**"静默无操作"
+/// （`apply` 不报错、目标不变、声明变 open exercise）—— 位置实参落到等式位时必须**报错** ✓。
+#[test]
+fn named_argument_pitfall_is_not_silent() {
+    let src = concat!(
+        "theorem named_p (α : Type) (A : α → Prop) (x a : α) (hx : x = a) (h : A a) : A x := by\n",
+        "  apply Eq.subst (p := A) h\n",
+        "  exact Eq.symm hx\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(
+        report
+            .errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::ElabTacticFailed),
+        "`apply Eq.subst (p := A) h` must report, not silently no-op: {:?}",
+        report.errors
+    );
+    assert_ne!(
+        report.decls[0].status,
+        DeclStatus::Checked,
+        "an ill-typed apply must never be accepted"
+    );
+}
+
 #[test]
 fn eq_refl_argument_hole_expects_the_type_argument() {
     let src =
