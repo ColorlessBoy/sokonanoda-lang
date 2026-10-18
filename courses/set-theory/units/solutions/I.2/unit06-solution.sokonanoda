@@ -43,7 +43,7 @@ def EmptyRelation (A : Type) : Rel A A := fun (a b : A) => False
 
 theorem demo_eq_reflexive (A : Type) : Reflexive A (fun (a b : A) => a = b) := by
   intro a
-  exact Eq.refl.{1} A a
+  exact @Eq.refl.{1} A a
 
 theorem demo_empty_symmetric (A : Type) : Symmetric A (EmptyRelation A) := by
   intro a b h
@@ -88,7 +88,7 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
             (((r • s) • t) a d)
             h
             (fun (b : B) => fun (hb : (r a b) ∧ ((s • t) b d)) =>
-              Exists.elim C
+              @Exists.elim C
                 (fun (c : C) => (s b c) ∧ (t c d))
                 (((r • s) • t) a d)
                 (And.right hb)
@@ -220,7 +220,7 @@ theorem classes_isPartition (A : Type) (r : Rel A A)
           fun (hEmpty : C = (∅)) =>
             let hEmpty2 : (EquivClass A r a) = (∅) :=
               @Eq.trans.{1} (Set A) (EquivClass A r a) C (∅)
-                (Eq.symm.{1} (Set A) C (EquivClass A r a) ha) hEmpty;
+                (@Eq.symm.{1} (Set A) C (EquivClass A r a) ha) hEmpty;
             let hBad : a ∈ (∅) :=
               Eq.subst.{1} (Set A) (fun (X : Set A) => a ∈ X)
                 (EquivClass A r a) (∅) hEmpty2 (hrefl a);
@@ -299,7 +299,7 @@ def Nat.pred (n : Nat) : Nat := match n with
 
 theorem Nat.zero_ne_succ (n : Nat) : 0 ≠ Nat.succ n := by
   intro h
-  exact Eq.subst.{1} Nat (fun (m : Nat) => Nat.isZero m) 0 (Nat.succ n) h True.intro
+  exact @Eq.subst.{1} Nat (fun (m : Nat) => Nat.isZero m) 0 (Nat.succ n) h True.intro
 
 theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) : a = b := by
   exact congrArg.{1} Nat.pred h
@@ -331,7 +331,7 @@ theorem nearStep_counterexample :
           (((Nat.succ a) = b) ∨ (a = (Nat.succ b)))
           (nearStep b a)
           (fun (hab : a = b) =>
-            Or.inl (b = a)
+            @Or.inl (b = a)
               (((Nat.succ b) = a) ∨ (b = (Nat.succ a)))
               (Eq.symm.{1} Nat a b hab))
           (fun (h2 : ((Nat.succ a) = b) ∨ (a = (Nat.succ b))) =>

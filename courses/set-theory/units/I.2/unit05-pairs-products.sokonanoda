@@ -51,7 +51,7 @@ import lib.Prod
 
 -- 演示 1（已写好）：库自检 —— 两个投影算在构造子上都还原（这是 iota 计算，不是数学内容）。
 theorem demo_fst_snd_mk (A B : Type) (a : A) (b : B) :
-    Prod.fst A B (prod_mk A B a b) = a ∧ Prod.snd A B (prod_mk A B a b) = b := by
+    Prod.fst A B (@prod_mk A B a b) = a ∧ Prod.snd A B (@prod_mk A B a b) = b := by
   exact Prod.fst_snd_mk A B a b
 
 -- ─────────────────────────────────────────────────────────────
@@ -67,7 +67,7 @@ theorem demo_fst_snd_mk (A B : Type) (a : A) (b : B) :
 -- soko:hint 目标形态：目标就是 `Prod.fst A B (prod_mk A B a b) = a`，不需要 intro。
 -- soko:hint 关键件：lib/Prod 的 `Prod.fst_mk` 正是这个形状（A B a b 四个参数按序喂）。
 theorem prod_fst_mk (A B : Type) (a : A) (b : B) :
-    Prod.fst A B (prod_mk A B a b) = a := by
+    Prod.fst A B (@prod_mk A B a b) = a := by
   sorry
 
 -- 练习 2（T 类）：第二个投影算在构造子上。
@@ -75,7 +75,7 @@ theorem prod_fst_mk (A B : Type) (a : A) (b : B) :
 -- soko:hint 目标形态：`Prod.snd A B (prod_mk A B a b) = b`，不需要 intro。
 -- soko:hint 关键件：lib/Prod 的 `Prod.snd_mk`（A B a b 四个参数按序喂）。
 theorem prod_snd_mk (A B : Type) (a : A) (b : B) :
-    Prod.snd A B (prod_mk A B a b) = b := by
+    Prod.snd A B (@prod_mk A B a b) = b := by
   sorry
 
 -- 练习 3（L 类）：**配对定理** —— 两个序对相等推出两个坐标分别相等。
@@ -83,7 +83,7 @@ theorem prod_snd_mk (A B : Type) (a : A) (b : B) :
 -- soko:hint 目标形态：intro 之后手里是 `h : prod_mk A B a b = prod_mk A B a1 b1`，目标是 `a = a1 ∧ b = b1`。
 -- soko:hint 关键件：`constructor` 拆开 `∧`；两个分支都用 `Eq.subst`，motive 分别是"第一个投影等于什么"与"第二个投影等于什么"；搬完两边会归约成同一个东西，所以起点是 `Eq.refl`；`Prod.fst_mk` / `Prod.snd_mk` 说明归约的结果长什么样。
 theorem prod_mk_inj (A B : Type) (a a1 : A) (b b1 : B) :
-    prod_mk A B a b = prod_mk A B a1 b1 → a = a1 ∧ b = b1 := by
+    @prod_mk A B a b = @prod_mk A B a1 b1 → a = a1 ∧ b = b1 := by
   sorry
 
 -- 练习 4（L 类）：配对定理的完整形态（"当且仅当"）。
@@ -91,7 +91,7 @@ theorem prod_mk_inj (A B : Type) (a a1 : A) (b b1 : B) :
 -- soko:hint 目标形态：`(prod_mk A B a b = prod_mk A B a1 b1) ↔ (a = a1 ∧ b = b1)`。
 -- soko:hint 关键件：`constructor` 拆 `↔`；→ 用 prod_mk_inj（第 3 题）；← 对 `∧` 的两半各做一次 `Eq.subst`（先把第一个坐标换掉、再换第二个），起点是一条 rfl 级的等式（`Eq.refl`）。
 theorem prod_mk_eq_iff (A B : Type) (a a1 : A) (b b1 : B) :
-    (prod_mk A B a b = prod_mk A B a1 b1) ↔ (a = a1 ∧ b = b1) := by
+    (@prod_mk A B a b = @prod_mk A B a1 b1) ↔ (a = a1 ∧ b = b1) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -156,7 +156,7 @@ def Set.graph (A B : Type) (f : A → B) : Set (Prod A B) :=
 -- 演示 2（已写好）：图的成员刻画 —— `prod_mk A B a b` 在图里当且仅当 `f a = b`。
 -- 两边在定义展开后是同一个命题（投影算在构造子上），所以 `↔` 的两个方向都是恒等函数。
 theorem demo_graph_mem (A B : Type) (f : A → B) (a : A) (b : B) :
-    prod_mk A B a b ∈ Set.graph A B f ↔ f a = b := by
+    @prod_mk A B a b ∈ Set.graph A B f ↔ f a = b := by
   constructor
   intro h
   exact h

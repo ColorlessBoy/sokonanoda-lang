@@ -33,7 +33,7 @@ theorem Set.Equiv.refl (α : Type) (A : Set α) : A ≈ A := by
     (fun (x : α) => fun (hx : x ∈ A) => hx)
     (fun (y : α) => fun (hy : y ∈ A) => hy)
     (fun (x : α) => fun (hx : x ∈ A) => @Eq.refl.{1} α x)
-    (fun (y : α) => fun (hy : y ∈ A) => Eq.refl.{1} α y)
+    (fun (y : α) => fun (hy : y ∈ A) => @Eq.refl.{1} α y)
 
 -- 演示 2（必证④）：从单射 + 右逆（**满射的数据形式**）构造等势。
 -- 缺的那条左互逆律由单射补上：f (g (f x)) = f x 是因为 g 在 B 上是右逆，
@@ -69,7 +69,7 @@ def Nat.pred (n : Nat) : Nat := match n with
 -- False；于是 Eq.subst 把 succ n 处的 True.intro 搬到 zero 处，得到 False。
 theorem Nat.succ_ne_zero (n : Nat) : ¬ ((Nat.succ n) = Nat.zero) := by
   intro h
-  exact Eq.subst.{1} Nat (fun (k : Nat) => Nat.isZero k) (Nat.succ n) Nat.zero h True.intro
+  exact @Eq.subst.{1} Nat (fun (k : Nat) => Nat.isZero k) (Nat.succ n) Nat.zero h True.intro
 
 -- 非零自然数之集（自定名：Mathlib 里没有"非零自然数"这个名字的 Set Nat）。
 def nonzero : Set Nat := fun (n : Nat) => ¬ (n = Nat.zero)
@@ -107,7 +107,7 @@ theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
       fun (hf1 : Set.MapsTo α β f1 A B ∧
                      (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
                          (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B))) =>
-        Exists.elim (β → α)
+        @Exists.elim (β → α)
           (fun (g1 : β → α) =>
             Set.MapsTo β α g1 B A ∧
               (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B))
@@ -199,7 +199,7 @@ theorem Set.Equiv.singleton (α β : Type) (a : α) (b : β) :
     {a} ≈ {b} := by
   exact Set.Equiv.mk α β {a} {b} (fun (x : α) => b) (fun (y : β) => a)
     (fun (x : α) => fun (hx : x ∈ {a}) => @Eq.refl.{1} β b)
-    (fun (y : β) => fun (hy : y ∈ {b}) => Eq.refl.{1} α a)
+    (fun (y : β) => fun (hy : y ∈ {b}) => @Eq.refl.{1} α a)
     (fun (x : α) => fun (hx : x ∈ {a}) => Eq.symm.{1} α x a hx)
     (fun (y : β) => fun (hy : y ∈ {b}) => Eq.symm.{1} β y b hy)
 
@@ -214,7 +214,7 @@ theorem Set.equivOfEq (α : Type) (A B : Set α) (h : A = B) :
     (fun (x : α) => fun (hx : x ∈ A) =>
       @Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X) A B h hx)
     (fun (y : α) => fun (hy : y ∈ B) =>
-      Eq.subst.{1} (Set α) (fun (X : Set α) => y ∈ X) B A
+      @Eq.subst.{1} (Set α) (fun (X : Set α) => y ∈ X) B A
         (Eq.symm.{1} (Set α) A B h) hy)
     (fun (x : α) => fun (hx : x ∈ A) => Eq.refl.{1} α x)
     (fun (y : α) => fun (hy : y ∈ B) => Eq.refl.{1} α y)
@@ -238,7 +238,7 @@ theorem not_equiv_empty_singleton (α β : Type) (b : β) :
         fun (hf : Set.MapsTo α β f ∅ {b} ∧
                       (∃ (g : β → α), Set.MapsTo β α g {b} ∅ ∧
                           (Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b}))) =>
-          Exists.elim (β → α)
+          @Exists.elim (β → α)
             (fun (g : β → α) =>
               Set.MapsTo β α g {b} ∅ ∧
                 (Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b}))
@@ -265,7 +265,7 @@ theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
     (fun (ha : ∃ (x : α), x ∈ A) =>
       @Exists.elim α A (∃ (y : β), y ∈ B) ha
         (fun (x : α) => fun (hx : x ∈ A) =>
-          Exists.elim (α → β)
+          @Exists.elim (α → β)
             (fun (f : α → β) =>
               Set.MapsTo α β f A B ∧
                 (∃ (g : β → α), Set.MapsTo β α g B A ∧
@@ -323,7 +323,7 @@ theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
 theorem proper_subset_counterexample :
     nonzero ⊆ (Set.univ Nat) ∧
       (nonzero ≠ Set.univ Nat ∧ nonzero ≈ (Set.univ Nat)) := by
-  exact @And.intro (nonzero ⊆ (Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+  exact @And.intro (nonzero ⊆ (@Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
     (¬ (@Eq.{1} (Set Nat) nonzero (Set.univ Nat)) ∧
          nonzero ≈ (Set.univ Nat))
     (fun (x : Nat) => fun (hx : x ∈ nonzero) => True.intro)

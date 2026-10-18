@@ -100,7 +100,7 @@ theorem pi_const (ι α : Type) (A : ι → Set α) (a : α) (h : ∀ (i : ι), 
 -- soko:hint 目标形态：`Set.univ (ι → α) ⊆ (Set.pi ι α (fun _ => Set.univ α))`。
 -- soko:hint 关键件：`Set.mem_pi_intro` + `Set.mem_univ`。
 theorem pi_univ_subset (ι α : Type) :
-    Set.univ (ι → α) ⊆ (Set.pi ι α (fun (_ : ι) => Set.univ α)) := by
+    @Set.univ (ι → α) ⊆ (Set.pi ι α (fun (_ : ι) => @Set.univ α)) := by
   sorry
 
 -- 练习 6（L 类，本单元旗舰）：**某个因子空 ⇒ 积空**。
@@ -151,7 +151,7 @@ theorem pi_inter_subset_rev (ι α : Type) (A B : ι → Set α) :
 -- soko:hint 目标形态：`uncurry (curry f) (prod_mk a b) = f (prod_mk a b)`。
 -- soko:hint 关键件：`Eq.refl`（**要写全宇宙层级与论域**：结果的类型是 `C`）。
 theorem uncurry_curry (A B C : Type) (f : Prod A B → C) (a : A) (b : B) :
-    uncurry A B C (curry A B C f) (prod_mk A B a b) = f (prod_mk A B a b) := by
+    uncurry A B C (curry A B C f) (@prod_mk A B a b) = f (@prod_mk A B a b) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────

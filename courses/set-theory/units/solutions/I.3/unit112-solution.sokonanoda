@@ -104,7 +104,7 @@ theorem cbC0_gf (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β
     ∀ (x : α), x ∈ cbC0 α β A B f g → g (f x) ∈ cbC0 α β A B f g :=
   fun (x : α) (hx : x ∈ cbC0 α β A B f g) =>
     cbC0_in_fix α β A B f g (g (f x))
-      (And.intro (g (f x) ∈ A) (¬ (g (f x) ∈ g '' (B \ f '' (cbC0 α β A B f g))))
+      (@And.intro (g (f x) ∈ A) (¬ (g (f x) ∈ g '' (B \ f '' (cbC0 α β A B f g))))
         (hgA (f x) (hfB x (demo_cbC0_subset_A α β A B f g x hx)))
         (fun (h2 : g (f x) ∈ g '' (B \ f '' (cbC0 α β A B f g))) =>
           Set.mem_image_elim g (B \ f '' (cbC0 α β A B f g)) (g (f x)) False h2
@@ -199,7 +199,7 @@ theorem cbRel_total (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g 
             Exists.intro b
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
               (And.intro hb
-                (Or.inr (cbRelL α β (cbC0 α β A B f g) f x b)
+                (@Or.inr (cbRelL α β (cbC0 α β A B f g) f x b)
                   (cbRelR α β (cbC0 α β A B f g) g x b)
                   (demo_cbRelR_intro α β (cbC0 α β A B f g) g x b hxNC0 hgb)))))
       (Classical.em (x ∈ cbC0 α β A B f g))
@@ -313,7 +313,7 @@ theorem cbRel_surj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g :
                 (cbC0_subset_K α β A B f g (g y) hgy))
                 (Set.mem_image_intro g (B \ f '' (cbC0 α β A B f g)) (g y) y
                   (And.intro hy hny)
-                  (Eq.refl.{1} α (g y)))))
+                  (@Eq.refl.{1} α (g y)))))
           (fun (x : α) (hxC0 : x ∈ cbC0 α β A B f g) (hfxy : f x = y) =>
             Exists.intro x
               (And.intro

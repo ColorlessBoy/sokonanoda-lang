@@ -33,8 +33,8 @@ def Set.Countable (α : Type) : Prop :=
 -- 练习 2（L）：恒等映射给出 ℕ 与自己的等势（=「ℕ 可数」的实例）。
 -- 两条"进集合"的域条件是 True 的证明，两条互逆律是 rfl 级。
 -- `apply Set.Equiv.mk` 把四条条件留成子目标；映射本身（两把恒等函数）写在 apply 行上。
-theorem nat_equiv_nat : (Set.univ Nat) ≈ (Set.univ Nat) := by
-  apply Set.Equiv.mk Nat Nat (Set.univ Nat) (Set.univ Nat)
+theorem nat_equiv_nat : (@Set.univ Nat) ≈ (@Set.univ Nat) := by
+  apply Set.Equiv.mk Nat Nat (@Set.univ Nat) (@Set.univ Nat)
     (fun (n : Nat) => n) (fun (n : Nat) => n)
   intro x
   intro hx
@@ -83,11 +83,11 @@ theorem diag_helper (α : Type) (f : α → Set α) (D : Set α) (g : (Set α) �
     (f (g D) (g D)) (@Eq.symm.{1} Prop (f (g D) (g D)) (¬ (f (g D) (g D))) e) np)
 
 theorem cantor (α : Type) :
-    ¬ ((Set.univ α) ≈ (Set.univ (Set α))) :=
-  fun (h : (Set.univ α) ≈ (Set.univ (Set α))) =>
-    Exists.elim (α → Set α)
+    ¬ ((@Set.univ α) ≈ (@Set.univ (Set α))) :=
+  fun (h : (@Set.univ α) ≈ (@Set.univ (Set α))) =>
+    @Exists.elim (α → Set α)
     (fun (f : α → Set α) =>
-      Set.MapsTo α (Set α) f (Set.univ α) (Set.univ (Set α)) ∧
+      Set.MapsTo α (Set α) f (@Set.univ α) (Set.univ (Set α)) ∧
       (∃ (g : (Set α) → α), Set.MapsTo (Set α) α g (Set.univ (Set α)) (Set.univ α) ∧
         (Set.LeftInvOn α (Set α) g f (Set.univ α) ∧
          Set.RightInvOn α (Set α) f g (Set.univ (Set α)))))
@@ -124,7 +124,7 @@ theorem cantor (α : Type) :
 
 -- 练习 5（D）：「𝒫ℕ 可数」为假——Cantor 定理在 α := Nat 上的实例。
 theorem powerset_nat_not_countable :
-    ¬ ((Set.univ Nat) ≈ (Set.univ (Set Nat))) := by
+    ¬ ((@Set.univ Nat) ≈ (@Set.univ (Set Nat))) := by
   exact cantor Nat
 
 -- 练习 6（D）：不存在 α → Set α 的满射（假的枚举补不成满射）。
@@ -143,18 +143,18 @@ theorem no_surjection_powerset (α : Type) :
       intro p
       exact (@Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f x x)
         (¬ (f x x)) e p) p
-    exact np (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f x x))
-      (f x x) (Eq.symm.{1} Prop (f x x) (¬ (f x x)) e) np)
+    exact np (@Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f x x))
+      (f x x) (@Eq.symm.{1} Prop (f x x) (¬ (f x x)) e) np)
   intro h
   exact @Exists.elim (α → Set α)
     (fun (f : α → Set α) => Function.Surjective α (Set α) f)
     False h
     (fun (f : α → Set α) => fun (hf : Function.Surjective α (Set α) f) =>
-      Exists.elim α (fun (x : α) => f x = (fun (y : α) => ¬ (f y y))) False
+      @Exists.elim α (fun (x : α) => f x = (fun (y : α) => ¬ (f y y))) False
         (hf (fun (y : α) => ¬ (f y y)))
         (fun (x : α) => fun (hx : f x = (fun (y : α) => ¬ (f y y))) =>
           diag f (fun (y : α) => ¬ (f y y)) x
-            (Eq.refl.{1} (Set α) (fun (y : α) => ¬ (f y y))) hx))
+            (@Eq.refl.{1} (Set α) (fun (y : α) => ¬ (f y y))) hx))
 
 -- 练习 7（L）：满射 ⇒ 存在右逆函数——**卷 I 唯一一次用选择公理**（台账 L-06 的边界）。
 --

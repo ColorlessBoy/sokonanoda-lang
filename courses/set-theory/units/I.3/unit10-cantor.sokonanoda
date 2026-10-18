@@ -62,7 +62,7 @@ def fake_enum (n : Nat) : Set Nat := {n}
 theorem demo_fake_enum_escapes (k : Nat) :
     ¬ ((fun (y : Nat) => ¬ (y = y)) = fake_enum k) := by
   intro h
-  exact absurd (k = k) False (Eq.refl.{1} Nat k)  -- soko:notation-ok: R4：absurd 短写在 exact 里补不出 {a}{b}
+  exact absurd (k = k) False (@Eq.refl.{1} Nat k)  -- soko:notation-ok: R4：absurd 短写在 exact 里补不出 {a}{b}
     (Eq.subst.{1} (Set Nat) (fun (X : Set Nat) => X k)
       (fake_enum k) (fun (y : Nat) => ¬ (y = y))
       (Eq.symm.{1} (Set Nat) (fun (y : Nat) => ¬ (y = y)) (fake_enum k) h)
@@ -89,9 +89,9 @@ theorem demo_diag (α : Type) (f : α → Set α) (x : α) :
     congrArg.{1} (fun (A : Set α) => A x) h
   have hnp : ¬ (f x x) := by
     intro p
-    exact Eq.subst.{1} Prop (fun (Q : Prop) => Q → ¬ (f x x))
+    exact @Eq.subst.{1} Prop (fun (Q : Prop) => Q → ¬ (f x x))
       (¬ (f x x)) (f x x) e (fun (np : ¬ (f x x)) => np) p p
-  exact absurd (f x x) False (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f x x)) (f x x) e hnp) hnp  -- soko:notation-ok: R4：absurd 短写在 exact 里补不出 {a}{b}
+  exact absurd (f x x) False (@Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f x x)) (f x x) e hnp) hnp  -- soko:notation-ok: R4：absurd 短写在 exact 里补不出 {a}{b}
 
 -- ─────────────────────────────────────────────────────────────
 -- 10.3 可数：定义

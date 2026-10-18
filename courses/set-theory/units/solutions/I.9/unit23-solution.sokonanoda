@@ -39,9 +39,9 @@ theorem pi_const (ι α : Type) (A : ι → Set α) (a : α) (h : ∀ (i : ι), 
   Set.mem_pi_intro ι α A (fun (_ : ι) => a) (fun (i : ι) => h i)
 
 theorem pi_univ_subset (ι α : Type) :
-    Set.univ (ι → α) ⊆ (Set.pi ι α (fun (_ : ι) => Set.univ α)) :=
-  fun (f : ι → α) (hf : f ∈ Set.univ (ι → α)) =>
-    Set.mem_pi_intro ι α (fun (_ : ι) => Set.univ α) f
+    @Set.univ (ι → α) ⊆ (Set.pi ι α (fun (_ : ι) => @Set.univ α)) :=
+  fun (f : ι → α) (hf : f ∈ @Set.univ (ι → α)) =>
+    Set.mem_pi_intro ι α (fun (_ : ι) => @Set.univ α) f
       (fun (i : ι) => @Set.mem_univ α (f i))
 
 theorem pi_empty_of_empty (ι α : Type) (A : ι → Set α)
@@ -66,8 +66,8 @@ theorem pi_inter_subset (ι α : Type) (A B : ι → Set α) :
             (Set.mem_pi_elim ι α (fun (i' : ι) => A i' ∩ B i') f i hf)))
 
 theorem uncurry_curry (A B C : Type) (f : Prod A B → C) (a : A) (b : B) :
-    uncurry A B C (curry A B C f) (prod_mk A B a b) = f (prod_mk A B a b) :=
-  Eq.refl.{1} C (f (prod_mk A B a b))
+    uncurry A B C (curry A B C f) (@prod_mk A B a b) = f (@prod_mk A B a b) :=
+  @Eq.refl.{1} C (f (@prod_mk A B a b))
 
 theorem pi_inter_subset_rev (ι α : Type) (A B : ι → Set α) :
     ((Set.pi ι α A) ∩ (Set.pi ι α B)) ⊆ (Set.pi ι α (fun (i : ι) => A i ∩ B i)) :=
@@ -82,18 +82,18 @@ theorem pi_nonempty_of_choice (ι α : Type) (A : ι → Set α)
     (h : ∀ (i : ι), ∃ (x : α), x ∈ A i) :
     ∃ (f : ι → α), f ∈ (Set.pi ι α A) :=
   @Exists.elim (ι → α)
-    (fun (f : ι → α) => ∀ (i : ι), i ∈ Set.univ ι → f i ∈ Set.univ α ∧ f i ∈ A i)
+    (fun (f : ι → α) => ∀ (i : ι), i ∈ @Set.univ ι → f i ∈ @Set.univ α ∧ f i ∈ A i)
     (∃ (f : ι → α), f ∈ (Set.pi ι α A))
-    (choice ι α (Set.univ ι) (Set.univ α) (fun (i : ι) (x : α) => x ∈ A i)
-      (fun (i : ι) (hi : i ∈ Set.univ ι) =>
+    (choice ι α (@Set.univ ι) (@Set.univ α) (fun (i : ι) (x : α) => x ∈ A i)
+      (fun (i : ι) (hi : i ∈ @Set.univ ι) =>
         @Exists.elim α (fun (x : α) => x ∈ A i)
-          (∃ (x : α), x ∈ Set.univ α ∧ x ∈ A i) (h i)
+          (∃ (x : α), x ∈ @Set.univ α ∧ x ∈ A i) (h i)
           (fun (x : α) (hx : x ∈ A i) =>
             Exists.intro x
               (And.intro (@Set.mem_univ α x) hx))))
     (fun (f : ι → α)
-      (hf : ∀ (i : ι), i ∈ Set.univ ι → f i ∈ Set.univ α ∧ f i ∈ A i) =>
+      (hf : ∀ (i : ι), i ∈ @Set.univ ι → f i ∈ @Set.univ α ∧ f i ∈ A i) =>
       Exists.intro f
         (Set.mem_pi_intro ι α A f
           (fun (i : ι) =>
-            (fun (hi : f i ∈ Set.univ α ∧ f i ∈ A i) => And.right hi) (hf i (@Set.mem_univ ι i)))))
+            (fun (hi : f i ∈ @Set.univ α ∧ f i ∈ A i) => And.right hi) (hf i (@Set.mem_univ ι i)))))

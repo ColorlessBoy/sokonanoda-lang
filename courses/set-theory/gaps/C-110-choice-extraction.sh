@@ -32,7 +32,11 @@ for name in choice_family choice_right_inverse; do
   fi
 done
 
-if grep -q "choice α β I (Set.univ β)" "$SOL" && grep -q "choice β α B A" "$SOL"; then
+# ⚠ 2026-10-18（a13 语料迁移）：严格档下这一处写成 `@Set.univ β`（`Set.univ` 的前导
+# 隐式实参必须显式写出来，见该文件里的 `soko:notation-ok` 说明）⇒ 这条**字面量**匹配
+# 容忍一个可选的 `@` 前缀。**判据本身一个字没动**：仍然要求两个 `choice` 调用点
+# （`choice α β I …` 与 `choice β α B A`）**都在**，少一个照样 exit 1 ✓。
+if grep -qE "choice α β I \(@?Set\.univ β\)" "$SOL" && grep -q "choice β α B A" "$SOL"; then
   echo "OK  the key step really goes through the choice axiom (both call sites)"
 else
   echo "BAD 110: the choice call sites are gone -- the extraction step was bypassed"

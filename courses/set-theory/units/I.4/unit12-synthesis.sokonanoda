@@ -282,8 +282,8 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
 theorem flawed_equalities_refuted :
     (fun (_ : Set Nat) => ∅) '' ((fun (_ : Set Nat) => ∅) ⁻¹' (@Set.univ (Set Nat)))
       ≠ @Set.univ (Set Nat)
-    ∧ (fun (_ : Set Nat) => ∅) '' ({∅} ∩ {(Set.univ Nat)})
-      ≠ ((fun (_ : Set Nat) => ∅) '' {∅}) ∩ ((fun (_ : Set Nat) => ∅) '' {(Set.univ Nat)})
+    ∧ (fun (_ : Set Nat) => ∅) '' ({∅} ∩ {(@Set.univ Nat)})
+      ≠ ((fun (_ : Set Nat) => ∅) '' {∅}) ∩ ((fun (_ : Set Nat) => ∅) '' {(@Set.univ Nat)})
       := by
   sorry
 

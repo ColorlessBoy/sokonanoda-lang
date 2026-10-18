@@ -151,8 +151,8 @@ theorem injective_iff_kernel (α β : Type) (f : α → β) :
       fun (a : α) => fun (b : α) => fun (hab : @Eq.{1} β (f a) (f b)) => h a b hab)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
 
 theorem relImg_univ_mem (α β : Type) (r : Rel α β) (b : β) :
-    b ∈ (relImg α β r (Set.univ α)) ↔ ∃ (a : α), r a b :=
-  @Iff.intro (b ∈ (relImg α β r (Set.univ α))) (∃ (a : α), r a b)
+    b ∈ (relImg α β r (@Set.univ α)) ↔ ∃ (a : α), r a b :=
+  @Iff.intro (b ∈ (relImg α β r (@Set.univ α))) (∃ (a : α), r a b)
     (fun (h : b ∈ (relImg α β r (Set.univ α))) =>
       @Exists.elim α (fun (a : α) => (@Set.univ α) a ∧ r a b) (∃ (a1 : α), r a1 b) h
         (fun (a : α) (ha : (Set.univ α) a ∧ r a b) =>

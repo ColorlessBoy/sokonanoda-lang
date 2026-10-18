@@ -58,11 +58,11 @@ theorem pointwiseLe_comp (α β γ : Type) (r : β → β → Prop) (s : γ → 
 
 theorem isSup_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β) → Prop) (h : α → β)
     (hh : ∀ (a : α),
-      IsSup β r (fun (y : β) => ∃ (f : α → β), F f ∧ Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      IsSup β r (fun (y : β) => ∃ (f : α → β), F f ∧ @Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
     IsSup (α → β) (PointwiseLe α β r) F h :=
   isSup_intro (α → β) (PointwiseLe α β r) F h
     (fun (f : α → β) => fun (hf : F f) => fun (a : α) =>
-      (fun (hu : ∀ (y : β), (∃ (f1 : α → β), F f1 ∧ Eq.{1} β (f1 a) y) → r y (h a)) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (hu : ∀ (y : β), (∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) → r y (h a)) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
         hu (f a) (Exists.intro (α → β) (fun (f1 : α → β) => F f1 ∧ Eq.{1} β (f1 a) (f a))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
           f (And.intro hf (Eq.refl.{1} β (f a)))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
         (isSup_upper β r (fun (y : β) => ∃ (f1 : α → β), F f1 ∧ Eq.{1} β (f1 a) y) (h a) (hh a)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
@@ -82,11 +82,11 @@ theorem isSup_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β)
 
 theorem isInf_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β) → Prop) (h : α → β)
     (hh : ∀ (a : α),
-      IsInf β r (fun (y : β) => ∃ (f : α → β), F f ∧ Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      IsInf β r (fun (y : β) => ∃ (f : α → β), F f ∧ @Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
     IsInf (α → β) (PointwiseLe α β r) F h :=
   isInf_intro (α → β) (PointwiseLe α β r) F h
     (fun (f : α → β) => fun (hf : F f) => fun (a : α) =>
-      (fun (hu : ∀ (y : β), (∃ (f1 : α → β), F f1 ∧ Eq.{1} β (f1 a) y) → r (h a) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (hu : ∀ (y : β), (∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) → r (h a) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
         hu (f a) (Exists.intro (α → β) (fun (f1 : α → β) => F f1 ∧ Eq.{1} β (f1 a) (f a))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
           f (And.intro hf (Eq.refl.{1} β (f a)))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
         (isInf_lower β r (fun (y : β) => ∃ (f1 : α → β), F f1 ∧ Eq.{1} β (f1 a) y) (h a) (hh a)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来

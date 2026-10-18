@@ -41,8 +41,8 @@ theorem pow_mono (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) :
 theorem subset_univ (α : Type) (A : Set α) : A ⊆ @Set.univ α :=
   fun (x : α) (hx : x ∈ A) => @Set.mem_univ α x
 
-theorem pow_mono_univ (α : Type) (A : Set α) : Pow α A ⊆ Pow α (Set.univ α) :=
-  pow_mono α A (Set.univ α) (subset_univ α A)
+theorem pow_mono_univ (α : Type) (A : Set α) : Pow α A ⊆ Pow α (@Set.univ α) :=
+  pow_mono α A (@Set.univ α) (subset_univ α A)
 
-theorem univ_pow_mem (α : Type) (A : Set α) : A ∈ Pow α (Set.univ α) :=
-  subset_pow_mem α (Set.univ α) A (subset_univ α A)
+theorem univ_pow_mem (α : Type) (A : Set α) : A ∈ Pow α (@Set.univ α) :=
+  subset_pow_mem α (@Set.univ α) A (subset_univ α A)

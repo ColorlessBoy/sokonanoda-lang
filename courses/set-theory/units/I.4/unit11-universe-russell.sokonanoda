@@ -90,7 +90,7 @@ theorem subset_univ (α : Type) (A : Set α) : A ⊆ @Set.univ α := by
 -- → 方向走 Set.ext，逐元素证 (A x) ↔ (x ∈ Set.univ α)：左到右交 True.intro，
 -- 右到左把 h 用到 x 与 True.intro 上；← 方向把 x ∈ univ 沿 Eq.symm 搬回 A。
 theorem univ_subset_iff (α : Type) (A : Set α) :
-    (Set.univ α ⊆ A) ↔ (A = Set.univ α) := by
+    (@Set.univ α ⊆ A) ↔ (A = @Set.univ α) := by
   constructor
   intro h
   apply Set.ext
@@ -104,14 +104,14 @@ theorem univ_subset_iff (α : Type) (A : Set α) :
   intro x
   intro hu
   exact Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X)
-    (@Set.univ α) A (Eq.symm.{1} (Set α) A (Set.univ α) h) hu
+    (@Set.univ α) A (Eq.symm.{1} (Set α) A (@Set.univ α) h) hu
 
 -- 演示 3（已写好）：把 11.1 里那句话限制在**一个类型内**，它确实成立——
--- 本类型内存在一个包含一切（本类型）集合的集合，证人就是 Set.univ α。
+-- 本类型内存在一个包含一切（本类型）集合的集合，证人就是 @Set.univ α。
 -- 存在量词用 `∃ (U : Set α), …` 写，构造用 Exists.intro，两项都要把类型与谓词写全。
 theorem exists_univ (α : Type) :
     ∃ (U : Set α), ∀ (A : Set α), A ⊆ U := by
-  exact ⟨Set.univ α, fun (A : Set α) => subset_univ α A⟩
+  exact ⟨@Set.univ α, fun (A : Set α) => subset_univ α A⟩
 
 -- ─────────────────────────────────────────────────────────────
 -- 11.3 必破（D 类）：把「一切」放大到跨论域，或者加强成「严格更大」
@@ -155,7 +155,7 @@ theorem no_univ_strictly_larger (α : Type) :
 -- soko:hint 目标形态：A ∈ 𝒫 (Set.univ α)，它展开后就是 A ⊆ Set.univ α。
 -- soko:hint 关键件：触发条件是「目标形如 A ∈ 𝒫 B」；用 Set.mem_powerset_iff 换成 A ⊆ B，再把 A ⊆ univ 这一步交出去（演示 1，或就地 intro 后给 True.intro）。
 theorem mem_powerset_univ (α : Type) (A : Set α) :
-    A ∈ 𝒫 (Set.univ α) := by
+    A ∈ 𝒫 (@Set.univ α) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -180,7 +180,7 @@ theorem mem_powerset_univ (α : Type) (A : Set α) :
 -- soko:hint 目标形态：Set.univ (Set α) ∈ Set.univ (Set (Set α))，两边的东西都属于类型 Set (Set α)。
 -- soko:hint 关键件：触发条件是「目标是『某元素属于该类型的 Set.univ』」；用 Set.mem_univ，类型参数写 Set (Set α)，元素参数写 Set.univ (Set α)。
 theorem univ_mem_univ_of_sets (α : Type) :
-    Set.univ (Set α) ∈ Set.univ (Set (Set α)) := by
+    @Set.univ (Set α) ∈ @Set.univ (Set (Set α)) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -199,7 +199,7 @@ theorem univ_mem_univ_of_sets (α : Type) :
 -- soko:hint 目标形态：(A ⊆ Set.univ α) ∧ ((Set.univ α ⊆ A) ↔ (A = Set.univ α))，逐元素展开都发生在第二支里面。
 -- soko:hint 关键件：And.intro 要吃齐四样（两个命题各写一遍，再交两个证明）；两个证明分别就是演示 1 与演示 2 的名字。
 theorem univ_top_iff (α : Type) (A : Set α) :
-    (A ⊆ Set.univ α) ∧ ((Set.univ α ⊆ A) ↔ (A = Set.univ α)) := by
+    (A ⊆ @Set.univ α) ∧ ((@Set.univ α ⊆ A) ↔ (A = @Set.univ α)) := by
   sorry
 
 -- 练习 5（X 类）：把下面这句散文译成一条等式并证明。
@@ -211,5 +211,5 @@ theorem univ_top_iff (α : Type) (A : Set α) :
 -- soko:hint 目标形态：𝒫 (Set.univ α) = Set.univ (Set α)，逐元素是 (A ⊆ Set.univ α) ↔ True。
 -- soko:hint 关键件：触发条件是「目标是两个 Set (Set α) 的等式」；用 Set.ext（第一个参数写 Set α），左到右一步到 True（Set.mem_univ），右到左要交出 A ⊆ univ（演示 1，或就地 intro 给 True.intro）。
 theorem powerset_univ_eq_univ_of_sets (α : Type) :
-    𝒫 (Set.univ α) = Set.univ (Set α) := by
+    𝒫 (@Set.univ α) = @Set.univ (Set α) := by
   sorry

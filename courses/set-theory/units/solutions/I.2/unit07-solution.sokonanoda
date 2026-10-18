@@ -46,12 +46,12 @@ theorem surjective_comp (α β γ : Type) (f : α → β) (g : β → γ)
     (∃ (x : α), (g ∘ f) x = z)
     (hg z)
     (fun (y : β) => fun (hy : g y = z) =>
-      Exists.elim α (fun (x : α) => f x = y)
+      @Exists.elim α (fun (x : α) => f x = y)
         (∃ (x : α), (g ∘ f) x = z)
         (hf y)
         (fun (x : α) => fun (hx : f x = y) =>
           Exists.intro x
-            (Eq.trans.{1} γ (g (f x)) (g y) z (congrArg.{1} g hx) hy)))
+            (@Eq.trans.{1} γ (g (f x)) (g y) z (congrArg.{1} g hx) hy)))
 
 -- 题 4：x ← g (f x) → g (f y) → y，两段用 Eq.trans 接。
 theorem leftInverse_injective (α β : Type) (f : α → β) (g : β → α)
@@ -59,7 +59,7 @@ theorem leftInverse_injective (α β : Type) (f : α → β) (g : β → α)
   intro x y hxy
   exact @Eq.trans.{1} α x (g (f x)) y
     (@Eq.symm.{1} α (g (f x)) x (h x))
-    (Eq.trans.{1} α (g (f x)) (g (f y)) y
+    (@Eq.trans.{1} α (g (f x)) (g (f y)) y
       (congrArg.{1} g hxy)
       (h y))
 
@@ -126,8 +126,8 @@ theorem swap_converse_false :
       @Set.notMem_empty Nat 0
         (@Eq.subst.{1} (Set Nat)
           (fun (X : Set Nat) => 0 ∈ X)
-          (Set.univ Nat) (∅)
-          (@Eq.trans.{1} (Set Nat) (Set.univ Nat) y (∅)
-            (hy (Set.univ Nat))
+          (@Set.univ Nat) (∅)
+          (@Eq.trans.{1} (Set Nat) (@Set.univ Nat) y (∅)
+            (hy (@Set.univ Nat))
             (@Eq.symm.{1} (Set Nat) (∅) y (hy (∅))))
           (@Set.mem_univ Nat 0)))
