@@ -3368,20 +3368,19 @@ fn node_body(nodes: &[GoalNode], id: usize, hole_span: Span, tactic_holes: &mut 
             span: Span::default(),
         },
         NodeKind::Apply { f, args, explicit } => {
-            let mut app = f.clone();
-            for arg in args {
-                let arg_expr = match arg {
+            // **实参位的洞（a14）**：装配（含"洞就地填"）在 `compile::hole::assemble_apply` ✓。
+            let is_sub: Vec<bool> = args
+                .iter()
+                .map(|a| matches!(a, ApplyArg::SubGoal(_)))
+                .collect();
+            let exprs: Vec<Expr> = args
+                .iter()
+                .map(|arg| match arg {
                     ApplyArg::TypeParam(e) => e.clone(),
                     ApplyArg::SubGoal(i) => assemble(nodes, *i, hole_span, tactic_holes),
-                };
-                app = Expr::App {
-                    fun: Box::new(app),
-                    arg: Box::new(arg_expr),
-                    explicit_spine: *explicit,
-                    span: f.span(),
-                };
-            }
-            app
+                })
+                .collect();
+            crate::compile::hole::assemble_apply(f, &exprs, &is_sub, *explicit)
         }
         NodeKind::Cases { scrutinee, arms } => Expr::Match {
             scrutinee: Box::new(scrutinee.clone()),

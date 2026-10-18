@@ -3276,9 +3276,12 @@ impl Parser {
                 sort: SortKind::Prop,
                 span: tok.span,
             }),
-            // `sorry`（与官方 Lean 同义）：未完成证明的占位符，等价于 sorry。
-            // 只在表达式位置拦截；声明名字走各自的语法路径不受影响。
-            TokenKind::Ident(name) if name == "sorry" => Ok(Expr::Hole { span: tok.span }),
+            // `sorry`（与官方 Lean 同义）与 `_`（**实参位的洞**，a14）：项位都收成洞
+            // （Lean 4 里 `_` 是独立语法类，`Parser/Term/Basic.lean:117`）；
+            // 模式位走 `parse_pattern`、binder 名走 `parse_binder` ✗ 各有路径、不受影响。
+            TokenKind::Ident(name) if name == "sorry" || name == "_" => {
+                Ok(Expr::Hole { span: tok.span })
+            }
             TokenKind::Ident(name) if name == "Type" => {
                 // `Type` 单独出现是 `Sort 1`；`Type n` 是 Lean 记法，等于
                 // `Sort (n + 1)`（Lean 里 `Type u = Sort (u + 1)`）。
