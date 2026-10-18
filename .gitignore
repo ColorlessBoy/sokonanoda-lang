@@ -7,6 +7,11 @@
 
 # editor/vscode（npm / vsce / 扩展测试产物）
 node_modules/
+# ⚠ **这一条不带斜杠**（2026-10-18 实测 ✗）：worktree 里没有 `editor/vscode/node_modules`
+# （`node_modules/` 带斜杠只匹配**目录**），而 `scripts/vscode-input-vim-e2e.mjs` 的
+# `ensureExtensionDeps()` 会把缺的那份**软链**到主 checkout ⇒ git 对**软链不按目录匹配**
+# ⇒ 带斜杠那条**覆盖不到它**，软链会以 `??` 冒出来、把 worktree 弄"脏"（收口/发版闸门会判红 ✗）。
+editor/vscode/node_modules
 *.vsix
 .vscode-test/
 learner/

@@ -45,6 +45,7 @@ import {
   readdirSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
@@ -88,6 +89,92 @@ const IS_MAC = process.platform === "darwin";
 const MOD = IS_MAC ? 4 : 2; // CDP modifiers：Alt=1 Ctrl=2 Meta=4 Shift=8
 const log = (...a) => console.log("[vim-e2e]", ...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// ── 内置语言服务器：**必须存在**，否则弹模态框（2026-10-18 用户实测的三个弹窗之二 ✗）──
+// ⚠ **症状（用户原话）**：「未找到内置语言服务器」+「`sokonanoda-lsp` 回退下载失败」两个
+//   右下角弹窗 —— 它们**不是**被测扩展的 bug，是**从 worktree 里跑这条判据**的必然结果：
+//   `editor/vscode/bin/` 是 **gitignored**（`.gitignore:15`）⇒ 每棵 worktree 里都**没有**
+//   `bin/<target>/sokonanoda-lsp` ⇒ 扩展按"bundled 优先"解析不到 ⇒ 回退**联网下载**
+//   （`extension.js` 的三条弹窗：`当前平台没有内置语言服务器` / `未找到内置…正在按 v…回退下载` /
+//   `…回退下载失败`）⇒ 下载再失败 ⇒ **两个模态框**。
+// ⚠ **为什么必须修，不是"看着烦"** ✗：模态框会**抢焦点**，而这条判据最怕的正是"窗口被挡在后面
+//   ⇒ 读到的 DOM 是陈旧画面"（`stableLines()` / `focusEmulation()` 就是为它加的）⇒ 弹窗能直接
+//   把判据变成**假红/假绿** ✗。
+// ⇒ 口径：**开跑前把内置服务器备齐** —— 本 checkout 没有就从**主 checkout** 拷（同一个 target、
+//   零构建 ✓）；两边都没有 ⇒ **当场判红并给可执行的出路**（**绝不**让它静默回退下载 ✗）。
+function hostTarget() {
+  const arch = process.arch === "arm64" ? "arm64" : "x64";
+  if (process.platform === "darwin") return `darwin-${arch}`;
+  if (process.platform === "win32") return `win32-${arch}`;
+  return `linux-${arch}`;
+}
+
+/// 主 checkout 的根（worktree 里 `REPO` 不是主 checkout ⇒ 从 git 的公共目录推）。
+function mainCheckout() {
+  try {
+    const common = execFileSync(
+      "git", ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+      { cwd: REPO, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    ).trim();
+    return resolve(common, "..");
+  } catch {
+    return REPO;
+  }
+}
+
+function ensureBundledServer() {
+  const target = hostTarget();
+  const want = ["sokonanoda-lsp", "sokonanoda"];
+  const here = join(EXTENSION, "bin", target);
+  if (want.every((n) => existsSync(join(here, n)))) return target;
+  const there = join(mainCheckout(), "editor/vscode/bin", target);
+  if (want.every((n) => existsSync(join(there, n)))) {
+    mkdirSync(here, { recursive: true });
+    for (const n of want) cpSync(join(there, n), join(here, n));
+    log(`内置服务器：本 checkout 没有 ⇒ 已从主 checkout 拷 ${target}/（零构建）✓`);
+    return target;
+  }
+  console.error(
+    `error: 没有内置语言服务器 ${join(here, "sokonanoda-lsp")} ⇒ 被测扩展会弹\n` +
+    `       「未找到内置语言服务器」+「回退下载失败」两个**模态框**（抢焦点 ⇒ 读数不可信 ✗）。\n` +
+    `       出路：在**有 bin/ 的 checkout**（主 checkout）里跑，或先\n` +
+    `         (cd editor/vscode && node scripts/stage-lsp.js --profile release)\n` +
+    `       把它备齐（本脚本**不会**替你联网回退下载 ✗）。`,
+  );
+  process.exit(3);
+}
+
+// ── 被测扩展的**运行时依赖**：`node_modules/` 必须存在（2026-10-18 实测 ✗）──
+// ⚠⚠ **这条比上面那个弹窗更致命**：`editor/vscode/node_modules`（**327 个包 / 130MB**）是
+//   **gitignored** ⇒ **每棵 worktree 里都没有** ⇒ `extension.js:31` 的
+//   `require("vscode-languageclient/node")` **当场抛** ⇒ 扩展 `activate()` 失败 ⇒
+//   **被测扩展根本没加载** ✗✗。实测（worktree `v1`）：
+//     · `(cd editor/vscode && node -e "require.resolve('vscode-languageclient/node')")`
+//       ⇒ 主 checkout **OK** · worktree **`MODULE_NOT_FOUND`**；
+//     · 从 worktree 跑本脚本 ⇒ `vim=on` 臂 **DOM = `["(\\alpha x)"]`**（原文照打、
+//       **改写器一次都没触发**）· 磁盘 `[""]` ⇒ **整轮读数测的是"没有扩展的 VS Code"** ✗。
+//   ⇒ 这正是本仓点名的"**判据空转**"家族（用户 2026-10-17：「**修了不守 ⇒ 会漂**」）：
+//     判据在跑、也报 FAIL，但它量的是**别的东西**（"VS Code 打字"），不是被测扩展 ✗。
+// ⚠ **为什么是软链不是拷贝**：130MB × 每棵 worktree ⇒ 正是 worktree 撑爆磁盘的老路 ✗；
+//   软链是零拷贝、且 node 的解析会跟过去 ✓（`node_modules` 本来就在 `.gitignore` 里 ⇒
+//   不是"污染仓库" ✗）。
+function ensureExtensionDeps() {
+  const here = join(EXTENSION, "node_modules");
+  if (existsSync(here)) return;
+  const there = join(mainCheckout(), "editor/vscode/node_modules");
+  if (existsSync(there)) {
+    symlinkSync(there, here, "dir");
+    log("被测扩展的 node_modules：本 checkout 没有 ⇒ 已软链到主 checkout（零拷贝）✓");
+    return;
+  }
+  console.error(
+    `error: 被测扩展的运行时依赖不在 ${here} ⇒ \`extension.js\` 的\n` +
+    `       require("vscode-languageclient/node") 会抛 ⇒ **扩展根本不加载** ⇒\n` +
+    `       整轮读数测的是"没有扩展的 VS Code"（判据**空转** ✗）。\n` +
+    `       出路：(cd editor/vscode && npm ci)   —— 或在主 checkout 里跑本脚本。`,
+  );
+  process.exit(3);
+}
 
 // ── 参数 ────────────────────────────────────────────────────────────────────
 const args = {
@@ -290,7 +377,7 @@ const CASES = [
 ];
 
 // ── 构建身份（每条读数都要能归属到一份构建）─────────────────────────────────
-function buildIdentity() {
+function buildIdentity(target) {
   const short = (p) => {
     try {
       const st = execFileSync("stat", ["-f", "%m %z", p], { encoding: "utf8" }).trim();
@@ -307,8 +394,21 @@ function buildIdentity() {
   } catch {
     /* 不是 git 工作区 */
   }
+  // ⚠ **被测服务器也要进身份**（2026-10-18）：不记它的话，"这条读数是用哪份 LSP 跑的"
+  //   就只能靠猜 —— 而"内置服务器"正是本脚本刚从主 checkout 拷过来的东西 ✗。
+  let lsp = "missing";
+  try {
+    lsp = execFileSync("shasum", ["-a", "256", join(EXTENSION, "bin", target, "sokonanoda-lsp")], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim().slice(0, 16);
+  } catch {
+    /* 平台没有 shasum ⇒ 身份里如实写 missing（不编造 ✗） */
+  }
   return {
     head,
+    bundled_target: target,
+    lsp_sha256_16: lsp,
     extension_js: short(join(EXTENSION, "extension.js")),
     // ⚠ 改写器**不在** extension.js 里（那边 `require("./src/abbreviation-rewriter")`）
     // ⇒ 身份必须带上它，否则「改了 src 却没生效」看不出来。
@@ -715,6 +815,14 @@ function prepare(tag, arm, settings, vimExt) {
   rmSync(profile, { recursive: true, force: true });
   mkdirSync(join(profile, "User"), { recursive: true });
   mkdirSync(join(profile, "extensions"), { recursive: true });
+  // ⚠ **`--shared-data-dir` 的目录必须存在**（2026-10-18 · 用户实测报错 ✗）：
+  //   `launch()` 传了 `--shared-data-dir=${profile}/shared`，而这里**只建了
+  //   `User` 与 `extensions`** ✗ ⇒ VS Code 起来后写不进去 ⇒ 弹一个**模态错误框**
+  //   「**Unable to write program user data**」（带 Version/Commit/Electron 那一串）
+  //   ⇒ ① 挡住用户的屏幕 ✗；② **e2e 自己也跑不下去** ✗。
+  //   修：把 `shared` 也建出来 ✓（官方的 `editor/vscode/.vscode-test.mjs` **不传**
+  //   `--shared-data-dir` ⇒ 所以它从来没踩到这个 ✗）。
+  mkdirSync(join(profile, "shared"), { recursive: true });
   writeFileSync(
     join(profile, "User", "settings.json"),
     JSON.stringify({ ...baseSettings(), ...settings }, null, 2),
@@ -978,14 +1086,22 @@ if (!existsSync(join(EXTENSION, "package.json"))) {
   console.error(`error: 扩展目录不完整：${EXTENSION}`);
   process.exit(3);
 }
-const identity = buildIdentity();
+// 内置服务器必须在开窗前备齐（否则弹两个模态框 ⇒ 抢焦点 ⇒ 读数不可信 ✗，见 `ensureBundledServer`）
+// ⚠ 放在 `--list` **之后**：列用例不启动 VS Code ⇒ 不该因为缺二进制就拒绝列清单 ✗。
 if (args.list) {
   for (const c of CASES) {
     console.log(`${c.arms.join("/").padEnd(7)} ${c.id.padEnd(34)} ${c.why}`);
   }
   process.exit(0);
 }
-
+// ⚠⚠ 前置**两条**（都在开窗之前，见各自 docstring）：
+//   ① `ensureExtensionDeps()` —— **被测扩展自己能不能加载**（缺 `node_modules` ⇒
+//      `activate()` 抛 ⇒ 整轮读数测的是"没有扩展的 VS Code" = 判据**空转** ✗✗）；
+//   ② `ensureBundledServer()` —— 内置 LSP 在不在（缺 ⇒ 两个模态框抢焦点 ✗）。
+//   ⚠ 顺序有意义：**① 比 ② 致命**（②只是弹窗，①是"判据量的不是被测物"）⇒ 先判 ① ✓。
+ensureExtensionDeps();
+const bundledTarget = ensureBundledServer();
+const identity = buildIdentity(bundledTarget);
 const wantedArms = args.noVim ? ["off"] : args.vimOnly ? ["on"] : ["on", "off"];
 const selected = (args.case ? CASES.filter((c) => c.id === args.case) : CASES).filter((c) =>
   c.arms.some((arm) => wantedArms.includes(arm)),
@@ -1067,7 +1183,8 @@ if (args.json) {
 } else {
   log(
     `构建身份：HEAD ${identity.head} · extension.js ${identity.extension_js} · ` +
-      `abbreviation-rewriter.js ${identity.abbreviation_rewriter} · vim ${vimExt ?? "（未装）"}`,
+      `abbreviation-rewriter.js ${identity.abbreviation_rewriter} · ` +
+      `lsp ${identity.bundled_target}/${identity.lsp_sha256_16} · vim ${vimExt ?? "（未装）"}`,
   );
 }
 if (failure || failed.length > 0) {
