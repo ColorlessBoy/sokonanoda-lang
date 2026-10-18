@@ -1,3 +1,11 @@
+## 接口 agent 直接交付（2026-10-18 17:2x · 用户授权「**你来做吧**」/「**你直接改吧**」）（未发版）
+
+- ⭐ **用户拿到什么**：① **编排者读的那一面（`docs/ONBOARDING.md` §0.2「最靠前的 5 条」）第一次看得见外部提交** —— 改前 36 条开着（**23 条是外部提交**）而 §0.2 印的 5 条**全是编排者自己排的** ✗；② **`vscode-input-vim-e2e` 从 worktree 跑时不再空转**（改前它测的是"**没有扩展的** VS Code" ✗）。
+- ⭐ **三处真因（都有改前读数）**：① `scripts/ux-queue.py` 的 `render_onboarding()` **自己另排一份序**（`(severity, id)` = **按 id 字母序**）⇒ `SUB-*` 落到**第 7 名**以后（实测：第一条外部提交名次 **7 → 1**）—— 而 `--next` 说 `SUB-agent-never-lands-to-main` ⇒ **两个视图打架、方向进不来** ✗ ⇒ 抽成 `next_order()`（**一处定义、两处消费**：`cmd_next` + `render_onboarding`）；② `editor/vscode/node_modules`（**327 包 / 130MB**）是 **gitignored** ⇒ worktree 里没有 ⇒ `extension.js:31` 的 `require("vscode-languageclient/node")` **抛** ⇒ **被测扩展根本不 activate** ⇒ 新增 `ensureExtensionDeps()`（缺则**软链**到主 checkout，零拷贝；两边都没有 ⇒ rc=3 + 出路）；③ `--shared-data-dir=<profile>/shared` 而 `prepare()` 只建 `User`/`extensions` ⇒ VS Code 弹模态「Unable to write program user data」⇒ 补 `mkdirSync(shared)`（另：内置 LSP 缺则从主 checkout 拷，两边都没有 ⇒ rc=3 —— 那两个「未找到内置服务器 / 回退下载失败」弹窗的来源）。
+- ⭐ **A/B（同一棵 worktree `v1`、同一份宿主、只差一个软链）**：改前 `vim=on` 臂 **4 条 FAIL**（`caret-after-rewrite` DOM `["(\alpha x)"]` / 磁盘 `[""]` = **改写器一次都没触发**）⇒ 改后 **14/14 PASS**（DOM = 磁盘 = `["(α x)"]`）；主 checkout 亦 **14/14 PASS**，身份行新增 `lsp darwin-arm64/c72175d6341d5ba9`。
+- **判据（可复算）**：`ux-queue.py --check` rc=0 · `--selftest` rc=0（**1611 个 `expect`**；新增 `selftest_external_top5` 三条，**反向验证** = 照改前那样排 ⇒ 实测 `FAIL ①②` 逐条点名 ✓）· `check-queue-integrity.py` rc=0 · `docs-lint` rc=0（活文档 **6.16 MB ≤ 6.50 MB**）· `node --check` ✓ · `.gitignore` 补 `editor/vscode/node_modules`（**不带斜杠** —— git 对**软链**不按目录匹配 ⇒ 带斜杠那条覆盖不到它、软链会以 `??` 把 worktree 弄脏 ✗）。
+- ⚠ **边界（如实）**：worktree 里那份**旧脚本**不会自己软链（要它跑到新脚本才有）⇒ 编排者下次从 worktree 跑前应 `land`/同步；本轮**没跑**发版（`0.93.0` 已发，本笔只是让"方向进得来"+ 判据不空转）。
+
 ## 发版 `0.93.0`（2026-10-18 · **交付**）（本笔即发布）
 
 - ⭐ **用户拿到什么**：**隐式参数对齐 Lean 4 的严格档第一次可用**（`SOKO_STRICT_AT=1` ⇒ 课程标准库 `lib/**` **0 红 / 17 绿**，修前 15/2）+ 诊断带**真实行列**。
