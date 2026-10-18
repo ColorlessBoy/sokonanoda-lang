@@ -86,6 +86,20 @@ pub(crate) fn borrowable(ti: &Expr, tj: &Expr) -> bool {
     ) && crate::spine::same_shape(ti, tj)
 }
 
+/// **E1 的类型 oracle**（2026-10-18 用户硬令 ②）：借出**就地环境**，问一个
+/// **已解值**的类型 ✓ —— `MetaCtx::refine_by_types`（路线⑤：`?m := v` ⇒
+/// `T(?m) ≟ typeof(v)`）用它 ✓。与 [`arg_types`] **同一个原语**（`operand_type_expr`：
+/// 局部变量优先取**书写类型** ✓、零内核调用 ✓）。
+pub(crate) fn oracle_type<'a>(
+    ctx: &ElabCtx<'a, '_>,
+    scope: &ElabScope<'a>,
+    env: &std::cell::RefCell<Option<InplaceEnv<'_, 'a>>>,
+    e: &Expr,
+) -> Option<Expr> {
+    let mut g = env.borrow_mut();
+    super::elab::operand_type_expr(ctx, scope, e, g.as_mut())
+}
+
 /// **每个实参的类型**（路线 ① 的原料：`arg_tys[i]` 对应第 `k + i` 层）✓ ——
 /// 从 `elab.rs` 原样搬来（行数只减不增 ✓），只多一条 pp 形态判据 ✓。
 ///

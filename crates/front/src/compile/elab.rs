@@ -4832,17 +4832,17 @@ fn try_implicit_application_with<'a>(
         }
         computed
     };
-    // 期望类型/实参类型的 delta 展开要用 `defs` + `is_inductive`（`a ∈ A ∪ B`
-    // 是 `Set.mem … (Set.union …)`，展开到 `Or …` 才能反解 `Or.inl` 的另一个析取项）。
+    // delta 展开要用 `defs` + `is_inductive`（`a ∈ A ∪ B` 是 `Set.mem … (Set.union …)` ⇒ 展到 `Or …` 才反解 `Or.inl`）。
     let is_inductive = |n: &str| ctx.inductives.contains_key(n);
-    // **M3 的三通道**（**同一个码**，只有 message 说哪一句不同 ✓；D6 = 不新增码）：
-    // `Unsolved` = 补不出（既有文案，逐字不变）· `Kind` = 值的 sort 确定不对 · `Clash` = 两条约束刚性冲突。
+    let ty_of = |e: &Expr| crate::compile::pp_shape::oracle_type(ctx, scope, &alt_env, e); // E1 路线⑤
+                                                                                           // **M3 的三通道**（同一个码；D6 不新增码）：`Unsolved` 补不出 · `Kind` sort 不对 · `Clash` 刚性冲突。
     let solved = match crate::compile::implicit::solve_prefix_outcome_with_args_alt(
         &layers,
         &result,
         k,
         &arg_tys,
         &alt_type,
+        Some(&ty_of),
         &args,
         expected_src,
         ctx.defs,

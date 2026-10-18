@@ -129,6 +129,10 @@ pub(crate) fn leading_implicit(layers: &[Layer]) -> usize {
 /// 旧调用方（没有第二候选）传 `&|_| None` ⇒ 那条分支一次都不进 ✓。
 pub(crate) type AltTypeFn<'x> = &'x dyn Fn(usize) -> Option<Expr>;
 
+/// **E1 路线 ⑤ 的类型 oracle**（`?m := v ⇒ T(?m) ≟ typeof(v)`）—— `None` ⇒ 一步都不进 ✓。
+/// 起别名只为过 `clippy::type_complexity`（`Option<&dyn Fn(&Expr) -> Option<Expr>>` 太长 ✗）。
+pub(crate) type TyOfFn<'x> = &'x dyn Fn(&Expr) -> Option<Expr>;
+
 /// 没有第二候选时的提供者（恒 `None`）——**逐字节等于今天的行为** ✓。
 pub(crate) fn no_alt_type(_slot: usize) -> Option<Expr> {
     None
@@ -258,6 +262,7 @@ pub(crate) fn solve_prefix_outcome_with_args(
         k,
         arg_tys,
         &no_alt_type,
+        None,
         arg_vals,
         expected,
         defs,
@@ -278,6 +283,8 @@ pub(crate) fn solve_prefix_outcome_with_args_alt(
     arg_tys: &[Option<Expr>],
     // **C 子项的第二候选**（与 `arg_tys` 平行；`&[]` ⇒ 今天的行为）。
     arg_tys_alt: AltTypeFn<'_>,
+    // **E1 路线 ⑤ 的类型 oracle**（`None` ⇒ 一步都不进 ✓；见 `MetaCtx::refine_by_types`）。
+    ty_of: Option<TyOfFn<'_>>,
     // **G-63 修复**：显式实参**本身** ✓。
     arg_vals: &[&Expr],
     expected: Option<&Expr>,
@@ -309,6 +316,7 @@ pub(crate) fn solve_prefix_outcome_with_args_alt(
                 k,
                 arg_tys,
                 arg_tys_alt,
+                ty_of,
                 arg_vals,
                 expected,
                 defs,
@@ -376,6 +384,7 @@ fn solve_prefix_meta(
         k,
         arg_tys,
         &no_alt_type,
+        None,
         arg_vals,
         expected,
         defs,
@@ -396,6 +405,8 @@ fn solve_prefix_meta_alt(
     arg_tys: &[Option<Expr>],
     // **C 子项的第二候选**（与 `arg_tys` 平行；`&[]` ⇒ 今天的行为）。
     arg_tys_alt: AltTypeFn<'_>,
+    // **E1 路线 ⑤ 的类型 oracle**（`None` ⇒ 一步都不进 ✓）。
+    ty_of: Option<TyOfFn<'_>>,
     // **G-63 修复**：显式实参**本身**（不是它们的类型 ✗）—— 把显式层的 fresh 名映射掉 ✓。
     arg_vals: &[&Expr],
     expected: Option<&Expr>,
@@ -472,36 +483,23 @@ fn solve_prefix_meta_alt(
             }
             let primary = meta.unify(&template, actual);
             // **第二候选**（C 子项）：主候选是**书写类型**（记法节点天然没有前导
-            // 隐式实参）时上面那条方程**解不出那个参数**（`Eq ?m0 ?m2 ?m3` 对
-            // `a = x`：右对齐之后 `α` 根本不在任何实参位上 ⇒ `?m0` 悬着 ✗）⇒
-            // 用**全显式 pp** 形态（`@Eq α a x`）**再判一次** ✓。
-            //
-            // ⚠ **不是"主候选失败才试"** ✗（与严格档那条不同 ✓）：引擎的合一
-            // **带状态**，主候选可能判 `Yes` 却**留着一个没解的位**（记法只给了
-            // 2 个操作数 ⇒ `?m0` 没被任何方程碰到 ✗）⇒ 必须让第二候选**也参与**
-            // 才能把那个位钉住 ✓。两条都是**追加约束**（合一三值，只会更精确 ✓）；
-            // 任一条判 `No` ⇒ 真的刚性冲突 ⇒ 照旧走通道 ✓。
-            // ⚠ **只在主候选没判 `Yes`**、**且模板的头是刚性的**时才试第二候选
-            // ✗→✓（两条都是实测踩到的）：
-            //
-            // * 主候选判 `Yes` ⇒ 一步都不进 ✓（引擎的合一带状态，追加一条多余方程
-            //   可能在**别的**层上造成假冲突 ✗）；
+            // 隐式实参）⇒ `Eq ?m0 ?m2 ?m3` 对 `a = x` 右对齐之后 `α` 不在任何实参
+            // 位上、`?m0` 悬着 ✗ ⇒ 用**全显式 pp** 形态（`@Eq α a x`）**再判一次** ✓。
+            // ⚠ **不是"主候选失败才试"** ✗（与严格档那条不同）：引擎的合一带状态，
+            // 追加约束只会更精确 ✓ —— 但**两个实测踩到的闸门**必须都在：
+            // * 主候选判 `Yes` **且这一位已解** ⇒ 一步都不进 ✓（多一条方程可能在
+            //   **别的**层上造成假冲突 ✗）；
             // * 模板的头是**元变量**（`?m1 ?m2` —— `Eq.subst` 的 `p a` 那一层 ✓）
-            //   ⇒ **第二候选对它没有信息**：那一位要解的是**谓词本身**，而不是
-            //   某个实参位 ⇒ 拿 `@Eq α a x` 去套只会撞 occurs check 判 `No` ✗
-            //   （实测：`Eq.subst h h` 的 `p a` 层把整条求解打回 ✗）。刚性的头
-            //   （`Eq.{u} ?m0 ?m2 ?m3` ✓）才是"前导隐式实参缺了"的那个形状 ✓。
+            //   ⇒ **第二候选没有信息**：那一位要解的是**谓词本身**，不是某个实参位
+            //   ⇒ 拿 `@Eq α a x` 去套只会撞 occurs check 判 `No` ✗（实测
+            //   `Eq.subst h h` 把整条求解打回 ✗）；刚性的头（`Eq.{u} ?m0 ?m2 ?m3` ✓）
+            //   才是"前导隐式实参缺了"的那个形状 ✓。
             // ⚠ **判据是「这一位自己的元变量解出来没有」**，不是「主候选判没判
-            // `Yes`」✗→✓（实测踩到）：主候选**可以判 `Yes` 却留着这一位没解** ——
-            // 尾部对齐的归一（`tail_aligned_pair`）会把 `Eq.{u} ?m0 ?m2 ?m3` 与
-            // `Eq b a` 对齐成 `Eq.{u} ?m2 ?m3` 与 `Eq b a` ⇒ `?m2/?m3` 解出、
-            // `?m0` **悬着**，而 `Tri` 仍是 `Yes` ✗（实测 `t_symm`：`α` 没解 ⇒
-            // `discharge unsolved=1`）。所以这一位**没解**就必须让第二候选也参与 ✓。
-            //
-            // ⚠ 另一半（实测踩到）：模板的头是**元变量**时（`?m1 ?m2` —— `Eq.subst`
-            // 的 `p a` 那一层 ✓）第二候选**没有信息**（那一位要解的是**谓词本身**，
-            // 不是某个实参位）⇒ 拿 `@Eq α a x` 去套只会撞 occurs check 判 `No` ✗
-            // ⇒ 照旧跳过 ✓。
+            // `Yes`」✗→✓（实测）：`tail_aligned_pair` 会把 `Eq.{u} ?m0 ?m2 ?m3` 与
+            // `Eq b a` 对齐成 `Eq.{u} ?m2 ?m3` 与 `Eq b a` ⇒ `?m2/?m3` 解出、`?m0`
+            // **悬着**，而 `Tri` 仍是 `Yes` ✗（`t_symm`：`α` 没解 ⇒ `discharge
+            // unsolved=1`）⇒ 这一位**没解**就必须让第二候选也参与 ✓。
+            // 任一条判 `No` ⇒ 真的刚性冲突 ⇒ 照旧走通道 ✓。
             let layer_unsolved = meta.value(ids[i]).is_none();
             let tri = if !layer_unsolved || crate::compile::meta::meta_of_expr(&template).is_some()
             {
@@ -530,7 +528,12 @@ fn solve_prefix_meta_alt(
             return meta.channel();
         }
     }
-    // ⑤ 不动点 + defaulting（E19 的选择规则）+ zonk
+    // ⑤ **类型约束**（E1，2026-10-18）：`?m := v` ⇒ 追加 `T(?m) ≟ typeof(v)`（见
+    // `MetaCtx::refine_by_types` ✓）；**只在还有未解位时才跑** ⇒ 成功路径零开销 ✓。
+    if let (Some(ty_of), false) = (ty_of, meta.unsolved().is_empty()) {
+        meta.refine_by_types(&ids, layers, &sigma, ty_of);
+    }
+    // ⑥ 不动点 + defaulting（E19 的选择规则）+ zonk
     meta.discharge(&ids)
 }
 
