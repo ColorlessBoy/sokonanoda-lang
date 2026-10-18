@@ -4327,12 +4327,11 @@ fn try_implicit_application_with<'a>(
     ctx: &ElabCtx<'a, '_>,
     mut solved_out: Option<&mut Vec<Expr>>,
 ) -> Result<Option<ExprPtr<'a>>, CompileError> {
-    // **期望类型的源级展开兜底**（SPINE-N，2026-10-14）：期望类型是「带前导隐式
-    // 形参的**记法头**」（`(r • r) a c`）时，今天的 δ 展开**只代换显式形参** ⇒
-    // 结果留着签名形参裸名 ✗ ⇒ 求解器把带自由名的 `p` 交下去（`unknown identifier B`）。
-    // 这里先补前导实参、再按 `Old` 读法展到归纳头（**零内核调用**，见
-    // `expected_spine::expected_to_inductive`）；展不动/今天没坏 ⇒ **原样** ✓。
-    // 闸门 `SOKO_EXPECTED_SPINE=0|off`（反向验证 ✓）。
+    // **期望类型的源级展开兜底**（SPINE-N，2026-10-14）：期望类型是「带前导隐式形参的
+    // **记法头**」（`(r • r) a c`）时，δ 展开**只代换显式形参** ⇒ 结果留着签名形参裸名 ✗
+    // ⇒ 求解器把带自由名的 `p` 交下去（`unknown identifier B`）。这里先补前导实参、再按
+    // `Old` 读法展到归纳头（**零内核调用**，见 `expected_spine::expected_to_inductive`）；
+    // 展不动/今天没坏 ⇒ **原样** ✓。闸门 `SOKO_EXPECTED_SPINE=0|off`（反向验证 ✓）。
     let expected_spine = expected_src
         .and_then(|e| crate::compile::expected_spine::expected_to_inductive(e, ctx, scope, known));
     let expected_src: Option<&Expr> = expected_spine.as_ref().or(expected_src);
@@ -4486,8 +4485,7 @@ fn try_implicit_application_with<'a>(
     let explicit_layers = layers.len().saturating_sub(k);
     // **先算"旧写法是否贴合"**（G-42 的规则 ✓）—— 它决定路线③ 让不让位 ✓：
     // `And.intro a b ha hb` 逐位贴合 ⇒ 旧写法 ✓（不许被"富余实参落到结果上"抢走 ✗）；
-    // `Set.image f A y` 不贴合（`f` 是函数、不是 `Type` ✗）⇒ 让给路线③ ✓。
-    // ⚠ **必须在块**外**算：下面两个分支都要用它 ✓。
+    // `Set.image f A y` 不贴合（`f` 是函数、不是 `Type` ✗）⇒ 让给路线③ ✓；⚠ 必须在块**外**算 ✓。
     //
     // **IA-5**：严格档下这两个判据**恒 `false`** ✓ —— 它们存在的唯一目的是让
     // **旧写法**（正常形式收位置隐式实参）与路线③ 分清；严格档**没有旧写法**了
@@ -4759,12 +4757,14 @@ fn try_implicit_application_with<'a>(
     // **不是**能再吃实参的函数（`h Nat Nat (fun …) 5` 的结果是变量 `β` ✓；
     // `And.intro a b ha hb` 的结果 `And a b` 是归纳类型 ✓）。
     //
-    // **Lean 4 对照**：那里报 `function expected`（`Meta/InferType.lean:76`）
-    // 或 `Application type mismatch`（`Meta/Check.lean:254`）。我们沿用**既有码**
-    // `ElabImplicitArgumentUnsolved`（不新增码，D6 ✓），但按用户 2026-10-16 第 ③ 条
-    // 把**参数名 + 位置 + 可复制出路**写进 message ✓（文案本体在
-    // `crate::compile::implicit_msg` —— `elab.rs` 受 `docs-lint` ⑨ **冻结** ✗）。
-    if strict_at && args.len() > explicit_layers {
+    // **Lean 4 对照**：那里报 `function expected`（`Meta/InferType.lean:76`）或
+    // `Application type mismatch`（`Meta/Check.lean:254`）。我们沿用**既有码**
+    // `ElabImplicitArgumentUnsolved`（不新增码，D6 ✓），但按用户 2026-10-16 第 ③ 条把
+    // **参数名 + 位置 + 可复制出路**写进 message ✓（本体在 `implicit_msg`；`elab.rs` 冻结 ✗）。
+    // **嵌套 `@` 边界**（a10）：`(@f A B h) x` 的 `@` 只在**内层**括号里，而 `spine_of`
+    // 把两层拍平 ⇒ `args` 混进内层已消费的实参 ⇒ 计数判据数错（实测建议 `@@` ✗）。
+    // Lean 4 的 `@` 只作用于紧跟的那条脊 ⇒ 外层实参落在**结果**上 ⇒ 放行 = `Ok(None)`。
+    if strict_at && args.len() > explicit_layers && !crate::spine::crosses_at_boundary(expr) {
         return Err(CompileError::elab(
             ErrorKind::ElabImplicitArgumentUnsolved,
             crate::compile::implicit_msg::strict_rejection_message(

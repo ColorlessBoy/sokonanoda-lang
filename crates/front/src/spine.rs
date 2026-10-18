@@ -924,6 +924,33 @@ pub(crate) fn spine_of(expr: &Expr) -> (&Expr, Vec<&Expr>) {
     (cur, args)
 }
 
+/// 函数位链上是否**跨过**一条内层 `@` 形态脊（`(@f A B h) x` ⇒ `true`）。
+///
+/// `parser::parse_app` 给**同一条**脊的每个 `Expr::App` 节点写同一个
+/// `explicit_spine` ⇒ 最外层 `false` 而链上更深处 `true` ⇔ **括号里**那条脊带
+/// `@`（`(@f A B h) x` 的外层是另一次 `parse_app`，它不带 `@`）。
+///
+/// ⚠ 只走**函数位链** ✗：实参里的 `@`（`f (@g a)`）与"这次应用的实参表"无关。
+/// ⚠ 最外层节点**不参与**判定（它自己带 `@` 的形状由调用方既有分支管 ✓）。
+pub(crate) fn crosses_at_boundary(expr: &Expr) -> bool {
+    let mut cur = match expr {
+        Expr::App { fun, .. } => fun.as_ref(),
+        _ => return false,
+    };
+    while let Expr::App {
+        fun,
+        explicit_spine,
+        ..
+    } = cur
+    {
+        if *explicit_spine {
+            return true;
+        }
+        cur = fun;
+    }
+    false
+}
+
 /// 两个表达式**同形**吗（结构相同、**忽略 span**）—— E19 刀1 的**合一判据**。
 ///
 /// 用途只有一个：记法的**待定参数**（[`crate::compile::elab`] 的
