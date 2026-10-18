@@ -369,11 +369,23 @@ theorem t {α : Type} (a : α) (A B : MySet α) :
         "严格档接受 ⇒ `t` 必须真的被判定过（`decl.checked`，不是静默跳过）：{events:?}"
     );
 
-    // ② 牙：同族另一条装配出来的项仍然踩严格闸门 ⇒ 它的诊断必须带**真**位置。
+    // ② 牙：同族另一条**仍踩**严格闸门的项 ⇒ 它的诊断必须带**真**位置。
+    //
+    // ⚠ **2026-10-18（接口 agent · 在 a7 的 ② 之上再修一次）**：a7 当时把 ② 的夹具
+    //   选成了 `exfalso` + `exact h`（`h : False`），理由是「`exfalso` 与 `constructor`
+    //   走同一支 `NodeKind::Apply`，只是它的脊**没被**标 `@`」。**那条理由过期了** ✗：
+    //   a4（`assemble` 的装配脊标 `@`）+ a5（`derive_recursor` / pp 回读同族）修好之后，
+    //   `exfalso` 那条**也**编得过 —— 而它**类型上本来就对**（`exfalso` 把目标 `P` 变成
+    //   `False`，`h : False` ⇒ `exact h` 成立 ✓）⇒ 实测 **`decl.checked` / 0 诊断** ✗
+    //   ⇒ 旧的 `!out.status.success()` 不成立 ⇒ 本用例在 CI 上判红 ✗（10 条红之一）。
+    //   ⇒ 换成**用户手写的**位置喂隐式（`And.intro P Q h1 h2`）：它**确实**踩闸门 ✓
+    //   （实测 `elab-tactic-failed` · `line=2 col=3` ✓），而**本用例的牙一个字没松** ——
+    //   仍然是「诊断位置必须是**真的**（不是 `Span::default()` 那串 0 ✗）」✓。
+    //   ⚠ **如实**：夹具从「装配出来的项」换成「用户手写的项」⇒ **"装配路径"这一半的覆盖
+    //   暂时没有对应用例** ✗（要找一条"既装配出来、又仍踩闸门"的夹具 —— 本轮没找到）。
     let rejected = "\
-theorem t (P : Prop) (h : False) : P := by
-  exfalso
-  exact h
+theorem t (P Q : Prop) (h1 : P) (h2 : Q) : P ∧ Q := by
+  exact And.intro P Q h1 h2
 ";
     let (out, events) = run_json_stdin_env(rejected, &[("SOKO_STRICT_AT", "1")]);
     assert!(!out.status.success(), "严格档下这条必须判红：{events:?}");
@@ -381,7 +393,7 @@ theorem t (P : Prop) (h : False) : P := by
     let diags = diagnostics(&events);
     assert_eq!(diags.len(), 1, "恰好一条诊断：{events:?}");
     let d = diags[0];
-    assert_eq!(d["code"], "elab-implicit-argument-unsolved", "{d}");
+    assert_eq!(d["code"], "elab-tactic-failed", "{d}");
     assert_diagnostic_shape(d, "严格档拒绝");
     // ⭐ 本用例的牙：位置必须是**真的**（不是 `Span::default()` 那串 0 ✗）。
     let start = &d["span"]["start"];
@@ -392,21 +404,22 @@ theorem t (P : Prop) (h : False) : P := by
     );
     assert_eq!(
         start["line"], 2,
-        "诊断必须落在 `exfalso` 那一行（1-based 2 = 源第 2 行）：{d}"
+        "诊断必须落在 `exact` 那一行（1-based 2 = 源第 2 行）：{d}"
     );
     assert_eq!(
         start["column"], 3,
-        "诊断必须落在 `exfalso` 那一列（1-based 3 = `e`）：{d}"
+        "诊断必须落在 `exact` 那一列（1-based 3 = `e`）：{d}"
     );
-    // span 的**终点**也要在同一个记号里 ⇒ 钉住"整条 `exfalso` 记号的 span"，
+    // span 的**终点**也要在同一个记号里 ⇒ 钉住"整条记号的 span"，
     // 而不只是"起点不是 0"（零宽 span 也算位置真 ✗）。
+    // ⚠ 终点随 ② 的夹具一起换了（`exact And.intro P Q h1 h2` 那一行 = 2 空格 + 26 字符 ⇒ 28）。
     assert_eq!(
         (
             d["span"]["end"]["line"].as_u64(),
             d["span"]["end"]["column"].as_u64()
         ),
-        (Some(2), Some(10)),
-        "诊断 span 的终点必须收在 `exfalso` 记号之后（1-based 2:10）：{d}"
+        (Some(2), Some(28)),
+        "诊断 span 的终点必须收在 `exact And.intro P Q h1 h2` 记号之后（1-based 2:28）：{d}"
     );
 }
 
