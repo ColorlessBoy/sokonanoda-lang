@@ -19,6 +19,9 @@ mod named_arg;
 mod implicit_msg;
 mod level;
 mod meta;
+// 记法路径的**诊断保真**（a12）：记法解不出前缀时先逐位问一遍操作数（同上一条
+// 的理由：`elab.rs` 冻结 ⇒ 这段机械长在那边会当场判红 ✓）。
+mod notation_diag;
 mod pp_shape;
 mod prelude;
 mod report;

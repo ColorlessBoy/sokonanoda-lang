@@ -3,6 +3,7 @@
 use super::check::quiet_catch;
 use super::error::{CompileError, ErrorKind};
 use super::expected::{drop_expected_src_layer_unfolding, mentions_any, mentions_names};
+use super::notation_diag::operand_rejection;
 use super::prelude::CompileOptions;
 use super::report::ResolvedTarget;
 use super::scope::NamespaceScope;
@@ -1667,7 +1668,10 @@ fn elab_notation<'a>(
         None => match fallback_prefix_args {
             Some(args) => args.to_vec(),
             None => {
-                return Err(notation_argument_unsolved(symbol, target, span));
+                return Err(
+                    operand_rejection(builder, operands, scope, univ, known, ctx)
+                        .unwrap_or_else(|| notation_argument_unsolved(symbol, target, span)),
+                )
             }
         },
     };
@@ -1829,15 +1833,11 @@ fn elab_notation_implicit<'a>(
         ctx,
     )
     .map_err(|e| {
-        // 唯一钩子报的是**应用路径**的码（`elab-implicit-argument-unsolved`）。
-        // 用户写的是**记法**，所以换回记法那条码与 hint —— 同一处缺口，两种
-        // 写法给同一种教学引导 ✓（`docs/protocol.md` 的码是给工具用的，
-        // 换码是**有意**的：记法的诊断要教"写出点名形式"）。
         if e.kind == ErrorKind::ElabImplicitArgumentUnsolved {
-            notation_argument_unsolved(symbol, target, span)
-        } else {
-            e
+            return operand_rejection(builder, operands, scope, univ, known, ctx)
+                .unwrap_or_else(|| notation_argument_unsolved(symbol, target, span));
         }
+        e
     })
 }
 
