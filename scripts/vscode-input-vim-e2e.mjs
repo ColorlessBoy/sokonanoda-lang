@@ -430,6 +430,20 @@ async function connect(url) {
         /* 老宿主没有这个方法就算了 */
       }
     },
+    /// ⭐ **按"已聚焦"渲染**（2026-10-18 实测的第二个探针缺陷 ✗→✓）：
+    /// `Page.bringToFront` 只切**页签**、**不把 OS 窗口提到前台** ⇒ 窗口被挡在后面时
+    /// macOS 会把渲染**节流**，`.view-line` 可以是**永久陈旧**的 —— 实测：磁盘已经是
+    /// `["(α x)"]`（对的 ✓）而 DOM **整条用例**都停在 `[""]` ✗ ⇒ 那是**假红**，
+    /// 且 `stableLines()` 的"连读两次一样就算数"**挡不住它**（陈旧画面**本身**很稳 ✗）。
+    /// ⇒ 用 CDP 的 `Emulation.setFocusEmulationEnabled`（DevTools 那条 "Emulate a
+    /// focused page" ✓）把渲染与"窗口在不在前台"**解耦** ✓。
+    async focusEmulation() {
+      try {
+        await call("Emulation.setFocusEmulationEnabled", { enabled: true }, 5_000);
+      } catch {
+        /* 老宿主没有这个方法就算了（照 `bringToFront` 的先例 ✓） */
+      }
+    },
     async eval(expression) {
       const m = await call("Runtime.evaluate", {
         expression,
@@ -565,6 +579,10 @@ async function assertOwnWindow(client) {
 /// **稳定读 DOM**：macOS 会节流后台窗口的渲染 ⇒ 单次读可能拿到**上一个用例**的内容
 ///（实测：磁盘已经是对的、DOM 还是旧的 ⇒ 假红）。连续两次读到一样的才算数。
 async function stableLines(client) {
+  // ⭐ **先让渲染按"已聚焦"跑**（2026-10-18 实测的第二个探针缺陷 ✗→✓，理由见
+  //   `focusEmulation()` 的注释）：不设它，被挡在后面的窗口可以**整条用例**都停在
+  //   陈旧画面 ⇒ "连读两次一样"照样返回**假红**的 `[""]` ✗。
+  await client.focusEmulation();
   let previous = null;
   for (let i = 0; i < 5; i++) {
     await client.bringToFront();
@@ -709,7 +727,7 @@ function prepare(tag, arm, settings, vimExt) {
   return profile;
 }
 
-function launch(profile, file) {
+function launch(profile, file, arm) {
   // stderr 落盘（诊断用）：窗口起不来时唯一能看的东西。
   const errLog = join(profile, "vscode-stderr.log");
   const fd = openSync(errLog, "a");
@@ -727,11 +745,37 @@ function launch(profile, file) {
     // ① 弹 GitHub 登录并拉起浏览器；② 副作用一直在（用户看得见）✗。
     // ⚠ `--disable-extensions` **不会**关掉被测扩展：我们同时传了
     // `--extensionDevelopmentPath`（开发模式）⇒ 被测的那个照常加载 ✓。
-    "--disable-extensions",
+    // ⚠ ⭐ **但它会关掉 vim 扩展** ✗（2026-10-18 实测 —— **"vim 臂"此前一直是假的**）：
+    //   本脚本把 VSCodeVim 拷进 `--extensions-dir`（`prepare()` ✓），而
+    //   `--disable-extensions` 把**装在那里的**扩展一起禁用 ⇒ **vim 臂里根本没有 vim**
+    //   ✗ ⇒ 摆模式的 `<Esc>` + `i` 里那个 `i` **被当正文打进去**（实测 DOM = `["i(α x)"]`）
+    //   ⇒ 9 用例 × 2 臂 = **14 条读数全是假的**（"vim 臂"退化成"又跑一遍无 vim 臂"、
+    //   还多一个 `i` ✗ = 判据**空转** ✗）。⚠ 它在 2026-10-13 被加进来，而这条判据
+    //   **从没接线**（真接线 0/2 ✗）⇒ **没人发现** —— 用户 2026-10-17「修了不守 ⇒ 会漂」✓。
+    //   ⇒ **修法**：vim 臂**不传** `--disable-extensions`，改成**逐个点名**关掉内置噪声
+    //   （`vscode.github-authentication` / `vscode.microsoft-authentication` /
+    //   `vscode.github` / `github.copilot-chat` —— **正是**那条队列条目点名的几个 ✓）。
+    //   ⚠ **用户自己装的扩展仍然一个都不加载** ✓：本脚本**总是**传
+    //   `--extensions-dir=<profile>/extensions`（只有被测扩展 + 拷进去的 vim ✓）
+    //   ⇒ 隔离没有丢，丢的只是"连 vim 一起关掉" ✗。
+    //   ⚠ 为什么不用 `--enable-extension=vscodevim.vim`（**实测否掉** ✗）：VS Code
+    //   1.141.0 的 app bundle 里**没有** `enable-extension` 这个开关
+    //   （`grep -o enable-extension Contents/Resources/app/out/*.js` ⇒ **0** 处 ✓），
+    //   传了也不生效（实测：vim 臂照样把 `i` 打进正文 ✗）。
+    //   ⚠ A/B 读数（同一条用例 / 同一天 / 同一份构建，见 `.cache/ux/fix-v1/VERDICT.md`）：
+    //   修前磁盘「""」（`i` 在正文里、vim 不在）；修后 **磁盘 = 期望「(α x)」** ✓。
+    ...(arm === "on" ? [] : ["--disable-extensions"]),
       "--disable-gpu",
       "--disable-chromium-sandbox",
       "--no-first-run",
       "--disable-workspace-trust",
+      // ⚠ 两条臂**都**关这几个（`arm === "on"` 那一臂靠的就是这一串当隔离 ✓）。
+      "--disable-extension",
+      "vscode.github-authentication",
+      "--disable-extension",
+      "vscode.microsoft-authentication",
+      "--disable-extension",
+      "vscode.github",
       "--disable-extension",
       "GitHub.copilot-chat",
       "--disable-extension",
@@ -900,7 +944,7 @@ async function runGroup(cases, arm, settings, tag, port, vimExt) {
       `端口 ${port} 被占着（残留窗口没退干净）——**不跑**，否则读数会归属到旧窗口`,
     );
   }
-  launch(profile, cases[0].file ?? "Scratch.sokonanoda");
+  launch(profile, cases[0].file ?? "Scratch.sokonanoda", arm);
   log(`真 VS Code 起来了（arm=${arm} · port=${port} · ${JSON.stringify(settings)}）`);
   const out = [];
   let client = null;
