@@ -1,4 +1,33 @@
 // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
+## [0.93.0] - 2026-10-18
+
+### Added
+
+- ⭐ **隐式参数对齐 Lean 4 —— 严格档第 1 批（a1→a5）可用**（用户 2026-10-16 亲报；
+  0.92.0 只落了语义与报错，**本批把引擎侧真正修通**）。开关 **`SOKO_STRICT_AT=1`**：
+  开档后课程标准库 `courses/set-theory/lib/**` **0 红 / 17 绿**（修前 15 红 / 2 绿）✓。
+  - **诊断带真实位置**（a1）：装配出来的 tactic 项不再丢源位置 ⇒ 严格档报错从
+    `line=0 col=0`（用户定位不了）变成**真实行列**。
+  - **引擎装配 / 回读的脊标成 `@` 形态**（a4 / a5）：`by.rs` 的 `NodeKind::Apply::explicit`
+    不再只给构造子糖；`elab.rs` 的 `derive_recursor` 与 `operand_type_expr` 回读同族。
+  - **标准库语料迁移**：`courses/set-theory/lib/**` 里位置喂隐式的写法按 `@` 出路改齐。
+
+### Fixed
+
+- **CI：main 的轮次永不取消**（`ci.yml` 的 `cancel-in-progress` 改成
+  `${{ github.ref != 'refs/heads/main' }}`）—— 起因：main 上推得比一轮 CI 快，
+  每有新 push 就掐掉上一轮 ⇒ **门禁一次都没真跑完**（实测连续 5 轮 `cancelled`）。
+- **`test (sokonanoda-cli, tests)` 的 `protocol` 用例**：夹具「前提」过期 ⇒ 换成
+  **确实仍踩严格闸门**的一条（`exact And.intro P Q h1 h2`），断言一个字节没松
+  （仍是「诊断位置必须是**真的**」）。
+
+### ⚠️ 如实（本批的边界）
+
+- **默认档（不设 `SOKO_STRICT_AT`）逐字节不变**（356/356）—— **本批的全部改动只在严格档路径**。
+  要把「只有 `@` 收隐式参数」变成**默认**，前置是**迁移剩余语料**（`courses/**` 约 49 个文件）
+  与**迁移按旧行为写的测试**（`crates/front` 约 91 条）—— 见
+  `SUB-implicit-args-strict-default`。
+
 ## [0.92.0] - 2026-10-17
 
 ### Added
