@@ -131,20 +131,20 @@ theorem demo_rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Re
   constructor
   intro h
   have h1 : ∃ (b : B), r a b ∧ (∃ (c : C), s b c ∧ t c d) :=
-    @@Exists.elim C (fun (c : C) => ((r • s) a c) ∧ (t c d))
+    @Exists.elim C (fun (c : C) => ((r • s) a c) ∧ (t c d))
       (∃ (b : B), r a b ∧ (∃ (c2 : C), s b c2 ∧ t c2 d)) h
       (fun (c : C) => fun (hc : ((r • s) a c) ∧ (t c d)) =>
-        Exists.elim B (fun (b : B) => r a b ∧ s b c)
+        @Exists.elim B (fun (b : B) => r a b ∧ s b c)
           (∃ (b : B), r a b ∧ (∃ (c2 : C), s b c2 ∧ t c2 d)) (And.left hc)
           (fun (b : B) => fun (hb2 : r a b ∧ s b c) =>
             Exists.intro b (And.intro (And.left hb2) (Exists.intro c (And.intro (And.right hb2) (And.right hc))))))
   exact h1
   intro h
   have h2 : ∃ (c : C), (∃ (b : B), r a b ∧ s b c) ∧ t c d :=
-    @@Exists.elim B (fun (b : B) => r a b ∧ (∃ (c : C), s b c ∧ t c d))
+    @Exists.elim B (fun (b : B) => r a b ∧ (∃ (c : C), s b c ∧ t c d))
       (∃ (c : C), (∃ (b2 : B), r a b2 ∧ s b2 c) ∧ t c d) h
       (fun (b : B) => fun (hb : r a b ∧ (∃ (c : C), s b c ∧ t c d)) =>
-        Exists.elim C (fun (c : C) => s b c ∧ t c d)
+        @Exists.elim C (fun (c : C) => s b c ∧ t c d)
           (∃ (c : C), (∃ (b2 : B), r a b2 ∧ s b2 c) ∧ t c d) (And.right hb)
           (fun (c : C) => fun (hc2 : s b c ∧ t c d) =>
             Exists.intro c
@@ -250,7 +250,7 @@ theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C 
 -- soko:hint 目标形态：f '' (f ⁻¹' C) = C，前提 hC : C ⊆ f '' Set.univ α；逐元素是 y ∈ f '' (f ⁻¹' C) ↔ y ∈ C。
 -- soko:hint 关键件：→ 方向用 Exists.elim 拆出 x 与 (x ∈ f ⁻¹' C) ∧ (f x = y)，再用 Eq.subst 沿 f x = y 把 x ∈ f ⁻¹' C 搬到 y 上（注意搬的方向）；← 方向 hC y hy 本身就是目标那个 ∃（univ 那一支永远成立），装回像里时 **f x = y 与 y ∈ C 不能直接互换**，要用 Eq.subst（这一步正是错证明里被跳过的地方）。
 theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
-    (hC : C ⊆ f '' Set.univ α) :
+    (hC : C ⊆ f '' @Set.univ α) :
     f '' (f ⁻¹' C) = C := by
   sorry
 
@@ -280,7 +280,7 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
 -- soko:hint 目标形态：两个 ≠ 的合取；每个 ≠ 展开后目标都是 False，手里是一条把两个集合划等号的假设。
 -- soko:hint 关键件：触发条件是"等式两边只差一个具体元素"⇒ 先备好成员证据（第一条 Set.mem_univ (Set Nat) (Set.univ Nat)，第二条两个 Exists.intro + Eq.refl 打进 ∩），再沿 Eq.symm 过的等式用 Eq.subst 搬成员关系，最后 Exists.elim 拆出"∅ 与 univ 撞上"：第一条用 Set.notMem_empty Nat 0 与 Set.mem_univ Nat 0，第二条由 x = ∅、x = univ 经 Eq.trans / Eq.symm 合成 ∅ = univ 再照第一条收尾。
 theorem flawed_equalities_refuted :
-    (fun (_ : Set Nat) => ∅) '' ((fun (_ : Set Nat) => ∅) ⁻¹' (Set.univ (Set Nat)))
+    (fun (_ : Set Nat) => ∅) '' ((fun (_ : Set Nat) => ∅) ⁻¹' (@Set.univ (Set Nat)))
       ≠ Set.univ (Set Nat)
     ∧ (fun (_ : Set Nat) => ∅) '' ({∅} ∩ {(Set.univ Nat)})
       ≠ ((fun (_ : Set Nat) => ∅) '' {∅}) ∩ ((fun (_ : Set Nat) => ∅) '' {(Set.univ Nat)})

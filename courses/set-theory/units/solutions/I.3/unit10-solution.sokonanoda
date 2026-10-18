@@ -28,7 +28,7 @@ import lib.Equiv
 
 -- 练习 1（T）：可数的定义 = 与 ℕ 等势。
 def Set.Countable (α : Type) : Prop :=
-  Set.univ Nat ≈ Set.univ α
+  @Set.univ Nat ≈ Set.univ α
 
 -- 练习 2（L）：恒等映射给出 ℕ 与自己的等势（=「ℕ 可数」的实例）。
 -- 两条"进集合"的域条件是 True 的证明，两条互逆律是 rfl 级。
@@ -77,7 +77,7 @@ theorem diag_helper (α : Type) (f : α → Set α) (D : Set α) (g : (Set α) �
     congrArg.{1} (fun (X : Set α) => X (g D)) hL
   have np : ¬ (f (g D) (g D)) := by
     intro p
-    exact (@@Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f (g D) (g D))
+    exact (@Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f (g D) (g D))
       (¬ (f (g D) (g D))) e p) p
   exact np (@Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f (g D) (g D)))
     (f (g D) (g D)) (@Eq.symm.{1} Prop (f (g D) (g D)) (¬ (f (g D) (g D))) e) np)
@@ -146,7 +146,7 @@ theorem no_surjection_powerset (α : Type) :
     exact np (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f x x))
       (f x x) (Eq.symm.{1} Prop (f x x) (¬ (f x x)) e) np)
   intro h
-  exact @@Exists.elim (α → Set α)
+  exact @Exists.elim (α → Set α)
     (fun (f : α → Set α) => Function.Surjective α (Set α) f)
     False h
     (fun (f : α → Set α) => fun (hf : Function.Surjective α (Set α) f) =>

@@ -102,7 +102,7 @@ theorem sUnion_powerset (α : Type) (A : Set α) :
 -- soko:hint 思路：`C ∈ 𝒫 ∅` 给出 `C ⊆ ∅`，于是 `C` 的点要落在空集里 —— 与"空集没有点"冲突。
 -- soko:hint 目标形态：`C ∈ 𝒫 ∅ → ∀ x, ¬ (C x)`。
 -- soko:hint 关键件：包含假设**先 λ 绑定** · `Set.notMem_empty`（空集没有点）· `False.elim` ✓
-theorem powerset_empty_subset (α : Type) (C : Set α) (hC : C ∈ 𝒫 (@Set.empty α)) :
+theorem powerset_empty_subset (α : Type) (C : Set α) (hC : C ∈ 𝒫 (∅)) :
     ∀ (x : α), ¬ (C x) := by
   sorry
 

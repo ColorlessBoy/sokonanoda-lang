@@ -80,7 +80,7 @@ import lib.Exists
 -- 演示 1（已写好）：本类型里每个集合都被 univ 包含——univ 是「⊆」下的最大元。
 -- 目标展开是 ∀ x, x ∈ A → x ∈ Set.univ α，而 x ∈ Set.univ α 就是 True，
 -- 每个元素交 True.intro 即可（Set.mem_univ 正是这条）。
-theorem subset_univ (α : Type) (A : Set α) : A ⊆ Set.univ α := by
+theorem subset_univ (α : Type) (A : Set α) : A ⊆ @Set.univ α := by
   intro x
   intro hx
   exact @Set.mem_univ α x
@@ -104,7 +104,7 @@ theorem univ_subset_iff (α : Type) (A : Set α) :
   intro x
   intro hu
   exact Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X)
-    (@@Set.univ α) A (Eq.symm.{1} (Set α) A (Set.univ α) h) hu
+    (@Set.univ α) A (Eq.symm.{1} (Set α) A (Set.univ α) h) hu
 
 -- 演示 3（已写好）：把 11.1 里那句话限制在**一个类型内**，它确实成立——
 -- 本类型内存在一个包含一切（本类型）集合的集合，证人就是 Set.univ α。

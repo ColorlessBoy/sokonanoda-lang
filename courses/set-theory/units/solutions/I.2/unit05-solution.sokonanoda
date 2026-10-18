@@ -27,12 +27,12 @@ import lib.Prod
 
 -- 练习 1（T 类）：投影算在构造子上（直接点名库里的展开引理）。
 theorem prod_fst_mk (A B : Type) (a : A) (b : B) :
-    Prod.fst A B (prod_mk A B a b) = a := by
+    Prod.fst A B (@prod_mk A B a b) = a := by
   exact Prod.fst_mk A B a b
 
 -- 练习 2（T 类）：第二个投影同款。
 theorem prod_snd_mk (A B : Type) (a : A) (b : B) :
-    Prod.snd A B (prod_mk A B a b) = b := by
+    Prod.snd A B (@prod_mk A B a b) = b := by
   exact Prod.snd_mk A B a b
 
 -- 练习 3（L 类）：配对定理 —— 序对相等沿两个投影各搬一次。

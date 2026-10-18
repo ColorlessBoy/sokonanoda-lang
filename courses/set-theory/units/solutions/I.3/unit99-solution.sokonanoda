@@ -14,7 +14,7 @@ theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
   @Set.subset_def α A B
 
-theorem demo_mem_univ (α : Type) (x : α) : x ∈ (Set.univ α) :=
+theorem demo_mem_univ (α : Type) (x : α) : x ∈ (@Set.univ α) :=
   @Set.mem_univ α x
 
 theorem pow_mem_subset (α : Type) (A : Set α) (C : Set α) (h : C ∈ Pow α A) : C ⊆ A :=
@@ -38,7 +38,7 @@ theorem pow_mono (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) :
   fun (C : Set α) (hC : C ∈ Pow α A) =>
     subset_pow_mem α B C (subset_trans α C A B (pow_mem_subset α A C hC) h)
 
-theorem subset_univ (α : Type) (A : Set α) : A ⊆ Set.univ α :=
+theorem subset_univ (α : Type) (A : Set α) : A ⊆ @Set.univ α :=
   fun (x : α) (hx : x ∈ A) => @Set.mem_univ α x
 
 theorem pow_mono_univ (α : Type) (A : Set α) : Pow α A ⊆ Pow α (Set.univ α) :=

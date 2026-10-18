@@ -107,12 +107,12 @@ theorem mem_inter_sInter_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α
 -- soko:hint 关键件：练习 3 / 练习 5 · `Set.mem_univ`（**写全论域实参** ✓）✓
 
 theorem mem_univ_inter (α : Type) (A : Set α) (c : α) :
-    c ∈ ((Set.univ α) ∩ A) ↔ c ∈ A := by
+    c ∈ ((@Set.univ α) ∩ A) ↔ c ∈ A := by
   sorry
 -- 练习 9（T 类，**收尾**）：**`∅ ∩ A` 没有成员**。
 
 -- soko:hint 关键件：练习 4（左取用子给出"在 `∅` 里" ✗）· `Set.mem_empty_iff_false` ✓
 
 theorem not_mem_empty_inter (α : Type) (A : Set α) (c : α) :
-    ¬ (c ∈ ((@Set.empty α) ∩ A)) := by
+    ¬ (c ∈ ((∅) ∩ A)) := by
   sorry

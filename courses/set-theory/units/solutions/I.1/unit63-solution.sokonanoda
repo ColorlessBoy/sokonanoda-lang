@@ -34,7 +34,7 @@ theorem mem_of_mem_union_sdiff (α : Type) (A B : Set α) (a : α)
     (h : a ∈ ((A ∪ B) \ B)) : a ∈ A :=
   @Or.elim (a ∈ A) (a ∈ B) (a ∈ A)
     (fun (ha : a ∈ A) => ha)
-    (fun (hb : a ∈ B) => (@@False.elim (a ∈ A)) (not_mem_of_mem_sdiff α (A ∪ B) B a h hb))
+    (fun (hb : a ∈ B) => (@False.elim (a ∈ A)) (not_mem_of_mem_sdiff α (A ∪ B) B a h hb))
     ((fun (hw : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) => Iff.mp hw (mem_of_mem_sdiff α (A ∪ B) B a h))
       (Set.mem_union a A B))
 

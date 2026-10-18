@@ -126,7 +126,7 @@ theorem ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (h : Rel.Part
         (fun (B : α → Prop) (hB : P B ∧ B b ∧ B c) =>
           ofPartition_intro α P A a c (And.left hA)
             (And.left (And.right hA))
-            ((@@Iff.mpr (partition_blocks_eq α P h A B (And.left hA)
+            ((@Iff.mpr (partition_blocks_eq α P h A B (And.left hA)
                 (And.left hB) b  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
                 (And.right (And.right (P A) (A a ∧ A b) hA))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）
                 (And.left (And.right hB)) c))  -- soko:notation-ok: `Rel.*`/`IsEquivalence`/`∈` 是 def 头，这些位置补不出前导实参（手册边界）

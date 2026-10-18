@@ -83,7 +83,7 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
         (((r • s) • t) a d)
         -- →：先拆出 b，再拆出 c，然后按 c、b 的顺序重新打包
         (fun (h : (r • (s • t)) a d) =>
-          @@Exists.elim B
+          @Exists.elim B
             (fun (b : B) => (r a b) ∧ ((s • t) b d))
             (((r • s) • t) a d)
             h

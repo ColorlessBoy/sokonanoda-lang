@@ -254,7 +254,7 @@ theorem ex_falso : (P : Prop) → False → P := by
 theorem and_not_absurd : (a : Prop) → a ∧ ¬ a → False := by
   intro a
   intro h
-  exact (@@And.right a (¬ a) h) (And.left h)  -- soko:notation-ok: 链式应用（右半当函数）：省前导参数会被当成写全实参（实测类型不匹配）⇒ 保持写全
+  exact (@And.right a (¬ a) h) (@And.left h)  -- soko:notation-ok: 链式应用（右半当函数）：省前导参数会被当成写全实参（实测类型不匹配）⇒ 保持写全
 
 -- ─────────────────────────────────────────────────────────────
 -- 第二课 量词：∀ 与 ∃

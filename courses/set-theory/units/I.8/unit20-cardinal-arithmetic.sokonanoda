@@ -40,12 +40,12 @@ theorem demo_mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
 
 -- 演示：第一投影把构造子算掉。
 theorem demo_prod_fst_mk (A B : Type) (a : A) (b : B) :
-    Prod.fst A B (prod_mk A B a b) = a :=
+    Prod.fst A B (@prod_mk A B a b) = a :=
   Prod.fst_mk A B a b
 
 -- 演示：第二投影把构造子算掉。
 theorem demo_prod_snd_mk (A B : Type) (a : A) (b : B) :
-    Prod.snd A B (prod_mk A B a b) = b :=
+    Prod.snd A B (@prod_mk A B a b) = b :=
   Prod.snd_mk A B a b
 
 -- 练习 1（T 类）：**序对形态的成员刻画** —— 把两个投影算掉之后的版本。
@@ -53,7 +53,7 @@ theorem demo_prod_snd_mk (A B : Type) (a : A) (b : B) :
 -- soko:hint 目标形态：`(prod_mk A B a b) ∈ (s ×ˢ t) ↔ (a ∈ s ∧ b ∈ t)`。
 -- soko:hint 关键件：`Set.mem_prod_mk`（参数表：两个论域 · 两个集合 · 两个坐标）。
 theorem prod_mem_apply (A B : Type) (s : Set A) (t : Set B) (a : A) (b : B) :
-    (prod_mk A B a b) ∈ (s ×ˢ t) ↔ (a ∈ s ∧ b ∈ t) := by
+    (@prod_mk A B a b) ∈ (s ×ˢ t) ↔ (a ∈ s ∧ b ∈ t) := by
   sorry
 
 -- 练习 2（T 类）：**η 律怎么用** —— 任何序对都等于"把两个投影再配起来"。
@@ -61,7 +61,7 @@ theorem prod_mem_apply (A B : Type) (s : Set A) (t : Set B) (a : A) (b : B) :
 -- soko:hint 目标形态：`prod_mk A B (Prod.fst A B p) (Prod.snd A B p) = p`。
 -- soko:hint 关键件：`Prod.eta`。
 theorem prod_eta_apply (A B : Type) (p : Prod A B) :
-    prod_mk A B (Prod.fst A B p) (Prod.snd A B p) = p := by
+    @prod_mk A B (Prod.fst A B p) (Prod.snd A B p) = p := by
   sorry
 
 -- 练习 3（T 类）：**投影之一** —— 积里的序对，第一坐标落在第一个集合里。
@@ -85,7 +85,7 @@ theorem prod_mem_snd (A B : Type) (s : Set A) (t : Set B) (p : Prod A B)
 -- soko:hint 目标形态：`(prod_mk A B a b) ∈ (s ×ˢ t) → (a ∈ s ∧ b ∈ t)`。
 -- soko:hint 关键件：练习 1 的那条 `↔` + `Iff.mp`。
 theorem prod_mem_pair (A B : Type) (s : Set A) (t : Set B) (a : A) (b : B)
-    (h : (prod_mk A B a b) ∈ (s ×ˢ t)) : a ∈ s ∧ b ∈ t := by
+    (h : (@prod_mk A B a b) ∈ (s ×ˢ t)) : a ∈ s ∧ b ∈ t := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -135,7 +135,7 @@ theorem prod_swap (A B : Type) (s : Set A) (t : Set B) :
 -- soko:hint 关键件：练习 1 + 练习 3/4（**注意 `mk` 的两个实参顺序**：先第二坐标、后第一坐标）。
 theorem prod_swap_mem (A B : Type) (s : Set A) (t : Set B) (p : Prod A B)
     (hp : p ∈ (s ×ˢ t)) :
-    (prod_mk B A (Prod.snd A B p) (Prod.fst A B p)) ∈ (t ×ˢ s) := by
+    (@prod_mk B A (Prod.snd A B p) (Prod.fst A B p)) ∈ (t ×ˢ s) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────

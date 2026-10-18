@@ -120,7 +120,7 @@ theorem symmDiff_empty_apply (α : Type) (A : Set α) (x : α) :
 -- soko:hint 目标形态：`(A △ univ) x ↔ ¬ (A x)`。
 -- soko:hint 关键件：`Set.mem_univ`（**取用子**：先 λ 绑定再应用）· `Or.elim` · `False.elim`· `And.intro` ✓
 theorem symmDiff_univ_apply (α : Type) (A : Set α) (x : α) :
-    (symmDiff α A (Set.univ α)) x ↔ ¬ (A x) := by
+    (symmDiff α A (@Set.univ α)) x ↔ ¬ (A x) := by
   sorry
 
 -- 练习 8（L 类）：**全集是补（方程形态）**。
@@ -128,7 +128,7 @@ theorem symmDiff_univ_apply (α : Type) (A : Set α) (x : α) :
 -- soko:hint 目标形态：`A △ univ = (fun x => ¬ (A x))`。
 -- soko:hint 关键件：`Set.ext` + 练习 7（**直接交出去**）✓
 theorem symmDiff_univ (α : Type) (A : Set α) :
-    symmDiff α A (Set.univ α) = (fun (x : α) => ¬ (A x)) := by
+    symmDiff α A (@Set.univ α) = (fun (x : α) => ¬ (A x)) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────

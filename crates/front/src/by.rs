@@ -13,11 +13,11 @@ use crate::ast::{Binder, BinderKind, Expr, HaveValue, MatchArm, Pattern, Tactic}
 use crate::compile::elab::{DefTable, InductiveTable, MatchCtor};
 use crate::compile::CompileError;
 use crate::compile::{CompileOptions, ErrorKind};
+use crate::expr::e_app_at;
 use crate::judge::{
     begin_batch, flush_batch, judge_infer, judge_infer_explicit, judge_terms, judge_terms_strict,
     GoalBinderSpec, Judgement, OpenGoalSpec,
 };
-use crate::expr::e_app_at;
 use crate::proof::{parse_expr_text, render_expr};
 use crate::spine::{
     head_and_args, mentions, peel_pi_delta, spine_of, substitute, unfold_head_once, unify_spine,

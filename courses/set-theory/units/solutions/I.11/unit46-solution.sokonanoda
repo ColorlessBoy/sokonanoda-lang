@@ -43,7 +43,7 @@ theorem symmDiff_comm (α : Type) (A B : Set α) :
 theorem symmDiff_self_apply (α : Type) (A : Set α) (x : α) :
     ¬ ((symmDiff α A A) x) :=
   fun (h : (symmDiff α A A) x) =>
-    (@@Or.elim (A x ∧ ¬ (A x)) (A x ∧ ¬ (A x)) (¬ (A x))
+    (@Or.elim (A x ∧ ¬ (A x)) (A x ∧ ¬ (A x)) (¬ (A x))
       (fun (h1 : A x ∧ ¬ (A x)) => And.right h1)
       (fun (h2 : A x ∧ ¬ (A x)) => And.right h2) h)
       (Or.elim (A x ∧ ¬ (A x)) (A x ∧ ¬ (A x)) (A x)
@@ -70,7 +70,7 @@ theorem symmDiff_univ_apply (α : Type) (A : Set α) (x : α) :
     (symmDiff α A (Set.univ α)) x ↔ ¬ (A x) :=
   @Iff.intro ((symmDiff α A (Set.univ α)) x) (¬ (A x))
     (fun (h : (symmDiff α A (Set.univ α)) x) =>
-      @Or.elim (A x ∧ ¬ ((@@Set.univ α) x)) ((Set.univ α) x ∧ ¬ (A x)) (¬ (A x))
+      @Or.elim (A x ∧ ¬ ((@Set.univ α) x)) ((Set.univ α) x ∧ ¬ (A x)) (¬ (A x))
         (fun (h1 : A x ∧ ¬ ((Set.univ α) x)) =>
           (fun (hnot : ¬ ((Set.univ α) x)) =>
             (fun (hf : False) => False.elim (¬ (A x)) hf)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来

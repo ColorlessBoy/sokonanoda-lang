@@ -131,7 +131,7 @@ theorem mem_image_mono (α : Type) (β : Type) (f : α → β) (A B : Set α) (h
 -- soko:hint 关键件：`Set.mem_image_elim`（**消到 `False`** ✓）· `Set.mem_empty_iff_false` ✓
 
 theorem not_mem_image_empty (α : Type) (β : Type) (f : α → β) (y : β) :
-    ¬ (y ∈ (f '' (@Set.empty α))) := by
+    ¬ (y ∈ (f '' (∅))) := by
   sorry
 -- 练习 12（T 类）：**`A` 含在 `f` 的原像（`f '' A`）里**（成员层级 ✓）。
 

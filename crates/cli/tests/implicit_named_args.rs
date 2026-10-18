@@ -138,7 +138,10 @@ def b2 : Nat := h Nat Nat (fun (n : Nat) => n) 5
 def b3 : Nat := @h Nat Nat (fun (n : Nat) => n) 5
 ";
     let (ok, checked, diags) = grade("pos", src, &[]);
-    assert!(!ok, "默认档下 `b2` 该判红（其余三条不许被误伤）：diags={diags:?}");
+    assert!(
+        !ok,
+        "默认档下 `b2` 该判红（其余三条不许被误伤）：diags={diags:?}"
+    );
     for name in ["h", "b1", "b3"] {
         assert!(
             checked.iter().any(|c| c == name),

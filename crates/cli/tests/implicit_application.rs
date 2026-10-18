@@ -126,8 +126,7 @@ theorem n4 (p : Prop) (Q : Prop \u{2192} Prop \u{2192} Prop)
 /// （默认档拒绝它的那一条牙在 `implicit_at_alignment.rs::default_mode_is_strict` ✓）。
 #[test]
 fn g85_overapplied_with_dropped_implicits_is_accepted() {
-    let (ok, checked, diagnostics) =
-        grade_source_env("shapes", SHAPES, &[("SOKO_STRICT_AT", "0")]);
+    let (ok, checked, diagnostics) = grade_source_env("shapes", SHAPES, &[("SOKO_STRICT_AT", "0")]);
     assert!(
         diagnostics.is_empty(),
         "四条形状都不许有诊断（`n2` 修前是「期望 Sort(0)，实际是 And …」✗）：{diagnostics:#?}"

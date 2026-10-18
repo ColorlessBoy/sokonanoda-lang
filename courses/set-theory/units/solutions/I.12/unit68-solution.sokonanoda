@@ -21,9 +21,9 @@ theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a 
 theorem subset_refl (α : Type) (A : Set α) : A ⊆ A :=
   fun (a : α) (ha : a ∈ A) => ha
 
-theorem empty_subset (α : Type) (A : Set α) : (@Set.empty α) ⊆ A :=
-  fun (a : α) (h : a ∈ (@Set.empty α)) =>
-    (@@False.elim (a ∈ A)) ((Iff.mp (Set.mem_empty_iff_false a)) h)
+theorem empty_subset (α : Type) (A : Set α) : (∅) ⊆ A :=
+  fun (a : α) (h : a ∈ (∅)) =>
+    (@False.elim (a ∈ A)) ((Iff.mp (Set.mem_empty_iff_false a)) h)
 
 theorem powerset_self_mem (α : Type) (A : Set α) : A ∈ (𝒫 A) :=
   (fun (hu : A ∈ (𝒫 A) ↔ A ⊆ A) => Iff.mpr hu (subset_refl α A))

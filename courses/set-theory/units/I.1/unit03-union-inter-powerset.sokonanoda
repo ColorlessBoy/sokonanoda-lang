@@ -175,7 +175,7 @@ theorem powerset_mono (α : Type) (A B : Set α) (h : A ⊆ B) :
 -- soko:hint 目标形态：¬ ((Set.univ α ∪ ∅) ⊆ (Set.univ α ∩ ∅))，展开之后目标是 False，手里有 hsub : (Set.univ α ∪ ∅) ⊆ (Set.univ α ∩ ∅)。
 -- soko:hint 关键件：先造 a ∈ Set.univ α ∪ ∅——Set.mem_univ α a 配上 Or.inl；把它喂给 hsub a 之后用 And.right 取出后半（展开即 False）。
 theorem union_subset_inter_false (α : Type) (a : α) :
-    ¬ ((Set.univ α ∪ ∅) ⊆ (Set.univ α ∩ ∅)) := by
+    ¬ ((@Set.univ α ∪ ∅) ⊆ (@Set.univ α ∩ ∅)) := by
   sorry
 
 -- 练习 11（D 类）：判断真假并说明理由（本题把**真的那条**写成定理）。

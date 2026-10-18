@@ -161,7 +161,7 @@ theorem image_inter_subset (α β : Type) (f : α → β) (A B : Set α) :
           (And.intro
             (@And.left (A x) (B x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               (And.left hx))
-            (@@And.right hx)))
+            (@And.right hx)))
         (Exists.intro x
           (And.intro  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
             (And.right (A x) (B x)
@@ -200,7 +200,7 @@ def f1 (t : Two) : Two := match t with
 -- 语言缺口 ③：内核不化简变量处的 match 定义，所以这条抽象等式只能用 match 证。
 theorem f1_eq_aa (x : Two) : (f1 x) = aa := by
   exact match x with
-  | aa => @@Eq.refl.{1} Two aa
+  | aa => @Eq.refl.{1} Two aa
   | bb => Eq.refl.{1} Two aa
 
 def U01 : Set Two := fun (x : Two) => (x = aa) ∨ (x = bb)
@@ -367,7 +367,7 @@ theorem image_preimage_image_eq_preimage :
   exact eq_of_subsets Two (f1 '' (f1 ⁻¹' U01)) image_preimage
     (fun (y : Two) =>
       fun (hy : y ∈ (f1 '' (f1 ⁻¹' U01))) =>
-        @@Exists.elim Two
+        @Exists.elim Two
           (fun (x : Two) => x ∈ (f1 ⁻¹' U01) ∧
             (f1 x) = y)
           (y ∈ image_preimage) hy

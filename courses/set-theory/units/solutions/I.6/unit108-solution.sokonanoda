@@ -38,7 +38,7 @@ theorem acc_of_wellFounded (α : Type) (r : α → α → Prop) (hwf : IsWellFou
               (@Acc.intro α r m (fun (y : α) (hy : r y m) =>
                 Classical.byContradiction (Acc α r y)
                   (fun (hny : ¬ Acc α r y) =>
-                    (@@And.right (¬ Acc α r m) (∀ (y' : α), ¬ Acc α r y' → ¬ (r y' m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                    (@And.right (¬ Acc α r m) (∀ (y' : α), ¬ Acc α r y' → ¬ (r y' m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
                       y hny hy)))))
 
 theorem ordinal_ind (α : Type) (E : α → α → Prop) (motive : α → Prop)
@@ -77,7 +77,7 @@ theorem mem_of_exists_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
       @Or.elim (E w y) (w = y ∨ E y w) (E y x)
         (fun (hwy : E w y) =>
           @False.elim (E y x)
-            ((@@And.right (E w x) (¬ (E w y)) hw) hwy))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+            ((@And.right (E w x) (¬ (E w y)) hw) hwy))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
         (fun (h : w = y ∨ E y w) =>
           Or.elim (w = y) (E y w) (E y x)
             (fun (heq : w = y) =>

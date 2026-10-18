@@ -9,19 +9,19 @@ theorem demo_mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
   Set.mem_prod_iff A B s t p
 
 theorem demo_prod_fst_mk (A B : Type) (a : A) (b : B) :
-    Prod.fst A B (prod_mk A B a b) = a :=
+    Prod.fst A B (@prod_mk A B a b) = a :=
   Prod.fst_mk A B a b
 
 theorem demo_prod_snd_mk (A B : Type) (a : A) (b : B) :
-    Prod.snd A B (prod_mk A B a b) = b :=
+    Prod.snd A B (@prod_mk A B a b) = b :=
   Prod.snd_mk A B a b
 
 theorem prod_mem_apply (A B : Type) (s : Set A) (t : Set B) (a : A) (b : B) :
-    (prod_mk A B a b) ∈ (s ×ˢ t) ↔ (a ∈ s ∧ b ∈ t) :=
+    (@prod_mk A B a b) ∈ (s ×ˢ t) ↔ (a ∈ s ∧ b ∈ t) :=
   Set.mem_prod_mk A B s t a b
 
 theorem prod_eta_apply (A B : Type) (p : Prod A B) :
-    prod_mk A B (Prod.fst A B p) (Prod.snd A B p) = p :=
+    @prod_mk A B (Prod.fst A B p) (Prod.snd A B p) = p :=
   Prod.eta A B p
 
 theorem prod_subset_prod (A B : Type) (s s' : Set A) (t t' : Set B)
@@ -66,13 +66,13 @@ theorem prod_mem_snd (A B : Type) (s : Set A) (t : Set B) (p : Prod A B)
 
 theorem prod_swap_mem (A B : Type) (s : Set A) (t : Set B) (p : Prod A B)
     (hp : p ∈ (s ×ˢ t)) :
-    (prod_mk B A (Prod.snd A B p) (Prod.fst A B p)) ∈ (t ×ˢ s) :=
+    (@prod_mk B A (Prod.snd A B p) (Prod.fst A B p)) ∈ (t ×ˢ s) :=
   Iff.mpr (Set.mem_prod_mk B A t s (Prod.snd A B p) (Prod.fst A B p))
     (And.intro
       (prod_mem_snd A B s t p hp) (prod_mem_fst A B s t p hp))
 
 theorem prod_mem_pair (A B : Type) (s : Set A) (t : Set B) (a : A) (b : B)
-    (h : (prod_mk A B a b) ∈ (s ×ˢ t)) : a ∈ s ∧ b ∈ t :=
+    (h : (@prod_mk A B a b) ∈ (s ×ˢ t)) : a ∈ s ∧ b ∈ t :=
   Iff.mp (Set.mem_prod_mk A B s t a b) h
 
 theorem prod_subset_prod_apply (A B : Type) (s s' : Set A) (t t' : Set B)

@@ -42,7 +42,7 @@ theorem surjective_comp (α β γ : Type) (f : α → β) (g : β → γ)
     (hf : Function.Surjective α β f) (hg : Function.Surjective β γ g) :
     Function.Surjective α γ (g ∘ f) := by
   intro z
-  exact @@Exists.elim β (fun (y : β) => g y = z)
+  exact @Exists.elim β (fun (y : β) => g y = z)
     (∃ (x : α), (g ∘ f) x = z)
     (hg z)
     (fun (y : β) => fun (hy : g y = z) =>
@@ -57,7 +57,7 @@ theorem surjective_comp (α β γ : Type) (f : α → β) (g : β → γ)
 theorem leftInverse_injective (α β : Type) (f : α → β) (g : β → α)
     (h : Function.LeftInverse α β g f) : Function.Injective α β f := by
   intro x y hxy
-  exact @@Eq.trans.{1} α x (g (f x)) y
+  exact @Eq.trans.{1} α x (g (f x)) y
     (@Eq.symm.{1} α (g (f x)) x (h x))
     (Eq.trans.{1} α (g (f x)) (g (f y)) y
       (congrArg.{1} g hxy)

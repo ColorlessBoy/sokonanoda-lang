@@ -363,7 +363,7 @@ import lib.Set
 
 -- 演示（第二刀）：`𝒫 A` 就是 `Set.powerset α A`——幂集的成员是**子集**。
 example (α : Type) (A : Set α) : Iff (Set.mem (Set α) A (𝒫 A)) (Set.subset α A A) := by
-  exact @@Set.mem_powerset_iff α A A
+  exact @Set.mem_powerset_iff α A A
 
 -- 演示（第二刀）：`Aᶜ` 就是 `Set.compl α A`——补集的成员就是"不在里面"。
 example (α : Type) (a : α) (A : Set α) :
@@ -419,7 +419,7 @@ theorem demo_trans_notation (α : Type) (A B C : Set α)
 
 -- 演示 4：空集是最小元——`∅ ⊆ A`（单元②练习 4 的两种写法）。
 theorem demo_empty_subset_pointful (α : Type) (A : Set α) :
-    @@@@@@@@@@@@@@Set.subset α (Set.empty α) A := by
+    @Set.subset α (Set.empty α) A := by
   intro x
   intro hx
   exact @False.elim (A x) hx
@@ -495,12 +495,12 @@ theorem demo_precedence_pointful (α : Type) (A B C : Set α) :
     Set.subset α A (Set.union α (Set.union α A B) C) := by
   intro x
   intro hx
-  exact @@Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
+  exact @Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
 
 theorem demo_precedence_notation (α : Type) (A B C : Set α) : A ⊆ A ∪ B ∪ C := by
   intro x
   intro hx
-  exact @@Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
+  exact @Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
 
 -- ─────────────────────────────────────────────────────────────
 -- 演示 10（G-60，0.83.0）：分离 —— `{x ∈ A | P x}` 与点名 `Set.sep A P` 是
