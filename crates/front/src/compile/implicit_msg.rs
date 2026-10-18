@@ -75,21 +75,6 @@ pub(crate) fn strict_at_enabled() -> bool {
     )
 }
 
-/// **a15**：引擎自己产出、**马上要回读**的文本（目标/子目标的规范形态）要不要走
-/// **全显式 pp**（`@f a b` 形态）。
-///
-/// 为什么必须（实测最小复现）：目标由 β 归约得到时（`Reflexive A (fun (a b : A) => a = b)`
-/// 走 `intro` ⇒ 目标成为 `Eq A a a`），引擎把目标 pp 成「正常形式写满实参」的文本、
-/// 再回读 ⇒ 严格档一律拒 ✗ —— **用户写对了也判红**，且诊断给的出路（`@a = a`）
-/// 在源文件里**根本不存在** ⇒ 不可执行 ✗。
-/// 对齐 Lean 4：那边 `pp.explicit`（`PrettyPrinter/Delaborator/Options.lean:154`）
-/// 打的就是 `@Eq α a b`；而 Lean 的 goal 始终是 `MVarId`+`Expr`，**从不回读自己的
-/// pp 文本** —— 我们有意偏离（`by` 引擎的目标是文本）⇒ 偏离的代价由这条补上
-/// （a5 已对 `operand_type_expr` 的 pp 档这么做 ✓）。
-pub(crate) fn engine_text_pp(on: bool) -> bool {
-    on || strict_at_enabled()
-}
-
 /// 签名文本里**源级**的形参名与风格，按位置返回。
 ///
 /// `implicit::telescope` 把参数名一律换成 fresh 名（防捕获 ✓）⇒ 报错文案里印出来是
