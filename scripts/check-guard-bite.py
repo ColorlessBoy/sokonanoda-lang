@@ -2338,9 +2338,14 @@ def selftest(job: str = DEFAULT_JOB) -> int:
         c13_bare = _c13_root("registered-not-wired", registry=_reg_a, wiring=None)
         c13_bare_red, _c13r, _c13e = registered_wiring_problems(c13_bare)
         gate("⭐⭐ 反向㉖：C13 —— **登记了但没接线**（`REGISTERED_SCRIPTS` 点名、"
-             "任何 `run:` 正文里都没有它）⇒ 判红（修前这条形状**没有任何判据看得见** ✗）",
+             "任何 `run:` 正文里都没有它）⇒ 判红（修前这条形状**没有任何判据看得见**）",
              any("C13 登记接线" in m and "fixture-a.mjs" in m for m in c13_bare_red),
              f"红 {len(c13_bare_red)} 条")
+        # ⚠ **本臂的名字里不许带判红标记**（`✗`）—— 2026-10-18 CI 实测 ✗：`gate()` 的
+        #   「读数可归属」那条规则管的是**整个 `--selftest` 流**（`mixed` ⇒ `bad += 1`），
+        #   而本臂的名字原来写成「…没有任何判据看得见 **✗**）」⇒ 一个**字面 `✗`**
+        #   就把整轮 `--selftest` 判成「1 组不对」✗（`queue-lint` 当场红 ⇒ 挡发版）。
+        #   ⇒ 判红标记**只许**出现在 `↳` 自述行里（下面那行 ✓），**不许**进 `✓` 判据行 ✓。
         if c13_bare_red:
             print(f"      ↳ 本臂判红原文（**不是本跑的判据** ✓）：{c13_bare_red[0][:90]}")
 
