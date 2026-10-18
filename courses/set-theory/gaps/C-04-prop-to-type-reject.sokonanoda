@@ -20,4 +20,4 @@ import lib.Rel
 import lib.Order
 
 def p_case_elim (P : Prop) (a : Nat) (b : Nat) (h : P ∨ ¬ P) : Nat :=
-  Or.elim P (¬ P) Nat (fun (_ : P) => a) (fun (_ : ¬ P) => b) h  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  @Or.elim P (¬ P) Nat (fun (_ : P) => a) (fun (_ : ¬ P) => b) h  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）

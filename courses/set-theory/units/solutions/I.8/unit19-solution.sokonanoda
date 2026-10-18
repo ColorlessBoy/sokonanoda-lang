@@ -31,8 +31,8 @@ theorem le_refl (α : Type) (A : Set α) : A ≼ A :=
   Set.Le.intro α α A A (fun (x : α) => x) (injOn_id α A)
     (fun (x : α) (hx : x ∈ A) => hx)
 
-theorem le_univ (α : Type) (A : Set α) : A ≼ Set.univ α :=
-  Set.Le.intro α α A (Set.univ α) (fun (x : α) => x) (injOn_id α A)
+theorem le_univ (α : Type) (A : Set α) : A ≼ @Set.univ α :=
+  Set.Le.intro α α A (@Set.univ α) (fun (x : α) => x) (injOn_id α A)
     (fun (x : α) (hx : x ∈ A) => @Set.mem_univ α x)
 
 theorem subset_le (α : Type) (A B : Set α) (h : A ⊆ B) : A ≼ B :=

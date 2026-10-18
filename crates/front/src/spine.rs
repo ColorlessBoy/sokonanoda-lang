@@ -696,7 +696,7 @@ fn instantiate_universes(expr: &Expr, uparams: &[String], actual: &[String]) -> 
             Expr::App { fun, arg, span, .. } => Expr::App {
                 fun: Box::new(walk(fun, sub)),
                 arg: Box::new(walk(arg, sub)),
-                explicit_spine: false,
+                explicit_spine: spine_at(expr),
                 span: *span,
             },
             Expr::Lambda {
@@ -758,13 +758,11 @@ fn instantiate_universes(expr: &Expr, uparams: &[String], actual: &[String]) -> 
 /// ——定义体若把形参名重新绑定，代换会串。课程库里没有这种写法（`Set.union`
 /// 的 `fun (x : α) => Or (A x) (B x)` 用的是新名字 `x`，与形参 `α A B` 不撞）。
 /// **beta 归约**（递归、只做 redex 消去）：`(fun (x : T) => body) a` ⇒ `body[x := a]`。
-///
 /// 为什么需要（R2 实测）：**内核不做 beta 转换**——`(fun (c : γ) => g (g2 c))
 /// ((fun (a : α) => f2 (f a)) a)` 与原式 `g (g2 (f2 (f a)))` 在内核眼里**不是**
 /// 同一个类型（报错正是"期望 `@Eq.{1} α ((fun …) ((fun …) a)) a`，实际是
 /// `Eq (g (g2 (f2 (f a)))) a`"）。而 `apply` 会把交出去的**lambda 证人**代进
 /// 子目标的类型里，于是子目标里全是 redex ⇒ 任何 `exact` 都失败。
-///
 /// 所以前端在**每次代入之后**把 redex 消掉（`substitute` 是制造 redex 的地方，
 /// 见 `rename_bound_binders` 的兄弟注释）。
 pub(crate) fn beta_normalize(expr: &Expr) -> Expr {
@@ -781,7 +779,7 @@ pub(crate) fn beta_normalize(expr: &Expr) -> Expr {
                 out = Expr::App {
                     fun: Box::new(out),
                     arg: Box::new(beta_normalize(arg)),
-                    explicit_spine: false,
+                    explicit_spine: spine_at(expr),
                     span: expr.span(),
                 };
             }
@@ -922,6 +920,15 @@ pub(crate) fn spine_of(expr: &Expr) -> (&Expr, Vec<&Expr>) {
     }
     args.reverse();
     (cur, args)
+}
+
+/// 重建**被 `spine_of` 拍平过**的脊时用的脊标：同一条脊同标 ⇒ 取原最外层节点的标 ✓
+/// （`@f a b` ⇒ `true`；`(@f a b) x` 的最外层是另一次应用 ⇒ `false`）。只保真、不新造 ✗。
+fn spine_at(expr: &Expr) -> bool {
+    match expr {
+        Expr::App { explicit_spine, .. } => *explicit_spine,
+        _ => false,
+    }
 }
 
 /// 函数位链上是否**跨过**一条内层 `@` 形态脊（`(@f A B h) x` ⇒ `true`）。
@@ -1164,7 +1171,7 @@ pub(crate) fn rename_free(expr: &Expr, from: &str, to: &str) -> Expr {
         Expr::App { fun, arg, span, .. } => Expr::App {
             fun: Box::new(rename_free(fun, from, to)),
             arg: Box::new(rename_free(arg, from, to)),
-            explicit_spine: false,
+            explicit_spine: spine_at(expr),
             span: *span,
         },
         Expr::Plus { lhs, rhs, span } => Expr::Plus {
@@ -1677,7 +1684,7 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
             Expr::App {
                 fun: Box::new(fun),
                 arg: Box::new(arg),
-                explicit_spine: false,
+                explicit_spine: spine_at(expr),
                 span: *span,
             }
         }

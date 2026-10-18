@@ -4487,12 +4487,12 @@ fn try_implicit_application_with<'a>(
     // `And.intro a b ha hb` 逐位贴合 ⇒ 旧写法 ✓（不许被"富余实参落到结果上"抢走 ✗）；
     // `Set.image f A y` 不贴合（`f` 是函数、不是 `Type` ✗）⇒ 让给路线③ ✓；⚠ 必须在块**外**算 ✓。
     //
-    // **IA-5**：严格档下这两个判据**恒 `false`** ✓ —— 它们存在的唯一目的是让
-    // **旧写法**（正常形式收位置隐式实参）与路线③ 分清；严格档**没有旧写法**了
-    // ⇒ 富余实参**一律**落到结果上（= Lean 4 `App.lean:1113`
-    // `fType := body.instantiate1 arg` 的同一条读法 ✓）。
+    // **IA-5 + a11**：严格档**没有旧写法**了 ⇒ 富余实参**一律**落到结果上
+    // （= Lean 4 `App.lean:1113` `fType := body.instantiate1 arg` 的同一条读法 ✓）；
+    // 但**路线③ 的闸门仍要看"这条脊看起来是不是旧写法"** ✓ —— 是 ⇒ 让位给下面那条
+    // 严格档拒绝（诊断可行动、语料可机械迁移 ✓）；不是 ⇒ 才是真的"应用结果" ✓。
     let strict_at = crate::compile::implicit_msg::strict_at_enabled();
-    let fits_old_style = !strict_at
+    let fits_old_style = (!strict_at || args.len() > explicit_layers)
         && args.len() <= layers.len()
         && args_fit_layers_in_order(
             &layers,
@@ -4515,7 +4515,7 @@ fn try_implicit_application_with<'a>(
     // `期望 (Set.[] Two.[])，实际是 Pi (α : Sort(1)), (Set.[] $0)` ✗（实测：
     // unit08 的 `image_inter_singletons_empty`）。
     // 开头贴合 ⇒ 这就是旧写法，路线③ **必须让位** ✓（它只该管"实参从显式层开始"的形状）。
-    let starts_old_style = !strict_at
+    let starts_old_style = (!strict_at || args.len() > explicit_layers)
         && args.first().is_some_and(|a| {
             type_head_fits_layer(
                 &layers[0].domain,

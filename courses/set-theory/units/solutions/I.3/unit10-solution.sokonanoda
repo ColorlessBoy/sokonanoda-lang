@@ -28,7 +28,7 @@ import lib.Equiv
 
 -- 练习 1（T）：可数的定义 = 与 ℕ 等势。
 def Set.Countable (α : Type) : Prop :=
-  @Set.univ Nat ≈ Set.univ α
+  @Set.univ Nat ≈ @Set.univ α
 
 -- 练习 2（L）：恒等映射给出 ℕ 与自己的等势（=「ℕ 可数」的实例）。
 -- 两条"进集合"的域条件是 True 的证明，两条互逆律是 rfl 级。

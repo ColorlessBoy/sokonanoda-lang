@@ -183,10 +183,15 @@ impl Expr {
             Expr::SetLiteral { elements, .. } => Expr::SetLiteral { elements, span },
             Expr::AnonCtor { elements, .. } => Expr::AnonCtor { elements, span },
             Expr::NamedArg { name, value, .. } => Expr::NamedArg { name, value, span },
-            Expr::App { fun, arg, .. } => Expr::App {
+            Expr::App {
                 fun,
                 arg,
-                explicit_spine: false,
+                explicit_spine,
+                ..
+            } => Expr::App {
+                fun,
+                arg,
+                explicit_spine,
                 span,
             },
             Expr::Lambda { binders, body, .. } => Expr::Lambda {
