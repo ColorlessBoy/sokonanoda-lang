@@ -27,27 +27,27 @@
 
 -- ① 闭项：原生大整数快路径（修复前后都判绿，防「修坏了闭项」）
 theorem nat_add_closed : Nat.add 1 1 = 2 :=
-  Eq.refl.{1} Nat 2
+  @Eq.refl.{1} Nat 2
 
 -- ② 变量上的递归方程（**这是缺口本体**）
 theorem nat_add_succ_var (n m : Nat) :
     Nat.add n (Nat.succ m) = Nat.succ (Nat.add n m) :=
-  Eq.refl.{1} Nat (Nat.succ (Nat.add n m))
+  @Eq.refl.{1} Nat (Nat.succ (Nat.add n m))
 
 -- ③ 由 ② 直接打开的算术律
 theorem nat_add_zero_var (n : Nat) : Nat.add n Nat.zero = n :=
-  Eq.refl.{1} Nat n
+  @Eq.refl.{1} Nat n
 
 -- ④ 小整数字面量也要展开（`2` 是 `NatLit`、不是构造子链：
 --    「只看第二个实参的**形状**」要把这一档一起认下来）
 theorem nat_add_lit (n : Nat) : Nat.add n 2 = Nat.succ (Nat.succ n) :=
-  Eq.refl.{1} Nat (Nat.succ (Nat.succ n))
+  @Eq.refl.{1} Nat (Nat.succ (Nat.succ n))
 
 -- ⑤ 归纳法的 `succ` 步真的能走完（缺口 `blocks` 里那条「没有递归方程就无法把
 --    `succ` 情形化归到归纳假设」的**反面判据**）
 theorem nat_add_zero_induction (n : Nat) : Nat.add n Nat.zero = n :=
   Nat.rec (fun (k : Nat) => Nat.add k Nat.zero = k)
-    (Eq.refl.{1} Nat Nat.zero)
+    (@Eq.refl.{1} Nat Nat.zero)
     (fun (k : Nat) (_ih : Nat.add k Nat.zero = k) =>
-      Eq.refl.{1} Nat (Nat.succ (Nat.add k Nat.zero)))
+      @Eq.refl.{1} Nat (Nat.succ (Nat.add k Nat.zero)))
     n

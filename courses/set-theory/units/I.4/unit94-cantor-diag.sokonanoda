@@ -29,7 +29,7 @@ def SurjOnSets (α : Type) (S : α → Set α) : Prop :=
   ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x
 theorem demo_surjOnSets_def (α : Type) (S : α → Set α) :
     SurjOnSets α S ↔ ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x :=
-  Iff.intro (SurjOnSets α S) (∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x)
+  @Iff.intro (SurjOnSets α S) (∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x)
     (fun (h : SurjOnSets α S) => h)
     (fun (h : ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x) => h)
 theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=

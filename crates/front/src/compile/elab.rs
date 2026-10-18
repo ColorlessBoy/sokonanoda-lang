@@ -4342,7 +4342,7 @@ fn try_implicit_application_with<'a>(
     let expected_src: Option<&Expr> = expected_spine.as_ref().or(expected_src);
     // Lean 的 `@`：整条脊的实参是**逐位显式**的 ⇒ 不插隐式实参（设计 §7 第 5 条）。
     // ⚠ **命名实参是例外**：`@f (α := Nat) 5` 里 `α` 仍按名字绑定（见 `named_arg`）✓。
-    if explicit_spine && !crate::compile::named_arg::spine_has_named(expr) {
+    if crate::compile::named_arg::spine_needs_old_path(explicit_spine, expr) {
         return Ok(None);
     }
     // prelude 安装期间（含 `judge_infer` 触发的嵌套安装）**一律不插**：插入要先
@@ -6771,11 +6771,13 @@ pub(crate) fn elab_expr<'a>(
                         name: ctor.name.clone(),
                         span: arm.span,
                     };
+                    // 脊 = 构造子整条望远镜 ⇒ 严格档要标 `@`（a17：写死 `false` 被判红）。
+                    let at = crate::compile::implicit_msg::strict_at_enabled();
                     for p in &param_args_src {
                         term = Expr::App {
                             fun: Box::new(term),
                             arg: Box::new(p.clone()),
-                            explicit_spine: false,
+                            explicit_spine: at,
                             span: arm.span,
                         };
                     }
@@ -6786,7 +6788,7 @@ pub(crate) fn elab_expr<'a>(
                                 name: b.name.clone(),
                                 span: b.span,
                             }),
-                            explicit_spine: false,
+                            explicit_spine: at,
                             span: arm.span,
                         };
                     }

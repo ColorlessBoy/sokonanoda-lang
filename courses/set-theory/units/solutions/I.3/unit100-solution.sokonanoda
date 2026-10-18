@@ -8,7 +8,7 @@ def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
 
 theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
     LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
-  Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+  @Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
     (fun (h : LeOn α β A B) => h)
     (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
 
@@ -19,7 +19,7 @@ theorem demo_injOn_def (α : Type) (β : Type) (f : α → β) (A : Set α) :
 
 theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
     Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=
-  Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+  @Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
     (fun (h : Set.MapsTo α β f A B) => h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) => h)
 
 theorem leOn_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B) :
@@ -47,18 +47,18 @@ theorem injOn_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β �
 theorem injOn_of_leftInv (α : Type) (β : Type) (f : α → β) (g : β → α) (A : Set α)
     (hgf : Set.LeftInvOn α β g f A) : Set.InjOn α β f A :=
   fun (x : α) (hx : x ∈ A) (y : α) (hy : y ∈ A) (h : f x = f y) =>
-    Eq.trans.{1} α x (g (f x)) y (Eq.symm.{1} α (g (f x)) x (hgf x hx))
-      (Eq.trans.{1} α (g (f x)) (g (f y)) y
-        (Eq.subst.{1} β (fun (v : β) => g (f x) = g v) (f x) (f y) h
-          (Eq.refl.{1} α (g (f x))))
+    @Eq.trans.{1} α x (g (f x)) y (@Eq.symm.{1} α (g (f x)) x (hgf x hx))
+      (@Eq.trans.{1} α (g (f x)) (g (f y)) y
+        (@Eq.subst.{1} β (fun (v : β) => g (f x) = g v) (f x) (f y) h
+          (@Eq.refl.{1} α (g (f x))))
         (hgf y hy))
 
 theorem leOn_comp (α : Type) (β : Type) (γ : Type) (A : Set α) (B : Set β) (C : Set γ)
     (hAB : LeOn α β A B) (hBC : LeOn β γ B C) : LeOn α γ A C :=
-  Exists.elim (α → β) (fun (f : α → β) => Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+  @Exists.elim (α → β) (fun (f : α → β) => Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
     (LeOn α γ A C) (leOn_apply α β A B hAB)
     (fun (f : α → β) (hf : Set.InjOn α β f A ∧ Set.MapsTo α β f A B) =>
-      Exists.elim (β → γ) (fun (g : β → γ) => Set.InjOn β γ g B ∧ Set.MapsTo β γ g B C)
+      @Exists.elim (β → γ) (fun (g : β → γ) => Set.InjOn β γ g B ∧ Set.MapsTo β γ g B C)
         (LeOn α γ A C) (leOn_apply β γ B C hBC)
         (fun (g : β → γ) (hg : Set.InjOn β γ g B ∧ Set.MapsTo β γ g B C) =>
           leOn_intro α γ A C (fun (x : α) => g (f x))
@@ -76,7 +76,7 @@ theorem leOn_of_equiv_left (α : Type) (α' : Type) (β : Type) (A : Set α) (A'
     (fun (f : α → α') (g : α' → α) (hf : Set.MapsTo α α' f A A')
       (hg : Set.MapsTo α' α g A' A) (hgf : Set.LeftInvOn α α' g f A)
       (hfg : Set.RightInvOn α α' f g A') =>
-      Exists.elim (α' → β) (fun (k : α' → β) => Set.InjOn α' β k A' ∧ Set.MapsTo α' β k A' B)
+      @Exists.elim (α' → β) (fun (k : α' → β) => Set.InjOn α' β k A' ∧ Set.MapsTo α' β k A' B)
         (LeOn α β A B) (leOn_apply α' β A' B h')
         (fun (k : α' → β) (hk : Set.InjOn α' β k A' ∧ Set.MapsTo α' β k A' B) =>
           leOn_intro α β A B (fun (x : α) => k (f x))
@@ -87,7 +87,7 @@ theorem leOn_of_equiv_left (α : Type) (α' : Type) (β : Type) (A : Set α) (A'
 
 theorem leOn_of_equiv_right (α : Type) (β' : Type) (β : Type) (A : Set α) (B' : Set β')
     (B : Set β) (h : A ≼ B') (h' : B' ≈ B) : LeOn α β A B :=
-  Exists.elim (α → β') (fun (f : α → β') => Set.InjOn α β' f A ∧ Set.MapsTo α β' f A B')
+  @Exists.elim (α → β') (fun (f : α → β') => Set.InjOn α β' f A ∧ Set.MapsTo α β' f A B')
     (LeOn α β A B) (leOn_apply α β' A B' h)
     (fun (f : α → β') (hf : Set.InjOn α β' f A ∧ Set.MapsTo α β' f A B') =>
       Set.Equiv.elim β' β B' B (LeOn α β A B) h'

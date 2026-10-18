@@ -26,13 +26,13 @@ theorem cbK_mono (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : �
     (C1 : Set α) (C2 : Set α) (h : ∀ (x : α), x ∈ C1 → x ∈ C2) :
     ∀ (x : α), x ∈ cbK α β A B f g C1 → x ∈ cbK α β A B f g C2 :=
   fun (x : α) (hx : x ∈ cbK α β A B f g C1) =>
-    And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C2)))
+    @And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C2)))
       (And.left hx)
       (fun (h2 : x ∈ g '' (B \ f '' C2)) =>
         (And.right hx)
           (Set.image_mono g (B \ f '' C2) (B \ f '' C1)
             (fun (b : β) (hb : b ∈ B \ f '' C2) =>
-              And.intro (b ∈ B) (¬ (b ∈ f '' C1))
+              @And.intro (b ∈ B) (¬ (b ∈ f '' C1))
                 (And.left hb)
                 (fun (h1 : b ∈ f '' C1) =>
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
@@ -49,7 +49,7 @@ theorem cbC0_in_fix (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g 
     ∀ (x : α), x ∈ cbK α β A B f g (cbC0 α β A B f g) → x ∈ cbC0 α β A B f g :=
   fun (x : α) (hx : x ∈ cbK α β A B f g (cbC0 α β A B f g)) =>
     fun (C : Set α) (hC : C ∈ cbFix α β A B f g) =>
-      And.right (∀ (y : α), y ∈ C → y ∈ A)
+      @And.right (∀ (y : α), y ∈ C → y ∈ A)
         (∀ (y : α), y ∈ cbK α β A B f g C → y ∈ C) hC x
         (cbK_mono α β A B f g (cbC0 α β A B f g) C
           (cbC0_least α β A B f g C hC) x hx)
@@ -58,9 +58,9 @@ theorem cbC0_sdiff (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g :
     ∀ (x : α), x ∈ A \ g '' B → x ∈ cbC0 α β A B f g :=
   fun (x : α) (hx : x ∈ A \ g '' B) =>
     fun (C : Set α) (hC : C ∈ cbFix α β A B f g) =>
-      And.right (∀ (y : α), y ∈ C → y ∈ A)
+      @And.right (∀ (y : α), y ∈ C → y ∈ A)
         (∀ (y : α), y ∈ cbK α β A B f g C → y ∈ C) hC x
-        (And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C)))
+        (@And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C)))
           (And.left hx)
           (fun (h2 : x ∈ g '' (B \ f '' C)) =>
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
@@ -72,7 +72,7 @@ theorem cbC0_sdiff (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g :
 
 theorem cbA_in_fix (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
     A ∈ cbFix α β A B f g :=
-  And.intro (∀ (x : α), x ∈ A → x ∈ A)
+  @And.intro (∀ (x : α), x ∈ A → x ∈ A)
     (∀ (x : α), x ∈ cbK α β A B f g A → x ∈ A)
     (fun (x : α) (hx : x ∈ A) => hx)
     (fun (x : α) (hx : x ∈ cbK α β A B f g A) =>
@@ -86,7 +86,7 @@ theorem cbC0_subset_A (α β : Type) (A : Set α) (B : Set β) (f : α → β) (
 theorem cbC0_subset_K (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
     ∀ (x : α), x ∈ cbC0 α β A B f g → x ∈ cbK α β A B f g (cbC0 α β A B f g) :=
   cbC0_least α β A B f g (cbK α β A B f g (cbC0 α β A B f g))
-    (And.intro
+    (@And.intro
       (∀ (x : α), x ∈ cbK α β A B f g (cbC0 α β A B f g) → x ∈ A)
       (∀ (x : α), x ∈ cbK α β A B f g (cbK α β A B f g (cbC0 α β A B f g)) →
         x ∈ cbK α β A B f g (cbC0 α β A B f g))
@@ -118,12 +118,12 @@ theorem cbC0_gfy (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : �
     (hg_inj : Set.InjOn β α g B) (x : α) (y : β)
     (hx : x ∈ cbC0 α β A B f g) (hxy : f x = y) :
     g y ∈ cbC0 α β A B f g :=
-  Eq.subst.{1} β (fun (w : β) => g w ∈ cbC0 α β A B f g) (f x) y hxy
+  @Eq.subst.{1} β (fun (w : β) => g w ∈ cbC0 α β A B f g) (f x) y hxy
     (cbC0_gf α β A B f g hfB hgA hg_inj x hx)
 
 theorem cbC0_subst (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
     (u v : α) (h : u = v) : u ∈ cbC0 α β A B f g → v ∈ cbC0 α β A B f g :=
-  Eq.subst.{1} α (fun (z : α) => z ∈ cbC0 α β A B f g) u v h
+  @Eq.subst.{1} α (fun (z : α) => z ∈ cbC0 α β A B f g) u v h
 
 -- ── 关系版图（第 5 步）：拆成两条「半关系」再取并 ─────────────────────────
 -- 左半：`x` 在 `C₀` 里 ⇒ 走 `f`（像就是 `y`）；
@@ -178,10 +178,10 @@ theorem cbRel_total (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g 
     (hfB : Set.MapsTo α β f A B) :
     ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y :=
   fun (x : α) (hx : x ∈ A) =>
-    Or.elim (x ∈ cbC0 α β A B f g) (¬ (x ∈ cbC0 α β A B f g))
+    @Or.elim (x ∈ cbC0 α β A B f g) (¬ (x ∈ cbC0 α β A B f g))
       (∃ (y : β), y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y)
       (fun (hxC0 : x ∈ cbC0 α β A B f g) =>
-        Exists.intro β (cbTotal α β A B f g x) (f x)
+        @Exists.intro β (cbTotal α β A B f g x) (f x)
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
           (And.intro (f x ∈ B) (cbRel α β (cbC0 α β A B f g) f g x (f x)) (hfB x hx)
             (Or.inl (cbRelL α β (cbC0 α β A B f g) f x (f x))
@@ -211,10 +211,10 @@ theorem cbRel_single (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g
   fun (x : α) (y : β) (hy : y ∈ B) (v : β) (hv : v ∈ B) =>
     fun (h : cbRel α β (cbC0 α β A B f g) f g x y)
         (h' : cbRel α β (cbC0 α β A B f g) f g x v) =>
-      Or.elim (cbRelL α β (cbC0 α β A B f g) f x y)
+      @Or.elim (cbRelL α β (cbC0 α β A B f g) f x y)
         (cbRelR α β (cbC0 α β A B f g) g x y) (y = v)
         (fun (h1 : cbRelL α β (cbC0 α β A B f g) f x y) =>
-          Or.elim (cbRelL α β (cbC0 α β A B f g) f x v)
+          @Or.elim (cbRelL α β (cbC0 α β A B f g) f x v)
             (cbRelR α β (cbC0 α β A B f g) g x v) (y = v)
             (fun (h2 : cbRelL α β (cbC0 α β A B f g) f x v) =>
               Eq.trans.{1} β y (f x) v
@@ -253,10 +253,10 @@ theorem cbRel_inj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : 
   fun (x : α) (hx : x ∈ A) (z : α) (hz : z ∈ A) (y : β) (hy : y ∈ B) =>
     fun (h : cbRel α β (cbC0 α β A B f g) f g x y)
         (h' : cbRel α β (cbC0 α β A B f g) f g z y) =>
-      Or.elim (cbRelL α β (cbC0 α β A B f g) f x y)
+      @Or.elim (cbRelL α β (cbC0 α β A B f g) f x y)
         (cbRelR α β (cbC0 α β A B f g) g x y) (x = z)
         (fun (h1 : cbRelL α β (cbC0 α β A B f g) f x y) =>
-          Or.elim (cbRelL α β (cbC0 α β A B f g) f z y)
+          @Or.elim (cbRelL α β (cbC0 α β A B f g) f z y)
             (cbRelR α β (cbC0 α β A B f g) g z y) (x = z)
             (fun (h2 : cbRelL α β (cbC0 α β A B f g) f z y) =>
               hf_inj x hx z hz
@@ -298,7 +298,7 @@ theorem cbRel_surj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g :
     (hgA : Set.MapsTo β α g B A) :
     ∀ (y : β), y ∈ B → ∃ (x : α), x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y :=
   fun (y : β) (hy : y ∈ B) =>
-    Or.elim (g y ∈ cbC0 α β A B f g) (¬ (g y ∈ cbC0 α β A B f g))
+    @Or.elim (g y ∈ cbC0 α β A B f g) (¬ (g y ∈ cbC0 α β A B f g))
       (∃ (x : α), x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y)
       (fun (hgy : g y ∈ cbC0 α β A B f g) =>
         Set.mem_image_elim f (cbC0 α β A B f g) y
@@ -306,7 +306,7 @@ theorem cbRel_surj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g :
           (Classical.byContradiction (y ∈ f '' (cbC0 α β A B f g))
             (fun (hny : ¬ (y ∈ f '' (cbC0 α β A B f g))) =>
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
-              (And.right (g y ∈ A) (¬ (g y ∈ g '' (B \ f '' (cbC0 α β A B f g))))
+              (@And.right (g y ∈ A) (¬ (g y ∈ g '' (B \ f '' (cbC0 α β A B f g))))
                 (cbC0_subset_K α β A B f g (g y) hgy))
                 (Set.mem_image_intro g (B \ f '' (cbC0 α β A B f g)) (g y) y
                   (And.intro hy hny)
@@ -333,7 +333,7 @@ theorem cbChoice_elim (α β : Type) (A : Set α) (B : Set β) (P : α → β �
     (Q : Prop)
     (h : ∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x))
     (k : ∀ (f : α → β), (∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x)) → Q) : Q :=
-  Exists.elim (α → β) (fun (f : α → β) => ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x))
+  @Exists.elim (α → β) (fun (f : α → β) => ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x))
     Q h k
 
 -- 两条互逆律（把 `Set.Equiv.mk` 的四个实参拆成具名定理，读起来也清楚 ✓）
@@ -346,7 +346,7 @@ theorem cbLeftInv (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : 
     (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g (k y) y) :
     ∀ (x : α), x ∈ A → k (h x) = x :=
   fun (x : α) (hx : x ∈ A) =>
-    Eq.symm.{1} α x (k (h x))
+    @Eq.symm.{1} α x (k (h x))
       (cbRel_inj α β A B f g hfB hgA hf_inj hg_inj x hx (k (h x))
         (And.left (hk (h x) (And.left (hh x hx))))
         (h x) (And.left (hh x hx))
@@ -360,7 +360,7 @@ theorem cbRightInv (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g :
     (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g (k y) y) :
     ∀ (y : β), y ∈ B → h (k y) = y :=
   fun (y : β) (hy : y ∈ B) =>
-    Eq.symm.{1} β y (h (k y))
+    @Eq.symm.{1} β y (h (k y))
       (cbRel_single α β A B f g hg_inj (k y) y hy (h (k y))
         (And.left (hh (k y) (And.left (hk y hy))))
         (And.right (hk y hy))

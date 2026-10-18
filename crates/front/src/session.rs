@@ -1327,7 +1327,7 @@ def four : Nat := 4
     /// 之前、原本依赖 prelude `Eq` 的命令必须重查，不能复用陈旧状态。
     #[test]
     fn session_early_cutoff_prelude_shape_change_rebuilds() {
-        let old = "axiom A : Prop\naxiom a : A\naxiom eqa : Eq A a a\naxiom B : Prop\n";
+        let old = "axiom A : Prop\naxiom a : A\naxiom eqa : @Eq A a a\naxiom B : Prop\n";
         let mut session = Session::new(CompileOptions::default());
         let u1 = update(&mut session, old, 1);
         assert!(

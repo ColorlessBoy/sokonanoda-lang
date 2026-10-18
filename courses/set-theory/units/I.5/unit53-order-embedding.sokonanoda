@@ -43,12 +43,12 @@ def IsEmbedding (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β) :
 -- 演示：嵌入的展开（定义就是那个 `∀ ↔`，没有数学内容）。
 theorem demo_mem_embedding (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β) :
     IsEmbedding α β r s f ↔ ∀ (a b : α), r a b ↔ s (f a) (f b) :=
-  Iff.intro (IsEmbedding α β r s f) (∀ (a b : α), r a b ↔ s (f a) (f b))
+  @Iff.intro (IsEmbedding α β r s f) (∀ (a b : α), r a b ↔ s (f a) (f b))
     (fun (h : IsEmbedding α β r s f) => h)
     (fun (h : ∀ (a b : α), r a b ↔ s (f a) (f b)) => h)
 theorem demo_idRel_isEmbedding (α : Type) (r : Rel α α) :
     IsEmbedding α α r r (fun (a : α) => a) :=
-  fun (a : α) => fun (b : α) => Iff.intro (r a b) (r a b)
+  fun (a : α) => fun (b : α) => @Iff.intro (r a b) (r a b)
     (fun (h : r a b) => h) (fun (h : r a b) => h)
 theorem demo_embedding_def (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β)
     (h : IsEmbedding α β r s f) (a b : α) : r a b ↔ s (f a) (f b) :=

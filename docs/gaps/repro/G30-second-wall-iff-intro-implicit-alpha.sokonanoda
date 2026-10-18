@@ -52,4 +52,4 @@ theorem control_lambda (α : Type) (a b : α) (h1 : {a} = {b}) (h2 : a = b) :
 -- 对照组 ③ ✓：**显式写前导实参**（= 台账里那条 workaround ✓）⇒ 绿。
 theorem control_explicit (α : Type) (a b : α) (h1 : {a} = {b}) (h2 : a = b) :
     ({a} = {b}) ↔ a = b :=
-  Iff.intro ({a} = {b}) (a = b) (fun (_ : {a} = {b}) => h2) (fun (_ : a = b) => h1)
+  @Iff.intro ({a} = {b}) (a = b) (fun (_ : {a} = {b}) => h2) (fun (_ : a = b) => h1)

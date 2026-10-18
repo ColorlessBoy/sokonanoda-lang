@@ -23,13 +23,13 @@ theorem cbK_mono (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → �
     (C1 : Set α) (C2 : Set α) (h : ∀ (x : α), x ∈ C1 → x ∈ C2) :
     ∀ (x : α), x ∈ cbK α β A B f g C1 → x ∈ cbK α β A B f g C2 :=
   fun (x : α) (hx : x ∈ cbK α β A B f g C1) =>
-    And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C2)))
+    @And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C2)))
       (And.left hx)
       (fun (h2 : x ∈ g '' (B \ f '' C2)) =>
         (And.right hx)
           (Set.image_mono g (B \ f '' C2) (B \ f '' C1)
             (fun (b : β) (hb : b ∈ B \ f '' C2) =>
-              And.intro (b ∈ B) (¬ (b ∈ f '' C1))
+              @And.intro (b ∈ B) (¬ (b ∈ f '' C1))
                 (And.left hb)
                 (fun (h1 : b ∈ f '' C1) =>
                   (And.right hb)
@@ -45,7 +45,7 @@ theorem cbC0_in_fix (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α �
     ∀ (x : α), x ∈ cbK α β A B f g (cbC0 α β A B f g) → x ∈ cbC0 α β A B f g :=
   fun (x : α) (hx : x ∈ cbK α β A B f g (cbC0 α β A B f g)) =>
     fun (C : Set α) (hC : C ∈ cbFix α β A B f g) =>
-      And.right (∀ (y : α), y ∈ C → y ∈ A)
+      @And.right (∀ (y : α), y ∈ C → y ∈ A)
         (∀ (y : α), y ∈ cbK α β A B f g C → y ∈ C) hC x
         (cbK_mono α β A B f g (cbC0 α β A B f g) C
           (cbC0_least α β A B f g C hC) x hx)
@@ -54,9 +54,9 @@ theorem cbC0_sdiff (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α →
     ∀ (x : α), x ∈ A \ g '' B → x ∈ cbC0 α β A B f g :=
   fun (x : α) (hx : x ∈ A \ g '' B) =>
     fun (C : Set α) (hC : C ∈ cbFix α β A B f g) =>
-      And.right (∀ (y : α), y ∈ C → y ∈ A)
+      @And.right (∀ (y : α), y ∈ C → y ∈ A)
         (∀ (y : α), y ∈ cbK α β A B f g C → y ∈ C) hC x
-        (And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C)))
+        (@And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C)))
           (And.left hx)
           (fun (h2 : x ∈ g '' (B \ f '' C)) =>
             (And.right hx)

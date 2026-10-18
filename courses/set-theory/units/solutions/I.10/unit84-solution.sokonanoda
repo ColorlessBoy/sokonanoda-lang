@@ -44,7 +44,7 @@ theorem mem_preimage_elim (α : Type) (β : Type) (f : α → β) (B : Set β) (
 
 theorem mem_of_mem_image (α : Type) (β : Type) (f : α → β) (B : Set β) (y : β)
     (h : y ∈ f '' (f ⁻¹' B)) : y ∈ B :=
-  Exists.elim α (fun (x : α) => x ∈ (f ⁻¹' B) ∧ f x = y) (y ∈ B) (mem_image_elim α β f (f ⁻¹' B) y h)
+  @Exists.elim α (fun (x : α) => x ∈ (f ⁻¹' B) ∧ f x = y) (y ∈ B) (mem_image_elim α β f (f ⁻¹' B) y h)
     (fun (x : α) (hx : x ∈ (f ⁻¹' B) ∧ f x = y) =>
       rel_subst_right β (fun (u : β) (v : β) => v ∈ B) (f x) (f x) y
         (And.right hx)
@@ -52,16 +52,16 @@ theorem mem_of_mem_image (α : Type) (β : Type) (f : α → β) (B : Set β) (y
 
 theorem mem_image_of_mem (α : Type) (β : Type) (f : α → β) (A : Set α) (x : α)
     (h : x ∈ A) : f x ∈ f '' A :=
-  image_intro α β f A (f x) x h (Eq.refl.{1} β (f x))
+  image_intro α β f A (f x) x h (@Eq.refl.{1} β (f x))
 
 theorem image_of_equivClass (α : Type) (β : Type) (f : α → β) (a : α) (y : β) :
     y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔ f a = y :=
-  Iff.intro (y ∈ f '' (Rel.EquivClass α (kernel α β f) a)) (f a = y)
+  @Iff.intro (y ∈ f '' (Rel.EquivClass α (kernel α β f) a)) (f a = y)
     (fun (h : y ∈ f '' (Rel.EquivClass α (kernel α β f) a)) =>
-      Exists.elim α (fun (x : α) => x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) (f a = y)
+      @Exists.elim α (fun (x : α) => x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) (f a = y)
         (mem_image_elim α β f (Rel.EquivClass α (kernel α β f) a) y h)
         (fun (x : α) (hx : x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) =>
-          Eq.trans.{1} β (f a) (f x) y
+          @Eq.trans.{1} β (f a) (f x) y
             ((fun (hu : Rel.EquivClass α (kernel α β f) a x ↔ kernel α β f a x) =>
               Iff.mp hu (And.left hx))
               (Rel.mem_equivClass α (kernel α β f) a x))
@@ -69,5 +69,5 @@ theorem image_of_equivClass (α : Type) (β : Type) (f : α → β) (a : α) (y 
     (fun (h : f a = y) =>
       image_intro α β f (Rel.EquivClass α (kernel α β f) a) y a
         ((fun (hu : Rel.EquivClass α (kernel α β f) a a ↔ kernel α β f a a) =>
-          Iff.mpr hu (Eq.refl.{1} β (f a))) (Rel.mem_equivClass α (kernel α β f) a a))
+          Iff.mpr hu (@Eq.refl.{1} β (f a))) (Rel.mem_equivClass α (kernel α β f) a a))
         h)

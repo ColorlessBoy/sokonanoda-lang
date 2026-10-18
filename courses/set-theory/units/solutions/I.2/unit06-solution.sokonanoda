@@ -43,7 +43,7 @@ def EmptyRelation (A : Type) : Rel A A := fun (a b : A) => False
 
 theorem demo_eq_reflexive (A : Type) : Reflexive A (fun (a b : A) => a = b) := by
   intro a
-  exact Eq.refl.{1} A a
+  exact @Eq.refl.{1} A a
 
 theorem demo_empty_symmetric (A : Type) : Symmetric A (EmptyRelation A) := by
   intro a b h
@@ -60,7 +60,7 @@ theorem demo_empty_transitive (A : Type) : Transitive A (EmptyRelation A) := by
 -- ─────────────────────────────────────────────────────────────────────────
 theorem rel_inv_inv (A B : Type) (r : Rel A B) :
     (r ⁻¹) ⁻¹ = r := by
-  exact Eq.refl.{1} (Rel A B) r
+  exact @Eq.refl.{1} (Rel A B) r
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- 6.2 练习 2（T）：复合的结合律
@@ -78,7 +78,7 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
     (r • (s • t))
     ((r • s) • t)
     (fun (a : A) => fun (d : D) =>
-      Iff.intro
+      @Iff.intro
         ((r • (s • t)) a d)
         (((r • s) • t) a d)
         -- →：先拆出 b，再拆出 c，然后按 c、b 的顺序重新打包
@@ -159,7 +159,7 @@ theorem mem_equivClass_self (A : Type) (r : Rel A A) (hrefl : Reflexive A r) (a 
 theorem equivClass_eq_iff (A : Type) (r : Rel A A)
     (hrefl : Reflexive A r) (hsymm : Symmetric A r) (htrans : Transitive A r) (a b : A) :
     (EquivClass A r a = EquivClass A r b) ↔ r a b := by
-  exact Iff.intro
+  exact @Iff.intro
     ((EquivClass A r a) = (EquivClass A r b))
     (r a b)
     (fun (h : (EquivClass A r a) = (EquivClass A r b)) =>
@@ -203,7 +203,7 @@ def IsPartition (A : Type) (P : Set (Set A)) : Prop :=
 theorem classes_isPartition (A : Type) (r : Rel A A)
     (hrefl : Reflexive A r) (hsymm : Symmetric A r) (htrans : Transitive A r) :
     IsPartition A (classes A r) := by
-  exact And.intro
+  exact @And.intro
     (∀ (C : Set A), C ∈ (classes A r) → ¬ (C = (∅)))
     ((∀ (a : A),
             ∃ (C : Set A), (C ∈ (classes A r)) ∧ (a ∈ C)) ∧
@@ -299,7 +299,7 @@ def Nat.pred (n : Nat) : Nat := match n with
 
 theorem Nat.zero_ne_succ (n : Nat) : 0 ≠ Nat.succ n := by
   intro h
-  exact Eq.subst.{1} Nat (fun (m : Nat) => Nat.isZero m) 0 (Nat.succ n) h True.intro
+  exact @Eq.subst.{1} Nat (fun (m : Nat) => Nat.isZero m) 0 (Nat.succ n) h True.intro
 
 theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) : a = b := by
   exact congrArg.{1} Nat.pred h
@@ -322,7 +322,7 @@ theorem nearStep_counterexample :
     Reflexive Nat nearStep ∧ (Symmetric Nat nearStep ∧ ¬ (Transitive Nat nearStep)) := by
   exact And.intro
     (fun (a : Nat) =>
-      Or.inl (a = a)
+      @Or.inl (a = a)
         (((Nat.succ a) = a) ∨ (a = (Nat.succ a)))
         (Eq.refl.{1} Nat a))
     (And.intro

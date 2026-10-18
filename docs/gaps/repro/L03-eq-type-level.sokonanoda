@@ -51,26 +51,26 @@ ctor Vec.nil : Vec A Nat.zero
 ctor Vec.cons (n : Nat) (a : A) (v : Vec A n) : Vec A (Nat.succ n)
 end
 
-def Vec.cast (A : Type) (m n : Nat) (h : Eq.{1} Nat m n) (v : Vec A m) : Vec A n :=
+def Vec.cast (A : Type) (m n : Nat) (h : @Eq.{1} Nat m n) (v : Vec A m) : Vec A n :=
   @Eq.rec.{1, 1} Nat m (fun (k : Nat) => Vec A k) v n h
 
-def id_mp (A : Type) : A -> A := Eq.mp.{1} A A (Eq.refl.{2} Type A)
+def id_mp (A : Type) : A -> A := @Eq.mp.{1} A A (@Eq.refl.{2} Type A)
 
-def id_mpr (A : Type) : A -> A := Eq.mpr.{1} A A (Eq.refl.{2} Type A)
+def id_mpr (A : Type) : A -> A := @Eq.mpr.{1} A A (@Eq.refl.{2} Type A)
 
-def id_cast (A : Type) : A -> A := cast.{1} A A (Eq.refl.{2} Type A)
+def id_cast (A : Type) : A -> A := @cast.{1} A A (@Eq.refl.{2} Type A)
 
 def poly_mp {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (a : α) : β :=
-  Eq.mp.{u} α β h a
+  @Eq.mp.{u} α β h a
 
 def poly_mpr {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (b : β) : α :=
-  Eq.mpr.{u} α β h b
+  @Eq.mpr.{u} α β h b
 
 def poly_cast {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (a : α) : β :=
-  cast.{u} α β h a
+  @cast.{u} α β h a
 
-def nd_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a :=
-  Eq.ndrec.{1, 0} Nat a (fun (x : Nat) => Eq.{1} Nat x a) (Eq.refl.{1} Nat a) b h
+def nd_symm (a b : Nat) (h : @Eq.{1} Nat a b) : @Eq.{1} Nat b a :=
+  Eq.ndrec.{1, 0} Nat a (fun (x : Nat) => @Eq.{1} Nat x a) (@Eq.refl.{1} Nat a) b h
 
-def symm_still_there (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a :=
-  Eq.symm.{1} Nat a b h
+def symm_still_there (a b : Nat) (h : @Eq.{1} Nat a b) : @Eq.{1} Nat b a :=
+  @Eq.symm.{1} Nat a b h

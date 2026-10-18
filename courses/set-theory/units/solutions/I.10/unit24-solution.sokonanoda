@@ -34,13 +34,13 @@ theorem subset_transClosure (α : Type) (r : Rel α α) :
 theorem reflClosure_refl (α : Type) (r : Rel α α) :
     Reflexive α (Rel.reflClosure α r) :=
   fun (a : α) =>
-    Or.inr (r a a) (Eq.{1} α a a) (Eq.refl.{1} α a)  -- soko:notation-ok: G-73 形状 ③：`=` 的记法在这个位置解不出宇宙层级，必须点名声明星
+    @Or.inr (r a a) (@Eq.{1} α a a) (@Eq.refl.{1} α a)  -- soko:notation-ok: G-73 形状 ③：`=` 的记法在这个位置解不出宇宙层级，必须点名声明星
 
 theorem reflClosure_min (α : Type) (r s : Rel α α) (hs : Reflexive α s)
     (hsub : ∀ (a : α) (b : α), r a b → s a b) :
     ∀ (a : α) (b : α), Rel.reflClosure α r a b → s a b :=
   fun (a : α) (b : α) (hab : Rel.reflClosure α r a b) =>
-    Or.elim (r a b) (Eq.{1} α a b) (s a b)  -- soko:notation-ok: G-73 形状 ⑧：带 `=` 的命题当 `Or.elim` 的前导类型实参必须点名声明星
+    @Or.elim (r a b) (@Eq.{1} α a b) (s a b)  -- soko:notation-ok: G-73 形状 ⑧：带 `=` 的命题当 `Or.elim` 的前导类型实参必须点名声明星
       (fun (hr : r a b) => hsub a b hr)
       (fun (he : a = b) => rel_subst_right α s a a b he ((fun (hu : ∀ (x : α), s x x) => hu a) hs))
       hab
@@ -48,7 +48,7 @@ theorem reflClosure_min (α : Type) (r s : Rel α α) (hs : Reflexive α s)
 theorem symClosure_symm (α : Type) (r : Rel α α) :
     Symmetric α (Rel.symClosure α r) :=
   fun (a : α) (b : α) (hab : Rel.symClosure α r a b) =>
-    Or.elim (r a b) (r b a) (r b a ∨ r a b)
+    @Or.elim (r a b) (r b a) (r b a ∨ r a b)
       (fun (h1 : r a b) => Or.inr h1)
       (fun (h2 : r b a) => Or.inl h2)
       hab
@@ -57,7 +57,7 @@ theorem symClosure_min (α : Type) (r s : Rel α α) (hs : Symmetric α s)
     (hsub : ∀ (a : α) (b : α), r a b → s a b) :
     ∀ (a : α) (b : α), Rel.symClosure α r a b → s a b :=
   fun (a : α) (b : α) (hab : Rel.symClosure α r a b) =>
-    Or.elim (r a b) (r b a) (s a b)
+    @Or.elim (r a b) (r b a) (s a b)
       (fun (h1 : r a b) => hsub a b h1)
       (fun (h2 : r b a) =>
         (fun (hu : ∀ (x : α) (y : α), s x y → s y x) => hu b a (hsub b a h2)) hs)

@@ -770,8 +770,8 @@ fn match_on_an_imported_inductive_infers_its_universe() {
         "import Logic\n\n\
 theorem or_comm (A : Prop) (B : Prop) (h : Or A B) : Or B A :=\n\
   match h with\n\
-  | inl a => inr B A a\n\
-  | inr b => inl B A b\n",
+  | inl a => @inr B A a\n\
+  | inr b => @inl B A b\n",
     );
     let report = compile_project(&entry, None, &CompileOptions::default(), None);
     assert!(report.diagnostics.is_empty(), "{:?}", codes(&report));

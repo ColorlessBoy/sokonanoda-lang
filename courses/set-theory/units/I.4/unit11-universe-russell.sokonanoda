@@ -83,7 +83,7 @@ import lib.Exists
 theorem subset_univ (α : Type) (A : Set α) : A ⊆ Set.univ α := by
   intro x
   intro hx
-  exact Set.mem_univ α x
+  exact @Set.mem_univ α x
 
 -- 演示 2（已写好）：反方向也成立——能包含 univ 的集合只有 univ 自己。
 -- 两条合起来读：本类型内「包含一切集合的集合」只有一个，就是 univ。

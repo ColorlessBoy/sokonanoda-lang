@@ -131,20 +131,20 @@ theorem demo_rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Re
   constructor
   intro h
   have h1 : ∃ (b : B), r a b ∧ (∃ (c : C), s b c ∧ t c d) :=
-    Exists.elim C (fun (c : C) => ((r • s) a c) ∧ (t c d))
+    @Exists.elim C (fun (c : C) => ((r • s) a c) ∧ (t c d))
       (∃ (b : B), r a b ∧ (∃ (c2 : C), s b c2 ∧ t c2 d)) h
       (fun (c : C) => fun (hc : ((r • s) a c) ∧ (t c d)) =>
-        Exists.elim B (fun (b : B) => r a b ∧ s b c)
+        @Exists.elim B (fun (b : B) => r a b ∧ s b c)
           (∃ (b : B), r a b ∧ (∃ (c2 : C), s b c2 ∧ t c2 d)) (And.left hc)
           (fun (b : B) => fun (hb2 : r a b ∧ s b c) =>
             Exists.intro b (And.intro (And.left hb2) (Exists.intro c (And.intro (And.right hb2) (And.right hc))))))
   exact h1
   intro h
   have h2 : ∃ (c : C), (∃ (b : B), r a b ∧ s b c) ∧ t c d :=
-    Exists.elim B (fun (b : B) => r a b ∧ (∃ (c : C), s b c ∧ t c d))
+    @Exists.elim B (fun (b : B) => r a b ∧ (∃ (c : C), s b c ∧ t c d))
       (∃ (c : C), (∃ (b2 : B), r a b2 ∧ s b2 c) ∧ t c d) h
       (fun (b : B) => fun (hb : r a b ∧ (∃ (c : C), s b c ∧ t c d)) =>
-        Exists.elim C (fun (c : C) => s b c ∧ t c d)
+        @Exists.elim C (fun (c : C) => s b c ∧ t c d)
           (∃ (c : C), (∃ (b2 : B), r a b2 ∧ s b2 c) ∧ t c d) (And.right hb)
           (fun (c : C) => fun (hc2 : s b c ∧ t c d) =>
             Exists.intro c
@@ -172,7 +172,7 @@ theorem demo_injective_unpack (α β : Type) (f : α → β)
 -- 定义上就是同一句话，用的时候不必先改写（练习 3 就靠这一条省掉一次搬运）。
 theorem demo_fun_comp_apply (α β γ : Type) (f : α → β) (g : β → γ) (x : α) :
     (g ∘ f) x = g (f x) := by
-  exact Function.comp_apply α β γ g f x
+  exact @Function.comp_apply α β γ g f x
 
 -- ─────────────────────────────────────────────────────────────
 -- 12.1 形式↔散文互译（X 类 4 题）

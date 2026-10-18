@@ -8,13 +8,14 @@
 - ⭐ **用户拿到什么**：`apply Eq.subst _ h`（目标变 `a = x`）**默认档真能编过了**（`checked=1 · diag=0`；改前 `0 · 2`）—— 用户第 **③** 条 ✓。⚠ 严格档下实参位的洞**仍拒**（a14 自标的已知限制，测试里也如实断言 ✓）。
 - ⭐ **真因（决定性对照，不是推断）**：`9bde8406`（a14）**落 main 时漏了它的父提交** `b5fd5276`（e1 的「类型约束」路线）✗ —— `is-ancestor b5fd5276 main` **rc=1**（不在）· 同一条对 `d06b88d4` **rc=0**（a14 建在 e1 之上）· `diff --stat main agent/a14` 那四个文件 = **恰好 e1 的 85/33**；**A/B**（同树同宿主）：`agent/a14` **1 passed** vs main **1 failed**。**修** = `git cherry-pick b5fd5276`（作者/日期保留）+ 修它自己的门禁红 `clippy::type_complexity` ×2（起别名 `TyOfFn<'x>`，**零语义**）；**判据与测试一个字没改** ✓ ⇒ `front --lib` **1006/0**（改前 1005/1）· `clippy` rc=0（改前 rc=101）· `fmt`/`docs-lint` rc=0（`implicit.rs` 1220 ≤ 基线 1223）✓
 
-## 接口 agent 直接交付（2026-10-18 17:2x · 用户授权「**你来做吧**」/「**你直接改吧**」）（未发版）
-
-- ⭐ **用户拿到什么**：① **编排者读的那一面（`docs/ONBOARDING.md` §0.2「最靠前的 5 条」）第一次看得见外部提交** —— 改前 36 条开着（**23 条是外部提交**）而 §0.2 印的 5 条**全是编排者自己排的** ✗；② **`vscode-input-vim-e2e` 从 worktree 跑时不再空转**（改前它测的是"**没有扩展的** VS Code" ✗）。
-- ⭐ **三处真因（都有改前读数）**：① `scripts/ux-queue.py` 的 `render_onboarding()` **自己另排一份序**（`(severity, id)` = **按 id 字母序**）⇒ `SUB-*` 落到**第 7 名**以后（实测：第一条外部提交名次 **7 → 1**）—— 而 `--next` 说 `SUB-agent-never-lands-to-main` ⇒ **两个视图打架、方向进不来** ✗ ⇒ 抽成 `next_order()`（**一处定义、两处消费**：`cmd_next` + `render_onboarding`）；② `editor/vscode/node_modules`（**327 包 / 130MB**）是 **gitignored** ⇒ worktree 里没有 ⇒ `extension.js:31` 的 `require("vscode-languageclient/node")` **抛** ⇒ **被测扩展根本不 activate** ⇒ 新增 `ensureExtensionDeps()`（缺则**软链**到主 checkout，零拷贝；两边都没有 ⇒ rc=3 + 出路）；③ `--shared-data-dir=<profile>/shared` 而 `prepare()` 只建 `User`/`extensions` ⇒ VS Code 弹模态「Unable to write program user data」⇒ 补 `mkdirSync(shared)`（另：内置 LSP 缺则从主 checkout 拷，两边都没有 ⇒ rc=3 —— 那两个「未找到内置服务器 / 回退下载失败」弹窗的来源）。
-- ⭐ **A/B（同一棵 worktree `v1`、同一份宿主、只差一个软链）**：改前 `vim=on` 臂 **4 条 FAIL**（`caret-after-rewrite` DOM `["(\alpha x)"]` / 磁盘 `[""]` = **改写器一次都没触发**）⇒ 改后 **14/14 PASS**（DOM = 磁盘 = `["(α x)"]`）；主 checkout 亦 **14/14 PASS**，身份行新增 `lsp darwin-arm64/c72175d6341d5ba9`。
-- **判据（可复算）**：`ux-queue.py --check` rc=0 · `--selftest` rc=0（**1611 个 `expect`**；新增 `selftest_external_top5` 三条，**反向验证** = 照改前那样排 ⇒ 实测 `FAIL ①②` 逐条点名 ✓）· `check-queue-integrity.py` rc=0 · `docs-lint` rc=0（活文档 **6.16 MB ≤ 6.50 MB**）· `node --check` ✓ · `.gitignore` 补 `editor/vscode/node_modules`（**不带斜杠** —— git 对**软链**不按目录匹配 ⇒ 带斜杠那条覆盖不到它、软链会以 `??` 把 worktree 弄脏 ✗）。
-- ⚠ **边界（如实）**：worktree 里那份**旧脚本**不会自己软链（要它跑到新脚本才有）⇒ 编排者下次从 worktree 跑前应 `land`/同步；本轮**没跑**发版（`0.93.0` 已发，本笔只是让"方向进得来"+ 判据不空转）。
+## `SUB-implicit-args-strict-default`（2026-10-18 · **严格档翻默认**：默认档 = 严格档 + 逃生门）（未发版）
+- ⭐ **用户拿到什么**：**不带任何环境变量**，`def g {α : Type} (x : α) : α := x` + `g (α := Nat) 5` **过** ✓ · `g Nat 5` **被拒** ✓（`elab-implicit-argument-unsolved`）—— 用户 10-16 要的「只有 `@` 形式收隐式实参」第一次成为**默认行为** ✓；逃生门 `SOKO_STRICT_AT=0` ⇒ `g Nat 5` **重新过** ✓。
+- ⭐ **搬了哪几件（每件单独 A/B）**：a6 的开关（`implicit_msg.rs` 极性翻转）+ 引擎三刀（`by.rs` 的 `rfl_candidate`/`Exfalso`、`goals.rs` 的 `substitute_names` 保 `explicit_spine`）**可搬** ✓；a6 的 `apply_tactic` 那刀**不可原样搬** ✗（无条件标 `@` ⇒ **旧档** `apply Set.ext` 绿→红：脊里操作数靠**操作数级期望类型传播**实例化，`@` 把它关掉）⇒ 改成**只在严格档标** ✓；**本轮新发现** `expr.rs::with_root_span` 重建 `App` 写死 `explicit_spine: false`（`substitute_names` 的 `Ident` 替换正走它）⇒ 依赖 motive 的 `match` 判红 ⇒ 保号 ✓。
+- **读数**（全语料 356 × 2 档，`--clear` 冷跑）：默认档 **129 accept / 227 reject**（相对 BASE **翻 214 · 反向 0** ✓）· **`SOKO_STRICT_AT=0` 与 BASE 逐文件（rc + 诊断码 + 行）相同 356/356** ✓ · `front --lib` **1003/3**（旧档 **1006/0** ✓）· `protocol` **13/0** ✓。
+- **语料迁移（按轮）**：`migrate.py`（a13，三条守卫）跑 214 个翻转文件 + prelude 4 ⇒ green/no-gain/still-red 逐项账与 `check.py` 读数见 `.cache/ux/fix-a17/VERDICT.md`（**未收口，如实** ✗）。
+- **门禁**：`docs-lint` ⑨/`--check-src-lines` ✓（`by.rs` 4352 · `elab.rs` 8825 · `suggest.rs` 1336 = 基线）· `status-lint`/`notation-lint`（716 豁免，**零新增**）/`ux-queue --check`/`check-queue-integrity --check` ✓ · `clippy` 见 VERDICT · ⚠ `docs-lint` ①（6.66 MB）与 `check-site` 的 site data 是 **pre-existing**（`docs/`、`site/` 未改 ✓）。
+- ⚠ **边界（如实）**：`front --lib` **未回到基线**（1003/3 —— 3 条是严格档下「引擎装配/回读的脊」缺口，逐条定性在 VERDICT）；语料迁移未收口 ⇒ `check.py` 未绿。
+- ⚠ **旧轮（原文已删，只留最近 3 轮 ⇒ `git log --all -- STATUS.md` ✓）**：接口 agent 直接交付（2026-10-18 17:2x —— `render_onboarding` 排序 · worktree 软链 `node_modules` · `--shared-data-dir`）· `land-a15`（2026-10-18 21:1x）· 补回 e1（2026-10-18 20:2x）✓
 
 ## 发版 `0.93.0`（2026-10-18 · **交付**）（本笔即发布）
 

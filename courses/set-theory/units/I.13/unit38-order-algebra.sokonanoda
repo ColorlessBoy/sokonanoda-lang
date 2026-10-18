@@ -55,7 +55,7 @@ theorem demo_strictOrder_iff (α : Type) (r : Rel α α) :
 theorem demo_strictOf_irreflexive (α : Type) (r : Rel α α) :
     Irreflexive α (strictOf α r) :=
   fun (a : α) => fun (haa : strictOf α r a a) =>
-    (fun (hu : ¬ (a = a)) => hu (Eq.refl.{1} α a)) (And.right haa)
+    (fun (hu : ¬ (a = a)) => hu (@Eq.refl.{1} α a)) (And.right haa)
 
 -- 演示：**传递 + 反对称 ⇒ 切掉相等之后仍传递**（"严格序"的造法）。
 -- ⚠ 光有传递**不够**（`r` 若允许两个方向同时成立，切掉相等后就不传递了）——
@@ -73,7 +73,7 @@ theorem demo_strictOf_transitive (α : Type) (r : Rel α α)
             hu ((fun (hv : ∀ (x : α) (y : α), r x y → r y x → x = y) =>
               hv a b (And.left hab)
                 (rel_subst_right α (fun (u : α) (v : α) => r b v) b c a
-                  (Eq.symm.{1} α a c hac) (And.left hbc))) hanti)) (And.right hab))
+                  (@Eq.symm.{1} α a c hac) (And.left hbc))) hanti)) (And.right hab))
 
 -- ─────────────────────────────────────────────────────────────
 -- 38.2 反对称 · 非自反：**代数形态**

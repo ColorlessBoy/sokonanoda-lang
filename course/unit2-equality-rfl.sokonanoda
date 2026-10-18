@@ -37,7 +37,7 @@ def one : Nat := 1
 -- ─────────────────────────────────────────────────────────────
 
 -- 演示（已写好，无需改动）：证明 2 + 2 = 4。内核把左边算成 4，refl 立即成立。
-def demo_refl : (2 + 2) = 4 := Eq.refl.{1} Nat (2 + 2)
+def demo_refl : (2 + 2) = 4 := @Eq.refl.{1} Nat (2 + 2)
 
 -- 自测：#reduce 会把证明项算到最简形状。
 #reduce demo_refl
@@ -53,7 +53,7 @@ def demo_refl : (2 + 2) = 4 := Eq.refl.{1} Nat (2 + 2)
 
 -- 演示（已写好，无需改动）：用 prelude 的 Eq.symm 证明对称，一行即可。
 def eq_symm_demo : (a : Nat) → (b : Nat) → a = b → b = a :=
-  fun (a : Nat) => fun (b : Nat) => fun (h : a = b) => Eq.symm.{1} Nat a b h
+  fun (a : Nat) => fun (b : Nat) => fun (h : a = b) => @Eq.symm.{1} Nat a b h
 
 -- 练习 1（热身）：定义 two : Nat。提示：写字面量 2，或写 1 + 1 都可以。
 -- soko:hint 思路：这个洞里放的不是证明，是一个类型为 Nat 的普通表达式。

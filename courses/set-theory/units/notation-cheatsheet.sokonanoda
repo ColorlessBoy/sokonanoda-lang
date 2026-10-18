@@ -362,12 +362,12 @@ import lib.Set
 -- ─────────────────────────────────────────────────────────────
 
 -- 演示（第二刀）：`𝒫 A` 就是 `Set.powerset α A`——幂集的成员是**子集**。
-example (α : Type) (A : Set α) : Iff (Set.mem (Set α) A (𝒫 A)) (Set.subset α A A) := by
-  exact Set.mem_powerset_iff α A A
+example (α : Type) (A : Set α) : Iff (@Set.mem (Set α) A (𝒫 A)) (@Set.subset α A A) := by
+  exact @Set.mem_powerset_iff α A A
 
 -- 演示（第二刀）：`Aᶜ` 就是 `Set.compl α A`——补集的成员就是"不在里面"。
 example (α : Type) (a : α) (A : Set α) :
-    Iff (Set.mem α a (Aᶜ)) (Not (Set.mem α a A)) := by
+    Iff (@Set.mem α a (Aᶜ)) (Not (@Set.mem α a A)) := by
   constructor
   intro h
   exact h
@@ -378,8 +378,8 @@ example (α : Type) (a : α) (A : Set α) :
 -- 演示 1–2：两个词的定义展开——`∈` 就是谓词应用，`⊆` 就是全称蕴含
 -- ─────────────────────────────────────────────────────────────
 
--- 演示 1：`a ∈ A` 与 `A a` 是同一个东西（`Set.mem` 的定义就是 `A a`）。
-theorem demo_mem_pointful (α : Type) (a : α) (A : Set α) : Set.mem α a A -> A a := by
+-- 演示 1：`a ∈ A` 与 `A a` 是同一个东西（`@Set.mem` 的定义就是 `A a`）。
+theorem demo_mem_pointful (α : Type) (a : α) (A : Set α) : @Set.mem α a A -> A a := by
   intro h
   exact h
 
@@ -391,7 +391,7 @@ theorem demo_mem_notation (α : Type) (a : α) (A : Set α) : a ∈ A -> A a := 
 -- （写法注记：`->` 后面接 `forall` 要加括号——`forall` 不是原子表达式。
 -- 这与记法无关，两种写法都要这么写。）
 theorem demo_subset_pointful (α : Type) (A B : Set α) :
-    Set.subset α A B -> (forall (x : α), A x -> B x) := by
+    @Set.subset α A B -> (forall (x : α), A x -> B x) := by
   intro h
   exact h
 
@@ -406,7 +406,7 @@ theorem demo_subset_notation (α : Type) (A B : Set α) :
 
 -- 演示 3：子集传递（单元②练习 2 的两种写法）。
 theorem demo_trans_pointful (α : Type) (A B C : Set α)
-    (h1 : Set.subset α A B) (h2 : Set.subset α B C) : Set.subset α A C := by
+    (h1 : @Set.subset α A B) (h2 : @Set.subset α B C) : @Set.subset α A C := by
   intro x
   intro hx
   exact h2 x (h1 x hx)
@@ -422,18 +422,18 @@ theorem demo_empty_subset_pointful (α : Type) (A : Set α) :
     Set.subset α (Set.empty α) A := by
   intro x
   intro hx
-  exact False.elim (A x) hx
+  exact @False.elim (A x) hx
 
 theorem demo_empty_subset_notation (α : Type) (A : Set α) : ∅ ⊆ A := by
   intro x
   intro hx
-  exact False.elim (A x) hx
+  exact @False.elim (A x) hx
 
 -- 演示 5：空集没有元素——`a ∈ ∅` 是假的（注意**结论**里的 `∈ ∅` 可以写记法，
 -- 但证明里 `Set.notMem_empty` 的参数仍是点名形式——**记法是连接符的糖，
 -- 不是引理名的糖**）。
 theorem demo_notMem_empty_pointful (α : Type) (a : α) :
-    Not (Set.mem α a (Set.empty α)) := by
+    Not (@Set.mem α a (Set.empty α)) := by
   exact Set.notMem_empty α a
 
 theorem demo_notMem_empty_notation (α : Type) (a : α) : Not (a ∈ ∅) := by
@@ -448,16 +448,16 @@ theorem demo_union_left_pointful (α : Type) (A B : Set α) :
     Set.subset α A (Set.union α A B) := by
   intro x
   intro hx
-  exact Or.inl (A x) (B x) hx
+  exact @Or.inl (A x) (B x) hx
 
 theorem demo_union_left_notation (α : Type) (A B : Set α) : A ⊆ A ∪ B := by
   intro x
   intro hx
-  exact Or.inl (A x) (B x) hx
+  exact @Or.inl (A x) (B x) hx
 
 -- 演示 7：并集的成员判定——`a ∈ A ∪ B` 展开就是 `a ∈ A ∨ a ∈ B`。
 theorem demo_mem_union_pointful (α : Type) (a : α) (A B : Set α) :
-    Set.mem α a (Set.union α A B) -> Or (Set.mem α a A) (Set.mem α a B) := by
+    @Set.mem α a (Set.union α A B) -> Or (@Set.mem α a A) (@Set.mem α a B) := by
   intro h
   exact h
 
@@ -470,7 +470,7 @@ theorem demo_mem_union_notation (α : Type) (a : α) (A B : Set α) :
 -- 记法只出现在**假设**里；结论写成点名形式 `Eq.{1} (Set α) A B`，它与记法版
 -- `A = B` 是**同一个项**（`=` 的宇宙层级由操作数解出）——本页刻意保留这一对照。
 theorem demo_ext_pointful (α : Type) (A B : Set α)
-    (h1 : Set.subset α A B) (h2 : Set.subset α B A) : Eq.{1} (Set α) A B := by
+    (h1 : @Set.subset α A B) (h2 : @Set.subset α B A) : @Eq.{1} (Set α) A B := by
   apply Set.ext
   intro x
   constructor
@@ -478,7 +478,7 @@ theorem demo_ext_pointful (α : Type) (A B : Set α)
   exact h2 x
 
 theorem demo_ext_notation (α : Type) (A B : Set α)
-    (h1 : A ⊆ B) (h2 : B ⊆ A) : Eq.{1} (Set α) A B := by
+    (h1 : A ⊆ B) (h2 : B ⊆ A) : @Eq.{1} (Set α) A B := by
   apply Set.ext
   intro x
   constructor
@@ -495,12 +495,12 @@ theorem demo_precedence_pointful (α : Type) (A B C : Set α) :
     Set.subset α A (Set.union α (Set.union α A B) C) := by
   intro x
   intro hx
-  exact Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
+  exact @Or.inl (Or (A x) (B x)) (C x) (@Or.inl (A x) (B x) hx)
 
 theorem demo_precedence_notation (α : Type) (A B C : Set α) : A ⊆ A ∪ B ∪ C := by
   intro x
   intro hx
-  exact Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
+  exact @Or.inl (Or (A x) (B x)) (C x) (@Or.inl (A x) (B x) hx)
 
 -- ─────────────────────────────────────────────────────────────
 -- 演示 10（G-60，0.83.0）：分离 —— `{x ∈ A | P x}` 与点名 `Set.sep A P` 是
@@ -549,5 +549,5 @@ theorem mem_union_comm (α : Type) (a : α) (A B : Set α) : a ∈ A ∪ B -> a 
 -- soko:hint 目标形态：Eq.{1} (Set α) (A ∪ ∅) A——逐元素是 x ∈ A ∪ ∅ ↔ x ∈ A。
 -- soko:hint 关键件：`Set.ext` + `Iff.intro`；`→` 方向 `Or.elim`（`x ∈ ∅` 那支用 `False.elim`），
 --                   `←` 方向 `Or.inl`。结论里的 `∅` 在 `∪` 的右操作数位置 ⇒ 记法可用（见页首边界）。
-theorem union_empty_right (α : Type) (A : Set α) : Eq.{1} (Set α) (A ∪ ∅) A := by
+theorem union_empty_right (α : Type) (A : Set α) : @Eq.{1} (Set α) (A ∪ ∅) A := by
   sorry

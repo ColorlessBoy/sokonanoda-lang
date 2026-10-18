@@ -19,31 +19,31 @@ def symmDiff (α : Type) (A B : Set α) : Set α :=
 
 theorem mem_symmDiff (α : Type) (A B : Set α) (x : α) :
     (symmDiff α A B) x ↔ ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))) :=
-  Iff.intro ((symmDiff α A B) x) ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x)))
+  @Iff.intro ((symmDiff α A B) x) ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x)))
     (fun (h : (symmDiff α A B) x) => h)
     (fun (h : (A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))) => h)
 
 theorem symmDiff_comm_apply (α : Type) (A B : Set α) (x : α) :
     (symmDiff α A B) x ↔ (symmDiff α B A) x :=
-  Iff.intro ((symmDiff α A B) x) ((symmDiff α B A) x)
+  @Iff.intro ((symmDiff α A B) x) ((symmDiff α B A) x)
     (fun (h : (symmDiff α A B) x) =>
-      Or.elim (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) ((B x ∧ ¬ (A x)) ∨ (A x ∧ ¬ (B x)))
+      @Or.elim (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) ((B x ∧ ¬ (A x)) ∨ (A x ∧ ¬ (B x)))
         (fun (h1 : A x ∧ ¬ (B x)) => Or.inr h1)
         (fun (h2 : B x ∧ ¬ (A x)) => Or.inl h2) h)
     (fun (h : (symmDiff α B A) x) =>
-      Or.elim (B x ∧ ¬ (A x)) (A x ∧ ¬ (B x)) ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x)))
+      @Or.elim (B x ∧ ¬ (A x)) (A x ∧ ¬ (B x)) ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x)))
         (fun (h1 : B x ∧ ¬ (A x)) => Or.inr h1)
         (fun (h2 : A x ∧ ¬ (B x)) => Or.inl h2) h)
 
 theorem symmDiff_comm (α : Type) (A B : Set α) :
     symmDiff α A B = symmDiff α B A :=
-  Set.ext α (symmDiff α A B) (symmDiff α B A)
+  @Set.ext α (symmDiff α A B) (symmDiff α B A)
     (fun (x : α) => symmDiff_comm_apply α A B x)
 
 theorem symmDiff_self_apply (α : Type) (A : Set α) (x : α) :
     ¬ ((symmDiff α A A) x) :=
   fun (h : (symmDiff α A A) x) =>
-    (Or.elim (A x ∧ ¬ (A x)) (A x ∧ ¬ (A x)) (¬ (A x))
+    (@Or.elim (A x ∧ ¬ (A x)) (A x ∧ ¬ (A x)) (¬ (A x))
       (fun (h1 : A x ∧ ¬ (A x)) => And.right h1)
       (fun (h2 : A x ∧ ¬ (A x)) => And.right h2) h)
       (Or.elim (A x ∧ ¬ (A x)) (A x ∧ ¬ (A x)) (A x)
@@ -52,7 +52,7 @@ theorem symmDiff_self_apply (α : Type) (A : Set α) (x : α) :
 
 theorem symmDiff_empty_apply (α : Type) (A : Set α) (x : α) :
     (symmDiff α A (fun (_ : α) => False)) x ↔ A x :=
-  Iff.intro ((symmDiff α A (fun (_ : α) => False)) x) (A x)
+  @Iff.intro ((symmDiff α A (fun (_ : α) => False)) x) (A x)
     (fun (h : (symmDiff α A (fun (_ : α) => False)) x) =>
       Or.elim (A x ∧ ¬ ((fun (_ : α) => False) x))
         ((fun (_ : α) => False) x ∧ ¬ (A x)) (A x)
@@ -68,7 +68,7 @@ theorem symmDiff_empty_apply (α : Type) (A : Set α) (x : α) :
 
 theorem symmDiff_univ_apply (α : Type) (A : Set α) (x : α) :
     (symmDiff α A (Set.univ α)) x ↔ ¬ (A x) :=
-  Iff.intro ((symmDiff α A (Set.univ α)) x) (¬ (A x))
+  @Iff.intro ((symmDiff α A (Set.univ α)) x) (¬ (A x))
     (fun (h : (symmDiff α A (Set.univ α)) x) =>
       Or.elim (A x ∧ ¬ ((Set.univ α) x)) ((Set.univ α) x ∧ ¬ (A x)) (¬ (A x))
         (fun (h1 : A x ∧ ¬ ((Set.univ α) x)) =>
@@ -85,7 +85,7 @@ theorem symmDiff_univ_apply (α : Type) (A : Set α) (x : α) :
 theorem symmDiff_subset_union (α : Type) (A B : Set α) :
     (symmDiff α A B) ⊆ (A ∪ B) :=
   fun (x : α) => fun (h : (symmDiff α A B) x) =>
-    Or.elim (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) (A x ∨ B x)
+    @Or.elim (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) (A x ∨ B x)
       (fun (h1 : A x ∧ ¬ (B x)) => Or.inl (And.left h1))
       (fun (h2 : B x ∧ ¬ (A x)) => Or.inr (And.left h2)) h
 
@@ -95,7 +95,7 @@ theorem symmDiff_subset_union_apply (α : Type) (A B : Set α) (x : α)
 
 theorem symmDiff_self (α : Type) (A : Set α) :
     symmDiff α A A = (fun (_ : α) => False) :=
-  Set.ext α (symmDiff α A A) (fun (_ : α) => False) (fun (x : α) =>
+  @Set.ext α (symmDiff α A A) (fun (_ : α) => False) (fun (x : α) =>
     Iff.intro ((symmDiff α A A) x) ((fun (_ : α) => False) x)
       (fun (h : (symmDiff α A A) x) =>
         False.elim (symmDiff_self_apply α A x h))
@@ -104,5 +104,5 @@ theorem symmDiff_self (α : Type) (A : Set α) :
 
 theorem symmDiff_univ (α : Type) (A : Set α) :
     symmDiff α A (Set.univ α) = (fun (x : α) => ¬ (A x)) :=
-  Set.ext α (symmDiff α A (Set.univ α)) (fun (x : α) => ¬ (A x))
+  @Set.ext α (symmDiff α A (Set.univ α)) (fun (x : α) => ¬ (A x))
     (fun (x : α) => symmDiff_univ_apply α A x)

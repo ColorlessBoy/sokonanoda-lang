@@ -40,8 +40,8 @@ import lib.Set
 -- ⚠ 这条的**结论是相等命题**，而在这个位置**等号的记法解不出宇宙层级** ⇒ 必须点名声明星
 --   （写全宇宙层级与论域，G-73 形状 ③）。
 theorem demo_quot_sound (α : Type) (r : α → α → Prop) (a b : α) (h : r a b) :
-    Eq.{1} (Quot.{1} α r) (Quot.mk.{1} α r a) (Quot.mk.{1} α r b) :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-  Quot.sound.{1} α r a b h
+    @Eq.{1} (@Quot.{1} α r) (@Quot.mk.{1} α r a) (@Quot.mk.{1} α r b) :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+  @Quot.sound.{1} α r a b h
 
 -- 演示：**`Quot.lift` 的 iota 归约** —— 下降后的函数作用在 `mk a` 上**算得动**
 -- （`Eq.refl` 就能证 ⇒ 这正是 ST2 判据的实战检验）。
@@ -51,9 +51,9 @@ theorem demo_quot_lift_iota (α β : Type) (r : α → α → Prop) (f : α → 
   Eq.refl.{1} β (f a)
 
 -- 演示：**`Quot.ind`** —— 要证商上每个元素都有某性质，只需对代表元证。
-theorem demo_quot_ind (α : Type) (r : α → α → Prop) (C : Quot.{1} α r → Prop)
-    (k : ∀ (a : α), C (Quot.mk.{1} α r a)) (q : Quot.{1} α r) : C q :=
-  Quot.ind.{1} α r C k q
+theorem demo_quot_ind (α : Type) (r : α → α → Prop) (C : @Quot.{1} α r → Prop)
+    (k : ∀ (a : α), C (@Quot.mk.{1} α r a)) (q : @Quot.{1} α r) : C q :=
+  @Quot.ind.{1} α r C k q
 
 -- ─────────────────────────────────────────────────────────────
 -- 27.2 良定义性：**相关的代表元给同一个值**
@@ -122,9 +122,9 @@ theorem quot_lift_id (α : Type) (a : α) :
 --   关系取"两边的缩回值相等"、`a b c` 三个点按 `(mk a) (mk a) (mk b)` 给、等式是那条假设）·
 --   `Eq.refl`（写全宇宙层级与论域）· **别用 `congrArg`**（大类型上解不出宇宙层级，实测）✓
 theorem quot_mk_injective (α : Type) (a b : α)
-    (h : Eq.{1} (Quot.{1} α (fun (x y : α) => Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      (Quot.mk.{1} α (fun (x y : α) => x = y) a)
-      (Quot.mk.{1} α (fun (x y : α) => x = y) b)) : a = b := by
+    (h : @Eq.{1} (@Quot.{1} α (fun (x y : α) => @Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (@Quot.mk.{1} α (fun (x y : α) => x = y) a)
+      (@Quot.mk.{1} α (fun (x y : α) => x = y) b)) : a = b := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -136,9 +136,9 @@ theorem quot_mk_injective (α : Type) (a b : α)
 -- soko:hint 目标形态：`mk a = mk b`（关系取 `fun _ _ => True`）。
 -- soko:hint 关键件：`Quot.sound`（**结论含 `Eq` ⇒ 点名声明星**）· `True.intro`。
 theorem quot_all_eq (α : Type) (a b : α) :
-    Eq.{1} (Quot.{1} α (fun (_ _ : α) => True))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      (Quot.mk.{1} α (fun (_ _ : α) => True) a)
-      (Quot.mk.{1} α (fun (_ _ : α) => True) b) := by
+    @Eq.{1} (@Quot.{1} α (fun (_ _ : α) => True))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (@Quot.mk.{1} α (fun (_ _ : α) => True) a)
+      (@Quot.mk.{1} α (fun (_ _ : α) => True) b) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -152,7 +152,7 @@ theorem quot_all_eq (α : Type) (a b : α) :
 -- soko:hint 目标形态：`(∀ a, g (mk a) = f a) → ∀ q, g q = lift f h q`。
 -- soko:hint 关键件：`Quot.ind`（**动机写成 λ，里面出现 `g`、`f`、`h` 这些固定参数**）· 假设 `hg`。
 theorem quot_lift_unique (α β : Type) (r : α → α → Prop) (f : α → β)
-    (h : ∀ (a b : α), r a b → f a = f b) (g : Quot.{1} α r → β)
+    (h : ∀ (a b : α), r a b → f a = f b) (g : @Quot.{1} α r → β)
     (hg : ∀ (a : α), g (Quot.mk.{1} α r a) = f a) (q : Quot.{1} α r) :
     g q = Quot.lift.{1, 1} α r β f h q := by
   sorry
@@ -165,7 +165,7 @@ theorem quot_lift_unique (α β : Type) (r : α → α → Prop) (f : α → β)
 --   它们都是固定项，可以出现在动机里）· 良定义性假设 `h`（三个实参：两个代表元 + `True.intro`）。
 theorem quot_lift_const_all (α β : Type) (f : α → β)
     (h : ∀ (a b : α), (fun (_ _ : α) => True) a b → f a = f b)
-    (q1 q2 : Quot.{1} α (fun (_ _ : α) => True)) :
+    (q1 q2 : @Quot.{1} α (fun (_ _ : α) => True)) :
     Quot.lift.{1, 1} α (fun (_ _ : α) => True) β f h q1
       = Quot.lift.{1, 1} α (fun (_ _ : α) => True) β f h q2 := by
   sorry

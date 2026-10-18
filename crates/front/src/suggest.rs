@@ -632,7 +632,7 @@ fn refl_candidate(expected: &str, d: &DeclState) -> Option<String> {
     }
     let alpha = atom_text(args[0]);
     let a = atom_text(args[1]);
-    Some(format!("Eq.refl.{{{level}}} {alpha} {a}"))
+    Some(crate::compile::implicit_msg::refl_text(&level, &alpha, &a))
 }
 
 /// 展平 `f x1 … xn` 成 `(f, [x1, …, xn])`。
@@ -663,7 +663,7 @@ fn atom_text(expr: &Expr) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::compile::{check_document, DeclStatus};
+    use crate::compile::{check_document, implicit_msg::at_prefix, DeclStatus};
     use crate::parse;
 
     /// 文档里第一个 open 练习的建议（prefix 取到该声明结束，与 actions 一致）。
@@ -805,7 +805,7 @@ def mem_arrow_term (\u{3b1} : Type) (A B : Set \u{3b1}) (a : \u{3b1}) : a \u{220
 
         // ③ tactic 位的 rfl ⇒ `rfl`（**不是** `Eq.refl …` 那个项）。
         let suggestions =
-            suggest_for("theorem eq_by (α : Type) (a : α) : Eq.{1} α a a := by\n  sorry\n");
+            suggest_for("theorem eq_by (α : Type) (a : α) : @Eq.{1} α a a := by\n  sorry\n");
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
@@ -880,11 +880,11 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
     fn eq_goal_gets_kernel_verified_rfl() {
         // 数字等式必须显式写 Eq.{1}（Nat : Sort 1；prelude 规则）。
         let suggestions =
-            suggest_for("theorem eq_t : (a : Nat) -> Eq.{1} Nat a a := fun (a : Nat) => sorry\n");
+            suggest_for("theorem eq_t : (a : Nat) -> @Eq.{1} Nat a a := fun (a : Nat) => sorry\n");
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                text: "Eq.refl.{1} Nat a".to_string()
+                text: format!("{}Eq.refl.{{1}} Nat a", at_prefix())
             }],
             "no binder matches the Eq goal; rfl is the verified next step"
         );
@@ -895,11 +895,11 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
     fn rfl_of_computed_sides_still_verifies() {
         // 目标两边是 Nat.add 1 1 与 2：内核把左边算成 2，rfl 判定通过；
         // 宇宙层级取自目标自身的 Eq.{1}。
-        let suggestions = suggest_for("theorem plus_t : Eq.{1} Nat (Nat.add 1 1) 2 := sorry\n");
+        let suggestions = suggest_for("theorem plus_t : @Eq.{1} Nat (Nat.add 1 1) 2 := sorry\n");
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                text: "Eq.refl.{1} Nat (Nat.add 1 1)".to_string()
+                text: format!("{}Eq.refl.{{1}} Nat (Nat.add 1 1)", at_prefix())
             }],
         );
         assert!(suggestions[0].verified);
@@ -952,8 +952,8 @@ fun (a : Prop) => fun (b : Prop) => fun (h : a ↔ b) => sorry\n",
     fn rfl_comes_after_exact_in_order() {
         // 假设能直接结束目标，也有 kernel 验证过的 rfl：exact 在前。
         let suggestions = suggest_for(
-            "theorem t : (a : Nat) -> (h : Eq.{1} Nat 2 2) -> Eq.{1} Nat 2 2 := \
-fun (a : Nat) => fun (h : Eq.{1} Nat 2 2) => sorry\n",
+            "theorem t : (a : Nat) -> (h : @Eq.{1} Nat 2 2) -> @Eq.{1} Nat 2 2 := \
+fun (a : Nat) => fun (h : @Eq.{1} Nat 2 2) => sorry\n",
         );
         assert_eq!(
             kinds(&suggestions),
@@ -964,7 +964,7 @@ fun (a : Nat) => fun (h : Eq.{1} Nat 2 2) => sorry\n",
                     text: "h".to_string(),
                 },
                 SuggestionKind::Rfl {
-                    text: "Eq.refl.{1} Nat 2".to_string()
+                    text: format!("{}Eq.refl.{{1}} Nat 2", at_prefix())
                 },
             ]
         );
@@ -1156,11 +1156,11 @@ fun (d : Prop) => sorry"
 
     #[test]
     fn failed_eq_decl_gets_a_kernel_verified_rfl_replacement() {
-        let suggestions = suggest_for_failed("example : Eq.{1} Nat 2 2 := 3\n");
+        let suggestions = suggest_for_failed("example : @Eq.{1} Nat 2 2 := 3\n");
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                text: "Eq.refl.{1} Nat 2".to_string(),
+                text: format!("{}Eq.refl.{{1}} Nat 2", at_prefix()),
             }],
             "the declared type is Eq-headed and the kernel accepts the refl term"
         );
@@ -1175,11 +1175,11 @@ fun (d : Prop) => sorry"
 
     #[test]
     fn failed_eq_decl_with_computed_sides_still_verifies() {
-        let suggestions = suggest_for_failed("example : Eq.{1} Nat (Nat.add 1 1) 2 := 5\n");
+        let suggestions = suggest_for_failed("example : @Eq.{1} Nat (Nat.add 1 1) 2 := 5\n");
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                text: "Eq.refl.{1} Nat (Nat.add 1 1)".to_string(),
+                text: format!("{}Eq.refl.{{1}} Nat (Nat.add 1 1)", at_prefix()),
             }],
         );
         assert!(suggestions[0].verified);
@@ -1252,12 +1252,12 @@ fun (d : Prop) => sorry"
 
     #[test]
     fn reset_ranks_after_a_verified_rfl_when_both_apply() {
-        let suggestions = suggest_for_failed("example : Eq.{1} Nat 2 2 := fun (x : Nat) => 3\n");
+        let suggestions = suggest_for_failed("example : @Eq.{1} Nat 2 2 := fun (x : Nat) => 3\n");
         assert_eq!(
             kinds(&suggestions),
             vec![
                 SuggestionKind::Rfl {
-                    text: "Eq.refl.{1} Nat 2".to_string(),
+                    text: format!("{}Eq.refl.{{1}} Nat 2", at_prefix()),
                 },
                 SuggestionKind::Reset {
                     new_text: "fun (x : Nat) => sorry".to_string(),

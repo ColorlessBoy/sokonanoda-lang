@@ -34,10 +34,10 @@ theorem g19_mem_empty (α : Type) (x : α) : x ∈ ∅ -> False := by
 theorem g19_pointful (α : Type) (A : Set α) : Set.subset α (Set.empty α) A := by
   intro x
   intro hx
-  exact False.elim (A x) hx
+  exact @False.elim (A x) hx
 
 -- **本缺口**：`∅` 作 `⊆` 的左操作数。
 theorem g19_empty_subset (α : Type) (A : Set α) : ∅ ⊆ A := by
   intro x
   intro hx
-  exact False.elim (A x) hx
+  exact @False.elim (A x) hx

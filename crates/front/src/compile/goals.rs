@@ -767,10 +767,19 @@ pub(crate) fn substitute_names(
             Some(replacement) => replacement.clone().with_root_span(*span),
             None => expr.clone(),
         },
-        Expr::App { fun, arg, .. } => Expr::App {
+        // ⚠ **`explicit_spine` 必须原样带过去** ✗（a6 实测：以前写死 `false` ⇒
+        // `by` 引擎装配的 `@` 形态脊经 `cases` 的模式代入一重建就退回"正常形式"
+        // ⇒ 严格档把**引擎写的**脊当用户写的判红 ✗：`right`/`left` 在 `cases … with`
+        // 臂里整类失效，最小复现 `cases h with | inl a => right`）。
+        Expr::App {
+            fun,
+            arg,
+            explicit_spine,
+            ..
+        } => Expr::App {
             fun: Box::new(substitute_names(fun, map, levels)),
             arg: Box::new(substitute_names(arg, map, levels)),
-            explicit_spine: false,
+            explicit_spine: *explicit_spine,
             span: expr.span(),
         },
         Expr::NamedArg { name, value, span } => Expr::NamedArg {
@@ -1498,6 +1507,11 @@ fn goal_under_binders(
                             name: ctor.clone(),
                             span: arm.span,
                         };
+                        // ⚠ **这里必须保持 `false`** ✗（a17 的 A/B 实测）：这条脊的
+                        // 文本会**原样当成子目标类型显示给用户**（`arm_r = render_expr(&arm_ty)`）
+                        // ⇒ 标 `@` 会把用户看到的子目标印成 `P (@Nat.succ k)` ✗（Lean 4 印
+                        // `P (Nat.succ k)`）。**判定那条路**在 `elab.rs` 的 `Expr::Match` 臂，
+                        // 那里的脊由 `with_root_span` 保号（`expr.rs`）✓。
                         for param in params {
                             term = Expr::App {
                                 fun: Box::new(term),

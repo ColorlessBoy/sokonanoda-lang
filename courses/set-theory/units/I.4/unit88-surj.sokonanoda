@@ -43,11 +43,11 @@ def Bijective (α : Type) (β : Type) (f : α → β) : Prop :=
 -- 演示：满射的定义展开（`Surjective f` 就是"每个点都有原像" ✓）。
 theorem demo_inj_def (α : Type) (β : Type) (f : α → β) :
     Injective α β f ↔ ∀ (a : α) (b : α), f a = f b → a = b :=
-  Iff.intro (Injective α β f) (∀ (a : α) (b : α), f a = f b → a = b)
+  @Iff.intro (Injective α β f) (∀ (a : α) (b : α), f a = f b → a = b)
     (fun (h : Injective α β f) => h) (fun (h : ∀ (a : α) (b : α), f a = f b → a = b) => h)
 theorem demo_surj_def (α : Type) (β : Type) (f : α → β) :
     Surjective α β f ↔ ∀ (b : β), ∃ (a : α), f a = b :=
-  Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
+  @Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
     (fun (h : Surjective α β f) => h) (fun (h : ∀ (b : β), ∃ (a : α), f a = b) => h)-- 练习 1（T 类，**格位表**）：**换"函数参数格"**（`b = a ⇒ g b = d ⇒ g a = d`）。
 -- 关键件：**`Eq.subst` + 谓词 `fun x => g x = d`**（⚠ 不是 `rel_subst_*` —— 那两个只换"同类型的第二格"）
 -- 写法：`Eq.subst.{1} α (fun x => g x = d) b a h hd`（宇宙层与谓词都要写出来）

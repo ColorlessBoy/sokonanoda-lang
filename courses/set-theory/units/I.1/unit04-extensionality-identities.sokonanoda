@@ -45,10 +45,10 @@ theorem demo_ext_pattern (α : Type) (A B : Set α) (h : ∀ (x : α), x ∈ A �
 
 -- 演示（已写好）：X 类长什么样——散文「A 与全集的并还是全集」译成形式等式。
 theorem demo_union_univ (α : Type) (A : Set α) :
-    A ∪ Set.univ α = Set.univ α := by
+    A ∪ @Set.univ α = @Set.univ α := by
   apply Set.ext
   intro x
-  have h1 : x ∈ A ∪ Set.univ α → x ∈ Set.univ α := by
+  have h1 : x ∈ A ∪ @Set.univ α → x ∈ Set.univ α := by
     intro h
     cases h with
       | inl ha => exact Set.mem_univ α x
@@ -71,7 +71,7 @@ theorem demo_sdiff_self (α : Type) (A : Set α) :
     exact And.right hx (And.left hx)  -- soko:notation-ok: 目标经 \ 展开后期望类型传不到 + And.right 续应用（引擎边界）
     intro hf
     exact And.intro (False.elim hf) (fun (ha : x ∈ A) => hf)
-  exact Set.ext α (A \ A) ∅ h
+  exact @Set.ext α (A \ A) ∅ h
 
 -- 练习 1（T 类）：并交换律。
 -- soko:hint 思路：集合等式先走外延，再把"两支谁在前"互换。

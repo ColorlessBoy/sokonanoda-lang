@@ -47,6 +47,13 @@ pub(crate) fn spine_has_named(expr: &Expr) -> bool {
     has_named(&crate::spine::spine_of(expr).1)
 }
 
+/// 这条脊**必须走老路**吗（一次隐式实参都不插）：① `@` 形态且**没有**命名实参 ✓
+/// （`@` 说"脊逐位显式"）；② **或**脊上跨过一条 `@` 边界（`(@f a) x` —— a17 实测：
+/// 摊平后 `x` 会被当成位置实参 ⇒ 严格档误判 ✗）。
+pub(crate) fn spine_needs_old_path(explicit_spine: bool, expr: &Expr) -> bool {
+    (explicit_spine && !spine_has_named(expr)) || crate::spine::spine_crosses_explicit(expr)
+}
+
 /// 把命名实参应用落到内核项上。返回 `Ok(None)` ⇒ 交回老路（**绝不静默**）。
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn apply<'a>(

@@ -21,27 +21,29 @@
 //! 插元变量、**不碰实参表**；`getNextArg?`（`:1069`）的注释说得很直白：隐式实参
 //! 「**不是用命名实参给的**」就拿不到 ⇒ **命名实参是正常形式下指定隐式的通道** ✓。
 //!
-//! ## ⚠ 本轮的档位（**如实** ✗）
+//! ## 本轮的档位（**2026-10-18 翻默认** ✓）
 //!
-//! **严格档默认关**（`SOKO_STRICT_AT=1` 才开）—— **不是"没做"** ✓，是**语料迁移没做完**：
-//! 本轮实测 **269/294** 个 `.sokonanoda` 会从"接受"变"拒绝"（其中 **19 个在
-//! `docs/gaps/repro/**`**，那个目录**不在本棒的写者范围内** ⇒ 一翻默认
-//! `scripts/gap.py check` 当场判红 ✗）。账见 `.cache/ux/fix-imp1/VERDICT.md`。
+//! **严格档 = 默认档**（不设任何环境变量 ⇒ 正常形式不接受位置隐式实参 ✓）；
+//! **逃生门 `SOKO_STRICT_AT=0|off|false` ⇒ 关**（退回旧行为，给没迁完的语料用 ✓）。
+//! 翻默认的前提是**语料迁移做完**（a1–a6 六棒）—— 逐文件账见
+//! `.cache/ux/fix-a6/VERDICT.md` ✓。
 //!
 //! 因此本文件有**两条互补的牙**：
-//!   * `default_mode_is_unchanged`：**不设开关 ⇒ 逐字节回到今天** ✓（默认档**零行为变更** ✓）；
-//!   * `strict_at_...`：严格档下三条语义逐条成立 ✓ + 报错**可执行** ✓。
+//!   * `default_mode_is_strict`：**不设开关 ⇒ 严格档** ✓（用户判据：`g Nat 5` 被拒 ✓）；
+//!   * `strict_at_off_restores_the_old_semantics`：`SOKO_STRICT_AT=0` ⇒ **退回旧行为** ✓
+//!     （逃生门**真的能退**，不是摆设 ✗）。
 //!
 //! ## 四条牙（每条都断言**用户可见的结果**）
 //!
 //!   ① **正对照**：`b1`（正常形式、隐式靠推断）与 `b3`（`@` 全显式）**照旧 checked** ✓
 //!      —— 「正确的不许被误伤」是硬要求 ✗✗；
-//!   ② **判红**：严格档下 `b2` 必须被拒 ✓，且诊断码可归属 ✓；
+//!   ② **判红**：`b2` 必须被拒 ✓，且诊断码可归属 ✓；
 //!   ③ **报错可执行**：诊断文案必须（a）**点名**隐式形参名 + （b）给出**可复制**的出路
 //!      —— 而且那条出路**粘回去必须判绿** ✓（用户第 ③ 条「指令要明确」的唯一硬判据 ✓：
 //!      光断言"文案里有 `@`"会放过一条**写错的**出路 ✗ —— 本轮就实测抓到一条：
 //!      `@ignores 3` 把 `3` 装到 `{α}` 位上 ✗，已改成 `@ignores <α> 3` ✓）；
-//!   ④ **反向验证**：`SOKO_STRICT_AT=1` ⇒ `b2` 判红 · 不设 ⇒ 判绿 ✓（咬得住 ✓，不是恒真 ✗）。
+//!   ④ **反向验证**：默认（= 严格档）⇒ `b2` 判红 · `SOKO_STRICT_AT=0` ⇒ `b2` 判绿 ✓
+//!      （咬得住 ✓，不是恒真 ✗）。
 
 use std::process::{Command, Stdio};
 
@@ -124,21 +126,42 @@ def b2 : Nat := h Nat Nat (fun (n : Nat) => n) 5
 def b3 : Nat := @h Nat Nat (fun (n : Nat) => n) 5
 ";
 
-/// ④ **反向验证的第一半 + 默认档零变更**：不设开关 ⇒ 四个声明全绿（= 今天的行为 ✓）。
+/// ④ **反向验证的第一半 + 用户判据**：**不设开关 ⇒ 严格档** ——
+/// `b2`（正常形式喂位置隐式实参）**必须判红**，`b1`/`b3` 照旧绿 ✓。
 ///
-/// 为什么必须有这一条 ✗：严格档是**迁移开关**（默认关）⇒ 若有人把默认翻过来而
-/// 语料没迁完，这条会**当场判红** ✓ —— 它就是"默认档不许悄悄变"的那颗钉子 ✓。
+/// 为什么必须有这一条 ✗：这是**用户 2026-10-16 要的语义**（「只有 `@` 形式接收隐式
+/// 参数，正常形式不接受隐式参数」）—— 翻默认之后它必须**不带任何环境变量**就成立 ✓。
 #[test]
-fn default_mode_is_unchanged() {
+fn default_mode_is_strict() {
     let (ok, checked, diags) = grade("default", REPRO, &[]);
+    assert!(!ok, "默认（= 严格档）下 `b2` 必须判红：{diags:?}");
+    for name in ["h", "b1", "b3"] {
+        assert!(
+            checked.iter().any(|c| c == name),
+            "默认档下 `{name}` 必须照旧 checked：{checked:?}"
+        );
+    }
+    assert!(
+        !checked.iter().any(|c| c == "b2"),
+        "`b2`（正常形式喂位置隐式实参）默认档必须被拒 ✗：{checked:?}"
+    );
+}
+
+/// ④ **反向验证的第二半 + 逃生门**：`SOKO_STRICT_AT=0` ⇒ **退回旧行为**（四个声明全绿 ✓）。
+///
+/// 为什么必须有这一条 ✗：逃生门是"遇到没迁完的语料能一条环境变量退回去"的**唯一**保证 ✓
+/// —— 只断言"开关存在"会放过一条**接错极性**的逃生门 ✗（`=0` 必须**真的**退回旧行为）。
+#[test]
+fn strict_at_off_restores_the_old_semantics() {
+    let (ok, checked, diags) = grade("off", REPRO, &[("SOKO_STRICT_AT", "0")]);
     assert!(
         ok,
-        "默认档必须逐字节回到今天（四个声明全绿）：checked={checked:?} diags={diags:?}"
+        "`SOKO_STRICT_AT=0` 必须退回旧行为（四个声明全绿）：checked={checked:?} diags={diags:?}"
     );
     for name in ["h", "b1", "b2", "b3"] {
         assert!(
             checked.iter().any(|c| c == name),
-            "默认档下 `{name}` 必须照旧 checked：{checked:?}"
+            "`SOKO_STRICT_AT=0` 下 `{name}` 必须照旧 checked：{checked:?}"
         );
     }
 }
@@ -269,7 +292,8 @@ def ok2 : Nat := @g Nat 5
 ";
     for (tag, envs) in [
         ("at-default", Vec::new()),
-        ("at-strict", vec![("SOKO_STRICT_AT", "1")]),
+        ("at-strict-on", vec![("SOKO_STRICT_AT", "1")]),
+        ("at-strict-off", vec![("SOKO_STRICT_AT", "0")]),
     ] {
         let (ok, checked, diags) = grade(tag, src, &envs);
         assert!(ok, "[{tag}] 两条都必须绿（实测 diags={diags:?}）");

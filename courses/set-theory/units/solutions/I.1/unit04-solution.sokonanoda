@@ -27,12 +27,12 @@ theorem union_comm (α : Type) (A B : Set α) :
   intro x
   constructor
   intro h
-  exact Or.elim (x ∈ A) (x ∈ B) (x ∈ B ∪ A)
+  exact @Or.elim (x ∈ A) (x ∈ B) (x ∈ B ∪ A)
     (fun (ha : x ∈ A) => Or.inr ha)
     (fun (hb : x ∈ B) => Or.inl hb)
     h
   intro h
-  exact Or.elim (x ∈ B) (x ∈ A) (x ∈ A ∪ B)
+  exact @Or.elim (x ∈ B) (x ∈ A) (x ∈ A ∪ B)
     (fun (hb : x ∈ B) => Or.inr hb)
     (fun (ha : x ∈ A) => Or.inl ha)
     h
@@ -81,7 +81,7 @@ theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
   intro x
   constructor
   intro h
-  exact Or.elim (x ∈ B) (x ∈ C) (x ∈ (A ∩ B) ∪ (A ∩ C))
+  exact @Or.elim (x ∈ B) (x ∈ C) (x ∈ (A ∩ B) ∪ (A ∩ C))
     (fun (hb : x ∈ B) =>
       Or.inl
         (And.intro (And.left h) hb))
@@ -90,7 +90,7 @@ theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
         (And.intro (And.left h) hc))
     (And.right h)
   intro h
-  exact Or.elim (x ∈ A ∩ B) (x ∈ A ∩ C) (x ∈ A ∩ (B ∪ C))
+  exact @Or.elim (x ∈ A ∩ B) (x ∈ A ∩ C) (x ∈ A ∩ (B ∪ C))
     (fun (hab : x ∈ A ∩ B) =>
       And.intro (x ∈ A) (x ∈ B ∨ x ∈ C)
         (And.left hab)
@@ -149,7 +149,7 @@ theorem union_empty (α : Type) (A : Set α) :
   intro x
   constructor
   intro h
-  exact Or.elim (x ∈ A) (x ∈ ∅) (x ∈ A)
+  exact @Or.elim (x ∈ A) (x ∈ ∅) (x ∈ A)
     (fun (ha : x ∈ A) => ha)
     (fun (hf : x ∈ ∅) => False.elim hf)
     h

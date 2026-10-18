@@ -16,20 +16,20 @@ theorem demo_mem_inv_inv (α β : Type) (r : Rel α β) (a : α) (b : β) :
   Rel.inv_inv_apply α β r a b
 
 def idRel (α : Type) : Rel α α :=
-  fun (a : α) (b : α) => Eq.{1} α a b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (a : α) (b : α) => @Eq.{1} α a b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
 
 def SingleValued (α β : Type) (r : Rel α β) : Prop :=
-  ∀ (a : α) (b : β) (b1 : β), r a b → r a b1 → Eq.{1} β b b1  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  ∀ (a : α) (b : β) (b1 : β), r a b → r a b1 → @Eq.{1} β b b1  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
 
 def TotalRel (α β : Type) (r : Rel α β) : Prop :=
   ∀ (a : α), ∃ (b : β), r a b
 
 def graph (α β : Type) (f : α → β) : Rel α β :=
-  fun (a : α) (b : β) => Eq.{1} β (f a) b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (a : α) (b : β) => @Eq.{1} β (f a) b  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
 
 theorem singleValued_apply (α β : Type) (r : Rel α β) (h : SingleValued α β r)
-    (a : α) (b b1 : β) (h1 : r a b) (h2 : r a b1) : Eq.{1} β b b1 :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-  (fun (hu : ∀ (a1 : α) (b2 : β) (b3 : β), r a1 b2 → r a1 b3 → Eq.{1} β b2 b3) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (a : α) (b b1 : β) (h1 : r a b) (h2 : r a b1) : @Eq.{1} β b b1 :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  (fun (hu : ∀ (a1 : α) (b2 : β) (b3 : β), r a1 b2 → r a1 b3 → @Eq.{1} β b2 b3) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
     hu a b b1 h1 h2) h
 
 theorem totalRel_apply (α β : Type) (r : Rel α β) (h : TotalRel α β r) (a : α) :
@@ -39,19 +39,19 @@ theorem totalRel_apply (α β : Type) (r : Rel α β) (h : TotalRel α β r) (a 
 theorem graph_singleValued (α β : Type) (f : α → β) :
     SingleValued α β (graph α β f) :=
   fun (a : α) => fun (b : β) => fun (b1 : β) =>
-    fun (h1 : Eq.{1} β (f a) b) => fun (h2 : Eq.{1} β (f a) b1) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-      Eq.trans.{1} β b (f a) b1 (Eq.symm.{1} β (f a) b h1) h2
+    fun (h1 : @Eq.{1} β (f a) b) => fun (h2 : @Eq.{1} β (f a) b1) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      @Eq.trans.{1} β b (f a) b1 (@Eq.symm.{1} β (f a) b h1) h2
 
 theorem graph_totalRel (α β : Type) (f : α → β) : TotalRel α β (graph α β f) :=
   fun (a : α) =>
-    Exists.intro (f a) (Eq.refl.{1} β (f a))
+    Exists.intro (f a) (@Eq.refl.{1} β (f a))
 
 theorem singleValued_iff_inv_comp (α β : Type) (r : Rel α β) :
     SingleValued α β r ↔ ∀ (b b1 : β), (r ⁻¹ • r) b b1 → (idRel β) b b1 :=
-  Iff.intro (SingleValued α β r) (∀ (b b1 : β), (r ⁻¹ • r) b b1 → (idRel β) b b1)
+  @Iff.intro (SingleValued α β r) (∀ (b b1 : β), (r ⁻¹ • r) b b1 → (idRel β) b b1)
     (fun (h : SingleValued α β r) => fun (b : β) => fun (b1 : β) =>
       fun (hbb : (r ⁻¹ • r) b b1) =>
-        Exists.elim α (fun (a : α) => r a b ∧ r a b1) (Eq.{1} β b b1) hbb  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        @Exists.elim α (fun (a : α) => r a b ∧ r a b1) (@Eq.{1} β b b1) hbb  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
           (fun (a : α) (ha : r a b ∧ r a b1) =>
             singleValued_apply α β r h a b b1 (And.left ha) (And.right ha)))
     (fun (h : ∀ (b b1 : β), (r ⁻¹ • r) b b1 → (idRel β) b b1) =>
@@ -62,10 +62,10 @@ theorem singleValued_iff_inv_comp (α β : Type) (r : Rel α β) :
 
 theorem inv_singleValued_iff_comp_inv (α β : Type) (r : Rel α β) :
     SingleValued β α (r ⁻¹) ↔ ∀ (a a1 : α), (r • r ⁻¹) a a1 → (idRel α) a a1 :=
-  Iff.intro (SingleValued β α (r ⁻¹)) (∀ (a a1 : α), (r • r ⁻¹) a a1 → (idRel α) a a1)
+  @Iff.intro (SingleValued β α (r ⁻¹)) (∀ (a a1 : α), (r • r ⁻¹) a a1 → (idRel α) a a1)
     (fun (h : SingleValued β α (r ⁻¹)) => fun (a : α) => fun (a1 : α) =>
       fun (haa : (r • r ⁻¹) a a1) =>
-        Exists.elim β (fun (b : β) => r a b ∧ (r ⁻¹) b a1) (Eq.{1} α a a1) haa  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        @Exists.elim β (fun (b : β) => r a b ∧ (r ⁻¹) b a1) (@Eq.{1} α a a1) haa  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
           (fun (b : β) (hb : r a b ∧ (r ⁻¹) b a1) =>
             singleValued_apply β α (r ⁻¹) h b a a1 (And.left hb) (And.right hb)))
     (fun (h : ∀ (a a1 : α), (r • r ⁻¹) a a1 → (idRel α) a a1) =>
@@ -79,9 +79,9 @@ theorem singleValued_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
     SingleValued α γ (r • s) :=
   fun (a : α) => fun (c : γ) => fun (c1 : γ) =>
     fun (h1 : (r • s) a c) => fun (h2 : (r • s) a c1) =>
-      Exists.elim β (fun (b : β) => r a b ∧ s b c) (Eq.{1} γ c c1) h1  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      @Exists.elim β (fun (b : β) => r a b ∧ s b c) (@Eq.{1} γ c c1) h1  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
         (fun (b : β) (hb : r a b ∧ s b c) =>
-          Exists.elim β (fun (b1 : β) => r a b1 ∧ s b1 c1) (Eq.{1} γ c c1) h2  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          @Exists.elim β (fun (b1 : β) => r a b1 ∧ s b1 c1) (@Eq.{1} γ c c1) h2  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
             (fun (b1 : β) (hb1 : r a b1 ∧ s b1 c1) =>
               hs b1 c c1
                 (rel_subst_right β (fun (u : β) (v : β) => s v c) b b b1
@@ -92,10 +92,10 @@ theorem singleValued_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
 theorem totalRel_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
     (hr : TotalRel α β r) (hs : TotalRel β γ s) : TotalRel α γ (r • s) :=
   fun (a : α) =>
-    Exists.elim β (fun (b : β) => r a b)
+    @Exists.elim β (fun (b : β) => r a b)
       (∃ (c : γ), (r • s) a c) (totalRel_apply α β r hr a)
       (fun (b : β) (hb : r a b) =>
-        Exists.elim γ (fun (c : γ) => s b c)
+        @Exists.elim γ (fun (c : γ) => s b c)
           (∃ (c : γ), (r • s) a c) (totalRel_apply β γ s hs b)
           (fun (c : γ) (hc : s b c) =>
             Exists.intro c
@@ -104,21 +104,21 @@ theorem totalRel_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
 
 theorem singleValued_idRel (α : Type) : SingleValued α α (idRel α) :=
   fun (a : α) => fun (b : α) => fun (b1 : α) =>
-    fun (h1 : Eq.{1} α a b) => fun (h2 : Eq.{1} α a b1) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-      Eq.trans.{1} α b a b1 (Eq.symm.{1} α a b h1) h2
+    fun (h1 : @Eq.{1} α a b) => fun (h2 : @Eq.{1} α a b1) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      @Eq.trans.{1} α b a b1 (@Eq.symm.{1} α a b h1) h2
 
 theorem graph_comp (α β γ : Type) (f : α → β) (g : β → γ) (a : α) (c : γ) :
-    (graph α β f • graph β γ g) a c ↔ Eq.{1} γ (g (f a)) c :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-  Iff.intro ((graph α β f • graph β γ g) a c) (Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (graph α β f • graph β γ g) a c ↔ @Eq.{1} γ (g (f a)) c :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Iff.intro ((graph α β f • graph β γ g) a c) (@Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
     (fun (h : (graph α β f • graph β γ g) a c) =>
-      Exists.elim β (fun (b : β) => (graph α β f) a b ∧ (graph β γ g) b c)
-        (Eq.{1} γ (g (f a)) c) h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      @Exists.elim β (fun (b : β) => (graph α β f) a b ∧ (graph β γ g) b c)
+        (@Eq.{1} γ (g (f a)) c) h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
         (fun (b : β) (hb : (graph α β f) a b ∧ (graph β γ g) b c) =>
-          Eq.trans.{1} γ (g (f a)) (g b) c
-            (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} γ (g u) (g v))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-              (f a) (f a) b (And.left hb) (Eq.refl.{1} γ (g (f a))))
+          @Eq.trans.{1} γ (g (f a)) (g b) c
+            (rel_subst_right β (fun (u : β) (v : β) => @Eq.{1} γ (g u) (g v))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+              (f a) (f a) b (And.left hb) (@Eq.refl.{1} γ (g (f a))))
             (And.right hb)))
-    (fun (h : Eq.{1} γ (g (f a)) c) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (h : @Eq.{1} γ (g (f a)) c) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
       Exists.intro (f a)
         (And.intro
-          (Eq.refl.{1} β (f a)) h))
+          (@Eq.refl.{1} β (f a)) h))

@@ -46,7 +46,7 @@ theorem demo_linearOrder_total (α : Type) (r : Rel α α) (h : IsLinearOrder α
 
 -- 演示：偏序 ⇒ 反对称（练习 5 的唯一性要用它）。
 theorem demo_partialOrder_antisymm (α : Type) (r : Rel α α) (h : IsPartialOrder α r)
-    (a b : α) (hab : r a b) (hba : r b a) : Eq.{1} α a b :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (a b : α) (hab : r a b) (hba : r b a) : @Eq.{1} α a b :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
   partialOrder_antisymm α r h a b hab hba
 
 -- ─────────────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ theorem hasLeast_witness_apply (α : Type) (r : Rel α α) (P : α → Prop)
 
 theorem hasLeast_unique (α : Type) (r : Rel α α) (hanti : Antisymmetric α r)
     (P : α → Prop) (m m1 : α) (hm : P m) (hl : ∀ (y : α), P y → r m y)
-    (hm1 : P m1) (hl1 : ∀ (y : α), P y → r m1 y) : Eq.{1} α m m1 := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (hm1 : P m1) (hl1 : ∀ (y : α), P y → r m1 y) : @Eq.{1} α m m1 := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
   sorry
 -- 练习 6（L 类，**旗舰**）：**全序里"极小"就是"最小"**（把单元⑭ 与单元㊷ 接起来）。
 -- soko:hint 思路：给定 `y ∈ P`，用**全序**把 `r m y ∨ r y m` 拆开：左支就是目标；
@@ -153,7 +153,7 @@ theorem wellOrder_univ_hasLeast (α : Type) (r : Rel α α) (h : IsWellOrder α 
 --   **`Eq.symm`/`Eq.refl` 写全宇宙层级与论域** ✓
 
 theorem wellOrder_hasLeast_singleton (α : Type) (r : Rel α α) (h : IsWellOrder α r)
-    (a : α) : HasLeast α r (fun (x : α) => Eq.{1} α x a) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (a : α) : HasLeast α r (fun (x : α) => @Eq.{1} α x a) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
   sorry
 -- 练习 10（T 类）：**二元族 `{a, b}` 有最小元**。
 -- soko:hint 思路：族 `fun x => x = a ∨ x = b` 非空（`a` 是见证）⇒ 交给练习 1。
@@ -161,5 +161,5 @@ theorem wellOrder_hasLeast_singleton (α : Type) (r : Rel α α) (h : IsWellOrde
 -- soko:hint 关键件：练习 1 · `Exists.intro`（前导实参写全）· `Or.inl`（前导 Prop 实参写全）✓
 
 theorem wellOrder_hasLeast_pair (α : Type) (r : Rel α α) (h : IsWellOrder α r) (a b : α) :
-    HasLeast α r (fun (x : α) => Eq.{1} α x a ∨ Eq.{1} α x b) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    HasLeast α r (fun (x : α) => @Eq.{1} α x a ∨ @Eq.{1} α x b) := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
   sorry

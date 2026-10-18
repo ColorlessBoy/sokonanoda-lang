@@ -42,7 +42,7 @@ def one : Nat := 1
 
 -- Demo (already written): proving 2 + 2 = 4. The kernel reduces the left side
 -- to 4, so refl closes it in one step.
-def demo_refl : (2 + 2) = 4 := Eq.refl.{1} Nat (2 + 2)
+def demo_refl : (2 + 2) = 4 := @Eq.refl.{1} Nat (2 + 2)
 
 -- Self-test: #reduce flattens the proof term to its simplest shape.
 #reduce demo_refl
@@ -62,7 +62,7 @@ def demo_refl : (2 + 2) = 4 := Eq.refl.{1} Nat (2 + 2)
 -- Demo (already written, nothing to change): symmetry via the prelude's
 -- Eq.symm, in one line.
 def eq_symm_demo : (a : Nat) → (b : Nat) → a = b → b = a :=
-  fun (a : Nat) => fun (b : Nat) => fun (h : a = b) => Eq.symm.{1} Nat a b h
+  fun (a : Nat) => fun (b : Nat) => fun (h : a = b) => @Eq.symm.{1} Nat a b h
 
 -- Exercise 1 (warm-up) — define two : Nat. Hint: either the literal 2 or 1 + 1.
 -- soko:hint approach: this hole wants a plain expression of type Nat, not a proof.

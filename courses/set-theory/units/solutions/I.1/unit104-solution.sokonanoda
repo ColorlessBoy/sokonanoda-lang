@@ -25,7 +25,7 @@ theorem mem_sdiff_of_mem_not_mem (α : Type) (x : α) (A : Set α) (B : Set α)
 
 theorem not_mem_of_eq_empty (α : Type) (x : α) (C : Set α) (h : C = ∅ α)
     (hx : x ∈ C) : False :=
-  (fun (hu : x ∈ ∅ α ↔ False) => Iff.mp hu (Eq.subst.{1} (Set α) (fun (D : Set α) => x ∈ D)
+  (fun (hu : x ∈ ∅ α ↔ False) => Iff.mp hu (@Eq.subst.{1} (Set α) (fun (D : Set α) => x ∈ D)
     C (∅ α) h hx)) (Set.mem_empty_iff_false α x)
 
 theorem subset_of_sdiff_empty (α : Type) (A : Set α) (B : Set α) (h : A \ B = ∅ α) :
@@ -33,7 +33,7 @@ theorem subset_of_sdiff_empty (α : Type) (A : Set α) (B : Set α) (h : A \ B =
   fun (x : α) (hx : x ∈ A) =>
     em_cases (x ∈ B) (x ∈ B) (fun (hb : x ∈ B) => hb)
       (fun (hnb : ¬ (x ∈ B)) =>
-        False.elim (x ∈ B)
+        @False.elim (x ∈ B)
           (not_mem_of_eq_empty α x (A \ B) h (mem_sdiff_of_mem_not_mem α x A B hx hnb)))
 
 theorem not_forall_imp_exists (α : Type) (P : α → Prop) (h : ¬ (∀ (x : α), ¬ (P x))) :
