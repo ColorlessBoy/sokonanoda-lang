@@ -1,4 +1,6 @@
-# 开发经验台账（LESSONS） ｜ 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only
+# 开发经验台账（LESSONS）
+
+<!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
 
 > 每条一行结论 + 出处/守护位置。新 agent 接手先读 `AGENTS.md` 的文档顺序，
 > 踩坑后把新经验**追加到本文件**（一条一行，注明在哪被守护——代码注释/

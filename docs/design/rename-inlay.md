@@ -1,4 +1,6 @@
-# 设计：rename + find-references + inlay hints + `sokonanoda lsp` ｜ 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only
+# 设计：rename + find-references + inlay hints + `sokonanoda lsp`
+
+<!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
 
 > **as-built（已落地）**：契约在 `docs/protocol.md`（rename/inlay 小节），实现落点
 > `crates/lsp/src/{render,inlay,actions}.rs`、`crates/front/src/references.rs`（§7 的 subagent 文件分工属过程记录，已删）。

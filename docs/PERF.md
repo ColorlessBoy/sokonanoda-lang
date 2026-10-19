@@ -1,4 +1,6 @@
-# 性能测试与基线（I13-S5c） ｜ 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only
+# 性能测试与基线（I13-S5c）
+
+<!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
 
 > ⚠ 本文引用的 `docs/design/*.md` 若不在 `docs/README.md` 的设计清单里 ⇒ 已在第 512 轮**删档**，原文 ⇒ `git log --all` ✓。
 

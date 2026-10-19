@@ -1,4 +1,6 @@
-# sokonanoda-lang —— `.sokonanoda` 协作式 Lean 4 教学 ROADMAP ｜ 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only
+# sokonanoda-lang —— `.sokonanoda` 协作式 Lean 4 教学 ROADMAP
+
+<!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
 
 > 状态：active（v2 LSP-first；**接手与"下一步"先看 `docs/ONBOARDING.md`**，最新快照看 `STATUS.md`，
 > 本文 §10 = 待办的**验收口径 + 收口状态**）

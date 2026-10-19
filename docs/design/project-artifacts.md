@@ -1,4 +1,6 @@
-# 设计：`.sokonanoda/` 项目产物目录（R-3 前半，2026-09-24，T-B4） ｜ 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only
+# 设计：`.sokonanoda/` 项目产物目录（R-3 前半，2026-09-24，T-B4）
+
+<!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
 
 > **用户原话**（`REQUIREMENTS.md` §9 R-3）：
 > 「在 project 模式下，`sokonanoda.toml` 所在的根目录下，应该有 `build` 的文件才对，
