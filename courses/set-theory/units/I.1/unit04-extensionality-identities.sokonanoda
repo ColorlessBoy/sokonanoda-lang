@@ -48,7 +48,7 @@ theorem demo_union_univ (α : Type) (A : Set α) :
     A ∪ @Set.univ α = @Set.univ α := by
   apply Set.ext
   intro x
-  have h1 : x ∈ A ∪ @Set.univ α → x ∈ Set.univ α := by
+  have h1 : x ∈ A ∪ @Set.univ α → x ∈ @Set.univ α := by
     intro h
     cases h with
       | inl ha => exact Set.mem_univ α x

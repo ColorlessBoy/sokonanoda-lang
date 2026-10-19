@@ -98,7 +98,7 @@ theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C 
 -- → 方向把 `f x = y` 沿 Eq.subst 搬到 y 上；← 方向由 hC 供料，
 -- 装回像里时 `f x = y` 与 `y ∈ C` 用 Eq.subst 互换（错证明跳过的那一步）。
 theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
-    (hC : C ⊆ f '' Set.univ α) :
+    (hC : C ⊆ f '' @Set.univ α) :
     f '' (f ⁻¹' C) = C :=
   Set.ext β (f '' (f ⁻¹' C)) C (fun (y : β) =>
     Iff.intro (y ∈ f '' (f ⁻¹' C)) (y ∈ C)
@@ -111,9 +111,9 @@ theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
       (fun (hy : y ∈ C) =>
         -- `cases` 只吃**局部假设名**；`hC y hy` 是应用，所以用 `Exists.elim` 摊开。
         Exists.elim α
-          (fun (x : α) => (Set.univ α x) ∧ ((f x) = y))
+          (fun (x : α) => (@Set.univ α x) ∧ ((f x) = y))
           (y ∈ f '' (f ⁻¹' C)) (hC y hy)
-          (fun (x : α) => fun (hx : (Set.univ α x) ∧ ((f x) = y)) =>
+          (fun (x : α) => fun (hx : (@Set.univ α x) ∧ ((f x) = y)) =>
             Exists.intro x
               (And.intro
                 (Eq.subst.{1} β (fun (z : β) => z ∈ C) y (f x)

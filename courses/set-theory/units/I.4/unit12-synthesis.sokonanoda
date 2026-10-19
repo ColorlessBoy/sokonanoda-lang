@@ -247,10 +247,10 @@ theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C 
 --   "y ∈ C ⇒ 取 x 使 f x = y"——这一步需要 `C` 的每个点都在 f 的像里。
 -- 改正的做法就是**把这个前提摆到台面上**（签名里的 hC），再走两个方向。
 -- soko:hint 思路：先判 A 的错在哪：假的是"←"（反向）——它偷用了"C 里每个点都有原像"；把它写成参数 hC 之后，→ 方向照旧、← 方向由 hC 供料。
--- soko:hint 目标形态：f '' (f ⁻¹' C) = C，前提 hC : C ⊆ f '' Set.univ α；逐元素是 y ∈ f '' (f ⁻¹' C) ↔ y ∈ C。
+-- soko:hint 目标形态：f '' (f ⁻¹' C) = C，前提 hC : C ⊆ f '' @Set.univ α；逐元素是 y ∈ f '' (f ⁻¹' C) ↔ y ∈ C。
 -- soko:hint 关键件：→ 方向用 Exists.elim 拆出 x 与 (x ∈ f ⁻¹' C) ∧ (f x = y)，再用 Eq.subst 沿 f x = y 把 x ∈ f ⁻¹' C 搬到 y 上（注意搬的方向）；← 方向 hC y hy 本身就是目标那个 ∃（univ 那一支永远成立），装回像里时 **f x = y 与 y ∈ C 不能直接互换**，要用 Eq.subst（这一步正是错证明里被跳过的地方）。
 theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
-    (hC : C ⊆ f '' Set.univ α) :
+    (hC : C ⊆ f '' @Set.univ α) :
     f '' (f ⁻¹' C) = C := by
   sorry
 

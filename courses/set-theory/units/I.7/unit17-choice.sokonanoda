@@ -101,7 +101,7 @@ theorem choice_on_univ (α β : Type) (P : α → β → Prop)
 
 -- 练习 5（L 类，本单元旗舰）：**满射 ⇒ 存在右逆**。
 -- soko:hint 思路：对关系 `P y x := f x = y` 用选择公理（`A := Set.univ β`、
---   `B := Set.univ α`）。"对每个 `y` 都存在原像"正好是满射的定义；
+--   `B := @Set.univ α`）。"对每个 `y` 都存在原像"正好是满射的定义；
 --   把 AC 输出的 `∃ g, ∀ y, …∧ f (g y) = y` 里的"落在全集里"丢掉、
 --   把"逐点等式"留下，就是右逆。
 -- soko:hint 目标形态：`∃ (g : β → α), Function.RightInverse α β g f`。

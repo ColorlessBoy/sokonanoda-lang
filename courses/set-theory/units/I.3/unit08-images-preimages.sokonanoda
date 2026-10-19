@@ -325,7 +325,7 @@ theorem image_preimage_image_eq_preimage :
 -- soko:hint 目标形态：(f '' (f ⁻¹' C)) = C。
 -- soko:hint 关键件：Set.ext + Iff.intro；⊇ 方向用 h y hy 取证人 x 与 `f x = y`，把 `y ∈ C` 沿这条等式搬成 `f x ∈ C`（即 x ∈ f ⁻¹' C），再造 Exists。
 theorem image_preimage_eq_of_subset_image_univ (α β : Type) (f : α → β) (C : Set β)
-    (h : C ⊆ (f '' (Set.univ α))) :
+    (h : C ⊆ (f '' (@Set.univ α))) :
     (f '' (f ⁻¹' C)) = C := by
   sorry
 

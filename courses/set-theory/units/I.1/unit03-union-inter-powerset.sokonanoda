@@ -28,7 +28,7 @@
 --       Iff / Iff.intro / Iff.mp / Iff.mpr / Iff.refl / Iff.symm / Iff.trans /
 --       Eq.symm / Eq.trans / congrArg / Eq.subst（`Eq.*` 是**证明项**：仍写显式宇宙）/
 --       Set 与集合记法 `∈` `⊆` `∪` `∩` `\` `∅` `𝒫` `ᶜ` `{a}` `{a, b}`、
---       `Set.univ`（无记法，写 `Set.univ α`）、公理 Set.ext、
+--       `Set.univ`（无记法，写 `@Set.univ α`）、公理 Set.ext、
 --       以及展开引理 Set.subset_def / Set.mem_empty_iff_false / Set.notMem_empty /
 --       Set.mem_univ / Set.mem_singleton_iff / Set.mem_union / Set.mem_inter_iff /
 --       Set.mem_sdiff / Set.mem_powerset_iff；
@@ -172,10 +172,10 @@ theorem powerset_mono (α : Type) (A B : Set α) (h : A ⊆ B) :
 --   下面把这条反例写成"原命题的否定"：假命题本身不能当 theorem 的靶子
 --   （那样只会留下一个永远填不上的 sorry）。
 -- soko:hint 思路：否定就是一个箭头——intro 假设 hsub（那条包含），目标是 False。
--- soko:hint 目标形态：¬ ((Set.univ α ∪ ∅) ⊆ (Set.univ α ∩ ∅))，展开之后目标是 False，手里有 hsub : (Set.univ α ∪ ∅) ⊆ (Set.univ α ∩ ∅)。
--- soko:hint 关键件：先造 a ∈ Set.univ α ∪ ∅——Set.mem_univ α a 配上 Or.inl；把它喂给 hsub a 之后用 And.right 取出后半（展开即 False）。
+-- soko:hint 目标形态：¬ ((@Set.univ α ∪ ∅) ⊆ (@Set.univ α ∩ ∅))，展开之后目标是 False，手里有 hsub : (@Set.univ α ∪ ∅) ⊆ (@Set.univ α ∩ ∅)。
+-- soko:hint 关键件：先造 a ∈ @Set.univ α ∪ ∅——Set.mem_univ α a 配上 Or.inl；把它喂给 hsub a 之后用 And.right 取出后半（展开即 False）。
 theorem union_subset_inter_false (α : Type) (a : α) :
-    ¬ ((Set.univ α ∪ ∅) ⊆ (Set.univ α ∩ ∅)) := by
+    ¬ ((@Set.univ α ∪ ∅) ⊆ (@Set.univ α ∩ ∅)) := by
   sorry
 
 -- 练习 11（D 类）：判断真假并说明理由（本题把**真的那条**写成定理）。

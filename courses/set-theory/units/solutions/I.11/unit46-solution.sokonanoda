@@ -67,20 +67,20 @@ theorem symmDiff_empty_apply (α : Type) (A : Set α) (x : α) :
           (fun (hf : (fun (_ : α) => False) x) => hf)))
 
 theorem symmDiff_univ_apply (α : Type) (A : Set α) (x : α) :
-    (symmDiff α A (Set.univ α)) x ↔ ¬ (A x) :=
-  @Iff.intro ((symmDiff α A (Set.univ α)) x) (¬ (A x))
-    (fun (h : (symmDiff α A (Set.univ α)) x) =>
-      Or.elim (A x ∧ ¬ ((Set.univ α) x)) ((Set.univ α) x ∧ ¬ (A x)) (¬ (A x))
-        (fun (h1 : A x ∧ ¬ ((Set.univ α) x)) =>
-          (fun (hnot : ¬ ((Set.univ α) x)) =>
+    (symmDiff α A (@Set.univ α)) x ↔ ¬ (A x) :=
+  @Iff.intro ((symmDiff α A (@Set.univ α)) x) (¬ (A x))
+    (fun (h : (symmDiff α A (@Set.univ α)) x) =>
+      Or.elim (A x ∧ ¬ ((@Set.univ α) x)) ((@Set.univ α) x ∧ ¬ (A x)) (¬ (A x))
+        (fun (h1 : A x ∧ ¬ ((@Set.univ α) x)) =>
+          (fun (hnot : ¬ ((@Set.univ α) x)) =>
             (fun (hf : False) => False.elim (¬ (A x)) hf)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-              (hnot ((fun (hu : ∀ (y : α), (Set.univ α) y) => hu x) (Set.mem_univ α))))
+              (hnot ((fun (hu : ∀ (y : α), (@Set.univ α) y) => hu x) (Set.mem_univ α))))
             (And.right h1))
-        (fun (h2 : (Set.univ α) x ∧ ¬ (A x)) => And.right h2) h)
+        (fun (h2 : (@Set.univ α) x ∧ ¬ (A x)) => And.right h2) h)
     (fun (h : ¬ (A x)) =>
-      Or.inr (A x ∧ ¬ ((Set.univ α) x)) ((Set.univ α) x ∧ ¬ (A x))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      Or.inr (A x ∧ ¬ ((@Set.univ α) x)) ((@Set.univ α) x ∧ ¬ (A x))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
         (And.intro
-          ((fun (hu : ∀ (y : α), (Set.univ α) y) => hu x) (Set.mem_univ α)) h))
+          ((fun (hu : ∀ (y : α), (@Set.univ α) y) => hu x) (Set.mem_univ α)) h))
 
 theorem symmDiff_subset_union (α : Type) (A B : Set α) :
     (symmDiff α A B) ⊆ (A ∪ B) :=
@@ -103,6 +103,6 @@ theorem symmDiff_self (α : Type) (A : Set α) :
         False.elim hf))
 
 theorem symmDiff_univ (α : Type) (A : Set α) :
-    symmDiff α A (Set.univ α) = (fun (x : α) => ¬ (A x)) :=
-  @Set.ext α (symmDiff α A (Set.univ α)) (fun (x : α) => ¬ (A x))
+    symmDiff α A (@Set.univ α) = (fun (x : α) => ¬ (A x)) :=
+  @Set.ext α (symmDiff α A (@Set.univ α)) (fun (x : α) => ¬ (A x))
     (fun (x : α) => symmDiff_univ_apply α A x)

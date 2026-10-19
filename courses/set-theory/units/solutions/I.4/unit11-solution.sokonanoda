@@ -82,7 +82,7 @@ theorem univ_top_iff (α : Type) (A : Set α) :
   intro x
   intro hu
   exact Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X)
-    (Set.univ α) A (Eq.symm.{1} (Set α) A (Set.univ α) h) hu  -- soko:notation-ok: G-21 边界：`Eq.subst` 的实参位（显式实参写在隐式位上）拿不到期望类型 ⇒ 零元常量必须点名写全
+    (@Set.univ α) A (Eq.symm.{1} (Set α) A (@Set.univ α) h) hu  -- soko:notation-ok: G-21 边界：`Eq.subst` 的实参位（显式实参写在隐式位上）拿不到期望类型 ⇒ 零元常量必须点名写全
 
 -- ── 练习 5（X 类：散文 → 形式）─────────────────────────────────────────────
 -- 𝒫(univ) 就是上一层类型的全集：逐元素看，左边是「A ⊆ univ」（由 A 的每个
@@ -90,7 +90,7 @@ theorem univ_top_iff (α : Type) (A : Set α) :
 -- `Set.ext` 要写全类型参数（`apply Set.ext (Set α)`）：不写时元素类型不是签名里
 -- 的裸 α，会造出坏子目标。
 theorem powerset_univ_eq_univ_of_sets (α : Type) :
-    𝒫 (Set.univ α) = Set.univ := by  -- soko:notation-ok: `𝒫` 的操作数是零元隐式常量且无期望类型 ⇒ 解不出前导参数（E19/E20 元变量领地）
+    𝒫 (@Set.univ α) = Set.univ := by  -- soko:notation-ok: `𝒫` 的操作数是零元隐式常量且无期望类型 ⇒ 解不出前导参数（E19/E20 元变量领地）
   apply Set.ext (Set α)
   intro A
   constructor

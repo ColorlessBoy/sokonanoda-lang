@@ -54,7 +54,7 @@ theorem subset_refl (α : Type) (A : Set α) : A ⊆ A := by
 
 -- soko:hint 关键件：`Set.mem_empty_iff_false` · **`False.elim`（把目标写全** ✓）
 
-theorem empty_subset (α : Type) (A : Set α) : (∅ α) ⊆ A := by
+theorem empty_subset (α : Type) (A : Set α) : (@Set.empty α) ⊆ A := by
   sorry
 -- 练习 4（T 类）：**`A ∈ 𝒫A`**（完备格的 **top** ✓）。
 

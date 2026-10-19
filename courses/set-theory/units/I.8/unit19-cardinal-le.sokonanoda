@@ -71,9 +71,9 @@ theorem le_refl (α : Type) (A : Set α) : A ≼ A := by
 
 -- 练习 3（T 类）：**每个集合都不比全集大**。
 -- soko:hint 思路：还是恒等映射；落点那一条用"任何元素都属于全集"。
--- soko:hint 目标形态：`A ≼ Set.univ α`。
+-- soko:hint 目标形态：`A ≼ @Set.univ α`。
 -- soko:hint 关键件：`Set.Le.intro` + 练习 1 + `Set.mem_univ`。
-theorem le_univ (α : Type) (A : Set α) : A ≼ Set.univ α := by
+theorem le_univ (α : Type) (A : Set α) : A ≼ @Set.univ α := by
   sorry
 
 -- 练习 4（T 类）：**空集是最小的**（`∅` 不比任何集合大）。

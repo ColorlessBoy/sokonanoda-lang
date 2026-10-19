@@ -64,14 +64,14 @@ theorem demo_trans_notation (α : Type) (A B C : Set α)
   fun (x : α) => fun (hx : A x) => h2 x (h1 x hx)
 
 theorem demo_empty_subset_pointful (α : Type) (A : Set α) :
-    Set.subset α (Set.empty α) A :=
-  fun (x : α) => fun (hx : Set.mem α x (Set.empty α)) => False.elim (A x) hx
+    Set.subset α (@Set.empty α) A :=
+  fun (x : α) => fun (hx : Set.mem α x (@Set.empty α)) => False.elim (A x) hx
 
 theorem demo_empty_subset_notation (α : Type) (A : Set α) : ∅ ⊆ A :=
-  fun (x : α) => fun (hx : Set.mem α x (Set.empty α)) => False.elim (A x) hx
+  fun (x : α) => fun (hx : Set.mem α x (@Set.empty α)) => False.elim (A x) hx
 
 theorem demo_notMem_empty_pointful (α : Type) (a : α) :
-    Not (Set.mem α a (Set.empty α)) :=
+    Not (Set.mem α a (@Set.empty α)) :=
   Set.notMem_empty α a
 
 theorem demo_notMem_empty_notation (α : Type) (a : α) : Not (a ∈ ∅) :=

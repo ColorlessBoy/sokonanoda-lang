@@ -402,7 +402,7 @@ theorem not_image_preimage_eq :
 
 -- 练习 9（D 类）：`C ⊆ f '' univ`（满射性）时等号回来——"需要什么假设"的答案。
 theorem image_preimage_eq_of_subset_image_univ (α β : Type) (f : α → β) (C : Set β)
-    (h : C ⊆ (f '' (Set.univ α))) :
+    (h : C ⊆ (f '' (@Set.univ α))) :
     (f '' (f ⁻¹' C)) = C := by
   exact @Set.ext β (f '' (f ⁻¹' C)) C
     (fun (y : β) =>
@@ -412,10 +412,10 @@ theorem image_preimage_eq_of_subset_image_univ (α β : Type) (f : α → β) (C
           @Iff.mpr (y ∈ (f '' (f ⁻¹' C)))
             (∃ (x : α), (x ∈ (f ⁻¹' C)) ∧ ((f x) = y))
             (Set.mem_image α β f (f ⁻¹' C) y)
-            (Exists.elim α (fun (x : α) => (x ∈ (Set.univ α)) ∧ ((f x) = y))
+            (Exists.elim α (fun (x : α) => (x ∈ (@Set.univ α)) ∧ ((f x) = y))
               (∃ (x : α), (x ∈ (f ⁻¹' C)) ∧ ((f x) = y))
               (h y hy)
-              (fun (x : α) => fun (hx : (x ∈ (Set.univ α)) ∧ ((f x) = y)) =>
+              (fun (x : α) => fun (hx : (x ∈ (@Set.univ α)) ∧ ((f x) = y)) =>
                 Exists.intro x
                   (And.intro
                     (Eq.subst.{1} β (fun (z : β) => z ∈ C) y (f x)
