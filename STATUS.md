@@ -18,6 +18,9 @@
   `fix_notation.py` 把 tactic 族收进 span 扫描 ⇒ `unit04-solution` 一处插 19 处 ✗。
   ⚠ 量具自检两条：`--root` 必须给**模块根**（给仓库根 ⇒ 两侧同报 `import-not-found` ⇒ **假绿** ✗）；
   pristine 侧要铺**整个课程**（只铺被改文件 ⇒ 副本没有 `lib/` ⇒ **假绿** ✗）。
+- ⚠ **`--no-verify` 留痕（本笔推的时候用了）**：`pre-push` 的本地快层在 `gates：缺口台账（--strict）` 上判红
+  —— **存量**（`STATUS.md` 第五刀那行记的 12 条与台账不一致；`git diff 2fc93146 -- docs/gaps` 为空 ✓，
+  本轮一个字没碰 `docs/gaps/**` ✓）；同一次快层的 `fmt` / `clippy` / `notation-lint` / 各类守卫**全 ✅** ✓。
 - ⚠ **如实（未收口的部分 + 判据边界）**：
   * **变体②**（message 含「至少有一个没解出来」，**14 条**）**不能只加 `@`**（会改义）⇒ 需人工补隐式实参，本轮未动；
   * **`kernel-rejected` 误导性族**（**12 条**，`期望 Sort(1)，实际是 Sort(2)`）本轮试过 `--kernel` span 扫描 ⇒
