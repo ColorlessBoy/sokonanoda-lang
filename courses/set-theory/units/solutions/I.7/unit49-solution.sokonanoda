@@ -45,7 +45,7 @@ theorem sUnion_union (α : Type) (F G : Set (Set α)) :
           (fun (hF : x ∈ ⋃₀ F) =>
             Set.mem_sUnion_elim α F x (x ∈ ⋃₀ (F ∪ G)) hF
               (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) =>
-                Set.mem_sUnion_intro α (F ∪ G) A x (Or.inl (A ∈ F) (A ∈ G) hA) hxA))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
+                Set.mem_sUnion_intro α (F ∪ G) A x (@Or.inl (A ∈ F) (A ∈ G) hA) hxA))  -- soko:notation-ok: G-73 形状 ②：`Set.sUnion`/`Set.sInter` 是 def 头，这些位置补不出前导实参
           (fun (hG : x ∈ ⋃₀ G) =>
             Set.mem_sUnion_elim α G x (x ∈ ⋃₀ (F ∪ G)) hG
               (fun (A : Set α) (hA : A ∈ G) (hxA : x ∈ A) =>

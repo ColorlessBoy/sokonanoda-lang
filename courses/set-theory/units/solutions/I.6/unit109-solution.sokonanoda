@@ -71,7 +71,7 @@ theorem addsTo_succ_inv (α : Type) (E : α → α → Prop) (σ : α → α) (z
           (And.intro (@Eq.refl.{1} α (σ c))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
             (@Eq.subst.{1} α (fun (t : α) => AddsTo α E σ zero a t c) b y  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
               (@Eq.symm.{1} α y b (hinj y b (@Eq.symm.{1} α (σ b) (σ y) he))) hh)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-    x (σ y) v h y (Eq.refl.{1} α (σ y))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    x (σ y) v h y (@Eq.refl.{1} α (σ y))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
 
 -- 结合律：对**第二条推导** `h2` 归纳（`h1` 的实例作为一般化参数）；零情形取 `u := y`，后继情形再套一层 `σ`。
 theorem addsTo_assoc (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)

@@ -105,7 +105,7 @@ theorem mem_or_pred_subset (α : Type) (E : α → α → Prop) (x : α) (y : α
       @Or.inl (E y x) (∀ (w : α), E w x → E w y)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
         (mem_of_exists_gap α E x y hx hy ihx hex))
     (fun (hno : ¬ (∃ (w : α), E w x ∧ ¬ (E w y))) =>
-      Or.inr (E y x) (∀ (w : α), E w x → E w y)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Or.inr (E y x) (∀ (w : α), E w x → E w y)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
         (pred_subset_of_no_gap α E x y hno))
     (Classical.em (∃ (w : α), E w x ∧ ¬ (E w y)))
 
@@ -128,7 +128,7 @@ theorem ordinal_trichotomy (α : Type) (E : α → α → Prop)
                  (@Or.elim (z = v) (¬ (z = v)) (z = v ∨ E v z)
                   (fun (heq : z = v) => Or.inl heq)
                   (fun (hne : ¬ (z = v)) =>
-                    Or.inr (z = v) (E v z)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                    @Or.inr (z = v) (E v z)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
                       (Or.elim (E v z) (∀ (w : α), E w z → E w v) (E v z)
                         (fun (hvz : E v z) => hvz)
                         (fun (hsub : ∀ (w : α), E w z → E w v) =>
