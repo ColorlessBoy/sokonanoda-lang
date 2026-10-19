@@ -50,7 +50,7 @@ theorem add_comm (a b : Nat) : @Eq.{1} Nat (add a b) (add b a) :=  -- soko:notat
           (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (add a n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
           (add a n) (add n a) ih
           (@Eq.refl.{1} Nat (Nat.succ (add a n))))
-        (Eq.symm.{1} Nat (add (Nat.succ n) a) (Nat.succ (add n a)) (succ_add n a)))
+        (@Eq.symm.{1} Nat (add (Nat.succ n) a) (Nat.succ (add n a)) (succ_add n a)))
     b
 
 theorem add_rotate (a b c : Nat) :

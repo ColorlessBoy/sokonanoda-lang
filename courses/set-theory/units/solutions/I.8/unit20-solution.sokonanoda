@@ -89,7 +89,7 @@ theorem prod_swap_subset_swap (A B : Type) (s s' : Set A) (t t' : Set B)
           Iff.mpr (Set.mem_prod_iff B A t' s' q)
             (And.intro
               (rel_subst_left B (fun (u : B) (v : B) => v ∈ t')
-                (Prod.snd A B (prod_mk A B (Prod.snd B A q) (Prod.fst B A q)))
+                (Prod.snd A B (@prod_mk A B (Prod.snd B A q) (Prod.fst B A q)))
                 (Prod.fst B A q) (Prod.fst B A q)
                 (Eq.trans.{1} B (Prod.snd A B (prod_mk A B (Prod.snd B A q) (Prod.fst B A q)))
                   (Prod.fst B A q) (Prod.fst B A q)
