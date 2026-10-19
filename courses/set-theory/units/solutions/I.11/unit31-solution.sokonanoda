@@ -36,7 +36,7 @@ theorem monotone_upper_bound (α β : Type) (r : α → α → Prop) (s : β →
     UpperBound β s (fun (y : β) => ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) (f u) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
   fun (y : β) => fun (hy : ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
     @Exists.elim α (fun (x : α) => A x ∧ @Eq.{1} β (f x) y) (s y (f u)) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
-      (fun (x : α) (hx : A x ∧ Eq.{1} β (f x) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (x : α) (hx : A x ∧ @Eq.{1} β (f x) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
         rel_subst_right β (fun (p : β) (q : β) => s q (f u)) y (f x) y
           (And.right hx)
           (monotone_apply α β r s f hf x u
@@ -86,7 +86,7 @@ theorem monotone_lower_bound (α β : Type) (r : α → α → Prop) (s : β →
     LowerBound β s (fun (y : β) => ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) (f l) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
   fun (y : β) => fun (hy : ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
     @Exists.elim α (fun (x : α) => A x ∧ @Eq.{1} β (f x) y) (s (f l) y) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
-      (fun (x : α) (hx : A x ∧ Eq.{1} β (f x) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (x : α) (hx : A x ∧ @Eq.{1} β (f x) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
         rel_subst_right β (fun (p : β) (q : β) => s (f l) q) (f l) (f x) y
           (And.right hx)
           (monotone_apply α β r s f hf l x
