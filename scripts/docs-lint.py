@@ -11,6 +11,10 @@
      + `docs/**`（git 跟踪），**不含** `docs/archive/**`（归档是"可追溯" ✓，
      不是"每次都要读" ✗）；顶格时下一轮 cap 按 **实测 × 0.75 重钉**（TCP 的
      **乘性减**，`threshold_ratchet.next_cap()` ⇒ 红字里带那个数 ✓，不是"压一点点"）；
+     ⭐ **分账**（用户 2026-10-16 18:5x ②「不同 doc 可以不一样」）：同一批活文档再按
+     **入口（仓根 `*.md`）/ 设计（`docs/design/**`）/ 其它（`docs/**` 其余）** 分三类，
+     每类**自己的上限**（`DOC_CLASSES` 的 bps 份额 × 总量上限；整数除法 ⇒ **各类之和 ≤ 总量** ✓）
+     ⇒ 一类涨**只红那一类**，不顶别的类；总量仍是**兜底**红线 ✓；
   ② **单文件** ≤ `MAX_FILE_LINES` 行（任何活文档 `.md`）；
   ③ **入口文件** ≤ `MAX_ENTRY_LINES` 行 —— 接手必读的那几份必须短 ✓；
   ④ **设计文档预算**：`docs/design/**` 的**新增** `.md` ≤ `MAX_NEW_DESIGN_LINES` 行；
@@ -80,6 +84,57 @@ MAX_NEW_DESIGN_LINES = 150  # ④ docs/design/** 新增文件
 MAX_NEW_LINES_DEFAULT = 400  # ④ 其它目录新增文件
 MIN_FROZEN = 20  # ④ 冻结下限（空/极短文件也允许 20 行，免得一行都不能加）
 MAX_ARCHIVE_BYTES = _RATCHET_CAPS["docs_archive_bytes"]  # ⑥ 归档总量（种子 2.5 MB；实测 0.95 MB）
+
+# ── ① 的**分类预算**（用户 2026-10-16 18:5x ②「**不同 doc 可以不一样**」）──────────
+# 病（实测）：① 原来只有**一个全局总量** ⇒ 一类涨就顶全局 ⇒ 真文档替生成物挨刀，
+# 且"顶格 → 压一点点 → 又被顶回"（`DOCS-LIVE-TOTAL-AT-CAP-BLOCKS-ALL-PUSHES`）。
+# 修法：按**角色/位置**分账 —— 每类**自己的**上限；一类超**只红那一类**（反向验证在
+# `--selftest` 的三条 ①b 臂 ✓）。
+#
+# ⚠ **不抬总量**（用户红线）：份额用**整数 bps 且合计 = 10000**，class cap =
+# `总量上限 × bps // 10000` ⇒ ① 整数除法保证 **Σ各类上限 ≤ 总量上限**（结构性，不是承诺）；
+# ② 总量上限本身仍来自 ratchet（`docs_live_bytes`，AIMD 可把它压得更低）⇒ **一个数都没变大** ✓。
+# 份额的取法（可复核）：按落地实测 + 给每类留出余量后取整 —— 入口 3% / 设计 13% / 其它 84%；
+# 其它拿走剩余全部（它是最大的一块：`docs/**` 的台账/生成物/参考都在里面 ✓）。
+DOC_CLASSES: tuple[dict, ...] = (
+    {"id": "entry", "label": "入口（仓根 *.md）", "share_bps": 300},
+    {"id": "design", "label": "设计（docs/design/**）", "share_bps": 1300},
+    {"id": "other", "label": "其它（docs/** 其余）", "share_bps": 8400},
+)
+DOC_CLASS_SHARE_TOTAL = 10_000
+
+
+def doc_class(path: str) -> str:
+    """路径 → 类别（**一处定义** ✓：`check()` 与 `--selftest` 的反向验证共用）。
+
+    口径按**位置**（比"入口清单"稳：清单会随清理变）：
+      · **入口** = 仓根 `*.md`（`AGENTS.md` 的接手顺序就在这几份里）；
+      · **设计** = `docs/design/**`；
+      · **其它** = 剩下的 `docs/**`（顶层参考 · 台账 · 生成物 · e2e 日志 …）。
+    ⚠ `docs/README.md`（地图）与 `docs/design/e2-plan.md`（计划）按**位置**归类 ⇒
+    前者"其它"、后者"设计"；它们各自的**行数**仍由判据 ③（入口 ≤800）管 ✓ —— 两件事不混。
+    """
+    if "/" not in path:
+        return "entry"
+    if path.startswith("docs/design/"):
+        return "design"
+    return "other"
+
+
+def class_caps(total: int | None = None) -> dict[str, int]:
+    """各类的**现行上限** = `总量 × share_bps // 10000`（**整数除法** ⇒ Σ ≤ 总量 ✓）。"""
+    total = MAX_LIVE_BYTES if total is None else int(total)
+    return {c["id"]: total * c["share_bps"] // DOC_CLASS_SHARE_TOTAL for c in DOC_CLASSES}
+
+
+def live_bytes_by_class(live: list[str]) -> dict[str, int]:
+    """每类活文档的**实测字节**（**一处定义** ✓：`check()` 与分类反向验证共用）。"""
+    out = {c["id"]: 0 for c in DOC_CLASSES}
+    for f in live:
+        p = _rp(f)
+        if p.exists():
+            out[doc_class(f)] += p.stat().st_size
+    return out
 
 
 def _ratchet_gate() -> int | None:
@@ -525,9 +580,28 @@ def check() -> tuple[list[str], dict]:
     live = live_docs(files)
     bad: list[str] = []
 
-    # ① 活文档总量
+    # ① 活文档总量（**分类**：入口 / 设计 / 其它 —— 用户 2026-10-16 18:5x ②）
     live_bytes = sum(_rp(f).stat().st_size for f in live if _rp(f).exists())
+    by_class = live_bytes_by_class(live)
+    caps = class_caps(MAX_LIVE_BYTES)
+    for c in DOC_CLASSES:
+        got, cap = by_class[c["id"]], caps[c["id"]]
+        if got > cap:
+            # ⚠ **只报这一类自己的账**：三类是**分账**的 ⇒ 一类涨不顶另一类；若真有两类同时超
+            # （例：总量 AIMD 之后），**如实点名**，不假装"只有这一类" ✗。
+            _also = [c2["id"] for c2 in DOC_CLASSES
+                     if c2["id"] != c["id"] and by_class[c2["id"]] > caps[c2["id"]]]
+            _scope = (f"（⚠ 同时超的类：{_also}）" if _also
+                      else " ⇒ **只这一类超**（另两类在其上限内 ✓）")
+            bad.append(
+                f"①[{c['id']}] {c['label']} {got / 1e6:.2f} MB > 该类上限 "
+                f"{cap / 1e6:.2f} MB（= 总量上限的 {c['share_bps'] / 100:.1f}%）{_scope}。"
+                f"出路：归档/真删**该类**文档；要动总预算就走 AIMD 的 `--open-round`"
+                f"（见 `scripts/threshold_ratchet.py`）"
+            )
     if live_bytes > MAX_LIVE_BYTES:
+        # ⭐ **兜底**（总量）：分类上限之和结构上 ≤ 总量上限 ⇒ 这一条平时不会响；
+        # 它保证"分类被改坏 / 份额被手改"时仍有**最后一道**总量红线 ✓。
         # ⭐ **AIMD（TCP 的乘性减；用户 2026-10-16 18:5x ①）**：顶格不是"压一点点"——
         # 下一轮 cap 会按 **实测 × 0.75 重钉**（`threshold_ratchet.next_cap()`；与
         # `--open-round` 真钉的**同一档** ✓）。这里印出来 ⇒ 红色自带一个**可执行的目标**，
@@ -655,6 +729,8 @@ def check() -> tuple[list[str], dict]:
     stats = {
         "live_bytes": live_bytes,
         "live_files": sum(1 for f in live if Path(f).exists()),
+        "live_bytes_by_class": by_class,
+        "live_cap_by_class": caps,
         "archive_bytes": arch_bytes,
         "archive_files": len(arch_files),
         "max_live_bytes": MAX_LIVE_BYTES,
@@ -670,7 +746,7 @@ def selftest() -> int:
     把判据**逐条故意弄红一次** ⇒ 每条都必须被报出来 ✗；再加**三条方向性**用例
     （用户 2026-09-26 要求 ✓）：**回胖必须判红** ✓、**正常推进必须不误红** ✓、
     **非入口的冻结仍要咬** ✓。判据：`python3 scripts/docs-lint.py --selftest`
-    ⇒ exit 0 + `19/19`。
+    ⇒ exit 0 + `24/24`。
 
     ⚠ **全程在临时沙箱里改，真仓库一个字节都不动** ✓（`DOCSLINT-SELFTEST-POLLUTES-REAL-REPO`，
     2026-10-15）：旧写法直接改真文档、靠 `finally` 还原 —— 并发两个自检会互相踩
@@ -710,7 +786,7 @@ def selftest() -> int:
 
 
 def _selftest_body() -> int:
-    """19 条夹具本体（**只许**由 `selftest()` 调用 —— 它负责沙箱与清理 ✓）。"""
+    """24 条夹具本体（**只许**由 `selftest()` 调用 —— 它负责沙箱与清理 ✓）。"""
     if _SANDBOX is None:
         raise AssertionError("自检必须在沙箱里跑（见 selftest()）—— 否则会改真仓库 ✗")
     results: list[tuple[str, str, bool]] = []
@@ -742,6 +818,33 @@ def _selftest_body() -> int:
     #   **实测×0.75**，不是压一点点 ⇒ 那个数必须出现在红色里，否则读数没有出路 ✓）。
     results.append(("①", "活文档总量 > 上限（且红字带 AIMD 重钉档）", any(
         b.startswith("①") and "AIMD" in b for b in bad)))
+
+    # ①b **分类预算**（用户 2026-10-16 18:5x ②「不同 doc 可以不一样」）：
+    #   ① 结构：份额之和 = 100%、各类上限之和 ≤ 总量上限（整数除法，**不借分类之名抬总量**）；
+    #   ② 反向：把**某一类**单独撑到超该类上限 ⇒ **只有该类**判红（另两类 + 总量都不红 ✓）。
+    results.append(("①b", "三类份额之和 = 100%（不借分类之名抬总量）",
+                    sum(c["share_bps"] for c in DOC_CLASSES) == DOC_CLASS_SHARE_TOTAL))
+    _totals = (1, 999, 3_000_000, MAX_LIVE_BYTES, 10_000_000)
+    results.append(("①b", "各类上限之和 ≤ 总量上限（整数除法；5 个总量都成立）",
+                    all(sum(class_caps(t).values()) <= t for t in _totals)))
+    _cls_now = live_bytes_by_class(live_docs(tracked()))
+    _cls_caps = class_caps(MAX_LIVE_BYTES)
+    for _cid, _rel in (("entry", "__class_entry_selftest__.md"),
+                       ("design", "docs/design/__class_design_selftest__.md"),
+                       ("other", "docs/__class_other_selftest__.md")):
+        _over = _cls_caps[_cid] - _cls_now[_cid] + 1
+        _f = _wp(_rel)
+        _f.write_text("x" * _over + "\n", encoding="utf-8")
+        try:
+            _bad, _ = check()
+        finally:
+            _f.unlink(missing_ok=True)
+        _hit = any(b.startswith(f"①[{_cid}]") for b in _bad)
+        _others = [b for b in _bad
+                   if b.startswith("①[") and not b.startswith(f"①[{_cid}]")]
+        _total = any(b.startswith("① 活文档总量") for b in _bad)
+        results.append(("①b", f"反向：只撑 `{_cid}` 一类 ⇒ **只有该类**判红",
+                        _hit and not _others and not _total))
 
     # ② 单文件行数 + ④ 冻结预算：往一份活文档灌 2200 行
     p = _rp("docs/LESSONS.md")
@@ -1219,9 +1322,14 @@ def main(argv: list[str]) -> int:
         for b in bad:
             print(f"  - {b}", file=sys.stderr)
         return 1
+    _cls = " · ".join(
+        f"{c['id']} {stats['live_bytes_by_class'][c['id']] / 1e6:.2f}"
+        f"/{stats['live_cap_by_class'][c['id']] / 1e6:.2f} MB"
+        for c in DOC_CLASSES
+    )
     print(
         f"docs-lint ✓ 活文档 {stats['live_files']} 个 / {stats['live_bytes'] / 1e6:.2f} MB "
-        f"≤ {MAX_LIVE_BYTES / 1e6:.2f} MB ✓ · 归档 {stats['archive_files']} 个 / "
+        f"≤ {MAX_LIVE_BYTES / 1e6:.2f} MB ✓（分账：{_cls}）· 归档 {stats['archive_files']} 个 / "
         f"{stats['archive_bytes'] / 1e6:.2f} MB ✓ · 垃圾 0 ✓ · 归档索引齐 ✓ · "
         f"悬空文档引用 {stats.get('doc_refs_dangling', 0)} 处（基线内、无新增 ✓）· "
         f"超软线源码 {stats.get('src_over_soft', 0)} 个（基线内、无变长 ✓）"
