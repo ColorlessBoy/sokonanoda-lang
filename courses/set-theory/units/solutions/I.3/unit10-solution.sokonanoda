@@ -79,7 +79,7 @@ theorem diag_helper (α : Type) (f : α → Set α) (D : Set α) (g : (Set α) �
     intro p
     exact (@Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f (g D) (g D))
       (¬ (f (g D) (g D))) e p) p
-  exact np (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f (g D) (g D)))
+  exact np (@Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f (g D) (g D)))
     (f (g D) (g D)) (Eq.symm.{1} Prop (f (g D) (g D)) (¬ (f (g D) (g D))) e) np)
 
 theorem cantor (α : Type) :
@@ -141,7 +141,7 @@ theorem no_surjection_powerset (α : Type) :
       congrArg.{1} (fun (X : Set α) => X x) hL
     have np : ¬ (f x x) := by
       intro p
-      exact (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f x x)
+      exact (@Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f x x)
         (¬ (f x x)) e p) p
     exact np (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f x x))
       (f x x) (Eq.symm.{1} Prop (f x x) (¬ (f x x)) e) np)

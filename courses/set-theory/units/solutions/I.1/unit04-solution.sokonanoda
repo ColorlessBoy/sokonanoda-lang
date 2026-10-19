@@ -92,7 +92,7 @@ theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
   intro h
   exact @Or.elim (x ∈ A ∩ B) (x ∈ A ∩ C) (x ∈ A ∩ (B ∪ C))
     (fun (hab : x ∈ A ∩ B) =>
-      And.intro (x ∈ A) (x ∈ B ∨ x ∈ C)
+      @And.intro (x ∈ A) (x ∈ B ∨ x ∈ C)
         (And.left hab)
         (Or.inl (And.right hab)))
     (fun (hac : x ∈ A ∩ C) =>
@@ -123,7 +123,7 @@ theorem sdiff_sdiff (α : Type) (A B C : Set α) :
   constructor
   intro h
   exact And.intro
-    (And.left (x ∈ A) (¬ (x ∈ B))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+    (@And.left (x ∈ A) (¬ (x ∈ B))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
       (And.left h))
     (fun (hbc : x ∈ B ∪ C) =>
       Or.elim (x ∈ B) (x ∈ C) False

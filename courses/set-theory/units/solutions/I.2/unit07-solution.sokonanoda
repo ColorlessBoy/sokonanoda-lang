@@ -123,7 +123,7 @@ theorem swap_converse_false :
         @Exists.intro (Set Nat) (fun (y : Set Nat) => x = y) x (@Eq.refl.{1} (Set Nat) x))  -- soko:notation-ok: R1：目标藏在 hpre 的 ∀ 后，短写补不出
   exact @Exists.elim (Set Nat) (fun (y : Set Nat) => ∀ (x : Set Nat), x = y) False hbad
     (fun (y : Set Nat) => fun (hy : ∀ (x : Set Nat), x = y) =>
-      Set.notMem_empty Nat 0
+      @Set.notMem_empty Nat 0
         (Eq.subst.{1} (Set Nat)
           (fun (X : Set Nat) => 0 ∈ X)
           (Set.univ Nat) (∅)

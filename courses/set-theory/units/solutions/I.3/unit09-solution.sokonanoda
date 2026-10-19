@@ -161,7 +161,7 @@ theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
                                   ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C))
                                   hg2 z hz))
                             (fun (x : α) => fun (hx : x ∈ A) =>
-                              Eq.trans.{1} α (g1 (g2 (f2 (f1 x)))) (g1 (f1 x)) x
+                              @Eq.trans.{1} α (g1 (g2 (f2 (f1 x)))) (g1 (f1 x)) x
                                 (congrArg.{1} g1
                                   (And.left (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                                     (And.right (Set.MapsTo γ β g2 C B)
@@ -342,7 +342,7 @@ theorem proper_subset_counterexample :
           Nat.rec.{0}
             (fun (k : Nat) => k ∈ nonzero → @Eq.{1} Nat (Nat.succ (Nat.pred k)) k)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
             (fun (hz : Nat.zero ∈ nonzero) =>
-              False.elim (Eq.{1} Nat (Nat.succ (Nat.pred Nat.zero)) Nat.zero)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              @False.elim (Eq.{1} Nat (Nat.succ (Nat.pred Nat.zero)) Nat.zero)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 (hz (Eq.refl.{1} Nat Nat.zero)))
             (fun (k : Nat) =>
               fun (ih : k ∈ nonzero → Eq.{1} Nat (Nat.succ (Nat.pred k)) k) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）

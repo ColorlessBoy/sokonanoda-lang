@@ -31,7 +31,7 @@ import lib.Exists
 theorem no_univ_strictly_larger (α : Type) :
     ¬ (∃ (U : Set α), ∀ (A : Set α), A ⊆ U ∧ A ≠ U) := by
   exact (fun (h : ∃ (U : Set α), ∀ (A : Set α), A ⊆ U ∧ A ≠ U) =>
-    Exists.elim (Set α)
+    @Exists.elim (Set α)
       (fun (U : Set α) => ∀ (A : Set α), (A ⊆ U) ∧ (¬ (A = U)))
       False h
       (fun (U : Set α) => fun (hU : ∀ (A : Set α),
@@ -49,7 +49,7 @@ theorem mem_powerset_univ (α : Type) (A : Set α) :
   have hsub : A ⊆ Set.univ := by
     intro x
     intro hx
-    exact Set.mem_univ α x
+    exact @Set.mem_univ α x
   exact (Iff.mpr (Set.mem_powerset_iff (Set.univ) A)) hsub
 
 -- ── 练习 3（R 类：与 ZF 的对照 / 类型阶梯）──────────────────────────────────
@@ -57,7 +57,7 @@ theorem mem_powerset_univ (α : Type) (A : Set α) :
 -- 上一层类型里的隶属判定就是由该层全集给出的：Set.mem_univ 一步到。
 theorem univ_mem_univ_of_sets (α : Type) :
     Set.univ (Set α) ∈ Set.univ (Set (Set α)) := by
-  exact Set.mem_univ (Set (Set α)) (Set.univ (Set α))
+  exact @Set.mem_univ (Set (Set α)) (Set.univ (Set α))
 
 -- ── 练习 4（X 类：散文 → 形式）─────────────────────────────────────────────
 -- 「univ 装得下每个集合；反过来装得下 univ 的只有 univ」打包成一条 And。
@@ -68,20 +68,20 @@ theorem univ_top_iff (α : Type) (A : Set α) :
   constructor
   intro x
   intro hx
-  exact Set.mem_univ α x
+  exact @Set.mem_univ α x
   constructor
   intro h
   apply Set.ext
   intro x
   constructor
   intro ha
-  exact Set.mem_univ α x
+  exact @Set.mem_univ α x
   intro hu
   exact h x hu
   intro h
   intro x
   intro hu
-  exact Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X)
+  exact @Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X)
     (@Set.univ α) A (Eq.symm.{1} (Set α) A (@Set.univ α) h) hu  -- soko:notation-ok: G-21 边界：`Eq.subst` 的实参位（显式实参写在隐式位上）拿不到期望类型 ⇒ 零元常量必须点名写全
 
 -- ── 练习 5（X 类：散文 → 形式）─────────────────────────────────────────────
@@ -95,6 +95,6 @@ theorem powerset_univ_eq_univ_of_sets (α : Type) :
   intro A
   constructor
   intro h
-  exact Set.mem_univ (Set α) A
+  exact @Set.mem_univ (Set α) A
   intro h
   exact (Iff.mpr (Set.mem_powerset_iff (Set.univ) A)) (fun (x : α) => fun (hx : A x) => Set.mem_univ x)
