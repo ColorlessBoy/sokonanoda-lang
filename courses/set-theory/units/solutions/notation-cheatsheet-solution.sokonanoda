@@ -98,7 +98,7 @@ theorem demo_mem_union_notation (α : Type) (a : α) (A B : Set α) :
 
 theorem demo_ext_pointful (α : Type) (A B : Set α)
     (h1 : @Set.subset α A B) (h2 : @Set.subset α B A) : @Eq.{1} (Set α) A B :=
-  @Set.ext α A B (fun (x : α) => Iff.intro (A x) (B x) (h1 x) (h2 x))
+  @Set.ext α A B (fun (x : α) => @Iff.intro (A x) (B x) (h1 x) (h2 x))
 
 theorem demo_ext_notation (α : Type) (A B : Set α)
     (h1 : A ⊆ B) (h2 : B ⊆ A) : @Eq.{1} (Set α) A B :=
@@ -141,5 +141,5 @@ theorem union_empty_right (α : Type) (A : Set α) : @Eq.{1} (Set α) (A ∪ ∅
       (fun (hx : x ∈ A ∪ ∅) =>
         @Or.elim (A x) (x ∈ ∅) (A x)
           (fun (h : A x) => h)
-          (fun (h : x ∈ ∅) => False.elim (A x) h) hx)
+          (fun (h : x ∈ ∅) => @False.elim (A x) h) hx)
       (fun (hx : A x) => Or.inl (A x) (x ∈ ∅) hx))

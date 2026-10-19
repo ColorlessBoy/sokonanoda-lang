@@ -110,7 +110,7 @@ theorem no_descending_chain (α : Type) (r : α → α → Prop)
       (wellFounded_hasMin α r h (SeqImage α f)
         (Exists.intro (f Nat.zero)
           (Exists.intro Nat.zero
-            (Eq.refl.{1} α (f Nat.zero)))))
+            (@Eq.refl.{1} α (f Nat.zero)))))
 
 -- ── 练习 9（D 类）：空关系是良基的 ────────────────────────────────────────
 theorem emptyRelation_wellFounded (α : Type) :

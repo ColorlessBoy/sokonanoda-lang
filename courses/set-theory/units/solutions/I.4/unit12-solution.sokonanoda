@@ -50,7 +50,7 @@ theorem xlat_compl_union (α : Type) (A B : Set α) :
           (fun (ha : A x) => h (@Or.inl (A x) (B x) ha))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           (fun (hb : B x) => h (@Or.inr (A x) (B x) hb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (fun (h : (Aᶜ ∩ Bᶜ) x) => fun (hor : (A ∪ B) x) =>
-        Or.elim (A x) (B x) False
+        @Or.elim (A x) (B x) False
           (fun (ha : A x) => And.left h ha)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           (fun (hb : B x) => And.right h hb)
           hor))
@@ -110,7 +110,7 @@ theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
               (And.left hx)))
       (fun (hy : y ∈ C) =>
         -- `cases` 只吃**局部假设名**；`hC y hy` 是应用，所以用 `Exists.elim` 摊开。
-        Exists.elim α
+        @Exists.elim α
           (fun (x : α) => (@Set.univ α x) ∧ ((f x) = y))
           (y ∈ f '' (f ⁻¹' C)) (hC y hy)
           (fun (x : α) => fun (hx : (@Set.univ α x) ∧ ((f x) = y)) =>
@@ -341,7 +341,7 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
                   (And.right hb)))
           (fun (h : (fun (a : α) => fun (c : γ) => g (f a) = c) a c) =>
             Exists.intro (f a)
-              (And.intro (Eq.refl.{1} β (f a)) h))))
+              (And.intro (@Eq.refl.{1} β (f a)) h))))
     (Set.ext γ ((g ∘ f) '' A) (g '' (f '' A)) (fun (y : γ) =>
       Iff.intro (y ∈ (g ∘ f) '' A) (y ∈ g '' (f '' A))
         (fun (hy : y ∈ (g ∘ f) '' A) =>
@@ -423,7 +423,7 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
               ) =>
                 Set.Equiv.mk α γ A C' f g
                   (fun (x : α) => fun (hx : x ∈ A) =>
-                    Eq.subst.{1} (Set γ) (fun (X : Set γ) => f x ∈ X) C C' hC
+                    @Eq.subst.{1} (Set γ) (fun (X : Set γ) => f x ∈ X) C C' hC
                       (And.left (Set.MapsTo α γ f A C)
                         (∃ (g2 : γ → α),
                           Set.MapsTo γ α g2 C A ∧

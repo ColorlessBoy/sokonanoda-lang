@@ -23,7 +23,7 @@ theorem injOn_id (α : Type) (A : Set α) : Set.InjOn α α (fun (x : α) => x) 
         ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → @Eq.{1} α x y → @Eq.{1} α x y) => Iff.mpr hv)  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
       (Set.injOn_def α α (fun (x : α) => x) A)
       (fun (x : α) (hx : x ∈ A) => fun (y : α) (hy : y ∈ A) =>
-        fun (hxy : Eq.{1} α x y) => hxy))  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+        fun (hxy : @Eq.{1} α x y) => hxy))  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
 
 theorem le_refl (α : Type) (A : Set α) : A ≼ A :=
   Set.Le.intro α α A A (fun (x : α) => x) (injOn_id α A)
@@ -58,7 +58,7 @@ theorem le_of_equiv (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : A �
             @Eq.trans.{1} α x (g (f y)) y
               (@Eq.trans.{1} α x (g (f x)) (g (f y))
                 (@Eq.symm.{1} α (g (f x)) x (hgf x hx))
-                (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} α (g u) (g v))  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+                (rel_subst_right β (fun (u : β) (v : β) => @Eq.{1} α (g u) (g v))  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
                   (f x) (f x) (f y) hxy (Eq.refl.{1} α (g (f x)))))
               (hgf y hy))
         hf)

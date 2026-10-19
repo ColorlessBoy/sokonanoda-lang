@@ -44,7 +44,7 @@ theorem eq_iff_subset_both (α : Type) (A B : Set α) :
   @Iff.intro (@Eq.{1} (Set α) A B) (A ⊆ B ∧ B ⊆ A)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
     (fun (h : @Eq.{1} (Set α) A B) =>  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`⊆`/`∩`/`∪` 是 def 头（手册边界）
       And.intro
-        (eq_imp_subset α A B h) (eq_imp_subset α B A (Eq.symm.{1} (Set α) A B h)))
+        (eq_imp_subset α A B h) (eq_imp_subset α B A (@Eq.symm.{1} (Set α) A B h)))
     (fun (h : A ⊆ B ∧ B ⊆ A) =>
       subset_antisymm α A B (And.left h) (And.right h))
 

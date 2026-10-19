@@ -37,7 +37,7 @@ theorem injOn_of_leftInv (α : Type) (β : Type) (f : α → β) (g : β → α)
     @Eq.trans.{1} α x (g (f x)) y (@Eq.symm.{1} α (g (f x)) x (hgf x hx))
       (@Eq.trans.{1} α (g (f x)) (g (f y)) y
         (@Eq.subst.{1} β (fun (v : β) => g (f x) = g v) (f x) (f y) h
-          (Eq.refl.{1} α (g (f x))))
+          (@Eq.refl.{1} α (g (f x))))
         (hgf y hy))
 
 theorem injOn_of_rightInv (α : Type) (β : Type) (g : β → α) (f : α → β) (B : Set β)
@@ -46,7 +46,7 @@ theorem injOn_of_rightInv (α : Type) (β : Type) (g : β → α) (f : α → β
     @Eq.trans.{1} β x (f (g x)) y (@Eq.symm.{1} β (f (g x)) x (hfg x hx))
       (@Eq.trans.{1} β (f (g x)) (f (g y)) y
         (@Eq.subst.{1} α (fun (v : α) => f (g x) = f v) (g x) (g y) h
-          (Eq.refl.{1} β (f (g x))))
+          (@Eq.refl.{1} β (f (g x))))
         (hfg y hy))
 
 theorem leOn_of_equiv (α : Type) (β : Type) (A : Set α) (B : Set β) (h : A ≈ B) :

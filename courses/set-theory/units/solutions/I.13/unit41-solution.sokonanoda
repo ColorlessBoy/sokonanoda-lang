@@ -36,7 +36,7 @@ theorem wf_irreflexive (α : Type) (r : Rel α α) (hwf : IsWellFounded α r) :
     (fun (hm : HasMin α r (fun (x : α) => @Eq.{1} α x a)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
       @Exists.elim α (fun (m : α) => @Eq.{1} α m a ∧ ∀ (y : α), @Eq.{1} α y a → ¬ (r y m))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
         False (hasMin_elim α r (fun (x : α) => @Eq.{1} α x a) hm)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-        (fun (m : α) (hmm : Eq.{1} α m a ∧ ∀ (y : α), Eq.{1} α y a → ¬ (r y m)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (fun (m : α) (hmm : @Eq.{1} α m a ∧ ∀ (y : α), Eq.{1} α y a → ¬ (r y m)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
           (fun (hnot : ¬ (r a m)) =>
             hnot (rel_subst_right α (fun (u : α) (v : α) => r u v) a a m
               (Eq.symm.{1} α m a (And.left hmm)) haa))
