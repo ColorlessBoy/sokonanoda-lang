@@ -52,7 +52,7 @@ theorem surjective_comp (α β γ : Type) (f : α → β) (g : β → γ)
       ((fun (hu : ∀ (y : γ), ∃ (b : β), @Eq.{1} γ (g b) y) => hu c) hg)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
       (fun (b : β) (hb : @Eq.{1} γ (g b) c) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
         @Exists.elim α (fun (a : α) => @Eq.{1} β (f a) b)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
-          (∃ (a : α), Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (∃ (a : α), @Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
           ((fun (hu : ∀ (y : β), ∃ (x : α), Eq.{1} β (f x) y) => hu b) hf)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
           (fun (a : α) (ha : Eq.{1} β (f a) b) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
             surjective_comp_core α β γ f g c a b ha hb))

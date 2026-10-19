@@ -179,7 +179,7 @@ theorem flawed_equalities_refuted :
     ((fun (_ : Set Nat) => ∅) '' ({∅} ∩ {(Set.univ Nat)})
       ≠ ((fun (_ : Set Nat) => ∅) '' {∅}) ∩ ((fun (_ : Set Nat) => ∅) '' {(Set.univ Nat)}))
     (fun (h :
-      (fun (_ : Set Nat) => ∅) '' ((fun (_ : Set Nat) => ∅) ⁻¹' (Set.univ (Set Nat)))
+      (fun (_ : Set Nat) => ∅) '' ((fun (_ : Set Nat) => ∅) ⁻¹' (@Set.univ (Set Nat)))
         = Set.univ (Set Nat)
     ) =>
       -- `cases` 吃不了 `have` 绑定的 `∈ 像` 假设本身（类型要 delta 两步才到 `Exists`）；
