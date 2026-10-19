@@ -163,6 +163,12 @@
       "tier": "spec",
       "reason": "新增设计档（goal 口径载荷瘦身）：到期复审是否已实现或该归档"
     },
+    "docs/design/guard-recursion-anchors.md": {
+      "expires": "2027-10-20",
+      "renewed": "2026-10-20",
+      "tier": "spec",
+      "reason": "判据递归的锚：用户 2026-10-16 问『永远修不完』的正式回答档，须长期保留供后续 agent 复用（分档 spec = 365 天）"
+    },
     "docs/design/import-links.md": {
       "expires": "2027-10-08",
       "renewed": "2026-10-08",
@@ -360,5 +366,9 @@
       "record": 90
     },
     "max_renew_days": 731
+  },
+  "docs/design/guard-recursion-anchors.md": {
+    "kind": "spec",
+    "expires": "2027-04-20"
   }
 }
