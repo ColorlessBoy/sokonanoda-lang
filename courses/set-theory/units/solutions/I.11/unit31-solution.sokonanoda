@@ -69,7 +69,7 @@ theorem orderIso_isSup (α β : Type) (r : α → α → Prop) (s : β → β �
     (hsurj : ∀ (y : β), ∃ (x : α), @Eq.{1} β (f x) y)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
     (A : α → Prop) (b : α) (hb : IsSup α r A b) :
     IsSup β s (fun (y : β) => ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) (f b) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
-  isSup_intro β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) (f b)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  isSup_intro β s (fun (y : β) => ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) (f b)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
     (monotone_upper_bound α β r s f hm A b (isSup_upper α r A b hb))
     (fun (c : β) =>
       fun (hc : UpperBound β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) c) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
