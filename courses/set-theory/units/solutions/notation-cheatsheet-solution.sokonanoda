@@ -142,4 +142,4 @@ theorem union_empty_right (α : Type) (A : Set α) : @Eq.{1} (Set α) (A ∪ ∅
         @Or.elim (A x) (x ∈ ∅) (A x)
           (fun (h : A x) => h)
           (fun (h : x ∈ ∅) => @False.elim (A x) h) hx)
-      (fun (hx : A x) => Or.inl (A x) (x ∈ ∅) hx))
+      (fun (hx : A x) => @Or.inl (A x) (x ∈ ∅) hx))

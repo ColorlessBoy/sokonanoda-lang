@@ -342,7 +342,7 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
           (fun (h : (fun (a : α) => fun (c : γ) => g (f a) = c) a c) =>
             Exists.intro (f a)
               (And.intro (@Eq.refl.{1} β (f a)) h))))
-    (Set.ext γ ((g ∘ f) '' A) (g '' (f '' A)) (fun (y : γ) =>
+    (@Set.ext γ ((g ∘ f) '' A) (g '' (f '' A)) (fun (y : γ) =>
       Iff.intro (y ∈ (g ∘ f) '' A) (y ∈ g '' (f '' A))
         (fun (hy : y ∈ (g ∘ f) '' A) =>
           Exists.elim α (fun (x : α) => (A x) ∧ (((g ∘ f) x) = y))
@@ -424,7 +424,7 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                 Set.Equiv.mk α γ A C' f g
                   (fun (x : α) => fun (hx : x ∈ A) =>
                     @Eq.subst.{1} (Set γ) (fun (X : Set γ) => f x ∈ X) C C' hC
-                      (And.left (Set.MapsTo α γ f A C)
+                      (@And.left (Set.MapsTo α γ f A C)
                         (∃ (g2 : γ → α),
                           Set.MapsTo γ α g2 C A ∧
                             (Set.LeftInvOn α γ g2 f A) ∧ (Set.RightInvOn α γ f g2 C)) hf x hx))
