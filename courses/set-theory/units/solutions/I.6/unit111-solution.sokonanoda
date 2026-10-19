@@ -59,7 +59,7 @@ theorem add_rotate (a b c : Nat) :
     (@Eq.symm.{1} Nat (add (add a b) c) (add a (add b c)) (add_assoc a b c))
     (@Eq.trans.{1} Nat (add (add a b) c) (add (add b a) c) (add b (add a c))
       (@Eq.subst.{1} Nat (fun (m : Nat) => @Eq.{1} Nat (add (add a b) c) (add m c))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-        (add a b) (add b a) (add_comm a b) (Eq.refl.{1} Nat (add (add a b) c)))
+        (add a b) (add b a) (add_comm a b) (@Eq.refl.{1} Nat (add (add a b) c)))
       (add_assoc b a c))
 
 theorem mul_zero (a : Nat) : @Eq.{1} Nat (mul a Nat.zero) Nat.zero :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）

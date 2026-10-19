@@ -441,7 +441,7 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                       (@And.right (Set.MapsTo γ α g C A)
                         ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)) hg2)
                       z
-                      (Eq.subst.{1} (Set γ) (fun (X : Set γ) => z ∈ X) C' C
+                      (@Eq.subst.{1} (Set γ) (fun (X : Set γ) => z ∈ X) C' C
                         (Eq.symm.{1} (Set γ) C C' hC) hz)))))
     (fun (h2 : C' ≈ (𝒫 C')) =>
       Exists.elim (γ → Set γ)

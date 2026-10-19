@@ -114,7 +114,7 @@ theorem cantor (α : Type) :
                        Set.RightInvOn α (Set α) f g (Set.univ (Set α)))) =>
               diag_helper α f (fun (y : α) => ¬ (f y y)) g
                 (@Eq.refl.{1} (Set α) (fun (y : α) => ¬ (f y y)))
-                (And.right (Set.LeftInvOn α (Set α) g f (@Set.univ α))
+                (@And.right (Set.LeftInvOn α (Set α) g f (@Set.univ α))
                   (Set.RightInvOn α (Set α) f g (Set.univ (Set α)))
                   (And.right (Set.MapsTo (Set α) α g (Set.univ (Set α)) (@Set.univ α))
                     (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
