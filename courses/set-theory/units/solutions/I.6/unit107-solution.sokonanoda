@@ -68,5 +68,5 @@ theorem trichotomy_at_most_one (α : Type) (E : α → α → Prop) (x : α) (y 
     (hx : IsOrdinal α E x) (hy : IsOrdinal α E y) : ¬ (E x y ∧ x = y) :=
   fun (h : E x y ∧ x = y) =>
     ordinal_no_self_mem_ind α E y hy
-      (Eq.subst.{1} α (fun (w : α) => E w y) x y
+      (@Eq.subst.{1} α (fun (w : α) => E w y) x y
         (And.right h) (And.left h))

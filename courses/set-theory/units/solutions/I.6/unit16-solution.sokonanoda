@@ -53,7 +53,7 @@ theorem asymmetric_body (α : Type) (E : α → α → Prop) (a b : α)
             (fun (ham : E a m) =>
               (fun (hnot : ¬ (E a m)) => hnot ham) (hmin a (@Or.inr (E a a) (E b a) hba)))  -- soko:notation-ok: G-30 同族：λ 体里构造子补不出前导 Prop 实参，必须写全
             (fun (hbm : E b m) =>
-              (fun (hnot : ¬ (E b m)) => hnot hbm) (hmin b (Or.inl (E a b) (E b b) hab)))  -- soko:notation-ok: G-30 同族（同上）
+              (fun (hnot : ¬ (E b m)) => hnot hbm) (hmin b (@Or.inl (E a b) (E b b) hab)))  -- soko:notation-ok: G-30 同族（同上）
             hPm)
         (And.left hmm))
       (And.right hmm))

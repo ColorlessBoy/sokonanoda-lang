@@ -148,7 +148,7 @@ theorem injective_iff_kernel (α β : Type) (f : α → β) :
         (fun (hu : ∀ (x : α) (y : α), @Eq.{1} β (f x) (f y) → @Eq.{1} α x y) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
           hu a b hab) h)
     (fun (h : ∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b) =>
-      fun (a : α) => fun (b : α) => fun (hab : Eq.{1} β (f a) (f b)) => h a b hab)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      fun (a : α) => fun (b : α) => fun (hab : @Eq.{1} β (f a) (f b)) => h a b hab)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
 
 theorem relImg_univ_mem (α β : Type) (r : Rel α β) (b : β) :
     b ∈ (relImg α β r (@Set.univ α)) ↔ ∃ (a : α), r a b :=

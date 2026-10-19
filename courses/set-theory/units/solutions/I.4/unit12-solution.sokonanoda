@@ -48,7 +48,7 @@ theorem xlat_compl_union (α : Type) (A B : Set α) :
       (fun (h : ¬ ((A ∪ B) x)) =>
         And.intro
           (fun (ha : A x) => h (@Or.inl (A x) (B x) ha))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-          (fun (hb : B x) => h (Or.inr (A x) (B x) hb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (fun (hb : B x) => h (@Or.inr (A x) (B x) hb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (fun (h : (Aᶜ ∩ Bᶜ) x) => fun (hor : (A ∪ B) x) =>
         Or.elim (A x) (B x) False
           (fun (ha : A x) => And.left h ha)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
@@ -105,7 +105,7 @@ theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
       (fun (hy : y ∈ f '' (f ⁻¹' C)) =>
         @Exists.elim α (fun (x : α) => (x ∈ f ⁻¹' C) ∧ (f x = y)) (y ∈ C) hy
           (fun (x : α) => fun (hx : (x ∈ f ⁻¹' C) ∧ (f x = y)) =>
-            Eq.subst.{1} β (fun (z : β) => z ∈ C) (f x) y
+            @Eq.subst.{1} β (fun (z : β) => z ∈ C) (f x) y
               (And.right hx)
               (And.left hx)))
       (fun (hy : y ∈ C) =>
@@ -336,7 +336,7 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
           (fun (h : ((fun (a : α) => fun (b : β) => f a = b) • (fun (b : β) => fun (c : γ) => g b = c)) a c) =>
             @Exists.elim β (fun (b : β) => f a = b ∧ g b = c) (g (f a) = c) h
               (fun (b : β) => fun (hb : f a = b ∧ g b = c) =>
-                Eq.trans.{1} γ (g (f a)) (g b) c
+                @Eq.trans.{1} γ (g (f a)) (g b) c
                   (congrArg.{1} g (And.left hb))
                   (And.right hb)))
           (fun (h : (fun (a : α) => fun (c : γ) => g (f a) = c) a c) =>
@@ -412,7 +412,7 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
               Set.MapsTo γ α g C A ∧
                 ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)))
             (A ≈ C')
-            (And.right (Set.MapsTo α γ f A C)
+            (@And.right (Set.MapsTo α γ f A C)
               (∃ (g : γ → α),
                 Set.MapsTo γ α g C A ∧
                   ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C))) hf)

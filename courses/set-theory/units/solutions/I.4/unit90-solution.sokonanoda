@@ -40,7 +40,7 @@ theorem comp_eq_of_eq (α : Type) (β : Type) (γ : Type) (f : α → β) (g : �
     g (f a) = g (f a') :=
   @Eq.trans.{1} γ (g (f a)) (g b) (g (f a'))
     (@Eq.subst.{1} β (fun (x : β) => g x = g b) b (f a) (@Eq.symm.{1} β (f a) b ha)
-      (Eq.refl.{1} γ (g b)))
+      (@Eq.refl.{1} γ (g b)))
     (Eq.trans.{1} γ (g b) (g b') (g (f a')) h
       (Eq.subst.{1} β (fun (x : β) => g b' = g x) b' (f a') (Eq.symm.{1} β (f a') b' ha')
         (Eq.refl.{1} γ (g b'))))
@@ -53,7 +53,7 @@ theorem inj_of_comp_surj (α : Type) (β : Type) (γ : Type) (f : α → β) (g 
       (fun (a : α) (ha : f a = b) =>
         @Exists.elim α (fun (a' : α) => f a' = b') (b = b') (hf b')
           (fun (a' : α) (ha' : f a' = b') =>
-            @Eq.trans.{1} β b (f a) b' (Eq.symm.{1} β (f a) b ha)
+            @Eq.trans.{1} β b (f a) b' (@Eq.symm.{1} β (f a) b ha)
               (Eq.trans.{1} β (f a) (f a') b'
                 (Eq.subst.{1} α (fun (x : α) => f a = f x) a a'
                   (hgf a a' (comp_eq_of_eq α β γ f g a a' b b' ha ha' h))

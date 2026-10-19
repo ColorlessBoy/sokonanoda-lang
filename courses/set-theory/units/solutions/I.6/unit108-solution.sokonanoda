@@ -64,7 +64,7 @@ theorem pred_subset_of_not_mem (α : Type) (E : α → α → Prop) (x : α) (y 
         @Or.elim (x = v) (E v x) (E v x)
           (fun (heq : x = v) =>
             @False.elim (E v x)
-              (hxy (Eq.subst.{1} α (fun (w : α) => E w y) v x (Eq.symm.{1} α x v heq) hvy)))
+              (hxy (@Eq.subst.{1} α (fun (w : α) => E w y) v x (Eq.symm.{1} α x v heq) hvy)))
           (fun (hvx : E v x) => hvx) h)
       (ihy v hvy (ordinal_elems_ordinal α E y v hy hvy))
 
@@ -77,7 +77,7 @@ theorem mem_of_exists_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
       @Or.elim (E w y) (w = y ∨ E y w) (E y x)
         (fun (hwy : E w y) =>
           @False.elim (E y x)
-            ((And.right (E w x) (¬ (E w y)) hw) hwy))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+            ((@And.right (E w x) (¬ (E w y)) hw) hwy))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
         (fun (h : w = y ∨ E y w) =>
           Or.elim (w = y) (E y w) (E y x)
             (fun (heq : w = y) =>
@@ -121,7 +121,7 @@ theorem ordinal_trichotomy (α : Type) (E : α → α → Prop)
         ordinal_ind α E (fun (v : α) => E z v ∨ z = v ∨ E v z)
           (fun (v : α) (hv : IsOrdinal α E v)
             (ihv : ∀ (u : α), E u v → E z u ∨ z = u ∨ E u z) =>
-            Or.elim (E z v) (¬ (E z v)) (E z v ∨ z = v ∨ E v z)
+            @Or.elim (E z v) (¬ (E z v)) (E z v ∨ z = v ∨ E v z)
               (fun (hzv : E z v) => Or.inl hzv)
               (fun (hnzv : ¬ (E z v)) =>
                 Or.inr (E z v) (z = v ∨ E v z)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）

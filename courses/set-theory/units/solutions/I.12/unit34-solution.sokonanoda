@@ -33,7 +33,7 @@ theorem injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
     Function.Injective α γ (fun (a : α) => g (f a)) :=
   fun (a : α) => fun (b : α) => fun (h : @Eq.{1} γ (g (f a)) (g (f b))) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
     (fun (hu : ∀ (x : α) (y : α), @Eq.{1} β (f x) (f y) → @Eq.{1} α x y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
-      hu a b ((fun (hv : ∀ (x : β) (y : β), Eq.{1} γ (g x) (g y) → Eq.{1} β x y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      hu a b ((fun (hv : ∀ (x : β) (y : β), @Eq.{1} γ (g x) (g y) → Eq.{1} β x y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
         hv (f a) (f b) h) hg)) hf
 
 theorem surjective_comp_core (α β γ : Type) (f : α → β) (g : β → γ) (c : γ)
@@ -62,7 +62,7 @@ theorem injective_of_comp_injective (α β γ : Type) (f : α → β) (g : β �
     Function.Injective α β f :=
   fun (a : α) => fun (b : α) => fun (hab : @Eq.{1} β (f a) (f b)) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
     (fun (hu : ∀ (x : α) (y : α), @Eq.{1} γ (g (f x)) (g (f y)) → @Eq.{1} α x y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
-      hu a b (rel_subst_right β (fun (u : β) (v : β) => Eq.{1} γ (g u) (g v))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      hu a b (rel_subst_right β (fun (u : β) (v : β) => @Eq.{1} γ (g u) (g v))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
         (f a) (f a) (f b) hab (Eq.refl.{1} γ (g (f a))))) h
 
 theorem surjective_of_comp_surjective (α β γ : Type) (f : α → β) (g : β → γ)

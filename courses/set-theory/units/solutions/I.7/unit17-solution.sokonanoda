@@ -58,7 +58,7 @@ theorem choice_on_univ (α β : Type) (P : α → β → Prop)
       Exists.intro f
         (fun (x : α) =>
           (fun (hfx : f x ∈ Set.univ β ∧ P x (f x)) => And.right hfx)
-            (hf x (Set.mem_univ α x))))
+            (hf x (@Set.mem_univ α x))))
 
 theorem surjective_split (α β : Type) (f : α → β) (hf : Function.Surjective α β f) :
     ∃ (g : β → α), Function.RightInverse α β g f :=
@@ -77,7 +77,7 @@ theorem surjective_split (α β : Type) (f : α → β) (hf : Function.Surjectiv
       Exists.intro g
         (fun (y : β) =>
           (fun (hgy : g y ∈ @Set.univ α ∧ f (g y) = y) => And.right hgy)
-            (hg y (Set.mem_univ β y))))
+            (hg y (@Set.mem_univ β y))))
 
 theorem split_spec (α β : Type) (f : α → β) (g : β → α)
     (h : Function.RightInverse α β g f) (y : β) : f (g y) = y :=

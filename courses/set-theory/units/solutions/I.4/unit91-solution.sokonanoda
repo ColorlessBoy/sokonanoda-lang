@@ -36,7 +36,7 @@ theorem right_inv_inj (α : Type) (β : Type) (f : α → β) (g : β → α)
   fun (b : β) (b' : β) (h : g b = g b') =>
     @Eq.trans.{1} β b (f (g b)) b' (@Eq.symm.{1} β (f (g b)) b (hgf b))
       (@Eq.trans.{1} β (f (g b)) (f (g b')) b'
-        (Eq.subst.{1} α (fun (x : α) => f (g b) = f x) (g b) (g b') h
+        (@Eq.subst.{1} α (fun (x : α) => f (g b) = f x) (g b) (g b') h
           (Eq.refl.{1} β (f (g b))))
         (hgf b'))
 
@@ -56,5 +56,5 @@ theorem inv_unique (α : Type) (β : Type) (f : α → β) (g : β → α) (g' :
   fun (b : β) =>
     @Eq.trans.{1} α (g b) (g (f (g' b))) (g' b)
       (@Eq.subst.{1} β (fun (x : β) => g b = g x) b (f (g' b))
-        (@Eq.symm.{1} β (f (g' b)) b (hg' b)) (Eq.refl.{1} α (g b)))
+        (@Eq.symm.{1} β (f (g' b)) b (hg' b)) (@Eq.refl.{1} α (g b)))
       (hfg (g' b))

@@ -104,7 +104,7 @@ theorem no_descending_chain (α : Type) (r : α → α → Prop)
                   ((fun (hall : ∀ (y : α), SeqImage α f y → ¬ (r y m)) =>
                     hall (f (Nat.succ n))
                       (Exists.intro (Nat.succ n)
-                        (Eq.refl.{1} α (f (Nat.succ n))))) (And.right hmm))))
+                        (@Eq.refl.{1} α (f (Nat.succ n))))) (And.right hmm))))
             (And.left hmm)))
         (hasMin_elim α r (SeqImage α f) hm))
       (wellFounded_hasMin α r h (SeqImage α f)
