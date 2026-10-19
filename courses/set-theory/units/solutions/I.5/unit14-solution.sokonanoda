@@ -57,7 +57,7 @@ theorem wellFounded_irrefl (α : Type) (r : α → α → Prop)
   fun (a : α) (haa : r a a) =>
     (fun (hm : HasMin α r (r a)) =>
       (fun (hel : ∃ (m : α), (r a) m ∧ ∀ (y : α), (r a) y → ¬ (r y m)) =>
-        Exists.elim α (fun (m : α) => (r a) m ∧ ∀ (y : α), (r a) y → ¬ (r y m)) False hel
+        @Exists.elim α (fun (m : α) => (r a) m ∧ ∀ (y : α), (r a) y → ¬ (r y m)) False hel
           (fun (m : α) (hmm : (r a) m ∧ ∀ (y : α), (r a) y → ¬ (r y m)) =>
             (fun (hnot : ¬ (r a m)) => (fun (ham : r a m) => hnot ham) (And.left hmm))
               ((fun (hall : ∀ (y : α), (r a) y → ¬ (r y m)) => hall a haa) (And.right hmm))))
@@ -72,7 +72,7 @@ theorem wellFounded_of_subrelation (α : Type) (r s : α → α → Prop)
     (fun (P : α → Prop) (hP : ∃ (x : α), P x) =>
       (fun (hm : HasMin α r P) =>
         (fun (hel : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m)) =>
-          Exists.elim α (fun (m : α) => P m ∧ ∀ (y : α), P y → ¬ (r y m))
+          @Exists.elim α (fun (m : α) => P m ∧ ∀ (y : α), P y → ¬ (r y m))
             (HasMin α s P) hel
             (fun (m : α) (hmm : P m ∧ ∀ (y : α), P y → ¬ (r y m)) =>
               hasMin_intro α s P m (And.left hmm)
@@ -91,7 +91,7 @@ theorem no_descending_chain (α : Type) (r : α → α → Prop)
     (hstep : ∀ (n : Nat), r (f (Nat.succ n)) (f n)) : False :=
   (fun (hm : HasMin α r (SeqImage α f)) =>
     (fun (hel : ∃ (m : α), SeqImage α f m ∧ ∀ (y : α), SeqImage α f y → ¬ (r y m)) =>
-      Exists.elim α (fun (m : α) => SeqImage α f m ∧ ∀ (y : α), SeqImage α f y → ¬ (r y m))
+      @Exists.elim α (fun (m : α) => SeqImage α f m ∧ ∀ (y : α), SeqImage α f y → ¬ (r y m))
         False hel
         (fun (m : α) (hmm : SeqImage α f m ∧ ∀ (y : α), SeqImage α f y → ¬ (r y m)) =>
           (fun (hPm : SeqImage α f m) =>
@@ -117,7 +117,7 @@ theorem emptyRelation_wellFounded (α : Type) :
     IsWellFounded α (EmptyRelation α α) :=
   isWellFounded_intro α (EmptyRelation α α)
     (fun (P : α → Prop) (hP : ∃ (x : α), P x) =>
-      Exists.elim α P (HasMin α (EmptyRelation α α) P) hP
+      @Exists.elim α P (HasMin α (EmptyRelation α α) P) hP
         (fun (m : α) (hm : P m) =>
           hasMin_intro α (EmptyRelation α α) P m hm
             (fun (y : α) (hy : P y) (hf : EmptyRelation α α y m) => hf)))

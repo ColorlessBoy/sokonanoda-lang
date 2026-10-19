@@ -419,7 +419,7 @@ theorem demo_trans_notation (α : Type) (A B C : Set α)
 
 -- 演示 4：空集是最小元——`∅ ⊆ A`（单元②练习 4 的两种写法）。
 theorem demo_empty_subset_pointful (α : Type) (A : Set α) :
-    Set.subset α (@Set.empty α) A := by
+    @Set.subset α (@Set.empty α) A := by
   intro x
   intro hx
   exact @False.elim (A x) hx

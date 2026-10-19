@@ -44,22 +44,22 @@ theorem partialOrder_trans_apply (α : Type) (r : α → α → Prop)
 theorem strictOf_irrefl (α : Type) (r : α → α → Prop)
     (h : IsPartialOrder α r) : Irreflexive α (strictOf α r) :=
   fun (a : α) (ha : strictOf α r a a) =>
-    (fun (hne : a ≠ a) => hne (Eq.refl.{1} α a)) (And.right ha)  -- soko:notation-ok: 等式族证明项的宇宙层级（AGENTS.md 明说的边界）
+    (fun (hne : a ≠ a) => hne (@Eq.refl.{1} α a)) (And.right ha)  -- soko:notation-ok: 等式族证明项的宇宙层级（AGENTS.md 明说的边界）
 
 -- ── 练习 5（L 类）：非严格部分自反 ─────────────────────────────────────────
 theorem nonstrictOf_refl (α : Type) (r : α → α → Prop) :
     Reflexive α (nonstrictOf α r) :=
-  fun (a : α) => (fun (hh : r a a ∨ a = a) => hh) (Or.inr (r a a) (a = a) (Eq.refl.{1} α a))  -- soko:notation-ok: 等式族证明项的宇宙层级（AGENTS.md 明说的边界）
+  fun (a : α) => (fun (hh : r a a ∨ a = a) => hh) (@Or.inr (r a a) (a = a) (Eq.refl.{1} α a))  -- soko:notation-ok: 等式族证明项的宇宙层级（AGENTS.md 明说的边界）
 
 -- ── 练习 6（L 类）：严格 ⇒ 非严格 ──────────────────────────────────────────
 theorem strict_imp_nonstrict (α : Type) (r : α → α → Prop) (a b : α) :
     r a b → nonstrictOf α r a b :=
-  fun (hab : r a b) => (fun (hh : r a b ∨ a = b) => hh) (Or.inl (r a b) (a = b) hab)  -- soko:notation-ok: G-30：λ 体里构造子补不出前导 Prop 实参，必须写全（AGENTS.md 明说的边界）
+  fun (hab : r a b) => (fun (hh : r a b ∨ a = b) => hh) (@Or.inl (r a b) (a = b) hab)  -- soko:notation-ok: G-30：λ 体里构造子补不出前导 Prop 实参，必须写全（AGENTS.md 明说的边界）
 
 -- ── 练习 7（L 类）：相等 ⇒ 非严格 ──────────────────────────────────────────
 theorem eq_imp_nonstrict (α : Type) (r : α → α → Prop) (a b : α) :
     a = b → nonstrictOf α r a b :=
-  fun (hab : a = b) => (fun (hh : r a b ∨ a = b) => hh) (Or.inr (r a b) (a = b) hab)  -- soko:notation-ok: G-30：同上
+  fun (hab : a = b) => (fun (hh : r a b ∨ a = b) => hh) (@Or.inr (r a b) (a = b) hab)  -- soko:notation-ok: G-30：同上
 
 -- ── 练习 8（T 类）：全序 ⇒ 可比 ────────────────────────────────────────────
 theorem linearOrder_total_apply (α : Type) (r : α → α → Prop)
@@ -73,7 +73,7 @@ theorem subset_isPartialOrder (α : Type) :
   isPartialOrder_intro (Set α) (fun (A B : Set α) => A ⊆ B)
     (fun (A : Set α) (x : α) (hx : x ∈ A) => hx)
     (fun (A B : Set α) (h1 : A ⊆ B) (h2 : B ⊆ A) =>
-      Set.ext α A B (fun (x : α) => Iff.intro (h1 x) (h2 x)))
+      @Set.ext α A B (fun (x : α) => Iff.intro (h1 x) (h2 x)))
     (fun (A B C : Set α) (h1 : A ⊆ B) (h2 : B ⊆ C) (x : α) (hx : x ∈ A) =>
       h2 x (h1 x hx))
 

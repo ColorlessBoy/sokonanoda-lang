@@ -30,7 +30,7 @@ theorem hasMin_spec (α : Type) (E : α → α → Prop) (P : α → Prop) (h : 
 theorem ordinal_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
     (hx : IsOrdinal α E x) : ¬ (E x x) :=
   fun (hxx : E x x) =>
-    Exists.elim α (fun (m : α) => m = x ∧ ∀ (w : α), w = x → ¬ (E w m)) False
+    @Exists.elim α (fun (m : α) => m = x ∧ ∀ (w : α), w = x → ¬ (E w m)) False
       (hasMin_elim α E (fun (z : α) => z = x)
         (ordinal_min α E x hx (fun (z : α) => z = x)
           (Exists.intro x (Eq.refl.{1} α x))))

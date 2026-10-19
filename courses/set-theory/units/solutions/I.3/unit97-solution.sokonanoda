@@ -8,7 +8,7 @@ def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
 
 theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
     LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
-  Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+  @Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
     (fun (h : LeOn α β A B) => h)
     (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
 
@@ -34,7 +34,7 @@ theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α →
 theorem injOn_of_leftInv (α : Type) (β : Type) (f : α → β) (g : β → α) (A : Set α)
     (hgf : Set.LeftInvOn α β g f A) : Set.InjOn α β f A :=
   fun (x : α) (hx : x ∈ A) (y : α) (hy : y ∈ A) (h : f x = f y) =>
-    Eq.trans.{1} α x (g (f x)) y (Eq.symm.{1} α (g (f x)) x (hgf x hx))
+    @Eq.trans.{1} α x (g (f x)) y (Eq.symm.{1} α (g (f x)) x (hgf x hx))
       (Eq.trans.{1} α (g (f x)) (g (f y)) y
         (Eq.subst.{1} β (fun (v : β) => g (f x) = g v) (f x) (f y) h
           (Eq.refl.{1} α (g (f x))))
@@ -43,7 +43,7 @@ theorem injOn_of_leftInv (α : Type) (β : Type) (f : α → β) (g : β → α)
 theorem injOn_of_rightInv (α : Type) (β : Type) (g : β → α) (f : α → β) (B : Set β)
     (hfg : Set.RightInvOn α β f g B) : Set.InjOn β α g B :=
   fun (x : β) (hx : x ∈ B) (y : β) (hy : y ∈ B) (h : g x = g y) =>
-    Eq.trans.{1} β x (f (g x)) y (Eq.symm.{1} β (f (g x)) x (hfg x hx))
+    @Eq.trans.{1} β x (f (g x)) y (Eq.symm.{1} β (f (g x)) x (hfg x hx))
       (Eq.trans.{1} β (f (g x)) (f (g y)) y
         (Eq.subst.{1} α (fun (v : α) => f (g x) = f v) (g x) (g y) h
           (Eq.refl.{1} β (f (g x))))

@@ -4,7 +4,7 @@ import lib.Order
 
 theorem demo_acc_intro (α : Type) (r : α → α → Prop) (x : α)
     (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x :=
-  Acc.intro α r x h
+  @Acc.intro α r x h
 
 theorem demo_acc_ind (α : Type) (r : α → α → Prop) (motive : α → Prop)
     (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x) :
@@ -18,7 +18,7 @@ theorem demo_acc_unique (α : Type) (β : Type) (r : α → α → Prop) (f : α
 
 theorem acc_intro_apply (α : Type) (r : α → α → Prop) (x : α)
     (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x :=
-  Acc.intro α r x h
+  @Acc.intro α r x h
 
 theorem acc_ind_apply (α : Type) (r : α → α → Prop) (motive : α → Prop)
     (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x)

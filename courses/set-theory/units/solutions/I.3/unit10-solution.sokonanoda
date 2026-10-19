@@ -85,7 +85,7 @@ theorem diag_helper (α : Type) (f : α → Set α) (D : Set α) (g : (Set α) �
 theorem cantor (α : Type) :
     ¬ ((@Set.univ α) ≈ (Set.univ (Set α))) :=
   fun (h : (@Set.univ α) ≈ (Set.univ (Set α))) =>
-    Exists.elim (α → Set α)
+    @Exists.elim (α → Set α)
     (fun (f : α → Set α) =>
       Set.MapsTo α (Set α) f (@Set.univ α) (Set.univ (Set α)) ∧
       (∃ (g : (Set α) → α), Set.MapsTo (Set α) α g (Set.univ (Set α)) (@Set.univ α) ∧

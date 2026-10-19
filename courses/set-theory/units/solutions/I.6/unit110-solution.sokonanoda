@@ -11,7 +11,7 @@ theorem demo_choice (α : Type) (β : Type) (A : Set α) (B : Set β) (P : α �
 theorem choice_family (α : Type) (β : Type) (I : Set α) (F : α → Set β)
     (h : ∀ (i : α), i ∈ I → ∃ (x : β), x ∈ F i) :
     ∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i :=
-  Exists.elim (α → β)
+  @Exists.elim (α → β)
     (fun (f : α → β) => ∀ (a : α), a ∈ I → f a ∈ Set.univ β ∧ f a ∈ F a)
     (∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i)
     (choice α β I (Set.univ β) (fun (i : α) (x : β) => x ∈ F i)

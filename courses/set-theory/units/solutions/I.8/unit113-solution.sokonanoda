@@ -45,7 +45,7 @@ def cantorDiagonal (f : Set Nat → Nat) : Set Nat :=
 
 -- 解答内辅助（**画布不另设此题** ✓）：`𝒫 ℕ` 的成员条件 —— 一般形式已在单元11 作过练习 ✓。
 theorem mem_powerset_univ_nat (S : Set Nat) : S ∈ (𝒫 (@Set.univ Nat)) :=
-  Iff.mpr (Set.mem_powerset_iff Nat (@Set.univ Nat) S)
+  Iff.mpr (@Set.mem_powerset_iff Nat (@Set.univ Nat) S)
     (fun (x : Nat) => fun (_ : x ∈ S) => Set.mem_univ x)
 
 -- 练习 7：**Cantor 定理**（C-114 收口 ✓ 2026-10-08）—— `𝒫 ℕ` 不 ≼ `ℕ`，构造性证明 ✓。
@@ -57,7 +57,7 @@ theorem cantor_no_le : ¬ ((𝒫 (@Set.univ Nat)) ≼ (@Set.univ Nat)) :=
            (_ : Set.MapsTo (Set Nat) Nat f (𝒫 (@Set.univ Nat)) (@Set.univ Nat)) =>
         (fun (hnot : ¬ (f (cantorDiagonal f) ∈ cantorDiagonal f)) =>
           hnot (Exists.intro (cantorDiagonal f)
-            (And.intro (Eq.refl.{1} Nat (f (cantorDiagonal f))) hnot)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+            (And.intro (@Eq.refl.{1} Nat (f (cantorDiagonal f))) hnot)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
           (fun (hA : f (cantorDiagonal f) ∈ cantorDiagonal f) =>
             Exists.elim (Set Nat)
               (fun (S : Set Nat) => f S = f (cantorDiagonal f) ∧ ¬ (f (cantorDiagonal f) ∈ S))

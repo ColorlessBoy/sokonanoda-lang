@@ -13,12 +13,12 @@ theorem demo_injOn_def (α : Type) (β : Type) (f : α → β) (A : Set α) :
 
 theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
     Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=
-  Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+  @Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
     (fun (h : Set.MapsTo α β f A B) => h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) => h)
 
 theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
     LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
-  Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+  @Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
     (fun (h : LeOn α β A B) => h)
     (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
 
@@ -32,7 +32,7 @@ theorem injOn_id (α : Type) (A : Set α) :
 
 theorem leOn_refl (α : Type) (A : Set α) : LeOn α α A A :=
   Exists.intro (fun (x : α) => x)
-    (And.intro (Set.InjOn α α (fun (x : α) => x) A) (Set.MapsTo α α (fun (x : α) => x) A A)
+    (@And.intro (Set.InjOn α α (fun (x : α) => x) A) (Set.MapsTo α α (fun (x : α) => x) A A)
       (injOn_id α A) (fun (x : α) (hx : x ∈ A) => hx))
 
 theorem injOn_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
@@ -44,7 +44,7 @@ theorem injOn_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β �
 
 theorem leOn_of_subset (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) : LeOn α α A B :=
   (fun (hs : ∀ (x : α), x ∈ A → x ∈ B) =>
-    Exists.intro (α → α) (fun (f : α → α) => Set.InjOn α α f A ∧ Set.MapsTo α α f A B)
+    @Exists.intro (α → α) (fun (f : α → α) => Set.InjOn α α f A ∧ Set.MapsTo α α f A B)
       (fun (x : α) => x)
       (And.intro
         (injOn_id α A) hs))
@@ -63,7 +63,7 @@ theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α →
 
 theorem leOn_trans (α : Type) (β : Type) (γ : Type) (A : Set α) (B : Set β) (C : Set γ)
     (hAB : LeOn α β A B) (hBC : LeOn β γ B C) : LeOn α γ A C :=
-  Exists.elim (α → β) (fun (f : α → β) => Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+  @Exists.elim (α → β) (fun (f : α → β) => Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
     (LeOn α γ A C) (leOn_apply α β A B hAB)
     (fun (f : α → β) (hf : Set.InjOn α β f A ∧ Set.MapsTo α β f A B) =>
       Exists.elim (β → γ) (fun (g : β → γ) => Set.InjOn β γ g B ∧ Set.MapsTo β γ g B C)

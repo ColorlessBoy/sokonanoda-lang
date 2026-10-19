@@ -9,7 +9,7 @@ theorem demo_le_def (α β : Type) (A : Set α) (B : Set β) :
 
 theorem demo_injOn_def (α β : Type) (f : α → β) (A : Set α) :
     Set.InjOn α β f A ↔
-      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → Eq.{1} β (f x) (f y) → Eq.{1} α x y :=  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → @Eq.{1} β (f x) (f y) → Eq.{1} α x y :=  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
   Set.injOn_def α β f A
 
 theorem demo_equiv_mk (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
@@ -18,7 +18,7 @@ theorem demo_equiv_mk (α β : Type) (A : Set α) (B : Set β) (f : α → β) (
   Set.Equiv.mk α β A B f g hf hg hgf hfg
 
 theorem injOn_id (α : Type) (A : Set α) : Set.InjOn α α (fun (x : α) => x) A :=
-  (fun (hu : ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → Eq.{1} α x y → Eq.{1} α x y) => hu)  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+  (fun (hu : ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → @Eq.{1} α x y → Eq.{1} α x y) => hu)  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
     ((fun (hv : Set.InjOn α α (fun (x : α) => x) A ↔
         ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → Eq.{1} α x y → Eq.{1} α x y) => Iff.mpr hv)  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
       (Set.injOn_def α α (fun (x : α) => x) A)
@@ -37,7 +37,7 @@ theorem equiv_refl (α : Type) (A : Set α) : A ≈ A :=
   Set.Equiv.mk α α A A (fun (x : α) => x) (fun (x : α) => x)
     (fun (x : α) (hx : x ∈ A) => hx)
     (fun (x : α) (hx : x ∈ A) => hx)
-    (fun (x : α) (hx : x ∈ A) => Eq.refl.{1} α x)
+    (fun (x : α) (hx : x ∈ A) => @Eq.refl.{1} α x)
     (fun (x : α) (hx : x ∈ A) => Eq.refl.{1} α x)
 
 theorem equiv_symm (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : B ≈ A :=
@@ -54,7 +54,7 @@ theorem le_of_equiv (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : A �
       (hgf : Set.LeftInvOn α β g f A) (hfg : Set.RightInvOn α β f g B) =>
       Set.Le.intro α β A B f
         (fun (x : α) (hx : x ∈ A) => fun (y : α) (hy : y ∈ A) =>
-          fun (hxy : Eq.{1} β (f x) (f y)) =>  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+          fun (hxy : @Eq.{1} β (f x) (f y)) =>  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
             Eq.trans.{1} α x (g (f y)) y
               (Eq.trans.{1} α x (g (f x)) (g (f y))
                 (Eq.symm.{1} α (g (f x)) x (hgf x hx))

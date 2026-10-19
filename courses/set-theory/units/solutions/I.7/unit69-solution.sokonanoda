@@ -12,11 +12,11 @@ theorem demo_mem_sInter (α : Type) (F : Set (Set α)) (x : α) :
 
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  Set.subset_def α A B
+  @Set.subset_def α A B
 
 theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) : a ∈ B :=
   (fun (hu : ∀ (x : α), x ∈ A → x ∈ B) => hu a ha)
-    ((fun (hv : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hv h) (Set.subset_def α A B))
+    ((fun (hv : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hv h) (@Set.subset_def α A B))
 
 theorem subset_refl (α : Type) (A : Set α) : A ⊆ A :=
   fun (a : α) (ha : a ∈ A) => ha
@@ -37,7 +37,7 @@ theorem sInter_subset_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (hA : A
 
 theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (A : Set α) :
     (⋃₀ F) ⊆ A ↔ ∀ (B : Set α), B ∈ F → B ⊆ A :=
-  Iff.intro ((⋃₀ F) ⊆ A) (∀ (B : Set α), B ∈ F → B ⊆ A)
+  @Iff.intro ((⋃₀ F) ⊆ A) (∀ (B : Set α), B ∈ F → B ⊆ A)
     (fun (h : (⋃₀ F) ⊆ A) =>
       fun (B : Set α) (hB : B ∈ F) =>
         fun (b : α) (hb : b ∈ B) =>
@@ -51,7 +51,7 @@ theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (A : Set α) :
 
 theorem subset_sInter_iff (α : Type) (F : Set (Set α)) (A : Set α) :
     A ⊆ (⋂₀ F) ↔ ∀ (B : Set α), B ∈ F → A ⊆ B :=
-  Iff.intro (A ⊆ (⋂₀ F)) (∀ (B : Set α), B ∈ F → A ⊆ B)
+  @Iff.intro (A ⊆ (⋂₀ F)) (∀ (B : Set α), B ∈ F → A ⊆ B)
     (fun (h : A ⊆ (⋂₀ F)) =>
       fun (B : Set α) (hB : B ∈ F) =>
         fun (a : α) (ha : a ∈ A) => mem_of_mem_sInter α F a (h a ha) B hB)

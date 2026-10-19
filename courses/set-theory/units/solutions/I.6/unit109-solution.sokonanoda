@@ -26,7 +26,7 @@ def ordinal_rec_nat (α : Type) (E : α → α → Prop) (x : α)
 theorem ordinal_rec_nat_eq (α : Type) (E : α → α → Prop) (x : α)
     (step : ∀ (z : α), (∀ (w : α), E w z → Nat) → Nat)
     (hr : ∀ (w : α), E w x → Acc α E w) :
-    Eq.{1} Nat (ordinal_rec_nat α E x step (Acc.intro α E x hr))  -- soko:notation-ok: 等式族证明项的宇宙层级 / inductive 头（手册边界）
+    @Eq.{1} Nat (ordinal_rec_nat α E x step (Acc.intro α E x hr))  -- soko:notation-ok: 等式族证明项的宇宙层级 / inductive 头（手册边界）
       (step x (fun (w : α) (hw : E w x) => ordinal_rec_nat α E w step (hr w hw))) :=
   Eq.refl.{1} Nat (step x (fun (w : α) (hw : E w x) => ordinal_rec_nat α E w step (hr w hw)))
 
@@ -44,12 +44,12 @@ end
 
 theorem addsTo_zero (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α) (x : α) :
     AddsTo α E σ zero x zero x :=
-  AddsTo.zero α E σ zero x
+  @AddsTo.zero α E σ zero x
 
 theorem addsTo_succ (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
     (x : α) (y : α) (z : α) (h : AddsTo α E σ zero x y z) :
     AddsTo α E σ zero x (σ y) (σ z) :=
-  AddsTo.succ α E σ zero x y z h
+  @AddsTo.succ α E σ zero x y z h
 
 -- ── C-05 装配（2026-10-08）：逆引理与结合律（G-73 家族修好后可写 ✓）─────────
 -- 逆引理：`AddsTo x (σ y) v ⇒ v` 是后继、且前驱那一半成立。
@@ -62,7 +62,7 @@ theorem addsTo_succ_inv (α : Type) (E : α → α → Prop) (σ : α → α) (z
     (fun (a : α) (b : α) (c : α) (_ : AddsTo α E σ zero a b c) =>
       ∀ (y : α), b = σ y → ∃ (z : α), c = σ z ∧ AddsTo α E σ zero a y z)
     (fun (a : α) => fun (y : α) (he : zero = σ y) =>
-      False.elim (∃ (z : α), a = σ z ∧ AddsTo α E σ zero a y z)
+      @False.elim (∃ (z : α), a = σ z ∧ AddsTo α E σ zero a y z)
         (hne y (Eq.symm.{1} α zero (σ y) he)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
     (fun (a : α) (b : α) (c : α) (hh : AddsTo α E σ zero a b c)
         (ih : ∀ (y : α), b = σ y → ∃ (z : α), c = σ z ∧ AddsTo α E σ zero a y z) =>
@@ -85,7 +85,7 @@ theorem addsTo_assoc (α : Type) (E : α → α → Prop) (σ : α → α) (zero
     (fun (a : α) => fun (x : α) (y : α) (h : AddsTo α E σ zero x y a) =>
       Exists.intro
         y (And.intro
-          (AddsTo.zero α E σ zero y) h))
+          (@AddsTo.zero α E σ zero y) h))
     (fun (a : α) (b : α) (c : α) (hh : AddsTo α E σ zero a b c)
         (ih : ∀ (x : α) (y : α), AddsTo α E σ zero x y a →
           ∃ (u : α), AddsTo α E σ zero y b u ∧ AddsTo α E σ zero x u c) =>

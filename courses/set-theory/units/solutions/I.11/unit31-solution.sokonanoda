@@ -44,7 +44,7 @@ theorem monotone_upper_bound (α β : Type) (r : α → α → Prop) (s : β →
 
 theorem orderReflecting_of_monotone_inverse (α β : Type) (r : α → α → Prop)
     (s : β → β → Prop) (f : α → β) (g : β → α)
-    (hg : Monotone β α s r g) (hgf : ∀ (a : α), Eq.{1} α (g (f a)) a) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (hg : Monotone β α s r g) (hgf : ∀ (a : α), @Eq.{1} α (g (f a)) a) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
     OrderReflecting α β r s f :=
   fun (a : α) => fun (b : α) => fun (hab : s (f a) (f b)) =>
     rel_subst_left α (fun (p : α) (q : α) => r q p) a b (g (f a))
@@ -54,7 +54,7 @@ theorem orderReflecting_of_monotone_inverse (α β : Type) (r : α → α → Pr
 
 theorem orderIso_upper_bound_pullback (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
     (f : α → β) (hr : OrderReflecting α β r s f)
-    (A : α → Prop) (c : β) (a0 : α) (ha0 : Eq.{1} β (f a0) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (A : α → Prop) (c : β) (a0 : α) (ha0 : @Eq.{1} β (f a0) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
     (hc : UpperBound β s (fun (y : β) => ∃ (x : α), A x ∧ Eq.{1} β (f x) y) c) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
     UpperBound α r A a0 :=
   fun (a : α) => fun (ha : A a) =>

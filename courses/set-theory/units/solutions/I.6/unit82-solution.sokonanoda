@@ -38,7 +38,7 @@ theorem elem_isOrdinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
 theorem succ_self_mem (α : Type) (E : α → α → Prop) (x : α) (y : α)
     (hy : ∀ (z : α), E z x ↔ (E z y ∨ z = y)) : E y x :=
   (fun (hu : E y x ↔ (E y y ∨ y = y)) =>
-    Iff.mpr hu (Or.inr (E y y) (y = y) (Eq.refl.{1} α y))) (hy y)  -- soko:notation-ok: `IsOrdinal`/`IsTransitive` 是 def 头（手册边界）
+    Iff.mpr hu (@Or.inr (E y y) (y = y) (Eq.refl.{1} α y))) (hy y)  -- soko:notation-ok: `IsOrdinal`/`IsTransitive` 是 def 头（手册边界）
 
 theorem succ_elem_ordinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
     (hx : IsOrdinal α E x) (hy : ∀ (z : α), E z x ↔ (E z y ∨ z = y)) : IsOrdinal α E y :=

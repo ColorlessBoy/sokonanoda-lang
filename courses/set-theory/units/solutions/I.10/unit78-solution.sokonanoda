@@ -121,7 +121,7 @@ theorem ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (h : Rel.Part
   @Exists.elim (α → Prop) (fun (A : α → Prop) => P A ∧ A a ∧ A b)
     (Rel.ofPartition α P a c) (mem_of_ofPartition α P a b h1)
     (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =>
-      Exists.elim (α → Prop) (fun (B : α → Prop) => P B ∧ B b ∧ B c)
+      @Exists.elim (α → Prop) (fun (B : α → Prop) => P B ∧ B b ∧ B c)
         (Rel.ofPartition α P a c) (mem_of_ofPartition α P b c h2)
         (fun (B : α → Prop) (hB : P B ∧ B b ∧ B c) =>
           ofPartition_intro α P A a c (And.left hA)

@@ -15,13 +15,13 @@ theorem demo_rightInverse_def (α β : Type) (g : β → α) (f : α → β) :
   Function.rightInverse_def α β g f
 
 theorem nonempty_intro (α : Type) (a : α) : Nonempty α :=
-  Exists.intro a (Eq.refl.{1} α a)
+  Exists.intro a (@Eq.refl.{1} α a)
 
 theorem choice_spec_apply (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
     (h : ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y)
     (x : α) (hx : x ∈ A) :
     ∃ (f : α → β), f x ∈ B ∧ P x (f x) :=
-  Exists.elim (α → β)
+  @Exists.elim (α → β)
     (fun (f : α → β) => ∀ (x' : α), x' ∈ A → f x' ∈ B ∧ P x' (f x'))
     (∃ (f : α → β), f x ∈ B ∧ P x (f x))
     (choice α β A B P h)
@@ -31,7 +31,7 @@ theorem choice_spec_apply (α β : Type) (A : Set α) (B : Set β) (P : α → �
 theorem choice_weaken (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
     (h : ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y) :
     ∃ (f : α → β), ∀ (x : α), x ∈ A → P x (f x) :=
-  Exists.elim (α → β)
+  @Exists.elim (α → β)
     (fun (f : α → β) => ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x))
     (∃ (f : α → β), ∀ (x : α), x ∈ A → P x (f x))
     (choice α β A B P h)
@@ -43,7 +43,7 @@ theorem choice_weaken (α β : Type) (A : Set α) (B : Set β) (P : α → β �
 theorem choice_on_univ (α β : Type) (P : α → β → Prop)
     (h : ∀ (x : α), ∃ (y : β), P x y) :
     ∃ (f : α → β), ∀ (x : α), P x (f x) :=
-  Exists.elim (α → β)
+  @Exists.elim (α → β)
     (fun (f : α → β) => ∀ (x : α), x ∈ @Set.univ α → f x ∈ Set.univ β ∧ P x (f x))
     (∃ (f : α → β), ∀ (x : α), P x (f x))
     (choice α β (@Set.univ α) (Set.univ β) P
@@ -62,7 +62,7 @@ theorem choice_on_univ (α β : Type) (P : α → β → Prop)
 
 theorem surjective_split (α β : Type) (f : α → β) (hf : Function.Surjective α β f) :
     ∃ (g : β → α), Function.RightInverse α β g f :=
-  Exists.elim (β → α)
+  @Exists.elim (β → α)
     (fun (g : β → α) => ∀ (y : β), y ∈ Set.univ β → g y ∈ @Set.univ α ∧ f (g y) = y)
     (∃ (g : β → α), Function.RightInverse α β g f)
     (choice β α (Set.univ β) (@Set.univ α) (fun (y : β) (x : α) => f x = y)
@@ -85,7 +85,7 @@ theorem split_spec (α β : Type) (f : α → β) (g : β → α)
 
 theorem split_raw (α β : Type) (f : α → β) (hf : Function.Surjective α β f) :
     ∃ (g : β → α), ∀ (y : β), f (g y) = y :=
-  Exists.elim (β → α) (fun (g : β → α) => Function.RightInverse α β g f)
+  @Exists.elim (β → α) (fun (g : β → α) => Function.RightInverse α β g f)
     (∃ (g : β → α), ∀ (y : β), f (g y) = y)
     (surjective_split α β f hf)
     (fun (g : β → α) (hg : Function.RightInverse α β g f) =>
@@ -94,17 +94,17 @@ theorem split_raw (α β : Type) (f : α → β) (hf : Function.Surjective α β
 
 theorem empty_family_hypothesis (α β : Type) (B : Set β) (P : α → β → Prop) :
     ∀ (x : α), x ∈ ∅ → ∃ (y : β), y ∈ B ∧ P x y :=
-  fun (x : α) (hx : x ∈ ∅) => False.elim (Set.notMem_empty α x hx)
+  fun (x : α) (hx : x ∈ ∅) => False.elim (@Set.notMem_empty α x hx)
 
 theorem singleton_choice (α β : Type) (a : α) (b : β) :
     ∃ (f : α → β), ∀ (x : α), x ∈ {a} → f x = b :=
   Exists.intro (fun (_ : α) => b)
-    (fun (x : α) (hx : x ∈ {a}) => Eq.refl.{1} β b)
+    (fun (x : α) (hx : x ∈ {a}) => @Eq.refl.{1} β b)
 
 theorem choice_weaken_spec (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
     (h : ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y)
     (x : α) (hx : x ∈ A) : ∃ (f : α → β), P x (f x) :=
-  Exists.elim (α → β) (fun (f : α → β) => ∀ (x' : α), x' ∈ A → P x' (f x'))
+  @Exists.elim (α → β) (fun (f : α → β) => ∀ (x' : α), x' ∈ A → P x' (f x'))
     (∃ (f : α → β), P x (f x))
     (choice_weaken α β A B P h)
     (fun (f : α → β) (hf : ∀ (x' : α), x' ∈ A → P x' (f x')) =>

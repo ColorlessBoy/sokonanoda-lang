@@ -39,7 +39,7 @@ theorem mem_prod_union_iff (A : Type) (B : Type) (s : Set A) (t : Set B) (u : Se
     (fun (h : p ∈ (s ×ˢ (t ∪ u))) =>
       @Or.elim ((Prod.snd A B p) ∈ t) ((Prod.snd A B p) ∈ u)
         (p ∈ ((s ×ˢ t) ∪ (s ×ˢ u)))
-        (fun (ht : (Prod.snd A B p) ∈ t) => Or.inl (p ∈ (s ×ˢ t)) (p ∈ (s ×ˢ u))  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+        (fun (ht : (Prod.snd A B p) ∈ t) => @Or.inl (p ∈ (s ×ˢ t)) (p ∈ (s ×ˢ u))  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
           (mem_prod_intro A B s t p (mem_prod_fst A B s (t ∪ u) p h) ht))
         (fun (hu : (Prod.snd A B p) ∈ u) => Or.inr (p ∈ (s ×ˢ t)) (p ∈ (s ×ˢ u))  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
           (mem_prod_intro A B s u p (mem_prod_fst A B s (t ∪ u) p h) hu))
@@ -68,7 +68,7 @@ theorem mem_prod_inter_iff (A : Type) (B : Type) (s : Set A) (t : Set B) (u : Se
       (fun (hu : p ∈ ((s ×ˢ t) ∩ (s ×ˢ u)) ↔ p ∈ (s ×ˢ t) ∧ p ∈ (s ×ˢ u)) =>
         Iff.mpr hu (And.intro
           (mem_prod_intro A B s t p (mem_prod_fst A B s (t ∩ u) p h)
-            (And.left ((Prod.snd A B p) ∈ t) ((Prod.snd A B p) ∈ u)  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
+            (@And.left ((Prod.snd A B p) ∈ t) ((Prod.snd A B p) ∈ u)  -- soko:notation-ok: `×ˢ`/`Prod.*`/`Set.*` 是 def 头，这些位置补不出前导实参（手册边界）
               ((fun (hw : (Prod.snd A B p) ∈ (t ∩ u) ↔
                   (Prod.snd A B p) ∈ t ∧ (Prod.snd A B p) ∈ u) =>
                 Iff.mp hw (mem_prod_snd A B s (t ∩ u) p h))

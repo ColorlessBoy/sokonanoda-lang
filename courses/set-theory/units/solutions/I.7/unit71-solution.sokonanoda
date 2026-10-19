@@ -30,16 +30,16 @@ theorem mem_inter_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hb :
     Iff.mpr hu (And.intro ha hb)) (Set.mem_inter_iff a A B)
 
 theorem mem_inter_left (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ A :=
-  And.left (a ∈ A) (a ∈ B)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  @And.left (a ∈ A) (a ∈ B)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
     ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) => Iff.mp hu h) (Set.mem_inter_iff a A B))
 
 theorem mem_inter_right (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ B :=
-  And.right (a ∈ A) (a ∈ B)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+  @And.right (a ∈ A) (a ∈ B)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
     ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) => Iff.mp hu h) (Set.mem_inter_iff a A B))
 
 theorem mem_inter_sUnion_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α) :
     c ∈ (A ∩ (⋃₀ F)) ↔ ∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B) :=
-  Iff.intro (c ∈ (A ∩ (⋃₀ F))) (∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B))
+  @Iff.intro (c ∈ (A ∩ (⋃₀ F))) (∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B))
     (fun (h : c ∈ (A ∩ (⋃₀ F))) =>
       Exists.elim (Set α) (fun (B : Set α) => B ∈ F ∧ c ∈ B)
         (∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B))
@@ -65,7 +65,7 @@ theorem mem_inter_sUnion_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α
 theorem mem_inter_sInter_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α) :
     c ∈ (A ∩ (⋂₀ F)) ↔
       c ∈ A ∧ ∀ (B : Set α), B ∈ F → c ∈ (A ∩ B) :=
-  Iff.intro (c ∈ (A ∩ (⋂₀ F)))
+  @Iff.intro (c ∈ (A ∩ (⋂₀ F)))
     (c ∈ A ∧ ∀ (B : Set α), B ∈ F → c ∈ (A ∩ B))
     (fun (h : c ∈ (A ∩ (⋂₀ F))) =>
       And.intro
@@ -83,7 +83,7 @@ theorem mem_inter_sInter_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α
 
 theorem mem_univ_inter (α : Type) (A : Set α) (c : α) :
     c ∈ ((@Set.univ α) ∩ A) ↔ c ∈ A :=
-  Iff.intro (c ∈ ((@Set.univ α) ∩ A)) (c ∈ A)
+  @Iff.intro (c ∈ ((@Set.univ α) ∩ A)) (c ∈ A)
     (fun (h : c ∈ ((@Set.univ α) ∩ A)) => mem_inter_right α (@Set.univ α) A c h)
     (fun (h : c ∈ A) => mem_inter_intro α (@Set.univ α) A c (Set.mem_univ α c) h)
 
