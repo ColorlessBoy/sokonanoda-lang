@@ -36,7 +36,7 @@ theorem no_univ_strictly_larger (α : Type) :
       False h
       (fun (U : Set α) => fun (hU : ∀ (A : Set α),
           (A ⊆ U) ∧ (¬ (A = U))) =>
-        And.right (U ⊆ U) (¬ (U = U)) (hU U)  -- soko:notation-ok: R1：合取藏在 hU 的 ∀ 后，短写补不出
+        @And.right (U ⊆ U) (¬ (U = U)) (hU U)  -- soko:notation-ok: R1：合取藏在 hU 的 ∀ 后，短写补不出
           (Eq.refl.{1} (Set α) U)))
 
 -- ── 练习 2（R 类：概括公理在类型论里的合法替身）────────────────────────────
@@ -82,7 +82,7 @@ theorem univ_top_iff (α : Type) (A : Set α) :
   intro x
   intro hu
   exact @Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X)
-    (@Set.univ α) A (Eq.symm.{1} (Set α) A (@Set.univ α) h) hu  -- soko:notation-ok: G-21 边界：`Eq.subst` 的实参位（显式实参写在隐式位上）拿不到期望类型 ⇒ 零元常量必须点名写全
+    (@Set.univ α) A (@Eq.symm.{1} (Set α) A (@Set.univ α) h) hu  -- soko:notation-ok: G-21 边界：`Eq.subst` 的实参位（显式实参写在隐式位上）拿不到期望类型 ⇒ 零元常量必须点名写全
 
 -- ── 练习 5（X 类：散文 → 形式）─────────────────────────────────────────────
 -- 𝒫(univ) 就是上一层类型的全集：逐元素看，左边是「A ⊆ univ」（由 A 的每个

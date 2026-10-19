@@ -41,7 +41,7 @@ theorem preimage_union (α β : Type) (f : α → β) (B C : Set β) :
       @Iff.intro (x ∈ (f ⁻¹' (B ∪ C)))
         ((x ∈ (f ⁻¹' B)) ∨ (x ∈ (f ⁻¹' C)))
         (fun (h : x ∈ (f ⁻¹' (B ∪ C))) =>
-          Or.elim ((f x) ∈ B) ((f x) ∈ C)
+          @Or.elim ((f x) ∈ B) ((f x) ∈ C)
             ((x ∈ (f ⁻¹' B)) ∨ (x ∈ (f ⁻¹' C)))
             (fun (hb : (f x) ∈ B) =>
               Or.inl hb)
@@ -99,7 +99,7 @@ theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
       @Iff.intro (y ∈ (f '' (A ∪ B)))
         ((y ∈ (f '' A)) ∨ (y ∈ (f '' B)))
         (fun (h : y ∈ (f '' (A ∪ B))) =>
-          Exists.elim α (fun (x : α) => (x ∈ (A ∪ B)) ∧ ((f x) = y))
+          @Exists.elim α (fun (x : α) => (x ∈ (A ∪ B)) ∧ ((f x) = y))
             ((y ∈ (f '' A)) ∨ (y ∈ (f '' B))) h
             (fun (x : α) => fun (hx : (x ∈ (A ∪ B)) ∧ ((f x) = y)) =>
               Or.elim (A x) (B x)
@@ -339,7 +339,7 @@ theorem image_preimage_eq_image :
           @Exists.elim Two (fun (x : Two) => (f1 x) = y)
             (y ∈ (f1 '' (f1 ⁻¹' U01))) hy
             (fun (x : Two) => fun (hx : (f1 x) = y) =>
-              Exists.intro Two
+              @Exists.intro Two
                 (fun (t : Two) => t ∈ (f1 ⁻¹' U01) ∧
                   (f1 t) = y)
                 x
@@ -393,7 +393,7 @@ theorem not_image_preimage_eq :
   exact bb_not_mem_image_preimage
     (@Eq.subst.{1} (Set Two) (fun (X : Set Two) => bb ∈ X)
       (f1 '' (f1 ⁻¹' U01)) image_preimage
-      (Eq.symm.{1} (Set Two) image_preimage
+      (@Eq.symm.{1} (Set Two) image_preimage
         (f1 '' (f1 ⁻¹' U01)) image_preimage_eq_image)
       (Eq.subst.{1} (Set Two) (fun (X : Set Two) => bb ∈ X) U01
         (f1 '' (f1 ⁻¹' U01))
@@ -412,7 +412,7 @@ theorem image_preimage_eq_of_subset_image_univ (α β : Type) (f : α → β) (C
           @Iff.mpr (y ∈ (f '' (f ⁻¹' C)))
             (∃ (x : α), (x ∈ (f ⁻¹' C)) ∧ ((f x) = y))
             (@Set.mem_image α β f (f ⁻¹' C) y)
-            (Exists.elim α (fun (x : α) => (x ∈ (@Set.univ α)) ∧ ((f x) = y))
+            (@Exists.elim α (fun (x : α) => (x ∈ (@Set.univ α)) ∧ ((f x) = y))
               (∃ (x : α), (x ∈ (f ⁻¹' C)) ∧ ((f x) = y))
               (h y hy)
               (fun (x : α) => fun (hx : (x ∈ (@Set.univ α)) ∧ ((f x) = y)) =>

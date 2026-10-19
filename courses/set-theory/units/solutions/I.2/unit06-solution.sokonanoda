@@ -167,7 +167,7 @@ theorem equivClass_eq_iff (A : Type) (r : Rel A A)
         (@Eq.subst.{1} (Set A) (fun (X : Set A) => a ∈ X)
           (EquivClass A r a) (EquivClass A r b) h (hrefl a)))
     (fun (hab : r a b) =>
-      Set.ext A (EquivClass A r a) (EquivClass A r b)
+      @Set.ext A (EquivClass A r a) (EquivClass A r b)
         (fun (x : A) => Iff.intro
           (fun (hax : r a x) => htrans b a x (hsymm a b hab) hax)
           (fun (hbx : r b x) => htrans a b x hab hbx)))
@@ -219,7 +219,7 @@ theorem classes_isPartition (A : Type) (r : Rel A A)
         (fun (a : A) => fun (ha : C = (EquivClass A r a)) =>
           fun (hEmpty : C = (∅)) =>
             let hEmpty2 : (EquivClass A r a) = (∅) :=
-              Eq.trans.{1} (Set A) (EquivClass A r a) C (∅)
+              @Eq.trans.{1} (Set A) (EquivClass A r a) C (∅)
                 (Eq.symm.{1} (Set A) C (EquivClass A r a) ha) hEmpty;
             let hBad : a ∈ (∅) :=
               Eq.subst.{1} (Set A) (fun (X : Set A) => a ∈ X)
@@ -327,7 +327,7 @@ theorem nearStep_counterexample :
         (@Eq.refl.{1} Nat a))
     (And.intro
       (fun (a b : Nat) => fun (h : nearStep a b) =>
-        Or.elim (a = b)
+        @Or.elim (a = b)
           (((Nat.succ a) = b) ∨ (a = (Nat.succ b)))
           (nearStep b a)
           (fun (hab : a = b) =>

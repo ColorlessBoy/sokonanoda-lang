@@ -124,7 +124,7 @@ theorem swap_converse_false :
   exact @Exists.elim (Set Nat) (fun (y : Set Nat) => ∀ (x : Set Nat), x = y) False hbad
     (fun (y : Set Nat) => fun (hy : ∀ (x : Set Nat), x = y) =>
       @Set.notMem_empty Nat 0
-        (Eq.subst.{1} (Set Nat)
+        (@Eq.subst.{1} (Set Nat)
           (fun (X : Set Nat) => 0 ∈ X)
           (Set.univ Nat) (∅)
           (Eq.trans.{1} (Set Nat) (Set.univ Nat) y (∅)
