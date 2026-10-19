@@ -184,7 +184,7 @@ theorem flawed_equalities_refuted :
     ) =>
       -- `cases` 吃不了 `have` 绑定的 `∈ 像` 假设本身（类型要 delta 两步才到 `Exists`）；
       -- 先用一条**命名**的中间假设把类型摊开，臂体照旧（`r3` 实测的最小改法）。
-      Exists.elim (Set Nat)
+      @Exists.elim (Set Nat)
         (fun (x : Set Nat) =>
           (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               (Set.univ (Set Nat)) x) ∧
@@ -444,7 +444,7 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                       (@Eq.subst.{1} (Set γ) (fun (X : Set γ) => z ∈ X) C' C
                         (@Eq.symm.{1} (Set γ) C C' hC) hz)))))
     (fun (h2 : C' ≈ (𝒫 C')) =>
-      Exists.elim (γ → Set γ)
+      @Exists.elim (γ → Set γ)
         (fun (f : γ → Set γ) =>
           Set.MapsTo γ (Set γ) f C' (𝒫 C') ∧
             (∃ (g : Set γ → γ),
