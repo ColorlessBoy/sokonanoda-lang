@@ -42,9 +42,9 @@ async fn hover_on_universe_applied_eq_prelude_constant_shows_signature() {
     // 源码切片。根因是内核 pp 对开项推断 panic、hover 文本被吞空；修复后
     // 必须显示 `Eq.subst.{1} : forall … p a …` 的完整签名。
     let src = concat!(
-        "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
-        "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
-        "    Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)\n",
+        "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> @Eq.{1} Nat a b -> @Eq.{1} Nat b a :=\n",
+        "  fun (a : Nat) (b : Nat) (h : @Eq.{1} Nat a b) =>\n",
+        "    @Eq.subst.{1} Nat (fun (x : Nat) => @Eq.{1} Nat x a) a b h (@Eq.refl.{1} Nat a)\n",
     );
     let (mut service, mut socket) = test_service();
     handshake(&mut service).await;
@@ -1067,13 +1067,13 @@ fn apply_set_ext_fixture() -> (std::path::PathBuf, Url, String) {
         dir.join("SetLib.sokonanoda"),
         "def Set (α : Type) : Type := α -> Prop\n\
 def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
-axiom Set.ext {α : Type} {A B : Set α} : (forall (x : α), A x ↔ B x) -> Eq.{1} (Set α) A B\n\
+axiom Set.ext {α : Type} {A B : Set α} : (forall (x : α), A x ↔ B x) -> A = B\n\
 infix:50 \" ∈ \" => Set.mem\n",
     )
     .expect("write lib");
     let src = "import SetLib\n\n\
 theorem ext_test (α : Type) (A B : Set α) (h : forall (x : α), A x ↔ B x) :\n    \
-Eq.{1} (Set α) A B := by\n  apply Set.ext\n  exact h\n";
+A = B := by\n  apply Set.ext\n  exact h\n";
     let entry = dir.join("Canvas.sokonanoda");
     std::fs::write(&entry, src).expect("write entry");
     let uri = Url::from_file_path(&entry).expect("file url");

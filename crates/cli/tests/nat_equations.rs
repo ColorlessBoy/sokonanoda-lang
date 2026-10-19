@@ -88,14 +88,14 @@ fn g76_repro_is_green() {
 fn g76_equations_hold_in_a_fresh_file() {
     let src = "theorem add_succ (n m : Nat) :\n\
                \x20   Nat.add n (Nat.succ m) = Nat.succ (Nat.add n m) :=\n\
-               \x20 Eq.refl.{1} Nat (Nat.succ (Nat.add n m))\n\
+               \x20 @Eq.refl.{1} Nat (Nat.succ (Nat.add n m))\n\
                theorem add_zero (n : Nat) : Nat.add n Nat.zero = n :=\n\
-               \x20 Eq.refl.{1} Nat n\n\
+               \x20 @Eq.refl.{1} Nat n\n\
                theorem zero_add (n : Nat) : Nat.add Nat.zero n = n :=\n\
                \x20 Nat.rec (fun (k : Nat) => Nat.add Nat.zero k = k)\n\
-               \x20   (Eq.refl.{1} Nat Nat.zero)\n\
+               \x20   (@Eq.refl.{1} Nat Nat.zero)\n\
                \x20   (fun (k : Nat) (ih : Nat.add Nat.zero k = k) =>\n\
-               \x20     congrArg.{1} Nat Nat (Nat.add Nat.zero k) k Nat.succ ih)\n\
+               \x20     @congrArg.{1} Nat Nat (Nat.add Nat.zero k) k Nat.succ ih)\n\
                \x20   n\n";
     let (ok, checked, diagnostics) = grade_source("fresh", src);
     assert!(diagnostics.is_empty(), "不许有诊断：{diagnostics:#?}");
@@ -106,7 +106,7 @@ fn g76_equations_hold_in_a_fresh_file() {
 /// ③ **反面**：判定不许退化 —— `Nat.add n m = m` 必须仍判红。
 #[test]
 fn g76_equations_do_not_degenerate() {
-    let src = "theorem bad (n m : Nat) : Nat.add n m = m := Eq.refl.{1} Nat m\n";
+    let src = "theorem bad (n m : Nat) : Nat.add n m = m := @Eq.refl.{1} Nat m\n";
     let (ok, checked, diagnostics) = grade_source("degenerate", src);
     assert!(!ok, "`Nat.add n m = m` 必须判红");
     assert_eq!(checked, 0, "一条都不许判绿");

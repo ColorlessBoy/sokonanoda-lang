@@ -238,9 +238,9 @@ theorem t : And p q := by apply imp\n";
         // 用户原始需求（playground.sokonanoda:233）：`Eq.subst` 的谓词实参
         // 写成 sorry 后，inlay 显示实例化后的 `Nat -> Prop`。
         let src = concat!(
-            "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
-            "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
-            "    Eq.subst.{1} Nat (sorry) a b h (Eq.refl.{1} Nat a)\n",
+            "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> @Eq.{1} Nat a b -> @Eq.{1} Nat b a :=\n",
+            "  fun (a : Nat) (b : Nat) (h : @Eq.{1} Nat a b) =>\n",
+            "    @Eq.subst.{1} Nat (sorry) a b h (@Eq.refl.{1} Nat a)\n",
         );
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;

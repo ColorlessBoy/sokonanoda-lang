@@ -951,7 +951,7 @@ And.intro a b sorry sorry\n";
     }
 
     const EQ_GOAL_DOC: &str =
-        "theorem eq_t : (a : Nat) -> Eq.{1} Nat a a := fun (a : Nat) => sorry\n";
+        "theorem eq_t : (a : Nat) -> @Eq.{1} Nat a a := fun (a : Nat) => sorry\n";
 
     #[tokio::test]
     async fn code_action_rfl_for_eq_and_iff_goals_only() {
@@ -966,14 +966,15 @@ And.intro a b sorry sorry\n";
             "title: {:?}",
             rfl.title
         );
-        // 标题带**真的候选文本**（替换什么就说什么）。
+        // 标题带**真的候选文本**（替换什么就说什么）。严格档（默认）下
+        // `refl_text` 按 `at_prefix()` 带 `@`（文本会被回读成项再判 ⇒ 不带就判红）。
         assert!(
-            rfl.title.contains("Eq.refl.{1} Nat a"),
+            rfl.title.contains("@Eq.refl.{1} Nat a"),
             "title: {:?}",
             rfl.title
         );
         let (start, text) = first_edit(rfl);
-        assert_eq!(text, "Eq.refl.{1} Nat a", "kernel-verified rfl term");
+        assert_eq!(text, "@Eq.refl.{1} Nat a", "kernel-verified rfl term");
         assert_eq!(
             start,
             lsp_pos(EQ_GOAL_DOC, offset_of(EQ_GOAL_DOC, "sorry")),
@@ -1197,7 +1198,7 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
 
     // ---- 失败声明的 kernel 验证 rfl（Eq 形状声明）----
 
-    const FAILED_EQ_LAMBDA: &str = "example : Eq.{1} Nat 2 2 := fun (x : Nat) => 3\n";
+    const FAILED_EQ_LAMBDA: &str = "example : @Eq.{1} Nat 2 2 := fun (x : Nat) => 3\n";
 
     #[tokio::test]
     async fn code_action_failed_eq_decl_offers_kernel_verified_rfl_first() {
@@ -1211,15 +1212,16 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
         assert!(rfl.title.contains("内核验证"), "title: {:?}", rfl.title);
         assert!(rfl.title.contains("直接替换"), "title: {:?}", rfl.title);
         // 标题带**真的候选文本**（不是写死的 `Eq.refl …`）：替换什么就说什么。
+        // 严格档（默认）下 `refl_text` 按 `at_prefix()` 带 `@`（回读成项再判 ⇒ 不带就判红）。
         assert!(
-            rfl.title.contains("Eq.refl.{1} Nat 2"),
+            rfl.title.contains("@Eq.refl.{1} Nat 2"),
             "title: {:?}",
             rfl.title
         );
         assert_eq!(rfl.is_preferred, Some(true), "the verified rfl is first");
         // 编辑目标 = 整个值位，替换文本恰为 kernel 验证过的 rfl 项。
         let (range, new_text) = first_edit_full(rfl);
-        assert_eq!(new_text, "Eq.refl.{1} Nat 2");
+        assert_eq!(new_text, "@Eq.refl.{1} Nat 2");
         assert_eq!(
             range.start,
             lsp_pos(FAILED_EQ_LAMBDA, offset_of(FAILED_EQ_LAMBDA, "fun (x")),
@@ -1275,7 +1277,7 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
 
     #[tokio::test]
     async fn code_action_failed_eq_decl_with_non_lambda_answer_gets_only_rfl() {
-        let src = "example : Eq.{1} Nat 2 2 := 3\n";
+        let src = "example : @Eq.{1} Nat 2 2 := 3\n";
         let (mut service, _socket) = opened(src).await;
         let cursor = offset_of(src, "3");
         let actions = code_actions_at(&mut service, src, cursor)
@@ -1291,7 +1293,7 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
         assert!(rfl.title.contains("内核验证"), "title: {:?}", rfl.title);
         assert_eq!(rfl.is_preferred, Some(true));
         let (range, new_text) = first_edit_full(rfl);
-        assert_eq!(new_text, "Eq.refl.{1} Nat 2");
+        assert_eq!(new_text, "@Eq.refl.{1} Nat 2");
         assert_eq!(
             range.start,
             lsp_pos(src, offset_of(src, "3")),
@@ -1303,7 +1305,7 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
     #[tokio::test]
     async fn code_action_failed_eq_decl_kernel_rejected_rfl_is_dropped() {
         // 2 ≢ 3：候选被内核拒绝，Eq 形状声明又不给重启——无建议。
-        let src = "example : Eq.{1} Nat 2 3 := 5\n";
+        let src = "example : @Eq.{1} Nat 2 3 := 5\n";
         let (mut service, _socket) = opened(src).await;
         let cursor = offset_of(src, "5");
         let actions = code_actions_at(&mut service, src, cursor).await;

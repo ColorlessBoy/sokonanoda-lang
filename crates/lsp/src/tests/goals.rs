@@ -354,7 +354,7 @@ async fn goals_request_ids_holes_by_decl_and_order() {
     // (render::decl_name); the index counts holes in offset order.
     // G-01 起 `theorem` 的签名必须是**真命题**：`Eq.{1} Nat 0 0` 是 prelude 里
     // 现成的命题，不用额外加声明（原来写的 `Prop` 会被内核拒）。
-    let src = "theorem named : Eq.{1} Nat 0 0 := sorry\nexample : Prop := sorry\n";
+    let src = "theorem named : @Eq.{1} Nat 0 0 := sorry\nexample : Prop := sorry\n";
     let (mut service, mut socket) = test_service();
     handshake(&mut service).await;
     did_open(&mut service, src).await;

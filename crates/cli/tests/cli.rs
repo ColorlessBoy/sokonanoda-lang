@@ -128,7 +128,7 @@ fn cli_checks_by_tactic_blocks() {
         "intro a; intro b; intro ha; intro hb; apply And.intro; exact ha; exact hb\n",
         "theorem orl : (a : Prop) -> (b : Prop) -> a -> Or a b := by ",
         "intro a; intro b; intro ha; apply Or.inl; exact ha\n",
-        "theorem r : Eq.{1} Nat (1 + 1) 2 := by rfl\n",
+        "theorem r : @Eq.{1} Nat (1 + 1) 2 := by rfl\n",
     );
     let out = run(src);
     assert!(
@@ -346,7 +346,7 @@ fn cli_space_separated_and_split_universe_params_compile() {
     // WO-009 表 3/4/9/11：{u v} / {u} {v} 在 def/theorem/axiom 上都要过。
     let src = "def idTwo {u v} (α : Sort u) (β : Sort v) (a : α) : α := a\n\
                theorem thmTwo {u v} (α : Sort u) (β : Sort v) (a : α) :\
-               Eq.{u} α a a := Eq.refl.{u} α a\n\
+               @Eq.{u} α a a := @Eq.refl.{u} α a\n\
                axiom AxTwo {u} {v} : Sort u\n";
     let out = run(src);
     assert!(
@@ -468,7 +468,7 @@ fn cli_set_option_pp_explicit_shows_implicit_arguments() {
     // 设计 `docs/design/set-option-pp.md`：端到端 —— 同一条 `#print`，开档后把
     // **隐式实参**印出来（常量带 `@`）；选项**之前**那条同时钉住"默认逐字节不变" ✓。
     let out = run("def wrap {A : Prop} (h : A) : Iff A A :=\n\
-         Iff.intro A A (fun (x : A) => x) (fun (x : A) => x)\n\
+         @Iff.intro A A (fun (x : A) => x) (fun (x : A) => x)\n\
          #print wrap\n\
          set_option pp.explicit true\n\
          #print wrap\n");
@@ -832,9 +832,9 @@ fn json_mode_function_argument_hole_is_an_open_exercise() {
     let out = run_args(
         &["--json"],
         Some(concat!(
-            "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
-            "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
-            "    Eq.subst.{1} Nat (sorry) a b h (Eq.refl.{1} Nat a)\n",
+            "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> @Eq.{1} Nat a b -> @Eq.{1} Nat b a :=\n",
+            "  fun (a : Nat) (b : Nat) (h : @Eq.{1} Nat a b) =>\n",
+            "    @Eq.subst.{1} Nat (sorry) a b h (@Eq.refl.{1} Nat a)\n",
         )),
     );
     assert!(
@@ -1009,7 +1009,7 @@ fn file_directive_bare_loses_nat() {
 
 #[test]
 fn eq_prelude_is_available_by_default() {
-    let out = run("theorem refl_two : Eq.{1} Nat 2 2 := Eq.refl.{1} Nat 2\n");
+    let out = run("theorem refl_two : @Eq.{1} Nat 2 2 := @Eq.refl.{1} Nat 2\n");
     assert!(
         out.status.success(),
         "Eq prelude must be installed in full mode: {}",
@@ -1022,13 +1022,13 @@ fn eq_prelude_is_available_by_default() {
 
 /// 只用 L1 名字、且不自己声明任何 L1 名字的文件（否则整族让位）。
 const L1_E2E_SRC: &str = "\
-def l1_and (a b : Prop) (ha : a) (hb : b) : And b a := And.intro b a hb ha
-def l1_or (a b c : Prop) (f : a -> c) (g : b -> c) (h : Or a b) : c := Or.elim a b c f g h
-def l1_iff (a b : Prop) (h : Iff a b) : b -> a := Iff.mpr a b h
-def l1_absurd (a b : Prop) (ha : a) (hna : Not a) : b := absurd a b ha hna
+def l1_and (a b : Prop) (ha : a) (hb : b) : And b a := @And.intro b a hb ha
+def l1_or (a b c : Prop) (f : a -> c) (g : b -> c) (h : Or a b) : c := @Or.elim a b c f g h
+def l1_iff (a b : Prop) (h : Iff a b) : b -> a := @Iff.mpr a b h
+def l1_absurd (a b : Prop) (ha : a) (hna : Not a) : b := @absurd a b ha hna
 def l1_true : True := True.intro
-def l1_eq_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} Nat a b h
-def l1_congr_arg (f : Nat -> Nat) (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat (f a) (f b) :=
+def l1_eq_symm (a b : Nat) (h : @Eq.{1} Nat a b) : @Eq.{1} Nat b a := @Eq.symm.{1} Nat a b h
+def l1_congr_arg (f : Nat -> Nat) (a b : Nat) (h : @Eq.{1} Nat a b) : @Eq.{1} Nat (f a) (f b) :=
   congrArg.{1} f h
 ";
 
@@ -1816,11 +1816,11 @@ fn cli_match_parameterized_sorry_branch_is_open_exercise() {
 
 #[test]
 fn cli_match_parameterized_without_written_params_reports_code() {
-    // scrutinee 是应用 `some Nat Nat.zero`（非局部变量）→ 拿不到参数实例 →
+    // scrutinee 是应用 `@some Nat Nat.zero`（非局部变量）→ 拿不到参数实例 →
     // 稳定的教学错误码 elab-match-parameterized-unsupported。
     let src = format!(
         "{OPTION_ENUM}\
-         def bad : Nat := match (some Nat Nat.zero) with\n\
+         def bad : Nat := match (@some Nat Nat.zero) with\n\
          | none => Nat.zero\n\
          | some a => a\n"
     );
@@ -1835,13 +1835,13 @@ fn cli_match_parameterized_without_written_params_reports_code() {
 
 #[test]
 fn cli_match_parameterized_reduces_through_kernel() {
-    // #reduce 走 match 降低出的 Option.rec：some Nat 1 取出后就是 1。
+    // #reduce 走 match 降低出的 Option.rec：`@some Nat 1` 取出后就是 1。
     let src = format!(
         "{OPTION_ENUM}\
          def fromOption (x : Option Nat) (d : Nat) : Nat := match x with\n\
          | none => d\n\
          | some a => a\n\
-         #reduce fromOption (some Nat (Nat.succ Nat.zero)) Nat.zero\n"
+         #reduce fromOption (@some Nat (Nat.succ Nat.zero)) Nat.zero\n"
     );
     let out = run(&src);
     assert!(
@@ -1851,7 +1851,7 @@ fn cli_match_parameterized_reduces_through_kernel() {
     );
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(
-        stdout.contains("fromOption (some Nat (Nat.succ Nat.zero)) Nat.zero => 1"),
+        stdout.contains("fromOption (@some Nat (Nat.succ Nat.zero)) Nat.zero => 1"),
         "stdout: {stdout}"
     );
 }
@@ -1906,7 +1906,7 @@ def vlen (A : Type) (n : Nat) (v : Vec A n) : Nat :=
   match v with
   | vnil => 0
   | vcons a m w => Nat.succ ih
-#reduce vlen Nat 2 (vcons Nat 1 1 (vcons Nat 2 0 (vnil Nat)))
+#reduce vlen Nat 2 (@vcons Nat 1 1 (@vcons Nat 2 0 (@vnil Nat)))
 ";
     let out = run(src);
     assert!(
@@ -1938,7 +1938,7 @@ def wlen (A : Type) (n : Nat) (w : W A n) : Nat :=
   match w with
   | wnil => 0
   | wcons a m t => Nat.succ ih
-#reduce wlen Nat 2 (wcons Nat 1 1 (wcons Nat 2 0 (wnil Nat)))
+#reduce wlen Nat 2 (@wcons Nat 1 1 (@wcons Nat 2 0 (@wnil Nat)))
 ";
     let out = run(src);
     assert!(
@@ -1999,8 +1999,8 @@ ctor mk2 (a b : A) : Pair2 A
 end
 theorem both_symm (A B : Prop) (h : Both A B) : Both B A :=
   match h with
-  | mk a b => mk B A b a
-theorem pair2_refl (A : Prop) (a : A) : Pair2 A := mk2 A a a
+  | mk a b => @mk B A b a
+theorem pair2_refl (A : Prop) (a : A) : Pair2 A := @mk2 A a a
 ");
     assert!(
         out.status.success(),
@@ -2448,8 +2448,8 @@ fn cli_ctor_names_are_namespaced() {
          inductive P2 (A : Type) : Type\n\
          ctor mk (a : A) : P2 A\n\
          end\n\
-         def first (A : Type) (a : A) : P1 A := P1.mk A a\n\
-         def second (A : Type) (a : A) : P2 A := P2.mk A a\n\
+         def first (A : Type) (a : A) : P1 A := @P1.mk A a\n\
+         def second (A : Type) (a : A) : P2 A := @P2.mk A a\n\
          #check P1.mk\n";
     let out = run(src);
     assert!(

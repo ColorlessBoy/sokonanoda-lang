@@ -91,7 +91,7 @@ fn a_runtime_prelude_override_changes_behaviour() {
     let eq_probe = dir.join("EqProbe.sokonanoda");
     std::fs::write(
         &eq_probe,
-        "theorem eq_probe : Eq.{1} Prop True True := Eq.refl.{1} Prop True\n",
+        "theorem eq_probe : @Eq.{1} Prop True True := @Eq.refl.{1} Prop True\n",
     )
     .expect("write eq probe");
     let (code, out, err) = grade(&eq_probe, Some(&prelude));

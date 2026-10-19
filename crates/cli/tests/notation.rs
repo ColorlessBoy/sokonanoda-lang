@@ -351,11 +351,11 @@ fn pointful_variant(unit: &str) -> String {
     for (notated, pointful) in [
         (
             "    (h1 : A ⊆ B) (h2 : B ⊆ C) : A ⊆ C :=",
-            "    (h1 : Set.subset α A B) (h2 : Set.subset α B C) : Set.subset α A C :=",
+            "    (h1 : @Set.subset α A B) (h2 : @Set.subset α B C) : @Set.subset α A C :=",
         ),
         (
             "theorem empty_subset (α : Type) (A : Set α) : ∅ ⊆ A :=",
-            "theorem empty_subset (α : Type) (A : Set α) : Set.subset α (Set.empty α) A :=",
+            "theorem empty_subset (α : Type) (A : Set α) : @Set.subset α (@Set.empty α) A :=",
         ),
     ] {
         assert_eq!(
@@ -507,7 +507,7 @@ fn a_library_notation_works_in_the_entry_through_import() {
          def p (α : Type) (A : Set α) : Set (Set α) := 𝒫 A\n\
          def c (α : Type) (A : Set α) : Set α := Aᶜ\n\
          theorem t (α : Type) (A : Set α) :\n\
-             Eq.{1} (Set α) (Aᶜ) (Set.compl α A) := by rfl\n",
+             @Eq.{1} (Set α) (Aᶜ) (@Set.compl α A) := by rfl\n",
     );
     let entry = dir.join("units/unit.sokonanoda");
     let (code, events) = grade_json(&entry);
@@ -711,7 +711,7 @@ def prod_anon (α β : Type) (a : α) (b : β) : Prod α β := ⟨a, b⟩
 
 -- 对照：点名写法与匿名构造子判卷一致
 theorem pointful_same (A B : Prop) (ha : A) (hb : B) : A ∧ B := by
-  exact And.intro A B ha hb
+  exact @And.intro A B ha hb
 ";
     let path = temp_file("anon-ctor", src);
     let (code, events) = grade_json(&path);
@@ -892,9 +892,9 @@ fn a_broken_declaration_does_not_poison_the_next_notation() {
 def Set (α : Type) : Type := α -> Prop
 def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
 def Set.empty (α : Type) : Set α := fun (x : α) => False
-def Set.singleton (α : Type) (a : α) : Set α := fun (x : α) => Eq.{1} α x a
+def Set.singleton (α : Type) (a : α) : Set α := fun (x : α) => @Eq.{1} α x a
 def Set.notMem_empty (α : Type) (a : α) : Set.mem α a (Set.empty α) -> False := fun (h : Set.mem α a (Set.empty α)) => h
-def Set.mem_singleton_self (α : Type) (a : α) : Set.mem α a (Set.singleton α a) := Eq.refl.{1} α a
+def Set.mem_singleton_self (α : Type) (a : α) : Set.mem α a (Set.singleton α a) := @Eq.refl.{1} α a
 notation \"∅\" => Set.empty
 
 -- 坏声明：类型不存在（签名 elaborate 不了）。
@@ -904,7 +904,7 @@ theorem broken (x : NoSuchType) : True := True.intro
 theorem after (α : Type) (a : α) : {a} ≠ ∅ := by
   intro h
   exact Set.notMem_empty α a
-    (Eq.subst.{1} (Set α) (fun (X : Set α) => Set.mem α a X) (Set.singleton α a)
+    (@Eq.subst.{1} (Set α) (fun (X : Set α) => Set.mem α a X) (Set.singleton α a)
       (Set.empty α) h (Set.mem_singleton_self α a))
 ";
     let path = temp_file("cascade", src);
@@ -960,24 +960,24 @@ fn inequality_delta_unfolding_carries_the_right_universe_level() {
 def Set (α : Type) : Type := α -> Prop
 def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
 def Set.empty (α : Type) : Set α := fun (x : α) => False
-def Set.singleton (α : Type) (a : α) : Set α := fun (x : α) => Eq.{1} α x a
+def Set.singleton (α : Type) (a : α) : Set α := fun (x : α) => @Eq.{1} α x a
 def Set.notMem_empty (α : Type) (a : α) : Set.mem α a (Set.empty α) -> False := fun (h : Set.mem α a (Set.empty α)) => h
-def Set.mem_singleton_self (α : Type) (a : α) : Set.mem α a (Set.singleton α a) := Eq.refl.{1} α a
+def Set.mem_singleton_self (α : Type) (a : α) : Set.mem α a (Set.singleton α a) := @Eq.refl.{1} α a
 notation \"∅\" => Set.empty
 
 -- 对照①：点名目标、同一条证明体——改前就过（源 AST 自带 `.{1}`）。
 theorem ne_pointful (α : Type) (a : α) :
-    Not (Eq.{1} (Set α) (Set.singleton α a) (Set.empty α)) := by
+    Not (@Eq.{1} (Set α) (Set.singleton α a) (Set.empty α)) := by
   intro h
   exact Set.notMem_empty α a
-    (Eq.subst.{1} (Set α) (fun (X : Set α) => Set.mem α a X) (Set.singleton α a)
+    (@Eq.subst.{1} (Set α) (fun (X : Set α) => Set.mem α a X) (Set.singleton α a)
       (Set.empty α) h (Set.mem_singleton_self α a))
 
 -- **本缺口**：记法目标 `{a} ≠ ∅`，`intro` 要展开 `Ne`（记法形态 ⇒ 两步）。
 theorem ne_intro_peels (α : Type) (a : α) : {a} ≠ ∅ := by
   intro h
   exact Set.notMem_empty α a
-    (Eq.subst.{1} (Set α) (fun (X : Set α) => Set.mem α a X) (Set.singleton α a)
+    (@Eq.subst.{1} (Set α) (fun (X : Set α) => Set.mem α a X) (Set.singleton α a)
       (Set.empty α) h (Set.mem_singleton_self α a))
 
 -- **同一条缺口的 `apply` 路径**：`h` 的类型经内核 pp 是点名形态（⇒ 一步）。
@@ -1024,8 +1024,8 @@ theorem ne_prop_applies (p q : Prop) (h : p ≠ q) (h2 : p = q) : False := by
 const THIRD_LIB: &str = "\
 def Set (α : Type) : Type := α -> Prop
 def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
-def Set.singleton (α : Type) (a : α) : Set α := fun (x : α) => Eq.{1} α x a
-def Set.pair (α : Type) (a b : α) : Set α := fun (x : α) => Or (Eq.{1} α x a) (Eq.{1} α x b)
+def Set.singleton (α : Type) (a : α) : Set α := fun (x : α) => @Eq.{1} α x a
+def Set.pair (α : Type) (a b : α) : Set α := fun (x : α) => Or (@Eq.{1} α x a) (@Eq.{1} α x b)
 inductive Exists (A : Type) (p : A -> Prop) : Prop
 ctor intro (w : A) (h : p w) : Exists A p
 end
@@ -1076,16 +1076,16 @@ fn binder_notation_grades_like_the_pointful_exists() {
     // §12.1：`∃ (n : Nat), p` 展开成 `Exists Nat (fun (n : Nat) => p)`。
     let pointful = format!(
         "{THIRD_LIB}\
-def p : Prop := Exists Nat (fun (n : Nat) => Eq.{{1}} Nat n n)\n\
-theorem t : Exists Nat (fun (n : Nat) => Eq.{{1}} Nat n n) :=\n\
-  Exists.intro Nat (fun (n : Nat) => Eq.{{1}} Nat n n) 0 (Eq.refl.{{1}} Nat 0)\n"
+def p : Prop := Exists Nat (fun (n : Nat) => @Eq.{{1}} Nat n n)\n\
+theorem t : Exists Nat (fun (n : Nat) => @Eq.{{1}} Nat n n) :=\n\
+  @Exists.intro Nat (fun (n : Nat) => @Eq.{{1}} Nat n n) 0 (@Eq.refl.{{1}} Nat 0)\n"
     );
     let notation = format!(
         "{THIRD_LIB}\
 binder_notation \"∃\" => Exists\n\
-def p : Prop := ∃ (n : Nat), Eq.{{1}} Nat n n\n\
-theorem t : Exists Nat (fun (n : Nat) => Eq.{{1}} Nat n n) :=\n\
-  Exists.intro Nat (fun (n : Nat) => Eq.{{1}} Nat n n) 0 (Eq.refl.{{1}} Nat 0)\n"
+def p : Prop := ∃ (n : Nat), @Eq.{{1}} Nat n n\n\
+theorem t : Exists Nat (fun (n : Nat) => @Eq.{{1}} Nat n n) :=\n\
+  @Exists.intro Nat (fun (n : Nat) => @Eq.{{1}} Nat n n) 0 (@Eq.refl.{{1}} Nat 0)\n"
     );
     assert_same_counts(&pointful, &notation, "binder");
 }
@@ -1127,9 +1127,9 @@ fn the_course_composition_notations_grade_like_the_pointful_forms() {
     let root = course_lib_dir("comp-notation");
     let pointful = "import lib.Rel\nimport lib.Fun\n\n\
 def rel_comp (A B C : Type) (r : Rel A B) (s : Rel B C) : Rel A C :=\n\
-  Rel.comp A B C r s\n\n\
+  @Rel.comp A B C r s\n\n\
 def fun_comp (α β γ : Type) (g : β → γ) (f : α → β) : α → γ :=\n\
-  Function.comp α β γ g f\n";
+  @Function.comp α β γ g f\n";
     let notation = "import lib.Rel\nimport lib.Fun\n\n\
 def rel_comp (A B C : Type) (r : Rel A B) (s : Rel B C) : Rel A C :=\n\
   r • s\n\n\
@@ -1205,7 +1205,7 @@ def inv_sq (A B : Type) (r : Rel A B) : Rel B A :=\n\
 def equiv_sq (A B : Type) (s : Set A) (t : Set B) : Prop :=\n\
   Set.Equiv A B s t\n\n\
 def pre (α β : Type) (f : α → β) (B : Set β) : Set α :=\n\
-  Set.preimage α β f B\n";
+  @Set.preimage α β f B\n";
     let notation = "import lib.Set\nimport lib.Rel\nimport lib.Equiv\nimport lib.Image\n\n\
 def inv_sq (A B : Type) (r : Rel A B) : Rel B A :=\n\
   r ⁻¹\n\n\
@@ -1287,7 +1287,7 @@ fn an_overload_grades_by_expected_type_and_reports_ambiguity() {
     let picked = format!(
         "{THIRD_LIB}\
 def Bag (α : Type) : Type := α -> Prop\n\
-def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => Eq.{{1}} α x a\n\
+def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => @Eq.{{1}} α x a\n\
 prefix:100 \" ι \" => Set.singleton\n\
 prefix:100 \" ι \" => Bag.singleton\n\
 def s (α : Type) (a : α) : Set α := ι a\n\
@@ -1303,7 +1303,7 @@ def b (α : Type) (a : α) : Bag α := ι a\n"
     let ambiguous = format!(
         "{THIRD_LIB}\
 def Bag (α : Type) : Type := α -> Prop\n\
-def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => Eq.{{1}} α x a\n\
+def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => @Eq.{{1}} α x a\n\
 prefix:100 \" ι \" => Set.singleton\n\
 prefix:100 \" ι \" => Bag.singleton\n\
 #check ι 1\n"
@@ -1446,9 +1446,9 @@ fn the_new_sugar_tactics_grade_with_notation_goals() {
          \x20 intro h\n\
          \x20 constructor\n\
          \x20 intro hb\n\
-         \x20 exact Iff.mpr A B h hb\n\
+         \x20 exact @Iff.mpr A B h hb\n\
          \x20 intro ha\n\
-         \x20 exact Iff.mp A B h ha\n\
+         \x20 exact @Iff.mp A B h ha\n\
          \n\
          -- left / right\n\
          theorem t_left (A B : Prop) (ha : A) : A ∨ B := by\n\
@@ -1522,14 +1522,14 @@ fn cases_splits_hypotheses_with_and_without_arms() {
          -- 不带 `with`：子目标按构造子声明顺序，分支假设用字段名（`a`/`b`）\n\
          theorem t_plain (A B : Prop) (h : A ∨ B) : B ∨ A := by\n\
          \x20 cases h\n\
-         \x20 exact Or.inr B A a\n\
-         \x20 exact Or.inl B A b\n\
+         \x20 exact @Or.inr B A a\n\
+         \x20 exact @Or.inl B A b\n\
          \n\
          -- 带 `with`：一行一个臂\n\
          theorem t_arms (A B : Prop) (h : A ∨ B) : B ∨ A := by\n\
          \x20 cases h with\n\
-         \x20 | inl ha => exact Or.inr B A ha\n\
-         \x20 | inr hb => exact Or.inl B A hb\n\
+         \x20 | inl ha => exact @Or.inr B A ha\n\
+         \x20 | inr hb => exact @Or.inl B A hb\n\
          \n\
          -- 臂体多步：靠**缩进**界定（下一行的 tactic 比 `|` 更深）\n\
          theorem t_multi (A B C : Prop) (h : A ∨ B) : C -> (C -> A ∨ B) -> A ∨ B := by\n\
@@ -1552,7 +1552,7 @@ fn cases_splits_hypotheses_with_and_without_arms() {
          \n\
          theorem t_and (A B : Prop) (h : A ∧ B) : B ∧ A := by\n\
          \x20 cases h with\n\
-         \x20 | intro ha hb => exact And.intro B A hb ha\n",
+         \x20 | intro ha hb => exact @And.intro B A hb ha\n",
     );
     let (code, events) = grade_json(&path);
     let (checked, open, _, _, diagnostics) = counts(&events);
@@ -1567,8 +1567,8 @@ fn cases_splits_hypotheses_with_and_without_arms() {
         "cases-dependent",
         "theorem t (A : Prop) (h : Or A A) : Or A A := by\n\
          \x20 cases h with\n\
-         \x20 | inl ha => exact Or.inl A A ha\n\
-         \x20 | inr hb => exact Or.inr A A hb\n",
+         \x20 | inl ha => exact @Or.inl A A ha\n\
+         \x20 | inr hb => exact @Or.inr A A hb\n",
     );
     let (code, _) = grade_json(&dependent);
     assert_eq!(
@@ -1612,19 +1612,19 @@ fn cases_splits_a_have_bound_hypothesis_written_with_notation() {
     let path = temp_file(
         "cases-have-notation",
         "theorem t (A B : Prop) (h : A ∧ B) : B ∨ A := by\n\
-         \x20 have hb : B := And.right A B h\n\
-         \x20 have out : B ∨ A := Or.inl B A hb\n\
+         \x20 have hb : B := @And.right A B h\n\
+         \x20 have out : B ∨ A := @Or.inl B A hb\n\
          \x20 cases out with\n\
-         \x20 | inl hb2 => exact Or.inl B A hb2\n\
-         \x20 | inr ha2 => exact Or.inr B A ha2\n\
+         \x20 | inl hb2 => exact @Or.inl B A hb2\n\
+         \x20 | inr ha2 => exact @Or.inr B A ha2\n\
          \n\
          -- 参数化归纳的**参数**也要从记法里取出来（`∨` 的两个操作数），\n\
          -- 取不到就会报「书写类型需要显式给出 2 个参数」。\n\
          theorem t_params (A B C : Prop) (h : A ∧ (B ∨ C)) : (A ∧ B) ∨ (A ∧ C) := by\n\
-         \x20 have bc : B ∨ C := And.right A (B ∨ C) h\n\
+         \x20 have bc : B ∨ C := @And.right A (B ∨ C) h\n\
          \x20 cases bc with\n\
-         \x20 | inl hb => left; exact And.intro A B (And.left A (B ∨ C) h) hb\n\
-         \x20 | inr hc => right; exact And.intro A C (And.left A (B ∨ C) h) hc\n",
+         \x20 | inl hb => left; exact @And.intro A B (@And.left A (B ∨ C) h) hb\n\
+         \x20 | inr hc => right; exact @And.intro A C (@And.left A (B ∨ C) h) hc\n",
     );
     let (code, events) = grade_json(&path);
     let (checked, open, _, _, diagnostics) = counts(&events);
@@ -1658,12 +1658,12 @@ fn cases_sees_through_a_definition_body_written_with_notation() {
          \n\
          theorem t_or (A B : Prop) (h : MyOr A B) : B ∨ A := by\n\
          \x20 cases h with\n\
-         \x20 | inl ha => exact Or.inr B A ha\n\
-         \x20 | inr hb => exact Or.inl B A hb\n\
+         \x20 | inl ha => exact @Or.inr B A ha\n\
+         \x20 | inr hb => exact @Or.inl B A hb\n\
          \n\
          theorem t_and (A B : Prop) (h : MyPair A B) : B ∧ A := by\n\
          \x20 cases h with\n\
-         \x20 | intro ha hb => exact And.intro B A hb ha\n",
+         \x20 | intro ha hb => exact @And.intro B A hb ha\n",
     );
     let (code, events) = grade_json(&path);
     let (checked, open, _, _, diagnostics) = counts(&events);
@@ -1694,12 +1694,12 @@ fn core_logic_notation_is_built_in() {
          \x20 exact hb\n\
          theorem t_or (A B : Prop) (h : A ∨ B) : B ∨ A := by\n\
          \x20 cases h with\n\
-         \x20 | inl ha => exact Or.inr B A ha\n\
-         \x20 | inr hb => exact Or.inl B A hb\n\
+         \x20 | inl ha => exact @Or.inr B A ha\n\
+         \x20 | inr hb => exact @Or.inl B A hb\n\
          theorem t_iff (A B : Prop) : (A ↔ B) → B → A := by\n\
          \x20 intro h\n\
          \x20 intro hb\n\
-         \x20 exact Iff.mpr A B h hb\n\
+         \x20 exact @Iff.mpr A B h hb\n\
          theorem t_not (A : Prop) : A → ¬ ¬ A := by\n\
          \x20 intro ha hna\n\
          \x20 exact hna ha\n",
@@ -1779,7 +1779,7 @@ fn notation_works_inside_by_blocks() {
          \n\
          -- 回归：`Eq` 目标里含记法时 `rfl` 仍要能用（归一化不许打坏它）\n\
          theorem t_rfl (α : Type) (A : Set α) :\n\
-         \x20   Eq.{1} (Set α) (Aᶜ) (Set.compl α A) := by rfl\n",
+         \x20   @Eq.{1} (Set α) (Aᶜ) (Set.compl α A) := by rfl\n",
     );
     let (code, events) = grade_json(&path);
     let (checked, open, _, _, diagnostics) = counts(&events);
@@ -1820,13 +1820,13 @@ theorem mem_empty (α : Type) (x : α) : x ∈ ∅ -> False := by
 theorem pointful (α : Type) (A : Set α) : Set.subset α (Set.empty α) A := by
   intro x
   intro hx
-  exact False.elim (A x) hx
+  exact @False.elim (A x) hx
 
 -- **本缺口**：`∅` 作 `⊆` 的左操作数，`intro` 必须 delta 展开 `Set.subset`。
 theorem empty_subset (α : Type) (A : Set α) : ∅ ⊆ A := by
   intro x
   intro hx
-  exact False.elim (A x) hx
+  exact @False.elim (A x) hx
 ";
     let path = temp_file("g19-zero-ary", src);
     let (code, events) = grade_json(&path);
@@ -1861,12 +1861,12 @@ fn equality_and_inequality_are_builtin_notations_with_solved_universes() {
 def Set (α : Type) : Type := α -> Prop
 
 -- Prop 档：`A B : Prop` ⇒ `Eq.{0}`。
-theorem eq_prop (A B : Prop) (h : A = B) : B = A := Eq.symm.{1} Prop A B h
+theorem eq_prop (A B : Prop) (h : A = B) : B = A := @Eq.symm.{1} Prop A B h
 
 -- Type 档：`A B : Set α` ⇒ `Eq.{1}`（改前只能写 `Eq.{1} (Set α) A B`）。
-theorem eq_type (α : Type) (A B : Set α) (h : A = B) : B = A := Eq.symm.{1} (Set α) A B h
+theorem eq_type (α : Type) (A B : Set α) (h : A = B) : B = A := @Eq.symm.{1} (Set α) A B h
 
-theorem eq_refl_type (α : Type) (A : Set α) : A = A := Eq.refl.{1} (Set α) A
+theorem eq_refl_type (α : Type) (A : Set α) : A = A := @Eq.refl.{1} (Set α) A
 
 -- `≠` 同理（`Ne.{u} α a b`）。
 theorem ne_prop (A B : Prop) (h : A ≠ B) : A ≠ B := h
@@ -1877,8 +1877,8 @@ theorem ne_type (α : Type) (A B : Set α) (h : A ≠ B) : A ≠ B := h
 theorem ne_unfolds (A B : Prop) : A ≠ B -> A = B -> False := fun (h : A ≠ B) => h
 
 -- `=` 与点名形式判卷一致（N7 契约）：同一命题的两种写法。
-theorem eq_pointful (α : Type) (A B : Set α) (h : Eq.{1} (Set α) A B) : Eq.{1} (Set α) B A :=
-  Eq.symm.{1} (Set α) A B h
+theorem eq_pointful (α : Type) (A B : Set α) (h : @Eq.{1} (Set α) A B) : @Eq.{1} (Set α) B A :=
+  @Eq.symm.{1} (Set α) A B h
 ";
     let path = temp_file("eq-ne", src);
     let (code, events) = grade_json(&path);
@@ -1920,7 +1920,7 @@ theorem fun_with_eq (α : Type) (A B : Set α) : A = B -> A = B :=
   fun (h : A = B) => h
 
 theorem iff_of_eq (A B : Prop) : A = B -> (A -> B) :=
-  fun (h : A = B) => fun (a : A) => Eq.subst.{1} Prop (fun (x : Prop) => x) A B h a
+  fun (h : A = B) => fun (a : A) => @Eq.subst.{1} Prop (fun (x : Prop) => x) A B h a
 ";
     let path = temp_file("fat-arrow-eq", src);
     let (code, events) = grade_json(&path);
@@ -2112,10 +2112,10 @@ theorem have_term (A B C D : Prop) (f : A -> B -> C -> D) (ha : A) (hb : B) (hc 
 -- 嵌套 `by` 形式；**外层后续 tactic 缩进更浅，不许被内层吞掉**
 theorem have_by (A B : Prop) (h : A ∧ B) : B ∧ A := by
   have hb : B := by
-    exact And.right A B h
+    exact @And.right A B h
   have ha : A := by
-    exact And.left A B h
-  exact And.intro B A hb ha
+    exact @And.left A B h
+  exact @And.intro B A hb ha
 
 -- 嵌套 `by` 里用 `cases`（值是个 `match` ⇒ 靠 `let` 的标注拿期望类型）
 theorem have_nested_cases (A B C : Prop) (h : A ∨ B) (f : A -> C) (g : B -> C) : C := by
@@ -2209,14 +2209,14 @@ theorem union_comm (α : Type) (A B : Set α) : A ∪ B = B ∪ A := by
   have h1 : x ∈ A ∪ B -> x ∈ B ∪ A := by
     intro h
     cases h with
-      | inl ha => exact Or.inr (B x) (A x) ha
-      | inr hb => exact Or.inl (B x) (A x) hb
+      | inl ha => exact @Or.inr (B x) (A x) ha
+      | inr hb => exact @Or.inl (B x) (A x) hb
   have h2 : x ∈ B ∪ A -> x ∈ A ∪ B := by
     intro h
     cases h with
-      | inl hb => exact Or.inr (A x) (B x) hb
-      | inr ha => exact Or.inl (A x) (B x) ha
-  exact Iff.intro (x ∈ A ∪ B) (x ∈ B ∪ A) h1 h2
+      | inl hb => exact @Or.inr (A x) (B x) hb
+      | inr ha => exact @Or.inl (A x) (B x) ha
+  exact @Iff.intro (x ∈ A ∪ B) (x ∈ B ∪ A) h1 h2
 ";
     let dir = course_lib_dir("course-shaped");
     let path = dir.join("Course.sokonanoda");
@@ -2350,13 +2350,13 @@ import lib.Set
 import lib.Exists
 
 theorem cases_eq_arm (β γ : Type) (g : β -> γ) (a : β) (c : γ)
-    (h : Exists β (fun (b : β) => And (Eq.{1} β a b) (Eq.{1} γ (g b) c))) :
-    Eq.{1} γ (g a) c := by
+    (h : Exists β (fun (b : β) => And (@Eq.{1} β a b) (@Eq.{1} γ (g b) c))) :
+    @Eq.{1} γ (g a) c := by
   cases h with
   | intro b hb =>
-    exact Eq.trans.{1} γ (g a) (g b) c
-      (congrArg.{1} g (And.left (Eq.{1} β a b) (Eq.{1} γ (g b) c) hb))
-      (And.right (Eq.{1} β a b) (Eq.{1} γ (g b) c) hb)
+    exact @Eq.trans.{1} γ (g a) (g b) c
+      (congrArg.{1} g (@And.left (@Eq.{1} β a b) (@Eq.{1} γ (g b) c) hb))
+      (@And.right (@Eq.{1} β a b) (@Eq.{1} γ (g b) c) hb)
 ";
     let dir = course_lib_dir("cases-eq-arm");
     let path = dir.join("Course.sokonanoda");
@@ -2728,13 +2728,13 @@ def id2 {α : Type} (a : α) : α := a
 
 def mymem {α : Type} (a : α) (A : α -> Prop) : Prop := A a
 
-theorem t1 (α : Type) (a : α) : Eq.{1} α (id2 a) a := by
+theorem t1 (α : Type) (a : α) : @Eq.{1} α (id2 a) a := by
   rfl
 
 theorem t2 (α : Type) (a : α) (A : α -> Prop) (h : A a) : mymem a A := by
   exact h
 
-theorem t3 : Eq.{1} Nat (id2 3) 3 := by
+theorem t3 : @Eq.{1} Nat (id2 3) 3 := by
   rfl
 ";
     let path = temp_file("implicit-insert", src);
@@ -2763,10 +2763,10 @@ fn the_at_marker_disables_implicit_insertion() {
     let src = "\
 def id2 {α : Type} (a : α) : α := a
 
-theorem at_marker (α : Type) (a : α) : Eq.{1} α (@id2 α a) a := by
+theorem at_marker (α : Type) (a : α) : @Eq.{1} α (@id2 α a) a := by
   rfl
 
-theorem no_at (α : Type) (a : α) : Eq.{1} α (id2 a) a := by
+theorem no_at (α : Type) (a : α) : @Eq.{1} α (id2 a) a := by
   rfl
 ";
     let path = temp_file("implicit-at", src);
