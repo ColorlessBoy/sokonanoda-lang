@@ -99,8 +99,11 @@ theorem powerset_mono (α : Type) (A B : Set α) (h : A ⊆ B) :
 theorem union_subset_inter_false (α : Type) (a : α) :
     ¬ ((@Set.univ α ∪ ∅) ⊆ (@Set.univ α ∩ ∅)) := by
   intro hsub
-  exact And.right
-    (hsub a (Or.inl (a ∈ @Set.univ α) (a ∈ ∅) (Set.mem_univ α a)))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+  -- 目标经 `intro` 展开（非语句层）后 `∧`/`∨` 的期望类型传不到，而 `And.right`/`Or.inl`
+  -- 的隐式实参只能**语法反解** ⇒ 先用两条带标注的 `have` 把 `∨`/`∧` 落成语法形态 ✓
+  have hmem : a ∈ @Set.univ α ∨ a ∈ ∅ := Or.inl (@Set.mem_univ α a)
+  have hm : a ∈ @Set.univ α ∧ a ∈ ∅ := hsub a hmem
+  exact And.right hm
 
 -- 命题甲为真：A ∈ 𝒫 A（展开即 A ⊆ A）；命题乙 A ⊆ 𝒫 A 连类型都不对（见画布注释）。
 theorem powerset_self_mem (α : Type) (A : Set α) : A ∈ 𝒫 A := by

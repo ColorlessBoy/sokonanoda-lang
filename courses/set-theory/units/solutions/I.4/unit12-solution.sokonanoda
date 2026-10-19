@@ -152,12 +152,12 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
                   (And.intro
                     (And.intro
                       (And.left hx1)
-                      (Eq.subst.{1} α (fun (t : α) => B t) x2 x1
-                        (Eq.symm.{1} α x1 x2
+                      (@Eq.subst.{1} α (fun (t : α) => B t) x2 x1
+                        (@Eq.symm.{1} α x1 x2
                           (hf x1 x2
-                            (Eq.trans.{1} β (f x1) y (f x2)
+                            (@Eq.trans.{1} β (f x1) y (f x2)
                               (And.right hx1)
-                              (Eq.symm.{1} β (f x2) y (And.right hx2)))))
+                              (@Eq.symm.{1} β (f x2) y (And.right hx2)))))
                         (And.left hx2)))
                     (And.right hx1))))))
 
@@ -186,45 +186,45 @@ theorem flawed_equalities_refuted :
       -- 先用一条**命名**的中间假设把类型摊开，臂体照旧（`r3` 实测的最小改法）。
       @Exists.elim (Set Nat)
         (fun (x : Set Nat) =>
-          (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               (Set.univ (Set Nat)) x) ∧
-            (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
         )
         False
-        (Eq.subst.{1} (Set (Set Nat)) (fun (X : Set (Set Nat)) => Set.univ Nat ∈ X)
+        (@Eq.subst.{1} (Set (Set Nat)) (fun (X : Set (Set Nat)) => Set.univ Nat ∈ X)
           (Set.univ (Set Nat))
-          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-            (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)
+          (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)
               (Set.univ (Set Nat))))
           (Eq.symm.{1} (Set (Set Nat))
-            (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)
                 (Set.univ (Set Nat))))
             (Set.univ (Set Nat)) h)
           (Set.mem_univ (Set Nat) (Set.univ Nat)))
         (fun (x : Set Nat) =>
           fun (hx :
-          (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               (Set.univ (Set Nat)) x) ∧
-            (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           ) =>
           Set.notMem_empty Nat 0
             (Eq.subst.{1} (Set Nat) (fun (Z : Set Nat) => 0 ∈ Z)
               (Set.univ Nat) (∅)
               (Eq.symm.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 (And.right
-                  (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                     (Set.univ (Set Nat)) x)
-                  (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat)) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat)) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               (Set.mem_univ Nat 0))))
     (fun (h :
-      Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      @Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           (Set.inter (Set Nat) ({(Set Nat)} ∅)
             ({(Set.univ Nat)}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
         = Set.inter (Set Nat)
-            (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               ({(Set Nat)} ∅))
-            (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               ({(Set.univ Nat)}))
     ) =>
       Exists.elim (Set Nat)
@@ -236,29 +236,29 @@ theorem flawed_equalities_refuted :
         False
         (Eq.subst.{1} (Set (Set Nat)) (fun (X : Set (Set Nat)) => ∅ ∈ X)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           (Set.inter (Set Nat)
-            (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               ({(∅)}))
-            (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               ({(Set.univ Nat)})))
-          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
             (Set.inter (Set Nat) ({(∅)})
               ({(Set.univ Nat)})))
           (Eq.symm.{1} (Set (Set Nat))
-            (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               (Set.inter (Set Nat) ({(∅)})
                 ({(Set.univ Nat)})))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
             (Set.inter (Set Nat)
-              (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 ({(∅)}))
-              (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 ({(Set.univ Nat)})))
             h)
          (And.intro
            (Set.mem (Set Nat) (∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-             (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)
+             (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)
                ({(∅)})))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
            (Set.mem (Set Nat) (∅)
-             (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+             (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                ({(Set.univ Nat)})))
            (Exists.intro (Set Nat)
              (fun (x : Set Nat) =>
@@ -367,7 +367,7 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
                   Exists.intro x
                     (And.intro
                       (And.left hx)
-                      (Eq.trans.{1} γ (g (f x)) (g b) y
+                      (@Eq.trans.{1} γ (g (f x)) (g b) y
                         (congrArg.{1} g (And.right hx))
                         (And.right hb))))))))
 
@@ -475,12 +475,12 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                   let hD : C' \ (fun (y : γ) => f y y) ∈ 𝒫 C' :=
                     fun (y : γ) => fun (hy : C' y ∧ ¬ (f y y)) => And.left hy;
                   let hC'gD : C' (g (C' \ (fun (y : γ) => f y y))) :=
-                    And.left (Set.MapsTo (Set γ) γ g (𝒫 C') C')
+                    @And.left (Set.MapsTo (Set γ) γ g (𝒫 C') C')
                       ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))
                       hg2 (C' \ (fun (y : γ) => f y y)) hD;
                   let hfg : (f (g (C' \ (fun (y : γ) => f y y)))) = (C' \ (fun (y : γ) => f y y)) :=  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                    And.right (Set.LeftInvOn γ (Set γ) g f C') (Set.RightInvOn γ (Set γ) f g (𝒫 C'))
-                      (And.right (Set.MapsTo (Set γ) γ g (𝒫 C') C')
+                    @And.right (Set.LeftInvOn γ (Set γ) g f C') (Set.RightInvOn γ (Set γ) f g (𝒫 C'))
+                      (@And.right (Set.MapsTo (Set γ) γ g (𝒫 C') C')
                         ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))
                         hg2)
                       (C' \ (fun (y : γ) => f y y)) hD;
@@ -488,9 +488,9 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                     congrArg.{1} (fun (S : Set γ) => S (g (C' \ (fun (y : γ) => f y y)))) hfg;
                   let hnot : ¬ ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))) :=
                     fun (p : (f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))) =>
-                      And.right (C' (g (C' \ (fun (y : γ) => f y y))))
+                      @And.right (C' (g (C' \ (fun (y : γ) => f y y))))
                         (¬ ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))))
-                        (Eq.subst.{1} Prop (fun (Q : Prop) => Q)
+                        (@Eq.subst.{1} Prop (fun (Q : Prop) => Q)
                           ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))) ((C' \ (fun (y : γ) => f y y)) (g (C' \ (fun (y : γ) => f y y)))) hprop p)
                         p;
                   let hp : (f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y))) :=

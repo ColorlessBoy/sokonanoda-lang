@@ -51,7 +51,7 @@ import lib.Prod
 
 -- 演示 1（已写好）：库自检 —— 两个投影算在构造子上都还原（这是 iota 计算，不是数学内容）。
 theorem demo_fst_snd_mk (A B : Type) (a : A) (b : B) :
-    Prod.fst A B (prod_mk A B a b) = a ∧ Prod.snd A B (prod_mk A B a b) = b := by
+    Prod.fst A B (@prod_mk A B a b) = a ∧ Prod.snd A B (@prod_mk A B a b) = b := by
   exact Prod.fst_snd_mk A B a b
 
 -- ─────────────────────────────────────────────────────────────
@@ -156,7 +156,7 @@ def Set.graph (A B : Type) (f : A → B) : Set (Prod A B) :=
 -- 演示 2（已写好）：图的成员刻画 —— `prod_mk A B a b` 在图里当且仅当 `f a = b`。
 -- 两边在定义展开后是同一个命题（投影算在构造子上），所以 `↔` 的两个方向都是恒等函数。
 theorem demo_graph_mem (A B : Type) (f : A → B) (a : A) (b : B) :
-    prod_mk A B a b ∈ Set.graph A B f ↔ f a = b := by
+    @prod_mk A B a b ∈ Set.graph A B f ↔ f a = b := by
   constructor
   intro h
   exact h

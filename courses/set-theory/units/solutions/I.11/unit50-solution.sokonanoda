@@ -30,18 +30,18 @@ theorem union_inter_subset (α : Type) (A B C : Set α) :
     (A ∩ B) ∪ (A ∩ C) ⊆ A ∩ (B ∪ C) :=
   fun (x : α) => fun (h : ((A ∩ B) ∪ (A ∩ C)) x) =>
     (fun (hu : (A ∩ B) x ∨ (A ∩ C) x) =>
-      And.intro
-        (Or.elim ((A ∩ B) x) ((A ∩ C) x) (A x)
+      @And.intro (A x) ((B ∪ C) x)
+        (@Or.elim ((A ∩ B) x) ((A ∩ C) x) (A x)
           (fun (h1 : (A ∩ B) x) =>
             (fun (hv : A x ∧ B x) => And.left hv) h1)
           (fun (h2 : (A ∩ C) x) =>
             (fun (hv : A x ∧ C x) => And.left hv) h2) hu)
-        (Or.elim ((A ∩ B) x) ((A ∩ C) x) ((B ∪ C) x)
+        (@Or.elim ((A ∩ B) x) ((A ∩ C) x) ((B ∪ C) x)
           (fun (h1 : (A ∩ B) x) =>
-            (fun (hv : B x) => Or.inl (B x) (C x) hv)  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
+            (fun (hv : B x) => @Or.inl (B x) (C x) hv)  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
               ((fun (hw : A x ∧ B x) => And.right hw) h1))
           (fun (h2 : (A ∩ C) x) =>
-            (fun (hv : C x) => Or.inr (B x) (C x) hv)  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
+            (fun (hv : C x) => @Or.inr (B x) (C x) hv)  -- soko:notation-ok: G-73 形状 ②：`∩`/`∪` 是 def 头，这些位置补不出前导实参
               ((fun (hw : A x ∧ C x) => And.right hw) h2)) hu))
       ((fun (hv : ((A ∩ B) ∪ (A ∩ C)) x ↔ (A ∩ B) x ∨ (A ∩ C) x) => Iff.mp hv)
         (Set.mem_union x (A ∩ B) (A ∩ C)) h)

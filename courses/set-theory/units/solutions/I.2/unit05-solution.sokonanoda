@@ -27,17 +27,17 @@ import lib.Prod
 
 -- 练习 1（T 类）：投影算在构造子上（直接点名库里的展开引理）。
 theorem prod_fst_mk (A B : Type) (a : A) (b : B) :
-    Prod.fst A B (prod_mk A B a b) = a := by
+    Prod.fst A B (@prod_mk A B a b) = a := by
   exact Prod.fst_mk A B a b
 
 -- 练习 2（T 类）：第二个投影同款。
 theorem prod_snd_mk (A B : Type) (a : A) (b : B) :
-    Prod.snd A B (prod_mk A B a b) = b := by
+    Prod.snd A B (@prod_mk A B a b) = b := by
   exact Prod.snd_mk A B a b
 
 -- 练习 3（L 类）：配对定理 —— 序对相等沿两个投影各搬一次。
 theorem prod_mk_inj (A B : Type) (a a1 : A) (b b1 : B) :
-    prod_mk A B a b = prod_mk A B a1 b1 → a = a1 ∧ b = b1 := by
+    @prod_mk A B a b = @prod_mk A B a1 b1 → a = a1 ∧ b = b1 := by
   intro h
   constructor
   exact @Eq.subst.{1} (Prod A B) (fun (p : Prod A B) => a = Prod.fst A B p)
@@ -47,7 +47,7 @@ theorem prod_mk_inj (A B : Type) (a a1 : A) (b b1 : B) :
 
 -- 练习 4（L 类）：配对定理的完整形态；← 方向对两个坐标各做一次 Eq.subst。
 theorem prod_mk_eq_iff (A B : Type) (a a1 : A) (b b1 : B) :
-    (prod_mk A B a b = prod_mk A B a1 b1) ↔ (a = a1 ∧ b = b1) := by
+    (@prod_mk A B a b = @prod_mk A B a1 b1) ↔ (a = a1 ∧ b = b1) := by
   constructor
   exact prod_mk_inj A B a a1 b b1
   intro h
@@ -72,12 +72,15 @@ theorem mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
 theorem prod_set_swap_ne (A : Type) (a b : A) (h : a ≠ b) :
     {a} ×ˢ {b} ≠ {b} ×ˢ {a} := by
   intro e
-  exact h (And.left
+  -- `And.left` 的隐式实参只能按「显式实参的类型 + 期望类型」**语法反解**，而
+  -- `@prod_mk A A a b ∈ ({b} ×ˢ {a})` 是 def 头（要 delta 展开才看得见 `∧`）⇒
+  -- 先用一个**带标注的 λ** 把它落成语法上的 `∧`，体内就能写短写 `And.left hm` ✓
+  exact h ((fun (hm : a = b ∧ b = a) => And.left hm)
     (@Eq.subst.{1} (Set (Prod A A))
       (fun (S : Set (Prod A A)) => @prod_mk A A a b ∈ S)
       ({a} ×ˢ {b}) ({b} ×ˢ {a}) e
-      (And.intro
-        (Set.mem_singleton_self A a) (Set.mem_singleton_self A b))))
+      ((fun (hmem : a ∈ {a} ∧ b ∈ {b}) => hmem)
+        (And.intro (@Set.mem_singleton_self A a) (@Set.mem_singleton_self A b)))))
 
 -- 练习 7（R 类）：Kuratowski 编码的退化情形 —— a = b 时 {{a},{a,b}} 塌缩成 {{a}}。
 -- 外层 Set.ext 逐元素 x : Set α 证 Iff；右到左直接 Or.inl；左到右 cases 分两支，
@@ -95,9 +98,9 @@ theorem kura_degenerate (α : Type) (a b : α) (h : a = b) :
       | Or.inl h1 => exact h1
       | Or.inr h2 =>
         exact @Eq.trans.{1} (Set α) x {a, b} {a} h2
-          (Set.ext α {a, b} {a}
+          (@Set.ext α {a, b} {a}
             (fun (y : α) =>
-              Iff.intro (y = a ∨ y = b) (y = a)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+              @Iff.intro (y = a ∨ y = b) (y = a)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
                 (fun (hy : y = a ∨ y = b) =>
                   Or.elim (y = a) (y = b) (y = a)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
                     (fun (hya : y = a) => hya)

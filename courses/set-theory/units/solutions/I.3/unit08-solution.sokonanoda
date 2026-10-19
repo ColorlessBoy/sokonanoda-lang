@@ -149,7 +149,7 @@ theorem image_subset_iff (α β : Type) (f : α → β) (A : Set α) (B : Set β
 -- ─────────────────────────────────────────────────────────────
 
 theorem image_inter_subset (α β : Type) (f : α → β) (A B : Set α) :
-    Set.subset β (f '' (A ∩ B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    @Set.subset β (f '' (A ∩ B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       ((f '' A) ∩ (f '' B)) := by
   intro y h
   exact @Exists.elim α
@@ -209,14 +209,14 @@ theorem bb_mem_U01 : bb ∈ U01 := by  -- soko:notation-ok: R1/R2：点名叫法
   exact @Or.inr (bb = aa) (bb = bb) (@Eq.refl.{1} Two bb)
 
 theorem inter_singletons_empty :
-    Eq.{1} (Set Two) (({aa}) ∩ ({bb}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    @Eq.{1} (Set Two) (({aa}) ∩ ({bb}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (∅) := by
-  exact Set.ext Two (({aa}) ∩ ({bb})) (∅)
+  exact @Set.ext Two (({aa}) ∩ ({bb})) (∅)
     (fun (x : Two) =>
-      Iff.intro (x ∈ (({aa}) ∩ ({bb})))
+      @Iff.intro (x ∈ (({aa}) ∩ ({bb})))
         (x ∈ (∅))
         (fun (hx : x ∈ (({aa}) ∩ ({bb}))) =>
-          False.elim (x ∈ (∅))
+          @False.elim (x ∈ (∅))
             (two_aa_ne_bb
               (@Eq.trans.{1} Two aa x bb
                 (@Eq.symm.{1} Two x aa
@@ -251,7 +251,7 @@ theorem image_inter_singletons_empty :
     (f1 '' (({aa}) ∩ ({bb})))
     (f1 '' (∅))
     (∅)
-    (congrArg.{1} (fun (X : Set Two) => f1 '' X) inter_singletons_empty)
+    (@congrArg.{1} (Set Two) (Set Two) (({aa}) ∩ ({bb})) (∅) (fun (X : Set Two) => f1 '' X) inter_singletons_empty)
     (image_empty (∅))
 
 -- aa 落在 `f1 '' {aa} ∩ f1 '' {bb}` 里（两个单点集都被压到 {aa}）。
@@ -278,16 +278,16 @@ theorem not_image_inter_eq_image_inter :
       (Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
         (f1 '' ({bb})))) =>
   @Set.notMem_empty Two aa
-    (Eq.subst.{1} (Set Two) (fun (X : Set Two) => aa ∈ X)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    (@Eq.subst.{1} (Set Two) (fun (X : Set Two) => aa ∈ X)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (Set.inter Two (f1 '' ({aa}))
         (f1 '' ({bb})))
       (∅)
-      (Eq.trans.{1} (Set Two)
+      (@Eq.trans.{1} (Set Two)
         (Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           (f1 '' ({bb})))
         (f1 '' (({aa}) ∩ ({bb})))
         (∅)
-        (Eq.symm.{1} (Set Two)
+        (@Eq.symm.{1} (Set Two)
           (f1 '' (({aa}) ∩ ({bb})))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           (Set.inter Two (f1 '' ({aa}))
             (f1 '' ({bb}))) h)
