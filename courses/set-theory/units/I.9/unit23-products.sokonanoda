@@ -100,7 +100,7 @@ theorem pi_const (ι α : Type) (A : ι → Set α) (a : α) (h : ∀ (i : ι), 
 -- soko:hint 目标形态：`Set.univ (ι → α) ⊆ (Set.pi ι α (fun _ => @Set.univ α))`。
 -- soko:hint 关键件：`Set.mem_pi_intro` + `Set.mem_univ`。
 theorem pi_univ_subset (ι α : Type) :
-    Set.univ (ι → α) ⊆ (Set.pi ι α (fun (_ : ι) => @Set.univ α)) := by
+    @Set.univ (ι → α) ⊆ (Set.pi ι α (fun (_ : ι) => @Set.univ α)) := by
   sorry
 
 -- 练习 6（L 类，本单元旗舰）：**某个因子空 ⇒ 积空**。

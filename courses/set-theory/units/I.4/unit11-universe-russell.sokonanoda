@@ -180,7 +180,7 @@ theorem mem_powerset_univ (α : Type) (A : Set α) :
 -- soko:hint 目标形态：Set.univ (Set α) ∈ Set.univ (Set (Set α))，两边的东西都属于类型 Set (Set α)。
 -- soko:hint 关键件：触发条件是「目标是『某元素属于该类型的 Set.univ』」；用 Set.mem_univ，类型参数写 Set (Set α)，元素参数写 Set.univ (Set α)。
 theorem univ_mem_univ_of_sets (α : Type) :
-    Set.univ (Set α) ∈ Set.univ (Set (Set α)) := by
+    @Set.univ (Set α) ∈ @Set.univ (Set (Set α)) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -211,5 +211,5 @@ theorem univ_top_iff (α : Type) (A : Set α) :
 -- soko:hint 目标形态：𝒫 (@Set.univ α) = Set.univ (Set α)，逐元素是 (A ⊆ @Set.univ α) ↔ True。
 -- soko:hint 关键件：触发条件是「目标是两个 Set (Set α) 的等式」；用 Set.ext（第一个参数写 Set α），左到右一步到 True（Set.mem_univ），右到左要交出 A ⊆ univ（演示 1，或就地 intro 给 True.intro）。
 theorem powerset_univ_eq_univ_of_sets (α : Type) :
-    𝒫 (@Set.univ α) = Set.univ (Set α) := by
+    𝒫 (@Set.univ α) = @Set.univ (Set α) := by
   sorry
