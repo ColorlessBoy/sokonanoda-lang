@@ -2113,7 +2113,7 @@ fn const_arg_expected_enabled() -> bool {
 /// ## 它补的是哪一格
 ///
 /// App 臂里 `arg_expected` 的三档都**不认常量头** ✗：① [`b1_local_expected`] 只认
-/// **局部变量**；② [`kernel_next_arg_expected`] 只在①报 `suspect` 时兜底；③
+/// **局部变量**；② `named_arg::next_arg_expected` 只在①报 `suspect` 时兜底；③
 /// [`lambda_arg_expected`] 只认 `fun …` 头。⇒ `partition_disjoint α P h A B hA hB
 /// (Exists.intro b hb)` 这种「**常量头**的应用、最后一个实参是**自己也吃期望类型**的
 /// 构造子」拿不到期望类型 ✗。
@@ -2213,28 +2213,6 @@ fn const_arg_expected<'a>(
         }
     }
     Some(crate::spine::substitute(&layers[args.len()].domain, &sigma))
-}
-
-fn kernel_next_arg_expected<'a>(
-    fun: &Expr,
-    scope: &ElabScope<'a>,
-    ctx: &ElabCtx<'a, '_>,
-    env: Option<&mut InplaceEnv<'_, 'a>>,
-    univ: &UnivMap<'a>,
-) -> Option<Expr> {
-    // ⚠ **必须取「全显式 pp」形态**（最后一个 `true` ✓）—— 默认档的 pp **只丢第一个
-    // 隐式实参**（`img {α β} f A` 打成 `img β f A` ✓，见 `judge::EXPLICIT_PP` 的长注释
-    // 与 G-71）✗ ⇒ 那份文本**回读成项**时会**错位对齐**（`α := β, β := f, f := A`）✗
-    // ⇒ 期望类型是错的 ✗（本轮实测：`mem (f x) (img β f A)` ⇒ 展开成 `A a` ⇒
-    // `[clash] 左=Ex ｜ 右=A a` ✗）。全显式档打的是 `@img α β f A` ✓ ⇒ 回读**逐位对齐** ✓。
-    // 这条机械**现成**（C 子项的 `operand_type_expr_explicit` 就是它 ✓）。
-    // **逃生门**（反向验证 ✓）：`SOKO_KERNEL_ARG_PP=default` ⇒ 退回**默认 pp 档**
-    // （只丢第一个隐式实参的那一档 ✗）⇒ 判据**必须重新判红** ✓。
-    let explicit_pp = std::env::var("SOKO_KERNEL_ARG_PP").ok().as_deref() != Some("default");
-    let ty_text = infer_type_text(ctx, scope, fun, env, Some(univ), explicit_pp)?;
-    let (layers, _) = notation_telescope(&ty_text)?;
-    let (_, domain) = layers.first()?;
-    Some(domain.clone())
 }
 
 fn needs_expected_type(expr: &Expr) -> bool {
@@ -2909,7 +2887,7 @@ fn notation_prefix_args<'a>(
 }
 
 /// `signature` 的 Pi 望远镜：`(名字, 域)` 逐层 + 余下的结果类型。解析不出 ⇒ `None`。
-fn notation_telescope(signature: &str) -> Option<(Vec<(String, Expr)>, Expr)> {
+pub(crate) fn notation_telescope(signature: &str) -> Option<(Vec<(String, Expr)>, Expr)> {
     // A4b 的判据读数（与 `implicit::telescope` 共用同一个计数器 ✓）。
     crate::compile::implicit::note_telescope_parse();
     let sig = crate::proof::parse_expr_text(signature).ok()?;
@@ -3706,7 +3684,7 @@ pub(crate) fn infer_type_text_inplace_expected<'a>(
 /// **P1-a 第一步（2026-09-29）**：多收一个 [`InplaceEnv`] ——
 /// `Some` 且开关允许时就地答（**不再合成整段前缀**）；
 /// `None` / 开关 `off` / 就地答不出 ⇒ **逐字节回退到今天的行为** ✓。
-fn infer_type_text<'a>(
+pub(crate) fn infer_type_text<'a>(
     ctx: &ElabCtx<'a, '_>,
     scope: &ElabScope<'a>,
     operand: &Expr,
@@ -5799,12 +5777,13 @@ pub(crate) fn elab_expr<'a>(
                 // 绝不更差 ✓）；③ 老风险（`application_arg_expected` 要问头类型 ⇒ 每个实参都问
                 // 会递归栈溢出）**只在这一小撮形状上**出现 ✓。
                 match b1_local_expected(fun, scope, ctx.defs) {
-                    Some((ty, true)) => kernel_next_arg_expected(
+                    // 与 `named_arg::next_arg_expected`（`@` 脊那一格）**共用一份** ✓。
+                    Some((ty, true)) => crate::compile::named_arg::next_arg_expected(
                         fun,
                         scope,
                         ctx,
                         Some(&mut InplaceEnv { builder, known }),
-                        univ,
+                        Some(univ),
                     )
                     .or(Some(ty)),
                     other => other.map(|(ty, _s)| ty),
@@ -5839,6 +5818,24 @@ pub(crate) fn elab_expr<'a>(
                 // 放在**最后**：前面三档答得出来就一步都不进 ⇒ 既有形状逐字节不变 ✓。
                 // 逃生门 `SOKO_CONST_ARG_EXPECTED=0|off` ⇒ 退回今天的行为（反向验证 ✓）。
                 .or_else(|| const_arg_expected(fun, arg, scope, known, ctx))
+                // ── **`@` 脊那一格（2026-10-19，族 (A)）** ─────────────────────
+                // `@` 脊的实参**逐位**对应形参 ⇒ 这一位的期望类型 = 偏应用的第 0 个
+                // Π 域 ✓（Lean 4 `Elab/App.lean:263` `getArgExpectedType` + `:281`
+                // `addNewArg` ✓ —— 与 `apply` 那条**同一份机械** ✓）。上面几档都不认
+                // **裸常量实参**（`@Set.ext A (A ∪ Set.univ) Set.univ h` 的第 3 位）
+                // ⇒ 以前内核看到的是那个 Pi ✗（p17 / d2 实测 ✓）。放**最后** ⇒ 既有
+                // 形状逐字节不变 ✓；[`at_arg_expected`] 自带两道免费闸门 ✓。
+                .or_else(|| {
+                    crate::compile::named_arg::at_arg_expected(
+                        fun,
+                        arg,
+                        *explicit_spine,
+                        scope,
+                        ctx,
+                        known,
+                        Some(&mut InplaceEnv { builder, known }),
+                    )
+                })
             };
             let fun = elab_expr(builder, fun, scope, univ, known, hovers, None, None, ctx)?;
             let arg = elab_expr(

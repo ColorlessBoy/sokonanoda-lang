@@ -60,6 +60,9 @@ fn grade(tag: &str, src: &str, envs: &[(&str, &str)]) -> (bool, Vec<String>, Vec
     // `SOKO_STRICT_AT`，「默认档」那一条量的就不是默认值而是环境值 ✗（判据随环境漂移
     // = 假红/假绿 ✓）。先摘掉，再注入本用例显式要的那一档 ✓。
     cmd.env_remove("SOKO_STRICT_AT");
+    // 同族第二条（2026-10-19 族 (A)）：`@` 脊那条期望类型通道的**反向验证开关**
+    // ⇒ 外部设过它时判据会量到另一档（假红/假绿 ✓）⇒ 一并摘掉 ✓。
+    cmd.env_remove("SOKO_KERNEL_ARG_PP");
     for (k, v) in envs {
         cmd.env(k, v);
     }
@@ -304,4 +307,46 @@ def ok2 : Nat := @g Nat 5
             );
         }
     }
+}
+
+/// **族 (A) 的守卫（2026-10-19）**：`@` 脊上**裸常量实参**必须吃**该层的域**当期望类型。
+///
+/// **病**（p17 / d2 / goalside 实测 ✓）：`apply Set.ext` 给裸头补全整条望远镜
+/// （`@Set.ext α A (A ∪ Set.univ) Set.univ h`），而老路里每个实参的期望类型只在
+/// `needs_expected_type`（`SetLiteral` / 零元记法 / `Lambda`）时才算 ⇒ 第 3 位那个
+/// **裸 `Set.univ`** 拿到 `None` ⇒ 它按"函数值"elaborate ⇒ 内核看到的是那个 **Pi**
+/// ⇒ `类型不匹配：期望 (Set α)，实际是 ∀(α : Sort(1)), (Set α)` ✗。
+///
+/// **Lean 4 对照**（本机源码 `d0493e4c1e` ✓）：`Elab/App.lean:263`
+/// `getArgExpectedType := (← get).fType.bindingDomain!` + `:281` `addNewArg` 的
+/// `fType := s.fType.bindingBody!.instantiate1 arg` ⇒ `@` 档（`:1881` 的
+/// `explicit := true` ⇒ `:708` 隐式形参也走 `processExplicitArg`）下**每个实参都吃
+/// 偏应用的第 0 个 Π 域** ✓ —— `@` 只改"实参绑到哪个 binder"，**不改实参自身的 elaborate** ✓。
+///
+/// **判据（用户可见的结果）**：这一条**必须 checked**（改前 kernel-rejected ✗）。
+const AT_SPINE_BARE_CONST: &str = "\
+def Set (α : Type) : Type := α → Prop
+def Set.union {α : Type} (A B : Set α) : Set α := fun (x : α) => A x ∨ B x
+def Set.univ {α : Type} : Set α := fun (x : α) => True
+infixl:65 \" ∪ \" => Set.union
+axiom Set.ext {α : Type} (A B : Set α) : (∀ (x : α), A x ↔ B x) → A = B
+
+theorem union_univ (α : Type) (A : Set α) : A ∪ Set.univ = Set.univ := by
+  apply Set.ext
+  intro x
+  constructor
+  intro hx
+  exact True.intro
+  intro hx
+  exact Or.inr hx
+";
+
+#[test]
+fn at_spine_bare_constant_argument_gets_its_layer_domain() {
+    let (ok, checked, diags) = grade("at-bare-const", AT_SPINE_BARE_CONST, &[]);
+    assert!(
+        ok && checked.iter().any(|c| c == "union_univ"),
+        "`@` 脊上的裸常量实参（`apply Set.ext` 补出的 `univ`）必须 checked：\
+         checked={checked:?} diags={diags:?}"
+    );
 }

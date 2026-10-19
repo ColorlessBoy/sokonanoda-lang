@@ -54,6 +54,95 @@ pub(crate) fn spine_needs_old_path(explicit_spine: bool, expr: &Expr) -> bool {
     (explicit_spine && !spine_has_named(expr)) || crate::spine::spine_crosses_explicit(expr)
 }
 
+/// **`@` 脊上「实参自己的期望类型」**（2026-10-19，族 (A)）—— `None` ⇒ 今天的行为 ✓。
+///
+/// ## 它补的是哪一格
+///
+/// 老路（[`spine_needs_old_path`] 判真那条）里每个实参的期望类型只在
+/// `needs_expected_type(arg)`（`SetLiteral` / 零元记法 / `Lambda`）时才算 ⇒
+/// **裸常量实参**（`@Set.ext A (A ∪ Set.univ) Set.univ h` 的第 3 位）拿到
+/// `None` ⇒ 它按"函数值"elaborate ⇒ 内核看到的是那个 **Pi**
+/// （`∀(α : Sort(1)), Set α`）而不是 `Set (A ∪ Set.univ)` ✗
+/// ⇒ `类型不匹配：期望 (Set α)，实际是 ∀(α : Sort(1)), (Set α)`（p17 / d2 实测 ✓）。
+///
+/// ## 与 Lean 4 同构（本机源码 `d0493e4c1e` ✓，逐条自己读过）
+///
+/// * `Elab/App.lean:263` `getArgExpectedType := (← get).fType.bindingDomain!` ——
+///   `fType` 是**当前部分应用**的类型（`:253` `normalizeFunType` 先 `whnfForall` ✓）；
+/// * `:708` `processImplicitArg`：`if (← read).explicit then processExplicitArg`
+///   —— `@` 档下**隐式形参也走显式那条** ✓；`:592` `processExplicitArg` 取
+///   `getArgExpectedType` ✓；
+/// * `:284` `elabAndAddNewArg`：`elabTerm stx expectedType` ⇒ **实参自己的
+///   elaborate 拿到该层的域** ✓；`:281` `addNewArg`：
+///   `fType := s.fType.bindingBody!.instantiate1 arg` ⇒ 下一个实参的期望类型
+///   就是**吃完这个实参之后**的第 0 个 Π 域 ✓；
+/// * `@` 的开关在 `:1881`（`| `(@$id:ident) => … (explicit := true)` ✓）。
+///
+/// ⇒ Lean 里「`@` 只改实参绑到哪个 binder」与「每个实参都吃该层的域」**同时成立** ✓
+/// —— 我们缺的正是后半条 ✓。
+///
+/// ## 三条安全边界（宁可 `None` = 今天的行为，绝不返回**错的**期望类型 ✗）
+///
+/// ① **只在 `@` 脊上跑**（`explicit_spine`）：这条脊的实参**逐位**对应望远镜
+///    （`@` 的语义就是"不插隐式实参" ✓）⇒ 偏应用的第 0 个 Π 域就是这一位的域 ✓；
+///    没有 `@` 时实参↔形参的对应**不保证逐位** ⇒ 一个字节都不碰 ✓。
+/// ② **便宜闸门**：实参的头必须是**已知常量**且 `implicit_prefix() > 0` ——
+///    只有这种形状**真的需要**期望类型（前导隐式只能从期望类型反解 ✓）；
+///    别的形状自己解得出来 ⇒ 闸门之外**一次内核调用都不付** ✓。
+/// ③ **答不出 ⇒ `None`**（内核也答不出 / 文本回读不了 / 望远镜是空的 ✓）。
+pub(crate) fn at_arg_expected<'a>(
+    fun: &Expr,
+    arg: &Expr,
+    explicit_spine: bool,
+    scope: &ElabScope<'a>,
+    ctx: &ElabCtx<'a, '_>,
+    known: &KnownTable,
+    env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
+) -> Option<Expr> {
+    if !explicit_spine {
+        return None;
+    }
+    let arg_name = match arg {
+        Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => name.as_str(),
+        _ => return None,
+    };
+    // 遮蔽：局部名不是常量（局部那一档已经答过 ✓，绝不回落到同名常量 ✗）。
+    if scope.find_last(arg_name).is_some() {
+        return None;
+    }
+    // ⚠ `locals` 传**空**：遮蔽上面已经判过 ⇒ 这里要的就是**常量**那一档
+    //（`resolve_known` 的局部回落正是我们要避免的 ✗）。
+    let canonical =
+        crate::compile::elab::resolve_known(known, ctx.ns, arg_name, arg.span(), &[]).ok()?;
+    if known.get(&canonical)?.implicit_prefix() == 0 {
+        return None;
+    }
+    next_arg_expected(fun, scope, ctx, env, None)
+}
+
+/// **偏应用的「下一个实参」的期望类型**（= 第 0 个 Π 域）—— **`@` 脊与 `apply` 共用** ✓。
+///
+/// ⚠ **必须取「全显式 pp」形态** —— 默认档的 pp **只丢第一个隐式实参**
+/// （`img {α β} f A` 打成 `img β f A` ✓，见 `judge::EXPLICIT_PP` 的长注释与 G-71）✗
+/// ⇒ 那份文本**回读成项**时会**错位对齐**（`α := β, β := f, f := A`）✗ ⇒ 期望类型是错的 ✗
+/// （`apply` 那条实测过：`mem (f x) (img β f A)` ⇒ 展开成 `A a` ⇒ `[clash] 左=Ex ｜ 右=A a` ✗）。
+/// 全显式档打的是 `@img α β f A` ✓ ⇒ 回读**逐位对齐** ✓。
+/// **逃生门**（反向验证 ✓）：`SOKO_KERNEL_ARG_PP=default` ⇒ 退回**默认 pp 档** ✓。
+pub(crate) fn next_arg_expected<'a>(
+    fun: &Expr,
+    scope: &ElabScope<'a>,
+    ctx: &ElabCtx<'a, '_>,
+    env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
+    // 调用方有**真宇宙表**就传进来（`apply` 那条有 ✓）；`@` 脊那条没有 ⇒ `None` ✓。
+    univ: Option<&UnivMap<'a>>,
+) -> Option<Expr> {
+    let explicit_pp = std::env::var("SOKO_KERNEL_ARG_PP").ok().as_deref() != Some("default");
+    let ty_text = crate::compile::elab::infer_type_text(ctx, scope, fun, env, univ, explicit_pp)?;
+    let (layers, _) = crate::compile::elab::notation_telescope(&ty_text)?;
+    let (_, domain) = layers.first()?;
+    Some(domain.clone())
+}
+
 /// 把命名实参应用落到内核项上。返回 `Ok(None)` ⇒ 交回老路（**绝不静默**）。
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn apply<'a>(
