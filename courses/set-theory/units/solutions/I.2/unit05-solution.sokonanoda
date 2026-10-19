@@ -94,14 +94,14 @@ theorem kura_degenerate (α : Type) (a b : α) (h : a = b) :
     cases hX with
       | Or.inl h1 => exact h1
       | Or.inr h2 =>
-        exact Eq.trans.{1} (Set α) x {a, b} {a} h2
+        exact @Eq.trans.{1} (Set α) x {a, b} {a} h2
           (Set.ext α {a, b} {a}
             (fun (y : α) =>
               Iff.intro (y = a ∨ y = b) (y = a)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
                 (fun (hy : y = a ∨ y = b) =>
                   Or.elim (y = a) (y = b) (y = a)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
                     (fun (hya : y = a) => hya)
-                    (fun (hyb : y = b) => Eq.trans.{1} α y b a hyb (Eq.symm.{1} α a b h))
+                    (fun (hyb : y = b) => @Eq.trans.{1} α y b a hyb (Eq.symm.{1} α a b h))
                     hy)
                 (fun (hya : y = a) => Or.inl hya)))
   exact hmem

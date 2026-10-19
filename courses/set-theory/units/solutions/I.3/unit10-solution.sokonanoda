@@ -150,7 +150,7 @@ theorem no_surjection_powerset (α : Type) :
     (fun (f : α → Set α) => Function.Surjective α (Set α) f)
     False h
     (fun (f : α → Set α) => fun (hf : Function.Surjective α (Set α) f) =>
-      Exists.elim α (fun (x : α) => f x = (fun (y : α) => ¬ (f y y))) False
+      @Exists.elim α (fun (x : α) => f x = (fun (y : α) => ¬ (f y y))) False
         (hf (fun (y : α) => ¬ (f y y)))
         (fun (x : α) => fun (hx : f x = (fun (y : α) => ¬ (f y y))) =>
           diag f (fun (y : α) => ¬ (f y y)) x

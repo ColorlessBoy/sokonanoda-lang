@@ -103,7 +103,7 @@ theorem univ_subset_iff (α : Type) (A : Set α) :
   intro h
   intro x
   intro hu
-  exact Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X)
+  exact @Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X)
     (@Set.univ α) A (Eq.symm.{1} (Set α) A (@Set.univ α) h) hu
 
 -- 演示 3（已写好）：把 11.1 里那句话限制在**一个类型内**，它确实成立——

@@ -88,7 +88,7 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
             (((r • s) • t) a d)
             h
             (fun (b : B) => fun (hb : (r a b) ∧ ((s • t) b d)) =>
-              Exists.elim C
+              @Exists.elim C
                 (fun (c : C) => (s b c) ∧ (t c d))
                 (((r • s) • t) a d)
                 (And.right hb)
@@ -106,12 +106,12 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
                       (And.right hc)))))
         -- ←：先拆出 c，再拆出 b，然后按 b、c 的顺序重新打包
         (fun (h : ((r • s) • t) a d) =>
-          Exists.elim C
+          @Exists.elim C
             (fun (c : C) => ((r • s) a c) ∧ (t c d))
             ((r • (s • t)) a d)
             h
             (fun (c : C) => fun (hc : ((r • s) a c) ∧ (t c d)) =>
-              Exists.elim B
+              @Exists.elim B
                 (fun (b : B) => (r a b) ∧ (s b c))
                 ((r • (s • t)) a d)
                 (And.left hc)
@@ -234,10 +234,10 @@ theorem classes_isPartition (A : Type) (r : Rel A A)
       -- ② 覆盖
       (fun (a : A) =>
         Exists.intro (EquivClass A r a)
-          (And.intro
+          (@And.intro
             ((EquivClass A r a) ∈ (classes A r))
             (a ∈ (EquivClass A r a))
-            (Exists.intro a (Eq.refl.{1} (Set A) (EquivClass A r a)))
+            (@Exists.intro A (fun (w : A) => (EquivClass A r a) = (EquivClass A r w)) a (Eq.refl.{1} (Set A) (EquivClass A r a)))
             (hrefl a)))
       -- ③ 不相等就不交
       (fun (C D : Set A) =>
@@ -331,7 +331,7 @@ theorem nearStep_counterexample :
           (((Nat.succ a) = b) ∨ (a = (Nat.succ b)))
           (nearStep b a)
           (fun (hab : a = b) =>
-            Or.inl (b = a)
+            @Or.inl (b = a)
               (((Nat.succ b) = a) ∨ (b = (Nat.succ a)))
               (Eq.symm.{1} Nat a b hab))
           (fun (h2 : ((Nat.succ a) = b) ∨ (a = (Nat.succ b))) =>
@@ -345,7 +345,7 @@ theorem nearStep_counterexample :
               (fun (h2b : a = (Nat.succ b)) =>
                 Or.inr (b = a)
                   (((Nat.succ b) = a) ∨ (b = (Nat.succ a)))
-                  (Or.inl ((Nat.succ b) = a) (b = (Nat.succ a))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+                  (@Or.inl ((Nat.succ b) = a) (b = (Nat.succ a))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
                     (Eq.symm.{1} Nat a (Nat.succ b) h2b)))
               h2)
           h)
@@ -364,12 +364,12 @@ theorem nearStep_counterexample :
         let p01 : nearStep 0 1 :=
           Or.inr (0 = 1)
             (((Nat.succ 0) = 1) ∨ (0 = (Nat.succ 1)))
-            (Or.inl ((Nat.succ 0) = 1) (0 = (Nat.succ 1))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+            (@Or.inl ((Nat.succ 0) = 1) (0 = (Nat.succ 1))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
               (Eq.refl.{1} Nat 1));
         let p12 : nearStep 1 2 :=
           Or.inr (1 = 2)
             (((Nat.succ 1) = 2) ∨ (1 = (Nat.succ 2)))
-            (Or.inl ((Nat.succ 1) = 2) (1 = (Nat.succ 2))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+            (@Or.inl ((Nat.succ 1) = 2) (1 = (Nat.succ 2))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
               (Eq.refl.{1} Nat 2));
         notNear02 (htrans 0 1 2 p01 p12)))
 
