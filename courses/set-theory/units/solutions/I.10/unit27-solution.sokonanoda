@@ -69,7 +69,7 @@ theorem quot_all_eq (α : Type) (a b : α) :
 theorem quot_lift_unique (α β : Type) (r : α → α → Prop) (f : α → β)
     (h : ∀ (a b : α), r a b → f a = f b) (g : @Quot.{1} α r → β)
     (hg : ∀ (a : α), g (@Quot.mk.{1} α r a) = f a) (q : @Quot.{1} α r) :
-    g q = Quot.lift.{1, 1} α r β f h q :=
+    g q = @Quot.lift.{1, 1} α r β f h q :=
   Quot.ind.{1} α r (fun (q' : Quot.{1} α r) => g q' = Quot.lift.{1, 1} α r β f h q')
     (fun (a : α) => hg a) q
 
@@ -80,8 +80,8 @@ theorem quot_lift_const_all (α β : Type) (f : α → β)
       = @Quot.lift.{1, 1} α (fun (_ _ : α) => True) β f h q2 :=
   @Quot.ind.{1} α (fun (_ _ : α) => True)
     (fun (q1' : @Quot.{1} α (fun (_ _ : α) => True)) =>
-      Quot.lift.{1, 1} α (fun (_ _ : α) => True) β f h q1'
-        = Quot.lift.{1, 1} α (fun (_ _ : α) => True) β f h q2)
+      @Quot.lift.{1, 1} α (fun (_ _ : α) => True) β f h q1'
+        = @Quot.lift.{1, 1} α (fun (_ _ : α) => True) β f h q2)
     (fun (a : α) =>
       Quot.ind.{1} α (fun (_ _ : α) => True)
         (fun (q2' : Quot.{1} α (fun (_ _ : α) => True)) =>

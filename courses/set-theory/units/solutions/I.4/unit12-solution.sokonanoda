@@ -174,7 +174,7 @@ theorem flawed_equalities_refuted :
     ∧ (fun (_ : Set Nat) => ∅) '' ({∅} ∩ {(Set.univ Nat)})
       ≠ ((fun (_ : Set Nat) => ∅) '' {∅}) ∩ ((fun (_ : Set Nat) => ∅) '' {(Set.univ Nat)}) :=
   @And.intro
-    ((fun (_ : Set Nat) => ∅) '' ((fun (_ : Set Nat) => ∅) ⁻¹' (Set.univ (Set Nat)))
+    ((fun (_ : Set Nat) => ∅) '' ((fun (_ : Set Nat) => ∅) ⁻¹' (@Set.univ (Set Nat)))
       ≠ Set.univ (Set Nat))
     ((fun (_ : Set Nat) => ∅) '' ({∅} ∩ {(Set.univ Nat)})
       ≠ ((fun (_ : Set Nat) => ∅) '' {∅}) ∩ ((fun (_ : Set Nat) => ∅) '' {(Set.univ Nat)}))
