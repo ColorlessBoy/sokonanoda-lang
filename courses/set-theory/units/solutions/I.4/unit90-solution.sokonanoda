@@ -43,7 +43,7 @@ theorem comp_eq_of_eq (α : Type) (β : Type) (γ : Type) (f : α → β) (g : �
       (@Eq.refl.{1} γ (g b)))
     (@Eq.trans.{1} γ (g b) (g b') (g (f a')) h
       (@Eq.subst.{1} β (fun (x : β) => g b' = g x) b' (f a') (@Eq.symm.{1} β (f a') b' ha')
-        (Eq.refl.{1} γ (g b'))))
+        (@Eq.refl.{1} γ (g b'))))
 
 theorem inj_of_comp_surj (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
     (hf : Surjective α β f) (hgf : Injective α γ (fun (x : α) => g (f x))) :

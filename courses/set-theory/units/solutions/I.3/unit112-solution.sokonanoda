@@ -288,7 +288,7 @@ theorem cbRel_inj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : 
                       (demo_cbRelL_mem α β (cbC0 α β A B f g) f z y h2)
                       (demo_cbRelL_eq α β (cbC0 α β A B f g) f z y h2)))))
             (fun (h2 : cbRelR α β (cbC0 α β A B f g) g z y) =>
-              Eq.trans.{1} α x (g y) z
+              @Eq.trans.{1} α x (g y) z
                 (Eq.symm.{1} α (g y) x
                   (demo_cbRelR_eq α β (cbC0 α β A B f g) g x y h1))
                 (demo_cbRelR_eq α β (cbC0 α β A B f g) g z y h2))
