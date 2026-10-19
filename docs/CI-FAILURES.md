@@ -612,3 +612,16 @@ CLI 层实测 40 条声明的夹具：管道 **2.48s** vs `NO_TICK` **2.48s**（
 
 **预防**：`gates-course` 需要一条**运行时长上限**（超过 N 分钟直接 fail-fast 并打日志），
 否则它会把整轮 run 拖成 `in_progress`、连带把 `check-one-run.py` 卡在 1（**阻断后续推送**）。
+
+## 2026-10-20 · **agent 操作事故**：`one-run=1` 时推送，顶掉了 `4af45292`
+
+**事实**：推 `806aae16` 时 `check-one-run.py` 返回 **1**，但我仍执行了 push
+⇒ GitHub 的 `concurrency: ci-${{ github.ref }}` + `cancel-in-progress` 把
+**`4af45292` 那轮整轮 cancel**（`completed cancelled`）。
+
+**为什么防御没生效**：我在**同一条命令里**先查 gate 再 push，但**没检查返回值就继续**；
+且 `e460e039` 恰好在 `4af45292` 被 cancel 后启动，造成"查的时候是 0、推的时候是 1"的竞态观感。
+
+**真正的规矩（写死）**：`check-one-run.py` **返回非 0 ⇒ 立即终止本次推送**，
+不许"再等等看"、不许把"刚查过 0"当成"现在也是 0"。若已有 run 在**排队**（`pending`），
+同样视为占用 —— 它会在我推送后立刻被 cancel。
