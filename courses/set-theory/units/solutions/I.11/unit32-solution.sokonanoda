@@ -73,7 +73,7 @@ theorem isSup_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β)
             (g a)
             (fun (y : β) =>
               fun (hy : ∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
-                Exists.elim (α → β) (fun (f1 : α → β) => F f1 ∧ @Eq.{1} β (f1 a) y) (r y (g a)) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                @Exists.elim (α → β) (fun (f1 : α → β) => F f1 ∧ @Eq.{1} β (f1 a) y) (r y (g a)) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
                   (fun (f1 : α → β) (hf1 : F f1 ∧ @Eq.{1} β (f1 a) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
                     rel_subst_right β (fun (p : β) (q : β) => r q (g a)) y (f1 a) y
                       (And.right hf1)
@@ -97,7 +97,7 @@ theorem isInf_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β)
             (g a)
             (fun (y : β) =>
               fun (hy : ∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
-                Exists.elim (α → β) (fun (f1 : α → β) => F f1 ∧ @Eq.{1} β (f1 a) y) (r (g a) y) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                @Exists.elim (α → β) (fun (f1 : α → β) => F f1 ∧ @Eq.{1} β (f1 a) y) (r (g a) y) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
                   (fun (f1 : α → β) (hf1 : F f1 ∧ @Eq.{1} β (f1 a) y) =>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
                     rel_subst_right β (fun (p : β) (q : β) => r (g a) q) (g a) (f1 a) y
                       (And.right hf1)

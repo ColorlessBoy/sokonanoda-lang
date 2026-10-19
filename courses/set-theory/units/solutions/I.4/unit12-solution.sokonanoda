@@ -196,27 +196,27 @@ theorem flawed_equalities_refuted :
           (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
             (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)
               (Set.univ (Set Nat))))
-          (Eq.symm.{1} (Set (Set Nat))
+          (@Eq.symm.{1} (Set (Set Nat))
             (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)
                 (Set.univ (Set Nat))))
             (Set.univ (Set Nat)) h)
-          (Set.mem_univ (Set Nat) (Set.univ Nat)))
+          (@Set.mem_univ (Set Nat) (Set.univ Nat)))
         (fun (x : Set Nat) =>
           fun (hx :
           (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               (Set.univ (Set Nat)) x) ∧
             (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           ) =>
-          Set.notMem_empty Nat 0
-            (Eq.subst.{1} (Set Nat) (fun (Z : Set Nat) => 0 ∈ Z)
+          @Set.notMem_empty Nat 0
+            (@Eq.subst.{1} (Set Nat) (fun (Z : Set Nat) => 0 ∈ Z)
               (Set.univ Nat) (∅)
-              (Eq.symm.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                (And.right
+              (@Eq.symm.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                (@And.right
                   (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                     (Set.univ (Set Nat)) x)
                   (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat)) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              (Set.mem_univ Nat 0))))
+              (@Set.mem_univ Nat 0))))
     (fun (h :
       @Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           (Set.inter (Set Nat) ({(Set Nat)} ∅)
@@ -227,7 +227,7 @@ theorem flawed_equalities_refuted :
             (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               ({(Set.univ Nat)}))
     ) =>
-      Exists.elim (Set Nat)
+      @Exists.elim (Set Nat)
         (fun (x : Set Nat) =>
           (Set.inter (Set Nat) ({(∅)})  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               ({(Set.univ Nat)}) x) ∧
@@ -243,7 +243,7 @@ theorem flawed_equalities_refuted :
           (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
             (Set.inter (Set Nat) ({(∅)})
               ({(Set.univ Nat)})))
-          (Eq.symm.{1} (Set (Set Nat))
+          (@Eq.symm.{1} (Set (Set Nat))
             (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               (Set.inter (Set Nat) ({(∅)})
                 ({(Set.univ Nat)})))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
@@ -494,8 +494,8 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                           ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))) ((C' \ (fun (y : γ) => f y y)) (g (C' \ (fun (y : γ) => f y y)))) hprop p)
                         p;
                   let hp : (f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y))) :=
-                    Eq.subst.{1} Prop (fun (Q : Prop) => Q)
+                    @Eq.subst.{1} Prop (fun (Q : Prop) => Q)
                       ((C' \ (fun (y : γ) => f y y)) (g (C' \ (fun (y : γ) => f y y)))) ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y))))
-                      (Eq.symm.{1} Prop ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))) ((C' \ (fun (y : γ) => f y y)) (g (C' \ (fun (y : γ) => f y y)))) hprop)
+                      (@Eq.symm.{1} Prop ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))) ((C' \ (fun (y : γ) => f y y)) (g (C' \ (fun (y : γ) => f y y)))) hprop)
                       (And.intro hC'gD hnot);
                   hnot hp)))

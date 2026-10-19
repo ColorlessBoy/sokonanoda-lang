@@ -7,6 +7,7 @@
 - ⚠ **`fix_heads.HEADS` 有陈旧项**（`Iff.mp` 记 1、真签名显式 **2**）⇒ 形状扫描在 22 个失败文件上给 **218 候选**、绝大多数假阳性 ⇒ **不可用** ✗（与交接告警①一致）。
 - **读数**（构建身份 release `sha256:16 = eea22ca0b5919747` · 父提交 `cfcf4ed6`）：`check.py --json` **rejected 22 → 16**（`targets 258` · `checked 2135 → 2151`）✓ · **无新增判负**（逐目标对拍 ✓）· `front --lib` **1006/0** ✓ · `protocol` **13/13** ✓ · `--test course` **6/0** ✓ · `notation-lint` **exit 0**（330 文件 · 719 处已标记豁免）✓ · **旧档中性 10/10**（除 `span`/`file`/路径外逐字节相同 ✓）。
 - ⚠ **如实（未收口）**：仍红 **16**（`单元 8` · `解答 unit04/05/06/08/09/10/11/12/32/39/46/51/78` · `notation-cheatsheet` 页与解答）。其中 `unit05-solution`/`unit12-solution`/`unit32-solution`/`unit08-solution` 已**部分推进**（诊断 14→4 · 4→2 · 2→2 换成下一处 · 10→9）；`unit04/06/10/11/09` 与 4 个 `kernel-rejected` 文件本轮**未动** ✗。
+- ⭐ **第二笔（同轮追加）**：`解答 unit32` 转绿（`@Exists.elim …` —— 显式形参个数从**诊断自己的签名文本**数，不用陈旧表）+ `unit12-solution` 诊断 **2 → 1**（诊断驱动链补 6 处 `@`，逐条按「message 点名的头 + 该诊断自己的 span」）⇒ `check.py --json` **rejected 16 → 15**（`targets 258` · `checked 2151 → 2154`）✓、**无新增判负** ✓、`notation-lint` 仍 **exit 0** ✓、`unit32`/`unit12` 旧档**均中性** ✓。
 - ⚠ **并发写者（如实记）**：本工作树里 **28 个 `docs/**` + `README.md` + `ROADMAP.md`** 在 22:37 被**另一个写者**改动（`doc-refs:` → HTML 注释）⇒ 本笔**只提交 `courses/set-theory/**` 的 10 个文件** ✓、**绝不 `git add -A`** ✓。
 
 ## `fix-flip3` 第七刀 —— **清掉 2 条「语料/判据拼法」rejected + 一条构建身份更正**（2026-10-19 · 未发版）
