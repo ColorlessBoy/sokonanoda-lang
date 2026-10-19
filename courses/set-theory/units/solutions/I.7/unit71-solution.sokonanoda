@@ -88,6 +88,6 @@ theorem mem_univ_inter (α : Type) (A : Set α) (c : α) :
     (fun (h : c ∈ A) => mem_inter_intro α (@Set.univ α) A c (@Set.mem_univ α c) h)
 
 theorem not_mem_empty_inter (α : Type) (A : Set α) (c : α) :
-    ¬ (c ∈ ((@Set.empty α) ∩ A)) :=
-  fun (h : c ∈ ((@Set.empty α) ∩ A)) =>
-    (Iff.mp (Set.mem_empty_iff_false c)) (mem_inter_left α (@Set.empty α) A c h)
+    ¬ (c ∈ ((∅) ∩ A)) :=
+  fun (h : c ∈ ((∅) ∩ A)) =>
+    (Iff.mp (Set.mem_empty_iff_false c)) (mem_inter_left α (∅) A c h)

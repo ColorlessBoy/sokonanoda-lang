@@ -78,10 +78,10 @@ theorem charSet_eq_of_eq (α : Type) (f g : α → Bool) (h : ∀ (a : α), @Eq.
   @Eq.trans.{1} Bool (g x) (f x) Bool.true
     (@Eq.symm.{1} Bool (f x) (g x) (h x)) hx
 
-theorem powerset_empty_subset (α : Type) (C : Set α) (hC : C ∈ 𝒫 (@Set.empty α)) :
+theorem powerset_empty_subset (α : Type) (C : Set α) (hC : C ∈ 𝒫 (∅)) :
     ∀ (x : α), ¬ (C x) :=
   fun (x : α) => fun (hx : C x) =>
-    (fun (hu : ∀ (y : α), C y → y ∈ @Set.empty α) => hu x hx) hC
+    (fun (hu : ∀ (y : α), C y → y ∈ ∅) => hu x hx) hC
 
 theorem charSet_mono (α : Type) (f g : α → Bool)
     (h : ∀ (a : α), @Eq.{1} Bool (f a) Bool.true → @Eq.{1} Bool (g a) Bool.true) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq`/幂集记法在这些位置补不出来

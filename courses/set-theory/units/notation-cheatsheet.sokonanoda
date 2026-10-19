@@ -54,7 +54,7 @@
 --   `A ∪ B`       `Set.union α A B`             `infixl:65`                `(α : Type) → Set α → Set α → Set α`
 --   `A ∩ B`       `Set.inter α A B`             `infixl:70`                `(α : Type) → Set α → Set α → Set α`
 --   `A \ B`       `Set.sdiff α A B`             `infixl:70`                `(α : Type) → Set α → Set α → Set α`
---   `∅`           `@Set.empty α`                 `notation`（零元，无优先级） `(α : Type) → Set α`
+--   `∅`           `∅`                 `notation`（零元，无优先级） `(α : Type) → Set α`
 --   `𝒫 A`         `Set.powerset α A`            `prefix:100`               `(α : Type) → Set α → Set (Set α)`
 --   `Aᶜ`          `Set.compl α A`               `postfix:100`              `(α : Type) → Set α → Set α`
 --   `f '' A`      `Set.image α β f A`           `infixr:80`                `(α β : Type) → (α → β) → Set α → Set β`
@@ -262,18 +262,18 @@
 --                                                     ✅ 0.77.0 复测原文：
 --                                                     `def_eq failed: def_eq mismatch
 --                                                      expected: Sort(0) | actual: Sort(1)`
---    写回点名形式 `Eq.{1} (Set α) (@Set.empty α) A` 永远可以（层级不能省，见规则 2）。
+--    写回点名形式 `Eq.{1} (Set α) (∅) A` 永远可以（层级不能省，见规则 2）。
 --    这条边界是"不做一般隐式实参推断"的直接后果。
 --
 --    ⚠️ **0.62.0 重测：红的原因比"落在左操作数位"更具体（原页的归因不准）**。
 --    实测同一条命题的六种写法：
 --        ∅ = A          /  ∅ ≠ A                      ← 红
---        Eq (Set α) (@Set.empty α) A                   ← **也红**（点名，少 `.{1}`）
---        （@Set.empty α) = (@Set.empty α)                ← ✅ **0.77.0 通过**（两边同形，层级解得出来）
---        (@Set.empty α) = A → A = (@Set.empty α)        ← ✅ **0.77.0 通过**（有假设给出 `A` 的位置）
---        Eq.{1} (Set α) (@Set.empty α) A               ← 通过（点名 + 层级）
---        Ne (Set α) (@Set.empty α) A                   ← **也红**（点名，少 `.{1}`）
---        Eq.{1} (Set α) A (@Set.empty α) /  A = ∅  /  A ≠ ∅  ← 通过
+--        Eq (Set α) (∅) A                   ← **也红**（点名，少 `.{1}`）
+--        （∅) = (∅)                ← ✅ **0.77.0 通过**（两边同形，层级解得出来）
+--        (∅) = A → A = (∅)        ← ✅ **0.77.0 通过**（有假设给出 `A` 的位置）
+--        Eq.{1} (Set α) (∅) A               ← 通过（点名 + 层级）
+--        Ne (Set α) (∅) A                   ← **也红**（点名，少 `.{1}`）
+--        Eq.{1} (Set α) A (∅) /  A = ∅  /  A ≠ ∅  ← 通过
 --    但**同样的红与 `∅` 无关**：`Eq (Set α) A B` 与 `Ne (Set α) A B` 也红，
 --    补上 `.{1}` 就好（见规则 2）。⇒ 真正的根因是**宇宙层级**：`=`/`≠` 是内建
 --    记法里唯二带宇宙参数的目标（`And`/`Or`/`Iff`/`Not` 都不带），层级要由判卷器
@@ -284,7 +284,7 @@
 --    ⚠️ **补充（0.62.0 实测，原页没有这一条）**：两个操作数**都是**解不出的零元
 --    记法时，一样补不出 `α`：
 --        ∅ ⊆ ∅                              ← **判红**（`elab-notation-argument-unsolved`）
---    因为没有任何一个操作数能给出 `α`。出路：一边写成 `@Set.empty α`，或让另一边
+--    因为没有任何一个操作数能给出 `α`。出路：一边写成 `∅`，或让另一边
 --    有类型（`∅ ⊆ A`）。
 --
 --    ⚠️ **G-19 已修（0.61.0）**：`∅` 落在**被应用**的位置时（`∅ ⊆ A` 在 `by` 块里
@@ -419,7 +419,7 @@ theorem demo_trans_notation (α : Type) (A B C : Set α)
 
 -- 演示 4：空集是最小元——`∅ ⊆ A`（单元②练习 4 的两种写法）。
 theorem demo_empty_subset_pointful (α : Type) (A : Set α) :
-    @Set.subset α (@Set.empty α) A := by
+    @Set.subset α (∅) A := by
   intro x
   intro hx
   exact @False.elim (A x) hx
@@ -433,7 +433,7 @@ theorem demo_empty_subset_notation (α : Type) (A : Set α) : ∅ ⊆ A := by
 -- 但证明里 `Set.notMem_empty` 的参数仍是点名形式——**记法是连接符的糖，
 -- 不是引理名的糖**）。
 theorem demo_notMem_empty_pointful (α : Type) (a : α) :
-    Not (@Set.mem α a (@Set.empty α)) := by
+    Not (@Set.mem α a (∅)) := by
   exact @Set.notMem_empty α a
 
 theorem demo_notMem_empty_notation (α : Type) (a : α) : Not (a ∈ ∅) := by
