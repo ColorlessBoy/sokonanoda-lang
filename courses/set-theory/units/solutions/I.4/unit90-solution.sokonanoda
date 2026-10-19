@@ -57,5 +57,5 @@ theorem inj_of_comp_surj (α : Type) (β : Type) (γ : Type) (f : α → β) (g 
               (@Eq.trans.{1} β (f a) (f a') b'
                 (@Eq.subst.{1} α (fun (x : α) => f a = f x) a a'
                   (hgf a a' (comp_eq_of_eq α β γ f g a a' b b' ha ha' h))
-                  (Eq.refl.{1} β (f a)))
+                  (@Eq.refl.{1} β (f a)))
                 ha')))

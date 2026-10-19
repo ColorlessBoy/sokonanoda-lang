@@ -132,7 +132,7 @@ theorem ordinal_trichotomy (α : Type) (E : α → α → Prop)
                       (@Or.elim (E v z) (∀ (w : α), E w z → E w v) (E v z)
                         (fun (hvz : E v z) => hvz)
                         (fun (hsub : ∀ (w : α), E w z → E w v) =>
-                          False.elim (E v z)
+                          @False.elim (E v z)
                             (hne (hext z v hsub
                               (pred_subset_of_not_mem α E z v hz hv
                                 (fun (u : α) (huv : E u v) (_hu : IsOrdinal α E u) => ihv u huv)
