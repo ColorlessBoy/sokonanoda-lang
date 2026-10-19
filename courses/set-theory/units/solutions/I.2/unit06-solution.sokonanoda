@@ -234,10 +234,10 @@ theorem classes_isPartition (A : Type) (r : Rel A A)
       -- ② 覆盖
       (fun (a : A) =>
         Exists.intro (EquivClass A r a)
-          (@And.intro
+          (And.intro
             ((EquivClass A r a) ∈ (classes A r))
             (a ∈ (EquivClass A r a))
-            (@Exists.intro A (fun (w : A) => (EquivClass A r a) = (EquivClass A r w)) a (Eq.refl.{1} (Set A) (EquivClass A r a)))
+            (Exists.intro a (Eq.refl.{1} (Set A) (EquivClass A r a)))
             (hrefl a)))
       -- ③ 不相等就不交
       (fun (C D : Set A) =>

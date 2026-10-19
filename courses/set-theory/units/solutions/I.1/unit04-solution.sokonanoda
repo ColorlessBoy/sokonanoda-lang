@@ -92,13 +92,13 @@ theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
   intro h
   exact @Or.elim (x ∈ A ∩ B) (x ∈ A ∩ C) (x ∈ A ∩ (B ∪ C))
     (fun (hab : x ∈ A ∩ B) =>
-      @And.intro (x ∈ A) (x ∈ B ∨ x ∈ C)
+      And.intro (x ∈ A) (x ∈ B ∨ x ∈ C)
         (And.left hab)
-        (@Or.inl (x ∈ B) (x ∈ C) (And.right hab)))
+        (Or.inl (And.right hab)))
     (fun (hac : x ∈ A ∩ C) =>
-      @And.intro (x ∈ A) (x ∈ B ∨ x ∈ C)
+      And.intro (x ∈ A) (x ∈ B ∨ x ∈ C)
         (And.left hac)
-        (@Or.inr (x ∈ B) (x ∈ C) (And.right hac)))
+        (Or.inr (And.right hac)))
     h
 
 -- X 类：吸收律 —— A ∪ (A ∩ B) = A。
