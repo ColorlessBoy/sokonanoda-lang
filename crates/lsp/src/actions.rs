@@ -966,8 +966,6 @@ And.intro a b sorry sorry\n";
             "title: {:?}",
             rfl.title
         );
-        // 标题带**真的候选文本**（替换什么就说什么）。严格档（默认）下
-        // `refl_text` 按 `at_prefix()` 带 `@`（文本会被回读成项再判 ⇒ 不带就判红）。
         assert!(
             rfl.title.contains("@Eq.refl.{1} Nat a"),
             "title: {:?}",
