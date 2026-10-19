@@ -41,7 +41,7 @@ theorem preimage_union (α β : Type) (f : α → β) (B C : Set β) :
       @Iff.intro (x ∈ (f ⁻¹' (B ∪ C)))
         ((x ∈ (f ⁻¹' B)) ∨ (x ∈ (f ⁻¹' C)))
         (fun (h : x ∈ (f ⁻¹' (B ∪ C))) =>
-          Or.elim ((f x) ∈ B) ((f x) ∈ C)
+          @Or.elim ((f x) ∈ B) ((f x) ∈ C)
             ((x ∈ (f ⁻¹' B)) ∨ (x ∈ (f ⁻¹' C)))
             (fun (hb : (f x) ∈ B) =>
               Or.inl hb)
@@ -49,7 +49,7 @@ theorem preimage_union (α β : Type) (f : α → β) (B C : Set β) :
               Or.inr hc)
             h)
         (fun (h : (x ∈ (f ⁻¹' B)) ∨ (x ∈ (f ⁻¹' C))) =>
-          Or.elim (x ∈ (f ⁻¹' B)) (x ∈ (f ⁻¹' C))
+          @Or.elim (x ∈ (f ⁻¹' B)) (x ∈ (f ⁻¹' C))
             ((f x) ∈ (B ∪ C))
             (fun (hb : x ∈ (f ⁻¹' B)) =>
               Or.inl hb)
@@ -99,7 +99,7 @@ theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
       @Iff.intro (y ∈ (f '' (A ∪ B)))
         ((y ∈ (f '' A)) ∨ (y ∈ (f '' B)))
         (fun (h : y ∈ (f '' (A ∪ B))) =>
-          Exists.elim α (fun (x : α) => (x ∈ (A ∪ B)) ∧ ((f x) = y))
+          @Exists.elim α (fun (x : α) => (x ∈ (A ∪ B)) ∧ ((f x) = y))
             ((y ∈ (f '' A)) ∨ (y ∈ (f '' B))) h
             (fun (x : α) => fun (hx : (x ∈ (A ∪ B)) ∧ ((f x) = y)) =>
               Or.elim (A x) (B x)
@@ -119,7 +119,7 @@ theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
           Or.elim (y ∈ (f '' A)) (y ∈ (f '' B))
             (y ∈ (f '' (A ∪ B)))
             (fun (ha : y ∈ (f '' A)) =>
-              Exists.elim α (fun (x : α) => (A x) ∧ ((f x) = y))
+              @Exists.elim α (fun (x : α) => (A x) ∧ ((f x) = y))
                 (y ∈ (f '' (A ∪ B))) ha
                 (fun (x : α) => fun (hx : (A x) ∧ ((f x) = y)) =>
                   Exists.intro x
@@ -127,7 +127,7 @@ theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
                       (Or.inl (And.left hx))
                       (And.right hx))))
             (fun (hb : y ∈ (f '' B)) =>
-              Exists.elim α (fun (x : α) => (B x) ∧ ((f x) = y))
+              @Exists.elim α (fun (x : α) => (B x) ∧ ((f x) = y))
                 (y ∈ (f '' (A ∪ B))) hb
                 (fun (x : α) => fun (hx : (B x) ∧ ((f x) = y)) =>
                   Exists.intro x
@@ -339,7 +339,7 @@ theorem image_preimage_eq_image :
           @Exists.elim Two (fun (x : Two) => (f1 x) = y)
             (y ∈ (f1 '' (f1 ⁻¹' U01))) hy
             (fun (x : Two) => fun (hx : (f1 x) = y) =>
-              Exists.intro Two
+              @Exists.intro Two
                 (fun (t : Two) => t ∈ (f1 ⁻¹' U01) ∧
                   (f1 t) = y)
                 x
@@ -393,11 +393,11 @@ theorem not_image_preimage_eq :
   exact bb_not_mem_image_preimage
     (@Eq.subst.{1} (Set Two) (fun (X : Set Two) => bb ∈ X)
       (f1 '' (f1 ⁻¹' U01)) image_preimage
-      (Eq.symm.{1} (Set Two) image_preimage
+      (@Eq.symm.{1} (Set Two) image_preimage
         (f1 '' (f1 ⁻¹' U01)) image_preimage_eq_image)
       (@Eq.subst.{1} (Set Two) (fun (X : Set Two) => bb ∈ X) U01
         (f1 '' (f1 ⁻¹' U01))
-        (Eq.symm.{1} (Set Two) (f1 '' (f1 ⁻¹' U01)) U01 h)
+        (@Eq.symm.{1} (Set Two) (f1 '' (f1 ⁻¹' U01)) U01 h)
         bb_mem_U01))
 
 -- 练习 9（D 类）：`C ⊆ f '' univ`（满射性）时等号回来——"需要什么假设"的答案。

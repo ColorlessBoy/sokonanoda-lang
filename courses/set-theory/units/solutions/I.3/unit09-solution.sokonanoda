@@ -343,10 +343,10 @@ theorem proper_subset_counterexample :
             (fun (k : Nat) => k ∈ nonzero → @Eq.{1} Nat (Nat.succ (Nat.pred k)) k)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
             (fun (hz : Nat.zero ∈ nonzero) =>
               @False.elim (@Eq.{1} Nat (Nat.succ (Nat.pred Nat.zero)) Nat.zero)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                (hz (Eq.refl.{1} Nat Nat.zero)))
+                (hz (@Eq.refl.{1} Nat Nat.zero)))
             (fun (k : Nat) =>
               fun (ih : k ∈ nonzero → @Eq.{1} Nat (Nat.succ (Nat.pred k)) k) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 fun (hs : Nat.succ k ∈ nonzero) =>
-                  Eq.refl.{1} Nat (Nat.succ k))
+                  @Eq.refl.{1} Nat (Nat.succ k))
             x hx)
-        (fun (y : Nat) => fun (hy : y ∈ Set.univ Nat) => Eq.refl.{1} Nat y)))
+        (fun (y : Nat) => fun (hy : y ∈ Set.univ Nat) => @Eq.refl.{1} Nat y)))

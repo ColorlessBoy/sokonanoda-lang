@@ -72,4 +72,4 @@ theorem wellOrder_hasLeast_pair (α : Type) (r : Rel α α) (h : IsWellOrder α 
     HasLeast α r (fun (x : α) => @Eq.{1} α x a ∨ @Eq.{1} α x b) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
   wellOrder_hasLeast α r h (fun (x : α) => @Eq.{1} α x a ∨ @Eq.{1} α x b)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
     (Exists.intro a  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-      (@Or.inl (Eq.{1} α a a) (Eq.{1} α a b) (Eq.refl.{1} α a)))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      (@Or.inl (@Eq.{1} α a a) (Eq.{1} α a b) (Eq.refl.{1} α a)))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来

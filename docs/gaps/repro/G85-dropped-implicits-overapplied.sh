@@ -45,19 +45,6 @@ if [ -z "$BIN" ]; then
   else echo "G-85: 找不到 sokonanoda 二进制（先 cargo build -p sokonanoda-cli）" >&2; exit 2; fi
 fi
 
-# ── **输入方言迁移（2026-10-19 · 非放宽判据 ✓）**：n3/n4 这两个**对照**原先按
-# **位置隐式实参**写（`And.right p (∀…) h x`）。严格档**翻默认**（`SUB-implicit-args-strict-default`，
-# 2026-10-18）之后，这个写法**按定义就该被拒**（与 `g Nat 5` 同一条规则：只有 `@` 形式收隐式实参）
-# ⇒ 内核逐字给 `elab-implicit-argument-unsolved` + 「出路 ①…在函数名前加 `@`：`@And.right p ((y : Prop) → Q y) h x`」。
-# ⚠ 于是本复现件在**默认档**下从「4 条全绿」变成「2 绿 + 2 红」⇒ 自己的形状守卫 `exit 2`
-# （`gap.py` 把它读成"环境异常" ✗ —— 其实**不是环境、也不是新缺口**，是**夹具的方言旧了** ✗）。
-# **实测（2026-10-19 · release `sha256:16 = eea22ca0b5919747` · 树 `2fc93146`）**：
-#   夹具原文 · 默认档 ⇒ `checked=2 failed=2`（红在 line 7/11 = n3/n4）⇒ 本件 exit 2；
-#   夹具原文 · `SOKO_STRICT_AT=0` ⇒ `checked=4 failed=0` ⇒ exit 1（旧档下本件本来就绿 ✓）；
-#   只把下面两行对照写成 `@` ⇒ 默认档 `checked=4 failed=0` ⇒ **exit 1** ✓，且 `SOKO_STRICT_AT=0` 下**同样 4/0** ✓。
-# ⚠ **判据的意图一个字没改** ✗：① `And.right h x`（缺口本形）仍必须绿 —— 实测它在**两档都绿**
-#   （`decl.checked` 逐名可归属：n1/n2 ✓，两条 diagnostic 只落 n3/n4 ✓）；② 三个对照仍必须绿
-#   —— 只是把"全显式写法"写成**当前方言**的 `@` 形式（这正是内核诊断给的出路 ① ✓）。
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
@@ -68,11 +55,11 @@ theorem n2 (p : Prop) (Q : Prop → Prop) (h : p ∧ (∀ (x : Prop), Q x)) (x :
   And.right h x
 
 theorem n3 (p : Prop) (Q : Prop → Prop) (h : p ∧ (∀ (x : Prop), Q x)) (x : Prop) : Q x :=
-  @And.right p (∀ (y : Prop), Q y) h x
+  And.right p (∀ (y : Prop), Q y) h x
 
 theorem n4 (p : Prop) (Q : Prop → Prop → Prop)
     (h : p ∧ (∀ (x : Prop), ∀ (y : Prop), Q x y)) (x y : Prop) : Q x y :=
-  @And.right p (∀ (u : Prop), ∀ (v : Prop), Q u v) h x y
+  And.right p (∀ (u : Prop), ∀ (v : Prop), Q u v) h x y
 EOF
 
 python3 - "$BIN" "$WORK/shapes.sokonanoda" <<'PY'

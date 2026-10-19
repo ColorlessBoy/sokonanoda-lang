@@ -93,7 +93,7 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
                 (((r • s) • t) a d)
                 (And.right hb)
                 (fun (c : C) => fun (hc : (s b c) ∧ (t c d)) =>
-                  Exists.intro C
+                  @Exists.intro C
                     (fun (c2 : C) => ((r • s) a c2) ∧ (t c2 d))
                     c
                     (And.intro
@@ -119,7 +119,7 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
                   Exists.intro b
                     (And.intro
                       (And.left hb)
-                      (Exists.intro C
+                      (@Exists.intro C
                         (fun (c2 : C) => (s b c2) ∧ (t c2 d))
                         c
                         (And.intro
@@ -333,7 +333,7 @@ theorem nearStep_counterexample :
           (fun (hab : a = b) =>
             @Or.inl (b = a)
               (((Nat.succ b) = a) ∨ (b = (Nat.succ a)))
-              (Eq.symm.{1} Nat a b hab))
+              (@Eq.symm.{1} Nat a b hab))
           (fun (h2 : ((Nat.succ a) = b) ∨ (a = (Nat.succ b))) =>
             Or.elim ((Nat.succ a) = b) (a = (Nat.succ b))
               (nearStep b a)
@@ -341,12 +341,12 @@ theorem nearStep_counterexample :
                 Or.inr (b = a)
                   (((Nat.succ b) = a) ∨ (b = (Nat.succ a)))
                   (Or.inr ((Nat.succ b) = a) (b = (Nat.succ a))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
-                    (Eq.symm.{1} Nat (Nat.succ a) b h2a)))
+                    (@Eq.symm.{1} Nat (Nat.succ a) b h2a)))
               (fun (h2b : a = (Nat.succ b)) =>
                 Or.inr (b = a)
                   (((Nat.succ b) = a) ∨ (b = (Nat.succ a)))
                   (@Or.inl ((Nat.succ b) = a) (b = (Nat.succ a))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
-                    (Eq.symm.{1} Nat a (Nat.succ b) h2b)))
+                    (@Eq.symm.{1} Nat a (Nat.succ b) h2b)))
               h2)
           h)
       (fun (htrans : Transitive Nat nearStep) =>

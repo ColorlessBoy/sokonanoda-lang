@@ -154,7 +154,7 @@ theorem no_surjection_powerset (α : Type) :
         (hf (fun (y : α) => ¬ (f y y)))
         (fun (x : α) => fun (hx : f x = (fun (y : α) => ¬ (f y y))) =>
           diag f (fun (y : α) => ¬ (f y y)) x
-            (Eq.refl.{1} (Set α) (fun (y : α) => ¬ (f y y))) hx))
+            (@Eq.refl.{1} (Set α) (fun (y : α) => ¬ (f y y))) hx))
 
 -- 练习 7（L）：满射 ⇒ 存在右逆函数——**卷 I 唯一一次用选择公理**（台账 L-06 的边界）。
 --
