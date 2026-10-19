@@ -10958,8 +10958,8 @@ theorem mem_powerset_iff {\u{3b1} : Type} (A B : Set \u{3b1}) : B \u{2208} power
   Iff.intro (fun (h : B \u{2208} powerset A) => h) (fun (h : subset B A) => h)\n\
 end Set\n\
 prefix:100 \" \u{1d4ab} \" => Set.powerset\n\
-theorem t (\u{3b1} : Type) (A : Set \u{3b1}) : A \u{2208} \u{1d4ab} (Set.univ \u{3b1}) := by\n\
-  exact (Iff.mpr (Set.mem_powerset_iff (Set.univ \u{3b1}) A)) (fun (x : \u{3b1}) => fun (hx : A x) => True.intro)\n";
+theorem t (\u{3b1} : Type) (A : Set \u{3b1}) : A \u{2208} \u{1d4ab} (@Set.univ \u{3b1}) := by\n\
+  exact (Iff.mpr (Set.mem_powerset_iff (@Set.univ \u{3b1}) A)) (fun (x : \u{3b1}) => fun (hx : A x) => True.intro)\n";
     let out = compile_ok(src);
     assert!(
         out.events
