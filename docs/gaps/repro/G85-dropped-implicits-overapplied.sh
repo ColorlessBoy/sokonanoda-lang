@@ -55,11 +55,11 @@ theorem n2 (p : Prop) (Q : Prop → Prop) (h : p ∧ (∀ (x : Prop), Q x)) (x :
   And.right h x
 
 theorem n3 (p : Prop) (Q : Prop → Prop) (h : p ∧ (∀ (x : Prop), Q x)) (x : Prop) : Q x :=
-  And.right p (∀ (y : Prop), Q y) h x
+  @And.right p (∀ (y : Prop), Q y) h x
 
 theorem n4 (p : Prop) (Q : Prop → Prop → Prop)
     (h : p ∧ (∀ (x : Prop), ∀ (y : Prop), Q x y)) (x y : Prop) : Q x y :=
-  And.right p (∀ (u : Prop), ∀ (v : Prop), Q u v) h x y
+  @And.right p (∀ (u : Prop), ∀ (v : Prop), Q u v) h x y
 EOF
 
 python3 - "$BIN" "$WORK/shapes.sokonanoda" <<'PY'
@@ -84,7 +84,7 @@ for f in failed:
     print(f"    ✗ 判红 @line {f.get('start_line')}：{str(f.get('message'))[:120]}")
 
 if checked == 4 and not failed:
-    print("✓ 四条形状全绿（`And.right h x` 已能解出前导隐式参数 ✓，三个对照未被抢 ✓）")
+    print("✓ 四条形状全绿（`And.right h x` 已能解出前导隐式参数 ✓；两个对照形迁 `@` 后未被抢 ✓）")
     sys.exit(1)   # 1 = 行为已变（已修）
 if checked == 3 and len(failed) == 1:
     print("\n✗ 缺口仍在：`And.right h x` 那一形被按位置装错 ⇒ 类型不匹配 ✗", file=sys.stderr)
