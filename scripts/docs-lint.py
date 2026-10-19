@@ -9,7 +9,8 @@
 **七条判据**（逐条可判 ✓）：
   ① **活文档总量** ≤ `MAX_LIVE_BYTES` —— 活文档 = 仓根 `*.md`（git 跟踪）
      + `docs/**`（git 跟踪），**不含** `docs/archive/**`（归档是"可追溯" ✓，
-     不是"每次都要读" ✗）；
+     不是"每次都要读" ✗）；顶格时下一轮 cap 按 **实测 × 0.75 重钉**（TCP 的
+     **乘性减**，`threshold_ratchet.next_cap()` ⇒ 红字里带那个数 ✓，不是"压一点点"）；
   ② **单文件** ≤ `MAX_FILE_LINES` 行（任何活文档 `.md`）；
   ③ **入口文件** ≤ `MAX_ENTRY_LINES` 行 —— 接手必读的那几份必须短 ✓；
   ④ **设计文档预算**：`docs/design/**` 的**新增** `.md` ≤ `MAX_NEW_DESIGN_LINES` 行；
@@ -527,8 +528,16 @@ def check() -> tuple[list[str], dict]:
     # ① 活文档总量
     live_bytes = sum(_rp(f).stat().st_size for f in live if _rp(f).exists())
     if live_bytes > MAX_LIVE_BYTES:
+        # ⭐ **AIMD（TCP 的乘性减；用户 2026-10-16 18:5x ①）**：顶格不是"压一点点"——
+        # 下一轮 cap 会按 **实测 × 0.75 重钉**（`threshold_ratchet.next_cap()`；与
+        # `--open-round` 真钉的**同一档** ✓）。这里印出来 ⇒ 红色自带一个**可执行的目标**，
+        # 而不是"比上限多了一点"这种没有出路的读数 ✓。
+        _next = threshold_ratchet.next_cap("docs_live_bytes", MAX_LIVE_BYTES, live_bytes)
         bad.append(
             f"① 活文档总量 {live_bytes / 1e6:.2f} MB > 上限 {MAX_LIVE_BYTES / 1e6:.2f} MB"
+            f"（**AIMD 乘性减**：下一轮 cap 会重钉为 {_next / 1e6:.2f} MB"
+            f" = 实测×{threshold_ratchet.AIMD_FACTOR:g}，不是压一点点 ⇒ 顶格的正解是"
+            f"**归档/真删**，见 `scripts/threshold_ratchet.py` 的 AIMD 一节 ✓）"
         )
 
     # ②③④ 行数
@@ -729,7 +738,10 @@ def _selftest_body() -> int:
     # ⚠ **① 是唯一没绑夹具的** ✗：它的报错文案里**不含任何文件名**（是总量），
     #   没法按文件名绑 ✓ —— 但它本来就**不靠夹具**：把上限压到「当前总量 − 1」
     #   ⇒ **只有它可能触发** ✓（与 ②/④ 的"灌同一个文件"不同 ✓）。如实注明，不假装绑了 ✗。
-    results.append(("①", "活文档总量 > 上限", any(b.startswith("①") for b in bad)))
+    #   ⭐ 另断言红字里**带 AIMD 的重钉档**（用户 2026-10-16 18:5x ①：顶格的正解是
+    #   **实测×0.75**，不是压一点点 ⇒ 那个数必须出现在红色里，否则读数没有出路 ✓）。
+    results.append(("①", "活文档总量 > 上限（且红字带 AIMD 重钉档）", any(
+        b.startswith("①") and "AIMD" in b for b in bad)))
 
     # ② 单文件行数 + ④ 冻结预算：往一份活文档灌 2200 行
     p = _rp("docs/LESSONS.md")

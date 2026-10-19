@@ -61,9 +61,30 @@
     见 `docs/protocol.md` 的 P2 一节）。
 ⇒ 本轮**登记它、不动它**（`EXCLUDED` 那张表就是这条登记 ✓）—— ⚠ **不硬套** ✓。
 
+## AIMD（TCP 的**乘性减 / 折半**；用户 2026-10-16 18:5x ①「可以参考 tcp 协议里折半的算法」）
+
+病（**实测**）：旧形状是「**顶格 → 压一点点 → 又被顶回**」的**震荡** ✗ —— 上限贴在实测上方
+（零余量），一有新增就顶格；而 `tighten()` 是**加性减**（每轮只降一档 `step`，docs 0.50 MB）
+⇒ 压一点点，下一次照旧顶格 ✗。TCP 的 AIMD 把两种动作分开：**平时加性收紧**（`tighten()`，
+−`step` ✓）、**拥塞时乘性减**（本条：破线 ⇒ 目标 = **实测 × 0.75**，**不是 ~99%** ✓）。
+
+  · **触发**：`AIMD_IDS` 里那些 cap 的**实测 > 现行 cap**（= 真的顶格了）。目前**只对 doc
+    字节预算**（`docs_*`）—— status/incremental 那几条的「破线」语义不同（见 `EXCLUDED`
+    与开轮闸门），**不硬套** ✓；
+  · **重钉**：`next = max(floor, min(下一档, int(实测 × 0.75)))` —— **两个夹子**保证
+    ① **永不高于现行 cap**（用户红线：不许抬上限 ✓，哪怕 `实测 × 0.75` 算出来比现行 cap 还大）；
+    ② **不低于 floor**；
+  · **破线轮可以开**（否则**没有出路**：顶格时"读数必须落进收紧后的上限"会永远挡住这一刀 ✗）
+    —— `history` 里记 `"aimd": [id…]`，`state_problems()` 对这**一格**免查"读数落进新 cap"
+    （破线**本来就是**触发条件），但**加查三条**：id 属于 `AIMD_IDS` · 读数**真的**越过
+    **上一轮**的 cap · 新 cap **真的** ≤ `实测 × 0.75`（防「披着 AIMD 的外衣」绕过闸门 ✗）；
+  · **方向仍只有收紧**：只有 `next < 现行 cap` 才算 AIMD 轮（到 floor 时**照旧判红** ⇒
+    出路是**真删/归档**，不是再开一轮空转 ✓）。
+
 ## 用法
 
 ```bash
+python3 scripts/threshold_ratchet.py --selftest                    # AIMD / 收紧的判据通道（正反两向）
 python3 scripts/check-budgets.py --layer threshold                 # 状态不变量 + 开轮纪律（秒级）
 python3 scripts/check-budgets.py --layer threshold --measure       # 另打印 7 个读数
 python3 scripts/check-budgets.py --layer threshold --open-round    # 开一轮（要求读数落进收紧后的上限）
@@ -143,6 +164,12 @@ REGISTRY: dict[str, dict] = {
     },
 }
 
+# AIMD（**乘性减**）只管 doc 字节预算：用户 2026-10-16 18:5x 点名的「doc lint 顶格」现场。
+# ⚠ **不硬套**到别的 id（`EXCLUDED` 那条「同形不同病」的纪律）：status 行数 / site 体积 /
+# target 体积的「破线」各有自己的语义与出路，套上"破线 ⇒ 再降 25%"只会造**假红生成器** ✗。
+AIMD_FACTOR = 0.75
+AIMD_IDS: tuple[str, ...] = ("docs_live_bytes", "docs_archive_bytes")
+
 # **不许进 ratchet 的同形项**（如实登记 + 逐条理由；"登记了但没改"不是处置 ✗ —— 这里就是处置 ✓）。
 EXCLUDED: dict[str, str] = {
     "scripts/check-progress.py:610 `MAX_GAP_S = 2.5`（实测 0.12s）":
@@ -181,6 +208,55 @@ def tighten(caps: dict) -> dict:
         cur = caps.get(cap_id, spec["seed"])
         out[cap_id] = max(spec["floor"], cur - spec["step"])
     return out
+
+
+def aimd_target(cap_id: str, measured: int, current: int | None = None) -> int:
+    """**乘性减的目标**：`实测 × AIMD_FACTOR`，夹在 `[floor, 现行 cap]` 之间（纯函数 ✓）。
+
+    ⚠ **两个夹子都是硬约束**：
+      ① `<= 现行 cap`（`current`）—— 用户红线「**不许抬任何上限**」✓。哪怕 `实测 × 0.75`
+         算出来比现行 cap 还大（破线幅度 > 1/3），也**绝不**把它抬回去；
+      ② `>= floor` —— 收敛目标只**停住**收紧，不制造"没有出路"的红 ✓。
+    `current=None` ⇒ 只夹 floor（例：消费点要**印**这个目标时，现行 cap 由调用方自己给 ✓）。
+    """
+    spec = REGISTRY[cap_id]
+    want = int(measured * AIMD_FACTOR)
+    if current is not None:
+        want = min(int(current), want)
+    return max(spec["floor"], want)
+
+
+def next_cap(cap_id: str, current: int, measured: int | None = None) -> int:
+    """**下一档**（加性 −`step`；`measured` 破线时再叠乘性减）—— **一处定义** ✓。
+
+    消费点（`docs-lint` 的红字要告诉人"下一轮会重钉到多少"）与 `open_round()` 共用它
+    ⇒ 印出来的数与真开轮钉的数**不可能各写一份**（接缝纪律 ✓）。纯函数。
+    """
+    spec = REGISTRY[cap_id]
+    nxt = max(spec["floor"], int(current) - spec["step"])
+    if measured is not None and cap_id in AIMD_IDS and int(measured) > int(current):
+        nxt = min(nxt, aimd_target(cap_id, int(measured), int(current)))
+    return nxt
+
+
+def aimd_repin(caps: dict, reading: dict) -> tuple[dict, list[str]]:
+    """**破线 ⇒ 乘性减**。纯函数 ✓ ⇒ `(重钉后的 caps, 真的破线的 id)`。
+
+    只碰 `AIMD_IDS`（doc 字节预算）且只在 `实测 > 现行 cap` 时动手；**不破线 ⇒ 原样返回**
+    （加性档 `tighten()` 照旧负责平时收紧 ✓ —— 两种动作分开，形状照 TCP 的 AIMD）。
+    ⚠ 返回的 caps **永不高于入参**（逐项 `min(current, 实测×0.75)` 再夹 floor）✓。
+    """
+    out = dict(caps)
+    breached: list[str] = []
+    for cap_id in AIMD_IDS:
+        spec = REGISTRY[cap_id]
+        cur = int(caps.get(cap_id, spec["seed"]))
+        val = reading.get(cap_id)
+        if val is None or int(val) <= cur:
+            continue
+        out[cap_id] = aimd_target(cap_id, int(val), cur)
+        breached.append(cap_id)
+    return out, breached
 
 
 def converged(caps: dict) -> bool:
@@ -299,6 +375,30 @@ def state_problems(st: dict) -> list[str]:
                     red.append(f"**caps 没比上轮低** ✗：`{cap_id}` 第 {entry.get('round')} 轮与"
                                f"上一轮都停在 {human(cap_id, cur[cap_id])}（还没到收敛目标 "
                                f"{human(cap_id, spec['floor'])}）⇒ ratchet 空转了 ✗")
+        # ── AIMD 轮（`open_round` 在**破线**时记下的 `"aimd": [id…]`）────────────────
+        # 破线轮的读数**本来就**大于新 cap（这就是触发条件）⇒ 对**这一格**免查"读数落进
+        # 新 cap"，换成**三条更硬的核对**（否则 `"aimd"` 就成了绕过闸门的通行证 ✗）。
+        aimd_ids = [c for c in (entry.get("aimd") or []) if c]
+        for cap_id in aimd_ids:
+            if cap_id not in AIMD_IDS:
+                red.append(f"**AIMD 轮造假** ✗：history 第 {entry.get('round')} 轮把 `{cap_id}` "
+                           f"记成 AIMD，而它不在 `AIMD_IDS` 里（{list(AIMD_IDS)}）⇒ 那是把"
+                           f"普通闸门绕过去 ✗")
+                continue
+            val = (entry.get("reading") or {}).get(cap_id)
+            prev_cap = (prev if prev is not None else seeds()).get(cap_id)
+            if val is None:
+                red.append(f"**AIMD 轮造假** ✗：history 第 {entry.get('round')} 轮的 `{cap_id}` "
+                           f"没有读数 ⇒ 说不出「破了多少」 ✗")
+                continue
+            if prev_cap is not None and val <= prev_cap:
+                red.append(f"**AIMD 轮造假** ✗：history 第 {entry.get('round')} 轮的 `{cap_id}` "
+                           f"实测 {human(cap_id, val)} **没有越过**上一轮上限 "
+                           f"{human(cap_id, prev_cap)} ⇒ **不是破线**，不许走乘性减 ✗")
+            if cap_id in cur and cur[cap_id] > int(val * AIMD_FACTOR):
+                red.append(f"**AIMD 轮造假** ✗：history 第 {entry.get('round')} 轮的 `{cap_id}` "
+                           f"cap = {human(cap_id, cur[cap_id])} **高于** 实测×{AIMD_FACTOR:g} = "
+                           f"{human(cap_id, int(val * AIMD_FACTOR))} ⇒ 乘性减没真减够 ✗")
         # ⭐ **开轮闸门的复查**（`open_round` 要求"读数落进**收紧后**的上限"，而它在开这一轮时
         # 收紧出来的就是**这一轮自己的** `caps`（`open_round` 里 `nxt = tighten(st["caps"])`
         # 然后 `entry["caps"] = nxt`）⇒ 复查要拿 `cur`（本轮 caps）比，**不是** `hist[idx+1]` ✗。
@@ -307,7 +407,8 @@ def state_problems(st: dict) -> list[str]:
         # ⇒ 把"收紧的正常后果"判成了"那一轮本来开不成" ✗（逐轮读数其实**自洽** ✓）。
         for cap_id in REGISTRY:
             val = (entry.get("reading") or {}).get(cap_id)
-            if val is not None and cap_id in cur and val > cur[cap_id]:
+            if (val is not None and cap_id in cur and cap_id not in aimd_ids
+                    and val > cur[cap_id]):
                 red.append(f"**history 第 {entry.get('round')} 轮的读数越界** ✗：`{cap_id}` "
                            f"实测 {human(cap_id, val)} > 那一轮收紧后的上限 "
                            f"{human(cap_id, cur[cap_id])} ⇒ 那一轮**本来开不成**"
@@ -323,17 +424,32 @@ def open_round(st: dict, reading: dict, now: str, head: str) -> tuple[dict, list
 
     闸门（顺序 = 判红信息的顺序）：
       ① **读数必须齐全**（7 个一个不缺 —— 缺 ⇒ "没量到 ≠ 绿" ✗）；
-      ② ⭐ **读数必须落进"收紧后"的上限**（= "这一轮真的变好到配得上新一档"）；
-      ③ 过了才 `tighten()` 一档 + 记 `history`（**读数进 git** ⇒ 逐轮可查 ✓）。
+      ② ⭐ **读数必须落进"收紧后"的上限**（= "这一轮真的变好到配得上新一档"）
+         —— ⚠ **AIMD 破线轮例外**：`docs_*` 的读数**真的越过现行 cap** 时，
+         新 cap 改按**实测 × 0.75 重钉**（`aimd_repin()`），这一格的闸门**不放宽**而是
+         **换了判据**（`state_problems()` 复查"真破线 + 真减够"三条 ✓）—— 否则顶格时
+         闸门永远挡住"把目标压到 75%"这一刀，红色**没有出路** ✗；
+      ③ 过了才 `tighten()` 一档（破线的那几格再叠乘性减）+ 记 `history`；
+      ④ ⚠ **到 floor 时没有乘性减**（降不下去 ⇒ 照旧走②判红：出路是**真删**，不是空转 ✓）。
     """
     red: list[str] = []
     missing = [k for k in REGISTRY if k not in reading]
     if missing:
         red.append(f"**读数不全** ✗：缺 {missing} ⇒ 「没量到 ≠ 绿」（ratchet 不许拿半个读数开轮）")
     nxt = tighten(st["caps"])
+    # **破线 ⇒ 乘性减**（只对 AIMD_IDS；不破线 ⇒ 原样，加性档照旧 ✓）
+    pinned, breached = aimd_repin(st["caps"], reading)
+    aimd_ids: list[str] = []
+    for cap_id in breached:
+        nxt[cap_id] = min(nxt[cap_id], pinned[cap_id])
+        # 只有**真的比现行 cap 更低**才算 AIMD 轮（floor 停住时降不下去 ⇒ 不许豁免闸门 ✓）
+        if nxt[cap_id] < int(st["caps"][cap_id]):
+            aimd_ids.append(cap_id)
     for cap_id in REGISTRY:
         if cap_id not in reading:
             continue
+        if cap_id in aimd_ids:
+            continue                      # 破线轮的读数**本来就**高于新 cap（见 docstring ②）
         if reading[cap_id] > nxt[cap_id]:
             red.append(f"**本轮没变好** ✗：`{cap_id}` 实测 {human(cap_id, reading[cap_id])} "
                        f"**高于收紧后的上限** {human(cap_id, nxt[cap_id])}"
@@ -343,6 +459,8 @@ def open_round(st: dict, reading: dict, now: str, head: str) -> tuple[dict, list
         return st, red
     round_no = int(st.get("round", 0)) + 1
     entry = {"round": round_no, "head": head, "at": now, "caps": nxt, "reading": dict(reading)}
+    if aimd_ids:
+        entry["aimd"] = aimd_ids          # 逐轮可查：这一格的 cap 是**乘性减**钉的 ✓
     new = dict(st)
     new.update({"round": round_no, "head": head, "at": now, "caps": nxt,
                 "history": list(st.get("history") or []) + [entry]})
@@ -564,3 +682,162 @@ def seam_problems(root: Path | None = None, source_rev: str | None = None,
                        f"`docs/threshold-ratchet.json` / 本文件的 `REGISTRY`；标签说"
                        f"「查什么」、不说「查到多少」✓ —— {spec['why']}）—— {hits[:2]}")
     return red
+
+
+# ── 判据通道（**AIMD / 收紧** 的正反两向；`check-budgets.py --layer threshold` 仍是判红处）──
+# 为什么把自检放在**库里**而不是 `check-budgets.py`：AIMD 的**机械面**（乘性减的目标、
+# 两个夹子、破线标记的三条复查）全在这个库，`check-budgets.py --layer threshold` 只**判**
+# 现行状态 ⇒ 机制本身的自检离实现近一点，改一行就能当天验证 ✓（`check-budgets` 的
+# `--selftest` 仍覆盖 `tighten()` / `open_round()` 的**既有**语义 ✓）。
+_SELFTEST_READING = {
+    "docs_live_bytes": 4_600_000,
+    "docs_archive_bytes": 900_000,
+    "status_total_lines": 47,
+    "site_text_bytes": 60_823,
+    "site_hero_bytes": 221_763,
+    "target_incremental_warn_bytes": 2_800_000_000,
+    "target_incremental_max_bytes": 2_800_000_000,
+}
+
+
+def _selftest_state(caps: dict, reading: dict | None = None) -> dict:
+    """合成一个**自洽的**第 0 轮状态（`round` = 0、`history` 末条 = 现行 caps ✓）。"""
+    caps = dict(caps)
+    entry = {"round": 0, "head": "f" * 40, "at": "t0", "caps": dict(caps),
+             "reading": dict(reading or caps)}
+    return {"version": 1, "round": 0, "head": "f" * 40, "at": "t0",
+            "caps": dict(caps), "history": [entry]}
+
+
+def selftest() -> int:
+    """**反向验证**（`AGENTS.md`：咬不住的守卫等于没有 ✓）：AIMD 的**正反两向**。
+
+    正：破线 ⇒ 新 cap = 实测×0.75（真历史读数 8.50 / 8.58 ⇒ 6.435 MB）+ 破线轮可开；
+    反：不破线**不加**乘性减 · 破线幅度 > 1/3 **也不抬**上限 · 到 floor **照旧判红** ·
+        伪造的 `"aimd"` 标记（非 AIMD id / 没真破线 / 没真减够）**逐条判红**；
+    回归：加性档 `tighten()` 40 轮仍单调不增、停在 floor（`check-budgets` 依赖的那条 ✓）。
+    """
+    results: list[tuple[str, bool, str]] = []
+
+    def gate(label: str, cond: bool, detail: str = "") -> None:
+        results.append((label, bool(cond), detail))
+
+    # ① 破线 ⇒ 乘性减（真历史读数：cap 8.50 MB、实测 8.58 MB ⇒ 8.58×0.75 = 6.435 MB）
+    caps8 = seeds()
+    caps8["docs_live_bytes"] = 8_500_000
+    st8 = _selftest_state(caps8)
+    read8 = dict(_SELFTEST_READING, docs_live_bytes=8_580_000)
+    new8, red8 = open_round(st8, read8, now="t1", head="a" * 40)
+    gate("① 破线（8.50 MB 顶格 · 实测 8.58 MB）⇒ 新 cap = **实测×0.75 = 6.435 MB**，不是压一点点",
+         not red8 and new8["caps"]["docs_live_bytes"] == 6_435_000,
+         f"red={red8[:1]} cap={human('docs_live_bytes', new8['caps']['docs_live_bytes'])}")
+    gate("① 破线轮在 history 里留 `aimd` 标记（逐轮可查 ✓）",
+         new8["history"][-1].get("aimd") == ["docs_live_bytes"],
+         str(new8["history"][-1].get("aimd")))
+    gate("① 破线轮状态合法（`state_problems` 无红 —— 三条复查都过）",
+         not state_problems(new8), str(state_problems(new8)[:1]))
+
+    # ② 不破线 ⇒ 不加乘性减（加性档照旧 −0.50 MB；两种动作分开 ✓）
+    read_ok = dict(_SELFTEST_READING, docs_live_bytes=8_000_000)
+    new_ok, red_ok = open_round(_selftest_state(caps8), read_ok, now="t1", head="a" * 40)
+    gate("② **不破线**（实测 8.00 ≤ cap 8.50）⇒ 不加乘性减（仍是 −step = 8.00 MB）",
+         not red_ok and new_ok["caps"]["docs_live_bytes"] == 8_000_000
+         and "aimd" not in new_ok["history"][-1],
+         f"red={red_ok[:1]}")
+
+    # ③ 破线幅度 > 1/3 ⇒ 乘性减的结果比现行 cap 还大 ⇒ **绝不抬上空**（夹在现行 cap 之下）
+    caps55 = seeds()
+    caps55["docs_live_bytes"] = 5_500_000
+    read_big = dict(_SELFTEST_READING, docs_live_bytes=9_000_000)
+    new_big, red_big = open_round(_selftest_state(caps55), read_big, now="t1", head="a" * 40)
+    gate("③ 破线到 9.00 MB（> 4/3 × 5.50）⇒ **不抬上限**（取下一档 5.00 MB，≤ 现行 ✓）",
+         not red_big and new_big["caps"]["docs_live_bytes"] == 5_000_000
+         and new_big["caps"]["docs_live_bytes"] <= caps55["docs_live_bytes"],
+         f"cap={human('docs_live_bytes', new_big['caps']['docs_live_bytes'])}")
+    gate("③ 同一个破线轮仍合法（`state_problems` 无红）",
+         not state_problems(new_big), str(state_problems(new_big)[:1]))
+
+    # ④ 到 floor ⇒ 乘性减降不下去 ⇒ **照旧判红**（出路是真删，不是再开一轮空转 ✓）
+    caps_floor = seeds()
+    caps_floor["docs_live_bytes"] = REGISTRY["docs_live_bytes"]["floor"]
+    read_floor = dict(_SELFTEST_READING,
+                      docs_live_bytes=REGISTRY["docs_live_bytes"]["floor"] + 1_000_000)
+    st_floor = _selftest_state(caps_floor)
+    new_floor, red_floor = open_round(st_floor, read_floor, now="t1", head="a" * 40)
+    gate("④ 已到 floor 仍破线 ⇒ **照旧判红**（没有乘性减的余地 ⇒ 出路是真删，不是豁免 ✓）",
+         bool(red_floor) and any("docs_live_bytes" in r for r in red_floor)
+         and new_floor is st_floor,   # 判红 ⇒ 状态**一个字节没动**（不是写成一整轮空转）
+         f"red={len(red_floor)}")
+
+    # ⑤ 伪造的 `aimd` 标记**逐条判红**（否则它就成了绕过开轮闸门的通行证 ✗）
+    forged = json.loads(json.dumps(new8))
+    forged["history"][-1]["caps"]["docs_live_bytes"] = int(8_580_000 * AIMD_FACTOR) + 1
+    forged["caps"] = dict(forged["history"][-1]["caps"])
+    gate("⑤ 伪造：AIMD 轮的新 cap **没真减够**（> 实测×0.75）⇒ 判红",
+         any("乘性减没真减够" in r for r in state_problems(forged)))
+
+    no_breach = json.loads(json.dumps(new8))
+    no_breach["history"][-1]["reading"]["docs_live_bytes"] = 8_000_000   # 没越过上一轮 8.50 MB
+    gate("⑤ 伪造：标成 AIMD 但读数**没真破线** ⇒ 判红",
+         any("不是破线" in r for r in state_problems(no_breach)))
+
+    wrong_id = json.loads(json.dumps(new8))
+    wrong_id["history"][-1]["aimd"] = ["status_total_lines"]
+    gate("⑤ 伪造：把**非 AIMD id**（STATUS 行数）标成 AIMD ⇒ 判红",
+         any("不在 `AIMD_IDS`" in r for r in state_problems(wrong_id)))
+
+    # ⑥ 加性档没坏：40 轮单调不增 + 停在 floor（`check-budgets --layer threshold` 的既有依赖 ✓）
+    caps, prev, mono = seeds(), seeds(), True
+    for _ in range(40):
+        caps = tighten(caps)
+        if any(caps[k] > prev[k] for k in REGISTRY):
+            mono = False
+        prev = dict(caps)
+    gate("⑥ 回归：加性档 `tighten()` 40 轮**单调不增**且**停在 floor**",
+         mono and all(caps[k] == REGISTRY[k]["floor"] for k in REGISTRY),
+         f"docs_live={human('docs_live_bytes', caps['docs_live_bytes'])}")
+
+    # ⑦ `aimd_target` 是消费点（docs-lint 的提示）与重钉**共用**的那一条：夹子只有 floor/现行 cap
+    gate("⑦ `aimd_target` 的两个夹子（floor ≤ 目标 ≤ 现行 cap）",
+         aimd_target("docs_live_bytes", 9_000_000, 5_500_000) <= 5_500_000
+         and aimd_target("docs_live_bytes", 1, 5_500_000)
+         >= REGISTRY["docs_live_bytes"]["floor"])
+
+    # ⑧ **接缝**：消费点（docs-lint 红字）印的"下一档"与 `open_round()` 真钉的**必须同一档**
+    #    （否则红字会教人一个数、开轮钉另一个数 ⇒ 又是一处"第二份真相" ✗）。
+    gate("⑧ 接缝：`next_cap()`（消费点提示）== `open_round()` 真钉的 caps（破线/不破线各一）",
+         next_cap("docs_live_bytes", 8_500_000, 8_580_000)
+         == new8["caps"]["docs_live_bytes"]
+         and next_cap("docs_live_bytes", 8_500_000, 8_000_000)
+         == new_ok["caps"]["docs_live_bytes"],
+         f"{next_cap('docs_live_bytes', 8_500_000, 8_580_000)} vs "
+         f"{new8['caps']['docs_live_bytes']}")
+
+    ok = all(hit for _, hit, _ in results)
+    for label, hit, detail in results:
+        line = f"  {'✓' if hit else '✗'} {label}"
+        if detail and not hit:
+            line += f" —— {detail}"
+        print(line)
+    print(f"threshold_ratchet --selftest：{sum(1 for _, h, _ in results if h)}/{len(results)} "
+          f"条判据咬得住 {'✓' if ok else '✗（有判据咬不住！）'}")
+    return 0 if ok else 1
+
+
+def main(argv: list[str] | None = None) -> int:
+    """`--selftest` = AIMD / 收紧的判据通道；`--help` = 本文件的登记表与形状。**判红仍在**
+    `python3 scripts/check-budgets.py --layer threshold`（一处判：状态 + 接缝 + 开轮纪律 ✓）。"""
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if "--help" in argv or "-h" in argv:
+        print(__doc__)
+        return 0
+    if argv == ["--selftest"]:
+        return selftest()
+    print("threshold_ratchet.py：这是**库**（登记表 + tighten/aimd + 状态读写）。"
+          "可用参数：`--selftest` / `--help`；判红在 "
+          "`python3 scripts/check-budgets.py --layer threshold` ✓", file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
