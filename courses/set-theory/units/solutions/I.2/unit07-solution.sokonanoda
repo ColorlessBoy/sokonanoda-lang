@@ -130,4 +130,4 @@ theorem swap_converse_false :
           (@Eq.trans.{1} (Set Nat) (Set.univ Nat) y (∅)
             (hy (Set.univ Nat))
             (@Eq.symm.{1} (Set Nat) (∅) y (hy (∅))))
-          (Set.mem_univ Nat 0)))
+          (@Set.mem_univ Nat 0)))
