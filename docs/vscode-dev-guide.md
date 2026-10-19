@@ -1,6 +1,4 @@
-# VS Code 扩展开发规范
-
-<!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
+# VS Code 扩展开发规范 <!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
 
 > 适用：`editor/vscode/` 下所有改动。接手前先读本文 + `editor/vscode/README.md`。
 > 违反版本纪律或跳过测试层 = commit 打回。

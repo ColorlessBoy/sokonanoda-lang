@@ -1,6 +1,4 @@
-# DSH: what a project repository can ship to an agent
-
-<!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
+# DSH: what a project repository can ship to an agent <!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
 
 > **本仓库的调研底稿**（第八十六轮，2026-09-17）：对 DeepSeek Harness 源码
 > （`/Users/penglingwei/Documents/code-agent/deepseek-harness`）的只读勘察记录，

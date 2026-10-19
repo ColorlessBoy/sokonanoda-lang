@@ -1,6 +1,4 @@
-# 例行化：真实 VS Code 集成测试（`scripts/vscode-e2e.sh`）
-
-<!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
+# 例行化：真实 VS Code 集成测试（`scripts/vscode-e2e.sh`） <!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
 
 > 0.58.0（第九十七轮）起，扩展的**真宿主**验证从"想起来才手工跑一次"变成一条
 > 命令 + 一份提交进仓库的台账。CI 也跑同一套用例（Linux + `xvfb-run`），本地

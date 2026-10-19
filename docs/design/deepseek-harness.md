@@ -1,6 +1,4 @@
-# DeepSeek Harness 适配（设计 + 计划）
-
-<!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
+# DeepSeek Harness 适配（设计 + 计划） <!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
 
 > 状态：**H0–H4 已落地**（0.54.0 → 0.55.0，见 §9）；H5 的 B2 已被 `docs/design/agent-query-channel.md（**已删** ⇒ 原文 `git log --all -- docs/design/agent-query-channel.md`）` 取代（MCP 已落 ✓），B1/B3/B4 仍 backlog（本文件是 `H0–H4` 的执行依据）。
 > 触发：用户 2026-09-17「接手这个项目，但很多地方还没适配 deepseek harness，

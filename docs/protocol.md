@@ -1,6 +1,4 @@
-# `.sokonanoda` collaboration protocol (v1, implemented + draft)
-
-<!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
+# `.sokonanoda` collaboration protocol (v1, implemented + draft) <!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
 
 ## Goal
 

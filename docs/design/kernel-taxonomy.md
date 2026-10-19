@@ -1,6 +1,4 @@
-# 设计：内核错误分类学余项 + 失败声明建议 + 基准/fuzz 基建
-
-<!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
+# 设计：内核错误分类学余项 + 失败声明建议 + 基准/fuzz 基建 <!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
 
 > **as-built（已落地）**：§1 分类学、§2 失败建议、§3 基准/fuzz 都已在仓库里生效
 > （`crates/front/src/suggest.rs`、`crates/lsp/src/actions.rs`、`crates/front/benches/pipeline.rs`、`fuzz/`）；
