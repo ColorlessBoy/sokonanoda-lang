@@ -49,6 +49,19 @@ axiom hp : P -> P
 #[test]
 fn changing_a_dependency_forces_a_recompute() {
     std::env::set_var("SOKO_JUDGE_INPLACE", "on");
+    // ⭐ **档位声明**（⚠ **不是放宽判据** ✗）：本判据问的是
+    // `args_fit_layers_in_order` 那条**就地判定点**（`elab.rs:3761` 的
+    // `INPLACE_USED`）—— 而 **IA-5**（`elab.rs:4464-4476` 的
+    // `let fits_old_style = !strict_at && …`、`:4686` 的 `if !strict_at && …`）
+    // 让那条判定点在**默认档（严格档）不可达** ⇒ 本判据**只存在于
+    // `SOKO_STRICT_AT=0` 档**；默认档的同名能力由**另一条活的**判定点
+    // （`infer_expected_level` / `elab.rs:7518`，走参数化归纳的 `match`）覆盖。
+    //
+    // 不钉这一档的后果（实测，同一构建）：`INPLACE_USED` 光 prelude 安装就
+    // **12**，入口贡献 **0**（宽松档 13 / 1）⇒ 断言③「就地路径真的被走到」
+    // **空转**（"咬不住的守卫等于没有"），断言②必红。⇒ 钉档 = 让判据回到它
+    // 设计时的那条路上 ✓。
+    std::env::set_var("SOKO_STRICT_AT", "0");
 
     let before = inplace_report();
     let a = compile(DEP_VALUE, ENTRY);
