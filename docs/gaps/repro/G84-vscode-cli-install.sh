@@ -24,6 +24,13 @@
 #   ④ **真判据**：③ 里那只跑出来的 `--version` == `package.json` 版本
 #      （**不许**比"刚拷的文件" ✗ —— 那是假绿）。
 #
+# ── 环境前提（2026-10-19）──
+#   判据 ①③ 要的是「装出去的是**包里**那份、且与插件同版本」⇒ `editor/vscode/bin/**` 里
+#   的暂存 CLI **必须**是插件版本（它是 gitignored 构建产物 ⇒ 开发机上可能是任一历史构建）。
+#   陈旧暂存（实测 0.92.0 vs 插件 0.94.0）会让 ①③ 判红 —— 那**不是**产品缺口 ✗。
+#   ⇒ 本件先核暂存版本，缺失/不等就 `node editor/vscode/scripts/stage-lsp.js` 重暂存；
+#     仍不等 ⇒ **exit 2**（环境不齐）。判据四条与反向验证**一字未改** ✓。
+#
 # 退出码约定（docs/gaps/README.md）：0 = 缺口仍在   1 = 行为已变（已修）   2 = 环境不满足
 set -uo pipefail
 
@@ -32,8 +39,49 @@ cd "$ROOT"
 
 command -v node >/dev/null 2>&1 || { echo "G-84: 需要 node" >&2; exit 2; }
 [ -f editor/vscode/package.json ] || { echo "G-84: 找不到 editor/vscode/package.json" >&2; exit 2; }
-[ -x editor/vscode/bin/darwin-arm64/sokonanoda ] || [ -n "$(ls editor/vscode/bin/*/sokonanoda 2>/dev/null | head -1)" ] \
-  || { echo "G-84: 扩展里没有暂存好的自带 CLI（先 npm run stage:lsp）" >&2; exit 2; }
+VERSION="$(node -p "require('./editor/vscode/package.json').version" 2>/dev/null)" || VERSION=""
+[ -n "$VERSION" ] || { echo "G-84: 读不出 editor/vscode/package.json 的 version" >&2; exit 2; }
+
+# ── **环境前提由复现件自己保证**（2026-10-19）──────────────────────────────
+# `editor/vscode/bin/**` 是 **gitignored 构建产物**（`.gitignore:20`）⇒ 开发机上它可以是
+# **任何一个历史构建**（实测：陈旧暂存自述 0.92.0，而插件已 0.94.0）。而四条判据问的是
+# 「装出去的那只 == 插件版本」—— 只有**包里自带的那份 CLI 本身就是这个版本**时才成立。
+# 旧写法遇到陈旧暂存就直接跑 ⇒ ① 判红（安装位自述 0.92.0），② 的「版本不一致」分支按
+# 设计**不**调 `ensureCliOnLoginPath()` ⇒ ③ 也判红（PATH 没落地，登录 shell 回退到真安装）
+# ⇒ **2 条判据不成立** ✗ —— 那不是产品缺口，是**环境前提不成立** ✗。
+# ⇒ 这里先**把陈旧暂存清掉、重新暂存一份**（`stage-lsp.js` 默认取 host **release** 构建；
+# CI 的 ledger job 也是同一条命令 ✓，所以两条路的产物口径一致）。
+# ⚠ **判据一条都没放水** ✗：暂存更新后照样跑那四条；更新不到插件版本 ⇒ **exit 2**
+# （环境不齐），绝不许报「已修」或「缺口仍在」 ✗。这也**不是**「期望判红」✗。
+staged_clis() { ls editor/vscode/bin/*/sokonanoda 2>/dev/null; }
+cli_ver() { "$1" --version 2>/dev/null | grep -o '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*' | head -1; }
+
+need_stage=0
+[ -n "$(staged_clis)" ] || need_stage=1
+for f in $(staged_clis); do
+  [ "$(cli_ver "$f")" = "$VERSION" ] || need_stage=1
+done
+if [ "$need_stage" = 1 ]; then
+  stage_log="$(mktemp)"
+  echo "· 暂存的自带 CLI 缺失或版本 ≠ 插件 $VERSION ⇒ 重新暂存（node editor/vscode/scripts/stage-lsp.js）"
+  if ! timeout 180 node editor/vscode/scripts/stage-lsp.js >"$stage_log" 2>&1; then
+    echo "G-84: 重新暂存失败（先 cargo build --release -p sokonanoda-cli）—— 末行：$(tail -n 1 "$stage_log")" >&2
+    rm -f "$stage_log"
+    exit 2
+  fi
+  rm -f "$stage_log"
+fi
+
+# **暂存后仍不是插件版本** ⇒ 环境不齐（例如 `target/release/sokonanoda` 还是旧构建）⇒
+# **exit 2**，不许拿它当「缺口仍在」（那会把环境问题读成产品回归 ✗）。
+fresh=0
+for f in $(staged_clis); do
+  [ "$(cli_ver "$f")" = "$VERSION" ] && fresh=1
+done
+[ "$fresh" = 1 ] || {
+  echo "G-84: 暂存后仍没有一只自述 $VERSION 的自带 CLI（查 target/release/sokonanoda 的版本 / stage-lsp.js）" >&2
+  exit 2
+}
 
 criteria() { SOKO_G84_CRITERIA=1 node docs/gaps/repro/G84-vscode-cli-install.js "$ROOT"; }
 
