@@ -434,7 +434,7 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                       (@Eq.subst.{1} (Set γ) (fun (X : Set γ) => z ∈ X) C' C
                         (@Eq.symm.{1} (Set γ) C C' hC) hz))
                   (@And.left (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                    (And.right (Set.MapsTo γ α g C A)
+                    (@And.right (Set.MapsTo γ α g C A)
                       ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)) hg2))
                   (fun (z : γ) => fun (hz : z ∈ C') =>
                     And.right (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）

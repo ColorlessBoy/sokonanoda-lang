@@ -47,7 +47,7 @@ theorem add_comm (a b : Nat) : @Eq.{1} Nat (add a b) (add b a) :=  -- soko:notat
     (fun (n : Nat) (ih : @Eq.{1} Nat (add a n) (add n a)) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
       @Eq.trans.{1} Nat (Nat.succ (add a n)) (Nat.succ (add n a)) (add (Nat.succ n) a)
         (@Eq.subst.{1} Nat
-          (fun (m : Nat) => Eq.{1} Nat (Nat.succ (add a n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (add a n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
           (add a n) (add n a) ih
           (Eq.refl.{1} Nat (Nat.succ (add a n))))
         (Eq.symm.{1} Nat (add (Nat.succ n) a) (Nat.succ (add n a)) (succ_add n a)))
