@@ -7,7 +7,7 @@ theorem demo_mem_prod_iff (A : Type) (B : Type) (s : Set A) (t : Set B) (p : Pro
   Set.mem_prod_iff A B s t p
 
 theorem demo_mem_prod_mk (A : Type) (B : Type) (s : Set A) (t : Set B) (a : A) (b : B) :
-    (prod_mk A B a b) ∈ (s ×ˢ t) ↔ a ∈ s ∧ b ∈ t :=
+    (@prod_mk A B a b) ∈ (s ×ˢ t) ↔ a ∈ s ∧ b ∈ t :=
   Set.mem_prod_mk A B s t a b
 
 theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :

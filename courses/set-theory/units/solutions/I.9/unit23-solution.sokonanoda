@@ -66,7 +66,7 @@ theorem pi_inter_subset (ι α : Type) (A B : ι → Set α) :
             (Set.mem_pi_elim ι α (fun (i' : ι) => A i' ∩ B i') f i hf)))
 
 theorem uncurry_curry (A B C : Type) (f : Prod A B → C) (a : A) (b : B) :
-    uncurry A B C (curry A B C f) (prod_mk A B a b) = f (prod_mk A B a b) :=
+    uncurry A B C (curry A B C f) (@prod_mk A B a b) = f (@prod_mk A B a b) :=
   Eq.refl.{1} C (f (prod_mk A B a b))
 
 theorem pi_inter_subset_rev (ι α : Type) (A B : ι → Set α) :

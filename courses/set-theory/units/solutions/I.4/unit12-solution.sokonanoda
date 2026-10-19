@@ -169,7 +169,7 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
 -- Set.notMem_empty Nat 0 再把它挡回来（本语言没有 Decidable，这是最省的分辨手段）。
 -- 常函数是 λ，记法 `''` / `⁻¹'` / `∩` 补不出它的前导类型参数 ⇒ 这一条写点名形式。
 theorem flawed_equalities_refuted :
-    (fun (_ : Set Nat) => ∅) '' ((fun (_ : Set Nat) => ∅) ⁻¹' (Set.univ (Set Nat)))
+    (fun (_ : Set Nat) => ∅) '' ((fun (_ : Set Nat) => ∅) ⁻¹' (@Set.univ (Set Nat)))
       ≠ Set.univ (Set Nat)
     ∧ (fun (_ : Set Nat) => ∅) '' ({∅} ∩ {(Set.univ Nat)})
       ≠ ((fun (_ : Set Nat) => ∅) '' {∅}) ∩ ((fun (_ : Set Nat) => ∅) '' {(Set.univ Nat)}) :=

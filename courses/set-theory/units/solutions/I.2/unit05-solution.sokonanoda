@@ -40,10 +40,10 @@ theorem prod_mk_inj (A B : Type) (a a1 : A) (b b1 : B) :
     prod_mk A B a b = prod_mk A B a1 b1 → a = a1 ∧ b = b1 := by
   intro h
   constructor
-  exact Eq.subst.{1} (Prod A B) (fun (p : Prod A B) => a = Prod.fst A B p)
-    (prod_mk A B a b) (prod_mk A B a1 b1) h (Eq.refl.{1} A a)
-  exact Eq.subst.{1} (Prod A B) (fun (p : Prod A B) => b = Prod.snd A B p)
-    (prod_mk A B a b) (prod_mk A B a1 b1) h (Eq.refl.{1} B b)
+  exact @Eq.subst.{1} (Prod A B) (fun (p : Prod A B) => a = Prod.fst A B p)
+    (@prod_mk A B a b) (@prod_mk A B a1 b1) h (@Eq.refl.{1} A a)
+  exact @Eq.subst.{1} (Prod A B) (fun (p : Prod A B) => b = Prod.snd A B p)
+    (@prod_mk A B a b) (@prod_mk A B a1 b1) h (@Eq.refl.{1} B b)
 
 -- 练习 4（L 类）：配对定理的完整形态；← 方向对两个坐标各做一次 Eq.subst。
 theorem prod_mk_eq_iff (A B : Type) (a a1 : A) (b b1 : B) :
@@ -53,9 +53,9 @@ theorem prod_mk_eq_iff (A B : Type) (a a1 : A) (b b1 : B) :
   intro h
   have ha : a = a1 := And.left h
   have hb : b = b1 := And.right h
-  exact Eq.subst.{1} B (fun (y : B) => prod_mk A B a b = prod_mk A B a1 y) b b1 hb
-    (Eq.subst.{1} A (fun (x : A) => prod_mk A B a b = prod_mk A B x b) a a1 ha
-      (Eq.refl.{1} (Prod A B) (prod_mk A B a b)))
+  exact @Eq.subst.{1} B (fun (y : B) => @prod_mk A B a b = @prod_mk A B a1 y) b b1 hb
+    (@Eq.subst.{1} A (fun (x : A) => @prod_mk A B a b = @prod_mk A B x b) a a1 ha
+      (@Eq.refl.{1} (Prod A B) (@prod_mk A B a b)))
 
 -- 练习 5（T 类）：A ×ˢ B 的成员刻画 —— 两边定义上相等，两个方向都是恒等函数。
 theorem mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :

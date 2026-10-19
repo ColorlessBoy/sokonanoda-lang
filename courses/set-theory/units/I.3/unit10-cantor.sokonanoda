@@ -118,7 +118,7 @@ def Set.Countable (α : Type) : Prop := by
 -- soko:hint 思路：来回都用恒等函数（最省的一对互逆映射），再逐条交四样证据。
 -- soko:hint 目标形态：(Set.univ Nat) ≈ (Set.univ Nat)；四条条件都只谈全集：两条"进集合"是 True 的证明，两条互逆律是 rfl 级。
 -- soko:hint 关键件：Set.Equiv.mk 依次吃 f、g、①进集合、②回集合、③g∘f=id、④f∘g=id；全集的成员判定交给 Set.mem_univ，等式交给 Eq.refl。
-theorem nat_equiv_nat : (Set.univ Nat) ≈ (Set.univ Nat) := by
+theorem nat_equiv_nat : (@Set.univ Nat) ≈ (@Set.univ Nat) := by
   sorry
 
 -- 练习 3（T 类）：对角线集合的成员判定——把 D := fun (y : α) => ¬ (f y y) 写开。
@@ -148,7 +148,7 @@ theorem cantor (α : Type) :
 -- soko:hint 目标形态：¬ ((Set.univ Nat) ≈ (Set.univ (Set Nat)))。
 -- soko:hint 关键件：练习 4 的 cantor 作用在 Nat 上，目标逐字相同。
 theorem powerset_nat_not_countable :
-    ¬ ((Set.univ Nat) ≈ (Set.univ (Set Nat))) := by
+    ¬ ((@Set.univ Nat) ≈ (@Set.univ (Set Nat))) := by
   sorry
 
 -- 练习 6（D 类）：判断真假——「存在满射 α → Set α」（假的枚举想补成满射）。它**为假**。
