@@ -54,5 +54,5 @@ theorem choice_family_apply (α : Type) (β : Type) (I : Set α) (F : α → Set
 -- 关键件：`choice`（**类型参数对调** ✓）· `Eq.{1}`（**嵌套位置的等式要显式宇宙** ✓）  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
 theorem choice_right_inverse (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
     (h : ∀ (b : β), b ∈ B → ∃ (a : α), a ∈ A ∧ @Eq.{1} β (f a) b) :  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-    ∃ (g : β → α), ∀ (b : β), b ∈ B → g b ∈ A ∧ Eq.{1} β (f (g b)) b := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    ∃ (g : β → α), ∀ (b : β), b ∈ B → g b ∈ A ∧ @Eq.{1} β (f (g b)) b := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
   sorry
