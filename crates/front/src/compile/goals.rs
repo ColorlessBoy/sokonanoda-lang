@@ -391,6 +391,9 @@ pub(crate) struct ProbeEnv<'a> {
     /// 闭包上下文（被导入模块的声明文本）；单文件为空。
     extra_prefix: &'a str,
     options: &'a CompileOptions,
+    /// **唯一记法接口**（`DisplayNotations`）：探针合成的应用文本里的头要过它渲染
+    /// ——绕开它就是第五套实现 ✗（`scripts/audit-notation-paths.py` 会抓 ✓）。
+    display: crate::display::DisplayNotations,
 }
 
 /// 请求期 kernel 探针入口（方案 A，front-only，内核零改动）：
@@ -444,6 +447,9 @@ pub fn probe_sub_goal_types_with(
         prefix_src: &doc_src[..decl_start],
         extra_prefix,
         options,
+        // **建表的唯一实现**（`check::display_notations_from_commands` ✓）——
+        // 不许自己造 arity ✗（那正是记法守卫抓的第五套实现 ✓）。
+        display: crate::compile::check::display_notations_from_commands(&file.commands),
     };
     let Some(info) = goal_under_binders(
         ty,
@@ -475,12 +481,19 @@ fn probe_arg_type(
 ) -> Option<String> {
     // **严格档：引擎装配的脊要自己标 `@`**（a15 同款）——探针把**全部**位置实参
     // 写出来（含隐式位），正常形式在严格档被拒/误读 ⇒ 类型回读不出来 ✗。
-    // 只在头是**常量名**时标（`@∃` / `@(` 是语法错 ⇒ 宁可退回不标）。
-    let at = match head {
-        Expr::Ident { .. } | Expr::UniverseApp { .. } => crate::compile::implicit_msg::at_prefix(),
-        _ => "",
+    // 头文本走**唯一记法接口**（`DisplayNotations::render` ✓，守卫会抓绕过 ✗）。
+    let head_text = env.display.render(head);
+    // `@` 只加在**常量名**上（`@∃` / `@∅` / `@(` 是语法错 ⇒ 宁可退回不标 ✗）：
+    // 折叠成记法符号的头（非 ASCII）或非 `Ident`/`UniverseApp` 的头一律不标 ✓。
+    let plain_name = head_text
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '{' | '}' | ','));
+    let at = if plain_name && matches!(head, Expr::Ident { .. } | Expr::UniverseApp { .. }) {
+        crate::compile::implicit_msg::at_prefix()
+    } else {
+        ""
     };
-    let mut term = format!("{at}{}", render_expr(head));
+    let mut term = format!("{at}{head_text}");
     let mut lifted: Vec<GoalBinder> = Vec::new();
     for (j, arg) in args.iter().enumerate().take(target) {
         match arg {
