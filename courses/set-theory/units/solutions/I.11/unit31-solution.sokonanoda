@@ -48,7 +48,7 @@ theorem orderReflecting_of_monotone_inverse (α β : Type) (r : α → α → Pr
     OrderReflecting α β r s f :=
   fun (a : α) => fun (b : α) => fun (hab : s (f a) (f b)) =>
     rel_subst_left α (fun (p : α) (q : α) => r q p) a b (g (f a))
-      (Eq.symm.{1} α (g (f a)) a (hgf a))
+      (@Eq.symm.{1} α (g (f a)) a (hgf a))
       (rel_subst_right α r (g (f a)) (g (f b)) b (hgf b)
         (monotone_apply β α s r g hg (f a) (f b) hab))
 

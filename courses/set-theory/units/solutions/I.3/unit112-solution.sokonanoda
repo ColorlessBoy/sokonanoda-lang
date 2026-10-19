@@ -35,11 +35,11 @@ theorem demo_cbK_mono (α β : Type) (A : Set α) (B : Set β) (f : α → β) (
         (And.right hx)
           (Set.image_mono g (B \ f '' C2) (B \ f '' C1)
             (fun (b : β) (hb : b ∈ B \ f '' C2) =>
-              And.intro (b ∈ B) (¬ (b ∈ f '' C1))
+              @And.intro (b ∈ B) (¬ (b ∈ f '' C1))
                 (And.left hb)
                 (fun (h1 : b ∈ f '' C1) =>
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
-                  (And.right (b ∈ B) (¬ (b ∈ f '' C2)) hb)
+                  (@And.right (b ∈ B) (¬ (b ∈ f '' C2)) hb)
                     (Set.image_mono f C1 C2 h b h1)))
             x h2))
 
@@ -63,11 +63,11 @@ theorem cbC0_sdiff (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g :
     fun (C : Set α) (hC : C ∈ cbFix α β A B f g) =>
       @And.right (∀ (y : α), y ∈ C → y ∈ A)
         (∀ (y : α), y ∈ cbK α β A B f g C → y ∈ C) hC x
-        (And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C)))
+        (@And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C)))
           (And.left hx)
           (fun (h2 : x ∈ g '' (B \ f '' C)) =>
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
-            (And.right (x ∈ A) (¬ (x ∈ g '' B)) hx)
+            (@And.right (x ∈ A) (¬ (x ∈ g '' B)) hx)
               (Set.image_mono g (B \ f '' C) B
                 (fun (b : β) (hb : b ∈ B \ f '' C) =>
                   And.left hb)
@@ -187,9 +187,9 @@ theorem cbRel_total (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g 
         Exists.intro (f x)
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
           (And.intro (hfB x hx)
-            (Or.inl (cbRelL α β (cbC0 α β A B f g) f x (f x))
+            (@Or.inl (cbRelL α β (cbC0 α β A B f g) f x (f x))
               (cbRelR α β (cbC0 α β A B f g) g x (f x))
-              (demo_cbRelL_intro α β (cbC0 α β A B f g) f x (f x) hxC0 (Eq.refl.{1} β (f x))))))
+              (demo_cbRelL_intro α β (cbC0 α β A B f g) f x (f x) hxC0 (@Eq.refl.{1} β (f x))))))
       (fun (hxNC0 : ¬ (x ∈ cbC0 α β A B f g)) =>
         Set.mem_image_elim g B x (∃ (y : β), y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y)
           (Classical.byContradiction (x ∈ g '' B)
@@ -217,10 +217,10 @@ theorem cbRel_single (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g
       @Or.elim (cbRelL α β (cbC0 α β A B f g) f x y)
         (cbRelR α β (cbC0 α β A B f g) g x y) (y = v)
         (fun (h1 : cbRelL α β (cbC0 α β A B f g) f x y) =>
-          Or.elim (cbRelL α β (cbC0 α β A B f g) f x v)
+          @Or.elim (cbRelL α β (cbC0 α β A B f g) f x v)
             (cbRelR α β (cbC0 α β A B f g) g x v) (y = v)
             (fun (h2 : cbRelL α β (cbC0 α β A B f g) f x v) =>
-              Eq.trans.{1} β y (f x) v
+              @Eq.trans.{1} β y (f x) v
                 (Eq.symm.{1} β (f x) y
                   (demo_cbRelL_eq α β (cbC0 α β A B f g) f x y h1))
                 (demo_cbRelL_eq α β (cbC0 α β A B f g) f x v h2))
@@ -259,11 +259,11 @@ theorem cbRel_inj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : 
       @Or.elim (cbRelL α β (cbC0 α β A B f g) f x y)
         (cbRelR α β (cbC0 α β A B f g) g x y) (x = z)
         (fun (h1 : cbRelL α β (cbC0 α β A B f g) f x y) =>
-          Or.elim (cbRelL α β (cbC0 α β A B f g) f z y)
+          @Or.elim (cbRelL α β (cbC0 α β A B f g) f z y)
             (cbRelR α β (cbC0 α β A B f g) g z y) (x = z)
             (fun (h2 : cbRelL α β (cbC0 α β A B f g) f z y) =>
               hf_inj x hx z hz
-                (Eq.trans.{1} β (f x) y (f z)
+                (@Eq.trans.{1} β (f x) y (f z)
                   (demo_cbRelL_eq α β (cbC0 α β A B f g) f x y h1)
                   (Eq.symm.{1} β (f z) y
                     (demo_cbRelL_eq α β (cbC0 α β A B f g) f z y h2))))
@@ -309,7 +309,7 @@ theorem cbRel_surj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g :
           (Classical.byContradiction (y ∈ f '' (cbC0 α β A B f g))
             (fun (hny : ¬ (y ∈ f '' (cbC0 α β A B f g))) =>
 -- soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
-              (And.right (g y ∈ A) (¬ (g y ∈ g '' (B \ f '' (cbC0 α β A B f g))))
+              (@And.right (g y ∈ A) (¬ (g y ∈ g '' (B \ f '' (cbC0 α β A B f g))))
                 (cbC0_subset_K α β A B f g (g y) hgy))
                 (Set.mem_image_intro g (B \ f '' (cbC0 α β A B f g)) (g y) y
                   (And.intro hy hny)

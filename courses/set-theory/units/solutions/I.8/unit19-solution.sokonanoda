@@ -41,7 +41,7 @@ theorem subset_le (α : Type) (A B : Set α) (h : A ⊆ B) : A ≼ B :=
 
 
 theorem empty_le (α : Type) (A : Set α) : ∅ ≼ A :=
-  subset_le α ∅ A (fun (x : α) (hx : x ∈ ∅) => @False.elim (x ∈ A) (Set.notMem_empty α x hx))  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 在这里补不出来，必须写全
+  subset_le α ∅ A (fun (x : α) (hx : x ∈ ∅) => @False.elim (x ∈ A) (@Set.notMem_empty α x hx))  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 在这里补不出来，必须写全
 theorem le_trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
     (h1 : A ≼ B) (h2 : B ≼ C) : A ≼ C :=
   Set.Le.elim α β A B (A ≼ C) h1

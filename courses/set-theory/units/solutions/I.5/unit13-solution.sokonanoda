@@ -49,7 +49,7 @@ theorem strictOf_irrefl (α : Type) (r : α → α → Prop)
 -- ── 练习 5（L 类）：非严格部分自反 ─────────────────────────────────────────
 theorem nonstrictOf_refl (α : Type) (r : α → α → Prop) :
     Reflexive α (nonstrictOf α r) :=
-  fun (a : α) => (fun (hh : r a a ∨ a = a) => hh) (@Or.inr (r a a) (a = a) (Eq.refl.{1} α a))  -- soko:notation-ok: 等式族证明项的宇宙层级（AGENTS.md 明说的边界）
+  fun (a : α) => (fun (hh : r a a ∨ a = a) => hh) (@Or.inr (r a a) (a = a) (@Eq.refl.{1} α a))  -- soko:notation-ok: 等式族证明项的宇宙层级（AGENTS.md 明说的边界）
 
 -- ── 练习 6（L 类）：严格 ⇒ 非严格 ──────────────────────────────────────────
 theorem strict_imp_nonstrict (α : Type) (r : α → α → Prop) (a b : α) :

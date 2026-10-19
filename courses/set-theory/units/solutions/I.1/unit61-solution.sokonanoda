@@ -56,7 +56,7 @@ theorem sdiff_self_eq_empty (α : Type) (A : Set α) :
       propext_spec (a ∈ (A \ A)) (a ∈ (@Set.empty α))
         (@Iff.intro (a ∈ (A \ A)) (a ∈ (@Set.empty α))
           (fun (h : a ∈ (A \ A)) => (@False.elim (a ∈ (@Set.empty α))) (not_mem_sdiff_self α A a h))
-          (fun (h : a ∈ (@Set.empty α)) => (False.elim (a ∈ (A \ A))) ((Iff.mp (Set.mem_empty_iff_false a)) h))))
+          (fun (h : a ∈ (@Set.empty α)) => (@False.elim (a ∈ (A \ A))) ((Iff.mp (Set.mem_empty_iff_false a)) h))))
 
 theorem inter_compl_self_eq_empty (α : Type) (A : Set α) :
     @Eq.{1} (Set α) (A ∩ (Aᶜ)) (@Set.empty α) :=  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）
@@ -65,7 +65,7 @@ theorem inter_compl_self_eq_empty (α : Type) (A : Set α) :
       propext_spec (a ∈ (A ∩ (Aᶜ))) (a ∈ (@Set.empty α))
         (@Iff.intro (a ∈ (A ∩ (Aᶜ))) (a ∈ (@Set.empty α))
           (fun (h : a ∈ (A ∩ (Aᶜ))) => (@False.elim (a ∈ (@Set.empty α))) (not_mem_inter_compl α A a h))
-          (fun (h : a ∈ (@Set.empty α)) => (False.elim (a ∈ (A ∩ (Aᶜ)))) ((Iff.mp (Set.mem_empty_iff_false a)) h))))
+          (fun (h : a ∈ (@Set.empty α)) => (@False.elim (a ∈ (A ∩ (Aᶜ)))) ((Iff.mp (Set.mem_empty_iff_false a)) h))))
 
 theorem inter_univ_eq (α : Type) (A : Set α) : @Eq.{1} (Set α) (A ∩ (@Set.univ α)) A :=  -- soko:notation-ok: 等式族证明项的宇宙层级 + `∈`/`\`/`∩`/`ᶜ` 是 def 头（手册明说的边界）
   funext_spec α (fun (_ : α) => Prop) (A ∩ (@Set.univ α)) A
@@ -78,5 +78,5 @@ theorem inter_univ_eq (α : Type) (A : Set α) : @Eq.{1} (Set α) (A ∩ (@Set.u
                 (Set.mem_inter_iff a A (@Set.univ α))))
           (fun (h : a ∈ A) =>
             (fun (hu : a ∈ (A ∩ (@Set.univ α)) ↔ a ∈ A ∧ a ∈ (@Set.univ α)) =>
-              Iff.mpr hu (And.intro h (Set.mem_univ α a)))
+              Iff.mpr hu (And.intro h (@Set.mem_univ α a)))
               (Set.mem_inter_iff a A (@Set.univ α)))))

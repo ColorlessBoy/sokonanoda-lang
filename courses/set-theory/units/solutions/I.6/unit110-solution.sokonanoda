@@ -16,7 +16,7 @@ theorem choice_family (α : Type) (β : Type) (I : Set α) (F : α → Set β)
     (∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i)
     (choice α β I (Set.univ β) (fun (i : α) (x : β) => x ∈ F i)
       (fun (i : α) (hi : i ∈ I) =>
-        Exists.elim β (fun (x : β) => x ∈ F i)
+        @Exists.elim β (fun (x : β) => x ∈ F i)
           (∃ (x : β), x ∈ Set.univ β ∧ x ∈ F i)
           (h i hi)
           (fun (x : β) (hx : x ∈ F i) =>

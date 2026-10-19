@@ -44,10 +44,10 @@ import lib.Image
 theorem xlat_compl_union (α : Type) (A B : Set α) :
     (A ∪ B)ᶜ = Aᶜ ∩ Bᶜ :=
   @Set.ext α ((A ∪ B)ᶜ) (Aᶜ ∩ Bᶜ) (fun (x : α) =>
-    Iff.intro (¬ ((A ∪ B) x)) ((Aᶜ ∩ Bᶜ) x)
+    @Iff.intro (¬ ((A ∪ B) x)) ((Aᶜ ∩ Bᶜ) x)
       (fun (h : ¬ ((A ∪ B) x)) =>
         And.intro
-          (fun (ha : A x) => h (Or.inl (A x) (B x) ha))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (fun (ha : A x) => h (@Or.inl (A x) (B x) ha))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           (fun (hb : B x) => h (Or.inr (A x) (B x) hb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (fun (h : (Aᶜ ∩ Bᶜ) x) => fun (hor : (A ∪ B) x) =>
         Or.elim (A x) (B x) False
@@ -64,7 +64,7 @@ theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
       @Iff.intro (((r • s) ⁻¹) c a)
         (((s ⁻¹) • (r ⁻¹)) c a)
         (fun (h : ((r • s) ⁻¹) c a) =>
-          Exists.elim B (fun (b : B) => r a b ∧ s b c)
+          @Exists.elim B (fun (b : B) => r a b ∧ s b c)
             (∃ (b : B), s b c ∧ r a b) h
             (fun (b : B) => fun (hb : r a b ∧ s b c) =>
               Exists.intro b
@@ -72,7 +72,7 @@ theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
                   (And.right hb)
                   (And.left hb))))
         (fun (h : ((s ⁻¹) • (r ⁻¹)) c a) =>
-          Exists.elim B (fun (b : B) => s b c ∧ r a b)
+          @Exists.elim B (fun (b : B) => s b c ∧ r a b)
             (∃ (b : B), r a b ∧ s b c) h
             (fun (b : B) => fun (hb : s b c ∧ r a b) =>
               Exists.intro b
@@ -101,9 +101,9 @@ theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
     (hC : C ⊆ f '' @Set.univ α) :
     f '' (f ⁻¹' C) = C :=
   @Set.ext β (f '' (f ⁻¹' C)) C (fun (y : β) =>
-    Iff.intro (y ∈ f '' (f ⁻¹' C)) (y ∈ C)
+    @Iff.intro (y ∈ f '' (f ⁻¹' C)) (y ∈ C)
       (fun (hy : y ∈ f '' (f ⁻¹' C)) =>
-        Exists.elim α (fun (x : α) => (x ∈ f ⁻¹' C) ∧ (f x = y)) (y ∈ C) hy
+        @Exists.elim α (fun (x : α) => (x ∈ f ⁻¹' C) ∧ (f x = y)) (y ∈ C) hy
           (fun (x : α) => fun (hx : (x ∈ f ⁻¹' C) ∧ (f x = y)) =>
             Eq.subst.{1} β (fun (z : β) => z ∈ C) (f x) y
               (And.right hx)
@@ -126,9 +126,9 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
     (hf : Function.Injective α β f) :
     f '' (A ∩ B) = f '' A ∩ f '' B :=
   @Set.ext β (f '' (A ∩ B)) (f '' A ∩ f '' B) (fun (y : β) =>
-    Iff.intro (y ∈ f '' (A ∩ B)) (y ∈ f '' A ∩ f '' B)
+    @Iff.intro (y ∈ f '' (A ∩ B)) (y ∈ f '' A ∩ f '' B)
       (fun (hy : y ∈ f '' (A ∩ B)) =>
-        Exists.elim α (fun (x : α) => ((A ∩ B) x) ∧ (f x = y)) (y ∈ f '' A ∧ y ∈ f '' B) hy
+        @Exists.elim α (fun (x : α) => ((A ∩ B) x) ∧ (f x = y)) (y ∈ f '' A ∧ y ∈ f '' B) hy
           (fun (x : α) => fun (hx : (x ∈ A ∩ B) ∧ (f x = y)) =>
             And.intro
               (Exists.intro x
@@ -330,11 +330,11 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
       ((fun (a : α) => fun (b : β) => f a = b) • (fun (b : β) => fun (c : γ) => g b = c))
       (fun (a : α) => fun (c : γ) => g (f a) = c)
       (fun (a : α) => fun (c : γ) =>
-        Iff.intro
+        @Iff.intro
           (((fun (a : α) => fun (b : β) => f a = b) • (fun (b : β) => fun (c : γ) => g b = c)) a c)
           ((fun (a : α) => fun (c : γ) => g (f a) = c) a c)
           (fun (h : ((fun (a : α) => fun (b : β) => f a = b) • (fun (b : β) => fun (c : γ) => g b = c)) a c) =>
-            Exists.elim β (fun (b : β) => f a = b ∧ g b = c) (g (f a) = c) h
+            @Exists.elim β (fun (b : β) => f a = b ∧ g b = c) (g (f a) = c) h
               (fun (b : β) => fun (hb : f a = b ∧ g b = c) =>
                 Eq.trans.{1} γ (g (f a)) (g b) c
                   (congrArg.{1} g (And.left hb))
@@ -393,7 +393,7 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
     (¬ (C' ≈ (𝒫 C')))
     -- `cases` 需要一条**命名**的局部假设（类型要 delta 两步才到 `Exists` 的那种
     -- 假设它吃不下），所以先用 `have` 把类型摊开——记法写 `∃` 即可。
-    (Exists.elim (α → γ)
+    (@Exists.elim (α → γ)
       (fun (f : α → γ) =>
         Set.MapsTo α γ f A C ∧
           (∃ (g : γ → α),
@@ -407,7 +407,7 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
               Set.MapsTo γ α g C A ∧
                 ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)))
         ) =>
-          Exists.elim (γ → α)
+          @Exists.elim (γ → α)
             (fun (g : γ → α) =>
               Set.MapsTo γ α g C A ∧
                 ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)))

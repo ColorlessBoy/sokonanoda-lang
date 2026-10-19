@@ -33,7 +33,7 @@ theorem not_subset_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (
 
 theorem not_eq_empty_of_mem_sdiff (α : Type) (A B : Set α) (a : α)
     (h : a ∈ (A \ B)) : ¬ (@Eq.{1} (Set α) (A \ B) (@Set.empty α)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参
-  fun (heq : Eq.{1} (Set α) (A \ B) (@Set.empty α)) =>  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参
+  fun (heq : @Eq.{1} (Set α) (A \ B) (@Set.empty α)) =>  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`Set.*` 是 def 头，这些位置补不出前导实参
     demo_not_mem_empty α a
       (rel_subst_right (Set α) (fun (u : Set α) (v : Set α) => a ∈ v)
         (A \ B) (A \ B) (@Set.empty α) heq h)

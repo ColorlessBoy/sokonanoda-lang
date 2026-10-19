@@ -40,10 +40,10 @@ theorem surj_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β �
   fun (c : γ) =>
     @Exists.elim β (fun (b : β) => g b = c) (∃ (a : α), g (f a) = c) (hg c)
       (fun (b : β) (hb : g b = c) =>
-        Exists.elim α (fun (a : α) => f a = b) (∃ (a : α), g (f a) = c) (hf b)
+        @Exists.elim α (fun (a : α) => f a = b) (∃ (a : α), g (f a) = c) (hf b)
           (fun (a : α) (ha : f a = b) =>
             Exists.intro a
-              (Eq.subst.{1} β (fun (x : β) => g x = c) b (f a) (Eq.symm.{1} β (f a) b ha)
+              (@Eq.subst.{1} β (fun (x : β) => g x = c) b (f a) (Eq.symm.{1} β (f a) b ha)
                 hb)))
 
 theorem bij_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)

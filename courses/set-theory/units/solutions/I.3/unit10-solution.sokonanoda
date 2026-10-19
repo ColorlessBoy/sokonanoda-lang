@@ -97,13 +97,13 @@ theorem cantor (α : Type) :
                 (∃ (g : (Set α) → α), Set.MapsTo (Set α) α g (Set.univ (Set α)) (@Set.univ α) ∧
                   (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
                    Set.RightInvOn α (Set α) f g (Set.univ (Set α))))) =>
-        Exists.elim ((Set α) → α)
+        @Exists.elim ((Set α) → α)
           (fun (g : (Set α) → α) =>
             Set.MapsTo (Set α) α g (Set.univ (Set α)) (@Set.univ α) ∧
             (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
              Set.RightInvOn α (Set α) f g (Set.univ (Set α))))
           False
-          (And.right (Set.MapsTo α (Set α) f (@Set.univ α) (Set.univ (Set α)))
+          (@And.right (Set.MapsTo α (Set α) f (@Set.univ α) (Set.univ (Set α)))
             (∃ (g : (Set α) → α), Set.MapsTo (Set α) α g (Set.univ (Set α)) (@Set.univ α) ∧
               (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
                Set.RightInvOn α (Set α) f g (Set.univ (Set α))))

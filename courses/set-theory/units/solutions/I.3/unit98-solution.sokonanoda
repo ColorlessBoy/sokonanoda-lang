@@ -51,10 +51,10 @@ theorem leOn_mono_left (α : Type) (β : Type) (A : Set α) (A' : Set α) (B : S
         (injOn_mono_left α β f A A'
           (And.left hf) h)
         (fun (x : α) (hx : x ∈ A') =>
-          (And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf) x  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
+          (@And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf) x  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
             ((fun (hs : ∀ (z : α), z ∈ A' → z ∈ A) => hs x hx)
               ((fun (hu : A' ⊆ A ↔ ∀ (z : α), z ∈ A' → z ∈ A) => Iff.mp hu h)
-                (Set.subset_def α A' A)))))
+                (@Set.subset_def α A' A)))))
 
 theorem leOn_mono_right (α : Type) (β : Type) (A : Set α) (B : Set β) (C : Set β)
     (hAB : LeOn α β A B) (h : B ⊆ C) : LeOn α β A C :=

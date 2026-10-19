@@ -137,7 +137,7 @@ theorem kernel_is_equivalence (α β : Type) (f : α → β) :
     (fun (a : α) => @Eq.refl.{1} β (f a))
     (fun (a : α) (b : α) => fun (h : @Eq.{1} β (f a) (f b)) => @Eq.symm.{1} β (f a) (f b) h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
     (fun (a : α) (b : α) (c : α) => fun (hab : @Eq.{1} β (f a) (f b)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
-      fun (hbc : Eq.{1} β (f b) (f c)) => Eq.trans.{1} β (f a) (f b) (f c) hab hbc)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      fun (hbc : @Eq.{1} β (f b) (f c)) => @Eq.trans.{1} β (f a) (f b) (f c) hab hbc)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
 
 theorem injective_iff_kernel (α β : Type) (f : α → β) :
     Function.Injective α β f ↔ ∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b :=
@@ -145,7 +145,7 @@ theorem injective_iff_kernel (α β : Type) (f : α → β) :
     (∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b)
     (fun (h : Function.Injective α β f) => fun (a : α) => fun (b : α) =>
       fun (hab : kernel α β f a b) =>
-        (fun (hu : ∀ (x : α) (y : α), Eq.{1} β (f x) (f y) → Eq.{1} α x y) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (fun (hu : ∀ (x : α) (y : α), @Eq.{1} β (f x) (f y) → @Eq.{1} α x y) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
           hu a b hab) h)
     (fun (h : ∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b) =>
       fun (a : α) => fun (b : α) => fun (hab : Eq.{1} β (f a) (f b)) => h a b hab)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
@@ -158,7 +158,7 @@ theorem relImg_univ_mem (α β : Type) (r : Rel α β) (b : β) :
         (fun (a : α) (ha : (@Set.univ α) a ∧ r a b) =>
           Exists.intro a (And.right ha)))
     (fun (h : ∃ (a : α), r a b) =>
-      Exists.elim α (fun (a : α) => r a b)
+      @Exists.elim α (fun (a : α) => r a b)
         (b ∈ (relImg α β r (@Set.univ α))) h
         (fun (a : α) (ha : r a b) =>
           Exists.intro a

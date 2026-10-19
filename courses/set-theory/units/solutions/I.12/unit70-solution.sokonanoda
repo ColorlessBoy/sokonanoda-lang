@@ -71,7 +71,7 @@ theorem mem_powerset_union_of_mem (α : Type) (A B C : Set α)
       (fun (hu : C ∈ 𝒫 (A ∪ B) ↔ C ⊆ (A ∪ B)) =>
         Iff.mpr hu (fun (c : α) (hc : c ∈ C) =>
           (fun (hw : c ∈ (A ∪ B) ↔ c ∈ A ∨ c ∈ B) =>
-            Iff.mpr hw (Or.inl (c ∈ A) (c ∈ B)  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+            Iff.mpr hw (@Or.inl (c ∈ A) (c ∈ B)  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
               (mem_of_subset α C A
                 ((fun (hv : C ∈ 𝒫 A ↔ C ⊆ A) => Iff.mp hv hA)
                   (Set.mem_powerset_iff A C)) c hc)))
@@ -81,7 +81,7 @@ theorem mem_powerset_union_of_mem (α : Type) (A B C : Set α)
       (fun (hu : C ∈ 𝒫 (A ∪ B) ↔ C ⊆ (A ∪ B)) =>
         Iff.mpr hu (fun (c : α) (hc : c ∈ C) =>
           (fun (hw : c ∈ (A ∪ B) ↔ c ∈ A ∨ c ∈ B) =>
-            Iff.mpr hw (Or.inr (c ∈ A) (c ∈ B)  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+            Iff.mpr hw (@Or.inr (c ∈ A) (c ∈ B)  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
               (mem_of_subset α C B
                 ((fun (hv : C ∈ 𝒫 B ↔ C ⊆ B) => Iff.mp hv hB)
                   (Set.mem_powerset_iff B C)) c hc)))
@@ -111,5 +111,5 @@ theorem mem_powerset_empty_iff (α : Type) (C : Set α) :
     (fun (h : ∀ (c : α), ¬ (c ∈ C)) =>
       (fun (hu : C ∈ 𝒫 (@Set.empty α) ↔ C ⊆ (@Set.empty α)) =>
         Iff.mpr hu (fun (c : α) (hc : c ∈ C) =>
-          (False.elim (c ∈ (@Set.empty α))) (h c hc)))
+          (@False.elim (c ∈ (@Set.empty α))) (h c hc)))
         (Set.mem_powerset_iff (@Set.empty α) C))

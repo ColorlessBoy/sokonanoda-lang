@@ -34,7 +34,7 @@ theorem image_sUnion_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
               (Set.mem_image_intro (fun (A' : Set α) => f '' A') F (f '' A) A hA
                 (@Eq.refl.{1} (Set β) (f '' A)))
               (rel_subst_right β (fun (u : β) (v : β) => v ∈ (f '' A)) (f x) (f x) y hxy
-                (Set.mem_image_intro f A (f x) x hxA (Eq.refl.{1} β (f x))))))
+                (Set.mem_image_intro f A (f x) x hxA (@Eq.refl.{1} β (f x))))))
 
 theorem sUnion_image_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
     (⋃₀ ((fun (A : Set α) => f '' A) '' F)) ⊆ (f '' (⋃₀ F)) :=

@@ -79,5 +79,5 @@ theorem sUnion_empty (α : Type) : (⋃₀ (fun (A : Set α) => False)) ⊆ ∅ 
     (fun (hx' : ∃ (A : Set α), (fun (A' : Set α) => False) A ∧ x ∈ A) =>
       @Exists.elim (Set α) (fun (A : Set α) => (fun (A' : Set α) => False) A ∧ x ∈ A) (x ∈ ∅) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
         (fun (A : Set α) (hA : (fun (A' : Set α) => False) A ∧ x ∈ A) =>
-          False.elim (x ∈ ∅)  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 补不出来，必须写全
+          @False.elim (x ∈ ∅)  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 补不出来，必须写全
             (And.left hA))) hx

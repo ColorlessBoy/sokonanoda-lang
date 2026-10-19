@@ -35,10 +35,10 @@ theorem acc_of_wellFounded (α : Type) (r : α → α → Prop) (hwf : IsWellFou
               (Exists.intro x hnx)))
           (fun (m : α) (hm : ¬ Acc α r m ∧ ∀ (y : α), ¬ Acc α r y → ¬ (r y m)) =>
             (And.left hm)
-              (Acc.intro α r m (fun (y : α) (hy : r y m) =>
+              (@Acc.intro α r m (fun (y : α) (hy : r y m) =>
                 Classical.byContradiction (Acc α r y)
                   (fun (hny : ¬ Acc α r y) =>
-                    (And.right (¬ Acc α r m) (∀ (y' : α), ¬ Acc α r y' → ¬ (r y' m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                    (@And.right (¬ Acc α r m) (∀ (y' : α), ¬ Acc α r y' → ¬ (r y' m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
                       y hny hy)))))
 
 theorem ordinal_ind (α : Type) (E : α → α → Prop) (motive : α → Prop)
@@ -61,9 +61,9 @@ theorem pred_subset_of_not_mem (α : Type) (E : α → α → Prop) (x : α) (y 
       (fun (hxv : E x v) =>
         False.elim (hxy (ordinal_isTransitive α E y hy v hvy x hxv)))
       (fun (h : x = v ∨ E v x) =>
-        Or.elim (x = v) (E v x) (E v x)
+        @Or.elim (x = v) (E v x) (E v x)
           (fun (heq : x = v) =>
-            False.elim (E v x)
+            @False.elim (E v x)
               (hxy (Eq.subst.{1} α (fun (w : α) => E w y) v x (Eq.symm.{1} α x v heq) hvy)))
           (fun (hvx : E v x) => hvx) h)
       (ihy v hvy (ordinal_elems_ordinal α E y v hy hvy))
@@ -74,9 +74,9 @@ theorem mem_of_exists_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
     (hex : ∃ (w : α), E w x ∧ ¬ (E w y)) : E y x :=
   @Exists.elim α (fun (w : α) => E w x ∧ ¬ (E w y)) (E y x) hex
     (fun (w : α) (hw : E w x ∧ ¬ (E w y)) =>
-      Or.elim (E w y) (w = y ∨ E y w) (E y x)
+      @Or.elim (E w y) (w = y ∨ E y w) (E y x)
         (fun (hwy : E w y) =>
-          False.elim (E y x)
+          @False.elim (E y x)
             ((And.right (E w x) (¬ (E w y)) hw) hwy))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
         (fun (h : w = y ∨ E y w) =>
           Or.elim (w = y) (E y w) (E y x)
@@ -102,7 +102,7 @@ theorem mem_or_pred_subset (α : Type) (E : α → α → Prop) (x : α) (y : α
   @Or.elim (∃ (w : α), E w x ∧ ¬ (E w y)) (¬ (∃ (w : α), E w x ∧ ¬ (E w y)))
     (E y x ∨ (∀ (w : α), E w x → E w y))
     (fun (hex : ∃ (w : α), E w x ∧ ¬ (E w y)) =>
-      Or.inl (E y x) (∀ (w : α), E w x → E w y)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Or.inl (E y x) (∀ (w : α), E w x → E w y)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
         (mem_of_exists_gap α E x y hx hy ihx hex))
     (fun (hno : ¬ (∃ (w : α), E w x ∧ ¬ (E w y))) =>
       Or.inr (E y x) (∀ (w : α), E w x → E w y)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）

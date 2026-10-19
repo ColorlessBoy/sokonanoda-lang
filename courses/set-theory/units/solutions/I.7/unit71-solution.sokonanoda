@@ -41,7 +41,7 @@ theorem mem_inter_sUnion_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α
     c ∈ (A ∩ (⋃₀ F)) ↔ ∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B) :=
   @Iff.intro (c ∈ (A ∩ (⋃₀ F))) (∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B))
     (fun (h : c ∈ (A ∩ (⋃₀ F))) =>
-      Exists.elim (Set α) (fun (B : Set α) => B ∈ F ∧ c ∈ B)
+      @Exists.elim (Set α) (fun (B : Set α) => B ∈ F ∧ c ∈ B)
         (∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B))
         (mem_of_mem_sUnion α F c (mem_inter_right α A (⋃₀ F) c h))
         (fun (B : Set α) (hB : B ∈ F ∧ c ∈ B) =>
@@ -50,7 +50,7 @@ theorem mem_inter_sUnion_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α
               (mem_inter_intro α A B c (mem_inter_left α A (⋃₀ F) c h)
                 (And.right hB)))))
     (fun (h : ∃ (B : Set α), B ∈ F ∧ c ∈ (A ∩ B)) =>
-      Exists.elim (Set α) (fun (B : Set α) => B ∈ F ∧ c ∈ (A ∩ B))
+      @Exists.elim (Set α) (fun (B : Set α) => B ∈ F ∧ c ∈ (A ∩ B))
         (c ∈ (A ∩ (⋃₀ F)))
         h
         (fun (B : Set α) (hB : B ∈ F ∧ c ∈ (A ∩ B)) =>
@@ -78,14 +78,14 @@ theorem mem_inter_sInter_iff (α : Type) (A : Set α) (F : Set (Set α)) (c : α
         ((fun (hu : c ∈ (⋂₀ F) ↔ ∀ (B : Set α), B ∈ F → c ∈ B) =>
           Iff.mpr hu (fun (B : Set α) (hB : B ∈ F) =>
             mem_inter_right α A B c
-              (And.right (c ∈ A) (∀ (D : Set α), D ∈ F → c ∈ (A ∩ D)) h B hB)))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
+              (@And.right (c ∈ A) (∀ (D : Set α), D ∈ F → c ∈ (A ∩ D)) h B hB)))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`∩` 是 def 头（手册边界）
           (Set.mem_sInter_iff α F c)))
 
 theorem mem_univ_inter (α : Type) (A : Set α) (c : α) :
     c ∈ ((@Set.univ α) ∩ A) ↔ c ∈ A :=
   @Iff.intro (c ∈ ((@Set.univ α) ∩ A)) (c ∈ A)
     (fun (h : c ∈ ((@Set.univ α) ∩ A)) => mem_inter_right α (@Set.univ α) A c h)
-    (fun (h : c ∈ A) => mem_inter_intro α (@Set.univ α) A c (Set.mem_univ α c) h)
+    (fun (h : c ∈ A) => mem_inter_intro α (@Set.univ α) A c (@Set.mem_univ α c) h)
 
 theorem not_mem_empty_inter (α : Type) (A : Set α) (c : α) :
     ¬ (c ∈ ((@Set.empty α) ∩ A)) :=

@@ -48,11 +48,11 @@ theorem choice_on_univ (α β : Type) (P : α → β → Prop)
     (∃ (f : α → β), ∀ (x : α), P x (f x))
     (choice α β (@Set.univ α) (Set.univ β) P
       (fun (x : α) (hx : x ∈ @Set.univ α) =>
-        Exists.elim β (fun (y : β) => P x y)
+        @Exists.elim β (fun (y : β) => P x y)
           (∃ (y : β), y ∈ Set.univ β ∧ P x y) (h x)
           (fun (y : β) (hy : P x y) =>
             Exists.intro y
-              (And.intro (Set.mem_univ β y) hy))))
+              (And.intro (@Set.mem_univ β y) hy))))
     (fun (f : α → β)
       (hf : ∀ (x : α), x ∈ @Set.univ α → f x ∈ Set.univ β ∧ P x (f x)) =>
       Exists.intro f
@@ -67,11 +67,11 @@ theorem surjective_split (α β : Type) (f : α → β) (hf : Function.Surjectiv
     (∃ (g : β → α), Function.RightInverse α β g f)
     (choice β α (Set.univ β) (@Set.univ α) (fun (y : β) (x : α) => f x = y)
       (fun (y : β) (hy : y ∈ Set.univ β) =>
-        Exists.elim α (fun (x : α) => f x = y)
+        @Exists.elim α (fun (x : α) => f x = y)
           (∃ (x : α), x ∈ @Set.univ α ∧ f x = y) (hf y)
           (fun (x : α) (hx : f x = y) =>
             Exists.intro x
-              (And.intro (Set.mem_univ α x) hx))))
+              (And.intro (@Set.mem_univ α x) hx))))
     (fun (g : β → α)
       (hg : ∀ (y : β), y ∈ Set.univ β → g y ∈ @Set.univ α ∧ f (g y) = y) =>
       Exists.intro g

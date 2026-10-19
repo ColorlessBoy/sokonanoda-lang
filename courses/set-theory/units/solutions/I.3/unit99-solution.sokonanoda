@@ -31,7 +31,7 @@ theorem subset_trans (α : Type) (A : Set α) (B : Set α) (C : Set α)
         ((fun (hu : A ⊆ B ↔ ∀ (z : α), z ∈ A → z ∈ B) => Iff.mp hu hAB)
           (@Set.subset_def α A B))))
       ((fun (hu : B ⊆ C ↔ ∀ (z : α), z ∈ B → z ∈ C) => Iff.mp hu hBC)
-        (Set.subset_def α B C))
+        (@Set.subset_def α B C))
 
 theorem pow_mono (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) :
     Pow α A ⊆ Pow α B :=

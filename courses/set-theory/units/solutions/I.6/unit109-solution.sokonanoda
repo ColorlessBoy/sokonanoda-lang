@@ -26,9 +26,9 @@ def ordinal_rec_nat (α : Type) (E : α → α → Prop) (x : α)
 theorem ordinal_rec_nat_eq (α : Type) (E : α → α → Prop) (x : α)
     (step : ∀ (z : α), (∀ (w : α), E w z → Nat) → Nat)
     (hr : ∀ (w : α), E w x → Acc α E w) :
-    @Eq.{1} Nat (ordinal_rec_nat α E x step (Acc.intro α E x hr))  -- soko:notation-ok: 等式族证明项的宇宙层级 / inductive 头（手册边界）
+    @Eq.{1} Nat (ordinal_rec_nat α E x step (@Acc.intro α E x hr))  -- soko:notation-ok: 等式族证明项的宇宙层级 / inductive 头（手册边界）
       (step x (fun (w : α) (hw : E w x) => ordinal_rec_nat α E w step (hr w hw))) :=
-  Eq.refl.{1} Nat (step x (fun (w : α) (hw : E w x) => ordinal_rec_nat α E w step (hr w hw)))
+  @Eq.refl.{1} Nat (step x (fun (w : α) (hw : E w x) => ordinal_rec_nat α E w step (hr w hw)))
 
 theorem ordinal_rec_nat_unique (α : Type) (E : α → α → Prop)
     (f : α → Nat) (g : α → Nat)
@@ -63,12 +63,12 @@ theorem addsTo_succ_inv (α : Type) (E : α → α → Prop) (σ : α → α) (z
       ∀ (y : α), b = σ y → ∃ (z : α), c = σ z ∧ AddsTo α E σ zero a y z)
     (fun (a : α) => fun (y : α) (he : zero = σ y) =>
       @False.elim (∃ (z : α), a = σ z ∧ AddsTo α E σ zero a y z)
-        (hne y (Eq.symm.{1} α zero (σ y) he)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (hne y (@Eq.symm.{1} α zero (σ y) he)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
     (fun (a : α) (b : α) (c : α) (hh : AddsTo α E σ zero a b c)
         (ih : ∀ (y : α), b = σ y → ∃ (z : α), c = σ z ∧ AddsTo α E σ zero a y z) =>
       fun (y : α) (he : σ b = σ y) =>
         Exists.intro c
-          (And.intro (Eq.refl.{1} α (σ c))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (And.intro (@Eq.refl.{1} α (σ c))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
             (Eq.subst.{1} α (fun (t : α) => AddsTo α E σ zero a t c) b y  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
               (Eq.symm.{1} α y b (hinj y b (Eq.symm.{1} α (σ b) (σ y) he))) hh)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
     x (σ y) v h y (Eq.refl.{1} α (σ y))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
@@ -95,8 +95,8 @@ theorem addsTo_assoc (α : Type) (E : α → α → Prop) (σ : α → α) (zero
             Exists.intro
               (σ u)
               (And.intro
-                (AddsTo.succ α E σ zero y b u
+                (@AddsTo.succ α E σ zero y b u
                   (And.left hu))
-                (AddsTo.succ α E σ zero x u c
+                (@AddsTo.succ α E σ zero x u c
                   (And.right hu)))))
     z w v h2 x y h1

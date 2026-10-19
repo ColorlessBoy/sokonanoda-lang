@@ -59,12 +59,12 @@ theorem cantor_no_le : ¬ ((𝒫 (@Set.univ Nat)) ≼ (@Set.univ Nat)) :=
           hnot (Exists.intro (cantorDiagonal f)
             (And.intro (@Eq.refl.{1} Nat (f (cantorDiagonal f))) hnot)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
           (fun (hA : f (cantorDiagonal f) ∈ cantorDiagonal f) =>
-            Exists.elim (Set Nat)
+            @Exists.elim (Set Nat)
               (fun (S : Set Nat) => f S = f (cantorDiagonal f) ∧ ¬ (f (cantorDiagonal f) ∈ S))
               False hA
               (fun (S : Set Nat) (hS : f S = f (cantorDiagonal f) ∧ ¬ (f (cantorDiagonal f) ∈ S)) =>
                 (And.right hS)
-                  (Eq.subst.{1} (Set Nat) (fun (T : Set Nat) => f (cantorDiagonal f) ∈ T)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                  (@Eq.subst.{1} (Set Nat) (fun (T : Set Nat) => f (cantorDiagonal f) ∈ T)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
                     (cantorDiagonal f) S
                     (Eq.symm.{1} (Set Nat) S (cantorDiagonal f)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
                       (hf S (mem_powerset_univ_nat S) (cantorDiagonal f)

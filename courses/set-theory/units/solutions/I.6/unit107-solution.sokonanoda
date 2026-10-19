@@ -27,10 +27,10 @@ theorem acc_of_wellFounded (α : Type) (r : α → α → Prop) (hwf : IsWellFou
               (Exists.intro x hnx)))
           (fun (m : α) (hm : ¬ Acc α r m ∧ ∀ (y : α), ¬ Acc α r y → ¬ (r y m)) =>
             (And.left hm)
-              (Acc.intro α r m (fun (y : α) (hy : r y m) =>
+              (@Acc.intro α r m (fun (y : α) (hy : r y m) =>
                 Classical.byContradiction (Acc α r y)
                   (fun (hny : ¬ Acc α r y) =>
-                    (And.right (¬ Acc α r m) (∀ (y' : α), ¬ Acc α r y' → ¬ (r y' m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `Acc` 等 inductive 头（手册边界）
+                    (@And.right (¬ Acc α r m) (∀ (y' : α), ¬ Acc α r y' → ¬ (r y' m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级 / `Acc` 等 inductive 头（手册边界）
                       y hny hy)))))
 
 theorem ordinal_elems_ordinal (α : Type) (E : α → α → Prop) (x : α) (y : α)

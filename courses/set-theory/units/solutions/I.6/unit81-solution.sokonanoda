@@ -18,7 +18,7 @@ theorem demo_isTransitive_def (α : Type) (E : α → α → Prop) (x : α) :
 theorem succ_self_mem (α : Type) (E : α → α → Prop) (x : α) (y : α)
     (hy : ∀ (z : α), E z x ↔ (E z y ∨ z = y)) : E y x :=
   (fun (hu : E y x ↔ (E y y ∨ y = y)) =>
-    Iff.mpr hu (@Or.inr (E y y) (y = y) (Eq.refl.{1} α y))) (hy y)  -- soko:notation-ok: `IsSuccOf`/`IsTransitive` 是 def 头（手册边界）
+    Iff.mpr hu (@Or.inr (E y y) (y = y) (@Eq.refl.{1} α y))) (hy y)  -- soko:notation-ok: `IsSuccOf`/`IsTransitive` 是 def 头（手册边界）
 
 theorem succ_mem_of_mem (α : Type) (E : α → α → Prop) (x : α) (y : α) (z : α)
     (hy : ∀ (w : α), E w x ↔ (E w y ∨ w = y)) (hz : E z y) : E z x :=
