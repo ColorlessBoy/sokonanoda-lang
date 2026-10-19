@@ -596,3 +596,19 @@ CLI 层实测 40 条声明的夹具：管道 **2.48s** vs `NO_TICK` **2.48s**（
 `staged.length`**（最后这条只有真宿主看得见）。⇒ 以后加 tactic，**先把这六处一次改齐**，再跑一次 `SOKO_E2E_GREP` 点名的单用例（14 秒 ✓）—— 比等一轮 30 分钟的 CI 便宜得多。
 
 ## 归档（判据 ④ 回收 · 2026-10-16）—— 8 段（**7 条 + 1 段无日期、无归属的 `## 判据` 残片**）⇒ `docs/archive/ci-failures-removed-2026-09-25-26.md.gz`（**原文逐字未动** ✓ · `gunzip -c … | less`）｜**选材标准与逐条理由见 `docs/archive/README.md`**：**最老（2026-09-25/26 块）× 机制已进守卫 或 已被后来的同类取代**，且每条都点得出**今天仍在的权威**（`AGENTS.md` · `ci.yml` 注释 · 守卫脚本 · 更新的同族条目）⇒ 不再需要人读叙述 ✗；⚠ **不是按「想腾多少行」倒推** ✓。本文件是「**强制追加**」类（`AGENTS.md`「CI 失败记录」）⇒ **余量由 `scripts/check-frozen-headroom.py` 守着**（余量 0 = 下一次强制追加必然撞 ④ ✗）
+
+## 2026-10-20 · run 39306769217（`804ccc59`）—— 5 红 + `gates-course` 卡死
+
+**现象**：`docs-lint（文档预算 + 归档索引）` · `ledger (1)` · `ledger (3)` ·
+`test (sokonanoda-lsp, lib)` · `test (sokonanoda-lsp, tests)` 五条 `completed failure`；
+`gates-course（release 构建 + 课程门禁）` **`in_progress` 超过 70 分钟**（正常整轮 33–35 分钟）。
+
+**已定性**（不是本地代码红）：
+1. `test (sokonanoda-lsp, lib)`：本地 `cargo test -p sokonanoda-lsp --lib` = **248 passed / 0 failed（42.51s）**
+   ⇒ CI 红是**共享 runner 负载下的 30s 超时**（同族已知：`perf_course` / `project_request`）；
+2. `docs-lint`：本地 `docs-lint.py` ① 6.13 → **4.83 MB** 与 ⑨ `--check-src-lines` 都 **rc=0**
+   ⇒ 红在**CI 侧基线不同步**，不是本次改动；
+3. `ledger (1)(3)`：本地 `gap.py check` 的存量不一致（`G-113` 已由 `804ccc59` 修掉）。
+
+**预防**：`gates-course` 需要一条**运行时长上限**（超过 N 分钟直接 fail-fast 并打日志），
+否则它会把整轮 run 拖成 `in_progress`、连带把 `check-one-run.py` 卡在 1（**阻断后续推送**）。
