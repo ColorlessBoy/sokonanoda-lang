@@ -74,7 +74,7 @@ theorem prod_set_swap_ne (A : Type) (a b : A) (h : a ≠ b) :
   intro e
   exact h (And.left
     (@Eq.subst.{1} (Set (Prod A A))
-      (fun (S : Set (Prod A A)) => prod_mk A A a b ∈ S)
+      (fun (S : Set (Prod A A)) => @prod_mk A A a b ∈ S)
       ({a} ×ˢ {b}) ({b} ×ˢ {a}) e
       (And.intro
         (Set.mem_singleton_self A a) (Set.mem_singleton_self A b))))

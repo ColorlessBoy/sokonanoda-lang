@@ -434,10 +434,10 @@ theorem demo_empty_subset_notation (α : Type) (A : Set α) : ∅ ⊆ A := by
 -- 不是引理名的糖**）。
 theorem demo_notMem_empty_pointful (α : Type) (a : α) :
     Not (@Set.mem α a (@Set.empty α)) := by
-  exact Set.notMem_empty α a
+  exact @Set.notMem_empty α a
 
 theorem demo_notMem_empty_notation (α : Type) (a : α) : Not (a ∈ ∅) := by
-  exact Set.notMem_empty α a
+  exact @Set.notMem_empty α a
 
 -- ─────────────────────────────────────────────────────────────
 -- 演示 6–8：并集（左包含 / 成员判定）+ 外延性

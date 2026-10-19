@@ -213,16 +213,16 @@ theorem inter_singletons_empty :
       (∅) := by
   exact Set.ext Two (({aa}) ∩ ({bb})) (∅)
     (fun (x : Two) =>
-      Iff.intro (x ∈ (({aa}) ∩ ({bb})))
+      @Iff.intro (x ∈ (({aa}) ∩ ({bb})))
         (x ∈ (∅))
         (fun (hx : x ∈ (({aa}) ∩ ({bb}))) =>
-          False.elim (x ∈ (∅))
+          @False.elim (x ∈ (∅))
             (two_aa_ne_bb
               (@Eq.trans.{1} Two aa x bb
                 (@Eq.symm.{1} Two x aa
-                  (And.left (x ∈ ({aa}))
+                  (@And.left (x ∈ ({aa}))
                     (x ∈ ({bb})) hx))
-                (And.right (x ∈ ({aa}))
+                (@And.right (x ∈ ({aa}))
                   (x ∈ ({bb})) hx))))
         (fun (h0 : x ∈ (∅)) =>
           False.elim h0))
@@ -395,9 +395,9 @@ theorem not_image_preimage_eq :
       (f1 '' (f1 ⁻¹' U01)) image_preimage
       (@Eq.symm.{1} (Set Two) image_preimage
         (f1 '' (f1 ⁻¹' U01)) image_preimage_eq_image)
-      (Eq.subst.{1} (Set Two) (fun (X : Set Two) => bb ∈ X) U01
+      (@Eq.subst.{1} (Set Two) (fun (X : Set Two) => bb ∈ X) U01
         (f1 '' (f1 ⁻¹' U01))
-        (Eq.symm.{1} (Set Two) (f1 '' (f1 ⁻¹' U01)) U01 h)
+        (@Eq.symm.{1} (Set Two) (f1 '' (f1 ⁻¹' U01)) U01 h)
         bb_mem_U01))
 
 -- 练习 9（D 类）：`C ⊆ f '' univ`（满射性）时等号回来——"需要什么假设"的答案。

@@ -57,7 +57,7 @@ theorem mem_powerset_univ (α : Type) (A : Set α) :
 -- 上一层类型里的隶属判定就是由该层全集给出的：Set.mem_univ 一步到。
 theorem univ_mem_univ_of_sets (α : Type) :
     Set.univ (Set α) ∈ Set.univ (Set (Set α)) := by
-  exact @Set.mem_univ (Set (Set α)) (Set.univ (Set α))
+  exact @Set.mem_univ (Set (Set α)) (@Set.univ (Set α))
 
 -- ── 练习 4（X 类：散文 → 形式）─────────────────────────────────────────────
 -- 「univ 装得下每个集合；反过来装得下 univ 的只有 univ」打包成一条 And。

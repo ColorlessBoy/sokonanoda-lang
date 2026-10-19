@@ -126,8 +126,8 @@ theorem swap_converse_false :
       @Set.notMem_empty Nat 0
         (@Eq.subst.{1} (Set Nat)
           (fun (X : Set Nat) => 0 ∈ X)
-          (Set.univ Nat) (∅)
-          (@Eq.trans.{1} (Set Nat) (Set.univ Nat) y (∅)
-            (hy (Set.univ Nat))
+          (@Set.univ Nat) (∅)
+          (@Eq.trans.{1} (Set Nat) (@Set.univ Nat) y (∅)
+            (hy (@Set.univ Nat))
             (@Eq.symm.{1} (Set Nat) (∅) y (hy (∅))))
           (@Set.mem_univ Nat 0)))

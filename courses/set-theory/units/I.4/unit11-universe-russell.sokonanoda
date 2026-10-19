@@ -97,7 +97,7 @@ theorem univ_subset_iff (α : Type) (A : Set α) :
   intro x
   constructor
   intro ha
-  exact Set.mem_univ α x
+  exact @Set.mem_univ α x
   intro hu
   exact h x hu
   intro h
