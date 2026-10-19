@@ -55,11 +55,11 @@ theorem n2 (p : Prop) (Q : Prop → Prop) (h : p ∧ (∀ (x : Prop), Q x)) (x :
   And.right h x
 
 theorem n3 (p : Prop) (Q : Prop → Prop) (h : p ∧ (∀ (x : Prop), Q x)) (x : Prop) : Q x :=
-  And.right p (∀ (y : Prop), Q y) h x
+  @And.right p (∀ (y : Prop), Q y) h x
 
 theorem n4 (p : Prop) (Q : Prop → Prop → Prop)
     (h : p ∧ (∀ (x : Prop), ∀ (y : Prop), Q x y)) (x y : Prop) : Q x y :=
-  And.right p (∀ (u : Prop), ∀ (v : Prop), Q u v) h x y
+  @And.right p (∀ (u : Prop), ∀ (v : Prop), Q u v) h x y
 EOF
 
 python3 - "$BIN" "$WORK/shapes.sokonanoda" <<'PY'
