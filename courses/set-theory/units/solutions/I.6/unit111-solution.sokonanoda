@@ -46,7 +46,7 @@ theorem add_comm (a b : Nat) : @Eq.{1} Nat (add a b) (add b a) :=  -- soko:notat
     (@Eq.symm.{1} Nat (add Nat.zero a) a (zero_add a))
     (fun (n : Nat) (ih : @Eq.{1} Nat (add a n) (add n a)) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
       @Eq.trans.{1} Nat (Nat.succ (add a n)) (Nat.succ (add n a)) (add (Nat.succ n) a)
-        (Eq.subst.{1} Nat
+        (@Eq.subst.{1} Nat
           (fun (m : Nat) => Eq.{1} Nat (Nat.succ (add a n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
           (add a n) (add n a) ih
           (Eq.refl.{1} Nat (Nat.succ (add a n))))
@@ -58,7 +58,7 @@ theorem add_rotate (a b c : Nat) :
   @Eq.trans.{1} Nat (add a (add b c)) (add (add a b) c) (add b (add a c))
     (@Eq.symm.{1} Nat (add (add a b) c) (add a (add b c)) (add_assoc a b c))
     (@Eq.trans.{1} Nat (add (add a b) c) (add (add b a) c) (add b (add a c))
-      (@Eq.subst.{1} Nat (fun (m : Nat) => Eq.{1} Nat (add (add a b) c) (add m c))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (@Eq.subst.{1} Nat (fun (m : Nat) => @Eq.{1} Nat (add (add a b) c) (add m c))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
         (add a b) (add b a) (add_comm a b) (Eq.refl.{1} Nat (add (add a b) c)))
       (add_assoc b a c))
 

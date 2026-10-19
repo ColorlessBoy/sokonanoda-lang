@@ -42,7 +42,7 @@ theorem wf_irreflexive (α : Type) (r : Rel α α) (hwf : IsWellFounded α r) :
               (@Eq.symm.{1} α m a (And.left hmm)) haa))
             ((fun (hu : ∀ (y : α), @Eq.{1} α y a → ¬ (r y m)) =>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
               hu a (@Eq.refl.{1} α a)) (And.right hmm))))
-      (wellFounded_hasMin α r hwf (fun (x : α) => Eq.{1} α x a)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      (wellFounded_hasMin α r hwf (fun (x : α) => @Eq.{1} α x a)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
         (Exists.intro a (Eq.refl.{1} α a)))
 
 theorem wf_and_refl_empty (α : Type) (r : Rel α α)
