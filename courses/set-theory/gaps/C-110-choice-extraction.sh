@@ -32,7 +32,12 @@ for name in choice_family choice_right_inverse; do
   fi
 done
 
-if grep -q "choice α β I (Set.univ β)" "$SOL" && grep -q "choice β α B A" "$SOL"; then
+# 关键步的**调用点**必须还在。`Set.univ` 的 `α` 是**隐式**参数 ⇒ `Set.univ β` 与
+#   `@Set.univ β` 是**同一个应用**的两种拼法（严格档语料迁移 `7cf6edaf` 做的就是
+#   「诊断驱动地把 `Set.univ β` 写成 `@Set.univ β`」，它会来回轮转）⇒ 判据两种拼法都认 ✓，
+#   但**调用点本身一个都不许少** ✗（少了就是"取数据那步被绕过去了"）。
+if { grep -q "choice α β I (Set.univ β)" "$SOL" || grep -q "choice α β I (@Set.univ β)" "$SOL"; } \
+   && grep -q "choice β α B A" "$SOL"; then
   echo "OK  the key step really goes through the choice axiom (both call sites)"
 else
   echo "BAD 110: the choice call sites are gone -- the extraction step was bypassed"
