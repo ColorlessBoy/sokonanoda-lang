@@ -138,7 +138,7 @@ theorem sdiff_sdiff (α : Type) (A B C : Set α) :
     (And.intro
       (And.left h)
       (fun (hb : x ∈ B) =>
-        And.right h (Or.inl (x ∈ B) (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+        And.right h (@Or.inl (x ∈ B) (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
     (fun (hc : x ∈ C) =>
       And.right h (Or.inr (x ∈ B) (x ∈ C) hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
 
