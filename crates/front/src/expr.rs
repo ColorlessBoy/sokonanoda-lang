@@ -271,3 +271,34 @@ pub(crate) fn e_app_at(fun: Expr, arg: Expr, span: Span) -> Expr {
         span,
     }
 }
+
+/// 这个应用节点的 `@` 标记（`@f a b` 的整条脊**逐位显式**）。
+///
+/// **重建脊时必须原样带回**（a17 同款）：抹掉它，严格档就把引擎自己装配的
+/// `@Set.univ α` 读成"用户写的正常形式位置实参"⇒ 假红（`spine::substitute` /
+/// `beta_normalize` / `rename_free` / `instantiate_universes` 四处同一个坑）。
+pub(crate) fn at_flag(expr: &Expr) -> bool {
+    matches!(
+        expr,
+        Expr::App {
+            explicit_spine: true,
+            ..
+        }
+    )
+}
+
+/// 沿应用脊收集 `@` 标记（**外层在前**）——`spine::spine_of` 走同一条链 ⇒ 等长。
+pub(crate) fn at_flags(expr: &Expr) -> Vec<bool> {
+    let mut at = Vec::new();
+    let mut cur = expr;
+    while let Expr::App {
+        fun,
+        explicit_spine,
+        ..
+    } = cur
+    {
+        at.push(*explicit_spine);
+        cur = fun;
+    }
+    at
+}

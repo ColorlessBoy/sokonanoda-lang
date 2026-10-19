@@ -696,7 +696,7 @@ fn instantiate_universes(expr: &Expr, uparams: &[String], actual: &[String]) -> 
             Expr::App { fun, arg, span, .. } => Expr::App {
                 fun: Box::new(walk(fun, sub)),
                 arg: Box::new(walk(arg, sub)),
-                explicit_spine: false,
+                explicit_spine: crate::expr::at_flag(expr),
                 span: *span,
             },
             Expr::Lambda {
@@ -755,8 +755,7 @@ fn instantiate_universes(expr: &Expr, uparams: &[String], actual: &[String]) -> 
 /// 参数用不完 ⇒ 剩下的贴回结果上（`(fun (x) => b) a c` ⇒ `b[x := a] c`）。
 ///
 /// **已知边界**（与引擎其余部分同级的近似）：`substitute` 不做 capture-avoiding
-/// ——定义体若把形参名重新绑定，代换会串。课程库里没有这种写法（`Set.union`
-/// 的 `fun (x : α) => Or (A x) (B x)` 用的是新名字 `x`，与形参 `α A B` 不撞）。
+/// ——定义体若把形参名重新绑定，代换会串（课程库没有这种写法）。
 /// **beta 归约**（递归、只做 redex 消去）：`(fun (x : T) => body) a` ⇒ `body[x := a]`。
 ///
 /// 为什么需要（R2 实测）：**内核不做 beta 转换**——`(fun (c : γ) => g (g2 c))
@@ -771,17 +770,18 @@ pub(crate) fn beta_normalize(expr: &Expr) -> Expr {
     match expr {
         Expr::App { .. } => {
             let (head, args) = spine_of(expr);
+            let at = crate::expr::at_flags(expr); // `@` 逐节点带回（a17 同款）
             let head = beta_normalize(head);
             if matches!(head, Expr::Lambda { .. }) {
                 let args: Vec<Expr> = args.iter().map(|a| beta_normalize(a)).collect();
                 return beta_normalize(&beta_apply(head, &args));
             }
             let mut out = head;
-            for arg in &args {
+            for (i, arg) in args.iter().enumerate() {
                 out = Expr::App {
                     fun: Box::new(out),
                     arg: Box::new(beta_normalize(arg)),
-                    explicit_spine: false,
+                    explicit_spine: at[at.len() - 1 - i],
                     span: expr.span(),
                 };
             }
@@ -1155,7 +1155,7 @@ pub(crate) fn rename_free(expr: &Expr, from: &str, to: &str) -> Expr {
         Expr::App { fun, arg, span, .. } => Expr::App {
             fun: Box::new(rename_free(fun, from, to)),
             arg: Box::new(rename_free(arg, from, to)),
-            explicit_spine: false,
+            explicit_spine: crate::expr::at_flag(expr),
             span: *span,
         },
         Expr::Plus { lhs, rhs, span } => Expr::Plus {
