@@ -473,7 +473,14 @@ fn probe_arg_type(
     args: &[&Expr],
     target: usize,
 ) -> Option<String> {
-    let mut term = render_expr(head);
+    // **严格档：引擎装配的脊要自己标 `@`**（a15 同款）——探针把**全部**位置实参
+    // 写出来（含隐式位），正常形式在严格档被拒/误读 ⇒ 类型回读不出来 ✗。
+    // 只在头是**常量名**时标（`@∃` / `@(` 是语法错 ⇒ 宁可退回不标）。
+    let at = match head {
+        Expr::Ident { .. } | Expr::UniverseApp { .. } => crate::compile::implicit_msg::at_prefix(),
+        _ => "",
+    };
+    let mut term = format!("{at}{}", render_expr(head));
     let mut lifted: Vec<GoalBinder> = Vec::new();
     for (j, arg) in args.iter().enumerate().take(target) {
         match arg {
