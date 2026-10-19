@@ -87,7 +87,7 @@ theorem quot_lift_const (α β : Type) (r : α → α → Prop) (b : β) (a : α
 -- soko:hint 关键件：`Eq.refl`（写全宇宙层级与论域）。
 theorem quot_lift_comp (α β : Type) (r : α → α → Prop) (f : α → β)
     (h : ∀ (a b : α), r a b → f a = f b) (a : α) :
-    (fun (q : Quot.{1} α r) => @Quot.lift.{1, 1} α r β f h q) (@Quot.mk.{1} α r a) = f a := by
+    (fun (q : @Quot.{1} α r) => @Quot.lift.{1, 1} α r β f h q) (@Quot.mk.{1} α r a) = f a := by
   sorry
 
 -- 练习 4（T 类）：**按相等作商时，恒等函数尊重那个关系**（这就是"恒等能下降"的义务）。

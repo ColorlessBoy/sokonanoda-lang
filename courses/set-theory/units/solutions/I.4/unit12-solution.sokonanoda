@@ -116,7 +116,7 @@ theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
           (fun (x : α) => fun (hx : (@Set.univ α x) ∧ ((f x) = y)) =>
             Exists.intro x
               (And.intro
-                (Eq.subst.{1} β (fun (z : β) => z ∈ C) y (f x)
+                (@Eq.subst.{1} β (fun (z : β) => z ∈ C) y (f x)
                   (Eq.symm.{1} β (f x) y (And.right hx)) hy)
                 (And.right hx)))))
 
@@ -133,7 +133,7 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
             And.intro
               (Exists.intro x
                 (And.intro
-                  (And.left (And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  (And.left (@And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                   (And.right hx)))
               (Exists.intro x
                 (And.intro
@@ -353,7 +353,7 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
                   (Exists.intro x
                     (And.intro
                       (And.left hx)
-                      (Eq.refl.{1} β (f x))))
+                      (@Eq.refl.{1} β (f x))))
                   (And.right hx))))
         (fun (hy : y ∈ g '' (f '' A)) =>
           Exists.elim β (fun (b : β) => ((f '' A) b) ∧ ((g b) = y))
@@ -458,7 +458,7 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                 Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
                   ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C'))))
           ) =>
-            Exists.elim (Set γ → γ)
+            @Exists.elim (Set γ → γ)
               (fun (g : Set γ → γ) =>
                 Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
                   ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C'))))

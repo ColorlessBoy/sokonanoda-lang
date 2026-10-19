@@ -24,4 +24,4 @@ import lib.Choice
 
 def cbMap (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (pre : α → β)
     (C₀ : Set α) (x : α) (h : x ∈ C₀ ∨ ¬ (x ∈ C₀)) : β :=
-  Or.elim (x ∈ C₀) (¬ (x ∈ C₀)) β (fun (_ : x ∈ C₀) => f x) (fun (_ : ¬ (x ∈ C₀)) => pre x) h
+  @Or.elim (x ∈ C₀) (¬ (x ∈ C₀)) β (fun (_ : x ∈ C₀) => f x) (fun (_ : ¬ (x ∈ C₀)) => pre x) h
