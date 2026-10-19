@@ -77,7 +77,7 @@ example : Sort 0 := by sorry
 -- soko:hint 思路：把单元②的“对称”配方推广到任意宇宙——完全同构，只是 Nat 换成 α、.{1} 换成 .{u}。
 -- soko:hint 目标形态：第一个 binder 是隐式的 {α : Sort u}：值一侧先写 fun {α : Sort u} =>，后面照旧四层 fun 拿 a、b、h。
 -- soko:hint 关键件：目标形如 b = a、上下文有 h : a = b：用 Eq.subst.{u} 沿 h 替换，谓词按“x = a”的形状在 α 上设计（配方见单元②练习 3）。
-theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by sorry -- soko:notation-ok: α : Sort u 是多态类型，`=` 记法补不出宇宙层级 u（引擎边界）
+theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → @Eq.{u} α a b → @Eq.{u} α b a := by sorry -- soko:notation-ok: α : Sort u 是多态类型，`=` 记法补不出宇宙层级 u（引擎边界）
 
 -- ─────────────────────────────────────────────────────────────
 -- 先算后证：读 #reduce 的输出前，先自己预测答案，再让内核验证。
