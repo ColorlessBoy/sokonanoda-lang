@@ -37,6 +37,15 @@
 # ⇒ ③ 用 `stamp_of`/`SOKO_CACHE_KEY_NO_ENGINE_ID` 探针**先核同源**，不同源一律
 # **exit 2**（**绝不许报 exit 0** ✗）。
 #
+# ⭐ **2026-10-19 又抓到同族一例（③ 的探针还不够用）**：主仓 `target/release`（10-19 21:01，
+# **翻默认前**的旧档）与 `target/debug`（22:40，新档）**两半不同源** ⇒ 默认戳
+# `e7a62fc5d054c232` vs `bed42fb68237e7fc`、`no_engine` 戳 `4bafbf66e3d531e5` vs
+# `bdf63b269a50691b` ⇒ 旧脚本按「非引擎分量不同 = 缺口仍在」判 **exit 0**（假红 ✗）。
+# 但那时 profile **已经**摘出默认戳了（两份都认得 `SOKO_CACHE_KEY_KEEP_PROFILE` 逃生门）⇒
+# 差异**不可能**来自 profile，只能来自引擎/prelude/OS/label ⇒ 是**环境混档**，不是缺口。
+# ⇒ 追加 ③c：用逃生门探「修在不在」（开着/关着量到的戳不同 = 修在场），两份都修在场而
+# 默认戳仍不同 ⇒ **exit 2**（环境异常）✓；反向验证（外部设 `KEEP_PROFILE=1`）仍 exit 0 ✓。
+#
 # **同族横向排查（硬规则 0(b)，2026-10-15）**：`docs/gaps/repro/*.sh` 里**只有本件**
 # 真的执行 `cargo build`（按需补建），也**只有本件**比较**两份**二进制 ⇒ 同族只有本件 ✓
 # （G31/G92 取 mtime 最新的**一份**并自带构建身份；B1/G30b/G56/G60-64/G78-85/U1/U2/G93
@@ -246,6 +255,31 @@ stamp_b=$(printf '%s' "$b" | cut -d+ -f2)
 if [ "$stamp_a" = "$stamp_b" ]; then
   echo "✓ 已修：两个构建的 build_stamp 相同（${stamp_a}）⇒ 能共用同一份条目（共 $n_all 条）"
   exit 1
+fi
+
+# ③c **「profile 差异」还是「两份不同源」**（2026-10-19 定性；实测定过的假红 ✗）：
+# 修好之后 profile **不再**进戳，所以同一份源码编出来的 release/debug 默认戳**必然相同**。
+# 两份默认戳不同 ⇒ 只可能是引擎/prelude/OS/label 差异 ⇒ **不是本缺口**，而是**混着两个
+# 时代的构建** ✗（实测：主仓 release 10-19 21:01 还是「翻默认前」的旧档 · debug 22:40 是
+# 新档 ⇒ 默认戳 `e7a62fc5…` vs `bed42fb6…`、`no_engine` 戳也不同（`4bafbf66…` vs
+# `bdf63b26…`）⇒ 旧脚本把它读成「缺口仍在」（exit 0）✗，可那两份**根本不同源**。
+# **怎么判「修在不在」**：`SOKO_CACHE_KEY_KEEP_PROFILE=1` 这条逃生门只有**修后**的二进制
+# 认识 ⇒ 开着它与关着它量到的戳**不同** = 修在场；两次相同 = 修前的二进制（逃生门还没长出来）。
+#   · 两份都「修在场」，默认戳却不同 ⇒ 差异**不可能是 profile** ⇒ 环境异常 exit 2（不许报 0 ✗）；
+#   · 至少一份「修不在场」 ⇒ profile 仍在戳里 ⇒ 差异**可以**归因给缺口 ⇒ 照下面的 exit 0 ✓；
+#   · 反向验证（`SOKO_CACHE_KEY_KEEP_PROFILE=1` 于**外部**设着跑本件）⇒ 探针两次量到的戳
+#     相同（因为默认那次也已经折了 profile）⇒ 走「修不在场」分支 ⇒ **仍然 exit 0** ✓
+#     （台账里的反向验证一个字都不用改 ✓）。
+pk_a=$(stamp_or_die "$SOKO_A" SOKO_CACHE_KEY_KEEP_PROFILE=1 "release 二进制 ${SOKO_A}（逃生门探针）") || exit 2
+pk_b=$(stamp_or_die "$SOKO_B" SOKO_CACHE_KEY_KEEP_PROFILE=1 "debug 二进制 ${SOKO_B}（逃生门探针）") || exit 2
+fix_a=0; [ "$pk_a" != "$pe_a" ] && fix_a=1
+fix_b=0; [ "$pk_b" != "$pe_b" ] && fix_b=1
+if [ "$fix_a" = 1 ] && [ "$fix_b" = 1 ]; then
+  echo "环境异常：两份二进制**都已经**认得 \`SOKO_CACHE_KEY_KEEP_PROFILE\`（= profile 已摘出默认戳），" >&2
+  echo "          默认戳却仍不同（release=${stamp_a} · debug=${stamp_b}）⇒ 差异**不可能**来自 profile ✗" >&2
+  echo "          只能来自引擎/prelude/OS/label ⇒ **两份二进制不是同一份源码编出来的**（混着两个时代的构建）" >&2
+  echo "          ⇒ 先各自重建：cargo build --release -p sokonanoda-cli --locked && cargo build -p sokonanoda-cli --locked" >&2
+  exit 2
 fi
 
 # 同源前提（③）已成立 ⇒ 现在 stamp 的差异**可以归因**了：
