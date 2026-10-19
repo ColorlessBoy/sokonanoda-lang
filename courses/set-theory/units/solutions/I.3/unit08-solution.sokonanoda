@@ -102,7 +102,7 @@ theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
           @Exists.elim α (fun (x : α) => (x ∈ (A ∪ B)) ∧ ((f x) = y))
             ((y ∈ (f '' A)) ∨ (y ∈ (f '' B))) h
             (fun (x : α) => fun (hx : (x ∈ (A ∪ B)) ∧ ((f x) = y)) =>
-              Or.elim (A x) (B x)
+              @Or.elim (A x) (B x)
                 ((y ∈ (f '' A)) ∨ (y ∈ (f '' B)))
                 (fun (ha : A x) =>
                   Or.inl (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
@@ -418,7 +418,7 @@ theorem image_preimage_eq_of_subset_image_univ (α β : Type) (f : α → β) (C
               (fun (x : α) => fun (hx : (x ∈ (@Set.univ α)) ∧ ((f x) = y)) =>
                 Exists.intro x
                   (And.intro
-                    (Eq.subst.{1} β (fun (z : β) => z ∈ C) y (f x)
+                    (@Eq.subst.{1} β (fun (z : β) => z ∈ C) y (f x)
                       (Eq.symm.{1} β (f x) y
                         (And.right hx))
                       hy)

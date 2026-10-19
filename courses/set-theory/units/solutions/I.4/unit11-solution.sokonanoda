@@ -37,7 +37,7 @@ theorem no_univ_strictly_larger (α : Type) :
       (fun (U : Set α) => fun (hU : ∀ (A : Set α),
           (A ⊆ U) ∧ (¬ (A = U))) =>
         @And.right (U ⊆ U) (¬ (U = U)) (hU U)  -- soko:notation-ok: R1：合取藏在 hU 的 ∀ 后，短写补不出
-          (Eq.refl.{1} (Set α) U)))
+          (@Eq.refl.{1} (Set α) U)))
 
 -- ── 练习 2（R 类：概括公理在类型论里的合法替身）────────────────────────────
 -- 本类型的每个集合 A 都是 𝒫(univ) 的元素；𝒫(univ) 自己属于上一层类型

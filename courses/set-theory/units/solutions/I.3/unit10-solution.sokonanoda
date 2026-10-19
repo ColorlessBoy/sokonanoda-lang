@@ -144,7 +144,7 @@ theorem no_surjection_powerset (α : Type) :
       exact (@Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f x x)
         (¬ (f x x)) e p) p
     exact np (@Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f x x))
-      (f x x) (Eq.symm.{1} Prop (f x x) (¬ (f x x)) e) np)
+      (f x x) (@Eq.symm.{1} Prop (f x x) (¬ (f x x)) e) np)
   intro h
   exact @Exists.elim (α → Set α)
     (fun (f : α → Set α) => Function.Surjective α (Set α) f)
