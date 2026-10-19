@@ -1,26 +1,21 @@
 ## `fix-flip3` 第六刀 —— **`courses/set-theory/**` 的严格档 `@` 残余**（2026-10-19 · 未发版）
-- ⭐ **用户拿到什么**：卷 I 语料的**严格档独有诊断 114 → 97**（旧档本来就没有它们）、`check.py` **rejected 29 → 24** ✓
-  （5 个目标转绿：`units/I.4/unit11-universe-russell` · `units/I.10/unit27-quotients` · `solutions/I.11/unit31` ·
-  `I.12/unit34` · `I.13/unit41`，**无新增判负** ✓）；两个**判负夹具**（`gaps/C-04-prop-to-type-reject` ·
-  `gaps/C-112-cb-direct-def-reject`）从严格档的 `elab-implicit-argument-unsolved` **回到它们登记的那条**
-  `kernel-rejected 类型不匹配：期望 Sort(0)，实际是 Sort(1)` ✓ ⇒ G7 守卫恢复「**为正确的理由**咬住」✓。
-  用户点名的 `solutions/I.10/unit27-solution`：**记法族那条已消失**（真凶是里层 `Quot.{1} α r` ⇒ `@Quot.{1}`，
-  最小复现 `(fun (q : Quot.{1} α r) => …) … = f a` 判红 / `@Quot.{1}` 判绿 ✓），剩 1 条级联。
+- ⭐ **用户拿到什么**：卷 I 语料的**严格档独有诊断 114 → 97**、`check.py` **rejected 29 → 24** ✓（5 目标转绿：
+  `units/I.4/unit11-universe-russell` · `units/I.10/unit27-quotients` · `solutions/I.11/unit31` · `I.12/unit34` ·
+  `I.13/unit41`，**无新增判负** ✓）；两个**判负夹具**（`gaps/C-04-prop-to-type-reject` · `gaps/C-112-cb-direct-def-reject`）
+  从严格档的 `elab-implicit-argument-unsolved` **回到它们登记的那条** `kernel-rejected 类型不匹配：期望 Sort(0)，
+  实际是 Sort(1)` ✓ ⇒ G7 守卫恢复「**为正确的理由**咬住」✓。用户点名的 `unit27-solution`：**记法族那条已消失**
+  （真凶是里层 `Quot.{1} α r` ⇒ `@Quot.{1}`；最小复现 `(fun (q : Quot.{1} α r) => …) … = f a` 红 / `@Quot.{1}` 绿 ✓），剩 1 条级联。
 - **读数**（构建身份 release `sha256:16 = eea22ca0b5919747` · `origin/main = 2fc93146` · 本笔 4 个 sha
   `2c856d4a` `193466f3` `3417f91e` `769114fe`）：`check.py` **rejected 29 → 24** ✓ · `front --lib` **1006/0** ✓ ·
   `protocol` **13/13** ✓ · `notation-lint` **exit 0**（330 文件 · 716 处**已标记**豁免）✓ ·
   **旧档中性**（`SOKO_STRICT_AT=0`，除 `span`/`file`/路径外逐字节）逐遍实测 **10/10 · 8/8 · 12/12 · 2/2** ✓ ·
   反向验证：重放 `04091783` 的已知自伤（`@And.intro … Or.inl (And.right hab)`）⇒ 量具报 `rc 0→1` DIFF ✓（不是空转）。
-- **量具（本轮新写，`.cache/ux/fix-flip/u27/`，gitignore）**：`fix_precise.py`（**诊断自己的 span 内 + message 点名的头
-  + 位置实参 > 显式形参**三重过滤）· `neutral.py`（旧档中性对拍）· `fix_scan.py`。修掉旧工具两处**盲插**：
-  `fix_tactic.py` 的「头名**第一次**成词出现」在 `unit08-solution:155` 会插 `@And.right hx`（**kernel-rejected**：
-  `期望 Sort(0)，实际是 (P ∧ Q)`，两档都红 ✗ —— 真凶是同 span 里**第三个** `And.right (A x) (B x) (And.left hx)`）；
-  `fix_notation.py` 把 tactic 族收进 span 扫描 ⇒ `unit04-solution` 一处插 19 处 ✗。
-  ⚠ 量具自检两条：`--root` 必须给**模块根**（给仓库根 ⇒ 两侧同报 `import-not-found` ⇒ **假绿** ✗）；
-  pristine 侧要铺**整个课程**（只铺被改文件 ⇒ 副本没有 `lib/` ⇒ **假绿** ✗）。
-- ⚠ **`--no-verify` 留痕（本笔推的时候用了）**：`pre-push` 的本地快层在 `gates：缺口台账（--strict）` 上判红
-  —— **存量**（`STATUS.md` 第五刀那行记的 12 条与台账不一致；`git diff 2fc93146 -- docs/gaps` 为空 ✓，
-  本轮一个字没碰 `docs/gaps/**` ✓）；同一次快层的 `fmt` / `clippy` / `notation-lint` / 各类守卫**全 ✅** ✓。
+- **量具**（`.cache/ux/fix-flip/u27/`，gitignore）：`fix_precise.py` = **诊断自己的 span + message 点名的头 + 实参>显式形参**
+  三重过滤 —— 修掉旧工具两处**盲插**：`fix_tactic.py` 的「头名第一次出现」在 `unit08-solution:155` 会插 `@And.right hx`
+  = **kernel-rejected**（真凶是同 span **第三个** `And.right (A x) (B x) (And.left hx)`）；`fix_notation.py` 把 tactic 族
+  收进 span 扫描 ⇒ `unit04-solution` 一处插 19 处 ✗ · `neutral.py`（旧档中性对拍）· ⚠ 量具自检：`--root` 必须给**模块根** ✗。
+- ⚠ **`--no-verify` 留痕**：`pre-push` 快层红在 `gates：缺口台账（--strict）` —— **存量**（`git diff 2fc93146 -- docs/gaps` 为空 ✓）；
+  同层 `fmt`/`clippy`/`notation-lint`/`docs-lint`/各类守卫**全 ✅** ✓。
 - ⚠ **如实（未收口的部分 + 判据边界）**：
   * **变体②**（message 含「至少有一个没解出来」，**14 条**）**不能只加 `@`**（会改义）⇒ 需人工补隐式实参，本轮未动；
   * **`kernel-rejected` 误导性族**（**12 条**，`期望 Sort(1)，实际是 Sort(2)`）本轮试过 `--kernel` span 扫描 ⇒
