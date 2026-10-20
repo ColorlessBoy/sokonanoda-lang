@@ -135,6 +135,11 @@ swap_in_bad_version() {
   cat "$path" > "$tmp" || return 3
   sha="$(shasum -a 256 "$path" | cut -d' ' -f1)"
   git show "$rev:$path" > "$path" || return 3
+  # **2026-10-20（S1 之后）**：`CompileOptions` 多了 `dialect` 字段 ⇒ 旧版本的**裸字面量**
+  # 编不过（E0063）。咬住证明要的是**旧语义**、不是"旧源码原样编译" ⇒ 这里只做一次
+  # **机械补位**（缺的字段给 `..Default::default()`，值取默认 = 与它当年拿到的等价），
+  # 与 bug 相关的那段逻辑一个字不动 ✓。⚠ 不许用它"顺手修"旧版本里的别的毛病 ✗。
+  perl -0pi -e 's/CompileOptions \{ prelude: ([^,}]+?) \}/CompileOptions { prelude: $1, ..Default::default() }/g' "$path" || return 3
   bad_sha="$(shasum -a 256 "$path" | cut -d' ' -f1)"
   # ⚠ **空转闸**（2026-10-16 实测踩到的假绿）：坏版本若与工作区版本**逐字节相同**，
   # 这次"换版"什么都没换 ⇒ 证明必然 rc=0 ⇒ **判红**（不是"通过" ✗）。
@@ -265,6 +270,11 @@ case "$MODE" in
   e2e-bite)
     # 坏输入 = **HEAD 的 `usable()`**（用户 2026-10-15 亲报的那一格）。
     swap_in_bad_version "$BAD_REV" "$USABLE" || exit 3
+    # ⚠ **S5（2026-10-20）又加了一格**：`QueryDoc.dialect`（LSP 热切换要用）。旧版本没有它
+    # ⇒ 换版后 `sokonanoda-lsp` 编不过（E0609 ×5）。这里同样只做**机械补位**：加一个
+    # `dialect: None` 的字段与初值，**不碰** `usable()` 那段的旧逻辑 ✓。
+    perl -0pi -e 's/pub struct QueryDoc \{/pub struct QueryDoc {\n    pub dialect: Option<crate::compile::Dialect>,/' "$USABLE" || exit 3
+    perl -0pi -e 's/(            text: String::new\(\),)/$1\n            dialect: None,/' "$USABLE" || exit 3
     run_e2e
     rc=$?
     restore || exit 3
