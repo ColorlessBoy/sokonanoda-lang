@@ -29,7 +29,7 @@
 mod manifest;
 
 use manifest::Manifest;
-use sokonanoda_front::compile::{prelude_mode_from_source, CheckEvent, Dialect};
+use sokonanoda_front::compile::{CheckEvent, Dialect};
 use sokonanoda_front::project::find_manifest;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -394,8 +394,10 @@ fn count_unit(
     dialect: Option<Dialect>,
 ) -> Result<UnitCounts, String> {
     // Prelude choice: a file-level `-- sokonanoda:prelude` directive decides
-    // (same as `check`/`query`/`build`).
-    let options = crate::dialect::resolve_dialect(prelude_mode_from_source(src), dialect);
+    // (same as `check`/`query`/`build`). S4: dialect comes from the same
+    // five-source chain (`--dialect` > env > editor[S5] > directive > manifest).
+    let root_override = closure_root(path, course_dir);
+    let options = crate::dialect::options(src, path, root_override.as_deref(), dialect);
 
     // 分发用 `is_project_source`（G-04 第二刀）：入口**单独 parse 失败**但写了
     // `import` 时也走闭包——它可能用了依赖声明的记法，闭包路径能编。
@@ -410,7 +412,6 @@ fn count_unit(
         return Ok(counts);
     }
 
-    let root_override = closure_root(path, course_dir);
     let (plan, digest) =
         crate::project_cache::plan(path, Some(src), root_override.as_deref(), &[], &options);
     // R-3（T-B5）：模块根产物目录优先，全局缓存兜底。

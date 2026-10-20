@@ -165,7 +165,7 @@ pub(crate) fn hint(kind: ErrorKind) -> &'static str {
                 "prelude（内置基元）是整个编译单元的属性：入口文件的设置与依赖模块冲突了。统一成一种（要么都用内置 prelude，要么都在入口声明 `-- sokonanoda:prelude none`）。"
             }
             ManifestInvalid => {
-                "`sokonanoda.toml` 读不了或不是合法 TOML。它只需要可选的 `name` / `requires` / `src` 三个键；不想要项目就把文件删掉（单文件模式仍然可用）。"
+                "`sokonanoda.toml` 读不了或不是合法 TOML。它只需要可选的 `name` / `requires` / `src` 与 `[dialect]` 表（`strict_implicit = true|false`）；不想要项目就把文件删掉（单文件模式仍然可用）。"
             }
             ImportModuleInvalid => {
                 "被导入的文件本身没解析成功：先打开它、修好那里的语法错误，再回来看这里（下游不会替你猜）。"

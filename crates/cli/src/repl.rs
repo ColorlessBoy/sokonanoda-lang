@@ -56,9 +56,15 @@ pub(crate) fn repl(dialect: Option<Dialect>) -> ExitCode {
                 }
                 _ => {}
             }
-            // 判定选项跟随 buffer 的 prelude 指令（与整份重编译语义一致）。
-            let options =
-                crate::dialect::resolve_dialect(prelude_mode_from_source(&buffer), dialect);
+            // 判定选项跟随 buffer 的 prelude 与方言指令（与整份重编译语义一致；
+            // S4 的五档来源里 REPL 没有入口路径 ⇒ 清单那一档不参与 ✓）。
+            let options = crate::dialect::resolve_dialect(
+                prelude_mode_from_source(&buffer),
+                &buffer,
+                None,
+                None,
+                dialect,
+            );
             if line.trim() == "undo" || line.trim() == "u" || line.trim() == "#undo" {
                 if state.undo() {
                     print_proof_state(state);
@@ -169,7 +175,13 @@ pub(crate) fn run_buffer(
     declared: &mut Vec<String>,
     dialect: Option<Dialect>,
 ) {
-    let options = crate::dialect::resolve_dialect(prelude_mode_from_source(buffer), dialect);
+    let options = crate::dialect::resolve_dialect(
+        prelude_mode_from_source(buffer),
+        buffer,
+        None,
+        None,
+        dialect,
+    );
     let output = match parse(buffer) {
         Ok(file) => sokonanoda_front::compile::compile_fol_with(&file, &options),
         Err(diag) => {

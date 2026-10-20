@@ -61,7 +61,11 @@ pub use check::{
 };
 /// **方言**（S1）：[`CompileOptions::dialect`] 的类型。S3/S5 的 CLI 旗标与编辑器设置
 /// 要能**命名**它 ⇒ 从 `dialect`（`mod`）公开再导出 ✓。
-pub use dialect::Dialect;
+///
+/// S4（2026-10-20）再加三个**来源**：文件指令解析器（[`explicit_dialect`]）、
+/// 环境变量的表态（[`dialect_from_env`]）与五档合并点（[`DialectSources`]）——
+/// 调用方（CLI 现在、LSP 在 S5）只往 `DialectSources` 里填格子，**不许**自己写 if 链 ✓。
+pub use dialect::{dialect_from_env, explicit_dialect, Dialect, DialectSources};
 pub(crate) use elab::canonical_ctor_name;
 pub use error::{CompileError, CompileStage, ErrorKind};
 pub use event::{CheckEvent, CompileOutput, CompileStats};

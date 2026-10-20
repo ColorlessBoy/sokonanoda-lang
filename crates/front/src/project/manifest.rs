@@ -11,6 +11,8 @@
 
 use std::path::{Path, PathBuf};
 
+use crate::compile::Dialect;
+
 /// 清单文件名。
 pub const MANIFEST_FILE: &str = "sokonanoda.toml";
 
@@ -24,6 +26,13 @@ pub struct Manifest {
     pub requires: Option<String>,
     /// 模块根（相对清单目录），默认 `"."`。
     pub src: Option<String>,
+    /// **方言**（S4，设计 `docs/design/dialect-config.md` §2 第 5 档）：
+    /// `[dialect] strict_implicit = true|false` ⇒ 严格档 / 旧读法。
+    ///
+    /// `None` = 清单**不表态**（交给上面的档位，最后落到默认 `loose`）。注意
+    /// `false` 是**显式的旧读法**、不是"没写" —— 它会盖住默认值（虽然今天两者
+    /// 同值，但优先级链里它是第 5 档的"我表过态了" ✓）。
+    pub dialect: Option<Dialect>,
 }
 
 /// 清单加载失败（都带教学文案）。
@@ -50,6 +59,21 @@ struct ManifestFile {
     name: Option<String>,
     requires: Option<String>,
     src: Option<String>,
+    dialect: Option<ManifestDialect>,
+}
+
+/// `[dialect]` 表（S4，设计 `docs/design/dialect-config.md` §2）：键名照设计，
+/// 将来的同类开关进同一个表，避免顶层键无限增殖 ✓。
+///
+/// ⚠ `deny_unknown_fields` 是**故意的**：配置面最坏的失败是"配了却不生效"——
+/// 设计 §4 写死了那句「先让用户能配、配了却不生效，比不能配更坏 ✗」。`strict_implcit`
+/// 这种拼写错误若被静默忽略，用户会以为严格档开了 ⇒ 这里让它当场变成一条
+/// `manifest-invalid`（serde 的报错会点名 unknown field + 正确键名 ✓）。
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ManifestDialect {
+    /// 严格隐式参数读法：`true` = 严格档，`false` = 旧读法。
+    strict_implicit: Option<bool>,
 }
 
 /// 从 `start`（一个**目录**）向上找最近的 `sokonanoda.toml`。
@@ -96,7 +120,7 @@ pub fn load(path: &Path) -> Result<Manifest, ManifestError> {
         ManifestError::new(
             path,
             format!("项目清单不是合法 TOML：{err}"),
-            "清单只需要可选的 `name` / `requires` / `src` 三个键，例如：\n  name = \"my-proofs\"\n  src = \"src\"",
+            "清单只需要可选的 `name` / `requires` / `src` 与 `[dialect]` 表，例如：\n  name = \"my-proofs\"\n  src = \"src\"\n  [dialect]\n  strict_implicit = true",
         )
     })?;
     if let Some(src) = &parsed.src {
@@ -109,11 +133,47 @@ pub fn load(path: &Path) -> Result<Manifest, ManifestError> {
             ));
         }
     }
+    let dialect = parsed
+        .dialect
+        .and_then(|table| table.strict_implicit)
+        .map(|strict| {
+            if strict {
+                Dialect::Strict
+            } else {
+                Dialect::Loose
+            }
+        });
     Ok(Manifest {
         name: parsed.name,
         requires: parsed.requires,
         src: parsed.src,
+        dialect,
     })
+}
+
+/// **清单里的方言**（S4，设计 `docs/design/dialect-config.md` §2 第 5 档）：
+/// `[dialect] strict_implicit` 的**表态**；没清单 / 没写该键 ⇒ `None`（不表态）。
+///
+/// **发现规则与 `plan_project` 完全一致**（`root_override` 给了就跳过清单：
+/// `--root` / `--no-project` 的语义在两条路上必须是同一个 ✓）。
+///
+/// 清单坏掉 ⇒ `None`：**报错仍由 `plan_project` 的 `manifest-invalid` 负责**
+/// ——这里只读一个值，绝不因为配置面让一个本来能编译的文件判坏（诊断不重复、
+/// 退出码不因读配置而变 ✓）。
+pub fn dialect_at(entry_path: &Path, root_override: Option<&Path>) -> Option<Dialect> {
+    if root_override.is_some() {
+        return None;
+    }
+    // **与 `plan_project` 同一套绝对化**（G-12）：相对入口 `units/u.sokonanoda`
+    // 若从裸路径向上找，`find_manifest` 会在空目录分量处停下（G-12 的护栏）⇒
+    // **CWD 里的清单会被漏掉**，而真正编译时又找得到 ⇒ 同一个文件两条答案 ✗。
+    let entry_path = super::absolute_lexical(entry_path);
+    let dir = entry_path
+        .parent()
+        .filter(|dir| !dir.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let path = find_manifest(dir)?;
+    load(&path).ok()?.dialect
 }
 
 /// 清单目录 + `src` = 模块根。
@@ -269,6 +329,93 @@ mod tests {
         let err = load(&path).expect_err("bad toml");
         assert!(err.message.contains("合法 TOML"), "{}", err.message);
         assert!(err.hint.contains("`src`"), "{}", err.hint);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// **S4 清单档**（设计 `docs/design/dialect-config.md` §2 第 5 档）：`[dialect]
+    /// strict_implicit` 的三态 —— `true` / `false` / **没写（不表态）** 必须可区分，
+    /// 前者进优先级链、后者交给下一档。
+    #[test]
+    fn the_dialect_table_is_optional_present_and_explicitly_loose() {
+        let dir = tmp_dir("dialect");
+        let path = dir.join(MANIFEST_FILE);
+
+        std::fs::write(&path, "[dialect]\nstrict_implicit = true\n").expect("write");
+        assert_eq!(load(&path).expect("valid").dialect, Some(Dialect::Strict));
+
+        std::fs::write(&path, "[dialect]\nstrict_implicit = false\n").expect("write");
+        assert_eq!(
+            load(&path).expect("valid").dialect,
+            Some(Dialect::Loose),
+            "`false` 是**显式旧读法**，不是 `None`（第 5 档表过态了）"
+        );
+
+        // 表在、键不在 ⇒ 不表态（与"整个表没有"同义）。
+        std::fs::write(&path, "[dialect]\n").expect("write");
+        assert_eq!(load(&path).expect("valid").dialect, None);
+        std::fs::write(&path, "name = \"p\"\n").expect("write");
+        assert_eq!(load(&path).expect("valid").dialect, None);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// **配置面不许"配了却不生效"**（设计 §4 的原话）：拼错的键必须当场报错、
+    /// 并且报错里要看得见**正确键名**（serde 的 unknown-field 报错带候选 ✓）。
+    #[test]
+    fn a_typo_in_the_dialect_table_is_an_error_not_a_silent_default() {
+        let dir = tmp_dir("dialect-typo");
+        let path = dir.join(MANIFEST_FILE);
+        std::fs::write(&path, "[dialect]\nstrict_implcit = true\n").expect("write");
+        let err = load(&path).expect_err("a typo must not be ignored");
+        assert!(
+            err.message.contains("合法 TOML") && err.message.contains("strict_implicit"),
+            "报错要点名正确的键：{}",
+            err.message
+        );
+        assert!(
+            err.hint.contains("strict_implicit"),
+            "出路要给一份能照抄的清单：{}",
+            err.hint
+        );
+
+        // 类型错（`strict_implicit = "yes"`）同样走"人话 + 出路"，不是 panic。
+        std::fs::write(&path, "[dialect]\nstrict_implicit = \"yes\"\n").expect("write");
+        let err = load(&path).expect_err("a wrong type must be rejected");
+        assert!(err.message.contains("合法 TOML"), "{}", err.message);
+        assert!(
+            err.message.contains("boolean") || err.message.contains("bool"),
+            "类型错要说清期望什么：{}",
+            err.message
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// **发现规则与 `plan_project` 同源**：最近的清单、`--root`/`--no-project`
+    /// （= `root_override` 给了值）一律跳过清单；坏清单不在这里报错（那是
+    /// `plan_project` 的 `manifest-invalid`）。
+    #[test]
+    fn dialect_at_uses_the_same_manifest_discovery_as_the_planner() {
+        let dir = tmp_dir("dialect-at");
+        std::fs::write(
+            dir.join(MANIFEST_FILE),
+            "[dialect]\nstrict_implicit = true\n",
+        )
+        .expect("write manifest");
+        let entry = dir.join("Main.sokonanoda");
+        std::fs::write(&entry, "def one : Nat := 1\n").expect("write entry");
+
+        assert_eq!(dialect_at(&entry, None), Some(Dialect::Strict));
+        assert_eq!(
+            dialect_at(&entry, Some(&dir)),
+            None,
+            "`--root` / `--no-project` 跳过清单（否则两条路的根语义会打架）"
+        );
+
+        // 坏清单 ⇒ 不表态（诊断归 `plan_project`）。
+        std::fs::write(dir.join(MANIFEST_FILE), "src = \"../escape\"\n").expect("write bad");
+        assert_eq!(dialect_at(&entry, None), None);
+
         let _ = std::fs::remove_dir_all(&dir);
     }
 

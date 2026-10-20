@@ -3,7 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use super::*;
-use crate::compile::{CompileOptions, DeclStatus, PreludeMode};
+use crate::compile::{CompileOptions, DeclStatus, Dialect, PreludeMode};
 
 fn tmp_dir(tag: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!(
@@ -305,6 +305,83 @@ fn a_dependency_with_a_conflicting_prelude_directive_is_reported() {
     assert!(
         codes(&report).contains(&"import-prelude-conflict"),
         "directive mismatch is a prelude conflict: {:?}",
+        codes(&report)
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// **S4 闭包冲突**（设计 `dialect-config.md` §2 第 4 档 / §4）：方言是整个编译单元
+/// 的属性 ⇒ 两个模块的 `-- sokonanoda:dialect` 指令**不一致**就是一条
+/// `import-dialect-conflict`（默认**不通融**，与 `import-prelude-conflict` 同形）；
+/// 一致时**一条都不报**。
+///
+/// 反向验证（同一用例里）：把依赖那行改成与入口一致 ⇒ 诊断消失（否则"能报"可能
+/// 只是"永远报" ✗）。
+#[test]
+fn a_dependency_with_a_conflicting_dialect_directive_is_reported() {
+    let dir = tmp_dir("dialect-conflict");
+    write(
+        &dir,
+        "Loose.sokonanoda",
+        "-- sokonanoda:dialect loose\ndef lib : Nat := 2\n",
+    );
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "-- sokonanoda:dialect strict\nimport Loose\n\ndef x : Nat := 1\n",
+    );
+    let path = dir.join("Main.sokonanoda");
+    let options = CompileOptions::with_dialect(PreludeMode::Full, Dialect::Strict);
+    let report = compile_project(&path, None, &options, None);
+    assert!(
+        codes(&report).contains(&"import-dialect-conflict"),
+        "指令不一致必须是方言冲突：{:?}",
+        codes(&report)
+    );
+    assert!(report.has_errors(), "默认**不通融**：它是一条错误级诊断");
+    // 诊断挂在**导入方**的 `import` 行上（与 prelude 冲突同一归属口径）。
+    let diagnostic = report
+        .diagnostics
+        .iter()
+        .find(|diag| diag.code() == "import-dialect-conflict")
+        .expect("import-dialect-conflict");
+    assert_eq!(diagnostic.module, "Main");
+    assert!(diagnostic.message.contains("Loose") && diagnostic.message.contains("strict"));
+
+    // 一致 ⇒ 不报（诊断有咬合力，不是"永远报"）。
+    write(
+        &dir,
+        "Loose.sokonanoda",
+        "-- sokonanoda:dialect strict\ndef lib : Nat := 2\n",
+    );
+    let report = compile_project(&path, None, &options, None);
+    assert!(
+        !codes(&report).contains(&"import-dialect-conflict"),
+        "两处指令一致时不许报：{:?}",
+        codes(&report)
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// **判据只比较"写下的指令"**（`dialect_conflict` 的模块注释）：只有**一个**模块写
+/// 指令时闭包里没有"两个指令不一致"可言 ⇒ 不报 —— 这条把规则钉在用户的措辞上
+/// （也让它**不依赖 `options`**：CLI 与编辑器在 S5 之前解析出的档位不同，靠
+/// `options` 判会让同一份文件"CLI 绿、编辑器红" ✗）。
+#[test]
+fn a_lone_dialect_directive_is_not_a_conflict_with_the_default() {
+    let dir = tmp_dir("dialect-lone");
+    write(&dir, "Lib.sokonanoda", "def lib : Nat := 2\n");
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import Lib\n-- sokonanoda:dialect strict\n\ndef x : Nat := 1\n",
+    );
+    let path = dir.join("Main.sokonanoda");
+    let options = CompileOptions::with_dialect(PreludeMode::Full, Dialect::Loose);
+    let report = compile_project(&path, None, &options, None);
+    assert!(
+        !codes(&report).contains(&"import-dialect-conflict"),
+        "只有一个模块写指令 ⇒ 没有不一致（单元档位仍由优先级链决定）：{:?}",
         codes(&report)
     );
     let _ = std::fs::remove_dir_all(&dir);

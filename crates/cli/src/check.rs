@@ -46,8 +46,27 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
     } else {
         prelude_mode_from_source(src)
     };
-    // S3：**唯一**合并点（旗标 > 环境 > 默认）；没给旗标时仍走 `CompileOptions::new`。
-    let options = crate::dialect::resolve_dialect(prelude, dialect);
+    // **S4**：方言的**五档**来源（旗标 > 环境 > 编辑器[S5] > 文件指令 > 清单 > 默认）
+    // 只在 `dialect::resolve_dialect` 一处合并。入口路径与 `root_override` 在这里
+    // **先**算好（清单从入口向上发现，规则与下面的闭包路径逐字一致）；
+    // stdin / `--text` 没有路径 ⇒ 清单那一档不参与（文件指令照样算 ✓）。
+    let entry = entry_path(label, root.as_deref());
+    let root_override = if no_project {
+        entry
+            .as_deref()
+            .and_then(Path::parent)
+            .map(Path::to_path_buf)
+            .or_else(|| Some(PathBuf::from(".")))
+    } else {
+        root.clone()
+    };
+    let options = crate::dialect::resolve_dialect(
+        prelude,
+        src,
+        entry.as_deref(),
+        root_override.as_deref(),
+        dialect,
+    );
 
     // 有 import ⇒ 项目闭包；没有 ⇒ 单文件（今天的行为，逐字节不变）。
     //
@@ -55,17 +74,9 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
     // `import` 行**——入口用了依赖声明的记法时（G-04 第二刀），单文件 parse
     // 必然报 `notation-unknown-symbol`，而闭包路径能编。诊断由闭包路径重报。
     if sokonanoda_front::project::is_project_source(src) {
-        let Some(entry) = entry_path(label, root.as_deref()) else {
+        let Some(entry) = entry else {
             emit_stdin_without_root(json, label);
             return false;
-        };
-        let root_override = if no_project {
-            entry
-                .parent()
-                .map(Path::to_path_buf)
-                .or_else(|| Some(PathBuf::from(".")))
-        } else {
-            root.clone()
         };
         // 闭包摘要先算（只做 IO/parse）：命中就整个跳过内核。
         // 键与 `build`/`query` 共用（`crate::project_cache`）。

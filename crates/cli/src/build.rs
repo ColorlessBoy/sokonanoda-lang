@@ -8,9 +8,7 @@
 //! (FAILURE). Parse/read failures are counted, not fatal.
 
 use sokonanoda_front::compile::cache::{self, CachedCompile};
-use sokonanoda_front::compile::{
-    compile_all_with, prelude_mode_from_source, CompileOptions, Dialect,
-};
+use sokonanoda_front::compile::{compile_all_with, CompileOptions, Dialect};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -84,12 +82,12 @@ fn prepare(
         if !sokonanoda_front::project::is_project_source(&src) {
             continue;
         }
-        let options = crate::dialect::resolve_dialect(prelude_mode_from_source(&src), dialect);
         let root_override = if no_project {
             file.parent().map(Path::to_path_buf)
         } else {
             root.map(PathBuf::from)
         };
+        let options = crate::dialect::options(&src, file, root_override.as_deref(), dialect);
         let plan =
             sokonanoda_front::project::plan_project(file, Some(&src), root_override.as_deref());
         let digest = plan.digest(&options);
@@ -1024,18 +1022,18 @@ fn build_one(
     // **切片 1b**：由 `with_project_session` 预先算好的结果（`None` = 老路径，自己编）。
     precomputed: Option<sokonanoda_front::project::ProjectReport>,
 ) -> Result<&'static str, String> {
-    let options = crate::dialect::resolve_dialect(prelude_mode_from_source(src), dialect);
+    let root_override = if no_project {
+        path.parent().map(Path::to_path_buf)
+    } else {
+        root.map(PathBuf::from)
+    };
+    let options = crate::dialect::options(src, path, root_override.as_deref(), dialect);
     // 有 import ⇒ 项目闭包（v1 不进缓存：闭包键在 P4 落地；现在宁可重编译，
     // 也不拿单文件键去缓存一个依赖别人环境的报告）。
     //
     // 分发用 `is_project_source`：入口**单独 parse 失败**但写了 `import` 时也走
     // 闭包——入口可能用了依赖声明的记法（G-04 第二刀），闭包路径能编。
     if sokonanoda_front::project::is_project_source(src) {
-        let root_override = if no_project {
-            path.parent().map(Path::to_path_buf)
-        } else {
-            root.map(PathBuf::from)
-        };
         let plan =
             sokonanoda_front::project::plan_project(path, Some(src), root_override.as_deref());
         let digest = plan.digest(&options);

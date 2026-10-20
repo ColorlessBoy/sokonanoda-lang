@@ -14,6 +14,18 @@ use crate::Span;
 pub enum ProjectKind {
     Error(ErrorKind),
     Warning(WarningKind),
+    /// **闭包内方言指令不一致**（S4，设计 `docs/design/dialect-config.md` §2 第 4 档 +
+    /// §4 的 S4 行）。码是 `import-dialect-conflict`，与 `import-prelude-conflict`
+    /// **同形同族**（整个编译单元的属性，不是某个文件自己的事）。
+    ///
+    /// **为什么不放进 [`ErrorKind`]**：那个枚举的**每个**码都必须在 `docs/protocol.md`
+    /// 的码表里出现（守卫 `compile/tests.rs::every_error_kind_has_stable_code_and_hint`），
+    /// 而 S4 的边界是**不动 `docs/**`**（`docs/protocol.md` 另有行数冻结）⇒ 这个码只
+    /// 活在项目层。它的 `stage` 仍是 `import`：`attach_diagnostics` 用
+    /// [`ErrorKind::ImportPreludeConflict`] 过桥（只借 stage），码/提示改由
+    /// `parse_code`/`parse_hint`（报告通道的原样身份）给出 ⇒ `--json` / LSP 看到的是
+    /// `import-dialect-conflict`，与项目层一致 ✓。
+    DialectConflict,
 }
 
 impl ProjectKind {
@@ -21,6 +33,7 @@ impl ProjectKind {
         match self {
             ProjectKind::Error(kind) => kind.code(),
             ProjectKind::Warning(kind) => kind.code(),
+            ProjectKind::DialectConflict => "import-dialect-conflict",
         }
     }
 
@@ -28,11 +41,14 @@ impl ProjectKind {
         match self {
             ProjectKind::Error(kind) => kind.hint(),
             ProjectKind::Warning(kind) => kind.hint(),
+            ProjectKind::DialectConflict => {
+                "方言（严格隐式参数读法）是整个编译单元的属性：入口与依赖模块写的 `-- sokonanoda:dialect` 指令必须一致。统一成一种（要么都 strict，要么都 loose），或者只在入口那一行写。"
+            }
         }
     }
 
     pub fn is_error(self) -> bool {
-        matches!(self, ProjectKind::Error(_))
+        !matches!(self, ProjectKind::Warning(_))
     }
 }
 
@@ -235,6 +251,18 @@ impl ProjectReport {
                             span,
                         });
                     }
+                }
+                // 见 [`ProjectKind::DialectConflict`]：`kind` 只借 `import` 这个 stage，
+                // 码/提示走报告通道的原样字段 ⇒ 两条通道说同一个码 ✓。
+                ProjectKind::DialectConflict => {
+                    let mut error = CompileError::new(
+                        ErrorKind::ImportPreludeConflict,
+                        diag.message.clone(),
+                        diag.span.unwrap_or_default(),
+                    );
+                    error.parse_code = Some(diag.kind.code().to_string());
+                    error.parse_hint = Some(diag.kind.hint().to_string());
+                    module.report.errors.push(error);
                 }
             }
         }

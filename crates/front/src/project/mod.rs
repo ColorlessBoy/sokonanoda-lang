@@ -10,6 +10,7 @@
 
 pub mod artifacts;
 pub mod cache;
+pub mod dialect_conflict;
 pub mod graph;
 pub mod manifest;
 pub mod module_name;
@@ -246,7 +247,7 @@ pub fn plan_project(
 /// * 空路径 ⇒ `cwd`（`--root ''`、裸文件名的空 `parent()` 都不是合法模块根，
 ///   语义上等于 cwd）⇒ 返回值**永不**为空；
 /// * 已经绝对 ⇒ 原样。
-fn absolute_lexical(path: &Path) -> PathBuf {
+pub(crate) fn absolute_lexical(path: &Path) -> PathBuf {
     let cwd = || std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     if path.as_os_str().is_empty() {
         return cwd();
@@ -392,18 +393,17 @@ pub struct PlanCompiled<'a> {
     pub requires_warning: Option<String>,
 }
 
-/// **切片 1 接线的前置步骤**：跑那两步**闭包级检查**并把诊断**并进 plan**。
+/// **切片 1 接线的前置步骤**：跑**闭包级检查**并把诊断**并进 plan**。
 ///
-/// `compile_plan_with_progress` 在**编之前**跑 `check_name_collisions` 与
-/// `check_prelude_conflicts`（`:538`/`:539`），两者都要 **`&mut Closure` / `options`**。
+/// `compile_plan_with_progress` 在**编之前**跑 `check_name_collisions` / `check_prelude_conflicts`（`:538`/`:539`）与方言指令检查（S4，`dialect_conflict`），它们都要 **`&mut Closure`**（后两者还要 `options`）。
 /// 切片 1 的接线方（CLI）**够不着**私有 `closure` ⇒ 由本函数代跑 ✓。
 ///
-/// **必须在跑 session 之前调用**（检查可能把模块标成 blocked，
-/// 那会改变"编哪些模块"）⇒ 顺序不能反 ✗。
+/// **必须在跑 session 之前调用**（检查可能把模块标成 blocked，那会改变"编哪些模块"）⇒ 顺序不能反 ✗。
 /// **不跑 = 丢诊断 = `--json` 会变** ✗。
 pub fn precheck_plan(plan: &mut ProjectPlan, options: &CompileOptions) {
     check_name_collisions(&mut plan.closure, &mut plan.diagnostics);
     check_prelude_conflicts(&plan.closure, options, &mut plan.diagnostics);
+    dialect_conflict::check_conflicts(&plan.closure, &mut plan.diagnostics);
 }
 
 /// **A5（2026-10-08）**：给"**产物命中**"的开档补一趟**后台库层预热**（见

@@ -148,8 +148,11 @@ fn load_source(args: &Args) -> Result<String, String> {
 /// 之前 `query` 每次都重编译整个闭包（热跑 37ms，而 `check` 热跑 3ms）；现在
 /// 命中就直接用缓存里的入口报告与事件，未命中则编译一次并把同一份键写回缓存，
 /// 下次 `check`/`build`/`query` 都能用。`--text`（磁盘上没有对应源码）不缓存。
-fn load_document(doc: &mut QueryDoc, src: &str, dialect: Option<Dialect>) {
-    let options = crate::dialect::resolve_dialect(
+///
+/// `dialect` 是**已经解析好**的那个值（五档来源在 `run` 里合并，S4）——
+/// 这里只把它接进这份文档的编译选项，不再看来源。
+fn load_document(doc: &mut QueryDoc, src: &str, dialect: Dialect) {
+    let options = CompileOptions::with_dialect(
         sokonanoda_front::compile::prelude_mode_from_source(src),
         dialect,
     );
@@ -293,14 +296,16 @@ pub(crate) fn run(argv: &[String], root: Option<&str>, dialect: Option<Dialect>)
         }
     };
     let mut doc = QueryDoc::new();
-    // **S3**：显式方言要同时进会话（单文件编译）与 `QueryDoc::options`（闭包编译）。
-    if let Some(dialect) = dialect {
-        doc.dialect = Some(dialect);
-        doc.session = Session::new(CompileOptions::with_dialect(PreludeMode::Full, dialect));
-    }
     // 入口路径 / `--root`：只有带 `import` 的文档才会用到（项目闭包编译）。
     doc.path = args.file.as_ref().map(std::path::PathBuf::from);
     doc.root = args.root.as_deref().or(root).map(std::path::PathBuf::from);
+    // **S4**：五档来源（旗标 > 环境 > 编辑器[S5] > 文件指令 > 清单 > 默认）**一次性**
+    // 解析，同一个值必须同时进会话（单文件编译）与 `QueryDoc::options`（闭包编译）——
+    // 否则同一次 `query` 的两条路会各判一套（G-117 的同族坑）。
+    let dialect =
+        crate::dialect::resolve_sources(&src, doc.path.as_deref(), doc.root.as_deref(), dialect);
+    doc.dialect = Some(dialect);
+    doc.session = Session::new(CompileOptions::with_dialect(PreludeMode::Full, dialect));
     load_document(&mut doc, &src, dialect);
 
     let (payload, exit) = match args.op.as_str() {

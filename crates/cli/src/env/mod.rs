@@ -187,7 +187,12 @@ pub fn update() -> ExitCode {
 /// 变量却**没传进来** ⇒ `scripts/soko grade --root <根> <入口>`（`AGENTS.md` 写的用法）
 /// **静默按入口目录找模块**（`import lib.Set` 报 `import-not-found`，期望路径是入口
 /// 目录而不是 `--root`）✗。判据 `crates/cli/tests/imports.rs::grade_subcommand_honors_root`。
-pub fn grade(paths: &[String], root: Option<&str>, dialect: Option<Dialect>) -> ExitCode {
+pub fn grade(
+    paths: &[String],
+    root: Option<&str>,
+    dialect: Option<Dialect>,
+    no_project: bool,
+) -> ExitCode {
     if paths.is_empty() {
         eprintln!("usage: sokonanoda grade <file...> [--root <dir>]");
         return ExitCode::FAILURE;
@@ -203,7 +208,7 @@ pub fn grade(paths: &[String], root: Option<&str>, dialect: Option<Dialect>) -> 
                     json: true,
                     bare: false,
                     root: root.clone(),
-                    no_project: false,
+                    no_project,
                     dialect,
                 }) {
                     ok = false;
