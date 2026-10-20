@@ -3675,6 +3675,9 @@ pub(crate) fn infer_type_text_inplace_expected<'a>(
         quiet_catch(|| ef.infer_type_text_at(limit, term, |t| t.to_string()))
     });
     let ty = ty.map_err(|_| InplaceFail::Kernel)?;
+    // **1b**：文本剥层的第一关是 parse ⇒ 先把未解层元变量归一成层参数名，否则
+    // `peel_binders` 会在 `?` 上**静默 break**、把整条上下文 telescope 交回去。
+    let ty = crate::judge::normalize_level_mvars(&ty).into_owned();
     Ok(crate::judge::peel_binders(ty, binder_count))
 }
 
