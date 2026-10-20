@@ -696,3 +696,12 @@ message 就写着「⚠ 如实（未收口）」——`docs/gaps/repro/**` 的�
 
 **预防**：**性能改动必须量"默认档"的墙钟**，并把它写进判据 —— 这次翻默认的 commit
 自己写着「⚠ 如实（未收口）」，却没量墙钟 ⇒ 一个 14× 的退化靠 CI 超时才被发现。
+
+## 2026-10-20 · 方言批次 `editor` 红在「咬住证明台账」C2（两条夹具前提过期）
+`third-layer-bite.sh e2e-bite` rc=3 与 `implicit_at_alignment.rs` bite rc=0：前者换版进来的
+`query/mod.rs` 因 S1/S5 给 `CompileOptions`/`QueryDoc` 加了 `dialect` 而**编不过**（rc=3 = 环境错，不是咬住）；
+后者守的命题**方向变了**（默认档改回旧读法）。**修**：换版后只做机械补位（`..Default::default()` +
+`dialect: None`）；坏输入换成 `dialect.rs` 的 `#[default]` 挪到 `Strict`（= `487f9a77` 的坏状态），实跑 rc=1。
+**判据**：`check-guard-bite --check --job editor` ✓ · run `39449603738` 全绿。
+**预防**：给跨 crate 公共 struct 加字段会让"换版式"证明静默失效（C2 只要求非 0 ⇒ rc=3/101 也能骗过去）
+⇒ 同轮跑 `--check --all`，且**换版证明的 rc 必须等于 `expect_rc`**。
