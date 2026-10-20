@@ -194,6 +194,35 @@ def diagnostics(stdout: bytes) -> List[Tuple[Optional[str], Optional[int]]]:
     return found
 
 
+def diagnostics_full(stdout: bytes) -> List[Dict[str, object]]:
+    """按协议解析 JSON Lines，收 `diagnostic` 的完整 message（`--suggest` 用）。"""
+    found: List[Dict[str, object]] = []
+    for raw in stdout.splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            event = json.loads(raw.decode("utf-8", "replace"))
+        except ValueError:
+            continue
+        if not isinstance(event, dict) or event.get("type") != "diagnostic":
+            continue
+        line = None
+        span = event.get("span")
+        if isinstance(span, dict):
+            start = span.get("start")
+            if isinstance(start, dict) and isinstance(start.get("line"), int):
+                line = start["line"]
+        found.append(
+            {
+                "code": event.get("code") if isinstance(event.get("code"), str) else None,
+                "line": line,
+                "message": event.get("message") if isinstance(event.get("message"), str) else "",
+            }
+        )
+    return found
+
+
 def pick_first_diag(
     loose: List[Tuple[Optional[str], Optional[int]]],
     strict: List[Tuple[Optional[str], Optional[int]]],
@@ -348,6 +377,88 @@ def do_sweep(root: str, runner: Runner, jobs: int, json_mode: bool) -> int:
     else:
         print_sweep_human(payload)
     return EXIT_OK if diffs == 0 else EXIT_FAIL
+
+
+def _suggestion_for(diag: Dict[str, object]) -> Dict[str, object]:
+    """把一条严格档诊断翻成可执行建议；非机械码一律 `manual`（不编造改法）。"""
+    code = diag.get("code")
+    message = str(diag.get("message") or "")
+    # 顶层码可能是 `elab-tactic-failed`（`exact` 把严格档拒绝包了一层），
+    # 真正的可执行出路在 message 里 —— 两个判据取并集。
+    mechanical = (
+        code == "elab-implicit-argument-unsolved"
+        or ("位置实参" in message and "出路 ②" in message)
+    )
+    if mechanical:
+        tail = message.split("出路 ②", 1)[1] if "出路 ②" in message else message
+        return {
+            "suggestion_kind": "delete-extra-implicit-args",
+            "suggestion": "删掉喂给隐式位的实参，只保留显式形参对应的那几个。" + tail[:240],
+        }
+    return {
+        "suggestion_kind": "manual",
+        "suggestion": "非机械修复：按 code + line 看当前目标，逐个改（不许批量正则）。",
+    }
+
+
+def do_suggest(
+    root: str,
+    runner: Runner,
+    jobs: int,
+    json_mode: bool,
+    files_filter: Optional[List[str]],
+) -> int:
+    """对 `loose 0 / strict 1` 的文件给迁移建议（不重算判定、不写回）。"""
+    if files_filter:
+        items = []
+        for raw in files_filter:
+            rel = raw.strip().replace(os.sep, "/")
+            if not rel:
+                continue
+            path = rel if os.path.isabs(rel) else os.path.join(root, rel)
+            items.append((rel, path))
+    else:
+        items = discover(root)
+    outcomes = run_outcomes(runner, items, jobs, quiet=True)
+    rows: List[Dict[str, object]] = []
+    for (label, path), outcome in zip(items, outcomes):
+        row = outcome.row
+        if row["same"] or row["loose_exit"] != 0 or row["strict_exit"] != 1:
+            continue
+        strict = runner.leg(path, "1")
+        diags = diagnostics_full(strict.stdout)
+        diag = diags[0] if diags else {"code": None, "line": None, "message": ""}
+        suggestion = _suggestion_for(diag)
+        rows.append(
+            {
+                "file": label,
+                "code": diag.get("code"),
+                "line": diag.get("line"),
+                "suggestion_kind": suggestion["suggestion_kind"],
+                "suggestion": suggestion["suggestion"],
+                "message_head": str(diag.get("message") or "")[:160],
+            }
+        )
+    rows.sort(key=lambda r: str(r["file"]))
+    payload = {
+        "root": root,
+        "bin": runner.bin_path,
+        "files": len(items),
+        "diffs": sum(1 for o in outcomes if not o.row["same"]),
+        "rows": rows,
+    }
+    if json_mode:
+        emit_json(payload)
+    else:
+        print("root:  %s" % root)
+        print("files: %d   suggested: %d" % (len(items), len(rows)))
+        for r in rows:
+            print(
+                "SUGGEST  %s  [%s:%s] %s"
+                % (r["file"], r["code"], r["line"], r["suggestion_kind"])
+            )
+            print("         %s" % str(r["suggestion"])[:220])
+    return EXIT_OK
 
 
 def print_sweep_human(payload: Dict[str, object]) -> None:
@@ -513,6 +624,11 @@ def build_parser() -> argparse.ArgumentParser:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--sweep", action="store_true", help="递归扫描语料（默认动作）")
     mode.add_argument(
+        "--suggest",
+        action="store_true",
+        help="给 loose 0 / strict 1 的文件生成迁移建议（不写回）",
+    )
+    mode.add_argument(
         "--selftest", action="store_true", help="在临时目录造 green/red 夹具自检量具有牙"
     )
     parser.add_argument(
@@ -540,6 +656,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-stage-stats",
         action="store_true",
         help="不注入 SOKO_STAGE_STATS=1（stderr 就没有 JUDGE_PREFIX，prefix 列变 null）",
+    )
+    parser.add_argument(
+        "--files",
+        default=None,
+        help="逗号分隔的相对路径子集（只对 --suggest 有意义；默认全量）",
     )
     parser.add_argument(
         "--keep-env",
@@ -578,6 +699,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     if args.selftest:
         return do_selftest(root, runner, args.json)
+    if args.suggest:
+        files_filter = args.files.split(",") if args.files else None
+        return do_suggest(root, runner, args.jobs, args.json, files_filter)
     return do_sweep(root, runner, args.jobs, args.json)
 
 
