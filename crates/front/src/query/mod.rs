@@ -12,6 +12,7 @@
 //!   返回 [`QueryError`]。两者绝不混用。
 //! - 所有文本来自完整内核（pretty print）或 `crate::semantic` 的唯一分类。
 
+mod attribution;
 mod pos;
 mod project;
 mod state;
@@ -1217,7 +1218,7 @@ impl QueryDoc {
             .map(|e| {
                 let (start_line, start_col, end_line, end_col) = line_col(e.span);
                 FailedDecl {
-                    name: None,
+                    name: attribution::failed_decl_name(self.report.as_ref(), e),
                     // **码只认 `CompileError::code()`**（N2 起）：它是"这条错误叫什么"
                     // 的**唯一**实现；直接读 `kind.code()` 会绕过它 —— 恢复式解析挂进
                     // 报告的语法诊断（`CompileError::from_parse`）在那里给的是**原诊断
