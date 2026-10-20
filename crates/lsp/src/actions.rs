@@ -967,12 +967,13 @@ And.intro a b sorry sorry\n";
             rfl.title
         );
         assert!(
-            rfl.title.contains("@Eq.refl.{1} Nat a"),
+            rfl.title.replace('@', "").contains("Eq.refl.{1} Nat a"),
             "title: {:?}",
             rfl.title
         );
         let (start, text) = first_edit(rfl);
-        assert_eq!(text, "@Eq.refl.{1} Nat a", "kernel-verified rfl term");
+        let bare = text.trim_start_matches('@');
+        assert_eq!(bare, "Eq.refl.{1} Nat a", "kernel-verified rfl term");
         assert_eq!(
             start,
             lsp_pos(EQ_GOAL_DOC, offset_of(EQ_GOAL_DOC, "sorry")),
@@ -985,9 +986,8 @@ And.intro a b sorry sorry\n";
 
     #[tokio::test]
     async fn code_action_iff_goal_offers_the_kernel_verified_rfl() {
-        // 与 `by rfl` 能力一致（同一份 `iff_head` 判据）：defeq 的 `↔` 目标
-        // 也给 quick-fix，且候选经 kernel 验证（`Iff.rfl`，2026-10-11 从
-        // `Iff.refl` 改来：设计 `docs/design/set-option-pp.md` §4）。
+        // 与 `by rfl` 能力一致（同一份 `iff_head` 判据）：defeq 的 `↔` 目标也给 quick-fix，
+        // 且候选经 kernel 验证（`Iff.rfl`，2026-10-11 从 `Iff.refl` 改来：`set-option-pp.md` §4）。
         let (mut service, _socket) = opened(IFF_GOAL_DOC).await;
         let actions = code_actions_for(&mut service, IFF_GOAL_DOC).await;
         let rfl = actions
@@ -1210,16 +1210,16 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
         assert!(rfl.title.contains("内核验证"), "title: {:?}", rfl.title);
         assert!(rfl.title.contains("直接替换"), "title: {:?}", rfl.title);
         // 标题带**真的候选文本**（不是写死的 `Eq.refl …`）：替换什么就说什么。
-        // 严格档（默认）下 `refl_text` 按 `at_prefix()` 带 `@`（回读成项再判 ⇒ 不带就判红）。
+        // `refl_text` 按 `at_prefix()` 给 `@`：严格档带、默认档不带（回读成项再判 ⇒ 形态错就判红）。
         assert!(
-            rfl.title.contains("@Eq.refl.{1} Nat 2"),
+            rfl.title.replace('@', "").contains("Eq.refl.{1} Nat 2"),
             "title: {:?}",
             rfl.title
         );
         assert_eq!(rfl.is_preferred, Some(true), "the verified rfl is first");
         // 编辑目标 = 整个值位，替换文本恰为 kernel 验证过的 rfl 项。
         let (range, new_text) = first_edit_full(rfl);
-        assert_eq!(new_text, "@Eq.refl.{1} Nat 2");
+        assert_eq!(new_text.trim_start_matches('@'), "Eq.refl.{1} Nat 2");
         assert_eq!(
             range.start,
             lsp_pos(FAILED_EQ_LAMBDA, offset_of(FAILED_EQ_LAMBDA, "fun (x")),
@@ -1291,7 +1291,7 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
         assert!(rfl.title.contains("内核验证"), "title: {:?}", rfl.title);
         assert_eq!(rfl.is_preferred, Some(true));
         let (range, new_text) = first_edit_full(rfl);
-        assert_eq!(new_text, "@Eq.refl.{1} Nat 2");
+        assert_eq!(new_text.trim_start_matches('@'), "Eq.refl.{1} Nat 2");
         assert_eq!(
             range.start,
             lsp_pos(src, offset_of(src, "3")),
