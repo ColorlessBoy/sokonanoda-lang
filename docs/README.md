@@ -50,7 +50,7 @@
 ## 设计记录（`docs/design/`）
 
 已确认并落地的设计（含取舍、验收、as-built）。**2026-09-30 激进删档后只剩 17 篇**
-（后续追加：`notation-input.md`（10-01）· `import-links.md`（10-08）· `set-option-pp.md`（10-11）…；
+（后续追加：`notation-input.md`（10-01）· `import-links.md`（10-08）· `set-option-pp.md`（10-11）· `strict-mode-v2.md`（10-20，严格档 v2 规划）…；
 **不锁计数** —— 权威 = 下面这份清单本身 ✓）
 —— 判据 = ① 被 `AGENTS.md` / `REQUIREMENTS.md` 硬规则点名；② 被**代码/契约测试**读或断言
 （`crates/cli/tests/{dsh,extension,st1_boundary}.rs`、`scripts/plan.py`）；③ 仍是**未收口**那条线的
