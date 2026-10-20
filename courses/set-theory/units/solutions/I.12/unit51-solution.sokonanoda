@@ -35,7 +35,7 @@ theorem powerset_subset_self (α : Type) (A : Set α) : A ∈ 𝒫 A :=
 theorem powerset_univ_mem (α : Type) (A : Set α) : A ∈ 𝒫 (@Set.univ α) :=
   (fun (hu : A ∈ 𝒫 (@Set.univ α) ↔ A ⊆ (@Set.univ α)) =>
     Iff.mpr hu (fun (x : α) => fun (hx : A x) =>
-      (fun (hv : ∀ (y : α), y ∈ @Set.univ α) => hv x) (Set.mem_univ α)))
+      (fun (hv : ∀ (y : α), y ∈ @Set.univ α) => hv x) (@Set.mem_univ α)))
     (Set.mem_powerset_iff (@Set.univ α) A)
 
 theorem inter_apply_left (α : Type) (A B : Set α) (x : α) (h : (A ∩ B) x) : A x :=
