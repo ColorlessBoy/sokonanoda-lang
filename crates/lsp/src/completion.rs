@@ -252,31 +252,36 @@ fn status_word(status: DeclStatus) -> &'static str {
 /// 冷的时候救不了）。实测（debug 构建，2026-10-12）：一条 ≈ **270ms** ⇒
 /// 56 条 = **15s**，而补全在打字时**每个字母问一次** ✗。两条一起用：
 ///
-/// * [`PRELUDE_SIGS`]：**进程级** `(闭包前缀, 模式) → [(名字, 签名)]` 缓存。
-///   键里带前缀与模式（**不是**文档文本）：签名只取决于"哪些库在环境里 + 哪个
-///   prelude 模式"，同一门课里改一行入口**不改变任何签名** ⇒ 键越稳，重算越少；
-///   而依赖变了一点都不含糊地整份重算（`judge.rs` 那条"无失效路径缓存"的教训）。
+/// * [`PRELUDE_SIGS`]：**进程级** `(闭包前缀, 模式, 方言) → [(名字, 签名)]` 缓存。
+///   键里带前缀、模式与方言（**不是**文档文本）：签名只取决于"哪些库在环境里 +
+///   哪个 prelude 模式 + 哪一档读法"，同一门课里改一行入口**不改变任何签名** ⇒
+///   键越稳，重算越少；而依赖变了、或编辑器热切换了方言，就一点都不含糊地整份
+///   重算（`judge.rs` 那条"无失效路径缓存"的教训）。
 /// * 调用方（`Backend::completion`）一次请求取一次整份列表。
 ///
 /// 为什么不"只算客户端前缀命中的那几条"：客户端的前缀过滤发生在**它自己的
 /// UI 里**（补全响应的过滤是客户端的事），服务端并不知道用户打了什么 ⇒ 只算
 /// 一部分就会让"没算的那几条"在候选里没有签名（静默降级 ✗，`AGENTS.md`
 /// 验证纪律第 4 条）。
-pub(crate) fn prelude_signatures(
-    query: &QueryDoc,
-    mode: PreludeMode,
-) -> Vec<(String, Option<String>)> {
+pub(crate) fn prelude_signatures(query: &QueryDoc) -> Vec<(String, Option<String>)> {
     // **闭包前缀 = 签名的全部上下文**：它把"哪些库在环境里"完整编码进来
     //（拼进去的正是各依赖模块的源码）。入口自己那份文本**不进键** —— 签名全部
     // 来自闭包 + prelude 模式，改一行入口不改变任何签名 ⇒ 键越稳，重算越少。
     let prefix = query.judge_prefix(0);
-    // 缓存键里 `PreludeMode` 折成 `u8`（那份枚举没有 `Hash`，而它是内核公共面，
-    // 不为一个 LSP 缓存去加 derive）。
-    let key = (prefix, matches!(mode, PreludeMode::Bare) as u8);
+    // **选项从文档取**（S5）：方言与 prelude 一起是"这次判定按哪一档"的全部输入，
+    // 现场再 `new` 一份就会与诊断用的那一份分叉（半档 ✗）。
+    let options = crate::dialect::query_options(query);
+    // 缓存键里 `PreludeMode` / 方言各折成 `u8`（那两个枚举没有 `Hash`，而它们是
+    // 内核公共面，不为一个 LSP 缓存去加 derive）。**方言必须进键**：严格档下
+    // `#print` 的隐式实参读法不同 ⇒ 跨档回放签名 = 半档 ✗。
+    let key = (
+        prefix,
+        matches!(options.prelude, PreludeMode::Bare) as u8,
+        options.dialect.strict() as u8,
+    );
     if let Some(cached) = PRELUDE_SIGS.with(|cell| cell.borrow().get(&key).cloned()) {
         return cached;
     }
-    let options = sokonanoda_front::compile::CompileOptions::new(mode);
     // **一趟**判定取回全部签名（`judge_print_all`）：一条一次的话是 56 趟，
     // 实测 15–20s ✗ —— 补全在打字时每键一次，那个量级不可接受。
     let names: Vec<&str> = sokonanoda_front::compile::PRELUDE_NAMES.to_vec();
@@ -307,8 +312,8 @@ const PRELUDE_SIGS_MAX: usize = 8;
 /// 一份闭包前缀（+ 模式）下的**全部** prelude 候选：`[(名字, 签名)]`。
 type PreludeCandidates = Vec<(String, Option<String>)>;
 
-/// 缓存键：`(闭包前缀, prelude 模式折成 u8)`。
-type PreludeCacheKey = (String, u8);
+/// 缓存键：`(闭包前缀, prelude 模式折成 u8, 方言折成 u8)`。
+type PreludeCacheKey = (String, u8, u8);
 
 thread_local! {
     /// 见 [`prelude_signatures`]。**线程局部**：LSP 的请求都在同一 tokio 线程池

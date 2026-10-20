@@ -57,6 +57,20 @@ impl Dialect {
             Dialect::Loose => "loose",
         }
     }
+
+    /// **源级关键字 → 方言**（大小写不敏感）：CLI 旗标（S3）、文件指令（S4）与
+    /// 编辑器的 `initializationOptions`（S5）**共用这一个解析口径**，三处不会各记一套。
+    ///
+    /// `None` = 不认识 ⇒ 调用方按"**不表态**"处理（落到下一档；绝不替用户猜）。
+    pub fn parse_keyword(value: &str) -> Option<Self> {
+        if value.eq_ignore_ascii_case(Self::Strict.keyword()) {
+            return Some(Self::Strict);
+        }
+        if value.eq_ignore_ascii_case(Self::Loose.keyword()) {
+            return Some(Self::Loose);
+        }
+        None
+    }
 }
 
 /// 文件指令的**键**（S4，设计 §2 第 4 档）：`-- sokonanoda:dialect <strict|loose>`。
@@ -86,14 +100,8 @@ pub fn explicit_dialect(src: &str) -> Option<Dialect> {
         let Some(rest) = comment.strip_prefix(DIALECT_DIRECTIVE) else {
             continue;
         };
-        let value = rest.trim();
-        if value.eq_ignore_ascii_case("strict") {
-            return Some(Dialect::Strict);
-        }
-        if value.eq_ignore_ascii_case("loose") {
-            return Some(Dialect::Loose);
-        }
-        return None;
+        // 与 CLI 旗标 / 编辑器设置**同一个关键字表**（[`Dialect::parse_keyword`]）。
+        return Dialect::parse_keyword(rest.trim());
     }
     None
 }

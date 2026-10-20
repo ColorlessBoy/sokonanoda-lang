@@ -16,6 +16,7 @@ pub(crate) use tower_lsp::jsonrpc::Request as RpcRequest;
 pub(crate) use tower_lsp::lsp_types::*;
 pub(crate) use tower_lsp::{ClientSocket, LspService};
 
+mod dialect;
 mod goals;
 mod hover;
 mod hover_brackets;

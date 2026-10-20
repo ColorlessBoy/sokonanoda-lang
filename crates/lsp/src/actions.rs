@@ -25,9 +25,7 @@
 //! （Restart）——都映射为值位整体替换（docs/design/kernel-taxonomy.md §2）。
 
 use super::render::decl_at;
-use sokonanoda_front::compile::{
-    CompileOptions, DeclState, DeclStatus, DocumentReport, HoleMode, PreludeMode,
-};
+use sokonanoda_front::compile::{CompileOptions, DeclState, DeclStatus, DocumentReport, HoleMode};
 use sokonanoda_front::judge::{self as front_judge, Judgement};
 use sokonanoda_front::suggest::{self, SuggestionKind};
 use sokonanoda_front::{tokenize, NotationDecl, TokenKind};
@@ -44,7 +42,9 @@ use tower_lsp::lsp_types::*;
 pub(crate) fn code_actions(
     uri: Url,
     text: &str,
-    mode: PreludeMode,
+    // **会话解析好的选项**（S5：方言 + prelude 一起进来）—— 本文件**不许**再
+    // `CompileOptions::new(..)` 现场读环境，否则会出现"诊断严格、quick-fix 宽松" ✗。
+    options: CompileOptions,
     report: &DocumentReport,
     pos: Position,
     // 判据前缀提供者（**闭包上下文**）：项目模式下 `suggest` 靠它看见被导入的
@@ -66,7 +66,6 @@ pub(crate) fn code_actions(
     if d.status == DeclStatus::Checked {
         return None;
     }
-    let options = CompileOptions::new(mode);
     // 建议判定需要看到声明本身：给到该声明结束为止的文本。
     //
     // ⚠ **交给 judge 的是 [`judge_source_view`] 那一份**（F12，2026-10-13）：

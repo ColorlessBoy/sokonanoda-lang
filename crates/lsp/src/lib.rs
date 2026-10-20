@@ -19,6 +19,7 @@ mod actions;
 #[cfg(test)]
 mod by_sorry_range_tests;
 mod completion;
+mod dialect;
 mod hints;
 mod inlay;
 mod project_refs;
@@ -160,11 +161,6 @@ impl Doc {
         &self.doc
     }
 
-    /// prelude 模式（`Full` / `Bare`，可由文件注释指令覆盖）。
-    fn mode(&self) -> PreludeMode {
-        self.doc.mode
-    }
-
     /// 最近一次编译报告；`None` = 尚未编译过或 parse 失败（LSP 既有契约）。
     fn report(&self) -> Option<&DocumentReport> {
         self.doc.report.as_ref()
@@ -192,9 +188,10 @@ impl Doc {
         mode: Option<PreludeMode>,
         path: Option<std::path::PathBuf>,
         overlay: &[(std::path::PathBuf, String)],
+        editor_dialect: Option<dialect::Dialect>,
     ) {
         let mode = mode.unwrap_or(self.doc.mode);
-        let options = CompileOptions::new(mode);
+        let (options, dialect_changed) = dialect::options_for(&mut self.doc, editor_dialect, mode);
         // 有 `import` 的文档走**项目闭包**：单文件缓存键会张冠李戴（依赖不在
         // 键里），所以这里既不复用也不写入单文件缓存（I16 P5）。
         let has_imports = sokonanoda_front::project::is_project_source(text);
@@ -218,12 +215,10 @@ impl Doc {
                 None => (None, None),
             }
         };
-        // **文本、prelude 模式、入口路径、依赖覆盖都没变 ⇒ 不重编**（A7 / T-A21）。
-        // 保存（`didSave`）与编辑器外改动（`workspace/didChangeWatchedFiles`）
-        // 会带着**完全相同的文本**再走一遍这里——以前那会重编整个闭包
-        // （实测 unit08：356ms，而它一个字节都没变）。
-        // 覆盖也要比：依赖的未落盘编辑会改这份文档的闭包结果。
-        if self.doc.text == text
+        // **文本 / prelude 模式 / 入口路径 / 依赖覆盖 / 方言都没变 ⇒ 不重编**
+        // （A7 / T-A21：`didSave` 与编辑器外改动会带同一份文本再走一遍，那里曾重编整闭包）。
+        if !dialect_changed
+            && self.doc.text == text
             && self.doc.mode == mode
             && self.doc.path == path
             && self.doc.overlay_matches(overlay)
@@ -416,7 +411,7 @@ impl Docs {
         let Some(doc) = self.active() else {
             return Vec::new();
         };
-        completion::prelude_signatures(doc.query(), doc.mode())
+        completion::prelude_signatures(doc.query())
     }
 
     /// 打开文档的**内存覆盖**（依赖的未保存编辑对闭包编译可见，I16 P5）。
@@ -504,10 +499,6 @@ impl Docs {
         self.active().and_then(Doc::report)
     }
 
-    fn mode(&self) -> PreludeMode {
-        self.active().map(Doc::mode).unwrap_or(PreludeMode::Full)
-    }
-
     fn version(&self) -> i32 {
         self.active().map(Doc::version).unwrap_or(0)
     }
@@ -592,6 +583,8 @@ impl Backend {
             };
             doc.pending_text = Some(text.clone());
             doc.pending_version = lsp_version;
+            // 方言也是**输入**：重编之前 handlers 读到的就要是新档（半档 ✗）。
+            doc.doc.dialect = Some(self.compile.dialect.effective());
             lsp_version
         };
         if self.compile.schedule(uri.clone(), text, lsp_version, true) {
@@ -645,6 +638,7 @@ struct Compiler {
     /// "**写紧跟写**"的字面义）。静默期只保护这一种情况；"打开 → 读一眼 → 敲"里的
     /// **第一刀**没有前一条写可保护 ⇒ 不该白等 120ms ✗（实测 205.6ms 里 ≈120ms 就是它）。
     burst: Mutex<HashMap<Url, bool>>,
+    dialect: dialect::DialectConfig,
 }
 
 /// "重建慢"的门槛：上一次编译超过它，下一次编辑就等静默期。
@@ -722,6 +716,7 @@ impl Compiler {
             debounce: debounce_from_env(),
             cost: Mutex::new(HashMap::new()),
             burst: Mutex::new(HashMap::new()),
+            dialect: dialect::DialectConfig::default(),
         }
     }
 
@@ -1086,8 +1081,9 @@ fn compile_one(
     //    `parse_error` 折叠、T-A21 的"文本没变即短路"，一样不少。
     let mut carrier = compile.take_carrier(uri);
     let mode = prelude_mode_from_source(&job.text);
+    let editor = compile.dialect.editor();
     let path = uri.to_file_path().ok();
-    carrier.set_text(&job.text, job.version, Some(mode), path, &overlay);
+    carrier.set_text(&job.text, job.version, Some(mode), path, &overlay, editor);
 
     // ③ 装回（短暂持锁）。更新的版本已经在路上 ⇒ 这份作废（clangd 的
     //    "writes immediately followed by writes"），但载体要留着——增量会话
@@ -1128,7 +1124,7 @@ fn compile_one(
                 text: job.text.clone(),
                 root: carrier.doc.root.clone(),
                 overlay: overlay.clone(),
-                options: CompileOptions::new(mode),
+                options: dialect::query_options(&carrier.doc),
             }),
             _ => None,
         };
@@ -1813,7 +1809,7 @@ fn tactic_name_type(
         }
     }
     // ② 常量：走内核（答不出 / 不干净 ⇒ 不编）。
-    let options = CompileOptions::new(query.mode);
+    let options = dialect::query_options(query);
     let prefix = query.judge_prefix_with_entry(offset);
     let ty = hover_type_of_constant(&prefix, &options, name).ok()?;
     if ty.is_empty() || ty.contains('$') {
@@ -2145,7 +2141,7 @@ fn declaration_card(
         return Some((signature, value));
     }
     // ② 兜底：问内核要 `#print` 的结论（与用户真写 `#print` 同一份文本）。
-    let options = sokonanoda_front::compile::CompileOptions::new(query.mode);
+    let options = dialect::query_options(query);
     let prefix = query.judge_prefix_with_entry(offset);
     let printed = sokonanoda_front::judge::judge_print_of(&prefix, &options, name).ok()?;
     let printed = printed.trim();
@@ -2383,7 +2379,7 @@ fn notation_symbol_hover(
         // 与 `render::hover_type_at` 的那行（外层表达式的类型）分工不同：
         // 那行说的是"这个表达式 : Prop"，这行说的是"这个符号背后的常量 :
         // 它的签名"。两行都在时先给签名（更能解释"底下站着什么"）。
-        let options = sokonanoda_front::compile::CompileOptions::new(query.mode);
+        let options = dialect::query_options(query);
         // **§11.17 修法 (a)（2026-10-09）**：目标在**本文件**声明时，前缀必须含**本文件
         // 自己的文本** —— `judge_prefix` 只给**闭包**（不含入口），单文件时是**空串**
         // ⇒ 合成的 `#check <目标>` 里根本没有那条声明 ⇒ 以前这条**整行消失** ✗。
@@ -2620,9 +2616,9 @@ impl LanguageServer for Backend {
                     .and_then(|folders| folders.first())
                     .and_then(|folder| folder.uri.to_file_path().ok())
             });
-        // 工作区根**不**当模块根用（见 `Docs::entry_path`）：同一份项目在
-        // 编辑器与 CLI 下必须解析到同一个模块根，否则"编辑器绿、CI 红"。
+        // 工作区根**不**当模块根用（`Docs::entry_path`）：编辑器与 CLI 必须解析到同一个根。
         let _workspace_root = root;
+        dialect::adopt_initialization(&self.compile.dialect, &params.initialization_options);
         Ok(InitializeResult {
             capabilities: ServerCapabilities {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
@@ -2671,6 +2667,12 @@ impl LanguageServer for Backend {
     }
 
     async fn initialized(&self, _: InitializedParams) {}
+
+    /// **方言热切换**（S5，设计 §3.4）：重新解析 → 作废本会话载体 → 同文本重编所有
+    /// 已打开文档。**不重启服务器、不重发 `initialize`**（逻辑全在 `dialect.rs`）。
+    async fn did_change_configuration(&self, params: DidChangeConfigurationParams) {
+        self.apply_dialect_settings(&params.settings).await;
+    }
 
     async fn shutdown(&self) -> Result<()> {
         Ok(())
@@ -2861,7 +2863,7 @@ impl LanguageServer for Backend {
             sokonanoda_front::notation_input::notation_target_at(doc.text(), offset)
         {
             let mut lines = vec![format!("`{name}` —— 记法的目标")];
-            let options = sokonanoda_front::compile::CompileOptions::new(doc.query().mode);
+            let options = dialect::query_options(doc.query());
             // 前缀取**闭包 + 本文件**（`judge_prefix_with_entry`）：目标在被 import
             // 的库里、或就在本文件里时都拿得到签名 ✓（以前传空串 ⇒ 只有 prelude
             // 名字拿得到，其余静默 ✗）。
@@ -2893,7 +2895,7 @@ impl LanguageServer for Backend {
             sokonanoda_front::notation_input::builtin_registry_name_at(doc.text(), offset)
         {
             let mut lines = vec![format!("`{name}` —— 内核内建（prelude）")];
-            let options = sokonanoda_front::compile::CompileOptions::new(doc.query().mode);
+            let options = dialect::query_options(doc.query());
             if let Ok(ty) = hover_type_of_constant("", &options, &name) {
                 if !ty.is_empty() && !ty.contains('$') {
                     lines.push(code_block(&format!("{name} : {ty}")));
@@ -3684,7 +3686,7 @@ impl LanguageServer for Backend {
         Ok(actions::code_actions(
             params.text_document.uri.clone(),
             doc.text(),
-            doc.mode(),
+            dialect::query_options(doc.query()),
             report,
             params.range.start,
             // 项目模式下把闭包前缀交给 suggest：入口里对导入名字也有 quick-fix。

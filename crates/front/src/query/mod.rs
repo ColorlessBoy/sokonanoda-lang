@@ -635,12 +635,13 @@ impl QueryDoc {
     /// 同步回去、把视图留在旧状态上，短路一命中就会把**两轮之前**的报告装给
     /// handlers（实测：`project_modules()` 变 `None`，扇出判定当场失效）。
     ///
-    /// 代价是每次编译多一次视图克隆（报告 + 事件 + 项目视图）——毫秒级，而它
-    /// 换掉的是整闭包重编（秒级）。
+    /// 代价是每次编译多一次视图克隆（报告 + 事件 + 项目视图）——毫秒级，换掉的是整闭包重编（秒级）。
     pub fn adopt_view(&mut self, other: &QueryDoc) {
         self.text = other.text.clone();
         self.version = other.version;
         self.mode = other.mode;
+        // 方言也是**输入**（S5）：诊断按 strict 判之后，handlers 的补判必须同档。
+        self.dialect = other.dialect;
         self.path = other.path.clone();
         self.overlay = other.overlay.clone();
         self.report = other.report.clone();
