@@ -1,3 +1,10 @@
+## CI 转绿：0.95.0 的 6 个红 job —— 三条根因逐条落地（2026-10-20 · 未发版）
+- ⭐ **用户拿到什么**：`ci.yml` 的 6 个红 job 全部有明确处置（4 条已修 · 2 条 `ledger` 分片靠**迁移 10 个复现件**）；**内核判定一行没动** ✓（唯一 Rust 改动是 `crates/kernel/tests/` 的一条竞态夹具）。
+- **根因一条**：`487f9a77` 严格档翻默认后，`docs/gaps/repro/**` 的夹具还是旧档写法 ⇒ `gap.py check` 判「台账说 fixed、复现件仍红」。**归因证据**（不改判据）：同一批在 `SOKO_STRICT_AT=0` 下**本来全绿**（`G-61`/`G-30`/`L-01`/`L-02` 实测 exit 1）。
+- **逐 job**：① `queue-lint` —— 3 条两层漂移（`SUB-break-the-guard-recursion`/`SUB-consumer-oriented-criterion` 的来源改 `fixed`、`SUB-a17-corpus-migration-stalled` 改 `wo-filed`）+ `--render` 重渲染 §0.2；② `e2e ledger` —— 48 行日志引用**全断链**（`31f3c3f3` 为腾预算删了源文件）⇒ 行内记 `log_pruned` + `--check` 认标记；③ `ledger (1)(3)` —— 10 个复现件逐个迁严格档（`@` 或删多余实参）；④ `test (sokonanoda, tests)` —— `the_kernel_quiet_window_is_thread_local` 是**竞态**（探针线程先跑完 ⇒ 循环零次 ⇒ `checks==0`）⇒ 检查挪到轮询之前。
+- **读数**（构建身份 release `target/release/sokonanoda` mtime `07:43`）：10 个复现件**逐个 exit=1** ✓ · `ux-queue --check` **rc=0** ✓ · `e2e-merge --check` **rc=0**（反向：删一条 `log_pruned` ⇒ rc=1 点名 ✓）· `docs-lint` ✓ · `status-lint` ✓ · `notation-lint` ✓ · `memory_api` **15/15**（那条单测压测 60 次全绿）。
+- ⚠ **推送留痕**：pre-push 的 `gates：缺口台账（--strict）` 在本机红在 **`G-07`/`G-81` 的 300s 超时**（`--strict` 把「超时 = 未验证」判红；CI 跑的是**不带** `--strict` 的分片版，这两条在 CI 上不红）⇒ 按逃生门 **`SOKO_SKIP_HOOK=1`** 推送（它**只跳过这一条**；fmt/clippy/docs-lint/notation-lint 照跑且全绿 ✓）。两条分片实测：`1/3` **不一致 0**、`3/3` **rc=0 · 不一致 0** ✓。
+- ⚠ **如实（未收口）**：`test (sokonanoda-lsp, tests)` 的 `prefix=12` **仍未修** —— 那是引擎缺口（翻默认后就地判定接不住 `@` 脊，`SUB-flip-default-needs-engine-at-spine`），属 flip 本体、不在本笔；`SOKO_STRICT_AT=0` 下同一条 3/3 绿 ⇒ 已定性、未消除。
 ## `fix-flip3` 第八刀 —— **严格档 `@` 残余（第二批）：`rejected 22 → 16`**（2026-10-19 · 未发版）
 - ⭐ **用户拿到什么**：卷 I 集合论里 **6 个判负目标转绿**（`单元 5` · `解答 unit03` · `解答 unit20` · `解答 unit27` · `解答 unit42` · `解答 unit50`）✓、**无新增判负** ✓、**内核一行没动** ✓ ⇒ 学习者在这 6 处不再看到"判卷拒绝"。
 - ⭐ **两个真因（都不是"少写一个 `@`"那么简单）**：
@@ -19,37 +26,7 @@
 - **反向验证（两条判据都咬得住）**：① 复现件：`choice_family` 证明体换 `sorry` ⇒ **exit 1**（`call sites are gone` + `grading rejected`）✓；改掉第一个调用点的文本 ⇒ **exit 1**（`call sites are gone`）✓；两次都**逐字节还原**（sha 相同 ✓）。② 单元㉑：改前 **exit 1 + 那条诊断**（`open_names` 里**没有** `sUnion_empty` ✗）、改后 **exit 0 · 3 checked + 10 open · 零诊断**（它**回来了** ✓）。
 - ⚠ **如实（剩余存量）**：`eea22ca0b5919747` 下**仍有 22 条** rejected（`单元 5` · `单元 8` · 18 条 `解答 unitNN` · `notation-cheatsheet` 页面与解答）—— 全是**严格档 `@` 残余**、与 第六刀 同族（该轮 **29 → 24**、本笔 **24 → 22**）⇒ **不是本笔的回归**，但**离 0 还差 22** ✗；第六刀那两条"存量红、与本迁移无关"的定性**按本笔更正**（① 确属 `9a199b5a` 的记法收编所致、② 是复现件字面量过期）✓。
 
-## `fix-flip3` 第六刀 —— **`courses/set-theory/**` 的严格档 `@` 残余**（2026-10-19 · 未发版）
-- ⭐ **用户拿到什么**：卷 I 语料的**严格档独有诊断 114 → 97**、`check.py` **rejected 29 → 24** ✓（5 目标转绿：
-  `units/I.4/unit11-universe-russell` · `units/I.10/unit27-quotients` · `solutions/I.11/unit31` · `I.12/unit34` ·
-  `I.13/unit41`，**无新增判负** ✓）；两个**判负夹具**（`gaps/C-04-prop-to-type-reject` · `gaps/C-112-cb-direct-def-reject`）
-  从严格档的 `elab-implicit-argument-unsolved` **回到它们登记的那条** `kernel-rejected 类型不匹配：期望 Sort(0)，
-  实际是 Sort(1)` ✓ ⇒ G7 守卫恢复「**为正确的理由**咬住」✓。用户点名的 `unit27-solution`：**记法族那条已消失**
-  （真凶是里层 `Quot.{1} α r` ⇒ `@Quot.{1}`；最小复现 `(fun (q : Quot.{1} α r) => …) … = f a` 红 / `@Quot.{1}` 绿 ✓），剩 1 条级联。
-- **读数**（构建身份 release `sha256:16 = eea22ca0b5919747` · `origin/main = 2fc93146` · 本笔 4 个 sha
-  `2c856d4a` `193466f3` `3417f91e` `769114fe`）：`check.py` **rejected 29 → 24** ✓ · `front --lib` **1006/0** ✓ ·
-  `protocol` **13/13** ✓ · `notation-lint` **exit 0**（330 文件 · 716 处**已标记**豁免）✓ ·
-  **旧档中性**（`SOKO_STRICT_AT=0`，除 `span`/`file`/路径外逐字节）逐遍实测 **10/10 · 8/8 · 12/12 · 2/2** ✓ ·
-  反向验证：重放 `04091783` 的已知自伤（`@And.intro … Or.inl (And.right hab)`）⇒ 量具报 `rc 0→1` DIFF ✓（不是空转）。
-- **量具**（`.cache/ux/fix-flip/u27/`，gitignore）：`fix_precise.py` = **诊断自己的 span + message 点名的头 + 实参>显式形参**
-  三重过滤 —— 修掉旧工具两处**盲插**：`fix_tactic.py` 的「头名第一次出现」在 `unit08-solution:155` 会插 `@And.right hx`
-  = **kernel-rejected**（真凶是同 span **第三个** `And.right (A x) (B x) (And.left hx)`）；`fix_notation.py` 把 tactic 族
-  收进 span 扫描 ⇒ `unit04-solution` 一处插 19 处 ✗ · `neutral.py`（旧档中性对拍）· ⚠ 量具自检：`--root` 必须给**模块根** ✗。
-- ⚠ **`--no-verify` 留痕**：`pre-push` 快层红在 `gates：缺口台账（--strict）` —— **存量**（`git diff 2fc93146 -- docs/gaps` 为空 ✓）；
-  同层 `fmt`/`clippy`/`notation-lint`/`docs-lint`/各类守卫**全 ✅** ✓。
-- ⚠ **如实（未收口的部分 + 判据边界）**：
-  * **变体②**（message 含「至少有一个没解出来」，**14 条**）**不能只加 `@`**（会改义）⇒ 需人工补隐式实参，本轮未动；
-  * **`kernel-rejected` 误导性族**（**12 条**，`期望 Sort(1)，实际是 Sort(2)`）本轮试过 `--kernel` span 扫描 ⇒
-    **非中性 3/11 文件** ✗ ⇒ **整遍撤回**（逐文件 `git checkout --`，不留半成品 ✓）。根因 = 交接判据 ② 的同一个反例：
-    「实参个数 > 显式形参个数」对**结果是函数**的头**不成立**（`Iff.mpr h ha` 合法 / `@Iff.mpr h ha` **kernel-rejected**）✗；
-  * `unit04-solution` / `unit06-solution` 的「外层 `@` + 内层全显式」**两档都判绿**，但会触发**课程记法门禁**
-    （`Or.inl 写全了前导参数` ⇒ `notation-lint` **exit 1 · 3 处**）⇒ 按边界**不加 `soko:notation-ok` 豁免**、
-    两处**退回原形**（这两文件仍红，它们**本来就是** 29 里的两个 ⇒ 不新增绿、也不放宽判据 ✓）。
-    **现成出路**（下一轮）：把内层抽成**具名小引理**（引理自己的类型注解给出期望类型 ⇒ 体内可写**短写**，门禁不红 ✓）；
-  * `units/I.9/unit21-families:156` 是**两档共有**的红（`⊆`/`⋃₀` 操作数拿不到类型）⇒ **不是**本迁移的残余，未动；
-  * `复现 C-110-choice-extraction`（gap 行）的 `exit=1` 是**存量**红（脚本末条命令的退出码），与本迁移无关。
-
-## 更早轮次（**原文已删，只留最近 3 轮** ⇒ `git log --all -- STATUS.md`）：`fix-flip3` **第四刀（族 (A)：`@` 脊上裸常量实参按该层 domain 重新 elaborate）** · 引擎侧三刀 + 输入方言迁移（a18）· 发版 `0.94.0` · `land-a15` + 补回 e1 · `SUB-implicit-args-strict-default`（严格档翻默认）· 发版 `0.93.0` · 严格档第 1 批（a1→a5）· 发版 `0.92.0` · `KERNEL-GLOBAL-QUIET-HOOK-SILENCES-PANICS` ✓ （2026-10-19 第六/七刀按本文件自己的规矩 + `docs-lint` ⑦ 腾空间 ⇒ 只留最近 3 轮 ✓）
+## 更早轮次（**原文已删，只留最近 3 轮** ⇒ `git log --all -- STATUS.md`）：`fix-flip3` **第六刀（`courses/set-theory/**` 严格档 `@` 残余，`rejected 29 → 24`）** · **第四刀（族 (A)：`@` 脊上裸常量实参按该层 domain 重新 elaborate）** · 引擎侧三刀 + 输入方言迁移（a18）· 发版 `0.94.0` · `land-a15` + 补回 e1 · `SUB-implicit-args-strict-default`（严格档翻默认）· 发版 `0.93.0` · 严格档第 1 批（a1→a5）· 发版 `0.92.0` · `KERNEL-GLOBAL-QUIET-HOOK-SILENCES-PANICS` ✓ （2026-10-19 第六/七刀按本文件自己的规矩 + `docs-lint` ⑦ 腾空间 ⇒ 只留最近 3 轮 ✓）
 ## 旧轮墓碑（**原文已删，只留最近 3 轮** ⇒ `git log --all -- STATUS.md`）：`CI-GREEN-SELFTEST-NOT-WIRED` · `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO` · `BITE-PROOF-DOES-NOT-BITE-IN-CI` · `SUB-implicit-named-args` · `SUB-implicit-args-align-lean4` · `SUB-release-metric-measures-unreleased` · `CI-GREEN-READOUT-ROTTED` · `SUB-break-the-guard-recursion` · `BITE-PROOF-READS-LIVE-SHARED-LEDGER` · `BITE-EXPECTATION-GOES-STALE-WHEN-READING-IMPROVES` · `LSP-T2B-TRAILING-BY-LE-3-RED-ON-CI` · `E2E-COVERAGE-4-OF-36` · `AGENT-DOES-NOT-PRODUCE-USER-INPUTS`（第三层）✓
 ## 旧轮（2026-10-15 · **原文已删，只留最近 3 轮** ⇒ `git log --all -- STATUS.md`）：用户五条**激励纠正**（23:xx 亲提 →「你做吧」）· `AGENT-DOES-NOT-PRODUCE-USER-INPUTS`（判据的输入面 = 生成式夹具）· `soko update` 的 404 + `scripts/soko prune` · `#check <def>` 带定义体 + 记法（§9.22）· 清台账第 **7/8** 轮（队列 0 · 隐变量 13/13 收口 · 构建链与缓存身份两族修完）✓
 ## 未决项（**权威 = `docs/ONBOARDING.md` §0.2**；**2026-10-13 订正**：这里曾写「现存 6 条」而权威表实测 3 条 ⇒ 以权威表为准，本条不再自己数 ✗）。⚠ 本节下方两条是**收口记录**，**不是**未决项 —— 2026-10-02 前它写着"只有这两条"而两条都已 ✅ ⇒ 读它的人会以为"队列空了"（#4/#5/#6 三处用户报障就这样掉线过））
