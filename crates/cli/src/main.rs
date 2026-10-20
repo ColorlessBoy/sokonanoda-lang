@@ -5,6 +5,7 @@ mod build;
 mod check;
 mod check_recovery;
 mod course;
+mod dialect;
 mod env;
 mod fixtures;
 mod help;
@@ -17,6 +18,7 @@ mod watch;
 use check::check_source;
 use help::print_help;
 use repl::repl;
+use sokonanoda_front::compile::Dialect;
 use std::io::{IsTerminal, Read};
 use std::process::ExitCode;
 use watch::{watch_doc, watch_workspace};
@@ -32,6 +34,7 @@ fn main() -> ExitCode {
     let mut root: Option<String> = None;
     let mut no_project = false;
     let mut all = false;
+    let mut dialect_flag: Option<Dialect> = None;
     let mut positionals: Vec<String> = Vec::new();
     let mut i = 0;
     while i < args.len() {
@@ -61,6 +64,25 @@ fn main() -> ExitCode {
                 }
             },
             "--no-project" => no_project = true,
+            // **S3**（设计 `docs/design/dialect-config.md` §2/§3.2）：显式档位覆盖环境变量。
+            // 只在这里解析 argv；与环境的**合并**只在 `dialect::resolve_dialect` 一处。
+            "--dialect" => match args.get(i + 1) {
+                Some(value) => match dialect::parse(value) {
+                    Ok(parsed) => {
+                        dialect_flag = Some(parsed);
+                        i += 1;
+                    }
+                    Err(message) => {
+                        eprintln!("{message}");
+                        return ExitCode::from(2);
+                    }
+                },
+                None => {
+                    eprintln!("error: --dialect 需要一个值（strict 或 loose）");
+                    eprintln!("提示：例如 `sokonanoda grade --dialect strict <file>`");
+                    return ExitCode::from(2);
+                }
+            },
             // 多清单聚合（设计 `docs/design/course-manifest-v2.md` §4.5）：
             // 只对 `course` 有意义，下面有专门的形状检查。
             "--all" => all = true,
@@ -118,23 +140,36 @@ fn main() -> ExitCode {
         Some("update") => env::update(),
         // `--root` 必须传进去（2026-10-12 修：以前漏传 ⇒ `grade --root` 静默按入口
         // 目录找模块，而 `AGENTS.md` 把它写成了显式模块根的用法 ✗）。
-        Some("grade") => env::grade(&positionals[1..], root.as_deref()),
+        Some("grade") => env::grade(&positionals[1..], root.as_deref(), dialect_flag),
         Some("gate") => env::gate(&args),
         // 内核真相查询（agent/MCP 的"提问式"通道；单 JSON 对象）。
         // 设计：`docs/design/agent-query-channel.md（**已删** ⇒ 原文 `git log --all -- docs/design/agent-query-channel.md`）` §5。
-        Some("query") if !json => query::run(&positionals[1..], root.as_deref()),
+        Some("query") if !json => query::run(&positionals[1..], root.as_deref(), dialect_flag),
         Some("query") => {
             eprintln!("error: query 自带 JSON 输出，不要加 --json");
             ExitCode::FAILURE
         }
-        Some("build") => build::build(&positionals[1..], json, clean, root.as_deref(), no_project),
+        Some("build") => build::build(
+            &positionals[1..],
+            json,
+            clean,
+            root.as_deref(),
+            no_project,
+            dialect_flag,
+        ),
         // **`clean` / `rebuild`**（用户 2026-10-08：「rebuild 和 clean 没有实现」✗）：
         // 与扩展的三条命令**一一对应**（Build / Rebuild / Clean Cache ✓）——
         // `clean` ≡ `build --clean`（只清不编）· `rebuild` = 先清两处再预热 ✓。
         // `build --clean` 一字不动地保留（向后兼容 ✓，文档与脚本都还在用它 ✓）。
         Some("clean") => build::clean(&positionals[1..], json),
-        Some("rebuild") => build::rebuild(&positionals[1..], json, root.as_deref(), no_project),
-        Some("repl") if !json => repl(),
+        Some("rebuild") => build::rebuild(
+            &positionals[1..],
+            json,
+            root.as_deref(),
+            no_project,
+            dialect_flag,
+        ),
+        Some("repl") if !json => repl(dialect_flag),
         Some("repl") => {
             eprintln!("error: --json is only supported for batch checking, not the repl");
             ExitCode::FAILURE
@@ -169,13 +204,13 @@ fn main() -> ExitCode {
                 }
             },
         },
-        Some("course") => course::course(&positionals[1..], all, json),
+        Some("course") => course::course(&positionals[1..], all, json, dialect_flag),
         // **判据的输入面**（`AGENT-DOES-NOT-PRODUCE-USER-INPUTS`）：把
         // `front::fixtures::all()` 原样交出来，e2e（真 VS Code，Node 侧）据此
         // 拿到"用户会输入什么" —— 一份输入面，三层共读 ✓。
         // 详情与契约见 `crates/cli/src/fixtures.rs` 的模块文档。
         Some("fixtures") => fixtures::fixtures_cmd(&positionals[1..], json),
-        None => check_path_or_stdin(None, json, bare, root, no_project),
+        None => check_path_or_stdin(None, json, bare, root, no_project, dialect_flag),
         // **未知子命令**（用户 2026-10-08：「cli 很多命令有问题」✗）：以前**任何**没匹配上的
         // 位置参数都被当成**文件路径** ⇒ `sokonanoda rebuild` 报的是
         // `error: No such file or directory (os error 2)`（裸 OS 错误、不说是命令 ✗、
@@ -190,7 +225,7 @@ fn main() -> ExitCode {
             );
             ExitCode::from(2)
         }
-        Some(p) => check_path_or_stdin(Some(p), json, bare, root, no_project),
+        Some(p) => check_path_or_stdin(Some(p), json, bare, root, no_project, dialect_flag),
     }
 }
 
@@ -213,6 +248,7 @@ fn check_path_or_stdin(
     bare: bool,
     root: Option<String>,
     no_project: bool,
+    dialect_flag: Option<Dialect>,
 ) -> ExitCode {
     let mut src = String::new();
     let read_result = match arg {
@@ -250,6 +286,7 @@ fn check_path_or_stdin(
         bare,
         root: root.map(std::path::PathBuf::from),
         no_project,
+        dialect: dialect_flag,
     }) {
         ExitCode::SUCCESS
     } else {

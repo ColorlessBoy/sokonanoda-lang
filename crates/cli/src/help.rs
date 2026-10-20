@@ -48,6 +48,9 @@ pub(crate) fn print_help() {
     println!(
         "                                  files can also declare `-- sokonanoda:prelude none`"
     );
+    println!("  --dialect <strict|loose>       implicit-argument dialect for `grade` / `build` /");
+    println!("                                 `query` / `course` / `repl` (case-insensitive;");
+    println!("                                 flag > SOKO_STRICT_AT env > default loose)");
     println!("  sokonanoda --help               this help");
     println!();
     println!("multi-file projects (import + optional sokonanoda.toml):");

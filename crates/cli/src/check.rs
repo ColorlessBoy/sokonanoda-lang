@@ -9,7 +9,7 @@ use crate::json_report::{print_json_line, report_json, span_json};
 use sokonanoda_front::compile::cache::{self, CachedCompile};
 use sokonanoda_front::compile::{
     compile_all_with, prelude_mode_from_source, CheckEvent, CompileOptions, CompileOutput,
-    CompileStage, DocumentReport, PreludeMode,
+    CompileStage, Dialect, DocumentReport, PreludeMode,
 };
 use sokonanoda_front::project::ProjectReport;
 use sokonanoda_front::{parse, FolFile};
@@ -24,6 +24,8 @@ pub(crate) struct CheckRequest<'a> {
     pub root: Option<PathBuf>,
     /// `--no-project`：不读 `sokonanoda.toml`（模块根 = 入口文件目录）。
     pub no_project: bool,
+    /// `--dialect`（S3）：`None` = 没给旗标 ⇒ 沿用 `SOKO_STRICT_AT` 环境。
+    pub dialect: Option<Dialect>,
 }
 
 pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
@@ -34,6 +36,7 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
         bare,
         root,
         no_project,
+        dialect,
     } = request;
     let parsed = parse(src);
     // Prelude choice: an explicit `--bare` flag wins; otherwise a file-level
@@ -43,7 +46,8 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
     } else {
         prelude_mode_from_source(src)
     };
-    let options = CompileOptions::new(prelude);
+    // S3：**唯一**合并点（旗标 > 环境 > 默认）；没给旗标时仍走 `CompileOptions::new`。
+    let options = crate::dialect::resolve_dialect(prelude, dialect);
 
     // 有 import ⇒ 项目闭包；没有 ⇒ 单文件（今天的行为，逐字节不变）。
     //

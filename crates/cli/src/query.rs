@@ -13,7 +13,9 @@ use std::io::Read;
 use std::process::ExitCode;
 
 use serde_json::{json, Value};
+use sokonanoda_front::compile::{CompileOptions, Dialect, PreludeMode};
 use sokonanoda_front::query::{offset_of_line_col, QueryDoc, QueryError};
+use sokonanoda_front::session::Session;
 
 /// 协议标识：字段只增不改，改名视为破坏性变更（需 minor bump + 文档 + 测试）。
 const SCHEMA: &str = "soko.query/1";
@@ -146,9 +148,10 @@ fn load_source(args: &Args) -> Result<String, String> {
 /// 之前 `query` 每次都重编译整个闭包（热跑 37ms，而 `check` 热跑 3ms）；现在
 /// 命中就直接用缓存里的入口报告与事件，未命中则编译一次并把同一份键写回缓存，
 /// 下次 `check`/`build`/`query` 都能用。`--text`（磁盘上没有对应源码）不缓存。
-fn load_document(doc: &mut QueryDoc, src: &str) {
-    let options = sokonanoda_front::compile::CompileOptions::new(
+fn load_document(doc: &mut QueryDoc, src: &str, dialect: Option<Dialect>) {
+    let options = crate::dialect::resolve_dialect(
         sokonanoda_front::compile::prelude_mode_from_source(src),
+        dialect,
     );
     let project_entry = doc.path.clone().filter(|_| has_imports(src));
     let Some(entry) = project_entry else {
@@ -262,7 +265,7 @@ fn unable_to_answer(err: QueryError, doc: &QueryDoc, args: &Args) -> ExitCode {
 }
 
 /// 入口：解析 → 执行 → 打印单 JSON 对象 → 退出码。
-pub(crate) fn run(argv: &[String], root: Option<&str>) -> ExitCode {
+pub(crate) fn run(argv: &[String], root: Option<&str>, dialect: Option<Dialect>) -> ExitCode {
     let args = match parse_args(argv) {
         Ok(args) => args,
         Err(Usage(message)) => {
@@ -290,10 +293,15 @@ pub(crate) fn run(argv: &[String], root: Option<&str>) -> ExitCode {
         }
     };
     let mut doc = QueryDoc::new();
+    // **S3**：显式方言要同时进会话（单文件编译）与 `QueryDoc::options`（闭包编译）。
+    if let Some(dialect) = dialect {
+        doc.dialect = Some(dialect);
+        doc.session = Session::new(CompileOptions::with_dialect(PreludeMode::Full, dialect));
+    }
     // 入口路径 / `--root`：只有带 `import` 的文档才会用到（项目闭包编译）。
     doc.path = args.file.as_ref().map(std::path::PathBuf::from);
     doc.root = args.root.as_deref().or(root).map(std::path::PathBuf::from);
-    load_document(&mut doc, &src);
+    load_document(&mut doc, &src, dialect);
 
     let (payload, exit) = match args.op.as_str() {
         "check" => {

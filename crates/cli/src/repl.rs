@@ -2,7 +2,7 @@
 
 use crate::check::report_output;
 use crate::help::print_repl_help;
-use sokonanoda_front::compile::{prelude_mode_from_source, CheckEvent, CompileOptions};
+use sokonanoda_front::compile::{prelude_mode_from_source, CheckEvent, Dialect};
 use sokonanoda_front::parse;
 use sokonanoda_front::proof::ProofState;
 use std::io::{BufRead, Write};
@@ -12,7 +12,7 @@ use std::process::ExitCode;
 const HISTORY_FILE: &str = ".sokonanoda_history";
 const HISTORY_MAX_LINES: usize = 1000;
 
-pub(crate) fn repl() -> ExitCode {
+pub(crate) fn repl(dialect: Option<Dialect>) -> ExitCode {
     let stdin = std::io::stdin();
     let mut lines = stdin.lock().lines();
     let history_path = history_path();
@@ -45,7 +45,7 @@ pub(crate) fn repl() -> ExitCode {
             buffer.push_str(&state.lambda_text());
             buffer.push('\n');
             proof = None;
-            run_buffer(&buffer, &mut seen_events, &mut declared);
+            run_buffer(&buffer, &mut seen_events, &mut declared, dialect);
             continue;
         }
         if let Some(state) = proof.as_mut() {
@@ -57,7 +57,8 @@ pub(crate) fn repl() -> ExitCode {
                 _ => {}
             }
             // 判定选项跟随 buffer 的 prelude 指令（与整份重编译语义一致）。
-            let options = CompileOptions::new(prelude_mode_from_source(&buffer));
+            let options =
+                crate::dialect::resolve_dialect(prelude_mode_from_source(&buffer), dialect);
             if line.trim() == "undo" || line.trim() == "u" || line.trim() == "#undo" {
                 if state.undo() {
                     print_proof_state(state);
@@ -157,13 +158,18 @@ pub(crate) fn repl() -> ExitCode {
         buffer.push_str(&line);
         buffer.push('\n');
 
-        run_buffer(&buffer, &mut seen_events, &mut declared);
+        run_buffer(&buffer, &mut seen_events, &mut declared, dialect);
     }
     ExitCode::SUCCESS
 }
 
-pub(crate) fn run_buffer(buffer: &str, seen_events: &mut usize, declared: &mut Vec<String>) {
-    let options = CompileOptions::new(prelude_mode_from_source(buffer));
+pub(crate) fn run_buffer(
+    buffer: &str,
+    seen_events: &mut usize,
+    declared: &mut Vec<String>,
+    dialect: Option<Dialect>,
+) {
+    let options = crate::dialect::resolve_dialect(prelude_mode_from_source(buffer), dialect);
     let output = match parse(buffer) {
         Ok(file) => sokonanoda_front::compile::compile_fol_with(&file, &options),
         Err(diag) => {
