@@ -68,6 +68,15 @@ SOKO_PRELUDE_DIR=/tmp/my-prelude scripts/soko grade playground.sokonanoda
    跑完拓扑序的 unit）。契约见 `docs/protocol.md`；测试地图 `docs/TESTING.md`
    的三行「多文件 …」。
 
+## 1.5 方言：严格档是 **opt-in**（F5，2026-10-20）
+
+- 默认 `Dialect::Loose`；严格档用 `SOKO_STRICT_AT=1` 或 CLI `--dialect strict`（S3）。
+- **不许翻默认**：翻默认是独立决策（≥2 周 opt-in + 0 回归报告）。
+- 严格档性能由 **F5** 保证：`operand_type_expr` 用默认 pp（R3）+ 两处「解出的隐式实参」
+  用 `pp_shape::elab_engine_value`（`elab.rs:4617`/`:5008`）。**不要**退回 AST provenance。
+- 迁移量具：`python3 scripts/strict-compat.py --sweep`（两档对拍）·
+  `--suggest --files <f>`（按诊断给建议）。课程迁移 **delete-first**，删不掉才 `@`。
+
 ## 2. 工作流（TDD 三层 + 文档先行）
 
 - **先写设计**：新功能先出设计方案落 `docs/`（含取舍与验收标准），再动手；

@@ -139,6 +139,12 @@
       "renewed": "2026-09-30",
       "tier": "spec"
     },
+    "docs/design/dialect-config.md": {
+      "expires": "2027-10-20",
+      "renewed": "2026-10-20",
+      "tier": "spec",
+      "reason": "strict-mode-v2 计划线：设计档 + 证据/任务档；方言配置档由本线代为登记（均为 2026-10-20 立项，执行期持续引用）（分档 spec = 365 天）"
+    },
     "docs/design/docs-diet.md": {
       "expires": "2027-09-30",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
@@ -265,6 +271,12 @@
       "renewed": "2026-09-30",
       "tier": "spec"
     },
+    "docs/design/strict-mode-v2.md": {
+      "expires": "2027-10-20",
+      "renewed": "2026-10-20",
+      "tier": "spec",
+      "reason": "strict-mode-v2 计划线：设计档 + 证据/任务档；方言配置档由本线代为登记（均为 2026-10-20 立项，执行期持续引用）（分档 spec = 365 天）"
+    },
     "docs/design/tactic-docs.md": {
       "expires": "2027-09-30",
       "renewed": "2026-10-10",
@@ -324,6 +336,18 @@
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 record = 90 天）",
       "renewed": "2026-09-30",
       "tier": "record"
+    },
+    "docs/notes/strict-mode-v2-evidence.md": {
+      "expires": "2027-01-18",
+      "renewed": "2026-10-20",
+      "tier": "record",
+      "reason": "strict-mode-v2 计划线：设计档 + 证据/任务档；方言配置档由本线代为登记（均为 2026-10-20 立项，执行期持续引用）（分档 record = 90 天）"
+    },
+    "docs/notes/strict-mode-v2-tasks.md": {
+      "expires": "2027-01-18",
+      "renewed": "2026-10-20",
+      "tier": "record",
+      "reason": "strict-mode-v2 计划线：设计档 + 证据/任务档；方言配置档由本线代为登记（均为 2026-10-20 立项，执行期持续引用）（分档 record = 90 天）"
     },
     "docs/protocol.md": {
       "expires": "2027-09-30",
