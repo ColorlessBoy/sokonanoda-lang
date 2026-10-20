@@ -23,5 +23,6 @@
   "lsp_sha256_16": "e98d52b8307f8049",
   "log": "docs/e2e/logs/2026-10-20-a3ffd28-vc1.138.0.log",
   "profile": "release",
-  "grep": null
+  "grep": null,
+  "log_pruned": "2026-10-20（docs-lint ① + ratchet 第 10 轮开轮：活文档 5.12 > 收紧后 5.00 MB ⇒ 清日志腾 0.31 MB）"
 }
