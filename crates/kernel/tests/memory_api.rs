@@ -972,15 +972,26 @@ fn probe_quiet_window(
     let mut checks = 0u64;
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
     loop {
+        // ⚠ **先跑一次检查、再看探针跑完没有**（2026-10-20 修 CI 竞态 ✗→✓）：
+        // 探针线程是**先 spawn、再进循环**的 ⇒ 它完全可能在主线程第一次
+        // `try_recv` **之前**就 panic 完并送去信号 ⇒ 循环**零次**就 break ⇒
+        // `checks == 0` ⇒ 下面 `checks > 0` 判红 ✗。
+        // 实测（run 39341179027 的 `test (sokonanoda, tests)`）：子进程
+        // `finished in 0.00s`、`checks=` 一行都没打出来，而本机同一条 15/15 绿
+        // ⇒ 是**竞态**、不是契约变了 ✓。
+        // 顺序换过来之后 `checks >= 1` 由**构造**保证，而"窗口真的被撑开过"这条
+        // **不变量没变** ✓（它说的是"循环跑过内核检查"，不是"跑过几次"）——
+        // 这条用例真正咬住的是**上面那条 stderr 断言**（进程全局静音会把
+        // `OTHER-THREAD-PANIC` 吞掉 ⇒ 那一句必红），这里只保证"窗口打开过"。
+        let ok = env.try_check_declar(&declar).is_ok();
+        assert!(ok, "窗口里合法的声明必须仍然被接受");
+        checks += 1;
         if rx.try_recv().is_ok() {
             break;
         }
         if std::time::Instant::now() >= deadline {
             break;
         }
-        let ok = env.try_check_declar(&declar).is_ok();
-        assert!(ok, "窗口里合法的声明必须仍然被接受");
-        checks += 1;
     }
     assert!(checks > 0, "窗口至少要撑过一次内核检查");
     let text = probe.join().expect("the probe thread joins");
