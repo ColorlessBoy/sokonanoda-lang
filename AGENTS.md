@@ -423,7 +423,7 @@ CI 的**快层** job：**每次 rust 改动的 push** 跑一组 **smoke**（**~1
 - 设计先行：新功能先写设计进 `docs/`，再动手；多用 subagent 并行调研。
 - **VS Code + skills 同步**：任何用户可见改动（命令/键位/视图/反馈/语法/协议/发布形态）
   必须**同一轮**更新 `editor/vscode/`（README/CHANGELOG/package.json）**与** `skills/`
-  三个技能 + 本文 + `docs/vscode-dev-guide.md`；测试见 `crates/cli/tests/skill.rs`。
+  三个技能 + 本文 + `docs/vscode-dev-guide.md`；测试见 `crates/cli/tests/skill.rs`。**设置项也算**用户可见改动（如 S6 的 `sokonanoda.dialect.strictImplicitArgs`）。
 - **harness 同步（opencode 与 DeepSeek Harness 都算一等公民）**：改 `skills/` 正文后
   确认 `.agents/skills/` 入口仍指向它（`crates/cli/tests/dsh.rs` 会挡住漂移）；
   改环境/判卷命令后用 **`scripts/soko`** 形式（harness 中立），opencode 专属

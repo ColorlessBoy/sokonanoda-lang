@@ -385,7 +385,16 @@ const stateEmitters = [];
 /// 扩展注册的通知处理器（按方法名）——测试用 `notify(method, params)` 驱动 ✓。
 const notificationHandlers = {};
 class LanguageClient {
-  constructor() {
+  constructor(id, name, serverOptionsArg, clientOptions) {
+    this.id = id;
+    this.name = name;
+    this.serverOptions = serverOptionsArg;
+    this.clientOptions = clientOptions;
+    // S6 的判据要读 `clientOptions.initializationOptions`（方言搭在 initialize 上），
+    // 并且要能证明"改设置只发通知、没有新开客户端/没有 stop 服务器"。
+    this.startCount = 0;
+    this.stopCount = 0;
+    (vscodeStub.__clients ??= []).push(this);
     this.outputChannel = {
       appendLine(line) {
         (vscodeStub.__channelLines ??= []).push(String(line));
@@ -409,8 +418,17 @@ class LanguageClient {
     notificationHandlers[type] = handler;
     return makeDisposable();
   }
-  async start() {}
-  async stop() {}
+  async start() {
+    this.startCount += 1;
+  }
+  async stop() {
+    this.stopCount += 1;
+  }
+  // `workspace/didChangeConfiguration`（S6）：扩展改设置后发的是**通知**，
+  // 不是请求（没有 id、不期待应答）⇒ 桩按通知记账，测试直接断形状。
+  async sendNotification(type, params) {
+    (vscodeStub.__notifications ??= []).push({ type, params });
+  }
   async sendRequest(method, params) {
     requests.push({ method, params });
     return stubbedResponses[method]?.(params) ?? null;
@@ -743,6 +761,8 @@ async function activateExtension(config = {}) {
   kills.length = 0;
   buildEvents = [];
   timers = [];
+  vscodeStub.__clients = [];
+  vscodeStub.__notifications = [];
   // 每个测试重新激活一次：监听器必须重新挂，否则上一个测试的监听器还在
   //（一次事件会被处理两遍——这正是我们要测的那类放大问题）。
   resetListeners();
@@ -830,6 +850,55 @@ test("warmCacheOnOpen on: activation builds the workspace root once", async () =
     "build 的目标必须是工作区根",
   );
   assert.ok(context, "activate 必须返回 context");
+});
+
+test("dialect setting rides initialize + didChangeConfiguration, no restart (S6)", async () => {
+  // **S6（docs/design/dialect-config.md §4）**：设置项 → 扩展 → LSP 的 wire 形状。
+  // 这一层断言的是**真的发出去了什么**（`initializationOptions` 与通知），不是
+  // "代码里有个字符串"；判定翻转本身在真宿主 e2e（`dialect setting flips…`）里验。
+  await activateExtension({ "dialect.strictImplicitArgs": true });
+  await settle();
+  const client = vscodeStub.__clients.at(-1);
+  assert.ok(client, "activation must create the language client");
+  assert.deepStrictEqual(
+    client.clientOptions.initializationOptions,
+    { dialect: { strictImplicitArgs: true } },
+    "the setting must be sent as initialize.initializationOptions",
+  );
+  assert.strictEqual(client.startCount, 1, "activation starts the client once");
+
+  // 用户改设置 ⇒ **通知**（S5 的热切换靠它触发）；同时钉住"没有新客户端、没有 stop"
+  // —— 重启服务器会让旧档的所有诊断先闪没，正是 S5/S6 要避免的那件事。
+  vscodeStub.__notifications.length = 0;
+  setConfig("dialect.strictImplicitArgs", false);
+  await settle();
+  const notices = vscodeStub.__notifications.filter(
+    (note) => note.type === "workspace/didChangeConfiguration",
+  );
+  assert.strictEqual(notices.length, 1, `改设置必须发一条通知：${JSON.stringify(vscodeStub.__notifications)}`);
+  assert.deepStrictEqual(notices[0].params, {
+    settings: { dialect: { strictImplicitArgs: false } },
+  });
+  assert.strictEqual(vscodeStub.__clients.length, 1, "改设置不许新开客户端");
+  assert.strictEqual(client.stopCount, 0, "改设置不许 stop 服务器");
+
+  // 不相关的设置不发（否则改个字号也会白白重编一遍所有打开文档）。
+  vscodeStub.__notifications.length = 0;
+  setConfig("progress.throttleMs", 999);
+  await settle();
+  assert.deepStrictEqual(
+    vscodeStub.__notifications.filter((n) => n.type === "workspace/didChangeConfiguration"),
+    [],
+    "unrelated settings must not trigger a dialect re-judgement",
+  );
+
+  // 默认关（旧读法）也必须**明确**告诉服务器 `false`：否则"先开后关"翻不回来。
+  await activateExtension();
+  await settle();
+  assert.deepStrictEqual(
+    vscodeStub.__clients.at(-1).clientOptions.initializationOptions,
+    { dialect: { strictImplicitArgs: false } },
+  );
 });
 
 test("build/rebuild target the project root, not the active file (E22)", async () => {

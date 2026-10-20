@@ -63,6 +63,18 @@ const EXERCISE = "theorem t : True := sorry\n";
 // WARNING，文件整体仍编译通过。
 const RESERVED = "axiom Prop : Sort 1\n";
 
+// 方言夹具（S6，`docs/design/dialect-config.md` §4）：`b2` 把 `Nat Nat` 喂给两个
+// **隐式**类型参数 —— 旧读法接受，严格档报 `elab-implicit-argument-unsolved`
+// （与 `crates/cli/tests/dialect_flag.rs` 的 REPRO 同一形状）。改设置 ⇒ 同一份
+// 已打开文档的诊断翻转，服务器**不重启**。
+const DIALECT_REPRO = [
+  "def h {α : Type} {β : Type} (f : α → β) (a : α) : β := f a",
+  "",
+  "def b1 : Nat := h (fun (n : Nat) => n) 5",
+  "def b2 : Nat := h Nat Nat (fun (n : Nat) => n) 5",
+  "def b3 : Nat := @h Nat Nat (fun (n : Nat) => n) 5",
+].join("\n");
+
 const suiteRunner = SERVER_BINARY ? suite : suite.skip;
 
 suiteRunner("sokonanoda extension (VS Code integration)", () => {
@@ -932,6 +944,64 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       diagnostics.map((d) => d.code),
       [],
       `clean lesson must have no diagnostics, got: ${JSON.stringify(diagnostics.map((d) => [d.code, d.message]))}`,
+    );
+  });
+
+  test("dialect setting flips the judgement without restarting the server (S6)", async function () {
+    // `SOKO_STRICT_AT`（第 2 档）优先于编辑器设置（第 3 档）⇒ 开发机设了它时翻设置
+    // 本来就不该改判定；跳过而不是误报（CI 不设它，本用例在 CI 上真的跑）。
+    if (process.env.SOKO_STRICT_AT !== undefined) this.skip();
+    // 用户动作 = 设置里打开 `sokonanoda.dialect.strictImplicitArgs`；屏幕上多什么 =
+    // 同一份**已打开**文档多出一条 `elab-implicit-argument-unsolved` 错误（关掉就
+    // 消失）。服务器不重启：S5 的热切换（`workspace/didChangeConfiguration`）无重启
+    // 就能重判所有打开文档；S6 的活儿是**真的把设置发出去**。
+    const cfg = vscode.workspace.getConfiguration("sokonanoda");
+    // 干净起点：测试实例的 `--user-data-dir` 跨轮复用，上一次中断的运行可能把
+    // 这个 Global 值留在那里（删掉 = 回到清单里的默认 false）。
+    await cfg.update("dialect.strictImplicitArgs", undefined, vscode.ConfigurationTarget.Global);
+    assert.strictEqual(
+      cfg.get("dialect.strictImplicitArgs"),
+      false,
+      "the setting must default to off (the old reading)",
+    );
+    const uri = await writeDoc("dialect-strict.sokonanoda", DIALECT_REPRO);
+    await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
+    // ready 信号：hover 非空 = 服务器已编译完（与 clean lesson 同一条口径）。
+    await waitFor("the first hover on the dialect fixture", async () =>
+      (await hoverTextAt(uri, 0, 4)) !== "",
+    );
+    assert.deepStrictEqual(
+      vscode.languages.getDiagnostics(uri).map((d) => d.code),
+      [],
+      "loose (default) accepts feeding implicit parameters positionally",
+    );
+
+    await cfg.update("dialect.strictImplicitArgs", true, vscode.ConfigurationTarget.Global);
+    try {
+      await waitFor("the strict diagnostic after flipping the setting", async () =>
+        vscode.languages
+          .getDiagnostics(uri)
+          .some((d) => d.code === "elab-implicit-argument-unsolved"),
+      );
+      const diagnostic = vscode.languages
+        .getDiagnostics(uri)
+        .find((d) => d.code === "elab-implicit-argument-unsolved");
+      assert.strictEqual(
+        diagnostic.severity,
+        vscode.DiagnosticSeverity.Error,
+        "a strict-mode rejection is an error, not a warning",
+      );
+      assert.ok(diagnostic.message.length > 0, "the rejection must explain itself");
+    } finally {
+      // `undefined` = 删掉设置 ⇒ 回到默认档（Global 目标是测试实例自己的
+      // `--user-data-dir`，不碰仓库里的夹具 settings.json）。
+      await cfg.update("dialect.strictImplicitArgs", undefined, vscode.ConfigurationTarget.Global);
+    }
+    await waitFor("diagnostics cleared after turning strict back off", async () =>
+      !vscode.languages
+        .getDiagnostics(uri)
+        .some((d) => d.code === "elab-implicit-argument-unsolved"),
     );
   });
 

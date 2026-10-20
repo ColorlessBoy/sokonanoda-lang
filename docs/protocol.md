@@ -273,6 +273,22 @@ KEYWORD, TYPE (Sort / inductive), NUMBER, MACRO (`sorry`), FUNCTION
 (def/theorem names and uses), VARIABLE (axioms, unresolved idents),
 ENUM_MEMBER (constructors), PARAMETER (binders). Encoding is UTF-16 correct.
 
+### Editor wire: dialect (`initializationOptions` + `didChangeConfiguration`, 2026-10-20)
+
+The dialect is **editor state, not a request field**: state it once in `initialize` and
+re-state the same object as `settings` on every change — never by restarting:
+
+```json
+{"dialect": {"strictImplicitArgs": true}}
+```
+
+`{"dialect": "strict" | "loose"}` and `{"sokonanoda": {"dialect": …}}` parse to the same
+value (same keyword table as `--dialect`; `true` = strict = the normal form binds only
+explicit parameters, `false` = loose = the old reading, default). On
+`didChangeConfiguration` this is tri-state: **key absent** clears the editor source
+(falling back to `SOKO_STRICT_AT` / the file directive / `sokonanoda.toml` / `loose`);
+**unknown value** and `null` are ignored (a typo never silently flips a dialect). Precedence stays `--dialect` > `SOKO_STRICT_AT` > editor > file directive > manifest > `loose`.
+
 ## Value-position keywords (removed)
 
 `funapply` (0.22.0) and `funintro` (0.27.0, `docs/design/remove-funintro.md`) are gone: the value position takes a plain expression or a `by <tactic>; …` block, and `funintro` now parses as an ordinary identifier that fails elaboration as an unknown name. Lean-style binders still desugar to a Forall type plus a Lambda value, so `:= sorry` reports the codomain goal with the binders in context.
@@ -1077,26 +1093,10 @@ Envelope (every answer, success or failure):
   (its `check.failed[]` carries the parse diagnostic; `goals`/`holes` answer
   `not-parsable`), or `reduce` failed — `2` = usage error. **Decide on the JSON,
   not the exit code.**
-- Positions are 1-based `line`/`col`; `--offset` is a **byte** offset. The column
-  counts `char`s today (`crates/front/src/token.rs`) — identical to the LSP's
-  UTF-16 `character` for BMP text (all course material), and one short per astral
-  character (emoji); that drift is a separate, separately tracked gap (**G-36**,
-  `docs/gaps/ledger.jsonl`, 判定实验 `docs/gaps/repro/G36-utf16-position-mapping.sh`),
-  not something a consumer of this protocol should compensate for.
-  **编辑器侧的后果**（G-36 的实测）：LSP 的 `character` 是 UTF-16 码元，而服务端
-  按 `char` 计数 ⇒ `𝒫`（U+1D4AB，代理对）之后的同一行**整体偏一格**——
-  hover/definition/highlight/rename 都会落到隔壁字符上。复现脚本自带对照
-  （列号减一才命中 `A : Set α`），所以那不是"A 没有 hover"。 Every position in
-  this document (event `span`, `query check`'s `start_line`/`start_col`/…, LSP
-  diagnostics) is the **same** number, so read it, don't recompute it.
-- `query check`'s `failed[]`/`warnings[]` report in the **entry file**'s
-  coordinate space. A dependency module's own error is not in `failed[]`; it
-  appears there only as `import-dependency-failed` (on the entry's `import`
-  line). For the dependency's error use `grade --json` (its diagnostic carries
-  `file`/`module`) or `query project` (per-module `errors`).
-- `holes[].id` (`<declName>:<index>`)
-  is the stable reference for programmatic consumers — two sub-goals of one
-  `apply` share a source position, so positional navigation steps over them as a
-  group (see the `soko/nextHole` limitation above).
+- Positions are 1-based `line`/`col`; `--offset` is a **byte** offset. The column counts `char`s today (`crates/front/src/token.rs`) — identical to the LSP's UTF-16 `character` for BMP text (all course material), and one short per astral character (emoji); that drift is a separate, separately tracked gap (**G-36**, `docs/gaps/ledger.jsonl`, 判定实验 `docs/gaps/repro/G36-utf16-position-mapping.sh`), not something a consumer of this protocol should compensate for. **编辑器侧的后果**（G-36 的实测）：LSP 的 `character` 是 UTF-16 码元，而服务端按 `char` 计数 ⇒ `𝒫`（U+1D4AB，代理对）之后的同一行**整体偏一格**—— hover/definition/highlight/rename 都会落到隔壁字符上。复现脚本自带对照（列号减一才命中 `A : Set α`），所以那不是"A 没有 hover"。 Every position in this document (event `span`, `query check`'s `start_line`/`start_col`/…, LSP diagnostics) is the **same** number, so read it, don't recompute it.
+- `query check`'s `failed[]`/`warnings[]` report in the **entry file**'s coordinate space. A dependency module's own error is not in `failed[]`; it appears there only as `import-dependency-failed` (on the entry's `import` line).
+  For the dependency's error use `grade --json` (its diagnostic carries `file`/`module`) or `query project` (per-module `errors`).
+- `holes[].id` (`<declName>:<index>`) is the stable reference for programmatic consumers — two sub-goals of one `apply` share a source position,
+  so positional navigation steps over them as a group (see the `soko/nextHole` limitation above).
 - Fields are **additive only**; renaming one is a breaking change (minor bump +
   docs + tests). `soko.query/1` is the schema tag.

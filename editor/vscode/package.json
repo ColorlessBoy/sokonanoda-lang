@@ -304,6 +304,11 @@
           "default": "off",
           "description": "Log LSP traffic to the 'sokonanoda' output channel (for debugging)."
         },
+        "sokonanoda.dialect.strictImplicitArgs": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "**Strict implicit arguments** — the normal form binds only explicit parameters (feed an implicit parameter with `@`); off by default = the old reading, and changes apply immediately without restarting the server.\n\n**严格隐式参数** —— 正常形式只按显式形参绑定（喂隐式位要写 `@`）；默认关 = 旧读法，改设置即时生效（`workspace/didChangeConfiguration`）、不重启服务器。"
+        },
         "sokonanoda.warmCacheOnOpen": {
           "type": "boolean",
           "default": false,

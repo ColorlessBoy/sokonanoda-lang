@@ -116,14 +116,16 @@ provenance + Marketplace 发布），历史上 gallery 会间歇超时（`docs/C
 
 **commit 前**：至少跑静态契约 + 集成测试；**发 tag 前**：三层全跑。
 
+**方言（S6，2026-10-20）**：`node editor/vscode/test-extension-host.js` 断言 `initializationOptions` 的
+形状与「改设置真的发通知」；真宿主一条（改设置 ⇒ 同一份已打开文档的诊断翻转）：
+`scripts/vscode-e2e.sh --grep "dialect setting flips" --profile debug --no-build`（`--grep` 才是开关）。
+
 ### 接缝守卫（A∖B）：`python3 scripts/audit-wire-fields.py`
 
 凡"**扩展读了 / LSP 发**"的字段都要过它（已进 `scripts/soko gate` 与 CI）。它按
 **消费者分组**列出"读了但从**不**发"的字段。为什么必须有 ✗：扩展是「**有就渲染**」的
-宽容实现 ⇒ 缺字段是**静默降级**（那一行直接不出现）⇒ **e2e 天然抓不到**。R-1 的
-`value_runs`、T-A5 的 `goal_runs`/`goals_runs` 都是这么潜伏的；**回退字段时它必须报**
-（两个都实测验证过 ✓）。分组是 2026-09-24 补的：原来取"全体结构体字段的**并集**"
-⇒ `goal_runs` 被 `soko/stateAt` 的同名字段**顶包**，声明侧漏了也不报 ✗。
+宽容实现 ⇒ 缺字段是**静默降级**（那一行直接不出现）⇒ **e2e 天然抓不到**。R-1 的 `value_runs`、
+T-A5 的 `goal_runs`/`goals_runs` 都是这么潜伏的；**回退字段时它必须报**（两个都实测验证过 ✓）。分组是 2026-09-24 补的：原来取"全体结构体字段的**并集**" ⇒ `goal_runs` 被 `soko/stateAt` 的同名字段**顶包**，声明侧漏了也不报 ✗。
 **扩展改动后**：`scripts/soko gate`（Rust + 契约层）+ `node test-extension-host.js`（stub 层）+
 `scripts/vscode-e2e.sh`（真宿主层，~1 分钟；结果进 `docs/e2e/`）。
 CI 的 `e2e` job 跑的是**同一条命令**（3 条腿：ubuntu × VS Code 1.138.0 与 1.106.0
@@ -182,10 +184,7 @@ code --install-extension sokonanoda.vsix --force
 npm run clean:lsp
 ```
 
-或按 F5 用开发宿主调试（`.vscode/launch.json` 已配置）。注意：F5 时
-`bin/` 不存在（gitignored），解析会落到 `target/debug`；若刚跑过
-`package:host`，会优先使用 stage 的 release 二进制——要回到 debug 发现先
-`npm run clean:lsp`。
+或按 F5 用开发宿主调试（`.vscode/launch.json` 已配置）。注意：F5 时 `bin/` 不存在（gitignored），解析会落到 `target/debug`；若刚跑过 `package:host`，会优先使用 stage 的 release 二进制——要回到 debug 发现先 `npm run clean:lsp`。
 
 ### 4.4 环境前置：macOS 的 Xcode 许可
 
@@ -215,6 +214,7 @@ export DEVELOPER_DIR=/Library/Developer/CommandLineTools     # 绕过（只影�
    （`warmCacheOnOpen` 就是）测试没法事后开：stub 宿主用
    `activateExtension({ warmCacheOnOpen: true })`，真宿主靠夹具工作区的
    `.vscode/settings.json`（`src/test/fixtures/workspace/.vscode/settings.json`）。
+   **`dialect.strictImplicitArgs`**（S6）：严格隐式参数，默认关 = 旧读法；`initialize` 的 `initializationOptions` + 改设置发 `workspace/didChangeConfiguration` —— 热切换、不重启（判据见 §3 的两条命令）。
 7. **服务器更新后须重载窗口**——LSP 进程在窗口激活时 spawn，改 Rust 代码后不重载 = 旧服务器；二进制原地更新（重建 / 缓存刷新 / 改 `serverPath`）可用命令 `Sokonanoda: Restart Server (重启服务器)` 重新解析并重启（命令回执会显示重启前后的服务器版本与 pid）。**0.27.1 起**：restart 走与激活同一条解析链（含 `v<扩展版本>` 锁定下载兜底），解析不到可用服务器时直接报错而**不再静默重启旧命令/旧缓存**；若检测到磁盘上已安装更新的扩展而当前宿主仍是旧版，会提示 `Developer: Reload Window`（扩展本体升级仍需重载——restart 只能换服务器二进制，换不了扩展代码）。**0.31.0 起**：解析默认 **bundled-first**（`sokonanoda.serverOverride` 默认 `false`，`serverPath`/env/工作区构建被忽略并弹一次提示），杜绝「陈旧本地构建静默压过内置服务器」；`Sokonanoda: Doctor (诊断服务器与版本)` 只读输出解析来源（`source=`）、运行/扩展版本、被忽略的覆盖、缓存与旧版本堆积等自检项；
 7. **`code` CLI 与已开实例冲突**——集成测试在 macOS 上报"another instance running"时关掉 VS Code 再跑；
 8. **代理**——vsce/Node 不读系统代理；需要时设 `HTTPS_PROXY=http://127.0.0.1:7890`。

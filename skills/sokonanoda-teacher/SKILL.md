@@ -418,6 +418,8 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   insert 模式（NORMAL 模式不插文本，换什么 leader 都一样）。两个坑已修：替换后光标会被 vim
   抢到自动配对的 `)` 右边（现在扩展自己把光标钉在符号之后）、normal 模式的 `o`/`p` 会补刀
   上一行的待定缩写（现在只认"单字符 + 落在光标处"的插入）；
+- **严格隐式参数（S6，默认关）**：学习者要按 Lean 读法判卷 ⇒ 开 VS Code 设置
+  `sokonanoda.dialect.strictImplicitArgs`（改设置即时生效、不重启）；CLI 同口径 `scripts/soko grade --dialect strict <file>`（或 `SOKO_STRICT_AT=1`），同一个值。
 - 洞尾 inlay 提示直接标注该洞的**期望类型**（子洞有各自的期望类型）；
 - 洞上灯泡（按目标形状的下一步建议，kernel 验证过的排最前并标 preferred）：
   `exact <假设>`（该假设能闭合该洞时）、`Eq.refl …` / `Iff.rfl`（`Eq` 与 `Iff`

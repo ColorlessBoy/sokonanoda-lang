@@ -115,6 +115,19 @@ function serverOverrideEnabled() {
   return vscode.workspace.getConfiguration("sokonanoda").get("serverOverride") === true;
 }
 
+// 方言（S6，docs/design/dialect-config.md §2 第 3 档）：**一个对象、两处用同一份** ——
+// `initialize` 的 `initializationOptions` 与 `workspace/didChangeConfiguration` 的
+// `settings` 形状相同（= 设置键去掉 `sokonanoda` 段前缀）。S5 的解析器认
+// `{"dialect":{"strictImplicitArgs":bool}}`，所以这里不再包一层 `sokonanoda`。
+function dialectSettings() {
+  return {
+    dialect: {
+      strictImplicitArgs:
+        vscode.workspace.getConfiguration("sokonanoda").get("dialect.strictImplicitArgs") === true,
+    },
+  };
+}
+
 function resolveServerCommand(context) {
   return server.resolveServerCommand({
     setting: vscode.workspace.getConfiguration("sokonanoda").get("serverPath"),
@@ -3104,6 +3117,9 @@ async function activate(context) {
     client = new LanguageClient("sokonanoda", "sokonanoda", serverOptions, {
       documentSelector: [{ language: "sokonanoda", scheme: "file" }],
       synchronize: { fileEvents: vscode.workspace.createFileSystemWatcher("**/*.sokonanoda") },
+      // 方言只在 `initialize` 里说一次（S6）；改设置走下面的
+      // `workspace/didChangeConfiguration`，**不重启、不重发 initialize**（S5）。
+      initializationOptions: dialectSettings(),
     });
     // 扩展宿主控制台（测试/开发可见）：例行 e2e 卡住时，第一现场是"服务器到底
     // 起没起、用的是哪个二进制"——output channel 在测试里读不到，控制台能。
@@ -3131,6 +3147,26 @@ async function activate(context) {
     });
     context.subscriptions.push(client);
     await client.start();
+    // 方言热切换（S6）：用户改设置 ⇒ 发 `workspace/didChangeConfiguration`。
+    // 服务端（S5）收到后自己作废本会话缓存、用缓冲区最新文本重编所有打开文档 ——
+    // **不重启服务器、不重发 `initialize`**（重启会丢掉旧档案的判定与诊断）。
+    // 不相关设置的变更不发（否则改个字号也白白重编一遍）。
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (!client || !event.affectsConfiguration("sokonanoda.dialect.strictImplicitArgs")) {
+          return;
+        }
+        const settings = dialectSettings();
+        e2eLog(`dialect setting -> ${settings.dialect.strictImplicitArgs ? "strict" : "loose"}`);
+        try {
+          client
+            .sendNotification("workspace/didChangeConfiguration", { settings })
+            .catch(() => {});
+        } catch {
+          // 服务器正在停/重启：新值会在下一次 `initialize` 里重新发出去。
+        }
+      }),
+    );
     client.outputChannel.appendLine(
       `[client] ready — server synchronized over stdio: ${command} (source=${resolution.source ?? "?"})`,
     );
