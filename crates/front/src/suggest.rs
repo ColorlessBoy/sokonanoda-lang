@@ -35,7 +35,7 @@
 //! 的合成声明必然 Open，bump 不出"这一填对不对"，见 `judgement_of`）。
 
 use crate::ast::NotationDecl;
-use crate::compile::{CompileOptions, DeclState, DeclStatus, HoleMode};
+use crate::compile::{implicit_msg::refl_text, CompileOptions, DeclState, DeclStatus, HoleMode};
 use crate::judge::{
     judge_hole_fill_with, judge_terms_with, judge_value_replace_with, GoalBinderSpec, Judgement,
     OpenGoalSpec,
@@ -146,7 +146,8 @@ pub fn suggest_with_notations(
         // kernel 在学生下次编辑后终审。
         let mut out: Vec<Suggestion> = Vec::new();
         if let Some(decl_src) = decl_src {
-            if let Some(term) = decl_type_text(decl_src).and_then(|ty| refl_candidate(ty, d)) {
+            let cand = decl_type_text(decl_src).and_then(|ty| refl_candidate(ty, d, options));
+            if let Some(term) = cand {
                 let judgements = judge_value_replace_with(
                     extra_prefix,
                     prefix_src,
@@ -198,7 +199,7 @@ pub fn suggest_with_notations(
         };
         // 批量判定一次成型：前 4 个 binder（+ 单洞时的 rfl 候选）。
         let rfl_term = if single_hole {
-            refl_candidate(&expected, d)
+            refl_candidate(&expected, d, options)
         } else {
             None
         };
@@ -366,11 +367,9 @@ fn restart_skeleton(decl_src: &str) -> Option<String> {
     let ty = parse_expr_text(ty_text).ok()?;
     let mut layers: Vec<SkeletonLayer> = Vec::new();
     let mut cur = &ty;
-    // **闸类出口**（G-91 乙类 ✓）：`SKELETON_MAX_LAYERS` 只截断**还没剥完**的
-    // 望远镜 ✓ —— 望远镜**恰好 3 层**时循环也会在同一个 `if` 上退出，但那是
-    // **正常终止** ✓ ⇒ 必须用这个标志把两者分开 ✗（不分开 = 假读数 ✗）。
-    // 触发意味着**只掉提示精度** ✓（骨架少剥几层，学习者补上剩下的 `fun … =>` ✓），
-    // **判定一字不动** ✓（建议本身 `verified: false` ✓）。
+    // **闸类出口**（G-91 乙类 ✓）：`SKELETON_MAX_LAYERS` 只截断**还没剥完**的望远镜 ✓ —— 望远镜**恰好 3 层**时
+    // 循环也会在同一个 `if` 上退出，但那是**正常终止** ✓ ⇒ 必须用这个标志把两者分开 ✗（不分开 = 假读数 ✗）。
+    // 触发意味着**只掉提示精度** ✓（骨架少剥几层，学习者补上剩下的 `fun … =>` ✓），**判定一字不动** ✓。
     let mut truncated = false;
     loop {
         if layers.len() >= SKELETON_MAX_LAYERS {
@@ -599,15 +598,13 @@ fn intro_count(d: &DeclState, notations: &[NotationDecl]) -> usize {
     }
 }
 
-/// 期望类型形如 `Eq α x y`（或显式 `@Eq.{u} α x y`）时的 rfl 候选
-/// `Eq.refl.{u} <α> <a>`；`Iff` 头（`Iff A B` 或记法 `A ↔ B`）时是
-/// `Iff.rfl`（**同一份** `iff_head` 判据，与 `by` 引擎的 `rfl` 能力一致）。
-/// kernel 裁决两边是否本来就是同一个值（`Iff` 只在 defeq 时过）。期望类型
-/// 既可以是开放练习的剩余目标，也可以是失败声明的声明类型（后者经
-/// `judge_value_replace` 判定整值替换）。
+/// 期望类型形如 `Eq α x y`（或显式 `@Eq.{u} α x y`）时的 rfl 候选 `Eq.refl.{u} <α> <a>`；
+/// `Iff` 头（`Iff A B` 或记法 `A ↔ B`）时是 `Iff.rfl`（**同一份** `iff_head` 判据，与 `by` 引擎的 `rfl` 能力一致）。
+/// kernel 裁决两边是否本来就是同一个值（`Iff` 只在 defeq 时过）。期望类型既可以是开放练习的
+/// 剩余目标，也可以是失败声明的声明类型（后者经 `judge_value_replace` 判定整值替换）。
 /// 宇宙层级：目标头写明 `Eq.{u}` 时取目标自身的层级，否则取声明的
 /// 首个宇宙参数（无则 0）。
-fn refl_candidate(expected: &str, d: &DeclState) -> Option<String> {
+fn refl_candidate(expected: &str, d: &DeclState, options: &CompileOptions) -> Option<String> {
     let goal = parse_expr_text(expected).ok()?;
     if crate::by::iff_head(&goal) {
         // `Iff.rfl {A : Prop} : Iff A A` 的 `A` 由期望类型定死 ⇒ 无实参
@@ -632,7 +629,7 @@ fn refl_candidate(expected: &str, d: &DeclState) -> Option<String> {
     }
     let alpha = atom_text(args[0]);
     let a = atom_text(args[1]);
-    Some(crate::compile::implicit_msg::refl_text(&level, &alpha, &a))
+    Some(refl_text(options, &level, &alpha, &a))
 }
 
 /// 展平 `f x1 … xn` 成 `(f, [x1, …, xn])`。
@@ -665,6 +662,11 @@ mod tests {
     use super::*;
     use crate::compile::{check_document, implicit_msg::at_prefix, DeclStatus};
     use crate::parse;
+
+    /// 断言用的 `@` 前缀：默认档（与 `suggest*` 内部构造的 options 同源）。
+    fn at() -> &'static str {
+        at_prefix(&CompileOptions::default())
+    }
 
     /// 文档里第一个 open 练习的建议（prefix 取到该声明结束，与 actions 一致）。
     fn suggest_for(doc: &str) -> Vec<Suggestion> {
@@ -884,7 +886,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                text: format!("{}Eq.refl.{{1}} Nat a", at_prefix())
+                text: format!("{}Eq.refl.{{1}} Nat a", at())
             }],
             "no binder matches the Eq goal; rfl is the verified next step"
         );
@@ -899,7 +901,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                text: format!("{}Eq.refl.{{1}} Nat (Nat.add 1 1)", at_prefix())
+                text: format!("{}Eq.refl.{{1}} Nat (Nat.add 1 1)", at())
             }],
         );
         assert!(suggestions[0].verified);
@@ -964,7 +966,7 @@ fun (a : Nat) => fun (h : @Eq.{1} Nat 2 2) => sorry\n",
                     text: "h".to_string(),
                 },
                 SuggestionKind::Rfl {
-                    text: format!("{}Eq.refl.{{1}} Nat 2", at_prefix())
+                    text: format!("{}Eq.refl.{{1}} Nat 2", at())
                 },
             ]
         );
@@ -1091,13 +1093,11 @@ Quad.mk a b c d sorry sorry sorry sorry\n",
 
     #[test]
     fn failed_long_telescope_caps_the_skeleton_at_three_layers() {
-        // **闸类出口**（G-91 乙类 ✓）：这条夹具的望远镜 **4 层** > `SKELETON_MAX_LAYERS`
-        // ⇒ **真的截断**了 ⇒ 出口必须涨 ✗（只声明不写 = 空转 ✗）。
-        // ⚠ 只断言**单调方向** ✓：计数是**进程级**的、lib 测试**并行** ⇒ 能断言"这一趟
-        // 涨了" ✓，**不能**断言"别的用例没涨" ✗（同文件另有 4 层夹具 ⇒ 那是假红来源 ✓）。
-        // 反向验证（2026-10-07 实测 ✓）：删掉 `bump()` ⇒ 本断言判红 ✓；
-        // 把 `SKELETON_MAX_LAYERS` 临时改成 `100`（望远镜不再被截断）⇒ 也判红 ✓
-        // ⇒ 它咬的是"**截断**"，不是"走到了这个函数" ✓。
+        // **闸类出口**（G-91 乙类 ✓）：这条夹具的望远镜 **4 层** > `SKELETON_MAX_LAYERS` ⇒ **真的截断**了
+        // ⇒ 出口必须涨 ✗（只声明不写 = 空转 ✗）。⚠ 只断言**单调方向** ✓：计数是**进程级**的、lib 测试**并行**
+        // ⇒ 能断言"这一趟涨了" ✓，**不能**断言"别的用例没涨" ✗（同文件另有 4 层夹具 ⇒ 那是假红来源 ✓）。
+        // 反向验证（2026-10-07 实测 ✓）：删掉 `bump()` ⇒ 本断言判红 ✓；把 `SKELETON_MAX_LAYERS` 临时改成
+        // `100`（望远镜不再被截断）⇒ 也判红 ✓ ⇒ 它咬的是"**截断**"，不是"走到了这个函数" ✓。
         let before = sokonanoda::gates::SKELETON_LAYERS_CLAMPED.get();
         let suggestions = suggest_for_failed(
             "example : (a : Prop) -> (b : Prop) -> (c : Prop) -> (d : Prop) -> a := \
@@ -1160,7 +1160,7 @@ fun (d : Prop) => sorry"
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                text: format!("{}Eq.refl.{{1}} Nat 2", at_prefix()),
+                text: format!("{}Eq.refl.{{1}} Nat 2", at()),
             }],
             "the declared type is Eq-headed and the kernel accepts the refl term"
         );
@@ -1179,7 +1179,7 @@ fun (d : Prop) => sorry"
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                text: format!("{}Eq.refl.{{1}} Nat (Nat.add 1 1)", at_prefix()),
+                text: format!("{}Eq.refl.{{1}} Nat (Nat.add 1 1)", at()),
             }],
         );
         assert!(suggestions[0].verified);
@@ -1257,7 +1257,7 @@ fun (d : Prop) => sorry"
             kinds(&suggestions),
             vec![
                 SuggestionKind::Rfl {
-                    text: format!("{}Eq.refl.{{1}} Nat 2", at_prefix()),
+                    text: format!("{}Eq.refl.{{1}} Nat 2", at()),
                 },
                 SuggestionKind::Reset {
                     new_text: "fun (x : Nat) => sorry".to_string(),

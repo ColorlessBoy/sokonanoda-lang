@@ -2,6 +2,7 @@
 //! complete sokonanoda kernel over them.
 
 mod check;
+mod dialect;
 pub(crate) mod elab;
 mod error;
 // `ErrorKind::hint()` 的文案表（从 `error.rs` 拆出来腾判据 ⑨ 的行数预算，2026-10-16）。
@@ -58,6 +59,9 @@ pub use check::{
     def_spans_builds_total, def_spans_units_total, notation_table_builds_total,
     notation_table_units_total,
 };
+/// **方言**（S1）：[`CompileOptions::dialect`] 的类型。S3/S5 的 CLI 旗标与编辑器设置
+/// 要能**命名**它 ⇒ 从 `dialect`（`mod`）公开再导出 ✓。
+pub use dialect::Dialect;
 pub(crate) use elab::canonical_ctor_name;
 pub use error::{CompileError, CompileStage, ErrorKind};
 pub use event::{CheckEvent, CompileOutput, CompileStats};

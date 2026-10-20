@@ -4075,7 +4075,7 @@ pub(crate) fn operand_type_expr<'a>(
     if let Some(src) = lambda_source_type(operand) {
         return Some(src);
     }
-    let explicit = super::implicit_msg::strict_at_enabled();
+    let explicit = super::implicit_msg::strict_at_enabled(ctx.options);
     infer_type_text(ctx, scope, operand, env, None, explicit)
         .and_then(|text| crate::proof::parse_expr_text(&text).ok())
 }
@@ -4461,7 +4461,7 @@ fn try_implicit_application_with<'a>(
     // **旧写法**（正常形式收位置隐式实参）与路线③ 分清；严格档**没有旧写法**了
     // ⇒ 富余实参**一律**落到结果上（= Lean 4 `App.lean:1113`
     // `fType := body.instantiate1 arg` 的同一条读法 ✓）。
-    let strict_at = crate::compile::implicit_msg::strict_at_enabled();
+    let strict_at = crate::compile::implicit_msg::strict_at_enabled(ctx.options);
     let fits_old_style = !strict_at
         && args.len() <= layers.len()
         && args_fit_layers_in_order(
@@ -6769,7 +6769,7 @@ pub(crate) fn elab_expr<'a>(
                         span: arm.span,
                     };
                     // 脊 = 构造子整条望远镜 ⇒ 严格档要标 `@`（a17：写死 `false` 被判红）。
-                    let at = crate::compile::implicit_msg::strict_at_enabled();
+                    let at = crate::compile::implicit_msg::strict_at_enabled(ctx.options);
                     for p in &param_args_src {
                         term = Expr::App {
                             fun: Box::new(term),

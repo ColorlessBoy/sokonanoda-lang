@@ -489,7 +489,7 @@ fn probe_arg_type(
         .chars()
         .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '{' | '}' | ','));
     let at = if plain_name && matches!(head, Expr::Ident { .. } | Expr::UniverseApp { .. }) {
-        crate::compile::implicit_msg::at_prefix()
+        crate::compile::implicit_msg::at_prefix(env.options)
     } else {
         ""
     };

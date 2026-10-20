@@ -87,9 +87,7 @@ fn prepare(
         if !sokonanoda_front::project::is_project_source(&src) {
             continue;
         }
-        let options = CompileOptions {
-            prelude: prelude_mode_from_source(&src),
-        };
+        let options = CompileOptions::new(prelude_mode_from_source(&src));
         let root_override = if no_project {
             file.parent().map(Path::to_path_buf)
         } else {
@@ -1022,9 +1020,7 @@ fn build_one(
     // **切片 1b**：由 `with_project_session` 预先算好的结果（`None` = 老路径，自己编）。
     precomputed: Option<sokonanoda_front::project::ProjectReport>,
 ) -> Result<&'static str, String> {
-    let options = CompileOptions {
-        prelude: prelude_mode_from_source(src),
-    };
+    let options = CompileOptions::new(prelude_mode_from_source(src));
     // 有 import ⇒ 项目闭包（v1 不进缓存：闭包键在 P4 落地；现在宁可重编译，
     // 也不拿单文件键去缓存一个依赖别人环境的报告）。
     //

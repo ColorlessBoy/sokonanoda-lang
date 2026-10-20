@@ -276,7 +276,7 @@ pub(crate) fn prelude_signatures(
     if let Some(cached) = PRELUDE_SIGS.with(|cell| cell.borrow().get(&key).cloned()) {
         return cached;
     }
-    let options = sokonanoda_front::compile::CompileOptions { prelude: mode };
+    let options = sokonanoda_front::compile::CompileOptions::new(mode);
     // **一趟**判定取回全部签名（`judge_print_all`）：一条一次的话是 56 趟，
     // 实测 15–20s ✗ —— 补全在打字时每键一次，那个量级不可接受。
     let names: Vec<&str> = sokonanoda_front::compile::PRELUDE_NAMES.to_vec();

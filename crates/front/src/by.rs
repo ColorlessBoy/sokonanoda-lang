@@ -417,7 +417,7 @@ fn restore_universe_levels<'a>(
         return expr.clone();
     }
     // **a15**：重建的脊 =「所有形参逐位写下来」⇒ 回读只有 `@` 读法对得上 ✗（原写死 `false`）。
-    let at = crate::compile::implicit_msg::strict_at_enabled();
+    let at = crate::compile::implicit_msg::strict_at_enabled(options);
     match expr {
         Expr::App { .. } => {
             let (head, args) = crate::spine::spine_of(expr);
@@ -2862,7 +2862,7 @@ fn apply_tactic<'a>(
     // ⚠ **裸头才标 `@`，且只在严格档**（a6 实测 + a17 的 A/B 修正）：裸头（`apply Or.inl`）时
     // `args` 补全整条望远镜 ⇒ 严格档必须标；`expr` 已是应用时不许标。**旧档不许标**：脊里的
     // 操作数（`Set.univ`）靠操作数级期望类型传播实例化，`@` 关掉它 ⇒ 整类绿→红（a17 实测）。
-    let bare_head = crate::compile::implicit_msg::strict_at_enabled()
+    let bare_head = crate::compile::implicit_msg::strict_at_enabled(options)
         && matches!(expr, Expr::Ident { .. } | Expr::UniverseApp { .. });
     nodes[cur].kind = NodeKind::Apply {
         f: expr.clone(),

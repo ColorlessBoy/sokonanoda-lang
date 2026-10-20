@@ -115,9 +115,7 @@ fn the_prelude_source_grades_clean_as_an_ordinary_document() {
     let src = prelude_source();
     let file = sokonanoda_front::parse(src)
         .expect("prelude 源必须能 parse（否则学生 F12 打开它就是满屏红 ✗）");
-    let options = CompileOptions {
-        prelude: prelude_mode_from_source(src),
-    };
+    let options = CompileOptions::new(prelude_mode_from_source(src));
     let (output, report) = compile_all_with(&file, &options);
 
     let count = |status: DeclStatus| report.decls.iter().filter(|d| d.status == status).count();

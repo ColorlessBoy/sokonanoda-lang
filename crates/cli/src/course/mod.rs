@@ -385,9 +385,7 @@ fn structure_suffix(volumes: usize, chapters: usize) -> String {
 fn count_unit(path: &Path, course_dir: &Path, src: &str) -> Result<UnitCounts, String> {
     // Prelude choice: a file-level `-- sokonanoda:prelude` directive decides
     // (same as `check`/`query`/`build`).
-    let options = CompileOptions {
-        prelude: prelude_mode_from_source(src),
-    };
+    let options = CompileOptions::new(prelude_mode_from_source(src));
 
     // 分发用 `is_project_source`（G-04 第二刀）：入口**单独 parse 失败**但写了
     // `import` 时也走闭包——它可能用了依赖声明的记法，闭包路径能编。

@@ -194,7 +194,7 @@ impl Doc {
         overlay: &[(std::path::PathBuf, String)],
     ) {
         let mode = mode.unwrap_or(self.doc.mode);
-        let options = CompileOptions { prelude: mode };
+        let options = CompileOptions::new(mode);
         // 有 `import` 的文档走**项目闭包**：单文件缓存键会张冠李戴（依赖不在
         // 键里），所以这里既不复用也不写入单文件缓存（I16 P5）。
         let has_imports = sokonanoda_front::project::is_project_source(text);
@@ -1128,7 +1128,7 @@ fn compile_one(
                 text: job.text.clone(),
                 root: carrier.doc.root.clone(),
                 overlay: overlay.clone(),
-                options: CompileOptions { prelude: mode },
+                options: CompileOptions::new(mode),
             }),
             _ => None,
         };
@@ -1813,9 +1813,7 @@ fn tactic_name_type(
         }
     }
     // ② 常量：走内核（答不出 / 不干净 ⇒ 不编）。
-    let options = CompileOptions {
-        prelude: query.mode,
-    };
+    let options = CompileOptions::new(query.mode);
     let prefix = query.judge_prefix_with_entry(offset);
     let ty = hover_type_of_constant(&prefix, &options, name).ok()?;
     if ty.is_empty() || ty.contains('$') {
@@ -2147,9 +2145,7 @@ fn declaration_card(
         return Some((signature, value));
     }
     // ② 兜底：问内核要 `#print` 的结论（与用户真写 `#print` 同一份文本）。
-    let options = sokonanoda_front::compile::CompileOptions {
-        prelude: query.mode,
-    };
+    let options = sokonanoda_front::compile::CompileOptions::new(query.mode);
     let prefix = query.judge_prefix_with_entry(offset);
     let printed = sokonanoda_front::judge::judge_print_of(&prefix, &options, name).ok()?;
     let printed = printed.trim();
@@ -2387,9 +2383,7 @@ fn notation_symbol_hover(
         // 与 `render::hover_type_at` 的那行（外层表达式的类型）分工不同：
         // 那行说的是"这个表达式 : Prop"，这行说的是"这个符号背后的常量 :
         // 它的签名"。两行都在时先给签名（更能解释"底下站着什么"）。
-        let options = sokonanoda_front::compile::CompileOptions {
-            prelude: query.mode,
-        };
+        let options = sokonanoda_front::compile::CompileOptions::new(query.mode);
         // **§11.17 修法 (a)（2026-10-09）**：目标在**本文件**声明时，前缀必须含**本文件
         // 自己的文本** —— `judge_prefix` 只给**闭包**（不含入口），单文件时是**空串**
         // ⇒ 合成的 `#check <目标>` 里根本没有那条声明 ⇒ 以前这条**整行消失** ✗。
@@ -2867,9 +2861,7 @@ impl LanguageServer for Backend {
             sokonanoda_front::notation_input::notation_target_at(doc.text(), offset)
         {
             let mut lines = vec![format!("`{name}` —— 记法的目标")];
-            let options = sokonanoda_front::compile::CompileOptions {
-                prelude: doc.query().mode,
-            };
+            let options = sokonanoda_front::compile::CompileOptions::new(doc.query().mode);
             // 前缀取**闭包 + 本文件**（`judge_prefix_with_entry`）：目标在被 import
             // 的库里、或就在本文件里时都拿得到签名 ✓（以前传空串 ⇒ 只有 prelude
             // 名字拿得到，其余静默 ✗）。
@@ -2901,9 +2893,7 @@ impl LanguageServer for Backend {
             sokonanoda_front::notation_input::builtin_registry_name_at(doc.text(), offset)
         {
             let mut lines = vec![format!("`{name}` —— 内核内建（prelude）")];
-            let options = sokonanoda_front::compile::CompileOptions {
-                prelude: doc.query().mode,
-            };
+            let options = sokonanoda_front::compile::CompileOptions::new(doc.query().mode);
             if let Ok(ty) = hover_type_of_constant("", &options, &name) {
                 if !ty.is_empty() && !ty.contains('$') {
                     lines.push(code_block(&format!("{name} : {ty}")));

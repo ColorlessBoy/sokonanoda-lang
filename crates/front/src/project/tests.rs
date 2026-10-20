@@ -378,9 +378,7 @@ fn bare_entry_makes_the_whole_closure_bare() {
         "-- sokonanoda:prelude none\nimport Logic\n\naxiom B : Prop\n",
     );
     let path = dir.join("Main.sokonanoda");
-    let options = CompileOptions {
-        prelude: PreludeMode::Bare,
-    };
+    let options = CompileOptions::new(PreludeMode::Bare);
     let report = compile_project(&path, None, &options, None);
     assert!(!report.has_errors(), "diagnostics: {:?}", codes(&report));
     // `Nat` 在 Bare 闭包里不存在（依赖也没有偷偷装 prelude）。
@@ -497,9 +495,7 @@ fn closure_digest_is_stable_and_dependency_sensitive() {
     assert_ne!(first, digest(&options), "an entry edit invalidates it");
 
     // prelude 模式变了 ⇒ 也变（Bare 下 `Nat` 根本不存在）。
-    let bare = CompileOptions {
-        prelude: PreludeMode::Bare,
-    };
+    let bare = CompileOptions::new(PreludeMode::Bare);
     assert_ne!(
         digest(&options),
         digest(&bare),
