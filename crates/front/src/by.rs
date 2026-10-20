@@ -24,6 +24,10 @@ use crate::spine::{
 };
 use crate::Span;
 
+use crate::apply_probe::{
+    is_universe_domain, level_hint_of_inplace, retry_with_goal, unreadable_message,
+};
+
 /// delta 展开的**宇宙层级提示**：`≠`（`Ne`）这类「头上不带 `.{}`」的常量
 /// 展开时用它实例化定义体里的宇宙变量（`Ne` 的体是 `Eq.{u} α a b -> False`）。
 ///
@@ -44,7 +48,7 @@ use crate::Span;
 /// `spine::resolve_levels`）；读不出、或算出来不是具体数字 ⇒ `None`，
 /// 展开保持既有行为（悬空变量**响亮**报错，绝不静默错层级）。
 #[track_caller]
-fn level_hint_of(
+pub(crate) fn level_hint_of(
     expr: &Expr,
     defs: &DefTable,
     binders: &[GoalBinderSpec],
@@ -96,88 +100,6 @@ fn level_hint_of(
 /// `binder_srcs.len() == binders.len()` 是**硬前提** ✓：`infer_type_text_inplace`
 /// 靠这个长度剥 binder 层数（那里有 `debug_assert_eq!` 钉着 ✓），长度对不上时
 /// **不试就地** ✓（宁可慢，不可错 ✓）。
-#[allow(clippy::too_many_arguments)]
-fn level_hint_of_inplace<'a>(
-    expr: &Expr,
-    defs: &DefTable,
-    binders: &[GoalBinderSpec],
-    prefix_src: &str,
-    options: &CompileOptions,
-    env: &mut Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
-    ctx: Option<&crate::compile::elab::ElabCtx<'a, '_>>,
-    binder_srcs: &[(String, Expr)],
-) -> Option<String> {
-    let (name, args) = head_and_args(expr)?;
-    let (params, universes) = def_shape(defs, name)?;
-    if universes == 1 && binder_srcs.len() == binders.len() {
-        if let (Some(ctx), Some(first)) = (ctx, args.first()) {
-            if let Some(e) = crate::compile::elab::InplaceEnv::reborrow(env) {
-                let point_form = args.len() >= params;
-                let text = crate::compile::elab::infer_type_text_inplace(
-                    e,
-                    ctx,
-                    binder_srcs,
-                    first,
-                    binders.len(),
-                    None,
-                )
-                .ok()
-                .and_then(|first_ty| {
-                    if point_form {
-                        // 点式：首实参**自己**的类型就是那个 `Sort u`。
-                        Some(first_ty)
-                    } else {
-                        // 记法形态：首实参是**项** ⇒ 还要问「那个类型的 sort」；
-                        // 第二问的输入是**文本** ⇒ 回读成 `#check` 的 AST 再就地 ✓。
-                        let ast = check_ast_of_text(&first_ty)?;
-                        crate::compile::elab::infer_type_text_inplace(
-                            e,
-                            ctx,
-                            binder_srcs,
-                            &ast,
-                            binders.len(),
-                            None,
-                        )
-                        .ok()
-                    }
-                });
-                if let Some(text) = text {
-                    if let Some(level) = crate::compile::elab::level_text_of_sort(&text) {
-                        if is_concrete_level(&level) {
-                            crate::judge::stats::INPLACE_LEVEL_HINT_USED
-                                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                            return Some(level);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    // **任何一处不成立 ⇒ 原样回落** ✓（逐字节等同改动前 ✓）。
-    crate::judge::stats::INPLACE_LEVEL_HINT_FALLBACK
-        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    //
-    // **诊断**（`SOKO_INPLACE_WHY=1` ✓）：把"为什么没走成就地"分类打出来 ——
-    // 否则回落之后 `#[track_caller]` 只会指向本行 ✗，看不出是"形态不支持"还是
-    // "就地答不出" ✓（两者出路完全不同 ✗）。
-    if crate::judge::inplace_why_enabled() {
-        let why = if universes != 1 {
-            "not-one-universe"
-        } else if binder_srcs.len() != binders.len() {
-            "binder-len-mismatch"
-        } else if ctx.is_none() {
-            "no-ctx"
-        } else if crate::compile::elab::InplaceEnv::reborrow(env).is_none() {
-            "no-env"
-        } else {
-            // 点式与记法**共用这一档**（T3-B1 ③ 起记法不再单独回落 ✓）。
-            "inplace-failed"
-        };
-        eprintln!("BY_LEVEL_HINT_FALLBACK why={why}");
-    }
-    level_hint_of(expr, defs, binders, prefix_src, options)
-}
-
 /// **文本 ⇒ AST**（T3-B1 ③）：把内核 pp 出来的类型文本回读成 `#check` 的项 AST。
 ///
 /// 就地路的第二条查询（「**那个类型的 sort**」）的输入天生是**文本** ✗
@@ -187,7 +109,7 @@ fn level_hint_of_inplace<'a>(
 /// ⚠ 与 `elab.rs::universe_level_text_of_operands` 的第二问**同形**（那里也是
 /// `parse_fragment("#check …")` ⇒ 取 `Command::Check` 的 `expr`）✓ ——
 /// **不是**新机制 ✓；回读失败 ⇒ `None` ⇒ 调用方**原样回落**慢路 ✓（不猜 ✗）。
-fn check_ast_of_text(text: &str) -> Option<Expr> {
+pub(crate) fn check_ast_of_text(text: &str) -> Option<Expr> {
     let file = crate::parse_fragment(&format!("#check {text}\n")).ok()?;
     match file.commands.first()? {
         crate::ast::Command::Check { expr, .. } => Some(expr.clone()),
@@ -223,7 +145,7 @@ fn trusted_prelude_arity(name: &str) -> Option<(usize, usize)> {
 }
 
 /// `(项参数个数, 宇宙参数个数)`：优先源级 delta 表，其次受信任的 Eq prelude。
-fn def_shape(defs: &DefTable, name: &str) -> Option<(usize, usize)> {
+pub(crate) fn def_shape(defs: &DefTable, name: &str) -> Option<(usize, usize)> {
     if let Some(info) = defs.get(name) {
         // ⚠ **完整望远镜**（前导 `Forall` + 返回类型里的 `->`），**不是**
         // `info.params.len()`（那是**声明参数**，见 `params_of_ty` 的 G-72 说明）：
@@ -1335,7 +1257,7 @@ fn is_rereadable(expr: &Expr, defs: &DefTable) -> bool {
 
 /// 层级文本是不是**具体数字**（`1`、`2`…）。`u` / `u+1` 这类含变量名的都算否
 /// ——见 [`is_rereadable`]。
-fn is_concrete_level(level: &str) -> bool {
+pub(crate) fn is_concrete_level(level: &str) -> bool {
     !level.is_empty() && level.chars().all(|c| c.is_ascii_digit())
 }
 
@@ -2596,6 +2518,7 @@ fn apply_tactic<'a>(
     // **表达不出**"以 G 为期望类型 elaborate" ⇒ `SOKO_JUDGE_INPLACE=off` 时这条
     // 能力不可用（原样回落今天那句诊断 ✓，不是回归 ✓）。
     let apply_goal = nodes[cur].ty.clone();
+    // ① 今天那条：先**不带**目标；答不出再试「带目标」（C 子项，原样保留）。
     let inplace = env.as_deref_mut().and_then(|e| {
         crate::compile::elab::infer_type_text_inplace(
             e,
@@ -2620,7 +2543,7 @@ fn apply_tactic<'a>(
         })
     });
     let slow = || judge_infer(prefix_src, options, &spec.binders, &term);
-    let f_ty = match inplace {
+    let mut f_ty = match inplace {
         Some(text) => Ok(text),
         None => slow(),
     }
@@ -2635,6 +2558,30 @@ fn apply_tactic<'a>(
         }
         Judgement::Match => unreachable!(),
     })?;
+    // ② **1a（失败边重试）**：文本读不回来 / 结论对不上 ⇒ 用目标当期望类型重试一次
+    // （只在失败边 ⇒ 今天能过的输入逐字节不变）。
+    f_ty = retry_with_goal(
+        f_ty,
+        &apply_goal,
+        defs,
+        &spec.binders,
+        prefix_src,
+        options,
+        || {
+            env.as_deref_mut().and_then(|e| {
+                crate::compile::elab::infer_type_text_inplace_expected(
+                    e,
+                    ctx,
+                    &binder_srcs,
+                    expr,
+                    spec.binders.len(),
+                    None,
+                    Some(&apply_goal),
+                )
+                .ok()
+            })
+        },
+    );
     let f_ty_expr = match parse_expr_text(&f_ty) {
         Ok(e) => e,
         // **D5：占位符不许泄漏进类型错误。** `f_ty` 是**内核 pp 的原文**；实参没写全时
@@ -2644,14 +2591,9 @@ fn apply_tactic<'a>(
         // 「这个类型读不回来」毫无关系 ⇒ 学习者照着它去改 `sorry`，什么也改不动 ✗。
         // 这里只说真话：类型文本回读不了（原因通常是实参没写全），出路是把实参补齐。
         Err(_) => {
-            return Err(CompileError::elab(
-                ErrorKind::ElabTacticFailed,
-                format!(
-                    "`apply {term}` 判不了：它的类型文本**读不回来**（内核给的答案里还有没定下来的\
-                     占位）——通常是实参没写全。把 `{term}` 的实参补齐（`apply {term} …`）再试一次。"
-                ),
-                span,
-            ));
+            // **按病因分文案**（`?u.` ⇒ 层/参数没定下来；否则 D5 的实参没写全）。
+            let msg = unreadable_message(&term, &f_ty);
+            return Err(CompileError::elab(ErrorKind::ElabTacticFailed, msg, span));
         }
     };
     // 剥 Pi 链。
@@ -2809,7 +2751,7 @@ fn apply_tactic<'a>(
     // 其余 = 子目标（域类型 σ 代入）。
     let mut args: Vec<ApplyArg> = Vec::new();
     let mut sub_nodes: Vec<usize> = Vec::new();
-    for (name, domain) in &layers {
+    for (layer_idx, (name, domain)) in layers.iter().enumerate() {
         // 这一层是不是**类型参数**：看它的名字有没有出现在「结论」里。
         //
         // **两边都要看**：内核 pp 会丢掉隐式实参——`Eq.{1} (Set α) A B` 打成
@@ -2831,8 +2773,17 @@ fn apply_tactic<'a>(
         // 子目标、类型是 `Type 0`（= `Sort 1`），于是 `intro x` 报
         // 「需要一个函数目标」。`Prop` **不在此列**：`(h : Prop) -> C` 是合法签名，
         // `⊢ Prop` 也确实是子目标。
+        // **B-4.2（信号）**：名字出现在**后续任何一层的域**里也算类型参数（`Eq.symm.{0}`
+        // 的 `α` 只出现在 `(a b : α)` 的域里，结论 `Eq b a` 看不到它）。
+        let later_mentioned = layers
+            .iter()
+            .skip(layer_idx + 1)
+            .any(|(_, d)| mentions(name, d));
         if !name.is_empty()
-            && (mentions(name, &codomain) || mentions(name, &goal) || is_universe_domain(domain))
+            && (mentions(name, &codomain)
+                || mentions(name, &goal)
+                || is_universe_domain(domain)
+                || later_mentioned)
         {
             let filled = sigma.get(name).cloned().unwrap_or_else(|| Expr::Ident {
                 name: name.clone(),
@@ -3449,6 +3400,32 @@ fn spec_of(nodes: &[GoalNode], id: usize, universe: &[String]) -> OpenGoalSpec {
 /// 那条类型进不了判定（`Set α` 不是 `Sort 0` 的元素 ⇒ 整条合成声明 elaborate
 /// 不了，报错却是「期望 Sort(0)，实际是 Sort(1)」）。补层级只动**判定用的
 /// 文本**，不动节点上的类型（`match` 组装读的是节点）。
+/// 沿父链收集 intros（根在前）。
+fn context_binders(nodes: &[GoalNode], id: usize) -> Vec<Binder> {
+    let mut chain = Vec::new();
+    let mut cur = Some(id);
+    while let Some(i) = cur {
+        chain.push(i);
+        cur = nodes[i].parent;
+    }
+    chain.reverse();
+    let mut out: Vec<Binder> = Vec::new();
+    for i in chain {
+        out.extend(nodes[i].intros.iter().cloned());
+        // `have` 引入的假设也进上下文（它的 lambda 在**组装**时才包上，
+        // 但判定必须现在就看得到 `h : T`）。
+        if let NodeKind::Have { name, ty, .. } = &nodes[i].kind {
+            out.push(Binder {
+                name: name.clone(),
+                ty: Some(Box::new(ty.clone())),
+                style: BinderKind::Explicit,
+                span: Span::default(),
+            });
+        }
+    }
+    out
+}
+
 fn spec_of_for_judge(
     nodes: &[GoalNode],
     id: usize,
@@ -3490,43 +3467,6 @@ fn spec_of_for_judge(
         )),
         binders,
     }
-}
-
-/// 沿父链收集 intros（根在前）。
-fn context_binders(nodes: &[GoalNode], id: usize) -> Vec<Binder> {
-    let mut chain = Vec::new();
-    let mut cur = Some(id);
-    while let Some(i) = cur {
-        chain.push(i);
-        cur = nodes[i].parent;
-    }
-    chain.reverse();
-    let mut out: Vec<Binder> = Vec::new();
-    for i in chain {
-        out.extend(nodes[i].intros.iter().cloned());
-        // `have` 引入的假设也进上下文（它的 lambda 在**组装**时才包上，
-        // 但判定必须现在就看得到 `h : T`）。
-        if let NodeKind::Have { name, ty, .. } = &nodes[i].kind {
-            out.push(Binder {
-                name: name.clone(),
-                ty: Some(Box::new(ty.clone())),
-                style: BinderKind::Explicit,
-                span: Span::default(),
-            });
-        }
-    }
-    out
-}
-
-/// 这一层的域是不是**宇宙**（`Type` / `Type n` / `Sort u`）——`Prop` **不算**。
-///
-/// 用途见 `apply_tactic` 的类型参数判定：宇宙层不可能有子目标（`⊢ Sort 1`
-/// 证不出来），必须当类型参数填。`Prop` 是合法的目标类型，所以排除在外。
-fn is_universe_domain(domain: &Expr) -> bool {
-    matches!(
-        domain,
-        Expr::Sort { sort, .. } if !matches!(sort, crate::SortKind::Prop)
-    )
 }
 
 /// 类型不匹配的**教学文案**。

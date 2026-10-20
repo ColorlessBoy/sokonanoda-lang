@@ -8502,14 +8502,21 @@ fn mismatch_message_renders_both_sides_with_the_same_notation_style() {
 }
 
 /// **D5 的常驻判据**：`apply <实参给少的点名调用>` 时，`f_ty` 是内核 pp 原文、
-/// 里面还留着没定下来的占位（`?m12`）⇒ 回读在 `?` 上失败，而 `token.rs` 给 `?`
+/// 可能还留着没定下来的占位（`?m12`）⇒ 回读在 `?` 上失败，而 `token.rs` 给 `?`
 /// 的是**词法教学文案**（「??? 已移除：未完成的证明请写 sorry」）—— 那句讲的是
 /// **源文件里怎么写洞**，与「这个类型读不回来」毫无关系 ⇒ 占位符泄漏进类型错误 ✗。
 ///
-/// 判据：消息里**不许**出现 `???`、不许出现 `sorry` 那句教学文案；必须说真话
-/// （类型文本读不回来 + 出路是把实参补齐）。
+/// ⭐ **2026-10-21（1b 之后行为变了，判据跟着改）**：`apply` 修了两处 ——
+/// ① 失败边带目标重试（`SOKO_APPLY_GOAL_FIRST=0` 可回退）；② 文本剥层前把未解层
+/// 元变量归一（`judge::normalize_level_mvars`）。结果 `Eq.subst` 的类型文本**读得
+/// 回来了**，于是**真不匹配浮出来**：`Eq.subst` 的结果是 `p b`，对不上目标
+/// `a ∈ A` ⇒ 报的是「`apply` 的目标不匹配」。这不是回归，是报错变诚实 ✓。
+///
+/// 判据（两条失败边都算合格，**但不许是占位符文案**）：消息里**不许**出现
+/// `???`、不许出现 `sorry`；必须是「读不回来」**或**「目标不匹配」之一，并点名
+/// 被应用的项；且 `apply Eq.subst`（零实参）**仍然被拒**。
 #[test]
-fn apply_with_too_few_arguments_never_leaks_the_lexer_placeholder_text() {
+fn apply_with_too_few_arguments_reports_the_real_mismatch() {
     const LIB: &str = "def Set (α : Type) : Type := α → Prop\n\
          def mem {α : Type} (a : α) (A : Set α) : Prop := A a\n\
          infix:50 \" ∈ \" => mem\n";
@@ -8529,9 +8536,17 @@ fn apply_with_too_few_arguments_never_leaks_the_lexer_placeholder_text() {
         !msg.contains("???") && !msg.contains("sorry"),
         "词法教学文案（占位符）不许泄漏进类型错误：{msg:?}"
     );
+    // 1b 让文本可回读后，真不匹配浮出来（`Eq.subst` 的结果 `p b` 对不上
+    // `a ∈ A`）。两条失败边都收：文本仍读不回来，或读回来但对不上。
     assert!(
-        msg.contains("读不回来") && msg.contains("实参"),
-        "要说真话（类型文本读不回来）并给出路（把实参补齐）：{msg:?}"
+        msg.contains("读不回来") || msg.contains("目标不匹配"),
+        "要报真原因（类型文本读不回来 / 结论与目标不匹配），不许是占位符文案：{msg:?}"
+    );
+    // 拒绝本身不许松动：文案变好 ≠ 这条被放过（错误码已在上面钉死为
+    // `elab-tactic-failed`），且消息要点名被应用的那个项。
+    assert!(
+        msg.contains("Eq.subst"),
+        "要说清是哪一项对不上目标：{msg:?}"
     );
 }
 
@@ -11711,4 +11726,178 @@ fn unknown_identifier_suggests_a_nearby_local_name() {
     // ④ 候选**不重复**且**不含自己**。
     let msg = unknown_identifier_message("hh", &locals(&["h", "h"]));
     assert_eq!(msg.matches("`h`").count(), 1, "候选去重失败：{msg}");
+}
+
+// ---- `apply` 的失败边重试（1a/1b，2026-10-21）----
+//
+// 病（修复前）：`apply` **只**问「`f` 的类型」（`#check f`，**不带**期望类型），
+// 而有些隐式实参**只能由目标反解**（`Eq.symm` 的 `α`、`Eq.trans` 的中间点 `b`）
+// ⇒ 内核 pp 回来的类型文本里留着未解层元变量 ⇒ 回读失败 / 结论对不上 ⇒
+// `apply Eq.symm` / `apply Eq.refl` / `apply Eq.trans h` 一律报「读不回来」✗。
+//
+// 修复两条（都不改判定语义，只让本来该过的写法过）：
+// ① **失败边重试**：文本读不回来、或结论与目标对不上时，用**目标当期望类型**
+//    重试一次（`SOKO_APPLY_GOAL_FIRST=0` 回退到今天之前的行为）；
+// ② **归一未解层元变量**（1b）：就地推断拿到类型文本后、**文本剥层之前**过一遍
+//    `judge::normalize_level_mvars`（`SOKO_APPLY_LEVEL_TEXT=0` 单独可关）——
+//    它同时让上面 D5 的报错从「读不回来」变成「目标不匹配」。
+//
+// 两条**互补**（2026-10-21 用二进制实测，不是猜的）：
+//   · `SOKO_APPLY_LEVEL_TEXT=0`（只关 1b）⇒ `apply Eq.symm` / `apply Eq.refl`
+//     退回「读不回来」，而 `apply Eq.trans h` 仍过（1a 的重试救得回来）；
+//   · `SOKO_APPLY_GOAL_FIRST=0`（只关 1a）⇒ 前两条仍过（1b 的归一救得回来），
+//     `apply Eq.trans h` 退回「目标是 `a = a`」✗ —— 中间项 `b` **只能**由目标
+//     反解，这正是 1a 存在的理由 ✓。
+// ⇒ **这里没有反向单测**：两个开关都是**进程级** env（`OnceLock` 缓存），
+// `std::env::set_var` 会让并行跑的其他测试串味 ⇒ 反向验证留在 shell 层
+// （上面那组读数）与 `docs/` 的记录里，不写成会互相污染的 `#[test]`。
+//
+// 下面四条钉住「本来该出子目标 / 本来该闭合」的那几种写法，全部走**内核**
+// （判据是 `decl.checked` 与 `by_steps` 的目标文本，不是"没报错"）。
+
+/// `apply Eq.symm`（目标 `a = x`）⇒ 出**一个**子目标，恰好是 `x = a`（对称回来）。
+///
+/// ⚠ 两个字段的语义别混：`decl.goal` 是**by 块的入口目标**（= 声明类型
+/// `a = x`，因为开放练习的洞在 by 块内部，`open_goal` 只看得到入口）；
+/// **每条 tactic 执行后**的剩余目标在 `by_steps` 里 ⇒ 这里断言的是
+/// `by_steps[0]`（= `apply Eq.symm` 执行后）= `x = a` ✓。
+#[test]
+fn apply_eq_symm_opens_the_symmetrized_goal() {
+    let src = concat!(
+        "theorem symm_open (α : Type) (a x : α) : a = x := by\n",
+        "  apply Eq.symm\n",
+        "  sorry\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(
+        report.errors.is_empty(),
+        "`apply Eq.symm` must elaborate: {:?}",
+        report.errors
+    );
+    let open: Vec<_> = report
+        .decls
+        .iter()
+        .filter(|d| d.status == DeclStatus::Open)
+        .collect();
+    assert_eq!(open.len(), 1, "exactly one open exercise: {open:?}");
+    let d = open[0];
+    assert_eq!(d.holes.len(), 1, "the `sorry` is the only hole");
+    assert_eq!(
+        d.goal.as_deref(),
+        Some("a = x"),
+        "开放练习的 `goal` 是 by 块入口目标（声明类型），不是 apply 之后的目标：{:?}",
+        d.goal
+    );
+    assert_eq!(d.by_steps.len(), 2, "one state per tactic: {d:?}");
+    assert_eq!(
+        d.by_steps[0]
+            .goals
+            .iter()
+            .map(|g| g.ty.as_str())
+            .collect::<Vec<_>>(),
+        vec!["x = a"],
+        "`apply Eq.symm` 必须留下子目标 `x = a`（恰好一个）：{:?}",
+        d.by_steps[0].goals
+    );
+    assert!(
+        d.sub_goals.is_empty(),
+        "`apply Eq.symm` 没有实参洞 ⇒ 没有额外的 spine 子洞：{:?}",
+        d.sub_goals
+    );
+}
+
+/// `apply Eq.symm` 之后再 `exact h`（`h : x = a`）⇒ 声明 **checked**，
+/// 且中间状态确实是 `x = a`（子目标不是"空过"的）。
+#[test]
+fn apply_eq_symm_then_exact_closes_the_declaration() {
+    let src = concat!(
+        "theorem symm_closed (α : Type) (a x : α) (h : x = a) : a = x := by\n",
+        "  apply Eq.symm\n",
+        "  exact h\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("symm_closed"))
+        .expect("decl symm_closed");
+    assert_eq!(
+        d.status,
+        DeclStatus::Checked,
+        "`apply Eq.symm` 的子目标必须是 `x = a`（只有那时 `exact h` 才过）：{d:?}"
+    );
+    assert_eq!(d.by_steps.len(), 2);
+    assert_eq!(
+        d.by_steps[0]
+            .goals
+            .iter()
+            .map(|g| g.ty.as_str())
+            .collect::<Vec<_>>(),
+        vec!["x = a"],
+        "apply 之后的目标：{:?}",
+        d.by_steps[0].goals
+    );
+    assert!(
+        d.by_steps[1].goals.is_empty(),
+        "`exact h` 之后不该剩目标：{:?}",
+        d.by_steps[1].goals
+    );
+}
+
+/// `apply Eq.refl`（目标 `a = a`）⇒ **直接闭合**（checked，且 apply 之后零目标）。
+#[test]
+fn apply_eq_refl_closes_a_reflexive_goal() {
+    let src = concat!(
+        "theorem refl_closed (α : Type) (a : α) : a = a := by\n",
+        "  apply Eq.refl\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("refl_closed"))
+        .expect("decl refl_closed");
+    assert_eq!(d.status, DeclStatus::Checked, "{d:?}");
+    assert_eq!(d.by_steps.len(), 1, "one tactic: {d:?}");
+    assert!(
+        d.by_steps[0].goals.is_empty(),
+        "`apply Eq.refl` 没有任何子目标（目标 `a = a` 直接被它闭合）：{:?}",
+        d.by_steps[0].goals
+    );
+}
+
+/// `apply Eq.trans h`（`h : a = b`、目标 `a = c`）⇒ 子目标**恰好**是 `b = c`
+/// （传递律的中间项 `b` 是从目标反解的 —— 正是 1a 重试要救的那类隐式实参）。
+#[test]
+fn apply_eq_trans_leaves_the_middle_side_as_the_subgoal() {
+    let src = concat!(
+        "theorem trans_closed (α : Type) (a b c : α) (h : a = b) (k : b = c) : a = c := by\n",
+        "  apply Eq.trans h\n",
+        "  exact k\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("trans_closed"))
+        .expect("decl trans_closed");
+    assert_eq!(
+        d.status,
+        DeclStatus::Checked,
+        "`apply Eq.trans h` 的中间项必须解成 `b`（只有那时 `exact k` 才过）：{d:?}"
+    );
+    assert_eq!(d.by_steps.len(), 2);
+    assert_eq!(
+        d.by_steps[0]
+            .goals
+            .iter()
+            .map(|g| g.ty.as_str())
+            .collect::<Vec<_>>(),
+        vec!["b = c"],
+        "apply 的子目标恰为 `b = c`：{:?}",
+        d.by_steps[0].goals
+    );
 }

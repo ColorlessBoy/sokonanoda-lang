@@ -3131,11 +3131,26 @@ pub(crate) fn synthesized_check_term(
 ///
 /// ⚠ **就地路径必须复用它**（不许自己再写一套剥法）：只要两边喂进来的类型文本
 /// 相同，剥法相同 ⇒ 交出去的文本**逐字节相同** ✓。
+pub(crate) use crate::level_text::normalize_level_mvars;
+use crate::level_text::peel_one_binder;
+
 pub(crate) fn peel_binders(ty: String, n: usize) -> String {
     let mut t = ty;
     for _ in 0..n {
-        let Ok(e) = parse_expr_text(&t) else {
-            break;
+        let e = match parse_expr_text(&t) {
+            Ok(e) => e,
+            Err(_) => {
+                // **1c**：静默 break 会把「读不回来」放大成「整条 telescope 错位」——
+                // 至少留一条可诊断（`SOKO_PEEL_PROBE=1`），别让失败无声无息。
+                if std::env::var_os("SOKO_PEEL_PROBE").is_some() {
+                    eprintln!(
+                        "[peel-break] parse failed at layer {} (n={n}); head={:?}",
+                        n,
+                        t.chars().take(80).collect::<String>()
+                    );
+                }
+                break;
+            }
         };
         match peel_one_binder(&e) {
             Some(rest) => t = render_roundtrip(&rest),
@@ -3281,26 +3296,6 @@ fn judge_infer_uncached(
     // pp 可能把相邻 binder 折叠成 `forall (a b : Prop), ...`（一个 Forall 多
     // binder），所以逐 **单个** binder 剥；余下重渲染成可回读的单箭头链。
     Ok(peel_binders(ty, binders.len()))
-}
-
-/// 剥掉 `expr` 的第一个 binder（多 binder Forall 去掉首个、单 binder 去 body、
-/// Arrow 去 codomain），返回余下结构。
-fn peel_one_binder(expr: &Expr) -> Option<Expr> {
-    match expr {
-        Expr::Forall { binders, body, .. } if !binders.is_empty() => {
-            if binders.len() > 1 {
-                Some(Expr::Forall {
-                    binders: binders[1..].to_vec(),
-                    body: body.clone(),
-                    span: Span::default(),
-                })
-            } else {
-                Some(body.as_ref().clone())
-            }
-        }
-        Expr::Arrow { codomain, .. } => Some(codomain.as_ref().clone()),
-        _ => None,
-    }
 }
 
 /// 渲染成**可回读**的文本：多 binder Forall 逐名字拆成 `(a : T) -> … ->` 单
