@@ -94,14 +94,20 @@ def merge(dirs: list[str]) -> int:
         if not root.exists():
             raise SystemExit(f"error: {root} 不存在")
         for base, entry in find_records(root):
-            # 裁剪日志跟着记录走（artifact 里是 `logs/xxx.log`）。
+            # **2026-10-20（docs-lint ① 连续两轮顶格）**：日志**不再**拷进仓库 ——
+            # 它是 CI artifact 的产物，而 `docs/e2e/logs/` 计进活文档预算的「other」类：
+            # 每次 e2e 台账提交回 main 就 +80 KB，把下一次 push 的 pre-push / CI 直接顶红
+            # （实测：`1a3d7bbb` 提交 2 份日志 ⇒ `other` 4.19 → 4.26 > 上限 4.20 ✗）。
+            # 改为**行内记 `log_pruned`**：`--check` 认这个标记（咬住"引用了不存在的日志
+            # 又没记标记"这条），权威记录 = 本行计数 + CI artifact ✓。
             log_name = pathlib.Path(entry.get("log", "")).name
             if log_name:
                 source = base / "logs" / log_name
-                if source.exists():
-                    shutil.copyfile(source, LOGS / log_name)
-                else:
+                if not source.exists():
                     print(f"warn: {entry.get('log')} 在 {base} 里找不到，记录仍保留")
+                entry["log_pruned"] = (
+                    "CI artifact 即权威（`docs-lint` ①：日志进仓库每轮约 +80 KB，会顶格）"
+                )
             if key(entry) in seen:
                 print(f"skip: {entry['commit'][:7]} / VS Code {entry['vscode']} 已在台账里")
                 continue
