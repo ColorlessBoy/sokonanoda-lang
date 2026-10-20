@@ -123,7 +123,7 @@ fn named_argument_binds_by_name() {
 }
 
 /// ② **正对照**：正确的不许被误伤 ✗✗ —— 正常形式（隐式靠推断）与 `@` 写法都照旧 ✓；
-/// 而**位置喂隐式**（`b2`）在默认档（= 严格档）被拒 ✓、`SOKO_STRICT_AT=0` 下退回旧行为 ✓。
+/// 而**位置喂隐式**（`b2`）在默认档（= 旧读法）照旧通过 ✓、`SOKO_STRICT_AT=1` 下被拒 ✓。
 ///
 /// **2026-10-18 翻默认**：本条原先把 `b2` 当"默认档正对照"（那时严格档默认关 ✗）——
 /// 现在默认即严格档 ⇒ 正对照收窄到 `b1`/`b3`，`b2` 的两档读数分别由
@@ -137,10 +137,17 @@ def b1 : Nat := h (fun (n : Nat) => n) 5
 def b2 : Nat := h Nat Nat (fun (n : Nat) => n) 5
 def b3 : Nat := @h Nat Nat (fun (n : Nat) => n) 5
 ";
-    let (ok, checked, diags) = grade("pos", src, &[]);
+    // **默认档 = 旧读法**（2026-10-20 极性翻回）：不设环境变量 ⇒ 四条全绿 ✓。
+    let (ok_off, checked_off, diags_off) = grade("pos-off", src, &[]);
+    assert!(
+        ok_off && checked_off.iter().any(|c| c == "b2"),
+        "默认档必须是旧读法（`b2` 重新 checked）：{checked_off:?} diags={diags_off:?}"
+    );
+    // **严格档 = opt-in**：`SOKO_STRICT_AT=1` ⇒ `b2` 判红、其余三条不许被误伤 ✓。
+    let (ok, checked, diags) = grade("pos", src, &[("SOKO_STRICT_AT", "1")]);
     assert!(
         !ok,
-        "默认档下 `b2` 该判红（其余三条不许被误伤）：diags={diags:?}"
+        "`SOKO_STRICT_AT=1` 下 `b2` 该判红（其余三条不许被误伤）：diags={diags:?}"
     );
     for name in ["h", "b1", "b3"] {
         assert!(
@@ -150,13 +157,7 @@ def b3 : Nat := @h Nat Nat (fun (n : Nat) => n) 5
     }
     assert!(
         !checked.iter().any(|c| c == "b2"),
-        "`b2`（位置喂隐式）默认档必须被拒 ✗；实得 {checked:?}"
-    );
-    // 逃生门：`SOKO_STRICT_AT=0` ⇒ **四条全绿**（退回旧行为 ✓）。
-    let (ok_off, checked_off, diags_off) = grade("pos-off", src, &[("SOKO_STRICT_AT", "0")]);
-    assert!(
-        ok_off && checked_off.iter().any(|c| c == "b2"),
-        "`SOKO_STRICT_AT=0` 必须退回旧行为（`b2` 重新 checked）：{checked_off:?} diags={diags_off:?}"
+        "`b2`（位置喂隐式）在严格档必须被拒 ✗；实得 {checked:?}"
     );
 }
 

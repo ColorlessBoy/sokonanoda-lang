@@ -42,7 +42,7 @@
 //!      —— 而且那条出路**粘回去必须判绿** ✓（用户第 ③ 条「指令要明确」的唯一硬判据 ✓：
 //!      光断言"文案里有 `@`"会放过一条**写错的**出路 ✗ —— 本轮就实测抓到一条：
 //!      `@ignores 3` 把 `3` 装到 `{α}` 位上 ✗，已改成 `@ignores <α> 3` ✓）；
-//!   ④ **反向验证**：默认（= 严格档）⇒ `b2` 判红 · `SOKO_STRICT_AT=0` ⇒ `b2` 判绿 ✓
+//!   ④ **极性**：默认（不设环境变量）⇒ `b2` 判绿（旧读法）· `SOKO_STRICT_AT=1` ⇒ `b2` 判红 ✓
 //!      （咬得住 ✓，不是恒真 ✗）。
 
 use std::process::{Command, Stdio};
@@ -129,25 +129,25 @@ def b2 : Nat := h Nat Nat (fun (n : Nat) => n) 5
 def b3 : Nat := @h Nat Nat (fun (n : Nat) => n) 5
 ";
 
-/// ④ **反向验证的第一半 + 用户判据**：**不设开关 ⇒ 严格档** ——
-/// `b2`（正常形式喂位置隐式实参）**必须判红**，`b1`/`b3` 照旧绿 ✓。
+/// ④ **默认档 = 旧读法**（2026-10-20 用户拍板「先用普通模式发布一版」）：
+/// **不带任何环境变量** ⇒ 四个声明**全绿**（`b2` 也 checked）✓。
 ///
-/// 为什么必须有这一条 ✗：这是**用户 2026-10-16 要的语义**（「只有 `@` 形式接收隐式
-/// 参数，正常形式不接受隐式参数」）—— 翻默认之后它必须**不带任何环境变量**就成立 ✓。
+/// 为什么必须有这一条 ✗：极性翻回去之后，「默认快不快」是**用户能感觉到的那个语义**
+/// （严格档会让同一份课程单元慢 12.8×，见 `implicit_msg::strict_at_enabled` 的注释）
+/// —— 所以它必须**不带任何环境变量**就成立 ✓，不能只在 `SOKO_STRICT_AT=0` 下成立 ✗。
 #[test]
-fn default_mode_is_strict() {
+fn default_mode_is_the_old_semantics() {
     let (ok, checked, diags) = grade("default", REPRO, &[]);
-    assert!(!ok, "默认（= 严格档）下 `b2` 必须判红：{diags:?}");
-    for name in ["h", "b1", "b3"] {
+    assert!(
+        ok,
+        "默认档必须是旧读法（四个声明全绿）：checked={checked:?} diags={diags:?}"
+    );
+    for name in ["h", "b1", "b2", "b3"] {
         assert!(
             checked.iter().any(|c| c == name),
-            "默认档下 `{name}` 必须照旧 checked：{checked:?}"
+            "默认档下 `{name}` 必须 checked：{checked:?}"
         );
     }
-    assert!(
-        !checked.iter().any(|c| c == "b2"),
-        "`b2`（正常形式喂位置隐式实参）默认档必须被拒 ✗：{checked:?}"
-    );
 }
 
 /// ④ **反向验证的第二半 + 逃生门**：`SOKO_STRICT_AT=0` ⇒ **退回旧行为**（四个声明全绿 ✓）。
