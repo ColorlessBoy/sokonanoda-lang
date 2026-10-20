@@ -25,6 +25,9 @@ mod level;
 mod meta;
 mod pp_shape;
 mod prelude;
+// **严格档 v2 的 provenance 骨架**（倒 T 型 P2）：W2 接线前不参与判定，
+// 只把 W 线代码挡在 `elab/judge/by`（docs-lint ⑨ 冻结）之外。
+pub(crate) mod provenance;
 mod report;
 mod scope;
 mod units;
