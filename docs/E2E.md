@@ -92,7 +92,7 @@ PERF e2e fanout: entry diagnostics signature=152 字节 · 稳定 ✓   # 改依
 
 * `dirty` = 记录时工作区是否有未提交改动（有 ⇒ 结果对应的代码比 commit 新）；
 * `server` 那行来自 doctor 的 `server-version` 检查，直接回答"测的是不是当前构建"；
-* `lsp_sha256_16` 是被测 `bin/<target>/sokonanoda-lsp` 的指纹前 16 位；
+* `lsp_sha256_16` 是被测 `bin/<target>/sokonanoda-lsp` 的指纹前 16 位；`log_pruned` = 该行日志**已被裁剪**（值 = 删它的提交 + 理由；`e2e-merge.py --check` 认它，见 `docs-diet.md` §5）；
 * 版本 bump / 扩展改动 / 换 VS Code 版本后各跑一次，历史上就能看出"哪次开始红的"。
 
 ## 4. 卡住时的第一现场：`SOKO_E2E_LOG`

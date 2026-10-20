@@ -77,7 +77,7 @@
 * **不许动的例外** ✗（有**真消费者**，动了就判红）：
   * `docs/gaps/repro/**`（**66 条复现被 `gap.py check` 在 gate + CI 三片矩阵里真跑** ✓，
     其中 G02 与 G06 夹具还被 cargo 测试引用）；
-  * 活台账里**被引用**的 `docs/e2e/logs/*.log`（`e2e-merge.py --check` 校验存在 ✓）；
+  * 活台账里**被引用**的 `docs/e2e/logs/*.log`（`e2e-merge.py --check` 校验存在 ✓；⚠ **可裁剪**，但删时必须在同一行写 `log_pruned` = 删它的提交 + 理由 ⇒ 断链变成有记账的裁剪 ✓ 2026-10-20：预算装不下日志、48 行全断链，改前每轮必红）；
   * `docs/protocol.md`（**4 个测试读它正文并断言**：event type / error code / watch 事件 / 技能词表 ✗）；
   * `docs/perf/ledger.jsonl`（perf-gate 的**基线**）、`docs/gaps/ledger.jsonl`、`docs/courses/ledger.jsonl`。
 

@@ -9,7 +9,7 @@
 用法：
   scripts/e2e-merge.py <artifact 目录> [<artifact 目录> ...]
       # 每个目录里找 `**/latest.json`（artifact 保留 `docs/e2e/` 结构）
-  scripts/e2e-merge.py --check          # 只校验现有台账（排序/唯一/日志存在）
+  scripts/e2e-merge.py --check          # 只校验现有台账（排序/唯一/日志存在**或已记账裁剪**）
   scripts/e2e-merge.py --print          # 打印合并后的台账摘要
 
 合并规则（幂等）：
@@ -131,14 +131,24 @@ def check() -> int:
         problems.append("台账里有重复条目")
     for entry in rows:
         # 记录里的 `log` 是**仓库根相对路径**（`scripts/vscode-e2e.sh` 从仓库根跑）。
+        #
+        # ⚠ **历史行允许已裁剪，但必须记账**（2026-10-20 ✗→✓）：
+        # `docs/e2e/logs/` 是 CI 产物，跟着**活文档预算**（`docs-lint` ①）走
+        # —— 预算顶到上限时只能删源文件，那时台账里的 `log` 必然断链 ✗
+        # （实测 run 39341179027：`docs/e2e/logs/` **一个文件都没有** ⇒ 48 行全断链
+        # ⇒ 本 job 每轮必红 ✗）。删的时候**必须**在同一行记 `log_pruned`
+        # （值 = 删它的提交 + 理由）⇒ 断链变成**有记账的裁剪**，不是悄悄丢证据 ✓。
+        # **判据没有放宽**：新行（`log` 有、`log_pruned` 没有）照样判红 ✓。
         log = pathlib.Path(entry.get("log", ""))
-        if entry.get("log") and not log.exists():
-            problems.append(f"记录引用的日志不存在：{entry['log']}")
+        if entry.get("log") and not log.exists() and not entry.get("log_pruned"):
+            problems.append(
+                f"记录引用的日志不存在、也没记 `log_pruned`：{entry['log']}"
+            )
     if problems:
         for problem in problems:
             print(f"error: {problem}")
         return 1
-    print(f"e2e ledger: ok（{len(rows)} 条，日志齐全，按日期升序）")
+    print(f"e2e ledger: ok（{len(rows)} 条，日志齐全或已记账裁剪，按日期升序）")
     return 0
 
 

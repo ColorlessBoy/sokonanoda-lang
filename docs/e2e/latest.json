@@ -23,5 +23,6 @@
   "lsp_sha256_16": "5163a948dff5d9f8",
   "log": "docs/e2e/logs/2026-10-19-2fc9314-vc1.138.0.log",
   "profile": "release",
-  "grep": null
+  "grep": null,
+  "log_pruned": "31f3c3f3（docs-lint ① 活文档预算：日志是 CI 产物，权威记录 = 本行计数）"
 }
