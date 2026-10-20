@@ -4075,7 +4075,7 @@ pub(crate) fn operand_type_expr<'a>(
     if let Some(src) = lambda_source_type(operand) {
         return Some(src);
     }
-    let explicit = super::implicit_msg::strict_at_enabled(ctx.options);
+    let explicit = false; // R3: engine-read types always use default pp
     infer_type_text(ctx, scope, operand, env, None, explicit)
         .and_then(|text| crate::proof::parse_expr_text(&text).ok())
 }
@@ -4614,7 +4614,7 @@ fn try_implicit_application_with<'a>(
                             }
                             sig
                         });
-                        let term = elab_expr(
+                        let term = crate::compile::pp_shape::elab_engine_value(
                             builder,
                             value,
                             scope,
@@ -5005,7 +5005,7 @@ fn try_implicit_application_with<'a>(
         if !layers[j].name.is_empty() {
             sigma.insert(layers[j].name.clone(), s.clone());
         }
-        let t = elab_expr(
+        let t = crate::compile::pp_shape::elab_engine_value(
             builder,
             s,
             scope,
