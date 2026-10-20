@@ -1,10 +1,10 @@
 {
   "schema": "soko.e2e/1",
   "kind": "vscode-integration",
-  "version": "0.94.0",
-  "commit": "2fc931467bffd0feddf312b11fdad6f2a41de2f7",
+  "version": "0.95.0",
+  "commit": "a60d07f45053c6979ac572ce5e933a9c2081ecee",
   "dirty": false,
-  "date": "2026-10-19T13:33:04Z",
+  "date": "2026-10-20T00:59:05Z",
   "host": {
     "system": "Darwin",
     "machine": "arm64",
@@ -19,10 +19,9 @@
     "failing_details": ""
   },
   "exit": 0,
-  "server": "0.94.0 (pid 4832) == 扩展 v0.94.0 (source=bundled)",
-  "lsp_sha256_16": "5163a948dff5d9f8",
-  "log": "docs/e2e/logs/2026-10-19-2fc9314-vc1.138.0.log",
+  "server": "0.95.0 (pid 5534) == 扩展 v0.95.0 (source=bundled)",
+  "lsp_sha256_16": "f1b23d96b0c4fcda",
+  "log": "docs/e2e/logs/2026-10-20-a60d07f-vc1.138.0.log",
   "profile": "release",
-  "grep": null,
-  "log_pruned": "31f3c3f3（docs-lint ① 活文档预算：日志是 CI 产物，权威记录 = 本行计数）"
+  "grep": null
 }
