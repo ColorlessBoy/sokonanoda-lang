@@ -30,7 +30,7 @@ pub use types::{
 
 use crate::compile::{
     compile_all_with, probe_sub_goal_types_with, ByGoalState, CompileOptions, DeclState,
-    DeclStatus, DocumentReport, PreludeMode,
+    DeclStatus, Dialect, DocumentReport, PreludeMode,
 };
 use crate::semantic::{self, SemanticKind};
 use crate::session::Session;
@@ -38,7 +38,6 @@ use crate::span::Span;
 use crate::Diagnostic;
 
 /// 一份被查询的文档：文本 + 会话式编译状态 + 最近的报告。
-///
 /// 这是 LSP 的 `Doc` 与 CLI/MCP 共用的载体——查询逻辑全部挂在这里，适配器只做
 /// 坐标转换与序列化（LSP 侧 `Doc` 现在是它的薄包装）。
 pub struct QueryDoc {
@@ -47,6 +46,8 @@ pub struct QueryDoc {
     pub session: Session,
     /// prelude 模式（`Full` / `Bare`，可由文件注释指令覆盖）。
     pub mode: PreludeMode,
+    /// **显式方言**（S3）：`Some` = CLI `--dialect`；`None` = 按 `mode` 走环境解析。
+    pub dialect: Option<Dialect>,
     /// 最近一次编译的报告；`None` = 尚未编译过。
     pub report: Option<DocumentReport>,
     /// 最近一次 parse 诊断（报告为空时用它解释"为什么问不出来"）。
@@ -61,46 +62,36 @@ pub struct QueryDoc {
     /// 文本里有 `import` 且能定位入口时的项目编译结果。
     project: Option<crate::project::ProjectReport>,
     /// 最近一次编译的**事件流**（单文件来自会话增量、项目来自入口模块）。
-    ///
-    /// `check()` 以前会为了一次计数再编译一遍（项目模式下等于每次查询重编译整个
-    /// 闭包）——现在直接读这里；`query check` 冷跑因此省掉一次完整编译。
+    /// `check()` 以前会为了一次计数再重编译整个闭包——现在直接读这里；
+    /// `query check` 冷跑因此省掉一次完整编译。
     output: crate::compile::CompileOutput,
     /// 最近一次编译用的内存覆盖（打开文档的路径 → 文本）。`check`/`reduce`
     /// 会重跑闭包编译，必须复用同一份覆盖，否则答案与 `report` 不同源。
     overlay: Vec<(std::path::PathBuf, String)>,
-    /// [`Self::project_view_reason`] 的缓存（T-A24）。
-    ///
-    /// 那个问题**每次诊断事件都会被问一次**（VS Code 的 `soko/project`），
-    /// 而它以前每次都重新 `parse` 整份文本。原因只由（`project` 是否存在、
-    /// 文本能不能 parse、有没有 `import`）决定，而这三样在 `set_text` 之后就定了
-    /// ⇒ 算一次存下来。`None` = 还没算过（`set_text` 之前）。
+    /// [`Self::project_view_reason`] 的缓存（T-A24）：那个问题**每次诊断事件都会被
+    /// 问一次**（VS Code 的 `soko/project`），以前每次都重新 `parse` 整份文本。原因只由
+    /// （`project` 是否存在、文本能不能 parse、有没有 `import`）决定，三者在 `set_text`
+    /// 之后就定了 ⇒ 算一次存下来（`None` = 还没算过）。
     project_reason: Option<&'static str>,
     /// **闭包级声明表**（T-C31）：入口之外那些模块的 `名字 → 语义 kind`。
-    ///
     /// 以前 `decl_kinds()` 只看入口文件 ⇒ 项目文件里 `Set.mem`/`Set` 全被标成
-    /// `unknown_ident`（线 C 之后 goal 里全是这些名字，一眼就看得出来）。
-    /// 在**编译期**算一次（每个模块一次 `parse`，编译本来就在解析它们），
-    /// 不是每次查询算一遍——`state_at` 是**光标一动就问一次**的。
+    /// `unknown_ident`；现在在**编译期**算一次（每个模块一次 `parse`，编译本来就在
+    /// 解析它们），不是每次查询算一遍——`state_at` 是**光标一动就问一次**的。
     closure_decls: Vec<(String, SemanticKind)>,
     /// **显示期的记法表**（A1 / T-N5，2026-09-26 ✓）：从**闭包全部源文本**建一次，
     /// 与 `closure_decls` 同一时机（`set_text` 之后，查询期复用 ✓）。
-    ///
-    /// 为什么必须是**显示副本**才折：`DeclState.goal`/`binders[].ty` 是**判定
-    /// 输入**（`render → 回读`，一个字节都不能折 ✗）；而 wire 上的
-    /// `goal`/`goal_runs`/`binders[].ty` 是**显示副本** ✓ ⇒ 折只能发生在
-    /// 「取显示副本」这一步，而这一步就在本模块。
-    /// 修之前：非 `by` 的开放练习在 Infoview 顶部显示的是**未折**的
-    /// `Prop -> Prop`（`state_at` 对无 `by_steps` 的声明退回 `d.goal` ✗）。
+    /// 为什么必须是**显示副本**才折：`DeclState.goal`/`binders[].ty` 是**判定输入**
+    /// （`render → 回读`，一个字节都不能折 ✗）；而 wire 上的 `goal`/`goal_runs`/
+    /// `binders[].ty` 是**显示副本** ✓ ⇒ 折只能发生在「取显示副本」这一步（本模块）。
+    /// 修之前：非 `by` 的开放练习在 Infoview 顶部显示的是**未折**的 `Prop -> Prop`
+    /// （`state_at` 对无 `by_steps` 的声明退回 `d.goal` ✗）。
     display: crate::display::DisplayNotations,
     /// **S2 步 3**：入口的增量状态（跨 `set_text` 存活）。
-    ///
-    /// 为什么需要它：闭包编译今天对入口走**整份重查** ⇒ 改一个 `theorem` 要把前面
-    /// 所有声明重查一遍（实测 unit08 改一行 **2189ms**，且与改动位置无关）。
-    /// `EntryTrust` 能跳过前缀的**内核检查**，但被跳过那段**不进报告** ⇒ 必须有
-    /// 地方存着它，下一轮拼回去（见 [`EntryCache`]）。
+    /// 为什么需要它：闭包编译今天对入口走**整份重查** ⇒ 改一个 `theorem` 要把前面所有
+    /// 声明重查一遍（实测 unit08 改一行 **2189ms**）；`EntryTrust` 能跳过前缀的**内核检查**，
+    /// 但被跳过那段**不进报告** ⇒ 必须有地方存着它，下一轮拼回去（见 [`EntryCache`]）。
     entry_cache: Option<EntryCache>,
     /// 最近一次项目编译里**被信任的前缀命令数**（= 跳过了多少次内核检查）。
-    ///
     /// 只给判据用（`#[doc(hidden)]` 的 [`Self::trusted_prefix_len`]）：它是
     /// "改一个声明到底少查了多少"的**直接结构读数**，与墙钟无关。
     last_trusted_prefix: usize,
@@ -497,6 +488,7 @@ impl QueryDoc {
             text: String::new(),
             session: Session::new(CompileOptions::default()),
             mode: PreludeMode::Full,
+            dialect: None,
             report: None,
             parse_error: None,
             version: 0,
@@ -531,7 +523,7 @@ impl QueryDoc {
         if let Some(mode) = mode {
             if mode != self.mode {
                 self.mode = mode;
-                self.session = Session::new(CompileOptions::new(mode));
+                self.session = Session::new(self.options_in(mode));
             }
         }
         self.version = version;
@@ -989,9 +981,16 @@ impl QueryDoc {
             .map(|module| module.path.clone())
     }
 
-    /// 当前 prelude 模式对应的编译选项。
+    /// 指定 prelude 模式与方言对应的编译选项（`None` ⇒ 环境解析，旧行为）。
+    fn options_in(&self, mode: PreludeMode) -> CompileOptions {
+        match self.dialect {
+            Some(dialect) => CompileOptions::with_dialect(mode, dialect),
+            None => CompileOptions::new(mode),
+        }
+    }
+
     fn options(&self) -> CompileOptions {
-        CompileOptions::new(self.mode)
+        self.options_in(self.mode)
     }
 
     /// **闭包级声明表**：入口之外的模块（拓扑序里除最后一个）逐个扫。

@@ -8,7 +8,9 @@
 //! (FAILURE). Parse/read failures are counted, not fatal.
 
 use sokonanoda_front::compile::cache::{self, CachedCompile};
-use sokonanoda_front::compile::{compile_all_with, prelude_mode_from_source, CompileOptions};
+use sokonanoda_front::compile::{
+    compile_all_with, prelude_mode_from_source, CompileOptions, Dialect,
+};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -46,28 +48,23 @@ enum Prep {
 }
 
 /// 把 `(模块名, 命令数)` 的 tick 计划展开成 `build.decl` 的 `(module, index, total)` 流。
-///
-/// **为什么是"重放"而不是"新造"**：逐入口路径里，每个入口都会为**整条闭包**发一遍
-/// tick（`walk.rs` 的 `unit_seen`/`unit_totals` ✓，与信任前缀无关 ✓）；会话把库层
-/// **只编一次** ⇒ 库层那一段 tick 只发一遍 ✗ ⇒ 接线方必须按各入口自己的闭包补回来 ✓。
+/// **为什么是"重放"而不是"新造"**：逐入口路径里每个入口都为**整条闭包**发一遍 tick
+/// （`walk.rs` 的 `unit_seen`/`unit_totals`）；会话把库层**只编一次** ⇒ 接线方必须按各入口补回 ✓。
 fn expand_ticks(plan: &[(String, usize)]) -> Vec<(String, usize, usize)> {
     plan.iter()
         .flat_map(|(name, total)| (0..*total).map(move |index| (name.clone(), index, *total)))
         .collect()
 }
 
-/// **G-68 预跑**：为每个文件定下 [`Prep`]（含"分组会话"这一次共享编译）。
-///
-/// 顺序（每一步都不能换 ✗）：
-/// ① 读源 + `is_project_source` 判定（非项目源 ⇒ `Legacy`，**零额外开销** ✓）；
-/// ② `plan_project` + `digest` + **缓存命中判定**（命中 ⇒ `Hit`，**不参与会话** ✓
-///    —— 否则"命中"会被改写成"重编" ✗）；
-/// ③ [`sokonanoda_front::project::compile_entries_shared`]（按库闭包签名分组 + 组间并行）；
-/// ④ 会话没接的 ⇒ `Planned`（计划**留用**，避免 Phase C 再 plan 一次 + 再 precheck 一次 ✓）。
+/// **G-68 预跑**：为每个文件定下 [`Prep`]（含"分组会话"这一次共享编译）。顺序不能换 ✗：
+/// ① 读源 + `is_project_source`（非项目源 ⇒ `Legacy`，**零额外开销** ✓）；② `plan_project`
+/// + `digest` + **缓存命中**（命中 ⇒ `Hit`，否则"命中"会被改写成"重编" ✗）；③ 分组会话
+///   （[`compile_entries_shared`]，组间并行）；④ 会话没接的 ⇒ `Planned`（计划**留用** ✓）。
 fn prepare(
     files: &[PathBuf],
     root: Option<&str>,
     no_project: bool,
+    dialect: Option<Dialect>,
     jobs: usize,
     on_entry_done: &(dyn Fn(usize) + Sync),
 ) -> Vec<Prep> {
@@ -87,7 +84,7 @@ fn prepare(
         if !sokonanoda_front::project::is_project_source(&src) {
             continue;
         }
-        let options = CompileOptions::new(prelude_mode_from_source(&src));
+        let options = crate::dialect::resolve_dialect(prelude_mode_from_source(&src), dialect);
         let root_override = if no_project {
             file.parent().map(Path::to_path_buf)
         } else {
@@ -476,11 +473,12 @@ pub(crate) fn build(
     clean: bool,
     root: Option<&str>,
     no_project: bool,
+    dialect: Option<Dialect>,
 ) -> ExitCode {
     if clean {
         return clean_stores(args, json);
     }
-    warm(args, json, root, no_project)
+    warm(args, json, root, no_project, dialect)
 }
 
 /// `sokonanoda clean …` ≡ `build --clean …`（用户 2026-10-08：「clean 没有实现」）。
@@ -501,12 +499,13 @@ pub(crate) fn rebuild(
     json: bool,
     root: Option<&str>,
     no_project: bool,
+    dialect: Option<Dialect>,
 ) -> ExitCode {
     let cleaned = clean_stores(args, json);
     if cleaned != ExitCode::SUCCESS {
         return cleaned;
     }
-    warm(args, json, root, no_project)
+    warm(args, json, root, no_project, dialect)
 }
 
 /// 清**两处**存储（全局 + 位置参数能解出的模块根）。
@@ -560,7 +559,13 @@ fn clean_stores(args: &[String], json: bool) -> ExitCode {
 }
 
 /// 预热：位置参数（**默认当前目录**）→ 递归收集 `*.sokonanoda` → 逐文件编译 → 写缓存。
-fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> ExitCode {
+fn warm(
+    args: &[String],
+    json: bool,
+    root: Option<&str>,
+    no_project: bool,
+    dialect: Option<Dialect>,
+) -> ExitCode {
     let roots: Vec<PathBuf> = if args.is_empty() {
         vec![PathBuf::from(".")]
     } else {
@@ -659,7 +664,7 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
     //
     // ⚠ 预跑**先于**心跳/并行阶段：它自己就是"编译"那一段（组间并行在
     // `compile_entries_shared` 里 ✓）。
-    let mut prep = prepare(&files, root, no_project, jobs, &|index| {
+    let mut prep = prepare(&files, root, no_project, dialect, jobs, &|index| {
         progress_counter.note_file(&files[index])
     });
     let mut legacy: Vec<usize> = Vec::new();
@@ -713,8 +718,7 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
 
     if jobs > 1 {
         use std::sync::atomic::{AtomicUsize, Ordering};
-        // **每个 worker 自己攒结果**（`Vec` 各归各的 ⇒ 不用锁 ✓），
-        // `scope` 结束后由主线程按 `files` 顺序归位 —— 这样连"写结果"都不需要同步 ✓。
+        // **每个 worker 自己攒结果**（`Vec` 各归各的 ⇒ 不用锁）；`scope` 结束后主线程按 `files` 顺序归位 ✓。
         type Slot = (
             usize,
             Result<&'static str, String>,
@@ -728,12 +732,9 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
         let collected: Vec<Vec<Slot>> = std::thread::scope(|scope| {
             let handles: Vec<_> = (0..jobs.min(legacy.len().max(1)))
                 .map(|_| {
-                    // ⚠ **必须给大栈**（2026-10-06 · G-68 实测定位 ✓）：编译是**深度递归**的
-                    // `elab_expr`，`scope.spawn` 的默认栈是 **2MB** ⇒ 真语料上
-                    // `thread '<unknown>' has overflowed its stack` + `Abort trap: 6` ✗
-                    // （实测：冷编 `units/I.3` · `SOKONANODA_BUILD_JOBS=4` ⇒ exit **134** ✗；
-                    //  同一条命令 `JOBS=1`（主线程 8MB）**编得过** ✓ ⇒ 病根是**线程栈** ✓）。
-                    // 32MB = LSP 侧同一条结论的同款药（`crates/lsp/src/lib.rs::run` ✓）。
+                    // ⚠ **必须给大栈**（2026-10-06 · G-68）：编译是**深度递归**的 `elab_expr`，默认 2MB 栈会
+                    // `thread ... has overflowed its stack` + `Abort trap: 6`（实测冷编 `units/I.3` · `JOBS=4`
+                    // ⇒ exit 134；`JOBS=1`（主线程 8MB）编得过 ⇒ 病根是线程栈 ✓）。32MB = LSP 同款药 ✓。
                     std::thread::Builder::new()
                         .name("soko-build".to_string())
                         .stack_size(sokonanoda_front::project::COMPILE_STACK_BYTES)
@@ -763,7 +764,9 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
                                 let status = std::fs::read_to_string(file)
                                     .map_err(|e| format!("cannot read: {e}"))
                                     .and_then(|src| {
-                                        build_one(file, &src, root, no_project, progress, None)
+                                        build_one(
+                                            file, &src, root, no_project, dialect, progress, None,
+                                        )
                                     });
                                 counter.note_file(file);
                                 mine.push((index, status, ticks));
@@ -797,7 +800,7 @@ fn warm(args: &[String], json: bool, root: Option<&str>, no_project: bool) -> Ex
             };
             let status = std::fs::read_to_string(file)
                 .map_err(|e| format!("cannot read: {e}"))
-                .and_then(|src| build_one(file, &src, root, no_project, progress, None));
+                .and_then(|src| build_one(file, &src, root, no_project, dialect, progress, None));
             progress_counter.note_file(file);
             per_file_ticks[index] = ticks;
             per_file[index] = Some(status);
@@ -1016,11 +1019,12 @@ fn build_one(
     src: &str,
     root: Option<&str>,
     no_project: bool,
+    dialect: Option<Dialect>,
     progress: Option<&mut dyn sokonanoda_front::compile::ProgressSink>,
     // **切片 1b**：由 `with_project_session` 预先算好的结果（`None` = 老路径，自己编）。
     precomputed: Option<sokonanoda_front::project::ProjectReport>,
 ) -> Result<&'static str, String> {
-    let options = CompileOptions::new(prelude_mode_from_source(src));
+    let options = crate::dialect::resolve_dialect(prelude_mode_from_source(src), dialect);
     // 有 import ⇒ 项目闭包（v1 不进缓存：闭包键在 P4 落地；现在宁可重编译，
     // 也不拿单文件键去缓存一个依赖别人环境的报告）。
     //
