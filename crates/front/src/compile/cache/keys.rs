@@ -215,9 +215,7 @@ mod tests {
     #[test]
     fn the_content_key_is_flag_free_and_still_sensitive() {
         let full = CompileOptions::default();
-        let bare = CompileOptions {
-            prelude: PreludeMode::Bare,
-        };
+        let bare = CompileOptions::new(PreludeMode::Bare);
         // ① 纯函数。
         assert_eq!(
             content_key_with_build("a", &full, 7),

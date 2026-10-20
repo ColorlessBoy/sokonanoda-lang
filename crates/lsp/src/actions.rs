@@ -66,7 +66,7 @@ pub(crate) fn code_actions(
     if d.status == DeclStatus::Checked {
         return None;
     }
-    let options = CompileOptions { prelude: mode };
+    let options = CompileOptions::new(mode);
     // 建议判定需要看到声明本身：给到该声明结束为止的文本。
     //
     // ⚠ **交给 judge 的是 [`judge_source_view`] 那一份**（F12，2026-10-13）：

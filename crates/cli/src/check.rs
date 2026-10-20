@@ -43,7 +43,7 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
     } else {
         prelude_mode_from_source(src)
     };
-    let options = CompileOptions { prelude };
+    let options = CompileOptions::new(prelude);
 
     // 有 import ⇒ 项目闭包；没有 ⇒ 单文件（今天的行为，逐字节不变）。
     //

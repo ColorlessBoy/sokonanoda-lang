@@ -172,14 +172,7 @@ theorem and_intro_demo (a b : Prop) (h : a) (k : b) : And a b := And.intro a b h
         std::fs::write(dir.join("Logic.sokonanoda"), LOGIC).expect("write");
         let canvas = dir.join("Canvas.sokonanoda");
         std::fs::write(&canvas, CANVAS).expect("write");
-        let report = compile_project(
-            &canvas,
-            None,
-            &CompileOptions {
-                prelude: PreludeMode::Full,
-            },
-            None,
-        );
+        let report = compile_project(&canvas, None, &CompileOptions::new(PreludeMode::Full), None);
         (report, canvas)
     }
 

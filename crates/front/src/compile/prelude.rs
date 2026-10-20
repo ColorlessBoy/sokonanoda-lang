@@ -6,6 +6,7 @@
 //! * `PreludeMode::Bare` —— 完全不安装任何东西，课程从零构造一切
 //!   （例如自带 `inductive Nat` 块或纯逻辑公理文件）。
 
+use super::dialect::Dialect;
 use super::elab::{
     build_axiom, build_def, build_theorem, install_inductive_block, params_of_ty, strip_lambdas_n,
     DefInfo, DefTable, ElabCtx, InductiveTable, KnownName, KnownTable,
@@ -30,10 +31,13 @@ pub enum PreludeMode {
     Bare,
 }
 
-/// Options for one compilation session.
-#[derive(Debug, Clone, Copy, Default)]
+/// Options for one compilation session（`dialect` 的解析、`new`/`with_dialect` 与 `Default`
+/// 都在 [`super::dialect`] —— 那里是**唯一**读 `SOKO_STRICT_AT` 的地方 ✓）。
+#[derive(Debug, Clone, Copy)]
 pub struct CompileOptions {
     pub prelude: PreludeMode,
+    /// **方言**（S1，设计 `docs/design/dialect-config.md` §3.1）：严格隐式参数读法。
+    pub dialect: Dialect,
 }
 
 /// Read the file-level prelude directive from `--` comment lines:
@@ -816,12 +820,11 @@ fn install_l1_command<'a>(
 ) {
     // `prefix_src` = **本条命令之前**的 prelude 源文本（**E4 第二步，2026-10-08**）。
     //
-    // 以前这里是 `""`，理由（原文）："L1 的签名不依赖文件前缀 …… 安装期间的 kernel
-    // 探针只需内建的 `Prop`（`L1_INSTALL_DEPTH` 挡掉内层重入 ⇒ 内层环境里没有 L1
-    // 名字也不影响）"。**判定路径本身不受影响** ✓ —— 变的是**影子档**：它要把就地路
-    // 与慢路**逐字比**，而慢路（`judge_infer`）是"重跑前缀"⇒ 前缀为空时它手里没有
-    // `And`/`Or` ⇒ 结构性 `None` ⇒ 只能**排除不比** ✗（`elab.rs` 那条
-    // `prelude_install_active()` 早退，E4 要撤的就是它）。
+    // 以前这里是 `""`，理由（原文）："L1 的签名不依赖文件前缀 …… 安装期间的 kernel 探针只需内建的
+    // `Prop`（`L1_INSTALL_DEPTH` 挡掉内层重入 ⇒ 内层环境里没有 L1 名字也不影响）"。
+    // **判定路径本身不受影响** ✓ —— 变的是**影子档**：它要把就地路与慢路**逐字比**，而慢路
+    // （`judge_infer`）是"重跑前缀"⇒ 前缀为空时它手里没有 `And`/`Or` ⇒ 结构性 `None`
+    // ⇒ 只能**排除不比** ✗（`elab.rs` 那条 `prelude_install_active()` 早退，E4 要撤的就是它）。
     //
     // E1 之后 prelude 是**普通源文本**（`PRELUDE_L1_SRC` 是 `&'static str` ✓）⇒
     // 把"本条之前"那一段交出去，慢路就**真的能重跑**这段 prelude ✓ ⇒ 安装期的判定
@@ -1134,8 +1137,7 @@ fn install_eq_prelude_src(
         let decl = build_axiom(builder, name, universe, ty, known, &mut hovers, &ctx)
             .expect("Eq prelude axiom elaborates");
         builder.add_declar(decl).expect("duplicate prelude axiom");
-        // **G-30 第二堵墙（2026-10-06）**：Eq 族登记**真实的**前导隐式层数 ✓
-        // （原来是硬编码 `0` ✗）。
+        // **G-30 第二堵墙（2026-10-06）**：Eq 族登记**真实的**前导隐式层数 ✓（原来是硬编码 `0` ✗）。
         //
         // **Lean 4 对照**（`Lean/Elab/App.lean:752-775` `ElabAppArgs.main` +
         // `:712-717` `processImplicitArg`）：`Eq {α : Sort u} (a b : α)` 的
@@ -1148,12 +1150,10 @@ fn install_eq_prelude_src(
         // （`args.len() > explicit_arity` = 写全参数的旧写法 ✓；
         // `fits_old_style` = 逐位贴合层域的旧写法 ✓）⇒ 补丁可以撤 ✓。
         //
-        // 实测读数（第二堵墙复现件 `docs/gaps/repro/
-        // G30-second-wall-iff-intro-implicit-alpha.sokonanoda`）：求解器本来就
-        // 把 `Iff.intro` 的两位解成 `Eq (Set.singleton a) …` / `Eq a b` ✓，
-        // 坏的是**回读后重 elaborate** 那一步 ✗ —— pp 文本
-        // （`infer_type_text`）**省略隐式实参** ✓，回读成源级 `Eq …` 后必须靠
-        // 应用路径把 `α` 补回来 ✓。
+        // 实测读数（第二堵墙复现件 `docs/gaps/repro/G30-second-wall-iff-intro-implicit-alpha.sokonanoda`）：
+        // 求解器本来就把 `Iff.intro` 的两位解成 `Eq (Set.singleton a) …` / `Eq a b` ✓，
+        // 坏的是**回读后重 elaborate** 那一步 ✗ —— pp 文本（`infer_type_text`）**省略隐式实参** ✓，
+        // 回读成源级 `Eq …` 后必须靠应用路径把 `α` 补回来 ✓。
         known.insert(
             name.clone(),
             KnownName::Decl {

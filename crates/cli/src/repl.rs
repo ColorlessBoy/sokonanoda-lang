@@ -57,9 +57,7 @@ pub(crate) fn repl() -> ExitCode {
                 _ => {}
             }
             // 判定选项跟随 buffer 的 prelude 指令（与整份重编译语义一致）。
-            let options = CompileOptions {
-                prelude: prelude_mode_from_source(&buffer),
-            };
+            let options = CompileOptions::new(prelude_mode_from_source(&buffer));
             if line.trim() == "undo" || line.trim() == "u" || line.trim() == "#undo" {
                 if state.undo() {
                     print_proof_state(state);
@@ -165,9 +163,7 @@ pub(crate) fn repl() -> ExitCode {
 }
 
 pub(crate) fn run_buffer(buffer: &str, seen_events: &mut usize, declared: &mut Vec<String>) {
-    let options = CompileOptions {
-        prelude: prelude_mode_from_source(buffer),
-    };
+    let options = CompileOptions::new(prelude_mode_from_source(buffer));
     let output = match parse(buffer) {
         Ok(file) => sokonanoda_front::compile::compile_fol_with(&file, &options),
         Err(diag) => {

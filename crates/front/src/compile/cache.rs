@@ -742,9 +742,7 @@ mod tests {
     #[test]
     fn key_is_deterministic_and_sensitive() {
         let full = CompileOptions::default();
-        let bare = CompileOptions {
-            prelude: PreludeMode::Bare,
-        };
+        let bare = CompileOptions::new(PreludeMode::Bare);
         assert_eq!(key_with_build("a", &full, 7), key_with_build("a", &full, 7));
         assert_ne!(key_with_build("a", &full, 7), key_with_build("b", &full, 7));
         assert_ne!(key_with_build("a", &full, 7), key_with_build("a", &bare, 7));

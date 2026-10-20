@@ -2965,9 +2965,7 @@ fn l1_ctor_templates_feed_sub_goal_types() {
 /// Bare 模式（`--bare` 与 `-- sokonanoda:prelude none`）没有 L1。
 #[test]
 fn bare_mode_has_no_l1() {
-    let options = CompileOptions {
-        prelude: PreludeMode::Bare,
-    };
+    let options = CompileOptions::new(PreludeMode::Bare);
     let file = parse("def probe (a b : Prop) (ha : a) (hb : b) : And a b := And.intro a b ha hb\n")
         .unwrap();
     let out = compile_fol_with(&file, &options);
@@ -3026,9 +3024,7 @@ fn file_declaring_eq_takes_over_the_eq_prelude() {
 
 #[test]
 fn bare_mode_installs_nothing() {
-    let options = CompileOptions {
-        prelude: PreludeMode::Bare,
-    };
+    let options = CompileOptions::new(PreludeMode::Bare);
     // Prop-level definitions still work without any prelude...
     let file = parse("def id : Prop -> Prop := fun (x : Prop) => x\n").unwrap();
     let out = compile_fol_with(&file, &options);
@@ -6759,7 +6755,7 @@ fn parameterized_option_checks_and_derives_recursor() {
     );
     // **2026-10-18 翻默认**：`some Nat` 的读法**跟档位走**（严格档 `Option Type 0`，
     // 旧档 `Nat -> Option Nat`）—— 两档都钉 ✗ 不许只钉一档。
-    let some_nat = if crate::compile::implicit_msg::strict_at_enabled() {
+    let some_nat = if crate::compile::implicit_msg::strict_at_enabled(&CompileOptions::default()) {
         "Option Type 0"
     } else {
         "Nat -> Option Nat"
@@ -10799,12 +10795,13 @@ infix:50 \" \u{2208} \" => Set.mem\n\
     // ⭐ **2026-10-18 翻默认**：**两档的读法都钉**（不许只钉一档 ✗）——
     // 严格档（= 默认档）：旧写法不再成立 ⇒ `some Nat` 走正常形式，`Nat` 落显式位
     // `a : A` ⇒ `A := Type 0` ⇒ `Option Type 0`（Lean 4 同读法 ✓）；
-    // 逃生门 `SOKO_STRICT_AT=0`：旧读法照旧 ⇒ `Nat -> Option Nat` ✓。
-    let (want, other) = if crate::compile::implicit_msg::strict_at_enabled() {
-        ("Option Type 0", "Nat -> Option Nat")
-    } else {
-        ("Nat -> Option Nat", "Option Type 0")
-    };
+    // 逃生门（严格档环境变量 = 0）：旧读法照旧 ⇒ `Nat -> Option Nat` ✓。
+    let (want, other) =
+        if crate::compile::implicit_msg::strict_at_enabled(&CompileOptions::default()) {
+            ("Option Type 0", "Nat -> Option Nat")
+        } else {
+            ("Nat -> Option Nat", "Option Type 0")
+        };
     assert!(
         texts.iter().any(|t| t == want),
         "`some Nat` 必须读成 `{want}`（另一档的读法是 `{other}`）：{texts:?}"

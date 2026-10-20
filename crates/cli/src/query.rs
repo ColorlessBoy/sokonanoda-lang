@@ -147,9 +147,9 @@ fn load_source(args: &Args) -> Result<String, String> {
 /// 命中就直接用缓存里的入口报告与事件，未命中则编译一次并把同一份键写回缓存，
 /// 下次 `check`/`build`/`query` 都能用。`--text`（磁盘上没有对应源码）不缓存。
 fn load_document(doc: &mut QueryDoc, src: &str) {
-    let options = sokonanoda_front::compile::CompileOptions {
-        prelude: sokonanoda_front::compile::prelude_mode_from_source(src),
-    };
+    let options = sokonanoda_front::compile::CompileOptions::new(
+        sokonanoda_front::compile::prelude_mode_from_source(src),
+    );
     let project_entry = doc.path.clone().filter(|_| has_imports(src));
     let Some(entry) = project_entry else {
         // **prelude 模式必须**从这份文本算出来传进去**（2026-10-15，G-117 的横向）：

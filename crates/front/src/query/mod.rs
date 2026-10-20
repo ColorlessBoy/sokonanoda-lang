@@ -531,7 +531,7 @@ impl QueryDoc {
         if let Some(mode) = mode {
             if mode != self.mode {
                 self.mode = mode;
-                self.session = Session::new(CompileOptions { prelude: mode });
+                self.session = Session::new(CompileOptions::new(mode));
             }
         }
         self.version = version;
@@ -991,7 +991,7 @@ impl QueryDoc {
 
     /// 当前 prelude 模式对应的编译选项。
     fn options(&self) -> CompileOptions {
-        CompileOptions { prelude: self.mode }
+        CompileOptions::new(self.mode)
     }
 
     /// **闭包级声明表**：入口之外的模块（拓扑序里除最后一个）逐个扫。

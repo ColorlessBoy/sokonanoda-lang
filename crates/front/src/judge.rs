@@ -4067,9 +4067,7 @@ mod tests {
         // 判据是**键在不在**（不是"缓存变长了"）：容量是 FIFO 的
         // `JUDGE_CACHE_CAP`，别的测试把缓存填满时长度不再增长，旧判据会假红
         // （第三刀实测：新增的记法测试把缓存填到上限）。
-        let bare = CompileOptions {
-            prelude: crate::compile::PreludeMode::Bare,
-        };
+        let bare = CompileOptions::new(crate::compile::PreludeMode::Bare);
         let _ = judge_infer(prefix, &bare, &binders, "h");
         // **键只许有一处真相** ✓（2026-10-04 收敛 ✓）：直接调**唯一**那把键函数 ✓ ——
         // 先前这里**手工拼**了一遍 ✗（"与 `judge_infer_with` 逐字一致" ✗）⇒ 键一改
@@ -4365,9 +4363,7 @@ mod tests {
 
     #[test]
     fn bare_mode_judges_without_prelude() {
-        let options = CompileOptions {
-            prelude: PreludeMode::Bare,
-        };
+        let options = CompileOptions::new(PreludeMode::Bare);
         let open = spec("Prop -> Prop", &[]);
         let judgements = judge_terms("", &options, &open, &["fun (x : Prop) => x"]);
         assert_eq!(judgements[0], Judgement::Match);

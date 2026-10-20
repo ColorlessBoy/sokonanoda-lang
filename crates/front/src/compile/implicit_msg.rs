@@ -18,6 +18,7 @@
 //! `Application type mismatch`（`Meta/Check.lean:254`）。我们沿用**既有码**
 //! `ElabImplicitArgumentUnsolved`（**不新增码**，设计 D6 ✓），只把文案做完善 ✓。
 
+use super::prelude::CompileOptions;
 use crate::ast::{BinderKind, Expr};
 
 /// **`cases` 的被消去项类型**（a15）：类型文本读不出来时**把内层真错交出来** ✓ ——
@@ -48,13 +49,12 @@ pub(crate) fn cases_scrutinee_type(
     }
 }
 
-/// **严格档开关**（**默认关** ✓；`SOKO_STRICT_AT=1|on|true` ⇒ 开 = opt-in）。
+/// **严格档开关**（**默认关** ✓ = [`super::dialect::Dialect::Loose`]；严格档 = opt-in）。
+/// `Dialect` 本体、`impl Default for CompileOptions` 与构造器都在 `super::dialect` ✓。
 ///
-/// 严格档 = **正常形式（没写 `@`）不接受位置隐式实参** ✓，与 Lean 4
-/// `Lean/Elab/App.lean:706` `processImplicitArg` 的
-/// `if (← read).explicit then processExplicitArg argName else addImplicitArg argName`
-/// **同构**（`:709` = `@` 让隐式 binder 也吃一个位置实参 ✓；`:711` = 正常形式给隐式
-/// binder 插元变量、**不碰实参表** ✓）。
+/// **S1（2026-10-20）**：不再是"每次调用读一次环境"——档位是
+/// [`CompileOptions::dialect`] 里**已经解析好的那个值** ✓（设计 §3.2：解析只发生在
+/// `impl Default for CompileOptions` 一处）。调用点只把手里现成的 `options` 传进来即可。
 ///
 /// ⭐⭐ **2026-10-20 翻回默认关**（用户拍板：「先用普通模式发布一版，保持高速度高效率」）——
 /// 10-19 的 `487f9a77` 把它翻成默认开，代价是**同一份课程单元 0.69 s → 8.84 s（12.8×）**：
@@ -63,33 +63,31 @@ pub(crate) fn cases_scrutinee_type(
 /// ⇒ 每次退化成「造 `#check` 文档 + 整段前缀从零重编」。一份 16 KB 的单元要重编 **12 次**
 /// ⇒ `gates-course` 从 ~10 分钟涨到 30+ 分钟。
 ///
-/// ⚠ **严格档本身没被删** ✓：`SOKO_STRICT_AT=1` 仍完整可用（那是 Lean 4 的读法），
+/// ⚠ **严格档本身没被删** ✓：环境变量（`1|on|true`）仍完整可用（那是 Lean 4 的读法），
 /// **语料也已全部迁到兼容两档的写法**（`@f α a` 在旧档同样合法）⇒ 想验严格档随时能开，
 /// 只是它不再决定**默认**速度。
-/// **极性**：未设、或取值不认识 ⇒ **关**；只有 `1|on|true` 三个字面量表示"开" ✓。
+/// **极性**：未设、或取值不认识 ⇒ **关**；只有 `1|on|true` 三个字面量表示"开" ✓
+/// （唯一解析处 = `impl Default for CompileOptions`，值落到 `options.dialect` ✓）。
 ///
 /// **a5（2026-10-17）· 第二处消费者**：`elab::operand_type_expr` 的 **pp 档**。那份文本是
 /// **内核 pp** 打的，回读成项后是「正常形式写满实参」的应用（实测
 /// `Eq (fst A B (P.mk A B a b)) a`）⇒ 严格档一律拒 ✗（**诊断落在 `line 1` = 文本坐标**，
 /// 正是"这份文本不是用户写的"的指纹 ✓）。全显式 pp 打的是 `@Eq α x a` ⇒ 回读即 `@` 形态
 /// ⇒ 逐位对齐 ✓。同族：`expr::e_app_at`（引擎装配的全显式脊要自己标 `@` ✓）。
-pub(crate) fn strict_at_enabled() -> bool {
-    matches!(
-        std::env::var("SOKO_STRICT_AT").ok().as_deref(),
-        Some("1") | Some("on") | Some("true")
-    )
+pub(crate) fn strict_at_enabled(options: &CompileOptions) -> bool {
+    options.dialect.strict()
 }
 
 /// **rfl 建议文本**：`[@]Eq.refl.{level} α a` —— 严格档带 `@`（这条文本会被回读成
 /// 项再判 ⇒ 不带 `@` 一律拒，建议一条都给不出来 ✗）；旧档逐字节不变 ✓。
-pub(crate) fn refl_text(level: &str, alpha: &str, a: &str) -> String {
-    format!("{}Eq.refl.{{{level}}} {alpha} {a}", at_prefix())
+pub(crate) fn refl_text(options: &CompileOptions, level: &str, alpha: &str, a: &str) -> String {
+    format!("{}Eq.refl.{{{level}}} {alpha} {a}", at_prefix(options))
 }
 
 /// 严格档的 `@` 前缀（严格档 `"@"`、旧档 `""`）—— 引擎/建议器要**按档位选文本**时用
 /// （文本会被回读成项再判 ⇒ 严格档不带 `@` 就判红 ✗）。
-pub(crate) fn at_prefix() -> &'static str {
-    ["", "@"][strict_at_enabled() as usize]
+pub(crate) fn at_prefix(options: &CompileOptions) -> &'static str {
+    ["", "@"][strict_at_enabled(options) as usize]
 }
 
 /// 签名文本里**源级**的形参名与风格，按位置返回。
