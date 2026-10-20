@@ -88,7 +88,7 @@ import lib.Set
 
 theorem l04_subset_def (α : Type) (A B : Set α) (h : A ⊆ B) (x : α) (hx : x ∈ A) : x ∈ B :=
   (fun (hu : ∀ (y : α), y ∈ A → y ∈ B) => hu x hx)
-    ((fun (hv : A ⊆ B ↔ ∀ (y : α), y ∈ A → y ∈ B) => Iff.mp hv h) (Set.subset_def α A B))
+    ((fun (hv : A ⊆ B ↔ ∀ (y : α), y ∈ A → y ∈ B) => Iff.mp hv h) (@Set.subset_def α A B))
 
 theorem l04_mem_empty_iff_false (α : Type) (a : α) (h : a ∈ ∅) : False :=
   Iff.mp (Set.mem_empty_iff_false a) h
@@ -96,7 +96,7 @@ theorem l04_mem_empty_iff_false (α : Type) (a : α) (h : a ∈ ∅) : False :=
 theorem l04_notMem_empty (α : Type) (a : α) : ¬ (a ∈ ∅) :=
   Set.notMem_empty a
 
-theorem l04_mem_univ (α : Type) (a : α) : a ∈ Set.univ α :=
+theorem l04_mem_univ (α : Type) (a : α) : a ∈ @Set.univ α :=
   Set.mem_univ a
 
 theorem l04_mem_singleton_iff (α : Type) (a b : α) (h : a ∈ {b}) : a = b :=

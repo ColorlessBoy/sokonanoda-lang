@@ -115,17 +115,17 @@ else:
 }
 
 # **相位 A（缺口）**：显式 `{u}` + 实参 `Type` ⇒ 现在判红 ✗
-printf 'axiom myax {u} : {α : Sort u} -> (a : α) -> α\ndef d (α : Type) (a : α) : α := myax α a\n' \
+printf 'axiom myax {u} : {α : Sort u} -> (a : α) -> α\ndef d (α : Type) (a : α) : α := @myax α a\n' \
   > "$DIR/Implicit.sokonanoda"
 # **相位 B（对照）**：同一件事、显式写层 ⇒ 必须判绿 ✓
-printf 'axiom myax {u} : {α : Sort u} -> (a : α) -> α\ndef d (α : Type) (a : α) : α := myax.{1} α a\n' \
+printf 'axiom myax {u} : {α : Sort u} -> (a : α) -> α\ndef d (α : Type) (a : α) : α := @myax.{1} α a\n' \
   > "$DIR/Explicit.sokonanoda"
 # **相位 C（用户症状面）**：`Eq.refl` 当项用 ⇒ 必须判绿 ✓（现在红 ✗）
-printf 'theorem t (α : Type) (a : α) : a = a := Eq.refl α a\n' \
+printf 'theorem t (α : Type) (a : α) : a = a := @Eq.refl α a\n' \
   > "$DIR/UserVisible.sokonanoda"
 # **相位 D（本轮新增 · 决定性 ✓）**：**指向式**类型 + 值位 `sorry`（值完全不参与 ✗）
 # ⇒ 判红 ✗ ⇒ 证明**病在类型侧** ✓（不是"值 elaborate 错了"✗）。
-printf 'theorem t (α : Type) (a : α) : Eq α a a := sorry\n' \
+printf 'theorem t (α : Type) (a : α) : @Eq α a a := sorry\n' \
   > "$DIR/PointedType.sokonanoda"
 # **相位 E（相位 D 的对照 ✓）**：同一命题写**记法** ⇒ 必须判绿 ✓
 # ⇒ **记法那条路已经会推断层** ✓（`universe_level_text_of_operands` ✓）——

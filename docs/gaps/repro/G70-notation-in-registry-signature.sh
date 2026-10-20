@@ -48,7 +48,7 @@ EOF
 cat > "$DIR/main.sokonanoda" <<'EOF'
 import lib
 
-theorem t (α : Type) (A : Set α) : A ⊆ Set.univ α := by
+theorem t (α : Type) (A : Set α) : A ⊆ @Set.univ α := by
   intro x
   intro hx
   exact Set.mem_univ x

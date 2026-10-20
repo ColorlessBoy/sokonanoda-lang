@@ -20,9 +20,9 @@ import lib.Set
 import lib.SUnion
 
 theorem l10_probe (alpha : Type) (F : Set (Set alpha)) (x : alpha)
-    (h : forall (A : Set alpha), Set.mem (Set alpha) A F -> Set.mem alpha x A) :
-    Set.mem alpha x (Set.sInter alpha F) :=
-  Set.mem_sInter_intro alpha F x h
+    (h : forall (A : Set alpha), @Set.mem (Set alpha) A F -> @Set.mem alpha x A) :
+    @Set.mem alpha x (@Set.sInter alpha F) :=
+  @Set.mem_sInter_intro alpha F x h
 SOKO
 
 out="$(node scripts/soko query check --file "$ROOT/$PROBE" 2>&1)"

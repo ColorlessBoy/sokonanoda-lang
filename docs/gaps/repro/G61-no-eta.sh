@@ -9,7 +9,7 @@
 # 消息（纯类型错 ✓）。**同样的写法在官方 Lean 4 里也是类型错** ✗。
 #
 # 修正后的夹具（**well-typed 的 η 律** ✓，与 Lean 的 `tests/lean/run/etaStruct.lean` 同形）：
-#   · `Box.mk α (Box.get α b) = b`  ← 结构 η（`x = ⟨x.1, …, x.n⟩` ✓）
+#   · `@Box.mk α (Box.get α b) = b`  ← 结构 η（`x = ⟨x.1, …, x.n⟩` ✓）
 #   · `Box.id α b = b`             ← 递归子 + η（`Box.id := Box.rec … (fun a => Box.mk α a)` ✓）
 #   · `Setoid.mk α (Setoid.r α s) (Setoid.refl α s) = s` ← 台账点名的 `Setoid.mk s.r s.iseqv = s` ✓
 #
@@ -58,8 +58,8 @@ inductive Box (α : Type) : Type
 ctor mk (a : α) : Box α
 end
 def Box.get (α : Type) (b : Box α) : α :=
-  Box.rec.{1} α (fun (_ : Box α) => α) (fun (a : α) => a) b
-theorem Box.get_mk (α : Type) (a : α) : Box.get α (Box.mk α a) = a := Eq.refl.{1} α a
+  @Box.rec.{1} α (fun (_ : Box α) => α) (fun (a : α) => a) b
+theorem Box.get_mk (α : Type) (a : α) : Box.get α (@Box.mk α a) = a := @Eq.refl.{1} α a
 EOF
 
 cat > "$WORK/b_struct_eta.sokonanoda" <<'EOF'
@@ -67,11 +67,11 @@ inductive Box (α : Type) : Type
 ctor mk (a : α) : Box α
 end
 def Box.get (α : Type) (b : Box α) : α :=
-  Box.rec.{1} α (fun (_ : Box α) => α) (fun (a : α) => a) b
+  @Box.rec.{1} α (fun (_ : Box α) => α) (fun (a : α) => a) b
 def Box.id (α : Type) (b : Box α) : Box α :=
-  Box.rec.{1} α (fun (_ : Box α) => Box α) (fun (a : α) => Box.mk α a) b
-theorem eta_struct (α : Type) (b : Box α) : Box.mk α (Box.get α b) = b := Eq.refl.{1} (Box α) b
-theorem eta_rec (α : Type) (b : Box α) : Box.id α b = b := Eq.refl.{1} (Box α) b
+  @Box.rec.{1} α (fun (_ : Box α) => Box α) (fun (a : α) => @Box.mk α a) b
+theorem eta_struct (α : Type) (b : Box α) : @Box.mk α (Box.get α b) = b := @Eq.refl.{1} (Box α) b
+theorem eta_rec (α : Type) (b : Box α) : Box.id α b = b := @Eq.refl.{1} (Box α) b
 EOF
 
 # ② **多构造子绝不给 η** ✗（给了就是判定变宽 ⇒ 本判据判 0 ✓）
@@ -82,7 +82,7 @@ ctor b : Two
 end
 def Two.id (x : Two) : Two :=
   Two.rec.{1} (fun (_ : Two) => Two) Two.a Two.b x
-theorem two_id (x : Two) : Two.id x = x := Eq.refl.{1} Two x
+theorem two_id (x : Two) : Two.id x = x := @Eq.refl.{1} Two x
 EOF
 
 # ③ **拦路石没了的证据** ✓：`Setoid.r (Setoid.mk r h) ≡ r`（iota ✓）与
@@ -95,17 +95,17 @@ end
 def Setoid.r (α : Type) (s : Setoid α) : α → α → Prop :=
   Setoid.rec.{1} α (fun (_ : Setoid α) => α → α → Prop)
     (fun (r : α → α → Prop) (_ : ∀ (a : α), r a a) => r) s
-def Setoid.refl (α : Type) (s : Setoid α) : ∀ (a : α), Setoid.r α s a a :=
-  Setoid.rec.{0} α (fun (s : Setoid α) => ∀ (a : α), Setoid.r α s a a)
+def Setoid.refl (α : Type) (s : Setoid α) : ∀ (a : α), @Setoid.r α s a a :=
+  Setoid.rec.{0} α (fun (s : Setoid α) => ∀ (a : α), @Setoid.r α s a a)
     (fun (r : α → α → Prop) (h : ∀ (a : α), r a a) => h) s
-def Quotient (α : Type) (s : Setoid α) : Type := Quot (Setoid.r α s)
-def Quotient.mk (α : Type) (s : Setoid α) (a : α) : Quotient α s := Quot.mk (Setoid.r α s) a
+def Quotient (α : Type) (s : Setoid α) : Type := Quot (@Setoid.r α s)
+def Quotient.mk (α : Type) (s : Setoid α) (a : α) : Quotient α s := Quot.mk (@Setoid.r α s) a
 theorem setoid_iota (α : Type) (r : α → α → Prop) (h : ∀ (a : α), r a a) :
-    Setoid.r α (Setoid.mk α r h) = r := Eq.refl.{1} (α → α → Prop) r
+    @Setoid.r α (@Setoid.mk α r h) = r := @Eq.refl.{1} (α → α → Prop) r
 theorem setoid_eta (α : Type) (s : Setoid α) :
-    Setoid.mk α (Setoid.r α s) (Setoid.refl α s) = s := Eq.refl.{1} (Setoid α) s
+    @Setoid.mk α (@Setoid.r α s) (@Setoid.refl α s) = s := @Eq.refl.{1} (Setoid α) s
 def quotient_wrap (α : Type) (r : α → α → Prop) (h : ∀ (a : α), r a a) :
-    Quotient α (Setoid.mk α r h) → Quot r := fun (q : Quot r) => q
+    Quotient α (@Setoid.mk α r h) → Quot r := fun (q : Quot r) => q
 EOF
 
 # ④ **不挂死** ✓：120 层 `Box.mkid` 链 ⇒ 每层一次 η 展开，**有界**完成 ✓（`timeout` 兜底 ✓）。
@@ -114,14 +114,14 @@ EOF
   echo 'ctor mk (a : α) : Box α'
   echo 'end'
   echo 'def Box.get (α : Type) (b : Box α) : α :='
-  echo '  Box.rec.{1} α (fun (_ : Box α) => α) (fun (a : α) => a) b'
+  echo '  @Box.rec.{1} α (fun (_ : Box α) => α) (fun (a : α) => a) b'
   echo 'def Box.mkid (α : Type) (b : Box α) : Box α :='
-  echo '  Box.rec.{1} α (fun (_ : Box α) => Box α) (fun (a : α) => Box.mk α a) b'
+  echo '  @Box.rec.{1} α (fun (_ : Box α) => Box α) (fun (a : α) => @Box.mk α a) b'
   echo 'def d0 (b : Box Nat) : Box Nat := b'
   for k in $(seq 1 120); do
     echo "def d$k (b : Box Nat) : Box Nat := Box.mkid Nat (d$((k - 1)) b)"
   done
-  echo 'theorem stress_eta (b : Box Nat) : d120 b = b := Eq.refl.{1} (Box Nat) b'
+  echo 'theorem stress_eta (b : Box Nat) : d120 b = b := @Eq.refl.{1} (Box Nat) b'
 } > "$WORK/e_stress.sokonanoda"
 
 json() { timeout 60 "$BIN" --json --no-project "$1" 2>&1; }

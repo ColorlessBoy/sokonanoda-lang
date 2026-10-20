@@ -18,7 +18,7 @@
 #
 # ── 三点刻画（同一份源码、逐点判卷 ✓）──
 #   | `t  (hp : P) : P ∨ Q := Or.inl hp`（**期望位 = 显式目标**）| 绿 ✓ |
-#   | `t2 … := h (Or.inl P Q hp)`（前导写全，对照）              | 绿 ✓ |
+#   | `t2 … := h (@Or.inl P Q hp)`（前导写全，对照）              | 绿 ✓ |
 #   | `t3 … := h (Or.inl hp)`（**期望位来自 `h` 的域**）         | **红 ✗** |
 #
 # ── 病根（实测钉死，**不在求解器** ✗）──
@@ -81,7 +81,7 @@ axiom P : Prop
 axiom Q : Prop
 
 theorem t (hp : P) : P ∨ Q := Or.inl hp
-theorem t2 (h : ¬ (P ∨ Q)) (hp : P) : False := h (Or.inl P Q hp)
+theorem t2 (h : ¬ (P ∨ Q)) (hp : P) : False := h (@Or.inl P Q hp)
 theorem t3 (h : ¬ (P ∨ Q)) (hp : P) : False := h (Or.inl hp)
 EOF
 

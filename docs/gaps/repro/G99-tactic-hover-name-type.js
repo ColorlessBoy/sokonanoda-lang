@@ -107,7 +107,7 @@ fs.writeFileSync(
   [
     'def Set (α : Type) : Type := α -> Prop',
     'def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a',
-    'axiom Set.ext {α : Type} {A B : Set α} : (forall (x : α), A x ↔ B x) -> Eq.{1} (Set α) A B',
+    'axiom Set.ext {α : Type} {A B : Set α} : (forall (x : α), A x ↔ B x) -> @Eq.{1} (Set α) A B',
     'infix:50 " ∈ " => Set.mem',
     '',
   ].join('\n'),
@@ -116,7 +116,7 @@ const src = [
   'import SetLib',
   '',
   'theorem ext_test (α : Type) (A B : Set α) (h : forall (x : α), A x ↔ B x) :',
-  '    Eq.{1} (Set α) A B := by',
+  '    @Eq.{1} (Set α) A B := by',
   '  apply Set.ext',
   '  exact h',
   '',

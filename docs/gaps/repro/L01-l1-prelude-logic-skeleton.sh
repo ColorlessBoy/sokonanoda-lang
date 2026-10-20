@@ -33,13 +33,13 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 cat > "$TMP/l1.sokonanoda" <<'EOF'
-def l1_and (a b : Prop) (ha : a) (hb : b) : And b a := And.intro b a hb ha
-def l1_or (a b c : Prop) (f : a -> c) (g : b -> c) (h : Or a b) : c := Or.elim a b c f g h
-def l1_iff (a b : Prop) (h : Iff a b) : b -> a := Iff.mpr a b h
-def l1_absurd (a b : Prop) (ha : a) (hna : Not a) : b := absurd a b ha hna
+def l1_and (a b : Prop) (ha : a) (hb : b) : And b a := @And.intro b a hb ha
+def l1_or (a b c : Prop) (f : a -> c) (g : b -> c) (h : Or a b) : c := @Or.elim a b c f g h
+def l1_iff (a b : Prop) (h : Iff a b) : b -> a := @Iff.mpr a b h
+def l1_absurd (a b : Prop) (ha : a) (hna : Not a) : b := @absurd a b ha hna
 def l1_true : True := True.intro
-def l1_false_elim (c : Prop) (h : False) : c := False.elim c h
-def l1_iff_refl (a : Prop) : Iff a a := Iff.refl a
+def l1_false_elim (c : Prop) (h : False) : c := @False.elim c h
+def l1_iff_refl (a : Prop) : Iff a a := @Iff.refl a
 EOF
 
 # ① Full：L1 必须全部 checked。
@@ -70,8 +70,8 @@ cat > "$TMP/yield.sokonanoda" <<'EOF'
 inductive And (a b : Prop) : Prop
 ctor And.intro (ha : a) (hb : b) : And a b
 end
-def probe_or (a b c : Prop) (f : a -> c) (g : b -> c) (h : Or a b) : c := Or.elim a b c f g h
-def probe_iff (a b : Prop) (h : Iff a b) : b -> a := Iff.mpr a b h
+def probe_or (a b c : Prop) (f : a -> c) (g : b -> c) (h : Or a b) : c := @Or.elim a b c f g h
+def probe_iff (a b : Prop) (h : Iff a b) : b -> a := @Iff.mpr a b h
 EOF
 Y="$( node "$SOKO" --json "$TMP/yield.sokonanoda" 2>&1 )"
 y_or=1; y_iff=1
@@ -91,8 +91,8 @@ for pat in "Or.inl ha" "inl ha"; do
   cat > "$TMP/match.sokonanoda" <<EOF
 def l1_or_comm (a b : Prop) (h : Or a b) : Or b a :=
   match h with
-  | $pat => Or.inr b a ha
-  | $other => Or.inl b a hb
+  | $pat => @Or.inr b a ha
+  | $other => @Or.inl b a hb
 EOF
   M="$( node "$SOKO" --json "$TMP/match.sokonanoda" 2>&1 )"
   m_ok=1

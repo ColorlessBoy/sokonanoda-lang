@@ -23,8 +23,8 @@ import lib.Order
 -- 非空论域（Nat）上的 HasLeast 居民：全关系 + 全谓词，见证 0 ✓
 theorem l07_resident :
     HasLeast Nat (fun (a b : Nat) => True) (fun (x : Nat) => True) :=
-  Exists.intro Nat (fun (x : Nat) => True ∧ (forall (y : Nat), True -> True)) 0
-    (And.intro True (forall (y : Nat), True -> True) True.intro
+  @Exists.intro Nat (fun (x : Nat) => True ∧ (forall (y : Nat), True -> True)) 0
+    (@And.intro True (forall (y : Nat), True -> True) True.intro
       (fun (y : Nat) (hy : True) => True.intro))
 SOKO
 
