@@ -14,8 +14,9 @@
 
 use super::{build_stamp, CACHE_FORMAT};
 use crate::compile::prelude::{CompileOptions, PreludeMode};
+use crate::compile::Dialect;
 
-/// 判定开关档位在缓存键里的状态：全部 `SOKO_*` 环境变量折成一份 FNV 哈希。
+/// 判定开关档位在缓存键里的状态：全部 `SOKO_*` 环境变量 + **方言**折成一份 FNV 哈希。
 ///
 /// **2026-10-06 实测修复（CI test 组判红根因）**：缓存键原先只折了
 /// `metavar_state`（MetavarMode 三档），**漏掉** `SOKO_ARG_EXPECTED` /
@@ -34,13 +35,37 @@ use crate::compile::prelude::{CompileOptions, PreludeMode};
 ///
 /// 非 UTF-8 的**值**走 `to_string_lossy`：`vars()` 遇到非 Unicode 会 **panic** ✗，
 /// 而这是编译热路径 —— 不许新增崩溃路径。
-pub fn flags_state() -> u64 {
-    flags_hash(std::env::vars_os().filter_map(|(k, v)| {
-        // 名字做 ASCII 前缀判断 ⇒ 非 UTF-8 的名字不可能带 `SOKO_`，跳过即可。
-        let k = k.into_string().ok()?;
-        k.starts_with("SOKO_")
-            .then(|| (k, v.to_string_lossy().into_owned()))
-    }))
+///
+/// ⚠ **方言必须由实参进来，不许只靠环境**（S2，`docs/design/dialect-config.md` §3.3）：
+/// 今天 `SOKO_STRICT_AT` 恰好也是 `SOKO_*` ⇒ 顺手被折了；但 S3+ 的来源是 CLI 旗标 /
+/// `sokonanoda.toml` / 编辑器设置，**不经过环境** ⇒ 只认环境的键会让两档在同一个
+/// `<模块根>/.sokonanoda/` 里**互相命中**（宽松档算出来的"接受"被严格档回放 ✗）。
+/// ⇒ 方言取自 [`CompileOptions::dialect`]（[`dialect_pair`]，**与来源无关** ✓），
+/// 守卫 = `crates/front/tests/dialect_cache_keys.rs`（环境变量那半是假绿：它本来就在键里）。
+pub fn flags_state(dialect: Dialect) -> u64 {
+    flags_hash(
+        std::env::vars_os()
+            .filter_map(|(k, v)| {
+                // 名字做 ASCII 前缀判断 ⇒ 非 UTF-8 的名字不可能带 `SOKO_`，跳过即可。
+                let k = k.into_string().ok()?;
+                k.starts_with("SOKO_")
+                    .then(|| (k, v.to_string_lossy().into_owned()))
+            })
+            .chain(std::iter::once(dialect_pair(dialect))),
+    )
+}
+
+/// 方言折进 [`flags_state`] 的**合成键对**：名字不与任何真实环境变量重名
+/// （`SOKO_*` 的过滤在上面 ⇒ 它只能从这里来 ✓），两态各一个取值 ⇒ 互斥 ✓。
+///
+/// 用穷尽 `match`（不是 `if dialect.strict()`）：将来加第三态时**编译器**会逼着这里
+/// 表态，而不是把它悄悄折成宽松档的键（那正是本段要防的串味 ✗）。
+fn dialect_pair(dialect: Dialect) -> (String, String) {
+    let value = match dialect {
+        Dialect::Strict => "strict",
+        Dialect::Loose => "loose",
+    };
+    ("dialect".to_string(), value.to_string())
 }
 
 /// [`flags_state`] 的纯函数部分：**排序后**逐个折（分隔符 `0` 不会出现在 UTF-8 里）。
@@ -80,7 +105,7 @@ pub fn key(src: &str, options: &CompileOptions) -> String {
 }
 
 /// Stable FNV-1a 64 hex over (CACHE_FORMAT, CARGO_PKG_VERSION, build stamp,
-/// prelude mode, **metavariable mode**, **`SOKO_*` flags**, source text).
+/// prelude mode, **metavariable mode**, **`SOKO_*` flags**, **dialect**, source text).
 /// Pure + deterministic.
 ///
 /// [`key`] with an explicit build stamp (pure; used by tests).
@@ -92,7 +117,7 @@ pub fn key_with_build(src: &str, options: &CompileOptions, build: u64) -> String
         build,
         options.prelude == PreludeMode::Bare,
         metavar_state(),
-        flags_state(),
+        flags_state(options.dialect),
         // **E3**：覆盖指纹（`0` = 没覆盖 ⇒ 键与今天逐字相同 ✓）。
         crate::compile::prelude::prelude_override_state(),
         src,
@@ -189,6 +214,11 @@ pub fn content_key_with_build(src: &str, options: &CompileOptions, build: u64) -
         // 判据钉着，改签名会牵动十几处测试调用点 ⇒ 白涨行数，而判据 ⑨ 只许减不许增 ✗）。
         // 两条链会不会因此撞名？**功能上不会**：源文本的 tag 先把它们分开
         // （`soko.lib-artifact/1` vs `soko.lib-checkpoint/1`，见 `project::session`）✓。
+        //
+        // ⚠ **方言也不在这条键里**（S2，`docs/design/dialect-config.md` §3.3 只点名
+        // 检查点键 + 判定缓存键）：默认那条产物层路走 [`key`]（方言已进键 ✓），只有
+        // 显式打开 `SOKONANODA_SHARED_ARTIFACTS=1` 的**实验性**共享通道才用这条键 ——
+        // 它要的是「任何环境算出同一个键」，方言该不该进去留到 S3 之后单独定 ✓。
         0,
         crate::compile::prelude::prelude_override_state(),
         src,
