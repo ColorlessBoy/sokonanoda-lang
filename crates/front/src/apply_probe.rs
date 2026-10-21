@@ -25,12 +25,21 @@ pub(crate) fn apply_type_fits(
     prefix_src: &str,
     options: &CompileOptions,
 ) -> bool {
-    let Ok(mut t) = parse_expr_text(text) else {
+    let Ok(parsed) = parse_expr_text(text) else {
         return false;
     };
+    // **先不买 hint**（`level_hint_of` 可能落到 `judge_infer` ⇒ 整份前缀重编）——
+    // 成功路径上这一趟必须便宜；hint 只在"无 hint 判不过"时才试（失败边才付钱）。
+    fits(parsed.clone(), None, goal, defs) || {
+        let hint = level_hint_of(&parsed, defs, binders, prefix_src, options);
+        fits(parsed, hint, goal, defs)
+    }
+}
+
+/// 剥层 + 合一 + `u_soko` 守卫；`hint` 为 `None` 时不对头做 delta 展开。
+fn fits(mut t: Expr, hint: Option<String>, goal: &Expr, defs: &DefTable) -> bool {
     let mut layers: Vec<(String, Expr)> = Vec::new();
     let codomain = loop {
-        let hint = level_hint_of(&t, defs, binders, prefix_src, options);
         let Some(pi) = peel_pi_delta(&t, defs, hint.as_deref()) else {
             break t;
         };

@@ -25,6 +25,8 @@ use crate::compile::{
     check_document_with, compile_fol_with, run_incremental, CheckEvent, CompileError,
     CompileOptions, CompileOutput, DeclStatus, DocumentReport, ErrorKind, KernelFailed, TrustPlan,
 };
+pub(crate) use crate::level_text::normalize_level_mvars;
+use crate::level_text::peel_one_binder;
 use crate::proof::{parse_expr_text, render_expr};
 use crate::span::Pos;
 use crate::{tokenize, Binder, BinderKind, Command, Expr, FolFile, Span, Token, TokenKind};
@@ -3131,12 +3133,9 @@ pub(crate) fn synthesized_check_term(
 ///
 /// ⚠ **就地路径必须复用它**（不许自己再写一套剥法）：只要两边喂进来的类型文本
 /// 相同，剥法相同 ⇒ 交出去的文本**逐字节相同** ✓。
-pub(crate) use crate::level_text::normalize_level_mvars;
-use crate::level_text::peel_one_binder;
-
 pub(crate) fn peel_binders(ty: String, n: usize) -> String {
     let mut t = ty;
-    for _ in 0..n {
+    for layer in 0..n {
         let e = match parse_expr_text(&t) {
             Ok(e) => e,
             Err(_) => {
@@ -3145,7 +3144,7 @@ pub(crate) fn peel_binders(ty: String, n: usize) -> String {
                 if std::env::var_os("SOKO_PEEL_PROBE").is_some() {
                     eprintln!(
                         "[peel-break] parse failed at layer {} (n={n}); head={:?}",
-                        n,
+                        layer,
                         t.chars().take(80).collect::<String>()
                     );
                 }

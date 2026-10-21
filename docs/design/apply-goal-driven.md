@@ -32,7 +32,7 @@
 | 1b 守卫 | `apply_type_fits`：`u_soko*` 不许进结论/子目标域 | 两例未触发 |
 | 1c 可诊断 | `peel_binders` 的 `[peel-break]`（`SOKO_PEEL_PROBE=1`） | 项层面剥留后续 |
 | 回归 | `lib/Set` 28/0、课程 5 代表文件两档一致、`--json` 逐字节 | ✅ |
-| 性能 | 成功路径 **+0**（只在失败边多一次就地 elaborate） | ✅ |
+| 性能 | 每次 `apply` 多一趟**源级** parse+剥层+合一（不进内核）；hint 只在失败边买 | ✅ |
 
 **新增接受清单（红线：只增不减，逐条点名）**：`apply Eq.symm`（有无假设各一条）、`apply Eq.refl`、
 `apply Eq.trans h`。**消息变化**：`apply Eq.subst`（零实参）从「读不回来」变成「目标不匹配：结果是 `p b`」
@@ -64,7 +64,7 @@ scripts/soko gate --fast                           # 环接收尾
 
 ## 5. 风险 / 回退 / 纪律
 
-- **回退**：`SOKO_APPLY_GOAL_FIRST=0`（1a）· `SOKO_APPLY_LEVEL_TEXT=0`（1b）· `SOKO_APPLY_PENDING=0`（B）。
+- **回退**：`SOKO_APPLY_GOAL_FIRST=0`（1a）· `SOKO_APPLY_LEVEL_TEXT=0`（1b）。
 - **慢路**：`SOKO_JUDGE_INPLACE=off` 下 1a/1b **不生效**（实测）⇒ 本批取「写明边界」：逃生门保持今天行为，
   由阶段 4（内核合一）收口。
 - **并行**：写入只在 `target/impl/src`；共享树有他人未提交改动。

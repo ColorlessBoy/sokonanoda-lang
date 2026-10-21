@@ -17,6 +17,7 @@
 // crate 级显式豁免并在此注明取舍。
 #![allow(clippy::result_large_err)]
 
+mod apply_probe;
 pub mod by;
 pub mod commands;
 pub mod compile;
@@ -26,7 +27,6 @@ pub mod display;
 // 过程态 / 未关目标 / 差分变体 / 边界变体（`AGENT-DOES-NOT-PRODUCE-USER-INPUTS`）。
 // 它只产出源文本，**不进判定路径** ✓；消费方见 `crates/front/tests/` 与
 // `crates/cli/tests/process_state_entry.rs`。
-mod apply_probe;
 pub mod fixtures;
 pub mod judge;
 pub mod lean4_universe;
