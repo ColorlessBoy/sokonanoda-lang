@@ -1244,7 +1244,7 @@ fn collect_open_exercise_warnings(
             if open.contains(dep.as_str()) {
                 diagnostics.push(ProjectDiagnostic {
                     kind: ProjectKind::Warning(WarningKind::ImportHasOpenExercises),
-                    message: format!("`{dep}` 里还有未完成的练习（`sorry`）：它们对下游不可见"),
+                    message: format!("`{dep}` 里还有未完成的练习：下游可见，但整条证明仍不完整"),
                     module: module.name.clone(),
                     path: Some(module.path.clone()),
                     span: Some(*span),

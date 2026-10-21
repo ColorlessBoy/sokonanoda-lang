@@ -1,4 +1,12 @@
 // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
+## [Unreleased]
+
+### Fixed
+
+- **未完成的 `sorry` 练习按 Lean 4 进环境**：后续声明可以引用它并照常得到
+  goal state（不再 `unknown identifier`），引用处提示 `uses-open-exercise`
+  warning；跨模块的 `import-has-open-exercises` 文案同步为「可见但未完成」。
+
 ## [0.96.0] - 2026-10-21
 
 ### Added

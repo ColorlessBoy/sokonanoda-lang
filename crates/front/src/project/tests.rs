@@ -440,7 +440,7 @@ fn open_exercises_in_a_dependency_warn_on_the_import_line() {
             .errors
             .iter()
             .any(|error| error.code() == "elab-unknown-identifier"),
-        "an open exercise does not enter the environment, but `done` still resolves"
+        "the dependency's open exercise enters the environment; `done` still resolves"
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -478,8 +478,8 @@ fn bare_entry_makes_the_whole_closure_bare() {
 }
 
 #[test]
-fn open_exercises_do_not_leak_into_the_importer() {
-    let dir = tmp_dir("open-not-visible");
+fn open_exercises_are_visible_to_the_importer_with_a_warning() {
+    let dir = tmp_dir("open-visible");
     write(
         &dir,
         "Lesson.sokonanoda",
@@ -488,17 +488,25 @@ fn open_exercises_do_not_leak_into_the_importer() {
     write(
         &dir,
         "Main.sokonanoda",
-        "import Lesson\n\ndef use : Nat := later\n",
+        "import Lesson\n\ndef use (a : Prop) (h : a) : a := later a h\n",
     );
     let report = compile(&dir, "Main.sokonanoda");
     let entry = report.entry_report().expect("entry report");
     assert!(
-        entry
+        !entry
             .errors
             .iter()
             .any(|error| error.code() == "elab-unknown-identifier"),
-        "the unfinished declaration is invisible downstream: {:?}",
+        "the unfinished declaration is visible downstream (Lean 4 `sorry`): {:?}",
         entry.errors.iter().map(|e| e.code()).collect::<Vec<_>>()
+    );
+    assert!(
+        entry
+            .warnings
+            .iter()
+            .any(|warning| warning.code() == "uses-open-exercise"),
+        "using an open exercise warns: {:?}",
+        entry.warnings.iter().map(|w| w.code()).collect::<Vec<_>>()
     );
     assert!(
         report

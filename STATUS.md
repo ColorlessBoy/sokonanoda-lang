@@ -1,3 +1,8 @@
+## 未完成 `sorry` 练习按 Lean 4 进环境：goal state 不再被 `unknown identifier` 阻断（2026-10-21 · 未发版）
+- ⭐ **用户拿到什么**：`unit01` 的 `singleton_subset_iff` 引用尚未证明的 `mem_of_subset_singleton` / `subset_of_mem_singleton` ⇒ 不再报错、正常 elaborate；被引用处给 `uses-open-exercise` warning（不是 error）；部分证明留着 `sorry` 时 `query state` 照常给出目标。
+- **改法**：开放练习的签名通过后，按**同签名 `Declar::Axiom`** 进环境（对齐 Lean 4 的 `sorryAx`），登记 `known` / `entered` / `open_exercises`；检查/事件语义不变（该声明仍是 `exercise.open`）。
+- **判据（实跑）**：probe = 2 `exercise.open` + 1 `decl.checked` + 1 `uses-open-exercise` + exit 0；`unit01` canvas 5 open / 3 checked、solution 6 checked 均 exit 0；`query state` 目标 `a ∈ A → {a} ⊆ A`。
+- **边界**：签名不过的声明仍 Failed、不进环境（G-01 红线）；引用 Failed 声明仍是 `elab-unknown-identifier`。
 ## 课程冗余 `@` 清理：`@Set.subset_def` / `@Set.ext` 90 处（2026-10-21 · 未发版）
 - ⭐ **用户拿到什么**：`unit01` 的 demo 与全课程 `@Set.subset_def` 46 处、`@Set.ext` 44 处删成 `Set.subset_def A B` / `Set.ext A B h`；`@` 只在确实要指认隐式位时保留。
 - **判据**：课程门禁 **258 目标 / 2190 checked / 915 open / failed 0**，与清理前 JSON 逐项相同（只有 gap 的 `ms` 变）；`notation-lint` 新增 `REDUNDANT_AT` + selftest 正反例；`git diff --check` 干净。
@@ -27,12 +32,6 @@
 - **读数**：356 sweep **2 diffs（只剩 2 invalid）**；课程门禁 **failed 0（258 targets / 2190 checked）**；`front --lib` **1006/1006**；`fmt`/`docs-lint`/`status-lint` 绿。
 - **unit08/12 的真因**：不是 level 推断 bug —— `Set.empty Nat` 是隐式 α 的位置应用（Lean 4 里不是 `Set Nat`），改成 `@Set.empty Nat` 后 unit12 的 Sort 消失；其余是位置隐式/结果应用，按诊断补 `@`/点名叫法/显式 `Exists`/`And` props。
 - **纪律**：delete-first；`@` 只在“α 必须指定/推断不出”时用；不做全局 `@` 或全局删除。
-## **默认档翻回旧读法** —— 同一份课程单元 **8.8 s → 0.62 s**（14×）（2026-10-20 · **已发版 `v0.95.0`**，26 资产）
-- ⭐ **用户拿到什么**：**判卷回到该有的速度**。同一份 `unit01-sets-membership`：默认档 **8.8 s → 0.62 s**；`gates-course` 不再 30+ 分钟；编辑器开档不再 20 秒。严格档（`SOKO_STRICT_AT=1`）**完整保留**，语料两档都合法（全部是 `@` 写法）。
-- **真因**：`487f9a77` 翻默认后，`elab::operand_type_expr` 的问法换成**全显式 pp**，而那条支路**不查判定缓存**（注释原文「不查普通缓存槽」）+ **就地也答不出**（`elab_expr(operand)`）⇒ 每次退化成「造 `#check` 文档 + 整段前缀从零重编」（16 KB 的单元重编 **12 次**）。分解读数：**关掉就地判定后两档都是 ~5 s** ⇒ 差别全在"就地/缓存这条路能不能用"，不在解析。
-- **改法**：`implicit_msg::strict_at_enabled()` 极性翻回**默认关**；`crates/cli/tests` 里三条「默认 = 严格」的判据改成**同时测两档**（默认 = 旧读法 / `=1` = 严格档）—— **判据一条没删、没放宽**。
-- **判据（全绿）**：全语料 **356** 个 `.sokonanoda` 逐字节 `--json` 对拍 —— 新默认 vs 旧档 `SOKO_STRICT_AT=0` **0 差异**（**343 accept / 13 reject**，与翻默认前记的 BASE 逐数相同）· 严格档 `=1` 两臂 **0 差异** · `front --lib` **1006/1006** · `protocol` **13/13** · `lsp_keystroke_structure` **3/3**（`prefix==0` 那条回来了）· 10 个 `docs/gaps/repro` 复现件仍**全 exit=1**。
-- ⚠ **如实**：这是**性能止损**，不是「引擎已经对了」—— 根治是让**全显式 pp 也走就地/缓存**（用户原话：「实现方式太愚蠢了，几乎需要重构」）；那笔重构做完再谈翻默认。
 ## 更早轮次（**原文已删，只留最近 3 轮** ⇒ `git log --all -- STATUS.md`）：**CI 转绿：0.95.0 的 6 个红 job**（2026-10-20）· `fix-flip3` **第八刀（严格档 `@` 残余第二批，`rejected 22 → 16`）** · `fix-flip3` **第七刀（清 2 条语料/判据拼法 rejected + 构建身份更正）** · 第六刀（`courses/set-theory/**` 严格档 `@` 残余，`rejected 29 → 24`）** · **第四刀（族 (A)：`@` 脊上裸常量实参按该层 domain 重新 elaborate）** · 引擎侧三刀 + 输入方言迁移（a18）· 发版 `0.94.0` · `land-a15` + 补回 e1 · `SUB-implicit-args-strict-default`（严格档翻默认）· 发版 `0.93.0` · 严格档第 1 批（a1→a5）· 发版 `0.92.0` · `KERNEL-GLOBAL-QUIET-HOOK-SILENCES-PANICS` ✓ （2026-10-19 第六/七刀按本文件自己的规矩 + `docs-lint` ⑦ 腾空间 ⇒ 只留最近 3 轮 ✓）
 ## 旧轮墓碑（**原文已删，只留最近 3 轮** ⇒ `git log --all -- STATUS.md`）：`CI-GREEN-SELFTEST-NOT-WIRED` · `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO` · `BITE-PROOF-DOES-NOT-BITE-IN-CI` · `SUB-implicit-named-args` · `SUB-implicit-args-align-lean4` · `SUB-release-metric-measures-unreleased` · `CI-GREEN-READOUT-ROTTED` · `SUB-break-the-guard-recursion` · `BITE-PROOF-READS-LIVE-SHARED-LEDGER` · `BITE-EXPECTATION-GOES-STALE-WHEN-READING-IMPROVES` · `LSP-T2B-TRAILING-BY-LE-3-RED-ON-CI` · `E2E-COVERAGE-4-OF-36` · `AGENT-DOES-NOT-PRODUCE-USER-INPUTS`（第三层）✓
 ## 旧轮（2026-10-15 · **原文已删，只留最近 3 轮** ⇒ `git log --all -- STATUS.md`）：用户五条**激励纠正**（23:xx 亲提 →「你做吧」）· `AGENT-DOES-NOT-PRODUCE-USER-INPUTS`（判据的输入面 = 生成式夹具）· `soko update` 的 404 + `scripts/soko prune` · `#check <def>` 带定义体 + 记法（§9.22）· 清台账第 **7/8** 轮（队列 0 · 隐变量 13/13 收口 · 构建链与缓存身份两族修完）✓

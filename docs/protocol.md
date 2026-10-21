@@ -94,9 +94,9 @@ and never change the exit code. Codes today:
   **对照**：这与签名腐烂是**两个方向** —— 签名不过就不是练习，必须报 diagnostic
   （修 G-01 时明确**不**把它做成 warning：warning 不改退出码，课程侧就永远
   发现不了签名腐烂）。
-- `import-has-open-exercises`: the imported module still has `sorry`s; their
-  declarations never enter the environment, so downstream code cannot see
-  those names (`docs/design/imports-and-projects.md` §4.5).
+- `import-has-open-exercises` / `uses-open-exercise`: imported `sorry`s enter the
+  environment (like Lean 4's `sorryAx`), so downstream can use them; the first
+  warns the module is unfinished, the second warns a proof still depends on it.
 - `open-shadowed-name`: an `open`/`export` gave a short name a **second**
   candidate (two opens claim it, or it collides with a root declaration). This
   language resolves by a fixed order and silently takes the first, so the warning

@@ -21,6 +21,10 @@ skills.
   type checker (not text matching or heuristics). Solved exercises show
   as solved; `sorry` placeholders are graded as warnings, real mistakes
   as errors.
+- **Unfinished lemmas are still usable** — like Lean 4's `sorryAx`, an open
+  exercise enters the environment with its stated type, so later proofs can
+  reference it and keep their goal states; the reference gets a
+  `uses-open-exercise` warning instead of an `unknown identifier` error.
 - **A broken signature is never mistaken for "not done yet"** — an exercise's
   signature is type-checked too, `sorry` or not: `theorem t : 3 := sorry`
   reports `kernel-expected-sort` on the signature, and a `theorem`'s type must

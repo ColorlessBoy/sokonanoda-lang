@@ -14,8 +14,14 @@ pub const RESERVED_SORT_NAMES: [&str; 3] = ["Prop", "Sort", "Type"];
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WarningKind {
     ReservedDeclarationName,
-    /// `import` 的模块里还有未完成的练习：它们对下游不可见（洞不污染环境）。
+    /// `import` 的模块里还有未完成的练习：它们**对下游可见**（对齐 Lean 4 的
+    /// `sorryAx`），但整条证明仍然依赖未完成的练习。
     ImportHasOpenExercises,
+    /// 这条声明引用了**开放练习**（`sorry` 还没补完的声明）。
+    ///
+    /// 对齐 Lean 4：`sorry` 声明照样进环境，所以引用它不是错误；但学习者
+    /// 应当知道"这条证明仍然踩在未完成的练习上"。
+    UsesOpenExercise,
     /// 值位里"多出来"的 `sorry`：前面的项已经完成了证明，它接在一个不是
     /// 函数的项后面，填什么都不可能是良类型的应用。与"真缺口"（洞有期望
     /// 类型）是两件事，见 `docs/design/redundant-sorry.md`。
@@ -31,6 +37,7 @@ impl WarningKind {
         match self {
             WarningKind::ReservedDeclarationName => "reserved-declaration-name",
             WarningKind::ImportHasOpenExercises => "import-has-open-exercises",
+            WarningKind::UsesOpenExercise => "uses-open-exercise",
             WarningKind::RedundantSorry => "redundant-sorry",
             WarningKind::OpenShadowedName => "open-shadowed-name",
         }
@@ -43,7 +50,10 @@ impl WarningKind {
                 "删掉这一行即可；要写命题或类型，直接用内核已经有的 Prop / Sort / Type。"
             }
             WarningKind::ImportHasOpenExercises => {
-                "被导入文件里还有 `sorry`：这些声明对下游不可见（未完成的洞不进入环境），下游看不到它们的名字。"
+                "被导入文件里还有 `sorry`：这些声明照样能引用（与 Lean 4 的 `sorryAx` 同形），但整条证明仍然不完整；补完它们才算真正证完。"
+            }
+            WarningKind::UsesOpenExercise => {
+                "这条证明引用了还没补完的 `sorry` 声明。它不是错误（Lean 4 也允许这样引用），但只有把那些练习补完，整条证明才算真正完成。"
             }
             WarningKind::RedundantSorry => {
                 "删掉这一行 sorry，这条声明就会通过内核检查；若还想继续写，请把它换成真正缺少的那部分。"
@@ -65,6 +75,10 @@ impl WarningKind {
             WarningKind::ReservedDeclarationName => false,
             // 项目层警告是语法级重算的（不来自内核终审）。
             WarningKind::ImportHasOpenExercises => false,
+            // ⚠ 名字虽叫 `is_kernel_verified`，这里的**消费语义**是"要不要按命令
+            // 进会话快照"。本警告由 walk 根据**本趟环境**算出 ⇒ 信任前缀命中时
+            // 不会重算 ⇒ 必须随命令存下来（否则一命中就丢）✓。
+            WarningKind::UsesOpenExercise => true,
             WarningKind::RedundantSorry => true,
             // `open` 遮蔽是纯语法的候选表推断（每次 update 在整文件上重算）。
             WarningKind::OpenShadowedName => false,

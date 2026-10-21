@@ -3,7 +3,6 @@
 mod kernel_phase;
 pub(crate) mod level_exit;
 mod walk;
-
 use super::elab::{canonical_ctor_name, DefTable, HoverNode, InductiveTable, KnownTable};
 use super::error::CompileError;
 use super::event::CompileOutput;
@@ -1708,6 +1707,7 @@ where
         pp: PpFlags::default(),
         // **本趟 pass 自己的**「成功进环境」名表（G-31/G-92 第二刀 ✓）。
         entered: std::rc::Rc::new(std::cell::RefCell::new(std::collections::HashSet::new())),
+        open_exercises: std::collections::HashSet::new(),
         // 调用方那一趟的名表：**只有 judge 的合成编译**会设（`TrustPlan` ✓），
         // 其余一律 `None` ⇒ 不透明快路**关** ⇒ 逐字节回到今天 ✓。
         trusted_entered: trust.and_then(|t| t.trusted_entered.clone()),

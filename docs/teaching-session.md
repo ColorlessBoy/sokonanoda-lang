@@ -37,8 +37,8 @@
 | 事件 / code | agent 解读 | agent 动作 |
 |---|---|---|
 | `decl.checked`（原练习名） | 练习解出 | 肯定 + 追加下一个概念/练习 |
-| `exercise.open` 持续 | 未做/卡住 | 给一层提示（画布注释里有），永不直接给答案 |
-| `elab-unknown-identifier` | 拼写错 **或** 引用了还没解出的练习（open 声明不进环境） | 先查 open 列表再判拼写；「先做练习 N」 |
+| `exercise.open` 持续 | 未做/卡住；若同时有 `uses-open-exercise` warning，说明引用了未完成练习（正常状态，不是错误） | 给一层提示（画布注释里有），永不直接给答案；提醒「补完被引用的练习才算真正证完」 |
+| `elab-unknown-identifier` | 拼写错（open 声明现在**进环境**，与 Lean 4 的 `sorry` 一致） | 先查 open 列表再判拼写；「先做练习 N」 |
 | `elab-duplicate-declaration` | 重名 | 讲“单赋值世界”，换名 |
 | `elab-hole-misplaced` | 洞不在可恢复位置（嵌套洞/非直接实参，如 `n + sorry`；答案尾巴、构造子 spine 与已知函数直接实参都合法） | 讲“洞只能放答案末尾，或已知函数/构造子的直接实参位” |
 | `kernel-rejected`（def_eq failed） | 填了类型而不是证明项 / 方向反了 / 宇宙忘了 `.{1}` / 忘了 Not 会展开 | 对比声明类型与所填项的形状，让学习者逐参数预言类型 |
@@ -157,8 +157,8 @@
 2. ⚠ **更正（2026-09-30）**：**隐式实参可省**（R2.5 / D6 已落地，见 `docs/notes/course-lean-style/notation-rewrite-brief.md` §1.4 与 `docs/design/implicit-arguments.md`）；`@` = 显式脊（不补隐式位）。
    教学画布的 axiom 全用显式 binder（`And.intro a b ha hb` 风格），只有 prelude 的
    Eq 与毕业题 12 用隐式。
-3. **open 声明不进环境**：后面的代码引用它会得到 `elab-unknown-identifier`
-   （两_def 初期报错即此——所以 two_def 先注释）。
+3. **open 声明进环境**（2026-10-21 对齐 Lean 4）：`sorry` 按同签名 axiom 进环境
+   （Lean 是 `sorryAx`）⇒ 引用正常、goal state 照常，只给 `uses-open-exercise` warning（不是 error）。
 4. **kernel 只判类型**：`double := fun n => n` 也能过；语义要求用证明形状表达。
 5. **`Type n` = `Sort (n + 1)`**：`Type 0` 等于 `Sort 1`，单独一个 `Type`
    也是 `Sort 1`；`Type u`（宇宙变量）不支持，写 `Sort u`。层级算术

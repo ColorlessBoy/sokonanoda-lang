@@ -23,119 +23,19 @@ use crate::compile::error::{CompileError, ErrorKind};
 use crate::compile::event::CompileOutput;
 use crate::compile::goals::{expr_has_hole, open_goal, spine_without_arg, GoalTemplates};
 use crate::compile::prelude::CompileOptions;
-use crate::compile::report::{
-    ByGoalState, DeclKind, DeclState, GoalBinder, HoleMode, ResolvedTarget,
-};
+use crate::compile::report::{ByGoalState, DeclKind, DeclState, GoalBinder, ResolvedTarget};
+mod open_exercise;
+mod walk_state;
+
+use self::open_exercise::{add_axiom, remember_known, warn_if_uses_open_exercise};
+use self::walk_state::{decl_prefix_state, decl_root_state, fold_root_state, hole_modes_for};
 use crate::compile::scope::{NamespaceScope, OpenEntry};
 use crate::compile::units::SourceUnit;
 use crate::{Binder, Command, CtorDecl, Expr, IotaRule, OpenFilter, RecDecl, Span};
 use sokonanoda::builder::EnvBuilder;
 
-/// **洞的位置模式**（A1，2026-10-12 blocker）：`by` 引擎装配出来的**未闭合目标**
-/// （`lowered.tactic_holes`）就是 **tactic 位**；其余（声明值位、项内部的洞）是**项位**。
-///
-/// ⚠ 判据是洞的**出身**，不是文本启发式 ✗：`:= And.intro (by exact hp) sorry` 里那个
-/// `sorry` 是**项位**（虽然同一行里有 `by`），而 `by\n apply And.intro\n sorry` 里的洞是
-/// **tactic 位**（虽然降级后的值里已经看不到 `by` 关键字）⇒ 只有降级那一步知道，
-/// 所以由 [`crate::by::ByOutcome::tactic_holes`] 带出来。
-///
-/// **不变量**：返回表与 `holes` **等长逐位对齐**（唯一生成点，见
-/// `DeclState::hole_modes` 的文档）。
-fn hole_modes_for(holes: &[Span], tactic_holes: &[Span]) -> Vec<HoleMode> {
-    holes
-        .iter()
-        .map(|h| {
-            if tactic_holes.contains(h) {
-                HoleMode::Tactic
-            } else {
-                HoleMode::Term
-            }
-        })
-        .collect()
-}
-
-/// **声明头部的根状态**：**只剥源位 λ 链的绑元**（= 声明里写的**具名绑元**），
-/// **不是**整条 ∀ 望远镜 ✗。
-///
-/// 为什么（**2026-10-02 值守第 9 单**，用户实测报的 ✗）：前端 lowering 会给
-/// **函数型语句**（`a → b → a` / `∀ x, …`）补 λ ⇒ `split_by_value(val)` 的 λ 链
-/// **含语句自身的 Π 层** ⇒ 按它剥 `peel_pi_layers(ty, n)` 会**多剥**（目标的箭头全没、
-/// 上下文多出匿名 `_`）；层数不够时 `peel_pi_layers` 返 `None` ⇒ `by_root = None` ⇒
-/// 退回 `ty_text` + 空 binders ⇒ 顶显示整句 `∀` ✗。
-/// 实测：`theorem (a b : Prop) : a → b → a := by` ⇒ 顶 `[a,b,_,_] ⊢ a` ✗
-/// vs 底（声明卡片）`[a,b] ⊢ a → b → a` ✓。
-///
-/// 正确口径 = **与声明卡片同源**：open 声明在调用点直接用 `open_goal` 的 `info`
-/// （顶 ≡ 底 **by construction** ✓）；其余（失败 / 已证）用这里的 λ 前缀版 ✓。
-///
-/// **题面状态**（G-82 兜底，2026-10-03）：声明**源位 λ 链的具名绑元** + 按它们
-/// 剥出的剩余目标 —— 未折记法的**真相文本**（喂 judge 的那一份 ✓）。
-///
-/// 为什么要有这一条：`open_goal` 分解不了值（记法头、超量应用、def 展开间接调用…）
-/// 时，`walk.rs` 原先退回 **空上下文 + 整句声明类型** ✗ —— 有具名绑元的题就变成
-/// 「题目参数忽然跑到目标里去了」，整句判红 ✗（用户 2026-10-02 实测报的 G-82）。
-/// 走查分解不了**不等于**题面没有上下文：题面状态**永远**是"具名绑元进上下文、
-/// 目标只剩剥掉它们之后的命题" ✓。
-///
-/// 与 [`decl_prefix_state`] **同源**（那个 = 这条 + 折一次记法）⇒ 顶 ≡ 底
-/// 在这条兜底路径上也成立 ✓。`val` 必须是**源位**（lowering 之前）的值：lowering
-/// 会给函数型语句补 λ，拿 lowering 之后的值数 λ 链会多剥 ✗。
-fn decl_root_state(
-    ty: &Expr,
-    src_val: &Expr,
-    display: &crate::display::DisplayNotations,
-) -> Option<(String, Vec<GoalBinder>)> {
-    let (binders, _) = crate::by::split_by_value(src_val)?;
-    let body = crate::proof::peel_pi_layers(ty, binders.len())?;
-    // **走唯一显示接口** ✓（`scripts/audit-notation-paths.py` 的棘轮 ✓）：绕过它 ⇒
-    // Infoview 顶部目标退回**点形式** ✗ —— 正是 G-81/G-83 那一族的病根 ✓。
-    // `fold` 幂等 ✓ ⇒ 下面 `decl_prefix_state` 再折一次不改变结果 ✓（那两处照旧逐字节不变 ✓）。
-    Some((
-        display.render(&body),
-        binders
-            .iter()
-            .map(|b| GoalBinder {
-                name: b.name.clone(),
-                ty: b
-                    .ty
-                    .as_deref()
-                    .map(|t| display.render(t))
-                    .unwrap_or_default(),
-            })
-            .collect(),
-    ))
-}
-
-/// 题面状态的**显示副本**（折一次记法）：`by_root` / hover 直接渲染它 ✓。
-fn fold_root_state(
-    state: &(String, Vec<GoalBinder>),
-    display: &crate::display::DisplayNotations,
-) -> ByGoalState {
-    let (goal, binders) = state;
-    ByGoalState {
-        ty: display.fold(goal),
-        binders: binders
-            .iter()
-            .map(|b| GoalBinder {
-                name: b.name.clone(),
-                ty: display.fold(&b.ty),
-            })
-            .collect(),
-    }
-}
-
-/// 同 [`decl_root_state`]，但**折一次记法**（显示副本）—— 失败 / 已证声明用。
-fn decl_prefix_state(
-    ty: &Expr,
-    val: &Expr,
-    display: &crate::display::DisplayNotations,
-) -> Option<ByGoalState> {
-    decl_root_state(ty, val, display)
-        .as_ref()
-        .map(|state| fold_root_state(state, display))
-}
 use sokonanoda::env::Declar;
-use sokonanoda::util::ExprPtr;
+use sokonanoda::util::{ExprPtr, NamePtr};
 use std::borrow::Cow;
 
 /// 命令走查的**可变累加器**（原 `run_pass` 主循环里被 arm 改写的局部变量）。
@@ -209,6 +109,8 @@ pub(super) struct Walk<'arena: 'shadow, 'shadow> {
     /// 名字 = **声明身份**（不用命令号：两套坐标系实测**不对齐** ✗，见
     /// `judge::EnteredNames` 的注释 ✓）。
     pub(super) entered: crate::judge::EnteredNames,
+    /// 已进环境的开放练习名（按 `Declar::Axiom` 装；对齐 Lean 4 的 `sorry`）。
+    pub(super) open_exercises: std::collections::HashSet<NamePtr<'arena>>,
     /// **调用方那一趟**的名表（`TrustPlan::trusted_entered` ✓）：`Some` 时才允许
     /// 走不透明快路；`None`（**绝大多数 pass** ✓）⇒ **逐字节回到今天** ✓。
     pub(super) trusted_entered: Option<crate::judge::EnteredNames>,
@@ -271,6 +173,7 @@ pub(crate) struct WalkCheckpoint<'arena> {
     pp: PpFlags,
     /// **深拷贝**（见上 ⚠）：快照要的是"命令 k 那一刻"的名表 ✓。
     entered: std::collections::HashSet<String>,
+    open_exercises: std::collections::HashSet<NamePtr<'arena>>,
     // ── `run` 的循环局部量（纯记账；**显式带上** ⇒ 恢复时整段跳过、不必重放 ✓）──
     unit_seen: Vec<usize>,
     closure_ids: Vec<Option<String>>,
@@ -490,6 +393,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             exports: self.exports.clone(),
             pp: self.pp,
             entered: self.entered.borrow().clone(),
+            open_exercises: self.open_exercises.clone(),
             unit_seen: unit_seen.to_vec(),
             closure_ids: closure_ids.to_vec(),
             closure_acc: closure_acc.to_string(),
@@ -518,6 +422,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         // `set_option` 档：续编跳过了那些命令 ⇒ 从快照装回（否则退回默认档 ✗）。
         self.pp = cp.pp;
         *self.entered.borrow_mut() = cp.entered.clone();
+        self.open_exercises = cp.open_exercises.clone();
     }
 
     // T2-B 给这条加了三个参数（`resume`/`snapshot_tail`/`count_commands`）⇒ 越过
@@ -1182,11 +1087,23 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         }
         if trusted {
             // Trusted prefix: keep the environment, skip the kernel.
-            // Cached failures keep the name free (check-then-add);
-            // open exercises never enter the environment anyway.
-            if skip.is_some_and(|s| s.contains_key(&idx))
-                || open_goal(ty, val, templates, &mut Vec::new()).is_some()
-            {
+            // Cached failures keep the name free (check-then-add).
+            if skip.is_some_and(|s| s.contains_key(&idx)) {
+                return;
+            }
+            // 开放练习也要复原进环境（信任前缀是"重放环境"的）。
+            if open_goal(ty, val, templates, &mut Vec::new()).is_some() {
+                self::open_exercise::restore_trusted(
+                    &mut self.builder,
+                    &mut self.open_exercises,
+                    &self.entered,
+                    &self.known,
+                    name,
+                    universe,
+                    ty,
+                    &elab_ctx,
+                );
+                remember_known(&mut self.known, name, universe, ty);
                 return;
             }
             let mut hovers = Vec::new();
@@ -1250,6 +1167,22 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         return;
                     }
                 };
+            // 对齐 Lean 4 的 `sorry`：签名过了就按 axiom 进环境。
+            if let Err(e) = add_axiom(
+                &mut self.builder,
+                &mut self.open_exercises,
+                &self.entered,
+                name,
+                &signature.probe,
+            ) {
+                let err = CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, span);
+                self.out.push_error(idx, err.clone());
+                let mut st =
+                    failed_state(DeclKind::Definition, Some(name.to_string()), span, err, idx);
+                st.by_root = by_root.clone();
+                self.decl_states.push(st);
+                return;
+            }
             // **签名里的 hover 行**（A3）：开放练习也是声明，它的签名同样要能
             // hover / 跳转。`env_at` 取 `env_before` —— 签名就是在**本声明入环境
             // 之前** elaborate 的（与 `#check` 同一条口径）。
@@ -1347,6 +1280,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 span,
                 cmd: idx,
             });
+            remember_known(&mut self.known, name, universe, ty);
             return;
         }
         let mut hovers = Vec::new();
@@ -1388,6 +1322,15 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         explicit_arity: crate::compile::elab::explicit_arity(ty),
                         signature: Some(crate::proof::decl_signature(ty)),
                     },
+                );
+                // 引用未完成练习 ⇒ warning（判定是绿的；只在报告里提醒）。
+                warn_if_uses_open_exercise(
+                    &self.builder,
+                    &self.open_exercises,
+                    &mut self.out,
+                    &decl,
+                    span,
+                    idx,
                 );
                 let env_after = self.builder.declaration_count();
                 self.ops.push(PendingOp::Decl {
@@ -1599,9 +1542,22 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         let val = &lowered.expr;
         let by_steps = by_step_states(&lowered.steps, &self.display);
         if trusted {
-            if skip.is_some_and(|s| s.contains_key(&idx))
-                || open_goal(ty, val, templates, &mut Vec::new()).is_some()
-            {
+            if skip.is_some_and(|s| s.contains_key(&idx)) {
+                return;
+            }
+            // **开放练习也要复原进环境**（同 `def` 的受信分支）。
+            if open_goal(ty, val, templates, &mut Vec::new()).is_some() {
+                self::open_exercise::restore_trusted(
+                    &mut self.builder,
+                    &mut self.open_exercises,
+                    &self.entered,
+                    &self.known,
+                    name,
+                    universe,
+                    ty,
+                    &elab_ctx,
+                );
+                remember_known(&mut self.known, name, universe, ty);
                 return;
             }
             let mut hovers = Vec::new();
@@ -1702,6 +1658,22 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         return;
                     }
                 };
+            // **对齐 Lean 4 的 `sorry`**：同 `def` 分支（签名过了就进环境）。
+            if let Err(e) = add_axiom(
+                &mut self.builder,
+                &mut self.open_exercises,
+                &self.entered,
+                name,
+                &signature.probe,
+            ) {
+                let err = CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, span);
+                self.out.push_error(idx, err.clone());
+                let mut st =
+                    failed_state(DeclKind::Theorem, Some(name.to_string()), span, err, idx);
+                st.by_root = by_root.clone();
+                self.decl_states.push(st);
+                return;
+            }
             // **签名里的 hover 行**（A3）：开放练习也是声明，它的签名同样要能
             // hover / 跳转。`env_at` 取 `env_before` —— 签名就是在**本声明入环境
             // 之前** elaborate 的（与 `#check` 同一条口径）。
@@ -1799,6 +1771,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 span,
                 cmd: idx,
             });
+            remember_known(&mut self.known, name, universe, ty);
             return;
         }
         let mut hovers = Vec::new();
@@ -1845,6 +1818,15 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 // judge 的合成文档据此把前缀 `theorem` 装成不透明常量（证明体不重跑 ✓）。
                 // ⚠ 只记**真的加进去**的（`add_declar` 失败已在上面的 `return` 里排除 ✓）。
                 self.entered.borrow_mut().insert(name_owned.clone());
+                // 引用未完成练习 ⇒ warning（判定是绿的；只在报告里提醒）。
+                warn_if_uses_open_exercise(
+                    &self.builder,
+                    &self.open_exercises,
+                    &mut self.out,
+                    &decl,
+                    span,
+                    idx,
+                );
                 let env_after = self.builder.declaration_count();
                 self.ops.push(PendingOp::Decl {
                     name: Some(name_owned),
@@ -1987,6 +1969,15 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                         explicit_arity: crate::compile::elab::explicit_arity(ty),
                         signature: Some(crate::proof::decl_signature(ty)),
                     },
+                );
+                // 引用未完成练习 ⇒ warning（例如公理的签名用了开放练习）。
+                warn_if_uses_open_exercise(
+                    &self.builder,
+                    &self.open_exercises,
+                    &mut self.out,
+                    &decl,
+                    span,
+                    idx,
                 );
                 let env_after = self.builder.declaration_count();
                 self.ops.push(PendingOp::Decl {
@@ -2313,6 +2304,14 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     self.decl_states.push(st);
                     return;
                 }
+                warn_if_uses_open_exercise(
+                    &self.builder,
+                    &self.open_exercises,
+                    &mut self.out,
+                    &decl,
+                    span,
+                    idx,
+                );
                 let env_after = self.builder.declaration_count();
                 self.ops.push(PendingOp::Decl {
                     name: None,

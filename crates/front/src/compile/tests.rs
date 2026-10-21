@@ -7780,23 +7780,31 @@ fn legal_open_exercises_still_pass_the_signature_gate() {
     }
 }
 
-/// 合法开放练习照样**不进环境**（`tests.rs` 既有语义），且签名检查不改这一点。
+/// **对齐 Lean 4 的 `sorry`**：合法开放练习**进环境** ⇒ 后面的声明可以正常
+/// 引用它（不再 `unknown identifier`），只在引用处给 `uses-open-exercise` warning。
 #[test]
-fn signature_gate_keeps_open_exercises_out_of_the_env() {
+fn signature_gate_lets_open_exercises_enter_the_env_with_a_warning() {
     let file = parse(
         "theorem open_one : (a : Prop) -> a -> a := sorry\n\
-         theorem ok : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => h\n",
+         theorem uses_open : (a : Prop) -> a -> a :=\n\
+           fun (a : Prop) => fun (h : a) => open_one a h\n",
     )
     .expect("parse");
-    let out = compile_fol(&file);
-    assert_eq!(out.errors, vec![], "{:?}", out.errors);
-    assert!(out.events.iter().any(
-        |e| matches!(e, CheckEvent::ExerciseOpen { name } if name.as_deref() == Some("open_one"))
-    ));
-    assert!(out
-        .events
+    let report = check_document(&file);
+    assert_eq!(report.errors, vec![], "{:?}", report.errors);
+    assert_eq!(report.decls.len(), 2, "{:?}", report.decls);
+    assert_eq!(report.decls[0].status, DeclStatus::Open);
+    assert_eq!(report.decls[1].status, DeclStatus::Checked);
+    let warning = report
+        .warnings
         .iter()
-        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "ok")));
+        .find(|w| w.code() == "uses-open-exercise")
+        .expect("uses-open-exercise warning");
+    assert!(
+        warning.message.contains("open_one"),
+        "warning names the open exercise: {}",
+        warning.message
+    );
 }
 
 /// 声明级 report：签名不过 ⇒ 状态是 Failed（不是 Open），错误与 `out.errors` 同一条。

@@ -233,8 +233,9 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
    `sorry`，剩余目标与已引入假设会出现在 hover/诊断里。
 3. **判卷**：跑 `--json`，读事件，按 §3 决策表给反馈，然后回到第 1 步。
 
-一个练习红不影响其他练习（逐声明容错：open/failed 声明不进环境，
-但后续声明仍会被检查并得到自己的诊断）。
+一个练习红不影响其他练习（逐声明容错：**open 练习按同签名 axiom 进环境**，
+对齐 Lean 4 的 `sorry`，后续声明可以正常引用它并得到 `uses-open-exercise`
+warning；**failed** 声明才不进环境。后续声明仍会被检查并得到自己的诊断）。
 
 ## 3. 事件决策表（判卷后怎么动作）
 
@@ -243,7 +244,8 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
 | `decl.checked`（原练习名） | 解出 | 肯定 + 追加下一个概念/练习 |
 | `exercise.open` 持续 | 未做/卡住（**签名合法**才会走到这里） | 指向编辑器「提示」节点逐条揭示（画布 `-- soko:hint` 阶梯）；需要时追加新 hint；永不直接给答案 |
 | 诊断落在**签名**上（`kernel-expected-sort` / `kernel-theorem-not-prop`，span 在 `:` 之后） | 签名自己写坏了（拿 `Nat`/`Type` 当命题、结论不是 Prop）：`sorry` 救不回来，**不是**"还没做" | 先修签名：把诊断的 `hint` 转述给学习者，指认签名哪一段不合法；修好前不要给证明方向的提示 |
-| `elab-unknown-identifier`（span 落在签名里） | 签名里的名字拼错，或引用了还没解出的练习 | 先查 open 列表，再判拼写；必要时「先做练习 N」 |
+| `warning`（`uses-open-exercise`） | 这条证明引用了别的 `sorry` 练习：**不是错误**（Lean 4 允许），但整条证明仍依赖未完成练习 | 继续当前证明；提醒「补完被引用的练习才算真正证完」 |
+| `elab-unknown-identifier`（span 落在签名里） | 签名里的名字拼错，或引用了被判负（Failed）的声明（**open 练习已进环境，不再是这个码**） | 先查 open / failed 列表，再判拼写；必要时「先做练习 N」 |
 | `elab-duplicate-declaration` | 重名 | 讲「单赋值世界」，换名 |
 | `elab-hole-misplaced` | 洞不在可恢复位置（嵌套洞/非直接实参，如 `n + sorry`；答案尾巴、构造子 spine 与已知函数直接实参都合法） | 讲「洞只能放答案末尾，或已知函数/构造子的直接实参位」 |
 | `kernel-rejected`（带期望/实际） | 填了类型而非证明项 / 方向反 / 宇宙忘了 `.{1}` / 忘了 `Not` 会展开 | 让用户对比声明类型与所填项的形状，逐参数预言类型 |
