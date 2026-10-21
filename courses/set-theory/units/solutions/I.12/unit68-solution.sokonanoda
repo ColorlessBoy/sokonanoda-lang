@@ -8,7 +8,7 @@ theorem demo_mem_powerset (α : Type) (A B : Set α) :
 
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  @Set.subset_def α A B
+  Set.subset_def A B
 
 theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
     x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=
@@ -16,7 +16,7 @@ theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
 
 theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) : a ∈ B :=
   (fun (hu : ∀ (x : α), x ∈ A → x ∈ B) => hu a ha)
-    ((fun (hv : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hv h) (@Set.subset_def α A B))
+    ((fun (hv : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hv h) (Set.subset_def A B))
 
 theorem subset_refl (α : Type) (A : Set α) : A ⊆ A :=
   fun (a : α) (ha : a ∈ A) => ha

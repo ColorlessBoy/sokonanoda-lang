@@ -32,7 +32,7 @@ theorem demo_mem_empty_iff_false (α : Type) (x : α) :
   @Set.mem_empty_iff_false α x
 theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  @Set.subset_def α A B
+  Set.subset_def A B
 theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=
   Iff.intro (fun (h : ¬ P) => h) (fun (h : P → False) => h)
 -- 思路：给 `x ∈ A`，用包含关系得 `x ∈ ∅`，再由空集的成员刻画得 `False`。

@@ -12,7 +12,7 @@ theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (∅)) :=
 
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  @Set.subset_def α A B
+  Set.subset_def A B
 
 theorem not_exists_of_all_not (α : Type) (P : α → Prop) (h : ∀ (x : α), ¬ (P x)) :
     ¬ (∃ (x : α), P x) :=

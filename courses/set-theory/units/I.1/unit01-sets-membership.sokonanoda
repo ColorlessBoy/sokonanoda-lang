@@ -27,7 +27,7 @@ import lib.Rel
 -- 演示（已写好）：子集的定义展开是"定义上相等"。
 theorem demo_subset_def (α : Type) (A B : Set α) :
     (A ⊆ B) ↔ ∀ (x : α), A x → B x := by
-  exact @Set.subset_def α A B
+  exact Set.subset_def A B
 
 -- 演示（已写好）：隶属 = 应用。
 theorem demo_mem_def (α : Type) (a : α) (A : Set α) : (a ∈ A) ↔ A a := by

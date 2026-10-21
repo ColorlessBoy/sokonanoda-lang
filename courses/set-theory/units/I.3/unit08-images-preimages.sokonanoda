@@ -186,7 +186,7 @@ def image_preimage : Set Two := fun (y : Two) => ∃ (x : Two), (f1 x) = y
 theorem inter_singletons_empty :
     @Eq.{1} (Set Two) (({aa}) ∩ ({bb}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (∅) :=
-  @Set.ext Two (({aa}) ∩ ({bb})) (∅)
+  Set.ext (({aa}) ∩ ({bb})) (∅)
     (fun (x : Two) =>
       @Iff.intro (x ∈ (({aa}) ∩ ({bb})))
         (x ∈ (∅))
@@ -204,7 +204,7 @@ theorem inter_singletons_empty :
 
 theorem image_empty (A : Set Two) :
     (f1 '' (∅)) = (∅) :=
-  @Set.ext Two (f1 '' (∅)) (∅)
+  Set.ext (f1 '' (∅)) (∅)
     (fun (y : Two) =>
       @Iff.intro (y ∈ (f1 '' (∅)))
         (y ∈ (∅))

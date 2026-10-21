@@ -48,7 +48,7 @@ theorem leOn_of_subset (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) : LeO
       (fun (x : α) => x)
       (And.intro
         (injOn_id α A) hs))
-    ((fun (hu : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hu h) (@Set.subset_def α A B))
+    ((fun (hu : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hu h) (Set.subset_def A B))
 
 theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
     (A : Set α) (B : Set β) (C : Set γ)

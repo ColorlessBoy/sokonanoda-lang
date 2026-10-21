@@ -14,12 +14,12 @@ theorem demo_propext (a b : Prop) (h : a ↔ b) : @Eq.{1} Prop a b :=  -- soko:n
 
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  @Set.subset_def α A B
+  Set.subset_def A B
 
 theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) :
     a ∈ B :=
   (fun (hu : ∀ (x : α), x ∈ A → x ∈ B) => hu a ha)
-    ((fun (hv : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hv h) (@Set.subset_def α A B))
+    ((fun (hv : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) => Iff.mp hv h) (Set.subset_def A B))
 
 theorem subset_of_eq (α : Type) (A B : Set α) (h : @Eq.{1} (Set α) A B) : A ⊆ B :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
   fun (a : α) (ha : a ∈ A) =>

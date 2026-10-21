@@ -28,7 +28,7 @@ theorem not_mem_sUnion_of_all_not (α : Type) (F : Set (Set α)) (x : α)
 
 theorem sUnion_union (α : Type) (F G : Set (Set α)) :
     ⋃₀ (F ∪ G) = ⋃₀ F ∪ ⋃₀ G :=
-  @Set.ext α (⋃₀ (F ∪ G)) (⋃₀ F ∪ ⋃₀ G) (fun (x : α) =>
+  Set.ext (⋃₀ (F ∪ G)) (⋃₀ F ∪ ⋃₀ G) (fun (x : α) =>
     @Iff.intro (x ∈ ⋃₀ (F ∪ G)) (x ∈ ⋃₀ F ∪ ⋃₀ G)
       (fun (h : x ∈ ⋃₀ (F ∪ G)) =>
         Set.mem_sUnion_elim α (F ∪ G) x (x ∈ ⋃₀ F ∪ ⋃₀ G) h

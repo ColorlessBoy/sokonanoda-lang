@@ -35,7 +35,7 @@ theorem demo_mem_preimage (α β : Type) (f : α → β) (B : Set β) (x : α) :
 theorem preimage_union (α β : Type) (f : α → β) (B C : Set β) :
     @Eq.{1} (Set α) (f ⁻¹' (B ∪ C))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       ((f ⁻¹' B) ∪ (f ⁻¹' C)) := by
-  exact @Set.ext α (f ⁻¹' (B ∪ C))
+  exact Set.ext (f ⁻¹' (B ∪ C))
     ((f ⁻¹' B) ∪ (f ⁻¹' C))
     (fun (x : α) =>
       @Iff.intro (x ∈ (f ⁻¹' (B ∪ C)))
@@ -93,7 +93,7 @@ theorem preimage_inter (α β : Type) (f : α → β) (B C : Set β) :
 theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
     @Eq.{1} (Set β) (f '' (A ∪ B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       ((f '' A) ∪ (f '' B)) := by
-  exact @Set.ext β (f '' (A ∪ B))
+  exact Set.ext (f '' (A ∪ B))
     ((f '' A) ∪ (f '' B))
     (fun (y : β) =>
       @Iff.intro (y ∈ (f '' (A ∪ B)))
@@ -213,7 +213,7 @@ theorem bb_mem_U01 : bb ∈ U01 := by  -- soko:notation-ok: R1/R2：点名叫法
 theorem inter_singletons_empty :
     @Eq.{1} (Set Two) (({aa}) ∩ ({bb}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (∅) := by
-  exact @Set.ext Two (({aa}) ∩ ({bb})) (∅)
+  exact Set.ext (({aa}) ∩ ({bb})) (∅)
     (fun (x : Two) =>
       @Iff.intro (x ∈ (({aa}) ∩ ({bb})))
         (x ∈ (∅))
@@ -231,7 +231,7 @@ theorem inter_singletons_empty :
 
 theorem image_empty (A : Set Two) :
     (f1 '' (∅)) = (∅) := by
-  exact @Set.ext Two (f1 '' (∅)) (∅)
+  exact Set.ext (f1 '' (∅)) (∅)
     (fun (y : Two) =>
       @Iff.intro (y ∈ (f1 '' (∅)))
         (y ∈ (∅))
@@ -340,7 +340,7 @@ theorem bb_not_mem_image_preimage : ¬ (bb ∈ image_preimage) := by
 theorem image_preimage_eq_image :
     @Eq.{1} (Set Two) image_preimage  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (f1 '' (f1 ⁻¹' U01)) := by
-  exact @Set.ext Two image_preimage (f1 '' (f1 ⁻¹' U01))
+  exact Set.ext image_preimage (f1 '' (f1 ⁻¹' U01))
     (fun (y : Two) =>
       @Iff.intro (y ∈ image_preimage)
         (y ∈ (f1 '' (f1 ⁻¹' U01)))
@@ -369,7 +369,7 @@ theorem image_preimage_eq_image :
 -- 通用小引理：两条包含给相等（就是单元②的 subset_antisymm，这里按 Set.ext 写一遍）。
 theorem eq_of_subsets (α : Type) (A B : Set α)
     (h1 : A ⊆ B) (h2 : B ⊆ A) : A = B := by
-  exact @Set.ext α A B (fun (x : α) => Iff.intro (h1 x) (h2 x))
+  exact Set.ext A B (fun (x : α) => Iff.intro (h1 x) (h2 x))
 
 -- 练习 8（L 类）：反例闭环的桥（方向：左式 = image_preimage）。
 theorem image_preimage_image_eq_preimage :
@@ -415,7 +415,7 @@ theorem not_image_preimage_eq :
 theorem image_preimage_eq_of_subset_image_univ (α β : Type) (f : α → β) (C : Set β)
     (h : C ⊆ (f '' (@Set.univ α))) :
     (f '' (f ⁻¹' C)) = C := by
-  exact @Set.ext β (f '' (f ⁻¹' C)) C
+  exact Set.ext (f '' (f ⁻¹' C)) C
     (fun (y : β) =>
       @Iff.intro (y ∈ (f '' (f ⁻¹' C))) (y ∈ C)
         (image_preimage_subset α β f C y)

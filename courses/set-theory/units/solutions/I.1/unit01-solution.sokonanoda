@@ -22,7 +22,7 @@ theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) :
 
 theorem eq_of_same_elements (α : Type) (A B : Set α) (h : ∀ (x : α), A x ↔ B x) :
     A = B :=
-  @Set.ext α A B h
+  Set.ext A B h
 
 theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α)
     (h : {a} ⊆ A) : a ∈ A :=
@@ -57,7 +57,7 @@ theorem singleton_eq_singleton_iff (α : Type) (a b : α) :
           (@Set.mem_singleton_self α a)))
     -- (ii) `a = b` ⇒ `{a} = {b}`：外延 + 逐元素两个方向。
     (fun (h : a = b) =>
-      @Set.ext α {a} {b} (fun (x : α) =>
+      Set.ext {a} {b} (fun (x : α) =>
         @Iff.intro (x ∈ {a}) (x ∈ {b})
           (fun (hx : x ∈ {a}) =>
             @Iff.mpr (x ∈ {b}) (x = b) (@Set.mem_singleton_iff α x b)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）

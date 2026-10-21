@@ -17,7 +17,7 @@ theorem demo_and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A := by
 
 -- Set：定义展开
 theorem demo_subset_unfold (α : Type) (A B : Set α) :
-    A ⊆ B ↔ ∀ (x : α), A x → B x :=  @Set.subset_def α A B
+    A ⊆ B ↔ ∀ (x : α), A x → B x :=  Set.subset_def A B
 
 theorem demo_mem_powerset (α : Type) (A B : Set α) (h : B ⊆ A) :
     B ∈ 𝒫 A :=  (Iff.mpr (@Set.mem_powerset_iff α A B)) h

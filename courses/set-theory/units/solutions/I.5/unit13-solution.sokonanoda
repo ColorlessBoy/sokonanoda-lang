@@ -73,7 +73,7 @@ theorem subset_isPartialOrder (α : Type) :
   isPartialOrder_intro (Set α) (fun (A B : Set α) => A ⊆ B)
     (fun (A : Set α) (x : α) (hx : x ∈ A) => hx)
     (fun (A B : Set α) (h1 : A ⊆ B) (h2 : B ⊆ A) =>
-      @Set.ext α A B (fun (x : α) => Iff.intro (h1 x) (h2 x)))
+      Set.ext A B (fun (x : α) => Iff.intro (h1 x) (h2 x)))
     (fun (A B C : Set α) (h1 : A ⊆ B) (h2 : B ⊆ C) (x : α) (hx : x ∈ A) =>
       h2 x (h1 x hx))
 

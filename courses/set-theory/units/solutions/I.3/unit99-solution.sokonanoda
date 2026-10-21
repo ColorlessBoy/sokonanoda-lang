@@ -12,7 +12,7 @@ theorem demo_pow_apply (α : Type) (A : Set α) (C : Set α) :
 
 theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  @Set.subset_def α A B
+  Set.subset_def A B
 
 theorem demo_mem_univ (α : Type) (x : α) : x ∈ (@Set.univ α) :=
   @Set.mem_univ α x
@@ -29,9 +29,9 @@ theorem subset_trans (α : Type) (A : Set α) (B : Set α) (C : Set α)
     (fun (hs : ∀ (z : α), z ∈ B → z ∈ C) => hs x
       ((fun (ht : ∀ (z : α), z ∈ A → z ∈ B) => ht x hx)
         ((fun (hu : A ⊆ B ↔ ∀ (z : α), z ∈ A → z ∈ B) => Iff.mp hu hAB)
-          (@Set.subset_def α A B))))
+          (Set.subset_def A B))))
       ((fun (hu : B ⊆ C ↔ ∀ (z : α), z ∈ B → z ∈ C) => Iff.mp hu hBC)
-        (@Set.subset_def α B C))
+        (Set.subset_def B C))
 
 theorem pow_mono (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) :
     Pow α A ⊆ Pow α B :=

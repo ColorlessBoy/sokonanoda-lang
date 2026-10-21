@@ -33,7 +33,7 @@ import lib.Extensionality
 -- 演示：包含的展开（`A ⊆ B` 就是"每个 `A` 的点都在 `B` 里"）。
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  @Set.subset_def α A B
+  Set.subset_def A B
 theorem demo_funext (α : Type) (β : α → Type)
     (f : (x : α) → β x) (g : (x : α) → β x) (h : ∀ (x : α), (f x) = (g x)) :
     f = g :=

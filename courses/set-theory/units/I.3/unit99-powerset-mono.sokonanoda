@@ -32,7 +32,7 @@ theorem demo_pow_apply (α : Type) (A : Set α) (C : Set α) :
     (fun (h : C ⊆ A) => h)
 theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  @Set.subset_def α A B
+  Set.subset_def A B
 theorem demo_mem_univ (α : Type) (x : α) : x ∈ (@Set.univ α) :=
   @Set.mem_univ α x-- 练习 1（T 类）：**成员 ⇒ 子集**。
 -- 关键件：演示里的 apply 引理（**先 λ 绑定再 `Iff.mp`** ✓）

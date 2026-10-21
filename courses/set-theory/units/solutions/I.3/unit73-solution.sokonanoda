@@ -110,7 +110,7 @@ theorem mem_image_mono (α : Type) (β : Type) (f : α → β) (A B : Set α) (h
       Set.mem_image_intro f B y x
         ((fun (hu : ∀ (u : α), u ∈ A → u ∈ B) => hu x hx)
           ((fun (hv : A ⊆ B ↔ ∀ (u : α), u ∈ A → u ∈ B) => Iff.mp hv h)
-            (@Set.subset_def α A B))) hxy)
+            (Set.subset_def A B))) hxy)
 
 theorem not_mem_image_empty (α : Type) (β : Type) (f : α → β) (y : β) :
     ¬ (y ∈ (f '' (∅))) :=

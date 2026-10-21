@@ -98,11 +98,11 @@ theorem demo_mem_union_notation (α : Type) (a : α) (A B : Set α) :
 
 theorem demo_ext_pointful (α : Type) (A B : Set α)
     (h1 : @Set.subset α A B) (h2 : @Set.subset α B A) : @Eq.{1} (Set α) A B :=
-  @Set.ext α A B (fun (x : α) => @Iff.intro (A x) (B x) (h1 x) (h2 x))
+  Set.ext A B (fun (x : α) => @Iff.intro (A x) (B x) (h1 x) (h2 x))
 
 theorem demo_ext_notation (α : Type) (A B : Set α)
     (h1 : A ⊆ B) (h2 : B ⊆ A) : @Eq.{1} (Set α) A B :=
-  @Set.ext α A B (fun (x : α) => @Iff.intro (A x) (B x) (h1 x) (h2 x))
+  Set.ext A B (fun (x : α) => @Iff.intro (A x) (B x) (h1 x) (h2 x))
 
 -- ─────────────────────────────────────────────────────────────
 -- 演示 9：优先级与结合性
@@ -136,7 +136,7 @@ theorem mem_union_comm (α : Type) (a : α) (A B : Set α) : a ∈ A ∪ B -> a 
 -- 练习 3：A ∪ ∅ = A。关键件：Set.ext + Iff.intro；→ 方向 Or.elim（∅ 那支 False.elim），
 -- ← 方向 Or.inl。结论里的 `∅` 在 `∪` 的右操作数位置 ⇒ 记法可用（页首边界）。
 theorem union_empty_right (α : Type) (A : Set α) : @Eq.{1} (Set α) (A ∪ ∅) A :=
-  @Set.ext α (A ∪ ∅) A (fun (x : α) =>
+  Set.ext (A ∪ ∅) A (fun (x : α) =>
     @Iff.intro (x ∈ A ∪ ∅) (A x)
       (fun (hx : x ∈ A ∪ ∅) =>
         @Or.elim (A x) (x ∈ ∅) (A x)

@@ -110,7 +110,7 @@ theorem prod_mono (A : Type) (B : Type) (s₁ : Set A) (s₂ : Set A) (t₁ : Se
   mem_prod_intro A B s₂ t₂ p
     ((fun (hu : ∀ (a : A), a ∈ s₁ → a ∈ s₂) => hu (Prod.fst A B p) (mem_prod_fst A B s₁ t₁ p h))
       ((fun (hv : s₁ ⊆ s₂ ↔ ∀ (a : A), a ∈ s₁ → a ∈ s₂) => Iff.mp hv h1)
-        (@Set.subset_def A s₁ s₂)))
+        (Set.subset_def s₁ s₂)))
     ((fun (hu : ∀ (b : B), b ∈ t₁ → b ∈ t₂) => hu (Prod.snd A B p) (mem_prod_snd A B s₁ t₁ p h))
       ((fun (hv : t₁ ⊆ t₂ ↔ ∀ (b : B), b ∈ t₁ → b ∈ t₂) => Iff.mp hv h2)
-        (@Set.subset_def B t₁ t₂)))
+        (Set.subset_def t₁ t₂)))

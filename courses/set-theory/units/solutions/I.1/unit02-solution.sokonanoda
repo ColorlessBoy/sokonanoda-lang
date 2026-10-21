@@ -19,7 +19,7 @@ theorem subset_trans (α : Type) (A B C : Set α)
 
 theorem subset_antisymm (α : Type) (A B : Set α)
     (h1 : A ⊆ B) (h2 : B ⊆ A) : A = B :=
-  @Set.ext α A B (fun (x : α) => Iff.intro (h1 x) (h2 x))
+  Set.ext A B (fun (x : α) => Iff.intro (h1 x) (h2 x))
 
 theorem empty_subset (α : Type) (A : Set α) : ∅ ⊆ A :=
   fun (x : α) (hx : x ∈ ∅) => @False.elim (x ∈ A) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
@@ -71,7 +71,7 @@ theorem pair_subset_iff (α : Type) (a b : α) (A : Set α) :
         hx)
 
 theorem pair_comm (α : Type) (a b : α) : {a, b} = {b, a} :=
-  @Set.ext α {a, b} {b, a} (fun (x : α) =>
+  Set.ext {a, b} {b, a} (fun (x : α) =>
     @Iff.intro (x ∈ {a, b}) (x ∈ {b, a})  -- soko:notation-ok: G-30：分支含集合字面量，前导实参必须写全
       (fun (h : x ∈ {a, b}) =>
         @Or.elim (x = a) (x = b) ((x = b) ∨ (x = a))  -- soko:notation-ok: λ 体要靠这个显式调用拿到期望类型（引擎边界）

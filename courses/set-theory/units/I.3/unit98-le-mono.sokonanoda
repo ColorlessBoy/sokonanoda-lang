@@ -34,7 +34,7 @@ theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
     (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) => h)
 theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  @Set.subset_def α A B
+  Set.subset_def A B
 theorem demo_leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
     (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
   Exists.intro f

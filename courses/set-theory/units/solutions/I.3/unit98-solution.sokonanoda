@@ -14,7 +14,7 @@ theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
 
 theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  @Set.subset_def α A B
+  Set.subset_def A B
 
 theorem demo_leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
     (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
@@ -34,13 +34,13 @@ theorem mapsTo_mono_right (α : Type) (β : Type) (f : α → β) (A : Set α) (
     (C : Set β) (hf : Set.MapsTo α β f A B) (h : B ⊆ C) : Set.MapsTo α β f A C :=
   fun (x : α) (hx : x ∈ A) =>
     (fun (hs : ∀ (y : β), y ∈ B → y ∈ C) => hs (f x) (hf x hx))
-      ((fun (hu : B ⊆ C ↔ ∀ (y : β), y ∈ B → y ∈ C) => Iff.mp hu h) (@Set.subset_def β B C))
+      ((fun (hu : B ⊆ C ↔ ∀ (y : β), y ∈ B → y ∈ C) => Iff.mp hu h) (Set.subset_def B C))
 
 theorem injOn_mono_left (α : Type) (β : Type) (f : α → β) (A : Set α) (A' : Set α)
     (hf : Set.InjOn α β f A) (h : A' ⊆ A) : Set.InjOn α β f A' :=
   fun (x : α) (hx : x ∈ A') (y : α) (hy : y ∈ A') (heq : f x = f y) =>
     (fun (hs : ∀ (z : α), z ∈ A' → z ∈ A) => hf x (hs x hx) y (hs y hy) heq)
-      ((fun (hu : A' ⊆ A ↔ ∀ (z : α), z ∈ A' → z ∈ A) => Iff.mp hu h) (@Set.subset_def α A' A))
+      ((fun (hu : A' ⊆ A ↔ ∀ (z : α), z ∈ A' → z ∈ A) => Iff.mp hu h) (Set.subset_def A' A))
 
 theorem leOn_mono_left (α : Type) (β : Type) (A : Set α) (A' : Set α) (B : Set β)
     (h : A' ⊆ A) (hAB : LeOn α β A B) : LeOn α β A' B :=
@@ -54,7 +54,7 @@ theorem leOn_mono_left (α : Type) (β : Type) (A : Set α) (A' : Set α) (B : S
           (@And.right (Set.InjOn α β f A) (Set.MapsTo α β f A B) hf) x  -- soko:notation-ok: `LeOn` 是 def 头（手册边界）
             ((fun (hs : ∀ (z : α), z ∈ A' → z ∈ A) => hs x hx)
               ((fun (hu : A' ⊆ A ↔ ∀ (z : α), z ∈ A' → z ∈ A) => Iff.mp hu h)
-                (@Set.subset_def α A' A)))))
+                (Set.subset_def A' A)))))
 
 theorem leOn_mono_right (α : Type) (β : Type) (A : Set α) (B : Set β) (C : Set β)
     (hAB : LeOn α β A B) (h : B ⊆ C) : LeOn α β A C :=

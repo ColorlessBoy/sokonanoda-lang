@@ -91,7 +91,7 @@ theorem univ_top_iff (α : Type) (A : Set α) :
 -- 的裸 α，会造出坏子目标。
 theorem powerset_univ_eq_univ_of_sets (α : Type) :
     𝒫 (@Set.univ α) = @Set.univ (Set α) := by  -- soko:notation-ok: `𝒫` 的操作数是零元隐式常量且无期望类型 ⇒ 解不出前导参数（E19/E20 元变量领地）
-  apply @Set.ext (Set α)
+  apply Set.ext
   intro A
   constructor
   intro h

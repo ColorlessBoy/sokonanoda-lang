@@ -39,7 +39,7 @@ theorem demo_propext (a b : Prop) (h : a ↔ b) : a = b :=
   propext_spec a b h
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  @Set.subset_def α A B-- 练习 1（T 类，**前件**）：`A ⊆ B` 用在点上。
+  Set.subset_def A B -- 练习 1（T 类，**前件**）：`A ⊆ B` 用在点上。
 
 -- soko:hint 关键件：`Set.subset_def`（**先 λ 绑定、再 `Iff.mp`** ✓）· 按 点 · 前提 应用 ✓
 

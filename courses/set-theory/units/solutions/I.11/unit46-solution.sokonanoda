@@ -37,7 +37,7 @@ theorem symmDiff_comm_apply (α : Type) (A B : Set α) (x : α) :
 
 theorem symmDiff_comm (α : Type) (A B : Set α) :
     symmDiff α A B = symmDiff α B A :=
-  @Set.ext α (symmDiff α A B) (symmDiff α B A)
+  Set.ext (symmDiff α A B) (symmDiff α B A)
     (fun (x : α) => symmDiff_comm_apply α A B x)
 
 theorem symmDiff_self_apply (α : Type) (A : Set α) (x : α) :
@@ -95,7 +95,7 @@ theorem symmDiff_subset_union_apply (α : Type) (A B : Set α) (x : α)
 
 theorem symmDiff_self (α : Type) (A : Set α) :
     symmDiff α A A = (fun (_ : α) => False) :=
-  @Set.ext α (symmDiff α A A) (fun (_ : α) => False) (fun (x : α) =>
+  Set.ext (symmDiff α A A) (fun (_ : α) => False) (fun (x : α) =>
     @Iff.intro ((symmDiff α A A) x) ((fun (_ : α) => False) x)
       (fun (h : (symmDiff α A A) x) =>
         False.elim (symmDiff_self_apply α A x h))
@@ -104,5 +104,5 @@ theorem symmDiff_self (α : Type) (A : Set α) :
 
 theorem symmDiff_univ (α : Type) (A : Set α) :
     symmDiff α A (@Set.univ α) = (fun (x : α) => ¬ (A x)) :=
-  @Set.ext α (symmDiff α A (@Set.univ α)) (fun (x : α) => ¬ (A x))
+  Set.ext (symmDiff α A (@Set.univ α)) (fun (x : α) => ¬ (A x))
     (fun (x : α) => symmDiff_univ_apply α A x)

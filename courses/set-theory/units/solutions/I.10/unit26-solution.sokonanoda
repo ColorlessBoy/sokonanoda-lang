@@ -104,7 +104,7 @@ theorem class_is_block (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partit
         (partition_cover α P hP a)
         (fun (A : α → Prop) (hA : P A ∧ A a) =>
           rel_subst_right (α → Prop) (fun (u : α → Prop) (v : α → Prop) => P v) A A C
-            (@Set.ext α A C
+            (Set.ext A C
               (class_eq_block_core α P hP A C a (And.left hA) (And.right hA) ha))
             (And.left hA)))
 

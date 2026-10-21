@@ -89,7 +89,7 @@ theorem prod_set_swap_ne (A : Type) (a b : A) (h : a ≠ b) :
 -- `match` 需要一处**有类型标注**的位置（`have` 的标注正好提供它）。
 theorem kura_degenerate (α : Type) (a b : α) (h : a = b) :
     {{a}, {a, b}} = {{a}} := by
-  apply @Set.ext (Set α)
+  apply Set.ext
   intro x
   constructor
   intro hX
@@ -98,7 +98,7 @@ theorem kura_degenerate (α : Type) (a b : α) (h : a = b) :
       | Or.inl h1 => exact h1
       | Or.inr h2 =>
         exact @Eq.trans.{1} (Set α) x {a, b} {a} h2
-          (@Set.ext α {a, b} {a}
+          (Set.ext {a, b} {a}
             (fun (y : α) =>
               @Iff.intro (y = a ∨ y = b) (y = a)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
                 (fun (hy : y = a ∨ y = b) =>

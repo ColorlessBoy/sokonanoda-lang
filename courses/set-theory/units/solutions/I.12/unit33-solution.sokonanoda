@@ -25,7 +25,7 @@ theorem mem_powerset_apply (α : Type) (A B : Set α) :
 
 theorem powerset_inter (α : Type) (A B : Set α) :
     𝒫 (A ∩ B) = 𝒫 A ∩ 𝒫 B :=
-  @Set.ext (Set α) (𝒫 (A ∩ B)) (𝒫 A ∩ 𝒫 B) (fun (C : Set α) =>
+  Set.ext (𝒫 (A ∩ B)) (𝒫 A ∩ 𝒫 B) (fun (C : Set α) =>
     @Iff.intro (C ∈ 𝒫 (A ∩ B)) (C ∈ (𝒫 A ∩ 𝒫 B))
       (fun (h : C ⊆ A ∩ B) =>
         And.intro
@@ -53,7 +53,7 @@ theorem powerset_union_subset (α : Type) (A B : Set α) :
 
 theorem sUnion_powerset (α : Type) (A : Set α) :
     ⋃₀ (𝒫 A) = A :=
-  @Set.ext α (⋃₀ (𝒫 A)) A (fun (x : α) =>
+  Set.ext (⋃₀ (𝒫 A)) A (fun (x : α) =>
     @Iff.intro (x ∈ ⋃₀ (𝒫 A)) (A x)
       (fun (h : x ∈ ⋃₀ (𝒫 A)) =>
         Set.mem_sUnion_elim α (𝒫 A) x (A x) h

@@ -39,7 +39,7 @@ theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (∅)) :=
   fun (h : a ∈ (∅)) => (Iff.mp (Set.mem_empty_iff_false a) h)
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  @Set.subset_def α A B
+  Set.subset_def A B
 -- ─────────────────────────────────────────────────────────────
 -- 56.2 总纲三：驳倒 `∃`（要与每个 x 打交道）
 -- ─────────────────────────────────────────────────────────────

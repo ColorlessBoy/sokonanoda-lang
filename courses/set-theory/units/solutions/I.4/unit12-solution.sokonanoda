@@ -43,7 +43,7 @@ import lib.Image
 -- X1：De Morgan——"既不 A 也不 B"就是"不（A 或 B）"。逐元素做命题逻辑。
 theorem xlat_compl_union (α : Type) (A B : Set α) :
     (A ∪ B)ᶜ = Aᶜ ∩ Bᶜ :=
-  @Set.ext α ((A ∪ B)ᶜ) (Aᶜ ∩ Bᶜ) (fun (x : α) =>
+  Set.ext ((A ∪ B)ᶜ) (Aᶜ ∩ Bᶜ) (fun (x : α) =>
     @Iff.intro (¬ ((A ∪ B) x)) ((Aᶜ ∩ Bᶜ) x)
       (fun (h : ¬ ((A ∪ B) x)) =>
         And.intro
@@ -91,7 +91,7 @@ theorem xlat_injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
 -- X4：复合的原像 = 先拉后拉。两边展开后是同一个命题，所以逐元素是 Iff.rfl。
 theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C : Set γ) :
     f ⁻¹' (g ⁻¹' C) = (g ∘ f) ⁻¹' C :=
-  @Set.ext α (f ⁻¹' (g ⁻¹' C)) ((g ∘ f) ⁻¹' C)
+  Set.ext (f ⁻¹' (g ⁻¹' C)) ((g ∘ f) ⁻¹' C)
     (fun (x : α) => Iff.rfl )
 
 -- R1：错证明 A 的改正版——"反向显然"里偷用的前提被摆到台面上（hC）。
@@ -100,7 +100,7 @@ theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C 
 theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
     (hC : C ⊆ f '' @Set.univ α) :
     f '' (f ⁻¹' C) = C :=
-  @Set.ext β (f '' (f ⁻¹' C)) C (fun (y : β) =>
+  Set.ext (f '' (f ⁻¹' C)) C (fun (y : β) =>
     @Iff.intro (y ∈ f '' (f ⁻¹' C)) (y ∈ C)
       (fun (hy : y ∈ f '' (f ⁻¹' C)) =>
         @Exists.elim α (fun (x : α) => (x ∈ f ⁻¹' C) ∧ (f x = y)) (y ∈ C) hy
@@ -125,7 +125,7 @@ theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
 theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
     (hf : Function.Injective α β f) :
     f '' (A ∩ B) = f '' A ∩ f '' B :=
-  @Set.ext β (f '' (A ∩ B)) (f '' A ∩ f '' B) (fun (y : β) =>
+  Set.ext (f '' (A ∩ B)) (f '' A ∩ f '' B) (fun (y : β) =>
     @Iff.intro (y ∈ f '' (A ∩ B)) (y ∈ f '' A ∩ f '' B)
       (fun (hy : y ∈ f '' (A ∩ B)) =>
         @Exists.elim α (fun (x : α) => ((A ∩ B) x) ∧ (f x = y)) (y ∈ f '' A ∧ y ∈ f '' B) hy
@@ -347,7 +347,7 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
           (fun (h : (fun (a : α) => fun (c : γ) => g (f a) = c) a c) =>
             Exists.intro (f a)
               (And.intro (@Eq.refl.{1} β (f a)) h))))
-    (@Set.ext γ ((g ∘ f) '' A) (g '' (f '' A)) (fun (y : γ) =>
+    (Set.ext ((g ∘ f) '' A) (g '' (f '' A)) (fun (y : γ) =>
       @Iff.intro (y ∈ (g ∘ f) '' A) (y ∈ g '' (f '' A))
         (fun (hy : y ∈ (g ∘ f) '' A) =>
           @Exists.elim α (fun (x : α) => (A x) ∧ (((g ∘ f) x) = y))

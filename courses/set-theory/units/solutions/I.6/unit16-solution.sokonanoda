@@ -32,7 +32,7 @@ theorem extensional_eq (α : Type) (E : α → α → Prop) (he : Extensional α
 theorem subset_extensional (α : Type) :
     Extensional (Set α) (fun (A B : Set α) => A ⊆ B) :=
   fun (A B : Set α) (h : ∀ (C : Set α), C ⊆ A ↔ C ⊆ B) =>
-    @Set.ext α A B (fun (x : α) =>
+    Set.ext A B (fun (x : α) =>
       Iff.intro
         ((fun (hAB : A ⊆ B) => hAB x) (Iff.mp (h A) (fun (y : α) (hy : y ∈ A) => hy)))
         ((fun (hBA : B ⊆ A) => hBA x) (Iff.mpr (h B) (fun (y : α) (hy : y ∈ B) => hy))))

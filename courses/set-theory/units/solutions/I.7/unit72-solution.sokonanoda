@@ -67,7 +67,7 @@ theorem mem_sUnion_of_subset (α : Type) (F G : Set (Set α)) (h : F ⊆ G) (x :
           (And.intro
             ((fun (hv : ∀ (C : Set α), C ∈ F → C ∈ G) => hv A (And.left hA))
               ((fun (hw : F ⊆ G ↔ ∀ (C : Set α), C ∈ F → C ∈ G) => Iff.mp hw h)
-                (@Set.subset_def (Set α) F G)))
+                (Set.subset_def F G)))
             (And.right hA))))
         (Set.mem_sUnion_iff α G x))
 
@@ -78,7 +78,7 @@ theorem mem_sInter_of_subset (α : Type) (F G : Set (Set α)) (h : F ⊆ G) (x :
       mem_of_mem_sInter α G x hx A
         ((fun (hv : ∀ (C : Set α), C ∈ F → C ∈ G) => hv A hA)
           ((fun (hw : F ⊆ G ↔ ∀ (C : Set α), C ∈ F → C ∈ G) => Iff.mp hw h)
-            (@Set.subset_def (Set α) F G)))))
+            (Set.subset_def F G)))))
     (Set.mem_sInter_iff α F x)
 
 theorem not_mem_sUnion_empty (α : Type) (x : α) :

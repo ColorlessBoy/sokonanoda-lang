@@ -15,14 +15,14 @@ theorem demo_subset_def (α : Type) (A B : Set α) :
 
 theorem sdiff_eq_inter_compl (α : Type) (A B : Set α) :
     A \ B = A ∩ Bᶜ :=
-  @Set.ext α (A \ B) (A ∩ Bᶜ) (fun (x : α) =>
+  Set.ext (A \ B) (A ∩ Bᶜ) (fun (x : α) =>
     @Iff.intro ((A \ B) x) ((A ∩ Bᶜ) x)
       (fun (h : A x ∧ ¬ (B x)) => And.intro (And.left h) (And.right h))
       (fun (h : A x ∧ ¬ (B x)) => And.intro (And.left h) (And.right h)))
 
 theorem union_inter_distrib_right (α : Type) (A B C : Set α) :
     (A ∪ B) ∩ C = (A ∩ C) ∪ (B ∩ C) :=
-  @Set.ext α ((A ∪ B) ∩ C) ((A ∩ C) ∪ (B ∩ C)) (fun (x : α) =>
+  Set.ext ((A ∪ B) ∩ C) ((A ∩ C) ∪ (B ∩ C)) (fun (x : α) =>
     @Iff.intro (((A ∪ B) ∩ C) x) (((A ∩ C) ∪ (B ∩ C)) x)
       (fun (h : (A x ∨ B x) ∧ C x) =>
         @Or.elim (A x) (B x) ((A x ∧ C x) ∨ (B x ∧ C x))
@@ -39,7 +39,7 @@ theorem union_inter_distrib_right (α : Type) (A B C : Set α) :
 
 theorem inter_union_distrib_right (α : Type) (A B C : Set α) :
     (A ∩ B) ∪ C = (A ∪ C) ∩ (B ∪ C) :=
-  @Set.ext α ((A ∩ B) ∪ C) ((A ∪ C) ∩ (B ∪ C)) (fun (x : α) =>
+  Set.ext ((A ∩ B) ∪ C) ((A ∪ C) ∩ (B ∪ C)) (fun (x : α) =>
     @Iff.intro (((A ∩ B) ∪ C) x) (((A ∪ C) ∩ (B ∪ C)) x)
       (fun (h : (A x ∧ B x) ∨ C x) =>
         @Or.elim (A x ∧ B x) (C x) ((A x ∨ C x) ∧ (B x ∨ C x))
@@ -62,7 +62,7 @@ theorem inter_union_distrib_right (α : Type) (A B C : Set α) :
 
 theorem compl_union (α : Type) (A B : Set α) :
     (A ∪ B)ᶜ = Aᶜ ∩ Bᶜ :=
-  @Set.ext α ((A ∪ B)ᶜ) (Aᶜ ∩ Bᶜ) (fun (x : α) =>
+  Set.ext ((A ∪ B)ᶜ) (Aᶜ ∩ Bᶜ) (fun (x : α) =>
     @Iff.intro (¬ (A x ∨ B x)) (¬ (A x) ∧ ¬ (B x))
       (fun (h : ¬ (A x ∨ B x)) =>
         And.intro
@@ -82,7 +82,7 @@ theorem compl_inter_subset (α : Type) (A B : Set α) :
 
 theorem union_absorb (α : Type) (A B : Set α) :
     A ∪ (A ∩ B) = A :=
-  @Set.ext α (A ∪ (A ∩ B)) A (fun (x : α) =>
+  Set.ext (A ∪ (A ∩ B)) A (fun (x : α) =>
     @Iff.intro (A x ∨ (A x ∧ B x)) (A x)
       (fun (h : A x ∨ (A x ∧ B x)) =>
         @Or.elim (A x) (A x ∧ B x) (A x)
@@ -93,7 +93,7 @@ theorem union_absorb (α : Type) (A B : Set α) :
 
 theorem inter_absorb (α : Type) (A B : Set α) :
     A ∩ (A ∪ B) = A :=
-  @Set.ext α (A ∩ (A ∪ B)) A (fun (x : α) =>
+  Set.ext (A ∩ (A ∪ B)) A (fun (x : α) =>
     @Iff.intro (A x ∧ (A x ∨ B x)) (A x)
       (fun (h : A x ∧ (A x ∨ B x)) => And.left h)
       (fun (ha : A x) => And.intro ha (@Or.inl (A x) (B x) ha)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全

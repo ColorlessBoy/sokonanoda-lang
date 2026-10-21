@@ -31,7 +31,7 @@ import lib.Rel
 -- 演示：包含的展开（`A ⊆ B` 就是"每个 `A` 的点都在 `B` 里"）。
 theorem demo_subset_def (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
-  @Set.subset_def α A B
+  Set.subset_def A B
 theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
     a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B :=
   Set.mem_union a A B
