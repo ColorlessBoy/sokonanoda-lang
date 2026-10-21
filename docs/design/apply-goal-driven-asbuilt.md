@@ -6,25 +6,29 @@
 
 | 项 | 位置 | 说明 |
 |---|---|---|
-| 1a 失败边重试 | `by/apply.rs`（自 `by.rs` 拆出）：`apply_type_fits` + `apply_tactic` | 文本「读不回来 / 结论对不上」才用目标当期望类型重试一次；只有新文本**真的能用**才替换 ⇒ 成功路径零新增 |
+| 1a 失败边重试 | `by.rs::apply_tactic` + `apply_probe.rs::retry_with_goal`/`apply_type_fits` | 文本「读不回来 / 结论对不上」才用目标当期望类型重试一次；只有新文本**真的能用**才替换 ⇒ 成功路径零新增 |
 | 1b 层归一 | `level_text.rs::normalize_level_mvars`（在 `judge::peel_binders` 之前） | 把 `?u.<id>` 归一成层参数名；**守卫**：`u_soko*` 不许进结论/子目标域 |
-| 1b 信号 | `by/apply.rs` 的层角色判定 | 名字出现在**后续任何一层的域**里也算类型参数（`Eq.symm.{0}` 的 `α` 只出现在 `(a b : α)` 的域里） |
+| 1b 信号 | `by.rs` 的层角色判定 | 名字出现在**后续任何一层的域**里也算类型参数（`Eq.symm.{0}` 的 `α` 只出现在 `(a b : α)` 的域里） |
 | 1c 可诊断 | `judge::peel_binders` | `SOKO_PEEL_PROBE=1` ⇒ `[peel-break] parse failed …` |
-| 诊断病因 | `by/apply.rs` | `f_ty` 含 `?u.` ⇒ 说「宇宙层/参数还没定下来（钉层或换写法）」，否则保留 D5 的「实参没写全」 |
-| 拆分 | `by.rs` → `by/apply.rs`；`judge.rs` → `level_text.rs` | 落地时 `docs-lint` ⑨ 判红（`by.rs` 4466 > 基线 4353、`judge.rs` 4728 > 4670）⇒ 按「拆出去」做，现 4036 / 4643 |
+| 诊断病因 | `apply_probe.rs::unreadable_message` | `f_ty` 含 `?u.` ⇒ 说「宇宙层/参数还没定下来（钉层或换写法）」，否则保留 D5 的「实参没写全」 |
+| 拆分 | `by.rs`/`judge.rs` → `apply_probe.rs`/`level_text.rs` | 落地时 `docs-lint` ⑨ 判红（`by.rs` 4466 > 基线 4353、`judge.rs` 4728 > 4670）⇒ 按「拆出去」做，现 **4292 / 4663**（都回到基线内） |
 
 ## 2. 读数（同一构建内 A/B）
 
-- `cargo test -p sokonanoda-front --lib`：**1018 passed / 0 failed**（D5 期望已改 + 4 条新判据断言 `by_steps[0].goals`）。
-- `lib/Set`：**28 checked / 0 failed**（两档一致）。
+**代价（如实）**：每次 `apply` 多一趟**源级** `parse → 剥层 → 合一`（不进内核）；
+`level_hint_of`（可能落到 `judge_infer` 重编前缀）**只在无 hint 判不过时**才买
+（`apply_type_fits` 先试 `None`）。实测 4 条基准墙钟与 `--json`（剔时间字段）无差。
+
+- `cargo test -p sokonanoda-front --lib`：**1019 passed / 0 failed**（D5 期望已改 + 4 条新判据 + 1 条 B 信号单测，全部断言 `by_steps[0].goals`）。
+- `lib/Set`：`query check` 报 **28 checked / 0 failed**（两档一致）。
 - 矩阵 `scripts/apply-goal-driven-matrix.sh`：**exit 0**；三个开关全关 ⇒ exit 1。
-- **全课程对拍（release）**：fixed vs HEAD 行为（三开关全关）逐文件 `grade --json`（剔时间字段）
-  ⇒ **TOTAL=252 · SAME=252 · DIFF=0**。
+- **全课程对拍（release）**：fixed vs HEAD 行为（开关 `SOKO_APPLY_GOAL_FIRST=0 SOKO_APPLY_LEVEL_TEXT=0`）逐文件
+  `grade --json` **剔除时间字段后** ⇒ **TOTAL=252 · SAME=252 · DIFF=0**（不是原始字节相同）。
 - **课程门禁**（release）：**258 目标 · 2190 checked · 915 open · 0 判负 · exit 0**。
   （第一轮 14 判负全是 `gaps/*.sh` 复现脚本：隔离树没有 `<树>/target/release` ⇒ `scripts/soko` exit 3；
   把 release 放进 `target/release/` 后重跑即绿 —— **不是代码红**。）
-- 三个回退开关实测：`SOKO_APPLY_LEVEL_TEXT=0` ⇒ `Eq.symm` 退回「读不回来」；`SOKO_APPLY_GOAL_FIRST=0`
-  ⇒ `Eq.trans h` 退回 defaulting；`SOKO_APPLY_PENDING`（已随 B 的结论删除，见 §4）。
+- 两个回退开关实测：`SOKO_APPLY_LEVEL_TEXT=0` ⇒ `Eq.symm` 退回「读不回来」；`SOKO_APPLY_GOAL_FIRST=0`
+  ⇒ `Eq.trans h` 退回 defaulting。**没有** `SOKO_APPLY_PENDING`（B 的结论把它删了，见 §4）。
 
 ## 3. 批次 B 的 spike：结论 = **不需要 `Pending`**（并且降级是错的）
 

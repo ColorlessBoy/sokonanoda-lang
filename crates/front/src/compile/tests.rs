@@ -8516,7 +8516,7 @@ fn mismatch_message_renders_both_sides_with_the_same_notation_style() {
 /// `???`、不许出现 `sorry`；必须是「读不回来」**或**「目标不匹配」之一，并点名
 /// 被应用的项；且 `apply Eq.subst`（零实参）**仍然被拒**。
 #[test]
-fn apply_with_too_few_arguments_reports_the_real_mismatch() {
+fn apply_with_too_few_arguments_reports_a_real_reason() {
     const LIB: &str = "def Set (α : Type) : Type := α → Prop\n\
          def mem {α : Type} (a : α) (A : Set α) : Prop := A a\n\
          infix:50 \" ∈ \" => mem\n";
@@ -11898,6 +11898,42 @@ fn apply_eq_trans_leaves_the_middle_side_as_the_subgoal() {
             .collect::<Vec<_>>(),
         vec!["b = c"],
         "apply 的子目标恰为 `b = c`：{:?}",
+        d.by_steps[0].goals
+    );
+}
+
+/// **B 信号**（2026-10-21）：`apply Eq.symm.{0}` 的 `α` 是**隐式**类型参数（`{α : Sort 0}`），
+/// 它出现在**后面那层的域**（`(a b : α)`）里 ⇒ 必须算类型参数，**不许**变成 `⊢ Prop` 子目标。
+///
+/// 钉住的是修前那条：`apply Eq.symm.{0}` 会多出 `⊢ Prop`（伪目标），用户证不出来也看不到原因。
+#[test]
+fn apply_implicit_type_param_from_a_later_domain_is_not_a_subgoal() {
+    let src = concat!(
+        "theorem bad_universe (α : Type) (a x : α) : a = x := by\n",
+        "  apply Eq.symm.{0}\n",
+        "  sorry\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(
+        report.errors.is_empty(),
+        "`apply Eq.symm.{{0}}` 至少要能出目标（层不符由后面判）：{:?}",
+        report.errors
+    );
+    let open: Vec<_> = report
+        .decls
+        .iter()
+        .filter(|d| d.status == DeclStatus::Open)
+        .collect();
+    assert_eq!(open.len(), 1, "exactly one open exercise: {open:?}");
+    let d = open[0];
+    assert_eq!(
+        d.by_steps[0]
+            .goals
+            .iter()
+            .map(|g| g.ty.as_str())
+            .collect::<Vec<_>>(),
+        vec!["x = a"],
+        "隐式层不许变成子目标（修前多一个 `Prop`）：{:?}",
         d.by_steps[0].goals
     );
 }

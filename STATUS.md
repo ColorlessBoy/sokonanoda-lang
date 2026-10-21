@@ -4,6 +4,7 @@
 - **改法**：1a 失败边重试（`SOKO_APPLY_GOAL_FIRST=0` 回退）· 1b 剥层前层归一（`SOKO_APPLY_LEVEL_TEXT=0`，守卫 `u_soko*` 不许外泄）· 层角色信号加「名字出现在**后续任何一层的域**」· `SOKO_PEEL_PROBE=1` 可诊断 · 诊断按病因拆。按行数棘轮拆出 `apply_probe.rs` / `level_text.rs`（`by.rs` 4439→4292、`judge.rs` 4728→4665）。
 - **判据（全绿）**：`front --lib` **1018/0**（D5 期望更新 + 4 条新判据断言 `by_steps[0].goals`）· `lib/Set` **28/0** · 全课程 **252 文件 vs HEAD 行为逐字节（SAME=252/DIFF=0）** · 课程门禁 **258 目标 / 2190 checked / 0 判负** · `scripts/soko gate --fast` **exit 0** · 矩阵 `scripts/apply-goal-driven-matrix.sh` **PASS** · `notation-paths` 0 新增绕过。
 - **更正一条（省一次白做）**：`apply junk` 的 `['Sort 1','P']` **不是伪目标** —— `α` 是**显式**类型参数，Lean 的 `apply` 同样为它留元变量并把它当中一个目标（`⊢ Type`）。按「应为 `['P']`」做的「点名报错」降级会**拒绝 Lean 合法写法** ⇒ 已回退、开关已删。项级 mvar 不需要也做不到（内核 `Expr::Meta` 是占位符：`add_declar` 硬拒 / `eval` panic / `writer` 拒）。
+- ⚠ **推送留痕**：pre-push 的 `gates：缺口台账（--strict）` 在本机红在**长复现件超时**（`--strict` 把「超时 = 未验证」判红；CI 跑的是**不带** `--strict` 的分片版）⇒ 按逃生门 `git push --no-verify`，其余快层（fmt/clippy/测试环境档位隔离）**全绿** ✓。
 - ⚠ **边界**：`SOKO_JUDGE_INPLACE=off`（慢路）下 1a/1b 不生效（`judge_infer` 没有「带期望类型」能力）⇒ 发布说明 + 阶段 4 收口。台账条目按 `check-multi-session.py` ① **只在 main 上改**（分支不含；落地清单 `target/land/README.md`）。
 
 ## 严格档 v2 安全腿 A 收口：10/16 + 6 条已知限制（2026-10-21 · 未发版）
