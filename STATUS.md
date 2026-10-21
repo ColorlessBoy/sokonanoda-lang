@@ -1,3 +1,10 @@
+## strict-mode-v2 批次：12/16 迁绿 + q2 推断修复（2026-10-21 · 未发版）
+- ⭐ **用户拿到什么**：`A ⊆ Set.univ` 的 `exact Set.mem_univ x` **两档判绿**（q2 推断修复 `f50ae4da`）；unit10/unit11 严格档档案绿（`2b554ef9`/`b64c42cc`）。
+- **真因**：`intro` 的 canonical goal 走非显式 pp，`Set.subset α A Set.univ` 的前导 α 在源级 delta 展开时未代换 ⇒ judge 文本里自由 α。修法 = canonical goal 用 explicit pp（`@Set.subset Nat A (@Set.univ Nat)`）；**内核判定一行没动**。
+- **读数**：`front --lib` **1006/1006**；356 sweep **6 diffs**（4 待迁 + 2 invalid）；q2 回归 `strict_provenance` **4/4**；unit10/11 的 L/S 与 HEAD-loose 输出逐字节相同。
+- ⚠ **未收口 4**：unit06（嵌套 `Exists`/`And` + witness proof bug）· unit08 · unit09（`And.left` 结果应用）· unit12（证明项内部 Sort 不一致）。WIP：`target/unit06-wip3.patch` / `target/unit12-at-wip2.patch`。
+- **纪律**：delete-first；`@` 只在“α 必须指定/推断不出”时用；不做全局 `@` 或全局删除。
+
 ## **默认档翻回旧读法** —— 同一份课程单元 **8.8 s → 0.62 s**（14×）（2026-10-20 · **已发版 `v0.95.0`**，26 资产）
 - ⭐ **用户拿到什么**：**判卷回到该有的速度**。同一份 `unit01-sets-membership`：默认档 **8.8 s → 0.62 s**；`gates-course` 不再 30+ 分钟；编辑器开档不再 20 秒。严格档（`SOKO_STRICT_AT=1`）**完整保留**，语料两档都合法（全部是 `@` 写法）。
 - **真因**：`487f9a77` 翻默认后，`elab::operand_type_expr` 的问法换成**全显式 pp**，而那条支路**不查判定缓存**（注释原文「不查普通缓存槽」）+ **就地也答不出**（`elab_expr(operand)`）⇒ 每次退化成「造 `#check` 文档 + 整段前缀从零重编」（16 KB 的单元重编 **12 次**）。分解读数：**关掉就地判定后两档都是 ~5 s** ⇒ 差别全在"就地/缓存这条路能不能用"，不在解析。
