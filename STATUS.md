@@ -3,6 +3,7 @@
 - **判据（实跑）**：`front --lib` **1026/0** · `tactic_docs` 6/0 · `skill` 5/0 · `docs-lint` ✓ · webview 37/37 · extension-host 71/71 · 课程单元1 3 checked/5 open/0 判负 · 用户三份证明各 1 checked · `· sorry`/空 `·` 均 open + 一个 tactic 位洞 · direct 坏实参 `apply` 行早报。
 - **边界（如实）**：`·` 里 **tactic 报错**仍照常报错（只有“没证完”走 admit）；direct 的**部分应用普通 App**（`Eq.trans h`）仍靠内核终审（前端 `InferOnly` 限制；完全应用/`@`/命名实参已早报）。
 - **改动**：`front` parser/by/apply_probe/query/state + `editor/vscode` Infoview/树 + tactic 表/`·.md`/TM grammar/skills + LSP hover/F12；`STATUS/REQUIREMENTS/CHANGELOG` 同步。
+- ⚠ **推送留痕**：pre-push 的 `gates：缺口台账（--strict）` 在 G-83 长复现（~50min）上不收敛；本地完整 `scripts/soko gate` 已 PASS（非 strict 分片）⇒ 按逃生门 `git push --no-verify`（CI 跑非 strict 分片）✓。
 
 ## 未完成 `sorry` 练习按 Lean 4 进环境：goal state 不再被 `unknown identifier` 阻断（2026-10-21 · 未发版）
 - ⭐ **用户拿到什么**：`unit01` 的 `singleton_subset_iff` 引用尚未证明的 `mem_of_subset_singleton` / `subset_of_mem_singleton` ⇒ 不再报错、正常 elaborate；被引用处给 `uses-open-exercise` warning（不是 error）；部分证明留着 `sorry` 时 `query state` 照常给出目标。
