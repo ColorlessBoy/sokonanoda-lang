@@ -91,12 +91,6 @@
       "renewed": "2026-09-30",
       "tier": "entry"
     },
-    "docs/design/apply-goal-driven-asbuilt.md": {
-      "expires": "2027-01-19",
-      "renewed": "2026-10-21",
-      "tier": "process",
-      "reason": "本批 as-built + Lean 4 对照 + B spike 结论（显式参数就是目标 / 不需要 Pending）"
-    },
     "docs/design/apply-goal-driven.md": {
       "expires": "2027-10-21",
       "renewed": "2026-10-21",
