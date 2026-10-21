@@ -17,7 +17,12 @@
   · **可删的前导隐式 `@`**（2026-10-21）：`@Set.subset_def α A B` →
     `Set.subset_def A B`、`@Set.ext α A B h` → `Set.ext A B h` —— 第一个实参是
     前导隐式 `α`，后面的显式实参（`A : Set α`）唯一确定它 ⇒ `@` 只是噪声。
+    第二批（同日）再收 8 个 `Set.mem_*` 单前导名字 + `mem_sep_iff`：
+    `@Set.mem_univ α a` → `Set.mem_univ a`、`@mem_sep_iff α A P x` → `mem_sep_iff A P x` ……
     **只收已实测的名字**（表 `REDUNDANT_AT`）；表外不猜。
+    **不进表**：记法目标（`Set.mem`/`Set.subset`/`Set.inter`/`Set.singleton`/`Set.empty`
+    —— `POINTFUL` 已按名字判红，两套修法会打架）、零元应用（`@Set.univ α`/`@Set.empty α`）、
+    多前导隐式（`And`/`Or`/`Exists`/`prod_mk`）、`@Eq.*`（宇宙层级）。
   · **代码与注释（含 `-- soko:hint`）都算**；tactic 块不动，term 可以保留。
   · **`.md` 里的 ```sokonanoda 围栏块也算**（2026-10-10，设计
     `docs/design/tactic-docs.md` §5 P3 判据 ③）：`reference/tactics/*.md` 是**给学习者看的正文**，
@@ -199,11 +204,26 @@ PRELUDE_CALLS = {
 # ── 旧写法：`@` 显式化了**可由后续显式实参唯一确定**的前导隐式实参 ──────────
 # name → 新写法提示。这些名字的第一个实参是前导隐式（α）；只要后面还有至少一个
 # 显式实参（A : Set α），α 就由 A 唯一确定 ⇒ `@` 是噪声（规则见 `_has_two_or_more_args`）。
-# 2026-10-21 实测：`Set.subset_def A B` / `Set.ext A B h` 在 loose/strict 两档都绿。
+# 2026-10-21 两批实测：第一批 `Set.subset_def`/`Set.ext`（90 处）；第二批 8 个
+# `Set.mem_*` 单前导名字 + `mem_sep_iff`（86 处）；loose/strict 两档都绿，课程门禁
+# 计数与基线逐项相同。
+# ⚠ `_has_two_or_more_args` 要求 ≥2 个实参 ⇒ `@Set.mem_univ α`（只给前导位的
+# 局部应用）**不会被报**，那几处必须保留 `@`（删了会变成未应用的定理；2026-10-21
+# 实测删掉后 3 个目标判红，已恢复）。
 # ⚠ 只收**签名已验证**的名字；多个前导隐式（`And.intro`）仍走 `PRELUDE_CALLS`。
 REDUNDANT_AT = {
     "Set.subset_def": "Set.subset_def A B",
     "Set.ext": "Set.ext A B h",
+    "Set.mem_univ": "Set.mem_univ a",
+    "Set.notMem_empty": "Set.notMem_empty a",
+    "Set.mem_powerset_iff": "Set.mem_powerset_iff A B",
+    "Set.mem_singleton_self": "Set.mem_singleton_self a",
+    "Set.mem_singleton_iff": "Set.mem_singleton_iff a b",
+    "Set.mem_empty_iff_false": "Set.mem_empty_iff_false a",
+    "Set.mem_inter_iff": "Set.mem_inter_iff a A B",
+    "Set.mem_union": "Set.mem_union a A B",
+    "mem_sep_iff": "mem_sep_iff A P x",
+    "Set.mem_sep_iff": "Set.mem_sep_iff A P x",
 }
 
 # `And.intro` 这类名字若在**声明位**（本文件定义它）出现，不算旧写法。
@@ -1068,6 +1088,14 @@ def selftest() -> int:
             ("`@Set.ext α A B h` 的 α 可推 ⇒ 该红",
              "theorem t : P := @Set.ext α A B h", 1,
              "@Set.ext 显式化了可推出的前导隐式实参"),
+            ("`@Set.mem_univ α a` 的 α 可推 ⇒ 该红",
+             "theorem t : P := @Set.mem_univ α a", 1,
+             "@Set.mem_univ 显式化了可推出的前导隐式实参"),
+            ("`@Set.mem_univ α` 只给前导位（局部应用）⇒ **不误红**",
+             "theorem t : P := @Set.mem_univ α", 0, None),
+            ("`@mem_sep_iff α A P x`（namespace 内短名）⇒ 该红",
+             "theorem t : P := @mem_sep_iff α A P x", 1,
+             "@mem_sep_iff 显式化了可推出的前导隐式实参"),
             ("`Set.subset_def A B` 已是短写法 ⇒ **不误红**",
              "theorem t : P := Set.subset_def A B", 0, None),
             ("`@Set.ext (Set α)` 只给前导位（局部应用）⇒ **不误红**",
