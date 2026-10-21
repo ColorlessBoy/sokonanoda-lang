@@ -1,8 +1,8 @@
-## strict-mode-v2 批次：13/16 迁绿 + q2 推断修复（2026-10-21 · 未发版）
-- ⭐ **用户拿到什么**：`A ⊆ Set.univ` 的 `exact Set.mem_univ x` **两档判绿**（q2 推断修复 `f50ae4da`）；unit09/unit10/unit11 严格档档案绿（`b02e8bb0`/`2b554ef9`/`b64c42cc`）。
+## strict-mode-v2 批次：14/16 迁绿 + q2 推断修复（2026-10-21 · 未发版）
+- ⭐ **用户拿到什么**：`A ⊆ Set.univ` 的 `exact Set.mem_univ x` **两档判绿**（q2 推断修复 `f50ae4da`）；unit06/unit09/unit10/unit11 严格档档案绿（`7ca55d5c`/`b02e8bb0`/`2b554ef9`/`b64c42cc`）。
 - **真因**：`intro` 的 canonical goal 走非显式 pp，`Set.subset α A Set.univ` 的前导 α 在源级 delta 展开时未代换 ⇒ judge 文本里自由 α。修法 = canonical goal 用 explicit pp（`@Set.subset Nat A (@Set.univ Nat)`）；**内核判定一行没动**。
-- **读数**：`front --lib` **1006/1006**；356 sweep **5 diffs**（3 待迁 + 2 invalid）；**课程门禁 `failed 0`**（258 targets）；`cargo fmt --check` 干净；q2 回归 `strict_provenance` **4/4**；unit09/10/11 的 L/S 与 HEAD-loose 输出逐字节相同。
-- ⚠ **未收口 4**：unit06（隐藏 defeq/level）· unit08 · unit12（证明项内部 Sort 不一致）。WIP：`target/unit06-wip3.patch` / `target/unit12-at-wip2.patch`。
+- **读数**：`front --lib` **1006/1006**；356 sweep **4 diffs**（2 待迁 + 2 invalid）；**课程门禁 `failed 0`**（258 targets）；`cargo fmt --check` 干净；q2 回归 `strict_provenance` **4/4**；unit09/10/11 的 L/S 与 HEAD-loose 输出逐字节相同。
+- ⚠ **未收口 4**：unit08（unknown identifier）· unit12（证明项内部 Sort 不一致）。WIP：`target/unit06-wip3.patch` / `target/unit12-at-wip2.patch`。
 - **纪律**：delete-first；`@` 只在“α 必须指定/推断不出”时用；不做全局 `@` 或全局删除。
 
 ## **默认档翻回旧读法** —— 同一份课程单元 **8.8 s → 0.62 s**（14×）（2026-10-20 · **已发版 `v0.95.0`**，26 资产）
