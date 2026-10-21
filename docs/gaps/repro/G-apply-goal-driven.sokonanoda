@@ -1,0 +1,27 @@
+-- G-apply-goal-driven：apply 修好的两条边 + 两条反向守卫（判据 = exit 0；逐条目标集见 scripts/apply-goal-driven-matrix.sh）。
+theorem apply_trans_defaulting (α : Type) (a b c : α) (h : a = b) (k : b = c) : a = c := by
+  apply Eq.trans h
+  exact k
+
+theorem apply_symm_level (α : Type) (a x : α) : a = x := by
+  apply Eq.symm
+  sorry
+
+theorem apply_symm_close (α : Type) (a x : α) (h : x = a) : a = x := by
+  apply Eq.symm
+  exact h
+
+theorem apply_refl_level (α : Type) (a : α) : a = a := by
+  apply Eq.refl
+
+-- 隐式层不许成子目标：只留 `x = a`（修前多 `⊢ Prop`）
+theorem apply_bad_universe (α : Type) (a x : α) : a = x := by
+  apply Eq.symm.{0}
+  sorry
+
+-- 显式参数就是目标：`['Sort 1','P']`（不许修成报错）
+theorem junk (α : Type) (P : Prop) : P -> P := fun (h : P) => h
+
+theorem apply_unused_type_param (P : Prop) : P := by
+  apply junk
+  sorry

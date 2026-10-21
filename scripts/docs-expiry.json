@@ -91,6 +91,18 @@
       "renewed": "2026-09-30",
       "tier": "entry"
     },
+    "docs/design/apply-goal-driven-asbuilt.md": {
+      "expires": "2027-01-19",
+      "renewed": "2026-10-21",
+      "tier": "process",
+      "reason": "本批 as-built + Lean 4 对照 + B spike 结论（显式参数就是目标 / 不需要 Pending）"
+    },
+    "docs/design/apply-goal-driven.md": {
+      "expires": "2027-10-21",
+      "renewed": "2026-10-21",
+      "tier": "spec",
+      "reason": "apply-goal-driven 设计契约：批次 A 已落地（1a/1b/1c/诊断），批次 B 降级口径已落"
+    },
     "docs/design/ci-parallelism.md": {
       "expires": "2027-09-30",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
