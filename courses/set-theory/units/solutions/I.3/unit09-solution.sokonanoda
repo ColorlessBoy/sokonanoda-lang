@@ -163,13 +163,18 @@ theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
                             (fun (x : α) => fun (hx : x ∈ A) =>
                               @Eq.trans.{1} α (g1 (g2 (f2 (f1 x)))) (g1 (f1 x)) x
                                 (@congrArg.{1} β α (g2 (f2 (f1 x))) (f1 x) g1
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
                                   ((fun (h' : (Set.LeftInvOn β γ g2 f2 B)) => h' (f1 x) ((fun (h' : (Set.MapsTo α β f1 A B)) => h' x hx) (@And.left (Set.MapsTo α β f1 A B) (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
                                           (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hf1))) (@And.left (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C) (@And.right (Set.MapsTo γ β g2 C B) ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hg2))))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
                                 ((fun (h' : (Set.LeftInvOn α β g1 f1 A)) => h' x hx) (@And.left (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B) (@And.right (Set.MapsTo β α g1 B A) ((Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hg1))))
                             (fun (z : γ) => fun (hz : z ∈ C) =>
                               @Eq.trans.{1} γ (f2 (f1 (g1 (g2 z)))) (f2 (g2 z)) z
                                 (@congrArg.{1} β γ (f1 (g1 (g2 z))) (g2 z) f2
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
                                   ((fun (h' : (Set.RightInvOn α β f1 g1 B)) => h' (g2 z) ((fun (h' : (Set.MapsTo γ β g2 C B)) => h' z hz) (@And.left (Set.MapsTo γ β g2 C B) ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hg2))) (@And.right (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B) (@And.right (Set.MapsTo β α g1 B A) ((Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hg1))))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
                                 ((fun (h' : (Set.RightInvOn β γ f2 g2 C)) => h' z hz) (@And.right (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C) (@And.right (Set.MapsTo γ β g2 C B) ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hg2))))))))
 
 -- ─────────────────────────────────────────────────────────────

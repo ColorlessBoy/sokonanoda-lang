@@ -124,6 +124,7 @@ theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
                 (fun (x : α) => fun (hx : (A x) ∧ ((f x) = y)) =>
                   @Exists.intro α (fun (x' : α) => (x' ∈ (A ∪ B)) ∧ ((f x') = y)) x
                     (@And.intro (x ∈ (A ∪ B)) ((f x) = y)
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
                       (@Or.inl (A x) (B x) (And.left hx))
                       (And.right hx))))
             (fun (hb : y ∈ (f '' B)) =>
@@ -132,6 +133,7 @@ theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
                 (fun (x : α) => fun (hx : (B x) ∧ ((f x) = y)) =>
                   @Exists.intro α (fun (x' : α) => (x' ∈ (A ∪ B)) ∧ ((f x') = y)) x
                     (@And.intro (x ∈ (A ∪ B)) ((f x) = y)
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
                       (@Or.inr (A x) (B x) (And.left hx))
                       (And.right hx))))
             h))
@@ -260,9 +262,11 @@ theorem aa_mem_inter_image :
   exact (@And.intro
     (aa ∈ (f1 '' ({aa})))
     (aa ∈ (f1 '' ({bb})))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
     (@Exists.intro Two (fun (x : Two) => (x ∈ ({aa})) ∧ ((f1 x) = aa)) aa
       (@And.intro (aa ∈ ({aa})) ((f1 aa) = aa)
         (@Eq.refl.{1} Two aa) (@Eq.refl.{1} Two aa)))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
     (@Exists.intro Two (fun (x : Two) => (x ∈ ({bb})) ∧ ((f1 x) = aa)) bb
       (@And.intro (bb ∈ ({bb})) ((f1 bb) = aa)
         (@Eq.refl.{1} Two bb) (@Eq.refl.{1} Two aa))))
@@ -293,6 +297,7 @@ theorem not_image_inter_eq_image_inter :
             (f1 '' ({bb}))) h)
         (image_inter_singletons_empty))
       (@Iff.mpr
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
         (@Set.mem Two aa (@Set.inter Two (f1 '' ({aa})) (f1 '' ({bb}))))
         ((aa ∈ (f1 '' ({aa}))) ∧ (aa ∈ (f1 '' ({bb}))))
         (@Set.mem_inter_iff Two aa (f1 '' ({aa})) (f1 '' ({bb})))
@@ -348,6 +353,7 @@ theorem image_preimage_eq_image :
                   (f1 t) = y)
                 x
                 (@And.intro (x ∈ (f1 ⁻¹' U01)) ((f1 x) = y)
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
                   (@Or.inl ((f1 x) = aa) ((f1 x) = bb) (f1_eq_aa x))
                   hx)))
         (fun (hy : y ∈ (f1 '' (f1 ⁻¹' U01))) =>
@@ -388,6 +394,7 @@ theorem image_preimage_image_eq_preimage :
               (f1 t) = y)
             x
             (@And.intro (x ∈ (f1 ⁻¹' U01)) ((f1 x) = y)
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
               (@Or.inl ((f1 x) = aa) ((f1 x) = bb) (f1_eq_aa x))
               hx)))
 

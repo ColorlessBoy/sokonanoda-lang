@@ -11,7 +11,6 @@
 //! - "正常的没有"（证明已闭合、没有下一个洞）返回 `None`/空数组；"问不出来"
 //!   返回 [`QueryError`]。两者绝不混用。
 //! - 所有文本来自完整内核（pretty print）或 `crate::semantic` 的唯一分类。
-
 mod attribution;
 mod pos;
 mod project;

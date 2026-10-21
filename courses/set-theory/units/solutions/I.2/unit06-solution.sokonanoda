@@ -99,6 +99,7 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
                     (@And.intro
                       ((r • s) a c)
                       (t c d)
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
                       (@Exists.intro B (fun (x : B) => (r a x) ∧ (s x c)) b
                         (And.intro
                           (And.left hb)
@@ -233,10 +234,12 @@ theorem classes_isPartition (A : Type) (r : Rel A A)
          ¬ (∃ (x : A), (x ∈ C) ∧ (x ∈ D)))
       -- ② 覆盖
       (fun (a : A) =>
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
         @Exists.intro (Set A) (fun (C : Set A) => (C ∈ (classes A r)) ∧ (a ∈ C)) (EquivClass A r a)
           (@And.intro
             ((EquivClass A r a) ∈ (classes A r))
             (a ∈ (EquivClass A r a))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
             (@Exists.intro A (fun (x : A) => (EquivClass A r a) = (EquivClass A r x)) a (@Eq.refl (Set A) (EquivClass A r a)))
             (hrefl a)))
       -- ③ 不相等就不交
