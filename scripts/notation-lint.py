@@ -14,6 +14,10 @@
       sdiff/compl/powerset/empty/image/preimage/prod/singleton/pair` 同理
   · 基础类型的**隐式实参**与 Lean 对齐：`And.intro h1 h2` / `And.left h` /
     `Or.inl h` / `Exists.intro w hw` ……（写全 A B 的就是旧写法）
+  · **可删的前导隐式 `@`**（2026-10-21）：`@Set.subset_def α A B` →
+    `Set.subset_def A B`、`@Set.ext α A B h` → `Set.ext A B h` —— 第一个实参是
+    前导隐式 `α`，后面的显式实参（`A : Set α`）唯一确定它 ⇒ `@` 只是噪声。
+    **只收已实测的名字**（表 `REDUNDANT_AT`）；表外不猜。
   · **代码与注释（含 `-- soko:hint`）都算**；tactic 块不动，term 可以保留。
   · **`.md` 里的 ```sokonanoda 围栏块也算**（2026-10-10，设计
     `docs/design/tactic-docs.md` §5 P3 判据 ③）：`reference/tactics/*.md` 是**给学习者看的正文**，
@@ -192,6 +196,16 @@ PRELUDE_CALLS = {
     "Exists.elim": (2, "Exists.elim h f"),
 }
 
+# ── 旧写法：`@` 显式化了**可由后续显式实参唯一确定**的前导隐式实参 ──────────
+# name → 新写法提示。这些名字的第一个实参是前导隐式（α）；只要后面还有至少一个
+# 显式实参（A : Set α），α 就由 A 唯一确定 ⇒ `@` 是噪声（规则见 `_has_two_or_more_args`）。
+# 2026-10-21 实测：`Set.subset_def A B` / `Set.ext A B h` 在 loose/strict 两档都绿。
+# ⚠ 只收**签名已验证**的名字；多个前导隐式（`And.intro`）仍走 `PRELUDE_CALLS`。
+REDUNDANT_AT = {
+    "Set.subset_def": "Set.subset_def A B",
+    "Set.ext": "Set.ext A B h",
+}
+
 # `And.intro` 这类名字若在**声明位**（本文件定义它）出现，不算旧写法。
 DECL_KEYWORDS = (
     "inductive",
@@ -301,6 +315,32 @@ def _universe_suffix_end(text: str, i: int) -> int:
     return i
 
 
+def _has_two_or_more_args(text: str, start: int) -> bool:
+    """`@Name` 后是否至少有**两个**实参（第一个是前导隐式，第二个是显式实参）。
+
+    与 `count_explicit_args` 不同：这里允许 `α`/`β` 这类**非 ASCII 类型变量**
+    （那个函数只认 ASCII，遇到 `α` 会停 ⇒ 把 `@Set.subset_def α A B` 数成 0）。
+    只判断「有没有第二个」，不数总数；中文散文不会走到这里（注释只数反引号片段）。
+    """
+    i = start
+    while i < len(text) and text[i] in " \t":
+        i += 1
+    if i >= len(text):
+        return False
+    if text[i] in "([{":
+        i = _skip_group(text, i)
+    else:
+        j = i
+        while j < len(text) and text[j] not in " \t)]},;`" and not text.startswith("--", j):
+            j += 1
+        i = j
+    while i < len(text) and text[i] in " \t":
+        i += 1
+    if i >= len(text):
+        return False
+    return not (text[i] in ")]},;" or text.startswith("--", i))
+
+
 def _arity_hits(
     text: str, line_no: int, is_comment: bool, offset: int = 0
 ) -> list[dict]:
@@ -319,6 +359,23 @@ def _arity_hits(
                         "col": offset + m.start() + 1,
                         "kind": "comment" if is_comment else "code",
                         "rule": f"{name} 写全了前导参数（{args} 个实参）",
+                        "fix": fix,
+                        "text": text.strip(),
+                    }
+                )
+    for name, fix in REDUNDANT_AT.items():
+        for m in re.finditer("@" + re.escape(name) + r"(?![\w])", text):
+            after = _universe_suffix_end(text, m.end())
+            if after >= len(text) or text[after] not in " \t":
+                continue  # 只是提到这个名字（`@Set.ext` 引用），不是调用
+            # 第一个实参是前导隐式；后面还有显式实参（A : Set α）才保证 α 可推。
+            if _has_two_or_more_args(text, after):
+                hits.append(
+                    {
+                        "line": line_no,
+                        "col": offset + m.start() + 1,
+                        "kind": "comment" if is_comment else "code",
+                        "rule": f"@{name} 显式化了可推出的前导隐式实参",
                         "fix": fix,
                         "text": text.strip(),
                     }
@@ -1004,6 +1061,17 @@ def selftest() -> int:
             #   原来**整类零覆盖** ✗ —— 实测把它置空，7/7 仍全过 ✓ ⇒ 补这一条钉住它 ✓。
             ("`And.left A B h` 写全了前导实参 ⇒ 该红",
              "theorem t : And.left A B h := h", 1, "And.left 写全了前导参数（3 个实参）"),
+            # 2026-10-21：可删的前导隐式 `@`（`REDUNDANT_AT`）—— 正向 + 反向都要咬住 ✓
+            ("`@Set.subset_def α A B` 的 α 可推 ⇒ 该红",
+             "theorem t : P := @Set.subset_def α A B", 1,
+             "@Set.subset_def 显式化了可推出的前导隐式实参"),
+            ("`@Set.ext α A B h` 的 α 可推 ⇒ 该红",
+             "theorem t : P := @Set.ext α A B h", 1,
+             "@Set.ext 显式化了可推出的前导隐式实参"),
+            ("`Set.subset_def A B` 已是短写法 ⇒ **不误红**",
+             "theorem t : P := Set.subset_def A B", 0, None),
+            ("`@Set.ext (Set α)` 只给前导位（局部应用）⇒ **不误红**",
+             "theorem t : P := @Set.ext (Set α)", 0, None),
         ]
         # ⚠ **`.md` 入口自己也要有正向 + 反向**（2026-10-10 加，设计 §5 P3 判据 ③）：
         #   光加一条 walk 而自检里没有它 ⇒ 这条新判据**咬不住任何东西**时也全绿 ✗
