@@ -1,3 +1,9 @@
+## 课程冗余 `@` 清理：`@Set.subset_def` / `@Set.ext` 90 处（2026-10-21 · 未发版）
+- ⭐ **用户拿到什么**：`unit01` 的 demo 与全课程 `@Set.subset_def` 46 处、`@Set.ext` 44 处删成 `Set.subset_def A B` / `Set.ext A B h`；`@` 只在确实要指认隐式位时保留。
+- **判据**：课程门禁 **258 目标 / 2190 checked / 915 open / failed 0**，与清理前 JSON 逐项相同（只有 gap 的 `ms` 变）；`notation-lint` 新增 `REDUNDANT_AT` + selftest 正反例；`git diff --check` 干净。
+- **纪律**：delete-first，只删「前导隐式可由后续显式实参唯一确定」的；`@Eq.*`（宇宙层级）、`@And/Or/Exists`（多前导隐式）、`@Set.univ` 等边界不动；**不做全局 `@` 删除**。
+- **残留根因**：严格档翻默认时诊断驱动插 `@`；2026-10-20 改「删多余隐变量」后只迁「严格档还红」的 16 个 USER，`unit01` 两档都绿 ⇒ 从未进入清理集；lint 白名单不含课标库引理 ⇒ 无红灯。
+
 ## v0.96.0 发版：严格档 16/16 + apply 目标先参与 + 方言可配置（2026-10-21）
 - ⭐ **用户拿到什么**：严格档 6 个残余文件全部迁绿（unit06/08/09/10/11/12，16/16；L0/S0 + 逐字节）；`apply Eq.symm` / `Eq.refl` / `Eq.trans h` 出正确子目标；方言可由 `--dialect`/清单/指令/LSP/VS Code 设置配置。
 - **已完成**：apply → main（`dad64ab4`），strict → main（`4e5128a9`，冲突只取 main 的 S1–S6 方言 API）；`front --lib` 1006/1006；356 sweep **2 diffs（只剩 2 invalid）**；课程门禁 **failed 0（258 目标 / 2190 checked）**；`scripts/soko gate` **exit 0**；gap 台账**不一致 0**。
