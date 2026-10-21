@@ -3154,8 +3154,8 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     const staged = fs.readdirSync(docsDir).filter((n) => n.endsWith(".md")).sort();
     assert.strictEqual(
       staged.length,
-      16,
-      `插件目录里应是 15 篇 + 索引，实际 ${staged.length}：${staged.join(", ")}`,
+      17,
+      `插件目录里应是 16 篇 + 索引，实际 ${staged.length}：${staged.join(", ")}`,
     );
 
     // 三条覆盖三族（设计 §5 P7 点名）：引入族 `intro` · 糖 `constructor` · 容易抢项位的 `match`。
