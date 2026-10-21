@@ -4,6 +4,7 @@
 - **真因（记录）**：`Set.empty Nat` 是隐式 α 的位置应用（Lean 4 里不是 `Set Nat`）⇒ 课程改 `@Set.empty Nat`；其余是位置隐式/结果应用，按诊断补 `@`/点名叫法；**不是** level 推断 bug，内核判定零改动。
 - ⚠ **集成中修的门禁**：影子档判据改为非空转（q2 显式 @ 使文本必不同）；严格档显式写法加 `soko:notation-ok` 豁免；docs 预算回收（已完成队列事件折叠 + 历史台账删除，docs 4.48/4.50）；`git prune` 清掉测试 orphan commit（C5 可达性）。
 - **构建身份**：release CLI/LSP 重建后门禁通过；版本 0.96.0（Cargo.toml / package.json / Cargo.lock / requires 同步）。
+- 🧹 **队列清理（2026-10-21）**：`ux-queue` 39 → **0**（13 条 done、17 条 wo-filed、2 条合并；最后 9 条按用户决定归档为 wo-filed）；worktree 清到 1 个；删除已完成 strict 任务/证据笔记（原文在 git 历史）。`ux-queue --check` / `check-queue-integrity` / `docs-lint` 全绿。
 
 ## `apply` 目标先参与：`Eq.symm` / `Eq.refl` / `Eq.trans h` 从「读不回来」到出子目标（2026-10-21 · 未发版）
 - ⭐ **用户拿到什么**：单元①练习 4 那种写法 `apply Eq.symm` 现在把目标 `a = x` 变成子目标 `x = a`（可 `exact hx` 收）；`apply Eq.refl` 直接闭合；`apply Eq.trans h` 的子目标是 `b = c`（不再报「结论是 `a = a`」）；`apply Eq.symm.{0}` 不再多出 `⊢ Prop`。
