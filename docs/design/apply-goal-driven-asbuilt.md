@@ -75,7 +75,8 @@
 
 ## 6. 给方言线（`draft/strict-mode-v2`）的合并指引
 
-- **本分支**：`apply-goal-driven`（自 `409385b1`）。方言线在 worktree
+- **本分支**：`apply-goal-driven`（自 `409385b1`；tip `84668c9f`，5 个提交：`55447d56` 代码 / `9836e60e` 设计+复现件 /
+  `547cf4bf` STATUS / `9702260e` 评审收口 / `29064d72` e2e 台账 / `84668c9f` 信号收窄）。方言线在 worktree
   `/private/tmp/sokonanoda-strict-v2-draft` @ `4f5245b6`。
 - **动了哪些文件**：`crates/front/src/{by.rs,judge.rs,lib.rs,apply_probe.rs,level_text.rs}`（前两个**变短**，
   后两个**新增**）、`crates/front/src/compile/{elab.rs,tests.rs}`、`docs/**`、`scripts/apply-goal-driven-matrix.sh`。
@@ -87,3 +88,6 @@
 - **不要在方言线里期待本分支修 strict `@`**：`Sort(1) vs Sort(2)` 的取证（`conv.rs` 的 Sort 比较两侧
   都是 `Zero` 基、差 1 个 succ ⇒ 不是层 mvar）与本分支无关；`level_solve` 不适用。
 - **回退开关**：`SOKO_APPLY_GOAL_FIRST=0`、`SOKO_APPLY_LEVEL_TEXT=0`（慢路 `SOKO_JUDGE_INPLACE=off` 下两者都不生效）。
+- ⚠ **层角色信号只对「域是 `Sort`」的层生效**（`84668c9f`）：`w : A` 这种**项**参数也出现在后续层的域里
+  （`h : p w`），不收窄会把 `apply Exists.intro` 的子目标全打乱（`course/solutions/unit8` 当场红）。
+  你 rebase 后**请跑** `cargo test -p sokonanoda-cli --test course --locked`（6/6）——它是这条的守卫。
