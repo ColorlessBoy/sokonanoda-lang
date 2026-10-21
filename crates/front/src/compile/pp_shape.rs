@@ -57,10 +57,13 @@
 //! `SOKO_PP_SHAPE=0|off` ⇒ [`gate_on`] 恒 `false`（= 今天的行为 ✓，反向验证用 ✓）。
 //! `SOKO_METAVAR=0` 照旧关掉整条 defaulting（[`borrowable`] 一次都不进 ✓）。
 
-use super::elab::{ElabCtx, ElabScope, InplaceEnv, KnownTable};
+use super::elab::{elab_expr, ElabCtx, ElabScope, HoverNode, InplaceEnv, KnownTable, UnivMap};
+use super::prelude::CompileOptions;
+use super::CompileError;
 use crate::ast::SortKind;
 use crate::Expr;
 use sokonanoda::builder::EnvBuilder;
+use sokonanoda::util::ExprPtr;
 
 /// **本格的闸门**（2026-10-14）：`SOKO_PP_SHAPE=0|off` ⇒ 恒 `false`
 /// （= 今天的行为 ✓，反向验证用 ✓）。
@@ -98,6 +101,58 @@ pub(crate) fn oracle_type<'a>(
 ) -> Option<Expr> {
     let mut g = env.borrow_mut();
     super::elab::operand_type_expr(ctx, scope, e, g.as_mut())
+}
+
+/// **引擎值的 elaborate**（F5）：解出来的隐式实参可能是**内核 pp 文本**
+/// 回读的项（`Prod.fst A B (Prod.prod_mk A B a b) = a`）—— 内核 pp 打的是
+/// **正常形式写满实参**，它只在**默认档**下是合法源文本（严格档一律拒
+/// 位置隐式实参，见 `implicit_msg`），而它**不是用户写的**（span 落在文本坐标）。
+/// ⇒ 这一段**固定用默认档** elaborate；用户写出来的那些实参仍走严格档 ✓。
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn elab_engine_value<'a>(
+    builder: &mut EnvBuilder<'a>,
+    e: &Expr,
+    scope: &mut ElabScope<'a>,
+    univ: &UnivMap<'a>,
+    known: &KnownTable,
+    hovers: &mut Vec<HoverNode<'a>>,
+    expected: Option<ExprPtr<'a>>,
+    expected_src: Option<&Expr>,
+    ctx: &ElabCtx<'a, '_>,
+) -> Result<ExprPtr<'a>, CompileError> {
+    if !super::implicit_msg::strict_at_enabled(ctx.options) {
+        return elab_expr(
+            builder,
+            e,
+            scope,
+            univ,
+            known,
+            hovers,
+            expected,
+            expected_src,
+            ctx,
+        );
+    }
+    let loose = CompileOptions::with_dialect(ctx.options.prelude, Default::default());
+    let engine = ElabCtx {
+        prefix_src: ctx.prefix_src,
+        options: &loose,
+        inductives: ctx.inductives,
+        ns: ctx.ns,
+        notations: ctx.notations,
+        defs: ctx.defs,
+    };
+    elab_expr(
+        builder,
+        e,
+        scope,
+        univ,
+        known,
+        hovers,
+        expected,
+        expected_src,
+        &engine,
+    )
 }
 
 /// **每个实参的类型**（路线 ① 的原料：`arg_tys[i]` 对应第 `k + i` 层）✓ ——

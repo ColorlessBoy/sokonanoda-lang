@@ -233,7 +233,7 @@ theorem image_inter_singletons_empty :
 -- 演示 8（已写好）：反例的右半边——`aa` 同时落在 `f1 '' {aa}` 与 `f1 '' {bb}` 里。
 -- 这就是"f1 不单射 ⇒ 像不保交"的全部内容：交集里那个点是从**两个不同的点**塌过来的。
 example : @Set.mem Two aa  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标里补不出）
-    (Set.inter Two (f1 '' ({aa}))
+    (@Set.inter Two (f1 '' ({aa}))
       (f1 '' ({bb}))) :=
   And.intro  -- soko:notation-ok: R1/R2：同上
     (Exists.intro aa
@@ -285,7 +285,7 @@ theorem image_inter_subset (α β : Type) (f : α → β) (A B : Set α) :
 theorem not_image_inter_eq_image_inter :
     ¬ (@Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (f1 '' (({aa}) ∩ ({bb})))
-      (Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (@Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
         (f1 '' ({bb})))) := by
   sorry
 

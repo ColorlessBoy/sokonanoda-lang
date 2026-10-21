@@ -15,8 +15,9 @@ use crate::compile::CompileError;
 use crate::compile::{CompileOptions, ErrorKind};
 use crate::expr::e_app_at;
 use crate::judge::{
-    begin_batch, flush_batch, judge_infer, judge_infer_explicit, judge_terms, judge_terms_strict,
-    GoalBinderSpec, Judgement, OpenGoalSpec,
+    begin_batch, flush_batch, judge_infer, judge_infer_explicit,
+    judge_render_type_inplace_with_explicit as render_inplace_explicit, judge_terms,
+    judge_terms_strict, GoalBinderSpec, Judgement, OpenGoalSpec,
 };
 use crate::proof::{parse_expr_text, render_expr};
 use crate::spine::{
@@ -1105,7 +1106,7 @@ fn canonical_goal_with_spec<'a>(
         crate::judge::ByMode::Shadow => {
             let inplace = env
                 .as_mut()
-                .and_then(|env| crate::judge::judge_render_type_inplace(env, ctx, src_binders, ty));
+                .and_then(|env| render_inplace_explicit(true, env, ctx, src_binders, ty));
             let slow_text = slow();
             match inplace {
                 Some(pp) => {
@@ -1133,9 +1134,9 @@ fn canonical_goal_with_spec<'a>(
             {
                 Some(pp) => crate::judge::judge_render_type_finish(&pp, 0),
                 None => {
-                    let inplace = env.as_mut().and_then(|env| {
-                        crate::judge::judge_render_type_inplace(env, ctx, src_binders, ty)
-                    });
+                    let inplace = env
+                        .as_mut()
+                        .and_then(|env| render_inplace_explicit(true, env, ctx, src_binders, ty));
                     match inplace {
                         Some(pp) => {
                             crate::judge::judge_render_type_store(

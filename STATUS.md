@@ -7,13 +7,12 @@
 - ⚠ **推送留痕**：pre-push 的 `gates：缺口台账（--strict）` 在本机红在**长复现件超时**（`--strict` 把「超时 = 未验证」判红；CI 跑的是**不带** `--strict` 的分片版）⇒ 按逃生门 `git push --no-verify`，其余快层（fmt/clippy/测试环境档位隔离）**全绿** ✓。
 - ⚠ **边界**：`SOKO_JUDGE_INPLACE=off`（慢路）下 1a/1b 不生效（`judge_infer` 没有「带期望类型」能力）⇒ 发布说明 + 阶段 4 收口。台账条目按 `check-multi-session.py` ① **只在 main 上改**（分支不含；落地清单 `target/land/README.md`）。
 
-## 严格档 v2 安全腿 A 收口：10/16 + 6 条已知限制（2026-10-21 · 未发版）
-- ⭐ **用户拿到什么**：`SOKO_STRICT_AT=1` / `--dialect strict` 下 **F5** 把性能拿回来（356 两档 sweep **117.7s vs HEAD 537.9s**；unit01 strict **15.1×**、unit05 **11.0×**、lib.Prod **5.4×**）；课程 **10/16** 已迁，每文件 loose/strict 都 exit 0 且两档逐字节，HEAD loose 反查相同；**默认仍是 loose**。
-- **已提交**：worktree `draft/strict-mode-v2` 的 F5 `3d500a72`、P1 `f0cc8729`、P3 `c7f7545c`、M1 `2009db56`、P5 `6a7abbfc`、P2 删除 `323ec868`、手工集 `a2212e88`、机械集 `4d3a349a`/`4f5245b6`；主仓文档 `1e6f2991`。worktree 干净。
-- **全量**：356 sweep **8 diffs = 6 已知 + 2 invalid**；课程门禁 `failed 0`；`front --lib` **1006**；canary **3**；docs-lint 绿。
-- **6 个已知限制**（loose 0 / strict 1）：`unit06/08/09/10/11/12`。5 行复现 `exact @Set.mem_univ Nat x` 在 strict 报 `x ∈ Set.univ Nat` vs `x ∈ Set.univ`；内核原始差异是两个 `Sort` 的 `LevelPtr` 不等（**未收口的 level 元变量**）。这是**编译器级 level 收口**问题，不是课程写法；机械 `@`/删除/tactic 重写都会让 loose 也红。
-- **下一步**：按 `target/apply-draft/apply-goal-driven.md` 的批次 A → 共享 level/mvar solver（该文件 B spike 的「mvar 谁来解」）；修好后再迁 6 个。默认翻转另立项。
-
+## strict-mode-v2 批次：16/16 迁绿 + q2 推断修复（2026-10-21 · 未发版）
+- ⭐ **用户拿到什么**：严格档 6 个文件 **16/16 全绿**（unit06/08/09/10/11/12），每文件 loose/strict 都 0 且 **L/S stdout 逐字节相同**、**HEAD-loose 反查相同**；`A ⊆ Set.univ` 的 `exact Set.mem_univ x` 两档绿（q2 `f50ae4da`）。默认仍是 loose，内核判定一行没动。
+- **已提交**：`7ca55d5c` unit06 · `6588bbee` unit08 · `b02e8bb0` unit09 · `2b554ef9` unit10 · `b64c42cc` unit11 · `1efc63b6` unit12 · q2 `f50ae4da`；apply 先合 main（`dad64ab4`），本笔为 strict→main 的集成 merge。
+- **读数**：356 sweep **2 diffs（只剩 2 invalid）**；课程门禁 **failed 0（258 targets / 2190 checked）**；`front --lib` **1006/1006**；`fmt`/`docs-lint`/`status-lint` 绿。
+- **unit08/12 的真因**：不是 level 推断 bug —— `Set.empty Nat` 是隐式 α 的位置应用（Lean 4 里不是 `Set Nat`），改成 `@Set.empty Nat` 后 unit12 的 Sort 消失；其余是位置隐式/结果应用，按诊断补 `@`/点名叫法/显式 `Exists`/`And` props。
+- **纪律**：delete-first；`@` 只在“α 必须指定/推断不出”时用；不做全局 `@` 或全局删除。
 ## **默认档翻回旧读法** —— 同一份课程单元 **8.8 s → 0.62 s**（14×）（2026-10-20 · **已发版 `v0.95.0`**，26 资产）
 - ⭐ **用户拿到什么**：**判卷回到该有的速度**。同一份 `unit01-sets-membership`：默认档 **8.8 s → 0.62 s**；`gates-course` 不再 30+ 分钟；编辑器开档不再 20 秒。严格档（`SOKO_STRICT_AT=1`）**完整保留**，语料两档都合法（全部是 `@` 写法）。
 - **真因**：`487f9a77` 翻默认后，`elab::operand_type_expr` 的问法换成**全显式 pp**，而那条支路**不查判定缓存**（注释原文「不查普通缓存槽」）+ **就地也答不出**（`elab_expr(operand)`）⇒ 每次退化成「造 `#check` 文档 + 整段前缀从零重编」（16 KB 的单元重编 **12 次**）。分解读数：**关掉就地判定后两档都是 ~5 s** ⇒ 差别全在"就地/缓存这条路能不能用"，不在解析。

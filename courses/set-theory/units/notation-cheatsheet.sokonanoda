@@ -445,7 +445,7 @@ theorem demo_notMem_empty_notation (α : Type) (a : α) : Not (a ∈ ∅) := by
 
 -- 演示 6：并集左包含——`A ⊆ A ∪ B`（单元③练习 1 的两种写法）。
 theorem demo_union_left_pointful (α : Type) (A B : Set α) :
-    Set.subset α A (Set.union α A B) := by
+    Set.subset A (Set.union A B) := by
   intro x
   intro hx
   exact @Or.inl (A x) (B x) hx
@@ -457,7 +457,7 @@ theorem demo_union_left_notation (α : Type) (A B : Set α) : A ⊆ A ∪ B := b
 
 -- 演示 7：并集的成员判定——`a ∈ A ∪ B` 展开就是 `a ∈ A ∨ a ∈ B`。
 theorem demo_mem_union_pointful (α : Type) (a : α) (A B : Set α) :
-    @Set.mem α a (Set.union α A B) -> Or (@Set.mem α a A) (@Set.mem α a B) := by
+    @Set.mem α a (Set.union A B) -> Or (@Set.mem α a A) (@Set.mem α a B) := by
   intro h
   exact h
 
@@ -492,7 +492,7 @@ theorem demo_ext_notation (α : Type) (A B : Set α)
 -- `A ⊆ A ∪ B ∪ C`：`∪` 是 `infixl:65`（左结合），`⊆` 是 `infix:50`。
 -- 右操作数吃优先级 ≥ 51 的东西，`∪`(65) 够格 ⇒ 记法版与括号版是同一个项。
 theorem demo_precedence_pointful (α : Type) (A B C : Set α) :
-    Set.subset α A (Set.union α (Set.union α A B) C) := by
+    Set.subset A (Set.union (Set.union A B) C) := by
   intro x
   intro hx
   exact @Or.inl (Or (A x) (B x)) (C x) (@Or.inl (A x) (B x) hx)

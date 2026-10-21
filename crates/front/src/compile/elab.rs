@@ -4617,7 +4617,7 @@ fn try_implicit_application_with<'a>(
                             }
                             sig
                         });
-                        let term = elab_expr(
+                        let term = crate::compile::pp_shape::elab_engine_value(
                             builder,
                             value,
                             scope,
@@ -5008,7 +5008,7 @@ fn try_implicit_application_with<'a>(
         if !layers[j].name.is_empty() {
             sigma.insert(layers[j].name.clone(), s.clone());
         }
-        let t = elab_expr(
+        let t = crate::compile::pp_shape::elab_engine_value(
             builder,
             s,
             scope,

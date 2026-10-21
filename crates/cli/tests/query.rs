@@ -80,6 +80,22 @@ fn canvas_file(tag: &str) -> PathBuf {
     path
 }
 
+/// **P5**：`failed[].name` 必须是真的声明名（不是恒 `None`）。
+///
+/// 2026-10-20 P4 被恒 `None` 误导，把 2 条真实声明失败当成「诊断泄漏」；
+/// 这条测试把「失败的诊断能归到哪条声明」钉在协议层。
+#[test]
+fn query_check_names_failed_declarations() {
+    let (value, code) = query(&["check"], Some("def bad : Nat := true\n"));
+    assert_eq!(code, 1, "坏声明必须 exit 1：{value}");
+    let failed = value["data"]["failed"].as_array().expect("failed[]");
+    assert_eq!(failed.len(), 1, "恰好一条失败：{value}");
+    assert_eq!(
+        failed[0]["name"], "bad",
+        "failed[].name 必须是声明名（P5）：{value}"
+    );
+}
+
 #[test]
 fn query_check_counts_match_the_json_event_stream() {
     let path = canvas_file("counts");

@@ -163,7 +163,7 @@ theorem relImg_univ_mem (α β : Type) (r : Rel α β) (b : β) :
         (fun (a : α) (ha : r a b) =>
           Exists.intro a
             (And.intro
-              ((fun (hu : ∀ (x : α), (@Set.univ α) x) => hu a) (Set.mem_univ α)) ha)))
+              ((fun (hu : ∀ (x : α), (@Set.univ α) x) => hu a) (@Set.mem_univ α)) ha)))
 
 theorem relImg_mono_rel (α β : Type) (r r1 : Rel α β) (A : Set α)
     (h : ∀ (a : α) (b : β), r a b → r1 a b) :

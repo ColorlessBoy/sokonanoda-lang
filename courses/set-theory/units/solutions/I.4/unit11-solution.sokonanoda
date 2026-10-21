@@ -56,7 +56,7 @@ theorem mem_powerset_univ (α : Type) (A : Set α) :
 -- Set α 的全集是上一层类型 Set (Set α) 的**元素**；它自己的全集又在更上一层。
 -- 上一层类型里的隶属判定就是由该层全集给出的：Set.mem_univ 一步到。
 theorem univ_mem_univ_of_sets (α : Type) :
-    Set.univ (Set α) ∈ Set.univ (Set (Set α)) := by
+    @Set.univ (Set α) ∈ @Set.univ (Set (Set α)) := by
   exact @Set.mem_univ (Set (Set α)) (@Set.univ (Set α))
 
 -- ── 练习 4（X 类：散文 → 形式）─────────────────────────────────────────────
@@ -90,8 +90,8 @@ theorem univ_top_iff (α : Type) (A : Set α) :
 -- `Set.ext` 要写全类型参数（`apply Set.ext (Set α)`）：不写时元素类型不是签名里
 -- 的裸 α，会造出坏子目标。
 theorem powerset_univ_eq_univ_of_sets (α : Type) :
-    𝒫 (@Set.univ α) = Set.univ := by  -- soko:notation-ok: `𝒫` 的操作数是零元隐式常量且无期望类型 ⇒ 解不出前导参数（E19/E20 元变量领地）
-  apply Set.ext (Set α)
+    𝒫 (@Set.univ α) = @Set.univ (Set α) := by  -- soko:notation-ok: `𝒫` 的操作数是零元隐式常量且无期望类型 ⇒ 解不出前导参数（E19/E20 元变量领地）
+  apply @Set.ext (Set α)
   intro A
   constructor
   intro h
