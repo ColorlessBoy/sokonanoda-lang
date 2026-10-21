@@ -1853,7 +1853,7 @@ fn definition_file(location: &Location) -> std::path::PathBuf {
     })
 }
 
-/// **15 条 tactic 各一条真能过的写法**（每条 tactic 一行，`anchor` = 该 tactic 所在
+/// **16 条 tactic 各一条真能过的写法**（每条 tactic 一行，`anchor` = 该 tactic 所在
 /// 那个**唯一**片段）。
 ///
 /// 与 `hover.rs::EVERY_TACTIC_SOURCE` 是**同一份夹具的两个副本**（那边验 hover 摘要、
@@ -1925,6 +1925,9 @@ example : True := by
 
 example : True := by
   sorry
+
+example (a : Prop) (h : a) : a := by
+  · exact h
 ";
 
 /// 夹具里那条 tactic 的**关键字**偏移（`anchor` 必须在夹具里唯一）。
@@ -1940,7 +1943,7 @@ fn tactic_keyword_offset(src: &str, anchor: &str) -> usize {
     start + anchor.len() - line.len() + indent
 }
 
-/// **P6 判据 ①（含 ③）**：**全部 15 条** tactic 关键字上按 F12 ⇒ 落到**那一条**的
+/// **P6 判据 ①（含 ③）**：**全部 16 条** tactic 关键字上按 F12 ⇒ 落到**那一条**的
 /// 参考文档。
 ///
 /// 每条断言五件：ⓐ 落点是**真文件**（存在 + 可读 —— 物化失败必须 `None` 而不是死
@@ -1950,7 +1953,7 @@ fn tactic_keyword_offset(src: &str, anchor: &str) -> usize {
 ///
 /// ⚠ 每条测**两个位置**：关键字的**头一个字符**与**最后一个字符** —— 用户点的就是
 /// 那两个字（E27 的教训：拿"能跑通的位置"代替"用户实际点的位置" ✗）。
-/// ⚠ 15 条**逐个**跑（只测用户点名的 `intro`/`exact`/`rfl` 等于没测横向 ✗）；清单与
+/// ⚠ 16 条**逐个**跑（只测用户点名的 `intro`/`exact`/`rfl` 等于没测横向 ✗）；清单与
 /// 表**双向**对齐（漏一条 / 多一条 / 顺序漂了都判红 ✓）。
 #[tokio::test]
 async fn goto_definition_on_every_tactic_keyword_lands_in_its_reference_file() {
@@ -2002,6 +2005,7 @@ async fn goto_definition_on_every_tactic_keyword_lands_in_its_reference_file() {
             "have",
         ),
         ("example : True := by\n  sorry", "sorry"),
+        ("example (a : Prop) (h : a) : a := by\n  · exact h", "·"),
     ];
     let listed: Vec<&str> = CASES.iter().map(|(_, name)| *name).collect();
     let tabled: Vec<&str> = sokonanoda_front::TACTIC_DOCS
@@ -2010,7 +2014,7 @@ async fn goto_definition_on_every_tactic_keyword_lands_in_its_reference_file() {
         .collect();
     assert_eq!(
         listed, tabled,
-        "15 条清单必须逐条等于 `front::tactics` 表（顺序也要一致）—— 覆盖基线是 15 条 ✓"
+        "16 条清单必须逐条等于 `front::tactics` 表（顺序也要一致）—— 覆盖基线是 16 条 ✓"
     );
 
     let (mut service, mut socket) = test_service();
@@ -2027,7 +2031,9 @@ async fn goto_definition_on_every_tactic_keyword_lands_in_its_reference_file() {
             &EVERY_TACTIC_SOURCE[kw..kw + name.len()]
         );
         // 用户实际点的是关键字的**头一个字符**与**最后一个字符**。
-        for offset in [kw, kw + name.len() - 1] {
+        // ⚠ 最后一个是**最后那个 char 的起始字节**（`·` 占 2 字节，不能 `len-1`）。
+        let last = kw + name.len() - name.chars().last().expect("名字非空").len_utf8();
+        for offset in [kw, last] {
             let at = format!("`{name}` 的第 {} 个字符", offset - kw + 1);
             let location = definition_location(
                 goto_definition_at(&mut service, EVERY_TACTIC_SOURCE, offset).await,

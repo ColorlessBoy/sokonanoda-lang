@@ -2371,18 +2371,24 @@ fn run_tactics<'a>(
                     tactic_holes,
                 )?;
             }
-            // `·`：聚焦当前目标；块末空 ⇒ 证完；非空 ⇒ admit（Lean `closeUsingOrAdmit`）。
             Tactic::Bullet { tactics, span } => {
                 let cur = *worklist
                     .last()
                     .ok_or_else(|| tactic_error("by 块里没有待解目标", *span))?;
+                // `·` 的步进 = 进入聚焦（hover 看到聚焦目标，不是块后的外层剩余）。
+                steps.push(ByStep {
+                    span: *span,
+                    goals: vec![ByGoal {
+                        ty: render_expr(&nodes[cur].ty),
+                        binders: context_binders(nodes, cur),
+                    }],
+                });
                 let mut inner = vec![cur];
                 run_tactics(
                     tactics,
                     nodes,
                     &mut inner,
                     steps,
-                    // **B3**：内层不是顶层边界（判定属于 `·` 这一条）⇒ 不记 marks。
                     None,
                     universe,
                     prefix_src,
@@ -2394,14 +2400,12 @@ fn run_tactics<'a>(
                     tactic_holes,
                 )?;
                 if !inner.is_empty() {
-                    // Lean 的 `closeUsingOrAdmit`：块没证完就 admit 掉聚焦目标。
-                    // 有显式 `sorry` 用它的 span；否则用 `·` 自己的 span（合成 sorry）。
+                    // Lean closeUsingOrAdmit：没证完就 admit（sorry span 优先）。
                     let hole = crate::apply_probe::direct_sorry_span(tactics).unwrap_or(*span);
                     nodes[cur].kind = NodeKind::Closed(Expr::Hole { span: hole });
                     tactic_holes.push(hole);
                 }
                 worklist.retain(|&x| x != cur);
-                // `·` 自身不记步进 ⇒ 光标停在 `·` 上显示“进入这一块”的聚焦目标。
                 continue;
             }
             // `sorry` = 占位：当前目标保持开放（no-op，节点仍是 Hole）。
