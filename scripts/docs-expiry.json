@@ -151,6 +151,12 @@
       "renewed": "2026-09-30",
       "tier": "spec"
     },
+    "docs/design/dialect-config.md": {
+      "expires": "2027-01-19",
+      "renewed": "2026-10-21",
+      "tier": "spec",
+      "reason": "方言可配置参数的唯一定稿（用户 2026-10-20 拍板）；实现仍在进行，落地后复核"
+    },
     "docs/design/docs-diet.md": {
       "expires": "2027-09-30",
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
@@ -276,6 +282,12 @@
       "reason": "初始登记（第 512 轮）：清理后存活的活文档按性质分档（分档 spec = 365 天）",
       "renewed": "2026-09-30",
       "tier": "spec"
+    },
+    "docs/design/strict-mode-v2.md": {
+      "expires": "2027-01-19",
+      "renewed": "2026-10-21",
+      "tier": "spec",
+      "reason": "严格档 v2 的唯一定稿（用户 2026-10-20 拍板）；6 个已知限制未收口，保留"
     },
     "docs/design/tactic-docs.md": {
       "expires": "2027-09-30",
