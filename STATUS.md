@@ -3,11 +3,10 @@
 - **改法**：开放练习的签名通过后，按**同签名 `Declar::Axiom`** 进环境（对齐 Lean 4 的 `sorryAx`），登记 `known` / `entered` / `open_exercises`；检查/事件语义不变（该声明仍是 `exercise.open`）。
 - **判据（实跑）**：probe = 2 `exercise.open` + 1 `decl.checked` + 1 `uses-open-exercise` + exit 0；`unit01` canvas 5 open / 3 checked、solution 6 checked 均 exit 0；`query state` 目标 `a ∈ A → {a} ⊆ A`。
 - **边界**：签名不过的声明仍 Failed、不进环境（G-01 红线）；引用 Failed 声明仍是 `elab-unknown-identifier`。
-## 课程冗余 `@` 清理：`@Set.subset_def` / `@Set.ext` 90 处（2026-10-21 · 未发版）
-- ⭐ **用户拿到什么**：`unit01` 的 demo 与全课程 `@Set.subset_def` 46 处、`@Set.ext` 44 处删成 `Set.subset_def A B` / `Set.ext A B h`；`@` 只在确实要指认隐式位时保留。
-- **判据**：课程门禁 **258 目标 / 2190 checked / 915 open / failed 0**，与清理前 JSON 逐项相同（只有 gap 的 `ms` 变）；`notation-lint` 新增 `REDUNDANT_AT` + selftest 正反例；`git diff --check` 干净。
-- **纪律**：delete-first，只删「前导隐式可由后续显式实参唯一确定」的；`@Eq.*`（宇宙层级）、`@And/Or/Exists`（多前导隐式）、`@Set.univ` 等边界不动；**不做全局 `@` 删除**。
-- **残留根因**：严格档翻默认时诊断驱动插 `@`；2026-10-20 改「删多余隐变量」后只迁「严格档还红」的 16 个 USER，`unit01` 两档都绿 ⇒ 从未进入清理集；lint 白名单不含课标库引理 ⇒ 无红灯。
+## 课程冗余 `@` 清理：两批 176 处（2026-10-21 · 未发版）
+- ⭐ **用户拿到什么**：第一批 90 + 第二批 86；共 **176 处**。
+- **判据**：课程门禁 **258 / 2190 / 915 / failed 0**；`notation-lint` selftest **18/18**。
+- **纪律**：delete-first；`@Eq.*`/多前导/零元/记法目标不进表；`@Set.mem_univ α` 局部应用保留 `@`。
 
 ## v0.96.0 发版：严格档 16/16 + apply 目标先参与 + 方言可配置（2026-10-21）
 - ⭐ **用户拿到什么**：严格档 6 个残余文件全部迁绿（unit06/08/09/10/11/12，16/16；L0/S0 + 逐字节）；`apply Eq.symm` / `Eq.refl` / `Eq.trans h` 出正确子目标；方言可由 `--dialect`/清单/指令/LSP/VS Code 设置配置。
