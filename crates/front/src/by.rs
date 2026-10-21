@@ -2773,12 +2773,19 @@ fn apply_tactic<'a>(
         // 子目标、类型是 `Type 0`（= `Sort 1`），于是 `intro x` 报
         // 「需要一个函数目标」。`Prop` **不在此列**：`(h : Prop) -> C` 是合法签名，
         // `⊢ Prop` 也确实是子目标。
-        // **B-4.2（信号）**：名字出现在**后续任何一层的域**里也算类型参数（`Eq.symm.{0}`
-        // 的 `α` 只出现在 `(a b : α)` 的域里，结论 `Eq b a` 看不到它）。
-        let later_mentioned = layers
-            .iter()
-            .skip(layer_idx + 1)
-            .any(|(_, d)| mentions(name, d));
+        // **B-4.2（信号）**：**宇宙域**的名字出现在**后续任何一层的域**里也算类型参数
+        // （`Eq.symm.{0}` 的 `α` 只出现在 `(a b : α)` 的域里，结论 `Eq b a` 看不到它）。
+        //
+        // ⚠ **必须限定「域是 `Sort`」**（2026-10-21 实测踩到）：`w : A` 这种
+        // **项**参数也会出现在后续层的域里（`h : p w`）⇒ 不收窄就会把 `w` 当类型参数从上下文
+        // 填掉，`apply Exists.intro` 的子目标顺序与内容全变（`course/solutions/unit8-*` 的
+        // `exists_demo` 因此报「期望 `True`，实际是 `Person`」）。注意**不能**用
+        // `is_universe_domain`：它按设计排除 `Prop`，而 `{α : Sort 0}` 的域正是 `Sort 0`。
+        let later_mentioned = matches!(domain, Expr::Sort { .. })
+            && layers
+                .iter()
+                .skip(layer_idx + 1)
+                .any(|(_, d)| mentions(name, d));
         if !name.is_empty()
             && (mentions(name, &codomain)
                 || mentions(name, &goal)
