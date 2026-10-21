@@ -1,3 +1,10 @@
+## v0.96.0 发版：严格档 16/16 + apply 目标先参与 + 方言可配置（2026-10-21）
+- ⭐ **用户拿到什么**：严格档 6 个残余文件全部迁绿（unit06/08/09/10/11/12，16/16；L0/S0 + 逐字节）；`apply Eq.symm` / `Eq.refl` / `Eq.trans h` 出正确子目标；方言可由 `--dialect`/清单/指令/LSP/VS Code 设置配置。
+- **已完成**：apply → main（`dad64ab4`），strict → main（`4e5128a9`，冲突只取 main 的 S1–S6 方言 API）；`front --lib` 1006/1006；356 sweep **2 diffs（只剩 2 invalid）**；课程门禁 **failed 0（258 目标 / 2190 checked）**；`scripts/soko gate` **exit 0**；gap 台账**不一致 0**。
+- **真因（记录）**：`Set.empty Nat` 是隐式 α 的位置应用（Lean 4 里不是 `Set Nat`）⇒ 课程改 `@Set.empty Nat`；其余是位置隐式/结果应用，按诊断补 `@`/点名叫法；**不是** level 推断 bug，内核判定零改动。
+- ⚠ **集成中修的门禁**：影子档判据改为非空转（q2 显式 @ 使文本必不同）；严格档显式写法加 `soko:notation-ok` 豁免；docs 预算回收（已完成队列事件折叠 + 历史台账删除，docs 4.48/4.50）；`git prune` 清掉测试 orphan commit（C5 可达性）。
+- **构建身份**：release CLI/LSP 重建后门禁通过；版本 0.96.0（Cargo.toml / package.json / Cargo.lock / requires 同步）。
+
 ## `apply` 目标先参与：`Eq.symm` / `Eq.refl` / `Eq.trans h` 从「读不回来」到出子目标（2026-10-21 · 未发版）
 - ⭐ **用户拿到什么**：单元①练习 4 那种写法 `apply Eq.symm` 现在把目标 `a = x` 变成子目标 `x = a`（可 `exact hx` 收）；`apply Eq.refl` 直接闭合；`apply Eq.trans h` 的子目标是 `b = c`（不再报「结论是 `a = a`」）；`apply Eq.symm.{0}` 不再多出 `⊢ Prop`。
 - **根因三条**（实测，非推测）：① `apply` 先问类型（**无期望类型**）再对目标 ⇒ `Eq.trans h` 的 `c` 被 defaulting 成 `a`；② `peel_binders` 是**文本**剥层，遇内核 pp 的 `?u.<id>` 直接**静默 break** ⇒ 整条上下文 telescope 被当成被应用项的层（σ 撞名，子目标可错成 `x = x`）；③ `{α : Sort u}` 这类**隐式**参数被误判成子目标。

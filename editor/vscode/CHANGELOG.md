@@ -1,4 +1,22 @@
 // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
+## [0.96.0] - 2026-10-21
+
+### Added
+
+- **方言可配置参数（S1–S6）**：`--dialect strict|loose`、项目清单/文件指令、LSP
+  `initializationOptions` 与 VS Code 设置即时生效，方言进入缓存键。
+- **严格档 v2 16/16**：卷 I 六个残余文件（unit06/08/09/10/11/12）两档 L0/S0、
+  L/S 与 HEAD-loose 逐字节相同；q2 canonical goal 用 explicit pp。
+
+### Fixed
+
+- **隐式 α 的位置应用按 Lean 4 语义显式化**：`Set.empty Nat` 不是 `Set Nat`
+  （α 隐式），课程改为 `@Set.empty Nat`；随之修掉 unit12 的 Sort 与 unit08 的
+  位置隐式级联。
+- **`apply` 目标先参与**：`apply Eq.symm` / `apply Eq.refl` / `apply Eq.trans h`
+  能出正确子目标（层角色信号收窄到宇宙域）。
+- **巡检**：356 sweep 只剩 2 invalid；课程门禁 0 判负；gap 台账不一致 0。
+
 ## [0.94.0] - 2026-10-18
 
 ### Added
