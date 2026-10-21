@@ -37,6 +37,7 @@
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
 
@@ -297,5 +298,79 @@ fn b2_is_rejected_only_under_strict() {
         !checked_names(&strict).iter().any(|name| name == "b2"),
         "strict 档下 `b2` 不许出现在 `decl.checked` 里（不是「报个警告」那种放过）。\nstrict: {}",
         brief(&strict)
+    );
+}
+
+/// ④ **类型推断回归**：`A ⊆ Set.univ` 的 `Set.univ` 必须从 `A : Set Nat` 推回
+/// `α := Nat`，tactic 目标（`intro x hx` 之后）不能留下自由 `α`。
+///
+/// 历史故障：`intro` 的 canonical goal 走非显式 pp，`Set.subset α A Set.univ`
+/// 的前导 `α` 在源级 delta 展开时**保持原名不代换** ⇒ `exact Set.mem_univ x`
+/// 的 judge 合成声明里出现 `unknown identifier α`（loose/strict 同红）。
+/// 修法：canonical goal 用 **explicit pp**（`@Set.subset Nat A (@Set.univ Nat)`）。
+///
+/// 为什么这条要**写进文件**而不是只跑一次：它是唯一直接咬住「tactic 目标
+/// canonical 形态必须保留前导隐式实参」的判据；没有它，下一次 pp 回归会
+/// 以同样的 `unknown identifier α` 静默复发。
+const Q2_SRC: &str = "\
+import lib.Set
+
+theorem q2 (A : Set Nat) : A ⊆ Set.univ := by
+  intro x hx
+  exact Set.mem_univ x
+";
+
+struct TempCourseCanvas {
+    dir: PathBuf,
+    path: PathBuf,
+}
+
+impl TempCourseCanvas {
+    fn new() -> Self {
+        // 必须落在 `courses/set-theory` 下：文件里的 `import lib.Set` 要按
+        // 最近的 `sokonanoda.toml` 解析；`temp_dir()` 解析不到模块根。
+        let root = repo_root().join("courses/set-theory");
+        let dir = root.join(format!(
+            "tmp-p3-q2-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("创建临时课程画布目录");
+        let path = dir.join("Probe.sokonanoda");
+        std::fs::write(&path, Q2_SRC).expect("写临时课程画布");
+        Self { dir, path }
+    }
+}
+
+impl Drop for TempCourseCanvas {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.dir);
+    }
+}
+
+#[test]
+fn subset_univ_infers_alpha_under_both_dialects() {
+    let canvas = TempCourseCanvas::new();
+    let loose = run_grade(&canvas.path, "0");
+    let strict = run_grade(&canvas.path, "1");
+    assert_eq!(
+        loose.code,
+        0,
+        "q2 loose 必须判绿（`intro` 后目标不能留自由 α）。\nloose: {}",
+        brief(&loose)
+    );
+    assert_eq!(
+        strict.code,
+        0,
+        "q2 strict 必须判绿（`intro` 后目标不能留自由 α）。\nstrict: {}",
+        brief(&strict)
+    );
+    assert_eq!(
+        loose.stdout, strict.stdout,
+        "q2 两档 stdout 必须逐字节相同（类型推断修复不许改变事件流）"
     );
 }

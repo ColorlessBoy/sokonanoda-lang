@@ -3388,7 +3388,7 @@ pub fn judge_render_type(
     let term = render_type_query(ty);
     // `judge_infer` 交出来的文本**已经剥过 `binders.len()` 层**（见
     // `judge_infer_uncached` 的结尾）⇒ 收尾不用再剥，传 0 ✓。
-    let text = judge_infer(prefix_src, options, binders, &term).ok()?;
+    let text = judge_infer_explicit(prefix_src, options, binders, &term).ok()?;
     judge_render_type_finish(&text, 0)
 }
 
