@@ -1,6 +1,7 @@
 ## v0.97.0 发版：unit01 收口（`·` 子弹 / apply 早报 / 括号 span / 失败 UI）（2026-10-21）
 - ⭐ **用户拿到什么**：`·` 按 Lean `closeUsingOrAdmit` 聚焦子目标，块末未闭合直接 admit 成开放练习（有 `· sorry` 时洞落在 `sorry`，否则落在 `·`）；`apply` 的坏显式实参（direct 与 fallback）落在 `apply` 行；`apply Eq.subst (p := fun x => a ∈ x) h` 可反解隐式；失败声明不再显示「🎉 已无目标」；`)`/声明后空行仍归属声明。
 - **判据（实跑）**：`front --lib` **1026/0** · `tactic_docs` 6/0 · `skill` 5/0 · `docs-lint` ✓ · webview 37/37 · extension-host 71/71 · 课程单元1 3 checked/5 open/0 判负 · 用户三份证明各 1 checked · `· sorry`/空 `·` 均 open + 一个 tactic 位洞 · direct 坏实参 `apply` 行早报。
+- **发布（实跑）**：main `218fce88` → CI `39640601991` **真绿 10/10** → auto-tag `v0.97.0` → release `39643072987` success：**26 资产**（8 lsp + 8 cli + 9 vsix + SHA256SUMS）；e2e 3 条腿 55/55；Marketplace 9/9 已 publish；站点 `site.json` v0.97.0。
 - **边界（如实）**：`·` 里 **tactic 报错**仍照常报错（只有“没证完”走 admit）；direct 的**部分应用普通 App**（`Eq.trans h`）仍靠内核终审（前端 `InferOnly` 限制；完全应用/`@`/命名实参已早报）。
 - **改动**：`front` parser/by/apply_probe/query/state + `editor/vscode` Infoview/树 + tactic 表/`·.md`/TM grammar/skills + LSP hover/F12；`STATUS/REQUIREMENTS/CHANGELOG` 同步。
 - ⚠ **推送留痕**：pre-push 的 `gates：缺口台账（--strict）` 在 G-83 长复现（~50min）上不收敛；本地完整 `scripts/soko gate` 已 PASS（非 strict 分片）⇒ 按逃生门 `git push --no-verify`（CI 跑非 strict 分片）✓。
