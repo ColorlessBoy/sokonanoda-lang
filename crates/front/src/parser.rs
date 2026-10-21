@@ -13,6 +13,7 @@ use super::token::{
 };
 use crate::project::{ModuleName, ModuleNameError};
 use std::collections::HashMap;
+mod util;
 
 /// 内建 `+` 在优先级梯子上的位置（`docs/design/notation-subset.md` N3）。
 ///
@@ -1302,7 +1303,7 @@ impl Parser {
         // **A3**：值的**源范围**要在 `wrap_decl_binders` 之前取 ✓
         // （包成 λ 之后它的 span 跨整条声明 ✗）。
         let val_span = val.span();
-        let span = Span::new(start, val.span().end);
+        let span = Span::new(start, util::last_consumed_end(self, val.span().end));
         let (ty, val) = wrap_decl_binders(binders, ty, val);
         Ok(Command::Def {
             name,
@@ -1326,7 +1327,7 @@ impl Parser {
         let val = self.parse_value()?;
         // **A3**：同上 ✓（值的源范围先取 ✓）。
         let val_span = val.span();
-        let span = Span::new(start, val.span().end);
+        let span = Span::new(start, util::last_consumed_end(self, val.span().end));
         let (ty, val) = wrap_decl_binders(binders, ty, val);
         Ok(Command::Theorem {
             name,
@@ -1354,7 +1355,7 @@ impl Parser {
         let val = self.parse_value()?;
         // **A3**：同上 ✓。
         let val_span = val.span();
-        let span = Span::new(start, val.span().end);
+        let span = Span::new(start, util::last_consumed_end(self, val.span().end));
         let (ty, val) = wrap_decl_binders(binders, ty, val);
         Ok(Command::Example {
             ty,
@@ -1810,6 +1811,7 @@ impl Parser {
                     span: Span::new(tok.span.start, end),
                 })
             }
+            TokenKind::Ident(kw) if kw == "·" => util::parse_bullet(self),
             TokenKind::Ident(kw) if kw == "sorry" => {
                 self.bump();
                 Ok(Tactic::Sorry { span: tok.span })
@@ -2009,7 +2011,7 @@ impl Parser {
         let ctor_name = self.expect_decl_name("constructor name")?;
         self.expect_kind(&TokenKind::ColonEq, "`:=`")?;
         let val = self.parse_expr()?;
-        let span = Span::new(start, val.span().end);
+        let span = Span::new(start, util::last_consumed_end(self, val.span().end));
         Ok(IotaRule {
             ctor_name,
             val,
@@ -4204,7 +4206,7 @@ fn is_expr_keyword(name: &str) -> bool {
 /// `parse_tactic()` 只有 **3 个**调用点（`parse_by_block` / `parse_tactic_sequence_in_arm` /
 /// `parse_nested_tactic_sequence`），每个前面都有 `tactic_keyword_ahead()` 闸门，
 /// 而它走的就是 `is_tactic_keyword`（= 表成员）⇒ 进得来的一定在表里；
-/// 表里 14 条在 `parse_tactic_inner` 里**都有自己的臂** ⇒ 兜底臂取不到 ✗。
+/// 表里 16 条在 `parse_tactic_inner` 里**都有自己的臂** ⇒ 兜底臂取不到 ✗。
 ///
 /// **那为什么还留它、还从表拼**：它挡的是"**表里加了一行、parser 忘了加臂**"这一种漂移
 /// —— 那时 `tactic_keyword_ahead` 说"是 tactic"、`parse_tactic_inner` 却无臂可走
@@ -4431,10 +4433,10 @@ mod tests {
     }
 
     /// **"未知 tactic" 文案**（`crates/front/tests/tactic_docs.rs` 判据 3 的单元层）：
-    /// 它必须列出**全部 14 条**、且不许把没实现的东西说成支持（`exact?`）✓。
+    /// 它必须列出**全部 16 条**、且不许把没实现的东西说成支持（`exact?`）✓。
     ///
     /// ⚠ 这条兜底**今天不可达**（见 `unknown_tactic_message` 的注释）：`parse_tactic` 的
-    /// 3 个调用点都有白名单闸门、14 条也都有自己的臂。它是"表里加了一行、parser 忘了加臂"
+    /// 3 个调用点都有白名单闸门、16 条也都有自己的臂。它是"表里加了一行、parser 忘了加臂"
     /// 那种漂移的**兜底提示** ⇒ 直接调它来判文案，是因为**那条路走不通**（不是偷懒 ✗）。
     #[test]
     fn unknown_tactic_message_lists_every_tactic_and_claims_nothing_more() {

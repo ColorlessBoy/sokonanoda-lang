@@ -147,7 +147,6 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 > **为什么拆** ✗：本节曾是 **2989 行**（2123 行日期日志 + 609 行交付报告 + R/P 条目）—— 而"权威总账"要的是**现行要求** ✓，不是流水账 ✗（用户 2026-09-26 要求 ✓）。**归档 ≠ 销毁** ✓：**原文逐字**在 `docs/archive/REQUIREMENTS-ARCHIVE.md`（**纯文本、可 grep** ✓，带 **139 条索引** ✓）；**判据与守卫**仍在 `scripts/` 与 `crates/**/tests/` 里**真跑** ✓。判据：`python3 scripts/docs-lint.py` ✓（入口 ≤800 行 ✓）。
 
 ### 9.22 2026-10-15 **`#check <def>` 带定义体 + 记法渲染**（用户明确要求，**有意偏离 Lean 4** ✓）
-
 **用户原话（2026-10-15 15:22）**：
 > 「我想让 **`#check Set.subset`** 也支持针对 def 的优化，例如 `#check Set.subset` 显示
 > `def Set.subset : ∀ {α : Type}, Set α → Set α → Prop`
@@ -176,7 +175,6 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 （`CheckInfo::text` 的**含义**变了 ⇒ 旧产物必须整库不命中 ✓）。
 
 ### 9.23 2026-10-15 **一条清理环境的命令 + `soko update` 的 404**（用户原话 ✓）
-
 **用户原话（17:23）**：「帮我清理环境吧，**这种版本不统一出现好多好多次了**」（同轮实测 `scripts/soko update` 报 `fetch failed: HTTP 404`，而**同一个 URL 用 curl 是 200**）。**要求**：① 给**一条**命令把"版本不统一"的**三处**一次收口 —— 多余的 VS Code 扩展目录（`code --install-extension` 不删旧版、只写 `.obsolete`；实测 **8 个**）· 指向已删目录的 `.obsolete` 残留（**15 条**）· 两半不一致的缓存 `marker`（CLI `0.83.0` / LSP `0.73.0`）；**默认 dry-run，`--yes` 才真删**（删除不可逆 ✗）；`extensions.json` 说 VS Code **正在用**的那份**永不删**，别的发布者的目录与条目**一个字节不动**。② **根治**那半：404 必须修（它就是缓存两半漂移的**直接机制** —— 强制刷新把版本**对象**插进 URL ⇒ `v[object Object]`），失败时打**实际 URL** + 给"404 是资产不存在、不是网络"的出路（不许再把人引去查代理 ✗）。③ **不许靠抬文档上限达标**（`scripts/docs-budget.json` 一个字不动 ✓）。
 **落地**：`scripts/soko prune`（**不叫 `clean`** —— 那会转发给 `sokonanoda clean` 的**编译缓存** ⇒ 撞名 ✗）· `doctor` 报版本散布（`--json` 的 `versions`，**只报告、不改 `ready`**）· `download()` 归一化并**拒绝非版本**（拼不出 URL 就报错）· `ensure` 传 `.text`。**判据**：`crates/cli/tests/launcher.rs` 的 `update_forces_a_refresh_at_the_pinned_version`（每次请求都带 `/v<pin>/`、恰好两次）与 `prune_is_a_dry_run_until_yes_and_unifies_the_three_sources`（dry-run 零删除 · `--check` exit 3 · `--yes` 后 8 → 1 个扩展 · 两 marker 一致 · sokonanoda 的 `.obsolete` 条目 0，别人的条目保留）。**读数**：`STATUS.md` · `.cache/ux/fix-w3/VERDICT.md`。
 
@@ -195,6 +193,8 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 ### 9.29 2026-10-21 **未完成的 `sorry` 练习按 Lean 4 进环境（goal state 不再被 unknown identifier 阻断）**（用户原话：「如果前面 mem_of_subset_singleton 或 subset_of_mem_singleton 没有证明，就是报错。这个太严格了，请对齐lean4，应该是能正常有goal states，有warning就行，不需要errors，阻断 goal states」）
 ⇒ 对齐 Lean 4：`sorry` 声明展开成 `sorryAx`、声明照样 `addDecl` ⇒ 后续声明**可以引用它**。本仓原先「open 声明不进环境」⇒ `unit01` 的 `singleton_subset_iff` 引用未解练习时直接 `elab-unknown-identifier`、整条声明的 goal state 消失 ✗。**改法（front 一处）**：开放练习的签名 elaborate 成功后，按**同签名 `Declar::Axiom`** 进环境并登记 `known`（学习者视角：这个名字有类型、值还没证）；判定/事件不变——该声明仍是 `exercise.open`，被引用时给 **`uses-open-exercise` warning**（不是 error），跨模块 `import` 行保留 `import-has-open-exercises` warning。**验收（实跑）**：`unit01` 的 `singleton_subset_iff` 用两个 `sorry` 引理 ⇒ `exercise.open ×2 + decl.checked + uses-open-exercise`、exit 0；部分证明（第二个方向留 `sorry`）⇒ `query state` 正常给出目标 `a ∈ A → {a} ⊆ A`；canvas 5 open / 3 checked、solution 6 checked 均 exit 0。**边界（如实）**：签名不过的声明仍 Failed、**不**进环境（G-01 红线不变）；引用 `Failed` 声明仍是 `elab-unknown-identifier`。
 ### 9.30 2026-10-21 **第二批单前导隐式 `@`**⇒ 清掉 **86 处 / 35 文件**：`@Set.mem_univ` · `@Set.notMem_empty` · `@Set.mem_powerset_iff` · `@Set.mem_singleton_self` · `@Set.mem_singleton_iff` · `@Set.mem_empty_iff_false` · `@Set.mem_inter_iff` · `@Set.mem_union` · `@mem_sep_iff`；`notation-lint` 的 `REDUNDANT_AT` 同步扩到这些名字 + selftest **18/18**。**边界**：`@Set.univ`/`@Set.empty`（零元）、记法目标（`POINTFUL` 已管）、多前导（`And/Or/Exists`/`prod_mk`）、`@Eq.*`（宇宙层级）**不进表**；`@Set.mem_univ α` 这类**只给前导位的局部应用保留 `@`**（删了会变成未应用定理）。判据：worktree 课程门禁 **258 目标 / 2190 checked / 915 open / failed 0**。
+### 9.31 2026-10-21 **unit01 收口**（`·` / apply 早报 / 命名实参 / 括号 span / 失败 UI）
+⇒ `·` 按 Lean `closeUsingOrAdmit`：聚焦子目标，块末未闭合一律 **admit** 成开放练习（有 `· sorry` 时洞落在 `sorry`，否则落在 `·`；块内 tactic 报错仍照常报错）。`apply` 的坏显式实参在 direct/fallback 都报在 `apply` 行（direct 的**部分应用普通 App** 仍靠内核终审，避免 `Eq.trans h` 未解隐式误判）；命名实参 `apply Eq.subst (p := …) h` 反解隐式；theorem/def/example 的 span 含最后一个已消费 token（`)`/声明后空行仍归声明）；失败声明不再显示 🎉。判据：front lib **1026/0**、tactic docs 6/0、skill 5/0、docs-lint ✓、课程单元1 **3 checked/5 open/0 判负**。
 ### 9.5 2026-09-26 专项：记法 + 隐式参数 + **产品交互面**（用户拍板 ✓）
 
 **用户原话**：「**全面一点，专门针对 notation，产品交互**。包括**多来点隐式参数，让

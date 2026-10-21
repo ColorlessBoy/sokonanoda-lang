@@ -4992,6 +4992,42 @@ fn failed_by_block_keeps_the_steps_that_succeeded() {
     );
 }
 
+/// **失败声明的最后一个 step 为空**（tactic 全绿、内核终审才拒绝）⇒ 不许把它
+/// 当成「已无目标」：`select_state_at` 回退到题面（G-78 的同一原则）。
+#[test]
+fn failed_declaration_with_a_closed_last_step_falls_back_to_the_statement() {
+    use crate::query::select_state_at;
+    let span = Span::default();
+    let err = CompileError::elab(ErrorKind::ElabTacticFailed, "kernel-rejected", span);
+    let mut d = crate::compile::check::failed_state(
+        DeclKind::Theorem,
+        Some("bad".to_string()),
+        span,
+        err,
+        0,
+    );
+    d.by_steps = vec![ByStepState {
+        span,
+        goals: Vec::new(),
+    }];
+    d.by_root = Some(ByGoalState {
+        ty: "P".to_string(),
+        binders: Vec::new(),
+    });
+    let selection = select_state_at(&d, 1);
+    assert_eq!(
+        selection.step, -1,
+        "空 step 不许被选中；回退到题面（step -1）"
+    );
+    assert_eq!(
+        selection.goals.len(),
+        1,
+        "失败的题仍有目标：{:?}",
+        selection.goals
+    );
+    assert_eq!(selection.goals[0].ty, "P");
+}
+
 #[test]
 fn apply_records_all_open_goals_current_first() {
     // 多目标（本轮修复）：`apply And.intro` 开出两个子目标，per-step 状态
@@ -11624,6 +11660,185 @@ fn apply_rejects_a_conclusion_that_does_not_match_the_goal() {
     );
 }
 
+/// **坏实参要在 `apply` 那行报**（2026-10-21 用户）：`Eq.subst` 的 `h` 写成
+/// `Eq.symm h`（类型是 `b = a`，不是 `a = b`）。以前 `apply` 的 `InferOnly`
+/// 类型推断放过它，错误要等整条 theorem 的内核终审才出现、span 是整条声明；
+/// 现在 `apply` 在 direct 匹配失败时补一次完整 kernel 检查 ⇒ 诊断落在 `apply` 行。
+#[test]
+fn apply_reports_an_ill_typed_explicit_argument_at_the_apply_span() {
+    let src = concat!(
+        "def Mem {α : Type} (a : α) (A : α -> Prop) : Prop := A a\n",
+        "def Sing {α : Type} (a : α) : α -> Prop := fun x => x = a\n",
+        "\n",
+        "theorem bad (α : Type) (a b : α) (h : Sing a = Sing b) : a = b := by\n",
+        "  apply @Eq.subst α (fun x => Mem a (Sing x)) a b (Eq.symm h)\n",
+        "  exact Eq.refl a\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    let err = report
+        .errors
+        .iter()
+        .find(|e| e.code() == "elab-tactic-failed")
+        .unwrap_or_else(|| panic!("必须报 apply 的坏实参：{:?}", report.errors));
+    assert!(
+        err.message.contains("被应用项没有通过内核检查"),
+        "文案要点名是 apply 的被应用项：{}",
+        err.message
+    );
+    // **报错落在 apply 那一行**（不是整条 theorem）。
+    let apply_offset = src.find("apply @Eq.subst").expect("apply 行");
+    assert_eq!(
+        err.span.start.offset, apply_offset,
+        "诊断必须落在 `apply` 的起点：{:?}",
+        err.span
+    );
+    assert_eq!(
+        (err.span.start.line, err.span.start.column),
+        (5, 3),
+        "apply 在源第 5 行第 3 列：{:?}",
+        err.span
+    );
+    assert_eq!(
+        err.span.end.line, 5,
+        "诊断不许跨到后面的 tactic：{:?}",
+        err.span
+    );
+}
+
+/// **direct 匹配成功也要查显式实参**（2026-10-21 用户第二轮）：`apply
+/// @Eq.subst … (Eq.symm h)` 的结论与目标直接对上，但 `h` 的类型反了 ⇒ 以前
+/// 要等整条 theorem 的内核终审（`kernel-rejected`，span 是整条声明）。现在
+/// `apply` 项是 **App**（可能有坏显式实参）⇒ 走同一条完整检查，错落在 `apply` 行。
+#[test]
+fn apply_reports_an_ill_typed_explicit_argument_even_on_a_direct_match() {
+    let src = concat!(
+        "theorem bad (α : Type) (a b : α) (h : a = b) : a = b := by\n",
+        "  apply @Eq.subst α (fun x => a = x) a b (Eq.symm h)\n",
+        "  exact Eq.refl a\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    let err = report
+        .errors
+        .iter()
+        .find(|e| e.code() == "elab-tactic-failed")
+        .unwrap_or_else(|| panic!("direct 匹配也要早报：{:?}", report.errors));
+    assert!(
+        err.message.contains("被应用项没有通过内核检查"),
+        "文案要点名 apply 的被应用项：{}",
+        err.message
+    );
+    assert_eq!(
+        (err.span.start.line, err.span.start.column),
+        (2, 3),
+        "诊断必须落在 apply 起点，而不是整条 theorem：{:?}",
+        err.span
+    );
+}
+
+/// `·`（Lean 的“子弹”）聚焦当前子目标；块末**未闭合 ⇒ admit**（Lean
+/// `closeUsingOrAdmit` 的语义，本语言 = 开放练习），不再报“没证完”。
+#[test]
+fn bullet_focuses_and_admits_unclosed_blocks() {
+    let src = concat!(
+        "theorem bullet_ok (a b c : Prop) (ha : a) (hb : b) (hc : c) : a ∧ (b ∧ c) := by\n",
+        "  constructor\n",
+        "  · exact ha\n",
+        "  · constructor\n",
+        "    · exact hb\n",
+        "    · exact hc\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("bullet_ok"))
+        .expect("decl bullet_ok");
+    assert_eq!(d.status, DeclStatus::Checked, "{d:?}");
+
+    // 空块：不再报错 ⇒ admit 成开放练习，洞在 `·` 上；下一颗 `·` 仍处理外层剩下的目标。
+    let empty = concat!(
+        "theorem bullet_empty (a b : Prop) (ha : a) (hb : b) : a ∧ b := by\n",
+        "  constructor\n",
+        "  ·\n",
+        "  · exact hb\n",
+    );
+    let report = check_document(&parse(empty).expect("parse"));
+    assert!(
+        report.errors.is_empty(),
+        "空块按 Lean admit：{:?}",
+        report.errors
+    );
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("bullet_empty"))
+        .expect("decl bullet_empty");
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.holes.len(), 1, "空块留一个 tactic 位洞：{:?}", d.holes);
+    assert_eq!(d.hole_modes, vec![HoleMode::Tactic]);
+    let bullet = empty.find('·').expect("`·`");
+    assert_eq!(
+        (d.holes[0].start.offset, d.holes[0].end.offset),
+        (bullet, bullet + '·'.len_utf8()),
+        "没有显式 `sorry` 时洞落在 `·` 自己：{:?}",
+        d.holes[0]
+    );
+
+    // 非空但没证完（`· constructor` 还剩两个子目标）⇒ 同样 admit；
+    // 后面的 `·` 只处理外层剩下的目标（不会被第一个块吃掉）。
+    let partial = concat!(
+        "theorem bullet_partial (p q : Prop) (hp : p) (hq : q) : (p ∧ q) ∧ q := by\n",
+        "  constructor\n",
+        "  · constructor\n",
+        "  · exact hq\n",
+    );
+    let report = check_document(&parse(partial).expect("parse"));
+    assert!(
+        report.errors.is_empty(),
+        "未闭合块按 Lean admit：{:?}",
+        report.errors
+    );
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("bullet_partial"))
+        .expect("decl bullet_partial");
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.holes.len(), 1, "只留聚焦目标那一个洞：{:?}", d.holes);
+    assert_eq!(d.holes[0].start.offset, partial.find('·').expect("`·`"));
+}
+
+/// **`· sorry`**（2026-10-21 用户）：块末直接写 `sorry` ⇒ 按 Lean 的
+/// `closeUsingOrAdmit` **admit**（本语言 = 开放练习），不再报“没证完”；
+/// 洞落在 `sorry` 上，后面的 `·` 只处理外层剩下的目标。
+#[test]
+fn bullet_with_sorry_admits_the_focused_goal() {
+    let src = concat!(
+        "theorem bullet_sorry (a b : Prop) (ha : a) (hb : b) : a ∧ b := by\n",
+        "  constructor\n",
+        "  · sorry\n",
+        "  · exact hb\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("bullet_sorry"))
+        .expect("decl bullet_sorry");
+    assert_eq!(d.status, DeclStatus::Open, "admit = 开放练习：{d:?}");
+    assert_eq!(d.holes.len(), 1, "只留一个洞：{:?}", d.holes);
+    assert_eq!(d.hole_modes, vec![HoleMode::Tactic], "洞是 tactic 位");
+    let sorry = src.rfind("sorry").expect("sorry"); // 名字里也有 `sorry`；取最后那个 tactic
+    assert_eq!(
+        (d.holes[0].start.offset, d.holes[0].end.offset),
+        (sorry, sorry + "sorry".len()),
+        "洞必须落在 `sorry` 上，而不是下一条 `exact`：{:?}",
+        d.holes[0]
+    );
+}
+
 /// **A1（2026-10-12 blocker）**：洞的**位置模式**由 walk 带出来（`DeclState.hole_modes`，
 /// 与 `holes` **逐位对齐**）—— `by` 块里剩下的目标是 **tactic 位**（那里要写
 /// `exact hp`），声明值位/项内部的洞是**项位**（那里要写 `hp`）。
@@ -11849,6 +12064,46 @@ fn apply_eq_symm_then_exact_closes_the_declaration() {
     assert!(
         d.by_steps[1].goals.is_empty(),
         "`exact h` 之后不该剩目标：{:?}",
+        d.by_steps[1].goals
+    );
+}
+
+/// **命名实参 + 隐式前缀的二次反解**（2026-10-21）：`apply Eq.subst (p := …) h`
+/// 里 `p` 是命名实参，`α/a/b` 三个隐式前缀只能从位置实参 `h : a = b` 反解。
+///
+/// `h` 的**书写类型**是记法节点 `a = b`（只有 2 个操作数），主候选会把 `Eq`
+/// 的前导 `α` 丢掉 ⇒ 命名实参路径必须与正常应用路径一样提供**全显式 pp** 的
+/// 第二候选（`@Eq α a b`）。修前这条报 `elab-implicit-argument-unsolved`；
+/// 修后声明 `Checked`，且 apply 留下的子目标恰好是 `a = a`。
+#[test]
+fn named_arg_on_an_implicit_prefix_param_uses_the_second_candidate() {
+    let src = concat!(
+        "theorem named_subst (α : Type) (a b : α) (h : a = b) : a = b := by\n",
+        "  apply Eq.subst (p := fun x => a = x) h\n",
+        "  exact Eq.refl a\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("named_subst"))
+        .expect("decl named_subst");
+    assert_eq!(d.status, DeclStatus::Checked, "{d:?}");
+    assert_eq!(d.by_steps.len(), 2, "one state per tactic: {d:?}");
+    assert_eq!(
+        d.by_steps[0]
+            .goals
+            .iter()
+            .map(|g| g.ty.as_str())
+            .collect::<Vec<_>>(),
+        vec!["a = a"],
+        "`apply Eq.subst (p := …) h` 必须只留下 `a = a`：{:?}",
+        d.by_steps[0].goals
+    );
+    assert!(
+        d.by_steps[1].goals.is_empty(),
+        "`exact Eq.refl a` 之后不该剩目标：{:?}",
         d.by_steps[1].goals
     );
 }

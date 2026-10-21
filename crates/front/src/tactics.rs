@@ -54,7 +54,7 @@ pub struct TacticDoc {
     pub markdown: &'static str,
 }
 
-/// 本语言实现的**全部** tactic（14 条）。
+/// 本语言实现的**全部** tactic（16 条）。
 ///
 /// ⚠ 新增一条 = 加一行 + 建 `reference/tactics/<name>.md`（否则**编译不过**），
 /// 并让 `crates/front/tests/tactic_docs.rs` 的手写清单与 `scripts/tactic-docs-lint.py`
@@ -173,6 +173,13 @@ pub static TACTIC_DOCS: &[TacticDoc] = &[
         semantic_kind: SemanticKind::Hole,
         markdown: include_str!("../../../reference/tactics/sorry.md"),
     },
+    TacticDoc {
+        name: "·",
+        summary: "聚焦下一个子目标：把缩进块里的 tactic 只作用在它上面；块末未证完则按 Lean 的 `closeUsingOrAdmit` admit 成开放练习。",
+        variant: "Bullet",
+        semantic_kind: SemanticKind::Keyword,
+        markdown: include_str!("../../../reference/tactics/·.md"),
+    },
 ];
 
 /// 这个关键字是不是 tactic？（**白名单的唯一实现** —— `parser::is_tactic_keyword` 走它。）
@@ -227,8 +234,8 @@ mod tests {
     fn the_table_has_no_duplicate_and_no_empty_entry() {
         assert_eq!(
             TACTIC_DOCS.len(),
-            15,
-            "tactic 基线是 15 条（设计 §1.1；`unfold` 2026-10-11 加）"
+            16,
+            "tactic 基线是 16 条（设计 §1.1；`unfold` 2026-10-11、`·` 2026-10-21 加）"
         );
         for t in TACTIC_DOCS {
             assert!(!t.name.is_empty() && !t.summary.is_empty() && !t.variant.is_empty());
@@ -242,13 +249,13 @@ mod tests {
         }
     }
 
-    /// 白名单文本**恰好**含全部 15 条、且以 ` / ` 分隔（"未知 tactic"文案照它拼）。
+    /// 白名单文本**恰好**含全部 16 条、且以 ` / ` 分隔（"未知 tactic"文案照它拼）。
     #[test]
     fn whitelist_text_lists_every_tactic() {
         let text = whitelist_text();
         let parts: Vec<&str> = text.split(" / ").collect();
         assert_eq!(parts, names().collect::<Vec<_>>());
-        assert_eq!(parts.len(), 15);
+        assert_eq!(parts.len(), 16);
     }
 
     /// `is_tactic` 与表**同集合**（两个方向都试）。

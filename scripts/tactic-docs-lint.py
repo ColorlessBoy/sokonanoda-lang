@@ -8,7 +8,7 @@
 与表比对 ⇒ 一个在 Rust 编译/测试侧、一个在文本侧，**两头咬** ✓。
 
 **比什么**（三处必须一一对应）：
-  ① `crates/front/src/tactics.rs` 的 `name: "…"`（**唯一真相**，14 条）
+  ① `crates/front/src/tactics.rs` 的 `name: "…"`（**唯一真相**，16 条）
   ② `crates/front/src/parser.rs` 里 `parse_tactic_inner` 的 `kw == "…"` 字面量
   ③ `reference/tactics/*.md` 的文件名（`README.md` 是索引，不算）
 
@@ -41,16 +41,17 @@ DOCS_DIR = REPO / "reference" / "tactics"
 INDEX = "README.md"
 
 # 表里的条目形如：  name: "intro",
-NAME_RE = re.compile(r'^\s*name:\s*"([a-z]+)",', re.M)
+NAME_RE = re.compile(r'^\s*name:\s*"([a-z·]+)",', re.M)
 # parser **臂头**形如：  TokenKind::Ident(kw) if kw == "intro" => {
+# （`·` 的臂是单行 `=> util::parse_bullet(self),`，所以只要求到 `=>`，不要求 `{`。）
 #
-# ⚠ **必须匹配整个臂头**（含行首的 `TokenKind::Ident(kw) if` 与结尾的 `=> {`），
+# ⚠ **必须匹配整个臂头**（含行首的 `TokenKind::Ident(kw) if`），
 # 不能只匹配 `kw == "…"` ✗ —— `parse_tactic_inner` 里还有一处**不是臂**的同形检查：
 # `have h : T := by` 那一支写的是
 # `if matches!(&self.peek().kind, TokenKind::Ident(kw) if kw == "by")` ⇒
 # 只匹配 `kw ==` 会把 `by` 当成一条 tactic 臂，**当场误红**（本轮实测踩到，
 # 已加 `--selftest` 的 `臂头 vs 内层检查` 那条把它钉住 ✓）。
-ARM_RE = re.compile(r'^\s*TokenKind::Ident\(kw\) if kw == "([a-z]+)" => \{', re.M)
+ARM_RE = re.compile(r'^\s*TokenKind::Ident\(kw\) if kw == "([a-z·]+)" =>', re.M)
 
 
 def table_names(src: str) -> list[str]:
@@ -63,7 +64,7 @@ def parse_tactic_inner_body(src: str) -> str:
 
     ⚠ 必须**切片**而不是全文扫 `kw == "…"` ✗ —— 全文还有别的 `kw ==` 用法
     （`have h : T := by` 那个 `kw == "by"` 就在本函数里，也不是 tactic 臂；
-    `is_tactic_keyword` 旧实现里还有一整份名单）。切片 + 白名单字符集（`[a-z?]+`）
+    `is_tactic_keyword` 旧实现里还有一整份名单）。切片 + 白名单字符集（`[a-z·?]+`）
     两条一起用，才咬得住正确的对象 ✓。
     """
     start = src.index("fn parse_tactic_inner")

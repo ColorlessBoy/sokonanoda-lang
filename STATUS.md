@@ -1,3 +1,9 @@
+## unit01 收口：`·` 子弹（Lean admit）+ apply 早报 + 括号 span + 失败 UI（2026-10-21 · 未发版）
+- ⭐ **用户拿到什么**：`·` 按 Lean `closeUsingOrAdmit` 聚焦子目标，块末未闭合直接 admit 成开放练习（有 `· sorry` 时洞落在 `sorry`，否则落在 `·`）；`apply` 的坏显式实参（direct 与 fallback）落在 `apply` 行；`apply Eq.subst (p := fun x => a ∈ x) h` 可反解隐式；失败声明不再显示「🎉 已无目标」；`)`/声明后空行仍归属声明。
+- **判据（实跑）**：`front --lib` **1026/0** · `tactic_docs` 6/0 · `skill` 5/0 · `docs-lint` ✓ · webview 37/37 · extension-host 71/71 · 课程单元1 3 checked/5 open/0 判负 · 用户三份证明各 1 checked · `· sorry`/空 `·` 均 open + 一个 tactic 位洞 · direct 坏实参 `apply` 行早报。
+- **边界（如实）**：`·` 里 **tactic 报错**仍照常报错（只有“没证完”走 admit）；direct 的**部分应用普通 App**（`Eq.trans h`）仍靠内核终审（前端 `InferOnly` 限制；完全应用/`@`/命名实参已早报）。
+- **改动**：`front` parser/by/apply_probe/query/state + `editor/vscode` Infoview/树 + tactic 表/`·.md`/TM grammar/skills；`STATUS/REQUIREMENTS/CHANGELOG` 同步。
+
 ## 未完成 `sorry` 练习按 Lean 4 进环境：goal state 不再被 `unknown identifier` 阻断（2026-10-21 · 未发版）
 - ⭐ **用户拿到什么**：`unit01` 的 `singleton_subset_iff` 引用尚未证明的 `mem_of_subset_singleton` / `subset_of_mem_singleton` ⇒ 不再报错、正常 elaborate；被引用处给 `uses-open-exercise` warning（不是 error）；部分证明留着 `sorry` 时 `query state` 照常给出目标。
 - **改法**：开放练习的签名通过后，按**同签名 `Declar::Axiom`** 进环境（对齐 Lean 4 的 `sorryAx`），登记 `known` / `entered` / `open_exercises`；检查/事件语义不变（该声明仍是 `exercise.open`）。
@@ -8,30 +14,7 @@
 - **判据**：课程门禁 **258 / 2190 / 915 / failed 0**；`notation-lint` selftest **18/18**。
 - **纪律**：delete-first；`@Eq.*`/多前导/零元/记法目标不进表；`@Set.mem_univ α` 局部应用保留 `@`。
 
-## v0.96.0 发版：严格档 16/16 + apply 目标先参与 + 方言可配置（2026-10-21）
-- ⭐ **用户拿到什么**：严格档 6 个残余文件全部迁绿（unit06/08/09/10/11/12，16/16；L0/S0 + 逐字节）；`apply Eq.symm` / `Eq.refl` / `Eq.trans h` 出正确子目标；方言可由 `--dialect`/清单/指令/LSP/VS Code 设置配置。
-- **已完成**：apply → main（`dad64ab4`），strict → main（`4e5128a9`，冲突只取 main 的 S1–S6 方言 API）；`front --lib` 1006/1006；356 sweep **2 diffs（只剩 2 invalid）**；课程门禁 **failed 0（258 目标 / 2190 checked）**；`scripts/soko gate` **exit 0**；gap 台账**不一致 0**。
-- **真因（记录）**：`Set.empty Nat` 是隐式 α 的位置应用（Lean 4 里不是 `Set Nat`）⇒ 课程改 `@Set.empty Nat`；其余是位置隐式/结果应用，按诊断补 `@`/点名叫法；**不是** level 推断 bug，内核判定零改动。
-- ⚠ **集成中修的门禁**：影子档判据改为非空转（q2 显式 @ 使文本必不同）；严格档显式写法加 `soko:notation-ok` 豁免；docs 预算回收（已完成队列事件折叠 + 历史台账删除，docs 4.48/4.50）；`git prune` 清掉测试 orphan commit（C5 可达性）。
-- **构建身份**：release CLI/LSP 重建后门禁通过；版本 0.96.0（Cargo.toml / package.json / Cargo.lock / requires 同步）。
-- 🧹 **队列清理（2026-10-21）**：`ux-queue` 39 → **0**（13 条 done、17 条 wo-filed、2 条合并；最后 9 条按用户决定归档为 wo-filed）；worktree 清到 1 个；删除已完成 strict 任务/证据笔记（原文在 git 历史）。`ux-queue --check` / `check-queue-integrity` / `docs-lint` 全绿。
-
-## `apply` 目标先参与：`Eq.symm` / `Eq.refl` / `Eq.trans h` 从「读不回来」到出子目标（2026-10-21 · 未发版）
-- ⭐ **用户拿到什么**：单元①练习 4 那种写法 `apply Eq.symm` 现在把目标 `a = x` 变成子目标 `x = a`（可 `exact hx` 收）；`apply Eq.refl` 直接闭合；`apply Eq.trans h` 的子目标是 `b = c`（不再报「结论是 `a = a`」）；`apply Eq.symm.{0}` 不再多出 `⊢ Prop`。
-- **根因三条**（实测，非推测）：① `apply` 先问类型（**无期望类型**）再对目标 ⇒ `Eq.trans h` 的 `c` 被 defaulting 成 `a`；② `peel_binders` 是**文本**剥层，遇内核 pp 的 `?u.<id>` 直接**静默 break** ⇒ 整条上下文 telescope 被当成被应用项的层（σ 撞名，子目标可错成 `x = x`）；③ `{α : Sort u}` 这类**隐式**参数被误判成子目标。
-- **改法**：1a 失败边重试（`SOKO_APPLY_GOAL_FIRST=0` 回退）· 1b 剥层前层归一（`SOKO_APPLY_LEVEL_TEXT=0`，守卫 `u_soko*` 不许外泄）· 层角色信号加「**宇宙域**的名字出现在**后续任何一层的域**」（⚠ 必须限定宇宙域：`w : A` 这种项参数也出现在后续域里，不收窄会把 `apply Exists.intro` 的子目标全打乱 —— `course/solutions/unit8` 当场报「期望 `True`，实际是 `Person`」，由 `cargo test -p sokonanoda-cli --test course` 咬住）· `SOKO_PEEL_PROBE=1` 可诊断 · 诊断按病因拆。按行数棘轮拆出 `apply_probe.rs` / `level_text.rs`（`by.rs` 4439→4292、`judge.rs` 4728→4665）。
-- **判据（全绿）**：`front --lib` **1018/0**（D5 期望更新 + 4 条新判据断言 `by_steps[0].goals`）· `lib/Set` **28/0** · 全课程 **252 文件 vs HEAD 行为逐字节（SAME=252/DIFF=0）** · 课程门禁 **258 目标 / 2190 checked / 0 判负** · `scripts/soko gate --fast` **exit 0** · 矩阵 `scripts/apply-goal-driven-matrix.sh` **PASS** · `notation-paths` 0 新增绕过。
-- **更正一条（省一次白做）**：`apply junk` 的 `['Sort 1','P']` **不是伪目标** —— `α` 是**显式**类型参数，Lean 的 `apply` 同样为它留元变量并把它当中一个目标（`⊢ Type`）。按「应为 `['P']`」做的「点名报错」降级会**拒绝 Lean 合法写法** ⇒ 已回退、开关已删。项级 mvar 不需要也做不到（内核 `Expr::Meta` 是占位符：`add_declar` 硬拒 / `eval` panic / `writer` 拒）。
-- ⚠ **推送留痕**：pre-push 的 `gates：缺口台账（--strict）` 在本机红在**长复现件超时**（`--strict` 把「超时 = 未验证」判红；CI 跑的是**不带** `--strict` 的分片版）⇒ 按逃生门 `git push --no-verify`，其余快层（fmt/clippy/测试环境档位隔离）**全绿** ✓。
-- ⚠ **边界**：`SOKO_JUDGE_INPLACE=off`（慢路）下 1a/1b 不生效（`judge_infer` 没有「带期望类型」能力）⇒ 发布说明 + 阶段 4 收口。台账条目按 `check-multi-session.py` ① **只在 main 上改**（分支不含；落地清单 `target/land/README.md`）。
-
-## strict-mode-v2 批次：16/16 迁绿 + q2 推断修复（2026-10-21 · 未发版）
-- ⭐ **用户拿到什么**：严格档 6 个文件 **16/16 全绿**（unit06/08/09/10/11/12），每文件 loose/strict 都 0 且 **L/S stdout 逐字节相同**、**HEAD-loose 反查相同**；`A ⊆ Set.univ` 的 `exact Set.mem_univ x` 两档绿（q2 `f50ae4da`）。默认仍是 loose，内核判定一行没动。
-- **已提交**：`7ca55d5c` unit06 · `6588bbee` unit08 · `b02e8bb0` unit09 · `2b554ef9` unit10 · `b64c42cc` unit11 · `1efc63b6` unit12 · q2 `f50ae4da`；apply 先合 main（`dad64ab4`），本笔为 strict→main 的集成 merge。
-- **读数**：356 sweep **2 diffs（只剩 2 invalid）**；课程门禁 **failed 0（258 targets / 2190 checked）**；`front --lib` **1006/1006**；`fmt`/`docs-lint`/`status-lint` 绿。
-- **unit08/12 的真因**：不是 level 推断 bug —— `Set.empty Nat` 是隐式 α 的位置应用（Lean 4 里不是 `Set Nat`），改成 `@Set.empty Nat` 后 unit12 的 Sort 消失；其余是位置隐式/结果应用，按诊断补 `@`/点名叫法/显式 `Exists`/`And` props。
-- **纪律**：delete-first；`@` 只在“α 必须指定/推断不出”时用；不做全局 `@` 或全局删除。
-## 更早轮次（**原文已删，只留最近 3 轮** ⇒ `git log --all -- STATUS.md`）：**CI 转绿：0.95.0 的 6 个红 job**（2026-10-20）· `fix-flip3` **第八刀（严格档 `@` 残余第二批，`rejected 22 → 16`）** · `fix-flip3` **第七刀（清 2 条语料/判据拼法 rejected + 构建身份更正）** · 第六刀（`courses/set-theory/**` 严格档 `@` 残余，`rejected 29 → 24`）** · **第四刀（族 (A)：`@` 脊上裸常量实参按该层 domain 重新 elaborate）** · 引擎侧三刀 + 输入方言迁移（a18）· 发版 `0.94.0` · `land-a15` + 补回 e1 · `SUB-implicit-args-strict-default`（严格档翻默认）· 发版 `0.93.0` · 严格档第 1 批（a1→a5）· 发版 `0.92.0` · `KERNEL-GLOBAL-QUIET-HOOK-SILENCES-PANICS` ✓ （2026-10-19 第六/七刀按本文件自己的规矩 + `docs-lint` ⑦ 腾空间 ⇒ 只留最近 3 轮 ✓）
+## 更早轮次（含本轮删掉的 `v0.96.0 发版` / `apply 目标先参与`；**原文已删，只留最近 3 轮** ⇒ `git log --all -- STATUS.md`）：**CI 转绿：0.95.0 的 6 个红 job**（2026-10-20）· `fix-flip3` **第八刀（严格档 `@` 残余第二批，`rejected 22 → 16`）** · `fix-flip3` **第七刀（清 2 条语料/判据拼法 rejected + 构建身份更正）** · 第六刀（`courses/set-theory/**` 严格档 `@` 残余，`rejected 29 → 24`）** · **第四刀（族 (A)：`@` 脊上裸常量实参按该层 domain 重新 elaborate）** · 引擎侧三刀 + 输入方言迁移（a18）· 发版 `0.94.0` · `land-a15` + 补回 e1 · `SUB-implicit-args-strict-default`（严格档翻默认）· 发版 `0.93.0` · 严格档第 1 批（a1→a5）· 发版 `0.92.0` · `KERNEL-GLOBAL-QUIET-HOOK-SILENCES-PANICS` ✓ （2026-10-19 第六/七刀按本文件自己的规矩 + `docs-lint` ⑦ 腾空间 ⇒ 只留最近 3 轮 ✓）
 ## 旧轮墓碑（**原文已删，只留最近 3 轮** ⇒ `git log --all -- STATUS.md`）：`CI-GREEN-SELFTEST-NOT-WIRED` · `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO` · `BITE-PROOF-DOES-NOT-BITE-IN-CI` · `SUB-implicit-named-args` · `SUB-implicit-args-align-lean4` · `SUB-release-metric-measures-unreleased` · `CI-GREEN-READOUT-ROTTED` · `SUB-break-the-guard-recursion` · `BITE-PROOF-READS-LIVE-SHARED-LEDGER` · `BITE-EXPECTATION-GOES-STALE-WHEN-READING-IMPROVES` · `LSP-T2B-TRAILING-BY-LE-3-RED-ON-CI` · `E2E-COVERAGE-4-OF-36` · `AGENT-DOES-NOT-PRODUCE-USER-INPUTS`（第三层）✓
 ## 旧轮（2026-10-15 · **原文已删，只留最近 3 轮** ⇒ `git log --all -- STATUS.md`）：用户五条**激励纠正**（23:xx 亲提 →「你做吧」）· `AGENT-DOES-NOT-PRODUCE-USER-INPUTS`（判据的输入面 = 生成式夹具）· `soko update` 的 404 + `scripts/soko prune` · `#check <def>` 带定义体 + 记法（§9.22）· 清台账第 **7/8** 轮（队列 0 · 隐变量 13/13 收口 · 构建链与缓存身份两族修完）✓
 ## 未决项（**权威 = `docs/ONBOARDING.md` §0.2**；**2026-10-13 订正**：这里曾写「现存 6 条」而权威表实测 3 条 ⇒ 以权威表为准，本条不再自己数 ✗）。⚠ 本节下方两条是**收口记录**，**不是**未决项 —— 2026-10-02 前它写着"只有这两条"而两条都已 ✅ ⇒ 读它的人会以为"队列空了"（#4/#5/#6 三处用户报障就这样掉线过））

@@ -1,8 +1,21 @@
 // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 ## [Unreleased]
 
+### Added
+
+- **`·` 子弹**：`constructor` / `cases` 之后按子目标分组，缩进块只作用于当前目标；
+  块末未证完则按 Lean 的 `closeUsingOrAdmit` admit 成开放练习（有 `· sorry` 时
+  洞落在 `sorry`，否则落在 `·`）。文档见 `reference/tactics/·.md`。
+- **命名实参 + 隐式反解**：`apply Eq.subst (p := fun x => a ∈ x) h` 现在能工作，
+  剩下的 `α/a/b` 从位置实参 `h : a = b` 反解（第二候选全显式 pp）。
+
 ### Fixed
 
+- **失败的声明不再谎报「🎉 已无目标 ✓」**：内核拒绝、但 tactic 全绿的声明，
+  Infoview 与光标树显示「未通过，见诊断」；`stateAt` 在「失败 + 空 step」时回退题面。
+- **`apply` 的坏实参早报**：`apply @Eq.subst … (Eq.symm h)` 这类实参类型不对时，
+  错误现在落在 `apply` 那一行（以前要等整条 theorem 的内核终审，span 是整条声明）；
+  direct 匹配成功的应用脊（`@` / 显式实参）也查。
 - **未完成的 `sorry` 练习按 Lean 4 进环境**：后续声明可以引用它并照常得到
   goal state（不再 `unknown identifier`），引用处提示 `uses-open-exercise`
   warning；跨模块的 `import-has-open-exercises` 文案同步为「可见但未完成」。

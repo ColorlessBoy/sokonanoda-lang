@@ -169,7 +169,7 @@ skills.
   hover a tactic keyword (`intro`, `exact`, `rfl`, `unfold`, `match`, …) and the hover adds
   a one-line summary plus a plain-text `完整文档：F12`. Press `F12` there to open
   that tactic's page — what it does, when to use it, what the kernel checks behind
-  it, the errors you can hit and the way out. All 15 pages plus their index are
+  it, the errors you can hit and the way out. All 16 pages plus their index are
   packaged into the extension (`docs/tactics/*.md`), so they open offline with no
   external site. A tactic added later without a page fails the build instead of
   shipping a broken link.

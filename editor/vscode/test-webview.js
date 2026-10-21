@@ -1387,7 +1387,7 @@ test("state: a closed proof shows the unified no-goal line (2026-10-09)", () => 
   );
 });
 
-test("state: every other no-goal shape shows the SAME line (2026-10-09)", () => {
+test("state: closed/open no-goal shapes show the SAME line (2026-10-09)", () => {
   // ① `def`/`axiom`：`total: 0`（没有 tactic）。
   let { root, send } = loadInfoview();
   send({
@@ -1401,7 +1401,7 @@ test("state: every other no-goal shape shows the SAME line (2026-10-09)", () => 
   });
   assert.strictEqual(textOf(byClass(root, "solved")[0]), "🎉 已无目标 ✓");
 
-  // ② 开放练习（尾部还有 `sorry` 的那类）：字段取值与 ①/③ 都不同，字样必须一样。
+  // ② 开放练习（尾部还有 `sorry` 的那类）：字段取值与 ① 不同，字样必须一样。
   ({ root, send } = loadInfoview());
   send({
     protocol: 1,
@@ -1413,9 +1413,12 @@ test("state: every other no-goal shape shows the SAME line (2026-10-09)", () => 
     total: 2,
   });
   assert.strictEqual(textOf(byClass(root, "solved")[0]), "🎉 已无目标 ✓");
+});
 
-  // ③ 失败的声明。
-  ({ root, send } = loadInfoview());
+// **2026-10-21 用户实测**：内核拒绝的声明（`status: "failed"`、`goals: []`）
+// 以前也显示「🎉 已无目标 ✓」⇒ 与红错同时出现 = 谎报。失败必须显示诊断入口。
+test("state: a failed declaration never claims 已无目标 (2026-10-21)", () => {
+  const { root, send } = loadInfoview();
   send({
     protocol: 1,
     type: "state",
@@ -1425,7 +1428,16 @@ test("state: every other no-goal shape shows the SAME line (2026-10-09)", () => 
     step: 1,
     total: 2,
   });
-  assert.strictEqual(textOf(byClass(root, "solved")[0]), "🎉 已无目标 ✓");
+  assert.strictEqual(
+    byClass(root, "solved").length,
+    0,
+    "failed 不许显示「🎉 已无目标 ✓」",
+  );
+  assert.strictEqual(
+    textOf(byClass(root, "empty")[0]),
+    "声明未通过，见诊断。",
+    "失败声明要给诊断入口",
+  );
 });
 
 // **C3（2026-10-08）**：`#check` / `#print` 的输出要**看得见**（用户 P5：「在 infoview

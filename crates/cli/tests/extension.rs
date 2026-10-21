@@ -1179,7 +1179,7 @@ fn alternation_words(grammar: &Value, rule: &str) -> Vec<String> {
             if !word.is_empty()
                 && word
                     .chars()
-                    .all(|c| c.is_alphanumeric() || matches!(c, '_' | '#' | '∀'))
+                    .all(|c| c.is_alphanumeric() || matches!(c, '_' | '#' | '∀' | '·'))
             {
                 words.push(word.to_string());
             }

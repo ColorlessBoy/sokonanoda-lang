@@ -98,6 +98,8 @@ const KEYWORDS: &[&str] = &[
     "exfalso",
     "cases",
     "have",
+    // Lean 的“子弹”：聚焦下一个子目标（2026-10-21）。
+    "·",
     "#check",
     "#reduce",
     "#print",

@@ -1,6 +1,6 @@
 # tactic 速查
 
-本语言实现的全部 14 条 `by` tactic。一句话说不清的地方，点进每一篇看完整文档 ——
+本语言实现的全部 16 条 `by` tactic。一句话说不清的地方，点进每一篇看完整文档 ——
 在编辑器里把光标放在 tactic 关键字上按 `F12`，也会直接落到对应那篇。
 
 > 预算（本目录自己的闸，判据在 `crates/front/tests/tactic_docs.rs`）：
@@ -23,3 +23,4 @@
 | `cases` | 对假设做情形分析，每个构造子一个分支。 | [cases](cases.md) |
 | `have` | 在证明中间先证一条 `h : T`，当前目标不变。 | [have](have.md) |
 | `sorry` | 占位：目标保持开放。练习没做完的合法状态，不是错误。 | [sorry](sorry.md) |
+| `·` | 聚焦下一个子目标：把缩进块里的 tactic 只作用在它上面；块末未证完则按 Lean 的 `closeUsingOrAdmit` admit 成开放练习。 | [·](·.md) |

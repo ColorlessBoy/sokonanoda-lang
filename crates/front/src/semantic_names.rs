@@ -256,6 +256,12 @@ fn walk_tactic(tactic: &crate::Tactic, toks: &[Token], names: &mut Names) {
                 }
             }
         }
+        // `·` 聚焦块：里面的 tactic 都是真的 tactic，递归收它们的名字。
+        Bullet { tactics, .. } => {
+            for t in tactics {
+                walk_tactic(t, toks, names);
+            }
+        }
         Assumption { .. }
         | Rfl { .. }
         | Constructor { .. }

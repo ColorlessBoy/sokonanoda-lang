@@ -4104,7 +4104,7 @@ pub(crate) fn operand_type_expr<'a>(
 /// ⇒ 逃生门 `SOKO_METAVAR=0` 的行为与今天逐字节相同 ✓。
 ///
 /// 答不出（内核拒绝 / 回读失败）⇒ `None`，调用方**原样**用主候选 ✓。
-fn operand_type_expr_explicit<'a>(
+pub(crate) fn operand_type_expr_explicit<'a>(
     ctx: &ElabCtx<'a, '_>,
     scope: &ElabScope<'a>,
     operand: &Expr,

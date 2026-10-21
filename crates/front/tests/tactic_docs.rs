@@ -11,11 +11,11 @@
 //!    形态；本仓已有同形先例：`crates/lsp/src/tests/hover.rs:1374-1389`。
 //! 2. `semantic_keywords_cover_every_tactic_except_the_named_hole` —— `KEYWORDS` 的
 //!    **具名例外**（`sorry` 是 `Hole`，不是 `Keyword`）。
-//! 3. `unknown_tactic_message_lists_every_tactic` —— 那条**用户可见**的文案含全 14 条
+//! 3. `unknown_tactic_message_lists_every_tactic` —— 那条**用户可见**的文案含全 16 条
 //!    （2026-10-10 抓到的既有缺陷：它漏了 `have`）。
 //! 4. `every_tactic_doc_file_exists_and_has_all_sections` —— 文件在 + H1 == 关键字 +
 //!    首句 == 表里的摘要 + 五个小节齐备 + 预算。
-//! 5. `index_lists_every_tactic_with_its_summary` —— 索引 14 行**逐字**等于表。
+//! 5. `index_lists_every_tactic_with_its_summary` —— 索引 16 行**逐字**等于表。
 //! 6. `pages_marked_done_have_kernel_green_examples` —— **防真空判绿**：P1 骨架带阶段
 //!    标记，标记一删，这一篇的例子就**必须**存在且**逐块喂真内核判绿** ✓。
 //!
@@ -57,6 +57,7 @@ const HAND_WRITTEN: &[&str] = &[
     "apply",
     "exact",
     "intro",
+    "·",
 ];
 
 /// 文档小节（**五个**：`# <关键字>` 是一级标题，另算）。
@@ -95,8 +96,8 @@ fn hand_written_tactic_list_equals_the_table() {
     );
     assert_eq!(
         table.len(),
-        15,
-        "tactic 基线是 15 条（设计 §1.1；`unfold` 2026-10-11 加）"
+        16,
+        "tactic 基线是 16 条（设计 §1.1；`unfold` 2026-10-11、`·` 2026-10-21 加）"
     );
     assert_eq!(
         table,
@@ -115,7 +116,8 @@ fn hand_written_tactic_list_equals_the_table() {
             "exfalso",
             "cases",
             "have",
-            "sorry"
+            "sorry",
+            "·"
         ],
         "**表序 = 白名单文案的顺序**（`whitelist_text`），改顺序会改用户可见文案 ⇒ 判据 3 也会红"
     );
@@ -172,7 +174,7 @@ fn semantic_keywords_cover_every_tactic_except_the_named_hole() {
 // ── 判据 3：每条 tactic **真的**有 parser 臂（行为判据） ──────────────────────
 //
 // ⚠ **为什么不是"断言那条错误文案"**：2026-10-10 实测，`parse_tactic()` 的 3 个调用点
-// 前面都有 `tactic_keyword_ahead()`（= 表成员）闸门，而表里 14 条在
+// 前面都有 `tactic_keyword_ahead()`（= 表成员）闸门，而表里 16 条在
 // `parse_tactic_inner` 里**都有自己的臂** ⇒ 兜底臂**不可达** ✗：
 // 打错一条 tactic（`hax`）走的是"空 `by` 块 + 未知命令"那条路，
 // **根本到不了**"未知 tactic"文案。所以从**外面**断言那句话是断言不到的
@@ -304,10 +306,10 @@ fn index_lists_every_tactic_with_its_summary() {
         assert!(row.ends_with(&want_tail), "索引行的链接形状不对：{row}");
         seen += 1;
     }
-    assert_eq!(seen, 15);
+    assert_eq!(seen, 16);
     // 反向：索引里不许有表外的 tactic 行（否则"索引比真相多"✗）。
     let rows = lines.iter().filter(|l| l.starts_with("| `")).count();
-    assert_eq!(rows, 15, "索引里有 {rows} 行 tactic，表里只有 15 条");
+    assert_eq!(rows, 16, "索引里有 {rows} 行 tactic，表里只有 16 条");
 }
 
 /// **防真空判绿**：P3–P5 每填完一篇就删掉骨架标记 ⇒ 从那一刻起，

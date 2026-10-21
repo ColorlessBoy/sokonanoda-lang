@@ -746,6 +746,14 @@ fn render_tactic(tactic: &Tactic) -> String {
                 }
             }
         }
+        Bullet { tactics, .. } => format!(
+            "· {}",
+            tactics
+                .iter()
+                .map(render_tactic)
+                .collect::<Vec<_>>()
+                .join("; ")
+        ),
         Sorry { .. } => "sorry".to_string(),
     }
 }

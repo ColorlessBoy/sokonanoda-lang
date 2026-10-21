@@ -1,12 +1,13 @@
 //! `apply` 的**探测/守卫**（自 `by.rs` 拆出：那个文件在行数棘轮红线上，`AGENTS.md` 硬规则 5）。
 //! 只装**本批新增/搬迁的判定辅助**；不含任何 `render_expr` 调用（见 `mentions_soko_level`）。
 
-use crate::ast::{Binder, Expr, SortKind};
+use crate::ast::{Binder, Expr, SortKind, Tactic};
 use crate::by::{check_ast_of_text, def_shape, is_concrete_level, level_hint_of};
 use crate::compile::elab::DefTable;
 use crate::compile::CompileOptions;
 use crate::judge::GoalBinderSpec;
 use crate::proof::parse_expr_text;
+use crate::span::Span;
 use crate::spine::{head_and_args, peel_pi_delta, unify_spine};
 
 /// **1a 的开关**：`1`/未设 = 失败边带目标重试；`0` = 逐字节回到改动前。
@@ -240,4 +241,76 @@ pub(crate) fn level_hint_of_inplace<'a>(
         eprintln!("BY_LEVEL_HINT_FALLBACK why={why}");
     }
     level_hint_of(expr, defs, binders, prefix_src, options)
+}
+
+/// **`apply` 的早报守卫**（2026-10-21 用户）：direct 匹配不上、且被应用项里没有洞
+/// ⇒ 用**完整 kernel** 检查 `term : f_ty`。`infer_type_text` 走 `InferOnly`
+/// （不查实参类型），所以 `@Eq.subst … (Eq.symm h)` 能拿到一个看似正常的类型；
+/// 这里补一次 `judge_terms`（完整声明判定）⇒ 类型不匹配当场落在 `apply` 上。
+///
+/// 只在**失败边**跑，且只认 `Mismatch`：`judge_terms` 自己 elaborate 不了
+/// （`Error`）时不拦，照旧走原来的失败链（宁可保持今天的报错，也不引入假红）。
+pub(super) fn checked_apply_mismatch(
+    expr: &Expr,
+    term: &str,
+    f_ty: &str,
+    spec: &crate::judge::OpenGoalSpec,
+    prefix_src: &str,
+    options: &CompileOptions,
+) -> Option<(String, String)> {
+    if !crate::compile::hole::collect_holes(expr).is_empty() {
+        return None;
+    }
+    let mut check_spec = spec.clone();
+    check_spec.ty = f_ty.to_string();
+    match crate::judge::judge_terms(prefix_src, options, &check_spec, &[term]).first() {
+        Some(crate::judge::Judgement::Mismatch {
+            expected, actual, ..
+        }) => {
+            // **函数层不早报**：`expected/actual` 是 `∀ …` 时，错位通常来自
+            // 部分应用的未解隐式（`@Set.univ` / `Set.Equiv.mk` 这些都合法）——
+            // 完整检查会误判；让内核终审兜底，早报只处理**非函数层**的实参错。
+            if is_forall_text(expected) || is_forall_text(actual) {
+                None
+            } else {
+                Some((expected.clone(), actual.clone()))
+            }
+        }
+        _ => None,
+    }
+}
+
+fn is_forall_text(text: &str) -> bool {
+    crate::proof::parse_expr_text(text)
+        .map(|e| matches!(e, Expr::Forall { .. }))
+        .unwrap_or(false)
+}
+
+/// `·` 块里**直接写了** `sorry` 的 span（admit 边界；不递归进嵌套块）。
+pub(super) fn direct_sorry_span(tactics: &[Tactic]) -> Option<Span> {
+    tactics
+        .iter()
+        .find_map(|t| matches!(t, Tactic::Sorry { .. }).then(|| t.span()))
+}
+
+/// direct 匹配成功时还要不要补完整检查：**完全应用**，或带 `@` / 命名实参的
+/// 应用脊（这些形状的坏实参不会被隐式反解兜住）；部分应用（`Eq.trans h`）会
+/// 因类型里还剩未解隐式而误判 ⇒ 不查。
+pub(super) fn needs_checked_apply(expr: &Expr, fully_applied: bool) -> bool {
+    matches!(expr, Expr::App { .. }) && (fully_applied || has_explicit_spine_or_named(expr))
+}
+
+fn has_explicit_spine_or_named(expr: &Expr) -> bool {
+    match expr {
+        Expr::App {
+            fun,
+            arg,
+            explicit_spine,
+            ..
+        } => {
+            *explicit_spine || has_explicit_spine_or_named(fun) || has_explicit_spine_or_named(arg)
+        }
+        Expr::NamedArg { value, .. } => has_explicit_spine_or_named(value),
+        _ => false,
+    }
 }

@@ -2371,6 +2371,39 @@ fn run_tactics<'a>(
                     tactic_holes,
                 )?;
             }
+            // `·`：聚焦当前目标；块末空 ⇒ 证完；非空 ⇒ admit（Lean `closeUsingOrAdmit`）。
+            Tactic::Bullet { tactics, span } => {
+                let cur = *worklist
+                    .last()
+                    .ok_or_else(|| tactic_error("by 块里没有待解目标", *span))?;
+                let mut inner = vec![cur];
+                run_tactics(
+                    tactics,
+                    nodes,
+                    &mut inner,
+                    steps,
+                    // **B3**：内层不是顶层边界（判定属于 `·` 这一条）⇒ 不记 marks。
+                    None,
+                    universe,
+                    prefix_src,
+                    options,
+                    inductives,
+                    defs,
+                    ctx,
+                    crate::compile::elab::InplaceEnv::reborrow(&mut env),
+                    tactic_holes,
+                )?;
+                if !inner.is_empty() {
+                    // Lean 的 `closeUsingOrAdmit`：块没证完就 admit 掉聚焦目标。
+                    // 有显式 `sorry` 用它的 span；否则用 `·` 自己的 span（合成 sorry）。
+                    let hole = crate::apply_probe::direct_sorry_span(tactics).unwrap_or(*span);
+                    nodes[cur].kind = NodeKind::Closed(Expr::Hole { span: hole });
+                    tactic_holes.push(hole);
+                }
+                worklist.retain(|&x| x != cur);
+                // `·` 自身不记步进 ⇒ 光标停在 `·` 上显示“进入这一块”的聚焦目标。
+                continue;
+            }
             // `sorry` = 占位：当前目标保持开放（no-op，节点仍是 Hole）。
             Tactic::Sorry { .. } => {}
         }
@@ -2627,9 +2660,25 @@ fn apply_tactic<'a>(
     // 位置 spine 合一：codomain 与当前目标头相同、逐参数位对应 → σ。
     // （`apply_goal` 就是它，只是**提前**取了一份给上面的期望类型用 ✓。）
     let goal = apply_goal;
+    let direct = unify_spine(&codomain, &goal, &layers);
+    // 失败边全查；direct 成功只在完全应用或带 `@`/命名实参时查（部分应用会误判）。
+    if direct.is_none() || crate::apply_probe::needs_checked_apply(expr, layers.is_empty()) {
+        if let Some((expected, actual)) = crate::apply_probe::checked_apply_mismatch(
+            expr, &term, &f_ty, &spec, prefix_src, options,
+        ) {
+            return Err(CompileError::elab(
+                ErrorKind::ElabTacticFailed,
+                format!(
+                    "`apply` 的被应用项没有通过内核检查：期望 `{expected}`，实际是 `{actual}`。\
+                     这通常说明它的某个显式实参类型不对（例如 `Eq.subst` 的 `h`）。"
+                ),
+                span,
+            ));
+        }
+    }
     // 匹配成功 ⇒ σ；三条源级尝试（原形 / 内核 pp 形 / 头展开一层 / **递归展开**）
     // 都不行 ⇒ `None`（兜底交给下面的内核判等，见 G-109）。
-    let matched = match unify_spine(&codomain, &goal, &layers) {
+    let matched = match direct {
         Some(sigma) => Some(sigma),
         None => {
             // **记法 / 集合字面量的失败重试**（G-04；设计

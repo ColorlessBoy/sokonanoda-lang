@@ -486,6 +486,50 @@ fn state_at_owns_the_blank_lines_after_a_declaration() {
     );
 }
 
+/// **括号结尾的声明**（2026-10-21 用户 unit01 实测）：`apply (…)` 的最后 `))`
+/// 必须算进声明 span。修前 `parse_atom` 的 `(e)` 返回内部表达式（span 停在右括号
+/// 之前）⇒ `decl_at_cursor` 的空白尾巴看到 `)` 判 `outside-declarations` ⇒
+/// Infoview 说「光标不在任何声明内」✗。
+#[test]
+fn state_at_owns_the_closing_paren_and_the_blank_line_after_it() {
+    const THEOREM: &str = "theorem t (a : Nat) : a = a := by\n  exact (Eq.refl a)\n";
+    let text = doc(THEOREM);
+    // ① 光标在**右括号**上 ⇒ 仍属于 `t`。
+    let close = THEOREM.rfind(')').expect("右括号");
+    assert_eq!(
+        text.state_at(close)
+            .expect("右括号属于 `t`")
+            .decl
+            .as_ref()
+            .map(|d| d.name.as_str()),
+        Some("t"),
+        "右括号必须落在声明 span 内"
+    );
+    // ② 声明后的空行（EOF）⇒ 仍属于 `t`。
+    assert_eq!(
+        text.state_at(THEOREM.len())
+            .expect("声明后空行属于 `t`")
+            .decl
+            .as_ref()
+            .map(|d| d.name.as_str()),
+        Some("t"),
+        "括号结尾的声明也要拥有它后面的空白尾巴"
+    );
+
+    // ③ `def` 的值位同样（不是只有 theorem / `by` 块）。
+    const DEF: &str = "def foo : Nat := (Nat.zero)\n";
+    let def = doc(DEF);
+    assert_eq!(
+        def.state_at(DEF.len())
+            .expect("def 后空行属于 `foo`")
+            .decl
+            .as_ref()
+            .map(|d| d.name.as_str()),
+        Some("foo"),
+        "def 的值位以 `)` 结尾时也要拥有空白尾巴"
+    );
+}
+
 /// **需求 4 的"剩余目标"那一半**：光标停在**未证完**的声明之后的空行上时，面板拿到的
 /// 仍是**该声明的剩余目标**（不是空、也不是邻居的）——这样 Infoview 才会画目标或
 /// 「🎉 已无目标 ✓」，而不是「光标不在任何声明内」。

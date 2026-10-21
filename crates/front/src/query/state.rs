@@ -235,6 +235,12 @@ pub fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
         return root();
     };
     let s = &d.by_steps[step];
+    // **失败声明的最后一个 step 可能是空的**（tactic 全绿、内核终审才拒绝）——
+    // `goal: null` 在协议里 = 证明已闭合 ⇒ 不许把这种情况显示成「已无目标」✗
+    // （G-78 的同一原则）。回退到题面：这道题仍然没通过。
+    if !legacy && matches!(d.status, DeclStatus::Failed) && s.goals.is_empty() {
+        return root();
+    }
     StateSelection {
         goals: s.goals.clone(),
         span: Some(s.span),

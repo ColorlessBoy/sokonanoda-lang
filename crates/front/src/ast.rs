@@ -352,6 +352,11 @@ impl Tactic {
                     }
                 }
             },
+            Tactic::Bullet { tactics, .. } => {
+                for tactic in tactics {
+                    tactic.for_each_ident(f);
+                }
+            }
             // `unfold` 的名字是**引用**（不是表达式位）⇒ 单独报它们自己的 span。
             Tactic::Unfold { names, at, .. } => {
                 for (name, span) in names {
@@ -473,6 +478,19 @@ pub enum Tactic {
     Sorry {
         span: Span,
     },
+    /// `·`（Lean 的“子弹”）：**聚焦当前子目标**，把缩进块里的 tactic 只作用在
+    /// 它上面；块末必须把它证完（Lean `Lean.cdot` / `evalTacticCDot` 的语义）。
+    ///
+    /// **Lean 4 对照**（本机 `~/Documents/lean/lean4`）：
+    /// `src/Lean/Elab/Tactic/BuiltinTactic.lean:154` 的 `evalTacticCDot` 用
+    /// `withCaseRef` + `closeUsingOrAdmit` 把 `·` 后面的 `tacs` 聚焦到当前目标，
+    /// **目标没证完就报错**；`{ tacs }` 是它的括号版（`evalTacticSeqBracketed`）。
+    Bullet {
+        /// `·` 后面缩进的 tactic 序列（用列号界定，与 `have := by` / `cases` 臂体
+        /// 同一条 layout 规则）。
+        tactics: Vec<Tactic>,
+        span: Span,
+    },
     /// `unfold Foo Bar`（Lean 同名 tactic，2026-10-11 用户要求）：把目标里
     /// **每一处** `Foo` / `Bar` 的定义体展开出来，目标换成展开后的形态。
     ///
@@ -531,6 +549,7 @@ impl Tactic {
             | Tactic::Cases { span, .. }
             | Tactic::Have { span, .. }
             | Tactic::Unfold { span, .. }
+            | Tactic::Bullet { span, .. }
             | Tactic::Sorry { span } => *span,
         }
     }

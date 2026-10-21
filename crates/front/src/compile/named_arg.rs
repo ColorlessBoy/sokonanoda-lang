@@ -28,10 +28,14 @@
 //! 两条差异都**只影响"命名实参 + 那种形状"**：没有命名实参时本模块**一次都不进** ✓
 //! ⇒ 既有语料逐字节不变 ✓。
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 use crate::ast::Expr;
-use crate::compile::elab::{elab_expr, ElabCtx, ElabScope, HoverNode, KnownTable, UnivMap};
+use crate::compile::elab::{
+    elab_expr, operand_type_expr_explicit, ElabCtx, ElabScope, HoverNode, InplaceEnv, KnownTable,
+    UnivMap,
+};
 use crate::compile::error::{CompileError, ErrorKind};
 use crate::compile::implicit::{self, Layer};
 use sokonanoda::builder::EnvBuilder;
@@ -228,19 +232,52 @@ pub(crate) fn apply<'a>(
     } else {
         let arg_tys =
             crate::compile::pp_shape::arg_types(&pos_refs, ctx, scope, known, &mut *builder);
+        // **第二候选（C 子项）**：与正常应用路径同源 —— 位置实参的**全显式 pp**
+        // 类型（`@Eq α x a`）。命名实参把 `p` 摘掉之后，剩下的 `α/a/b` 只能靠
+        // `h : {a}={b}` 反解；书写类型是记法节点（`=` 只有 2 个操作数），主候选
+        // 会把 `Eq` 的前导 `α` 丢掉 ⇒ 必须提供第二候选，否则
+        // `apply Eq.subst (p := …) h` 报「剩下那些补不出来」✗。
+        let alt_enabled = implicit::second_candidate_enabled();
+        let alt_memo: RefCell<Vec<Option<Option<Expr>>>> = RefCell::new(vec![None; pos_refs.len()]);
+        let alt_env: RefCell<Option<InplaceEnv<'_, 'a>>> = RefCell::new(Some(InplaceEnv {
+            builder: &mut *builder,
+            known,
+        }));
+        let alt_type = |slot: usize| -> Option<Expr> {
+            if !alt_enabled {
+                return None;
+            }
+            let mut memo = alt_memo.borrow_mut();
+            if let Some(Some(cached)) = memo.get(slot) {
+                return cached.clone();
+            }
+            let computed = {
+                let mut guard = alt_env.borrow_mut();
+                let env = guard.as_mut();
+                pos_refs
+                    .get(slot)
+                    .and_then(|a| operand_type_expr_explicit(ctx, scope, a, env))
+            };
+            if let Some(cell) = memo.get_mut(slot) {
+                *cell = Some(computed.clone());
+            }
+            computed
+        };
         let is_inductive = |n: &str| ctx.inductives.contains_key(n);
-        match implicit::solve_prefix_with_args(
+        match implicit::solve_prefix_outcome_with_args_alt(
             &red,
             &result_sub,
             red_k,
             &arg_tys,
+            &alt_type,
+            None,
             &pos_refs,
             expected_src,
             ctx.defs,
             &is_inductive,
         ) {
-            Some(v) => v,
-            None => {
+            crate::compile::meta::MetaSolve::Solved(v) => v,
+            _ => {
                 return Err(CompileError::elab(
                     ErrorKind::ElabImplicitArgumentUnsolved,
                     crate::compile::implicit_msg::named_arg_unsolved_message(ty_text, k),

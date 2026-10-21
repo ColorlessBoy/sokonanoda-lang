@@ -3152,6 +3152,39 @@ test("goal wording: the cursor tree shows the unified no-goal line", async () =>
   }
 });
 
+// **2026-10-21 用户实测**：内核拒绝的声明在光标树里也不许显示「🎉 已无目标」。
+test("goal wording: a failed declaration never claims 已无目标 (2026-10-21)", async () => {
+  stubbedResponses["soko/goals"] = () => ({ decls: [] });
+  stubbedResponses["soko/stateAt"] = () => ({
+    decl: { name: "bad", kind: "theorem", status: "failed" },
+    goals: [],
+    goal: null,
+    step: 1,
+    total: 2,
+  });
+  try {
+    await activateExtension();
+    focus(fakeDocument("/repo/playground.sokonanoda"));
+    await settle();
+    const tree = vscodeStub.__trees?.["sokonanoda.goals"];
+    assert.ok(tree, "the exercise tree must be registered");
+    const roots = await tree.getChildren();
+    const group = roots.find((item) => String(item.label) === "当前光标处");
+    assert.ok(group, `the cursor group must be present, got ${roots.map((i) => i.label)}`);
+    const rows = await tree.getChildren(group);
+    const goalRow = rows.find((item) => String(item.label) === "目标");
+    assert.ok(goalRow, `the 目标 row must be present, got ${JSON.stringify(rows.map((i) => i.label))}`);
+    assert.strictEqual(
+      String(goalRow.description ?? ""),
+      "未通过，见诊断",
+      "失败声明要给诊断入口，不许 🎉",
+    );
+  } finally {
+    stubbedResponses["soko/goals"] = () => ({ decls: [] });
+    stubbedResponses["soko/stateAt"] = () => ({ decls: [], goals: [] });
+  }
+});
+
 // ── runner ───────────────────────────────────────────────────────────────
 (async () => {
   let failed = 0;

@@ -609,13 +609,20 @@ function buildCursorChildren(cursor, uriString) {
     // ⚠ 两个渲染点**必须同句**（这类"同一判据、两个渲染点"的漂移修过一次 ✓）：
     // 判据 `test-extension-host.js`（树）+ `test-webview.js`（面板）。
     const decl = cursor.decl;
-    const proved = !!decl && decl.status === "checked"
-      && typeof cursor.total === "number" && cursor.total > 0
-      && typeof cursor.step === "number" && cursor.step === cursor.total - 1;
-    goal.description = "🎉 已无目标 ✓";
-    // 图标仍分开：真闭合给实心对勾（`pass-filled`），其余给普通对勾 ——
-    // **文字统一**（用户要的）不等于抹掉"这条路走完了"的视觉信号 ✓。
-    goal.iconPath = new vscode.ThemeIcon(proved ? "pass-filled" : "check");
+    if (decl && decl.status === "failed") {
+      // 失败声明不许显示「已无目标」✗（2026-10-21 用户实测：内核拒绝的声明也
+      // 显示 🎉 ⇒ 谎报）。与 `media/infoview.js` 同一口径。
+      goal.description = "未通过，见诊断";
+      goal.iconPath = new vscode.ThemeIcon("error");
+    } else {
+      const proved = !!decl && decl.status === "checked"
+        && typeof cursor.total === "number" && cursor.total > 0
+        && typeof cursor.step === "number" && cursor.step === cursor.total - 1;
+      goal.description = "🎉 已无目标 ✓";
+      // 图标仍分开：真闭合给实心对勾（`pass-filled`），其余给普通对勾 ——
+      // **文字统一**（用户要的）不等于抹掉"这条路走完了"的视觉信号 ✓。
+      goal.iconPath = new vscode.ThemeIcon(proved ? "pass-filled" : "check");
+    }
     children.push(goal);
   } else if (goals.length === 1) {
     const goal = new vscode.TreeItem("目标", vscode.TreeItemCollapsibleState.None);
