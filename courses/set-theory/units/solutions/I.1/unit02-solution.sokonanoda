@@ -36,7 +36,7 @@ theorem eq_empty_iff_forall_notMem (α : Type) (A : Set α) :
     (A = ∅) ↔ (∀ (x : α), ¬ (x ∈ A)) :=
   @Iff.intro (A = ∅) (∀ (x : α), ¬ (x ∈ A))  -- soko:notation-ok: G-30：分支含 `∅`，前导实参必须写全
     (fun (h : A = ∅) => fun (x : α) (hx : x ∈ A) =>
-      @Set.notMem_empty α x (@Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X) A ∅ h hx))
+      Set.notMem_empty x (@Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X) A ∅ h hx))
     (fun (h : ∀ (x : α), ¬ (x ∈ A)) =>
       subset_antisymm α A ∅
         (fun (x : α) (hx : x ∈ A) => @absurd (x ∈ A) (x ∈ ∅) hx (h x))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
@@ -49,9 +49,9 @@ theorem eq_empty_iff_forall_notMem (α : Type) (A : Set α) :
 -- 所以下面四题与画布逐字一致。
 theorem singleton_ne_empty (α : Type) (a : α) : {a} ≠ ∅ :=
   fun (h : {a} = ∅) =>
-    @Set.notMem_empty α a
+    Set.notMem_empty a
       (@Eq.subst.{1} (Set α) (fun (X : Set α) => a ∈ X) {a} ∅ h
-        (@Set.mem_singleton_self α a))
+        (Set.mem_singleton_self a))
 
 theorem pair_subset_iff (α : Type) (a b : α) (A : Set α) :
     {a, b} ⊆ A ↔ a ∈ A ∧ b ∈ A :=

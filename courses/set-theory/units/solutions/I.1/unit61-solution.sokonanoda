@@ -78,5 +78,5 @@ theorem inter_univ_eq (α : Type) (A : Set α) : @Eq.{1} (Set α) (A ∩ (@Set.u
                 (Set.mem_inter_iff a A (@Set.univ α))))
           (fun (h : a ∈ A) =>
             (fun (hu : a ∈ (A ∩ (@Set.univ α)) ↔ a ∈ A ∧ a ∈ (@Set.univ α)) =>
-              Iff.mpr hu (And.intro h (@Set.mem_univ α a)))
+              Iff.mpr hu (And.intro h (Set.mem_univ a)))
               (Set.mem_inter_iff a A (@Set.univ α)))))

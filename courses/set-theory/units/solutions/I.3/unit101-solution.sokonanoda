@@ -4,7 +4,7 @@ import lib.Order
 
 theorem demo_mem_empty_iff_false (α : Type) (x : α) :
     x ∈ (∅) ↔ False :=
-  @Set.mem_empty_iff_false α x
+  Set.mem_empty_iff_false x
 
 theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
     A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=
@@ -17,13 +17,13 @@ theorem subset_empty_elim (α : Type) (A : Set α) (h : A ⊆ ∅) :
     ∀ (x : α), x ∈ A → False :=
   fun (x : α) (hx : x ∈ A) =>
     (fun (hu : x ∈ ∅ ↔ False) => Iff.mp hu (h x hx))
-      (@Set.mem_empty_iff_false α x)
+      (Set.mem_empty_iff_false x)
 
 theorem subset_empty_intro (α : Type) (A : Set α) (h : ∀ (x : α), x ∈ A → False) :
     A ⊆ ∅ :=
   fun (x : α) (hx : x ∈ A) =>
     (fun (hu : x ∈ ∅ ↔ False) => Iff.mpr hu (h x hx))
-      (@Set.mem_empty_iff_false α x)
+      (Set.mem_empty_iff_false x)
 
 theorem not_mem_of_subset_empty (α : Type) (A : Set α) (h : A ⊆ ∅) :
     ∀ (x : α), x ∈ A → False :=
@@ -32,7 +32,7 @@ theorem not_mem_of_subset_empty (α : Type) (A : Set α) (h : A ⊆ ∅) :
 theorem empty_subset (α : Type) (A : Set α) : ∅ ⊆ A :=
   fun (x : α) (hx : x ∈ ∅) =>  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
     (fun (hu : x ∈ ∅ ↔ False) => @False.elim (x ∈ A) (Iff.mp hu hx))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
-      (@Set.mem_empty_iff_false α x)
+      (Set.mem_empty_iff_false x)
 
 theorem subset_empty_iff_pointwise (α : Type) (A : Set α) :
     (A ⊆ ∅) → (∀ (x : α), x ∈ A → False) :=

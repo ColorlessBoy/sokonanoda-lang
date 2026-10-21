@@ -80,7 +80,7 @@ theorem prod_set_swap_ne (A : Type) (a b : A) (h : a ≠ b) :
       (fun (S : Set (Prod A A)) => @prod_mk A A a b ∈ S)
       ({a} ×ˢ {b}) ({b} ×ˢ {a}) e
       ((fun (hmem : a ∈ {a} ∧ b ∈ {b}) => hmem)
-        (And.intro (@Set.mem_singleton_self A a) (@Set.mem_singleton_self A b)))))
+        (And.intro (Set.mem_singleton_self a) (Set.mem_singleton_self b)))))
 
 -- 练习 7（R 类）：Kuratowski 编码的退化情形 —— a = b 时 {{a},{a,b}} 塌缩成 {{a}}。
 -- 外层 Set.ext 逐元素 x : Set α 证 Iff；右到左直接 Or.inl；左到右 cases 分两支，

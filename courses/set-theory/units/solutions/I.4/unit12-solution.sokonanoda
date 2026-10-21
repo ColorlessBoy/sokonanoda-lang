@@ -15,7 +15,7 @@
 -- 画布 12.3 的环 6 `demo_equiv_comp`（等势的复合仍是等势）是**演示**、画布上已写好，
 -- 本文件不重复它；它是环 7 那道题的读法样板（本文件里 `≈` 的用法与它同款）。
 --
--- 反例一律落在 `Set Nat` 上（∅ 与 univ 两个元素现成可分辨：Set.mem_univ / @Set.notMem_empty），
+-- 反例一律落在 `Set Nat` 上（∅ 与 univ 两个元素现成可分辨：Set.mem_univ / Set.notMem_empty），
 -- 这样既不用新增归纳类型，也不需要 Decidable/classical（语言里都没有）。
 --
 -- 五条**书写纪律**（都是判卷器的实测边界，不是风格偏好）：
@@ -166,7 +166,7 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
 -- 第一条（像 ∘ 原像）：C 取 univ——`@Set.univ Nat` 是 C 的点，却没有原像；
 -- 第二条（像保交）：A 取 {∅}、B 取 {univ}——A ∩ B = ∅，两个像却都含 ∅。
 -- 两处的矛盾都由 "∅ ≠ univ" 提供：Set.mem_univ Nat 0 把 0 送进 univ，
--- @Set.notMem_empty Nat 0 再把它挡回来（本语言没有 Decidable，这是最省的分辨手段）。
+-- Set.notMem_empty Nat 0 再把它挡回来（本语言没有 Decidable，这是最省的分辨手段）。
 -- 常函数是 λ，记法 `''` / `⁻¹'` / `∩` 补不出它的前导类型参数 ⇒ 这一条写点名形式。
 theorem flawed_equalities_refuted :
     (fun (_ : Set Nat) => ∅) '' ((fun (_ : Set Nat) => ∅) ⁻¹' (@Set.univ (Set Nat)))
@@ -205,14 +205,14 @@ theorem flawed_equalities_refuted :
               (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)
                 (@Set.univ (Set Nat))))
             (@Set.univ (Set Nat)) h)
-          (@Set.mem_univ (Set Nat) (@Set.univ Nat)))
+          (Set.mem_univ (@Set.univ Nat)))
         (fun (x : Set Nat) =>
           fun (hx :
           (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               (@Set.univ (Set Nat)) x) ∧
             (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) => @Set.empty Nat) x) (@Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           ) =>
-          @Set.notMem_empty Nat 0
+          Set.notMem_empty 0
             (@Eq.subst.{1} (Set Nat) (fun (Z : Set Nat) => 0 ∈ Z)
               (@Set.univ Nat) (∅)
               (@Eq.symm.{1} (Set Nat) ((fun (_ : Set Nat) => @Set.empty Nat) x) (@Set.univ Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
@@ -220,7 +220,7 @@ theorem flawed_equalities_refuted :
                   (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                     (@Set.univ (Set Nat)) x)
                   (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) => @Set.empty Nat) x) (@Set.univ Nat)) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-              (@Set.mem_univ Nat 0))))
+              (Set.mem_univ 0))))
     (fun (h :
       @Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => ∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           (@Set.inter (Set Nat) (@Set.singleton (Set Nat) (∅))
@@ -295,7 +295,7 @@ theorem flawed_equalities_refuted :
               ((@Set.singleton (Set Nat) (@Set.univ Nat))) x) ∧
             (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) => @Set.empty Nat) x) (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           ) =>
-          @Set.notMem_empty Nat 0
+          Set.notMem_empty 0
             (@Eq.subst.{1} (Set Nat) (fun (Z : Set Nat) => 0 ∈ Z)
               (@Set.univ Nat) (∅)
               (@Eq.trans.{1} (Set Nat) (@Set.univ Nat) x (∅)
@@ -318,7 +318,7 @@ theorem flawed_equalities_refuted :
                     (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) => @Set.empty Nat) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                       (∅))
                     hx)))
-              (@Set.mem_univ Nat 0))))
+              (Set.mem_univ 0))))
 
 -- P1（期末小项目）：一条链把三层串起来。
 --   关系层：函数的图像（`fun a b => f a = b`）也是关系，复合图像的**关系复合** = 复合函数的图像；

@@ -177,6 +177,6 @@ theorem union_sdiff_univ_ne_univ :
   -- soko:notation-ok: 严格档要求显式前导参数（strict @）
         ((@Set.sdiff Nat ((@Set.univ Nat) ∪ (@Set.univ Nat)) (@Set.univ Nat)))
         (@Set.univ Nat) h)
-      (@Set.mem_univ Nat Nat.zero)
+      (Set.mem_univ Nat.zero)
   exact @And.right (Nat.zero ∈ (@Set.univ Nat) ∪ (@Set.univ Nat))
-    (¬ (Nat.zero ∈ @Set.univ Nat)) hmem (@Set.mem_univ Nat Nat.zero)
+    (¬ (Nat.zero ∈ @Set.univ Nat)) hmem (Set.mem_univ Nat.zero)

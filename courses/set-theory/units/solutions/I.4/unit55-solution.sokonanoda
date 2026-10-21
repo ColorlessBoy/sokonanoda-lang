@@ -28,4 +28,4 @@ theorem not_all_mem_empty (α : Type) (a : α) : ¬ (∀ (x : α), x ∈ (∅)) 
 theorem not_univ_subset_empty (α : Type) (a : α) :
     ¬ (@Set.univ α ⊆ (∅)) :=
   fun (h : @Set.univ α ⊆ (∅)) =>
-    (Iff.mp (Set.mem_empty_iff_false a)) (h a (@Set.mem_univ α a))
+    (Iff.mp (Set.mem_empty_iff_false a)) (h a (Set.mem_univ a))

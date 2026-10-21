@@ -281,7 +281,7 @@ theorem not_image_inter_eq_image_inter :
       (f1 '' (({aa}) ∩ ({bb})))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
       (@Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
         (f1 '' ({bb})))) =>
-  @Set.notMem_empty Two aa
+  Set.notMem_empty aa
     (@Eq.subst.{1} (Set Two) (fun (X : Set Two) => aa ∈ X)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (@Set.inter Two (f1 '' ({aa}))
         (f1 '' ({bb})))
@@ -300,7 +300,7 @@ theorem not_image_inter_eq_image_inter :
   -- soko:notation-ok: 严格档要求显式前导参数（strict @）
         (@Set.mem Two aa (@Set.inter Two (f1 '' ({aa})) (f1 '' ({bb}))))
         ((aa ∈ (f1 '' ({aa}))) ∧ (aa ∈ (f1 '' ({bb}))))
-        (@Set.mem_inter_iff Two aa (f1 '' ({aa})) (f1 '' ({bb})))
+        (Set.mem_inter_iff aa (f1 '' ({aa})) (f1 '' ({bb})))
         aa_mem_inter_image))
 
 -- ─────────────────────────────────────────────────────────────

@@ -363,7 +363,7 @@ import lib.Set
 
 -- 演示（第二刀）：`𝒫 A` 就是 `Set.powerset α A`——幂集的成员是**子集**。
 example (α : Type) (A : Set α) : Iff (@Set.mem (Set α) A (𝒫 A)) (@Set.subset α A A) := by
-  exact @Set.mem_powerset_iff α A A
+  exact Set.mem_powerset_iff A A
 
 -- 演示（第二刀）：`Aᶜ` 就是 `Set.compl α A`——补集的成员就是"不在里面"。
 example (α : Type) (a : α) (A : Set α) :
@@ -434,10 +434,10 @@ theorem demo_empty_subset_notation (α : Type) (A : Set α) : ∅ ⊆ A := by
 -- 不是引理名的糖**）。
 theorem demo_notMem_empty_pointful (α : Type) (a : α) :
     Not (@Set.mem α a (∅)) := by
-  exact @Set.notMem_empty α a
+  exact Set.notMem_empty a
 
 theorem demo_notMem_empty_notation (α : Type) (a : α) : Not (a ∈ ∅) := by
-  exact @Set.notMem_empty α a
+  exact Set.notMem_empty a
 
 -- ─────────────────────────────────────────────────────────────
 -- 演示 6–8：并集（左包含 / 成员判定）+ 外延性

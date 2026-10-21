@@ -20,7 +20,7 @@ theorem demo_subset_unfold (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), A x → B x :=  Set.subset_def A B
 
 theorem demo_mem_powerset (α : Type) (A B : Set α) (h : B ⊆ A) :
-    B ∈ 𝒫 A :=  (Iff.mpr (@Set.mem_powerset_iff α A B)) h
+    B ∈ 𝒫 A :=  (Iff.mpr (Set.mem_powerset_iff A B)) h
 
 -- Exists：真归纳（G-03 已修，0.59.0；规范名 Exists.intro + 由 Exists.rec 定义的 Exists.elim）
 -- 两条都写成 `by` + `exact` 的证明项：`apply Exists.intro` / `use w` 交完参数后，剩下的

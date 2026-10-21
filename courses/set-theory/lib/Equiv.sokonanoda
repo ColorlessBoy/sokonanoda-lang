@@ -345,11 +345,11 @@ theorem Set.image_injOn (α β : Type) (f : α → β) (A : Set α) (hf : Set.In
     Set.ext S T (fun (x : α) =>
       @Iff.intro (x ∈ S) (x ∈ T)
         (Set.mem_right_of_image_eq α β f A hf S T
-          (fun (z : α) (hz : z ∈ S) => @Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (@Set.mem_powerset_iff α A S) hS z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
-          (fun (z : α) (hz : z ∈ T) => @Iff.mp (T ∈ 𝒫 A) (T ⊆ A) (@Set.mem_powerset_iff α A T) hT z hz) hST x)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+          (fun (z : α) (hz : z ∈ S) => @Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (Set.mem_powerset_iff A S) hS z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+          (fun (z : α) (hz : z ∈ T) => @Iff.mp (T ∈ 𝒫 A) (T ⊆ A) (Set.mem_powerset_iff A T) hT z hz) hST x)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
         (Set.mem_right_of_image_eq α β f A hf T S
-          (fun (z : α) (hz : z ∈ T) => @Iff.mp (T ∈ 𝒫 A) (T ⊆ A) (@Set.mem_powerset_iff α A T) hT z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
-          (fun (z : α) (hz : z ∈ S) => @Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (@Set.mem_powerset_iff α A S) hS z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+          (fun (z : α) (hz : z ∈ T) => @Iff.mp (T ∈ 𝒫 A) (T ⊆ A) (Set.mem_powerset_iff A T) hT z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+          (fun (z : α) (hz : z ∈ S) => @Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (Set.mem_powerset_iff A S) hS z hz)  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
           (@Eq.symm.{1} (Set β) (f '' S) (f '' T) hST) x))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
 
 -- 像集映射把 `A` 送进 `B` ⇒ 把 `𝒫 A` 送进 `𝒫 B`
@@ -357,12 +357,12 @@ theorem Set.image_mapsTo_powerset (α β : Type) (f : α → β) (A : Set α) (B
     (hfm : Set.MapsTo α β f A B) :
     Set.MapsTo (Set α) (Set β) (fun (S : Set α) => f '' S) (𝒫 A) (𝒫 B) :=
   fun (S : Set α) (hS : S ∈ 𝒫 A) =>
-    @Iff.mpr ((f '' S) ∈ 𝒫 B) ((f '' S) ⊆ B) (@Set.mem_powerset_iff β B (f '' S))  -- soko:notation-ok: 嵌套实参位补不出前导命题（G-30 家族残留，手册边界）
+    @Iff.mpr ((f '' S) ∈ 𝒫 B) ((f '' S) ⊆ B) (Set.mem_powerset_iff B (f '' S))  -- soko:notation-ok: 嵌套实参位补不出前导命题（G-30 家族残留，手册边界）
       (fun (y : β) (hy : y ∈ f '' S) =>
         (fun (h : y ∈ f '' S) => Set.mem_image_elim f S y (y ∈ B) h
           (fun (x : α) (hx : x ∈ S) (hxy : f x = y) =>
             @Eq.subst.{1} β (fun (z : β) => z ∈ B) (f x) y hxy  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-              (hfm x (@Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (@Set.mem_powerset_iff α A S) hS x hx))))  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
+              (hfm x (@Iff.mp (S ∈ 𝒫 A) (S ⊆ A) (Set.mem_powerset_iff A S) hS x hx))))  -- soko:notation-ok: 嵌套实参位补不出前导类型（G-30 家族残留，手册边界）
           hy)
 
 -- **`𝒫` 单调**（C-115 的目标 ✓）：`A ≼ B` ⇒ `𝒫 A ≼ 𝒫 B`

@@ -49,7 +49,7 @@ theorem mem_powerset_univ (α : Type) (A : Set α) :
   have hsub : A ⊆ Set.univ := by
     intro x
     intro hx
-    exact @Set.mem_univ α x
+    exact Set.mem_univ x
   exact (Iff.mpr (Set.mem_powerset_iff (Set.univ) A)) hsub
 
 -- ── 练习 3（R 类：与 ZF 的对照 / 类型阶梯）──────────────────────────────────
@@ -57,7 +57,7 @@ theorem mem_powerset_univ (α : Type) (A : Set α) :
 -- 上一层类型里的隶属判定就是由该层全集给出的：Set.mem_univ 一步到。
 theorem univ_mem_univ_of_sets (α : Type) :
     @Set.univ (Set α) ∈ @Set.univ (Set (Set α)) := by
-  exact @Set.mem_univ (Set (Set α)) (@Set.univ (Set α))
+  exact Set.mem_univ (@Set.univ (Set α))
 
 -- ── 练习 4（X 类：散文 → 形式）─────────────────────────────────────────────
 -- 「univ 装得下每个集合；反过来装得下 univ 的只有 univ」打包成一条 And。
@@ -68,14 +68,14 @@ theorem univ_top_iff (α : Type) (A : Set α) :
   constructor
   intro x
   intro hx
-  exact @Set.mem_univ α x
+  exact Set.mem_univ x
   constructor
   intro h
   apply Set.ext
   intro x
   constructor
   intro ha
-  exact @Set.mem_univ α x
+  exact Set.mem_univ x
   intro hu
   exact h x hu
   intro h
@@ -95,6 +95,6 @@ theorem powerset_univ_eq_univ_of_sets (α : Type) :
   intro A
   constructor
   intro h
-  exact @Set.mem_univ (Set α) A
+  exact Set.mem_univ A
   intro h
   exact (Iff.mpr (Set.mem_powerset_iff (Set.univ) A)) (fun (x : α) => fun (hx : A x) => Set.mem_univ x)

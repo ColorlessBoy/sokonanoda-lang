@@ -26,7 +26,7 @@ theorem eq_of_same_elements (α : Type) (A B : Set α) (h : ∀ (x : α), A x �
 
 theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α)
     (h : {a} ⊆ A) : a ∈ A :=
-  h a (@Set.mem_singleton_self α a)
+  h a (Set.mem_singleton_self a)
 
 -- 本单元还没有 `rw`/`subst`，所以"把等式搬进目标"这一步是 `Eq.subst` 的实参位。
 -- 项风格下它就是一个嵌套的应用项；等 `rw` 落地后这条会显著变短。
@@ -35,7 +35,7 @@ theorem subset_of_mem_singleton (α : Type) (A : Set α) (a : α) (h : a ∈ A) 
   fun (x : α) (hx : x ∈ {a}) =>
     @Eq.subst.{1} α (fun (y : α) => A y) a x
       (@Eq.symm.{1} α x a
-        (@Iff.mp (x ∈ {a}) (x = a) (@Set.mem_singleton_iff α x a) hx))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+        (@Iff.mp (x ∈ {a}) (x = a) (Set.mem_singleton_iff x a) hx))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
       h
 
 theorem singleton_subset_iff (α : Type) (a : α) (A : Set α) :
@@ -52,19 +52,19 @@ theorem singleton_eq_singleton_iff (α : Type) (a b : α) :
   @Iff.intro ({a} = {b}) (a = b)
     -- (i) `{a} = {b}` ⇒ `a = b`：把 `a ∈ {a}` 沿等式搬到 `{b}` 上，再展开。
     (fun (h : {a} = {b}) =>
-      @Iff.mp (a ∈ {b}) (a = b) (@Set.mem_singleton_iff α a b)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+      @Iff.mp (a ∈ {b}) (a = b) (Set.mem_singleton_iff a b)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
         (@Eq.subst.{1} (Set α) (fun (X : Set α) => a ∈ X) {a} {b} h
-          (@Set.mem_singleton_self α a)))
+          (Set.mem_singleton_self a)))
     -- (ii) `a = b` ⇒ `{a} = {b}`：外延 + 逐元素两个方向。
     (fun (h : a = b) =>
       Set.ext {a} {b} (fun (x : α) =>
         @Iff.intro (x ∈ {a}) (x ∈ {b})
           (fun (hx : x ∈ {a}) =>
-            @Iff.mpr (x ∈ {b}) (x = b) (@Set.mem_singleton_iff α x b)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+            @Iff.mpr (x ∈ {b}) (x = b) (Set.mem_singleton_iff x b)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
               (@Eq.trans.{1} α x a b
-                (@Iff.mp (x ∈ {a}) (x = a) (@Set.mem_singleton_iff α x a) hx) h))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+                (@Iff.mp (x ∈ {a}) (x = a) (Set.mem_singleton_iff x a) hx) h))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
           (fun (hx : x ∈ {b}) =>
-            @Iff.mpr (x ∈ {a}) (x = a) (@Set.mem_singleton_iff α x a)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+            @Iff.mpr (x ∈ {a}) (x = a) (Set.mem_singleton_iff x a)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
               (@Eq.trans.{1} α x b a
-                (@Iff.mp (x ∈ {b}) (x = b) (@Set.mem_singleton_iff α x b) hx)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+                (@Iff.mp (x ∈ {b}) (x = b) (Set.mem_singleton_iff x b) hx)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
                 (@Eq.symm.{1} α a b h)))))

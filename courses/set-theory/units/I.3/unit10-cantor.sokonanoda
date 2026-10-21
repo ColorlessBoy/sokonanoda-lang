@@ -66,7 +66,7 @@ theorem demo_fake_enum_escapes (k : Nat) :
     (@Eq.subst.{1} (Set Nat) (fun (X : Set Nat) => X k)
       (fake_enum k) (fun (y : Nat) => ¬ (y = y))
       (@Eq.symm.{1} (Set Nat) (fun (y : Nat) => ¬ (y = y)) (fake_enum k) h)
-      (@Set.mem_singleton_self Nat k))
+      (Set.mem_singleton_self k))
 
 -- ─────────────────────────────────────────────────────────────
 -- 10.2 对角线法（通用形式）

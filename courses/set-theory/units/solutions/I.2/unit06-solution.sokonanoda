@@ -225,7 +225,7 @@ theorem classes_isPartition (A : Type) (r : Rel A A)
             let hBad : a ∈ (∅) :=
               @Eq.subst.{1} (Set A) (fun (X : Set A) => a ∈ X)
                 (EquivClass A r a) (∅) hEmpty2 (hrefl a);
-            @Set.notMem_empty A a hBad))
+            Set.notMem_empty a hBad))
     (@And.intro
       (∀ (a : A),
           ∃ (C : Set A), (C ∈ (classes A r)) ∧ (a ∈ C))

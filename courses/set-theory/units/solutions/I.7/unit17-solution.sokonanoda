@@ -52,13 +52,13 @@ theorem choice_on_univ (α β : Type) (P : α → β → Prop)
           (∃ (y : β), y ∈ @Set.univ β ∧ P x y) (h x)
           (fun (y : β) (hy : P x y) =>
             Exists.intro y
-              (And.intro (@Set.mem_univ β y) hy))))
+              (And.intro (Set.mem_univ y) hy))))
     (fun (f : α → β)
       (hf : ∀ (x : α), x ∈ @Set.univ α → f x ∈ @Set.univ β ∧ P x (f x)) =>
       Exists.intro f
         (fun (x : α) =>
           (fun (hfx : f x ∈ @Set.univ β ∧ P x (f x)) => And.right hfx)
-            (hf x (@Set.mem_univ α x))))
+            (hf x (Set.mem_univ x))))
 
 theorem surjective_split (α β : Type) (f : α → β) (hf : Function.Surjective α β f) :
     ∃ (g : β → α), Function.RightInverse α β g f :=
@@ -71,13 +71,13 @@ theorem surjective_split (α β : Type) (f : α → β) (hf : Function.Surjectiv
           (∃ (x : α), x ∈ @Set.univ α ∧ f x = y) (hf y)
           (fun (x : α) (hx : f x = y) =>
             Exists.intro x
-              (And.intro (@Set.mem_univ α x) hx))))
+              (And.intro (Set.mem_univ x) hx))))
     (fun (g : β → α)
       (hg : ∀ (y : β), y ∈ @Set.univ β → g y ∈ @Set.univ α ∧ f (g y) = y) =>
       Exists.intro g
         (fun (y : β) =>
           (fun (hgy : g y ∈ @Set.univ α ∧ f (g y) = y) => And.right hgy)
-            (hg y (@Set.mem_univ β y))))
+            (hg y (Set.mem_univ y))))
 
 theorem split_spec (α β : Type) (f : α → β) (g : β → α)
     (h : Function.RightInverse α β g f) (y : β) : f (g y) = y :=
@@ -94,7 +94,7 @@ theorem split_raw (α β : Type) (f : α → β) (hf : Function.Surjective α β
 
 theorem empty_family_hypothesis (α β : Type) (B : Set β) (P : α → β → Prop) :
     ∀ (x : α), x ∈ ∅ → ∃ (y : β), y ∈ B ∧ P x y :=
-  fun (x : α) (hx : x ∈ ∅) => False.elim (@Set.notMem_empty α x hx)
+  fun (x : α) (hx : x ∈ ∅) => False.elim (Set.notMem_empty x hx)
 
 theorem singleton_choice (α β : Type) (a : α) (b : β) :
     ∃ (f : α → β), ∀ (x : α), x ∈ {a} → f x = b :=

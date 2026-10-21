@@ -51,7 +51,7 @@ theorem demo_union_univ (α : Type) (A : Set α) :
   have h1 : x ∈ A ∪ @Set.univ α → x ∈ @Set.univ α := by
     intro h
     cases h with
-      | inl ha => exact @Set.mem_univ α x
+      | inl ha => exact Set.mem_univ x
       | inr hu => exact hu
   constructor
   exact h1

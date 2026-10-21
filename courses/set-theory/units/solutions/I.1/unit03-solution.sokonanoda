@@ -90,7 +90,7 @@ theorem sdiff_subset (α : Type) (A B : Set α) : A \ B ⊆ A := by
 theorem powerset_mono (α : Type) (A B : Set α) (h : A ⊆ B) :
     𝒫 A ⊆ 𝒫 B := by
   exact fun (X : Set α) => fun (hX : X ∈ 𝒫 A) =>
-    Iff.mpr (@Set.mem_powerset_iff α B X)
+    Iff.mpr (Set.mem_powerset_iff B X)
       (fun (x : α) => fun (hx : X x) => h x (hX x hx))
 
 -- ── 3.5 D 类 ─────────────────────────────────────────────────────────────
@@ -101,7 +101,7 @@ theorem union_subset_inter_false (α : Type) (a : α) :
   intro hsub
   -- 目标经 `intro` 展开（非语句层）后 `∧`/`∨` 的期望类型传不到，而 `And.right`/`Or.inl`
   -- 的隐式实参只能**语法反解** ⇒ 先用两条带标注的 `have` 把 `∨`/`∧` 落成语法形态 ✓
-  have hmem : a ∈ @Set.univ α ∨ a ∈ ∅ := Or.inl (@Set.mem_univ α a)
+  have hmem : a ∈ @Set.univ α ∨ a ∈ ∅ := Or.inl (Set.mem_univ a)
   have hm : a ∈ @Set.univ α ∧ a ∈ ∅ := hsub a hmem
   exact And.right hm
 
@@ -111,4 +111,4 @@ theorem powerset_self_mem (α : Type) (A : Set α) : A ∈ 𝒫 A := by
     intro x
     intro hx
     exact hx
-  exact Iff.mpr (@Set.mem_powerset_iff α A A) hAA
+  exact Iff.mpr (Set.mem_powerset_iff A A) hAA

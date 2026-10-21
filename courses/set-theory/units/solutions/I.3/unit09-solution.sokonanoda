@@ -238,7 +238,7 @@ theorem not_equiv_empty_singleton (α β : Type) (b : β) :
                             (Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b})) =>
                 @And.left (Set.MapsTo β α g {b} ∅)
                   ((Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b})) hg
-                  b (@Set.mem_singleton_self β b)))
+                  b (Set.mem_singleton_self b)))
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 6（D 类，判断：**真**）：等势的集合同时空、同时不空。
@@ -321,7 +321,7 @@ theorem proper_subset_counterexample :
           (@Eq.subst.{1} (Set Nat) (fun (X : Set Nat) => Nat.zero ∈ X)
             (@Set.univ Nat) nonzero
             (@Eq.symm.{1} (Set Nat) nonzero (@Set.univ Nat) h)
-            (@Set.mem_univ Nat Nat.zero)))
+            (Set.mem_univ Nat.zero)))
       (Set.Equiv.mk Nat Nat nonzero (@Set.univ Nat) Nat.pred Nat.succ
         (fun (x : Nat) => fun (hx : x ∈ nonzero) => True.intro)
         (fun (y : Nat) => fun (hy : y ∈ @Set.univ Nat) => Nat.succ_ne_zero y)

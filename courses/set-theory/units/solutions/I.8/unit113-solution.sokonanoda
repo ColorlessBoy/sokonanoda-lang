@@ -45,7 +45,7 @@ def cantorDiagonal (f : Set Nat → Nat) : Set Nat :=
 
 -- 解答内辅助（**画布不另设此题** ✓）：`𝒫 ℕ` 的成员条件 —— 一般形式已在单元11 作过练习 ✓。
 theorem mem_powerset_univ_nat (S : Set Nat) : S ∈ (𝒫 (@Set.univ Nat)) :=
-  Iff.mpr (@Set.mem_powerset_iff Nat (@Set.univ Nat) S)
+  Iff.mpr (Set.mem_powerset_iff (@Set.univ Nat) S)
     (fun (x : Nat) => fun (_ : x ∈ S) => Set.mem_univ x)
 
 -- 练习 7：**Cantor 定理**（C-114 收口 ✓ 2026-10-08）—— `𝒫 ℕ` 不 ≼ `ℕ`，构造性证明 ✓。
