@@ -314,3 +314,14 @@ fn has_explicit_spine_or_named(expr: &Expr) -> bool {
         _ => false,
     }
 }
+
+/// 显示路径的**唯一接口**：`DisplayNotations::render`（没有表时用空表）。
+/// `by.rs` 的 bullet 步进要显示聚焦目标；直接 `render_expr` 会被
+/// `scripts/audit-notation-paths.py` 判成新增绕过。
+pub(super) fn render_goal(
+    ty: &Expr,
+    notations: Option<&crate::display::DisplayNotations>,
+) -> String {
+    let empty = crate::display::DisplayNotations::default();
+    notations.unwrap_or(&empty).render(ty)
+}

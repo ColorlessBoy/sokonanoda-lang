@@ -1,16 +1,19 @@
 // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
-## [Unreleased]
+## [0.97.0] - 2026-10-21
 
 ### Added
 
 - **`·` 子弹**：`constructor` / `cases` 之后按子目标分组，缩进块只作用于当前目标；
   块末未证完则按 Lean 的 `closeUsingOrAdmit` admit 成开放练习（有 `· sorry` 时
-  洞落在 `sorry`，否则落在 `·`）。文档见 `reference/tactics/·.md`。
+  洞落在 `sorry`，否则落在 `·`）。文档见 `reference/tactics/·.md`；
+  hover/F12 也认 `·`（每一条 tactic 都有页）。
 - **命名实参 + 隐式反解**：`apply Eq.subst (p := fun x => a ∈ x) h` 现在能工作，
   剩下的 `α/a/b` 从位置实参 `h : a = b` 反解（第二候选全显式 pp）。
 
 ### Fixed
 
+- **括号结尾的声明归属**：`theorem` / `def` / `example` 的 span 含最后一个已消费
+  token；光标在 `)` 或声明后空行不再报「光标不在任何声明内」。
 - **失败的声明不再谎报「🎉 已无目标 ✓」**：内核拒绝、但 tactic 全绿的声明，
   Infoview 与光标树显示「未通过，见诊断」；`stateAt` 在「失败 + 空 step」时回退题面。
 - **`apply` 的坏实参早报**：`apply @Eq.subst … (Eq.symm h)` 这类实参类型不对时，

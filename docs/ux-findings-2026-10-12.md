@@ -129,54 +129,19 @@
 
 ## 6. 🔄 复跑现状与仍未收口项（2026-10-12 15:5x 主会话复跑，**干净缓存**）
 
-**已修好（对应探针由「缺口仍在」转「已变 / 一致」）**：
-- **第一批（09:2x）**：`r04`（`apply` 结论校验 —— 负例现在报「`apply` 的目标不匹配…」并落在写错那行；两条正确
-  用法仍绿）· `r05`/`r08`/`r09`（隐式实参第二候选 + `congrArg` 空名 Pi）· `r12`。独立夹具
-  `.cache/ux/main-verify/c-probe.sokonanoda` **9/9 checked、0 诊断**（裸写 `Eq.symm hx` · `exact Eq.subst
-  (Eq.symm hx) hp` · `apply Eq.subst (Eq.symm hx)` · 5 个既有绿例 · 用户原来的位置填隐参写法）。
-- **第二批（长尾 ①–⑤）**：`A1`（`by` 块灯泡插入的是 **tactic** 文本 —— 洞带**位置模式**，`REPORT_SHAPE` 7→8）·
-  `D1`+`r06`（入口自身的 parse 错归因到**自己** = 新码 `entry-parse-failed`；`query check` 与 `grade --json`
-  诊断集**逐条相等**）· `r01`+`r15`（内核拒绝**源级渲染** + span 收到**出错子项**；判定不变：40 文件 × 2 臂
-  对拍 0 差异）· `C1`–`C5`（补全给 **`import` 进来的库名 / prelude 签名 / 行末 binder / 位置分档 / `\in`
-  输入法**）· `m07`（缓存键折进**内建 prelude 摘要** ⇒ 改了 prelude 不再答旧行为）。LSP 探针 `--all`：
-  **8 一致 / 20 不一致 → 13 / 15**（只有 `A1`/`D1`/`C1`–`C5` 转一致，**零回归**）。
+**已修好（明细见 git 历史）**：`r04`（apply 结论校验）·
+`r05`/`r08`/`r09`（隐式第二候选）· `r12` · `A1`（tactic 位洞）· `D1`+`r06`（入口 parse 归因）·
+`r01`+`r15`（内核拒绝源级渲染）· `C1`–`C5`（补全）· `m07`（prelude 摘要进缓存键）。
 
-**⚠ vim 探针的期望已陈旧（16:5x 实测 7 FAIL，**不是**缺口）**：`diag-caret-shift` 期望 `(α x)` —— 那个 `)` 是
-`autoClosingBrackets` 自动补的，而本批已按设计给 `[sokonanoda]` 钉 `"never"`；`vim-nm-o-prefix`/`vim-nm-enter-prefix`
-期望 `["\\an",""]`，而规范判据 `scripts/vscode-input-vim-e2e.mjs --case normal-o-keeps-pending-prefix`（`\\an · <Esc> · o · Z`
-⇒ `["\\an","Z"]`）**PASS** ✓；`ctl-enter-indent [off]` 是**无 vim 对照臂**却 FAIL（签名 = 掉了一个 `<CR>`）⇒ 判为**探针侧**。
-**⚠ 探针自己的坑（本批修掉，判据随之修正）**：① **干净缓存纪律** —— 25 条语言探针原先都没隔离缓存 ⇒ 语言
-改了以后会读 M-07 的旧条目**假红**（`r04` 实测：修好之后探针仍报 exit 0）⇒ 现已全部加 `mktemp` 缓存 + 关
-两处产物 + `trap` 清理；② **`r02` 从「缺口」改成「对照臂」**（裸常量 `#check` 有意不受 `pp.explicit` 影响）；
-③ **`m07` 判据原先歧义**（分不清"prelude 摘要已折进"与"设了 `SOKO_BUILD_LABEL`" ⇒ 会**假报已修** ✗）⇒ 改成
-三侧可分辨：旧式 ⇒ exit 0 / 新式 ⇒ exit 1 / 两者都不是（设了 label）⇒ **exit 2 UNDECIDABLE**。
-## 7. 🔁 复核方法（怎么复跑一条）
+**⚠ vim 探针的期望已陈旧（探针侧，不是缺口）**：`diag-caret-shift` 的 `)` 是编辑器自动补全
+；`vim-nm-*` 以规范判据 `scripts/vscode-input-vim-e2e.mjs` 为准；
+`ctl-enter-indent` 是无 vim 对照臂。明细见 git 历史。
 
-```bash
-cd <repo>                                                     # 一律从仓库根跑
-bash scripts/ux-probes/lang/r01-kernel-gibberish.sh; echo $?  # exit 0 = 缺口仍在（判据在脚本抬头）
-node scripts/ux-probes/lsp-probe.mjs --list                   # 26 条用例清单
-node scripts/ux-probes/lsp-probe.mjs --case A1-codeaction-by-hole-breaks --json   # exit 1 = 缺口仍在
-node scripts/ux-probes/lsp-probe.mjs --all --json > /tmp/lsp.json                 # 全量
-node scripts/ux-probes/editor-probe.mjs --case diag-parse-cascade --json          # 真 VS Code（慢）
-node scripts/ux-probes/vim-probe.mjs --pair diag-caret-shift                      # exit 0 = 对照臂成立
-```
+## 7. 🔁 复核方法
 
-* **退出码约定**：`lang/*.sh` = 0 缺口仍在 / 1 已不复现；`lsp-probe.mjs` = 0 与用例 `expect` 一致 /
-  1 不一致（缺口仍在）/ 2 环境缺失；`editor-probe.mjs` = 0 与期望一致 / 1 不一致 / 2 用法 / 3 前置缺失
-  （⚠ `--case completion-behavior` 的 1 语义相反：它判「Enter 该换行」，不成立 = 补全在工作）；
-  `vim-probe.mjs --pair` = 0 表示「无 vim 绿 + 有 vim 红」成立。
-* **探针自检**：LSP 的 4 条对照（`A2`/`D4`/`G2`/`N3`）与编辑器 `notation-clean-control`、
-  vim 的 `novim` 臂**必须绿** —— 它们红了说明探针本身坏了，读数作废。
-* **干净缓存纪律**（M-07 的教训：旧产物会答旧行为）：复核读数一律
-  `SOKONANODA_CACHE_DIR=$(mktemp -d)` + `SOKONANODA_NO_PROJECT_ARTIFACTS=1` +
-  `SOKONANODA_NO_MODULE_ARTIFACTS=1`。⚠ 探针会重写 `.cache/ux/**` 下自己的夹具与工作区（gitignored）
-  —— 那是探针状态，不是编辑仓库文件。
-* **构建身份**（跨轮比较前先钉）：`git rev-parse --short HEAD` + 二进制 mtime/sha256。
-  ⚠ **别信** `scripts/soko version --json` 的 `cli.marker`/`lsp.marker`（缓存 marker，见 r24/E1）；
-  LSP 用 `soko/version` 自述。本次复跑身份 = HEAD `30030b7a` + debug 08:39 sha256 前 16 `aa7d77b36f7ce818`。
-* **真 VS Code 的纪律**：独立 profile + 独立 CDP 端口（editor 9601 / vim 9501–9502），profile 放
-  `$TMPDIR`（路径 >103 字符 ⇒ 起窗即退），跑完 `pkill -f user-data-dir=<profile>`；残留窗口会占端口
-  ⇒ 新窗口绑不上、读数连到旧窗口 ⇒ 脚本必须**拒绝跑**而不是硬来。没有别的 VS Code 探针在跑时才跑。
-* **本文件的过期日 = 2026-11-12**（`scripts/docs-expiry.json`，`process` 档）：到期三选一 ——
-  续期（写**特定**理由）· 删除 · 归档（`docs/archive/README.md` 点名）。
+- 探针在 `scripts/ux-probes/`：`lang/*.sh`（0=缺口仍在）、`lsp-probe.mjs`（0=与 `expect` 一致，
+  2=环境缺失）、`editor-probe.mjs`（真 VS Code）、`vim-probe.mjs --pair`；`--list` 看用例，
+  一律从仓库根跑。
+- 干净缓存：`SOKONANODA_CACHE_DIR=$(mktemp -d)` + 关两处产物；构建身份先钉
+  `git rev-parse --short HEAD` + 二进制 sha256；真 VS Code 用独立 profile/CDP 端口。
+- 本文件过期日 = 2026-11-12（`scripts/docs-expiry.json`，process 档）。

@@ -2379,7 +2379,7 @@ fn run_tactics<'a>(
                 steps.push(ByStep {
                     span: *span,
                     goals: vec![ByGoal {
-                        ty: render_expr(&nodes[cur].ty),
+                        ty: crate::apply_probe::render_goal(&nodes[cur].ty, ctx.notations),
                         binders: context_binders(nodes, cur),
                     }],
                 });
