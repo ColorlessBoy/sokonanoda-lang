@@ -259,6 +259,9 @@ class GoalsTreeDataProvider {
     this.openCount = 0;
     this.cursorState = undefined; // {uri, state} from soko/stateAt
     this.cursorRequestSeq = 0; // discards stale soko/stateAt responses
+    this.stateRetryTimer = undefined; // bounded retry when the answer is older than the buffer
+    this.stateRetryAttempts = 0;
+    this.lastEditAt = undefined; // 最近一次缓冲区编辑（用于"空答案先重问"）
     this._pendingDecls = undefined; // in-flight soko/goals load (concurrency merge)
     this.declItems = undefined; // cached decl TreeItems from the last soko/goals
     // **已经为哪个 URI 取过声明**（E6，计划 T-B10）：不能用 `!this.declItems`
@@ -291,6 +294,8 @@ class GoalsTreeDataProvider {
       : undefined;
     if (uri !== this.uri) {
       this.uri = uri;
+      this.lastEditAt = undefined;
+      this.stateRetryAttempts = 0;
       this.refresh();
       // 切换活动文档时必须**主动**把声明列表推给 Infoview，不能只靠 `refresh()`
       // 触发的树重建：VS Code 只在 `sokonanoda.goals` 视图**可见**时才会调
@@ -369,11 +374,71 @@ class GoalsTreeDataProvider {
       if (state && state.uri !== undefined && state.uri !== uriString) {
         return undefined;
       }
+      // **旧文本的答案不是"光标不在声明里"**（2026-10-22 用户实测：打
+      // `constructor` + `intro h` 后面板说「光标不在任何声明内」，重启服务器才有）。
+      // 服务端答的是**上一次编译的文本**，`state.version` 就是那份文本的 LSP 版本；
+      // 它比当前缓冲区旧 ⇒ 这个答案只说明"新文本还没编完"，不是用户的结论 ✗。
+      const editor = vscode.window.activeTextEditor;
+      const liveDocument =
+        editor && editor.document.uri.toString() === uriString ? editor.document : undefined;
+      const liveVersion = liveDocument ? liveDocument.version : undefined;
+      const dirty = liveDocument ? liveDocument.isDirty === true : false;
+      if (
+        liveVersion !== undefined &&
+        state &&
+        typeof state.version === "number" &&
+        state.version < liveVersion
+      ) {
+        this.scheduleStateRetry(uriString);
+        return undefined;
+      }
+      // **空答案也可能是"新文本还没编完"**（2026-10-22 实测：同一版本先答
+      // `decl:null`、稍后同一位置答出目标）。刚编辑过的窗口里先重问几次；
+      // 3 秒后仍为空 ⇒ 那才是真的不在声明内。
+      const emptyAnswer =
+        state &&
+        !state.decl &&
+        (!Array.isArray(state.goals) || state.goals.length === 0) &&
+        !state.goal;
+      const compileBusy =
+        compileInFlight || Date.now() - lastCompileEndAt < 1000;
+      // **未保存的缓冲区**里，空答案永远只是"还没编完"：用户正在打字时
+      // 文件天然是 dirty 的。保存之后仍然为空，才轮到「光标不在声明内」。
+      if (
+        emptyAnswer &&
+        (dirty ||
+          compileBusy ||
+          (this.lastEditAt !== undefined && Date.now() - this.lastEditAt < 3000))
+      ) {
+        this.scheduleStateRetry(uriString);
+        return undefined;
+      }
+      this.stateRetryAttempts = 0;
       return state;
     } catch (error) {
       client.outputChannel.appendLine(`[client] soko/stateAt failed: ${error?.message ?? error}`);
       return undefined;
     }
+  }
+
+  /// 记一次缓冲区编辑：`soko/stateAt` 的空答案在这个窗口里先当作"编译中"。
+  noteEdit(uriString) {
+    if (uriString !== this.uri) return;
+    this.lastEditAt = Date.now();
+  }
+
+  /// 旧版本答案到了 ⇒ 等服务器追上这一版再问一次（有界，不跟用户的后续操作抢）。
+  /// 诊断事件也会触发一次刷新；这条是**兜底**：编译没有新诊断时它仍然会到点重问。
+  scheduleStateRetry(uriString) {
+    if (this.stateRetryAttempts >= 120) return;
+    this.stateRetryAttempts += 1;
+    clearTimeout(this.stateRetryTimer);
+    this.stateRetryTimer = setTimeout(() => {
+      this.stateRetryTimer = undefined;
+      const editor = vscode.window.activeTextEditor;
+      if (!editor || editor.document.uri.toString() !== uriString) return;
+      this.setCursorState(uriString, editor.selection.active);
+    }, 250);
   }
 
   async setCursorState(uriString, position) {
@@ -1401,6 +1466,10 @@ function progressShowDelayMs() {
 /// 后者是"界面上此刻亮着没"，这里多一个"定时器还挂着没"）。
 let compileShowTimer = null;
 let compileShown = false;
+// 编译**真的在飞**（不受界面 show-delay 影响）：`soko/stateAt` 的空答案在这个
+// 窗口里只能说明"新文本还没编完"，不是"光标不在声明里"（2026-10-22）。
+let compileInFlight = false;
+let lastCompileEndAt = 0;
 
 /// 把上面这套（连同 `progressTimer` / `pendingProgress`）清回初始态。
 /// 由 `activate()` 调用 —— 见那里的注释（残留状态会让提示永远不再出现）。
@@ -1408,6 +1477,8 @@ function resetCompileProgressState() {
   if (compileShowTimer) clearTimeout(compileShowTimer);
   compileShowTimer = null;
   compileShown = false;
+  compileInFlight = false;
+  lastCompileEndAt = 0;
   if (progressTimer) clearTimeout(progressTimer);
   progressTimer = null;
   pendingProgress = null;
@@ -1416,6 +1487,11 @@ function resetCompileProgressState() {
 function onCompileProgress(value) {
   const info = translateProgress(value);
   if (!info) return;
+  if (info.phase === "begin") compileInFlight = true;
+  if (info.phase === "end") {
+    compileInFlight = false;
+    lastCompileEndAt = Date.now();
+  }
   if (info.phase === "begin") {
     // 同一份文档的连续编译：定时器重挂，但**已经亮着就别重新计时** ——
     // 否则"慢编译接着慢编译"会亮一下、灭一下（正是要消灭的形状）。
@@ -3007,6 +3083,19 @@ async function activate(context) {
       }
       requestCursorForEditor(editor);
     }),
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      if (event.document.languageId !== "sokonanoda") return;
+      provider.noteEdit(event.document.uri.toString());
+    }),
+    vscode.workspace.onDidOpenTextDocument?.((document) => {
+      if (document.languageId !== "sokonanoda") return;
+      provider.noteEdit(document.uri.toString());
+    }),
+    vscode.workspace.onDidSaveTextDocument?.((document) => {
+      if (document.languageId !== "sokonanoda") return;
+      provider.noteEdit(document.uri.toString());
+    }),
+
     vscode.window.onDidChangeTextEditorSelection((event) => {
       const editor = event.textEditor;
       if (!editor || editor.document.languageId !== "sokonanoda") return;

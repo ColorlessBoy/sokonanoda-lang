@@ -1,3 +1,9 @@
+## v0.97.2 发版：Infoview 假「光标不在任何声明内」（2026-10-22）
+- ⭐ **用户现场**：unit01 最后一题打 `constructor` / `intro h`，Infoview 说「光标不在任何声明内」，Restart Server 才有目标。
+- **真因**：`soko/stateAt` 答的是**上一次编译的文本**；新文本还没编完时空答案（有时版本号还相同）被面板当成结论。扩展现在：① 丢 `state.version < document.version` 的答案；② 编译在飞 / 编辑后 3s / 缓冲区 dirty 时，空答案**有界重问**（250ms × 120），只有保存后仍空才显示「光标不在任何声明内」。
+- **判据（实跑）**：真 VS Code 真按键（`/tmp` 探针，真实 unit01 文件）——修复前 seq 9–11 空答案被接受，修复后打字期间只接受 `decl=singleton_eq_singleton_iff`，最终 `goal=a = b`；桩 **75/75**（含 stale-version 与 same-version-empty 两条）；真机 53.5s 跑完。
+- **发布**：待 push → auto-tag `v0.97.2` → release/Marketplace/站点核对。
+
 ## v0.97.1 发版：`·` 的快捷输入 `\.`（2026-10-22）
 - ⭐ **用户拿到什么**：在 `.sokonanoda` 里打 `\.`（Lean 的标点键；别名 `\centerdot`）⇒ `·`；`input.eager` 开时敲下 `.` 即出，关时 `Tab` 仍可用。`\cdot` 在 Lean 是 `⬝`，不映射；`·` 只进输入表，不喂词法（`notation_symbol:false`）。
 - **判据（实跑）**：front lib **1026/0** · CLI extension **43/0**（含 `dot_bullet_is_reachable_via_leans_punctuation_key` + 表镜像）· LSP lib **253/0** · stub 宿主 **73/73** · docs-lint ✓ · `docs/visible-changes.md` 一行 · **真 VS Code 真按键** `dot-space` / `dot-tab` 均 PASS（DOM 与磁盘都 `·`）· `\cdot`/字母别名边界见 `docs/design/notation-input.md`。
