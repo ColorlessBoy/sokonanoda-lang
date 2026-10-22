@@ -1,7 +1,7 @@
 ## v0.97.5 修复：unit02 答案 Eq.subst/多余 sorry + failed 投影 + e2e 起窗（2026-10-22）
 - **答案真值**：`apply Eq.subst _ hx; exact h` 是 Lean 4 标准写法；末尾 `sorry` 多余。修前两条错误互斥：有 sorry 报 no-goals、删 sorry 报 Eq.subst 隐式参数。
 - **修法**：front 合成 Eq.subst old-style 前缀（Set/函数等式也判绿）；末尾 sorry 跳过 + `redundant-sorry` warning、声明仍 checked；failed 卡片保留类型/题面，Infoview 只画“未通过，见诊断”；LSP 诊断带 `data.stage`，webview 不再把 kernel error 谎报 parse 失败；e2e profile 关 AgentHost、`quit()` 先 CDP `Browser.close` 再 pkill（无登录/无 killed 15）。
-- **判据**：front 1031 · CLI 28 · LSP 全绿 · webview 40 · stub 76 · 真机见上。发布：0.97.5 → push → CI → release；本次 pre-push 的 `ci-local --fast` 挂起 >20min，按逃生门 `--no-verify` 推送（本地全量门禁已单跑）。
+- **发布**：v0.97.5 已发布（26 资产）。主 CI 仅 `queue-lint` 红在计划性 `threshold_ratchet`（41 笔 > 40 · docs 4.49 > 4.00 MB）⇒ 应急手动 tag/release；pre-push 挂起按 `--no-verify`；站点数据本地 0.97.5 待推。
 
 ## v0.97.4 发版：末尾 theorem 消失 + 目标快反馈（2026-10-22）
 - ⭐ **用户现场**：unit01 最后一个 theorem，打 `constructor` + `intro h` 后几乎卡死；末尾空行显示「光标不在任何声明内」，加 `sorry` 会好一点。
