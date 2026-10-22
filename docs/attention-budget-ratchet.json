@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "round": 1,
-  "head": "1942bd8a2a5716ad5e6182dfd1d5fb9a2ef59645",
-  "at": "2026-10-15T20:01:26+00:00",
+  "round": 2,
+  "head": "f2f40391f13621016ea4bbe3ddd4f6b25431a82b",
+  "at": "2026-10-22T00:20:55+00:00",
   "caps": {
-    "ratio_max": 18.0,
-    "ratio_warn": 16.0,
-    "share_max": 0.58,
-    "share_warn": 0.55
+    "ratio_max": 17.0,
+    "ratio_warn": 15.0,
+    "share_max": 0.56,
+    "share_warn": 0.53
   },
   "history": [
     {
@@ -51,6 +51,27 @@
       },
       "user_reading": "SOKO_E2E_GREP=第三层 npx vscode-test（真 VS Code 1.138.0 + 真 LSP + 真扩展）⇒ 打开写了一半的文件：干净对照画 2 行 [a,b] 0 error · negative/missing-type 画 2 行 [a,c] 1 error（改前 0 行 + 「文件没解析成功」）",
       "user_case": "courses/set-theory/gaps/C-112-cb-step5.sokonanoda"
+    },
+    {
+      "round": 2,
+      "head": "f2f40391f13621016ea4bbe3ddd4f6b25431a82b",
+      "at": "2026-10-22T00:20:55+00:00",
+      "caps": {
+        "ratio_max": 17.0,
+        "ratio_warn": 15.0,
+        "share_max": 0.56,
+        "share_warn": 0.53
+      },
+      "reading": {
+        "ratio": 9.535615171137835,
+        "share": 0.4437869822485207,
+        "commits": 845,
+        "bookkeeping_commits": 375,
+        "product_lines": 30268,
+        "gen_lines": 288624
+      },
+      "user_reading": "node editor/vscode/test-extension-host.js ⇒ 73/73 passed（含 Tab 重写 \\. 与 eager 臂）",
+      "user_case": "playground.sokonanoda"
     }
   ]
 }
