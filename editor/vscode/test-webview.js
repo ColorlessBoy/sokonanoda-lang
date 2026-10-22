@@ -1440,6 +1440,52 @@ test("state: a failed declaration never claims 已无目标 (2026-10-21)", () =>
   );
 });
 
+// **2026-10-22 unit02 现场**：failed 声明 + `by_steps` 的题面回退
+// （`step:-1,total:8`）以前会画「题面 + 0/8 进度」= 谎报“还没开始”。
+// 失败只许画诊断入口；**不许**出现进度条。
+test("state: a failed declaration never shows the题面/0-N progress (2026-10-22)", () => {
+  const { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "state",
+    decl: { name: "subset_empty_iff", kind: "theorem", status: "failed" },
+    goals: [{ goal: "A ⊆ ∅ ↔ A = ∅", binders: [], goal_runs: [] }],
+    goal: "A ⊆ ∅ ↔ A = ∅",
+    step: -1,
+    total: 8,
+  });
+  assert.strictEqual(
+    textOf(byClass(root, "empty")[0]),
+    "声明未通过，见诊断。",
+    "failed 必须给诊断入口",
+  );
+  assert.strictEqual(byClass(root, "progress").length, 0, "failed 不许画 by 进度");
+  assert.strictEqual(byClass(root, "goal-ty").length, 0, "failed 不许把题面画成当前目标");
+});
+
+// **2026-10-22 现场**：文件有 kernel/elab error、但 parse 成功时，
+// 光标在注释/空行上**不许**说“文件没解析成功”。
+test("state: a kernel error is not a parse failure (2026-10-22)", () => {
+  const { root, send } = loadInfoview();
+  send({ protocol: 1, type: "status", state: "ready", decls: 11, errors: 1, parseError: false, failed: 1 });
+  send({ protocol: 1, type: "state", decl: null, goal: null, goals: [], step: -1, total: 0 });
+  assert.ok(
+    textOf(root).includes("光标不在任何声明内"),
+    `kernel error 不许谎报 parse 失败：${textOf(root).slice(0, 200)}`,
+  );
+  assert.ok(!textOf(root).includes("文件没解析成功"), "parse 成功的文件不许说没解析成功");
+});
+
+test("state: a real parse failure still says parse failed (2026-10-22)", () => {
+  const { root, send } = loadInfoview();
+  send({ protocol: 1, type: "status", state: "ready", decls: 0, errors: 1, parseError: true, failed: 0 });
+  send({ protocol: 1, type: "state", decl: null, goal: null, goals: [], step: -1, total: 0 });
+  assert.ok(
+    textOf(root).includes("文件没解析成功"),
+    `parse 失败必须说清楚：${textOf(root).slice(0, 200)}`,
+  );
+});
+
 // **C3（2026-10-08）**：`#check` / `#print` 的输出要**看得见**（用户 P5：「在 infoview
 // 没有内容」✗）。选择语义在服务端（`soko/stateAt.messages`，**按行取** = Lean 的
 // `getInteractiveDiagnostics{lineRange?}` 口径 ✓），这里只钉**渲染结果** ✓。

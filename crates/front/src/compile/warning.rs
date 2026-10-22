@@ -93,6 +93,26 @@ pub struct CompileWarning {
     pub span: Span,
 }
 
+/// **末尾多余的 `sorry`**（2026-10-22 unit02 现场）：`by` 引擎已经把证明闭合后
+/// 的那条 `sorry` 跳过；这里把它变成既有 `redundant-sorry` warning（不判红）。
+pub(crate) fn push_redundant_sorry(
+    out: &mut crate::compile::event::CompileOutput,
+    cmd: usize,
+    spans: &[Span],
+) {
+    for span in spans {
+        out.push_warning(
+            cmd,
+            CompileWarning {
+                kind: WarningKind::RedundantSorry,
+                message: "这一行的 sorry 是多余的：前面的项已经完成了证明，sorry 不能再接在这里。"
+                    .to_string(),
+                span: *span,
+            },
+        );
+    }
+}
+
 impl CompileWarning {
     /// Stable machine code (used by `--json` and the protocol).
     pub fn code(&self) -> &'static str {

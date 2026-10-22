@@ -624,29 +624,14 @@ pub struct ByStep {
 pub struct ByOutcome {
     pub expr: Expr,
     pub steps: Vec<ByStep>,
-    /// **tactic 位洞**的 span（A1，2026-10-12）：装配时由 `NodeKind::Hole`（= 未闭合
-    /// 目标）产生的那些 `Expr::Hole` 用的是哪个 span。**这是"洞的出身"的唯一来源** ——
-    /// 装配后的 AST 里 tactic 位的洞与项位的洞**长得一模一样**（都是 `Expr::Hole`），
-    /// 报告层（`DeclState.hole_modes`）与灯泡（`front::suggest`）只能靠它区分：
-    /// 洞的 span 在表里 ⇒ **tactic 位**（该填 `exact hp`），否则 ⇒ 项位（该填 `hp`）。
-    ///
-    /// ⚠ 与 `steps` 的区别：`steps` 只记**跑过的 tactic**，而洞位在"块尾没有 tactic"
-    /// （`by` 空块 ⇒ 洞位取 `by_span`）与"嵌套 `have := by …`"（洞位取那条 `have`
-    /// 的 span）时都对不上"最后一条 tactic" ⇒ 拿 steps 反推洞的出身会漏 ✗。
-    /// 这里由**装配点**直接记，**不反推** ✓。
+    /// **tactic 位洞**的 span（A1）：报告层分 Tactic/Term 的唯一来源。
+    /// 与 `steps` 的区别：块尾/`have` 的洞位对不上最后一条 tactic ⇒ 不反推。
     pub tactic_holes: Vec<Span>,
+    pub redundant_sorry: Vec<Span>,
 }
 
-/// **B1（2026-10-08）**：`by` 块**失败**时交还的东西 —— 诊断 **+ 已经跑成功的那些步**。
-///
-/// 为什么要有它（P3 显示面 · 用户原话「最后一条 tactic 报错 ⇒ **前面所有 goal 全坏**」✗）：
-/// 以前 `run_by_inner` 末尾的 `run_tactics(…)?` 让 `Err` 冒泡，**已累积的 `steps`
-/// 整份丢掉** ✗ ⇒ `DeclState.by_steps` 为空 ⇒ `query/state.rs` 走"失败的声明退回题面"
-/// 那条路 ⇒ 整份声明只剩一个根目标（`step:-1`、`total:0`）✗。**一条失败不该抹掉历史**
-/// （Lean 4 的 `TacticInfo` 同时带 `goalsBefore`/`goalsAfter` ⇒ 一次失败不抹状态 ✓）。
-///
-/// `steps` = **严格趟**里成功跑完的那些步（失败那条**不在**里面 ✓）——
-/// 与"逐 tactic 看目标"的语义一致：第 i 条之后的状态就是第 i 条成功执行后的状态 ✓。
+/// **B1（2026-10-08）**：`by` 块失败时交还诊断 + 已跑成功的那些步
+/// （一条失败不抹掉 `by_steps` 的历史）。
 pub struct ByFailure {
     pub error: CompileError,
     pub steps: Vec<ByStep>,
@@ -1468,6 +1453,7 @@ fn run_by_inner<'a>(
     // [`ByOutcome::tactic_holes`]。嵌套 `have := by …` / `cases` 臂体里的洞由
     // `run_tactics` 一路带出来（它们同样是 tactic 位 ✓）。
     let mut tactic_holes: Vec<Span> = Vec::new();
+    let mut redundant_sorry: Vec<Span> = Vec::new();
 
     // **r22**：留一份**初始根目标**给失败后的探针（`nodes[0].ty` 到那时可能已被
     // `intro`/`apply` 改过 ⇒ 拿它重放会从错的地方起步 ✗）。一次克隆 / 一条声明 ✓。
@@ -1500,6 +1486,7 @@ fn run_by_inner<'a>(
                 ctx,
                 crate::compile::elab::InplaceEnv::reborrow(&mut env),
                 &mut tactic_holes,
+                &mut redundant_sorry,
             );
             drop(scope); // 丢弃批次：这批判定**已知全 Match**（调用方的 flush 证明过 ✓）
             if let Err(error) = replayed {
@@ -1547,6 +1534,7 @@ fn run_by_inner<'a>(
         ctx,
         env,
         &mut tactic_holes,
+        &mut redundant_sorry,
     ) {
         // **B1**：`?` 会把已累积的 `steps` 整份丢掉 ✗ ⇒ 显式交还（失败那条不在里面 ✓）。
         // **B3**：连**引擎状态**（节点图/待解队列）与**批边界**一起交还 ⇒ 严格续跑 ✓。
@@ -1583,26 +1571,13 @@ fn run_by_inner<'a>(
         expr,
         steps,
         tactic_holes,
+        redundant_sorry,
     })
 }
 
-/// **r22（2026-10-13）**：`by` 块在第 `failing` 条 tactic 上失败之后，把**后面那些
-/// tactic 的独立失败**也收出来 —— Lean 语义：失败的 tactic 被**回滚**，块**继续**在
-/// 剩下的目标上跑后续 tactic，每条失败各一条诊断（`by exact hh; exact hh` ⇒ **两条**）。
-///
-/// ## 为什么是"探针"而不是"改引擎"
-///
-/// 真判定**一个字都不许动**：声明仍是「失败 + 第一条错误」。这里在**克隆**出来的引擎
-/// 状态上重放前缀、再逐条试后面的 tactic，产物**只**当额外诊断 ✓。
-///
-/// * **前缀重放**（`0..failing`）：那些 tactic 在真判定里**都跑成功了**（否则失败点
-///   更早）⇒ 重放确定性、必定成功；一旦不成功 ⇒ **返回空**（保守，行为与今天逐字相同 ✓）。
-/// * **每条后续 tactic 在克隆上跑**：失败 ⇒ 丢弃克隆（= 回滚 ✓，与 Lean 的
-///   `TacticM` 事务语义同形）、记下诊断；成功 ⇒ 采纳那份克隆（后面的 tactic 要看见
-///   它的效果 ✓）。
-/// * `env = None` ⇒ 探针走**非就地**通道、**不碰活环境**（就地/非就地的等价性由既有的
-///   shadow 判据钉住 ✓）；`marks = None` ⇒ 不往真判定那条 B3 边界里塞东西 ✓。
-/// * 代价只发生在**失败路径**上（成功路径零开销 ✓）。
+/// **r22（2026-10-13）**：失败那条之后**其它独立失败**也收出来
+///（Lean 语义：失败的 tactic 回滚、块继续 ⇒ 每条失败各一条诊断）。
+/// 真判定不动：在克隆状态上重放前缀再逐条试，产物**只**当额外诊断。
 #[allow(clippy::too_many_arguments)]
 fn collect_remaining_tactic_errors<'a>(
     tactics: &[Tactic],
@@ -1628,6 +1603,7 @@ fn collect_remaining_tactic_errors<'a>(
     let mut worklist: Vec<usize> = vec![0];
     let mut steps: Vec<ByStep> = Vec::new();
     let mut holes: Vec<Span> = Vec::new();
+    let mut redundant = Vec::new();
     if run_tactics(
         &tactics[..failing],
         &mut nodes,
@@ -1642,6 +1618,7 @@ fn collect_remaining_tactic_errors<'a>(
         ctx,
         None,
         &mut holes,
+        &mut redundant,
     )
     .is_err()
     {
@@ -1654,6 +1631,7 @@ fn collect_remaining_tactic_errors<'a>(
         let mut probe_worklist = worklist.clone();
         let mut probe_steps: Vec<ByStep> = Vec::new();
         let mut probe_holes: Vec<Span> = Vec::new();
+        let mut probe_redundant = Vec::new();
         match run_tactics(
             &tactics[index..index + 1],
             &mut probe_nodes,
@@ -1668,6 +1646,7 @@ fn collect_remaining_tactic_errors<'a>(
             ctx,
             None,
             &mut probe_holes,
+            &mut probe_redundant,
         ) {
             Ok(()) => {
                 nodes = probe_nodes;
@@ -1700,15 +1679,23 @@ fn run_tactics<'a>(
     // **A1**：装配出来的**未闭合目标**（tactic 位洞）的 span 出口 —— 嵌套
     // `have := by …` 的装配也往这里记（那同样是一个 tactic 位 ✓）。
     tactic_holes: &mut Vec<Span>,
+    redundant_sorry: &mut Vec<Span>,
 ) -> Result<(), CompileError> {
     for (index, tactic) in tactics.iter().enumerate() {
         if let Some(marks) = marks.as_deref_mut() {
             marks.push((index, crate::judge::batch_len()));
         }
         // 当前要解的目标 = worklist 末尾。
-        let cur = *worklist
-            .last()
-            .ok_or_else(|| tactic_error("by 块里没有待解目标", tactic.span()))?;
+        let Some(&cur) = worklist.last() else {
+            if matches!(tactic, Tactic::Sorry { .. }) {
+                let span = tactic.span();
+                if !redundant_sorry.contains(&span) {
+                    redundant_sorry.push(span);
+                }
+                continue;
+            }
+            return Err(tactic_error("by 块里没有待解目标", tactic.span()));
+        };
         match tactic {
             Tactic::Intro { names, span } => {
                 // `intro a b c`：逐个名字剥一层（语义 = 连续写多个 `intro`）。
@@ -1855,6 +1842,7 @@ fn run_tactics<'a>(
                             ctx,
                             crate::compile::elab::InplaceEnv::reborrow(&mut env),
                             tactic_holes,
+                            redundant_sorry,
                         )?;
                         worklist.truncate(base);
                         assemble(nodes, id, *span, tactic_holes)
@@ -2369,6 +2357,7 @@ fn run_tactics<'a>(
                     ctx,
                     crate::compile::elab::InplaceEnv::reborrow(&mut env),
                     tactic_holes,
+                    redundant_sorry,
                 )?;
             }
             Tactic::Bullet { tactics, span } => {
@@ -2398,6 +2387,7 @@ fn run_tactics<'a>(
                     ctx,
                     crate::compile::elab::InplaceEnv::reborrow(&mut env),
                     tactic_holes,
+                    redundant_sorry,
                 )?;
                 if !inner.is_empty() {
                     // Lean closeUsingOrAdmit：没证完就 admit（sorry span 优先）。
@@ -2532,6 +2522,13 @@ fn apply_tactic<'a>(
     let cur = *worklist.last().ok_or_else(|| {
         CompileError::elab(ErrorKind::ElabTacticFailed, "by 块里没有待解目标", span)
     })?;
+    let rewritten = crate::compile::eqsubst::rewrite_argument_hole(
+        expr,
+        &nodes[cur].ty,
+        &context_binders(nodes, cur),
+        span,
+    );
+    let expr = rewritten.as_ref().unwrap_or(expr);
     let term = render_expr(expr);
     let spec = spec_of(nodes, cur, universe);
     // **G-31（第三处，实测 20/226 次未命中）**：先试**就地** —— 这条链上 `env` 是现成的
@@ -2916,6 +2913,7 @@ fn cases_tactic<'a>(
     mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
     // **A1**：`cases … with` 臂体里的未闭合目标也是 tactic 位洞 ⇒ 一路带出去 ✓
     tactic_holes: &mut Vec<Span>,
+    redundant_sorry: &mut Vec<Span>,
 ) -> Result<(), CompileError> {
     let cur = *worklist
         .last()
@@ -3307,6 +3305,7 @@ fn cases_tactic<'a>(
             ctx,
             crate::compile::elab::InplaceEnv::reborrow(&mut env),
             tactic_holes,
+            redundant_sorry,
         )?;
         worklist.truncate(base);
     }

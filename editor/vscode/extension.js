@@ -257,6 +257,7 @@ class GoalsTreeDataProvider {
     this.onDidChangeTreeData = this._emitter.event;
     this.uri = undefined; // the active .sokonanoda document
     this.openCount = 0;
+    this.failedCount = 0;
     this.cursorState = undefined; // {uri, state} from soko/stateAt
     this.cursorRequestSeq = 0; // discards stale soko/stateAt responses
     this.stateRetryTimer = undefined; // bounded retry when the answer is older than the buffer
@@ -494,6 +495,7 @@ class GoalsTreeDataProvider {
     }
     const decls = response?.decls ?? [];
     this.openCount = decls.filter((d) => d.status === "open").length;
+    this.failedCount = decls.filter((d) => d.status === "failed").length;
     updateStatusBar(this);
     // **取数失败不算"取过了"**：`requestGoals` 在客户端还没起来 / 请求出错时
     // 返回 `undefined`。激活时活动编辑器已经是 `.sokonanoda` 就是这种情况——
@@ -546,6 +548,11 @@ class GoalsTreeDataProvider {
       // （LSP 契约）⇒ 面板会把"读不出来"说成"这个文件没有声明"/"光标不在任何声明内" ✗。
       // 诊断是另一条通道、且已经到客户端 ⇒ 一起发给 webview（它只渲染、不猜）。
       errors: activeErrorCount(requestedUri),
+      // **parse 失败是显式标记**（2026-10-22）：`errors` 是任意 error 的计数，
+      // webview 以前拿它当“文件没解析成功”的代理 ⇒ 一条 kernel error 就让所有
+      // 注释行谎报 parse 失败。
+      parseError: activeParseError(requestedUri),
+      failed: this.failedCount,
     });
   }
 }
@@ -1621,11 +1628,15 @@ function updateStatusBar(provider) {
   // 诊断是**另一条**通道、而且已经到客户端 ⇒ 有错就把错误数**写进同一行**
   //（用户一瞥就能看出"这个 0 不算数"）；读不到诊断 API（stub 宿主）时退回旧文案 ✓。
   const errors = activeErrorCount(provider.uri);
+  const failed = provider.failedCount ?? 0;
+  const failedPart = failed > 0 ? ` · ${failed} 失败` : "";
   statusBar.text = errors > 0
-    ? `$(error) 本文件 ${provider.openCount} · ${errors} 错误`
-    : `$(circle-outline) 本文件 ${provider.openCount}`;
+    ? `$(error) 本文件 ${provider.openCount} 未完成${failedPart} · ${errors} 错误`
+    : `$(circle-outline) 本文件 ${provider.openCount} 未完成${failedPart}`;
   const lines = [
-    `sokonanoda：**本文件**还有 ${provider.openCount} 个练习未完成（点击查看练习面板）`,
+    `sokonanoda：**本文件**还有 ${provider.openCount} 个练习未完成` +
+      (failed > 0 ? `，**${failed} 条声明失败**` : "") +
+      `（点击查看练习面板）`,
   ];
   if (errors > 0) {
     lines.push(
@@ -1657,6 +1668,29 @@ function activeErrorCount(uriString) {
       .filter((d) => d.severity === vscode.DiagnosticSeverity.Error).length;
   } catch {
     return 0;
+  }
+}
+
+/// **这份文件现在是不是 parse 失败**（2026-10-22）。
+///
+/// 只看 `source=sokonanoda` 且 `data.stage=parse` 的诊断（LSP 在
+/// `diagnostic_from_compile`/`diagnostic_from_parse` 里带出来）；**不是**看
+/// `errors > 0` —— kernel/elab 错误不代表 parse 失败。读不到 API ⇒ false
+///（stub 宿主退回旧行为 ✓）。
+function activeParseError(uriString) {
+  try {
+    if (!uriString || typeof vscode.languages.getDiagnostics !== "function") return false;
+    return vscode.languages
+      .getDiagnostics(vscode.Uri.parse(uriString))
+      .some(
+        (d) =>
+          d.source === "sokonanoda" &&
+          d.data !== null &&
+          typeof d.data === "object" &&
+          d.data.stage === "parse",
+      );
+  } catch {
+    return false;
   }
 }
 

@@ -2770,3 +2770,27 @@ fn splicing_is_idempotent() {
     assert_eq!(again.checks[0].cmd, 3);
     assert_eq!(again.prints[0].cmd, 4);
 }
+
+/// **2026-10-22**：failed 声明在 `query goals` 的卡片上不再空白。
+///
+/// 以前 `failed_state` 把 `ty_text`/`goal` 清空，`decl_info` 又用
+/// `open = status == Open` 把 failed 的 goals/holes 整条过滤 ⇒ 卡片只剩名字。
+/// 现在：`ty` 从失败路径保留的 `ty_text` 来，`goal` 回退到 `by_root` 的题面。
+#[test]
+fn failed_declaration_card_keeps_its_type_and_the_question() {
+    let doc = doc("theorem bad (a : Prop) (h : a) : a := by\n  exact Nat.zero\n");
+    let goals = doc.goals(false).expect("parsable");
+    assert_eq!(goals.len(), 1);
+    assert_eq!(goals[0].status, "failed");
+    assert!(
+        goals[0].ty.as_deref().is_some_and(|ty| !ty.is_empty()),
+        "failed 卡片必须有声明类型：{:?}",
+        goals[0]
+    );
+    assert_eq!(
+        goals[0].goal.as_deref(),
+        Some("a"),
+        "failed 卡片至少要有题面目标（by_root）：{:?}",
+        goals[0]
+    );
+}

@@ -449,6 +449,7 @@ fn lower_by_val<'a>(
             expr: o.expr,
             steps: o.steps,
             tactic_holes: o.tactic_holes,
+            redundant_sorry: o.redundant_sorry,
         })
     } else {
         // 值位不是 `by` 块 ⇒ 里面的洞都是**项位**（`tactic_holes` 空 ✓）。
@@ -456,6 +457,7 @@ fn lower_by_val<'a>(
             expr: val.clone(),
             steps: Vec::new(),
             tactic_holes: Vec::new(),
+            redundant_sorry: Vec::new(),
         })
     }
 }
@@ -465,22 +467,20 @@ fn lower_by_val<'a>(
 pub(crate) struct LoweredValue {
     pub expr: Expr,
     pub steps: Vec<crate::by::ByStep>,
-    /// `by` 引擎装配出来的**未闭合目标**用的那些 span（见 [`crate::by::ByOutcome`]）。
-    /// 报告层用它把每个洞分成 `HoleMode::Tactic` / `HoleMode::Term` ✓。
+    /// 装配出来的 Tactic 位洞的 span（见 `ByOutcome`；报告层分 Tactic/Term）。
     pub tactic_holes: Vec<Span>,
+    /// 末尾多余的 `sorry`（2026-10-22）：发 `redundant-sorry` warning，**不是**洞。
+    pub redundant_sorry: Vec<Span>,
 }
 
 /// 值位是 `by` 块时走 tactic 引擎；其它值原样透传。
 ///
-/// `prefix_src` 是**已经算好的**前缀源码（闭包模式下含依赖声明，见 `run_pass`
-/// 里的 `closure_prefixes`）。tactic 引擎靠它合成 `#check` 文件来解析
-/// `apply` 的函数类型、`exact` 的项——只给本文件前缀时，入口里
-/// `apply And.intro` 会报 `elab-tactic-failed: unknown identifier`（实测）。
+/// `prefix_src` 是**已经算好的**前缀源码（闭包模式下含依赖声明）。tactic 引擎靠它
+/// 合成 `#check`；只给本文件前缀时 `apply And.intro` 会报 unknown identifier（实测）。
 ///
 /// `canonical_goal`（G-05）：本文件用了 `namespace`/`open` 时为 `true`，
 /// tactic 引擎把根目标先过一遍内核 pp（设计 `docs/design/namespace-open.md`
 /// §4.6）；没碰命名空间的文件零额外开销。
-// 参数已 8 个 —— 理由同 `lower_by_val`（`universe` 那一格见 `by-tactics.md` §12）✓。
 #[allow(clippy::too_many_arguments)]
 fn lower_value<'a>(
     ty: &Expr,

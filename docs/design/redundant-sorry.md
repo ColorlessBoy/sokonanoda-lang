@@ -35,13 +35,9 @@ def 体展开去找箭头（`And.right a (Not a) x` + `sorry` 就是这样拿到
 generic fallback，**"这个实参根本没人要"这个事实被丢掉**，只剩一个
 `ty: None` 的洞。
 
-关键：`by` 块那条路**已经报对了**（实测例 6）：
-
-```
-elab-tactic-failed: by 块里没有待解目标
-```
-
-所以这不是"缺少机制"，而是**值位与 `by` 位两条路的诊断质量不一致**。
+关键：`by` 块那条路以前报 `elab-tactic-failed`（例 6）；2026-10-22 起也按本文
+的 `redundant-sorry` 处理（跳过 no-op + warning，声明仍 checked）——值位与
+`by` 位两条路的诊断质量至此一致。
 
 ## 2. 实测证据（7 例探针，发布版 0.56.1）
 
@@ -52,7 +48,7 @@ elab-tactic-failed: by 块里没有待解目标
 | 3 | `:= f h`（无 sorry） | — | `decl.checked` | 不变 |
 | 4 | `:= And.intro A B ha` + `sorry`（缺第二个证明） | `B` | `exercise.open` | 不变（真缺） |
 | 5 | 洞在中间 `And.intro A B ⟨sorry⟩ hb` | `A` | `exercise.open` | 不变（真缺） |
-| 6 | `by exact f h` + 换行 `sorry` | — | **`elab-tactic-failed`（已正确）** | 不变 |
+| 6 | `by exact f h` + 换行 `sorry` | — | **`redundant-sorry` + checked（2026-10-22）** | 已改 |
 | 7 | `fun (h : A) => f h` + 换行 `sorry` | **`None`** | `exercise.open` | **多余的 sorry** |
 
 用户那行 `exists_intro_rule:0` 的 `ty` 同样是 `null`（`query holes`），与 1、7 同签名。
@@ -100,7 +96,7 @@ elab-tactic-failed: by 块里没有待解目标
 ## 6. 验收（TDD 三层 + 反例）
 
 1. **front 单测（红先）**：例 1/7 报 `redundant-sorry`；例 2/4/5 仍 `exercise.open`
-   且 `ty` 不变；例 6 仍是 `elab-tactic-failed`；
+   且 `ty` 不变；例 6 改为 `redundant-sorry` + checked；
 2. **CLI e2e**：`--json` 出现 `{"type":"warning","code":"redundant-sorry"}`，
    人类视图一行 `warning[redundant-sorry]`；删掉该行后 `decl.checked`；
 3. **LSP**：该声明**不再**出现 "not yet solved"，改出现 `redundant-sorry`

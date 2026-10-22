@@ -451,6 +451,16 @@ function prepareWorkspace(tag, eager) {
         "editor.insertSpaces": false,
         "editor.tabSize": 4,
         "git.openRepositoryInParentFolders": "never",
+        // **VS Code 1.141+ 的内置 AgentHost 会主动请求 GitHub 会话 ⇒ 弹登录/拉浏览器**。
+        // `--disable-extensions` 管不着它（它不是扩展）；这两个键才是真开关
+        // （2026-10-13 `SUB-copilot-signin-agenthost` 实测，见 editor-probe.mjs）。
+        "chat.agent.enabled": false,
+        "chat.disableAIFeatures": true,
+        // 新 profile 的欢迎页/设置同步也会引导登录；一并关掉。
+        "settingsSync.enabled": false,
+        "workbench.startupEditor": "none",
+        "workbench.welcomePage.walkthroughs.openOnInstall": false,
+        "telemetry.telemetryLevel": "off",
         "update.showReleaseNotes": false,
         "extensions.autoCheckUpdates": false,
         "extensions.autoUpdate": false,
@@ -522,6 +532,38 @@ function launch(ws, profile, file, devPath) {
 }
 
 async function quit(profile) {
+  // **先优雅关窗，再兜底 `pkill`**（2026-10-13 `SUB-copilot-signin-agenthost`：
+  // 只有 `pkill` = SIGTERM(15) ⇒ 屏幕上留下
+  // `The window terminated unexpectedly (reason: 'killed', code: '15')` 的死亡框 ✗）。
+  // CDP 的 `Browser.close` 走与用户 ⌘Q 同一条正常关闭路径；关不掉才退回 pkill。
+  try {
+    const ver = await (await fetch(`http://127.0.0.1:${debugPort}/json/version`)).json();
+    if (ver?.webSocketDebuggerUrl) {
+      const ws = new WebSocket(ver.webSocketDebuggerUrl);
+      await new Promise((resolve) => {
+        const done = () => {
+          try {
+            ws.close();
+          } catch {
+            /* ignore */
+          }
+          resolve();
+        };
+        ws.addEventListener("open", () => {
+          try {
+            ws.send(JSON.stringify({ id: 1, method: "Browser.close" }));
+          } catch {
+            /* ignore */
+          }
+          setTimeout(done, 1500);
+        });
+        ws.addEventListener("error", done);
+        setTimeout(done, 2500);
+      });
+    }
+  } catch {
+    /* 端口已释放（窗口本来就没了）⇒ 走下面的兜底 */
+  }
   try {
     execFileSync("pkill", ["-f", `user-data-dir=${profile}`]);
   } catch {

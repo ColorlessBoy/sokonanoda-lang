@@ -8,6 +8,7 @@ mod error;
 // `ErrorKind::hint()` 的文案表（从 `error.rs` 拆出来腾判据 ⑨ 的行数预算，2026-10-16）。
 mod error_hint;
 // 命名实参（`g (α := Nat) 5`，用户 2026-10-16 第 ② 条）。
+pub(crate) mod eqsubst;
 mod event;
 mod expected;
 mod expected_spine;

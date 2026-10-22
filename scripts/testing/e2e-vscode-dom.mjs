@@ -268,6 +268,13 @@ function writeProfile() {
     "editor.formatOnSave": false,
     "files.autoSave": "off",
     "git.openRepositoryInParentFolders": "never",
+    // VS Code 1.141+ 内置 AgentHost 的 GitHub 会话请求（不是扩展 ⇒
+    // `--disable-extensions` 管不着）：关掉这两个键，避免起窗前弹登录/拉浏览器。
+    "chat.agent.enabled": false,
+    "chat.disableAIFeatures": true,
+    "settingsSync.enabled": false,
+    "workbench.startupEditor": "none",
+    "workbench.welcomePage.walkthroughs.openOnInstall": false,
     "update.showReleaseNotes": false,
     "extensions.autoCheckUpdates": false,
     "extensions.autoUpdate": false,
@@ -287,6 +294,8 @@ function launchVscode() {
     `--extensionDevelopmentPath=${EXT_PATH}`,
     `--remote-debugging-port=${PORT}`,
     "--disable-gpu", "--disable-chromium-sandbox", "--no-first-run", "--disable-workspace-trust",
+    // 隔离用户扩展 + 内置 Copilot（AgentHost 由上面的 settings 关）。
+    "--disable-extensions",
     "--disable-extension", "GitHub.copilot-chat", "--disable-extension", "GitHub.copilot",
     "--goto", `${UNIT_ABS}:1:1`,
     WS,

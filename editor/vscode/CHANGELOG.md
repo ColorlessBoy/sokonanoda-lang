@@ -1,4 +1,21 @@
 // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
+## [0.97.5] - 2026-10-22
+
+### Fixed
+
+- **`apply Eq.subst _ hx` 的实参位洞在 Set/函数等式上判绿**：以前只覆盖元素等式，
+  Set 等式的高阶 motive 解不出（有末尾 `sorry` 报 no-goals、删掉又报 Eq.subst 隐式参数）。
+  现在 front 合成 old-style 前缀，用户的 unit02 答案（去掉多余 `sorry`）可判 checked。
+- **末尾多余的 `sorry` 只警告、不再打死整条证明**：跳过该 no-op，声明走内核终审；
+  Problems 给 `redundant-sorry` + 「删掉这一行」，声明仍 `checked`。
+- **failed 声明不再空白/谎报**：卡片保留类型与题面；Infoview 只画「声明未通过，见诊断」，
+  不再画题面 + `0/N` 进度。
+- **注释行不再把 kernel/elab error 说成「文件没解析成功」**：LSP 诊断带 `data.stage`，
+  扩展 status 带 `parseError`/`failed`；parse 成功时显示「光标不在任何声明内」。
+- **VS Code 例行测试**：profile 关掉内置 AgentHost（`chat.agent.enabled:false` /
+  `chat.disableAIFeatures:true`），不再弹 GitHub 登录/拉浏览器；`quit()` 先 CDP
+  `Browser.close` 再 pkill，不再留 `killed/15` 死亡窗。
+
 ## [0.97.4] - 2026-10-22
 
 ### Fixed

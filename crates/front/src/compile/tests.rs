@@ -11434,7 +11434,9 @@ fn struct_eta_terminates_on_a_deep_chain() {
 /// **resolve 到它的声明** ✓。四种声明状态各来一份（状态本身是钉子，不许被这次
 /// 改动动到）：
 /// * `Checked`（干净）、`Open`（`constructor` 后留一个真洞）、
-///   `Failed`（证明写完后多写一行 `sorry` = 冗余 sorry，**正是用户现场 B**）、
+///   **`Checked` + `redundant-sorry` warning**（证明写完后多写一行 `sorry` ——
+///   2026-10-22 用户 unit02 现场后**故意改的契约**：多余 `sorry` 跳过、声明仍检查、
+///   只发 warning；旧行为 `Failed` 把整条证明打成失败，用户看不出是“多写一行”）、
 ///   `Failed`（一条 tactic 失败，**用户现场 C** —— 注意失败点**之后**的名字也要有行）。
 #[test]
 fn a_failing_or_open_proof_still_records_hover_rows_for_its_body() {
@@ -11448,7 +11450,7 @@ fn a_failing_or_open_proof_still_records_hover_rows_for_its_body() {
         (
             "B_redundant_sorry",
             "theorem t (a : Nat) : lib_id a = lib_id a := by\n  exact Eq.refl (lib_id a)\n  sorry\n",
-            DeclStatus::Failed,
+            DeclStatus::Checked,
         ),
         (
             "B2_open",
@@ -11473,7 +11475,17 @@ fn a_failing_or_open_proof_still_records_hover_rows_for_its_body() {
             .find(|d| d.name.as_deref() == Some("t"))
             .map(|d| d.status)
             .expect("夹具前提：必须有声明 `t`");
-        assert_eq!(status, want, "[{tag}] 声明状态（钉子：这次改动不许动判定）");
+        assert_eq!(status, want, "[{tag}] 声明状态");
+        if tag == "B_redundant_sorry" {
+            assert!(
+                report
+                    .warnings
+                    .iter()
+                    .any(|w| w.code() == "redundant-sorry"),
+                "[{tag}] 末尾多余的 `sorry` 必须发 `redundant-sorry` warning：{:?}",
+                report.warnings.iter().map(|w| w.code()).collect::<Vec<_>>()
+            );
+        }
         // `Eq.refl`（prelude 名字）与 `lib_id`（本文件名字，取体里最后一处）。
         let prelude_use = src.find("Eq.refl").expect("`Eq.refl` 出现点") + 3;
         let local_use = src.rfind("lib_id").expect("`lib_id` 出现点") + 2;

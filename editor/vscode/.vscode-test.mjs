@@ -14,12 +14,39 @@
 //   * 版本默认 `stable`（与 CI 一致），可用 `SOKO_VSCODE_TEST_VERSION` 钉住
 //     （例行复跑建议钉住，省掉 stable 升级时的 ~300MB 下载）。
 import { defineConfig } from "@vscode/test-cli";
+import { mkdirSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const stateDir = path.join(os.tmpdir(), "soko-vscode-test");
+
+// **起窗前先把 profile 设置写死**（2026-10-22）：VS Code 1.141+ 的内置
+// AgentHost 会主动请求 GitHub 会话 ⇒ 弹登录/拉浏览器（`--disable-extensions`
+// 管不着它，它不是扩展）。这两个键与 `settingsSync.enabled` 是实测有效的
+// 开关（见 docs/ux-queue-events.jsonl 的 SUB-copilot-signin-agenthost）。
+// 同一份 profile 也关掉欢迎页/自动更新，保证例行 e2e 只测产品。
+const userDir = path.join(stateDir, "user-data", "User");
+mkdirSync(userDir, { recursive: true });
+writeFileSync(
+  path.join(userDir, "settings.json"),
+  JSON.stringify(
+    {
+      "chat.agent.enabled": false,
+      "chat.disableAIFeatures": true,
+      "settingsSync.enabled": false,
+      "workbench.startupEditor": "none",
+      "workbench.welcomePage.walkthroughs.openOnInstall": false,
+      "telemetry.telemetryLevel": "off",
+      "update.showReleaseNotes": false,
+      "extensions.autoCheckUpdates": false,
+      "extensions.autoUpdate": false,
+    },
+    null,
+    2,
+  ),
+);
 
 export default defineConfig({
   // 扩展本身是纯 JS，测试同样保持纯 JS（无 TS 构建步骤）。

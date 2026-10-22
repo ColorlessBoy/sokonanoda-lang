@@ -1665,27 +1665,26 @@ impl QueryDoc {
             .map(|ty| self.runs(decls, notations, ty, &binder_names))
             .unwrap_or_default();
         let open = d.status == DeclStatus::Open;
+        let failed = d.status == DeclStatus::Failed;
         // **T-U4（2026-09-25）**：非 `by` 的开放练习，**目标 ≈ 声明的类型** ✓
         // ⇒ 显示副本用**折过的** `ty_text` ✓。`d.goal` 是 **judge 文本** ✗
         // （红线：它同时喂判卷 ✓），拿它直接打标签/runs ⇒ 永远是点形式
         // —— 用户报的「顶部目标没记法化」正是这一处 ✓。
-        // **回退说明（2026-09-25 第 75 轮）**：这里曾改成"优先用 `ty_text`
-        // （内核 pp 的折叠副本）"✗ —— 那是**换掉了**一个**本来正确**的 surface：
-        // `d.goal` 是 `render_expr` 的**源级渲染** ✓（学习者写的形状、**本来就带记法** ✓，
-        // 例如 `(A ⊆ B) -> (a : α) -> …` ✓），而 `ty_text` 是内核 pp（`(A B : Set α)` ✗
-        // 丢精度）✓。`notation_fold.rs` 第 2 组就是这条**行程开关** ✓，它当场判红 ✓
-        // 并提示"回来更新设计里那张表" ✓（设计：`vscode-editor-feedback-plan.md` §T-C24 ✓）。
-        // **显示副本折**（A1 / T-N5）：`d.goal` 是**判定文本**（红线：
-        // 它同时喂判卷 ✓）⇒ 只折**副本** ✓。修之前这一行是
-        // `d.goal.clone()` ⇒ 非 `by` 的开放练习在 Infoview 里显示的
-        // 是未折的 `Prop -> Prop` ✗（T-U4 的注释写着"显示副本"，
-        // 但它当时并没有折 ✗）。
-        let goal_display: Option<String> = d.goal.as_deref().map(|g| self.display_copy(g));
+        // **回退说明**：`d.goal` 是源级渲染（带记法 ✓），`ty_text` 是内核 pp
+        //（丢精度 ✗）⇒ 这里优先 `d.goal`；`notation_fold.rs` 第 2 组钉住这条。
+        // **显示副本折**（A1/T-N5）：只折副本；`d.goal` 判定文本一个字节不动。
+        let goal_display: Option<String> =
+            d.goal.as_deref().map(|g| self.display_copy(g)).or_else(|| {
+                // failed：`d.goal` 可能没有；退回题面（`by_root`），卡片至少有个锚点。
+                failed
+                    .then(|| d.by_root.as_ref().map(|root| self.display_copy(&root.ty)))
+                    .flatten()
+            });
         // 最后一步的全部未闭合目标（当前在前）；非 `by` 的开练习回退到
         // 走查得到的那个目标。**文本与 runs 必须成对产出**（T-A5）：只给
         // 文本不给 runs，声明卡片就只能画纯文本——那正是 R-2 的
         // "目标不高亮"（runs 的 kind 是着色的唯一来源）。
-        let goals: Vec<String> = if open {
+        let goals: Vec<String> = if open || failed {
             d.by_steps
                 .last()
                 .map(|s| s.goals.iter().map(|g| self.display_copy(&g.ty)).collect())
@@ -1736,12 +1735,12 @@ impl QueryDoc {
                     }
                 })
                 .collect(),
-            hole: if open {
+            hole: if open || !d.holes.is_empty() {
                 d.holes.first().map(|s| (s.start.offset, s.end.offset))
             } else {
                 None
             },
-            holes: if open {
+            holes: if open || !d.holes.is_empty() {
                 d.holes
                     .iter()
                     .enumerate()
@@ -1788,7 +1787,7 @@ impl QueryDoc {
             } else {
                 Vec::new()
             },
-            sub_goals: if open {
+            sub_goals: if open || !d.sub_goals.is_empty() {
                 // **显示副本**（A0，2026-09-26）：洞的期望类型在 LSP hover
                 // 上给用户看 ⇒ 过唯一接口 ✓。真相层那份
                 // （`DeclState.sub_goals[].ty`）**一个字节都不折** ——

@@ -1,3 +1,8 @@
+## v0.97.5 修复：unit02 答案 Eq.subst/多余 sorry + failed 投影 + e2e 起窗（2026-10-22）
+- **答案真值**：`apply Eq.subst _ hx; exact h` 是 Lean 4 标准写法；末尾 `sorry` 多余。修前两条错误互斥：有 sorry 报 no-goals、删 sorry 报 Eq.subst 隐式参数。
+- **修法**：front 合成 Eq.subst old-style 前缀（Set/函数等式也判绿）；末尾 sorry 跳过 + `redundant-sorry` warning、声明仍 checked；failed 卡片保留类型/题面，Infoview 只画“未通过，见诊断”；LSP 诊断带 `data.stage`，webview 不再把 kernel error 谎报 parse 失败；e2e profile 关 AgentHost、`quit()` 先 CDP `Browser.close` 再 pkill（无登录/无 killed 15）。
+- **判据**：front 1031 · CLI 28 · LSP 全绿 · webview 40 · stub 76 · 真机见上。发布：0.97.5 → push → CI → release；本次 pre-push 的 `ci-local --fast` 挂起 >20min，按逃生门 `--no-verify` 推送（本地全量门禁已单跑）。
+
 ## v0.97.4 发版：末尾 theorem 消失 + 目标快反馈（2026-10-22）
 - ⭐ **用户现场**：unit01 最后一个 theorem，打 `constructor` + `intro h` 后几乎卡死；末尾空行显示「光标不在任何声明内」，加 `sorry` 会好一点。
 - **真因（真机取证）**：`EntryCache::dirty_commands` 只扫到上一版 `keys.len()`；**新追加的末尾命令**不在脏集 ⇒ 被误当“信任”、这一轮不查、缓存也没有 ⇒ `soko/goals` 报告里最后一条 theorem **整条消失**。修复：`i >= self.keys.len()` 一律进 dirty。
@@ -10,12 +15,6 @@
 - **判据（实跑）**：桩 **76/76**（PATH 手工行/marker 行/注释行 + 版本只升不降）；`extension.js` 纯函数 `cliPathLinePresent` / `cliVersionNeedsUpgrade` 由 `__cli` 测试缝驱动，临时 home 不碰真家目录。
 - **性能口径（回应「3ms」）**：`git log` 的 `da1dd28f`/`a583175a` 量的是 **`soko/stateAt` / `soko/goalAt` 请求成本**（1.0–1.5ms / 0.7ms），不是按键→屏幕；真按键实测 `stateAt` 中位 **2ms**、目标可见约 **258ms**（200ms 选区 + 150ms 诊断去抖）。98/252ms 是 e2e 的**诊断/面板**口径，不是这轮引入的回归。
 - **发布（实跑）**：main `d2d54b1f` → CI `39726640476` **真绿 10/10** → auto-tag `v0.97.3` → release `39728063659` success：**26 资产**；e2e 3 条腿 **55/55**；Marketplace 发布 job success（商店列表传播中）；站点 `site.json` v0.97.3。
-
-## v0.97.2 发版：Infoview 假「光标不在任何声明内」（2026-10-22）
-- ⭐ **用户现场**：unit01 最后一题打 `constructor` / `intro h`，Infoview 说「光标不在任何声明内」，Restart Server 才有目标。
-- **真因**：`soko/stateAt` 答的是**上一次编译的文本**；新文本还没编完时空答案（有时版本号还相同）被面板当成结论。扩展现在：编译在飞 / 编辑后 3s / 缓冲区 dirty 时，**空答案有界重问**（250ms × 120）；只有这些窗口都过去仍空才显示「光标不在任何声明内」。
-- **判据（实跑）**：真 VS Code 真按键（真实 unit01 文件）——修复前空答案被接受，修复后只接受 `decl=singleton_eq_singleton_iff`，最终 `goal=a = b`；桩 **75/75**；真机 53.5s。
-- **发布**：待 push → auto-tag `v0.97.2` → release/Marketplace/站点核对。
 
 ## 未完成 `sorry` 练习按 Lean 4 进环境：goal state 不再被 `unknown identifier` 阻断（2026-10-21 · 未发版）
 - ⭐ **用户拿到什么**：`unit01` 的 `singleton_subset_iff` 引用尚未证明的 `mem_of_subset_singleton` / `subset_of_mem_singleton` ⇒ 不再报错、正常 elaborate；被引用处给 `uses-open-exercise` warning（不是 error）；部分证明留着 `sorry` 时 `query state` 照常给出目标。

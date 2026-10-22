@@ -28,6 +28,9 @@
   // （LSP 契约）⇒ 文件写坏时面板会说「这个文件没有声明。」/「光标不在任何声明内。」
   // —— 真相是**文件没解析成功**，那两句话把用户引到错的方向 ✗。
   let lastStatusErrors = 0;
+  // **parse 失败的显式标记**（2026-10-22）：`errors > 0` 是任意 error 的计数，
+  // 不能拿来当“文件没解析成功”的代理（kernel/elab 失败时 parse 明明成功了）。
+  let lastStatusParseError = false;
   let lastStatePayload = null;
 
   function el(tag, className, text) {
@@ -401,7 +404,7 @@
     }
     if (lastStatusState === "idle") return "等待 .sokonanoda 文件。";
     // **F18**：有错误且一条声明都读不出来 ⇒ 文件**根本没解析成功**（不是"没有声明"）。
-    if (lastStatusErrors > 0) {
+    if (lastStatusParseError) {
       return "文件没解析成功：先按 Problems 面板改掉语法错误，声明列表就会回来。";
     }
     return "这个文件没有声明。";
@@ -412,6 +415,7 @@
     const state = (status && status.state) || "idle";
     lastStatusState = state;
     lastStatusErrors = typeof (status && status.errors) === "number" ? status.errors : 0;
+    lastStatusParseError = !!(status && status.parseError);
     let text;
     if (state === "ready") {
       const count = typeof status.decls === "number" ? status.decls : 0;
@@ -479,6 +483,14 @@
       goalsBody.appendChild(line);
     }
 
+    // **failed 声明只画一句诊断入口**（2026-10-22）：`stateAt` 对失败声明可能
+    // 退回题面（`by_root`），以前会被当成“还没开始”的目标 + `0/N` 进度 ——
+    // 对一条已经跑了 8 条 tactic 的失败证明，这是假话。
+    if (decl && decl.status === "failed") {
+      goalsBody.appendChild(el("p", "empty", "声明未通过，见诊断。"));
+      return;
+    }
+
     const goals = Array.isArray(msg.goals) && msg.goals.length > 0
       ? msg.goals
       : (msg.goal
@@ -504,7 +516,7 @@
         // 光标在 `#check`/`#print` 那一行时**本来就不在任何声明里** ——
         // 那时下面那块「命令输出」才是要显示的东西，别用这句话盖过它 ✓。
         // **F18**：但"文件根本没解析成功"是**另一回事**，不许说成"光标不在声明内"。
-        goalsBody.appendChild(el("p", "empty", lastStatusErrors > 0
+        goalsBody.appendChild(el("p", "empty", lastStatusParseError
           ? "文件没解析成功：先修语法错误，再看目标。"
           : "光标不在任何声明内。"));
       }

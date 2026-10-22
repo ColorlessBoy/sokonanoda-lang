@@ -1043,11 +1043,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     // **B1**：失败也要保留**已跑成功的**那些步（P3 显示面）✓
                     st.by_steps = by_step_states(&failure.steps, &self.display);
                     st.by_root = decl_prefix_state(ty, val, &self.display);
+                    st.ty_text = Some(self.display.render(ty));
                     self.decl_states.push(st);
                 }
                 return;
             }
         };
+        crate::compile::warning::push_redundant_sorry(&mut self.out, idx, &lowered.redundant_sorry);
         let by_root = decl_prefix_state(ty, val, &self.display);
         // **词法补位必须用源表达式**（2026-10-11）：下面这行之后 `val` 是
         // **elaborate 过**的项 —— 里面的 tactic 语法（`unfold Foo` 的 `Foo`）
@@ -1523,14 +1525,14 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     // **B1**：失败也要保留**已跑成功的**那些步（P3 显示面）✓
                     st.by_steps = by_step_states(&failure.steps, &self.display);
                     st.by_root = decl_prefix_state(ty, val, &self.display);
+                    st.ty_text = Some(self.display.render(ty));
                     self.decl_states.push(st);
                 }
                 return;
             }
         };
-        // **题面状态**（G-82，源位值、未折记法）：`open_goal` 分解不了值时兜底要用它
-        // —— 拿 lowering **之后**的值数 λ 链会多剥 ✗（见 `decl_root_state` 的说明）。
-        // 算**一次**：`by_root` 就是它的显示副本（折叠幂等 ✓）。
+        crate::compile::warning::push_redundant_sorry(&mut self.out, idx, &lowered.redundant_sorry);
+        // **题面状态**（G-82）：`open_goal` 分解不了值时兜底要用它；算一次 ✓。
         let src_root = decl_root_state(ty, val, &self.display);
         let by_root = src_root
             .as_ref()
@@ -2099,13 +2101,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 // **B1**：失败也要保留**已跑成功的**那些步（P3 显示面）✓
                 st.by_steps = by_step_states(&failure.steps, &self.display);
                 st.by_root = decl_prefix_state(ty, val, &self.display);
+                st.ty_text = Some(self.display.render(ty));
                 self.decl_states.push(st);
                 return;
             }
         };
-        // **题面状态**（G-82，源位值、未折记法）：`open_goal` 分解不了值时兜底要用它
-        // —— 拿 lowering **之后**的值数 λ 链会多剥 ✗（见 `decl_root_state` 的说明）。
-        // 算**一次**：`by_root` 就是它的显示副本（折叠幂等 ✓）。
+        crate::compile::warning::push_redundant_sorry(&mut self.out, idx, &lowered.redundant_sorry);
+        // **题面状态**（G-82）：`open_goal` 分解不了值时兜底要用它；算一次 ✓。
         let src_root = decl_root_state(ty, val, &self.display);
         let by_root = src_root
             .as_ref()

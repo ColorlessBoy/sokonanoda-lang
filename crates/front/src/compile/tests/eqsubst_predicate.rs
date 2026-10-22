@@ -125,3 +125,82 @@ fn a_point_name_hypothesis_still_reports_the_same_diagnostic() {
         checked_names(&out)
     );
 }
+
+/// **2026-10-22 unit02 现场**：`apply Eq.subst _ hx` 的洞在 **Set 谓词**上。
+///
+/// 用户原题：
+/// ```text
+/// intro h x hx
+/// apply Eq.subst _ hx
+/// exact h
+/// ```
+/// 目标 `x ∈ ∅`、`hx : x ∈ A`、`h : A = ∅`。motive 是 `fun (s : Set α) => x ∈ s`；
+/// a14 的“洞 → 子目标”只在元素等式上够用，Set/函数等式要合成 **old-style 前缀**。
+/// 判据：0 诊断 + `t` 在 `checked_names` 里（洞真的变成 `A = ∅` 子目标，
+/// `exact h` 才闭得上）。
+#[test]
+fn apply_eqsubst_argument_hole_on_a_set_predicate() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def empty {α : Type} : Set α := fun (_ : α) => False
+infix:50 \" ∈ \" => mem
+
+theorem t (α : Type) (A : Set α) (x : α) (hx : x ∈ A) (h : A = empty) : x ∈ empty := by
+  apply Eq.subst _ hx
+  exact h
+";
+    let out = compile(src);
+    assert_eq!(
+        out.errors,
+        vec![],
+        "Set 谓词的实参位洞必须判绿：{:?}",
+        out.errors
+    );
+    assert!(
+        checked_names(&out).contains(&"t".to_string()),
+        "`t` 必须 checked：{:?}",
+        checked_names(&out)
+    );
+}
+
+/// **函数谓词**同一条（`A B : α → Prop`，目标 `B x`、`hx : A x`）——
+/// 证明修法不是只为 `Set` 写死。
+#[test]
+fn apply_eqsubst_argument_hole_on_a_function_predicate() {
+    let src = "\
+theorem t (α : Type) (A B : α → Prop) (x : α) (hx : A x) (h : A = B) : B x := by
+  apply Eq.subst _ hx
+  exact h
+";
+    let out = compile(src);
+    assert_eq!(
+        out.errors,
+        vec![],
+        "函数谓词的实参位洞必须判绿：{:?}",
+        out.errors
+    );
+    assert!(checked_names(&out).contains(&"t".to_string()));
+}
+
+/// **反向**：洞的谓词被合成后，`exact` 给的等式必须真的能闭合 `a = b`；
+/// 方向/对象不对仍然判红（修法不许变成“随便给个等式都行”）。
+#[test]
+fn apply_eqsubst_argument_hole_with_a_wrong_witness_is_still_rejected() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def empty {α : Type} : Set α := fun (_ : α) => False
+infix:50 \" ∈ \" => mem
+
+theorem t (α : Type) (A : Set α) (x b : α) (hx : b ∈ A) (h : A = empty) : x ∈ empty := by
+  apply Eq.subst _ hx
+  exact h
+";
+    let out = compile(src);
+    assert!(
+        !out.errors.is_empty(),
+        "`hx : b ∈ A` 搬不到 `x` 上 ⇒ 必须判红"
+    );
+    assert!(!checked_names(&out).contains(&"t".to_string()));
+}

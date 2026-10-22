@@ -31,7 +31,9 @@ pub(crate) fn diagnostic_from_compile(err: &sokonanoda_front::compile::CompileEr
         message: format!("{}\n\n提示：{}", err.message, err.hint()),
         related_information: None,
         tags: None,
-        data: None,
+        // **stage 是接缝数据**（2026-10-22）：VS Code 侧要区分“parse 失败”
+        // 与“kernel/elab 失败”；只看 `errors > 0` 会把后者谎报成前者。
+        data: Some(serde_json::json!({ "stage": err.stage().code() })),
     }
 }
 
@@ -45,7 +47,7 @@ pub(crate) fn diagnostic_from_parse(diag: &sokonanoda_front::Diagnostic) -> Diag
         message: format!("{}\n\n提示：{}", diag.message, diag.hint()),
         related_information: None,
         tags: None,
-        data: None,
+        data: Some(serde_json::json!({ "stage": "parse" })),
     }
 }
 

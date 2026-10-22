@@ -1962,9 +1962,18 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
   }
 
   /// 主机（`InfoviewProvider`）真的会发的两条消息（`_post` 都盖 `protocol: 1`）。
-  function hostMessages(decls, errors) {
+  function hostMessages(decls, errors, parseError = false) {
     return [
-      { protocol: 1, type: "status", state: "ready", decls: decls.length, errors },
+      {
+        protocol: 1,
+        type: "status",
+        state: "ready",
+        decls: decls.length,
+        errors,
+        // **2026-10-22**：parse 失败是显式标记；kernel/elab error 不再冒充它。
+        parseError,
+        failed: 0,
+      },
       { protocol: 1, type: "decls", decls },
     ];
   }
@@ -2099,10 +2108,11 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       );
     }
 
-    // ⑤ **改前屏幕上是什么**（用户可见症状的对照）：真渲染器对**空载荷 + 有错**
+    // ⑤ **改前屏幕上是什么**（用户可见症状的对照）：真渲染器对**空载荷 + parse 失败**
     //    画的是那句「文件没解析成功…」+ **0 行**声明 —— 这正是用户 2026-10-15
-    //    报的那一格。它把上面的读数钉在一个**有意义的零点**上。
-    const emptyScreen = renderInfoview(hostMessages([], 1));
+    //    报的那一格。它对**非 parse** 的 error 则说「这个文件没有声明」（2026-10-22
+    //    起；以前把 kernel/elab error 也谎报成 parse 失败 ✗）。
+    const emptyScreen = renderInfoview(hostMessages([], 1, true));
     assert.strictEqual(
       declRowsOnScreen(emptyScreen).length,
       0,
@@ -2112,10 +2122,18 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     const emptySentence = emptyText ? domByClass(emptyText, "empty")[0] : undefined;
     assert.ok(
       emptySentence && emptySentence.textContent.includes("文件没解析成功"),
-      "空载荷 + 有错 ⇒ **声明栏**（`div.decls`）必须说「文件没解析成功…」" +
+      "空载荷 + parse 失败 ⇒ **声明栏**必须说「文件没解析成功…」" +
         `（用户 2026-10-15 看到的就是这句）—— 实际 = ${
           emptySentence ? emptySentence.textContent : "(声明栏里没有 .empty 元素)"
         }`,
+    );
+    const nonParseScreen = renderInfoview(hostMessages([], 1, false));
+    const nonParseText = domByClass(nonParseScreen, "decls")[0];
+    const nonParseSentence = nonParseText ? domByClass(nonParseText, "empty")[0] : undefined;
+    assert.ok(
+      nonParseSentence && nonParseSentence.textContent.includes("这个文件没有声明"),
+      "空载荷 + 非 parse error ⇒ 不许谎报「文件没解析成功」—— 实际 = " +
+        `${nonParseSentence ? nonParseSentence.textContent : "(没有 .empty)"}`,
     );
   });
 
