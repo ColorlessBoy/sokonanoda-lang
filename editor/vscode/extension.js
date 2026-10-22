@@ -3154,6 +3154,7 @@ async function activate(context) {
   };
   let selectionTimer;
   let diagnosticsTimer;
+  let fastCursorTimer; // 文本编辑后的快速目标刷新（不等 200ms 选区去抖）
   const DIAGNOSTICS_DEBOUNCE_MS = 150;
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
@@ -3167,6 +3168,11 @@ async function activate(context) {
     vscode.workspace.onDidChangeTextDocument((event) => {
       if (event.document.languageId !== "sokonanoda") return;
       provider.noteEdit(event.document.uri.toString());
+      // **目标快、诊断慢**（2026-10-22 用户要求）：文本一变就尽快问一次
+      // `soko/stateAt`，不占 200ms 的选区去抖；回答可能是上一版报告，但面板
+      // 先动起来，准确的诊断/LSP 结果 150ms 后再覆盖 ✓。
+      clearTimeout(fastCursorTimer);
+      fastCursorTimer = setTimeout(() => requestCursorForEditor(), 30);
     }),
     vscode.workspace.onDidOpenTextDocument?.((document) => {
       if (document.languageId !== "sokonanoda") return;
@@ -3211,6 +3217,7 @@ async function activate(context) {
       dispose: () => {
         clearTimeout(selectionTimer);
         clearTimeout(diagnosticsTimer);
+        clearTimeout(fastCursorTimer);
       },
     },
   );

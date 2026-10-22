@@ -198,6 +198,7 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 ### 9.32 2026-10-22 **`·` 的快捷输入**（用户原话：「lean dot 没有快捷输入。。。」）⇒ 记法输入表加 `·`：Lean 的标点键 `\.`（别名 `\centerdot`）⇒ `·`；`input.eager` 开时敲下 `.` 即出，关时 `Tab` 仍可用。`\cdot` 在 Lean 是 `⬝`，**不收**。判据：front 表 76 条 + CLI 契约 `dot_bullet_is_reachable_via_leans_punctuation_key` + stub 73/73 + 真 VS Code 按键 `dot-space`/`dot-tab` 均 PASS。
 ### 9.33 2026-10-22 **Infoview 假「光标不在任何声明内」**（用户原话：「打 intro h 会导致 infoview『光标不在任何声明内』，restart server 又有了 goal states」）⇒ `soko/stateAt` 的空答案在编译期/编辑后 3s/dirty 时**有界重问**（250ms × 120）；这些窗口都过去仍空，才显示「不在声明内」。判据：真 VS Code 真按键 + 桩 **75/75** + LSP `state` 测试。
 ### 9.34 2026-10-22 **CLI 两个问题**（用户原话：「cli 两个问题都修掉」「升级 vscode 插件能自动升级 cli 吗？」）⇒ ① PATH 误报：`.zprofile` 里已有 `export PATH=…`（手工/扩展写过）算成功，不再只认扩展 marker；② 扩展升级后自动用新 VSIX 的 CLI 覆盖已安装的 standalone CLI（未装过不代装，降级插件不降 CLI）。判据：stub 76/76（临时 home）+ 真机升级窗口；性能口径见 §9.33/STATUS：3ms 是 `stateAt` 请求成本，不是按键→屏幕。
+### 9.35 2026-10-22 **文件末尾 theorem + 目标快反馈**：增量缓存不误信任新追加命令；文本变后 30ms 请求 `stateAt`，诊断后到。判据：front `a_newly_appended_last_theorem_survives_the_entry_cache_splice` + 真按键。
 ### 9.5 2026-09-26 专项：记法 + 隐式参数 + **产品交互面**（用户拍板 ✓）
 
 **用户原话**：「**全面一点，专门针对 notation，产品交互**。包括**多来点隐式参数，让
@@ -243,7 +244,6 @@ notation 更直观**」+「**不许新建大 plan 文件**；用 `scripts/plan.p
 ### 9.9 2026-10-10 专项：编辑器 hover 统一收口 + 命令输出不重复（用户逐条实测 ✓）
 
 用户逐条：① tactic 名字的类型「不是从统一渲染接口获取的，也没有正常的代码高亮」；② `#check Eq.refl` 的 hover「只有一个高亮的 `Eq.refl`，没有有效的类型信息」；③ `#print Set.singleton`「没有 hover 信息弹出」；④ `def` 的 hover 要「把类型和 `:=` 后面的含义块也显示出来……跟 infoview 的声明列表对齐」；⑤「每编辑一下 `#check`/`#print` 就多重复一次……编辑 `mem_of_subset_singleton` 会影响非它块的东西，完全不符合预期」。**要求**：hover 里凡 `.sokonanoda` 语言文本（tactic 名字的类型 · 记法符号/目标名/内建登记名签名 · 声明签名与 `def` 的值）一律走**同一个围栏块接口**（`code_block`+`CODE_LANG`；**行内码不许再渲染语言文本** ✗）；`def` hover = 类型块 + `:= <值>` 块（`theorem`/`axiom`/`inductive` 一个字节都不加）；光标在 `#check`/`#print` 行 ⇒ 显示**那条命令自己的输出**（真相层 `messages_at`，与 Infoview「命令输出」块同一份真相）；命令输出**每编辑一次 +1 是 bug** ⇒ 判据「产物命中 + 编辑一次后 `stateAt.messages` 仍恰好 1 条」+「同一报告拼接两次幂等」，**编辑的爆炸半径 = 那个声明自己**（用户既有设计）；内核 pp 在未解层元变量上 panic 曾让类型被吞成空串（② 的真根因）⇒ `leq_core` 按 Lean 4 补齐（`level.h:57` / `level.cpp:507`，**无 panic 路径**）。契约 `docs/protocol.md`；读数 `docs/visible-changes.md` + `STATUS.md`；台账 **G-102…G-105**。
-
 ### 9.10 2026-10-10 专项：**tactic 文档体系**（用户拍板 ✓）
 用户原话：「`intro` / `exact` / `rfl` 这几个 tactic 没有好的文档，要求补齐三样：① 代码区域 hover 显示简短 tactic 说明；② 支持 F12 跳转到对应文档；③ 实现完整 tactic 介绍文档（markdown），含如何使用、适用场景、原理（背后内核规则/判定，如 `rfl` = defEq 自反、`exact` = defeq 统一）」；同日两次补充：**范围扩大到【所有】tactic**（一个都不能少）· **要有机制保证以后新增一个 tactic 也自动要求补文档** · **文档打包在 VS Code 插件里随插件自然附带分发**（像 `prelude.lean` 一样，装插件即自带、离线、无需额外拉取或访问外部站点）。**落地**：14 条的单一真相表 `crates/front/src/tactics.rs`（白名单由表派生 · 文档 `include_str!` 内嵌 · 独立 lint `scripts/tactic-docs-lint.py` ⇒ 加了 tactic 忘补文档过不了门禁）· 14 篇正文 + 索引 `reference/tactics/`（每篇的 `sokonanoda` 例子逐块喂真内核、零诊断）· hover 一行摘要 + F12 五档落点（**插件自带那一档**随 VSIX 打包成真文件 ⇒ 离线）· 设计 `docs/design/tactic-docs.md`（十决策 · 八阶段 P1–P7 · 26 风险）。**机械判据**：`unzip -l <vsix>` 的 15 个条目逐名核对 + `stage-docs.js --check` 防漂移 + 真宿主 e2e「F12 的落点在扩展目录下」。
 ### 9.11 2026-10-11 两处收口：声明列表去行号 + 名字普通粗体 · 内核包版本随产品（用户实测 + 拍板 ✓）
