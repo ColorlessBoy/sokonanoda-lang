@@ -1,20 +1,21 @@
+## v0.97.4 发版：末尾 theorem 消失 + 目标快反馈（2026-10-22）
+- ⭐ **用户现场**：unit01 最后一个 theorem，打 `constructor` + `intro h` 后几乎卡死；末尾空行显示「光标不在任何声明内」，加 `sorry` 会好一点。
+- **真因（真机取证）**：`EntryCache::dirty_commands` 只扫到上一版 `keys.len()`；**新追加的末尾命令**不在脏集 ⇒ 被误当“信任”、这一轮不查、缓存也没有 ⇒ `soko/goals` 报告里最后一条 theorem **整条消失**。修复：`i >= self.keys.len()` 一律进 dirty。
+- **快反馈**：扩展在 `onDidChangeTextDocument` 后 30ms 即请求 `stateAt`（不等 200ms 选区去抖）；错误/诊断仍走后续 LSP 发布。真机（固定 LSP + 真按键）读数：`stateAt` 中位 **1ms**，`i` 的旧目标 **33ms** 先到，`n`/`h` 的新目标 **335/83ms** 到（之后不再 25s 卡死）；末尾 theorem 不再消失。
+- **判据**：front `a_newly_appended_last_theorem_survives_the_entry_cache_splice`（**反向验证**：撤 dirty 修复 ⇒ 当场红，报告只剩 `prior`）；stub **76/76**。
+- **发布**：CI `39736014670` 真绿 10/10 · e2e 55/55 ⇒ tag `v0.97.4` ⇒ release `39737534435`（26 资产）；站点 0.97.4。
+
 ## v0.97.3 发版：CLI PATH 误报 + 扩展升级自动升 CLI（2026-10-22）
 - ⭐ **用户拿到什么**：① `.zprofile` 已有那行（手工写/扩展写过）⇒ 不再误报「不在 PATH」；② 扩展升级后，已安装的 `~/.local/share/sokonanoda/bin/sokonanoda` **自动换成新 VSIX 自带版本**，不用每次手动 Install Command Line（没装过仍不代装；降级插件不降 CLI）。
 - **判据（实跑）**：桩 **76/76**（PATH 手工行/marker 行/注释行 + 版本只升不降）；`extension.js` 纯函数 `cliPathLinePresent` / `cliVersionNeedsUpgrade` 由 `__cli` 测试缝驱动，临时 home 不碰真家目录。
 - **性能口径（回应「3ms」）**：`git log` 的 `da1dd28f`/`a583175a` 量的是 **`soko/stateAt` / `soko/goalAt` 请求成本**（1.0–1.5ms / 0.7ms），不是按键→屏幕；真按键实测 `stateAt` 中位 **2ms**、目标可见约 **258ms**（200ms 选区 + 150ms 诊断去抖）。98/252ms 是 e2e 的**诊断/面板**口径，不是这轮引入的回归。
-- **发布**：待 push → CI 真绿 → auto-tag `v0.97.3` → release/Marketplace/站点核对。
+- **发布（实跑）**：main `d2d54b1f` → CI `39726640476` **真绿 10/10** → auto-tag `v0.97.3` → release `39728063659` success：**26 资产**；e2e 3 条腿 **55/55**；Marketplace 发布 job success（商店列表传播中）；站点 `site.json` v0.97.3。
 
 ## v0.97.2 发版：Infoview 假「光标不在任何声明内」（2026-10-22）
 - ⭐ **用户现场**：unit01 最后一题打 `constructor` / `intro h`，Infoview 说「光标不在任何声明内」，Restart Server 才有目标。
 - **真因**：`soko/stateAt` 答的是**上一次编译的文本**；新文本还没编完时空答案（有时版本号还相同）被面板当成结论。扩展现在：编译在飞 / 编辑后 3s / 缓冲区 dirty 时，**空答案有界重问**（250ms × 120）；只有这些窗口都过去仍空才显示「光标不在任何声明内」。
-- **判据（实跑）**：真 VS Code 真按键（`/tmp` 探针，真实 unit01 文件）——修复前 seq 9–11 空答案被接受，修复后打字期间只接受 `decl=singleton_eq_singleton_iff`，最终 `goal=a = b`；桩 **75/75**（含 stale-version 与 same-version-empty 两条）；真机 53.5s 跑完。
+- **判据（实跑）**：真 VS Code 真按键（真实 unit01 文件）——修复前空答案被接受，修复后只接受 `decl=singleton_eq_singleton_iff`，最终 `goal=a = b`；桩 **75/75**；真机 53.5s。
 - **发布**：待 push → auto-tag `v0.97.2` → release/Marketplace/站点核对。
-
-## v0.97.1 发版：`·` 的快捷输入 `\.`（2026-10-22）
-- ⭐ **用户拿到什么**：在 `.sokonanoda` 里打 `\.`（Lean 的标点键；别名 `\centerdot`）⇒ `·`；`input.eager` 开时敲下 `.` 即出，关时 `Tab` 仍可用。`\cdot` 在 Lean 是 `⬝`，不映射；`·` 只进输入表，不喂词法（`notation_symbol:false`）。
-- **判据（实跑）**：front lib **1026/0** · CLI extension **43/0**（含 `dot_bullet_is_reachable_via_leans_punctuation_key` + 表镜像）· LSP lib **253/0** · stub 宿主 **73/73** · docs-lint ✓ · `docs/visible-changes.md` 一行 · **真 VS Code 真按键** `dot-space` / `dot-tab` 均 PASS（DOM 与磁盘都 `·`）· `\cdot`/字母别名边界见 `docs/design/notation-input.md`。
-- **改动**：`crates/front/src/notation_input.rs` 表 76 条 + `query/completion` 注释 · JS 镜像/改写器（`\.` 标点键）· 契约/桩/真 e2e 用例 · `docs/design`/README/`·.md`/teacher 技能 · CHANGELOG 0.97.1。
-- **发布（实跑）**：main `0d4ee18c` → CI `39699597767` **真绿 10/10** → auto-tag `v0.97.1` → release `39701131443` success：**26 资产**（8 lsp + 8 cli + 9 vsix + SHA256SUMS）；e2e 3 条腿 55/55；Marketplace 9/9 已 publish；站点 `site.json` v0.97.1。
 
 ## 未完成 `sorry` 练习按 Lean 4 进环境：goal state 不再被 `unknown identifier` 阻断（2026-10-21 · 未发版）
 - ⭐ **用户拿到什么**：`unit01` 的 `singleton_subset_iff` 引用尚未证明的 `mem_of_subset_singleton` / `subset_of_mem_singleton` ⇒ 不再报错、正常 elaborate；被引用处给 `uses-open-exercise` warning（不是 error）；部分证明留着 `sorry` 时 `query state` 照常给出目标。

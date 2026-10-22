@@ -2381,6 +2381,55 @@ fn goal_at_reports_a_parse_error_instead_of_none() {
     ));
 }
 
+/// **2026-10-22 用户 unit01 实测**：文件**末尾新追加**的 `theorem` 必须进报告。
+///
+/// 修前 `EntryCache::dirty_commands` 只扫到 `self.keys.len()`（上一版的命令数）
+/// ⇒ 新追加的末尾命令**一条都不在脏集** ⇒ 被当成"信任"、这一轮不查它，缓存里
+/// 也没有 ⇒ 报告里最后一条 theorem 整条消失 ⇒ Infoview 在末尾空行上答空（看起来
+/// 像"卡死"；加 `sorry` 只是碰巧让它重新进报告）。判据同时钉结构前提
+/// `trusted_prefix_len() > 0`（否则走整份重查，咬不到拼接路）。
+#[test]
+fn a_newly_appended_last_theorem_survives_the_entry_cache_splice() {
+    let dir = project_dir("append-last-theorem");
+    let base = "import Lib\n\ntheorem prior (P : Prop) : P -> P := by\n  intro h\n  exact h\n";
+    let mut doc = project_doc(
+        &dir,
+        "Main.sokonanoda",
+        &[
+            (
+                "Lib.sokonanoda",
+                "def libid : Nat -> Nat := fun (n : Nat) => n\n",
+            ),
+            ("Main.sokonanoda", base),
+        ],
+    );
+    let appended =
+        format!("{base}\ntheorem final (P Q : Prop) : P -> P := by\n  intro h\n  exact h\n\n\n");
+    doc.set_text(&appended, 2, None);
+    assert!(
+        doc.trusted_prefix_len() > 0,
+        "必须走到拼接路（前缀 > 0），否则这条判据咬不住 dirty_commands"
+    );
+    let final_decl = doc
+        .report
+        .as_ref()
+        .expect("report")
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("final"))
+        .unwrap_or_else(|| {
+            panic!(
+                "末尾新 theorem 整条消失：{:?}",
+                doc.report.as_ref().map(|r| &r.decls)
+            )
+        });
+    assert_eq!(final_decl.status, crate::compile::DeclStatus::Checked);
+    let tail = appended.rfind("exact h").expect("tail") + "exact h".len();
+    let answer = doc.state_at(tail).expect("末尾 theorem 的空白尾巴必须归它");
+    assert_eq!(answer.decl.as_ref().map(|d| d.name.as_str()), Some("final"));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 /// **用户实测 ③（2026-10-09）**：`#check` 的输出在 Infoview 里**重复**、而且随操作
 /// **累积**——用户原话是「重复输出 2 次」，「操作几下后直接输出 19 次」。
 ///
@@ -2459,8 +2508,9 @@ fn repeated_edits_keep_command_outputs_single() {
     );
     assert_eq!(
         counts(&doc, &appended),
-        (1, 1, 11),
-        "编辑点在命令输出**之后**时同样各恰好一条（修前是 2/2/11 ✗）"
+        (1, 1, 13),
+        "编辑点在命令输出**之后**时 `#check`/`#print` 仍各恰好一条；\
+         hovers = 11 + 新增 `def tail` 自己的 2 条（新追加命令现在必须重查 ✓）"
     );
 
     // **诊断同病**（同一个接缝的另一面）：`#check` 打一个不存在的名字 ⇒ 每轮都在

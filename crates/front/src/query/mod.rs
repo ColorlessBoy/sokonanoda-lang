@@ -242,8 +242,8 @@ impl EntryCache {
     fn dirty_commands(&self, keys: &[String], starts: &[usize], before: usize) -> BTreeSet<usize> {
         let graph = crate::depgraph::DepGraph::from_report(&self.report);
         let mut dirty: BTreeSet<usize> = BTreeSet::new();
-        for i in before..keys.len().min(self.keys.len()) {
-            if keys[i] != self.keys[i] || starts[i] != self.starts[i] {
+        for i in before..keys.len() {
+            if i >= self.keys.len() || keys[i] != self.keys[i] || starts[i] != self.starts[i] {
                 dirty.insert(i);
             }
         }
