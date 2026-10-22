@@ -2,7 +2,7 @@
 - ⭐ **用户拿到什么**：在 `.sokonanoda` 里打 `\.`（Lean 的标点键；别名 `\centerdot`）⇒ `·`；`input.eager` 开时敲下 `.` 即出，关时 `Tab` 仍可用。`\cdot` 在 Lean 是 `⬝`，不映射；`·` 只进输入表，不喂词法（`notation_symbol:false`）。
 - **判据（实跑）**：front lib **1026/0** · CLI extension **43/0**（含 `dot_bullet_is_reachable_via_leans_punctuation_key` + 表镜像）· LSP lib **253/0** · stub 宿主 **73/73** · docs-lint ✓ · `docs/visible-changes.md` 一行 · **真 VS Code 真按键** `dot-space` / `dot-tab` 均 PASS（DOM 与磁盘都 `·`）· `\cdot`/字母别名边界见 `docs/design/notation-input.md`。
 - **改动**：`crates/front/src/notation_input.rs` 表 76 条 + `query/completion` 注释 · JS 镜像/改写器（`\.` 标点键）· 契约/桩/真 e2e 用例 · `docs/design`/README/`·.md`/teacher 技能 · CHANGELOG 0.97.1。
-- **发布**：待 push → auto-tag `v0.97.1` → release 26 资产 → Marketplace/站点核对（本轮记录随发布回填）。
+- **发布（实跑）**：main `0d4ee18c` → CI `39699597767` **真绿 10/10** → auto-tag `v0.97.1` → release `39701131443` success：**26 资产**（8 lsp + 8 cli + 9 vsix + SHA256SUMS）；e2e 3 条腿 55/55；Marketplace 9/9 已 publish；站点 `site.json` v0.97.1。
 
 ## v0.97.0 发版：unit01 收口（`·` 子弹 / apply 早报 / 括号 span / 失败 UI）（2026-10-21）
 - ⭐ **用户拿到什么**：`·` 按 Lean `closeUsingOrAdmit` 聚焦子目标，块末未闭合直接 admit 成开放练习（有 `· sorry` 时洞落在 `sorry`，否则落在 `·`）；`apply` 的坏显式实参（direct 与 fallback）落在 `apply` 行；`apply Eq.subst (p := fun x => a ∈ x) h` 可反解隐式；失败声明不再显示「🎉 已无目标」；`)`/声明后空行仍归属声明。
