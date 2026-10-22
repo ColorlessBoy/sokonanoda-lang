@@ -2335,6 +2335,21 @@ test("Tab rewrites \\and to ∧", async () => {
   assert.strictEqual(editor.editCalls, 1, "one edit call is what makes it one undo unit");
 });
 
+test("Tab rewrites \\. to · (Lean's punctuation key)", async () => {
+  // Lean 的 `\.` 是**标点键**（不是字母词）；表里别名 `\centerdot` 也指向 ·。
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\.");
+  focus(document, [cursor(0, 2)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(document.getText(), "·", "`\\.` + Tab must become ·");
+  assert.strictEqual(document.__undoStack.length, 1, "one edit call = one undo entry");
+
+  const alias = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\centerdot");
+  focus(alias, [cursor(0, 10)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(alias.getText(), "·", "alias `\\centerdot` must become ·");
+});
+
 test("Tab rewrites \\in even though \\in prefixes \\inter", async () => {
   // Tab is an explicit command: the prefix trap only guards eager replacement
   // (`\in` is a prefix of `\inter`, but a learner who typed Tab wants `∈`).
@@ -2476,6 +2491,17 @@ test("eager mode rewrites the moment the word is complete", async () => {
   typeText(document, cursor(0, 3), "d");
   await drain();
   assert.strictEqual(document.getText(), "∧", "eager mode replaces on word completion");
+  assert.strictEqual(document.__undoStack.length, 1);
+});
+
+test("eager mode rewrites `\\.` the moment the dot lands", async () => {
+  await activateExtension();
+  setConfig("input.eager", true);
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\");
+  focus(document, [cursor(0, 1)]);
+  typeText(document, cursor(0, 1), ".");
+  await drain();
+  assert.strictEqual(document.getText(), "·", "`\\.` lands at once (Lean punctuation key)");
   assert.strictEqual(document.__undoStack.length, 1);
 });
 

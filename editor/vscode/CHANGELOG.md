@@ -1,4 +1,12 @@
 // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
+## [0.97.1] - 2026-10-22
+
+### Added
+
+- **`·` 的快捷输入**：`\.`（Lean 的标点键；别名 `\centerdot`）⇒ `·`。
+  `sokonanoda.input.eager` 开着时敲下 `.` 即出；关掉时 `Tab` 仍可用。
+  `\cdot` 在 Lean 里是 `⬝`（不是 `·`），故意不收。
+
 ## [0.97.0] - 2026-10-21
 
 ### Added

@@ -1122,7 +1122,7 @@ impl QueryDoc {
     /// **公开**给 LSP 的 `\…` 输入法候选用（`notation_symbols` 本身是私有
     /// 辅助，只服务本模块的 runs 着色）。
     ///
-    /// 为什么不给全表（75 个）：`\and` 能变出 `∧`，但这个文件里**写不了** `∧`
+    /// 为什么不给全表（76 个）：`\and` 能变出 `∧`，但这个文件里**写不了** `∧`
     /// ——给了就是骗人（设计 `docs/design/notation-input.md` D3 的同一条纪律）。
     pub fn notation_symbols_for_completion(&self) -> Vec<String> {
         self.notation_symbols()

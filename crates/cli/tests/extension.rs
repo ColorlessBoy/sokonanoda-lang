@@ -1730,6 +1730,21 @@ fn abbreviation_table_mirrors_the_single_source() {
     );
 }
 
+/// `·` 的快捷键 = Lean 的**标点键** `\.`（别名 `\centerdot`；`\cdot` 是 `⬝`，不是它）。
+/// 表里 `notation_symbol: false`：子弹是 tactic 关键字，不是记法符号。
+#[test]
+fn dot_bullet_is_reachable_via_leans_punctuation_key() {
+    let entry = sokonanoda_front::notation_input::input_for("·").expect("`·` in input table");
+    assert_eq!(entry.abbreviation, ".");
+    assert_eq!(entry.aliases, &["centerdot"]);
+    assert!(
+        !entry.notation_symbol,
+        "a tactic keyword is not a notation symbol"
+    );
+    let hint = sokonanoda_front::notation_input::input_hint("·").expect("supported");
+    assert!(hint.contains("\\."), "hover hint must teach `\\.`: {hint}");
+}
+
 /// Tab 键位**绝不能吞掉普通 Tab**（设计 §9 R-2 的缓解）：它必须由扩展置位的
 /// context key 把关——`when` 子句里的 key 名与 `abbreviation-rewriter.js` 里
 /// 真正写的那个是同一个字符串。

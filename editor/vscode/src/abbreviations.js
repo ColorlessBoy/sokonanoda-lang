@@ -19,8 +19,9 @@
 // 它是「这个符号是记法符号还是标识符」的标记：`α` 是**标识符**，把它的缩写敲成
 // `α` 是对的，但**不能**把它当成 `∈` 那样的符号去喂词法（那是 Rust 侧的事）。
 //
-// **匿名构造子括号** `⟨`/`⟩`（D6）**是全表唯一的非字母缩写**（Lean 的 `\<` / `\>`，
-// 别名键就是 `<`/`>` 两个字符）——数组体里**不许写注释**（格式即契约），说明写在这里。
+// **非字母缩写**：匿名构造子括号 `⟨`/`⟩`（D6，Lean 的 `\<` / `\>`，别名键就是
+// `<`/`>`）与 tactic 子弹 `·`（Lean 的标点键 `\.`，别名 `\centerdot`；`\cdot` 是 `⬝`，
+// 不是它）——数组体里**不许写注释**（格式即契约），说明写在这里。
 //
 // `''`（像）**没有条目**——与 Lean 4 一致（直接打两个单引号），设计 §5。
 "use strict";
@@ -99,6 +100,7 @@ const TABLE = [
   { "symbol": "⊕", "abbreviation": "oplus", "aliases": [], "supported": true, "notationSymbol": true },
   { "symbol": "⋃₀", "abbreviation": "sUnion", "aliases": [], "supported": true, "notationSymbol": true },
   { "symbol": "⋂₀", "abbreviation": "sInter", "aliases": [], "supported": true, "notationSymbol": true },
+  { "symbol": "·", "abbreviation": ".", "aliases": ["centerdot"], "supported": true, "notationSymbol": false },
   { "symbol": "⟨", "abbreviation": "langle", "aliases": ["<"], "supported": true, "notationSymbol": false },
   { "symbol": "⟩", "abbreviation": "rangle", "aliases": [">"], "supported": true, "notationSymbol": false },
 ];

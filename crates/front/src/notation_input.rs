@@ -1,27 +1,15 @@
 //! 记法**输入法**表：符号 ↔ 缩写（`\and` → `∧`、`\alpha` → `α`）。
 //!
-//! 设计：`docs/design/notation-input.md`（2026-10-01 重写版：调研 + 差距 + 补全决策
-//! D1–D7）。D5（2026-09-19 用户要求）是它的前身：「像 lean4 一样 `\xxx` 替换，
-//! 同时 hover 内容提示用户如何输入对应符号」。
+//! 设计：`docs/design/notation-input.md`（D1–D7；D5 = 「`\xxx` 替换 + hover 教输入」）。
 //!
 //! **这张表是唯一真相源**：LSP 的 hover 文案从它渲染；VS Code 扩展的缩写改写器
 //! 用一份 JS 镜像，`crates/cli/tests/extension.rs` 的契约测试钉住两边**逐条相等**
 //! （与 `semantic::KEYWORDS` ↔ TM 语法同一形制）。
 //!
-//! 四条纪律：
-//! 1. **键逐字照抄 Lean 4**（`leanprover/vscode-lean4` 的
-//!    `lean4-unicode-input/src/abbreviations.json`，取证 2026-10-01）——硬规则 3：
-//!    教学语法是真实 Lean 4 的子集，肌肉记忆要能迁移。收键口径见设计 D1。
-//! 2. **单字母别名只收「希腊字母名」**（`\a`→α `\b`→β `\c`→χ `\e`→ε `\g`→γ `\m`→μ
-//!    `\D`→Δ `\G`→Γ `\L`→Λ `\S`→Σ `\p`/`\P`→Π）：Lean 里指向逻辑/集合符号的单字母键
-//!    （`\v`→∨ `\i`→∩ `\o`→∘ `\r`→→）**故意不收**——`\i` 给 ∩ 而 `\in` 给 ∈ 是反直觉的
-//!    （设计 D3）。`\a` 与 `\and`/`\approx` 共存**不引入歧义**：改写器按「完整表词」
-//!    两态口径走（还在敲字母时前缀不落定，见 `abbreviation-rewriter.js`）。
-//! 3. **`supported` 只描述「语言今天有没有这个符号」**，不描述「这个文件里在不在
-//!    作用域」。`∈ ⊆ ∪ ∩ \ ∅ …` 由课程库声明，只有 `import` 了才可用
-//!    （记法随 `import` 传播）——hover 说「输入 `\in`」不等于「这个文件里能写
-//!    `∈`」，作用域判断走 [`declared_notation_at`]（本文件的记法表）。
-//! 4. **`notation_symbol` 把「记法符号」与「标识符」分开**（设计 D4）——见字段文档。
+//! 四条纪律：① 键逐字照抄 Lean 4（`vscode-lean4` 的 `abbreviations.json`，2026-10-01）；
+//! ② 单字母别名只收希腊字母名（设计 D3）；③ `supported` 只描述语言有没有该符号，
+//! 不描述本文件作用域（作用域走 [`declared_notation_at`]）；④ `notation_symbol`
+//! 分开记法符号与标识符（D4，见字段文档）。
 
 /// 一个符号的输入法条目。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,8 +37,8 @@ pub struct NotationInput {
     pub notation_symbol: bool,
 }
 
-/// 75 个符号的输入法表（设计 `docs/design/notation-input.md` §2/§3）：
-/// 逻辑/集合 **18** + 希腊字母 **48**（大小写各 24）+ 课程库记法 **7** + 匿名构造子括号 **2**。
+/// 76 个符号的输入法表（设计 §2/§3）：逻辑/集合 **18** + 希腊字母 **48**（大小写各 24）
+/// + 课程库记法 **7** + 匿名构造子括号 **2** + tactic 子弹 **1**。
 ///
 /// `''`（像）**不给缩写**——与 Lean 一致（直接打两个单引号），所以它不在表里；
 /// hover 对它的说法写在 LSP 侧（"Lean 也没有缩写"）。
@@ -577,7 +565,16 @@ pub const TABLE: &[NotationInput] = &[
         supported: true,
         notation_symbol: true,
     },
-    // **匿名构造子括号**（D6）：全表**唯一**的非字母缩写（Lean 的 `\<` / `\>`）。
+    // **tactic 子弹** `·`：语法关键字，不是记法符号（`notation_symbol: false`）。
+    // Lean 的键是**标点** `.`（`\.`）；`\cdot` 在上游是 `⬝`，不是这个符号，不收。
+    NotationInput {
+        symbol: "·",
+        abbreviation: ".",
+        aliases: &["centerdot"],
+        supported: true,
+        notation_symbol: false,
+    },
+    // **匿名构造子括号**（D6）：另一个非字母缩写（Lean 的 `\<` / `\>`）。
     // 它们是**语法**不是记法（词法原生产出 `Langle`/`Rangle`，`is_valid_notation_symbol`
     // 也把 `⟨`/`⟩` 列为保留字符）⇒ `notation_symbol: false`，绝不喂给词法。
     NotationInput {
@@ -1138,9 +1135,10 @@ mod tests {
                 assert!(
                     abbreviation.chars().all(|c| c.is_ascii_alphabetic())
                         || *abbreviation == "<"
-                        || *abbreviation == ">",
+                        || *abbreviation == ">"
+                        || *abbreviation == ".",
                     "abbreviation `{abbreviation}` must be letters only (the rewriter keys on `\\` + letters) \
-                     —— 唯二的例外是匿名构造子括号的 `\\<` / `\\>`（设计 D6）"
+                     —— 例外是匿名构造子括号 `\\<` / `\\>` 与子弹的标点键 `\\.`"
                 );
                 assert!(
                     !abbreviations.contains(abbreviation),
@@ -1151,8 +1149,8 @@ mod tests {
         }
         assert_eq!(
             TABLE.len(),
-            75,
-            "the design's table has 75 entries (`''` has none)"
+            76,
+            "the design's table has 76 entries (`''` has none)"
         );
     }
 

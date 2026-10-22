@@ -8,7 +8,7 @@
 | 文件 | 职责 | 禁止 |
 |---|---|---|
 | `extension.js` | 扩展入口：LSP 客户端接线、命令注册、练习树/课程树/项目树/状态栏/inlay/跳洞 | 业务逻辑、kernel 调用 |
-| `src/abbreviations.js` | 记法缩写表（`\and`→`∧`、`\alpha`→`α`，共 75 条）：`crates/front/src/notation_input.rs` 的**逐字镜像**，纯 JSON 数组字面量（Rust 契约测试真解析它；**数组体内不许写注释**） | 自己加/改条目（先改 Rust 表）、非 JSON 的表格式 |
+| `src/abbreviations.js` | 记法缩写表（`\and`→`∧`、`\alpha`→`α`，共 76 条）：`crates/front/src/notation_input.rs` 的**逐字镜像**，纯 JSON 数组字面量（Rust 契约测试真解析它；**数组体内不许写注释**） | 自己加/改条目（先改 Rust 表）、非 JSON 的表格式 |
 | `src/abbreviation-rewriter.js` | 缩写改写器状态机：**默认即时替换**（`sokonanoda.input.eager` 默认开；空格/标点封口即换 = Lean 4 的手势，**对用户只教这一条**）、leader **可配置**（`sokonanoda.input.leader`，默认 `\`，对齐 `lean4.input.leader`）、`Tab` 命令与 context key（内部显式路径）、一次 edit = 一个 undo 单元。**即时替换只认"单字符 + 落在光标处"的插入**（粘贴 / vim 的 `o`·`p` 不算打字），替换后**显式把光标钉在符号之后**（装了 `vscodevim.vim` 时"没变也要写一遍"——对齐 Lean 4 客户端的 `updateUnchangedSelections`） | 命令注册（在 `extension.js`）、判定/编译 |
 | `project-tree.js` | 项目树渲染（只吃 `soko/project` 的答案：根 = 模块根 + 清单来源 + 计数，子 = 拓扑序模块 + 状态图标；单文件一条占位行）。**请求在 extension.js**，这里只有渲染与"答案指名别的文档 ⇒ 丢弃" | 发请求、判定项目状态 |
 | `server.js` | 服务器获取：平台→target 映射、bundled `bin/<target>/` 解析、exec 位修复、版本锁定下载（**无 `vscode` 依赖，可纯 Node 单测**） | UI/命令逻辑 |

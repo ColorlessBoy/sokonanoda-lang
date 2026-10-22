@@ -54,10 +54,11 @@ function isAsciiLetter(code) {
   return (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
 }
 
-// 非字母缩写：匿名构造子括号的 `\<` / `\>`（Lean 同款，设计 D6）。**只有这两个**
-// ——`<`/`>` 后面不再吃字符（`word` 就是两字符），所以 `\<-` 之类不存在。
-function isBracketAbbreviationChar(ch) {
-  return ch === "<" || ch === ">";
+// 非字母缩写：匿名构造子括号 `\<` / `\>`（设计 D6）与 tactic 子弹的标点键 `\.`
+// （Lean 同款）。每个都**只吃一个字符**（`<`/`>`/`.` 后面不再吃），所以 `\<-`、
+// `\..` 之类不会命中——`\.` 只在光标紧跟在 `.` 后时成立。
+function isPunctuationAbbreviationChar(ch) {
+  return ch === "<" || ch === ">" || ch === ".";
 }
 
 // 光标前那个 `\` + 表词的词：从光标往回吃 ASCII 字母（或**恰好一个** `<`/`>`），
@@ -70,9 +71,9 @@ function wordBeforeCursor(lineText, character) {
   let index = character;
   while (index > 0 && isAsciiLetter(lineText.charCodeAt(index - 1))) index -= 1;
   if (index === character) {
-    // 光标前不是字母：只剩 `\<` / `\>` 这一种可能。
+    // 光标前不是字母：只剩 `\<` / `\>` / `\.` 这几种可能。
     const last = character > 0 ? lineText[character - 1] : undefined;
-    if (!isBracketAbbreviationChar(last)) return undefined;
+    if (!isPunctuationAbbreviationChar(last)) return undefined;
     const start = character - 1 - leader.length;
     if (start < 0 || lineText.slice(start, character - 1) !== leader) return undefined;
     return { start, word: lineText.slice(start, character) };
@@ -378,7 +379,7 @@ function setContext(value) {
   );
 }
 
-// context key = 「光标前是 `\` + 至少一个字母」。它决定 Tab 键位是否归我们：
+// context key = 「光标前是 `\` + 至少一个字母，或单个 `<`/`>`/`.`」。它决定 Tab 键位是否归我们：
 // 正常代码里是 false ⇒ Tab 照旧缩进；`\and`/`\an` 上是 true ⇒ 命令被调用
 // （`\an` 不是完整缩写，命令什么都不做——这是有意的：用户正在打缩写，
 // 这时吞掉 Tab 比往源码里插一个制表符好）。

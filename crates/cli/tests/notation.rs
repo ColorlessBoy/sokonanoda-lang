@@ -1965,6 +1965,10 @@ fn every_language_level_symbol_in_the_input_table_really_works() {
         ),
         ("=", "theorem p_eq (A : Prop) (h : A = A) : A = A := h"),
         ("≠", "theorem p_ne (A B : Prop) (h : A ≠ B) : A ≠ B := h"),
+        (
+            "·",
+            "theorem p_dot (A : Prop) (h : A) : A := by\n  · exact h",
+        ),
     ];
     // 课程库声明的（**不在 prelude** ⇒ 这条测试判不了；判据在课程门禁）。
     let course_lib = [
@@ -1985,13 +1989,14 @@ fn every_language_level_symbol_in_the_input_table_really_works() {
             entry.symbol
         );
     }
-    // **反向**：表里 `notation_symbol: false` 的只有两类——希腊字母（标识符）
+    // **反向**：表里 `notation_symbol: false` 的只有三类——希腊字母（标识符）
     // 与匿名构造子括号 `⟨`/`⟩`（**语法**：词法原生、`is_valid_notation_symbol`
-    // 把这两个字符列为保留）——这条防止有人把记法符号误标成标识符绕过上面的检查。
+    // 把这两个字符列为保留），以及 tactic 子弹 `·`（**语法关键字**，不是记法；
+    // 它用自己的 probe 验真判卷）。这条防止有人把记法符号误标成标识符绕过上面的检查。
     for entry in TABLE.iter().filter(|entry| !entry.notation_symbol) {
         assert!(
-            is_greek_letter(entry.symbol) || matches!(entry.symbol, "⟨" | "⟩"),
-            "`{}` 标了 notation_symbol: false，但它既不是希腊字母也不是匿名构造子括号 \
+            is_greek_letter(entry.symbol) || matches!(entry.symbol, "⟨" | "⟩" | "·"),
+            "`{}` 标了 notation_symbol: false，但它既不是希腊字母、构造子括号，也不是 tactic 子弹 \
              ⇒ 上面那条检查被绕过了",
             entry.symbol
         );

@@ -211,7 +211,10 @@ Write the abbreviation and press **Space** — that is the same gesture as Lean 
 `\alpha` + Space → `α `, `\a` + Space → `α `, `\in` + Space → `∈ ` (a word that is
 still a prefix of a longer key waits for the separator, so `\in` is not turned
 into `∈` before you are done). A completed word lands even earlier — `\alpha`
-becomes `α` as soon as you type the `a`. Logic and set theory first:
+becomes `α` as soon as you type the `a`. **Bullet `·`**: type `\.` (Lean's punctuation key; alias `\centerdot`) — the
+tactic bullet is not a notation symbol, but it is on the same input table.
+
+Logic and set theory first:
 
 | you type | you get | aliases | | you type | you get | aliases |
 |---|---|---|---|---|---|---|
