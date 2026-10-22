@@ -1,3 +1,9 @@
+## v0.97.3 发版：CLI PATH 误报 + 扩展升级自动升 CLI（2026-10-22）
+- ⭐ **用户拿到什么**：① `.zprofile` 已有那行（手工写/扩展写过）⇒ 不再误报「不在 PATH」；② 扩展升级后，已安装的 `~/.local/share/sokonanoda/bin/sokonanoda` **自动换成新 VSIX 自带版本**，不用每次手动 Install Command Line（没装过仍不代装；降级插件不降 CLI）。
+- **判据（实跑）**：桩 **76/76**（PATH 手工行/marker 行/注释行 + 版本只升不降）；`extension.js` 纯函数 `cliPathLinePresent` / `cliVersionNeedsUpgrade` 由 `__cli` 测试缝驱动，临时 home 不碰真家目录。
+- **性能口径（回应「3ms」）**：`git log` 的 `da1dd28f`/`a583175a` 量的是 **`soko/stateAt` / `soko/goalAt` 请求成本**（1.0–1.5ms / 0.7ms），不是按键→屏幕；真按键实测 `stateAt` 中位 **2ms**、目标可见约 **258ms**（200ms 选区 + 150ms 诊断去抖）。98/252ms 是 e2e 的**诊断/面板**口径，不是这轮引入的回归。
+- **发布**：待 push → CI 真绿 → auto-tag `v0.97.3` → release/Marketplace/站点核对。
+
 ## v0.97.2 发版：Infoview 假「光标不在任何声明内」（2026-10-22）
 - ⭐ **用户现场**：unit01 最后一题打 `constructor` / `intro h`，Infoview 说「光标不在任何声明内」，Restart Server 才有目标。
 - **真因**：`soko/stateAt` 答的是**上一次编译的文本**；新文本还没编完时空答案（有时版本号还相同）被面板当成结论。扩展现在：编译在飞 / 编辑后 3s / 缓冲区 dirty 时，**空答案有界重问**（250ms × 120）；只有这些窗口都过去仍空才显示「光标不在任何声明内」。
@@ -9,14 +15,6 @@
 - **判据（实跑）**：front lib **1026/0** · CLI extension **43/0**（含 `dot_bullet_is_reachable_via_leans_punctuation_key` + 表镜像）· LSP lib **253/0** · stub 宿主 **73/73** · docs-lint ✓ · `docs/visible-changes.md` 一行 · **真 VS Code 真按键** `dot-space` / `dot-tab` 均 PASS（DOM 与磁盘都 `·`）· `\cdot`/字母别名边界见 `docs/design/notation-input.md`。
 - **改动**：`crates/front/src/notation_input.rs` 表 76 条 + `query/completion` 注释 · JS 镜像/改写器（`\.` 标点键）· 契约/桩/真 e2e 用例 · `docs/design`/README/`·.md`/teacher 技能 · CHANGELOG 0.97.1。
 - **发布（实跑）**：main `0d4ee18c` → CI `39699597767` **真绿 10/10** → auto-tag `v0.97.1` → release `39701131443` success：**26 资产**（8 lsp + 8 cli + 9 vsix + SHA256SUMS）；e2e 3 条腿 55/55；Marketplace 9/9 已 publish；站点 `site.json` v0.97.1。
-
-## v0.97.0 发版：unit01 收口（`·` 子弹 / apply 早报 / 括号 span / 失败 UI）（2026-10-21）
-- ⭐ **用户拿到什么**：`·` 按 Lean `closeUsingOrAdmit` 聚焦子目标，块末未闭合直接 admit 成开放练习（有 `· sorry` 时洞落在 `sorry`，否则落在 `·`）；`apply` 的坏显式实参（direct 与 fallback）落在 `apply` 行；`apply Eq.subst (p := fun x => a ∈ x) h` 可反解隐式；失败声明不再显示「🎉 已无目标」；`)`/声明后空行仍归属声明。
-- **判据（实跑）**：`front --lib` **1026/0** · `tactic_docs` 6/0 · `skill` 5/0 · `docs-lint` ✓ · webview 37/37 · extension-host 71/71 · 课程单元1 3 checked/5 open/0 判负 · 用户三份证明各 1 checked · `· sorry`/空 `·` 均 open + 一个 tactic 位洞 · direct 坏实参 `apply` 行早报。
-- **发布（实跑）**：main `218fce88` → CI `39640601991` **真绿 10/10** → auto-tag `v0.97.0` → release `39643072987` success：**26 资产**（8 lsp + 8 cli + 9 vsix + SHA256SUMS）；e2e 3 条腿 55/55；Marketplace 9/9 已 publish；站点 `site.json` v0.97.0。
-- **边界（如实）**：`·` 里 **tactic 报错**仍照常报错（只有“没证完”走 admit）；direct 的**部分应用普通 App**（`Eq.trans h`）仍靠内核终审（前端 `InferOnly` 限制；完全应用/`@`/命名实参已早报）。
-- **改动**：`front` parser/by/apply_probe/query/state + `editor/vscode` Infoview/树 + tactic 表/`·.md`/TM grammar/skills + LSP hover/F12；`STATUS/REQUIREMENTS/CHANGELOG` 同步。
-- ⚠ **推送留痕**：pre-push 的 `gates：缺口台账（--strict）` 在 G-83 长复现（~50min）上不收敛；本地完整 `scripts/soko gate` 已 PASS（非 strict 分片）⇒ 按逃生门 `git push --no-verify`（CI 跑非 strict 分片）✓。
 
 ## 未完成 `sorry` 练习按 Lean 4 进环境：goal state 不再被 `unknown identifier` 阻断（2026-10-21 · 未发版）
 - ⭐ **用户拿到什么**：`unit01` 的 `singleton_subset_iff` 引用尚未证明的 `mem_of_subset_singleton` / `subset_of_mem_singleton` ⇒ 不再报错、正常 elaborate；被引用处给 `uses-open-exercise` warning（不是 error）；部分证明留着 `sorry` 时 `query state` 照常给出目标。

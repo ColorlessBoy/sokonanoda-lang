@@ -2493,15 +2493,39 @@ function loginProfiles() {
   ];
 }
 
-/// 返回**人话**（写进了哪、或该自己加哪一行）—— 提示文案直接用它，保证句句为真 ✓
-function ensureCliOnLoginPath() {
-  const line = cliPathExportLine();
+/// 一行 export 是不是已经在这个 profile 里（**用户手工加的也算**）。
+///
+/// 以前只认 `CLI_PATH_MARKER`：用户自己写的那行不算、marker 已在时 `written`
+/// 为空又落到「不在 PATH」的兜底 ⇒ **明明有却误报**（2026-10-22 用户办公机实测）。
+/// 归一化去空白和引号，兼容单引号/双引号/无引号。
+function cliPathLinePresent(text, line) {
+  const normalize = (value) => String(value).replace(/\s+/g, "").replace(/["']/g, "");
+  const needle = normalize(line);
+  return String(text)
+    .split(/\r?\n/)
+    .some((candidate) => !/^\s*#/.test(candidate) && normalize(candidate) === needle);
+}
+
+/// 返回**人话**（写进了哪、还是已经在、或该自己加哪一行）—— 提示文案直接用它，
+/// 保证句句为真 ✓。`profiles`/`line` 可注入（stub 判据用临时文件，不碰真家目录）。
+function ensureCliOnLoginPath(profiles = loginProfiles(), line = cliPathExportLine()) {
   const block = `${CLI_PATH_MARKER}\n${line}\n`;
   const written = [];
-  for (const profile of loginProfiles()) {
+  const already = [];
+  for (const profile of profiles) {
     try {
       const current = fs.existsSync(profile) ? fs.readFileSync(profile, "utf8") : "";
-      if (current.includes(CLI_PATH_MARKER)) continue; // 幂等 ✓
+      // **已经在里面**（marker 写的、或用户手工写的）⇒ 成功，不再追加 ✗。
+      if (cliPathLinePresent(current, line)) {
+        already.push(profile);
+        continue;
+      }
+      // marker 在、行被删了 ⇒ 只补行，不再重复 marker。
+      if (current.includes(CLI_PATH_MARKER)) {
+        fs.appendFileSync(profile, (current.endsWith("\n") || current === "" ? "" : "\n") + line + "\n");
+        written.push(profile);
+        continue;
+      }
       fs.appendFileSync(profile, (current.endsWith("\n") || current === "" ? "" : "\n") + block);
       written.push(profile);
     } catch {
@@ -2510,6 +2534,9 @@ function ensureCliOnLoginPath() {
   }
   if (written.length) {
     return `已把 PATH 写进 ${written.map((p) => path.basename(p)).join(" / ")} —— 新开一个终端即可用 \`sokonanoda\``;
+  }
+  if (already.length) {
+    return `PATH 已经在 ${already.map((p) => path.basename(p)).join(" / ")} 里（之前加过）—— 新开一个终端即可用 \`sokonanoda\``;
   }
   return `该目录不在 PATH：请把 ${line} 加进 ~/.zprofile（本扩展没能写入）`;
 }
@@ -2531,6 +2558,72 @@ function removeCliFromLoginPath() {
     }
   }
   return touched.length ? `（已从 ${touched.join(" / ")} 撤掉 PATH 行）` : "";
+}
+
+/// 语义版本比较：只接受纯 `x.y.z`（扩展版本纪律）；解析失败返回 false。
+function versionParts(value) {
+  const match = String(value ?? "").match(/^(\d+)\.(\d+)\.(\d+)$/);
+  return match ? match.slice(1).map(Number) : undefined;
+}
+
+/// 已装 CLI 比当前插件**旧**才自动升级（降级插件时不把用户 CLI 往回降）。
+function cliVersionNeedsUpgrade(installed, current) {
+  if (installed === undefined || installed === current) return installed === undefined;
+  const a = versionParts(installed);
+  const b = versionParts(current);
+  if (!a || !b) return installed !== current;
+  for (let i = 0; i < 3; i += 1) {
+    if (a[i] < b[i]) return true;
+    if (a[i] > b[i]) return false;
+  }
+  return false;
+}
+
+function installedCliDest() {
+  return path.join(cliCacheDir(), process.platform === "win32" ? "sokonanoda.exe" : "sokonanoda");
+}
+
+function installedCliVersion() {
+  try {
+    const stamp = fs.readFileSync(installedCliDest() + ".version", "utf8").trim();
+    return (stamp.match(/\d+\.\d+\.\d+/) ?? [])[0];
+  } catch {
+    return undefined;
+  }
+}
+
+/// **扩展升级 ⇒ 已装 CLI 跟着升级**（2026-10-22 用户要求）。
+///
+/// 只升级**已经装过**的那一份（没装过不替用户装）；`ExtensionMode.Test` 不跑，
+/// 避免 e2e/stub 改开发机真实安装位。降级插件时不把 CLI 往回降。
+async function maybeUpgradeInstalledCli(context) {
+  // 生产 = 1 · 开发 = 2 · 测试 = 3（不依赖 vscode.ExtensionMode 在 stub 里是否存在）
+  if (context.extensionMode !== 1 && context.extensionMode !== 2) return;
+  const dest = installedCliDest();
+  if (!fs.existsSync(dest)) return;
+  const version = extensionVersion(context);
+  const installed = installedCliVersion();
+  if (!cliVersionNeedsUpgrade(installed, version)) return;
+  try {
+    const upgraded = server.installBundledCli({
+      extensionPath: context.extensionPath,
+      platform: process.platform,
+      arch: process.arch,
+      version,
+    });
+    if (!upgraded.source) return; // 通用包没有自带 CLI ⇒ 不静默假装升级
+    const pathNote = ensureCliOnLoginPath();
+    const text =
+      `sokonanoda: 命令行已自动升级到 ${version}` +
+      (installed ? `（之前 ${installed}）` : "") +
+      ` —— ${pathNote}`;
+    e2eLog(`cli auto-upgrade ${installed ?? "?"} -> ${version}`);
+    vscode.window.showInformationMessage(text);
+  } catch (error) {
+    const text = `sokonanoda: 命令行自动升级失败（${error?.message ?? error}）；请手动跑一次 Install Command Line。`;
+    console.warn(`[sokonanoda] ${text}`);
+    vscode.window.showWarningMessage(text);
+  }
 }
 
 async function installCli(context) {
@@ -3231,6 +3324,7 @@ async function activate(context) {
     });
     context.subscriptions.push(client);
     await client.start();
+    await maybeUpgradeInstalledCli(context);
     // 方言热切换（S6）：用户改设置 ⇒ 发 `workspace/didChangeConfiguration`。
     // 服务端（S5）收到后自己作废本会话缓存、用缓冲区最新文本重编所有打开文档 ——
     // **不重启服务器、不重发 `initialize`**（重启会丢掉旧档案的判定与诊断）。
@@ -3271,6 +3365,7 @@ async function activate(context) {
     }
   });
 
+  if (testApi) context.__testApi = testApi;
   return testApi;
 }
 
@@ -3283,4 +3378,9 @@ async function deactivate() {
   }
 }
 
-module.exports = { activate, deactivate };
+module.exports = {
+  activate,
+  deactivate,
+  // 只给 `test-extension-host.js` 的纯判据用（不进任何生产调用路径）。
+  __cli: { ensureOnLoginPath: ensureCliOnLoginPath, pathLinePresent: cliPathLinePresent, versionNeedsUpgrade: cliVersionNeedsUpgrade },
+};

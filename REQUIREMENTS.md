@@ -197,6 +197,7 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 ⇒ `·` 按 Lean `closeUsingOrAdmit`：聚焦子目标，块末未闭合一律 **admit** 成开放练习（有 `· sorry` 时洞落在 `sorry`，否则落在 `·`；块内 tactic 报错仍照常报错）。`apply` 的坏显式实参在 direct/fallback 都报在 `apply` 行（direct 的**部分应用普通 App** 仍靠内核终审，避免 `Eq.trans h` 未解隐式误判）；命名实参 `apply Eq.subst (p := …) h` 反解隐式；theorem/def/example 的 span 含最后一个已消费 token（`)`/声明后空行仍归声明）；失败声明不再显示 🎉。判据：front lib **1026/0**、tactic docs 6/0、skill 5/0、docs-lint ✓、课程单元1 **3 checked/5 open/0 判负**。
 ### 9.32 2026-10-22 **`·` 的快捷输入**（用户原话：「lean dot 没有快捷输入。。。」）⇒ 记法输入表加 `·`：Lean 的标点键 `\.`（别名 `\centerdot`）⇒ `·`；`input.eager` 开时敲下 `.` 即出，关时 `Tab` 仍可用。`\cdot` 在 Lean 是 `⬝`，**不收**。判据：front 表 76 条 + CLI 契约 `dot_bullet_is_reachable_via_leans_punctuation_key` + stub 73/73 + 真 VS Code 按键 `dot-space`/`dot-tab` 均 PASS。
 ### 9.33 2026-10-22 **Infoview 假「光标不在任何声明内」**（用户原话：「打 intro h 会导致 infoview『光标不在任何声明内』，restart server 又有了 goal states」）⇒ `soko/stateAt` 的空答案在编译期/编辑后 3s/dirty 时**有界重问**（250ms × 120）；这些窗口都过去仍空，才显示「不在声明内」。判据：真 VS Code 真按键 + 桩 **75/75** + LSP `state` 测试。
+### 9.34 2026-10-22 **CLI 两个问题**（用户原话：「cli 两个问题都修掉」「升级 vscode 插件能自动升级 cli 吗？」）⇒ ① PATH 误报：`.zprofile` 里已有 `export PATH=…`（手工/扩展写过）算成功，不再只认扩展 marker；② 扩展升级后自动用新 VSIX 的 CLI 覆盖已安装的 standalone CLI（未装过不代装，降级插件不降 CLI）。判据：stub 76/76（临时 home）+ 真机升级窗口；性能口径见 §9.33/STATUS：3ms 是 `stateAt` 请求成本，不是按键→屏幕。
 ### 9.5 2026-09-26 专项：记法 + 隐式参数 + **产品交互面**（用户拍板 ✓）
 
 **用户原话**：「**全面一点，专门针对 notation，产品交互**。包括**多来点隐式参数，让
@@ -259,7 +260,6 @@ notation 更直观**」+「**不许新建大 plan 文件**；用 `scripts/plan.p
 ### 9.17 2026-10-12 初学者体验三条（用户 2026-10-11 原话：①「prelude 里 def 太多，完全可以换成 theorem……对用户以及初学者非常不友好」②「**我 vscode 的 vim 模式在做题目的时候感觉全乱了**」③「`Eq.subst α (fun (y : α) => y ∈ A) a x` 基本上自动推导全坏了……**如果没有能力自动补全，那还是尽量保持显式参数**」）⇒ **①** prelude 证明类声明一律 `theorem`（见 §9.16）· **②** vim 输入四修（A 光标 / B 单字符纯插入 / C `sokonanoda.input.leader` / D `editor.autoClosingBrackets: "never"`）· **③** 隐式实参第二候选 + `apply` 结论校验。**逐字原文 ⇒ `git log --all -- REQUIREMENTS.md`** ✓
 ### 9.20 2026-10-12 两条追加需求（用户原话：①「在克制的前提下，增加有限的发版节点……同时又要防止修发版问题而陷入无限的新的修 bug 的分支」②「主进程需要新增一个接口，支持外部的 agent 调整」）⇒ 两者长在**同一个队列**上：**① 发版节点**（`--release open/add/check/cut/block/drop`，同一问题第 4 次由脚本拒绝 ✗）· **② 外部提交面 inbox**（`--submit` 没证据不受理 ✗ · `--triage` 受理必须带 commit ✗）· **并行基建** `scripts/agent-worktree.sh` + 队列状态单点 `SOKO_QUEUE_ROOT` + `scripts/compile-cache.py`（实测回收 50.2 G ⇒ 29.7 G ✓）。**逐字原文 ⇒ `git log --all -- REQUIREMENTS.md`** ✓
 ### 9.18 2026-10-12 初学者体验**长尾五条**（用户看过缺口台账后拍板「好的」）⇒ ① LSP `A1` 洞带**位置模式**（tactic 位给 `exact hp`）· ② 归因与两通道（新阶段码 `entry-parse-failed`）· ③ 内核拒绝说人话（只在前端渲染层）· ④ 补全五条 · ⑤ M-07 缓存键折进 `builtin_prelude_digest()`。**逐字原文 ⇒ `git log --all -- REQUIREMENTS.md`** ✓
-
 ### 9.21 2026-10-13 **不许再登记豁免；旧妥协一律清掉**（用户原话：「不要登记豁免，旧的开发路径上的妥协，现在都不需要妥协了」）—— ① 不再新增任何豁免 ✗；② 旧妥协要**清掉**（**修引擎**让自然的 Lean 4 写法能用 ✓，不许为绕开缺口改课程设计 ✗）；③ 清扫顺序 = **先代码后标记**（删标记本身不解决问题 ✗）。
 **同轮补充**（21:57）：「**啥预算，我没有给预算上限呀？能修的都要去**」+「**那应该把老的删了才对，怎么能让新的登录不进去呢**」⇒ 预算**不是用户设的上限**；**顶格的正解 = 归档旧的腾空间** ✓（仓库约定：压成 `docs/archive/*.gz` ✓），**不是**『因此不做必需的收尾』✗。
 ### 9.4 历史索引（一行一条；**全文见归档** ✓）

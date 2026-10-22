@@ -17,6 +17,10 @@ description: Refresh the version-pinned sokonanoda CLI + LSP cache to this check
   见下）；
 - 判卷结果出现"旧编译器看不懂新语法"式的解析错误（文件本身没改过）。
 
+> **VS Code 的 standalone CLI 不走本命令**：扩展升级时会自动把
+> `~/.local/share/sokonanoda/bin/sokonanoda` 换成新 VSIX 自带版本；`update`
+> 只刷新启动器缓存，不会把旧 CLI 带到新扩展版本。
+
 ## 命令（从仓库根或任意目录）
 
 ```bash

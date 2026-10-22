@@ -1317,6 +1317,47 @@ test("build progress keeps moving inside a file (P2: decl + tick)", async () => 
   );
 });
 
+// **2026-10-22 用户办公机实测**：`.zprofile` 里已经有这行，但提示「不在 PATH」。
+// 根因：旧实现只认扩展自己写的 marker，且 marker 已在时 `written` 为空，落到兜底。
+test("CLI PATH: a line already present is success (manual or marker), not a false warning", () => {
+  const fs = require("fs");
+  const os = require("os");
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "soko-cli-path-"));
+  const line = 'export PATH="$HOME/.local/share/sokonanoda/bin:$PATH"';
+  const profile = path.join(tmp, ".zprofile");
+  try {
+    // ① 用户手工写的那行（无 marker）——正是办公机的形状。
+    fs.writeFileSync(profile, line + "\n");
+    const manual = extension.__cli.ensureOnLoginPath([profile], line);
+    assert.match(manual, /PATH 已经在/, `手工行必须被认成已在：${manual}`);
+    assert.strictEqual(
+      fs.readFileSync(profile, "utf8"),
+      line + "\n",
+      "已经有的行不许再追加一遍",
+    );
+
+    // ② marker + 行都在：旧实现会走「written 为空」的兜底，这一条钉住它。
+    const marker = "# sokonanoda CLI — added by the Sokonanoda VS Code extension";
+    fs.writeFileSync(profile, `${marker}\n${line}\n`);
+    const marked = extension.__cli.ensureOnLoginPath([profile], line);
+    assert.match(marked, /PATH 已经在/, `marker 已在时也必须是成功：${marked}`);
+
+    // ③ 单引号/无引号也认（归一化空白和引号）。
+    assert.strictEqual(extension.__cli.pathLinePresent("export PATH='$HOME/.local/share/sokonanoda/bin:$PATH'", line), true);
+    assert.strictEqual(extension.__cli.pathLinePresent("export PATH=/other:$PATH", line), false);
+    assert.strictEqual(extension.__cli.pathLinePresent("# " + line, line), false, "注释掉的行不算生效");
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("CLI auto-upgrade only moves forward (extension upgrade, not downgrade)", () => {
+  assert.strictEqual(extension.__cli.versionNeedsUpgrade("0.97.1", "0.97.2"), true);
+  assert.strictEqual(extension.__cli.versionNeedsUpgrade("0.97.2", "0.97.2"), false);
+  assert.strictEqual(extension.__cli.versionNeedsUpgrade("0.98.0", "0.97.2"), false);
+  assert.strictEqual(extension.__cli.versionNeedsUpgrade(undefined, "0.97.2"), true);
+});
+
 test("Install Command Line copies the bundled CLI and checks its version (Q2)", async () => {
   // **Q2（用户 09-29 18:53）**：「**直接装插件自带的 cli，版本还能对齐**」。
   //

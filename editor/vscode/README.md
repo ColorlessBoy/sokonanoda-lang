@@ -434,7 +434,11 @@ the timeout message names the setting so you know where to change it.
   no `cargo`). Because it installs the bundled binary, **its version is the
   extension's version by construction** — and the command verifies that by
   running `--version` and comparing the answer, so a stale build is reported
-  instead of silently installed.
+  instead of silently installed. On an extension upgrade, a previously
+  installed standalone copy is upgraded automatically from the new VSIX
+  (without one ever having been installed, nothing is installed for you); the
+  PATH line is recognized whether the extension wrote it or you added it
+  yourself.
 
 **Warming on open** — set `sokonanoda.warmCacheOnOpen` to `true` and the
 extension runs one `build` over the **workspace root** in the background when
