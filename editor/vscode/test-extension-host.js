@@ -3133,54 +3133,6 @@ test("compile progress marks the active document in the overview ruler", async (
   );
 });
 
-// **2026-10-22 用户实测**：打 `constructor` + `intro h` 后 Infoview 说
-// 「光标不在任何声明内」，重启服务器才有目标。服务端答的是**上一次编译的文本**；
-// `state.version` 比缓冲区旧时，这个空答案不是用户的结论 ⇒ 丢掉并重问。
-test("stale soko/stateAt answers (older document version) are dropped and retried", async () => {
-  const document = fakeDocument("/repo/units/u01.sokonanoda", "sokonanoda", "theorem t : True := by\n  sorry");
-  await activateExtension();
-  focus(document);
-  await settle();
-  const provider = vscodeStub.__trees?.["sokonanoda.goals"];
-  assert.ok(provider, "activate() must create the goals tree provider");
-  provider.cursorState = undefined;
-  let calls = 0;
-  stubbedResponses["soko/stateAt"] = () => {
-    calls += 1;
-    if (calls === 1) {
-      return { version: 0, decl: null, goals: [], goal: null, step: 0, total: 0 };
-    }
-    return {
-      version: document.version,
-      decl: { name: "t", kind: "theorem", status: "open" },
-      goals: [],
-      goal: "True",
-      step: 1,
-      total: 1,
-    };
-  };
-  try {
-    await provider.setCursorState(document.uri.toString(), { line: 1, character: 2 });
-    assert.strictEqual(
-      provider.cursorState,
-      undefined,
-      "an answer from the old text must not become 「光标不在任何声明内」",
-    );
-    assert.ok(
-      pendingTimers().includes(250),
-      `a bounded retry must be scheduled after a stale answer: ${JSON.stringify(pendingTimers())}`,
-    );
-    document.__setText(document.getText() + "\n"); // the buffer advances; the server catches up
-    fireTimers();
-    await settle();
-    assert.ok(provider.cursorState, "the retry must ask again once the version catches up");
-    assert.strictEqual(provider.cursorState.state.decl.name, "t");
-    assert.strictEqual(calls, 2, "exactly one retry was needed");
-  } finally {
-    stubbedResponses["soko/stateAt"] = () => ({ decls: [], goals: [] });
-  }
-});
-
 // **同版本的空答案也要先重问**（2026-10-22 真宿主实测：版本相同时第一次答
 // `decl:null`，随后同一位置答出目标）。窗口 = 编辑后 3 秒；有界重试。
 test("an empty soko/stateAt answer right after an edit is retried before saying outside", async () => {

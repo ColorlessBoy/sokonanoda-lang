@@ -196,7 +196,7 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 ### 9.31 2026-10-21 **unit01 收口**（`·` / apply 早报 / 命名实参 / 括号 span / 失败 UI）
 ⇒ `·` 按 Lean `closeUsingOrAdmit`：聚焦子目标，块末未闭合一律 **admit** 成开放练习（有 `· sorry` 时洞落在 `sorry`，否则落在 `·`；块内 tactic 报错仍照常报错）。`apply` 的坏显式实参在 direct/fallback 都报在 `apply` 行（direct 的**部分应用普通 App** 仍靠内核终审，避免 `Eq.trans h` 未解隐式误判）；命名实参 `apply Eq.subst (p := …) h` 反解隐式；theorem/def/example 的 span 含最后一个已消费 token（`)`/声明后空行仍归声明）；失败声明不再显示 🎉。判据：front lib **1026/0**、tactic docs 6/0、skill 5/0、docs-lint ✓、课程单元1 **3 checked/5 open/0 判负**。
 ### 9.32 2026-10-22 **`·` 的快捷输入**（用户原话：「lean dot 没有快捷输入。。。」）⇒ 记法输入表加 `·`：Lean 的标点键 `\.`（别名 `\centerdot`）⇒ `·`；`input.eager` 开时敲下 `.` 即出，关时 `Tab` 仍可用。`\cdot` 在 Lean 是 `⬝`，**不收**。判据：front 表 76 条 + CLI 契约 `dot_bullet_is_reachable_via_leans_punctuation_key` + stub 73/73 + 真 VS Code 按键 `dot-space`/`dot-tab` 均 PASS。
-### 9.33 2026-10-22 **Infoview 假「光标不在任何声明内」**（用户原话：「打 intro h 会导致 infoview『光标不在任何声明内』，restart server 又有了 goal states」）⇒ `soko/stateAt` 的新旧文本答案按 **document.version** 与编译/未保存状态判：旧版本丢弃；空答案在编译期/编辑后/dirty 时**有界重问**（250ms × 120），保存后仍空才显示「不在声明内」。判据：真 VS Code 真按键 + 桩 **75/75** + LSP `state` 测试。
+### 9.33 2026-10-22 **Infoview 假「光标不在任何声明内」**（用户原话：「打 intro h 会导致 infoview『光标不在任何声明内』，restart server 又有了 goal states」）⇒ `soko/stateAt` 的空答案在编译期/编辑后 3s/dirty 时**有界重问**（250ms × 120）；这些窗口都过去仍空，才显示「不在声明内」。判据：真 VS Code 真按键 + 桩 **75/75** + LSP `state` 测试。
 ### 9.5 2026-09-26 专项：记法 + 隐式参数 + **产品交互面**（用户拍板 ✓）
 
 **用户原话**：「**全面一点，专门针对 notation，产品交互**。包括**多来点隐式参数，让

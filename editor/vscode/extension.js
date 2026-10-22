@@ -374,24 +374,6 @@ class GoalsTreeDataProvider {
       if (state && state.uri !== undefined && state.uri !== uriString) {
         return undefined;
       }
-      // **旧文本的答案不是"光标不在声明里"**（2026-10-22 用户实测：打
-      // `constructor` + `intro h` 后面板说「光标不在任何声明内」，重启服务器才有）。
-      // 服务端答的是**上一次编译的文本**，`state.version` 就是那份文本的 LSP 版本；
-      // 它比当前缓冲区旧 ⇒ 这个答案只说明"新文本还没编完"，不是用户的结论 ✗。
-      const editor = vscode.window.activeTextEditor;
-      const liveDocument =
-        editor && editor.document.uri.toString() === uriString ? editor.document : undefined;
-      const liveVersion = liveDocument ? liveDocument.version : undefined;
-      const dirty = liveDocument ? liveDocument.isDirty === true : false;
-      if (
-        liveVersion !== undefined &&
-        state &&
-        typeof state.version === "number" &&
-        state.version < liveVersion
-      ) {
-        this.scheduleStateRetry(uriString);
-        return undefined;
-      }
       // **空答案也可能是"新文本还没编完"**（2026-10-22 实测：同一版本先答
       // `decl:null`、稍后同一位置答出目标）。刚编辑过的窗口里先重问几次；
       // 3 秒后仍为空 ⇒ 那才是真的不在声明内。
@@ -399,7 +381,13 @@ class GoalsTreeDataProvider {
         state &&
         !state.decl &&
         (!Array.isArray(state.goals) || state.goals.length === 0) &&
-        !state.goal;
+        !state.goal &&
+        (!Array.isArray(state.messages) || state.messages.length === 0);
+      const editor = vscode.window.activeTextEditor;
+      const dirty =
+        editor !== undefined &&
+        editor.document.uri.toString() === uriString &&
+        editor.document.isDirty === true;
       const compileBusy =
         compileInFlight || Date.now() - lastCompileEndAt < 1000;
       // **未保存的缓冲区**里，空答案永远只是"还没编完"：用户正在打字时

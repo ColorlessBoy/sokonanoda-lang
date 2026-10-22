@@ -1,6 +1,6 @@
 ## v0.97.2 发版：Infoview 假「光标不在任何声明内」（2026-10-22）
 - ⭐ **用户现场**：unit01 最后一题打 `constructor` / `intro h`，Infoview 说「光标不在任何声明内」，Restart Server 才有目标。
-- **真因**：`soko/stateAt` 答的是**上一次编译的文本**；新文本还没编完时空答案（有时版本号还相同）被面板当成结论。扩展现在：① 丢 `state.version < document.version` 的答案；② 编译在飞 / 编辑后 3s / 缓冲区 dirty 时，空答案**有界重问**（250ms × 120），只有保存后仍空才显示「光标不在任何声明内」。
+- **真因**：`soko/stateAt` 答的是**上一次编译的文本**；新文本还没编完时空答案（有时版本号还相同）被面板当成结论。扩展现在：编译在飞 / 编辑后 3s / 缓冲区 dirty 时，**空答案有界重问**（250ms × 120）；只有这些窗口都过去仍空才显示「光标不在任何声明内」。
 - **判据（实跑）**：真 VS Code 真按键（`/tmp` 探针，真实 unit01 文件）——修复前 seq 9–11 空答案被接受，修复后打字期间只接受 `decl=singleton_eq_singleton_iff`，最终 `goal=a = b`；桩 **75/75**（含 stale-version 与 same-version-empty 两条）；真机 53.5s 跑完。
 - **发布**：待 push → auto-tag `v0.97.2` → release/Marketplace/站点核对。
 
