@@ -19,6 +19,7 @@
 
 mod apply_probe;
 pub mod by;
+pub mod by_defer;
 pub mod commands;
 pub mod compile;
 pub mod depgraph;
