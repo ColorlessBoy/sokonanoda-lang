@@ -809,6 +809,17 @@ impl<'a> MetaCtx<'a> {
                 }
             }
         }
+        // **B0（2026-10-23）**：记法节点 ⇄ 目标应用（`x ∈ A` ≟ `Set.mem x A`）。
+        // 只在兜底里摊开、且**只认 Yes** ⇒ 今天能过的输入不改结论。
+        if allow_unfold {
+            let dl = desugar_notation(&l);
+            let dr = desugar_notation(&r);
+            if !(crate::spine::same_shape(&dl, &l) && crate::spine::same_shape(&dr, &r)) {
+                if self.unify_impl(&dl, &dr, false) == Tri::Yes {
+                    return Tri::Yes;
+                }
+            }
+        }
         // 兜底没拿到 `Yes` ⇒ **结构分解那次的结论说了算**（见上面那条注释）：
         // `Undef` 原样返回（子对已经压进待定队列 ✓）、`No` 原样返回（照旧归因 Clash ✓）。
         if let Some(t) = structural {
@@ -1163,6 +1174,30 @@ fn collect_meta_ids(e: &Expr, out: &mut Vec<MetaId>) {
                 collect_meta_ids(r, out);
             }
         }
+    }
+}
+
+/// **B0（2026-10-23）**：把记法节点摊成它的目标应用（`x ∈ A` ⇒ `Set.mem x A`、
+/// `∅` ⇒ `Set.empty`），让合一能像普通应用脊一样分解它（只在兜底里用）。
+fn desugar_notation(e: &Expr) -> Expr {
+    let Expr::Notation { target, assoc, lhs, rhs, span, .. } = e else {
+        return e.clone();
+    };
+    let head = Expr::Ident { name: target.clone(), span: *span };
+    let app = |f: &Expr, a: &Expr| Expr::App {
+        fun: Box::new(f.clone()),
+        arg: Box::new(a.clone()),
+        explicit_spine: false,
+        span: *span,
+    };
+    match assoc {
+        crate::ast::NotationAssoc::Nullary => head,
+        crate::ast::NotationAssoc::Prefix => rhs.as_deref().map(|r| app(&head, r)).unwrap_or(head),
+        crate::ast::NotationAssoc::Postfix => lhs.as_deref().map(|l| app(&head, l)).unwrap_or(head),
+        _ => match (lhs.as_deref(), rhs.as_deref()) {
+            (Some(l), Some(r)) => app(&app(&head, l), r),
+            _ => e.clone(),
+        },
     }
 }
 

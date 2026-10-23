@@ -719,3 +719,31 @@ fn a_rescued_comparison_does_not_keep_the_speculative_clash() {
     );
     assert_eq!(solved(&mut m, &[a]), vec![ident("Nat")]);
 }
+
+/// **B0（2026-10-23）**：记法节点与点名前缀**同形**（`x ∈ A` ≟ `Set.mem x A`）。
+/// 以前结构路径按"同形"比 ⇒ 记法节点判 No（现场：`intro x` 后目标 `x ∈ s` 与
+/// 类型里的 `Set.mem x s` 对不上）⇒ 兜底摊开后判 Yes。
+#[test]
+fn notation_unifies_with_its_target_spine() {
+    let mut m = ctx_with(&no_unfold);
+    let x = ident("x");
+    let a = ident("A");
+    let notation = Expr::Notation {
+        symbol: "∈".to_string(),
+        symbol_span: Span::default(),
+        target: "Set.mem".to_string(),
+        assoc: crate::ast::NotationAssoc::Infix,
+        lhs: Some(Box::new(x.clone())),
+        rhs: Some(Box::new(a.clone())),
+        alternatives: Vec::new(),
+        span: Span::default(),
+    };
+    let spine = app(app(ident("Set.mem"), x), a);
+    assert_eq!(m.unify(&notation, &spine), Tri::Yes, "记法应与其目标脊同形");
+    // 反向也认（合一没有方向偏好）
+    assert_eq!(m.unify(&spine, &notation), Tri::Yes);
+    // 不同实参 ⇒ 仍然 No（摊开不能变成"什么都能过"）
+    let b = ident("B");
+    let other = app(app(ident("Set.mem"), ident("x")), b);
+    assert_eq!(m.unify(&notation, &other), Tri::No);
+}
