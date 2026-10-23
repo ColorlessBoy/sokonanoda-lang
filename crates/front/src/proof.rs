@@ -223,7 +223,7 @@ impl ProofState {
             Judgement::Mismatch {
                 expected, actual, ..
             } => Err(ProofError::Mismatch { expected, actual }),
-            Judgement::Error { code, message } => Err(ProofError::Judge { code, message }),
+            Judgement::Error { code, message, .. } => Err(ProofError::Judge { code, message }),
         }
     }
 

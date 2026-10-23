@@ -85,7 +85,21 @@ pub enum Judgement {
         kind: ErrorKind,
     },
     /// 术语无法 elaborate（错误码 + 消息，教学提示同诊断管线）。
-    Error { code: String, message: String },
+    ///
+    /// `kind` = 这次失败的**原始分类**（有就带，`code` 只是它的文本形态）：
+    /// 判定合成趟里拿到的 `CompileError` 本来就带 `ErrorKind`，tactic 层
+    /// （`by.rs`）要透传根因码时直接用它 —— **不建 `code` → `ErrorKind`
+    /// 的反向表**（那才是两套真相）。
+    ///
+    /// `None` = judge 内部的**合成码**（`parse` / `judge-not-run` /
+    /// `judge-infer-none` / `judge-print-none` / `judge-missing` /
+    /// `judge-unknown` / `prefix-decl-failed` / `skipped`）：它们不是
+    /// `ErrorKind` 值，消费方只能退回 `elab-tactic-failed`。
+    Error {
+        code: String,
+        message: String,
+        kind: Option<ErrorKind>,
+    },
 }
 
 /// 对开放声明 `open` 逐个判定 `terms` 是否能填进洞里。
@@ -1542,6 +1556,7 @@ fn judge_pairs_uncached(
         Judgement::Error {
             code: "judge-not-run".to_string(),
             message: "判定未执行".to_string(),
+            kind: None,
         };
         pairs.len()
     ];
@@ -1564,6 +1579,7 @@ fn judge_pairs_uncached(
             Judgement::Error {
                 code: "parse".to_string(),
                 message: "前缀源码无法解析".to_string(),
+                kind: None,
             };
             pairs.len()
         ];
@@ -1608,6 +1624,7 @@ fn judge_pairs_uncached(
             judgements[k] = Judgement::Error {
                 code: "parse".to_string(),
                 message: format!("无法解析目标类型 `{}`", pair.spec.ty),
+                kind: None,
             };
             pre_judged[k] = true;
             continue;
@@ -1620,6 +1637,7 @@ fn judge_pairs_uncached(
                 judgements[k] = Judgement::Error {
                     code: "elab-untyped-binder".to_string(),
                     message: format!("binder `{missing}` 缺少类型标注，无法合成判定声明"),
+                    kind: None,
                 };
                 pre_judged[k] = true;
                 continue;
@@ -1629,6 +1647,7 @@ fn judge_pairs_uncached(
             judgements[k] = Judgement::Error {
                 code: "parse".to_string(),
                 message: format!("无法解析术语 `{}`", pair.term),
+                kind: None,
             };
             pre_judged[k] = true;
             continue;
@@ -2653,6 +2672,7 @@ fn judge_type_of_uncached(
         return Err(Judgement::Error {
             code: "parse".to_string(),
             message: "无法解析类型查询".to_string(),
+            kind: None,
         });
     };
     // **G-92 真修**：同 `judge_infer_uncached` ✓ —— 受信任前缀那条路 ✓
@@ -2678,6 +2698,7 @@ fn judge_type_of_uncached(
         prefix_error(&out.errors).unwrap_or(Judgement::Error {
             code: "judge-infer-none".to_string(),
             message: "内核未返回类型".to_string(),
+            kind: None,
         })
     })
 }
@@ -2782,12 +2803,14 @@ pub fn judge_print_all(
                 return Some(Err(Judgement::Error {
                     code: err.code().to_string(),
                     message: err.message.clone(),
+                    kind: None,
                 }));
             }
             Some(printed(name).ok_or_else(|| {
                 prefix_error(&out.errors).unwrap_or(Judgement::Error {
                     code: "judge-print-none".to_string(),
                     message: "内核未返回声明文本".to_string(),
+                    kind: None,
                 })
             }))
         })
@@ -2808,6 +2831,7 @@ fn judge_print_of_uncached(
         return Err(Judgement::Error {
             code: "parse".to_string(),
             message: "无法解析声明打印查询".to_string(),
+            kind: None,
         });
     };
     let prefix_commands = file.commands.len().saturating_sub(1);
@@ -2831,6 +2855,7 @@ fn judge_print_of_uncached(
         prefix_error(&out.errors).unwrap_or(Judgement::Error {
             code: "judge-print-none".to_string(),
             message: "内核未返回声明文本".to_string(),
+            kind: None,
         })
     })
 }
@@ -2980,6 +3005,7 @@ pub fn judge_infer_with(
         return Err(Judgement::Error {
             code: "skipped".to_string(),
             message: "SOKO_NO_JUDGE=1（测量专用）".to_string(),
+            kind: None,
         });
     }
     let r = judge_infer_cached(extra_prefix, prefix_src, options, binders, term);
@@ -3202,6 +3228,7 @@ fn judge_infer_uncached(
             return Err(Judgement::Error {
                 code: "elab-untyped-binder".to_string(),
                 message,
+                kind: None,
             })
         }
     };
@@ -3244,6 +3271,7 @@ fn judge_infer_uncached(
         return Err(Judgement::Error {
             code: "parse".to_string(),
             message: "无法解析推断请求".to_string(),
+            kind: None,
         });
     };
     // **G-92 真修（2026-10-04 ✓）：合成的前缀走「受信任前缀」那条路** ✗→✓。
@@ -3285,6 +3313,7 @@ fn judge_infer_uncached(
         prefix_error(&out.errors).unwrap_or(Judgement::Error {
             code: "judge-infer-none".to_string(),
             message: "内核未返回类型".to_string(),
+            kind: None,
         })
     })?;
     // **影子档**（`SOKO_JUDGE_ENV_VOUCH=shadow` ✓）：走增量路时，再整份重跑一次，
@@ -3352,6 +3381,8 @@ fn query_error(query_start: usize, errors: &[CompileError]) -> Option<Judgement>
             // **G-49**：内核原文的人话化在**构造点**（`CompileError::kernel` ✓）——
             // 这里拿到的 `e.message` 已经渲染过 ✓（裸 `$2` 漏不到这里 ✗）。
             message: e.message.clone(),
+            // 分类照原样带出去：tactic 层（`by.rs`）要拿它透传根因码。
+            kind: Some(e.kind),
         })
 }
 
@@ -3365,6 +3396,7 @@ fn prefix_error(errors: &[CompileError]) -> Option<Judgement> {
             "前面的声明没通过（第 {} 行）：{}——先修它，这条查询才有意义",
             first.span.start.line, first.message
         ),
+        kind: None,
     })
 }
 
@@ -3462,6 +3494,7 @@ fn judge_hole_fill_uncached(
         Judgement::Error {
             code: "judge-not-run".to_string(),
             message: "判定未执行".to_string(),
+            kind: None,
         };
         candidates.len()
     ];
@@ -3473,6 +3506,7 @@ fn judge_hole_fill_uncached(
             Judgement::Error {
                 code: "parse".to_string(),
                 message,
+                kind: None,
             };
             candidates.len()
         ]
@@ -3571,6 +3605,7 @@ fn judge_hole_fill_uncached(
             *judgement = Judgement::Error {
                 code: "parse".to_string(),
                 message,
+                kind: None,
             };
             continue;
         }
@@ -3663,6 +3698,7 @@ pub fn judge_value_replace_with(
         Judgement::Error {
             code: "judge-not-run".to_string(),
             message: "判定未执行".to_string(),
+            kind: None,
         };
         candidates.len()
     ];
@@ -3674,6 +3710,7 @@ pub fn judge_value_replace_with(
             Judgement::Error {
                 code: "parse".to_string(),
                 message,
+                kind: None,
             };
             candidates.len()
         ]
@@ -3756,6 +3793,7 @@ pub fn judge_value_replace_with(
             *judgement = Judgement::Error {
                 code: "parse".to_string(),
                 message,
+                kind: None,
             };
             continue;
         }
@@ -3849,6 +3887,7 @@ fn judgement_of(report: &DocumentReport, k: usize) -> Judgement {
         return Judgement::Error {
             code: "judge-missing".to_string(),
             message: format!("合成声明 `{name}` 没有产生状态（内部错误）"),
+            kind: None,
         };
     };
     match state.status {
@@ -3856,12 +3895,14 @@ fn judgement_of(report: &DocumentReport, k: usize) -> Judgement {
         DeclStatus::Open => Judgement::Error {
             code: "elab-hole-misplaced".to_string(),
             message: "洞不在可填写的位置".to_string(),
+            kind: None,
         },
         DeclStatus::Failed => {
             let Some(err) = &state.error else {
                 return Judgement::Error {
                     code: "judge-unknown".to_string(),
                     message: "判定失败但没有错误信息（内部错误）".to_string(),
+                    kind: None,
                 };
             };
             match (&err.expected, &err.actual) {
@@ -3877,6 +3918,8 @@ fn judgement_of(report: &DocumentReport, k: usize) -> Judgement {
                 _ => Judgement::Error {
                     code: err.code().to_string(),
                     message: err.message.clone(),
+                    // 分类照原样带出去（同上）：tactic 层要透传根因码。
+                    kind: Some(err.kind),
                 },
             }
         }
@@ -4323,7 +4366,7 @@ mod tests {
         let open = spec("Prop", &[("x", None)]);
         let judgements = judge_terms("", &CompileOptions::default(), &open, &["x"]);
         match &judgements[0] {
-            Judgement::Error { code, message } => {
+            Judgement::Error { code, message, .. } => {
                 assert_eq!(code, "elab-untyped-binder");
                 assert!(message.contains('x'), "message: {message}");
             }
@@ -4346,7 +4389,7 @@ mod tests {
         let open = spec("Prop", &[]);
         let judgements = judge_terms("", &CompileOptions::default(), &open, &["nope"]);
         match &judgements[0] {
-            Judgement::Error { code, message } => {
+            Judgement::Error { code, message, .. } => {
                 assert_eq!(code, "elab-unknown-identifier");
                 assert!(message.contains("nope"));
             }
@@ -4604,7 +4647,7 @@ mod tests {
         let judgements =
             judge_value_replace(doc, &CompileOptions::default(), d.span, &["no(", "nope"]);
         match &judgements[0] {
-            Judgement::Error { code, message } => {
+            Judgement::Error { code, message, .. } => {
                 assert_eq!(code, "parse");
                 assert!(message.contains("no("), "message: {message}");
             }

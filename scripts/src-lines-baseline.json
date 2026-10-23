@@ -65,8 +65,10 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/judge.rs": {
-      "lines": 4708,
-      "reason": "S3 元变量接线（OpenGoalSpec.metas + registry 包裹 + 阶段探针）；测试下一轮移出"
+      "lines": 4748,
+      "reason": "S3 元变量接线（OpenGoalSpec.metas + registry 包裹 + 阶段探针）；测试下一轮移出",
+      "grew_from": 4708,
+      "growth_reason": "row 7：Judgement::Error 加 kind 字段（2 个填充位 + 27 个构造字面量各一行，+40）；tactic 透传的过滤逻辑放 error.rs（该文件余量 154 行，未增长）"
     },
     "crates/front/src/notation_input.rs": {
       "lines": 1438,

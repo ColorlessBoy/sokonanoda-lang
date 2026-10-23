@@ -86,7 +86,7 @@ fn a_loose_judgement_is_never_replayed_for_the_strict_dialect() {
     //    判定缓存键漏了方言 ⇒ 这里会直接命中①的条目、原样返回 `Match` ✗。
     let second = judge_terms(JUDGE_PREFIX, &strict, &open, &[JUDGE_TERM]);
     match &second[0] {
-        Judgement::Error { code, message } => assert_eq!(
+        Judgement::Error { code, message, .. } => assert_eq!(
             code, "elab-implicit-argument-unsolved",
             "严格档的诊断码必须是它（实测 message: {message}）"
         ),
