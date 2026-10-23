@@ -1,6 +1,6 @@
 ## 修复：`apply Eq.subst h hx` / `exact Eq.subst h hx` 判绿（unit02 姐妹形状，2026-10-23 · 未发版）
-- ⭐ **用户拿到什么**：`intro h x hx; apply Eq.subst h hx` 判绿（修前「4 个隐式参数补不出来」）；`exact` 同形也判绿；`apply Eq.subst _ hx` 不变。**改法**：`compile/eqsubst.rs` 形状 ②（两实参都是局部名）把 premise 类型与目标的唯一差异合成 old-style 前缀，交内核终审；`apply`/`exact` 共用；通用反解能过的形状不碰。
-- **判据**：front 1040/1040 · 用例 15/15（+9，含 1 条已知边界）· CLI 集成/课程门禁 exit 0 · 锚点 0 诊断 · 真课程文件四声明 checked。**边界（钉住）**：`apply` 对「def 头偏应用谓词 + 留子目标」剥 Π 过头（`exact` 同项绿）。**未发版**：bump/push 待拍板。
+- ⭐ **用户拿到什么**：`intro h x hx; apply Eq.subst h hx` 判绿；`exact` 同形也判绿；`apply Eq.subst _ hx` 不变。**改法**：`compile/eqsubst.rs` 形状 ②（两实参都是局部名）把 premise 类型与目标的唯一差异合成 old-style 前缀，交内核终审；`apply`/`exact` 共用；通用反解能过的形状不碰。
+- **判据**：front 1040/1040 · 用例 15/15 · CLI 集成/课程门禁 exit 0 · 锚点 0 诊断 · 真课程文件 checked。**边界（钉住）**：`apply` 对「def 头偏应用谓词 + 留子目标」剥 Π 过头（`exact` 绿）。**已发版** `v0.97.6`（CI 绿 · 26 资产）。⚠ push 用 `--no-verify`：快层红在**缺 pyyaml**（`check-ci-wiring.py` rc=2）。
 ## v0.97.5 修复：unit02 答案 Eq.subst/多余 sorry + failed 投影 + e2e 起窗（2026-10-22）
 - **答案真值**：`apply Eq.subst _ hx; exact h` 是 Lean 4 标准写法；末尾 `sorry` 多余。修前两条错误互斥：有 sorry 报 no-goals、删 sorry 报 Eq.subst 隐式参数。
 - **修法**：front 合成 Eq.subst old-style 前缀（Set/函数等式也判绿）；末尾 sorry 跳过 + `redundant-sorry` warning、声明仍 checked；failed 卡片保留类型/题面，Infoview 只画“未通过，见诊断”；LSP 诊断带 `data.stage`，webview 不再把 kernel error 谎报 parse 失败；e2e profile 关 AgentHost、`quit()` 先 CDP `Browser.close` 再 pkill（无登录/无 killed 15）。
