@@ -22,7 +22,7 @@ struct Fixture<'a> {
 fn fixture<'a>(arena: &'a Arena) -> (EnvBuilder<'a>, crate::util::ExprPtr<'a>, crate::util::ExprPtr<'a>) {
     let mut builder = EnvBuilder::new(arena.as_arena_ref(), Default::default());
     let prop = builder.mk_sort(builder.zero());
-    let meta = builder.mk_meta(7);
+    let meta = builder.mk_meta(7, prop);
     (builder, prop, meta)
 }
 
@@ -128,9 +128,10 @@ fn a_placeholder_free_declaration_is_still_accepted() {
 fn meta_kind_is_part_of_identity_and_predicate_is_exact() {
     let arena = Arena::new();
     let mut builder = EnvBuilder::new(arena.as_arena_ref(), Default::default());
-    let natural = builder.mk_meta_with_kind(7, crate::expr::MetaKind::Natural);
-    let opaque = builder.mk_meta_with_kind(7, crate::expr::MetaKind::SyntheticOpaque);
-    let legacy = builder.mk_meta(7);
+    let prop = builder.mk_sort(builder.zero());
+    let natural = builder.mk_meta_with_kind(7, crate::expr::MetaKind::Natural, prop);
+    let opaque = builder.mk_meta_with_kind(7, crate::expr::MetaKind::SyntheticOpaque, prop);
+    let legacy = builder.mk_meta(7, prop);
     // ① **同 id、不同 kind ⇒ `hash` 必须不同** ✓。
     // ⚠ **不许用 `ExprPtr` 的相等性判** ✗ —— 它比的是 **arena 地址**（`util.rs:224` ✓），
     //   与 `hash` 无关 ⇒ **咬不住** ✗（实测：去掉 `salt` 后它**照样通过** ✓ —— 反向验证抓到的 ✓）。
@@ -222,7 +223,7 @@ fn s1_occurs_kind_and_assignment_are_sound() {
         .unwrap();
     let f = builder.mk_const(f_name, levels);
     let f_meta = builder.mk_app(f, meta); // f ?m7（含元变量）
-    let meta8 = builder.mk_meta(8);
+    let meta8 = builder.mk_meta(8, prop);
 
     let (occurs, solved, kind_refused, cache_ok, infer_nested) = builder.with_env(|ef| {
         ef.with_tc(EnvLimit::PpUnlimited, |tc| {
@@ -294,4 +295,26 @@ fn s2_seeded_check_and_collectable_assignment() {
     assert!(solved, "种子后 ?m7 ≟ p 必须解出");
     assert!(collected.is_some(), "赋值必须能渲染成文本（跨检查的载体）");
     assert!(isolated, "未回灌的下一次检查必须看不见上一次赋值（S2 的动机）");
+}
+
+/// **S3（2026-10-23）**：类型进节点后，内核能**检查**含元变量的声明（只 check 不 add）。
+/// 同时钉死 K1 不变式：`add_declar` 仍然拒绝它（含 meta 的声明进不了环境）。
+#[test]
+fn s3_check_only_accepts_a_meta_declaration_but_add_still_rejects() {
+    use crate::env::{Declar, EnvLimit};
+    let arena = Arena::new();
+    let (mut builder, prop, meta) = fixture(&arena);
+    let name = builder.name_from_str("d");
+    let levels = builder.alloc_levels_slice(&[]);
+    let d = Declar::Definition {
+        info: DeclarInfo { name, uparams: levels, ty: prop },
+        val: meta,
+        hint: crate::env::ReducibilityHint::Regular(0),
+    };
+    // ① 只检查（不加入）：元变量的类型在节点里 ⇒ infer 不需要种子/上下文。
+    builder.with_env(|ef| ef.check_declar_at(&d, EnvLimit::PpUnlimited));
+    // ② K1 不变式：仍拒绝加入。
+    let rejected = builder.add_declar(d).is_err();
+    eprintln!("[s3] check_only_ok=true · add_rejected={rejected}");
+    assert!(rejected, "含元变量的声明不许进环境（K1 不变式①）");
 }

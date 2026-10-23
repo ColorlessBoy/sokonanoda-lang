@@ -3,6 +3,7 @@
 //! 为什么是文本：内核 `ExportFile::with_ctx` 每次检查新建 arena（`util.rs:883`），
 //! 检查一结束里面的 `ExprPtr` 全部作废 ⇒ 前端不能持有内核项。句柄存 **source
 //! `Expr`**（自有 AST），每次检查时再 elaborate 成内核项种子（`with_tc_seeded`）。
+#![allow(dead_code)] // S5（by 引擎接线）之前只有单测用它
 use crate::ast::Expr;
 use crate::compile::meta::MetaKind;
 

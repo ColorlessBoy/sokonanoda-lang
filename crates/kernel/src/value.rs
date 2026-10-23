@@ -137,8 +137,8 @@ pub enum Value<'a> {
         ptr: StringPtr<'a>,
         key: Cell<u64>,
     },
-    /// `id` 查 `TcCtx.mvars`（元变量上下文）；类型/赋值不在值里。
-    Meta { id: u32, key: Cell<u64> },
+    /// `ty` = 声明类型（`Expr::Meta` 带过来的）；赋值在 `TcCtx.mvars` 里。
+    Meta { id: u32, ty: ExprPtr<'a>, key: Cell<u64> },
     Thunk {
         env: E<'a>,
         expr: ExprPtr<'a>,

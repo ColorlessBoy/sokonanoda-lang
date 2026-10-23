@@ -22,7 +22,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 value::mk_rigid_head_with_empty(self.arena, RigidHead::Inductive(n, levels), self.empty_spine())
             }
             // **S1**：元变量的类型 = 上下文里登记的类型。
-            Value::Meta { id, .. } => crate::mvar::value_type_meta(self, depth, *id),
+            Value::Meta { ty, .. } => crate::mvar::value_type_meta(self, depth, *ty),
             Value::Rigid { head, spine , ..} => {
                 let head_ty = self.rigid_head_type(depth, *head);
                 let prev = value::mk_rigid_head_with_empty(self.arena, *head, self.empty_spine());

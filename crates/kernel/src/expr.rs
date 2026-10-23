@@ -100,9 +100,9 @@ pub enum Expr<'a> {
         /// `MetavarKind` ✓）。⚠ **`SyntheticOpaque` 永不被赋值** ✗（Lean 原话：
         /// "don't fill this hole from a typing constraint" ✓）—— 它只表达"这是个洞 ✓，
         /// 但**别拿类型约束去填它**" ✗。
-        /// ⚠ **D9 = C**（用户 2026-10-05 拍板 ✓）：**只作内部种类** ✓，**不引入** `?_`/`?hole`
-        /// 表面语法 ✗ ⇒ 本片**零行为变化** ✓（`mk_meta` 仍造 `Natural` ✓）。
+        /// ⚠ **D9 = C**：只作内部种类，不引入表面语法 ⇒ 零行为变化。
         kind: MetaKind,
+        ty: ExprPtr<'a>, fv_mask: u64,
     },
 }
 
@@ -847,8 +847,8 @@ impl<'t> Expr<'t> {
     #[inline]
     pub(crate) fn fv_mask(&self) -> u64 {
         match self {
-            // **K1**：占位符没有自由变量 ✓。
-            Meta { .. } => 0,
+            // 占位符的自由变量 = 它的类型里的（ty 通常闭合 ⇒ 0）。
+            Meta { fv_mask, .. } => *fv_mask,
             Var { dbj_idx, .. } =>
                 if *dbj_idx < 64 {
                     1u64 << dbj_idx

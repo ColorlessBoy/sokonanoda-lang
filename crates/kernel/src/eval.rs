@@ -578,7 +578,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             // **K1 硬不变式**：占位符**不许**进判定层 ✓（含它的声明在入口就被拒 ✗）。
             // 真到了这里 ⇒ **响亮报错** ✗（绝不静默算错 ✓）。
             // **S1**：元变量（已赋值 ⇒ 展开；未赋值 ⇒ `Value::Meta`）。
-            Expr::Meta { id, .. } => crate::mvar::eval_meta(self, depth, env, id),
+            Expr::Meta { id, ty, .. } => crate::mvar::eval_meta(self, depth, env, id, ty),
             Expr::Var { dbj_idx, .. } => {
                 let v = env.lookup(dbj_idx).expect("eval: loose bvar");
                 self.force_thunk(depth, v)

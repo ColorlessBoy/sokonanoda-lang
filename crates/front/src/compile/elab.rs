@@ -5245,18 +5245,17 @@ fn head_and_args_notation(expr: &Expr) -> Option<(String, Vec<Expr>, Expr)> {
 /// ⚠ **为什么必须是一对**：`ElabScope::push` 要的是**核项** `ty` ✗，而引擎的元变量是
 /// **源级**的 ✗ ⇒ 两条表示**只有 id 相同才对得上** ✓（台账 `G-33` 第 59/61 棒 ✓）。
 ///
-/// ⚠ **本函数暂时没有生产调用方** ✗ —— 接线（`Lambda` 臂造对 + `DeclState` 存核项表 +
-/// 声明出口回填）是**下一片** ✓；**单独**把它接上去只会把今天那条
+/// ⚠ **本函数暂时没有生产调用方** —— 接线是下一片；单独接上只会把今天那条
 /// `elab-untyped-binder` ✗ 换成更差的 `add_declar` 拒绝 ✗（**失败面扩大** ✗）⇒ **必须一起接** ✓。
 ///
-/// **Lean 4 对照** ✓：Lean 的元变量只有**一种**表示（`Expr.mvar` ✓，`MVarId` 贯穿
-/// elab 与 kernel ✓）—— 我们因为「内核不许进元变量」（红线 1 ✓）而**分成两种** ✗，
-/// 靠 **id 对齐** ✓ 把两侧接起来 ✓。
+/// **Lean 4 对照**：Lean 的 `Expr.mvar` 一种表示贯穿 elab/kernel；我们分成源/核两种，
+/// 靠 **id 对齐** 接起来。
 #[allow(dead_code)] // 下一片（接线）会用；现在只有单测用
 fn b2_meta_pair<'a>(
     builder: &mut sokonanoda::builder::EnvBuilder<'a>,
     id: u32,
     kind: crate::compile::meta::MetaKind,
+    ty: ExprPtr<'a>,
     span: Span,
 ) -> (Expr, ExprPtr<'a>) {
     let kernel_kind = match kind {
@@ -5270,7 +5269,7 @@ fn b2_meta_pair<'a>(
             name: crate::compile::meta::meta_name(id),
             span,
         },
-        builder.mk_meta_with_kind(id, kernel_kind),
+        builder.mk_meta_with_kind(id, kernel_kind, ty),
     )
 }
 
@@ -8787,10 +8786,12 @@ mod b2_meta_pair_tests {
         let arena = stumpalo::Arena::new();
         let mut builder =
             EnvBuilder::new(arena.as_arena_ref(), sokonanoda::util::Config::default());
+        let prop = builder.mk_sort(builder.zero());
         let (src, kernel) = b2_meta_pair(
             &mut builder,
             7,
             crate::compile::meta::MetaKind::Natural,
+            prop,
             Span::default(),
         );
         // ① **源侧**：必须是引擎的 fresh 名，且 id 是 7 ✓。

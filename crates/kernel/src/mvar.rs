@@ -51,20 +51,24 @@ impl<'t> MetaContext<'t> {
 
 impl<'t, 'p: 't> TcCtx<'t, 'p> {
     /// 造一个 `Expr::Meta`（与 `EnvBuilder::mk_meta` 同哈希）。
-    pub fn mk_meta(&mut self, id: u32) -> ExprPtr<'t> {
+    pub fn mk_meta(&mut self, id: u32, ty: ExprPtr<'t>) -> ExprPtr<'t> {
         let hash = crate::hash64!(crate::expr::META_HASH, id as u64, 0u64);
+        let fv_mask = crate::expr::child_mask(ty);
         self.alloc_expr(crate::expr::Expr::Meta {
             id,
             kind: MetaKind::Natural,
+            ty,
+            fv_mask,
             hash,
         })
     }
 }
 
 /// 元变量值（`Value::Meta` 的唯一构造点）。
-pub fn mk_meta<'a>(arena: &'a bumpalo::Bump, id: u32) -> V<'a> {
+pub fn mk_meta<'a>(arena: &'a bumpalo::Bump, id: u32, ty: ExprPtr<'a>) -> V<'a> {
     arena.alloc(Value::Meta {
         id,
+        ty,
         key: std::cell::Cell::new(0),
     })
 }
@@ -154,7 +158,7 @@ pub fn has_unassigned_meta(v: V<'_>, ctx: &MetaContext<'_>) -> bool {
 
 impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     /// 合一里的元变量臂：已赋值 ⇒ 展开再比；未赋值 ⇒ occurs/kind/类型检查后赋值。
-    pub(crate) fn unify_meta(&mut self, depth: u32, id: u32, v: V<'t>) -> bool {
+    pub(crate) fn unify_meta(&mut self, depth: u32, id: u32, ty: ExprPtr<'t>, v: V<'t>) -> bool {
         // **kind**：`SyntheticOpaque` 永不被赋值（Lean 同款）。
         if self.ctx.mvars.kind(id) == Some(MetaKind::SyntheticOpaque) {
             return false;
@@ -176,13 +180,10 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         if !self.ctx.mvars.begin_check(id) {
             return false;
         }
-        let ok = match self.ctx.mvars.ty_of(id) {
-            Some(ty) => {
-                let vt = self.value_type(depth, v);
-                let tt = self.eval(depth, self.empty_env(), ty);
-                self.unify::<true>(depth, vt, tt)
-            }
-            None => true,
+        let ok = {
+            let vt = self.value_type(depth, v);
+            let tt = self.eval(depth, self.empty_env(), ty);
+            self.unify::<true>(depth, vt, tt)
         };
         self.ctx.mvars.end_check(id);
         if !ok {
@@ -202,11 +203,11 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
 impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     /// `unify` 的元变量拦截（`conv.rs` 只留一行调用）。
     pub(crate) fn meta_unify_branch(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> Option<bool> {
-        if let Value::Meta { id, .. } = &*x {
-            return Some(self.unify_meta(depth, *id, y));
+        if let Value::Meta { id, ty, .. } = &*x {
+            return Some(self.unify_meta(depth, *id, *ty, y));
         }
-        if let Value::Meta { id, .. } = &*y {
-            return Some(self.unify_meta(depth, *id, x));
+        if let Value::Meta { id, ty, .. } = &*y {
+            return Some(self.unify_meta(depth, *id, *ty, x));
         }
         None
     }
@@ -226,16 +227,20 @@ pub(crate) fn eval_meta<'t>(
     depth: u32,
     env: crate::value::E<'t>,
     id: u32,
+    ty: ExprPtr<'t>,
 ) -> V<'t> {
     match tc.ctx.mvars.value(id) {
         Some(term) => tc.eval(depth, env, term),
-        None => mk_meta(tc.arena, id),
+        None => mk_meta(tc.arena, id, ty),
     }
 }
 
 /// `value_type` 的 `Value::Meta` 臂：类型 = 上下文登记的类型。
-pub(crate) fn value_type_meta<'t>(tc: &mut TypeChecker<'_, 't, '_>, depth: u32, id: u32) -> V<'t> {
-    let ty = tc.ctx.mvars.ty_of(id).expect("value_type: meta without registered type");
+pub(crate) fn value_type_meta<'t>(
+    tc: &mut TypeChecker<'_, 't, '_>,
+    depth: u32,
+    ty: ExprPtr<'t>,
+) -> V<'t> {
     let env = tc.empty_env();
     tc.eval(depth, env, ty)
 }
