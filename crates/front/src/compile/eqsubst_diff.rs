@@ -155,7 +155,7 @@ fn diff_opt(a: Option<&Expr>, b: Option<&Expr>) -> DiffResult {
 }
 
 /// 结构相等（**忽略 span**；用户现场两边来自不同源位置）。
-fn same_expr(a: &Expr, b: &Expr) -> bool {
+pub(super) fn same_expr(a: &Expr, b: &Expr) -> bool {
     match (a, b) {
         (Expr::Ident { name: n1, .. }, Expr::Ident { name: n2, .. }) => n1 == n2,
         (

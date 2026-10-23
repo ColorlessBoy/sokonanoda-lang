@@ -50,7 +50,7 @@
 //!   其余形状（差异端是**应用**如 `∅`、或路径穿过记法 `x ∈ ?s`）才合成；
 //! * 形状不匹配 ⇒ 原样返回 `None`，走今天的错误路径。
 
-use super::eqsubst_diff::{diff, replace_at, DiffResult, Step};
+use super::eqsubst_diff::{diff, replace_at, same_expr, DiffResult, Step};
 use crate::ast::{Binder, BinderKind, Expr};
 use crate::span::Span;
 use crate::spine;
@@ -86,6 +86,42 @@ pub(crate) fn rewrite_argument_hole(
         ],
         span,
     ))
+}
+
+/// **P2-a**：等式项的**端点**（只认局部名与 `Eq.symm` 包一层；其它 ⇒ `None`）。
+fn eq_endpoints(term: &Expr, binders: &[Binder]) -> Option<(Expr, Expr)> {
+    match term {
+        Expr::Ident { .. } => decompose_eq(local_type(binders, term)?),
+        Expr::App { fun, arg, .. } if is_head_named(fun, "Eq.symm") => {
+            eq_endpoints(arg, binders).map(|(a, b)| (b, a))
+        }
+        _ => None,
+    }
+}
+
+/// 把 `a = b`（记法）或 `Eq a b`（点名）拆成两端。
+fn decompose_eq(e: &Expr) -> Option<(Expr, Expr)> {
+    match e {
+        Expr::Notation { target, lhs, rhs, .. } if target == "Eq" => {
+            Some(((lhs.as_deref()?).clone(), (rhs.as_deref()?).clone()))
+        }
+        Expr::App { fun, arg, .. } => match fun.as_ref() {
+            Expr::App { fun: inner, arg: lhs, .. }
+                if is_head_named(inner, "Eq") && !matches!(fun.as_ref(), Expr::App { fun: f, .. } if is_head_named(f, "Eq.symm")) =>
+            {
+                Some(((**lhs).clone(), (**arg).clone()))
+            }
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+fn is_head_named(e: &Expr, name: &str) -> bool {
+    match e {
+        Expr::Ident { name: n, .. } | Expr::UniverseApp { name: n, .. } => n == name,
+        _ => false,
+    }
 }
 
 /// 两个形状的**共同入口**（`apply` 用）：先试 ①（洞在等号位），再试 ②（等号位给了）。
@@ -140,9 +176,12 @@ pub(crate) fn rewrite_explicit_equality(
         return None;
     }
     // 洞位走形状 ①（那是 `apply` 的「洞 → 子目标」，`exact` 用不上）。
-    if matches!(args[0], Expr::Hole { .. }) || !is_local(binders, args[0]) {
+    if matches!(args[0], Expr::Hole { .. }) {
         return None;
     }
+    // **P2-a（2026-10-23，审计 row 6）**：等式项不必是**裸局部名** ——
+    // 认 `h` 与 `Eq.symm h`（端点从书写类型取；其它形状仍不碰）。
+    let (eq_a, eq_b) = eq_endpoints(args[0], binders)?;
     let premise = args[1];
     let premise_ty = local_type(binders, premise)?;
     let synth = synthesize(premise_ty, goal, binders, span)?;
@@ -153,6 +192,23 @@ pub(crate) fn rewrite_explicit_equality(
     if generic_solves(&synth) {
         return None;
     }
+    // **P2-a**：端点方向 —— 需要 `synth.a = synth.b`（premise 侧 = goal 侧）。
+    // 给了 `Eq.symm e` 且 `e` 正好是那个方向 ⇒ 用 `e`（去掉一层）；否则按需再包一层。
+    let eq_term = if same_expr(&eq_a, &synth.a) && same_expr(&eq_b, &synth.b) {
+        args[0].clone()
+    } else if same_expr(&eq_a, &synth.b) && same_expr(&eq_b, &synth.a) {
+        match args[0] {
+            Expr::App { fun, arg, .. } if is_head_named(fun, "Eq.symm") => arg.as_ref().clone(),
+            other => Expr::App {
+                fun: Box::new(Expr::Ident { name: "Eq.symm".to_string(), span }),
+                arg: Box::new(other.clone()),
+                explicit_spine: false,
+                span,
+            },
+        }
+    } else {
+        return None;
+    };
     Some(prefix(
         head,
         [
@@ -160,7 +216,7 @@ pub(crate) fn rewrite_explicit_equality(
             synth.motive,
             synth.a,
             synth.b,
-            args[0].clone(),
+            eq_term,
             premise.clone(),
         ],
         span,
@@ -243,14 +299,6 @@ fn local_type<'a>(binders: &'a [Binder], e: &Expr) -> Option<&'a Expr> {
         .rev()
         .find(|b| b.name == *name)
         .and_then(|b| b.ty.as_deref())
-}
-
-/// 是不是局部名（形状 ② 只认「等号位是局部假设」—— 窄口径）。
-fn is_local(binders: &[Binder], e: &Expr) -> bool {
-    match e {
-        Expr::Ident { name, .. } => binders.iter().any(|b| b.name == *name),
-        _ => false,
-    }
 }
 
 /// 差异路径里有没有经过**记法节点**（那正是结构抽取器看不穿的形状）。
