@@ -467,19 +467,46 @@ def open_round(st: dict, reading: dict, now: str, head: str) -> tuple[dict, list
     return new, []
 
 
-def judge_idle(st: dict, n_since: int, round_max: int) -> list[str]:
-    """**纯函数**：开轮纪律的机械面 —— 基点之后落太多笔还没开轮 ⇒ 判红 ✗（ratchet 不许空转）。
+def open_round_blockers(st: dict, reading: dict) -> list[str]:
+    """**纯函数**：现在 `--open-round` 会撞上的闸门（空 ⇒ 能开）。
 
+    `open_round()` 的闸门是**唯一一处**定义；这里只拿它的红字，不复制阈值 ✓。
+    `now`/`head` 在失败路径上不写；成功路径的合成 entry 被丢弃 ⇒ 无副作用 ✓。
+    """
+    _, red = open_round(st, reading, now="", head=str(st.get("head") or ""))
+    return red
+
+
+def judge_idle(st: dict, n_since: int, round_max: int,
+               can_open: bool = True,
+               blockers: list[str] | None = None) -> tuple[list[str], list[str]]:
+    """**纯函数**：开轮纪律 —— 返回 `(判红, 告警)`。
+
+    ⚠ **红必须有出路**（照层① `judge_round` / ② 的同一条纪律）：
+      · `--open-round` 当场走得通 ⇒ 判红（ratchet 不许空转 ✗）；
+      · 走不通（读数还高于收紧后的上限）⇒ **只告警** —— 否则 40/80 笔一到就红，
+        而唯一出路是"现在就把指标压下去"，那会变成**没有出路的红** ✗。
     ⚠ **收敛之后不再判**（全部 caps 已到 floor ⇒ 再开轮也降不下去 ⇒ 判红会是一条**没有出路**
-    的红 ✗ —— 与 ② 的"红必须有出路"同一条纪律 ✓）。
+    的红 ✗）。
+    `can_open` / `blockers` 由调用方从 `open_round_blockers()` 取（**同一处阈值** ✓）；
+    默认 `True` 保留旧调用语义（测试可显式喂 `False`）。
     """
     if converged(st.get("caps") or {}) or n_since <= round_max:
-        return []
-    return [f"**ratchet 空转** ✗：第 {st.get('round')} 轮的基点 "
-            f"`{str(st.get('head'))[:12]}` 之后落了 **{n_since} 笔**（> `ROUND_MAX_COMMITS = "
-            f"{round_max}`）还没开轮 ⇒ 阈值停在原地 = **装饰** ✗。出路："
-            f"`python3 scripts/check-budgets.py --layer threshold --open-round` ✓"
-            f"（它要求**读数落进收紧后的上限** ⇒ 红有出路：把指标压下去 ✓）"]
+        return [], []
+    head = str(st.get("head"))[:12]
+    common = (f"**ratchet 空转**：第 {st.get('round')} 轮的基点 `{head}` 之后已经落了 "
+              f"**{n_since} 笔**提交（> `ROUND_MAX_COMMITS = {round_max}`）还没开轮 "
+              f"⇒ 阈值停在原地 = **装饰** ✗")
+    if can_open:
+        return [f"{common}。出路：`python3 scripts/check-budgets.py --layer threshold "
+                f"--open-round` ✓（读数已经落进收紧后的上限 ⇒ **那条路当场走得通** ✓）"], []
+    detail = ""
+    if blockers:
+        # 只取每条闸门的**结论句**（去掉它自己的"出路"尾巴，避免告警里重复三遍）
+        detail = "；".join(b.split("⇒")[0].strip() for b in blockers[:2])
+    return [], [f"{common}；但**开轮走不通**（{detail}）⇒ 那会是一条**没有出路的红** ✗ "
+                f"⇒ **只告警、不拦** ✓。出路：先把指标压下去"
+                f"（docs 删/归档 · `target-hygiene.py --reclaim`）再 `--open-round` ✓"]
 
 
 # ── **读哪一层**（洞 `SUB-narrow-guards-to-one-layer` · 第 1 轮 `gs1`；**唯一一处** ✓）──

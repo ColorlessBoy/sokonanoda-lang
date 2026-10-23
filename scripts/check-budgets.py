@@ -100,7 +100,7 @@ import threshold_ratchet as R  # noqa: E402  （同目录库：层② 的登记�
 ROOT = Path(__file__).resolve().parent.parent
 # ⚠ **唯一一处**（判例 iv）：原文**两处各写一遍**（层① :173 与层② :62，值都是 40、
 #   语义都是"基点之后落这么多笔还没开轮 ⇒ 判红"）⇒ 合并成一个 ✓。
-ROUND_MAX_COMMITS = 40
+ROUND_MAX_COMMITS = 80
 
 LAYERS = ("attention", "threshold")
 # 层② 的默认状态文件（原文 `STATE = R.STATE` ✓ —— 库 `threshold_ratchet.STATE` 是
@@ -314,7 +314,7 @@ def commits_since(cwd: Path, since_sha: str | None,
     **不假装判过** ✗）` —— 合并后"⇒ `None`"那一档由**层② 的调用点**折成红行 ✓。
 
     ⚠ `tip` 默认 `HEAD`，但**咬住证明必须把它钉死**（`--head-rev <旧 rev>` ✗→✓）：
-    这个数**只增不减**，而 ratchet 一开轮（`--open-round`，它的设计就是每 ≤40 笔开一次）
+    这个数**只增不减**，而 ratchet 一开轮（`--open-round`，它的设计就是每 ≤80 笔开一次）
     `state.head` 就跳到**当时**的 `HEAD` ⇒ `since_sha..HEAD` **归零** ⇒ 「ratchet 空转」
     那段文本**整段消失** ⇒ 证明里的 `grep` 不中 ⇒ 命令 `exit 0` ⇒ C2 印「这条守卫咬不住」
     —— 而真相是**输入随时间变了**（洞 `BITE-EXPECTATION-GOES-STALE-WHEN-READING-IMPROVES`
@@ -485,7 +485,7 @@ RATCHET_WARN_GAP_SHARE = 0.03
 RATCHET_WARN_GAP_RATIO = 2.0
 # ⭐ **"谁开轮"的机械约束**（不是纪律 ✓）：基点之后落了这么多笔还没开轮 ⇒
 # **默认跑就判红**（ratchet 空转 ✗）。⇒ 想消红只能 `--open-round`，而它要求**读数真的降了** ✓。
-ROUND_MAX_COMMITS = 40
+ROUND_MAX_COMMITS = 80
 
 # ── 分桶（**一处定义** ✓；与用户的读数口径逐条对齐）────────────────────────
 # 生成物/台账 = 可**机器重生成**或**纯簿记**的东西：e2e 产物（含每轮日志）· 各本
@@ -1631,7 +1631,7 @@ python3 scripts/check-budgets.py --source-rev cf259d1f   # 接缝判据打在**�
 ```
 '''
 
-ROUND_MAX_COMMITS = 40          # 与 ② 同源：基点之后落这么多笔还没开轮 ⇒ 判红
+ROUND_MAX_COMMITS = 80          # 与 ② 同源：基点之后落这么多笔还没开轮 ⇒ 判红
 
 
 # ── 读数（**一处定义**：直接调消费者自己的量法 ⇒ 不抄第二份口径 ✗）──────────────
@@ -1694,6 +1694,7 @@ def threshold_check(state_path: Path, source_rev: str | None, as_json: bool) -> 
         return 3
     _produced("T-STATE")
     red = R.state_problems(st)
+    warn: list[str] = []
     _produced("T-SEAM")
     red += R.seam_problems(ROOT, source_rev=source_rev, caps=dict(st.get("caps") or {}))
     _produced("T-BASE")
@@ -1713,10 +1714,26 @@ def threshold_check(state_path: Path, source_rev: str | None, as_json: bool) -> 
                        f"CI 要 `fetch-depth: 0`）")
         else:
             _produced("T-IDLE")
-            red += R.judge_idle(st, n_since, ROUND_MAX_COMMITS)
+            if n_since > ROUND_MAX_COMMITS:
+                # **空转只在"开轮走得通"时判红**（红必须有出路）：量读数 → 同一处闸门。
+                reading, missing = threshold_measure(verbose=False)
+                if missing:
+                    warn.append(
+                        f"**ratchet 空转**：第 {st.get('round')} 轮基点之后已 {n_since} 笔"
+                        f"（> {ROUND_MAX_COMMITS}）还没开轮；但**量不到 {missing}**"
+                        f" ⇒ 判不了开轮是否有出路 ⇒ **只告警、不拦** ✓"
+                        f"（本地 `--layer threshold --measure` 看读数）")
+                else:
+                    blockers = R.open_round_blockers(st, reading)
+                    idle_red, idle_warn = R.judge_idle(
+                        st, n_since, ROUND_MAX_COMMITS,
+                        can_open=not blockers, blockers=blockers)
+                    red += idle_red
+                    warn += idle_warn
     if as_json:
         print(json.dumps({"ok": not red, "round": st.get("round"), "head": st.get("head"),
-                          "caps": st.get("caps"), "commits_since": n_since, "red": red},
+                          "caps": st.get("caps"), "commits_since": n_since,
+                          "red": red, "warn": warn},
                          ensure_ascii=False, indent=2))
     else:
         print(f"阈值 ratchet：第 **{st.get('round')}** 轮（基点 `{str(st.get('head'))[:12]}` · "
@@ -1734,9 +1751,15 @@ def threshold_check(state_path: Path, source_rev: str | None, as_json: bool) -> 
         for item in red:
             print(f"  - {item}", file=sys.stderr)
         return 1
-    print(f"\n✓ 阈值 ratchet：状态健康（caps 单调不增、永不高于种子）· 接缝齐"
-          f"（{len(R.REGISTRY)}/{len(R.REGISTRY)} 消费点都读它 + "
-          f"{len(R.LABEL_SEAM)}/{len(R.LABEL_SEAM)} 处标签里没有 ratchet 的值）· 没空转 ✓")
+    if warn:
+        print(f"\n⚠ 阈值 ratchet：{len(warn)} 条告警（不拦）—— 空转但开轮没有出路：",
+              file=sys.stderr)
+        for item in warn:
+            print(f"  - {item}", file=sys.stderr)
+    else:
+        print(f"\n✓ 阈值 ratchet：状态健康（caps 单调不增、永不高于种子）· 接缝齐"
+              f"（{len(R.REGISTRY)}/{len(R.REGISTRY)} 消费点都读它 + "
+              f"{len(R.LABEL_SEAM)}/{len(R.LABEL_SEAM)} 处标签里没有 ratchet 的值）· 没空转 ✓")
     return 0
 
 
@@ -2010,13 +2033,18 @@ def threshold_selftest() -> int:
 
     print("\n⑧ **开轮纪律**（空转 ⇒ 判红；**收敛之后不判** ⇒ 红必须有出路 ✓）")
     gate("⑧ 基点之后 ≤ 上限笔数 ⇒ 不判",
-         not R.judge_idle(st, ROUND_MAX_COMMITS, ROUND_MAX_COMMITS))
-    idle = R.judge_idle(st, ROUND_MAX_COMMITS + 1, ROUND_MAX_COMMITS)
-    gate("⑧ 超过上限 ⇒ 判红 + 给出路 `--open-round`",
+         not R.judge_idle(st, ROUND_MAX_COMMITS, ROUND_MAX_COMMITS)[0])
+    idle, _ = R.judge_idle(st, ROUND_MAX_COMMITS + 1, ROUND_MAX_COMMITS)
+    gate("⑧ 超过上限 + 开轮走得通 ⇒ 判红 + 给出路 `--open-round`",
          bool(idle) and "--open-round" in idle[0])
+    idle_no, idle_warn = R.judge_idle(
+        st, ROUND_MAX_COMMITS + 1, ROUND_MAX_COMMITS,
+        can_open=False, blockers=["`docs_live_bytes` 实测 4.49 MB > 收紧后的 4.00 MB"])
+    gate("⑧ 超过上限但**开轮没出路** ⇒ 只告警、不判红（红必须有出路 ✓）",
+         not idle_no and bool(idle_warn) and "只告警" in idle_warn[0])
     floored = dict(st, caps={k: v["floor"] for k, v in R.REGISTRY.items()})
     gate("⑧ **全部到收敛目标之后不判**（否则是一条没有出路的红 ✗）",
-         not R.judge_idle(floored, 10_000, ROUND_MAX_COMMITS))
+         not R.judge_idle(floored, 10_000, ROUND_MAX_COMMITS)[0])
 
     print()
     if bad:
@@ -2024,7 +2052,7 @@ def threshold_selftest() -> int:
         return 1
     print(f"✓ selftest 全过：{total}/{total} 条符合 ✓（含 ① 单调/不放松 · ② 连开两轮更低 · "
           f"③④⑤ 反向 · ⑥ 状态缺失响亮 · ⑦ 接缝打在改前源码上必红 · ⑦b 标签接缝（种子/现行 caps 都咬、静态常量不误伤）· "
-          f"⑦c 接缝的**层**（只在注释里提及 ⇒ **①b 提及不算读** 判红）· ⑧ 空转）")
+          f"⑦c 接缝的**层**（只在注释里提及 ⇒ **①b 提及不算读** 判红）· ⑧ 空转（有出路红 / 没出路告警））")
     return 0
 
 
