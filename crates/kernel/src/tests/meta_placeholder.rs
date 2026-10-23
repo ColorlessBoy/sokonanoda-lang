@@ -153,3 +153,105 @@ fn meta_kind_is_part_of_identity_and_predicate_is_exact() {
         "`mk_meta` 必须与 `mk_meta_with_kind(_, Natural)` **同 `hash`** ✓（零行为变化 ✓）"
     );
 }
+
+/// **SPIKE（2026-10-23）**：内核能否在"有元变量上下文"时**推断元变量的类型**、并**把它解出来**。
+///
+/// 这是 P4 的生死判据：by 引擎每一步都要交给内核判（`judge_terms`），
+/// 而目标/项里出现 `Expr::Meta` 时，内核必须能：
+/// ① `infer` 出类型（从上下文查）；
+/// ② `def_eq`/`conv` 把元变量**解出来**（赋值），而不是 panic。
+#[test]
+fn spike_kernel_can_infer_and_solve_a_meta() {
+    use crate::env::EnvLimit;
+    let arena = Arena::new();
+    let (mut builder, prop, meta) = fixture(&arena);
+    // 一条良类型的项：`p : Prop`（存在量化它，避免依赖任何库）。
+    let p_name = builder.name_from_str("p");
+    let ty_prop = prop; // `p` 的类型就是 `Prop`
+    let levels = builder.alloc_levels_slice(&[]);
+    builder
+        .add_declar(crate::env::Declar::Axiom {
+            info: DeclarInfo { name: p_name, uparams: levels, ty: ty_prop },
+        })
+        .expect("axiom p : Prop 应被接受");
+    let p = builder.mk_const(p_name, levels);
+
+    let (ty_text, refl, solved) = builder.with_env(|ef| {
+        ef.with_tc(EnvLimit::PpUnlimited, |tc| {
+            // ① 登记：?m7 : Prop
+            tc.ctx.mvars.register(7, ty_prop);
+            let ty = tc.infer_closed_type(meta);
+            let text = tc.with_pp(|pp| pp.pp_expr(ty));
+            // ② 反射（不应 panic）
+            let refl = tc.def_eq_core(meta, meta);
+            // ③ 解出来：?m7 =?= p ⇒ 赋值
+            let solved = tc.def_eq_core(meta, p);
+            (text, refl, solved)
+        })
+    });
+    eprintln!("[spike] infer(?m7) = {ty_text:?} · refl={refl} · solved={solved}");
+    assert!(!ty_text.is_empty(), "infer 必须给出类型");
+    assert!(refl, "?m7 ≟ ?m7 必须判等");
+    assert!(solved, "?m7 ≟ p 必须能解出来（赋值）");
+}
+
+/// **S1（2026-10-23）**：元变量赋值的健全性 —— occurs / `SyntheticOpaque` / 赋值可见 / 缓存不毒化。
+#[test]
+fn s1_occurs_kind_and_assignment_are_sound() {
+    use crate::env::{Declar, EnvLimit};
+    use crate::expr::{BinderStyle, MetaKind as KernelKind};
+    let arena = Arena::new();
+    let (mut builder, prop, meta) = fixture(&arena); // ?m7 : (待登记)
+    let levels = builder.alloc_levels_slice(&[]);
+    // p : Prop
+    let p_name = builder.name_from_str("p");
+    builder
+        .add_declar(Declar::Axiom {
+            info: DeclarInfo { name: p_name, uparams: levels, ty: prop },
+        })
+        .unwrap();
+    let p = builder.mk_const(p_name, levels);
+    // f : Prop -> Prop
+    let anon = builder.anonymous();
+    let f_ty = builder.mk_pi(anon, BinderStyle::Default, prop, prop);
+    let f_name = builder.name_from_str("f");
+    builder
+        .add_declar(Declar::Axiom {
+            info: DeclarInfo { name: f_name, uparams: levels, ty: f_ty },
+        })
+        .unwrap();
+    let f = builder.mk_const(f_name, levels);
+    let f_meta = builder.mk_app(f, meta); // f ?m7（含元变量）
+    let meta8 = builder.mk_meta(8);
+
+    let (occurs, solved, kind_refused, cache_ok, infer_nested) = builder.with_env(|ef| {
+        ef.with_tc(EnvLimit::PpUnlimited, |tc| {
+            tc.ctx.mvars.register(7, prop);
+            // ① occurs：?m7 ≟ f ?m7 必须拒绝（不赋值）
+            let occurs = tc.def_eq_core(meta, f_meta);
+            let unassigned = tc.ctx.mvars.value(7).is_none();
+            // ② 正常赋值：?m7 ≟ p ⇒ true，且 eval 之后能看到
+            let solved = tc.def_eq_core(meta, p);
+            // ③ 缓存不毒化：再问一次仍 true
+            let cache_ok = tc.def_eq_core(meta, p);
+            // ④ SyntheticOpaque 拒绝
+            tc.ctx.mvars.register(8, prop);
+            tc.ctx.mvars.register_kind(8, KernelKind::SyntheticOpaque);
+            let kind_refused = !tc.def_eq_core(meta8, p) && tc.ctx.mvars.value(8).is_none();
+            // ⑤ 元变量在类型/项位置都能 infer（不 panic）
+            let ty = tc.infer_closed_type(f_meta);
+            let ty_text = tc.with_pp(|pp| pp.pp_expr(ty));
+            let infer_nested = !ty_text.is_empty();
+            (occurs, solved, kind_refused, cache_ok, infer_nested && unassigned)
+        })
+    });
+    eprintln!(
+        "[s1] occurs(应当 false)={occurs} · solved={solved} · kind_refused={kind_refused} · \
+         cache_ok={cache_ok} · nested_infer={infer_nested}"
+    );
+    assert!(!occurs, "occurs：?m ≟ f ?m 不许赋值");
+    assert!(solved, "?m ≟ p 必须能解出来");
+    assert!(cache_ok, "赋值后重复判定必须仍为 true（缓存不毒化）");
+    assert!(kind_refused, "SyntheticOpaque 不许被赋值");
+    assert!(infer_nested, "含元变量的项必须能 infer（不 panic）");
+}

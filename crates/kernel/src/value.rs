@@ -137,6 +137,8 @@ pub enum Value<'a> {
         ptr: StringPtr<'a>,
         key: Cell<u64>,
     },
+    /// `id` 查 `TcCtx.mvars`（元变量上下文）；类型/赋值不在值里。
+    Meta { id: u32, key: Cell<u64> },
     Thunk {
         env: E<'a>,
         expr: ExprPtr<'a>,
@@ -163,6 +165,7 @@ impl<'a> Value<'a> {
             | Value::Pi { key, .. }
             | Value::Sort { key, .. }
             | Value::NatLit { key, .. }
+            | Value::Meta { key, .. }
             | Value::StrLit { key, .. }
             | Value::Thunk { key, .. } => key,
         }
@@ -228,6 +231,7 @@ impl<'a> Value<'a> {
             Value::Sort { level, .. } => seal(kmix(1, level.get_hash()), true),
             Value::NatLit { ptr, .. } => seal(kmix(2, ptr.get_hash()), true),
             Value::StrLit { ptr, .. } => seal(kmix(3, ptr.get_hash()), true),
+            Value::Meta { id, .. } => seal(kmix(20, u64::from(*id)), true),
             Value::Thunk { env, expr, .. } => {
                 let (e, c) = env_slots_key(env, expr.num_loose_bvars());
                 seal(kmix(kmix(13, expr.as_ref() as *const crate::expr::Expr<'a> as usize as u64), e), c)
@@ -547,24 +551,7 @@ pub fn mk_pi<'a>(
 ) -> V<'a> {
     arena.alloc(Value::Pi { binder_name, binder_style, domain, body, canon: Cell::new(false), key: Cell::new(0) })
 }
-pub fn mk_sort<'a>(arena: &'a Bump, level: LevelPtr<'a>) -> V<'a> {
-    arena.alloc(Value::Sort { level, key: Cell::new(0) })
-}
-pub fn mk_natlit<'a>(arena: &'a Bump, ptr: BigUintPtr<'a>) -> V<'a> {
-    arena.alloc(Value::NatLit { ptr, key: Cell::new(0) })
-}
-pub fn mk_strlit<'a>(arena: &'a Bump, ptr: StringPtr<'a>) -> V<'a> {
-    arena.alloc(Value::StrLit { ptr, key: Cell::new(0) })
-}
-pub fn mk_bvar_with_empty<'a>(arena: &'a Bump, level: u32, ty: V<'a>, empty: S<'a>) -> V<'a> {
-    mk_rigid(arena, RigidHead::BVar(level, ty), empty)
-}
-pub fn mk_rigid_head_with_empty<'a>(arena: &'a Bump, head: RigidHead<'a>, empty: S<'a>) -> V<'a> {
-    mk_rigid(arena, head, empty)
-}
-pub fn mk_thunk<'a>(arena: &'a Bump, env: E<'a>, expr: ExprPtr<'a>) -> V<'a> {
-    arena.alloc(Value::Thunk { env, expr, forced: OnceCell::new(), key: Cell::new(0) })
-}
+pub use crate::value_ctors::{mk_bvar_with_empty, mk_natlit, mk_rigid_head_with_empty, mk_sort, mk_strlit, mk_thunk};
 
 const _: () = assert!(std::mem::size_of::<Value<'static>>() == 56);
 const _: () = assert!(std::mem::size_of::<Spine<'static>>() == 32);

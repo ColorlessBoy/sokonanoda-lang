@@ -964,7 +964,6 @@ impl<'p> ExportFile<'p> {
         F: FnOnce(&mut PrettyPrinter<'_, '_, 'p>) -> A, {
         self.with_ctx(|ctx, _cache, arena| ctx.with_pp(arena, f))
     }
-
 }
 
 pub struct TcCtx<'t, 'p> {
@@ -974,6 +973,7 @@ pub struct TcCtx<'t, 'p> {
     pub(crate) expr_cache: ExprCache<'t>,
     pub(crate) sig_cache: FxHashMap<(NamePtr<'t>, LevelsPtr<'t>), crate::relevance::Sig>,
     pub(crate) sig_computing: FxHashSet<(NamePtr<'t>, LevelsPtr<'t>)>,
+    pub mvars: crate::mvar::MetaContext<'t>,
 }
 
 impl<'t, 'p: 't> TcCtx<'t, 'p> {
@@ -986,6 +986,7 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
             expr_cache: ExprCache::new(),
             sig_cache: session_fx_hash_map(),
             sig_computing: small_fx_hash_set(),
+            mvars: crate::mvar::MetaContext::new(),
         }
     }
 

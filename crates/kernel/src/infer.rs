@@ -92,10 +92,15 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     ) -> V<'t> {
         match self.ctx.read_expr(e) {
             // **K1 硬不变式**：同 `eval` ✓ —— 判定层不该见到占位符 ⇒ 响亮报错 ✗。
-            Meta { id, .. } => panic!(
-                "infer: meta placeholder ?m{id} reached the kernel (a declaration containing \
-                 a metavariable must be rejected before this point)"
-            ),
+            // **SPIKE**：元变量的类型从上下文查（未登记 ⇒ 响亮报错，不 panic 成"不该到"）。
+            Meta { id, .. } => {
+                let ty = self
+                    .ctx
+                    .mvars
+                    .ty_of(id)
+                    .unwrap_or_else(|| panic!("infer: meta ?m{id} has no registered type"));
+                return self.eval(depth, env, ty);
+            }
             Var { dbj_idx, .. } => return ctx.lookup(dbj_idx).expect("loose bvar in infer"),
             Sort { level, .. } => {
                 if let (Check, Some(info)) = (flag, self.declar_info) {

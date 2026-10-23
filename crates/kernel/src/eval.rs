@@ -377,6 +377,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 let cspine = self.canon_spine(sp);
                 self.mk_unfold_hc(hn, hl, cspine, hv)
             }
+            Value::Meta { .. } => v,
             Value::Thunk { .. } => v,
         }
     }
@@ -440,6 +441,8 @@ const WHNF_ADMIT_THRESHOLD: u8 = 2;
 
 const FAIL_CLOSURE: u8 = 1;
 const FAIL_DEPTH: u8 = 7;
+/// 含未赋值元变量（S1 缓存纪律：不缓存）。
+const FAIL_META: u8 = 8;
 
 impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     pub(crate) fn eval(&mut self, depth: u32, env: E<'t>, e: ExprPtr<'t>) -> V<'t> {
@@ -574,10 +577,8 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         match first {
             // **K1 硬不变式**：占位符**不许**进判定层 ✓（含它的声明在入口就被拒 ✗）。
             // 真到了这里 ⇒ **响亮报错** ✗（绝不静默算错 ✓）。
-            Expr::Meta { id, .. } => panic!(
-                "eval: meta placeholder ?m{id} reached the kernel (a declaration containing \
-                 a metavariable must be rejected before this point)"
-            ),
+            // **S1**：元变量（已赋值 ⇒ 展开；未赋值 ⇒ `Value::Meta`）。
+            Expr::Meta { id, .. } => crate::mvar::eval_meta(self, depth, env, id),
             Expr::Var { dbj_idx, .. } => {
                 let v = env.lookup(dbj_idx).expect("eval: loose bvar");
                 self.force_thunk(depth, v)
@@ -864,42 +865,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         }
     }
 
-    pub(crate) fn value_type(&mut self, depth: u32, v: V<'t>) -> V<'t> {
-        let v = self.force_thunk(depth, v);
-        match v {
-            Value::Sort { level , ..} => {
-                let s = self.ctx.succ(*level);
-                value::mk_sort(self.arena, self.ctx.simplify(s))
-            }
-            Value::NatLit { .. } => {
-                let n = self.ctx.export_file.name_cache.nat.expect("value_type: Nat name missing");
-                let levels = self.ctx.alloc_levels_slice(&[]);
-                value::mk_rigid_head_with_empty(self.arena, RigidHead::Inductive(n, levels), self.empty_spine())
-            }
-            Value::StrLit { .. } => {
-                let n = self.ctx.export_file.name_cache.string.expect("value_type: String name missing");
-                let levels = self.ctx.alloc_levels_slice(&[]);
-                value::mk_rigid_head_with_empty(self.arena, RigidHead::Inductive(n, levels), self.empty_spine())
-            }
-            Value::Rigid { head, spine , ..} => {
-                let head_ty = self.rigid_head_type(depth, *head);
-                let prev = value::mk_rigid_head_with_empty(self.arena, *head, self.empty_spine());
-                self.spine_type_with_value(depth, head_ty, prev, spine)
-            }
-            Value::Unfold { head, spine, .. } => {
-                let head_ty = self.const_head_type(head.name, head.levels);
-                let cell = &*self.arena.alloc(OnceCell::new());
-                let _ = cell.set(head_ty);
-                let prev =
-                    value::mk_unfold_head_with_empty(self.arena, head.name, head.levels, cell, self.empty_spine());
-                self.spine_type_with_value(depth, head_ty, prev, spine)
-            }
-            Value::Pi { .. } | Value::Lam { .. } => panic!("value_type: Pi/Lam not supported"),
-            Value::Thunk { .. } => unreachable!("value_type: Thunk after force"),
-        }
-    }
-
-    fn rigid_head_type(&mut self, _depth: u32, head: RigidHead<'t>) -> V<'t> {
+    pub(crate) fn rigid_head_type(&mut self, _depth: u32, head: RigidHead<'t>) -> V<'t> {
         match head {
             RigidHead::BVar(_, ty) => ty,
             RigidHead::Axiom(n, ls)
@@ -910,7 +876,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         }
     }
 
-    fn spine_type_with_value(&mut self, depth: u32, mut ty: V<'t>, prev_head: V<'t>, spine: S<'t>) -> V<'t> {
+    pub(crate) fn spine_type_with_value(&mut self, depth: u32, mut ty: V<'t>, prev_head: V<'t>, spine: S<'t>) -> V<'t> {
         let mut prev = prev_head;
         for elim in spine.to_vec() {
             match elim.view() {
@@ -1075,10 +1041,13 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     }
 
     fn global_key_uncached(&mut self, v: V<'t>, depth: u32) -> Result<(u128, bool), u8> {
+        // **S1 缓存纪律**：含未赋值元变量的值不许进全局缓存（赋值后 key 过期）。
+        if crate::mvar::has_unassigned_meta(v, &self.ctx.mvars) { return Err(FAIL_META); }
         match v {
             Value::Sort { level , ..} => Ok((mix(1, u128::from(level.get_hash())), true)),
             Value::NatLit { ptr , ..} => Ok((mix(2, u128::from(ptr.get_hash())), true)),
             Value::StrLit { ptr , ..} => Ok((mix(3, u128::from(ptr.get_hash())), true)),
+            Value::Meta { id , ..} => Ok((mix(20, u128::from(*id)), true)),
             Value::Rigid { head, spine , ..} => {
                 let (h, c) = match *head {
                     RigidHead::BVar(lvl, ty) => {
@@ -2126,6 +2095,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         }
         let r = match v {
             Value::Sort { .. } | Value::NatLit { .. } | Value::StrLit { .. } => false,
+            Value::Meta { .. } => false,
             Value::Rigid { head: RigidHead::BVar(..), .. } => true,
             Value::Rigid { spine, .. } | Value::Unfold { spine, .. } => {
                 let mut found = false;

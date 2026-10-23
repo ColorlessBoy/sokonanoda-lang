@@ -975,7 +975,7 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
             return b;
         }
         let r = match v {
-            Value::Sort { .. } | Value::NatLit { .. } | Value::StrLit { .. } => false,
+            Value::Sort { .. } | Value::NatLit { .. } | Value::StrLit { .. } | Value::Meta { .. } => false,
             Value::Rigid { head, spine, .. } => {
                 let head_hit = match *head {
                     RigidHead::BVar(_, ty) => self.value_has_ind_occ(depth, ty, haystack),

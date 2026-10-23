@@ -912,7 +912,7 @@ impl<'a, R: BufRead> Parser<'a, R> {
         notations: self.notations,
         name_cache,
         config: self.config,
-        mutual_block_sizes: self.mutual_block_sizes
+        mutual_block_sizes: self.mutual_block_sizes,
     };
         Ok((export_file, self.skipped))
     }

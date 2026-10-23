@@ -22,31 +22,6 @@ fn is_cacheable<'a>(v: &Value<'a>) -> bool {
 }
 
 impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
-    pub(crate) fn def_eq_core(&mut self, x: ExprPtr<'t>, y: ExprPtr<'t>) -> bool {
-        let depth = 0u32;
-        let env = self.empty_env();
-        let vx = self.eval(depth, env, x);
-        let vy = self.eval(depth, env, y);
-        if self.try_proof_irrel_at(depth, vx, vy) {
-            return true;
-        }
-        self.conv_types_at(depth, vx, vy)
-    }
-
-    /// 在**探查之外**跑一次转换判定（[`Self::conv_types_at`] / [`Self::def_eq_at`] 的入口 ✓）。
-    ///
-    /// 探查上下文（`probe_depth`）**不许漏进**这两个入口 ✓：它们是**独立的一次判定**
-    /// （推断中途问一句「这两个类型相等吗」✓），必须从**顶层**开始 —— 否则
-    /// [`Self::spine_probe`] 会走 `probe_depth > 0` 那条**全量**分支（少抄近路 ⇒ 变慢 ✗），
-    /// `eval.rs::unfold_value_demand` 也会被当成探查内（`force = false` ⇒ 推迟 Nat 归约 ✗）。
-    fn outside_probe<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
-        let depth = self.tc_cache.probe_depth;
-        self.tc_cache.probe_depth = 0;
-        let r = f(self);
-        self.tc_cache.probe_depth = depth;
-        r
-    }
-
     pub(crate) fn conv_types_at(&mut self, depth: u32, a: V<'t>, b: V<'t>) -> bool {
         self.outside_probe(|s| s.unify::<true>(depth, a, b))
     }
@@ -54,7 +29,13 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     /// 见 `infer.rs::infer_value` 上的说明：给采样器留一个真实符号。
     #[inline(never)]
     pub(crate) fn def_eq_at(&mut self, depth: u32, vx: V<'t>, vy: V<'t>) -> bool {
-        self.outside_probe(|s| s.try_proof_irrel_at(depth, vx, vy) || s.unify::<true>(depth, vx, vy))
+        self.outside_probe(|s| {
+            // **S1**：同上 —— 元变量先走合一（要赋值），再谈证明无关。
+            if let Some(r) = s.meta_def_eq_branch(depth, vx, vy) {
+                return r;
+            }
+            s.try_proof_irrel_at(depth, vx, vy) || s.unify::<true>(depth, vx, vy)
+        })
     }
 
     #[inline]
@@ -99,18 +80,24 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     }
 
     #[inline]
-    fn unify<const RIGID: bool>(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> bool {
+    pub(crate) fn unify<const RIGID: bool>(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> bool {
         let x = self.force_thunk(depth, x);
         let y = self.force_thunk(depth, y);
         if std::ptr::eq(x, y) {
             return true;
+        }
+        // **S1**：元变量参与合一（Lean `isDefEq` 的 `Expr.mvar` 两臂）。
+        if let Some(r) = self.meta_unify_branch(depth, x, y) {
+            return r;
         }
         self.unify_general::<RIGID>(depth, x, y)
     }
 
     #[inline]
     fn unify_general<const RIGID: bool>(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> bool {
-        let cacheable = is_cacheable(x) || is_cacheable(y);
+        let cacheable = (is_cacheable(x) || is_cacheable(y))
+            && !self.value_has_unassigned_meta(x)
+            && !self.value_has_unassigned_meta(y);
         let neg_eligible = !matches!(x, Value::Lam { .. }) && !matches!(y, Value::Lam { .. });
         if cacheable {
             let xa = x as *const Value<'t> as usize;
@@ -620,7 +607,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         }
     }
 
-    fn try_proof_irrel_at(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> bool {
+    pub(crate) fn try_proof_irrel_at(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> bool {
         if matches!(x, Value::Lam { .. }) || matches!(y, Value::Lam { .. }) {
             return self.try_proof_irrel_lam(depth, x, y);
         }
