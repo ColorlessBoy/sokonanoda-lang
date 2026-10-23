@@ -24,6 +24,13 @@ theorem direct_form (α : Type) (x a : α) (hx : x = a) (A : Set α) (h : a ∈ 
 theorem mixed_spelling (α : Type) (A B C : Set α) (x : α) (h : B = C) (hx : x ∈ A ∪ B) :
     Set.mem x (Set.union A C) := by
   exact Eq.subst h hx
+theorem deep_apply (α : Type) (f : α -> α) (x y : α) (h : x = y) : f x = f y := by
+  apply Eq.subst h
+  rfl
+theorem deep_apply_nested (α : Type) (f g : α -> α) (x y : α) (h : x = y) :
+    g (f x) = g (f y) := by
+  apply Eq.subst h
+  rfl
 ";
 
 #[test]

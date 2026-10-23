@@ -406,3 +406,48 @@ mod tests {
         assert!(matches!(diff(&many_l, &many_r), DiffResult::Many));
     }
 }
+
+/// **P2-c（2026-10-23）**：把 `target` 在 `e` 里的**所有**出现替换成 `repl`
+/// （`hit` 记出现次数）。只在 `Eq.subst` 的"单实参 + 目标里找右端"形状里用。
+pub(super) fn replace_all(e: &Expr, target: &Expr, repl: &Expr, hit: &mut usize) -> Expr {
+    if same_expr(e, target) {
+        *hit += 1;
+        return repl.clone();
+    }
+    match e {
+        Expr::App { fun, arg, explicit_spine, span } => Expr::App {
+            fun: Box::new(replace_all(fun, target, repl, hit)),
+            arg: Box::new(replace_all(arg, target, repl, hit)),
+            explicit_spine: *explicit_spine,
+            span: *span,
+        },
+        Expr::Notation { symbol, symbol_span, target: t, assoc, lhs, rhs, alternatives, span } => {
+            Expr::Notation {
+                symbol: symbol.clone(),
+                symbol_span: *symbol_span,
+                target: t.clone(),
+                assoc: *assoc,
+                lhs: lhs.as_deref().map(|x| Box::new(replace_all(x, target, repl, hit))),
+                rhs: rhs.as_deref().map(|x| Box::new(replace_all(x, target, repl, hit))),
+                alternatives: alternatives.clone(),
+                span: *span,
+            }
+        }
+        Expr::Lambda { binders, body, span } => Expr::Lambda {
+            binders: binders.clone(),
+            body: Box::new(replace_all(body, target, repl, hit)),
+            span: *span,
+        },
+        Expr::Forall { binders, body, span } => Expr::Forall {
+            binders: binders.clone(),
+            body: Box::new(replace_all(body, target, repl, hit)),
+            span: *span,
+        },
+        Expr::Arrow { domain, codomain, span } => Expr::Arrow {
+            domain: Box::new(replace_all(domain, target, repl, hit)),
+            codomain: Box::new(replace_all(codomain, target, repl, hit)),
+            span: *span,
+        },
+        other => other.clone(),
+    }
+}

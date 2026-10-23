@@ -50,7 +50,7 @@
 //!   其余形状（差异端是**应用**如 `∅`、或路径穿过记法 `x ∈ ?s`）才合成；
 //! * 形状不匹配 ⇒ 原样返回 `None`，走今天的错误路径。
 
-use super::eqsubst_diff::{diff, replace_at, same_expr, DiffResult, Step};
+use super::eqsubst_diff::{diff, replace_all, replace_at, same_expr, DiffResult, Step};
 use crate::ast::{Binder, BinderKind, Expr};
 use crate::span::Span;
 use crate::spine;
@@ -124,13 +124,63 @@ fn is_head_named(e: &Expr, name: &str) -> bool {
     }
 }
 
-/// 两个形状的**共同入口**（`apply` 用）：先试 ①（洞在等号位），再试 ②（等号位给了）。
+/// 两个形状的**共同入口**（`apply` 用）：先试 ①（洞在等号位），再试 ②（等号位给了），
+/// 最后试 ③（**单实参** `Eq.subst h`：从 `h` 的右端在目标里的出现抽 motive）。
 pub(crate) fn rewrite(expr: &Expr, goal: &Expr, binders: &[Binder], span: Span) -> Option<Expr> {
     if !is_eqsubst_two_args(expr) {
-        return None;
+        return rewrite_single_argument(expr, goal, binders, span);
     }
     rewrite_argument_hole(expr, goal, binders, span)
         .or_else(|| rewrite_explicit_equality(expr, goal, binders, span))
+}
+
+/// **形状 ③（P2-c，2026-10-23）**：`apply Eq.subst h`（**一个**实参）。
+///
+/// `h : a = b`、目标 `G` 里出现 `b`（`b` 必须是**局部名** ⇒ binder 类型现成）⇒
+/// 合成 `Eq.subst T (fun z => G[b:=z]) a b h`：它的类型是 `p a → p b`，`p b ≡ G`
+/// ⇒ 新目标 `p a` 由用户继续证（`f x = f y` 上就是 `rfl`）。
+///
+/// 保守边界：`h` 只认局部名/`Eq.symm h`（端点从书写类型取）；`b` 只认局部名；
+/// `b` 在目标里**至少出现一次**；否则返回 `None`（原错误路径不变）。
+fn rewrite_single_argument(
+    expr: &Expr,
+    goal: &Expr,
+    binders: &[Binder],
+    span: Span,
+) -> Option<Expr> {
+    let (head, args) = spine::spine_of(expr);
+    if !is_eqsubst_head(head) || args.len() != 1 || matches!(args[0], Expr::Hole { .. }) {
+        return None;
+    }
+    let (eq_a, eq_b) = eq_endpoints(args[0], binders)?;
+    let ty = local_type(binders, &eq_b)?.clone();
+    let var_name = format!("_soko_eq{}", span.start.offset);
+    let var = Expr::Ident { name: var_name.clone(), span };
+    let mut hits = 0usize;
+    let body = replace_all(goal, &eq_b, &var, &mut hits);
+    if hits == 0 {
+        return None;
+    }
+    let motive = Expr::Lambda {
+        binders: vec![Binder {
+            name: var_name,
+            ty: Some(Box::new(ty.clone())),
+            style: BinderKind::Explicit,
+            span,
+        }],
+        body: Box::new(body),
+        span,
+    };
+    let mut out = head.clone();
+    for arg in [ty, motive, eq_a, eq_b, args[0].clone()] {
+        out = Expr::App {
+            fun: Box::new(out),
+            arg: Box::new(arg),
+            explicit_spine: false,
+            span,
+        };
+    }
+    Some(out)
 }
 
 /// **`exact` 的入口**：先做**零分配**的形状检查（`Eq.subst` 恰好 2 个实参），命中才建
