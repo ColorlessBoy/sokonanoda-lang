@@ -735,6 +735,17 @@ pub(crate) struct GoalNode {
     kind: NodeKind,
 }
 
+/// 开一个**根洞节点**（r22 探针在克隆状态上重建初始目标用；`by_probe` 看不到
+/// `NodeKind` 的私有字段 ⇒ 由这里给出，与 `run_by_inner` 的根节点**同一构造**）。
+pub(crate) fn open_node(ty: Expr, intros: Vec<Binder>) -> GoalNode {
+    GoalNode {
+        ty,
+        intros,
+        parent: None,
+        kind: NodeKind::Hole,
+    }
+}
+
 /// 值位是 `by` 块，或声明 binder 降级后「lambda 链 → by 块」的形态：
 /// 返回 `(声明 binder, by 块)`；其它形态返回 `None`。
 pub(crate) fn split_by_value(val: &Expr) -> Option<(Vec<Binder>, &Expr)> {
@@ -1495,7 +1506,7 @@ fn run_by_inner<'a>(
                 let extra_errors = marks_out
                     .last()
                     .map(|(index, _)| {
-                        collect_remaining_tactic_errors(
+                        crate::by_probe::collect_remaining_tactic_errors(
                             tactics,
                             *index,
                             &probe_root_ty,
@@ -1547,7 +1558,7 @@ fn run_by_inner<'a>(
         let extra_errors = marks_out
             .last()
             .map(|(index, _)| {
-                collect_remaining_tactic_errors(
+                crate::by_probe::collect_remaining_tactic_errors(
                     tactics,
                     offset + *index,
                     &probe_root_ty,
@@ -1576,92 +1587,9 @@ fn run_by_inner<'a>(
     })
 }
 
-/// **r22（2026-10-13）**：失败那条之后**其它独立失败**也收出来
-///（Lean 语义：失败的 tactic 回滚、块继续 ⇒ 每条失败各一条诊断）。
-/// 真判定不动：在克隆状态上重放前缀再逐条试，产物**只**当额外诊断。
-#[allow(clippy::too_many_arguments)]
-fn collect_remaining_tactic_errors<'a>(
-    tactics: &[Tactic],
-    failing: usize,
-    root_ty: &Expr,
-    initial_binders: &[Binder],
-    universe: &[String],
-    prefix_src: &str,
-    options: &CompileOptions,
-    inductives: &InductiveTable<'_>,
-    defs: &DefTable,
-    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
-) -> Vec<CompileError> {
-    if failing >= tactics.len() {
-        return Vec::new();
-    }
-    let mut nodes: Vec<GoalNode> = vec![GoalNode {
-        ty: root_ty.clone(),
-        intros: initial_binders.to_vec(),
-        parent: None,
-        kind: NodeKind::Hole,
-    }];
-    let mut worklist: Vec<usize> = vec![0];
-    let mut steps: Vec<ByStep> = Vec::new();
-    let mut holes: Vec<Span> = Vec::new();
-    let mut redundant = Vec::new();
-    if run_tactics(
-        &tactics[..failing],
-        &mut nodes,
-        &mut worklist,
-        &mut steps,
-        None,
-        universe,
-        prefix_src,
-        options,
-        inductives,
-        defs,
-        ctx,
-        None,
-        &mut holes,
-        &mut redundant,
-    )
-    .is_err()
-    {
-        // 前缀重放不成功（理论上不该发生）⇒ 不猜，交回空 ✓。
-        return Vec::new();
-    }
-    let mut errors: Vec<CompileError> = Vec::new();
-    for index in failing + 1..tactics.len() {
-        let mut probe_nodes = nodes.clone();
-        let mut probe_worklist = worklist.clone();
-        let mut probe_steps: Vec<ByStep> = Vec::new();
-        let mut probe_holes: Vec<Span> = Vec::new();
-        let mut probe_redundant = Vec::new();
-        match run_tactics(
-            &tactics[index..index + 1],
-            &mut probe_nodes,
-            &mut probe_worklist,
-            &mut probe_steps,
-            None,
-            universe,
-            prefix_src,
-            options,
-            inductives,
-            defs,
-            ctx,
-            None,
-            &mut probe_holes,
-            &mut probe_redundant,
-        ) {
-            Ok(()) => {
-                nodes = probe_nodes;
-                worklist = probe_worklist;
-            }
-            Err(error) => errors.push(error),
-        }
-    }
-    errors
-}
-
 /// 跑一串 tactic（`by` 块的主循环，`cases` 的臂体递归复用它）。
 #[allow(clippy::too_many_arguments)]
-fn run_tactics<'a>(
+pub(crate) fn run_tactics<'a>(
     tactics: &[Tactic],
     nodes: &mut Vec<GoalNode>,
     worklist: &mut Vec<usize>,
