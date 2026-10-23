@@ -140,8 +140,8 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   `elab-ambiguous-ctor-alias` (裸构造子名被两个类型各声明了一次——G-02 之后
   构造子的**规范名**是 `Ind.ctor`，裸名只是解析别名（子集扩展），重复即歧义；
   消息点名两个候选，写全前缀名即可解决),
-  `elab-tactic-failed` (`by` 块里的一个 tactic 失败：目标形状不匹配 /
-  内核拒绝，消息带期望/实际), `elab-apply-needs-a-term` (apply 类 tactic
+  `elab-tactic-failed` (`by` 块里的一个 tactic 失败、且**没有更具体的 elab 码**：
+  目标形状不匹配 / 内核拒绝 / judge 内部合成码；row 7 起 `apply`/`exact`/`have`/`rfl` 的内层 elab 错误**原码透传**（如 `elab-unknown-identifier` / `elab-implicit-argument-unsolved`），消息带期望/实际), `elab-apply-needs-a-term` (apply 类 tactic
   后面缺少要应用的项), `elab-apply-not-applicable` (要应用的项的结论不是
   当前目标),   `elab-match-bad-arm` (`match` 的模式写错：带子模式的未知名、
   构造子字段数与子模式数不符), `elab-match-not-inductive` (`match` 的被匹配项

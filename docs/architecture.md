@@ -336,7 +336,7 @@ check-then-add → 事件/错误 → 每命令签名与 early cutoff → 报告�
 （`judge_infer(prefix_src, …)`）。项目模式下前缀**必须**包含依赖的声明文本，
 否则内核看不见被导入的名字——实测两个症状：入口里 `match` 导入的归纳类型报
 `elab-match-no-expected-type`、`by apply And.intro`（导入的公理）报
-`elab-tactic-failed: unknown identifier`。实现：`run_pass` 按拓扑序预计算
+`elab-unknown-identifier: unknown identifier`（row 7 起内层 elab 码原样透传，此前被压成 `elab-tactic-failed`）。实现：`run_pass` 按拓扑序预计算
 `closure_prefixes`（各依赖源码去掉 `import` 行后相接），单文件模式不构造
 （A1 逐字节不变）。闭包前缀同一条也喂给**建议与探针**：`QueryDoc::judge_prefix(offset)` 是真相层入口，
 `suggest_with`（quick-fix）与 `probe_sub_goal_types_with`（子洞期望类型）都接它；

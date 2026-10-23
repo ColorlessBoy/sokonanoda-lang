@@ -57,7 +57,10 @@ theorem two_errors (α : Type) (A : Set α) (a : α) (h : a ∈ A) : a ∈ A := 
   exact hh
 SOKO
 out=$(timeout 300 "$REPO/scripts/soko" query check --file "$F" 2>&1)
-n=$(grep -o '"code": "elab-tactic-failed"' <<<"$out" | wc -l | tr -d ' ')
+# row 7（2026-10-23）：`exact` 透传内层根因码（本夹具是 `unknown identifier`）
+# ⇒ 两个码都算 tactic 诊断；只数 `elab-tactic-failed` 会把"码变准"误读成
+# "诊断消失"（假回归 ✗）。
+n=$(grep -oE '"code": "(elab-tactic-failed|elab-unknown-identifier)"' <<<"$out" | wc -l | tr -d ' ')
 echo "diagnostic 条数: $n"
 if [ "$n" -le 1 ]; then
   echo "STILL REPRODUCES: 两处独立错误只报了 $n 条"; exit 0

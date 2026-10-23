@@ -335,6 +335,30 @@ impl CompileError {
         Self::new(kind, message, span)
     }
 
+    /// **row 7（2026-10-23）**：`by` 的判定通道（`apply` / `exact` / `have` /
+    /// `rfl`）把内层判定失败的**根因分类**透传成诊断。
+    ///
+    /// `kind` = 判定合成趟拿到的 `CompileError::kind`（`Judgement::Error` 的
+    /// `kind` 字段）；**只放行 elab 阶段**的分类：
+    /// * 内核码（`kernel-*`）会让诊断的 `stage` 从 `elab` 静默变成 `kernel`
+    ///   （第二条 wire 变化，row 7 不碰）⇒ 退回 `elab-tactic-failed`；
+    /// * judge 内部那 8 个合成码（`parse` / `judge-*` / `prefix-decl-failed` /
+    ///   `skipped`）不是 `ErrorKind` 值（`None`）⇒ 同样退回。
+    ///
+    /// **不建 `code` → `ErrorKind` 的反向表**：分类本来就在判定通道里
+    /// （[`CompileError::code`] = `kind.code()`）—— 给具体分类就同时拿到具体码，
+    /// 不需要 raw code 覆盖。
+    pub(crate) fn from_judgement(
+        kind: Option<ErrorKind>,
+        message: impl Into<String>,
+        span: Span,
+    ) -> Self {
+        let kind = kind
+            .filter(|k| k.stage() == CompileStage::Elab)
+            .unwrap_or(ErrorKind::ElabTacticFailed);
+        Self::elab(kind, message, span)
+    }
+
     /// **A3（2026-10-12）**：`display` = 本次编译的**显示期记法表**（`None` ⇒ 只有
     /// 通用人话化，见下）。
     ///

@@ -1899,9 +1899,9 @@ fn run_tactics<'a>(
                             *span,
                         ));
                     }
-                    Some(Judgement::Error { message, .. }) => {
-                        return Err(CompileError::elab(
-                            ErrorKind::ElabTacticFailed,
+                    Some(Judgement::Error { message, kind, .. }) => {
+                        return Err(CompileError::from_judgement(
+                            kind,
                             format!("`have {name}` 判定失败：{message}"),
                             *span,
                         ));
@@ -2174,9 +2174,9 @@ fn run_tactics<'a>(
                             *span,
                         ));
                     }
-                    Some(Judgement::Error { message, .. }) => {
-                        return Err(CompileError::elab(
-                            ErrorKind::ElabTacticFailed,
+                    Some(Judgement::Error { message, kind, .. }) => {
+                        return Err(CompileError::from_judgement(
+                            kind,
                             format!("`rfl` 判定失败：{message}"),
                             *span,
                         ));
@@ -2584,9 +2584,7 @@ fn apply_tactic<'a>(
             "无法推断被应用函数的类型",
             span,
         ),
-        Judgement::Error { message, .. } => {
-            CompileError::elab(ErrorKind::ElabTacticFailed, message, span)
-        }
+        Judgement::Error { message, kind, .. } => CompileError::from_judgement(kind, message, span),
         Judgement::Match => unreachable!(),
     })?;
     // ② **1a（失败边重试）**：文本读不回来 / 结论对不上 ⇒ 用目标当期望类型重试一次
@@ -3954,8 +3952,8 @@ fn exact_tactic(
                 span,
             ))
         }
-        Some(Judgement::Error { message, .. }) => Err(CompileError::elab(
-            ErrorKind::ElabTacticFailed,
+        Some(Judgement::Error { message, kind, .. }) => Err(CompileError::from_judgement(
+            kind,
             format!("`exact` 判定失败：{message}"),
             span,
         )),

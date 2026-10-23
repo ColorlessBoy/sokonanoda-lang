@@ -43,8 +43,13 @@ fn a_by_block_reports_every_independent_tactic_failure() {
         "两处独立失败各一条（改前只有 1 条）：{:?}",
         out.errors
     );
+    // **row 7**：tactic 层透传**根因码** ⇒ 两处 `exact hh` 各报一条
+    // `elab-unknown-identifier`（不再被压成 `elab-tactic-failed`）；
+    // 本条真正要钉的是"两处各一条"（见下方归位断言）。
     assert!(
-        out.errors.iter().all(|e| e.code() == "elab-tactic-failed"),
+        out.errors
+            .iter()
+            .all(|e| e.code() == "elab-unknown-identifier"),
         "{:?}",
         out.errors
     );
@@ -4009,11 +4014,13 @@ fn apply_argument_hole_wrong_direction_is_still_rejected() {
         "  exact ha\n",
     );
     let report = check_document(&parse(src).expect("parse"));
+    // **row 7**：`apply` 不再把内层错误压成 `elab-tactic-failed` ⇒ 这里如实是
+    // 「隐式实参补不出来」（判据只换成根因码，"仍然被拒"一个字没松）。
     assert!(
         report
             .errors
             .iter()
-            .any(|e| e.kind == ErrorKind::ElabTacticFailed),
+            .any(|e| e.kind == ErrorKind::ElabImplicitArgumentUnsolved),
         "wrong direction must stay rejected: {:?}",
         report.errors
     );
@@ -4029,11 +4036,13 @@ fn named_argument_pitfall_is_not_silent() {
         "  exact Eq.symm hx\n",
     );
     let report = check_document(&parse(src).expect("parse"));
+    // **row 7**：`apply` 的内层根因码透传（隐式实参补不出来）；本条要钉的是
+    // "必须报错、不许静默 no-op"，码换根因、判据不放松。
     assert!(
         report
             .errors
             .iter()
-            .any(|e| e.kind == ErrorKind::ElabTacticFailed),
+            .any(|e| e.kind == ErrorKind::ElabImplicitArgumentUnsolved),
         "`apply Eq.subst (p := A) h` must report, not silently no-op: {:?}",
         report.errors
     );

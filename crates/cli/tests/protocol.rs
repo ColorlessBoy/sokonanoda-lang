@@ -379,7 +379,8 @@ theorem t {α : Type} (a : α) (A B : MySet α) :
     //   `False`，`h : False` ⇒ `exact h` 成立 ✓）⇒ 实测 **`decl.checked` / 0 诊断** ✗
     //   ⇒ 旧的 `!out.status.success()` 不成立 ⇒ 本用例在 CI 上判红 ✗（10 条红之一）。
     //   ⇒ 换成**用户手写的**位置喂隐式（`And.intro P Q h1 h2`）：它**确实**踩闸门 ✓
-    //   （实测 `elab-tactic-failed` · `line=2 col=3` ✓），而**本用例的牙一个字没松** ——
+    //   （row 7 之后实测根因码 `elab-implicit-argument-unsolved` · `line=2 col=3` ✓），
+    //   而**本用例的牙一个字没松** ——
     //   仍然是「诊断位置必须是**真的**（不是 `Span::default()` 那串 0 ✗）」✓。
     //   ⚠ **如实**：夹具从「装配出来的项」换成「用户手写的项」⇒ **"装配路径"这一半的覆盖
     //   暂时没有对应用例** ✗（要找一条"既装配出来、又仍踩闸门"的夹具 —— 本轮没找到）。
@@ -393,7 +394,7 @@ theorem t (P Q : Prop) (h1 : P) (h2 : Q) : P ∧ Q := by
     let diags = diagnostics(&events);
     assert_eq!(diags.len(), 1, "恰好一条诊断：{events:?}");
     let d = diags[0];
-    assert_eq!(d["code"], "elab-tactic-failed", "{d}");
+    assert_eq!(d["code"], "elab-implicit-argument-unsolved", "{d}");
     assert_diagnostic_shape(d, "严格档拒绝");
     // ⭐ 本用例的牙：位置必须是**真的**（不是 `Span::default()` 那串 0 ✗）。
     let start = &d["span"]["start"];
