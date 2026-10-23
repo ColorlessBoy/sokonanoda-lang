@@ -13,12 +13,17 @@ const SRC: &str = "\
 def Set (α : Type) : Type := α -> Prop
 namespace Set
 def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def union {α : Type} (A B : Set α) : Set α := fun (x : α) => A x ∨ B x
 end Set
 infix:50 \" ∈ \" => Set.mem
+infixr:70 \" ∪ \" => Set.union
 theorem symm_form (α : Type) (x a : α) (hx : x = a) (A : Set α) (h : x ∈ A) : a ∈ A := by
   exact Eq.subst (Eq.symm hx) h
 theorem direct_form (α : Type) (x a : α) (hx : x = a) (A : Set α) (h : a ∈ A) : x ∈ A := by
   exact Eq.subst hx h
+theorem mixed_spelling (α : Type) (A B C : Set α) (x : α) (h : B = C) (hx : x ∈ A ∪ B) :
+    Set.mem x (Set.union A C) := by
+  exact Eq.subst h hx
 ";
 
 #[test]

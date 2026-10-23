@@ -1179,7 +1179,7 @@ fn collect_meta_ids(e: &Expr, out: &mut Vec<MetaId>) {
 
 /// **B0（2026-10-23）**：把记法节点摊成它的目标应用（`x ∈ A` ⇒ `Set.mem x A`、
 /// `∅` ⇒ `Set.empty`），让合一能像普通应用脊一样分解它（只在兜底里用）。
-fn desugar_notation(e: &Expr) -> Expr {
+pub(crate) fn desugar_notation(e: &Expr) -> Expr {
     let Expr::Notation { target, assoc, lhs, rhs, span, .. } = e else {
         return e.clone();
     };
@@ -1198,6 +1198,40 @@ fn desugar_notation(e: &Expr) -> Expr {
             (Some(l), Some(r)) => app(&app(&head, l), r),
             _ => e.clone(),
         },
+    }
+}
+
+
+/// **P2-b（2026-10-23）**：把整棵项里的记法节点都摊成目标脊（递归版；只在
+/// `eqsubst` 的**兜底**里用，判定路径不用它）。
+pub(crate) fn desugar_deep(e: &Expr) -> Expr {
+    match e {
+        Expr::App { fun, arg, explicit_spine, span } => Expr::App {
+            fun: Box::new(desugar_deep(fun)),
+            arg: Box::new(desugar_deep(arg)),
+            explicit_spine: *explicit_spine,
+            span: *span,
+        },
+        Expr::Notation { .. } => {
+            let d = desugar_notation(e);
+            if matches!(d, Expr::Notation { .. }) { e.clone() } else { desugar_deep(&d) }
+        }
+        Expr::Lambda { binders, body, span } => Expr::Lambda {
+            binders: binders.clone(),
+            body: Box::new(desugar_deep(body)),
+            span: *span,
+        },
+        Expr::Forall { binders, body, span } => Expr::Forall {
+            binders: binders.clone(),
+            body: Box::new(desugar_deep(body)),
+            span: *span,
+        },
+        Expr::Arrow { domain, codomain, span } => Expr::Arrow {
+            domain: Box::new(desugar_deep(domain)),
+            codomain: Box::new(desugar_deep(codomain)),
+            span: *span,
+        },
+        other => other.clone(),
     }
 }
 

@@ -235,6 +235,8 @@ struct Synthesized {
     b: Expr,
     /// 差异路径（形状 ② 用它判「差异是否落在记法里」）。
     path: Vec<Step>,
+    /// **P2-b**：这条 diff 是在**摊开记法之后**的形态上算的（motive 也从摊开形态取）。
+    desugared: bool,
 }
 
 /// 把「`premise` 的类型」与「目标」之间的**唯一一处差异**抽成 binder（motive）。
@@ -244,7 +246,23 @@ fn synthesize(
     binders: &[Binder],
     span: Span,
 ) -> Option<Synthesized> {
-    let diff = match diff(premise_ty, goal) {
+    // **P2-b（2026-10-23）**：原形状没有"唯一一处差异"时，**摊开记法**再试一次
+    // （混合拼法：premise 写 `x ∈ A ∪ B`、goal 写 `Set.mem x (Set.union A C)`）。
+    let (diff_result, _premise_ty, goal, desugared) = {
+        match diff(premise_ty, goal) {
+            DiffResult::One(diff) if !diff.path.is_empty() => {
+                (DiffResult::One(diff), premise_ty.clone(), goal.clone(), false)
+            }
+            _ => {
+                let (p2, g2) = (
+                    crate::compile::meta::desugar_deep(premise_ty),
+                    crate::compile::meta::desugar_deep(goal),
+                );
+                (diff(&p2, &g2), p2, g2, true)
+            }
+        }
+    };
+    let diff = match diff_result {
         DiffResult::One(diff) if !diff.path.is_empty() => diff,
         _ => return None,
     };
@@ -255,7 +273,7 @@ fn synthesize(
         name: var_name.clone(),
         span,
     };
-    let body = replace_at(goal, &diff.path, &var);
+    let body = replace_at(&goal, &diff.path, &var);
     let motive = Expr::Lambda {
         binders: vec![Binder {
             name: var_name,
@@ -272,6 +290,7 @@ fn synthesize(
         a: diff.a,
         b: diff.b,
         path: diff.path,
+        desugared,
     })
 }
 
@@ -312,6 +331,11 @@ fn path_has_notation(path: &[Step]) -> bool {
 /// `mem x A ≟ mem x B` 都判绿；`x ∈ A ≟ x ∈ ∅`（记法）、`mem x A ≟ mem x ∅`
 /// （差异端是应用）都判红。
 fn generic_solves(s: &Synthesized) -> bool {
+    // **P2-b**：摊开之后才拿到的差异 ⇒ 通用反解**没有**这条形状的信息（它看的是
+    // 原始拼法）⇒ 不许用"裸名+无记法"推断"它自己能过"。
+    if s.desugared {
+        return false;
+    }
     !path_has_notation(&s.path)
         && matches!(&s.a, Expr::Ident { .. })
         && matches!(&s.b, Expr::Ident { .. })

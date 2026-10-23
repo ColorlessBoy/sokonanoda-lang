@@ -73,6 +73,7 @@ fn a_loose_judgement_is_never_replayed_for_the_strict_dialect() {
         universe: Vec::new(),
         ty: "Nat".to_string(),
         binders: Vec::new(),
+        metas: Vec::new(),
     };
     // ① 宽松档接受这条 `b2` 形状 ⇒ 它写进本进程的判定缓存 ✓（夹具前提，必须为真）。
     let first = judge_terms(JUDGE_PREFIX, &loose, &open, &[JUDGE_TERM]);
