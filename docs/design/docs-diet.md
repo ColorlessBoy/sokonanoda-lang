@@ -65,7 +65,7 @@
 
 > 另外两处**同名分量级**的：`REQUIREMENTS.md` **258 KB → 17 KB**（§9 历史逐字进
 > `docs/archive/REQUIREMENTS-ARCHIVE.md`，纯文本可 grep ✓）· `docs/e2e/ledger.jsonl`
-> **135 KB → 29 KB**（留最近 50 条；更早 203 条 + 其 140 个日志 ⇒ `docs/archive/e2e-2026-09-26/`）。
+> **135 KB → 14 KB**（留最近 20 条 + 一行 prune tombstone；更早 203 条 + 其 140 个日志 ⇒ 归档）。
 
 ## 5. 归档布局与可追溯规则（**归档 ≠ 销毁** ✓）
 

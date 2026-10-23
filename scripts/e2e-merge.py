@@ -14,7 +14,8 @@
 
 合并规则（幂等）：
 * 台账按 `date` 升序保存；重复条目（commit+版本+计数+date 全同）只留一条；
-* 每条记录引用的裁剪日志按记录里的 `log` 路径拷进 `docs/e2e/logs/`（同名覆盖）；
+* **只保留最近 `LEDGER_KEEP` 条**；更早的折成一行 `kind:"pruned"` tombstone
+  （count / 日期范围 / `log_pruned` 理由；完整历史见 git）——日志本来就不进仓库；
 * `docs/e2e/latest.json` 写成**最新**的一条（看板/摘要读它）。
 """
 
@@ -29,6 +30,16 @@ E2E_DIR = pathlib.Path("docs/e2e")
 LEDGER = E2E_DIR / "ledger.jsonl"
 LATEST = E2E_DIR / "latest.json"
 LOGS = E2E_DIR / "logs"
+# **保留最近 N 条**（2026-10-23）：`docs/e2e/ledger.jsonl` 每轮 CI 追加 3 条（三腿），
+# 而 `docs-lint` ① 的「other」类已贴顶 ⇒ 每轮都会把下一次 push 顶红。日志本来就不进仓库
+# （`log_pruned`），这里再把**旧条目**折成一行 tombstone：保留最近 N 条完整记录，
+# 更早的只留 count / 日期范围 / `log_pruned` 理由（完整历史在 git）。
+LEDGER_KEEP = 20
+PRUNED_KIND = "pruned"
+PRUNED_NOTE = (
+    "只保留最近 20 条；更早条目已裁剪（日志本来就不进仓库，见 log_pruned；"
+    "完整历史见 git）"
+)
 
 
 def key(entry: dict) -> tuple:
@@ -59,12 +70,46 @@ def read_ledger() -> list[dict]:
     return [json.loads(line) for line in LEDGER.read_text().splitlines() if line.strip()]
 
 
-def write_ledger(rows: list[dict]) -> None:
+def is_pruned(entry: dict) -> bool:
+    return entry.get("kind") == PRUNED_KIND
+
+
+def split_pruned(rows: list[dict]) -> tuple[list[dict], list[dict]]:
+    """拆出真实条目 / tombstone（tombstone 不是一次 e2e 跑，不参与排序/去重）。"""
+    pruned = [r for r in rows if is_pruned(r)]
+    return [r for r in rows if not is_pruned(r)], pruned
+
+
+def write_ledger(rows: list[dict], pruned_count: int = 0,
+                 pruned_first: str | None = None,
+                 pruned_last: str | None = None) -> tuple[int, int]:
     rows = sorted(rows, key=lambda entry: entry.get("date") or "")
+    if len(rows) > LEDGER_KEEP:
+        dropped = rows[:-LEDGER_KEEP]
+        rows = rows[-LEDGER_KEEP:]
+        pruned_count += len(dropped)
+        first = dropped[0].get("date")
+        last = dropped[-1].get("date")
+        if first:
+            pruned_first = min(pruned_first, first) if pruned_first else first
+        if last:
+            pruned_last = max(pruned_last, last) if pruned_last else last
     E2E_DIR.mkdir(parents=True, exist_ok=True)
-    LEDGER.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+    lines: list[str] = []
+    if pruned_count:
+        lines.append(json.dumps({
+            "schema": "soko.e2e/1",
+            "kind": PRUNED_KIND,
+            "count": pruned_count,
+            "first_date": pruned_first,
+            "last_date": pruned_last,
+            "log_pruned": PRUNED_NOTE,
+        }, ensure_ascii=False))
+    lines.extend(json.dumps(r, ensure_ascii=False) for r in rows)
+    LEDGER.write_text("\n".join(lines) + ("\n" if lines else ""))
     if rows:
         LATEST.write_text(json.dumps(rows[-1], indent=2, ensure_ascii=False) + "\n")
+    return len(rows), pruned_count
 
 
 def find_records(root: pathlib.Path) -> list[tuple[pathlib.Path, dict]]:
@@ -85,7 +130,13 @@ def find_records(root: pathlib.Path) -> list[tuple[pathlib.Path, dict]]:
 
 
 def merge(dirs: list[str]) -> int:
-    rows = read_ledger()
+    raw = read_ledger()
+    rows, pruned = split_pruned(raw)
+    pruned_count = sum(int(t.get("count") or 0) for t in pruned)
+    pruned_first = min((t.get("first_date") for t in pruned if t.get("first_date")),
+                       default=None)
+    pruned_last = max((t.get("last_date") for t in pruned if t.get("last_date")),
+                      default=None)
     seen = {key(entry) for entry in rows}
     LOGS.mkdir(parents=True, exist_ok=True)
     added_entries: list[dict] = []
@@ -114,8 +165,8 @@ def merge(dirs: list[str]) -> int:
             seen.add(key(entry))
             rows.append(entry)
             added_entries.append(entry)
-    write_ledger(rows)
-    print(f"e2e-merge: +{len(added_entries)} 条（台账共 {len(rows)} 条）")
+    kept, pruned_total = write_ledger(rows, pruned_count, pruned_first, pruned_last)
+    print(f"e2e-merge: +{len(added_entries)} 条（台账共 {kept} 条；更早 {pruned_total} 条已裁剪）")
     if added_entries:
         # CI 用它拼提交标题（`sed -n 's/^e2e-merge-subject: //p'`）。
         summary = " · ".join(
@@ -127,8 +178,16 @@ def merge(dirs: list[str]) -> int:
 
 
 def check() -> int:
-    rows = read_ledger()
+    raw = read_ledger()
+    rows, pruned = split_pruned(raw)
     problems = []
+    if len(pruned) > 1:
+        problems.append(f"台账里有 {len(pruned)} 条 prune tombstone（最多 1 条）")
+    for tomb in pruned:
+        if not tomb.get("log_pruned"):
+            problems.append("prune tombstone 缺 `log_pruned` 理由")
+        if not isinstance(tomb.get("count"), int) or tomb.get("count", 0) < 1:
+            problems.append("prune tombstone 的 `count` 不是正整数")
     dates = [entry.get("date") or "" for entry in rows]
     if dates != sorted(dates):
         problems.append("台账没有按 date 升序保存")
@@ -165,7 +224,10 @@ def main(argv: list[str]) -> int:
     if argv[0] == "--check":
         return check()
     if argv[0] == "--print":
-        for entry in read_ledger():
+        rows, pruned = split_pruned(read_ledger())
+        for tomb in pruned:
+            print(f"pruned: {tomb.get('count')} 条（{tomb.get('first_date')} … {tomb.get('last_date')}）")
+        for entry in rows:
             tests = entry["tests"]
             print(
                 f"{entry['date'][:19]}  {entry['commit'][:7]}  VS Code {entry['vscode']:>8}  "
