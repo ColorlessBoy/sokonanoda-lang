@@ -141,6 +141,8 @@ pub(crate) fn elab_engine_value<'a>(
         ns: ctx.ns,
         notations: ctx.notations,
         defs: ctx.defs,
+        // **S4/B2-a**：这一档是**显示形状**的重 elaborate（loose dialect）⇒ 不接元变量表。
+        metas: None,
     };
     elab_expr(
         builder,

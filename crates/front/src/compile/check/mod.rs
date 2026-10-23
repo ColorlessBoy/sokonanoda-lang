@@ -2,6 +2,7 @@
 
 mod kernel_phase;
 pub(crate) mod level_exit;
+pub(crate) mod meta_exit;
 mod walk;
 use super::elab::{canonical_ctor_name, DefTable, HoverNode, InductiveTable, KnownTable};
 use super::error::CompileError;
@@ -22,8 +23,7 @@ use sokonanoda::env::{Declar, EnvLimit};
 use sokonanoda::util::{Config, ExportFile, ExprPtr, NamePtr};
 use std::collections::HashMap;
 
-/// **T2-B 第 1 步**：`Walk` 的命令级快照要克隆累加器 ⇒ 它必须 `Clone`
-/// （纯加法：derive 不改任何行为 ✓）。
+/// **T2-B 第 1 步**：`Walk` 的命令级快照要克隆累加器 ⇒ 它必须 `Clone`（纯加法 ✓）。
 #[derive(Clone)]
 pub(crate) enum PendingOp<'a> {
     Decl {

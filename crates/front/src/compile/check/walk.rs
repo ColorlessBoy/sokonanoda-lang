@@ -10,6 +10,7 @@
 //! 单文件模式下 `prefix_src` 仍是**借用**本文件前缀（`Cow::Borrowed`），
 //! 不产生额外分配：A1（无 `import` 的文件逐字节不变）不受影响。
 
+use super::meta_exit::new_meta_table;
 use super::{
     by_step_states, failed_state, lower_value, skipped, CmdHover, KernelFailed, PendingOp, PpFlags,
     TrustPlan,
@@ -969,10 +970,9 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         let trusted = c.trusted;
         let options = local(c.options);
         let skip = c.skip;
-        // `elab_ctx` 里的 `defs` 要**借到本次 `elab_expr` 结束**，而稍后的
-        // `self.defs.insert` 需要可变借用 ⇒ 借一份快照（本次声明自己的 def 还没
-        // 登记，快照正合适：def 不递归）。课程规模下克隆成本可忽略。
+        // `defs` 要借到本次 elab 结束，而 `self.defs.insert` 要可变借用 ⇒ 借快照（def 不递归）。
         let defs_for_ctx = self.defs.clone();
+        let metas = new_meta_table();
         let elab_ctx = ElabCtx {
             notations: Some(&self.display),
             prefix_src,
@@ -980,10 +980,10 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             inductives: &self.inductives,
             ns: &self.ns,
             defs: &defs_for_ctx,
+            metas: Some(&metas),
         };
-        // **P1-b 第二刀**：`by` 引擎的就地判定用调用方手里的活环境
-        // （开关关着 ⇒ `None` ⇒ 逐字节回到今天 ✓）。先落到**具名变量**再借出去
-        // （`Option<InplaceEnv>` 直接传是临时值 ⇒ temporary-dropped ✗）。
+        // **P1-b 第二刀**：`by` 引擎的就地判定用调用方手里的活环境（开关关着 ⇒ `None`
+        // ⇒ 逐字节回到今天 ✓）。先落到**具名变量**再借出去（临时值 ⇒ temporary-dropped ✗）。
         let mut by_env = None;
         crate::judge::inplace_env_for_by(&mut by_env, &mut self.builder, &self.known);
         let lowered = match lower_value(
@@ -1408,16 +1408,14 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
     ) {
         let idx = c.idx;
         let templates = c.templates;
-        // 注意用 `&c.prefix_src`（Deref，借 `c` 的寿命）而不是 `Cow::as_ref()`
-        // （后者返回的是 `Cow` 自身的寿命参数，会把 `ElabCtx` 逼到 `'arena`）。
+        // 用 `&c.prefix_src`（Deref）而不是 `Cow::as_ref()`（后者会把 `ElabCtx` 逼到 `'arena`）。
         let prefix_src: &str = &c.prefix_src;
         let trusted = c.trusted;
         let options = local(c.options);
         let skip = c.skip;
-        // `elab_ctx` 里的 `defs` 要**借到本次 `elab_expr` 结束**，而稍后的
-        // `self.defs.insert` 需要可变借用 ⇒ 借一份快照（本次声明自己的 def 还没
-        // 登记，快照正合适：def 不递归）。课程规模下克隆成本可忽略。
+        // `defs` 要借到本次 elab 结束，而 `self.defs.insert` 要可变借用 ⇒ 借快照（def 不递归）。
         let defs_for_ctx = self.defs.clone();
+        let metas = new_meta_table();
         let elab_ctx = ElabCtx {
             notations: Some(&self.display),
             prefix_src,
@@ -1425,6 +1423,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             inductives: &self.inductives,
             ns: &self.ns,
             defs: &defs_for_ctx,
+            metas: Some(&metas),
         };
         // **G-31/G-92 第二刀（2026-10-07 ✓）**：合成判定文档的**前缀定理** ——
         // 调用方那一趟**确实把这个名字加进过环境** ⇒ 它的**证明体对下游零可观测**
@@ -1469,9 +1468,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             }
             return;
         }
-        // **P1-b 第二刀**：`by` 引擎的就地判定用调用方手里的活环境
-        // （开关关着 ⇒ `None` ⇒ 逐字节回到今天 ✓）。先落到**具名变量**再借出去
-        // （`Option<InplaceEnv>` 直接传是临时值 ⇒ temporary-dropped ✗）。
+        // **P1-b 第二刀**：`by` 引擎的就地判定用调用方手里的活环境（开关关着 ⇒ `None`
+        // ⇒ 逐字节回到今天 ✓）。先落到**具名变量**再借出去（临时值 ⇒ temporary-dropped ✗）。
         let mut by_env = None;
         crate::judge::inplace_env_for_by(&mut by_env, &mut self.builder, &self.known);
         let lowered = match lower_value(
@@ -1889,16 +1887,14 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
     #[allow(clippy::too_many_arguments)]
     fn axiom(&mut self, c: &CmdCtx<'_>, name: &str, universe: &[String], ty: &Expr, span: Span) {
         let idx = c.idx;
-        // 注意用 `&c.prefix_src`（Deref，借 `c` 的寿命）而不是 `Cow::as_ref()`
-        // （后者返回的是 `Cow` 自身的寿命参数，会把 `ElabCtx` 逼到 `'arena`）。
+        // 用 `&c.prefix_src`（Deref）而不是 `Cow::as_ref()`（后者会把 `ElabCtx` 逼到 `'arena`）。
         let prefix_src: &str = &c.prefix_src;
         let trusted = c.trusted;
         let options = local(c.options);
         let skip = c.skip;
-        // `elab_ctx` 里的 `defs` 要**借到本次 `elab_expr` 结束**，而稍后的
-        // `self.defs.insert` 需要可变借用 ⇒ 借一份快照（本次声明自己的 def 还没
-        // 登记，快照正合适：def 不递归）。课程规模下克隆成本可忽略。
+        // `defs` 要借到本次 elab 结束，而 `self.defs.insert` 要可变借用 ⇒ 借快照（def 不递归）。
         let defs_for_ctx = self.defs.clone();
+        let metas = new_meta_table();
         let elab_ctx = ElabCtx {
             notations: Some(&self.display),
             prefix_src,
@@ -1906,6 +1902,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             inductives: &self.inductives,
             ns: &self.ns,
             defs: &defs_for_ctx,
+            metas: Some(&metas),
         };
         if trusted {
             if skip.is_some_and(|s| s.contains_key(&idx)) {
@@ -2035,16 +2032,14 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
     fn example(&mut self, c: &CmdCtx<'_>, ty: &Expr, val: &Expr, span: Span, val_span: Span) {
         let idx = c.idx;
         let templates = c.templates;
-        // 注意用 `&c.prefix_src`（Deref，借 `c` 的寿命）而不是 `Cow::as_ref()`
-        // （后者返回的是 `Cow` 自身的寿命参数，会把 `ElabCtx` 逼到 `'arena`）。
+        // 用 `&c.prefix_src`（Deref）而不是 `Cow::as_ref()`（后者会把 `ElabCtx` 逼到 `'arena`）。
         let prefix_src: &str = &c.prefix_src;
         let trusted = c.trusted;
         let options = local(c.options);
         let skip = c.skip;
-        // `elab_ctx` 里的 `defs` 要**借到本次 `elab_expr` 结束**，而稍后的
-        // `self.defs.insert` 需要可变借用 ⇒ 借一份快照（本次声明自己的 def 还没
-        // 登记，快照正合适：def 不递归）。课程规模下克隆成本可忽略。
+        // `defs` 要借到本次 elab 结束，而 `self.defs.insert` 要可变借用 ⇒ 借快照（def 不递归）。
         let defs_for_ctx = self.defs.clone();
+        let metas = new_meta_table();
         let elab_ctx = ElabCtx {
             notations: Some(&self.display),
             prefix_src,
@@ -2052,6 +2047,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             inductives: &self.inductives,
             ns: &self.ns,
             defs: &defs_for_ctx,
+            metas: Some(&metas),
         };
         let mut by_env = None;
         crate::judge::inplace_env_for_by(&mut by_env, &mut self.builder, &self.known);
@@ -2433,8 +2429,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         span: Span,
     ) {
         let idx = c.idx;
-        // 注意用 `&c.prefix_src`（Deref，借 `c` 的寿命）而不是 `Cow::as_ref()`
-        // （后者返回的是 `Cow` 自身的寿命参数，会把 `ElabCtx` 逼到 `'arena`）。
+        // 用 `&c.prefix_src`（Deref）而不是 `Cow::as_ref()`（后者会把 `ElabCtx` 逼到 `'arena`）。
         let prefix_src: &str = &c.prefix_src;
         let trusted = c.trusted;
         let options = local(c.options);
@@ -2528,11 +2523,12 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         let idx = c.idx;
         // 空中缀宇宙表：`HashMap::new()` 不分配，逐命令建一张的代价是零。
         let no_universe: UnivMap<'_> = UnivMap::new();
-        // 注意用 `&c.prefix_src`（Deref，借 `c` 的寿命）而不是 `Cow::as_ref()`
-        // （后者返回的是 `Cow` 自身的寿命参数，会把 `ElabCtx` 逼到 `'arena`）。
+        // 用 `&c.prefix_src`（Deref）而不是 `Cow::as_ref()`（后者会把 `ElabCtx` 逼到 `'arena`）。
         let prefix_src: &str = &c.prefix_src;
         let options = local(c.options);
         let env_before = c.env_before;
+        // **S4/B2-a**：`#check`/`#reduce` 不接元变量表（`metas: None` ⇒ `#check fun x => x`
+        // 逐字不变 ✓）。
         let mut hovers = Vec::new();
         match elab_expr(
             &mut self.builder,
@@ -2550,6 +2546,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 inductives: &self.inductives,
                 ns: &self.ns,
                 defs: &self.defs,
+                metas: None,
             },
         ) {
             Ok(e) => {
@@ -2593,11 +2590,12 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         let idx = c.idx;
         // 空中缀宇宙表：`HashMap::new()` 不分配，逐命令建一张的代价是零。
         let no_universe: UnivMap<'_> = UnivMap::new();
-        // 注意用 `&c.prefix_src`（Deref，借 `c` 的寿命）而不是 `Cow::as_ref()`
-        // （后者返回的是 `Cow` 自身的寿命参数，会把 `ElabCtx` 逼到 `'arena`）。
+        // 用 `&c.prefix_src`（Deref）而不是 `Cow::as_ref()`（后者会把 `ElabCtx` 逼到 `'arena`）。
         let prefix_src: &str = &c.prefix_src;
         let options = local(c.options);
         let env_before = c.env_before;
+        // **S4/B2-a**：`#check`/`#reduce` 不接元变量表（`metas: None` ⇒ `#check fun x => x`
+        // 逐字不变 ✓）。
         let mut hovers = Vec::new();
         match elab_expr(
             &mut self.builder,
@@ -2615,6 +2613,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 inductives: &self.inductives,
                 ns: &self.ns,
                 defs: &self.defs,
+                metas: None,
             },
         ) {
             Ok(e) => {

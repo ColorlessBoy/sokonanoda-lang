@@ -348,7 +348,9 @@ pub(crate) fn unfold_named_in(
 ///
 /// `By` 不递归：目标/类型位不会出现 `by` 块（值位才有），而它的 tactic 里套表达式
 /// 需要另一套遍历 —— 与 `rename_free` 的处理一致 ✓。
-fn map_children(expr: &Expr, f: &mut dyn FnMut(&Expr) -> Expr) -> Expr {
+/// **S4/B2-a**：`pub(crate)` 供 `check/meta_exit.rs` 的**源级重写**复用（同一处
+/// 「哪些字段是子表达式」的定义 ✓，不复制第二份）。
+pub(crate) fn map_children(expr: &Expr, f: &mut dyn FnMut(&Expr) -> Expr) -> Expr {
     let mut binders = |bs: &[Binder]| -> Vec<Binder> {
         bs.iter()
             .map(|b| Binder {

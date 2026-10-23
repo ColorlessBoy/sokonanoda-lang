@@ -1,24 +1,22 @@
+## S4/B2-a：binder 类型元变量接线（`SOKO_DECL_METAS=1` · 默认关 · 2026-10-23 · 未发版）
+- 三档剥不出 binder 类型 ⇒ 造 `Sort 1` 元变量（表在 `ElabCtx.metas`，词法作用域）；出口 `infer_closed_type` + `assert_def_eq` 求解、按 span 重写源注解 + 重 elaborate、`declar_contains_meta` 硬闸（**补定理 val** —— 内核 `Declar::value()` 不含 Theorem）。未解 ⇒ 逐字 `elab-untyped-binder`（负例码/句/span 不变）；Prop binder 仍红（C1）。判据：front 1048 · 语料两态逐字节 · clippy 0 · docs-lint 绿。
 ## S5 第 5/6/8 步：`deferred-tactic` warning（`SOKO_DEFER=1` · 默认关 · 2026-10-23 · 未发版）
 - `LoweredValue.deferred` 穿出 by 引擎；`def`/`theorem`/`example` 三处各发一条 warning（span = 那条 tactic）。默认关 ⇒ `--json` 不变。判据：front 1045 · defer 两档各 1 passed · clippy 0 · docs-lint 绿。
 ## 修复：`apply Eq.subst h hx` / `exact Eq.subst h hx` 判绿（unit02 姐妹形状，2026-10-23 · 未发版）
 - ⭐ **用户拿到什么**：`intro h x hx; apply Eq.subst h hx` 判绿；`exact` 同形也判绿；`apply Eq.subst _ hx` 不变。**改法**：`compile/eqsubst.rs` 形状 ②（两实参都是局部名）把 premise 类型与目标的唯一差异合成 old-style 前缀，交内核终审；`apply`/`exact` 共用；通用反解能过的形状不碰。
 - **判据**：front 1040/1040 · 用例 15/15 · CLI 集成/课程门禁 exit 0 · 锚点 0 诊断 · 真课程文件 checked。**边界（钉住）**：`apply` 对「def 头偏应用谓词 + 留子目标」剥 Π 过头（`exact` 绿）。**已发版** `v0.97.6`（CI 绿 · 26 资产）。⚠ push 用 `--no-verify`：快层红在**缺 pyyaml**（`check-ci-wiring.py` rc=2）。
 ## v0.97.5 修复：unit02 答案 Eq.subst/多余 sorry + failed 投影 + e2e 起窗（2026-10-22）
-- **答案真值**：`apply Eq.subst _ hx; exact h` 是 Lean 4 标准写法；末尾 `sorry` 多余。修前两条错误互斥：有 sorry 报 no-goals、删 sorry 报 Eq.subst 隐式参数。
-- **修法**：front 合成 Eq.subst old-style 前缀（Set/函数等式也判绿）；末尾 sorry 跳过 + `redundant-sorry` warning、声明仍 checked；failed 卡片保留类型/题面，Infoview 只画“未通过，见诊断”；LSP 诊断带 `data.stage`，webview 不再把 kernel error 谎报 parse 失败；e2e profile 关 AgentHost、`quit()` 先 CDP `Browser.close` 再 pkill（无登录/无 killed 15）。
-- **发布**：v0.97.5 已发布（26 资产）。主 CI 仅 `queue-lint` 红在计划性 `threshold_ratchet`（41 笔 > 40 · docs 4.49 > 4.00 MB）⇒ 应急手动 tag/release；pre-push 挂起按 `--no-verify`；站点数据本地 0.97.5 待推。
+- **修法**：front 合成 Eq.subst old-style 前缀；末尾 sorry 跳过 + `redundant-sorry` warning、声明仍 checked；failed 卡片保留类型/题面；LSP 诊断带 `data.stage`（webview 不再谎报 parse 失败）；e2e 起窗关 AgentHost、先 CDP `Browser.close` 再 pkill。
+- **发布**：v0.97.5（26 资产）；`queue-lint` 曾红在计划性 ratchet ⇒ 应急手动 tag/release。
 
 ## v0.97.4 发版：末尾 theorem 消失 + 目标快反馈（2026-10-22）
-- ⭐ **用户现场**：unit01 最后一个 theorem，打 `constructor` + `intro h` 后几乎卡死；末尾空行显示「光标不在任何声明内」，加 `sorry` 会好一点。
-- **真因（真机取证）**：`EntryCache::dirty_commands` 只扫到上一版 `keys.len()`；**新追加的末尾命令**不在脏集 ⇒ 被误当“信任”、这一轮不查、缓存也没有 ⇒ `soko/goals` 报告里最后一条 theorem **整条消失**。修复：`i >= self.keys.len()` 一律进 dirty。
-- **快反馈**：扩展在 `onDidChangeTextDocument` 后 30ms 即请求 `stateAt`（不等 200ms 选区去抖）；错误/诊断仍走后续 LSP 发布。真机（固定 LSP + 真按键）读数：`stateAt` 中位 **1ms**，`i` 的旧目标 **33ms** 先到，`n`/`h` 的新目标 **335/83ms** 到（之后不再 25s 卡死）；末尾 theorem 不再消失。
-- **判据**：front `a_newly_appended_last_theorem_survives_the_entry_cache_splice`（**反向验证**：撤 dirty 修复 ⇒ 当场红，报告只剩 `prior`）；stub **76/76**。
-- **发布**：CI `39736014670` 真绿 10/10 · e2e 55/55 ⇒ tag `v0.97.4` ⇒ release `39737534435`（26 资产）；站点 0.97.4。
+- ⭐ **用户现场**：unit01 最后一个 theorem，打 `constructor` + `intro h` 后几乎卡死；末尾空行显示「光标不在任何声明内」。
+- **真因（真机取证）**：`EntryCache::dirty_commands` 只扫到上一版 `keys.len()` ⇒ **新追加的末尾命令**被误当“信任”、不查也没缓存 ⇒ 报告里最后一条 theorem **整条消失**。修复：`i >= self.keys.len()` 一律进 dirty。判据：`a_newly_appended_last_theorem_survives_the_entry_cache_splice`（**反向验证** ✓）· stub 76/76。
+- **快反馈**：`onDidChangeTextDocument` 后 30ms 请求 `stateAt`（不等 200ms 去抖）；真机 `stateAt` 中位 **1ms**、新目标 **335/83ms**（不再 25s 卡死）；末尾 theorem 不再消失。
+- **发布**：CI `39736014670` 绿 10/10 · e2e 55/55 ⇒ `v0.97.4`（26 资产）。
 
 ## 未完成 `sorry` 练习按 Lean 4 进环境：goal state 不再被 `unknown identifier` 阻断（2026-10-21 · 未发版）
-- ⭐ **用户拿到什么**：`unit01` 的 `singleton_subset_iff` 引用尚未证明的 `mem_of_subset_singleton` / `subset_of_mem_singleton` ⇒ 不再报错、正常 elaborate；被引用处给 `uses-open-exercise` warning（不是 error）；部分证明留着 `sorry` 时 `query state` 照常给出目标。
-- **改法**：开放练习的签名通过后，按**同签名 `Declar::Axiom`** 进环境（对齐 Lean 4 的 `sorryAx`），登记 `known` / `entered` / `open_exercises`；检查/事件语义不变（该声明仍是 `exercise.open`）。
-- **判据（实跑）**：probe = 2 `exercise.open` + 1 `decl.checked` + 1 `uses-open-exercise` + exit 0；`unit01` canvas 5 open / 3 checked、solution 6 checked 均 exit 0；`query state` 目标 `a ∈ A → {a} ⊆ A`。
+- ⭐ **用户拿到什么**：`unit01` 引用尚未证明的 `mem_of_subset_singleton` / `subset_of_mem_singleton` ⇒ 不再报错、正常 elaborate；被引用处给 `uses-open-exercise` warning（不是 error）；`query state` 照常给出目标。改法：签名通过后按**同签名 `Declar::Axiom`** 进环境（对齐 Lean 4 的 `sorryAx`），事件仍是 `exercise.open`。
 - **边界**：签名不过的声明仍 Failed、不进环境（G-01 红线）；引用 Failed 声明仍是 `elab-unknown-identifier`。
 ## 课程冗余 `@` 清理：两批 176 处（2026-10-21 · 未发版）
 - ⭐ **用户拿到什么**：第一批 90 + 第二批 86；共 **176 处**。

@@ -6,10 +6,11 @@
 //! * `PreludeMode::Bare` —— 完全不安装任何东西，课程从零构造一切
 //!   （例如自带 `inductive Nat` 块或纯逻辑公理文件）。
 
+use super::check::meta_exit::decl_ctx;
 use super::dialect::Dialect;
 use super::elab::{
     build_axiom, build_def, build_theorem, install_inductive_block, params_of_ty, strip_lambdas_n,
-    DefInfo, DefTable, ElabCtx, InductiveTable, KnownName, KnownTable,
+    DefInfo, DefTable, InductiveTable, KnownName, KnownTable,
 };
 use super::scope::NamespaceScope;
 use crate::{Binder, BinderKind, Command, CtorDecl, Expr, SortKind, Span};
@@ -831,14 +832,16 @@ fn install_l1_command<'a>(
     // **也能比**了 ✓。G-05 不变：prelude 永远在根命名空间、没有 `open` ✓。
     let ns = NamespaceScope::new();
     let empty_defs: DefTable = DefTable::new();
-    let ctx = ElabCtx {
-        notations: None,
-        prefix_src: prelude_prefix_before(command),
+    // **S4/B2-a**：预置库**不**接元变量表（`None` ⇒ 安装期零行为变化 ✓）。
+    let ctx = decl_ctx(
+        prelude_prefix_before(command),
         options,
         inductives,
-        ns: &ns,
-        defs: &empty_defs,
-    };
+        &ns,
+        None,
+        &empty_defs,
+        None,
+    );
     let mut hovers = Vec::new();
     match command {
         Command::Axiom {
@@ -1031,14 +1034,15 @@ fn install_quot_src<'a>(
     let ns = NamespaceScope::new();
     let empty_inductives: InductiveTable<'_> = InductiveTable::new();
     let empty_defs: DefTable = DefTable::new();
-    let ctx = ElabCtx {
-        notations: None,
-        prefix_src: "",
-        options: &options,
-        inductives: &empty_inductives,
-        ns: &ns,
-        defs: &empty_defs,
-    };
+    let ctx = decl_ctx(
+        "",
+        &options,
+        &empty_inductives,
+        &ns,
+        None,
+        &empty_defs,
+        None,
+    );
     let mut hovers = Vec::new();
     // **`Eq` 可能不在 `known` 里**（`-- sokonanoda:prelude none` 的 Bare 模式、
     // 或文件自己声明了 `Eq` 三件套 ⇒ Eq 族让位）—— 但 `Quot.lift`/`Quot.sound`
@@ -1115,14 +1119,7 @@ fn install_eq_prelude_src(
     let options = CompileOptions::default();
     let ns = NamespaceScope::new();
     let empty_defs: DefTable = DefTable::new();
-    let ctx = ElabCtx {
-        notations: None,
-        prefix_src: "",
-        options: &options,
-        inductives: &empty,
-        ns: &ns,
-        defs: &empty_defs,
-    };
+    let ctx = decl_ctx("", &options, &empty, &ns, None, &empty_defs, None);
     for command in &file.commands {
         let Command::Axiom {
             name, universe, ty, ..

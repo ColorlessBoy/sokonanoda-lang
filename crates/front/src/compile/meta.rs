@@ -125,6 +125,41 @@ pub(crate) mod level_mvar_table {
     }
 }
 
+// ─────────────────── S4/B2-a：**声明级**元变量表（binder 类型）───────────────────
+//
+// **为什么不用 `thread_local`**（与上面的层元变量表不同 ✗）：judge 的 `judge_infer`
+// 在**同一线程**里递归跑 walk（合成一份文档）⇒ thread_local 会把外层声明的元变量
+// 漏进合成声明 ✗（施工图 R4）。⇒ 由 `walk` 的处理器在**栈上**持有、经
+// `ElabCtx.metas` **显式**传进来（词法作用域 ⇒ 结构上不可能泄漏 ✓）。
+
+/// 一条声明里造出来的 binder 类型元变量（**只是记账** ✓；权威来源 = 声明里真的出现的 id）。
+pub(crate) struct DeclMeta {
+    pub id: u32,
+    /// 那个**未注解 binder** 的源 span（出口报错时逐字复用它 ✓）。
+    pub span: Span,
+}
+
+/// 一次声明的元变量表（由 `walk` 的处理器**栈上**持有，经 `ElabCtx.metas` 传进来）。
+#[derive(Default)]
+pub(crate) struct DeclMetas {
+    pub entries: Vec<DeclMeta>,
+}
+
+/// 进程内单调的元变量 id —— **不要**用 `MetaCtx::fresh` 的 `store.mvars.len()` ✗
+/// （它每个求解调用都从 0 起 ⇒ 声明级表里会撞 id ✗）。
+pub(crate) fn fresh_decl_meta_id() -> u32 {
+    use std::sync::atomic::{AtomicU32, Ordering};
+    static NEXT: AtomicU32 = AtomicU32::new(0);
+    NEXT.fetch_add(1, Ordering::Relaxed)
+}
+
+/// **S4 逃生门**：`SOKO_DECL_METAS=1` 才开（**默认关** ⇒ 今天的行为逐字节不变 ✓）。
+pub(crate) fn decl_metas_enabled() -> bool {
+    use std::sync::OnceLock;
+    static ON: OnceLock<bool> = OnceLock::new();
+    *ON.get_or_init(|| std::env::var("SOKO_DECL_METAS").is_ok_and(|v| v != "0"))
+}
+
 /// 层元变量的 id（不是层元变量名 ⇒ `None`）。
 #[allow(dead_code)] // U1 第 2 片会用
 pub(crate) fn level_id_of(name: &str) -> Option<u32> {

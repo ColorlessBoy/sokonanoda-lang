@@ -1,5 +1,6 @@
 //! AST → 内核表达式的 elaborate、声明构建（build_*）与 hover 记录。  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 
+use super::check::meta_exit::{b2_binder, untyped_binder, ValKind};
 use super::check::quiet_catch;
 use super::error::{CompileError, ErrorKind};
 use super::expected::{drop_expected_src_layer_unfolding, mentions_any, mentions_names};
@@ -11,9 +12,7 @@ use crate::judge::{judge_infer, GoalBinderSpec};
 use crate::proof::render_expr;
 use crate::{Binder, BinderKind, CtorDecl, Expr, IotaRule, NotationAssoc, RecDecl, SortKind, Span};
 use sokonanoda::builder::EnvBuilder;
-use sokonanoda::env::{
-    ConstructorData, Declar, DeclarInfo, RecRule, RecursorData, ReducibilityHint,
-};
+use sokonanoda::env::{ConstructorData, Declar, DeclarInfo, RecRule, RecursorData};
 use sokonanoda::expr::BinderStyle;
 use sokonanoda::util::{ExprPtr, LevelPtr, LevelsPtr, NamePtr};
 use std::collections::{HashMap, HashSet};
@@ -574,6 +573,10 @@ pub(crate) struct ElabCtx<'a, 'b> {
     /// `Or.inl h` 的目标常写成 `a ∈ A ∪ B`（`Set.mem … (Set.union …)`，两层
     /// `def`），不展开到 `Or …` 就头部匹配不上。没有表的地方传空表（不影响）。
     pub defs: &'b DefTable,
+    /// **S4/B2-a**：本声明的 binder 类型元变量表 —— **只有 `def`/`theorem`/`example`
+    /// 传 `Some`** ✓；`#check`/`#reduce`/judge 合成文档/预置库传 `None`（词法作用域 ⇒
+    /// 元变量**不可能**漏进非声明通道 ✓）。开关关着时表恒空 ⇒ 一次 `is_empty` ✓。
+    pub metas: Option<&'b std::cell::RefCell<crate::compile::meta::DeclMetas>>,
 }
 
 pub(crate) struct ElabScope<'a> {
@@ -862,6 +865,7 @@ pub(crate) fn install_inductive_block<'a>(
     // 不在 v1 支持内）。这里借用既有登记表，插入在本函数末尾进行。
     let empty_defs: DefTable = DefTable::new();
     let elab_ctx = ElabCtx {
+        metas: None,
         notations: None,
         prefix_src,
         options,
@@ -1205,28 +1209,20 @@ pub(crate) fn build_def<'a>(
     let ty_kernel = elab_expr(
         builder, ty, &mut scope, &univ, known, hovers, None, None, ctx,
     )?;
-    let val_kernel = elab_expr(
+    crate::compile::check::meta_exit::build_value(
         builder,
+        ValKind::Def,
+        name,
+        universe,
+        ty,
+        ty_kernel,
         val,
         &mut scope,
         &univ,
         known,
         hovers,
-        Some(ty_kernel),
-        Some(ty),
         ctx,
-    )?;
-    let name = builder.name_from_str(name);
-    let uparams = collect_uparams(builder, &univ, universe);
-    Ok(Declar::Definition {
-        info: DeclarInfo {
-            name,
-            uparams,
-            ty: ty_kernel,
-        },
-        val: val_kernel,
-        hint: ReducibilityHint::Regular(0),
-    })
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1245,27 +1241,20 @@ pub(crate) fn build_theorem<'a>(
     let ty_kernel = elab_expr(
         builder, ty, &mut scope, &univ, known, hovers, None, None, ctx,
     )?;
-    let val_kernel = elab_expr(
+    crate::compile::check::meta_exit::build_value(
         builder,
+        ValKind::Theorem,
+        name,
+        universe,
+        ty,
+        ty_kernel,
         val,
         &mut scope,
         &univ,
         known,
         hovers,
-        Some(ty_kernel),
-        Some(ty),
         ctx,
-    )?;
-    let name = builder.name_from_str(name);
-    let uparams = collect_uparams(builder, &univ, universe);
-    Ok(Declar::Theorem {
-        info: DeclarInfo {
-            name,
-            uparams,
-            ty: ty_kernel,
-        },
-        val: val_kernel,
-    })
+    )
 }
 
 pub(crate) fn build_example<'a>(
@@ -1282,28 +1271,20 @@ pub(crate) fn build_example<'a>(
     let ty_kernel = elab_expr(
         builder, ty, &mut scope, &univ, known, hovers, None, None, ctx,
     )?;
-    let val_kernel = elab_expr(
+    crate::compile::check::meta_exit::build_value(
         builder,
+        ValKind::Example,
+        name,
+        &[],
+        ty,
+        ty_kernel,
         val,
         &mut scope,
         &univ,
         known,
         hovers,
-        Some(ty_kernel),
-        Some(ty),
         ctx,
-    )?;
-    let name = builder.name_from_str(name);
-    let uparams = builder.alloc_levels_slice(&[]);
-    Ok(Declar::Definition {
-        info: DeclarInfo {
-            name,
-            uparams,
-            ty: ty_kernel,
-        },
-        val: val_kernel,
-        hint: ReducibilityHint::Regular(0),
-    })
+    )
 }
 
 /// **只为收 hover 行**地把一个**类型**（签名）elaborate 一遍（G-108 第二刀）。
@@ -5245,13 +5226,12 @@ fn head_and_args_notation(expr: &Expr) -> Option<(String, Vec<Expr>, Expr)> {
 /// ⚠ **为什么必须是一对**：`ElabScope::push` 要的是**核项** `ty` ✗，而引擎的元变量是
 /// **源级**的 ✗ ⇒ 两条表示**只有 id 相同才对得上** ✓（台账 `G-33` 第 59/61 棒 ✓）。
 ///
-/// ⚠ **本函数暂时没有生产调用方** —— 接线是下一片；单独接上只会把今天那条
-/// `elab-untyped-binder` ✗ 换成更差的 `add_declar` 拒绝 ✗（**失败面扩大** ✗）⇒ **必须一起接** ✓。
+/// ⚠ **接线（S4/B2-a ✓）**：生产调用方是 `check/meta_exit.rs` 的 `b2_binder`；解不出
+/// 由声明出口报**同一条** `elab-untyped-binder`（绝不把元变量交给 `add_declar` ✗）。
 ///
 /// **Lean 4 对照**：Lean 的 `Expr.mvar` 一种表示贯穿 elab/kernel；我们分成源/核两种，
 /// 靠 **id 对齐** 接起来。
-#[allow(dead_code)] // 下一片（接线）会用；现在只有单测用
-fn b2_meta_pair<'a>(
+pub(crate) fn b2_meta_pair<'a>(
     builder: &mut sokonanoda::builder::EnvBuilder<'a>,
     id: u32,
     kind: crate::compile::meta::MetaKind,
@@ -5957,14 +5937,12 @@ pub(crate) fn elab_expr<'a>(
                                     rest_src = Some(body_src);
                                     (binder_ty, style, None)
                                 }
-                                None => {
-                                    return Err(CompileError::elab(
-                                ErrorKind::ElabUntypedBinder,
-                                "cannot infer the type of this binder: the declared type does not \
-                                 provide a matching position (write it explicitly, e.g. fun (x : Nat) => x)",
-                                binder.span,
-                            ));
-                                }
+                                // **S4/B2-a**：三档都剥不出 ⇒ 造一对 binder 类型元变量
+                                // （解不出由声明出口报**同一条**错，见 `check/meta_exit.rs`）。
+                                None => match b2_binder(builder, ctx, binder) {
+                                    Some((ty, style)) => (ty, style, None),
+                                    None => return Err(untyped_binder(binder.span)),
+                                },
                             },
                         },
                     },
