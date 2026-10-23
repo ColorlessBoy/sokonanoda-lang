@@ -152,8 +152,25 @@ fn rewrite_single_argument(
     if !is_eqsubst_head(head) || args.len() != 1 || matches!(args[0], Expr::Hole { .. }) {
         return None;
     }
-    let (eq_a, eq_b) = eq_endpoints(args[0], binders)?;
-    let ty = local_type(binders, &eq_b)?.clone();
+    rewrite_goal_motive(head, args[0], goal, binders, span, None)
+}
+
+/// **形状 ③/④ 的共用体**：`premise = None` ⇒ 只给到等号（`apply`，`p a` 成为子目标）；
+/// `Some(tm)` ⇒ 再补一个实参（`exact`，`tm` 必须能被判成 `p a`，内核终审）。
+fn rewrite_goal_motive(
+    head: &Expr,
+    eq_term: &Expr,
+    goal: &Expr,
+    binders: &[Binder],
+    span: Span,
+    premise: Option<&Expr>,
+) -> Option<Expr> {
+    let (eq_a, eq_b) = eq_endpoints(eq_term, binders)?;
+    // 类型优先取右端（被替换的那一端）；右端不是局部名（`∅`）时取**左端** ——
+    // 等式两端同型，左端常是局部名（`h : A = ∅` ⇒ `A` 的类型就是 `Set α`）。
+    let ty = local_type(binders, &eq_b)
+        .or_else(|| local_type(binders, &eq_a))?
+        .clone();
     let var_name = format!("_soko_eq{}", span.start.offset);
     let var = Expr::Ident { name: var_name.clone(), span };
     let mut hits = 0usize;
@@ -172,7 +189,11 @@ fn rewrite_single_argument(
         span,
     };
     let mut out = head.clone();
-    for arg in [ty, motive, eq_a, eq_b, args[0].clone()] {
+    let mut parts = vec![ty, motive, eq_a, eq_b, eq_term.clone()];
+    if let Some(p) = premise {
+        parts.push(p.clone());
+    }
+    for arg in parts {
         out = Expr::App {
             fun: Box::new(out),
             arg: Box::new(arg),
@@ -195,7 +216,17 @@ pub(crate) fn rewrite_exact(
     if !is_eqsubst_two_args(expr) {
         return None;
     }
-    rewrite_explicit_equality(expr, goal, &binders(), span)
+    let binders = binders();
+    rewrite_explicit_equality(expr, goal, &binders, span).or_else(|| {
+        // **P2-d（2026-10-23）**：`exact Eq.subst h tm` —— `tm` 是复合项（`Eq.refl _`）
+        // 时形状 ② 取不到 premise 类型；改用"目标里的右端出现"抽 motive，`tm` 原样
+        // 作为最后一个实参（能不能被判成 `p a` 由内核定）。
+        let (head, args) = spine::spine_of(expr);
+        if !is_eqsubst_head(head) || args.len() != 2 || matches!(args[0], Expr::Hole { .. }) {
+            return None;
+        }
+        rewrite_goal_motive(head, args[0], goal, &binders, span, Some(args[1]))
+    })
 }
 
 /// 零分配：是不是 `Eq.subst` 且**恰好** 2 个实参（形状 ① / ② 的共同前提）。

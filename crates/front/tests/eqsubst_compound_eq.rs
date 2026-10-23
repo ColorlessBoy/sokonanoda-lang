@@ -14,6 +14,7 @@ def Set (α : Type) : Type := α -> Prop
 namespace Set
 def mem {α : Type} (a : α) (A : Set α) : Prop := A a
 def union {α : Type} (A B : Set α) : Set α := fun (x : α) => A x ∨ B x
+def empty {α : Type} : Set α := fun (_ : α) => False
 end Set
 infix:50 \" ∈ \" => Set.mem
 infixr:70 \" ∪ \" => Set.union
@@ -31,6 +32,12 @@ theorem deep_apply_nested (α : Type) (f g : α -> α) (x y : α) (h : x = y) :
     g (f x) = g (f y) := by
   apply Eq.subst h
   rfl
+theorem deep_exact_compound_premise (α : Type) (f : α -> α) (x y : α) (h : x = y) :
+    f x = f y := by
+  exact Eq.subst h (Eq.refl (f x))
+theorem nonlocal_rhs (α : Type) (A : Set α) (x : α) (h : A = Set.empty) (hx : x ∈ A) :
+    x ∈ Set.empty := by
+  exact Eq.subst h hx
 ";
 
 #[test]
