@@ -9,6 +9,7 @@ mod error;
 mod error_hint;
 // 命名实参（`g (α := Nat) 5`，用户 2026-10-16 第 ② 条）。
 pub(crate) mod eqsubst;
+mod eqsubst_diff;
 mod event;
 mod expected;
 mod expected_spine;

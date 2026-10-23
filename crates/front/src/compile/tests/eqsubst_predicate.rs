@@ -204,3 +204,224 @@ theorem t (α : Type) (A : Set α) (x b : α) (hx : b ∈ A) (h : A = empty) : x
     );
     assert!(!checked_names(&out).contains(&"t".to_string()));
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// **2026-10-23 用户亲报（unit02 的姐妹形状）**：`apply Eq.subst h hx`
+// —— 等号位**不是洞**，两个实参都给。初学者最先想到的就是这一句。
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// 现场：
+/// ```text
+/// intro h x hx
+/// apply Eq.subst h hx      -- ✗ 「4 个隐式参数补不出来 / 两条线索互相矛盾」
+/// ```
+/// 根因与 2026-10-22 那条同源：谓词 `p` 只能从 `hx` 的类型与目标**反解**，而
+/// `hx : x ∈ A` 是**记法节点** ⇒ 结构抽取器看不穿（`tests/eqsubst_predicate.rs`
+/// 第 3 条钉的边界）⇒ `p` 解不出。
+///
+/// 判据：0 诊断 + `t` 在 `checked_names` 里（合成 old-style 前缀
+/// `Eq.subst (Set α) (fun s => x ∈ s) A empty h hx`，整条由内核终审）。
+#[test]
+fn apply_eqsubst_with_the_equality_given_on_a_set_predicate() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def empty {α : Type} : Set α := fun (_ : α) => False
+infix:50 \" ∈ \" => mem
+
+theorem t (α : Type) (A : Set α) (x : α) (hx : x ∈ A) (h : A = empty) : x ∈ empty := by
+  apply Eq.subst h hx
+";
+    let out = compile(src);
+    assert_eq!(
+        out.errors,
+        vec![],
+        "`apply Eq.subst h hx`（记法谓词）必须判绿：{:?}",
+        out.errors
+    );
+    assert!(
+        checked_names(&out).contains(&"t".to_string()),
+        "`t` 必须 checked：{:?}",
+        checked_names(&out)
+    );
+}
+
+/// 同一条走 **`exact`**（课程里 term 风格与 tactic 风格都教）—— 也必须判绿。
+#[test]
+fn exact_eqsubst_with_the_equality_given_on_a_set_predicate() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def empty {α : Type} : Set α := fun (_ : α) => False
+infix:50 \" ∈ \" => mem
+
+theorem t (α : Type) (A : Set α) (x : α) (hx : x ∈ A) (h : A = empty) : x ∈ empty := by
+  exact Eq.subst h hx
+";
+    let out = compile(src);
+    assert_eq!(
+        out.errors,
+        vec![],
+        "`exact Eq.subst h hx` 必须判绿：{:?}",
+        out.errors
+    );
+    assert!(checked_names(&out).contains(&"t".to_string()));
+}
+
+/// **反向 ①（方向）**：`h : empty = A` 搬不过去（`Eq.subst` 只做 `a → b`）⇒ 必须判红。
+#[test]
+fn apply_eqsubst_with_the_equality_given_rejects_the_wrong_direction() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def empty {α : Type} : Set α := fun (_ : α) => False
+infix:50 \" ∈ \" => mem
+
+theorem t (α : Type) (A : Set α) (x : α) (hx : x ∈ A) (h : empty = A) : x ∈ empty := by
+  apply Eq.subst h hx
+";
+    let out = compile(src);
+    assert!(
+        !out.errors.is_empty(),
+        "`h : empty = A` 方向反了 ⇒ 必须判红"
+    );
+    assert!(!checked_names(&out).contains(&"t".to_string()));
+}
+
+/// **反向 ②（对象）**：前提搬的是别的元素（`hx : b ∈ A`）⇒ 必须判红。
+#[test]
+fn apply_eqsubst_with_the_equality_given_rejects_a_wrong_premise() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def empty {α : Type} : Set α := fun (_ : α) => False
+infix:50 \" ∈ \" => mem
+
+theorem t (α : Type) (A : Set α) (x b : α) (hx : b ∈ A) (h : A = empty) : x ∈ empty := by
+  apply Eq.subst h hx
+";
+    let out = compile(src);
+    assert!(
+        !out.errors.is_empty(),
+        "`hx : b ∈ A` 搬不到 `x` 上 ⇒ 必须判红"
+    );
+    assert!(!checked_names(&out).contains(&"t".to_string()));
+}
+
+/// **正对照（点名形状本来就过）**：新形状**只在记法谓词上触发**，点名形状
+/// （`mem x A` / `mem x B`）本来就能靠通用反解过 —— 不许把它改坏 / 改慢。
+#[test]
+fn apply_eqsubst_with_the_equality_given_keeps_the_point_name_shape_green() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+
+theorem t (α : Type) (A B : Set α) (x : α) (hx : mem x A) (h : A = B) : mem x B := by
+  apply Eq.subst h hx
+";
+    let out = compile(src);
+    assert_eq!(out.errors, vec![], "点名形状必须照旧判绿：{:?}", out.errors);
+    assert!(checked_names(&out).contains(&"t".to_string()));
+}
+
+/// **同一形状、另一种记法**：谓词是 `⊆`（`Set.subset` 是 def，目标本身是 Pi）。
+///
+/// `hx : A ⊆ C`、`h : C = D` ⇒ `A ⊆ D`。合成
+/// `Eq.subst (Set α) (fun s => A ⊆ s) C D h hx`；整条由内核终审。
+#[test]
+fn apply_eqsubst_with_the_equality_given_on_a_subset_predicate() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def subset {α : Type} (A B : Set α) : Prop := ∀ (x : α), A x → B x
+infix:50 \" ⊆ \" => subset
+
+theorem t (α : Type) (A C D : Set α) (hx : A ⊆ C) (h : C = D) : A ⊆ D := by
+  apply Eq.subst h hx
+";
+    let out = compile(src);
+    assert_eq!(out.errors, vec![], "`⊆` 谓词也必须判绿：{:?}", out.errors);
+    assert!(checked_names(&out).contains(&"t".to_string()));
+}
+
+/// **已知边界（钉住现状，不是修好了）**：`apply` 会**一直剥 Π** —— 当被应用项的
+/// 结果类型是 `def` 头、展开后是 Π/箭头（`A ⊆ D` → `∀ x, A x → D x`）时，
+/// 它把**目标本身**也当函数剥掉两层 ⇒「结果是 `D x`，无法对齐当前目标 `A ⊆ D`」。
+///
+/// 现场（2026-10-23 顺带发现，与 `Eq.subst` 的隐式反解**无关**）：
+/// ```text
+/// apply Eq.subst (Set α) (fun (X : Set α) => A ⊆ X) C D h
+/// exact hx
+/// ```
+/// 同一条项写成 `exact @Eq.subst.{1} … h hx` 判绿（`exact` 不剥 Π）。
+///
+/// ⚠ **本用例断言的是当前行为**：将来谁让 `apply` 按「已写实参 vs 声明元数」
+/// 决定剥几层，这里**应当判红**（是升级，不是回归）✓。
+#[test]
+fn apply_with_a_def_headed_motive_still_over_peels_the_goal() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def subset {α : Type} (A B : Set α) : Prop := ∀ (x : α), A x → B x
+infix:50 \" ⊆ \" => subset
+
+theorem t (α : Type) (A C D : Set α) (h : C = D) (hx : A ⊆ C) : A ⊆ D := by
+  apply Eq.subst (Set α) (fun (X : Set α) => A ⊆ X) C D h
+  exact hx
+";
+    let out = compile(src);
+    assert!(
+        !out.errors.is_empty(),
+        "已知边界：`apply` 把目标本身剥掉了 ⇒ 今天仍判红"
+    );
+    assert!(
+        out.errors[0].message.contains("无法对齐当前目标"),
+        "边界形状的文案（剥 Π 过头）：{}",
+        out.errors[0].message
+    );
+    assert!(!checked_names(&out).contains(&"t".to_string()));
+}
+
+/// **应用端差异**（`A` vs `sing a`，没有记法）：真实课程里 `∅` 经内核降级成
+/// 应用形态后就是这一类（`x ∈ A` vs `x ∈ ∅` 展开成 `mem x (Set.empty …)`）。
+/// ⚠ 这一条**通用反解本来也能过**（自包含夹具里解得出）—— 它钉的是
+/// **改写不许把它改坏**（改写会触发：差异端是应用）。
+#[test]
+fn apply_eqsubst_with_the_equality_given_on_a_definition_application() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def sing {α : Type} (a : α) : Set α := fun (x : α) => x = a
+
+theorem t (α : Type) (A : Set α) (x a : α) (hx : mem x A) (h : A = sing a)
+    : mem x (sing a) := by
+  apply Eq.subst h hx
+";
+    let out = compile(src);
+    assert_eq!(out.errors, vec![], "应用端差异必须判绿：{:?}", out.errors);
+    assert!(checked_names(&out).contains(&"t".to_string()));
+}
+
+/// **真实课程的形状**：目标经 `subset`（def）展开、`hx` 由 `intro` 得到
+/// （类型是内核展开后的应用链）—— unit02 的原案就是这个形状。
+/// ⚠ 自包含夹具里通用反解也能过（真实课程失败要靠 lib 的 pp 带占位——见
+/// `STATUS.md` 2026-10-23 那条）；它同样钉「改写不许改坏」。
+#[test]
+fn apply_eqsubst_with_the_equality_given_after_intro_through_a_definition() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def empty {α : Type} : Set α := fun (_ : α) => False
+def subset {α : Type} (A B : Set α) : Prop := ∀ (x : α), mem x A → mem x B
+
+theorem t (α : Type) (A : Set α) (h : A = empty) : subset A empty := by
+  intro x hx
+  apply Eq.subst h hx
+";
+    let out = compile(src);
+    assert_eq!(
+        out.errors,
+        vec![],
+        "intro 展开后的形状必须判绿：{:?}",
+        out.errors
+    );
+    assert!(checked_names(&out).contains(&"t".to_string()));
+}

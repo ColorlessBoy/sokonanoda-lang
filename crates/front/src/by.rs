@@ -11,6 +11,7 @@
 
 use crate::ast::{Binder, BinderKind, Expr, HaveValue, MatchArm, Pattern, Tactic};
 use crate::compile::elab::{DefTable, InductiveTable, MatchCtor};
+use crate::compile::eqsubst::{rewrite, rewrite_exact};
 use crate::compile::CompileError;
 use crate::compile::{CompileOptions, ErrorKind};
 use crate::expr::e_app_at;
@@ -2522,12 +2523,7 @@ fn apply_tactic<'a>(
     let cur = *worklist.last().ok_or_else(|| {
         CompileError::elab(ErrorKind::ElabTacticFailed, "by 块里没有待解目标", span)
     })?;
-    let rewritten = crate::compile::eqsubst::rewrite_argument_hole(
-        expr,
-        &nodes[cur].ty,
-        &context_binders(nodes, cur),
-        span,
-    );
+    let rewritten = rewrite(expr, &nodes[cur].ty, &context_binders(nodes, cur), span);
     let expr = rewritten.as_ref().unwrap_or(expr);
     let term = render_expr(expr);
     let spec = spec_of(nodes, cur, universe);
@@ -3887,6 +3883,8 @@ fn exact_tactic(
     let cur = *worklist
         .last()
         .ok_or_else(|| tactic_error("by 块里没有待解目标", span))?;
+    let rw = rewrite_exact(expr, &nodes[cur].ty, || context_binders(nodes, cur), span);
+    let expr = rw.as_ref().unwrap_or(expr);
     let term = render_expr(expr);
     let j = judge_with_levels(
         prefix_src,

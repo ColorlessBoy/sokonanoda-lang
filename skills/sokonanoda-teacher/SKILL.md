@@ -381,7 +381,7 @@ warning；**failed** 声明才不进环境。后续声明仍会被检查并得�
 | `Iff.intro P Q h1 h2` | `constructor` → 两个分支分别 `exact h1` / `exact h2` |
 | `And.intro P Q h1 h2` | `constructor` → 同上 |
 | `Set.ext α A B (fun (x : α) => …)` | `apply Set.ext` → `intro x` → … |
-| `Eq.subst.{1} …`（把等式搬进目标） | 这一步在 tactic 下通常写成 `exact …`；有 `rw` 之后是 `rw [h]` |
+| `Eq.subst.{1} …`（把等式搬进目标） | tactic 下：`apply Eq.subst h hx`（谓词由前提+目标合成；2026-10-23 起记法谓词也判绿）或 `exact Eq.subst h hx`；有 `rw` 之后是 `rw [h]` |
 | 嵌套 `Iff.intro` / `And.intro` | 嵌套的 `constructor`（每层一次） |
 | `Or.inl h` / `Or.inr h` | `left; exact h` / `right; exact h` |
 | `Exists.intro w hw` | `exact ⟨w, hw⟩`（匿名构造子） |
