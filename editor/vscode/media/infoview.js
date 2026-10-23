@@ -483,12 +483,17 @@
       goalsBody.appendChild(line);
     }
 
-    // **failed 声明只画一句诊断入口**（2026-10-22）：`stateAt` 对失败声明可能
-    // 退回题面（`by_root`），以前会被当成“还没开始”的目标 + `0/N` 进度 ——
-    // 对一条已经跑了 8 条 tactic 的失败证明，这是假话。
-    if (decl && decl.status === "failed") {
+    // **failed 声明先给一句诊断入口**（2026-10-22）——但**不再一刀切藏目标** ✗
+    // （2026-10-23 用户实测：`apply Eq.subst h` 失败时服务端给的 `step=5,total=6`
+    // 是**对的**（目标 `x ∈ ∅`、假设 h/x/hx 都在），却被这一句全藏了）。
+    // 分两种：
+    //   · `step >= 0` ⇒ 这个位置**真的**选中了一条逐 tactic 状态 ⇒ 照常画目标 ✓
+    //   · `step < 0`  ⇒ 只有根状态 / 题面回退（`stateAt` 退回 `by_root`；那正是
+    //     2026-10-22 要防的"把题面画成当前目标 + 0/N 进度"）⇒ 停在诊断入口 ✗
+    const failed = !!(decl && decl.status === "failed");
+    if (failed) {
       goalsBody.appendChild(el("p", "empty", "声明未通过，见诊断。"));
-      return;
+      if (!(typeof msg.step === "number" && msg.step >= 0)) return;
     }
 
     const goals = Array.isArray(msg.goals) && msg.goals.length > 0
@@ -506,10 +511,8 @@
       if (decl) {
         // **需求 3（2026-10-09）：无目标只有一句文案**；但 **`failed` 是例外**
         // （2026-10-21 用户实测：内核拒绝的声明也显示 🎉 ⇒ 谎报）。
-        // 失败时显示诊断入口，不替学习者下"证完了"的判决。
-        if (decl.status === "failed") {
-          goalsBody.appendChild(el("p", "empty", "声明未通过，见诊断。"));
-        } else {
+        // 失败时上面已经画过诊断入口 ⇒ 这里**不再补一句判决**（也不重复画）。
+        if (!failed) {
           goalsBody.appendChild(el("p", "solved", "🎉 已无目标 ✓"));
         }
       } else if (messages.length === 0) {

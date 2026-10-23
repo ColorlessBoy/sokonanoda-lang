@@ -1463,6 +1463,50 @@ test("state: a failed declaration never shows the题面/0-N progress (2026-10-22
   assert.strictEqual(byClass(root, "goal-ty").length, 0, "failed 不许把题面画成当前目标");
 });
 
+// **2026-10-23 用户实测**：失败声明**有可靠的逐 tactic 状态时不许把目标全藏掉**。
+// 现场 `apply Eq.subst h`：服务端 `step=5,total=6`、目标 `x ∈ ∅`、假设 h/x/hx 都在，
+// 旧实现只看 `decl.status === "failed"` 就 return ⇒ 学习者看不到失败那一刻的目标 ✗。
+test("state: a failed declaration still shows reliable per-tactic goals (2026-10-23)", () => {
+  const { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "state",
+    decl: { name: "subset_empty_iff", kind: "theorem", status: "failed" },
+    goals: [
+      {
+        goal: "x ∈ ∅",
+        binders: [
+          { name: "h", ty: "A = ∅" },
+          { name: "x", ty: "α" },
+          { name: "hx", ty: "x ∈ A" },
+        ],
+        goal_runs: [],
+      },
+    ],
+    goal: "x ∈ ∅",
+    step: 5,
+    total: 6,
+  });
+  assert.strictEqual(
+    textOf(byClass(root, "empty")[0]),
+    "声明未通过，见诊断。",
+    "失败声明仍要给诊断入口",
+  );
+  assert.ok(
+    textOf(byClass(root, "goal-ty")[0]).includes("x ∈ ∅"),
+    "可靠的逐 tactic 目标必须画出来（step ≥ 0）",
+  );
+  assert.ok(
+    textOf(root).includes("hx") && textOf(root).includes("x ∈ A"),
+    "假设也要画出来",
+  );
+  assert.strictEqual(
+    byClass(root, "solved").length,
+    0,
+    "失败声明不许显示「🎉 已无目标 ✓」",
+  );
+});
+
 // **2026-10-22 现场**：文件有 kernel/elab error、但 parse 成功时，
 // 光标在注释/空行上**不许**说“文件没解析成功”。
 test("state: a kernel error is not a parse failure (2026-10-22)", () => {
