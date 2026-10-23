@@ -14,6 +14,11 @@ pub(super) enum Step {
     Arg,
     NotationLhs,
     NotationRhs,
+    /// **P2（2026-10-23）**：约束体里面（`fun (z : T) => C[z]` 的 `C`）。
+    /// 只有**binder 完全同形**才走这条（名字/类型逐字相同）⇒ 保守。
+    BinderBody,
+    ArrowDomain,
+    ArrowCodomain,
 }
 
 #[derive(Debug, Clone)]
@@ -89,6 +94,39 @@ pub(super) fn diff(a: &Expr, b: &Expr) -> DiffResult {
                 _ => DiffResult::Many,
             }
         }
+        // **P2**：binder 同形（名字与类型逐字相同）⇒ 差异落在约束体里。
+        (
+            Expr::Lambda { binders: b1, body: d1, .. },
+            Expr::Lambda { binders: b2, body: d2, .. },
+        )
+        | (
+            Expr::Forall { binders: b1, body: d1, .. },
+            Expr::Forall { binders: b2, body: d2, .. },
+        ) if same_binders(b1, b2) => match diff(d1, d2) {
+            DiffResult::Same => DiffResult::Same,
+            DiffResult::One(mut d) => {
+                d.path.insert(0, Step::BinderBody);
+                DiffResult::One(d)
+            }
+            DiffResult::Many => DiffResult::Many,
+        },
+        // **P2**：`A -> B` 两侧（域/陪域）。
+        (Expr::Arrow { domain: d1, codomain: c1, .. }, Expr::Arrow { domain: d2, codomain: c2, .. }) => {
+            let domain = diff(d1, d2);
+            let codomain = diff(c1, c2);
+            match (domain, codomain) {
+                (DiffResult::Same, DiffResult::Same) => DiffResult::Same,
+                (DiffResult::One(mut d), DiffResult::Same) => {
+                    d.path.insert(0, Step::ArrowDomain);
+                    DiffResult::One(d)
+                }
+                (DiffResult::Same, DiffResult::One(mut d)) => {
+                    d.path.insert(0, Step::ArrowCodomain);
+                    DiffResult::One(d)
+                }
+                _ => DiffResult::Many,
+            }
+        }
         // 原子不同 ⇒ 就是这一处差异（路径为空由调用方拒绝）。
         (Expr::Ident { .. }, Expr::Ident { .. })
         | (Expr::UniverseApp { .. }, Expr::UniverseApp { .. })
@@ -144,6 +182,18 @@ fn same_expr(a: &Expr, b: &Expr) -> bool {
             },
         ) => same_expr(f1, f2) && same_expr(a1, a2),
         (
+            Expr::Lambda { binders: b1, body: d1, .. },
+            Expr::Lambda { binders: b2, body: d2, .. },
+        )
+        | (
+            Expr::Forall { binders: b1, body: d1, .. },
+            Expr::Forall { binders: b2, body: d2, .. },
+        ) => same_binders(b1, b2) && same_expr(d1, d2),
+        (
+            Expr::Arrow { domain: d1, codomain: c1, .. },
+            Expr::Arrow { domain: d2, codomain: c2, .. },
+        ) => same_expr(d1, d2) && same_expr(c1, c2),
+        (
             Expr::Notation {
                 symbol: s1,
                 target: t1,
@@ -166,6 +216,17 @@ fn same_expr(a: &Expr, b: &Expr) -> bool {
         }
         _ => false,
     }
+}
+
+/// **P2**：binder 列表**逐字同形**（名字 + 书写类型 + 风格）；任何一处不同 ⇒ 不是同一
+/// 个抽象（不猜 alpha 改名 —— motive 的 binder 直接进内核项，猜错就是假证明）。
+fn same_binders(a: &[crate::ast::Binder], b: &[crate::ast::Binder]) -> bool {
+    a.len() == b.len()
+        && a.iter().zip(b).all(|(x, y)| {
+            x.name == y.name
+                && x.style == y.style
+                && same_opt(x.ty.as_deref(), y.ty.as_deref())
+        })
 }
 
 fn same_opt(a: Option<&Expr>, b: Option<&Expr>) -> bool {
@@ -258,7 +319,90 @@ pub(super) fn replace_at(expr: &Expr, path: &[Step], replacement: &Expr) -> Expr
             span: *span,
             symbol_span: *symbol_span,
         },
+        (Step::BinderBody, Expr::Lambda { binders, body, span }) => Expr::Lambda {
+            binders: binders.clone(),
+            body: Box::new(replace_at(body, &path[1..], replacement)),
+            span: *span,
+        },
+        (Step::BinderBody, Expr::Forall { binders, body, span }) => Expr::Forall {
+            binders: binders.clone(),
+            body: Box::new(replace_at(body, &path[1..], replacement)),
+            span: *span,
+        },
+        (
+            Step::ArrowDomain,
+            Expr::Arrow { domain, codomain, span },
+        ) => Expr::Arrow {
+            domain: Box::new(replace_at(domain, &path[1..], replacement)),
+            codomain: codomain.clone(),
+            span: *span,
+        },
+        (
+            Step::ArrowCodomain,
+            Expr::Arrow { domain, codomain, span },
+        ) => Expr::Arrow {
+            domain: domain.clone(),
+            codomain: Box::new(replace_at(codomain, &path[1..], replacement)),
+            span: *span,
+        },
         // 路径与形状不匹配（调用方只在 diff 给出路径时进）⇒ 原样。
         _ => expr.clone(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Binder, BinderKind};
+    use crate::span::Span;
+
+    fn ident(name: &str) -> Expr {
+        Expr::Ident { name: name.to_string(), span: Span::default() }
+    }
+    fn app(f: Expr, a: Expr) -> Expr {
+        Expr::App { fun: Box::new(f), arg: Box::new(a), explicit_spine: false, span: Span::default() }
+    }
+    fn mem(x: &str, a: &str) -> Expr {
+        Expr::Notation {
+            symbol: "∈".to_string(),
+            symbol_span: Span::default(),
+            target: "Set.mem".to_string(),
+            assoc: crate::ast::NotationAssoc::Infix,
+            lhs: Some(Box::new(ident(x))),
+            rhs: Some(Box::new(ident(a))),
+            alternatives: Vec::new(),
+            span: Span::default(),
+        }
+    }
+    fn lam(body: Expr) -> Expr {
+        Expr::Lambda {
+            binders: vec![Binder {
+                name: "z".to_string(),
+                ty: Some(Box::new(ident("T"))),
+                style: BinderKind::Explicit,
+                span: Span::default(),
+            }],
+            body: Box::new(body),
+            span: Span::default(),
+        }
+    }
+
+    /// **P2**：差异在 binder **里面**（`fun z => z ∈ A` ≟ `fun z => z ∈ B`）⇒
+    /// 仍然只算一处，路径带 `BinderBody`；沿路径替换能抽出 motive。
+    #[test]
+    fn deep_occurrence_under_a_binder_synthesizes_a_motive() {
+        let (l, r) = (lam(mem("z", "A")), lam(mem("z", "B")));
+        let DiffResult::One(d) = diff(&l, &r) else {
+            panic!("binder 里的唯一差异应算一处");
+        };
+        assert!(matches!(d.path.first(), Some(Step::BinderBody)), "路径首步应是 BinderBody");
+        let motive_body = replace_at(&r, &d.path, &ident("s"));
+        let printed = crate::proof::render_expr(&motive_body);
+        assert!(printed.contains("fun"), "motive 应仍是 lambda：{printed}");
+        assert!(printed.ends_with("∈ s") || printed.contains("∈ s"), "差异位应换成 s：{printed}");
+        // 多处独立差异 ⇒ 不猜（Many）：头部与实参同时不同
+        let many_l = lam(app(ident("f"), ident("A")));
+        let many_r = lam(app(ident("g"), ident("B")));
+        assert!(matches!(diff(&many_l, &many_r), DiffResult::Many));
     }
 }
