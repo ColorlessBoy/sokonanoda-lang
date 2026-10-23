@@ -13,7 +13,7 @@ use super::token::{
 };
 use crate::project::{ModuleName, ModuleNameError};
 use std::collections::HashMap;
-mod util;
+pub(crate) mod util;
 
 /// 内建 `+` 在优先级梯子上的位置（`docs/design/notation-subset.md` N3）。
 ///

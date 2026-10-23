@@ -62,6 +62,16 @@ pub fn parse_expr_text(text: &str) -> Result<Expr, ProofError> {
 /// 的 `by` 块目标 / 项文本是 `render_expr` 打回来的**源码级文本**，可能含
 /// 记法（`a ∈ A`、`Aᶜ`）。前缀源码里已经声明过的记法必须一起喂进来，否则
 /// 重解析会把符号读成未声明符号（第一刀就有的边界，第二刀顺手修掉）。
+/// **S3（2026-10-23）**：内部回读，`?m<digits>` 也认（**用户通道不变**）。
+pub fn parse_expr_text_meta(text: &str) -> Result<Expr, ProofError> {
+    let file = crate::parser::util::parse_with_inherited_meta(&format!("{CHECK_PREFIX}{text}"), &[])
+        .map_err(|e| ProofError::Parse(e.message))?;
+    match file.commands.into_iter().next() {
+        Some(Command::Check { expr, .. }) => Ok(expr),
+        _ => Err(ProofError::Parse("could not parse expression".to_string())),
+    }
+}
+
 pub fn parse_expr_text_with(
     text: &str,
     inherited: &[crate::ast::NotationDecl],
@@ -995,5 +1005,20 @@ mod tests {
             other => panic!("expected judge error, got {other:?}"),
         }
         assert!(!p.done());
+    }
+}
+
+#[cfg(test)]
+mod meta_parse_tests {
+    use super::*;
+    /// **S3**：`?m<digits>` 只在**内部通道**是 `Ident`；用户通道照旧拒绝。
+    #[test]
+    fn meta_ref_parses_only_on_the_internal_channel() {
+        let e = parse_expr_text_meta("?m12").expect("内部通道应认 ?m12");
+        match &e {
+            Expr::Ident { name, .. } => assert_eq!(name, "?m12"),
+            other => panic!("应是 Ident，实际 {other:?}"),
+        }
+        assert!(parse_expr_text("?m12").is_err(), "用户通道不许认 ?m12");
     }
 }

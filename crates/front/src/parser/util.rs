@@ -42,3 +42,27 @@ pub(super) fn last_consumed_end(p: &Parser, fallback: Pos) -> Pos {
         .map(|t| t.span.end)
         .unwrap_or(fallback)
 }
+
+/// **S3（2026-10-23）**：内部回读通道的解析入口 —— 词法额外认 `?m<digits>`
+/// （用户通道不变：`?` 仍报「??? 已移除」）。
+///
+/// 只在 judge 的合成文档 / 元变量回灌用；判定语义不变（认出来的也只是 `Ident`，
+/// 由上层当元变量引用处理）。
+pub(crate) fn parse_with_inherited_meta(
+    src: &str,
+    inherited: &[crate::ast::NotationDecl],
+) -> Result<crate::ast::FolFile> {
+    let mut symbols = super::scan_notation_symbols(src);
+    for symbol in super::lexer_builtin_symbols() {
+        if !symbols.contains(&symbol) {
+            symbols.push(symbol);
+        }
+    }
+    for decl in inherited {
+        if !symbols.contains(&decl.symbol) {
+            symbols.push(decl.symbol.clone());
+        }
+    }
+    let tokens = crate::token::tokenize_meta_aware(src, &symbols)?;
+    super::Parser::with_inherited(tokens, inherited).parse_file(src)
+}

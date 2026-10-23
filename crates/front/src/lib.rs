@@ -70,6 +70,7 @@ mod span;
 #[path = "tests/parser_boundary.rs"]
 mod parser_boundary_tests;
 mod token;
+mod token_scan;
 
 pub use ast::{
     Binder, BinderKind, Command, CtorDecl, Expr, FolFile, IotaRule, NotationAssoc, NotationDecl,
