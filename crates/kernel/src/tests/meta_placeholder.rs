@@ -255,3 +255,43 @@ fn s1_occurs_kind_and_assignment_are_sound() {
     assert!(kind_refused, "SyntheticOpaque 不许被赋值");
     assert!(infer_nested, "含元变量的项必须能 infer（不 panic）");
 }
+
+/// **S2 第一步（2026-10-23）**：带种子检查 + 赋值可**渲染成文本**（跨检查的载体）。
+/// 同时钉死"每次检查一个新上下文"（未种子的下一次看不见上一次的赋值）。
+#[test]
+fn s2_seeded_check_and_collectable_assignment() {
+    use crate::env::EnvLimit;
+    use crate::expr::MetaKind as KernelKind;
+    let arena = Arena::new();
+    let (mut builder, prop, meta) = fixture(&arena);
+    let levels = builder.alloc_levels_slice(&[]);
+    let p_name = builder.name_from_str("p");
+    builder
+        .add_declar(Declar::Axiom {
+            info: DeclarInfo { name: p_name, uparams: levels, ty: prop },
+        })
+        .unwrap();
+    let p = builder.mk_const(p_name, levels);
+    let seeds = [(7u32, prop, KernelKind::Natural)];
+
+    // 检查 A：种子 ?m7 : Prop，赋值成功，赋值渲染成文本
+    let (solved, collected) = builder.with_env(|ef| {
+        ef.with_tc_seeded(EnvLimit::PpUnlimited, &seeds, |tc| {
+            let solved = tc.def_eq_core(meta, p);
+            let text = tc
+                .ctx
+                .mvars
+                .value(7)
+                .map(|t| tc.with_pp(|pp| pp.pp_expr(t)));
+            (solved, text)
+        })
+    });
+    // 检查 B：新上下文 ⇒ 上一次的赋值看不见（这正是 S2 要解决的；用 S1 的 API 钉住现状）
+    let isolated = builder.with_env(|ef| {
+        ef.with_tc_seeded(EnvLimit::PpUnlimited, &seeds, |tc| tc.ctx.mvars.value(7).is_none())
+    });
+    eprintln!("[s2] solved={solved} · collected={collected:?} · next_check_isolated={isolated}");
+    assert!(solved, "种子后 ?m7 ≟ p 必须解出");
+    assert!(collected.is_some(), "赋值必须能渲染成文本（跨检查的载体）");
+    assert!(isolated, "未回灌的下一次检查必须看不见上一次赋值（S2 的动机）");
+}

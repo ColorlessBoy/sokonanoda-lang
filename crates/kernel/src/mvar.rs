@@ -5,7 +5,8 @@
 //! * 这里只服务"elaborate 期的中间检查"（judge 的合成声明）。
 use crate::expr::MetaKind;
 use crate::tc::TypeChecker;
-use crate::util::{ExprPtr, FxHashMap, TcCtx};
+use crate::env::EnvLimit;
+use crate::util::{ExportFile, ExprPtr, FxHashMap, TcCtx};
 use crate::value::{Closure, ElimView, Env, Spine, Value, E, S, V};
 
 /// 元变量上下文：`types[id]` = 声明类型；`values[id]` = 已赋的值；`kinds[id]` = 种类。
@@ -270,4 +271,25 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     }
 
 
+}
+
+impl<'p> ExportFile<'p> {
+    /// **S2**：带**种子**的检查 —— 前端把"这次检查可见的元变量（id/类型/种类）"传进来。
+    ///
+    /// 为什么需要它：`with_ctx` 每次新建 arena + `MetaContext` ⇒ 上一次检查的元变量
+    /// 看不见；前端要把 handle 里的**文本**重新 elaborate 成 `ExprPtr` 再种进来。
+    /// 返回类型不变（`A`），收集赋值由调用方在闭包里用 `tc.ctx.mvars.value(id)`
+    /// + `tc.with_pp` 完成（渲染成文本后才能跨检查存活）。
+    pub fn with_tc_seeded<F, A>(&self, limit: EnvLimit<'p>, seeds: &[(u32, ExprPtr<'p>, MetaKind)], f: F) -> A
+    where
+        F: FnOnce(&mut TypeChecker<'_, '_, 'p>) -> A,
+    {
+        self.with_tc(limit, |tc| {
+            for (id, ty, kind) in seeds {
+                tc.ctx.mvars.register(*id, *ty);
+                tc.ctx.mvars.register_kind(*id, *kind);
+            }
+            f(tc)
+        })
+    }
 }
