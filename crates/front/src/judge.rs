@@ -4694,15 +4694,12 @@ mod s3_meta_judge_tests {
             &["fun (x : ?m7) => x"],
         );
         eprintln!("[s3] judge = {out:?}");
-        // **当前阶段**：judge 已走到内核（parse/登记/elab 都通了），只被 walk 的
-        // `add_declar` K1 硬拒挡住（S3 的下一步 = 合成声明走"只 check 不 add"）。
-        // 这一步翻绿时，把这里改成 `assert!(matches!(out[0], Judgement::Match))`。
-        match &out[0] {
-            Judgement::Error { message, .. } => assert!(
-                message.contains("metavariable placeholder"),
-                "S3 之后的失败应当只来自 K1 硬拒，实际：{message}"
-            ),
-            other => panic!("预期走到 K1 硬拒，实际 {other:?}"),
-        }
+        // **S3 收口**：目标里的 `?m7`（登记类型 Prop）能让 judge 判过；
+        // 合成声明含 meta ⇒ walk 不进环境（K1），内核阶段只 check。
+        assert!(
+            matches!(out[0], Judgement::Match),
+            "带登记元变量的目标应判过，实际 {:?}",
+            out[0]
+        );
     }
 }

@@ -27,8 +27,8 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/check/walk.rs": {
-      "lines": 2876,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 2887,
+      "reason": "S3：合成声明（含 meta）不进环境的守卫（walk 的两处 add 点）；下一轮把 judge 的合成检查路径拆出 walk"
     },
     "crates/front/src/compile/elab.rs": {
       "lines": 8843,

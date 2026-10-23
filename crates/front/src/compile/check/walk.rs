@@ -334,6 +334,11 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
             return true; // 影子未启用（session 路径）⇒ 不记录、不建环境
         }
         let declar = declar.clone();
+        // **S3**：含元变量的**合成声明**（judge 的 `_soko_judge_k`）**不加入环境**
+        // （K1 硬拒不能绕过）——只让内核阶段 `try_check_declar` 检查它。
+        if self.builder.declar_contains_meta(&declar) {
+            return true;
+        }
         let result = self
             .shadow
             .as_mut()
@@ -1300,21 +1305,27 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 let name_owned = name.to_string();
                 // **R1c-2b（2026-10-05）**：**声明出口** ✓（同上：`addDecl` 之前 ✓）。
                 let (decl, _fresh) = self.discharge_level_mvars(decl);
-                if let Err(e) = self.builder.add_declar(decl.clone()) {
-                    let err = CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, span);
-                    self.out.push_error(idx, err.clone());
-                    {
-                        let mut st = failed_state(
-                            DeclKind::Definition,
-                            Some(name_owned.clone()),
-                            span,
-                            err,
-                            idx,
-                        );
-                        st.by_root = by_root.clone();
-                        self.decl_states.push(st);
+                // **S3**：含元变量的合成声明（judge 的 `_soko_judge_k`）**不进环境**
+                // （K1 硬拒不许绕过）；它照样进 `ops`，由内核阶段 `try_check_declar`
+                // 只 check 不 add。
+                let has_meta = self.builder.declar_contains_meta(&decl);
+                if !has_meta {
+                    if let Err(e) = self.builder.add_declar(decl.clone()) {
+                        let err = CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, span);
+                        self.out.push_error(idx, err.clone());
+                        {
+                            let mut st = failed_state(
+                                DeclKind::Definition,
+                                Some(name_owned.clone()),
+                                span,
+                                err,
+                                idx,
+                            );
+                            st.by_root = by_root.clone();
+                            self.decl_states.push(st);
+                        }
+                        return;
                     }
-                    return;
                 }
                 self.known.insert(
                     name_owned.clone(),

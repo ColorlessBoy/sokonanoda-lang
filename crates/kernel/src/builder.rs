@@ -638,7 +638,7 @@ impl<'a> EnvBuilder<'a> {
     ///
     /// 覆盖面（**逐类走遍** ✓）：每个变体的 `info().ty` ✓ · `Theorem`/`Definition`/`Opaque`
     /// 的 `val` ✓ · **递归子的 `rec_rules[].val`** ✓（构造子的类型在它自己的 `info.ty` 里 ✓）。
-    fn declar_contains_meta(&self, d: &Declar<'a>) -> bool {
+    pub fn declar_contains_meta(&self, d: &Declar<'a>) -> bool {
         if self.contains_meta(d.info().ty) {
             return true;
         }
