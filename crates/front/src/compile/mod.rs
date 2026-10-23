@@ -10,11 +10,11 @@ mod error_hint;
 // 命名实参（`g (α := Nat) 5`，用户 2026-10-16 第 ② 条）。
 pub(crate) mod eqsubst;
 mod eqsubst_diff;
-mod mvar_handle;
 mod event;
 mod expected;
 mod expected_spine;
 mod goals;
+mod mvar_handle;
 // 实参位的洞（`_`，a14）：`_` → 新 binder ⇒ `apply` 把它变成子目标（Lean 4 对照在文件头）。
 pub mod hints;
 pub(crate) mod hole;

@@ -1742,7 +1742,14 @@ pub(crate) fn run_tactics<'a>(
             }
             Tactic::Exact { expr, span } => {
                 exact_tactic(
-                    expr, *span, nodes, worklist, universe, prefix_src, options, defs,
+                    expr,
+                    *span,
+                    nodes,
+                    worklist,
+                    universe,
+                    prefix_src,
+                    options,
+                    defs,
                     defer.as_deref_mut(),
                 )?;
             }
@@ -3903,9 +3910,11 @@ fn exact_tactic(
                 span,
             ))
         }
-        Some(Judgement::Error { code, message, kind }) => {
-            by_defer::exact_error(defer, cur, span, code, message, kind)
-        }
+        Some(Judgement::Error {
+            code,
+            message,
+            kind,
+        }) => by_defer::exact_error(defer, cur, span, code, message, kind),
         None => unreachable!("judge returns one judgement per term"),
     }
 }

@@ -102,12 +102,16 @@ fn eq_endpoints(term: &Expr, binders: &[Binder]) -> Option<(Expr, Expr)> {
 /// 把 `a = b`（记法）或 `Eq a b`（点名）拆成两端。
 fn decompose_eq(e: &Expr) -> Option<(Expr, Expr)> {
     match e {
-        Expr::Notation { target, lhs, rhs, .. } if target == "Eq" => {
-            Some(((lhs.as_deref()?).clone(), (rhs.as_deref()?).clone()))
-        }
+        Expr::Notation {
+            target, lhs, rhs, ..
+        } if target == "Eq" => Some(((lhs.as_deref()?).clone(), (rhs.as_deref()?).clone())),
         Expr::App { fun, arg, .. } => match fun.as_ref() {
-            Expr::App { fun: inner, arg: lhs, .. }
-                if is_head_named(inner, "Eq") && !matches!(fun.as_ref(), Expr::App { fun: f, .. } if is_head_named(f, "Eq.symm")) =>
+            Expr::App {
+                fun: inner,
+                arg: lhs,
+                ..
+            } if is_head_named(inner, "Eq")
+                && !matches!(fun.as_ref(), Expr::App { fun: f, .. } if is_head_named(f, "Eq.symm")) =>
             {
                 Some(((**lhs).clone(), (**arg).clone()))
             }
@@ -172,7 +176,10 @@ fn rewrite_goal_motive(
         .or_else(|| local_type(binders, &eq_a))?
         .clone();
     let var_name = format!("_soko_eq{}", span.start.offset);
-    let var = Expr::Ident { name: var_name.clone(), span };
+    let var = Expr::Ident {
+        name: var_name.clone(),
+        span,
+    };
     let mut hits = 0usize;
     let body = replace_all(goal, &eq_b, &var, &mut hits);
     if hits == 0 {
@@ -281,7 +288,10 @@ pub(crate) fn rewrite_explicit_equality(
         match args[0] {
             Expr::App { fun, arg, .. } if is_head_named(fun, "Eq.symm") => arg.as_ref().clone(),
             other => Expr::App {
-                fun: Box::new(Expr::Ident { name: "Eq.symm".to_string(), span }),
+                fun: Box::new(Expr::Ident {
+                    name: "Eq.symm".to_string(),
+                    span,
+                }),
                 arg: Box::new(other.clone()),
                 explicit_spine: false,
                 span,
@@ -331,9 +341,12 @@ fn synthesize(
     // （混合拼法：premise 写 `x ∈ A ∪ B`、goal 写 `Set.mem x (Set.union A C)`）。
     let (diff_result, _premise_ty, goal, desugared) = {
         match diff(premise_ty, goal) {
-            DiffResult::One(diff) if !diff.path.is_empty() => {
-                (DiffResult::One(diff), premise_ty.clone(), goal.clone(), false)
-            }
+            DiffResult::One(diff) if !diff.path.is_empty() => (
+                DiffResult::One(diff),
+                premise_ty.clone(),
+                goal.clone(),
+                false,
+            ),
             _ => {
                 let (p2, g2) = (
                     crate::compile::meta::desugar_deep(premise_ty),

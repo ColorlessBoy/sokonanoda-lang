@@ -26,9 +26,19 @@ fn deferrable_codes_and_report_roundtrip() {
     assert!(deferred_report().is_empty());
 
     // 可延迟码表：只认三条 `*-unsolved`（Clash 通道不在内 —— §18 的第二条发现）
-    assert!(sokonanoda_front::by_defer::is_deferrable_for_test("elab-implicit-argument-unsolved"));
-    assert!(sokonanoda_front::by_defer::is_deferrable_for_test("elab-notation-argument-unsolved"));
-    assert!(sokonanoda_front::by_defer::is_deferrable_for_test("elab-binder-notation-unsolved"));
-    assert!(!sokonanoda_front::by_defer::is_deferrable_for_test("elab-tactic-failed"));
-    assert!(!sokonanoda_front::by_defer::is_deferrable_for_test("kernel-rejected"));
+    assert!(sokonanoda_front::by_defer::is_deferrable_for_test(
+        "elab-implicit-argument-unsolved"
+    ));
+    assert!(sokonanoda_front::by_defer::is_deferrable_for_test(
+        "elab-notation-argument-unsolved"
+    ));
+    assert!(sokonanoda_front::by_defer::is_deferrable_for_test(
+        "elab-binder-notation-unsolved"
+    ));
+    assert!(!sokonanoda_front::by_defer::is_deferrable_for_test(
+        "elab-tactic-failed"
+    ));
+    assert!(!sokonanoda_front::by_defer::is_deferrable_for_test(
+        "kernel-rejected"
+    ));
 }

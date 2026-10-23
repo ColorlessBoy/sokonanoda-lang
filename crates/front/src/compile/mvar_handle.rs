@@ -59,20 +59,20 @@ impl MetaHandle {
             .unwrap_or(MetaKind::Natural)
     }
 
+    /// 种子的源 AST 形态：`(id, 类型, 种类)`（elaborate 成内核项由调用方做）。
+    pub(crate) fn seeds(&self) -> Vec<(u32, Expr, MetaKind)> {
+        self.types
+            .iter()
+            .map(|(id, ty)| (*id, ty.clone(), self.kind(*id)))
+            .collect()
+    }
+
     /// 仍未被解出的 id（声明出口要报"未解元变量"）。
     pub(crate) fn unresolved(&self) -> Vec<u32> {
         self.types
             .iter()
             .map(|(i, _)| *i)
             .filter(|id| self.value(*id).is_none())
-            .collect()
-    }
-
-    /// 种子的文本形态：`(id, 类型文本, 种类)`（`with_tc_seeded` 的重建输入）。
-    pub(crate) fn seeds(&self) -> Vec<(u32, String, MetaKind)> {
-        self.types
-            .iter()
-            .map(|(id, ty)| (*id, crate::proof::render_expr(ty), self.kind(*id)))
             .collect()
     }
 }
@@ -106,6 +106,6 @@ mod tests {
         // 覆盖登记不改顺序、以最后一次为准
         h.register(7, ident("Q"), MetaKind::Natural);
         assert_eq!(h.unresolved(), vec![8]);
-        assert_eq!(h.seeds()[0].1, "Q");
+        assert!(matches!(&h.seeds()[0].1, Expr::Ident { name, .. } if name == "Q"));
     }
 }

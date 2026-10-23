@@ -5528,7 +5528,9 @@ pub(crate) fn elab_expr<'a>(
                 let ty_src = crate::meta_parse::parse_expr_text_meta(&ty_text).map_err(|e| {
                     CompileError::elab(ErrorKind::ElabTacticFailed, format!("{e:?}"), *span)
                 })?;
-                let ty = elab_expr(builder, &ty_src, scope, univ, known, hovers, None, None, ctx)?;
+                let ty = elab_expr(
+                    builder, &ty_src, scope, univ, known, hovers, None, None, ctx,
+                )?;
                 let out = builder.mk_meta(id, ty);
                 record_hover(hovers, scope, *span, out, None);
                 return Ok(out);

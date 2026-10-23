@@ -341,8 +341,7 @@ pub(crate) fn unify_with_inductive_head(
     prefix_src: &str,
     options: &CompileOptions,
 ) -> Option<std::collections::HashMap<String, Expr>> {
-    let ind_goal = crate::by::goal_unfolded_to_inductive(
-        goal, inductives, defs, binders, prefix_src, options,
-    );
+    let ind_goal =
+        crate::by::goal_unfolded_to_inductive(goal, inductives, defs, binders, prefix_src, options);
     unify_spine(codomain, &ind_goal, layers)
 }

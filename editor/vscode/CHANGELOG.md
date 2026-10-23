@@ -1,6 +1,27 @@
-## [Unreleased]
+## [0.97.7] - 2026-10-23
 
 ### Fixed
+
+- **`apply` 能把目标展到归纳头**：`apply Or.inl` 在 `x ∈ A ∪ ∅`、`apply And.intro` 在
+  `x ∈ A ∩ B` 以前报「`apply` 的目标不匹配」，而 `constructor` 判绿；现在匹配链尾追加
+  「目标展到归纳头再合一」（既有命中路径逐字节不变）。
+- **`Eq.subst` 的更多现场**：`exact Eq.subst (Eq.symm hx) h`、`apply Eq.subst h`（单实参、
+  目标里带被替换项，如 `f x = f y`）、`exact Eq.subst h (Eq.refl (f x))`、记法与点名混合
+  拼法（`x ∈ A ∪ B` → `Set.mem x (Set.union A C)`）都判绿；保守边界内合成旧式前缀，
+  方向/对象错照样判红。
+- **tactic 失败现在报根因码**：`apply`/`exact`/`have`/`rfl` 以前把所有内层 elab 错误压成
+  `elab-tactic-failed`；现在透传 `elab-unknown-identifier` / `elab-implicit-argument-unsolved`
+  等原始码（message 前缀与 stage 不变）。
+- **失败的证明不再把「目标状态」整块藏掉**：`Infoview` 以前只要 `decl.status === "failed"`
+  就只画一句「声明未通过，见诊断」——哪怕服务端在该位置给出的逐 tactic 状态是**对的**
+  （典型：`apply Eq.subst h` 失败时目标 `x ∈ ∅`、假设 `h/x/hx` 都在）。
+  现在按 `step` 区分：`step ≥ 0`（真的选中了一条逐 tactic 状态）⇒ 诊断入口 + **照常画目标与假设**；
+  `step < 0`（只有根状态/题面回退）⇒ 仍只画诊断入口，不把题面伪装成当前目标。
+
+### Internal
+
+- 内核元变量线（S1–S4）与 by 引擎延迟（S5）落地，**默认关**（`SOKO_DECL_METAS=1` /
+  `SOKO_DEFER=1`）：含 meta 的声明仍被 `add_decl` 硬拒；默认档语料 `--json` 逐字节不变。
 
 - **失败的证明不再把「目标状态」整块藏掉**：`Infoview` 以前只要 `decl.status === "failed"`
   就只画一句「声明未通过，见诊断」——哪怕服务端在该位置给出的逐 tactic 状态是**对的**

@@ -1612,69 +1612,71 @@ fn judge_pairs_uncached(
     // 仍是这一批里的位置）——`judgement_of` 按名字回查，序号不能顺延。
     // 合成声明接在前缀之后 ⇒ **此刻**的 commands.len() 就是"前缀命令数"（K1-a 用它判断能否复用）。
     let prefix_commands = commands.len();
-    // **S3**：这一段里让 `?mN` 的类型可见（`elab_expr` 的 Ident 臂查它）。
     let all_metas: Vec<(u32, String)> = pairs
         .iter()
         .flat_map(|p| p.spec.metas.iter().cloned())
         .collect();
     let (pre_judged, report) = crate::meta_registry::with_entries(&all_metas, || {
-    let mut pre_judged: Vec<bool> = vec![false; pairs.len()];
-    for (k, pair) in pairs.iter().enumerate() {
-        let Ok(goal) = crate::meta_parse::parse_expr_text_meta_with(&pair.spec.ty, &notations) else {
-            judgements[k] = Judgement::Error {
-                code: "parse".to_string(),
-                message: format!("无法解析目标类型 `{}`", pair.spec.ty),
-                kind: None,
-            };
-            pre_judged[k] = true;
-            continue;
-        };
-        // 把已写 binders 折叠回声明类型：`(b1 : T1) -> (b2 : T2) -> 剩余目标`。
-        // binder 名字与显隐风格不影响内核检查（只影响打印），统一折成命名箭头。
-        let ty = match fold_declared(goal, &pair.spec.binders, &notations) {
-            Ok(ty) => ty,
-            Err(missing) => {
+        let mut pre_judged: Vec<bool> = vec![false; pairs.len()];
+        for (k, pair) in pairs.iter().enumerate() {
+            let Ok(goal) = crate::meta_parse::parse_expr_text_meta_with(&pair.spec.ty, &notations)
+            else {
                 judgements[k] = Judgement::Error {
-                    code: "elab-untyped-binder".to_string(),
-                    message: format!("binder `{missing}` 缺少类型标注，无法合成判定声明"),
+                    code: "parse".to_string(),
+                    message: format!("无法解析目标类型 `{}`", pair.spec.ty),
                     kind: None,
                 };
                 pre_judged[k] = true;
                 continue;
-            }
-        };
-        let Ok(term_expr) = crate::meta_parse::parse_expr_text_meta_with(&pair.term, &notations) else {
-            judgements[k] = Judgement::Error {
-                code: "parse".to_string(),
-                message: format!("无法解析术语 `{}`", pair.term),
-                kind: None,
             };
-            pre_judged[k] = true;
-            continue;
-        };
-        let val_span = term_expr.span();
-        let val = wrap_binders(&pair.spec.binders, term_expr, &notations);
-        commands.push(Command::Def {
-            name: format!("_soko_judge_{k}"),
-            universe: pair.spec.universe.clone(),
-            ty,
-            val,
-            span: after_prefix,
-            // **A3**：合成声明的「值位」= 学习者写的那段术语（`after_prefix` 的
-            // span 是**整个合成块** ✗）——判卷失败时诊断要指到这里 ✓。
-            val_span,
-        });
-    }
-    let report = check_synthesized(
-        &FolFile {
-            commands,
-            src: full_prefix,
-        },
-        options,
-        prefix_commands,
-        pairs.len(),
-    );
-    (pre_judged, report)
+            // 把已写 binders 折叠回声明类型：`(b1 : T1) -> (b2 : T2) -> 剩余目标`。
+            // binder 名字与显隐风格不影响内核检查（只影响打印），统一折成命名箭头。
+            let ty = match fold_declared(goal, &pair.spec.binders, &notations) {
+                Ok(ty) => ty,
+                Err(missing) => {
+                    judgements[k] = Judgement::Error {
+                        code: "elab-untyped-binder".to_string(),
+                        message: format!("binder `{missing}` 缺少类型标注，无法合成判定声明"),
+                        kind: None,
+                    };
+                    pre_judged[k] = true;
+                    continue;
+                }
+            };
+            let Ok(term_expr) =
+                crate::meta_parse::parse_expr_text_meta_with(&pair.term, &notations)
+            else {
+                judgements[k] = Judgement::Error {
+                    code: "parse".to_string(),
+                    message: format!("无法解析术语 `{}`", pair.term),
+                    kind: None,
+                };
+                pre_judged[k] = true;
+                continue;
+            };
+            let val_span = term_expr.span();
+            let val = wrap_binders(&pair.spec.binders, term_expr, &notations);
+            commands.push(Command::Def {
+                name: format!("_soko_judge_{k}"),
+                universe: pair.spec.universe.clone(),
+                ty,
+                val,
+                span: after_prefix,
+                // **A3**：合成声明的「值位」= 学习者写的那段术语（`after_prefix` 的
+                // span 是**整个合成块** ✗）——判卷失败时诊断要指到这里 ✓。
+                val_span,
+            });
+        }
+        let report = check_synthesized(
+            &FolFile {
+                commands,
+                src: full_prefix,
+            },
+            options,
+            prefix_commands,
+            pairs.len(),
+        );
+        (pre_judged, report)
     });
     for (k, judgement) in judgements.iter_mut().enumerate() {
         if pre_judged[k] {
@@ -4721,7 +4723,6 @@ mod tests {
 #[cfg(test)]
 mod s3_meta_judge_tests {
     use super::*;
-    /// **S3（2026-10-23）**：目标里带登记的元变量 `?m7` 时，judge 能过到哪一步。
     #[test]
     fn judge_reports_the_current_stage_for_a_meta_goal() {
         let spec = OpenGoalSpec {
@@ -4737,8 +4738,7 @@ mod s3_meta_judge_tests {
             &["fun (x : ?m7) => x"],
         );
         eprintln!("[s3] judge = {out:?}");
-        // **S3 收口**：目标里的 `?m7`（登记类型 Prop）能让 judge 判过；
-        // 合成声明含 meta ⇒ walk 不进环境（K1），内核阶段只 check。
+        // **S3 收口**：目标里的 `?m7` 能判过（合成声明含 meta ⇒ walk 不进环境）。
         assert!(
             matches!(out[0], Judgement::Match),
             "带登记元变量的目标应判过，实际 {:?}",

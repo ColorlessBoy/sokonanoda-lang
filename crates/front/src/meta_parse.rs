@@ -8,8 +8,9 @@ pub fn parse_expr_text_meta_with(
     text: &str,
     inherited: &[crate::ast::NotationDecl],
 ) -> Result<Expr, ProofError> {
-    let file = crate::parser::util::parse_with_inherited_meta(&format!("{CHECK_PREFIX}{text}"), inherited)
-        .map_err(|e| ProofError::Parse(e.message))?;
+    let file =
+        crate::parser::util::parse_with_inherited_meta(&format!("{CHECK_PREFIX}{text}"), inherited)
+            .map_err(|e| ProofError::Parse(e.message))?;
     match file.commands.into_iter().next() {
         Some(Command::Check { expr, .. }) => Ok(expr),
         _ => Err(ProofError::Parse("could not parse expression".to_string())),
@@ -17,8 +18,9 @@ pub fn parse_expr_text_meta_with(
 }
 
 pub fn parse_expr_text_meta(text: &str) -> Result<Expr, ProofError> {
-    let file = crate::parser::util::parse_with_inherited_meta(&format!("{CHECK_PREFIX}{text}"), &[])
-        .map_err(|e| ProofError::Parse(e.message))?;
+    let file =
+        crate::parser::util::parse_with_inherited_meta(&format!("{CHECK_PREFIX}{text}"), &[])
+            .map_err(|e| ProofError::Parse(e.message))?;
     match file.commands.into_iter().next() {
         Some(Command::Check { expr, .. }) => Ok(expr),
         _ => Err(ProofError::Parse("could not parse expression".to_string())),
@@ -39,5 +41,4 @@ mod tests {
         }
         assert!(parse_expr_text("?m12").is_err(), "用户通道不许认 ?m12");
     }
-
 }

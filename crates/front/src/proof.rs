@@ -998,4 +998,3 @@ mod tests {
         assert!(!p.done());
     }
 }
-

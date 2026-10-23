@@ -137,11 +137,7 @@ axiom ext : {α : Type} → (A B : Set α) →
 -- 逻辑连接符（`∧ ∨ ↔ ¬`）**不在这里**：它们是**语言内建记法**
 -- （`docs/design/course-lean-style.md` L2.2），任何文件零声明可用。
 -- `→` 同理（与 ASCII 箭头写法同义）。
--- `∉`：非成员（用户写作 `x ∉ A`；定义体必须写点名 —— 本行在 `∈` 记法声明之前）。
-def notMem {α : Type} (a : α) (A : Set α) : Prop := Set.mem a A → False  -- soko:notation-ok: `∈` 记法在本文件第 143 行才声明，定义体只能写点名
-
 infix:50 " ∈ " => Set.mem
-infix:50 " ∉ " => Set.notMem
 infix:50 " ⊆ " => Set.subset
 infixl:65 " ∪ " => Set.union
 -- `∩` 与 `\` 取 70（Lean core 的梯子）：比 `∪` 紧，所以 `A ∩ B ∪ C` 读作

@@ -96,12 +96,28 @@ pub(super) fn diff(a: &Expr, b: &Expr) -> DiffResult {
         }
         // **P2**：binder 同形（名字与类型逐字相同）⇒ 差异落在约束体里。
         (
-            Expr::Lambda { binders: b1, body: d1, .. },
-            Expr::Lambda { binders: b2, body: d2, .. },
+            Expr::Lambda {
+                binders: b1,
+                body: d1,
+                ..
+            },
+            Expr::Lambda {
+                binders: b2,
+                body: d2,
+                ..
+            },
         )
         | (
-            Expr::Forall { binders: b1, body: d1, .. },
-            Expr::Forall { binders: b2, body: d2, .. },
+            Expr::Forall {
+                binders: b1,
+                body: d1,
+                ..
+            },
+            Expr::Forall {
+                binders: b2,
+                body: d2,
+                ..
+            },
         ) if same_binders(b1, b2) => match diff(d1, d2) {
             DiffResult::Same => DiffResult::Same,
             DiffResult::One(mut d) => {
@@ -111,7 +127,18 @@ pub(super) fn diff(a: &Expr, b: &Expr) -> DiffResult {
             DiffResult::Many => DiffResult::Many,
         },
         // **P2**：`A -> B` 两侧（域/陪域）。
-        (Expr::Arrow { domain: d1, codomain: c1, .. }, Expr::Arrow { domain: d2, codomain: c2, .. }) => {
+        (
+            Expr::Arrow {
+                domain: d1,
+                codomain: c1,
+                ..
+            },
+            Expr::Arrow {
+                domain: d2,
+                codomain: c2,
+                ..
+            },
+        ) => {
             let domain = diff(d1, d2);
             let codomain = diff(c1, c2);
             match (domain, codomain) {
@@ -182,16 +209,40 @@ pub(super) fn same_expr(a: &Expr, b: &Expr) -> bool {
             },
         ) => same_expr(f1, f2) && same_expr(a1, a2),
         (
-            Expr::Lambda { binders: b1, body: d1, .. },
-            Expr::Lambda { binders: b2, body: d2, .. },
+            Expr::Lambda {
+                binders: b1,
+                body: d1,
+                ..
+            },
+            Expr::Lambda {
+                binders: b2,
+                body: d2,
+                ..
+            },
         )
         | (
-            Expr::Forall { binders: b1, body: d1, .. },
-            Expr::Forall { binders: b2, body: d2, .. },
+            Expr::Forall {
+                binders: b1,
+                body: d1,
+                ..
+            },
+            Expr::Forall {
+                binders: b2,
+                body: d2,
+                ..
+            },
         ) => same_binders(b1, b2) && same_expr(d1, d2),
         (
-            Expr::Arrow { domain: d1, codomain: c1, .. },
-            Expr::Arrow { domain: d2, codomain: c2, .. },
+            Expr::Arrow {
+                domain: d1,
+                codomain: c1,
+                ..
+            },
+            Expr::Arrow {
+                domain: d2,
+                codomain: c2,
+                ..
+            },
         ) => same_expr(d1, d2) && same_expr(c1, c2),
         (
             Expr::Notation {
@@ -223,9 +274,7 @@ pub(super) fn same_expr(a: &Expr, b: &Expr) -> bool {
 fn same_binders(a: &[crate::ast::Binder], b: &[crate::ast::Binder]) -> bool {
     a.len() == b.len()
         && a.iter().zip(b).all(|(x, y)| {
-            x.name == y.name
-                && x.style == y.style
-                && same_opt(x.ty.as_deref(), y.ty.as_deref())
+            x.name == y.name && x.style == y.style && same_opt(x.ty.as_deref(), y.ty.as_deref())
         })
 }
 
@@ -319,19 +368,37 @@ pub(super) fn replace_at(expr: &Expr, path: &[Step], replacement: &Expr) -> Expr
             span: *span,
             symbol_span: *symbol_span,
         },
-        (Step::BinderBody, Expr::Lambda { binders, body, span }) => Expr::Lambda {
+        (
+            Step::BinderBody,
+            Expr::Lambda {
+                binders,
+                body,
+                span,
+            },
+        ) => Expr::Lambda {
             binders: binders.clone(),
             body: Box::new(replace_at(body, &path[1..], replacement)),
             span: *span,
         },
-        (Step::BinderBody, Expr::Forall { binders, body, span }) => Expr::Forall {
+        (
+            Step::BinderBody,
+            Expr::Forall {
+                binders,
+                body,
+                span,
+            },
+        ) => Expr::Forall {
             binders: binders.clone(),
             body: Box::new(replace_at(body, &path[1..], replacement)),
             span: *span,
         },
         (
             Step::ArrowDomain,
-            Expr::Arrow { domain, codomain, span },
+            Expr::Arrow {
+                domain,
+                codomain,
+                span,
+            },
         ) => Expr::Arrow {
             domain: Box::new(replace_at(domain, &path[1..], replacement)),
             codomain: codomain.clone(),
@@ -339,7 +406,11 @@ pub(super) fn replace_at(expr: &Expr, path: &[Step], replacement: &Expr) -> Expr
         },
         (
             Step::ArrowCodomain,
-            Expr::Arrow { domain, codomain, span },
+            Expr::Arrow {
+                domain,
+                codomain,
+                span,
+            },
         ) => Expr::Arrow {
             domain: domain.clone(),
             codomain: Box::new(replace_at(codomain, &path[1..], replacement)),
@@ -358,35 +429,63 @@ pub(super) fn replace_all(e: &Expr, target: &Expr, repl: &Expr, hit: &mut usize)
         return repl.clone();
     }
     match e {
-        Expr::App { fun, arg, explicit_spine, span } => Expr::App {
+        Expr::App {
+            fun,
+            arg,
+            explicit_spine,
+            span,
+        } => Expr::App {
             fun: Box::new(replace_all(fun, target, repl, hit)),
             arg: Box::new(replace_all(arg, target, repl, hit)),
             explicit_spine: *explicit_spine,
             span: *span,
         },
-        Expr::Notation { symbol, symbol_span, target: t, assoc, lhs, rhs, alternatives, span } => {
-            Expr::Notation {
-                symbol: symbol.clone(),
-                symbol_span: *symbol_span,
-                target: t.clone(),
-                assoc: *assoc,
-                lhs: lhs.as_deref().map(|x| Box::new(replace_all(x, target, repl, hit))),
-                rhs: rhs.as_deref().map(|x| Box::new(replace_all(x, target, repl, hit))),
-                alternatives: alternatives.clone(),
-                span: *span,
-            }
-        }
-        Expr::Lambda { binders, body, span } => Expr::Lambda {
+        Expr::Notation {
+            symbol,
+            symbol_span,
+            target: t,
+            assoc,
+            lhs,
+            rhs,
+            alternatives,
+            span,
+        } => Expr::Notation {
+            symbol: symbol.clone(),
+            symbol_span: *symbol_span,
+            target: t.clone(),
+            assoc: *assoc,
+            lhs: lhs
+                .as_deref()
+                .map(|x| Box::new(replace_all(x, target, repl, hit))),
+            rhs: rhs
+                .as_deref()
+                .map(|x| Box::new(replace_all(x, target, repl, hit))),
+            alternatives: alternatives.clone(),
+            span: *span,
+        },
+        Expr::Lambda {
+            binders,
+            body,
+            span,
+        } => Expr::Lambda {
             binders: binders.clone(),
             body: Box::new(replace_all(body, target, repl, hit)),
             span: *span,
         },
-        Expr::Forall { binders, body, span } => Expr::Forall {
+        Expr::Forall {
+            binders,
+            body,
+            span,
+        } => Expr::Forall {
             binders: binders.clone(),
             body: Box::new(replace_all(body, target, repl, hit)),
             span: *span,
         },
-        Expr::Arrow { domain, codomain, span } => Expr::Arrow {
+        Expr::Arrow {
+            domain,
+            codomain,
+            span,
+        } => Expr::Arrow {
             domain: Box::new(replace_all(domain, target, repl, hit)),
             codomain: Box::new(replace_all(codomain, target, repl, hit)),
             span: *span,
@@ -396,58 +495,4 @@ pub(super) fn replace_all(e: &Expr, target: &Expr, repl: &Expr, hit: &mut usize)
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ast::{Binder, BinderKind};
-    use crate::span::Span;
-
-    fn ident(name: &str) -> Expr {
-        Expr::Ident { name: name.to_string(), span: Span::default() }
-    }
-    fn app(f: Expr, a: Expr) -> Expr {
-        Expr::App { fun: Box::new(f), arg: Box::new(a), explicit_spine: false, span: Span::default() }
-    }
-    fn mem(x: &str, a: &str) -> Expr {
-        Expr::Notation {
-            symbol: "∈".to_string(),
-            symbol_span: Span::default(),
-            target: "Set.mem".to_string(),
-            assoc: crate::ast::NotationAssoc::Infix,
-            lhs: Some(Box::new(ident(x))),
-            rhs: Some(Box::new(ident(a))),
-            alternatives: Vec::new(),
-            span: Span::default(),
-        }
-    }
-    fn lam(body: Expr) -> Expr {
-        Expr::Lambda {
-            binders: vec![Binder {
-                name: "z".to_string(),
-                ty: Some(Box::new(ident("T"))),
-                style: BinderKind::Explicit,
-                span: Span::default(),
-            }],
-            body: Box::new(body),
-            span: Span::default(),
-        }
-    }
-
-    /// **P2**：差异在 binder **里面**（`fun z => z ∈ A` ≟ `fun z => z ∈ B`）⇒
-    /// 仍然只算一处，路径带 `BinderBody`；沿路径替换能抽出 motive。
-    #[test]
-    fn deep_occurrence_under_a_binder_synthesizes_a_motive() {
-        let (l, r) = (lam(mem("z", "A")), lam(mem("z", "B")));
-        let DiffResult::One(d) = diff(&l, &r) else {
-            panic!("binder 里的唯一差异应算一处");
-        };
-        assert!(matches!(d.path.first(), Some(Step::BinderBody)), "路径首步应是 BinderBody");
-        let motive_body = replace_at(&r, &d.path, &ident("s"));
-        let printed = crate::proof::render_expr(&motive_body);
-        assert!(printed.contains("fun"), "motive 应仍是 lambda：{printed}");
-        assert!(printed.ends_with("∈ s") || printed.contains("∈ s"), "差异位应换成 s：{printed}");
-        // 多处独立差异 ⇒ 不猜（Many）：头部与实参同时不同
-        let many_l = lam(app(ident("f"), ident("A")));
-        let many_r = lam(app(ident("g"), ident("B")));
-        assert!(matches!(diff(&many_l, &many_r), DiffResult::Many));
-    }
-}
+mod tests;

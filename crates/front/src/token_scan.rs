@@ -1,8 +1,8 @@
 //! 词法级预扫描（从 `token.rs` 拆出：判据 ⑨ 的行数预算）：
 //! `import` 边、记法符号、记法声明。
 use crate::span::{Pos, Span};
-use crate::token::{is_valid_notation_symbol, NOTATION_COMMANDS};
 use crate::token::{is_ident_continue, is_ident_start};
+use crate::token::{is_valid_notation_symbol, NOTATION_COMMANDS};
 
 /// **词法级 `import` 扫描**（G-04 第二刀 §10.3）：每一条 `import <模块名>` 的
 /// `(模块名, span)`，按书写顺序、按名字去重。
@@ -187,4 +187,3 @@ fn scan_notation_target(chars: &[char], i: &mut usize) -> Option<String> {
     *i = j;
     Some(target)
 }
-
