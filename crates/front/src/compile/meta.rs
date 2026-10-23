@@ -814,10 +814,10 @@ impl<'a> MetaCtx<'a> {
         if allow_unfold {
             let dl = desugar_notation(&l);
             let dr = desugar_notation(&r);
-            if !(crate::spine::same_shape(&dl, &l) && crate::spine::same_shape(&dr, &r)) {
-                if self.unify_impl(&dl, &dr, false) == Tri::Yes {
-                    return Tri::Yes;
-                }
+            let changed =
+                !(crate::spine::same_shape(&dl, &l) && crate::spine::same_shape(&dr, &r));
+            if changed && self.unify_impl(&dl, &dr, false) == Tri::Yes {
+                return Tri::Yes;
             }
         }
         // 兜底没拿到 `Yes` ⇒ **结构分解那次的结论说了算**（见上面那条注释）：

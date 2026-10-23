@@ -58,6 +58,16 @@ pub(crate) fn scan_import_lines(src: &str) -> Vec<(String, Span)> {
     out
 }
 
+/// **预扫描**（第二刀，设计 §10.2）：源码里所有记法命令声明的符号文本。
+///
+/// 一趟字符扫描，**跳过 `--` 行注释与字符串字面量**；状态机只有两态：
+/// 「刚读完一条记法命令关键字」（含可选的 `:N`）⇒ 紧跟着的字符串字面量就是
+/// 符号。它**不解析**文件（不认识命令、不检查目标名）——只回答"哪些字符序列
+/// 在本文件里是记法符号"，交给 `tokenize_with_symbols` 做最长匹配。
+///
+/// 预扫描看得见**整份源码**的声明（包括声明点之前的），所以「声明之前使用」
+/// 得到的是 parser 的 `notation-unknown-symbol`（N5 的专用诊断），不是
+/// `unknown identifier`——与第一刀 `∈` 的行为一致。
 pub(crate) fn scan_notation_symbols(src: &str) -> Vec<String> {
     scan_notation_decls(src)
         .into_iter()

@@ -330,6 +330,7 @@ pub(super) fn render_goal(
 /// （`x ∈ A ∪ ∅` ⇒ `x ∈ A ∨ x ∈ ∅`）。`constructor` 一直走
 /// `goal_unfolded_to_inductive`；`apply Or.inl` 缺的就是这一条。
 /// 追加在匹配链**链尾** ⇒ 既有命中路径逐字节不变（零回归面）。
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn unify_with_inductive_head(
     codomain: &Expr,
     goal: &Expr,
