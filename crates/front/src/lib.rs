@@ -31,6 +31,8 @@ pub mod fixtures;
 pub mod judge;
 pub mod lean4_universe;
 mod level_text;
+mod meta_parse;
+mod meta_registry;
 pub mod notation;
 pub mod notation_input;
 pub mod project;

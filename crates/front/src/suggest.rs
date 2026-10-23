@@ -564,6 +564,7 @@ fn open_spec(d: &DeclState, ty: &str) -> OpenGoalSpec {
                 ty: Some(b.ty.clone()),
             })
             .collect(),
+        metas: Vec::new(),
     }
 }
 

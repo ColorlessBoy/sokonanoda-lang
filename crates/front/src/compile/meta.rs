@@ -31,6 +31,11 @@ pub(crate) fn meta_name(id: u32) -> String {
 }
 
 /// 这个名字是不是元变量？（`zonk` 之后不许再出现 ⇒ 出口自检用它。）
+/// **S3**：内部回读通道的元变量引用 `?m<digits>` ⇒ id（用户源码不会出现这种名字）。
+pub(crate) fn meta_ref_id(name: &str) -> Option<u32> {
+    name.strip_prefix("?m")?.parse::<u32>().ok()
+}
+
 pub(crate) fn is_meta_name(name: &str) -> bool {
     name.starts_with(META_PREFIX)
 }

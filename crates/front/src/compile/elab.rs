@@ -5536,6 +5536,23 @@ pub(crate) fn elab_expr<'a>(
             Ok(out)
         }
         Expr::Ident { name, span } => {
+            // **S3**：内部回读通道的元变量引用 `?mN`（类型由 judge 的登记表给）。
+            if let Some(id) = crate::compile::meta::meta_ref_id(name) {
+                let ty_text = crate::meta_registry::lookup(id).ok_or_else(|| {
+                    CompileError::elab(
+                        ErrorKind::ElabTacticFailed,
+                        format!("元变量 ?m{id} 没有登记类型"),
+                        *span,
+                    )
+                })?;
+                let ty_src = crate::meta_parse::parse_expr_text_meta(&ty_text).map_err(|e| {
+                    CompileError::elab(ErrorKind::ElabTacticFailed, format!("{e:?}"), *span)
+                })?;
+                let ty = elab_expr(builder, &ty_src, scope, univ, known, hovers, None, None, ctx)?;
+                let out = builder.mk_meta(id, ty);
+                record_hover(hovers, scope, *span, out, None);
+                return Ok(out);
+            }
             let bound = scope.names.iter().rposition(|candidate| candidate == name);
             let (out, resolution) = match bound {
                 Some(pos) => {

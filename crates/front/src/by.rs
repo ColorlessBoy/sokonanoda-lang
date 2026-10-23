@@ -3446,6 +3446,7 @@ fn spec_of(nodes: &[GoalNode], id: usize, universe: &[String]) -> OpenGoalSpec {
                 ty: b.ty.as_deref().map(render_expr),
             })
             .collect(),
+        metas: Vec::new(),
     }
 }
 
@@ -3522,6 +3523,7 @@ fn spec_of_for_judge(
             &[],
         )),
         binders,
+        metas: Vec::new(),
     }
 }
 

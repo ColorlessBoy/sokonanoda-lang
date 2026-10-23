@@ -3409,6 +3409,7 @@ fn judge_uses_carried_universe_for_sort_u_goals() {
                 ty: Some("α".to_string()),
             },
         ],
+        metas: Vec::new(),
     };
     let judgements = crate::judge::judge_terms(
         "def id {u} : {α : Sort u} -> (a : α) -> α := fun {α : Sort u} => fun (a : α) => a\n",

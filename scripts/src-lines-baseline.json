@@ -31,8 +31,8 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/elab.rs": {
-      "lines": 8826,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "lines": 8843,
+      "reason": "S3 元变量接线（elab_expr 的 ?mN 臂）；下一轮拆到 meta_parse/elab 子模块",
       "grew_from": 8702,
       "growth_reason": "引擎第 5 刀落地（6266bede/cb79b1ac）：新增 const_arg_expected 第四档（注册表签名 + telescope + 位置代换，与 Lean/Elab/App.lean:1113 的 instantiate1 arg 同构；零内核调用、非递归）⇒ elab.rs 8702→8826。⚠ 如实：债务增长，换来 59 处课程自然写法解锁 + 2190 不掉 + 零回归 + 语料 251/251 逐字节相同 ✓"
     },
@@ -65,8 +65,8 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/judge.rs": {
-      "lines": 4670,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 4708,
+      "reason": "S3 元变量接线（OpenGoalSpec.metas + registry 包裹 + 阶段探针）；测试下一轮移出"
     },
     "crates/front/src/notation_input.rs": {
       "lines": 1438,
@@ -125,8 +125,8 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/suggest.rs": {
-      "lines": 1336,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 1337,
+      "reason": "S3：OpenGoalSpec 新字段 metas 的初始化"
     },
     "crates/front/src/token.rs": {
       "lines": 1272,

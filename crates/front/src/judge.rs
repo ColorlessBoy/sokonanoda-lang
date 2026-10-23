@@ -40,6 +40,8 @@ pub struct OpenGoalSpec {
     pub universe: Vec<String>,
     pub ty: String,
     pub binders: Vec<GoalBinderSpec>,
+    /// **S3**：这个目标里出现的元变量 `(id, 类型文本)`（空 = 没有元变量）。
+    pub metas: Vec<(u32, String)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -55,6 +57,7 @@ impl OpenGoalSpec {
             universe,
             ty,
             binders,
+            metas: Vec::new(),
         }
     }
 }
@@ -1593,9 +1596,15 @@ fn judge_pairs_uncached(
     // 仍是这一批里的位置）——`judgement_of` 按名字回查，序号不能顺延。
     // 合成声明接在前缀之后 ⇒ **此刻**的 commands.len() 就是"前缀命令数"（K1-a 用它判断能否复用）。
     let prefix_commands = commands.len();
+    // **S3**：这一段里让 `?mN` 的类型可见（`elab_expr` 的 Ident 臂查它）。
+    let all_metas: Vec<(u32, String)> = pairs
+        .iter()
+        .flat_map(|p| p.spec.metas.iter().cloned())
+        .collect();
+    let (pre_judged, report) = crate::meta_registry::with_entries(&all_metas, || {
     let mut pre_judged: Vec<bool> = vec![false; pairs.len()];
     for (k, pair) in pairs.iter().enumerate() {
-        let Ok(goal) = crate::proof::parse_expr_text_with(&pair.spec.ty, &notations) else {
+        let Ok(goal) = crate::meta_parse::parse_expr_text_meta_with(&pair.spec.ty, &notations) else {
             judgements[k] = Judgement::Error {
                 code: "parse".to_string(),
                 message: format!("无法解析目标类型 `{}`", pair.spec.ty),
@@ -1616,7 +1625,7 @@ fn judge_pairs_uncached(
                 continue;
             }
         };
-        let Ok(term_expr) = crate::proof::parse_expr_text_with(&pair.term, &notations) else {
+        let Ok(term_expr) = crate::meta_parse::parse_expr_text_meta_with(&pair.term, &notations) else {
             judgements[k] = Judgement::Error {
                 code: "parse".to_string(),
                 message: format!("无法解析术语 `{}`", pair.term),
@@ -1646,6 +1655,8 @@ fn judge_pairs_uncached(
         prefix_commands,
         pairs.len(),
     );
+    (pre_judged, report)
+    });
     for (k, judgement) in judgements.iter_mut().enumerate() {
         if pre_judged[k] {
             continue;
@@ -4041,6 +4052,7 @@ mod tests {
                     ty: ty.map(|t| t.to_string()),
                 })
                 .collect(),
+            metas: Vec::new(),
         }
     }
 
@@ -4393,6 +4405,7 @@ mod tests {
                     ty: Some("α".to_string()),
                 },
             ],
+            metas: Vec::new(),
         };
         let judgements = judge_terms(
             prefix,
@@ -4659,5 +4672,37 @@ mod tests {
             outer,
             "换一份环境（新的一趟 pass）必须换键 —— 这就是 G-100 的失效路径 ✓"
         );
+    }
+}
+
+#[cfg(test)]
+mod s3_meta_judge_tests {
+    use super::*;
+    /// **S3（2026-10-23）**：目标里带登记的元变量 `?m7` 时，judge 能过到哪一步。
+    #[test]
+    fn judge_reports_the_current_stage_for_a_meta_goal() {
+        let spec = OpenGoalSpec {
+            universe: Vec::new(),
+            ty: "?m7 -> ?m7".to_string(),
+            binders: Vec::new(),
+            metas: vec![(7u32, "Prop".to_string())],
+        };
+        let out = judge_terms(
+            "",
+            &crate::compile::CompileOptions::default(),
+            &spec,
+            &["fun (x : ?m7) => x"],
+        );
+        eprintln!("[s3] judge = {out:?}");
+        // **当前阶段**：judge 已走到内核（parse/登记/elab 都通了），只被 walk 的
+        // `add_declar` K1 硬拒挡住（S3 的下一步 = 合成声明走"只 check 不 add"）。
+        // 这一步翻绿时，把这里改成 `assert!(matches!(out[0], Judgement::Match))`。
+        match &out[0] {
+            Judgement::Error { message, .. } => assert!(
+                message.contains("metavariable placeholder"),
+                "S3 之后的失败应当只来自 K1 硬拒，实际：{message}"
+            ),
+            other => panic!("预期走到 K1 硬拒，实际 {other:?}"),
+        }
     }
 }
