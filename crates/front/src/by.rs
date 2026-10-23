@@ -224,7 +224,7 @@ fn unfold_head_deep(
 
 /// 目标头**展开到归纳**（`cases`/`constructor`/`left`/`right`/`use` 共用）：
 /// `x ∈ B ∩ C` 要展开两层才露出 `And`（`Set.mem` → `Set.inter`）。
-fn goal_unfolded_to_inductive(
+pub(crate) fn goal_unfolded_to_inductive(
     ty: &Expr,
     inductives: &InductiveTable<'_>,
     defs: &DefTable,
@@ -2715,6 +2715,19 @@ fn apply_tactic<'a>(
                 // 追加在链尾 ⇒ 前面两条的命中路径**逐字节不变** ✓（零回归面）。
                 // 两侧都展：目标侧（`a ∈ ({a})` → `a = a`）与结论侧
                 // （`lem : Foo2 a` 的 `Foo2` → `a = a` 这种镜像形状）。
+                // 目标展到**归纳头**再试（见 apply_probe::unify_with_inductive_head）。
+                .or_else(|| {
+                    crate::apply_probe::unify_with_inductive_head(
+                        &codomain,
+                        &canonical,
+                        &layers,
+                        ctx.inductives,
+                        defs,
+                        &spec.binders,
+                        prefix_src,
+                        options,
+                    )
+                })
                 .or_else(|| {
                     let goals =
                         unfold_head_deep(&canonical, defs, &spec.binders, prefix_src, options, 4);

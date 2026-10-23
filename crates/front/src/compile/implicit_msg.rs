@@ -225,6 +225,16 @@ pub(crate) fn unsolved_message(
     let placeholders: Vec<String> = (0..k)
         .map(|i| format!("<{}>", name_of(names.as_ref(), i)))
         .collect();
+    // **审计 row 8（2026-10-23）**：`why` 以前**直接拼**在"没解出来"后面
+    // ⇒ 印成「…没解出来**两条线索互相矛盾**：…。。」。补分隔符 + 只留一个句号。
+    let reason = {
+        let why = why.trim();
+        if why.is_empty() {
+            String::new()
+        } else {
+            format!("；原因：{}", why.trim_end_matches('。'))
+        }
+    };
     let escape = match rest {
         Some(rest) => format!(
             "@{} {} {}",
@@ -247,7 +257,7 @@ pub(crate) fn unsolved_message(
         } else {
             implicit_list.join("、")
         },
-        why,
+        reason,
         k,
         escape,
     )

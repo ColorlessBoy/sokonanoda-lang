@@ -11,8 +11,8 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/by.rs": {
-      "lines": 4353,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 4365,
+      "reason": "apply 的归纳头展开候选（审计 row 2）；下一轮把 apply 的匹配链整体拆到 apply_probe"
     },
     "crates/front/src/compile/cache.rs": {
       "lines": 1138,

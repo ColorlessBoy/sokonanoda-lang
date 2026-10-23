@@ -325,3 +325,23 @@ pub(super) fn render_goal(
     let empty = crate::display::DisplayNotations::default();
     notations.unwrap_or(&empty).render(ty)
 }
+
+/// **B0/apply（2026-10-23，审计 row 2）**：目标展到**归纳头**再合一一次
+/// （`x ∈ A ∪ ∅` ⇒ `x ∈ A ∨ x ∈ ∅`）。`constructor` 一直走
+/// `goal_unfolded_to_inductive`；`apply Or.inl` 缺的就是这一条。
+/// 追加在匹配链**链尾** ⇒ 既有命中路径逐字节不变（零回归面）。
+pub(crate) fn unify_with_inductive_head(
+    codomain: &Expr,
+    goal: &Expr,
+    layers: &[(String, Expr)],
+    inductives: &crate::compile::elab::InductiveTable<'_>,
+    defs: &DefTable,
+    binders: &[GoalBinderSpec],
+    prefix_src: &str,
+    options: &CompileOptions,
+) -> Option<std::collections::HashMap<String, Expr>> {
+    let ind_goal = crate::by::goal_unfolded_to_inductive(
+        goal, inductives, defs, binders, prefix_src, options,
+    );
+    unify_spine(codomain, &ind_goal, layers)
+}
