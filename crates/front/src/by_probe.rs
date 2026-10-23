@@ -50,6 +50,7 @@ pub(crate) fn collect_remaining_tactic_errors<'a>(
         None,
         &mut holes,
         &mut redundant,
+        Some(&mut Vec::new()),
     )
     .is_err()
     {
@@ -78,6 +79,7 @@ pub(crate) fn collect_remaining_tactic_errors<'a>(
             None,
             &mut probe_holes,
             &mut probe_redundant,
+            Some(&mut Vec::new()),
         ) {
             Ok(()) => {
                 nodes = probe_nodes;

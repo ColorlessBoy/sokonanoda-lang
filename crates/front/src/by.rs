@@ -24,7 +24,7 @@ use crate::proof::{parse_expr_text, render_expr};
 use crate::spine::{
     head_and_args, mentions, peel_pi_delta, spine_of, substitute, unfold_head_once, unify_spine,
 };
-use crate::Span;
+use crate::{by_defer, Span};
 
 use crate::apply_probe::{
     is_universe_domain, level_hint_of_inplace, retry_with_goal, unreadable_message,
@@ -629,6 +629,8 @@ pub struct ByOutcome {
     /// 与 `steps` 的区别：块尾/`have` 的洞位对不上最后一条 tactic ⇒ 不反推。
     pub tactic_holes: Vec<Span>,
     pub redundant_sorry: Vec<Span>,
+    /// **S5**：块里被**推迟**的 tactic（`SOKO_DEFER=1` 才有；默认档恒空）。
+    pub deferred: Vec<by_defer::DeferredTactic>,
 }
 
 /// **B1（2026-10-08）**：`by` 块失败时交还诊断 + 已跑成功的那些步
@@ -1299,6 +1301,8 @@ pub(crate) fn run_by<'a>(
     //     这一趟、改用逐条判定的**严格重跑**——诊断/位置/文案与改动前一致。
     // 代价：判定全绿的解答只走一遍前缀（原来每步一遍）；判定真的失败时多跑一趟，
     // 而失败通常发生在块的前几步，严格重跑也随之很短。
+    // **S5**：读数按**块**清空（默认档恒空 ⇒ 与今天逐字节相同）。
+    by_defer::clear_deferred();
     let scope = begin_batch();
     let mut marks: Vec<(usize, usize)> = Vec::new();
     let optimistic = run_by_inner(
@@ -1338,7 +1342,7 @@ pub(crate) fn run_by<'a>(
             &mut marks_for_strict,
         )
     };
-    match (optimistic, first_bad) {
+    let outcome = match (optimistic, first_bad) {
         // 判定全绿 ⇒ 这一趟就是严格趟（控制流相同），直接采信。
         (Ok(outcome), None) => Ok(outcome),
         // 判定全绿但别处出错 ⇒ 这个错是真的，不必重跑（**B1**：把已跑成功的步一起交还 ✓）。
@@ -1384,7 +1388,9 @@ pub(crate) fn run_by<'a>(
                 None => strict_from_zero(),
             }
         }
-    }
+    };
+    // **S5**：只有 **Ok** 才把推迟项记进读数（Err ⇒ 入口已清空 ⇒ 读数仍空 ✓）。
+    outcome.inspect(|o| by_defer::set_deferred(o.deferred.clone()))
 }
 
 /// 跑一趟 `by` 块（判定走当前通道：乐观批次里 = 记录 + `Match`；否则 = 逐条判）。
@@ -1466,6 +1472,8 @@ fn run_by_inner<'a>(
     // `run_tactics` 一路带出来（它们同样是 tactic 位 ✓）。
     let mut tactic_holes: Vec<Span> = Vec::new();
     let mut redundant_sorry: Vec<Span> = Vec::new();
+    // **S5**：本趟收下的推迟项（`assemble` 之后按"节点是否仍开着"过滤 ✓）。
+    let mut deferred: Vec<by_defer::DeferredTactic> = Vec::new();
 
     // **r22**：留一份**初始根目标**给失败后的探针（`nodes[0].ty` 到那时可能已被
     // `intro`/`apply` 改过 ⇒ 拿它重放会从错的地方起步 ✗）。一次克隆 / 一条声明 ✓。
@@ -1499,6 +1507,7 @@ fn run_by_inner<'a>(
                 crate::compile::elab::InplaceEnv::reborrow(&mut env),
                 &mut tactic_holes,
                 &mut redundant_sorry,
+                Some(&mut deferred),
             );
             drop(scope); // 丢弃批次：这批判定**已知全 Match**（调用方的 flush 证明过 ✓）
             if let Err(error) = replayed {
@@ -1547,6 +1556,7 @@ fn run_by_inner<'a>(
         env,
         &mut tactic_holes,
         &mut redundant_sorry,
+        Some(&mut deferred),
     ) {
         // **B1**：`?` 会把已累积的 `steps` 整份丢掉 ✗ ⇒ 显式交还（失败那条不在里面 ✓）。
         // **B3**：连**引擎状态**（节点图/待解队列）与**批边界**一起交还 ⇒ 严格续跑 ✓。
@@ -1579,11 +1589,14 @@ fn run_by_inner<'a>(
         });
     }
     let expr = assemble(&nodes, 0, hole_span(tactics, *by_span), &mut tactic_holes);
+    // **S5**：只留**仍然开着**的目标 —— 后面的 tactic 把该节点补上了 ⇒ 这次推迟已兑现。
+    let deferred = by_defer::retain_open(deferred, |n| matches!(nodes[n].kind, NodeKind::Hole));
     Ok(ByOutcome {
         expr,
         steps,
         tactic_holes,
         redundant_sorry,
+        deferred,
     })
 }
 
@@ -1609,6 +1622,8 @@ pub(crate) fn run_tactics<'a>(
     // `have := by …` 的装配也往这里记（那同样是一个 tactic 位 ✓）。
     tactic_holes: &mut Vec<Span>,
     redundant_sorry: &mut Vec<Span>,
+    // **S5**：`Some` ⇒ 这一串里允许**推迟**（只有顶层 `by` 与它的嵌套块传 `Some` ✓）。
+    mut defer: by_defer::DeferSink<'_>,
 ) -> Result<(), CompileError> {
     for (index, tactic) in tactics.iter().enumerate() {
         if let Some(marks) = marks.as_deref_mut() {
@@ -1728,6 +1743,7 @@ pub(crate) fn run_tactics<'a>(
             Tactic::Exact { expr, span } => {
                 exact_tactic(
                     expr, *span, nodes, worklist, universe, prefix_src, options, defs,
+                    defer.as_deref_mut(),
                 )?;
             }
             // `have h : T := t`（L3.6）：**目标不变**，上下文里多一条 `h : T`。
@@ -1772,6 +1788,7 @@ pub(crate) fn run_tactics<'a>(
                             crate::compile::elab::InplaceEnv::reborrow(&mut env),
                             tactic_holes,
                             redundant_sorry,
+                            defer.as_deref_mut(),
                         )?;
                         worklist.truncate(base);
                         assemble(nodes, id, *span, tactic_holes)
@@ -1922,7 +1939,7 @@ pub(crate) fn run_tactics<'a>(
                     crate::compile::elab::InplaceEnv::reborrow(&mut env),
                 )?;
                 exact_tactic(
-                    expr, *span, nodes, worklist, universe, prefix_src, options, defs,
+                    expr, *span, nodes, worklist, universe, prefix_src, options, defs, None,
                 )?;
             }
             Tactic::Exfalso { span } => {
@@ -2268,6 +2285,7 @@ pub(crate) fn run_tactics<'a>(
                     defs,
                     ctx,
                     crate::compile::elab::InplaceEnv::reborrow(&mut env),
+                    defer.as_deref_mut(),
                 )?;
             }
             Tactic::Cases { expr, arms, span } => {
@@ -2287,6 +2305,7 @@ pub(crate) fn run_tactics<'a>(
                     crate::compile::elab::InplaceEnv::reborrow(&mut env),
                     tactic_holes,
                     redundant_sorry,
+                    defer.as_deref_mut(),
                 )?;
             }
             Tactic::Bullet { tactics, span } => {
@@ -2317,6 +2336,7 @@ pub(crate) fn run_tactics<'a>(
                     crate::compile::elab::InplaceEnv::reborrow(&mut env),
                     tactic_holes,
                     redundant_sorry,
+                    defer.as_deref_mut(),
                 )?;
                 if !inner.is_empty() {
                     // Lean closeUsingOrAdmit：没证完就 admit（sorry span 优先）。
@@ -2447,6 +2467,7 @@ fn apply_tactic<'a>(
     defs: &DefTable,
     ctx: &crate::compile::elab::ElabCtx<'a, '_>,
     mut env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
+    defer: by_defer::DeferSink<'_>,
 ) -> Result<(), CompileError> {
     let cur = *worklist.last().ok_or_else(|| {
         CompileError::elab(ErrorKind::ElabTacticFailed, "by 块里没有待解目标", span)
@@ -2502,19 +2523,18 @@ fn apply_tactic<'a>(
         })
     });
     let slow = || judge_infer(prefix_src, options, &spec.binders, &term);
-    let mut f_ty = match inplace {
+    let inferred = match inplace {
         Some(text) => Ok(text),
         None => slow(),
-    }
-    .map_err(|j| match j {
-        Judgement::Mismatch { .. } => CompileError::elab(
-            ErrorKind::ElabTacticFailed,
-            "无法推断被应用函数的类型",
-            span,
-        ),
-        Judgement::Error { message, kind, .. } => CompileError::from_judgement(kind, message, span),
-        Judgement::Match => unreachable!(),
-    })?;
+    };
+    // **S5**：显式 `match`（闭包不能 `return`）——可推迟码 ⇒ 记下、目标留着、块继续。
+    let mut f_ty = match inferred {
+        Ok(text) => text,
+        Err(j) => match by_defer::apply_infer_error(j, defer, cur, span)? {
+            Some(text) => text,
+            None => return Ok(()),
+        },
+    };
     // ② **1a（失败边重试）**：文本读不回来 / 结论对不上 ⇒ 用目标当期望类型重试一次
     // （只在失败边 ⇒ 今天能过的输入逐字节不变）。
     f_ty = retry_with_goal(
@@ -2695,7 +2715,7 @@ fn apply_tactic<'a>(
         // 逐字节不变 ✓（零回归面）。失败时 `exact_tactic` 不改 `nodes`/`worklist`
         // （Err 臂只构造错误 ✓）⇒ 仍回落原来那句诊断 ✓。
         if exact_tactic(
-            expr, span, nodes, worklist, universe, prefix_src, options, defs,
+            expr, span, nodes, worklist, universe, prefix_src, options, defs, None,
         )
         .is_ok()
         {
@@ -2849,6 +2869,7 @@ fn cases_tactic<'a>(
     // **A1**：`cases … with` 臂体里的未闭合目标也是 tactic 位洞 ⇒ 一路带出去 ✓
     tactic_holes: &mut Vec<Span>,
     redundant_sorry: &mut Vec<Span>,
+    mut defer: by_defer::DeferSink<'_>,
 ) -> Result<(), CompileError> {
     let cur = *worklist
         .last()
@@ -3241,6 +3262,7 @@ fn cases_tactic<'a>(
             crate::compile::elab::InplaceEnv::reborrow(&mut env),
             tactic_holes,
             redundant_sorry,
+            defer.as_deref_mut(),
         )?;
         worklist.truncate(base);
     }
@@ -3820,6 +3842,7 @@ fn exact_tactic(
     prefix_src: &str,
     options: &CompileOptions,
     defs: &DefTable,
+    defer: by_defer::DeferSink<'_>,
 ) -> Result<(), CompileError> {
     let cur = *worklist
         .last()
@@ -3880,11 +3903,9 @@ fn exact_tactic(
                 span,
             ))
         }
-        Some(Judgement::Error { message, kind, .. }) => Err(CompileError::from_judgement(
-            kind,
-            format!("`exact` 判定失败：{message}"),
-            span,
-        )),
+        Some(Judgement::Error { code, message, kind }) => {
+            by_defer::exact_error(defer, cur, span, code, message, kind)
+        }
         None => unreachable!("judge returns one judgement per term"),
     }
 }
@@ -3940,7 +3961,7 @@ fn ctor_tactic<'a>(
                    env: Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>| {
         let ctor = nth_constructor(inductives, &unfolded, index, span, what)?;
         apply_tactic(
-            &ctor, span, nodes, worklist, universe, prefix_src, options, defs, ctx, env,
+            &ctor, span, nodes, worklist, universe, prefix_src, options, defs, ctx, env, None,
         )
     })(nodes, env);
     if let Some(node) = nodes.get_mut(cur) {
