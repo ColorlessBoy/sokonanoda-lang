@@ -408,14 +408,10 @@ pub fn compile_all_with(
     (out, reports.pop().unwrap_or_default())
 }
 
-/// 值位若是 `by` 块，先用引擎降级成 lambda AST（可能带尾部 `sorry`）；
-/// 否则原样 clone。返回降级后的值位 + 引擎记录的 per-tactic 状态
-/// （非 by 块为空），交给既有 `open_goal`/`build_*` 分流。
-/// `src` 为文件原文、`span_start` 为声明起点——只有真是 `by` 块才切片
-/// （judge 合成的文件 src 为空，普通声明不触发切片）。
-// 参数已 8 个（0.62.0 起多一个 `universe`：判定合成声明要带声明的宇宙
-// 参数，见 `docs/design/by-tactics.md` §12）。为压 clippy 把参数打包成
-// 结构体只会给热路径加一层间接，得不偿失。
+/// 值位若是 `by` 块，先用引擎降级成 lambda AST（可能带尾部 `sorry`）；否则原样 clone。
+/// 返回降级后的值位 + per-tactic 状态 + 延迟义务（非 by 块都为空），交给
+/// `open_goal`/`build_*` 分流。参数 8 个（0.62.0 起多 `universe`：判定合成声明要
+/// 带的宇宙参数，见 `docs/design/by-tactics.md` §12）；打包成结构体只多一层间接。
 #[allow(clippy::too_many_arguments)]
 fn lower_by_val<'a>(
     ty: &Expr,
@@ -450,6 +446,7 @@ fn lower_by_val<'a>(
             steps: o.steps,
             tactic_holes: o.tactic_holes,
             redundant_sorry: o.redundant_sorry,
+            deferred: o.deferred,
         })
     } else {
         // 值位不是 `by` 块 ⇒ 里面的洞都是**项位**（`tactic_holes` 空 ✓）。
@@ -458,6 +455,7 @@ fn lower_by_val<'a>(
             steps: Vec::new(),
             tactic_holes: Vec::new(),
             redundant_sorry: Vec::new(),
+            deferred: Vec::new(),
         })
     }
 }
@@ -471,6 +469,8 @@ pub(crate) struct LoweredValue {
     pub tactic_holes: Vec<Span>,
     /// 末尾多余的 `sorry`（2026-10-22）：发 `redundant-sorry` warning，**不是**洞。
     pub redundant_sorry: Vec<Span>,
+    /// **S5**：`by` 块里被**推迟**的 tactic（`SOKO_DEFER=1` 才有；默认档恒空；只留收尾仍开着的）。
+    pub deferred: Vec<crate::by_defer::DeferredTactic>,
 }
 
 /// 值位是 `by` 块时走 tactic 引擎；其它值原样透传。

@@ -7,7 +7,7 @@
 //!
 //! 夹具 `/tmp/s5probe/d.sokonanoda`：第 3 条 `apply Eq.subst (Eq.symm hx) h` 的隐式
 //! 实参解不出来（`Clash` 通道）⇒ 默认档必须**照今天**判死：一条诊断 @9:3、声明
-//! `Failed`、读数空（不记延迟义务）。
+//! `Failed`、读数空（不记延迟义务），**警告面也是空的**（一条 `deferred-tactic` 都不发）。
 
 use sokonanoda_front::by_defer::{deferred_report, deferred_reset};
 use sokonanoda_front::compile::{compile_all_with, CompileOptions, DeclStatus};
@@ -58,5 +58,11 @@ fn without_the_flag_a_deferrable_apply_still_kills_the_block() {
         deferred_report().is_empty(),
         "默认档不许记延迟义务：{:?}",
         deferred_report()
+    );
+    // ④ **S5 第 5/6 步**：警告面也是默认关 —— 一条 `deferred-tactic` 都不许发。
+    assert!(
+        !out.warnings.iter().any(|w| w.code() == "deferred-tactic"),
+        "默认档不许发 deferred-tactic：{:?}",
+        out.warnings.iter().map(|w| w.code()).collect::<Vec<_>>()
     );
 }

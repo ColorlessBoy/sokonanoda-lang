@@ -91,9 +91,8 @@ and never change the exit code. Codes today:
   and the warning only says *which* line is the leftover. The verdict is the
   kernel's: the term with that argument removed must pass a full check of the
   declaration (`docs/design/redundant-sorry.md`).
-  **对照**：这与签名腐烂是**两个方向** —— 签名不过就不是练习，必须报 diagnostic
-  （修 G-01 时明确**不**把它做成 warning：warning 不改退出码，课程侧就永远
-  发现不了签名腐烂）。
+  **对照**：签名腐烂是**另一个方向** —— 签名不过就不是练习，必须报 diagnostic（warning
+  不改退出码 ⇒ 课程侧永远发现不了）。
 - `import-has-open-exercises` / `uses-open-exercise`: imported `sorry`s enter the
   environment (like Lean 4's `sorryAx`), so downstream can use them; the first
   warns the module is unfinished, the second warns a proof still depends on it.
@@ -102,6 +101,7 @@ and never change the exit code. Codes today:
   language resolves by a fixed order and silently takes the first, so the warning
   says *which* one wins (`docs/design/namespace-open.md` §N8). It is syntax-level
   and file-local: a candidate from an *imported* module is not reported.
+- `deferred-tactic`: only with `SOKO_DEFER=1`; an `apply`/`exact` whose implicit argument could not be solved is **deferred** (goal left open, block continues) — it was *not* judged, and nothing promises it will be solved.
 
 ## Error staging and codes
 

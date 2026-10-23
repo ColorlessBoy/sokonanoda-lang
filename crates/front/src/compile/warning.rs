@@ -30,6 +30,10 @@ pub enum WarningKind {
     /// 本语言按候选顺序静默取第一个（设计 N4），所以给一条**警告**（不是错误）
     /// 告诉学习者"这个短名其实指向谁"。见 `docs/design/namespace-open.md` §N8。
     OpenShadowedName,
+    /// **S5（2026-10-23）**：`SOKO_DEFER=1` 时，`by` 块里一条 `apply`/`exact`
+    /// 的隐式实参解不出来 ⇒ 它被**推迟**（目标留着、块继续），不是错误；这条
+    /// warning 点名是哪一行、以及原始消息（默认档不会出现）。
+    DeferredTactic,
 }
 
 impl WarningKind {
@@ -40,6 +44,7 @@ impl WarningKind {
             WarningKind::UsesOpenExercise => "uses-open-exercise",
             WarningKind::RedundantSorry => "redundant-sorry",
             WarningKind::OpenShadowedName => "open-shadowed-name",
+            WarningKind::DeferredTactic => "deferred-tactic",
         }
     }
 
@@ -60,6 +65,9 @@ impl WarningKind {
             }
             WarningKind::OpenShadowedName => {
                 "要点名的那一个就写全前缀（`A.x`）；要让短名指向另一个候选，用 `open A hiding x` / `open A (x)` / `open A renaming x => y` 把撞车的名字挡掉。"
+            }
+            WarningKind::DeferredTactic => {
+                "把这条 tactic 的实参写全再试：隐式实参可以显式写出，或在函数名前加 `@` 让前导参数变成显式。这条 tactic 没有判定成功，目标仍然开着。"
             }
         }
     }
@@ -82,6 +90,9 @@ impl WarningKind {
             WarningKind::RedundantSorry => true,
             // `open` 遮蔽是纯语法的候选表推断（每次 update 在整文件上重算）。
             WarningKind::OpenShadowedName => false,
+            // 与 `RedundantSorry` 同源：由 by 引擎在本趟 lowering 里算出 ⇒ 信任前缀
+            // 命中时不会重算 ⇒ 必须随命令进快照，否则一命中就丢 ✓。
+            WarningKind::DeferredTactic => true,
         }
     }
 }
@@ -111,6 +122,40 @@ pub(crate) fn push_redundant_sorry(
             },
         );
     }
+}
+
+/// **S5 第 6 步**：`by` 块里被**推迟**的 tactic（`SOKO_DEFER=1` 才有）—— 每条
+/// 一条 `deferred-tactic` warning。位置 = 引入它的那条 tactic（`span` 原样），
+/// **不判红**、不改退出码，也**不**承诺它会被解出来。
+pub(crate) fn push_deferred(
+    out: &mut crate::compile::event::CompileOutput,
+    cmd: usize,
+    entries: &[crate::by_defer::DeferredTactic],
+) {
+    for entry in entries {
+        out.push_warning(
+            cmd,
+            CompileWarning {
+                kind: WarningKind::DeferredTactic,
+                message: format!(
+                    "第 {} 行第 {} 列的 tactic：这里没能解出隐式实参（已推迟）：{}",
+                    entry.span.start.line, entry.span.start.column, entry.message
+                ),
+                span: entry.span,
+            },
+        );
+    }
+}
+
+/// 值位 lowering 的两类 warning 一次发完（`walk.rs` 三处各一行 ⇒ 不涨判据 ⑨ 的
+/// 行数基线；`redundant-sorry` 在前，`deferred-tactic` 在后）。
+pub(crate) fn push_lowered_warnings(
+    out: &mut crate::compile::event::CompileOutput,
+    cmd: usize,
+    lowered: &crate::compile::check::LoweredValue,
+) {
+    push_redundant_sorry(out, cmd, &lowered.redundant_sorry);
+    push_deferred(out, cmd, &lowered.deferred);
 }
 
 impl CompileWarning {

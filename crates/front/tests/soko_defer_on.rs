@@ -10,6 +10,8 @@
 //! 第 3 条 `apply Eq.subst (Eq.symm hx) h` 的隐式实参解不出来（`Clash` 通道）⇒
 //! 默认档在这里判死（`soko_defer_off.rs` 钉着：诊断 @9:3、`Failed`），推迟档则
 //! 记一条 @9:3、目标仍开着（`Open`）、**第 4 条 tactic 真的跑了**（`by_steps == 4`）。
+//! **第 5/6 步**（同批）：同一处断言 `out.warnings` 里有一条 `deferred-tactic`（span @9:3）——
+//! 延迟义务**穿出引擎并上警告面**，不是只在读数里。
 
 use sokonanoda_front::by_defer::{deferred_report, deferred_reset};
 use sokonanoda_front::compile::{compile_all_with, CompileOptions, DeclStatus};
@@ -72,4 +74,22 @@ fn a_deferrable_apply_is_recorded_and_the_block_continues() {
     assert_eq!((pend[0].span.start.line, pend[0].span.start.column), (9, 3));
     assert_eq!(pend[0].code, "elab-implicit-argument-unsolved");
     assert!(pend[0].message.contains("隐式"), "{}", pend[0].message);
+    // ⑤ **S5 第 5/6 步**：穿出引擎、上警告面 —— 一条 `deferred-tactic`，位置就是
+    //    引入它的那条 tactic（不判红、不改退出码）。
+    let warning = out
+        .warnings
+        .iter()
+        .find(|w| w.code() == "deferred-tactic")
+        .unwrap_or_else(|| {
+            panic!(
+                "推迟档要发一条 deferred-tactic warning：{:?}",
+                out.warnings.iter().map(|w| w.code()).collect::<Vec<_>>()
+            )
+        });
+    assert_eq!((warning.span.start.line, warning.span.start.column), (9, 3));
+    assert!(
+        warning.message.contains("第 9 行第 3 列"),
+        "{}",
+        warning.message
+    );
 }

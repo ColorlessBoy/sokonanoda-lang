@@ -1054,7 +1054,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 return;
             }
         };
-        crate::compile::warning::push_redundant_sorry(&mut self.out, idx, &lowered.redundant_sorry);
+        crate::compile::warning::push_lowered_warnings(&mut self.out, idx, &lowered);
         let by_root = decl_prefix_state(ty, val, &self.display);
         // **词法补位必须用源表达式**（2026-10-11）：下面这行之后 `val` 是
         // **elaborate 过**的项 —— 里面的 tactic 语法（`unfold Foo` 的 `Foo`）
@@ -1542,7 +1542,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 return;
             }
         };
-        crate::compile::warning::push_redundant_sorry(&mut self.out, idx, &lowered.redundant_sorry);
+        crate::compile::warning::push_lowered_warnings(&mut self.out, idx, &lowered);
         // **题面状态**（G-82）：`open_goal` 分解不了值时兜底要用它；算一次 ✓。
         let src_root = decl_root_state(ty, val, &self.display);
         let by_root = src_root
@@ -2117,7 +2117,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 return;
             }
         };
-        crate::compile::warning::push_redundant_sorry(&mut self.out, idx, &lowered.redundant_sorry);
+        crate::compile::warning::push_lowered_warnings(&mut self.out, idx, &lowered);
         // **题面状态**（G-82）：`open_goal` 分解不了值时兜底要用它；算一次 ✓。
         let src_root = decl_root_state(ty, val, &self.display);
         let by_root = src_root

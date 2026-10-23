@@ -99,6 +99,7 @@
 `SOKO_JUDGE_INPLACE_WIDE=0` / `SOKO_JUDGE_INPLACE_BY=0|off`；§3.C 的逃生门
 `SOKO_JUDGE_ENV_VOUCH=0` / `SOKO_JUDGE_ENV_REUSE=0`；§32.4 (iii)（合成文档把前缀 `theorem`
 装成不透明常量）的逃生门 `SOKO_JUDGE_PREFIX_OPAQUE=off` / 影子档 `=shadow`。
+**`SOKO_DEFER=1`**（默认**关**）打开 S5 延迟义务：`apply`/`exact` 的隐式实参解不出时记一条 `deferred-tactic` warning、目标留着、`by` 块继续。
 **发版（⭐ 活读数 —— **别再写死版本号** ✗）**：`python3 scripts/release-metric.py` ⇒ `未发版 N 笔（用户面 M · 产物 K）· 距上次发版 H 小时 · 最新 tag vX.Y.Z ⇒ ✓/✗`（红线 >50 笔 或 >24h ⇒ rc=1；口径 = 该脚本的 `TIERS`，`--explain` 印表）。
 ⚠ 2026-10-16 之前这一格写的是「`v0.79.0` = Latest（CI `36803030466` …）」—— **死格**：写死的历史事实**永远 ✓**，所以实测 209 笔未发版 / 22.9 小时时它照样 ✓ ✗（用户原话：「清账 Agent 不会检查还有多少没发版吧」）。
 
