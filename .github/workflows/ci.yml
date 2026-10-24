@@ -1364,7 +1364,7 @@ jobs:
     # ⚠ 补 `queue-lint`（2026-10-15，洞 `LEDGER-JOB-SKIPPED-ON-DOC-ONLY-PUSH` ✓）：队列门禁
     # 原先由 `ledger` 顶着 ⇒ 搬去独立 job 后不补这一条，**它红了就不会掐整轮** ✗
     #（那正是本 job 存在的意义 ✓ —— 队列检查是秒级的，最适合当早期红灯 ✓）。
-    needs: [changes, lint-fmt, lint-clippy, queue-lint, gates-fast, test, gates-course, ledger, contract, editor, e2e, e2e-macos, e2e-ledger]
+    needs: [changes, lint-fmt, lint-clippy, board, guard-bite, budgets, site, hygiene, gates-fast, test, gates-course, ledger, contract, editor, e2e, e2e-macos, e2e-ledger]
     if: ${{ always() && contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-24.04
     permissions:
