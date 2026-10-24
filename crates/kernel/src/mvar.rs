@@ -17,6 +17,11 @@ pub struct MetaContext<'t> {
     kinds: FxHashMap<u32, MetaKind>,
     /// 正在做"赋值前类型检查"的 id（防递归）。
     checking: std::collections::HashSet<u32>,
+    /// **未赋值元变量的数量**。`has_unassigned_meta` 的 O(1) 闸：没有任何未赋值
+    /// 元变量时（普通导出/课程语料）不必深扫值图 —— 否则每次 `unify_general`
+    /// 都遍历共享 DAG，`perf/app-lam` 这类用例会指数爆炸（实测 30s+ 不返回，
+    /// 上游 pin 0.04s）。
+    unassigned: usize,
 }
 
 impl<'t> MetaContext<'t> {
@@ -24,7 +29,10 @@ impl<'t> MetaContext<'t> {
         Self::default()
     }
     pub fn register(&mut self, id: u32, ty: ExprPtr<'t>) {
-        self.types.insert(id, ty);
+        let is_new = self.types.insert(id, ty).is_none();
+        if is_new && !self.values.contains_key(&id) {
+            self.unassigned += 1;
+        }
     }
     pub fn register_kind(&mut self, id: u32, kind: MetaKind) {
         self.kinds.insert(id, kind);
@@ -39,7 +47,14 @@ impl<'t> MetaContext<'t> {
         self.values.get(&id).copied()
     }
     pub fn assign(&mut self, id: u32, v: ExprPtr<'t>) {
-        self.values.insert(id, v);
+        let was_assigned = self.values.insert(id, v).is_some();
+        if !was_assigned && self.types.contains_key(&id) {
+            self.unassigned = self.unassigned.saturating_sub(1);
+        }
+    }
+    /// 有没有**未赋值**的元变量（O(1)）。
+    pub fn has_unassigned(&self) -> bool {
+        self.unassigned > 0
     }
     fn begin_check(&mut self, id: u32) -> bool {
         self.checking.insert(id)
@@ -153,6 +168,11 @@ pub fn mentions_meta(id: u32, v: V<'_>) -> bool {
 
 /// `v` 里有没有**未赋值**的元变量（缓存纪律用）。
 pub fn has_unassigned_meta(v: V<'_>, ctx: &MetaContext<'_>) -> bool {
+    // O(1) 闸：没有未赋值元变量时（普通导出/课程语料）直接 false，绝不深扫
+    // 共享值图。深扫在 DAG 上是指数的，而 `unify_general` 每次合一都要问一次。
+    if !ctx.has_unassigned() {
+        return false;
+    }
     any_meta(v, &|id| ctx.value(id).is_none())
 }
 

@@ -1,0 +1,8 @@
+# Perf-only stress tests: a **timeout** is allowed (and reported), because the
+# pinned kernel (7b51784) is dramatically slower than the current upstream on
+# this generated corpus. Correctness is still checked whenever the case
+# finishes: an accept/reject mismatch, decline or panic is a failure.
+#
+# This is not a correctness skip list. Keep it minimal; the arena page remains
+# the performance reference for these cases.
+perf/magma-list-pair-n21

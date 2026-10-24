@@ -40,6 +40,7 @@ import git_env  # noqa: E402  （同目录库：**干净 git 环境**的唯一�
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(REPO_ROOT, "site", "data", "site.json")
+ARENA = os.path.join(REPO_ROOT, "site", "data", "arena.json")
 REPO_URL = "https://github.com/ColorlessBoy/sokonanoda-lang"
 
 TAG_RE = re.compile(r"^v(\d+\.\d+\.\d+)$")
@@ -78,6 +79,37 @@ def cargo_version() -> str | None:
     return match.group(1) if match else None
 
 
+def arena_facts() -> dict | None:
+    """**官方最新语料的一次通过结果**（`site/data/arena.json`，由 arena-gate 写）。
+
+    缺文件/没通过 ⇒ 返回 None，站点显示中性占位（不编造数字）。
+    """
+    try:
+        with open(ARENA, encoding="utf-8") as handle:
+            raw = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return None
+    if raw.get("passed") is not True:
+        return None
+    try:
+        return {
+            "corpus": f"master@{str(raw['revision'])[:9]}",
+            "revision": str(raw["revision"]),
+            "run_id": str(raw["run_id"]),
+            "created_at": raw.get("created_at"),
+            "good": int(raw["good"]),
+            "bad": int(raw["bad"]),
+            "accepted": int(raw["accepted"]),
+            "rejected": int(raw["rejected"]),
+            "declined": int(raw["declined"]),
+            "known_unsupported": int(raw.get("known_unsupported", 0)),
+            "known_slow": int(raw.get("known_slow", 0)),
+            "slow_timeouts": int(raw.get("slow_timeouts", 0)),
+        }
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def build(version: str | None = None) -> dict:
     """组装事实字典。字段少了就是源缺了——**不补默认值**。"""
     version = version or cargo_version()
@@ -87,6 +119,9 @@ def build(version: str | None = None) -> dict:
         data["tag"] = tag
         data["version"] = tag[1:]
         data["release_url"] = f"{REPO_URL}/releases/tag/{tag}"
+    arena = arena_facts()
+    if arena:
+        data["arena"] = arena
     return data
 
 

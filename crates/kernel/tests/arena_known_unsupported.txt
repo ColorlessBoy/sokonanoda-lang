@@ -1,0 +1,10 @@
+# Known-unsupported Lean Kernel Arena tests.
+#
+# The kernel has no `unsafe` / `partial` support, so it declines these inputs
+# (a controlled `Decline`, exit code 2 in `sokonanoda-kernel`). The release gate
+# requires every entry to be **declined or rejected, never accepted**; an entry
+# that disappears from the corpus is a stale allowlist and fails the gate.
+#
+# Keep this list minimal and exact. It is not a generic skip list.
+tutorial/140_falseFromUnsafe
+tutorial/141_falseFromPartial

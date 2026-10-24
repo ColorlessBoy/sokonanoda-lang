@@ -64,13 +64,24 @@ node editor/vscode/scripts/stage-lsp.js || exit 1
 BIN="${CARGO_TARGET_DIR:-$PWD/target}/release/sokonanoda"
 echo "锚点二进制：$("$BIN" version --json | sed 's/.*"version":"\([^"]*\)".*/\1/')"
 
-# ④ 完整门禁（坑 1+2：显式给锚点、且它必须是刚建的那份）
-step "④ scripts/soko gate（锚点 = 仓库 release 构建）"
+# ④ Lean Kernel Arena 门禁（2026-10-24 用户要求）：**最新 master 语料**必须全绿。
+# ⚠ 这一步要 `gh` 已登录 + 网络（下载 lean-kernel-arena 的 test-tarball artifact）；
+#   取不到语料 ⇒ exit 3，**不是**跳过。`--fast` 不走这里（它只查版本钉 + docs-lint）；
+#   发版路径的强制点在 `scripts/bump.py`：写版本号前跑同一个 gate。
+step "④ Lean Kernel Arena 门禁（最新 master 语料）"
+python3 scripts/arena-gate.py || { echo "✗ LKA 门禁判红（内核改动与最新 arena 语料不一致）" >&2; exit 1; }
+# 可信度结果由 bump 那一步写进 README + site/data/{arena,site}.json；这里只核对
+# **不漂**（本跑的 gate 不写结果，避免 bump 之后再把工作树弄脏）。
+python3 scripts/gen-arena-summary.py --check || { echo "✗ README 的 LKA 可信度块与 arena.json 不一致" >&2; exit 1; }
+python3 scripts/gen-site-data.py --check || { echo "✗ site/data/site.json 与 arena.json/版本钉不一致" >&2; exit 1; }
+
+# ⑤ 完整门禁（坑 1+2：显式给锚点、且它必须是刚建的那份）
+step "⑤ scripts/soko gate（锚点 = 仓库 release 构建）"
 SOKONANODA_BIN="$BIN" scripts/soko gate || { echo "✗ gate 判红" >&2; exit 1; }
 
-# ⑤ 可选：全课程 --json 逐字节（要一份"已发布 tag 的构建"当基线）
+# ⑥ 可选：全课程 --json 逐字节（要一份"已发布 tag 的构建"当基线）
 if [ "$SWEEP" = 1 ]; then
-  step "⑤ 全课程 --json 逐字节对拍"
+  step "⑥ 全课程 --json 逐字节对拍"
   BASE=${SOKO_BASELINE_BIN:-/tmp/target-v852/debug/sokonanoda}
   [ -x "$BASE" ] || { echo "✗ 基线不可执行：$BASE（先按 check-json-identity.py 文件头建）" >&2; exit 3; }
   python3 scripts/check-json-identity.py --baseline "$BASE" --new "$BIN" || exit 1

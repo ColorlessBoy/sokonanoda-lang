@@ -117,6 +117,18 @@
           在 Lean 4 里成立。</span>
         </li>
       </ul>
+
+      <p class="fact trust">
+        <span data-i18n="trustLead">内核可信度：每次发版前跑最新的</span>
+        <a href="https://arena.lean-lang.org/checker/sokonanoda/" data-i18n="trustLink">Lean Kernel Arena</a>
+        <span data-i18n="trustCorpus">语料</span> <code data-arena-corpus>—</code>
+        <span data-i18n="trustGood">· 接受用例</span>
+        <strong data-arena-good>—</strong><span>/</span><strong data-arena-good-total>—</strong>
+        <span data-i18n="trustBad">· 拒绝用例</span>
+        <strong data-arena-bad>—</strong><span>/</span><strong data-arena-bad-total>—</strong>
+        <span data-i18n="trustSlow">· 性能压力超时</span><strong data-arena-slow>—</strong>
+        <span data-i18n="trustKnown">· 已知不支持（declined）</span><strong data-arena-known>—</strong>
+      </p>
     </div>
   </section>
 
@@ -268,6 +280,13 @@ code sokonanoda-lang/course/unit1-propositions-proofs.sokonanoda</pre>
   "card2p": "Put the caret on a <code>sorry</code> and the panel shows <strong>what you have to prove right now</strong> (<code>⊢ (A ∩ B) = (B ∩ A)</code>) together with the hypotheses you already have — like a derivation on paper, you always know what you are proving.",
   "card3t": "The syntax is a subset of Lean 4",
   "card3p": "Connectives, set notation, <code>by</code> and its tactics, inductive types, universes, multi-file <code>import</code> — all written the way Lean 4 writes them. What you practise here holds in Lean 4.",
+  "trustLead": "Kernel credibility: every release runs the latest",
+  "trustLink": "Lean Kernel Arena",
+  "trustCorpus": "corpus",
+  "trustGood": "· accept cases",
+  "trustBad": "· reject cases",
+  "trustSlow": "· performance timeouts",
+  "trustKnown": "· known unsupported (declined)",
   "startHeading": "Getting started",
   "step1t": "Install the extension",
   "step1p": "Search for <code>sokonanoda</code> in VS Code, or use the <a href=\"https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda\">install button</a> above. The extension <strong>bundles</strong> the kernel and the command line — no Rust, no Lean toolchain.",

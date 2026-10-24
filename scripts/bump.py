@@ -123,6 +123,42 @@ def write(version: str) -> int:
         )
         return 2
 
+    # **发版前的 LKA 门禁**（2026-10-24 用户要求）：版本号一写就会进 commit/tag，
+    # 所以 gate 必须在**任何文件被改之前**跑；失败就一个字都不写。
+    # `--check` 不跑它（CI/gate 只查版本一致，不该依赖网络）。
+    # 离线/本地语料是**显式**的语料来源，不是跳过：`SOKO_ARENA_CORPUS=<dir>` /
+    # `SOKO_ARENA_OFFLINE=1`（后者打印 NOT LATEST，发版路径不要用）。
+    scripts_dir = os.path.dirname(os.path.abspath(__file__))
+    gate_cmd = [sys.executable, os.path.join(scripts_dir, "arena-gate.py")]
+    corpus = os.environ.get("SOKO_ARENA_CORPUS")
+    if corpus:
+        gate_cmd += ["--corpus", corpus]
+    if os.environ.get("SOKO_ARENA_OFFLINE") == "1":
+        gate_cmd.append("--offline")
+    print("跑 Lean Kernel Arena 门禁（最新 master 语料；失败则不写版本号）…")
+    gate_env = os.environ.copy()
+    official_corpus = not corpus and os.environ.get("SOKO_ARENA_OFFLINE") != "1"
+    if official_corpus:
+        gate_env["SOKO_ARENA_WRITE_RESULT"] = "1"
+    gate = subprocess.run(gate_cmd, cwd=os.path.dirname(scripts_dir), env=gate_env)
+    if gate.returncode != 0:
+        print(
+            "✗ Lean Kernel Arena 门禁没过 ⇒ 版本号未写（先修内核或更新语料）",
+            file=sys.stderr,
+        )
+        return 1
+
+    # 官方最新语料通过后：README 的可信度块与 site/data/arena.json 必须同一步写，
+    # 否则站点/README 会停在旧结果（用户 2026-10-24：可信度结果要在 README 与官网体现）。
+    if official_corpus:
+        summary = subprocess.run(
+            [sys.executable, os.path.join(scripts_dir, "gen-arena-summary.py"), "--write"],
+            cwd=os.path.dirname(scripts_dir),
+        )
+        if summary.returncode != 0:
+            print("✗ README 的 LKA 可信度块没写成 ⇒ 版本号未写", file=sys.stderr)
+            return 1
+
     old = repo_version()
     CARGO.write_text(
         VERSION_RE.sub(f'version = "{version}"', CARGO.read_text(encoding="utf-8"), count=1),

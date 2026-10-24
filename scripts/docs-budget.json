@@ -7,7 +7,7 @@
     "docs/E2E.md": 313,
     "docs/LESSONS.md": 590,
     "docs/PERF.md": 721,
-    "docs/RELEASE.md": 187,
+    "docs/RELEASE.md": 188,
     "docs/archive/status-removed-rounds-2026-10-13.md.gz": 308,
     "docs/TESTING.md": 289,
     "docs/architecture.md": 765,
@@ -27,7 +27,7 @@
     "docs/design/redundant-sorry.md": 274,
     "docs/design/rename-inlay.md": 120,
     "docs/design/set-theory-syllabus.md": 260,
-    "docs/design/site-single-page.md": 104,
+    "docs/design/site-single-page.md": 106,
     "docs/design/teaching-project.md": 662,
     "docs/design/v077-kernel-deficiencies.md": 150,
     "docs/design/v077-st1-boundary.md": 108,
@@ -74,7 +74,7 @@
       },
       {
         "file": "REQUIREMENTS.md",
-        "max_lines": 273
+        "max_lines": 275
       },
       {
         "file": "STATUS.md",

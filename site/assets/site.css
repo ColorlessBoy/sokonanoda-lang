@@ -444,6 +444,7 @@ p code, li code, td code, dd code, dt code {
 
 /* 事实行：一句断言 + 它的判据 */
 .fact { color: var(--ink-2); font-size: var(--fs-sm); }
+.trust { margin-top: var(--sp-5); }
 .fact code { color: var(--ink); }
 
 /* ── 头图：招牌 + 一句话 + 两个按钮 + 真截图 ───────────────────── */

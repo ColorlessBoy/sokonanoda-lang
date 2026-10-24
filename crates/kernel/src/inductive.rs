@@ -7,6 +7,20 @@ use std::sync::Arc;
 
 type Bndr<'a> = (NamePtr<'a>, BinderStyle, ExprPtr<'a>);
 
+/// The iota rule's field count is **judgement input**, not metadata: `fire_recursor`
+/// uses it to split the constructor arguments (`eval.rs`), so an imported export
+/// that lies about it changes what the kernel computes. Both the non-nested and
+/// the nested (`restore_and_check`) paths must compare it against the
+/// reconstructed rule; a stable message lets the front classifier and the arena
+/// harness treat it as a rejection rather than an internal panic.
+fn assert_rec_rule_field_count(imported: u16, constructed: u16) {
+    if imported != constructed {
+        panic!(
+            "iota rule field count does not match the constructor telescope: {imported} vs {constructed}"
+        );
+    }
+}
+
 impl<'t, 'p: 't> ExportFile<'p> {
     pub(crate) fn check_inductive_declar(
         &'t self,
@@ -1686,7 +1700,10 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
         if imported_rr.ctor_name != constructed_rr.ctor_name {
             panic!("iota rule is not listed in constructor declaration order");
         }
-        assert_eq!(imported_rr.ctor_telescope_size_wo_params, constructed_rr.ctor_telescope_size_wo_params);
+        assert_rec_rule_field_count(
+            imported_rr.ctor_telescope_size_wo_params,
+            constructed_rr.ctor_telescope_size_wo_params,
+        );
         let rr_made_val = self.ctx.subst_expr_levels(constructed_rr.val, st.rec_uparams.unwrap(), old);
         self.assert_imported_expr_matches(imported_rr.val, rr_made_val);
     }
@@ -2110,6 +2127,13 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
                     let old = original.rec_rules[i];
                     let new = restored.rec_rules[i];
                     assert_eq!(old.ctor_name, new.ctor_name);
+                    // The nested path reconstructs the rules through the
+                    // specialized types; the imported rule's field count must
+                    // still match, because `fire_recursor` trusts it.
+                    assert_rec_rule_field_count(
+                        old.ctor_telescope_size_wo_params,
+                        new.ctor_telescope_size_wo_params,
+                    );
                     self.assert_imported_expr_matches(old.val, new.val);
                 }
             }

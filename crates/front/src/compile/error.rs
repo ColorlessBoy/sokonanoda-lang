@@ -802,6 +802,7 @@ pub(crate) fn refine_kernel_kind(msg: &str) -> ErrorKind {
     // value or recursor-name mismatches are learner mistakes, not kernel bugs.
     if payload.starts_with("iota rule is not listed in constructor declaration order")
         || payload.starts_with("iota rule count does not match the constructor count")
+        || payload.starts_with("iota rule field count does not match the constructor telescope")
         || payload.starts_with("imported recursor rule does not match the reconstructed rule")
         || payload.starts_with("imported inductive block contains an underived recursor")
     {

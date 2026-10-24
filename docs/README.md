@@ -63,6 +63,7 @@
 - `docs-diet.md` — **文档预算与判据**（`scripts/docs-lint.py` ①–⑦ 的口径）
 - `deepseek-harness.md` — DeepSeek Harness 适配（技能根 / 斜杠命令 / LSP 能力 / patch 形状）
 - `ci-parallelism.md` — CI 并行化与快慢分层（`perf-gate` 与 `gates-fast` 的分工）
+- `arena-gate.md` — **发版前的最新 Lean Kernel Arena 门禁**（语料来源/已知不支持/已知慢/README+官网结果；`scripts/arena-gate.py`）
 - `command-naming.md` — 命令命名盘点表（被 `crates/cli/tests/extension.rs` 与 `contributes.commands` 双向比对）
 - `course-stdlib.md` — 课程标准库的**三层分界**（L1 prelude / L2 课程库 / L3 单元练习）
 - `course-gate-in-ci.md` — 课程门禁接进 `scripts/soko gate` 与 CI

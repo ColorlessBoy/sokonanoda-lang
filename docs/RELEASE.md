@@ -12,8 +12,9 @@ release——人不再需要手打 tag。手动推 tag 仅作应急/重发备用
 
 ```bash
 python3 scripts/bump.py 0.63.4          # 写：Cargo.toml + package.json + Cargo.lock + 所有清单的 requires
-python3 scripts/bump.py --check         # 查（gate 与 CI 都跑这条）
-scripts/release-preflight.sh            # **发版预检一条命令**：版本钉 + docs-lint + release 构建/暂存插件自带二进制 + 完整 gate（`--fast` 秒级 · `--sweep` 加全课程 `--json` 逐字节）
+                                        # ⚠ 写之前先跑**最新 LKA 语料**门禁；失败则一个字都不写
+python3 scripts/bump.py --check         # 查（gate 与 CI 都跑这条；**不跑** LKA，不依赖网络）
+scripts/release-preflight.sh            # **发版预检一条命令**：版本钉 + docs-lint + release 构建/暂存插件自带二进制 + **LKA 门禁** + 完整 gate（`--fast` 秒级 · `--sweep` 加全课程 `--json` 逐字节）
 ```
 
 **别再手改版本号**：漏掉一个清单的 `requires` 就是 G-24 的成因（用户原话：
@@ -137,6 +138,10 @@ code --install-extension sokonanoda.vsix --force   # 手动验收（离线可用
 （`cargo_and_extension_versions_match` 契约测试、release 的 version gate、
 auto-tag 的显式比对）。手动推 tag 应急后，核对双页见
 `skills/sokonanoda-ci/SKILL.md` §2.1。
+
+### 5.1 内核可信度门禁（Lean Kernel Arena，2026-10-24）
+
+`bump.py` 写版本前强制 `python3 scripts/arena-gate.py`（最新 master 语料；`release-preflight.sh` ④ 复核）；失败不写版本。结果写 README + 官网；设计 `docs/design/arena-gate.md`。
 
 ## 6. 完整性校验与来源证明（0.35.1 起）
 

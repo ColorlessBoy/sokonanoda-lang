@@ -1,13 +1,92 @@
 use sokonanoda::pretty_printer::PpOptions;
-use sokonanoda::util::Config;
+use sokonanoda::util::{Config, Decline};
 use std::fs;
 use std::panic::{self, AssertUnwindSafe};
 use std::path::{Path, PathBuf};
+use std::sync::mpsc;
+use std::time::Duration;
 use stumpalo::Arena;
 
 const MAX_EXPORT_BYTES: u64 = 64 * 1024 * 1024;
+const DEFAULT_CASE_TIMEOUT_SECS: u64 = 120;
 
 fn arena_root() -> Option<PathBuf> { std::env::var_os("LEAN_KERNEL_ARENA").map(PathBuf::from) }
+
+/// The `scripts/arena-gate.py` download layout: `<root>/good/**/*.ndjson` must
+/// be accepted, `<root>/bad/**/*.ndjson` must be rejected. This is the
+/// in-progress-round artifact shape (the public `lean-arena-tests.tar.gz`).
+fn tarball_root() -> Option<PathBuf> {
+    std::env::var_os("LEAN_KERNEL_ARENA_TARBALL").map(PathBuf::from)
+}
+
+fn case_timeout() -> Duration {
+    let secs = std::env::var("LEAN_KERNEL_ARENA_TIMEOUT")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(DEFAULT_CASE_TIMEOUT_SECS);
+    Duration::from_secs(secs)
+}
+
+/// Known-unsupported tests: the kernel has no `unsafe`/`partial` support, so it
+/// declines them. The list is intentionally explicit and checked for staleness:
+/// an entry that disappears from the corpus, or a listed test that is
+/// *accepted*, fails the gate.
+fn known_unsupported_path() -> PathBuf {
+    std::env::var_os("LEAN_KERNEL_ARENA_KNOWN_UNSUPPORTED")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/arena_known_unsupported.txt"))
+}
+
+fn known_unsupported() -> Vec<String> {
+    let path = known_unsupported_path();
+    let text = fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("cannot read known-unsupported list {}: {e}", path.display()));
+    text.lines()
+        .map(|line| line.split('#').next().unwrap_or("").trim())
+        .filter(|line| !line.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+fn is_known_unsupported(name: &str, list: &[String]) -> bool {
+    let stem = name.rsplit('/').next().unwrap_or(name);
+    list.iter().any(|known| known == name || known == stem)
+}
+
+/// Perf-only stress tests: a timeout is allowed (and counted), but a finished
+/// case must still match its expected accept/reject verdict. Kept separate from
+/// the unsupported list so the site can report the two categories honestly.
+fn known_slow_path() -> PathBuf {
+    std::env::var_os("LEAN_KERNEL_ARENA_KNOWN_SLOW")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/arena_known_slow.txt"))
+}
+
+fn known_slow() -> Vec<String> {
+    let path = known_slow_path();
+    let text = fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("cannot read known-slow list {}: {e}", path.display()));
+    text.lines()
+        .map(|line| line.split('#').next().unwrap_or("").trim())
+        .filter(|line| !line.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+fn is_known_slow(name: &str, list: &[String]) -> bool {
+    let stem = name.rsplit('/').next().unwrap_or(name);
+    list.iter().any(|known| known == name || known == stem)
+}
+
+fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
+    if let Some(s) = payload.downcast_ref::<&str>() {
+        (*s).to_string()
+    } else if let Some(s) = payload.downcast_ref::<String>() {
+        s.clone()
+    } else {
+        "panic".to_string()
+    }
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum ExpectedOutcome {
@@ -101,16 +180,37 @@ enum Outcome {
     Accepted,
     ParseError(String),
     KernelRejected(String),
+    Declined(String),
+    Timeout,
     UnexpectedPanic(String),
 }
 
 fn run_case(export: PathBuf) -> Outcome {
+    run_case_with_timeout(export, case_timeout())
+}
+
+fn run_case_with_timeout(export: PathBuf, timeout: Duration) -> Outcome {
+    let (tx, rx) = mpsc::channel();
     std::thread::Builder::new()
         .stack_size(64 * 1024 * 1024)
-        .spawn(move || run_case_inner(export))
-        .expect("spawn case thread")
-        .join()
-        .unwrap_or_else(|_| Outcome::UnexpectedPanic("thread join failed".to_string()))
+        .spawn(move || {
+            // `to_export_file` can panic before `run_case_inner`'s own
+            // `catch_unwind`. The checker binary catches **any** panic and exits
+            // 1 (= rejected), so a parse-time panic is a controlled rejection,
+            // not an unclassifiable crash. A non-panic `Err` stays `ParseError`
+            // (a file that cannot be read did not reject anything).
+            let outcome = panic::catch_unwind(AssertUnwindSafe(|| run_case_inner(export)))
+                .unwrap_or_else(|payload| Outcome::KernelRejected(panic_message(payload)));
+            let _ = tx.send(outcome);
+        })
+        .expect("spawn case thread");
+    match rx.recv_timeout(timeout) {
+        Ok(outcome) => outcome,
+        Err(mpsc::RecvTimeoutError::Timeout) => Outcome::Timeout,
+        Err(mpsc::RecvTimeoutError::Disconnected) => {
+            Outcome::UnexpectedPanic("case thread panicked before reporting".to_string())
+        }
+    }
 }
 
 fn run_case_inner(export: PathBuf) -> Outcome {
@@ -137,26 +237,45 @@ fn run_case_inner(export: PathBuf) -> Outcome {
     let global_arena = Arena::new();
     let ef = match cfg.to_export_file(global_arena.as_arena_ref()) {
         Ok((ef, _)) => ef,
-        Err(e) => return Outcome::ParseError(format!("{e}")),
+        Err(e) => {
+            if e.downcast_ref::<Decline>().is_some() {
+                return Outcome::Declined(format!("{e}"));
+            }
+            return Outcome::ParseError(format!("{e}"));
+        }
     };
     let result = panic::catch_unwind(AssertUnwindSafe(|| ef.check_all_declars()));
     match result {
         Ok(()) => Outcome::Accepted,
-        Err(payload) => {
-            let msg = if let Some(s) = payload.downcast_ref::<&str>() {
-                (*s).to_string()
-            } else if let Some(s) = payload.downcast_ref::<String>() {
-                s.clone()
-            } else {
-                "panic".to_string()
-            };
-            if msg == "def_eq failed" || msg.starts_with("def_eq") {
-                Outcome::KernelRejected(msg)
-            } else {
-                Outcome::UnexpectedPanic(msg)
-            }
-        }
+        // The kernel reports **every** rejection as a panic (def_eq mismatches,
+        // forged meta-data assertions, `old.aux_data_ck`, …). The external
+        // arena's contract is exit code 1 = rejected, so the gate must classify
+        // any panic *from `check_all_declars`* as a rejection. A panic from
+        // `to_export_file` is different: it is caught by the outer thread
+        // wrapper and stays `UnexpectedPanic` (a parse-time crash is not a
+        // rejection of the declaration).
+        Err(payload) => Outcome::KernelRejected(panic_message(payload)),
     }
+}
+
+fn describe(outcome: &Outcome) -> String {
+    match outcome {
+        Outcome::Accepted => "accepted".to_string(),
+        Outcome::ParseError(e) => format!("parse: {e}"),
+        Outcome::KernelRejected(e) => format!("kernel: {e}"),
+        Outcome::Declined(e) => format!("declined: {e}"),
+        Outcome::Timeout => "timeout".to_string(),
+        Outcome::UnexpectedPanic(e) => format!("panic: {e}"),
+    }
+}
+
+fn full_case_name(root: &Path, export: &Path) -> String {
+    export
+        .strip_prefix(&root.join("_build/tests"))
+        .unwrap_or(export)
+        .with_extension("")
+        .to_string_lossy()
+        .replace('\\', "/")
 }
 
 #[test]
@@ -182,34 +301,92 @@ fn arena_fast_tier() {
         panic::set_hook(Box::new(|_| {}));
     }
 
+    let known = known_unsupported();
+    let known_slow_list = known_slow();
+    let mut known_seen = Vec::new();
+    let mut slow_seen = Vec::new();
+    let mut skipped_either = 0usize;
     let mut failures = Vec::new();
     for (export, expected) in &cases {
+        // `either` is unscored by the arena (and its two current cases are
+        // deliberately non-terminating for a whnf-first checker). The release
+        // gate runs the tarball tier, which does not contain them; the full
+        // corpus tier skips them rather than hanging for the case timeout.
+        if *expected == ExpectedOutcome::Either {
+            skipped_either += 1;
+            continue;
+        }
+        let name = full_case_name(&root, export);
         let outcome = run_case(export.clone());
-        let (got_accept, detail) = match &outcome {
-            Outcome::Accepted => (true, "(accepted)".to_string()),
-            Outcome::ParseError(e) => (false, format!("parse: {e}")),
-            Outcome::KernelRejected(e) => (false, format!("kernel: {e}")),
-            Outcome::UnexpectedPanic(e) => (false, format!("panic: {e}")),
-        };
-        let mismatch = is_mismatch(
-            *expected,
-            got_accept,
-            matches!(outcome, Outcome::UnexpectedPanic(_)),
-            matches!(outcome, Outcome::KernelRejected(_)),
-        );
-        if mismatch {
-            let name = export.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+        if is_known_unsupported(&name, &known) {
+            known_seen.push(name.clone());
+            if matches!(outcome, Outcome::Accepted) {
+                failures.push(format!("{name}: known-unsupported test was ACCEPTED (soundness)"));
+            } else if !matches!(outcome, Outcome::Declined(_) | Outcome::KernelRejected(_)) {
+                failures.push(format!(
+                    "{name}: known-unsupported test must decline or reject, got {}",
+                    describe(&outcome)
+                ));
+            }
+            continue;
+        }
+        if is_known_slow(&name, &known_slow_list) {
+            slow_seen.push(name.clone());
+            if matches!(outcome, Outcome::Timeout) {
+                continue;
+            }
+        }
+        let got_accept = matches!(outcome, Outcome::Accepted);
+        let panicked = matches!(outcome, Outcome::UnexpectedPanic(_) | Outcome::Timeout);
+        let kernel_rejected = matches!(outcome, Outcome::KernelRejected(_));
+        if is_mismatch(*expected, got_accept, panicked, kernel_rejected) {
             let expected = match expected {
                 ExpectedOutcome::Accept => "accept",
                 ExpectedOutcome::Reject => "reject",
                 ExpectedOutcome::Either => "either",
             };
-            failures.push(format!("{name}: expected {expected}, got accept={got_accept} ({detail})"));
+            failures.push(format!("{name}: expected {expected}, got {}", describe(&outcome)));
         }
     }
+    for known_name in &known {
+        if !known_seen
+            .iter()
+            .any(|seen| seen == known_name || seen.ends_with(known_name))
+        {
+            failures.push(format!(
+                "known-unsupported entry {known_name} is not in the corpus (stale allowlist)"
+            ));
+        }
+    }
+    for slow_name in &known_slow_list {
+        if !slow_seen
+            .iter()
+            .any(|seen| seen == slow_name || seen.ends_with(slow_name))
+        {
+            failures.push(format!(
+                "known-slow entry {slow_name} is not in the corpus (stale allowlist)"
+            ));
+        }
+    }
+    eprintln!(
+        "arena_fast_tier: 计分 {} 条（跳过 either {skipped_either}）· 已知不支持 {} 条 · 已知慢 {} 条",
+        cases.len() - skipped_either,
+        known_seen.len(),
+        slow_seen.len()
+    );
 
     if !failures.is_empty() {
-        panic!("{}/{} arena cases mismatched:\n{}", failures.len(), cases.len(), failures.join("\n"));
+        eprintln!(
+            "arena_fast_tier: {} failures:\n{}",
+            failures.len(),
+            failures.join("\n")
+        );
+        panic!(
+            "{}/{} arena cases mismatched:\n{}",
+            failures.len(),
+            cases.len() - skipped_either,
+            failures.join("\n")
+        );
     }
 }
 
@@ -226,6 +403,172 @@ fn is_mismatch(expected: ExpectedOutcome, accepted: bool, panicked: bool, kernel
         ExpectedOutcome::Reject => !kernel_rejected || panicked,
         ExpectedOutcome::Either => panicked,
     }
+}
+
+/// Collect the public artifact layout: `good/**.ndjson` (accept) and
+/// `bad/**.ndjson` (reject). The test name is the path relative to the root
+/// with the `.ndjson` suffix removed, e.g. `bad/bugs/nested-rec-rule-nfields`.
+fn collect_tarball_cases(root: &Path) -> Vec<(PathBuf, ExpectedOutcome, String)> {
+    let mut out = Vec::new();
+    for (subdir, expected) in [
+        ("good", ExpectedOutcome::Accept),
+        ("bad", ExpectedOutcome::Reject),
+    ] {
+        let mut files = Vec::new();
+        walk_exports(&root.join(subdir), &mut files);
+        for path in files {
+            // The arena test name is the path **inside** good/ or bad/, e.g.
+            // `tutorial/140_falseFromUnsafe`; the allowlist uses that form.
+            let rel = path
+                .strip_prefix(&root.join(subdir))
+                .map(|p| p.to_path_buf())
+                .unwrap_or_else(|_| path.clone());
+            let name = rel.with_extension("").to_string_lossy().replace('\\', "/");
+            out.push((path, expected, name));
+        }
+    }
+    out.sort_by(|a, b| a.2.cmp(&b.2));
+    out
+}
+
+/// The release gate's corpus tier. It is deliberately **not** gated on
+/// `LEAN_KERNEL_ARENA`: `scripts/arena-gate.py` downloads the latest public
+/// `test-tarball` and points this variable at the extracted `good/`+`bad/`
+/// layout. The two known-unsupported entries are checked for staleness and
+/// for the one property that matters: they must never be *accepted*.
+#[test]
+fn arena_tarball_tier() {
+    let Some(root) = tarball_root() else {
+        eprintln!("arena_tarball_tier: LEAN_KERNEL_ARENA_TARBALL is not set; skipping");
+        return;
+    };
+    let cases = collect_tarball_cases(&root);
+    assert!(
+        !cases.is_empty(),
+        "no tarball cases found under {} (expected good/ and bad/ directories)",
+        root.display()
+    );
+    let known = known_unsupported();
+    let known_slow_list = known_slow();
+
+    if std::env::var("LEAN_KERNEL_ARENA_VERBOSE").is_err() {
+        panic::set_hook(Box::new(|_| {}));
+    }
+
+    let mut failures = Vec::new();
+    let mut known_seen = Vec::new();
+    let mut slow_seen = Vec::new();
+    let mut slow_timeouts = 0usize;
+    let (mut accepted, mut rejected, mut declined, mut timeouts) = (0usize, 0usize, 0usize, 0usize);
+    for (export, expected, name) in &cases {
+        if std::env::var("LEAN_KERNEL_ARENA_VERBOSE").is_ok() {
+            eprintln!("arena_tarball_tier: run {name}");
+        }
+        let outcome = run_case(export.clone());
+        match &outcome {
+            Outcome::Accepted => accepted += 1,
+            Outcome::KernelRejected(_) => rejected += 1,
+            Outcome::Declined(_) => declined += 1,
+            Outcome::Timeout => timeouts += 1,
+            Outcome::ParseError(_) | Outcome::UnexpectedPanic(_) => {}
+        }
+        if is_known_unsupported(name, &known) {
+            known_seen.push(name.clone());
+            if matches!(outcome, Outcome::Accepted) {
+                failures.push(format!("{name}: known-unsupported test was ACCEPTED (soundness)"));
+            } else if !matches!(outcome, Outcome::Declined(_) | Outcome::KernelRejected(_)) {
+                failures.push(format!(
+                    "{name}: known-unsupported test must decline or reject, got {}",
+                    describe(&outcome)
+                ));
+            }
+            continue;
+        }
+        if is_known_slow(name, &known_slow_list) {
+            slow_seen.push(name.clone());
+            if matches!(outcome, Outcome::Timeout) {
+                slow_timeouts += 1;
+                continue;
+            }
+        }
+        let got_accept = matches!(outcome, Outcome::Accepted);
+        let panicked = matches!(outcome, Outcome::UnexpectedPanic(_) | Outcome::Timeout);
+        let kernel_rejected = matches!(outcome, Outcome::KernelRejected(_));
+        if is_mismatch(*expected, got_accept, panicked, kernel_rejected) {
+            let expected = match expected {
+                ExpectedOutcome::Accept => "accept",
+                ExpectedOutcome::Reject => "reject",
+                ExpectedOutcome::Either => "either",
+            };
+            failures.push(format!("{name}: expected {expected}, got {}", describe(&outcome)));
+        }
+    }
+    for known_name in &known {
+        if !known_seen
+            .iter()
+            .any(|seen| seen == known_name || seen.ends_with(known_name))
+        {
+            failures.push(format!(
+                "known-unsupported entry {known_name} is not in the corpus (stale allowlist)"
+            ));
+        }
+    }
+    for slow_name in &known_slow_list {
+        if !slow_seen
+            .iter()
+            .any(|seen| seen == slow_name || seen.ends_with(slow_name))
+        {
+            failures.push(format!(
+                "known-slow entry {slow_name} is not in the corpus (stale allowlist)"
+            ));
+        }
+    }
+    eprintln!(
+        "arena_tarball_tier: {} cases (accepted {accepted} · rejected {rejected} · declined {declined} · timeouts {timeouts}) · known unsupported {} · known slow {} (timeouts {slow_timeouts})",
+        cases.len(),
+        known_seen.len(),
+        slow_seen.len()
+    );
+
+    if !failures.is_empty() {
+        eprintln!(
+            "arena_tarball_tier: {} failures:\n{}",
+            failures.len(),
+            failures.join("\n")
+        );
+        panic!(
+            "{}/{} arena tarball cases mismatched:\n{}",
+            failures.len(),
+            cases.len(),
+            failures.join("\n")
+        );
+    }
+}
+
+#[test]
+fn collect_tarball_cases_reads_good_and_bad_directories() {
+    let dir = std::env::temp_dir().join(format!("soko-arena-tarball-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(dir.join("good/tutorial")).expect("mkdir good");
+    fs::create_dir_all(dir.join("bad/bugs")).expect("mkdir bad");
+    fs::write(dir.join("good/tutorial/ok.ndjson"), "{}\n").expect("good export");
+    fs::write(dir.join("bad/bugs/no.ndjson"), "{}\n").expect("bad export");
+
+    let cases = collect_tarball_cases(&dir);
+    assert_eq!(cases.len(), 2, "both directories must be collected");
+    assert!(
+        cases
+            .iter()
+            .any(|(_, e, n)| *e == ExpectedOutcome::Accept && n == "tutorial/ok"),
+        "good/ is accept"
+    );
+    assert!(
+        cases
+            .iter()
+            .any(|(_, e, n)| *e == ExpectedOutcome::Reject && n == "bugs/no"),
+        "bad/ is reject"
+    );
+    let _ = fs::remove_dir_all(&dir);
 }
 
 /// **T-K02 的判据（收集逻辑）**：不依赖外部语料，用临时目录搭一个**小语料**，

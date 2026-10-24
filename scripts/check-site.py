@@ -499,7 +499,12 @@ def check_data() -> str:
         raise Failure("解析不出已发布 tag（浅克隆缺 tag？）—— 无法判定，不判绿")
     if proc.returncode != 0:
         raise Failure((proc.stderr or proc.stdout).strip())
-    return (proc.stdout or "").strip().removeprefix("site data: ")
+    # README 的可信度块与 site/data/arena.json 必须同步（用户 2026-10-24：
+    # 可信度结果要同时体现在 README 与官网；这里守住两处不漂）。
+    readme = run_script([os.path.join(REPO_ROOT, "scripts", "gen-arena-summary.py"), "--check"])
+    if readme.returncode != 0:
+        raise Failure((readme.stderr or readme.stdout).strip())
+    return (proc.stdout or "").strip().removeprefix("site data: ") + " · README LKA 同步"
 
 
 # ── 渲染实跑（可选）───────────────────────────────────────────────────

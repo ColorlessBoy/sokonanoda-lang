@@ -1391,7 +1391,9 @@ impl<'a, R: BufRead> Parser<'a, R> {
             ExprProj {type_name, idx, structure: struct_} =>
                 self.do_proj(assigned_idx.unwrap(), type_name, idx, struct_),
             Axiom {name, ty, uparams, is_unsafe} => {
-                assert!(!is_unsafe);
+                if is_unsafe {
+                    return crate::util::decline("unsafe declarations are not supported");
+                }
                 let name = self.get_name_ptr(name);
                 let uparams = self.get_uparams_ptr(&uparams);
                 let ty = self.get_expr_ptr(ty);
@@ -1409,12 +1411,16 @@ impl<'a, R: BufRead> Parser<'a, R> {
                 }
             }
             Defn {name, ty, uparams, value, hint, safety} => {
-                assert!(!matches!(safety, DefinitionSafety::Unsafe | DefinitionSafety::Partial));
+                if matches!(safety, DefinitionSafety::Unsafe | DefinitionSafety::Partial) {
+                    return crate::util::decline("unsafe and partial definitions are not supported");
+                }
                 self.do_def(name, ty, value, &uparams, hint);
             }
             Thm {name, ty, uparams, value} => self.do_thm(name, ty, value, &uparams),
             Opaque {name, ty, uparams, value, is_unsafe} => {
-                assert!(!is_unsafe);
+                if is_unsafe {
+                    return crate::util::decline("unsafe declarations are not supported");
+                }
                 let name = self.get_name_ptr(name);
                 let ty = self.get_expr_ptr(ty);
                 let val = self.get_expr_ptr(value);
@@ -1435,7 +1441,9 @@ impl<'a, R: BufRead> Parser<'a, R> {
                 let block_start = self.declars.len();
                 let block_size = ind_vals.len() + ctor_vals.len() + rec_vals.len();
                 for IndInfo {name, ty, uparams, all, ctors, is_rec, num_nested, num_params, num_indices, is_unsafe, ..} in ind_vals {
-                    assert!(!is_unsafe);
+                    if is_unsafe {
+                        return crate::util::decline("unsafe declarations are not supported");
+                    }
                     let name = self.get_name_ptr(name);
                     self.mutual_block_sizes.insert(name, (block_start, block_size));
                     let uparams = self.get_uparams_ptr(&uparams);
@@ -1454,7 +1462,9 @@ impl<'a, R: BufRead> Parser<'a, R> {
                     self.add_declar(name, inductive);
                 }
                 for Constructor {name, uparams, ty, is_unsafe, induct, cidx, num_params, num_fields, ..}  in ctor_vals {
-                    assert!(!is_unsafe);
+                    if is_unsafe {
+                        return crate::util::decline("unsafe declarations are not supported");
+                    }
                     let name = self.get_name_ptr(name);
                     let ty = self.get_expr_ptr(ty);
                     let uparams = self.get_uparams_ptr(&uparams);
@@ -1471,7 +1481,9 @@ impl<'a, R: BufRead> Parser<'a, R> {
                     self.add_declar(name, ctor);
                 }
                 for Recursor {name, uparams, ty, rules, is_unsafe, num_params, num_indices, num_motives, num_minors, k, all, ..} in rec_vals {
-                    assert!(!is_unsafe);
+                    if is_unsafe {
+                        return crate::util::decline("unsafe declarations are not supported");
+                    }
                     let name = self.get_name_ptr(name);
                     let ty = self.get_expr_ptr(ty);
                     let uparams = self.get_uparams_ptr(&uparams);

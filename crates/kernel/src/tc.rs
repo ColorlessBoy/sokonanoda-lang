@@ -209,12 +209,18 @@ impl<'p> ExportFile<'p> {
     pub(crate) fn check_all_declars_serial(&self) {
         let total = self.declars.len();
         std::thread::scope(|sco| {
-            std::thread::Builder::new()
+            let joined = std::thread::Builder::new()
                 .stack_size(crate::STACK_SIZE)
                 .spawn_scoped(sco, || self.run_session((0, total), || None))
                 .unwrap()
-                .join()
-                .expect("serial checker thread panicked");
+                .join();
+            // Propagate the checker's **original** panic payload: the arena
+            // harness classifies a rejection by its message, and a generic
+            // "thread panicked" wrapper would turn a stable kernel rejection
+            // into an unclassifiable unexpected panic.
+            if let Err(payload) = joined {
+                std::panic::resume_unwind(payload);
+            }
         });
     }
 
@@ -248,7 +254,9 @@ impl<'p> ExportFile<'p> {
                 )
             }
             for t in handles {
-                t.join().expect("A thread in `check_all_declars` panicked while being joined");
+                if let Err(payload) = t.join() {
+                    std::panic::resume_unwind(payload);
+                }
             }
         });
     }

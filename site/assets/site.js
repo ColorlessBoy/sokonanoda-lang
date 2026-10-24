@@ -115,12 +115,30 @@
     }
   }
 
+  /* ── Lean Kernel Arena 可信度：同一份 site.json 的 arena 字段 ── */
+  function fillArena(arena) {
+    if (!arena) return;
+    function set(selector, value) {
+      if (value === undefined || value === null) return;
+      var nodes = document.querySelectorAll(selector);
+      for (var i = 0; i < nodes.length; i++) nodes[i].textContent = String(value);
+    }
+    set("[data-arena-corpus]", arena.corpus || ("master@" + String(arena.revision || "").slice(0, 9)));
+    set("[data-arena-good]", arena.accepted);
+    set("[data-arena-good-total]", arena.good);
+    set("[data-arena-bad]", arena.rejected);
+    set("[data-arena-bad-total]", arena.bad);
+    set("[data-arena-slow]", arena.known_slow);
+    set("[data-arena-known]", arena.known_unsupported);
+  }
+
   function wireVersion() {
     if (!document.querySelector("[data-site-version],[data-version-text],[data-version-href]")) return;
     fetch("data/site.json", { cache: "no-cache" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         if (data && data.version) fillVersion(String(data.version));
+        if (data && data.arena) fillArena(data.arena);
       })
       .catch(function () {
         /* 拿不到就保持中性文字：宁可少一个版本号，也不写一个可能过期的。 */

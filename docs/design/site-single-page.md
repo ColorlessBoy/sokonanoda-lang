@@ -45,6 +45,9 @@ site/
 单元画布）→ **它和 Lean 4 的关系**（写法是 Lean 4 的子集，练的写法在 Lean 4 里成立；
 没有类型类 / tactic 宏 / mathlib 也说清楚）。
 
+2026-10-24：**「它是什么」末尾一行可信度**（不新开节）：数字由 `site/data/site.json`
+的 `arena` 字段回填（源 `site/data/arena.json`）；`check-site.py` 的 `i18n` 与 `data` 守住不漂。
+
 **中英文自动识别**（2026-10-09 追加需求）：静态 HTML 默认中文，每页页尾一份
 `<script type="application/json" id="i18n-en">` 英文文案字典 + `assets/i18n.js`（**同步**执行，
 换文案发生在首帧之前）—— `navigator.languages` 里**任何**一个 zh\* 保持中文，否则整页换英文；
