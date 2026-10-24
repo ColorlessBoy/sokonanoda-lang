@@ -1,7 +1,7 @@
-## 发版链根治：bump 同一步写站点数据 · 依赖 vendored · 删逃生门（2026-10-24）
-- ⭐ **根因**：`site.json` 的版本源是"最新 tag"，而 tag 由 bump 那个 commit 打出 ⇒ 打出的 tag 自带 `check-site data` 红；补丁是 `RELEASE.md` §6.5 的手工重跑（已漏两次）。现改为**版本钉**（`Cargo.toml`），`scripts/bump.py` 同一步写 `site/data/site.json`；`release.yml` 的 version gate 追加 `gen-site-data.py --check`（手工 tag 漏了 5 分钟内红）；`ci.yml` 的 `on.push` 只跑 main（tag 只跑 release）。
-- **依赖**：`scripts/vendor/yaml`（PyYAML 6.0.3 纯 Python，MIT）+ `_yaml.py` 唯一入口 ⇒ 不再有"缺 pyyaml ⇒ 快层红 ⇒ `--no-verify`"。
-- **逃生门删除**：`SOKO_SKIP_HOOK` 从 `pre-push` 移除；`--no-verify` 不再是发版路径（release gate 兜底）。判据：`check-site` 10/10 · `docs-lint` 绿 · `guard-bite --all --job queue-lint` exit 0（新增 `gen-site-data` 咬住证明（坏输入 = 版本改 0.0.1））· `ci-yml-lint` ✓ · `ci-push-range --selftest` ✓。
+## v0.97.8：bump 同一步写站点数据 · 依赖 vendored · 删逃生门（2026-10-24）
+- **根因**：`site.json` 的版本源曾是"最新 tag"，而 tag 由 bump 的 commit 打出 ⇒ tag 自带 `check-site data` 红（旧补丁是手工重跑，已漏两次）。现改为**版本钉**：`bump.py` 同一步写 `site/data/site.json`；`release.yml` 的 version gate 追加 `gen-site-data.py --check`（手工 tag 漏了 5 分钟内红）；`ci.yml` 的 `on.push` 只跑 main。
+- **依赖**：`scripts/vendor/yaml`（PyYAML 6.0.3 纯 Python，MIT）+ `_yaml.py` 唯一入口 ⇒ 不再有"缺 pyyaml 就绕门禁"。**已发版 `v0.97.8`**：本批即新流程（bump 写 site ⇒ 推一次 ⇒ CI 绿 ⇒ auto-tag ⇒ release），无手工步骤。
+- **逃生门删除**：`pre-push` 的 `SOKO_SKIP_HOOK` 移除；`--no-verify` 不再是发版路径。判据：`check-site` 10/10 · `docs-lint` 绿 · `guard-bite --all --job queue-lint` exit 0（新增 `gen-site-data` 咬住证明（坏输入 = 版本改 0.0.1））· `ci-yml-lint` ✓ · `ci-push-range --selftest` ✓。
 ## v0.97.7 发版：apply 归纳头 + Eq.subst 多现场 + 根因码（2026-10-23）
 - ⭐ 用户拿到：`apply Or.inl`/`And.intro` 在记法目标上判绿；`apply Eq.subst h`（`f x = f y`）、`exact Eq.subst (Eq.symm hx) h`、`exact Eq.subst h (Eq.refl …)` 判绿；`∉` 可用；`apply`/`exact`/`have`/`rfl` 失败报**根因码**（不再一律 `elab-tactic-failed`）；Infoview 失败声明照常画目标/假设。
 - 内核/引擎：S1–S4 元变量线（默认关）+ S5 延迟（`deferred-tactic` warning，默认关）（默认关 `SOKO_DECL_METAS=1`/`SOKO_DEFER=1`；`add_decl` 对含 meta 声明仍硬拒）。判据：语料 357/357 逐字节 · 课程 2191/0 · front 1048 · kernel 74 · clippy 0 · docs-lint 绿。

@@ -1,3 +1,13 @@
+## [0.97.8] - 2026-10-24
+
+### Fixed
+
+- **发版链闭环**：`scripts/bump.py` 在写版本号的**同一步**写 `site/data/site.json`，
+  发版前的 `check-site` 与发版中的 version gate 都按**版本钉**校验 ⇒ 不再有
+  「tag 落地后站点数据落后一版、要人手工补一条提交」的固定点（该手工步骤已漏过两次）。
+- **推送前门禁不再依赖外部 Python 包**：`check-ci-wiring.py` / `ci-yml-lint.py` /
+  `ci-push-range.py` 改用仓库内 vendored 的纯 Python PyYAML（`scripts/vendor/`），
+  缺 `pyyaml` 不再让整层门禁红；`SOKO_SKIP_HOOK` 逃生门已删除。
 ## [0.97.7] - 2026-10-23
 
 ### Fixed

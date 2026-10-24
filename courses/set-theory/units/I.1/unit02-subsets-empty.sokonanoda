@@ -69,7 +69,16 @@ theorem empty_subset (α : Type) (A : Set α) : ∅ ⊆ A := by
 -- soko:hint 关键件：→ 用 subset_antisymm（第 3 题）+ empty_subset（第 4 题）； ← 用 Eq.subst 与 Eq.symm 把 A = ∅ 代进 subset_refl（第 1 题）。
 theorem subset_empty_iff (α : Type) (A : Set α) :
     (A ⊆ ∅) ↔ (A = ∅) := by
-  sorry
+  constructor
+  intro h
+  apply subset_antisymm 
+  exact h
+  exact empty_subset α A
+  intro h x hx
+  apply Eq.subst h
+  exact hx
+
+#print subset_empty_iff
 
 -- 练习 6（L 类）：A = ∅ 当且仅当 A 没有元素。
 -- soko:hint 思路：→ 方向把 A = ∅ 代进"∅ 没有元素"；← 方向用反对称 + 空洞蕴含。
