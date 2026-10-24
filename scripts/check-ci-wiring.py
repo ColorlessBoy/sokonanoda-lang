@@ -959,12 +959,13 @@ def history_selftest(produced: set[str] | None = None):
                  f" + 点名 `editor` 与 `check-guard-bite.py` ✓",
          bool(old_red) and bite_named, f"红 {len(old_red)} 条 · 点名 editor={bite_named}")
 
-    # ③ 负对照：撤掉 `queue-lint` 的 `fetch-depth: 0` ⇒ 必须红。
-    q = _strip_fetch_depth(live, "queue-lint")
+    # ③ 负对照：撤掉 `board` 的 `fetch-depth: 0` ⇒ 必须红（2026-10-24：queue-lint 拆成
+    #    board / guard-bite / budgets / site / hygiene 五个 job ⇒ 夹具改成 board）。
+    q = _strip_fetch_depth(live, "board")
     q_res, _qc, _qi = history_problems(q, HISTORY_DEPENDENT)
     q_red = [m for _i, ok, m in q_res if not ok]
-    gate("S-H4", "③ 负对照：撤掉 `queue-lint` 的 `fetch-depth: 0` ⇒ **判红** + 点名 queue-lint ✓",
-         any("queue-lint" in m for m in q_red), f"红 {len(q_red)} 条")
+    gate("S-H4", "③ 负对照：撤掉 `board` 的 `fetch-depth: 0` ⇒ **判红** + 点名 board ✓",
+         any("board" in m for m in q_red), f"红 {len(q_red)} 条")
 
     # ④ 负对照：新加一个"跑历史判据却没全历史"的 job ⇒ 必须红。
     s_res, _sc, _si = history_problems(live + SYNTHETIC_JOB, HISTORY_DEPENDENT)

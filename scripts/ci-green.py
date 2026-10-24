@@ -38,7 +38,7 @@
 
   ①  `python3 scripts/ci-green.py --run 38884242478`（最新 completed run）
       ⇒ **rc=3**：`ci.yml` 有 **4 个未分类 job**（`tactic-docs-lint` · `wiring-lint` ·
-      `queue-lint` · `mark-verified`）+ **1 个认不出的显示名**（`wiring-lint（…`）✗
+      `board` · `mark-verified`）+ **1 个认不出的显示名**（`wiring-lint（…`）✗
       ⇒ **量具自己烂了**：没人能自动核"这一轮 CI 到底绿没绿" ✗。
   ②  `python3 scripts/ci-green.py --selftest` ⇒ **rc=1**（**3/6 用例不符** ✗）——
       同一个腐烂在**它自己的离线判据通道**里就红了 ✓，而**没有任何 job / gate 跑它** ✗
@@ -51,7 +51,7 @@
 
 **改法**（三处，一处都没放宽判据 ✗ —— `skipped 不算绿` 那条强度层逐字未动 ✓）：
 
-  * **分类**：`tactic-docs-lint` / `wiring-lint` / `queue-lint` **无 `if:` ⇒ 每推必跑**
+  * **分类**：`tactic-docs-lint` / `wiring-lint` / `board` **无 `if:` ⇒ 每推必跑**
     ⇒ 进 `ALWAYS`（**被 skip 属异常** ⇒ 照旧判假绿 ✓，**比"不分类"更严** ✓）；
     `mark-verified` 有 `if:`（`always() && main push && 无 failure && rust|courses|editor`）
     ⇒ 它是**写标记**动作、按设计可合法 skip ⇒ 进 `CONDITIONAL` ✓。
@@ -116,7 +116,7 @@ ALWAYS = [
     # （⇒ 被 skip 判**假绿** ✓）—— ⚠ 这比"留在未分类里"**更严**，不是放宽 ✗。
     "tactic-docs-lint",   # tactic 清单三处一致 + selftest（ci.yml:102）
     "wiring-lint",        # harness 接线漂移 + 启动器链接 + LSP marker + 推送范围（ci.yml:154）
-    "queue-lint",         # 队列 + 多会话台账 + 编译缓存（ci.yml:248，名字自带"每推必跑"）
+    "board", "guard-bite", "budgets", "site", "hygiene",
 ]
 
 # 按设计可合法 skip
@@ -573,7 +573,7 @@ def selftest() -> int:
     lint_now = [
         ("tactic-docs-lint（tactic 清单三处一致 + selftest）", "success"),
         (wiring_trunc if trunc_shape else wiring_full, "success"),
-        ("queue-lint（队列 + 多会话台账 + 编译缓存判据；不设 if 过滤器 ⇒ 每推必跑）", "success"),
+        ("board（队列 + 多会话 + 计划一致性；不设 if ⇒ 每推必跑）", "success"),
     ]
     queue_name = lint_now[2][0]
     # **当前形状**：真历史夹具 + 今天新增的三个"每推必跑" lint job + `mark-verified`
@@ -592,10 +592,10 @@ def selftest() -> int:
         ("真绿（当前形状：三个 lint job + 截断名 + mark-verified skip）",
          now, True, "true-green", 0),
         # ⭐⭐ **反向验证（用户写死的形状）**：ALWAYS 类 job 被 skip ⇒ **必须不判绿** ✗
-        ("**ALWAYS 被 skip（queue-lint）⇒ 不判绿**",
+        ("**ALWAYS 被 skip（board）⇒ 不判绿**",
          with_concl(now, queue_name, "skipped"), True, "fake-green", 2),
         # ⭐ failure ⇒ 必须判红（用户写死的形状）
-        ("**failure（queue-lint）⇒ 判红**",
+        ("**failure（board）⇒ 判红**",
          with_concl(now, queue_name, "failure"), True, "red", 1),
     ]
     if trunc_shape:

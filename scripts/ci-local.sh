@@ -248,12 +248,20 @@ if [ "$FAST" = 0 ]; then
 else
   # **pre-push（FAST=1 ✓）**：**跳过**长复现件 ✓ —— 但**不摘条目** ✗：照样**计数** +
   # 打印**上次读数** + 标注「**本轮未验证**」✗（深跑：完整跑或定时 workflow ✓）。
-  if [ "${SOKO_SKIP_GAP:-0}" != "1" ]; then
-    run "gates：缺口台账（--strict ✓ 长复现件跳过 ✓ 本轮未验证 ✗）" "ledger" \
-      python3 scripts/gap.py check --strict
-  else
-    printf '\n▶ gates：缺口台账  —— **SOKO_SKIP_GAP=1 跳过** ✗（逃生门，CI ledger job 兜 ✓）\n'
-  fi
+  # **与 CI 的 ledger matrix 同一条命令**（2026-10-24）：CI 跑的是
+  # `SOKO_GAP_REPRO_TIMEOUT=60 gap.py check --shard i/3`（10 分钟/片），而本地此前跑
+  # **全量 `--strict`**（实测 **>25 分钟**）⇒ 本地永远跑不完 ⇒ 这条门禁事实上被绕过。
+  # 现在本地跑**同一片**（按提交数轮换 ⇒ 连续推送覆盖三片），每例超时同 CI 的 60s；
+  # 全量 strict 仍在 `--fast=0` 的深跑与 CI 的 ledger job 里。
+  shard=$(( $(git rev-list --count HEAD 2>/dev/null || echo 0) % 3 + 1 ))
+  echo "  （缺口台账：本轮验证第 ${shard}/3 片 · 其余两片由 CI 的 ledger matrix 兜 ✓）"
+  # **复现件量的是二进制，不是源码**（2026-10-24 实测）：账本里有 91 条在“旧二进制”上
+  # 全部报红（`G-112` 自己就写着“两份二进制不是同一份源码编出来的”）；`cargo build`
+  # 一次（缓存命中 ~25s）后**同一片全绿**。⇒ 先重建两侧，再量，否则量的是上一版代码。
+  run "gates：缺口台账前置 —— 重建 debug + release 两侧二进制" "ledger" \
+    bash -c 'cargo build -p sokonanoda-cli --locked && cargo build --release -p sokonanoda-cli --locked' 
+  run "gates：缺口台账（--strict ✓ · 分片 ${shard}/3 · 与 CI 同一条命令 ✓）" "ledger" \
+    env SOKO_GAP_REPRO_TIMEOUT=60 python3 scripts/gap.py check --shard "${shard}/3"
 fi
 # **计划一致性**（2026-09-25 round 148 补 ✓，来自一次真实的漏网 ✗）：
 # round 145 我给 `T-U12` 用了 `- [~]`（想表达"进行中" ✓）⇒ `plan.py check` **不认**它 ✗

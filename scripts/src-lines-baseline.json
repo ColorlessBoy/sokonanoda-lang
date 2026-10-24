@@ -155,12 +155,16 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/kernel/src/inductive.rs": {
-      "lines": 2199,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 2223,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 2199,
+      "growth_reason": "2026-10-24 S1（`845c293e`）元变量赋值健全性：occurs / SyntheticOpaque / 类型检查 / 缓存纪律四段加在既有 impl 内；拆分点已记在计划 §13，留待内核线收口时搬 `mvar` 相关块。"
     },
     "crates/kernel/src/parser.rs": {
-      "lines": 1579,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 1591,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 1579,
+      "growth_reason": "2026-10-24 S1（`845c293e`）元变量赋值健全性：occurs / SyntheticOpaque / 类型检查 / 缓存纪律四段加在既有 impl 内；拆分点已记在计划 §13，留待内核线收口时搬 `mvar` 相关块。"
     },
     "crates/kernel/src/pretty_printer.rs": {
       "lines": 976,

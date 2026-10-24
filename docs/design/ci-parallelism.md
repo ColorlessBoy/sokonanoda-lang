@@ -93,22 +93,17 @@
 | ⑤ | **`cargo test` 分片** | **✅ 已落（安全版 ✓）**（本轮 ✓） |
 | ⑥ | **把 `ci-local.sh` 真接到 push 之前**（hook 或手动 ✓） | **✅ 已落** ✓（本轮 ✓） |
 
-**① 的判据（可验证 ✓）**：`yaml.safe_load` ✓ 13 job ✓；
-`test`/`gates-course`/`e2e`/`e2e-macos` 的 `needs` **逐条打印核对** ✓；
-快层自身**不等慢层** ✓（`lint-fmt`/`lint-clippy` 无 `needs` ✓、`gates-fast` 只等 `changes` ✓）；
-`auto-tag.needs` **未被削弱** ✓ ⇒ 快层红 ⇒ 慢 job skipped ⇒ `auto-tag` skipped ✓ = **不给坏提交打标签** ✓。
-**验收（用户给的）** ✓：识别"这轮有问题"的时间 **约 30 分钟 ⇒ 本地 ≤1 分钟 / CI 快层 ≤2-3 分钟** ✓。
+**① 的判据**：13 job；`test`/`gates-course`/`e2e`/`e2e-macos` 的 `needs` 逐条核对；快层不等慢层；
+`auto-tag.needs` 未被削弱 ⇒ 快层红 ⇒ `auto-tag` skipped = 不给坏提交打标签。
+**验收**：识别"这轮有问题"从 ~30 分钟降到本地 ≤1 分钟 / CI 快层 ≤2-3 分钟。
 
 ### ⑥ 详情（`scripts/githooks/pre-push` + `scripts/install-hooks.sh` ✓，2026-09-25 ✓）
 * **装** ✓：`scripts/install-hooks.sh` ⇒ `git config core.hooksPath scripts/githooks` ✓
   （git hook **不随仓库分发** ✗ ⇒ 必须有人执行一次 ✓ ⇒ 已写进 Setup ✓）；
 * **跑什么** ✓：只跑**快层** `ci-local.sh --fast` ✓（约 1 分钟 ✓，与"本地 ≤1 分钟"的验收一致 ✓）；
-* **没有逃生门**（2026-10-24）：`SOKO_SKIP_HOOK` 已删；`--no-verify` 不是可接受的发版路径
-  —— 但要在 `STATUS.md` 写明原因 ✓（**例外要留痕** ✓）。
-* **判据（两向都实测 ✓）**：
-  * **反向** ✓：故意加一行坏格式 ⇒ hook **exit 1** ✓，并**指名** `lint：fmt 失败（exit=1，1s）`
-    与"**拒绝推送**" ✓ ⇒ **它咬得住** ✓（还原后 diff 干净 ✓）；
-  * **正向** ✓：干净树 ⇒ hook **exit 0** ✓（"放行" ✓），随后**真实 push** 也过了它 ✓ = 端到端 ✓。
+* **没有逃生门**（2026-10-24）：`SOKO_SKIP_HOOK` 已删；`--no-verify` 不是可接受的路径。
+* **判据（两向实测）**：反向——加一行坏格式 ⇒ hook exit 1 且指名「fmt 失败」+「拒绝推送」；
+  正向——干净树 ⇒ exit 0，真实 push 也过（端到端）。
 
 ### ② 详情（`fast-fail` job ✓，2026-09-25 ✓）
 ```yaml
@@ -119,11 +114,8 @@
     permissions: { actions: write }
     steps: [gh run cancel "${{ github.run_id }}"]
 ```
-* **⚠ 与 ① 的关系（诚实说明 ✓）**：①（快速失败链 ✓）已让慢 job **等**快层 ⇒ 快层红时它们
-  **不会起跑** ✓ ⇒ 那部分②是冗余的 ✓；② 真正补的是"**慢 job 自己早早失败**" ✓
-  （如 `test (sokonanoda-cli)` 第 3 分钟红 ⇒ 掐掉其余 ✓）。
-* **我当场发现并修掉的两个错** ✗：① `needs` 只写 `[changes]` ✗ ⇒ `needs.*.result` **只看它**
-  ⇒ 等于没用 ✓（已扩到 **12 个 job** ✓）；② 漏了 `e2e-ledger` ✓（它失败也该掐 ✓，已补 ✓）。
+* **与 ① 的关系**：① 已让慢 job 等快层 ⇒ 那部分②冗余；② 真正补的是"慢 job 自己早早失败"。
+* **修掉的两个错**：`needs` 曾只写 `[changes]`（等于没用）⇒ 已扩到 **12 个 job**；曾漏 `e2e-ledger` ⇒ 已补。
 * **判据** ✓：`yaml.safe_load` ✓ **14 job** ✓ · **全文件重复键扫描** ✓ 无重复 ✓ ·
   `fast-fail.needs` **覆盖除 `auto-tag`/自身外的全部 job** ✓（脚本断言"未监视 = 无" ✓）·
   `auto-tag.needs` **未动** ✓（`fast-fail` 不是它的依赖 ✓）。

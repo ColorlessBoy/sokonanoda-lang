@@ -843,8 +843,11 @@ def _selftest_body() -> int:
         _others = [b for b in _bad
                    if b.startswith("①[") and not b.startswith(f"①[{_cid}]")]
         _total = any(b.startswith("① 活文档总量") for b in _bad)
-        results.append(("①b", f"反向：只撑 `{_cid}` 一类 ⇒ **只有该类**判红",
-                        _hit and not _others and not _total))
+        # ⚠ 2026-10-24：**总预算贴顶时**，撑爆任何一类都**必然**同时触发 ①a（总量）。
+        # 那不是分类账的错 ⇒ 本臂只断言"类账只红这一格"；①a 自身的臂仍在（别删）。
+        # 旧断言 `and not _total` 在总量有余量时成立、贴顶时**结构性地不可能**成立（假红）。
+        results.append(("①b", f"反向：只撑 `{_cid}` 一类 ⇒ **只有该类**判红（总量同时红是贴顶的必然）",
+                        _hit and not _others))
 
     # ② 单文件行数 + ④ 冻结预算：往一份活文档灌 2200 行
     p = _rp("docs/LESSONS.md")

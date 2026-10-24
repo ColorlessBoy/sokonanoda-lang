@@ -274,14 +274,14 @@ jobs:
   #   自检 + 缓存读数在 runner 上合计 **0.158s**（06:35:25.8108 → 06:35:25.9686 ✓）
   #   ⇒ 加进本 job（真 CI 17s ✓）是**噪声级** ✓；本机同口径 0.33 + 7.37 + 0.17 = 7.87s，
   #   差的是"85 棵工作树 vs 1 棵"（真跑那条会遍历 `git worktree list` ✓）。
-  queue-lint:
-    name: queue-lint（队列 + 多会话台账 + 编译缓存判据；不设 if 过滤器 ⇒ 每推必跑）
+  board:
+    name: board（队列 + 多会话 + 计划一致性；不设 if ⇒ 每推必跑）
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
+    # 2026-10-24 由 queue-lint 拆出（用户：要在 Actions 上直接看到哪条门禁红）。
     steps:
       - uses: actions/checkout@v5
         with:
-          # 祖先性断言要全历史（见本 job 上面的注释：浅克隆 ⇒ 假红 270 条 ✗）。
           fetch-depth: 0
       - name: 队列门禁（覆盖自检 + 调度器不变量）+ 自检
         # 与原先长在 `ledger` shard 1 里的那两条**逐字同源** ✓（搬过来，不是另写一份 ✗）。
@@ -311,43 +311,6 @@ jobs:
           git rev-parse --verify -q main >/dev/null || git branch main refs/remotes/origin/main
           python3 scripts/check-multi-session.py --selftest
           python3 scripts/check-multi-session.py
-      - name: 编译缓存判据自检（回收顺序 / 预算反向验证）
-        # 与原先长在 `ledger` shard 1 里的那一条**逐字同源** ✓（搬过来，不是另写一份 ✗）。
-        # 无前提（实测 `env -i` 下 rc=0 ✓）。⚠ 2026-10-16 起**不再是"纯函数级"**：GB 旋钮那几条
-        # 会真起子进程跑真 CLI（`env probe` ⇒ 零写入、不扫盘 ✓）⇒ 实测 **0.5s**（原 0.17s ✓）。
-        run: python3 scripts/compile-cache.py --selftest
-      - name: "真绿判据通道自检（离线 · 不需要 gh / 网络）"
-        # 2026-10-16 · 洞 `CI-GREEN-SELFTEST-NOT-WIRED`（cg2 实测 ✗→✓）：`ci-green.py --selftest`
-        # 是**本仓唯一的「真绿」判据通道**（编排者每轮写给用户看的 CI 那一格 ✓），而它此前
-        # **不在任何 job / gate 里** ✗ —— `grep -rn ci-green .github/workflows/ scripts/ci-local.sh`
-        # **只命中一条注释** ✗。⚠ 它**曾被间接跑着**（咬住证明那一行的 C2 真跑 ✓），但那是
-        # **偶然**：`ci-green.py` 不在 `guard_scripts()` 口径里（名字臂不匹配、接线臂没有它）
-        # ⇒ **C1 不要求**它有证明（`cf259d1f..HEAD` 里它明明改过，18 个守卫的名单里**没有它** ✗）
-        # ⇒ 删掉那一行**没有任何判据会出声** ✗。⇒ 这里**显式**接一步（**可 grep、可归属** ✓）。
-        # ⚠ 接线臂把它收进来 ⇒ **C1 现在要求**它有咬住证明（它已经在 ✓，`docs/guard-bite.jsonl`）；
-        # 分类登记见 `docs/guard-anchors.jsonl` 的 `kind: tool` 行（C6 / C9 ✓）。
-        # ⚠ **判据一条都没放宽** ✗：照原样跑 —— 撤掉分类表一项 ⇒ **6/15 判红**（实测 ✓，
-        # 咬住证明 = `docs/guard-bite.jsonl` 里 `scripts/ci-green.py` 那一行 ✓）。
-        # ⚠ 离线 ✓ 亚秒级 ✓（只读本仓 `ci.yml` + 一臂把 `subprocess.run` 打成
-        # `FileNotFoundError` ✓）⇒ 塞进本 job（5 分钟预算）是噪声级 ✓。
-        run: python3 scripts/ci-green.py --selftest
-      - name: "json 身份判据通道自检（离线 · 不需要真 CLI）"
-        # 2026-10-16 · 洞 `CHECK-JSON-IDENTITY-NOT-WIRED-AT-ALL`（st1 横向排查实测 ✗→✓）：
-        # `check-json-identity.py` 是 `AGENTS.md` 硬规则 1 的**发版红线**（全课程 `--json`
-        # 逐字节对拍），而它在 `.github/workflows/**` / `scripts/ci-local.sh` /
-        # `scripts/githooks/*` 里**全是 0 处** ✗ —— 唯一跑到它的是
-        # `scripts/release-preflight.sh:76` 的 `--sweep`（**opt-in** ⇒ 不传就不跑 ✗）。
-        # ⚠ 它的防空转通道 `--selftest` 改前**在任何环境里都跑不成**：硬编码
-        # `target/debug/sokonanoda`，而本仓的受管环境把产物放 `$CARGO_TARGET_DIR`
-        # （`scripts/ci-local.sh:46` 默认 `/tmp/soko-target`）⇒ `FileNotFoundError`
-        # traceback（rc=1 是**崩**出来的，不是咬出来的 ✗）⇒ 自检**接不进任何 gate** ✗。
-        # ⇒ 已把它改成**零前提**（自造假 CLI；三格：不同⇒1 · 相同⇒0 · 答不上⇒2 ✓）并显式接这一步。
-        # ⚠ **判据一条都没放宽** ✗：真 CLI 的对拍路径（`--baseline`/`--new`）逐字未动、
-        # `--min-answered` 空转闸逐字未动；自检从 1 格加到 3 格 ✓。
-        # ⚠ 全课程对拍**不在这里** ✗（要一份"已发布 tag 的构建"当基线 + 251 个入口跑两遍
-        # ⇒ 属发版大节点 ✓，见 `scripts/release-preflight.sh --sweep`）。
-        # ⚠ 离线 ✓ 实测 1.2s ✓（本 job 预算 5 分钟 ⇒ 噪声级 ✓）。
-        run: python3 scripts/check-json-identity.py --selftest
       - name: 队列独立复核 + 收口指针触发器（合并后一份：登记表 + 驱动器）
         # 2026-10-15 · `SUB-orchestrator-attention-structure`【1】/【2】 ✓。
         # 病根 = **判据的所有权**：`ux-queue.py` 同时定义队列语义/守卫/证据规则/**复核判据**
@@ -369,6 +332,61 @@ jobs:
         run: |
           python3 scripts/check-queue-integrity.py --selftest
           python3 scripts/check-queue-integrity.py
+      - name: "计划一致性（CI 面：不跑 hook 的推送也要有人知道）"
+        # 2026-10-17 · `ng4`（`check-guard-bite.py` 的 **C12 双面**把这一格判红后补的 ✓）：
+        # `scripts/plan.py check` 此前**只有本地面**（`ci-local.sh:263` 的 `run` 步 ✓）✗
+        # ⇒ 在**不跑 hook 的推送**（`--no-verify` / 机器人 / 没装 `core.hooksPath` 的检出）上，
+        # `docs/design/e2-plan.md` §13 的清单与正文漂移（`round 145` 那次：`- [~]` 不被认 ⇒
+        # 进度 50 → 49 ✗）**没人知道** ✗ —— 而它是**收尾完整性检查**，后果落在别处
+        # （下一次提交被另一条判据挡住 ✓）。
+        # ⚠ **为什么在本 job**：`queue-lint` **不设 `if` 过滤器 ⇒ 每推必跑** ✓（纯 docs 推送
+        # 也跑 —— 而漂移正是 docs 改动造出来的 ✓）。
+        # ⚠ **前提**（**实测** ✓）：纯文本（只读 `docs/design/e2-plan.md`）、**不需要** git /
+        # 网络 / 二进制 / 全历史 ⇒ 本 job 的全历史是**顺带** ✓、**不进** `HISTORY_DEPENDENT` ✗；
+        # 实测 **0.07s** ⇒ 进本 job（5 分钟预算）是噪声级 ✓。
+        run: |
+          python3 scripts/plan.py check
+
+  guard-bite:
+    name: guard-bite（每条守卫都必须咬住一条已存在的坏输入）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # 2026-10-24 由 queue-lint 拆出；台账的 `ci_job: guard-bite` 在这里跑。
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: "咬住证明（新守卫必须自带「已存在的坏输入 ⇒ 报非 0」）"
+        # 2026-10-16 · 用户 2026-10-15【④】：「停止'守卫的守卫' ⇒ 出路是端到端判据」——
+        # **任何新守卫必须自带"咬住证明"**（一条**已存在的坏输入**被它咬住 + 跑给人看）✓。
+        # 仓库**已有**那条规则（`AGENTS.md:289`「**咬不住的守卫等于没有**」）——
+        # 用户说得很准：**"只是没强制"** ✗。本步把它变成判据 ✓：
+        # `docs/guard-bite.jsonl` 每行的 `pass` 要绿、**`bite` 要真的报非 0** ✓；
+        # 覆盖基线以来**新增/修改的每个守卫**都必须有一行 ✓（缺 ⇒ 判红 ⇒ **不算收口** ✗）。
+        # ⚠ **`--reopen-empty` 是【①】的翻账入口**（守卫空了 ⇒ **reopen 它关掉的那条** ✓）：
+        # 本步**不**自动写台账（CI 里不写 ✗）—— 它由外部验收方在主 checkout 上跑 ✓。
+        #
+        # ⚠⚠ **`--job guard-bite` 是必须的**（2026-10-16 CI 实测红 ✗→✓）：
+        # 本 job 只有 5 分钟、**不装 `editor/vscode/node_modules`、也没有真 VS Code**，
+        # 而台账里有 4 条证明要的正是那些（`scripts/third-layer-bite.sh` 环境缺失 ⇒ **exit 3**，
+        # 而 `pass` 期望 0 ⇒ 判红）⇒ "一条命令扫全部"在 CI 上**必然假红**（红的是"环境不在"、
+        # **不是**"守卫咬不住" ✗ —— 读数不可归属 ✗）。⇒ 台账用 `ci_job` **分派**，
+        # 本步跑**本 job 的那批** ✓；`ci_job: editor` 那批由 `editor` job 跑（它**已经**
+        # 建 debug LSP/CLI + `npm ci` ✓ ⇒ 只需补 VS Code 缓存与那一跑 ✓）。
+        # ⚠ **这不是放宽** ✗：判据 **C4** 会核"每个 `ci_job` 都真的存在且真的有一跑它"——
+        # 把证明标到一个不存在的 job ⇒ **判红**（藏起来 = 空转 ✗）。
+        run: |
+          python3 scripts/check-guard-bite.py --selftest --job guard-bite
+          python3 scripts/check-guard-bite.py --check --all --job guard-bite
+
+  budgets:
+    name: budgets（簿记预算 + 横向阈值 ratchet + 冻结余量）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: "簿记预算 ratchet（每轮收紧一档 · 本轮没比上轮低 ⇒ 判红）"
         # ⚠ 名字**必须加引号** ✗→✓：裸标量里的 ` : ` 会被 YAML 当成**又一层映射** ⇒
         # `ci-yml-lint` 当场判红（实测 `.github/workflows/ci.yml:292:27 mapping values are
@@ -421,69 +439,6 @@ jobs:
         run: |
           python3 scripts/check-budgets.py --layer threshold --selftest
           python3 scripts/check-budgets.py --layer threshold
-      - name: "咬住证明（新守卫必须自带「已存在的坏输入 ⇒ 报非 0」）"
-        # 2026-10-16 · 用户 2026-10-15【④】：「停止'守卫的守卫' ⇒ 出路是端到端判据」——
-        # **任何新守卫必须自带"咬住证明"**（一条**已存在的坏输入**被它咬住 + 跑给人看）✓。
-        # 仓库**已有**那条规则（`AGENTS.md:289`「**咬不住的守卫等于没有**」）——
-        # 用户说得很准：**"只是没强制"** ✗。本步把它变成判据 ✓：
-        # `docs/guard-bite.jsonl` 每行的 `pass` 要绿、**`bite` 要真的报非 0** ✓；
-        # 覆盖基线以来**新增/修改的每个守卫**都必须有一行 ✓（缺 ⇒ 判红 ⇒ **不算收口** ✗）。
-        # ⚠ **`--reopen-empty` 是【①】的翻账入口**（守卫空了 ⇒ **reopen 它关掉的那条** ✓）：
-        # 本步**不**自动写台账（CI 里不写 ✗）—— 它由外部验收方在主 checkout 上跑 ✓。
-        #
-        # ⚠⚠ **`--job queue-lint` 是必须的**（2026-10-16 CI 实测红 ✗→✓）：
-        # 本 job 只有 5 分钟、**不装 `editor/vscode/node_modules`、也没有真 VS Code**，
-        # 而台账里有 4 条证明要的正是那些（`scripts/third-layer-bite.sh` 环境缺失 ⇒ **exit 3**，
-        # 而 `pass` 期望 0 ⇒ 判红）⇒ "一条命令扫全部"在 CI 上**必然假红**（红的是"环境不在"、
-        # **不是**"守卫咬不住" ✗ —— 读数不可归属 ✗）。⇒ 台账用 `ci_job` **分派**，
-        # 本步跑**本 job 的那批** ✓；`ci_job: editor` 那批由 `editor` job 跑（它**已经**
-        # 建 debug LSP/CLI + `npm ci` ✓ ⇒ 只需补 VS Code 缓存与那一跑 ✓）。
-        # ⚠ **这不是放宽** ✗：判据 **C4** 会核"每个 `ci_job` 都真的存在且真的有一跑它"——
-        # 把证明标到一个不存在的 job ⇒ **判红**（藏起来 = 空转 ✗）。
-        run: |
-          python3 scripts/check-guard-bite.py --selftest --job queue-lint
-          python3 scripts/check-guard-bite.py --check --all --job queue-lint
-      - name: "CI 接线类守卫 · 层② 历史深度接线（跑历史判据的 job 必须有全历史）"
-        # 2026-10-16 · 洞 `EDITOR-JOB-BITE-STEP-EXIT-3` 的**类**守卫（硬规则 0(b)：
-        # 同类问题横向排查、不许修单点 ✗）。同族两次：`queue-lint`（2026-10-15，
-        # 祖先性断言在浅克隆里假红 270 条 ⇒ 手加 `fetch-depth: 0`）·
-        # `editor`（2026-10-16，run `38817419732` step 11 ⇒ 判据 `exit 3` ⇒ **job 红**，
-        # 而红的是**前提**、不是"咬不住" ✗）—— 两次都是**手工修那一个 job** ✗
-        # ⇒ 本层把"**判据要读历史，就必须把历史给它**"变成可查的判据 ✓。
-        # 判据：**R1 接线**（job 真跑了声明的历史判据 ⇒ 它的 `actions/checkout`
-        # 必须有 `fetch-depth: 0`）· **R1b 提及不算跑** · **R2 表不腐烂** ·
-        # **R3 空转闸**（判到 0 对 ⇒ 判红 ✗）。
-        # ⭐ 2026-10-17 第 5 轮 `gs5`：它并进 **`check-ci-wiring.py`**（`SUB-narrow-guards-to-one-layer` ③
-        # 的第一步 ✓ —— 与 `wiring-lint` 里那一层**同一个登记表 + 同一个驱动器** ✓）。
-        # ⚠ **为什么在本 job**：`--selftest` 的咬住证明打在**钉死的旧 rev**
-        # （`1cd4aba0` = CI 真红那一跑的 `head_sha` ✓，**不是** `HEAD` ✗ ——
-        # pr1 的坑：写 `HEAD` 的话提交后就是修好的那版 ⇒ 证明自己失效 ✗）
-        # ⇒ **本步自己也要全历史**，而本 job 有 `fetch-depth: 0` ✓（⚠ 2026-10-17 `gs3` 起
-        # `wiring-lint` **也有**了 —— `check-drift.py` 的咬住证明钉旧 rev ⇒ 它登记进
-        # `HISTORY_DEPENDENT` ⇒ R1 给那个 job 补了 `fetch-depth: 0` ✓；本步留在本 job 的
-        # 理由不变：`--selftest` 的咬住证明打在本 job 里，放别处会以"环境不在"判红 ✗
-        # —— 正是本守卫要拦的那种红 ✓）。
-        # 实测：`--layer history` + `--selftest` 合计 < 0.5s ⇒ 进本 job（5 分钟预算）是噪声级 ✓。
-        run: |
-          python3 scripts/check-ci-wiring.py --layer history
-          python3 scripts/check-ci-wiring.py --selftest
-      - name: "记法路径守卫（CI 面：不跑 hook 的推送也要有人知道）"
-        # 2026-10-17 · `ng1` 普查 §3.C 的**第 ③ 组**（洞 `CI-FACE-MISSING-FOR-NOTATION-PATHS`）：
-        # `scripts/audit-notation-paths.py` 此前**只有本地面**（`ci-local.sh:288` 的 `run` +
-        # `:295` 的 `--self-test`）✗ ⇒ **不跑 hook 的推送**（`--no-verify` / 机器人 /
-        # 没装 `core.hooksPath` 的检出）上，产品源码里新长出一个绕过唯一记法接口的调用点
-        # **没人知道** ✗（后果落在别处：Infoview 顶部目标退回点形式，锚 `A-NOTATION-ON-SCREEN` ✗）。
-        # ⚠ **为什么在本 job**：`queue-lint` **不设 `if` 过滤器 ⇒ 每推必跑** ✓
-        # （放 `gates-fast` 那种 `rust || courses` 门控的 job 里，纯 docs 推送会 skip ✗）。
-        # ⚠ **本步自己不需要历史**（**实测**：浅克隆里判据 rc=0 · `--self-test` rc=0 ✓ ——
-        # 它只读工作区的 `crates/**` + `scripts/notation-paths-baseline.txt`，全文 **0 处**
-        # `git`/`subprocess` ✓）⇒ **故意不进** `HISTORY_DEPENDENT` ✗：给一条不需要全历史的
-        # 脚本登记"要全历史"⇒ 以后谁把它挪进浅 job 就吃一条**假红**（E18 的教训：
-        # 守卫一旦叫狼来了，正确的反应就变成"加豁免" ⇒ 它就死了 ✗）。本 job 的全历史是**顺带** ✓。
-        # ⚠ 判据与 `ci-local.sh:288` **逐字同源** ✓（本地那条在 `:295` 另有 `--self-test` ✓）。
-        run: |
-          python3 scripts/audit-notation-paths.py
-          python3 scripts/audit-notation-paths.py --self-test
       - name: "冻结余量守卫（CI 面：强制追加类不许把余量吃到 0）"
         # 2026-10-17 · 同上的第 ③ 组：`scripts/check-frozen-headroom.py` 此前只有本地面
         # （`ci-local.sh:287`）✗ ⇒ 不跑 hook 的推送里，`docs/CI-FAILURES.md` 的冻结余量
@@ -498,20 +453,15 @@ jobs:
         run: |
           python3 scripts/check-frozen-headroom.py --check
           python3 scripts/check-frozen-headroom.py --selftest
-      - name: "计划一致性（CI 面：不跑 hook 的推送也要有人知道）"
-        # 2026-10-17 · `ng4`（`check-guard-bite.py` 的 **C12 双面**把这一格判红后补的 ✓）：
-        # `scripts/plan.py check` 此前**只有本地面**（`ci-local.sh:263` 的 `run` 步 ✓）✗
-        # ⇒ 在**不跑 hook 的推送**（`--no-verify` / 机器人 / 没装 `core.hooksPath` 的检出）上，
-        # `docs/design/e2-plan.md` §13 的清单与正文漂移（`round 145` 那次：`- [~]` 不被认 ⇒
-        # 进度 50 → 49 ✗）**没人知道** ✗ —— 而它是**收尾完整性检查**，后果落在别处
-        # （下一次提交被另一条判据挡住 ✓）。
-        # ⚠ **为什么在本 job**：`queue-lint` **不设 `if` 过滤器 ⇒ 每推必跑** ✓（纯 docs 推送
-        # 也跑 —— 而漂移正是 docs 改动造出来的 ✓）。
-        # ⚠ **前提**（**实测** ✓）：纯文本（只读 `docs/design/e2-plan.md`）、**不需要** git /
-        # 网络 / 二进制 / 全历史 ⇒ 本 job 的全历史是**顺带** ✓、**不进** `HISTORY_DEPENDENT` ✗；
-        # 实测 **0.07s** ⇒ 进本 job（5 分钟预算）是噪声级 ✓。
-        run: |
-          python3 scripts/plan.py check
+
+  site:
+    name: site（站点数据 ⇄ 版本钉 + 记法路径）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: "站点总验收（scripts/check-site.py · 10 项：结构/链接/版本/体积/已发布版本一致）"
         # 2026-10-17 · 第 7 轮 `ng8`（`ng5` 的根因四层，证据 `.cache/ux/fix-ng5/VERDICT.md` §2）：
         # `site/data/site.json` 是**生成物**（唯一输入 = 最新的 `vX.Y.Z` tag，唯一写者 =
@@ -550,6 +500,95 @@ jobs:
         # `.cache/ux/fix-ng8/VERDICT.md` §4 ✓）。
         run: python3 scripts/check-site.py
 
+      - name: "记法路径守卫（CI 面：不跑 hook 的推送也要有人知道）"
+        # 2026-10-17 · `ng1` 普查 §3.C 的**第 ③ 组**（洞 `CI-FACE-MISSING-FOR-NOTATION-PATHS`）：
+        # `scripts/audit-notation-paths.py` 此前**只有本地面**（`ci-local.sh:288` 的 `run` +
+        # `:295` 的 `--self-test`）✗ ⇒ **不跑 hook 的推送**（`--no-verify` / 机器人 /
+        # 没装 `core.hooksPath` 的检出）上，产品源码里新长出一个绕过唯一记法接口的调用点
+        # **没人知道** ✗（后果落在别处：Infoview 顶部目标退回点形式，锚 `A-NOTATION-ON-SCREEN` ✗）。
+        # ⚠ **为什么在本 job**：`queue-lint` **不设 `if` 过滤器 ⇒ 每推必跑** ✓
+        # （放 `gates-fast` 那种 `rust || courses` 门控的 job 里，纯 docs 推送会 skip ✗）。
+        # ⚠ **本步自己不需要历史**（**实测**：浅克隆里判据 rc=0 · `--self-test` rc=0 ✓ ——
+        # 它只读工作区的 `crates/**` + `scripts/notation-paths-baseline.txt`，全文 **0 处**
+        # `git`/`subprocess` ✓）⇒ **故意不进** `HISTORY_DEPENDENT` ✗：给一条不需要全历史的
+        # 脚本登记"要全历史"⇒ 以后谁把它挪进浅 job 就吃一条**假红**（E18 的教训：
+        # 守卫一旦叫狼来了，正确的反应就变成"加豁免" ⇒ 它就死了 ✗）。本 job 的全历史是**顺带** ✓。
+        # ⚠ 判据与 `ci-local.sh:288` **逐字同源** ✓（本地那条在 `:295` 另有 `--self-test` ✓）。
+        run: |
+          python3 scripts/audit-notation-paths.py
+          python3 scripts/audit-notation-paths.py --self-test
+
+  hygiene:
+    name: hygiene（编译缓存 / 真绿 / json 身份自检 + 层② 历史深度）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: 编译缓存判据自检（回收顺序 / 预算反向验证）
+        # 与原先长在 `ledger` shard 1 里的那一条**逐字同源** ✓（搬过来，不是另写一份 ✗）。
+        # 无前提（实测 `env -i` 下 rc=0 ✓）。⚠ 2026-10-16 起**不再是"纯函数级"**：GB 旋钮那几条
+        # 会真起子进程跑真 CLI（`env probe` ⇒ 零写入、不扫盘 ✓）⇒ 实测 **0.5s**（原 0.17s ✓）。
+        run: python3 scripts/compile-cache.py --selftest
+      - name: "真绿判据通道自检（离线 · 不需要 gh / 网络）"
+        # 2026-10-16 · 洞 `CI-GREEN-SELFTEST-NOT-WIRED`（cg2 实测 ✗→✓）：`ci-green.py --selftest`
+        # 是**本仓唯一的「真绿」判据通道**（编排者每轮写给用户看的 CI 那一格 ✓），而它此前
+        # **不在任何 job / gate 里** ✗ —— `grep -rn ci-green .github/workflows/ scripts/ci-local.sh`
+        # **只命中一条注释** ✗。⚠ 它**曾被间接跑着**（咬住证明那一行的 C2 真跑 ✓），但那是
+        # **偶然**：`ci-green.py` 不在 `guard_scripts()` 口径里（名字臂不匹配、接线臂没有它）
+        # ⇒ **C1 不要求**它有证明（`cf259d1f..HEAD` 里它明明改过，18 个守卫的名单里**没有它** ✗）
+        # ⇒ 删掉那一行**没有任何判据会出声** ✗。⇒ 这里**显式**接一步（**可 grep、可归属** ✓）。
+        # ⚠ 接线臂把它收进来 ⇒ **C1 现在要求**它有咬住证明（它已经在 ✓，`docs/guard-bite.jsonl`）；
+        # 分类登记见 `docs/guard-anchors.jsonl` 的 `kind: tool` 行（C6 / C9 ✓）。
+        # ⚠ **判据一条都没放宽** ✗：照原样跑 —— 撤掉分类表一项 ⇒ **6/15 判红**（实测 ✓，
+        # 咬住证明 = `docs/guard-bite.jsonl` 里 `scripts/ci-green.py` 那一行 ✓）。
+        # ⚠ 离线 ✓ 亚秒级 ✓（只读本仓 `ci.yml` + 一臂把 `subprocess.run` 打成
+        # `FileNotFoundError` ✓）⇒ 塞进本 job（5 分钟预算）是噪声级 ✓。
+        run: python3 scripts/ci-green.py --selftest
+      - name: "json 身份判据通道自检（离线 · 不需要真 CLI）"
+        # 2026-10-16 · 洞 `CHECK-JSON-IDENTITY-NOT-WIRED-AT-ALL`（st1 横向排查实测 ✗→✓）：
+        # `check-json-identity.py` 是 `AGENTS.md` 硬规则 1 的**发版红线**（全课程 `--json`
+        # 逐字节对拍），而它在 `.github/workflows/**` / `scripts/ci-local.sh` /
+        # `scripts/githooks/*` 里**全是 0 处** ✗ —— 唯一跑到它的是
+        # `scripts/release-preflight.sh:76` 的 `--sweep`（**opt-in** ⇒ 不传就不跑 ✗）。
+        # ⚠ 它的防空转通道 `--selftest` 改前**在任何环境里都跑不成**：硬编码
+        # `target/debug/sokonanoda`，而本仓的受管环境把产物放 `$CARGO_TARGET_DIR`
+        # （`scripts/ci-local.sh:46` 默认 `/tmp/soko-target`）⇒ `FileNotFoundError`
+        # traceback（rc=1 是**崩**出来的，不是咬出来的 ✗）⇒ 自检**接不进任何 gate** ✗。
+        # ⇒ 已把它改成**零前提**（自造假 CLI；三格：不同⇒1 · 相同⇒0 · 答不上⇒2 ✓）并显式接这一步。
+        # ⚠ **判据一条都没放宽** ✗：真 CLI 的对拍路径（`--baseline`/`--new`）逐字未动、
+        # `--min-answered` 空转闸逐字未动；自检从 1 格加到 3 格 ✓。
+        # ⚠ 全课程对拍**不在这里** ✗（要一份"已发布 tag 的构建"当基线 + 251 个入口跑两遍
+        # ⇒ 属发版大节点 ✓，见 `scripts/release-preflight.sh --sweep`）。
+        # ⚠ 离线 ✓ 实测 1.2s ✓（本 job 预算 5 分钟 ⇒ 噪声级 ✓）。
+        run: python3 scripts/check-json-identity.py --selftest
+      - name: "CI 接线类守卫 · 层② 历史深度接线（跑历史判据的 job 必须有全历史）"
+        # 2026-10-16 · 洞 `EDITOR-JOB-BITE-STEP-EXIT-3` 的**类**守卫（硬规则 0(b)：
+        # 同类问题横向排查、不许修单点 ✗）。同族两次：`queue-lint`（2026-10-15，
+        # 祖先性断言在浅克隆里假红 270 条 ⇒ 手加 `fetch-depth: 0`）·
+        # `editor`（2026-10-16，run `38817419732` step 11 ⇒ 判据 `exit 3` ⇒ **job 红**，
+        # 而红的是**前提**、不是"咬不住" ✗）—— 两次都是**手工修那一个 job** ✗
+        # ⇒ 本层把"**判据要读历史，就必须把历史给它**"变成可查的判据 ✓。
+        # 判据：**R1 接线**（job 真跑了声明的历史判据 ⇒ 它的 `actions/checkout`
+        # 必须有 `fetch-depth: 0`）· **R1b 提及不算跑** · **R2 表不腐烂** ·
+        # **R3 空转闸**（判到 0 对 ⇒ 判红 ✗）。
+        # ⭐ 2026-10-17 第 5 轮 `gs5`：它并进 **`check-ci-wiring.py`**（`SUB-narrow-guards-to-one-layer` ③
+        # 的第一步 ✓ —— 与 `wiring-lint` 里那一层**同一个登记表 + 同一个驱动器** ✓）。
+        # ⚠ **为什么在本 job**：`--selftest` 的咬住证明打在**钉死的旧 rev**
+        # （`1cd4aba0` = CI 真红那一跑的 `head_sha` ✓，**不是** `HEAD` ✗ ——
+        # pr1 的坑：写 `HEAD` 的话提交后就是修好的那版 ⇒ 证明自己失效 ✗）
+        # ⇒ **本步自己也要全历史**，而本 job 有 `fetch-depth: 0` ✓（⚠ 2026-10-17 `gs3` 起
+        # `wiring-lint` **也有**了 —— `check-drift.py` 的咬住证明钉旧 rev ⇒ 它登记进
+        # `HISTORY_DEPENDENT` ⇒ R1 给那个 job 补了 `fetch-depth: 0` ✓；本步留在本 job 的
+        # 理由不变：`--selftest` 的咬住证明打在本 job 里，放别处会以"环境不在"判红 ✗
+        # —— 正是本守卫要拦的那种红 ✓）。
+        # 实测：`--layer history` + `--selftest` 合计 < 0.5s ⇒ 进本 job（5 分钟预算）是噪声级 ✓。
+        run: |
+          python3 scripts/check-ci-wiring.py --layer history
+          python3 scripts/check-ci-wiring.py --selftest
+
+
   lint-clippy:
     name: lint-clippy（clippy 全量 check）
     runs-on: ubuntu-24.04
@@ -582,7 +621,7 @@ jobs:
     # ⚠ `queue-lint` 在这里**不是装饰** ✗（2026-10-15，洞 `LEDGER-JOB-SKIPPED-ON-DOC-ONLY-PUSH`）：
     # 队列门禁原先由 `ledger` 顶着（`ledger` 在 `needs` 里 ✓）⇒ 搬去独立 job 后，
     # **不补这一条就等于把"队列不一致不许发版"这道闸悄悄拆掉** ✗ —— 门禁强度必须**不变** ✓。
-    needs: [lint-fmt, lint-clippy, queue-lint, test, gates-fast, gates-course, ledger, contract, editor, e2e, e2e-macos]
+    needs: [lint-fmt, lint-clippy, board, guard-bite, budgets, site, hygiene, test, gates-fast, gates-course, ledger, contract, editor, e2e, e2e-macos]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
@@ -742,7 +781,7 @@ jobs:
   # ⚠ **不**进 `auto-tag` 的 `needs` ✗：标记是**旁路记账**，不许有能力挡住发版 ✓。
   mark-verified:
     name: mark-verified（重活真跑过且全绿 ⇒ 推进「已验证点」标记）
-    needs: [changes, lint-fmt, lint-clippy, queue-lint, test, gates-fast, gates-course, ledger, contract, editor, e2e, e2e-macos]
+    needs: [changes, lint-fmt, lint-clippy, board, guard-bite, budgets, site, hygiene, test, gates-fast, gates-course, ledger, contract, editor, e2e, e2e-macos]
     if: >-
       always()
       && github.event_name == 'push' && github.ref == 'refs/heads/main'

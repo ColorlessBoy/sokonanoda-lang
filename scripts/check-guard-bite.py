@@ -30,16 +30,16 @@
   如果它点名了 `queue_id`，就**把那条已 done 的条目 reopen**（回 `todo`）✓，
   **不是**只记一条新账 ✗ ⇒ **"绿"不再免费** ✓。
 * **C4 接线（2026-10-16，CI 实测红 ✗→✓）**：每条证明**声明它在哪个 CI job 里跑**
-  （台账字段 `ci_job`，缺省 = `queue-lint`）⇒ 那个 job 必须在 `.github/workflows/ci.yml`
+  （台账字段 `ci_job`，缺省 = `guard-bite`）⇒ 那个 job 必须在 `.github/workflows/ci.yml`
   里**真的存在**、且**真的有一跑它**（那个 job 的 **`run:` 正文**里出现 `--job <名字>`）✗→✓。
   ⚠ **"真的有一跑"= `run:` 正文**（复用 `run_bodies()` ✓）：**注释与 step 名都不算** ✗ ——
   与 `wired_scripts()`（接线臂）**同一条口径** ✓（`run_bodies()` 的 docstring 里就写着
   「step 名同理（`name:` 不是命令 ✓）」）。⚠ **第 6 轮 `ng7` 收窄**：此前这里拿的是
   **整个 job 块的文本**（`job_blocks()` 的原文）⇒ 只在 **step 名**里点名
   `check-guard-bite.py` 就能让 C4 通过（= 接线只靠提及 ✗，与 `ng3` §3.5 ① 同族）。
-  收窄的读数（真 `ci.yml`）：台账声明的 **2** 个 job（`editor` / `queue-lint`）
+  收窄的读数（真 `ci.yml`）：台账声明的 **2** 个 job（`editor` / `guard-bite`）
   **全部**有 `run:` 正文命中 ⇒ 收窄**一条都不放走**（0 格 · 0 条红变绿 ✓）。
-  ⚠ 为什么必须分派（**实测**）：`queue-lint` 是 `timeout-minutes: 5`、**不装
+  ⚠ 为什么必须分派（**实测**）：`guard-bite` 是 `timeout-minutes: 10`、**不装
   `editor/vscode/node_modules`、也没有真 VS Code** —— 而第三层那几条证明要的正是那些
   （`scripts/third-layer-bite.sh` 环境缺失 ⇒ **exit 3**，而 `pass` 期望 0 ⇒ 判红 ✓）。
   ⇒ "一条命令扫全部"（`--all` 不分工）在 CI 上**必然红**，红的是"环境不在"、
@@ -48,7 +48,7 @@
   声明了 job 而**没人跑它** ⇒ 判红 ✓（**空转闸** ✓）。要一次全跑（开发机）用 `--job all` ✓。
   ⚠ **分派的代价如实标注** ✗：`ci_job: <非默认>` 的那几条只在那个 job 的触发条件成立时
   跑（`editor` job 的条件是 `rust || editor` 改动）⇒ **纯 docs 推送不跑第三层那几条** ——
-  它们**物理上**跑不进 `queue-lint` 的 5 分钟预算 ✓（不是口径松了 ✓）。
+  它们**物理上**跑不进 `guard-bite` 的 10 分钟预算 ✓（不是口径松了 ✓）。
 * **C13 登记接线（2026-10-18，用户 2026-10-17 23:1x 的硬令 ✗→✓）**：**第二本登记表**
   （`scripts/ux-queue.py` 的 `REGISTERED_SCRIPTS` = **规范判据 / 对照臂脚本**的地面真相 ✓）
   点名的**每一条**都必须**真的有一跑** ✗→✓ —— 否则判红（"**登记了但没接线 ⇒ 判红**" ✓）。
@@ -74,7 +74,7 @@
   `.cache/ux/fix-v1/VERDICT.md` 如实写清 ✓（**不是**在这里放豁免 ✗）。
 * **C5 可达性（2026-10-16，CI 实测红 ✗→✓）**：证明里**钉的旧 rev**（"已存在的坏输入"
   的锚点 ✓）必须**在本仓里真的存在**、**且是 `HEAD` 的祖先** ⇒ 否则判红 ✗（**两档**）。
-  ⚠ 为什么（**实测**，run `38828745723` · step 9）：`queue-lint` **有** `fetch-depth: 0`
+  ⚠ 为什么（**实测**，run `38828745723` · step 9）：`guard-bite` **有** `fetch-depth: 0`
   （`ci.yml:256`）⇒ 缺的**不是历史深度** ✗ —— 缺的是**那个对象**：CI 只检出**一个 ref**
   的历史，而开发机的 `.git` 里躺着 ~100 棵链接工作树/分支的对象 ⇒ 一个**只在分支上
   存在**的 rev（`10a6a621` = `agent/ed1` 的 tip、`land` rebase **之前**的孪生）在本机
@@ -253,8 +253,8 @@ NONBITING_FIXTURE = ROOT / "scripts" / "fixtures" / "guard-bite-nonbiting.jsonl"
 CI_YML = ROOT / ".github" / "workflows" / "ci.yml"
 
 # ── **证明在哪个 CI job 里跑**（C4；唯一一处 ✓）───────────────────────────────
-# 缺省 = 跑 `--all` 的那个"每推必跑"的 job（`ci.yml` 的 `queue-lint`，无 `if` 过滤器 ✓）。
-DEFAULT_JOB = "queue-lint"
+# 缺省 = 跑 `--all` 的那个"每推必跑"的 job（`ci.yml` 的 `guard-bite`，无 `if` 过滤器 ✓）。
+DEFAULT_JOB = "guard-bite"
 # `--job all` = **不分工**（开发机一次全跑；CI 分派跑，理由见 docstring 的 C4 ✓）。
 JOB_ALL = "all"
 # job 名的合法形状（`ci.yml` 里 `  <name>:` 那一层）
@@ -919,7 +919,7 @@ def shallow_hint(root: Path) -> str:
             "**历史深度不够**，覆盖面基线那个对象不在 ⇒ 不是『这条守卫咬不住』 ✗）"
             "⇒ 出路：本机 `git fetch --unshallow`；**CI 里给跑这一步的那个 job 加 "
             "`fetch-depth: 0`** ✓（实测 `editor` job 缺的正是它：run 38817419732 · "
-            "step 11；同 run 里 `queue-lint` 有它 ⇒ success ✓）。"
+            "step 11；同 run 里 `guard-bite` 有它 ⇒ success ✓）。"
             "⚠ 别改判据来消这条红 ✗ —— 缺的是**前提**。")
 
 
@@ -2272,7 +2272,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
             wf = r / ".github" / "workflows"
             wf.mkdir(parents=True, exist_ok=True)
             (wf / "ci.yml").write_text(
-                "jobs:\n  queue-lint:\n    runs-on: ubuntu-24.04\n    steps:\n" + step,
+                "jobs:\n  guard-bite:\n    runs-on: ubuntu-24.04\n    steps:\n" + step,
                 encoding="utf-8")
             return r
 
@@ -2294,7 +2294,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
             "      - name: 跑 scripts/check-guard-bite.py --check --all（`run:` 正文被删 ✗）\n"
             "        run: echo hi\n")
         c4_mention_red = wiring_problems(c4_mention, _c4_entry())
-        c4_named = any("C4 接线" in m and "queue-lint" in m for m in c4_mention_red)
+        c4_named = any("C4 接线" in m and "guard-bite" in m for m in c4_mention_red)
         gate("⭐⭐ 反向㉕：C4 —— **删 `run:` 正文、只留 step 名** ⇒ 判红（第 6 轮收窄；"
              "收窄前这条**通过** ⇒ 接线只靠提及）", c4_named, f"红 {len(c4_mention_red)} 条")
         if c4_mention_red:
@@ -2318,7 +2318,7 @@ def selftest(job: str = DEFAULT_JOB) -> int:
                 wf = r / ".github" / "workflows"
                 wf.mkdir(parents=True, exist_ok=True)
                 (wf / "ci.yml").write_text(
-                    "jobs:\n  queue-lint:\n    runs-on: ubuntu-24.04\n    steps:\n" + wiring,
+                    "jobs:\n  guard-bite:\n    runs-on: ubuntu-24.04\n    steps:\n" + wiring,
                     encoding="utf-8")
             return r
 
