@@ -98,6 +98,9 @@ git -C "${R}" ls-files | grep -q '^newtop/thing\.js$' || {
     echo "✗ 夹具错：新顶层目录里的文件没进夹具仓的索引"; exit 9; }
 
 # ③ 改前读数：旧守卫在**同一份夹具**上必须 rc=0（= 静默变瞎 ✗）
+# ⚠ 2026-10-24：旧守卫 `import yaml`，而系统 pyyaml 是**未声明依赖** —— 新树已把它
+# vendored 到 `scripts/vendor/`，这里把那份放进 PYTHONPATH（夹具跑的是旧脚本，不 vendored）。
+PYTHONPATH="$(pwd)/scripts:$(pwd)/scripts/vendor${PYTHONPATH:+:$PYTHONPATH}" \
 python3 "${OLD}/check-ci-gate-coverage.py" --check --ci "${R}/.github/workflows/ci.yml" \
     > "${T}/old.out" 2>&1
 old_rc=$?

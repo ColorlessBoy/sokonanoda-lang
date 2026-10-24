@@ -33,6 +33,11 @@ concurrency:
 
 on:
   push:
+    branches: [main]
+    # tag 只跑 release.yml（它自己带 version gate + 全平台构建）——
+    # 同一 commit 再跑一轮 33-job 的 ci 是纯浪费，且 tag 一落地 `check-site data`
+    # 必然红（旧口径的固定点）；2026-10-24 起 `bump.py` 同一步写 site 数据 ⇒ 这里不需要它。
+    tags-ignore: ["v*"]
   pull_request:
 
 jobs:

@@ -666,45 +666,4 @@ message 就写着「⚠ 如实（未收口）」——`docs/gaps/repro/**` 的�
 仍红（`prefix=12`，期望 0）—— 那是**引擎缺口**（翻默认后就地判定接不住 `@` 脊，
 `SUB-flip-default-needs-engine-at-spine`），旧档下 3/3 绿 ⇒ 已定性、属 flip 本体、不在本笔。
 
-## 2026-10-20 · **严格档翻默认把编译拖慢 14×**（`test (sokonanoda-lsp, lib)` 超时 / `gates-course` 30+ 分钟）
-
-**红的样子**：`test (sokonanoda-lsp, lib)` 的 `perf_course_did_open_is_recorded` 报
-`timed out after 30s waiting for drained notify`；同一 artifact 里
-`PERF course lsp: didOpen unit01 = 20280ms（修前基线 1.8s）`。
-`gates-course` 从 ~10 分钟涨到 **30+ 分钟**（连续 12 轮都是 20–36 分钟且 failure）。
-
-**根因（不是"测试变多"，是编译器慢了）**：`487f9a77` 把严格档翻成默认后，
-`elab::operand_type_expr` 的问法从「普通 pp」换成「**全显式 pp**」，而那条支路
-**不查判定缓存**（`pp=explicit` 是另一个键，源码注释原文「不查普通缓存槽」）、
-**就地也答不出**（`infer_type_text_inplace` 失败在 `elab_expr(operand)`）
-⇒ 每次退化成「造 `#check` 文档 + 整段前缀从零重编」。一份 16 KB 的课程单元要重编 **12 次**。
-
-**硬读数**（同一份 `unit01-sets-membership`、同一构建，只切就地判定）：
-
-| | 就地判定开 | 就地判定关 |
-|---|---|---|
-| 旧档 | **0.69 s** | 5.61 s |
-| 默认（严格） | **8.84 s** | 4.91 s |
-
-⇒ 关掉就地两档几乎一样 ⇒ **13× 全在"就地/缓存这条路能不能用"**，不在解析。
-
-**修复（用户 2026-10-20 拍板：「先用普通模式发布一版，保持高速度高效率」）**：
-`strict_at_enabled()` **极性翻回默认关**（`SOKO_STRICT_AT=1` 才开），见 `REQUIREMENTS.md` §9.26。
-严格档**没被删**，语料已迁成两档都合法的 `@` 写法。
-
-**判据**：全语料 356 个 `.sokonanoda` 逐字节 `--json` 对拍 —— 新默认 vs 旧档 `SOKO_STRICT_AT=0`
-**0 差异**（343 accept / 13 reject，与翻默认前记的 BASE 完全一致）；严格档 `=1` 两臂也 0 差异；
-`front --lib` **1006/1006** · `protocol` **13/13** · `lsp_keystroke_structure` **3/3**（`prefix==0` 那条回来了）；
-单元墙钟 **8.8 s → 0.62 s**。
-
-**预防**：**性能改动必须量"默认档"的墙钟**，并把它写进判据 —— 这次翻默认的 commit
-自己写着「⚠ 如实（未收口）」，却没量墙钟 ⇒ 一个 14× 的退化靠 CI 超时才被发现。
-
-## 2026-10-20 · 方言批次 `editor` 红在「咬住证明台账」C2（两条夹具前提过期）
-`third-layer-bite.sh e2e-bite` rc=3 与 `implicit_at_alignment.rs` bite rc=0：前者换版进来的
-`query/mod.rs` 因 S1/S5 给 `CompileOptions`/`QueryDoc` 加了 `dialect` 而**编不过**（rc=3 = 环境错，不是咬住）；
-后者守的命题**方向变了**（默认档改回旧读法）。**修**：换版后只做机械补位（`..Default::default()` +
-`dialect: None`）；坏输入换成 `dialect.rs` 的 `#[default]` 挪到 `Strict`（= `487f9a77` 的坏状态），实跑 rc=1。
-**判据**：`check-guard-bite --check --job editor` ✓ · run `39449603738` 全绿。
-**预防**：给跨 crate 公共 struct 加字段会让"换版式"证明静默失效（C2 只要求非 0 ⇒ rc=3/101 也能骗过去）
-⇒ 同轮跑 `--check --all`，且**换版证明的 rc 必须等于 `expect_rc`**。
+## 更早条目（原文已删，只保留最近若干轮 ⇒ `git log --all -- docs/CI-FAILURES.md`）：2026-10-20 严格档翻默认拖慢 14× · 2026-10-20 方言批次 editor 红在咬住证明 C2（换版证明的 rc 必须等于 `expect_rc`）✓

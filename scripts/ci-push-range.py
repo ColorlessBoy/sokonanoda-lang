@@ -254,12 +254,10 @@ def parse_filters_block(text):
 
 def load_filters(path):
     """从真 `ci.yml` 读**唯一一份**过滤器清单 ✓（不另立一份 ✗）。"""
+    from _yaml import safe_load as _safe_load  # 仓库内 vendored PyYAML（无外部依赖）
+
     try:
-        import yaml
-    except ImportError:  # pragma: no cover
-        raise EnvError("需要 pyyaml（与 scripts/ci-yml-lint.py 同款依赖）✗")
-    try:
-        doc = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+        doc = _safe_load(Path(path).read_text(encoding="utf-8"))
     except Exception as exc:  # noqa: BLE001
         raise EnvError(f"读不了 {path}：{exc}")
     for job in (doc.get("jobs") or {}).values():
@@ -323,8 +321,9 @@ def evaluate(repo, head, marker_path, filters, before=None, legacy=None):
 
 def check_wiring(path):
     """咬 `ci.yml` 的接线本身（**改了判据却没人验**的解药 ✓）。返回 `[(ok, 说明)]`。"""
-    import yaml
-    doc = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    from _yaml import safe_load
+
+    doc = safe_load(Path(path).read_text(encoding="utf-8"))
     jobs = doc.get("jobs") or {}
     changes = jobs.get("changes") or {}
     steps = changes.get("steps") or []

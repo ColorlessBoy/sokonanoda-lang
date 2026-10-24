@@ -32,6 +32,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import pathlib
 import re
 import subprocess
@@ -159,6 +160,20 @@ def write(version: str) -> int:
 
     print(f"{old} → {version}")
     print(f"  Cargo.toml · editor/vscode/package.json · Cargo.lock · {touched} 个清单的 requires")
+
+    # **站点数据同一步写**（2026-10-24）：`site/data/site.json` 的版本必须与版本钉
+    # 相等，否则打出来的 tag 自带一条 `check-site data` 红（旧口径靠人手工补一条
+    # “发版后重跑生成器”的提交，`docs/RELEASE.md` §6.5，已漏过两次）。
+    here = os.path.dirname(os.path.abspath(__file__))
+    proc = subprocess.run(
+        [sys.executable, os.path.join(here, "gen-site-data.py"), "--version", version],
+        capture_output=True, text=True,
+    )
+    if proc.returncode != 0:
+        print((proc.stderr or proc.stdout).strip(), file=sys.stderr)
+        print("✗ site/data/site.json 没写成 ⇒ 版本钉与站点数据会不一致 ✗", file=sys.stderr)
+        return 1
+    print(f"  {proc.stdout.strip()}")
     print("  别忘了手写 editor/vscode/CHANGELOG.md（脚本只管数字一致）")
     return 0
 

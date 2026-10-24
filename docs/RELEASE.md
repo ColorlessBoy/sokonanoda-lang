@@ -154,22 +154,18 @@ auto-tag 的显式比对）。手动推 tag 应急后，核对双页见
 发布后抽样：`curl` 下载一个资产 → `sha256sum -c` 对照 `SHA256SUMS` →
 `gh attestation verify` 通过。
 
-## 6.5 发布后：站点要跟着刷新（2026-09-21 立）
+## 6.5 站点数据：**bump 时同一步写**（2026-10-24 改）
 
-**站点写的是「已发布版本」的事实**（`site/`，设计见 `docs/design/site-single-page.md`），
-所以 tag 一落地，仓库里那份 `site/data/site.json` 就**落后了一次发布**。
+`site/data/site.json` 的版本取自**版本钉**（`Cargo.toml` 的 `[workspace.package].version`），
+由 `scripts/bump.py` 在写版本号的**同一步**写入 ⇒ `tag == Cargo.toml == package.json == site.json`
+由构造保证，**没有"发布后再手工重跑"这一步**（旧口径要人补一条提交，已漏过两次：
+v0.91.0 停 6 天、v0.92.0 1 小时；根因是 tag 由 bump 那个 commit 打出，而该提交里 site.json
+必然是旧版）。
 
-两步，两条命令：
-
-```bash
-python3 scripts/gen-site-data.py   # 版本跟到新 tag（站点唯一的版本号来源）
-python3 scripts/check-site.py      # 10 项验收；data 项会检查它是否已跟上
-```
-
-线上**仍需本节两步**：`pages.yml` 虽挂了 `release: types: [published]`，但 `pages.yml:31-41` **自述它对自动发版
-不生效**（`GITHUB_TOKEN` 事件不触发别的 workflow；2026-09-21 v0.62.0 实测未触发）⇒ 刷新站点靠**提交重算后的 `site/data/site.json`**。但仓库里那份数据
-仍要一起提交，否则 `check-site.py` 的 `data` 项在本地永远判红——**本地绿必须
-意味着「仓库里写的就是线上写的」**（这是有意的，不是噪声）。
+- 改版本只用 `python3 scripts/bump.py <x.y.z>`（它同时写 site 数据）；
+- `python3 scripts/check-site.py` 的 `data` 项与 `release.yml` 的 version gate 都会验这条；
+- 手工 `git push --no-verify` **不再是可接受的发版路径**：`release.yml` 自己重跑
+  `gen-site-data.py --check` 与版本钉比对，漏了就在发版 5 分钟内红。
 
 ## 7. 已知限制与风险
 

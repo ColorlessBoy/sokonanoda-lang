@@ -121,7 +121,7 @@ jobs:
           cache: npm
           cache-dependency-path: editor/vscode/package-lock.json
 
-      - name: Version gate (tag == Cargo.toml == package.json)
+      - name: Version gate (tag == Cargo.toml == package.json == site.json)
         run: |
           set -euo pipefail
           cargo_version=$(sed -n '/^\[workspace.package\]/,/^\[/p' Cargo.toml \
@@ -133,6 +133,10 @@ jobs:
             test "${GITHUB_REF_NAME}" = "v${ext_version}" \
               || { echo "tag ${GITHUB_REF_NAME} != v${ext_version}"; exit 1; }
           fi
+          # 站点数据必须与版本钉一致（2026-10-24）：否则发出去的 tag 自带一条
+          # `check-site data` 红 —— 根因是旧口径把它留给“发版后手工重跑”。
+          python3 scripts/gen-site-data.py --check \
+            || { echo "site/data/site.json 与版本钉不一致 ⇒ 先跑 scripts/bump.py <版本>"; exit 1; }
           echo "version gate ok: v${ext_version}"
 
       # 不带 name 时 download-artifact 按 artifact 名各建一个目录：

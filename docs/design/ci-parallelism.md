@@ -103,7 +103,7 @@
 * **装** ✓：`scripts/install-hooks.sh` ⇒ `git config core.hooksPath scripts/githooks` ✓
   （git hook **不随仓库分发** ✗ ⇒ 必须有人执行一次 ✓ ⇒ 已写进 Setup ✓）；
 * **跑什么** ✓：只跑**快层** `ci-local.sh --fast` ✓（约 1 分钟 ✓，与"本地 ≤1 分钟"的验收一致 ✓）；
-* **逃生门** ✓：`git push --no-verify` ✓ 或 `SOKO_SKIP_HOOK=1 git push` ✓
+* **没有逃生门**（2026-10-24）：`SOKO_SKIP_HOOK` 已删；`--no-verify` 不是可接受的发版路径
   —— 但要在 `STATUS.md` 写明原因 ✓（**例外要留痕** ✓）。
 * **判据（两向都实测 ✓）**：
   * **反向** ✓：故意加一行坏格式 ⇒ hook **exit 1** ✓，并**指名** `lint：fmt 失败（exit=1，1s）`

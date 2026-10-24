@@ -21,11 +21,7 @@
 import sys
 from pathlib import Path
 
-try:
-    import yaml
-except ImportError:  # pragma: no cover
-    print("需要 pyyaml ✗", file=sys.stderr)
-    sys.exit(2)
+import _yaml as yaml  # 仓库内 vendored PyYAML（无外部依赖）
 
 
 class StrictLoader(yaml.SafeLoader):

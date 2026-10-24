@@ -4,13 +4,15 @@
 设计：`docs/design/site-single-page.md`。只用 python3 标准库。
 
 站点**永不手写版本号**：页面上所有版本号与下载链接都由 `assets/site.js`
-从这份 JSON 回填（占位符 `{v}`），而这里的版本号取自**最新的已发布 tag**
-——不是 `Cargo.toml`。
+从这份 JSON 回填（占位符 `{v}`），而这里的版本号取自**版本钉**
+（`Cargo.toml` 的 `[workspace.package].version`）。
 
-为什么是 tag 而不是 `Cargo.toml`：站点写的是**已发布版本的事实**。本仓库
-常有并行开发，`Cargo.toml` 会在 tag 之前就 bump 到下一个版本；照抄它就会
-写出一个"没有 tag、没有产物、没有下载 URL"的版本号（2026-09-20 实测踩过，
-详见 `docs/archive/site-rebuild-2026-09-26/STATE.md.gz` §5 与 `#13`）。
+为什么改成版本钉（2026-10-24）：旧口径是"最新的已发布 tag"，它有一个**固定点**
+——tag 由 `auto-tag` 从 bump 那个 commit 打出，而 bump 提交里 `site.json` 必然
+还是旧版 ⇒ 打出来的 tag **自带**一条 `check-site data` 红（或要人手工补一条
+"发版后重跑生成器"的提交，`docs/RELEASE.md` §6.5，已漏过两次）。
+现在 `scripts/bump.py` 在写版本号的同时把 `site.json` 写成**同一个版本**，tag
+由同一个 commit 打出 ⇒ `tag == Cargo.toml == site.json` 由构造保证。
 
 用法：
 
@@ -66,9 +68,20 @@ def latest_release_tag() -> str | None:
     return None
 
 
-def build() -> dict:
+def cargo_version() -> str | None:
+    """版本钉：`Cargo.toml` 的 `[workspace.package].version`（站点写的就是它）。"""
+    try:
+        text = open(os.path.join(REPO_ROOT, "Cargo.toml"), encoding="utf-8").read()
+    except OSError:
+        return None
+    match = re.search(r'^version = "([0-9]+\.[0-9]+\.[0-9]+)"', text, re.MULTILINE)
+    return match.group(1) if match else None
+
+
+def build(version: str | None = None) -> dict:
     """组装事实字典。字段少了就是源缺了——**不补默认值**。"""
-    tag = latest_release_tag()
+    version = version or cargo_version()
+    tag = f"v{version}" if version else None
     data: dict = {"schema": "soko.site/2"}
     if tag:
         data["tag"] = tag
@@ -86,15 +99,14 @@ def main(argv: list[str] | None = None) -> int:
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--check", action="store_true", help="只比对磁盘上的文件，不一致 exit 1")
     group.add_argument("--print", dest="to_stdout", action="store_true", help="打到 stdout")
+    parser.add_argument("--version", metavar="X.Y.Z", help="显式指定版本（bump.py 用；默认读 Cargo.toml）")
     args = parser.parse_args(argv)
 
-    data = build()
+    data = build(args.version)
     text = render(data)
 
     if not data.get("version"):
-        print("site data: 解析不出已发布的 vX.Y.Z tag —— 不写、不判绿。", file=sys.stderr)
-        print("  （浅克隆缺 tag 时先 `git fetch --tags`；CI 里 checkout 需 fetch-depth: 0）",
-              file=sys.stderr)
+        print("site data: 解析不出版本钉（Cargo.toml 的 [workspace.package].version）—— 不写、不判绿。", file=sys.stderr)
         return 3
 
     if args.to_stdout:
@@ -108,9 +120,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"site data: 读不到 {OUT}：{error}", file=sys.stderr)
             return 1
         if on_disk != text:
-            print(f"site data: {os.path.relpath(OUT, REPO_ROOT)} 与最新 tag 不一致"
+            print(f"site data: {os.path.relpath(OUT, REPO_ROOT)} 与版本钉不一致"
                   f"（磁盘上是 {json.loads(on_disk).get('version')!r}，"
-                  f"最新 tag 是 {data['version']!r}）—— 跑 python3 scripts/gen-site-data.py",
+                  f"版本钉是 {data['version']!r}）—— 跑 python3 scripts/bump.py <版本> 或 "
+                  f"python3 scripts/gen-site-data.py",
                   file=sys.stderr)
             return 1
         print(f"site data: ok（{data['tag']}）")

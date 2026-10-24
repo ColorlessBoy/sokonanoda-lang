@@ -7,29 +7,15 @@
 # 设计取舍：
 #  * 只看**快层**（`--fast` ✓，约 1 分钟 ✓）—— 与"本地 ≤1 分钟识别问题"的验收一致 ✓；
 #  * 全量（含 e2e ✓）留给批次收尾手动跑 ✓（`scripts/ci-local.sh --e2e` ✓）；
-#  * **逃生门** ✓：`git push --no-verify`（诊断性推送 / 紧急修复 ✓），
-#    或 `SOKO_SKIP_HOOK=1 git push …` ✓ —— 但**不许**成为默认动作 ✗
-#    （本 session 的教训 ✓：纪律要能被绕过，但不能被遗忘 ✓）。
+#  * **没有逃生门**（2026-10-24 用户拍板；原 `SOKO_SKIP_HOOK` 已删）。
 #
 # 安装：`scripts/install-hooks.sh`（设置 core.hooksPath ✓，一条命令 ✓）
 set -uo pipefail
-# **逃生门改成按项粒度**（2026-10-03 ✓，值守派单 ✓）：
-# 原来 `SOKO_SKIP_HOOK=1` 是**全跳** ✗ ⇒ 把 `fmt` / `clippy` 这些**远端真有牙**的项
-# 跟"远端无牙"的项（one-run 守卫 / 台账 `--strict` / 记法路径守卫 ✓）一起跳掉了 ✗
-# ⇒ 实测后果：一次推送漏了 fmt ⇒ CI 20 秒就红 `lint-fmt` ✗（本地本该拦住 ✓）。
-# ⇒ 现在**即使跳过**，也**仍然跑 fmt + clippy** ✓（温缓存下 8–20 秒 ✓，
-#   而这正是 CI **最快**的两个失败信号 ✓）；跳过的只是"CI 不判的那几条" ✓。
-if [ "${SOKO_SKIP_HOOK:-0}" = "1" ]; then
-  echo "[pre-push] SOKO_SKIP_HOOK=1 ⇒ 只跳过**缺口台账 --strict**（本地慢机器长复现件超时）；fmt/clippy/docs-lint/notation-lint 等秒级检查**一律照跑** ✓"
-  _root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-  if ! ( cd "$_root" && SOKO_SKIP_GAP=1 ./scripts/ci-local.sh --fast ); then
-    echo "[pre-push] ❌ 即使 SOKO_SKIP_HOOK=1，秒级检查也**不许红** ✗ ⇒ 拒绝推送 ✓（逃生门只放行缺口台账 ✗）" >&2
-    exit 1
-  fi
-  echo "[pre-push] ✓ 秒级检查全过（缺口台账由 CI ledger job 兜 ✓）"
-  exit 0
-fi
-
+# **没有逃生门**（2026-10-24 用户拍板）：`SOKO_SKIP_HOOK` 已删除 —— 一个可选依赖
+# 缺失（pyyaml）曾经让整层红、于是只能 `--no-verify` 连 `check-site` 一起绕过去，
+# 当天 queue-lint 的 `site data` 红就是这么漏出去的。依赖已改 vendored（`scripts/vendor/`），
+# 门禁只有"全绿"一种状态；`git push --no-verify` 是 git 自己的开关，但**发版路径不再依赖它**：
+# `release.yml` 的 version gate 会重跑版本钉 + site 数据的一致性检查。
 # 只在本仓库根跑（hook 可能从别处被调用 ✓）
 root=$(git rev-parse --show-toplevel)
 [ -x "$root/scripts/ci-local.sh" ] || { echo "[pre-push] 找不到 scripts/ci-local.sh ⇒ 跳过 ✓"; exit 0; }
@@ -40,8 +26,9 @@ if ! (cd "$root" && ./scripts/ci-local.sh --fast); then
 
 [pre-push] ❌ 本地快层红了 ✗ ⇒ **拒绝推送** ✓（这就是它的用途 ✓）。
   * 修掉上面第一个红项 ✓（它**指名**了是哪一条 ✓）；
-  * 诊断性推送可用 `git push --no-verify` ✓ 或 `SOKO_SKIP_HOOK=1 git push` ✓
-    —— 但要在 `STATUS.md` 写明原因 ✓（纪律：例外要留痕 ✓）。
+  * **没有逃生门**：不许用 `--no-verify` 绕过（2026-10-24 用户拍板）。
+    真需要紧急推送时，先在 `STATUS.md` 写清"哪一条红、为什么、补跑计划"，
+    再单独向用户申请 —— 而不是自己按开关。
 MSG
   exit 1
 fi

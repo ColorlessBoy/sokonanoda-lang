@@ -252,12 +252,11 @@ def _load_push_range():
 
 
 def load_ci(path):
+    from _yaml import safe_load  # 仓库内 vendored PyYAML（无外部依赖）
+
     try:
-        import yaml
-    except ImportError:  # pragma: no cover - 环境问题
-        raise EnvError("需要 pyyaml（与 scripts/ci-yml-lint.py 同款依赖）✗")
-    try:
-        return yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+        data = safe_load(Path(path).read_text(encoding="utf-8"))
+        return data or {}
     except Exception as exc:  # noqa: BLE001
         raise EnvError(f"读不了 {path}：{exc}")
 
