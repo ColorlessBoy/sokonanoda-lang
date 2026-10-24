@@ -140,6 +140,12 @@ swap_in_bad_version() {
   # **机械补位**（缺的字段给 `..Default::default()`，值取默认 = 与它当年拿到的等价），
   # 与 bug 相关的那段逻辑一个字不动 ✓。⚠ 不许用它"顺手修"旧版本里的别的毛病 ✗。
   perl -0pi -e 's/CompileOptions \{ prelude: ([^,}]+?) \}/CompileOptions { prelude: $1, ..Default::default() }/g' "$path" || return 3
+  # **2026-10-24**：`meta_parse.rs`（S3 的 `?mN` 内部通道）引用 `crate::parser::util`，
+  # 而旧版 `parser.rs` 没声明这个模块 ⇒ 换版后**编不过**（E0433/E0603）⇒ 证明空转。
+  # 只补一条声明（`util.rs` 用工作区那份），与 by 块参数表的 bug 一个字不沾 ✓。
+  if [ "$path" = "$PARSER" ] && ! grep -qx 'pub(crate) mod util;' "$path"; then
+    printf '\n#[allow(dead_code)]\npub(crate) mod util;\n' >> "$path" || return 3
+  fi
   bad_sha="$(shasum -a 256 "$path" | cut -d' ' -f1)"
   # ⚠ **空转闸**（2026-10-16 实测踩到的假绿）：坏版本若与工作区版本**逐字节相同**，
   # 这次"换版"什么都没换 ⇒ 证明必然 rc=0 ⇒ **判红**（不是"通过" ✗）。
