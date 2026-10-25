@@ -182,8 +182,8 @@ AGENTS.md 点名「缓存过期是历史上最常见的故障源」，`gate` 也
 | **S4**（可选） | main-only `course-ledger` job：把 `--json` 报告合并成一条 `docs/courses/ledger.jsonl` 提交 | 重跑该 job 幂等（无新条目不提交）；`auto-tag` 的 `needs` 含它 | 删 job；报告仍留在 step summary/artifact 里 |
 
 **收尾义务**（每步同轮）：`STATUS.md` 记一轮；`REQUIREMENTS.md` §9 追加日期条目；
-`courses/set-theory/README.md`/`AGENTS.md` 与 `skills/sokonanoda-dev`、`skills/sokonanoda-ci`
-同步"一条命令"的口径；若首轮 CI 红，按纪律写 `docs/CI-FAILURES.md`。
+`courses/set-theory/README.md`（教材）/ `courses/set-theory/ENGINEERING.md`（工程）/ `AGENTS.md` 与
+`skills/sokonanoda-dev`、`skills/sokonanoda-ci` 同步"一条命令"的口径；若首轮 CI 红，按纪律写 `docs/CI-FAILURES.md`。
 
 ## 8 明确不做 / 未决
 

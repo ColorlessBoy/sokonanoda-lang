@@ -13,7 +13,7 @@
 ## 0. 一句话
 
 **卷 I 的靶子 = Enderton ch 1–4 + 6–8 + Halmos §1–25**（不含实数构造，那是卷 II）。
-**已落地 111 单元**（门禁 43/377/99/0 ✓；明细见 `courses/set-theory/README.md` ✓）；
+**已落地 112 单元**（13 章；单元清单以 `courses/set-theory/course.json` 为准，章级状态见 `courses/set-theory/ENGINEERING.md` ✓）；
 **计划缺口 = 6 新章**（序关系 · 序数 · AC 与 ZF · 基数算术 · 集族广义积），
 其中**秩 / 超限递归 / Aleph / 序型**被内核墙挡着（§5，**不是排期问题**）。
 
@@ -97,12 +97,11 @@ python3 courses/set-theory/tools/check.py --json     # 249 目标 · 2072 checke
 
 ---
 
-## 4. 卷 I 章表（**完整版**：12 已落地 + 10 新单元）
+## 4. 卷 I 章表（**13 章已落地；本表是靶子快照**）
 
 > 编号沿用清单 v2 的卷 → 章 → 单元三层（`course.json` 的 `soko.course/2`）。
 > 每章 `quota.exercises` 只**报告**差额、**不判红**（G6 只判形状）。
-> ⚠ **本表是 2026-10-01 计划快照**（当时 12 单元）✗ ⇒ 课程已扩到 **111 单元**（门禁 43/377/99/0 ✓），
-> **逐单元明细以 `courses/set-theory/README.md` 为准** ✓，本表只留**章级靶子** ✓。
+> ⚠ **本表是 2026-10-01 计划快照** ⇒ 课程已扩到 **112 单元**；逐单元清单以 `courses/set-theory/course.json` 为准，章级状态见 `courses/set-theory/ENGINEERING.md`，本表只留**章级靶子** ✓。
 
 | 章 | 标题 | 先修 | 教材靶子 | 单元 | 状态 |
 |---|---|---|---|---|---|
@@ -210,12 +209,12 @@ grep -rn "set-theory-syllabus" --include=*.md .        # 每处都指向本文�
 python3 scripts/docs-lint.py                            # 预算/总量/接手路径 ✓
 python3 scripts/docs-expiry-check.py --check             # 过期日期已登记 ✓
 
-# 课程门禁（S-A **不动**课程 ⇒ 数字必须原样）
-python3 courses/set-theory/tools/check.py --json         # 43/377/99/0
+# 课程门禁（S-A **不动**课程：只看退出码与结构）
+python3 courses/set-theory/tools/check.py --json         # 计数现算，别抄旧数字
 python3 scripts/notation-lint.py                         # 记法 ✓
 
 # 新单元开工后的判据（S-B）
-python3 courses/set-theory/tools/check.py                # G1–G6 全绿
+python3 courses/set-theory/tools/check.py                # G1–G7 全绿
 node scripts/soko grade "$PWD/courses/set-theory/units/solutions/I.5/unit13-solution.sokonanoda"
 ```
 
@@ -238,7 +237,7 @@ node scripts/soko grade "$PWD/courses/set-theory/units/solutions/I.5/unit13-solu
 
 ## 8. as-built（逐轮追加，**别改上面的计划段**）
 
-### 2026-10-01 · as-built（**逐单元明细在 `courses/set-theory/README.md`；本节只留状态与指针**）
+### 2026-10-01 · as-built（**单元清单在 `courses/set-theory/course.json`；章级状态在 `courses/set-theory/ENGINEERING.md`；本节只留状态与指针**）
 
 - **S-A** ✓（本文件重建）。**S-B 已落三十五片 + L-07/L-08/L-09 修复 + G-77 勘误与连带清理**：I.5–I.12 章（⑬–㉟）· **新章 I.13（㊱–㊶）** ⇒ **I.5–I.12 八章收口**，门禁 **106 · 1046 · 407 · 0** ✓
 - **六条新缺口**（都带最小复现）：**G-72**（单文件绿、`import` 时红 —— **假绿**）· **G-73**（定义头类型的

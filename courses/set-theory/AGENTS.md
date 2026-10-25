@@ -86,7 +86,10 @@ python3 scripts/notation-lint.py --root <file>   # 单文件
 4. `course.json` 加行；跑 `python3 courses/set-theory/tools/check.py`；
 5. 撞到缺口 → `gaps/` 记一条（最小复现 + 期望的 Lean 4 语义 + 今天的表现），
    再收编进 `docs/gaps/ledger.jsonl`（`python3 scripts/gap.py list` 看全貌）；
-6. 收尾：README 的"现状"表 + `docs/design/teaching-project.md` 的进度。
+6. 收尾：`ENGINEERING.md` 的章级状态/边界（有变化才改）+ `docs/design/teaching-project.md`
+   的进度。**README 只写教材面**（课程地图、学习路径、怎么判一道题）；门禁读数、
+   逐轮流水、逐单元 as-built 一律不进 README —— 工程面在 `ENGINEERING.md`，历史原文
+   用 `git log --all -- courses/set-theory/README.md` 取。
 
 ## 判卷纪律（三条，全部有实测教训）
 
@@ -426,6 +429,8 @@ heredoc 用**引号包住的定界符**时不解析任何东西 ✓，**根本�
 （`Python SyntaxError` ✓，见上一条引号坑 ✓），所以**整个程序从未运行** ✓、
 `str.replace` **一次都没执行** ✓；而 `str.replace` 匹配不上时**默认静默空操作** ✗
 ⇒ 结果是 **README 的门禁行与现状表落后两个单元** ✗（下一轮 grep 才发现 ✓）。
+（2026-10-24 起这两种内容已移出 README：教材面在 `README.md`、工程面在
+`ENGINEERING.md`；下面这条纪律仍适用于任何按锚点改文档的脚本 ✓。）
 
 **规矩** ✓：任何"按锚点替换文档"的脚本，**每个替换前 `assert 锚点 in 文本`** ✓，
 替换后**再 grep 一次确认命中数** ✓；脚本**先跑、看退出码与它自己打印的确认行** ✓

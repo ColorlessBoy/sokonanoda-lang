@@ -135,7 +135,7 @@
 - `course/` — 入门课素材库（11 单元，agent 用，非用户直接消费）
 - **`courses/set-theory/`** — **卷 I《集合论》**（第二大课，已建）：`lib/`（L2 课程标准库）+
   `units/`（画布与解答）+ `gaps/`（发现端）+ `tools/check.py`（本地门禁）；
-  入口 `courses/set-theory/README.md`，判卷 `python3 courses/set-theory/tools/check.py`
+  入口/工程 `courses/set-theory/{README,ENGINEERING}.md`
 - `docs/gaps/` — **课程驱动的缺口台账**（`ledger.jsonl` + `repro/` 最小复现 +
   `WO-*.md` 工作单）；协议见 `docs/design/teaching-project.md` §6
 - `playground.sokonanoda`（仓库根）— 共享教学画布

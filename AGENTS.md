@@ -34,13 +34,12 @@ python3 scripts/check-site.py --browser  # 另加两项真 Chrome：`render` × 
 （2026-09-26 那份"实测与文档不符"清单已删，原文 ⇒ `git log --all -- docs/archive/site-rebuild-2026-09-26/` ✓）。
 
 **第二大课（卷 I 集合论）已建在 `courses/set-theory/`**：入口
-`courses/set-theory/README.md`；写课程内容前先读**硬规则 10**（课程标准库三层分界，
+`courses/set-theory/README.md`（教材）/ `courses/set-theory/ENGINEERING.md`（工程）；写课程内容前先读**硬规则 10**（课程标准库三层分界，
 `REQUIREMENTS.md` §2）与 `docs/design/course-stdlib.md`；判卷一条命令
 `python3 courses/set-theory/tools/check.py`（它的内部用绝对路径 + `grade` 退出码——
 原因见台账 G-12；G-10 已修：`query check` 现在也带 parse 诊断并 exit 1，与 `grade` 同口径）。
-判据是 **G1–G6**（每个目标 `grade` 退出码 0 / 目标存在 / 解答 0 open 且 checked>0 /
-解答覆盖画布每个具名练习 / lib+Demo 0 open / **G6 清单自洽**：卷章 id 唯一、unit 恰好一章、
-`prereqs` 不悬空——配额差额只报告不判红），**与规模无关、不锁计数**；
+判据是 **G1–G7**（目标 `grade` 退出码 0 / 目标存在 / 解答 0 open 且 checked>0 /
+覆盖每个具名练习 / lib+Demo 0 open / **G6 清单自洽** / **G7 gaps 复现件重放**——配额差额只报告不判红），**与规模无关、不锁计数**；
 `--selftest` 自检判据通道（故意坏的单元必须被拒），`--json` 出计数，
 `--only "<标签>" --bisect` 二分到第一个判红的声明（不依赖诊断 span——G-15）。
 这门课的判卷已接进 `scripts/soko gate` 与 CI（设计 `docs/design/course-gate-in-ci.md`）。

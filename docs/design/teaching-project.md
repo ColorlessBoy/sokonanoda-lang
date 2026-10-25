@@ -6,7 +6,7 @@
 > 本身这个项目的不足，让另外的 agent 实现。」
 >
 > 本文 = 靶子标定 + 今日能力**实测** + 项目形态 + 课程体系 + **缺口台账协议** +
-> 分期计划 P0–P7 + 验收 + 风险 + 待拍板。**只出计划**；动工按 §8 分期，每期独立过 gate。 **进度（2026-10-01）：P1–P3 已按 `courses/set-theory/README.md` 与 `STATUS.md` 落 41 个新单元；P4–P7 未启（见 STATUS 的"可做区现状"表 ✓）**
+> 分期计划 P0–P7 + 验收 + 风险 + 待拍板。**只出计划**；动工按 §8 分期，每期独立过 gate。 **进度（2026-10-01）：P1–P3 已按 `courses/set-theory/ENGINEERING.md`（章级状态）、`course.json` 与单元文件落 41 个新单元；P4–P7 未启（可做区与墙的现行清单见 `courses/set-theory/OPEN-ITEMS.md` 与 `docs/gaps/ledger.jsonl`）**
 >
 > 证据分三类标注：**[实测]** = 本机用发布版内核跑过（命令与输出见附录 B）、
 > **[文档]** = 仓库现有文档记载、**[推断]** = 写明依据的估计。
@@ -170,7 +170,7 @@ theorem subset_trans (α : Type) (A B C : Set α) (h1 : Set.subset α A B) (h2 :
 
 ```text
 courses/set-theory/            # 卷 I 集合论（与入门课 course/ 并列，互不影响）
-├── README.md                  # 怎么判卷 + 现状表 + 单元 DoD
+├── README.md                  # 教材面（课程地图 + 学习路径 + 判题入口）；工程面见 ENGINEERING.md
 ├── AGENTS.md                  # 课程线 agent 手册（写作循环 + 判卷三纪律 + 教学纪律）
 ├── sokonanoda.toml            # 模块根 = 本目录（requires 跟着版本钉走，现为 0.79.0）
 ├── course.json                # 单元清单（**53 单元**，2026-10-01 as-built）
@@ -259,7 +259,7 @@ courses/set-theory/            # 卷 I 集合论（与入门课 course/ 并列�
 5. **判卷证据**：`scripts/soko query check|goals` 的计数写进课程清单/golden；
 6. **测试**：单元进课程清单后由课程测试跑（G-06 已落地：有 `import` 的单元走项目
    闭包聚合，`course` 的计数与 `grade` 同判；G-07 的卷/章分层仍待办）；
-7. **文档**：`courses/set-theory/README.md`、大纲文档、本文件 §4.2 的进度列；
+7. **文档**：`courses/set-theory/README.md`（教材面）、`courses/set-theory/ENGINEERING.md`（章级状态/读数）、大纲文档、本文件 §4.2 的进度列；
 8. **缺口台账**：本轮撞到的每条都进 `docs/gaps/ledger.jsonl`（含最小复现）；
 9. **门禁**：`scripts/soko gate` + 课程测试全绿（在仓库内阶段）。
 
@@ -487,8 +487,8 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
   + 中文教材调研（`docs/notes/settheory-survey/chinese-textbooks.md`）；
 - **P-C6 ✅（0.59.0 收尾）**：把课程门禁接进 `scripts/soko gate` 或 CI
   （`courses/set-theory/tools/check.py`）——**两条都接了**；设计/as-built
-  `docs/design/course-gate-in-ci.md`（判据 G1–G5 与规模无关、`--selftest`/`--bisect`、
-  python3 缺失 ⇒ exit 3、本地与 CI 同一条命令）；索引见 `courses/set-theory/README.md`；
+  `docs/design/course-gate-in-ci.md`（判据 G1–G7 与规模无关、`--selftest`/`--bisect`、
+  python3 缺失 ⇒ exit 3、本地与 CI 同一条命令）；索引见 `courses/set-theory/README.md`（教材面）与 `courses/set-theory/ENGINEERING.md`（工程面）；
 - **验收**：`python3 courses/set-theory/tools/check.py` 全绿；台账 `library` 条目都有
   `owner` 与 `lean_names`。
 
@@ -516,7 +516,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 > ③ VS Code 课程树 v2 按 **卷 → 章 → 单元** 分组（v1 平铺逐字保留；
 > 判据是「事件里有没有卷」，客户端仍只吃 `course.unit`）；
 > ④ 站点卷 I 页面按卷/章分组渲染（计数仍**实测**自门禁，零手写）；
-> ⑤ `docs/protocol.md` / `courses/set-theory/README.md` 同步。
+> ⑤ `docs/protocol.md` / `courses/set-theory/course.json` / `courses/set-theory/ENGINEERING.md` 同步。
 > 实测：门禁 `36 目标 · 329 checked · 99 open · 0 判负`（**与 v2 之前逐个相同**，
 > 只多出配额报告行）；`node editor/vscode/test-extension-host.js` 14/14；
 > 站点 `gen-site-data.py` + `check-site.py` 绿；台账 `gap.py check` 全绿。
