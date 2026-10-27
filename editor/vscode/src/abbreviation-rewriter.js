@@ -199,6 +199,27 @@ function reassertPin(editor) {
   if (empty.every((selection, index) => samePosition(selection.active, pinned.selections[index].active))) {
     return; // 已经在我们钉的位置上（没有 vim 时就是这条）
   }
+  // **只追「向右的漂移」**（2026-10-25 用户：「Esc 后光标位置完全不对」）。这里的
+  // 复核原来对**任何**光标变化都写回，于是 vim 的 `Esc`（文档没变、光标左移一格）也被
+  // 当成「VSCodeVim 把落点推偏了」掰回去——实测（真宿主，`\alpha` 后立刻 Esc）：
+  // Esc 的选区事件 `kind` 也是 3（Command），与 VSCodeVim 的重设同源，**不能靠 kind
+  // 区分**。已知的重设方向是**向右**（替换末端 +1，落到自动配对的 `)` 右边）；往左 /
+  // 换行是用户在动（Esc、`h`、`j`/`k`、鼠标）⇒ 让位，把 pin 清掉，别跟用户抢。
+  const drift = empty.map((selection, index) => {
+    const target = pinned.selections[index].active;
+    if (samePosition(selection.active, target)) return 0;
+    if (
+      selection.active.line !== target.line ||
+      selection.active.character < target.character
+    ) {
+      return -1;
+    }
+    return 1;
+  });
+  if (drift.some((direction) => direction < 0)) {
+    pinned = null;
+    return;
+  }
   let index = 0;
   editor.selections = live.map((selection) =>
     selection.isEmpty === true ? pinned.selections[index++] : selection,

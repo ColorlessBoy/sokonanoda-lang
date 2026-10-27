@@ -2711,6 +2711,31 @@ test("A: the caret is pinned right after the symbol, not past the auto-paired br
   );
 });
 
+test("A: a leftward selection change after the rewrite is not pinned back", async () => {
+  // 2026-10-25 用户：「Esc 后光标位置完全不对」。真宿主里 Esc 是 vim 发起的**选区左移**
+  // （文档版本不变、kind 也是 Command，与 VSCodeVim 的重设同源）；旧的复核把任何光标
+  // 变化都当成漂移掰回右边 ⇒ Esc 不生效。这里直接发那条选区事件，钉住「左移必须让位」。
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "(\\alpha)");
+  const editor = focus(document, [cursor(0, 7)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(editor.selection.active.character, 2, "先钉在 α 之后");
+  const left = {
+    active: cursor(0, 1),
+    anchor: cursor(0, 1),
+    start: cursor(0, 1),
+    end: cursor(0, 1),
+    isEmpty: true,
+  };
+  editor.selection = left;
+  listeners.selection.fire({ textEditor: editor, selections: [left] });
+  assert.strictEqual(
+    editor.selection.active.character,
+    1,
+    "Esc/左移是用户在动 ⇒ pin 必须让位，不许掰回 α 之后",
+  );
+});
+
 test("A: every landing point is pinned on its own (multi-cursor)", async () => {
   await activateExtension();
   const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "(\\alpha) (\\in)");

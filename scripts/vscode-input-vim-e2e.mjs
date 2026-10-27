@@ -285,6 +285,18 @@ const CASES = [
     expect: ["(α x)"],
   },
   {
+    id: "esc-after-rewrite",
+    why:
+      "**Esc 后光标不许被 pin 复核掰回去**（2026-10-25 用户：「Esc 后光标位置完全不对」）：" +
+      "`\\alpha` 替换后立刻 Esc，vim 应左移一格；原来的 400ms 复核把**任何**光标变化都写回，" +
+      "于是 Esc 不生效（哨兵 `X` 落在 `α` 后面而不是前面）",
+    arms: ["on"],
+    mode: "insert",
+    initial: [""],
+    keys: ["\\alpha", "<Esc>", "i", "X", "<Esc>"],
+    expect: ["Xα"],
+  },
+  {
     id: "normal-o-keeps-pending-prefix",
     why:
       "**B**：`\\an` 是待定前缀（故意不落定）+ `Esc` + `o`（normal 模式开新行）——" +
