@@ -1,3 +1,24 @@
+<!-- doc-refs: history-only（旧版本的 `docs/**` 指针是历史位置；恢复方式：原文 ⇒ git log --all -- <path>） -->
+## [0.97.10] - 2026-10-27
+
+### Fixed
+
+- **VSCodeVim 下 Esc 后光标不再被缩写 pin 复核掰回去**：替换后的 400ms 复核原来对
+  **任何**光标变化都写回；vim 的 Esc / `h` / `j` / `k` / 鼠标左移也被当成漂移 ⇒
+  Esc 像没生效。现在只追**向右**的漂移，左移/换行直接清 pin 让位。
+  真宿主 e2e 冒烟 + stub 反向判据（去掉守卫该用例红）。
+
+## [0.97.9] - 2026-10-27
+
+### Added
+
+- **高阶 / pattern 合一（#16 · HO1–HO4）**：严格 pattern + quasi / FO / ctx 近似、
+  完整内核检查、`apply` 剥层早停；声明级元变量（B2）收口并默认开。
+  `SOKO_META_PATTERN` / `SOKO_META_APPROX` 默认开（`=0` 逃生）。
+- **quasi 捕获闸**：`?p x ≟ t` 且 `x` 自由出现在 `t` 里时弃权（Lean 条件 2 的
+  fail-closed 近似），修掉 `Set.image` 谓词被错误抽象导致的 kernel-rejected；
+  真实课程 `set-theory` 全部判绿（2191 checked / 0 负）。
+
 ## [0.97.8] - 2026-10-24
 
 ### Fixed
