@@ -290,3 +290,62 @@ fn capability_inventory_is_measured_and_pinned() {
         "三态分布变了 ⇒ `docs/design/metavar-m0.md` 的结论要重跑"
     );
 }
+
+/// **HO3b（2026-10-26）**：pattern / 近似档打开后，**13 形状的判定一条都不许变**。
+///
+/// 判据（三件事，缺一不算）：
+/// 1. `SOKO_META_PATTERN=1`（严格+quasi 档）与 `+SOKO_META_APPROX=1`（FO 档）的
+///    **（退出码, 诊断码）逐条等于**本表钉住的默认态 —— 近似档是**新增解**，不许改
+///    既有形状的判定面（设计 `metavar-pattern.md` §4 HO3 的回退条件就是它）；
+/// 2. `SOKO_METAVAR=sibling` 那条**永久回归臂**在 pattern/approx 也开着时**逐条同判**
+///    （10 个可解/依赖默认的形状必须仍绿、3 个解不出的码不变）；
+/// 3. 每个臂**各用独立缓存目录**（键里已折 pattern/approx 位，这里仍按最保守的口径）。
+#[test]
+fn meta_pattern_arms_keep_every_m0_verdict() {
+    // `(label, 环境覆盖)`：`sibling` 是第五条臂（E19 窄版 + 两个新开关）。
+    let arms: &[(&str, &[(&str, &str)])] = &[
+        ("pattern", &[("SOKO_META_PATTERN", "1")]),
+        (
+            "approx",
+            &[("SOKO_META_PATTERN", "1"), ("SOKO_META_APPROX", "1")],
+        ),
+        (
+            "sibling+pattern+approx",
+            &[
+                ("SOKO_METAVAR", "sibling"),
+                ("SOKO_META_PATTERN", "1"),
+                ("SOKO_META_APPROX", "1"),
+            ],
+        ),
+    ];
+    for shape in SHAPES {
+        let file = temp_file(shape.name, &format!("{PRELUDE}{}\n", shape.body));
+        for (label, envs) in arms {
+            let mut cmd = Command::new(env!("CARGO_BIN_EXE_sokonanoda"));
+            cmd.args(["--json", file.to_str().unwrap()])
+                .env("SOKONANODA_CACHE_DIR", cache_dir())
+                .env_remove("SOKO_METAVAR")
+                .env_remove("SOKO_NOTATION_METAVAR")
+                .env_remove("SOKO_META_PATTERN")
+                .env_remove("SOKO_META_APPROX");
+            for (k, v) in *envs {
+                cmd.env(k, v);
+            }
+            let out = cmd.output().expect("run --json");
+            let stream = String::from_utf8_lossy(&out.stdout);
+            let events: Vec<Value> = stream
+                .lines()
+                .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+                .collect();
+            let got = (out.status.code().unwrap_or(-1), code_of(&events));
+            assert_eq!(
+                (got.0, got.1.as_deref()),
+                (shape.default_state.0, shape.default_state.1),
+                "{}（{}）：**{label}** 臂的（退出码, 诊断码）必须等于默认态 —— \
+                 pattern/近似档不许改既有判定面",
+                shape.name,
+                shape.mechanism
+            );
+        }
+    }
+}

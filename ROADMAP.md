@@ -414,9 +414,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 > 设计 + 计划：**`docs/design/deepseek-harness.md`**。一句话：产品内核与 harness 无关，
 > 要适配的是**接线层**（技能发现路径、斜杠命令、LSP 接线、二进制可达性、工具链 deny、
 > 文档 / 契约测试的单 harness 假设）；**不需要改 Rust 语义代码**。
-> **已落地**：H0 `.agents/skills/` 薄入口 + `crates/cli/tests/dsh.rs` 双向守卫 · H1 `scripts/soko`
-> 启动器（版本钉 + 缓存标记守卫）· H2 `dsh/cordis.patch.yml`（显式写清 DSH 侧诊断不在通道内）·
-> H3 技能名即斜杠命令 · H4 Lean 工具链 deny 与门面同步。
+> **已落地**：H0–H4（技能入口 / `scripts/soko` / `cordis.patch.yml` / 斜杠命令 / deny）；细节见设计档。
 
 - **H6-E ⬜ backlog**：Infoview 客户端插件；`SessionStart` 自动 provisioning；把启动器 +
   Lean 工具链 deny hook + `/sokonanoda-*` 命令打成 npm 插件。
@@ -430,14 +428,10 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 > 而 DSH 的 LSP host 丢弃诊断 ⇒ agent 只能整文件扫事件流。落地顺序与设计一致：
 > **真相层（`front::query`）→ 传输（CLI `query` + MCP）→ LSP 改为调用同一个真相层**。
 
-- **已落地**：H6-A 真相层 + CLI + LSP 委托（`crates/lsp/src/lib.rs` 4256 → 1105 行；
-  ⚠ 2026-09-30 实测**又长回 2333 行** ⇒ "结构债清零"只对当天成立，见 `REQUIREMENTS.md` §4）·
-  H6-B MCP（`dsh/mcp/server.js`，六个工具，默认关闭、用户显式 opt-in）·
-  H6-C 两个 front 缺口（索引递归 `Prop` 的 recursor / 多名字 binder 组，**内核零改动**）·
-  H6-D 门面同步。
+- **已落地**：H6-A 真相层 + CLI + LSP 委托 · H6-B MCP（六工具，默认关）· H6-C 两个 front 缺口 · H6-D 门面同步。
 - **验收 A1–A7 ✅**：真相唯一（LSP 侧无实现残留）· CLI 可用 · MCP 可用 ·
   **CLI≡LSP 字段级一致性契约**（`crates/cli/tests/query.rs`：计数 ≡ `--json` 事件流）·
-  A5 结构债**当天**双达标（现已回涨，见上）· 两个 TODO 修复带反向测试 · 全量回归绿且既有契约测试"只增不改"。
+  A5 结构债**当天**双达标（现已回涨）· 两个 TODO 修复带反向测试 · 全量回归绿且既有契约测试"只增不改"。
 - **H6-E ⬜ backlog**：同 I14。
 
 #### I16 —— 多文件 `import` 与项目管理（✅ 0.57.0 落地：P0–P6 完成；**P7 = backlog**）
@@ -447,17 +441,11 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 > 置顶语法、模块名 ↔ 路径用 Lean 同款规则、项目根 = 最近祖先的 `sokonanoda.toml`；
 > **无 `import` 的文件行为逐字节不变** ✓（缓存键、事件流、golden 计数全不动）。
 
-- **已落地**：P1 语法与解析 · P2 闭包编译 · P3 CLI 与协议（`--root` / `--no-project`）·
-  P4 缓存与失效 · P5 LSP / 编辑器（多文档、跨文件 `definition`/`references`/`rename`、
-  改依赖自动刷新下游）· P6 教学与发布（单元⑪ + `course/unit11-project/`）。
+- **已落地**：P1–P6（语法 / 闭包 / CLI / 缓存 / LSP / 教学与发布；细节见设计档）。
 - **P7 ⬜ backlog**：`didChangeWatchedFiles` · `soko/project` 的剩余项 · `watch` 项目模式 ·
   `[deps]` · `namespace`。
-- **验收 A1–A8**：核心是 **A1** —— 无 `import` 的 45 个语料文件 `--json` 与 HEAD 逐字节一致、
-  两处 golden 表零漂移 ✓（`crates/cli/tests/imports.rs` 12 e2e + `crates/lsp/src/tests/project.rs` 4 e2e）。
-- **结构债**：`check.rs` 的 `run_pass` 巨石当年拆成 `check/{mod,walk,kernel_phase}.rs`
-  + `compile/units.rs`（791/951/413 行）；⚠ **2026-09-30 实测已长回 1549/1775/635/159 行**
-  ⇒ "已还清"不成立，`mod.rs`/`walk.rs` 都超 ~500 行红线 ⇒ **动 `run_pass` 前先读
-  `docs/architecture.md` §6/§8** ✓。
+- **验收 A1–A8**：核心 A1 = 无 `import` 的 45 文件 `--json` 逐字节 + golden 零漂移（`imports.rs` 12 + `lsp` 4 e2e）✓。
+- **结构债**：`run_pass` 巨石仍在（`mod.rs`/`walk.rs` 超 500 行）⇒ 动它前先读 `docs/architecture.md` §6/§8 ✓。
 
 #### L2/L3 —— 编辑器与 agent（M5+，远期）
 

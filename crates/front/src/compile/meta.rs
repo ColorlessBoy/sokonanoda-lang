@@ -17,6 +17,7 @@
 //! `implicit::telescope` 的 `\0soko_p{i}` 同一纪律）⇒ `spine::substitute`/`mentions`/`same_shape`
 //! **一个字都不用改**就能在模板里代换元变量。
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 use crate::ast::Expr;
@@ -38,6 +39,14 @@ pub(crate) fn meta_ref_id(name: &str) -> Option<u32> {
 
 pub(crate) fn is_meta_name(name: &str) -> bool {
     name.starts_with(META_PREFIX)
+}
+
+/// **B2-P2（2026-10-25）**：`\0soko_m{id}` ⇒ **绝对 id**（不是元变量名 / 尾数不是纯数字 ⇒ `None`）。
+///
+/// ⚠ 与 [`meta_ref_id`]（`?mN`）**是两条通道**：那条的类型来自 judge 的登记表
+/// （`meta_registry`），这条来自**声明级 store**（P1）。两条都先于 unknown-identifier。
+pub(crate) fn decl_meta_id_of(name: &str) -> Option<u32> {
+    name.strip_prefix(META_PREFIX)?.parse::<u32>().ok()
 }
 
 // ───────────────────────── U1：宇宙层的元变量（§2.9）─────────────────────────
@@ -145,12 +154,24 @@ pub(crate) struct DeclMetas {
     pub entries: Vec<DeclMeta>,
 }
 
-/// 进程内单调的元变量 id —— **不要**用 `MetaCtx::fresh` 的 `store.mvars.len()` ✗
-/// （它每个求解调用都从 0 起 ⇒ 声明级表里会撞 id ✗）。
+/// **B2-P1 · R2**：两种 id 命名空间的**分界** —— 引擎（`MetaCtx::fresh`）的 id 从 0 往上长
+/// （`MetaStore.base`），S4 的 `fresh_decl_meta_id` 从**这里**往上长 ⇒ **永不撞名** ✓。
+///
+/// ⚠ 为什么必须分：两者都编成 `\0soko_m{id}`，而 S4 的 id 还会进**核项** `Expr::Meta{id}`
+/// （`b2_meta_pair` 靠 id 把源/核两侧接起来）⇒ 撞名就是**串味**（B2 的 P2 载体一接线就会真咬 ✗）。
+/// ⚠ 上限：S4 用掉 `2^32 - 2^30` 个 id 才回绕（进程内不可能）；引擎一侧的 id 见 [`SCRATCH_BLOCK`]。
+pub(crate) const DECL_META_ID_BASE: u32 = 1 << 30;
+
+/// **B2-P1**：**重入**（嵌套）求解的 scratch store 每层占的 id 块大小（见 [`DeclMVarStore`] 不变量 3）。
+pub(crate) const SCRATCH_BLOCK: u32 = 1 << 12;
+
+/// 进程内单调的元变量 id（**S4 命名空间**：`[DECL_META_ID_BASE, 2^32)`）——
+/// **不要**用 `MetaCtx::fresh` 的 `store.mvars.len()` ✗（那是**引擎**命名空间，从 0 起；
+/// R2：两者混用会在同一条声明里撞 `\0soko_m{id}`）。
 pub(crate) fn fresh_decl_meta_id() -> u32 {
     use std::sync::atomic::{AtomicU32, Ordering};
     static NEXT: AtomicU32 = AtomicU32::new(0);
-    NEXT.fetch_add(1, Ordering::Relaxed)
+    DECL_META_ID_BASE + NEXT.fetch_add(1, Ordering::Relaxed)
 }
 
 /// **S4 逃生门**：`SOKO_DECL_METAS=1` 才开（**默认关** ⇒ 今天的行为逐字节不变 ✓）。
@@ -158,6 +179,80 @@ pub(crate) fn decl_metas_enabled() -> bool {
     use std::sync::OnceLock;
     static ON: OnceLock<bool> = OnceLock::new();
     *ON.get_or_init(|| std::env::var("SOKO_DECL_METAS").is_ok_and(|v| v != "0"))
+}
+
+/// **B2 闸门**：**默认开**（`SOKO_DECL_MVARS=0` 逃生 ⇒ 每个求解点仍拿自己的
+/// `MetaStore::default()`，`--json`/golden **逐字节**等于旧行为 ✓）。只读一次 ✓。
+pub(crate) fn decl_mvars_enabled() -> bool {
+    use std::sync::OnceLock;
+    static ON: OnceLock<bool> = OnceLock::new();
+    *ON.get_or_init(|| std::env::var("SOKO_DECL_MVARS").map_or(true, |v| v != "0"))
+}
+
+/// 一条声明的元变量上下文（**S4 的 binder 表 + B2-P1 的 store**，同一份句柄）；
+/// 由 `walk` 的四个声明处理器**栈上**持有，经 `ElabCtx.metas` 传进来。
+///
+/// ⚠ 两者**同一个** `Option`：非声明通道（`#check`/judge/预置库…）传 `None` ⇒
+/// 既没有 S4 表、也没有声明级 store（词法作用域 ⇒ 元变量**不可能**漏进非声明通道 ✓）。
+pub(crate) struct DeclMetaCtx {
+    /// S4/B2-a 的 binder 类型元变量表（**只是记账** ✓；权威来源 = 声明里真的出现的 id）。
+    pub table: RefCell<DeclMetas>,
+    /// **B2-P1**：声明级 `MetaStore` 的句柄（闸门关 ⇒ `None` ⇒ 一次求解一个 store ✓）。
+    pub store: Option<DeclMVarStore>,
+    /// **B2-P2**：**正在展开声明类型**的元变量 id（`\0soko_m{id}` ⇒ `Expr::Meta` 那一刻）。
+    /// 自引用/环的守卫：同一个 id 再进来 ⇒ 拒（走今天的 unknown-identifier）✓。
+    expanding: RefCell<Vec<u32>>,
+}
+
+impl DeclMetaCtx {
+    fn build(store: Option<DeclMVarStore>) -> Self {
+        Self {
+            table: RefCell::new(DeclMetas::default()),
+            store,
+            expanding: RefCell::new(Vec::new()),
+        }
+    }
+
+    /// 闸门在这里**读一次**（`decl_mvars_enabled` 自己 `OnceLock`）—— 声明处理器只调本函数。
+    pub(crate) fn new() -> Self {
+        Self::build(decl_mvars_enabled().then(DeclMVarStore::new))
+    }
+
+    /// 单测用：**显式**给档位（不走环境 ⇒ 无全局竞态 ✓ —— 见 `scripts/check-test-env-isolation.py`
+    /// 的纪律；闸门 ON/OFF 两半都这样测）。
+    #[cfg(test)]
+    pub(crate) fn with_flag(decl_mvars: bool) -> Self {
+        Self::build(decl_mvars.then(DeclMVarStore::new))
+    }
+
+    /// **B2-P2**：按**绝对 id** 只读查声明级 store 里的 `(声明类型, 种类)` ✓。
+    ///
+    /// ⚠ 闸门关（`store: None`）/ store 正被外层求解 park 走（嵌套求解）/ id 不在本
+    /// store ⇒ `None` ⇒ 调用方回落到**今天**的「未知标识符」路 ✓（**绝不**发明类型 ✗）。
+    pub(crate) fn lookup_meta(&self, id: u32) -> Option<(Expr, MetaKind)> {
+        self.store.as_ref()?.lookup(id)
+    }
+
+    /// **B2-P2**：进入「正在展开 `id` 的声明类型」——`None` = **自引用/环** ⇒ 拒。
+    ///
+    /// 守卫是 RAII（[`MetaExpandGuard`]）⇒ **出错 / panic 展开都弹栈** ✓（不毒化后续展开）。
+    pub(crate) fn enter_meta_expansion(&self, id: u32) -> Option<MetaExpandGuard<'_>> {
+        let mut expanding = self.expanding.borrow_mut();
+        if expanding.contains(&id) {
+            return None;
+        }
+        expanding.push(id);
+        Some(MetaExpandGuard { decl: self, id })
+    }
+}
+
+/// 让既有代码（`table.borrow_mut().entries` / `finish(…, ctx.metas, …)`）在换成
+/// [`DeclMetaCtx`] 后**一个字不用改** ✓（表仍是那个 `RefCell<DeclMetas>`）。
+impl std::ops::Deref for DeclMetaCtx {
+    type Target = RefCell<DeclMetas>;
+    fn deref(&self) -> &Self::Target {
+        &self.table
+    }
 }
 
 /// 层元变量的 id（不是层元变量名 ⇒ `None`）。
@@ -329,6 +424,16 @@ pub(crate) enum MetaKind {
     SyntheticOpaque,
 }
 
+/// **B2-P2**：前端的 [`MetaKind`] ⇒ **内核**的 `MetaKind`（K1 的 `Expr::Meta` 要这个）。
+///
+/// ⚠ 两种表示**只有 id 与 kind 相同**才对得上（源侧 `\0soko_m{id}` / 核侧 `Expr::Meta`）✓。
+pub(crate) fn kernel_meta_kind(kind: MetaKind) -> sokonanoda::expr::MetaKind {
+    match kind {
+        MetaKind::Natural => sokonanoda::expr::MetaKind::Natural,
+        MetaKind::SyntheticOpaque => sokonanoda::expr::MetaKind::SyntheticOpaque,
+    }
+}
+
 /// 三值结果（对齐 Lean 的 `LBool`）：`Yes` 成立 · `No` 不成立 · `Undef` **弃权**（不是失败）。
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum Tri {
@@ -359,6 +464,9 @@ pub(crate) enum MetaErr {
 #[derive(Debug)]
 pub(crate) enum MetaSolve {
     Solved(Vec<Expr>),
+    /// **B2-P3b**：共用 store 的部分出口 —— 值里允许留未解元变量（`still` = 载体 id）。
+    #[allow(dead_code)] // P3b：`still` 由 P4（声明末 zonk）读；本片只按"非空 ⇒ Partial"用。
+    Partial(Vec<Expr>, Vec<MetaId>),
     Unsolved,
     Kind,
     Clash,
@@ -375,12 +483,15 @@ impl MetaSolve {
 }
 
 struct MVar {
-    /// 声明类型（= 该前导层的**域**，已把更早的元变量代进去）
+    /// **HO3a**：**创建时**的局部上下文（`fresh` 时的 `MetaCtx.lctx`）—— pattern 赋值判作用域用。
+    lctx: pattern::Lctx,
+    /// 声明类型（= 该前导层的**域**，已把更早的元变量代进去）。
+    /// **B2-P2**：载体按绝对 id 读它（[`DeclMVarStore::lookup`]）。
     ty: Expr,
     /// 赋值（`None` = 未解）
     value: Option<Expr>,
-    /// 种类（M1 只有 `Natural` 会真的被赋值；`SyntheticOpaque` 的接缝留给 M2/B2）
-    #[allow(dead_code)]
+    /// 种类（M1 只有 `Natural` 会真的被赋值；`SyntheticOpaque` 的接缝留给 M2/B2）。
+    /// **B2-P2**：载体按绝对 id 读它（核侧 `Expr::Meta` 的 `kind` 与解同源 ✓）；**B2-P4a**：defaulting 也读它。
     kind: MetaKind,
     /// 作用域外的名字（= 该位**更晚**的望远镜参数名；赋值时不许提到它们）
     out_of_scope: Vec<String>,
@@ -418,6 +529,12 @@ const MAX_ZONK_ROUNDS: u32 = 8;
 /// ⚠ 字段全是 **owned** ✓（`MVar` 存 `Expr` ✓、`postponed` 存 `(Expr, Expr)` ✓）⇒ **零生命周期** ✓。
 #[derive(Default)]
 pub(crate) struct MetaStore {
+    /// **B2-P1**：本 store 的 id 块**起点**（`MetaId = base + mvars 下标`）。
+    ///
+    /// `0` = 今天的行为（每次求解新建的 store / 声明级的**唯一** store ✓）；
+    /// **重入**求解的 scratch store 从 `DECL_META_ID_BASE - depth*SCRATCH_BLOCK` 起
+    /// ⇒ 与外层 store、S4 的 id **互不撞名** ✓（R2；见 [`DeclMVarStore`] 不变量 3）。
+    base: u32,
     mvars: Vec<MVar>,
     /// 待定约束（`Undef` 的叶子自己压进来；`unify_all` 重扫到不动点）
     postponed: Vec<(Expr, Expr)>,
@@ -441,6 +558,288 @@ pub(crate) struct MetaStore {
     pub(crate) univ: Vec<UnivConstraint>,
 }
 
+/// **一次求解的回滚点**（`mvars`/`postponed` 的长度；B2-P1 的「失败不落盘」用它）。
+#[derive(Clone, Copy)]
+pub(crate) struct StoreMark {
+    mvars: usize,
+    postponed: usize,
+}
+
+impl MetaStore {
+    /// 指定 id 块起点的 store（见 [`MetaStore::base`]；`0` = 默认/今天的行为）。
+    pub(crate) fn with_base(base: u32) -> Self {
+        Self {
+            base,
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn mark(&self) -> StoreMark {
+        StoreMark {
+            mvars: self.mvars.len(),
+            postponed: self.postponed.len(),
+        }
+    }
+
+    /// 把 store 退回到 `mark`（**只删本次求解造的**；更早的求解已经在 `commit` 里定下来了 ✓）。
+    ///
+    /// ⚠ 只覆盖 `mvars`/`postponed`：求解路径不写 `level_values`/`univ`（U1 接线时**必须**
+    /// 在这里补上，否则失败求解会漏掉层约束 ✗）。
+    pub(crate) fn rollback_to(&mut self, mark: StoreMark) {
+        self.mvars.truncate(mark.mvars);
+        self.postponed.truncate(mark.postponed);
+    }
+
+    /// 已经攒了多少个元变量（P1 判据：跨求解**只增不减** ⇒ 共用了一个 store ✓）。
+    #[cfg(test)]
+    pub(crate) fn len(&self) -> usize {
+        self.mvars.len()
+    }
+}
+
+/// **B2-P1（2026-10-25）**：声明级 `MetaStore` 的句柄 —— **独占式换出（swap-out）**。
+///
+/// ## R1：为什么不能直接 `RefCell<MetaStore>` 借一辈子
+/// 求解会**重入** `elab_expr`（`alt_type`/`ty_of` 闭包，`implicit::solve_prefix_meta_alt`
+/// 的 ③/⑤ 与 `MetaCtx::refine_by_types`）；若外层求解**持有** `borrow_mut()` 跨过那次重入，
+/// 内层求解再借就 **panic** ✗。⇒ 句柄里只有一个**槽**：外层求解把 store **取走**（槽变 `None`，
+/// 此后**不持有任何 `RefCell` 借用**），结束（含 panic 展开）时再**放回**。
+///
+/// ## 不变量（改这个类型前先读）
+/// 1. 槽里 `Some` ⇒ 没有人在用（只能被 [`DeclMVarStore::park`] 取走）；
+/// 2. 槽里 `None` ⇒ 外层求解正**独占**着 ⇒ 内层（重入）求解拿**自己的 scratch store**
+///    （= 今天「一次求解一个 store」的行为 ✓），**重叠借用不可能发生** ✓；
+///    ⇒ **嵌套求解看不到外层的约束/赋值**（P1 的边界：跨求解的**载体**是 P2、声明末 zonk 是 P4 ✗）；
+/// 3. scratch store 的 id 从**错开的块**下来（`DECL_META_ID_BASE - depth*SCRATCH_BLOCK`）
+///    ⇒ 与外层 store（从 0 往上）和 S4（从 `DECL_META_ID_BASE` 往上）**永不撞名** ✓；
+///    块内最多 `SCRATCH_BLOCK` 个元变量（一次求解只造 `k` 个前导位 ⇒ 远小于 4096 ✓）；
+///    深度上限 `2^30/2^12 = 262144` 层（栈深不可能到）；
+/// 4. **只有成功（`Solved`）的求解才留在 store 里**：`StoreGuard` 默认在 `Drop` 里回滚到
+///    进场时的 `mark`，求解点只在 `discharge` 判 `Solved` 时 `commit()` ⇒ 失败的**探针**
+///    求解（`apply`/期望类型回退里很常见）不会毒化后面的求解 ✓。
+///    ⚠ 这**不是** P3（部分出口）：P3 是「**允许**未解元变量活到声明末尾」，这里恰恰相反。
+pub(crate) struct DeclMVarStore {
+    slot: RefCell<StoreSlot>,
+    /// **B2-P3a**：`(ty, kind)` 的**停车可见**类型日志（绝对 id 索引；`lookup` 只读它、不读槽 ✓；回滚时随 `mvars` 截断）。
+    log: RefCell<Vec<(Expr, MetaKind)>>,
+    /// **HO3a/HO3b**：当前求解点的上下文快照（`pattern::note_ctx` 写、`park` 读 ⇒ `MetaCtx.lctx/check`）。
+    scope: RefCell<pattern::Scope>,
+}
+
+struct StoreSlot {
+    /// `Some` = 空闲；`None` = 正被外层求解**独占**。
+    store: Option<MetaStore>,
+    /// 正在跑的**重入**求解层数（每层一个 id 块）。
+    depth: u32,
+}
+
+impl DeclMVarStore {
+    pub(crate) fn new() -> Self {
+        Self {
+            slot: RefCell::new(StoreSlot {
+                store: Some(MetaStore::default()),
+                depth: 0,
+            }),
+            log: RefCell::new(Vec::new()),
+            scope: RefCell::new(Default::default()),
+        }
+    }
+
+    /// **取走** store（或用 scratch）—— 返回的 guard 是唯一能碰 store 的东西。
+    pub(crate) fn park(&self) -> StoreGuard<'_> {
+        let owned = self.slot.borrow_mut().store.take();
+        match owned {
+            Some(store) => StoreGuard {
+                slot: Some(&self.slot),
+                log: Some(&self.log),
+                scope: Some(&self.scope),
+                owns_slot: true,
+                mark: store.mark(),
+                commit: false,
+                store: Some(store),
+            },
+            None => {
+                let depth = {
+                    let mut slot = self.slot.borrow_mut();
+                    slot.depth += 1;
+                    slot.depth
+                };
+                debug_assert!(
+                    u64::from(depth) * u64::from(SCRATCH_BLOCK) < u64::from(DECL_META_ID_BASE),
+                    "scratch 层数超出 id 空间（见 DeclMVarStore 不变量 3）"
+                );
+                let base = DECL_META_ID_BASE.saturating_sub(depth.saturating_mul(SCRATCH_BLOCK));
+                let store = MetaStore::with_base(base);
+                StoreGuard {
+                    slot: Some(&self.slot),
+                    log: None,
+                    scope: None,
+                    owns_slot: false,
+                    mark: store.mark(),
+                    commit: false,
+                    store: Some(store),
+                }
+            }
+        }
+    }
+
+    /// **P1 判据**（单测）：store 里攒了多少个元变量。
+    #[cfg(test)]
+    pub(crate) fn len(&self) -> usize {
+        self.slot.borrow().store.as_ref().map_or(0, MetaStore::len)
+    }
+
+    /// **P1 判据**（单测）：已分配的**绝对 id**（保序）⇒ 第二次求解必须**接着**第一次的往后长。
+    #[cfg(test)]
+    pub(crate) fn ids(&self) -> Vec<u32> {
+        let slot = self.slot.borrow();
+        let Some(store) = slot.store.as_ref() else {
+            return Vec::new();
+        };
+        (0..store.mvars.len())
+            .map(|i| store.base + i as u32)
+            .collect()
+    }
+
+    /// **B2-P2/P3a**：只读按**绝对 id** 查 `(ty, kind)` —— 读**类型日志**、**不读槽** ✓
+    /// （停车期间也可查；scratch/s4 或已回滚的 id ⇒ `None`；闸门关 ⇒ 调用方回落 ✓）。
+    pub(crate) fn lookup(&self, id: u32) -> Option<(Expr, MetaKind)> {
+        self.log.borrow().get(id as usize).cloned()
+    }
+}
+
+/// [`DeclMVarStore`] 换出期间的独占 guard（见它的不变量 1/2/4）。
+pub(crate) struct StoreGuard<'a> {
+    slot: Option<&'a RefCell<StoreSlot>>,
+    /// **B2-P3a**：类型日志（`None` = scratch / detached ⇒ 不记账 ✓）。
+    log: Option<&'a RefCell<Vec<(Expr, MetaKind)>>>,
+    /// **HO3a/HO3b**：上下文快照（`None` = scratch / detached ⇒ `MetaCtx.lctx` 空 ⇒ pattern 弃权）。
+    scope: Option<&'a RefCell<pattern::Scope>>,
+    /// `true` = 手里是**声明级** store（`Drop` 放回槽）；`false` = 重入的 scratch（`Drop` 减层数）。
+    owns_slot: bool,
+    mark: StoreMark,
+    /// `true` = 本次求解成功 ⇒ 不回滚。
+    commit: bool,
+    store: Option<MetaStore>,
+}
+
+impl<'a> StoreGuard<'a> {
+    /// **闸门关 / 非声明通道**：本轮私有的 store（= 今天 `MetaStore::default()` 逐字节相同 ✓）。
+    pub(crate) fn detached() -> Self {
+        let store = MetaStore::default();
+        StoreGuard {
+            slot: None,
+            log: None,
+            scope: None,
+            owns_slot: false,
+            mark: store.mark(),
+            commit: false,
+            store: Some(store),
+        }
+    }
+
+    /// **B2-P3b**：`true` = 手里是**声明级** store（⇒ 部分出口允许未解）；`false` = detached/scratch。
+    pub(crate) fn is_shared(&self) -> bool {
+        self.owns_slot
+    }
+
+    pub(crate) fn store_mut(&mut self) -> &mut MetaStore {
+        self.store
+            .as_mut()
+            .expect("StoreGuard 在存续期间恒持有 store")
+    }
+
+    /// **B2-P3a**：本 guard 的 [`MetaCtx`]（自动接上类型日志 ⇒ 生产调用点只改这一行 ✓）。
+    pub(crate) fn meta_ctx<'b>(&'b mut self, unfold: &'b dyn Fn(&Expr) -> Expr) -> MetaCtx<'b> {
+        let (log, scope) = (self.log, self.scope);
+        let mut ctx = MetaCtx::new(unfold, self.store_mut());
+        ctx.set_type_log(log);
+        // **HO3a/HO3b**：上下文快照（`lctx` + checker）⇒ 见 `pattern::attach_scope`。
+        pattern::attach_scope(&mut ctx, scope);
+        ctx
+    }
+
+    /// **求解成功**：把本次造的元变量/赋值留在 store 里（失败路径**不调**）。
+    pub(crate) fn commit(&mut self) {
+        self.commit = true;
+    }
+}
+
+impl Drop for StoreGuard<'_> {
+    fn drop(&mut self) {
+        // ① **失败不落盘**（R3 的边界：不把失败的探针留给后面的求解）。
+        if !self.commit {
+            if let Some(store) = self.store.as_mut() {
+                store.rollback_to(self.mark);
+            }
+            // **B2-P3a**：类型日志与 `mvars` **同生共死**（失败求解不许留下可查的 id ✓）。
+            if let Some(log) = self.log.filter(|_| self.owns_slot) {
+                log.borrow_mut().truncate(self.mark.mvars);
+            }
+        }
+        // ② 放回 / 减层数（**panic 展开也走这里** ⇒ store 不会丢）。
+        let Some(slot) = self.slot else { return };
+        let mut slot = slot.borrow_mut();
+        if self.owns_slot {
+            slot.store = self.store.take();
+        } else {
+            slot.depth = slot.depth.saturating_sub(1);
+        }
+    }
+}
+
+/// **B2-P1**：把「这条声明有没有声明级 store」变成一次求解的 [`StoreGuard`]。
+/// `None` ⇒ [`StoreGuard::detached`]（逐字节等于今天 ✓）。
+pub(crate) fn park_decl_store(decl: Option<&DeclMVarStore>) -> StoreGuard<'_> {
+    match decl {
+        Some(handle) => handle.park(),
+        None => StoreGuard::detached(),
+    }
+}
+
+// ─────────────────── B2-P2（2026-10-25）：内核载体 `Expr::Meta` ───────────────────
+//
+// **载体**：`\0soko_m{id}`（源级）⇒ [`sokonanoda::expr::Expr::Meta`]（核侧，K1 ✓），
+// 类型/种类都取**声明级 store**（P1）里那一条 ✓。**elab 侧只有一处**接线
+// （`elab.rs` 的 `Expr::Ident` 臂）⇒ 这里只放**三闸合一**与守卫。
+
+/// **B2-P2**：carrier 的**三道闸**合成**一次**判断 ——
+/// `Some((id, guard, ty, kind))` ⇒ 可以造 `Expr::Meta`；`None` ⇒ 调用方走**今天**的
+/// unknown-identifier 路（**绝不**发明类型 ✗）。
+///
+/// 三道闸（缺一条都 `None`）：
+/// 1. `ctx` 可用（非声明通道传 `None`）；
+/// 2. store **现在**可读（闸门开 **且** 没被外层求解 park 走 —— 嵌套求解看不见外层 ✓）；
+/// 3. `id` 在 store 里、且**不在**正在展开的集合里（自引用 / 环 ⇒ 拒 ✓）。
+///
+/// ⚠ 返回的 [`MetaExpandGuard`] **必须活到 `ty` elaborate 完**（RAII 弹栈 ⇒ 环路守卫
+/// 只在这一次展开期间生效 ✓）。
+pub(crate) fn decl_meta_carrier<'a>(
+    ctx: Option<&'a DeclMetaCtx>,
+    name: &str,
+) -> Option<(u32, MetaExpandGuard<'a>, Expr, MetaKind)> {
+    let decl = ctx?;
+    let id = decl_meta_id_of(name)?;
+    let (ty, kind) = decl.lookup_meta(id)?;
+    let guard = decl.enter_meta_expansion(id)?;
+    Some((id, guard, ty, kind))
+}
+
+/// [`DeclMetaCtx::enter_meta_expansion`] 的 RAII 守卫（`Drop` 弹栈 ✓；出错 / panic 展开都走 ✓）。
+pub(crate) struct MetaExpandGuard<'a> {
+    decl: &'a DeclMetaCtx,
+    id: u32,
+}
+
+impl Drop for MetaExpandGuard<'_> {
+    fn drop(&mut self) {
+        let mut expanding = self.decl.expanding.borrow_mut();
+        if let Some(pos) = expanding.iter().rposition(|x| *x == self.id) {
+            expanding.remove(pos);
+        }
+    }
+}
+
 /// **宇宙约束**（U1 第 2 片 ✓；§2.9：「`ULe`/`UEq`/`ULub` **三种够用**」✓）。
 ///
 /// **Lean 4 对照** ✓（本机源码 HEAD `d0493e4c1e` ✓）：Lean 的约束是
@@ -457,6 +856,23 @@ pub(crate) enum UnivConstraint {
     Eq { lhs: u32, rhs: u32 },
     /// `out = max(a, b)`。
     Lub { out: u32, a: u32, b: u32 },
+}
+
+/// **B2-P3a**：一个 pass 建前导 `k` 个元变量（`ty_i` 先代换更早的前缀名 → 载体）⇒ `ty` 里没有裸 `\0soko_p*`/`\0soko_mp*` ✓（调用方已保证前 `k` 位都有名字 ✓）。
+pub(crate) fn fresh_telescope_metas(
+    meta: &mut MetaCtx<'_>,
+    tel: &[(&str, &Expr)],
+    k: usize,
+) -> (Vec<MetaId>, HashMap<String, Expr>) {
+    let (mut ids, mut sigma) = (Vec::with_capacity(k), HashMap::new());
+    for i in 0..k {
+        let ty = crate::spine::substitute(tel[i].1, &sigma);
+        let mut later: Vec<String> = tel[i + 1..].iter().map(|x| x.0.to_string()).collect();
+        later.retain(|n| !n.is_empty());
+        ids.push(meta.fresh(ty, MetaKind::Natural, later));
+        sigma.insert(tel[i].0.to_string(), meta.meta_expr(ids[i]));
+    }
+    (ids, sigma)
 }
 
 pub(crate) struct MetaCtx<'a> {
@@ -476,6 +892,12 @@ pub(crate) struct MetaCtx<'a> {
     /// **模板/实参两侧的 delta 展开兜底**（M0 的 S13 硬约束：不接它就会把
     /// 「两条约束 defeq 一致」的形状误判成刚性冲突 ✗）
     unfold: &'a dyn Fn(&Expr) -> Expr,
+    /// **B2-P3a**：停车可见的 `(ty, kind)` 日志（`None` = 不记账；`meta_ctx`/`set_type_log` 接上）。
+    log: Option<&'a RefCell<Vec<(Expr, MetaKind)>>>,
+    /// **HO3a**：本次求解的局部上下文（空 = detached/scratch ⇒ pattern 规则弃权）。
+    lctx: pattern::Lctx,
+    /// **HO3a/HO3b**：抽象 λ 的**完整类型检查**句柄（`None` ⇒ pattern 规则弃权）。
+    check: Option<pattern::CheckFn>,
 }
 
 impl<'a> MetaCtx<'a> {
@@ -488,13 +910,32 @@ impl<'a> MetaCtx<'a> {
             escalations: 0,
             first_err: None,
             unfold,
+            log: None,
+            lctx: Default::default(),
+            check: None,
         }
+    }
+
+    /// **B2-P3a**：接上类型日志（`new` 的测试调用方**零改动** ✓ —— 需要停车的可查性才接）。
+    pub(crate) fn set_type_log(&mut self, log: Option<&'a RefCell<Vec<(Expr, MetaKind)>>>) {
+        self.log = log;
+    }
+
+    /// `MetaId` → `store.mvars` 的**下标**（`MetaId` 是绝对 id：`base + 下标`）。
+    fn idx(&self, m: MetaId) -> usize {
+        (m.0 - self.store.base) as usize
     }
 
     /// 建一个元变量。`out_of_scope` = 该位**更晚**的望远镜参数名（作用域检查用）。
     pub(crate) fn fresh(&mut self, ty: Expr, kind: MetaKind, out_of_scope: Vec<String>) -> MetaId {
-        let id = MetaId(self.store.mvars.len() as u32);
+        // **B2-P1**：`MetaId` = `base + 下标`（`base==0` ⇒ 与今天逐字节相同 ✓）。
+        let id = MetaId(self.store.base + self.store.mvars.len() as u32);
+        // **B2-P3a**：先记日志（**绝对 id 索引**；日志只属于主 store ⇒ base 0 ✓）。
+        if let Some(log) = self.log {
+            log.borrow_mut().push((ty.clone(), kind));
+        }
         self.store.mvars.push(MVar {
+            lctx: self.lctx.clone(),
             ty,
             value: None,
             kind,
@@ -513,7 +954,7 @@ impl<'a> MetaCtx<'a> {
 
     #[allow(dead_code)] // M2 的调用方（`implicit::solve_prefix` 的接线）会用
     pub(crate) fn value(&self, m: MetaId) -> Option<Expr> {
-        self.store.mvars[m.0 as usize].value.clone()
+        self.store.mvars[self.idx(m)].value.clone()
     }
 
     /// **出口 zonk**：把已赋值的元变量代进 `e`（链式赋值有界迭代）。
@@ -521,7 +962,7 @@ impl<'a> MetaCtx<'a> {
         let mut sigma: HashMap<String, Expr> = HashMap::new();
         for (i, m) in self.store.mvars.iter().enumerate() {
             if let Some(v) = &m.value {
-                sigma.insert(meta_name(i as u32), v.clone());
+                sigma.insert(meta_name(self.store.base + i as u32), v.clone());
             }
         }
         if sigma.is_empty() {
@@ -549,11 +990,11 @@ impl<'a> MetaCtx<'a> {
             if other == m {
                 continue;
             }
-            if crate::spine::mentions(&meta_name(m.0), &self.store.mvars[other.0 as usize].ty) {
+            if crate::spine::mentions(&meta_name(m.0), &self.store.mvars[self.idx(other)].ty) {
                 return Err(MetaErr::TypeOccurs);
             }
         }
-        for name in &self.store.mvars[m.0 as usize].out_of_scope {
+        for name in &self.store.mvars[self.idx(m)].out_of_scope {
             if !name.is_empty() && crate::spine::mentions(name, &v) {
                 return Err(MetaErr::Scope);
             }
@@ -562,13 +1003,14 @@ impl<'a> MetaCtx<'a> {
         // （本内核**非累积**）。三值语法近似：**只拒"确定错"的**，`None` = 不知道 ⇒ 放行 ✓。
         if let (Some(k), Some(n)) = (
             sort_of_value(&v),
-            sort_of_type(&self.store.mvars[m.0 as usize].ty),
+            sort_of_type(&self.store.mvars[self.idx(m)].ty),
         ) {
             if k != n {
                 return Err(MetaErr::Kind);
             }
         }
-        self.store.mvars[m.0 as usize].value = Some(v);
+        let idx = self.idx(m);
+        self.store.mvars[idx].value = Some(v);
         Ok(())
     }
 
@@ -747,6 +1189,11 @@ impl<'a> MetaCtx<'a> {
         if let Some(m) = meta_of(&r) {
             return self.tri_assign(m, l);
         }
+        // **HO3a/HO3b**：pattern 赋值（`?m a₁…aₙ ≟ t` ⇒ `fun a₁…aₙ => t`；近似档见 `approx`）。**只在成功时**
+        // 返回 `Some(Yes)` ⇒ 弃权 ⇒ 下面今天的结构分解/delta/postponed **逐字节照旧**。
+        if let Some(t) = self.pattern_try(&l, &r) {
+            return t;
+        }
         // **C 子项（2026-10-12）：实参位要「按尾部对齐」** ——
         // 一侧可能多出**前导隐式实参**（elaborate 加上的 ✓），逐位对齐会把
         // `Eq.{u} α ?m2 ?m3` 与 `Eq x a` 摆成 `α ≟ x` ⇒ 假冲突 ✗
@@ -868,35 +1315,8 @@ impl<'a> MetaCtx<'a> {
         if self.first_err.is_none() {
             self.first_err = Some(MetaErr::Clash);
         }
-        // **G-63 第一刀：纯诊断 ✓（判定路径一字未动 ✗）**。台账 G-63 的 2026-10-02 诊断点名
-        // 这是"下一步最便宜"的一步 ✓：先钉死**两条线索到底给出了哪两个落地项** ✓，
-        // 再决定修法（候选：冲突前对两侧都做 delta 归一 / 赋值时优先取折叠形态 ✓）。
-        // 只在 `SOKO_CLASH_TRACE=1` 下打 stderr ✓ —— 默认零输出、零行为变化 ✓。
-        // ── **G-63 的钉死结论（2026-10-03 ✓，代码出处逐条）** ─────────────────────
-        // ① 左边那个 `\0soko_p{i}` 是**签名模板的 fresh 形参名** —— 唯一构造点
-        //    `implicit.rs:56`（`telescope()` ✓）：把签名每个参数名换成 NUL 前缀的 fresh 名，
-        //    理由是"求解器按名字代换，签名名与用户变量同名会**捕获**"（`implicit.rs:40-45` ✓）。
-        //    实测 `Quot.sound` 打出 `左= soko_p2` ✓ = 签名 `{A : Sort u} -> {r : A -> A -> Prop}
-        //    -> (a : A) -> …` 里 `A` 的 fresh 名 ✓。
-        // ② 右边 `a` 是**用户实参**（`Quot.sound a b h` 的 `a` ✓）。
-        // ③ 设计上模板名**必须**先绑元变量（`implicit.rs:194-197` 的 ② 步"望远镜名 → 元变量"✓）⇒
-        //    比较里该出现**元变量**，**绝不该出现裸 fresh 名** ✗。裸名出现 ⇒ 某个元变量被**赋成了
-        //    未代换的模板名**（`assign` 在 `meta.rs:190` ✓，它只 `zonk` 不代换 `sigma` ✗），
-        //    或者该 fresh 名压根没建元变量 ✗ ⇒ 于是模板名与实参被当成**两个刚性头** ⇒ `Clash` ✓。
-        // ⇒ **归因路径没错**（它如实报了"两条线索给出不同落地项" ✓）；错在**上游**：
-        //    `solve_prefix_meta` 的 ②/③ 步（模板代换 / 后续层域 ≟ 实参类型 ✓）。
-        // ⇒ **不是"产品侧本来就该接受这一对"** ✗ —— 同一件事（`A`）的两种写法不该判冲突 ✓。
-        // 下一步（未做 ✗）：在 ③ 的两条约束里各打一次"这一对是从哪条约束来的"（加 `SOKO_CLASH_TRACE`
-        // 的第二行 ✓），确认是"赋成未代换模板名"还是"没建元变量" ✓，再动 `solve_prefix_meta` ✓
-        // （反向臂现成：`SOKO_METAVAR=sibling|off` ✓ + `SOKO_CLASH_TRACE=1` 看裸名是否消失 ✓）。
-        // **G-63 ④**：上一版归一插在 `unify_impl` 的 match 里**没被走到** ✗ ⇒ 这里把**调用链**打出来 ✓
-        // （只在 `SOKO_CLASH_TRACE=1` 下 ✓），钉死是**哪条路**把这一对顶到刚性冲突的 ✓。
-        if std::env::var("SOKO_CLASH_TRACE").is_ok() {
-            eprintln!(
-                "[clash-backtrace] {}",
-                std::backtrace::Backtrace::force_capture()
-            );
-        }
+        // **G-63 归因**：这里若出现裸模板名（`\0soko_p*`）⇒ 上游 `solve_prefix_meta` 的
+        // 模板代换/层域有漏（不是本处判错）。`SOKO_CLASH_TRACE=1` 打两侧落地项（纯诊断）。
         if std::env::var("SOKO_CLASH_TRACE").is_ok() {
             // **渲染会折叠记法**（`Eq.{u} …` 显示成 `= …` ✓）⇒ 光看渲染分不出"真不同"还是"只差写法" ✗
             // ⇒ 同时打**结构 Debug**（G-63 ④ 的钉死就靠它 ✓）。
@@ -942,7 +1362,9 @@ impl<'a> MetaCtx<'a> {
     /// （按 index 升序取第一个）。**这不是推理、是选择** —— 与 `fill_pending_by_shape` 同一判据。
     pub(crate) fn default_unresolved(&mut self) -> Result<(), MetaErr> {
         for i in 0..self.store.mvars.len() {
-            if self.store.mvars[i].value.is_some() {
+            // **B2-P4a**：`SyntheticOpaque` = **保留种类**（洞的语义；内核也拒赋值，`mvar.rs:183`）⇒ **不替它选值**。
+            let m = &self.store.mvars[i];
+            if m.value.is_some() || m.kind == MetaKind::SyntheticOpaque {
                 continue;
             }
             let ti = self.zonk(&self.store.mvars[i].ty.clone());
@@ -961,7 +1383,7 @@ impl<'a> MetaCtx<'a> {
                 }
             }
             if let Some(v) = picked {
-                self.assign(MetaId(i as u32), v)?;
+                self.assign(MetaId(self.store.base + i as u32), v)?;
             }
         }
         Ok(())
@@ -973,7 +1395,7 @@ impl<'a> MetaCtx<'a> {
             .iter()
             .enumerate()
             .filter(|(_, m)| m.value.is_none())
-            .map(|(i, _)| MetaId(i as u32))
+            .map(|(i, _)| MetaId(self.store.base + i as u32))
             .collect()
     }
 
@@ -1032,18 +1454,16 @@ impl<'a> MetaCtx<'a> {
 
     /// **IA-4 B2 第 2 步（2026-10-05 ✓）**：出口的**放宽版** ✓ —— **不要求全解出** ✗。
     ///
-    /// 与 [`Self::discharge`] 的区别**只有一处** ✗：第 4 步那道 `unsolved()` 闸**不开** ✓ ——
-    /// 已解的照旧 `zonk` ✓，**未解的连 id 一起返回** ✓（它们的 `postponed` **留在 store 里** ✓，
-    /// 等**声明末尾**再 `unify_all` ✓）。
+    /// 与 [`Self::discharge`] 的区别**两处**（都是有意的）✗：① 那道 `unsolved()` 闸**不开** ✓
+    /// ② **不 defaulting** ✗ —— B2 的约束可以**跨求解**到达（P4 的声明末 zonk 才是收口点），
+    /// 在这里按"同形兄弟"提前猜一个值会把 `Set.image` 的 `β` 猜成 `α` 的值 ⇒ 后面真约束到了
+    /// 反倒已经写死（p0 的实测形状）✓。已解的照旧 `zonk` ✓，**未解的连 id 一起返回** ✓。
     ///
     /// ⚠ **红线 1 仍然守** ✓：本方法**只允许在 elaborate 期用** ✗ —— 返回的 `Vec<Expr>` 里
     /// **可能含元变量名** ✓（`\0soko_m{id}` ✓），它们**绝不许进内核** ✗（K1 的
     /// `add_declar` 入口硬拒是兜底 ✓，`builder.rs:399` ✓）。
     ///
     /// ⚠ **硬错误照旧失败** ✓（`kind` 不对 / 刚性冲突 ⇒ 通道归因 ✓，不会因为"允许未解"被盖掉 ✗）。
-    // ⚠ **本步还没有生产调用方** ✗（B2 第 3 步才把它接进 `Lambda` 臂 ✓）⇒
-    // 仓库对 dead code 严格 ✓ ⇒ 显式放行 + 写明理由 ✓（同 `probe_tag` 的处置 ✓）。
-    #[allow(dead_code)]
     pub(crate) fn discharge_keep_unsolved(
         &mut self,
         ids: &[MetaId],
@@ -1053,12 +1473,6 @@ impl<'a> MetaCtx<'a> {
         }
         if self.first_err.is_some() {
             return Err(self.channel());
-        }
-        if let Err(e) = self.default_unresolved() {
-            return Err(match e {
-                MetaErr::Kind => MetaSolve::Kind,
-                _ => MetaSolve::Clash,
-            });
         }
         let mut out = Vec::with_capacity(ids.len());
         let mut still = Vec::new();
@@ -1427,6 +1841,8 @@ mod r1b_level_mvar_tests {
         assert!(b > a, "fresh id 必须单调递增：{a} ⇒ {b}");
     }
 }
+
+pub(crate) mod pattern;
 
 #[cfg(test)]
 mod tests;

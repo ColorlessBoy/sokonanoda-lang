@@ -2,6 +2,9 @@
 //! complete sokonanoda kernel over them.
 
 mod check;
+// **B2-P4a**：声明级元变量档的判据（在 `ctx`/重放上，不在进程环境变量上）——
+// `judge` 的缓存键要按它分槽（开闸时的 pp 文本带 `⟨meta#N⟩`，与闸门关共槽会互相污染）。
+pub(crate) use check::meta_exit::gate_path_active;
 mod dialect;
 pub(crate) mod elab;
 mod error;

@@ -1,14 +1,14 @@
+use super::p4::declaration_has_meta;
 use super::{b2_binder, decl_ctx, finish, new_meta_table, B2_UNTYPED_BINDER_MSG};
 use crate::ast::Expr;
 use crate::compile::elab::ElabCtx;
 use crate::compile::error::ErrorKind;
-use crate::compile::meta::{DeclMeta, DeclMetas};
+use crate::compile::meta::{DeclMeta, DeclMetaCtx};
 use crate::span::Span;
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{Declar, DeclarInfo, ReducibilityHint};
 use sokonanoda::expr::BinderStyle;
 use sokonanoda::util::{Config, ExprPtr};
-use std::cell::RefCell;
 
 /// `A` 的类型表达式（`A : Type` 的 `Const` 项）。
 fn a_type<'a>(b: &mut EnvBuilder<'a>) -> ExprPtr<'a> {
@@ -47,7 +47,7 @@ fn empty_ctx<'a, 'b>(
     inductives: &'b crate::compile::elab::InductiveTable<'a>,
     ns: &'b crate::compile::scope::NamespaceScope,
     defs: &'b crate::compile::elab::DefTable,
-    metas: Option<&'b RefCell<DeclMetas>>,
+    metas: Option<&'b DeclMetaCtx>,
 ) -> ElabCtx<'a, 'b> {
     decl_ctx(prefix_src, options, inductives, ns, None, defs, metas)
 }
@@ -210,5 +210,54 @@ fn b2_binder_is_inert_without_the_switch() {
     assert!(
         b2_binder(&mut builder, &ctx_none, &binder).is_none(),
         "非声明通道（#check/judge/预置库）不许造元变量"
+    );
+}
+
+/// **B2-P4a 的硬后置条件**用的判据：`declaration_has_meta` 必须看见 **`Theorem` 的值位**。
+///
+/// 反向验证：把它退化成 `builder.declar_contains_meta(d)`（内核那个访问器 **不含**
+/// `Theorem` 的 val —— `Declar::value()` 只认 `Definition`/`Opaque`）⇒ 本条**当场红**
+/// ⇒ 出口的硬闸就成了摆设（载体能漏进 `add_declar` ✗）。
+#[test]
+fn declaration_has_meta_sees_theorem_values() {
+    let arena = stumpalo::Arena::new();
+    let mut builder = builder_with_a(&arena);
+    let a = a_type(&mut builder);
+    let zero = builder.zero();
+    let one = builder.succ(zero);
+    let sort = builder.mk_sort(one);
+    let meta = builder.mk_meta(11, sort);
+    let name = builder.name_from_str("thm");
+    let uparams = builder.alloc_levels_slice(&[]);
+    // `theorem thm : A := ⟨meta#11⟩`（值位带载体）。
+    let thm = Declar::Theorem {
+        info: DeclarInfo {
+            name,
+            uparams,
+            ty: a,
+        },
+        val: meta,
+    };
+    assert!(
+        declaration_has_meta(&builder, &thm),
+        "`Theorem` 值位里的载体必须被看见（内核的 `declar_contains_meta` 看不见它 ✗）"
+    );
+    // 对照：无载体的同一条声明必须**不**被判为含 meta（否则出口会把所有定理都退回闸门关）。
+    let var_ty = builder.mk_var(0);
+    let anon = builder.anonymous();
+    let pi = builder.mk_pi(anon, BinderStyle::Default, a, a);
+    let bx = builder.name_from_str("x");
+    let lam = builder.mk_lambda(bx, BinderStyle::Default, a, var_ty);
+    let clean = Declar::Theorem {
+        info: DeclarInfo {
+            name,
+            uparams,
+            ty: pi,
+        },
+        val: lam,
+    };
+    assert!(
+        !declaration_has_meta(&builder, &clean),
+        "无载体的定理不许被判成含 meta（对照组）"
     );
 }

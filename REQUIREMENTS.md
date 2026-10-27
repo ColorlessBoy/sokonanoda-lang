@@ -273,3 +273,7 @@ notation 更直观**」+「**不许新建大 plan 文件**；用 `scripts/plan.p
 ### 9.37 2026-10-24 发版前例行 Lean Kernel Arena 门禁 + 可信度结果进 README/官网（用户：「发版本号前应该例行化……保证最新版……当前内核改完之后没有报错」；「这种可信度的测试结果在 readme 和官网上都要体现」）
 
 **落地**：`scripts/arena-gate.py` 每次现查最新 master push run 的 `test-tarball`（`gh`+网络；取不到 exit 3，不跳过），跑 tarball tier（每 case 超时；`--full`/`LEAN_KERNEL_ARENA` 加跑大语料）；`bump.py` 在**写版本号前**强制，`release-preflight.sh` ④ 复核，`bump.py --check` 不跑（不依赖网络）。内核修三处：嵌套 iota 字段数核对（`nested-rec-rule-nfields`）、unsafe/partial 显式 `decline`、`MetaContext` 未赋值计数 O(1) 闸（`perf/app-lam` 30s+ → 0.46s）。已知不支持仅 `140_falseFromUnsafe`/`141_falseFromPartial`（accepted 即判负）；已知慢仅 `perf/magma-list-pair-n21`（pin 期 >400s；只允许 timeout，正确性仍判）。官方通过后写 `site/data/arena.json` → `gen-arena-summary.py` 写 README 块、`gen-site-data.py` 写 `site.json`，`check-site.py data` 核对三处。**边界**：公开 tarball 不含 >10MB 的 `init`/`std`/`mathlib`/`cslib`；不调用官方 Lean 工具链。设计：`docs/design/arena-gate.md`。
+
+### 9.38 2026-10-25 metavar 要做（含 #16 高阶 / pattern 合一）——「先设计方案再执行」（用户拍板）
+
+用户原话：「metavar要做，要做好设计，先设计方案再执行」。**要求**：metavar 要做（含 #16）；**先把设计做好**（`docs/design/metavar-pattern.md`：HO1–HO4、判据、反向、开关）；**设计验收后才改判定代码**。背景：`apply Eq.subst (Eq.symm h)` 原理上合法、Lean 4 接受（留 `¬ (x ∈ ∅)`），今天的判红是表面匹配 + 无 pattern 合一。

@@ -38,17 +38,17 @@
 //!   （三档剥不出 ⇒ 立刻 `return Err`）⇒ 取「第一条在声明里的表项」才是**逐字节**
 //!   复现 ✓。
 
-use std::cell::RefCell;
-
 use sokonanoda::builder::EnvBuilder;
-use sokonanoda::env::{Declar, DeclarInfo, EnvLimit, ReducibilityHint};
+use sokonanoda::env::{Declar, EnvLimit};
 use sokonanoda::expr::{BinderStyle, Expr as KernelExpr};
 use sokonanoda::util::ExprPtr;
 
 use crate::ast::Expr;
 use crate::compile::elab::{b2_meta_pair, kernel_binder_style, ElabCtx};
 use crate::compile::error::{CompileError, ErrorKind};
-use crate::compile::meta::{decl_metas_enabled, fresh_decl_meta_id, DeclMeta, DeclMetas, MetaKind};
+use crate::compile::meta::{
+    decl_metas_enabled, fresh_decl_meta_id, DeclMeta, DeclMetaCtx, MetaKind,
+};
 use crate::span::Span;
 
 /// **今天那条诊断的句子** —— **逐字复用** ✓（`docs/protocol.md` 与三条既有测试都钉它；
@@ -91,7 +91,7 @@ pub(crate) fn decl_ctx<'a, 'b>(
     ns: &'b crate::compile::scope::NamespaceScope,
     notations: Option<&'b crate::display::DisplayNotations>,
     defs: &'b crate::compile::elab::DefTable,
-    metas: Option<&'b RefCell<DeclMetas>>,
+    metas: Option<&'b DeclMetaCtx>,
 ) -> ElabCtx<'a, 'b> {
     ElabCtx {
         prefix_src,
@@ -104,80 +104,19 @@ pub(crate) fn decl_ctx<'a, 'b>(
     }
 }
 
-/// 三个 `build_*` 的值位变体（`build_value` 的 `kind`）。
-#[derive(Clone, Copy)]
-pub(crate) enum ValKind {
-    Def,
-    Theorem,
-    Example,
-}
+// ───────────────────── B2-P4a：声明出口的三趟 + 收口（子模块）─────────────────────
+//
+// 为什么另起一个文件 ✗→✓：S4（本文件）与 B2-P4a 是**两条出口**（前者解 binder 类型元变量、
+// 后者把声明级 store 收口并重放）；判据 ⑨ 的软线是 **500 行**，本文件在 P4a 之前已经
+// 390 行 ⇒ 再加 ~210 行就超线 ⇒ 拆 `p4`（模块结构，不是搬家）。
+pub(crate) use p4::{add_decl_silent, build_axiom, build_value, gate_path_active, ValKind};
+mod p4;
+// **B2-P4b**：应用结点的「结果类型 ≟ 期望类型」方程（`implicit.rs` 的贪心出口调它）。
+pub(crate) mod p4b;
 
-/// 值位的**唯一**实现：elaborate（第一遍）→ 出口 [`finish`] →（必要时）重 elaborate 后
-/// 包成声明。`build_def`/`build_theorem`/`build_example` 只差 `kind`（`uparams` 的来源）✓。
-///
-/// ⚠ **参数多**（11 个）：`build_*` 的上下文（`scope`/`univ`/`known`/`hovers`/`ctx`）本来
-/// 就散在调用方；打包成结构体只是把同一个借用换个名字（且 `finish` 的回调必须可变借它）。
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn build_value<'a>(
-    builder: &mut EnvBuilder<'a>,
-    kind: ValKind,
-    name: &str,
-    universe: &[String],
-    ty: &Expr,
-    ty_kernel: ExprPtr<'a>,
-    val: &Expr,
-    scope: &mut crate::compile::elab::ElabScope<'a>,
-    univ: &crate::compile::elab::UnivMap<'a>,
-    known: &crate::compile::elab::KnownTable,
-    hovers: &mut Vec<crate::compile::elab::HoverNode<'a>>,
-    ctx: &ElabCtx<'a, '_>,
-) -> Result<Declar<'a>, CompileError> {
-    let hover_mark = hovers.len();
-    let mut build = |b: &mut EnvBuilder<'a>, val_src: &Expr| -> Result<Declar<'a>, CompileError> {
-        // 出口重 elaborate 前丢掉第一遍的 hover 行（第一遍时是空操作 ✓）。
-        hovers.truncate(hover_mark);
-        let exp = Some(ty_kernel);
-        let exp_src = Some(ty);
-        let val = crate::compile::elab::elab_expr(
-            b, val_src, scope, univ, known, hovers, exp, exp_src, ctx,
-        )?;
-        let name = b.name_from_str(name);
-        match kind {
-            ValKind::Theorem => {
-                let uparams = crate::compile::elab::collect_uparams(b, univ, universe);
-                Ok(Declar::Theorem {
-                    info: DeclarInfo {
-                        name,
-                        uparams,
-                        ty: ty_kernel,
-                    },
-                    val,
-                })
-            }
-            ValKind::Def | ValKind::Example => {
-                let uparams = match kind {
-                    ValKind::Def => crate::compile::elab::collect_uparams(b, univ, universe),
-                    _ => b.alloc_levels_slice(&[]),
-                };
-                Ok(Declar::Definition {
-                    info: DeclarInfo {
-                        name,
-                        uparams,
-                        ty: ty_kernel,
-                    },
-                    val,
-                    hint: ReducibilityHint::Regular(0),
-                })
-            }
-        }
-    };
-    let decl = build(builder, val)?;
-    finish(builder, decl, val, ctx.metas, build)
-}
-
-/// 一条声明的元变量表（**栈上**持有 ⇒ 词法作用域；见 `meta.rs` 的 R4 说明）。
-pub(crate) fn new_meta_table() -> RefCell<DeclMetas> {
-    RefCell::new(DeclMetas::default())
+/// 一条声明的元变量上下文（S4 表 + B2-P1 的 store；**栈上**持有 ⇒ 词法作用域；见 `meta.rs` 的 R4 说明）。
+pub(crate) fn new_meta_table() -> DeclMetaCtx {
+    DeclMetaCtx::new()
 }
 
 /// **Lambda 臂的兜底**（`elab_expr` 的三档都剥不出时调）：
@@ -217,7 +156,7 @@ pub(crate) fn finish<'a>(
     builder: &mut EnvBuilder<'a>,
     decl: Declar<'a>,
     val_src: &Expr,
-    table: Option<&RefCell<DeclMetas>>,
+    table: Option<&DeclMetaCtx>,
     mut rebuild: impl FnMut(&mut EnvBuilder<'a>, &Expr) -> Result<Declar<'a>, CompileError>,
 ) -> Result<Declar<'a>, CompileError> {
     let Some(table) = table else {

@@ -1,9 +1,10 @@
 //! AST → 内核表达式的 elaborate、声明构建（build_*）与 hover 记录。  // 本文件提到的 `docs/**` 指针都指向**已收口删除**的设计文档（原文在 git 历史里）：要读原文用 `git log --all -- <path>`。doc-refs: history-only
 
-use super::check::meta_exit::{b2_binder, untyped_binder, ValKind};
+use super::check::meta_exit::{b2_binder, p4b, untyped_binder, ValKind};
 use super::check::quiet_catch;
 use super::error::{CompileError, ErrorKind};
 use super::expected::{drop_expected_src_layer_unfolding, mentions_any, mentions_names};
+use super::meta::pattern;
 use super::prelude::CompileOptions;
 use super::report::ResolvedTarget;
 use super::scope::NamespaceScope;
@@ -573,10 +574,11 @@ pub(crate) struct ElabCtx<'a, 'b> {
     /// `Or.inl h` 的目标常写成 `a ∈ A ∪ B`（`Set.mem … (Set.union …)`，两层
     /// `def`），不展开到 `Or …` 就头部匹配不上。没有表的地方传空表（不影响）。
     pub defs: &'b DefTable,
-    /// **S4/B2-a**：本声明的 binder 类型元变量表 —— **只有 `def`/`theorem`/`example`
-    /// 传 `Some`** ✓；`#check`/`#reduce`/judge 合成文档/预置库传 `None`（词法作用域 ⇒
-    /// 元变量**不可能**漏进非声明通道 ✓）。开关关着时表恒空 ⇒ 一次 `is_empty` ✓。
-    pub metas: Option<&'b std::cell::RefCell<crate::compile::meta::DeclMetas>>,
+    /// **S4/B2-a + B2-P1**：本声明的元变量上下文（binder 表 + 声明级 store）——
+    /// **只有 `def`/`theorem`/`example`** 传 `Some` ✓；`#check`/`#reduce`/judge 合成文档/
+    /// 预置库传 `None`（词法作用域 ⇒ 元变量**不可能**漏进非声明通道 ✓）。开关都关着时
+    /// 表恒空、store 段为 `None` ⇒ 一次 `is_empty` / 一次 `Option` 判空 ✓。
+    pub metas: Option<&'b crate::compile::meta::DeclMetaCtx>,
 }
 
 pub(crate) struct ElabScope<'a> {
@@ -585,6 +587,8 @@ pub(crate) struct ElabScope<'a> {
     /// Parallel to `names`: the binder's source type when it was written
     /// explicitly (used to synthesize `judge_infer` binder specs for `match`).
     src_tys: Vec<Option<Expr>>,
+    /// Parallel to `names`: `true` = `let` 绑名（**不是 fvar**；pattern 实参不许是它）。
+    lets: Vec<bool>,
     /// Parallel to `names`: each binder's own source span, so a name use can
     /// record where its binder is defined.
     spans: Vec<Span>,
@@ -596,6 +600,7 @@ impl<'a> ElabScope<'a> {
             names: Vec::new(),
             tys: Vec::new(),
             src_tys: Vec::new(),
+            lets: Vec::new(),
             spans: Vec::new(),
         }
     }
@@ -606,6 +611,7 @@ impl<'a> ElabScope<'a> {
         self.names.truncate(len);
         self.tys.truncate(len);
         self.src_tys.truncate(len);
+        self.lets.truncate(len);
         self.spans.truncate(len);
     }
     pub(crate) fn var_index(&self, pos: usize) -> u16 {
@@ -619,7 +625,32 @@ impl<'a> ElabScope<'a> {
         self.names.push(name);
         self.tys.push(ty);
         self.src_tys.push(src_ty);
+        self.lets.push(false);
         self.spans.push(span);
+    }
+    /// **HO3a**：`let` 绑名（同普通 binder，但 `is_let` 位为真 ⇒ 不可当 pattern 实参）。
+    pub(crate) fn push_let(
+        &mut self,
+        name: String,
+        ty: ExprPtr<'a>,
+        src_ty: Option<Expr>,
+        span: Span,
+    ) {
+        self.push(name, ty, src_ty, span);
+        *self.lets.last_mut().expect("push 刚压过") = true;
+    }
+    /// **HO3a**：当前局部上下文的**源级**快照（pattern 赋值的 `lctx`；无书写类型 ⇒ 不可当实参）。
+    pub(crate) fn local_binders(&self) -> Vec<pattern::LocalBinder> {
+        self.names
+            .iter()
+            .enumerate()
+            .filter(|(_, name)| !name.is_empty())
+            .map(|(i, name)| pattern::LocalBinder {
+                name: name.clone(),
+                ty: self.src_tys[i].clone(),
+                is_let: self.lets[i],
+            })
+            .collect()
     }
     /// 局部变量的**书写类型**（源级 AST）。隐式实参反解优先用它，而不是
     /// `infer_type_text` 的内核 pp 文本：pp 会**丢掉嵌套常量的隐式实参**
@@ -1206,16 +1237,13 @@ pub(crate) fn build_def<'a>(
 ) -> Result<Declar<'a>, CompileError> {
     let mut scope = ElabScope::new();
     let univ = make_univ_map(builder, universe);
-    let ty_kernel = elab_expr(
-        builder, ty, &mut scope, &univ, known, hovers, None, None, ctx,
-    )?;
+    // **B2-P4a**：`ty`/`val` 的 elaborate 搬进出口（收口之后两者都要能重建）⇒ 这里只给源。
     crate::compile::check::meta_exit::build_value(
         builder,
         ValKind::Def,
         name,
         universe,
         ty,
-        ty_kernel,
         val,
         &mut scope,
         &univ,
@@ -1238,16 +1266,12 @@ pub(crate) fn build_theorem<'a>(
 ) -> Result<Declar<'a>, CompileError> {
     let mut scope = ElabScope::new();
     let univ = make_univ_map(builder, universe);
-    let ty_kernel = elab_expr(
-        builder, ty, &mut scope, &univ, known, hovers, None, None, ctx,
-    )?;
     crate::compile::check::meta_exit::build_value(
         builder,
         ValKind::Theorem,
         name,
         universe,
         ty,
-        ty_kernel,
         val,
         &mut scope,
         &univ,
@@ -1268,16 +1292,12 @@ pub(crate) fn build_example<'a>(
 ) -> Result<Declar<'a>, CompileError> {
     let mut scope = ElabScope::new();
     let univ = make_univ_map(builder, &[]);
-    let ty_kernel = elab_expr(
-        builder, ty, &mut scope, &univ, known, hovers, None, None, ctx,
-    )?;
     crate::compile::check::meta_exit::build_value(
         builder,
         ValKind::Example,
         name,
         &[],
         ty,
-        ty_kernel,
         val,
         &mut scope,
         &univ,
@@ -1325,13 +1345,9 @@ pub(crate) fn build_axiom<'a>(
     hovers: &mut Vec<HoverNode<'a>>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<Declar<'a>, CompileError> {
-    let ty = elab_type_for_hovers(builder, ty, universe, known, hovers, ctx)?;
-    let name = builder.name_from_str(name);
-    let univ = make_univ_map(builder, universe);
-    let uparams = collect_uparams(builder, &univ, universe);
-    Ok(Declar::Axiom {
-        info: DeclarInfo { name, uparams, ty },
-    })
+    // **B2-P4a**：type-only 声明（`axiom` / 开放练习 / 受信前缀）也要**收口 + 重建** ——
+    // 载体出现在**类型**里也绝不许走到 `add_declar`（实网见 `p4::build_axiom` 的注释）。
+    crate::compile::check::meta_exit::build_axiom(builder, name, universe, ty, known, hovers, ctx)
 }
 
 pub(crate) fn make_univ_map<'a>(builder: &mut EnvBuilder<'a>, universe: &[String]) -> UnivMap<'a> {
@@ -2909,11 +2925,9 @@ fn solve_prefix_args<'a>(
     )
 }
 
-/// **E19 刀1 的待定参数档**（开关 [`crate::compile::implicit::metavar_enabled`]，
-/// 与刀2 的一般路径**共用同一个开关**，**默认开**；逃生门 `SOKO_NOTATION_METAVAR=0`）：
-/// 某一位解不出时**不立刻失败**，先记成
-/// **待定**（`?α`），等所有位都走完再用
-/// [`crate::compile::implicit::fill_pending_by_shape`] 把待定位与**同形的已解兄弟**合一 ✓。
+/// **E19 刀1 的待定参数档**（开关 [`crate::compile::implicit::metavar_enabled`]，默认开；
+/// 逃生门 `SOKO_NOTATION_METAVAR=0`）：某位解不出先记成**待定**（`?α`），走完由
+/// [`crate::compile::implicit::fill_pending_by_shape`] 与**同形的已解兄弟**合一 ✓。
 #[allow(clippy::too_many_arguments)]
 fn solve_prefix_args_pending<'a>(
     layers: &[(String, Expr)],
@@ -2938,16 +2952,11 @@ fn solve_prefix_args_pending<'a>(
     )
 }
 
-/// **IA-4 M1 的引擎档**（开关 `SOKO_METAVAR=engine`）：把记法前导参数的求解换成
-/// [`crate::compile::meta::MetaCtx`] 上的**真元变量 + 三值合一**。
-///
-/// 与 [`solve_prefix_args_pending`] 的**约束同源**（不再一位一位贪心）：
-/// ① 每个前导位建一个元变量（作用域 = **更晚**的望远镜参数名）；② 望远镜名 → 元变量（模板代换）；
-/// ③ **每个操作数只问一次**类型（窄版是在 `(i,j)` 双重循环里反复问）；④ 每个后续层的域 ≟ 对应操作数
-/// 的类型；⑤ 结果 ≟ 期望类型；⑥ 不动点 + defaulting + zonk（出口无残留自检在 `discharge` 里）。
-///
-/// **delta 展开兜底由引擎内部做**（M0 的 S13 硬约束：不接它就会把「两条约束 defeq 一致」误判成
-/// 刚性冲突 ✗）。**元变量不进项**：`discharge` 解不出就返回 `None`，调用方照旧报既有码 ✓。
+/// **IA-4 M1 的引擎档**（`SOKO_METAVAR=engine`）：记法前导参数走 [`crate::compile::meta::MetaCtx`]
+/// 的**真元变量 + 三值合一**（约束与 [`solve_prefix_args_pending`] 同源，不再一位一位贪心）：
+/// 每层一个元变量（作用域 = 更晚的望远镜名）→ 模板代换 → 后续层的域 ≟ 操作数类型 → 结果 ≟ 期望类型
+/// → 不动点 + zonk（出口自检在 `discharge` 里）。**delta 展开兜底由引擎内部做**（M0 的 S13）⇒
+/// 不会把 defeq 一致误判成刚性冲突。**元变量不进项**：解不出就 `None`，调用方照旧报既有码 ✓。
 #[allow(clippy::too_many_arguments)]
 fn solve_prefix_args_meta<'a>(
     layers: &[(String, Expr)],
@@ -2973,11 +2982,13 @@ fn solve_prefix_args_meta<'a>(
             crate::spine::UnfoldAlign::Short,
         )
     };
-    // **IA-4 B2 第 1 步（2026-10-05 ✓）**：store 从 `MetaCtx` 里抽出来了 ✓ ——
-    // 今天仍**一次求解一个** ✓（行为逐字节不变 ✓）；B2 的下一步会把它挂到**声明级** ✓
-    // （用户 00:05：「允许活过一次求解调用」✓）。
-    let mut store = crate::compile::meta::MetaStore::default();
-    let mut meta = crate::compile::meta::MetaCtx::new(&unfold, &mut store);
+    // **B2-P1**：声明级 store（闸门 `SOKO_DECL_MVARS`）—— 换出/放回；没有（闸门关 /
+    // 非声明通道）⇒ 本轮私有 store（= 今天**逐字节**相同 ✓）。
+    // **HO3a/HO3b**：把局部上下文 + 生产 checker 挂到 store（闸门关 ⇒ 一次都不分配）。
+    pattern::note_ctx(ctx.metas.and_then(|m| m.store.as_ref()), ctx, scope);
+    let mut guard = crate::compile::meta::park_decl_store(ctx.metas.and_then(|m| m.store.as_ref()));
+    let shared = guard.is_shared();
+    let mut meta = guard.meta_ctx(&unfold);
     // ⓪ **望远镜名先换成 fresh 名**（与 `implicit::telescope` 的防捕获纪律对齐）：
     // `notation_telescope` 用的是**签名原文名**（`α`/`β`/`A`/`B`）⇒ 拿它当"作用域外"判据会与
     // **用户变量撞名**（实测：`theorem t (α β : Type) (b : β) : ¬ (∅ ≈ {b})` 里把 `β` 误判成
@@ -2990,38 +3001,19 @@ fn solve_prefix_args_meta<'a>(
         let kept = if name.is_empty() {
             String::new()
         } else {
-            ren.insert(
-                name.clone(),
-                Expr::Ident {
-                    name: fresh.clone(),
-                    span: Span::default(),
-                },
-            );
+            let ie = Expr::Ident {
+                name: fresh.clone(),
+                span: Span::default(),
+            };
+            ren.insert(name.clone(), ie);
             fresh
         };
         tl.push((kept, dom));
     }
     let result = crate::spine::substitute(result, &ren);
-    // ① 元变量（作用域 = 更晚的望远镜参数名 ⇒ 赋值时不许提到它们）
-    let mut ids = Vec::with_capacity(missing);
-    for i in 0..missing {
-        let out_of_scope: Vec<String> = tl
-            .iter()
-            .skip(i + 1)
-            .map(|l| l.0.clone())
-            .filter(|n| !n.is_empty())
-            .collect();
-        ids.push(meta.fresh(
-            tl[i].1.clone(),
-            crate::compile::meta::MetaKind::Natural,
-            out_of_scope,
-        ));
-    }
-    // ② 望远镜名 → 元变量
-    let mut sigma: HashMap<String, Expr> = HashMap::new();
-    for (i, id) in ids.iter().enumerate() {
-        sigma.insert(tl[i].0.clone(), meta.meta_expr(*id));
-    }
+    // ①+② **B2-P3a**：一个 pass —— `ty_i` 先用 `sigma_{<i}` 把更早的前缀名换成载体 ✓。
+    let tel: Vec<_> = tl.iter().map(|(n, d)| (n.as_str(), d)).collect();
+    let (ids, sigma) = crate::compile::meta::fresh_telescope_metas(&mut meta, &tel, missing);
     // ③ 操作数类型（每个操作数只问一次）
     let mut arg_tys: Vec<Option<Expr>> = Vec::with_capacity(operands.len());
     for operand in operands {
@@ -3059,8 +3051,15 @@ fn solve_prefix_args_meta<'a>(
             return None;
         }
     }
-    // ⑥ 不动点 + defaulting（E19 的选择规则）+ zonk（M3：出口带通道，本路径暂只用"成没成"）
-    let out = meta.discharge(&ids).into_option();
+    // ⑥ 出口（**B2-P3b**）：共用 store ⇒ 接受 `Partial`（载体活到声明末尾）；detached ⇒ 今天那条。
+    let out = if shared {
+        match meta.discharge_keep_unsolved(&ids) {
+            Ok((out, _still)) => Some(out),
+            Err(_) => None,
+        }
+    } else {
+        meta.discharge(&ids).into_option()
+    };
     if std::env::var_os("SOKO_META_DEBUG").is_some() {
         eprintln!(
             "[meta] missing={missing} ids={} solved={:?} unsolved={:?}",
@@ -3068,11 +3067,14 @@ fn solve_prefix_args_meta<'a>(
             out.as_ref().map(|v| v.len()),
             meta.unsolved().len()
         );
+        // ⚠ 不许用 `render_expr`（绕过唯一记法接口，`audit-notation-paths.py` 会判红）⇒ 打 Debug。
         for (i, id) in ids.iter().enumerate() {
-            // ⚠ 这里**不许**用 `render_expr`：那是绕过唯一记法接口的路径
-            // （`scripts/audit-notation-paths.py` 会判"新增绕过" ✗）⇒ 打 `Expr` 的 Debug 即可。
             eprintln!("[meta]   #{i} value={:?}", meta.value(*id));
         }
+    }
+    // **B2-P1**：成功才 commit（失败由 `StoreGuard::drop` 回滚到进场点 ✓）。
+    if out.is_some() {
+        guard.commit();
     }
     out
 }
@@ -3656,6 +3658,11 @@ pub(crate) fn infer_type_text_inplace_expected<'a>(
         quiet_catch(|| ef.infer_type_text_at(limit, term, |t| t.to_string()))
     });
     let ty = ty.map_err(|_| InplaceFail::Kernel)?;
+    // **B2-P4a**：闸门路径上 pp 会把载体印成 `⟨meta#N⟩` ⇒ **拒答**（它不是合法源项，回读只会
+    // 得到垃圾，而且就地路会把这份文本**写进与闸门关共用**的 judge 缓存 ✗）。
+    if crate::compile::gate_path_active() && ty.contains('\u{27e8}') {
+        return Err(InplaceFail::Kernel);
+    }
     // **1b**：文本剥层的第一关是 parse ⇒ 先把未解层元变量归一成层参数名，否则
     // `peel_binders` 会在 `?` 上**静默 break**、把整条上下文 telescope 交回去。
     let ty = crate::judge::normalize_level_mvars(&ty).into_owned();
@@ -4060,8 +4067,32 @@ pub(crate) fn operand_type_expr<'a>(
         return Some(src);
     }
     let explicit = super::implicit_msg::strict_at_enabled(ctx.options);
-    infer_type_text(ctx, scope, operand, env, None, explicit)
-        .and_then(|text| crate::proof::parse_expr_text(&text).ok())
+    // **B3**：pp 文本里的名字要能在**声明表**（`known` 含 axiom/构造子）或作用域里解析 ✓；
+    // 拿不到 `known`（老路 `env: None`）⇒ **不判**（= 今天的行为，绝不凭空拒 ✗）。
+    let known = env.as_ref().map(|e| e.known);
+    let text = infer_type_text(ctx, scope, operand, env, None, explicit)?;
+    // **B3 守卫的适用面（B2-P4a）**：判据 = **声明级 store 在不在**（`gate_path_active()`），
+    // **不是**进程环境变量 —— 否则声明出口的"闸门关重放"（`metas: None`）仍带着守卫、
+    // 诊断就不再等于闸门关（实测：`And.left` 的前导位因此判 `Unsolved`，闸门关明明是绿的）。
+    let gate = crate::compile::check::meta_exit::gate_path_active();
+    // **B2-P4a**：pp 文本里的**占位符**（`⟨meta#N⟩`，`pretty_printer.rs:753`）**不是**类型
+    // ⇒ 当"没有类型信息"（只否决不发明，与 B3 守卫同一纪律；慢路/judge 缓存里也会出现 ⇒ 这条
+    // 同时兜住两条来源 —— 否则 `⟨meta #1⟩` 会被解析成**匿名构造子**再进判定 ✗）。
+    if gate && text.contains('\u{27e8}') {
+        return None;
+    }
+    let t = crate::proof::parse_expr_text(&text).ok()?;
+    let in_scope = known.is_none_or(|k| pp_type_scope_safe(scope.local_names(), k, &t));
+    (!gate || in_scope).then_some(t)
+}
+
+/// **B2-P3a 的 B3 守卫**：pp 回读的类型里每个 `Ident` 都必须在 `scope` / `\0` fresh / **声明表**里，否则 `false`（**只否决、不发明** ⇒ 回落到今天的 `None` ✓）。
+pub(crate) fn pp_type_scope_safe(names: &[String], known: &KnownTable, e: &Expr) -> bool {
+    let ok =
+        |n: &str| n.starts_with('\u{0}') || names.iter().any(|l| l == n) || known.contains_key(n);
+    let free = crate::compile::meta::pattern::free_idents(e);
+    let top = crate::compile::meta::pattern::check::top_binders(e);
+    free.iter().all(|n| ok(n)) && top.iter().all(|n| ok(n))
 }
 
 /// **第二候选**（C 子项）：同一个操作数的类型，但取内核的**全显式 pp** 形态
@@ -4139,6 +4170,48 @@ pub(crate) fn lambda_source_type(operand: &Expr) -> Option<Expr> {
     Some(ty)
 }
 
+/// **B2-P3b**：裸常量的前导隐式求解 —— 共享 store 时允许 `Partial`，期望类型与**整个值类型**
+/// （`?γ → Set ?γ`）合一（路线②只比裸结果 ⇒ 把外层 `β` 错解成 `Prop`）；闸门关走今天那条。
+fn solve_bare_prefix<'a>(
+    layers: &[crate::compile::implicit::Layer],
+    result: &Expr,
+    k: usize,
+    expected: &Expr,
+    ctx: &ElabCtx<'a, '_>,
+    store: Option<&crate::compile::meta::DeclMVarStore>,
+) -> Option<Vec<Expr>> {
+    use crate::compile::{implicit::solve_prefix, meta::MetaSolve};
+    let is_inductive = |n: &str| ctx.inductives.contains_key(n);
+    let Some(store) = store else {
+        // 闸门关 / 非声明通道 ⇒ **逐字节走今天那条**。
+        return solve_prefix(
+            layers,
+            result,
+            k,
+            &[],
+            Some(expected),
+            ctx.defs,
+            &is_inductive,
+        );
+    };
+    let shape = crate::compile::implicit::bare_value_type(layers, result, k);
+    let outcome = crate::compile::implicit::solve_prefix_outcome_with_args(
+        layers,
+        &shape,
+        k,
+        &[],
+        &[],
+        Some(expected),
+        ctx.defs,
+        &is_inductive,
+        Some(store),
+    );
+    match outcome {
+        MetaSolve::Solved(v) | MetaSolve::Partial(v, _) => Some(v),
+        _ => None,
+    }
+}
+
 /// **IA-1 的唯一钩子**（设计 `docs/design/implicit-arguments.md` §3.2）：`expr`
 /// 是一条应用脊，头如果是签名带**前导隐式 binder** 的常量/局部名，就按路线 C
 /// 把那些隐式实参解出来插进去，返回装好的整条脊。
@@ -4146,18 +4219,10 @@ pub(crate) fn lambda_source_type(operand: &Expr) -> Option<Expr> {
 /// 返回 `None` ⇒ 调用方走**今天的老路**（签名里没有隐式 binder 时逐字节不变，
 /// 这是 P1 可独立发布的安全性质，设计 §0）。
 ///
-/// 算法（设计 §3.1）：实参按**风格**对齐到显式层；被跳过的前导隐式层由**第一个
-/// 显式实参的类型**头部匹配唯一确定（[`implicit::solve_prefix`]）；解不出报
-/// `elab-implicit-argument-unsolved`，**不猜**。
-/// **B3-①（缺口 G-40）**：**裸常量**（零实参）的前导隐式实参插入。
-///
-/// 为什么必须是**独立一条**：`try_implicit_application` 只挂在 `Expr::App` 臂上
-/// （设计 §3.2 的"唯一钩子"），而 `∅` 展开成的是**光秃秃的 `Set.empty`** ——
-/// 它根本不是 `App` ✗ ⇒ 钩子永远够不着 ⇒ 词项停在 `{α : Type} → Set α` 那个 Pi
-/// 上（`rfl` 判不出来，实测见缺口 G-40 的复现件）。
-///
-/// **只在期望类型真的给了、且签名确实有前导隐式 binder 时**才动；**解不出就原样
-/// 返回**（不报错、不猜）—— 裸常量当函数值用是合法的 ✓。
+/// **B3-①（缺口 G-40）**：**裸常量**（零实参）的前导隐式实参插入 —— `try_implicit_application`
+/// 只挂在 `Expr::App` 臂上，而 `∅` 展开成的是光秃秃的 `Set.empty`（不是 `App`）⇒ 必须独立一条。
+/// **只在期望类型给了、且签名确实有前导隐式 binder 时**才动；**解不出就原样返回**（不报错、不猜）
+/// —— 裸常量当函数值用是合法的 ✓。
 #[allow(clippy::too_many_arguments)]
 fn try_bare_implicit_constant<'a>(
     builder: &mut EnvBuilder<'a>,
@@ -4193,16 +4258,9 @@ fn try_bare_implicit_constant<'a>(
     if k > layers.len() {
         return Ok(bare);
     }
-    let is_inductive = |n: &str| ctx.inductives.contains_key(n);
-    let Some(solved) = crate::compile::implicit::solve_prefix(
-        &layers,
-        &result,
-        k,
-        &[],
-        Some(expected),
-        ctx.defs,
-        &is_inductive,
-    ) else {
+    let store = ctx.metas.and_then(|m| m.store.as_ref());
+    pattern::note_ctx(store, ctx, scope);
+    let Some(solved) = solve_bare_prefix(&layers, &result, k, expected, ctx, store) else {
         return Ok(bare);
     };
     let mut out = bare;
@@ -4533,6 +4591,7 @@ fn try_implicit_application_with<'a>(
                     })
                     .collect();
                 let is_inductive = |n: &str| ctx.inductives.contains_key(n);
+                pattern::note_ctx(ctx.metas.and_then(|m| m.store.as_ref()), ctx, scope);
                 if let Some(solved_prefix) = crate::compile::implicit::solve_prefix_with_args(
                     &layers,
                     &result,
@@ -4542,6 +4601,7 @@ fn try_implicit_application_with<'a>(
                     expected_src,
                     ctx.defs,
                     &is_inductive,
+                    ctx.metas.and_then(|m| m.store.as_ref()),
                 ) {
                     let mut sigma: HashMap<String, Expr> = HashMap::new();
                     for (j, value) in solved_prefix.iter().enumerate() {
@@ -4574,6 +4634,7 @@ fn try_implicit_application_with<'a>(
                     ));
                 }
                 let is_inductive = |n: &str| ctx.inductives.contains_key(n);
+                pattern::note_ctx(ctx.metas.and_then(|m| m.store.as_ref()), ctx, scope);
                 if let Some(solved) = crate::compile::implicit::solve_prefix_with_args(
                     &extended,
                     &result,
@@ -4583,6 +4644,7 @@ fn try_implicit_application_with<'a>(
                     expected_src,
                     ctx.defs,
                     &is_inductive,
+                    ctx.metas.and_then(|m| m.store.as_ref()),
                 ) {
                     let mut out = elab_expr(
                         builder, &head_src, scope, univ, known, hovers, None, None, ctx,
@@ -4798,6 +4860,7 @@ fn try_implicit_application_with<'a>(
     let is_inductive = |n: &str| ctx.inductives.contains_key(n);
     let ty_of = |e: &Expr| crate::compile::pp_shape::oracle_type(ctx, scope, &alt_env, e); // E1 路线⑤
                                                                                            // **M3 的三通道**（同一个码；D6 不新增码）：`Unsolved` 补不出 · `Kind` sort 不对 · `Clash` 刚性冲突。
+    pattern::note_ctx(ctx.metas.and_then(|m| m.store.as_ref()), ctx, scope);
     let solved = match crate::compile::implicit::solve_prefix_outcome_with_args_alt(
         &layers,
         &result,
@@ -4809,8 +4872,10 @@ fn try_implicit_application_with<'a>(
         expected_src,
         ctx.defs,
         &is_inductive,
+        ctx.metas.and_then(|m| m.store.as_ref()),
     ) {
-        crate::compile::meta::MetaSolve::Solved(v) => v,
+        crate::compile::meta::MetaSolve::Solved(v)
+        | crate::compile::meta::MetaSolve::Partial(v, _) => v,
         channel => {
             let why = match channel {
                 crate::compile::meta::MetaSolve::Kind => {
@@ -4822,8 +4887,7 @@ fn try_implicit_application_with<'a>(
                 }
                 _ => "（本子集按「后续显式实参的类型 + 期望类型」反解）",
             };
-            // **用户 2026-10-16 第 ③ 条**（「报错信息要完善，指令要明确」）：文案本体在
-            // `crate::compile::implicit_msg` ✓（`elab.rs` 受 `docs-lint` ⑨ **冻结** ✗）。
+            // 用户 2026-10-16 第 ③ 条：文案本体在 `crate::compile::implicit_msg`（本文件受 ⑨ 冻结）。
             return Err(CompileError::elab(
                 ErrorKind::ElabImplicitArgumentUnsolved,
                 crate::compile::implicit_msg::unsolved_message(
@@ -4837,23 +4901,12 @@ fn try_implicit_application_with<'a>(
             ));
         }
     };
-    // 组装：先插隐式实参，再逐个装显式实参（**每个**都给「代入后」的期望类型）。
-    //
-    // **第一个实参与其余一视同仁**（B3-③，2026-09-30）：`solved` 已经出来了，
-    // `layers[k].domain` 里的隐式参数可以代换 ⇒ 第一位也能拿到期望类型 ——
-    // 这正是"实参本身是零元隐式常量"（`Set.inter Set.univ A`）能补出来的唯一
-    // 条件 ✓。以前第一位不给，是因为它被提前 elaborate 了（见上面的注释）。
+    // 组装：先插隐式实参，再逐个装显式实参（每个都给「代入后」的期望类型；第一位也同一视同仁——
+    // `solved` 已出来 ⇒ `layers[k].domain` 的隐式参数可代换，零元隐式常量靠这条才补得出）。
     let mut out = head_term;
-    // **U1 片（开关默认关 ✓）**：常量**没写**宇宙实参时（头不是 `UniverseApp` ✓），
-    // 按**字面约束**把未写的层级解出来再重建头常量 ✓（`Quot.lift α β f h` 一族 —— 台账 G-63 ✗）。
-    //
-    // ⚠ 两个要点：① 头**已经**照旧 `elab_expr` 过（hovers/定义跳转等副作用不能少 ✗），
-    // 解出来才**替换**；② 开关关着 / 解不出 ⇒ 原样 ✓（`solve_universes` 自己会拒 ✓，
-    // 关着时**一次都不进** ✓ ⇒ 逐字节不变 ✓）。
-    // ⚠ 开关**先判**（关着时这里连 `pairs` 都不建 ⇒ 既有形状**零额外开销** ✓）
-    // **U2-a（开关默认关 ✓）**：头写了 `.{n}` 时也进来 —— 但只做**检查** ✓（**显式优先** ✓）：
-    // 解出来的字面与写出来的字面**冲突** ⇒ 报专用码 `ElabUniverseLevelConflict` ✗（不再一路落到内核 ✓）；
-    // 相等 / 有一边不是字面 ⇒ **保留写出来的** ✓（一个字节都不改 ✓）。
+    // **U1/U2（开关默认关）**：常量没写宇宙实参时按**字面约束**解出来再重建头（G-63 的
+    // `Quot.lift α β f h` 一族）；写了 `.{n}` 时只**检查**（显式优先，冲突报 `ElabUniverseLevelConflict`）。
+    // 关着/解不出 ⇒ 原样（零额外开销、逐字节不变）。
     let written_levels: Option<&[String]> = match head {
         Expr::UniverseApp { levels, .. } => Some(levels.as_slice()),
         _ => None,
@@ -4874,13 +4927,8 @@ fn try_implicit_application_with<'a>(
         let subst = |e: &Expr| crate::spine::substitute(e, &lvl_sigma);
         let tpl_layers: Vec<Expr> = layers.iter().map(|l| subst(&l.domain)).collect();
         let tpl_result = subst(&result);
-        // (模板, 实际) 的**三路**原料：
-        //   ① 显式实参位：层域 ↔ 实参类型 ✓
-        //   ② 结果 ↔ 期望类型 ✓
-        //   ③ **解出来的隐式项参数自己的类型** ✓✓ —— `Show {u} : {α : Sort u} → α → Nat`
-        //      写成 `Show 0` 时 `u` 只出现在 `{α : Sort u}` 那一层（**没有实参可问** ✗），
-        //      但 `α` 已被解成 `Nat` ✓ ⇒ `Nat : Sort 1` ⇒ `u := 1` ✓✓
-        //      （本轮实测：缺这一路 ⇒ `Show 0` 两态都判红 ✗，`期望 Sort(0)，实际是 Sort(1)`）。
+        // (模板, 实际) 三路：① 显式实参位（层域 ↔ 实参类型）② 结果 ↔ 期望类型
+        // ③ **解出的隐式项参数自己的类型**（`Show 0` 的 `u` 只出现在 `{α : Sort u}`，靠 `α := Nat` 定）。
         let mut tpl: Vec<Expr> = Vec::new();
         let mut act: Vec<Expr> = Vec::new();
         for (j, ty) in arg_tys.iter().enumerate() {
@@ -4927,9 +4975,8 @@ fn try_implicit_application_with<'a>(
         if let Some(written) = written_levels {
             // **显式优先** ✓：只比**字面 vs 字面** ✓（解出的是"下界/未定"⇒ 不判冲突 ✗）。
             if let Some(solved) = solved_levels.as_ref() {
-                // **U2-b：约束攒着、收尾才查** ✓ —— 写出来的与解出来的都当**约束**推进
-                // `LevelBatch` ✓，`check()` 一次性判 ✓（惰性只是时机，不是放水 ✓：
-                // `lazy_and_eager_verdicts_are_identical` 单测钉死等价 ✓）。
+                // **U2-b：约束攒着、收尾才查**（`LevelBatch`；惰性只是时机，不是放水 ——
+                // `lazy_and_eager_verdicts_are_identical` 单测钉死等价）。
                 let mut batch = crate::compile::level::LevelBatch::new();
                 for (i, (s, w)) in solved.iter().zip(written.iter()).enumerate() {
                     let (Ok(sn), Ok(wn)) = (s.parse::<u64>(), w.parse::<u64>()) else {
@@ -4976,60 +5023,16 @@ fn try_implicit_application_with<'a>(
             }
         }
     }
-    let mut sigma: HashMap<String, Expr> = HashMap::new();
-    for (j, s) in solved.iter().enumerate() {
-        // **解出来的隐式实参也要吃期望类型**（T-N13，2026-09-30）：解出的值可能来自
-        // **内核 pp 文本**（`operand_type_expr` 的第三条路），而 pp 会丢掉第一个隐式
-        // 实参（`Set.empty Two` 打成 `Set.empty`）⇒ 不给期望类型，`Set.empty` 就停在
-        // 自己的 Pi 上 ⇒ 内核报 `期望 (Set.[] Two.[])，实际是 Pi (α : Sort(1)), (Set.[] $0)` ✗
-        // （实测：`congrArg.{1} (fun (X : Set Two) => f1 '' X) inter_singletons_empty`
-        // —— 解出的 `b` 是 pp 回读的裸 `Set.empty`）。
-        // 期望类型就是**该层的域**（已解出的参数先代进去）✓ —— 与写出来的实参同一口径 ✓。
-        let expected_src = crate::spine::substitute(&layers[j].domain, &sigma);
-        if !layers[j].name.is_empty() {
-            sigma.insert(layers[j].name.clone(), s.clone());
-        }
-        let t = crate::compile::pp_shape::elab_engine_value(
-            builder,
-            s,
-            scope,
-            univ,
-            known,
-            hovers,
-            None,
-            Some(&expected_src),
-            ctx,
-        )?;
-        out = builder.mk_app(out, t);
-    }
-    for (i, a) in args.iter().enumerate() {
-        let li = k + i;
-        let expected_src = crate::spine::substitute(&layers[li].domain, &sigma);
-        let t = elab_expr(
-            builder,
-            a,
-            scope,
-            univ,
-            known,
-            hovers,
-            None,
-            Some(&expected_src),
-            ctx,
-        )?;
-        out = builder.mk_app(out, t);
-        if !layers[li].name.is_empty() {
-            sigma.insert(layers[li].name.clone(), (*a).clone());
-        }
-    }
-    if let Some(sink) = solved_out.as_mut() {
-        sink.extend(
-            layers
-                .iter()
-                .take(k)
-                .filter(|l| !l.name.is_empty())
-                .filter_map(|l| sigma.get(&l.name).cloned()),
-        );
-    }
+    // **B2-P4b**：组装点在 `p4b`（闸门关 = 今天那两段逐字；闸门开 = 先实参、再隐式实参 + zonk）。
+    let mut asm = p4b::Asm {
+        builder,
+        scope,
+        univ,
+        known,
+        hovers,
+        ctx,
+    };
+    let out = p4b::assemble_app(&mut asm, out, &layers, k, &solved, &args, solved_out)?;
     Ok(Some(out))
 }
 
@@ -5238,12 +5241,7 @@ pub(crate) fn b2_meta_pair<'a>(
     ty: ExprPtr<'a>,
     span: Span,
 ) -> (Expr, ExprPtr<'a>) {
-    let kernel_kind = match kind {
-        crate::compile::meta::MetaKind::Natural => sokonanoda::expr::MetaKind::Natural,
-        crate::compile::meta::MetaKind::SyntheticOpaque => {
-            sokonanoda::expr::MetaKind::SyntheticOpaque
-        }
-    };
+    let kernel_kind = crate::compile::meta::kernel_meta_kind(kind);
     (
         Expr::Ident {
             name: crate::compile::meta::meta_name(id),
@@ -5535,6 +5533,19 @@ pub(crate) fn elab_expr<'a>(
                 record_hover(hovers, scope, *span, out, None);
                 return Ok(out);
             }
+            // **B2-P2**：store 里的 `\0soko_m{id}` ⇒ `Expr::Meta{id,kind,ty}`；类型在当前作用域
+            // 重新 elaborate。闸门/存在性/自引用任一不满足 ⇒ 原样落到 unknown-identifier（不发明类型）。
+            if let Some((id, _expanding, ty_src, kind)) =
+                crate::compile::meta::decl_meta_carrier(ctx.metas, name)
+            {
+                let ty = elab_expr(
+                    builder, &ty_src, scope, univ, known, hovers, None, None, ctx,
+                )?;
+                let out =
+                    builder.mk_meta_with_kind(id, crate::compile::meta::kernel_meta_kind(kind), ty);
+                record_hover(hovers, scope, *span, out, None);
+                return Ok(out);
+            }
             let bound = scope.names.iter().rposition(|candidate| candidate == name);
             let (out, resolution) = match bound {
                 Some(pos) => {
@@ -5714,8 +5725,7 @@ pub(crate) fn elab_expr<'a>(
                 ctx,
                 Some(&mut solved_implicits),
             )? {
-                // ⚠ **这条路会 early-return** ✗ ⇒ G-93 那条补层**必须也挂在这里** ✓
-                // （实测：`myax α a` 走的就是这条 ⇒ 只挂下面那处 ⇒ 它永远补不到 ✗）。
+                // ⚠ 这条路会 early-return ⇒ G-93 的补层也必须挂在这里（`myax α a` 走的就是这条）。
                 //
                 // **C 子项（2026-10-12）**：这条路上**插进去的隐式实参**要一起交给
                 // `infer_const_universes` —— `Eq.symm hx` 的第一位是**隐式**的 `α`，
@@ -6308,7 +6318,7 @@ pub(crate) fn elab_expr<'a>(
                 ctx,
             )?;
             // 4) 引入 x，body 在扩展 scope + 外层 expected 下 elaborate。
-            scope.push(binder.name.clone(), ty, ty_src.cloned(), binder.span);
+            scope.push_let(binder.name.clone(), ty, ty_src.cloned(), binder.span);
             let body = elab_expr(
                 builder,
                 body,

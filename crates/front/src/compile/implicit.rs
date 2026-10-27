@@ -106,6 +106,19 @@ pub(crate) fn telescope(signature: &str) -> Option<(Vec<Layer>, Expr)> {
     }
 }
 
+/// **B2-P3b**：裸常量作为值时的完整类型 —— 前导 `k` 位由求解器代换，后面的显式层与结果拼成 Π。
+pub(crate) fn bare_value_type(layers: &[Layer], result: &Expr, k: usize) -> Expr {
+    let mut ty = result.clone();
+    for layer in layers[k..].iter().rev() {
+        ty = Expr::Arrow {
+            domain: Box::new(layer.domain.clone()),
+            codomain: Box::new(ty),
+            span: crate::Span::default(),
+        };
+    }
+    ty
+}
+
 /// 前导隐式层的个数（`0` ⇒ 调用方走今天的老路）。
 ///
 /// 应用路径改用注册表的 `implicit_prefix`（构造子的参数在 pp 里是显式的）；
@@ -138,33 +151,12 @@ pub(crate) fn no_alt_type(_slot: usize) -> Option<Expr> {
     None
 }
 
-/// 解出被跳过的前导 `k` 层。
-///
-/// **路线 ①（由后续显式实参的类型反解）**：`arg_tys[i]` = 第 `k + i` 层那个
-/// 实参的**类型**（`None` = 拿不到）。对第 `i` 个待解的隐式层，找**后面第一个**
-/// 提到它的层 `j`，把 `layers[j].domain`（已解出的参数先代进去）与
-/// `arg_tys[j - k]` 头部匹配：
-///   · `Set.mem {α} (a : α) …` ⇒ `α` 出现在第 `k` 层（`a : α`）⇒ 由 `a` 的类型解出；
-///   · `Set.image {α β} (f : α → β) …` ⇒ `α`/`β` 都在第 `k` 层 ⇒ 由 `f` 的类型解出；
-///   · `picks {α} (n : Nat) (b : α)` 调用 `picks 3 b` ⇒ `α` 在第 `k+1` 层
-///     （`b : α`）⇒ 由 `b` 的类型解出（**扫全部显式层**，不只第一层）。
-///
-/// **路线 ②（由期望类型反解）**：参数只出现在**结果类型**里时（`Or.inl` 的 `B`、
-/// `False.elim`/`absurd` 的结论、`Eq.refl` 的 `α`），把已解出的参数代进 `result`
-/// 再与 `expected` 头部匹配。与记法路径的 `solve_prefix_args` 同一条机械。
-///
-/// 两条路都解不出 ⇒ `None`（调用方报专用错误码，**不猜**）。
-///
-/// 两条路都带**期望类型/实参类型的 delta 展开兜底**：`Or.inl h` 的目标常写成
-/// `a ∈ A ∪ B`（`Set.mem … (Set.union …)`，两层 `def`），`And.left h` 的 `h`
-/// 常写成 `a ∈ A ∩ B`——不展开到 `Or`/`And` 归纳头就匹配不上。
-///
-/// **E19 刀2（`SOKO_NOTATION_METAVAR`，2026-10-01 起默认开）**：严格档解不出时
-/// ⇒ 再走一遍**待定档**（[`solve_prefix_pending`]）—— 解不出的位先记成待定，走完由
-/// [`fill_pending_by_shape`] 与**同形的已解兄弟**合一 ✓。
-/// **逃生门** `=0`/`off` ⇒ 只跑严格档（逐字节等于刀0 的行为）✓。
-/// ⚠ 严格档**永远先跑**：解得出的形状走的就是刀0 那条路，待定档一次都不进 ⇒
-/// 默认路径零开销 ✓（冷 `build` 结构计数逐项等于刀0，见 §9）。
+/// 解出被跳过的前导 `k` 层。**路线 ①**：由后续显式实参的类型反解（`Set.image {α β}` 的
+/// `α`/`β` 都在 `f : α → β` 那一层；**扫全部显式层**，不只第一层）；**路线 ②**：由期望类型
+/// 反解（`Or.inl` 的 `B`、`Eq.refl` 的 `α`）。两条都带 delta 展开兜底（`a ∈ A ∪ B` 要展到 `Or`）。
+/// 解不出 ⇒ `None`（调用方报专用错误码，**不猜**）。**E19**：严格档解不出再走待定档
+/// （[`solve_prefix_pending`]；由 [`fill_pending_by_shape`] 与同形已解兄弟合一）；`=0`/`off`
+/// ⇒ 只跑严格档（逐字节等于刀0）。⚠ 严格档**永远先跑** ⇒ 默认路径零开销。
 pub(crate) fn solve_prefix(
     layers: &[Layer],
     result: &Expr,
@@ -207,6 +199,7 @@ pub(crate) fn solve_prefix_with_args(
     expected: Option<&Expr>,
     defs: &crate::compile::elab::DefTable,
     is_inductive: &dyn Fn(&str) -> bool,
+    decl_store: Option<&crate::compile::meta::DeclMVarStore>,
 ) -> Option<Vec<Expr>> {
     solve_prefix_outcome_with_args(
         layers,
@@ -217,6 +210,7 @@ pub(crate) fn solve_prefix_with_args(
         expected,
         defs,
         is_inductive,
+        decl_store,
     )
     .into_option()
 }
@@ -239,6 +233,7 @@ pub(crate) fn solve_prefix_outcome(
         expected,
         defs,
         is_inductive,
+        None,
     )
 }
 
@@ -255,6 +250,7 @@ pub(crate) fn solve_prefix_outcome_with_args(
     expected: Option<&Expr>,
     defs: &crate::compile::elab::DefTable,
     is_inductive: &dyn Fn(&str) -> bool,
+    decl_store: Option<&crate::compile::meta::DeclMVarStore>,
 ) -> crate::compile::meta::MetaSolve {
     solve_prefix_outcome_with_args_alt(
         layers,
@@ -267,6 +263,7 @@ pub(crate) fn solve_prefix_outcome_with_args(
         expected,
         defs,
         is_inductive,
+        decl_store,
     )
 }
 
@@ -290,6 +287,8 @@ pub(crate) fn solve_prefix_outcome_with_args_alt(
     expected: Option<&Expr>,
     defs: &crate::compile::elab::DefTable,
     is_inductive: &dyn Fn(&str) -> bool,
+    // **B2-P1**：声明级 store（`None` ⇒ 今天那样每次求解新建 ✓）。
+    decl_store: Option<&crate::compile::meta::DeclMVarStore>,
 ) -> crate::compile::meta::MetaSolve {
     use crate::compile::meta::MetaSolve;
     if let Some(solved) = solve_prefix_impl_alt(
@@ -304,6 +303,19 @@ pub(crate) fn solve_prefix_outcome_with_args_alt(
         is_inductive,
         false,
     ) {
+        // **B2-P4b**：贪心档成功也**必须**把那条方程记进声明级 store
+        // （它的解只活在这棵源级项里 ⇒ 不记 ⇒ 收口时两个元变量没有链接约束 ✗）。
+        crate::compile::check::meta_exit::p4b::app_result_equation(
+            decl_store,
+            layers,
+            result,
+            k,
+            &solved,
+            arg_vals,
+            expected,
+            defs,
+            is_inductive,
+        );
         return MetaSolve::Solved(solved);
     }
     if metavar_enabled() {
@@ -321,6 +333,7 @@ pub(crate) fn solve_prefix_outcome_with_args_alt(
                 expected,
                 defs,
                 is_inductive,
+                decl_store,
             )
         } else {
             match solve_prefix_pending_alt(
@@ -389,16 +402,15 @@ fn solve_prefix_meta(
         expected,
         defs,
         is_inductive,
+        None,
     )
 }
 
-/// [`solve_prefix_meta`] 的**带第二候选版**（C 子项）：约束 ③ 的每条方程先试主
-/// 候选；主候选**刚性冲突**（`Tri::No`）时用**全显式 pp** 形态再判一次 ✓。
-///
-/// ⚠ 判据仍是三值合一：第二候选也判 `No` 才真的冲突 ⇒ 今天那些"主候选就冲突"
-/// 的报错**一个都不会消失**（只在主候选冲突、第二候选能解时才转正）✓。
+/// [`solve_prefix_meta`] 的**带第二候选版**（C 子项）：约束 ③ 的每条方程先试主候选；
+/// 主候选**刚性冲突**（`Tri::No`）时用**全显式 pp** 形态再判一次 ✓（三值合一：第二候选
+/// 也判 `No` 才真的冲突 ⇒ 今天那些"主候选就冲突"的报错**一个都不会消失**）✓。
 #[allow(clippy::too_many_arguments)]
-fn solve_prefix_meta_alt(
+pub(crate) fn solve_prefix_meta_alt(
     layers: &[Layer],
     result: &Expr,
     k: usize,
@@ -412,6 +424,7 @@ fn solve_prefix_meta_alt(
     expected: Option<&Expr>,
     defs: &crate::compile::elab::DefTable,
     is_inductive: &dyn Fn(&str) -> bool,
+    decl_store: Option<&crate::compile::meta::DeclMVarStore>,
 ) -> crate::compile::meta::MetaSolve {
     let unfold = |e: &Expr| {
         crate::spine::unfold_to_inductive(
@@ -423,34 +436,18 @@ fn solve_prefix_meta_alt(
             crate::spine::UnfoldAlign::Short,
         )
     };
-    // **IA-4 B2 第 1 步（2026-10-05 ✓）**：store 从 `MetaCtx` 里抽出来了 ✓ ——
-    // 今天仍**一次求解一个** ✓（行为逐字节不变 ✓）；B2 的下一步会把它挂到**声明级** ✓
-    // （用户 00:05：「允许活过一次求解调用」✓）。
-    let mut store = crate::compile::meta::MetaStore::default();
-    let mut meta = crate::compile::meta::MetaCtx::new(&unfold, &mut store);
-    // ① 元变量（与窄版同一条闸门：前导位必须都有名字）
-    let mut ids = Vec::with_capacity(k);
-    for i in 0..k {
-        if layers[i].name.is_empty() {
-            return crate::compile::meta::MetaSolve::Unsolved;
-        }
-        let out_of_scope: Vec<String> = layers
-            .iter()
-            .skip(i + 1)
-            .map(|l| l.name.clone())
-            .filter(|n| !n.is_empty())
-            .collect();
-        ids.push(meta.fresh(
-            layers[i].domain.clone(),
-            crate::compile::meta::MetaKind::Natural,
-            out_of_scope,
-        ));
+    // **B2-P1** 声明级 store + ①② 元变量：一个 pass（`ty_i` 先代换更早的前缀名 ✓）。
+    let mut guard = crate::compile::meta::park_decl_store(decl_store);
+    let shared = guard.is_shared();
+    let mut meta = guard.meta_ctx(&unfold);
+    if layers.iter().take(k).any(|l| l.name.is_empty()) {
+        return crate::compile::meta::MetaSolve::Unsolved;
     }
-    // ② 望远镜名 → 元变量
-    let mut sigma: std::collections::HashMap<String, Expr> = std::collections::HashMap::new();
-    for (i, id) in ids.iter().enumerate() {
-        sigma.insert(layers[i].name.clone(), meta.meta_expr(*id));
-    }
+    let tel: Vec<_> = layers
+        .iter()
+        .map(|l| (l.name.as_str(), &l.domain))
+        .collect();
+    let (ids, mut sigma) = crate::compile::meta::fresh_telescope_metas(&mut meta, &tel, k);
     // ②b **G-63 修复**（2026-10-03 ✓）：显式层的 fresh 名也要映射到**实际实参本身** ✓。
     // 不映射 ⇒ 模板里留裸 `\0soko_p*` ✗ ⇒ 与实际实参判成刚性冲突 ✗（根因读数见 commit c3ab1211 ✓：
     // `③ i=1 j=4 模板= soko_m1 soko_p2 soko_p3 实际=qr α a b` ⇒ `[clash] 左= soko_p2 ｜ 右= a` ✗）。
@@ -482,24 +479,16 @@ fn solve_prefix_meta_alt(
                 );
             }
             let primary = meta.unify(&template, actual);
-            // **第二候选**（C 子项）：主候选是**书写类型**（记法节点天然没有前导
-            // 隐式实参）⇒ `Eq ?m0 ?m2 ?m3` 对 `a = x` 右对齐之后 `α` 不在任何实参
-            // 位上、`?m0` 悬着 ✗ ⇒ 用**全显式 pp** 形态（`@Eq α a x`）**再判一次** ✓。
-            // ⚠ **不是"主候选失败才试"** ✗（与严格档那条不同）：引擎的合一带状态，
-            // 追加约束只会更精确 ✓ —— 但**两个实测踩到的闸门**必须都在：
-            // * 主候选判 `Yes` **且这一位已解** ⇒ 一步都不进 ✓（多一条方程可能在
-            //   **别的**层上造成假冲突 ✗）；
-            // * 模板的头是**元变量**（`?m1 ?m2` —— `Eq.subst` 的 `p a` 那一层 ✓）
-            //   ⇒ **第二候选没有信息**：那一位要解的是**谓词本身**，不是某个实参位
-            //   ⇒ 拿 `@Eq α a x` 去套只会撞 occurs check 判 `No` ✗（实测
-            //   `Eq.subst h h` 把整条求解打回 ✗）；刚性的头（`Eq.{u} ?m0 ?m2 ?m3` ✓）
-            //   才是"前导隐式实参缺了"的那个形状 ✓。
-            // ⚠ **判据是「这一位自己的元变量解出来没有」**，不是「主候选判没判
-            // `Yes`」✗→✓（实测）：`tail_aligned_pair` 会把 `Eq.{u} ?m0 ?m2 ?m3` 与
-            // `Eq b a` 对齐成 `Eq.{u} ?m2 ?m3` 与 `Eq b a` ⇒ `?m2/?m3` 解出、`?m0`
-            // **悬着**，而 `Tri` 仍是 `Yes` ✗（`t_symm`：`α` 没解 ⇒ `discharge
-            // unsolved=1`）⇒ 这一位**没解**就必须让第二候选也参与 ✓。
-            // 任一条判 `No` ⇒ 真的刚性冲突 ⇒ 照旧走通道 ✓。
+            // **第二候选**（C 子项）：主候选是**书写类型**（记法节点没有前导隐式实参）
+            // ⇒ `Eq ?m0 ?m2 ?m3` 对 `a = x` 右对齐后 `?m0` 悬着 ✗ ⇒ 用**全显式 pp**
+            // 形态（`@Eq α a x`）**再判一次** ✓。⚠ **不是"主候选失败才试"** ✗：引擎的
+            // 合一带状态、追加约束只会更精确，但两个**实测踩到的闸门**必须都在：
+            // ① 主候选判 `Yes` **且这一位已解** ⇒ 一步都不进（多一条方程可能在**别的**
+            //   层上造成假冲突 ✗）；② 模板的头是**元变量**（`Eq.subst` 的 `p a` 那层）
+            //   ⇒ 第二候选没有信息（要解的是谓词本身），`Eq.subst h h` 实测会被 occurs
+            //   打回 ✗。判据是「**这一位自己的元变量**解出来没有」而不是「主候选判没判
+            //   `Yes`」（`tail_aligned_pair` 对齐后 `?m2/?m3` 解出、`?m0` 悬着而 `Tri`
+            //   仍是 `Yes`）。任一条判 `No` ⇒ 真的刚性冲突 ⇒ 照旧走通道 ✓。
             let layer_unsolved = meta.value(ids[i]).is_none();
             let tri = if !layer_unsolved || crate::compile::meta::meta_of_expr(&template).is_some()
             {
@@ -533,26 +522,35 @@ fn solve_prefix_meta_alt(
     if let (Some(ty_of), false) = (ty_of, meta.unsolved().is_empty()) {
         meta.refine_by_types(&ids, layers, &sigma, ty_of);
     }
-    // ⑥ 不动点 + defaulting（E19 的选择规则）+ zonk
-    meta.discharge(&ids)
+    // ⑥ 出口（**B2-P3b**）：共用 store ⇒ 允许未解（`Partial`，载体活到声明末尾）；
+    // detached/scratch ⇒ 今天那条严格出口（逐字节不变 ✓）。
+    let out = if shared {
+        match meta.discharge_keep_unsolved(&ids) {
+            Ok((out, still)) if still.is_empty() => crate::compile::meta::MetaSolve::Solved(out),
+            Ok((out, still)) => crate::compile::meta::MetaSolve::Partial(out, still),
+            Err(channel) => channel,
+        }
+    } else {
+        meta.discharge(&ids)
+    };
+    // **B2-P1/P3b**：成功（含部分）才 commit（失败由 `StoreGuard::drop` 回滚 ✓）。
+    if matches!(
+        out,
+        crate::compile::meta::MetaSolve::Solved(_) | crate::compile::meta::MetaSolve::Partial(..)
+    ) {
+        guard.commit();
+    }
+    out
 }
 
-/// **E19 的开关**（刀1 记法路径 + 刀2 一般路径**共用同一个开关**）：给求解器引入
-/// **待定参数**（`?α`）。
+/// **E19 的开关**（记法路径 + 一般路径共用）：给求解器引入**待定参数**（`?α`）。
 ///
-/// **2026-10-01 用户拍板：默认开** ✓ —— 今天判红的形状（`∅ ≈ {b}` 一类）变绿是
-/// **有意**的判定变化（非课程语料里只有 G-48 那一份变；课程语料一个字不动 ✓），
-/// 逐项读数 ⇒ `docs/design/e19-baseline.md` §9。
-/// **逃生门** `SOKO_NOTATION_METAVAR=0`（或 `off`）⇒ 回到**严格档**（刀0 的既有
-/// 行为：任何一位解不出就报专用错误码，**不猜** ✓）—— 与 `SOKO_JUDGE_INPLACE`
-/// 同一口径（默认 `on`、显式 `off` 回退 ✓）。
-///
-/// ⚠ 开关**关**态仍是"两态反向验证"的那一半（`crates/cli/tests/{notation,implicit}_metavar.rs`
-/// 都用它咬"开关其实是假的"）⇒ **别删**。
-/// 只读一次环境（求解热路径上）。
-/// **求解器的元变量档位**（IA-4 M1 起三态，**M4 起默认 `Engine`**）：
-/// `Off` = 严格档（逃生门口径）· `Sibling` = E19 的「同形已解兄弟」窄版（**回归臂**）·
-/// `Engine` = 新引擎（`crate::compile::meta`：真元变量 + 三值合一 + 有界待定 + defaulting）。
+/// **2026-10-01 用户拍板：默认开** ✓（判红形状变绿是**有意**的；逐项读数 ⇒
+/// `docs/design/e19-baseline.md` §9）。**逃生门** `SOKO_NOTATION_METAVAR=0`（或 `off`）⇒
+/// 回到严格档（任何一位解不出就报专用错误码，**不猜** ✓）。开关**关**态仍是两态反向验证的另一半
+/// （`crates/cli/tests/{notation,implicit}_metavar.rs` 用它咬"开关其实是假的"）⇒ **别删**。
+/// **元变量档位**（M4 起默认 `Engine`）：`Off` 严格档 · `Sibling` E19 窄版（回归臂）·
+/// `Engine` 新引擎（真元变量 + 三值合一 + 有界待定 + defaulting）。
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum MetavarMode {
     Off,

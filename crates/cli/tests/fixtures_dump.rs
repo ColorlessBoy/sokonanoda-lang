@@ -28,7 +28,15 @@ use sokonanoda_front::fixtures::{self, Family};
 const SCHEMA: &str = "soko.fixtures/1";
 
 fn scratch() -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("sokonanoda-fixtures-dump-{}", std::process::id()));
+    // 同一进程里的 4 个 `#[test]` 会并行 ⇒ 目录名必须每调用唯一（只带 PID 会互删 ⇒
+    // 曾让 full gate 偶发 `AlreadyExists`）。
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-fixtures-dump-{}-{}",
+        std::process::id(),
+        COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("scratch dir");
     dir

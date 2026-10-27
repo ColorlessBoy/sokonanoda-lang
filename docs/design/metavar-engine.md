@@ -7,6 +7,7 @@
 > 每片跑前后性能读数**（P1-b/§3.C 口径）✓。
 > 取证：Lean 4（commit `77f336f7`）与 Coq（`440083ef`）源码逐条核对（**11 个「查无此名」的更正**见 §1.2 注）；
 > M0 的基线与 13 形状清单 ⇒ `docs/design/metavar-m0.md`。
+> **用户 2026-10-25 新决策**：**metavar 要做**（含 **#16 高阶 / pattern 合一**）——**先设计方案再执行** ⇒ 设计 `docs/design/metavar-pattern.md`（HO 线）；**HO4 验收前不改判定代码** ✓。
 
 ## 0. 一句话 + 三条旧结论的现状
 
@@ -60,7 +61,7 @@ occurs/type-occurs + 有界待定约束 + sort/kind + **宇宙层合一**），�
 | 13 | 报错契约 | `MVarErrorKind`（implicitArg / hole / custom）+ `logUnassignedUsingErrorInfos`（**只在没有别的错时**报）；三条文案；宇宙元变量**单独一条通道** | "The following term contains unresolved implicit arguments" / "Cannot infer …" / "Unsolved obligations" | 两条码（`elab-{implicit,notation}-argument-unsolved`）+ hint | **三通道**（补不出 / kind / clash）+ 位置 + 宇宙通道 | M3/U2 |
 | 14 | 性能纪律 | **LBool 弃权** + `t == s` + **"不含元变量"的永久 def-eq 缓存**（`defEqPerm`）+ `Config.toKey` 键 + 递归护栏 | `quick_fail` + 惰性宇宙约束 | 严格档先跑、待定档才建 ctx | 保留 + **每片前后结构计数**（§2.8）| 每片 |
 | 15 | **内核支持** | 内核与前端**共用 `Expr`**，但内核**拒绝含元变量的声明** | 内核 `constr` **不含** evar（evar 只活在 `evar_map`）| 内核**无**占位符（`Expr::Hole` 在 elab 期就报错）| **K1：占位符 + 硬不变式**（或前端项 IR，**D8**）| K1/B3 |
-| 16 | 高阶 / pattern 合一 | eta、结构 eta、`foApprox` 等近似 | **Miller–Pfenning pattern 片段** + `w_unify` 的二阶分支 | 无 | **不做**（明确边界：报好错，不搜索）| — |
+| 16 | 高阶 / pattern 合一 | eta、结构 eta、`foApprox` 等近似 | **Miller–Pfenning pattern 片段** + `w_unify` 的二阶分支 | 无 | **做**（pattern 片段 + quasi-pattern 近似；设计 ⇒ `metavar-pattern.md`）| HO1–HO4 |
 | 17 | 类型类合成 | `synthInstance` / `synthPending` / instance mvars | typeclass evars + `typeclass_instances` | 语言**没有** class/instance（台账 0 条）| **不做**（留接缝：kind 字段）| — |
 
 ### 1.3 关键更正（M0 实测 + 研究核对）
@@ -92,7 +93,8 @@ occurs/type-occurs + 有界待定约束 + sort/kind + **宇宙层合一**），�
 * **范围 K（内核支持）**：占位符 + **硬不变式**（含元变量的声明**一律拒绝**）—— 与 Lean 同构
   （内核与前端共用 `Expr`，但"送进内核的表达式不许含元变量"）。
 * **宇宙层（U）**：`Level` 元变量 + 约束存储 + 惰性检查（§2.9）⇒ 治 **G-63**（手写 `.{u,v}` 对不准）。
-* **明确不做**：高阶/pattern 合一（#16）· 类型类合成（#17）· η（G-61，是**转换规则**不是元变量机制）。
+* **明确不做**：类型类合成（#17）· η（G-61，是**转换规则**不是元变量机制）。
+* **#16 已进范围**（用户 2026-10-25）：pattern 片段 + quasi-pattern 近似 ⇒ `metavar-pattern.md`。
 
 ### 2.2 表示与接口（扩展版）
 
@@ -245,6 +247,7 @@ G-43（结构合一取代按名字取）· **G-63**（U1/U2 起）· **G-60** �
 | **M2** | 引擎接进 `implicit::solve_prefix`（应用/裸常量/路线③）；`fill_pending_by_shape` 降级为 defaulting | M1 全套 + `implicit_metavar.rs` 四条 + G-48 三态 | 开关 |
 | **M3** | sort/kind 检查（§2.5）+ 报错契约三通道（§2.6）+ protocol/扩展/skills 同步 | §2.6 十二条逐条 · kind 夹具**不再落内核** `def_eq mismatch` · 新增码（若有）三处同步 | 开关 |
 | **M4** | 默认开 + 发版（`sibling` 保留为回归臂）| E19 §9 同款两态摘要 + 交叉验证（sibling 态逐字节等于今天）+ CI 28/0 + release | 逃生门 |
+| **HO1–HO4** | 高阶 / pattern 合一（#16）：设计 ⇒ `metavar-pattern.md`；HO2 = apply 剥层早停，HO3 = `pattern_assign`，HO4 = quasi 默认 + 接引擎 | 该文档 §4/§5 的判据（用户现场 + 反向 + 两态回归）| 开关 |
 | **U1** | 宇宙层元变量 + 约束存储（§2.9）| G-63 复现件 · 课程语料**逐字节不变** · 显式 `.{n}` 行为不变 | 开关 |
 | **U2** | 宇宙约束惰性检查 + 报错通道 | 约束冲突夹具 · 课程门禁 | 开关 |
 | **K1** ✅ 已收口（2026-10-04 ✓）| 内核占位符（**D8 = (i)** ✓）：`Expr::Meta` + `mk_meta` + 19 处穷尽 match ✓ + **`add_declar` 入口硬拒** ✓（固定前缀消息 ✓）| 硬不变式（含元变量 ⇒ 拒绝）✅ `tests::meta_placeholder` **4/4** ✓（含**深处嵌套** ✗ 与**对照组** ✓）· golden/`--json` 无占位符 ✅（6 文件逐字节相同 ✓，本片**惰性** ✓）· 全语料对拍 ⇒ **发版大节点** ✓ | 回退 = revert 本 commit ✓（本片无开关 ✗ —— **没有任何东西构造它** ✓ ⇒ 开关无意义 ✓） |
@@ -253,7 +256,7 @@ G-43（结构合一取代按名字取）· **G-63**（U1/U2 起）· **G-60** �
 | **B2** ◀ **当前片**（第 1 片 ✅ `4f8b6325` `MetaKind` ✓；**第 2 片 ✅ `7ca7dfb7` G-33 转绿** ✓ —— `peel_expected` 取域前**先 whnf** ✓，对齐 Lean `Binders.lean:408-421` `whnfForall` ✓；**反向验证 + (c) 逐字节** ✓）| 剩：**元变量进项**（让元变量活过一次求解调用 ✓ —— 引擎已就位 `9b6b4cfc`/`92233b0c` ✓）+ **期望类型与头结果类型的 `isDefEq` 合一**（Lean `Elab/App.lean:405` ✓ —— B1 只把域递下去，没有这一步 ⇒ 更深嵌套仍漏 ✗）| G-62 复现件 + 内核拒绝不变式 + 对拍 | 开关 |
 | **B3** | 范围 B 收口（三族复现件 + 课程 + 文档）| G-30/G-33/G-62 逐条 · 门禁 · 全语料 | — |
 
-**建议次序**：M1 → M2 → M3 → M4（范围 A 收口发版）→ **D8 拍板** → K1 → B1 → B2 → B3 → U1 → U2。
+**建议次序**：M1 → M2 → M3 → M4（范围 A 收口发版）→ **D8 拍板** → K1 → B1 → B2 → B3 → U1 → U2 → **HO1 → HO2 → HO3 → HO4**。
 **性能纪律**：每片收尾贴**同 run 的结构计数前后对照**；退化 ⇒ 先定位（`--timings`）再谈墙钟。
 
 ## 5. 决策点
@@ -270,6 +273,8 @@ G-43（结构合一取代按名字取）· **G-63**（U1/U2 起）· **G-60** �
 | **D8 范围 B 的载体** | ✅ **用户 2026-10-01 拍板 = (i) 内核占位符**（Lean 同构）：内核 `Expr` 加占位符构造子，**判定层硬拒**含占位符的声明；前端 `elab_expr` 协议不变 ⇒ §2.11 | 已定 |
 | D9 洞的表面语法 | ✅ **用户 2026-10-05 拍板 = 先不引入 `?_`**（B2 只做**内部** `syntheticOpaque`，无表面语法）| 已定 |
 | D10 宇宙层开关与写法 | 显式 `.{u,v}` 与推断并存；逃生门形态 | 待定（U1 前）|
+| **D11 quasi-pattern 默认档** | HO3 默认 off、HO4 翻 on（安全那个方向）| 待定（HO3 前）|
+| **D12 apply 对齐** | HO2 只在失败重试里加早停，不换快路径；统一 `def_eq_at` 留 HO4 后再议 | 待定（HO2 前）|
 
 ## 6. 复跑命令
 
@@ -296,137 +301,26 @@ python3 scripts/gap.py check && python3 scripts/docs-lint.py && python3 scripts/
 | **S-B** | **卷 I 深化**：ZFC · 序数 · 基数算术 · 选择公理 —— 课程单元**仍须全绿**（现 12 单元 `failed=0`）| **先读** `v077-kernel-deficiencies.md`（G-56/58/59/64）· `teaching-project.md` §5（DoD）| **先探针**（内核墙要实测）· 门禁 **12 单元 failed=0** + G1–G6 · `notation-lint` ✓ |
 | **S-C** | **卷 II 分析起步**：实数构造（Dedekind 分割 / 柯西序列）→ 分析学 | `teaching-project.md` §8 **P7** · §1 · 本文 §2.10（**范围 B 是卷 II 的地基**）| **先出卷 II 设计** + **scale gate** ⇒ 再动课程 |
 
-**顺序**：M1 → M2 → M3 → M4 →（D8）K1 → B1 → B2 → B3 → U1 → U2 → **S-A → S-B → S-C**；
+**顺序**：M1 → M2 → M3 → M4 →（D8）K1 → B1 → B2 → B3 → U1 → U2 → **HO1 → HO2 → HO3 → HO4** → **S-A → S-B → S-C**；
 两条线**不并行**动同一批文件（同一模块同一时间只允许一个写者）✓。
-**记账**：M1 起每片 as-built **追加到本文**；M0 的读数在 `metavar-m0.md`。
+**记账**：M1 起每片 as-built **索引**追加到本文（逐片细节 ⇒ `git log`）；M0 的读数在 `metavar-m0.md`。
 
-## 8. M1 as-built（2026-10-01 **收口 ✓**）：引擎内核 + 记法路径接线
+## 8. as-built 索引（M1–M4 · 2026-10-01/02 收口）
 
-**开关三态** `SOKO_METAVAR=0|sibling|engine`（**默认 `sibling` = 今天**；`SOKO_NOTATION_METAVAR=0` 兼容
-⇒ 旧逃生门仍等价）· **新模块** `crates/front/src/compile/meta.rs`（元变量 = `\0soko_m{id}` **名字编码**，
-不新增 AST 变体）· **接线** `elab.rs::solve_prefix_args_meta`（记法路径的待定档按档位分流；
-**一般路径归 M2**）· **元变量不进项**（`discharge` 出口自检 + `elab_expr` 兜底）。
+| 片 | 落点 | 收口读数（当时） |
+|---|---|---|
+| **M1** | `meta.rs` 引擎内核 + 记法路径接线 + `SOKO_METAVAR=0\|sibling\|engine` | 单测 11/11 · front 782/782 · 三指纹 = M0 · 门禁 43/377/99/0 |
+| **M2** | `implicit::solve_prefix` 一般路径；`fill_pending_by_shape` → defaulting | `metavar_engine` 3 passed · 三指纹 = M0 · 门禁 43/377/99/0 |
+| **M3** | sort/kind 三值闸门 + 三通道归因（码/hint 逐字不变） | 单测 15/15 · front 786/786 · 三指纹 = M0 |
+| **M4** | 默认档 = `engine`；`sibling` 永久回归臂 | 三态三指纹相同 · 门禁 43/377/99/0 · `0.79.0 → 0.80.0` |
 
-| 判据 | 结果 |
-|---|---|
-| 真值层单测 11 条（两侧分解 / occurs / **type-occurs** / **作用域** / 链式赋值 / 待定不动点 / 刚性冲突 / **delta 兜底（S13）** / defaulting / zonk 无残留 / fuel）| **11/11** ✓ |
-| `cargo test -p sokonanoda-front --lib` | **782/782**（771 + 11）✓ |
-| M0 的 13 形状清单（`--test metavar_inventory`）| **1 passed** —— 26 个读数**一条不变** ⇒ `sibling` 回归臂成立 ✓ |
-| 新判据 `--test metavar_engine`（5 个记法形状 × 4 档 + 开关等价）| **2 passed** ✓ |
-| `notation` / `notation_metavar` / `implicit_metavar` | **49 / 1 / 1** 全绿 ✓ |
-| **三指纹**：默认档 **与引擎档** | 两态**都逐字节等于** M0 冻结值（`7646fe2e…`/`d0375577…`/`06370a38…`）⇒ **引擎在整个语料上与窄版同判（0 增 0 失）** ✓ |
-| 课程门禁（引擎档）| **43/377/99/0** ✓ |
-| 冷 build 结构计数（默认档，空 `SOKONANODA_CACHE_DIR`）| `runs=886 bytes=47,437,669` · `passes=1343` · `by_calls=21,268` · `hits/misses=20,853/302` · `compiled 42/hit 0` —— **逐项等于 M0 基线** ✓（默认路径零开销）|
-| `scripts/soko gate --fast` | **EXIT=0** ✓ |
+> **逐片细节**（读数表、两个真 bug：作用域误拒 / 缓存键漏开关、`SOKO_META_DEBUG`）⇒
+> **原文** `git log --all -- docs/design/metavar-engine.md`（本文件历史版本）✓ ——
+> 按 `AGENTS.md`「设计只写契约、过程进 commit message 与 `STATUS.md`」⇒ 活文档只留
+> 「哪片 / 落在哪 / 当时读数」。
 
-**M1 抓到的两个真 bug**（都当场修掉 + 判据钉住）：
+## 9. #16 高阶 / pattern 合一（HO 线 · 2026-10-25 用户拍板）
 
-1. **作用域检查误拒**（新代码自己的）：`notation_telescope` 用的是**签名原文名**（`α`/`β`/`A`/`B`），
-   拿它当「作用域外」判据会与**用户变量撞名** ⇒ 引擎档把 G-48 判红 ✗（实测 `theorem t (α β : Type)
-   (b : β) : ¬ (∅ ≈ {b})`：值里的**用户 `β`** 被当成越界的望远镜参数）。**修法**：引擎路径**先 freshen
-   望远镜名**（`\0soko_mp{i}`，与 `implicit::telescope` 的防捕获纪律对齐）⇒ 模板/作用域判据与用户名
-   永不撞车 ✓。⚠ 这条是**三指纹判据**救回来的：只看"测试全绿"会以为引擎没问题。
-2. **编译缓存键漏了开关**（**既有 bug**，release `v0.79.0` 也复现）：键 = (format, version, build,
-   prelude, src) **不含** `SOKO_METAVAR` ⇒ 同一缓存目录里**先跑的那一档污染后面所有档** ⇒ 逃生门被
-   静默忽略 ✗（实测：先 `default` 再 `=0` ⇒ 两次都绿）。**修法**：键里加**档位字节**
-   （`cache::metavar_state`；**默认档保持 0** ⇒ 老缓存继续可用）+ 单测「不同档位必须是不同的键」✓；
-   `cache.rs` 头部写死纪律：**凡改变编译结果的开关都必须进键**。
-   ⚠ **残留面**（记账、未修）：`SOKO_JUDGE_INPLACE=shadow` 一类**诊断档**同样不在键里
-   （`on`/`off` 的 `--json` 按设计逐字节相同 ⇒ 影响面小；`shadow` 档可能被缓存掩盖）。
-
-**调试钩子** `SOKO_META_DEBUG=1`：打印每次引擎求解的（`missing` / ids / solved / unsolved / 每位取值）
-—— 只在 `engine` 档的待定路径上付一次 `var_os` ✓。
-
-**M1 不做**（后续片）：一般路径接线 = **M2** · sort/kind 与报错契约 = **M3** · 宇宙层 = U1/U2 ·
-范围 B（内核占位符 → 期望类型传播）= K1/B1–B3 ✓。
-
-## 9. M2 as-built（2026-10-01 **收口 ✓**）：引擎接进**一般路径**
-
-**接线** `implicit::solve_prefix_meta`（应用 / 裸常量 / 路线③共用同一条 `solve_prefix`）——
-严格档**永远先跑且不变**，失败后按档位分流（`Engine` ⇒ 引擎；`Sibling` ⇒ E19 窄版）✓。
-**`fill_pending_by_shape` 降级**为 defaulting 的**参考实现**（`Sibling` 档那一份；引擎档的等价物是
-`MetaCtx::default_unresolved`，判据仍是"声明类型同形"，只是从"拷一个已解兄弟的值"一般化成
-"两两合一、选代表"）✓。⚠ `implicit::telescope` 的参数名**本来就是 fresh 名**（`\0soko_p{i}`）⇒
-这条路**不需要**再 freshen（记法路径那条要 —— M1 实测的坑）。
-
-| 判据 | 结果 |
-|---|---|
-| `cargo test -p sokonanoda-front --lib` | **782/782** ✓ |
-| `implicit_metavar`（四条断言：默认绿 / 反向关红 / 不猜 / 既有码仍报）| **1 passed** ✓ |
-| `metavar_inventory`（M0 的 13 形状）| **1 passed**（26 读数一条不变）✓ |
-| `metavar_engine`（**3 passed**：M1 的 5 个记法形状 × 4 档 + 开关等价 + **M2 的 5 个一般路径形状 × 4 档**）| **3 passed** ✓ |
-| `notation` / `notation_metavar` | **49 / 1** 全绿 ✓ |
-| **三指纹：默认档 与 引擎档** | 两态**都逐字节等于** M0 冻结值 ⇒ 引擎在一般路径上也是**0 增 0 失** ✓ |
-| 课程门禁（引擎档）| **43/377/99/0** ✓ |
-| 冷 build 结构计数（默认档）| `runs=886 bytes=47,437,669` · `passes=1343` · `by_calls=21,268` · `hits/misses=20,853/302` · `compiled 42/hit 0` —— **逐项等于基线** ✓ |
-| `scripts/soko gate --fast` | **EXIT=0** ✓ |
-
-**M2 的读数口径再修正一次**（M0 只说了全局缓存）：冷 build 结构计数还要**项目缓存也确认是空的**
-（`build --clean` 之后 `ls courses/set-theory/.sokonanoda/compiled | wc -l` = **0**），而且**别与别的
-编译任务并发**（并发的 gate/门禁会**把项目缓存重新填上**）—— 实测踩到一次：项目缓存还有 41 个文件时
-同一条命令给出 `compiled 30 / hit 12`、`runs=616`（**是热启动，不是回归** ✗）。
-
-**M2 不做**（后续片）：sort/kind 与报错契约 = **M3** · 默认开 = **M4** · 宇宙层 = U1/U2 · 范围 B = K1/B1–B3 ✓。
-
-## 10. M3 as-built（2026-10-01 **收口 ✓**）：sort/kind 检查 + 三通道归因
-
-**引擎内的 sort/kind 闸门**（设计 §2.5，`MetaCtx::assign`）：三值语法近似 —— `sort_of_value(v)`
-（`Prop`=1 · `Type`=2 · `Sort(n)`=n+1 · `Level(_)`/`App`/`Lambda`/`Ident`= **不知道**）vs
-`sort_of_type(m.ty)`（`Prop`=0 · `Type`=1 · `Sort(n)`=n）；**只拒"确定错"的**（不知道 ⇒ 放行 ⇒
-不可能假拒绝 ✓）。**用户拍板**：检出 = **作废该候选**（`unify` ⇒ `No`）+ 报**既有码**（不新增码）✓。
-
-**三通道**（`MetaSolve { Solved, Unsolved, Kind, Clash }`）：引擎把失败**归因**（`MetaCtx::first_err`
-记录首个硬错误，`discharge` 优先返回它 ⇒ 不会被"还有未解元变量"盖成 `Unsolved`）；调用方
-（应用路径的错误点）**同一个码**下按通道换 `message` 那一句 ✓。**码与 hint 契约逐字不变**
-（`Unsolved` 那条的 message **逐字等于**今天）⇒ §2.6 十二条判据**全部不动** ✓。
-
-| 判据 | 结果 |
-|---|---|
-| 真值层单测（**15 条**：M1 的 11 + M3 的 `sort_of_value` 三值表 / kind 拒 / 不知道就放行 / 通道区分）| **15/15** ✓ |
-| `cargo test -p sokonanoda-front --lib` | **786/786** ✓ |
-| §2.6 十二条：`implicit_metavar` · `metavar_inventory` · `metavar_engine` · `notation` · `notation_metavar` | **1 / 1 / 3 / 49 / 1** 全绿 ✓ |
-| **三指纹：默认档 与 引擎档** | 两态**都逐字节等于** M0 冻结值（⇒ **本轮零用户可见变化**）✓ |
-| 冷 build 结构计数（默认档，项目缓存确认空）| 逐项等于基线 ✓ |
-| `scripts/soko gate --fast` | **EXIT=0** ✓ |
-| 契约同步 | `docs/protocol.md`（三通道说明，**码/hint 不变**）+ `skills/sokonanoda-teacher/SKILL.md`（按 message 判通道）✓；**扩展无需改**：VS Code 侧只透传 `message`/`hint`，没有码表 ✓ |
-
-**⚠ 一条诚实的设计更正（M3 实测）：设计 §4 的「kind 夹具**不再落内核**」这一条**做不到**，
-除非回退 G-21 的既有修复** ✗ —— 实测：`K Nat` / `L Nat` / `Set.powerset Nat` 这类「把类型写在
-要项的位置」的形状，**严格档先跑且成功**（`unify_extract` 的裸变量位永远取得到值）⇒ 引擎根本轮不到，
-它们照旧落内核 `kernel-expected-sort`（那条 hint 已经很好：① 漏了前导类型参数 ② 冒号后面是值，
-G-21 的验收判据正钉在它上面）。⇒ **M3 的 sort 闸门是"引擎自己的正确性守卫"**（单元层可咬 ✓），
-**不是**新的用户可见诊断；真要把它搬到 elab 期，得同时把 `kernel-expected-sort` 的 hint 内容搬过来
-并更新 G-21 台账 —— **留作后续片的决策点**（不在 M3 的拍板范围内）。
-
-**M3 不做**：默认开 = **M4** · 宇宙层 = U1/U2 · 范围 B = K1/B1–B3 · 记法路径的通道归因（记法错误点
-在另一处，M3 只接了应用路径；记法那条的 message 仍走既有文案）✓。
-
-## 11. M4 as-built（2026-10-01 **收口 ✓**）：**默认开** + 发版
-
-**默认档翻到 `Engine`**（`SOKO_METAVAR` 不设 ⇒ 引擎；`SOKO_NOTATION_METAVAR=0` 仍把档位关掉 ✓）；
-**`sibling` 永久保留为回归臂**（E19 那一份实现 + 判据继续钉着它 ✓）。**默认开的前提是两态等价**：
-M1–M3 每一片都验过"引擎档与窄版档三指纹逐字节相同"，M4 再复核三态 ✓。
-
-| 态 | 非课程(86) | 课程(42) | 全语料(129) |
-|---|---|---|---|
-| **默认（= 引擎，M4 起）** | `7646fe2e…` | `d0375577…` | `06370a38…` |
-| **`SOKO_METAVAR=sibling`（回归臂）** | `7646fe2e…` | `d0375577…` | `06370a38…` |
-| **`SOKO_METAVAR=0`（逃生门）** | `43581e06…` | `d0375577…` | `0231dcc4…` |
-
-⇒ **默认档与回归臂逐字节相同**（引擎在整个语料上 0 增 0 失 ✓）；逃生门仍是 E19 §9 那两个值
-（非课程/全语料各差一处，**恰好 G-48 那一份复现件**）✓。
-
-| 判据 | 结果 |
-|---|---|
-| 真值层单测 / front lib | **15/15** / **786/786** ✓ |
-| `metavar_engine`（3 passed；判据 1 改成「默认 ≡ **engine**」+ 新增「默认 ≡ sibling 回归臂」）| ✓ |
-| `metavar_inventory`（M0 的 13 形状 × 2 态）· `implicit_metavar` · `notation` · `notation_metavar` | **1 / 1 / 49 / 1** ✓ |
-| 课程门禁（默认档 = 引擎）| **43/377/99/0** ✓ |
-| 冷 build 结构计数（默认档 = 引擎，项目缓存确认空）| 逐项等于基线 ✓ |
-| `scripts/soko gate`（**完整**，含缺口台账门禁）| **EXIT=0** ✓ |
-| 版本 | `0.79.0` → **`0.80.0`**（`Cargo.toml` + `editor/vscode/package.json` **必须相等**，两门课的
-`sokonanoda.toml` 的 `requires` 钉同步 ✓）|
-
-**缓存键**：默认档从 `Sibling`(0) 变成 `Engine`(1) ⇒ 升级后**旧缓存一次性失效**（安全的那个方向 ✓）。
-**⚠ 没做**：`scripts/vscode-e2e.sh` 的真 VS Code 台账（按批次纪律在批次收尾跑；本片只跑 Rust/契约层）·
-K1/B1–B3/U1/U2 见 §4 切片表 ✓。
+> 设计全文 ⇒ **`docs/design/metavar-pattern.md`**（HO1–HO4 切片、判据、反向、开关、决策点）。
+> 一句话：`apply Eq.subst (Eq.symm h)` 原理上合法、Lean 4 接受（留 `¬ (x ∈ ∅)`）；我们补
+> pattern 赋值 + `apply` 剥层早停。**HO4 验收前不改判定代码** ✓。

@@ -10,7 +10,7 @@
 //! 单文件模式下 `prefix_src` 仍是**借用**本文件前缀（`Cow::Borrowed`），
 //! 不产生额外分配：A1（无 `import` 的文件逐字节不变）不受影响。
 
-use super::meta_exit::new_meta_table;
+use super::meta_exit::{add_decl_silent as add_decl, new_meta_table};
 use super::{
     by_step_states, failed_state, lower_value, skipped, CmdHover, KernelFailed, PendingOp, PpFlags,
     TrustPlan,
@@ -351,7 +351,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 // 真环境由此开始被 walk 填满，B 步（内核阶段跳过已覆盖的 cmd）
                 // 才有依据 ✓。`declar` 已被 clone 一次 ⇒ 再 clone 一次给第二个环境 ✓。
                 if Self::walk_real_add_enabled() {
-                    let _ = self.builder.add_declar(declar.clone());
+                    add_decl(&mut self.out, &mut self.builder, declar.clone(), None, cmd);
                 }
                 let _ = self.shadow.as_mut().unwrap().add_declar(declar);
                 true
@@ -1127,7 +1127,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 // **R1c-2b（2026-10-05）**：**声明出口** ✓ —— 层元变量收口
                 // （对齐 Lean：`levelMVarToParam` 在 `addDecl` **之前** ✓）。
                 let (decl, _fresh) = self.discharge_level_mvars(decl);
-                let _ = self.builder.add_declar(decl);
+                add_decl(&mut self.out, &mut self.builder, decl, Some(name), idx);
                 self.known.insert(
                     name.to_string(),
                     KnownName::Decl {
@@ -1453,7 +1453,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 &elab_ctx,
             ) {
                 let (decl, _fresh) = self.discharge_level_mvars(decl);
-                let _ = self.builder.add_declar(decl);
+                add_decl(&mut self.out, &mut self.builder, decl, Some(name), idx);
                 self.known.insert(
                     name.to_string(),
                     KnownName::Decl {
@@ -1585,7 +1585,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 // **R1c-2b（2026-10-05）**：**声明出口** ✓ —— 层元变量收口
                 // （对齐 Lean：`levelMVarToParam` 在 `addDecl` **之前** ✓）。
                 let (decl, _fresh) = self.discharge_level_mvars(decl);
-                let _ = self.builder.add_declar(decl);
+                add_decl(&mut self.out, &mut self.builder, decl, Some(name), idx);
                 self.known.insert(
                     name.to_string(),
                     KnownName::Decl {
@@ -1921,7 +1921,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 // **R1c-2b（2026-10-05）**：**声明出口** ✓ —— 层元变量收口
                 // （对齐 Lean：`levelMVarToParam` 在 `addDecl` **之前** ✓）。
                 let (decl, _fresh) = self.discharge_level_mvars(decl);
-                let _ = self.builder.add_declar(decl);
+                add_decl(&mut self.out, &mut self.builder, decl, Some(name), idx);
                 self.known.insert(
                     name.to_string(),
                     KnownName::Decl {
@@ -2144,7 +2144,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 &elab_ctx,
             ) {
                 let (decl, _fresh) = self.discharge_level_mvars(decl);
-                let _ = self.builder.add_declar(decl);
+                let nm = internal_name.as_str();
+                add_decl(&mut self.out, &mut self.builder, decl, Some(nm), idx);
             }
             return;
         }

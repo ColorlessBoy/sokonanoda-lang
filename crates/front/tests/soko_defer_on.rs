@@ -33,6 +33,10 @@ theorem t (α : Type) (A : Set α) (a b : α) (h : mem b A) : subset (singleton 
 #[test]
 fn a_deferrable_apply_is_recorded_and_the_block_continues() {
     std::env::set_var("SOKO_DEFER", "1");
+    // HO4 起 pattern/approx 默认开会把这条的失败归类成 `elab-tactic-failed`（不再是
+    // defer 的 `Unsolved` 通道）⇒ 本测只钉 defer，显式关两档。单文件单 `#[test]` ✓。
+    std::env::set_var("SOKO_META_PATTERN", "0");
+    std::env::set_var("SOKO_META_APPROX", "0");
     deferred_reset();
     let file = parse(SRC).expect("fixture parses");
     let (out, report) = compile_all_with(&file, &CompileOptions::default());

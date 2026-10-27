@@ -1,3 +1,7 @@
+## metavar 真实状态（2026-10-26 更新）
+- **M1–M4 = 隐式实参求解器**；**#16 HO 线**：HO1/HO2 ✅（HO2 症状级）、**B2 P0–P4c ✅**（P0 现场 gate-on 绿；gate 默认开 + full gate PASS）、**HO3a/HO3b ✅**（pattern/FO/checker，默认翻 on）；**B2 ✅ 默认开**；**HO4 ✅（pattern/approx 默认开；quasi 捕获闸；gate PASS）**；状态只认 `metavar-pattern.md` §9。
+- 更正：完整 mvar ≠ M1–M4；HO3/HO4 未收口。
+
 ## LKA 发版门禁 + 内核三修（2026-10-24 · 未发版）
 - 用户要求：发版前跑最新 LKA、内核改动不报错、可信度进 README/官网。落地 `scripts/arena-gate.py` + `bump.py` 强制 + `release-preflight.sh` ④；内核三修：嵌套 iota 字段数、unsafe/partial `decline`、`MetaContext` O(1) 闸（`app-lam` 30s+ → 0.46s）。
 - 200 条语料：**126 接受 · 71 拒绝 · 2 declined · 1 超时 · known slow 1**（`perf/magma-list-pair-n21`）；官网/README 写 **126/127 + 1 性能超时**。判据：kernel 76/76 · gate PASS · `check-site` 10/10。

@@ -2457,6 +2457,19 @@ fn solve_type_params(
     }
 }
 
+/// **HO2（metavar #16 的 HO 线）**：`apply` 剥层的**早停**开关。
+///
+/// `SOKO_APPLY_PREPEEL=0|off` ⇒ 回到 HO1 的旧行为（先剥穿 def 头再对齐）；
+/// **不设 = 开**（HO2 默认开）。只读一次环境（与 `SOKO_DEFER` /
+/// `SOKO_ASSUMPTION_FIRST_ONLY` 同一纪律）。
+///
+/// ⚠ **症状级**：HO4 用引擎规则（pattern 合一）替换本处，届时本开关
+/// **只留回归臂**（`docs/design/metavar-pattern.md` §4/§7）。
+fn apply_prepeel_enabled() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| !std::env::var("SOKO_APPLY_PREPEEL").is_ok_and(|v| v == "0" || v == "off"))
+}
+
 /// `apply f`：推断 f 的类型，位置 spine 合一 codomain 与目标，
 /// 类型参数由 σ 填充，其余 binder 变成子目标。
 // 参数已 8 个（0.62.0 起多一个 `universe`：判定合成声明要带声明的宇宙
@@ -2583,7 +2596,24 @@ fn apply_tactic<'a>(
     // 剥 Pi 链。
     let mut layers: Vec<(String, Expr)> = Vec::new();
     let mut t = f_ty_expr;
+    // **HO2（metavar #16 的 HO 线；`docs/design/metavar-pattern.md` §3.4）**：剥层**早停** ——
+    // 每轮**剥之前**先看眼前的类型 `t` 是不是**已经就是目标**（[`unify_spine`]，与下面
+    // `direct` 同一把尺子、同一份 `layers`）。命中 ⇒ 把 `t` 当结论、**不再 delta 展开** def 头。
+    //
+    // 为什么需要（§2.1）：`apply Eq.subst (Eq.symm h)` 在目标 `¬ (x ∈ A)` 上，部分应用后的类型是
+    // `¬ (x ∈ ∅) → ¬ (x ∈ A)`；剥掉第一个箭头后 [`peel_pi_delta`] 会把 `Not` **看穿**成
+    // `(x ∈ A) → False` ⇒ 结论变 `False`、目标仍是未展开的 `¬ (x ∈ A)`，而 `unify_spine` 是
+    // **源级表面匹配**（不调内核 `def_eq`）⇒ 对不上，假报「目标不匹配」✗。
+    // 早停后结论停在未展开的 `¬ (x ∈ A)` 上 ⇒ `layers = [¬ (x ∈ ∅)]`、唯一子目标 `¬ (x ∈ ∅)` ✓。
+    //
+    // **零回归面**：开关关 / 不命中 ⇒ 逐字节走 HO1 的旧链（剥层 → 目标归一 → 头展开 →
+    // 递归展开 → 内核判等兜底）✓；早停命中时 `direct = unify_spine(&codomain, &goal, &layers)`
+    // 就是上面这一次命中（同参同函数）⇒ σ 照旧、前提层照旧变成子目标 ✓。
+    let prepeel = apply_prepeel_enabled();
     let codomain = loop {
+        if prepeel && unify_spine(&t, &apply_goal, &layers).is_some() {
+            break t;
+        }
         // delta 版剥层：`h : A ⊆ B`（`Set.subset` 是 def）也要能当函数用
         // ——否则 `apply h` 报「`h` 的结果是 `Set.subset α A B`，无法对齐目标」。
         // 层级提示**逐轮按当前 `t` 算**（第一轮 `Ne (Set α) A B` ⇒ 1，展开后

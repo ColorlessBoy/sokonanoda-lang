@@ -27,6 +27,10 @@ theorem t (α : Type) (A : Set α) (a b : α) (h : mem b A) : subset (singleton 
 
 #[test]
 fn without_the_flag_a_deferrable_apply_still_kills_the_block() {
+    // HO4 起 pattern/approx 默认开，会改变这条负例的**诊断码**（仍判红）。本测只钉
+    // `SOKO_DEFER` 默认关的行为 ⇒ 显式关掉两档，回到旧诊断面。单文件单 `#[test]` ✓。
+    std::env::set_var("SOKO_META_PATTERN", "0");
+    std::env::set_var("SOKO_META_APPROX", "0");
     deferred_reset();
     let file = parse(SRC).expect("fixture parses");
     let (out, report) = compile_all_with(&file, &CompileOptions::default());

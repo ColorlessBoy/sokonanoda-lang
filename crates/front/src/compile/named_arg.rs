@@ -275,6 +275,7 @@ pub(crate) fn apply<'a>(
             expected_src,
             ctx.defs,
             &is_inductive,
+            ctx.metas.and_then(|m| m.store.as_ref()),
         ) {
             crate::compile::meta::MetaSolve::Solved(v) => v,
             _ => {

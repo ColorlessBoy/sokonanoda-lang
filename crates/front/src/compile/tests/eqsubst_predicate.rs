@@ -343,21 +343,24 @@ theorem t (α : Type) (A C D : Set α) (hx : A ⊆ C) (h : C = D) : A ⊆ D := b
     assert!(checked_names(&out).contains(&"t".to_string()));
 }
 
-/// **已知边界（钉住现状，不是修好了）**：`apply` 会**一直剥 Π** —— 当被应用项的
-/// 结果类型是 `def` 头、展开后是 Π/箭头（`A ⊆ D` → `∀ x, A x → D x`）时，
-/// 它把**目标本身**也当函数剥掉两层 ⇒「结果是 `D x`，无法对齐当前目标 `A ⊆ D`」。
+/// **HO2（metavar #16 的 HO 线）之后：`apply` 不再把目标本身剥掉。**
+///
+/// 旧行为（`SOKO_APPLY_PREPEEL=0`；回归臂在 `crates/cli/tests/apply_eqsubst.rs`）：
+/// `apply` 会**一直剥 Π** —— 当被应用项的结果类型是 `def` 头、展开后是 Π/箭头
+/// （`A ⊆ D` → `∀ x, A x → D x`）时，它把**目标本身**也当函数剥掉两层 ⇒
+///「结果是 `D x`，无法对齐当前目标 `A ⊆ D`」。
 ///
 /// 现场（2026-10-23 顺带发现，与 `Eq.subst` 的隐式反解**无关**）：
 /// ```text
 /// apply Eq.subst (Set α) (fun (X : Set α) => A ⊆ X) C D h
 /// exact hx
 /// ```
-/// 同一条项写成 `exact @Eq.subst.{1} … h hx` 判绿（`exact` 不剥 Π）。
+/// 同一条项写成 `exact @Eq.subst.{1} … h hx` 本来就判绿（`exact` 不剥 Π）。
 ///
-/// ⚠ **本用例断言的是当前行为**：将来谁让 `apply` 按「已写实参 vs 声明元数」
-/// 决定剥几层，这里**应当判红**（是升级，不是回归）✓。
+/// HO2 的剥层**早停**（设计 `docs/design/metavar-pattern.md` §3.4）剥掉 `A ⊆ C` 这一层后
+/// 余下的 `A ⊆ D` 就是目标 ⇒ 唯一子目标 `A ⊆ C`，`exact hx` 收口 ✓。
 #[test]
-fn apply_with_a_def_headed_motive_still_over_peels_the_goal() {
+fn apply_with_a_def_headed_motive_stops_before_peeling_the_goal() {
     let src = "\
 def Set (α : Type) : Type := α → Prop
 def subset {α : Type} (A B : Set α) : Prop := ∀ (x : α), A x → B x
@@ -368,16 +371,16 @@ theorem t (α : Type) (A C D : Set α) (h : C = D) (hx : A ⊆ C) : A ⊆ D := b
   exact hx
 ";
     let out = compile(src);
-    assert!(
-        !out.errors.is_empty(),
-        "已知边界：`apply` 把目标本身剥掉了 ⇒ 今天仍判红"
+    assert_eq!(
+        out.errors,
+        vec![],
+        "HO2 早停后 `A ⊆ D` 不再被剥（`SOKO_APPLY_PREPEEL=0` 下才回到旧的「无法对齐」）：{:?}",
+        out.errors
     );
     assert!(
-        out.errors[0].message.contains("无法对齐当前目标"),
-        "边界形状的文案（剥 Π 过头）：{}",
-        out.errors[0].message
+        checked_names(&out).contains(&"t".to_string()),
+        "早停后由 `exact hx` 收口 ⇒ 整条判绿"
     );
-    assert!(!checked_names(&out).contains(&"t".to_string()));
 }
 
 /// **应用端差异**（`A` vs `sing a`，没有记法）：真实课程里 `∅` 经内核降级成

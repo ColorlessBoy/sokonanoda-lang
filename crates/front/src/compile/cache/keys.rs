@@ -126,12 +126,32 @@ pub fn key_with_build(src: &str, options: &CompileOptions, build: u64) -> String
 
 /// 元变量档位在缓存键里的**状态字节**：`Sibling`（默认档，今天的行为）**保持 0**
 /// ⇒ 老缓存继续可用 ✓；另两档各占一个字节 ⇒ 三档互不污染 ✓。
+///
+/// **HO3b（2026-10-26）**：再折两**位**（`0b0100` = `SOKO_META_PATTERN` 开、
+/// `0b1000` = `SOKO_META_APPROX` 开）——**默认 0 ⇒ 键逐字节不变** ✓。
+/// 为什么必须进键：这两档会**改判定面**（近似档给更一般的解 / 更少的拒绝）⇒
+/// 少了它们，先跑那一档的检出会被另一档原样回放（正是 b1 那类缓存污染 ✗）。
+/// 为什么挂在 `metavar_state` 而不是 `flags_state`：内容寻址键**不折 `SOKO_*`**
+/// （`content_key_with_build` 那一侧传 `0`）⇒ 只有挂在这里，共享产物才既**可共享**
+/// （默认档恒 0 ✓）又**不跨档串味** ✓。
 fn metavar_state() -> u8 {
-    match crate::compile::implicit::metavar_mode() {
+    pattern_bits(
+        crate::compile::meta::pattern::enabled(),
+        crate::compile::meta::pattern::approx_enabled(),
+    ) | match crate::compile::implicit::metavar_mode() {
         crate::compile::implicit::MetavarMode::Sibling => 0,
         crate::compile::implicit::MetavarMode::Engine => 1,
         crate::compile::implicit::MetavarMode::Off => 2,
     }
+}
+
+/// [`metavar_state`] 的**纯函数**部分（两档开关 ⇒ 两位；**默认 0**）。
+///
+/// 单列出来是为了**可判据**：环境变量在进程内只读一次、单测改不了它
+/// （`scripts/check-test-env-isolation.py` 的纪律）⇒ 这条纯函数把"位怎么算"
+/// 变成能断言的东西，运行期的档位由 `.json` 三指纹（`crates/cli/tests/meta_pattern.rs`）钉。
+fn pattern_bits(pattern: bool, approx: bool) -> u8 {
+    (u8::from(pattern) << 2) | (u8::from(approx) << 3)
 }
 
 // 参数多是故意的：缓存键必须显式列尽每一个影响判定的维度（格式、形状、版本、
@@ -242,6 +262,27 @@ mod tests {
     /// **反向验证**（实测）：把 `content_key_with_build` 里的 `None` 改回 `Some(flags_state())`
     /// ⇒ ② **当场判红** ✓；把 `key_parts` 里 `if let Some(..)` 那一段整段删掉
     /// ⇒ ② **仍然判红**（两条链算出来逐字相同）✓ —— 这条断言**同时**咬住那两个改动 ✓。
+    /// **HO3b 的判据**：pattern / 近似档各占**一位**，默认档是 **0**（⇒ 键逐字节不变）。
+    ///
+    /// 反向验证：把 `pattern_bits` 的两个位移改成同一个位 ⇒ 第二、三条当场红（两档会撞键）。
+    #[test]
+    fn pattern_and_approx_own_distinct_key_bits() {
+        assert_eq!(
+            pattern_bits(false, false),
+            0,
+            "默认档必须是 0（老键照旧命中）"
+        );
+        assert_eq!(pattern_bits(true, false), 0b0100);
+        assert_eq!(pattern_bits(false, true), 0b1000);
+        assert_eq!(pattern_bits(true, true), 0b1100);
+        // 与元变量三档（0/1/2）**不重叠** ⇒ 任意组合都互不撞键。
+        for mode in 0u8..3 {
+            for bits in [0b0100u8, 0b1000, 0b1100] {
+                assert_eq!(bits & mode, 0, "新两位不许压到档位字节上");
+            }
+        }
+    }
+
     #[test]
     fn the_content_key_is_flag_free_and_still_sensitive() {
         let full = CompileOptions::default();
