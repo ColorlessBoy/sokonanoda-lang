@@ -9,5 +9,11 @@
   "surroundingPairs": [
     { "open": "(", "close": ")" },
     { "open": "{", "close": "}" }
+  ],
+  "onEnterRules": [
+    {
+      "beforeText": "^\\s*(·|\\.)\\s.*$",
+      "action": { "indent": "indent" }
+    }
   ]
 }

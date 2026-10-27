@@ -20,7 +20,7 @@ mod types;
 use std::collections::BTreeSet;
 
 pub use pos::{column_width, line_col_of, offset_of_line_col, with_line_index, LineIndex};
-pub use state::{decl_at_cursor, select_state_at, StateSelection};
+pub use state::{decl_at_cursor, select_state_at, select_state_at_in_text, StateSelection};
 pub use types::{
     Answer, BinderInfo, CheckCounts, CheckSummary, CodeActionInfo, DeclHeader, DeclInfo,
     FailedDecl, GoalInfo, HoleInfo, LocatedHole, ProjectCounts, ProjectDiagnosticInfo,
@@ -1414,7 +1414,7 @@ impl QueryDoc {
         let Some(d) = decl_at_cursor(&self.text, &report.decls, cursor) else {
             return Err(QueryError::OutsideDeclarations);
         };
-        let selection = select_state_at(d, cursor);
+        let selection = select_state_at_in_text(d, cursor, &self.text);
         // 一次 parse，然后每个 goal/binder 纯分类（goal-rendering §2.1）。
         let decls = self.decl_kinds();
         let notations = self.notation_symbols();
@@ -1528,7 +1528,7 @@ impl QueryDoc {
             }
             names
         };
-        let selection = select_state_at(d, cursor);
+        let selection = select_state_at_in_text(d, cursor, text);
         let found = names(&selection);
         if !found.is_empty() || !selection.goals.is_empty() {
             return found;
@@ -1536,7 +1536,7 @@ impl QueryDoc {
         // 目标已闭合 ⇒ 退回"写这一步时"的上下文（见上）。
         match selection.span {
             Some(span) if span.start.offset < cursor => {
-                names(&select_state_at(d, span.start.offset))
+                names(&select_state_at_in_text(d, span.start.offset, text))
             }
             _ => found,
         }

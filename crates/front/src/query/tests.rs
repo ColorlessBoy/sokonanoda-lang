@@ -390,6 +390,48 @@ fn state_at_inside_the_last_tactic_shows_its_own_state() {
     );
 }
 
+/// **用户实测（2026-10-27）**：`·` 的步进记的是**聚焦态**、span 覆盖**整个块**
+/// ⇒ 旧选择器取"第一条包含"⇒ 块里每一行都显示块入口的状态（`intro x hx`
+/// 显示成 `intro h` 之前的样子）。判据：块里第二条 tactic 的起点必须答
+/// "上一条执行后"的状态，内部答它自己的后态。
+#[test]
+fn state_at_inside_a_bullet_uses_the_inner_tactic_not_the_bullet_entry() {
+    const BULLETS: &str = "\
+axiom P : Prop
+axiom Q : Prop
+axiom hp : P
+axiom hq : Q
+
+theorem bullets : P ∧ Q := by
+  constructor
+  · exact hp
+  · exact hq
+";
+    let d = doc(BULLETS);
+    // ① 第一个 `·` 里的 `exact hp`：起点 = `·` 的聚焦态 P（不是构造后的 `P ∧ Q`）。
+    let start = BULLETS.find("exact hp").expect("exact hp");
+    let state = d.state_at(start).expect("answerable");
+    assert_eq!(
+        state.step, 1,
+        "`·` is step 1; `exact hp` enters at its focus"
+    );
+    assert_eq!(state.goals.len(), 1);
+    assert_eq!(state.goals[0].goal, "P");
+    // ② 同一 tactic 内部 ⇒ 它自己的后态：这个分支已闭合。
+    let state = d.state_at(start + 2).expect("answerable");
+    assert!(
+        state.goals.is_empty(),
+        "inside `exact hp` the branch is closed: {:?}",
+        state.goals.iter().map(|g| &g.goal).collect::<Vec<_>>()
+    );
+    // ③ 第二个 `·` 里的 `exact hq`：起点 = 第二个 `·` 的聚焦态 Q
+    //    （旧行为会把上一条分支的"已闭合"带过来 ✗）。
+    let start = BULLETS.find("exact hq").expect("exact hq");
+    let state = d.state_at(start).expect("answerable");
+    assert_eq!(state.goals.len(), 1);
+    assert_eq!(state.goals[0].goal, "Q");
+}
+
 #[test]
 fn state_at_outside_declarations_is_an_error_not_an_empty_answer() {
     let doc = doc("-- 只有注释\n");

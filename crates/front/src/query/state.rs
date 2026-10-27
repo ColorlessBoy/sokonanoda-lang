@@ -131,6 +131,16 @@ fn in_blank_tail(text: &str, end: usize, cursor: usize) -> bool {
 /// 空 binders、失败声明吐 null）——**只给反向验证用**（见
 /// `docs/gaps/repro/` 的这条复现件：`scripts/expect-red.sh` 断言撤掉修复后判据必须红）。
 pub fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
+    select_state_at_in_text(d, cursor, "")
+}
+
+/// 与 [`select_state_at`] 同一语义，但能看见**源码文本**（判定 `·` 的步进）。
+///
+/// 为什么要文本：`·` 的那一格记的是**聚焦目标**（块体开跑之前），而普通 tactic
+/// 记的是**执行后** —— 选择器必须能区分这两者（`span` 本身分不出来，`have` 的
+/// span 也覆盖它的嵌套步）。本文本只用于看 `span.start` 处是不是 `·`，不参与
+/// 任何判定。
+pub fn select_state_at_in_text(d: &DeclState, cursor: usize, text: &str) -> StateSelection {
     let legacy = state_root_legacy();
     // 无 `by` ⇒ 没有 per-tactic 状态可选。
     if d.by_steps.is_empty() {
@@ -205,48 +215,123 @@ pub fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
         step: -1,
         total: d.by_steps.len(),
     };
-    let selected = match d.by_steps.iter().position(|s| {
-        // **开区间**（B2）：`start < cursor < end` ⇒ 该 tactic **执行后** ✓
-        // （Lean `useAfter` 的 `hoverPos > pos`；`cursor == start` 仍是"进入态" ✓）。
-        if state_after_legacy() {
-            s.span.start.offset <= cursor && cursor < s.span.end.offset
-        } else {
-            s.span.start.offset < cursor && cursor < s.span.end.offset
+    let at = |step: usize| -> StateSelection {
+        let s = &d.by_steps[step];
+        // **失败声明的最后一个 step 可能是空的**（tactic 全绿、内核终审才拒绝）——
+        // `goal: null` 在协议里 = 证明已闭合 ⇒ 不许把这种情况显示成「已无目标」✗
+        // （G-78 的同一原则）。回退到题面：这道题仍然没通过。
+        if !legacy && matches!(d.status, DeclStatus::Failed) && s.goals.is_empty() {
+            return root();
         }
-    }) {
-        Some(i) => {
-            if state_after_legacy() {
-                i as i64 - 1
-            } else {
-                i as i64
-            }
+        StateSelection {
+            goals: s.goals.clone(),
+            span: Some(s.span),
+            step: step as i64,
+            total: d.by_steps.len(),
         }
-        None => d
+    };
+
+    // **逃生门**（只给反向验证用）：保留改动前的"进入态"选择。
+    if state_after_legacy() {
+        let selected = match d
             .by_steps
             .iter()
-            .rposition(|s| s.span.end.offset <= cursor)
-            .map(|i| i as i64)
-            .unwrap_or(-1),
-    };
-    let Some(step) = usize::try_from(selected)
-        .ok()
-        .filter(|i| *i < d.by_steps.len())
-    else {
-        return root();
-    };
-    let s = &d.by_steps[step];
-    // **失败声明的最后一个 step 可能是空的**（tactic 全绿、内核终审才拒绝）——
-    // `goal: null` 在协议里 = 证明已闭合 ⇒ 不许把这种情况显示成「已无目标」✗
-    // （G-78 的同一原则）。回退到题面：这道题仍然没通过。
-    if !legacy && matches!(d.status, DeclStatus::Failed) && s.goals.is_empty() {
-        return root();
+            .position(|s| s.span.start.offset <= cursor && cursor < s.span.end.offset)
+        {
+            Some(i) => i as i64 - 1,
+            None => d
+                .by_steps
+                .iter()
+                .rposition(|s| s.span.end.offset <= cursor)
+                .map(|i| i as i64)
+                .unwrap_or(-1),
+        };
+        return match usize::try_from(selected)
+            .ok()
+            .filter(|i| *i < d.by_steps.len())
+        {
+            Some(step) => at(step),
+            None => root(),
+        };
     }
-    StateSelection {
-        goals: s.goals.clone(),
-        span: Some(s.span),
-        step: selected,
-        total: d.by_steps.len(),
+
+    // **进入第 i 条 step 的状态** = 它前面那条**兄弟**执行后的状态。
+    //
+    // ⚠ `by_steps` 对**带块的 tactic**（`cases` / `match` / `·`）是**后序**：
+    // 块体的 step 先入表、外层 step 后入表 ⇒ 不能直接取 `i - 1`（那可能是
+    // **块体里的最后一步**，状态已闭合）。判据：若 `i - 1` 的 span **被 i 的 span
+    // 包含**，它就不是兄弟，跳过它，继续找真正的兄弟；都没有 ⇒ 根状态。
+    let entry = |i: usize| -> StateSelection {
+        let cur = &d.by_steps[i];
+        let mut j = i;
+        while j > 0 {
+            let prev = &d.by_steps[j - 1];
+            if cur.span.start.offset <= prev.span.start.offset
+                && prev.span.end.offset <= cur.span.end.offset
+            {
+                j -= 1;
+            } else {
+                break;
+            }
+        }
+        if j == 0 {
+            root()
+        } else {
+            at(j - 1)
+        }
+    };
+
+    // ① **光标恰在一条 tactic 的起点** ⇒ 答"进入"它的状态。
+    //
+    // 普通 tactic 的进入态 = **上一条**执行后的状态（同一分支里的兄弟）。
+    // `·` 的步进是个例外：它记的是**聚焦目标**（引擎在跑块体之前推的那一格），
+    // 而它前面那条可能是**上一个分支**的最后一步 ⇒ 必须用它自己的 goals。
+    //
+    // 为什么不能只靠下面那条"最内层包含"：`cursor == start` 时开区间不成立，
+    // 而 `·` 的 span 覆盖整个块 ⇒ 会选中 `·` 的聚焦态；对块里第二条之后的
+    // tactic 来说那已经过期（用户 2026-10-27 报的"`intro x hx` 状态不对"）。
+    if let Some(i) = d
+        .by_steps
+        .iter()
+        .position(|s| s.span.start.offset == cursor)
+    {
+        if is_bullet_step(d.by_steps[i].span, text) {
+            return at(i);
+        }
+        return entry(i);
     }
+
+    // ② 否则：**最后一条已经开始的** tactic 之后的那个状态。
+    //
+    // 源码顺序就是嵌套顺序（外层 `·` 的 `start` 更早、内层兄弟更晚）⇒ 取
+    // `rposition(start < cursor)` 自动是**最内层**的那一条；`·` 的块入口态
+    // 会被块里后面的兄弟盖住（2026-10-27 用户实测的 `intro x hx`）。
+    //
+    // 这同时覆盖两种旧行为：tactic **内部**（`start < cursor`）答它自己的后态；
+    // 两条 tactic **之间**（gap）答前一条的后态 —— 不是块入口的旧聚焦态。
+    // ② 否则：**最后一条已经开始的** tactic 之后/内部 ⇒ 它自己的后态。
+    //
+    // 既有协议：tactic **起点**（①）答进入态，**内部**答它执行后的状态（老测试
+    // `state_at_inside_a_tactic_shows_the_state_after_it` 钉的）；`cases` 这类
+    // **后序**块的起点由 ① 的 `entry` 修正，内部仍按后态。
+    if let Some(i) = d
+        .by_steps
+        .iter()
+        .rposition(|s| s.span.start.offset < cursor)
+    {
+        return at(i);
+    }
+
+    // ③ 第一条 tactic 之前 ⇒ 根状态（题面）。
+    root()
+}
+
+/// 这一步是不是 `·` 的步进（`ByStep.span` 从 `·` 开始）。
+///
+/// 只用于选择语义；`have` 的 span 从 `have` 开始 ⇒ 不会被误判 ✓。
+fn is_bullet_step(span: Span, text: &str) -> bool {
+    text.get(span.start.offset..)
+        .is_some_and(|rest| rest.starts_with('·'))
 }
 
 /// 逃生门（**只给反向验证用**）：`SOKO_STATE_ROOT=legacy` 恢复改动前的根状态

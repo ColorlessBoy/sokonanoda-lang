@@ -1450,7 +1450,8 @@ fn tactic_goal_hover(
     let step = &d.by_steps[step_index];
     // 真相层的选择器（`docs/protocol.md` §`soko/stateAt`）：tactic 起点处的
     // 状态 = **进入**它的状态。
-    let selection = sokonanoda_front::query::select_state_at(d, step.span.start.offset);
+    let selection =
+        sokonanoda_front::query::select_state_at_in_text(d, step.span.start.offset, text);
     let tactic_text = text
         .get(step.span.start.offset..step.span.end.offset)
         .unwrap_or("")

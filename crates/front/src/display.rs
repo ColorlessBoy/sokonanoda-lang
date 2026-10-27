@@ -100,6 +100,8 @@ impl From<&str> for DisplayText {
 
 use crate::ast::{Binder, Expr, MatchArm, NotationAssoc, NotationDecl};
 use crate::Span;
+
+mod spans;
 use std::collections::HashMap;
 
 /// 显示期的记法表（设计 §3.3）：记法声明 + 「target 点名 → 元数」+「target 点名 →
@@ -677,9 +679,12 @@ fn fold_collecting_inner(
             // **A1**：但那个 `->` 本身要折成 `→`（`forall` 分支折的是关键字，
             // 这条折的是 binder 组之后的箭头）。
             if let (Some(last), body) = (binders.last(), body) {
-                if let Some(tok) =
-                    arrow_token_between(src, base, last.span.end.offset, body.span().start.offset)
-                {
+                if let Some(tok) = spans::arrow_token_between(
+                    src,
+                    base,
+                    last.span.end.offset,
+                    body.span().start.offset,
+                ) {
                     edits.push((tok, "→".to_string()));
                 }
             }
@@ -729,7 +734,7 @@ fn fold_collecting_inner(
         // 折法是**只换 `->` 那两个字节**（与 `forall` 关键字同一条纪律：只有折过
         // 的 span 变，别的逐字节不动）。`->` 自己的 span 不在 AST 里，所以按
         // 「domain 结束 .. codomain 开始」这段空隙去找它。
-        if let Some(tok) = arrow_token_between(
+        if let Some(tok) = spans::arrow_token_between(
             src,
             base,
             domain.span().end.offset,
@@ -743,7 +748,12 @@ fn fold_collecting_inner(
     // 折它就会拼出 `(α = a) a`）。见 [`fold_collecting_inner`] 的文档。
     if !is_fun_part {
         if let Some(folded) = fold_spine(&expr, dn) {
-            edits.push((folded.span(), crate::proof::render_expr(&folded)));
+            // **`@` 在 span 之外**（parser 先 `bump` 掉它再解析头）⇒ 只替换头
+            // 会留下一个孤零零的 `@`：`@Set.mem α a A` 折成 `@a ∈ A`（用户
+            // 2026-10-27 实测报的那一形）。记法形态本身不带 `@`，把它一起吃进
+            // 替换范围 ✓。
+            let span = spans::fold_span_including_explicit_marker(folded.span(), src, base);
+            edits.push((span, crate::proof::render_expr(&folded)));
             return (folded, true);
         }
     }
@@ -752,32 +762,6 @@ fn fold_collecting_inner(
         return (expr, true);
     }
     (expr, child_changed)
-}
-
-/// 两个子节点之间的 `->` 记号（A1）。找不到（源里写的是 `→`，或者这一段根本
-/// 不是箭头——`∀ x, p` 的 `,`）⇒ `None`，**不猜、不动**。
-///
-/// `Expr::Arrow` 的 span 覆盖 `domain .. codomain`，`Expr::Forall`（`(x : α) -> β`
-/// 那条匿名 binder 形状）的 span 从 binder 组起、body 结束——两处的 `->` 都落在
-/// 「上一个子节点结束 .. 下一个子节点开始」这段空隙里。
-fn arrow_token_between(src: &str, base: usize, from: usize, to: usize) -> Option<Span> {
-    let start = from.checked_sub(base)?;
-    let end = to.checked_sub(base)?;
-    if start > end || end > src.len() {
-        return None;
-    }
-    let at = src.get(start..end)?.find("->")?;
-    let offset = from + at;
-    Some(Span::new(
-        crate::span::Pos {
-            offset,
-            ..crate::span::Pos::default()
-        },
-        crate::span::Pos {
-            offset: offset + 2,
-            ..crate::span::Pos::default()
-        },
-    ))
 }
 
 /// 这一层是不是一条记法实例？是就换成 [`Expr::Notation`]，否则 `None`。
@@ -827,6 +811,12 @@ fn fold_spine(expr: &Expr, dn: &DisplayNotations) -> Option<Expr> {
     // §3.2 硬规则：**部分应用不是记法实例**。两种完全应用形状之外的个数一律不折
     // （`k < operand_count` 先挡掉——它同时保证下面那句不越界）。
     if k < operand_count {
+        return None;
+    }
+    // **`@` 的部分应用不折**（2026-10-27）：`@Set.mem α a` 与闭项完全应用
+    // `Set.mem a A` 的实参个数同形（都是 `full - prefix`），但前者还缺一个操作数；
+    // 折它会把类型参数当第一个操作数（`α ∈ a` ✗）——显式脊只收 `full` 那一形。
+    if spans::explicit_spine_blocks_fold(expr, k, full) {
         return None;
     }
     if !(k == full || k == full.saturating_sub(prefix)) {
@@ -2078,6 +2068,16 @@ def Set.pair {α : Type} (a b : α) : Set α := fun (x : α) => x = a\n";
         let dn = notations(SET_LIB, SET_ARITY);
         // 内核 pp 的点名形式 → 记法形式。`α`（前导隐式类型参数）被丢掉。
         assert_eq!(fold_text("Set.mem α a A", &dn), "a ∈ A");
+    }
+
+    /// 用户实测（2026-10-27）：parser 的 `@` 不进表达式 span ⇒ 折叠会留下
+    /// 孤立的 `@`（`@x ∈ A`）；部分应用不折（实参个数与闭项同形，折了会把
+    /// 类型参数当操作数）。
+    #[test]
+    fn folding_an_explicit_application_drops_the_at_marker() {
+        let dn = notations(SET_LIB, SET_ARITY);
+        assert_eq!(fold_text("@Set.mem α a A", &dn), "a ∈ A");
+        assert_eq!(fold_text("@Set.mem α a", &dn), "@Set.mem α a");
     }
 
     #[test]

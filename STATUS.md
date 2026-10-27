@@ -1,3 +1,6 @@
+## v0.97.11 发版：`·` 块 goal state + `@` 折叠 + `·` 回车缩进（2026-10-27）
+- 用户拿到：`·` 内层 tactic 的状态、普通 tactic 内部进入态/结束后后态、`cases` 后序块入口；`@Set.mem α a A` → `a ∈ A`；VS Code `·` 回车缩进。
+
 ## metavar 真实状态（2026-10-26 更新）
 - **M1–M4 = 隐式实参求解器**；**#16 HO 线**：HO1/HO2 ✅（HO2 症状级）、**B2 P0–P4c ✅**（P0 现场 gate-on 绿；gate 默认开 + full gate PASS）、**HO3a/HO3b ✅**（pattern/FO/checker，默认翻 on）；**B2 ✅ 默认开**；**HO4 ✅（pattern/approx 默认开；quasi 捕获闸；gate PASS）**；状态只认 `metavar-pattern.md` §9。
 - 更正：完整 mvar ≠ M1–M4；HO3/HO4 未收口。
@@ -20,9 +23,6 @@
 - ⭐ **用户拿到什么**：第一批 90 + 第二批 86；共 **176 处**。
 - **判据**：课程门禁 **258 / 2190 / 915 / failed 0**；`notation-lint` selftest **18/18**。
 - **纪律**：delete-first；`@Eq.*`/多前导/零元/记法目标不进表；`@Set.mem_univ α` 局部应用保留 `@`。
-
-## 更早轮次（含本轮删掉的 `v0.97.3 发版：CLI PATH 误报 + 扩展升级自动升 CLI` / `v0.96.0 发版` / `apply 目标先参与`；**原文已删，只留最近 3 轮** ⇒ `git log --all -- STATUS.md`）：**CI 转绿：0.95.0 的 6 个红 job**（2026-10-20）· `fix-flip3` **第八刀（严格档 `@` 残余第二批，`rejected 22 → 16`）** · `fix-flip3` **第七刀（清 2 条语料/判据拼法 rejected + 构建身份更正）** · 第六刀（`courses/set-theory/**` 严格档 `@` 残余，`rejected 29 → 24`）** · **第四刀（族 (A)：`@` 脊上裸常量实参按该层 domain 重新 elaborate）** · 引擎侧三刀 + 输入方言迁移（a18）· 发版 `0.94.0` · `land-a15` + 补回 e1 · `SUB-implicit-args-strict-default`（严格档翻默认）· 发版 `0.93.0` · 严格档第 1 批（a1→a5）· 发版 `0.92.0` · `KERNEL-GLOBAL-QUIET-HOOK-SILENCES-PANICS` ✓ （2026-10-19 第六/七刀按本文件自己的规矩 + `docs-lint` ⑦ 腾空间 ⇒ 只留最近 3 轮 ✓）
-## 旧轮墓碑（**原文已删，只留最近 3 轮** ⇒ `git log --all -- STATUS.md`）：`CI-GREEN-SELFTEST-NOT-WIRED` · `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO` · `BITE-PROOF-DOES-NOT-BITE-IN-CI` · `SUB-implicit-named-args` · `SUB-implicit-args-align-lean4` · `SUB-release-metric-measures-unreleased` · `CI-GREEN-READOUT-ROTTED` · `SUB-break-the-guard-recursion` · `BITE-PROOF-READS-LIVE-SHARED-LEDGER` · `BITE-EXPECTATION-GOES-STALE-WHEN-READING-IMPROVES` · `LSP-T2B-TRAILING-BY-LE-3-RED-ON-CI` · `E2E-COVERAGE-4-OF-36` · `AGENT-DOES-NOT-PRODUCE-USER-INPUTS`（第三层）✓
 ## 未决项（**权威 = `docs/ONBOARDING.md` §0.2**；**2026-10-13 订正**：这里曾写「现存 6 条」而权威表实测 3 条 ⇒ 以权威表为准，本条不再自己数 ✗）。⚠ 本节下方两条是**收口记录**，**不是**未决项 —— 2026-10-02 前它写着"只有这两条"而两条都已 ✅ ⇒ 读它的人会以为"队列空了"（#4/#5/#6 三处用户报障就这样掉线过））
 ## 已发布线：`v0.79.0`…`v0.83.0` 逐轮记录 ⇒ `docs/archive/status-removed-rounds-2026-10-13.md.gz` ✓ ｜ ⭐ **「最新是哪一版 · 还有多少没发」不许写在这里**（2026-10-16 实测是**死格**：写死的 `v0.83.0` 落后 **15 个 release** ✗）⇒ **活读数 = `python3 scripts/release-metric.py`**（+ `gh release list` 核已发布资产）✓
 ## 硬事实（接手先读这 6 条 ✓） —— **原文已删（只留最近 3 轮；`docs-lint` ⑦ 顶格 ⇒ 按本文件自己的规矩腾空间 ✓）** ⇒ `git log --all -- STATUS.md` ✓
