@@ -12,7 +12,9 @@
 #   让 `goals`/`holes` 拒答 ⇒ LSP `soko/goals` 答空 ⇒ **Infoview 的声明列表
 #   不回来** ✗。这就是用户 2026-10-15 亲报的那一格（原话见
 #   `docs/ux-queue-events.jsonl` 的 `SUB-parse-error-kills-whole-file`）。
-#   取法：`git show HEAD:crates/front/src/query/mod.rs`（**不**用 `git checkout --` ✗）。
+#   取法：**只**把 `Query::usable()` 的主体换回 `630c0869` 那一版（逐字取自
+#   `git show 630c0869:crates/front/src/query/mod.rs`）—— **不再**整文件换版，
+#   原因见 `inject_old_usable()` 的注释（2026-10-28 第三次编译断）。
 # * `bridge-bite` —— **HEAD 的 `crates/cli/src/main.rs`**：那时**没有** `fixtures`
 #   子命令 ⇒ 第三层（Node 侧）**拿不到生成器的输入面**，只能手写实例 ✗
 #   （手写实例正是这条 bug 的病根：修 `SUB-parse-error-kills-whole-file` 时
@@ -230,6 +232,69 @@ inject_r1_state() {
   echo "  坏版本 sha256=${bad_sha:0:16}（工作区 sha256=${sha:0:16}，跑完还原）"
 }
 
+# **`usable()` 的最小重现**（`e2e-bite` 用，2026-10-28 起）：只把当前 `usable()` 的
+# 主体换回 `630c0869` 那一版，**不**整文件换版。
+#
+# ## 为什么不再整文件换版（**第三次**被编译打断，如实标注 ✗）
+# `swap_in_bad_version` 是 `git show <rev>:<path>` 整文件覆盖；之后每**新增一个 API**
+# 就断一次，而且**断的是编译**（rc=3 = 环境错）⇒ 被 `check-guard-bite.py` 判 C2 假红：
+#   * 2026-10-20：`QueryDoc` 多 `dialect` ⇒ E0609 ×5（当时加了 perl 机械补位）；
+#   * 2026-10-24：`meta_parse.rs` 引用 `parser::util`（families 那一路，另加了补声明）；
+#   * **2026-10-28（这次）**：`crates/lsp/src/lib.rs:1454` 调
+#     `sokonanoda_front::query::select_state_at_in_text` ⇒ 旧文件里没有它
+#     ⇒ `error[E0425]` ⇒ `e2e-bite` rc=3（CI 40506818671 的 `editor` job 实测；
+#     本地同样复现：`/tmp/e2e-bite.log`）。
+# 咬住证明要的是**旧语义**，不是"旧源码原样编译" ⇒ 只换 `usable()` 的主体：
+#   `self.report.is_some() && (self.parse_error.is_none() || self.project_entry_compiled())`
+# 其余一字不动 ✓（旧主体**逐字**取自 `630c0869`）。
+#
+# 三条闸门都在**写任何东西之前**判 ⇒ 被拒时零写入 ✓：
+#   ① `rev:path` 取得到；② **历史事实**：`rev` 的那一版里**确实有**旧主体（否则它不是
+#   我声称的那个坏版本 ✗）；③ **空转闸**：当前文件里新主体**恰好 1 处**、替换后真的变了。
+inject_old_usable() {
+  local rev="$1" path="$2"
+  if ! git cat-file -e "$rev:$path" 2>/dev/null; then
+    echo "error: 坏版本的 rev 取不到：$rev:$path ⇒ **不假装咬过** ✗（rev 漂了就把 SOKO_THIRD_LAYER_BAD_REV 指到修复前那一版）" >&2
+    return 3
+  fi
+  local old_body='        self.report.is_some() && (self.parse_error.is_none() || self.project_entry_compiled())'
+  if ! git show "$rev:$path" 2>/dev/null | grep -qxF "$old_body"; then
+    echo "error: ${rev}:${path} 里**没有**我声称的旧 \`usable()\` 主体 ⇒ 它不是我声称的那个坏版本 ✗" >&2
+    return 3
+  fi
+  local new_snip tmp sha rc=0
+  new_snip='        self.report.as_ref().is_some_and(|report| {
+            report.has_content() || self.parse_error.is_none() || self.project_entry_compiled()
+        })'
+  tmp="$(mktemp)"
+  cat "$path" > "$tmp" || return 3
+  sha="$(shasum -a 256 "$path" | cut -d' ' -f1)"
+  python3 -c 'import sys
+p, old, new = sys.argv[1], sys.argv[2], sys.argv[3]
+t = open(p, encoding="utf-8").read()
+n = t.count(new)
+if n != 1:
+    print(f"error: 空转闸 ✗ —— 当前 `usable()` 主体条数 = {n}（要求恰好 1）；它被改写过就把本函数的 new_snip 重新对齐", file=sys.stderr)
+    sys.exit(3)
+open(p, "w", encoding="utf-8").write(t.replace(new, old, 1))' "$path" "$old_body" "$new_snip" || rc=$?
+  if [ "$rc" != 0 ]; then
+    rm -f "$tmp"
+    return 3
+  fi
+  local bad_sha
+  bad_sha="$(shasum -a 256 "$path" | cut -d' ' -f1)"
+  if [ "$bad_sha" = "$sha" ]; then
+    echo "error: 替换之后**逐字节没变** ⇒ 这条证明会**空转** ✗" >&2
+    rm -f "$tmp"
+    return 3
+  fi
+  SAVED_PATHS+=("$path")
+  SAVED_TMPS+=("$tmp")
+  SAVED_SHAS+=("$sha")
+  echo "+ 重现 ${rev} 的 \`usable()\`（最小换体，不整文件换版）：${path}"
+  echo "  坏版本 sha256=${bad_sha:0:16}（工作区 sha256=${sha:0:16}，跑完还原）"
+}
+
 need_node_modules() {
   if [ ! -d editor/vscode/node_modules ]; then
     echo "error: editor/vscode/node_modules 不在 ⇒ 跑不了真 VS Code（先 (cd editor/vscode && npm install)）" >&2
@@ -274,13 +339,13 @@ case "$MODE" in
     exit $?
     ;;
   e2e-bite)
-    # 坏输入 = **HEAD 的 `usable()`**（用户 2026-10-15 亲报的那一格）。
-    swap_in_bad_version "$BAD_REV" "$USABLE" || exit 3
-    # ⚠ **S5（2026-10-20）又加了一格**：`QueryDoc.dialect`（LSP 热切换要用）。旧版本没有它
-    # ⇒ 换版后 `sokonanoda-lsp` 编不过（E0609 ×5）。这里同样只做**机械补位**：加一个
-    # `dialect: None` 的字段与初值，**不碰** `usable()` 那段的旧逻辑 ✓。
-    perl -0pi -e 's/pub struct QueryDoc \{/pub struct QueryDoc {\n    pub dialect: Option<crate::compile::Dialect>,/' "$USABLE" || exit 3
-    perl -0pi -e 's/(            text: String::new\(\),)/$1\n            dialect: None,/' "$USABLE" || exit 3
+    # 坏输入 = **`630c0869`（= 本轮基线 main）的 `Query::usable()`**：一处语法错
+    # 让 `goals`/`holes` 拒答 ⇒ LSP `soko/goals` 答空 ⇒ **Infoview 的声明列表
+    # 不回来** ✗（用户 2026-10-15 亲报的那一格）。
+    # ⚠ 2026-10-28 起**只换 `usable()` 的主体**（不再整文件换版：那已经三次因
+    # 「新 API 不在旧文件里」而编译失败 ⇒ rc=3 假红）——原因与三道闸门见
+    # `inject_old_usable()` 的注释 ✓。
+    inject_old_usable "$BAD_REV" "$USABLE" || exit 3
     run_e2e
     rc=$?
     restore || exit 3
