@@ -629,41 +629,15 @@ CLI 层实测 40 条声明的夹具：管道 **2.48s** vs `NO_TICK` **2.48s**（
 不许"再等等看"、不许把"刚查过 0"当成"现在也是 0"。若已有 run 在**排队**（`pending`），
 同样视为占用 —— 它会在我推送后立刻被 cancel。
 
-## 2026-10-20 · run 39341179027（`1f32ba39`）：**6 个红 job，三条根因**
+## 2026-10-20 · run 39341179027（`1f32ba39`）：**6 个红 job，三条根因**（原文已删 ⇒ `git log --all -- docs/CI-FAILURES.md`）
 
-**共因**：`487f9a77 fix(front): 严格档翻默认` 把默认方言从旧档翻成严格档，而它自己的
-message 就写着「⚠ 如实（未收口）」——`docs/gaps/repro/**` 的夹具与 `crates/lsp` 的一条成本
-判据都还是旧档写法。**判据一条没放宽**：红是「台账说 fixed、复现件仍红」的正确信号。
+**共因**：`487f9a77 fix(front): 严格档翻默认` 把默认方言翻成严格档（message 自己写「⚠ 如实（未收口）」）
+⇒ `docs/gaps/repro/**` 夹具与 `crates/lsp` 一条成本判据仍是旧档写法。**判据一条没放宽**：红是「台账说 fixed、复现件仍红」的正确信号。
 
-**逐条（原因 → 修复）**：
-
-1. `queue-lint`：`ux-queue.py --check` 判 **3 条两层漂移** —— 调度器 `done`/`wo_filed`
-   而来源处置仍是 `fix`。**修复**：`SUB-break-the-guard-recursion` / `SUB-consumer-oriented-criterion`
-   的来源改 `fixed`，`SUB-a17-corpus-migration-stalled` 改 `wo-filed`（前者最后一笔 `done`
-   的 commit 是 `804ccc59`，那笔的 subject 是 **G-113** ⇒ 批量收口串行；真收口证据是 `b5a2d49c`），
-   再 `--render` 重渲染 §0.2。**预防**：收口同一批条目时，**每条都要有属于它自己的 commit**；
-   `--check` 的「两层漂移」本来就是这条的守卫，别绕过它。
-2. `e2e ledger (commit back on main)`：`e2e-merge.py --check` 报 **48/48 行**「引用的日志不存在」
-   —— `31f3c3f3` 为腾 `docs-lint ①` 预算删了 32 份日志（`docs/e2e/logs/` 一个文件都没有），
-   而 `docs-diet.md` §5 把「被引用的日志」列成**不许动**的例外 ⇒ 文档与预算直接冲突。
-   **修复**：删的时候**必须在同一行记 `log_pruned`（删它的提交 + 理由）**，`--check` 认标记；
-   **新行（有 `log` 无 `log_pruned`）照样判红**（反向验证：删一条标记 ⇒ rc=1 且点名 ✓）。
-   **预防**：`docs/e2e/logs/` 是 CI 产物、会一直顶预算 ⇒ 这类「删源文件」必须**成对**改台账。
-3. `ledger (1)(3)`：10 条 `fixed` 缺口的复现件判「缺口仍在」（G-99/G-93/G-70/G-61/L-04/L-01 · L-10/L-07/G-30/L-02）。
-   **归因**：不是缺口回退 —— 同一批在 `SOKO_STRICT_AT=0` 下**本来全绿**（实测 4 条 exit=1）。
-   **修复**：逐条迁严格档（`@` 全显式、或按「出路 ②」删多余前导实参）。**预防**：
-   翻默认这类改动要**同轮**把 `docs/gaps/repro/**` 与 `.sh` 里的内联夹具一起迁（后者最容易漏 ——
-   `docs/gaps/repro` 名下既有 `.sokonanoda` 也有 `.sh` 的 heredoc）。
-4. `test (sokonanoda, tests)`：`the_kernel_quiet_window_is_thread_local` 判红，失败 artifact 里
-   子进程 `finished in 0.00s`、**`checks=` 一行都没打出来**。**原因**：探针线程先 spawn、
-   主线程后进循环 ⇒ 探针可能在主线程第一次 `try_recv` 之前就跑完 ⇒ 循环**零次** ⇒
-   `checks == 0` ⇒ `assert!(checks > 0)` 红（本机 15/15 绿 ⇒ 是竞态，不是契约变了）。
-   **修复**：把「跑一次内核检查」放到轮询之前 ⇒ `checks >= 1` 由**构造**保证；真正咬住
-   「静音窗口是线程局部的」那条 stderr 断言一个字没动。**预防**：凡「先 spawn 再轮询」的判据，
-   都要先做一次「本线程该做的事」再读信号。
-
-**未收口（如实）**：`test (sokonanoda-lsp, tests)` 的 `changing_a_statement_must_invalidate_the_prefixes_after_it`
-仍红（`prefix=12`，期望 0）—— 那是**引擎缺口**（翻默认后就地判定接不住 `@` 脊，
-`SUB-flip-default-needs-engine-at-spine`），旧档下 3/3 绿 ⇒ 已定性、属 flip 本体、不在本笔。
+**逐条**：① `ux-queue.py --check` 判 **3 条两层漂移**（调度器 `done` 而来源仍 `fix`）⇒ 收口同批条目时**每条都要有属于它自己的 commit**；
+② `e2e-merge.py --check` 报 **48/48**「引用的日志不存在」（为腾 `docs-lint ①` 预算删了 `docs/e2e/logs/` 32 份）⇒ 删源文件**必须同一行记 `log_pruned`**；
+③ `ledger` 10 条 `fixed` 复现件判红（翻默认后旧档写法）⇒ 翻默认要**同轮**迁 `docs/gaps/repro/**` 的 `.sokonanoda` 与 `.sh` 内联夹具；
+④ `the_kernel_quiet_window_is_thread_local` 竞态（探针先 spawn、主线程后轮询 ⇒ `checks==0`）⇒ 凡「先 spawn 再轮询」的判据，先做一次本线程该做的事再读信号。
+**未收口（如实）**：`changing_a_statement_must_invalidate_the_prefixes_after_it` 仍红（`prefix=12`，期望 0）= **引擎缺口** `SUB-flip-default-needs-engine-at-spine`（旧档 3/3 绿）。
 
 ## 更早条目（原文已删，只保留最近若干轮 ⇒ `git log --all -- docs/CI-FAILURES.md`）：2026-10-20 严格档翻默认拖慢 14× · 2026-10-20 方言批次 editor 红在咬住证明 C2（换版证明的 rc 必须等于 `expect_rc`）✓
