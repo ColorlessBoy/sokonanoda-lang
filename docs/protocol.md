@@ -170,9 +170,9 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   第三刀 `docs/design/notation-subset.md` §12.2),
   `elab-binder-notation-unsolved` (binder 记法 `∀ x ∈ s, p` / `∃ x ∈ s, p`
   里 x 的类型从 `∈` 两边反解不出来；hint 教补 `(x : α)` 或点名。§12.1),
-  `elab-set-literal-unknown-target` (集合字面量 `{a}` / `{a, b}` 展开成
-  `Set.singleton` / `Set.pair`，但本文件里没有它们；hint 教 `import` 或点名。
-  §12.4);
+  `elab-set-literal-unknown-target` (集合字面量 `{a}` / `{a, b}` 展开成 `Set.singleton` / `Set.pair`，
+  但本文件里没有它们；hint 教 `import` 或点名。§12.4), `elab-implicit-binder-after-explicit`
+  (隐式 binder `{x : T}` 写在显式层之后——只许前导；声明不进环境；⚠ 偏离 Lean 4，用户 2026-10-29 拍板);
 - `kernel` stage — `kernel-rejected` (kernel said no; conversion failures
   carry the expected/actual sides), and the fine-grained families
   `kernel-expected-sort` (a term appeared where a type was required),

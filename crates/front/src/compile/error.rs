@@ -91,6 +91,9 @@ pub enum ErrorKind {
     /// （不是已知常量）。对齐 Lean 4 `Lean/Elab/App.lean:39 throwInvalidNamedArg`
     /// —— 那边也是**一个码 + 列出可用名**（`:238` 在 `namedArgs` 用不完时抛）✓。
     ElabInvalidNamedArgument,
+    /// **隐式 binder 写在了显式层之后**（用户 2026-10-29 拍板：不允许）：签名的每条
+    /// Π 链里隐式参数只许是前导前缀。⚠ 偏离 Lean 4（`Lean/Elab/App.lean:942-946` 逐层分派）。
+    ElabImplicitBinderAfterExplicit,
     KernelExpectedSort,
     KernelExpectedPi,
     KernelTheoremNotProp,
@@ -173,7 +176,8 @@ impl ErrorKind {
             | ElabBinderNotationUnsolved
             | ElabSetLiteralUnknownTarget
             | ElabAnonCtorNoExpectedType
-            | ElabInvalidNamedArgument => CompileStage::Elab,
+            | ElabInvalidNamedArgument
+            | ElabImplicitBinderAfterExplicit => CompileStage::Elab,
             KernelExpectedSort
             | KernelExpectedPi
             | KernelTheoremNotProp
@@ -233,6 +237,7 @@ impl ErrorKind {
             ElabSetLiteralUnknownTarget => "elab-set-literal-unknown-target",
             ElabAnonCtorNoExpectedType => "elab-anon-ctor-no-expected-type",
             ElabInvalidNamedArgument => "elab-invalid-named-argument",
+            ElabImplicitBinderAfterExplicit => "elab-implicit-binder-after-explicit",
             KernelExpectedSort => "kernel-expected-sort",
             KernelExpectedPi => "kernel-expected-pi",
             KernelTheoremNotProp => "kernel-theorem-not-prop",

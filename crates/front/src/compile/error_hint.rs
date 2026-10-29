@@ -107,6 +107,9 @@ pub(crate) fn hint(kind: ErrorKind) -> &'static str {
             ElabInvalidNamedArgument => {
                 "命名实参 `(名字 := 值)` 只能按**函数自己的形参名**绑定，而且那个函数必须是一个**已知常量**（导入的或本文件前面声明过的）。三种常见原因：① 名字拼错了 —— 照错误里列出的可用形参名改；② 同一个形参给了两次 —— 删掉一个；③ 函数是一个**局部假设**（`have`/`intro` 进来的），本子集还不能按名字绑定它 —— 用 `@` 加位置实参，或把那个假设写成带名字的 `have h : … := …` 再应用。"
             }
+            ElabImplicitBinderAfterExplicit => {
+                "隐式参数 `{x : T}` 只能写在签名的**最前面**（所有显式参数之前），例如 `def f {α : Type} (a : α) …`。把这个 `{…}` 挪到最前面；如果它的类型提到了前面的显式参数、挪不过去，就把它改成显式参数 `(x : T)`，调用时照常写出来。（与 Lean 4 不同：Lean 允许隐式参数出现在任意位置，本语言只认前导隐式。）"
+            }
             ElabAnonCtorNoExpectedType => {
                 "`⟨a, b⟩` 是匿名构造子：用哪个构造子（And.intro / Exists.intro / Prod.mk / Iff.intro）由**期望类型**决定，而这里读不到期望类型。把它写进有类型标注的位置（`have h : A ∧ B := ⟨…⟩`、`theorem … : T := ⟨…⟩`、`exact ⟨…⟩`），或改用点名构造子。"
             }

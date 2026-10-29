@@ -1178,6 +1178,7 @@ fn every_error_kind_has_stable_code_and_hint() {
                 | ErrorKind::ManifestInvalid
                 | ErrorKind::ImportModuleInvalid
                 | ErrorKind::EntryParseFailed
+                | ErrorKind::ElabImplicitBinderAfterExplicit
         )
     };
     let all = [
@@ -1214,6 +1215,7 @@ fn every_error_kind_has_stable_code_and_hint() {
         ErrorKind::ManifestInvalid,
         ErrorKind::ImportModuleInvalid,
         ErrorKind::EntryParseFailed,
+        ErrorKind::ElabImplicitBinderAfterExplicit,
     ];
     for kind in all {
         let code = kind.code();
@@ -1889,6 +1891,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabNotationNoCandidate,
         ErrorKind::ElabBinderNotationUnsolved,
         ErrorKind::ElabSetLiteralUnknownTarget,
+        ErrorKind::ElabImplicitBinderAfterExplicit,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
@@ -1948,6 +1951,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabAnonCtorNoExpectedType => {}
         // 用户 2026-10-16 第 ② 条（命名实参）：码 `elab-invalid-named-argument` ✓。
         ErrorKind::ElabInvalidNamedArgument => {}
+        ErrorKind::ElabImplicitBinderAfterExplicit => {}
         ErrorKind::KernelExpectedSort => {}
         ErrorKind::KernelExpectedPi => {}
         ErrorKind::KernelTheoremNotProp => {}

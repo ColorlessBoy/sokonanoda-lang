@@ -25,6 +25,7 @@ use crate::compile::event::CompileOutput;
 use crate::compile::goals::{expr_has_hole, open_goal, spine_without_arg, GoalTemplates};
 use crate::compile::prelude::CompileOptions;
 use crate::compile::report::{ByGoalState, DeclKind, DeclState, GoalBinder, ResolvedTarget};
+mod binder_order;
 mod open_exercise;
 mod walk_state;
 
@@ -805,12 +806,11 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         tail
     }
 
-    /// 一条命令的分发（原 `run` 主循环里的 `match`，逐字搬过来）。
-    ///
-    /// 抽成方法的**唯一**原因：`open Foo in <命令>` 要把被包住的命令按同一个
-    /// 上下文再走一遍（见 [`Walk::open_in`]）；arm 里的 `return` 语义不变
-    /// （每个 arm 都没有内层循环，返回后 `run` 继续下一条命令）。
+    /// 一条命令的分发；抽成方法是为了 `open Foo in <命令>` 复用（[`Walk::open_in`]）。
     fn command(&mut self, c: &CmdCtx<'_>, command: &Command) {
+        if binder_order::reject(self, c, command) {
+            return;
+        }
         match command {
             // `import` 自身不产生声明：被导入模块的命令由项目层按拓扑序
             // 先送进同一个 EnvBuilder（docs/design/imports-and-projects.md §4.5）。
