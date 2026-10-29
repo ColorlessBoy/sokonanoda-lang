@@ -215,3 +215,34 @@ fn k1c_t7_restore_detects_overwrite() {
         assert!(!tc.ctx.mvars.restore(cp), "no assignment ⇒ unchanged");
     });
 }
+
+/// **K1c-T8**（item 3）：`value_type` 对**开的** Lam/Pi 不 panic。binder 下（`x : A`，深度 1）
+/// `fun y : A => g x y` 的类型 = `A → Prop`；`(y : A) → g x y` 的类型 = `Prop`。
+#[test]
+fn k1c_t8_value_type_open_lam_pi() {
+    with_tc2(|tc, fx, mx| {
+        let env0 = tc.empty_env();
+        let dom = tc.eval(0, env0, fx.a);
+        let x = tc.mk_bvar_hc(0, dom);
+        let env = crate::value::env_extend(tc.arena, env0, x);
+        let (v0, v1) = (tc.ctx.mk_var(0), tc.ctx.mk_var(1));
+        let gxy = {
+            let t = app(tc, mx.g, v1);
+            app(tc, t, v0)
+        };
+        let n = tc.ctx.anonymous();
+        let open_lam = tc.ctx.mk_lambda(n, BinderStyle::Default, fx.a, gxy);
+        let open_pi = tc.ctx.mk_pi(n, BinderStyle::Default, fx.a, gxy);
+        let lv = tc.eval(1, env, open_lam);
+        let lt = tc.value_type(1, lv);
+        let lq = tc.quote(1, lt);
+        let zero = tc.ctx.zero();
+        let prop = tc.ctx.mk_sort(zero);
+        let a_prop = tc.ctx.mk_pi(n, BinderStyle::Default, fx.a, prop);
+        assert!(super::meta_defeq::same(lq, a_prop), "type of open `fun y => g x y` is A → Prop");
+        let pv = tc.eval(1, env, open_pi);
+        let pt = tc.value_type(1, pv);
+        let pq = tc.quote(1, pt);
+        assert!(super::meta_defeq::same(pq, prop), "type of open `(y : A) → g x y` is Prop");
+    });
+}
