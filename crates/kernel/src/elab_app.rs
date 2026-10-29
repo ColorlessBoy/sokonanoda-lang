@@ -136,8 +136,8 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         }
         // **P1 限制**：层元变量在 defeq 里是刚性的 ⇒ 宇宙多态的头不支持。
         if let Expr::Const { name, levels, .. } = self.ctx.read_expr(head) {
-            let poly = self.env.get_declar(&name).is_some_and(|d| d.info().uparams.len() > 0);
-            if poly || levels.len() > 0 {
+            let poly = self.env.get_declar(&name).is_some_and(|d| !d.info().uparams.is_empty());
+            if poly || !levels.is_empty() {
                 return AppOutcome::Unsupported("universe-polymorphic head");
             }
         }
@@ -230,7 +230,7 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
             }
         }
         let failed: Vec<usize> =
-            postponed.into_iter().filter(|(_, dom, at)| !self.is_def_eq_at(d, *dom, *at)).map(|p| p.0).collect();
+            postponed.into_iter().filter(|(_, dom, at)| !self.is_def_eq_at(d, dom, at)).map(|p| p.0).collect();
         let unsolved: Vec<String> = metas
             .iter()
             .filter(|(id, _)| self.ctx.mvars.value(*id).is_none())
