@@ -95,7 +95,10 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
 
     #[inline]
     fn unify_general<const RIGID: bool>(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> bool {
+        // **K1d**：会话里有可赋值的层 mvar ⇒ 结论可能依赖层赋值（`has_unassigned_meta` 不看层）⇒ 不缓存。
+        // 无登记层 mvar（课程语料常态）⇒ 这一项恒真，逐字节不变。
         let cacheable = (is_cacheable(x) || is_cacheable(y))
+            && !self.ctx.mvars.has_session_levels()
             && !self.value_has_unassigned_meta(x)
             && !self.value_has_unassigned_meta(y);
         let neg_eligible = !matches!(x, Value::Lam { .. }) && !matches!(y, Value::Lam { .. });
@@ -138,7 +141,8 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
 
     fn unify_direct<const RIGID: bool>(&mut self, depth: u32, t: V<'t>, t2: V<'t>) -> bool {
         match (t, t2) {
-            (Value::Sort { level: lx , .. }, Value::Sort { level: ly , .. }) => self.ctx.eq_antisymm(*lx, *ly),
+            // **K1d**：`level_eq` 无登记层 mvar 时就是 `eq_antisymm`。
+            (Value::Sort { level: lx , .. }, Value::Sort { level: ly , .. }) => self.level_eq(*lx, *ly),
             (Value::NatLit { ptr: px , .. }, Value::NatLit { ptr: py , .. }) => px == py,
             (Value::StrLit { ptr: px , .. }, Value::StrLit { ptr: py , .. }) => px == py,
 
@@ -148,21 +152,21 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             (
                 Value::Rigid { head: RigidHead::Ctor(nx, lx), spine: sx, .. },
                 Value::Rigid { head: RigidHead::Ctor(ny, ly), spine: sy, .. },
-            ) if nx == ny && self.ctx.eq_antisymm_many(*lx, *ly) => {
+            ) if nx == ny && self.level_eq_many(*lx, *ly) => {
                 let (sig, limit) = self.head_spine_sig(*nx, *lx, sx, sy);
                 self.unify_spine::<RIGID>(depth, sx, sy, sig, limit)
             }
             (
                 Value::Rigid { head: RigidHead::Inductive(nx, lx), spine: sx, .. },
                 Value::Rigid { head: RigidHead::Inductive(ny, ly), spine: sy, .. },
-            ) if nx == ny && self.ctx.eq_antisymm_many(*lx, *ly) => {
+            ) if nx == ny && self.level_eq_many(*lx, *ly) => {
                 let (sig, limit) = self.head_spine_sig(*nx, *lx, sx, sy);
                 self.unify_spine::<RIGID>(depth, sx, sy, sig, limit)
             }
             (
                 Value::Rigid { head: RigidHead::Axiom(nx, lx), spine: sx, .. },
                 Value::Rigid { head: RigidHead::Axiom(ny, ly), spine: sy, .. },
-            ) if nx == ny && self.ctx.eq_antisymm_many(*lx, *ly) => {
+            ) if nx == ny && self.level_eq_many(*lx, *ly) => {
                 let (sig, limit) = self.head_spine_sig(*nx, *lx, sx, sy);
                 self.unify_spine::<RIGID>(depth, sx, sy, sig, limit)
             }
@@ -172,7 +176,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 Value::Rigid { head: RigidHead::Recursor(ny, ly), spine: sy, .. },
             ) => {
                 let (nx, ny, lx, ly) = (*nx, *ny, *lx, *ly);
-                let heads_match = nx == ny && self.ctx.eq_antisymm_many(lx, ly);
+                let heads_match = nx == ny && self.level_eq_many(lx, ly);
                 self.unify_iota::<RIGID>(depth, t, t2, heads_match, nx, lx, sx, sy)
             }
             (
@@ -180,7 +184,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 Value::Rigid { head: RigidHead::QuotConst(ny, ly), spine: sy, .. },
             ) => {
                 let (nx, ny, lx, ly) = (*nx, *ny, *lx, *ly);
-                let heads_match = nx == ny && self.ctx.eq_antisymm_many(lx, ly);
+                let heads_match = nx == ny && self.level_eq_many(lx, ly);
                 self.unify_iota::<RIGID>(depth, t, t2, heads_match, nx, lx, sx, sy)
             }
 
@@ -234,7 +238,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 Value::Unfold { head: UnfoldHead { name: nx, levels: lx }, spine: sx, .. },
                 Value::Unfold { head: UnfoldHead { name: ny, levels: ly }, spine: sy, .. },
             ) => {
-                let heads_match = nx == ny && self.ctx.eq_antisymm_many(*lx, *ly);
+                let heads_match = nx == ny && self.level_eq_many(*lx, *ly);
                 let (nx, ny, lx) = (*nx, *ny, *lx);
                 let sx = *sx;
                 let sy = *sy;

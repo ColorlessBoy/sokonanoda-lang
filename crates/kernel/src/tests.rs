@@ -3,6 +3,7 @@ mod level;
 mod meta_placeholder;
 mod elab_app;
 mod meta_defeq;
+mod meta_level;
 mod meta_miller;
 mod meta_spine;
 mod meta_transfer;

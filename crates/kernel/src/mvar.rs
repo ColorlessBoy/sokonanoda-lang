@@ -22,15 +22,19 @@ pub struct MetaContext<'t> {
     /// 都遍历共享 DAG，`perf/app-lam` 这类用例会指数爆炸（实测 30s+ 不返回，
     /// 上游 pin 0.04s）。
     unassigned: usize,
-    /// **K1b**：层元变量的赋值（`Level::MVar(id)` ⇒ 层）。内核判定本身**不**读它
-    /// （层 mvar 在 `leq`/`eq_antisymm` 里是刚性的）；只有 [`TcCtx::instantiate_mvars`]
-    /// 与 checkpoint/restore 用它。
+    /// **K1b**：层元变量的赋值（`Level::MVar(id)` ⇒ 层）。**K1d**：defeq 只看穿**登记过**的
+    /// （[`Self::register_level`]）；未登记的层 mvar 在 `leq`/`eq_antisymm` 里照旧刚性。
+    /// [`TcCtx::instantiate_mvars`] 与 checkpoint/restore 也用它。
     level_values: FxHashMap<u64, crate::util::LevelPtr<'t>>,
     /// **K1c**：元变量创建处的 binder 深度（未登记 = 0 = 顶层）。赋值只许提到深度 `< d` 的
     /// bound var（Lean `MetavarDecl.lctx` 的 de Bruijn 版）；Miller 实参必须是深度 `≥ d` 的 bvar。
     depths: FxHashMap<u32, u32>,
     /// **K1c**：赋值代数（每次 `assign`/`assign_level` +1，永不回退）⇒ `restore` 按内容判"变没变"。
     generation: u64,
+    /// **K1d**：本会话登记的层元变量（Lean `MetavarContext.lDepth` 里"可赋值"那部分）。
+    /// 只有登记过且未赋值的 `Level::MVar` 才能在 defeq 里被赋值；其余（前端 R1c 造的等）照旧刚性。
+    /// 空集 ⇒ 层比较走原 `eq_antisymm`，逐字节不变。
+    level_registered: crate::util::FxHashSet<u64>,
 }
 
 /// **K1b**：[`MetaContext::checkpoint`] 的快照（Lean `checkpointDefEq` 的 `saveState` 那半）。
@@ -84,6 +88,22 @@ impl<'t> MetaContext<'t> {
         self.generation += 1;
         self.level_values.insert(id, l);
     }
+    /// **K1d**：登记一个本会话可赋值的层元变量。
+    pub fn register_level(&mut self, id: u64) {
+        self.level_registered.insert(id);
+    }
+    /// **K1d**：有没有登记过的层元变量（O(1)；层 defeq 的总闸）。
+    pub fn has_session_levels(&self) -> bool {
+        !self.level_registered.is_empty()
+    }
+    /// **K1d**：`id` 是登记过的层元变量。
+    pub fn is_session_level(&self, id: u64) -> bool {
+        self.level_registered.contains(&id)
+    }
+    /// **K1d**：`id` 能在 defeq 里被赋值（登记过 + 未赋值）。
+    pub fn level_assignable(&self, id: u64) -> bool {
+        self.level_registered.contains(&id) && !self.level_values.contains_key(&id)
+    }
     pub fn level_value(&self, id: u64) -> Option<crate::util::LevelPtr<'t>> {
         self.level_values.get(&id).copied()
     }
@@ -113,6 +133,10 @@ impl<'t> MetaContext<'t> {
         self.unassigned = cp.unassigned;
         self.checking.clear();
         changed
+    }
+    /// **K1d**：赋值代数（层 defeq 用它判"这次比较赋过值没有" ⇒ 是否失效缓存）。
+    pub fn generation(&self) -> u64 {
+        self.generation
     }
     /// 有没有**未赋值**的元变量（O(1)）。
     pub fn has_unassigned(&self) -> bool {
