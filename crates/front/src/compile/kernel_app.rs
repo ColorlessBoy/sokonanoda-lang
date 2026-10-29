@@ -58,6 +58,7 @@ static ARG_MISMATCH: AtomicU64 = AtomicU64::new(0);
 static EXPECTED: AtomicU64 = AtomicU64::new(0);
 static ARG_ELAB: AtomicU64 = AtomicU64::new(0);
 static SHAPE: AtomicU64 = AtomicU64::new(0);
+static BAD_SCOPE: AtomicU64 = AtomicU64::new(0);
 static UNSUPPORTED: Mutex<Vec<(&'static str, u64)>> = Mutex::new(Vec::new());
 
 enum Count {
@@ -67,6 +68,7 @@ enum Count {
     Expected,
     ArgElab,
     Shape,
+    BadScope,
     Unsupported(&'static str),
 }
 
@@ -85,6 +87,7 @@ fn count(c: Count) {
         Count::Expected => &EXPECTED,
         Count::ArgElab => &ARG_ELAB,
         Count::Shape => &SHAPE,
+        Count::BadScope => &BAD_SCOPE,
         Count::Unsupported(why) => {
             if let Ok(mut v) = UNSUPPORTED.lock() {
                 match v.iter_mut().find(|(k, _)| *k == why) {
@@ -122,7 +125,7 @@ pub(crate) fn report_line() -> String {
     let g = |a: &AtomicU64| a.load(Ordering::Relaxed);
     let mut line = format!(
         "KERNEL_APP tried={} solved={} fallback_unsolved={} fallback_argmismatch={} \
-         fallback_expected={} fallback_argelab={} fallback_shape={}",
+         fallback_expected={} fallback_argelab={} fallback_shape={} fallback_bad_scope={}",
         g(&TRIED),
         g(&SOLVED),
         g(&UNSOLVED),
@@ -130,6 +133,7 @@ pub(crate) fn report_line() -> String {
         g(&EXPECTED),
         g(&ARG_ELAB),
         g(&SHAPE),
+        g(&BAD_SCOPE),
     );
     if let Ok(v) = UNSUPPORTED.lock() {
         for (why, n) in v.iter() {
@@ -215,6 +219,10 @@ pub(crate) fn try_app<'a>(
         return None;
     }
     let mark = hovers.len();
+    // ⚠ `elab_expr` 的 binder 臂在 `?` 早退时**不** `truncate` 作用域（老路里 Err 直接让声明失败，
+    // 留下的 binder 无人看见）；这里吞掉 Err 回落 ⇒ 必须自己恢复深度，否则老路在多出的 binder 下
+    // elaborate ⇒ de Bruijn 下标错位（实测 `rejected: loose bvar in infer`，Rel.inv_comp_apply）。
+    let depth = scope.len();
     let outcome = run(
         builder,
         head,
@@ -227,13 +235,21 @@ pub(crate) fn try_app<'a>(
         expected_src,
         ctx,
     );
+    scope.truncate(depth);
     match outcome {
         Ok(AppOutcome::Solved(t)) => {
             if let Some(out) = builder.import_owned(&t) {
-                count(Count::Solved);
-                return Some(out);
+                // 纵深防御：解出的项必须活在当前 scope 里（不该发生；发生就回落并计数）。
+                if loose_bvars(out, &mut Default::default()) as usize > scope.len() {
+                    count(Count::BadScope);
+                } else {
+                    count(Count::Solved);
+                    debug_assert_eq!(scope.len(), depth, "内核路径必须原样交还作用域深度");
+                    return Some(out);
+                }
+            } else {
+                count(Count::Unsupported("import"));
             }
-            count(Count::Unsupported("import"));
         }
         Ok(AppOutcome::Unsolved { .. }) => count(Count::Unsolved),
         Ok(AppOutcome::ArgMismatch { .. }) => count(Count::ArgMismatch),
@@ -242,6 +258,7 @@ pub(crate) fn try_app<'a>(
         Err(c) => count(c),
     }
     hovers.truncate(mark);
+    debug_assert_eq!(scope.len(), depth, "回落前作用域深度必须恢复");
     None
 }
 
@@ -284,4 +301,33 @@ fn run<'a>(
         expected,
     };
     Ok(builder.with_env(|ef| ef.elab_app(limit, &req)))
+}
+
+/// 项里最大的 loose `Var` 下标 + 1（= 它至少要在几个 binder 之下；前端拿不到内核的 `num_loose_bvars`）。
+/// 按节点地址记忆 ⇒ DAG 共享子项只走一次。
+fn loose_bvars(e: ExprPtr<'_>, memo: &mut std::collections::HashMap<usize, u32>) -> u32 {
+    use sokonanoda::expr::Expr as K;
+    let key = &*e as *const _ as usize;
+    if let Some(n) = memo.get(&key) {
+        return *n;
+    }
+    let under = |n: u32| n.saturating_sub(1);
+    let n = match *e {
+        K::Var { dbj_idx, .. } => u32::from(dbj_idx) + 1,
+        K::App { fun, arg, .. } => loose_bvars(fun, memo).max(loose_bvars(arg, memo)),
+        K::Pi {
+            binder_type, body, ..
+        }
+        | K::Lambda {
+            binder_type, body, ..
+        } => loose_bvars(binder_type, memo).max(under(loose_bvars(body, memo))),
+        K::Let { data, .. } => loose_bvars(data.binder_type, memo)
+            .max(loose_bvars(data.val, memo))
+            .max(under(loose_bvars(data.body, memo))),
+        K::Proj { structure, .. } => loose_bvars(structure, memo),
+        K::Meta { ty, .. } => loose_bvars(ty, memo),
+        K::StringLit { .. } | K::NatLit { .. } | K::Sort { .. } | K::Const { .. } => 0,
+    };
+    memo.insert(key, n);
+    n
 }

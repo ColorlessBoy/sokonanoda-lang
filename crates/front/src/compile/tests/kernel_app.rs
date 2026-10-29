@@ -74,3 +74,22 @@ fn unsolved_implicit_falls_back_to_old_path() {
     let (errors_off, _, _) = run(src, false);
     assert_eq!(errors_on, errors_off, "P1：回落后诊断与闸门关逐字相同");
 }
+
+#[test]
+fn failed_arg_elaboration_does_not_leak_binders_into_scope() {
+    // `Ex.elim2 h (fun b hb => …)`：内核路径先 elaborate 实参 `fun …`（无期望类型）⇒ 失败、回落。
+    // `elab_expr` 的 λ 臂在 `?` 早退时不 truncate ⇒ 若回落前不恢复深度，老路在多出的 `b, hb` 下
+    // elaborate ⇒ `rejected: loose bvar in infer`（Rel.inv_comp_apply 的最小形）。
+    let src = format!(
+        "{HEAD}axiom Ex.elim2 : {{A : Type}} -> {{q : A -> Prop}} -> {{b : Prop}} -> Ex A q -> ((a : A) -> q a -> b) -> b\n\
+         theorem r1 {{B : Type}} (r : B -> Prop) (s : B -> Prop) (h : Ex B (fun (x : B) => And (r x) (s x))) : \
+         Ex B (fun (x : B) => And (s x) (r x)) :=\n  \
+         Ex.elim2 h (fun (b : B) (hb : And (r b) (s b)) => Ex.intro b (And.intro (And.right hb) (And.left hb)))\n"
+    );
+    let (errors, solved, fallback) = run(&src, true);
+    assert_eq!(errors, Vec::<String>::new());
+    assert!(
+        solved > 0 && fallback > 0,
+        "solved={solved} fallback={fallback}"
+    );
+}
