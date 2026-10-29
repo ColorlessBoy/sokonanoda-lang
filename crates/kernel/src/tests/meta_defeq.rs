@@ -6,6 +6,7 @@ use crate::env::{Declar, DeclarInfo, EnvLimit};
 use crate::expr::MetaKind;
 use crate::tc::TypeChecker;
 use crate::util::{Config, ExprPtr};
+use crate::value::Value;
 use stumpalo::Arena;
 
 /// **K1b-T1**：`Exists ?α P =?= Exists A Q` —— 第一个实参赋 `?α := A`，第二个实参
@@ -35,6 +36,89 @@ fn k1b_t1_failed_def_eq_rolls_back_assignments() {
         };
         assert!(tc.is_def_eq(lhs, ok_rhs), "Exists ?α P =?= Exists A P");
         assert!(tc.ctx.mvars.value(101).is_some(), "?α := A kept on success");
+    });
+}
+
+/// 推断 `e` 的类型并 quote（走 `type_cache`）。
+fn infer_q<'t>(tc: &mut TypeChecker<'_, 't, '_>, e: ExprPtr<'t>) -> ExprPtr<'t> {
+    let (env, ctx) = (tc.empty_env(), tc.empty_ctx());
+    let ty = tc.infer_value(crate::tc::InferFlag::InferOnly, 0, env, ctx, e);
+    tc.quote(0, ty)
+}
+
+/// Pi 的定义域（quote 后的类型）。
+fn pi_dom(e: ExprPtr<'_>) -> ExprPtr<'_> {
+    match e.as_ref() {
+        crate::expr::Expr::Pi { binder_type, .. } => *binder_type,
+        other => panic!("not a Pi: {other:?}"),
+    }
+}
+
+/// **K1b-T2**：回滚后不留陈旧缓存。失败的尝试 `Exists ?α ?p =?= Exists A R`（`R : B → Prop`）：
+/// 先赋 `?α := A`，再在 `?p := R` 的类型检查里 eval `?α → Prop`（此时缓存成 `A → Prop`），
+/// `B → Prop ≠ A → Prop` ⇒ 失败 ⇒ 回滚。之后 eval/infer 含 `?α` 的项必须仍见到**未赋值**的 `?α`。
+#[test]
+fn k1b_t2_rollback_leaves_no_stale_cache() {
+    with_tc(|tc, fx| {
+        let env = tc.empty_env();
+        let before = tc.eval(0, env, fx.m_p_ty);
+        assert!(matches!(before, Value::Pi { domain: Value::Meta { id: 101, .. }, .. }));
+        let intro3 = {
+            let t = app(tc, fx.intro1, fx.m_alpha);
+            let t = app(tc, t, fx.m_p);
+            app(tc, t, fx.w)
+        };
+        let ty_before = infer_q(tc, intro3);
+        assert!(tc.ctx.unassigned_mvars(ty_before).exprs.contains(&101));
+        let rhs = {
+            let ex = tc.ctx.unfold_apps_fun(fx.expected);
+            let t = app(tc, ex, fx.a);
+            app(tc, t, fx.r)
+        };
+        assert!(!tc.is_def_eq(fx.res_ty, rhs), "Exists ?α ?p =?= Exists A R must fail");
+        assert!(tc.ctx.mvars.value(101).is_none() && tc.ctx.mvars.value(102).is_none());
+        let env = tc.empty_env();
+        let after = tc.eval(0, env, fx.m_p_ty);
+        assert!(
+            matches!(after, Value::Pi { domain: Value::Meta { id: 101, .. }, .. }),
+            "eval(?α → Prop) after rollback must show ?α unassigned (stale closed_eval_cache), got {after:?}"
+        );
+        let env = tc.empty_env();
+        assert!(matches!(tc.eval(0, env, fx.m_alpha), Value::Meta { id: 101, .. }));
+        let ty_after = infer_q(tc, intro3);
+        assert!(tc.ctx.unassigned_mvars(ty_after).exprs.contains(&101), "inferred type still mentions ?α");
+    });
+}
+
+/// **K1b-T3**：赋值对每张缓存都可见。赋值前 infer/quote 含 `?p a` 的项（进 `type_cache` / `quote_cache`），
+/// 赋 `?p := λx. P x` 后再问 ⇒ 结果必须是 `P a`。
+#[test]
+fn k1b_t3_assignment_visible_through_type_and_quote_caches() {
+    with_tc(|tc, fx| {
+        let pa = app(tc, fx.p, fx.w);
+        let mpa = app(tc, fx.m_p, fx.w);
+        // type_cache：`Exists.intro ?α ?p a : ?p a → Exists ?α ?p`。
+        let intro3 = {
+            let t = app(tc, fx.intro1, fx.m_alpha);
+            let t = app(tc, t, fx.m_p);
+            app(tc, t, fx.w)
+        };
+        let ty0 = infer_q(tc, intro3);
+        assert!(same(pi_dom(ty0), mpa), "before: domain is ?p a");
+        // quote_cache：quote 卡住的值 `?p a`。
+        let env = tc.empty_env();
+        let v = tc.eval(0, env, mpa);
+        let q0 = tc.quote(0, v);
+        assert!(same(q0, mpa), "before: quote(?p a) = ?p a");
+        assert!(tc.is_def_eq(fx.m_p, fx.lam), "?p := λx. P x");
+        let ty1 = infer_q(tc, intro3);
+        assert!(same(pi_dom(ty1), pa), "type_cache: after assignment the domain must be P a");
+        let q1 = tc.quote(0, v);
+        assert!(same(q1, pa), "quote_cache: quote of the old stuck value must see ?p := λx. P x");
+        let env = tc.empty_env();
+        let v2 = tc.eval(0, env, mpa);
+        let q2 = tc.quote(0, v2);
+        assert!(same(q2, pa), "fresh eval+quote of ?p a = P a");
     });
 }
 

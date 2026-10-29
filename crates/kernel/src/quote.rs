@@ -57,6 +57,13 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         let r = match v {
             Value::Sort { level, .. } => self.ctx.mk_sort(*level),
             Value::Meta { id, ty, spine, .. } => {
+                // **K1b**：已赋值 ⇒ 看穿（重放赋值再 quote）；赋值前算出的卡住值
+                // （`?p a`）在赋值后 quote 必须反映赋值。无元变量的会话到不了这一臂。
+                if let Some(r) = self.meta_replay(depth, *id, spine) {
+                    let q = self.quote(depth, r);
+                    self.tc_cache.quote_cache.insert(key, q);
+                    return q;
+                }
                 let h = self.ctx.mk_meta(*id, *ty);
                 self.quote_spine(depth, h, spine)
             }

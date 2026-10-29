@@ -24,6 +24,7 @@ pub(super) struct Fx<'a> {
     pub(super) q: ExprPtr<'a>,      // Q : A → Prop (K1b)
     pub(super) intro1: ExprPtr<'a>, // Exists.intro.{1} (K1b)
     pub(super) ha: ExprPtr<'a>,     // ha : P a (K1b)
+    pub(super) r: ExprPtr<'a>,      // R : B → Prop, B : Type (K1b)
 }
 
 pub(super) fn axiom<'a>(b: &mut EnvBuilder<'a>, name: &str, ups: crate::util::LevelsPtr<'a>, ty: ExprPtr<'a>) {
@@ -90,6 +91,13 @@ pub(super) fn setup<'a>(b: &mut EnvBuilder<'a>) -> Fx<'a> {
     axiom(b, "ha", none, pa);
     let han = b.name_from_str("ha");
     let ha = b.mk_const(han, none);
+    axiom(b, "B", none, sort1);
+    let bn = b.name_from_str("B");
+    let b_ty = b.mk_const(bn, none);
+    let b_prop = b.mk_pi(anon, BinderStyle::Default, b_ty, prop);
+    axiom(b, "R", none, b_prop);
+    let rn = b.name_from_str("R");
+    let r = b.mk_const(rn, none);
     // metas: ?α : Sort 1 ; ?p : ?α → Prop
     let m_alpha = b.mk_meta(101, sort1);
     let m_p_ty = b.mk_pi(anon, BinderStyle::Default, m_alpha, prop);
@@ -106,7 +114,7 @@ pub(super) fn setup<'a>(b: &mut EnvBuilder<'a>) -> Fx<'a> {
         let t = b.mk_app(ex1, a);
         b.mk_app(t, lam)
     };
-    Fx { a, p, w, lam, m_alpha, m_p, sort1, m_p_ty, res_ty, expected, q, intro1, ha }
+    Fx { a, p, w, lam, m_alpha, m_p, sort1, m_p_ty, res_ty, expected, q, intro1, ha, r }
 }
 
 /// 在带种子（?α、?p 都登记为 Natural）的 TypeChecker 里跑 `f`；大栈线程。
