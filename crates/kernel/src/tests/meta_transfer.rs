@@ -134,10 +134,19 @@ fn f2a_t2_sharing_is_preserved() {
         let zero = b.zero();
         let prop = b.mk_sort(zero);
         let mx = b.mk_meta(9, prop);
+        let pn = b.name_from_str("P");
+        let p = b.mk_const(pn, none);
+        let exprs = HashMap::from([(9u32, p)]);
         let mut t = mx;
-        for _ in 0..30 {
+        for i in 0..30 {
             let ft = b.mk_app(f, t);
             t = b.mk_app(ft, t);
+            // 深度 12（树 2^12）先卡一道：记忆坏了就在这里便宜地红，不会在深度 30 爆内存。
+            if i == 11 {
+                assert!(export_expr(t).node_count() <= 30, "depth-12 export must be DAG-sized");
+                let i12 = b.instantiate_metas(t, &exprs, &HashMap::new());
+                assert!(export_expr(i12).node_count() <= 30, "depth-12 instantiate must be DAG-sized");
+            }
         }
         let start = std::time::Instant::now();
         let owned = export_expr(t);
@@ -145,9 +154,6 @@ fn f2a_t2_sharing_is_preserved() {
         let back = b.import_owned(&owned).unwrap();
         assert_eq!(back, t);
         // 代入 ?9 := P 也按 DAG 记忆。
-        let pn = b.name_from_str("P");
-        let p = b.mk_const(pn, none);
-        let exprs = HashMap::from([(9u32, p)]);
         let inst = b.instantiate_metas(t, &exprs, &HashMap::new());
         let o2 = export_expr(inst);
         assert!(o2.node_count() <= 64 && !o2.nodes.iter().any(|n| matches!(n, OwnedNode::Meta { .. })));
