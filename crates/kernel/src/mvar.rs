@@ -79,11 +79,12 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
     }
 }
 
-/// 元变量值（`Value::Meta` 的唯一构造点）。
-pub fn mk_meta<'a>(arena: &'a bumpalo::Bump, id: u32, ty: ExprPtr<'a>) -> V<'a> {
+/// 元变量值（`Value::Meta` 的唯一构造点）。`spine` = 卡住的消除器（`?p w`）。
+pub fn mk_meta<'a>(arena: &'a bumpalo::Bump, id: u32, ty: ExprPtr<'a>, spine: S<'a>) -> V<'a> {
     arena.alloc(Value::Meta {
         id,
         ty,
+        spine,
         key: std::cell::Cell::new(0),
     })
 }
@@ -91,7 +92,7 @@ pub fn mk_meta<'a>(arena: &'a bumpalo::Bump, id: u32, ty: ExprPtr<'a>) -> V<'a> 
 /// 谓词版 occurs：`v` 里有没有满足 `pred` 的元变量 id。
 fn any_meta(v: V<'_>, pred: &dyn Fn(u32) -> bool) -> bool {
     match v {
-        Value::Meta { id, .. } => pred(*id),
+        Value::Meta { id, spine, .. } => pred(*id) || spine_any(spine, pred),
         Value::Sort { .. } | Value::NatLit { .. } | Value::StrLit { .. } => false,
         Value::Rigid { head, spine, .. } => {
             matches!(head, crate::value::RigidHead::BVar(_, ty) if any_meta(*ty, pred))
@@ -251,7 +252,7 @@ pub(crate) fn eval_meta<'t>(
 ) -> V<'t> {
     match tc.ctx.mvars.value(id) {
         Some(term) => tc.eval(depth, env, term),
-        None => mk_meta(tc.arena, id, ty),
+        None => mk_meta(tc.arena, id, ty, tc.empty_spine()),
     }
 }
 

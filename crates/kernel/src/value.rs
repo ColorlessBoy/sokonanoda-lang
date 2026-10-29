@@ -138,7 +138,8 @@ pub enum Value<'a> {
         key: Cell<u64>,
     },
     /// `ty` = 声明类型（`Expr::Meta` 带过来的）；赋值在 `TcCtx.mvars` 里。
-    Meta { id: u32, ty: ExprPtr<'a>, key: Cell<u64> },
+    /// `spine` = 卡住的消除器（`?p w` ⇒ `Meta{spine=[w]}`，K1：`apply` 不再 panic）。
+    Meta { id: u32, ty: ExprPtr<'a>, spine: S<'a>, key: Cell<u64> },
     Thunk {
         env: E<'a>,
         expr: ExprPtr<'a>,
@@ -231,7 +232,9 @@ impl<'a> Value<'a> {
             Value::Sort { level, .. } => seal(kmix(1, level.get_hash()), true),
             Value::NatLit { ptr, .. } => seal(kmix(2, ptr.get_hash()), true),
             Value::StrLit { ptr, .. } => seal(kmix(3, ptr.get_hash()), true),
-            Value::Meta { id, .. } => seal(kmix(20, u64::from(*id)), true),
+            // 空 spine ⇒ 与旧 key 逐位相同（不让哈希分布漂移）；非空 ⇒ 混入 spine。
+            Value::Meta { id, spine, .. } if spine.is_empty() => seal(kmix(20, u64::from(*id)), true),
+            Value::Meta { id, spine, .. } => seal(kmix(kmix(20, u64::from(*id)), spine.key()), spine.is_closed()),
             Value::Thunk { env, expr, .. } => {
                 let (e, c) = env_slots_key(env, expr.num_loose_bvars());
                 seal(kmix(kmix(13, expr.as_ref() as *const crate::expr::Expr<'a> as usize as u64), e), c)
