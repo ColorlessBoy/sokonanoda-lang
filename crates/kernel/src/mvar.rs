@@ -87,6 +87,14 @@ impl<'t> MetaContext<'t> {
     pub fn level_value(&self, id: u64) -> Option<crate::util::LevelPtr<'t>> {
         self.level_values.get(&id).copied()
     }
+    /// **F2a**：全部项赋值（无序）。
+    pub fn assignments(&self) -> impl Iterator<Item = (u32, ExprPtr<'t>)> + '_ {
+        self.values.iter().map(|(k, v)| (*k, *v))
+    }
+    /// **F2a**：全部层赋值（无序）。
+    pub fn level_assignments(&self) -> impl Iterator<Item = (u64, crate::util::LevelPtr<'t>)> + '_ {
+        self.level_values.iter().map(|(k, v)| (*k, *v))
+    }
     /// **K1b**：快照全部赋值（项 + 层）。
     pub fn checkpoint(&self) -> MetaCheckpoint<'t> {
         MetaCheckpoint {

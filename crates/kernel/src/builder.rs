@@ -400,14 +400,14 @@ impl<'a> EnvBuilder<'a> {
         out
     }
 
-    fn name_str(&mut self, pfx: NamePtr<'a>, sfx: &str) -> NamePtr<'a> {
+    pub(crate) fn name_str(&mut self, pfx: NamePtr<'a>, sfx: &str) -> NamePtr<'a> {
         let sfx = self.alloc_string(sfx);
         let hash = crate::hash64!(STR_HASH, pfx, sfx);
         let name = Name::Str(pfx, sfx, hash);
         NamePtr::global(self.dag.names.intern(self.arena, name))
     }
 
-    fn name_num(&mut self, pfx: NamePtr<'a>, n: u64) -> NamePtr<'a> {
+    pub(crate) fn name_num(&mut self, pfx: NamePtr<'a>, n: u64) -> NamePtr<'a> {
         let hash = crate::hash64!(NUM_HASH, pfx, n);
         let name = Name::Num(pfx, n, hash);
         NamePtr::global(self.dag.names.intern(self.arena, name))
