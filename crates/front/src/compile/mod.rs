@@ -114,3 +114,7 @@ mod eqsubst_predicate_tests;
 #[cfg(test)]
 #[path = "tests/kernel_tel.rs"]
 mod kernel_tel_tests;
+// P1-F2b2：strict + 闸门开 ⇒ 应用走内核 `elab_app`（线程局部覆盖）。
+#[cfg(test)]
+#[path = "tests/kernel_app.rs"]
+mod kernel_app_tests;
