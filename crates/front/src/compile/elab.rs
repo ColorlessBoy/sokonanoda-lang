@@ -4,6 +4,7 @@ use super::check::meta_exit::{b2_binder, p4b, untyped_binder, ValKind};
 use super::check::quiet_catch;
 use super::error::{CompileError, ErrorKind};
 use super::expected::{drop_expected_src_layer_unfolding, mentions_any, mentions_names};
+use super::kernel_app::try_app as kapp;
 use super::meta::pattern;
 use super::prelude::CompileOptions;
 use super::report::ResolvedTarget;
@@ -658,6 +659,9 @@ impl<'a> ElabScope<'a> {
     /// 于是任何「隐式命题里含 `=`」的短写法（`And.intro h1 h2`、`And.left h`…）
     /// 都被解错、判红。书写类型是 `1 = 1`（记法节点），`unify_extract` 认得。
     /// 作用域里的**局部名**表（声明序）—— 给「遮蔽判据」与 `resolve_known` 用 ✓。
+    pub(crate) fn kernel_tys(&self) -> &[ExprPtr<'a>] {
+        &self.tys
+    }
     pub(crate) fn local_names(&self) -> &[String] {
         &self.names
     }
@@ -4369,6 +4373,10 @@ fn try_implicit_application_with<'a>(
     // `judge_infer`，而它会重装 prelude ⇒ 无限递归（见 [`PreludeInstallGuard`]）。
     if prelude_install_active() {
         return Ok(None);
+    }
+    // P1-F2b2：strict + `SOKO_STRICT_KERNEL_APP=1` ⇒ 先试内核 `elab_app`（闸门关 ⇒ 第一行返回）。
+    if let Some(out) = kapp(builder, expr, scope, univ, known, hovers, expected_src, ctx) {
+        return Ok(Some(out));
     }
     let (head, args) = crate::spine::spine_of(expr);
     if args.is_empty() {
