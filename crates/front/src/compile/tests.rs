@@ -11224,6 +11224,18 @@ fn probe_identity_is_stable_and_self_describing() {
 // 这里钉**行为**那一半 ✓ —— **结构**那一半（闸与出口都不许回来 ✓）在
 // `kernel/src/tests/probe.rs` ✓（那边够不着源级夹具，这边够不着 kernel 源码 ✓，两半合起来才完整 ✓）。
 
+/// 在**产品编译线程同一份栈**（[`crate::project::COMPILE_STACK_BYTES`]）上跑 `f`：
+/// 深夹具的递归深度是有界的，但会超过 `cargo test` 线程默认的 2 MiB。
+/// panic 原样传回测试线程，断言消息不丢。
+fn on_compile_stack<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
+    std::thread::Builder::new()
+        .stack_size(crate::project::COMPILE_STACK_BYTES)
+        .spawn(f)
+        .expect("spawn compile-stack thread")
+        .join()
+        .unwrap_or_else(|e| std::panic::resume_unwind(e))
+}
+
 /// **G-89 夹具生成器**：`d0 := bmk`、`dK := E (E (E (d(K-1))))`，末条 `theorem t` 用
 /// `Eq.refl.{1} B (E dN)` 让内核去问 `E dN =?= E <rhs>` ✓。
 ///
@@ -11285,7 +11297,9 @@ fn probe_keeps_equality_and_rigid_inequality_apart() {
 /// 换成小夹具就够不着旧预算了 ✗（实测浅链 `n = 1536` 都还不耗尽 ✓）。
 #[test]
 fn probe_that_exhausted_the_old_budget_still_judges_equal() {
-    let out = compile_ok(&probe_chain_source(1000, "E d0"));
+    // 1000 条链 ⇒ 递归**有界但深**：aarch64-apple-darwin 实测阈值 ∈ (2560, 2816] KiB，
+    // 刚好超过测试线程默认的 2 MiB ⇒ 跑在产品编译线程同一份栈上（`COMPILE_STACK_BYTES`）。
+    let out = on_compile_stack(|| compile_ok(&probe_chain_source(1000, "E d0")));
     assert!(
         out.events
             .iter()
