@@ -125,7 +125,7 @@ print→parse。（旧分支另有逐调用点计数 `JUDGE_INFER_SITES`：就�
 - 冷跑口径：除两个 `NO_*_ARTIFACTS` 外，**全局编译缓存**（`compile/cache.rs::root()`）命中会整份回放、
   一行 `JUDGE_*` 都不打 ⇒ 每次运行 `SOKONANODA_CACHE_DIR=<新临时目录>`；方言用顶层 `--dialect`
   （`course` 也认，优先于 `SOKO_STRICT_AT`）。
-- **P1 的验收集加一条**：unit12 strict 通过（新路径不经文本 ⇒ 漏名这一类按构造消失）。
+- **P2 的验收集加一条**：unit12 strict 通过（新路径不经文本 ⇒ 漏名这一类按构造消失）；P1 只照报读数。
 
 ### P0 产出：Lean 4 对照（v4.35.0 `eb6cafb`，`~/Documents/lean/lean4`）
 
@@ -142,14 +142,38 @@ print→parse。（旧分支另有逐调用点计数 `JUDGE_INFER_SITES`：就�
 内核最小能力：可赋值 typed meta（scope / occurs / 类型检查）· 带 meta 的 β/δ/η 与 binder 开放 ·
 Miller pattern · **失败回滚**（Lean `checkpointDefEq`）· 层元变量（`Exists` 的 `Sort u`，未追）。
 
-### P1 可行性试做（限 1–2 天，到期无结论先汇报）
+### P0 产出：内核元变量现状（spike `/tmp/p0-spike`，复跑 4/4 与报告一致）
 
-- 先交 3–6 行 Lean 4 对照。
-- 新开关下实现内核级 `elab_app`，先覆盖 `Exists.intro` / `Exists.elim` / `And.intro` / `Set.mem`。
-- 第一件事：确认内核 def_eq 能在比较中给 `Expr::Meta` 赋值（目前只读过 `mvar.rs:183–213`，未实跑）。
-- **判据**：`lib/Exists`、`lib/Set` strict 通过（含 `Exists.imp`）；新路径零文本调用并纳入 audit 守卫；
-  两文件三项计数 ≤ loose。
-- 不通过 ⇒ 汇报后二选一：给内核补元变量合一，或保留源级 store 但只喂内核类型。
+内核 def_eq **能**给 `Expr::Meta` 赋值，但只有一阶，且三处会 panic：
+
+| 位置 | 现象 | 后果 |
+|---|---|---|
+| `eval_type.rs:39` `value_type` | Lam/Pi ⇒ panic | `?p := fun x => …`、`?α := A → B` 赋不上；期望类型含 λ（`∃ x, P x` 的常态）直接 panic |
+| `eval.rs:783` `apply` | 头是 `Value::Meta` ⇒ panic（`Value::Meta` 无 spine） | `?p w` 表示不了 ⇒ 无 Miller pattern、无卡住项 |
+| `eval.rs:449-455` `closed_eval_cache` | 无元变量守卫 | 赋值前求过值的 `?p` 一直是旧值（spike case 3 vs 4） |
+
+另：公开入口只有 panic 式 `assert_def_eq`（`tc.rs:296`），无 `is_def_eq -> bool`、无回滚、无
+`instantiate_mvars`；binder 下赋值无 scope 纪律。`add_declar` 入口拒任何元变量（`builder.rs:596`）
+⇒ **最终声明永远无元变量**，信任边界不变。层元变量已有（`Level::MVar`、`level.rs:150-175`）。
+
+telescope：**按需从内核声明类型派生**（`builder.with_env(|ef| ef.declars.get(..))`，先例
+`check/decl_card.rs:54`）+ `implicit_prefix` 覆盖构造子参数，≈ 2–4 文件；移植旧分支方案 ≈ 19–28 文件
+（`KnownTable<'a>` 生命周期 + wire 冷暖对拍）⇒ 选按需派生；暖路径查不到声明 ⇒ 回落今天的路径（仅 P1）。
+
+### P1：内核元变量补齐 + 内核级 elab_app（限 2 天，到期无结论先汇报）
+
+**路线**：扩展内核**已有**的元变量机制（`mvar.rs`），不在前端另写一套 isDefEq。
+⚠ 与 Lean 的偏离：Lean 内核不认元变量，合一在 `Lean.Meta`。偏离理由：本仓内核已承载一阶元变量合一
+（IA-4）；另写一套 = 第二份 defeq（旧分支病根，只是换了表示）。信任边界靠 `add_declar` 入口拒元变量 +
+最终项实例化后走**不变的**判定路径重检。
+
+| 刀 | 内容 | 写者 | 判据 |
+|---|---|---|---|
+| K1 | `Value::Meta` 加 spine（`apply` 产卡住项，quote/conv 认它）；`value_type` 的 Lam/Pi 改为对 quote 项 `infer`；`closed_eval_cache` 元变量守卫；公开 `is_def_eq -> bool` + checkpoint 回滚；`instantiate_mvars`；Miller pattern 臂（实参两两不同的局部变量 ⇒ `?m := λxs. t`，scope + occurs + 类型检查） | 内核**唯一**写者 | spike 四例转正式测试：期望含 λ ⇒ 解出 `?p`；无期望 ⇒ **干净的 false**、无 panic；缓存不陈旧；`?p x =?= P x`（x 为 binder 变量）⇒ Miller 解出。**红线**：内核既有测试 + front lib 1099 + golden 逐字节不变 |
+| F1 | 按需 telescope helper | 前端写者（与 K1 文件不相交，可并行） | 单测：`Exists.intro`/`And.intro`/`Set.mem`/`Exists.elim` 的 binder 档与注册表一致 |
+| F2 | 内核级 `elab_app`（`SOKO_STRICT_KERNEL_APP=1`，仅 strict），按 Lean 对照 7 步；未解隐式在应用末尾报错并点名 binder；解不出 ⇒ 回落今天的路径（仅 P1）；stderr 计数 `KERNEL_APP tried= ok= fallback=` | 前端写者（K1、F1 之后） | `strict-score.py --env SOKO_STRICT_KERNEL_APP=1`：`lib_strict` 仍 17/17、`lib_loose` 不变；`lib/Exists`、`lib/Set` 上 `ok > 0`（证明真接上）；命中的应用零文本 / 零 `judge_infer`；三文件计数相对 P0 基线**下降**并照报（≤ loose 是 P2 硬门） |
+
+不通过 ⇒ 汇报后再定（候选：前端 Meta 层合一，只喂内核项）。
 
 ### P2 接管
 
@@ -184,6 +208,7 @@ Miller pattern · **失败回滚**（Lean `checkpointDefEq`）· 层元变量（
 
 ## 6. 未核实
 
-- 整门课 strict 数字未重跑；`Exists.imp` 根因未定论；内核 def_eq 给元变量赋值未实测；
-- loose 的隐式插入是否与 strict 走同一求解路径，只读了入口；§1.2 计数只量了 unit01；
-- 语料调用数比交接书少 8,467（111/112 文件有读数，可能是构建差异）。
+- `Exists.imp` 根因未定论（旧分支的问题，新路线不依赖它）；
+- 暖路径（artifact 装载）上内核声明是否总在 builder 里未验（F1 以回落兜底）；
+- loose 的隐式插入是否与 strict 走同一求解路径，只读了入口；
+- 全部读数只在 macOS/arm64 上量过；语料调用数比交接书少 8,467（可能是构建差异）。
