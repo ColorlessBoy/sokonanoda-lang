@@ -2,6 +2,7 @@ mod arena_regressions;
 mod level;
 mod meta_placeholder;
 mod meta_defeq;
+mod meta_miller;
 mod meta_spine;
 mod natlit;
 mod probe;

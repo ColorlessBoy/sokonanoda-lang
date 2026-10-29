@@ -123,7 +123,7 @@ fn k1b_t3_assignment_visible_through_type_and_quote_caches() {
 }
 
 /// 结构相等（跨 arena：TC 会话里重建的节点与 builder 节点指针不同）。名字是全局的 ⇒ 按指针比。
-fn same(x: ExprPtr<'_>, y: ExprPtr<'_>) -> bool {
+pub(super) fn same(x: ExprPtr<'_>, y: ExprPtr<'_>) -> bool {
     use crate::expr::Expr::*;
     match (x.as_ref(), y.as_ref()) {
         (Var { dbj_idx: i, .. }, Var { dbj_idx: j, .. }) => i == j,

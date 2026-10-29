@@ -26,6 +26,11 @@ pub struct MetaContext<'t> {
     /// （层 mvar 在 `leq`/`eq_antisymm` 里是刚性的）；只有 [`TcCtx::instantiate_mvars`]
     /// 与 checkpoint/restore 用它。
     level_values: FxHashMap<u64, crate::util::LevelPtr<'t>>,
+    /// **K1c**：元变量创建处的 binder 深度（未登记 = 0 = 顶层）。赋值只许提到深度 `< d` 的
+    /// bound var（Lean `MetavarDecl.lctx` 的 de Bruijn 版）；Miller 实参必须是深度 `≥ d` 的 bvar。
+    depths: FxHashMap<u32, u32>,
+    /// **K1c**：赋值代数（每次 `assign`/`assign_level` +1，永不回退）⇒ `restore` 按内容判"变没变"。
+    generation: u64,
 }
 
 /// **K1b**：[`MetaContext::checkpoint`] 的快照（Lean `checkpointDefEq` 的 `saveState` 那半）。
@@ -33,6 +38,7 @@ pub struct MetaCheckpoint<'t> {
     values: FxHashMap<u32, ExprPtr<'t>>,
     level_values: FxHashMap<u64, crate::util::LevelPtr<'t>>,
     unassigned: usize,
+    generation: u64,
 }
 
 impl<'t> MetaContext<'t> {
@@ -44,6 +50,15 @@ impl<'t> MetaContext<'t> {
         if is_new && !self.values.contains_key(&id) {
             self.unassigned += 1;
         }
+    }
+    /// **K1c**：登记一个在 binder 深度 `depth` 下创建的元变量。
+    pub fn register_at(&mut self, id: u32, ty: ExprPtr<'t>, depth: u32) {
+        self.register(id, ty);
+        self.depths.insert(id, depth);
+    }
+    /// **K1c**：创建处的 binder 深度（未登记 ⇒ 0）。
+    pub fn depth_of(&self, id: u32) -> u32 {
+        self.depths.get(&id).copied().unwrap_or(0)
     }
     pub fn register_kind(&mut self, id: u32, kind: MetaKind) {
         self.kinds.insert(id, kind);
@@ -58,6 +73,7 @@ impl<'t> MetaContext<'t> {
         self.values.get(&id).copied()
     }
     pub fn assign(&mut self, id: u32, v: ExprPtr<'t>) {
+        self.generation += 1;
         let was_assigned = self.values.insert(id, v).is_some();
         if !was_assigned && self.types.contains_key(&id) {
             self.unassigned = self.unassigned.saturating_sub(1);
@@ -65,6 +81,7 @@ impl<'t> MetaContext<'t> {
     }
     /// **K1b**：层元变量赋值（覆盖旧值）。
     pub fn assign_level(&mut self, id: u64, l: crate::util::LevelPtr<'t>) {
+        self.generation += 1;
         self.level_values.insert(id, l);
     }
     pub fn level_value(&self, id: u64) -> Option<crate::util::LevelPtr<'t>> {
@@ -76,12 +93,13 @@ impl<'t> MetaContext<'t> {
             values: self.values.clone(),
             level_values: self.level_values.clone(),
             unassigned: self.unassigned,
+            generation: self.generation,
         }
     }
     /// **K1b**：回滚到快照；返回"快照之后有没有新赋值"（有 ⇒ 调用方必须清缓存）。
-    /// 赋值只增不改（`unify_meta` 只赋未赋值的 id）⇒ 比长度就够。
+    /// **K1c**：按赋值代数判（`assign_level` 会覆盖 ⇒ 比长度会漏掉"同长度不同值"）。
     pub fn restore(&mut self, cp: MetaCheckpoint<'t>) -> bool {
-        let changed = cp.values.len() != self.values.len() || cp.level_values.len() != self.level_values.len();
+        let changed = cp.generation != self.generation;
         self.values = cp.values;
         self.level_values = cp.level_values;
         self.unassigned = cp.unassigned;
@@ -92,10 +110,10 @@ impl<'t> MetaContext<'t> {
     pub fn has_unassigned(&self) -> bool {
         self.unassigned > 0
     }
-    fn begin_check(&mut self, id: u32) -> bool {
+    pub(crate) fn begin_check(&mut self, id: u32) -> bool {
         self.checking.insert(id)
     }
-    fn end_check(&mut self, id: u32) {
+    pub(crate) fn end_check(&mut self, id: u32) {
         self.checking.remove(&id);
     }
 }
@@ -198,6 +216,11 @@ fn expr_any(e: ExprPtr<'_>, pred: &dyn Fn(u32) -> bool) -> bool {
     }
 }
 
+/// **K1c** occurs（表达式版；Miller 候选是 quote 出来的项 ⇒ 已赋值元变量已被看穿）。
+pub(crate) fn expr_mentions_meta(id: u32, e: ExprPtr<'_>) -> bool {
+    expr_any(e, &|x| x == id)
+}
+
 /// occurs：`v` 里有没有 `?id`。
 pub fn mentions_meta(id: u32, v: V<'_>) -> bool {
     any_meta(v, &|x| x == id)
@@ -233,6 +256,13 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         if mentions_meta(id, v) {
             return false;
         }
+        // **K1c scope**：`?m` 只看得见它创建处的上下文。本内核的赋值以**闭项**存储
+        // （`unify_meta`/`meta_replay` 都在空 env 里求值）⇒ quote 出来带 loose `Var`
+        // （提到了 `?m` 之后引入的 bvar，或任何 bvar）⇒ 干净地拒绝。先于类型检查：
+        // 开的 Lam/Pi 不许进 `value_type`。
+        if !self.in_meta_scope(id, depth, v) {
+            return false;
+        }
         // **类型检查**（best effort）：`T(?m) ≟ type(v)`；解不出就放弃这次赋值。
         if !self.ctx.mvars.begin_check(id) {
             return false;
@@ -246,12 +276,21 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         if !ok {
             return false;
         }
+        // 类型检查可能顺带赋了别的元变量（`?α`）⇒ 在那之后再 quote（与 K1b 同一份存储形状）。
         let quoted = self.quote(depth, v);
         self.ctx.mvars.assign(id, quoted);
         // **K1a/K1b 缓存纪律（赋值即失效）**：缓存里可能有赋值前算出的卡住值
         // （`?p`、`?p a`）。只在赋值路径上清：没有赋值的会话（课程语料常态）零代价。
         self.invalidate_on_assign();
         true
+    }
+
+    /// **K1c scope**：`v`（深度 `depth` 下的值）能不能做 `?id` 的赋值。赋值以**闭项**存储、在空 env
+    /// 里重放 ⇒ quote 后不许有 loose `Var`。创建深度 `d > 0` 的元变量本应还能看见 `< d` 的 bvar；
+    /// 闭项存储表达不了 ⇒ 保守地一并拒（宁拒不错；目前没有调用方在 binder 下造元变量）。
+    pub(crate) fn in_meta_scope(&mut self, id: u32, depth: u32, v: V<'t>) -> bool {
+        let _ = self.ctx.mvars.depth_of(id);
+        self.quote(depth, v).num_loose_bvars() == 0
     }
 
     /// **K1b**：公开的、**不 panic** 的定义等价判定（Lean `isDefEq` + `checkpointDefEq`）。
@@ -284,7 +323,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
 
     /// **K1b 缓存纪律（赋值即失效）**：赋值前算出、可能含"卡住在 `?id` 上"结论的缓存。
     /// 只在**赋值路径**上调用 ⇒ 没有赋值的会话（课程语料常态）零代价。审计见 K1b 报告。
-    fn invalidate_on_assign(&mut self) {
+    pub(crate) fn invalidate_on_assign(&mut self) {
         let c = &mut *self.tc_cache;
         c.closed_eval_cache.clear();
         c.open_eval_cache.clear();
@@ -346,8 +385,21 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 return Some(self.unify::<true>(depth, x, v));
             }
         }
-        if let (Some((ix, _, sx)), Some((iy, _, sy))) = (mx, my) {
-            return Some(ix == iy && self.meta_spines_eq(depth, sx, sy));
+        if let (Some((ix, tx, sx)), Some((iy, ty, sy))) = (mx, my) {
+            if ix == iy {
+                // Lean `isDefEqMVarSelf`：先逐项比；失败 ⇒ 撤销逐项比的赋值，再试赋值
+                // （Miller；同 id 必被 occurs 拒 ⇒ 不做常量近似）。
+                let cp = self.ctx.mvars.checkpoint();
+                if self.meta_spines_eq(depth, sx, sy) {
+                    return Some(true);
+                }
+                if self.ctx.mvars.restore(cp) {
+                    self.tc_cache.clear();
+                }
+                return Some(self.miller_assign(depth, ix, tx, sx, y));
+            }
+            // **K1c**：异 id ⇒ 先试赋左、再试赋右（各自失败即回滚）。
+            return Some(self.miller_assign(depth, ix, tx, sx, y) || self.miller_assign(depth, iy, ty, sy, x));
         }
         // 恰一侧非空 spine：另一侧若是空 spine 元变量 ⇒ 一阶赋值它。
         let other = if mx.is_some() { y } else { x };
@@ -355,7 +407,9 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         if let Value::Meta { id, ty, .. } = other {
             return Some(self.unify_meta(depth, *id, *ty, app));
         }
-        Some(false)
+        // **K1c**：`?m xs =?= t` ⇒ Miller pattern（非 pattern ⇒ 干净的 false）。
+        let (id, ty, sp) = mx.or(my).expect("one side is a meta app");
+        Some(self.miller_assign(depth, id, ty, sp, other))
     }
 
     fn meta_spines_eq(&mut self, depth: u32, sx: S<'t>, sy: S<'t>) -> bool {
