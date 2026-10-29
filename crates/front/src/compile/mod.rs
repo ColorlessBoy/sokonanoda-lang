@@ -22,6 +22,8 @@ mod mvar_handle;
 pub mod hints;
 pub(crate) mod hole;
 mod implicit;
+// P1-F1：按需从**内核声明类型**取参数望远镜（P1-F2 的内核级 `elab_app` 用）。
+mod kernel_tel;
 mod named_arg;
 // IA-5 的错误文案（**单独一个文件** ⇒ `elab.rs`/`implicit.rs` 都受判据 ⑨ 冻结，
 // **只许减不许增** ✗ ⇒ 文案长在那边会当场判红 ✓）。
@@ -107,3 +109,7 @@ mod tests;
 #[cfg(test)]
 #[path = "tests/eqsubst_predicate.rs"]
 mod eqsubst_predicate_tests;
+// P1-F1：内核 telescope 的形状 / 全课程库一致性扫描 / 暖路径（产物装载）。
+#[cfg(test)]
+#[path = "tests/kernel_tel.rs"]
+mod kernel_tel_tests;

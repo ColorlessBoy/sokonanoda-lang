@@ -11227,7 +11227,7 @@ fn probe_identity_is_stable_and_self_describing() {
 /// 在**产品编译线程同一份栈**（[`crate::project::COMPILE_STACK_BYTES`]）上跑 `f`：
 /// 深夹具的递归深度是有界的，但会超过 `cargo test` 线程默认的 2 MiB。
 /// panic 原样传回测试线程，断言消息不丢。
-fn on_compile_stack<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
+pub(super) fn on_compile_stack<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
     std::thread::Builder::new()
         .stack_size(crate::project::COMPILE_STACK_BYTES)
         .spawn(f)
