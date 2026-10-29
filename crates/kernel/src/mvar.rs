@@ -22,6 +22,17 @@ pub struct MetaContext<'t> {
     /// 都遍历共享 DAG，`perf/app-lam` 这类用例会指数爆炸（实测 30s+ 不返回，
     /// 上游 pin 0.04s）。
     unassigned: usize,
+    /// **K1b**：层元变量的赋值（`Level::MVar(id)` ⇒ 层）。内核判定本身**不**读它
+    /// （层 mvar 在 `leq`/`eq_antisymm` 里是刚性的）；只有 [`TcCtx::instantiate_mvars`]
+    /// 与 checkpoint/restore 用它。
+    level_values: FxHashMap<u64, crate::util::LevelPtr<'t>>,
+}
+
+/// **K1b**：[`MetaContext::checkpoint`] 的快照（Lean `checkpointDefEq` 的 `saveState` 那半）。
+pub struct MetaCheckpoint<'t> {
+    values: FxHashMap<u32, ExprPtr<'t>>,
+    level_values: FxHashMap<u64, crate::util::LevelPtr<'t>>,
+    unassigned: usize,
 }
 
 impl<'t> MetaContext<'t> {
@@ -51,6 +62,31 @@ impl<'t> MetaContext<'t> {
         if !was_assigned && self.types.contains_key(&id) {
             self.unassigned = self.unassigned.saturating_sub(1);
         }
+    }
+    /// **K1b**：层元变量赋值（覆盖旧值）。
+    pub fn assign_level(&mut self, id: u64, l: crate::util::LevelPtr<'t>) {
+        self.level_values.insert(id, l);
+    }
+    pub fn level_value(&self, id: u64) -> Option<crate::util::LevelPtr<'t>> {
+        self.level_values.get(&id).copied()
+    }
+    /// **K1b**：快照全部赋值（项 + 层）。
+    pub fn checkpoint(&self) -> MetaCheckpoint<'t> {
+        MetaCheckpoint {
+            values: self.values.clone(),
+            level_values: self.level_values.clone(),
+            unassigned: self.unassigned,
+        }
+    }
+    /// **K1b**：回滚到快照；返回"快照之后有没有新赋值"（有 ⇒ 调用方必须清缓存）。
+    /// 赋值只增不改（`unify_meta` 只赋未赋值的 id）⇒ 比长度就够。
+    pub fn restore(&mut self, cp: MetaCheckpoint<'t>) -> bool {
+        let changed = cp.values.len() != self.values.len() || cp.level_values.len() != self.level_values.len();
+        self.values = cp.values;
+        self.level_values = cp.level_values;
+        self.unassigned = cp.unassigned;
+        self.checking.clear();
+        changed
     }
     /// 有没有**未赋值**的元变量（O(1)）。
     pub fn has_unassigned(&self) -> bool {
@@ -212,11 +248,51 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         }
         let quoted = self.quote(depth, v);
         self.ctx.mvars.assign(id, quoted);
-        // **K1a 缓存纪律（赋值即失效）**：eval 缓存里可能有赋值前算出的卡住值
-        // （`?p`、`?p a`）。只清两张 eval 表：没有赋值的会话（课程语料常态）零代价。
-        self.tc_cache.closed_eval_cache.clear();
-        self.tc_cache.open_eval_cache.clear();
+        // **K1a/K1b 缓存纪律（赋值即失效）**：缓存里可能有赋值前算出的卡住值
+        // （`?p`、`?p a`）。只在赋值路径上清：没有赋值的会话（课程语料常态）零代价。
+        self.invalidate_on_assign();
         true
+    }
+
+    /// **K1b**：公开的、**不 panic** 的定义等价判定（Lean `isDefEq` + `checkpointDefEq`）。
+    ///
+    /// * `true` ⇒ 本次尝试做的赋值保留；
+    /// * `false`（含内部 panic）⇒ 本次尝试做的**全部**项/层元变量赋值回滚，且
+    ///   若确有赋值被撤销 ⇒ 整张 `TcCache` 清空（缓存里可能有依赖那些赋值的值）。
+    ///   没有赋值被撤销 ⇒ 不清（无元变量会话零代价）。
+    pub fn is_def_eq(&mut self, x: ExprPtr<'t>, y: ExprPtr<'t>) -> bool {
+        let cp = self.ctx.mvars.checkpoint();
+        let probe = self.tc_cache.probe_depth;
+        let names = self.binder_names.len();
+        let r = {
+            let _q = crate::quiet::quiet();
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| self.def_eq_core(x, y)))
+        };
+        let (ok, panicked) = match r {
+            Ok(b) => (b, false),
+            Err(_) => (false, true),
+        };
+        if !ok {
+            self.tc_cache.probe_depth = probe;
+            self.binder_names.truncate(names);
+            if self.ctx.mvars.restore(cp) || panicked {
+                self.tc_cache.clear();
+            }
+        }
+        ok
+    }
+
+    /// **K1b 缓存纪律（赋值即失效）**：赋值前算出、可能含"卡住在 `?id` 上"结论的缓存。
+    /// 只在**赋值路径**上调用 ⇒ 没有赋值的会话（课程语料常态）零代价。审计见 K1b 报告。
+    fn invalidate_on_assign(&mut self) {
+        let c = &mut *self.tc_cache;
+        c.closed_eval_cache.clear();
+        c.open_eval_cache.clear();
+        c.type_cache.clear();
+        c.quote_cache.clear();
+        c.iota_stuck.clear();
+        c.struct_eta_cache.clear();
+        c.lam_domain_cache.clear();
     }
 
     /// 缓存纪律：含**未赋值**元变量的值不许进缓存（赋值后 key 就过期）。

@@ -10,25 +10,26 @@ use stumpalo::Arena;
 
 /// 全部住在 builder arena 里的项。
 #[derive(Clone, Copy)]
-struct Fx<'a> {
-    a: ExprPtr<'a>,        // A : Type
-    p: ExprPtr<'a>,        // P : A → Prop
-    w: ExprPtr<'a>,        // a : A
-    lam: ExprPtr<'a>,      // fun x : A => P x
-    m_alpha: ExprPtr<'a>,  // ?α : Sort 1     (id 101)
-    m_p: ExprPtr<'a>,      // ?p : ?α → Prop  (id 102)
-    sort1: ExprPtr<'a>,
-    m_p_ty: ExprPtr<'a>,
-    res_ty: ExprPtr<'a>,   // Exists ?α ?p
-    expected: ExprPtr<'a>, // Exists A (fun x => P x)
+pub(super) struct Fx<'a> {
+    pub(super) a: ExprPtr<'a>,        // A : Type
+    pub(super) p: ExprPtr<'a>,        // P : A → Prop
+    pub(super) w: ExprPtr<'a>,        // a : A
+    pub(super) lam: ExprPtr<'a>,      // fun x : A => P x
+    pub(super) m_alpha: ExprPtr<'a>,  // ?α : Sort 1     (id 101)
+    pub(super) m_p: ExprPtr<'a>,      // ?p : ?α → Prop  (id 102)
+    pub(super) sort1: ExprPtr<'a>,
+    pub(super) m_p_ty: ExprPtr<'a>,
+    pub(super) res_ty: ExprPtr<'a>,   // Exists ?α ?p
+    pub(super) expected: ExprPtr<'a>, // Exists A (fun x => P x)
+    pub(super) q: ExprPtr<'a>,      // Q : A → Prop (K1b)
 }
 
-fn axiom<'a>(b: &mut EnvBuilder<'a>, name: &str, ups: crate::util::LevelsPtr<'a>, ty: ExprPtr<'a>) {
+pub(super) fn axiom<'a>(b: &mut EnvBuilder<'a>, name: &str, ups: crate::util::LevelsPtr<'a>, ty: ExprPtr<'a>) {
     let name = b.name_from_str(name);
     b.add_declar(Declar::Axiom { info: DeclarInfo { name, uparams: ups, ty } }).unwrap();
 }
 
-fn setup<'a>(b: &mut EnvBuilder<'a>) -> Fx<'a> {
+pub(super) fn setup<'a>(b: &mut EnvBuilder<'a>) -> Fx<'a> {
     let zero = b.zero();
     let one = b.succ(zero);
     let prop = b.mk_sort(zero);
@@ -56,6 +57,9 @@ fn setup<'a>(b: &mut EnvBuilder<'a>) -> Fx<'a> {
     let pn = b.name_from_str("P");
     let p = b.mk_const(pn, none);
     axiom(b, "a", none, a);
+    axiom(b, "Q", none, a_prop);
+    let qn = b.name_from_str("Q");
+    let q = b.mk_const(qn, none);
     let wn = b.name_from_str("a");
     let w = b.mk_const(wn, none);
     let exn = b.name_from_str("Exists");
@@ -76,11 +80,11 @@ fn setup<'a>(b: &mut EnvBuilder<'a>) -> Fx<'a> {
         let t = b.mk_app(ex1, a);
         b.mk_app(t, lam)
     };
-    Fx { a, p, w, lam, m_alpha, m_p, sort1, m_p_ty, res_ty, expected }
+    Fx { a, p, w, lam, m_alpha, m_p, sort1, m_p_ty, res_ty, expected, q }
 }
 
 /// 在带种子（?α、?p 都登记为 Natural）的 TypeChecker 里跑 `f`；大栈线程。
-fn with_tc(f: impl for<'t> FnOnce(&mut TypeChecker<'_, 't, '_>, Fx<'t>) + Send + 'static) {
+pub(super) fn with_tc(f: impl for<'t> FnOnce(&mut TypeChecker<'_, 't, '_>, Fx<'t>) + Send + 'static) {
     std::thread::Builder::new()
         .stack_size(64 << 20)
         .spawn(move || {
@@ -96,7 +100,7 @@ fn with_tc(f: impl for<'t> FnOnce(&mut TypeChecker<'_, 't, '_>, Fx<'t>) + Send +
         .unwrap();
 }
 
-fn app<'t>(tc: &mut TypeChecker<'_, 't, '_>, f: ExprPtr<'t>, a: ExprPtr<'t>) -> ExprPtr<'t> { tc.ctx.mk_app(f, a) }
+pub(super) fn app<'t>(tc: &mut TypeChecker<'_, 't, '_>, f: ExprPtr<'t>, a: ExprPtr<'t>) -> ExprPtr<'t> { tc.ctx.mk_app(f, a) }
 
 /// **K1a-T1**：`Exists ?α ?p =?= Exists A (fun x => P x)` ⇒ true，`?α := A`，`?p ≡ λx. P x`；
 /// 接着 `P a =?= ?p a` ⇒ true。（修前：`value_type: Pi/Lam not supported` panic。）
