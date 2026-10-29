@@ -647,6 +647,13 @@ impl<'a> EnvBuilder<'a> {
                 return true;
             }
         }
+        // **K1b**：`Declar::value()` 对 `Theorem` 返回 `None`（定理不展开）⇒ 旧版漏扫
+        // 定理的证明项 ✗（K1b-T4 咬出：含 `?m` 的定理能进环境）。单独补上，不动 `value()`。
+        if let Declar::Theorem { val, .. } = d {
+            if self.contains_meta(*val) {
+                return true;
+            }
+        }
         if let Declar::Recursor(rec) = d {
             if rec.rec_rules.iter().any(|r| self.contains_meta(r.val)) {
                 return true;

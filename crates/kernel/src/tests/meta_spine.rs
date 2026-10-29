@@ -22,6 +22,8 @@ pub(super) struct Fx<'a> {
     pub(super) res_ty: ExprPtr<'a>,   // Exists ?α ?p
     pub(super) expected: ExprPtr<'a>, // Exists A (fun x => P x)
     pub(super) q: ExprPtr<'a>,      // Q : A → Prop (K1b)
+    pub(super) intro1: ExprPtr<'a>, // Exists.intro.{1} (K1b)
+    pub(super) ha: ExprPtr<'a>,     // ha : P a (K1b)
 }
 
 pub(super) fn axiom<'a>(b: &mut EnvBuilder<'a>, name: &str, ups: crate::util::LevelsPtr<'a>, ty: ExprPtr<'a>) {
@@ -64,6 +66,30 @@ pub(super) fn setup<'a>(b: &mut EnvBuilder<'a>) -> Fx<'a> {
     let w = b.mk_const(wn, none);
     let exn = b.name_from_str("Exists");
     let ex1 = b.mk_const(exn, ones);
+    // **K1b**：Exists.intro.{u} : {α : Sort u} → (p : α → Prop) → (w : α) → p w → Exists p ；ha : P a
+    let intro1 = {
+        let exu = b.mk_const(exn, us);
+        let (v0, v1, v2, v3) = (b.mk_var(0), b.mk_var(1), b.mk_var(2), b.mk_var(3));
+        let res = {
+            let t = b.mk_app(exu, v3);
+            b.mk_app(t, v2)
+        };
+        let pw = b.mk_app(v1, v0);
+        let nh = b.name_from_str("h");
+        let nw = b.name_from_str("w");
+        let h_pi = b.mk_pi(nh, BinderStyle::Default, pw, res);
+        let w_pi = b.mk_pi(nw, BinderStyle::Default, v1, h_pi);
+        let a_to_prop = b.mk_pi(anon, BinderStyle::Default, v0, prop);
+        let p_pi = b.mk_pi(np, BinderStyle::Default, a_to_prop, w_pi);
+        let ty = b.mk_pi(na, BinderStyle::Implicit, sort_u, p_pi);
+        axiom(b, "Exists.intro", us, ty);
+        let n = b.name_from_str("Exists.intro");
+        b.mk_const(n, ones)
+    };
+    let pa = b.mk_app(p, w);
+    axiom(b, "ha", none, pa);
+    let han = b.name_from_str("ha");
+    let ha = b.mk_const(han, none);
     // metas: ?α : Sort 1 ; ?p : ?α → Prop
     let m_alpha = b.mk_meta(101, sort1);
     let m_p_ty = b.mk_pi(anon, BinderStyle::Default, m_alpha, prop);
@@ -80,7 +106,7 @@ pub(super) fn setup<'a>(b: &mut EnvBuilder<'a>) -> Fx<'a> {
         let t = b.mk_app(ex1, a);
         b.mk_app(t, lam)
     };
-    Fx { a, p, w, lam, m_alpha, m_p, sort1, m_p_ty, res_ty, expected, q }
+    Fx { a, p, w, lam, m_alpha, m_p, sort1, m_p_ty, res_ty, expected, q, intro1, ha }
 }
 
 /// 在带种子（?α、?p 都登记为 Natural）的 TypeChecker 里跑 `f`；大栈线程。
