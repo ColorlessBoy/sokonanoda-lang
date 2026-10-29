@@ -67,6 +67,14 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
     }
 }
 
+impl<'t, 'p: 't> TcCtx<'t, 'p> {
+    /// 造一个层元变量（与 `EnvBuilder::level_mvar` 同哈希）。不登记 ⇒ 刚性；要可赋值另调 `register_level`。
+    pub fn mk_level_mvar(&mut self, id: u64) -> LevelPtr<'t> {
+        let hash = crate::hash64!(crate::level::MVAR_HASH, id);
+        self.alloc_level(Level::MVar(id, hash))
+    }
+}
+
 impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
     /// conv 的层比较入口（`Sort` 层、常量层表）。无登记层 mvar ⇒ 原 `eq_antisymm`。
     pub(crate) fn level_eq(&mut self, u: LevelPtr<'t>, v: LevelPtr<'t>) -> bool {
@@ -94,6 +102,12 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         if xs.len() != ys.len() {
             return false;
         }
-        xs.iter().copied().zip(ys.iter().copied()).all(|(x, y)| self.level_eq(x, y))
+        // 原子：前几个位赋了值、后面失败 ⇒ 撤销（否则 `heads_match = false` 后走展开分支还留着半截赋值）。
+        let cp = self.ctx.mvars.checkpoint();
+        let ok = xs.iter().copied().zip(ys.iter().copied()).all(|(x, y)| self.level_eq(x, y));
+        if !ok && self.ctx.mvars.restore(cp) {
+            self.tc_cache.clear();
+        }
+        ok
     }
 }

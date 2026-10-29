@@ -134,11 +134,29 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
                 return AppOutcome::Unsupported("input contains a meta");
             }
         }
-        // **P1 限制**：层元变量在 defeq 里是刚性的 ⇒ 宇宙多态的头不支持。
+        // **K1d**：宇宙多态的头（Lean `mkConst` + `mkFreshLevelMVars`）：不带层的 `Const` ⇒ 每个 uparam
+        // 一个**本会话登记**的层元变量（defeq 里可赋值）；带齐层 ⇒ 原样用；层数不对 ⇒ 不支持。
+        let mut head = head;
+        let mut level_metas: Vec<(u64, String)> = Vec::new();
         if let Expr::Const { name, levels, .. } = self.ctx.read_expr(head) {
-            let poly = self.env.get_declar(&name).is_some_and(|d| !d.info().uparams.is_empty());
-            if poly || !levels.is_empty() {
-                return AppOutcome::Unsupported("universe-polymorphic head");
+            let uparams = self.env.get_declar(&name).map(|d| d.info().uparams);
+            let ups: Vec<_> = uparams.map(|u| self.ctx.read_levels(u).to_vec()).unwrap_or_default();
+            if levels.is_empty() && !ups.is_empty() {
+                let mut ls = Vec::with_capacity(ups.len());
+                for (k, up) in ups.iter().enumerate() {
+                    let id = u64::from(SESSION_META_BASE) + k as u64;
+                    self.ctx.mvars.register_level(id);
+                    ls.push(self.ctx.mk_level_mvar(id));
+                    let n = match self.ctx.read_level(*up) {
+                        crate::level::Level::Param(n, _) => name_string(self.ctx, n),
+                        _ => k.to_string(),
+                    };
+                    level_metas.push((id, format!("universe {n}")));
+                }
+                let ls = self.ctx.alloc_levels(&ls);
+                head = self.ctx.mk_const(name, ls);
+            } else if levels.len() != ups.len() {
+                return AppOutcome::Unsupported("universe arity");
             }
         }
         let Ok(d16) = u16::try_from(binder_tys.len()) else { return AppOutcome::Unsupported("scope too deep") };
@@ -224,26 +242,47 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
             ai += 1;
             i += 1;
         }
+        // **K1d**：结果类型卡在未赋值元变量上（`?motive b`，非 Miller）⇒ 失败只是信息不够 ⇒ 报 `Unsolved`
+        // （Lean 会推迟/一阶近似；这里不做 ⇒ 点名卡住的 binder，不冒充"期望不符"）。
+        let mut exp_stuck = false;
         if let Some(ev) = exp_v {
             if !propagated && !self.is_def_eq_at(d, ev, fty) {
-                return AppOutcome::ExpectedMismatch;
+                if !self.app_stuck_on_meta(d, fty) {
+                    return AppOutcome::ExpectedMismatch;
+                }
+                exp_stuck = true;
             }
         }
         let failed: Vec<usize> =
             postponed.into_iter().filter(|(_, dom, at)| !self.is_def_eq_at(d, dom, at)).map(|p| p.0).collect();
-        let unsolved: Vec<String> = metas
+        let mut unsolved: Vec<String> = metas
             .iter()
             .filter(|(id, _)| self.ctx.mvars.value(*id).is_none())
             .map(|(_, n)| name_string(self.ctx, *n))
             .collect();
+        // **K1d**：层元变量（顺着赋值看穿后）仍含未赋值的层 mvar ⇒ 报 `universe u`。
+        for (id, n) in &level_metas {
+            let l = self.ctx.mk_level_mvar(*id);
+            let l = self.ctx.instantiate_level_mvars(l);
+            let mut left = Vec::new();
+            self.ctx.collect_level_mvars(l, &mut left);
+            if !left.is_empty() {
+                unsolved.push(n.clone());
+            }
+        }
         if !unsolved.is_empty() {
             return AppOutcome::Unsolved { binders: unsolved };
+        }
+        if exp_stuck {
+            return AppOutcome::ExpectedMismatch;
         }
         if let Some(arg) = failed.first() {
             return AppOutcome::ArgMismatch { arg: *arg };
         }
         let mut memo = FxHashMap::default();
         let out = self.subst_session_metas(term, &mut memo, 0);
+        // 层赋值（`subst_session_metas` 只换项元变量）。
+        let out = self.ctx.instantiate_mvars(out);
         if !self.ctx.unassigned_mvars(out).is_empty() {
             return AppOutcome::Unsupported("residual metas");
         }

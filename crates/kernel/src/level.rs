@@ -421,6 +421,12 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
             (MVar(..), Max(x, y, ..)) => self.leq_core(l_in, x, diff) || self.leq_core(l_in, y, diff),
             (MVar(..), IMax(x, y, ..)) => self.leq_core(l_in, x, diff) && self.leq_core(l_in, y, diff),
             (IMax(_, b, ..), MVar(..)) => self.leq_core(b, r_in, diff),
+            // **K1d**：`imax a ?u ≤ r`（`?u` 是层 mvar，不能按 0/非 0 分情况）⇒ 充分条件 `a ≤ r ∧ ?u ≤ r`
+            // （`imax a b ≤ max a b`；对齐 Lean `level.cpp` `is_geq_core` 对 imax 的拆分）。
+            // 只覆盖以前落到 `panic!()` 的输入 ⇒ 非 mvar 输入的判定逐字节不变。
+            // 只对**本会话登记**的层 mvar 开（未登记的照旧 panic ⇒ 前端 R1c 路径逐字节不变）。
+            (IMax(a, b, ..), _) if matches!(self.read_level(b), MVar(id, ..) if self.mvars.is_session_level(id)) =>
+                self.leq_core(a, r_in, diff) && self.leq_core(b, r_in, diff),
             _ => panic!(),
         }
     }
@@ -429,6 +435,13 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
         if l == r {
             return true
         }
+        // **K1d**：会话里有登记的层 mvar ⇒ 先看穿它们的赋值（`is_zero`/`is_nonzero` 都走这里）。
+        // 无登记（课程语料常态）⇒ 不进这个分支，逐字节不变。
+        let (l, r) = if self.mvars.has_session_levels() {
+            (self.inst_session_level(l, 0), self.inst_session_level(r, 0))
+        } else {
+            (l, r)
+        };
         let l_prime = self.simplify(l);
         let r_prime = self.simplify(r);
         self.leq_core(l_prime, r_prime, 0)

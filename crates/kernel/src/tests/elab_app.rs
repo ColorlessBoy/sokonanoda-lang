@@ -285,13 +285,14 @@ fn t6_mismatches() {
     });
 }
 
-/// **T7**：宇宙多态的头 / 输入含元变量 ⇒ `Unsupported`；同一 builder 连跑两次 T1 结果一致（不泄漏）。
+/// **T7**：带齐层的多态头照常解；层数不对 / 输入含元变量 ⇒ `Unsupported`；同一 builder 连跑两次 T1
+/// 结果一致（不泄漏）。（K1d 前带层的多态头一律 `Unsupported("universe-polymorphic head")`。）
 #[test]
 fn t7_unsupported_and_no_leak() {
     run(|b, kx| {
         let (tys, args, expected) = t1_parts(b, kx);
         // 宇宙多态：`Poly.{u} : {α : Sort u} → α → Prop`，以 `Poly.{1}` 调用。
-        let poly = {
+        let (poly, poly11) = {
             let un = b.name_from_str("u");
             let u = b.level_param(un);
             let us = b.alloc_levels_slice(&[u]);
@@ -304,10 +305,15 @@ fn t7_unsupported_and_no_leak() {
             let zero = b.zero();
             let one = b.succ(zero);
             let ones = b.alloc_levels_slice(&[one]);
-            b.mk_const(n, ones)
+            let one_one = b.alloc_levels_slice(&[one, one]);
+            (b.mk_const(n, ones), b.mk_const(n, one_one))
         };
         let o = elab(b, &req(&tys, poly, 0, &args[..1], None));
-        assert_eq!(o, AppOutcome::Unsupported("universe-polymorphic head"));
+        let got = solved(b, &o);
+        let want = apps(b, poly, &[kx.a, args[0]]);
+        assert!(same(got, want), "Poly.{{1}} A w");
+        let o = elab(b, &req(&tys, poly11, 0, &args[..1], None));
+        assert_eq!(o, AppOutcome::Unsupported("universe arity"));
         let m = b.mk_meta(77, kx.a);
         let meta_arg = [args[0], m];
         let o = elab(b, &req(&tys, kx.intro, 2, &meta_arg, Some(expected)));
@@ -338,5 +344,137 @@ fn t8_round_trip_into_builder() {
         let name = b.name_from_str("t8");
         let uparams = b.alloc_levels_slice(&[]);
         b.add_declar(Declar::Theorem { info: DeclarInfo { name, uparams, ty }, val }).expect("kernel accepts");
+    });
+}
+
+/// **K1d** 夹具：多态 `Eq` 族（都是公理，层参 `u`）+ `ea eb : A`、`hab : Eq.{1} A ea eb`、`hp : P ea`。
+/// 返回 `[Eq, Eq.refl, Eq.symm, Eq.subst]` 的 `.{1}` 版与**不带层**版，以及 `[ea, eb, hab, hp]`。
+type EqFam<'a> = ([ExprPtr<'a>; 4], [ExprPtr<'a>; 4], [ExprPtr<'a>; 4]);
+
+fn eq_family<'a>(b: &mut EnvBuilder<'a>, kx: Kx<'a>) -> EqFam<'a> {
+    let un = b.name_from_str("u");
+    let u = b.level_param(un);
+    let us = b.alloc_levels_slice(&[u]);
+    let sort_u = b.mk_sort(u);
+    let zero = b.zero();
+    let one = b.succ(zero);
+    let ones = b.alloc_levels_slice(&[one]);
+    let none = b.alloc_levels_slice(&[]);
+    let v = |b: &mut EnvBuilder<'a>, i: u16| b.mk_var(i);
+    let at = |b: &mut EnvBuilder<'a>, n: &str, ls| {
+        let n = b.name_from_str(n);
+        b.mk_const(n, ls)
+    };
+    // Eq.{u} : {α : Sort u} → α → α → Prop
+    let eq_t = {
+        let (v0, v1) = (v(b, 0), v(b, 1));
+        let r = pi(b, "b", D, v1, kx.prop);
+        let r = pi(b, "a", D, v0, r);
+        pi(b, "α", I, sort_u, r)
+    };
+    axiom(b, "Eq", us, eq_t);
+    let eq_u = at(b, "Eq", us);
+    // Eq.refl.{u} : {α : Sort u} → (a : α) → Eq α a a
+    let refl_t = {
+        let (v0, v1) = (v(b, 0), v(b, 1));
+        let r = apps(b, eq_u, &[v1, v0, v0]);
+        let r = pi(b, "a", D, v0, r);
+        pi(b, "α", I, sort_u, r)
+    };
+    axiom(b, "Eq.refl", us, refl_t);
+    // Eq.symm.{u} : {α : Sort u} → {a b : α} → Eq α a b → Eq α b a
+    let symm_t = {
+        let (v0, v1, v2, v3) = (v(b, 0), v(b, 1), v(b, 2), v(b, 3));
+        let res = apps(b, eq_u, &[v3, v1, v2]);
+        let h = apps(b, eq_u, &[v2, v1, v0]);
+        let r = pi(b, "h", D, h, res);
+        let r = pi(b, "b", I, v1, r);
+        let r = pi(b, "a", I, v0, r);
+        pi(b, "α", I, sort_u, r)
+    };
+    axiom(b, "Eq.symm", us, symm_t);
+    // Eq.subst.{u} : {α : Sort u} → {motive : α → Prop} → {a b : α} → Eq α a b → motive a → motive b
+    let subst_t = {
+        let (v0, v1, v2, v3, v4) = (v(b, 0), v(b, 1), v(b, 2), v(b, 3), v(b, 4));
+        let res = b.mk_app(v4, v2); // 在 [α, motive, a, b, h₁, h₂] 之下
+        let ma = b.mk_app(v3, v2); // 在 [α, motive, a, b, h₁] 之下
+        let r = pi(b, "h₂", D, ma, res);
+        let h1 = apps(b, eq_u, &[v3, v1, v0]); // 在 [α, motive, a, b] 之下
+        let r = pi(b, "h₁", D, h1, r);
+        let r = pi(b, "b", I, v2, r);
+        let r = pi(b, "a", I, v1, r);
+        let mt = pi(b, "x", D, v0, kx.prop);
+        let r = pi(b, "motive", I, mt, r);
+        pi(b, "α", I, sort_u, r)
+    };
+    axiom(b, "Eq.subst", us, subst_t);
+    let names = ["Eq", "Eq.refl", "Eq.symm", "Eq.subst"];
+    let with1 = names.map(|n| at(b, n, ones));
+    let bare = names.map(|n| at(b, n, none));
+    let ea = ax(b, "ea", kx.a);
+    let eb = ax(b, "eb", kx.a);
+    let hab_t = apps(b, with1[0], &[kx.a, ea, eb]);
+    let hab = ax(b, "hab", hab_t);
+    let pea = b.mk_app(kx.p, ea);
+    let hp = ax(b, "hp", pea);
+    (with1, bare, [ea, eb, hab, hp])
+}
+
+/// **K1d-T4**：多态头 `Eq.refl` / `Eq.symm` 经本会话层元变量解出 `.{1}`；`Eq.subst` 的 motive 不是
+/// Miller pattern（实参是常量 `ea`/`eb`，不是 bound var）⇒ `Unsolved ["motive"]`。
+#[test]
+fn k1d_t4_universe_polymorphic_heads() {
+    run(|b, kx| {
+        let (with1, bare, [ea, eb, hab, hp]) = eq_family(b, kx);
+        let [eq1, refl1, symm1, _] = with1;
+        // Eq.refl ea : Eq A ea ea ⇒ Eq.refl.{1} A ea
+        let exp = apps(b, eq1, &[kx.a, ea, ea]);
+        let o = elab(b, &req(&[], bare[1], 0, &[ea], Some(exp)));
+        let want = apps(b, refl1, &[kx.a, ea]);
+        assert!(same(solved(b, &o), want), "Eq.refl.{{1}} A ea");
+        // 无期望也解（`?u` 由 `?α := A` 的类型检查 `Sort ?u =?= Sort 1` 定）。
+        let o = elab(b, &req(&[], bare[1], 0, &[ea], None));
+        assert!(same(solved(b, &o), want), "Eq.refl ea without expected");
+        // Eq.symm hab ⇒ Eq.symm.{1} A ea eb hab（有/无期望）
+        let want = apps(b, symm1, &[kx.a, ea, eb, hab]);
+        let o = elab(b, &req(&[], bare[2], 0, &[hab], None));
+        assert!(same(solved(b, &o), want), "Eq.symm hab");
+        let exp = apps(b, eq1, &[kx.a, eb, ea]);
+        let o = elab(b, &req(&[], bare[2], 0, &[hab], Some(exp)));
+        assert!(same(solved(b, &o), want), "Eq.symm hab : Eq A eb ea");
+        // 错的期望：传播先成功（`?b := ea`、`?a := eb`），之后 `hab` 对不上域 ⇒ 报实参（Lean 同：
+        // `propagateExpectedType` 成功后 `ensureHasType` 失败在实参上）。
+        let bad = apps(b, eq1, &[kx.a, ea, eb]);
+        let o = elab(b, &req(&[], bare[2], 0, &[hab], Some(bad)));
+        assert_eq!(o, AppOutcome::ArgMismatch { arg: 0 });
+        // Eq.subst hab hp : P eb —— Lean 靠 `elab_as_elim` 的 motive 抽象；这里没有 ⇒ 点名 motive。
+        let exp = b.mk_app(kx.p, eb);
+        let o = elab(b, &req(&[], bare[3], 0, &[hab, hp], Some(exp)));
+        assert_eq!(o, AppOutcome::Unsolved { binders: vec!["motive".to_string()] });
+    });
+}
+
+/// **K1d-T5**：解不出的宇宙 ⇒ `Unsolved` 点名：`PolyB.{u v} : {α : Sort u} → α → Prop`（`v` 不出现）⇒
+/// `universe v`；无实参的 `Univ.{w} : Prop` ⇒ `universe w`。
+#[test]
+fn k1d_t5_undetermined_universe_is_unsolved() {
+    run(|b, kx| {
+        let (un, vn, wn) = (b.name_from_str("u"), b.name_from_str("v"), b.name_from_str("w"));
+        let (u, v, w) = (b.level_param(un), b.level_param(vn), b.level_param(wn));
+        let uv = b.alloc_levels_slice(&[u, v]);
+        let sort_u = b.mk_sort(u);
+        let v0 = b.mk_var(0);
+        let body = pi(b, "a", D, v0, kx.prop);
+        let t = pi(b, "α", I, sort_u, body);
+        axiom(b, "PolyB", uv, t);
+        let ws = b.alloc_levels_slice(&[w]);
+        axiom(b, "Univ", ws, kx.prop);
+        let ea = ax(b, "ea", kx.a);
+        let polyb = cst(b, "PolyB");
+        let o = elab(b, &req(&[], polyb, 0, &[ea], Some(kx.prop)));
+        assert_eq!(o, AppOutcome::Unsolved { binders: vec!["universe v".to_string()] });
+        let univ = cst(b, "Univ");
+        let o = elab(b, &req(&[], univ, 0, &[], None));
+        assert_eq!(o, AppOutcome::Unsolved { binders: vec!["universe w".to_string()] });
     });
 }
