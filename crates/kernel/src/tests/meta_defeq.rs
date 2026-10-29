@@ -267,3 +267,25 @@ fn k1b_t6_unassigned_listing() {
         assert!(tc.ctx.unassigned_mvars(inst).is_empty());
     });
 }
+
+/// **K1d-T6**：head-beta 时**开放**实参要在 binder 下 lift。`?m := λx y. x`（闭），项 `?m #0`（`#0` 是外层
+/// scope 的 bvar）⇒ 正确结果 `λy. #1`（`#0` 跨过 `y` 变 `#1`）；不 lift 会得 `λy. #0`（被 `y` 捕获）。
+#[test]
+fn k1d_t6_instantiate_mvars_lifts_open_args_under_binders() {
+    with_tc(|tc, fx| {
+        let anon = tc.ctx.anonymous();
+        let d = crate::expr::BinderStyle::Default;
+        let a_a = tc.ctx.mk_pi(anon, d, fx.a, fx.a);
+        let ty = tc.ctx.mk_pi(anon, d, fx.a, a_a);
+        tc.ctx.mvars.register(103, ty);
+        let (v0, v1) = (tc.ctx.mk_var(0), tc.ctx.mk_var(1));
+        let inner = tc.ctx.mk_lambda(anon, d, fx.a, v1);
+        let k = tc.ctx.mk_lambda(anon, d, fx.a, inner);
+        tc.ctx.mvars.assign(103, k);
+        let m = tc.ctx.mk_meta(103, ty);
+        let term = tc.ctx.mk_app(m, v0);
+        let got = tc.ctx.instantiate_mvars(term);
+        let want = tc.ctx.mk_lambda(anon, d, fx.a, v1);
+        assert!(same(got, want), "?m #0 with ?m := λx y. x must be λy. #1, got {:?}", got.as_ref());
+    });
+}

@@ -96,10 +96,23 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
                 let args: Vec<ExprPtr<'t>> = args.into_iter().map(|a| self.inst_mvars_go(a, cache, fuel)).collect();
                 let mut rest = args.as_slice();
                 // **head-beta**（只在头是被换掉的元变量时，Lean `visitApp … headBeta` 同）。
+                // **K1d**：实参可以是**开放**的（`?m x` 在 binder 下）⇒ `inst_open`（代入时按所在
+                // binder 深度 lift；实参全闭 ⇒ 就是 `inst`）。以前用 `inst` ⇒ `?m #0`、`?m := λx y. x`
+                // 得 `λy. #0`（被 `y` 捕获）✗，应为 `λy. #1`（K1d-T6）。
+                // **一次代入全部**：剥 n 层 λ、`inst_open(b, args[..n])`。逐个代入是错的：`inst` 不 lower
+                // 超出代入表的 loose var（`unwrap_or(e)`）⇒ 第一个开放实参进了剩下的 λ 之后，它的 var
+                // 在下一步代入里不会降回来（K1d 把 `elab_app` 换到这里时 T2 咬出来的）。赋值是闭的 ⇒
+                // `b` 只含 xs ⇒ 一次代入正确。
                 if head_was_meta && f != head {
-                    while let (Lambda { body, .. }, Some((a, tl))) = (self.read_expr(f), rest.split_first()) {
-                        f = self.inst(body, &[*a]);
-                        rest = tl;
+                    let (mut b, mut n) = (f, 0usize);
+                    while n < rest.len() {
+                        let Lambda { body, .. } = self.read_expr(b) else { break };
+                        b = body;
+                        n += 1;
+                    }
+                    if n > 0 {
+                        f = self.inst_open(b, &rest[..n]);
+                        rest = &rest[n..];
                     }
                 }
                 let mut acc = f;

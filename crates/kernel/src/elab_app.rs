@@ -20,7 +20,7 @@ use crate::expr::{BinderStyle, Expr, MetaKind};
 use crate::name::Name;
 use crate::tc::{InferFlag, TypeChecker};
 use crate::transfer::OwnedExpr;
-use crate::util::{ExportFile, ExprPtr, FxHashMap, NamePtr, TcCtx};
+use crate::util::{ExportFile, ExprPtr, NamePtr, TcCtx};
 use crate::value::{Value, E, V};
 
 /// 一次应用 elaboration 的输入。全部项都在 `binder_tys` 这个 scope 之下（loose `Var` = scope binder）。
@@ -279,10 +279,8 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         if let Some(arg) = failed.first() {
             return AppOutcome::ArgMismatch { arg: *arg };
         }
-        let mut memo = FxHashMap::default();
-        let out = self.subst_session_metas(term, &mut memo, 0);
-        // 层赋值（`subst_session_metas` 只换项元变量）。
-        let out = self.ctx.instantiate_mvars(out);
+        // 项 + 层赋值一并换掉（K1d：`?M xs` head-beta 走 `inst_open`，开放实参在 binder 下会 lift）。
+        let out = self.ctx.instantiate_mvars(term);
         if !self.ctx.unassigned_mvars(out).is_empty() {
             return AppOutcome::Unsupported("residual metas");
         }
@@ -345,80 +343,4 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         ok
     }
 
-    /// 把本会话的元变量换成赋值：`?M a1..ak`（赋值是闭的 `λx1..xk. t`）⇒ `t[xs := as]`（`inst_open` 会 lift，
-    /// 开放实参也对）。赋值是闭项 ⇒ 结果与所在 binder 深度无关 ⇒ 按指针记忆。
-    fn subst_session_metas(
-        &mut self,
-        e: ExprPtr<'t>,
-        memo: &mut FxHashMap<ExprPtr<'t>, ExprPtr<'t>>,
-        fuel: u32,
-    ) -> ExprPtr<'t> {
-        if let Some(r) = memo.get(&e) {
-            return *r;
-        }
-        let r = match self.ctx.read_expr(e) {
-            Expr::Meta { id, .. } => match self.ctx.mvars.value(id) {
-                Some(v) if fuel < 64 => self.subst_session_metas(v, memo, fuel + 1),
-                _ => e,
-            },
-            Expr::App { .. } => {
-                let mut rev_args = Vec::new();
-                let mut h = e;
-                while let Expr::App { fun, arg, .. } = self.ctx.read_expr(h) {
-                    rev_args.push(arg);
-                    h = fun;
-                }
-                rev_args.reverse();
-                let args: Vec<ExprPtr<'t>> =
-                    rev_args.into_iter().map(|a| self.subst_session_metas(a, memo, fuel)).collect();
-                let assigned = match self.ctx.read_expr(h) {
-                    Expr::Meta { id, .. } if fuel < 64 => self.ctx.mvars.value(id),
-                    _ => None,
-                };
-                let (mut f, rest) = match assigned {
-                    Some(v) => {
-                        let v = self.subst_session_metas(v, memo, fuel + 1);
-                        let (mut b, mut n) = (v, 0usize);
-                        while n < args.len() {
-                            let Expr::Lambda { body, .. } = self.ctx.read_expr(b) else { break };
-                            b = body;
-                            n += 1;
-                        }
-                        let f = if n > 0 { self.ctx.inst_open(b, &args[..n]) } else { v };
-                        (f, &args[n..])
-                    }
-                    None => (self.subst_session_metas(h, memo, fuel), &args[..]),
-                };
-                for a in rest {
-                    f = self.ctx.mk_app(f, *a);
-                }
-                f
-            }
-            Expr::Lambda { binder_name, binder_style, binder_type, body, .. } => {
-                let t = self.subst_session_metas(binder_type, memo, fuel);
-                let b = self.subst_session_metas(body, memo, fuel);
-                self.ctx.mk_lambda(binder_name, binder_style, t, b)
-            }
-            Expr::Pi { binder_name, binder_style, binder_type, body, .. } => {
-                let t = self.subst_session_metas(binder_type, memo, fuel);
-                let b = self.subst_session_metas(body, memo, fuel);
-                self.ctx.mk_pi(binder_name, binder_style, t, b)
-            }
-            Expr::Let { data, .. } => {
-                let crate::expr::LetData { binder_name, binder_type, val, body, nondep } = *data;
-                let t = self.subst_session_metas(binder_type, memo, fuel);
-                let v = self.subst_session_metas(val, memo, fuel);
-                let b = self.subst_session_metas(body, memo, fuel);
-                self.ctx.mk_let(binder_name, t, v, b, nondep)
-            }
-            Expr::Proj { ty_name, idx, structure, .. } => {
-                let s = self.subst_session_metas(structure, memo, fuel);
-                self.ctx.mk_proj(ty_name, idx, s)
-            }
-            Expr::Var { .. } | Expr::Sort { .. } | Expr::Const { .. } | Expr::StringLit { .. } | Expr::NatLit { .. } =>
-                e,
-        };
-        memo.insert(e, r);
-        r
-    }
 }
