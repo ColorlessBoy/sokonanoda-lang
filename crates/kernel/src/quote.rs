@@ -56,7 +56,10 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         }
         let r = match v {
             Value::Sort { level, .. } => self.ctx.mk_sort(*level),
-            Value::Meta { id, ty, .. } => self.ctx.mk_meta(*id, *ty),
+            Value::Meta { id, ty, spine, .. } => {
+                let h = self.ctx.mk_meta(*id, *ty);
+                self.quote_spine(depth, h, spine)
+            }
             Value::NatLit { ptr, .. } => self.ctx.mk_nat_lit(*ptr).expect("quote: nat literal without extension"),
             Value::StrLit { ptr, .. } => self.ctx.mk_string_lit(*ptr).expect("quote: string literal without extension"),
             Value::Rigid { head, spine, .. } => {

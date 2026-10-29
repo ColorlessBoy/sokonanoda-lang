@@ -22,7 +22,14 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 value::mk_rigid_head_with_empty(self.arena, RigidHead::Inductive(n, levels), self.empty_spine())
             }
             // **S1**：元变量的类型 = 上下文里登记的类型。
-            Value::Meta { ty, .. } => crate::mvar::value_type_meta(self, depth, *ty),
+            Value::Meta { ty, spine, .. } if spine.is_empty() => crate::mvar::value_type_meta(self, depth, *ty),
+            // **K1a**：`?m a ..` 的类型 = 沿 spine 实例化 `?m` 的类型。
+            Value::Meta { id, ty, spine, .. } => {
+                let (id, ty, spine) = (*id, *ty, *spine);
+                let head_ty = crate::mvar::value_type_meta(self, depth, ty);
+                let prev = crate::mvar::mk_meta(self.arena, id, ty, self.empty_spine());
+                self.spine_type_with_value(depth, head_ty, prev, spine)
+            }
             Value::Rigid { head, spine , ..} => {
                 let head_ty = self.rigid_head_type(depth, *head);
                 let prev = value::mk_rigid_head_with_empty(self.arena, *head, self.empty_spine());
@@ -36,7 +43,16 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                     value::mk_unfold_head_with_empty(self.arena, head.name, head.levels, cell, self.empty_spine());
                 self.spine_type_with_value(depth, head_ty, prev, spine)
             }
-            Value::Pi { .. } | Value::Lam { .. } => panic!("value_type: Pi/Lam not supported"),
+            // **K1a**：闭的 Lam/Pi ⇒ quote 回项再 `infer`（`?p := fun x => P x`、`?α := A → B`
+            // 的赋值前类型检查走这里）。开的（含外层 bvar）仍不支持 ⇒ 原样 panic（K1b 作用域纪律）。
+            Value::Pi { .. } | Value::Lam { .. } => {
+                let e = self.quote(depth, v);
+                if e.num_loose_bvars() != 0 {
+                    panic!("value_type: Pi/Lam not supported");
+                }
+                let (env, ctx) = (self.empty_env(), self.empty_ctx());
+                self.infer_value(crate::tc::InferFlag::InferOnly, 0, env, ctx, e)
+            }
             Value::Thunk { .. } => unreachable!("value_type: Thunk after force"),
         }
     }

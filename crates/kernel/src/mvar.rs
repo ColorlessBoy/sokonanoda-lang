@@ -212,6 +212,10 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         }
         let quoted = self.quote(depth, v);
         self.ctx.mvars.assign(id, quoted);
+        // **K1a 缓存纪律（赋值即失效）**：eval 缓存里可能有赋值前算出的卡住值
+        // （`?p`、`?p a`）。只清两张 eval 表：没有赋值的会话（课程语料常态）零代价。
+        self.tc_cache.closed_eval_cache.clear();
+        self.tc_cache.open_eval_cache.clear();
         true
     }
 
@@ -221,9 +225,88 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     }
 }
 
+/// 非空 spine 的元变量（`?m a ..`）⇒ `(id, ty, spine)`；空 spine / 非元变量 ⇒ `None`。
+fn meta_app<'t>(v: V<'t>) -> Option<(u32, ExprPtr<'t>, S<'t>)> {
+    match v {
+        Value::Meta { id, ty, spine, .. } if !spine.is_empty() => Some((*id, *ty, *spine)),
+        _ => None,
+    }
+}
+
 impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
+    /// **K1a**：`?id` 已赋值 ⇒ 把赋值求值后**重放** `spine`（`apply`/`do_proj` 共用）。
+    /// 未赋值 ⇒ `None`（调用方造卡住项）。
+    pub(crate) fn meta_replay(&mut self, depth: u32, id: u32, spine: S<'t>) -> Option<V<'t>> {
+        let term = self.ctx.mvars.value(id)?;
+        let elims: Vec<crate::value::Elim<'t>> = spine.to_vec().into_iter().copied().collect();
+        let env = self.empty_env();
+        let mut f = self.eval(depth, env, term);
+        for elim in elims {
+            f = match elim.view() {
+                ElimView::App(a) => self.apply(depth, f, a),
+                ElimView::Proj { ty_name, idx } => self.do_proj(depth, ty_name, idx, f),
+            };
+        }
+        Some(f)
+    }
+
+    /// **K1a**：带 spine 的元变量在合一里的规则（Miller 模式留给后一片）。
+    /// * 已赋值 ⇒ 重放后再比；
+    /// * 同 id ⇒ spine 逐项比（Lean `isDefEqMVarSelf` 的保守版）；
+    /// * 另一侧是**空 spine** 元变量 ⇒ 走原 `unify_meta`（一阶：`?q := ?p a`）；
+    /// * 其余（非空 spine 对刚性项/异 id 元变量应用）⇒ 干净地 `false`。
+    fn meta_spine_branch(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> Option<bool> {
+        let (mx, my) = (meta_app(x), meta_app(y));
+        if mx.is_none() && my.is_none() {
+            return None;
+        }
+        if let Some((id, _, sp)) = mx {
+            if let Some(v) = self.meta_replay(depth, id, sp) {
+                return Some(self.unify::<true>(depth, v, y));
+            }
+        }
+        if let Some((id, _, sp)) = my {
+            if let Some(v) = self.meta_replay(depth, id, sp) {
+                return Some(self.unify::<true>(depth, x, v));
+            }
+        }
+        if let (Some((ix, _, sx)), Some((iy, _, sy))) = (mx, my) {
+            return Some(ix == iy && self.meta_spines_eq(depth, sx, sy));
+        }
+        // 恰一侧非空 spine：另一侧若是空 spine 元变量 ⇒ 一阶赋值它。
+        let other = if mx.is_some() { y } else { x };
+        let app = if mx.is_some() { x } else { y };
+        if let Value::Meta { id, ty, .. } = other {
+            return Some(self.unify_meta(depth, *id, *ty, app));
+        }
+        Some(false)
+    }
+
+    fn meta_spines_eq(&mut self, depth: u32, sx: S<'t>, sy: S<'t>) -> bool {
+        let (ex, ey) = (sx.to_vec(), sy.to_vec());
+        if ex.len() != ey.len() {
+            return false;
+        }
+        let pairs: Vec<_> = ex.into_iter().copied().zip(ey.into_iter().copied()).collect();
+        for (a, b) in pairs {
+            let ok = match (a.view(), b.view()) {
+                (ElimView::App(va), ElimView::App(vb)) => self.unify::<true>(depth, va, vb),
+                (ElimView::Proj { ty_name: tx, idx: ix }, ElimView::Proj { ty_name: ty, idx: iy }) =>
+                    tx == ty && ix == iy,
+                _ => false,
+            };
+            if !ok {
+                return false;
+            }
+        }
+        true
+    }
+
     /// `unify` 的元变量拦截（`conv.rs` 只留一行调用）。
     pub(crate) fn meta_unify_branch(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> Option<bool> {
+        if let Some(r) = self.meta_spine_branch(depth, x, y) {
+            return Some(r);
+        }
         if let Value::Meta { id, ty, .. } = &*x {
             return Some(self.unify_meta(depth, *id, *ty, y));
         }

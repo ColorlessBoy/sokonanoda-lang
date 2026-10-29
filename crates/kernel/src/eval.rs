@@ -780,6 +780,15 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 let new_spine = self.spine_snoc_hc(spine, Elim::app(a));
                 self.mk_unfold_hc(head.name, head.levels, new_spine, head_value)
             }
+            // **K1a**：已赋值 ⇒ 重放到赋值上；未赋值 ⇒ 卡住的 `?m .. a`（不再 panic）。
+            Value::Meta { id, ty, spine, .. } => {
+                let (id, ty, spine) = (*id, *ty, *spine);
+                if let Some(f) = self.meta_replay(depth, id, spine) {
+                    return self.apply(depth, f, a);
+                }
+                let ns = self.spine_snoc_hc(spine, Elim::app(a));
+                crate::mvar::mk_meta(self.arena, id, ty, ns)
+            }
             _ => panic!("apply: ill-typed application"),
         }
     }
@@ -1047,7 +1056,8 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             Value::Sort { level , ..} => Ok((mix(1, u128::from(level.get_hash())), true)),
             Value::NatLit { ptr , ..} => Ok((mix(2, u128::from(ptr.get_hash())), true)),
             Value::StrLit { ptr , ..} => Ok((mix(3, u128::from(ptr.get_hash())), true)),
-            Value::Meta { id , ..} => Ok((mix(20, u128::from(*id)), true)),
+            Value::Meta { id, spine, .. } if spine.is_empty() => Ok((mix(20, u128::from(*id)), true)),
+            Value::Meta { id, spine, .. } => self.spine_key(mix(20, u128::from(*id)), true, spine, depth),
             Value::Rigid { head, spine , ..} => {
                 let (h, c) = match *head {
                     RigidHead::BVar(lvl, ty) => {
@@ -1174,6 +1184,15 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 self.do_proj(depth, ty_name, idx, ctor)
             }
             Value::Rigid { .. } | Value::Unfold { .. } => self.proj_extend_spine(ty_name, idx, v),
+            // **K1a**：同 `apply` —— 投影在未赋值元变量上也卡住。
+            Value::Meta { id, ty, spine, .. } => {
+                let (id, ty, spine) = (*id, *ty, *spine);
+                if let Some(f) = self.meta_replay(depth, id, spine) {
+                    return self.do_proj(depth, ty_name, idx, f);
+                }
+                let ns = self.spine_snoc_hc(spine, Elim::proj(ty_name, idx));
+                crate::mvar::mk_meta(self.arena, id, ty, ns)
+            }
             Value::Thunk { .. } => unreachable!("do_proj: Thunk after force_all"),
             _ => panic!("do_proj: not a neutral"),
         }
@@ -2095,9 +2114,9 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         }
         let r = match v {
             Value::Sort { .. } | Value::NatLit { .. } | Value::StrLit { .. } => false,
-            Value::Meta { .. } => false,
             Value::Rigid { head: RigidHead::BVar(..), .. } => true,
-            Value::Rigid { spine, .. } | Value::Unfold { spine, .. } => {
+            // 空 spine 的元变量 ⇒ 循环不进 ⇒ false（与旧行为同）。
+            Value::Rigid { spine, .. } | Value::Unfold { spine, .. } | Value::Meta { spine, .. } => {
                 let mut found = false;
                 let mut s = *spine;
                 loop {

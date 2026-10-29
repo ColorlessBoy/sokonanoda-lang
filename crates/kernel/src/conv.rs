@@ -858,7 +858,8 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 }
                 self.const_result_level(*name, *levels)
             }
-            Value::Rigid { head: RigidHead::BVar(..), .. } => {
+            // **K1a**：元变量（含卡住的 `?m a ..`）当类型用 ⇒ 读它登记的类型（同 BVar 臂）。
+            Value::Rigid { head: RigidHead::BVar(..), .. } | Value::Meta { .. } => {
                 let t = self.value_type(depth, ty);
                 let ty_f = self.force_all(depth, t);
                 match ty_f {
