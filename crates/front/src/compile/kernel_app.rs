@@ -130,7 +130,7 @@ pub(crate) fn report_line() -> String {
     let g = |a: &AtomicU64| a.load(Ordering::Relaxed);
     let mut line = format!(
         "KERNEL_APP tried={} solved={} fallback_unsolved={} fallback_argmismatch={} \
-         fallback_expected={} fallback_argelab={} fallback_shape={} fallback_bad_scope={}",
+         fallback_expected={} fallback_argelab={} fallback_shape={} fallback_bad_scope={} probe_redo={}",
         g(&TRIED),
         g(&SOLVED),
         g(&UNSOLVED),
@@ -139,6 +139,7 @@ pub(crate) fn report_line() -> String {
         g(&ARG_ELAB),
         g(&SHAPE),
         g(&BAD_SCOPE),
+        probe::redos(),
     );
     if let Ok(v) = UNSUPPORTED.lock() {
         for (why, n) in v.iter() {
@@ -318,6 +319,7 @@ pub(super) fn finish<'a>(
 }
 
 /// `head_t` = 已 elaborate 的头（必须是 `Const`；不带层 ⇒ 内核按 K1d 给层元变量）。
+/// **P2-5**：第一趟有探测切掉过老路、结果又不是 `Solved` ⇒ 关掉探测整段重做一次（最坏 = 今天的行为）。
 #[allow(clippy::too_many_arguments)]
 pub(super) fn run<'a>(
     builder: &mut EnvBuilder<'a>,
@@ -332,12 +334,42 @@ pub(super) fn run<'a>(
     expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<AppOutcome, Count> {
+    // 提示只取一次（取走即消费）⇒ 重做时用同一份。
+    let hint = postpone::take_hint(expr_span, scope);
+    let (depth, mark) = (scope.len(), hovers.len());
+    probe::with_redo(
+        || {
+            scope.truncate(depth);
+            hovers.truncate(mark);
+            let (h, a) = (hint.clone(), args);
+            let r = (head_t, implicit_prefix, expected_src);
+            run_once(
+                builder, h, r.0, a, r.1, scope, univ, known, hovers, r.2, ctx,
+            )
+        },
+        |out| matches!(out, Ok(AppOutcome::Solved(_))),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_once<'a>(
+    builder: &mut EnvBuilder<'a>,
+    hint: Option<sokonanoda::transfer::OwnedExpr>,
+    head_t: ExprPtr<'a>,
+    args: &[&Expr],
+    implicit_prefix: usize,
+    scope: &mut ElabScope<'a>,
+    univ: &UnivMap<'a>,
+    known: &KnownTable,
+    hovers: &mut Vec<HoverNode<'a>>,
+    expected_src: Option<&Expr>,
+    ctx: &ElabCtx<'a, '_>,
+) -> Result<AppOutcome, Count> {
     if !matches!(*head_t, sokonanoda::expr::Expr::Const { .. }) {
         return Err(Count::Shape);
     }
     let depth = scope.len();
-    // 本应用自己的内核期望提示（它是外层的推迟位、外层已按域给出）⇒ 源级期望缺席/elaborate 不了时用它。
-    let hint = postpone::take_hint(expr_span, scope);
+    // `hint` = 本应用自己的内核期望提示（它是外层的推迟位、外层已按域给出）⇒ 源级期望缺席/elaborate 不了时用它。
     // 第一趟：无期望地 elaborate；失败的 / 无注解 λ ⇒ 推迟（`None`），失败的残留（hover、λ 臂漏的
     // binder）一并撤掉。推迟关着 ⇒ 失败即回落（P2-1 之前的行为）。
     let mut explicit: Vec<Option<ExprPtr<'a>>> = Vec::with_capacity(args.len());
@@ -396,7 +428,7 @@ pub(super) fn run<'a>(
         let AppOutcome::NeedArgs { domains, .. } = out else {
             return Ok(out);
         };
-        elab_ready(
+        postpone::elab_ready(
             builder,
             args,
             domains,
@@ -419,56 +451,4 @@ pub(super) fn run<'a>(
         out = builder.with_env(|ef| ef.elab_app(limit, &req));
     }
     Ok(out)
-}
-
-/// 一轮：域已就绪的推迟位对着内核给的域 elaborate，填进 `explicit`。
-#[allow(clippy::too_many_arguments)]
-fn elab_ready<'a>(
-    builder: &mut EnvBuilder<'a>,
-    args: &[&Expr],
-    domains: Vec<(usize, sokonanoda::transfer::OwnedExpr)>,
-    depth: usize,
-    explicit: &mut [Option<ExprPtr<'a>>],
-    scope: &mut ElabScope<'a>,
-    univ: &UnivMap<'a>,
-    known: &KnownTable,
-    hovers: &mut Vec<HoverNode<'a>>,
-    ctx: &ElabCtx<'a, '_>,
-) -> Result<(), Count> {
-    for (ai, dom) in domains {
-        let a = args[ai];
-        let dom_t = builder
-            .import_owned(&dom)
-            .ok_or(Count::Unsupported("import"))?;
-        if let Some(layers) = postpone::untyped_lambda_layers(a, plain) {
-            if !postpone::domain_fits(dom_t, layers) {
-                return Err(Count::ArgElab);
-            }
-        }
-        // 提示给"这个实参自己"（应用/记法形态）；λ ⇒ 给最内层体（λ 臂只把内核期望传给体，体里的应用
-        // 读不到源级期望）。
-        let (n, body) = postpone::lambda_body(a);
-        let _hint = match postpone::peel_pis(dom_t, n) {
-            Some(b) if n > 0 => postpone::ExpectedHint::set(
-                body.span(),
-                depth + n,
-                sokonanoda::transfer::export_expr(b),
-            ),
-            _ => postpone::ExpectedHint::set(a.span(), depth, dom),
-        };
-        let t = elab_expr(
-            builder,
-            a,
-            scope,
-            univ,
-            known,
-            hovers,
-            Some(dom_t),
-            None,
-            ctx,
-        )
-        .map_err(|_| Count::ArgElab)?;
-        explicit[ai] = Some(t);
-    }
-    Ok(())
 }

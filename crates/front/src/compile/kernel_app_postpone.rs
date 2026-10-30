@@ -228,3 +228,53 @@ pub(crate) fn loose_bvars(
     memo.insert(key, n);
     n
 }
+
+/// 一轮：域已就绪的推迟位对着内核给的域 elaborate，填进 `explicit`。
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn elab_ready<'a>(
+    builder: &mut sokonanoda::builder::EnvBuilder<'a>,
+    args: &[&Expr],
+    domains: Vec<(usize, sokonanoda::transfer::OwnedExpr)>,
+    depth: usize,
+    explicit: &mut [Option<sokonanoda::util::ExprPtr<'a>>],
+    scope: &mut ElabScope<'a>,
+    univ: &super::elab::UnivMap<'a>,
+    known: &super::elab::KnownTable,
+    hovers: &mut Vec<super::elab::HoverNode<'a>>,
+    ctx: &super::elab::ElabCtx<'a, '_>,
+) -> Result<(), super::kernel_app::Count> {
+    for (ai, dom) in domains {
+        let a = args[ai];
+        let dom_t = builder
+            .import_owned(&dom)
+            .ok_or(super::kernel_app::Count::Unsupported("import"))?;
+        if let Some(layers) = untyped_lambda_layers(a, super::kernel_app::plain) {
+            if !domain_fits(dom_t, layers) {
+                return Err(super::kernel_app::Count::ArgElab);
+            }
+        }
+        // 提示给"这个实参自己"（应用/记法形态）；λ ⇒ 给最内层体（λ 臂只把内核期望传给体，体里的应用
+        // 读不到源级期望）。
+        let (n, body) = lambda_body(a);
+        let _hint = match peel_pis(dom_t, n) {
+            Some(b) if n > 0 => {
+                ExpectedHint::set(body.span(), depth + n, sokonanoda::transfer::export_expr(b))
+            }
+            _ => ExpectedHint::set(a.span(), depth, dom),
+        };
+        let t = super::elab::elab_expr(
+            builder,
+            a,
+            scope,
+            univ,
+            known,
+            hovers,
+            Some(dom_t),
+            None,
+            ctx,
+        )
+        .map_err(|_| super::kernel_app::Count::ArgElab)?;
+        explicit[ai] = Some(t);
+    }
+    Ok(())
+}

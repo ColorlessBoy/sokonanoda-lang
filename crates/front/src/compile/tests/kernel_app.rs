@@ -430,3 +430,52 @@ fn probe_pass_off_pays_unsolved_miss() {
         "探测只减不增：on={fallback_on} off={fallback}"
     );
 }
+
+/// **P2-5 回归**（unit12 `flawed_equalities_refuted` 第二个合取支的自包含最小形 c2）：探测把某个内层应用的老路
+/// 换成推迟后，外层没解出 ⇒ 外层更高一层回落老路 ⇒ 撞老路的 `Sort(0)/Sort(1)` 拒绝。修法：切过且外层不是
+/// `Solved` ⇒ 关掉切、整段重做一次（= 今天的行为）。base（P2-4，闸门开）单独进程实测接受。
+const C2_SRC: &str = "def Set (α : Type) : Type := α -> Prop\n\
+     def Set.empty {α : Type} : Set α := fun (x : α) => False\n\
+     notation \"∅\" => Set.empty\n\
+     def Set.univ {α : Type} : Set α := fun (x : α) => True\n\
+     def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n\
+     def Set.inter {α : Type} (A B : Set α) : Set α := fun (x : α) => And (A x) (B x)\n\
+     infixl:70 \" ∩ \" => Set.inter\n\
+     def Set.image {α β : Type} (f : α -> β) (A : Set α) : Set β := fun (y : β) => True\n\
+     infixr:80 \" '' \" => Set.image\n\
+     theorem c2 : (fun (_ : Set Nat) => ∅) '' ({∅} ∩ {(@Set.univ Nat)}) ≠ \
+     ((fun (_ : Set Nat) => ∅) '' {∅}) ∩ ((fun (_ : Set Nat) => ∅) '' {(@Set.univ Nat)}) := sorry\n";
+
+/// 同 [`run_probe`]，另外设重做开关（`redo = false` ⇒ 切过也不重做）。
+fn run_redo(src: &str, redo: bool) -> Vec<String> {
+    let src = src.to_string();
+    on_compile_stack(move || {
+        super::kernel_app_probe::TEST_NO_REDO.with(|c| c.set(!redo));
+        TEST_OVERRIDE.with(|c| c.set(Some(true)));
+        let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
+        let options = CompileOptions {
+            prelude: PreludeMode::Full,
+            dialect: Dialect::Strict,
+        };
+        let out = compile_fol_with(&file, &options);
+        out.errors.iter().map(|e| format!("{e:?}")).collect()
+    })
+}
+
+#[test]
+fn probe_cut_then_unsolved_outer_redoes_without_probe() {
+    assert_eq!(
+        run_redo(C2_SRC, true),
+        Vec::<String>::new(),
+        "闸门开 + 探测 + 重做 ⇒ 与 base 同判：接受"
+    );
+}
+
+#[test]
+fn probe_cut_without_redo_rejects_c2() {
+    // 反向验证：不重做 ⇒ 切掉的老路结果找不回来 ⇒ 判红（提交 83ae03ac 的 unit12 回归）。
+    assert!(
+        !run_redo(C2_SRC, false).is_empty(),
+        "关掉重做 ⇒ 必须判红（否则本测试咬不住 c2 回归）"
+    );
+}

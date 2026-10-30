@@ -78,8 +78,10 @@ pub(crate) fn fallback(
     let off = TEST_NO_PROBE.with(|c| c.get());
     #[cfg(not(test))]
     let off = false;
+    let off = off || SUPPRESS.with(|c| c.get());
     let probing = !off && OWNER.with(|o| o.get()) == Some(owner(builder, span, scope));
     if probing && cuts(why) {
+        CUTS.with(|c| c.set(c.get() + 1));
         return Err(CompileError::elab(
             ErrorKind::ElabImplicitArgumentUnsolved,
             "内核应用路径：无期望类型时解不出（推迟到按域 elaborate）",
@@ -87,4 +89,50 @@ pub(crate) fn fallback(
         ));
     }
     Ok(MissGuard::push(why))
+}
+
+thread_local! {
+    /// 本线程累计切掉的次数（[`with_redo`] 拿前后差判断"这一段有没有切过"）。
+    static CUTS: Cell<u64> = const { Cell::new(0) };
+    /// `true` ⇒ 重做中：探测一律不切（整段子树 = P2-5 之前的行为）。
+    static SUPPRESS: Cell<bool> = const { Cell::new(false) };
+}
+
+#[cfg(test)]
+thread_local! {
+    /// 测试用：`true` ⇒ 不重做（反向验证：切掉后外层解不出就直接回落，unit12 c2 的拒绝）。
+    pub(crate) static TEST_NO_REDO: Cell<bool> = const { Cell::new(false) };
+}
+
+static REDOS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// `KERNEL_APP probe_redo=N`：重做次数（高 ⇒ 第二趟缺了老路有的东西）。
+pub(crate) fn redos() -> u64 {
+    REDOS.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// 重做期间关掉切（drop ⇒ 还原）。
+struct Suppress(bool);
+
+impl Drop for Suppress {
+    fn drop(&mut self) {
+        SUPPRESS.with(|c| c.set(self.0));
+    }
+}
+
+/// 跑一遍 `f`；这一遍里**切过**（探测把某个内层应用的老路换成了推迟）而结果不 `ok` ⇒ 关掉切再跑一遍
+/// （= 今天的行为）。⇒ 判定永远等于今天：要么切了且外层照样解出，要么重做回到今天那条路。
+pub(crate) fn with_redo<T>(mut f: impl FnMut() -> T, ok: impl Fn(&T) -> bool) -> T {
+    let before = CUTS.with(|c| c.get());
+    let out = f();
+    #[cfg(test)]
+    if TEST_NO_REDO.with(|c| c.get()) {
+        return out;
+    }
+    if CUTS.with(|c| c.get()) == before || ok(&out) {
+        return out;
+    }
+    REDOS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let _s = Suppress(SUPPRESS.with(|c| c.replace(true)));
+    f()
 }
