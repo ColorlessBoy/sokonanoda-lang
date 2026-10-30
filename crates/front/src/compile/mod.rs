@@ -28,6 +28,7 @@ mod kernel_app_hint;
 pub(crate) mod kernel_app_miss;
 mod kernel_app_notation;
 mod kernel_app_postpone;
+mod kernel_app_probe;
 mod kernel_tel;
 mod named_arg;
 mod notation_levels;

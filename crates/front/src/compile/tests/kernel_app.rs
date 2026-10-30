@@ -362,3 +362,71 @@ fn ne_typed_by_second_operand_goes_through_kernel() {
         "≠ 走内核：on solved={solved} fallback={fallback}；off solved={solved_off} fallback={fallback_off}"
     );
 }
+
+/// **P2-5**：同 [`NE_SECOND_OPERAND_SRC`] 的形状（名字另起 ⇒ 不与别的测试共享 `judge_infer` 缓存）。`≠` 的内核
+/// 第一趟无期望地 elaborate 第一个操作数 `(fun _ => ∅) '' S25`：它自己走内核、`Unsolved ["β"]`。P2-5 之前它接着回落
+/// 老路（`judge_infer` 未命中，归因 `unsolved`），然后才被推迟、按域解出 ⇒ 那次未命中白做。
+const PROBE_SRC: &str = "def Set (α : Type) : Type := α -> Prop\n\
+     def Set.empty {α : Type} : Set α := fun (x : α) => False\n\
+     notation \"∅\" => Set.empty\n\
+     def Set.univ {α : Type} : Set α := fun (x : α) => True\n\
+     def Set.image {α β : Type} (f : α -> β) (A : Set α) : Set β := fun (y : β) => True\n\
+     infixr:80 \" '' \" => Set.image\n\
+     axiom U25 : Type\naxiom S25 : Set (Set U25)\n\
+     theorem ne25 : (fun (x : Set U25) => ∅) '' S25 ≠ @Set.univ (Set U25) := sorry\n";
+
+/// `(errors, solved, fallback, unsolved 未命中)`：闸门强制开、strict；`probe = false` ⇒ P2-5 之前的行为。
+fn run_probe(src: &str, probe: bool) -> (Vec<String>, u64, u64, u64) {
+    let src = src.to_string();
+    on_compile_stack(move || {
+        super::kernel_app_probe::TEST_NO_PROBE.with(|c| c.set(!probe));
+        super::kernel_app_miss::TEST_UNSOLVED_MISSES.with(|c| c.set(0));
+        TEST_OVERRIDE.with(|c| c.set(Some(true)));
+        TEST_SOLVED.with(|c| c.set(0));
+        TEST_FALLBACK.with(|c| c.set(0));
+        let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
+        let options = CompileOptions {
+            prelude: PreludeMode::Full,
+            dialect: Dialect::Strict,
+        };
+        let out = compile_fol_with(&file, &options);
+        let errors = out.errors.iter().map(|e| format!("{e:?}")).collect();
+        (
+            errors,
+            TEST_SOLVED.with(|c| c.get()),
+            TEST_FALLBACK.with(|c| c.get()),
+            super::kernel_app_miss::TEST_UNSOLVED_MISSES.with(|c| c.get()),
+        )
+    })
+}
+
+#[test]
+fn probe_pass_skips_speculative_old_path_for_nested_arg() {
+    // 基准 = 闸门开、探测关（P2-5 之前）。⚠ 不能拿闸门关作基准：这个形状闸门关时本来就判红（P2-4 的
+    // reject→accept，见 `ne_typed_by_second_operand_goes_through_kernel`；单独进程实测同样 exit 1）。
+    let (errors_base, _, _, _) = run_probe(PROBE_SRC, false);
+    assert_eq!(errors_base, Vec::<String>::new());
+    let (errors, solved, _, misses) = run_probe(PROBE_SRC, true);
+    assert_eq!(errors, errors_base, "探测不改判卷");
+    assert!(solved > 0, "≠ 由内核解出（solved={solved}）");
+    assert_eq!(
+        misses, 0,
+        "探测中的内层应用不回落老路 ⇒ 0 次 unsolved 未命中"
+    );
+}
+
+#[test]
+fn probe_pass_off_pays_unsolved_miss() {
+    // 反向验证：关掉探测（P2-5 之前）⇒ 内层 `''` 在第一趟里回落老路 ⇒ 至少一次 unsolved 未命中；判卷不变。
+    let (errors, _, fallback, misses) = run_probe(PROBE_SRC, false);
+    assert_eq!(errors, Vec::<String>::new());
+    assert!(
+        misses > 0 && fallback > 0,
+        "关掉探测 ⇒ 必须付出 unsolved 未命中（misses={misses} fallback={fallback}）"
+    );
+    let (_, _, fallback_on, _) = run_probe(PROBE_SRC, true);
+    assert!(
+        fallback_on <= fallback,
+        "探测只减不增：on={fallback_on} off={fallback}"
+    );
+}

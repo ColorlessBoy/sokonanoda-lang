@@ -24,8 +24,10 @@
 use super::elab::{
     elab_expr, resolve_known, ElabCtx, ElabScope, HoverNode, KnownName, KnownTable, UnivMap,
 };
+use super::error::CompileError;
 use super::kernel_app_miss::MissGuard;
 use super::kernel_app_postpone as postpone;
+use super::kernel_app_probe as probe;
 use crate::Expr;
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::elab_app::{AppOutcome, AppRequest};
@@ -177,6 +179,7 @@ pub(super) fn plain(e: &Expr) -> bool {
 
 /// 见模块文档。`(None, _)` ⇒ 调用方照走老路；回落（计过数的）⇒ 第二项是回落原因的 [`MissGuard`]，
 /// 调用方持有到函数返回 ⇒ 老路里的 `judge_infer` 未命中按它归因（P2-1 (a)）。
+/// `Err` ⇒ **P2-5** 探测中的便宜失败（外层第一趟推迟这一位，不走老路，见 [`super::kernel_app_probe`]）。
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn try_app<'a>(
     builder: &mut EnvBuilder<'a>,
@@ -187,12 +190,17 @@ pub(crate) fn try_app<'a>(
     hovers: &mut Vec<HoverNode<'a>>,
     expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
-) -> (Option<ExprPtr<'a>>, Option<MissGuard>) {
-    match attempt(builder, expr, scope, univ, known, hovers, expected_src, ctx) {
-        Ok(out) => (Some(out), None),
-        Err(Some(why)) => (None, Some(MissGuard::push(why))),
-        Err(None) => (None, None),
-    }
+) -> Result<(Option<ExprPtr<'a>>, Option<MissGuard>), CompileError> {
+    Ok(
+        match attempt(builder, expr, scope, univ, known, hovers, expected_src, ctx) {
+            Ok(out) => (Some(out), None),
+            Err(Some(why)) => (
+                None,
+                Some(probe::fallback(builder, why, expr.span(), scope)?),
+            ),
+            Err(None) => (None, None),
+        },
+    )
 }
 
 /// `Err(None)` = 没尝试（不计数）；`Err(Some(原因))` = 尝试后回落（已计数）。
@@ -337,7 +345,11 @@ pub(super) fn run<'a>(
             continue;
         }
         let mark = hovers.len();
-        match elab_expr(builder, a, scope, univ, known, hovers, None, None, ctx) {
+        // P2-5：这一位在探测里（它自己是解不出的内核应用 ⇒ 便宜失败、推迟，不走老路）。
+        let probe = probe::ProbeGuard::enter(builder, a.span(), scope);
+        let first = elab_expr(builder, a, scope, univ, known, hovers, None, None, ctx);
+        drop(probe);
+        match first {
             Ok(t) => explicit.push(Some(t)),
             Err(_) if postpone::enabled() => {
                 hovers.truncate(mark);

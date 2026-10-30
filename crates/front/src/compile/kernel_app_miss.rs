@@ -14,6 +14,12 @@ thread_local! {
 
 static MISSES: Mutex<Vec<(&'static str, u64)>> = Mutex::new(Vec::new());
 
+#[cfg(test)]
+thread_local! {
+    /// 测试用：本线程归因到 `unsolved` 的 `judge_infer` 未命中次数（P2-5 判据）。
+    pub(crate) static TEST_UNSOLVED_MISSES: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+}
+
 /// 回落原因在栈上的存续期（drop ⇒ 弹出）。
 #[must_use]
 pub(crate) struct MissGuard(());
@@ -36,6 +42,10 @@ impl Drop for MissGuard {
 /// `judge_infer` 未命中：`INFER_MISSES += 1`（返回新值，同原来的 `fetch_add + 1`）并按栈顶归因。
 pub(crate) fn note_infer_miss() -> u64 {
     let miss = crate::judge::stats::INFER_MISSES.fetch_add(1, Ordering::Relaxed) + 1;
+    #[cfg(test)]
+    if STACK.with(|s| s.borrow().last().copied()) == Some("unsolved") {
+        TEST_UNSOLVED_MISSES.with(|c| c.set(c.get() + 1));
+    }
     if std::env::var_os("SOKO_JUDGE_STATS").is_some() {
         let key = STACK.with(|s| s.borrow().last().copied()).unwrap_or("none");
         if let Ok(mut v) = MISSES.lock() {

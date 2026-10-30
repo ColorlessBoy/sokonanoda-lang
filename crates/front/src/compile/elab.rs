@@ -1673,7 +1673,7 @@ fn elab_notation<'a>(
         hovers,
         expected_src,
         ctx,
-    );
+    )?;
     if let Some(out) = kout {
         return Ok(out);
     }
@@ -4357,7 +4357,7 @@ fn try_implicit_application_with<'a>(
     if prelude_install_active() {
         return Ok(None);
     }
-    let (kout, _kg) = kapp(builder, expr, scope, univ, known, hovers, expected_src, ctx);
+    let (kout, _kg) = kapp(builder, expr, scope, univ, known, hovers, expected_src, ctx)?;
     if let Some(out) = kout {
         return Ok(Some(out));
     }

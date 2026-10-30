@@ -15,9 +15,11 @@
 //! 解不出 ⇒ 回落老路，回落纪律与应用路径共用 [`super::kernel_app::finish`]。
 
 use super::elab::{ElabCtx, ElabScope, HoverNode, KnownName, KnownTable, UnivMap};
+use super::error::CompileError;
 use super::kernel_app::{count, env_on, finish, plain, run, Count};
 use super::kernel_app_miss::MissGuard;
 use super::kernel_app_postpone as postpone;
+use super::kernel_app_probe as probe;
 use crate::Expr;
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::util::ExprPtr;
@@ -46,7 +48,8 @@ fn missing_prefix(signature: &str, operands: usize) -> Option<usize> {
         .find(|&m| layers[..m].iter().all(|(n, _)| !n.is_empty()))
 }
 
-/// 见模块文档。`(None, _)` ⇒ 调用方照走老路；回落过（已计数）⇒ 第二项是归因用的 [`MissGuard`]。
+/// 见模块文档。`(None, _)` ⇒ 调用方照走老路；回落过（已计数）⇒ 第二项是归因用的 [`MissGuard`]；
+/// `Err` ⇒ P2-5 探测中的便宜失败（[`super::kernel_app_probe::fallback`]）。
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn try_notation<'a>(
     builder: &mut EnvBuilder<'a>,
@@ -59,14 +62,14 @@ pub(crate) fn try_notation<'a>(
     hovers: &mut Vec<HoverNode<'a>>,
     expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
-) -> (Option<ExprPtr<'a>>, Option<MissGuard>) {
+) -> Result<(Option<ExprPtr<'a>>, Option<MissGuard>), CompileError> {
     if !ctx.options.dialect.strict()
         || !env_on()
         || !routing_enabled()
         || operands.is_empty()
         || super::elab::prelude_install_active()
     {
-        return (None, None);
+        return Ok((None, None));
     }
     let Some(KnownName::Decl {
         implicit_prefix: 0,
@@ -74,15 +77,15 @@ pub(crate) fn try_notation<'a>(
         ..
     }) = known.get(canonical)
     else {
-        return (None, None);
+        return Ok((None, None));
     };
     let Some(missing) = missing_prefix(sig, operands.len()) else {
-        return (None, None);
+        return Ok((None, None));
     };
     let postponable =
         |a: &Expr| postpone::enabled() && postpone::untyped_lambda_layers(a, plain).is_some();
     if !operands.iter().all(|a| plain(a) || postponable(a)) {
-        return (None, Some(MissGuard::push(count(Count::Shape))));
+        return Ok((None, Some(MissGuard::push(count(Count::Shape)))));
     }
     // 头不经 `elab_expr`：记法头在源里不可见（符号的 hover 由调用方记），且要**不带层**的 `Const`
     // ⇒ 宇宙多态的目标（`Ne.{u}`）由内核按 K1d 给层元变量、随合一解出（老路靠操作数文本猜层）。
@@ -103,9 +106,9 @@ pub(crate) fn try_notation<'a>(
         expected_src,
         ctx,
     );
-    match finish(builder, outcome, scope, depth, hovers, mark) {
+    Ok(match finish(builder, outcome, scope, depth, hovers, mark) {
         Ok(out) => (Some(out), None),
-        Err(Some(why)) => (None, Some(MissGuard::push(why))),
+        Err(Some(why)) => (None, Some(probe::fallback(builder, why, span, scope)?)),
         Err(None) => (None, None),
-    }
+    })
 }
