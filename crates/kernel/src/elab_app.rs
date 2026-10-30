@@ -348,6 +348,11 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         if !self.ctx.unassigned_mvars(out).is_empty() {
             return AppOutcome::Unsupported("residual metas");
         }
+        // **P2-3**：`Solved` 只交良型项——会话内用 `Check` 重推一遍、再对期望（Lean 的 `elabAppArgs` 不需要这步，
+        // 因为它的项就是检查过的；这里是纵深防御：元变量赋值若出错，宁可回落老路也不交病项）。
+        if !self.app_recheck(d, env, ctx, out, exp_v) {
+            return AppOutcome::Unsupported("recheck");
+        }
         AppOutcome::Solved(self.ctx.export_owned(out))
     }
 
@@ -372,6 +377,19 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
             cur = self.apply_closure(depth + 1, &body, fresh, Some(domain));
             depth += 1;
         }
+    }
+
+    /// **P2-3**：解出的项在 scope 下 `Check` 重推（类型错 ⇒ 内核 panic ⇒ 本线程静音捕获）且（有期望时）类型 ≡ 期望。
+    fn app_recheck(&mut self, d: u32, env: E<'t>, ctx: crate::value::C<'t>, out: ExprPtr<'t>, exp_v: Option<V<'t>>) -> bool {
+        let r = {
+            let _q = crate::quiet::quiet();
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| self.infer_value(InferFlag::Check, d, env, ctx, out)))
+        };
+        let Ok(ty) = r else {
+            self.tc_cache.clear();
+            return false;
+        };
+        exp_v.is_none_or(|ev| self.is_def_eq_at(d, ev, ty))
     }
 
     /// 实参的期望域卡在**未赋值**的元变量上（`?p w`）⇒ 失败可能只是信息不够（推迟，不判错）。
