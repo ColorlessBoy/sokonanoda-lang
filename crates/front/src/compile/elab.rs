@@ -1660,6 +1660,22 @@ fn elab_notation<'a>(
             ctx,
         );
     }
+    // P2-4：strict 内核路径（`kernel_app_notation`）；回落 ⇒ `_kg` 持有到返回（未命中归因）。
+    let (kout, _kg) = super::kernel_app_notation::try_notation(
+        builder,
+        &canonical,
+        operands,
+        span,
+        scope,
+        univ,
+        known,
+        hovers,
+        expected_src,
+        ctx,
+    );
+    if let Some(out) = kout {
+        return Ok(out);
+    }
     let prefix_args = match notation_prefix_args(
         &signature,
         operands,

@@ -307,3 +307,58 @@ fn typed_lambda_without_binder_unify_falls_back() {
         "关掉 binder 合一 ⇒ 必须回落（fallback={fallback}）"
     );
 }
+
+/// **P2-4**：`a ≠ b`，只有第二个操作数定类型（unit12 `flawed_equalities_refuted` 的形状）。`≠` ⇒ `Ne α a b`
+/// （`α` 显式、由记法补）走内核：`@Set.univ (Set U)` 第一趟解出 `α`，`(fun _ => ∅) '' S` 推迟、按域 elaborate。
+const NE_SECOND_OPERAND_SRC: &str = "def Set (α : Type) : Type := α -> Prop\n\
+     def Set.empty {α : Type} : Set α := fun (x : α) => False\n\
+     notation \"∅\" => Set.empty\n\
+     def Set.univ {α : Type} : Set α := fun (x : α) => True\n\
+     def Set.image {α β : Type} (f : α -> β) (A : Set α) : Set β := fun (y : β) => True\n\
+     infixr:80 \" '' \" => Set.image\n\
+     axiom U : Type\naxiom S : Set (Set U)\n\
+     theorem ne2 : (fun (x : Set U) => ∅) '' S ≠ @Set.univ (Set U) := sorry\n";
+
+/// 同 [`run`]（闸门强制开），另外设 P2-4 记法路由开关（`route = false` ⇒ P2-4 之前的行为）。
+fn run_notation(src: &str, route: bool) -> (Vec<String>, u64, u64) {
+    let src = src.to_string();
+    on_compile_stack(move || {
+        super::kernel_app_notation::TEST_NO_NOTATION.with(|c| c.set(!route));
+        TEST_OVERRIDE.with(|c| c.set(Some(true)));
+        TEST_SOLVED.with(|c| c.set(0));
+        TEST_FALLBACK.with(|c| c.set(0));
+        let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
+        let options = CompileOptions {
+            prelude: PreludeMode::Full,
+            dialect: Dialect::Strict,
+        };
+        let out = compile_fol_with(&file, &options);
+        let errors = out.errors.iter().map(|e| format!("{e:?}")).collect();
+        (
+            errors,
+            TEST_SOLVED.with(|c| c.get()),
+            TEST_FALLBACK.with(|c| c.get()),
+        )
+    })
+}
+
+#[test]
+fn ne_typed_by_second_operand_goes_through_kernel() {
+    let (errors, solved, fallback) = run_notation(NE_SECOND_OPERAND_SRC, true);
+    assert_eq!(errors, Vec::<String>::new(), "记法走内核 ⇒ 接受");
+    // 反向：关掉记法路由 ⇒ 老路先无期望地定第一个操作数的类型 ⇒ 判红（P2-4 之前 unit12 的拒绝）。
+    let (errors_off, solved_off, fallback_off) = run_notation(NE_SECOND_OPERAND_SRC, false);
+    assert!(
+        !errors_off.is_empty(),
+        "关掉记法路由 ⇒ 必须判红（实际 0 条诊断）"
+    );
+    // 剩下的 2 次回落（探针实测，已还原）：都是 `Set.image (fun (x : Set U) => ∅) S`、2 个实参、
+    // `Unsolved ["β"]` —— `Ne` 内核 `run` 的**第一趟无期望** elaborate 第一个操作数（P2-1 的"先试、失败再推迟"），
+    // 每次 elaborate 类型各一次（共 2 次）。随后它被推迟、按域 `Set (Set U)` 再 elaborate ⇒ 解出（`Ne` Solved）。
+    // 不是记法路由的 bug；但那次老路回落会做 `judge_infer`（未命中计 `unsolved`）⇒ 是剩余的工作量来源。
+    // ⇒ 不要求 0，要求少于老路（关路由时同一个 `''` 回落 5 次）。
+    assert!(
+        solved > solved_off && fallback < fallback_off,
+        "≠ 走内核：on solved={solved} fallback={fallback}；off solved={solved_off} fallback={fallback_off}"
+    );
+}

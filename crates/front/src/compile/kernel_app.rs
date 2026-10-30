@@ -151,7 +151,7 @@ pub(crate) fn report_line() -> String {
 }
 
 /// 实参里没有带线程局部副作用的子项（洞 / `by` / 无注解 binder / 命名实参）。
-fn plain(e: &Expr) -> bool {
+pub(super) fn plain(e: &Expr) -> bool {
     match e {
         Expr::Hole { .. } | Expr::By { .. } | Expr::NamedArg { .. } => false,
         Expr::Sort { .. } | Expr::Ident { .. } | Expr::UniverseApp { .. } | Expr::Num { .. } => {
@@ -248,19 +248,38 @@ fn attempt<'a>(
     // 留下的 binder 无人看见）；这里吞掉 Err 回落 ⇒ 必须自己恢复深度，否则老路在多出的 binder 下
     // elaborate ⇒ de Bruijn 下标错位（实测 `rejected: loose bvar in infer`，Rel.inv_comp_apply）。
     let depth = scope.len();
-    let outcome = run(
-        builder,
-        expr.span(),
-        head,
-        &args,
-        *implicit_prefix,
-        scope,
-        univ,
-        known,
-        hovers,
-        expected_src,
-        ctx,
-    );
+    let outcome = elab_expr(builder, head, scope, univ, known, hovers, None, None, ctx)
+        .map_err(|_| Count::ArgElab)
+        .and_then(|head_t| {
+            let (prefix, span) = (*implicit_prefix, expr.span());
+            let (sc, ks, hv) = (&mut *scope, known, &mut *hovers);
+            run(
+                builder,
+                span,
+                head_t,
+                &args,
+                prefix,
+                sc,
+                univ,
+                ks,
+                hv,
+                expected_src,
+                ctx,
+            )
+        });
+    finish(builder, outcome, scope, depth, hovers, mark)
+}
+
+/// 内核结果 ⇒ 导入的项，或回落（已计数、hover 撤回、作用域深度恢复）。记法路径（[`super::kernel_app_notation`]）
+/// 共用这一份出口 ⇒ 回落纪律只有一处。
+pub(super) fn finish<'a>(
+    builder: &mut EnvBuilder<'a>,
+    outcome: Result<AppOutcome, Count>,
+    scope: &mut ElabScope<'a>,
+    depth: usize,
+    hovers: &mut Vec<HoverNode<'a>>,
+    mark: usize,
+) -> Result<ExprPtr<'a>, Option<&'static str>> {
     scope.truncate(depth);
     let why = match outcome {
         Ok(AppOutcome::Solved(t)) => match builder.import_owned(&t) {
@@ -288,11 +307,12 @@ fn attempt<'a>(
     Err(Some(why))
 }
 
+/// `head_t` = 已 elaborate 的头（必须是 `Const`；不带层 ⇒ 内核按 K1d 给层元变量）。
 #[allow(clippy::too_many_arguments)]
-fn run<'a>(
+pub(super) fn run<'a>(
     builder: &mut EnvBuilder<'a>,
     expr_span: crate::Span,
-    head: &Expr,
+    head_t: ExprPtr<'a>,
     args: &[&Expr],
     implicit_prefix: usize,
     scope: &mut ElabScope<'a>,
@@ -302,8 +322,6 @@ fn run<'a>(
     expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<AppOutcome, Count> {
-    let head_t = elab_expr(builder, head, scope, univ, known, hovers, None, None, ctx)
-        .map_err(|_| Count::ArgElab)?;
     if !matches!(*head_t, sokonanoda::expr::Expr::Const { .. }) {
         return Err(Count::Shape);
     }
