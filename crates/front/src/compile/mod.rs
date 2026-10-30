@@ -30,6 +30,7 @@ mod kernel_app_notation;
 mod kernel_app_postpone;
 mod kernel_tel;
 mod named_arg;
+mod notation_levels;
 // IA-5 的错误文案（**单独一个文件** ⇒ `elab.rs`/`implicit.rs` 都受判据 ⑨ 冻结，
 // **只许减不许增** ✗ ⇒ 文案长在那边会当场判红 ✓）。
 // **a15**：`by.rs`（在 `compile` 之外）要读 `cases_scrutinee_type` ⇒ 这一处放开到 crate。

@@ -6,6 +6,7 @@ use super::error::{CompileError, ErrorKind};
 use super::expected::{drop_expected_src_layer_unfolding, mentions_any, mentions_names};
 use super::kernel_app::try_app as kapp;
 use super::meta::pattern;
+use super::notation_levels::notation_level_texts;
 use super::prelude::CompileOptions;
 use super::report::ResolvedTarget;
 use super::scope::NamespaceScope;
@@ -1752,40 +1753,6 @@ fn elab_notation<'a>(
     Ok(app)
 }
 
-/// 记法目标的**宇宙层级文本**（`Eq.{u}` 那一档）：目标只带 1 个宇宙参数时由
-/// **操作数**解（`a : Set α` ⇒ `Set α : Type 0` ⇒ `u = 1`），其余位默认 `"0"`；
-/// 目标没有宇宙参数 ⇒ 空表（调用方据此走"零层级"那条）。
-///
-/// 两条路（k==0 的老路与隐式档）共用这一份；解不出时**保持既有行为**（全 0，
-/// 与不写 `.{u}` 的点名写法同判），见调用点那段注释。
-fn notation_level_texts<'a>(
-    builder: &mut EnvBuilder<'a>,
-    uparams: &[String],
-    operands: &[&Expr],
-    ctx: &ElabCtx<'a, '_>,
-    scope: &ElabScope<'a>,
-    known: &KnownTable,
-) -> Vec<String> {
-    if uparams.is_empty() {
-        return Vec::new();
-    }
-    let mut texts: Vec<String> = uparams.iter().map(|_| "0".to_string()).collect();
-    if uparams.len() == 1 {
-        if let Some(text) = universe_level_text_of_operands(
-            operands,
-            ctx,
-            scope,
-            Some(&mut InplaceEnv {
-                builder: &mut *builder,
-                known,
-            }),
-        ) {
-            texts[0] = text;
-        }
-    }
-    texts
-}
-
 /// 记法展开的**隐式档**（T-N14 / B3-④，2026-09-30）：目标签名带**前导隐式
 /// binder** 时，把 `symbol(op1 … opn)` 还原成**源级应用脊** `target op1 … opn`，
 /// 整条交给 `Expr::App` 臂 —— 前缀由**唯一钩子** `try_implicit_application` 解出。
@@ -2288,7 +2255,7 @@ fn application_arg_expected<'a>(
 ///
 /// 判据全部问内核（`judge_infer`），**不做文本猜测**：`infer_type_text` 拿
 /// 操作数的类型文本，再对那份文本问一次它的类型（= sort）。
-fn universe_level_text_of_operands<'a>(
+pub(super) fn universe_level_text_of_operands<'a>(
     operands: &[&Expr],
     ctx: &ElabCtx<'a, '_>,
     scope: &ElabScope<'a>,
