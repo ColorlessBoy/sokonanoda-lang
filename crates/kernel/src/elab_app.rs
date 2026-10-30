@@ -31,8 +31,9 @@ pub struct AppRequest<'s, 'p> {
     pub head: ExprPtr<'p>,
     /// 前 k 个 binder 无论写法都按隐式处理（构造子的参数）。
     pub implicit_prefix: usize,
-    /// 位置实参，已 elaborate。
-    pub explicit_args: &'s [ExprPtr<'p>],
+    /// 位置实参：`Some` = 已 elaborate；`None` = **推迟**（Lean `elabAndAddNewArg` 要按域 elaborate 的实参，
+    /// 调用方先没期望地试过、失败了）⇒ 本轮放一个占位元变量，结果是 [`AppOutcome::NeedArgs`]。
+    pub explicit_args: &'s [Option<ExprPtr<'p>>],
     /// 期望类型（已知时）。
     pub expected: Option<ExprPtr<'p>>,
 }
@@ -50,6 +51,9 @@ pub enum AppOutcome {
     ExpectedMismatch,
     /// P1 的限制。
     Unsupported(&'static str),
+    /// 有推迟的实参：每个推迟位 `(显式实参下标, 域)`，域已代入当前解、**无元变量**、在 scope 之下。
+    /// 调用方按域 elaborate 这些实参后带齐实参**再调一次**（新会话，全部重查）。
+    NeedArgs { domains: Vec<(usize, OwnedExpr)> },
 }
 
 thread_local! {
@@ -124,11 +128,11 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
 
     fn elab_app_session(&mut self, req: &AppRequest<'_, 'p>) -> AppOutcome {
         let binder_tys: Vec<ExprPtr<'t>> = req.binder_tys.to_vec();
-        let args: Vec<ExprPtr<'t>> = req.explicit_args.to_vec();
+        let args: Vec<Option<ExprPtr<'t>>> = req.explicit_args.to_vec();
         let head: ExprPtr<'t> = req.head;
         let expected: Option<ExprPtr<'t>> = req.expected;
         // **P1 限制**：输入里不许有元变量（本会话的 id 不许与调用方的相撞）。
-        let inputs = binder_tys.iter().chain(std::iter::once(&head)).chain(args.iter()).chain(expected.iter());
+        let inputs = binder_tys.iter().chain(std::iter::once(&head)).chain(args.iter().flatten()).chain(expected.iter());
         for e in inputs {
             if !self.ctx.unassigned_mvars(*e).is_empty() {
                 return AppOutcome::Unsupported("input contains a meta");
@@ -179,6 +183,8 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         let mut tried = false;
         let mut propagated = false;
         let mut postponed: Vec<(usize, V<'t>, V<'t>)> = Vec::new();
+        // 推迟的实参：`(显式下标, 域, 占位元变量名)`；占位 = 上下文元变量（同隐式位），后面的 binder 才能依赖它。
+        let mut holes: Vec<(usize, V<'t>, NamePtr<'t>)> = Vec::new();
         let anon = self.ctx.anonymous();
         loop {
             let pi = match self.weak_pi(d, fty) {
@@ -203,7 +209,7 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
                 for t in binder_tys.iter().rev() {
                     mty = self.ctx.mk_pi(anon, BinderStyle::Default, *t, mty);
                 }
-                let id = SESSION_META_BASE + u32::try_from(metas.len()).expect("meta count");
+                let id = SESSION_META_BASE + u32::try_from(metas.len() + holes.len()).expect("meta count");
                 self.ctx.mvars.register_at(id, mty, 0);
                 self.ctx.mvars.register_kind(id, MetaKind::Natural);
                 let mut m = self.ctx.mk_meta(id, mty);
@@ -227,7 +233,27 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
                     propagated = self.app_propagate(d, env, req.implicit_prefix, i, args.len() - ai, fty, ev);
                 }
             }
-            let arg = args[ai];
+            let Some(arg) = args[ai] else {
+                let mut mty = self.quote(d, dom);
+                for t in binder_tys.iter().rev() {
+                    mty = self.ctx.mk_pi(anon, BinderStyle::Default, *t, mty);
+                }
+                let id = SESSION_META_BASE + u32::try_from(metas.len() + holes.len()).expect("meta count");
+                self.ctx.mvars.register_at(id, mty, 0);
+                self.ctx.mvars.register_kind(id, MetaKind::Natural);
+                let mut m = self.ctx.mk_meta(id, mty);
+                for k in (0..d16).rev() {
+                    let v = self.ctx.mk_var(k);
+                    m = self.ctx.mk_app(m, v);
+                }
+                let mv = self.eval(d, env, m);
+                term = self.ctx.mk_app(term, m);
+                holes.push((ai, dom, bn));
+                fty = self.apply_closure(d, &body, mv, Some(dom));
+                ai += 1;
+                i += 1;
+                continue;
+            };
             let at = self.infer_value(InferFlag::InferOnly, d, env, ctx, arg);
             if !self.is_def_eq_at(d, dom, at) {
                 // Lean 会把卡在未赋值元变量上的约束推迟（`postponed`）；这里推迟到 finalize 重试一次。
@@ -269,6 +295,22 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
             if !left.is_empty() {
                 unsolved.push(n.clone());
             }
+        }
+        // Lean `elabAndAddNewArg`：推迟位的期望类型 = 代入当前解后的域；域里还有未赋值元变量 ⇒ 信息不够 ⇒ `Unsolved`。
+        if !holes.is_empty() {
+            let mut domains = Vec::with_capacity(holes.len());
+            for &(ai, dom, bn) in &holes {
+                let q = self.quote(d, dom);
+                let q = self.ctx.instantiate_mvars(q);
+                if !self.ctx.unassigned_mvars(q).is_empty() {
+                    if unsolved.is_empty() {
+                        unsolved.push(name_string(self.ctx, bn));
+                    }
+                    return AppOutcome::Unsolved { binders: unsolved };
+                }
+                domains.push((ai, self.ctx.export_owned(q)));
+            }
+            return AppOutcome::NeedArgs { domains };
         }
         if !unsolved.is_empty() {
             return AppOutcome::Unsolved { binders: unsolved };

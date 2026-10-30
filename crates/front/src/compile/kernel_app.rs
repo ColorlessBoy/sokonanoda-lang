@@ -274,6 +274,8 @@ fn attempt<'a>(
         Ok(AppOutcome::ArgMismatch { .. }) => count(Count::ArgMismatch),
         Ok(AppOutcome::ExpectedMismatch) => count(Count::Expected),
         Ok(AppOutcome::Unsupported(why)) => count(Count::Unsupported(why)),
+        // 本提交还不推迟实参（全是 `Some`）⇒ 不会出现；出现就当实参 elaborate 不了回落。
+        Ok(AppOutcome::NeedArgs { .. }) => count(Count::ArgElab),
         Err(c) => count(c),
     };
     hovers.truncate(mark);
@@ -303,7 +305,7 @@ fn run<'a>(
     for a in args {
         let t = elab_expr(builder, a, scope, univ, known, hovers, None, None, ctx)
             .map_err(|_| Count::ArgElab)?;
-        explicit.push(t);
+        explicit.push(Some(t));
     }
     // 期望类型只作输入，不留 hover（老路不为它记）。
     let before_expected = hovers.len();

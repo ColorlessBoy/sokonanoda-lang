@@ -173,6 +173,8 @@ fn req<'s, 'a>(
     args: &'s [ExprPtr<'a>],
     expected: Option<ExprPtr<'a>>,
 ) -> AppRequest<'s, 'a> {
+    // 测试夹具：全部实参都已 elaborate（`Some`）；推迟位的用例直接造 `AppRequest`。
+    let args: &'s [Option<ExprPtr<'a>>] = Box::leak(args.iter().map(|a| Some(*a)).collect::<Vec<_>>().into_boxed_slice());
     AppRequest { binder_tys: tys, head, implicit_prefix: k, explicit_args: args, expected }
 }
 
@@ -476,5 +478,56 @@ fn k1d_t5_undetermined_universe_is_unsolved() {
         let univ = cst(b, "Univ");
         let o = elab(b, &req(&[], univ, 0, &[], None));
         assert_eq!(o, AppOutcome::Unsolved { binders: vec!["universe w".to_string()] });
+    });
+}
+
+/// **P2-1**：推迟的显式实参（Lean `elabAndAddNewArg` 按域 elaborate）。`ExT.intro w ?hw` + 期望
+/// ⇒ `NeedArgs { (1, P w) }`（域代入 `?p := fun x => P x` 之后、无元变量）；带齐再调 ⇒ Solved。
+/// 期望缺席 ⇒ 域 `?p w` 仍含元变量 ⇒ `Unsolved`（不交出带元变量的域）。
+#[test]
+fn p21_postponed_arg_needs_domain() {
+    run(|b, kx| {
+        let (tys, args, expected) = t1_parts(b, kx);
+        let partial = [Some(args[0]), None];
+        let r = AppRequest { binder_tys: &tys, head: kx.intro, implicit_prefix: 2, explicit_args: &partial, expected: Some(expected) };
+        let o = elab(b, &r);
+        let AppOutcome::NeedArgs { domains } = &o else { panic!("expected NeedArgs, got {o:?}") };
+        assert_eq!(domains.len(), 1);
+        assert_eq!(domains[0].0, 1, "postponed explicit index");
+        let dom = b.import_owned(&domains[0].1).expect("import domain");
+        let v1 = b.mk_var(1);
+        let want_dom = b.mk_app(kx.p, v1);
+        let lam_app = b.mk_app(kx.lam_p, v1);
+        assert!(same(dom, want_dom) || same(dom, lam_app), "domain = P w (up to beta)");
+        // 带齐实参再调一次 ⇒ 与 T1 同解。
+        let o = elab(b, &req(&tys, kx.intro, 2, &args, Some(expected)));
+        let got = solved(b, &o);
+        let want = apps(b, kx.intro, &[kx.a, kx.lam_p, args[0], args[1]]);
+        assert!(same(got, want), "ExT.intro A (fun x => P x) w hw");
+        // 无期望：`?p` 解不出 ⇒ 推迟位的域含元变量 ⇒ Unsolved，不是 NeedArgs。
+        let r = AppRequest { binder_tys: &tys, head: kx.intro, implicit_prefix: 2, explicit_args: &partial, expected: None };
+        let o = elab(b, &r);
+        assert!(matches!(o, AppOutcome::Unsolved { .. }), "got {o:?}");
+        // 推迟位后面的显式实参照常检查：`And.intro ?ha h2`（scope `(h1 : P x) (h2 : Q x)` 的简化：只要域可解）。
+        let (v0, v1x) = (b.mk_var(0), b.mk_var(1));
+        let px = b.mk_app(kx.p, v0);
+        let qx = b.mk_app(kx.q, v1x);
+        let tys2 = [kx.a, px, qx];
+        let partial2 = [None, Some(v0)];
+        let exp2 = {
+            let (p2, q2) = (b.mk_var(2), b.mk_var(2));
+            let p2 = b.mk_app(kx.p, p2);
+            let q2 = b.mk_app(kx.q, q2);
+            let and = cst(b, "And");
+            apps(b, and, &[p2, q2])
+        };
+        let r = AppRequest { binder_tys: &tys2, head: kx.and_intro, implicit_prefix: 0, explicit_args: &partial2, expected: Some(exp2) };
+        let o = elab(b, &r);
+        let AppOutcome::NeedArgs { domains } = &o else { panic!("expected NeedArgs, got {o:?}") };
+        assert_eq!(domains.iter().map(|d| d.0).collect::<Vec<_>>(), vec![0]);
+        let dom = b.import_owned(&domains[0].1).expect("import");
+        let v2 = b.mk_var(2);
+        let want = b.mk_app(kx.p, v2);
+        assert!(same(dom, want), "And.intro's first domain = P x");
     });
 }
