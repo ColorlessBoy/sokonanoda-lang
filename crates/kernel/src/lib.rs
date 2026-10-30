@@ -23,6 +23,7 @@ pub(crate) mod mvar;
 pub mod mvar_inst;
 pub(crate) mod mvar_level;
 pub(crate) mod mvar_miller;
+pub(crate) mod mvar_spine;
 pub mod name;
 pub mod parser;
 pub mod pretty_printer;

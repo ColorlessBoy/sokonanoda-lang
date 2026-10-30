@@ -3,19 +3,19 @@
   "soft_limit": 500,
   "files": {
     "crates/cli/src/build.rs": {
-      "lines": 1190,
+      "lines": 1188,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/ast.rs": {
-      "lines": 927,
+      "lines": 848,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/by.rs": {
-      "lines": 4363,
+      "lines": 4351,
       "reason": "apply 的归纳头展开候选（审计 row 2）；下一轮把 apply 的匹配链整体拆到 apply_probe"
     },
     "crates/front/src/compile/cache.rs": {
-      "lines": 1138,
+      "lines": 1118,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/check/kernel_phase.rs": {
@@ -31,21 +31,19 @@
       "reason": "S3：合成声明（含 meta）不进环境的守卫（walk 的两处 add 点）；下一轮把 judge 的合成检查路径拆出 walk"
     },
     "crates/front/src/compile/elab.rs": {
-      "lines": 8843,
-      "reason": "S3 元变量接线（elab_expr 的 ?mN 臂）；下一轮拆到 meta_parse/elab 子模块",
-      "grew_from": 8702,
-      "growth_reason": "引擎第 5 刀落地（6266bede/cb79b1ac）：新增 const_arg_expected 第四档（注册表签名 + telescope + 位置代换，与 Lean/Elab/App.lean:1113 的 instantiate1 arg 同构；零内核调用、非递归）⇒ elab.rs 8702→8826。⚠ 如实：债务增长，换来 59 处课程自然写法解锁 + 2190 不掉 + 零回归 + 语料 251/251 逐字节相同 ✓"
+      "lines": 8841,
+      "reason": "S3 元变量接线（elab_expr 的 ?mN 臂）；下一轮拆到 meta_parse/elab 子模块"
     },
     "crates/front/src/compile/error.rs": {
-      "lines": 948,
+      "lines": 824,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/goals.rs": {
-      "lines": 1685,
+      "lines": 1650,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/implicit.rs": {
-      "lines": 1223,
+      "lines": 1218,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/level.rs": {
@@ -53,11 +51,11 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/meta.rs": {
-      "lines": 1849,
+      "lines": 1848,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/compile/prelude.rs": {
-      "lines": 1411,
+      "lines": 1408,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/display.rs": {
@@ -66,12 +64,10 @@
     },
     "crates/front/src/judge.rs": {
       "lines": 4748,
-      "reason": "S3 元变量接线（OpenGoalSpec.metas + registry 包裹 + 阶段探针）；测试下一轮移出",
-      "grew_from": 4708,
-      "growth_reason": "row 7：Judgement::Error 加 kind 字段（2 个填充位 + 27 个构造字面量各一行，+40）；tactic 透传的过滤逻辑放 error.rs（该文件余量 154 行，未增长）"
+      "reason": "S3 元变量接线（OpenGoalSpec.metas + registry 包裹 + 阶段探针）；测试下一轮移出"
     },
     "crates/front/src/notation_input.rs": {
-      "lines": 1438,
+      "lines": 1436,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/parser.rs": {
@@ -79,7 +75,7 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/project/artifacts.rs": {
-      "lines": 946,
+      "lines": 818,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/project/cache.rs": {
@@ -87,7 +83,7 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/project/graph.rs": {
-      "lines": 570,
+      "lines": 545,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/project/mod.rs": {
@@ -95,7 +91,7 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/project/session.rs": {
-      "lines": 1425,
+      "lines": 1421,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/project/tables.rs": {
@@ -103,11 +99,11 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/proof.rs": {
-      "lines": 1029,
+      "lines": 1000,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/query/mod.rs": {
-      "lines": 2140,
+      "lines": 2139,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/references.rs": {
@@ -115,7 +111,7 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/semantic.rs": {
-      "lines": 1808,
+      "lines": 1456,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/session.rs": {
@@ -123,7 +119,7 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/spine.rs": {
-      "lines": 1950,
+      "lines": 1945,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/front/src/suggest.rs": {
@@ -131,15 +127,17 @@
       "reason": "S3：OpenGoalSpec 新字段 metas 的初始化"
     },
     "crates/front/src/token.rs": {
-      "lines": 1272,
+      "lines": 1129,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/kernel/src/builder.rs": {
-      "lines": 1091,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
+      "lines": 1098,
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
+      "grew_from": 1091,
+      "growth_reason": "strict P1 内核元变量：builder.rs +7（K1b：add_declar 补扫定理证明项里的元变量 —— main 上的信任边界漏洞）· inductive.rs +1（K1a：Value::Meta 带 spine 后归纳出现检查要扫 spine）；mvar.rs 已拆出 mvar_spine.rs 回到 500 以下"
     },
     "crates/kernel/src/conv.rs": {
-      "lines": 900,
+      "lines": 892,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/kernel/src/env.rs": {
@@ -147,7 +145,7 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/kernel/src/eval.rs": {
-      "lines": 2220,
+      "lines": 2209,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/kernel/src/expr.rs": {
@@ -155,16 +153,14 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/kernel/src/inductive.rs": {
-      "lines": 2223,
+      "lines": 2224,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 2199,
-      "growth_reason": "2026-10-24 S1（`845c293e`）元变量赋值健全性：occurs / SyntheticOpaque / 类型检查 / 缓存纪律四段加在既有 impl 内；拆分点已记在计划 §13，留待内核线收口时搬 `mvar` 相关块。"
+      "grew_from": 2223,
+      "growth_reason": "strict P1 内核元变量：builder.rs +7（K1b：add_declar 补扫定理证明项里的元变量 —— main 上的信任边界漏洞）· inductive.rs +1（K1a：Value::Meta 带 spine 后归纳出现检查要扫 spine）；mvar.rs 已拆出 mvar_spine.rs 回到 500 以下"
     },
     "crates/kernel/src/parser.rs": {
       "lines": 1591,
-      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓",
-      "grew_from": 1579,
-      "growth_reason": "2026-10-24 S1（`845c293e`）元变量赋值健全性：occurs / SyntheticOpaque / 类型检查 / 缓存纪律四段加在既有 impl 内；拆分点已记在计划 §13，留待内核线收口时搬 `mvar` 相关块。"
+      "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/kernel/src/pretty_printer.rs": {
       "lines": 976,
@@ -175,7 +171,7 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/kernel/src/value.rs": {
-      "lines": 577,
+      "lines": 567,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/kernel/src/writer.rs": {
@@ -183,15 +179,15 @@
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/lsp/src/actions.rs": {
-      "lines": 1851,
+      "lines": 1850,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/lsp/src/lib.rs": {
-      "lines": 3860,
+      "lines": 3853,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/lsp/src/render.rs": {
-      "lines": 1607,
+      "lines": 1541,
       "reason": "硬规则 5 的存量债务：模块超 ~500 行，待拆分。**只许减不许增** ✓"
     },
     "crates/lsp/src/testutil.rs": {
