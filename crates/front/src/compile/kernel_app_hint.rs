@@ -2,7 +2,7 @@
 //! 拆自 [`super::kernel_app`]（docs-lint ⑨：源码文件 ≤ 500 行）。
 
 use super::elab::{elab_expr, ElabCtx, ElabScope, HoverNode, KnownName, KnownTable, UnivMap};
-use super::kernel_app::{count, env_on, loose_bvars, Count};
+use super::kernel_app::{count, env_on, Count};
 use super::kernel_app_postpone as postpone;
 use crate::Expr;
 use sokonanoda::builder::EnvBuilder;
@@ -60,7 +60,7 @@ pub(crate) fn try_hinted_const<'a>(
                 _ => None,
             }
         })
-        .filter(|out| loose_bvars(*out, &mut Default::default()) as usize <= scope.len());
+        .filter(|out| postpone::loose_bvars(*out, &mut Default::default()) as usize <= scope.len());
     scope.truncate(depth);
     match solved {
         Some(out) => {

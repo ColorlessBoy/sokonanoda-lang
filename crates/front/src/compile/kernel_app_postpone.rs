@@ -196,3 +196,35 @@ pub(crate) fn binder_unify_enabled() -> bool {
     }
     true
 }
+
+/// 项里最大的 loose `Var` 下标 + 1（= 它至少要在几个 binder 之下；前端拿不到内核的 `num_loose_bvars`）。
+/// 按节点地址记忆 ⇒ DAG 共享子项只走一次。
+pub(crate) fn loose_bvars(
+    e: sokonanoda::util::ExprPtr<'_>,
+    memo: &mut std::collections::HashMap<usize, u32>,
+) -> u32 {
+    use sokonanoda::expr::Expr as K;
+    let key = &*e as *const _ as usize;
+    if let Some(n) = memo.get(&key) {
+        return *n;
+    }
+    let under = |n: u32| n.saturating_sub(1);
+    let n = match *e {
+        K::Var { dbj_idx, .. } => u32::from(dbj_idx) + 1,
+        K::App { fun, arg, .. } => loose_bvars(fun, memo).max(loose_bvars(arg, memo)),
+        K::Pi {
+            binder_type, body, ..
+        }
+        | K::Lambda {
+            binder_type, body, ..
+        } => loose_bvars(binder_type, memo).max(under(loose_bvars(body, memo))),
+        K::Let { data, .. } => loose_bvars(data.binder_type, memo)
+            .max(loose_bvars(data.val, memo))
+            .max(under(loose_bvars(data.body, memo))),
+        K::Proj { structure, .. } => loose_bvars(structure, memo),
+        K::Meta { ty, .. } => loose_bvars(ty, memo),
+        K::StringLit { .. } | K::NatLit { .. } | K::Sort { .. } | K::Const { .. } => 0,
+    };
+    memo.insert(key, n);
+    n
+}
