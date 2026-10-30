@@ -8,8 +8,9 @@ This script measures the product, not internal proxies:
   lib     every courses/set-theory/lib/*.sokonanoda x {loose, strict} via `grade --json`
           gate lib_strict: every strict run exits 0 (lib_loose reported, also a gate)
   counts  three fixed files x {loose, strict} with SOKO_JUDGE_STATS=1
-          gate work_le_loose: strict JUDGE_INFER.calls <= loose AND
+          gate work_le_loose: strict JUDGE_INFER_SPLIT.misses <= loose AND
                               strict JUDGE_STATS.prefix_bytes <= loose (structural counts;
+                              a miss = whole-prefix recompile, a hit is ~free;
                               wall seconds are reported, never gated)
   course  (--course) `course <course.json> --json` x {loose, strict}
           gate course_strict: strict failed == 0 and same unit count as loose
@@ -227,17 +228,21 @@ def gate_work(rows: list[dict]) -> dict:
         lo = next(r for r in rows if r["file"] == rel and r["dialect"] == "loose")
         st = next(r for r in rows if r["file"] == rel and r["dialect"] == "strict")
         li, si = stat(lo, "JUDGE_INFER", "calls"), stat(st, "JUDGE_INFER", "calls")
+        # Gate on cache MISSES, not calls: a hit costs ~0.1 ms, a miss recompiles the whole
+        # prefix (~0.15-0.5 s). Measured 2026-10-30 on unit12: calls 587 vs 67, misses 30 vs 9.
+        lm, sm = stat(lo, "JUDGE_INFER_SPLIT", "misses"), stat(st, "JUDGE_INFER_SPLIT", "misses")
         lp, sp = stat(lo, "JUDGE_STATS", "prefix_bytes"), stat(st, "JUDGE_STATS", "prefix_bytes")
         reason = None
         if lo["timeout"] or st["timeout"]:
             ok, reason = False, "timeout"
-        elif None in (li, si, lp, sp):
+        elif None in (lm, sm, lp, sp):
             # A missing counter means the probe did not fire: never treat that as "0 work".
-            ok, reason = False, "missing JUDGE_INFER.calls / JUDGE_STATS.prefix_bytes"
+            ok, reason = False, "missing JUDGE_INFER_SPLIT.misses / JUDGE_STATS.prefix_bytes"
         else:
-            ok = si <= li and sp <= lp
+            ok = sm <= lm and sp <= lp
         green &= ok
-        per_file.append({"file": rel, "green": ok, "infer_calls": {"loose": li, "strict": si},
+        per_file.append({"file": rel, "green": ok, "infer_misses": {"loose": lm, "strict": sm},
+                         "infer_calls": {"loose": li, "strict": si},
                          "prefix_bytes": {"loose": lp, "strict": sp},
                          "wall_s": {"loose": lo["wall_s"], "strict": st["wall_s"]},
                          **({"reason": reason} if reason else {})})
