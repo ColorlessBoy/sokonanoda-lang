@@ -282,8 +282,8 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
 theorem flawed_equalities_refuted :
     (fun (_ : Set Nat) => ∅) '' ((fun (_ : Set Nat) => ∅) ⁻¹' (@Set.univ (Set Nat)))
       ≠ @Set.univ (Set Nat)
-    ∧ (fun (_ : Set Nat) => ∅) '' ({∅} ∩ {(@Set.univ Nat)})
-      ≠ ((fun (_ : Set Nat) => ∅) '' {∅}) ∩ ((fun (_ : Set Nat) => ∅) '' {(@Set.univ Nat)})
+    ∧ (fun (_ : Set Nat) => @Set.empty Nat) '' ({∅} ∩ {(@Set.univ Nat)})  -- soko:notation-ok: λ 体内的零元记法没有类型来源（这一条合取里没有任何约束定得出它的元素类型）
+      ≠ ((fun (_ : Set Nat) => @Set.empty Nat) '' {∅}) ∩ ((fun (_ : Set Nat) => @Set.empty Nat) '' {(@Set.univ Nat)})  -- soko:notation-ok: 同上
       := by
   sorry
 
