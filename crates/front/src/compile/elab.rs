@@ -4374,8 +4374,8 @@ fn try_implicit_application_with<'a>(
     if prelude_install_active() {
         return Ok(None);
     }
-    // P1-F2b2：strict + `SOKO_STRICT_KERNEL_APP=1` ⇒ 先试内核 `elab_app`（闸门关 ⇒ 第一行返回）。
-    if let Some(out) = kapp(builder, expr, scope, univ, known, hovers, expected_src, ctx) {
+    let (kout, _kg) = kapp(builder, expr, scope, univ, known, hovers, expected_src, ctx);
+    if let Some(out) = kout {
         return Ok(Some(out));
     }
     let (head, args) = crate::spine::spine_of(expr);

@@ -3084,7 +3084,7 @@ fn judge_infer_cached(
             stats::CLASSIFY_BARE_MISS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         }
     }
-    let miss = stats::INFER_MISSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+    let miss = crate::compile::kernel_app_miss::note_infer_miss();
     // 常驻诊断（`SOKO_INFER_TRACE=<n>[,<n>…]|all`）：打出每次未命中的查询与
     // 前缀长度；**在号上打调用栈**（`SOKO_INFER_TRACE=100` 就给第 100 次的栈）。
     // 未命中一次 = 全前缀重编译一趟 pass ⇒ 这几行直接指认"谁在重编译"。

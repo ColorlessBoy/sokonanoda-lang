@@ -24,6 +24,7 @@
 use super::elab::{
     elab_expr, resolve_known, ElabCtx, ElabScope, HoverNode, KnownName, KnownTable, UnivMap,
 };
+use super::kernel_app_miss::MissGuard;
 use crate::Expr;
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::elab_app::{AppOutcome, AppRequest};
@@ -72,7 +73,7 @@ enum Count {
     Unsupported(&'static str),
 }
 
-fn count(c: Count) {
+fn count(c: Count) -> &'static str {
     install_printer();
     TRIED.fetch_add(1, Ordering::Relaxed);
     #[cfg(test)]
@@ -80,14 +81,14 @@ fn count(c: Count) {
         Count::Solved => TEST_SOLVED.with(|x| x.set(x.get() + 1)),
         _ => TEST_FALLBACK.with(|x| x.set(x.get() + 1)),
     }
-    let slot = match c {
-        Count::Solved => &SOLVED,
-        Count::Unsolved => &UNSOLVED,
-        Count::ArgMismatch => &ARG_MISMATCH,
-        Count::Expected => &EXPECTED,
-        Count::ArgElab => &ARG_ELAB,
-        Count::Shape => &SHAPE,
-        Count::BadScope => &BAD_SCOPE,
+    let (slot, key) = match c {
+        Count::Solved => (&SOLVED, "solved"),
+        Count::Unsolved => (&UNSOLVED, "unsolved"),
+        Count::ArgMismatch => (&ARG_MISMATCH, "argmismatch"),
+        Count::Expected => (&EXPECTED, "expected"),
+        Count::ArgElab => (&ARG_ELAB, "argelab"),
+        Count::Shape => (&SHAPE, "shape"),
+        Count::BadScope => (&BAD_SCOPE, "bad_scope"),
         Count::Unsupported(why) => {
             if let Ok(mut v) = UNSUPPORTED.lock() {
                 match v.iter_mut().find(|(k, _)| *k == why) {
@@ -95,10 +96,11 @@ fn count(c: Count) {
                     None => v.push((why, 1)),
                 }
             }
-            return;
+            return why;
         }
     };
     slot.fetch_add(1, Ordering::Relaxed);
+    key
 }
 
 /// `SOKO_JUDGE_STATS` 设了 ⇒ 进程退出时打一行 `KERNEL_APP …`（同 `judge::stats` 的 `atexit` 时机）。
@@ -172,7 +174,8 @@ fn plain(e: &Expr) -> bool {
     }
 }
 
-/// 见模块文档。`None` ⇒ 调用方照走老路。
+/// 见模块文档。`(None, _)` ⇒ 调用方照走老路；回落（计过数的）⇒ 第二项是回落原因的 [`MissGuard`]，
+/// 调用方持有到函数返回 ⇒ 老路里的 `judge_infer` 未命中按它归因（P2-1 (a)）。
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn try_app<'a>(
     builder: &mut EnvBuilder<'a>,
@@ -183,21 +186,41 @@ pub(crate) fn try_app<'a>(
     hovers: &mut Vec<HoverNode<'a>>,
     expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
-) -> Option<ExprPtr<'a>> {
+) -> (Option<ExprPtr<'a>>, Option<MissGuard>) {
+    match attempt(builder, expr, scope, univ, known, hovers, expected_src, ctx) {
+        Ok(out) => (Some(out), None),
+        Err(Some(why)) => (None, Some(MissGuard::push(why))),
+        Err(None) => (None, None),
+    }
+}
+
+/// `Err(None)` = 没尝试（不计数）；`Err(Some(原因))` = 尝试后回落（已计数）。
+#[allow(clippy::too_many_arguments)]
+fn attempt<'a>(
+    builder: &mut EnvBuilder<'a>,
+    expr: &Expr,
+    scope: &mut ElabScope<'a>,
+    univ: &UnivMap<'a>,
+    known: &KnownTable,
+    hovers: &mut Vec<HoverNode<'a>>,
+    expected_src: Option<&Expr>,
+    ctx: &ElabCtx<'a, '_>,
+) -> Result<ExprPtr<'a>, Option<&'static str>> {
     if !ctx.options.dialect.strict() || !env_on() {
-        return None;
+        return Err(None);
     }
     let (head, args) = crate::spine::spine_of(expr);
     if args.is_empty() {
-        return None;
+        return Err(None);
     }
     let Expr::Ident { name, span } = head else {
-        return None;
+        return Err(None);
     };
-    let canonical = resolve_known(known, ctx.ns, name, *span, scope.local_names()).ok()?;
+    let canonical =
+        resolve_known(known, ctx.ns, name, *span, scope.local_names()).map_err(|_| None)?;
     // 局部名遮蔽了同名常量 ⇒ 不是常量头。
     if scope.find_last(name).is_some() {
-        return None;
+        return Err(None);
     }
     let Some(KnownName::Decl {
         implicit_prefix,
@@ -205,18 +228,16 @@ pub(crate) fn try_app<'a>(
         ..
     }) = known.get(&canonical)
     else {
-        return None;
+        return Err(None);
     };
     if *implicit_prefix == 0 {
-        return None;
+        return Err(None);
     }
     if !universes.is_empty() {
-        count(Count::Unsupported("universe-polymorphic head"));
-        return None;
+        return Err(Some(count(Count::Unsupported("universe-polymorphic head"))));
     }
     if !args.iter().all(|a| plain(a)) {
-        count(Count::Shape);
-        return None;
+        return Err(Some(count(Count::Shape)));
     }
     let mark = hovers.len();
     // ⚠ `elab_expr` 的 binder 臂在 `?` 早退时**不** `truncate` 作用域（老路里 Err 直接让声明失败，
@@ -236,30 +257,28 @@ pub(crate) fn try_app<'a>(
         ctx,
     );
     scope.truncate(depth);
-    match outcome {
-        Ok(AppOutcome::Solved(t)) => {
-            if let Some(out) = builder.import_owned(&t) {
-                // 纵深防御：解出的项必须活在当前 scope 里（不该发生；发生就回落并计数）。
-                if loose_bvars(out, &mut Default::default()) as usize > scope.len() {
-                    count(Count::BadScope);
-                } else {
-                    count(Count::Solved);
-                    debug_assert_eq!(scope.len(), depth, "内核路径必须原样交还作用域深度");
-                    return Some(out);
-                }
-            } else {
-                count(Count::Unsupported("import"));
+    let why = match outcome {
+        Ok(AppOutcome::Solved(t)) => match builder.import_owned(&t) {
+            // 纵深防御：解出的项必须活在当前 scope 里（不该发生；发生就回落并计数）。
+            Some(out) if loose_bvars(out, &mut Default::default()) as usize > scope.len() => {
+                count(Count::BadScope)
             }
-        }
+            Some(out) => {
+                count(Count::Solved);
+                debug_assert_eq!(scope.len(), depth, "内核路径必须原样交还作用域深度");
+                return Ok(out);
+            }
+            None => count(Count::Unsupported("import")),
+        },
         Ok(AppOutcome::Unsolved { .. }) => count(Count::Unsolved),
         Ok(AppOutcome::ArgMismatch { .. }) => count(Count::ArgMismatch),
         Ok(AppOutcome::ExpectedMismatch) => count(Count::Expected),
         Ok(AppOutcome::Unsupported(why)) => count(Count::Unsupported(why)),
         Err(c) => count(c),
-    }
+    };
     hovers.truncate(mark);
     debug_assert_eq!(scope.len(), depth, "回落前作用域深度必须恢复");
-    None
+    Err(Some(why))
 }
 
 #[allow(clippy::too_many_arguments)]
