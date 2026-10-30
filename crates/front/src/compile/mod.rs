@@ -24,6 +24,7 @@ pub(crate) mod hole;
 mod implicit;
 // P1-F1：按需从**内核声明类型**取参数望远镜（P1-F2 的内核级 `elab_app` 用）。
 mod kernel_app;
+mod kernel_app_hint;
 pub(crate) mod kernel_app_miss;
 mod kernel_app_postpone;
 mod kernel_tel;

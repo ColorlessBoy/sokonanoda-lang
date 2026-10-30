@@ -44,7 +44,7 @@ thread_local! {
     pub(crate) static TEST_FALLBACK: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
 }
 
-fn env_on() -> bool {
+pub(super) fn env_on() -> bool {
     #[cfg(test)]
     if let Some(b) = TEST_OVERRIDE.with(|c| c.get()) {
         return b;
@@ -63,7 +63,7 @@ static SHAPE: AtomicU64 = AtomicU64::new(0);
 static BAD_SCOPE: AtomicU64 = AtomicU64::new(0);
 static UNSUPPORTED: Mutex<Vec<(&'static str, u64)>> = Mutex::new(Vec::new());
 
-enum Count {
+pub(super) enum Count {
     Solved,
     Unsolved,
     ArgMismatch,
@@ -74,7 +74,7 @@ enum Count {
     Unsupported(&'static str),
 }
 
-fn count(c: Count) -> &'static str {
+pub(super) fn count(c: Count) -> &'static str {
     install_printer();
     TRIED.fetch_add(1, Ordering::Relaxed);
     #[cfg(test)]
@@ -344,11 +344,52 @@ fn run<'a>(
         explicit_args: &explicit,
         expected,
     };
-    let first = builder.with_env(|ef| ef.elab_app(limit, &req));
-    let AppOutcome::NeedArgs { domains, .. } = first else {
-        return Ok(first);
-    };
-    // 第二趟（Lean `elabAndAddNewArg`）：推迟位对着内核给的域 elaborate，然后带齐实参再解一次。
+    let mut out = builder.with_env(|ef| ef.elab_app(limit, &req));
+    // **P2-2**（Lean `synthesizeSyntheticMVars`：有进展就再来一轮）：每轮把**域已就绪**的推迟位对着域 elaborate
+    // （Lean `elabAndAddNewArg`），再整体重解；`NeedArgs` 每轮至少交出一位 ⇒ 轮数 ≤ 显式实参数（上限是兜底）。
+    // 跑满仍是 `NeedArgs` ⇒ 调用方当 argelab 回落（同 P2-1）。
+    for _ in 0..postpone::max_rounds(args.len()) {
+        let AppOutcome::NeedArgs { domains, .. } = out else {
+            return Ok(out);
+        };
+        elab_ready(
+            builder,
+            args,
+            domains,
+            depth,
+            &mut explicit,
+            scope,
+            univ,
+            known,
+            hovers,
+            ctx,
+        )?;
+        let req = AppRequest {
+            binder_tys: &binder_tys,
+            head: head_t,
+            implicit_prefix,
+            explicit_args: &explicit,
+            expected,
+        };
+        out = builder.with_env(|ef| ef.elab_app(limit, &req));
+    }
+    Ok(out)
+}
+
+/// 一轮：域已就绪的推迟位对着内核给的域 elaborate，填进 `explicit`。
+#[allow(clippy::too_many_arguments)]
+fn elab_ready<'a>(
+    builder: &mut EnvBuilder<'a>,
+    args: &[&Expr],
+    domains: Vec<(usize, sokonanoda::transfer::OwnedExpr)>,
+    depth: usize,
+    explicit: &mut [Option<ExprPtr<'a>>],
+    scope: &mut ElabScope<'a>,
+    univ: &UnivMap<'a>,
+    known: &KnownTable,
+    hovers: &mut Vec<HoverNode<'a>>,
+    ctx: &ElabCtx<'a, '_>,
+) -> Result<(), Count> {
     for (ai, dom) in domains {
         let a = args[ai];
         let dom_t = builder
@@ -384,19 +425,12 @@ fn run<'a>(
         .map_err(|_| Count::ArgElab)?;
         explicit[ai] = Some(t);
     }
-    let req = AppRequest {
-        binder_tys: &binder_tys,
-        head: head_t,
-        implicit_prefix,
-        explicit_args: &explicit,
-        expected,
-    };
-    Ok(builder.with_env(|ef| ef.elab_app(limit, &req)))
+    Ok(())
 }
 
 /// 项里最大的 loose `Var` 下标 + 1（= 它至少要在几个 binder 之下；前端拿不到内核的 `num_loose_bvars`）。
 /// 按节点地址记忆 ⇒ DAG 共享子项只走一次。
-fn loose_bvars(e: ExprPtr<'_>, memo: &mut std::collections::HashMap<usize, u32>) -> u32 {
+pub(super) fn loose_bvars(e: ExprPtr<'_>, memo: &mut std::collections::HashMap<usize, u32>) -> u32 {
     use sokonanoda::expr::Expr as K;
     let key = &*e as *const _ as usize;
     if let Some(n) = memo.get(&key) {

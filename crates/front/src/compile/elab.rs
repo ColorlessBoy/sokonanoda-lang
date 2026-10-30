@@ -1798,12 +1798,12 @@ fn elab_notation_implicit<'a>(
     expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<ExprPtr<'a>, CompileError> {
-    // **零操作数 + 无期望类型** ⇒ 前缀**无从解出**（`#check ∅` 就是这一档：
-    // 裸常量没有期望类型时唯一钩子**故意**不动它 —— 裸常量当函数值用是合法的）。
-    // 记法这层知道用户写的是**一个应该完整的表达式**，所以在这里报既有诊断
-    // （与 k==0 路径同一个码、同一条教学 hint ✓）。
+    // 零操作数 + 无期望（`#check ∅`）⇒ 补不出前缀 ⇒ 记法诊断；P2-2：外层内核推迟位给了域 ⇒ 先按域解。
     if operands.is_empty() && expected_src.is_none() {
-        return Err(notation_argument_unsolved(symbol, target, span));
+        let k = super::kernel_app_hint::try_hinted_const(
+            builder, canonical, span, scope, univ, known, hovers, ctx,
+        );
+        return k.ok_or_else(|| notation_argument_unsolved(symbol, target, span));
     }
     let mut app: Expr = if level_texts.is_empty() {
         Expr::Ident {

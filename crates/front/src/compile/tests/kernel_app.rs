@@ -153,3 +153,69 @@ fn untyped_lambda_arg_falls_back_without_postponement() {
     let (_, solved, _) = run_postpone(&src, true);
     assert!(solved > solved_np, "on={solved} off={solved_np}");
 }
+
+/// **P2-2**：要两轮的推迟。`K2 p h u`：`p`、`h` 都是无注解 λ（推迟）；第 1 轮 `p` 的域 `U -> Prop` 就绪、
+/// `h` 的域 `(x : U) -> ?p x` 卡在占位元变量上；补上 `p` ⇒ 第 2 轮 `h` 的域就绪 ⇒ 内核解出。
+fn two_round_src() -> String {
+    format!(
+        "{HEAD}axiom hP : (x : U) -> P x\n\
+         axiom K2 : {{α : Type}} -> (p : U -> Prop) -> (h : (x : U) -> p x) -> α -> Prop\n\
+         def k2 : Prop := K2 (fun x => P x) (fun x => hP x) u\n"
+    )
+}
+
+/// 同 [`run`]（闸门强制开），另外把推迟轮数上限设成 `rounds`（`None` = 生产值）。
+fn run_rounds(src: &str, rounds: Option<usize>) -> (Vec<String>, u64, u64) {
+    let src = src.to_string();
+    on_compile_stack(move || {
+        super::kernel_app_postpone::TEST_MAX_ROUNDS.with(|c| c.set(rounds));
+        TEST_OVERRIDE.with(|c| c.set(Some(true)));
+        TEST_SOLVED.with(|c| c.set(0));
+        TEST_FALLBACK.with(|c| c.set(0));
+        let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
+        let options = CompileOptions {
+            prelude: PreludeMode::Full,
+            dialect: Dialect::Strict,
+        };
+        let out = compile_fol_with(&file, &options);
+        let errors = out.errors.iter().map(|e| format!("{e:?}")).collect();
+        (
+            errors,
+            TEST_SOLVED.with(|c| c.get()),
+            TEST_FALLBACK.with(|c| c.get()),
+        )
+    })
+}
+
+#[test]
+fn blocked_postponed_arg_is_solved_in_second_round() {
+    let src = two_round_src();
+    let (errors_off, _, _) = run(&src, false);
+    assert_eq!(errors_off, Vec::<String>::new());
+    let (errors, solved, fallback) = run_rounds(&src, None);
+    assert_eq!(errors, errors_off, "判卷与闸门关逐字相同");
+    assert_eq!(fallback, 0, "多轮推迟 ⇒ K2 不回落（solved={solved}）");
+    // 反向：只许 1 轮（P2-1 的行为）⇒ `h` 一直卡着 ⇒ 回落。
+    let (errors1, solved1, fallback1) = run_rounds(&src, Some(1));
+    assert_eq!(errors1, errors_off);
+    assert!(
+        fallback1 > 0 && solved > solved1,
+        "1 轮 ⇒ 必须回落（rounds=∞: solved={solved}；rounds=1: solved={solved1} fallback={fallback1}）"
+    );
+}
+
+/// **P2-2 (c)**：零元隐式记法 `∅` 作推迟位，只有内核给的域 ⇒ 按域解（不回落）。
+#[test]
+fn zero_ary_implicit_notation_reads_kernel_domain() {
+    let src = "def Set (α : Type) : Type := α -> Prop\n\
+               def Set.empty {α : Type} : Set α := fun (x : α) => False\n\
+               notation \"∅\" => Set.empty\n\
+               def Set.mem {α : Type} (a : α) (s : Set α) : Prop := s a\n\
+               axiom U : Type\naxiom u : U\n\
+               def m : Prop := Set.mem u ∅\n";
+    let (errors_off, _, _) = run(src, false);
+    assert_eq!(errors_off, Vec::<String>::new());
+    let (errors, solved, fallback) = run(src, true);
+    assert_eq!(errors, errors_off);
+    assert_eq!(fallback, 0, "Set.mem u ∅ 不回落（solved={solved}）");
+}

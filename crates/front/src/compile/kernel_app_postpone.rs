@@ -28,6 +28,21 @@ pub(crate) fn enabled() -> bool {
     true
 }
 
+#[cfg(test)]
+thread_local! {
+    /// 测试用：`Some(n)` ⇒ 推迟轮数上限改成 `n`（反向验证：`1` = P2-1 的单轮）。
+    pub(crate) static TEST_MAX_ROUNDS: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+}
+
+/// **P2-2**：推迟轮数上限 = 显式实参数（`NeedArgs` 每轮至少补上一位 ⇒ 正常不会跑满）。
+pub(crate) fn max_rounds(explicit: usize) -> usize {
+    #[cfg(test)]
+    if let Some(n) = TEST_MAX_ROUNDS.with(|c| c.get()) {
+        return n;
+    }
+    explicit
+}
+
 thread_local! {
     static HINT: RefCell<Option<(Span, usize, OwnedExpr)>> = const { RefCell::new(None) };
 }
@@ -57,6 +72,16 @@ pub(crate) fn take_hint(span: Span, scope: &ElabScope<'_>) -> Option<OwnedExpr> 
             Some((s, d, _)) if *s == span && *d == scope.len() => slot.take().map(|(_, _, o)| o),
             _ => None,
         }
+    })
+}
+
+/// 只看不取：有一条正对这个节点（同 span、同 scope 深度）的提示吗？（零实参的常量头只在有提示时才进
+/// 内核路径，见 `kernel_app::try_hinted_const`。）
+pub(crate) fn has_hint(span: Span, scope: &ElabScope<'_>) -> bool {
+    HINT.with(|h| {
+        h.borrow()
+            .as_ref()
+            .is_some_and(|(s, d, _)| *s == span && *d == scope.len())
     })
 }
 
