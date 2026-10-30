@@ -266,6 +266,37 @@ fn typed_lambda_binders_solve_implicit_before_body() {
     );
 }
 
+/// **P2-3 (2)**：`∩` 的操作数是带注解 λ 的应用（unit12 的 `(f '' A) ∩ (f '' B)` 形状）。P2-2 时操作数的 `α`
+/// 卡死 ⇒ 操作数回落、`∩` 跟着 argelab 回落；(1) 之后操作数第一趟就解出 ⇒ `∩` 与外层都不回落 ⇒ (2) 不需要新代码。
+const NOTATION_OPERANDS_SRC: &str = "def Set (α : Type) : Type := α -> Prop\n\
+     def Set.empty {α : Type} : Set α := fun (x : α) => False\n\
+     notation \"∅\" => Set.empty\n\
+     def Set.inter {α : Type} (A B : Set α) : Set α := fun (x : α) => And (A x) (B x)\n\
+     infixl:70 \" ∩ \" => Set.inter\n\
+     def Set.mem {α : Type} (a : α) (s : Set α) : Prop := s a\n\
+     def Set.preimage {α β : Type} (f : α -> β) (B : Set β) : Set α := fun (x : α) => B (f x)\n\
+     axiom U : Type\naxiom u : U\naxiom S : Set (Set U)\n\
+     def q : Prop := Set.mem (@Set.empty U) (Set.preimage (fun (x : Set U) => ∅) S ∩ Set.preimage (fun (x : Set U) => ∅) S)\n";
+
+#[test]
+fn notation_over_typed_lambda_operands_does_not_fall_back() {
+    let (errors_off, _, _) = run(NOTATION_OPERANDS_SRC, false);
+    assert_eq!(errors_off, Vec::<String>::new());
+    let (errors, solved, fallback) = run_binder_unify(NOTATION_OPERANDS_SRC, true);
+    assert_eq!(errors, errors_off, "判卷与闸门关逐字相同");
+    assert_eq!(
+        fallback, 0,
+        "∩ 的操作数第一趟解出 ⇒ 不回落（solved={solved}）"
+    );
+    // 反向：关掉 (1) ⇒ 操作数 `α` 卡死 ⇒ 回落。
+    let (errors_np, _, fallback_np) = run_binder_unify(NOTATION_OPERANDS_SRC, false);
+    assert_eq!(errors_np, errors_off);
+    assert!(
+        fallback_np > 0,
+        "关掉 binder 合一 ⇒ 必须回落（fallback={fallback_np}）"
+    );
+}
+
 #[test]
 fn typed_lambda_without_binder_unify_falls_back() {
     // 反向验证：不交 binder 类型 ⇒ `α` 只能从体来、体 `∅` 又要期望 ⇒ 卡死、回落（P2-2 的行为）。
