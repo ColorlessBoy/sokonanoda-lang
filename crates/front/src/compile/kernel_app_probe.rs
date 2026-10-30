@@ -81,6 +81,8 @@ pub(crate) fn fallback(
     let off = off || SUPPRESS.with(|c| c.get());
     let probing = !off && OWNER.with(|o| o.get()) == Some(owner(builder, span, scope));
     if probing && cuts(why) {
+        // 记到**设探测的那一帧**（= 最内层活着的 `with_redo`：被切的这个应用自己的 `run` 已经退出、
+        // 把计数交还给了外层）。
         CUTS.with(|c| c.set(c.get() + 1));
         return Err(CompileError::elab(
             ErrorKind::ElabImplicitArgumentUnsolved,
@@ -92,7 +94,8 @@ pub(crate) fn fallback(
 }
 
 thread_local! {
-    /// 本线程累计切掉的次数（[`with_redo`] 拿前后差判断"这一段有没有切过"）。
+    /// **P2-6**：切到**当前最内层 `with_redo` 帧**名下的次数（每帧进入时清零、退出时还原外层的值）。
+    /// 切只发生在"探测的那个实参节点自己"回落时 ⇒ 那时它自己的 `run` 已退出 ⇒ 记到的正是设探测的外层帧。
     static CUTS: Cell<u64> = const { Cell::new(0) };
     /// `true` ⇒ 重做中：探测一律不切（整段子树 = P2-5 之前的行为）。
     static SUPPRESS: Cell<bool> = const { Cell::new(false) };
@@ -102,6 +105,10 @@ thread_local! {
 thread_local! {
     /// 测试用：`true` ⇒ 不重做（反向验证：切掉后外层解不出就直接回落，unit12 c2 的拒绝）。
     pub(crate) static TEST_NO_REDO: Cell<bool> = const { Cell::new(false) };
+    /// 测试用：`true` ⇒ 帧退出时把自己名下的切并给外层（反向验证：P2-5 的"子树里切过就重做"）。
+    pub(crate) static TEST_TRANSITIVE_CUTS: Cell<bool> = const { Cell::new(false) };
+    /// 测试用：本线程重做次数（全局计数会被并行测试串扰）。
+    pub(crate) static TEST_REDOS: Cell<u64> = const { Cell::new(0) };
 }
 
 static REDOS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
@@ -120,19 +127,50 @@ impl Drop for Suppress {
     }
 }
 
-/// 跑一遍 `f`；这一遍里**切过**（探测把某个内层应用的老路换成了推迟）而结果不 `ok` ⇒ 关掉切再跑一遍
-/// （= 今天的行为）。⇒ 判定永远等于今天：要么切了且外层照样解出，要么重做回到今天那条路。
+/// 一个 `with_redo` 帧的切计数（进入清零；drop ⇒ 还原外层的值，含 panic 展开）。
+struct Frame(u64);
+
+impl Frame {
+    fn enter() -> Self {
+        Frame(CUTS.with(|c| c.replace(0)))
+    }
+    fn mine(&self) -> u64 {
+        CUTS.with(|c| c.get())
+    }
+}
+
+impl Drop for Frame {
+    fn drop(&mut self) {
+        #[cfg(test)]
+        let carry = TEST_TRANSITIVE_CUTS.with(|c| c.get());
+        #[cfg(not(test))]
+        let carry = false;
+        let mine = if carry { self.mine() } else { 0 };
+        CUTS.with(|c| c.set(self.0 + mine));
+    }
+}
+
+/// 跑一遍 `f`；这一遍里**本帧**切过（探测把本帧某个实参——一个内层应用——的老路换成了推迟）而结果不 `ok`
+/// ⇒ 关掉切再跑一遍（= 今天的行为）。⇒ 本帧的结果要么是切了照样解出，要么重做回到今天那条路。
+///
+/// **P2-6**：只认本帧名下的切。更深的帧切过、且那一帧自己已经 `ok`（推迟位按域解出了）⇒ 那次切的后果
+/// 已被那一帧消化，不是本帧失败的原因；那一帧没 `ok` ⇒ 它自己已重做过（= 今天的行为）。unit12 实测
+/// 18 次重做里 16 次重做后仍不 `ok`（白做），全是这种"切在别人名下"的。
 pub(crate) fn with_redo<T>(mut f: impl FnMut() -> T, ok: impl Fn(&T) -> bool) -> T {
-    let before = CUTS.with(|c| c.get());
+    let frame = Frame::enter();
     let out = f();
+    let mine = frame.mine();
+    drop(frame);
     #[cfg(test)]
     if TEST_NO_REDO.with(|c| c.get()) {
         return out;
     }
-    if CUTS.with(|c| c.get()) == before || ok(&out) {
+    if mine == 0 || ok(&out) {
         return out;
     }
     REDOS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    #[cfg(test)]
+    TEST_REDOS.with(|c| c.set(c.get() + 1));
     let _s = Suppress(SUPPRESS.with(|c| c.replace(true)));
     f()
 }

@@ -124,3 +124,7 @@ mod kernel_tel_tests;
 #[cfg(test)]
 #[path = "tests/kernel_app.rs"]
 mod kernel_app_tests;
+// P2-6：探测重做只认本帧名下的切。
+#[cfg(test)]
+#[path = "tests/kernel_app_redo.rs"]
+mod kernel_app_redo_tests;
