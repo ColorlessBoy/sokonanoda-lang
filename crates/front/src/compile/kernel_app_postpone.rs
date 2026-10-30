@@ -139,3 +139,60 @@ pub(crate) fn peel_pis(
     }
     Some(cur)
 }
+
+/// **P2-3**：推迟位是 λ ⇒ 先 elaborate 它**前导带注解** binder 的类型（到第一个无注解 binder 为止），交给内核
+/// `AppRequest::lambda_binders` 与域的 Pi 层合一（Lean `elabFunBinders` 先给出 binder、`Binders.lean:417`
+/// `propagateExpectedType` 拿 binder 类型对齐期望——体 elaborate 之前 binder 已经定了）。
+/// 第 j 个类型在 scope + 前 j 个 binder 之下；任何一个 elaborate 不了 ⇒ 到此为止（用已有的）。
+/// 副作用全撤：scope 深度与 hover 原样交还（之后对着域 elaborate 整个 λ 时会再记一遍）。
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn typed_binder_tys<'a>(
+    builder: &mut sokonanoda::builder::EnvBuilder<'a>,
+    e: &Expr,
+    scope: &mut ElabScope<'a>,
+    univ: &super::elab::UnivMap<'a>,
+    known: &super::elab::KnownTable,
+    hovers: &mut Vec<super::elab::HoverNode<'a>>,
+    ctx: &super::elab::ElabCtx<'a, '_>,
+) -> Vec<sokonanoda::util::ExprPtr<'a>> {
+    if !binder_unify_enabled() {
+        return Vec::new();
+    }
+    let (depth, mark) = (scope.len(), hovers.len());
+    let mut out = Vec::new();
+    let mut cur = e;
+    'outer: while let Expr::Lambda { binders, body, .. } = cur {
+        for b in binders {
+            let Some(ty) = b.ty.as_deref() else {
+                break 'outer;
+            };
+            let elaborated =
+                super::elab::elab_expr(builder, ty, scope, univ, known, hovers, None, None, ctx);
+            scope.truncate(depth + out.len());
+            let Ok(t) = elaborated else {
+                break 'outer;
+            };
+            out.push(t);
+            scope.push(b.name.clone(), t, Some(ty.clone()), b.span);
+        }
+        cur = body;
+    }
+    scope.truncate(depth);
+    hovers.truncate(mark);
+    out
+}
+
+#[cfg(test)]
+thread_local! {
+    /// 测试用：`true` ⇒ 不交 λ binder 类型（反向验证：P2-3 之前的行为）。
+    pub(crate) static TEST_NO_BINDER_UNIFY: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// P2-3 的 binder 合一是否开着（生产恒开）。
+pub(crate) fn binder_unify_enabled() -> bool {
+    #[cfg(test)]
+    if TEST_NO_BINDER_UNIFY.with(|c| c.get()) {
+        return false;
+    }
+    true
+}

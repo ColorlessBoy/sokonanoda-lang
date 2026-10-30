@@ -335,6 +335,17 @@ fn run<'a>(
         .and_then(|e| elab_expr(builder, e, scope, univ, known, hovers, None, None, ctx).ok())
         .or_else(|| hint.as_ref().and_then(|h| builder.import_owned(h)));
     hovers.truncate(before_expected);
+    // P2-3：推迟的 λ 位交出前导带注解 binder 的类型（内核拿它们对齐域，见 `AppRequest::lambda_binders`）。
+    let lam_tys: Vec<(usize, Vec<ExprPtr<'a>>)> = (0..args.len())
+        .filter(|&i| explicit[i].is_none() && matches!(args[i], Expr::Lambda { .. }))
+        .map(|i| {
+            let t = postpone::typed_binder_tys(builder, args[i], scope, univ, known, hovers, ctx);
+            (i, t)
+        })
+        .filter(|(_, t)| !t.is_empty())
+        .collect();
+    let lambda_binders: Vec<(usize, &[ExprPtr<'a>])> =
+        lam_tys.iter().map(|(i, t)| (*i, t.as_slice())).collect();
     let binder_tys = scope.kernel_tys().to_vec();
     let limit = EnvLimit::ByIndex(builder.declaration_count());
     let req = AppRequest {
@@ -343,6 +354,7 @@ fn run<'a>(
         implicit_prefix,
         explicit_args: &explicit,
         expected,
+        lambda_binders: &lambda_binders,
     };
     let mut out = builder.with_env(|ef| ef.elab_app(limit, &req));
     // **P2-2**（Lean `synthesizeSyntheticMVars`：有进展就再来一轮）：每轮把**域已就绪**的推迟位对着域 elaborate
@@ -370,6 +382,7 @@ fn run<'a>(
             implicit_prefix,
             explicit_args: &explicit,
             expected,
+            lambda_binders: &lambda_binders,
         };
         out = builder.with_env(|ef| ef.elab_app(limit, &req));
     }

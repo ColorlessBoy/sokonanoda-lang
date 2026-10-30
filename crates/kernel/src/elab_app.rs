@@ -36,6 +36,11 @@ pub struct AppRequest<'s, 'p> {
     pub explicit_args: &'s [Option<ExprPtr<'p>>],
     /// 期望类型（已知时）。
     pub expected: Option<ExprPtr<'p>>,
+    /// **P2-3**：推迟位是 λ、且前导 binder 带注解 ⇒ `(显式下标, 这些 binder 的类型)`（第 j 个在 scope +
+    /// 前 j 个 λ binder 之下）。放占位前先拿它们与域的 Pi 层逐层 `isDefEq`（Lean `Binders.lean:410-420`
+    /// `propagateExpectedType`：失败不致命）⇒ 只由 binder 类型决定的隐式位（`Set.preimage (fun (x : T) => ∅) B`
+    /// 的 `α`）在体 elaborate 之前就解出。
+    pub lambda_binders: &'s [(usize, &'s [ExprPtr<'p>])],
 }
 
 /// [`ExportFile::elab_app`] 的结果。
@@ -133,7 +138,13 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         let head: ExprPtr<'t> = req.head;
         let expected: Option<ExprPtr<'t>> = req.expected;
         // **P1 限制**：输入里不许有元变量（本会话的 id 不许与调用方的相撞）。
-        let inputs = binder_tys.iter().chain(std::iter::once(&head)).chain(args.iter().flatten()).chain(expected.iter());
+        let lam_tys: Vec<(usize, Vec<ExprPtr<'t>>)> = req.lambda_binders.iter().map(|(i, t)| (*i, t.to_vec())).collect();
+        let inputs = binder_tys
+            .iter()
+            .chain(std::iter::once(&head))
+            .chain(args.iter().flatten())
+            .chain(expected.iter())
+            .chain(lam_tys.iter().flat_map(|(_, t)| t.iter()));
         for e in inputs {
             if !self.ctx.unassigned_mvars(*e).is_empty() {
                 return AppOutcome::Unsupported("input contains a meta");
@@ -235,6 +246,9 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
                 }
             }
             let Some(arg) = args[ai] else {
+                if let Some((_, tys)) = lam_tys.iter().find(|(k, _)| *k == ai) {
+                    self.app_unify_binders(d, env, dom, tys);
+                }
                 let mut mty = self.quote(d, dom);
                 for t in binder_tys.iter().rev() {
                     mty = self.ctx.mk_pi(anon, BinderStyle::Default, *t, mty);
@@ -335,6 +349,29 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
             return AppOutcome::Unsupported("residual metas");
         }
         AppOutcome::Solved(self.ctx.export_owned(out))
+    }
+
+    /// **P2-3**：推迟的 λ 位的带注解 binder 类型逐层与域的 Pi 层 `isDefEq`（Lean `propagateExpectedType`，
+    /// `Binders.lean:417` `discard <| isDefEq fvarType d`：失败不致命、只为赋值）。域不再是 Pi ⇒ 停。
+    fn app_unify_binders(&mut self, d: u32, env: E<'t>, dom: V<'t>, tys: &[ExprPtr<'t>]) {
+        let (mut depth, mut env_i, mut cur) = (d, env, dom);
+        for ty in tys {
+            let pi = match self.weak_pi(depth, cur) {
+                Some(p) => p,
+                None => match self.force_pi(depth, cur) {
+                    Some(p) => p,
+                    None => return,
+                },
+            };
+            let Value::Pi { domain, body, .. } = pi else { return };
+            let (domain, body) = (*domain, *body);
+            let bt = self.eval(depth, env_i, *ty);
+            let _ = self.is_def_eq_at(depth, domain, bt);
+            let fresh = self.mk_bvar_hc(depth, bt);
+            env_i = crate::value::env_extend(self.arena, env_i, fresh);
+            cur = self.apply_closure(depth + 1, &body, fresh, Some(domain));
+            depth += 1;
+        }
     }
 
     /// 实参的期望域卡在**未赋值**的元变量上（`?p w`）⇒ 失败可能只是信息不够（推迟，不判错）。

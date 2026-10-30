@@ -53,6 +53,7 @@ pub(crate) fn try_hinted_const<'a>(
                 implicit_prefix: 0,
                 explicit_args: &[],
                 expected: Some(expected),
+                lambda_binders: &[],
             };
             match builder.with_env(|ef| ef.elab_app(limit, &req)) {
                 AppOutcome::Solved(t) => builder.import_owned(&t),

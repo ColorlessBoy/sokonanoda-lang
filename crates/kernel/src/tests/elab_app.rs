@@ -175,7 +175,7 @@ fn req<'s, 'a>(
 ) -> AppRequest<'s, 'a> {
     // 测试夹具：全部实参都已 elaborate（`Some`）；推迟位的用例直接造 `AppRequest`。
     let args: &'s [Option<ExprPtr<'a>>] = Box::leak(args.iter().map(|a| Some(*a)).collect::<Vec<_>>().into_boxed_slice());
-    AppRequest { binder_tys: tys, head, implicit_prefix: k, explicit_args: args, expected }
+    AppRequest { binder_tys: tys, head, implicit_prefix: k, explicit_args: args, expected, lambda_binders: &[] }
 }
 
 /// T1 的 scope `(w : A) (hw : P w)` + 期望 `ExT A (fun x => P x)`。
@@ -489,7 +489,7 @@ fn p21_postponed_arg_needs_domain() {
     run(|b, kx| {
         let (tys, args, expected) = t1_parts(b, kx);
         let partial = [Some(args[0]), None];
-        let r = AppRequest { binder_tys: &tys, head: kx.intro, implicit_prefix: 2, explicit_args: &partial, expected: Some(expected) };
+        let r = AppRequest { binder_tys: &tys, head: kx.intro, implicit_prefix: 2, explicit_args: &partial, expected: Some(expected), lambda_binders: &[] };
         let o = elab(b, &r);
         let AppOutcome::NeedArgs { domains, .. } = &o else { panic!("expected NeedArgs, got {o:?}") };
         assert_eq!(domains.len(), 1);
@@ -505,7 +505,7 @@ fn p21_postponed_arg_needs_domain() {
         let want = apps(b, kx.intro, &[kx.a, kx.lam_p, args[0], args[1]]);
         assert!(same(got, want), "ExT.intro A (fun x => P x) w hw");
         // 无期望：`?p` 解不出 ⇒ 推迟位的域含元变量 ⇒ Unsolved，不是 NeedArgs。
-        let r = AppRequest { binder_tys: &tys, head: kx.intro, implicit_prefix: 2, explicit_args: &partial, expected: None };
+        let r = AppRequest { binder_tys: &tys, head: kx.intro, implicit_prefix: 2, explicit_args: &partial, expected: None, lambda_binders: &[] };
         let o = elab(b, &r);
         assert!(matches!(o, AppOutcome::Unsolved { .. }), "got {o:?}");
         // 推迟位后面的显式实参照常检查：`And.intro ?ha h2`（scope `(h1 : P x) (h2 : Q x)` 的简化：只要域可解）。
@@ -521,7 +521,7 @@ fn p21_postponed_arg_needs_domain() {
             let and = cst(b, "And");
             apps(b, and, &[p2, q2])
         };
-        let r = AppRequest { binder_tys: &tys2, head: kx.and_intro, implicit_prefix: 0, explicit_args: &partial2, expected: Some(exp2) };
+        let r = AppRequest { binder_tys: &tys2, head: kx.and_intro, implicit_prefix: 0, explicit_args: &partial2, expected: Some(exp2), lambda_binders: &[] };
         let o = elab(b, &r);
         let AppOutcome::NeedArgs { domains, .. } = &o else { panic!("expected NeedArgs, got {o:?}") };
         assert_eq!(domains.iter().map(|d| d.0).collect::<Vec<_>>(), vec![0]);
@@ -547,13 +547,13 @@ fn p22_blocked_postponed_arg_becomes_ready_next_round() {
         let dep = ax(b, "Dep", t);
         let ea = ax(b, "ea", kx.a);
         let r1 = [None, None];
-        let o = elab(b, &AppRequest { binder_tys: &[], head: dep, implicit_prefix: 0, explicit_args: &r1, expected: None });
+        let o = elab(b, &AppRequest { binder_tys: &[], head: dep, implicit_prefix: 0, explicit_args: &r1, expected: None, lambda_binders: &[] });
         let AppOutcome::NeedArgs { domains, blocked } = &o else { panic!("round 1: expected NeedArgs, got {o:?}") };
         assert_eq!((domains.iter().map(|d| d.0).collect::<Vec<_>>(), blocked.clone()), (vec![0], vec![1]));
         let dom = b.import_owned(&domains[0].1).expect("import");
         assert!(same(dom, ty), "round 1 domain = Type");
         let r2 = [Some(kx.a), None];
-        let o = elab(b, &AppRequest { binder_tys: &[], head: dep, implicit_prefix: 0, explicit_args: &r2, expected: None });
+        let o = elab(b, &AppRequest { binder_tys: &[], head: dep, implicit_prefix: 0, explicit_args: &r2, expected: None, lambda_binders: &[] });
         let AppOutcome::NeedArgs { domains, blocked } = &o else { panic!("round 2: expected NeedArgs, got {o:?}") };
         assert_eq!((domains.iter().map(|d| d.0).collect::<Vec<_>>(), blocked.clone()), (vec![1], vec![]));
         let dom = b.import_owned(&domains[0].1).expect("import");

@@ -219,3 +219,60 @@ fn zero_ary_implicit_notation_reads_kernel_domain() {
     assert_eq!(errors, errors_off);
     assert_eq!(fallback, 0, "Set.mem u ∅ 不回落（solved={solved}）");
 }
+
+/// **P2-3 (1)**：推迟位是**全带注解**的 λ、体要期望（`∅`）⇒ 内核先拿 binder 类型对齐域（Lean
+/// `Binders.lean:417` `propagateExpectedType`）⇒ `α` 在体之前就解出 ⇒ `Set.preimage` 不回落。
+const TYPED_LAMBDA_SRC: &str = "def Set (α : Type) : Type := α -> Prop\n\
+     def Set.empty {α : Type} : Set α := fun (x : α) => False\n\
+     notation \"∅\" => Set.empty\n\
+     def Set.univ {α : Type} : Set α := fun (x : α) => True\n\
+     def Set.mem {α : Type} (a : α) (s : Set α) : Prop := s a\n\
+     def Set.preimage {α β : Type} (f : α -> β) (B : Set β) : Set α := fun (x : α) => B (f x)\n\
+     axiom U : Type\naxiom u : U\n\
+     def p : Prop := Set.mem u (Set.preimage (fun (x : U) => ∅) (@Set.univ (Set U)))\n";
+
+/// 同 [`run`]（闸门强制开），另外设 P2-3 binder 合一开关（`unify = false` ⇒ P2-3 之前的行为）。
+fn run_binder_unify(src: &str, unify: bool) -> (Vec<String>, u64, u64) {
+    let src = src.to_string();
+    on_compile_stack(move || {
+        super::kernel_app_postpone::TEST_NO_BINDER_UNIFY.with(|c| c.set(!unify));
+        TEST_OVERRIDE.with(|c| c.set(Some(true)));
+        TEST_SOLVED.with(|c| c.set(0));
+        TEST_FALLBACK.with(|c| c.set(0));
+        let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
+        let options = CompileOptions {
+            prelude: PreludeMode::Full,
+            dialect: Dialect::Strict,
+        };
+        let out = compile_fol_with(&file, &options);
+        let errors = out.errors.iter().map(|e| format!("{e:?}")).collect();
+        (
+            errors,
+            TEST_SOLVED.with(|c| c.get()),
+            TEST_FALLBACK.with(|c| c.get()),
+        )
+    })
+}
+
+#[test]
+fn typed_lambda_binders_solve_implicit_before_body() {
+    let (errors_off, _, _) = run(TYPED_LAMBDA_SRC, false);
+    assert_eq!(errors_off, Vec::<String>::new());
+    let (errors, solved, fallback) = run_binder_unify(TYPED_LAMBDA_SRC, true);
+    assert_eq!(errors, errors_off, "判卷与闸门关逐字相同");
+    assert_eq!(
+        fallback, 0,
+        "带注解 λ 的 binder 类型解出 α ⇒ 不回落（solved={solved}）"
+    );
+}
+
+#[test]
+fn typed_lambda_without_binder_unify_falls_back() {
+    // 反向验证：不交 binder 类型 ⇒ `α` 只能从体来、体 `∅` 又要期望 ⇒ 卡死、回落（P2-2 的行为）。
+    let (errors, _, fallback) = run_binder_unify(TYPED_LAMBDA_SRC, false);
+    assert_eq!(errors, Vec::<String>::new());
+    assert!(
+        fallback > 0,
+        "关掉 binder 合一 ⇒ 必须回落（fallback={fallback}）"
+    );
+}
