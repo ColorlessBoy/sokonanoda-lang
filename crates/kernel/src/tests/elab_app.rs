@@ -491,7 +491,7 @@ fn p21_postponed_arg_needs_domain() {
         let partial = [Some(args[0]), None];
         let r = AppRequest { binder_tys: &tys, head: kx.intro, implicit_prefix: 2, explicit_args: &partial, expected: Some(expected) };
         let o = elab(b, &r);
-        let AppOutcome::NeedArgs { domains } = &o else { panic!("expected NeedArgs, got {o:?}") };
+        let AppOutcome::NeedArgs { domains, .. } = &o else { panic!("expected NeedArgs, got {o:?}") };
         assert_eq!(domains.len(), 1);
         assert_eq!(domains[0].0, 1, "postponed explicit index");
         let dom = b.import_owned(&domains[0].1).expect("import domain");
@@ -523,11 +523,43 @@ fn p21_postponed_arg_needs_domain() {
         };
         let r = AppRequest { binder_tys: &tys2, head: kx.and_intro, implicit_prefix: 0, explicit_args: &partial2, expected: Some(exp2) };
         let o = elab(b, &r);
-        let AppOutcome::NeedArgs { domains } = &o else { panic!("expected NeedArgs, got {o:?}") };
+        let AppOutcome::NeedArgs { domains, .. } = &o else { panic!("expected NeedArgs, got {o:?}") };
         assert_eq!(domains.iter().map(|d| d.0).collect::<Vec<_>>(), vec![0]);
         let dom = b.import_owned(&domains[0].1).expect("import");
         let v2 = b.mk_var(2);
         let want = b.mk_app(kx.p, v2);
         assert!(same(dom, want), "And.intro's first domain = P x");
+    });
+}
+
+/// **P2-2**：多轮推迟（Lean `synthesizeSyntheticMVars` 有进展就再来一轮）。`Dep : (T : Type) → T → Prop`，
+/// 两位都推迟：第 1 轮 `T` 的域 `Type` 就绪、`x` 的域 `?T` 卡住 ⇒ `NeedArgs { [(0, Type)], blocked [1] }`
+/// （P2-1 时这里是 `Unsolved`）；补上 `T := A` ⇒ 第 2 轮 `x` 的域 `A` 就绪；带齐 ⇒ Solved。
+#[test]
+fn p22_blocked_postponed_arg_becomes_ready_next_round() {
+    run(|b, kx| {
+        let zero = b.zero();
+        let one = b.succ(zero);
+        let ty = b.mk_sort(one);
+        let v0 = b.mk_var(0);
+        let body = pi(b, "x", D, v0, kx.prop);
+        let t = pi(b, "T", D, ty, body);
+        let dep = ax(b, "Dep", t);
+        let ea = ax(b, "ea", kx.a);
+        let r1 = [None, None];
+        let o = elab(b, &AppRequest { binder_tys: &[], head: dep, implicit_prefix: 0, explicit_args: &r1, expected: None });
+        let AppOutcome::NeedArgs { domains, blocked } = &o else { panic!("round 1: expected NeedArgs, got {o:?}") };
+        assert_eq!((domains.iter().map(|d| d.0).collect::<Vec<_>>(), blocked.clone()), (vec![0], vec![1]));
+        let dom = b.import_owned(&domains[0].1).expect("import");
+        assert!(same(dom, ty), "round 1 domain = Type");
+        let r2 = [Some(kx.a), None];
+        let o = elab(b, &AppRequest { binder_tys: &[], head: dep, implicit_prefix: 0, explicit_args: &r2, expected: None });
+        let AppOutcome::NeedArgs { domains, blocked } = &o else { panic!("round 2: expected NeedArgs, got {o:?}") };
+        assert_eq!((domains.iter().map(|d| d.0).collect::<Vec<_>>(), blocked.clone()), (vec![1], vec![]));
+        let dom = b.import_owned(&domains[0].1).expect("import");
+        assert!(same(dom, kx.a), "round 2 domain = A");
+        let o = elab(b, &req(&[], dep, 0, &[kx.a, ea], None));
+        let want = apps(b, dep, &[kx.a, ea]);
+        assert!(same(solved(b, &o), want), "Dep A ea");
     });
 }

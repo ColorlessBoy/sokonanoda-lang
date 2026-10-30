@@ -345,7 +345,7 @@ fn run<'a>(
         expected,
     };
     let first = builder.with_env(|ef| ef.elab_app(limit, &req));
-    let AppOutcome::NeedArgs { domains } = first else {
+    let AppOutcome::NeedArgs { domains, .. } = first else {
         return Ok(first);
     };
     // 第二趟（Lean `elabAndAddNewArg`）：推迟位对着内核给的域 elaborate，然后带齐实参再解一次。

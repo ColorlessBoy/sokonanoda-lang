@@ -51,9 +51,10 @@ pub enum AppOutcome {
     ExpectedMismatch,
     /// P1 的限制。
     Unsupported(&'static str),
-    /// 有推迟的实参：每个推迟位 `(显式实参下标, 域)`，域已代入当前解、**无元变量**、在 scope 之下。
-    /// 调用方按域 elaborate 这些实参后带齐实参**再调一次**（新会话，全部重查）。
-    NeedArgs { domains: Vec<(usize, OwnedExpr)> },
+    /// 有推迟的实参：`domains` = 域已就绪的推迟位 `(显式实参下标, 域)`（已代入当前解、**无元变量**、在 scope
+    /// 之下，至少一个）；`blocked` = 域仍含未赋值元变量的推迟位。调用方按域 elaborate `domains` 后**再调一次**
+    /// （新会话，全部重查；`blocked` 留 `None`）——每轮至少补上一位 ⇒ 轮数 ≤ 显式实参数。
+    NeedArgs { domains: Vec<(usize, OwnedExpr)>, blocked: Vec<usize> },
 }
 
 thread_local! {
@@ -296,21 +297,28 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
                 unsolved.push(n.clone());
             }
         }
-        // Lean `elabAndAddNewArg`：推迟位的期望类型 = 代入当前解后的域；域里还有未赋值元变量 ⇒ 信息不够 ⇒ `Unsolved`。
+        // Lean `elabAndAddNewArg`：推迟位的期望类型 = 代入当前解后的域。**P2-2**（Lean `synthesizeSyntheticMVars`
+        // 的"有进展就再来一轮"）：域里还有未赋值元变量的位 ⇒ `blocked`，其余交出去；一个都交不出 ⇒ `Unsolved`。
         if !holes.is_empty() {
-            let mut domains = Vec::with_capacity(holes.len());
+            let (mut domains, mut blocked) = (Vec::with_capacity(holes.len()), Vec::new());
+            let mut first_blocked = None;
             for &(ai, dom, bn) in &holes {
                 let q = self.quote(d, dom);
                 let q = self.ctx.instantiate_mvars(q);
                 if !self.ctx.unassigned_mvars(q).is_empty() {
-                    if unsolved.is_empty() {
-                        unsolved.push(name_string(self.ctx, bn));
-                    }
-                    return AppOutcome::Unsolved { binders: unsolved };
+                    first_blocked.get_or_insert(bn);
+                    blocked.push(ai);
+                    continue;
                 }
                 domains.push((ai, self.ctx.export_owned(q)));
             }
-            return AppOutcome::NeedArgs { domains };
+            if domains.is_empty() {
+                if let (true, Some(bn)) = (unsolved.is_empty(), first_blocked) {
+                    unsolved.push(name_string(self.ctx, bn));
+                }
+                return AppOutcome::Unsolved { binders: unsolved };
+            }
+            return AppOutcome::NeedArgs { domains, blocked };
         }
         if !unsolved.is_empty() {
             return AppOutcome::Unsolved { binders: unsolved };
