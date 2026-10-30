@@ -175,6 +175,32 @@ telescope：**按需从内核声明类型派生**（`builder.with_env(|ef| ef.de
 
 不通过 ⇒ 汇报后再定（候选：前端 Meta 层合一，只喂内核项）。
 
+### P1 实际落地（2026-10-30，分支 `strict/2026-10-29-kernel-app` @ `47109c44`）
+
+每刀合并前：内核/front 单测复跑 + 全语料 357 文件 × 两档 = 714 组 `grade --json` 逐字节对拍（开关关）。
+
+| 刀 | 提交 | 内容 |
+|---|---|---|
+| F1 | `f5f83b32` | `kernel_tel`：按需从内核声明类型取 telescope（428 声明扫描 0 失配，暖路径 0 差异） |
+| — | `351e3574` | 用户拍板：显式层之后的隐式 binder 直接报错（`elab-implicit-binder-after-explicit`） |
+| K1a–c | `d71e0cdf`…`1cfb73a8` | `Value::Meta` spine；可回滚 `is_def_eq`；`instantiate_mvars`；Miller pattern；赋值须封闭；`add_declar` 补扫定理证明项（main 上的信任边界漏洞） |
+| F2a | `f30b4cc1` | 跨 arena 搬运（`transfer.rs`）+ builder 侧代换 + `solve_metas` —— 解出的项不再经 pp→parse |
+| F2b-1 | `673e1783` | 内核 `elab_app`（Lean `ElabAppArgs`）；隐式位用**带上下文的元变量** `?M x1..xd` |
+| K1d | `879136d8` | 会话层元变量可赋值 ⇒ `Eq` 家族等宇宙多态头可走新路径；修 `instantiate_mvars` 开放实参下标 |
+| F2b-2 | `9f70d63d` | 前端接线，`SOKO_STRICT_KERNEL_APP=1` 才走；解不出一律回落旧路径 |
+| — | `c2d293c6` `47109c44` | 拆 `mvar_spine.rs`（docs-lint ⑨）；工作量门改比 `judge_infer` **未命中** |
+
+**开关打开的读数**（冷跑，单独计时）：lib strict 17/17；新路径解出 94–98% 的应用；
+unit01 2.4s vs loose 2.3s（持平）· Equiv 6.0s vs 4.8s · unit12 22.6s vs 9.6s。
+
+**剩余慢的唯一原因**（实测归因）：`judge_infer` 缓存**未命中**多（unit12 30 vs 9），每次 = 整份前缀重编
+（strict ≈0.44s）。命中几乎免费（557 次合计 3ms）。unit12 的 30 次里 24 次出自同一处：回落应用走旧文本
+oracle（`elab.rs:4821` `pp_shape::arg_types` → `operand_type_expr` → `infer_type_text`）。
+`prefix_bytes` 大 2.85× **不是**第二个原因：同一次判定的前缀两档逐字节同长（19 次 tactic 判定都是
+739,407 B），差额全是未命中次数 × 前缀长度（strict 的额外未命中落在文件后部的大前缀上）。
+⇒ 修法 = 减少回落：回落最多的是 `argelab`（实参无期望类型时 elaborate 失败，如无标注 binder 的 `fun`），
+对齐 Lean 先推迟、带期望类型再 elaborate（`Elab/App.lean:433-443`）—— P2-1 进行中。
+
 ### P2 接管
 
 - strict 档全部应用走新路径；删旧 typed app 与影子档；诊断复用 `strict/report.rs`。
