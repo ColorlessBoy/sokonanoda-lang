@@ -93,3 +93,63 @@ fn failed_arg_elaboration_does_not_leak_binders_into_scope() {
         "solved={solved} fallback={fallback}"
     );
 }
+
+/// **P2-1**：λ 实参带**无注解** binder（`fun b hb => …`）⇒ 内核路径推迟它、按域 elaborate（Lean
+/// `elabAndAddNewArg`）⇒ `Ex.elim2` 这一层也由内核解出；判卷与闸门关逐字相同。
+fn untyped_lambda_src() -> String {
+    format!(
+        "{HEAD}axiom Ex.elim2 : {{A : Type}} -> {{q : A -> Prop}} -> {{b : Prop}} -> Ex A q -> ((a : A) -> q a -> b) -> b\n\
+         theorem r2 {{B : Type}} (r : B -> Prop) (h : Ex B r) : Ex B r :=\n  \
+         Ex.elim2 h (fun a ha => Ex.intro a ha)\n"
+    )
+}
+
+/// 同 [`run`]（闸门强制开），另外设推迟开关（`postpone = false` ⇒ P2-1 之前的行为）。
+fn run_postpone(src: &str, postpone: bool) -> (Vec<String>, u64, u64) {
+    let src = src.to_string();
+    on_compile_stack(move || {
+        super::kernel_app_postpone::TEST_NO_POSTPONE.with(|c| c.set(!postpone));
+        TEST_OVERRIDE.with(|c| c.set(Some(true)));
+        TEST_SOLVED.with(|c| c.set(0));
+        TEST_FALLBACK.with(|c| c.set(0));
+        let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
+        let options = CompileOptions {
+            prelude: PreludeMode::Full,
+            dialect: Dialect::Strict,
+        };
+        let out = compile_fol_with(&file, &options);
+        let errors = out.errors.iter().map(|e| format!("{e:?}")).collect();
+        (
+            errors,
+            TEST_SOLVED.with(|c| c.get()),
+            TEST_FALLBACK.with(|c| c.get()),
+        )
+    })
+}
+
+#[test]
+fn untyped_lambda_arg_is_postponed_and_solved_by_kernel() {
+    let src = untyped_lambda_src();
+    let (errors_off, _, _) = run(&src, false);
+    assert_eq!(errors_off, Vec::<String>::new());
+    let (errors, solved, _) = run_postpone(&src, true);
+    assert_eq!(errors, errors_off, "判卷与闸门关逐字相同");
+    // 外层 `Ex.elim2 h (fun a ha => …)` 由内核解出（内层 `Ex.intro a ha` 在 λ 体里只有内核期望、
+    // 没有源级期望 ⇒ 仍可能回落老路，不在本条判据内）。
+    let (_, solved_np, _) = run_postpone(&src, false);
+    assert!(
+        solved > solved_np,
+        "推迟开 ⇒ 内核多解出外层应用（on={solved} off={solved_np}）"
+    );
+}
+
+#[test]
+fn untyped_lambda_arg_falls_back_without_postponement() {
+    // 反向验证：推迟关掉 ⇒ 无注解 λ 的应用回落（P2-1 之前的行为），判卷仍由老路给出。
+    let src = untyped_lambda_src();
+    let (errors, solved_np, fallback) = run_postpone(&src, false);
+    assert_eq!(errors, Vec::<String>::new());
+    assert!(fallback > 0, "关掉推迟 ⇒ 必须回落（fallback={fallback}）");
+    let (_, solved, _) = run_postpone(&src, true);
+    assert!(solved > solved_np, "on={solved} off={solved_np}");
+}

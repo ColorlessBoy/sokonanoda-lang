@@ -33,12 +33,6 @@ impl Drop for MissGuard {
     }
 }
 
-/// 栈顶原因（测试用）。
-#[cfg(test)]
-pub(crate) fn top() -> Option<&'static str> {
-    STACK.with(|s| s.borrow().last().copied())
-}
-
 /// `judge_infer` 未命中：`INFER_MISSES += 1`（返回新值，同原来的 `fetch_add + 1`）并按栈顶归因。
 pub(crate) fn note_infer_miss() -> u64 {
     let miss = crate::judge::stats::INFER_MISSES.fetch_add(1, Ordering::Relaxed) + 1;

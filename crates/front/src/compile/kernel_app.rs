@@ -25,6 +25,7 @@ use super::elab::{
     elab_expr, resolve_known, ElabCtx, ElabScope, HoverNode, KnownName, KnownTable, UnivMap,
 };
 use super::kernel_app_miss::MissGuard;
+use super::kernel_app_postpone as postpone;
 use crate::Expr;
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::elab_app::{AppOutcome, AppRequest};
@@ -236,7 +237,10 @@ fn attempt<'a>(
     if !universes.is_empty() {
         return Err(Some(count(Count::Unsupported("universe-polymorphic head"))));
     }
-    if !args.iter().all(|a| plain(a)) {
+    // P2-1：顶层 λ 带无注解 binder 的实参也收（它只会被推迟、对着域 elaborate）。
+    let postponable =
+        |a: &Expr| postpone::enabled() && postpone::untyped_lambda_layers(a, plain).is_some();
+    if !args.iter().all(|a| plain(a) || postponable(a)) {
         return Err(Some(count(Count::Shape)));
     }
     let mark = hovers.len();
@@ -246,6 +250,7 @@ fn attempt<'a>(
     let depth = scope.len();
     let outcome = run(
         builder,
+        expr.span(),
         head,
         &args,
         *implicit_prefix,
@@ -274,7 +279,7 @@ fn attempt<'a>(
         Ok(AppOutcome::ArgMismatch { .. }) => count(Count::ArgMismatch),
         Ok(AppOutcome::ExpectedMismatch) => count(Count::Expected),
         Ok(AppOutcome::Unsupported(why)) => count(Count::Unsupported(why)),
-        // 本提交还不推迟实参（全是 `Some`）⇒ 不会出现；出现就当实参 elaborate 不了回落。
+        // 第二趟带齐实参后不该再要；要了 = 推迟位按域也 elaborate 不了 ⇒ 当 argelab 回落。
         Ok(AppOutcome::NeedArgs { .. }) => count(Count::ArgElab),
         Err(c) => count(c),
     };
@@ -286,6 +291,7 @@ fn attempt<'a>(
 #[allow(clippy::too_many_arguments)]
 fn run<'a>(
     builder: &mut EnvBuilder<'a>,
+    expr_span: crate::Span,
     head: &Expr,
     args: &[&Expr],
     implicit_prefix: usize,
@@ -301,19 +307,83 @@ fn run<'a>(
     if !matches!(*head_t, sokonanoda::expr::Expr::Const { .. }) {
         return Err(Count::Shape);
     }
-    let mut explicit = Vec::with_capacity(args.len());
+    let depth = scope.len();
+    // 本应用自己的内核期望提示（它是外层的推迟位、外层已按域给出）⇒ 源级期望缺席/elaborate 不了时用它。
+    let hint = postpone::take_hint(expr_span, scope);
+    // 第一趟：无期望地 elaborate；失败的 / 无注解 λ ⇒ 推迟（`None`），失败的残留（hover、λ 臂漏的
+    // binder）一并撤掉。推迟关着 ⇒ 失败即回落（P2-1 之前的行为）。
+    let mut explicit: Vec<Option<ExprPtr<'a>>> = Vec::with_capacity(args.len());
     for a in args {
-        let t = elab_expr(builder, a, scope, univ, known, hovers, None, None, ctx)
-            .map_err(|_| Count::ArgElab)?;
-        explicit.push(Some(t));
+        if postpone::enabled() && postpone::untyped_lambda_layers(a, plain).is_some() {
+            explicit.push(None);
+            continue;
+        }
+        let mark = hovers.len();
+        match elab_expr(builder, a, scope, univ, known, hovers, None, None, ctx) {
+            Ok(t) => explicit.push(Some(t)),
+            Err(_) if postpone::enabled() => {
+                hovers.truncate(mark);
+                scope.truncate(depth);
+                explicit.push(None);
+            }
+            Err(_) => return Err(Count::ArgElab),
+        }
     }
     // 期望类型只作输入，不留 hover（老路不为它记）。
     let before_expected = hovers.len();
     let expected = expected_src
-        .and_then(|e| elab_expr(builder, e, scope, univ, known, hovers, None, None, ctx).ok());
+        .and_then(|e| elab_expr(builder, e, scope, univ, known, hovers, None, None, ctx).ok())
+        .or_else(|| hint.as_ref().and_then(|h| builder.import_owned(h)));
     hovers.truncate(before_expected);
     let binder_tys = scope.kernel_tys().to_vec();
     let limit = EnvLimit::ByIndex(builder.declaration_count());
+    let req = AppRequest {
+        binder_tys: &binder_tys,
+        head: head_t,
+        implicit_prefix,
+        explicit_args: &explicit,
+        expected,
+    };
+    let first = builder.with_env(|ef| ef.elab_app(limit, &req));
+    let AppOutcome::NeedArgs { domains } = first else {
+        return Ok(first);
+    };
+    // 第二趟（Lean `elabAndAddNewArg`）：推迟位对着内核给的域 elaborate，然后带齐实参再解一次。
+    for (ai, dom) in domains {
+        let a = args[ai];
+        let dom_t = builder
+            .import_owned(&dom)
+            .ok_or(Count::Unsupported("import"))?;
+        if let Some(layers) = postpone::untyped_lambda_layers(a, plain) {
+            if !postpone::domain_fits(dom_t, layers) {
+                return Err(Count::ArgElab);
+            }
+        }
+        // 提示给"这个实参自己"（应用/记法形态）；λ ⇒ 给最内层体（λ 臂只把内核期望传给体，体里的应用
+        // 读不到源级期望）。
+        let (n, body) = postpone::lambda_body(a);
+        let _hint = match postpone::peel_pis(dom_t, n) {
+            Some(b) if n > 0 => postpone::ExpectedHint::set(
+                body.span(),
+                depth + n,
+                sokonanoda::transfer::export_expr(b),
+            ),
+            _ => postpone::ExpectedHint::set(a.span(), depth, dom),
+        };
+        let t = elab_expr(
+            builder,
+            a,
+            scope,
+            univ,
+            known,
+            hovers,
+            Some(dom_t),
+            None,
+            ctx,
+        )
+        .map_err(|_| Count::ArgElab)?;
+        explicit[ai] = Some(t);
+    }
     let req = AppRequest {
         binder_tys: &binder_tys,
         head: head_t,
