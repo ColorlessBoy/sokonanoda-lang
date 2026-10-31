@@ -554,10 +554,18 @@ fn local_shadowing_bare_name_is_not_postponed() {
 /// **P2-11c**：同 [`run`]（strict），另外设宇宙多态头开关（`heads = false` ⇒ P2-11c 之前的闸门），并读
 /// `untried_universe_app_head` 的线程局部计数。返回 `(errors, solved, fallback, untried)`。
 fn run_universe(src: &str, on: bool, heads: bool) -> (Vec<String>, u64, u64, u64) {
-    use super::kernel_app_hint::{TEST_NO_UNIVERSE_HEADS, TEST_UNTRIED_UNIVERSE_APP};
+    run_universe_full(src, on, heads, true)
+}
+
+/// 同 [`run_universe`]，另设 `Name.{…}` 头开关（`uapp = false` ⇒ P2-11e 之前）。开关必须在编译线程里设。
+fn run_universe_full(src: &str, on: bool, heads: bool, uapp: bool) -> (Vec<String>, u64, u64, u64) {
+    use super::kernel_app_hint::{
+        TEST_NO_UNIVERSE_APP, TEST_NO_UNIVERSE_HEADS, TEST_UNTRIED_UNIVERSE_APP,
+    };
     let src = src.to_string();
     on_compile_stack(move || {
         TEST_NO_UNIVERSE_HEADS.with(|c| c.set(!heads));
+        TEST_NO_UNIVERSE_APP.with(|c| c.set(!uapp));
         TEST_UNTRIED_UNIVERSE_APP.with(|c| c.set(0));
         TEST_OVERRIDE.with(|c| c.set(Some(on)));
         TEST_SOLVED.with(|c| c.set(0));
@@ -600,7 +608,8 @@ fn higher_order_motive_head_stays_gated() {
     // 计 `fallback_unsupported_universe_poly_ho_motive`；判卷与闸门关逐字相同。
     let (errors_off, ..) = run_universe(EQ_SUBST_SRC, false, true);
     assert_eq!(errors_off, Vec::<String>::new());
-    let (errors, solved, fallback, _) = run_universe(EQ_SUBST_SRC, true, true);
+    // 签名里的 `=`（P2-11e 起进内核）不算 ⇒ 关掉 `Name.{…}` 头，只看 `Eq.subst`。
+    let (errors, solved, fallback, _) = run_universe_full(EQ_SUBST_SRC, true, true, false);
     assert_eq!(errors, errors_off);
     assert_eq!((solved, fallback), (0, 1), "Eq.subst 挡一次、不进内核");
     assert_eq!(
@@ -623,15 +632,115 @@ fn universe_polymorphic_heads_fall_back_with_old_gate() {
     }
 }
 
+/// **P2-11e**：同 [`run_universe`]（宇宙多态头放行），另设 `Name.{…}` 头开关（`uapp = false` ⇒ P2-11e 之前）。
+fn run_uapp(src: &str, on: bool, uapp: bool) -> (Vec<String>, u64, u64, u64) {
+    run_universe_full(src, on, true, uapp)
+}
+
+/// 最小 `Set`（同 `p2l_level_operands` 的夹具）：m5 族的层只能由右边定。
+const UAPP_LIB: &str = "def Set (α : Type) : Type := α → Prop\n\
+     def Set.empty {α : Type} : Set α := fun (x : α) => False\n\
+     def Set.univ {α : Type} : Set α := fun (x : α) => True\n\
+     def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a\n\
+     notation \"∅\" => Set.empty\n";
+
+/// `=` / `≠` / 只由右边定层的 `=`（m5 族）/ 用户手写 `Eq.{1}`。
+fn uapp_cases() -> Vec<String> {
+    vec![
+        "def e1 (a b : Nat) : Prop := a = b\n".to_string(),
+        "def e2 (a b : Nat) : Prop := a ≠ b\n".to_string(),
+        "theorem e3 (a b : Nat) (h : a = b) : b = a := Eq.symm h\n".to_string(),
+        format!("{UAPP_LIB}theorem m5 : {{∅}} = @Set.univ (Set Nat) := sorry\n"),
+        // m5 的左边写成点名（无需期望就能定型）⇒ 回落 0（= 只有库时的基线）：m5 剩下的回落都在 `{∅}`。
+        format!(
+            "{UAPP_LIB}theorem m5v : (@Set.singleton (Set Nat) ∅) = @Set.univ (Set Nat) := sorry\n"
+        ),
+        format!("{UAPP_LIB}def e4 (A : Set Nat) : Prop := Eq.{{1}} A A\n"),
+    ]
+}
+
 #[test]
-fn universe_app_head_is_counted_but_not_tried() {
-    // `=` 记法降成 `Eq.{u} a b`（`UniverseApp` 头）⇒ 只计观测数、不试、不回落；闸门关 ⇒ 一次都不计。
+fn universe_app_heads_are_solved_by_kernel() {
+    for src in uapp_cases() {
+        let (errors_off, ..) = run_uapp(&src, false, true);
+        assert_eq!(errors_off, Vec::<String>::new(), "{src}");
+        // 基线 = P2-11e 之前（`Name.{…}` 头不试）。m5 的 `{∅}` 内层应用本来就回落（与本片无关）⇒ 比基线。
+        let base = run_uapp(&src, true, false);
+        let (errors, solved, fallback, untried) = run_uapp(&src, true, true);
+        assert_eq!(errors, errors_off, "判卷与闸门关逐字相同：{src}");
+        assert_eq!(untried, 0, "`Name.{{…}}` 头全部进内核路径：{src}");
+        if src.contains("theorem m5 ") {
+            // 实测（P2-11e）：基线 5 次回落、新 4 次，全是 `{∅}`（`Set.singleton`，unsolved，`{∅}` 的 span），
+            // 没有一次是 `Eq` 头；`Eq.{1}` 头进内核后少一趟老路里的 `{∅}` 重试 ⇒ 必须严格少于基线。
+            assert!(
+                fallback < base.2,
+                "m5 回落严格少于基线（{fallback} vs {}）",
+                base.2
+            );
+        } else {
+            // 其余用例实测基线与新都是 0 回落。
+            assert_eq!((fallback, base.2), (0, 0), "{src}");
+        }
+        assert!(solved > 0, "{src}");
+        // `≠`（`Ne` 的 `α` 显式）走 P2-4 记法路径、本来就不是 `Name.{…}` 头；其余基线里都有未试的头。
+        if !src.contains('≠') {
+            assert!(base.3 > 0, "基线里有未试的 `Name.{{…}}` 头：{src}");
+            assert!(
+                solved > base.1,
+                "多解出的就是 `Name.{{…}}` 头（{solved} vs 基线 {}）：{src}",
+                base.1
+            );
+        }
+    }
+}
+
+#[test]
+fn universe_app_judgement_unchanged_in_loose() {
+    // loose 档：闸门（`effective`）只认 strict ⇒ 本路径一行不跑；判卷与 strict 闸门开相同。
+    for src in uapp_cases() {
+        let file = parse(&src).unwrap();
+        let (errors, solved, fallback) = on_compile_stack(move || {
+            TEST_OVERRIDE.with(|c| c.set(Some(true)));
+            TEST_SOLVED.with(|c| c.set(0));
+            TEST_FALLBACK.with(|c| c.set(0));
+            let options = CompileOptions {
+                prelude: PreludeMode::Full,
+                dialect: Dialect::Loose,
+            };
+            let out = compile_fol_with(&file, &options);
+            let errors: Vec<String> = out.errors.iter().map(|e| format!("{e:?}")).collect();
+            (
+                errors,
+                TEST_SOLVED.with(|c| c.get()),
+                TEST_FALLBACK.with(|c| c.get()),
+            )
+        });
+        assert_eq!(errors, Vec::<String>::new(), "{src}");
+        assert_eq!((solved, fallback), (0, 0), "loose 不走内核路径：{src}");
+    }
+}
+
+#[test]
+fn universe_app_head_is_untried_with_old_gate() {
+    // 反向验证：`TEST_NO_UNIVERSE_APP` 恢复 P2-11e 之前 ⇒ `Name.{…}` 头只计观测数、不试；闸门关 ⇒ 一次都不计。
     let src = "def e1 (a b : Nat) : Prop := a = b\n";
-    let (errors, solved, fallback, untried) = run_universe(src, true, true);
+    let (errors, solved, fallback, untried) = run_uapp(src, true, false);
     assert_eq!(errors, Vec::<String>::new());
     assert!(untried > 0, "`a = b` 必须被观测到（untried={untried}）");
     assert_eq!((solved, fallback), (0, 0), "观测计数不改控制流");
-    let (errors_off, solved, fallback, untried) = run_universe(src, false, true);
+    let (errors_off, solved, fallback, untried) = run_uapp(src, false, true);
     assert_eq!(errors_off, errors);
     assert_eq!((solved, fallback, untried), (0, 0, 0), "闸门关 ⇒ 一行不跑");
+}
+
+#[test]
+fn universe_app_wrong_arity_stays_untried() {
+    // 层数不符（`Eq.{0, 1}`）⇒ 不试（老路报 `ElabUniverseArity`），计 untried；判卷与闸门关相同。
+    let src = "def e5 (a b : Nat) : Prop := Eq.{0, 1} a b\n";
+    let (errors_off, ..) = run_uapp(src, false, true);
+    assert!(!errors_off.is_empty(), "层数不符必须报错");
+    let (errors, solved, fallback, untried) = run_uapp(src, true, true);
+    assert_eq!(errors, errors_off);
+    assert_eq!((solved, fallback), (0, 0));
+    assert!(untried > 0);
 }

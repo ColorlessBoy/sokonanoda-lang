@@ -18,6 +18,8 @@ thread_local! {
     pub(crate) static TEST_NO_UNIVERSE_HEADS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     /// 测试用：本线程 [`observe_untried`] 计到的次数（全局计数会被并行测试串扰）。
     pub(crate) static TEST_UNTRIED_UNIVERSE_APP: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+    /// 测试用：`true` ⇒ `Name.{…}` 头照旧不试（反向验证：P2-11e 之前的行为）。
+    pub(crate) static TEST_NO_UNIVERSE_APP: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 /// **P2-11c**：带宇宙参数的 `Ident` 头进内核路径（K1d：不带层的 `Const` ⇒ 内核每个 uparam 发一个会话层元变量）。
@@ -68,11 +70,47 @@ pub(super) fn bare_levels<'a>(builder: &mut EnvBuilder<'a>, head: ExprPtr<'a>) -
     }
 }
 
+/// **P2-11e**：`Name.{…}` 头（`=` 记法降成的 `Eq.{u}`、用户写的 `Eq.{1}`）进内核路径。
+fn universe_app_enabled() -> bool {
+    #[cfg(test)]
+    if TEST_NO_UNIVERSE_APP.with(|c| c.get()) {
+        return false;
+    }
+    true
+}
+
+/// **P2-11e**：`attempt` 的头 ⇒ `(名字, span)`。`Ident` 原样；`Name.{…}` 放行（方案 A：**显式层原样保留**——
+/// `elab_expr` 的 `UniverseApp` 臂按层文本建 `Const`，层是具体的 `Param`/数字（`level_ptr` 只解文本，从不发
+/// 层元变量）⇒ [`bare_levels`] 原样、内核 K1d「带齐层 ⇒ 原样用」）。层数对不上留给 [`universe_arity_ok`]。
+/// 其余头 / 测试开关关 ⇒ `None`（`Name.{…}` 仍计 `untried_universe_app_head`）。
+pub(super) fn head_name(head: &Expr) -> Option<(&str, crate::Span)> {
+    match head {
+        Expr::Ident { name, span } => Some((name, *span)),
+        Expr::UniverseApp { name, span, .. } if universe_app_enabled() => Some((name, *span)),
+        _ => {
+            observe_untried(head);
+            None
+        }
+    }
+}
+
+/// **P2-11e**：`Name.{…}` 的层数与常量的宇宙参数数相同（不同 ⇒ 老路报 `ElabUniverseArity`；这里不试、计
+/// `untried_universe_app_head`，不让一条注定失败的尝试计进 `tried`）。`Ident` 头恒真。
+pub(super) fn universe_arity_ok(head: &Expr, universes: &[String]) -> bool {
+    match head {
+        Expr::UniverseApp { levels, .. } if levels.len() != universes.len() => {
+            observe_untried(head);
+            false
+        }
+        _ => true,
+    }
+}
+
 static UNTRIED_UNIVERSE_APP: AtomicU64 = AtomicU64::new(0);
 
-/// **P2-11c (1)**：纯观测——头是 `Name.{…}`（`=`/`≠` 记法降成的 `Eq.{u}`）⇒ 计一次，**不改控制流**
-/// （调用方照旧 `Err(None)`：不进 `probe::fallback`、不计 `tried`）。删旧路径前要看得见这一类。
-pub(super) fn observe_untried(head: &Expr) {
+/// **P2-11c (1)**：纯观测——头是 `Name.{…}` 且没进内核路径（P2-11e 起只剩层数不符 / 测试开关）⇒ 计一次，
+/// **不改控制流**（调用方照旧 `Err(None)`：不进 `probe::fallback`、不计 `tried`）。
+fn observe_untried(head: &Expr) {
     if matches!(head, Expr::UniverseApp { .. }) {
         install_printer();
         UNTRIED_UNIVERSE_APP.fetch_add(1, Ordering::Relaxed);

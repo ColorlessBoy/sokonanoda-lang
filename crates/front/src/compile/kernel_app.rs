@@ -10,7 +10,7 @@
 //! 尝试条件（不满足 ⇒ `None`，计 `fallback_shape`，除非连"尝试"都谈不上）：
 //! * 头是 `Ident`，`resolve_known` 解析到 `KnownName::Decl`，且 `implicit_prefix > 0`（与老路的免费闸门同口径：
 //!   没有前导隐式的头老路也不插，P1 不改它们）；**P2-11c** 起宇宙多态的头也进（头换成不带层的 `Const`，
-//!   内核 K1d 发层元变量，见 `kernel_app_hint::bare_levels`）；头是 `Name.{…}` ⇒ 不试，只计 `untried_universe_app_head`；
+//!   内核 K1d 发层元变量，见 `kernel_app_hint::bare_levels`）；**P2-11e** 起 `Name.{…}` 头也进（显式层原样，见 `head_name`）；
 //! * 实参全是位置实参，且不含洞 / `by` / 无注解 binder（有线程局部副作用，回落后老路会再做一遍 ⇒ 不碰）。
 //!
 //! 结果：`Solved` ⇒ 导入返回；其余回落老路（P1 不改诊断），按种类计数，本路径记下的 hover 全部撤掉。
@@ -244,12 +244,11 @@ fn attempt<'a>(
     if args.is_empty() {
         return Err(None);
     }
-    let Expr::Ident { name, span } = head else {
-        super::kernel_app_hint::observe_untried(head);
+    let Some((name, span)) = super::kernel_app_hint::head_name(head) else {
         return Err(None);
     };
     let canonical =
-        resolve_known(known, ctx.ns, name, *span, scope.local_names()).map_err(|_| None)?;
+        resolve_known(known, ctx.ns, name, span, scope.local_names()).map_err(|_| None)?;
     // 局部名遮蔽了同名常量 ⇒ 不是常量头。
     if scope.find_last(name).is_some() {
         return Err(None);
@@ -262,7 +261,7 @@ fn attempt<'a>(
     else {
         return Err(None);
     };
-    if *implicit_prefix == 0 {
+    if *implicit_prefix == 0 || !super::kernel_app_hint::universe_arity_ok(head, universes) {
         return Err(None);
     }
     if let Some(why) = super::kernel_app_hint::universe_gate(&canonical, universes) {
