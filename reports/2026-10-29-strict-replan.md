@@ -226,6 +226,10 @@ oracle（`elab.rs:4821` `pp_shape::arg_types` → `operand_type_expr` → `infer
 内核 lib 123、front lib 1145 全过；语料开关关、开关开各 714 行，空输出只有 `lib/Logic`，与基线**差异 0 行**；计分板 rc=0（lib 17/17 两档，未命中 5/5、4/4、4/4）。
 开关开也是 0 差异：内核路径解出的项与旧路径逐字节相同，判卷与事件数自然不变。
 
+**第四批验收 ✓**（P2-11e，HEAD `211c9dad`，二进制 `04ce33ac`，主仓库，基线 = 第三批）：内核 lib 123、front lib 1149；语料开关关、开关开各 714 行、与第三批 **0 差异**；计分板绿（未命中 5/5、4/4、4/4）。
+全课程普查（251 个文件，rc≠0 仍只有两个 `gaps/`）：解出 834,609 / 836,270（99.80%）；`untried_universe_app_head` 141,258→**2,971**；`fallback_unsolved` 1,629→1,596；`KERNEL_APP_MISS` 2,843→2,798。
+小幅上升：`argmismatch` 2→10、`expected` 5→8，来自新进内核路径的 `=`（以前不试），交给 P2-12 S0 归因。
+
 **第三批全课程普查**（二进制 `e8f70e48`，开关开，strict，251 个文件；rc≠0 只有两个本来就该拒绝的 `gaps/` 复现件，unit12-solution 已转绿）：
 
 | 计数 | P2-C（`2fdb470c`） | 第三批（`e8f70e48`） |
@@ -266,6 +270,7 @@ oracle（`elab.rs:4821` `pp_shape::arg_types` → `operand_type_expr` → `infer
 | P2-L-fix | 实现上面的修法 + 回归测试（m5 族 5 种写法 + 不受影响的对照）+ 反向验证 | front 单测；strict 语料随第二批统一跑 | 进行中 |
 | P2-11d | 余量：`input contains a meta` 19 处、`shape` 8、`argelab` 3、`expected` 3 | 各归零或定为报错 | 待前几刀 |
 | P2-12 | strict 默认走内核路径：去开关；解不出 ⇒ 报错**用人能读的名字**点名 binder（不许出现 `?<id>` / `\0soko_m…`），不回落。**前提**（P2-D 风险表）：① P2-11e（`=` 进内核路径）；② 内核路径自己的报错文字，替代旧路径的 `strict_rejection_message` 等，CLI 断言 strict 文字的测试同步改；③ `@` 脊 / 具名实参 / prelude 安装仍走旧路径，先决定移植还是保留；④ 报错处的 hover 不能丢；⑤ 去 `env_on` 会让 strict 缓存键整体失效，`kernel_app_keys.rs` 重写。unit12-solution L171 已由 P2-L-fix 修好，无需改写法。**必备回归测试（main 上已有的漏名 bug，主会话 2026-10-31 复现）**：`axiom g : {A : Type} → Nat → Prop` / `theorem t1 : g 0 := sorry` 在 strict 档（main 0.97.11 与本分支、开关开关都一样）报 ``unknown identifier `\0soko_m0` ``、位置 0:0；loose 档给的是可读的「隐式形参没解出来」+ 出路。P2-12 之后 strict 必须给可读报错、位置落在 `g 0` 上 | lib 17/17；整门课 strict 112/112；loose 逐字节；R1 报「无法推断」类错误；上面的漏名用例不再出现内部名 | 设计中（只读代理） |
+| P2-12 拆刀 | 设计稿 `reports/2026-10-31-p2-12-design.md`（只读代理，主会话审过）。顺序：**S0** 计数「回落后老路接下了」（`fallback_old_ok_<why>` + `file:line`，= 去掉回落会翻几处的上界）· **S1** 内核 `AppOutcome` 带结构化数据（`Unsolved` 按 binder 下标/种类，不再返回 `?<id>` 字符串；`ArgMismatch`/`ExpectedMismatch` 带类型）· **S2** 前端 `kernel_app_report.rs` 纯函数（不印内核名字，先查 surplus 沿用 `strict_rejection_message`，隐式解不出沿用 `unsolved_message`，`ArgMismatch` 沿用 `kernel-rejected` 正文）· **S3** 过渡开关 `SOKO_STRICT_NO_FALLBACK`（进缓存键）· **S4a…n** 按 S0 清单修 unsolved / expected · **S5** CLI + LSP hover 测试 · **S6** 翻默认、删 `env_on` | 每刀：开关关语料逐字节；开关开课程无 pass→reject。S6 前提：S3 全课程 `fallback_old_ok` = 0（写明的例外类除外：`Unsupported`、`shape`、`ho_motive`、`untried`、具名实参） | S0、S1 进行中 |
 | P2-13 | **砍掉共享代码里的 strict 分支**（不是删模块：旧 typed app、`pp_shape`、`judge_infer`、`implicit*` 都是 loose / tactic / goal / LSP 共用，见 `reports/2026-10-31-p2-d-old-path-inventory.md`）。strict 专属的只有 `elab.rs:4505-4540`、`:4780-4794`、`:4885-4900` 等 | 同上 + 摘旧分支 `f151eaba` 的 `scripts/audit-strict-paths.py` 并按本分支重定基线、只降不升 | 待 P2-12 |
 
 **P2-C 结论**（2026-10-31，分支二进制 `2fdb470c`，开关开，251 个 tracked 文件，冷跑；主会话抽查 m5/q2 复现）：
