@@ -9,17 +9,13 @@
 //!
 //! 尝试条件（不满足 ⇒ `None`，计 `fallback_shape`，除非连"尝试"都谈不上）：
 //! * 头是 `Ident`，`resolve_known` 解析到 `KnownName::Decl`，且 `implicit_prefix > 0`（与老路的免费闸门同口径：
-//!   没有前导隐式的头老路也不插，P1 不改它们）；宇宙多态的头不进内核（内核会回 `Unsupported`，这里先判，
-//!   免得白 elaborate 实参；计 `fallback_unsupported_universe_polymorphic_head`）；
-//! * 实参全是位置实参，且不含洞 / `by` / 无注解 binder（这些在 elaborate 时有线程局部副作用，回落后老路
-//!   会再做一遍 ⇒ 不碰）。
+//!   没有前导隐式的头老路也不插，P1 不改它们）；**P2-11c** 起宇宙多态的头也进（头换成不带层的 `Const`，
+//!   内核 K1d 发层元变量，见 `kernel_app_hint::bare_levels`）；头是 `Name.{…}` ⇒ 不试，只计 `untried_universe_app_head`；
+//! * 实参全是位置实参，且不含洞 / `by` / 无注解 binder（有线程局部副作用，回落后老路会再做一遍 ⇒ 不碰）。
 //!
-//! 结果：`Solved` ⇒ 导入 builder 返回；其余一律回落老路（P1 不改诊断），按种类计数。回落时本路径记下的
-//! hover 全部撤掉（老路自己会记）。
-//!
-//! `solved_out` 不填：调用方拿它喂 `infer_const_universes_with`，而那个函数只处理**恰好 1 个宇宙参数**的头；
-//! 这里只放行无宇宙参数的头 ⇒ 它对本路径的结果恒为 no-op。头的 hover（带 `ResolvedTarget::Declaration`）
-//! 由 `elab_expr(head)` 照常记；整段应用的 hover 由调用方记（与老路同一处）。
+//! 结果：`Solved` ⇒ 导入返回；其余回落老路（P1 不改诊断），按种类计数，本路径记下的 hover 全部撤掉。
+//! `solved_out` 不填：调用方拿它喂 `infer_const_universes_with`，它只改**头层是层元变量**的项；`Solved` 的层已被
+//! 内核代入成具体层（无残留元变量）⇒ 恒为 no-op。头的 hover 由 `elab_expr(head)` 照常记；整段的由调用方记。
 
 use super::elab::{
     elab_expr, resolve_known, ElabCtx, ElabScope, HoverNode, KnownName, KnownTable, UnivMap,
@@ -130,7 +126,7 @@ pub(super) fn count(c: Count) -> &'static str {
 }
 
 /// `SOKO_JUDGE_STATS` 设了 ⇒ 进程退出时打一行 `KERNEL_APP …`（同 `judge::stats` 的 `atexit` 时机）。
-fn install_printer() {
+pub(super) fn install_printer() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
         if std::env::var_os("SOKO_JUDGE_STATS").is_none() {
@@ -153,7 +149,8 @@ pub(crate) fn report_line() -> String {
     let g = |a: &AtomicU64| a.load(Ordering::Relaxed);
     let mut line = format!(
         "KERNEL_APP tried={} solved={} fallback_unsolved={} fallback_argmismatch={} \
-         fallback_expected={} fallback_argelab={} fallback_shape={} fallback_bad_scope={} probe_redo={}",
+         fallback_expected={} fallback_argelab={} fallback_shape={} fallback_bad_scope={} probe_redo={} \
+         untried_universe_app_head={}",
         g(&TRIED),
         g(&SOLVED),
         g(&UNSOLVED),
@@ -163,6 +160,7 @@ pub(crate) fn report_line() -> String {
         g(&SHAPE),
         g(&BAD_SCOPE),
         probe::redos(),
+        super::kernel_app_hint::untried_universe_app(),
     );
     if let Ok(v) = UNSUPPORTED.lock() {
         for (why, n) in v.iter() {
@@ -247,6 +245,7 @@ fn attempt<'a>(
         return Err(None);
     }
     let Expr::Ident { name, span } = head else {
+        super::kernel_app_hint::observe_untried(head);
         return Err(None);
     };
     let canonical =
@@ -266,8 +265,8 @@ fn attempt<'a>(
     if *implicit_prefix == 0 {
         return Err(None);
     }
-    if !universes.is_empty() {
-        return Err(Some(count(Count::Unsupported("universe-polymorphic head"))));
+    if let Some(why) = super::kernel_app_hint::universe_gate(&canonical, universes) {
+        return Err(Some(count(Count::Unsupported(why))));
     }
     // P2-1：顶层 λ 带无注解 binder 的实参也收（它只会被推迟、对着域 elaborate）。
     let postponable =
@@ -283,6 +282,7 @@ fn attempt<'a>(
     let outcome = elab_expr(builder, head, scope, univ, known, hovers, None, None, ctx)
         .map_err(|_| Count::ArgElab)
         .and_then(|head_t| {
+            let head_t = super::kernel_app_hint::bare_levels(builder, head_t);
             let (prefix, span) = (*implicit_prefix, expr.span());
             let (sc, ks, hv) = (&mut *scope, known, &mut *hovers);
             run(

@@ -550,3 +550,88 @@ fn local_shadowing_bare_name_is_not_postponed() {
     assert_eq!(on.0, Vec::<String>::new());
     assert_eq!(on.0, off.0);
 }
+
+/// **P2-11c**：同 [`run`]（strict），另外设宇宙多态头开关（`heads = false` ⇒ P2-11c 之前的闸门），并读
+/// `untried_universe_app_head` 的线程局部计数。返回 `(errors, solved, fallback, untried)`。
+fn run_universe(src: &str, on: bool, heads: bool) -> (Vec<String>, u64, u64, u64) {
+    use super::kernel_app_hint::{TEST_NO_UNIVERSE_HEADS, TEST_UNTRIED_UNIVERSE_APP};
+    let src = src.to_string();
+    on_compile_stack(move || {
+        TEST_NO_UNIVERSE_HEADS.with(|c| c.set(!heads));
+        TEST_UNTRIED_UNIVERSE_APP.with(|c| c.set(0));
+        TEST_OVERRIDE.with(|c| c.set(Some(on)));
+        TEST_SOLVED.with(|c| c.set(0));
+        TEST_FALLBACK.with(|c| c.set(0));
+        let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
+        let options = CompileOptions {
+            prelude: PreludeMode::Full,
+            dialect: Dialect::Strict,
+        };
+        let out = compile_fol_with(&file, &options);
+        let errors = out.errors.iter().map(|e| format!("{e:?}")).collect();
+        (
+            errors,
+            TEST_SOLVED.with(|c| c.get()),
+            TEST_FALLBACK.with(|c| c.get()),
+            TEST_UNTRIED_UNIVERSE_APP.with(|c| c.get()),
+        )
+    })
+}
+
+/// `Eq.symm h`：头 `Eq.symm` 是宇宙多态的 `Ident`（`=` 只在签名里，值里没有记法）。
+const EQ_SYMM_SRC: &str = "theorem s1 (a b : Nat) (h : a = b) : b = a := Eq.symm h\n";
+/// `Eq.subst h hp`：宇宙多态头 + 高阶隐式 `p`（`?p a =?= P a` 的模式合一）。
+const EQ_SUBST_SRC: &str =
+    "theorem s2 (P : Nat -> Prop) (a b : Nat) (h : a = b) (hp : P a) : P b := Eq.subst h hp\n";
+
+#[test]
+fn universe_polymorphic_heads_are_solved_by_kernel() {
+    let (errors_off, ..) = run_universe(EQ_SYMM_SRC, false, true);
+    assert_eq!(errors_off, Vec::<String>::new());
+    let (errors, solved, fallback, _) = run_universe(EQ_SYMM_SRC, true, true);
+    assert_eq!(errors, errors_off, "判卷与闸门关逐字相同");
+    assert_eq!(fallback, 0, "Eq.symm h 不回落（solved={solved}）");
+    assert!(solved > 0);
+}
+
+#[test]
+fn higher_order_motive_head_stays_gated() {
+    // `Eq.subst` 的 motive 是高阶隐式（内核无 motive 推断，试了只会 Unsolved 再付一遍老路）⇒ 仍挡在门外，
+    // 计 `fallback_unsupported_universe_poly_ho_motive`；判卷与闸门关逐字相同。
+    let (errors_off, ..) = run_universe(EQ_SUBST_SRC, false, true);
+    assert_eq!(errors_off, Vec::<String>::new());
+    let (errors, solved, fallback, _) = run_universe(EQ_SUBST_SRC, true, true);
+    assert_eq!(errors, errors_off);
+    assert_eq!((solved, fallback), (0, 1), "Eq.subst 挡一次、不进内核");
+    assert_eq!(
+        super::kernel_app_hint::universe_gate("Eq.subst", &["u".to_string()]),
+        Some("universe-poly ho motive")
+    );
+}
+
+#[test]
+fn universe_polymorphic_heads_fall_back_with_old_gate() {
+    // 反向验证：`TEST_NO_UNIVERSE_HEADS` 恢复 P2-11c 之前的闸门 ⇒ 宇宙多态头回落、不再 solved。
+    for src in [EQ_SYMM_SRC, EQ_SUBST_SRC] {
+        let (errors, solved, fallback, _) = run_universe(src, true, false);
+        assert_eq!(errors, Vec::<String>::new(), "老路判卷仍通过：{src}");
+        assert_eq!(solved, 0, "{src}");
+        assert!(
+            fallback > 0,
+            "旧闸门 ⇒ 必须回落（fallback={fallback}）：{src}"
+        );
+    }
+}
+
+#[test]
+fn universe_app_head_is_counted_but_not_tried() {
+    // `=` 记法降成 `Eq.{u} a b`（`UniverseApp` 头）⇒ 只计观测数、不试、不回落；闸门关 ⇒ 一次都不计。
+    let src = "def e1 (a b : Nat) : Prop := a = b\n";
+    let (errors, solved, fallback, untried) = run_universe(src, true, true);
+    assert_eq!(errors, Vec::<String>::new());
+    assert!(untried > 0, "`a = b` 必须被观测到（untried={untried}）");
+    assert_eq!((solved, fallback), (0, 0), "观测计数不改控制流");
+    let (errors_off, solved, fallback, untried) = run_universe(src, false, true);
+    assert_eq!(errors_off, errors);
+    assert_eq!((solved, fallback, untried), (0, 0, 0), "闸门关 ⇒ 一行不跑");
+}

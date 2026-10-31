@@ -27,7 +27,7 @@ thread_local! {
     pub(crate) static TEST_BARE: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
 }
 
-/// 见模块文档：`a` 是 binder **全带注解**的 λ 链，最内层体是头为常量（有前导隐式、无宇宙参数）的应用，
+/// 见模块文档：`a` 是 binder **全带注解**的 λ 链，最内层体是头为常量（有前导隐式；P2-11c 起含宇宙多态）的应用，
 /// 或带操作数、目标无宇宙参数的记法 ⇒ 推迟。头被局部名（scope 或 λ 自己的 binder）遮蔽 ⇒ 不是常量头。
 pub(crate) fn defer(
     a: &Expr,
@@ -75,7 +75,8 @@ pub(crate) fn defer(
     matches!(
         known.get(&target),
         Some(KnownName::Decl { implicit_prefix, universes, .. })
-            if universes.is_empty() && (*implicit_prefix > 0 || !needs_prefix)
+            if super::kernel_app_hint::universe_gate(&target, universes).is_none()
+                && (*implicit_prefix > 0 || !needs_prefix)
     )
 }
 

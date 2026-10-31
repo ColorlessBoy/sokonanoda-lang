@@ -1,14 +1,89 @@
 //! **P2-2 (c)**：零元隐式记法（`∅`）作内核推迟位时按域解（见 [`try_hinted_const`]）。
+//! **P2-11c**：宇宙多态头的两件小工具（[`universe_heads_enabled`]、[`bare_levels`]、[`observe_untried`]）。
 //! 拆自 [`super::kernel_app`]（docs-lint ⑨：源码文件 ≤ 500 行）。
 
 use super::elab::{elab_expr, ElabCtx, ElabScope, HoverNode, KnownName, KnownTable, UnivMap};
-use super::kernel_app::{count, effective, Count};
+use super::kernel_app::{count, effective, install_printer, Count};
 use super::kernel_app_postpone as postpone;
 use crate::Expr;
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::elab_app::{AppOutcome, AppRequest};
 use sokonanoda::env::EnvLimit;
 use sokonanoda::util::ExprPtr;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+#[cfg(test)]
+thread_local! {
+    /// 测试用：`true` ⇒ 宇宙多态头照旧挡在门外（反向验证：P2-11c 之前的行为）。
+    pub(crate) static TEST_NO_UNIVERSE_HEADS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    /// 测试用：本线程 [`observe_untried`] 计到的次数（全局计数会被并行测试串扰）。
+    pub(crate) static TEST_UNTRIED_UNIVERSE_APP: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+}
+
+/// **P2-11c**：带宇宙参数的 `Ident` 头进内核路径（K1d：不带层的 `Const` ⇒ 内核每个 uparam 发一个会话层元变量）。
+fn universe_heads_enabled() -> bool {
+    #[cfg(test)]
+    if TEST_NO_UNIVERSE_HEADS.with(|c| c.get()) {
+        return false;
+    }
+    true
+}
+
+/// 仍挡在门外的宇宙多态头：**高阶 motive**（`Eq.subst {motive : α → Prop}`，结果 `motive b`）。内核没有 motive
+/// 推断（Lean 靠 `elab_as_elim`），课程里试了只会 `Unsolved`/`ExpectedMismatch` 回落、再付一遍老路（P2-11c 实测
+/// unit02 +3 tried / +2 unsolved / +1 expected）；老路另有 `eqsubst.rs` 专门合成 motive（§9.36）。
+const HO_MOTIVE_HEADS: &[&str] = &["Eq.subst"];
+
+/// **P2-11c**：头 `canonical`（宇宙参数 `universes`）该不该挡；挡 ⇒ 回落原因（进 `fallback_unsupported_*` 计数）。
+/// `attempt` / [`try_hinted_const`] / `kernel_app_lambda::defer` 三处闸门只读这一个定义。
+pub(super) fn universe_gate(canonical: &str, universes: &[String]) -> Option<&'static str> {
+    if universes.is_empty() {
+        None
+    } else if !universe_heads_enabled() {
+        Some("universe-polymorphic head")
+    } else if HO_MOTIVE_HEADS.contains(&canonical) {
+        Some("universe-poly ho motive")
+    } else {
+        None
+    }
+}
+
+/// **P2-11c**：`elab_expr` 给裸常量头的每个宇宙位造了**前端**层元变量（R2b-2 (a)，Lean `mkFreshLevelMVars`）；
+/// 内核输入不许带元变量（`Unsupported("input contains a meta")`）⇒ 层全是元变量时换成**不带层**的 `Const`，
+/// 内核按 K1d 自己发层元变量、`Solved` 前 `instantiate_mvars` 代入并验无残留 ⇒ 交回的项层已具体。
+/// 层是具体的（`SOKO_NO_CONST_LEVELS` 下全 0、或无宇宙参数）⇒ 原样（内核按 K1d 原样用齐层）。
+/// 解出的项头层不是元变量 ⇒ 调用方随后的 `infer_const_universes_with` 对它是 no-op（只认头层 `MVar`）。
+pub(super) fn bare_levels<'a>(builder: &mut EnvBuilder<'a>, head: ExprPtr<'a>) -> ExprPtr<'a> {
+    match &*head {
+        sokonanoda::expr::Expr::Const { name, levels, .. }
+            if !levels.is_empty()
+                && levels
+                    .iter()
+                    .all(|l| matches!(&**l, sokonanoda::level::Level::MVar(..))) =>
+        {
+            let none = builder.alloc_levels_slice(&[]);
+            builder.mk_const(*name, none)
+        }
+        _ => head,
+    }
+}
+
+static UNTRIED_UNIVERSE_APP: AtomicU64 = AtomicU64::new(0);
+
+/// **P2-11c (1)**：纯观测——头是 `Name.{…}`（`=`/`≠` 记法降成的 `Eq.{u}`）⇒ 计一次，**不改控制流**
+/// （调用方照旧 `Err(None)`：不进 `probe::fallback`、不计 `tried`）。删旧路径前要看得见这一类。
+pub(super) fn observe_untried(head: &Expr) {
+    if matches!(head, Expr::UniverseApp { .. }) {
+        install_printer();
+        UNTRIED_UNIVERSE_APP.fetch_add(1, Ordering::Relaxed);
+        #[cfg(test)]
+        TEST_UNTRIED_UNIVERSE_APP.with(|c| c.set(c.get() + 1));
+    }
+}
+
+pub(super) fn untried_universe_app() -> u64 {
+    UNTRIED_UNIVERSE_APP.load(Ordering::Relaxed)
+}
 
 /// **P2-2 (c)**：零元隐式记法（`∅` ⇒ `Set.empty`）作外层的**推迟位**——源级期望缺席、只有内核给的域
 /// （[`postpone::ExpectedHint`]）⇒ 头 `canonical` 零显式实参走内核 `elab_app`，期望 = 域（Lean
@@ -31,7 +106,7 @@ pub(crate) fn try_hinted_const<'a>(
     let Some(KnownName::Decl { universes, .. }) = known.get(canonical) else {
         return None;
     };
-    if !universes.is_empty() {
+    if universe_gate(canonical, universes).is_some() {
         return None;
     }
     let hint = postpone::take_hint(span, scope)?;
@@ -44,6 +119,7 @@ pub(crate) fn try_hinted_const<'a>(
         .ok()
         .filter(|h| matches!(**h, sokonanoda::expr::Expr::Const { .. }))
         .and_then(|head_t| {
+            let head_t = bare_levels(builder, head_t);
             let expected = builder.import_owned(&hint)?;
             let binder_tys = scope.kernel_tys().to_vec();
             let limit = EnvLimit::ByIndex(builder.declaration_count());
