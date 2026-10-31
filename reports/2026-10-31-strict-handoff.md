@@ -72,3 +72,5 @@ scripts/strict/fallback-one.sh <cli> <file.sokonanoda>
   恢复：`git fetch <bundle> 'refs/remotes/origin/strict/2026-10-29-pipeline:refs/heads/old-pipeline'`。
   replan §5 计划从旧分支摘的 `strict/report.rs`、`strict_app/gate.rs`、`scripts/audit-strict-paths.py` **还没摘**，P3 要用时从这里取。
 - `p0-spike.diff` + `p0_spike.rs`（P0 探针）、`k1-agent-uncommitted.diff`（K1 agent 的未提交改动，已被 K1a 取代）、`p27-design.md`。
+- `p2-10-blocked-hints.bundle`（`b5dec5b0`，基于 `2ac754b6`：内核全 blocked ⇒ `NeedArgs{domains:[]}` + 前端垫片，行为与 P2-9 相同，未并入）+ `p210-front-retry.diff`（前端 blocked 位提示重试，264 行，无测试；实测不降回落，复用前先修计数静音范围）。
+  恢复：`git fetch <bundle> p2-10-blocked-hints:p2-10-archive`。
