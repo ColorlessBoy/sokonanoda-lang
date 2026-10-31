@@ -162,6 +162,7 @@ pub(crate) fn report_line() -> String {
         probe::redos(),
         super::kernel_app_hint::untried_universe_app(),
     );
+    super::kernel_app_census::report(&mut line);
     if let Ok(v) = UNSUPPORTED.lock() {
         for (why, n) in v.iter() {
             let key: String = why
@@ -216,10 +217,11 @@ pub(crate) fn try_app<'a>(
     Ok(
         match attempt(builder, expr, scope, univ, known, hovers, expected_src, ctx) {
             Ok(out) => (Some(out), None),
-            Err(Some(why)) => (
-                None,
-                Some(probe::fallback(builder, why, expr.span(), scope)?),
-            ),
+            Err(Some(why)) => {
+                let g = probe::fallback(builder, why, expr.span(), scope)?;
+                super::kernel_app_census::pending(why, expr);
+                (None, Some(g))
+            }
             Err(None) => (None, None),
         },
     )

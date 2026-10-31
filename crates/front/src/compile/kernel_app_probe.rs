@@ -84,6 +84,7 @@ pub(crate) fn fallback(
         // 记到**设探测的那一帧**（= 最内层活着的 `with_redo`：被切的这个应用自己的 `run` 已经退出、
         // 把计数交还给了外层）。
         CUTS.with(|c| c.set(c.get() + 1));
+        super::kernel_app_census::probe_cut();
         return Err(CompileError::elab(
             ErrorKind::ElabImplicitArgumentUnsolved,
             "内核应用路径：无期望类型时解不出（推迟到按域 elaborate）",

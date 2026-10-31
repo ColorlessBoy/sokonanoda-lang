@@ -5712,18 +5712,21 @@ pub(crate) fn elab_expr<'a>(
             // 解出来插进去。返回 `None` ⇒ 走下面的老路（签名没有隐式 binder 时
             // **逐字节不变**，这是 P1 可独立发布的安全性质，设计 §0）。
             let mut solved_implicits: Vec<Expr> = Vec::new();
-            if let Some(out) = try_implicit_application_with(
-                builder,
-                expr,
-                *explicit_spine,
-                scope,
-                univ,
-                known,
-                hovers,
-                expected_src,
-                ctx,
-                Some(&mut solved_implicits),
-            )? {
+            // P2-12 S0：内核回落后老路的结局计数（`kernel_app_census`，只读返回值）。
+            if let Some(out) = super::kernel_app_census::settle(|| {
+                try_implicit_application_with(
+                    builder,
+                    expr,
+                    *explicit_spine,
+                    scope,
+                    univ,
+                    known,
+                    hovers,
+                    expected_src,
+                    ctx,
+                    Some(&mut solved_implicits),
+                )
+            })? {
                 // ⚠ 这条路会 early-return ⇒ G-93 的补层也必须挂在这里（`myax α a` 走的就是这条）。
                 //
                 // **C 子项（2026-10-12）**：这条路上**插进去的隐式实参**要一起交给

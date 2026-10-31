@@ -24,6 +24,7 @@ pub(crate) mod hole;
 mod implicit;
 // P1-F1：按需从**内核声明类型**取参数望远镜（P1-F2 的内核级 `elab_app` 用）。
 pub(crate) mod kernel_app;
+mod kernel_app_census;
 mod kernel_app_hint;
 mod kernel_app_lambda;
 pub(crate) mod kernel_app_miss;
@@ -137,3 +138,7 @@ mod kernel_app_keys_tests;
 #[cfg(test)]
 #[path = "tests/kernel_app_lambda.rs"]
 mod kernel_app_lambda_tests;
+// P2-12 S0：内核回落后老路结局计数。
+#[cfg(test)]
+#[path = "tests/kernel_app_census.rs"]
+mod kernel_app_census_tests;
