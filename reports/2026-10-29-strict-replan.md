@@ -211,9 +211,9 @@ oracle（`elab.rs:4821` `pp_shape::arg_types` → `operand_type_expr` → `infer
 | 刀 | 内容 | 判据 | 状态 |
 |---|---|---|---|
 | P2-1…P2-8 | 推迟实参、多轮、重检、记法、探测、缓存键 | 见交接书 `2026-10-31-strict-handoff.md` §1 | ✓ |
-| P2-9 | 内核：`expected` 里允许外层元变量（登记 + 内层 id 从 `max(SESSION_META_BASE, 最大外部 id+1)` 起防撞号）；`NeedArgs.blocked` 带域；拆 `elab_app_holes.rs` | 内核单测（外部元变量被赋值 / 留空 ⇒ Unsolved / 撞号反向验证）；开关开/关全语料逐字节 | `cd75504e` 待语料对拍 |
+| P2-9 | 内核：`expected` 里允许外层元变量（登记 + 内层 id 从 `max(SESSION_META_BASE, 最大外部 id+1)` 起防撞号）；`NeedArgs.blocked` 带域；拆 `elab_app_holes.rs` | 内核单测（外部元变量被赋值 / 留空 ⇒ Unsolved / 撞号反向验证）；开关开/关全语料逐字节 | ✓ `bef50d65`（714×2 两对 diff 皆空，主会话复核；内核 120、front kernel_app 25） |
 | P2-C | **普查**（只读）：整门课开关开，按回落原因计数；钉住 R1/R2 两档分歧 | 见下「P2-C 结论」 | ✓ |
-| P2-10 | 前端：`elab_ready` 把 blocked 的非 λ 位按带元变量的域作提示（P2-7 方案 A 第 5 步） | `unsolved` 回落降（`Exists.intro`/`And.intro`/`Or.*`/`Set.image`/`≼`）；`TEST_NO_EXTERNAL_METAS` 反向 | 待 P2-9 |
+| P2-10 | 前端：`elab_ready` 把 blocked 的非 λ 位按带元变量的域作提示（P2-7 方案 A 第 5 步） | `unsolved` 回落降（`Exists.intro`/`And.intro`/`Or.*`/`Set.image`/`≼`）；`TEST_NO_EXTERNAL_METAS` 反向 | 进行中 |
 | P2-11a | `argmismatch`：实参没对着 binder 类型 elaborate（`a ∈ univ`）、检查不展开定义（`Iff.intro` 过 `def`）——P2-7 设计**未覆盖**，先只读定根因 | 普查 `fallback_argmismatch` 归零或逐处处置 | 待定根因 |
 | P2-11b | `surplus`：过量应用（`And.right h x`，Lean `whnfForall` 结果类型 `App.lean:458`） | `fallback_unsupported_surplus` 归零 | 待 P2-10 |
 | P2-11c | 宇宙多态头（`Eq`/`Eq.symm`/`Eq.subst`）仍被前端 `universes.is_empty()` 挡在门外（K1d 内核已支持） | 计数归零；m5 在 strict 判对 | 待 P2-10 |
