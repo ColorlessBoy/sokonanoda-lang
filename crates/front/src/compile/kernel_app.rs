@@ -25,6 +25,7 @@ use super::elab::{
     elab_expr, resolve_known, ElabCtx, ElabScope, HoverNode, KnownName, KnownTable, UnivMap,
 };
 use super::error::CompileError;
+use super::kernel_app_lambda as lambda;
 use super::kernel_app_miss::MissGuard;
 use super::kernel_app_postpone as postpone;
 use super::kernel_app_probe as probe;
@@ -395,9 +396,17 @@ fn run_once<'a>(
     // 第一趟：无期望地 elaborate；失败的 / 无注解 λ ⇒ 推迟（`None`），失败的残留（hover、λ 臂漏的
     // binder）一并撤掉。推迟关着 ⇒ 失败即回落（P2-1 之前的行为）。
     let mut explicit: Vec<Option<ExprPtr<'a>>> = Vec::with_capacity(args.len());
+    // P2-10b：推迟的带注解 λ 位（体对着域的 codomain elaborate；卡住 ⇒ `fill_late` 照老办法补）。
+    let mut typed_lams: Vec<usize> = Vec::new();
     for a in args {
         let bare = || postpone::bare_implicit_const(a, scope, known, ctx.ns).is_some();
-        if postpone::enabled() && (postpone::untyped_lambda_layers(a, plain).is_some() || bare()) {
+        // P2-10b：三类推迟互斥（λ 有无注解 binder / 裸常量）。
+        let typed = postpone::enabled() && lambda::defer(a, scope, known, ctx.ns);
+        typed_lams.extend(typed.then_some(explicit.len()));
+        if typed
+            || postpone::enabled()
+                && (postpone::untyped_lambda_layers(a, plain).is_some() || bare())
+        {
             explicit.push(None);
             continue;
         }
@@ -447,9 +456,21 @@ fn run_once<'a>(
     // **P2-2**（Lean `synthesizeSyntheticMVars`：有进展就再来一轮）：每轮把**域已就绪**的推迟位对着域 elaborate
     // （Lean `elabAndAddNewArg`），再整体重解；`NeedArgs` 每轮至少交出一位 ⇒ 轮数 ≤ 显式实参数（上限是兜底）。
     // 跑满仍是 `NeedArgs` ⇒ 调用方当 argelab 回落（同 P2-1）。
-    for _ in 0..postpone::max_rounds(args.len()) {
-        let AppOutcome::NeedArgs { domains, .. } = out else {
-            return Ok(out);
+    // P2-10b：推迟的带注解 λ 到头仍空着（域一直带元变量）⇒ 照老办法补上、再解一次（多给一轮）。
+    let mut late = false;
+    let rounds = postpone::max_rounds(args.len()) + usize::from(!typed_lams.is_empty());
+    for _ in 0..rounds {
+        let domains = match out {
+            AppOutcome::NeedArgs { domains, .. } => domains,
+            AppOutcome::Solved(_) => return Ok(out),
+            other => {
+                let (b, e, s, h) = (&mut *builder, &mut explicit[..], &mut *scope, &mut *hovers);
+                if late || !lambda::fill_late(b, args, &typed_lams, e, s, univ, known, h, ctx) {
+                    return Ok(other);
+                }
+                late = true;
+                Vec::new()
+            }
         };
         postpone::elab_ready(
             builder,

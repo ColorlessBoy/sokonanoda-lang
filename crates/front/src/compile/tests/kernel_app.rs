@@ -86,7 +86,9 @@ fn failed_arg_elaboration_does_not_leak_binders_into_scope() {
          Ex B (fun (x : B) => And (s x) (r x)) :=\n  \
          Ex.elim2 h (fun (b : B) (hb : And (r b) (s b)) => Ex.intro b (And.intro (And.right hb) (And.left hb)))\n"
     );
-    let (errors, solved, fallback) = run(&src, true);
+    // P2-10b 起这条带注解 λ 会被推迟、体对着域解出（不回落）⇒ 这里关掉 P2-10b，仍测回落路径的作用域纪律
+    // （开着的行为见 `kernel_app_lambda_tests`）。
+    let (errors, solved, fallback) = super::kernel_app_lambda_tests::run_typed_lambda(&src, false);
     assert_eq!(errors, Vec::<String>::new());
     assert!(
         solved > 0 && fallback > 0,

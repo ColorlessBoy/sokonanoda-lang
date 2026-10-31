@@ -308,6 +308,7 @@ pub(crate) fn elab_ready<'a>(
             explicit[ai] = Some(t.ok_or(super::kernel_app::Count::ArgElab)?);
             continue;
         }
+        let (scope_depth, mark) = (scope.len(), hovers.len());
         let t = super::elab::elab_expr(
             builder,
             a,
@@ -318,8 +319,20 @@ pub(crate) fn elab_ready<'a>(
             Some(dom_t),
             None,
             ctx,
-        )
-        .map_err(|_| super::kernel_app::Count::ArgElab)?;
+        );
+        drop(_hint);
+        let t = match t {
+            Ok(t) => t,
+            // P2-10b：带注解 λ（第一趟本来无期望就能 elaborate）对着域不行 ⇒ 撤残留、退回老办法（提示已清，
+            // 体看不见它）⇒ 最坏 = 今天第一趟的结果。
+            Err(_) if super::kernel_app_lambda::defer(a, scope, known, ctx.ns) => {
+                hovers.truncate(mark);
+                scope.truncate(scope_depth);
+                super::kernel_app_lambda::elab_bare(builder, a, scope, univ, known, hovers, ctx)
+                    .ok_or(super::kernel_app::Count::ArgElab)?
+            }
+            Err(_) => return Err(super::kernel_app::Count::ArgElab),
+        };
         explicit[ai] = Some(t);
     }
     Ok(())
