@@ -77,3 +77,4 @@ scripts/strict/fallback-one.sh <cli> <file.sokonanoda>
 - `p0-spike.diff` + `p0_spike.rs`（P0 探针）、`k1-agent-uncommitted.diff`（K1 agent 的未提交改动，已被 K1a 取代）、`p27-design.md`。
 - `p2-10-blocked-hints.bundle`（`b5dec5b0`，基于 `2ac754b6`：内核全 blocked ⇒ `NeedArgs{domains:[]}` + 前端垫片，行为与 P2-9 相同，未并入）+ `p210-front-retry.diff`（前端 blocked 位提示重试，264 行，无测试；实测不降回落，复用前先修计数静音范围）。
   恢复：`git fetch <bundle> p2-10-blocked-hints:p2-10-archive`。
+- `p211e-design-b.diff`（P2-11e 方案 B：`=` 剥层交内核推断，基于 `7b7db1bd`，未提交；问题见 replan P2-11e 行）。
