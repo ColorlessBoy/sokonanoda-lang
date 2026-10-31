@@ -326,6 +326,9 @@ fn run_notation(src: &str, route: bool) -> (Vec<String>, u64, u64) {
     let src = src.to_string();
     on_compile_stack(move || {
         super::kernel_app_notation::TEST_NO_NOTATION.with(|c| c.set(!route));
+        // §9.39：反向臂（关路由）要的是"修前老路"的拒绝 —— 那条拒绝来自老路的层级缺陷
+        // （`universe_level_text_of_operands` 遇到推不出的操作数就整体放弃）⇒ 一并回到修前行为。
+        super::elab::p2l_level_operands_tests::TEST_LEVEL_ABORT_ON_UNKNOWN.with(|c| c.set(!route));
         TEST_OVERRIDE.with(|c| c.set(Some(true)));
         TEST_SOLVED.with(|c| c.set(0));
         TEST_FALLBACK.with(|c| c.set(0));
@@ -453,6 +456,8 @@ fn run_redo(src: &str, redo: bool) -> Vec<String> {
     let src = src.to_string();
     on_compile_stack(move || {
         super::kernel_app_probe::TEST_NO_REDO.with(|c| c.set(!redo));
+        // §9.39：同上 —— 不重做的反向臂吃的是老路层级缺陷的拒绝 ⇒ 回到修前行为。
+        super::elab::p2l_level_operands_tests::TEST_LEVEL_ABORT_ON_UNKNOWN.with(|c| c.set(!redo));
         TEST_OVERRIDE.with(|c| c.set(Some(true)));
         let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
         let options = CompileOptions {
