@@ -226,6 +226,24 @@ oracle（`elab.rs:4821` `pp_shape::arg_types` → `operand_type_expr` → `infer
 内核 lib 123、front lib 1145 全过；语料开关关、开关开各 714 行，空输出只有 `lib/Logic`，与基线**差异 0 行**；计分板 rc=0（lib 17/17 两档，未命中 5/5、4/4、4/4）。
 开关开也是 0 差异：内核路径解出的项与旧路径逐字节相同，判卷与事件数自然不变。
 
+**第三批全课程普查**（二进制 `e8f70e48`，开关开，strict，251 个文件；rc≠0 只有两个本来就该拒绝的 `gaps/` 复现件，unit12-solution 已转绿）：
+
+| 计数 | P2-C（`2fdb470c`） | 第三批（`e8f70e48`） |
+|---|---|---|
+| tried / solved | 917,633 / 908,821（99.04%） | 887,187 / 885,504（99.81%） |
+| `fallback_argmismatch` | 5,573 | 2 |
+| `fallback_unsolved` | 3,122 | 1,629 |
+| `fallback_unsupported_surplus` | 29 | 0 |
+| 宇宙多态头 | 19 | 0（另 `ho_motive` 3，`Eq.subst` 有意挡住） |
+| `input_contains_a_meta` | 45 | 32 |
+| `shape` / `argelab` / `expected` | 12 / 9 / 3 | 12 / 0 / 5 |
+| `KERNEL_APP_MISS.total` | 2,862 | 2,843 |
+| **`untried_universe_app_head`**（P2-11c 新加，之前看不见） | — | **141,258** |
+
+⇒ 删旧路径前最大的一块是 `untried_universe_app_head`：每个 `=`/`≠` 都没进内核路径（P2-11e 在修）。
+`fallback_unsolved` 1,629 集中在 unit19-sol 160、unit12-sol 97、unit10-sol 92、unit19 79、unit09-sol 74（P2-11g 的输入）。
+`expected` 3→5 小幅上升，归因留给 P2-11g 一并做。
+
 | 刀 | 内容 | 判据 | 状态 |
 |---|---|---|---|
 | P2-1…P2-8 | 推迟实参、多轮、重检、记法、探测、缓存键 | 见交接书 `2026-10-31-strict-handoff.md` §1 | ✓ |
