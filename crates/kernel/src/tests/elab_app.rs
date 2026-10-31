@@ -549,17 +549,110 @@ fn p22_blocked_postponed_arg_becomes_ready_next_round() {
         let r1 = [None, None];
         let o = elab(b, &AppRequest { binder_tys: &[], head: dep, implicit_prefix: 0, explicit_args: &r1, expected: None, lambda_binders: &[] });
         let AppOutcome::NeedArgs { domains, blocked } = &o else { panic!("round 1: expected NeedArgs, got {o:?}") };
-        assert_eq!((domains.iter().map(|d| d.0).collect::<Vec<_>>(), blocked.clone()), (vec![0], vec![1]));
+        assert_eq!((domains.iter().map(|d| d.0).collect::<Vec<_>>(), blocked.iter().map(|d| d.0).collect::<Vec<_>>()), (vec![0], vec![1]));
         let dom = b.import_owned(&domains[0].1).expect("import");
         assert!(same(dom, ty), "round 1 domain = Type");
         let r2 = [Some(kx.a), None];
         let o = elab(b, &AppRequest { binder_tys: &[], head: dep, implicit_prefix: 0, explicit_args: &r2, expected: None, lambda_binders: &[] });
         let AppOutcome::NeedArgs { domains, blocked } = &o else { panic!("round 2: expected NeedArgs, got {o:?}") };
-        assert_eq!((domains.iter().map(|d| d.0).collect::<Vec<_>>(), blocked.clone()), (vec![1], vec![]));
+        assert_eq!((domains.iter().map(|d| d.0).collect::<Vec<_>>(), blocked.iter().map(|d| d.0).collect::<Vec<_>>()), (vec![1], vec![]));
         let dom = b.import_owned(&domains[0].1).expect("import");
         assert!(same(dom, kx.a), "round 2 domain = A");
         let o = elab(b, &req(&[], dep, 0, &[kx.a, ea], None));
         let want = apps(b, dep, &[kx.a, ea]);
         assert!(same(solved(b, &o), want), "Dep A ea");
+    });
+}
+
+/// T1 的 scope 上的上下文元变量 `?id w hw`，`?id : Π (w : A) (hw : P w), Type`（外部会话的形状）。
+fn ext_ctx_meta<'a>(b: &mut EnvBuilder<'a>, kx: Kx<'a>, id: u32) -> ExprPtr<'a> {
+    let zero = b.zero();
+    let one = b.succ(zero);
+    let ty = b.mk_sort(one);
+    let v0 = b.mk_var(0);
+    let pw = b.mk_app(kx.p, v0);
+    let inner = pi(b, "hw", D, pw, ty);
+    let mty = pi(b, "w", D, kx.a, inner);
+    let m = b.mk_meta(id, mty);
+    let (v0, v1) = (b.mk_var(0), b.mk_var(1));
+    apps(b, m, &[v1, v0])
+}
+
+/// **P2-9 (a)**：`expected` 里的外部 `?M w hw`（`ExT (?M w hw) (fun x => P x)`）由应用定下来（`?M := λ w hw. A`）
+/// ⇒ `Solved`，项无元变量且 = `ExT.intro A (fun x => P x) w hw`。
+#[test]
+fn p29_a_external_meta_in_expected_is_solved() {
+    run(|b, kx| {
+        let (tys, args, _) = t1_parts(b, kx);
+        let m = ext_ctx_meta(b, kx, 5);
+        let expected = apps(b, kx.ext, &[m, kx.lam_p]);
+        let o = elab(b, &req(&tys, kx.intro, 2, &args, Some(expected)));
+        let AppOutcome::Solved(t) = &o else { panic!("expected Solved, got {o:?}") };
+        assert!(!t.nodes.iter().any(|n| matches!(n, crate::transfer::OwnedNode::Meta { .. })), "meta-free");
+        let got = solved(b, &o);
+        let want = apps(b, kx.intro, &[kx.a, kx.lam_p, args[0], args[1]]);
+        assert!(same(got, want), "ExT.intro A (fun x => P x) w hw");
+    });
+}
+
+/// **P2-9 (b)**：外部元变量没被约束（`hq` 对期望 `(fun _ : A => Qp) ?N`，β 后 `?N` 消失）⇒ `Unsolved`，不是 `Solved`。
+#[test]
+fn p29_b_unconstrained_external_meta_is_unsolved() {
+    run(|b, kx| {
+        let n = b.mk_meta(7, kx.a);
+        let k = lam(b, "_", kx.a, kx.qp);
+        let expected = b.mk_app(k, n);
+        let o = elab(b, &req(&[], kx.hq, 0, &[], Some(expected)));
+        assert_eq!(o, AppOutcome::Unsolved { binders: vec!["?7".to_string()] });
+        // 对照：同一请求、期望无元变量 ⇒ Solved（证明 Unsolved 只来自外部元变量）。
+        let o = elab(b, &req(&[], kx.hq, 0, &[], Some(kx.qp)));
+        assert!(matches!(o, AppOutcome::Solved(_)), "got {o:?}");
+    });
+}
+
+/// **P2-9 (c) 撞号**：外部 `?M : Type`（无 spine）的 id 恰是 `SESSION_META_BASE`。本会话 id 若仍从
+/// `SESSION_META_BASE` 起，隐式位 `α` 会**复用**它（登记覆盖成 `Π w hw, Type`、赋值 `λ w hw. A`）⇒ 期望里的
+/// `?M` 变成 `λ w hw. A` ⇒ 不再是 `Solved`。不撞号 ⇒ 与 T1 同解。
+#[test]
+fn p29_c_external_ids_never_collide_with_session_ids() {
+    run(|b, kx| {
+        let (tys, args, _) = t1_parts(b, kx);
+        let zero = b.zero();
+        let one = b.succ(zero);
+        let ty = b.mk_sort(one);
+        let m = b.mk_meta(crate::elab_app::SESSION_META_BASE, ty);
+        let expected = apps(b, kx.ext, &[m, kx.lam_p]);
+        let o = elab(b, &req(&tys, kx.intro, 2, &args, Some(expected)));
+        let got = solved(b, &o);
+        let want = apps(b, kx.intro, &[kx.a, kx.lam_p, args[0], args[1]]);
+        assert!(same(got, want), "ExT.intro A (fun x => P x) w hw");
+    });
+}
+
+/// **P2-9 (d)**：`NeedArgs.blocked` 带着域：`Dep ?T ?x` 第 1 轮 `x` 的域 = 本会话的 `?T`（id = `SESSION_META_BASE`）。
+#[test]
+fn p29_d_blocked_carries_domain() {
+    run(|b, kx| {
+        let zero = b.zero();
+        let one = b.succ(zero);
+        let ty = b.mk_sort(one);
+        let v0 = b.mk_var(0);
+        let body = pi(b, "x", D, v0, kx.prop);
+        let t = pi(b, "T", D, ty, body);
+        let dep = ax(b, "Dep", t);
+        let r1 = [None, None];
+        let o = elab(b, &AppRequest { binder_tys: &[], head: dep, implicit_prefix: 0, explicit_args: &r1, expected: None, lambda_binders: &[] });
+        let AppOutcome::NeedArgs { blocked, .. } = &o else { panic!("expected NeedArgs, got {o:?}") };
+        assert_eq!(blocked.len(), 1);
+        let (ai, dom) = &blocked[0];
+        assert_eq!(*ai, 1);
+        let root = &dom.nodes[dom.root as usize];
+        assert!(
+            matches!(root, crate::transfer::OwnedNode::Meta { id, .. } if *id == crate::elab_app::SESSION_META_BASE),
+            "blocked domain = ?T, got {root:?}"
+        );
+        let imported = b.import_owned(dom).expect("import blocked domain");
+        let back = b.mk_meta(crate::elab_app::SESSION_META_BASE, ty);
+        assert!(same(imported, back), "blocked domain round-trips as ?T : Type");
     });
 }

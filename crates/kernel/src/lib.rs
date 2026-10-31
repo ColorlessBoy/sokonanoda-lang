@@ -12,6 +12,7 @@ pub mod builder;
 pub mod debug_printer;
 pub mod env;
 pub mod elab_app;
+pub(crate) mod elab_app_holes;
 pub mod eval;
 pub(crate) mod eval_type;
 pub mod expr;

@@ -16,7 +16,8 @@
 //! * `App.lean:926-951` 主循环：`fType` 不是 Π ⇒ whnf 再看（`synthesizePendingAndNormalizeFunType`）；
 //!   严格隐式且没有剩余实参 ⇒ finalize（`processStrictImplicitArg`）。
 use crate::env::EnvLimit;
-use crate::expr::{BinderStyle, Expr, MetaKind};
+use crate::elab_app_holes::meta_id;
+use crate::expr::{BinderStyle, Expr};
 use crate::name::Name;
 use crate::tc::{InferFlag, TypeChecker};
 use crate::transfer::OwnedExpr;
@@ -57,9 +58,10 @@ pub enum AppOutcome {
     /// P1 的限制。
     Unsupported(&'static str),
     /// 有推迟的实参：`domains` = 域已就绪的推迟位 `(显式实参下标, 域)`（已代入当前解、**无元变量**、在 scope
-    /// 之下，至少一个）；`blocked` = 域仍含未赋值元变量的推迟位。调用方按域 elaborate `domains` 后**再调一次**
+    /// 之下，至少一个）；`blocked` = 域仍含未赋值元变量的推迟位 `(显式实参下标, 域)`（**P2-9**：域照样导出、
+    /// **带着**本会话的元变量 `?M x1..xd`，类型闭）。调用方按域 elaborate `domains` 后**再调一次**
     /// （新会话，全部重查；`blocked` 留 `None`）——每轮至少补上一位 ⇒ 轮数 ≤ 显式实参数。
-    NeedArgs { domains: Vec<(usize, OwnedExpr)>, blocked: Vec<usize> },
+    NeedArgs { domains: Vec<(usize, OwnedExpr)>, blocked: Vec<(usize, OwnedExpr)> },
 }
 
 thread_local! {
@@ -69,7 +71,8 @@ thread_local! {
 /// 本线程累计的**成功**期望类型传播次数（测试/计数用；判定不读它）。
 pub fn propagations() -> u64 { PROPAGATIONS.with(|c| c.get()) }
 
-/// 本会话元变量的私有 id 段（不与调用方的 id 相撞）。
+/// 本会话元变量的私有 id 段下界。**P2-9**：`expected` 带外部元变量时从 `max(本值, 最大外部 id + 1)` 起分配
+/// （见 [`crate::elab_app_holes`]）⇒ 永不与调用方的 id 相撞。
 pub const SESSION_META_BASE: u32 = 1 << 30;
 
 impl<'p> ExportFile<'p> {
@@ -82,7 +85,7 @@ impl<'p> ExportFile<'p> {
     }
 }
 
-fn name_string(ctx: &TcCtx<'_, '_>, n: NamePtr<'_>) -> String {
+pub(crate) fn name_string(ctx: &TcCtx<'_, '_>, n: NamePtr<'_>) -> String {
     match ctx.read_name(n) {
         Name::Anon => String::new(),
         Name::Str(pfx, sfx, _) => {
@@ -137,19 +140,26 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         let args: Vec<Option<ExprPtr<'t>>> = req.explicit_args.to_vec();
         let head: ExprPtr<'t> = req.head;
         let expected: Option<ExprPtr<'t>> = req.expected;
-        // **P1 限制**：输入里不许有元变量（本会话的 id 不许与调用方的相撞）。
+        // **P1 限制**：输入里不许有元变量——**P2-9** 起 `expected` 例外（Lean `elabAndAddNewArg` 的期望类型含同一
+        // mctx 的元变量）：外部元变量按 id 登记进本会话、本会话 id 从它们之上分配（不相撞）。
         let lam_tys: Vec<(usize, Vec<ExprPtr<'t>>)> = req.lambda_binders.iter().map(|(i, t)| (*i, t.to_vec())).collect();
         let inputs = binder_tys
             .iter()
             .chain(std::iter::once(&head))
             .chain(args.iter().flatten())
-            .chain(expected.iter())
             .chain(lam_tys.iter().flat_map(|(_, t)| t.iter()));
         for e in inputs {
             if !self.ctx.unassigned_mvars(*e).is_empty() {
                 return AppOutcome::Unsupported("input contains a meta");
             }
         }
+        let (externals, base) = match expected {
+            Some(e) if !self.ctx.unassigned_mvars(e).is_empty() => match self.app_register_externals(e) {
+                Ok(r) => r,
+                Err(why) => return AppOutcome::Unsupported(why),
+            },
+            _ => (Vec::new(), SESSION_META_BASE),
+        };
         // **K1d**：宇宙多态的头（Lean `mkConst` + `mkFreshLevelMVars`）：不带层的 `Const` ⇒ 每个 uparam
         // 一个**本会话登记**的层元变量（defeq 里可赋值）；带齐层 ⇒ 原样用；层数不对 ⇒ 不支持。
         let mut head = head;
@@ -175,7 +185,9 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
                 return AppOutcome::Unsupported("universe arity");
             }
         }
-        let Ok(d16) = u16::try_from(binder_tys.len()) else { return AppOutcome::Unsupported("scope too deep") };
+        if u16::try_from(binder_tys.len()).is_err() {
+            return AppOutcome::Unsupported("scope too deep");
+        }
         // 开 scope（同 `infer_under_binders`）。
         let mut d = 0u32;
         let mut env: E<'t> = self.empty_env();
@@ -197,7 +209,6 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         let mut postponed: Vec<(usize, V<'t>, V<'t>)> = Vec::new();
         // 推迟的实参：`(显式下标, 域, 占位元变量名)`；占位 = 上下文元变量（同隐式位），后面的 binder 才能依赖它。
         let mut holes: Vec<(usize, V<'t>, NamePtr<'t>)> = Vec::new();
-        let anon = self.ctx.anonymous();
         loop {
             let pi = match self.weak_pi(d, fty) {
                 Some(p) => Some(p),
@@ -217,19 +228,8 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
                     break;
                 }
                 // 上下文元变量：`?M : Π xs, T` 闭、深度 0；隐式位放 `?M x1..xd`。
-                let mut mty = self.quote(d, dom);
-                for t in binder_tys.iter().rev() {
-                    mty = self.ctx.mk_pi(anon, BinderStyle::Default, *t, mty);
-                }
-                let id = SESSION_META_BASE + u32::try_from(metas.len() + holes.len()).expect("meta count");
-                self.ctx.mvars.register_at(id, mty, 0);
-                self.ctx.mvars.register_kind(id, MetaKind::Natural);
-                let mut m = self.ctx.mk_meta(id, mty);
-                for k in (0..d16).rev() {
-                    let v = self.ctx.mk_var(k);
-                    m = self.ctx.mk_app(m, v);
-                }
-                let mv = self.eval(d, env, m);
+                let Some(id) = meta_id(base, metas.len() + holes.len()) else { return AppOutcome::Unsupported("meta id space") };
+                let (m, mv) = self.app_fresh_meta(d, env, &binder_tys, dom, id);
                 term = self.ctx.mk_app(term, m);
                 metas.push((id, bn));
                 fty = self.apply_closure(d, &body, mv, Some(dom));
@@ -249,19 +249,8 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
                 if let Some((_, tys)) = lam_tys.iter().find(|(k, _)| *k == ai) {
                     self.app_unify_binders(d, env, dom, tys);
                 }
-                let mut mty = self.quote(d, dom);
-                for t in binder_tys.iter().rev() {
-                    mty = self.ctx.mk_pi(anon, BinderStyle::Default, *t, mty);
-                }
-                let id = SESSION_META_BASE + u32::try_from(metas.len() + holes.len()).expect("meta count");
-                self.ctx.mvars.register_at(id, mty, 0);
-                self.ctx.mvars.register_kind(id, MetaKind::Natural);
-                let mut m = self.ctx.mk_meta(id, mty);
-                for k in (0..d16).rev() {
-                    let v = self.ctx.mk_var(k);
-                    m = self.ctx.mk_app(m, v);
-                }
-                let mv = self.eval(d, env, m);
+                let Some(id) = meta_id(base, metas.len() + holes.len()) else { return AppOutcome::Unsupported("meta id space") };
+                let (m, mv) = self.app_fresh_meta(d, env, &binder_tys, dom, id);
                 term = self.ctx.mk_app(term, m);
                 holes.push((ai, dom, bn));
                 fty = self.apply_closure(d, &body, mv, Some(dom));
@@ -311,28 +300,15 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
                 unsolved.push(n.clone());
             }
         }
-        // Lean `elabAndAddNewArg`：推迟位的期望类型 = 代入当前解后的域。**P2-2**（Lean `synthesizeSyntheticMVars`
-        // 的"有进展就再来一轮"）：域里还有未赋值元变量的位 ⇒ `blocked`，其余交出去；一个都交不出 ⇒ `Unsolved`。
+        // **P2-9**：应用没定下来的外部元变量 ⇒ `Unsolved`（`Solved` 仍然 = 无元变量的项；不回传赋值表）。
+        for id in &externals {
+            let m = self.ctx.mvars.ty_of(*id).map(|t| self.ctx.mk_meta(*id, t));
+            if m.is_some_and(|m| !self.ctx.unassigned_mvars(m).is_empty()) {
+                unsolved.push(format!("?{id}"));
+            }
+        }
         if !holes.is_empty() {
-            let (mut domains, mut blocked) = (Vec::with_capacity(holes.len()), Vec::new());
-            let mut first_blocked = None;
-            for &(ai, dom, bn) in &holes {
-                let q = self.quote(d, dom);
-                let q = self.ctx.instantiate_mvars(q);
-                if !self.ctx.unassigned_mvars(q).is_empty() {
-                    first_blocked.get_or_insert(bn);
-                    blocked.push(ai);
-                    continue;
-                }
-                domains.push((ai, self.ctx.export_owned(q)));
-            }
-            if domains.is_empty() {
-                if let (true, Some(bn)) = (unsolved.is_empty(), first_blocked) {
-                    unsolved.push(name_string(self.ctx, bn));
-                }
-                return AppOutcome::Unsolved { binders: unsolved };
-            }
-            return AppOutcome::NeedArgs { domains, blocked };
+            return self.app_need_args(d, &holes, unsolved);
         }
         if !unsolved.is_empty() {
             return AppOutcome::Unsolved { binders: unsolved };
@@ -354,29 +330,6 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
             return AppOutcome::Unsupported("recheck");
         }
         AppOutcome::Solved(self.ctx.export_owned(out))
-    }
-
-    /// **P2-3**：推迟的 λ 位的带注解 binder 类型逐层与域的 Pi 层 `isDefEq`（Lean `propagateExpectedType`，
-    /// `Binders.lean:417` `discard <| isDefEq fvarType d`：失败不致命、只为赋值）。域不再是 Pi ⇒ 停。
-    fn app_unify_binders(&mut self, d: u32, env: E<'t>, dom: V<'t>, tys: &[ExprPtr<'t>]) {
-        let (mut depth, mut env_i, mut cur) = (d, env, dom);
-        for ty in tys {
-            let pi = match self.weak_pi(depth, cur) {
-                Some(p) => p,
-                None => match self.force_pi(depth, cur) {
-                    Some(p) => p,
-                    None => return,
-                },
-            };
-            let Value::Pi { domain, body, .. } = pi else { return };
-            let (domain, body) = (*domain, *body);
-            let bt = self.eval(depth, env_i, *ty);
-            let _ = self.is_def_eq_at(depth, domain, bt);
-            let fresh = self.mk_bvar_hc(depth, bt);
-            env_i = crate::value::env_extend(self.arena, env_i, fresh);
-            cur = self.apply_closure(depth + 1, &body, fresh, Some(domain));
-            depth += 1;
-        }
     }
 
     /// **P2-3**：解出的项在 scope 下 `Check` 重推（类型错 ⇒ 内核 panic ⇒ 本线程静音捕获）且（有期望时）类型 ≡ 期望。
