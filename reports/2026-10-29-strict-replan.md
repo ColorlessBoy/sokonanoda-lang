@@ -241,8 +241,8 @@ oracle（`elab.rs:4821` `pp_shape::arg_types` → `operand_type_expr` → `infer
 | P2-L | **loose 档**修 m5（REQUIREMENTS §9.39）：先只读定旧路径 `=`/`≠` 记法选错 sort 的根因，再修；对齐 Lean `binrel%` 先 elaborate 两边 | m5 两档接受；loose 语料只在含此形状的文件上变、只许拒绝→接受、逐行列出；strict 不受影响 | 根因 ✓（`reports/2026-10-31-p2-l-m5-root-cause.md`，主会话读码核实）：`elab.rs:2274` `universe_level_text_of_operands` 的 `?` 在第一个操作数推不出类型时整函数返回 `None` ⇒ 层级默认 `"0"` ⇒ `Eq.{0}`；与注释「逐个操作数试」不符。**两档共用** ⇒ 一处修两档（strict 的 m5 头是 `UniverseApp`，从不进内核路径）。修法 `?` → `continue`（Lean `Extra.lean:275` `isUnknown → hasUnknown` 继续）：loose 357/357 逐字节不变（仓库里没有这种写法 ⇒ 必须补回归测试） |
 | P2-L-fix | 实现上面的修法 + 回归测试（m5 族 5 种写法 + 不受影响的对照）+ 反向验证 | front 单测；strict 语料随第二批统一跑 | 进行中 |
 | P2-11d | 余量：`input contains a meta` 19 处、`shape` 8、`argelab` 3、`expected` 3 | 各归零或定为报错 | 待前几刀 |
-| P2-12 | strict 默认走内核路径：去开关；解不出 ⇒ 报错**用人能读的名字**点名 binder（不许出现 `?<id>` / `\0soko_m…`），不回落；unit12-solution L171 照 unit12 L285 改写法 | lib 17/17；整门课 strict 112/112；loose 逐字节；R1 报「无法推断」类错误 | 待 P2-11 |
-| P2-13 | 删旧 typed app / 文本回落 / 影子档 | 同上 + audit 归零（衔接 P3） | 待 P2-12 |
+| P2-12 | strict 默认走内核路径：去开关；解不出 ⇒ 报错**用人能读的名字**点名 binder（不许出现 `?<id>` / `\0soko_m…`），不回落。**前提**（P2-D 风险表）：① P2-11e（`=` 进内核路径）；② 内核路径自己的报错文字，替代旧路径的 `strict_rejection_message` 等，CLI 断言 strict 文字的测试同步改；③ `@` 脊 / 具名实参 / prelude 安装仍走旧路径，先决定移植还是保留；④ 报错处的 hover 不能丢；⑤ 去 `env_on` 会让 strict 缓存键整体失效，`kernel_app_keys.rs` 重写。unit12-solution L171 已由 P2-L-fix 修好，无需改写法 | lib 17/17；整门课 strict 112/112；loose 逐字节；R1 报「无法推断」类错误 | 待 P2-11e |
+| P2-13 | **砍掉共享代码里的 strict 分支**（不是删模块：旧 typed app、`pp_shape`、`judge_infer`、`implicit*` 都是 loose / tactic / goal / LSP 共用，见 `reports/2026-10-31-p2-d-old-path-inventory.md`）。strict 专属的只有 `elab.rs:4505-4540`、`:4780-4794`、`:4885-4900` 等 | 同上 + 摘旧分支 `f151eaba` 的 `scripts/audit-strict-paths.py` 并按本分支重定基线、只降不升 | 待 P2-12 |
 
 **P2-C 结论**（2026-10-31，分支二进制 `2fdb470c`，开关开，251 个 tracked 文件，冷跑；主会话抽查 m5/q2 复现）：
 - 整门课计分板 4 门全绿：lib 17/17 两档；工作量 strict = loose；课程 112/112 目标、0 失败、433 checked，两档相同。
@@ -255,9 +255,11 @@ oracle（`elab.rs:4821` `pp_shape::arg_types` → `operand_type_expr` → `infer
 
 ### P3 清理
 
-- `audit-strict-paths` 三项归零、基线改 0；删 `SOKO_STRICT_TYPED_APP` / `SOKO_STRICT_V2` /
-  `SOKO_STRICT_ALLOW_FALLBACK` / `SOKO_V2_LOCAL_CONVERT` 与 `type_oracle` 文本回落。
-- **判据**：audit 三项 0；grep 不到这些开关；docs-lint 全绿。
+- ~~删 `SOKO_STRICT_TYPED_APP` / `SOKO_STRICT_V2` / `SOKO_STRICT_ALLOW_FALLBACK` / `SOKO_V2_LOCAL_CONVERT` 与 `type_oracle`~~：
+  **本分支上本来就没有**（P2-D 盘点，主会话 grep 复核 0 处），是旧分支的东西 ⇒ 不用做。`SOKO_STRICT_AT` 是有文档的逃生门，**保留**。
+- 剩下的：`SOKO_STRICT_KERNEL_APP` 在 P2-12 去掉；`audit-strict-paths` 摘过来后把 strict 专属的文本调用降到 0
+  （loose / tactic / goal 共用的不算）；§9.39「零文本」还覆盖记法层级、match/let、具名实参、goal 视图等非应用路径，逐项列在 P2-D 盘点里，按需另开刀。
+- **判据**：audit strict 专属项 0；grep 不到 `SOKO_STRICT_KERNEL_APP`；docs-lint 全绿。
 
 ### P4 发版
 
