@@ -116,7 +116,8 @@ pub fn key_with_build(src: &str, options: &CompileOptions, build: u64) -> String
         env!("CARGO_PKG_VERSION"),
         build,
         options.prelude == PreludeMode::Bare,
-        metavar_state(),
+        // **P2-8**：内核应用闸门生效档占 `0b1_0000`（关 ⇒ 0 ⇒ 旧键逐字节不变）。
+        metavar_state() | crate::compile::kernel_app::key_bit(options.dialect),
         flags_state(options.dialect),
         // **E3**：覆盖指纹（`0` = 没覆盖 ⇒ 键与今天逐字相同 ✓）。
         crate::compile::prelude::prelude_override_state(),
@@ -227,7 +228,8 @@ pub fn content_key_with_build(src: &str, options: &CompileOptions, build: u64) -
         env!("CARGO_PKG_VERSION"),
         build,
         options.prelude == PreludeMode::Bare,
-        metavar_state(),
+        // **P2-8**：内核应用闸门生效档占 `0b1_0000`（关 ⇒ 0 ⇒ 旧键逐字节不变）。
+        metavar_state() | crate::compile::kernel_app::key_bit(options.dialect),
         // ⚠ **`0` = 「不折 `SOKO_*`」**（§3 的「无环境」）—— **不是**「环境为空」的哈希
         // （[`flags_hash`] 对空集返回的是 `0xcbf2_9ce4_8422_2325` ✓）。用字面量而不把
         // `key_parts` 的实参换成 `Option`，是为了**不动那个签名**（它的每个实参都有既有

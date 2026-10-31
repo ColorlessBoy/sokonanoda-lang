@@ -23,7 +23,7 @@ pub mod hints;
 pub(crate) mod hole;
 mod implicit;
 // P1-F1：按需从**内核声明类型**取参数望远镜（P1-F2 的内核级 `elab_app` 用）。
-mod kernel_app;
+pub(crate) mod kernel_app;
 mod kernel_app_hint;
 pub(crate) mod kernel_app_miss;
 mod kernel_app_notation;
@@ -128,3 +128,7 @@ mod kernel_app_tests;
 #[cfg(test)]
 #[path = "tests/kernel_app_redo.rs"]
 mod kernel_app_redo_tests;
+// P2-8：内核应用闸门进缓存键（同进程换挡不串味）。
+#[cfg(test)]
+#[path = "tests/kernel_app_keys.rs"]
+mod kernel_app_keys_tests;

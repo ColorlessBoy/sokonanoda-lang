@@ -16,7 +16,7 @@
 
 use super::elab::{ElabCtx, ElabScope, HoverNode, KnownName, KnownTable, UnivMap};
 use super::error::CompileError;
-use super::kernel_app::{count, env_on, finish, plain, run, Count};
+use super::kernel_app::{count, effective, finish, plain, run, Count};
 use super::kernel_app_miss::MissGuard;
 use super::kernel_app_postpone as postpone;
 use super::kernel_app_probe as probe;
@@ -63,8 +63,7 @@ pub(crate) fn try_notation<'a>(
     expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<(Option<ExprPtr<'a>>, Option<MissGuard>), CompileError> {
-    if !ctx.options.dialect.strict()
-        || !env_on()
+    if !effective(ctx.options.dialect)
         || !routing_enabled()
         || operands.is_empty()
         || super::elab::prelude_install_active()

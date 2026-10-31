@@ -220,10 +220,10 @@ pub(crate) fn judge_cache_contains(key: u64) -> bool {
 }
 
 fn options_key(options: &CompileOptions) -> String {
-    // **方言必须进键**（S2，`docs/design/dialect-config.md` §3.3）：同一前缀在两档下的
-    // 判定不同（宽松档接受 `h Nat Nat …`，严格档拒）⇒ 键少了它，先跑的那一档会被另一档
-    // **原样回放** ✗。守卫 `crates/front/tests/dialect_cache_keys.rs`（撤掉方言 ⇒ 判红）。
-    format!("{:?}/{:?}", options.prelude, options.dialect)
+    // **方言必须进键**（S2）：两档判定不同 ⇒ 少了它先跑的那一档被另一档**原样回放** ✗。
+    // **P2-8**：内核应用闸门的**生效档**同理（`kernel_app::key_tag`；关 ⇒ 空串 ⇒ 旧键逐字不变）。
+    let kapp = crate::compile::kernel_app::key_tag(options.dialect);
+    format!("{:?}/{:?}{kapp}", options.prelude, options.dialect)
 }
 
 pub fn judge_terms(

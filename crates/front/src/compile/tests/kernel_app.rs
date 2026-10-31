@@ -434,7 +434,7 @@ fn probe_pass_off_pays_unsolved_miss() {
 /// **P2-5 回归**（unit12 `flawed_equalities_refuted` 第二个合取支的自包含最小形 c2）：探测把某个内层应用的老路
 /// 换成推迟后，外层没解出 ⇒ 外层更高一层回落老路 ⇒ 撞老路的 `Sort(0)/Sort(1)` 拒绝。修法：切过且外层不是
 /// `Solved` ⇒ 关掉切、整段重做一次（= 今天的行为）。base（P2-4，闸门开）单独进程实测接受。
-const C2_SRC: &str = "def Set (α : Type) : Type := α -> Prop\n\
+pub(super) const C2_SRC: &str = "def Set (α : Type) : Type := α -> Prop\n\
      def Set.empty {α : Type} : Set α := fun (x : α) => False\n\
      notation \"∅\" => Set.empty\n\
      def Set.univ {α : Type} : Set α := fun (x : α) => True\n\

@@ -132,7 +132,7 @@ struct EntryCache {
 fn dependency_fingerprint(
     plan: &crate::project::ProjectPlan,
     entry: &std::path::Path,
-    prelude: PreludeMode,
+    options: CompileOptions,
 ) -> u64 {
     let mut hash = 0xcbf2_9ce4_8422_2325u64;
     let mut mix = |bytes: &[u8]| {
@@ -142,14 +142,14 @@ fn dependency_fingerprint(
         }
     };
     mix(b"soko.entry-deps/1");
-    // **prelude 模式必须进指纹**（2026-10-01 补的一个静默错编口子）：它是**文件注释
-    // 指令**（`-- soko:prelude bare`）决定的，而注释**不是命令** ⇒ 改指令**不改任何
-    // 命令的文本** ⇒ `trusted_prefix` 会认**整份**前缀 ⇒ 拿**另一个 prelude** 下的
-    // 结论当这一份的 ⇒ 静默错编 ✗（与 `EntryCache::deps` 那条同一类）。
-    mix(&[match prelude {
+    // **prelude 模式必须进指纹**（2026-10-01）：它由**文件注释指令**（`-- soko:prelude bare`）决定，
+    // 改指令**不改任何命令的文本** ⇒ `trusted_prefix` 会认整份前缀 ⇒ 拿另一个 prelude 下的结论
+    // 当这一份的 ⇒ 静默错编 ✗（与 `EntryCache::deps` 那条同一类）。
+    mix(&[match options.prelude {
         PreludeMode::Full => 1,
         PreludeMode::Bare => 2,
     }]);
+    mix(crate::compile::kernel_app::key_tag(options.dialect).as_bytes()); // P2-8：关 ⇒ 空串 ⇒ 指纹不变
     mix(b"\0");
     for module in plan.modules() {
         if module.path == entry {
@@ -674,7 +674,7 @@ impl QueryDoc {
         // **先把 `before` 与要拼的前缀算出来**，再借出去编译（`entry_cache` 之后要写回）。
         // **依赖指纹**：闭包的另一半变了 ⇒ 这份缓存的前缀结论不再成立（见
         // `EntryCache::deps` 的注释）。指纹不等就**不信任**（退回全查）。
-        let deps = dependency_fingerprint(&plan, &path, self.mode);
+        let deps = dependency_fingerprint(&plan, &path, options);
         let (trust, prefix) = match (&self.entry_cache, &layout) {
             (Some(cache), Some((keys, starts))) if cache.deps == deps => {
                 let before = cache.trusted_prefix(keys, starts);
@@ -885,7 +885,7 @@ impl QueryDoc {
             keys,
             starts,
             report: entry,
-            deps: dependency_fingerprint(&plan, &path, self.mode),
+            deps: dependency_fingerprint(&plan, &path, self.options()),
         })
     }
 

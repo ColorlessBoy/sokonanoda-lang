@@ -55,6 +55,28 @@ pub(super) fn env_on() -> bool {
     *ON.get_or_init(|| std::env::var("SOKO_STRICT_KERNEL_APP").is_ok_and(|v| v == "1"))
 }
 
+/// **生效档位**（P2-8）：本路径在 `dialect` 下**会不会跑**。三处闸门（[`try_app`]、`kernel_app_hint`、
+/// `kernel_app_notation`）与**所有缓存键**都只读这一个定义 ⇒ 闸门换来源（设置项 / 默认开）时键跟着走。
+/// 进键的形状见 [`key_tag`]：**关 ⇒ 空串 / 0 位** ⇒ 闸门关的键与 P2-8 之前逐字节相同。
+pub(crate) fn effective(dialect: super::Dialect) -> bool {
+    dialect.strict() && env_on()
+}
+
+/// 判定缓存键（`judge::options_key`）的后缀：生效 ⇒ `"/kapp"`，否则 `""`（旧键不变）。
+pub(crate) fn key_tag(dialect: super::Dialect) -> &'static str {
+    if effective(dialect) {
+        "/kapp"
+    } else {
+        ""
+    }
+}
+
+/// 磁盘键（`cache::keys::metavar_state` 那个字节）的位：生效 ⇒ `0b1_0000`，否则 `0`（旧键不变）。
+/// 低四位已被元变量三档（0..=2）+ `SOKO_META_PATTERN`（`0b0100`）/ `SOKO_META_APPROX`（`0b1000`）占用。
+pub(crate) fn key_bit(dialect: super::Dialect) -> u8 {
+    u8::from(effective(dialect)) << 4
+}
+
 static TRIED: AtomicU64 = AtomicU64::new(0);
 static SOLVED: AtomicU64 = AtomicU64::new(0);
 static UNSOLVED: AtomicU64 = AtomicU64::new(0);
@@ -216,7 +238,7 @@ fn attempt<'a>(
     expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<ExprPtr<'a>, Option<&'static str>> {
-    if !ctx.options.dialect.strict() || !env_on() {
+    if !effective(ctx.options.dialect) {
         return Err(None);
     }
     let (head, args) = crate::spine::spine_of(expr);

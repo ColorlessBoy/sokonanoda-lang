@@ -2,7 +2,7 @@
 //! 拆自 [`super::kernel_app`]（docs-lint ⑨：源码文件 ≤ 500 行）。
 
 use super::elab::{elab_expr, ElabCtx, ElabScope, HoverNode, KnownName, KnownTable, UnivMap};
-use super::kernel_app::{count, env_on, Count};
+use super::kernel_app::{count, effective, Count};
 use super::kernel_app_postpone as postpone;
 use crate::Expr;
 use sokonanoda::builder::EnvBuilder;
@@ -25,7 +25,7 @@ pub(crate) fn try_hinted_const<'a>(
     hovers: &mut Vec<HoverNode<'a>>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Option<ExprPtr<'a>> {
-    if !ctx.options.dialect.strict() || !env_on() || !postpone::has_hint(span, scope) {
+    if !effective(ctx.options.dialect) || !postpone::has_hint(span, scope) {
         return None;
     }
     let Some(KnownName::Decl { universes, .. }) = known.get(canonical) else {
