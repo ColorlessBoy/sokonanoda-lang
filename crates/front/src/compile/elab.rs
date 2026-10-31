@@ -2264,14 +2264,22 @@ pub(super) fn universe_level_text_of_operands<'a>(
     mut env: Option<&mut InplaceEnv<'_, 'a>>,
 ) -> Option<String> {
     for operand in operands {
-        let ty_text = infer_type_text(
+        // §9.39：单看推不出类型的操作数（`{∅}`/`∅` 无期望类型）⇒ **跳过、试下一个**
+        // （= Lean `analyze.go` 的 `isUnknown → hasUnknown` 继续扫），不许整体返回 `None`。
+        let Some(ty_text) = infer_type_text(
             ctx,
             scope,
             operand,
             InplaceEnv::reborrow(&mut env),
             None,
             false,
-        )?;
+        ) else {
+            #[cfg(test)]
+            if p2l_level_operands_tests::TEST_LEVEL_ABORT_ON_UNKNOWN.with(|c| c.get()) {
+                return None; // 修前行为（反向验证开关，见该测试模块）
+            }
+            continue;
+        };
         // **G-31（第二处，实测未命中大头：unit08 全程 100/226 次）**：第二问要的是
         // **`ty_text` 的类型**（= 它的宇宙）。它以前每次都 `judge_infer` 合成一份
         // `#check`、**整份重编前缀**；这里先试**就地** —— 把类型文本回读成 `#check`
@@ -8766,6 +8774,10 @@ fn derive_recursor(
 
     (rec, rules)
 }
+
+#[cfg(test)]
+#[path = "tests/p2l_level_operands.rs"]
+pub(crate) mod p2l_level_operands_tests;
 
 #[cfg(test)]
 mod b2_meta_pair_tests {
