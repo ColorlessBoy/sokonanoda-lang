@@ -206,6 +206,18 @@ oracle（`elab.rs:4821` `pp_shape::arg_types` → `operand_type_expr` → `infer
 - strict 档全部应用走新路径；删旧 typed app 与影子档；诊断复用 `strict/report.rs`。
 - **判据**：lib 17/17；整门课 strict 全部目标通过；计数 ≤ loose；loose 档 golden 与 `--json` 逐字节不变。
 
+**拆刀（2026-10-31 定，进度以本表为准；每刀 ≤60 分钟可提交，子代理实现、主会话审+并入）**：
+
+| 刀 | 内容 | 判据 | 状态 |
+|---|---|---|---|
+| P2-1…P2-8 | 推迟实参、多轮、重检、记法、探测、缓存键 | 见交接书 `2026-10-31-strict-handoff.md` §1 | ✓ |
+| P2-9 | 内核：`expected` 里允许外层元变量（注册 + 内层 `meta_base` 防撞号）；`NeedArgs.blocked` 带域；拆 `elab_app_holes.rs`（P2-7 设计 §1/§6 第 3–4 步） | 内核单测（外部元变量被赋值 / 留空 ⇒ Unsolved / 撞号反向验证）；开关关 38 文件逐字节 | 进行中 |
+| P2-C | **普查**（只读）：整门课开关开，每文件按回落原因计数；钉住 P2-7 §5 R1+R2 两档分歧 | 一张表 + 结论回写本节 | 进行中 |
+| P2-10 | 前端：`elab_ready` 把 blocked 的非 λ 位按带元变量的域作提示 | R3/R4 计数降；`TEST_NO_EXTERNAL_METAS` 反向 | 待 P2-9 |
+| P2-11 | 按普查结果清剩余回落原因（每类：修 or 定为报错） | 普查表每类归零或有处置 | 待 P2-C |
+| P2-12 | strict 默认走内核路径：去开关；解不出 ⇒ 报错点名 binder，不回落 | lib 17/17；整门课 strict 全通过；loose 逐字节 | 待 P2-11 |
+| P2-13 | 删旧 typed app / 文本回落 / 影子档 | 同上 + audit 归零（衔接 P3） | 待 P2-12 |
+
 ### P3 清理
 
 - `audit-strict-paths` 三项归零、基线改 0；删 `SOKO_STRICT_TYPED_APP` / `SOKO_STRICT_V2` /
