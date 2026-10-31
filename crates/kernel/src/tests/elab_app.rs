@@ -656,3 +656,82 @@ fn p29_d_blocked_carries_domain() {
         assert!(same(imported, back), "blocked domain round-trips as ?T : Type");
     });
 }
+
+/// **P2-11a-B**：`IffT.intro {a b : Prop} (mp : a → b) (mpr : b → a)` 对期望 `IffT X X`，
+/// `X = ∀ (b : TB) (a : TA), R a b → R a b`（课程 `iffn` 同形：无 def）。显式位的域是在传播**之前**用 `?a ?b`
+/// 造的 Pi 闭包；传播赋值后，实参 `fun (h : X) => fun b a x => h b a x` 的类型与域实例化后逐字相同。
+/// 修前（`STALE_DOM_REEVAL` 关）⇒ `ArgMismatch { arg: 0 }`；修后 ⇒ Solved，且 `add_declar` 接受。
+#[test]
+fn p211a_b_stale_domain_after_propagation() {
+    run(|b, kx| {
+        let zero = b.zero();
+        let one = b.succ(zero);
+        let ty = b.mk_sort(one);
+        let ta = ax(b, "TA", ty);
+        let tb = ax(b, "TB", ty);
+        let r_ty = {
+            let p = pi(b, "y", D, tb, kx.prop);
+            pi(b, "x", D, ta, p)
+        };
+        let r = ax(b, "R", r_ty);
+        let iff_ty = {
+            let p = pi(b, "b", D, kx.prop, kx.prop);
+            pi(b, "a", D, kx.prop, p)
+        };
+        let iff = ax(b, "IffT", iff_ty);
+        // IffT.intro : {a b : Prop} → (a → b) → (b → a) → IffT a b
+        let iff_intro = {
+            let (v2, v3) = (b.mk_var(2), b.mk_var(3));
+            let res = apps(b, iff, &[v3, v2]);
+            let (v1, v3) = (b.mk_var(1), b.mk_var(3));
+            let mpr_ty = pi(b, "_", D, v1, v3);
+            let mpr = pi(b, "mpr", D, mpr_ty, res);
+            let (v1, v1b) = (b.mk_var(1), b.mk_var(1));
+            let mp_ty = pi(b, "_", D, v1, v1b);
+            let mp = pi(b, "mp", D, mp_ty, mpr);
+            let bb = pi(b, "b", I, kx.prop, mp);
+            let t = pi(b, "a", I, kx.prop, bb);
+            ax(b, "IffT.intro", t)
+        };
+        // X = Π (b : TB) (a : TA), R a b → R a b
+        let x = {
+            let (v0, v1) = (b.mk_var(0), b.mk_var(1));
+            let rab = apps(b, r, &[v0, v1]);
+            let (v1, v2) = (b.mk_var(1), b.mk_var(2));
+            let rab2 = apps(b, r, &[v1, v2]);
+            let h = pi(b, "h", D, rab, rab2);
+            let a_ = pi(b, "a", D, ta, h);
+            pi(b, "b", D, tb, a_)
+        };
+        // mp := fun (h : X) => fun (b : TB) (a : TA) (x : R a b) => h b a x
+        let mp = {
+            let (v0, v1, v2, v3) = (b.mk_var(0), b.mk_var(1), b.mk_var(2), b.mk_var(3));
+            let app = apps(b, v3, &[v2, v1, v0]);
+            let (u0, u1) = (b.mk_var(0), b.mk_var(1));
+            let rab = apps(b, r, &[u0, u1]);
+            let l3 = lam(b, "x", rab, app);
+            let l2 = lam(b, "a", ta, l3);
+            let l1 = lam(b, "b", tb, l2);
+            lam(b, "h", x, l1)
+        };
+        // mpr := fun (h : X) => h
+        let mpr = {
+            let v0 = b.mk_var(0);
+            lam(b, "h", x, v0)
+        };
+        let expected = apps(b, iff, &[x, x]);
+        let args = [mp, mpr];
+        // 反向验证：关掉重算 ⇒ 修前行为（陈旧域 ⇒ ArgMismatch）。
+        crate::elab_app::set_stale_dom_reeval(false);
+        let off = elab(b, &req(&[], iff_intro, 0, &args, Some(expected)));
+        crate::elab_app::set_stale_dom_reeval(true);
+        assert_eq!(off, AppOutcome::ArgMismatch { arg: 0 }, "without re-eval the stale domain is rejected");
+        let o = elab(b, &req(&[], iff_intro, 0, &args, Some(expected)));
+        let got = solved(b, &o);
+        let want = apps(b, iff_intro, &[x, x, mp, mpr]);
+        assert!(same(got, want), "IffT.intro X X mp mpr");
+        let name = b.name_from_str("p211a_b");
+        let uparams = b.alloc_levels_slice(&[]);
+        b.add_declar(Declar::Theorem { info: DeclarInfo { name, uparams, ty: expected }, val: got }).expect("kernel accepts");
+    });
+}

@@ -66,7 +66,13 @@ pub enum AppOutcome {
 
 thread_local! {
     static PROPAGATIONS: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+    /// **P2-11a-B** 反向验证开关（只有测试会关它；判定路径恒为 `true`）。
+    static STALE_DOM_REEVAL: std::cell::Cell<bool> = const { std::cell::Cell::new(true) };
 }
+
+/// 测试用：关掉/打开本线程的陈旧域重算（反向验证 `p211a_b_*` 必须在关时失败）。
+#[cfg(test)]
+pub(crate) fn set_stale_dom_reeval(on: bool) { STALE_DOM_REEVAL.with(|c| c.set(on)); }
 
 /// 本线程累计的**成功**期望类型传播次数（测试/计数用；判定不读它）。
 pub fn propagations() -> u64 { PROPAGATIONS.with(|c| c.get()) }
@@ -200,6 +206,8 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
             d += 1;
         }
         let exp_v = expected.map(|e| self.eval(d, env, e));
+        // **P2-11a-B**：本会话的赋值基线（`app_arg_def_eq` 只在它之后有赋值时才重算域）。
+        let gen0 = self.ctx.mvars.generation();
         let mut fty = self.infer_value(InferFlag::InferOnly, d, env, ctx, head);
         let mut term = head;
         let mut metas: Vec<(u32, NamePtr<'t>)> = Vec::new();
@@ -259,7 +267,7 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
                 continue;
             };
             let at = self.infer_value(InferFlag::InferOnly, d, env, ctx, arg);
-            if !self.is_def_eq_at(d, dom, at) {
+            if !self.app_arg_def_eq(d, env, gen0, dom, at) {
                 // Lean 会把卡在未赋值元变量上的约束推迟（`postponed`）；这里推迟到 finalize 重试一次。
                 if !self.app_stuck_on_meta(d, dom) {
                     return AppOutcome::ArgMismatch { arg: ai };
@@ -284,7 +292,7 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
             }
         }
         let failed: Vec<usize> =
-            postponed.into_iter().filter(|(_, dom, at)| !self.is_def_eq_at(d, dom, at)).map(|p| p.0).collect();
+            postponed.into_iter().filter(|(_, dom, at)| !self.app_arg_def_eq(d, env, gen0, dom, at)).map(|p| p.0).collect();
         let mut unsolved: Vec<String> = metas
             .iter()
             .filter(|(id, _)| self.ctx.mvars.value(*id).is_none())
@@ -343,6 +351,23 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
             return false;
         };
         exp_v.is_none_or(|ev| self.is_def_eq_at(d, ev, ty))
+    }
+
+    /// **P2-11a-B**：`dom ≟ at`（带回滚）。失败且本会话自 `gen0` 起有过赋值 ⇒ 域可能是赋值**之前**造的值
+    /// （闭包里捕获的 `?M` 已赋值，`def_eq_at` 在 binder 下不跟赋值）⇒ 按 `instantiate_mvars(quote(dom))`
+    /// 重算再比一次（Lean `isDefEq` 在 `Expr` 上边比边实例化，`Meta/ExprDefEq.lean:1402`，没有陈旧闭包）。
+    /// 只在原比较失败时重试 ⇒ 今天通过的对子路径不变；重试通过 = 实例化后真 defeq。
+    fn app_arg_def_eq(&mut self, d: u32, env: E<'t>, gen0: u64, dom: V<'t>, at: V<'t>) -> bool {
+        if self.is_def_eq_at(d, dom, at) {
+            return true;
+        }
+        if self.ctx.mvars.generation() == gen0 || !STALE_DOM_REEVAL.with(|c| c.get()) {
+            return false;
+        }
+        let q = self.quote(d, dom);
+        let q = self.ctx.instantiate_mvars(q);
+        let fresh = self.eval(d, env, q);
+        self.is_def_eq_at(d, fresh, at)
     }
 
     /// 实参的期望域卡在**未赋值**的元变量上（`?p w`）⇒ 失败可能只是信息不够（推迟，不判错）。
