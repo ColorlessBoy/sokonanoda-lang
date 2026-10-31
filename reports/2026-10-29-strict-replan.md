@@ -211,12 +211,24 @@ oracle（`elab.rs:4821` `pp_shape::arg_types` → `operand_type_expr` → `infer
 | 刀 | 内容 | 判据 | 状态 |
 |---|---|---|---|
 | P2-1…P2-8 | 推迟实参、多轮、重检、记法、探测、缓存键 | 见交接书 `2026-10-31-strict-handoff.md` §1 | ✓ |
-| P2-9 | 内核：`expected` 里允许外层元变量（注册 + 内层 `meta_base` 防撞号）；`NeedArgs.blocked` 带域；拆 `elab_app_holes.rs`（P2-7 设计 §1/§6 第 3–4 步） | 内核单测（外部元变量被赋值 / 留空 ⇒ Unsolved / 撞号反向验证）；开关关 38 文件逐字节 | 进行中 |
-| P2-C | **普查**（只读）：整门课开关开，每文件按回落原因计数；钉住 P2-7 §5 R1+R2 两档分歧 | 一张表 + 结论回写本节 | 进行中 |
-| P2-10 | 前端：`elab_ready` 把 blocked 的非 λ 位按带元变量的域作提示 | R3/R4 计数降；`TEST_NO_EXTERNAL_METAS` 反向 | 待 P2-9 |
-| P2-11 | 按普查结果清剩余回落原因（每类：修 or 定为报错） | 普查表每类归零或有处置 | 待 P2-C |
-| P2-12 | strict 默认走内核路径：去开关；解不出 ⇒ 报错点名 binder，不回落 | lib 17/17；整门课 strict 全通过；loose 逐字节 | 待 P2-11 |
+| P2-9 | 内核：`expected` 里允许外层元变量（登记 + 内层 id 从 `max(SESSION_META_BASE, 最大外部 id+1)` 起防撞号）；`NeedArgs.blocked` 带域；拆 `elab_app_holes.rs` | 内核单测（外部元变量被赋值 / 留空 ⇒ Unsolved / 撞号反向验证）；开关开/关全语料逐字节 | `cd75504e` 待语料对拍 |
+| P2-C | **普查**（只读）：整门课开关开，按回落原因计数；钉住 R1/R2 两档分歧 | 见下「P2-C 结论」 | ✓ |
+| P2-10 | 前端：`elab_ready` 把 blocked 的非 λ 位按带元变量的域作提示（P2-7 方案 A 第 5 步） | `unsolved` 回落降（`Exists.intro`/`And.intro`/`Or.*`/`Set.image`/`≼`）；`TEST_NO_EXTERNAL_METAS` 反向 | 待 P2-9 |
+| P2-11a | `argmismatch`：实参没对着 binder 类型 elaborate（`a ∈ univ`）、检查不展开定义（`Iff.intro` 过 `def`）——P2-7 设计**未覆盖**，先只读定根因 | 普查 `fallback_argmismatch` 归零或逐处处置 | 待定根因 |
+| P2-11b | `surplus`：过量应用（`And.right h x`，Lean `whnfForall` 结果类型 `App.lean:458`） | `fallback_unsupported_surplus` 归零 | 待 P2-10 |
+| P2-11c | 宇宙多态头（`Eq`/`Eq.symm`/`Eq.subst`）仍被前端 `universes.is_empty()` 挡在门外（K1d 内核已支持） | 计数归零；m5 在 strict 判对 | 待 P2-10 |
+| P2-11d | 余量：`input contains a meta` 19 处、`shape` 8、`argelab` 3、`expected` 3 | 各归零或定为报错 | 待前几刀 |
+| P2-12 | strict 默认走内核路径：去开关；解不出 ⇒ 报错**用人能读的名字**点名 binder（不许出现 `?<id>` / `\0soko_m…`），不回落；unit12-solution L171 照 unit12 L285 改写法 | lib 17/17；整门课 strict 112/112；loose 逐字节；R1 报「无法推断」类错误 | 待 P2-11 |
 | P2-13 | 删旧 typed app / 文本回落 / 影子档 | 同上 + audit 归零（衔接 P3） | 待 P2-12 |
+
+**P2-C 结论**（2026-10-31，分支二进制 `2fdb470c`，开关开，251 个 tracked 文件，冷跑；主会话抽查 m5/q2 复现）：
+- 整门课计分板 4 门全绿：lib 17/17 两档；工作量 strict = loose；课程 112/112 目标、0 失败、433 checked，两档相同。
+- 内核路径解出 908,821 / 917,633 = **99.04%** 的应用。回落按原因（次数 / 不同位置上限）：`argmismatch` 5,573 / 38（`Set.mem` 5,132、`Iff.intro` 330、`Set.subset` 68）· `unsolved` 3,122 / 183（`Exists.intro` 2,684、`And.intro` 160、`≼` 119）· `input contains a meta` 45 / 19 · `surplus` 29 / 25 · 宇宙多态头 19 / 7 · `shape` 12 · `argelab` 9 · `expected` 3。次数大多是同一批 lib 位置在每个导入方里重 elaborate；不少位置落在文件末尾之后（推断是 `judge_infer` 拼的前缀文本），不同位置数是上限。
+- 对照 Lean `Elab/App.lean`：所有回落原因都是 Lean 能解的（`propagateExpectedType` :563、`elabAndAddNewArg` :433、`postponeElabTerm` :1314、`whnfForall` :458）。唯一该报错的是 R1 那种约束不足的元变量（Lean `TermElabM.lean:934` 在声明末尾报）。
+- **main 上已有的 bug（与本分支无关，主会话复现过）**：`{∅} = @Set.univ (Set Nat)`（m5）在两个二进制、两档、开关开关下**全部拒绝**（Sort(0)/Sort(1)）——左边的类型只能由右边定时，旧路径选错 sort。交换两边就过。Lean 的 `binrel%`（`Elab/Extra.lean:256`）先 elaborate 两边，应当接受（推断，未跑 Lean）。走 P2-11c 后在 strict 修掉；loose 是否另修待用户定。
+- R1/R2 两档分歧 main 上就有：R1 在 strict 拒绝（main 上漏 `\0soko_m10`）；R2 在 loose 拒绝（即 m5）。
+- `units/solutions/I.4/unit12-solution` L171 在 strict 拒绝（main 同样），是 unit12 L285 那处的答案版，要同样改写法（并入 P2-12）。`gaps/C-04`、`gaps/C-112-cb-direct-def-reject` 本来就是拒绝复现件。
+- 子代理报的「`Exists.intro 0 rfl` 开关开时 rc=1、可能回退」**不成立**：8 种配置全是 `unknown identifier rfl`（课程库无 `rfl`），复现件写错。
 
 ### P3 清理
 
