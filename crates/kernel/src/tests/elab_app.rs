@@ -735,3 +735,92 @@ fn p211a_b_stale_domain_after_propagation() {
         b.add_declar(Declar::Theorem { info: DeclarInfo { name, uparams, ty: expected }, val: got }).expect("kernel accepts");
     });
 }
+
+/// **P2-11b**：过量应用 `AndR.right hx y`，`AndR.right : {a b : Prop} → AndR a b → b`，scope
+/// `(hx : AndR Qp (∀ y : A, P y)) (y : A)`（课程 `And.right hx y` 同形）。吃掉 `hx` 后 `fty` 是隐式位造元变量时
+/// 求值的 `?b xs`——**赋值之前**的 `Value::Meta`，`weak_pi`/`force_pi` 不跟赋值 ⇒ 修前 `Unsupported("surplus")`；
+/// 修后（自 `gen0` 有赋值 ⇒ `fty` 按 `instantiate_mvars(quote(fty))` 重算）⇒ Solved，且 `add_declar` 接受。
+#[test]
+fn p211b_surplus_after_assigned_result_meta() {
+    run(|b, kx| {
+        let and_ty = {
+            let p = pi(b, "b", D, kx.prop, kx.prop);
+            pi(b, "a", D, kx.prop, p)
+        };
+        let andr = ax(b, "AndR", and_ty);
+        // AndR.right : {a b : Prop} → AndR a b → b
+        let right = {
+            let (v0, v1) = (b.mk_var(0), b.mk_var(1));
+            let h_ty = apps(b, andr, &[v1, v0]);
+            let v1 = b.mk_var(1);
+            let h = pi(b, "h", D, h_ty, v1);
+            let bb = pi(b, "b", I, kx.prop, h);
+            pi(b, "a", I, kx.prop, bb)
+        };
+        let right = ax(b, "AndR.right", right);
+        // ∀ y : A, P y
+        let all_p = {
+            let v0 = b.mk_var(0);
+            let py = b.mk_app(kx.p, v0);
+            pi(b, "y", D, kx.a, py)
+        };
+        let hx_ty = apps(b, andr, &[kx.qp, all_p]);
+        let tys = [hx_ty, kx.a];
+        let (v0, v1) = (b.mk_var(0), b.mk_var(1));
+        let args = [v1, v0];
+        let expected = b.mk_app(kx.p, v0);
+        let want = apps(b, right, &[kx.qp, all_p, v1, v0]);
+        for exp in [None, Some(expected)] {
+            // 反向验证：关掉重算 ⇒ 修前行为（陈旧的 `?b xs` 不是 Π）。
+            crate::elab_app::set_surplus_reeval(false);
+            let off = elab(b, &req(&tys, right, 0, &args, exp));
+            crate::elab_app::set_surplus_reeval(true);
+            assert_eq!(off, AppOutcome::Unsupported("surplus"), "without re-eval the stale result meta is not a Pi");
+            let o = elab(b, &req(&tys, right, 0, &args, exp));
+            let got = solved(b, &o);
+            assert!(same(got, want), "AndR.right Qp (∀ y, P y) hx y");
+        }
+        // 闭成定理：`∀ (hx : AndR Qp (∀ y, P y)) (y : A), P y := fun hx y => AndR.right .. hx y`。
+        let ty = {
+            let v0 = b.mk_var(0);
+            let py = b.mk_app(kx.p, v0);
+            let yp = pi(b, "y", D, kx.a, py);
+            pi(b, "hx", D, hx_ty, yp)
+        };
+        let val = {
+            let l = lam(b, "y", kx.a, want);
+            lam(b, "hx", hx_ty, l)
+        };
+        let name = b.name_from_str("p211b");
+        let uparams = b.alloc_levels_slice(&[]);
+        b.add_declar(Declar::Theorem { info: DeclarInfo { name, uparams, ty }, val }).expect("kernel accepts");
+    });
+}
+
+/// **P2-11b**（负例）：结果类型真不是 Π（`AndR.right hx y`，`hx : AndR Qp Qp`）⇒ 重算后照样 `Unsupported("surplus")`
+/// （重算不放宽判定：只在赋值让 `fty` 变成 Π 时才继续）。
+#[test]
+fn p211b_genuine_surplus_still_unsupported() {
+    run(|b, kx| {
+        let and_ty = {
+            let p = pi(b, "b", D, kx.prop, kx.prop);
+            pi(b, "a", D, kx.prop, p)
+        };
+        let andr = ax(b, "AndR", and_ty);
+        let right = {
+            let (v0, v1) = (b.mk_var(0), b.mk_var(1));
+            let h_ty = apps(b, andr, &[v1, v0]);
+            let v1 = b.mk_var(1);
+            let h = pi(b, "h", D, h_ty, v1);
+            let bb = pi(b, "b", I, kx.prop, h);
+            pi(b, "a", I, kx.prop, bb)
+        };
+        let right = ax(b, "AndR.right", right);
+        let hx_ty = apps(b, andr, &[kx.qp, kx.qp]);
+        let tys = [hx_ty, kx.a];
+        let (v0, v1) = (b.mk_var(0), b.mk_var(1));
+        let args = [v1, v0];
+        let o = elab(b, &req(&tys, right, 0, &args, None));
+        assert_eq!(o, AppOutcome::Unsupported("surplus"), "Qp is not a Pi");
+    });
+}

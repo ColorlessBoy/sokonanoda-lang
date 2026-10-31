@@ -68,11 +68,17 @@ thread_local! {
     static PROPAGATIONS: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
     /// **P2-11a-B** 反向验证开关（只有测试会关它；判定路径恒为 `true`）。
     static STALE_DOM_REEVAL: std::cell::Cell<bool> = const { std::cell::Cell::new(true) };
+    /// **P2-11b** 反向验证开关（只有测试会关它；判定路径恒为 `true`）。
+    static SURPLUS_REEVAL: std::cell::Cell<bool> = const { std::cell::Cell::new(true) };
 }
 
 /// 测试用：关掉/打开本线程的陈旧域重算（反向验证 `p211a_b_*` 必须在关时失败）。
 #[cfg(test)]
 pub(crate) fn set_stale_dom_reeval(on: bool) { STALE_DOM_REEVAL.with(|c| c.set(on)); }
+
+/// 测试用：关掉/打开本线程的过量应用 `fty` 重算（反向验证 `p211b_*` 必须在关时失败）。
+#[cfg(test)]
+pub(crate) fn set_surplus_reeval(on: bool) { SURPLUS_REEVAL.with(|c| c.set(on)); }
 
 /// 本线程累计的**成功**期望类型传播次数（测试/计数用；判定不读它）。
 pub fn propagations() -> u64 { PROPAGATIONS.with(|c| c.get()) }
@@ -224,6 +230,11 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
             };
             let Some(pi) = pi else {
                 if ai < args.len() {
+                    // **P2-11b**（Lean `synthesizePendingAndNormalizeFunType` → `whnfForall`，App.lean:946-948/247）。
+                    if let Some(p) = self.app_reeval_pi(d, env, gen0, fty) {
+                        fty = p;
+                        continue;
+                    }
                     return AppOutcome::Unsupported("surplus");
                 }
                 break;
@@ -368,6 +379,19 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         let q = self.ctx.instantiate_mvars(q);
         let fresh = self.eval(d, env, q);
         self.is_def_eq_at(d, fresh, at)
+    }
+
+    /// **P2-11b**：实参还有剩、`fty` 却不是 Π ⇒ 若本会话自 `gen0` 起有过赋值，`fty` 可能是赋值**之前**造的
+    /// `?b xs`（`force_all` 不重放已赋值的 `Value::Meta`）⇒ 按 `instantiate_mvars(quote(fty))` 重算；是 Π 才交回
+    /// （Lean `whnfForall` 先实例化已赋值元变量）。不是 Π / 没赋值 ⇒ `None`（照旧 `surplus`）。
+    fn app_reeval_pi(&mut self, d: u32, env: E<'t>, gen0: u64, fty: V<'t>) -> Option<V<'t>> {
+        if self.ctx.mvars.generation() == gen0 || !SURPLUS_REEVAL.with(|c| c.get()) {
+            return None;
+        }
+        let q = self.quote(d, fty);
+        let q = self.ctx.instantiate_mvars(q);
+        let fresh = self.eval(d, env, q);
+        self.weak_pi(d, fresh).or_else(|| self.force_pi(d, fresh))
     }
 
     /// 实参的期望域卡在**未赋值**的元变量上（`?p w`）⇒ 失败可能只是信息不够（推迟，不判错）。
