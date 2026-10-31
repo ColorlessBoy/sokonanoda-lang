@@ -64,6 +64,8 @@ scripts/strict/fallback-one.sh <cli> <file.sokonanoda>
 - zsh 不会把未加引号的 `$var` 拆成多个参数；向 git 传 ref 列表用 `--stdin`。
 - 一条声明只报第一处错，可能盖住另一处：判「既有问题」要拆到合取粒度复现。
 - `lib/Logic.sokonanoda` 两档输出本来就为空（rc=0），对拍相同不说明什么。
+- **对拍只比同一检出目录跑出的结果**：`docs/gaps/repro/G77-no-funext.sokonanoda` 的诊断里带模块根绝对路径，`corpus-hashes.sh` 在哪个 worktree 跑哈希就不同（2026-10-31：同一二进制在三处得到三个哈希）。基线和新二进制要在同一处跑。
+- 空输出哈希 `e3b0c44298fc1c14` 只许出现在 `lib/Logic`；别处出现 = 超时或崩溃。脚本没写出新二进制时也会静默得到空结果，跑前先 `ls` 钉住的二进制。
 
 ## 6. 备份（只在本机）
 
