@@ -479,3 +479,67 @@ fn probe_cut_without_redo_rejects_c2() {
         "关掉重做 ⇒ 必须判红（否则本测试咬不住 c2 回归）"
     );
 }
+
+/// **P2-11a-A**：裸隐式常量实参（`a ∈ univ`：`univ : {α} → Set α`）推迟到域就绪再 elaborate（Lean
+/// `elabAndAddNewArg` + `addImplicitArg`）⇒ `Set.mem` / `Set.subset` 由内核解出，不再 `ArgMismatch` 回落。
+const BARE_IMPLICIT_SRC: &str = "def Set (α : Type) : Type := α -> Prop\n\
+     def Set.univ {α : Type} : Set α := fun (x : α) => True\n\
+     def Set.mem {α : Type} (a : α) (s : Set α) : Prop := s a\n\
+     infix:50 \" ∈ \" => Set.mem\n\
+     def Set.subset {α : Type} (A B : Set α) : Prop := (x : α) -> Set.mem x A -> Set.mem x B\n\
+     infix:50 \" ⊆ \" => Set.subset\n\
+     theorem m1 {α : Type} (a : α) : a ∈ Set.univ := True.intro\n\
+     theorem s1 {α : Type} (A : Set α) : A ⊆ Set.univ := fun (x : α) (h : x ∈ A) => True.intro\n";
+
+/// 同 [`run`]（闸门强制开），另外设裸常量推迟开关（`bare = false` ⇒ P2-11a-A 之前的行为）。
+fn run_bare(src: &str, bare: bool) -> (Vec<String>, u64, u64) {
+    let src = src.to_string();
+    on_compile_stack(move || {
+        super::kernel_app_postpone::TEST_NO_BARE_POSTPONE.with(|c| c.set(!bare));
+        TEST_OVERRIDE.with(|c| c.set(Some(true)));
+        TEST_SOLVED.with(|c| c.set(0));
+        TEST_FALLBACK.with(|c| c.set(0));
+        let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
+        let options = CompileOptions {
+            prelude: PreludeMode::Full,
+            dialect: Dialect::Strict,
+        };
+        let out = compile_fol_with(&file, &options);
+        let errors = out.errors.iter().map(|e| format!("{e:?}")).collect();
+        (
+            errors,
+            TEST_SOLVED.with(|c| c.get()),
+            TEST_FALLBACK.with(|c| c.get()),
+        )
+    })
+}
+
+#[test]
+fn bare_implicit_const_arg_is_postponed_and_solved() {
+    let (errors_off, _, _) = run(BARE_IMPLICIT_SRC, false);
+    assert_eq!(errors_off, Vec::<String>::new());
+    let (errors, solved, fallback) = run_bare(BARE_IMPLICIT_SRC, true);
+    assert_eq!(errors, errors_off, "判卷与闸门关逐字相同");
+    assert_eq!(fallback, 0, "a ∈ univ / A ⊆ univ 不回落（solved={solved}）");
+    assert!(solved > 0);
+}
+
+#[test]
+fn bare_implicit_const_arg_falls_back_without_postponement() {
+    // 反向验证：关掉裸常量推迟 ⇒ 内核拿到 `{α} → Set α` 对 `Set α` ⇒ ArgMismatch 回落（判卷仍由老路给）。
+    let (errors, _, fallback) = run_bare(BARE_IMPLICIT_SRC, false);
+    assert_eq!(errors, Vec::<String>::new());
+    assert!(fallback > 0, "关掉推迟 ⇒ 必须回落（fallback={fallback}）");
+}
+
+#[test]
+fn local_shadowing_bare_name_is_not_postponed() {
+    // 局部 `univ` 遮蔽同名常量 ⇒ 不是常量 ⇒ 不推迟；开关开/关判卷相同。
+    let src = format!(
+        "{BARE_IMPLICIT_SRC}theorem l1 {{α : Type}} (a : α) (univ : Set α) (h : a ∈ univ) : a ∈ univ := h\n"
+    );
+    let on = run_bare(&src, true);
+    let off = run_bare(&src, false);
+    assert_eq!(on.0, Vec::<String>::new());
+    assert_eq!(on.0, off.0);
+}

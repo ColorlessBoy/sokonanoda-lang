@@ -229,6 +229,42 @@ pub(crate) fn loose_bvars(
     n
 }
 
+#[cfg(test)]
+thread_local! {
+    /// 测试用：`true` ⇒ 裸隐式常量不推迟（反向验证：P2-11a-A 之前的行为）。
+    pub(crate) static TEST_NO_BARE_POSTPONE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// **P2-11a-A**：实参是**裸**常量（`Ident` / 零元记法 `∅`）、它的声明有前导隐式（`univ : {α} → Set α`）、
+/// 且没被局部名遮蔽 ⇒ 推迟（Lean `elabAndAddNewArg` 对着域 elaborate，`addImplicitArg` 补前导隐式；
+/// 无期望时 `try_bare_implicit_constant` 不动 ⇒ 内核拿到 Pi 对 `Set α` ⇒ `ArgMismatch`）。
+/// 返回规范名（推迟位按域 elaborate 时，`Ident` 要借 [`super::kernel_app_hint::try_hinted_const`]：
+/// `try_bare_implicit_constant` 只读源级期望，内核域它看不见；零元记法自己的臂已经走那条）。
+pub(crate) fn bare_implicit_const(
+    a: &Expr,
+    scope: &ElabScope<'_>,
+    known: &super::elab::KnownTable,
+    ns: &super::scope::NamespaceScope,
+) -> Option<String> {
+    #[cfg(test)]
+    if TEST_NO_BARE_POSTPONE.with(|c| c.get()) {
+        return None;
+    }
+    let canonical = match a {
+        Expr::Ident { name, span } if scope.find_last(name).is_none() => {
+            super::elab::resolve_known(known, ns, name, *span, scope.local_names()).ok()
+        }
+        Expr::Notation {
+            target,
+            lhs: None,
+            rhs: None,
+            ..
+        } => Some(target.clone()),
+        _ => None,
+    }?;
+    (known.get(&canonical)?.implicit_prefix() > 0).then_some(canonical)
+}
+
 /// 一轮：域已就绪的推迟位对着内核给的域 elaborate，填进 `explicit`。
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn elab_ready<'a>(
@@ -262,6 +298,16 @@ pub(crate) fn elab_ready<'a>(
             }
             _ => ExpectedHint::set(a.span(), depth, dom),
         };
+        // P2-11a-A：裸隐式常量 `univ` ⇒ 按域补前导隐式（Lean `addImplicitArg`）。
+        if let (Expr::Ident { span, .. }, Some(c)) =
+            (a, bare_implicit_const(a, scope, known, ctx.ns))
+        {
+            let t = super::kernel_app_hint::try_hinted_const(
+                builder, &c, *span, scope, univ, known, hovers, ctx,
+            );
+            explicit[ai] = Some(t.ok_or(super::kernel_app::Count::ArgElab)?);
+            continue;
+        }
         let t = super::elab::elab_expr(
             builder,
             a,

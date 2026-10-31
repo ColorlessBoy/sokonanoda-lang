@@ -396,7 +396,8 @@ fn run_once<'a>(
     // binder）一并撤掉。推迟关着 ⇒ 失败即回落（P2-1 之前的行为）。
     let mut explicit: Vec<Option<ExprPtr<'a>>> = Vec::with_capacity(args.len());
     for a in args {
-        if postpone::enabled() && postpone::untyped_lambda_layers(a, plain).is_some() {
+        let bare = || postpone::bare_implicit_const(a, scope, known, ctx.ns).is_some();
+        if postpone::enabled() && (postpone::untyped_lambda_layers(a, plain).is_some() || bare()) {
             explicit.push(None);
             continue;
         }
