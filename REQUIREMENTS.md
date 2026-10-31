@@ -267,13 +267,13 @@ notation 更直观**」+「**不许新建大 plan 文件**；用 `scripts/plan.p
 ### 9.22 2026-10-22 unit02（用户问「答案有错还是自动推导有错」）⇒ 答案正确、末尾 `sorry` 多余；修 `Eq.subst _` 谓词洞、冗余 sorry 警告、failed 投影、parse 谎报、e2e 登录/`killed 15`（见 STATUS v0.97.5）。
 
 ### 9.36 2026-10-23 `apply Eq.subst h hx` / `exact Eq.subst h hx` 判绿（unit02 姐妹形状；用户：「初学者可能会非常疑惑」）
-
 **落地**：`compile/eqsubst.rs` 形状 ② 合成 old-style 前缀交内核终审（错方向照样判红），`apply`/`exact` 共用；通用反解能过的形状不碰。**判据**：front 1040/1040 · 用例 15/15 · CLI 集成与课程门禁 exit 0 · 真课程文件判绿。
 
 ### 9.37 2026-10-24 发版前例行 Lean Kernel Arena 门禁 + 可信度结果进 README/官网（用户：「发版本号前应该例行化……保证最新版……当前内核改完之后没有报错」；「这种可信度的测试结果在 readme 和官网上都要体现」）
-
 **落地**：`scripts/arena-gate.py` 每次现查最新 master push run 的 `test-tarball`（`gh`+网络；取不到 exit 3，不跳过），跑 tarball tier（每 case 超时；`--full`/`LEAN_KERNEL_ARENA` 加跑大语料）；`bump.py` 在**写版本号前**强制，`release-preflight.sh` ④ 复核，`bump.py --check` 不跑（不依赖网络）。内核修三处：嵌套 iota 字段数核对（`nested-rec-rule-nfields`）、unsafe/partial 显式 `decline`、`MetaContext` 未赋值计数 O(1) 闸（`perf/app-lam` 30s+ → 0.46s）。已知不支持仅 `140_falseFromUnsafe`/`141_falseFromPartial`（accepted 即判负）；已知慢仅 `perf/magma-list-pair-n21`（pin 期 >400s；只允许 timeout，正确性仍判）。官方通过后写 `site/data/arena.json` → `gen-arena-summary.py` 写 README 块、`gen-site-data.py` 写 `site.json`，`check-site.py data` 核对三处。**边界**：公开 tarball 不含 >10MB 的 `init`/`std`/`mathlib`/`cslib`；不调用官方 Lean 工具链。设计：`docs/design/arena-gate.md`。
 
 ### 9.38 2026-10-25 metavar 要做（含 #16 高阶 / pattern 合一）——「先设计方案再执行」（用户拍板）
 
 用户原话：「metavar要做，要做好设计，先设计方案再执行」。**要求**：metavar 要做（含 #16）；**先把设计做好**（`docs/design/metavar-pattern.md`：HO1–HO4、判据、反向、开关）；**设计验收后才改判定代码**。背景：`apply Eq.subst (Eq.symm h)` 原理上合法、Lean 4 接受（留 `¬ (x ∈ ∅)`），今天的判红是表面匹配 + 无 pattern 合一。
+
+### 9.39 2026-10-31 `{∅} = @Set.univ (Set Nat)` 两档都修（用户：「loose档一起修了吧」）⇒ 左边类型只能由 `=`/`≠` 右边定时（P2-C m5），main 上两档都拒（Sort(0)/Sort(1)），交换两边就过；Lean `binrel%`（`Elab/Extra.lean:256`）先 elaborate 两边再统一。**要求**：两档都接受（strict 走内核路径 P2-11c，loose 修旧路径）。**对「loose 逐字节不变」的有意例外**：loose 语料只许在含此形状的文件上变、只许拒绝→接受、逐行列出。

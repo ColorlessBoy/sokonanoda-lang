@@ -224,6 +224,7 @@ oracle（`elab.rs:4821` `pp_shape::arg_types` → `operand_type_expr` → `infer
 | P2-11a-B | 内核：`elab_app.rs` 显式实参闸门前，若本会话已有赋值，`dom` 从 `instantiate_mvars(quote(dom))` 重 eval（`Value` 闭包里捕获的是 `app_propagate` 赋值**之前**的值）。约 4 行。Lean 的 Expr 无陈旧闭包（`ExprDefEq.lean:1402`）。长期正解在 `def_eq_at` 本身 | `Iff.intro` 家族（330 次）归零；内核单测 + 反向验证；两对语料逐字节 | 待 P2-10（可能同改 `elab_app*`） |
 | P2-11b | `surplus`：过量应用（`And.right h x`，Lean `whnfForall` 结果类型 `App.lean:458`） | `fallback_unsupported_surplus` 归零 | 待 P2-10 |
 | P2-11c | 宇宙多态头（`Eq`/`Eq.symm`/`Eq.subst`）仍被前端 `universes.is_empty()` 挡在门外（K1d 内核已支持） | 计数归零；m5 在 strict 判对 | 待 P2-10 |
+| P2-L | **loose 档**修 m5（REQUIREMENTS §9.39）：先只读定旧路径 `=`/`≠` 记法选错 sort 的根因，再修；对齐 Lean `binrel%` 先 elaborate 两边 | m5 两档接受；loose 语料只在含此形状的文件上变、只许拒绝→接受、逐行列出；strict 不受影响 | 根因调查进行中 |
 | P2-11d | 余量：`input contains a meta` 19 处、`shape` 8、`argelab` 3、`expected` 3 | 各归零或定为报错 | 待前几刀 |
 | P2-12 | strict 默认走内核路径：去开关；解不出 ⇒ 报错**用人能读的名字**点名 binder（不许出现 `?<id>` / `\0soko_m…`），不回落；unit12-solution L171 照 unit12 L285 改写法 | lib 17/17；整门课 strict 112/112；loose 逐字节；R1 报「无法推断」类错误 | 待 P2-11 |
 | P2-13 | 删旧 typed app / 文本回落 / 影子档 | 同上 + audit 归零（衔接 P3） | 待 P2-12 |
