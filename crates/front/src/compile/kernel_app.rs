@@ -329,7 +329,7 @@ pub(super) fn finish<'a>(
         },
         Ok(AppOutcome::Unsolved { .. }) => count(Count::Unsolved),
         Ok(AppOutcome::ArgMismatch { .. }) => count(Count::ArgMismatch),
-        Ok(AppOutcome::ExpectedMismatch) => count(Count::Expected),
+        Ok(AppOutcome::ExpectedMismatch { .. }) => count(Count::Expected),
         Ok(AppOutcome::Unsupported(why)) => count(Count::Unsupported(why)),
         // 第二趟带齐实参后不该再要；要了 = 推迟位按域也 elaborate 不了 ⇒ 当 argelab 回落。
         Ok(AppOutcome::NeedArgs { .. }) => count(Count::ArgElab),

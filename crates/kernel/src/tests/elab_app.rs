@@ -5,7 +5,7 @@
 use super::meta_defeq::same;
 use super::meta_spine::axiom;
 use crate::builder::EnvBuilder;
-use crate::elab_app::{AppOutcome, AppRequest};
+use crate::elab_app::{AppOutcome, AppRequest, UnsolvedSite};
 use crate::env::{Declar, DeclarInfo, EnvLimit};
 use crate::expr::BinderStyle::{self, Default as D, Implicit as I};
 use crate::util::{Config, ExprPtr};
@@ -261,29 +261,42 @@ fn t4_mem_expected_prop_skips_propagation() {
 }
 
 /// **T5**：`ExT.intro w hw` 无期望 ⇒ `?p w =?= P w` 不是 pattern（`w` 已在 `?p` 的上下文里）⇒ 报 `p`。
+/// **P2-12 S1 (b)**：报的是 telescope 下标（`ExT.intro {α} (p) (w) (h)` 的 `p` = 1），不是名字。
 #[test]
 fn t5_exists_intro_without_expected_is_unsolved() {
     run(|b, kx| {
         let (tys, args, _) = t1_parts(b, kx);
         let o = elab(b, &req(&tys, kx.intro, 2, &args, None));
-        assert_eq!(o, AppOutcome::Unsolved { binders: vec!["p".to_string()] });
+        assert_eq!(o, AppOutcome::Unsolved { sites: vec![UnsolvedSite::Implicit { index: 1 }] });
     });
 }
 
 /// **T6**：错的实参 ⇒ `ArgMismatch { arg: 1 }`；错的期望 ⇒ `ExpectedMismatch`。
+/// **P2-12 S1 (c)**：两者都带回两边的类型——实参位 = (域 `P w`, 实参类型 `A`)，期望位 = (期望 `A`, 结果 `Prop`)。
 #[test]
 fn t6_mismatches() {
     run(|b, kx| {
         let (tys, args, expected) = t1_parts(b, kx);
         let bad = [args[0], args[0]];
         let o = elab(b, &req(&tys, kx.intro, 2, &bad, Some(expected)));
-        assert_eq!(o, AppOutcome::ArgMismatch { arg: 1 });
+        let AppOutcome::ArgMismatch { arg, expected_domain, actual_type } = &o else { panic!("expected ArgMismatch, got {o:?}") };
+        assert_eq!(*arg, 1);
+        let dom = b.import_owned(expected_domain).expect("import domain");
+        let at = b.import_owned(actual_type).expect("import actual");
+        let v1 = b.mk_var(1);
+        let want_dom = b.mk_app(kx.p, v1);
+        let lam_app = b.mk_app(kx.lam_p, v1);
+        assert!(same(dom, want_dom) || same(dom, lam_app), "expected_domain = P w (up to beta)");
+        assert!(same(at, kx.a), "actual_type = A (the type of w)");
         let a_prop = pi(b, "x", D, kx.a, kx.prop);
         let tys = [kx.a, a_prop];
         let (v0, v1) = (b.mk_var(0), b.mk_var(1));
         let args = [v1, v0];
         let o = elab(b, &req(&tys, kx.mem, 0, &args, Some(kx.a)));
-        assert_eq!(o, AppOutcome::ExpectedMismatch);
+        let AppOutcome::ExpectedMismatch { expected, actual } = &o else { panic!("expected ExpectedMismatch, got {o:?}") };
+        let (e, a) = (b.import_owned(expected).expect("import"), b.import_owned(actual).expect("import"));
+        assert!(same(e, kx.a), "expected = A");
+        assert!(same(a, kx.prop), "actual = Prop (type of Mem A a S)");
     });
 }
 
@@ -423,7 +436,7 @@ fn eq_family<'a>(b: &mut EnvBuilder<'a>, kx: Kx<'a>) -> EqFam<'a> {
 }
 
 /// **K1d-T4**：多态头 `Eq.refl` / `Eq.symm` 经本会话层元变量解出 `.{1}`；`Eq.subst` 的 motive 不是
-/// Miller pattern（实参是常量 `ea`/`eb`，不是 bound var）⇒ `Unsolved ["motive"]`。
+/// Miller pattern（实参是常量 `ea`/`eb`，不是 bound var）⇒ `Unsolved [Implicit 1]`（`{α} {motive}`）。
 #[test]
 fn k1d_t4_universe_polymorphic_heads() {
     run(|b, kx| {
@@ -448,16 +461,16 @@ fn k1d_t4_universe_polymorphic_heads() {
         // `propagateExpectedType` 成功后 `ensureHasType` 失败在实参上）。
         let bad = apps(b, eq1, &[kx.a, ea, eb]);
         let o = elab(b, &req(&[], bare[2], 0, &[hab], Some(bad)));
-        assert_eq!(o, AppOutcome::ArgMismatch { arg: 0 });
+        assert!(matches!(o, AppOutcome::ArgMismatch { arg: 0, .. }), "got {o:?}");
         // Eq.subst hab hp : P eb —— Lean 靠 `elab_as_elim` 的 motive 抽象；这里没有 ⇒ 点名 motive。
         let exp = b.mk_app(kx.p, eb);
         let o = elab(b, &req(&[], bare[3], 0, &[hab, hp], Some(exp)));
-        assert_eq!(o, AppOutcome::Unsolved { binders: vec!["motive".to_string()] });
+        assert_eq!(o, AppOutcome::Unsolved { sites: vec![UnsolvedSite::Implicit { index: 1 }] });
     });
 }
 
 /// **K1d-T5**：解不出的宇宙 ⇒ `Unsolved` 点名：`PolyB.{u v} : {α : Sort u} → α → Prop`（`v` 不出现）⇒
-/// `universe v`；无实参的 `Univ.{w} : Prop` ⇒ `universe w`。
+/// `universe v`；无实参的 `Univ.{w} : Prop` ⇒ `universe w`。**P2-12 S1 (d)**：`Level { param }` = 声明的宇宙参数名。
 #[test]
 fn k1d_t5_undetermined_universe_is_unsolved() {
     run(|b, kx| {
@@ -474,10 +487,10 @@ fn k1d_t5_undetermined_universe_is_unsolved() {
         let ea = ax(b, "ea", kx.a);
         let polyb = cst(b, "PolyB");
         let o = elab(b, &req(&[], polyb, 0, &[ea], Some(kx.prop)));
-        assert_eq!(o, AppOutcome::Unsolved { binders: vec!["universe v".to_string()] });
+        assert_eq!(o, AppOutcome::Unsolved { sites: vec![UnsolvedSite::Level { param: "v".to_string() }] });
         let univ = cst(b, "Univ");
         let o = elab(b, &req(&[], univ, 0, &[], None));
-        assert_eq!(o, AppOutcome::Unsolved { binders: vec!["universe w".to_string()] });
+        assert_eq!(o, AppOutcome::Unsolved { sites: vec![UnsolvedSite::Level { param: "w".to_string() }] });
     });
 }
 
@@ -564,6 +577,12 @@ fn p22_blocked_postponed_arg_becomes_ready_next_round() {
     });
 }
 
+/// `?` 后紧跟数字（元变量的内部号）是否出现在 `s` 里。
+fn has_meta_number(s: &str) -> bool {
+    let b = s.as_bytes();
+    b.windows(2).any(|w| w[0] == b'?' && w[1].is_ascii_digit())
+}
+
 /// T1 的 scope 上的上下文元变量 `?id w hw`，`?id : Π (w : A) (hw : P w), Type`（外部会话的形状）。
 fn ext_ctx_meta<'a>(b: &mut EnvBuilder<'a>, kx: Kx<'a>, id: u32) -> ExprPtr<'a> {
     let zero = b.zero();
@@ -596,6 +615,7 @@ fn p29_a_external_meta_in_expected_is_solved() {
 }
 
 /// **P2-9 (b)**：外部元变量没被约束（`hq` 对期望 `(fun _ : A => Qp) ?N`，β 后 `?N` 消失）⇒ `Unsolved`，不是 `Solved`。
+/// **P2-12 S1 (a)**：报 `External`，结果里**任何字符串**都不含 `?<数字>`（外部 id 可以是 2^30 级的内部号）。
 #[test]
 fn p29_b_unconstrained_external_meta_is_unsolved() {
     run(|b, kx| {
@@ -603,7 +623,14 @@ fn p29_b_unconstrained_external_meta_is_unsolved() {
         let k = lam(b, "_", kx.a, kx.qp);
         let expected = b.mk_app(k, n);
         let o = elab(b, &req(&[], kx.hq, 0, &[], Some(expected)));
-        assert_eq!(o, AppOutcome::Unsolved { binders: vec!["?7".to_string()] });
+        assert_eq!(o, AppOutcome::Unsolved { sites: vec![UnsolvedSite::External] });
+        assert!(!has_meta_number(&format!("{o:?}")), "no `?<digits>` in {o:?}");
+        // 内部号段的外部元变量同样不泄漏。
+        let big = b.mk_meta(crate::elab_app::SESSION_META_BASE + 3, kx.a);
+        let expected = b.mk_app(k, big);
+        let o = elab(b, &req(&[], kx.hq, 0, &[], Some(expected)));
+        assert_eq!(o, AppOutcome::Unsolved { sites: vec![UnsolvedSite::External] });
+        assert!(!has_meta_number(&format!("{o:?}")), "no `?<digits>` in {o:?}");
         // 对照：同一请求、期望无元变量 ⇒ Solved（证明 Unsolved 只来自外部元变量）。
         let o = elab(b, &req(&[], kx.hq, 0, &[], Some(kx.qp)));
         assert!(matches!(o, AppOutcome::Solved(_)), "got {o:?}");
@@ -725,7 +752,7 @@ fn p211a_b_stale_domain_after_propagation() {
         crate::elab_app::set_stale_dom_reeval(false);
         let off = elab(b, &req(&[], iff_intro, 0, &args, Some(expected)));
         crate::elab_app::set_stale_dom_reeval(true);
-        assert_eq!(off, AppOutcome::ArgMismatch { arg: 0 }, "without re-eval the stale domain is rejected");
+        assert!(matches!(off, AppOutcome::ArgMismatch { arg: 0, .. }), "without re-eval the stale domain is rejected: {off:?}");
         let o = elab(b, &req(&[], iff_intro, 0, &args, Some(expected)));
         let got = solved(b, &o);
         let want = apps(b, iff_intro, &[x, x, mp, mpr]);

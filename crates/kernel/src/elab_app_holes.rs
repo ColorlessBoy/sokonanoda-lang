@@ -3,10 +3,11 @@
 //!
 //! Lean 对照（v4.35.0）：`Elab/App.lean:433-443` `elabAndAddNewArg` 的 `expectedType` 可以含**同一 mctx**
 //! 的元变量；这里会话是新的 ⇒ 外部元变量按 id 重新登记（同 `solve_metas`），本会话的 id 从外部最大 id 之上分配。
-use crate::elab_app::{name_string, AppOutcome, SESSION_META_BASE};
+use crate::elab_app::{AppOutcome, UnsolvedSite, SESSION_META_BASE};
 use crate::expr::{BinderStyle, Expr};
 use crate::tc::TypeChecker;
-use crate::util::{ExprPtr, NamePtr};
+use crate::transfer::OwnedExpr;
+use crate::util::ExprPtr;
 use crate::value::{Value, E, V};
 
 /// 第 `k` 个本会话元变量的 id（`base + k`；溢出 ⇒ `None`）。
@@ -94,28 +95,49 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
     pub(crate) fn app_need_args(
         &mut self,
         d: u32,
-        holes: &[(usize, V<'t>, NamePtr<'t>)],
-        mut unsolved: Vec<String>,
+        holes: &[(usize, V<'t>)],
+        mut unsolved: Vec<UnsolvedSite>,
     ) -> AppOutcome {
         let (mut domains, mut blocked) = (Vec::with_capacity(holes.len()), Vec::new());
         let mut first_blocked = None;
-        for &(ai, dom, bn) in holes {
+        for &(ai, dom) in holes {
             let q = self.quote(d, dom);
             let q = self.ctx.instantiate_mvars(q);
             if !self.ctx.unassigned_mvars(q).is_empty() {
-                first_blocked.get_or_insert(bn);
+                first_blocked.get_or_insert(ai);
                 blocked.push((ai, self.ctx.export_owned(q)));
                 continue;
             }
             domains.push((ai, self.ctx.export_owned(q)));
         }
         if domains.is_empty() {
-            if let (true, Some(bn)) = (unsolved.is_empty(), first_blocked) {
-                unsolved.push(name_string(self.ctx, bn));
+            if let (true, Some(arg)) = (unsolved.is_empty(), first_blocked) {
+                unsolved.push(UnsolvedSite::Blocked { arg });
             }
-            return AppOutcome::Unsolved { binders: unsolved };
+            return AppOutcome::Unsolved { sites: unsolved };
         }
         AppOutcome::NeedArgs { domains, blocked }
+    }
+
+    /// 值 ⇒ scope 下的项，已赋值的元变量全部代入（**P2-12 S1** 报错载荷；还剩的元变量原样带着）。
+    fn app_export_side(&mut self, d: u32, v: V<'t>) -> OwnedExpr {
+        let q = self.quote(d, v);
+        let q = self.ctx.instantiate_mvars(q);
+        self.ctx.export_owned(q)
+    }
+
+    /// **P2-12 S1**（Lean `throwAppTypeMismatch`，`Meta/Check.lean:250-269`：带实参与两边类型）。
+    pub(crate) fn app_arg_mismatch(&mut self, d: u32, arg: usize, dom: V<'t>, at: V<'t>) -> AppOutcome {
+        let expected_domain = self.app_export_side(d, dom);
+        let actual_type = self.app_export_side(d, at);
+        AppOutcome::ArgMismatch { arg, expected_domain, actual_type }
+    }
+
+    /// **P2-12 S1**：结果类型 ≠ 期望 ⇒ 两边都带回。
+    pub(crate) fn app_expected_mismatch(&mut self, d: u32, ev: V<'t>, fty: V<'t>) -> AppOutcome {
+        let expected = self.app_export_side(d, ev);
+        let actual = self.app_export_side(d, fty);
+        AppOutcome::ExpectedMismatch { expected, actual }
     }
 
     /// **P2-3**：推迟的 λ 位的带注解 binder 类型逐层与域的 Pi 层 `isDefEq`（Lean `propagateExpectedType`，

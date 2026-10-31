@@ -49,12 +49,14 @@ pub struct AppRequest<'s, 'p> {
 pub enum AppOutcome {
     /// 无元变量的项，在 scope 之下（loose `Var` = scope binder）。
     Solved(OwnedExpr),
-    /// 应用末尾仍未赋值的隐式 binder 名（按 telescope 顺序）。
-    Unsolved { binders: Vec<String> },
-    /// 第 `arg` 个显式实参类型不对。
-    ArgMismatch { arg: usize },
-    /// 结果类型 ≠ 期望类型。
-    ExpectedMismatch,
+    /// 应用末尾仍没定下来的位（**P2-12 S1**：只给下标/种类，**不给内核名字**——前端按下标取源级名）。
+    /// 顺序：隐式位（telescope 顺序）→ 宇宙层 → 外部元变量 → （只有前三类为空时）第一个 blocked 推迟位。
+    Unsolved { sites: Vec<UnsolvedSite> },
+    /// 第 `arg` 个显式实参类型不对：`expected_domain` = 该位的域（代入当前解）、`actual_type` = 实参推出的类型。
+    /// 两边都在 scope 之下；能实例化掉的元变量都已实例化，剩下的（本会话的 `?M x1..xd`）原样带着。
+    ArgMismatch { arg: usize, expected_domain: OwnedExpr, actual_type: OwnedExpr },
+    /// 结果类型 ≠ 期望类型：`expected` = 调用方给的期望、`actual` = 应用的结果类型（同上：scope 之下、尽量无元变量）。
+    ExpectedMismatch { expected: OwnedExpr, actual: OwnedExpr },
     /// P1 的限制。
     Unsupported(&'static str),
     /// 有推迟的实参：`domains` = 域已就绪的推迟位 `(显式实参下标, 域)`（已代入当前解、**无元变量**、在 scope
@@ -62,6 +64,19 @@ pub enum AppOutcome {
     /// **带着**本会话的元变量 `?M x1..xd`，类型闭）。调用方按域 elaborate `domains` 后**再调一次**
     /// （新会话，全部重查；`blocked` 留 `None`）——每轮至少补上一位 ⇒ 轮数 ≤ 显式实参数。
     NeedArgs { domains: Vec<(usize, OwnedExpr)>, blocked: Vec<(usize, OwnedExpr)> },
+}
+
+/// [`AppOutcome::Unsolved`] 的一项（Lean `MVarErrorKind.implicitArg` + `addArgName`：记**哪个 binder**，不记元变量名）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UnsolvedSite {
+    /// 头的 telescope 里第 `index` 个 binder（0 起，含 `implicit_prefix` 位）上的隐式元变量没赋值。
+    Implicit { index: usize },
+    /// 头声明的宇宙参数 `param`（源级名，可直接印）没定下来。
+    Level { param: String },
+    /// `expected` 里的外部元变量（**P2-9**）没被本应用定下来——它属于外层应用，由外层报。
+    External,
+    /// 第 `arg` 个显式实参是推迟位，它的域仍含未赋值元变量。
+    Blocked { arg: usize },
 }
 
 thread_local! {
@@ -175,7 +190,7 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         // **K1d**：宇宙多态的头（Lean `mkConst` + `mkFreshLevelMVars`）：不带层的 `Const` ⇒ 每个 uparam
         // 一个**本会话登记**的层元变量（defeq 里可赋值）；带齐层 ⇒ 原样用；层数不对 ⇒ 不支持。
         let mut head = head;
-        let mut level_metas: Vec<(u64, String)> = Vec::new();
+        let mut level_metas: Vec<(u64, String)> = Vec::new(); // `(层元变量 id, 宇宙参数名)`
         if let Expr::Const { name, levels, .. } = self.ctx.read_expr(head) {
             let uparams = self.env.get_declar(&name).map(|d| d.info().uparams);
             let ups: Vec<_> = uparams.map(|u| self.ctx.read_levels(u).to_vec()).unwrap_or_default();
@@ -189,7 +204,7 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
                         crate::level::Level::Param(n, _) => name_string(self.ctx, n),
                         _ => k.to_string(),
                     };
-                    level_metas.push((id, format!("universe {n}")));
+                    level_metas.push((id, n));
                 }
                 let ls = self.ctx.alloc_levels(&ls);
                 head = self.ctx.mk_const(name, ls);
@@ -216,13 +231,13 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         let gen0 = self.ctx.mvars.generation();
         let mut fty = self.infer_value(InferFlag::InferOnly, d, env, ctx, head);
         let mut term = head;
-        let mut metas: Vec<(u32, NamePtr<'t>)> = Vec::new();
+        let mut metas: Vec<(u32, usize)> = Vec::new(); // `(元变量 id, telescope 下标)`
         let (mut i, mut ai) = (0usize, 0usize);
         let mut tried = false;
         let mut propagated = false;
         let mut postponed: Vec<(usize, V<'t>, V<'t>)> = Vec::new();
-        // 推迟的实参：`(显式下标, 域, 占位元变量名)`；占位 = 上下文元变量（同隐式位），后面的 binder 才能依赖它。
-        let mut holes: Vec<(usize, V<'t>, NamePtr<'t>)> = Vec::new();
+        // 推迟的实参：`(显式下标, 域)`；占位 = 上下文元变量（同隐式位），后面的 binder 才能依赖它。
+        let mut holes: Vec<(usize, V<'t>)> = Vec::new();
         loop {
             let pi = match self.weak_pi(d, fty) {
                 Some(p) => Some(p),
@@ -239,8 +254,8 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
                 }
                 break;
             };
-            let Value::Pi { binder_name, binder_style, domain, body, .. } = pi else { unreachable!() };
-            let (bn, bs, dom, body) = (*binder_name, *binder_style, *domain, *body);
+            let Value::Pi { binder_style, domain, body, .. } = pi else { unreachable!() };
+            let (bs, dom, body) = (*binder_style, *domain, *body);
             if self.app_implicit(i, req.implicit_prefix, bs) {
                 // Lean `processStrictImplicitArg`：没有剩余实参 ⇒ 不实例化，直接 finalize。
                 if i >= req.implicit_prefix && bs == BinderStyle::StrictImplicit && ai == args.len() {
@@ -250,7 +265,7 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
                 let Some(id) = meta_id(base, metas.len() + holes.len()) else { return AppOutcome::Unsupported("meta id space") };
                 let (m, mv) = self.app_fresh_meta(d, env, &binder_tys, dom, id);
                 term = self.ctx.mk_app(term, m);
-                metas.push((id, bn));
+                metas.push((id, i));
                 fty = self.apply_closure(d, &body, mv, Some(dom));
                 i += 1;
                 continue;
@@ -271,7 +286,7 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
                 let Some(id) = meta_id(base, metas.len() + holes.len()) else { return AppOutcome::Unsupported("meta id space") };
                 let (m, mv) = self.app_fresh_meta(d, env, &binder_tys, dom, id);
                 term = self.ctx.mk_app(term, m);
-                holes.push((ai, dom, bn));
+                holes.push((ai, dom));
                 fty = self.apply_closure(d, &body, mv, Some(dom));
                 ai += 1;
                 i += 1;
@@ -281,7 +296,7 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
             if !self.app_arg_def_eq(d, env, gen0, dom, at) {
                 // Lean 会把卡在未赋值元变量上的约束推迟（`postponed`）；这里推迟到 finalize 重试一次。
                 if !self.app_stuck_on_meta(d, dom) {
-                    return AppOutcome::ArgMismatch { arg: ai };
+                    return self.app_arg_mismatch(d, ai, dom, at);
                 }
                 postponed.push((ai, dom, at));
             }
@@ -297,46 +312,49 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         if let Some(ev) = exp_v {
             if !propagated && !self.is_def_eq_at(d, ev, fty) {
                 if !self.app_stuck_on_meta(d, fty) {
-                    return AppOutcome::ExpectedMismatch;
+                    return self.app_expected_mismatch(d, ev, fty);
                 }
                 exp_stuck = true;
             }
         }
-        let failed: Vec<usize> =
-            postponed.into_iter().filter(|(_, dom, at)| !self.app_arg_def_eq(d, env, gen0, dom, at)).map(|p| p.0).collect();
-        let mut unsolved: Vec<String> = metas
+        let failed: Vec<(usize, V<'t>, V<'t>)> =
+            postponed.into_iter().filter(|(_, dom, at)| !self.app_arg_def_eq(d, env, gen0, dom, at)).collect();
+        let mut unsolved: Vec<UnsolvedSite> = metas
             .iter()
             .filter(|(id, _)| self.ctx.mvars.value(*id).is_none())
-            .map(|(_, n)| name_string(self.ctx, *n))
+            .map(|(_, index)| UnsolvedSite::Implicit { index: *index })
             .collect();
-        // **K1d**：层元变量（顺着赋值看穿后）仍含未赋值的层 mvar ⇒ 报 `universe u`。
+        // **K1d**：层元变量（顺着赋值看穿后）仍含未赋值的层 mvar ⇒ 报该宇宙参数。
         for (id, n) in &level_metas {
             let l = self.ctx.mk_level_mvar(*id);
             let l = self.ctx.instantiate_level_mvars(l);
             let mut left = Vec::new();
             self.ctx.collect_level_mvars(l, &mut left);
             if !left.is_empty() {
-                unsolved.push(n.clone());
+                unsolved.push(UnsolvedSite::Level { param: n.clone() });
             }
         }
         // **P2-9**：应用没定下来的外部元变量 ⇒ `Unsolved`（`Solved` 仍然 = 无元变量的项；不回传赋值表）。
+        // **P2-12 S1**：只报种类（外层的元变量，外层报）——不再带 `?<id>` 字符串。
         for id in &externals {
             let m = self.ctx.mvars.ty_of(*id).map(|t| self.ctx.mk_meta(*id, t));
             if m.is_some_and(|m| !self.ctx.unassigned_mvars(m).is_empty()) {
-                unsolved.push(format!("?{id}"));
+                unsolved.push(UnsolvedSite::External);
             }
         }
         if !holes.is_empty() {
             return self.app_need_args(d, &holes, unsolved);
         }
         if !unsolved.is_empty() {
-            return AppOutcome::Unsolved { binders: unsolved };
+            return AppOutcome::Unsolved { sites: unsolved };
         }
         if exp_stuck {
-            return AppOutcome::ExpectedMismatch;
+            if let Some(ev) = exp_v {
+                return self.app_expected_mismatch(d, ev, fty);
+            }
         }
-        if let Some(arg) = failed.first() {
-            return AppOutcome::ArgMismatch { arg: *arg };
+        if let Some(&(arg, dom, at)) = failed.first() {
+            return self.app_arg_mismatch(d, arg, dom, at);
         }
         // 项 + 层赋值一并换掉（K1d：`?M xs` head-beta 走 `inst_open`，开放实参在 binder 下会 lift）。
         let out = self.ctx.instantiate_mvars(term);
