@@ -271,7 +271,7 @@ fn attempt<'a>(
     let postponable =
         |a: &Expr| postpone::enabled() && postpone::untyped_lambda_layers(a, plain).is_some();
     if !args.iter().all(|a| plain(a) || postponable(a)) {
-        return Err(Some(count(Count::Shape)));
+        return Err(super::kernel_app_hint::shape_counts(head).then(|| count(Count::Shape)));
     }
     let mark = hovers.len();
     // ⚠ `elab_expr` 的 binder 臂在 `?` 早退时**不** `truncate` 作用域（老路里 Err 直接让声明失败，

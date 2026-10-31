@@ -106,6 +106,17 @@ pub(super) fn universe_arity_ok(head: &Expr, universes: &[String]) -> bool {
     }
 }
 
+/// **P2-11e（收窄）**：实参形状不收（洞 / `by` / 命名实参…）时该不该计 `fallback_shape` 并回落。`Name.{…}` 头 ⇒
+/// **不**（计 `untried_universe_app_head`，调用方 `Err(None)` = 同 P2-11e 之前：不进 `probe::fallback`、不计 tried）。
+/// 实测放开时 13 个文件 `fallback_shape` 0→103：全是试了立刻回落、再走老路的 `=`（P2-10 同病：纯多出的工作）。
+pub(super) fn shape_counts(head: &Expr) -> bool {
+    if matches!(head, Expr::UniverseApp { .. }) {
+        observe_untried(head);
+        return false;
+    }
+    true
+}
+
 static UNTRIED_UNIVERSE_APP: AtomicU64 = AtomicU64::new(0);
 
 /// **P2-11c (1)**：纯观测——头是 `Name.{…}` 且没进内核路径（P2-11e 起只剩层数不符 / 测试开关）⇒ 计一次，

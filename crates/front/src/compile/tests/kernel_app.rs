@@ -734,6 +734,22 @@ fn universe_app_head_is_untried_with_old_gate() {
 }
 
 #[test]
+fn universe_app_bad_shape_stays_untried() {
+    // 实参形状不收（洞）的 `=` ⇒ 不试、不计 `fallback_shape`（试了只会立刻回落再付老路），计 untried；
+    // 判卷与闸门关相同。实测放开时 13 个文件 `fallback_shape` 0→103。
+    // 操作数里嵌一个无注解 λ（不在顶层 ⇒ 不可推迟 ⇒ 形状不收）。
+    let src = "def e7 (f : (Nat -> Nat) -> Nat) : Prop := f (fun x => x) = f (fun x => x)\n";
+    let (errors_off, ..) = run_uapp(src, false, true);
+    let (errors, _, fallback, untried) = run_uapp(src, true, true);
+    assert_eq!(errors, errors_off);
+    assert_eq!(fallback, 0, "形状不收的 `Name.{{…}}` 头不回落");
+    assert!(
+        untried > 0,
+        "形状不收的 `=` 计 untried（untried={untried}）"
+    );
+}
+
+#[test]
 fn universe_app_wrong_arity_stays_untried() {
     // 层数不符（`Eq.{0, 1}`）⇒ 不试（老路报 `ElabUniverseArity`），计 untried；判卷与闸门关相同。
     let src = "def e5 (a b : Nat) : Prop := Eq.{0, 1} a b\n";
