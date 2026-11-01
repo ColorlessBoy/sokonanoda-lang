@@ -149,7 +149,7 @@ fn dependency_fingerprint(
         PreludeMode::Full => 1,
         PreludeMode::Bare => 2,
     }]);
-    mix(crate::compile::kernel_app::key_tag(options.dialect).as_bytes()); // P2-8：关 ⇒ 空串 ⇒ 指纹不变
+    mix(crate::compile::kernel_app::key_tag(options.dialect).as_bytes()); // P2-8：宽松档 ⇒ 空串 ⇒ 指纹不变
     mix(b"\0");
     for module in plan.modules() {
         if module.path == entry {

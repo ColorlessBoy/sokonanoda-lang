@@ -19,7 +19,9 @@
 
 use super::kernel_app::{TEST_FALLBACK, TEST_OVERRIDE, TEST_SOLVED};
 use super::kernel_app_census::TEST_SETTLED_ROUTED;
-use super::kernel_app_fallback::{TEST_DEAD, TEST_KEPT, TEST_NO_FALLBACK, TEST_NO_PREFIX_META_KEPT};
+use super::kernel_app_fallback::{
+    TEST_DEAD, TEST_KEPT, TEST_NO_FALLBACK, TEST_NO_PREFIX_META_KEPT,
+};
 use super::kernel_app_notation::{TEST_NAIVE_MISSING, TEST_NO_RETRY, TEST_RETRY};
 use super::tests::on_compile_stack;
 use super::{compile_fol_with, CompileOptions, Dialect, PreludeMode};
@@ -76,7 +78,7 @@ struct Out {
 struct Knobs {
     /// 切分退回 S4c 之前。
     naive: bool,
-    /// S3 的第二把开关 `SOKO_STRICT_NO_FALLBACK`。
+    /// "不回落"档（P2-12 S6 起 = strict 的默认；这里用测试钩子显式设）。
     no_fallback: bool,
     /// 反向验证：取消 `prefix_meta` 这条写明的例外。
     drop_prefix_meta_kept: bool,

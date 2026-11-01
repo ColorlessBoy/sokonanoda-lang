@@ -55,11 +55,18 @@ const ILL_TYPED: &str = "theorem bad (n : Nat) (A : Set Nat) : n = A := sorry";
 const DIALECTS: [Dialect; 2] = [Dialect::Loose, Dialect::Strict];
 
 /// 编一份 `LIB + decl`，返回 (错误码列表, 是否发了该名的 `exercise.open`)。
+///
+/// **P2-12 S6 翻默认**：本文件量的是**老路**的层级选择（`universe_level_text_of_operands` 给
+/// `Eq.{u}`/`Ne.{u}` 定层）—— 修前那两臂的 `kernel-rejected` 只在**闸门关**（= 老路）时看得到；
+/// S6 之后 strict 默认走内核路径，`=`/`≠` 由 `kernel_app_notation` 接（同一条会被内核解出/另报）。
+/// ⇒ 这里显式把**内核路径关掉**（`TEST_OVERRIDE = false`，= P2-12 S6 之前的档；宽松档本来就走老路）。
+/// 断言一条都没改。
 fn run(tag: &str, decl: &str, dialect: Dialect, abort_on_unknown: bool) -> (Vec<String>, bool) {
     let src = format!("{LIB}\n{decl}\n");
     let tag = tag.to_string();
     on_compile_stack(move || {
         TEST_LEVEL_ABORT_ON_UNKNOWN.with(|c| c.set(abort_on_unknown));
+        super::super::kernel_app::TEST_OVERRIDE.with(|c| c.set(Some(false)));
         let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
         let options = CompileOptions {
             prelude: PreludeMode::Full,

@@ -1,22 +1,25 @@
-//! **P2-12 S3**：第二个过渡开关 `SOKO_STRICT_NO_FALLBACK=1` + 内核应用路径的**出口**。
+//! **P2-12 S3/S6**：内核应用路径的**出口** + "不回落"档（**S6 翻默认**：strict 档恒不回落，
+//! 第二个过渡环境变量已删）。
 //!
-//! 权威实施单：`reports/2026-11-01-p212-s3-spec.md` §2；文案规则见 [`super::kernel_app_report`]（S2，已定案）。
+//! 权威实施单：`reports/2026-11-01-p212-s6-spec.md` §1；文案规则见 [`super::kernel_app_report`]（S2，已定案）。
 //!
-//! 开关只在 [`super::kernel_app::effective`] 已生效（strict + `SOKO_STRICT_KERNEL_APP=1`）时才有意义：
+//! "不回落"只在 [`super::kernel_app::effective`] 已生效（= **严格方言**）时才有意义（它是 strict 档的默认）：
 //! **开** ⇒ 内核路径解不出时**不再回落老路**，改把 [`super::kernel_app_report::report`] 的结论交出去
-//! （人能读的错、真 span）；**关** ⇒ 与 P2-12 之前**逐字节相同**（本模块的渲染/解析一次都不跑）。
+//! （人能读的错、真 span）；宽松档 ⇒ 与 P2-12 之前**逐字节相同**（本模块的渲染/解析一次都不跑）。
 //!
 //! 三件事，各占一段：
-//! 1. [`no_fallback`] —— 开关的**唯一**读数（环境读一次 + 测试覆盖）；缓存键（`key_tag` / `key_bit`）也读它；
+//! 1. [`no_fallback`] —— 档位的**唯一**读数（= strict；`TEST_NO_FALLBACK` 只给单测关掉它）；
+//!    缓存键（`key_tag` / `key_bit`）也读它；
 //! 2. [`Fell`] + [`finish`] —— `finish` 的出口类型（没尝试 / 回落老路 / 报错），从 `kernel_app` 搬来，经
 //!    `kernel_app::finish` **re-export** 保持调用点不变（`kernel_app.rs` 逼近软线 500 行）；
-//! 3. [`facts`] / [`facts_notation`] —— **懒**填 [`ReportInput`]：只在"已经要回落、且开关开着"时才渲染
+//! 3. [`facts`] / [`facts_notation`] —— **懒**填 [`ReportInput`]：只在"已经要回落、且 strict 档"时才渲染
 //!    文本/解析签名。任何一项取不到（没有源级 `signature`、望远镜解不动）⇒ **不进 `report`、按例外回落**
 //!    （保守：报错数据不全就别报）。
 //!
-//! **写明的例外**（[`Report::Fallback`] 的四种原因 + [`Report::Defer`]，开关开着也仍走老路）：
+//! **写明的例外**（[`Report::Fallback`] 的四种原因 + [`Report::Defer`] + S4c 的 `prefix_meta`，strict 档也仍走老路）：
 //! `unsupported` · `need_args` · `expected_retry`（`ExpectedMismatch` 交 S4 重解）· `argmismatch_text`
-//! （正文要内核那台打印器）· `defer`（只含外部元变量 ⇒ 外层应用报）。它们进 `no_fallback_kept_<原因>` 计数。
+//! （正文要内核那台打印器）· `defer`（只含外部元变量 ⇒ 外层应用报）· `prefix_meta`（占位符一族）。
+//! 它们进 `no_fallback_kept_<原因>` 计数。
 
 use super::elab::{render_msg, ElabCtx, ElabScope, HoverNode, KnownTable};
 use super::error::CompileError;
@@ -31,11 +34,12 @@ use sokonanoda::util::ExprPtr;
 #[cfg(test)]
 use std::cell::Cell;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::Mutex;
 
 #[cfg(test)]
 thread_local! {
-    /// 测试用：`Some(b)` ⇒ 不读进程环境（[`super::kernel_app::effective`] 仍要过）。
+    /// 测试用：`Some(b)` ⇒ 不读档位（[`super::kernel_app::effective`] 仍要过）。**只在单测里存在** ——
+    /// 生产没有第二道闸门（P2-12 S6 翻默认）。
     pub(crate) static TEST_NO_FALLBACK: Cell<Option<bool>> = const { Cell::new(None) };
     /// **P2-12 S4c** 的反向验证开关：`true` ⇒ 取消 `prefix_meta` 那条**写明的例外**
     /// （`unit19-*` 那 6 个真实站点在开关开时当场变成诊断 ⇒ 正的那条判据判红）。
@@ -43,31 +47,73 @@ thread_local! {
 }
 
 /// 见 [`TEST_NO_PREFIX_META_KEPT`]：生产恒 `false`（`#[cfg(test)]` 之外没有这个开关）。
+#[cfg(test)]
 fn kept_prefix_meta_off() -> bool {
-    #[cfg(test)]
-    {
-        return TEST_NO_PREFIX_META_KEPT.with(|c| c.get());
-    }
-    #[cfg(not(test))]
+    TEST_NO_PREFIX_META_KEPT.with(|c| c.get())
+}
+
+/// 生产恒 `false`（见上）。
+#[cfg(not(test))]
+fn kept_prefix_meta_off() -> bool {
     false
 }
 
-fn env_on() -> bool {
+/// **生效档位**（P2-12 S6 翻默认）：**strict 档恒不回落**（不再有第二个环境变量闸门，也不读进程环境）。
+/// 出口与**所有缓存键**都只读这一个定义（同 P2-8 的纪律：闸门换来源时键跟着走）。
+/// 写明的例外（[`Report::Fallback`]）**仍回落** —— 这是 D4 已决的设计。
+///
+/// `TEST_NO_FALLBACK`（`#[cfg(test)]`）只给单测：它要在同一进程里对比"例外表全开"与"照旧回落"两条路。
+pub(crate) fn no_fallback(dialect: Dialect) -> bool {
+    let strict = dialect.strict();
     #[cfg(test)]
     if let Some(b) = TEST_NO_FALLBACK.with(|c| c.get()) {
-        return b;
+        return strict && b;
     }
-    static ON: OnceLock<bool> = OnceLock::new();
-    *ON.get_or_init(|| std::env::var("SOKO_STRICT_NO_FALLBACK").is_ok_and(|v| v == "1"))
+    strict
 }
 
-/// **生效档位**（P2-12 S3）：内核路径生效**且**第二个开关开。出口与**所有缓存键**都只读这一个定义
-/// （同 P2-8 的纪律：闸门换来源时键跟着走）。
-pub(crate) fn no_fallback(dialect: Dialect) -> bool {
-    super::kernel_app::effective(dialect) && env_on()
+/// 档位进**所有缓存键**的形状（**唯一来源**；`kernel_app::key_tag` / `key_bit` 只是它的两个字段）。
+///
+/// 生产（**P2-12 S6 翻默认**）：**只由方言决定** —— strict ⇒ (`"/kapp/nofb"`, `0b11_0000`)，宽松档 ⇒
+/// (`""`, `0`)。低四位已被元变量三档（0..=2）+ `SOKO_META_PATTERN`（`0b0100`）/ `SOKO_META_APPROX`
+/// （`0b1000`）占用 ⇒ 内核路径这两位不许借位。宽松档的键与 P2-8 之前**逐字节相同**。
+///
+/// ⚠ **测试钩子也算一档**（`#[cfg(test)]`）：单测要在**同一进程**里用 `TEST_OVERRIDE` / `TEST_NO_FALLBACK`
+/// 强开或强关这两道闸门；键不分开，一臂的判定就会被另一臂**原样回放** —— 实测
+/// `universe_app_heads_are_solved_by_kernel` 的基线档 5→4（闸门关那一臂的判定缓存被基线档吃掉了）。
+/// 生产没有这两个钩子 ⇒ 这一支不存在，键仍是方言常量。
+pub(crate) fn key_parts(dialect: Dialect) -> (&'static str, u8) {
+    #[cfg(test)]
+    if let Some(parts) = test_key_parts(dialect) {
+        return parts;
+    }
+    if dialect.strict() {
+        ("/kapp/nofb", 0b11_0000)
+    } else {
+        ("", 0)
+    }
 }
 
-/// `finish` 的出口：没尝试 / 回落老路（`why` 已计数）/ **开关开时报错**（S2 判出来的诊断）。
+/// 见 [`key_parts`]：测试钩子换算成**P2-12 S6 之前那四档**（键形状与本刀逐字相同 ⇒ 老判据的读数不变）。
+#[cfg(test)]
+fn test_key_parts(dialect: Dialect) -> Option<(&'static str, u8)> {
+    if !dialect.strict() {
+        return Some(("", 0));
+    }
+    let gate = super::kernel_app::TEST_OVERRIDE
+        .with(|c| c.get())
+        .unwrap_or(true);
+    let armed = TEST_NO_FALLBACK.with(|c| c.get()).unwrap_or(true);
+    Some(if !gate {
+        ("", 0)
+    } else if armed {
+        ("/kapp/nofb", 0b11_0000)
+    } else {
+        ("/kapp", 0b1_0000)
+    })
+}
+
+/// `finish` 的出口：没尝试 / 回落老路（`why` 已计数）/ **strict 档报错**（S2 判出来的诊断）。
 pub(super) enum Fell {
     /// 连尝试都没尝试（调用方照今天：不计数、不回落）。
     Untried,
@@ -91,7 +137,7 @@ impl Fell {
 /// （[`super::kernel_app_notation`]）共用这一份出口 ⇒ 回落纪律只有一处。
 ///
 /// **P2-12 S3**：`judge` 是调用方给的"要不要报错"的判定（[`app_fell`] / [`notation_fell`]），只在
-/// **已经要回落**的那条路上问一次 —— 开关关时它立刻回 `Fell::Fallback`，热路径一行都不多跑。
+/// **已经要回落**的那条路上问一次 —— 宽松档立刻回 `Fell::Fallback`，热路径一行都不多跑。
 pub(super) fn finish<'a>(
     builder: &mut EnvBuilder<'a>,
     outcome: Result<AppOutcome, Count>,
@@ -137,7 +183,7 @@ pub(super) fn finish<'a>(
     Err(verdict)
 }
 
-/// `finish` 的出口判定：**开关关 ⇒ 老路**（`facts` 一次都不调用 ⇒ 零成本）；开 ⇒ 按 S2 的 [`report`] 出诊断。
+/// `finish` 的出口判定：**宽松档 ⇒ 老路**（`facts` 一次都不调用 ⇒ 零成本）；strict ⇒ 按 S2 的 [`report`] 出诊断。
 /// 报错数据不全（`facts` 回 `None`）或 `report` 判"仍走老路"（写明的例外 / `Defer`）⇒ 照样回落。
 pub(super) fn fell(
     dialect: Dialect,
@@ -170,7 +216,7 @@ pub(super) fn fell(
     }
 }
 
-/// 应用路径的判定（`kernel_app::attempt` 交进来）。`ctx` 只用来读方言（开关只在 strict 生效）。
+/// 应用路径的判定（`kernel_app::attempt` 交进来）。`ctx` 只用来读方言（不回落只在 strict 档生效）。
 #[allow(clippy::too_many_arguments)]
 pub(super) fn app_fell(
     why: &'static str,
@@ -196,7 +242,7 @@ pub(super) fn app_fell(
 /// 前导位（`fill_pending_by_shape` 借同形兄弟）⇒ strict **不能**比 loose 更严（否则 `unit19-solution`
 /// 这类现在能过的课程文件会被拒）。所以它按**写明的例外**回落并计数 `nofallback_kept_prefix_meta`，
 /// **不进诊断** —— 这正是 `Report::Fallback` 那张表的用途（与 `argmismatch_text` / `deferred` 同级）。
-/// ⚠ census 的键**不变**（仍是 `fallback_old_ok_notation_unsolved`）：本刀只改"开关开时会不会报错"，
+/// ⚠ census 的键**不变**（仍是 `fallback_old_ok_notation_unsolved`）：本刀只改"strict 档会不会报错"，
 /// **不改**任何指标口径（不许把 `Unsolved` 改名成"不计"）。
 #[allow(clippy::too_many_arguments)]
 pub(super) fn notation_fell(
@@ -210,8 +256,8 @@ pub(super) fn notation_fell(
     known: &KnownTable,
     ctx: &ElabCtx<'_, '_>,
 ) -> Fell {
-    // **P2-12 S4c**：占位符那一族 ⇒ **写明的例外**（照旧回落），只在开关开着时才有分别
-    // （开关关着时 census 与今天逐字节相同 ⇒ 这一支只是在同一结局上多记一个桶）。
+    // **P2-12 S4c**：占位符那一族 ⇒ **写明的例外**（照旧回落），只在 strict 档才有分别
+    // （宽松档 census 与今天逐字节相同 ⇒ 这一支只是在同一结局上多记一个桶）。
     if prefix_meta && !kept_prefix_meta_off() && no_fallback(ctx.options.dialect) {
         bump_kept("prefix_meta", canonical, why, span);
         return Fell::Fallback(why);
@@ -321,7 +367,7 @@ static KEPT: Mutex<Vec<(&'static str, u64)>> = Mutex::new(Vec::new());
 thread_local! {
     /// 测试用：本线程报错的次数（全局原子计数会被并行测试串扰）。
     pub(crate) static TEST_DEAD: Cell<u64> = const { Cell::new(0) };
-    /// 测试用：本线程"开关开着仍回落"的原因序列。
+    /// 测试用：本线程"strict 档仍回落"的原因序列。
     pub(crate) static TEST_KEPT: std::cell::RefCell<Vec<&'static str>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 
@@ -334,7 +380,7 @@ fn bump_dead(head: &str, why: &'static str, span: Span) {
     log_position("dead", why, head, span);
 }
 
-/// 开关开着仍回落一次：**写明的例外**（按 `report` 给出的原因分桶）+ 位置日志。
+/// strict 档仍回落一次：**写明的例外**（按 `report` 给出的原因分桶）+ 位置日志。
 ///
 /// ⚠ 原因里有空格（`Unsupported("input contains a meta")`）⇒ 计数键与日志记号一律过 [`key`]：
 /// `TAG k=v` 行与四列日志都**不许**出现空白（否则 `scripts/strict-score.py` 与日志解析会分叉）。
@@ -417,7 +463,7 @@ fn log_position(tag: &str, why: &'static str, head: &str, span: Span) {
     }
 }
 
-/// 追加到 `KERNEL_APP …` 行的尾巴。**开关关 ⇒ 一个字节都不加**（统计行与今天逐字节相同）。
+/// 追加到 `KERNEL_APP …` 行的尾巴。**宽松档 ⇒ 一个字节都不加**（统计行与今天逐字节相同）。
 pub(super) fn report_counts(line: &mut String) {
     let dead = DEAD.load(Ordering::Relaxed);
     if dead > 0 {

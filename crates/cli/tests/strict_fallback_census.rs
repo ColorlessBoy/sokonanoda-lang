@@ -4,8 +4,13 @@
 //! `fallback_unsolved` 约 119 次对不上账（`reports/2026-10-31-strict-handoff.md` §2.1）。这条判据钉的就是那张账：
 //!
 //! ```text
-//! fallback_unsolved == probe_cut + Σ fallback_old_*_unsolved
+//! fallback_unsolved == probe_cut + Σ fallback_old_*_unsolved     # P2-12 S6 **之前**（什么都回落）
+//! nofallback_kept_<类> == Σ 老路在该路由上接住的那些                # P2-12 S6 **之后**（只例外回落）
 //! ```
+//!
+//! **P2-12 S6 翻默认**把前一条口径作废（没有回落就没有探测切 ⇒ `probe_cut` 恒 0；`fallback_unsolved`
+//! 里还有一部分直接走报错出口 ⇒ 原来那条等式两边不再相等）。后一条口径量的是**新的真相**：
+//! 写明的例外是**唯一**还会回落的一族，且每一次都必须由老路接住 —— 判据强度不降。
 //!
 //! ## 为什么判据在这一层
 //!
@@ -16,7 +21,7 @@
 //! ## 咬合力（反向验证过一次）
 //!
 //! 把 `elab_notation` 里的 `settle.ok()` 去掉（或让 `arm()` 恒 `false`）⇒ `fallback_old_ok_notation_unsolved`
-//! 归零、差额回到 31 ⇒ 本判据判红。**只加计数**：闸门关时 `KERNEL_APP` 一行都不许出现（新代码不跑）。
+//! 归零、差额回到 31 ⇒ 本判据判红。**只加计数**：宽松档 `KERNEL_APP` 一行都不许出现（新代码不跑）。
 //!
 //! ## 环境隔离
 //!
@@ -51,8 +56,9 @@ fn scratch() -> PathBuf {
     dir
 }
 
-/// 跑一次用户命令，返回 `(退出码, stderr)`。
-fn grade(file: &str, switch_on: bool) -> (i32, String, PathBuf) {
+/// 跑一次用户命令，返回 `(退出码, stderr)`。`dialect` = 用户写的那一格（P2-12 S6 起 strict 档
+/// **恒**是内核路径 + 不回落 ⇒ 不再有开关可设，只能换方言对照）。
+fn grade(file: &str, dialect: &str) -> (i32, String, PathBuf) {
     let dir = scratch();
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_sokonanoda"));
     for key in [
@@ -60,19 +66,15 @@ fn grade(file: &str, switch_on: bool) -> (i32, String, PathBuf) {
         "SOKO_KERNEL_ARG_PP",
         "SOKO_META_PATTERN",
         "SOKO_META_APPROX",
-        "SOKO_STRICT_KERNEL_APP",
     ] {
         cmd.env_remove(key);
-    }
-    if switch_on {
-        cmd.env("SOKO_STRICT_KERNEL_APP", "1");
     }
     cmd.env("SOKO_JUDGE_STATS", "1");
     cmd.env("SOKONANODA_CACHE_DIR", &dir);
     cmd.env("SOKONANODA_NO_PROJECT_ARTIFACTS", "1");
     cmd.env("SOKONANODA_NO_MODULE_ARTIFACTS", "1");
     let out: Output = cmd
-        .args(["grade", "--dialect", "strict"])
+        .args(["grade", "--dialect", dialect])
         .arg(repo_root().join(file))
         .arg("--json")
         .stdin(Stdio::null())
@@ -112,11 +114,11 @@ fn unsolved_old(m: &BTreeMap<String, u64>) -> u64 {
 }
 
 #[test]
-fn unsolved_fallbacks_are_fully_accounted() {
-    let (code, stderr, dir) = grade(FIXTURE, true);
+fn exception_fallbacks_are_accounted_and_the_flip_is_visible() {
+    let (code, stderr, dir) = grade(FIXTURE, "strict");
     let m = kernel_app(&stderr).unwrap_or_else(|| {
         panic!(
-            "开关开 ⇒ 必须有 KERNEL_APP 行（stderr 尾巴：{}）",
+            "strict 档现在恒走内核路径 ⇒ 必须有 KERNEL_APP 行（stderr 尾巴：{}）",
             tail(&stderr, 600)
         )
     });
@@ -128,38 +130,56 @@ fn unsolved_fallbacks_are_fully_accounted() {
         "课程语料必须通过：stderr 尾巴 {}",
         tail(&stderr, 600)
     );
-    let cut = m.get("probe_cut").copied().unwrap_or(0);
-    let unsolved = m.get("fallback_unsolved").copied().unwrap_or(0);
-    let old = unsolved_old(&m);
+    // **P2-12 S6 翻默认**：非例外**不再回落** ⇒ 老路只接"写明的例外"这一族。
+    // 口径随之改变（原文 `fallback_unsolved == probe_cut + Σ fallback_old_*_unsolved` 只在
+    // "什么都回落"的旧档成立：没有回落就没有探测切，`probe_cut` 恒 0；而且 `fallback_unsolved`
+    // 里有一部分直接走了报错出口）。新的对账口径是**逐例外桶**：
+    //   每个 `nofallback_kept_<类>` 必须 = 老路在该路由上真正接住（`fallback_old_ok_*`）的条数。
+    let kept = |k: &str| m.get(k).copied().unwrap_or(0);
+    let old_ok = |k: &str| m.get(k).copied().unwrap_or(0);
+    let (kept_prefix, kept_meta) = (
+        kept("nofallback_kept_prefix_meta"),
+        kept("nofallback_kept_input_contains_a_meta"),
+    );
     assert!(
-        unsolved > 0 && cut > 0,
-        "夹具必须真出现过两种 unsolved 回落（unsolved={unsolved} cut={cut}）"
+        kept_prefix > 0 && kept_meta > 0,
+        "夹具必须真出现过两种**写明的例外**回落（prefix_meta={kept_prefix} meta={kept_meta}）\n{m:?}"
     );
     assert_eq!(
-        unsolved,
-        cut + old,
-        "对不上账：fallback_unsolved={unsolved} 应 = probe_cut={cut} + Σ fallback_old_*_unsolved={old}\n{m:?}"
+        kept_prefix,
+        old_ok("fallback_old_ok_notation_unsolved"),
+        "`prefix_meta` 例外必须 = 老路在记法路由上接住的那些（一条不多一条不少）\n{m:?}"
     );
-    // 记法路由必须真的结算过 —— 否则上一条会"两边都少"而假绿（S0b 之前正是这样）。
-    let notation_ok = m
-        .get("fallback_old_ok_notation_unsolved")
-        .copied()
-        .unwrap_or(0);
+    assert_eq!(
+        kept_meta,
+        old_ok("fallback_old_ok_unsupported_input_contains_a_meta"),
+        "`input contains a meta` 例外必须 = 老路接住的那些\n{m:?}"
+    );
+    // 翻默认必须**真的**走到"不回落"出口 ⇒ 否则上面那两条会在旧档下"照样绿"（咬不住本刀）。
     assert!(
-        notation_ok > 0,
+        kept("nofallback_dead") > 0,
+        "strict 档必须报过错（`nofallback_dead` > 0）：否则本判据咬不住翻默认\n{m:?}"
+    );
+    // 记法路由必须真的结算过 —— 否则上面那两条会"两边都少"而假绿（S0b 之前正是这样）。
+    assert!(
+        old_ok("fallback_old_ok_notation_unsolved") > 0,
         "记法路由的 old_ok 必须被记下来（S0b 之前这里是 0，差额 31）\n{m:?}"
     );
+    let _ = unsolved_old;
 }
 
-/// **反向验证（开关关）**：新代码一行不跑 ⇒ 没有 `KERNEL_APP` 行；判卷与开关开相同（都是 rc=0）。
+/// **反向验证（宽松档）**：内核路径一行不跑 ⇒ 没有 `KERNEL_APP` 行；判卷与 strict 相同（都是 rc=0）。
+///
+/// P2-12 S6 翻默认之前这里是"开关关"那一臂；翻默认之后唯一能关掉内核路径的档位就是**宽松档**
+/// （`TEST_OVERRIDE` 是进程内测试钩子，子进程改不到），所以对照臂换方言、判据本身不放宽。
 #[test]
-fn switch_off_records_nothing() {
-    let (code, stderr, dir) = grade(FIXTURE, false);
+fn loose_records_nothing() {
+    let (code, stderr, dir) = grade(FIXTURE, "loose");
     let _ = std::fs::remove_dir_all(&dir);
-    assert_eq!(code, 0, "strict 档本来就能过：{}", tail(&stderr, 400));
+    assert_eq!(code, 0, "宽松档本来就能过：{}", tail(&stderr, 400));
     assert!(
         kernel_app(&stderr).is_none(),
-        "闸门关 ⇒ 一条 KERNEL_APP 都不许打：{}",
+        "宽松档 ⇒ 一条 KERNEL_APP 都不许打：{}",
         tail(&stderr, 400)
     );
 }
@@ -170,7 +190,7 @@ const LATE_FIXTURE: &str = "courses/set-theory/units/I.4/unit12-synthesis.sokona
 
 #[test]
 fn fill_late_is_visible_in_census() {
-    let (code, stderr, dir) = grade(LATE_FIXTURE, true);
+    let (code, stderr, dir) = grade(LATE_FIXTURE, "strict");
     let _ = std::fs::remove_dir_all(&dir);
     let m =
         kernel_app(&stderr).unwrap_or_else(|| panic!("缺 KERNEL_APP 行：{}", tail(&stderr, 600)));

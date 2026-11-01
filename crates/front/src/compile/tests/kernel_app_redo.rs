@@ -36,6 +36,8 @@ fn run(body: &str, transitive: bool) -> (Vec<String>, u64) {
     let src = format!("{PRELUDE}{body}");
     on_compile_stack(move || {
         TEST_OVERRIDE.with(|c| c.set(Some(true)));
+        // **P2-12 S6 翻默认**：探针切掉老路之后要靠**回落**验证重做 ⇒ 显式打开回落（判据不放宽）。
+        super::kernel_app_fallback::TEST_NO_FALLBACK.with(|c| c.set(Some(false)));
         TEST_TRANSITIVE_CUTS.with(|c| c.set(transitive));
         TEST_REDOS.with(|c| c.set(0));
         let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));

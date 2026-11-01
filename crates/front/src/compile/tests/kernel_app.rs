@@ -2,6 +2,10 @@
 //!
 //! 计数用线程局部的 `TEST_SOLVED` / `TEST_FALLBACK`（全局原子计数会被并行测试串扰）；编译跑在
 //! `on_compile_stack` 的新线程里 ⇒ 覆盖与读数都在那个线程内做。
+//!
+//! **P2-12 S6 翻默认**：生产里 strict 档**不回落**（非例外一律出诊断）⇒ 本文件量**回落路径**的判据
+//! 都显式把 `TEST_NO_FALLBACK` 设成 `false`（= S6 之前的档）。判据与断言一个都没改；生产默认那一档
+//! 由 `unsolved_implicit_falls_back_to_old_path` 末尾新增的那一段钉住。
 
 use super::kernel_app::{TEST_FALLBACK, TEST_OVERRIDE, TEST_SOLVED};
 use super::tests::on_compile_stack;
@@ -23,6 +27,7 @@ fn run(src: &str, on: bool) -> (Vec<String>, u64, u64) {
     let src = src.to_string();
     on_compile_stack(move || {
         TEST_OVERRIDE.with(|c| c.set(Some(on)));
+        super::kernel_app_fallback::TEST_NO_FALLBACK.with(|c| c.set(Some(false)));
         TEST_SOLVED.with(|c| c.set(0));
         TEST_FALLBACK.with(|c| c.set(0));
         let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
@@ -64,6 +69,25 @@ fn and_intro_under_fun_binders_goes_through_kernel() {
     );
 }
 
+/// 同 [`run`]，但**不动** `TEST_NO_FALLBACK` ⇒ **生产默认**（P2-12 S6：strict ⇒ 内核路径 + 不回落）。
+fn run_default(src: &str) -> Vec<String> {
+    let src = src.to_string();
+    on_compile_stack(move || {
+        TEST_OVERRIDE.with(|c| c.set(None));
+        super::kernel_app_fallback::TEST_NO_FALLBACK.with(|c| c.set(None));
+        let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
+        let options = CompileOptions {
+            prelude: PreludeMode::Full,
+            dialect: Dialect::Strict,
+        };
+        compile_fol_with(&file, &options)
+            .errors
+            .iter()
+            .map(|e| format!("{e:?}"))
+            .collect()
+    })
+}
+
 #[test]
 fn unsolved_implicit_falls_back_to_old_path() {
     // `A` 只出现在隐式位、结果里也没有 ⇒ 内核报 `Unsolved` ⇒ 回落老路（诊断仍由老路给）。
@@ -73,6 +97,17 @@ fn unsolved_implicit_falls_back_to_old_path() {
     assert!(fallback > 0, "应计一次回落（fallback={fallback}）");
     let (errors_off, _, _) = run(src, false);
     assert_eq!(errors_on, errors_off, "P1：回落后诊断与闸门关逐字相同");
+    // **P2-12 S6**：生产默认（strict ⇒ 不回落）⇒ 同一条应用**不再回老路**，文字换成内核路径的诊断。
+    // 两条文字必须分得开（老路那句是「（本子集按…反解）」，新的是「`A` 由实参和期望类型都定不下来」）
+    // ⇒ 这条同时钉住"翻默认真的生效"（若哪天又回落了，这里会退回老路那句 ⇒ 判红）。
+    let default = run_default(src);
+    assert_eq!(default.len(), errors_on.len(), "仍是同一条声明失败");
+    assert!(
+        default
+            .iter()
+            .all(|e| e.contains("由实参和期望类型都定不下来")),
+        "S6 之后 strict 默认不回落 ⇒ 必须是 `kernel_app_report` 的文字：{default:?}"
+    );
 }
 
 #[test]
@@ -387,6 +422,7 @@ fn run_probe(src: &str, probe: bool) -> (Vec<String>, u64, u64, u64) {
         super::kernel_app_probe::TEST_NO_PROBE.with(|c| c.set(!probe));
         super::kernel_app_miss::TEST_UNSOLVED_MISSES.with(|c| c.set(0));
         TEST_OVERRIDE.with(|c| c.set(Some(true)));
+        super::kernel_app_fallback::TEST_NO_FALLBACK.with(|c| c.set(Some(false)));
         TEST_SOLVED.with(|c| c.set(0));
         TEST_FALLBACK.with(|c| c.set(0));
         let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
@@ -459,6 +495,7 @@ fn run_redo(src: &str, redo: bool) -> Vec<String> {
         // §9.39：同上 —— 不重做的反向臂吃的是老路层级缺陷的拒绝 ⇒ 回到修前行为。
         super::elab::p2l_level_operands_tests::TEST_LEVEL_ABORT_ON_UNKNOWN.with(|c| c.set(!redo));
         TEST_OVERRIDE.with(|c| c.set(Some(true)));
+        super::kernel_app_fallback::TEST_NO_FALLBACK.with(|c| c.set(Some(false)));
         let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
         let options = CompileOptions {
             prelude: PreludeMode::Full,
@@ -568,6 +605,7 @@ fn run_universe_full(src: &str, on: bool, heads: bool, uapp: bool) -> (Vec<Strin
         TEST_NO_UNIVERSE_APP.with(|c| c.set(!uapp));
         TEST_UNTRIED_UNIVERSE_APP.with(|c| c.set(0));
         TEST_OVERRIDE.with(|c| c.set(Some(on)));
+        super::kernel_app_fallback::TEST_NO_FALLBACK.with(|c| c.set(Some(false)));
         TEST_SOLVED.with(|c| c.set(0));
         TEST_FALLBACK.with(|c| c.set(0));
         let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));

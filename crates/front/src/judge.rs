@@ -221,7 +221,7 @@ pub(crate) fn judge_cache_contains(key: u64) -> bool {
 
 fn options_key(options: &CompileOptions) -> String {
     // **方言必须进键**（S2）：两档判定不同 ⇒ 少了它先跑的那一档被另一档**原样回放** ✗。
-    // **P2-8**：内核应用闸门的**生效档**同理（`kernel_app::key_tag`；关 ⇒ 空串 ⇒ 旧键逐字不变）。
+    // **P2-8 / P2-12 S6**：内核应用路径的**生效档**同理（`kernel_app::key_tag`；宽松档 ⇒ 空串 ⇒ 旧键逐字不变）。
     let kapp = crate::compile::kernel_app::key_tag(options.dialect);
     format!("{:?}/{:?}{kapp}", options.prelude, options.dialect)
 }

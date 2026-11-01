@@ -1,12 +1,12 @@
 //! **P1-F2b2**：严格档的应用 elaborate 接到内核 [`sokonanoda::elab_app`]（`reports/2026-10-29-strict-replan.md`
 //! P1 F2 行；Lean `Elab/App.lean` `elabAppArgs`）。
 //!
-//! 闸门 = **严格方言** 且 **`SOKO_STRICT_KERNEL_APP=1`**（进程内读一次）。闸门关 ⇒ [`try_app`] 第一行就返回
-//! `None`，后面一行都不跑 ⇒ 与今天逐字节相同。
+//! 闸门 = **严格方言**（**P2-12 S6 翻默认**：环境变量已删，strict 档恒走内核路径）。宽松档 ⇒ [`try_app`]
+//! 第一行就返回 `None`，后面一行都不跑 ⇒ 与今天逐字节相同。
 //!
-//! **P2-12 S3** 再加**第二个过渡开关** `SOKO_STRICT_NO_FALLBACK=1`（只在上面那条生效时才生效，见
-//! [`super::kernel_app_fallback`]）：开 ⇒ 非探测回落改由 `kernel_app_report` 出诊断，不再走老路；
-//! 关 ⇒ 与 P2-12 之前逐字节相同。出口（`finish`）在 `kernel_app_fallback`，这里 re-export 保持调用点稳定。
+//! **P2-12 S3/S6**：strict 档同时**不回落**（见 [`super::kernel_app_fallback`]）——非探测回落改由
+//! `kernel_app_report` 出诊断，不再走老路；`report()` 的**例外表**仍回落（写明的例外）。出口（`finish`）
+//! 在 `kernel_app_fallback`，这里 re-export 保持调用点稳定。
 //!
 //! 位置：`try_implicit_application_with` 里 `@` 脊 / prelude 安装两条早退**之后**（`@` 脊不插隐式 ⇒ 内核
 //! 路径无事可做；prelude 安装期间禁止插入是防递归），期望类型的 SPINE-N 展开**之后**（用展开后的期望）。
@@ -36,7 +36,7 @@ use sokonanoda::elab_app::{AppOutcome, AppRequest};
 use sokonanoda::env::EnvLimit;
 use sokonanoda::util::ExprPtr;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::Mutex;
 
 #[cfg(test)]
 thread_local! {
@@ -48,40 +48,33 @@ thread_local! {
     pub(crate) static TEST_FALLBACK: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
 }
 
-pub(super) fn env_on() -> bool {
+/// **生效档位**（P2-8 / **P2-12 S6 翻默认**）：本路径在 `dialect` 下**会不会跑** —— **strict 档恒开**
+/// （不再有环境变量闸门，也不再读进程环境）。三处闸门（[`try_app`]、`kernel_app_hint`、
+/// `kernel_app_notation`）与**所有缓存键**都只读这一个定义 ⇒ 闸门换来源（设置项 / 默认开）时键跟着走。
+/// 进键的形状见 [`key_tag`]：**宽松档 ⇒ 空串 / 0 位** ⇒ 宽松档的键与 P2-8 之前逐字节相同。
+///
+/// `TEST_OVERRIDE`（`#[cfg(test)]`）仍能把它关掉：单测要在**同一进程**里对比"老路"与"内核路径"。
+pub(crate) fn effective(dialect: super::Dialect) -> bool {
+    let strict = dialect.strict();
     #[cfg(test)]
     if let Some(b) = TEST_OVERRIDE.with(|c| c.get()) {
-        return b;
+        return strict && b;
     }
-    static ON: OnceLock<bool> = OnceLock::new();
-    *ON.get_or_init(|| std::env::var("SOKO_STRICT_KERNEL_APP").is_ok_and(|v| v == "1"))
+    strict
 }
 
-/// **生效档位**（P2-8）：本路径在 `dialect` 下**会不会跑**。三处闸门（[`try_app`]、`kernel_app_hint`、
-/// `kernel_app_notation`）与**所有缓存键**都只读这一个定义 ⇒ 闸门换来源（设置项 / 默认开）时键跟着走。
-/// 进键的形状见 [`key_tag`]：**关 ⇒ 空串 / 0 位** ⇒ 闸门关的键与 P2-8 之前逐字节相同。
-pub(crate) fn effective(dialect: super::Dialect) -> bool {
-    dialect.strict() && env_on()
-}
-
-/// 判定缓存键（`judge::options_key`）的后缀：生效 ⇒ `"/kapp"`；**P2-12 S3** 的第二个开关也开 ⇒
-/// `"/kapp/nofb"`（它改判定面 ⇒ 同进程换挡必须 miss）；都不生效 ⇒ `""`（旧键不变）。
+/// 判定缓存键（`judge::options_key`）的后缀（**P2-12 S6**）：**strict 档恒 `"/kapp/nofb"`**
+/// （内核路径 + 不回落都是方言的函数）、宽松档恒 `""`。定义在
+/// [`super::kernel_app_fallback::key_parts`]（测试钩子那一支也要进键，见那里的长注释）。
 pub(crate) fn key_tag(dialect: super::Dialect) -> &'static str {
-    if super::kernel_app_fallback::no_fallback(dialect) {
-        "/kapp/nofb"
-    } else if effective(dialect) {
-        "/kapp"
-    } else {
-        ""
-    }
+    super::kernel_app_fallback::key_parts(dialect).0
 }
 
-/// 磁盘键（`cache::keys::metavar_state` 那个字节）的位：生效 ⇒ `0b1_0000`，第二个开关再占 `0b10_0000`
-/// （低四位已被元变量三档（0..=2）+ `SOKO_META_PATTERN`（`0b0100`）/ `SOKO_META_APPROX`（`0b1000`）占用）。
-/// 开关关 ⇒ 与 P2-8 的键**逐字节相同**。
+/// 磁盘键（`cache::keys::metavar_state` 那个字节）的位（**P2-12 S6**）：strict ⇒ `0b11_0000`
+/// （内核路径 `0b1_0000` + 不回落 `0b10_0000`），宽松档 ⇒ `0`；低四位已被元变量三档（0..=2）+
+/// `SOKO_META_PATTERN`（`0b0100`）/ `SOKO_META_APPROX`（`0b1000`）占用。宽松档的键与 P2-8 之前**逐字节相同**。
 pub(crate) fn key_bit(dialect: super::Dialect) -> u8 {
-    let armed = super::kernel_app_fallback::no_fallback(dialect);
-    (u8::from(effective(dialect)) << 4) | (u8::from(armed) << 5)
+    super::kernel_app_fallback::key_parts(dialect).1
 }
 
 static TRIED: AtomicU64 = AtomicU64::new(0);

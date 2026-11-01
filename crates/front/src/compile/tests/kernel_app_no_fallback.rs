@@ -1,11 +1,12 @@
-//! **P2-12 S3 判据**：第二个过渡开关 `SOKO_STRICT_NO_FALLBACK=1`（实施单 §2 的四处）。
+//! **P2-12 S3/S6 判据**：strict 档的**不回落**出口（S6 翻默认：这是 strict 的默认，不再有环境变量开关）。
 //!
 //! 覆盖四件事：
-//! * **开关**：只在 `strict` + `SOKO_STRICT_KERNEL_APP=1` 时生效（宽松档 / 闸门关 ⇒ 恒 `false`）；
-//! * **`finish` 的出口**：开关开 ⇒ `Fell::Dead`（种子 c1：`axiom g : {A : Type} -> Nat -> Prop` +
-//!   `theorem t1 : g 0 := sorry`，设计稿 Q1 的漏名用例）；关 ⇒ `Fell::Fallback`，诊断与**闸门关**逐字相同；
+//! * **档位**：只看方言（strict ⇒ `true`、宽松档 ⇒ `false`）；`TEST_NO_FALLBACK` 只给单测关掉它；
+//! * **`finish` 的出口**：不回落 ⇒ `Fell::Dead`（种子 c1：`axiom g : {A : Type} -> Nat -> Prop` +
+//!   `theorem t1 : g 0 := sorry`，设计稿 Q1 的漏名用例）；关掉（测试钩子 / 宽松档）⇒ `Fell::Fallback`，
+//!   诊断与**闸门关**逐字相同；
 //! * **`ReportInput` 谁来填**：真数据（注册表签名 + `render_msg` + 望远镜）⇒ 文字点名**源级** `A`、span 落在
-//!   `g 0`（2:14）上、正文里一个内核名都不剩；数据取不到（`None`）⇒ **回落**；开关关 ⇒ 填充器**一次都不跑**
+//!   `g 0`（2:14）上、正文里一个内核名都不剩；数据取不到（`None`）⇒ **回落**；宽松档 ⇒ 填充器**一次都不跑**
 //!   （用一个会 panic 的 `facts` 钉住 ⇒ 热路径零成本不是口号）；
 //! * **写明的例外**：`ArgMismatch`（c2）开关开着也**逐字**回落老路（`Report::Fallback("argmismatch_text")`）。
 //!
@@ -34,7 +35,7 @@ struct Run {
     errors: Vec<CompileError>,
     /// 报错出口（`Fell::Dead`）次数。
     dead: u64,
-    /// 开关开着仍回落的原因（写明的例外）。
+    /// strict 档仍回落的原因（写明的例外）。
     kept: Vec<&'static str>,
 }
 
@@ -44,7 +45,7 @@ impl Run {
     }
 }
 
-/// 在新编译栈线程里、闸门/开关强制为给定值、strict 方言下编 `src`。
+/// 在新编译栈线程里、内核路径 / 不回落用**测试钩子**强制为给定值、strict 方言下编 `src`。
 fn run(src: &str, gate: bool, nofb: bool) -> Run {
     let src = src.to_string();
     on_compile_stack(move || {
@@ -65,26 +66,23 @@ fn run(src: &str, gate: bool, nofb: bool) -> Run {
     })
 }
 
-/// 开关只在**内核路径生效**时才有意义（方言 + P2-8 的闸门）。
+/// **P2-12 S6 翻默认**："不回落"只由**方言**决定 —— strict 档**默认**就是 `true`，不再看环境变量；
+/// 宽松档恒 `false`。`TEST_NO_FALLBACK` 是单测专用（对比两条路），生产没有这道闸门。
 #[test]
-fn switch_requires_the_kernel_gate_and_strict_dialect() {
+fn no_fallback_is_the_strict_default() {
     on_compile_stack(|| {
-        for gate in [false, true] {
-            TEST_OVERRIDE.with(|c| c.set(Some(gate)));
-            for nofb in [false, true] {
-                TEST_NO_FALLBACK.with(|c| c.set(Some(nofb)));
-                assert!(
-                    !no_fallback(Dialect::Loose),
-                    "宽松档恒不生效（nofb={nofb}）"
-                );
-                assert_eq!(
-                    no_fallback(Dialect::Strict),
-                    gate && nofb,
-                    "gate={gate} nofb={nofb}"
-                );
-            }
-        }
         TEST_OVERRIDE.with(|c| c.set(None));
+        TEST_NO_FALLBACK.with(|c| c.set(None));
+        assert!(
+            no_fallback(Dialect::Strict),
+            "strict 档必须**默认**不回落（P2-12 S6 翻默认的判据）"
+        );
+        assert!(!no_fallback(Dialect::Loose), "宽松档恒不回落");
+        TEST_NO_FALLBACK.with(|c| c.set(Some(false)));
+        assert!(
+            !no_fallback(Dialect::Strict),
+            "测试钩子仍要能关掉它（S3 那两条对比臂靠它）"
+        );
         TEST_NO_FALLBACK.with(|c| c.set(None));
     });
 }

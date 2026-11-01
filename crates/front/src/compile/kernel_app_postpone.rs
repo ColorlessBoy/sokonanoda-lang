@@ -19,7 +19,7 @@ thread_local! {
     pub(crate) static TEST_NO_POSTPONE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
-/// 推迟是否开着（生产恒开；只在 strict + `SOKO_STRICT_KERNEL_APP=1` 的内核路径里被问到）。
+/// 推迟是否开着（生产恒开；只在 strict 档的内核路径里被问到）。
 pub(crate) fn enabled() -> bool {
     #[cfg(test)]
     if TEST_NO_POSTPONE.with(|c| c.get()) {

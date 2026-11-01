@@ -91,10 +91,8 @@ fn scratch(tag: &str) -> PathBuf {
 }
 
 /// **跟判定有关的环境变量一律先摘掉**（外部环境不许改读数）。
-const JUDGE_ENV: [&str; 8] = [
+const JUDGE_ENV: [&str; 6] = [
     "SOKO_STRICT_AT",
-    "SOKO_STRICT_KERNEL_APP",
-    "SOKO_STRICT_NO_FALLBACK",
     "SOKO_KERNEL_ARG_PP",
     "SOKO_META_PATTERN",
     "SOKO_META_APPROX",
@@ -125,7 +123,8 @@ impl Run {
     }
 }
 
-/// 跑一次用户那条命令（`grade --dialect strict --json`），**两个过渡开关都开**。
+/// 跑一次用户那条命令（`grade --dialect strict --json`）。**P2-12 S6 起 strict 档就是内核路径 + 不回落**
+/// （环境变量闸门已删 ⇒ `--dialect strict` 一句就够）。
 ///
 /// `root` = `--root`（R1 要 `import` 课程库 ⇒ 显式给模块根；c1/c5 不需要）。
 fn grade(tag: &str, src: &str, root: Option<&Path>) -> Run {
@@ -148,8 +147,6 @@ fn grade_logged(tag: &str, src: &str, root: Option<&Path>, log: Option<&Path>) -
     for key in JUDGE_ENV {
         cmd.env_remove(key);
     }
-    cmd.env("SOKO_STRICT_KERNEL_APP", "1");
-    cmd.env("SOKO_STRICT_NO_FALLBACK", "1");
     cmd.env("SOKONANODA_CACHE_DIR", &cache);
     cmd.env("SOKONANODA_NO_PROJECT_ARTIFACTS", "1");
     cmd.env("SOKONANODA_NO_MODULE_ARTIFACTS", "1");

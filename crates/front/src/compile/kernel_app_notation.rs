@@ -10,7 +10,7 @@
 //! `flawed_equalities_refuted`：`(fun _ => ∅) '' … ≠ @Set.univ (Set Nat)`）就解错 ⇒ 内核拒绝。
 //! 内核路径里第二个操作数第一趟就解出 `α`，第一个推迟、按域 elaborate —— 正是 Lean 的顺序。
 //!
-//! 闸门：strict + `SOKO_STRICT_KERNEL_APP=1`；只收前导隐式 0、`missing > 0` 的目标（`implicit_prefix > 0`
+//! 闸门：**严格方言**（P2-12 S6 翻默认：strict 档恒走内核路径，环境变量已删）；只收前导隐式 0、`missing > 0` 的目标（`implicit_prefix > 0`
 //! 的记法已经借道应用臂进了 [`super::kernel_app::try_app`]；`missing == 0` 的老路不猜任何东西）。
 //! 解不出 ⇒ 回落老路，回落纪律与应用路径共用 [`super::kernel_app::finish`]。
 //!

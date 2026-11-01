@@ -37,10 +37,9 @@
 //!
 //! ## 为什么是**集成**测试（真子进程）
 //!
-//! `SOKO_STRICT_KERNEL_APP` / `SOKO_STRICT_NO_FALLBACK` 在 front 里是**进程级 `OnceLock`** ——
-//! 单元测试（同进程、多线程、既有 240+ 条用例）没法给单个用例换这一档。集成测试的 server 是
-//! **独立进程** ⇒ 两个开关按**这一档**注入，别的用例的档位不受影响 ✓。档位本身走**编辑器设置**
-//! （`initializationOptions.dialect = strict`），不是环境变量 —— 那才是用户改的那一处。
+//! 方言走**编辑器设置**（`initializationOptions.dialect = strict`）—— 那才是用户改的那一处。
+//! 真 server 进程 + 真 `textDocument/hover` 才能断言**用户动作级**的结果：hover 行从 `finish` 出发，
+//! 经 `decl_info` 映射进 wire，再由扩展渲染 —— 字段漏映射这类 bug 只活在**接缝**上，单元测试看不见。
 
 mod common;
 
@@ -176,14 +175,8 @@ fn open_rejected(client: &mut Client, uri: &str, text: &str) -> Vec<serde_json::
 fn hover_at_the_error_site_of_a_rejected_open_exercise_is_never_null() {
     let (_dir, cache, file) = fixture("c1", C1);
     let uri = Client::file_uri(&file);
-    // **两个过渡开关都开** = P2-12 之后 strict 的默认形态（S6 翻默认后不必再设）。
-    let mut client = start(
-        &cache,
-        &[
-            ("SOKO_STRICT_KERNEL_APP", "1"),
-            ("SOKO_STRICT_NO_FALLBACK", "1"),
-        ],
-    );
+    // **P2-12 S6 起 strict 档默认就是内核路径 + 不回落**（环境变量闸门已删 ⇒ 不必再注入）。
+    let mut client = start(&cache, &[]);
     open_rejected(&mut client, &uri, C1);
 
     // 动作 1：鼠标放到报错应用的**头** `g` 上。
@@ -213,13 +206,7 @@ fn hover_at_the_error_site_of_a_rejected_open_exercise_is_never_null() {
 fn hover_at_a_failed_value_shows_the_argument_type() {
     let (_dir, cache, file) = fixture("def", DEF);
     let uri = Client::file_uri(&file);
-    let mut client = start(
-        &cache,
-        &[
-            ("SOKO_STRICT_KERNEL_APP", "1"),
-            ("SOKO_STRICT_NO_FALLBACK", "1"),
-        ],
-    );
+    let mut client = start(&cache, &[]);
     open_rejected(&mut client, &uri, DEF);
 
     // `g`：名字上 ⇒ 声明卡片（与"报错不报错"无关，那是 G-108 的词法行/解析）。

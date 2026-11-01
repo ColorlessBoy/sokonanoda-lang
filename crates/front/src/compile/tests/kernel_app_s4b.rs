@@ -64,10 +64,14 @@ fn old_ok(v: &[(&'static str, &'static str)], why: &str) -> usize {
 }
 
 /// 在新编译栈线程里、闸门强制开、strict 方言下编 `src`；`retry = false` ⇒ 关掉 S4b 的重试。
+///
+/// **P2-12 S6 翻默认**：strict 档默认不回落 ⇒ "关掉重试"这一臂要量的**正是回落**（老路接住这一族），
+/// 所以显式把 `TEST_NO_FALLBACK` 设成 `false`。判据与断言一字未改。
 fn run(src: &str, retry: bool) -> Out {
     let src = src.to_string();
     on_compile_stack(move || {
         TEST_OVERRIDE.with(|c| c.set(Some(true)));
+        super::kernel_app_fallback::TEST_NO_FALLBACK.with(|c| c.set(Some(false)));
         TEST_NO_RETRY.with(|c| c.set(!retry));
         TEST_SOLVED.with(|c| c.set(0));
         TEST_FALLBACK.with(|c| c.set(0));

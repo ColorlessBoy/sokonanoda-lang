@@ -15,6 +15,8 @@ fn run(src: &str, on: bool, typed: bool) -> (Vec<String>, Vec<(&'static str, &'s
     let src = src.to_string();
     on_compile_stack(move || {
         TEST_OVERRIDE.with(|c| c.set(Some(on)));
+        // **P2-12 S6 翻默认**：strict 档默认不回落 ⇒ 本文件量的是**回落路径**的普查 ⇒ 显式回到之前的档。
+        super::kernel_app_fallback::TEST_NO_FALLBACK.with(|c| c.set(Some(false)));
         TEST_NO_TYPED_LAMBDA.with(|c| c.set(!typed));
         TEST_SETTLED.with(|v| v.borrow_mut().clear());
         let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
