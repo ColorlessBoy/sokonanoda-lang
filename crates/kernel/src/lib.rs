@@ -8,6 +8,7 @@
 #![warn(clippy::cast_possible_truncation)]
 
 pub mod conv;
+pub mod conv_hint;
 pub mod builder;
 pub mod debug_printer;
 pub mod env;

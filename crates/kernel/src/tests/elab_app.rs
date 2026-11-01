@@ -748,10 +748,14 @@ fn p211a_b_stale_domain_after_propagation() {
         };
         let expected = apps(b, iff, &[x, x]);
         let args = [mp, mpr];
-        // 反向验证：关掉重算 ⇒ 修前行为（陈旧域 ⇒ ArgMismatch）。
+        // 反向验证：关掉重算 **且** 关掉 P2-12 S4a 的"各自域作闭包提示" ⇒ 修前行为（陈旧域 ⇒ ArgMismatch）。
+        // ⚠ 只关重算不够了：S4a 让 conv 的 Pi 臂把**各自的**域喂给自己的闭包，这条夹具的陈旧域由此也能比过
+        // （两个开关都要关才回到 P2-11a-B 之前）。
         crate::elab_app::set_stale_dom_reeval(false);
+        crate::conv_hint::set_stale_dom_hint(false);
         let off = elab(b, &req(&[], iff_intro, 0, &args, Some(expected)));
         crate::elab_app::set_stale_dom_reeval(true);
+        crate::conv_hint::set_stale_dom_hint(true);
         assert!(matches!(off, AppOutcome::ArgMismatch { arg: 0, .. }), "without re-eval the stale domain is rejected: {off:?}");
         let o = elab(b, &req(&[], iff_intro, 0, &args, Some(expected)));
         let got = solved(b, &o);

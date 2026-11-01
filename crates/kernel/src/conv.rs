@@ -211,7 +211,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 let dx = *dx;
                 let fresh = self.mk_bvar_hc(depth, dx);
                 let vx = self.apply_closure(depth + 1, bx, fresh, Some(dx));
-                let vy = self.apply_closure(depth + 1, by, fresh, Some(dx));
+                let vy = self.apply_closure(depth + 1, by, fresh, Some(self.right_domain_hint(dx, *dy)));
                 self.unify::<RIGID>(depth + 1, vx, vy)
             }
 

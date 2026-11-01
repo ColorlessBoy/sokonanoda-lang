@@ -760,3 +760,44 @@ fn universe_app_wrong_arity_stays_untried() {
     assert_eq!((solved, fallback), (0, 0));
     assert!(untried > 0);
 }
+
+/// **P2-12 S4a**：`congrArg.{1}` 家族（课程 `unit06-relations:195` / `unit10-cantor:89`）的两个根因都在内核里修好，
+/// 应用由内核**解出**（不再回落老路、不再换一种写法）。
+///
+/// * **exp 类**（`Nat.succ.inj`）：结果类型 `pred (succ a) = pred (succ b)` 在 `app_propagate` 赋值**之前**造出 ⇒
+///   最终 `期望 ≟ 结果` 比较用的是陈旧值（`force_all` 不重放已赋值的 `Value::Meta`）⇒
+///   `app_expected_def_eq` 按 `instantiate_mvars(quote(fty))` 重算再比（同 P2-11a-B / P2-11b 那一族）。
+/// * **arg 类**（cantor 形态）：实参是 `fun (A : Set α) => A x`，其类型是 Pi；`conv` 的 Pi 臂比较两边 codomain 时
+///   **把左边的域 `dx` 喂给了右闭包**，而 `dx` 可能是赋值前的陈旧值 ⇒ infer 闭包在错误作用域里推断体 ⇒ 越界 bvar
+///   ⇒ panic ⇒ 被 `is_def_eq_at` 吞成"不等" ⇒ 假 `ArgMismatch`。改成各自的域 `dy`。
+///
+/// 判据：两族都 `fallback == 0`（S4a 之前各回落 1 次），且判卷与闸门关逐字相同。
+#[test]
+fn congrarg_expected_class_is_solved_by_kernel() {
+    let src = "\
+def Nat.pred (n : Nat) : Nat := match n with
+| zero => Nat.zero
+| succ m => m
+
+theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) : a = b :=
+  congrArg.{1} Nat.pred h
+";
+    let errors_off = run(src, false).0;
+    assert_eq!(errors_off, Vec::<String>::new());
+    let (errors, solved, fallback) = run(src, true);
+    assert_eq!(errors, errors_off, "判卷与闸门关逐字相同");
+    assert_eq!(fallback, 0, "exp 类必须由内核解出（solved={solved}）");
+}
+
+#[test]
+fn congrarg_arg_class_is_solved_by_kernel() {
+    let src = "\
+theorem t (α : Type) (f : α → α → Prop) (x : α) (g : α → Prop) (h : g = f x) : (g x) = (f x x) :=
+  congrArg.{1} (fun (A : α → Prop) => A x) h
+";
+    let errors_off = run(src, false).0;
+    assert_eq!(errors_off, Vec::<String>::new());
+    let (errors, solved, fallback) = run(src, true);
+    assert_eq!(errors, errors_off, "判卷与闸门关逐字相同");
+    assert_eq!(fallback, 0, "arg 类必须由内核解出（solved={solved}）");
+}

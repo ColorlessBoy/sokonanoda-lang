@@ -85,6 +85,8 @@ thread_local! {
     static STALE_DOM_REEVAL: std::cell::Cell<bool> = const { std::cell::Cell::new(true) };
     /// **P2-11b** 反向验证开关（只有测试会关它；判定路径恒为 `true`）。
     static SURPLUS_REEVAL: std::cell::Cell<bool> = const { std::cell::Cell::new(true) };
+    /// **P2-12 S4a** 反向验证开关（只有测试会关它；判定路径恒为 `true`）。
+    static EXPECTED_REEVAL: std::cell::Cell<bool> = const { std::cell::Cell::new(true) };
 }
 
 /// 测试用：关掉/打开本线程的陈旧域重算（反向验证 `p211a_b_*` 必须在关时失败）。
@@ -94,6 +96,10 @@ pub(crate) fn set_stale_dom_reeval(on: bool) { STALE_DOM_REEVAL.with(|c| c.set(o
 /// 测试用：关掉/打开本线程的过量应用 `fty` 重算（反向验证 `p211b_*` 必须在关时失败）。
 #[cfg(test)]
 pub(crate) fn set_surplus_reeval(on: bool) { SURPLUS_REEVAL.with(|c| c.set(on)); }
+
+/// 测试用：关掉/打开本线程的最终期望重算（反向验证 `p212s4a_*` 必须在关时失败）。
+#[cfg(test)]
+pub(crate) fn set_expected_reeval(on: bool) { EXPECTED_REEVAL.with(|c| c.set(on)); }
 
 /// 本线程累计的**成功**期望类型传播次数（测试/计数用；判定不读它）。
 pub fn propagations() -> u64 { PROPAGATIONS.with(|c| c.get()) }
@@ -310,7 +316,7 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         // （Lean 会推迟/一阶近似；这里不做 ⇒ 点名卡住的 binder，不冒充"期望不符"）。
         let mut exp_stuck = false;
         if let Some(ev) = exp_v {
-            if !propagated && !self.is_def_eq_at(d, ev, fty) {
+            if !propagated && !self.app_expected_def_eq(d, env, gen0, ev, fty) {
                 if !self.app_stuck_on_meta(d, fty) {
                     return self.app_expected_mismatch(d, ev, fty);
                 }
@@ -367,6 +373,26 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
             return AppOutcome::Unsupported("recheck");
         }
         AppOutcome::Solved(self.ctx.export_owned(out))
+    }
+
+    /// **P2-12 S4a**：最终 `期望 ≟ 结果类型` 失败、且本会话自 `gen0` 起有过赋值 ⇒ `fty` 可能是赋值**之前**造的
+    /// 值（`force_all` 不重放已赋值的 `Value::Meta`）⇒ 按 `instantiate_mvars(quote(fty))` 重算再比一次。
+    /// 同族：`app_arg_def_eq`（P2-11a-B 域）、`app_reeval_pi`（P2-11b 结果类型）。Lean 的 `Expr` 上没有这种陈旧
+    /// 闭包（`Meta/ExprDefEq.lean:1402` 边比边实例化）。只在原比较失败时重试 ⇒ 今天通过的对子路径不变。
+    ///
+    /// 复现（`congrArg.{1} Nat.pred h`）：`?β` / `?b` 在 `app_propagate` 之前造、之后才被赋值 ⇒ 旧的 `fty` 里
+    /// 还是未赋值的元变量，`is_def_eq` 报 `ExpectedMismatch`；重算后 `定值`。
+    fn app_expected_def_eq(&mut self, d: u32, env: E<'t>, gen0: u64, ev: V<'t>, fty: V<'t>) -> bool {
+        if self.is_def_eq_at(d, ev, fty) {
+            return true;
+        }
+        if self.ctx.mvars.generation() == gen0 || !EXPECTED_REEVAL.with(|c| c.get()) {
+            return false;
+        }
+        let q = self.quote(d, fty);
+        let q = self.ctx.instantiate_mvars(q);
+        let fresh = self.eval(d, env, q);
+        self.is_def_eq_at(d, ev, fresh)
     }
 
     /// **P2-3**：解出的项在 scope 下 `Check` 重推（类型错 ⇒ 内核 panic ⇒ 本线程静音捕获）且（有期望时）类型 ≡ 期望。
