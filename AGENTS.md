@@ -145,6 +145,7 @@ scripts/soko prune                        # 统一版本：清多余扩展目录
 6. **用户/agent 路径零工具链依赖**：获取与运行只用 Release 二进制或平台
    插件，不把 cargo/Rust 当使用前提（cargo 仅贡献者开发需要；见
    REQUIREMENTS §2 第 9 条）。
+7. **方言（strict）**：strict 的**过渡闸门 env 已删**（2026-11-01）；**默认档仍是 loose**（翻默认是独立决策）⇒ 要 strict 用 `--dialect strict` 或设置项 `sokonanoda.dialect.strictImplicitArgs`；报错印 `@f <隐式位> <显式实参>`，例外表与偏差见 §9.40。
 
 ## 命令（贡献者：需要 Rust；用户/agent 用 `scripts/soko` / `sokonanoda` 子命令）
 

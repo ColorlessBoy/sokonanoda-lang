@@ -953,8 +953,9 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     if (process.env.SOKO_STRICT_AT !== undefined) this.skip();
     // 用户动作 = 设置里打开 `sokonanoda.dialect.strictImplicitArgs`；屏幕上多什么 =
     // 同一份**已打开**文档多出一条 `elab-implicit-argument-unsolved` 错误（关掉就
-    // 消失）。服务器不重启：S5 的热切换（`workspace/didChangeConfiguration`）无重启
-    // 就能重判所有打开文档；S6 的活儿是**真的把设置发出去**。
+    // 消失）。默认关 = 旧读法（与 CLI 默认一致）；strict 档本身不再需要环境变量。
+    // 服务器不重启：S5 的热切换（`workspace/didChangeConfiguration`）无重启就能重判
+    // 所有打开文档；S6 的活儿是**真的把设置发出去**。
     const cfg = vscode.workspace.getConfiguration("sokonanoda");
     // 干净起点：测试实例的 `--user-data-dir` 跨轮复用，上一次中断的运行可能把
     // 这个 Global 值留在那里（删掉 = 回到清单里的默认 false）。

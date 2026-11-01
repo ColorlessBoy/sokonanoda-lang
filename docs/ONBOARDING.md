@@ -173,6 +173,9 @@
     `--check --all` 逐条真跑：`pass` 要绿、**`bite` 必须真的报非 0** ✓；覆盖基线以来
     新增/修改的守卫缺一行 ⇒ 判红 ⇒ **不算收口** ✗；`--reopen-empty` = ① 的翻账入口 ✓）。
     两条都进 CI 的 `queue-lint` **与 `scripts/soko gate`**（每推必跑 ✓）。
+11. **方言默认档**（2026-11-01，S6）：strict 档的**过渡闸门环境变量已删**（strict 不再需要任何环境变量，`effective = dialect.strict()`）；
+    **默认档仍是 loose** —— 要 strict 用 `--dialect strict` 或设置项 `sokonanoda.dialect.strictImplicitArgs`；**翻默认是独立决策、另行拍板**
+    ⇒ **别把"闸门已删"读成"已翻默认"**。口径与已知偏差：`REQUIREMENTS.md` §9.40（例外表 6 类 · `strict ≤ loose` 348/355）。
 
 ### 3.1 文档清理机制（2026-09-29 用户：「没有建立起来很好的 doc 清理机制」）
 

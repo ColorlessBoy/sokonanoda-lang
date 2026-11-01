@@ -892,7 +892,7 @@ test("dialect setting rides initialize + didChangeConfiguration, no restart (S6)
     "unrelated settings must not trigger a dialect re-judgement",
   );
 
-  // 默认关（旧读法）也必须**明确**告诉服务器 `false`：否则"先开后关"翻不回来。
+  // 默认关（旧读法，与 CLI 默认一致）也必须**明确**告诉服务器 `false`：否则"先开后关"翻不回来。
   await activateExtension();
   await settle();
   assert.deepStrictEqual(

@@ -277,3 +277,7 @@ notation 更直观**」+「**不许新建大 plan 文件**；用 `scripts/plan.p
 用户原话：「metavar要做，要做好设计，先设计方案再执行」。**要求**：metavar 要做（含 #16）；**先把设计做好**（`docs/design/metavar-pattern.md`：HO1–HO4、判据、反向、开关）；**设计验收后才改判定代码**。背景：`apply Eq.subst (Eq.symm h)` 原理上合法、Lean 4 接受（留 `¬ (x ∈ ∅)`），今天的判红是表面匹配 + 无 pattern 合一。
 
 ### 9.39 2026-10-31 `{∅} = @Set.univ (Set Nat)` 两档都修（用户：「loose档一起修了吧」）⇒ 左边类型只能由 `=`/`≠` 右边定时（P2-C m5），main 上两档都拒（Sort(0)/Sort(1)），交换两边就过；Lean `binrel%`（`Elab/Extra.lean:256`）先 elaborate 两边再统一。**要求**：两档都接受（strict 走内核路径 P2-11c，loose 修旧路径）。**对「loose 逐字节不变」的有意例外**：loose 语料只许在含此形状的文件上变、只许拒绝→接受、逐行列出。
+
+### 9.40 2026-11-01 **strict 彻底上线第一步：过渡闸门已删，默认档未翻**（用户：「我们的计划是 strict 模式彻底推上线」）
+**方向**（用户拍板）= strict 成唯一判定路径；**本次做到** = strict 档**不再需要过渡闸门**（两道闸门环境变量从代码里删除），strict 只由方言来源决定（`--dialect strict` · 设置项 · 清单/指令）。**默认档仍是 loose**（`Dialect::default()` = `Loose`）⇒ **翻默认是独立决策、另行拍板**（届时设置项默认值同轮改）—— 别把「闸门已删」读成「已翻默认」。
+**有意差异**：① 判负报错印**可照抄**的 `@f <隐式位> <显式实参>`；② **例外表 6 类**（`input_contains_a_meta` / `shape` / `ho_motive` / `prefix_meta` / `argmismatch_text` / `deferred`）**仍回落老路** —— Lean 会拒、老路接受，删了会拒掉现在能过的课程。**已知偏差**：`strict ≤ loose` 348/355（其余 7 个全是例外回落；全语料 calls 1.023×）；**2 个 orphan 解答**（不在 `course.json`）strict 下被拒。

@@ -307,7 +307,7 @@
         "sokonanoda.dialect.strictImplicitArgs": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "**Strict implicit arguments** — the normal form binds only explicit parameters (feed an implicit parameter with `@`); off by default = the old reading, and changes apply immediately without restarting the server.\n\n**严格隐式参数** —— 正常形式只按显式形参绑定（喂隐式位要写 `@`）；默认关 = 旧读法，改设置即时生效（`workspace/didChangeConfiguration`）、不重启服务器。"
+          "markdownDescription": "**Strict implicit arguments** — on = strict: the normal form binds only explicit parameters, so to feed an implicit position write `@f α x` (the error message prints the exact form to copy). **Off by default = the old reading (loose), the same default as the CLI.** Changes apply immediately without restarting the server, and strict itself needs no environment variable any more.\n\n**严格隐式参数** —— 开 = strict（正常形式只按显式形参绑定，喂隐式位要写 `@f α x`，报错会印出可照抄的形态）；**默认关 = 旧读法（loose），与 CLI 的默认档一致**。改设置即时生效（`workspace/didChangeConfiguration`）、不重启服务器；strict 档本身**不再需要任何环境变量**。"
         },
         "sokonanoda.warmCacheOnOpen": {
           "type": "boolean",

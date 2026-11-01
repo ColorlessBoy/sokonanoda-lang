@@ -1,4 +1,14 @@
 <!-- doc-refs: history-only（旧版本的 `docs/**` 指针是历史位置；恢复方式：原文 ⇒ git log --all -- <path>） -->
+## [Unreleased]
+
+### Changed
+
+- **strict 档不再需要环境变量**：两道过渡闸门（内核路径 / 不回落）已从代码里删除，
+  strict 现在只由方言来源决定 —— 设置项 `sokonanoda.dialect.strictImplicitArgs`（改设置
+  即时生效、不重启）或 CLI `--dialect strict`，二者同一个值。**默认档不变**
+  （关 = 旧读法 = CLI 默认）：strict 下位置实参只按显式形参绑定，喂隐式位要写 `@f α x`
+  （报错会印出可照抄的形态）。设置项文案同步写准。
+
 ## [0.97.11] - 2026-10-27
 
 ### Fixed

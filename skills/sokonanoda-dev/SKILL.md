@@ -68,14 +68,26 @@ SOKO_PRELUDE_DIR=/tmp/my-prelude scripts/soko grade playground.sokonanoda
    跑完拓扑序的 unit）。契约见 `docs/protocol.md`；测试地图 `docs/TESTING.md`
    的三行「多文件 …」。
 
-## 1.5 方言：严格档是 **opt-in**（F5，2026-10-20）
+## 1.5 方言：strict 档**不再需要过渡闸门**（2026-11-01 用户拍板；本节取代 2026-10-20 的 opt-in 门槛）
 
-- 默认 `Dialect::Loose`；严格档用 `SOKO_STRICT_AT=1` 或 CLI `--dialect strict`（S3）。
-- **不许翻默认**：翻默认是独立决策（≥2 周 opt-in + 0 回归报告）。
+- **默认档仍是 `loose`**：`Dialect::default()` = `Loose`，五档来源全空 ⇒ loose —— 不设任何环境变量、
+  不传 `--dialect` 跑 CLI 就是旧读法（实测 `def id2 {A : Type} (a : A) : A := a` +
+  `example : Nat := id2 Nat 3` ⇒ rc=0）。**别把"已删闸门"误读成"已翻默认"** ✗。
+- **strict 只由方言来源决定**：CLI `--dialect strict` · 设置项 `sokonanoda.dialect.strictImplicitArgs` ·
+  文件指令 / 清单（优先级 `docs/design/dialect-config.md` §2）。两道**过渡闸门**环境变量（内核路径 /
+  不回落）**已从代码里删除**：strict 下 `effective = dialect.strict()`、`no_fallback = dialect.strict()`。
+- **「不许翻默认」那条已被取代**（F5，2026-10-20 原文：翻默认是独立决策，≥2 周 opt-in + 0 回归报告）
+  —— 用户 2026-11-01 拍板「**我们的计划是 strict 模式彻底推上线**」⇒ 方向定了；但**默认档翻转**
+  仍是**独立决策、另行拍板**（届时 VS Code 设置项的默认值同一轮改）。有意差异与已知偏差见
+  `REQUIREMENTS.md` §9.40。
+- **例外表仍回落老路**（`input_contains_a_meta` / `shape` / `ho_motive` / `prefix_meta` /
+  `argmismatch_text` / `deferred`）：这些形状 Lean 会拒、我们接受 —— 删掉它们会让现在能过的
+  课程文件被拒。**别当成死代码顺手清掉**。
 - 严格档性能由 **F5** 保证：`operand_type_expr` 用默认 pp（R3）+ 两处「解出的隐式实参」
   用 `pp_shape::elab_engine_value`（`elab.rs:4617`/`:5008`）。**不要**退回 AST provenance。
 - 迁移量具：`python3 scripts/strict-compat.py --sweep`（两档对拍）·
-  `--suggest --files <f>`（按诊断给建议）。课程迁移 **delete-first**，删不掉才 `@`。
+  `--suggest --files <f>`（按诊断给建议）· `python3 scripts/strict-score.py --course`（判卷面）。
+  课程迁移 **delete-first**，删不掉才 `@`。
 
 ## 2. 工作流（TDD 三层 + 文档先行）
 
