@@ -425,9 +425,11 @@ warning；**failed** 声明才不进环境。后续声明仍会被检查并得�
   insert 模式（NORMAL 模式不插文本，换什么 leader 都一样）。两个坑已修：替换后光标会被 vim
   抢到自动配对的 `)` 右边（现在扩展自己把光标钉在符号之后）、normal 模式的 `o`/`p` 会补刀
   上一行的待定缩写（现在只认"单字符 + 落在光标处"的插入）；
-- **严格隐式参数（strict 档，默认仍是旧读法）**：学习者要按 Lean 读法判卷 ⇒ 开 VS Code 设置
-  `sokonanoda.dialect.strictImplicitArgs`（改设置即时生效、不重启）；CLI 同口径 `scripts/soko grade --dialect strict <file>`（或 `SOKO_STRICT_AT=1`），同一个值。
-  strict 档**不再需要过渡闸门环境变量**（已删）；strict 下位置实参只按显式形参绑定，喂隐式位要写 `@`，判负的报错会印出可照抄的 `@f <隐式位> <显式实参>` 形态。
+- **严格隐式参数（strict 档，**2026-11-01 起是默认档**）**：默认就按 Lean 读法判卷 —— 位置实参只按
+  显式形参绑定，喂隐式位要写 `@`，判负的报错会印出可照抄的 `@f <隐式位> <显式实参>` 形态；strict 档
+  **不需要任何环境变量**（过渡闸门已删）。**要回旧读法（loose）**——教旧写法或跑老材料时用：
+  CLI `scripts/soko grade --dialect loose <file>`，或把 VS Code 设置 `sokonanoda.dialect.strictImplicitArgs`
+  **关掉**（改设置即时生效、不重启）。编辑器与 CLI 现在是**同一个默认值**，不必再手动对齐。
 - 洞尾 inlay 提示直接标注该洞的**期望类型**（子洞有各自的期望类型）；
 - 洞上灯泡（按目标形状的下一步建议，kernel 验证过的排最前并标 preferred）：
   `exact <假设>`（该假设能闭合该洞时）、`Eq.refl …` / `Iff.rfl`（`Eq` 与 `Iff`

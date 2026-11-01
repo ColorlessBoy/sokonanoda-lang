@@ -68,17 +68,21 @@ SOKO_PRELUDE_DIR=/tmp/my-prelude scripts/soko grade playground.sokonanoda
    跑完拓扑序的 unit）。契约见 `docs/protocol.md`；测试地图 `docs/TESTING.md`
    的三行「多文件 …」。
 
-## 1.5 方言：strict 档**不再需要过渡闸门**（2026-11-01 用户拍板；本节取代 2026-10-20 的 opt-in 门槛）
+## 1.5 方言：**默认档 = strict**（2026-11-01 S7 翻默认；本节取代 10-20 的 opt-in 门槛与「默认未翻」）
 
-- **默认档仍是 `loose`**：`Dialect::default()` = `Loose`，五档来源全空 ⇒ loose —— 不设任何环境变量、
-  不传 `--dialect` 跑 CLI 就是旧读法（实测 `def id2 {A : Type} (a : A) : A := a` +
-  `example : Nat := id2 Nat 3` ⇒ rc=0）。**别把"已删闸门"误读成"已翻默认"** ✗。
-- **strict 只由方言来源决定**：CLI `--dialect strict` · 设置项 `sokonanoda.dialect.strictImplicitArgs` ·
-  文件指令 / 清单（优先级 `docs/design/dialect-config.md` §2）。两道**过渡闸门**环境变量（内核路径 /
-  不回落）**已从代码里删除**：strict 下 `effective = dialect.strict()`、`no_fallback = dialect.strict()`。
-- **「不许翻默认」那条已被取代**（F5，2026-10-20 原文：翻默认是独立决策，≥2 周 opt-in + 0 回归报告）
-  —— 用户 2026-11-01 拍板「**我们的计划是 strict 模式彻底推上线**」⇒ 方向定了；但**默认档翻转**
-  仍是**独立决策、另行拍板**（届时 VS Code 设置项的默认值同一轮改）。有意差异与已知偏差见
+- **默认档是 `strict`**：`Dialect::default()` = `Strict`，五档来源全空 ⇒ strict —— **不设任何环境变量、
+  不传 `--dialect`** 跑 CLI 就是严格档（实测 `def id2 {A : Type} (a : A) : A := a` +
+  `example : Nat := id2 Nat 3` ⇒ **rc=1**）。编辑器同值：设置项 `sokonanoda.dialect.strictImplicitArgs`
+  的 `default` = `true`（**CLI 与编辑器不许再反向不一致** ✗）。
+- **旧读法是退路**（三条都验过）：CLI `--dialect loose` · 设置项关 · 文件指令
+  `-- sokonanoda:dialect loose` / 清单 `[dialect] strict_implicit = false`；另有 `SOKO_STRICT_AT=0`
+  （CI/逃生门，**不是用户界面**）。翻默认**只换默认值**：两档判定逻辑一字未改，语料 loose 半 0 变化、
+  strict 半只变"拒绝→接受"那两条。
+- **strict 只由方言来源决定**：优先级 `--dialect` > `SOKO_STRICT_AT` > 编辑器 > 文件指令 > 清单 >
+  默认（`docs/design/dialect-config.md` §2）。两道**过渡闸门**环境变量（内核路径 / 不回落）**已从代码里删除**：
+  strict 下 `effective = dialect.strict()`、`no_fallback = dialect.strict()`。
+- **「翻默认是独立决策」那条已被取代**（F5，2026-10-20）：用户 2026-11-01 拍板「**我们的计划是 strict
+  模式彻底推上线**」⇒ S7 已翻。整门课两档 **258 目标 · 2191 checked · 0 判负**；有意差异与已知偏差见
   `REQUIREMENTS.md` §9.40。
 - **例外表仍回落老路**（`input_contains_a_meta` / `shape` / `ho_motive` / `prefix_meta` /
   `argmismatch_text` / `deferred`）：这些形状 Lean 会拒、我们接受 —— 删掉它们会让现在能过的

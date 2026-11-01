@@ -9,10 +9,10 @@
 **一个值、五处来源、一条优先级链**；实现分 **6 段**，每段一条判据、可单独发版。
 最要紧的一条不是"能不能配"，是**配置化时别把缓存键搞坏**（见 §3.3）。
 
-## §0bis 2026-11-01 的现状（S6 之后）
+## §0bis 2026-11-01 的现状（S6 + S7 之后）
 
 **strict 的过渡闸门已删**（`effective = dialect.strict()` / `no_fallback = dialect.strict()`，两道闸门环境变量从代码里消失）⇒ **strict 只由 §2 的五处来源决定**，不再需要任何环境变量。
-**默认档没有翻**：`Dialect::default()` 仍是 `Loose`、`DialectSources::resolve()` 五档全空仍落 loose（实测不设环境变量、不传 `--dialect` ⇒ 旧读法）⇒ **翻默认是独立决策**（§5），届时设置项 `default` 与本节同轮改。口径与偏差：`REQUIREMENTS.md` §9.40。
+**默认档已翻（S7）**：`Dialect::default()` = `Strict`、`DialectSources::resolve()` 五档全空 ⇒ strict（设置项 `default` 与 CLI 同轮改，两处同一个值）。**退路** = `--dialect loose` / 设置项关 / 文件指令 / 清单 / `SOKO_STRICT_AT=0` —— 两档判定逻辑**一字未改**，翻的只是默认值。口径与代价：`REQUIREMENTS.md` §9.40。
 
 ## §1 当初的坑（为什么配置化必须先做缓存键）
 
@@ -28,7 +28,7 @@
 | 3 | **编辑器** | VS Code `sokonanoda.dialect.strictImplicitArgs` → LSP `initializationOptions` + `workspace/didChangeConfiguration`（**改设置即时生效**，不重启） | 3 |
 | 4 | **文件指令** | `-- sokonanoda:dialect strict`（与 `-- sokonanoda:prelude none` **同形**，`prelude.rs:41` 是现成先例） | 4 |
 | 5 | **项目清单** | `sokonanoda.toml` 的 `[dialect] strict_implicit = true`（`project/manifest.rs:19` 的 `Manifest` 加一格） | 5 |
-| — | **默认** | **关 = 旧读法（loose）** —— 2026-11-01 仍如此（翻默认见 §0bis / §5） | — |
+| — | **默认** | **开 = strict**（S7，2026-11-01 翻默认；旧读法走 `--dialect loose`，见 §0bis） | — |
 
 * 键写成 **`[dialect] strict_implicit`**（不塞顶层）：将来同类开关都进同一个表。
 * **不做**用户级全局配置（`~/.config/...`）：先覆盖「项目」与「编辑器」两处，够用 ✓。
@@ -60,13 +60,13 @@
 | **S5** | LSP `initializationOptions` + `didChangeConfiguration` 热切换 | 两次 `initialize` 判定不同 · 一次 config change 后判定翻转 | 只认 `initialize` |
 | **S6** | VS Code 设置项 + `docs/protocol.md` wire + `skills/` + `docs/vscode-dev-guide.md` 同轮 | 扩展 stub 宿主测试 + 真 e2e 一条（改设置 ⇒ 判定翻转） | 撤设置项 |
 
-**顺序不能换**：S6 **必须**在 S1–S5 之后 —— 先让用户能配、配了却不生效，比不能配更坏 ✗。**S6 之后（2026-11-01）**：两道过渡闸门已删（§0bis），但**默认档未翻** ⇒ S1–S6 的产物原样成立。
+**顺序不能换**：S6 **必须**在 S1–S5 之后 —— 先让用户能配、配了却不生效，比不能配更坏 ✗。**S6 之后（2026-11-01）**：闸门已删 + **默认档已翻**（§0bis）⇒ S1–S6 的产物原样成立。
 
 ## §5 与性能计划（`strict-mode-v2.md`）的关系
 
 * **互不阻塞**：本文只保证"想用严格档的人能开"，不改默认；v2 保证"开了不慢"。
 * S1/S2 顺带把 v2 第 1 棒的读数入口接上（探针按 `options.dialect` 分桶天然成立 ✓）。
-* **翻默认仍未做**（2026-11-01）：**独立决策、另行拍板**，单独一笔、独占一轮 CI；届时 §2 的"默认"行、`Dialect::default()`、设置项 `default` 与 `skills/` 说明同一轮改。
+* **翻默认已做**（S7，2026-11-01）：§2 的"默认"行、`Dialect::default()`、设置项 `default` 与 `skills/` 说明**同一轮**改完 ✓。
 
 ## §6 边界（不做）
 

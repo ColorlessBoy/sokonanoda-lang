@@ -47,13 +47,13 @@ skills.
   line follows it, the editor flags that exact line with a `redundant-sorry`
   warning — the declaration stays open, and the fix is to delete the line
   rather than keep proving.
-- **Implicit arguments bind the Lean 4 way under `strict`** — a positional
-  argument binds only the explicit parameters of a signature; to feed an
-  implicit position, write `@f α x` (the error message prints the exact
-  `@`-form to copy). The default is still the old reading, in the editor
-  **and** on the CLI, but since 2026-11-01 the strict dialect needs **no**
-  environment variable: turn on `sokonanoda.dialect.strictImplicitArgs`
-  (applies without a restart) or pass `--dialect strict` on the command
+- **Implicit arguments bind the Lean 4 way by default (`strict`)** — a
+  positional argument binds only the explicit parameters of a signature; to
+  feed an implicit position, write `@f α x` (the error message prints the
+  exact `@`-form to copy). Since 2026-11-01 this is **the default dialect**
+  in the editor **and** on the CLI, and it needs **no** environment variable.
+  The old reading is the escape hatch: turn `sokonanoda.dialect.strictImplicitArgs`
+  off (applies without a restart) or pass `--dialect loose` on the command
   line.
 
 **Guided exercises**

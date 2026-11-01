@@ -278,6 +278,6 @@ notation 更直观**」+「**不许新建大 plan 文件**；用 `scripts/plan.p
 
 ### 9.39 2026-10-31 `{∅} = @Set.univ (Set Nat)` 两档都修（用户：「loose档一起修了吧」）⇒ 左边类型只能由 `=`/`≠` 右边定时（P2-C m5），main 上两档都拒（Sort(0)/Sort(1)），交换两边就过；Lean `binrel%`（`Elab/Extra.lean:256`）先 elaborate 两边再统一。**要求**：两档都接受（strict 走内核路径 P2-11c，loose 修旧路径）。**对「loose 逐字节不变」的有意例外**：loose 语料只许在含此形状的文件上变、只许拒绝→接受、逐行列出。
 
-### 9.40 2026-11-01 **strict 彻底上线第一步：过渡闸门已删，默认档未翻**（用户：「我们的计划是 strict 模式彻底推上线」）
-**方向**（用户拍板）= strict 成唯一判定路径；**本次做到** = strict 档**不再需要过渡闸门**（两道闸门环境变量从代码里删除），strict 只由方言来源决定（`--dialect strict` · 设置项 · 清单/指令）。**默认档仍是 loose**（`Dialect::default()` = `Loose`）⇒ **翻默认是独立决策、另行拍板**（届时设置项默认值同轮改）—— 别把「闸门已删」读成「已翻默认」。
-**有意差异**：① 判负报错印**可照抄**的 `@f <隐式位> <显式实参>`；② **例外表 6 类**（`input_contains_a_meta` / `shape` / `ho_motive` / `prefix_meta` / `argmismatch_text` / `deferred`）**仍回落老路** —— Lean 会拒、老路接受，删了会拒掉现在能过的课程。**已知偏差**：`strict ≤ loose` 348/355（其余 7 个全是例外回落；全语料 calls 1.023×）；**2 个 orphan 解答**（不在 `course.json`）strict 下被拒。
+### 9.40 2026-11-01 **strict 彻底上线：过渡闸门已删 + 默认档已翻**（用户：「我们的计划是 strict 模式彻底推上线」）
+**方向**（用户拍板）= strict 成唯一判定路径；**已做到** = ① 两道过渡闸门环境变量从代码里删除（strict 只由方言来源决定）；② **默认档已翻**（S7）：`Dialect::default()` = `Strict`、五档来源全空 ⇒ strict，VS Code 设置项 `default` 同轮改 `true`（两处同一个值）。**退路 = `--dialect loose`**（或设置项关 / 文件指令 / 清单 / `SOKO_STRICT_AT=0`）—— 翻的只是默认值，两档判定逻辑**一字未改**（实测语料 714 行：默认档 ≡ 旧 strict 半、`--dialect loose` ≡ 旧 loose 半，逐字节相同）。
+**有意差异**：① 判负报错印**可照抄**的 `@f <隐式位> <显式实参>`；② **例外表 6 类**（`input_contains_a_meta` / `shape` / `ho_motive` / `prefix_meta` / `argmismatch_text` / `deferred`）**仍回落老路** —— Lean 会拒、老路接受，删了会拒掉现在能过的课程。**已知代价**：原 strict 下被拒的 2 个 orphan 解答（`unit12-solution` / `unit19-solution`）已分别由「出口规则 1 收窄」与改写 `(@Set.empty Nat)` 转绿 ⇒ 整门课两档 **258 目标 · 2191 checked · 0 判负**；工作量 `strict ≤ loose` 348/355（calls 1.023×，7 个例外回落）。

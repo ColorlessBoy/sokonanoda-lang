@@ -3,6 +3,12 @@
 
 ### Changed
 
+- **默认方言翻成 `strict`**（S7，2026-11-01）：不设任何开关时，位置实参只按**显式**形参
+  绑定，喂隐式位要写 `@f α x`（报错会印出可照抄的形态）—— 编辑器与 CLI **同一个默认**。
+  设置项 `sokonanoda.dialect.strictImplicitArgs` 的 `default` 同轮改成 `true`；**关掉 = 旧读法
+  （loose）**，与 CLI 的 `--dialect loose` 等效（另有文件指令 / 清单 / `SOKO_STRICT_AT=0`）。
+  这一条**取代**下一条里「默认档不变」那半句；已知代价：两个不在 `course.json` 里的 orphan
+  解答在默认档下被拒（整门课 112 个判卷目标两档全绿）。
 - **strict 档不再需要环境变量**：两道过渡闸门（内核路径 / 不回落）已从代码里删除，
   strict 现在只由方言来源决定 —— 设置项 `sokonanoda.dialect.strictImplicitArgs`（改设置
   即时生效、不重启）或 CLI `--dialect strict`，二者同一个值。**默认档不变**
