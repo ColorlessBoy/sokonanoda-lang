@@ -155,7 +155,7 @@ fn key_parts_include_the_no_fallback_switch() {
                     ("", 0),
                     "宽松档恒不生效（nofb={nofb}）"
                 );
-                assert_eq!(no_fallback(Dialect::Loose), false);
+                assert!(!no_fallback(Dialect::Loose));
                 let want = match (gate, nofb) {
                     (false, _) => ("", 0),
                     (true, false) => ("/kapp", 0b1_0000),
