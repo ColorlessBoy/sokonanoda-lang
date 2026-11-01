@@ -41,6 +41,29 @@ fn owner(builder: &EnvBuilder<'_>, span: Span, scope: &ElabScope<'_>) -> Owner {
     )
 }
 
+/// **P2-12 S4b 修正**：这一次回落会不会被探测**切掉**（= [`fallback`] 会走 `Err` 那条路 ⇒ **老路一行都不跑**）。
+///
+/// 记法重试据此跳过：切掉的这一趟里老路根本不跑 ⇒ 物化出来的前导值**没人复用**（[`super::kernel_app_notation`]
+/// 的 stash 落空），只花判定的钱、不可能改变结局（P2-5 的 `with_redo` 会在**非探测**那一趟重来）。
+/// 实测（`unit72-solution` 的 `⋃₀ (∅)` 4 个站点）：正是这 4 次白跑把 strict 的 `JUDGE_INFER.calls`
+/// 从 90（= loose）抬到 165 ⇒ 破坏 `REQUIREMENTS §9.39` 的 `strict ≤ loose`。
+///
+/// ⚠ `depth` 必须用 **`run` 之前捕获的那个**（`finish` 之后 `scope.len()` 就是它），不是此刻的
+/// `scope.len()`：拿错深度会误判（实测把 30 个站点全跳掉）。
+pub(crate) fn would_cut(builder: &EnvBuilder<'_>, span: Span, depth: usize) -> bool {
+    #[cfg(test)]
+    let off = TEST_NO_PROBE.with(|c| c.get());
+    #[cfg(not(test))]
+    let off = false;
+    let off = off || SUPPRESS.with(|c| c.get());
+    let at = (
+        builder as *const EnvBuilder<'_> as *const () as usize,
+        span,
+        depth,
+    );
+    !off && OWNER.with(|o| o.get()) == Some(at) && cuts("unsolved")
+}
+
 /// 探测状态的存续期（drop ⇒ 还原成进入前的值）。
 #[must_use]
 pub(crate) struct ProbeGuard(Option<Owner>);

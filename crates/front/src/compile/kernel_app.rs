@@ -302,9 +302,10 @@ fn attempt<'a>(
             let head_t = super::kernel_app_hint::bare_levels(builder, head_t);
             let (prefix, span) = (*implicit_prefix, expr.span());
             let (sc, ks, hv) = (&mut *scope, known, &mut *hovers);
+            let hint = postpone::take_hint(span, sc);
             run(
                 builder,
-                span,
+                hint,
                 head_t,
                 &args,
                 prefix,
@@ -313,6 +314,7 @@ fn attempt<'a>(
                 ks,
                 hv,
                 expected_src,
+                None,
                 ctx,
             )
         });
@@ -327,10 +329,18 @@ pub(super) use super::kernel_app_fallback::{finish, Fell};
 
 /// `head_t` = 已 elaborate 的头（必须是 `Const`；不带层 ⇒ 内核按 K1d 给层元变量）。
 /// **P2-5**：第一趟有探测切掉过老路、结果又不是 `Solved` ⇒ 关掉探测整段重做一次（最坏 = 今天的行为）。
+///
+/// `hint` = 本应用的**内核期望提示**（`postpone::take_hint` 的产物：取走即消费）。由调用方在**同一个**
+/// `(span, scope 深度)` 上取好再传进来（P2-12 S4b：记法路由要能用**同一份**提示重试一次，见
+/// [`super::kernel_app_notation`]）⇒ 取提示的时机比 P2-5 之前晚不了：仍在 `elab_expr(head)` 之后、
+/// 本应用自己的 `run_once` 之前。
+///
+/// `expected_srcs` = **逐位**的源级期望类型（`None` = 今天：第一趟一律无期望；记法重试才给，
+/// 见 [`super::kernel_app_notation`] 的 `retry_with_prefix`）—— 长度不足的位按 `None` 处理。
 #[allow(clippy::too_many_arguments)]
 pub(super) fn run<'a>(
     builder: &mut EnvBuilder<'a>,
-    expr_span: crate::Span,
+    hint: Option<sokonanoda::transfer::OwnedExpr>,
     head_t: ExprPtr<'a>,
     args: &[&Expr],
     implicit_prefix: usize,
@@ -339,10 +349,9 @@ pub(super) fn run<'a>(
     known: &KnownTable,
     hovers: &mut Vec<HoverNode<'a>>,
     expected_src: Option<&Expr>,
+    expected_srcs: Option<&[Option<&Expr>]>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<AppOutcome, Count> {
-    // 提示只取一次（取走即消费）⇒ 重做时用同一份。
-    let hint = postpone::take_hint(expr_span, scope);
     let (depth, mark) = (scope.len(), hovers.len());
     probe::with_redo(
         || {
@@ -350,8 +359,9 @@ pub(super) fn run<'a>(
             hovers.truncate(mark);
             let (h, a) = (hint.clone(), args);
             let r = (head_t, implicit_prefix, expected_src);
+            let es = expected_srcs;
             run_once(
-                builder, h, r.0, a, r.1, scope, univ, known, hovers, r.2, ctx,
+                builder, h, r.0, a, r.1, scope, univ, known, hovers, r.2, es, ctx,
             )
         },
         |out| matches!(out, Ok(AppOutcome::Solved(_))),
@@ -370,6 +380,7 @@ fn run_once<'a>(
     known: &KnownTable,
     hovers: &mut Vec<HoverNode<'a>>,
     expected_src: Option<&Expr>,
+    expected_srcs: Option<&[Option<&Expr>]>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<AppOutcome, Count> {
     if !matches!(*head_t, sokonanoda::expr::Expr::Const { .. }) {
@@ -382,7 +393,9 @@ fn run_once<'a>(
     let mut explicit: Vec<Option<ExprPtr<'a>>> = Vec::with_capacity(args.len());
     // P2-10b：推迟的带注解 λ 位（体对着域的 codomain elaborate；卡住 ⇒ `fill_late` 照老办法补）。
     let mut typed_lams: Vec<usize> = Vec::new();
-    for a in args {
+    for (i, a) in args.iter().enumerate() {
+        // **P2-12 S4b**：这位有没有**源级**期望类型（记法重试按已物化的前导值代换出望远镜的域）。
+        let want = expected_srcs.and_then(|s| s.get(i).copied().flatten());
         let bare = || postpone::bare_implicit_const(a, scope, known, ctx.ns).is_some();
         // P2-10b：三类推迟互斥（λ 有无注解 binder / 裸常量）。
         let typed = postpone::enabled() && lambda::defer(a, scope, known, ctx.ns);
@@ -397,7 +410,7 @@ fn run_once<'a>(
         let mark = hovers.len();
         // P2-5：这一位在探测里（它自己是解不出的内核应用 ⇒ 便宜失败、推迟，不走老路）。
         let probe = probe::ProbeGuard::enter(builder, a.span(), scope);
-        let first = elab_expr(builder, a, scope, univ, known, hovers, None, None, ctx);
+        let first = elab_expr(builder, a, scope, univ, known, hovers, None, want, ctx);
         drop(probe);
         match first {
             Ok(t) => explicit.push(Some(t)),

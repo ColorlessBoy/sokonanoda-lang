@@ -149,3 +149,7 @@ mod kernel_app_census_tests;
 #[cfg(test)]
 #[path = "tests/kernel_app_no_fallback.rs"]
 mod kernel_app_no_fallback_tests;
+// P2-12 S4b：记法前导位在内核 `Unsolved` 时**在调内核之前**物化并重试一次。
+#[cfg(test)]
+#[path = "tests/kernel_app_s4b.rs"]
+mod kernel_app_s4b_tests;

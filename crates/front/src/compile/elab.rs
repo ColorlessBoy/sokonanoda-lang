@@ -1678,7 +1678,7 @@ fn elab_notation<'a>(
         return Ok(out);
     }
     let settle = super::kernel_app_census::arm(kg.is_some()); // S0b：记法回落之后老路的结局
-    let prefix_args = match notation_prefix_args(
+    let prefix_args = match super::kernel_app_notation::prefix_args_cached(
         &signature,
         operands,
         expected_src,
@@ -2800,7 +2800,7 @@ fn judgement_message(j: &crate::judge::Judgement) -> String {
 /// ② **由期望类型解出**（零操作数时唯一的路）：把已解出的参数代进 telescope
 ///    剩余部分，与期望类型头部匹配（`Set.empty : (α) → Set α` 对上
 ///    `Set α₀` ⇒ `α := α₀`）。
-fn notation_prefix_args<'a>(
+pub(crate) fn notation_prefix_args<'a>(
     signature: &str,
     operands: &[&Expr],
     expected_src: Option<&Expr>,
@@ -3245,7 +3245,7 @@ fn solve_prefix_args_impl<'a>(
 /// 代换：`Set.mem : (α) → (a : α) → (A : Set α) → Prop`、`α := Nat`
 /// ⇒ `[Nat, Set Nat]`。解析不出时该位为 `None`（操作数照旧无期望类型地
 /// elaborate，与今天的行为一致——绝不比既有路径差）。
-fn notation_operand_expected(
+pub(crate) fn notation_operand_expected(
     signature: &str,
     prefix_args: &[Expr],
     operand_count: usize,
