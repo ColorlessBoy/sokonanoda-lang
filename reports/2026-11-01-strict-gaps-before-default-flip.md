@@ -323,3 +323,21 @@ theorem n3 (β : Type) (b : β) : ¬ (∅ ≈ {b}) := by sorry
 - 没有改课程文案、没有改 `courses/set-theory/tools/check.py`、没有归档任何 orphan；
 - 没有改 `scripts/docs-budget.json` 的任何 cap，没有新增/删除 `docs/**`；
 - 没有 `git commit` / `git push`；工作区只剩本报告一个未跟踪文件。
+
+
+## 8. ⚠ 主会话复核后的**更正**（2026-11-01 19:45）：发现 1 的定性错了
+
+原文把 `unit12-solution` / `unit19-solution` 叫"**不在 `course.json` 的 orphan 解答**" —— **不成立**。
+实测：
+
+* `course.json` 的 `file` 条目 = **112**，其中 `units/I.4/unit12-synthesis.sokonanoda`（unit **12**）与
+  `units/I.8/unit19-cardinal-le.sokonanoda`（unit **19**）都在里面；
+* `check.py` 的 `solution_unit()` 按**文件名里的单元号**匹配（`unit12-solution` → 12、`unit19-solution` → 19），
+  所以这两个文件正是 unit 12 / unit 19 的**正规解答**，走的是正常 `解答 unitNN` 目标，**不是**"画布不在 course.json"那条分支。
+
+⇒ **G1 不是门禁口径问题**（不需要改 `check.py`、也不需要归档文件）。它等价于：
+**`check.py` 的 258 个目标里，有 2 份真解答的声明在 strict 下判负** —— 而它们的根因就是本报告的**发现 2 与发现 3**
+（脊上分两步应用；`Ne` 的隐式位），这两条 G2/G3 **没有**覆盖（G2 修的是 `Eq.subst` 前缀、G3 修的是载体泄漏）。
+
+⇒ 结论：**翻默认的最后一道门 = 把这两处能力缺口修好**（要动 `elab.rs` / `implicit.rs`，都是冻结文件 ⇒
+要么走 ⑨ 的拆模块通道，要么找到不改行数的修法）。在此之前"strict 默认"发不出去，这不是口径能绕开的。
