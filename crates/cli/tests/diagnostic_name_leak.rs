@@ -211,9 +211,9 @@ fn is_zero_span(diag: &Value) -> bool {
 /// **判据 1 + 2 的合成扫描**：一次运行的所有诊断逐条过两道闸。
 fn scan(tag: &str, dialect: &str, run: &Run) {
     for diag in run.diagnostics() {
-        let code = text_of(&diag, "code");
-        let message = text_of(&diag, "message");
-        let hint = text_of(&diag, "hint");
+        let code = text_of(diag, "code");
+        let message = text_of(diag, "message");
+        let hint = text_of(diag, "hint");
         for (what, text) in [("message", message), ("hint", hint)] {
             if let Some(shape) = internal_name(text) {
                 // ① 正文卫生：内部名**一律**不许进用户文案（REQUIREMENTS §9.39 的机械判据）。
