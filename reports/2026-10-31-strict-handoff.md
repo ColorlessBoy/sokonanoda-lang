@@ -23,6 +23,36 @@
 | P2-12 S2 | 本棒 | `kernel_app_report.rs` 纯函数（结局 ⇒ `CompileError`），先不接线；t1 逐字节同老路、内核名一律兜底 |
 | P2-12 S4a | `ef1f7299` | `congrArg.{1}` 两族：`app_expected_def_eq`（陈旧 `fty`）+ conv Pi 臂各喂各自域（陈旧 `dx` 喂右闭包 ⇒ panic 被吞成 `ArgMismatch`）；四文件 old_ok 10→0 |
 
+### 1.1 接手点（2026-11-01 11:57，**从这里继续就不会丢线**）
+
+本棒已并入的提交（都在 `strict/2026-10-29-kernel-app`，按顺序）：
+
+| 提交 | 是什么 | 关键读数 |
+|---|---|---|
+| `fab033bd` | S0b：三处回落计数 | 对账闭合（前差 68 / 31）；开关关语料 714 行 0 差异；**记法路由一项 88+ 次 old_ok** |
+| `ef1f7299` | S4a：`congrArg.{1}` 两族 | 四文件 old_ok 10→0；kernel lib 123；两对语料 714×2 全 0 差异 |
+| `e36d2a4a` | docs：S0b/S4a 回写 | docs-lint 绿 |
+| `a7c7d6df` | S2：`kernel_app_report.rs` 纯函数（未接线） | 7 条单测绿；t1 逐字节同老路 |
+
+**S4b 的输入已就绪**：`reports/2026-11-01-p212-s4b-census.md`（357 文件全跑，`fallback_old_ok` **185 次 / 11 文件**，
+非例外 130；**`Set.Le` 记法一族 121 次**，只修它就从 185 掉到 64；对账 357/357 成立）。
+⚠ 该报告的**位置坐标有两类伪坐标**（前缀缓冲区 +1530、line 1 合成 span），定位源码前先换算。
+
+**下一刀 = S3**（`SOKO_STRICT_NO_FALLBACK`，验收见 replan §4 该行）。S3 的前提已在 S2 备好：
+`Report` 三态（`Error` / `Fallback(why)` / `Defer`）就是"哪些还能回落"的那张表，`Fallback` 的四种原因
+（`unsupported` / `need_args` / `expected_retry` / `argmismatch_text`）逐条都是**写明的例外**。
+
+**分工（2026-11-01 用户拍板）**：主会话写计划/实施单 + 审 + 并入 + 跑重判据；**开发刀交给子代理**
+（每刀的"怎么做"只写在 `reports/2026-11-01-p212-s3-spec.md` 这类实施单里，子代理不带上下文也够开工）。
+子代理的 prompt 必须自带三样：本仓硬纪律摘要（长命令落盘 / 连红 3 次换招 / 探针带构建身份）、**可执行的判据**、
+**明确的"不许动"边界**（含"不许 commit/push / 不许跑全量 / 不许碰 `crates/kernel/`"）。
+
+⚠ 两件必须知道的事：
+1. **S0 的旧清单作废**：S3 要按 S0b 的普查重排优先级，最大一块是 `fallback_old_ok_notation_unsolved`
+   （`Set.Le` 的 `A ≼ B`），不是 `congrArg`（后者已由 S4a 清零）。
+2. **`is_def_eq_at` 把内核 panic 当成"不 defeq"**（S4a 的真凶）——`catch_unwind` 那一条是
+   `docs/architecture.md` G-91「判不了 ⇒ 当成否」的反例，记作 P2-13 候选，别在 S3/S4 里再踩。
+
 ## 2. 中断现场（2026-11-01 03:00 左右，API 502 双杀）
 
 ### 2.1 全课程普查给出的靶子（replan §4，开关开，251 文件）⚠ **本节数字是下界，S0b 后作废**：只结算了应用路径
