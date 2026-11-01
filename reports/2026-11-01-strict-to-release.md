@@ -173,6 +173,17 @@ S7（翻 `Dialect::default()`）在收口时暴露三条**既有缺口**，任�
 | 7 | 发版闭环 | **⬜ D3 待点头** | `scripts/release-preflight.sh` 已跑到 ④（LKA 门禁，长跑中）；①②③ 已过 |
 | 8 | 文档同轮同步 | **✅** | `26400a5c`（14 处）+ `5001aa55`（8 处，S7 翻默认）· `docs-lint` 绿 · 冻结文件零增长 |
 
+## 2nonies. **P4 的两个拦路石**（2026-11-02 03:50 实测）
+
+1. **D3：push main 要用户点头**（用户早先定的规矩）。
+2. **LKA 门禁在本机跑不完**（`scripts/arena-gate.py`）：`release-preflight.sh` 的 ④ 在 02:11 起**冻住 85 分钟无输出**，
+   且**没有编译活动**（`target/release/deps/*.rmeta` mtime 停在 02:11）⇒ 不是慢，是挂。
+   诊断：`gh` 已登录（`ColorlessBoy`）、`api.github.com` 返回 200 ⇒ 不是网络基本连通性问题；
+   用 `--offline`（本地语料）**同样挂住 >10 分钟** ⇒ 大概率是**语料跑起来本身**（`cargo` 侧或脚本自己的等待）。
+   ⇒ `bump.py` 在写版本号**之前**就跑这个门禁、失败不写 ⇒ **P4 卡在这里**。
+   出路（都留给下一轮）：① 用 `SOKO_ARENA_CORPUS=<dir>` 显式指定已知良好语料（**不是跳过**，是显式来源）；
+   ② 查 `--offline` 为什么挂（`SOKO_ARENA_TIMEOUT` 默认 120s/例、`CARGO_TIMEOUT_S`）；③ 换一台能跑通它的机器做发版。
+
 ## 3. 用户决策点（只有三个，其余我全包）
 
 | # | 决策 | 现在需要吗 |
