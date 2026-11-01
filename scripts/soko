@@ -1925,6 +1925,30 @@ async function main(argv) {
         return 3
       }
       if ((paths.status ?? 3) !== 0) return paths.status ?? 3
+      // **strict 文本通道棘轮**（P3 第一刀，2026-11-01）：三个文本 oracle 入口
+      // （`operand_type_expr_explicit` / `infer_type_text` / `pp=explicit`）只许减不许增，
+      // 且 `--strict-only` = strict 专属项（基线 **0** = P3 的验收线）。归类表 30 行在
+      // `reports/2026-11-01-p3-inventory.md`。毫秒级 ⇒ `--fast` 也跑 ✓。
+      const strictPaths = path.join(REPO, 'scripts', 'audit-strict-paths.py')
+      if (!existsSync(strictPaths)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, strictPaths)} —— strict 文本棘轮无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      for (const strictArgs of [[], ['--strict-only'], ['--self-test']]) {
+        const strictRun = spawnSync(python.cmd, [...python.args, strictPaths, ...strictArgs], {
+          stdio: 'inherit',
+          cwd: REPO,
+        })
+        if (strictRun.error) {
+          process.stderr.write(
+            `scripts/soko gate: failed to run ${strictPaths}: ${strictRun.error.message}\n`,
+          )
+          return 3
+        }
+        if ((strictRun.status ?? 3) !== 0) return strictRun.status ?? 3
+      }
       // **A∖B 接缝守卫**（审计 #3，2026-09-25）：`audit-wire-fields.py` 抓"扩展读了 /
       // LSP 从不发"的字段 —— 它是**唯一**能咬 R-1（`value_runs` 漏映射 ⇒ Infoview 静默降级）
       // 的守卫 ✓，而文档（AGENTS.md / docs/CI-FAILURES.md）**一直宣称"已进 gate 与 CI"** ✗，
