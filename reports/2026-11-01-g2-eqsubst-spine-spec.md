@@ -65,3 +65,61 @@ cargo test -p sokonanoda-front --lib -- kernel_app
 
 代码 + 测试 + 回复：复现 A/B 的两档 before/after（rc + 诊断码 + span）· 三条 `explicit_spine` 各自为什么是 `true`
 （读上下文后的理由，不要只写"照单改"）· ④ 反向验证的判红证据 · ③ loose 是否 0 行 · 有没有碰到 kernel/elab。
+
+## 7. 实施回执（2026-11-01，已落盘；**改了两处与本单不同的决定，附实测证据**）
+
+分支 `strict/2026-10-29-kernel-app`，**没有 `git commit` / `git push`**。
+
+### 7.1 `:296` **不标 `true`**（本单 §2 第二条被实测推翻）
+
+`:296` 是 `Eq.symm` 的**一层包装**（`Eq.symm <等式>`，**1** 个实参），不是 6 位前缀：
+`Eq.symm : {α : Sort u} → {a b : α} → @Eq α a b → @Eq α b a` ⇒ 源码里那 1 个位置实参绑的
+正是**显式**形参（正常形式）。标 `explicit_spine: true` = 声明"这条脊逐位对**整条**望远镜"
+⇒ 渲染成 `@Eq.symm h` ⇒ `h` 被绑到 `{α : Sort u}`。
+
+反向验证（复现件 C：`apply Eq.subst h hx`，`h : x = a`、`hx : a ∈ A`、目标 `x ∈ A`
+⇒ 引擎必须包一层 `Eq.symm`）：标 `true` ⇒ **loose 与 strict 都** `rc=1`，
+`elab-tactic-failed`「`apply` 的被应用项没有通过内核检查：期望 `Sort(0)`，实际是 `(((Eq.[1] α) x) a)`」；
+还原成 `false` ⇒ 两档 `rc=0`、0 诊断。⇒ 这一位**必须留 `false`**（已加单测钉住）。
+
+`:207`（`rewrite_goal_motive` 的 5–6 位内联前缀）与 `:398`（`fn prefix` 的 6 位前缀）
+按本单标 `true` ✓ —— 两处都反向验证过（见 §7.4）。
+
+### 7.2 本单没写到的**第四处改动**：`named_arg::at_arg_expected` 补"洞"那一支
+
+只改那三处（`:207`/`:398` → `true`）时，复现 A（`apply Eq.subst _ hx`，**洞在等号位**）
+在**两档**都变红：`elab-hole-misplaced`（`sorry` is only allowed as the value of an open
+exercise）。根因：旧路的 old-style 读法会给每个位置实参喂"这一层的域"（`compile/hole.rs:177`
+就是这句），而 `@` 脊走的是通用应用臂，`at_arg_expected` 的便宜闸门要求"实参是常量" ⇒ 洞恒 `None`。
+
+修法（8 行，`named_arg.rs`，**不碰 `elab.rs`**）：`@` 脊上实参是 `Expr::Hole` 时返回
+`next_arg_expected(fun, …)`（= 偏应用的第 0 个 Π 域）；与 Lean `Elab/App.lean:263`
+`getArgExpectedType` 对**任何**实参都成立同构。修后复现 A 两档 `rc=0`。
+
+### 7.3 `sanitize` 的**位置**要下沉（本单 §3 写的 `kernel_app_report.rs:223` 咬不住）
+
+实测：修前 A/B 那条"你写了 6 个位置实参"的诊断**来自老路** `elab.rs:4785`
+（`implicit_msg::strict_rejection_message`），**不经过** `kernel_app_report::report`
+⇒ 只改 `kernel_app_report::sanitize` 一个字节都碰不到它（反向验证时实测：出路里
+`_soko_eq276` 原样露着）。⇒ 把 `sanitize` 的**实现**搬到 `implicit_msg.rs`（`pub(crate)`），
+在 `strict_rejection_message` / `unsolved_message` 的**出口**各净化一次（两个生产者共用：
+老路 `elab.rs:4785` 与内核路径 `kernel_app_report::report`）；`kernel_app_report::sanitized`
+的 `debug_assert` 保留（守其余正文）。`_soko_eq<数字>` 的前一位要求**标识符边界**
+（`x_soko_eq1` 不动）。反向验证读数：净化后出路变成
+`@Eq.subst (Set α) (fun (一个没解出来的形参 : Set α) => x ∈ 一个没解出来的形参) A empty sorry hx`。
+
+### 7.4 判据读数（二进制：`target/debug/sokonanoda`，含本刀）
+
+| 项 | 读数 |
+|---|---|
+| ① A loose | 修前 `rc=0`（0 诊断）→ 修后 `rc=0`、0 诊断、`t` checked |
+| ① A strict | 修前 `rc=1`：`elab-implicit-argument-unsolved` **7:3–7:22** + 级联 `elab-tactic-failed` **8:3–8:10**（`t` 不 checked）→ 修后 `rc=0`、0 诊断、`t` checked |
+| ① B loose | 修前 `rc=0` → 修后 `rc=0`、0 诊断、`t` checked |
+| ① B strict | 修前 `rc=1`：`elab-implicit-argument-unsolved` **10:3–10:32** → 修后 `rc=0`、0 诊断、`t` checked |
+| ② `--lib -- eqsubst` / `-- tactic` / `--test strict_diagnostics` | 20 / 30 / 4 passed，0 failed ✓ |
+| ② `--lib -- kernel_app` | 69 passed / **2 failed** —— 与本刀**无关**（隔离实测：只留别人的 G3 改动 `pp_shape.rs`、把本刀全部还原，同样红；两条都是 G3 落盘后**夹具过期**：`switch_on_reports_a_readable_error…` 的"今天还漏名"前提不再成立，`c1_unsolved_fallback_is_counted_as_old_err` 的 `old_ok == 0` 不再成立） |
+| ③ loose 语料 | `scripts/strict/corpus-hashes.sh` 与 `/tmp/s6-after.txt`（714 行，16:09 基线）的 **loose 半 357 行 diff = 0 行** ✓；strict 半只动 **1** 个文件（`I.4/unit12-solution`），隔离实测证明那是 **G3** 的（只留 `pp_shape.rs` ⇒ 同一哈希 `2c11fd83e50ea044`） |
+| ④ 反向 `:207` | 改回 `false` ⇒ 复现 D（`apply Eq.subst h`，5 位内联前缀）strict `rc=1`「你写了 **5** 个位置实参」；A/B 仍绿（隔离性 ✓）；还原后 D 两档 `rc=0` |
+| ④ 反向 `:398` | 改回 `false` ⇒ 复现 A、B strict 都 `rc=1`（同上文案，6 位）；D 仍绿；还原后全绿 |
+| ⑤ 新判据 | `tests/eqsubst_predicate.rs` +4 条 strict 臂（A / B / `Eq.symm` 包装 / 单实参 `:207`）+ `--lib -- eqsubst` 21 passed+ `kernel_app_report::tests::eqsubst_motive_name_never_leaks`（出路无引擎名 + 边界） |
+| 边界 | `crates/kernel/**` **0 行**；`elab.rs` **8841 = 8841**（0 行）；`kernel_app_fallback.rs` 489（未动）；`kernel_app_report.rs` 412 → **395**；`implicit_msg.rs` +66；`eqsubst.rs` 444 → 458；`named_arg.rs` +8；`docs-lint` ✓ / `cargo fmt -p sokonanoda-front -- --check` ✓ / `clippy -p sokonanoda-front --all-targets` ✓ |
