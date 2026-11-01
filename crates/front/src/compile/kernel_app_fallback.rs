@@ -37,6 +37,19 @@ use std::sync::{Mutex, OnceLock};
 thread_local! {
     /// 测试用：`Some(b)` ⇒ 不读进程环境（[`super::kernel_app::effective`] 仍要过）。
     pub(crate) static TEST_NO_FALLBACK: Cell<Option<bool>> = const { Cell::new(None) };
+    /// **P2-12 S4c** 的反向验证开关：`true` ⇒ 取消 `prefix_meta` 那条**写明的例外**
+    /// （`unit19-*` 那 6 个真实站点在开关开时当场变成诊断 ⇒ 正的那条判据判红）。
+    pub(crate) static TEST_NO_PREFIX_META_KEPT: Cell<bool> = const { Cell::new(false) };
+}
+
+/// 见 [`TEST_NO_PREFIX_META_KEPT`]：生产恒 `false`（`#[cfg(test)]` 之外没有这个开关）。
+fn kept_prefix_meta_off() -> bool {
+    #[cfg(test)]
+    {
+        return TEST_NO_PREFIX_META_KEPT.with(|c| c.get());
+    }
+    #[cfg(not(test))]
+    false
 }
 
 fn env_on() -> bool {
@@ -176,6 +189,15 @@ pub(super) fn app_fell(
 
 /// 记法路由的判定（`kernel_app_notation::try_notation` 交进来）。`missing` = 记法替用户补的前导层数
 /// （= 这条路由的 `k`；`operands + missing <= 层数` ⇒ [`report`] 的"实参写多了"那条永不触发）。
+///
+/// **P2-12 S4c**（用户 2026-11-01 15:2x 拍板）：`prefix_meta = true` ⇒ 这次 `Unsolved` 是**老路自己也只给得出
+/// 占位符**那一族（`\0soko_m*` ⇒ `Expr::Meta`；S4b 的重试被占位符判据挡住）。它是本实现与 Lean 的**有意偏离**：
+/// Lean 到声明末尾会报 "don't know how to synthesize implicit argument"，而我们的老路**接受**带占位符的记法
+/// 前导位（`fill_pending_by_shape` 借同形兄弟）⇒ strict **不能**比 loose 更严（否则 `unit19-solution`
+/// 这类现在能过的课程文件会被拒）。所以它按**写明的例外**回落并计数 `nofallback_kept_prefix_meta`，
+/// **不进诊断** —— 这正是 `Report::Fallback` 那张表的用途（与 `argmismatch_text` / `deferred` 同级）。
+/// ⚠ census 的键**不变**（仍是 `fallback_old_ok_notation_unsolved`）：本刀只改"开关开时会不会报错"，
+/// **不改**任何指标口径（不许把 `Unsolved` 改名成"不计"）。
 #[allow(clippy::too_many_arguments)]
 pub(super) fn notation_fell(
     why: &'static str,
@@ -184,9 +206,16 @@ pub(super) fn notation_fell(
     operands: &[&Expr],
     span: Span,
     missing: usize,
+    prefix_meta: bool,
     known: &KnownTable,
     ctx: &ElabCtx<'_, '_>,
 ) -> Fell {
+    // **P2-12 S4c**：占位符那一族 ⇒ **写明的例外**（照旧回落），只在开关开着时才有分别
+    // （开关关着时 census 与今天逐字节相同 ⇒ 这一支只是在同一结局上多记一个桶）。
+    if prefix_meta && !kept_prefix_meta_off() && no_fallback(ctx.options.dialect) {
+        bump_kept("prefix_meta", canonical, why, span);
+        return Fell::Fallback(why);
+    }
     fell(ctx.options.dialect, why, outcome, || {
         facts_notation(canonical, operands, span, missing, known)
     })
@@ -335,6 +364,8 @@ fn key(why: &str) -> &'static str {
         "need_args" => "need_args",
         "defer" => "defer",
         "unsolved_other" => "unsolved_other",
+        // **P2-12 S4c**：占位符那一族（写明的例外，见 `notation_fell`）。
+        "prefix_meta" => "prefix_meta",
         "input contains a meta" => "input_contains_a_meta",
         "universe arity" => "universe_arity",
         "scope too deep" => "scope_too_deep",

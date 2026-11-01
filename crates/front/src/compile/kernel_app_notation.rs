@@ -63,14 +63,36 @@ fn retry_enabled() -> bool {
     true
 }
 
-/// 记法要补的前导参数个数：签名层数 − 操作数个数，且这些层**都有名字**（同老路的不变量：结果类型里的
-/// 箭头没有名字 ⇒ 不算前导参数）。从大往下取第一个满足的（同老路的候选顺序）。
+#[cfg(test)]
+thread_local! {
+    /// **P2-12 S4c** 的反向验证开关：`true` ⇒ 按 S4c **之前**的规则数前导位（只看**前导层**有没有名字），
+    /// 用来证明新增的"操作数层也要有名字"那一条**真的在咬**（关掉 ⇒ 记法 `∘` 的夹具回落 `argmismatch`）。
+    pub(crate) static TEST_NAIVE_MISSING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// 记法要补的前导参数个数：签名层数 − 操作数个数，且**前导层与操作数层都得有名字**。
+///
+/// 为什么**操作数层**也要判（P2-12 S4c，`reports/2026-11-01-p212-s4c-readings.md`）：`notation_telescope`
+/// 用 `peel_pi` 数层，它把**结果类型里的箭头**也数成一层、名字是空串（`elab::notation_prefix_args`
+/// 的注释里已有同一条不变量的前一半）。原先这里只看前 `m` 层 ⇒ 结果带箭头的签名（`Function.comp`
+/// `(α) (β) (γ) (g : β → γ) (f : α → β) : α → γ` 数出 **6** 层）在 2 个操作数时取 `m = 4`：
+/// 前 4 层（α β γ g）都有名字 ⇒ 过闸，可**操作数会落到第 4 层 `f` 与第 5 层那个无名箭头上**
+/// ⇒ 错位一读，内核把 `g` 对着 `f : α → β` elaborate ⇒ `ArgMismatch{arg:0}` ⇒ 老路接住
+/// （`fallback_old_ok_notation_argmismatch`）。老路 `notation_prefix_args` 是**从大往小试到解得出**
+/// 才算数，同一层条件下它会落到 `m = 3`（α β γ）✓ ⇒ 这里把"操作数位必须有名字"显式写进候选判据，
+/// **在调内核之前**就取对切分，不需要新的猜法、也不碰内核（老路那份求解器的**结构前提**）。
 fn missing_prefix(signature: &str, operands: usize) -> Option<usize> {
     let (layers, _) = super::elab::notation_telescope(signature)?;
     let max = layers.len().checked_sub(operands)?;
-    (1..=max)
-        .rev()
-        .find(|&m| layers[..m].iter().all(|(n, _)| !n.is_empty()))
+    #[cfg(test)]
+    let naive = TEST_NAIVE_MISSING.with(|c| c.get());
+    #[cfg(not(test))]
+    let naive = false;
+    (1..=max).rev().find(|&m| {
+        // S4c 之前：只看前缀层（`naive`）。S4c 起：前缀层 + 操作数层都要有名字。
+        let upto = if naive { m } else { m + operands };
+        layers[..upto].iter().all(|(n, _)| !n.is_empty())
+    })
 }
 
 /// 见模块文档。`(None, _)` ⇒ 调用方照走老路；回落过（已计数）⇒ 第二项是归因用的 [`MissGuard`]；
@@ -140,6 +162,9 @@ pub(crate) fn try_notation<'a>(
     // 再解一次（`implicit_prefix = 0` ⇒ 内核把它们当普通显式位逐位 elaborate，正是 `min6` 已跑通的路径）。
     // ⚠ 成本：见 [`retry_with_prefix`] 的文档（探测切掉的站点上这份前缀**没人复用** ⇒ `strict ≤ loose`
     // 在这些文件上会被抬高；读数与三条试过的收窄方案见 `reports/2026-11-01-p212-s4b-readings.md` §13）。
+    // **P2-12 S4c**：重试是不是被"前导值含占位符"那条挡掉的。只有它是真的时候，出口才把这次回落
+    // 记成**写明的例外** `prefix_meta`（见 `kernel_app_fallback::notation_fell`）；census 的键不变。
+    let mut prefix_meta = false;
     if let Ok(AppOutcome::Unsolved { sites }) = &outcome {
         // `Unsolved` 不可能是空 sites（内核只在 `!unsolved.is_empty()` 时产出它）。
         //
@@ -149,7 +174,7 @@ pub(crate) fn try_notation<'a>(
                 .iter()
                 .all(|s| matches!(s, UnsolvedSite::Implicit { index } if *index < missing))
         {
-            if let Some(out) = retry_with_prefix(
+            let (retried, meta) = retry_with_prefix(
                 builder,
                 sig,
                 operands,
@@ -162,7 +187,9 @@ pub(crate) fn try_notation<'a>(
                 hovers,
                 expected_src,
                 ctx,
-            ) {
+            );
+            prefix_meta = meta;
+            if let Some(out) = retried {
                 outcome = Ok(out);
             }
         }
@@ -170,7 +197,15 @@ pub(crate) fn try_notation<'a>(
     // P2-12 S3：开关开着时，出口可能直接报错（`Fell::Dead`）⇒ 交出去，老路一行不跑。
     let judge = |why: &'static str, out: Option<&AppOutcome>| {
         super::kernel_app_fallback::notation_fell(
-            why, out, canonical, operands, span, missing, known, ctx,
+            why,
+            out,
+            canonical,
+            operands,
+            span,
+            missing,
+            prefix_meta,
+            known,
+            ctx,
         )
     };
     Ok(
@@ -213,7 +248,7 @@ fn retry_with_prefix<'a>(
     hovers: &mut Vec<HoverNode<'a>>,
     expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
-) -> Option<AppOutcome> {
+) -> (Option<AppOutcome>, bool) {
     let prefix = match super::elab::notation_prefix_args(
         sig,
         operands,
@@ -232,12 +267,16 @@ fn retry_with_prefix<'a>(
             stash_prefix(sig, operands, scope.len(), &prefix);
             prefix
         }
-        _ => return None,
+        _ => return (None, false),
     };
     // 前导值解出来还不够：内核项里若已带占位符，这一趟**注定白跑**（见 [`has_meta`]）⇒ 不重试、直接回落。
-    let prefix_terms = elab_all(builder, &prefix, scope, univ, known, ctx)?;
+    let Some(prefix_terms) = elab_all(builder, &prefix, scope, univ, known, ctx) else {
+        return (None, false);
+    };
     if prefix_terms.iter().any(|t| has_meta(*t)) {
-        return None;
+        // **P2-12 S4c**：第二位 = "挡掉它的是**占位符判据**"（不是别的早退）⇒ 出口按**写明的例外**
+        // `prefix_meta` 回落并计数（`kernel_app_fallback::notation_fell`）。census 键不变（仍是 `unsolved`）。
+        return (None, true);
     }
     #[cfg(test)]
     TEST_RETRY.with(|c| c.set((c.get().0 + 1, c.get().1)));
@@ -267,12 +306,15 @@ fn retry_with_prefix<'a>(
         Some(&srcs),
         ctx,
     );
-    let out = out.ok()?;
+    let out = match out {
+        Ok(out) => out,
+        Err(_) => return (None, false),
+    };
     #[cfg(test)]
     if matches!(out, AppOutcome::Solved(_)) {
         TEST_RETRY.with(|c| c.set((c.get().0, c.get().1 + 1)));
     }
-    Some(out)
+    (Some(out), false)
 }
 
 /// **老路的 `notation_prefix_args` 入口**（`elab.rs` 的记法路径改成调它，**字节数不变、行数不增**）：
