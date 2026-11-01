@@ -176,16 +176,30 @@ S7（翻 `Dialect::default()`）在收口时暴露三条**既有缺口**，任�
 ## 2nonies. **P4 的两个拦路石**（2026-11-02 03:50 实测）
 
 1. **D3：push main 要用户点头**（用户早先定的规矩）。
-2. **LKA 门禁在本机"很慢"，不是挂**（2026-11-02 04:50 诊断到根因）：
-   `release-preflight.sh` 的 ④ 从 02:11 起 85 分钟没输出 —— 现在查清了：`scripts/arena-gate.py` 的
-   `run_tarball_tier` 会跑 **208 个 tracked 用例**（`target/arena/cache/{good,bad}/**/*.ndjson`），
-   每例上限 `SOKO_ARENA_TIMEOUT`（**默认 120s**）⇒ 最坏 208×120s ≈ **7 小时**；正常也要很久。
-   验证：把 per-case 超时降到 30s 后单跑 `cargo test -p sokonanoda --release --test arena arena_tarball_tier`
-   ⇒ 它**在跑**（>60s 有进度输出），不是死锁；`cargo metadata`/`cargo build` 都正常（没有锁被占）。
-   ⇒ `bump.py` 在写版本号**之前**就跑这个门禁、失败不写 ⇒ **P4 卡在这里**（时间成本，不是错误）。
-   三条出路：① 耐心跑完（可 `SOKO_ARENA_TIMEOUT` 放到几百秒，后台挂着）；
-   ② `SOKO_ARENA_CORPUS=<dir>` 用**显式本地语料**（脚本支持；会打印"不是官方最新"，README/站点保留上一次 official 结果）；
-   ③ 换一台跑得动的机器做发版。**注意 ② 不是"跳过"**，但发版路径按脚本注释应优先 ①/③。
+2. **LKA 门禁判负：4 条「该拒却接受」（**2026-11-02 06:00 实测，已定性**）** —— 这是**真发现**，不是环境问题。
+
+   把 tier 直接跑起来（`SOKO_ARENA_TIMEOUT=30 LEAN_KERNEL_ARENA_TARBALL=target/arena/cache
+   cargo test -p sokonanoda --release --test arena arena_tarball_tier`，185.12s 跑完）：
+
+   ```
+   arena_tarball_tier: 207 cases (accepted 130 · rejected 74 · declined 2 · timeouts 1)
+                      · known unsupported 2 · known slow 1 (timeouts 1)
+   arena_tarball_tier: 4 failures:
+     bugs/closure-level-subst:        expected reject, got accepted
+     bugs/nested-name-capture:        expected reject, got accepted
+     bugs/unit-rec-rule:              expected reject, got accepted
+     other/inductive-undeclared-universe: expected reject, got accepted
+   ```
+
+   **归因**：本会话**零内核改动**（`crates/kernel` 本批 diff 只有 7 行、且来自更早的 P2-9/P2-10b），
+   所以**不是回归**；是 arena 语料从 README 记录的 `master@bbd9636b9`（126/127 · 71/73）**长到 207 例**后
+   **新增了 4 条我们过不了的类型论 bug 用例**。⇒ 内核在这 4 类上**会接受无效证明**（"false accept"，
+   不是"decline 拒判"）——正是 LKA 门禁存在的理由（它上一次抓到的是 `nested-rec-rule-nfields`）。
+   ⚠ 我这次直跑用 30s 超时只影响 `known slow` 的 1 条 timeout，不影响这 4 条**逻辑**失败。
+
+   ⇒ **`bump.py` 会在写版本号之前拒绝**（这是它的设计）。P4 的正确处置：**先修这 4 条内核 soundness**，
+   或者把它们**显式登记进 known-unsupported 并写明理由**（但那等于承认这 4 类我们不判 ⇒ 要用户拍板）。
+   **本轮不许绕过**（`SOKO_ARENA_OFFLINE=1` 会让结果标记为 NOT LATEST，脚本注释明确"发版路径不要用"）。
 
 ## 3. 用户决策点（只有三个，其余我全包）
 
