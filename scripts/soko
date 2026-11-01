@@ -1929,6 +1929,20 @@ async function main(argv) {
       // （`operand_type_expr_explicit` / `infer_type_text` / `pp=explicit`）只许减不许增，
       // 且 `--strict-only` = strict 专属项（基线 **0** = P3 的验收线）。归类表 30 行在
       // `reports/2026-11-01-p3-inventory.md`。毫秒级 ⇒ `--fast` 也跑 ✓。
+      // **进度尺一致性**（2026-11-01 用户：「文档里的总进度怎么还没变」）：台账 → 视图必须一致，
+      // 否则判红。毫秒级 ⇒ `--fast` 也跑 ✓。修：`python3 scripts/progress-gauge.py`。
+      const gauge = path.join(REPO, 'scripts', 'progress-gauge.py')
+      if (existsSync(gauge)) {
+        const r = spawnSync('python3', [gauge, '--check'], { encoding: 'utf8' })
+        if (r.status !== 0) {
+          process.stderr.write(r.stdout || '')
+          process.stderr.write(r.stderr || '')
+          process.stderr.write('scripts/soko gate: 台账与进度视图不一致 ⇒ 跑 `python3 scripts/progress-gauge.py` 写回。\n')
+          return 1
+        }
+      } else {
+        process.stderr.write('soko gate: ⚠ 找不到 scripts/progress-gauge.py ⇒ 跳过进度尺检查\n')
+      }
       const strictPaths = path.join(REPO, 'scripts', 'audit-strict-paths.py')
       if (!existsSync(strictPaths)) {
         process.stderr.write(
