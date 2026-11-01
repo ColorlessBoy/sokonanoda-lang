@@ -7,7 +7,8 @@
 
 - 分支 `strict/2026-10-29-kernel-app`（远端同名），从 main `f8d231d3` 分出，领先 main 81 个提交。**只有这一条工作分支**。
 - 新路径开关：`SOKO_STRICT_KERNEL_APP=1`，只在 `--dialect strict` 生效。开关关 ⇒ 不执行新代码，`--json` 与基线逐字节相同（每刀合并前都对拍过）。
-- 计划进度：P0 ✓ · P1 ✓ · P2-1…P2-9 ✓ · P2-C 普查 ✓ · P2-10 ✗（降级存档）· P2-10b ✓ · P2-11a-A/B ✓ · P2-L / P2-L-fix ✓ · P2-11b ✓ · 第一、二批验收 ✓ · P2-11c ✓ · P2-11e ✓ · 第三、四批验收 ✓ · **P2-12：S0 ✓ `88204816` · S1 ✓ `9e8d68ea` · S0b/S4a 中断（§2）· S2–S6 未开始** · P2-13 / P3 / P4 未开始。
+- 计划进度：P0 ✓ · P1 ✓ · P2-1…P2-9 ✓ · P2-C 普查 ✓ · P2-10 ✗（降级存档）· P2-10b ✓ · P2-11a-A/B ✓ · P2-L / P2-L-fix ✓ · P2-11b ✓ · 第一、二批验收 ✓ · P2-11c ✓ · P2-11e ✓ · 第三、四批验收 ✓ · **P2-12：S0 ✓ `88204816` · S1 ✓ `9e8d68ea` · S0b ✓ `fab033bd` · S4a ✓ `ef1f7299`· S2–S6 未开始** · P2-13 / P3 / P4 未开始。
+  **2026-11-01 接手补记**：上一棒 502 时的 `/tmp` 现场与 `~/Documents/lean/sokonanoda-archive-2026-10-31/` 在本机**都不存在了**（探针 worktree、`probe3.diff`、probe4 二进制、16 个变体复现件、`branches.bundle` 全部丢失）⇒ S4a 的探针是**这一棒重做**的（结论见 §2.2 末），S0b/S4a 的读数一律以本棒二进制为准。
   **进度权威 = replan §4「P2 接管」拆刀表**（本节只是摘要）。
 - 推送纪律：2026-11-01 交接前一次性推送（8 笔 S0/S1/第四批/设计 + 本交接书）；CI 只跑 main 和 PR，推此分支不触发 CI。
 
@@ -18,16 +19,18 @@
 | P2-11a/11b/11c/11e | 第一、三、四批 | 陈旧 Value 重试两处、surplus、宇宙多态头、`Eq.{u}` 进内核 |
 | P2-12 S1 | `9e8d68ea` | 内核 `AppOutcome` 结构化载荷，`format!("?{id}")` 已删，反向验证判红过 |
 | P2-12 S0 | `88204816` | 内核回落后老路结局计数 `fallback_old_<ok\|none\|err>_<why>`（`kernel_app_census.rs`） |
+| P2-12 S0b | `fab033bd` | 补齐记法路由 / 零元 `try_hinted_const` / `fill_late` 三处计数 ⇒ 对账闭合；**记法路由一项就把 old_ok 从 59 抬到 88+** |
+| P2-12 S4a | `ef1f7299` | `congrArg.{1}` 两族：`app_expected_def_eq`（陈旧 `fty`）+ conv Pi 臂各喂各自域（陈旧 `dx` 喂右闭包 ⇒ panic 被吞成 `ArgMismatch`）；四文件 old_ok 10→0 |
 
 ## 2. 中断现场（2026-11-01 03:00 左右，API 502 双杀）
 
-### 2.1 全课程普查给出的靶子（replan §4，开关开，251 文件）
+### 2.1 全课程普查给出的靶子（replan §4，开关开，251 文件）⚠ **本节数字是下界，S0b 后作废**：只结算了应用路径
 
 老路接住 **59 次 / 10 个文件** = 去掉回落会翻转的上界。写明的例外 41（`input contains a meta` 30 · `shape` 9 · `ho_motive` 2）⇒ **真正要先修 18**：`argmismatch` 10 · `expected` 4 · `unsolved` 4。
 按位置（S0 位置日志）：**`congrArg.{1}` 占 11/18**（`argmismatch` 8：unit10-cantor:89 / unit10-sol；`expected` 3：unit06-relations:195 / unit06-sol:308）；其余 7 = `Set.inter`/`Set.image` `unsolved` 4（unit12-sol:177/184）· `Set.ext` 1（unit12-sol:94）· `Set.mem_preimage_elim` `expected` 1（unit22-sol:55）· `Set.mem` `argmismatch` 1（unit22）。
-**S0 未覆盖**（⇒ S0b 要补）：记法路由、零元 `try_hinted_const`、`fill_late` —— `fallback_unsolved` 约 119 次对不上账，推断落这三处。
+**S0 未覆盖**（⇒ S0b 要补）：记法路由、零元 `try_hinted_const`、`fill_late` —— `fallback_unsolved` 约 119 次对不上账，推断落这三处。**S0b 已证实**：差额全在**记法路由**（`Set.Le` 的 `A ≼ B`）——unit19-solution 一个文件就有 88 次 `old_ok`、cardinal-le 31 次 ⇒ 「真正要先修 18」只覆盖应用路径那一半，S3 之前必须用 S0b 的普查重排优先级（`fallback_old_ok_notation_unsolved` 是最大的一块）。零元 `try_hinted_const`（按 `hinted_const_fallback_<原因>` 分桶）与 `fill_late` 是**写明的例外**（不是应用级回落），只作可见性计数。
 
-### 2.2 S4a（`congrArg.{1}` 根因，只读探针）——差最后一步
+### 2.2 S4a（`congrArg.{1}` 根因）——**2026-11-01 已收口**（下面的探针现场当时丢了，本棒重做；结论在节末）
 
 复现件（**已存档**，见 §6；`arg.sokonanoda` 报 `argmismatch @2:3`，`exp.sokonanoda` 报 `expected @5:3`）：
 
@@ -47,21 +50,27 @@ theorem t (a b : Nat) (h : Nat.succ a = Nat.succ b) : a = b :=
 3. **arg 类差 probe4 读数**（probe3 二进制 `13493866`）：两个 Π 的定义域能对上（`defeq=true`），但 `?β` **一次都没进 Miller 赋值**；probe3 在 `apply_closure(actual infer closure, Some(dd))` panic ⇒ 假设 **`conv.rs:213-214` 把旧值 `dx` 喂给了 infer closure**（Lean 的 whnf 会经 `instantiateMVars` 跟随赋值，我们的 `force_all` 不回放已赋值的 `Value::Meta`——子代理读 Lean `ExprDefEq.lean:512-526` 后的对照）。**probe4 已编译完成（02:56），跑之前 agent 就被 502 打断**。
 4. 变体矩阵：`w6`（全显式 `@congrArg`）通过；`w3`/`w4`（binder 类型是 Π）必挂 ⇒ 两类失败都不是写法/层级问题，是内核 defeq 少走一步。
 
+**2026-11-01 重做探针的结论（取代上面的「差最后一步」）**：
+
+- **exp 类**：根因同 2（陈旧 `Value`）。修 `elab_app::app_expected_def_eq`：最终「期望 ≟ `fty`」失败且本会话自 `gen0` 起有过赋值 ⇒ `instantiate_mvars(quote(fty))` 重算再比（与 `app_arg_def_eq` / `app_reeval_pi` 同族）。
+- **arg 类**：**不是** Miller/一阶赋值的问题。读数 `[s4a] gen=1 gen0=0 dom.inst == dom`（`?α`/`?β` **未赋值**，`load` 也不是 Miller 失配）；真因是**被吞掉的 panic**：`is_def_eq_at` 用 `catch_unwind` 把内核 panic 当成「不 defeq」⇒ 报 `ArgMismatch`。panic 现场 = `infer_app_v`: `expected a pi type, got: Pi ( : $5), Sort(0)` —— `$5` 在 depth 5 上是**越界 bvar**，来自 conv Pi 臂把**左边**的域 `dx` 喂给**右闭包**（`conv.rs:218`），而 `dx` 可能是赋值前的陈旧值 ⇒ infer 闭包在错误作用域推断体。修：右闭包拿它自己的 `dy`。
+- 教训（值得写进台账）：**`catch_unwind` 把「判不了」变成「判成否」**——正是 `docs/architecture.md` G-91 那条「判不了 ⇒ 走慢路 ✓ / 当成否 ✗」的反例；这次它把 8 次 `congrArg` 伪装成类型不匹配。以后在 `is_def_eq_at` 里 panic 一律当 `Unsupported` 而不是 false 值得单开一刀（P2-13 候选）。
+
 **现场与工具**：
 - 探针 worktree `/tmp/p212s4a-wt`（3 文件改动：`kernel_app.rs` 打印载荷 + `elab_app.rs` 分域探针 + `mvar_miller.rs` 赋值点探针，全部受 `P212S4A=1` 门控）；probe4 二进制还在 `target/release/sokonanoda`。
 - **全部已存档** `~/Documents/lean/sokonanoda-archive-2026-10-31/p212-s4a-probe/`：`probe3.diff`（含 probe4 改动）· 16 个变体复现件（v1–v8 / w1–w8 / arg / exp）· 两份进度日志。
 - ⚠ 这些是**只读探针**，一条都不许直接进提交；修法要按 AGENTS.md「卡住先读 Lean 4」走，修内核 = 开关开/关两组全语料对拍逐字节 + 反向验证。
 
-### 2.3 S0b（补三处回落计数，前端）——方案已定，未写一行码
+### 2.3 S0b（补三处回落计数，前端）——**2026-11-01 已并入**（方案照下面执行，一处偏差：`elab.rs` 只剩 2 行余量，改用 `Settle` RAII 守卫，净 +2 行）
 
 子代理 02:42 交的方案（进度日志在档）：**记法路由**在 census 里加原因前缀 + 用包装函数接住 `elab_notation` 结果按 ok/err 结算；**零元 `try_hinted_const`** 加标记区分回落来源；**`fill_late`** 每个推迟的 λ 位单独计一次。计数逻辑全部进 `kernel_app_census.rs`（现 126 行），**不动控制流**。
 - ⚠ `crates/front/src/compile/elab.rs` 现 **8839 行 / 基线 8841，只剩 2 行余量**；`kernel_app.rs` 499/500。多出来的行一律进新文件。
-- worktree 还在：`.claude/worktrees/agent-a03808b8050a3b64e`（分支 `p2-12-s0b-more-counters` @ `b3665792`，**干净无提交**，可复用可删）。
+- 落地结果（2026-11-01）：计数逻辑全在 `kernel_app_census.rs`；`elab.rs` 只加 2 行（`census::arm(kg.is_some())` + `settle.ok()`），**正好 8841 = 基线**。worktree `.claude/worktrees/agent-a03808b8050a3b64e` 在本机**不存在**（同上丢失），没用到。
 
 ## 3. 下一步（按顺序；每刀验收见 replan §4 对应行）
 
-1. **S0b**：按 §2.3 方案补三处计数 ⇒ 全课程普查的 `fallback_old_*` 对上账（119 次 `unsolved` 归位）。只加计数；开关关语料逐字节。
-2. **S4a**：先跑 probe4 收 arg 类读数定根因；exp 类按 §2.2-2 直接修。**验收：11 次 `congrArg` old_ok 归零、rc/诊断不变、`KERNEL_APP_MISS` 不升、开关开/关两组全语料逐字节、撞坏测试的反向验证判红**。修完删探针，别把 `P212S4A` 带进提交。
+1. ~~**S0b**~~ ✓：三处计数已补，对账闭合（细节 replan §4 该行）。
+2. ~~**S4a**~~ ✓：两处内核修（§2.2 末）；四文件 old_ok 10→0、rc/诊断不变、`MISS` 不升、探针全删。
 3. **S2**：前端 `kernel_app_report.rs` 纯函数——不印内核名字（`Implicit.index` 经 `source_layer_names` 取源级名；两边仍可能含本会话元变量 id≥2^30，渲染兜底）。留 S1 的既知边界见 replan。
 4. **S3**：过渡开关 `SOKO_STRICT_NO_FALLBACK`（**进所有缓存键**，照 P2-8 先例）；核对那 197 次「老路也报错」的文件去回落后仍被上层吸收。
 5. **S4b…n**：按 §2.1 清单修剩余 `old_ok` 至 0（写明的例外类除外：`Unsupported`/`shape`/`ho_motive`/`untried`/具名实参）。
