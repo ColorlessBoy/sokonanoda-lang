@@ -126,6 +126,13 @@ fn name_of(names: Option<&Vec<(String, BinderKind)>>, i: usize) -> String {
     }
 }
 
+/// **P2-12 S2**：第 `i` 层的**源级可读名**（内核只报下标 ⇒ 报错出口在这里换名）。
+/// 匿名 / 取不到源名 ⇒ 「第 N 位」占位；**绝不印 fresh 名**。
+pub(crate) fn layer_name(signature: &str, i: usize) -> String {
+    let names = source_layer_names(signature);
+    name_of(names.as_ref(), i)
+}
+
 /// 「有 N 个**隐式**形参（按位置依次是 …），后面的显式形参依次是 …」这句公共前缀。
 ///
 /// ⚠ **隐式/显式的分界取注册表的 `k`，不取 `ty_text` 的风格** ✗：构造子的 kernel

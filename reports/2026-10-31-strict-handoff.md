@@ -20,6 +20,7 @@
 | P2-12 S1 | `9e8d68ea` | 内核 `AppOutcome` 结构化载荷，`format!("?{id}")` 已删，反向验证判红过 |
 | P2-12 S0 | `88204816` | 内核回落后老路结局计数 `fallback_old_<ok\|none\|err>_<why>`（`kernel_app_census.rs`） |
 | P2-12 S0b | `fab033bd` | 补齐记法路由 / 零元 `try_hinted_const` / `fill_late` 三处计数 ⇒ 对账闭合；**记法路由一项就把 old_ok 从 59 抬到 88+** |
+| P2-12 S2 | 本棒 | `kernel_app_report.rs` 纯函数（结局 ⇒ `CompileError`），先不接线；t1 逐字节同老路、内核名一律兜底 |
 | P2-12 S4a | `ef1f7299` | `congrArg.{1}` 两族：`app_expected_def_eq`（陈旧 `fty`）+ conv Pi 臂各喂各自域（陈旧 `dx` 喂右闭包 ⇒ panic 被吞成 `ArgMismatch`）；四文件 old_ok 10→0 |
 
 ## 2. 中断现场（2026-11-01 03:00 左右，API 502 双杀）
