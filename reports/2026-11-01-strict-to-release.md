@@ -129,6 +129,23 @@
 `unit19-solution` 在开关开时 `0/0 → 1/2`，落在 `63:45`（`Set.notMem_empty (f x) (hn x hx)` = **一个脊上分两步应用**，
 老路路线③ 有、内核路径没有）+ `66:52` 级联 ⇒ 也要在 S6 前处理或归例外。
 
+## 2sexies. **D1 已决：不翻默认档**（2026-11-01 18:20，S7 实测后）
+
+S7（翻 `Dialect::default()`）在收口时暴露三条**既有缺口**，任何一条都不该被"默认档"放大给所有用户：
+
+| # | 缺口 | 实测 | 影响面 |
+|---|---|---|---|
+| 1 | **`check.py` 的 `targets=258` 递归收 `units/solutions/*`**，含 2 个不在 `course.json` 的 orphan ⇒ 默认档下**课程门禁常红**（G1+G4） | 2 个文件被判负（`unit12-solution` 的 `Ne` 隐式位 · `unit19-solution` 的脊上两步） | 门禁口径 |
+| 2 | **`eqsubst` 的 old-style 前缀重建在 strict 被拒**（`apply Eq.subst _ hx` / `apply Eq.subst (Eq.symm h)`），loose 绿 | front 侧既有边界（`eqsubst.rs` 三处 `Expr::App { explicit_spine: false }`） | 课程语料 0 命中，但**用户可见**（unit02 练习 6 的第一问就是这么写的） |
+| 3 | **G-48 形状 `¬ (∅ ≈ {b})` 默认档报 `unknown identifier  soko_m2`** —— **内部元变量 binder 漏到用户面前** | strict 红、loose 绿 | **§9.39 要消灭的那一类**（已发布过 `\0soko_m58`） |
+
+⇒ **决定**：S7 **不并入**。strict 以"**不再需要环境变量的显式档**"上线（S6 + 发版面已完成）；
+翻默认留到这三条各自修完之后。三条的最小复现件与根因定位进
+`reports/2026-11-01-strict-gaps-before-default-flip.md`。
+
+⇒ 对完成定义的影响：**判据 1（strict 是默认档）本版不发**；改为"strict 可选、无需 env"（已达成）。
+这是**有意的范围决定**，不是失败：把三条已知缺陷推给所有用户不是"上线"。
+
 ## 3. 用户决策点（只有三个，其余我全包）
 
 | # | 决策 | 现在需要吗 |
