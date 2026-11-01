@@ -1,22 +1,75 @@
-# strict 重构交接（2026-10-31）
+# strict 重构交接（2026-10-31 建档 · **2026-11-01 更新到 P2-12 中断现场**）
 
-接手只读本文 + `reports/2026-10-29-strict-replan.md`（计划与 P1 记录）。本文所有数字注明了出处；没注明的当未核实。
+接手只读本文 + `reports/2026-10-29-strict-replan.md`（计划与逐刀记录）。本文所有数字注明了出处；没注明的当未核实。
+**本轮交接起因**：上一棒在 P2-12 的 S0b/S4a 两刀上被 API 502 打断（两个子代理同时死亡），§2 是完整的中断现场。
 
 ## 1. 现在在哪
 
-- 分支 `strict/2026-10-29-kernel-app`（远端同名），从 main `f8d231d3` 分出，领先约 43 个提交。**只有这一条工作分支**，其余本地/远端分支与 worktree 已于 2026-10-31 清理（备份见 §6）。
-- 新路径开关：`SOKO_STRICT_KERNEL_APP=1`，只在 `--dialect strict` 生效。开关关 ⇒ 不执行新代码，`--json` 与 main 逐字节相同（每刀合并前都对拍过）。
-- 计划进度：P0 ✓ · P1 ✓ · P2-1…P2-9 ✓ · P2-C 普查 ✓ · P2-10 ✗（降级存档）· P2-10b ✓ · P2-11a-A/B ✓ · P2-11b ✓ · P2-L / P2-L-fix ✓（§9.39 两档都修）· 第一、二批验收 ✓ · **P2-11c 进行中** · P2-11d / P2-12 / P2-13 / P3 / P4 未开始。
-  **进度权威 = `reports/2026-10-29-strict-replan.md` §4「P2 接管」拆刀表**（本节只是摘要）。
+- 分支 `strict/2026-10-29-kernel-app`（远端同名），从 main `f8d231d3` 分出，领先 main 81 个提交。**只有这一条工作分支**。
+- 新路径开关：`SOKO_STRICT_KERNEL_APP=1`，只在 `--dialect strict` 生效。开关关 ⇒ 不执行新代码，`--json` 与基线逐字节相同（每刀合并前都对拍过）。
+- 计划进度：P0 ✓ · P1 ✓ · P2-1…P2-9 ✓ · P2-C 普查 ✓ · P2-10 ✗（降级存档）· P2-10b ✓ · P2-11a-A/B ✓ · P2-L / P2-L-fix ✓ · P2-11b ✓ · 第一、二批验收 ✓ · P2-11c ✓ · P2-11e ✓ · 第三、四批验收 ✓ · **P2-12：S0 ✓ `88204816` · S1 ✓ `9e8d68ea` · S0b/S4a 中断（§2）· S2–S6 未开始** · P2-13 / P3 / P4 未开始。
+  **进度权威 = replan §4「P2 接管」拆刀表**（本节只是摘要）。
+- 推送纪律：2026-11-01 交接前一次性推送（8 笔 S0/S1/第四批/设计 + 本交接书）；CI 只跑 main 和 PR，推此分支不触发 CI。
 
 | 刀 | 提交 | 内容 |
 |---|---|---|
-| P2-1 | `9118256b` `305946b5` | 推迟解不出的显式实参，按内核给的域重来（对齐 Lean `Elab/App.lean:433-443`）；`KERNEL_APP_MISS` 归因计数 |
-| P2-2…P2-6 | `0abaf058`…`eaf42058` | 多轮推迟、交 Solved 前会话内重检、记法走内核、探测模式 + 重做 |
-| — | `56869482` | 课程 unit12 L285-286 λ 体里的 `∅` 写成 `@Set.empty Nat`（用户选的：约束不足处 Lean 也报错，不让 strict 猜） |
-| P2-8 | `f8b095cf` | 开关的生效档进所有缓存键（`kernel_app::effective/key_tag/key_bit`）；关 ⇒ 所有键逐字节不变 |
+| P2-1…P2-9 | `9118256b`…`f8b095cf` | 推迟实参、多轮、会话内重检、记法走内核、探测模式、缓存键带开关档；细节见 replan §4 |
+| P2-10b + P2-L-fix | 第二批 | 带注解 λ 体对着 codomain elaborate；记法层级逐个操作数试（m5，两档） |
+| P2-11a/11b/11c/11e | 第一、三、四批 | 陈旧 Value 重试两处、surplus、宇宙多态头、`Eq.{u}` 进内核 |
+| P2-12 S1 | `9e8d68ea` | 内核 `AppOutcome` 结构化载荷，`format!("?{id}")` 已删，反向验证判红过 |
+| P2-12 S0 | `88204816` | 内核回落后老路结局计数 `fallback_old_<ok\|none\|err>_<why>`（`kernel_app_census.rs`） |
 
-## 2. 读数（开关开，冷跑，二进制 `a5e9b3eb`，macOS/arm64）
+## 2. 中断现场（2026-11-01 03:00 左右，API 502 双杀）
+
+### 2.1 全课程普查给出的靶子（replan §4，开关开，251 文件）
+
+老路接住 **59 次 / 10 个文件** = 去掉回落会翻转的上界。写明的例外 41（`input contains a meta` 30 · `shape` 9 · `ho_motive` 2）⇒ **真正要先修 18**：`argmismatch` 10 · `expected` 4 · `unsolved` 4。
+按位置（S0 位置日志）：**`congrArg.{1}` 占 11/18**（`argmismatch` 8：unit10-cantor:89 / unit10-sol；`expected` 3：unit06-relations:195 / unit06-sol:308）；其余 7 = `Set.inter`/`Set.image` `unsolved` 4（unit12-sol:177/184）· `Set.ext` 1（unit12-sol:94）· `Set.mem_preimage_elim` `expected` 1（unit22-sol:55）· `Set.mem` `argmismatch` 1（unit22）。
+**S0 未覆盖**（⇒ S0b 要补）：记法路由、零元 `try_hinted_const`、`fill_late` —— `fallback_unsolved` 约 119 次对不上账，推断落这三处。
+
+### 2.2 S4a（`congrArg.{1}` 根因，只读探针）——差最后一步
+
+复现件（**已存档**，见 §6；`arg.sokonanoda` 报 `argmismatch @2:3`，`exp.sokonanoda` 报 `expected @5:3`）：
+
+```sokonanoda
+-- arg 类（unit10-cantor:89 形态）：λ binder 类型是 Π 时才挂
+theorem t (α : Type) (f : α → α → Prop) (x : α) (g : α → Prop) (h : g = f x) : (g x) = (f x x) :=
+  congrArg.{1} (fun (A : α → Prop) => A x) h
+-- exp 类（unit06 形态）
+theorem t (a b : Nat) (h : Nat.succ a = Nat.succ b) : a = b :=
+  congrArg.{1} Nat.pred h   -- 需要文件里先 def Nat.pred
+```
+
+已排除 / 已证实（进度日志 02:35–02:55，逐条有二进制 sha）：
+
+1. **层数假设排除**：课程 prelude 的 `congrArg` 只有**一个**宇宙参数 `{u}`（`α β : Sort u`；Lean 是 `{u v}` 两个），`.{1}` 个数正确。
+2. **exp 类根因已证实**（probe2 二进制 `1ca8b3ad`）：`elab_app.rs:313` 最终期望类型检查前，quote→`instantiate_mvars`→eval 重新求值后 `defeq=true` ⇒ **赋值前存下的陈旧 Value**，与 P2-11a-B / P2-11b 同族。**修法已知**：照前两刀在这里补"本会话确实赋过值就重新求值再比一次"，改动小。
+3. **arg 类差 probe4 读数**（probe3 二进制 `13493866`）：两个 Π 的定义域能对上（`defeq=true`），但 `?β` **一次都没进 Miller 赋值**；probe3 在 `apply_closure(actual infer closure, Some(dd))` panic ⇒ 假设 **`conv.rs:213-214` 把旧值 `dx` 喂给了 infer closure**（Lean 的 whnf 会经 `instantiateMVars` 跟随赋值，我们的 `force_all` 不回放已赋值的 `Value::Meta`——子代理读 Lean `ExprDefEq.lean:512-526` 后的对照）。**probe4 已编译完成（02:56），跑之前 agent 就被 502 打断**。
+4. 变体矩阵：`w6`（全显式 `@congrArg`）通过；`w3`/`w4`（binder 类型是 Π）必挂 ⇒ 两类失败都不是写法/层级问题，是内核 defeq 少走一步。
+
+**现场与工具**：
+- 探针 worktree `/tmp/p212s4a-wt`（3 文件改动：`kernel_app.rs` 打印载荷 + `elab_app.rs` 分域探针 + `mvar_miller.rs` 赋值点探针，全部受 `P212S4A=1` 门控）；probe4 二进制还在 `target/release/sokonanoda`。
+- **全部已存档** `~/Documents/lean/sokonanoda-archive-2026-10-31/p212-s4a-probe/`：`probe3.diff`（含 probe4 改动）· 16 个变体复现件（v1–v8 / w1–w8 / arg / exp）· 两份进度日志。
+- ⚠ 这些是**只读探针**，一条都不许直接进提交；修法要按 AGENTS.md「卡住先读 Lean 4」走，修内核 = 开关开/关两组全语料对拍逐字节 + 反向验证。
+
+### 2.3 S0b（补三处回落计数，前端）——方案已定，未写一行码
+
+子代理 02:42 交的方案（进度日志在档）：**记法路由**在 census 里加原因前缀 + 用包装函数接住 `elab_notation` 结果按 ok/err 结算；**零元 `try_hinted_const`** 加标记区分回落来源；**`fill_late`** 每个推迟的 λ 位单独计一次。计数逻辑全部进 `kernel_app_census.rs`（现 126 行），**不动控制流**。
+- ⚠ `crates/front/src/compile/elab.rs` 现 **8839 行 / 基线 8841，只剩 2 行余量**；`kernel_app.rs` 499/500。多出来的行一律进新文件。
+- worktree 还在：`.claude/worktrees/agent-a03808b8050a3b64e`（分支 `p2-12-s0b-more-counters` @ `b3665792`，**干净无提交**，可复用可删）。
+
+## 3. 下一步（按顺序；每刀验收见 replan §4 对应行）
+
+1. **S0b**：按 §2.3 方案补三处计数 ⇒ 全课程普查的 `fallback_old_*` 对上账（119 次 `unsolved` 归位）。只加计数；开关关语料逐字节。
+2. **S4a**：先跑 probe4 收 arg 类读数定根因；exp 类按 §2.2-2 直接修。**验收：11 次 `congrArg` old_ok 归零、rc/诊断不变、`KERNEL_APP_MISS` 不升、开关开/关两组全语料逐字节、撞坏测试的反向验证判红**。修完删探针，别把 `P212S4A` 带进提交。
+3. **S2**：前端 `kernel_app_report.rs` 纯函数——不印内核名字（`Implicit.index` 经 `source_layer_names` 取源级名；两边仍可能含本会话元变量 id≥2^30，渲染兜底）。留 S1 的既知边界见 replan。
+4. **S3**：过渡开关 `SOKO_STRICT_NO_FALLBACK`（**进所有缓存键**，照 P2-8 先例）；核对那 197 次「老路也报错」的文件去回落后仍被上层吸收。
+5. **S4b…n**：按 §2.1 清单修剩余 `old_ok` 至 0（写明的例外类除外：`Unsupported`/`shape`/`ho_motive`/`untried`/具名实参）。
+6. **S5**：CLI + LSP hover 测试（必备回归：`axiom g : {A : Type} → Nat → Prop` / `theorem t1 : g 0 := sorry` 必须给可读报错、位置落在 `g 0`，不再出现 `\0soko_m0`）。
+7. **S6**：翻默认、删 `kernel_app::env_on`、重写 `kernel_app_keys.rs`。前提 = S3 全课程 `fallback_old_ok` = 0（例外类除外）。
+8. 之后 **P2-13**（砍共享代码里的 strict 分支）→ **P3**（`audit-strict-paths` 归零）→ **P4** 发版（默认档由用户拍板；push/release 前先问用户）。
+
+## 4. 读数（开关开，冷跑，二进制 `a5e9b3eb`，macOS/arm64；第四批复跑一致）
 
 | 文件 | `judge_infer` 未命中 strict/loose | 耗时 strict/loose |
 |---|---|---|
@@ -24,57 +77,36 @@
 | Equiv | 4 / 4 | 2.16s / 2.44s |
 | unit12 | 4 / 4 | 4.35s / 4.16s |
 
-lib strict 17/17。计分板 `work_le_loose` 三文件全绿。⇒ **性能目标（strict ≤ loose）在开关开时已达成**；剩下的是把它变成默认并删掉旧路径。
-
-P2-8 合并后我复跑：`cargo test -p sokonanoda-front --lib kernel_app` 25/25；front lib 1130/0。
-`scripts/soko gate --fast` rc=1，唯一红项是 `infoview-hierarchy`（`.section-title` 字号/透明度）——`editor/` 与 main 无差异，属 main 上的既有问题，与本分支无关（未在 main 上单独复跑）。
-
-## 3. 下一步（按顺序）
-
-1. **消掉剩余回落**（P2-7 设计方案 A，`reports/2026-10-31-p2-7-design.md` §2/§6 第 3–5 步）：
-   外层元变量出现在实参域里时，把域当 `expected` 传进内层会话（注册外部元变量 + 内层 `meta_base` 防撞号），`NeedArgs.blocked` 带上域。
-   这类回落（`And.left/right`、`Set.image`、`Set.inter` 的 `fallback_unsolved`≈169 次）命中缓存、不费时，但**不消掉就删不了旧路径**。
-2. **strict 默认走内核路径**：去掉开关判断（`kernel_app::env_on`），解不出 ⇒ 报错点名 binder，不再回落旧文本路径。
-3. **删旧路径**：旧 typed app、`type_oracle` 文本回落、影子档；P3 列的开关全部删掉。
-4. **整门课 strict**：`python3 scripts/strict-score.py --course`，判据见 replan §4 P2。
-5. P4 发版：默认档由用户拍板；push/release 前先问用户。
-
-## 4. 未决 / 已知问题
-
-- **未核实**：P2-7 设计 §5 的 R1+R2 单独成文件时 strict 与 loose 判定不一致（strict 报 Sort(0)/Sort(1)）。可能是既有的两档分歧，动第 1 步前先钉住。
-- 已发布的 strict 档（开关关）在 unit12 `flawed_equalities_refuted` 上拒绝，报 Sort(0)/Sort(1)（原来被 `\0soko_m…` 漏名盖住）。开关开时通过；第 2 步后自然消失。
-- 内核元变量赋值要求封闭项，比 Lean 的按元变量局部上下文更严（K1c）。
-- 只在 macOS/arm64 上量过。
+lib strict 17/17。计分板 `work_le_loose` 三文件全绿。⇒ **性能目标（strict ≤ loose）已达成**；剩下的是消回落、变默认、删旧路径。
+`scripts/soko gate --fast` 唯一红项是 `infoview-hierarchy`（`.section-title` 字号）——`editor/` 与 main 零差异（本交接时 `git diff main...HEAD --name-only -- editor/` = 0 行），属 main 上的既有问题。
 
 ## 5. 怎么验证（脚本已进仓库 `scripts/strict/`）
 
 ```bash
-# 计分板：lib 两档 + 工作量门（strict 的未命中 ≤ loose）
-python3 scripts/strict-score.py --bin <cli> --env SOKO_STRICT_KERNEL_APP=1
+# 计分板：lib 两档 + 工作量门（strict 的未命中 ≤ loose）；--course 整门课
+python3 scripts/strict-score.py --bin <cli> --env SOKO_STRICT_KERNEL_APP=1 [--course]
 # 全语料逐字节对拍（tracked .sokonanoda × 两档）：先钉二进制，再 diff 两份输出
 scripts/strict/corpus-hashes.sh <base-cli> /tmp/base.txt
 scripts/strict/corpus-hashes.sh <new-cli>  /tmp/new.txt && diff /tmp/base.txt /tmp/new.txt
-# 单文件回落计数（开关开）：一行 JSON
+# 单文件回落计数（开关开）：一行 JSON（含 fallback_old_*）
 scripts/strict/fallback-one.sh <cli> <file.sokonanoda>
+# 逐位置回落日志（S0/S0b 的普查用）：SOKO_KERNEL_APP_LOG=<path> 追加 "<ok|none|err> <why> <head> <line>:<col>"
+# 位置归因（18 次靶子怎么来的）：SOKO_JUDGE_STATS=1 下 grep KERNEL_APP 行的 fallback_old_* 与位置
+scripts/soko gate --fast        # 环节收尾；内核改动另跑两组全语料对拍
 ```
 
 坑（都踩过）：
+- **/tmp 是易失的**：子代理的探针/复现件/进度日志，交接时必须先存档进 `~/Documents/lean/sokonanoda-archive-2026-10-31/`（2026-11-01 已照做），再谈别的。
 - 长跑前**把二进制拷到 sha 命名的私有路径**——agent 会中途重编 target，读数混用两个二进制就作废。
-- macOS 没有 `timeout`，用 `perl -e 'alarm shift; exec @ARGV' <秒> <cmd>`。
-- zsh 不会把未加引号的 `$var` 拆成多个参数；向 git 传 ref 列表用 `--stdin`。
-- 一条声明只报第一处错，可能盖住另一处：判「既有问题」要拆到合取粒度复现。
-- `lib/Logic.sokonanoda` 两档输出本来就为空（rc=0），对拍相同不说明什么。
-- **对拍只比同一检出目录跑出的结果**：`docs/gaps/repro/G77-no-funext.sokonanoda` 的诊断里带模块根绝对路径，`corpus-hashes.sh` 在哪个 worktree 跑哈希就不同（2026-10-31：同一二进制在三处得到三个哈希）。基线和新二进制要在同一处跑。
-- 空输出哈希 `e3b0c44298fc1c14` 只许出现在 `lib/Logic`；别处出现 = 超时或崩溃。`corpus-hashes.sh` 现在自检这一条、行数和钉住副本的 sha，失败 exit 2/3/4。
-- 同一二进制并发跑两次对拍：旧脚本第二次 `cp` 会原地覆盖正在执行的钉住副本，macOS 上进程卡死在 UE 状态（2026-10-31，12 个进程 45 分钟）。脚本已改为复用同 sha 的副本、新拷走临时名 + `mv`。
+- macOS 没有 `timeout`，用 `perl -e 'alarm shift; exec @ARGV' <秒> <cmd>`；zsh 不拆未加引号变量，git 传 ref 列表用 `--stdin`。
+- **对拍只比同一检出目录跑出的结果**（G77 诊断带模块根绝对路径）；空哈希 `e3b0c44298fc1c14` 只许出现在 `lib/Logic`。
+- 同一二进制并发跑两次对拍曾让 12 个进程卡死在 UE 状态（2026-10-31 19:28，**至今还在**：`/tmp/corpus-bin-55237c44*`，0 CPU、杀不掉、无害；`pgrep corpus-one` 会数到它们的父 shell —— 别拿它当"对拍还在跑"的证据）。脚本已改为复用同 sha 副本 + `mv`。
+- 一条声明只报第一处错，判"既有问题"要拆到合取粒度复现；`lib/Logic` 两档输出本来就为空，对拍相同不说明什么。
+- `elab.rs` 只剩 2 行余量（§2.3）——front 的行数基线由 docs-lint 判，超线 gate 红。
 
 ## 6. 备份（只在本机）
 
 `~/Documents/lean/sokonanoda-archive-2026-10-31/`：
-- `branches.bundle`：清理前全部 51 个分支（含旧方案 `strict/2026-10-29-pipeline` 134 个提交、`agent/*` 等）；`refs.txt` 是 ref → sha 对照。
-  恢复：`git fetch <bundle> 'refs/remotes/origin/strict/2026-10-29-pipeline:refs/heads/old-pipeline'`。
-  replan §5 计划从旧分支摘的 `strict/report.rs`、`strict_app/gate.rs`、`scripts/audit-strict-paths.py` **还没摘**，P3 要用时从这里取。
-- `p0-spike.diff` + `p0_spike.rs`（P0 探针）、`k1-agent-uncommitted.diff`（K1 agent 的未提交改动，已被 K1a 取代）、`p27-design.md`。
-- `p2-10-blocked-hints.bundle`（`b5dec5b0`，基于 `2ac754b6`：内核全 blocked ⇒ `NeedArgs{domains:[]}` + 前端垫片，行为与 P2-9 相同，未并入）+ `p210-front-retry.diff`（前端 blocked 位提示重试，264 行，无测试；实测不降回落，复用前先修计数静音范围）。
-  恢复：`git fetch <bundle> p2-10-blocked-hints:p2-10-archive`。
-- `p211e-design-b.diff`（P2-11e 方案 B：`=` 剥层交内核推断，基于 `7b7db1bd`，未提交；问题见 replan P2-11e 行）。
+- **`p212-s4a-probe/`（本轮新增）**：`probe3.diff`（含 probe4 改动，基于 `b3665792`）· 16 个变体复现件 · `p212s4a-progress.log` / `p212s0b-progress.log`。恢复：在新 worktree `git apply probe3.diff` 后 `cargo build --release -p sokonanoda-cli`，或直接从 `/tmp/p212s4a-wt/target/release/sokonanoda` 拿 probe4 二进制（/tmp 若已清则重建）。
+- `branches.bundle`：清理前全部 51 个分支（含旧方案 `strict/2026-10-29-pipeline`）；`refs.txt` 对照。恢复：`git fetch <bundle> 'refs/remotes/origin/strict/2026-10-29-pipeline:refs/heads/old-pipeline'`。replan §5 要从旧分支摘的 `strict/report.rs` 等**还没摘**，P3 要用时从这里取。
+- `p0-spike.diff` + `p0_spike.rs`、`k1-agent-uncommitted.diff`、`p27-design.md`、`p2-10-blocked-hints.bundle` + `p210-front-retry.diff`、`p211e-design-b.diff`（P2-11e 方案 B，不提交的原因见 replan）。
