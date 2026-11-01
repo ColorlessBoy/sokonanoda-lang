@@ -1,8 +1,7 @@
 //! **P2-12 S2**：内核路径的**报错出口**（`reports/2026-10-31-p2-12-design.md` Q3 表）。
 //!
 //! 本模块是**纯函数**：吃 [`AppOutcome`] + 一份**源级上下文**（都是渲染好的文本/span），吐一个
-//! [`Report`]。**S2 不接线**（`kernel_app::finish` 仍回落老路），S3 才把 `Report::Error` 交出去。
-//! 这样 S3 的 diff 只是"换一个出口"，文案对不对可以在这里逐条钉死。
+//! [`Report`]（**S3 已接线**：`Report::Error` 直接交出去；文案与 span 在这里逐条钉死）。
 //!
 //! ## 三条硬约束
 //!
@@ -10,17 +9,13 @@
 //!    `ty_text` 经 [`super::implicit_msg::layer_name`] 取；`ArgMismatch` / `ExpectedMismatch` 的两边类型
 //!    里可能还带着本会话元变量（id ≥ 2^30）⇒ 一律过 [`sanitize`] 兜底（`\0soko_*` / `?<数字>` 换成
 //!    「一个没解出来的形参」），并把"命中过"记下来（`debug_assert!` 用）。
-//! 2. **与今天逐字节相同**：实参比显式层多（`n_args > explicit_layers`）时**必须先**报老路那句
-//!    `strict_rejection_message` —— 老路（`elab.rs:4780`）也是先查这一条。t1/c2 的既有断言就是它。
+//! 2. **与今天逐字节相同**：实参比显式层多（`n_args > explicit_layers`）时报的仍是老路那句
+//!    `strict_rejection_message`；但**内核没下结论**的例外优先（G1-N，见 [`report`] 的规则 1）。
 //! 3. **判不了 ≠ 判成否**：只含 `External` 的 `Unsolved` 是**外层**应用的事 ⇒ [`Report::Defer`]；
 //!    `ExpectedMismatch` 只是"期望没传播上" ⇒ 交回给调用方**不带期望重解**（S4 的活），这里不报。
 //!
 //! 写明的例外（仍走老路，S3 只计数）见 [`Report::Fallback`]：`Unsupported`、`NeedArgs`、`ArgMismatch`
 //! 的正文（要内核那台打印器才算逐字节相同，留给 P2-13 之后的另开一刀）。
-
-// S2 = **先不接线**（`reports/2026-10-31-p2-12-design.md` Q6 表）：S3 才把 `Report::Error` 交出去。
-// 在接线之前这份模块没有生产调用者 ⇒ 只在本文件内放开 `dead_code`（不放松别处）。
-#![allow(dead_code)]
 
 use super::error::{CompileError, ErrorKind};
 use super::implicit_msg::{layer_name, sanitize, strict_rejection_message, unsolved_message};
@@ -59,10 +54,15 @@ pub(crate) enum Report {
     Defer,
 }
 
-/// 见模块文档。**顺序即优先级**：拒绝文案 → `Unsolved` 四种 → 其余例外。
+/// 见模块文档。**顺序即优先级**：拒绝文案 → `Unsolved` 四种 → 其余例外（`Unsupported`/`NeedArgs` 先行）。
 pub(crate) fn report(outcome: &AppOutcome, input: &ReportInput<'_>) -> Report {
-    // 规则 1（与老路 `elab.rs:4780` 同一个先手）：位置实参比显式层多。
-    if input.n_args > input.explicit_layers {
+    // 规则 1（与老路 `elab.rs:4780` 同一个先手）：位置实参比显式层多；但**内核没下结论的例外优先**
+    // （G1-N）：`Unsupported` 除 `surplus` 外 / `NeedArgs` 让开 —— 老路在路线③（富余实参落到**结果**
+    // 上）之后仍有同一句先手（`elab.rs:4780`）⇒ 真·实参写多照旧报同一句；`surplus` = 内核已按
+    // Lean `whnfForall`（`elab_app::app_reeval_pi`）试过、`ArgMismatch` = 已判定 ⇒ 两个照旧先手。
+    let undecided = matches!(outcome, AppOutcome::NeedArgs { .. })
+        || matches!(outcome, AppOutcome::Unsupported(r) if *r != "surplus");
+    if input.n_args > input.explicit_layers && !undecided {
         return Report::Error(CompileError::elab(
             ErrorKind::ElabImplicitArgumentUnsolved,
             sanitized(strict_rejection_message(
