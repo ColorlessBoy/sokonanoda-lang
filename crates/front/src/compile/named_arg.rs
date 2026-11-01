@@ -106,6 +106,14 @@ pub(crate) fn at_arg_expected<'a>(
     if !explicit_spine {
         return None;
     }
+    // **洞**（G2，2026-11-01）：`@` 脊的实参**逐位**对应望远镜 ⇒ 这一位的域就是洞该
+    // 变成的那个子目标（Lean `Elab/App.lean:263` `getArgExpectedType` 对**任何**实参
+    // 都成立，不只是常量 ✓；`compile/hole.rs:177` 也写着"洞的期望类型**就是**它那一层
+    // 的域"）。下面那道"实参是常量"的便宜闸门对洞**必然**返回 `None` ✗ ⇒ 引擎拼的
+    // `@Eq.subst … _ …` 里那个洞会被判成 `elab-hole-misplaced`（A 复现件实测）。
+    if matches!(arg, Expr::Hole { .. }) {
+        return next_arg_expected(fun, scope, ctx, env, None);
+    }
     let arg_name = match arg {
         Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => name.as_str(),
         _ => return None,

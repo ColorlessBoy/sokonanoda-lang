@@ -23,7 +23,7 @@
 #![allow(dead_code)]
 
 use super::error::{CompileError, ErrorKind};
-use super::implicit_msg::{layer_name, strict_rejection_message, unsolved_message};
+use super::implicit_msg::{layer_name, sanitize, strict_rejection_message, unsolved_message};
 use crate::Span;
 use sokonanoda::elab_app::{AppOutcome, UnsolvedSite};
 
@@ -216,47 +216,6 @@ fn sanitized(text: String) -> String {
     out
 }
 
-/// `\0soko_*`（fresh 名）/ `?<数字>`（会话元变量 id）⇒ 「一个没解出来的形参」。
-///
-/// 返回 `(净化后, 是否命中)`。**只处理这两种**：别的形状（`$0`、`Sort(1)`）是让人读的类型写法，
-/// 不能动（`kernel-rejected` 的正文就长这样）。
-fn sanitize(text: &str) -> (String, bool) {
-    const REPLACEMENT: &str = "一个没解出来的形参";
-    let bytes = text.as_bytes();
-    let mut out = String::with_capacity(text.len());
-    let mut hit = false;
-    let mut i = 0;
-    while i < bytes.len() {
-        // `\0soko_…`：源级 fresh 名（`implicit::telescope` 的产物）。
-        if bytes[i] == 0 {
-            let mut j = i + 1;
-            while j < bytes.len() && (bytes[j].is_ascii_alphanumeric() || bytes[j] == b'_') {
-                j += 1;
-            }
-            out.push_str(REPLACEMENT);
-            hit = true;
-            i = j;
-            continue;
-        }
-        // `?<数字>`：本会话元变量 id（≥ 2^30）。
-        if bytes[i] == b'?' && bytes.get(i + 1).is_some_and(u8::is_ascii_digit) {
-            let mut j = i + 1;
-            while j < bytes.len() && bytes[j].is_ascii_digit() {
-                j += 1;
-            }
-            out.push_str(REPLACEMENT);
-            hit = true;
-            i = j;
-            continue;
-        }
-        // 多字节安全：按 UTF-8 字符边界推进。
-        let ch = text[i..].chars().next().unwrap_or('\u{fffd}');
-        out.push(ch);
-        i += ch.len_utf8();
-    }
-    (out, hit)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -393,6 +352,30 @@ mod tests {
         assert!(!clean.contains('\u{0}'), "{clean}");
         // 干净的文本原样返回（`Sort(1)` 这种不许动）。
         assert_eq!(sanitize("期望 Sort(1)").0, "期望 Sort(1)");
+    }
+
+    /// **G2（2026-11-01）**：`eqsubst` 合成的 motive binder 名 `_soko_eq<offset>` 也是**引擎**
+    /// 名字（用户抄不到）⇒ 出现在「可照抄的 `@` 出路」里就是**假出路** ✗。夹具直接用
+    /// [`strict_rejection_message`] 从一条真实的 `@Eq.subst` 出路里拼出来（攻的是生产那条路）。
+    #[test]
+    fn eqsubst_motive_name_never_leaks() {
+        // `whole_text` 是**正常形式**的渲染（出路自己会在头前补 `@`）⇒ 这里不带 `@`。
+        let whole =
+            "Eq.subst (Set α) (fun (_soko_eq276 : Set α) => x ∈ _soko_eq276) A empty sorry hx";
+        // ① **生产者**入口（`implicit_msg` 里净化一次 ⇒ 老路 `elab.rs:4785` 与内核路径都覆盖）。
+        let built = strict_rejection_message("Eq.subst", whole, TY, 4, 6, 2, 6);
+        assert!(!built.contains("_soko_eq"), "出路里不许出现引擎名：{built}");
+        assert!(
+            built.contains("@Eq.subst (Set α)"),
+            "净化只换名字，不许改出路结构：{built}"
+        );
+        // ② 扫描器本体（`implicit_msg::sanitize`，这两个测试文件共用同一份实现）。
+        let (clean, hit) = sanitize(&format!("`{whole}`"));
+        assert!(hit, "必须认出 `_soko_eq<数字>`：{clean}");
+        assert!(!clean.contains("_soko_eq"), "净化后不许剩：{clean}");
+        // 边界：用户自己的标识符别被吃掉（前一位是标识符字符、或后面不是数字）。
+        assert_eq!(sanitize("x_soko_eq1").0, "x_soko_eq1");
+        assert_eq!(sanitize("_soko_eqx").0, "_soko_eqx");
     }
 
     /// `ExpectedMismatch` 只是"期望没传播上" ⇒ 交给 S4 重解，不当错报。

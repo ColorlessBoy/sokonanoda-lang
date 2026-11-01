@@ -204,7 +204,11 @@ fn rewrite_goal_motive(
         out = Expr::App {
             fun: Box::new(out),
             arg: Box::new(arg),
-            explicit_spine: false,
+            // **G2（2026-11-01）**：这 5–6 位是引擎拼的 `@Eq.subst` **全显式**前缀
+            // （`α motive a b <等号> <premise>`，逐位对应望远镜）⇒ `@` 脊，**不是**
+            // 用户写的正常形式位置实参。标 `false` 时 strict 按"位置实参只绑显式
+            // 形参"数 ⇒ 谎称"你写了 5～6 个位置实参"判红（loose 走 old-style 读法才过）。
+            explicit_spine: true,
             span,
         };
     }
@@ -293,6 +297,11 @@ pub(crate) fn rewrite_explicit_equality(
                     span,
                 }),
                 arg: Box::new(other.clone()),
+                // **G2（2026-11-01）**：这一位**必须留 `false`** —— `Eq.symm` 的实参位
+                // 正是它的**显式**形参（`Eq.symm : {α} → {a b} → @Eq α a b → @Eq α b a`），
+                // 正常形式的位置实参本来就逐位绑显式位。标 `true` = 声明"这条脊逐位对
+                // **整条**望远镜" ⇒ 渲染成 `@Eq.symm h` ⇒ `h` 被绑到 `{α : Sort u}` ✗
+                // （实测：两档都报「期望 `Sort(0)`，实际是 `Eq.{1} α x a`」）。
                 explicit_spine: false,
                 span,
             },
@@ -389,13 +398,18 @@ fn synthesize(
 }
 
 /// old-style 前缀：`Eq.subst (T) (fun s => C[s]) a b <等号> <premise>`。
+///
+/// **G2（2026-11-01）**：拼的是 `@Eq.subst` 的 **6 个前导位**（α motive a b 等号 premise，
+/// 逐位对应整条望远镜）⇒ 这就是 `@` 全显式写法（`expr.rs::e_app_at` 同一口径），必须标
+/// `explicit_spine: true`。标 `false` ⇒ strict 把它当"用户写的位置实参"数（6 > 显式层 2）
+/// 判红，而 loose 走 old-style 读法能过 —— 两档不同判，且诊断指向引擎自己拼的项 ✗。
 fn prefix(head: &Expr, args: [Expr; 6], span: Span) -> Expr {
     let mut out = head.clone();
     for arg in args {
         out = Expr::App {
             fun: Box::new(out),
             arg: Box::new(arg),
-            explicit_spine: false,
+            explicit_spine: true,
             span,
         };
     }

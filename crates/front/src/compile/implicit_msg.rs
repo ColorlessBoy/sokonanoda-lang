@@ -182,7 +182,7 @@ pub(crate) fn strict_rejection_message(
         Some(rest) => format!("@{} {}", head_text, rest.trim_start()),
         None => format!("@{} …", head_text),
     };
-    format!(
+    let text = format!(
         "`{}` 的签名 `{}` 里，{}。\
          正常形式（没写 `@`）的**位置实参只按显式形参逐位绑定**，隐式形参由推断补\
          —— 这与 Lean 4 一致；你写了 {} 个位置实参，多出来的落不到任何形参上。\n\
@@ -195,7 +195,13 @@ pub(crate) fn strict_rejection_message(
         n_args,
         escape,
         explicit_layers,
-    )
+    );
+    // **G2（2026-11-01）**：出路里会印出**引擎自己拼的**项 —— `eqsubst` 合成的 motive binder
+    // 名 `_soko_eq<offset>`（`eqsubst.rs` 的 `format!("_soko_eq{}", …)`）用户**抄不到** ⇒
+    // 那条"可照抄的出路"就是假的 ✗。这里**两个生产者共用**（老路 `elab.rs:4785` 与内核路径
+    // `kernel_app_report::report`）⇒ 净化放在这里才真的咬得住（实测：漏名那条走的正是老路，
+    // 只净化 `kernel_app_report` 一次都碰不到它）。
+    sanitize(&text).0
 }
 
 /// **「补不出来」文案**（默认档也会走到 —— 用户 2026-10-15 亲见的就是它 ✓）。
@@ -251,7 +257,7 @@ pub(crate) fn unsolved_message(
         ),
         None => format!("@{} {} …", head_text, placeholders.join(" ")),
     };
-    format!(
+    let text = format!(
         "`{}` 的签名 `{}` 里，前 {} 个形参是**隐式**的（按位置依次是 {}）——\
          这里**至少有一个没解出来**{}。\n\
          出路（**全显式**：连隐式位也逐位写下来）⇒ 在函数名前加 `@`，\
@@ -267,7 +273,8 @@ pub(crate) fn unsolved_message(
         reason,
         k,
         escape,
-    )
+    );
+    sanitize(&text).0 // G2：引擎名（`_soko_eq*` 等）不进用户文案，理由见上一条注释。
 }
 
 /// **命名实参点名失败**（用户 2026-10-16 第 ② 条）：`f (α := Nat)` 里的 `α`
@@ -368,4 +375,63 @@ pub(crate) fn misplaced_named_arg_message(name: &str) -> String {
          出路 ①（**位置实参 + `@`**）⇒ 在函数名前加 `@`，把隐式位也逐位写下来。\n\
          出路 ②（**让推断补**）⇒ 删掉命名实参，只按显式形参的顺序写位置实参。"
     )
+}
+
+/// `\0soko_*`（fresh 名）/ `?<数字>`（会话元变量 id）/ `_soko_eq<数字>`（`eqsubst` 合成的
+/// motive binder 名）⇒ 「一个没解出来的形参」。
+///
+/// 返回 `(净化后, 是否命中)`。**只处理这三种**：别的形状（`$0`、`Sort(1)`）是让人读的类型写法，
+/// 不能动（`kernel-rejected` 的正文就长这样）。
+pub(crate) fn sanitize(text: &str) -> (String, bool) {
+    const REPLACEMENT: &str = "一个没解出来的形参";
+    let bytes = text.as_bytes();
+    let mut out = String::with_capacity(text.len());
+    let mut hit = false;
+    let mut i = 0;
+    while i < bytes.len() {
+        // `\0soko_…`：源级 fresh 名（`implicit::telescope` 的产物）。
+        if bytes[i] == 0 {
+            let mut j = i + 1;
+            while j < bytes.len() && (bytes[j].is_ascii_alphanumeric() || bytes[j] == b'_') {
+                j += 1;
+            }
+            out.push_str(REPLACEMENT);
+            hit = true;
+            i = j;
+            continue;
+        }
+        // `_soko_eq<数字>`：`eqsubst.rs` 合成的 motive binder 名（`format!("_soko_eq{}", …)`）——
+        // 引擎自己拼的，用户**抄不到** ⇒ 它在"可照抄的出路"里 = 假出路 ✗。
+        // 前一位必须是**标识符边界**（别把 `x_soko_eq1` 这类用户名字也吃掉）。
+        if bytes[i] == b'_'
+            && text[i..].starts_with("_soko_eq")
+            && (i == 0 || !(bytes[i - 1].is_ascii_alphanumeric() || bytes[i - 1] == b'_'))
+            && bytes.get(i + 8).is_some_and(u8::is_ascii_digit)
+        {
+            let mut j = i + 8;
+            while j < bytes.len() && bytes[j].is_ascii_digit() {
+                j += 1;
+            }
+            out.push_str(REPLACEMENT);
+            hit = true;
+            i = j;
+            continue;
+        }
+        // `?<数字>`：本会话元变量 id（≥ 2^30）。
+        if bytes[i] == b'?' && bytes.get(i + 1).is_some_and(u8::is_ascii_digit) {
+            let mut j = i + 1;
+            while j < bytes.len() && bytes[j].is_ascii_digit() {
+                j += 1;
+            }
+            out.push_str(REPLACEMENT);
+            hit = true;
+            i = j;
+            continue;
+        }
+        // 多字节安全：按 UTF-8 字符边界推进。
+        let ch = text[i..].chars().next().unwrap_or('\u{fffd}');
+        out.push(ch);
+        i += ch.len_utf8();
+    }
+    (out, hit)
 }

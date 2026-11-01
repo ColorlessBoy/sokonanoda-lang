@@ -126,6 +126,19 @@ fn a_point_name_hypothesis_still_reports_the_same_diagnostic() {
     );
 }
 
+/// 复现 A（G2 实施单 §1 / 2026-10-22 unit02 现场）：`apply Eq.subst _ hx` —— 洞在**等号位**，
+/// 目标 `x ∈ ∅`、`hx : x ∈ A`、`h : A = ∅`。motive 是 `fun (s : Set α) => x ∈ s`。
+const REPRO_A: &str = "\
+def Set (α : Type) : Type := α → Prop
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def empty {α : Type} : Set α := fun (_ : α) => False
+infix:50 \" ∈ \" => mem
+
+theorem t (α : Type) (A : Set α) (x : α) (hx : x ∈ A) (h : A = empty) : x ∈ empty := by
+  apply Eq.subst _ hx
+  exact h
+";
+
 /// **2026-10-22 unit02 现场**：`apply Eq.subst _ hx` 的洞在 **Set 谓词**上。
 ///
 /// 用户原题：
@@ -140,17 +153,7 @@ fn a_point_name_hypothesis_still_reports_the_same_diagnostic() {
 /// `exact h` 才闭得上）。
 #[test]
 fn apply_eqsubst_argument_hole_on_a_set_predicate() {
-    let src = "\
-def Set (α : Type) : Type := α → Prop
-def mem {α : Type} (a : α) (A : Set α) : Prop := A a
-def empty {α : Type} : Set α := fun (_ : α) => False
-infix:50 \" ∈ \" => mem
-
-theorem t (α : Type) (A : Set α) (x : α) (hx : x ∈ A) (h : A = empty) : x ∈ empty := by
-  apply Eq.subst _ hx
-  exact h
-";
-    let out = compile(src);
+    let out = compile(REPRO_A);
     assert_eq!(
         out.errors,
         vec![],
@@ -427,4 +430,105 @@ theorem t (α : Type) (A : Set α) (h : A = empty) : subset A empty := by
         out.errors
     );
     assert!(checked_names(&out).contains(&"t".to_string()));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// **G2（2026-11-01）**：引擎拼的 `@Eq.subst` 全显式前缀 = `@` 脊
+// 实施单：`reports/2026-11-01-g2-eqsubst-spine-spec.md` §4 ①/④。
+//
+// 修前（HEAD 二进制 `097996f6`）：复现 A/B 在 **strict** 下都判红
+// `elab-implicit-argument-unsolved`（**谎称"你写了 6 个位置实参"**，源码只有 2 个）
+// —— 因为 `eqsubst.rs` 三处把引擎拼的 6 位前缀写死成 `explicit_spine: false`
+// （= 用户写的正常形式），strict 按"位置实参只绑显式形参"数（6 > 2）⇒ 拒绝。
+// 修后：那三处按语义分别是 `true` / **`false`** / `true`（见每条用例的注释）。
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// strict 档（生产默认：内核路径 + **不回落**，不用任何测试钩子）编一份源。
+fn compile_strict(src: &str) -> CompileOutput {
+    use super::tests::on_compile_stack;
+    let src = src.to_string();
+    on_compile_stack(move || {
+        let file = parse(&src).unwrap_or_else(|e| panic!("parse failed: {e:?}"));
+        compile_fol_with(&file, &STRICT)
+    })
+}
+
+const STRICT: CompileOptions = CompileOptions {
+    prelude: PreludeMode::Full,
+    dialect: Dialect::Strict,
+};
+
+/// **G2 ①（复现 A · strict 臂）**：`apply Eq.subst _ hx`（洞在等号位）。
+///
+/// 修前 strict：`elab-implicit-argument-unsolved` 7:3–7:22 + 级联 `elab-tactic-failed` 8:3，
+/// `t` **不** checked。修后：0 诊断、`t` checked —— 洞照旧变成 `A = empty` 子目标
+/// （合成脊的标记从"正常形式"改成 `@` 脊后，洞的**期望类型**不能跟着丢：见
+/// `named_arg::at_arg_expected` 的洞那一支）。
+#[test]
+fn eqsubst_argument_hole_is_green_in_strict() {
+    let out = compile_strict(REPRO_A);
+    assert_eq!(out.errors, vec![], "strict 档必须 0 诊断：{:?}", out.errors);
+    assert!(
+        checked_names(&out).contains(&"t".to_string()),
+        "`t` 必须 checked：{:?}",
+        checked_names(&out)
+    );
+}
+
+/// **G2 ①（复现 B · strict 臂）**：`apply Eq.subst (Eq.symm hx) h`（谓词型等式）。
+///
+/// 修前 strict：`elab-implicit-argument-unsolved` 10:3–10:32；修后 0 诊断 + checked。
+#[test]
+fn eqsubst_predicate_spine_is_green_in_strict() {
+    let out = compile_strict(REPRO);
+    assert_eq!(out.errors, vec![], "strict 档必须 0 诊断：{:?}", out.errors);
+    assert!(
+        checked_names(&out).contains(&"t".to_string()),
+        "`t` 必须 checked：{:?}",
+        checked_names(&out)
+    );
+}
+
+/// **G2 ④（`:296` 的 `Eq.symm` 包装必须留正常形式）**：等号方向与差异方向相反 ⇒
+/// 引擎包一层 `Eq.symm`。⚠ 这一位**不能**标 `@` 脊：`Eq.symm` 的实参位正是它的
+/// **显式**形参，标 `true` = 声明"逐位对整条望远镜" ⇒ 渲染成 `@Eq.symm h` ⇒ `h` 被
+/// 绑到 `{α : Sort u}` ✗（实测：两档都报「期望 `Sort(0)`，实际是 `Eq.{1} α x a`」）。
+#[test]
+fn eqsubst_symm_wrapper_stays_normal_form_in_strict() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+infix:50 \" ∈ \" => mem
+
+theorem t (α : Type) (A : Set α) (x a : α) (hx : a ∈ A) (h : x = a) : x ∈ A := by
+  apply Eq.subst h hx
+";
+    let out = compile_strict(src);
+    assert_eq!(out.errors, vec![], "strict 档必须 0 诊断：{:?}", out.errors);
+    assert!(checked_names(&out).contains(&"t".to_string()));
+    // 两档同判（loose 亦绿）。
+    let loose = compile(src);
+    assert_eq!(loose.errors, vec![], "宽松档同样必须绿：{:?}", loose.errors);
+}
+
+/// **G2 ①（第三种形状 · strict 臂）**：`apply Eq.subst h`（**一个**实参，形状 ③）——
+/// 它走的是 `eqsubst.rs:207` 的**内联** 5 位前缀（不是 `fn prefix`），是本刀唯一的
+/// `:207` 单测守卫。反向验证（CLI，同一份源）：把 `:207` 改回 `false` ⇒ strict `rc=1`
+/// 「你写了 **5** 个位置实参」，而 A/B（走 `fn prefix`）仍绿 ⇒ 两处各自独立可判。
+#[test]
+fn eqsubst_single_argument_is_green_in_strict() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def empty {α : Type} : Set α := fun (_ : α) => False
+infix:50 \" ∈ \" => mem
+
+theorem t (α : Type) (A : Set α) (x : α) (hx : x ∈ A) (h : A = empty) : x ∈ empty := by
+  apply Eq.subst h
+  exact hx
+";
+    let out = compile_strict(src);
+    assert_eq!(out.errors, vec![], "strict 档必须 0 诊断：{:?}", out.errors);
+    assert!(checked_names(&out).contains(&"t".to_string()));
+    assert_eq!(compile(src).errors, vec![], "宽松档同样必须绿");
 }
