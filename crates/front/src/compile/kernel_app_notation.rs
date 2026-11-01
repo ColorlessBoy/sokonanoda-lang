@@ -84,7 +84,10 @@ pub(crate) fn try_notation<'a>(
     let postponable =
         |a: &Expr| postpone::enabled() && postpone::untyped_lambda_layers(a, plain).is_some();
     if !operands.iter().all(|a| plain(a) || postponable(a)) {
-        return Ok((None, Some(MissGuard::push(count(Count::Shape)))));
+        // P2-12 S0b：记法路由的回落也要结算老路结局（`shape` 同样压一条）。
+        let g = MissGuard::push(count(Count::Shape));
+        super::kernel_app_census::pending_notation("shape", canonical, span);
+        return Ok((None, Some(g)));
     }
     // 头不经 `elab_expr`：记法头在源里不可见（符号的 hover 由调用方记），且要**不带层**的 `Const`
     // ⇒ 宇宙多态的目标（`Ne.{u}`）由内核按 K1d 给层元变量、随合一解出（老路靠操作数文本猜层）。
@@ -107,7 +110,12 @@ pub(crate) fn try_notation<'a>(
     );
     Ok(match finish(builder, outcome, scope, depth, hovers, mark) {
         Ok(out) => (Some(out), None),
-        Err(Some(why)) => (None, Some(probe::fallback(builder, why, span, scope)?)),
+        // P2-12 S0b：压一条（被探测切掉时 `?` 早退 ⇒ 老路不跑、不结算）。
+        Err(Some(why)) => {
+            let g = probe::fallback(builder, why, span, scope)?;
+            super::kernel_app_census::pending_notation(why, canonical, span);
+            (None, Some(g))
+        }
         Err(None) => (None, None),
     })
 }

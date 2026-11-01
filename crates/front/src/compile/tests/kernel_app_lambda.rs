@@ -2,6 +2,7 @@
 //! （`lib/Exists.sokonanoda:110` `Exists.imp` 的形状）。反向：`TEST_NO_TYPED_LAMBDA` 关掉 ⇒ 体回落老路。
 
 use super::kernel_app::{TEST_FALLBACK, TEST_OVERRIDE, TEST_SOLVED};
+use super::kernel_app_census::TEST_FILLED_LATE;
 use super::kernel_app_lambda::{TEST_BARE, TEST_NO_TYPED_LAMBDA};
 use super::tests::on_compile_stack;
 use super::{compile_fol_with, CompileOptions, Dialect, PreludeMode};
@@ -114,6 +115,21 @@ fn blocked_typed_lambda_is_filled_late_and_judgement_unchanged() {
     let (errors_np, _, _, bare_np) = run_counted(BLOCKED_SRC, false);
     assert_eq!(errors_np, errors_off);
     assert_eq!(bare_np, 0, "关掉 P2-10b ⇒ 退回路径一行不跑");
+}
+
+/// **S0b 判据（"只加计数"这一半）**：闸门关 ⇒ `fill_late` 一次都不记。
+/// 正方向（补上位 ⇒ `KERNEL_APP fill_late=N`）在端到端判据里量：`crates/cli/tests/strict_fallback_census.rs`
+/// （prelude 层造不出"域被元变量挡住、再补上"的形状；`BLOCKED_SRC` 是补不上的那一支）。
+#[test]
+fn filled_late_records_nothing_with_gate_off() {
+    TEST_FILLED_LATE.with(|c| c.set(0));
+    let (errors, ..) = run_counted(BLOCKED_SRC, false);
+    assert_eq!(errors, Vec::<String>::new());
+    assert_eq!(
+        TEST_FILLED_LATE.with(|c| c.get()),
+        0,
+        "闸门关 ⇒ 补位路径不跑，计数必须为 0"
+    );
 }
 
 /// `kernel_app.rs` 测试里的守卫 `failed_arg_elaboration_does_not_leak_binders_into_scope` 的源：P2-10b 开时

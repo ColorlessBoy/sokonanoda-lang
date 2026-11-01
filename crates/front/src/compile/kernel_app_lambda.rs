@@ -122,6 +122,10 @@ pub(crate) fn fill_late<'a>(
         if explicit[i].is_none() {
             explicit[i] = elab_bare(builder, args[i], scope, univ, known, hovers, ctx);
             progress |= explicit[i].is_some();
+            // P2-12 S0b：每个补上的推迟位记一次（写明的例外；让普查看得见这条老办法）。
+            if explicit[i].is_some() {
+                super::kernel_app_census::filled_late();
+            }
         }
     }
     progress

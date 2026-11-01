@@ -1,11 +1,14 @@
-//! **P2-12 S0 判据**：内核回落后老路结局计数（`kernel_app_census`）。线程局部读数；闸门强制开、strict。
+//! **P2-12 S0/S0b 判据**：内核回落后老路结局计数（`kernel_app_census`）。线程局部读数；闸门强制开、strict。
 
 use super::kernel_app::TEST_OVERRIDE;
-use super::kernel_app_census::TEST_SETTLED;
+use super::kernel_app_census::{
+    arm, pending_notation, TEST_FORCE_ERR, TEST_SETTLED, TEST_SETTLED_ROUTED,
+};
 use super::kernel_app_lambda::TEST_NO_TYPED_LAMBDA;
 use super::tests::on_compile_stack;
 use super::{compile_fol_with, CompileOptions, Dialect, PreludeMode};
 use crate::parse;
+use crate::Span;
 
 /// `(errors, [(结局, 原因)])`；`typed = false` ⇒ 关掉 P2-10b（让带注解 λ 实参回落）。
 fn run(src: &str, on: bool, typed: bool) -> (Vec<String>, Vec<(&'static str, &'static str)>) {
@@ -57,4 +60,63 @@ fn rescued_fallback_is_counted_as_old_ok() {
     let (errors, v) = run(RESCUED, true, true);
     assert_eq!(errors, Vec::<String>::new());
     assert!(n(&v, "ok", None) >= 1, "老路接下 ⇒ old_ok ≥ 1：{v:?}");
+}
+
+fn routed() -> Vec<(&'static str, String)> {
+    TEST_SETTLED_ROUTED.with(|v| v.borrow().clone())
+}
+
+/// **S0b 判据（机制层）**：记法路由的守卫 `Drop` 默认记 `err`、[`super::kernel_app_census::Settle::ok`]
+/// 兑现成 `ok`、没压过原因（`arm(false)`）时什么都不记 —— 三条都要咬。
+#[test]
+fn notation_arm_records_ok_and_err() {
+    TEST_SETTLED_ROUTED.with(|v| v.borrow_mut().clear());
+    let span = Span::default();
+    // 老路走到末尾 ⇒ ok
+    pending_notation("unsolved", "Set.Le", span);
+    arm(true).ok();
+    // 老路早退 / `?` / 显式 Err ⇒ err
+    pending_notation("unsolved", "Set.Le", span);
+    drop(arm(true));
+    // 没压过原因 ⇒ 不结算（不能把外层那一帧记成自己的）
+    drop(arm(false));
+    assert_eq!(
+        routed(),
+        vec![
+            ("ok", "notation_unsolved".to_string()),
+            ("err", "notation_unsolved".to_string()),
+        ],
+        "记法路由只按自己的出口结算"
+    );
+}
+
+/// **反向验证**：把结算强制成 `err` ⇒ 上面那条 `ok` 判据必须判红（守卫咬得住）。
+#[test]
+fn notation_arm_ok_is_reverse_verified() {
+    TEST_SETTLED_ROUTED.with(|v| v.borrow_mut().clear());
+    TEST_FORCE_ERR.with(|c| c.set(true));
+    pending_notation("unsolved", "Set.Le", Span::default());
+    arm(true).ok();
+    TEST_FORCE_ERR.with(|c| c.set(false));
+    assert_eq!(
+        routed(),
+        vec![("err", "notation_unsolved".to_string())],
+        "强制 err ⇒ ok 不再成立"
+    );
+}
+
+/// **S0b 判据（对账）**：真文件上 `fallback_unsolved` 必须等于 `probe_cut` + 各 `fallback_old_*_unsolved`
+/// —— S0b 之前 unit19-solution 差 68、unit19-cardinal-le 差 31（记法路由没结算）。见 CLI 集成判据
+/// `crates/cli/tests/strict_fallback_census.rs`（单元层拿不到课程库，`Set.Le` 记法不在 prelude）。
+#[test]
+fn unit_layer_cannot_cover_notation_route_without_course_lib() {
+    // 反面对照：prelude 的记法（`≠` 等）目标都带前导隐式或没有前导参数 ⇒ 走不到记法路由的 `missing > 0` 分支。
+    // 记法路由的端到端判据只能落在 CLI 集成测试 ⇒ 这条只钉"为什么这里没有它"，防止有人把 CLI 那条删了。
+    let src = "theorem s4 (a b : Nat) (h : a = b) : a = b := h\n";
+    let (errors, v) = run(src, true, true);
+    assert_eq!(errors, Vec::<String>::new());
+    assert!(
+        v.iter().all(|(_, w)| !w.starts_with("notation_")),
+        "prelude 记法不该走 `pending_notation`：{v:?}"
+    );
 }

@@ -149,16 +149,26 @@ pub(crate) fn try_hinted_const<'a>(
     hovers: &mut Vec<HoverNode<'a>>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Option<ExprPtr<'a>> {
-    if !effective(ctx.options.dialect) || !postpone::has_hint(span, scope) {
+    if !effective(ctx.options.dialect) {
+        return None;
+    }
+    // P2-12 S0b：闸门开着 ⇒ 每次解不出都记来源（写明的例外；不是应用级回落）。
+    if !postpone::has_hint(span, scope) {
+        super::kernel_app_census::hinted_fallback("no_hint");
         return None;
     }
     let Some(KnownName::Decl { universes, .. }) = known.get(canonical) else {
+        super::kernel_app_census::hinted_fallback("unknown");
         return None;
     };
     if universe_gate(canonical, universes).is_some() {
+        super::kernel_app_census::hinted_fallback("universe");
         return None;
     }
-    let hint = postpone::take_hint(span, scope)?;
+    let Some(hint) = postpone::take_hint(span, scope) else {
+        super::kernel_app_census::hinted_fallback("no_hint");
+        return None;
+    };
     let (mark, depth) = (hovers.len(), scope.len());
     let head = Expr::Ident {
         name: canonical.to_string(),
@@ -193,6 +203,7 @@ pub(crate) fn try_hinted_const<'a>(
             Some(out)
         }
         None => {
+            super::kernel_app_census::hinted_fallback("unsolved");
             count(Count::ArgElab);
             hovers.truncate(mark);
             None
