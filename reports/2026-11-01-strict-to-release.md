@@ -201,6 +201,23 @@ S7（翻 `Dialect::default()`）在收口时暴露三条**既有缺口**，任�
    或者把它们**显式登记进 known-unsupported 并写明理由**（但那等于承认这 4 类我们不判 ⇒ 要用户拍板）。
    **本轮不许绕过**（`SOKO_ARENA_OFFLINE=1` 会让结果标记为 NOT LATEST，脚本注释明确"发版路径不要用"）。
 
+## 2decies. 发版说明**草稿**（等 LKA 清了再用；现在不要写进 CHANGELOG）
+
+标题：**0.98.0 —— strict 成为默认方言，报错改成能照抄的样子**
+
+正文要点（每条都能落到一次提交）：
+1. **默认档 = strict**：不设任何环境变量就是严格读法（位置实参只绑显式形参；喂隐式位写 `@f α x`）。
+   旧读法保留为退路：`--dialect loose` / VS Code 设置 `sokonanoda.dialect.strictImplicitArgs` 关 / 文件指令 / 清单。
+2. **报错变成人话**：不再出现内部元变量名（` soko_m2` 之类）、span 指向**使用处**而不是 `0:0`，
+   记法/隐式位的出路可以**照抄**（`@f <隐式位> <显式实参>`）。§9.39 的三条红线（禁 print→parse、
+   `strict ≤ loose` 的计数判据）保持不变。
+3. **修掉的三个真 bug**：`Eq.subst` 族的 old-style 前缀（`apply Eq.subst _ hx` 两档同判）·
+   strict 把内部元变量名印给用户 · 出口规则抢在例外表前面导致 `Set.notMem_empty (f x) (hn x hx)` 被误判死。
+4. **过渡闸门全部删除**：`SOKO_STRICT_KERNEL_APP` / `SOKO_STRICT_NO_FALLBACK` 在代码里 **0 处**；
+   `scripts/audit-strict-paths.py` 进 gate 并只降不升（strict 专属文本通道 = **0**）。
+5. **两条已知限制**（写进 §9.40，不藏着）：① 例外表 6 类仍回落老路（`strict ≤ loose` 在 7/355 个文件上有偏差）；
+   ② `¬ (Set.Equiv ∅ {b})` 这类「记法前导隐式 + 零元糖」在 strict 仍拒（源级写上 `(@Set.empty Nat)` 就过）。
+
 ## 3. 用户决策点（只有三个，其余我全包）
 
 | # | 决策 | 现在需要吗 |
