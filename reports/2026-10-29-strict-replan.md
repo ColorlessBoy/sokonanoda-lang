@@ -296,8 +296,8 @@ oracle（`elab.rs:4821` `pp_shape::arg_types` → `operand_type_expr` → `infer
 | P3-a | 文本通道棘轮（strict 专属 = 0） | 0.8 | ✅ | `40443665`（`scripts/audit-strict-paths.py` 进 gate）|
 | **P3-b** | **删 strict 专属文本调用 / 老路退休** | 1.5 | ⬜ | 盘点结论：**没有"删了只影响 strict"的项** ⇒ 必须等老路整体退休（P2-13 之后）|
 | 发版面 | skills / VS Code / AGENTS / §9.40 / ONBOARDING | 1.5 | ✅ | `26400a5c` |
-| G1-N | 缺口 N：`Set.notMem_empty (f x) (hn x hx)`（`unit19-solution:63:45`）—— 出口**规则 1**（`n_args > explicit_layers`）抢在例外表前面判死 | 0.8 | ⬜ | **修中**（子代理）：根因已定（`1f80ce07`）：`kernel_app_report.rs:63-65`（**395 行，未冻**）⇒ 可**零行增长**修；实测"规则 1 让开" ⇒ 整份文件 rc=0 / 0 诊断 |
-| G1-R | 缺口 R：`Ne` 的隐式 `α`（`unit12-solution:175:8`）—— `notation_prefix_args` 在 strict 只回载体；第二阶堵点在**冻结**的 `infer_type_text`/`judge_infer` | 1.2 | ⬜ | **实验中**（子代理）：出路 ①：用 `run` 已有的 `expected_srcs` + `NeedArgs{domains}` 按域 elaborate，不经过 pp 回读（**未实测**）；出路 ②：先拆 `elab.rs`/`judge.rs` |
+| G1-N | 缺口 N：出口**规则 1** 抢在例外表前面判死（`unit19-solution:63:45`） | 0.8 | ✅ | `a027992f`（零增长 395→395）：收窄成 `&& !undecided`（`surplus` 留在已判定侧）；unit19 strict **rc=1/2 诊断 → rc=0/0**；反向验证判红；"真实参写多"诊断逐字节不变 |
+| G1-R | 缺口 R：`Ne` 的隐式 `α`（`unit12-solution:175:8`）—— 形状**本质欠定**（`?γ` 无来源） | 1.2 | ✅ | 定根因 `1f80ce07` + 实验停在 2 次（`f28564a3` 记 `#[ignore]` 目标与读数）；**修法 = 源级改写** `923fd738`（25 处 `(@Set.empty Nat)`）⇒ 两档 rc=0；设计上"容忍占位符"会退回 S6 之前、"内核吃带元变量域"要动内核，都被排除 |
 | G2 | `eqsubst` 三处 old-style 前缀 | 0.6 | ✅ | `3a070ad5` |
 | G3 | `pp_shape` 元变量名泄漏（一行） | 0.9 | ✅ | `4d1b47a6` |
 | **P4** | 发版闭环（bump → push main → CI → release → 核对） | 1.5 | ⬜ | **push main 前必须问用户** |
