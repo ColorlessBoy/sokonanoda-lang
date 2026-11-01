@@ -153,3 +153,7 @@ mod kernel_app_no_fallback_tests;
 #[cfg(test)]
 #[path = "tests/kernel_app_s4b.rs"]
 mod kernel_app_s4b_tests;
+// P2-12 S5：`ErrorKind::hint()` 的**可执行性**（死出路 `(e : T)` 不许回来）。
+#[cfg(test)]
+#[path = "tests/error_hint.rs"]
+mod error_hint_tests;

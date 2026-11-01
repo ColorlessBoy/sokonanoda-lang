@@ -112,9 +112,16 @@ pub(super) fn finish<'a>(
         Ok(AppOutcome::NeedArgs { .. }) => count(Count::ArgElab),
         Err(c) => count(*c),
     };
-    hovers.truncate(mark);
+    // **P2-12 S5**（设计稿 §Q4.2）：**报错出口不撤 hover** —— 这里的行都是第一趟已经解出来的
+    // 具体项（没有元变量），留着只会比今天多；回落出口仍撤回（老路要重新 elaborate 一遍，
+    // 留着会让同一段源码有两份行）。判据：`crates/lsp/tests/strict_hover.rs` 在 c1 的
+    // `g` 与 `0` 上 hover（用户动作级）。
+    let verdict = judge(why, outcome.as_ref().ok());
+    if !matches!(verdict, Fell::Dead(_)) {
+        hovers.truncate(mark);
+    }
     debug_assert_eq!(scope.len(), depth, "回落前作用域深度必须恢复");
-    Err(judge(why, outcome.as_ref().ok()))
+    Err(verdict)
 }
 
 /// `finish` 的出口判定：**开关关 ⇒ 老路**（`facts` 一次都不调用 ⇒ 零成本）；开 ⇒ 按 S2 的 [`report`] 出诊断。
