@@ -110,12 +110,19 @@ fn switch_off_keeps_todays_diagnostics_verbatim() {
 fn switch_on_reports_a_readable_error_instead_of_falling_back() {
     let old = run(C1, true, false);
     let new = run(C1, true, true);
-    // 夹具有效性：今天的出口是**漏内部名 + 假 span**（设计稿 Q1 量过）⇒ 这条测试咬得住东西。
-    assert!(
-        old.texts().iter().any(|e| e.contains("soko_m")),
-        "夹具失效：今天的 c1 不再漏内部名 ⇒ 本测试咬不住：{:?}",
-        old.texts()
-    );
+    // **G3（2026-11-01）把前提的方向翻过来了**（**不是**放宽断言 ✗）：修前老路的出口是
+    // **漏内部名 + 假 span**（`` unknown identifier `\u{0}soko_m*` ``，设计稿 Q1 量过）——
+    // 那正是 G3 修的 bug（`pp_shape::elab_engine_value` 在严格档把 `metas` 摘成 `None`
+    // ⇒ `decl_meta_carrier` 的第一道闸当场失败 ⇒ 载体漏成 unknown-identifier）。
+    // 修后载体照样走 `decl_meta_carrier` ⇒ **老路给的也是能读的诊断** ⇒ 前提从"还漏名"
+    // 翻成"**也不许漏名**"：方向反了、**只强不弱**（原来只查 `soko_m` 一根针，现在四根）。
+    for bad in ["soko_m", "soko_p", "\u{0}", "?1073741824"] {
+        assert!(
+            !old.texts().iter().any(|e| e.contains(bad)),
+            "G3 后**老路**也不许出现内核名 {bad}（夹具前提已翻方向）：{:?}",
+            old.texts()
+        );
+    }
     assert_eq!(new.dead, 1, "开关开 ⇒ 恰恰一次报错出口：{:?}", new.texts());
     assert_eq!(
         new.kept,

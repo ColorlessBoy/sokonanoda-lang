@@ -103,6 +103,28 @@ pub(crate) fn oracle_type<'a>(
     super::elab::operand_type_expr(ctx, scope, e, g.as_mut())
 }
 
+/// **G3 守卫的原料**：`e` 里有没有**仍未解掉**的载体（`Ident { name: "\0soko_m{id}" }`）。
+///
+/// 与 `check::meta_exit::p4b` 的 `has_carrier` **同一判据**（那一份是模块私有 `fn`
+/// ⇒ 跨模块调不到，这里只有 ~10 行）✓。**只在 [`elab_engine_value`] 的 `debug_assert!`
+/// 里调用** ⇒ release 编译期整段消失、零运行时成本 ✓（`p4b` 那份反过来：它是闸门的原料，
+/// 必须常驻 ✓）。
+fn carries_carrier(e: &Expr) -> bool {
+    if let Expr::Ident { name, .. } = e {
+        if super::meta::is_meta_name(name) {
+            return true;
+        }
+    }
+    let mut found = false;
+    let _ = crate::spine::map_children(e, &mut |child| {
+        if !found && carries_carrier(child) {
+            found = true;
+        }
+        child.clone()
+    });
+    found
+}
+
 /// **引擎值的 elaborate**（F5）：解出来的隐式实参可能是**内核 pp 文本**
 /// 回读的项（`Prod.fst A B (Prod.prod_mk A B a b) = a`）—— 内核 pp 打的是
 /// **正常形式写满实参**，它只在**默认档**下是合法源文本（严格档一律拒
@@ -141,9 +163,21 @@ pub(crate) fn elab_engine_value<'a>(
         ns: ctx.ns,
         notations: ctx.notations,
         defs: ctx.defs,
-        // **S4/B2-a**：这一档是**显示形状**的重 elaborate（loose dialect）⇒ 不接元变量表。
-        metas: None,
+        // **G3（2026-11-01）**：方言换了，**元变量表不能摘** —— `metas` 与方言**正交**
+        // （`decl_meta_carrier` 只读 `ctx.metas` + store/log，没有任何 dialect 分支）。
+        // 这个 ctx 重 elaborate 的正是**仍是载体的值**（`Ident("\0soko_m{id}")`，
+        // 未解时 `zonk` 是 no-op）⇒ 摘掉表 = 把载体漏到 `resolve_known` ⇒
+        // 「unknown identifier `\0soko_m2`」+ span 0:0（内部名漏给用户）。
+        metas: ctx.metas,
     };
+    // **G3 守卫**（`debug_assert` ⇒ release 零成本、真告警都在测试/CI 档）：调用方给了表、
+    // 而值里**仍是载体**时，engine ctx **不许**把表丢掉 —— 这正好是 `metas: None` 那一版
+    // 的错，也是唯一能让 `decl_meta_carrier` 够不着载体的形状。**这是回归牙**，不是修法 ✗
+    // （release 档由 `crates/cli/tests/diagnostic_name_leak.rs` 的扫描式判据兜底 ✓）。
+    debug_assert!(
+        engine.metas.is_some() || ctx.metas.is_none() || !carries_carrier(e),
+        "载体 `\\0soko_m*` 被交给没有元变量表的 engine ctx ⇒ 会漏成 unknown-identifier（G3）"
+    );
     elab_expr(
         builder,
         e,

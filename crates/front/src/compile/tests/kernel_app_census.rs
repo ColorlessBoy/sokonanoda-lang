@@ -50,7 +50,28 @@ fn c1_unsolved_fallback_is_counted_as_old_err() {
         n(&v, "err", Some("unsolved")) >= 1,
         "c1 ⇒ old_err_unsolved ≥ 1：{v:?}"
     );
-    assert_eq!(n(&v, "ok", None), 0, "c1 ⇒ old_ok = 0：{v:?}");
+    // **G3（2026-11-01）重钉计数**（**不是**放宽断言 ✗）：修前 `old_ok = 0` —— c1 的老路在
+    // 载体的 `` unknown identifier `\u{0}soko_m*` `` 上早退（`pp_shape::elab_engine_value`
+    // 摘掉了元变量表 ⇒ `decl_meta_carrier` 够不着载体）。修后载体翻成 `Expr::Meta`
+    // ⇒ 内层应用**走得到末尾** ⇒ 普查里必须有 `ok`。**判卷一个字没变**（上面
+    // `!errors.is_empty()` + `err ≥ 1` 仍然成立）⇒ 这一条钉的是"普查**如实记账**"，
+    // 不再是"老路必死"。**旧读数 `0` 已随 G3 作废，这里是新的精确读数**（不是 `≥`：钉死个数，
+    // 多了少了都要重新解释）。
+    assert_eq!(
+        n(&v, "ok", None),
+        2,
+        "G3 后 c1 的老路内层会走到末尾 ⇒ 恰 2 条 ok 结算：{v:?}"
+    );
+    // **G3 的正面判据**（方向翻转的那一条）：c1 的诊断里**不许**再出现内核内部名。
+    // 修前这里是 `unknown identifier `\u{0}soko_m*``（内部名 + span 0:0）⇒ 这条当场红。
+    for e in &errors {
+        for bad in ["soko_m", "soko_p", "\u{0}", "\\0"] {
+            assert!(
+                !e.contains(bad),
+                "G3：c1 的诊断里不许出现内核名 {bad}（修前的形状就是它）：{e}"
+            );
+        }
+    }
     // 闸门关 ⇒ 一条都不记、判卷相同。
     let (errors_off, v_off) = run(C1, false, true);
     assert_eq!(errors, errors_off);
