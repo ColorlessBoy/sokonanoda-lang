@@ -4,7 +4,7 @@ bin="$1"; f="$2"
 c=$(mktemp -d /tmp/fb-cache.XXXXXX)
 out=$(mktemp /tmp/fb-out.XXXXXX); err=$(mktemp /tmp/fb-err.XXXXXX)
 env -u SOKO_STRICT_AT SOKONANODA_NO_PROJECT_ARTIFACTS=1 SOKONANODA_NO_MODULE_ARTIFACTS=1 \
-  SOKONANODA_CACHE_DIR="$c" SOKO_JUDGE_STATS=1 SOKO_STRICT_KERNEL_APP=1 \
+  SOKONANODA_CACHE_DIR="$c" SOKO_JUDGE_STATS=1 \
   perl -e 'alarm shift; exec @ARGV' 900 "$bin" grade --dialect strict "$f" --json >"$out" 2>"$err"
 rc=$?
 python3 -I - "$f" "$rc" "$out" "$err" <<'PY'
