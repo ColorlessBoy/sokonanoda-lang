@@ -279,6 +279,30 @@ oracle（`elab.rs:4821` `pp_shape::arg_types` → `operand_type_expr` → `infer
 | P2-12 S4b…n | 按 **S0b 普查**清 `fallback_old_ok`，每类一刀 | `fallback_old_ok` 每刀**只降不升**；rc/诊断不变；`KERNEL_APP_MISS` 不升 | **普查 ✓** `reports/2026-11-01-p212-s4b-census.md`（只读子代理，主会话抽查 unit19-solution 110 = 88+20+2 ✓；二进制 `eb7ce8da`）。读数：`fallback_old_ok` **185 次 / 11 文件**、`err` 218、`none` 0；**非例外 130**（例外 55 = meta 30 + notation_meta 14 + shape 9 + ho_motive 2）。**优先级（次数降序）**：① `Set.Le` 记法（`A ≼ B`）**121 次**——只修它 185→**64**；② `input contains a meta` 30+14（`Set.mem` 在带元变量的实参上）③ `shape` 9（写明的例外，不修）③ 其余 `unsolved` 4 / `argmismatch` 2+2 / `expected` 2。**对账 357/357 全成立（0 例外）** ⇒ S0b 的口径站得住。⚠ **位置有两类伪坐标**（普查 §5）：11 行/56 次的 `line` 是 `judge_infer` 前缀缓冲区坐标（实测偏移 **+1530**，用"加一行注释 ⇒ 全部 +1"的平移探针证过）；5 行/7 次是 line 1 的合成 span ⇒ 定位源码要换算，别照抄。S4b 第一刀 = **`Set.Le` 记法族的 `unsolved`**（先复现定根因，别改写法） |
 | P2-13 | **砍掉共享代码里的 strict 分支**（不是删模块：旧 typed app、`pp_shape`、`judge_infer`、`implicit*` 都是 loose / tactic / goal / LSP 共用，见 `reports/2026-10-31-p2-d-old-path-inventory.md`）。strict 专属的只有 `elab.rs:4505-4540`、`:4780-4794`、`:4885-4900` 等 | 同上 + 摘旧分支 `f151eaba` 的 `scripts/audit-strict-paths.py` 并按本分支重定基线、只降不升 | 待 P2-12 |
 
+**排期修订（2026-11-01 12:45，按实测进度重排；旧写法把 S4b 当成"很多刀"，普查后不成立）**
+
+普查结论改了拆刀粒度：`fallback_old_ok` 185 次里 **`Set.Le` 记法一族占 121**（65%），其中 55 次是**写明的例外**
+（`meta` 30 + `notation_meta` 14 + `shape` 9 + `ho_motive` 2）⇒ **修完 `Set.Le` 就只剩 64，真正的余量只有 ~9 次**。
+所以 `S4b…n` 收敛成两刀，不再按"每类一刀"无限拆：
+
+| 批 | 内容 | 判据 | 状态 / 预计 |
+|---|---|---|---|
+| **批 1（本批）** | **S3 并入** + **S4b 根因报告并入**（只读产出） | S3：开关关 714 行 0 差异 · c1 文字无内核名且 span 不在 0:0 · `Fallback` 四例外与 S2 对齐；S4b：Q1–Q5 + 复现件**修前红** | S3 代码已绿（front `kernel_app` 63 条），等最终语料对（~12:50）；S4b 只读进行中 |
+| **批 2** | **S4b 实现**（`Set.Le` 一族，目标 `old_ok` **185→64**） | `fallback_old_ok` 只降不升 · rc/诊断不变 · 动了内核才跑两对语料 | 前提 = 批 1 的 Q4 结论是**前端**修法（若是内核修法见下面的分叉） |
+| **批 3** | **S4c（余量 ~9 次）** + **S5**（CLI/LSP 报错与 hover） | 同上 + S2 的四种例外逐条有测试 | S4c 只剩 9 次，与 S5 同批够用 |
+| **批 4** | **S6**（翻默认、删 `env_on`、重写 `kernel_app_keys.rs`）+ **P2-13** | P2 总判据四件（lib 17/17 · 整门课 strict 全过 · 计数 ≤ loose · loose 逐字节） | **必须先** `old_ok`=0（例外除外）⇒ 依赖批 2/3 |
+| **批 5** | **P3** | `audit-strict-paths` strict 专属 = 0 · `grep SOKO_STRICT_KERNEL_APP` = 0 · docs-lint 绿 | |
+| **批 6** | **P4 发版** | 默认档由用户拍板 | **push main / 发版前先问用户** |
+
+⚠ **S4b 的唯一分叉（要用户拍板）**：若 Q2 证明根因是「内核没有 Lean 的推迟 / 一阶近似」那类 **P1 限制**
+（设计稿 §Q4 已把 `input contains a meta` 写成例外），`Set.Le` 只有三条路可选：
+**(a)** 内核补一阶近似（改动最大：两对语料 + 反向验证，≈1–2 批）；**(b)** 课程改成点名写法 `Set.Le α β A B`
+（最快，但把缺口搬进课程）；**(c)** 记为已知差异进 `REQUIREMENTS §9.39` + 计数（不动判卷）。
+建议：只有 Q2 证明"缺的是一条**通用机制**"才走 (a)；(b)/(c) 需要你定。
+
+⚠ **时间盒**：批 1 的 S3 若 20 分钟内还回不来（最终语料 12:35 起跑）⇒ 主会话按"连红 3 次"规矩**中断子代理、自己收尾**，
+本批只并入 S4b 报告，S3 顺延到批 2。
+
 **P2-C 结论**（2026-10-31，分支二进制 `2fdb470c`，开关开，251 个 tracked 文件，冷跑；主会话抽查 m5/q2 复现）：
 - 整门课计分板 4 门全绿：lib 17/17 两档；工作量 strict = loose；课程 112/112 目标、0 失败、433 checked，两档相同。
 - 内核路径解出 908,821 / 917,633 = **99.04%** 的应用。回落按原因（次数 / 不同位置上限）：`argmismatch` 5,573 / 38（`Set.mem` 5,132、`Iff.intro` 330、`Set.subset` 68）· `unsolved` 3,122 / 183（`Exists.intro` 2,684、`And.intro` 160、`≼` 119）· `input contains a meta` 45 / 19 · `surplus` 29 / 25 · 宇宙多态头 19 / 7 · `shape` 12 · `argelab` 9 · `expected` 3。次数大多是同一批 lib 位置在每个导入方里重 elaborate；不少位置落在文件末尾之后（推断是 `judge_infer` 拼的前缀文本），不同位置数是上限。
