@@ -703,7 +703,7 @@ SOKONANODA_CACHE_DIR=/tmp/perf-clean-$mode SOKONANODA_NO_PROJECT_ARTIFACTS=1   [
 - `unit12-synthesis` 的 strict 诊断是：
 
   ```
-  elab-unknown-identifier：unknown identifier ` soko_m58`
+  elab-unknown-identifier：unknown identifier `\0soko_m58`
   ```
 
   内部 fresh name 泄漏到用户可见的标识符解析 —— 这是 strict 路径的**真 bug**，

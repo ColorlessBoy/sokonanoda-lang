@@ -4,7 +4,19 @@
 > `reports/2026-11-01-p212-s4b-census.md`（回落清单）、`reports/2026-11-01-craft-notes.md`（怎么干）。
 > 本文回答一个上一棒没答的问题：**「上线」到底要交什么** —— 不只是代码判据，还有发版面。
 
-## 0. 目标态（用户可见，这就是"成功"的定义）
+## 0. 目的（先记住这个，再看判据）
+
+**让 strict 成为可信、够快、与 Lean 4 一致的唯一判定路径**，而不是一套靠"读回文本猜类型"的影子实现
+（`REQUIREMENTS §9.39` + `replan` 开篇）。三条导出：
+
+1. **strict = 绑定策略，不是第二套 type oracle**（隐式位 = typed metavariable，位置实参只绑显式）；
+2. **elaboration 禁止 print→parse** —— 它已造出**已发布**的正确性 bug（`\0soko_m58` 漏名），并让 strict 慢 **11×**；
+3. **`strict ≤ loose` 是硬不变量**（计数判据，不用墙钟）⇒ 每批都要用 `scripts/strict-score.py` 复量。
+
+⇒ **任何一批的"完成"都不许只看"回落变少了"**：必须同时看"还判得对吗、成本还 ≤ loose 吗、
+文本通道的调用是不是在减少（P3 的终点是 0）"。
+
+## 0bis. 目标态（用户可见，这就是"成功"的定义）
 
 | # | 上线后用户看到什么 | 谁定 |
 |---|---|---|
@@ -18,9 +30,9 @@
 
 | 批 | 内容 | 判据（可执行） | 谁做 |
 |---|---|---|---|
-| **1（在跑）** | S3 并入（`SOKO_STRICT_NO_FALLBACK` + 走 S2 报错出口）+ S4b 根因报告 | 开关关 714 行 0 差异 · c1 报错可读且 span 非 0:0 · `Fallback` 四例外与 S2 对齐 · S4b 有 Q1–Q5 | 子代理写，主会话审 |
+| **1（在跑）** | S3 并入（`SOKO_STRICT_NO_FALLBACK` + 走 S2 报错出口）+ S4b 根因报告 | 开关关 714 行 0 差异 · c1 报错可读且 span 非 0:0 · `Fallback` 四例外与 S2 对齐 · S4b 有 Q1–Q5 · **`strict-score.py` 计分板绿（lib 17/17 两档 + `work_le_loose`）** | 子代理写，主会话审 + 跑计分板 |
 | 2 | **S4b 实现**：`Set.Le`（`A ≼ B`）一族，`old_ok` **185→64** | 只降不升 · rc/诊断不变 · 动内核才跑两对语料 · 复现件修前红 | 子代理，主会话定分叉 |
-| 3 | **S4c**（余 9 次：`unsolved` 4 / `argmismatch` 2+2 / `expected` 2）+ **S5**（CLI + LSP hover 判据） | 四种例外逐条有测试；c1/c5/R1 文字测试 | 子代理 |
+| 3 | **S4c**（余 9 次：`unsolved` 4 / `argmismatch` 2+2 / `expected` 2）+ **S5**（CLI + LSP hover 判据 **+ 修 `error_hint.rs:93` 的死出路**，见 §2bis） | 四种例外逐条有测试；c1/c5/R1 文字测试 | 子代理 |
 | 4 | **S6 翻默认**（`effective = dialect.strict()`、删 `env_on`、重写 `kernel_app_keys.rs`）+ **P2-13**（砍共享代码里的 strict 分支） | P2 总判据四件（lib 17/17 · 整门课 strict 全过 · 计数 ≤ loose · loose 逐字节） | 子代理写，主会话跑两对全语料 |
 | 5 | **P3 清理** + **发版面**（见 §2） | `audit-strict-paths` 0 · grep 开关 0 · docs-lint 绿 · skills/编辑器/文档同轮同步 | 主会话 + 子代理 |
 | 6 | **P4 发版**（bump → push main → CI → auto-tag → release 核对） | `release-preflight.sh` 全绿 + `gh release list` 资产齐 | **主会话，且 push main 前问用户** |
@@ -42,6 +54,14 @@
 6. **台账**：`docs/e2e/ledger.jsonl` 按批次记一条；`docs/perf/ledger.jsonl` 若内核有性能改动则记。
 7. **发版机制**：`python3 scripts/bump.py <x.y.z>`（写 Cargo.toml + package.json + Cargo.lock + 清单 requires + site 数据）
    → `scripts/release-preflight.sh` → push main（**问用户**）→ `ci.yml` auto-tag → release → `gh release list` 核对。
+
+## 2bis. 上线前必须修的用户可见文案（**S3 子代理在读数报告里抓到的真缺陷**）
+
+`crates/front/src/compile/error_hint.rs:93`（`ElabImplicitArgumentUnsolved` 的 hint）仍写着
+「出路 ② 给整个表达式或相关实参加类型标注」—— 而本子集**没有** `(e : T)` 这种语法（`REQUIREMENTS §9` 的 a1 教训：
+「给用户的出路必须是可执行的」）。S2 的 `unsolved_message` 已经删掉这条，但 **hint 表是另一个来源**，没同步。
+⇒ 归入 **S5**：把这条 hint 改成与 S2 message 一致的、能照抄的出路（`@g <A> 0`），并加一条断言「hint 里不许出现
+`(e : T)` 这类本子集没有的语法」。翻默认（S6）之后这条会被更频繁地看到 ⇒ **上线前必修**。
 
 ## 3. 用户决策点（只有三个，其余我全包）
 
