@@ -334,7 +334,7 @@ mod tests {
         };
         let msg = text(&report(&outcome, &i));
         assert!(msg.contains("`A`"), "必须点名源级形参 A：{msg}");
-        assert_eq!(sanitize(&msg).1, false, "不许出现内核名：{msg}");
+        assert!(!sanitize(&msg).1, "不许出现内核名：{msg}");
     }
 
     /// ③ 只含外部元变量 ⇒ `Defer`（内层不报，外层自有源级名）。
