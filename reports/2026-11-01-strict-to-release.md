@@ -97,10 +97,13 @@
 
 ## 2quater. 已知限制（**接受、写进台账、不阻塞上线**）
 
-1bis. **记法路由的"出路"不可照抄**（2026-11-01 S5 实测 R1）：`≠`（`Ne`）这条记法路由印出的出路是
-   `` `@Ne <α> ` `` —— **没有操作数、末尾一个空格**，用户照抄不了。根因在 `kernel_app_report` 的出路拼装：
-   应用路径会把显式实参拼进去（`@g <A> 0`），记法路由只拼了头与前导位。⇒ 单开一刀（S4d）：**出路必须含操作数**
-   （`@Ne <α> a b`），并加一条断言（照抄回去能判绿 / 至少形状完整）。
+1bis. ✅ **记法路由的"出路"已可照抄**（**S4d** 2026-11-01 修好；S5 实测 R1 曾是 `` `@Ne <α> ` ``：**没有操作数、末尾一个空格**）。
+   根因在 `kernel_app_fallback::facts_notation` 拼 `whole_text` 时只放了规范名 ⇒ `unsolved_message` 的 `strip_prefix`
+   拿到**空** `rest`。现在 `whole_text` = 规范名 + **操作数**（`render_msg` 渲染、**逐位加括号** —— `''` 是 `infixr:80`，
+   不加括号会被读成 `(@Ne <α> X) '' Y`，实测 `kernel-rejected`）⇒ 出路
+   `@Ne <α> ((fun (_ : Set Nat) => ∅) '' ({@Set.univ Nat})) ((fun (_ : Set Nat) => ∅) '' ({∅}))`。
+   ⚠ 粘回去仍**不判绿**，但那**不是**出路文本的事：`''` 在 `@Ne` 里没有期望类型 ⇒ `elab-notation-argument-unsolved`
+   （**逐字的源码文本**、`<α>` 填对也照报，strict/loose **两档同样**）⇒ 记法前导类型参数的推断边界（S4b/S4c 同族）。
 1. **LSP hover 在"开放练习的签名"里拿不到类型**（2026-11-01 S5 子代理实测）：`crates/front/src/compile/check/walk.rs`
    的开放练习臂在 `open_signature` 回 `Err` 时**只 push 错误、不 push hover 行**（hover 收在局部 `Vec` 里、随 `Err` 一起丢）
    ⇒ 用户 hover c1 签名里的 `g`/`0` 只拿到声明卡片「未通过，见诊断」。

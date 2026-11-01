@@ -20,8 +20,8 @@
 //! 2. **正文**（`message` 与 `hint`）不含内核内部名：`\0` · `soko_m` · `soko_p` · `?<数字>`
 //!    —— 设计稿 §Q3 的最后一道守卫；
 //! 3. `span` **不是 `0:0`**，且**逐字**落在源里那条应用上（`start`/`end` 的行列都钉死）；
-//! 4. 正文给出的 **`@` 出路照抄就判绿**（能 mechanize 的那两个：c1/c5；R1 的出路在记法路由上
-//!    是退化的 `@Ne <α> …`，见 §"R1 为什么不断言出路"）。
+//! 4. 正文给出的 **`@` 出路照抄就判绿**（能 mechanize 的那两个：c1/c5；R1 的形状判据见
+//!    §"R1 的出路"）。
 //!
 //! ## 环境隔离（照 `strict_provenance.rs` / `strict_fallback_census.rs` 的写法）
 //!
@@ -30,14 +30,30 @@
 //! 每次一个**新的** `SOKONANODA_CACHE_DIR`：命中的磁盘缓存会整份回放（`elab.rs` 那几行根本不跑）⇒
 //! 判据会"绿得没道理" ✗。两份 `NO_*_ARTIFACTS` 关掉产物 ⇒ 不在 `courses/` 下落东西。
 //!
-//! ## R1 为什么不断言出路
+//! ## R1 的出路（**P2-12 S4d** 修好；修前是 S5 如实记录的缺陷）
 //!
-//! R1 走的是**记法路由**（`≠` 的头在源里不可见 ⇒ `kernel_app_fallback::facts_notation` 把
-//! `head_text = whole_text = 规范名`）⇒ `unsolved_message` 的 `strip_prefix` 拿到**空** `rest`，出路印成
-//! `` `@Ne <α> ` ``（**没有操作数**、末尾一个空格）—— 这条**不能**照抄（粘回去是语法错）。
-//! S3 的实施单 §2.3 写的是"出路会退化成 `@<头> …`"，实测**不是**那个形状 ⇒ 这是本刀**如实记录、
-//! 没有修**的既有文字缺陷（改它要动 S2/S4b 的文案规则与既有 golden，留给记法路由的下一刀）；
-//! 所以这里**不**写"粘回去判绿"，也不把这个形状钉死（免得把缺陷固化成契约）。
+//! R1 走的是**记法路由**（`≠` 的头在源里不可见 ⇒ `kernel_app_fallback::facts_notation` 出原料）。
+//! 修前它只拼了**头 + 前导占位符**（`whole_text` = 规范名、`strip_prefix` 拿到**空** `rest`）⇒ 出路是
+//! `` `@Ne <α> ` ``：**没有操作数**、末尾一个空格 ⇒ **不能照抄**（粘回去是语法错）。
+//! S4d 让记法路由的 `whole_text` 也带上**操作数**（源级渲染，与应用路径 `render_msg(expr)` 同一条渲染器）
+//! ⇒ 出路是 `@Ne <α> <左边> <右边>`，形状与 Lean 的 `@` 全显式一致。
+//!
+//! 这里的判据只钉**形状的完整性**（两条：**两个操作数都在** + **末尾没有多余空格**），
+//! **不**钉整串渲染文本（那是渲染器的 golden，会把无关改动变成红）：
+//! 夹具两边都写成 `(fun (_ : Set Nat) => ∅) '' …` ⇒ 记法 `''` 在**两个操作数里各出现一次**，
+//! 所以出现 **2 次** = 两个操作数都拼进去了，**1 次或 0 次** = 只拼了头与前导位（= 修前的形状）。
+//!
+//! ### 为什么这里**不**判"粘回去判绿"（如实记录，实测 2026-11-01）
+//!
+//! 出路现在**形状完整**，但把它粘回去在 R1 上仍然过不了 —— 卡点**不是**出路文本，而是 `''` 自己：
+//! `def esc : Prop := @Ne (Set Nat) ((fun (_ : Set Nat) => ∅) '' {(@Set.univ Nat)}) ((fun (_ : Set Nat) => ∅) '' {∅})`
+//! （= **逐字的源码文本**、`<α>` 也填成正确的公共类型 `Set Nat`）在 strict 与 loose **两档**都报
+//! `elab-notation-argument-unsolved`（「记法 `''` 展开成 `Set.image` 时补不出前面的类型参数」）——
+//! 那一支是**记法前导类型参数**的推断边界（S4b/S4c 同一族），与 S4d 的出路拼装无关。
+//! ⇒ 不硬编一段假的正对照；要判"判绿"得先给 `''` 补一条期望类型传播（另开一刀）。
+//!
+//! ⚠ 操作数**必须加括号**：`''` 是 `infixr:80`，而应用只吃最紧的那一段 ⇒ 不括起来，
+//! `@Ne <α> X '' Y …` 会被读成 `(@Ne <α> X) '' (…)`（实测：`kernel-rejected`，报在完全无关的类型上）。
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
@@ -231,16 +247,22 @@ fn assert_real_span(tag: &str, diag: &Value, want: (u64, u64, u64, u64)) {
     );
 }
 
-/// 从文案里抠出 **`@` 出路**（`` `@g <A> 0` `` 那个反引号片段），把 `<…>` 占位符换成 `Nat`。
+/// 从文案里抠出 **`@` 出路**的**原始反引号片段**（**不 trim** ⇒ 才判得出"末尾有没有多余空格"）。
 ///
-/// 判据 ④ 的原料：**文案说的那条形式必须真的能跑**（用户 2026-10-16 第 ③ 条「指令要明确」；
-/// `implicit_at_alignment.rs` 的 `the_strict_error_names_…` 是同一把牙、钉应用路径那一支）。
-fn escape_of(msg: &str) -> String {
-    let raw = msg
-        .split('`')
+/// 取**最长**的那个 `@…` 片段：`error_hint` 与 `message` 里都可能出现 `@` 形状，
+/// 出路总是最长的那一条（`@g <A> 0` / `@Ne <α> a b`）。
+fn escape_chunk(msg: &str) -> &str {
+    msg.split('`')
         .filter(|chunk| chunk.trim_start().starts_with('@'))
         .max_by_key(|chunk| chunk.len())
-        .unwrap_or_else(|| panic!("文案里找不到可复制的 `@…` 出路：{msg}"));
+        .unwrap_or_else(|| panic!("文案里找不到可复制的 `@…` 出路：{msg}"))
+}
+
+/// 判据 ④ 的原料：把 [`escape_chunk`] 的 `<…>` 占位符换成 `Nat`（并在两端 trim）。
+///
+/// `implicit_at_alignment.rs` 的 `the_strict_error_names_…` 是同一把牙、钉应用路径那一支。
+fn escape_of(msg: &str) -> String {
+    let raw = escape_chunk(msg);
     // `<A>` / `<B>` 是占位符（S2 的 `unsolved_message` 明说）⇒ 本用例把它填成 `Nat` 再判。
     let mut out = String::new();
     let mut rest = raw;
@@ -350,8 +372,8 @@ fn c5_names_every_leading_implicit_and_its_escape_works() {
 /// 那个 `kernel-rejected`（S4b 把记法前导位在调内核前物化之后，这条路从"内核 def_eq 拒绝"变成了
 /// "隐式位补不出来"）。判定仍是**拒绝**（`rc ≠ 0`）⇒ **没有** pass→reject。
 ///
-/// 三条断言（第 4 条"出路照抄判绿"在这里**做不到**，见文件头：记法路由的出路是退化的
-/// `` `@Ne <α> ` ``，没有操作数 —— 那是既有文字缺陷，如实记录、未修）。
+/// 四条断言：码 · 正文不泄漏内核名 · 真 span（3:14–3:92）· **出路带两个操作数且不以空格结尾**
+/// （**P2-12 S4d** 修好；修前是退化的 `` `@Ne <α> ` ``，见文件头 §"R1 的出路"）。
 #[test]
 fn r1_notation_route_reports_a_readable_error_with_a_real_span() {
     let run = grade("r1", R1, Some(&repo_root().join("courses/set-theory")));
@@ -380,6 +402,25 @@ fn r1_notation_route_reports_a_readable_error_with_a_real_span() {
     assert!(
         msg.contains("`Ne`"),
         "R1 走记法路由，文案的头是规范名 `Ne`（头在源里不可见）：{msg}"
+    );
+
+    // ④ **P2-12 S4d**：出路必须**带上操作数**、且**不以空格结尾**。
+    // 修前它只拼了头 + 前导占位符 ⇒ `` `@Ne <α> ` ``（没有操作数、末尾一个空格，粘回去是语法错）。
+    let raw = escape_chunk(msg);
+    assert!(
+        !raw.ends_with(' '),
+        "R1 的出路不许以空格结尾（照抄会粘出语法错）：{raw:?}"
+    );
+    assert!(
+        raw.starts_with("@Ne <α> "),
+        "R1 的出路必须是「`@` + 规范头 + 前导占位符 + 操作数」：{raw:?}"
+    );
+    // 夹具两边都写成 `(fun (_ : Set Nat) => ∅) '' …` ⇒ `''` 在**两个操作数里各出现一次**：
+    // **2 次** = 两个操作数都拼进去了；**≤1 次** = 仍只拼了头与前导位（= 修前的形状）。
+    assert_eq!(
+        raw.matches("''").count(),
+        2,
+        "R1 的出路必须带**两个操作数**（形状同 Lean 的 `@Ne α a b`）：{raw:?}"
     );
 }
 

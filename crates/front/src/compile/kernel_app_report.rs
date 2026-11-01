@@ -31,7 +31,7 @@ use sokonanoda::elab_app::{AppOutcome, UnsolvedSite};
 pub(crate) struct ReportInput<'a> {
     /// 头名的渲染（`render_msg(head)`）。
     pub head_text: &'a str,
-    /// 整条应用的渲染（`render_msg(expr)`）。
+    /// 整条应用的渲染（`render_msg(expr)`；记法路由 = **规范名 + 操作数**，S4d —— 出路要能照抄）。
     pub whole_text: &'a str,
     /// 声明的签名文本（源级形参名从这里取）。
     pub ty_text: &'a str,

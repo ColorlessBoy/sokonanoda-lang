@@ -263,7 +263,7 @@ pub(super) fn notation_fell(
         return Fell::Fallback(why);
     }
     fell(ctx.options.dialect, why, outcome, || {
-        facts_notation(canonical, operands, span, missing, known)
+        facts_notation(canonical, operands, span, missing, known, ctx)
     })
 }
 
@@ -271,7 +271,7 @@ pub(super) fn notation_fell(
 pub(super) struct Facts {
     /// 头名的渲染（`render_msg(head)`；记法路由 = 规范名）。
     head_text: String,
-    /// 整条应用的渲染（`render_msg(expr)`；记法路由 = 规范名）。
+    /// 整条应用的渲染（`render_msg(expr)`；记法路由 = **规范名 + 操作数**，S4d）。
     whole_text: String,
     /// 声明签名的**源级文本**（源级形参名从这里取）。
     ty_text: String,
@@ -334,21 +334,33 @@ fn facts(
     })
 }
 
-/// 记法路由的原料：头在源里不可见 ⇒ `head_text = whole_text = 规范名`（实施单 §2.3；出路会退化成
-/// `@<头> …`，正是老路的兜底行为）。`missing` = [`super::kernel_app_notation`] 补的前导层数。
+/// 记法路由的原料：头在源里不可见 ⇒ `head_text` = 规范名，`whole_text` = **规范名 + 操作数**
+/// （**P2-12 S4d**：以前 `whole_text` 只放规范名 ⇒ `unsolved_message` 的 `strip_prefix` 拿到**空**
+/// `rest`，出路印成 `` `@Ne <α> ` ``——**没有操作数、末尾一个空格**，照抄不了 ✗）。
+/// 操作数走与应用路径**同一条**渲染器（`render_msg`）⇒ 出路 = `@Ne <α> a b`（同 Lean 的 `@`）。
+/// `missing` = [`super::kernel_app_notation`] 补的前导层数。
 fn facts_notation(
     canonical: &str,
     operands: &[&Expr],
     span: Span,
     missing: usize,
     known: &KnownTable,
+    ctx: &ElabCtx<'_, '_>,
 ) -> Option<Facts> {
     let decl = known.get(canonical)?;
     let ty_text = decl.signature()?;
     let (layers, _) = super::implicit::telescope(ty_text)?;
+    let mut whole_text = canonical.to_string();
+    for operand in operands {
+        // 括号**必须有**：操作数的顶层可能是一条 80 级的记法（`f '' A`），而应用只把最紧的那一段
+        // 当实参 ⇒ 不括起来，`@Ne <α> X '' Y` 会被读成 `(@Ne <α> X) '' Y`（实测：`kernel-rejected`）。
+        whole_text.push_str(" (");
+        whole_text.push_str(&render_msg(ctx, operand));
+        whole_text.push(')');
+    }
     Some(Facts {
         head_text: canonical.to_string(),
-        whole_text: canonical.to_string(),
+        whole_text,
         ty_text: ty_text.to_string(),
         k: missing,
         total_layers: layers.len(),
