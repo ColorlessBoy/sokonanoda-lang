@@ -947,23 +947,22 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
-  test("dialect setting flips the judgement without restarting the server (S6)", async function () {
+  test("dialect setting flips the judgement without restarting the server (S7 default)", async function () {
     // `SOKO_STRICT_AT`（第 2 档）优先于编辑器设置（第 3 档）⇒ 开发机设了它时翻设置
     // 本来就不该改判定；跳过而不是误报（CI 不设它，本用例在 CI 上真的跑）。
     if (process.env.SOKO_STRICT_AT !== undefined) this.skip();
-    // 用户动作 = 设置里打开 `sokonanoda.dialect.strictImplicitArgs`；屏幕上多什么 =
-    // 同一份**已打开**文档多出一条 `elab-implicit-argument-unsolved` 错误（关掉就
-    // 消失）。默认关 = 旧读法（与 CLI 默认一致）；strict 档本身不再需要环境变量。
+    // **S7（2026-11-01）翻默认**：不开任何设置 = strict ⇒ 屏幕上**默认就有**那条
+    // `elab-implicit-argument-unsolved` 错误；用户把设置**关掉** ⇒ 错误消失（旧读法）。
     // 服务器不重启：S5 的热切换（`workspace/didChangeConfiguration`）无重启就能重判
     // 所有打开文档；S6 的活儿是**真的把设置发出去**。
     const cfg = vscode.workspace.getConfiguration("sokonanoda");
     // 干净起点：测试实例的 `--user-data-dir` 跨轮复用，上一次中断的运行可能把
-    // 这个 Global 值留在那里（删掉 = 回到清单里的默认 false）。
+    // 这个 Global 值留在那里（删掉 = 回到清单里的默认 true = strict）。
     await cfg.update("dialect.strictImplicitArgs", undefined, vscode.ConfigurationTarget.Global);
     assert.strictEqual(
       cfg.get("dialect.strictImplicitArgs"),
-      false,
-      "the setting must default to off (the old reading)",
+      true,
+      "the setting must default to on (strict is the default dialect since S7)",
     );
     const uri = await writeDoc("dialect-strict.sokonanoda", DIALECT_REPRO);
     await vscode.workspace.openTextDocument(uri);
@@ -972,35 +971,39 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     await waitFor("the first hover on the dialect fixture", async () =>
       (await hoverTextAt(uri, 0, 4)) !== "",
     );
-    assert.deepStrictEqual(
-      vscode.languages.getDiagnostics(uri).map((d) => d.code),
-      [],
-      "loose (default) accepts feeding implicit parameters positionally",
+    // 默认档（strict）⇒ `b2`（位置喂隐式）判负，且是 **error**、文案非空。
+    await waitFor("the strict diagnostic under the default dialect", async () =>
+      vscode.languages
+        .getDiagnostics(uri)
+        .some((d) => d.code === "elab-implicit-argument-unsolved"),
     );
+    const strictDiagnostic = vscode.languages
+      .getDiagnostics(uri)
+      .find((d) => d.code === "elab-implicit-argument-unsolved");
+    assert.strictEqual(
+      strictDiagnostic.severity,
+      vscode.DiagnosticSeverity.Error,
+      "a strict-mode rejection is an error, not a warning",
+    );
+    assert.ok(strictDiagnostic.message.length > 0, "the rejection must explain itself");
 
-    await cfg.update("dialect.strictImplicitArgs", true, vscode.ConfigurationTarget.Global);
+    await cfg.update("dialect.strictImplicitArgs", false, vscode.ConfigurationTarget.Global);
     try {
-      await waitFor("the strict diagnostic after flipping the setting", async () =>
-        vscode.languages
+      // 关掉 = 旧读法（loose）⇒ 同一条错误消失，不重启服务器。
+      await waitFor("diagnostics cleared after turning strict off", async () =>
+        !vscode.languages
           .getDiagnostics(uri)
           .some((d) => d.code === "elab-implicit-argument-unsolved"),
       );
-      const diagnostic = vscode.languages
-        .getDiagnostics(uri)
-        .find((d) => d.code === "elab-implicit-argument-unsolved");
-      assert.strictEqual(
-        diagnostic.severity,
-        vscode.DiagnosticSeverity.Error,
-        "a strict-mode rejection is an error, not a warning",
-      );
-      assert.ok(diagnostic.message.length > 0, "the rejection must explain itself");
     } finally {
       // `undefined` = 删掉设置 ⇒ 回到默认档（Global 目标是测试实例自己的
       // `--user-data-dir`，不碰仓库里的夹具 settings.json）。
       await cfg.update("dialect.strictImplicitArgs", undefined, vscode.ConfigurationTarget.Global);
     }
-    await waitFor("diagnostics cleared after turning strict back off", async () =>
-      !vscode.languages
+    // 收尾也钉住：删掉设置后默认档（strict）的诊断**回来**了 —— 证明上面的"消失"
+    // 是设置生效、不是文档被关掉。
+    await waitFor("the strict diagnostic returns with the default dialect", async () =>
+      vscode.languages
         .getDiagnostics(uri)
         .some((d) => d.code === "elab-implicit-argument-unsolved"),
     );

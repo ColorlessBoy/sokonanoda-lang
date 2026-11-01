@@ -53,9 +53,16 @@ theorem t (α : Type) (A : Set α) (a : α) (h : a ∈ A) : subset (singleton a)
   apply Eq.subst (Eq.symm hx) h
 ";
 
+/// **旧读法（loose）**：本文件所有夹具写的都是**位置喂隐式**的老写法
+/// （`apply Eq.subst (Set α) (fun …) C D h` / `apply Eq.subst (Eq.symm hx) h`）——
+/// S7（2026-11-01）翻默认之后，默认档（strict）会先把这些应用判负，量到的就不是
+/// `Eq.subst` 的谓词合一了 ✗ ⇒ 显式钉住旧读法，判据才仍量**它要量的那件事**。
 fn compile(src: &str) -> CompileOutput {
     let file = parse(src).unwrap_or_else(|e| panic!("parse failed: {e:?}"));
-    compile_fol(&file)
+    compile_fol_with(
+        &file,
+        &CompileOptions::with_dialect(PreludeMode::Full, Dialect::Loose),
+    )
 }
 
 fn checked_names(out: &CompileOutput) -> Vec<String> {

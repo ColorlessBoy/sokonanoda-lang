@@ -27,6 +27,18 @@ fn py_core_rejects(extra: &str) {
     assert!(!out.errors.is_empty(), "expected rejection: {extra}");
 }
 
+/// **旧读法（loose）**的整文件编译（S7 翻默认之后才需要）：有些夹具写的是
+/// **位置喂隐式**的老写法（`wrap h` / `some Nat` / `Eq.subst <隐式位> …`），
+/// 它们要量的是**特性**（`#check` 的 pp 档、参数化 inductive 的 recursor、旧式实参
+/// 对齐），不是默认档 —— 显式钉住档位，判据才不会随默认值漂移（也才会在 strict 下
+/// 真的去量 strict 该量的东西）。
+fn compile_fol_loose(file: &crate::FolFile) -> CompileOutput {
+    compile_fol_with(
+        file,
+        &CompileOptions::with_dialect(PreludeMode::Full, Dialect::Loose),
+    )
+}
+
 /// **r22（2026-10-13 ✓）**：一条 `by` 块里的**多处独立失败**要**各报一条**。
 ///
 /// Lean 语义：失败的 tactic 被**回滚**，块**继续**在剩下的目标上跑后面的 tactic
@@ -479,7 +491,7 @@ fn set_option_pp_explicit_covers_check_expressions_but_not_bare_constant_signatu
          #check (fun (h : Prop) => wrap h)\n",
     )
     .expect("parse set_option #check fixture");
-    let out = compile_fol(&file);
+    let out = compile_fol_loose(&file);
     assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
     let texts: Vec<&str> = out
         .events
@@ -6789,7 +6801,11 @@ fn parameterized_option_checks_and_derives_recursor() {
          #check some Nat\n\
          #check Option.rec\n"
     );
-    let out = compile_fol(&parse(&src).expect("parse Option"));
+    // **S7（2026-11-01）翻默认**：夹具里的 `#check some Nat` 是**位置喂隐式**的老写法
+    // ⇒ 在默认档（strict）下会被拒（`elab-implicit-argument-unsolved`），而本条要量的
+    // 是**参数化 inductive 的 recursor 合成**（与档位无关）⇒ 显式钉旧读法 ✓。
+    // strict 侧的同族判据在 `implicit_at_alignment.rs` / `tests/kernel_app*.rs`（不在这里）。
+    let out = compile_fol_loose(&parse(&src).expect("parse Option"));
     assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
     let texts: Vec<&str> = out
         .events
@@ -6803,13 +6819,10 @@ fn parameterized_option_checks_and_derives_recursor() {
         texts.iter().any(|t| t == &"Option Nat"),
         "`@none Nat : Option Nat`: {texts:?}"
     );
-    // **2026-10-18 翻默认**：`some Nat` 的读法**跟档位走**（严格档 `Option Type 0`，
-    // 旧档 `Nat -> Option Nat`）—— 两档都钉 ✗ 不许只钉一档。
-    let some_nat = if crate::compile::implicit_msg::strict_at_enabled(&CompileOptions::default()) {
-        "Option Type 0"
-    } else {
-        "Nat -> Option Nat"
-    };
+    // **旧读法（本用例显式钉住的档）**：`some Nat` = `Nat -> Option Nat`。
+    // （严格档下这一行**开不了口**：位置喂隐式被拒 ⇒ 该档的判据不在本条 —— S7 翻默认后
+    // 两档不再共用同一个夹具，硬并成一档会让本条量到"拒绝"而不是 recursor ✗。）
+    let some_nat = "Nat -> Option Nat";
     assert!(
         texts.iter().any(|t| t == &some_nat),
         "`some Nat : Nat -> Option Nat`: {texts:?}"
@@ -10856,7 +10869,12 @@ def Set.mem {\u{3b1} : Type} (a : \u{3b1}) (A : Set \u{3b1}) : Prop := A a\n\
 infix:50 \" \u{2208} \" => Set.mem\n\
 #check some Nat\n\
 #check fun (\u{3b1} : Type) (a : \u{3b1}) (A : Set \u{3b1}) => a \u{2208} A\n";
-    let out = compile_ok(src);
+    // **S7（2026-11-01）翻默认 ⇒ 本条显式钉旧读法**：夹具 `#check some Nat` 正是
+    // **旧式实参**（位置喂隐式）本身；默认档（strict）下它被拒，量不到"层域贴合"这条
+    // 判据 ⇒ 用 `compile_fol_loose` 钉住旧读法（strict 侧的拒绝由
+    // `implicit_at_alignment.rs::default_mode_is_strict` 咬住）。
+    let out = compile_fol_loose(&parse(src).expect("parse old-style fixture"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
     let texts: Vec<String> = out
         .events
         .iter()
@@ -10865,16 +10883,8 @@ infix:50 \" \u{2208} \" => Set.mem\n\
             _ => None,
         })
         .collect();
-    // ⭐ **2026-10-18 翻默认**：**两档的读法都钉**（不许只钉一档 ✗）——
-    // 严格档（= 默认档）：旧写法不再成立 ⇒ `some Nat` 走正常形式，`Nat` 落显式位
-    // `a : A` ⇒ `A := Type 0` ⇒ `Option Type 0`（Lean 4 同读法 ✓）；
-    // 逃生门（严格档环境变量 = 0）：旧读法照旧 ⇒ `Nat -> Option Nat` ✓。
-    let (want, other) =
-        if crate::compile::implicit_msg::strict_at_enabled(&CompileOptions::default()) {
-            ("Option Type 0", "Nat -> Option Nat")
-        } else {
-            ("Nat -> Option Nat", "Option Type 0")
-        };
+    // 旧读法：`some Nat` = `Nat -> Option Nat` ✓（严格档的读法是 `Option Type 0`）。
+    let (want, other) = ("Nat -> Option Nat", "Option Type 0");
     assert!(
         texts.iter().any(|t| t == want),
         "`some Nat` 必须读成 `{want}`（另一档的读法是 `{other}`）：{texts:?}"

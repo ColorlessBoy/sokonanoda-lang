@@ -2,14 +2,14 @@
 //! —— **项目清单**（`sokonanoda.toml` 的 `[dialect] strict_implicit`）与**文件指令**
 //! （`-- sokonanoda:dialect strict|loose`）—— 以及**五档优先级链**：
 //!
-//! `--dialect`(1) > `SOKO_STRICT_AT`(2) > 编辑器(3，S5) > 文件指令(4) > 清单(5) > 默认 `loose`。
+//! `--dialect`(1) > `SOKO_STRICT_AT`(2) > 编辑器(3，S5) > 文件指令(4) > 清单(5) > 默认 `strict`。
 //!
 //! 五条牙（每条都断言**用户可见的结果**：退出码 + `--json` 字节）：
 //!   ① 清单 strict ⇒ 严格档，且与 `SOKO_STRICT_AT=1` 的 `--json` **逐字节相同**；
 //!   ② 文件指令 strict ⇒ 严格档（同样与环境的严格档逐字节相同）；
 //!   ③ 清单 loose + 指令 strict ⇒ **指令赢**（反过来也成立：清单 strict + 指令 loose）；
 //!   ④ 旗标 / 环境**盖住**清单（`--dialect loose` 盖 `strict_implicit = true`）；
-//!   ⑤ 谁都不表态 ⇒ 默认 `loose`（0.95.0 的行为，逐字节不变）。
+//!   ⑤ 谁都不表态 ⇒ 默认 `strict`（**S7，2026-11-01 翻默认**；旧读法走 `--dialect loose`）。
 //!
 //! 另加两条**闭包**牙：两个模块指令不一致 ⇒ `import-dialect-conflict`（默认不通融）；
 //! 一致 ⇒ 一条都不报。夹具取 `implicit_at_alignment.rs` 的 `REPRO` 形状：`b2` 是
@@ -242,24 +242,31 @@ fn the_flag_and_the_environment_override_the_manifest() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-/// **默认不许变**：清单里没有 `[dialect]`、文件里没有指令、环境没设 ⇒ 旧读法
-/// （与显式 `--dialect loose` 逐字节相同）。
+/// **默认档 = strict**（S7，2026-11-01 翻默认）：清单里没有 `[dialect]`、文件里没有
+/// 指令、环境没设 ⇒ 严格档（与显式 `--dialect strict` 逐字节相同）；`--dialect loose`
+/// 是**退路**，必须与它不同。
 #[test]
-fn no_source_keeps_the_default_loose() {
+fn no_source_falls_to_the_default_strict() {
     let dir = fixture_dir("default");
-    // 清单存在但**不表态**：它仍然是一个项目根，而方言保持默认。
+    // 清单存在但**不表态**：它仍然是一个项目根，而方言落到默认档。
     write(&dir, "sokonanoda.toml", "name = \"p\"\n");
     let probe = write(&dir, "Probe.sokonanoda", REPRO);
     let default = grade(true, &probe, &[], &[]);
+    let flag_strict = grade(true, &probe, &["--dialect", "strict"], &[]);
     let flag_loose = grade(true, &probe, &["--dialect", "loose"], &[]);
     assert_eq!(
-        default.0, 0,
-        "不设任何来源 ⇒ 旧读法（stderr={}）",
+        default.0, 1,
+        "不设任何来源 ⇒ 默认档 strict，`b2` 必须被拒（stderr={}）",
         default.2
     );
+    assert_eq!(occurrences(&default.1, STRICT_CODE), 1);
     assert_eq!(
+        default.1, flag_strict.1,
+        "不设任何来源的 --json 必须与显式 `--dialect strict` 逐字节相同"
+    );
+    assert_ne!(
         default.1, flag_loose.1,
-        "不设任何来源的 --json 必须与显式 `--dialect loose` 逐字节相同"
+        "`--dialect loose` 必须与默认档不同 ⇒ 退路不空转"
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -388,15 +395,29 @@ fn no_project_ignores_the_manifest_but_keeps_the_file_directive() {
     );
 
     let inherited = grade(true, &probe, &[], &[]);
+    assert_eq!(inherited.0, 1, "默认应吃清单 ⇒ 严格档");
+
+    // ⚠ **S7 翻默认后必须让清单逆着默认写**：清单 `loose` 时"吃到了"才看得到差别
+    // （默认档已是 strict ⇒ 清单 strict 与"忽略清单"同值，判据会空转 ✗）。
+    write(
+        &dir,
+        "sokonanoda.toml",
+        "[dialect]\nstrict_implicit = false\n",
+    );
+    let manifest_loose = grade(true, &probe, &[], &[]);
     let no_project = grade(true, &probe, &["--no-project"], &[]);
     let directive = grade(true, &with_directive, &["--no-project"], &[]);
-
-    assert_eq!(inherited.0, 1, "默认应吃清单 ⇒ 严格档");
     assert_eq!(
-        no_project.0, 0,
-        "`--no-project` 必须忽略清单（否则清单在用户明确拒绝项目时仍在生效 ✗）：stderr={}",
+        manifest_loose.0, 0,
+        "清单 loose 必须被吃到（否则下面「忽略清单」的判据没有咬合力）；stderr={}",
+        manifest_loose.2
+    );
+    assert_eq!(
+        no_project.0, 1,
+        "`--no-project` 必须忽略清单（忽略后落到默认档 strict；否则清单在用户明确拒绝项目时仍在生效 ✗）：stderr={}",
         no_project.2
     );
+    assert_eq!(occurrences(&no_project.1, STRICT_CODE), 1);
     assert_eq!(
         directive.0, 1,
         "`--no-project` 只关**清单**那一档 —— 文件指令是文件自己的，照算 ✓"

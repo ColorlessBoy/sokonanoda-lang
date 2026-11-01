@@ -42,8 +42,8 @@
 //!      —— 而且那条出路**粘回去必须判绿** ✓（用户第 ③ 条「指令要明确」的唯一硬判据 ✓：
 //!      光断言"文案里有 `@`"会放过一条**写错的**出路 ✗ —— 本轮就实测抓到一条：
 //!      `@ignores 3` 把 `3` 装到 `{α}` 位上 ✗，已改成 `@ignores <α> 3` ✓）；
-//!   ④ **极性**：默认（不设环境变量）⇒ `b2` 判绿（旧读法）· `SOKO_STRICT_AT=1` ⇒ `b2` 判红 ✓
-//!      （咬得住 ✓，不是恒真 ✗）。
+//!   ④ **极性**：默认（不设环境变量）⇒ `b2` 判红（**S7，2026-11-01 翻默认 = strict**）·
+//!      `SOKO_STRICT_AT=0` ⇒ `b2` 判绿（逃生门）✓（咬得住 ✓，不是恒真 ✗）。
 
 use std::process::{Command, Stdio};
 
@@ -129,23 +129,34 @@ def b2 : Nat := h Nat Nat (fun (n : Nat) => n) 5
 def b3 : Nat := @h Nat Nat (fun (n : Nat) => n) 5
 ";
 
-/// ④ **默认档 = 旧读法**（2026-10-20 用户拍板「先用普通模式发布一版」）：
-/// **不带任何环境变量** ⇒ 四个声明**全绿**（`b2` 也 checked）✓。
+/// ④ **默认档 = strict**（**S7，2026-11-01 翻默认**；旧读法退到 `--dialect loose` /
+/// `SOKO_STRICT_AT=0`）：**不带任何环境变量、不传任何旗标** ⇒ `b2`（位置喂隐式）
+/// **判红**，其余三条**照旧 checked** ✓。
 ///
-/// 为什么必须有这一条 ✗：极性翻回去之后，「默认快不快」是**用户能感觉到的那个语义**
-/// （严格档会让同一份课程单元慢 12.8×，见 `implicit_msg::strict_at_enabled` 的注释）
-/// —— 所以它必须**不带任何环境变量**就成立 ✓，不能只在 `SOKO_STRICT_AT=0` 下成立 ✗。
+/// 为什么必须有这一条 ✗：翻默认的**用户可见结果**就是"不带任何开关时哪条被拒" ——
+/// 只断言"旗标/环境能选 strict"会放过"默认值没真的翻"这一类回归 ✗；反过来，
+/// 少掉那三条正对照就会放过"翻默认顺手误伤正确写法" ✗✗。
 #[test]
-fn default_mode_is_the_old_semantics() {
+fn default_mode_is_strict() {
     let (ok, checked, diags) = grade("default", REPRO, &[]);
     assert!(
-        ok,
-        "默认档必须是旧读法（四个声明全绿）：checked={checked:?} diags={diags:?}"
+        !ok,
+        "默认档必须是 strict（`b2` 判红）：checked={checked:?} diags={diags:?}"
     );
-    for name in ["h", "b1", "b2", "b3"] {
+    assert!(
+        !checked.iter().any(|c| c == "b2"),
+        "默认档下 `b2`（位置喂隐式）必须被拒 ✗；实得 {checked:?}"
+    );
+    assert!(
+        diags
+            .iter()
+            .any(|d| d.split('\u{1}').next() == Some("elab-implicit-argument-unsolved")),
+        "默认档的拒绝必须带可归属的诊断码：diags={diags:?}"
+    );
+    for name in ["h", "b1", "b3"] {
         assert!(
             checked.iter().any(|c| c == name),
-            "默认档下 `{name}` 必须 checked：{checked:?}"
+            "默认档下 `{name}`（正对照）必须 checked：{checked:?}"
         );
     }
 }

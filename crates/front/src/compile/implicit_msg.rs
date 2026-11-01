@@ -49,7 +49,7 @@ pub(crate) fn cases_scrutinee_type(
     }
 }
 
-/// **严格档开关**（**默认关** ✓ = [`super::dialect::Dialect::Loose`]；严格档 = opt-in）。
+/// **严格档开关**（**S7 起默认开** ✓ = [`super::dialect::Dialect::Strict`]；旧读法是退路）。
 /// `Dialect` 本体、`impl Default for CompileOptions` 与构造器都在 `super::dialect` ✓。
 ///
 /// **S1（2026-10-20）**：不再是"每次调用读一次环境"——档位是
@@ -66,7 +66,9 @@ pub(crate) fn cases_scrutinee_type(
 /// ⚠ **严格档本身没被删** ✓：环境变量（`1|on|true`）仍完整可用（那是 Lean 4 的读法），
 /// **语料也已全部迁到兼容两档的写法**（`@f α a` 在旧档同样合法）⇒ 想验严格档随时能开，
 /// 只是它不再决定**默认**速度。
-/// **极性**：未设、或取值不认识 ⇒ **关**；只有 `1|on|true` 三个字面量表示"开" ✓
+/// **极性**：只有 `1|on|true` 三个字面量表示"开"、`0|off|false` 表示"关"；
+/// **未设 / 不认识 ⇒ 默认档**（**S7，2026-11-01 翻默认** = 开 ✓，旧读法走
+/// `--dialect loose` / 设置项关 / 指令 / 清单，见 `docs/design/dialect-config.md` §0bis）
 /// （唯一解析处 = `impl Default for CompileOptions`，值落到 `options.dialect` ✓）。
 ///
 /// **a5（2026-10-17）· 第二处消费者**：`elab::operand_type_expr` 的 **pp 档**。那份文本是

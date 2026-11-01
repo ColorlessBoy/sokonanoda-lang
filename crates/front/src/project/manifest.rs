@@ -29,7 +29,7 @@ pub struct Manifest {
     /// **方言**（S4，设计 `docs/design/dialect-config.md` §2 第 5 档）：
     /// `[dialect] strict_implicit = true|false` ⇒ 严格档 / 旧读法。
     ///
-    /// `None` = 清单**不表态**（交给上面的档位，最后落到默认 `loose`）。注意
+    /// `None` = 清单**不表态**（交给上面的档位，最后落到默认档 `strict`；S7 起）。注意
     /// `false` 是**显式的旧读法**、不是"没写" —— 它会盖住默认值（虽然今天两者
     /// 同值，但优先级链里它是第 5 档的"我表过态了" ✓）。
     pub dialect: Option<Dialect>,

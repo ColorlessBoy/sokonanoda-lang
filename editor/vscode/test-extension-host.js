@@ -892,12 +892,14 @@ test("dialect setting rides initialize + didChangeConfiguration, no restart (S6)
     "unrelated settings must not trigger a dialect re-judgement",
   );
 
-  // 默认关（旧读法，与 CLI 默认一致）也必须**明确**告诉服务器 `false`：否则"先开后关"翻不回来。
+  // **默认档 = strict（S7，2026-11-01 翻默认）**也必须**明确**告诉服务器 `true`：
+  // 否则"先关后开"翻不回来（`undefined` 在服务器侧只是"不表态" ⇒ 落到默认档）。
   await activateExtension();
   await settle();
   assert.deepStrictEqual(
     vscodeStub.__clients.at(-1).clientOptions.initializationOptions,
-    { dialect: { strictImplicitArgs: false } },
+    { dialect: { strictImplicitArgs: true } },
+    "清单里的默认值（S7 起 = true）必须原样发出去",
   );
 });
 

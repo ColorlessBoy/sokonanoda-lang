@@ -1,7 +1,7 @@
 //! **S5 的两条核心判据**（设计 `docs/design/dialect-config.md` §2 第 3 档 / §3.4 / §4）：
 //!
 //! ① **两次 `initialize`**：`initializationOptions.dialect` 是 `strict` ⇒ `b2` 被拒、
-//!    `loose`（或缺省）⇒ 接受；
+//!    `loose` ⇒ 接受；**缺省** ⇒ 默认档 = **strict**（S7，2026-11-01 翻默认）⇒ 被拒；
 //! ② **一次 `workspace/didChangeConfiguration`**：先 loose（接受）⇒ 推一条 strict
 //!    通知 ⇒ **同一个会话、不重启**再判同一份文件 ⇒ 必须被拒。
 //!
@@ -70,11 +70,12 @@ async fn two_initializations_pick_different_dialects() {
         "`dialect = loose` 必须接受 `b2`（实际诊断：{loose:?}）"
     );
 
-    // 缺省 = **不表态** ⇒ 落到环境变量、再落到默认 `loose`（与今天逐字节相同）。
+    // 缺省 = **不表态** ⇒ 落到环境变量、再落到默认档 = **strict**（S7 翻默认）。
     let absent = open_with(None).await;
-    assert!(
-        codes(&absent).is_empty(),
-        "没有 `initializationOptions` 时必须保持旧行为（loose，实际诊断：{absent:?}）"
+    assert_eq!(
+        codes(&absent),
+        vec![STRICT_CODE],
+        "没有 `initializationOptions` 时必须走默认档 strict（实际诊断：{absent:?}）"
     );
 
     // 大小写不敏感（与 CLI 旗标 / 文件指令共用 `Dialect::parse_keyword`）。

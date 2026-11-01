@@ -50,7 +50,7 @@ pub(crate) fn print_help() {
     );
     println!("  --dialect <strict|loose>       implicit-argument dialect for `grade` / `build` /");
     println!("                                 `query` / `course` / `repl` (case-insensitive;");
-    println!("                                 flag > SOKO_STRICT_AT env > default loose)");
+    println!("                                 flag > SOKO_STRICT_AT env > default strict)");
     println!("  sokonanoda --help               this help");
     println!();
     println!("multi-file projects (import + optional sokonanoda.toml):");

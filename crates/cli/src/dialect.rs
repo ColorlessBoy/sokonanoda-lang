@@ -1,8 +1,9 @@
 //! **方言的 CLI 侧合并点**（设计 `docs/design/dialect-config.md` §2/§3.2）：
-//! `--dialect`(S3) · `SOKO_STRICT_AT` · 编辑器(S5) · 文件指令(S4) · 项目清单(S4) · 默认 `loose`。
+//! `--dialect`(S3) · `SOKO_STRICT_AT` · 编辑器(S5) · 文件指令(S4) · 项目清单(S4) · 默认 `strict`。
 //!
 //! **优先级（细粒度优先，设计 §2）**：
-//! `--dialect` > `SOKO_STRICT_AT` > 编辑器(S5) > 文件指令 > 清单 > 默认 `loose`。
+//! `--dialect` > `SOKO_STRICT_AT` > 编辑器(S5) > 文件指令 > 清单 > 默认 `strict`
+//! （**S7，2026-11-01 翻默认**；旧读法 = `--dialect loose`）。
 //!
 //! ⚠ **合并只发生在 [`resolve_dialect`] 一处**：五档的**值**从这里进
 //! [`DialectSources`]（front），`Option::or` 逐级落地 —— 谁要加来源（S5 的编辑器设置）
@@ -39,7 +40,7 @@ pub(crate) fn parse(value: &str) -> Result<Dialect, String> {
         "error: --dialect 只接受 `strict` 或 `loose`（大小写不敏感），收到 `{value}`\n\
          提示：严格隐式参数用 `--dialect strict`，旧读法用 `--dialect loose`；\
          不传旗标则依次看 SOKO_STRICT_AT（1/on/true = strict）、文件里的 \
-         `-- sokonanoda:dialect` 指令与 sokonanoda.toml 的 [dialect]，默认 loose"
+         `-- sokonanoda:dialect` 指令与 sokonanoda.toml 的 [dialect]，默认 strict"
     ))
 }
 

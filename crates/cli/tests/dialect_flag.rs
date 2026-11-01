@@ -4,7 +4,8 @@
 //!
 //! 四条牙（每条都断言用户可见的结果）：
 //!   ① `--dialect strict` ≡ `SOKO_STRICT_AT=1`（stdout 逐字节 + 退出码）；
-//!   ② `--dialect loose` ≡ 不设任何环境变量；
+//!   ② **默认档 = strict**（S7，2026-11-01 翻默认）：不设任何环境变量 ≡ `--dialect strict`，
+//!      而 `--dialect loose` 必须与它**不同**（= 退路真的能退）；
 //!   ③ 旗标**覆盖**环境：`SOKO_STRICT_AT=0 --dialect strict` ⇒ 严格档；
 //!   ④ 非法值 ⇒ **退出码 2** + 可读的用法错误（不是 panic / 不是 1）。
 //!
@@ -96,19 +97,31 @@ fn dialect_strict_flag_is_byte_identical_to_the_environment() {
 }
 
 #[test]
-fn dialect_loose_flag_is_byte_identical_to_the_default() {
-    let path = fixture("loose-eq-default");
+fn the_default_is_strict_and_loose_is_the_escape_hatch() {
+    let path = fixture("default-eq-strict");
     let path = path.to_str().expect("utf-8 path");
     let no_env = run(&["grade", "--json", path], &[]);
+    let flag_strict = run(&["grade", "--json", "--dialect", "strict", path], &[]);
     let flag_loose = run(&["grade", "--json", "--dialect", "loose", path], &[]);
+    // **S7（2026-11-01）翻默认**：不设任何来源 ⇒ strict（与显式旗标逐字节相同）。
     assert_eq!(
-        flag_loose.0, no_env.0,
-        "--dialect loose 与不设环境的退出码必须相同（stderr={}）",
-        flag_loose.2
+        flag_strict.0, no_env.0,
+        "默认档必须是 strict：`--dialect strict` 与不设环境的退出码必须相同（stderr={}）",
+        flag_strict.2
     );
     assert_eq!(
+        flag_strict.1, no_env.1,
+        "默认档必须是 strict：`--dialect strict` 与不设任何环境变量的 --json 输出必须**逐字节**相同"
+    );
+    // 反向验证：退路真的能退（否则上面那条相同可能只是"旗标没生效"）。
+    assert_ne!(
         flag_loose.1, no_env.1,
-        "--dialect loose 与不设任何环境变量的 --json 输出必须**逐字节**相同"
+        "`--dialect loose` 必须与默认档（strict）不同 ⇒ 退路不空转"
+    );
+    assert_eq!(
+        flag_loose.0, 0,
+        "`--dialect loose` 必须接受位置喂隐式（stderr={}）",
+        flag_loose.2
     );
 }
 

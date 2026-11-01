@@ -10,8 +10,8 @@
 //! 2. **优先级**：**只往 [`DialectSources`] 的 `editor` 那一格填值** —— 合并仍是
 //!    front 的唯一实现 `cli > env > editor > file_directive > manifest > 默认`（设计 §2）。
 //!    LSP 进程没有 `--dialect` 旗标（第 1 档），文件指令/清单（第 4/5 档）**本段不接线**
-//!    （S4 只在 CLI 侧接，S5 不动判定来源面）⇒ 实际是 `env > 编辑器 > 默认 loose`，
-//!    而"**没有**初始化选项时"这条链与今天**逐字节相同**（编辑器那格是 `None`）；
+//!    （S4 只在 CLI 侧接，S5 不动判定来源面）⇒ 实际是 `env > 编辑器 > 默认 strict`（S7），
+//!    而"**没有**初始化选项时"这条链与 CLI 的默认档**同一个值**（编辑器那格是 `None`）；
 //! 3. **热切换**（§3.4）：生效值一变就 ① 记下新值 ② 作废本会话的编译载体
 //!    （[`Compiler::invalidate_dialect_caches`]）③ 用**同一份文本**重新调度所有
 //!    已打开文档 —— **不重启服务器、不重发 `initialize`**。
@@ -80,7 +80,7 @@ impl DialectConfig {
     }
 
     /// `initialize`：只认 `initializationOptions` 里的**明确表态**；缺省/不认识
-    /// ⇒ 不表态（落到环境变量、再落到默认 `loose` —— 与今天逐字节相同）。
+    /// ⇒ 不表态（落到环境变量、再落到默认 `strict` —— 与 CLI 默认档同一个值 ✓）。
     pub(crate) fn adopt_initialization(&self, value: &Option<Value>) {
         if let Some(value) = value {
             if let Parsed::Dialect(dialect) = parse(value) {

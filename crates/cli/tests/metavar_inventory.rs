@@ -47,11 +47,14 @@ fn temp_file(tag: &str, text: &str) -> PathBuf {
     path
 }
 
+// ⚠ **S7（2026-11-01）翻默认**：本文件量的「记法/兄弟元变量」这条通道目前只在**旧读法**
+// 下接线（strict 下位置喂隐式与记法元变量不接 ⇒ 同一份源码会被判负）⇒ 一律显式传
+// `--dialect loose`，判据才仍量**metavar 档位本身**，不随默认档漂移 ✓。
 /// `sokonanoda --json <file>`；`metavar = None` ⇒ **默认态**（不设开关），
 /// `Some("0")` ⇒ **逃生门**（严格档）。
 fn grade_json(path: &Path, metavar: Option<&str>) -> (i32, Vec<Value>) {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_sokonanoda"));
-    cmd.args(["--json", path.to_str().unwrap()])
+    cmd.args(["--json", "--dialect", "loose", path.to_str().unwrap()])
         .env("SOKONANODA_CACHE_DIR", cache_dir());
     match metavar {
         Some(v) => cmd.env("SOKO_NOTATION_METAVAR", v),
@@ -322,7 +325,7 @@ fn meta_pattern_arms_keep_every_m0_verdict() {
         let file = temp_file(shape.name, &format!("{PRELUDE}{}\n", shape.body));
         for (label, envs) in arms {
             let mut cmd = Command::new(env!("CARGO_BIN_EXE_sokonanoda"));
-            cmd.args(["--json", file.to_str().unwrap()])
+            cmd.args(["--json", "--dialect", "loose", file.to_str().unwrap()])
                 .env("SOKONANODA_CACHE_DIR", cache_dir())
                 .env_remove("SOKO_METAVAR")
                 .env_remove("SOKO_NOTATION_METAVAR")
