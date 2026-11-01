@@ -278,10 +278,10 @@
       "tier": "spec"
     },
     "docs/design/set-theory-unlocked.md": {
-      "expires": "2026-11-01",
-      "reason": "卷 I 解锁清单：内核拆墙后哪些主题能写/仍缺哪面墙，是下一批单元的直接依据，仍需引用",
-      "renewed": "2026-10-02",
-      "tier": "spec"
+      "expires": "2026-12-01",
+      "renewed": "2026-11-02",
+      "tier": "spec",
+      "reason": "卷 I 解锁清单仍是下一批单元的依据：S7 翻默认后新增的已知限制（记法前导隐式 + 零元糖）要不要开墙，正要用这份清单判"
     },
     "docs/design/site-single-page.md": {
       "expires": "2027-09-30",

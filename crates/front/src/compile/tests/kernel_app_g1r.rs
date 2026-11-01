@@ -189,12 +189,7 @@ fn the_ne_shape_is_kernel_solved_once_the_lambda_body_has_a_type() {
     );
     // 反向验证：关掉**内核路径**（只留老路）⇒ 判卷仍过（老路也接得住）但内核一次都没解出
     // ⇒ 证明上面那三条断言咬的是"内核解出"，不是"判卷过了"。
-    let off = run(
-        FX12_PINNED,
-        Knobs {
-            kernel_off: true,
-        },
-    );
+    let off = run(FX12_PINNED, Knobs { kernel_off: true });
     assert_eq!(off.errors, Vec::<String>::new(), "老路也接得住（对照组）");
     assert_eq!(
         off.solved, 0,
