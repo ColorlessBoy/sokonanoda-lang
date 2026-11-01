@@ -157,6 +157,10 @@ mod kernel_app_s4b_tests;
 #[cfg(test)]
 #[path = "tests/error_hint.rs"]
 mod error_hint_tests;
+// G1-R：`Ne` 的隐式前导 `α` 由内核按域 elaborate 解出（不是 pp 回读）。
+#[cfg(test)]
+#[path = "tests/kernel_app_g1r.rs"]
+mod kernel_app_g1r_tests;
 // P2-12 S4c：记法前导位的**切分**要把操作数层也算进去（否则结果带箭头的签名错位一读 ⇒ ArgMismatch）。
 #[cfg(test)]
 #[path = "tests/kernel_app_s4c.rs"]
