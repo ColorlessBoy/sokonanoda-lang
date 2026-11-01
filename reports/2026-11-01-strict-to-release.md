@@ -176,13 +176,16 @@ S7（翻 `Dialect::default()`）在收口时暴露三条**既有缺口**，任�
 ## 2nonies. **P4 的两个拦路石**（2026-11-02 03:50 实测）
 
 1. **D3：push main 要用户点头**（用户早先定的规矩）。
-2. **LKA 门禁在本机跑不完**（`scripts/arena-gate.py`）：`release-preflight.sh` 的 ④ 在 02:11 起**冻住 85 分钟无输出**，
-   且**没有编译活动**（`target/release/deps/*.rmeta` mtime 停在 02:11）⇒ 不是慢，是挂。
-   诊断：`gh` 已登录（`ColorlessBoy`）、`api.github.com` 返回 200 ⇒ 不是网络基本连通性问题；
-   用 `--offline`（本地语料）**同样挂住 >10 分钟** ⇒ 大概率是**语料跑起来本身**（`cargo` 侧或脚本自己的等待）。
-   ⇒ `bump.py` 在写版本号**之前**就跑这个门禁、失败不写 ⇒ **P4 卡在这里**。
-   出路（都留给下一轮）：① 用 `SOKO_ARENA_CORPUS=<dir>` 显式指定已知良好语料（**不是跳过**，是显式来源）；
-   ② 查 `--offline` 为什么挂（`SOKO_ARENA_TIMEOUT` 默认 120s/例、`CARGO_TIMEOUT_S`）；③ 换一台能跑通它的机器做发版。
+2. **LKA 门禁在本机"很慢"，不是挂**（2026-11-02 04:50 诊断到根因）：
+   `release-preflight.sh` 的 ④ 从 02:11 起 85 分钟没输出 —— 现在查清了：`scripts/arena-gate.py` 的
+   `run_tarball_tier` 会跑 **208 个 tracked 用例**（`target/arena/cache/{good,bad}/**/*.ndjson`），
+   每例上限 `SOKO_ARENA_TIMEOUT`（**默认 120s**）⇒ 最坏 208×120s ≈ **7 小时**；正常也要很久。
+   验证：把 per-case 超时降到 30s 后单跑 `cargo test -p sokonanoda --release --test arena arena_tarball_tier`
+   ⇒ 它**在跑**（>60s 有进度输出），不是死锁；`cargo metadata`/`cargo build` 都正常（没有锁被占）。
+   ⇒ `bump.py` 在写版本号**之前**就跑这个门禁、失败不写 ⇒ **P4 卡在这里**（时间成本，不是错误）。
+   三条出路：① 耐心跑完（可 `SOKO_ARENA_TIMEOUT` 放到几百秒，后台挂着）；
+   ② `SOKO_ARENA_CORPUS=<dir>` 用**显式本地语料**（脚本支持；会打印"不是官方最新"，README/站点保留上一次 official 结果）；
+   ③ 换一台跑得动的机器做发版。**注意 ② 不是"跳过"**，但发版路径按脚本注释应优先 ①/③。
 
 ## 3. 用户决策点（只有三个，其余我全包）
 
