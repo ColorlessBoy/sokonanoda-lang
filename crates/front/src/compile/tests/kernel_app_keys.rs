@@ -139,3 +139,84 @@ fn judge_infer_off_then_on_is_not_stale() {
 fn judge_infer_on_then_off_is_not_stale() {
     assert_infer_order("infer_on_first", [true, false, true, false]);
 }
+
+/// **P2-12 S3**：第二个开关（`SOKO_STRICT_NO_FALLBACK`）也进键 —— `/kapp` → `/kapp/nofb`、位 5
+/// （`0b10_0000`）。闸门关 / 宽松档 ⇒ 开关再开也不生效 ⇒ 键与今天逐字节相同。
+#[test]
+fn key_parts_include_the_no_fallback_switch() {
+    use super::kernel_app_fallback::{no_fallback, TEST_NO_FALLBACK};
+    on_compile_stack(|| {
+        for gate in [false, true] {
+            TEST_OVERRIDE.with(|c| c.set(Some(gate)));
+            for nofb in [false, true] {
+                TEST_NO_FALLBACK.with(|c| c.set(Some(nofb)));
+                assert_eq!(
+                    (key_tag(Dialect::Loose), key_bit(Dialect::Loose)),
+                    ("", 0),
+                    "宽松档恒不生效（nofb={nofb}）"
+                );
+                assert_eq!(no_fallback(Dialect::Loose), false);
+                let want = match (gate, nofb) {
+                    (false, _) => ("", 0),
+                    (true, false) => ("/kapp", 0b1_0000),
+                    (true, true) => ("/kapp/nofb", 0b11_0000),
+                };
+                assert_eq!(
+                    (key_tag(Dialect::Strict), key_bit(Dialect::Strict)),
+                    want,
+                    "gate={gate} nofb={nofb}"
+                );
+            }
+        }
+        TEST_OVERRIDE.with(|c| c.set(None));
+        TEST_NO_FALLBACK.with(|c| c.set(None));
+    });
+}
+
+/// **P2-12 S3**：磁盘键（`cache::key`）也要换挡 —— 同一进程里开/关开关算出的键必须不同。
+#[test]
+fn disk_key_changes_with_the_no_fallback_switch() {
+    use super::kernel_app_fallback::TEST_NO_FALLBACK;
+    on_compile_stack(|| {
+        TEST_OVERRIDE.with(|c| c.set(Some(true)));
+        let keys = |nofb: bool| {
+            TEST_NO_FALLBACK.with(|c| c.set(Some(nofb)));
+            super::cache::key("p212s3", &STRICT)
+        };
+        let (off, on) = (keys(false), keys(true));
+        TEST_NO_FALLBACK.with(|c| c.set(None));
+        TEST_OVERRIDE.with(|c| c.set(None));
+        assert_ne!(off, on, "开关换挡必须换磁盘键");
+    });
+}
+
+/// **P2-12 S3 判据（实施单 §2.4）**：判定缓存（`judge::options_key`）也要分档 ——
+/// 同一进程里先开开关再关，读数不许串（照本文件 `judge_infer_*` 那两条的写法）。
+#[test]
+fn judge_infer_flip_of_the_no_fallback_switch_is_not_stale() {
+    use super::kernel_app_fallback::TEST_NO_FALLBACK;
+    const BASE: &str = "axiom g : {A : Type} -> Nat -> Prop\n";
+    on_compile_stack(move || {
+        let ask = |salt: &str, nofb: bool| {
+            TEST_OVERRIDE.with(|c| c.set(Some(true)));
+            TEST_NO_FALLBACK.with(|c| c.set(Some(nofb)));
+            let prefix = format!("axiom p212s3_{salt} : Prop\n{BASE}");
+            let r = crate::judge::judge_infer(&prefix, &STRICT, &[], "g 0");
+            TEST_NO_FALLBACK.with(|c| c.set(None));
+            r
+        };
+        let fresh = [ask("fresh_off", false), ask("fresh_on", true)];
+        assert_ne!(
+            fresh[0], fresh[1],
+            "夹具失效：开关两档的判定相同 ⇒ 本测试咬不住任何东西"
+        );
+        for (i, nofb) in [true, false, true, false].into_iter().enumerate() {
+            assert_eq!(
+                ask("shared", nofb),
+                fresh[usize::from(nofb)],
+                "第 {i} 趟（开关 {nofb}）≠ 新鲜答案 ⇒ 判定缓存回放了另一档 ⇒ 开关不在键里"
+            );
+        }
+        TEST_OVERRIDE.with(|c| c.set(None));
+    });
+}

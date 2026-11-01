@@ -16,12 +16,13 @@
 
 use super::elab::{ElabCtx, ElabScope, HoverNode, KnownName, KnownTable, UnivMap};
 use super::error::CompileError;
-use super::kernel_app::{count, effective, finish, plain, run, Count};
+use super::kernel_app::{count, effective, finish, plain, run, Count, Fell};
 use super::kernel_app_miss::MissGuard;
 use super::kernel_app_postpone as postpone;
 use super::kernel_app_probe as probe;
 use crate::Expr;
 use sokonanoda::builder::EnvBuilder;
+use sokonanoda::elab_app::AppOutcome;
 use sokonanoda::util::ExprPtr;
 
 #[cfg(test)]
@@ -108,14 +109,23 @@ pub(crate) fn try_notation<'a>(
         expected_src,
         ctx,
     );
-    Ok(match finish(builder, outcome, scope, depth, hovers, mark) {
-        Ok(out) => (Some(out), None),
-        // P2-12 S0b：压一条（被探测切掉时 `?` 早退 ⇒ 老路不跑、不结算）。
-        Err(Some(why)) => {
-            let g = probe::fallback(builder, why, span, scope)?;
-            super::kernel_app_census::pending_notation(why, canonical, span);
-            (None, Some(g))
-        }
-        Err(None) => (None, None),
-    })
+    // P2-12 S3：开关开着时，出口可能直接报错（`Fell::Dead`）⇒ 交出去，老路一行不跑。
+    let judge = |why: &'static str, out: Option<&AppOutcome>| {
+        super::kernel_app_fallback::notation_fell(
+            why, out, &canonical, operands, span, missing, known, ctx,
+        )
+    };
+    Ok(
+        match finish(builder, outcome, scope, depth, hovers, mark, &judge) {
+            Ok(out) => (Some(out), None),
+            // P2-12 S0b：压一条（被探测切掉时 `?` 早退 ⇒ 老路不跑、不结算）。
+            Err(Fell::Fallback(why)) => {
+                let g = probe::fallback(builder, why, span, scope)?;
+                super::kernel_app_census::pending_notation(why, canonical, span);
+                (None, Some(g))
+            }
+            Err(Fell::Dead(e)) => return Err(e),
+            Err(Fell::Untried) => (None, None),
+        },
+    )
 }

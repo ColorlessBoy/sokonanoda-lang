@@ -25,6 +25,8 @@ mod implicit;
 // P1-F1：按需从**内核声明类型**取参数望远镜（P1-F2 的内核级 `elab_app` 用）。
 pub(crate) mod kernel_app;
 mod kernel_app_census;
+// P2-12 S3：第二个过渡开关（`SOKO_STRICT_NO_FALLBACK`）+ `finish` 出口 / 报错数据（`kernel_app` re-export）。
+mod kernel_app_fallback;
 mod kernel_app_hint;
 mod kernel_app_lambda;
 pub(crate) mod kernel_app_miss;
@@ -143,3 +145,7 @@ mod kernel_app_lambda_tests;
 #[cfg(test)]
 #[path = "tests/kernel_app_census.rs"]
 mod kernel_app_census_tests;
+// P2-12 S3：第二个过渡开关（`SOKO_STRICT_NO_FALLBACK`）的判据。
+#[cfg(test)]
+#[path = "tests/kernel_app_no_fallback.rs"]
+mod kernel_app_no_fallback_tests;

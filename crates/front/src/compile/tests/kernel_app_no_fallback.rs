@@ -1,0 +1,196 @@
+//! **P2-12 S3 判据**：第二个过渡开关 `SOKO_STRICT_NO_FALLBACK=1`（实施单 §2 的四处）。
+//!
+//! 覆盖四件事：
+//! * **开关**：只在 `strict` + `SOKO_STRICT_KERNEL_APP=1` 时生效（宽松档 / 闸门关 ⇒ 恒 `false`）；
+//! * **`finish` 的出口**：开关开 ⇒ `Fell::Dead`（种子 c1：`axiom g : {A : Type} -> Nat -> Prop` +
+//!   `theorem t1 : g 0 := sorry`，设计稿 Q1 的漏名用例）；关 ⇒ `Fell::Fallback`，诊断与**闸门关**逐字相同；
+//! * **`ReportInput` 谁来填**：真数据（注册表签名 + `render_msg` + 望远镜）⇒ 文字点名**源级** `A`、span 落在
+//!   `g 0`（2:14）上、正文里一个内核名都不剩；数据取不到（`None`）⇒ **回落**；开关关 ⇒ 填充器**一次都不跑**
+//!   （用一个会 panic 的 `facts` 钉住 ⇒ 热路径零成本不是口号）；
+//! * **写明的例外**：`ArgMismatch`（c2）开关开着也**逐字**回落老路（`Report::Fallback("argmismatch_text")`）。
+//!
+//! 读数用线程局部（`TEST_DEAD` / `TEST_KEPT`）：全局原子计数会被并行测试串扰。
+
+use super::kernel_app::TEST_OVERRIDE;
+use super::kernel_app_fallback::{fell, no_fallback, Fell, TEST_DEAD, TEST_KEPT, TEST_NO_FALLBACK};
+use super::tests::on_compile_stack;
+use super::{compile_fol_with, CompileError, CompileOptions, Dialect, PreludeMode};
+use crate::parse;
+use sokonanoda::elab_app::AppOutcome;
+
+const STRICT: CompileOptions = CompileOptions {
+    prelude: PreludeMode::Full,
+    dialect: Dialect::Strict,
+};
+
+/// 设计稿 §Q1 的 c1：`A` 只出现在隐式位、结果里也没有 ⇒ 内核 `Unsolved{Implicit{0}}`。
+const C1: &str = "axiom g : {A : Type} -> Nat -> Prop\ntheorem t1 : g 0 := sorry\n";
+
+/// 设计稿 §Q1 的 c2：第二个显式实参类型不对 ⇒ 内核 `ArgMismatch`（写明的例外，S3 不报）。
+const C2: &str = "axiom h : {A : Type} -> A -> A -> Prop\ntheorem t2 : h 0 Nat := sorry\n";
+
+/// 一次编译的读数。
+struct Run {
+    errors: Vec<CompileError>,
+    /// 报错出口（`Fell::Dead`）次数。
+    dead: u64,
+    /// 开关开着仍回落的原因（写明的例外）。
+    kept: Vec<&'static str>,
+}
+
+impl Run {
+    fn texts(&self) -> Vec<String> {
+        self.errors.iter().map(|e| format!("{e:?}")).collect()
+    }
+}
+
+/// 在新编译栈线程里、闸门/开关强制为给定值、strict 方言下编 `src`。
+fn run(src: &str, gate: bool, nofb: bool) -> Run {
+    let src = src.to_string();
+    on_compile_stack(move || {
+        TEST_OVERRIDE.with(|c| c.set(Some(gate)));
+        TEST_NO_FALLBACK.with(|c| c.set(Some(nofb)));
+        TEST_DEAD.with(|c| c.set(0));
+        TEST_KEPT.with(|v| v.borrow_mut().clear());
+        let file = parse(&src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
+        let out = compile_fol_with(&file, &STRICT);
+        let run = Run {
+            errors: out.errors,
+            dead: TEST_DEAD.with(|c| c.get()),
+            kept: TEST_KEPT.with(|v| v.borrow().clone()),
+        };
+        TEST_OVERRIDE.with(|c| c.set(None));
+        TEST_NO_FALLBACK.with(|c| c.set(None));
+        run
+    })
+}
+
+/// 开关只在**内核路径生效**时才有意义（方言 + P2-8 的闸门）。
+#[test]
+fn switch_requires_the_kernel_gate_and_strict_dialect() {
+    on_compile_stack(|| {
+        for gate in [false, true] {
+            TEST_OVERRIDE.with(|c| c.set(Some(gate)));
+            for nofb in [false, true] {
+                TEST_NO_FALLBACK.with(|c| c.set(Some(nofb)));
+                assert!(
+                    !no_fallback(Dialect::Loose),
+                    "宽松档恒不生效（nofb={nofb}）"
+                );
+                assert_eq!(
+                    no_fallback(Dialect::Strict),
+                    gate && nofb,
+                    "gate={gate} nofb={nofb}"
+                );
+            }
+        }
+        TEST_OVERRIDE.with(|c| c.set(None));
+        TEST_NO_FALLBACK.with(|c| c.set(None));
+    });
+}
+
+/// **开关关 ⇒ 与闸门关逐字节相同**（P1 的不变量：不接线就不许有可观察差别）。
+#[test]
+fn switch_off_keeps_todays_diagnostics_verbatim() {
+    let gate_off = run(C1, false, false);
+    let switch_off = run(C1, true, false);
+    assert_eq!(
+        switch_off.texts(),
+        gate_off.texts(),
+        "开关关必须与闸门关逐字相同"
+    );
+    assert_eq!(
+        (switch_off.dead, switch_off.kept.len()),
+        (0, 0),
+        "开关关 ⇒ 报错出口一次都不走"
+    );
+    assert!(!gate_off.errors.is_empty(), "夹具有效性：c1 在两档下都判红");
+}
+
+/// **开关开 ⇒ `finish` 出 `Fell::Dead`**：人能读的错、点名源级 `A`、span 落在 `g 0`（2:14）、无内核名。
+#[test]
+fn switch_on_reports_a_readable_error_instead_of_falling_back() {
+    let old = run(C1, true, false);
+    let new = run(C1, true, true);
+    // 夹具有效性：今天的出口是**漏内部名 + 假 span**（设计稿 Q1 量过）⇒ 这条测试咬得住东西。
+    assert!(
+        old.texts().iter().any(|e| e.contains("soko_m")),
+        "夹具失效：今天的 c1 不再漏内部名 ⇒ 本测试咬不住：{:?}",
+        old.texts()
+    );
+    assert_eq!(new.dead, 1, "开关开 ⇒ 恰恰一次报错出口：{:?}", new.texts());
+    assert_eq!(
+        new.kept,
+        Vec::<&'static str>::new(),
+        "c1 不是例外 ⇒ 不许回落到老路"
+    );
+    assert_ne!(new.texts(), old.texts(), "开关开必须换掉今天的诊断");
+    assert_eq!(new.errors.len(), 1, "恰好一条诊断：{:?}", new.texts());
+    let e = &new.errors[0];
+    assert_eq!(e.kind, super::ErrorKind::ElabImplicitArgumentUnsolved);
+    assert!(
+        e.message.contains("`A`"),
+        "必须点名**源级**形参 A：{}",
+        e.message
+    );
+    assert!(
+        e.message.contains("{A : Type} -> Nat -> Prop"),
+        "必须带源级签名：{}",
+        e.message
+    );
+    for bad in ["soko_m", "soko_p", "\u{0}", "?1073741824"] {
+        assert!(
+            !e.message.contains(bad),
+            "诊断里不许出现内核名 {bad}：{}",
+            e.message
+        );
+    }
+    // span 必须是**真的**：`theorem t1 : g 0 := sorry` 的 `g 0` 从第 2 行第 14 列起（不是 0:0）。
+    assert_eq!(
+        (e.span.start.line, e.span.start.column),
+        (2, 14),
+        "span 必须落在 `g 0` 上：{:?}",
+        e.span
+    );
+}
+
+/// **写明的例外**：`ArgMismatch` 的正文要内核那台打印器 ⇒ 开关开着也**逐字**回落老路。
+#[test]
+fn argmismatch_is_still_a_written_down_exception() {
+    let old = run(C2, true, false);
+    let new = run(C2, true, true);
+    assert_eq!(
+        new.texts(),
+        old.texts(),
+        "ArgMismatch 必须逐字回落（S3 不换它的正文）"
+    );
+    assert_eq!(new.dead, 0, "例外类不许走报错出口");
+    assert!(
+        !new.kept.is_empty() && new.kept.iter().all(|k| *k == "argmismatch_text"),
+        "必须记成写明的例外（c2 的签名会被 elaborate 两次 ⇒ 两条）：{:?}",
+        new.kept
+    );
+    assert!(!old.errors.is_empty(), "夹具有效性：c2 判红");
+}
+
+/// **开关关 ⇒ 填充器一次都不跑**（`facts` 用一个会 panic 的闭包钉住）；**数据取不到 ⇒ 回落**（不报半截错）。
+#[test]
+fn facts_are_lazy_and_incomplete_data_falls_back() {
+    on_compile_stack(|| {
+        TEST_OVERRIDE.with(|c| c.set(Some(true)));
+        let out = AppOutcome::Unsupported("probe");
+        TEST_NO_FALLBACK.with(|c| c.set(Some(false)));
+        let off = fell(Dialect::Strict, "shape", Some(&out), || {
+            panic!("开关关 ⇒ 报错数据一个字节都不许算")
+        });
+        assert!(matches!(off, Fell::Fallback("shape")), "开关关 ⇒ 回落");
+        TEST_NO_FALLBACK.with(|c| c.set(Some(true)));
+        let missing = fell(Dialect::Strict, "unsolved", Some(&out), || None);
+        assert!(
+            matches!(missing, Fell::Fallback("unsolved")),
+            "数据不全 ⇒ 回落"
+        );
+        TEST_NO_FALLBACK.with(|c| c.set(None));
+        TEST_OVERRIDE.with(|c| c.set(None));
+    });
+}

@@ -2404,8 +2404,8 @@ fn split_and_guard<'a>(body: &'a Expr, binder_name: &str) -> Option<&'a Expr> {
 /// **诊断消息里的表达式文本**（T-U11 第一次真迁移 ✓ 2026-09-25）：
 /// 走唯一接口 `DisplayNotations::render` ✓（= `fold(render_expr(e))` ✓）；
 /// **没有表 ⇒ 原样** ✓（那说明这里不是显示上下文 ✓，沿用 `prelude.rs` 的约定 ✓）。
-/// ⚠ 只给**消息**用 ✓ —— 判定/解析路径一律走 `render_expr` ✗（内核红线 ✓）。
-fn render_msg(ctx: &ElabCtx<'_, '_>, expr: &Expr) -> String {
+/// ⚠ 只给**消息**用 ✓ —— 判定/解析路径一律走 `render_expr` ✗（内核红线 ✓）；P2-12 S3 起 `pub(crate)`（报错出口要同一份）。
+pub(crate) fn render_msg(ctx: &ElabCtx<'_, '_>, expr: &Expr) -> String {
     match ctx.notations {
         Some(n) => n.render(expr),
         None => crate::proof::render_expr(expr),

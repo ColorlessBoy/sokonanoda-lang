@@ -4,6 +4,10 @@
 //! 闸门 = **严格方言** 且 **`SOKO_STRICT_KERNEL_APP=1`**（进程内读一次）。闸门关 ⇒ [`try_app`] 第一行就返回
 //! `None`，后面一行都不跑 ⇒ 与今天逐字节相同。
 //!
+//! **P2-12 S3** 再加**第二个过渡开关** `SOKO_STRICT_NO_FALLBACK=1`（只在上面那条生效时才生效，见
+//! [`super::kernel_app_fallback`]）：开 ⇒ 非探测回落改由 `kernel_app_report` 出诊断，不再走老路；
+//! 关 ⇒ 与 P2-12 之前逐字节相同。出口（`finish`）在 `kernel_app_fallback`，这里 re-export 保持调用点稳定。
+//!
 //! 位置：`try_implicit_application_with` 里 `@` 脊 / prelude 安装两条早退**之后**（`@` 脊不插隐式 ⇒ 内核
 //! 路径无事可做；prelude 安装期间禁止插入是防递归），期望类型的 SPINE-N 展开**之后**（用展开后的期望）。
 //!
@@ -13,7 +17,8 @@
 //!   内核 K1d 发层元变量，见 `kernel_app_hint::bare_levels`）；**P2-11e** 起 `Name.{…}` 头也进（显式层原样，见 `head_name`）；
 //! * 实参全是位置实参，且不含洞 / `by` / 无注解 binder（有线程局部副作用，回落后老路会再做一遍 ⇒ 不碰）。
 //!
-//! 结果：`Solved` ⇒ 导入返回；其余回落老路（P1 不改诊断），按种类计数，本路径记下的 hover 全部撤掉。
+//! 结果：`Solved` ⇒ 导入返回；其余回落老路（P1 不改诊断）或按第二个开关报错，按种类计数，本路径记下的
+//! hover 全部撤掉。
 //! `solved_out` 不填：调用方拿它喂 `infer_const_universes_with`，它只改**头层是层元变量**的项；`Solved` 的层已被
 //! 内核代入成具体层（无残留元变量）⇒ 恒为 no-op。头的 hover 由 `elab_expr(head)` 照常记；整段的由调用方记。
 
@@ -59,19 +64,24 @@ pub(crate) fn effective(dialect: super::Dialect) -> bool {
     dialect.strict() && env_on()
 }
 
-/// 判定缓存键（`judge::options_key`）的后缀：生效 ⇒ `"/kapp"`，否则 `""`（旧键不变）。
+/// 判定缓存键（`judge::options_key`）的后缀：生效 ⇒ `"/kapp"`；**P2-12 S3** 的第二个开关也开 ⇒
+/// `"/kapp/nofb"`（它改判定面 ⇒ 同进程换挡必须 miss）；都不生效 ⇒ `""`（旧键不变）。
 pub(crate) fn key_tag(dialect: super::Dialect) -> &'static str {
-    if effective(dialect) {
+    if super::kernel_app_fallback::no_fallback(dialect) {
+        "/kapp/nofb"
+    } else if effective(dialect) {
         "/kapp"
     } else {
         ""
     }
 }
 
-/// 磁盘键（`cache::keys::metavar_state` 那个字节）的位：生效 ⇒ `0b1_0000`，否则 `0`（旧键不变）。
-/// 低四位已被元变量三档（0..=2）+ `SOKO_META_PATTERN`（`0b0100`）/ `SOKO_META_APPROX`（`0b1000`）占用。
+/// 磁盘键（`cache::keys::metavar_state` 那个字节）的位：生效 ⇒ `0b1_0000`，第二个开关再占 `0b10_0000`
+/// （低四位已被元变量三档（0..=2）+ `SOKO_META_PATTERN`（`0b0100`）/ `SOKO_META_APPROX`（`0b1000`）占用）。
+/// 开关关 ⇒ 与 P2-8 的键**逐字节相同**。
 pub(crate) fn key_bit(dialect: super::Dialect) -> u8 {
-    u8::from(effective(dialect)) << 4
+    let armed = super::kernel_app_fallback::no_fallback(dialect);
+    (u8::from(effective(dialect)) << 4) | (u8::from(armed) << 5)
 }
 
 static TRIED: AtomicU64 = AtomicU64::new(0);
@@ -84,6 +94,8 @@ static SHAPE: AtomicU64 = AtomicU64::new(0);
 static BAD_SCOPE: AtomicU64 = AtomicU64::new(0);
 static UNSUPPORTED: Mutex<Vec<(&'static str, u64)>> = Mutex::new(Vec::new());
 
+/// 一次尝试的结局分类（计数键的来源；`Copy` ⇒ `finish` 能借结果再交出去，S3）。
+#[derive(Clone, Copy)]
 pub(super) enum Count {
     Solved,
     Unsolved,
@@ -217,17 +229,19 @@ pub(crate) fn try_app<'a>(
     Ok(
         match attempt(builder, expr, scope, univ, known, hovers, expected_src, ctx) {
             Ok(out) => (Some(out), None),
-            Err(Some(why)) => {
+            Err(Fell::Fallback(why)) => {
                 let g = probe::fallback(builder, why, expr.span(), scope)?;
                 super::kernel_app_census::pending(why, expr);
                 (None, Some(g))
             }
-            Err(None) => (None, None),
+            // **P2-12 S3**：开关开 ⇒ 内核路径的结论就是最终诊断（不回落、老路一行不跑）。
+            Err(Fell::Dead(e)) => return Err(e),
+            Err(Fell::Untried) => (None, None),
         },
     )
 }
 
-/// `Err(None)` = 没尝试（不计数）；`Err(Some(原因))` = 尝试后回落（已计数）。
+/// `Fell::Untried` = 没尝试（不计数）；`Fell::Fallback(原因)` = 尝试后回落（已计数）。
 #[allow(clippy::too_many_arguments)]
 fn attempt<'a>(
     builder: &mut EnvBuilder<'a>,
@@ -238,22 +252,22 @@ fn attempt<'a>(
     hovers: &mut Vec<HoverNode<'a>>,
     expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
-) -> Result<ExprPtr<'a>, Option<&'static str>> {
+) -> Result<ExprPtr<'a>, Fell> {
     if !effective(ctx.options.dialect) {
-        return Err(None);
+        return Err(Fell::Untried);
     }
     let (head, args) = crate::spine::spine_of(expr);
     if args.is_empty() {
-        return Err(None);
+        return Err(Fell::Untried);
     }
     let Some((name, span)) = super::kernel_app_hint::head_name(head) else {
-        return Err(None);
+        return Err(Fell::Untried);
     };
     let canonical =
-        resolve_known(known, ctx.ns, name, span, scope.local_names()).map_err(|_| None)?;
+        resolve_known(known, ctx.ns, name, span, scope.local_names()).map_err(|_| Fell::Untried)?;
     // 局部名遮蔽了同名常量 ⇒ 不是常量头。
     if scope.find_last(name).is_some() {
-        return Err(None);
+        return Err(Fell::Untried);
     }
     let Some(KnownName::Decl {
         implicit_prefix,
@@ -261,19 +275,21 @@ fn attempt<'a>(
         ..
     }) = known.get(&canonical)
     else {
-        return Err(None);
+        return Err(Fell::Untried);
     };
     if *implicit_prefix == 0 || !super::kernel_app_hint::universe_arity_ok(head, universes) {
-        return Err(None);
+        return Err(Fell::Untried);
     }
     if let Some(why) = super::kernel_app_hint::universe_gate(&canonical, universes) {
-        return Err(Some(count(Count::Unsupported(why))));
+        return Err(Fell::Fallback(count(Count::Unsupported(why))));
     }
     // P2-1：顶层 λ 带无注解 binder 的实参也收（它只会被推迟、对着域 elaborate）。
     let postponable =
         |a: &Expr| postpone::enabled() && postpone::untyped_lambda_layers(a, plain).is_some();
     if !args.iter().all(|a| plain(a) || postponable(a)) {
-        return Err(super::kernel_app_hint::shape_counts(head).then(|| count(Count::Shape)));
+        return Err(Fell::miss(
+            super::kernel_app_hint::shape_counts(head).then(|| count(Count::Shape)),
+        ));
     }
     let mark = hovers.len();
     // ⚠ `elab_expr` 的 binder 臂在 `?` 早退时**不** `truncate` 作用域（老路里 Err 直接让声明失败，
@@ -300,47 +316,14 @@ fn attempt<'a>(
                 ctx,
             )
         });
-    finish(builder, outcome, scope, depth, hovers, mark)
+    finish(builder, outcome, scope, depth, hovers, mark, &|why, out| {
+        super::kernel_app_fallback::app_fell(why, out, expr, head, &args, &canonical, known, ctx)
+    })
 }
 
-/// 内核结果 ⇒ 导入的项，或回落（已计数、hover 撤回、作用域深度恢复）。记法路径（[`super::kernel_app_notation`]）
-/// 共用这一份出口 ⇒ 回落纪律只有一处。
-pub(super) fn finish<'a>(
-    builder: &mut EnvBuilder<'a>,
-    outcome: Result<AppOutcome, Count>,
-    scope: &mut ElabScope<'a>,
-    depth: usize,
-    hovers: &mut Vec<HoverNode<'a>>,
-    mark: usize,
-) -> Result<ExprPtr<'a>, Option<&'static str>> {
-    scope.truncate(depth);
-    let why = match outcome {
-        Ok(AppOutcome::Solved(t)) => match builder.import_owned(&t) {
-            // 纵深防御：解出的项必须活在当前 scope 里（不该发生；发生就回落并计数）。
-            Some(out)
-                if postpone::loose_bvars(out, &mut Default::default()) as usize > scope.len() =>
-            {
-                count(Count::BadScope)
-            }
-            Some(out) => {
-                count(Count::Solved);
-                debug_assert_eq!(scope.len(), depth, "内核路径必须原样交还作用域深度");
-                return Ok(out);
-            }
-            None => count(Count::Unsupported("import")),
-        },
-        Ok(AppOutcome::Unsolved { .. }) => count(Count::Unsolved),
-        Ok(AppOutcome::ArgMismatch { .. }) => count(Count::ArgMismatch),
-        Ok(AppOutcome::ExpectedMismatch { .. }) => count(Count::Expected),
-        Ok(AppOutcome::Unsupported(why)) => count(Count::Unsupported(why)),
-        // 第二趟带齐实参后不该再要；要了 = 推迟位按域也 elaborate 不了 ⇒ 当 argelab 回落。
-        Ok(AppOutcome::NeedArgs { .. }) => count(Count::ArgElab),
-        Err(c) => count(c),
-    };
-    hovers.truncate(mark);
-    debug_assert_eq!(scope.len(), depth, "回落前作用域深度必须恢复");
-    Err(Some(why))
-}
+/// **P2-12 S3**：出口与"要不要报错"的判定搬进 [`super::kernel_app_fallback`]（`kernel_app.rs` 逼近软线
+/// 500 行；`AGENTS.md` 硬规则 5 允许用 re-export 保持调用点稳定）。记法路径仍从这里拿 [`finish`]。
+pub(super) use super::kernel_app_fallback::{finish, Fell};
 
 /// `head_t` = 已 elaborate 的头（必须是 `Const`；不带层 ⇒ 内核按 K1d 给层元变量）。
 /// **P2-5**：第一趟有探测切掉过老路、结果又不是 `Solved` ⇒ 关掉探测整段重做一次（最坏 = 今天的行为）。

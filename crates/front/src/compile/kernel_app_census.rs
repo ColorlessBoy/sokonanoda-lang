@@ -258,4 +258,6 @@ pub(crate) fn report(line: &mut String) {
             line.push_str(&format!(" hinted_const_fallback_{src}={n}"));
         }
     }
+    // P2-12 S3：开关开着时的报错次数 / 仍回落的原因（**关着 ⇒ 一个字节都不加**）。
+    super::kernel_app_fallback::report_counts(line);
 }
