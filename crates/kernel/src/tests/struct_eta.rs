@@ -17,14 +17,15 @@
 //!
 //! * **结构 η**：`src/kernel/type_checker.cpp:784` `try_eta_struct_core`（`s` 是构造子应用、
 //!   参数个数 = `nparams + nfields`、`is_structure_like`、逐字段比 `mk_proj`）；
-//!   调用点 `:1112` `try_eta_struct(t_n, s_n)`（两向 ✓）。我们的对应物 = `conv.rs` 的
-//!   `try_struct_eta` + `try_eta_struct_v`（`conv.rs:596` / `:684` ✓）。
+//!   调用点 `:1112` `try_eta_struct(t_n, s_n)`（两向 ✓）。我们的对应物 = `conv_eta.rs` 的
+//!   `try_struct_eta` + `try_eta_struct_v`（K3 从 `conv.rs` 拆出 —— ⑨ 基线只许减不许增）。
 //! * **主前提 η 展开**（iota 那一半 ✓）：`src/kernel/inductive.h:66` `to_cnstr_when_structure`
 //!   —— 主前提**不是**构造子应用、而其类型是 structure-like 时，先展成 `C.mk e.1 … e.n`
 //!   再套 iota 规则 ✓（`src/kernel/inductive.cpp:98` `expand_eta_struct` ✓）。我们的对应物 =
 //!   `eval.rs::try_struct_eta_reduce`（`fire_recursor` 里 ✓）。
-//! * **单位元**：`type_checker.cpp:1035` `is_def_eq_unit_like`（单构造子 + 零字段 ⇒ 全等 ✓）
-//!   ↔ 我们的 `conv.rs::is_unit_inductive` ✓。
+//! * **单位元**：`type_checker.cpp:1035` `is_def_eq_unit_like`（单构造子 + 零字段 **且两边类型
+//!   判等** ⇒ 全等 ✓）↔ 我们的 `conv_eta.rs::is_unit_inductive` + 那一支里的 `conv_types_at` ✓
+//!   （K3 / LKA `bad/bugs/unit-rec-rule`：漏了 `:1047` 那句 `is_def_eq_core(t_type, infer_type(s))`）。
 //! * **闸**：`src/kernel/inductive.cpp:27` `is_structure_like` = **1 构造子 + 0 索引 + 非递归** ✓
 //!   ↔ 我们的 `env.rs::get_structure`（同三条 ✓）。
 //!
@@ -34,14 +35,14 @@
 /// ① **四条 η 机制都在** ✓（删掉任何一条 ⇒ η 回退 ✗）。
 #[test]
 fn struct_eta_mechanisms_are_present() {
-    let conv = include_str!("../conv.rs");
+    let eta = include_str!("../conv_eta.rs");
     let eval = include_str!("../eval.rs");
     for needle in [
         concat!("fn try", "_struct_eta("),
         concat!("fn try_eta", "_struct_v("),
         concat!("fn is_", "unit_inductive("),
     ] {
-        assert!(conv.contains(needle), "**G-61**：`conv.rs` 里 `{needle}` 不见了 ✗（η 回退）");
+        assert!(eta.contains(needle), "**G-61**：`conv_eta.rs` 里 `{needle}` 不见了 ✗（η 回退）");
     }
     assert!(
         eval.contains(concat!("fn try_struct", "_eta_reduce(")),
@@ -67,11 +68,11 @@ fn struct_eta_gate_matches_lean_structure_like() {
         );
     }
     // 两个 η 点都必须**走这道闸** ✓（少一处 ⇒ 那一处会对多构造子也生效 ✗）。
-    let conv = include_str!("../conv.rs");
+    let eta = include_str!("../conv_eta.rs");
     let eval = include_str!("../eval.rs");
     assert!(
-        conv.contains(concat!("can_be_struct", "_memo(ind_name)")),
-        "**G-61**：`conv.rs` 的结构 η 不再过闸 ✗（多构造子会拿到 η ✗）"
+        eta.contains(concat!("can_be_struct", "_memo(ind_name)")),
+        "**G-61**：`conv_eta.rs` 的结构 η 不再过闸 ✗（多构造子会拿到 η ✗）"
     );
     assert!(
         eval.contains(concat!("can_be_struct", "_memo(rec_induct)")),

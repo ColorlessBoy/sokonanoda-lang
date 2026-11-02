@@ -584,33 +584,6 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         self.try_struct_eta(depth, x, y)
     }
 
-    fn try_struct_eta(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> bool {
-        let xt = self.value_type_opt(depth, x);
-        let yt = self.value_type_opt(depth, y);
-        for ty in [xt, yt].into_iter().flatten() {
-            let ty_f = self.force_all(depth, ty);
-            if let Value::Rigid { head: RigidHead::Inductive(ind_name, _), .. } = ty_f {
-                let ind_name = *ind_name;
-                if self.is_unit_inductive(ind_name) {
-                    return true;
-                }
-                if self.can_be_struct_memo(ind_name)
-                    && (self.try_eta_struct_v(depth, ind_name, x, y) || self.try_eta_struct_v(depth, ind_name, y, x))
-                {
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
-    fn value_type_opt(&mut self, depth: u32, v: V<'t>) -> Option<V<'t>> {
-        match v {
-            Value::Pi { .. } | Value::Lam { .. } => None,
-            _ => Some(self.value_type(depth, v)),
-        }
-    }
-
     pub(crate) fn try_proof_irrel_at(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> bool {
         if matches!(x, Value::Lam { .. }) || matches!(y, Value::Lam { .. }) {
             return self.try_proof_irrel_lam(depth, x, y);
@@ -670,44 +643,6 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         let xb = self.apply_v(depth + 1, x, fresh);
         let yb = self.apply_v(depth + 1, y, fresh);
         self.try_proof_irrel_at(depth + 1, xb, yb)
-    }
-
-    fn try_eta_struct_v(&mut self, depth: u32, ind_name: NamePtr<'t>, x: V<'t>, y: V<'t>) -> bool {
-        let (yname, yspine) = match y {
-            Value::Rigid { head: RigidHead::Ctor(name, _), spine, .. } => (*name, *spine),
-            _ => return false,
-        };
-        let (num_params, num_fields, inductive_name) = match self.ctor_shape(yname) {
-            Some(t) => t,
-            None => return false,
-        };
-        if inductive_name != ind_name {
-            return false;
-        }
-        let yargs = match self.spine_apps(depth, yspine) {
-            Some(v) if v.len() == usize::from(num_params) + usize::from(num_fields) => v,
-            _ => return false,
-        };
-        for i in 0..num_fields {
-            let proj = self.do_proj(depth, ind_name, i, x);
-            let rhs = yargs[usize::from(num_params) + usize::from(i)];
-            if !self.unify::<true>(depth, proj, rhs) {
-                return false;
-            }
-        }
-        true
-    }
-
-    fn is_unit_inductive(&self, ind_name: NamePtr<'t>) -> bool {
-        let ind = match self.env.get_structure(&ind_name, false) {
-            Some(i) => i,
-            None => return false,
-        };
-        let ctor = match self.env.get_constructor(&ind.all_ctor_names[0]) {
-            Some(c) => c,
-            None => return false,
-        };
-        ctor.num_fields == 0
     }
 
     fn conv_nat<const RIGID: bool>(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> Option<bool> {
