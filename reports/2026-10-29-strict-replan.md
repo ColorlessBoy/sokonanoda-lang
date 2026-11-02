@@ -301,7 +301,7 @@ oracle（`elab.rs:4821` `pp_shape::arg_types` → `operand_type_expr` → `infer
 | G2 | `eqsubst` 三处 old-style 前缀 | 0.6 | ✅ | `3a070ad5` |
 | G3 | `pp_shape` 元变量名泄漏（一行） | 0.9 | ✅ | `4d1b47a6` |
 | **L1** | 已知限制：`¬ (Set.Equiv ∅ {b})` 这类「记法前导隐式 + 零元糖操作数」在 strict 仍拒（loose 过，G3 残留边界） | 0.0 | ⏸ | 不在 357 语料、也不在课程 112 目标；翻默认后变成**默认可见**；要两档都绿得改推断面（`elab.rs`/`implicit.rs` 都是冻结文件）⇒ 单开一刀，已写进 §9.40 |
-| **L2** | 已知缺口（**发版门禁**）：Lean Kernel Arena 新增的 4 条用例被**接受而非拒绝**（**K1–K3 已修 3/4**，arena `4→1`；剩 `closure-level-subst`）（`closure-level-subst` / `nested-name-capture` / `unit-rec-rule` / `inductive-undeclared-universe`） | 0.0 | ⬜ | **本轮 P4 的真拦路石**（`31fbf072`）：语料从 200 → **207 例**，非回归；`bump.py` 会拒绝写版本号。处置 A（修内核）/ B（改成拒判）/ C（登记 known-unsupported）待用户拍板；只读定根因 `reports/2026-11-02-lka-4-soundness-gaps.md` |
+| **L2** | 已知缺口（**发版门禁**）：Lean Kernel Arena 新增的 4 条用例被**接受而非拒绝**（**K1–K4 全部清零**，arena `4→0`）（`closure-level-subst` / `nested-name-capture` / `unit-rec-rule` / `inductive-undeclared-universe`） | 0.0 | ✅ | **K1–K4 全部修完**（`166cb7dd`/`cd99671f`/`d6b9483f`/`afd45a27`）；**本轮 P4 原本的真拦路石**（`31fbf072`）：语料从 200 → **207 例**，非回归；`bump.py` 会拒绝写版本号。处置 A（修内核）/ B（改成拒判）/ C（登记 known-unsupported）待用户拍板；只读定根因 `reports/2026-11-02-lka-4-soundness-gaps.md` |
 | **P4** | 发版闭环（bump → push main → CI → release → 核对） | 1.5 | ⬜ | **push main 前必须问用户** |
 
 | P2-1…P2-8 | 推迟实参、多轮、重检、记法、探测、缓存键 | 见交接书 `2026-10-31-strict-handoff.md` §1 | ✓ |
