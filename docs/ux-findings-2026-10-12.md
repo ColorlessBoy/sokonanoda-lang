@@ -7,23 +7,16 @@
 
 | 项 | 值 |
 |---|---|
-| HEAD | **`30030b7a`**（2026-10-12 07:31，`fix(cli): grade --root 认模块根`） |
-| 工作树 | **脏**：`crates/front/src/compile/{elab,implicit,meta,tests}.rs`（C 线隐式实参修复**在途**）· `editor/**`、`courses/set-theory/units/I.1/unit01-*.sokonanoda`、`docs/e2e/*`、`skills/*` |
-| 语言线读数 | `.cache/ux/lang/REPORT.md`（HEAD `cb646c04`，`target/debug/sokonanoda` 22:58:29） |
-| LSP 线读数 | `.cache/ux/lsp/REPORT.md`（HEAD `30030b7a`，LSP 07:38 重编） |
-| 编辑器线读数 | `.cache/ux/editor/REPORT.md`（HEAD `cb646c04`，扩展自带 CLI/LSP `0.90.0`，真 VS Code 1.140） |
-| vim 线读数 | `.cache/ux/vim/REPORT.md`（HEAD `cb646c04`，`extension.js` 138843 B @ 22:49:05，真 VSCodeVim 1.32.4） |
-| 主会话自采 | `.cache/ux/main-findings.md`（M-01…M-07）· 修复计划骨架 `.cache/ux/fix-plan.md` |
-| 独立复核 | `.cache/ux/verify/VERDICT.md` = **一致 48 · 误读 1（r02）· 已变 0**（只覆盖语言 23 + LSP 26） |
-| 本次汇总复跑 | 语言 **25/25 跑过**（23 条 `r*.sh` + 新增 `m03`/`m07`）· LSP **26/26 跑过**（22 缺口 + 4 对照全绿）· 编辑器/vim **未复跑**（需真 VS Code，见 §6.6） |
-| 复跑二进制 | `target/debug/sokonanoda` 2026-10-12 08:39 · sha256 前 16 = **`aa7d77b36f7ce818`**（含 C 线在途改动；VERDICT 用的是 07:47 的 release ⇒ 差异见 §6.2） |
+| 采集时 HEAD / 工作树 | **`30030b7a`**（2026-10-12）· **脏**（C 线隐式实参修复在途 · `editor/**` · unit01 画布 · `docs/e2e` · `skills`） |
+| 四条线的原始读数 | `.cache/ux/{lang,lsp,editor,vim}/REPORT.md`（真 VS Code 1.140 / VSCodeVim 1.32.4） |
+| 复跑二进制 | `target/debug/sokonanoda` 2026-10-12 08:39 · sha256 前 16 = **`aa7d77b36f7ce818`**（含在途改动；VERDICT 用的是 07:47 release ⇒ 差异见 §6.2） |
 
-**处置在哪**：本文件**只做索引**；每条 id 的**处置**（`fix`/`fixed`/`scheduled`/`wo-filed`/`boundary`/`control`）与**当前读数**在
-**`docs/ux-queue-extras.jsonl`** ⇒ 队列由 `python3 scripts/ux-queue.py --json` 统一算（**唯一入口** = `docs/ONBOARDING.md` §0.2）。
+**处置在哪**：本文件**只做索引**；每条 id 的处置与当前读数在 **`docs/ux-queue-extras.jsonl`** ⇒ 由
+`python3 scripts/ux-queue.py --json` 统一算（**唯一入口** = `docs/ONBOARDING.md` §0.2）。
 
-**怎么读复现列**（一律从仓库根执行；脚本抬头各自写明判据）：`lang/*.sh`：**exit 0 = 缺口仍在** · 1 = 已不复现。
-`*-probe.mjs --case <id>`：**exit 1 = 缺口仍在**（0 = 与用例期望的好行为一致 · 2 = 用法 · 3 = 前置缺失）。
-`vim-probe.mjs --pair <id>`：**exit 0 = 「无 vim 绿 + 有 vim 红」成立**（= 冲突是 vim 特有）。编辑器/vim 需要真 VS Code。
+**怎么读复现列**（一律从仓库根执行）：`lang/*.sh`：exit 0 = 缺口仍在 · 1 = 已不复现。
+`*-probe.mjs --case <id>`：exit 1 = 缺口仍在（0 = 与期望一致 · 2 = 用法 · 3 = 前置缺失）。
+`vim-probe.mjs --pair <id>`：exit 0 = 「无 vim 绿 + 有 vim 红」成立。编辑器/vim 需真 VS Code。
 
 ## 2. 🔴 blocker / high
 
