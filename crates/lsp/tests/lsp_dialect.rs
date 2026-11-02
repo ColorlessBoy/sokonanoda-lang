@@ -115,7 +115,8 @@ fn initialization_options_choose_the_dialect() {
         "loose 初始化后 `b2` 必须通过（实际：{diagnostics}）"
     );
 
-    // 缺省：**不表态** ⇒ 与今天一样（loose）。
+    // 缺省：**不表态** ⇒ 落到默认档，而默认档在 S7（2026-11-01）之后是 **strict**。
+    // （旧断言写的是"保持旧行为 = loose"；翻默认时这条必须跟着翻 —— 它量的就是"缺省落到哪一档"。）
     let (dir, cache) = fixture("init-absent");
     let mut client = start(&cache, &[]);
     initialize(&mut client, &dir, None);
@@ -124,8 +125,8 @@ fn initialization_options_choose_the_dialect() {
     let diagnostics = client.diagnostics_for(&uri);
     assert_eq!(
         error_codes(&diagnostics),
-        Vec::<String>::new(),
-        "没有 initializationOptions 时必须保持旧行为（实际：{diagnostics}）"
+        vec![STRICT_CODE.to_string()],
+        "没有 initializationOptions 时必须落到默认档（strict），而不是旧读法（实际：{diagnostics}）"
     );
 }
 
