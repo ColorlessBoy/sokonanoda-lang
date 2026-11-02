@@ -8,7 +8,7 @@
 
 三件齐全，这个语法点才算"进了课程"。另附两条铁律（详见 `docs/architecture.md` §7）：
 
-- **判定练习靠 kernel，不靠文本比对**（历史草案 2026-09-07 已删）；
+- **判定练习靠 kernel，不靠文本比对**；
 - **错误码 + 教学提示是协议的一部分**：每个 `ErrorKind` 必须有稳定 code（`elab-*` / `kernel-*` 前缀）与中文 hint，且要写进 `docs/protocol.md`——这两条由 meta 测试强制执行（见 §2）。
 
 ## 1. 分层守护表（改哪层，跑哪层）
@@ -110,7 +110,7 @@ file=…::` 注解、`--report` 进 `course-gate-report` artifact、表格进 st
 ## 2. 两个 meta 测试的机制（新 agent 最容易踩）
 
 - `every_error_kind_has_stable_code_and_hint`：测试内部有一段**不带通配分支**的 `matches!` 穷尽清单——给 `ErrorKind` 加新 variant 时，这段代码会**编译失败**，逼你把新 variant 加进清单，并补齐 code（前缀必须与 stage 一致：elab kind → `elab-*`，kernel kind → `kernel-*`）与非空中文 hint。这是把"忘补 code/hint"从运行时错误提前到编译错误。
-- `protocol_doc_lists_every_error_code`：每个 code 必须出现在 `docs/protocol.md`。（历史：曾有 `known_missing` 允许表放行 6 个 elab code；2026-09-12 文档补齐后已删，机制闭环。）
+- `protocol_doc_lists_every_error_code`：code 必须进 `docs/protocol.md`。
 
 ## 3. 失败时的排查顺序
 

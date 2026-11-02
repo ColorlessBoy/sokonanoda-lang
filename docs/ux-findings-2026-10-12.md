@@ -105,16 +105,12 @@
 
 ## 5. ✅ 已排除 / 设计如此（别当缺口修）
 
-* **r02 `set_option pp.explicit true`「静默空操作」= 误读**（复核判「误读」，与主会话结论一致）：
-  裸常量 `#check Eq.subst` **有意**不受该选项影响（走签名源文本捷径）——
-  `reference/commands/set_option.md` §边界已写明，`crates/front/src/compile/tests.rs` 也钉着这条。
-  实测 `#print Set.singleton` / `#check (fun x => Iff.refl x)` 开/关**都变**。
-  ⇒ 真问题是**画布内容**：unit01 第 37 行挑了 `#check Iff.refl`（裸常量）这条看不见效果的演示。
-* **编辑器「补全弹窗打不开」= 探针自纠，撤回**：原判据 `offsetParent !== null` 对 **fixed** 定位的
-  `.suggest-widget` 恒为 null；行为判据（打 `exa` + Enter ⇒ 文本变 `exact`）证明弹窗工作。
-  真问题是**候选内容**（F5），不是弹窗。
-* **M-01 `grade --root` 被静默丢掉**：HEAD `30030b7a` 已修（复核实测 `query check --root` ⇒ exit 0 /
-  `decl_checked: 1`）⇒ 不再是缺口。
+* **r02 `set_option pp.explicit true`「静默空操作」= 误读**：裸常量 `#check Eq.subst` **有意**不受该选项影响
+  （走签名源文本捷径；`reference/commands/set_option.md` §边界已写明、`tests.rs` 钉着）。
+  真问题是**画布内容**：unit01 第 37 行挑了 `#check Iff.refl` 这条看不见效果的演示。
+* **编辑器「补全弹窗打不开」= 探针自纠，撤回**：`offsetParent !== null` 对 **fixed** 定位的 `.suggest-widget`
+  恒为 null；行为判据（打 `exa` + Enter ⇒ 变 `exact`）证明弹窗工作。真问题是**候选内容**（F5）。
+* **M-01 `grade --root` 被静默丢掉**：`30030b7a` 已修（`query check --root` ⇒ exit 0 / `decl_checked: 1`）。
 * **r06 的「唯一变量 = 有没有 `∈`」对照不成立**（`r06-nomem` 第一条错是 `/\`，不是 `·` 子弹）；
   真判别量 = 单文件预解析是否先撞 `notation-unknown-symbol`。**现象本身仍是真 bug**（code 归因 + hint）。
 * **LSP 侧不报的边界**：声明名位置 F12 = `null`（G-53 已知诚实行为）· `Nat.add`/`Nat.zero` F12 = `null`

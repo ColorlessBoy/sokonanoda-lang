@@ -11,8 +11,8 @@
 
 ## §0bis 2026-11-01 的现状（S6 + S7 之后）
 
-**strict 的过渡闸门已删**（`effective = dialect.strict()` / `no_fallback = dialect.strict()`，两道闸门环境变量从代码里消失）⇒ **strict 只由 §2 的五处来源决定**，不再需要任何环境变量。
-**默认档已翻（S7）**：`Dialect::default()` = `Strict`、`DialectSources::resolve()` 五档全空 ⇒ strict（设置项 `default` 与 CLI 同轮改，两处同一个值）。**退路** = `--dialect loose` / 设置项关 / 文件指令 / 清单 / `SOKO_STRICT_AT=0` —— 两档判定逻辑**一字未改**，翻的只是默认值。口径与代价：`REQUIREMENTS.md` §9.40。
+**过渡闸门已删**（`effective`/`no_fallback` 都只读方言）⇒ strict 只由 §2 的来源决定，不需要任何环境变量。
+**默认档已翻（S7）**：`Dialect::default()` = `Strict`、五档全空 ⇒ strict。**退路** = `--dialect loose` / 设置项关 / 文件指令 / 清单 / `SOKO_STRICT_AT=0`（两档逻辑一字未改）。口径：`REQUIREMENTS.md` §9.40。
 
 ## §1 当初的坑（为什么配置化必须先做缓存键）
 
@@ -66,7 +66,7 @@
 
 * **互不阻塞**：本文保证"想用严格档的人能开"；v2 保证"开了不慢"。
 * S1/S2 顺带把 v2 第 1 棒的读数入口接上（探针按 `options.dialect` 分桶天然成立 ✓）。
-* **翻默认已做**（S7，2026-11-01）：§2 的"默认"行、`Dialect::default()`、设置项 `default` 与 `skills/` 说明**同一轮**改完 ✓。
+* **翻默认已做**（S7）：§2 的"默认"行、`Dialect::default()`、设置项 `default` 与 `skills/` 说明**同一轮**改完 ✓。
 
 ## §6 边界（不做）
 

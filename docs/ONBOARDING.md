@@ -173,9 +173,9 @@
     `--check --all` 逐条真跑：`pass` 要绿、**`bite` 必须真的报非 0** ✓；覆盖基线以来
     新增/修改的守卫缺一行 ⇒ 判红 ⇒ **不算收口** ✗；`--reopen-empty` = ① 的翻账入口 ✓）。
     两条都进 CI 的 `queue-lint` **与 `scripts/soko gate`**（每推必跑 ✓）。
-11. **方言默认档 = strict**（2026-11-01 S7 翻默认）：不设任何来源 ⇒ strict（`Dialect::default()` = `Strict`；编辑器设置项 `default` 同轮改 `true`）；
-    **旧读法是退路** —— `--dialect loose` / 设置项关 / 文件指令 / 清单 / `SOKO_STRICT_AT=0`（两档判定逻辑**一字未改**，翻的只是默认值）；
-    过渡闸门环境变量已删（strict 不再需要任何 env）。口径与代价：`REQUIREMENTS.md` §9.40（例外表 6 类 · 两个 orphan 已转绿）。
+11. **方言默认档 = strict**（S7，2026-11-01）：不设来源 ⇒ strict（`Dialect::default()` = `Strict`，设置项 `default` 同轮 `true`）；
+    **退路** = `--dialect loose` / 设置项关 / 文件指令 / 清单 / `SOKO_STRICT_AT=0`（两档逻辑一字未改，只翻默认值）；
+    过渡 env 已删。口径见 `REQUIREMENTS.md` §9.40（例外表 6 类）。
 
 ### 3.1 文档清理机制（2026-09-29 用户：「没有建立起来很好的 doc 清理机制」）
 
