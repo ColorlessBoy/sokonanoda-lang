@@ -2,13 +2,13 @@
   "schema": "soko.e2e/1",
   "kind": "vscode-integration",
   "version": "0.98.0",
-  "commit": "1f3a459f59525cf76e6e180163780642e548bfca",
+  "commit": "4b5bb690e0ffb7b0b5b029694a493a7da626e417",
   "dirty": false,
-  "date": "2026-11-02T17:19:55Z",
+  "date": "2026-11-02T17:46:30Z",
   "host": {
-    "system": "Darwin",
-    "machine": "arm64",
-    "release": "25.6.0"
+    "system": "Linux",
+    "machine": "x86_64",
+    "release": "7.0.0-1017-azure"
   },
   "vscode": "1.138.0",
   "tests": {
@@ -19,9 +19,9 @@
     "failing_details": ""
   },
   "exit": 0,
-  "server": "0.98.0 (pid 4529) == 扩展 v0.98.0 (source=bundled)",
-  "lsp_sha256_16": "a92a56ba61279157",
-  "log": "docs/e2e/logs/2026-11-02-1f3a459-vc1.138.0.log",
+  "server": "0.98.0 (pid 2963) == 扩展 v0.98.0 (source=bundled)",
+  "lsp_sha256_16": "b7b1fefdb84284ba",
+  "log": "docs/e2e/logs/2026-11-02-4b5bb69-vc1.138.0.log",
   "profile": "release",
   "grep": null,
   "log_pruned": "CI artifact 即权威（`docs-lint` ①：日志进仓库每轮约 +80 KB，会顶格）"
