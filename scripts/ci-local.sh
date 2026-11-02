@@ -184,6 +184,13 @@ run "gates：测试环境档位隔离（配 env::set_var 的文件必须恰好�
 set -u
 python3 scripts/check-test-env-isolation.py || exit 1
 python3 scripts/check-test-env-isolation.py --selftest || exit 1'
+# **strict 的文本 oracle 棘轮**（P3-a，2026-11-01）：三个文本入口的调用点只许减不许增，
+# 且 strict 专属项必须保持 0 —— 量的是「strict 有没有偷偷变成第二套判定」（§9.40 / §9.39 的 print→parse 禁令）。
+run "gates：strict 文本 oracle 棘轮（只许减 + strict 专属项 = 0，自带反咬）" "gates-fast" bash -c '
+set -u
+python3 scripts/audit-strict-paths.py || exit 1
+python3 scripts/audit-strict-paths.py --strict-only || exit 1
+python3 scripts/audit-strict-paths.py --self-test || exit 1'
 
 # ⭐⭐ **交付维度读数**（2026-10-16 · 用户追问「清账 Agent 不会检查还有多少没发版吧，我看它每次
 # 给我发的会话累计」✓ · 队列 `SUB-release-metric-measures-unreleased`）：

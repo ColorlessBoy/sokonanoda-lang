@@ -119,6 +119,23 @@ jobs:
       - name: 判据自检（控制组判绿、三个漂移方向都必须判红）
         run: python3 scripts/tactic-docs-lint.py --selftest
 
+  # **strict 的文本 oracle 棘轮**（P3-a，2026-11-01 · `scripts/audit-strict-paths.py`）：
+  # §9.39/§9.40 禁止 strict 变成"第二套判定"—— 三个文本 oracle 入口
+  # （`operand_type_expr_explicit` / `infer_type_text` / `pp=explicit`）的调用点**只许减不许增**，
+  # 且 `--strict-only` 的 strict 专属项必须是 **0**。棘轮 + 反咬自检都在毫秒级 ⇒ 永远跑。
+  strict-text-oracle-ratchet:
+    name: strict 文本 oracle 棘轮（只许减 + strict 专属项 = 0 + 反咬）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: 棘轮（三个入口的调用点不许涨）
+        run: python3 scripts/audit-strict-paths.py
+      - name: strict 专属项必须为 0
+        run: python3 scripts/audit-strict-paths.py --strict-only
+      - name: 判据自检（反向夹具必须判红）
+        run: python3 scripts/audit-strict-paths.py --self-test
+
   # **「声明/规范说 X，实现是 Y」的漂移守卫**（2026-10-15 LINK-B 新增两条，洞 `CHECKERS-NOT-IN-CI`；
   # ⭐ 2026-10-17 合并成**一条** `check-drift.py` = 一本登记表 + 一个驱动器 ✓，
   # `SUB-narrow-guards-to-one-layer` ① **C 组 3 → 1 做齐**：`check-doc-drift.py`（harness 接线的
