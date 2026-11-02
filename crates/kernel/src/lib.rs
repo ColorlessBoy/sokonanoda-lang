@@ -8,6 +8,7 @@
 #![warn(clippy::cast_possible_truncation)]
 
 pub mod conv;
+pub(crate) mod conv_env_eq;
 pub mod conv_eta;
 pub mod conv_hint;
 pub mod builder;

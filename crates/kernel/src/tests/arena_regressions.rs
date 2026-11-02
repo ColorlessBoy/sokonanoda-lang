@@ -1,8 +1,8 @@
 //! Regressions from the external Lean Kernel Arena corpus.
 //!
 //! The fixtures live in `test_resources/{NestedRecRuleNFields,UnsafeDef,
-//! InductiveUndeclaredUniverse,NestedNameCapture,UnitRecRule}` and come from
-//! `leanprover/lean-kernel-arena` (Apache-2.0, revision
+//! InductiveUndeclaredUniverse,NestedNameCapture,UnitRecRule,ClosureLevelSubst}`
+//! and come from `leanprover/lean-kernel-arena` (Apache-2.0, revision
 //! `d4f15adc61e131de91b11a7bfa827045df86d193` for the first two,
 //! `d7f74a9e67459e2c251d608f524dc5efc6dc223c` for the others); see each
 //! fixture's README.
@@ -13,7 +13,9 @@
 //! instead of panicking; an inductive block may not mention a universe
 //! parameter it never declared; an admitted iota rule may not capture a
 //! block-local name; an admitted iota rule that differs from the reconstructed
-//! one is rejected even when a unit-like type is involved).
+//! one is rejected even when a unit-like type is involved; two empty closure
+//! environments with different universe substitutions are not definitionally
+//! equal).
 
 use crate::util::{Config, Decline};
 use std::panic::{self, AssertUnwindSafe};
@@ -130,4 +132,37 @@ fn unit_like_eta_may_not_swallow_a_lying_recursor_rule() {
         .expect_err("an imported iota rule that differs from the reconstructed one must be rejected");
     let msg = panic_message(payload);
     assert_eq!(msg, "imported recursor rule does not match the reconstructed rule");
+}
+
+/// `bad/bugs/closure-level-subst` (LKA, K4): `Family.{u}` is the *same* function
+/// body `A → Sort u` evaluated in two **empty** environments that differ only in
+/// their universe substitution (`u := 1` vs `u := 0`). `envs_ptr_equal` used to
+/// return `true` for any two `Env::Nil`s without looking at `lsub`, so the
+/// `Pi`/`Lam` body-expr shortcut judged `Family.{1}` and `Family.{0}`
+/// definitionally equal: `lower : Family.{0} := good` type-checked and the file
+/// proves `False`.
+///
+/// Lean 4 keeps universe instances in the expression
+/// (`src/kernel/type_checker.cpp:1047 is_def_eq_core`,
+/// `src/kernel/level.h:139 is_equivalent`), so `Sort 1 ≢ Sort 0`; the kernel now
+/// requires the two `Nil` environments to carry the same universe substitution
+/// (`conv_env_eq.rs`). This test fails before the fix (accepted) and passes
+/// after it (rejected at `lower`).
+#[test]
+fn empty_environments_with_different_universe_substitutions_are_not_equal() {
+    let cfg = Config::try_from(Path::new("test_resources/ClosureLevelSubst/config.json"))
+        .expect("fixture config");
+    let arena = Arena::new();
+    let (ef, _) = cfg.to_export_file(arena.as_arena_ref()).expect("parse export");
+    let payload = panic::catch_unwind(AssertUnwindSafe(|| ef.check_all_declars()))
+        .expect_err("two empty environments with different universe substitutions must not be def-eq");
+    let msg = panic_message(payload);
+    assert!(
+        msg.starts_with("def_eq failed: def_eq mismatch"),
+        "expected a def_eq rejection, got {msg:?}"
+    );
+    assert!(
+        msg.contains("Family.[0]") && msg.contains("Family.[1]"),
+        "expected the `Family.{{0}}` / `Family.{{1}}` mismatch, got {msg:?}"
+    );
 }

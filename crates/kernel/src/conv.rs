@@ -2,7 +2,7 @@ use crate::env::{Declar, ReducibilityHint};
 use crate::relevance::{app_prefix_len, Sig};
 use crate::tc::TypeChecker;
 use crate::util::{ExprPtr, LevelPtr, LevelsPtr, NamePtr};
-use crate::value::{self, ElimView, Env, RigidHead, Spine, UnfoldHead, Value, E, S, V};
+use crate::value::{self, ElimView, RigidHead, Spine, UnfoldHead, Value, S, V};
 fn rigid_head_eq<'a>(hx: RigidHead<'a>, hy: RigidHead<'a>) -> bool {
     match (hx, hy) {
         (RigidHead::BVar(a, _), RigidHead::BVar(b, _)) => a == b,
@@ -36,34 +36,6 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             }
             s.try_proof_irrel_at(depth, vx, vy) || s.unify::<true>(depth, vx, vy)
         })
-    }
-
-    #[inline]
-    fn envs_ptr_equal(e1: E<'t>, e2: E<'t>) -> bool {
-        let mut a = e1;
-        let mut b = e2;
-        loop {
-            if std::ptr::eq(a, b) {
-                return true;
-            }
-            match (a, b) {
-                (Env::Nil { .. }, Env::Nil { .. }) => return true,
-                (
-                    Env::Cons { v: va, parent: pa, hash: ha, .. },
-                    Env::Cons { v: vb, parent: pb, hash: hb, .. },
-                ) => {
-                    if ha != hb {
-                        return false;
-                    }
-                    if !std::ptr::eq(*va, *vb) {
-                        return false;
-                    }
-                    a = *pa;
-                    b = *pb;
-                }
-                _ => return false,
-            }
-        }
     }
 
     /// Closure-kind guard for the body-expr shortcuts above: an eval closure
