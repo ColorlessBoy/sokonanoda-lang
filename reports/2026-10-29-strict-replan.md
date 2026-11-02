@@ -302,7 +302,7 @@ oracle（`elab.rs:4821` `pp_shape::arg_types` → `operand_type_expr` → `infer
 | G3 | `pp_shape` 元变量名泄漏（一行） | 0.9 | ✅ | `4d1b47a6` |
 | **L1** | 已知限制：`¬ (Set.Equiv ∅ {b})` 这类「记法前导隐式 + 零元糖操作数」在 strict 仍拒（loose 过，G3 残留边界） | 0.0 | ⏸ | 不在 357 语料、也不在课程 112 目标；翻默认后变成**默认可见**；要两档都绿得改推断面（`elab.rs`/`implicit.rs` 都是冻结文件）⇒ 单开一刀，已写进 §9.40 |
 | **L2** | 已知缺口（**发版门禁**）：Lean Kernel Arena 新增的 4 条用例被**接受而非拒绝**（**K1–K4 全部清零**，arena `4→0`）（`closure-level-subst` / `nested-name-capture` / `unit-rec-rule` / `inductive-undeclared-universe`） | 0.0 | ✅ | **K1–K4 全部修完**（`166cb7dd`/`cd99671f`/`d6b9483f`/`afd45a27`）；**本轮 P4 原本的真拦路石**（`31fbf072`）：语料从 200 → **207 例**，非回归；`bump.py` 会拒绝写版本号。处置 A（修内核）/ B（改成拒判）/ C（登记 known-unsupported）待用户拍板；只读定根因 `reports/2026-11-02-lka-4-soundness-gaps.md` |
-| **P4** | 发版闭环（bump → push main → CI → release → 核对） | 1.5 | ⬜ | **push main 前必须问用户** |
+| **P4** | 发版闭环（bump → push main → CI → release → 核对） | 1.5 | ✅ | **v0.98.0 已发布**：bump `9b818fd2` · preflight 全过 · CI **38/38** · tag `v0.98.0` · release **26 资产** · 站点 10/10（`596e3254`） |
 
 | P2-1…P2-8 | 推迟实参、多轮、重检、记法、探测、缓存键 | 见交接书 `2026-10-31-strict-handoff.md` §1 | ✓ |
 | P2-9 | 内核：`expected` 里允许外层元变量（登记 + 内层 id 从 `max(SESSION_META_BASE, 最大外部 id+1)` 起防撞号）；`NeedArgs.blocked` 带域；拆 `elab_app_holes.rs` | 内核单测（外部元变量被赋值 / 留空 ⇒ Unsolved / 撞号反向验证）；开关开/关全语料逐字节 | ✓ `bef50d65`（714×2 两对 diff 皆空，主会话复核；内核 120、front kernel_app 25） |
