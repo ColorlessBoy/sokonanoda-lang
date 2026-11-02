@@ -58,7 +58,9 @@
 
 #![allow(clippy::doc_lazy_continuation)]
 
-use sokonanoda_front::compile::{compile_all_with, CompileOptions, DeclStatus, DocumentReport};
+use sokonanoda_front::compile::{
+    compile_all_with, CompileOptions, DeclStatus, Dialect, DocumentReport,
+};
 use sokonanoda_front::parse;
 
 /// 隐式实参**省掉**的靶子（今天红）：`Set.Equiv` 的前导 `α` 只由内层项给。
@@ -83,7 +85,16 @@ def t (A : Set Nat) (B : Set (Set Nat)) : Prop := Set.Equiv (Set.image (@Set.sin
 
 fn compile(src: &str) -> (Vec<(String, String)>, DocumentReport) {
     let file = parse(src).expect("夹具必须能解析");
-    let (out, report) = compile_all_with(&file, &CompileOptions::default());
+    // **方言钉 loose**（S7 翻默认之后）：本文件量的是 **B2 的声明级 MetaStore / 元变量进项**（前端属性），
+    // 与方言默认无关；而这条夹具（`Set.Equiv` 前导 `α` 只能从内层 `Set.image Set.singleton A` 反推）
+    // 正是 §9.40 的已知限制 L1：strict 推不出它。钉 loose ⇒ 断言强度不变、测的还是同一件事。
+    let (out, report) = compile_all_with(
+        &file,
+        &CompileOptions {
+            dialect: Dialect::Loose,
+            ..CompileOptions::default()
+        },
+    );
     let errors = out
         .errors
         .iter()

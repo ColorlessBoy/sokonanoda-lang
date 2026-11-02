@@ -23,7 +23,7 @@
 
 use std::env;
 
-use sokonanoda_front::compile::{compile_all_with, CompileOptions, DeclStatus};
+use sokonanoda_front::compile::{compile_all_with, CompileOptions, DeclStatus, Dialect};
 use sokonanoda_front::parse;
 
 /// P0 形状（与 `b2_shared_metavar_context.rs` 的 `ELIDED` **同一份**源）。
@@ -42,7 +42,16 @@ fn p0_shape_after_the_declaration_exit_matches_gate_off() {
     // ⚠ 本文件**恰好一个** `#[test]`（独立进程 ⇒ `OnceLock` 不竞态）。
     env::set_var("SOKO_DECL_MVARS", "1");
     let file = parse(P0).expect("夹具必须能解析");
-    let (out, report) = compile_all_with(&file, &CompileOptions::default());
+    // **方言钉 loose**（S7 翻默认之后）：本文件量的是 **P3b/P4a/P4b 的载体与声明出口方程**
+    // （前端属性），与方言默认无关；而 P0 夹具（`Set.Equiv` 前导 `α` 由内层 `Set.image …` 反推）
+    // 正是 §9.40 的已知限制 **L1**：strict 推不出它。钉 loose ⇒ 断言强度不变、测的还是同一件事。
+    let (out, report) = compile_all_with(
+        &file,
+        &CompileOptions {
+            dialect: Dialect::Loose,
+            ..CompileOptions::default()
+        },
+    );
     let errors: Vec<(&str, &str)> = out
         .errors
         .iter()
