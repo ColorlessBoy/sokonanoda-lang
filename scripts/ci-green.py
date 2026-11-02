@@ -115,6 +115,9 @@ ALWAYS = [
     # "17 轮里 0 次 skipped" ✓）。**按定义**它们被 skip 就是异常 ⇒ 进 ALWAYS
     # （⇒ 被 skip 判**假绿** ✓）—— ⚠ 这比"留在未分类里"**更严**，不是放宽 ✗。
     "tactic-docs-lint",   # tactic 清单三处一致 + selftest（ci.yml:102）
+    # 2026-11-02（P3-a 的棘轮接进 CI）：**无 `if:` 的独立 lint job**，形状与上面三个同
+    # —— 按定义被 skip 就是异常 ⇒ 进 ALWAYS（⇒ 被 skip 判**假绿** ✓，不是放宽 ✗）。
+    "strict-text-oracle-ratchet",   # strict 文本 oracle 棘轮 + 反咬（ci.yml）
     "wiring-lint",        # harness 接线漂移 + 启动器链接 + LSP marker + 推送范围（ci.yml:154）
     "board", "guard-bite", "budgets", "site", "hygiene",
 ]
