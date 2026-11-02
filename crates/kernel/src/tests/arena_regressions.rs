@@ -1,13 +1,16 @@
 //! Regressions from the external Lean Kernel Arena corpus.
 //!
-//! The fixtures live in `test_resources/{NestedRecRuleNFields,UnsafeDef}` and
-//! come from `leanprover/lean-kernel-arena` (Apache-2.0, revision
-//! `d4f15adc61e131de91b11a7bfa827045df86d193`); see each fixture's README.
+//! The fixtures live in `test_resources/{NestedRecRuleNFields,UnsafeDef,
+//! InductiveUndeclaredUniverse}` and come from `leanprover/lean-kernel-arena`
+//! (Apache-2.0, revision `d4f15adc61e131de91b11a7bfa827045df86d193` for the
+//! first two, `d7f74a9e67459e2c251d608f524dc5efc6dc223c` for the third); see
+//! each fixture's README.
 //!
 //! These tests are deliberately *not* gated on `LEAN_KERNEL_ARENA`: they are
-//! the self-contained reproducers for the two behaviours the release gate
-//! depends on (a lying nested iota rule is rejected; unsafe/partial definitions
-//! decline instead of panicking).
+//! the self-contained reproducers for the behaviours the release gate depends
+//! on (a lying nested iota rule is rejected; unsafe/partial definitions decline
+//! instead of panicking; an inductive block may not mention a universe
+//! parameter it never declared).
 
 use crate::util::{Config, Decline};
 use std::panic::{self, AssertUnwindSafe};
@@ -56,4 +59,26 @@ fn unsafe_definitions_decline_instead_of_panicking() {
         "unexpected decline message: {}",
         decline.0
     );
+}
+
+/// `bad/other/inductive-undeclared-universe`: the block's `levelParams` is `[]`
+/// while `U`'s type is `Sort u`, so `u` is a level parameter the block never
+/// declared. At `u := 0` that makes `U` a proposition with two proofs and lets
+/// the export type `U.a` and `U.b` as the same `P.{0}`.
+///
+/// The guard that catches this is `infer`'s `all_uparams_defined` assertion on
+/// the `Sort`/`Const` arms, which only runs when the checker has a
+/// `DeclarInfo`. The block used to be checked with `None` (dead guard), so this
+/// test is the in-repo reproducer for the fix: it fails before it and passes
+/// after.
+#[test]
+fn inductive_type_may_not_mention_an_undeclared_universe_parameter() {
+    let cfg = Config::try_from(Path::new("test_resources/InductiveUndeclaredUniverse/config.json"))
+        .expect("fixture config");
+    let arena = Arena::new();
+    let (ef, _) = cfg.to_export_file(arena.as_arena_ref()).expect("parse export");
+    let payload = panic::catch_unwind(AssertUnwindSafe(|| ef.check_all_declars()))
+        .expect_err("an inductive block that mentions an undeclared universe parameter must be rejected");
+    let msg = panic_message(payload);
+    assert_eq!(msg, "universe parameter not declared by the current declaration");
 }

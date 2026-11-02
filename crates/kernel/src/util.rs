@@ -1,4 +1,4 @@
-use crate::env::{Declar, DeclarMap, Env, EnvLimit, NotationMap};
+use crate::env::{Declar, DeclarInfo, DeclarMap, Env, EnvLimit, NotationMap};
 use crate::expr::{
     BinderStyle, Expr, APP_HASH, CONST_HASH, LAMBDA_HASH, LET_HASH, NAT_LIT_HASH, PI_HASH,
     PROJ_HASH, SORT_HASH, STRING_LIT_HASH, VAR_HASH,
@@ -1001,6 +1001,36 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
         F: FnOnce(&mut TypeChecker<'_, 't, 'p>) -> A, {
         let env = self.export_file.new_env(env_limit);
         let mut tc = TypeChecker::new(self, &env, arena, None, cache);
+        f(&mut tc)
+    }
+
+    /// Like [`Self::with_tc`], but with the declaration's [`DeclarInfo`] set —
+    /// which is what **arms** the universe-parameter guard in `infer`: the
+    /// `Sort`/`Const` arms assert `all_uparams_defined(.., info.uparams)`
+    /// ("universe parameter not declared by the current declaration").
+    ///
+    /// A `def`/`theorem`/`axiom` turns that guard on by being checked through
+    /// `check_simple_declar` (`Some(*d.info())`); an **inductive block** has no
+    /// such per-declaration entry point, so before this existed its
+    /// `check_declar_info_v` ran with `declar_info = None` ⇒ the guard was dead
+    /// code for every inductive type/constructor/recursor *block-internal*
+    /// check, and an export could mention a level parameter the block never
+    /// declared (Lean 4 rejects that in `type_checker::check_level`:
+    /// `invalid reference to undefined universe level parameter 'u'`, reached
+    /// from `inductive.cpp`'s `check_inductive_types` via
+    /// `tc().check(type, m_lparams)`).
+    pub fn with_tc_declar_info<F, A>(
+        &mut self,
+        declar_info: DeclarInfo<'t>,
+        env_limit: EnvLimit<'p>,
+        arena: &'t bumpalo::Bump,
+        cache: &mut TcCache<'t, 't>,
+        f: F,
+    ) -> A
+    where
+        F: FnOnce(&mut TypeChecker<'_, 't, 'p>) -> A, {
+        let env = self.export_file.new_env(env_limit);
+        let mut tc = TypeChecker::new(self, &env, arena, Some(declar_info), cache);
         f(&mut tc)
     }
 

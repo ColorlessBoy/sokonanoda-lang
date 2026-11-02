@@ -86,7 +86,14 @@ impl<'t, 'p: 't> ExportFile<'p> {
         };
         {
             // The **unmodified** types and constructors for all of the types in this mutual block.
-            let unmodified_tys_ctors = ctx.with_tc(env_limit, arena, cache, |tc| {
+            //
+            // `d.info()` is the **block's** `DeclarInfo`, and passing it here is what arms the
+            // universe-parameter guard: the inductive type is the one member of the block that has
+            // no per-declaration check of its own (`check_simple_declar` gives the constructors and
+            // the recursor their `Some(info)`; `Inductive` is routed to this function instead).
+            // Without it `declar_info` is `None` ⇒ `infer`'s `all_uparams_defined` assertions are
+            // dead code and a block may mention a level parameter it never declared.
+            let unmodified_tys_ctors = ctx.with_tc_declar_info(*d.info(), env_limit, arena, cache, |tc| {
                 tc.check_declar_info_v(d);
                 tc.collect_unmodified_mutuals(ind)
             });
