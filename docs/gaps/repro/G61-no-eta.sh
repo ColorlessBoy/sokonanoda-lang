@@ -40,9 +40,11 @@ fi
 
 # ── ⓪ **判据本身还在吗** ✓（机制没了 ⇒ 本判据**失效** ⇒ exit 2，不是「已修」✗）──────────
 #    四样：conv 侧的结构 η + 单位元 η、eval 侧的「主前提 η 展开」、以及闸（`can_be_struct`）。
+# 2026-11-02（K3）：η 四函数从 `conv.rs` **搬到** `conv_eta.rs`（⑨ 行数只减不增）⇒ 判据跟着代码走，
+# 针只许**挪位置**、不许少（三根针原样三根）。
 for needle in "fn try_struct_eta" "fn try_eta_struct_v" "fn is_unit_inductive"; do
-  grep -q "$needle" crates/kernel/src/conv.rs \
-    || { echo "G-61: 判据失效 —— conv.rs 里 \`$needle\` 不见了" >&2; exit 2; }
+  grep -q "$needle" crates/kernel/src/conv_eta.rs \
+    || { echo "G-61: 判据失效 —— conv_eta.rs 里 \`$needle\` 不见了" >&2; exit 2; }
 done
 grep -q "fn try_struct_eta_reduce" crates/kernel/src/eval.rs \
   || { echo "G-61: 判据失效 —— eval.rs 里 \`try_struct_eta_reduce\` 不见了" >&2; exit 2; }
