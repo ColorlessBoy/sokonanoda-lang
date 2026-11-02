@@ -38,6 +38,7 @@ pub mod transfer;
 pub(crate) mod transfer_inst;
 #[cfg(test)]
 mod tests;
+pub mod tc_decl_info;
 pub mod util;
 pub mod value;
 pub(crate) mod value_ctors;
