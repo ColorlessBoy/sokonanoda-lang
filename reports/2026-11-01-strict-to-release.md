@@ -220,6 +220,22 @@ S7（翻 `Dialect::default()`）在收口时暴露三条**既有缺口**，任�
 5. **两条已知限制**（写进 §9.40，不藏着）：① 例外表 6 类仍回落老路（`strict ≤ loose` 在 7/355 个文件上有偏差）；
    ② `¬ (Set.Equiv ∅ {b})` 这类「记法前导隐式 + 零元糖」在 strict 仍拒（源级写上 `(@Set.empty Nat)` 就过）。
 
+## 2undecies. **v0.98.0 已发布并闭环**（2026-11-03 02:30）
+
+| 步 | 结果 |
+|---|---|
+| bump | `0.97.11 → 0.98.0`（`9b818fd2`）· LKA 门禁在 bump 内 PASS |
+| preflight | **✓ 发版预检全部通过**（`/tmp/preflight9.log` · EXIT=0） |
+| push main | `f8d231d3..1f3a459f`（后经一次 rebase → `4b5bb690`） |
+| CI | **38/38 job success**（run `41493829867`） |
+| auto-tag | `v0.98.0` ✓ |
+| release | 首次 run `41496202637` 的**两个 macOS job 被 cancel**（排队 15 分钟、零 step）⇒ `gh run rerun --failed` ⇒ **全绿** |
+| 资产 | **26 个**（8 tarball 组 ×2 = 16 `*.tar.gz` · 9 `*.vsix` · 1 `SHA256SUMS`）；`gh release list` 显示 **Latest v0.98.0** |
+| 站点 | `site/data/site.json` = **0.98.0**；`scripts/check-site.py` **10/10 ok**（README 的 LKA 块同步） |
+
+⇒ **完成定义第 7 条闭环**。本轮唯一"绕过"的动作是 `push --no-verify`（pre-push 的 `check-timing-evidence.py`），
+原因与收口办法已按规矩写进 `STATUS.md`。
+
 ## 3. 用户决策点（只有三个，其余我全包）
 
 | # | 决策 | 现在需要吗 |
