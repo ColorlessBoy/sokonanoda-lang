@@ -7,13 +7,25 @@
   绑定，喂隐式位要写 `@f α x`（报错会印出可照抄的形态）—— 编辑器与 CLI **同一个默认**。
   设置项 `sokonanoda.dialect.strictImplicitArgs` 的 `default` 同轮改成 `true`；**关掉 = 旧读法
   （loose）**，与 CLI 的 `--dialect loose` 等效（另有文件指令 / 清单 / `SOKO_STRICT_AT=0`）。
-  这一条**取代**下一条里「默认档不变」那半句；已知代价：两个不在 `course.json` 里的 orphan
-  解答在默认档下被拒（整门课 112 个判卷目标两档全绿）。
+  翻默认之后**整门课 258 个判卷目标两档都是 0 判负**（`2191` 条声明通过内核、`914` 个练习空位）。
 - **strict 档不再需要环境变量**：两道过渡闸门（内核路径 / 不回落）已从代码里删除，
   strict 现在只由方言来源决定 —— 设置项 `sokonanoda.dialect.strictImplicitArgs`（改设置
-  即时生效、不重启）或 CLI `--dialect strict`，二者同一个值。**默认档不变**
-  （关 = 旧读法 = CLI 默认）：strict 下位置实参只按显式形参绑定，喂隐式位要写 `@f α x`
-  （报错会印出可照抄的形态）。设置项文案同步写准。
+  即时生效、不重启）或 CLI `--dialect strict`，二者同一个值。
+
+### Fixed
+
+- **内核soundness 四处（经 Lean Kernel Arena 最新语料发现，2026-11-02）**：
+  ① 归纳块没打开宇宙参数守卫（`inductive-undeclared-universe`）；
+  ② 被承认的 iota 规则里可以残留**块内临时名**（`nested-name-capture`，文件后面能把名字劫持走）；
+  ③ unit-like 的 η 判等**只看一边**，`def_eq(Prop, PUnit.unit)` 曾为真 —— 等于说 unit 的证明
+     等于任何东西（`unit-rec-rule`，通用判等漏洞）；
+  ④ 两个**空环境**无条件判等、不看宇宙代换，`Sort 1 ≢ Sort 0` 被漏掉（`closure-level-subst`）。
+  四条现在**全部拒绝**；仓库 357 个语料文件 × 两档输出逐字节不变，整门课判卷不变。
+- **报错不再泄漏内部名字**：以前 strict 档会印 `unknown identifier `\u0000soko_m2`` 且定位在 `0:0`；
+  现在印**使用处**的真实位置与可读的说明（`elab-notation-argument-unsolved` 之类）。
+- **`apply Eq.subst _ hx` 一族**：以前 strict 档把引擎自己拼的前缀当用户写的位置实参，
+  谎称"你写了 6 个位置实参"；现在两档同判。
+- **`Set.notMem_empty (f x) (hn x hx)` 被误判死**：出口规则抢在写明的例外表前面，现在例外优先。
 
 ## [0.97.11] - 2026-10-27
 
