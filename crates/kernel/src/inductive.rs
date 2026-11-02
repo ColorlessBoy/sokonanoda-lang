@@ -432,14 +432,6 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
         ind_names.iter().map(|name| self.ctx.str(*name, rec)).collect()
     }
 
-    fn assert_imported_expr_matches(&mut self, imported: ExprPtr<'t>, reconstructed: ExprPtr<'t>) {
-        self.tc_cache.clear();
-        assert!(
-            self.def_eq_core(imported, reconstructed),
-            "imported recursor rule does not match the reconstructed rule"
-        );
-    }
-
     fn specialize_nested(
         &mut self,
         t_from_file: &InductiveData<'t>,

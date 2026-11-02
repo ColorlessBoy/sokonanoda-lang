@@ -27,6 +27,7 @@ pub(crate) mod mvar_level;
 pub(crate) mod mvar_miller;
 pub(crate) mod mvar_spine;
 pub mod name;
+pub mod nested_rule_hygiene;
 pub mod parser;
 pub mod pretty_printer;
 pub mod quot;

@@ -1,16 +1,18 @@
 //! Regressions from the external Lean Kernel Arena corpus.
 //!
 //! The fixtures live in `test_resources/{NestedRecRuleNFields,UnsafeDef,
-//! InductiveUndeclaredUniverse}` and come from `leanprover/lean-kernel-arena`
-//! (Apache-2.0, revision `d4f15adc61e131de91b11a7bfa827045df86d193` for the
-//! first two, `d7f74a9e67459e2c251d608f524dc5efc6dc223c` for the third); see
-//! each fixture's README.
+//! InductiveUndeclaredUniverse,NestedNameCapture}` and come from
+//! `leanprover/lean-kernel-arena` (Apache-2.0, revision
+//! `d4f15adc61e131de91b11a7bfa827045df86d193` for the first two,
+//! `d7f74a9e67459e2c251d608f524dc5efc6dc223c` for the others); see each
+//! fixture's README.
 //!
 //! These tests are deliberately *not* gated on `LEAN_KERNEL_ARENA`: they are
 //! the self-contained reproducers for the behaviours the release gate depends
 //! on (a lying nested iota rule is rejected; unsafe/partial definitions decline
 //! instead of panicking; an inductive block may not mention a universe
-//! parameter it never declared).
+//! parameter it never declared; an admitted iota rule may not capture a
+//! block-local name).
 
 use crate::util::{Config, Decline};
 use std::panic::{self, AssertUnwindSafe};
@@ -81,4 +83,26 @@ fn inductive_type_may_not_mention_an_undeclared_universe_parameter() {
         .expect_err("an inductive block that mentions an undeclared universe parameter must be rejected");
     let msg = panic_message(payload);
     assert_eq!(msg, "universe parameter not declared by the current declaration");
+}
+
+/// `bad/bugs/nested-name-capture`: the exported `Shadow.rec` rule for
+/// `Shadow.node` names `_nested.Cov_1.rec` / `_nested.Cov_1.mk`, declarations
+/// that exist only in the nested-inductive block's temporary extension. The
+/// file then defines a fresh `def _nested.Cov_1.rec` with the same name, which
+/// hijacks the admitted rule and lets the export prove `False`.
+///
+/// Restoring (`_nested.Cov_1.rec ↦ Shadow.rec_1`) and comparing with `def_eq`
+/// does not catch this: the block-local recursor computes the same value on the
+/// same major premise, so both rules are convertible. This test is the in-repo
+/// reproducer for the name check: it fails before it and passes after.
+#[test]
+fn nested_recursor_rule_may_not_name_a_block_local_constant() {
+    let cfg = Config::try_from(Path::new("test_resources/NestedNameCapture/config.json"))
+        .expect("fixture config");
+    let arena = Arena::new();
+    let (ef, _) = cfg.to_export_file(arena.as_arena_ref()).expect("parse export");
+    let payload = panic::catch_unwind(AssertUnwindSafe(|| ef.check_all_declars()))
+        .expect_err("a recursor rule that names a block-local constant must be rejected");
+    let msg = panic_message(payload);
+    assert_eq!(msg, "imported recursor rule refers to a block-local name");
 }
