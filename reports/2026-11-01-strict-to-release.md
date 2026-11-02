@@ -175,7 +175,9 @@ S7（翻 `Dialect::default()`）在收口时暴露三条**既有缺口**，任�
 
 ## 2nonies. **P4 的两个拦路石**（2026-11-02 03:50 实测）
 
-1. **D3：push main 要用户点头**（用户早先定的规矩）。
+1. ~~**D3：push main 要用户点头**~~ ⇒ **2026-11-02 09:09 用户明确授权：「最后发版不需要我确认」**
+   ⇒ 主会话直接把 P4 走完（bump → preflight → push main → CI → auto-tag → release → `gh release list` 核对），
+   不再等确认。**唯一前置仍是：LKA 的 4 条 soundness 清零**（K1 已修 1/4）。
 2. **LKA 门禁判负：4 条「该拒却接受」（**2026-11-02 06:00 实测，已定性**）** —— 这是**真发现**，不是环境问题。
 
    把 tier 直接跑起来（`SOKO_ARENA_TIMEOUT=30 LEAN_KERNEL_ARENA_TARBALL=target/arena/cache
