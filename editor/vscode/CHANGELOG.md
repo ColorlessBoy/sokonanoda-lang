@@ -1,5 +1,5 @@
 <!-- doc-refs: history-only（旧版本的 `docs/**` 指针是历史位置；恢复方式：原文 ⇒ git log --all -- <path>） -->
-## [Unreleased]
+## [0.98.0] - 2026-11-02
 
 ### Changed
 
