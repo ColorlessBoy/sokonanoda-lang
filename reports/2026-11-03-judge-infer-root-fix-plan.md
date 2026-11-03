@@ -42,3 +42,24 @@ term 是渲染出来的**证明项**（丢了前导隐式实参）；调用链 `
 
 每个阶段结束给：改了什么（文件/行）、判据读数（714 行差异数、2 文件的 fails/calls/prefix、四门、课程）、
 以及"下一步是否需要你拍板"。**没达判据就不说完成。**
+
+## Stage 0 结果（2026-11-03 完成）
+
+用 `infer_type_text` 入口探针（打印操作数 span + 渲染文本，跑完已还原）定位到**唯一触发点**：
+
+| 文件 | 触发 span | 触发者 |
+|---|---|---|
+| `unit06-solution` | `331:6`（外层 `And.intro` 的**第二个实参** = 内层 `And.intro (fun…) (fun…)`） | `try_implicit_application` 的 `arg_types` → 第二候选 `alt_type` |
+| 同上（递归复入） | `1:117`（同一段 1462 字节文本，行号从 1 起 = **判卷器合成文档**） | 判卷器重编时又问了同一个问题 |
+| `G30` | `43:27..43:30`（`mem_singleton_iff` 假设）× 2 + `47:15`（lambda） | 同一族 |
+
+**结论**：提问发生在「**隐式实参插入**求解前缀之前、要拿每个实参的类型」这一步
+（`crates/front/src/compile/elab.rs` 的 `arg_types` / `alt_type`，`try_implicit_application` 内）。
+实参是**应用形态**（不是 Ident/lambda/常量）⇒ 主候选（源级线索）答不出 ⇒ 第二候选去问判卷器
+⇒ 判卷器把这段 1462 字节的渲染文本当 `#check` 的查询项重编 ⇒ 文本丢前导隐式实参 ⇒
+`elab-implicit-argument-unsolved` ⇒ 每次失败重编整份前缀。
+
+**对方案的含义**：Stage 1 的"就地化"救不了这个点 —— 就地路径同样要先 elaborate 那个实参，
+而设计上实参**必须等前缀解出来**才 elaborate（期望类型要代换）。
+⇒ 真正的修法是给 **"求应用类型"** 一条不经过文本的路：让内核**自己 infer 已 elaborate 的项**
+（Lean `synthesizeType` / `inferType`），也就是 Stage 2 的检查模式。**Stage 0+1 的 50–60% 预期下调。**
