@@ -70,13 +70,12 @@ theorem empty_subset (α : Type) (A : Set α) : ∅ ⊆ A := by
 theorem subset_empty_iff (α : Type) (A : Set α) :
     (A ⊆ ∅) ↔ (A = ∅) := by
   constructor
-  intro h
-  apply subset_antisymm 
-  exact h
-  exact empty_subset α A
+  · intro h
+    apply subset_antisymm 
+    exact h
+    exact empty_subset α A
   intro h x hx
-  apply Eq.subst h
-  exact hx
+  apply Eq.subst h hx
 
 #print subset_empty_iff
 
