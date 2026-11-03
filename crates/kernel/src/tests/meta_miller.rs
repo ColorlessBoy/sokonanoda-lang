@@ -327,3 +327,22 @@ fn c_t3_depth_zero_still_requires_closed() {
         assert!(tc.ctx.mvars.value(103).is_none());
     });
 }
+
+/// **C4 回传（内核半）**：会话里对**调用方登记**的元变量的赋值，要能渲染成文本交回去
+/// （前端据此写回 `MetaStore`，同一 `\0soko_m{id}` 的所有出现才看到同一个值）。
+#[test]
+fn c4_external_assignment_is_exported_as_text() {
+    with_tc2(|tc, fx, _mx| {
+        tc.ctx.mvars.register_at(200, fx.a, 0);
+        tc.ctx.mvars.register_kind(200, MetaKind::Natural);
+        tc.ctx.mvars.note_external(200);
+        let m = tc.ctx.mk_meta(200, fx.a);
+        assert!(tc.is_def_eq(m, fx.w), "?200 =?= a 必须赋上");
+        let out = tc.take_external_assignments(&[]);
+        assert_eq!(out.len(), 1, "恰好一条外部赋值，实际 {out:?}");
+        assert_eq!(out[0].0, 200);
+        assert!(!out[0].1.is_empty(), "文本不许为空");
+        // 拿第二次是空的（take 语义，会话收尾只交一次）
+        assert!(tc.take_external_assignments(&[]).is_empty());
+    });
+}

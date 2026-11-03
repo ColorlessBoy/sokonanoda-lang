@@ -31,6 +31,10 @@ pub struct MetaContext<'t> {
     depths: FxHashMap<u32, u32>,
     /// **K1c**：赋值代数（每次 `assign`/`assign_level` +1，永不回退）⇒ `restore` 按内容判"变没变"。
     generation: u64,
+    /// **C4 回传（2026-11-03）**：由**调用方**登记进来的项元变量 id（`app_register_externals` /
+    /// `app_register_inputs`）。会话结束时把它们**已赋值**的那几条渲染成文本交回前端
+    /// （Lean 的 `MetavarContext.eAssignment` 本来就跨会话；我们这边赋值只在会话 arena 里活着）。
+    externals: Vec<u32>,
     /// **K1d**：本会话登记的层元变量（Lean `MetavarContext.lDepth` 里"可赋值"那部分）。
     /// 只有登记过且未赋值的 `Level::MVar` 才能在 defeq 里被赋值；其余（前端 R1c 造的等）照旧刚性。
     /// 空集 ⇒ 层比较走原 `eq_antisymm`，逐字节不变。
@@ -61,6 +65,18 @@ impl<'t> MetaContext<'t> {
         self.depths.insert(id, depth);
     }
     /// **K1c**：创建处的 binder 深度（未登记 ⇒ 0）。
+    /// **C4 回传**：取走"调用方登记的" id 表（会话收尾用一次）。
+    pub fn take_externals(&mut self) -> Vec<u32> {
+        std::mem::take(&mut self.externals)
+    }
+
+    /// **C4 回传**：记一个"调用方登记的" id（去重）。
+    pub(crate) fn note_external(&mut self, id: u32) {
+        if !self.externals.contains(&id) {
+            self.externals.push(id);
+        }
+    }
+
     pub fn depth_of(&self, id: u32) -> u32 {
         self.depths.get(&id).copied().unwrap_or(0)
     }
@@ -273,6 +289,32 @@ pub fn has_unassigned_meta(v: V<'_>, ctx: &MetaContext<'_>) -> bool {
 /// 写成 `expect` 而不是 `as`（clippy `cast_possible_truncation` 要的就是"明确表过态"）。
 pub(crate) fn shift16(k: u32) -> u16 {
     u16::try_from(k).expect("binder depth is bounded by u16 (elab_app checks `scope too deep`)")
+}
+
+impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
+    /// **C4 回传（2026-11-03）**：会话里**调用方登记**的元变量中已赋值的那几条，渲染成**文本**交回去。
+    ///
+    /// 为什么是文本：`MetaContext` 活在会话 arena 里（`with_tc` 一退就没了），而本仓的既有纪律就是
+    /// 「渲染成文本后才能跨检查存活」（见 `with_tc_seeded` 的文档）；前端拿
+    /// `meta_parse::parse_expr_text_meta` 解析后写回自己的 store（`MetaStore::assign`）⇒ 同一个
+    /// `\0soko_m{id}` 的**所有**出现都看到同一个值。这正是 C4 之前 `G19` 变红的根因
+    /// （内核赋了值、前端不知道 ⇒ 两份实例不一致）。
+    ///
+    /// `scope` = 调用方作用域的 binder 名（外层在前）⇒ 开项印成**真名**而不是 `$3 $2 $1`。
+    pub(crate) fn take_external_assignments(&mut self, scope: &[String]) -> Vec<(u32, String)> {
+        let ids = self.ctx.mvars.take_externals();
+        let mut out = Vec::new();
+        for id in ids {
+            let Some(v) = self.ctx.mvars.value(id) else {
+                continue;
+            };
+            let text = self.with_pp_scoped(scope, |pp| pp.pp_expr(v));
+            if !text.is_empty() {
+                out.push((id, text));
+            }
+        }
+        out
+    }
 }
 
 impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {

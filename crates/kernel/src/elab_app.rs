@@ -116,6 +116,31 @@ impl<'p> ExportFile<'p> {
         let run = std::panic::AssertUnwindSafe(|| self.with_tc(limit, |tc| tc.elab_app_session(req)));
         std::panic::catch_unwind(run).unwrap_or(AppOutcome::Unsupported("panic"))
     }
+
+    /// **C4 回传（2026-11-03）**：同 [`Self::elab_app`]，另外把会话里对**调用方登记**的元变量的赋值
+    /// 渲染成文本交回来（`(id, 文本)`）。前端把它写回自己的元变量 store（`MetaStore::assign`）⇒
+    /// 同一个 `\0soko_m{id}` 的所有出现看到同一个值。
+    ///
+    /// `scope` = 调用方作用域的 binder 名（外层在前），与 `req.binder_tys` **同序**；开项要印真名。
+    /// 没有登记过元变量（今天的所有语料）⇒ 第二项恒空 ⇒ 与 [`Self::elab_app`] 逐字节同一条路。
+    pub fn elab_app_collect(
+        &self,
+        limit: EnvLimit<'p>,
+        req: &AppRequest<'_, 'p>,
+        scope: &[String],
+    ) -> (AppOutcome, Vec<(u32, String)>) {
+        let _q = crate::quiet::quiet();
+        let cell = std::cell::RefCell::new(Vec::new());
+        let run = std::panic::AssertUnwindSafe(|| {
+            self.with_tc(limit, |tc| {
+                let out = tc.elab_app_session(req);
+                *cell.borrow_mut() = tc.take_external_assignments(scope);
+                out
+            })
+        });
+        let verdict = std::panic::catch_unwind(run).unwrap_or(AppOutcome::Unsupported("panic"));
+        (verdict, cell.into_inner())
+    }
 }
 
 pub(crate) fn name_string(ctx: &TcCtx<'_, '_>, n: NamePtr<'_>) -> String {

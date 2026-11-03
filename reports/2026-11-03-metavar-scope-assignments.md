@@ -195,3 +195,30 @@ G19 的新诊断：`elab-anon-ctor-no-expected-type` @ **43:3**（`∅ ⊆ A` �
 ⇒ **C4 的唯一真修法 = 赋值回传**（内核把会话里的赋值表交出来，前端 `meta.rs` 应用它）。
 这也是 `prefix_meta`（52 次，记法重试在占位符前缀上直接放弃）必须依赖的同一块基础设施 ——
 所以 C4 与记法侧的那一刀应当**同一批**做，而不是先接一半。
+
+## 9. 回传（用户 2026-11-03 解冻 `meta.rs`）——内核半已落，前端半是下一片
+
+### 9.1 内核半 ✓（本轮）
+
+* `MetaContext.externals`：`app_register_externals` / `app_register_inputs` 登记时 `note_external(id)`。
+* `TypeChecker::take_external_assignments(&mut self, scope: &[String]) -> Vec<(u32, String)>`：
+  会话里**调用方登记**且**已赋值**的元变量，用 `with_pp_scoped(scope, ..)` 渲染成**文本**
+  —— 本仓既有纪律就是「渲染成文本后才能跨检查存活」（`with_tc_seeded` 的文档原话）；
+  `scope` 播种 binder 名 ⇒ 开项印真名而不是 `$3 $2 $1`。
+* `ExportFile::elab_app_collect(limit, req, scope) -> (AppOutcome, Vec<(u32, String)>)`：
+  `elab_app` 的孪生出口，多交这一份表；**没有登记过元变量时第二项恒空**。
+* 判据：714 行逐字节 **0 差异**（bin `093256fb` vs base `4895e71c`）· 内核 **130/130** ·
+  新测试 `c4_external_assignment_is_exported_as_text`（赋值 → 文本非空、take 语义只交一次）。
+
+### 9.2 前端半（下一片，契约）
+
+| 步骤 | 落点（都不是冻结文件） |
+|---|---|
+| ① 换出口 | `kernel_app.rs::run_once` 的两处 `builder.with_env(|ef| ef.elab_app(limit, &req))` → `elab_app_collect(limit, &req, &scope_names)`；`scope_names = scope.names.clone()`（外层在前，与 `binder_tys` 同序） |
+| ② 写回 | 新模块 `crates/front/src/compile/kernel_app_readback.rs`（~60 行）：`meta_parse::parse_expr_text_meta(text)` → `MetaStore::assign(MetaId(id), expr)`。store 拿法照 `elab.rs:2966` 的 `ctx.metas.and_then(|m| m.store.as_ref())` |
+| ③ 失败纪律 | 解析失败 / store 已有**不同**值 / `assign` 回 `Err`（occurs·type-occurs·scope）⇒ **跳过并计数**，绝不静默覆盖（`assign` 自带三道闸门 ✓） |
+| ④ 判据 | ①G19 在**重新接上 C4 之后**仍 `rc=0`；②那 4 个文件 `nofallback_kept_*` 归零；③714 行**仍然逐字节相同**（判卷结论不变）；④四门绿 + 258/2191/0 |
+
+⚠ 关键未知（下一片一上手就要验）：内核 pp 的文本能否被 `meta_parse` 原样读回（尤其 `@` 形式、
+Sort/宇宙层、以及 binder 名与前端作用域的同名遮蔽）。仓库里这条 parser 之前只吃过**类型文本**
+（`elab.rs:5527` 的 `?mN` 类型），**没有吃过值文本**的判据 ⇒ 第一件事是加一条单测钉死它。

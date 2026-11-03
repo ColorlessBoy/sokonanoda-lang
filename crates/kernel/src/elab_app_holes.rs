@@ -56,6 +56,7 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
             }
             self.ctx.mvars.register_at(id, ty, 0);
             self.ctx.mvars.register_kind(id, kind);
+            self.ctx.mvars.note_external(id);
             base = base.max(id.checked_add(1).ok_or("meta id space")?);
         }
         Ok((found.into_iter().map(|(id, ..)| id).collect(), base))
