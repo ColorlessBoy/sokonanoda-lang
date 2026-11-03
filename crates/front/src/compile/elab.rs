@@ -4127,15 +4127,6 @@ pub(crate) fn operand_type_expr_explicit<'a>(
         .and_then(|text| crate::proof::parse_expr_text(&text).ok())
 }
 
-/// [`infer_type_text`] 的**全显式 pp** 版（只走判定语义那条路，不进既有函数的
-/// 缓存/影子分档 ⇒ 既有行为零改动 ✓）。
-///
-/// 与 `by.rs` 的 `cases` 被消去项同一条机械（G-71 / T3-B1 ①）：先试**就地**
-/// （活环境上 elaborate，`EXPLICIT_PP` 由 [`crate::judge::judge_infer_inplace_with_explicit`]
-/// 内部置位并还原 ✓），答不出才回落 [`crate::judge::judge_infer_explicit`]
-/// （合成 `#check` 文档、整份前缀重跑）。
-///
-
 /// **B2-P3b**：裸常量的前导隐式求解 —— 共享 store 时允许 `Partial`，期望类型与**整个值类型**
 /// （`?γ → Set ?γ`）合一（路线②只比裸结果 ⇒ 把外层 `β` 错解成 `Prop`）；闸门关走今天那条。
 fn solve_bare_prefix<'a>(
