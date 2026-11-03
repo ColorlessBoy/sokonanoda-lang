@@ -288,3 +288,20 @@ A′c 之后只剩这两个。用 `SOKO_DBG_INFER` 把失败原因与"问不问"
 
 `unit06`/`G30` 属于**缓存/提问策略**问题（无能力缺口），要修得先有"前导隐式可推性"的判定；
 在那之前它们留在 allowlist 里，每条都写清了机制/次数/失败码。**这不是"接受"，是"已知边界 + 已知修法方向"**。
+
+### 11.1 补：调用点定位到**第二候选**（`judge_infer_explicit`）
+
+`#[track_caller]`（`Location::caller()` 在宏外取）钉到 `judge.rs:2945` = **`judge_infer_explicit`**
+⇒ 这些提问走的是**第二候选**（`operand_type_expr_explicit` → `infer_type_text(explicit=true)`）。
+**因果链闭合**：strict 的主候选（`operand_type_expr`）在这些站点失败得更频繁 ⇒ 触发第二候选
+⇒ 第二候选把**丢了隐式实参的渲染文本**当 `#check` 的查询项 ⇒ 必然
+`elab-implicit-argument-unsolved` ⇒ 每次失败重编整份前缀。
+
+⚠ 也确认了"改用全显式 pp"这条路**是死路**：`judge_infer_explicit` 的 `EXPLICIT_PP` 只影响
+**返回的类型文本**（"完整可回读"），**不影响送进去的查询文本**（`let term = render_expr(operand)`
+在进档前就渲染好了；而那个 `render_expr` 是**故意的**——判定查询必须用显示渲染，否则记法折叠会改判定）。
+
+⇒ 要消这两个，只有一条路：**让第二候选不问不可答的问题**，即先判定
+"这个头的前导隐式实参能否由**显式实参**推出"（`And.intro` 的 `a b` 不能；`Set.singleton` 的 `α` 能）
+—— 那台求解器就是 `notation_prefix_args`。这是一件独立的小刀（估 100–200 行 + 音界判据），
+不是补丁；本轮时间盒内不冒险动它。
