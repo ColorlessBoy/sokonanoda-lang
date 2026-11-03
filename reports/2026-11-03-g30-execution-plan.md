@@ -86,3 +86,47 @@
 - 代码：`crates/front/src/compile/kernel_app_postpone.rs`（步 1）、`kernel_app.rs`（步 2）、`elab_app_holes.rs`（步 0 诊断，env 门控）
 - 台账：`docs/gaps/ledger.jsonl`（G-30）、`scripts/strict-invariant-baseline.json`
 - 报告：本文件追加"每步实测读数"一节
+
+---
+
+## 第 0/1 步实测与**计划更正**（2026-11-03，本轮）
+
+### 步 0 ✅ 诊断已能安全打出（结构指纹，不 pp）
+
+```
+DBG_ARG arg=0 dom(kind=app,metas=2,nodes=65/89) actual(kind=sort,metas=0,nodes=1)
+DBG_ARG arg=1 dom(kind=pi ,metas=0,nodes=18)   actual(kind=pi ,metas=0,nodes=12)
+```
+（`SOKO_APP_ARGDBG=1`，进程**不 panic**，`grade` rc 仍 1。）
+
+### ⚠ **计划更正 1**：这个片段**本来就该判红**，不是"该开始通过"
+
+实测：`grade --dialect loose` 与 `--dialect strict` **都 rc=1**。它的 `Iff.mp (a∈{b}) (a=b) h proof` 是
+**旧写法**（显式实参在前，而预置里 `Iff.mp` 的 `a b` 是隐式）⇒ 两种方言都拒绝，差别**只在成本**
+（loose `prefix` 0 / strict 4,640）。⇒**不变量要的只是"同样便宜地拒绝"**，不是让它通过。
+（此前的"修好后它开始通过"是错的，据此把步 4 的台账改法改成"仍红、但记为已按 cost 收口"。）
+
+### 步 1+2 实测：单用无效、合用爆炸
+
+| 组合 | G30 读数 | 结论 |
+|---|---|---|
+| 步 1（`elab_ready` 同时给源级期望） | 4,640 / 8 / 2（**一字未变**） | 那两位是 `ArgMismatch`、**根本没走到 `elab_ready`**（没有域被交出来）⇒ 够不着 |
+| 步 2（mismatch 后该位改推迟重来） | 一字未变 | 同上 |
+| 步 1+2 合用 | prefix **51,040** · 推断 **30,452** · JSON 变 | 再入，**爆炸** ⇒ 回滚 |
+
+（都已回滚：树干净、二进制 `3d63a53d`、714 行 0 差异。）
+
+### 成本到底在哪：`report()` 的 `ArgMismatch ⇒ Fallback("argmismatch_text")`
+
+`kernel_app_report::report()` 里只有一条**不花钱**的出口：`n_args > explicit_layers` 时直接
+`Report::Error`（用老路那句 `strict_rejection_message`，**不碰判卷器**）。而 `Iff.intro` 是
+**2 个实参 = 2 个显式层** ⇒ 走不到它，落到 `ArgMismatch => Report::Fallback` ⇒ **老路整条跑起来**
+（含 `arg_types` 的两次判卷器提问）就是为了把正文打印成**逐字节相同**的那句。
+
+### ⇒ 计划更正 2：真正的下一步是 **P2-13**（内核侧 def-eq 错误打印器）
+
+- 现状注释写得很清楚：`ArgMismatch => Report::Fallback("argmismatch_text")` 的唯一理由是
+  "正文要与今天逐字节相同 = 要内核那台打印器（`render_value_for_def_eq_error`）"。
+- **做掉它** ⇒ `ArgMismatch` 也能走 `Report::Error` ⇒ **老路一行不跑**（那两次提问消失 ⇒ cost 降为 0）
+  且正文来自内核（目标：与老路逐字节相同，用 714 行对拍钉住）。
+- 这是"治本"的另一半：**不是把类型补上让它通过，而是让拒绝不必再问类型**。
