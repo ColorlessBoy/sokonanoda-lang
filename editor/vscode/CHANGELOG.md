@@ -1,4 +1,21 @@
 <!-- doc-refs: history-only（旧版本的 `docs/**` 指针是历史位置；恢复方式：原文 ⇒ git log --all -- <path>） -->
+## [0.98.1] - 2026-11-03
+
+### Changed
+
+- **strict 档不再问「注定答不出来」的类型问题**（`strict ≤ loose` 违反数 **7 → 2**）：
+  零元记法（`∅` 这类）与裸隐式常量作**记法操作数**时，前端以前会拿它的渲染文本去问
+  「你是什么类型」—— 而它的前导类型参数只能由**期望类型**给出 ⇒ 这一问必然失败，
+  **每次失败还要把整份前缀重编一遍**。现在直接按「没有信息」处理（= 它失败后本来返回的值）
+  ⇒ **判卷结论一字未变**（357 个语料文件 × 两档输出逐字节相同），只是不再白算。
+  实测：`unit19-solution` 的前缀重编量 1,587,462 → **796,174** 字节（与 `loose` 相等）。
+- **`strict ≤ loose` 成了常驻判据**：`python3 scripts/strict-score.py --corpus` 逐文件比对
+  `calls / misses / prefix_bytes` 三项，带 allowlist ratchet（修好的文件必须从表里删掉，
+  否则报 STALE）。现读数：357 个文件里 **2 个**仍高于 `loose`（`unit06-solution`、`G30` 复现件），
+  两者的失败码/调用点/次数写在 `scripts/strict-invariant-baseline.json` 与报告里。
+- **课程**：`unit02-subsets-empty` 的证明改用 `apply Eq.subst h hx`（一次给全显式实参）
+  ⇒ 站点形状不再触发 `Eq.subst` 的尝试前闸门 ⇒ 该文件与 `loose` 同价。
+
 ## [0.98.0] - 2026-11-02
 
 ### Changed
