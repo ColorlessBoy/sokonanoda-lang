@@ -822,8 +822,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 val,
                 span,
                 val_span,
-                name_span,
-            } => self.def(c, name, universe, ty, val, *span, *val_span, *name_span),
+            } => self.def(c, name, universe, ty, val, *span, *val_span),
             Command::Theorem {
                 name,
                 universe,
@@ -831,15 +830,13 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 val,
                 span,
                 val_span,
-                name_span,
-            } => self.theorem(c, name, universe, ty, val, *span, *val_span, *name_span),
+            } => self.theorem(c, name, universe, ty, val, *span, *val_span),
             Command::Axiom {
                 name,
                 universe,
                 ty,
                 span,
-                name_span,
-            } => self.axiom(c, name, universe, ty, *span, *name_span),
+            } => self.axiom(c, name, universe, ty, *span),
             Command::Example {
                 ty,
                 val,
@@ -854,9 +851,6 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 recursor,
                 iota_rules,
                 span,
-                // 归纳块今天不发 `uses-open-exercise`（它的签名/构造子类型
-                // 走的是另一条校验路）⇒ 名字范围在这里没有消费者。
-                name_span: _,
             } => self.inductive_block(
                 c,
                 name,
@@ -968,7 +962,6 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         val: &Expr,
         span: Span,
         val_span: Span,
-        name_span: Span,
     ) {
         let idx = c.idx;
         let templates = c.templates;
@@ -1349,7 +1342,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     &self.open_exercises,
                     &mut self.out,
                     &decl,
-                    name_span,
+                    crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
                     idx,
                 );
                 let env_after = self.builder.declaration_count();
@@ -1412,7 +1405,6 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         val: &Expr,
         span: Span,
         val_span: Span,
-        name_span: Span,
     ) {
         let idx = c.idx;
         let templates = c.templates;
@@ -1843,7 +1835,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     &self.open_exercises,
                     &mut self.out,
                     &decl,
-                    name_span,
+                    crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
                     idx,
                 );
                 let env_after = self.builder.declaration_count();
@@ -1893,15 +1885,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
 
     /// `axiom name : T`：只 elaborate 类型，没有值。
     #[allow(clippy::too_many_arguments)]
-    fn axiom(
-        &mut self,
-        c: &CmdCtx<'_>,
-        name: &str,
-        universe: &[String],
-        ty: &Expr,
-        span: Span,
-        name_span: Span,
-    ) {
+    fn axiom(&mut self, c: &CmdCtx<'_>, name: &str, universe: &[String], ty: &Expr, span: Span) {
         let idx = c.idx;
         // 用 `&c.prefix_src`（Deref）而不是 `Cow::as_ref()`（后者会把 `ElabCtx` 逼到 `'arena`）。
         let prefix_src: &str = &c.prefix_src;
@@ -2002,7 +1986,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     &self.open_exercises,
                     &mut self.out,
                     &decl,
-                    name_span,
+                    crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
                     idx,
                 );
                 let env_after = self.builder.declaration_count();

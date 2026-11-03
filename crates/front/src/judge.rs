@@ -1662,8 +1662,6 @@ fn judge_pairs_uncached(
                 ty,
                 val,
                 span: after_prefix,
-                // 合成声明没有源里的名字 token ⇒ 用整块（只给 warning 落点）。
-                name_span: after_prefix,
                 // **A3**：合成声明的「值位」= 学习者写的那段术语（`after_prefix` 的
                 // span 是**整个合成块** ✗）——判卷失败时诊断要指到这里 ✓。
                 val_span,
