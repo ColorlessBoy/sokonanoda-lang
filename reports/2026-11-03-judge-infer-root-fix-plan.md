@@ -63,3 +63,40 @@ term 是渲染出来的**证明项**（丢了前导隐式实参）；调用链 `
 而设计上实参**必须等前缀解出来**才 elaborate（期望类型要代换）。
 ⇒ 真正的修法是给 **"求应用类型"** 一条不经过文本的路：让内核**自己 infer 已 elaborate 的项**
 （Lean `synthesizeType` / `inferType`），也就是 Stage 2 的检查模式。**Stage 0+1 的 50–60% 预期下调。**
+
+## Stage 1 结果（2026-11-03）：**Lean 顺序那条路已经存在，但只对 loose 开着**
+
+`crates/front/src/compile/elab.rs:4733`：
+
+```rust
+if !strict_at && (args.len() > declared.explicit_arity() || fits_old_style) {
+    ...
+    for (i, a) in args.iter().enumerate() {
+        let expected_src = crate::spine::substitute(&layers[i].domain, &sigma);
+        let t = elab_expr(builder, a, …, None, Some(&expected_src), ctx)?;   // ← 对着域 elaborate
+        out = builder.mk_app(out, t);
+    }
+}
+```
+
+这正是 **Lean `elabAndAddNewArg` 的顺序**（逐个实参对着**域** elaborate，解出来的值代换进后续域），
+但它被 `!strict_at` 挡掉 —— strict 走的是另一条「**先要类型、再解前缀**」（`arg_types` → 判卷器）。
+
+**为什么 strict 不能直接开这条**：它把源级实参**逐位**贴到 `layers[0..]`，而 strict 的规则是
+「位置实参只按**显式**形参绑定」。对 `And.intro (fun…) (fun…)`（layers = `a`隐 `b`隐 `ha` `hb`），
+逐位贴会把两个 lambda 塞进**隐式**位 `a b` ✗ —— 那是 loose 的读法。
+
+**⇒ Stage 2 的精确工作面**（也是目标里那句"逐个交域"的落点）：
+
+| 要做的 | 落点 |
+|---|---|
+| 让 strict 也能"对着域 elaborate 实参"，但**只贴显式层**、隐式层走**内核元变量** | `elab_app`（内核会话已有元变量）+ `run_once`（把每位的 `want` 从 `expected_srcs[i]` 换成内核交出的域） |
+| 位次与配对：显式实参 ↔ 望远镜里的**显式层**（跳过隐式层） | `run_once` 的循环 |
+| 域可含未解元变量时也要能交（现在 `app_need_args` 把这类判 blocked 不交） | `app_need_args` |
+| 拿不到期望类型时**不再渲染文本去问判卷器**（消掉那 2 次 `fails`） | `pp_shape::arg_types` / `elab.rs:4855` 的第二候选 |
+
+判据不变：714 行 0 差异 · 四门绿 · 课 258/2191/0 · 2 个文件 calls/prefix = loose。
+
+⚠ 风险如实标注：`arg_types` 那条路同时服务 **IA-1 插入**与**群体解**，动它影响的文件面很大
+（我上一轮用形状谓词试过，714 行对拍出现 512 行差异 ⇒ 立刻回滚）。所以 Stage 2 必须**先加开关**
+（`SOKO_STRICT_DOMAIN=1`），对拍通过后才默认开。
