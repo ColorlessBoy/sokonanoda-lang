@@ -393,6 +393,45 @@ def write_corpus_baseline(path: Path, gate: dict, ident: dict) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def corpus_selftest() -> int:
+    """**咬住证明**（`--selftest`）：四条合成输入，四个方向都必须是判据说的那个结果。
+
+    为什么要有它：`gate_corpus` 是**唯一**量 `strict ≤ loose` 的判据，而它自己也要能被咬住
+    —— 一个只会说 GREEN 的 ratchet 等于没有（`AGENTS.md`「咬不住的守卫等于没有」）。
+    不跑任何二进制 ⇒ 0.01s，可以进 CI。
+    """
+    def row(f, d, calls, misses, prefix):
+        return {"file": f, "dialect": d, "timeout": False, "exit": 0,
+                "infer_calls": calls, "infer_misses": misses, "prefix_bytes": prefix}
+
+    viol = [row("ok.s", "loose", 10, 2, 100), row("ok.s", "strict", 10, 2, 100),
+            row("bad.s", "loose", 10, 2, 100), row("bad.s", "strict", 12, 3, 140)]
+    clean = [row("ok.s", "loose", 10, 2, 100), row("ok.s", "strict", 10, 2, 100)]
+    cases = [
+        ("known violation allowlisted => GREEN", viol, {"bad.s": {"reason": "x"}}, True, []),
+        ("allowlist missing it => RED (NEW)", viol, {}, False, []),
+        ("entry no longer violates => RED (STALE)", clean, {"bad.s": {"reason": "x"}}, False,
+         ["bad.s"]),
+        ("extra non-violating entry => RED (STALE)", viol,
+         {"bad.s": {}, "ok.s": {}}, False, ["ok.s"]),
+    ]
+    bad = 0
+    for name, rows, allowed, want_green, want_stale in cases:
+        g = gate_corpus(rows, allowed)
+        stale = g["stale_allowlist"]
+        ok = g["green"] == want_green and stale == want_stale
+        bad += 0 if ok else 1
+        print(f"  {'ok  ' if ok else 'FAIL'} {name}"
+              f"  (green={g['green']} new={g['new_violations']} stale={stale})")
+    # 反向：`<=` 必须真的按 `<=`（相等算过，多 1 算红）。
+    eq = [row("e.s", "loose", 5, 1, 9), row("e.s", "strict", 5, 1, 9)]
+    same = gate_corpus(eq, {})["green"]
+    print(f"  {'ok  ' if same else 'FAIL'} strict == loose is GREEN")
+    bad += 0 if same else 1
+    print(f"corpus selftest: {'ok' if bad == 0 else f'{bad} FAILED'}")
+    return 0 if bad == 0 else 1
+
+
 def gate_course(rows: list[dict]) -> dict:
     lo = next(r for r in rows if r["dialect"] == "loose")
     st = next(r for r in rows if r["dialect"] == "strict")
@@ -421,10 +460,14 @@ def main() -> int:
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--timeout", type=float, default=600.0, help="per-run timeout (s)")
     ap.add_argument("--json-out", metavar="FILE")
+    ap.add_argument("--selftest", action="store_true",
+                    help="only prove the corpus ratchet bites (no binary needed)")
     try:
         args = ap.parse_args()
     except SystemExit as exc:
         return 2 if exc.code else 0
+    if args.selftest:
+        return corpus_selftest()
     try:
         strict_env = {}
         for kv in args.env:
