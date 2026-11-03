@@ -4,15 +4,9 @@
   "measured_with": {
     "bin": "target/release/sokonanoda",
     "sha256": "(见 git)",
-    "tree": "HEAD + 门控 A′ + unit12 显式 @Set.ext α"
+    "tree": "HEAD + A′ 默认开（ArgMismatch 直接报 + unit12 显式 @Set.ext α）"
   },
   "ratchet": "an entry that no longer violates MUST be deleted (stale_allowlist => RED); adding an entry is a reviewable regression, not a fix",
   "how_to_measure": "python3 scripts/strict-score.py --bin <bin> --corpus --corpus-only --jobs 6",
-  "allowed": {
-    "docs/gaps/repro/G30-min-eq-subst-half.sokonanoda": {
-      "kept": "`argmismatch_text` 2（+8 个尝试前 `universe_poly_ho_motive` 闸门）",
-      "numbers": "calls 8 vs 4 · misses 6 vs 2 · prefix 4,640 vs 0",
-      "reason": "A′ 已实现（`SOKO_ARG_ERR` 开关下 prefix→0、课程 0 判负），但还有 3 个测试编码了旧的回落行为，且正文措辞待定 ⇒ 开关默认关，恢复该例外。"
-    }
-  }
+  "allowed": {}
 }

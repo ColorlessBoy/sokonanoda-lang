@@ -159,21 +159,27 @@ fn switch_on_reports_a_readable_error_instead_of_falling_back() {
     );
 }
 
-/// **写明的例外**：`ArgMismatch` 的正文要内核那台打印器 ⇒ 开关开着也**逐字**回落老路。
+/// **A′（2026-11-03）**：`ArgMismatch` **直接报**，不再逐字回落老路。
+///
+/// ⚠ 这条测试的前身叫 `argmismatch_is_still_a_written_down_exception`，断言的正好相反
+/// （"必须逐字回落、`dead == 0`、记成 `argmismatch_text` 例外"）。A′ 把那条决策翻过来了：
+/// 旧路要回落是因为它要"问判卷器再打印"，而那正是 G-30 那 4,640 字节的来源。
+/// 现在正文由前端按"第几位 + 签名"生成（不印内核类型 ⇒ 不会漏内部名）。
 #[test]
-fn argmismatch_is_still_a_written_down_exception() {
+fn argmismatch_reports_directly_without_falling_back() {
     let old = run(C2, true, false);
     let new = run(C2, true, true);
-    assert_eq!(
-        new.texts(),
-        old.texts(),
-        "ArgMismatch 必须逐字回落（S3 不换它的正文）"
-    );
-    assert_eq!(new.dead, 0, "例外类不许走报错出口");
+    assert_eq!(new.dead, 1, "A′：ArgMismatch 直接走报错出口");
+    assert!(new.kept.is_empty(), "不再记成写明的例外：{:?}", new.kept);
+    let texts = new.texts();
+    assert_eq!(texts.len(), 1, "只报一条：{texts:?}");
     assert!(
-        !new.kept.is_empty() && new.kept.iter().all(|k| *k == "argmismatch_text"),
-        "必须记成写明的例外（c2 的签名会被 elaborate 两次 ⇒ 两条）：{:?}",
-        new.kept
+        texts[0].contains("类型不匹配") && texts[0].contains('h'),
+        "正文要说清「哪一位、哪个头」：{texts:?}"
+    );
+    assert!(
+        !texts[0].contains("$0") && !texts[0].contains("def_eq"),
+        "不许漏内核内部形态：{texts:?}"
     );
     assert!(!old.errors.is_empty(), "夹具有效性：c2 判红");
 }

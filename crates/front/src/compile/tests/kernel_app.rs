@@ -569,11 +569,23 @@ fn bare_implicit_const_arg_is_postponed_and_solved() {
 }
 
 #[test]
-fn bare_implicit_const_arg_falls_back_without_postponement() {
-    // 反向验证：关掉裸常量推迟 ⇒ 内核拿到 `{α} → Set α` 对 `Set α` ⇒ ArgMismatch 回落（判卷仍由老路给）。
+fn bare_implicit_const_arg_without_postponement_reports_the_mismatch() {
+    // 反向验证（**A′ 2026-11-03 改写**）：关掉裸常量推迟 ⇒ 内核拿到 `{α} → Set α` 对 `Set α`
+    // ⇒ `ArgMismatch`。**旧行为**是静默回落、判卷交给老路（所以这条原先断言 `errors == []`）；
+    // A′ 之后内核的判定是权威 ⇒ 两处直接报"类型不匹配"，不再回落。
     let (errors, _, fallback) = run_bare(BARE_IMPLICIT_SRC, false);
-    assert_eq!(errors, Vec::<String>::new());
-    assert!(fallback > 0, "关掉推迟 ⇒ 必须回落（fallback={fallback}）");
+    assert_eq!(
+        errors.len(),
+        2,
+        "两处（Set.mem / Set.subset）各报一条：{errors:?}"
+    );
+    assert!(
+        errors.iter().all(|e| e.contains("类型不匹配")),
+        "报的是类型不匹配：{errors:?}"
+    );
+    // ⚠ 不再断言 `fallback == 0`：计数器还包含**别的**应用（实测 4 条），拿它当"A′ 生效"的判据不成立；
+    // 这条测试的判据是上面两条（两处都**直接报**、且报的是类型不匹配）。
+    let _ = fallback;
 }
 
 #[test]
@@ -585,7 +597,10 @@ fn local_shadowing_bare_name_is_not_postponed() {
     let on = run_bare(&src, true);
     let off = run_bare(&src, false);
     assert_eq!(on.0, Vec::<String>::new());
-    assert_eq!(on.0, off.0);
+    // **A′ 改写**：推迟开着时这两处由推迟路径解出（零错误）；关掉时内核直接判 `ArgMismatch`
+    // 并**报出来**（旧行为是静默回落）。⇒ 两个模式的错误不再相同，这是 A′ 的有意后果。
+    assert_eq!(off.0.len(), 2, "关掉推迟 ⇒ 两处直接报：{:?}", off.0);
+    assert!(off.0.iter().all(|e| e.contains("类型不匹配")));
 }
 
 /// **P2-11c**：同 [`run`]（strict），另外设宇宙多态头开关（`heads = false` ⇒ P2-11c 之前的闸门），并读
