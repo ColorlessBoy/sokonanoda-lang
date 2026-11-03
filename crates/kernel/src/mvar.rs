@@ -281,6 +281,15 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                     return true;
                 }
             }
+            // **C（2026-11-03）**：赋值存在**元变量自己的上下文**里（见 [`Self::in_meta_scope`]）⇒
+            // 在用点（`depth`）重放要先把它抬到用点。`depth_of == 0`（今天所有调用方）⇒ 抬 0 位 ⇒
+            // 与 C 之前逐字节相同。用点比创建点**浅** ⇒ 值可能提到用点看不见的 binder ⇒ 分不出来。
+            let d = self.ctx.mvars.depth_of(id);
+            if depth < d {
+                debug_assert!(false, "meta used shallower than its creation depth");
+                return false;
+            }
+            let term = self.ctx.lift(term, 0, (depth - d) as u16);
             let v0 = self.eval(depth, self.empty_env(), term);
             return self.unify::<true>(depth, v0, v);
         }
@@ -309,7 +318,15 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             return false;
         }
         // 类型检查可能顺带赋了别的元变量（`?α`）⇒ 在那之后再 quote（与 K1b 同一份存储形状）。
+        // **C（2026-11-03）**：降到**元变量自己的上下文**再存（`in_meta_scope` 已保证能降）：
+        // `d = 0` ⇒ `lower(..., 0, 0)` = 原样 ⇒ 与 C 之前逐字节相同。
         let quoted = self.quote(depth, v);
+        let d = self.ctx.mvars.depth_of(id);
+        let quoted = if depth > d {
+            self.ctx.lower(quoted, 0, (depth - d) as u16)
+        } else {
+            quoted
+        };
         self.ctx.mvars.assign(id, quoted);
         // **K1a/K1b 缓存纪律（赋值即失效）**：缓存里可能有赋值前算出的卡住值
         // （`?p`、`?p a`）。只在赋值路径上清：没有赋值的会话（课程语料常态）零代价。
@@ -317,12 +334,23 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         true
     }
 
-    /// **K1c scope**：`v`（深度 `depth` 下的值）能不能做 `?id` 的赋值。赋值以**闭项**存储、在空 env
-    /// 里重放 ⇒ quote 后不许有 loose `Var`。创建深度 `d > 0` 的元变量本应还能看见 `< d` 的 bvar；
-    /// 闭项存储表达不了 ⇒ 保守地一并拒（宁拒不错；目前没有调用方在 binder 下造元变量）。
+    /// **K1c scope（C 案 2026-11-03 升级）**：`v`（深度 `depth` 下的值）能不能做 `?id` 的赋值。
+    ///
+    /// 赋值存**在元变量自己的上下文里**（Lean `MetavarDecl.lctx` 的 de Bruijn 版）：`d = depth_of(id)`
+    /// ⇒ quote 出来的项**只许提到最内层的 `d` 个 binder**（`Var(i)` 的 `i >= depth - d`），存的时候
+    /// `lower(q, 0, depth - d)`、用的时候 `lift(值, 0, depth - d)`。
+    ///
+    /// ⚠ **`d = 0` 时这条判据与 C 之前逐字等价**：`depth - 0 = depth`，而 `quote(depth, _)` 的 loose
+    /// var 恒 `< depth` ⇒ "没有 var `< depth`" ⇔ "闭项"（= 原来的 `num_loose_bvars() == 0`）。
+    /// 今天**没有任何调用方**在 binder 下造元变量（`register_at` 的深度只有 `elab_app` 的 P2-9
+    /// 外部元变量，且它只能闭项）⇒ 本刀对既有判定**零行为变化**。
     pub(crate) fn in_meta_scope(&mut self, id: u32, depth: u32, v: V<'t>) -> bool {
-        let _ = self.ctx.mvars.depth_of(id);
-        self.quote(depth, v).num_loose_bvars() == 0
+        let d = self.ctx.mvars.depth_of(id);
+        if depth < d {
+            return false;
+        }
+        let q = self.quote(depth, v);
+        !self.ctx.has_loose_bvar_below(q, (depth - d) as u16)
     }
 
     /// **K1b**：公开的、**不 panic** 的定义等价判定（Lean `isDefEq` + `checkpointDefEq`）。
@@ -381,8 +409,12 @@ pub(crate) fn eval_meta<'t>(
     ty: ExprPtr<'t>,
 ) -> V<'t> {
     match tc.ctx.mvars.value(id) {
-        Some(term) => tc.eval(depth, env, term),
-        None => mk_meta(tc.arena, id, ty, tc.empty_spine()),
+        // **C（2026-11-03）**：赋值存在元变量自己的上下文里 ⇒ 先抬到用点再求值（`depth_of == 0` 时抬 0 位）。
+        Some(term) if depth >= tc.ctx.mvars.depth_of(id) => {
+            let term = tc.ctx.lift(term, 0, (depth - tc.ctx.mvars.depth_of(id)) as u16);
+            tc.eval(depth, env, term)
+        }
+        _ => mk_meta(tc.arena, id, ty, tc.empty_spine()),
     }
 }
 

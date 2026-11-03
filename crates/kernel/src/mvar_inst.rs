@@ -26,7 +26,7 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
     /// 把 `e` 里**已赋值**的项/层元变量换成赋值（递归、顺链），并对 `?p a` 做 head-beta。
     pub fn instantiate_mvars(&mut self, e: ExprPtr<'t>) -> ExprPtr<'t> {
         let mut cache = FxHashMap::default();
-        self.inst_mvars_go(e, &mut cache, 0)
+        self.inst_mvars_go(e, &mut cache, 0, 0)
     }
 
     /// 层的 `instantiate`：已赋值的 `Level::MVar` 换成赋值（顺链）。
@@ -54,19 +54,28 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
         }
     }
 
+    /// `depth` = 这个子项所在的 binder 层数（**C 案 2026-11-03**）：赋值存在**元变量自己的上下文**里
+    /// ⇒ 换进来之前要按 `depth - depth_of(id)` 抬（`depth_of == 0` 时抬 0 位 ⇒ 与 C 之前逐字节相同）。
+    /// ⚠ **缓存键必须带 `depth`**：同一个子项在不同 `depth` 下换出来的项不同（还没赋值的会话里
+    /// `depth` 不影响结果，但只要有 depth > 0 的赋值就不成立）⇒ 只按 `ExprPtr` 键会串味。
     fn inst_mvars_go(
         &mut self,
         e: ExprPtr<'t>,
-        cache: &mut FxHashMap<ExprPtr<'t>, ExprPtr<'t>>,
+        cache: &mut FxHashMap<(ExprPtr<'t>, u32), ExprPtr<'t>>,
         fuel: u32,
+        depth: u32,
     ) -> ExprPtr<'t> {
-        if let Some(r) = cache.get(&e) {
+        if let Some(r) = cache.get(&(e, depth)) {
             return *r;
         }
         let r = match self.read_expr(e) {
             Var { .. } | StringLit { .. } | NatLit { .. } => e,
             Meta { id, .. } => match self.mvars.value(id) {
-                Some(v) if fuel < INST_FUEL => self.inst_mvars_go(v, cache, fuel + 1),
+                Some(v) if fuel < INST_FUEL && depth >= self.mvars.depth_of(id) => {
+                    let d = self.mvars.depth_of(id);
+                    let v = self.lift(v, 0, (depth - d) as u16);
+                    self.inst_mvars_go(v, cache, fuel + 1, depth)
+                }
                 _ => e,
             },
             Sort { level, .. } => {
@@ -92,8 +101,8 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
                 }
                 args.reverse();
                 let head_was_meta = matches!(self.read_expr(head), Meta { .. });
-                let mut f = self.inst_mvars_go(head, cache, fuel);
-                let args: Vec<ExprPtr<'t>> = args.into_iter().map(|a| self.inst_mvars_go(a, cache, fuel)).collect();
+                let mut f = self.inst_mvars_go(head, cache, fuel, depth);
+                let args: Vec<ExprPtr<'t>> = args.into_iter().map(|a| self.inst_mvars_go(a, cache, fuel, depth)).collect();
                 let mut rest = args.as_slice();
                 // **head-beta**（只在头是被换掉的元变量时，Lean `visitApp … headBeta` 同）。
                 // **K1d**：实参可以是**开放**的（`?m x` 在 binder 下）⇒ `inst_open`（代入时按所在
@@ -122,20 +131,20 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
                 acc
             }
             Lambda { binder_name, binder_style, binder_type, body, .. } => {
-                let t2 = self.inst_mvars_go(binder_type, cache, fuel);
-                let b2 = self.inst_mvars_go(body, cache, fuel);
+                let t2 = self.inst_mvars_go(binder_type, cache, fuel, depth);
+                let b2 = self.inst_mvars_go(body, cache, fuel, depth + 1);
                 if t2 == binder_type && b2 == body { e } else { self.mk_lambda(binder_name, binder_style, t2, b2) }
             }
             Pi { binder_name, binder_style, binder_type, body, .. } => {
-                let t2 = self.inst_mvars_go(binder_type, cache, fuel);
-                let b2 = self.inst_mvars_go(body, cache, fuel);
+                let t2 = self.inst_mvars_go(binder_type, cache, fuel, depth);
+                let b2 = self.inst_mvars_go(body, cache, fuel, depth + 1);
                 if t2 == binder_type && b2 == body { e } else { self.mk_pi(binder_name, binder_style, t2, b2) }
             }
             Let { data, .. } => {
                 let crate::expr::LetData { binder_name, binder_type, val, body, nondep } = *data;
-                let t2 = self.inst_mvars_go(binder_type, cache, fuel);
-                let v2 = self.inst_mvars_go(val, cache, fuel);
-                let b2 = self.inst_mvars_go(body, cache, fuel);
+                let t2 = self.inst_mvars_go(binder_type, cache, fuel, depth);
+                let v2 = self.inst_mvars_go(val, cache, fuel, depth);
+                let b2 = self.inst_mvars_go(body, cache, fuel, depth + 1);
                 if t2 == binder_type && v2 == val && b2 == body {
                     e
                 } else {
@@ -143,11 +152,11 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
                 }
             }
             Proj { ty_name, idx, structure, .. } => {
-                let s2 = self.inst_mvars_go(structure, cache, fuel);
+                let s2 = self.inst_mvars_go(structure, cache, fuel, depth);
                 if s2 == structure { e } else { self.mk_proj(ty_name, idx, s2) }
             }
         };
-        cache.insert(e, r);
+        cache.insert((e, depth), r);
         r
     }
 

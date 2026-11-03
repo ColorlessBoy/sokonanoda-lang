@@ -19,6 +19,13 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     /// 未赋值 ⇒ `None`（调用方造卡住项）。
     pub(crate) fn meta_replay(&mut self, depth: u32, id: u32, spine: S<'t>) -> Option<V<'t>> {
         let term = self.ctx.mvars.value(id)?;
+        // **C（2026-11-03）**：赋值存在元变量自己的上下文里 ⇒ 先抬到用点（`depth_of == 0` ⇒ 抬 0 位）。
+        // 用点比创建点浅 ⇒ 分不出来（返回 `None` = 当作未赋值，调用方造卡住项，绝不交错项）。
+        let d = self.ctx.mvars.depth_of(id);
+        if depth < d {
+            return None;
+        }
+        let term = self.ctx.lift(term, 0, (depth - d) as u16);
         let elims: Vec<crate::value::Elim<'t>> = spine.to_vec().into_iter().copied().collect();
         let env = self.empty_env();
         let mut f = self.eval(depth, env, term);

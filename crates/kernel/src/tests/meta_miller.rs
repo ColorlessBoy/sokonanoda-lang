@@ -246,3 +246,84 @@ fn k1c_t8_value_type_open_lam_pi() {
         assert!(super::meta_defeq::same(pq, prop), "type of open `(y : A) → g x y` is Prop");
     });
 }
+
+// ---------------------------------------------------------------------------
+// **C 案（2026-11-03）**：元变量赋值**带 scope**（Lean `MetavarDecl.lctx` 的 de Bruijn 版）。
+//
+// 这一组的锚是两句话：**存的值只许提到元变量自己上下文里的 binder**，重放时**抬到用点**。
+// `depth_of == 0`（今天所有调用方）时两条都退化成"闭项"⇒ 与 C 之前逐字节相同（714 行对拍已证）。
+// ---------------------------------------------------------------------------
+
+/// `?s : A` 登记在**深度 1**（= 它看得见 1 个 binder）。
+fn seed_scoped<'t>(tc: &mut TypeChecker<'_, 't, '_>, ty: ExprPtr<'t>) {
+    tc.ctx.mvars.register_at(107, ty, 1);
+    tc.ctx.mvars.register_kind(107, MetaKind::Natural);
+}
+
+/// **C-T1（正）**：深度 1 的 `?s` 可以赋成它上下文里的 binder（`?s := x`），
+/// 而且 `instantiate_mvars` 在**更深的用点**要把它抬对（`λy. λx. ?s` ⇒ `λy. λx. #1`）。
+#[test]
+fn c_t1_scoped_meta_takes_its_own_binder() {
+    with_tc2(|tc, fx, _mx| {
+        seed_scoped(tc, fx.a);
+        let s = tc.ctx.mk_meta(107, fx.a);
+        let v0 = tc.ctx.mk_var(0);
+        // `fun x => ?s =?= fun x => x` ⇒ true（?s 建在这层 binder 之下）
+        let l1 = lam(tc, fx.a, s);
+        let l2 = lam(tc, fx.a, v0);
+        assert!(tc.is_def_eq(l1, l2), "?s := x 必须允许");
+        // 存的是**在 ?s 自己的上下文里**写的项 ⇒ `#0`（不是用点的 `#1`）
+        let got = tc.ctx.mvars.value(107).expect("?s 必须被赋值");
+        assert_eq!(format!("{:?}", tc.ctx.read_expr(got)), format!("{:?}", tc.ctx.read_expr(v0)));
+        // 更深的用点（两层 λ）⇒ 抬一位
+        let deep_inner = lam(tc, fx.a, s);
+        let deep = lam(tc, fx.a, deep_inner);
+        let out = tc.ctx.instantiate_mvars(deep);
+        // 具体断言：两层 λ 的 body 是 `#1`（抬一位）
+        let mut body = out;
+        for _ in 0..2 {
+            let crate::expr::Expr::Lambda { body: b, .. } = tc.ctx.read_expr(body) else {
+                panic!("应是两层 λ")
+            };
+            body = b;
+        }
+        assert!(
+            matches!(tc.ctx.read_expr(body), crate::expr::Expr::Var { dbj_idx: 1, .. }),
+            "两层 λ 之下 ?s 必须抬成 #1，实际 {:?}",
+            tc.ctx.read_expr(body)
+        );
+    });
+}
+
+/// **C-T2（反）**：真正的"逃出 scope"只有一条 —— **用点比创建点更浅**（`depth < depth_of`）：
+/// 值可能提到用点根本看不见的 binder。夹具：`?s` 登记在**深度 2**，只在**一层** λ 下比 ⇒ 必须拒。
+///
+/// ⚠ 写这条时踩过一次：最初想用"`?s`（depth 1）赋成两层 λ 下的外层 binder"当反例 —— 那是**合法**的：
+/// de Bruijn 里创建上下文的 binder 在更深用点上**下标整体 +1**（lambda 下降一层），
+/// 所以用点 `depth` 下合法的正是**最内 `d` 个**（`i >= depth - d`），`Var(1)` 落在里面。
+#[test]
+fn c_t2_scoped_meta_rejects_shallower_use() {
+    with_tc2(|tc, fx, _mx| {
+        tc.ctx.mvars.register_at(107, fx.a, 2);
+        tc.ctx.mvars.register_kind(107, MetaKind::Natural);
+        let s = tc.ctx.mk_meta(107, fx.a);
+        let v0 = tc.ctx.mk_var(0);
+        let lhs = lam(tc, fx.a, s);
+        let rhs = lam(tc, fx.a, v0);
+        assert!(!tc.is_def_eq(lhs, rhs), "用点(1) 比创建深度(2) 浅 ⇒ ?s := x 必须拒");
+        assert!(tc.ctx.mvars.value(107).is_none(), "被拒的赋值不许留下");
+    });
+}
+
+/// **C-T3（零变化）**：深度 **0** 的元变量仍然只收**闭项**（K1c-T4 的同一条判据，
+/// 这里显式钉住"generalize 之后没放松"）。
+#[test]
+fn c_t3_depth_zero_still_requires_closed() {
+    with_tc2(|tc, fx, mx| {
+        let v0 = tc.ctx.mk_var(0);
+        let lhs = lam(tc, fx.a, mx.m);
+        let rhs = lam(tc, fx.a, v0);
+        assert!(!tc.is_def_eq(lhs, rhs), "depth 0 的 ?m 不许收 binder");
+        assert!(tc.ctx.mvars.value(103).is_none());
+    });
+}
