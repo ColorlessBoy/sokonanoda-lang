@@ -7539,8 +7539,15 @@ def selftest_release_order_and_content(expect) -> None:
             for ev in batch("ok"):
                 append_event(ev)
             _rc, _out = plan()
-            expect("④ 正对照：同批事件都有 `release-open` ⇒ 输出里**没有**「孤儿」（不误报 ✓）",
-                   "孤儿" not in _out)
+            # ⚠ 判据要**咬得住**：裸词 `"孤儿" not in _out` 两头都不成立 ——
+            #   · 本地实测 `_out` 里**从不出现**这两个字（`check_plan` 不打印它）⇒ **空转** ✗；
+            #   · CI 上它却红过（输出里**别处**也出现了这两个字，如分支栅栏话术）⇒ 误报。
+            # ⇒ 咬**这一条判据的产物**：点名某个节点（`REL-…`）的「孤儿」行。
+            _orphan_lines = [ln for ln in _out.splitlines() if "孤儿" in ln and "REL-" in ln]
+            expect(f"④ 正对照：同批事件都有 `release-open` ⇒ 输出里没有点名节点的「孤儿」行"
+                   f"（不误报 ✓；命中 {len(_orphan_lines)} 行"
+                   f"{'：' + _orphan_lines[0][:80] if _orphan_lines else ''}）",
+                   not _orphan_lines)
             # ⑤ ⑥ **多条 cut 轴**（`#2`）
             done_events(("FX-1", "FX-2", "FX-3"))
             open_and_add()
