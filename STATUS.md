@@ -6,9 +6,11 @@
   allowlist ratchet，`--selftest` 四向咬住）+ `scripts/strict/exception-census.py`。读数 = **7 个文件**。
 * **C 案（内核元变量赋值带 scope）**：C1–C3 已落 —— 判据 = 714 行逐字节 **0 差异** · 内核 131/131 ·
   四门绿 · 整门课 **258 / 2191 / 0 判负**。
-* **A′ 落地（违反数 7 → 4）**：`operand_type_expr` 不再拿**裸隐式常量**（`∅` 这种零元记法）去问
-  `judge_infer` —— 那问题**必然失败**且每次失败重编整份前缀。`unit19-solution` / `unit19-cardinal-le`
-  的 calls/misses/prefix 因此与 loose **逐项相等**；714 行逐字节仍 0 差异、四门绿、课 258/2191/0。
+* **A′/A′c 落地（违反数 7 → 4 → 2）**：`operand_type_expr` 不再拿**裸隐式常量**（`∅` 这种零元记法）去问
+  `judge_infer` —— 那问题**必然失败**且每次失败重编整份前缀；A′c 再把入口收到**零元记法**（`infer_type_text`）。
+  被修掉的 4 个文件（`unit19×2`/`G19`/`G48`）calls/misses/prefix 与 loose **逐项相等**；
+  714 行逐字节仍 0 差异、四门绿、课 258/2191/0。剩 `unit06`/`G30` = 判卷缓存扰动（无能力缺口）。
+  ⚠ 成本达标 ≠ 例外清零：`kept_*` 仍在，只是不再贵；清零要**声明级元变量上下文**。
 * **C4（内核接受输入元变量）收益 = 0**，已还原：判卷能保住（靠回传）但站点全数转成
   `argmismatch_text`/`panic` —— 要真解需**声明级元变量上下文**（Lean `TermElabM`）。
 * 读数/机制/逐文件结论 ⇒ `reports/2026-11-03-{strict-invariant-assessment,metavar-scope-assignments}.md`。

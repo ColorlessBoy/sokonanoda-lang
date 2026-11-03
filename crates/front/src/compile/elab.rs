@@ -3682,6 +3682,10 @@ pub(crate) fn infer_type_text<'a>(
     // `false` ⇒ **逐字节等于今天** ✓（下面每个分支都先判它 ✓）。
     explicit: bool,
 ) -> Option<String> {
+    // **A′c（2026-11-03）**：零元记法（`∅` ⇒ `Set.empty`）没有独立类型（`α` 只能由期望类型给）⇒ 各档都答不出；
+    // 每次失败重编整份前缀（`G19` 2 / `G48` 8 次）⇒ 直接 `None`（= 失败后本来返回的值）。
+    if matches!(operand, Expr::Notation { lhs: None, rhs: None, .. }) { return None; }
+
     let binders = scope.judge_binders();
     // ⚠ 这一行**保持原样**（`&render_expr(operand)` 内联）：它是记法路径守卫
     // （`scripts/audit-notation-paths.py`）棘轮基线里的一条 —— 改成 `let term = …`
@@ -4044,8 +4048,8 @@ fn type_head_fits_layer<'a>(
 
 /// 操作数的**类型表达式**（源级 AST），供隐式前缀求解当模板/实参用。
 ///
-/// **书写类型优先**（零内核调用）：`Ident` 取源级类型、lambda 取 binder 注解拼的箭头类型；两者都绕开
-/// 内核 pp（pp 丢隐式实参 ⇒ 回读会静默换解 ✗）。剩下的才问内核；严格档取全显式 pp（`implicit_msg`）。
+/// **书写类型优先**（零内核调用）：`Ident` 取源级类型、lambda 取 binder 注解拼的箭头类型（都绕开内核 pp
+/// ——pp 丢隐式实参 ⇒ 回读会静默换解 ✗）；剩下的才问内核，严格档取全显式 pp（见 `implicit_msg`）。
 pub(crate) fn operand_type_expr<'a>(
     ctx: &ElabCtx<'a, '_>,
     scope: &ElabScope<'a>,
@@ -4060,8 +4064,6 @@ pub(crate) fn operand_type_expr<'a>(
     if let Some(src) = lambda_source_type(operand) {
         return Some(src);
     }
-    // **A′（2026-11-03）**：裸隐式常量没有独立类型 ⇒ 问 judge_infer 必然失败并重编整份前缀
-    // （unit19-solution 实测 184 次 / +791 KB）⇒ 直接答 None（= 它失败后本来给的那个值）。
     if env.as_ref().is_some_and(|e| super::kernel_app_postpone::bare_implicit_const(operand, scope, e.known, ctx.ns).is_some()) { return None; }
     let explicit = super::implicit_msg::strict_at_enabled(ctx.options);
     // **B3**：pp 文本里的名字要能在**声明表**（`known` 含 axiom/构造子）或作用域里解析 ✓；
@@ -4102,9 +4104,7 @@ pub(crate) fn pp_type_scope_safe(names: &[String], known: &KnownTable, e: &Expr)
 /// * 内核 pp 那条：默认档同样只丢**第一个**隐式实参（`Eq x a`，见
 ///   `judge::EXPLICIT_PP` 的长注释）。
 ///
-/// 于是 `Eq.symm hx`（`hx : x = a`）在路线 ① 里拿 `Eq ?m1 ?m2` 当模板、实际是
-/// `x = a`（2 个操作数）⇒ `unify_extract` 的**右对齐**把前导 `α` 丢掉 ⇒
-/// `elab-implicit-argument-unsolved`（同一个坑也吞掉 `Eq.subst (Eq.symm h) h`）。
+/// 于是 `Eq.symm hx`（`hx : x = a`）在路线 ① 里拿 `Eq ?m1 ?m2` 当模板、实际是 `x = a` ⇒ 前导 `α` 被丢。
 ///
 /// **全显式 pp 正是那条缺的信息**：`@Eq α x a` 回读后是**三个实参**的
 /// `App`，`α` 就在第一位 ⇒ 路线 ① 解得出来 ✓。这条是**第二候选**（严格档

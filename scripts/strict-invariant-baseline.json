@@ -3,31 +3,21 @@
   "criterion": "per file: strict calls <= loose calls AND strict misses <= loose misses AND strict prefix_bytes <= loose prefix_bytes",
   "measured_with": {
     "bin": "target/release/sokonanoda",
-    "sha256": "b63807a49423e499",
-    "tree": "HEAD a977a32b + A'"
+    "sha256": "82b3553b9afbbc1a",
+    "tree": "HEAD dbfe4f30 + A'c"
   },
   "ratchet": "an entry that no longer violates MUST be deleted (stale_allowlist => RED); adding an entry is a reviewable regression, not a fix",
   "how_to_measure": "python3 scripts/strict-score.py --bin <bin> --corpus --corpus-only --jobs 6",
   "allowed": {
     "courses/set-theory/units/solutions/I.2/unit06-solution.sokonanoda": {
-      "kept": "none (7 pre-attempt `fallback_shape` gates)",
+      "kept": "none（7 个 `fallback_shape` 是尝试前闸门）",
       "numbers": "calls 139 vs 129 · misses 12 vs 7 · prefix 1,512,484 vs 1,413,779",
-      "reason": "判卷缓存扰动（与回落无关）：judge 调用与 pairs 一词不差（26/35），但 strict 解出的项渲染文本不同 ⇒ 文本键推断缓存 2 次失败 + 若干未命中 ⇒ 每次未命中重编整份前缀（+7%）。修法 = 缓存键去文本化（judge.rs）或渲染两档同形（display.rs）。"
-    },
-    "docs/gaps/repro/G19-zero-ary-notation-applied.sokonanoda": {
-      "kept": "input_contains_a_meta 9",
-      "numbers": "calls 12 vs 8 · misses 5 vs 2 · prefix 6,350 vs 4,628",
-      "reason": "零元记法 `∅` 作记法操作数：它的前导类型参数只能由期望类型给，而记法前导位要先定 ⇒ 顺序上的能力缺口（声明级元变量上下文）。A' 已把必然失败的提问消掉（unit19 的 fails 184→0），本文件残留 2 次失败来自另一条调用路。"
+      "reason": "判卷缓存扰动（与回落无关）：judge 调用与 pairs 一词不差（26/35），但 strict 解出的项**渲染文本**不同 ⇒ 文本键推断缓存 2 次失败 + 若干未命中 ⇒ 每次未命中重编整份前缀（+7%）。失败 term 是渲染出来的证明项（`And.intro (fun (a b) …) …`）。修法：缓存键去文本化（judge.rs）或渲染两档同形（display.rs）。"
     },
     "docs/gaps/repro/G30-min-eq-subst-half.sokonanoda": {
-      "kept": "argmismatch_text 2（+8 个尝试前 universe_poly_ho_motive 闸门）",
+      "kept": "`argmismatch_text` 2（+8 个尝试前 `universe_poly_ho_motive` 闸门）",
       "numbers": "calls 8 vs 4 · misses 6 vs 2 · prefix 4,640 vs 0",
-      "reason": "loose 一次判卷都不需要（prefix 0），strict 问一次并失败；argmismatch_text 本身要内核 def-eq 打印机（P2-13）。"
-    },
-    "docs/gaps/repro/G48-notation-nullary-sugar-operands.sokonanoda": {
-      "kept": "input_contains_a_meta 3",
-      "numbers": "calls 12 vs 2 · misses 5 vs 2 · prefix 1,956 vs 0",
-      "reason": "G-48 的鸡生蛋：`∅ ≈ {b}` 两侧都是零元糖，`∅` 的论域确实无处可定（Lean 也只会报补不出隐式实参）。本文件按设计必须判红（gap 复现件）⇒ 它留在表里是语言边界的证据，不是待修项。"
+      "reason": "loose 一次判卷都不需要（prefix 0），strict 问一次并失败（term 是 `fun (h : …) => Iff.mp … (Eq.subst …)` 这种渲染证明项）；`argmismatch_text` 另需内核 def-eq 打印机（P2-13）。"
     }
   }
 }
