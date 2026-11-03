@@ -822,7 +822,6 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 val,
                 span,
                 val_span,
-                name_span: _,
             } => self.def(c, name, universe, ty, val, *span, *val_span),
             Command::Theorem {
                 name,
@@ -831,14 +830,12 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 val,
                 span,
                 val_span,
-                name_span: _,
             } => self.theorem(c, name, universe, ty, val, *span, *val_span),
             Command::Axiom {
                 name,
                 universe,
                 ty,
                 span,
-                name_span: _,
             } => self.axiom(c, name, universe, ty, *span),
             Command::Example {
                 ty,
@@ -856,7 +853,6 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 span,
                 // 归纳块今天不发 `uses-open-exercise`（它的签名/构造子类型
                 // 走的是另一条校验路）⇒ 名字范围在这里没有消费者。
-                name_span: _,
             } => self.inductive_block(
                 c,
                 name,
