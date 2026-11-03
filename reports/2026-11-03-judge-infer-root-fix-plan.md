@@ -100,3 +100,30 @@ if !strict_at && (args.len() > declared.explicit_arity() || fits_old_style) {
 ⚠ 风险如实标注：`arg_types` 那条路同时服务 **IA-1 插入**与**群体解**，动它影响的文件面很大
 （我上一轮用形状谓词试过，714 行对拍出现 512 行差异 ⇒ 立刻回滚）。所以 Stage 2 必须**先加开关**
 （`SOKO_STRICT_DOMAIN=1`），对拍通过后才默认开。
+
+## Stage 2 探针（2026-11-03）：两条实验，都回滚了（负结果有价值）
+
+### 2a. 内核已交出 `blocked` 位，前端一直丢掉 —— 但补上**对这两个文件无效**
+
+`AppOutcome::NeedArgs { domains, blocked }` 里 `blocked` = 「域里还带未解元变量」的位（内核已经
+`export_owned` 好了）；`grep blocked crates/front` = **0 命中** ⇒ 前端从来不用。
+
+补上"把 blocked 位也 elaborate 一次、回填、下一轮内核合一"（开关 `SOKO_BLOCKED_ARGS`）后：
+**两个文件的 calls/prefix/fails 一字未变**。原因清楚：这两个站点的提问发生在 **IA-1**
+（`try_implicit_application_with`）里，**根本没走到 `elab_app`** ⇒ blocked 通道够不着。
+
+### 2b. 写全参数就**跳过 IA-1**（开关 `SOKO_SKIP_IA1_FULL`）—— 消掉了失败，但**改了判卷**
+
+| 文件 | 关 | 开 |
+|---|---|---|
+| `G30` | prefix 4,640 · fails 2 · json `2f66beef` | **prefix 0（= loose）· fails 0** · json **`1d33fa3f`** ✗ |
+| `unit06` | calls 26 · prefix 1,512,484 · fails 2 | calls **29** · prefix **1,642,160**（更差）· fails 0 · json **`4efd5388`** ✗ |
+
+⇒ **结论（这轮最有用的一条）**：IA-1 与它后面的老路**语义不同** —— IA-1 是 strict 的「隐式前缀求解」
+（按显式层对齐、用实参类型反解隐式位），老路是 loose 的「逐位贴」读法。所以"绕过 IA-1"必然改判卷 ✗。
+
+### 因此 Stage 2 的正确定义
+
+> **不是**绕过 IA-1，而是**把 IA-1 的求解器换成内核元变量版**：保留它今天的**绑定规则与判卷结论**，
+> 只把"求实参类型"这一步从「渲染文本问判卷器」（有损、每次失败重编整份前缀）换成「内核自己 infer
+> 已 elaborate 的项」。判据仍是：714 行 0 差异（**判卷结论不变**）+ 两个文件的 calls/prefix 降到 loose。
