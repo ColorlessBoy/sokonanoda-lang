@@ -3,21 +3,16 @@
   "criterion": "per file: strict calls <= loose calls AND strict misses <= loose misses AND strict prefix_bytes <= loose prefix_bytes",
   "measured_with": {
     "bin": "target/release/sokonanoda",
-    "sha256": "82b3553b9afbbc1a",
-    "tree": "HEAD dbfe4f30 + A'c"
+    "sha256": "d55486dc622acd62",
+    "tree": "HEAD + plain 允许 let"
   },
   "ratchet": "an entry that no longer violates MUST be deleted (stale_allowlist => RED); adding an entry is a reviewable regression, not a fix",
   "how_to_measure": "python3 scripts/strict-score.py --bin <bin> --corpus --corpus-only --jobs 6",
   "allowed": {
-    "courses/set-theory/units/solutions/I.2/unit06-solution.sokonanoda": {
-      "kept": "none（7 个 `fallback_shape` 是尝试前闸门）",
-      "numbers": "calls 139 vs 129 · misses 12 vs 7 · prefix 1,512,484 vs 1,413,779",
-      "reason": "判卷缓存扰动（与回落无关）：judge 调用与 pairs 一词不差（26/35），但 strict 解出的项**渲染文本**不同 ⇒ 文本键推断缓存 2 次失败 + 若干未命中 ⇒ 每次未命中重编整份前缀（+7%）。失败 term 是渲染出来的证明项（`And.intro (fun (a b) …) …`）。修法：缓存键去文本化（judge.rs）或渲染两档同形（display.rs）。"
-    },
     "docs/gaps/repro/G30-min-eq-subst-half.sokonanoda": {
       "kept": "`argmismatch_text` 2（+8 个尝试前 `universe_poly_ho_motive` 闸门）",
       "numbers": "calls 8 vs 4 · misses 6 vs 2 · prefix 4,640 vs 0",
-      "reason": "loose 一次判卷都不需要（prefix 0），strict 问一次并失败（term 是 `fun (h : …) => Iff.mp … (Eq.subst …)` 这种渲染证明项）；`argmismatch_text` 另需内核 def-eq 打印机（P2-13）。"
+      "reason": "loose 一次判卷都不需要（prefix 0），strict 问一次并失败；失败 term 是 `fun (h : ({a}) = ({b})) => Iff.mp … (Eq.subst …)` 这种**渲染出来的证明项**（`{a}` 集合字面量 + `Eq.subst` 全显式）。`argmismatch_text` 另需内核 def-eq 打印机（P2-13）。"
     }
   }
 }

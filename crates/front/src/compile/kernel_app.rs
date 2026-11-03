@@ -201,7 +201,14 @@ pub(super) fn plain(e: &Expr) -> bool {
         Expr::SetLiteral { elements, .. } | Expr::AnonCtor { elements, .. } => {
             elements.iter().all(plain)
         }
-        Expr::Let { .. } | Expr::Match { .. } => false,
+        // **2026-11-03 治本**：`let` **不再**被形状闸拒掉。
+        //
+        // 起因（实测）：`And.intro (fun …) (fun …)` 这类应用的实参里带**前端合成的 `let`**
+        // （`by` 块/展开的产物）⇒ `plain` 返回 false ⇒ 内核应用路径**从未尝试** ⇒ 回落 IA-1
+        // ⇒ 它要"实参的类型" ⇒ 渲染文本问判卷器 ⇒ 丢隐式实参 ⇒ 必然失败且每次重编整份前缀
+        // （`unit06` 2 次 / `G30` 2 次）。`let` 是内核能 elaborate 的正常形式，没必要整条拒掉。
+        Expr::Let { val, body, .. } => plain(val) && plain(body),
+        Expr::Match { .. } => false,
     }
 }
 

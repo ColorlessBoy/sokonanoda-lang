@@ -239,3 +239,33 @@ ExportFile::elaborate_and_type(limit, req) -> Option<(ExprPtr, String /* 全显�
 
 **本轮唯一的净产出**：`lambda_source_type` 从 `elab.rs` 搬到 `elab_operand.rs`（40 行，
 `elab.rs` 8841 → **8811**，判据：714 行 0 差异 · fmt 干净 · ⑨ 绿）⇒ 为后续接线腾出行数预算。
+
+## 治本落地（2026-11-03）：形状闸把带 `let` 的实参整条拒掉 ⇒ 内核路径从未尝试
+
+### 根因（一步步钉出来的）
+
+1. 提问来自 **IA-1 的 `arg_types`**（`elab.rs:4789`，`track_caller` 实测）——不是 `named_arg`、不是别的路径。
+2. 内核日志里那些 `And.intro` 全是 **`shape`**（= `Count::Shape`，**内核路径没被尝试**），不是 `unsolved`。
+3. 探针定位到形状闸的那一条：`args.iter().all(|a| plain(a) || postponable(a))` 里 **`idx=1` 的实参**
+   （= 内层 `And.intro …` 应用）不 plain；递归探针再定位到**第一个不 plain 的叶子 = `let`**
+   （`356:9` / `1205:784`，以及判卷器合成文档里的 `1:886`）——`plain` 里写着 `Expr::Let { .. } => false`。
+4. ⇒ **链条闭合**：实参含前端合成的 `let` ⇒ 形状闸拒 ⇒ 内核应用路径**一次都没跑** ⇒ 回落 IA-1
+   ⇒ IA-1 要"实参的类型" ⇒ 渲染文本问判卷器 ⇒ 文本丢前导隐式实参 ⇒ 必然失败、每次重编整份前缀。
+
+### 修法（一行判据）
+
+`plain` 不再整条拒 `let`，而是按值/体递归（`Expr::Let { val, body, .. } => plain(val) && plain(body)`）——
+`let` 是内核能 elaborate 的正常形式，没有理由因此把整条应用退回老路。
+
+### 读数（bin `d55486dc`，冷缓存）
+
+| 文件 | 修前 | 修后 | loose |
+|---|---|---|---|
+| `unit06-solution` | calls 26 · prefix 1,512,484 · fails 2 | **26 · 1,413,779 · 0** | 26 · 1,413,779 |
+
+| 判据 | 结果 |
+|---|---|
+| 全语料 714 行逐字节 | **0 差异**（判卷输出完全不变） |
+| 逐文件违反数 | **2 → 1**（只剩 `G30`，allowlist 已按 ratchet 删掉 unit06） |
+| 四门计分板 | 全绿 |
+| 整门课 | **258 / 2191 / 0 判负** |
