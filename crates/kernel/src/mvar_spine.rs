@@ -25,7 +25,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         if depth < d {
             return None;
         }
-        let term = self.ctx.lift(term, 0, (depth - d) as u16);
+        let term = self.ctx.lift(term, 0, crate::mvar::shift16(depth - d));
         let elims: Vec<crate::value::Elim<'t>> = spine.to_vec().into_iter().copied().collect();
         let env = self.empty_env();
         let mut f = self.eval(depth, env, term);

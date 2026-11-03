@@ -12,8 +12,14 @@
 * **三条捷径被证否**（都带二进制身份）：内核「闭元变量可登记」（`mvar.rs::in_meta_scope` 要求闭项存储
   ⇒ 全转 `argmismatch_text`）· 跳记法重试的「任一操作数」版（把 `unit19-solution` 打成 rc=1）·
   「全部操作数」版（谓词在真实形状上从不命中 ⇒ 已删）。
-* **未达成**：`nofallback_kept_*` 一个都没消；下一轮先在三个解冻点里拍板
-  ⇒ `reports/2026-11-03-strict-invariant-assessment.md` §6。
+* **C 案施工（用户拍板选 C）**：C1–C3 已落（`02979b5a`）= 内核元变量赋值**带 scope**
+  （`lower` 存 / `lift` 读 / 缓存键 `(ExprPtr, u32)`）；判据 = **714 行逐字节 0 差异** ·
+  内核 130/130 · 四门绿 · 整门课 **258 目标 / 2191 checked / 0 判负**。
+  **C4 判为不可交付**：接上后 `G19` **rc 0→1**（坏在声明类型）——内核给调用方元变量赋值**不回传**
+  前端 `\0soko_m{id}` 表（`meta.rs` 冻结）⇒ 同一 id 两份实例不一致 ⇒ 已还原
+  （`reports/2026-11-03-metavar-scope-assignments.md` §8）。
+* **未达成**：`nofallback_kept_*` 一个都没消；下一轮的真任务 = **赋值回传**
+  （C4 与记法侧重试 `prefix_meta` 52 共用这块基础设施，应同一批做）。
 * ⚠ 本轮工作树被**并发进程**改动/重置过（读数必须同时钉二进制 sha 与树状态）。
 * 原文/读数表 ⇒ `reports/2026-11-03-strict-invariant-assessment.md`。
 
