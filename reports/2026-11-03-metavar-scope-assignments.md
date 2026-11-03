@@ -67,3 +67,102 @@
 本轮工作树被**并发进程**反复改动（`ast/parser/by/walk/judge` 变长、`unit02` 的证明被改写、我的未跟踪产出
 被清过一次）。C 是内核表示级改动 ⇒ **下一轮在独立 worktree 里做**（`git worktree add`），
 基线二进制与对拍都在**同一目录**内取（G77：诊断带模块根绝对路径，换目录哈希就变）。
+
+## 附录 A：C4 要用的两段代码（本轮已编译+实测生效，随后按用户约束还原）
+
+`crates/kernel/src/elab_app_holes.rs`（新增；实测结果：`input_contains_a_meta` 22/10/9/3 → 3/0/0/0）：
+
+```rust
+    /// **P2-13a**：`elab_app` 的**输入**（binder 类型 / 头 / 实参 / λ binder 类型）里登记的**闭**元变量。
+    /// `depth` = 本会话的 binder 层数（= 调用方 elaborate 这些项时的作用域深度）。
+    pub(crate) fn app_register_inputs(
+        &mut self,
+        exprs: &[ExprPtr<'t>],
+        depth: u32,
+    ) -> Result<(Vec<u32>, u32), &'static str> {
+        let mut found: Vec<(u32, crate::expr::MetaKind, ExprPtr<'t>)> = Vec::new();
+        let mut seen = crate::util::FxHashSet::default();
+        let mut stack: Vec<ExprPtr<'t>> = Vec::with_capacity(exprs.len());
+        for e in exprs {
+            if !self.ctx.unassigned_mvars(*e).levels.is_empty() {
+                return Err("input contains a meta");
+            }
+            stack.push(*e);
+        }
+        while let Some(e) = stack.pop() {
+            if !seen.insert(e) { continue; }
+            match self.ctx.read_expr(e) {
+                Expr::Meta { id, kind, ty, .. } => match found.iter().find(|(i, ..)| *i == id) {
+                    Some((_, _, t)) if *t != ty => return Err("input contains a meta"),
+                    Some(_) => {}
+                    None => found.push((id, kind, ty)),
+                },
+                Expr::App { fun, arg, .. } => stack.extend([arg, fun]),
+                Expr::Pi { binder_type, body, .. } | Expr::Lambda { binder_type, body, .. } => {
+                    stack.extend([body, binder_type])
+                }
+                Expr::Let { data, .. } => stack.extend([data.body, data.val, data.binder_type]),
+                Expr::Proj { structure, .. } => stack.push(structure),
+                _ => {}
+            }
+        }
+        found.sort_by_key(|(id, ..)| *id);
+        let mut base = SESSION_META_BASE;
+        for &(id, kind, ty) in &found {
+            if ty.num_loose_bvars() != 0 { return Err("input contains a meta"); }
+            let u = self.ctx.unassigned_mvars(ty);
+            if !u.exprs.is_empty() || !u.levels.is_empty() { return Err("input contains a meta"); }
+            if self.ctx.mvars.ty_of(id).is_some_and(|prev| prev != ty) {
+                return Err("input contains a meta");
+            }
+            self.ctx.mvars.register_at(id, ty, depth);   // ← C 案落地后这一行的 depth 才真正生效
+            self.ctx.mvars.register_kind(id, kind);
+            base = base.max(id.checked_add(1).ok_or("input contains a meta")?);
+        }
+        Ok((found.into_iter().map(|(id, ..)| id).collect(), base))
+    }
+```
+
+`crates/kernel/src/elab_app.rs`（`elab_app_session` 开头，替换原来"一律拒绝"的循环）：
+
+```rust
+        let inputs: Vec<ExprPtr<'t>> = binder_tys.iter().copied()
+            .chain(std::iter::once(head))
+            .chain(args.iter().flatten().copied())
+            .chain(lam_tys.iter().flat_map(|(_, t)| t.iter().copied()))
+            .collect();
+        let had_input_meta = inputs.iter().any(|e| !self.ctx.unassigned_mvars(*e).is_empty());
+        let (mut externals, mut base) = match expected { /* 原样保留 P2-9 那支 */ };
+        if had_input_meta {
+            let scope_depth = u32::try_from(binder_tys.len()).unwrap_or(u32::MAX);
+            match self.app_register_inputs(&inputs, scope_depth) {
+                Ok((ids, b)) => {
+                    base = base.max(b);
+                    for id in ids { if !externals.contains(&id) { externals.push(id); } }
+                }
+                Err(_) => return AppOutcome::Unsupported("input contains a meta"),
+            }
+        }
+```
+
+以及**出口纪律**（必需，否则会把"解不出"升级成诊断；S4c 的反向验证抓过这类）：
+
+```rust
+        if !holes.is_empty() {
+            let out = self.app_need_args(d, &holes, unsolved);
+            return match (had_input_meta, out) {
+                (true, AppOutcome::Unsolved { .. }) => AppOutcome::Unsupported("input contains a meta"),
+                (_, out) => out,
+            };
+        }
+        if !unsolved.is_empty() {
+            return if had_input_meta {
+                AppOutcome::Unsupported("input contains a meta")
+            } else {
+                AppOutcome::Unsolved { sites: unsolved }
+            };
+        }
+```
+
+⚠ 光有上面三段**不够**：`in_meta_scope` 仍然会拒 `?α := α`（本轮实测：全部退化成 `argmismatch_text`）。
+C1–C3 必须先把 §2 的读写移位做进去，C4 才恢复这三段。
