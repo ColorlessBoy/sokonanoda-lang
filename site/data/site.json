@@ -13,8 +13,8 @@
     "run_id": "41491209588",
     "slow_timeouts": 1
   },
-  "release_url": "https://github.com/ColorlessBoy/sokonanoda-lang/releases/tag/v0.98.1",
+  "release_url": "https://github.com/ColorlessBoy/sokonanoda-lang/releases/tag/v0.98.2",
   "schema": "soko.site/2",
-  "tag": "v0.98.1",
-  "version": "0.98.1"
+  "tag": "v0.98.2",
+  "version": "0.98.2"
 }
