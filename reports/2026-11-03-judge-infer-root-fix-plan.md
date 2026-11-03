@@ -221,3 +221,21 @@ ExportFile::elaborate_and_type(limit, req) -> Option<(ExprPtr, String /* 全显�
 
 —— 在**同一个会话里**既返回项、又返回它的类型文本（今天 `elab_app` 只返回项，类型随会话丢弃）。
 前端拿到类型文本后再 `parse_expr_text` 成源级 `Expr`（与判卷器那条路同一份回读逻辑，但**不需要重编前缀**）。
+
+## Stage 2 试做（本轮）：`arg_types` 改走「内核 elaborate + 就地求类型」**失败并回滚**
+
+按上轮的定位做了第一版接线（开关 `SOKO_ARG_TYPE_KERNEL`）：
+`try_implicit_application_with` 里对应用形态的实参先 `try_app`，再
+`ExportFile::infer_type_text_at(_peeled)` 求类型文本、回读成源级 `Expr`。
+
+| 版本 | unit06 读数 | 结论 |
+|---|---|---|
+| v1：`infer_type_text_at` | **内核 panic** `eval: loose bvar`（项带自由变量，`infer_closed_type` 不接受） | ✗ |
+| v2：`_peeled` + `quiet_catch` | `JUDGE_INFER calls` **139 → 37,681** · `fails` **2 → 29,829** · prefix **1.5 MB → 8.5 MB** · JSON 变 | ✗✗ 病态循环 |
+
+⇒ 这条"直接替换类型来源"的路**不成立**：把实参 elaborate 一遍再求类型，会与 IA-1 后面的
+`sigma` 循环互相触发（同一个实参被反复 elaborate/询问）。**根因仍是"没有把内核会话的结果留下来"**，
+而不是"少问一次判卷器"。⇒ 回到 AppSession（协议见上一节），不要再用"就地求类型"顶替。
+
+**本轮唯一的净产出**：`lambda_source_type` 从 `elab.rs` 搬到 `elab_operand.rs`（40 行，
+`elab.rs` 8841 → **8811**，判据：714 行 0 差异 · fmt 干净 · ⑨ 绿）⇒ 为后续接线腾出行数预算。

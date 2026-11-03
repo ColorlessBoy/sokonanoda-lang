@@ -4048,6 +4048,10 @@ fn type_head_fits_layer<'a>(
 ///
 /// **书写类型优先**（零内核调用）：`Ident` 取源级类型、lambda 取 binder 注解拼的箭头类型（都绕开内核 pp
 /// ——pp 丢隐式实参 ⇒ 回读会静默换解 ✗）；剩下的才问内核，严格档取全显式 pp（见 `implicit_msg`）。
+// **2026-11-03**：`lambda_source_type` 已搬到 `elab_operand.rs`（`elab.rs` 只许减行数）；
+// re-export 保持既有调用路径 `elab::lambda_source_type` 不变 ✓。
+pub(crate) use super::elab_operand::lambda_source_type;
+
 pub(crate) fn operand_type_expr<'a>(
     ctx: &ElabCtx<'a, '_>,
     scope: &ElabScope<'a>,
@@ -4131,41 +4135,6 @@ pub(crate) fn operand_type_expr_explicit<'a>(
 /// 内部置位并还原 ✓），答不出才回落 [`crate::judge::judge_infer_explicit`]
 /// （合成 `#check` 文档、整份前缀重跑）。
 ///
-/// `fun (h : P) => h` 的**书写类型** `P -> P`，纯源级走查（**零内核调用**）。
-///
-/// 只认**一条**形状：所有 binder 都有注解，且体是某个 binder 的**裸名引用**
-/// （`fun (h : P) => h` —— 课程证明项里压倒性的多数，`Iff.intro`/`And.intro`
-/// 的实参全是它）。体的类型就是**那个 binder 的注解**，于是整条类型 =
-/// `T₀ → T₁ → … → Tₙ₋₁ → T_idx` ✓ —— 不需要问内核，也就不会被 pp 的隐式实参
-/// 丢失污染 ✓。
-///
-/// 其余形状（`fun (x : α) => f x` 之类）返回 `None` ⇒ 调用方照旧问内核，
-/// **不比今天差** ✓。
-pub(crate) fn lambda_source_type(operand: &Expr) -> Option<Expr> {
-    let Expr::Lambda { binders, body, .. } = operand else {
-        return None;
-    };
-    if binders.is_empty() {
-        return None;
-    }
-    let mut tys: Vec<Expr> = Vec::with_capacity(binders.len());
-    for binder in binders {
-        tys.push(binder.ty.as_deref()?.clone());
-    }
-    let Expr::Ident { name, .. } = body.as_ref() else {
-        return None;
-    };
-    let idx = binders.iter().position(|b| &b.name == name)?;
-    let mut ty = tys[idx].clone();
-    for domain in tys.iter().rev() {
-        ty = Expr::Arrow {
-            domain: Box::new(domain.clone()),
-            codomain: Box::new(ty),
-            span: Span::default(),
-        };
-    }
-    Some(ty)
-}
 
 /// **B2-P3b**：裸常量的前导隐式求解 —— 共享 store 时允许 `Partial`，期望类型与**整个值类型**
 /// （`?γ → Set ?γ`）合一（路线②只比裸结果 ⇒ 把外层 `β` 错解成 `Prop`）；闸门关走今天那条。
