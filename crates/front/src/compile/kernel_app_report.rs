@@ -96,6 +96,21 @@ pub(crate) fn report(outcome: &AppOutcome, input: &ReportInput<'_>) -> Report {
                 input.span,
             ))
         }
+        // **A′（2026-11-03）**：直接报一条干净诊断（不印内核类型，避免内部形态泄漏）。
+        AppOutcome::ArgMismatch { arg, .. } if std::env::var_os("SOKO_ARG_ERR").is_some() => {
+            let msg = format!(
+                "类型不匹配：`{}` 的第 {} 个显式实参，其类型与形参的要求不符。\n\
+                 签名是 `{}` —— 按它逐位对照（隐式形参由推断补；要逐位写全就在函数名前加 `@`）。",
+                input.head_text,
+                arg + 1,
+                input.ty_text,
+            );
+            Report::Error(CompileError::elab(
+                ErrorKind::KernelRejected,
+                sanitized(msg),
+                input.span,
+            ))
+        }
         AppOutcome::ArgMismatch { .. } => Report::Fallback("argmismatch_text"),
         AppOutcome::Unsupported(why) => Report::Fallback(why),
         AppOutcome::NeedArgs { .. } => Report::Fallback("need_args"),
@@ -290,6 +305,7 @@ mod tests {
             arg: 0,
             expected_domain: empty_owned(),
             actual_type: empty_owned(),
+            text: String::new(),
         };
         let want = strict_rejection_message("g", "g 0 1", TY, 1, 2, 1, 2);
         assert_eq!(text(&report(&outcome, &i)), want);

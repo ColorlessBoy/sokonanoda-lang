@@ -279,7 +279,7 @@ fn t6_mismatches() {
         let (tys, args, expected) = t1_parts(b, kx);
         let bad = [args[0], args[0]];
         let o = elab(b, &req(&tys, kx.intro, 2, &bad, Some(expected)));
-        let AppOutcome::ArgMismatch { arg, expected_domain, actual_type } = &o else { panic!("expected ArgMismatch, got {o:?}") };
+        let AppOutcome::ArgMismatch { arg, expected_domain, actual_type, .. } = &o else { panic!("expected ArgMismatch, got {o:?}") };
         assert_eq!(*arg, 1);
         let dom = b.import_owned(expected_domain).expect("import domain");
         let at = b.import_owned(actual_type).expect("import actual");
