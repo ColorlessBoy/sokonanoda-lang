@@ -235,6 +235,32 @@ thread_local! {
     pub(crate) static TEST_NO_BARE_POSTPONE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
+/// **A′/A′c（2026-11-03）**：这个操作数有没有**独立类型**？两族都没有 ——
+/// **裸隐式常量**（`∅` 这种零元记法 / 裸常量头，前导参数只能由期望类型给）与**零元记法**本身。
+/// 拿它们问 `judge_infer` 必然失败，而每次失败都把整份前缀重编（`unit19-solution` 184 次 / +791 KB、
+/// `G19` 2 / `G48` 8）⇒ 调用方直接答"没有信息"（= 失败后本来返回的那个值）。
+pub(crate) fn no_standalone_type(
+    operand: &Expr,
+    scope: &ElabScope<'_>,
+    env: Option<&super::elab::InplaceEnv<'_, '_>>,
+    ns: &super::scope::NamespaceScope,
+) -> bool {
+    zero_ary_notation(operand)
+        || env.is_some_and(|e| bare_implicit_const(operand, scope, e.known, ns).is_some())
+}
+
+/// 零元记法（`∅` ⇒ `Set.empty`）：不需要 `known` 就能判 —— 前导类型参数只能由**期望类型**给。
+pub(crate) fn zero_ary_notation(operand: &Expr) -> bool {
+    matches!(
+        operand,
+        Expr::Notation {
+            lhs: None,
+            rhs: None,
+            ..
+        }
+    )
+}
+
 /// **P2-11a-A**：实参是**裸**常量（`Ident` / 零元记法 `∅`）、它的声明有前导隐式（`univ : {α} → Set α`）、
 /// 且没被局部名遮蔽 ⇒ 推迟（Lean `elabAndAddNewArg` 对着域 elaborate，`addImplicitArg` 补前导隐式；
 /// 无期望时 `try_bare_implicit_constant` 不动 ⇒ 内核拿到 Pi 对 `Set α` ⇒ `ArgMismatch`）。

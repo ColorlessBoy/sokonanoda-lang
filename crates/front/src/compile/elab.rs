@@ -5,6 +5,7 @@ use super::check::quiet_catch;
 use super::error::{CompileError, ErrorKind};
 use super::expected::{drop_expected_src_layer_unfolding, mentions_any, mentions_names};
 use super::kernel_app::try_app as kapp;
+use super::kernel_app_postpone as postpone;
 use super::meta::pattern;
 use super::notation_levels::notation_level_texts;
 use super::prelude::CompileOptions;
@@ -3682,15 +3683,12 @@ pub(crate) fn infer_type_text<'a>(
     // `false` ⇒ **逐字节等于今天** ✓（下面每个分支都先判它 ✓）。
     explicit: bool,
 ) -> Option<String> {
-    // **A′c（2026-11-03）**：零元记法（`∅` ⇒ `Set.empty`）没有独立类型（`α` 只能由期望类型给）⇒ 各档都答不出；
-    // 每次失败重编整份前缀（`G19` 2 / `G48` 8 次）⇒ 直接 `None`（= 失败后本来返回的值）。
-    if matches!(operand, Expr::Notation { lhs: None, rhs: None, .. }) { return None; }
+    if postpone::zero_ary_notation(operand) {
+        return None;
+    }
 
     let binders = scope.judge_binders();
-    // ⚠ 这一行**保持原样**（`&render_expr(operand)` 内联）：它是记法路径守卫
-    // （`scripts/audit-notation-paths.py`）棘轮基线里的一条 —— 改成 `let term = …`
-    // 会让指纹对不上而被判"**新增** 1 处绕过唯一记法接口" ✗（实测踩到）。
-    // 就地路**本来就不用**这份渲染文本（它直接用 `operand` 的源 AST）✓。
+    // ⚠ `&render_expr(operand)` 必须**内联**（`audit-notation-paths.py` 棘轮基线的一条）。
     // ⚠ **判定的查询文本**（**不是显示路径** ⇒ 这里用 `render_expr` 是对的：
     // 记法折叠那条接口是给**显示**用的，判定路径用了会改判定 ✗）。
     // 它同时喂两处：源码重跑（慢路）与 `judge` 缓存键（键必须与慢路**同源**，
@@ -4064,7 +4062,9 @@ pub(crate) fn operand_type_expr<'a>(
     if let Some(src) = lambda_source_type(operand) {
         return Some(src);
     }
-    if env.as_ref().is_some_and(|e| super::kernel_app_postpone::bare_implicit_const(operand, scope, e.known, ctx.ns).is_some()) { return None; }
+    if postpone::no_standalone_type(operand, scope, env.as_deref(), ctx.ns) {
+        return None;
+    }
     let explicit = super::implicit_msg::strict_at_enabled(ctx.options);
     // **B3**：pp 文本里的名字要能在**声明表**（`known` 含 axiom/构造子）或作用域里解析 ✓；
     // 拿不到 `known`（老路 `env: None`）⇒ **不判**（= 今天的行为，绝不凭空拒 ✗）。
