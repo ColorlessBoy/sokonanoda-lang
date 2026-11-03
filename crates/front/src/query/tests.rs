@@ -432,6 +432,80 @@ theorem bullets : P ∧ Q := by
     assert_eq!(state.goals[0].goal, "Q");
 }
 
+/// **用户实测（2026-11-03）**：`·` 块跑完之后，下一条 tactic 的**进入态**必须
+/// 答"外层剩下的目标"——不是块里最后一条 tactic 的后态（那一格是空 ⇒
+/// Infoview 顶着「已无目标 ✓」，而证明其实还没完 ✗）。
+///
+/// 现场（单元 2 画布 `subset_empty_iff`）：`constructor` 出两个目标；`·` 分支
+/// 把第一个证完；`intro h x hx` 的开头字母 ⇒ 面板无目标。这里用同构的最小
+/// 夹具（`P ∧ Q` 的第二个目标留给 `exact hq`）。
+///
+/// **语义对照（Lean 4）**：`intro`/`exact hq` 起点答它的 `goalsBefore` = 前一条
+/// 兄弟执行后的状态；`·` 块把聚焦目标闭合后，剩下的就是外层目标 ✓。
+#[test]
+fn state_after_a_bullet_block_shows_the_remaining_goal() {
+    const BULLET_THEN_NEXT: &str = "\
+axiom P : Prop
+axiom Q : Prop
+axiom hp : P
+axiom hq : Q
+
+theorem after_bullet : P ∧ Q := by
+  constructor
+  · exact hp
+  exact hq
+";
+    let d = doc(BULLET_THEN_NEXT);
+    // ① 用户的动作：光标停在块后第一条 tactic 的**开头字母**上。
+    let next = BULLET_THEN_NEXT.find("exact hq").expect("next tactic");
+    let state = d.state_at(next).expect("answerable");
+    assert_eq!(
+        state
+            .goals
+            .iter()
+            .map(|g| g.goal.as_str())
+            .collect::<Vec<_>>(),
+        ["Q"],
+        "块后的第一条 tactic 进入态 = 外层剩下的目标（不是空 ✗）"
+    );
+    assert_eq!(
+        state.step, 3,
+        "进入态 = `·` 块的**结束态**（step 3：constructor · `·` · exact hp · 块尾）"
+    );
+    // ② 块尾与下一条之间的缩进（光标落在空白上）也答同一个状态；
+    //    面板不许在这里闪回「已无目标」。
+    let state = d.state_at(next - 1).expect("answerable");
+    assert_eq!(
+        state
+            .goals
+            .iter()
+            .map(|g| g.goal.as_str())
+            .collect::<Vec<_>>(),
+        ["Q"],
+        "块后的空隙也答外层剩下的目标"
+    );
+    // ③ 边界：块**里**最后一条 tactic 之内仍是它自己的后态（这一支已闭合 ⇒ 空）。
+    let last_in_bullet = BULLET_THEN_NEXT.find("exact hp").expect("last in bullet");
+    let state = d.state_at(last_in_bullet + 2).expect("answerable");
+    assert!(
+        state.goals.is_empty(),
+        "块内仍是聚焦目标的后态：{:?}",
+        state.goals.iter().map(|g| &g.goal).collect::<Vec<_>>()
+    );
+    // ④ `·` 自己的起点仍答**聚焦态**（2026-10-27 的判据不许回退）。
+    let bullet = BULLET_THEN_NEXT.find('·').expect("bullet");
+    let state = d.state_at(bullet).expect("answerable");
+    assert_eq!(
+        state
+            .goals
+            .iter()
+            .map(|g| g.goal.as_str())
+            .collect::<Vec<_>>(),
+        ["P"],
+        "`·` 起点 = 聚焦目标"
+    );
+}
+
 #[test]
 fn state_at_outside_declarations_is_an_error_not_an_empty_answer() {
     let doc = doc("-- 只有注释\n");

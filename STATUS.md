@@ -1,3 +1,5 @@
+## 推送例外（2026-11-03）
+- `--no-verify` 推 70bb54f6（用户批准）：pre-push 只红在 `docs-lint ①` —— entry 多 1,274 B · 总量多 865 B，**HEAD 上既有**（干净 HEAD worktree 实跑同样两条，不是本轮引入）。补跑：等并发那轮把根文档压回预算后跑完整 `ci-local.sh --fast`；远端 CI 的同一 step 会照样红（既有红，非本轮）。
 ## strict `≤ loose` 不变量：D4 重评估（2026-11-03，未发版）
 
 * **量具落地**（`43d7c6b4`）：`scripts/strict-score.py --corpus` = 全语料 357 文件逐文件判

@@ -31,6 +31,52 @@ async fn state_at_inside_a_tactic_shows_the_entering_state() {
     shutdown(&mut service).await;
 }
 
+/// **用户实测（2026-11-03）**：`·` 块之后的第一条 tactic 的**起点**必须答
+/// "外层剩下的目标"——不是「已无目标」✗（单元 2 画布 `subset_empty_iff`：
+/// `constructor` 的两个目标，`·` 分支证完第一个，`intro h x hx` 的开头字母上
+/// 面板顶着一句「🎉 已无目标 ✓」，而证明其实还差第二个目标）。
+///
+/// 这条钉**用户看得见的那一层**：`goal` / `goals[0].goal`（面板正文）+
+/// `goals` 的条数（面板列出几个目标）。真相层的同形判据在
+/// `crates/front/src/query/tests.rs::state_after_a_bullet_block_shows_the_remaining_goal`。
+#[tokio::test]
+async fn state_after_a_bullet_block_returns_the_remaining_goal() {
+    const BULLET_THEN_NEXT: &str = "\
+axiom P : Prop
+axiom Q : Prop
+axiom hp : P
+axiom hq : Q
+
+theorem after_bullet : P ∧ Q := by
+  constructor
+  · exact hp
+  exact hq
+";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, BULLET_THEN_NEXT).await;
+    let _ = wait_diagnostics(&mut socket, "stateAt diagnostics").await;
+
+    let at = offset_of(BULLET_THEN_NEXT, "exact hq");
+    let result = ask_state_at(&mut service, BULLET_THEN_NEXT, at).await;
+    assert_eq!(result["decl"]["status"], "checked");
+    assert_eq!(
+        result["decl"]["name"], "after_bullet",
+        "the caret is inside the declaration: {result}"
+    );
+    // ① 面板正文：`goal` 非 null（null ⇒ 面板写「已无目标」）。
+    assert!(
+        !result["goal"].is_null(),
+        "entering the tactic after a `·` block must not answer 'no goals': {result}"
+    );
+    // ② 剩下的是外层那个目标（不是空数组、也不是聚焦目标 P）。
+    let goals = result["goals"].as_array().expect("goals array");
+    assert_eq!(goals.len(), 1, "only the outer goal remains: {result}");
+    assert_eq!(goals[0]["goal"], "Q");
+    assert_eq!(result["goal"], "Q", "single-value field mirrors goals[0]");
+    shutdown(&mut service).await;
+}
+
 #[tokio::test]
 async fn state_at_carries_semantic_runs_for_goals_and_hypotheses() {
     // docs/protocol.md §`soko/stateAt`: `soko/stateAt` ships the same

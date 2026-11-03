@@ -590,6 +590,9 @@ pub enum Command {
         /// 从它身上拿不回值的范围。诊断要指到出错子项时用它
         /// （`kernel_phase::def_eq_error_span` ✓；长尾 ③ / r15 ✓）。
         val_span: Span,
+        /// 声明名自己的源范围（2026-11-03 用户实测：`uses-open-exercise`
+        /// 要落在名字上，整条声明涂红像"证明有错"）。parser 记，不扫文本。
+        name_span: Span,
     },
     Theorem {
         name: String,
@@ -599,6 +602,8 @@ pub enum Command {
         span: Span,
         /// **A3**：同上 ✓（`theorem … := ha` ⇒ `ha` 那一段 ✓）。
         val_span: Span,
+        /// 声明名的源范围（同 `Command::Def::name_span`）。
+        name_span: Span,
     },
     Example {
         ty: Expr,
@@ -612,6 +617,8 @@ pub enum Command {
         universe: Vec<String>,
         ty: Expr,
         span: Span,
+        /// 声明名的源范围（同 `Command::Def::name_span`）。
+        name_span: Span,
     },
     InductiveBlock {
         name: String,
@@ -623,6 +630,8 @@ pub enum Command {
         recursor: Option<RecDecl>,
         iota_rules: Vec<IotaRule>,
         span: Span,
+        /// 声明名的源范围（同 `Command::Def::name_span`）。
+        name_span: Span,
     },
     Check {
         expr: Expr,

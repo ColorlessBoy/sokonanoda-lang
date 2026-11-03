@@ -160,6 +160,7 @@ pub(crate) fn collect_names(file: &FolFile, toks: &[Token], names: &mut Names) {
                 recursor,
                 iota_rules,
                 span,
+                name_span: _,
             } => {
                 names.decls.insert(name.clone(), SemanticKind::InductiveUse);
                 names.add_special(
