@@ -53,7 +53,10 @@ pub enum AppOutcome {
     Unsolved { sites: Vec<UnsolvedSite> },
     /// 第 `arg` 个显式实参类型不对：`expected_domain` = 该位的域（代入当前解）、`actual_type` = 实参推出的类型。
     /// 两边都在 scope 之下；能实例化掉的元变量都已实例化，剩下的（本会话的 `?M x1..xd`）原样带着。
-    ArgMismatch { arg: usize, expected_domain: OwnedExpr, actual_type: OwnedExpr },
+    /// **P2-13（2026-11-03）**：`text` = 内核自己打印的那句 `类型不匹配：期望 X，实际是 Y`
+    /// （`def_eq_mismatch_message`，与内核别处的错误同一台打印机）⇒ 前端可以直接把它当诊断报出去、
+    /// **不必回落到老路**（老路会为打印这句话去问两次判卷器）。
+    ArgMismatch { arg: usize, expected_domain: OwnedExpr, actual_type: OwnedExpr, text: String },
     /// 结果类型 ≠ 期望类型：`expected` = 调用方给的期望、`actual` = 应用的结果类型（同上：scope 之下、尽量无元变量）。
     ExpectedMismatch { expected: OwnedExpr, actual: OwnedExpr },
     /// P1 的限制。

@@ -84,6 +84,18 @@ pub(crate) fn report(outcome: &AppOutcome, input: &ReportInput<'_>) -> Report {
         // 期望只是提示（Lean `propagateExpectedType` 失败 = 不传播）⇒ 不带期望重解一次，别报。
         AppOutcome::ExpectedMismatch { .. } => Report::Fallback("expected_retry"),
         // 正文要与今天逐字节相同 = 要内核那台打印器（`render_value_for_def_eq_error`）⇒ S3 保留回落。
+        // **P2-13（2026-11-03，`SOKO_ARG_ERR`）**：内核已经自己打出了那句
+        // `类型不匹配：期望 X，实际是 Y` ⇒ **直接报**，不再为打印这句话回落老路
+        // （老路要为此问两次判卷器，而那两个类型查询本来就会失败）。
+        AppOutcome::ArgMismatch { text, .. }
+            if std::env::var_os("SOKO_ARG_ERR").is_some() && !text.is_empty() =>
+        {
+            Report::Error(CompileError::elab(
+                ErrorKind::KernelRejected,
+                sanitized(text.clone()),
+                input.span,
+            ))
+        }
         AppOutcome::ArgMismatch { .. } => Report::Fallback("argmismatch_text"),
         AppOutcome::Unsupported(why) => Report::Fallback(why),
         AppOutcome::NeedArgs { .. } => Report::Fallback("need_args"),

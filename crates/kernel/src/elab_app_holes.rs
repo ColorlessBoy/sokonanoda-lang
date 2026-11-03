@@ -135,7 +135,13 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
     pub(crate) fn app_arg_mismatch(&mut self, d: u32, arg: usize, dom: V<'t>, at: V<'t>) -> AppOutcome {
         let expected_domain = self.app_export_side(d, dom);
         let actual_type = self.app_export_side(d, at);
-        AppOutcome::ArgMismatch { arg, expected_domain, actual_type }
+        // 只在开关下算（默认零开销、零行为变化）；P2-13 收口前它只是候选正文。
+        let text = if std::env::var_os("SOKO_ARG_ERR").is_some() {
+            self.def_eq_mismatch_message(d, dom, at)
+        } else {
+            String::new()
+        };
+        AppOutcome::ArgMismatch { arg, expected_domain, actual_type, text }
     }
 
     /// **P2-12 S1**：结果类型 ≠ 期望 ⇒ 两边都带回。
