@@ -1348,7 +1348,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     &self.open_exercises,
                     &mut self.out,
                     &decl,
-crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
+                    crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
                     idx,
                 );
                 let env_after = self.builder.declaration_count();
@@ -1841,7 +1841,7 @@ crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
                     &self.open_exercises,
                     &mut self.out,
                     &decl,
-crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
+                    crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
                     idx,
                 );
                 let env_after = self.builder.declaration_count();
@@ -1891,14 +1891,7 @@ crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
 
     /// `axiom name : T`：只 elaborate 类型，没有值。
     #[allow(clippy::too_many_arguments)]
-    fn axiom(
-        &mut self,
-        c: &CmdCtx<'_>,
-        name: &str,
-        universe: &[String],
-        ty: &Expr,
-        span: Span,
-    ) {
+    fn axiom(&mut self, c: &CmdCtx<'_>, name: &str, universe: &[String], ty: &Expr, span: Span) {
         let idx = c.idx;
         // 用 `&c.prefix_src`（Deref）而不是 `Cow::as_ref()`（后者会把 `ElabCtx` 逼到 `'arena`）。
         let prefix_src: &str = &c.prefix_src;
@@ -1999,7 +1992,7 @@ crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
                     &self.open_exercises,
                     &mut self.out,
                     &decl,
-crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
+                    crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
                     idx,
                 );
                 let env_after = self.builder.declaration_count();

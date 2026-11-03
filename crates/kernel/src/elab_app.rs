@@ -18,10 +18,9 @@
 use crate::env::EnvLimit;
 use crate::elab_app_holes::{meta_id, name_string};
 use crate::expr::{BinderStyle, Expr};
-use crate::name::Name;
 use crate::tc::{InferFlag, TypeChecker};
 use crate::transfer::OwnedExpr;
-use crate::util::{ExportFile, ExprPtr, NamePtr, TcCtx};
+use crate::util::{ExportFile, ExprPtr};
 use crate::value::{Value, E, V};
 
 /// 一次应用 elaboration 的输入。全部项都在 `binder_tys` 这个 scope 之下（loose `Var` = scope binder）。
