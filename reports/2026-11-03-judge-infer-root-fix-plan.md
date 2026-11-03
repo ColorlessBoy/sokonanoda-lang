@@ -269,3 +269,29 @@ ExportFile::elaborate_and_type(limit, req) -> Option<(ExprPtr, String /* 全显�
 | 逐文件违反数 | **2 → 1**（只剩 `G30`，allowlist 已按 ratchet 删掉 unit06） |
 | 四门计分板 | 全绿 |
 | 整门课 | **258 / 2191 / 0 判负** |
+
+## 最后一个（`G30`）：代价就是**它记录的那个缺口**本身
+
+`G30-min-eq-subst-half` 是**缺口复现件**（`docs/gaps/` 类，`gap.py` 按 `repro_expect` 判它应该**被判红**）。
+它的内核结论（`SOKO_KERNEL_APP_LOG`）：
+
+```
+err  unsupported_universe_poly_ho_motive Eq.subst 49:10   ← 前置闸门，根本没试
+dead argmismatch                          Iff.mp   48:7
+kept argmismatch                          Iff.intro 46:3  ← 2 次回落（`kept_argmismatch_text`）
+```
+
+2 次判卷器提问用探针定位到**同一个 lambda**：`47:6` = `Iff.intro` 的第一个实参
+`fun (h : {a} = {b}) => Iff.mp (a ∈ {b}) (a = b) mem_singleton_iff (Eq.subst.{1} … {a} {b} h …)`。
+
+- 它的类型 = `({a} = {b}) → <body 的类型>`；`<body 的类型>` 要 elaborate `Iff.mp …`，而其中的
+  **集合字面量 `{a}`/`{b}` 必须靠期望类型才能定型** —— 这正是 G-30 记录的缺口
+  （该文件头写着：「期望类型不传播到嵌套应用的实参」）。
+- ⇒ 这个类型在**本子集里根本拿不到**（不是"我们懒得拿"），所以那 2 次提问必然失败、每次重编前缀。
+
+**结论**：`G30` 的 `strict > loose` 不是性能瑕疵，而是**G-30 缺口的价格**。要消它 = **修 G-30**
+（把期望类型传播进嵌套应用的实参），那是**功能工作**、并且会让这个复现件从"被判红"变成"通过"
+⇒ 必须同步改 `gap.py` 台账（status → fixed、复现件的 `repro_expect` 更新）。
+
+⇒ 在"不改判卷结论"的约束下，**1 个违反是这个语料集的下限**；剩下的那条已在 allowlist 里写清
+类型/次数/技术原因（`kept_argmismatch_text` 2 · prefix 4,640 vs 0 · 原因是 G-30）。
