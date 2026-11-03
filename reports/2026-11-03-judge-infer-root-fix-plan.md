@@ -127,3 +127,63 @@ if !strict_at && (args.len() > declared.explicit_arity() || fits_old_style) {
 > **不是**绕过 IA-1，而是**把 IA-1 的求解器换成内核元变量版**：保留它今天的**绑定规则与判卷结论**，
 > 只把"求实参类型"这一步从「渲染文本问判卷器」（有损、每次失败重编整份前缀）换成「内核自己 infer
 > 已 elaborate 的项」。判据仍是：714 行 0 差异（**判卷结论不变**）+ 两个文件的 calls/prefix 降到 loose。
+
+## Stage 2 协议设计（AppSession）：为什么必须"会话存活"，以及怎么放生命周期
+
+### 递归的证据（本轮实测）
+
+`unit06` 那 2 次失败是**同一段 1462 字节文本**被问了两次：一次在真实源码 `331:6`（外层 `And.intro`
+的第二实参 = 内层 `And.intro (fun…) (fun…)`），一次在 `1:117`（**判卷器合成文档的行 1**）。
+
+⇒ 判卷器的"就地求类型"并不比文本路更聪明：它 elaborate 这个实参时，又回到 IA-1，又需要这个实参的
+类型 ⇒ **自递归**，第二次必然同样失败。**这就是"换成就地/换成全显式 pp 都不降度量"的根本原因。**
+
+### Lean 为什么不会递归
+
+`elabAppArgs` 里实参是**对着域** elaborate 的（`ensureArgType … expectedType`），而域可能是元变量 `?a`；
+elaborate 一个 λ 时 `elabFunBinders` 直接把 `?a` **赋成** Pi 类型 ⇒ 递归在"元变量赋值"上**收敛**，
+不需要回头问"这个实参是什么类型"。
+
+### 我们要补的那一块（协议）
+
+```
+AppSession（内核持有，生命周期 = 整个应用）:
+  open(limit, head: ExprPtr, implicit_prefix: usize, expected: Option<OwnedExpr>) -> Session
+  next() -> Step
+      Need { idx: usize,  dom: OwnedExpr }   // 域**可以**含未解元变量
+    | Done { term: OwnedExpr }
+    | Fail { reason: AppFail }
+  supply(idx, arg: &OwnedExpr) -> Step       // 内核在自己的 mctx 里 check_type(arg, dom) ⇒ 合一
+  finish() -> Outcome
+```
+
+关键点（也是今天做不到的）：
+
+| 点 | 今天 | 协议要求 |
+|---|---|---|
+| mctx 存活期 | 一次 `elab_app` 调用（返回即丢） | **整个应用**（跨多次 `supply`） |
+| 交出的域 | 只交"无未解元变量"的（`domains`），带元变量的进 `blocked` 被前端丢弃 | **都交**（`Need{dom}` 可以是 `?a`） |
+| 实参的 elaborate | 前端先解、再整体交给内核 | 内核**逐个**要，前端逐个给 |
+| 类型从哪来 | IA-1 渲染文本问判卷器 | **内核自己** `check_type` 合一（不再问） |
+
+### 生命周期怎么放（Rust 侧）
+
+`ExportFile::with_tc` 现在每次调用建一个 `TcCtx` + bump，返回即丢。会话化有两条路：
+
+1. **所有权外移**：把 `TcCtx`/`mctx`/`export_owned` 装进 `AppSession`（内核对象），前端只持 `session_id`
+   （存进 `ExportFile` 的 slab）。跨 `supply` 的项一律走 `OwnedExpr`（已有 `import_owned`/`export_owned`
+   这层机制，正是为跨 arena 设计的）⇒ **不动 arena 策略**，只延长 mctx 的寿命。
+2. 每次 `supply` 重放已给的实参（无状态）：`open` 记录 `Vec<OwnedExpr>`，`supply` 时重建会话重放。
+   代价 O(n²)（实参个数是个位数），但**零生命周期风险** ⇒ **先走 2，跑通再换 1**。
+
+### 落地顺序（每步一个判据）
+
+| 步 | 做什么 | 判据 |
+|---|---|---|
+| 2.1 | 内核加 `AppSession`（无状态重放版）+ 单测（`And.intro (fun…) (fun…)` 这种嵌套应用要解出来） | 内核 131 + 新增 2 条 |
+| 2.2 | 前端 `run_once` 改成"问会话要域 → elaborate → supply"循环（开关 `SOKO_APP_SESSION`） | 714 行 0 差异 |
+| 2.3 | IA-1 的 `arg_types` 调用点：**有会话时不再**渲染文本问判卷器 | 两个文件 fails→0、calls/prefix = loose |
+| 2.4 | 默认开、删开关；allowlist 删这 2 条 | `corpus_le_loose` 0 violations |
+
+⚠ 2.2/2.3 都可能改判卷（我第 6 轮实测：绕过 IA-1 ⇒ JSON 变）⇒ **每步先对拍、有差异就停下来定性**，
+不许"顺手修"。
