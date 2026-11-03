@@ -665,17 +665,16 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   at its **very start** → **entering** it; else after the last tactic ending at or before the caret; before the first tactic → the
   **statement state**: the declaration's **named ∀ binders** in `binders` and what is left
   after peeling them in `goal` —— **与声明卡片（`soko/goals`）逐字一致**
-  （**顶 ≡ 底** 是硬契约 ✓）；Π 语句保留自己的 `→`/`∀` ✓；**没有 `by` 步进**的声明（无 `by` 块 / 题面之前）答题面（非 null）✓，而**失败的 `by` 块也逐 tactic 选状态**（B1，2026-10-08：`by_steps` 只记**已经跑成功**的那些 tactic ⇒ `total` = 成功条数、`step` 可达 `total-1`；以前恒 `0/-1`、整份退回题面 ✗ = 用户报的「最后一条 tactic 报错 ⇒ 前面所有 goal 全坏」）。
+  （**顶 ≡ 底** 是硬契约 ✓）；Π 语句保留自己的 `→`/`∀` ✓；**没有 `by` 步进**的声明（无 `by` 块 / 题面之前）答题面（非 null）、`step`/`total` = `-1`/`0` ✓，而**失败的 `by` 块也逐 tactic 选状态**（B1，2026-10-08：`by_steps` 只记**已经跑成功**的那些 tactic ⇒ `total` = 成功条数、`step` 可达 `total-1`；以前恒 `0/-1`、整份退回题面 ✗ = 用户报的「最后一条 tactic 报错 ⇒ 前面所有 goal 全坏」）。
 - `goals` is the **full** remaining-goal list at that position (current goal
   first, `[]` = closed), each entry carrying its own `goal` text and
   `binders` — so a multi-subgoal tactic (`apply And.intro`) shows both
   sub-goals at once. The single-value `goal`/`binders` fields are kept for
   older clients and always equal `goals[0]` (`goal: null` when `goals` is
   empty).
-- `step` indexes the declaration's per-tactic states (front `by_steps`,
-  recorded after each tactic runs); `total` is the tactic count. For a
-  declaration without a `by` block both are `-1`/`0` and the response falls
-  back to the declaration's remaining goal/context (`step: -1`).
+- `step` indexes the declaration's recorded **step states** (front `by_steps`);
+  `total` is their count. One state follows each tactic; a `·` block adds a zero-width
+  **closure state** at its end (the outer goals left after the focused one closes).
 - `decl: null` = the caret is in no declaration **and not in the blank tail after one** (2026-10-09: a blank line / trailing whitespace right after a declaration body still belongs to that declaration, so the panel keeps showing its remaining goals instead of 「光标不在任何声明内」; the first line carrying other content — the next declaration, a comment, a `#check`/`#print` line — ends the tail);
   all other fields then default (`goal: null`, empty `binders`, `span: null`, `step: -1`, `total: 0`).
 - The response carries the document `version` so clients drop stale answers.

@@ -7870,6 +7870,80 @@ fn signature_gate_lets_open_exercises_enter_the_env_with_a_warning() {
     );
 }
 
+/// **用户实测（2026-11-03）**：`uses-open-exercise` 的落点必须是**声明名**，
+/// 不是整条声明（整条涂红看起来像"证明有错"）。
+///
+/// 三层判据（缺一不可）：
+/// ① 字节范围逐字等于源里的名字 token —— 范围本身是真相（CLI `--json` /
+///    `query check` 的 `start`/`end` 就是它）；
+/// ② 行列也落在名字上 —— LSP 的 `range_of` **只认行列**（不读 offset）⇒
+///    屏幕上那条波浪线由它决定；
+/// ③ warning 本体还在（改范围不许把提醒改没了，也不许换成另一条）。
+///
+/// 三种具名声明各测一次（`def` / `theorem` / `axiom` 在 walk 里是**三处**
+/// 独立的 `warn_if_uses_open_exercise` 调用，漏一处就漏一处）。
+#[test]
+fn uses_open_exercise_warning_covers_only_the_declaration_name() {
+    let cases = [
+        (
+            "theorem open_one : (a : Prop) -> a -> a := sorry\n\
+             theorem uses_open (a : Prop) (h : a) : a := open_one a h\n",
+            "uses_open",
+            "open_one",
+        ),
+        (
+            "theorem open_one : (a : Prop) -> a -> a := sorry\n\
+             def uses_open (a : Prop) (h : a) : a := open_one a h\n",
+            "uses_open",
+            "open_one",
+        ),
+        (
+            "axiom P : Prop\n\
+             def openP : Prop := sorry\n\
+             axiom uses_open : openP\n",
+            "uses_open",
+            "openP",
+        ),
+    ];
+    for (src, name, exercise) in cases {
+        let file = parse(src).expect("parse");
+        let report = check_document(&file);
+        let warning = report
+            .warnings
+            .iter()
+            .find(|w| w.code() == "uses-open-exercise")
+            .unwrap_or_else(|| panic!("uses-open-exercise warning for {src:?}"));
+        // ② 行列由源文本独立算（不许照抄实现）：LSP 的 `range_of` 只读行列。
+        let start = src.find(name).expect("name token");
+        let line = src[..start].matches('\n').count() + 1;
+        let line_start = src[..start].rfind('\n').map_or(0, |i| i + 1);
+        let column = start - line_start + 1;
+        // ① 范围 = 名字 token。
+        assert_eq!(
+            (warning.span.start.offset, warning.span.end.offset),
+            (start, start + name.len()),
+            "warning range must be the name token, not the whole declaration: {src:?}"
+        );
+        // ② 行列（1-based）也必须指向名字（LSP 的 `range_of` 只读它们）。
+        assert_eq!(
+            (
+                warning.span.start.line,
+                warning.span.start.column,
+                warning.span.end.line,
+                warning.span.end.column
+            ),
+            (line, column, line, column + name.len()),
+            "warning line/column must be the name token: {src:?}"
+        );
+        // ③ 提醒本体仍然点名那个开放练习。
+        assert!(
+            warning.message.contains(exercise),
+            "the warning still names the open exercise: {}",
+            warning.message
+        );
+    }
+}
+
 /// 声明级 report：签名不过 ⇒ 状态是 Failed（不是 Open），错误与 `out.errors` 同一条。
 #[test]
 fn signature_failure_marks_the_declaration_failed() {

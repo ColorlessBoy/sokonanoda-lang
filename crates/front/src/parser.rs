@@ -1292,7 +1292,7 @@ impl Parser {
 
     fn parse_def(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
-        let name = self.expect_decl_name("definition name")?;
+        let (name, name_span) = self.expect_decl_name_spanned("definition name")?;
         let name = self.qualify_decl_name(name);
         let mut universe = self.parse_universe_params()?;
         let binders = self.parse_decl_binders(&mut universe)?;
@@ -1312,12 +1312,13 @@ impl Parser {
             val,
             span,
             val_span,
+            name_span,
         })
     }
 
     fn parse_theorem(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
-        let name = self.expect_decl_name("theorem name")?;
+        let (name, name_span) = self.expect_decl_name_spanned("theorem name")?;
         let name = self.qualify_decl_name(name);
         let mut universe = self.parse_universe_params()?;
         let binders = self.parse_decl_binders(&mut universe)?;
@@ -1336,6 +1337,7 @@ impl Parser {
             val,
             span,
             val_span,
+            name_span,
         })
     }
 
@@ -1822,7 +1824,7 @@ impl Parser {
 
     fn parse_axiom(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
-        let name = self.expect_decl_name("axiom name")?;
+        let (name, name_span) = self.expect_decl_name_spanned("axiom name")?;
         let name = self.qualify_decl_name(name);
         let mut universe = self.parse_universe_params()?;
         // G-13：与 def/theorem 同序——宇宙参数后先吃 binder 组，再进类型位。
@@ -1837,6 +1839,7 @@ impl Parser {
             universe,
             ty,
             span,
+            name_span,
         })
     }
 
@@ -1916,7 +1919,7 @@ impl Parser {
         // G-05 N3：归纳块的名字也吃命名空间前缀（`namespace Set` 里的
         // `inductive Foo` ⇒ `Set.Foo`），构造子照 R1 从**已加前缀的**类型名
         // 派生规范名（`Set.Foo.mk`）——`ctor`/`rec`/`iota` 自己的名字不动。
-        let name = self.expect_decl_name("inductive name")?;
+        let (name, name_span) = self.expect_decl_name_spanned("inductive name")?;
         let name = self.qualify_decl_name(name);
         // 零或多个参数 binder（`(A : Type)` / `(A B : Prop)` / `{A B : Type}`），
         // 在 `:` 之前。走 `push_binders` 与箭头/λ/∀/声明 binder 同一套组语法
@@ -1945,6 +1948,7 @@ impl Parser {
                         recursor,
                         iota_rules,
                         span,
+                        name_span,
                     });
                 }
                 "ctor" => constructors.push(self.parse_ctor()?),
@@ -3882,6 +3886,14 @@ impl Parser {
     /// 是一个 `Ident`），于是 `def f.{u}` 曾把名字静默吃成 `f.` 并判卷通过
     /// （G-18：声明变形且不报错）。本子集不支持声明位 `.{u}` 拼写，所以这里
     /// 必须报错而不是猜；点分限定名（`Foo.Bar.baz`）照常通过。
+    /// 与 [`Self::expect_decl_name`] 同一条诊断路，**外加名字 token 的源范围**
+    /// （`uses-open-exercise` 一类声明级提示要落在名字上，2026-11-03 用户实测）。
+    fn expect_decl_name_spanned(&mut self, what: &str) -> Result<(String, Span)> {
+        let tok = self.peek().clone();
+        let name = self.expect_decl_name(what)?;
+        Ok((name, tok.span))
+    }
+
     fn expect_decl_name(&mut self, what: &str) -> Result<String> {
         let tok = self.peek().clone();
         let name = self.expect_ident(what)?;

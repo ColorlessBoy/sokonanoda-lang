@@ -208,7 +208,11 @@ fn a_project_build_writes_its_artifact_into_the_module_root() {
     // `#check` 都是"内核类型文本"，现在 `#check <裸 def 名>` 是
     // `def <名字> : <类型> := <定义体>`（`CheckEvent::type_display`）⇒
     // 老条目回放的是"只有类型、点名形式"的旧答案 ⇒ 必须整库不命中（同一条规矩 ✓）。
-    assert_eq!(meta["schema"], "soko.artifacts/2.r9");
+    // ⚠ **r9 → r10**：`·` 块的**结束态**（2026-11-03 用户实测 `subset_empty_iff`）
+    // 让 `DeclState.by_steps` 多一条零宽 step（块后第一条 tactic 的进入态）⇒
+    // `total` + 1/块。老条目回放的是"块里最后一条的后态 = 空" ⇒ Infoview 顶着
+    // 「已无目标」✗ ⇒ 必须整库不命中（同一条规矩 ✓）。
+    assert_eq!(meta["schema"], "soko.artifacts/2.r10");
     assert!(meta["compiler"].as_str().is_some_and(|v| !v.is_empty()));
     // ⑤ 项目条目**不再**落全局缓存（分工：项目条目只认模块根）。
     assert!(
