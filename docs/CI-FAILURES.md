@@ -640,4 +640,6 @@ CLI 层实测 40 条声明的夹具：管道 **2.48s** vs `NO_TICK` **2.48s**（
 ④ `the_kernel_quiet_window_is_thread_local` 竞态（探针先 spawn、主线程后轮询 ⇒ `checks==0`）⇒ 凡「先 spawn 再轮询」的判据，先做一次本线程该做的事再读信号。
 **未收口（如实）**：`changing_a_statement_must_invalidate_the_prefixes_after_it` 仍红（`prefix=12`，期望 0）= **引擎缺口** `SUB-flip-default-needs-engine-at-spine`（旧档 3/3 绿）。
 
-## 更早条目（原文已删，只保留最近若干轮 ⇒ `git log --all -- docs/CI-FAILURES.md`）：2026-10-20 严格档翻默认拖慢 14× · 2026-10-20 方言批次 editor 红在咬住证明 C2（换版证明的 rc 必须等于 `expect_rc`）✓
+## 2026-11-03 `board` 红：`ux-queue.py --selftest` 的 ④ 正对照（ubuntu 红；本地 Py3.12/3.13/3.15 · TZ/LANG · 净化 git 身份 · 10 连跑全绿 ⇒ 需诊断性 CI 打 `_out`；细节 `reports/2026-11-03-ci-board-selftest-red.md`）
+
+## 更早条目（原文已删 ⇒ `git log --all -- docs/CI-FAILURES.md`）
