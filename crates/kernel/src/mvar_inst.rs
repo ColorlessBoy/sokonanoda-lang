@@ -73,7 +73,7 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
             Meta { id, .. } => match self.mvars.value(id) {
                 Some(v) if fuel < INST_FUEL && depth >= self.mvars.depth_of(id) => {
                     let d = self.mvars.depth_of(id);
-                    let v = self.lift(v, 0, crate::mvar::shift16(depth - d));
+                    let v = self.lift(v, 0, crate::mvar_spine::shift16(depth - d));
                     self.inst_mvars_go(v, cache, fuel + 1, depth)
                 }
                 _ => e,

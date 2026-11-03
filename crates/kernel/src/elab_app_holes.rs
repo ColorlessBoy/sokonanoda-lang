@@ -3,8 +3,12 @@
 //!
 //! Lean 对照（v4.35.0）：`Elab/App.lean:433-443` `elabAndAddNewArg` 的 `expectedType` 可以含**同一 mctx**
 //! 的元变量；这里会话是新的 ⇒ 外部元变量按 id 重新登记（同 `solve_metas`），本会话的 id 从外部最大 id 之上分配。
-use crate::elab_app::{AppOutcome, UnsolvedSite, SESSION_META_BASE};
+use crate::elab_app::{AppOutcome, AppRequest, UnsolvedSite, SESSION_META_BASE};
+use crate::env::EnvLimit;
 use crate::expr::{BinderStyle, Expr};
+use crate::name::Name;
+use crate::util::TcCtx;
+use crate::util::NamePtr;
 use crate::tc::TypeChecker;
 use crate::transfer::OwnedExpr;
 use crate::util::ExprPtr;
@@ -161,6 +165,56 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
             env_i = crate::value::env_extend(self.arena, env_i, fresh);
             cur = self.apply_closure(depth + 1, &body, fresh, Some(domain));
             depth += 1;
+        }
+    }
+}
+
+/// **C4 回传（2026-11-03）** 的出口（搬到本文件只为守住 `elab_app.rs` 的 ~500 行软线）。
+impl<'p> crate::util::ExportFile<'p> {
+    /// **C4 回传（2026-11-03）**：同 [`Self::elab_app`]，另外把会话里对**调用方登记**的元变量的赋值
+    /// 渲染成文本交回来（`(id, 文本)`）。前端把它写回自己的元变量 store（`MetaStore::assign`）⇒
+    /// 同一个 `\0soko_m{id}` 的所有出现看到同一个值。
+    ///
+    /// `scope` = 调用方作用域的 binder 名（外层在前），与 `req.binder_tys` **同序**；开项要印真名。
+    /// 没有登记过元变量（今天的所有语料）⇒ 第二项恒空 ⇒ 与 [`Self::elab_app`] 逐字节同一条路。
+    pub fn elab_app_collect(
+        &self,
+        limit: EnvLimit<'p>,
+        req: &AppRequest<'_, 'p>,
+        scope: &[String],
+    ) -> (AppOutcome, Vec<(u32, String)>) {
+        let _q = crate::quiet::quiet();
+        let cell = std::cell::RefCell::new(Vec::new());
+        let run = std::panic::AssertUnwindSafe(|| {
+            self.with_tc(limit, |tc| {
+                let out = tc.elab_app_session(req);
+                *cell.borrow_mut() = tc.take_external_assignments(scope);
+                out
+            })
+        });
+        let verdict = std::panic::catch_unwind(run).unwrap_or(AppOutcome::Unsupported("panic"));
+        (verdict, cell.into_inner())
+    }
+}
+
+pub(crate) fn name_string(ctx: &TcCtx<'_, '_>, n: NamePtr<'_>) -> String {
+    match ctx.read_name(n) {
+        Name::Anon => String::new(),
+        Name::Str(pfx, sfx, _) => {
+            let mut out = name_string(ctx, pfx);
+            if !out.is_empty() {
+                out.push('.');
+            }
+            out.push_str(ctx.read_string(sfx).as_ref());
+            out
+        }
+        Name::Num(pfx, k, _) => {
+            let mut out = name_string(ctx, pfx);
+            if !out.is_empty() {
+                out.push('.');
+            }
+            out.push_str(&k.to_string());
+            out
         }
     }
 }

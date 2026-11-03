@@ -16,7 +16,7 @@
 //! * `App.lean:926-951` 主循环：`fType` 不是 Π ⇒ whnf 再看（`synthesizePendingAndNormalizeFunType`）；
 //!   严格隐式且没有剩余实参 ⇒ finalize（`processStrictImplicitArg`）。
 use crate::env::EnvLimit;
-use crate::elab_app_holes::meta_id;
+use crate::elab_app_holes::{meta_id, name_string};
 use crate::expr::{BinderStyle, Expr};
 use crate::name::Name;
 use crate::tc::{InferFlag, TypeChecker};
@@ -117,52 +117,6 @@ impl<'p> ExportFile<'p> {
         std::panic::catch_unwind(run).unwrap_or(AppOutcome::Unsupported("panic"))
     }
 
-    /// **C4 回传（2026-11-03）**：同 [`Self::elab_app`]，另外把会话里对**调用方登记**的元变量的赋值
-    /// 渲染成文本交回来（`(id, 文本)`）。前端把它写回自己的元变量 store（`MetaStore::assign`）⇒
-    /// 同一个 `\0soko_m{id}` 的所有出现看到同一个值。
-    ///
-    /// `scope` = 调用方作用域的 binder 名（外层在前），与 `req.binder_tys` **同序**；开项要印真名。
-    /// 没有登记过元变量（今天的所有语料）⇒ 第二项恒空 ⇒ 与 [`Self::elab_app`] 逐字节同一条路。
-    pub fn elab_app_collect(
-        &self,
-        limit: EnvLimit<'p>,
-        req: &AppRequest<'_, 'p>,
-        scope: &[String],
-    ) -> (AppOutcome, Vec<(u32, String)>) {
-        let _q = crate::quiet::quiet();
-        let cell = std::cell::RefCell::new(Vec::new());
-        let run = std::panic::AssertUnwindSafe(|| {
-            self.with_tc(limit, |tc| {
-                let out = tc.elab_app_session(req);
-                *cell.borrow_mut() = tc.take_external_assignments(scope);
-                out
-            })
-        });
-        let verdict = std::panic::catch_unwind(run).unwrap_or(AppOutcome::Unsupported("panic"));
-        (verdict, cell.into_inner())
-    }
-}
-
-pub(crate) fn name_string(ctx: &TcCtx<'_, '_>, n: NamePtr<'_>) -> String {
-    match ctx.read_name(n) {
-        Name::Anon => String::new(),
-        Name::Str(pfx, sfx, _) => {
-            let mut out = name_string(ctx, pfx);
-            if !out.is_empty() {
-                out.push('.');
-            }
-            out.push_str(ctx.read_string(sfx).as_ref());
-            out
-        }
-        Name::Num(pfx, k, _) => {
-            let mut out = name_string(ctx, pfx);
-            if !out.is_empty() {
-                out.push('.');
-            }
-            out.push_str(&k.to_string());
-            out
-        }
-    }
 }
 
 impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
@@ -193,11 +147,13 @@ impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
         i < prefix || style != BinderStyle::Default
     }
 
-    fn elab_app_session(&mut self, req: &AppRequest<'_, 'p>) -> AppOutcome {
+    pub(crate) fn elab_app_session(&mut self, req: &AppRequest<'_, 'p>) -> AppOutcome {
         let binder_tys: Vec<ExprPtr<'t>> = req.binder_tys.to_vec();
         let args: Vec<Option<ExprPtr<'t>>> = req.explicit_args.to_vec();
         let head: ExprPtr<'t> = req.head;
         let expected: Option<ExprPtr<'t>> = req.expected;
+        // **P1 限制**：输入里不许有元变量——**P2-9** 起 `expected` 例外（Lean `elabAndAddNewArg` 的期望类型含同一
+        // mctx 的元变量）：外部元变量按 id 登记进本会话、本会话 id 从它们之上分配（不相撞）。
         // **P1 限制**：输入里不许有元变量——**P2-9** 起 `expected` 例外（Lean `elabAndAddNewArg` 的期望类型含同一
         // mctx 的元变量）：外部元变量按 id 登记进本会话、本会话 id 从它们之上分配（不相撞）。
         let lam_tys: Vec<(usize, Vec<ExprPtr<'t>>)> = req.lambda_binders.iter().map(|(i, t)| (*i, t.to_vec())).collect();

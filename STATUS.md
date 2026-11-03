@@ -2,31 +2,14 @@
 - `--no-verify` 推 70bb54f6（用户批准）：pre-push 只红在 `docs-lint ①` —— entry 多 1,274 B · 总量多 865 B，**HEAD 上既有**（干净 HEAD worktree 实跑同样两条，不是本轮引入）。补跑：等并发那轮把根文档压回预算后跑完整 `ci-local.sh --fast`；远端 CI 的同一 step 会照样红（既有红，非本轮）。
 ## strict `≤ loose` 不变量：D4 重评估（2026-11-03，未发版）
 
-* **量具落地**（`43d7c6b4`）：`scripts/strict-score.py --corpus` = 全语料 357 文件逐文件判
-  `calls·misses·prefix_bytes` 三项 `strict ≤ loose`，违反表进 `scripts/strict-invariant-baseline.json`
-  （allowlist **ratchet**：新增违反 = 红，条目不再违反也 = 红）；`--selftest` 四向咬住证明；
-  `scripts/strict/exception-census.py` = 逐文件例外计数。读数 = **7 个文件**（与用户口径逐个对上）。
-* **关键发现**：「例外」≠「违反」——8 个文件有 `nofallback_kept_*`，只有 4 个违反；7 个违反文件里
-  3 个（`unit02`/`unit06`/`G30`）**一个 kept 都没有**。4 个 meta 族文件的主因是 strict 向文本判定
-  （`judge_infer`）问必然失败的题（`unit19-solution`：fails **184 vs 0**，逐条 `judge_infer("∅")`）。
-* **三条捷径被证否**（都带二进制身份）：内核「闭元变量可登记」（`mvar.rs::in_meta_scope` 要求闭项存储
-  ⇒ 全转 `argmismatch_text`）· 跳记法重试的「任一操作数」版（把 `unit19-solution` 打成 rc=1）·
-  「全部操作数」版（谓词在真实形状上从不命中 ⇒ 已删）。
-* **C 案施工（用户拍板选 C）**：C1–C3 已落（`02979b5a`）= 内核元变量赋值**带 scope**
-  （`lower` 存 / `lift` 读 / 缓存键 `(ExprPtr, u32)`）；判据 = **714 行逐字节 0 差异** ·
-  内核 130/130 · 四门绿 · 整门课 **258 目标 / 2191 checked / 0 判负**。
-  **C4 判为不可交付**：接上后 `G19` **rc 0→1**（坏在声明类型）——内核给调用方元变量赋值**不回传**
-  前端 `\0soko_m{id}` 表（`meta.rs` 冻结）⇒ 同一 id 两份实例不一致 ⇒ 已还原
-  （`reports/2026-11-03-metavar-scope-assignments.md` §8）。
-* **未达成**：`nofallback_kept_*` 一个都没消；下一轮的真任务 = **赋值回传**
-  （C4 与记法侧重试 `prefix_meta` 52 共用这块基础设施，应同一批做）。
-* ⚠ 本轮工作树被**并发进程**改动/重置过（读数必须同时钉二进制 sha 与树状态）。
-* 原文/读数表 ⇒ `reports/2026-11-03-strict-invariant-assessment.md`。
-
-## v0.98.0 发版（2026-11-03）
-- **默认方言 = strict**（零环境变量；`--dialect loose` 是退路）+ 四条内核 soundness（归纳块宇宙参数守卫 · 块内临时名残留 · 单边 unit-eta 判等漏洞 · 空环境不看宇宙代换；LKA 最新语料 **207 例 0 failures**）+ 三条可见修复（内部名不再泄漏 / `Eq.subst` 前缀 / 出口规则顺序）。
-- 判据：整门课 **258 · 2191 · 0 判负**（两档）· 357 文件 × 两档逐字节不变 · `release-preflight.sh` **✓ 全部通过**。
-- ⚠ 本轮 `push --no-verify` 绕过 `check-timing-evidence.py`：K1–K4 与 `5192a0d` 的证据是**结构计数**（`unify` 6,815,039 → ±0），不是墙钟（2026-09-29 明令不许绝对毫秒）。按规矩记在此处；收口需补 `soko:no-timing:`（rebase 91 笔，未做）。
+* **量具**：`scripts/strict-score.py --corpus`（全语料 357 文件逐文件三项 `strict ≤ loose` +
+  allowlist ratchet，`--selftest` 四向咬住）+ `scripts/strict/exception-census.py`。读数 = **7 个文件**。
+* **C 案（内核元变量赋值带 scope）**：C1–C3 已落 —— 判据 = 714 行逐字节 **0 差异** · 内核 131/131 ·
+  四门绿 · 整门课 **258 / 2191 / 0 判负**。
+* **C4（接线）收益 = 0**：read-back 做完后判卷全保住，但 `input_contains_a_meta` 22 → 3 +
+  `argmismatch_text` 19、`G19/G48` 的 9/3 → `panic` 9/3 —— 老路靠 `fill_pending_by_shape`
+  才过得去，strict 要消必须**照抄那条猜法**（与「不新造猜法」冲突）⇒ 由用户在产品三选一。
+* 读数/机制/逐文件结论 ⇒ `reports/2026-11-03-{strict-invariant-assessment,metavar-scope-assignments}.md`。
 
 ## strict P2-12 S0b + S4a（2026-11-01 · 分支 `strict/2026-10-29-kernel-app`，未发版）
 - **S0b** 补三处回落计数 ⇒ `fallback_unsolved == probe_cut + Σ fallback_old_*_unsolved` 闭合（前差 68/31）；**口径改写**：差额全在记法路由（`Set.Le` 的 `A ≼ B`，单文件 88 次）⇒ S0 的 59/18 是下界。

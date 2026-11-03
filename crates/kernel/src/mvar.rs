@@ -284,13 +284,6 @@ pub fn has_unassigned_meta(v: V<'_>, ctx: &MetaContext<'_>) -> bool {
     any_meta(v, &|id| ctx.value(id).is_none())
 }
 
-/// **C（2026-11-03）**：`depth - depth_of(id)` 换成 `lift`/`lower` 的 `u16` 位数。
-/// 上界由 `elab_app` 入口的 `scope too deep` 检查保证（binder 数 ≤ `u16::MAX`）⇒ 这里不会溢出；
-/// 写成 `expect` 而不是 `as`（clippy `cast_possible_truncation` 要的就是"明确表过态"）。
-pub(crate) fn shift16(k: u32) -> u16 {
-    u16::try_from(k).expect("binder depth is bounded by u16 (elab_app checks `scope too deep`)")
-}
-
 impl<'x, 't, 'p: 't> TypeChecker<'x, 't, 'p> {
     /// **C4 回传（2026-11-03）**：会话里**调用方登记**的元变量中已赋值的那几条，渲染成**文本**交回去。
     ///
@@ -338,7 +331,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 debug_assert!(false, "meta used shallower than its creation depth");
                 return false;
             }
-            let term = self.ctx.lift(term, 0, shift16(depth - d));
+            let term = self.ctx.lift(term, 0, crate::mvar_spine::shift16(depth - d));
             let v0 = self.eval(depth, self.empty_env(), term);
             return self.unify::<true>(depth, v0, v);
         }
@@ -372,7 +365,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         let quoted = self.quote(depth, v);
         let d = self.ctx.mvars.depth_of(id);
         let quoted = if depth > d {
-            self.ctx.lower(quoted, 0, shift16(depth - d))
+            self.ctx.lower(quoted, 0, crate::mvar_spine::shift16(depth - d))
         } else {
             quoted
         };
@@ -399,7 +392,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             return false;
         }
         let q = self.quote(depth, v);
-        !self.ctx.has_loose_bvar_below(q, shift16(depth - d))
+        !self.ctx.has_loose_bvar_below(q, crate::mvar_spine::shift16(depth - d))
     }
 
     /// **K1b**：公开的、**不 panic** 的定义等价判定（Lean `isDefEq` + `checkpointDefEq`）。
@@ -447,40 +440,6 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     pub(crate) fn value_has_unassigned_meta(&self, v: V<'t>) -> bool {
         has_unassigned_meta(v, &self.ctx.mvars)
     }
-}
-
-/// `eval` 的 `Expr::Meta` 臂（已赋值 ⇒ 展开；未赋值 ⇒ `Value::Meta`）。
-pub(crate) fn eval_meta<'t>(
-    tc: &mut TypeChecker<'_, 't, '_>,
-    depth: u32,
-    env: crate::value::E<'t>,
-    id: u32,
-    ty: ExprPtr<'t>,
-) -> V<'t> {
-    // **C（2026-11-03）**：赋值存在元变量自己的上下文里 ⇒ 先抬到用点再求值（`depth_of == 0` 时抬 0 位）。
-    // 用点比创建点浅 ⇒ 分不出来 ⇒ 当作未赋值（绝不交错项）。
-    match tc.ctx.mvars.value(id) {
-        Some(term) => {
-            let d = tc.ctx.mvars.depth_of(id);
-            if depth < d {
-                debug_assert!(false, "meta used shallower than its creation depth");
-                return mk_meta(tc.arena, id, ty, tc.empty_spine());
-            }
-            let term = tc.ctx.lift(term, 0, shift16(depth - d));
-            tc.eval(depth, env, term)
-        }
-        None => mk_meta(tc.arena, id, ty, tc.empty_spine()),
-    }
-}
-
-/// `value_type` 的 `Value::Meta` 臂：类型 = 上下文登记的类型。
-pub(crate) fn value_type_meta<'t>(
-    tc: &mut TypeChecker<'_, 't, '_>,
-    depth: u32,
-    ty: ExprPtr<'t>,
-) -> V<'t> {
-    let env = tc.empty_env();
-    tc.eval(depth, env, ty)
 }
 
 impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
