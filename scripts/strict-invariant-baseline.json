@@ -1,0 +1,48 @@
+{
+  "schema": "soko.strict-invariant/1",
+  "criterion": "per file: strict calls <= loose calls AND strict misses <= loose misses AND strict prefix_bytes <= loose prefix_bytes",
+  "measured_with": {
+    "bin": "target/release/sokonanoda",
+    "sha256": "06f3eb09852fcf0f",
+    "tree": "HEAD 4b5bb690"
+  },
+  "ratchet": "an entry that no longer violates MUST be deleted (stale_allowlist => RED); adding an entry is a reviewable regression, not a fix",
+  "how_to_measure": "python3 scripts/strict-score.py --bin <bin> --corpus --corpus-only --jobs 6",
+  "allowed": {
+    "courses/set-theory/units/I.1/unit02-subsets-empty.sokonanoda": {
+      "kept": "none (3 pre-attempt `universe_poly_ho_motive` gates)",
+      "numbers": "calls 42 vs 35 · misses 6 vs 3 · prefix 324,046 vs 282,609",
+      "reason": "judge-cache perturbation, NOT a fallback tax: strict judges one extra whole prefix (JUDGE_INFER fails 3, loose 0) and re-judges a prefix it already judged once (same prefix_bytes 17,763 twice). Fix would need judge.rs (frozen this round) or kernel terms that render byte-identically to the old path's."
+    },
+    "courses/set-theory/units/I.8/unit19-cardinal-le.sokonanoda": {
+      "kept": "prefix_meta 22 · input_contains_a_meta 10",
+      "numbers": "calls 157 vs 64 · misses 12 vs 4 · prefix 1,400,430 vs 796,174",
+      "reason": "same family as unit19-solution: the notation retry asks `judge_infer` for the type of a zero-ary notation (`Set.empty`), which has no standalone type ⇒ every question fails and recompiles the whole prefix."
+    },
+    "courses/set-theory/units/solutions/I.2/unit06-solution.sokonanoda": {
+      "kept": "none (7 pre-attempt `fallback_shape` gates)",
+      "numbers": "calls 139 vs 129 · misses 12 vs 7 · prefix 1,512,484 vs 1,413,779",
+      "reason": "same mechanism as unit02 (judge-cache perturbation): the shape gate itself does no kernel work, so the extra work is in the judge, not in elab_app."
+    },
+    "courses/set-theory/units/solutions/I.8/unit19-solution.sokonanoda": {
+      "kept": "prefix_meta 30 · input_contains_a_meta 22",
+      "numbers": "calls 284 vs 64 · misses 14 vs 4 · prefix 1,587,462 vs 796,174",
+      "reason": "measured root cause: JUDGE_INFER fails=184 in strict vs 0 in loose, every one of them `judge_infer(\"∅\")`; each failure recompiles the prefix (prefix_bytes +791 KB). Asking is inside elab.rs (frozen); skipping the retry wholesale makes the file red (rc 0 -> 1, 3 x Set.Le diagnostics, measured with the `any opaque operand` variant)."
+    },
+    "docs/gaps/repro/G19-zero-ary-notation-applied.sokonanoda": {
+      "kept": "input_contains_a_meta 9",
+      "numbers": "calls 12 vs 8 · misses 5 vs 2 · prefix 6,350 vs 4,628",
+      "reason": "same family: the operand is `Set.empty ?α` (a zero-ary notation with a placeholder element type), so the retry's type question fails and the kernel path falls back after paying for it."
+    },
+    "docs/gaps/repro/G30-min-eq-subst-half.sokonanoda": {
+      "kept": "argmismatch_text 2 (+8 pre-attempt `universe_poly_ho_motive` gates)",
+      "numbers": "calls 8 vs 4 · misses 6 vs 2 · prefix 4,640 vs 0",
+      "reason": "loose never asks the judge at all (prefix 0) while strict asks once and fails; `argmismatch_text` itself needs the kernel def-eq printer (P2-13) to stay byte-identical."
+    },
+    "docs/gaps/repro/G48-notation-nullary-sugar-operands.sokonanoda": {
+      "kept": "input_contains_a_meta 3",
+      "numbers": "calls 12 vs 2 · misses 5 vs 2 · prefix 1,956 vs 0",
+      "reason": "both operands are nullary sugar (`∅ ≈ {b}`) so neither has a standalone type: the documented G-48 chained-wait shape; the retry is guaranteed to ask a question the judge cannot answer."
+    }
+  }
+}
