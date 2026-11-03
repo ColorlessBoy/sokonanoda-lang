@@ -822,8 +822,8 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 val,
                 span,
                 val_span,
-                name_span,
-            } => self.def(c, name, universe, ty, val, *span, *val_span, *name_span),
+                name_span: _,
+            } => self.def(c, name, universe, ty, val, *span, *val_span),
             Command::Theorem {
                 name,
                 universe,
@@ -831,15 +831,15 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                 val,
                 span,
                 val_span,
-                name_span,
-            } => self.theorem(c, name, universe, ty, val, *span, *val_span, *name_span),
+                name_span: _,
+            } => self.theorem(c, name, universe, ty, val, *span, *val_span),
             Command::Axiom {
                 name,
                 universe,
                 ty,
                 span,
-                name_span,
-            } => self.axiom(c, name, universe, ty, *span, *name_span),
+                name_span: _,
+            } => self.axiom(c, name, universe, ty, *span),
             Command::Example {
                 ty,
                 val,
@@ -968,7 +968,6 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         val: &Expr,
         span: Span,
         val_span: Span,
-        name_span: Span,
     ) {
         let idx = c.idx;
         let templates = c.templates;
@@ -1349,7 +1348,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     &self.open_exercises,
                     &mut self.out,
                     &decl,
-                    name_span,
+crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
                     idx,
                 );
                 let env_after = self.builder.declaration_count();
@@ -1412,7 +1411,6 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         val: &Expr,
         span: Span,
         val_span: Span,
-        name_span: Span,
     ) {
         let idx = c.idx;
         let templates = c.templates;
@@ -1843,7 +1841,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     &self.open_exercises,
                     &mut self.out,
                     &decl,
-                    name_span,
+crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
                     idx,
                 );
                 let env_after = self.builder.declaration_count();
@@ -1900,7 +1898,6 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
         universe: &[String],
         ty: &Expr,
         span: Span,
-        name_span: Span,
     ) {
         let idx = c.idx;
         // 用 `&c.prefix_src`（Deref）而不是 `Cow::as_ref()`（后者会把 `ElabCtx` 逼到 `'arena`）。
@@ -2002,7 +1999,7 @@ impl<'arena: 'shadow, 'shadow> Walk<'arena, 'shadow> {
                     &self.open_exercises,
                     &mut self.out,
                     &decl,
-                    name_span,
+crate::references::decl_name_span(c.src, span, name).unwrap_or(span),
                     idx,
                 );
                 let env_after = self.builder.declaration_count();
