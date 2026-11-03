@@ -222,3 +222,40 @@ G19 的新诊断：`elab-anon-ctor-no-expected-type` @ **43:3**（`∅ ⊆ A` �
 ⚠ 关键未知（下一片一上手就要验）：内核 pp 的文本能否被 `meta_parse` 原样读回（尤其 `@` 形式、
 Sort/宇宙层、以及 binder 名与前端作用域的同名遮蔽）。仓库里这条 parser 之前只吃过**类型文本**
 （`elab.rs:5527` 的 `?mN` 类型），**没有吃过值文本**的判据 ⇒ 第一件事是加一条单测钉死它。
+
+## 10. 前端半**做完了**，但结论改了：C4 的收益是 **0**（2026-11-03 晚）
+
+按 §9.2 的契约把前端半做完（`kernel_app_readback.rs` + `elab_app_collect` 接线 + 重接 C4），
+**判卷结论全保住了**（这是回传的功劳）：
+
+| 文件 | 不写回（C4 单独） | **写回之后（C4 + read-back）** | JSON 哈希 vs 基线 |
+|---|---|---|---|
+| `G19` | **rc=1** ✗ | **rc=0** ✓ | **逐字节相同**（`6355c0b8`） |
+| `G48` | rc=0 | rc=0 | **逐字节相同**（`7baa357f`） |
+| `unit19-solution` | rc=0 | rc=0 | **逐字节相同**（`47260191`） |
+| `unit19-cardinal-le` | rc=0 | rc=0 | **逐字节相同**（`580b935c`） |
+
+⇒ 「赋值不回传」确实是 G19 变红的根因，回传把它治好了。
+
+**但是 kept 计数一格没少，反而换了名字**：
+
+| 文件 | C1–C3 | C4 + read-back |
+|---|---|---|
+| `unit19-solution` | `prefix_meta` 30 · `input_contains_a_meta` 22 | `prefix_meta` 30 · **`argmismatch_text` 19** · `input_contains_a_meta` 3 |
+| `G19` / `G48` | `input_contains_a_meta` 9 / 3 | **`panic` 9 / 3**（内核裸 `panic!` = 拒绝，被 `catch_unwind` 收成 `Unsupported("panic")`） |
+
+**结论（这是本轮最重要的技术判定）**：内核现在**接受并真的跑了**这些站点（22 → 3+19、9/3 → panic），
+但**判不出** —— 19 个退化成 `ArgMismatch`（元变量合一后的类型与域不符），零散几个把内核逼进
+`panic!` 拒绝。也就是说：
+
+> **老路能过这些站点靠的是 `implicit::fill_pending_by_shape`（借同形兄弟）—— 一条 Lean 没有的启发式。
+> strict 要消掉这 4 个文件，就必须在 strict 路径里**照抄那条猜法**；否则内核在信息不足时只能拒绝。
+> 而 strict 的设计从一开始就写着「不新造猜法」（S4b §、S4c §）。**
+
+⇒ 这条不是"再写点代码就能消"的活，而是**产品判定**：
+1. **接受**这 4 个文件为已知偏差（例外表 + `strict-invariant-baseline.json` 的 allowlist，已写好机制），或
+2. **把 `fill_pending_by_shape` 搬进 strict 的记法/应用路径**（= 承认 strict 也猜，与 §9.39 的初衷冲突），或
+3. **让 loose 也拒绝**（会破课程文件，违反本轮硬约束）。
+
+⇒ 本轮据此**还原** C4 + read-back（判卷虽不变，但收益 0、还引入 panic 站点），保留
+C1–C3（零行为变化的内核能力）与回传的内核半（下一轮若要走选项 2，它是现成的地基）。

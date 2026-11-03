@@ -114,6 +114,17 @@ calls 21,015 → 21,305 · misses 3,078 → 3,108 · prefix 224.04 MB → 224.82
   详见 `reports/2026-11-03-metavar-scope-assignments.md` §8。⇒ 下一轮的真任务 = **赋值回传**，
   它与记法侧重试（`prefix_meta` 52 次）是同一块基础设施，应同一批做。
 
+### 追加 2（2026-11-03 深夜，read-back 做完之后 —— **结论变了**）
+
+前端半（回传）做完后判卷**全部保住**（G19/G48/unit19×2 的 JSON 与基线逐字节相同），说明回传确实
+治好了 G19 变红的根因。**但 kept 计数一格没少**：`input_contains_a_meta` 22 → 3 + **`argmismatch_text` 19**，
+`G19`/`G48` 的 9/3 变成 **`panic` 9/3**（内核裸 `panic!` = 拒绝）。
+
+⇒ **C4 的收益是 0**，而且根因不是"少一块基础设施"，是**产品判定**：老路靠
+`implicit::fill_pending_by_shape`（借同形兄弟，Lean 没有的启发式）才过得去；strict 要消掉这 4 个文件
+就必须**照抄那条猜法**，与「不新造猜法」的设计前提冲突。三条出路（接受偏差 / strict 也猜 / loose 也拒）
+见 `reports/2026-11-03-metavar-scope-assignments.md` §10。C4 + read-back 已**还原**（判卷不变但收益 0）。
+
 **未达成**：`nofallback_kept_*` 一个都没消；`unit19-solution`/`unit19-cardinal-le`/`G19`/`G48`/`unit06`/`G30`
 仍在表里。要推进必须动本轮冻结的四文件或内核元变量表示 —— **下一轮请先就"解冻哪一处"拍板**：
 
