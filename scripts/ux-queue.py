@@ -7539,15 +7539,19 @@ def selftest_release_order_and_content(expect) -> None:
             for ev in batch("ok"):
                 append_event(ev)
             _rc, _out = plan()
-            # ⚠ 判据要**咬得住**：裸词 `"孤儿" not in _out` 两头都不成立 ——
-            #   · 本地实测 `_out` 里**从不出现**这两个字（`check_plan` 不打印它）⇒ **空转** ✗；
-            #   · CI 上它却红过（输出里**别处**也出现了这两个字，如分支栅栏话术）⇒ 误报。
-            # ⇒ 咬**这一条判据的产物**：点名某个节点（`REL-…`）的「孤儿」行。
-            _orphan_lines = [ln for ln in _out.splitlines() if "孤儿" in ln and "REL-" in ln]
-            expect(f"④ 正对照：同批事件都有 `release-open` ⇒ 输出里没有点名节点的「孤儿」行"
-                   f"（不误报 ✓；命中 {len(_orphan_lines)} 行"
-                   f"{'：' + _orphan_lines[0][:80] if _orphan_lines else ''}）",
-                   not _orphan_lines)
+            # ⚠ 判据要**咬得住**（2026-11-03，CI 实测两次红把这条钉出来）：
+            #   · 裸词 `"孤儿" not in _out` 是**误报**：`batch()` 里的 cut **故意**用
+            #     `伪造的 subject` + `fake_pid`（"假审计 cut"），于是 `check_plan` 会合理地
+            #     报一条「与它的审计字段**对不上** … ⇒ 孤儿」。本地那条消息走的是"commit 能解析"
+            #     的另一支（不含这两个字）⇒ 本地绿、CI 红 —— 同一条判据**两头都不成立** ✗。
+            #   · 正对照真正要禁的是：**这一条之外**任何点名节点的孤儿。
+            _orphan_lines = [ln for ln in _out.splitlines() if "孤儿" in ln]
+            _stray = [ln for ln in _orphan_lines if "对不上" not in ln]
+            expect(f"④ 正对照：同批事件都有 `release-open` ⇒ 除「假审计 cut」那一条外"
+                   f"**没有**点名节点的「孤儿」行（不误报 ✓；孤儿行 {len(_orphan_lines)} 条，"
+                   f"其中意外 {len(_stray)} 条"
+                   f"{'：' + _stray[0][:80] if _stray else ''}）",
+                   not _stray)
             # ⑤ ⑥ **多条 cut 轴**（`#2`）
             done_events(("FX-1", "FX-2", "FX-3"))
             open_and_add()
