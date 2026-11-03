@@ -6,9 +6,11 @@
   allowlist ratchet，`--selftest` 四向咬住）+ `scripts/strict/exception-census.py`。读数 = **7 个文件**。
 * **C 案（内核元变量赋值带 scope）**：C1–C3 已落 —— 判据 = 714 行逐字节 **0 差异** · 内核 131/131 ·
   四门绿 · 整门课 **258 / 2191 / 0 判负**。
-* **C4（接线）收益 = 0**：read-back 做完后判卷全保住，但 `input_contains_a_meta` 22 → 3 +
-  `argmismatch_text` 19、`G19/G48` 的 9/3 → `panic` 9/3 —— 老路靠 `fill_pending_by_shape`
-  才过得去，strict 要消必须**照抄那条猜法**（与「不新造猜法」冲突）⇒ 由用户在产品三选一。
+* **A′ 落地（违反数 7 → 4）**：`operand_type_expr` 不再拿**裸隐式常量**（`∅` 这种零元记法）去问
+  `judge_infer` —— 那问题**必然失败**且每次失败重编整份前缀。`unit19-solution` / `unit19-cardinal-le`
+  的 calls/misses/prefix 因此与 loose **逐项相等**；714 行逐字节仍 0 差异、四门绿、课 258/2191/0。
+* **C4（内核接受输入元变量）收益 = 0**，已还原：判卷能保住（靠回传）但站点全数转成
+  `argmismatch_text`/`panic` —— 要真解需**声明级元变量上下文**（Lean `TermElabM`）。
 * 读数/机制/逐文件结论 ⇒ `reports/2026-11-03-{strict-invariant-assessment,metavar-scope-assignments}.md`。
 
 ## strict P2-12 S0b + S4a（2026-11-01 · 分支 `strict/2026-10-29-kernel-app`，未发版）

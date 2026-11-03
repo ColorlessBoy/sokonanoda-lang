@@ -4044,11 +4044,8 @@ fn type_head_fits_layer<'a>(
 
 /// 操作数的**类型表达式**（源级 AST），供隐式前缀求解当模板/实参用。
 ///
-/// **书写类型优先**（零内核调用）：`Ident` 取作用域里的**源级**类型；lambda 取 **源级 binder
-/// 注解**拼出的箭头类型（见 [`lambda_source_type`]）。两者都**绕开内核 pp**：pp 会丢隐式实参
-/// （`Set.image α β f A` 打成 `Set.image β f A`）⇒ 这份文本被**回读成项**再 elaborate 会静默
-/// 换成另一个解 ✗。剩下的形状才问内核（pp 文本 → `parse_expr_text`）；**严格档取全显式 pp**
-/// （默认 pp 的文本是"正常形式写满实参" ⇒ 严格档一律拒 ✗，见 `implicit_msg`）。
+/// **书写类型优先**（零内核调用）：`Ident` 取源级类型、lambda 取 binder 注解拼的箭头类型；两者都绕开
+/// 内核 pp（pp 丢隐式实参 ⇒ 回读会静默换解 ✗）。剩下的才问内核；严格档取全显式 pp（`implicit_msg`）。
 pub(crate) fn operand_type_expr<'a>(
     ctx: &ElabCtx<'a, '_>,
     scope: &ElabScope<'a>,
@@ -4063,6 +4060,9 @@ pub(crate) fn operand_type_expr<'a>(
     if let Some(src) = lambda_source_type(operand) {
         return Some(src);
     }
+    // **A′（2026-11-03）**：裸隐式常量没有独立类型 ⇒ 问 judge_infer 必然失败并重编整份前缀
+    // （unit19-solution 实测 184 次 / +791 KB）⇒ 直接答 None（= 它失败后本来给的那个值）。
+    if env.as_ref().is_some_and(|e| super::kernel_app_postpone::bare_implicit_const(operand, scope, e.known, ctx.ns).is_some()) { return None; }
     let explicit = super::implicit_msg::strict_at_enabled(ctx.options);
     // **B3**：pp 文本里的名字要能在**声明表**（`known` 含 axiom/构造子）或作用域里解析 ✓；
     // 拿不到 `known`（老路 `env: None`）⇒ **不判**（= 今天的行为，绝不凭空拒 ✗）。
