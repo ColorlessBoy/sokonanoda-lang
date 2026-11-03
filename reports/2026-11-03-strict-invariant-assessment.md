@@ -61,10 +61,14 @@ calls 21,015 → 21,305 · misses 3,078 → 3,108 · prefix 224.04 MB → 224.82
 机制：记法重试（`retry_with_prefix` → `elab::notation_prefix_args`）只能拿操作数的**渲染文本**去问
 `judge_infer`；`∅`（零元记法）**没有独立类型**，这问题必然失败，而每次失败的代价是**整份前缀重编**。
 
-我试过在**未冻结**的 `kernel_app_notation.rs` 里跳过这次重试：
+我试过在**未冻结**的 `kernel_app_notation.rs` 里跳过这次重试（两个变体都已还原，`git diff` 空）：
 * 版本 A（**任一**操作数是裸隐式常量 ⇒ 不重试）：`unit19-solution` **rc 0 → 1**（3 条 `Set.Le` 诊断），
-  `prefix_meta`/`input_contains_a_meta` 归零但**判卷变红** ⇒ 不可接受，**已还原**。
-* 版本 B（**所有**操作数都是裸隐式常量才跳过）：构建期撞上**并发改动**（见 §5），未能取到读数。
+  `prefix_meta`/`input_contains_a_meta` 归零但**判卷变红** ⇒ 不可接受。原因：混着可定型操作数时
+  （`∅ ⊆ A` 的 `A`）重试**会成功**，而它正是该文件 `rc=0` 的来源。
+* 版本 B（**所有**操作数都是裸隐式常量才跳过）：**全语料读数逐字不变**（`unit19-solution` 30/22、
+  `unit19-cardinal-le` 22/10、`G19` 9、`G48` 3、`G30` 2、`G-apply` 1 全部相同，strict JSON 哈希相同）
+  ⇒ 谓词在真实形状上**从不命中**（`bare_implicit_const` 只认 `Ident` 与零元 `Notation`；
+  `{b}` 是 `Expr::SetLiteral`）⇒ **咬不住的闸不留下**（"咬不住的守卫等于没有"），已删除。
 
 ## 4. 逐条技术结论（不是"接受"）
 
@@ -82,3 +86,29 @@ calls 21,015 → 21,305 · misses 3,078 → 3,108 · prefix 224.04 MB → 224.82
 `crates/front/src/ast.rs` + `parser.rs`（08:04，新增 `Command::name_span` ⇒ 当时**编不过**）、
 `check/walk.rs`；我在 02:35 写入的未跟踪产出（本报告 + 两个脚本）一度被清掉。
 ⇒ 凡是与本轮读数做比较的构建，**必须同时钉住二进制 sha 与树状态**；跨并发改动不可比。
+
+## 6. 本轮交付 / 未达成（如实）
+
+**已交付（`43d7c6b4`）**
+1. `scripts/strict-score.py --corpus` = 全语料逐文件不变量判据 + allowlist ratchet；
+   咬住证明（合成行，四向）：违反在 allowlist 内 ⇒ 绿；缺条目 ⇒ `NEW` 判红；条目不再违反 ⇒ `STALE` 判红；
+   多一条不违反的 ⇒ 同样判红。
+2. `scripts/strict/exception-census.py` = 逐文件例外计数（验收判据 ③ 的原料）。
+3. `scripts/strict-invariant-baseline.json` = 7 条 allowlist，**每条写机制**（不是"接受"）。
+4. 三条**被证否**的捷径（§2 / §3 / 两个重试变体），都带二进制身份与可复跑命令。
+
+**违反数**
+* `HEAD 4b5bb690`（基线所钉的树）：**7**。
+* 当前工作树（含并发进程对 `unit02-subsets-empty` 的证明改写：`apply Eq.subst h` + `exact hx`
+  → `apply Eq.subst h hx`）：**6**，ratchet 正确报 `STALE=unit02-subsets-empty`。
+  ⚠ 这 −1 **不是**本轮的改动贡献，它恰好**印证** §1 对 unit02 的机制判断（那 3 个 `Eq.subst` 站点正是
+  判卷扰动的来源）。它落地后应把该条目从 allowlist 删掉（ratchet 要求）。
+
+**未达成**：`nofallback_kept_*` 一个都没消；`unit19-solution`/`unit19-cardinal-le`/`G19`/`G48`/`unit06`/`G30`
+仍在表里。要推进必须动本轮冻结的四文件或内核元变量表示 —— **下一轮请先就"解冻哪一处"拍板**：
+
+| 选项 | 改哪 | 能修掉 | 代价/风险 |
+|---|---|---|---|
+| A | `elab.rs`（记法操作数的类型改走**内核项**而不是 `judge_infer` 文本） | 184 次失败提问 ⇒ 4 个 meta 族文件 | 前端主路径，回归面大 |
+| B | `judge.rs`（负缓存：同一 term 的 infer 失败不重复整份重编） | 同样的 4 个文件（便宜、正交） | 判卷缓存语义，需全量 `--json` 对拍 |
+| C | `kernel/src/mvar.rs`（赋值带 scope，Lean `MetavarDecl.lctx`） | `input_contains_a_meta` 一族（真解） | 内核表示升级，多日 + soundness |
