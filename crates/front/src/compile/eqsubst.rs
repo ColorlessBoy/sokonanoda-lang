@@ -51,7 +51,6 @@
 //! * 形状不匹配 ⇒ 原样返回 `None`，走今天的错误路径。
 
 use super::eqsubst_diff::{diff, replace_at, same_expr, DiffResult, Step};
-use super::eqsubst_motive::EndpointTy;
 use crate::ast::{Binder, BinderKind, Expr};
 use crate::span::Span;
 use crate::spine;
@@ -90,35 +89,39 @@ pub(crate) fn rewrite_argument_hole(
 }
 
 /// **P2-a**：等式项的**端点**（只认局部名与 `Eq.symm` 包一层；其它 ⇒ `None`）。
-pub(super) fn eq_endpoints(term: &Expr, binders: &[Binder]) -> Option<(Expr, Expr)> {
+pub(super) fn eq_endpoints(term: &Expr, binders: &[Binder]) -> Option<(Option<Expr>, Expr, Expr)> {
     match term {
         Expr::Ident { .. } => decompose_eq(local_type(binders, term)?),
         Expr::App { fun, arg, .. } if is_head_named(fun, "Eq.symm") => {
-            eq_endpoints(arg, binders).map(|(a, b)| (b, a))
+            eq_endpoints(arg, binders).map(|(ty, a, b)| (ty, b, a))
         }
         _ => None,
     }
 }
 
-/// 把 `a = b`（记法）或 `Eq a b`（点名）拆成两端。
-fn decompose_eq(e: &Expr) -> Option<(Expr, Expr)> {
+/// 把 `a = b`（记法）或 `Eq a b` / `@Eq.{u} T a b`（点名）拆成**类型实参**与两端。
+///
+/// **类型实参**只在**内核形态**（`@Eq.{u} T a b`，3 位、`explicit_spine`）里有 ——
+/// 它正是 motive binder 的标注（issue #7 第 2 条：用户现场 `hx : {a} = ∅` 的
+/// `hx` 是 `intro` 从目标切下来的，形状就是这一种；源里写的 `h : A = ∅` 是 2 位、
+/// 没有它，那一形照旧从 binder 的书写类型取）。
+fn decompose_eq(e: &Expr) -> Option<(Option<Expr>, Expr, Expr)> {
     match e {
         Expr::Notation {
             target, lhs, rhs, ..
-        } if target == "Eq" => Some(((lhs.as_deref()?).clone(), (rhs.as_deref()?).clone())),
+        } if target == "Eq" => Some((None, (lhs.as_deref()?).clone(), (rhs.as_deref()?).clone())),
         Expr::App { .. } => {
             // **走唯一的脊抽取**（2026-11-04 issue #7 第 2 条）：**内核装配**的项是
-            // `@Eq.{u} T a b`（**3** 位，带类型参数、`explicit_spine`），而源里写的是
-            // `Eq a b`（2 位）。旧实现只认「`fun.fun` 直接是 `Eq` 头」⇒ 3 位那一形的
-            // 头是 `Eq T`（一个应用）⇒ 判否 ⇒ `intro hx` 进来、或任何由内核文本回读
-            // 出来的等式（`hx : {a} = ∅`）**一条形状 ③ 都走不到** ✗。
+            // `@Eq.{u} T a b`（**3** 位），而源里写的是 `Eq a b`（2 位）。旧实现只认
+            // 「`fun.fun` 直接是 `Eq` 头」⇒ 3 位那一形的头是 `Eq T`（一个应用）⇒ 判否
+            // ⇒ `intro hx` 进来、或任何由内核文本回读出来的等式 **一条形状 ③ 都走不到** ✗。
             let (head, args) = spine::spine_of(e);
             if !is_head_named(head, "Eq") {
                 return None;
             }
             match args.as_slice() {
-                [a, b] => Some(((*a).clone(), (*b).clone())),
-                [_ty, a, b] => Some(((*a).clone(), (*b).clone())),
+                [a, b] => Some((None, (*a).clone(), (*b).clone())),
+                [ty, a, b] => Some((Some((*ty).clone()), (*a).clone(), (*b).clone())),
                 _ => None,
             }
         }
@@ -135,15 +138,9 @@ fn is_head_named(e: &Expr, name: &str) -> bool {
 
 /// `apply` 的**共同入口**：先试 ①（洞在等号位），再试 ②（等号位给了），
 /// 最后试 ③（**单实参** `Eq.subst h`：从 `h` 的右端在目标里的出现抽 motive）。
-pub(crate) fn rewrite(
-    expr: &Expr,
-    goal: &Expr,
-    binders: &[Binder],
-    span: Span,
-    ty_of: EndpointTy<'_>,
-) -> Option<Expr> {
+pub(crate) fn rewrite(expr: &Expr, goal: &Expr, binders: &[Binder], span: Span) -> Option<Expr> {
     if !is_eqsubst_two_args(expr) {
-        return super::eqsubst_motive::rewrite_single_argument(expr, goal, binders, span, ty_of);
+        return super::eqsubst_motive::rewrite_single_argument(expr, goal, binders, span);
     }
     rewrite_argument_hole(expr, goal, binders, span)
         .or_else(|| rewrite_explicit_equality(expr, goal, binders, span))
@@ -170,7 +167,6 @@ pub(crate) fn rewrite_exact(
         if !is_eqsubst_head(head) || args.len() != 2 || matches!(args[0], Expr::Hole { .. }) {
             return None;
         }
-        // `exact` 这条路今天没有引擎上下文 ⇒ 端点类型只取书写类型（与修前逐字节一致 ✓）。
         super::eqsubst_motive::rewrite_goal_motive(
             head,
             args[0],
@@ -178,7 +174,6 @@ pub(crate) fn rewrite_exact(
             &binders,
             span,
             Some(args[1]),
-            &mut |_| None,
         )
     })
 }
@@ -216,7 +211,7 @@ pub(crate) fn rewrite_explicit_equality(
     }
     // **P2-a（2026-10-23，审计 row 6）**：等式项不必是**裸局部名** ——
     // 认 `h` 与 `Eq.symm h`（端点从书写类型取；其它形状仍不碰）。
-    let (eq_a, eq_b) = eq_endpoints(args[0], binders)?;
+    let (_ty, eq_a, eq_b) = eq_endpoints(args[0], binders)?;
     let premise = args[1];
     let premise_ty = local_type(binders, premise)?;
     let synth = synthesize(premise_ty, goal, binders, span)?;

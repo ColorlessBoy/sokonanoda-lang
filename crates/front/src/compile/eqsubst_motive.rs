@@ -18,21 +18,8 @@
 use super::eqsubst::{eq_endpoints, is_eqsubst_head, local_type};
 use super::eqsubst_diff::replace_all;
 use crate::ast::{Binder, BinderKind, Expr};
-use crate::compile::CompileOptions;
-use crate::judge::OpenGoalSpec;
-use crate::proof::parse_expr_text;
 use crate::span::Span;
 use crate::spine;
-
-/// **端点类型兜底解析**（2026-11-04 issue #7 第 2 条）：
-/// 局部 binder 的**书写类型**优先（零成本、绝大多数现场）；拿不到时问**调用方**。
-///
-/// 为什么要它：形状 ③ 原来只认"端点里有**裸局部名**"⇒ 类型现成。用户现场
-/// `intro hx`（`hx : {a} = ∅`，目标 `a ∈ ∅`）里两端都是**复合项**（`{a}` 与 `∅`）
-/// ⇒ `local_type` 两头都拿不到 ⇒ 整条形状放弃 ⇒ 报「4 个隐式参数补不出来」✗。
-/// 而 `apply` 手上有引擎/探针（`infer_type_text_inplace` / `judge_infer`），
-/// 任意小项的类型都算得出来 ⇒ 由它兜底（算不出就返回 `None`，原错误路径不变 ✓）。
-pub(crate) type EndpointTy<'a> = &'a mut dyn FnMut(&Expr) -> Option<Expr>;
 
 /// **形状 ③（P2-c，2026-10-23）**：`apply Eq.subst h`（**一个**实参）。
 ///
@@ -47,13 +34,12 @@ pub(super) fn rewrite_single_argument(
     goal: &Expr,
     binders: &[Binder],
     span: Span,
-    ty_of: EndpointTy<'_>,
 ) -> Option<Expr> {
     let (head, args) = spine::spine_of(expr);
     if !is_eqsubst_head(head) || args.len() != 1 || matches!(args[0], Expr::Hole { .. }) {
         return None;
     }
-    rewrite_goal_motive(head, args[0], goal, binders, span, None, ty_of)
+    rewrite_goal_motive(head, args[0], goal, binders, span, None)
 }
 
 /// **形状 ③/④ 的共用体**：`premise = None` ⇒ 只给到等号（`apply`，`p a` 成为子目标）；
@@ -65,17 +51,16 @@ pub(super) fn rewrite_goal_motive(
     binders: &[Binder],
     span: Span,
     premise: Option<&Expr>,
-    ty_of: EndpointTy<'_>,
 ) -> Option<Expr> {
-    let (eq_a, eq_b) = eq_endpoints(eq_term, binders)?;
+    let (eq_ty, eq_a, eq_b) = eq_endpoints(eq_term, binders)?;
     // 类型优先取右端（被替换的那一端）；右端不是局部名（`∅`）时取**左端** ——
     // 等式两端同型，左端常是局部名（`h : A = ∅` ⇒ `A` 的类型就是 `Set α`）。
-    // **两端都不是局部名**时（用户现场 `hx : {a} = ∅`）问调用方要（issue #7 第 2 条）。
+    // **两端都不是局部名**时（用户现场 `hx : {a} = ∅`）用**等式自己的类型实参** ——
+    // 内核形态 `@Eq.{u} T a b` 把 `T` 摆在第一位（issue #7 第 2 条），不必再问引擎。
     let ty = local_type(binders, &eq_b)
         .cloned()
         .or_else(|| local_type(binders, &eq_a).cloned())
-        .or_else(|| ty_of(&eq_b))
-        .or_else(|| ty_of(&eq_a))?;
+        .or_else(|| eq_ty)?;
     let var_name = format!("_soko_eq{}", span.start.offset);
     let var = Expr::Ident {
         name: var_name.clone(),
@@ -159,44 +144,4 @@ fn strip_leading_args(e: &Expr, drop: usize) -> Option<Expr> {
         };
     }
     Some(out)
-}
-
-/// **`apply` 侧的入口**（`by.rs::apply_tactic` 的唯一调用点）。
-///
-/// 把"改写用户写的项"与"问端点类型"合在一处：形状 ③ 的兜底要问类型，而问类型要用
-/// 引擎的地面件（`InplaceEnv` / `ElabCtx` / `judge_infer`）——把它们摊在 `by.rs` 里会让
-/// 那个已在软线之上的文件再涨（`docs-lint` ⑨）⇒ `by.rs` 只留一行调用 ✓。
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn rewrite_apply<'a>(
-    expr: &Expr,
-    goal: &Expr,
-    binders: &[Binder],
-    span: Span,
-    env: &mut Option<&mut crate::compile::elab::InplaceEnv<'_, 'a>>,
-    ctx: &crate::compile::elab::ElabCtx<'a, '_>,
-    binder_srcs: &[(String, Expr)],
-    spec: &OpenGoalSpec,
-    prefix_src: &str,
-    options: &CompileOptions,
-) -> Option<Expr> {
-    // ⚠ **只走就地路**（`infer_type_text_inplace`）：慢路要合成 `#check` 文本，而
-    // "把项渲染成文本"必须走唯一记法接口（`DisplayNotations`）——这里没有显示上下文
-    // ⇒ 不引第二条渲染路（`scripts/audit-notation-paths.py` 会抓 ✓）。就地路答不出时
-    // 返回 `None`，形状 ③ 照旧落回原来的诊断（不倒退 ✓）。
-    let _ = (prefix_src, options);
-    let mut ty_of = |target: &Expr| -> Option<Expr> {
-        let text = env.as_deref_mut().and_then(|e| {
-            crate::compile::elab::infer_type_text_inplace(
-                e,
-                ctx,
-                binder_srcs,
-                target,
-                spec.binders.len(),
-                None,
-            )
-            .ok()
-        });
-        text.and_then(|text| parse_expr_text(&text).ok())
-    };
-    super::eqsubst::rewrite(expr, goal, binders, span, &mut ty_of)
 }

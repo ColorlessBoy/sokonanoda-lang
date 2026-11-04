@@ -11,7 +11,7 @@
 
 use crate::ast::{Binder, BinderKind, Expr, HaveValue, MatchArm, Pattern, Tactic};
 use crate::compile::elab::{DefTable, InductiveTable, MatchCtor};
-use crate::compile::eqsubst::rewrite_exact;
+use crate::compile::eqsubst::{rewrite, rewrite_exact};
 use crate::compile::CompileError;
 use crate::compile::{CompileOptions, ErrorKind};
 use crate::expr::e_app_at;
@@ -2517,20 +2517,7 @@ fn apply_tactic<'a>(
         .into_iter()
         .filter_map(|b| b.ty.map(|ty| (b.name, *ty)))
         .collect();
-    // **`Eq.subst` 形状 ③ 的端点类型兜底**（issue #7 第 2 条）：`apply Eq.subst hx` 而
-    // 等式两端都是复合项（`hx : {a} = ∅`）时由 `eqsubst_motive` 问引擎取端点类型。
-    let rewritten = crate::compile::eqsubst_motive::rewrite_apply(
-        expr,
-        &nodes[cur].ty,
-        &context_binders(nodes, cur),
-        span,
-        &mut env,
-        ctx,
-        &binder_srcs,
-        &spec,
-        prefix_src,
-        options,
-    );
+    let rewritten = rewrite(expr, &nodes[cur].ty, &context_binders(nodes, cur), span);
     let expr = rewritten.as_ref().unwrap_or(expr);
     let term = render_expr(expr);
     // **C 子项（2026-10-12）**：`apply` 要把**当前目标**当期望类型 ——
