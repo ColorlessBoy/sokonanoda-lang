@@ -162,6 +162,20 @@ code sokonanoda-lang/course/unit1-propositions-proofs.sokonanoda</pre>
           写错了它会说清楚哪里不对。卡住就看同目录的提示，或者翻开解答。</span>
         </li>
       </ol>
+
+      <!-- 演示：真 VS Code 里把 sorry 换成证明（`node scripts/site-demo.mjs [--theme dark]`）。
+           与头图同一条规矩：两版配色、同一靶子、同一裁切几何；GIF 里的定理/代码/
+           目标/🎉 全来自真文件与内核，没有一个字是画上去的。 -->
+      <figure class="shot wide demo">
+        <img src="assets/demo-vscode.gif" width="843" height="390" loading="lazy" decoding="async"
+             data-demo-light="assets/demo-vscode.gif"
+             data-demo-dark="assets/demo-vscode-dark.gif"
+             data-i18n-alt="demoAlt"
+             alt="真 VS Code 录制：卷 I 单元②练习 2 的 subset_trans，光标停在 sorry 上，右边目标面板显示 ⊢ A ⊆ C；逐行输入 intro x hx、apply h2、exact h1 x hx，目标依次变成 x ∈ C、x ∈ B，最后显示 🎉 已无目标 ✓。">
+        <figcaption>
+          <span data-i18n="demoCaptionLead">真 VS Code + 已发布插件</span><span data-i18n="demoCaptionRest">：卷 I 单元②练习 2 —— 把 <code>sorry</code> 换成证明，目标跟着每一步变；最后一个目标闭合时，面板显示 🎉 已无目标 ✓。</span>
+        </figcaption>
+      </figure>
     </div>
   </section>
 
@@ -273,6 +287,9 @@ code sokonanoda-lang/course/unit1-propositions-proofs.sokonanoda</pre>
   "heroAlt": "A real VS Code window: on the left, the course file units/I.1/unit04-extensionality-identities.sokonanoda with the caret on the sorry of theorem inter_comm; on the right, the goal panel showing the goal the kernel computed — ⊢ (A ∩ B) = (B ∩ A) — with the hypotheses α : Type, A : Set α and B : Set α.",
   "heroCaptionLead": "Real VS Code with the published extension",
   "heroCaptionRest": ", opening Volume I unit ④: the caret sits on <code>sorry</code> and the panel on the right shows the goal the kernel computed. Nothing in this image is staged.",
+  "demoAlt": "A real VS Code recording: Volume I unit ② exercise 2, theorem subset_trans, with the caret on the sorry and the goal panel showing ⊢ A ⊆ C. Typing intro x hx, apply h2, exact h1 x hx changes the goal to x ∈ C, then x ∈ B, and finally shows 🎉 已无目标 ✓.",
+  "demoCaptionLead": "Real VS Code with the published extension",
+  "demoCaptionRest": ": Volume I unit ② exercise 2 — replace <code>sorry</code> with a proof and the goal follows every step; when the last goal closes, the panel shows 🎉 已无目标 ✓.",
   "whatHeading": "What it is",
   "card1t": "A real kernel decides, not answer-matching",
   "card1p": "Your proof is re-checked by a full kernel: accepted means accepted, and a rejection comes with a diagnostic. It is not text comparison and not a model's opinion — when you see green, it really computed.",

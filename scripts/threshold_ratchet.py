@@ -39,7 +39,7 @@
 | `docs_archive_bytes` | 2.50 MB | 0.25 MB | 1.00 MB | `scripts/docs-lint.py` ⑥ | 0.95 MB |
 | `status_total_lines` | 240 行 | 10 行 | **200 行** | `scripts/status-lint.py` ① | 85 行 |
 | `site_text_bytes` | 120 KB | 12 KB | 75 KB | `scripts/check-site.py` assets | 60,823 B |
-| `site_hero_bytes` | 400 KB | 40 KB | 240 KB | `scripts/check-site.py` assets | 221,763 B |
+| `site_hero_bytes` | 400 KB | 40 KB | 240 KB | `scripts/check-site.py` assets（每张大图：头图/演示 GIF） | 221,763 B |
 | `target_incremental_warn_bytes` | 20 GiB | 2 GiB | 6 GiB | `scripts/target-hygiene.py` 告警线 | 3.50 GiB |
 | `target_incremental_max_bytes` | 60 GiB | 6 GiB | 18 GiB | `scripts/target-hygiene.py` 红线 | 3.50 GiB |
 
@@ -147,7 +147,8 @@ REGISTRY: dict[str, dict] = {
     "site_hero_bytes": {
         "seed": 400 * 1024, "step": 40 * 1024, "floor": 240 * 1024,
         "divisor": 1024, "unit": "KB", "decimals": 0,
-        "site": "scripts/check-site.py:63 `HERO_BUDGET`", "reading": "221,763 B（两版取大）",
+        "site": "scripts/check-site.py `IMAGE_BUDGET`（每张大图：头图/演示 GIF）",
+        "reading": "221,763 B（四张大图取大）",
         "seam": ('_RATCHET_CAPS["site_hero_bytes"]', "scripts/check-site.py"),
     },
     "target_incremental_warn_bytes": {

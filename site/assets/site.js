@@ -42,21 +42,27 @@
     }
   }
 
-  /* 头图有两版配色（亮/暗，`node scripts/site-screenshot.mjs [--theme dark]` 生成）：
-     暗色页上贴一张亮色 VS Code 截图会刺眼。这里按**当前生效的**主题换 `src`
+  /* 头图与演示 GIF 都有两版配色（亮/暗）：
+     `node scripts/site-screenshot.mjs [--theme dark]` 生成头图，
+     `node scripts/site-demo.mjs [--theme dark]` 生成演示 GIF。
+     暗色页上贴一张亮色 VS Code 画面会刺眼。这里按**当前生效的**主题换 `src`
      —— 显式 `light`/`dark` 听 localStorage，`system` 听 `prefers-color-scheme`。
-     两个路径写在 HTML 的 `data-hero-*` 上（JS 不硬编码文件名，判据好对账）。 */
+     两个路径写在 HTML 的 `data-hero-*` / `data-demo-*` 上
+     （JS 不硬编码文件名，判据好对账）。 */
   function systemPrefersDark() {
     return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
   }
 
-  function applyHero(mode) {
-    var imgs = document.querySelectorAll("[data-hero-light]");
-    if (!imgs.length) return;
+  var THEMED = [["data-hero-light", "data-hero-dark"], ["data-demo-light", "data-demo-dark"]];
+
+  function applyThemedImages(mode) {
     var dark = mode === "dark" || (mode === "system" && systemPrefersDark());
-    for (var i = 0; i < imgs.length; i++) {
-      var want = imgs[i].getAttribute(dark ? "data-hero-dark" : "data-hero-light");
-      if (want && imgs[i].getAttribute("src") !== want) imgs[i].setAttribute("src", want);
+    for (var k = 0; k < THEMED.length; k++) {
+      var imgs = document.querySelectorAll("[" + THEMED[k][0] + "]");
+      for (var i = 0; i < imgs.length; i++) {
+        var want = imgs[i].getAttribute(dark ? THEMED[k][1] : THEMED[k][0]);
+        if (want && imgs[i].getAttribute("src") !== want) imgs[i].setAttribute("src", want);
+      }
     }
   }
 
@@ -76,7 +82,7 @@
       btn.textContent = label[mode];
       btn.setAttribute("aria-label", label.prefix + label[mode] + label.suffix);
     }
-    applyHero(mode);
+    applyThemedImages(mode);
   }
 
   function wireTheme() {
