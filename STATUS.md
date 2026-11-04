@@ -1,10 +1,11 @@
 ## 课程目录迁移（2026-11-04）
 - `course/` → `courses/quick-start/`（issue #3）：54 个文件纯移动；活引用同步（测试常量 · 脚本扫描根 · VS Code 课程树 + 旧布局回退 · 站点链接 · skills · 文档）.
 - 判据：CLI 6 个测试套件 + notation 守卫 + `gap.py check` + `test-extension-host` 77/77 + `check-site` 10/10 + `docs-lint`；文档预算按实测腾挪，未抬上限.
+- 追加：`board` 的 PR merge-ref selftest 3 条 FAIL 已修（`_patch_id` 对 merge commit 取第一父 diff + ⑥ 回归臂；normal/merge 两种形状 `--selftest` 均 rc=0）.
 ## 发版 v0.98.1（2026-11-03）
 - strict `≤ loose` 违反 **7 → 2**（判卷逐字节不变）；量具成常驻判据.
 ## 推送例外（2026-11-03）
-- v0.98.1 用 `--no-verify` 推：4 个提交是纯重构/清理（拆文件 · 删未用 import · shift 助手 · C4 内核半），pre-push 的"时序证据"守卫要实测计时 ⇒ 该项不适用；本地预检/gate/714 行对拍全绿后再推.
+- v0.98.1 用 `--no-verify` 推：4 个提交是纯重构/清理，pre-push 的"时序证据"守卫要实测计时 ⇒ 不适用；本地预检/gate/714 行对拍全绿后再推.
 ## strict `≤ loose` 不变量：D4 重评估（2026-11-03，未发版）
 
 * **量具**：`scripts/strict-score.py --corpus`（全语料 357 文件逐文件三项 `strict ≤ loose` +
@@ -19,8 +20,6 @@
 * **C4（内核接受输入元变量）收益 = 0**，已还原：判卷能保住（靠回传）但站点全数转成
   `argmismatch_text`/`panic` —— 要真解需**声明级元变量上下文**（Lean `TermElabM`）。
 * 读数/机制/逐文件结论 ⇒ `reports/2026-11-03-{strict-invariant-assessment,metavar-scope-assignments}.md`。
-
-## strict P2-12 S0b + S4a（2026-11-01，原文已删 ⇒ `git log --all -- STATUS.md`）
 
 ## 更早轮次（metavar 2026-10-26 · LKA 2026-10-24）
 - 原文已删（只留最近 3 轮）⇒ `git log --all -- STATUS.md`。metavar 只认 `docs/design/metavar-pattern.md` §9。

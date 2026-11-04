@@ -2378,6 +2378,20 @@ def _commit_subject(commit: str) -> str:
 def _patch_id(commit: str) -> str | None:
     """`git patch-id --stable`（对 `git show <commit>` 的 diff 算；算不出返回 `None`）。
 
+    ⚠ **merge commit 必须走第一父 diff**（`PR-MERGE-REF-BOARD-SELFTEST`，2026-11-04）：
+    `git show <merge>` 默认只印 commit 头、**不印 diff** ⇒ `patch-id` 读到空输入 ⇒ 旧版
+    返回 `None`。而 CI 的 `board` job 在 **PR merge ref** 上跑 `--selftest`，`real_sha =
+    HEAD` 正好是 merge commit ⇒ ③「切版事件记了 patch_id」拿不到值、⑤「手写假 release-cut
+    对不上」也因为 `patch_id is None` 被当成旧账跳过 ⇒ 三条 FAIL（PR #2/#4 实测）。
+    修法：先照旧跑 `git show <commit>`（**非 merge 的读数一个字节不变**；有
+    conflict-resolution 的 merge 会给出 combined diff，也保留旧读数 ✓）；只有它
+    **算不出** patch-id（干净 merge：`git show` 只印 commit 头）时才回退到
+    `git show -m --first-parent --format=` —— 对 merge 取**第一父**（mainline）的
+    完整 diff。第一父 diff 就是「这次 merge 给主线带来了什么」，与 `release-cut` 的
+    「切的是哪个内容」同义 ✓。非 merge / root commit 的 patch-id 与旧命令**逐位
+    相同**（实测 `git show` 与 `git show -m --first-parent --format=` 在这两类上相等）⇒
+    既有事件里记的值不受影响 ✓。
+
     ⚠ **显式 UTF-8**（`#5a`，2026-10-14 · 第七次独立复核）：旧写法 `text=True` 用
     `locale.getpreferredencoding()` 解码 ⇒ 非 UTF-8 环境（`LC_ALL=C`）下**在孪生搜索里
     抛 `UnicodeDecodeError` 栈**（rc=1 ✗，不是契约的 rc=2）；仓库 subject 大量中文 ⇒ 必踩。
@@ -2390,11 +2404,23 @@ def _patch_id(commit: str) -> str | None:
     """
     if commit not in _PATCH_ID_CACHE:
         _PATCH_ID_CACHE[commit] = None
-        show = _git_text(["show", commit])
-        if show.returncode == 0:
+        def _from_show(*args: str) -> str | None:
+            show = _git_text(["show", *args, commit])
+            if show.returncode != 0:
+                return None
             probe = _git_text(["patch-id", "--stable"], stdin=show.stdout)
             if probe.returncode == 0 and probe.stdout.strip():
-                _PATCH_ID_CACHE[commit] = probe.stdout.split()[0]
+                return probe.stdout.split()[0]
+            return None
+
+        # 旧命令：保持既有事件里的读数逐字节不变（含 combined-diff 的 merge）。
+        pid = _from_show()
+        if pid is None:
+            # 干净 merge：`git show <merge>` 只有 commit 头 ⇒ 回退第一父 diff。
+            # `-m --first-parent --format=` 对非 merge 是 no-op；这里只在旧命令
+            # 算不出时走，所以不会改变任何既有读数 ✓。
+            pid = _from_show("-m", "--first-parent", "--format=")
+        _PATCH_ID_CACHE[commit] = pid
     return _PATCH_ID_CACHE[commit]
 
 
@@ -7075,6 +7101,9 @@ def selftest_release_cut_gate(expect) -> None:
       ⑤ ⭐ **读侧复查**（`#3`，第八次复核）：手写假 `release-cut`（审计字段与 `commit`
          对不上）⇒ **`--release check` 与 `check_plan` 两条读侧都判红 + 点名** ✓
          （改前**两条都静默** ✗ —— 审计字段没有任何生产读者 = 咬不住的守卫 ✗）。
+      ⑥ **merge commit 的内容锚**（2026-11-04）：`HEAD` 是 PR merge commit 时，
+         旧 `git show <merge>` 不印 diff ⇒ `patch_id = None` ⇒ ③/⑤ 假红（CI `board`
+         job 在 PR merge ref 上实测）。`_patch_id` 改取**第一父 diff** ⇒ 本臂钉住它。
     ⚠ 用 `unmerged_agent_branches()` 的**接缝**把真仓库的 `agent/*` 分支面隔离掉
     （否则夹具的 `check` 永远过不去 ⇒ 正对照测不了；`#4` 的那条臂反过来要它返回非空 ✓）。
     ⚠ 实测数字（`#4b` 后）：真仓库 `git branch --no-merged main` 报 **17 条**、
@@ -7091,6 +7120,18 @@ def selftest_release_cut_gate(expect) -> None:
                                "-c", "user.email=selftest@local", "commit-tree",
                                f"{real_sha}^{{tree}}", "-m", "ux-queue selftest: 切版夹具的悬垂"],
                               cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    # ⑥ 的夹具：**merge commit**（第一父 = HEAD 的第一父，第二父 = HEAD）。
+    # CI 的 `board` job 在 PR merge ref 上跑本自检时 `real_sha = HEAD` 本身就是
+    # merge commit —— 这条断言把那种形状搬到**普通提交**的 CI 上也咬得住。
+    _parent = subprocess.run(["git", "rev-parse", "--verify", "HEAD^"], cwd=ROOT,
+                             capture_output=True, text=True).stdout.strip()
+    merge = ""
+    if _parent:
+        merge = subprocess.run(["git", "-c", "user.name=ux-queue-selftest",
+                                "-c", "user.email=selftest@local", "commit-tree",
+                                f"{real_sha}^{{tree}}", "-p", _parent, "-p", real_sha,
+                                "-m", "ux-queue selftest: 切版夹具的 merge"],
+                               cwd=ROOT, capture_output=True, text=True).stdout.strip()
     bad_sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
     with tempfile.TemporaryDirectory() as tmp:
         saved = (EVENTS, EXTRAS, INDEX, GAPS_LEDGER, globals()["lock_file"],
@@ -7187,6 +7228,13 @@ def selftest_release_cut_gate(expect) -> None:
             rc, out = capture(cmd_release, ns(release="check", rel="REL-9.9.9"), _view2)
             expect(f"⑤ 且 `--release check` 也判红 rc={rc}（两条读侧**共用一处判据** ✓）",
                    rc == 1 and "对不上" in out)
+            # ⑥ merge commit 的内容锚（`PR-MERGE-REF-BOARD-SELFTEST`，2026-11-04）：
+            #    旧 `git show <merge>` 不印 diff ⇒ `_patch_id` 返回 None ⇒ CI 的 PR
+            #    merge ref 上 ③/⑤ 假红。断言「第一父 diff 的 patch-id」非空且等于
+            #    同 tree 的 HEAD 的 patch-id（普通提交与 merge ref 两种形状都成立）。
+            if merge:
+                expect("⑥ merge commit 的 patch-id 取第一父 diff（不再 None）",
+                       _patch_id(merge) is not None and _patch_id(merge) == _patch_id(real_sha))
         finally:
             EVENTS, EXTRAS, INDEX, GAPS_LEDGER = saved[0], saved[1], saved[2], saved[3]
             globals()["lock_file"] = saved[4]
@@ -9793,10 +9841,11 @@ def cmd_selftest(args: argparse.Namespace) -> int:
           f"「`--reopen-source` 把两层漂移守卫变成橡皮图章」的靶子 ✗）；"
           f"⚠ 条数 = 本族 `expect` **断言数**（= 调用点 24 + ⑤ 的 6 个处置 + ⑦ 的 2 个决策展开）"
           f"⇒ 加臂时这个数字要跟着改 ✓）"
-          f" + **切版证据闸门 9 条**（`#2`，第七次复核：`--release cut --commit` 原先**自身零闸门** ⇒ "
+          f" + **切版证据闸门 10 条**（`#2`，第七次复核：`--release cut --commit` 原先**自身零闸门** ⇒ "
            f"不存在 / 非祖先的 sha **都 rc=0** 并写入 `release-cut` ✗ ⇒ 现在与入版/收口共用 "
            f"`closure_pointer_problem()`：两条假 sha **都拒 + 零写入**、正对照真祖先仍 rc=0、"
-           f"事件带 `subject`/`patch_id`、缺 `--ci`/`--commit` 仍是用法错 ✓）"
+           f"事件带 `subject`/`patch_id`、缺 `--ci`/`--commit` 仍是用法错 ✓；2026-11-04 补 "
+           f"⑥ merge commit 的 `patch_id` 取第一父 diff ✓）"
            f" + **发版节点接缝 10 条**（`#2`，第八次复核：⭐ **`--release open` 之后 `check_plan` 仍 rc=0**（**改前 rc=1 + 幽灵条目** ✗）· 节点 id 进 `known` · **不许放宽**：手写无 `release-open` 的 `release-add` 照样判红 + 点名 · 正对照 `add`/`check`/`cut` 三条后续步骤仍 rc=0） + **分支栅栏 25 条**（`#4`：未合回 ⇒ 判红 + **逐条** `agent-worktree.sh land` + "
            f"**明说没有 `--force` 旁路** + ⭐ **`--force` 也 rc=1**（偷加旁路当场判红 ✗）+ "
            f"正对照合回后 rc=0；⭐ `#4b` 判据换成 **patch-id 等价**（`git cherry`）——**真夹具仓**"
