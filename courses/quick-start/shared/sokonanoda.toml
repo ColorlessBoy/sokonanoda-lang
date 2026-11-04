@@ -1,7 +1,7 @@
 # sokonanoda.toml —— 课程语料的**共享库子项目**（模块根 = 本目录）。
 #
 # 为什么单独一个子项目：
-#   * 学习画布（course/unitN-*.sokonanoda）**故意各自自给自足**——学习者打开
+#   * 学习画布（courses/quick-start/unitN-*.sokonanoda）**故意各自自给自足**——学习者打开
 #     一个文件就能看到全部前置声明，不需要追 import；golden/镜像/课程树也都
 #     按"一单元一文件"钉着。
 #   * 但同几段声明在多个单元里逐字重复（And 公理 12 份、显式 Nat 块 4 份），

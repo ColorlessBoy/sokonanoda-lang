@@ -18,7 +18,7 @@
 | 判据的**唯一真相** | `courses/set-theory/tools/check.py`（python3，零 cargo） | 课程线的判卷路径本来就是 `scripts/soko grade`（node + 二进制）；硬规则 6 要求作者/agent 路径零 cargo，判据不能长在 Rust 里 |
 | CI | ⚠ **当时决定"加在 `test` job 里当新 step"；落地时改成独立 `gates-course` job**（矩阵 4 片，`.github/workflows/ci.yml` 实测）—— 独立 job 更好定位、且能复用 release 产物 | 那一步的二进制是**当轮 cargo 刚编出来的**（版本天然一致、零下载）；代价 +10～40s；`auto-tag` 的 `needs` 已经包含 `test`，发布自动被挡 |
 | 本地 | 阶段 3 挂到 `scripts/soko` 的 `gate`（**启动器层**，不动 Rust） | 「本地 = CI」纪律；不动 CLI 就不用 bump 版本/等发版；缺 python3 时 exit 3（无法判定≠绿） |
-| Rust 集成测试 | **不做**（`crates/cli/tests/course.rs` 的 golden 只继续服务旧 `course/`） | 判据双实现必然漂移；课程要能按 §3.3 抽成独立仓，判据必须跟着课程走 |
+| Rust 集成测试 | **不做**（`crates/cli/tests/course.rs` 的 golden 只继续服务旧入门课） | 判据双实现必然漂移；课程要能按 §3.3 抽成独立仓，判据必须跟着课程走 |
 | 升级触发器 | CI 里该 step 实测 > 90s，或课程抽出成独立仓 | 前者升级为独立 job（并行），后者整包搬走（`new-course-repo.sh` 的 CI 模板就是终点形态） |
 
 ## 1 现状与实测证据
@@ -187,7 +187,7 @@ AGENTS.md 点名「缓存过期是历史上最常见的故障源」，`gate` 也
 
 ## 8 明确不做 / 未决
 
-- **不做**：给新课程加 golden 计数（与 §3 冲突）；把 `course/`（卷 0）的 `crates/cli/tests/course.rs`
+- **不做**：给新课程加 golden 计数（与 §3 冲突）；把入门课（卷 0）的 `crates/cli/tests/course.rs`
   golden 改动或合并；为了跑门禁在 CI 里 `scripts/soko setup` 下载二进制（版本 bump 时必红）；
   把课程判据写进 Rust（§2.3）。
 - **未决**：① `--bisect` 的声明边界用"行首关键字扫描"是否够（`namespace`/`section` 的嵌套边界）；

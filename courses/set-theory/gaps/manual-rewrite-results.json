@@ -1,6 +1,6 @@
 [
  {
-  "file": "course/en/solutions/unit5-universes-sort-solution.sokonanoda",
+  "file": "courses/quick-start/en/solutions/unit5-universes-sort-solution.sokonanoda",
   "line": 16,
   "rule": "Eq.{…}",
   "note": "infix:=",
@@ -120,7 +120,7 @@
   "diag": "符号 `⊕` 在本文件里还没有声明过记法；先用 infix/notation 命令声明它，或改用点名写法（gaps.census-probe-27510）"
  },
  {
-  "file": "course/en/solutions/unit5-universes-sort-solution.sokonanoda",
+  "file": "courses/quick-start/en/solutions/unit5-universes-sort-solution.sokonanoda",
   "line": 16,
   "rule": "Eq.{…}",
   "note": "infix:=",
@@ -240,7 +240,7 @@
   "diag": "符号 `⊕` 在本文件里还没有声明过记法；先用 infix/notation 命令声明它，或改用点名写法（gaps.census-probe-27510）"
  },
  {
-  "file": "course/en/solutions/unit5-universes-sort-solution.sokonanoda",
+  "file": "courses/quick-start/en/solutions/unit5-universes-sort-solution.sokonanoda",
   "line": 18,
   "rule": "Eq.{…}",
   "note": "infix:=",
@@ -350,7 +350,7 @@
   "diag": ""
  },
  {
-  "file": "course/en/unit5-universes-sort.sokonanoda",
+  "file": "courses/quick-start/en/unit5-universes-sort.sokonanoda",
   "line": 88,
   "rule": "Eq.{…}",
   "note": "infix:=",
@@ -450,7 +450,7 @@
   "diag": "`exact` 判定失败：rejected: expected a pi type, got: Sort(1)"
  },
  {
-  "file": "course/en/unit5-universes-sort.sokonanoda",
+  "file": "courses/quick-start/en/unit5-universes-sort.sokonanoda",
   "line": 88,
   "rule": "Eq.{…}",
   "note": "infix:=",
@@ -530,7 +530,7 @@
   "diag": ""
  },
  {
-  "file": "course/solutions/unit5-universes-sort-solution.sokonanoda",
+  "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
   "line": 16,
   "rule": "Eq.{…}",
   "note": "infix:=",
@@ -600,7 +600,7 @@
   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(Set.[] (Set.[] Nat.[]))`"
  },
  {
-  "file": "course/solutions/unit5-universes-sort-solution.sokonanoda",
+  "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
   "line": 16,
   "rule": "Eq.{…}",
   "note": "infix:=",
@@ -670,7 +670,7 @@
   "diag": "类型不匹配：期望 `Sort(0)`，实际是 `(Set.[] (Set.[] Nat.[]))`"
  },
  {
-  "file": "course/solutions/unit5-universes-sort-solution.sokonanoda",
+  "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
   "line": 18,
   "rule": "Eq.{…}",
   "note": "infix:=",
@@ -740,7 +740,7 @@
   "diag": ""
  },
  {
-  "file": "course/unit5-universes-sort.sokonanoda",
+  "file": "courses/quick-start/unit5-universes-sort.sokonanoda",
   "line": 80,
   "rule": "Eq.{…}",
   "note": "infix:=",
@@ -810,7 +810,7 @@
   "diag": ""
  },
  {
-  "file": "course/unit5-universes-sort.sokonanoda",
+  "file": "courses/quick-start/unit5-universes-sort.sokonanoda",
   "line": 80,
   "rule": "Eq.{…}",
   "note": "infix:=",

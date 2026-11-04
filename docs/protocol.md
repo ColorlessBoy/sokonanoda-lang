@@ -916,7 +916,7 @@ on the cwd).
 `docs/design/course-manifest-v2.md`):
 
 * **v1** — a flat JSON array `[{file, title, title_en, unit}, …]`
-  (`course/course.json`, `scripts/new-course-repo.sh` skeletons);
+  (课程根的 `course.json`, `scripts/new-course-repo.sh` skeletons);
 * **v2** — an object `{schema: "soko.course/2", name, title,
   volumes[].chapters[].units[]}` (`courses/set-theory/course.json`), where the
   `units[]` entries keep the v1 shape **verbatim** and each chapter adds

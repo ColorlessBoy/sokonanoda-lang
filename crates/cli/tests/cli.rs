@@ -6,7 +6,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static TEMP_HOME_COUNTER: AtomicU64 = AtomicU64::new(0);
 
-const COURSE_MANIFEST: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../course/course.json");
+const COURSE_MANIFEST: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../courses/quick-start/course.json"
+);
 
 /// A unique, empty compile-cache dir for one spawned binary. Tests isolate the
 /// shared on-disk cache so a run never observes another test's entries; pass
@@ -1517,7 +1520,7 @@ fn cli_match_reduces_through_kernel() {
 }
 
 /// The course-style explicit `Nat` (inductive + `rec`/`iota`), mirroring
-/// `course/unit6-induction-recursion-1.sokonanoda`.
+/// `courses/quick-start/unit6-induction-recursion-1.sokonanoda`.
 const MATCH_NAT: &str = "inductive Nat : Type\n\
      ctor zero : Nat\n\
      ctor succ (n : Nat) : Nat\n\
@@ -2497,7 +2500,7 @@ fn cli_keeps_bare_ctor_aliases_working() {
     // R2 兼容 e2e：课程/示例原文不改（裸名 `none`/`some`）仍 exit 0。
     let path = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../course/unit7-induction-recursion-2.sokonanoda"
+        "/../../courses/quick-start/unit7-induction-recursion-2.sokonanoda"
     );
     let out = run_args(&[path], None);
     assert!(

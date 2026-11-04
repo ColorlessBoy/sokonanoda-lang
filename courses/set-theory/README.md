@@ -1,6 +1,6 @@
 # 卷 I《集合论》
 
-> 「从集合论到分析」教学项目的第一卷。读者应已学完入门课（`course/`：逻辑连接词、
+> 「从集合论到分析」教学项目的第一卷。读者应已学完入门课（`courses/quick-start/`：逻辑连接词、
 > `by`、归纳、量词）；本卷从「集合 = 谓词」开始，不预设集合论。
 >
 > 教材主线是 Enderton 的 *Elements of Set Theory* 与 Halmos 的 *Naive Set Theory*。

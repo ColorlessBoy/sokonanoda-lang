@@ -1,9 +1,9 @@
-//! The course layer (`course/`) is CI-guarded: every learner canvas must
+//! The course layer (`courses/quick-start/`) is CI-guarded: every learner canvas must
 //! compile with its open exercises, the per-unit golden event counts must stay
 //! stable, every agent solution twin must be hole-free and diagnostic-free,
 //! `course.json` must list the eleven units in order, and the bilingual `en/`
 //! mirrors must produce byte-identical event counts to their Chinese twins.
-//! See `course/README.md`.
+//! See `courses/quick-start/README.md`.
 
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde_json::Value;
 
-const COURSE_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../course");
+const COURSE_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../courses/quick-start");
 
 static CACHE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -99,7 +99,7 @@ const GOLDEN: &[(&str, (usize, usize, usize))] = &[
 
 #[test]
 fn every_course_canvas_compiles_with_golden_event_counts() {
-    // Only the top-level canvases (NOT course/solutions/).
+    // Only the top-level canvases (NOT courses/quick-start/solutions/).
     let mut files: Vec<_> = std::fs::read_dir(COURSE_DIR)
         .expect("read course dir")
         .filter_map(|e| e.ok())
@@ -115,7 +115,7 @@ fn every_course_canvas_compiles_with_golden_event_counts() {
     assert_eq!(
         files.len(),
         GOLDEN.len(),
-        "course/*.sokonanoda and the golden map must stay in sync"
+        "courses/quick-start/*.sokonanoda and the golden map must stay in sync"
     );
 
     for file in files {
@@ -157,7 +157,7 @@ fn every_course_canvas_compiles_with_golden_event_counts() {
 #[test]
 fn every_solution_twin_is_fully_solved() {
     let mut files: Vec<_> = std::fs::read_dir(format!("{COURSE_DIR}/solutions"))
-        .expect("read course/solutions")
+        .expect("read courses/quick-start/solutions")
         .filter_map(|e| e.ok())
         .filter(|e| {
             e.path()
@@ -170,7 +170,7 @@ fn every_solution_twin_is_fully_solved() {
     assert_eq!(
         files.len(),
         GOLDEN.len(),
-        "expected one solution twin per unit under course/solutions"
+        "expected one solution twin per unit under courses/quick-start/solutions"
     );
 
     for file in files {
@@ -278,15 +278,16 @@ fn course_json_lists_the_eleven_units_in_order() {
     }
 }
 
-/// Bilingual mirrors: each `course/en/` canvas must produce the same event
-/// counts as its Chinese twin in `course/`, and each `course/en/solutions/`
+/// Bilingual mirrors: each `courses/quick-start/en/` canvas must produce the same event
+/// counts as its Chinese twin in `courses/quick-start/`, and each `courses/quick-start/en/solutions/`
 /// key must be fully solved (0 diagnostics, 0 open exercises) like its Chinese
 /// counterpart. Judgment goes through the kernel (event counts), never text
 /// comparison — the comments are meant to differ.
 #[test]
 fn en_mirrors_match_chinese_event_counts() {
     let cn_dir = std::fs::read_dir(COURSE_DIR).expect("read course dir");
-    let en_dir = std::fs::read_dir(format!("{COURSE_DIR}/en")).expect("read course/en");
+    let en_dir =
+        std::fs::read_dir(format!("{COURSE_DIR}/en")).expect("read courses/quick-start/en");
 
     let top_level = |dir: std::fs::ReadDir| -> Vec<String> {
         dir.filter_map(|e| e.ok())
@@ -305,7 +306,7 @@ fn en_mirrors_match_chinese_event_counts() {
     en_files.sort();
     assert_eq!(
         cn_files, en_files,
-        "course/ and course/en/ must hold the same .sokonanoda file names"
+        "courses/quick-start/ and courses/quick-start/en/ must hold the same .sokonanoda file names"
     );
 
     for name in &cn_files {
@@ -323,7 +324,7 @@ fn en_mirrors_match_chinese_event_counts() {
     }
 
     let mut cn_sols: Vec<_> = std::fs::read_dir(format!("{COURSE_DIR}/solutions"))
-        .expect("read course/solutions")
+        .expect("read courses/quick-start/solutions")
         .filter_map(|e| e.ok())
         .filter(|e| {
             e.path()
@@ -334,7 +335,7 @@ fn en_mirrors_match_chinese_event_counts() {
         .map(|e| e.file_name().to_string_lossy().into_owned())
         .collect();
     let mut en_sols: Vec<_> = std::fs::read_dir(format!("{COURSE_DIR}/en/solutions"))
-        .expect("read course/en/solutions")
+        .expect("read courses/quick-start/en/solutions")
         .filter_map(|e| e.ok())
         .filter(|e| {
             e.path()
@@ -348,7 +349,7 @@ fn en_mirrors_match_chinese_event_counts() {
     en_sols.sort();
     assert_eq!(
         cn_sols, en_sols,
-        "course/solutions/ and course/en/solutions/ must hold the same file names"
+        "courses/quick-start/solutions/ and courses/quick-start/en/solutions/ must hold the same file names"
     );
 
     for name in &cn_sols {
@@ -371,7 +372,7 @@ fn en_mirrors_match_chinese_event_counts() {
 }
 
 /// The bilingual contract extends to the answer keys: every CN solution under
-/// `course/solutions/` and its EN twin under `course/en/solutions/` must
+/// `courses/quick-start/solutions/` and its EN twin under `courses/quick-start/en/solutions/` must
 /// produce identical kernel event counts — `(decl.checked, exercise.open,
 /// expr.reduced, expr.typed, diagnostic)`. `expr.typed` is part of the tuple
 /// because it is exactly the class of drift that once dropped `#check (Type 0)`
@@ -398,7 +399,7 @@ fn en_solutions_match_chinese_event_counts() {
     en_sols.sort();
     assert_eq!(
         cn_sols, en_sols,
-        "course/solutions/ and course/en/solutions/ must hold the same file names"
+        "courses/quick-start/solutions/ and courses/quick-start/en/solutions/ must hold the same file names"
     );
     assert!(!cn_sols.is_empty(), "no solution twins found");
 

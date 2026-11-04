@@ -96,7 +96,7 @@ push main 且 lint/test/e2e/e2e-macos 全绿后，它读 `Cargo.toml` 的版本�
 provenance + Marketplace 发布），历史上 gallery 会间歇超时（`docs/CI-FAILURES.md`）。
 
 **清单 `requires` 要跟着 bump**（**这是 G-24**）：`courses/*/sokonanoda.toml` 与
-`course/*/sokonanoda.toml` 里的 `requires` 若不跟着走，`requires_warning` 会让
+课程目录 `sokonanoda.toml` 的 `requires` 若不跟着走，`requires_warning` 会让
 `ProjectReport::is_clean()` 为假 ⇒ **项目编译缓存被静默关掉**（实测：整个卷 I
 每个文件每次打开都从零重编）。门禁见 **`python3 scripts/bump.py --check`**（T-A08）—— ⚠ 原先那个独立的 `scripts/check-manifests.py` **已不存在**（2026-09-27 实查），已**并入 `bump.py`**。
 

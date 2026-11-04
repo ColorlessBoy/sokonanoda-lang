@@ -495,7 +495,7 @@ const CASES = [
       const rows = (t) => ((s?.views ?? []).find((v) => v.title === t)?.rows ?? []).length;
       const [ex, co, pr] = [rows("练习"), rows("课程"), rows("项目")];
       return { ok: ex > 0 && co > 0 && pr > 0,
-        why: `练习 ${ex} 行 · 课程 ${co} 行 · 项目 ${pr} 行（三个视图都该有内容；课程视图要有工作区的 course/course.json 清单）` };
+        why: `练习 ${ex} 行 · 课程 ${co} 行 · 项目 ${pr} 行（三个视图都该有内容；课程视图要有工作区的 courses/quick-start/course.json 清单）` };
     } },
 
   // ═══ F. 性能与手感 ═══════════════════════════════════════════════════════
@@ -1321,23 +1321,23 @@ function ensureWorkspace() {
     }
     log(`工作区自举：${WS}（从 courses/set-theory/ 镜像）`);
   }
-  // **课程清单**（2026-10-13 修 F16）：扩展按 `<workspaceRoot>/course/course.json`
-  // 找清单（`extension.js::resolveCourseManifest`），而本仓的卷 I 清单在
-  // `courses/set-theory/course.json`、里面的单元路径**相对清单目录** ⇒ 探针工作区
-  // 必须按**同一个约定**摆一份，否则「课程」视图**天生是空的**、读数会被写成产品
-  // 缺口 ✗（实测：旧截图里它也是空的 —— 而「项目」视图的空是**DOM 时机**伪影，
+  // **课程清单**（2026-10-13 修 F16）：扩展按 `<workspaceRoot>/courses/quick-start/course.json`
+  // 找清单（`extension.js::resolveCourseManifest`；旧布局 `course/course.json` 仍兼容），
+  // 而本仓的卷 I 清单在 `courses/set-theory/course.json`、里面的单元路径**相对清单目录**
+  // ⇒ 探针工作区必须按**同一个约定**摆一份，否则「课程」视图**天生是空的**、读数会被
+  // 写成产品缺口 ✗（实测：旧截图里它也是空的 —— 而「项目」视图的空是**DOM 时机**伪影，
   // 两件事不同因）。`units` 用**符号链接**接过去（不复制 100+ 个单元文件）。
-  const courseDir = join(WS, "course");
+  const courseDir = join(WS, "courses", "quick-start");
   const manifest = join(courseDir, "course.json");
   if (!existsSync(manifest)) {
     mkdirSync(courseDir, { recursive: true });
     cpSync(join(REPO, "courses", "set-theory", "course.json"), manifest);
-    log(`课程清单自举：${manifest}（单元经 course/units 符号链接）`);
+    log(`课程清单自举：${manifest}（单元经 courses/quick-start/units 符号链接）`);
   }
   const unitsLink = join(courseDir, "units");
   if (!existsSync(unitsLink)) {
-    try { symlinkSync(join("..", "units"), unitsLink, "dir"); }
-    catch (e) { log(`course/units 符号链接建不起来 ⇒ 课程视图会是空的：${e?.message ?? e}`); }
+    try { symlinkSync(join("..", "..", "..", "units"), unitsLink, "dir"); }
+    catch (e) { log(`courses/quick-start/units 符号链接建不起来 ⇒ 课程视图会是空的：${e?.message ?? e}`); }
   }
 }
 

@@ -21,7 +21,10 @@ const SET_THEORY_MANIFEST: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../courses/set-theory/course.json"
 );
-const INTRO_MANIFEST: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../course/course.json");
+const INTRO_MANIFEST: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../courses/quick-start/course.json"
+);
 
 static CACHE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -368,7 +371,7 @@ fn intro_course_manifest_stays_v1() {
     let value: Value = serde_json::from_str(&raw).expect("parse intro course.json");
     assert!(
         value.is_array(),
-        "course/course.json stays a flat v1 array (backward compatibility is a hard rule)"
+        "courses/quick-start/course.json stays a flat v1 array (backward compatibility is a hard rule)"
     );
     let entries = value.as_array().expect("array");
     assert_eq!(entries.len(), 11, "the intro course keeps its 11 units");

@@ -821,7 +821,7 @@ async fn each_request_answers_for_its_own_document() {
 ///
 /// 回归：LSP 早先把 `initialize` 的**工作区根**当模块根传下去（等于跳过清单发现），
 /// 于是"工作区里嵌套的项目"——VS Code 打开仓库根、再打开
-/// `course/unit11-project/Canvas.sokonanoda`——会报 `import-not-found`，而同一个
+/// `courses/quick-start/unit11-project/Canvas.sokonanoda`——会报 `import-not-found`，而同一个
 /// 文件在 CLI 下编译正常（2026-09-18 真二进制实测）。
 #[tokio::test]
 async fn a_nested_project_resolves_against_its_own_manifest() {

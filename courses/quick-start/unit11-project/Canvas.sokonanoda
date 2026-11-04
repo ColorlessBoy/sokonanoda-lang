@@ -3,7 +3,7 @@ import Logic
 -- Canvas.sokonanoda —— 项目入口：第一行 `import Logic`。
 -- 从这一行往下，Logic.sokonanoda 里的名字（and_comm）直接可用；And 这类连接符
 -- prelude 自带，任何文件都能用——本文件不需要自己声明任何东西。
--- 判卷：scripts/soko course/unit11-project/Canvas.sokonanoda
+-- 判卷：scripts/soko courses/quick-start/unit11-project/Canvas.sokonanoda
 
 -- 用 prelude 的 And 构造子/消去子直接建一条证明（不靠 import，也不需要声明）。
 theorem and_comm_via_constructors (A : Prop) (B : Prop) : A ∧ B → B ∧ A :=

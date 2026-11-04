@@ -50,13 +50,13 @@ python3 scripts/check-site.py --browser  # 另加两项真 Chrome：`render` × 
 scripts/soko setup                        # 版本锁定的 CLI + LSP → 缓存（幂等）
 scripts/soko doctor --json                # 就绪诊断；0=就绪 3=未就绪
 scripts/soko grade playground.sokonanoda  # 判卷（--json 事件流）
-scripts/soko grade course/unit11-project/Exercises.sokonanoda  # 多文件项目（import 闭包）
+scripts/soko grade courses/quick-start/unit11-project/Exercises.sokonanoda  # 多文件项目（import 闭包）
 scripts/soko grade --root <模块根> <入口.sokonanoda>  # 显式模块根（默认：最近 sokonanoda.toml，否则入口目录）
 scripts/soko grade --no-project <文件>    # 忽略 sokonanoda.toml，模块根 = 入口目录
 scripts/soko course "$PWD/courses/set-theory/course.json" --json  # 整门课进度（有 import 的单元走同一份闭包，failed 与 grade 同判）
 scripts/soko query check --file playground.sokonanoda   # 同一判卷的单 JSON 摘要
 scripts/soko query state --file playground.sokonanoda --line 327 --col 4
-scripts/soko query project --file course/unit11-project/Exercises.sokonanoda  # 项目闭包状态（根/清单/模块）
+scripts/soko query project --file courses/quick-start/unit11-project/Exercises.sokonanoda  # 项目闭包状态（根/清单/模块）
 scripts/soko version --json               # 仓库版本 + 解析来源 + 缓存标记
 scripts/soko update                       # 刷新缓存；0=写成了 3=没写成（stderr 给 URL + download 原因 + 出路）
 scripts/soko prune                        # 统一版本：清多余扩展目录 + 悬空 .obsolete + 对齐两半缓存标记（dry-run；--yes 才删；--check 判红）

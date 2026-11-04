@@ -66,7 +66,7 @@ fn frontmatter_value(frontmatter: &str, key: &str) -> Option<String> {
 /// is the command every skill is written against (docs/design/deepseek-harness.md).
 const PATH_PREFIXES: [&str; 6] = [
     "docs/",
-    "course/",
+    "courses/quick-start/",
     "crates/",
     "examples/",
     "skills/",
@@ -248,7 +248,7 @@ fn teacher_skill_anchors_to_canvas_course_and_solutions() {
         .expect("teacher skill readable");
     for anchor in [
         "playground.sokonanoda",
-        "course/course.json",
+        "courses/quick-start/course.json",
         "docs/teaching-session.md",
         "--json",
     ] {
@@ -259,13 +259,14 @@ fn teacher_skill_anchors_to_canvas_course_and_solutions() {
     }
     // Every course unit listed by course.json must exist as a canvas + twin.
     let course: serde_json::Value = serde_json::from_str(
-        &fs::read_to_string(root.join("course/course.json")).expect("course.json readable"),
+        &fs::read_to_string(root.join("courses/quick-start/course.json"))
+            .expect("course.json readable"),
     )
     .expect("course.json is valid JSON");
     for unit in course.as_array().expect("course.json holds an array") {
         let file = unit["file"].as_str().expect("unit file");
         assert!(
-            root.join("course").join(file).exists(),
+            root.join("courses/quick-start").join(file).exists(),
             "canvas {file} exists"
         );
         let solution = format!(
@@ -273,7 +274,7 @@ fn teacher_skill_anchors_to_canvas_course_and_solutions() {
             file.trim_end_matches(".sokonanoda")
         );
         assert!(
-            root.join("course").join(&solution).exists(),
+            root.join("courses/quick-start").join(&solution).exists(),
             "solution twin {solution} exists"
         );
     }

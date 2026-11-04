@@ -40,7 +40,7 @@ VER=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
 EXT=$(grep -m1 '"version"' editor/vscode/package.json | sed 's/.*"\(.*\)".*/\1/')
 echo "Cargo.toml=$VER · package.json=$EXT"
 [ "$VER" = "$EXT" ] || { echo "✗ 两处版本不一致（CI 强制相等）" >&2; exit 1; }
-for f in course/shared/sokonanoda.toml courses/set-theory/sokonanoda.toml; do
+for f in courses/quick-start/shared/sokonanoda.toml courses/set-theory/sokonanoda.toml; do
   [ -f "$f" ] || continue
   req=$(grep -m1 'requires' "$f" | sed 's/.*"\(.*\)".*/\1/')
   echo "$f requires=$req"

@@ -83,11 +83,11 @@ scripts/soko grade playground.sokonanoda --json
 需要真实路径（模块根 = 最近 `sokonanoda.toml`，否则该文件所在目录）；`text:` 是
 stdin 语义，带 `import` 时会明确报错而不是猜目录。七个工具与 `query` 一样接受
 `file`（仓库根相对路径），所以 `mcp__sokonanoda__check {"file":
-"course/unit11-project/Exercises.sokonanoda"}` 会编译整个闭包，诊断里带
+"courses/quick-start/unit11-project/Exercises.sokonanoda"}` 会编译整个闭包，诊断里带
 `file`/`module` 字段指出是谁的错。CLI 侧的对应形式：
 
 ```bash
-scripts/soko query check --file course/unit11-project/Exercises.sokonanoda
+scripts/soko query check --file courses/quick-start/unit11-project/Exercises.sokonanoda
 scripts/soko query check --file <入口> --root <模块根>     # 清单之外的显式根
 ```
 

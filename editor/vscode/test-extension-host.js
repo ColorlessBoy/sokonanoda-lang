@@ -508,7 +508,7 @@ const serverStub = {
   resolveServerForStart: async () => ({ command: "/stub/sokonanoda-lsp", source: "stub" }),
   resolveServerCommand: () => ({ command: "/stub/sokonanoda-lsp", source: "stub" }),
   resolveCliCommand: () => "/stub/sokonanoda",
-  resolveCourseManifest: () => "/repo/course/course.json",
+  resolveCourseManifest: () => "/repo/courses/quick-start/course.json",
   firstExisting: (candidates) => candidates[0],
   platformTarget: () => "darwin-arm64",
   serverVersionMarker: () => "/stub/version",
@@ -1848,14 +1848,14 @@ test("diagnostics from other languages never drive soko/goals", async () => {
 
 test("a burst of project diagnostics collapses into one refresh", async () => {
   await activateExtension();
-  focus(fakeDocument("/repo/course/unit11-project/Canvas.sokonanoda"));
+  focus(fakeDocument("/repo/courses/quick-start/unit11-project/Canvas.sokonanoda"));
   await settle();
   requests.length = 0;
 
   // Project mode publishes the entry and its dependency in one go, and the
   // client may coalesce several events: all of them must produce one refresh.
-  const canvas = vscodeStub.Uri.file("/repo/course/unit11-project/Canvas.sokonanoda");
-  const logic = vscodeStub.Uri.file("/repo/course/unit11-project/Logic.sokonanoda");
+  const canvas = vscodeStub.Uri.file("/repo/courses/quick-start/unit11-project/Canvas.sokonanoda");
+  const logic = vscodeStub.Uri.file("/repo/courses/quick-start/unit11-project/Logic.sokonanoda");
   listeners.diagnostics.fire({ uris: [canvas] });
   listeners.diagnostics.fire({ uris: [logic] });
   listeners.diagnostics.fire({ uris: [canvas, logic] });
@@ -1887,7 +1887,7 @@ test("concurrent loads share a single soko/goals round trip", async () => {
 
 test("switching documents mid-flight drops the stale answer", async () => {
   await activateExtension();
-  const canvas = fakeDocument("/repo/course/unit11-project/Canvas.sokonanoda");
+  const canvas = fakeDocument("/repo/courses/quick-start/unit11-project/Canvas.sokonanoda");
   focus(canvas);
   await settle();
 
@@ -1915,7 +1915,7 @@ test("switching documents mid-flight drops the stale answer", async () => {
   assert.strictEqual(goalsRequests().length, 1, "the load is in flight");
 
   // The learner switches to the other file while the request is pending.
-  focus(fakeDocument("/repo/course/unit11-project/Logic.sokonanoda"));
+  focus(fakeDocument("/repo/courses/quick-start/unit11-project/Logic.sokonanoda"));
   release();
   for (let i = 0; i < 30; i++) await Promise.resolve();
 
@@ -1943,7 +1943,7 @@ test("switching documents mid-flight fetches the new document too", async () => 
   provider._view = { webview: { postMessage: (message) => posts.push(message) } };
   provider._ready = true;
 
-  const a = fakeDocument("/repo/course/unit11-project/Canvas.sokonanoda");
+  const a = fakeDocument("/repo/courses/quick-start/unit11-project/Canvas.sokonanoda");
   focus(a);
   await settle();
 
@@ -1969,7 +1969,7 @@ test("switching documents mid-flight fetches the new document too", async () => 
 
   // 切到 B。**先换好 stub 再切**：`trackEditor(B)` 会立刻发 B 的那一趟
   // （T-B09 起它不再被 A 的在飞 promise 吃掉），stub 换晚了 B 拿到的就是旧答案。
-  const b = fakeDocument("/repo/course/unit11-project/Logic.sokonanoda");
+  const b = fakeDocument("/repo/courses/quick-start/unit11-project/Logic.sokonanoda");
   stubbedResponses["soko/goals"] = (params) =>
     params?.textDocument?.uri === String(b.uri)
       ? { decls: [{ name: "b_decl", kind: "theorem", status: "checked", holes: [] }] }
@@ -2102,7 +2102,7 @@ test("a declaration whose type changed is reposted even if nothing else did", as
 
 test("an answer that names another document is dropped", async () => {
   await activateExtension();
-  const canvas = fakeDocument("/repo/course/unit11-project/Canvas.sokonanoda");
+  const canvas = fakeDocument("/repo/courses/quick-start/unit11-project/Canvas.sokonanoda");
   focus(canvas);
   await Promise.resolve();
   requests.length = 0;
@@ -2110,7 +2110,7 @@ test("an answer that names another document is dropped", async () => {
   // 服务端会回显它答的是哪份文档：这里故意答另一份 ⇒ 必须丢弃，不能让树显示
   // 别的文件的声明（快速切换文件时最危险）。
   stubbedResponses["soko/goals"] = () => ({
-    uri: "file:///repo/course/unit11-project/Logic.sokonanoda",
+    uri: "file:///repo/courses/quick-start/unit11-project/Logic.sokonanoda",
     version: 1,
     decls: [{ name: "stale_decl", kind: "theorem", status: "open", holes: [] }],
   });
@@ -2151,7 +2151,7 @@ test("focusing another document refreshes the Infoview cards without a diagnosti
   // 第二份：**项目模块**，而且**不发诊断**（项目模式下打开模块的常见情形）。
   // 这一条钉住的是：`refresh()` 只重建树，而树只有在可见时才走 `getChildren`
   // ——Infoview 的声明卡片必须由 `trackEditor` 主动推。
-  const projectFile = fakeDocument("/repo/course/unit11-project/Exercises.sokonanoda");
+  const projectFile = fakeDocument("/repo/courses/quick-start/unit11-project/Exercises.sokonanoda");
   stubbedResponses["soko/goals"] = () => ({
     decls: [
       { name: "decl_project", kind: "theorem", status: "open", holes: [{ id: "h0", range: {} }] },
@@ -2173,7 +2173,7 @@ test("focusing another document refreshes the Infoview cards without a diagnosti
 
 test("the project tree renders the closure the server describes", async () => {
   await activateExtension();
-  const canvas = fakeDocument("/repo/course/unit11-project/Exercises.sokonanoda");
+  const canvas = fakeDocument("/repo/courses/quick-start/unit11-project/Exercises.sokonanoda");
   focus(canvas);
   await Promise.resolve();
 
@@ -2182,14 +2182,14 @@ test("the project tree renders the closure the server describes", async () => {
     version: 3,
     project: {
       entry: "Exercises",
-      root: "/repo/course/unit11-project",
-      manifest: "/repo/course/unit11-project/sokonanoda.toml",
+      root: "/repo/courses/quick-start/unit11-project",
+      manifest: "/repo/courses/quick-start/unit11-project/sokonanoda.toml",
       requires_warning: null,
       counts: { modules: 2, compiled: 2, failed: 0, blocked: 0, decls: 7, errors: 0, warnings: 0, open_exercises: 2 },
       diagnostics: [],
       modules: [
-        { name: "Logic", path: "/repo/course/unit11-project/Logic.sokonanoda", status: "compiled", entry: false, imports: [], decls: 5, errors: 0, warnings: 0, open_exercises: 0, message: null },
-        { name: "Exercises", path: "/repo/course/unit11-project/Exercises.sokonanoda", status: "compiled", entry: true, imports: ["Logic"], decls: 2, errors: 0, warnings: 0, open_exercises: 2, message: null },
+        { name: "Logic", path: "/repo/courses/quick-start/unit11-project/Logic.sokonanoda", status: "compiled", entry: false, imports: [], decls: 5, errors: 0, warnings: 0, open_exercises: 0, message: null },
+        { name: "Exercises", path: "/repo/courses/quick-start/unit11-project/Exercises.sokonanoda", status: "compiled", entry: true, imports: ["Logic"], decls: 2, errors: 0, warnings: 0, open_exercises: 2, message: null },
       ],
     },
     reason: null,
@@ -2205,7 +2205,7 @@ test("the project tree renders the closure the server describes", async () => {
   assert.strictEqual(String(roots[0].label), "unit11-project");
   assert.strictEqual(String(roots[0].description), "2 模块 · 2 练习");
   assert.ok(
-    String(roots[0].tooltip).includes("清单：/repo/course/unit11-project/sokonanoda.toml"),
+    String(roots[0].tooltip).includes("清单：/repo/courses/quick-start/unit11-project/sokonanoda.toml"),
     `the root must name the manifest source: ${roots[0].tooltip}`,
   );
   const modules = await tree.getChildren(roots[0]);
@@ -2217,13 +2217,13 @@ test("the project tree renders the closure the server describes", async () => {
   assert.strictEqual(String(modules[0].description), "依赖 · 5 声明");
   assert.strictEqual(String(modules[1].description), "入口 · 2 声明 · 2 练习");
   assert.strictEqual(modules[0].command.command, "vscode.open", "clicking opens the module");
-  assert.strictEqual(modules[0].command.arguments[0].fsPath, "/repo/course/unit11-project/Logic.sokonanoda");
+  assert.strictEqual(modules[0].command.arguments[0].fsPath, "/repo/courses/quick-start/unit11-project/Logic.sokonanoda");
 
   // 状态栏 tooltip 带上项目那一行（不新开第二个 status item）。
   const tooltip = statusBarStub()?.tooltip;
   assert.ok(tooltip, "a status bar item carries a tooltip");
   assert.ok(
-    String(tooltip.value ?? tooltip).includes("项目：/repo/course/unit11-project"),
+    String(tooltip.value ?? tooltip).includes("项目：/repo/courses/quick-start/unit11-project"),
     `the status bar tooltip carries the project line: ${tooltip?.value ?? tooltip}`,
   );
   stubbedResponses["soko/project"] = () => ({ uri: "", version: 1, project: null, reason: "no-imports" });
@@ -2254,7 +2254,7 @@ test("a single file shows the placeholder instead of an empty project tree", asy
 
 test("a project answer for another document is dropped", async () => {
   await activateExtension();
-  const canvas = fakeDocument("/repo/course/unit11-project/Exercises.sokonanoda");
+  const canvas = fakeDocument("/repo/courses/quick-start/unit11-project/Exercises.sokonanoda");
   focus(canvas);
   await Promise.resolve();
   stubbedResponses["soko/project"] = () => ({
@@ -2949,7 +2949,7 @@ test("the course tree groups volumes and chapters for a v2 manifest", async () =
     );
     assert.strictEqual(units[0].command.command, "vscode.open");
     assert.ok(
-      String(units[0].command.arguments[0].fsPath).endsWith("/repo/course/units/a.sokonanoda"),
+      String(units[0].command.arguments[0].fsPath).endsWith("/repo/courses/quick-start/units/a.sokonanoda"),
       "unit paths still resolve against the manifest directory",
     );
   } finally {

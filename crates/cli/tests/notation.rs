@@ -2443,7 +2443,7 @@ fn implicit_binders_in(ty: &sokonanoda_front::Expr, out: &mut Vec<String>) {
 }
 
 /// **课程签名里隐式 binder 的棘轮契约**（台账 **G-87** 的判据 · 2026-10-06 收口 ✓）：
-/// 卷 I（`courses/set-theory`）与入门课（`course/`）的签名里**只允许**下面
+/// 卷 I（`courses/set-theory`）与入门课（`courses/quick-start/`）的签名里**只允许**下面
 /// `INTENTIONAL` 登记的那些隐式 binder（外加两处**教学上刻意**的例外见下）——
 /// 多一条就判红 ✗。
 ///
@@ -2460,8 +2460,8 @@ fn implicit_binders_in(ty: &sokonanoda_front::Expr, out: &mut Vec<String>) {
 /// `docs/gaps/repro/G87-course-signature-has-implicit-binder.sh` ✓。
 ///
 /// **两处刻意的例外**（实测发现：当时的普查只扫了卷 I，漏了入门课）：
-/// `Eq.symm`（`course/unit5-universes-sort.sokonanoda` 与解答）与
-/// `eq_refl_prop`（`course/unit2-equality-rfl.sokonanoda` 与解答）——
+/// `Eq.symm`（`courses/quick-start/unit5-universes-sort.sokonanoda` 与解答）与
+/// `eq_refl_prop`（`courses/quick-start/unit2-equality-rfl.sokonanoda` 与解答）——
 /// 这两道题**教的就是隐式 binder**，签名必须写成 `{α : Sort u}` / `{a : Prop}`。
 /// 它们的**用法**全在 prelude 的 `Eq.subst`/`Eq.refl` 上（prelude 的
 /// `implicit_prefix` 固定为 0，本刀不动 prelude）⇒ IA-1 不影响它们；
@@ -2477,7 +2477,7 @@ fn no_course_signature_uses_an_implicit_binder() {
     // 一条都没进过判据 —— 而它们正是 IA-2 的主角）。现在先收全树的记法表，
     // 再带**继承记法表**解析；**解析失败也记 offender**（不许静默跳过 ✓）。
     let mut paths: Vec<PathBuf> = Vec::new();
-    for root in ["courses/set-theory", "course"] {
+    for root in ["courses/set-theory", "courses/quick-start"] {
         paths.extend(walk_sokonanoda(&repo_root().join(root)));
     }
     let mut inherited = Vec::new();
@@ -2542,7 +2542,7 @@ fn no_course_signature_uses_an_implicit_binder() {
             //     `lib/Set`/`lib/Image`/`lib/Fun`/`lib/Rel` 的隐式化签名
             //     （清单见下 `INTENTIONAL`，**只许按契约增删** ✓）。
             let intentional = (matches!(label.as_str(), "Eq.symm" | "eq_refl_prop")
-                && rel.starts_with("course/"))
+                && rel.starts_with("courses/quick-start/"))
                 || INTENTIONAL.contains(&(rel.as_str(), label.as_str()));
             if intentional {
                 continue;

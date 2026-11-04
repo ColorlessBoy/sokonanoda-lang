@@ -132,7 +132,7 @@
 - `ROADMAP.md` / `AGENTS.md`（仓库根）— 里程碑与 §10 验收 / agent 入口 + 硬规则速记
 - `skills/` — 角色技能（`sokonanoda-teacher` / `-dev` / `-ci`）；**DeepSeek Harness 通过
   skill 名即斜杠命令直接消费**（`/sokonanoda-teacher` 等），适配见 `docs/design/deepseek-harness.md`
-- `course/` — 入门课素材库（11 单元，agent 用，非用户直接消费）
+- `courses/quick-start/` — 入门课（11 单元，agent 用）
 - **`courses/set-theory/`** — **卷 I《集合论》**（第二大课，已建）：`lib/`（L2 课程标准库）+
   `units/`（画布与解答）+ `gaps/`（发现端）+ `tools/check.py`（本地门禁）；
   入口/工程 `courses/set-theory/{README,ENGINEERING}.md`

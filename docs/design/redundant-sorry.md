@@ -91,7 +91,7 @@ generic fallback，**"这个实参根本没人要"这个事实被丢掉**，只�
 | `crates/front/src/query/**` | 同一真相：洞级 `redundant` 标记（`HoleInfo`/`LocatedHole`），`query goals`/`holes` 与 LSP `soko/goals` 逐字段一致 | ✅ 已落地（两视图契约测试 `crates/cli/tests/query.rs`） |
 | `skills/sokonanoda-teacher` | 判卷决策表加一行：`redundant-sorry` ⇒ 让学生删掉那行，**不给提示阶梯** | ✅ 已落地（`SKILL.md` + `references/events.md`） |
 | `editor/vscode/` + `skills/` + `AGENTS.md` + `docs/vscode-dev-guide.md` | 用户可见反馈变更 ⇒ 同轮同步（收尾义务）；**版本号 bump** | ✅ 已落地：`README.md`（Honest warnings）、`CHANGELOG.md`（`## [0.56.2]`）、`Cargo.toml` + `package.json` = **0.56.2**（patch）；余下只有 commit/push（触发 auto-tag，非本地步骤） |
-| 课程 | `course/**` golden 事件计数**不得变化**（现有 open 全是真缺口，需实测确认） | ✅ 实测不变（`cargo test --workspace --locked` 全绿） |
+| 课程 | 入门课 golden 事件计数**不得变化**（现有 open 全是真缺口，需实测确认） | ✅ 实测不变（`cargo test --workspace --locked` 全绿） |
 
 ## 6. 验收（TDD 三层 + 反例）
 
@@ -102,7 +102,7 @@ generic fallback，**"这个实参根本没人要"这个事实被丢掉**，只�
 3. **LSP**：该声明**不再**出现 "not yet solved"，改出现 `redundant-sorry`
    （含 hint）；
 4. **回归**：`cargo test --workspace --locked` 全绿、`scripts/soko gate` PASS、
-   `examples/**` 与 `course/**` golden 计数不变；
+   `examples/**` 与入门课 golden 计数不变；
 5. **反向证据**：真缺口样本（例 2/4/5）在实现前后输出**逐字节相同**。
 
 ## 7. 已知边界（v1 不做）

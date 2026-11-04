@@ -26,7 +26,7 @@ if [ -n "$DUPS" ]; then
 fi
 REPO="$(cd "$ROOT/../.." && pwd)"
 # ⚠ **临时件不许写进语料树** ✗（M6 / 2026-10-03 实锤）：`crates/cli/tests/notation.rs` 的
-#   `walk_sokonanoda()` 递归收 `courses/` + `course/` 下**所有** `*.sokonanoda`（不看跟踪状态 ✗），
+#   `walk_sokonanoda()` 递归收 `courses/` 下**所有** `*.sokonanoda`（不看跟踪状态 ✗），
 #   而且**读到写了一半的文件**就判 offender ⇒ 内核线的发版 gate / `ci-local.sh` 会**假红** ✗
 #   （实测：`units/zzlibclosure.sokonanoda` 被扫到过 ✓）。改到 `/tmp/course-scratch/` ✓，
 #   靠 `--root "$ROOT"` 解析 `import lib.*` ✓（实测：不带 `--root` ⇒ `找不到模块 lib.Set` ✗）。

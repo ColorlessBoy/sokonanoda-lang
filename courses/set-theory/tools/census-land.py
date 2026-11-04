@@ -18,7 +18,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 LEDGER = REPO / "courses/set-theory/gaps/census-ledger.json"
-ROOTS = ["courses/set-theory/units", "courses/set-theory/lib", "course", "playground.sokonanoda"]
+ROOTS = ["courses/set-theory/units", "courses/set-theory/lib", "courses/quick-start", "playground.sokonanoda"]
 
 
 def _lint():

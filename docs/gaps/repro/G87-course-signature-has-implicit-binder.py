@@ -70,14 +70,16 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 GUARD_RS = Path("crates/cli/tests/notation.rs")
-TREES = ("courses/set-theory", "course")
+#: 入门课根（2026-11-04 从 `course/` 搬来这里）。
+INTRO = "courses/quick-start"
+TREES = ("courses/set-theory", INTRO)
 
 #: 与守卫同口径的声明关键字（`parser.rs::parse_command` 的声明族）。
 DECL_KEYWORDS = ("def", "abbrev", "theorem", "example", "axiom")
 #: 守卫**不看**的声明族（`implicit_binders_in` 的 match 里没有它）⇒ 本脚本同样跳过。
 GUARD_SKIPS = ("inductive",)
 
-#: 守卫里写死的两处**教学例外**（题目本身就在教隐式 binder，只在入门课 `course/`）。
+#: 守卫里写死的两处**教学例外**（题目本身就在教隐式 binder，只在入门课）。
 TEACHING_EXCEPTIONS = ("Eq.symm", "eq_refl_prop")
 
 #: 语句起始关键字（用于判定"上一条声明到哪里结束" —— 无 `:=` 的 `axiom` 靠它收口）。
@@ -417,8 +419,8 @@ def parse_whitelist(text: str) -> set[tuple[str, str]]:
 def allowed(file: str, name: str, whitelist: set[tuple[str, str]]) -> bool:
     if (file, name) in whitelist:
         return True
-    # 守卫的两处教学例外（只在入门课 `course/` 下、只按名字）。
-    return file.startswith("course/") and name in TEACHING_EXCEPTIONS
+    # 守卫的两处教学例外（只在入门课下、只按名字）。
+    return file.startswith(INTRO + "/") and name in TEACHING_EXCEPTIONS
 
 
 def check(
@@ -437,7 +439,7 @@ def check(
     exceptions = sorted(
         p
         for p in found
-        if p not in wl and p[0].startswith("course/") and p[1] in TEACHING_EXCEPTIONS
+        if p not in wl and p[0].startswith(INTRO + "/") and p[1] in TEACHING_EXCEPTIONS
     )
     return {
         "decls": total,
@@ -567,7 +569,7 @@ end A
 """,
         ["A.t1", "A.t2", "A.triple", "A.ax", "<example>", "A.nested"],
     ),
-    "course/unit-fixture.sokonanoda": (
+    INTRO + "/unit-fixture.sokonanoda": (
         """-- 夹具：入门课的教学例外（题目本身教隐式 binder ✓ 守卫写死放行 ✓）
 theorem eq_refl_prop {a : Prop} : a → a := fun (h : a) => h
 
@@ -599,7 +601,7 @@ def selftest() -> int:
         exceptions = {
             (rel, n)
             for rel, n in expected
-            if rel.startswith("course/") and n in TEACHING_EXCEPTIONS
+            if rel.startswith(INTRO + "/") and n in TEACHING_EXCEPTIONS
         }
         rs = "const INTENTIONAL: &[(&str, &str)] = &[\n"
         for rel, name in sorted(expected - exceptions):
@@ -610,7 +612,7 @@ def selftest() -> int:
 
         # ② 正向：清单**覆盖**夹具里所有隐式签名（教学例外靠守卫写死的白名单 ✓）
         #    ⇒ 已清（unreviewed 空、rot 空）。
-        res = check([(root, "courses/set-theory"), (root, "course")], parse_whitelist(rs))
+        res = check([(root, "courses/set-theory"), (root, INTRO)], parse_whitelist(rs))
         if res["unreviewed"]:
             failures.append(
                 "正向：清单已覆盖全部夹具，却仍报未登记 → "
@@ -628,14 +630,14 @@ def selftest() -> int:
         broken = set(expected)
         victim = ("courses/set-theory/lib/Fixture.sokonanoda", "A.triple")
         broken.discard(victim)
-        res2 = check([(root, "courses/set-theory"), (root, "course")], broken)
+        res2 = check([(root, "courses/set-theory"), (root, INTRO)], broken)
         got = {(h["file"], h["name"]) for h in res2["unreviewed"]}
         if got != {victim}:
             failures.append(f"反向：删掉 {victim} 后应只报它，实得 {sorted(got)}")
 
         # ④ **反向验证（另一方向）**：清单里留一条现实中不存在的 ⇒ 必须报「清单腐烂」✗。
         broken2 = set(expected) | {("courses/set-theory/lib/Fixture.sokonanoda", "A.ghost")}
-        res3 = check([(root, "courses/set-theory"), (root, "course")], broken2)
+        res3 = check([(root, "courses/set-theory"), (root, INTRO)], broken2)
         if res3["rot"] != [("courses/set-theory/lib/Fixture.sokonanoda", "A.ghost")]:
             failures.append(f"反向（腐烂）：应只报 A.ghost，实得 {res3['rot']}")
 

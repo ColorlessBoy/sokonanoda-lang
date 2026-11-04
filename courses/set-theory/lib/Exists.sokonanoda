@@ -54,7 +54,7 @@
 --   `Exists.choose`，两者成对）；本课程在**单元⑩ §10.6** 正面碰它一次（练习 7 是全卷
 --   唯一允许用它的题）。台账 **L-06** 记的正是这条边界，**不是** lib/Exists 的缺陷。
 --
--- 论域：`(A : Type)` 就是 `Type 0`（与入门课 course/unit8-quantifiers.sokonanoda
+-- 论域：`(A : Type)` 就是 `Type 0`（与入门课 courses/quick-start/unit8-quantifiers.sokonanoda
 -- 的三件套逐字一致）。卷 I 的用法——`∃ (x : α), …`、`∃ (A : Set α), …`、
 -- `∃ (f : α → β), …`、`∃ (p : Prod α β), …`——论域都落在 Type 0，够用。
 -- 论域本身在更高宇宙的 `Exists.{u}` 今天仍写不出来，**但原因与 G-14 无关**（G-14 已修：

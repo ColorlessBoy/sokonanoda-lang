@@ -11,7 +11,7 @@
 --     rejected: assertion `left == right` failed
 --       left: 1
 --      right: 0
--- 后果：`Exists` 只能立成**公理三件套**（course/unit8-quantifiers.sokonanoda:101-103），
+-- 后果：`Exists` 只能立成**公理三件套**（入门课单元⑧:101-103），
 -- 从 0.4x 一路绕到今天，从未进过 backlog —— 这正是本台账要拦下的东西。
 --
 -- **0.59.0 起本文件干净判卷**（`scripts/soko grade` 退出码 0，`decl.checked Bar`）。

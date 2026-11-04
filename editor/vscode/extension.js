@@ -165,7 +165,14 @@ function resolveCliCommand() {
 
 function resolveCourseManifest() {
   const roots = (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath);
-  return server.firstExisting(roots.map((root) => path.join(root, "course", "course.json")));
+  // 课程清单有两种布局：`courses/quick-start/course.json` 是入门课 2026-11-04 之后
+  // 的位置（先查），`course/course.json` 是旧布局（老工作区/课程仓继续可用）。
+  return server.firstExisting(
+    roots.flatMap((root) => [
+      path.join(root, "courses", "quick-start", "course.json"),
+      path.join(root, "course", "course.json"),
+    ]),
+  );
 }
 
 // The user's explicit server choice (`sokonanoda.serverPath` /
@@ -1314,7 +1321,7 @@ class CourseTreeDataProvider {
     const manifest = resolveCourseManifest();
     if (!manifest) {
       // 没有清单 ⇒ **说出来**（原来是空树：用户看不出是"没清单"还是"还没编完"）。
-      this.units = [courseNoticeItem("没有课程清单：把 course/course.json 放到工作区根就能看到课程地图")];
+      this.units = [courseNoticeItem("没有课程清单：把 course.json 放到 courses/quick-start/ 下就能看到课程地图")];
       return this.units;
     }
     const { units, reason } = await runCourseCommand(resolveCliCommand(), manifest);

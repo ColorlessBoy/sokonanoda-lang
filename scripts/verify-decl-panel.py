@@ -48,7 +48,7 @@ DEFAULT_ROOTS = [
     "courses/set-theory/lib",
     "courses/set-theory/units",
     "courses/set-theory/units/solutions",
-    "course",
+    "courses/quick-start",
     "playground.sokonanoda",
 ]
 

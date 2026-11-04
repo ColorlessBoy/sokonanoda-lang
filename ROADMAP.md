@@ -396,7 +396,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 | 项 | 状态 | 设计 / 证据 |
 |---|---|---|
 | **I6** prelude 对齐 + elaborator 推进 | ✅（`Bool` 0.41.0 · binder 类型推断 0.45.0 · 无注解 `let` 0.34.0 · `match` 0.33.0–0.42.0） | `docs/design/elaborator-let-match.md` · `docs/design/match-patterns.md` |
-| **I7** 第一门课（M4，内容层） | ✅ 完成（**10 单元锁定**，`course/course.json`；中英镜像 + 解答钥匙） | `docs/design/course-syllabus.md` §0 |
+| **I7** 第一门课（M4，内容层） | ✅ 完成（**10 单元锁定**，入门课 `course.json`；中英镜像 + 解答钥匙） | `docs/design/course-syllabus.md` §0 |
 | **I8** 真正增量（服务层前置） | ✅（check-then-add · Session · `watch` · 真增量后缀重查 · conservative early-cutoff 0.32.1） | `docs/design/i8-i9.md` §1 · `docs/design/early-cutoff.md` |
 | **I9** kernel 显式错误 + goal 视图 | ✅（错误分类学 · goal 视图 + `soko/goals`/`nextHole` · 多洞/refine · 函数实参洞 · 呈现面高亮统一 0.43.0/0.49.0） | `docs/design/i8-i9.md` §2 · `docs/design/goal-refine.md` · `docs/design/goal-func-spine.md` · `docs/design/goal-rendering.md` · `docs/design/spine-meta-a.md` |
 | **I10** 值位 `apply` 关键字 | ❌ 已废弃（0.18.0 完成 ⇒ 0.22.0 随 I13 整体移除） | `docs/design/term-apply.md` · `docs/design/remove-funintro.md` |
