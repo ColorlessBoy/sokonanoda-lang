@@ -60,7 +60,7 @@ pub(super) fn rewrite_goal_motive(
     let ty = local_type(binders, &eq_b)
         .cloned()
         .or_else(|| local_type(binders, &eq_a).cloned())
-        .or_else(|| eq_ty)?;
+        .or(eq_ty)?;
     let var_name = format!("_soko_eq{}", span.start.offset);
     let var = Expr::Ident {
         name: var_name.clone(),
