@@ -503,7 +503,7 @@ fn query_project_lists_the_artifacts_of_its_module_root() {
 /// `null` 时面板就写「由编译器 ? 写入」✗（用户看到的就是这个裸问号）。所以这条
 /// **不看 `meta.json` 的字面量**，直接问用户界面问的那条命令（`query project`）✓。
 ///
-/// 现场形状（本地 `course/shared/.sokonanoda/meta.json` 逐字节如此）：`compiler`
+/// 现场形状（本地 `courses/quick-start/shared/.sokonanoda/meta.json` 逐字节如此）：`compiler`
 /// 已被写侧刷新成当前版本，`schema` 却停在 `soko.artifacts/1` ⇒ 读侧两个消费者都
 /// 按 `schema == 当前` 过滤 ⇒ 整目录当不存在。
 #[test]

@@ -410,7 +410,7 @@ pub(crate) fn update_index(root: &Path, entry_path: &Path, key: &str) {
     //
     // 症状：面板顶上「编译器 ?」——根因是 `query::project::artifacts_of` 与
     // [`meta_ok`] 都按 `schema == meta_schema()` 过滤，而老目录的 `schema` 停在旧格式
-    // （本地实测 `course/shared/.sokonanoda/meta.json` = `soko.artifacts/1`，而当前是
+    // （本地实测 `courses/quick-start/shared/.sokonanoda/meta.json` = `soko.artifacts/1`，而当前是
     // `soko.artifacts/2.r3`）⇒ 整个产物目录**当不存在**：`compiler` 一律 `None` ⇒
     // Infoview 画成「由编译器 ? 写入」✗；顺带每次编译都白读不到自己的产物。
     //
@@ -506,7 +506,7 @@ mod tests {
     /// **需求 1（2026-10-09 用户实测）**：老产物目录的 `meta.json` 停在**旧 schema**
     /// ⇒ Infoview 显示「由编译器 ? 写入」✗。
     ///
-    /// 现场形状（本地 `course/shared/.sokonanoda/meta.json` 逐字节如此）：`compiler`
+    /// 现场形状（本地 `courses/quick-start/shared/.sokonanoda/meta.json` 逐字节如此）：`compiler`
     /// 已经被 [`update_index`] 刷新成当前版本（`0.87.0`），`schema` 却还停在
     /// `soko.artifacts/1`（当前是 `soko.artifacts/2.r9`）。两个读侧消费者都按
     /// `schema == meta_schema()` 过滤 ⇒ 整目录当不存在 ⇒ `compiler: null` ⇒ 面板

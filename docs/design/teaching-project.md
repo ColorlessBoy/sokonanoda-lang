@@ -52,7 +52,7 @@
 | 维度 | analysis | sokonanoda 现状 | 差距 |
 |---|---|---|---|
 | 编译单元 | 110 个 `.lean` | 58 个 `.sokonanoda`（含 en/解答） | ×2 |
-| 有效行数 | **124,491**（Analysis I 本体 55,888 / MeasureTheory 65,202） | **4,290**（`course/` 全部） | **×29** |
+| 有效行数 | **124,491**（Analysis I 本体 55,888 / MeasureTheory 65,202） | **4,290**（入门课全部） | **×29** |
 | 顶层声明 | ≈5,300（theorem 2,097 / lemma 1,221 / example 599 / abbrev 333 / def 280 / instance 197） | 85 道练习 + 若干演示 | ×30+ |
 | 集合论一章 | §3 六节 + epilogue = **6,883 行 / 488 声明** | — | 这是卷 I 的直接靶子 |
 | 基建代码 | ≈800 行（`literate.toml` 303 / README 195 / AGENTS 156 / serve+build 130） | CLI/LSP/站点/技能 ≈ 数万行 | 我们**已经**有基建 |
@@ -153,7 +153,7 @@ theorem subset_trans (α : Type) (A B C : Set α) (h1 : Set.subset α A B) (h2 :
   （`crates/front/src/query/mod.rs:594` 的注释明写「`check` 会带着 parse 诊断返回」）
   预期 `query check` 报错，实测却是全绿。**写台账这个动作本身就在产出新缺口**——
   这就是 §6 要把它做成流程的原因。
-- G-03 不是新问题：单元⑧早就把 `Exists` 立成**公理三件套**（`course/unit8:101-103`），
+- G-03 不是新问题：单元⑧早就把 `Exists` 立成**公理三件套**（入门课单元⑧:101-103），
   文档里也写了「官方 Lean 的 `Exists` 是 inductive」——但**它从未进过 backlog**。
   这正是本计划要的机制：**被绕过去的东西必须留下账**（§6.1）。
 
@@ -169,7 +169,7 @@ theorem subset_trans (α : Type) (A B C : Set α) (h1 : Set.subset α A B) (h2 :
 ### 3.1 现状：`courses/set-theory/`（已落地）
 
 ```text
-courses/set-theory/            # 卷 I 集合论（与入门课 course/ 并列，互不影响）
+courses/set-theory/            # 卷 I 集合论（与入门课并列，互不影响）
 ├── README.md                  # 教材面（课程地图 + 学习路径 + 判题入口）；工程面见 ENGINEERING.md
 ├── AGENTS.md                  # 课程线 agent 手册（写作循环 + 判卷三纪律 + 教学纪律）
 ├── sokonanoda.toml            # 模块根 = 本目录（requires 跟着版本钉走，现为 0.79.0）
@@ -441,7 +441,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
   `Set.sokonanoda`（Set/mem/subset/empty/singleton/pair/union/inter/power）、
   `Rel.sokonanoda`、`Fun.sokonanoda`、`Prod.sokonanoda`、`Exists.sokonanoda`（先公理版，G-03 修好后换归纳版）；
 - 命名纪律：**点名带点**（`Set.mem`），构造子用 `mk_*` 前缀直到 G-02 修好；
-- **验收**：库自身 0 诊断；每个模块能被一个自检入口 `import` 后判卷（照 `course/shared/Demo` 的做法）。
+- **验收**：库自身 0 诊断；每个模块能被一个自检入口 `import` 后判卷（照入门课 `shared/Demo` 的做法）。
 
 ### P4 逐单元生产（主体工作量）— L ×**10**
 - 顺序（§5 的「先不依赖 blocker」原则）：**1 → 4 → 5 → 7 → 9 →（P1 落地后）2 → 3 → 6 → 8 → 10**；
@@ -505,7 +505,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 > **as-built（0.60.0，2026-09-19，台账 G-07 已修）**：**课程清单 v2 落地**——
 > `courses/set-theory/course.json` 升成 `soko.course/2`（1 卷 / 4 章 / 12 单元，
 > 每章带 `prereqs`/`tags`/`quota.exercises`），**v1 扁平数组继续被接受**
-> （入门课 `course/course.json` 一个字节没改，它就是兼容性的活体回归）。
+> （入门课的 `course.json` 一个字节没改，它就是兼容性的活体回归）。
 > 五个消费者同一轮跟上，设计/as-built 全文 = `docs/design/course-manifest-v2.md`：
 > ① CLI `course` 两种都读，v2 的 `course.unit` **新增** `volume`/`chapter`/`tags`、
 > `course.summary` 新增 `volumes`/`chapters`（v1 事件**一个键都不多**）；

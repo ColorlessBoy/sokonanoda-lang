@@ -1,13 +1,11 @@
 -- ==========================================================================
--- unit7-induction-recursion-2-solution.sokonanoda — Unit 7 answer key (agent only)
+-- unit7-induction-recursion-2-solution.sokonanoda —— 单元⑦ 解答钥匙（agent 专用）
 --
--- The solved twin of course/unit7-induction-recursion-2.sokonanoda: every sorry
--- is filled with a kernel-verified answer. Do not hand this directly to a
--- learner.
+-- 与学习者画布 courses/quick-start/unit7-induction-recursion-2.sokonanoda 一一对应，
+-- 所有 sorry 已填入经完整内核验证的答案。勿直接发给学习者。
 -- ==========================================================================
 
--- The self-contained Nat inductive block (same as the canvas, so this file
--- compiles on its own).
+-- 自带的 Nat 归纳块（与画布一致，保证本文件独立可编译）。
 inductive Nat : Type
 ctor zero : Nat
 ctor succ (n : Nat) : Nat
@@ -28,8 +26,7 @@ iota succ :=
 end
 
 -- ─────────────────────────────────────────────────────────────
--- Parameterized inductives: Option (A : Type), the fromOption demo, and the
--- answer to Exercise 1.
+-- 参数化归纳：Option (A : Type) + 演示 fromOption + 练习 1 的答案。
 -- ─────────────────────────────────────────────────────────────
 
 inductive Option (A : Type) : Type
@@ -37,27 +34,25 @@ ctor none : Option A
 ctor some (a : A) : Option A
 end
 
--- Demo (same as the canvas): fromOption takes a default and extracts.
+-- 演示（与画布一致）：fromOption 接默认值后取出。
 def fromOption (x : Option Nat) (d : Nat) : Nat := match x with
 | none => d
 | some a => a
 
--- Self-test: #reduce walks the Option.rec that match lowers to — the some
--- arm is just the number inside.
+-- 自测：#reduce 走 match 降低出的 Option.rec —— some 那支就是里面的数。
 #reduce fromOption (@some Nat (succ zero)) zero
 
--- Exercise 1: the some arm hands back the substituted field a directly.
+-- 练习 1：some 分支直接交出代入后的字段 a。
 def valueOrZero (x : Option Nat) : Nat := match x with
 | none => zero
 | some a => a
 
--- Extra internal self-checks:
+-- 额外自测（钥匙内部核对）：
 #reduce valueOrZero (@some Nat (succ zero))
 #reduce valueOrZero (@none Nat)
 
 -- ─────────────────────────────────────────────────────────────
--- Dependent match (induction): the nat_induction demo and the answer to
--- Exercise 2.
+-- 依赖 match（归纳法）：演示 nat_induction + 练习 2 的答案。
 -- ─────────────────────────────────────────────────────────────
 
 theorem nat_induction (P : Nat → Prop) (hz : P zero)
@@ -66,7 +61,7 @@ theorem nat_induction (P : Nat → Prop) (hz : P zero)
   | zero => hz
   | succ k => hs k ih
 
--- Exercise 2: the succ arm hands ih over to hs.
+-- 练习 2：succ 支把 ih 交给 hs。
 theorem nat_induction_open (P : Nat → Prop) (hz : P zero)
     (hs : (k : Nat) → P k → P (succ k)) (n : Nat) : P n := by
   exact match n with
@@ -74,8 +69,7 @@ theorem nat_induction_open (P : Nat → Prop) (hz : P zero)
   | succ k => hs k ih
 
 -- ─────────────────────────────────────────────────────────────
--- Nested patterns and wildcards: the isZeroOpt demo and the answer to
--- Exercise 3.
+-- 嵌套模式与通配：演示 isZeroOpt + 练习 3 的答案。
 -- ─────────────────────────────────────────────────────────────
 
 def isZeroOpt (x : Option Nat) : Nat := match x with
@@ -83,18 +77,18 @@ def isZeroOpt (x : Option Nat) : Nat := match x with
 | some _ => zero
 | none => zero
 
--- Exercise 3: the succ arm hands the field k out.
+-- 练习 3：succ 那一支交出字段 k。
 def predOpt (x : Option Nat) : Nat := match x with
 | some zero => zero
 | some (succ k) => k
 | none => zero
 
--- Extra internal self-checks:
+-- 额外自测（钥匙内部核对）：
 #reduce isZeroOpt (@some Nat zero)
 #reduce predOpt (@some Nat (succ (succ zero)))
 
 -- ─────────────────────────────────────────────────────────────
--- Indexed inductives: the vlen demo and the answer to Exercise 4.
+-- 带索引归纳：演示 vlen + 练习 4 的答案。
 -- ─────────────────────────────────────────────────────────────
 
 inductive Vec (A : Type) : Nat → Type
@@ -106,10 +100,10 @@ def vlen (A : Type) (n : Nat) (v : Vec A n) : Nat := match v with
 | vnil => zero
 | vcons a m w => succ ih
 
--- Exercise 4: vcons binds the head as a; hand it out directly.
+-- 练习 4：vcons 把头部绑成 a，直接交出去。
 def vhead (A : Type) (d : A) (n : Nat) (v : Vec A n) : A := match v with
 | vnil => d
 | vcons a m w => a
 
--- Extra internal self-checks:
+-- 额外自测（钥匙内部核对）：
 #reduce vlen Nat (succ (succ zero)) (@vcons Nat zero zero (@vcons Nat (succ zero) zero (@vnil Nat)))

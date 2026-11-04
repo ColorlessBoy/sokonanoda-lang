@@ -33,9 +33,9 @@ Inviolable rules (restated here so a mis-load is still safe):
 2. `sorry` (including inside `by` blocks) is a legal open state, not an error.
 3. Every exercise ships a 2–3 step `-- soko:hint` ladder; the answer never
    appears in a hint.
-4. Solution keys under `course/solutions/` are revealed only on an explicit
+4. Solution keys under `courses/quick-start/solutions/` are revealed only on an explicit
    request or after the learner has been stuck for ≥3 rounds.
-5. Adapt the concrete lesson to this learner; `course/` is your material
+5. Adapt the concrete lesson to this learner; `courses/quick-start/` is your material
    library, not a fixed script.
 
 > On DeepSeek Harness the language server is reachable for hover and

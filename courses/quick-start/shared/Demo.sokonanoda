@@ -1,7 +1,7 @@
 import Nat
 
 -- Demo.sokonanoda —— 共享库子项目的**自检入口**：真的 import 一个模块并判卷。
--- 判卷：scripts/soko grade course/shared/Demo.sokonanoda
+-- 判卷：scripts/soko grade courses/quick-start/shared/Demo.sokonanoda
 -- （也由 crates/cli/tests/course_shared.rs 在 CI 里跑真 CLI。）
 --
 -- **C2.5（2026-09-21 用户拍板删自建骨架）之后这里只剩 Nat 一个模块**：

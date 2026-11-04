@@ -71,7 +71,7 @@ REPO = Path(__file__).resolve().parents[1]
 # 「一律写记法」这条硬规则（AGENTS.md 硬规则 3）管 ✓。
 DEFAULT_ROOTS = [
     "courses/set-theory",
-    "course",
+    "courses/quick-start",
     "playground.sokonanoda",
     "reference/tactics",
     # `reference/commands` 是 2026-10-11 加的（设计 `docs/design/command-docs.md`）：
@@ -628,7 +628,7 @@ def _rel(path: Path) -> str:
 #   · `multiline-skip` 调用跨行（单行切不出实参 ⇒ 不猜 ✓）
 # ============================================================================
 
-# ⚠ **探针绝不许落在 `courses/` 或 `course/` 下** ✗ —— `crates/cli/tests/notation.rs` 的
+# ⚠ **探针绝不许落在 `courses/` 下** ✗ —— `crates/cli/tests/notation.rs` 的
 #   `walk_sokonanoda()` 递归收这两棵树的**所有** `*.sokonanoda`（不看跟踪状态/ignore ✗），
 #   且解析失败也记 offender ⇒ 树里放 scratch 会**把内核线的发版 gate 弄成假红** ✗（2026-10-03 实锤）。
 #   `/tmp` 下靠 `--root <课程根>` 解析 import ✓（实测 `failed 0 · checked 1` ✓）。
@@ -749,7 +749,7 @@ def module_root_for(target) -> str:
     t = Path(target)
     p = t if t.is_absolute() else (REPO / t)
     if not p.exists():                      # `gaps/x.sokonanoda` 这类"相对根"路径 ✓
-        for cand in ("courses/set-theory", "course", "."):
+        for cand in ("courses/set-theory", "courses/quick-start", "."):
             alt = REPO / cand / t
             if alt.exists():
                 p = alt
@@ -764,7 +764,7 @@ def module_root_for(target) -> str:
         if cur == cur.parent or cur == REPO:
             break
         cur = cur.parent
-    for cand in ("courses/set-theory", "course"):
+    for cand in ("courses/set-theory", "courses/quick-start"):
         if str(p).startswith(str(REPO / cand)):
             return cand
     return "."
@@ -1168,7 +1168,7 @@ def main(argv: list[str] | None = None) -> int:
         "--root",
         action="append",
         default=None,
-        help="扫描根（可重复；默认 courses/set-theory + course + playground.sokonanoda"
+        help="扫描根（可重复；默认 courses/set-theory + courses/quick-start + playground.sokonanoda"
              " + reference/tactics；`.md` 只扫它的 ```sokonanoda 围栏块）",
     )
     parser.add_argument("--json", action="store_true", help="单 JSON 对象输出")

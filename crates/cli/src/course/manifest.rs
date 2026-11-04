@@ -5,7 +5,7 @@
 //! Two shapes, one flattened result:
 //!
 //! * **v1** — a JSON array of `{file, title, title_en, unit}` entries
-//!   (`course/course.json`, `scripts/new-course-repo.sh` skeletons): no
+//!   (`courses/quick-start/course.json`, `scripts/new-course-repo.sh` skeletons): no
 //!   volume/chapter metadata at all;
 //! * **v2** — a JSON object `{schema, name, title, volumes[].chapters[].units[]}`
 //!   where `units[]` keeps the v1 entry shape **verbatim**, so flattening a v2

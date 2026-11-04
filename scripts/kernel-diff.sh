@@ -89,7 +89,7 @@ fi
 # ——而且它报错之后 `FILES` 是空的，脚本还会"零差异"地绿过去，最坏的那种失败）。
 #
 # **课程与非课程分开收**（E19 刀0，2026-09-30）：E19 的红线判据是**非课程语料**
-# （`course/` + `examples/` + `docs/gaps/repro/`，**86 文件 × 2 op = 172 组**）——
+# （`courses/quick-start/` + `examples/` + `docs/gaps/repro/`，**86 文件 × 2 op = 172 组**）——
 # 课程语料会因为"接受面变宽"而**有意**变化（元变量让今天判红的形状变绿 ✓），
 # 拿它当红线会把有意的变化读成回归 ✗。
 # ⚠ **画布（`playground.sokonanoda`）不算非课程**：它是"当前练习"，随教学变 ⇒
@@ -103,10 +103,10 @@ CANVAS_FILES=()
 # （实测实收 4 个目录 ⇒ 4×5=20 组空转 ✓）。
 while IFS= read -r line; do
   [ -n "$line" ] && COURSE_FILES+=("$line")
-done < <(find courses -type f -name '*.sokonanoda' 2>/dev/null | sort)
+done < <(find courses/set-theory -type f -name '*.sokonanoda' 2>/dev/null | sort)
 while IFS= read -r line; do
   [ -n "$line" ] && NON_COURSE_FILES+=("$line")
-done < <(find course examples docs/gaps/repro -type f -name '*.sokonanoda' 2>/dev/null | sort)
+done < <(find courses/quick-start examples docs/gaps/repro -type f -name '*.sokonanoda' 2>/dev/null | sort)
 [ -f playground.sokonanoda ] && CANVAS_FILES+=("playground.sokonanoda")
 # bash 3.2 在 `set -u` 下对空数组的 `"${a[@]}"` 会报 unbound variable ⇒ 用 `+` 守卫。
 FILES=(${COURSE_FILES[@]+"${COURSE_FILES[@]}"} ${NON_COURSE_FILES[@]+"${NON_COURSE_FILES[@]}"} ${CANVAS_FILES[@]+"${CANVAS_FILES[@]}"})
@@ -159,14 +159,14 @@ if [ "$FAST" = 1 ]; then
   # 取"形状各不同但都便宜"的五个：
   KEEP=(
     playground.sokonanoda                                   # 单文件、画布
-    course/unit11-project/Exercises.sokonanoda              # 项目入口（有 import）
+    courses/quick-start/unit11-project/Exercises.sokonanoda              # 项目入口（有 import）
     docs/gaps/repro/G28-arrow-forall.sokonanoda             # 语法边界
   )
   SUBSET=()
   for keep in "${KEEP[@]}"; do [ -f "$keep" ] && SUBSET+=("$keep"); done
   FILES=("${SUBSET[@]}")
 fi
-# **非课程模式**（E19 刀0/刀1 的红线判据）：只比 `course/` + `examples/` +
+# **非课程模式**（E19 刀0/刀1 的红线判据）：只比 `courses/quick-start/` + `examples/` +
 # `docs/gaps/repro/`（**86 文件 × 2 op = 172 组**，画布不进 —— 它是"当前练习"，
 # 随教学变，不是冻结语料）。课程语料**不进**这条：E19 会让它**有意**变绿 ✓。
 if [ "$NON_COURSE" = 1 ]; then

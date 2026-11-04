@@ -96,7 +96,7 @@ fn the_reuse_switch_is_byte_identical_on_the_corpus() {
     // 四种形状：画布 / 带 import 的项目入口 / 开放练习 / `by` 密集解答。
     let files = [
         "playground.sokonanoda",
-        "course/unit11-project/Exercises.sokonanoda",
+        "courses/quick-start/unit11-project/Exercises.sokonanoda",
         "courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda",
         "courses/set-theory/units/solutions/I.4/unit12-solution.sokonanoda",
     ];

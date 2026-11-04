@@ -1,7 +1,11 @@
+## 课程目录迁移（2026-11-04）
+- `course/` → `courses/quick-start/`（issue #3）：54 个文件纯移动；活引用同步（测试常量 · 脚本扫描根 · VS Code 课程树 + 旧布局回退 · 站点链接 · skills · 文档）.
+- 判据：CLI 6 个测试套件 + notation 守卫 + `gap.py check` + `test-extension-host` 77/77 + `check-site` 10/10 + `docs-lint`；文档预算按实测腾挪，未抬上限.
+- 追加：`board` 的 PR merge-ref selftest 3 条 FAIL 已修（`_patch_id` 对 merge commit 取第一父 diff + ⑥ 回归臂；normal/merge 两种形状 `--selftest` 均 rc=0）.
 ## 发版 v0.98.1（2026-11-03）
 - strict `≤ loose` 违反 **7 → 2**（判卷逐字节不变）；量具成常驻判据.
 ## 推送例外（2026-11-03）
-- v0.98.1 用 `--no-verify` 推：4 个提交是纯重构/清理（拆文件 · 删未用 import · shift 助手 · C4 内核半），pre-push 的"时序证据"守卫要实测计时 ⇒ 该项不适用；本地预检/gate/714 行对拍全绿后再推.
+- v0.98.1 用 `--no-verify` 推：4 个提交是纯重构/清理，pre-push 的"时序证据"守卫要实测计时 ⇒ 不适用；本地预检/gate/714 行对拍全绿后再推.
 ## strict `≤ loose` 不变量：D4 重评估（2026-11-03，未发版）
 
 * **量具**：`scripts/strict-score.py --corpus`（全语料 357 文件逐文件三项 `strict ≤ loose` +
@@ -16,11 +20,6 @@
 * **C4（内核接受输入元变量）收益 = 0**，已还原：判卷能保住（靠回传）但站点全数转成
   `argmismatch_text`/`panic` —— 要真解需**声明级元变量上下文**（Lean `TermElabM`）。
 * 读数/机制/逐文件结论 ⇒ `reports/2026-11-03-{strict-invariant-assessment,metavar-scope-assignments}.md`。
-
-## strict P2-12 S0b + S4a（2026-11-01 · 分支 `strict/2026-10-29-kernel-app`，未发版）
-- **S0b** 补三处回落计数 ⇒ `fallback_unsolved == probe_cut + Σ fallback_old_*_unsolved` 闭合（前差 68/31）；**口径改写**：差额全在记法路由（`Set.Le` 的 `A ≼ B`，单文件 88 次）⇒ S0 的 59/18 是下界。
-- **S4a** `congrArg.{1}` 两族改由内核解出（陈旧 `fty` 重算 + conv Pi 臂各喂各自域）；四文件 `ok_*` **10→0**，rc/诊断不变、`MISS` 不升。**负结果**：arg 类不是 Miller 失配——真因是内核 panic 被 `is_def_eq_at` 的 `catch_unwind` 吞成「不等」（G-91 反例，P2-13 候选）。
-- 判据：kernel lib **123** · front kernel_app **48** · 语料开关关 **714 行 0 差异** · 新增 `crates/cli/tests/strict_fallback_census.rs`；两条内核修都反向验证过。
 
 ## 更早轮次（metavar 2026-10-26 · LKA 2026-10-24）
 - 原文已删（只留最近 3 轮）⇒ `git log --all -- STATUS.md`。metavar 只认 `docs/design/metavar-pattern.md` §9。

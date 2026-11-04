@@ -3,7 +3,7 @@ import Logic
 -- Exercises.sokonanoda —— 项目里的**跨文件练习**：本文件不声明任何东西，
 -- And 这些连接符来自 prelude，and_comm 来自 `import Logic`。把 sorry 换成你的
 -- 答案再判卷：
---   scripts/soko course/unit11-project/Exercises.sokonanoda
+--   scripts/soko courses/quick-start/unit11-project/Exercises.sokonanoda
 -- 答案在 solutions/Exercises-solution.sokonanoda（agent 专用）。
 
 -- 练习 A（跨文件导出）：用 And 的构造子/消去子写出交换律（箭头形式）。

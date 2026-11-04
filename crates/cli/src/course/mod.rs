@@ -6,7 +6,7 @@
 //!
 //! The manifest comes in two shapes and **both are read** (ledger G-07,
 //! design `docs/design/course-manifest-v2.md`): the v1 flat array
-//! (`course/course.json`) and the structured v2 object (`soko.course/2`,
+//! (`courses/quick-start/course.json`) and the structured v2 object (`soko.course/2`,
 //! `courses/set-theory/course.json`). Parsing lives in [`manifest`]; v1 stays
 //! the reference behaviour — its events gain no new keys (additive-only).
 //!
@@ -444,7 +444,7 @@ fn count_unit(
 }
 
 /// 模块根策略（WO-007）：入口自己的最近 `sokonanoda.toml` 优先——位于
-/// `course/unit11-project/` 这类子项目里的单元不会被课程根覆盖；找不到清单时
+/// `courses/quick-start/unit11-project/` 这类子项目里的单元不会被课程根覆盖；找不到清单时
 /// 回退到 **`course.json` 所在目录**（"清单目录即默认项目根"）。课程布局天然是
 /// `<课程根>/{course.json,lib/,units/}`，只认入口目录会让 `import lib.Set` 去找
 /// `<课程根>/units/lib/Set.sokonanoda`。

@@ -2,7 +2,7 @@
  "schema": "soko.notation-census/2",
  "ledger": [
   {
-   "file": "course/en/solutions/unit5-universes-sort-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit5-universes-sort-solution.sokonanoda",
    "line": 16,
    "rule": "Eq.{…}",
    "schema2": true,
@@ -11,7 +11,7 @@
    "diag": ""
   },
   {
-   "file": "course/en/solutions/unit5-universes-sort-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit5-universes-sort-solution.sokonanoda",
    "line": 16,
    "rule": "Eq.{…}",
    "schema2": true,
@@ -20,7 +20,7 @@
    "diag": ""
   },
   {
-   "file": "course/en/solutions/unit5-universes-sort-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit5-universes-sort-solution.sokonanoda",
    "line": 18,
    "rule": "Eq.{…}",
    "schema2": true,
@@ -29,7 +29,7 @@
    "diag": ""
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 32,
    "rule": "And.left 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -43,7 +43,7 @@
    "landed": "already"
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -57,7 +57,7 @@
    "landed": "already"
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 47,
    "rule": "Exists.elim 写全了前导参数（5 个实参）",
    "schema2": true,
@@ -70,7 +70,7 @@
    "alt_diag": "`exact` 类型不匹配：期望 `True`，实际是 `Exists True h -> ((w : True) -> h w -> fun (w : Person) (hw : P w) => True.intro) -> fun (w : Person)"
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 50,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -83,7 +83,7 @@
    "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `w hw -> Exists P w`"
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 54,
    "rule": "Exists.elim 写全了前导参数（5 个实参）",
    "schema2": true,
@@ -96,7 +96,7 @@
    "alt_diag": "`exact` 类型不匹配：期望 `Q`，实际是 `Exists Q h -> ((w : Q) -> h w -> f) -> f`"
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 57,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -109,7 +109,7 @@
    "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `someone (h someone) -> Exists P someone`"
   },
   {
-   "file": "course/en/unit5-universes-sort.sokonanoda",
+   "file": "courses/quick-start/en/unit5-universes-sort.sokonanoda",
    "line": 88,
    "rule": "Eq.{…}",
    "schema2": true,
@@ -118,7 +118,7 @@
    "diag": ""
   },
   {
-   "file": "course/en/unit5-universes-sort.sokonanoda",
+   "file": "courses/quick-start/en/unit5-universes-sort.sokonanoda",
    "line": 88,
    "rule": "Eq.{…}",
    "schema2": true,
@@ -127,7 +127,7 @@
    "diag": ""
   },
   {
-   "file": "course/solutions/unit5-universes-sort-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
    "line": 16,
    "rule": "Eq.{…}",
    "schema2": true,
@@ -136,7 +136,7 @@
    "diag": ""
   },
   {
-   "file": "course/solutions/unit5-universes-sort-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
    "line": 16,
    "rule": "Eq.{…}",
    "schema2": true,
@@ -145,7 +145,7 @@
    "diag": ""
   },
   {
-   "file": "course/solutions/unit5-universes-sort-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
    "line": 18,
    "rule": "Eq.{…}",
    "schema2": true,
@@ -154,7 +154,7 @@
    "diag": ""
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 32,
    "rule": "And.left 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -168,7 +168,7 @@
    "landed": "already"
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -182,7 +182,7 @@
    "landed": "already"
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 47,
    "rule": "Exists.elim 写全了前导参数（5 个实参）",
    "schema2": true,
@@ -195,7 +195,7 @@
    "alt_diag": "`exact` 类型不匹配：期望 `True`，实际是 `Exists True h -> ((w : True) -> h w -> fun (w : Person) (hw : P w) => True.intro) -> fun (w : Person)"
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 50,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -208,7 +208,7 @@
    "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `w hw -> Exists P w`"
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 54,
    "rule": "Exists.elim 写全了前导参数（5 个实参）",
    "schema2": true,
@@ -221,7 +221,7 @@
    "alt_diag": "`exact` 类型不匹配：期望 `Q`，实际是 `Exists Q h -> ((w : Q) -> h w -> f) -> f`"
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 57,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -234,7 +234,7 @@
    "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `someone (h someone) -> Exists P someone`"
   },
   {
-   "file": "course/unit5-universes-sort.sokonanoda",
+   "file": "courses/quick-start/unit5-universes-sort.sokonanoda",
    "line": 80,
    "rule": "Eq.{…}",
    "schema2": true,
@@ -243,7 +243,7 @@
    "diag": ""
   },
   {
-   "file": "course/unit5-universes-sort.sokonanoda",
+   "file": "courses/quick-start/unit5-universes-sort.sokonanoda",
    "line": 80,
    "rule": "Eq.{…}",
    "schema2": true,
@@ -15100,7 +15100,7 @@
    "diag": ""
   },
   {
-   "file": "course/en/solutions/unit1-propositions-proofs-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit1-propositions-proofs-solution.sokonanoda",
    "line": 30,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
@@ -15110,7 +15110,7 @@
    "landed": "already"
   },
   {
-   "file": "course/en/solutions/unit1-propositions-proofs-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit1-propositions-proofs-solution.sokonanoda",
    "line": 30,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -15122,7 +15122,7 @@
    "alt_diag": "`exact` 类型不匹配：期望 `False`，实际是 `And h (And.left (Not a) h) -> And.left (Not a) h`"
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 62,
    "rule": "Exists.elim 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -15134,7 +15134,7 @@
    "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `((w : P) -> Exists Person (fun (x : Person) => Q x) w -> h) -> h`"
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 63,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -15146,7 +15146,7 @@
    "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists Person (fun (x : Person) => Q x)`"
   },
   {
-   "file": "course/en/unit8-quantifiers.sokonanoda",
+   "file": "courses/quick-start/en/unit8-quantifiers.sokonanoda",
    "line": 121,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -15158,7 +15158,7 @@
    "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (x : Person.[]), Sort(0)`"
   },
   {
-   "file": "course/en/unit8-quantifiers.sokonanoda",
+   "file": "courses/quick-start/en/unit8-quantifiers.sokonanoda",
    "line": 128,
    "rule": "Exists.elim 写全了前导参数（5 个实参）",
    "schema2": true,
@@ -15170,7 +15170,7 @@
    "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"
   },
   {
-   "file": "course/solutions/unit1-propositions-proofs-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit1-propositions-proofs-solution.sokonanoda",
    "line": 30,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "schema2": true,
@@ -15180,7 +15180,7 @@
    "landed": "already"
   },
   {
-   "file": "course/solutions/unit1-propositions-proofs-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit1-propositions-proofs-solution.sokonanoda",
    "line": 30,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -15192,7 +15192,7 @@
    "alt_diag": "`exact` 类型不匹配：期望 `False`，实际是 `And h (And.left (Not a) h) -> And.left (Not a) h`"
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 62,
    "rule": "Exists.elim 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -15204,7 +15204,7 @@
    "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `((w : P) -> Exists Person (fun (x : Person) => Q x) w -> h) -> h`"
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 63,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -15216,7 +15216,7 @@
    "alt_diag": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists Person (fun (x : Person) => Q x)`"
   },
   {
-   "file": "course/unit8-quantifiers.sokonanoda",
+   "file": "courses/quick-start/unit8-quantifiers.sokonanoda",
    "line": 106,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "schema2": true,
@@ -15228,7 +15228,7 @@
    "alt_diag": "类型不匹配：期望 `Sort(1)`，实际是 `Pi (x : Person.[]), Sort(0)`"
   },
   {
-   "file": "course/unit8-quantifiers.sokonanoda",
+   "file": "courses/quick-start/unit8-quantifiers.sokonanoda",
    "line": 111,
    "rule": "Exists.elim 写全了前导参数（5 个实参）",
    "schema2": true,

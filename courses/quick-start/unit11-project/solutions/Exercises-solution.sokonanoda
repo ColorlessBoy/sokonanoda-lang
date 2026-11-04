@@ -1,4 +1,4 @@
--- Exercises-solution —— course/unit11-project/Exercises.sokonanoda 的解答钥匙（agent 专用）
+-- Exercises-solution —— courses/quick-start/unit11-project/Exercises.sokonanoda 的解答钥匙（agent 专用）
 import Logic
 
 theorem and_comm_x (A : Prop) (B : Prop) : A ∧ B → B ∧ A :=

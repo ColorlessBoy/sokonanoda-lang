@@ -14,7 +14,7 @@
 -- and the entry file imports it on line one. This unit teaches that boundary —
 -- the top-of-file syntax, module names ↔ paths, the project manifest and the
 -- closure-level rules — ending with a real two-file project under
--- course/unit11-project/ (its cross-file exercises are in Exercises.sokonanoda).
+-- courses/quick-start/unit11-project/ (its cross-file exercises are in Exercises.sokonanoda).
 -- This canvas itself is still a single file: a course unit is one file.
 -- ==========================================================================
 
@@ -59,7 +59,7 @@ theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
 --   import Logic            -- the Logic.sokonanoda next to this file
 --   import Lesson.Logic     -- Logic.sokonanoda in the Lesson/ subdirectory
 --
--- Example: the first line of course/unit11-project/Canvas.sokonanoda is
+-- Example: the first line of courses/quick-start/unit11-project/Canvas.sokonanoda is
 -- `import Logic`, and right below it and_comm can be called because that
 -- theorem is declared in Logic.sokonanoda. `import` is a command keyword:
 -- the name position stays lax (`def import := 1` is legal) while the expression
@@ -75,7 +75,7 @@ theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
 -- only `.` separates them, and the `/` in the path is filled in by the
 -- compiler; matching is case-sensitive. This rule decides which files **cannot
 -- be imported**: `-` is not an identifier character, so
--- course/unit1-propositions-proofs.sokonanoda cannot be imported — writing
+-- courses/quick-start/unit1-propositions-proofs.sokonanoda cannot be imported — writing
 -- `import unit1-propositions-proofs` gives import-not-a-valid-module-name
 -- (hint: a module name cannot contain `-`), while `import unit1` gives
 -- import-not-found, whose message even asks "did you mean to import
@@ -135,7 +135,7 @@ theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
 -- ─────────────────────────────────────────────────────────────
 -- 11.6 Hands-on: run a real two-file project
 --
---   course/unit11-project/
+--   courses/quick-start/unit11-project/
 --   ├── sokonanoda.toml          -- manifest: name = "unit11-project"
 --   ├── Logic.sokonanoda         -- library: exports the and_comm theorem (`And` comes from the prelude)
 --   ├── Canvas.sokonanoda        -- entry: `import Logic` + theorems that use it (filled in)
@@ -143,9 +143,9 @@ theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
 --
 -- From the repository root (judgment always goes through the kernel and needs
 -- no Lean toolchain):
---   scripts/soko course/unit11-project/Canvas.sokonanoda         -- judge the closure
---   scripts/soko course/unit11-project/Exercises.sokonanoda      -- cross-file exercises
---   scripts/soko build course/unit11-project                     -- warm the cache
+--   scripts/soko courses/quick-start/unit11-project/Canvas.sokonanoda         -- judge the closure
+--   scripts/soko courses/quick-start/unit11-project/Exercises.sokonanoda      -- cross-file exercises
+--   scripts/soko build courses/quick-start/unit11-project                     -- warm the cache
 --
 -- `build`'s cache key is the **hash of the whole closure**: edit
 -- Logic.sokonanoda and the Canvas that imports it must recompile (a changed

@@ -8,7 +8,7 @@
 --
 -- 前十个单元都在**一个文件**里写证明。真实项目是「一个入口文件 + 它的 import
 -- 闭包」：公共名字住进库模块，入口第一行 `import` 它。本单元教这条边界：置顶
--- 语法、模块名↔路径、项目清单、闭包级规则，最后在 course/unit11-project/ 跑一个
+-- 语法、模块名↔路径、项目清单、闭包级规则，最后在 courses/quick-start/unit11-project/ 跑一个
 -- 真的两文件项目（跨文件练习在它的 Exercises.sokonanoda）。本画布仍是单文件。
 -- ==========================================================================
 
@@ -44,7 +44,7 @@ theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
 --   import Logic            -- 同目录的 Logic.sokonanoda
 --   import Lesson.Logic     -- 子目录 Lesson/ 下的 Logic.sokonanoda
 --
--- 例：course/unit11-project/Canvas.sokonanoda 第一行就是 `import Logic`，它下面
+-- 例：courses/quick-start/unit11-project/Canvas.sokonanoda 第一行就是 `import Logic`，它下面
 -- 能直接调用 and_comm，因为那条定理声明在 Logic.sokonanoda 里。`import` 是命令
 -- 关键字：名字位宽松（`def import := 1` 合法），表达式位会被拒绝（报 cannot appear inside an expression）。
 -- ─────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
 -- `import Foo.Bar` 解析到 `<模块根>/Foo/Bar.sokonanoda`：每段都必须是合法
 -- 标识符（字母/下划线开头），分隔符只用 `.`，路径里的 `/` 由编译器补；大小写敏感。
 -- 这条规则决定什么文件**不可被 import**：`-` 不是标识符字符，所以
--- course/unit1-propositions-proofs.sokonanoda 不能被 import——写
+-- courses/quick-start/unit1-propositions-proofs.sokonanoda 不能被 import——写
 -- `import unit1-propositions-proofs` 得到 import-not-a-valid-module-name
 -- （提示：模块名里不能有 `-`）；写 `import unit1` 得到 import-not-found，消息
 -- 里还会主动问「你是不是想 import unit1-propositions-proofs.sokonanoda？」。
@@ -97,16 +97,16 @@ theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
 -- ─────────────────────────────────────────────────────────────
 -- 11.6 动手：跑一个真的两文件项目
 --
---   course/unit11-project/
+--   courses/quick-start/unit11-project/
 --   ├── sokonanoda.toml          -- 清单：name = "unit11-project"
 --   ├── Logic.sokonanoda         -- 库模块：导出定理 and_comm（And 来自 prelude）
 --   ├── Canvas.sokonanoda        -- 入口：`import Logic` + 用了它的定理（已写好）
 --   └── Exercises.sokonanoda     -- 入口：`import Logic` + 两道带 sorry 的练习
 --
 -- 在仓库根依次跑（判卷永远走内核，不需要任何 Lean 工具链）：
---   scripts/soko course/unit11-project/Canvas.sokonanoda         -- 判整个闭包
---   scripts/soko course/unit11-project/Exercises.sokonanoda      -- 跨文件练习
---   scripts/soko build course/unit11-project                     -- 暖缓存
+--   scripts/soko courses/quick-start/unit11-project/Canvas.sokonanoda         -- 判整个闭包
+--   scripts/soko courses/quick-start/unit11-project/Exercises.sokonanoda      -- 跨文件练习
+--   scripts/soko build courses/quick-start/unit11-project                     -- 暖缓存
 --
 -- `build` 的缓存键是**整条闭包的哈希**：改了 Logic.sokonanoda，import 它的 Canvas 一定重编（依赖变则入口必 miss）；闭包没动就整条命中（hit）。
 -- ─────────────────────────────────────────────────────────────

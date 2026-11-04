@@ -1,4 +1,4 @@
-# course/ —— 课程层（Roadmap I7 / M4）
+# courses/quick-start/ —— 课程层（Roadmap I7 / M4）
 
 > **定位（用户原则，2026-09-07）：课程层只是给大模型提供路线图；具体执行层
 > 需要大模型适配各个用户、灵活调整。** 这些文件是 agent 的素材库与可解性守护
@@ -36,11 +36,11 @@
 | `solutions/unitN-*-solution.sokonanoda` | **agent 专用** | 解答钥匙（中文）：与对应画布一一对应，所有 `sorry` 已填入经完整内核验证的答案。**勿直接发给学习者**。 |
 | `en/solutions/unitN-*-solution.sokonanoda` | **agent 专用** | 解答钥匙（英文镜像）：代码与中文钥匙一致，仅注释为英文。 |
 | `unit11-project/` | 学习者 | 单元⑪的**可运行多文件项目**：`sokonanoda.toml` + 库模块 `Logic.sokonanoda` + 入口 `Canvas.sokonanoda` + 跨文件练习 `Exercises.sokonanoda`（答案在它的 `solutions/`）。它不在 `course.json` 里，也不进 golden 表——判卷命令写在单元⑪的 11.6 节。 |
-| `shared/` | 维护者 + agent | **课程共享库子项目**（`sokonanoda.toml` + `Nat` 规范模块 + 自检入口 `Demo.sokonanoda`）。它不参与教学主线，作用是：① 让"课程内容 import 化"有个可运行样例（`scripts/soko grade course/shared/Demo.sokonanoda`）；② 给逐字重复的声明块一个**唯一规范副本**，由 `crates/cli/tests/course_shared.rs` 双向守住 **8** 份拷贝不漂移（2026-09-21 实测）。**`And`/`Or` 的规范模块已于 2026-09-21（C2.5）随自建骨架一起删除**——入门课现在直接用 prelude 的真归纳，没有副本可守。 |
+| `shared/` | 维护者 + agent | **课程共享库子项目**（`sokonanoda.toml` + `Nat` 规范模块 + 自检入口 `Demo.sokonanoda`）。它不参与教学主线，作用是：① 让"课程内容 import 化"有个可运行样例（`scripts/soko grade courses/quick-start/shared/Demo.sokonanoda`）；② 给逐字重复的声明块一个**唯一规范副本**，由 `crates/cli/tests/course_shared.rs` 双向守住 **8** 份拷贝不漂移（2026-09-21 实测）。**`And`/`Or` 的规范模块已于 2026-09-21（C2.5）随自建骨架一起删除**——入门课现在直接用 prelude 的真归纳，没有副本可守。 |
 
 ## 双语布局（2026-09-09，用户要求）
 
-中文为**权威源**（`course/` 顶层 + `solutions/`），英文镜像放 `course/en/`
+中文为**权威源**（`courses/quick-start/` 顶层 + `solutions/`），英文镜像放 `courses/quick-start/en/`
 （顶层画布 + `solutions/`），命名与中文文件一一对应。英文注释是**按语义
 重构**的自然英文（用户原则，2026-09-09）：按英语语感重组句子与段落，不做
 中文逐行镜像；但知识点、提示阶梯条数与顺序与中文同构。改课程时必须**双语
@@ -74,7 +74,7 @@ course.rs` 的镜像守卫会比较中英两版的**画布与 solution** 事件�
   是有意的例外，它**就是** import 教学样例）；
 * `Demo.sokonanoda` 是这套共享库的自检入口（跨模块递归 + `#reduce`，另两条
   `And`/`Or` 演示改用 prelude 的真归纳），判卷：
-  `scripts/soko grade course/shared/Demo.sokonanoda`。
+  `scripts/soko grade courses/quick-start/shared/Demo.sokonanoda`。
 
 ## 约定
 
@@ -92,9 +92,9 @@ course.rs` 的镜像守卫会比较中英两版的**画布与 solution** 事件�
 
 `crates/cli/tests/course.rs`：
 
-1. `course/*.sokonanoda` 全部可编译（exit 0，stderr 无 `error[`）；
+1. `courses/quick-start/*.sokonanoda` 全部可编译（exit 0，stderr 无 `error[`）；
 2. 每单元的 `decl.checked` / `exercise.open` / `expr.reduced` 事件数与 golden 表精确一致；
 3. `solutions/*.sokonanoda` 全部 0 诊断、0 个 `exercise.open`（课程可解性证明），
    且画布练习名都能在 solution 里找到同名声明（`solution_covers_every_canvas_exercise`）；
 4. `course.json` 恰好按序列出这 11 个文件、unit = 1..11；
-5. `course/en/` 镜像与中文画布、`course/en/solutions/` 与中文钥匙的事件计数逐项相等。
+5. `courses/quick-start/en/` 镜像与中文画布、`courses/quick-start/en/solutions/` 与中文钥匙的事件计数逐项相等。

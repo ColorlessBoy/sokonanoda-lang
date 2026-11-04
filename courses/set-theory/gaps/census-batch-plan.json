@@ -22,25 +22,25 @@
  },
  "entries": [
   {
-   "file": "course/en/solutions/unit5-universes-sort-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit5-universes-sort-solution.sokonanoda",
    "line": 16,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
-   "file": "course/en/solutions/unit5-universes-sort-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit5-universes-sort-solution.sokonanoda",
    "line": 16,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
-   "file": "course/en/solutions/unit5-universes-sort-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit5-universes-sort-solution.sokonanoda",
    "line": 18,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 32,
    "rule": "And.left 写全了前导参数（4 个实参）",
    "group": "done",
@@ -49,7 +49,7 @@
    "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "group": "done",
@@ -58,7 +58,7 @@
    "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 47,
    "rule": "Exists.elim 写全了前导参数（5 个实参）",
    "group": "pending-u1u2",
@@ -67,7 +67,7 @@
    "note": "`exact` 类型不匹配：期望 `True`，实际是 `(Q : Prop) -> Exists h (fun (w : Person) (hw : P w) => True.intro) -> ("
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 50,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
@@ -76,7 +76,7 @@
    "note": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `(w : w) -> hw w -> Exists w hw`"
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 54,
    "rule": "Exists.elim 写全了前导参数（5 个实参）",
    "group": "pending-u1u2",
@@ -85,7 +85,7 @@
    "note": "`exact` 类型不匹配：期望 `Q`，实际是 `(Q : Prop) -> Exists h f -> ((w : h) -> f w -> Q) -> Q`"
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 57,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
@@ -94,37 +94,37 @@
    "note": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `(w : someone) -> h someone w -> Exists someone (h someon"
   },
   {
-   "file": "course/en/unit5-universes-sort.sokonanoda",
+   "file": "courses/quick-start/en/unit5-universes-sort.sokonanoda",
    "line": 88,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
-   "file": "course/en/unit5-universes-sort.sokonanoda",
+   "file": "courses/quick-start/en/unit5-universes-sort.sokonanoda",
    "line": 88,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
-   "file": "course/solutions/unit5-universes-sort-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
    "line": 16,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
-   "file": "course/solutions/unit5-universes-sort-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
    "line": 16,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
-   "file": "course/solutions/unit5-universes-sort-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
    "line": 18,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 32,
    "rule": "And.left 写全了前导参数（4 个实参）",
    "group": "done",
@@ -133,7 +133,7 @@
    "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 33,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "group": "done",
@@ -142,7 +142,7 @@
    "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 47,
    "rule": "Exists.elim 写全了前导参数（5 个实参）",
    "group": "pending-u1u2",
@@ -151,7 +151,7 @@
    "note": "`exact` 类型不匹配：期望 `True`，实际是 `(Q : Prop) -> Exists h (fun (w : Person) (hw : P w) => True.intro) -> ("
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 50,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
@@ -160,7 +160,7 @@
    "note": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `(w : w) -> hw w -> Exists w hw`"
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 54,
    "rule": "Exists.elim 写全了前导参数（5 个实参）",
    "group": "pending-u1u2",
@@ -169,7 +169,7 @@
    "note": "`exact` 类型不匹配：期望 `Q`，实际是 `(Q : Prop) -> Exists h f -> ((w : h) -> f w -> Q) -> Q`"
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 57,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
@@ -178,13 +178,13 @@
    "note": "`exact` 类型不匹配：期望 `∃ (x : Person), P x`，实际是 `(w : someone) -> h someone w -> Exists someone (h someon"
   },
   {
-   "file": "course/unit5-universes-sort.sokonanoda",
+   "file": "courses/quick-start/unit5-universes-sort.sokonanoda",
    "line": 80,
    "rule": "Eq.{…}",
    "group": "manual"
   },
   {
-   "file": "course/unit5-universes-sort.sokonanoda",
+   "file": "courses/quick-start/unit5-universes-sort.sokonanoda",
    "line": 80,
    "rule": "Eq.{…}",
    "group": "manual"
@@ -10201,7 +10201,7 @@
    "group": "manual"
   },
   {
-   "file": "course/en/solutions/unit1-propositions-proofs-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit1-propositions-proofs-solution.sokonanoda",
    "line": 30,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "group": "done",
@@ -10210,7 +10210,7 @@
    "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
-   "file": "course/en/solutions/unit1-propositions-proofs-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit1-propositions-proofs-solution.sokonanoda",
    "line": 30,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
@@ -10219,7 +10219,7 @@
    "note": "`exact` 类型不匹配：期望 `False`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 62,
    "rule": "Exists.elim 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
@@ -10228,7 +10228,7 @@
    "note": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists (Exists Person (fun (x : Person) => Q x)) h -> (("
   },
   {
-   "file": "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/en/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 63,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
@@ -10237,7 +10237,7 @@
    "note": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists Person (fun (x : Person) => Q x)`"
   },
   {
-   "file": "course/en/unit8-quantifiers.sokonanoda",
+   "file": "courses/quick-start/en/unit8-quantifiers.sokonanoda",
    "line": 121,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
@@ -10246,7 +10246,7 @@
    "note": "类型不匹配：期望 `Sort(1)`，实际是 `Person.[]`"
   },
   {
-   "file": "course/en/unit8-quantifiers.sokonanoda",
+   "file": "courses/quick-start/en/unit8-quantifiers.sokonanoda",
    "line": 128,
    "rule": "Exists.elim 写全了前导参数（5 个实参）",
    "group": "pending-u1u2",
@@ -10255,7 +10255,7 @@
    "note": "类型不匹配：期望 `Sort(1)`，实际是 `((Exists.[] Person.[]) fun (x : Person.[]) => ($2 $0))`"
   },
   {
-   "file": "course/solutions/unit1-propositions-proofs-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit1-propositions-proofs-solution.sokonanoda",
    "line": 30,
    "rule": "And.left 写全了前导参数（3 个实参）",
    "group": "done",
@@ -10264,7 +10264,7 @@
    "note": "已在树上落地（改写 + 删标记已完成 ✓）"
   },
   {
-   "file": "course/solutions/unit1-propositions-proofs-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit1-propositions-proofs-solution.sokonanoda",
    "line": 30,
    "rule": "And.right 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
@@ -10273,7 +10273,7 @@
    "note": "`exact` 类型不匹配：期望 `False`，实际是 `（值的类型也读不出来，检查它里面的名字）`"
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 62,
    "rule": "Exists.elim 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
@@ -10282,7 +10282,7 @@
    "note": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists (Exists Person (fun (x : Person) => Q x)) h -> (("
   },
   {
-   "file": "course/solutions/unit8-quantifiers-solution.sokonanoda",
+   "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
    "line": 63,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
@@ -10291,7 +10291,7 @@
    "note": "`exact` 类型不匹配：期望 `∃ (x : Person), Q x`，实际是 `Exists Person (fun (x : Person) => Q x)`"
   },
   {
-   "file": "course/unit8-quantifiers.sokonanoda",
+   "file": "courses/quick-start/unit8-quantifiers.sokonanoda",
    "line": 106,
    "rule": "Exists.intro 写全了前导参数（4 个实参）",
    "group": "pending-u1u2",
@@ -10300,7 +10300,7 @@
    "note": "类型不匹配：期望 `Sort(1)`，实际是 `Person.[]`"
   },
   {
-   "file": "course/unit8-quantifiers.sokonanoda",
+   "file": "courses/quick-start/unit8-quantifiers.sokonanoda",
    "line": 111,
    "rule": "Exists.elim 写全了前导参数（5 个实参）",
    "group": "pending-u1u2",

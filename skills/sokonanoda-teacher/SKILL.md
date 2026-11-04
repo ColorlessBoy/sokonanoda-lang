@@ -26,8 +26,8 @@ description: Operate the sokonanoda teaching loop - act as the teacher on the pl
 2. `sorry`（含 `by` 块里的）是**合法开放状态**，不是错误；
 3. 出题必配 2–3 条 `-- soko:hint` 阶梯（思路 → 目标形态 → 关键件），
    答案绝不进提示；
-4. 解答钥匙（`course/solutions/`）只在学生明确要求或卡壳 ≥3 轮时揭示；
-5. 具体执行层按学生实时适配（错误历史、节奏、兴趣），`course/` 只是素材库，
+4. 解答钥匙（`courses/quick-start/solutions/`）只在学生明确要求或卡壳 ≥3 轮时揭示；
+5. 具体执行层按学生实时适配（错误历史、节奏、兴趣），`courses/quick-start/` 只是素材库，
    不是要照着念的固定课程。
 
 > harness 差异：opencode 有 `teacher` 主 agent（把上面这段当角色设定）；
@@ -214,8 +214,8 @@ $SOKO repl
   不是模块名字符），且 import 必须排在所有声明之前。判卷命令不变，多了 `--root`：
 
 ```bash
-$SOKO grade course/unit11-project/Exercises.sokonanoda         # 从入口目录解析 import
-$SOKO grade --root course/unit11-project <任意入口.sokonanoda>  # 显式指定模块根
+$SOKO grade courses/quick-start/unit11-project/Exercises.sokonanoda         # 从入口目录解析 import
+$SOKO grade --root courses/quick-start/unit11-project <任意入口.sokonanoda>  # 显式指定模块根
 $SOKO query check --file <入口> --root <模块根>                 # 单对象视图同样支持（failed[] 含 parse 诊断）
 $SOKO grade --no-project <文件>                                 # 忽略 sokonanoda.toml
 ```
@@ -226,7 +226,7 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   `import-dependency-failed`；闭包内重名 / prelude 不一致在 import 行报错。
   编辑器里打开入口即可看到整个闭包：**定义/引用/改名都跨文件**，改依赖会立刻重查
   依赖它的文件（未保存的编辑也算）。教学画布本身保持单文件；用户想练分模块时照
-  `course/unit11-project/` 起一个两文件小项目。
+  `courses/quick-start/unit11-project/` 起一个两文件小项目。
 
 ## 2. 核心教学循环（3 步，循环）
 
@@ -288,7 +288,7 @@ warning；**failed** 声明才不进环境。后续声明仍会被检查并得�
   `Function.comp`/`Rel.comp` 的**前导类型参数已隐式** ⇒ 写 `a ∈ A`、`f '' A`、`A ⊆ B`、
   `A ∩ B`、`(∅) x` 时**不要**再写 `α`/`Two`（写了不算错，但 lint 会要求记法）；
   真补不出来时才退回点名 + 行内 `-- soko:notation-ok` 标记（理由写清楚）。
-  逐符号对照与优先级见 `course/README.md` 与 `docs/design/notation-subset.md`；
+  逐符号对照与优先级见 `courses/quick-start/README.md` 与 `docs/design/notation-subset.md`；
   输入法（`\and` 之类缩写）见编辑器「notation 缩写」与 `docs/design/notation-subset.md`。
   **F12 在记法符号上跳声明它的库、在 prelude 名字（`Or`/`And`/`False`…）上跳前奏源文件**——向学习者解释"这条规则从哪来"时直接让他按 F12 ✓。
   **边界**（保留点名 + 行内 `-- soko:notation-ok`）：等式族证明项
@@ -310,7 +310,7 @@ warning；**failed** 声明才不进环境。后续声明仍会被检查并得�
 - **单元⑨/⑩（P3，2026-09-16 上线）**：⑨ 关系与联结词（`Or` 真 inductive +
   `Iff` 定义 + `Le`/`Even` 归纳关系与手写消去子）；⑩ 读证明与综合（自解释
   三问、formal↔informal 互译、评阅错证明、期末小项目）。题库见
-  `references/curriculum.md`，钥匙见 `course/solutions/` 与
+  `references/curriculum.md`，钥匙见 `courses/quick-start/solutions/` 与
   `docs/teaching-session.md` §3「第三课」。
 - 难度适配：同一概念反复出错 → 出变式题或先给填好的演示；进度快 → 合并
   跳步；慢 → 拆小步、加提示层。题池见 `references/curriculum.md`。
@@ -360,9 +360,9 @@ warning；**failed** 声明才不进环境。后续声明仍会被检查并得�
 
 ## 5. 解答钥匙（**项风格**，2026-09-21 起）
 
-单元地图在 `course/course.json`（整门课的进度一条命令：
+单元地图在 `courses/quick-start/course.json`（整门课的进度一条命令：
 `scripts/soko course <course.json> --json`——`import` 共享库的单元也认，见 §1）；
-`courses/set-theory/units/solutions/` 与 `course/solutions/` 有全部练习的、
+`courses/set-theory/units/solutions/` 与 `courses/quick-start/solutions/` 有全部练习的、
 经完整内核验证的钥匙。
 **agent 专用**：用于核对「这题确实可解」和给多层提示；只有用户明确要求
 答案、或同一关卡反复卡住（≥3 轮）时才逐层揭底，永远不要一次性贴出
@@ -513,7 +513,7 @@ warning；**failed** 声明才不进环境。后续声明仍会被检查并得�
 1. 判定永远走 kernel；不要靠文本比对、不要"看起来对"就宣布正确。
 2. 教学语法必须是真实 Lean 4 的子集：用户在画布学会的写法放进官方 Lean
    依然合法。
-3. 不要直接编辑 `course/` 单元画布来"教"——那是素材库；用户面对的只有
+3. 不要直接编辑 `courses/quick-start/` 单元画布来"教"——那是素材库；用户面对的只有
    当前画布。
 4. 增量会话语义：改过的前缀会被信任复用（I8）；`recompiled_from` 与
    `stats.kernel_checks`（front API）可验证重查范围。
@@ -523,5 +523,5 @@ warning；**failed** 声明才不进环境。后续声明仍会被检查并得�
 ## 8. 收尾
 
 每轮教学交互结束：确认画布仍能整文件编译（`--json` 无 parse 错误）、
-把本次学到的用户适配要点记进你的工作笔记（不是 course/），必要时更新
+把本次学到的用户适配要点记进你的工作笔记（不是 courses/quick-start/），必要时更新
 `docs/teaching-session.md` 的事件决策表。

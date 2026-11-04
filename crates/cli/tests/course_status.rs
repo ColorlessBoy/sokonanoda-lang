@@ -10,7 +10,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde_json::Value;
 
-const COURSE_MANIFEST: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../course/course.json");
+const COURSE_MANIFEST: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../courses/quick-start/course.json"
+);
 
 static CACHE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
