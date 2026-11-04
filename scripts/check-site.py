@@ -17,7 +17,7 @@
 | `version`   | 每页都有版本回填钩子；除生成物外**没有写死的版本号**（`0.x.y` 字面量） |
 | `meta`      | 每页 head 里 `lang`/`title`/`description`/`canonical`/`viewport`/`favicon`/`og:*` 齐全，且**可执行**内联 script 只有 head 那一段（文案字典是 `application/json`，不算） |\n| `i18n`      | 每页引用 `assets/i18n.js`（内含 `navigator.languages` 的 zh 判定）；英文文案字典是合法 JSON，且**与页面 `data-i18n*` 键逐个对齐**（漏译/多译都判红） |
 | `markup`    | 标签配对（`html.parser` 走一遍）；没有内联 `style=` 属性 |
-| `assets`    | 位图**只允许**头图 `assets/hero-vscode.png`（且有体积预算、宽高比与 `<img>` 属性一致）；html+css+js 在预算内 |
+| `assets`    | 位图**只允许**两版头图 + 两版演示 GIF（每张有体积预算、宽高比/尺寸与 `<img>` 属性一致，GIF 真的会动）；html+css+js 在预算内 |
 | `data`      | `site/data/site.json` 与最新**已发布 tag** 一致（`gen-site-data.py --check`） |
 | `render`    | （`--browser`）真 Chrome 跑这一页 × 两种浏览器语言（`--accept-lang`）：资源零 404、版本号已回填、**中文读者看中文 / 其它语言看英文** |\n| `layout`    | （`--browser`）真 Chrome 量横向溢出：4 个宽度，`scrollWidth` 不许超过视口 |
 
@@ -59,20 +59,30 @@ PAGES = ["index.html"]
 # 只能是收紧」✗）。真正的 caps 在 `docs/threshold-ratchet.json`（**tracked**），由
 # `python3 scripts/check-threshold-ratchet.py --open-round` 每轮降一档（−10%/轮）✓：
 #   · `site_text_bytes` 种子 120 KB（落地实测 **60,823 B**）· 收敛目标 75 KB；
-#   · `site_hero_bytes` 种子 400 KB（落地实测两版 **216+209 KB**，取大 221,763 B）· 目标 240 KB。
+#   · `site_hero_bytes`（语义 = **每张站点大图**：头图两版 + 演示 GIF 两版，取大）
+#     种子 400 KB（落地实测 **221,763 B**）· 目标 240 KB。
 # ⚠ 状态缺失/坏 ⇒ 入口闸门**响亮退出（exit 3）**，绝不静默退回种子判过 ✗（与 ② 同口径）。
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import threshold_ratchet  # noqa: E402  （同目录库：登记表 + `tighten()` 的唯一出处 ✓）
 
 _RATCHET_CAPS, _RATCHET_ERROR = threshold_ratchet.caps_or_error()
 SIZE_BUDGET = _RATCHET_CAPS["site_text_bytes"]     # html+css+js 合计（种子 120 KB）
-# 头图是**真截图**（不是装饰位图），所以有位图预算：一张、有上限。
+# 站点大图是**真的应用画面**（不是装饰位图）：头图两版 + 演示 GIF 两版，**每张**
+# 有体积预算。预算 id 沿用 `site_hero_bytes`（ratchet 状态里已登记；语义从"头图"
+# 扩到"每张站点大图"，不新增 id ⇒ 不改 ratchet 历史，也不放松任何上限）。
 HERO = "assets/hero-vscode.png"
 # 两版配色（用户 2026-10-09）：站点跟随系统配色，暗色页上贴亮色截图会刺眼 ⇒ 头图也两版。
 # **两张必须是同一裁切几何**（同一靶子、同一 VSIX，只换 workbench.colorTheme）——
 # 尺寸不一致就说明其中一张是别的什么截的，判红（见 check_assets）。
 HERO_DARK = "assets/hero-vscode-dark.png"
-HERO_BUDGET = _RATCHET_CAPS["site_hero_bytes"]    # 每版头图（种子 400 KB）
+IMAGE_BUDGET = _RATCHET_CAPS["site_hero_bytes"]   # 每张站点大图（种子 400 KB）
+# 演示 GIF（2026-11-04）：真 VS Code + 已发布插件录的编辑过程，不摆拍。
+# 两版配色与头图同一条规矩：同一靶子、同一裁切几何，只换主题。
+DEMO = "assets/demo-vscode.gif"
+DEMO_DARK = "assets/demo-vscode-dark.gif"
+DEMO_MIN_FRAMES = 10          # 静态图不算演示
+DEMO_MIN_SECONDS = 3.0
+DEMO_MAX_SECONDS = 20.0
 BITMAP_EXT = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".bmp", ".ico")
 
 
@@ -88,12 +98,16 @@ def size_readings(files: list[str]) -> dict:
     """体积**读数**（**一处定义**：`check_assets` 的判据与
     `check-threshold-ratchet.py --measure` 读的是同一段代码 ⇒ 不抄第二份口径 ✗）。
 
-    头图那条取**两版里大的**（判据是"**每版** ≤ 上限" ⇒ 绑定的那版才是读数 ✓）。
+    大图那条取**四张（头图两版 + 演示 GIF 两版）里大的**（判据是"**每张** ≤ 上限"
+    ⇒ 绑定的那张才是读数 ✓）。
     """
     total = sum(os.path.getsize(f) for f in files if f.endswith((".html", ".css", ".js")))
-    hero = max(os.path.getsize(os.path.join(SITE, HERO)),
-               os.path.getsize(os.path.join(SITE, HERO_DARK)))
-    return {"site_text_bytes": total, "site_hero_bytes": hero}
+    # 每张站点大图都算进这条读数（头图两版 + 演示 GIF 两版）；缺文件时 0（由
+    # check_assets 报"缺图"，轮不到这里伪装成一个大小）。
+    images = [HERO, HERO_DARK, DEMO, DEMO_DARK]
+    biggest = max((os.path.getsize(os.path.join(SITE, p))
+                   for p in images if os.path.exists(os.path.join(SITE, p))), default=0)
+    return {"site_text_bytes": total, "site_hero_bytes": biggest}
 
 
 def reading(files: list[str] | None = None) -> dict:
@@ -186,7 +200,9 @@ class PageParser(HTMLParser):
             self.images.append({"src": attrs.get("src", ""), "width": attrs.get("width"),
                                 "height": attrs.get("height"), "alt": attrs.get("alt"), "line": line,
                                 "hero_light": attrs.get("data-hero-light"),
-                                "hero_dark": attrs.get("data-hero-dark")})
+                                "hero_dark": attrs.get("data-hero-dark"),
+                                "demo_light": attrs.get("data-demo-light"),
+                                "demo_dark": attrs.get("data-demo-dark")})
         if "data-lang-toggle" in attrs:
             self.lang_toggles += 1
         if "data-theme-toggle" in attrs:
@@ -435,20 +451,99 @@ def png_size(path: str) -> tuple[int, int]:
     return struct.unpack(">II", head[16:24])
 
 
+def gif_info(path: str) -> dict:
+    """GIF 的宽高 / 帧数 / 时长（**只用标准库**，CI 不装 ffmpeg 也能判）。
+
+    结构：6 字节头 + 逻辑屏描述符 + 可选全局色表 → 一串块：
+      0x21 扩展（0xF9 图形控制扩展带帧延迟）· 0x2C 图像描述符 · 0x3B 结束。
+    只数图像描述符（= 帧），把每帧的 GCE 延迟（百分之一秒）加起来。
+    """
+    with open(path, "rb") as handle:
+        data = handle.read()
+    if data[:6] not in (b"GIF87a", b"GIF89a"):
+        raise Failure(f"{rel(path)} 不是 GIF（GIF 头不对）")
+    if len(data) < 13:
+        raise Failure(f"{rel(path)} 的 GIF 头被截断")
+    width, height = struct.unpack("<HH", data[6:10])
+    packed = data[10]
+    i = 13
+    if packed & 0x80:                              # 全局色表
+        i += 3 * (2 ** ((packed & 0x07) + 1))
+
+    def skip_subblocks(pos: int) -> int:
+        while True:
+            if pos >= len(data):
+                raise Failure(f"{rel(path)} 的 GIF 子块被截断")
+            n = data[pos]
+            pos += 1
+            if n == 0:
+                return pos
+            pos += n
+
+    frames = 0
+    delay_cs = 0
+    while i < len(data):
+        tag = data[i]
+        i += 1
+        if tag == 0x3B:                            # trailer
+            break
+        if tag == 0x21:                            # extension
+            if i >= len(data):
+                raise Failure(f"{rel(path)} 的 GIF 扩展块被截断")
+            label = data[i]
+            i += 1
+            if label == 0xF9:                      # graphic control（帧延迟）
+                if i >= len(data) or data[i] != 4:
+                    raise Failure(f"{rel(path)} 的 GIF 图形控制块不是 4 字节")
+                i += 1
+                gce = data[i:i + 4]
+                if len(gce) < 4:
+                    raise Failure(f"{rel(path)} 的 GIF 图形控制块被截断")
+                i += 4
+                delay_cs += gce[1] | (gce[2] << 8)
+                if i >= len(data) or data[i] != 0:
+                    raise Failure(f"{rel(path)} 的 GIF 图形控制块没有结束符")
+                i += 1
+            else:
+                i = skip_subblocks(i)
+        elif tag == 0x2C:                          # image descriptor
+            frames += 1
+            if i + 9 > len(data):
+                raise Failure(f"{rel(path)} 的 GIF 图像描述符被截断")
+            i += 8                                 # left/top/w/h
+            ipacked = data[i]
+            i += 1
+            if ipacked & 0x80:                     # 局部色表
+                i += 3 * (2 ** ((ipacked & 0x07) + 1))
+            i += 1                                 # LZW minimum code size
+            i = skip_subblocks(i)
+        elif tag == 0x00:
+            continue                               # 容忍块间填充字节
+        else:
+            raise Failure(f"{rel(path)}：GIF 块标记 0x{tag:02x} 不认识")
+    if frames == 0:
+        raise Failure(f"{rel(path)} 里没有帧")
+    return {"w": width, "h": height, "frames": frames, "duration": delay_cs / 100.0}
+
+
 def check_assets(files: list[str], pages: dict[str, PageParser]) -> str:
     bitmaps = {os.path.relpath(f, SITE): f for f in files if f.lower().endswith(BITMAP_EXT)}
-    allowed = {HERO, HERO_DARK}
+    allowed = {HERO, HERO_DARK, DEMO, DEMO_DARK}
     unexpected = [k for k in bitmaps if k not in allowed]
     if unexpected:
-        raise Failure(f"位图只允许两版头图 {HERO} / {HERO_DARK}（都必须由 scripts/site-screenshot.mjs 生成）：{unexpected}")
+        raise Failure(f"位图只允许两版头图 + 两版演示 GIF（都必须由 scripts/site-screenshot.mjs / "
+                      f"site-demo.mjs 生成）：{unexpected}")
     missing = sorted(allowed - set(bitmaps))
     if missing:
-        raise Failure(f"缺头图 {missing}（两版配色都要有：`node scripts/site-screenshot.mjs [--theme dark]`）")
+        raise Failure(f"缺大图 {missing}（头图两版：`node scripts/site-screenshot.mjs [--theme dark]`；"
+                      f"演示两版：`node scripts/site-demo.mjs [--theme dark]`）")
+
+    # ── 头图：真 PNG，两版同一裁切几何 ──
     sizes = {}
     for key in (HERO, HERO_DARK):
         size = os.path.getsize(bitmaps[key])
-        if size > HERO_BUDGET:
-            raise Failure(f"{key} 有 {size} 字节，超过头图预算 {HERO_BUDGET}")
+        if size > IMAGE_BUDGET:
+            raise Failure(f"{key} 有 {size} 字节，超过每张大图预算 {IMAGE_BUDGET}")
         sizes[key] = (size, png_size(bitmaps[key]))
     if sizes[HERO][1] != sizes[HERO_DARK][1]:
         raise Failure(f"两版头图尺寸不一致：{HERO} {sizes[HERO][1]} vs {HERO_DARK} {sizes[HERO_DARK][1]}"
@@ -479,10 +574,46 @@ def check_assets(files: list[str], pages: dict[str, PageParser]) -> str:
     if not re.search(r'<link[^>]*rel="preload"[^>]*as="image"[^>]*href="%s"' % re.escape(HERO_DARK), index_html):
         raise Failure(f"index.html 没有预加载 {HERO_DARK}（要一条 `<link rel=preload as=image ...>`）"
                       f"—— 切深色会等下载完才换图 ✗")
+
+    # ── 演示 GIF：真录制、两版同一裁切几何、真的会动 ──
+    demo_sizes = {}
+    for key in (DEMO, DEMO_DARK):
+        size = os.path.getsize(bitmaps[key])
+        if size > IMAGE_BUDGET:
+            raise Failure(f"{key} 有 {size} 字节，超过每张大图预算 {IMAGE_BUDGET}")
+        info = gif_info(bitmaps[key])
+        if info["frames"] < DEMO_MIN_FRAMES:
+            raise Failure(f"{key} 只有 {info['frames']} 帧（<{DEMO_MIN_FRAMES}）—— 静态图不算演示")
+        if not (DEMO_MIN_SECONDS <= info["duration"] <= DEMO_MAX_SECONDS):
+            raise Failure(f"{key} 时长 {info['duration']:.1f}s 不在 {DEMO_MIN_SECONDS}–{DEMO_MAX_SECONDS}s 内")
+        demo_sizes[key] = (size, info)
+    if (demo_sizes[DEMO][1]["w"] != demo_sizes[DEMO_DARK][1]["w"]
+            or demo_sizes[DEMO][1]["h"] != demo_sizes[DEMO_DARK][1]["h"]):
+        raise Failure(f"两版演示 GIF 尺寸不一致：{DEMO} {demo_sizes[DEMO][1]['w']}×{demo_sizes[DEMO][1]['h']} vs "
+                      f"{DEMO_DARK} {demo_sizes[DEMO_DARK][1]['w']}×{demo_sizes[DEMO_DARK][1]['h']}"
+                      f"（同一靶子/同一裁切几何才对，见 site-demo.mjs）")
+    dw, dh = demo_sizes[DEMO][1]["w"], demo_sizes[DEMO][1]["h"]
+    demo = next((i for i in pages["index.html"].images if (i.get("demo_light") or i["src"]).endswith("demo-vscode.gif")), None)
+    if demo is None:
+        raise Failure(f"{DEMO} 在 index.html 里没有被引用")
+    if not demo["width"] or not demo["height"]:
+        raise Failure("演示 GIF 的 <img> 必须写 width/height（否则加载前会跳版）")
+    if (int(demo["width"]), int(demo["height"])) != (dw, dh):
+        raise Failure(f"演示 GIF 的 <img width/height> 是 {demo['width']}×{demo['height']}，"
+                      f"而图是 {dw}×{dh}（生成器写的是真尺寸）")
+    if not (demo["alt"] or "").strip():
+        raise Failure("演示 GIF 必须有 alt（说清录的是什么）")
+    if demo.get("demo_light") != DEMO:
+        raise Failure(f"演示 <img> 的 data-demo-light 必须指向 {DEMO}，实测 {demo.get('demo_light')!r}")
+    if demo.get("demo_dark") != DEMO_DARK:
+        raise Failure(f"演示 <img> 的 data-demo-dark 必须指向 {DEMO_DARK}，实测 {demo.get('demo_dark')!r}")
+
     light_kb = sizes[HERO][0] // 1024
     dark_kb = sizes[HERO_DARK][0] // 1024
-    detail = (f"头图两版 {light_kb}+{dark_kb} KB（各 ≤{HERO_BUDGET // 1024} KB，{width}×{height}，"
-              f"尺寸一致）")
+    demo_kb = max(demo_sizes[DEMO][0], demo_sizes[DEMO_DARK][0]) // 1024
+    detail = (f"头图两版 {light_kb}+{dark_kb} KB（{width}×{height}，尺寸一致）· "
+              f"演示 GIF {demo_kb} KB（{dw}×{dh}，{demo_sizes[DEMO][1]['frames']} 帧 / "
+              f"{demo_sizes[DEMO][1]['duration']:.1f}s，两版尺寸一致）· 每张 ≤{IMAGE_BUDGET // 1024} KB")
     total = size_readings(files)["site_text_bytes"]   # 读数**一处定义**（与 ratchet --measure 同源 ✓）
     if total > SIZE_BUDGET:
         raise Failure(f"html+css+js 共 {total} 字节，超过预算 {SIZE_BUDGET}")
@@ -675,6 +806,13 @@ def _toggle_probe() -> str:
     out.hero = { light: img && img.getAttribute('src'), theme: null, dark: null,
                  expectLight: img && img.getAttribute('data-hero-light'),
                  expectDark: img && img.getAttribute('data-hero-dark') };
+    // 演示 GIF 与头图同一条换图机制（data-demo-*）：切主题后 src 必须真的换，
+    // 而且它首屏外 ⇒ 必须 loading="lazy"（~190 KB 的 GIF 不该跟首屏抢带宽）。
+    const demoImg = d.querySelector('img[data-demo-light]');
+    out.demo = { light: demoImg && demoImg.getAttribute('src'), theme: null, dark: null,
+                 expectLight: demoImg && demoImg.getAttribute('data-demo-light'),
+                 expectDark: demoImg && demoImg.getAttribute('data-demo-dark'),
+                 loading: demoImg && demoImg.getAttribute('loading') };
     // 控件必须**在一条水平线上**（用户 2026-10-09：「两个方框都不在一条水平线上」）——
     // 量的是**顶边**：差 >1px 就是错位（图标按钮没有文字基线，靠 .header-controls 兜住）。
     // 三个控件要**等高 + 同中心线**（用户 2026-10-09：「按钮高度搞统一，按钮中横线对齐」）。
@@ -753,6 +891,8 @@ def _toggle_probe() -> str:
     await new Promise((r) => setTimeout(r, 150));
     out.hero.theme = d.documentElement.getAttribute('data-theme');
     out.hero.dark = img && img.getAttribute('src');
+    out.demo.theme = d.documentElement.getAttribute('data-theme');
+    out.demo.dark = demoImg && demoImg.getAttribute('src');
     out.themeLabelAfter = labelOf(themeBtn);
   } catch (e) { out.error = String((e && e.message) || e); }
   document.getElementById('out').textContent = JSON.stringify(out);
@@ -898,6 +1038,13 @@ def check_render() -> str:
             raise Failure(f"亮色下头图应是 {HERO}，实测 {hero.get('light')!r}")
         if hero.get("theme") != "dark" or hero.get("dark") != HERO_DARK:
             raise Failure(f"主题点到暗色后头图没换（要 {HERO_DARK}）：{hero}")
+        demo = got.get("demo") or {}
+        if demo.get("light") != DEMO:
+            raise Failure(f"亮色下演示 GIF 应是 {DEMO}，实测 {demo.get('light')!r}")
+        if demo.get("loading") != "lazy":
+            raise Failure(f"演示 GIF 在首屏外，必须 loading=\"lazy\"（实测 {demo.get('loading')!r}）")
+        if demo.get("theme") != "dark" or demo.get("dark") != DEMO_DARK:
+            raise Failure(f"主题点到暗色后演示 GIF 没换（要 {DEMO_DARK}）：{demo}")
         for label, rows in (("中文", got.get("headerRows")), ("英文", got.get("headerEn"))):
             rows = rows or {}
             if rows.get("rows") != 1:
@@ -930,7 +1077,7 @@ def check_render() -> str:
     finally:
         server.shutdown()
     return (f"Chrome 渲染 {len(PAGES)} 页 × 2 种语言通过（中文读者看中文 · 其它语言看英文），"
-            f"语言按钮真点过（中→EN→中，含 localStorage 记忆）· 配色按钮真点过（点一下 ⇒ 标签转「深色」+ 头图换暗色那版）· "
+            f"语言按钮真点过（中→EN→中，含 localStorage 记忆）· 配色按钮真点过（点一下 ⇒ 标签转「深色」+ 头图/演示 GIF 都换暗色那版）· "
             f"topbar 中英各一行 · **topbar/页脚逐项几何审计通过**（文字同一条基线 · 偏好项可见 · 命中尺寸 ≥24px），"
             f"版本 {version} 已回填，资源零 404")
 
