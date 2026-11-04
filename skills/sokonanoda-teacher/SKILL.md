@@ -194,6 +194,7 @@ $SOKO repl
   则按 Lean 的 `closeUsingOrAdmit` admit 成开放练习（有 `· sorry` 时洞落在 `sorry`；
   `constructor` 之后按子目标分组最常见）；命名实参也支持
   `apply Eq.subst (p := fun x => a ∈ x) h`（剩下的隐式参数从 `h` 的类型反解）；
+  只给等式也够：`apply Eq.subst hx`（谓词从等式右端在目标里的出现合成）；
   `unfold Foo Bar`（2026-10-11 加，Lean 同名）把目标里点名的常量展开成定义体
   （`a ∈ {a}` 上 `unfold Set.mem Set.singleton` ⇒ `a = a`）；**逐处**展开、结果必须与
   原来定义相等（内核验收后才提交）；`unfold Foo at h` 展开**假设**的类型（目标不动，
@@ -381,7 +382,7 @@ warning；**failed** 声明才不进环境。后续声明仍会被检查并得�
 | `Iff.intro P Q h1 h2` | `constructor` → 两个分支分别 `exact h1` / `exact h2` |
 | `And.intro P Q h1 h2` | `constructor` → 同上 |
 | `Set.ext α A B (fun (x : α) => …)` | `apply Set.ext` → `intro x` → … |
-| `Eq.subst.{1} …`（把等式搬进目标） | tactic 下：`apply Eq.subst h hx`（谓词由前提+目标合成；2026-10-23 起记法谓词也判绿）或 `exact Eq.subst h hx`；有 `rw` 之后是 `rw [h]` |
+| `Eq.subst.{1} …`（把等式搬进目标） | tactic 下：`apply Eq.subst h hx`（谓词由前提+目标合成；2026-10-23 起记法谓词也判绿）、**`apply Eq.subst hx`（只给等式，谓词从等式右端在目标里的出现合成；2026-11-04 起）** 或 `exact Eq.subst h hx`；有 `rw` 之后是 `rw [h]` |
 | 嵌套 `Iff.intro` / `And.intro` | 嵌套的 `constructor`（每层一次） |
 | `Or.inl h` / `Or.inr h` | `left; exact h` / `right; exact h` |
 | `Exists.intro w hw` | `exact ⟨w, hw⟩`（匿名构造子） |
