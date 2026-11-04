@@ -50,7 +50,8 @@
 //!   其余形状（差异端是**应用**如 `∅`、或路径穿过记法 `x ∈ ?s`）才合成；
 //! * 形状不匹配 ⇒ 原样返回 `None`，走今天的错误路径。
 
-use super::eqsubst_diff::{diff, replace_all, replace_at, same_expr, DiffResult, Step};
+use super::eqsubst_diff::{diff, replace_at, same_expr, DiffResult, Step};
+use super::eqsubst_motive::EndpointTy;
 use crate::ast::{Binder, BinderKind, Expr};
 use crate::span::Span;
 use crate::spine;
@@ -89,7 +90,7 @@ pub(crate) fn rewrite_argument_hole(
 }
 
 /// **P2-a**：等式项的**端点**（只认局部名与 `Eq.symm` 包一层；其它 ⇒ `None`）。
-fn eq_endpoints(term: &Expr, binders: &[Binder]) -> Option<(Expr, Expr)> {
+pub(super) fn eq_endpoints(term: &Expr, binders: &[Binder]) -> Option<(Expr, Expr)> {
     match term {
         Expr::Ident { .. } => decompose_eq(local_type(binders, term)?),
         Expr::App { fun, arg, .. } if is_head_named(fun, "Eq.symm") => {
@@ -105,18 +106,22 @@ fn decompose_eq(e: &Expr) -> Option<(Expr, Expr)> {
         Expr::Notation {
             target, lhs, rhs, ..
         } if target == "Eq" => Some(((lhs.as_deref()?).clone(), (rhs.as_deref()?).clone())),
-        Expr::App { fun, arg, .. } => match fun.as_ref() {
-            Expr::App {
-                fun: inner,
-                arg: lhs,
-                ..
-            } if is_head_named(inner, "Eq")
-                && !matches!(fun.as_ref(), Expr::App { fun: f, .. } if is_head_named(f, "Eq.symm")) =>
-            {
-                Some(((**lhs).clone(), (**arg).clone()))
+        Expr::App { .. } => {
+            // **走唯一的脊抽取**（2026-11-04 issue #7 第 2 条）：**内核装配**的项是
+            // `@Eq.{u} T a b`（**3** 位，带类型参数、`explicit_spine`），而源里写的是
+            // `Eq a b`（2 位）。旧实现只认「`fun.fun` 直接是 `Eq` 头」⇒ 3 位那一形的
+            // 头是 `Eq T`（一个应用）⇒ 判否 ⇒ `intro hx` 进来、或任何由内核文本回读
+            // 出来的等式（`hx : {a} = ∅`）**一条形状 ③ 都走不到** ✗。
+            let (head, args) = spine::spine_of(e);
+            if !is_head_named(head, "Eq") {
+                return None;
             }
-            _ => None,
-        },
+            match args.as_slice() {
+                [a, b] => Some(((*a).clone(), (*b).clone())),
+                [_ty, a, b] => Some(((*a).clone(), (*b).clone())),
+                _ => None,
+            }
+        }
         _ => None,
     }
 }
@@ -128,91 +133,20 @@ fn is_head_named(e: &Expr, name: &str) -> bool {
     }
 }
 
-/// 两个形状的**共同入口**（`apply` 用）：先试 ①（洞在等号位），再试 ②（等号位给了），
+/// `apply` 的**共同入口**：先试 ①（洞在等号位），再试 ②（等号位给了），
 /// 最后试 ③（**单实参** `Eq.subst h`：从 `h` 的右端在目标里的出现抽 motive）。
-pub(crate) fn rewrite(expr: &Expr, goal: &Expr, binders: &[Binder], span: Span) -> Option<Expr> {
-    if !is_eqsubst_two_args(expr) {
-        return rewrite_single_argument(expr, goal, binders, span);
-    }
-    rewrite_argument_hole(expr, goal, binders, span)
-        .or_else(|| rewrite_explicit_equality(expr, goal, binders, span))
-}
-
-/// **形状 ③（P2-c，2026-10-23）**：`apply Eq.subst h`（**一个**实参）。
-///
-/// `h : a = b`、目标 `G` 里出现 `b`（`b` 必须是**局部名** ⇒ binder 类型现成）⇒
-/// 合成 `Eq.subst T (fun z => G[b:=z]) a b h`：它的类型是 `p a → p b`，`p b ≡ G`
-/// ⇒ 新目标 `p a` 由用户继续证（`f x = f y` 上就是 `rfl`）。
-///
-/// 保守边界：`h` 只认局部名/`Eq.symm h`（端点从书写类型取）；`b` 只认局部名；
-/// `b` 在目标里**至少出现一次**；否则返回 `None`（原错误路径不变）。
-fn rewrite_single_argument(
+pub(crate) fn rewrite(
     expr: &Expr,
     goal: &Expr,
     binders: &[Binder],
     span: Span,
+    ty_of: EndpointTy<'_>,
 ) -> Option<Expr> {
-    let (head, args) = spine::spine_of(expr);
-    if !is_eqsubst_head(head) || args.len() != 1 || matches!(args[0], Expr::Hole { .. }) {
-        return None;
+    if !is_eqsubst_two_args(expr) {
+        return super::eqsubst_motive::rewrite_single_argument(expr, goal, binders, span, ty_of);
     }
-    rewrite_goal_motive(head, args[0], goal, binders, span, None)
-}
-
-/// **形状 ③/④ 的共用体**：`premise = None` ⇒ 只给到等号（`apply`，`p a` 成为子目标）；
-/// `Some(tm)` ⇒ 再补一个实参（`exact`，`tm` 必须能被判成 `p a`，内核终审）。
-fn rewrite_goal_motive(
-    head: &Expr,
-    eq_term: &Expr,
-    goal: &Expr,
-    binders: &[Binder],
-    span: Span,
-    premise: Option<&Expr>,
-) -> Option<Expr> {
-    let (eq_a, eq_b) = eq_endpoints(eq_term, binders)?;
-    // 类型优先取右端（被替换的那一端）；右端不是局部名（`∅`）时取**左端** ——
-    // 等式两端同型，左端常是局部名（`h : A = ∅` ⇒ `A` 的类型就是 `Set α`）。
-    let ty = local_type(binders, &eq_b)
-        .or_else(|| local_type(binders, &eq_a))?
-        .clone();
-    let var_name = format!("_soko_eq{}", span.start.offset);
-    let var = Expr::Ident {
-        name: var_name.clone(),
-        span,
-    };
-    let mut hits = 0usize;
-    let body = replace_all(goal, &eq_b, &var, &mut hits);
-    if hits == 0 {
-        return None;
-    }
-    let motive = Expr::Lambda {
-        binders: vec![Binder {
-            name: var_name,
-            ty: Some(Box::new(ty.clone())),
-            style: BinderKind::Explicit,
-            span,
-        }],
-        body: Box::new(body),
-        span,
-    };
-    let mut out = head.clone();
-    let mut parts = vec![ty, motive, eq_a, eq_b, eq_term.clone()];
-    if let Some(p) = premise {
-        parts.push(p.clone());
-    }
-    for arg in parts {
-        out = Expr::App {
-            fun: Box::new(out),
-            arg: Box::new(arg),
-            // **G2（2026-11-01）**：这 5–6 位是引擎拼的 `@Eq.subst` **全显式**前缀
-            // （`α motive a b <等号> <premise>`，逐位对应望远镜）⇒ `@` 脊，**不是**
-            // 用户写的正常形式位置实参。标 `false` 时 strict 按"位置实参只绑显式
-            // 形参"数 ⇒ 谎称"你写了 5～6 个位置实参"判红（loose 走 old-style 读法才过）。
-            explicit_spine: true,
-            span,
-        };
-    }
-    Some(out)
+    rewrite_argument_hole(expr, goal, binders, span)
+        .or_else(|| rewrite_explicit_equality(expr, goal, binders, span))
 }
 
 /// **`exact` 的入口**：先做**零分配**的形状检查（`Eq.subst` 恰好 2 个实参），命中才建
@@ -236,7 +170,16 @@ pub(crate) fn rewrite_exact(
         if !is_eqsubst_head(head) || args.len() != 2 || matches!(args[0], Expr::Hole { .. }) {
             return None;
         }
-        rewrite_goal_motive(head, args[0], goal, &binders, span, Some(args[1]))
+        // `exact` 这条路今天没有引擎上下文 ⇒ 端点类型只取书写类型（与修前逐字节一致 ✓）。
+        super::eqsubst_motive::rewrite_goal_motive(
+            head,
+            args[0],
+            goal,
+            &binders,
+            span,
+            Some(args[1]),
+            &mut |_| None,
+        )
     })
 }
 
@@ -417,7 +360,7 @@ fn prefix(head: &Expr, args: [Expr; 6], span: Span) -> Expr {
 }
 
 /// 局部名（`intro` 进来的假设 / `have` 的假设）⇒ 它的**书写类型**。
-fn local_type<'a>(binders: &'a [Binder], e: &Expr) -> Option<&'a Expr> {
+pub(super) fn local_type<'a>(binders: &'a [Binder], e: &Expr) -> Option<&'a Expr> {
     let Expr::Ident { name, .. } = e else {
         return None;
     };
@@ -449,7 +392,7 @@ fn generic_solves(s: &Synthesized) -> bool {
         && matches!(&s.b, Expr::Ident { .. })
 }
 
-fn is_eqsubst_head(head: &Expr) -> bool {
+pub(super) fn is_eqsubst_head(head: &Expr) -> bool {
     match head {
         Expr::Ident { name, .. } => name == "Eq.subst",
         Expr::UniverseApp { name, .. } => name == "Eq.subst",
