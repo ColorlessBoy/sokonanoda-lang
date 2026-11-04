@@ -1,4 +1,24 @@
 <!-- doc-refs: history-only（旧版本的 `docs/**` 指针是历史位置；恢复方式：原文 ⇒ git log --all -- <path>） -->
+## [0.98.3] - 2026-11-04
+
+### Fixed
+
+- **Infoview 的 goal / 目标显示**（issue #5 · #7）：
+  - `intro hx` 之后目标里的 `@Set.singleton α a` 折回 `{a}`（`hx : {a} = ∅`），
+    `@Set.pair α a b` 同理；显式脊的**部分**应用（`@Set.singleton α`）照旧不折。
+  - `·` 块里最后一条 tactic 之后的缩进行（编辑器自动缩进）仍答块内状态；
+    嵌套 `·` 的闭合态按缩进配对，外层不会冒领内层。
+- **`apply Eq.subst hx`（不给 `(p := …)`）** 在 strict 档解得出 motive，与 Lean 同形；
+  写错 motive 仍判红。
+- **LSP 不再被请求期探针的 panic 拖死**：`soko/goals` / inlay / hover 直接调内核，
+  内核用 panic 报拒绝 ⇒ 以前一次 panic 会让那个请求永远不回答，只能 Reload Window；
+  现在降级成「算不出」（尽力而为，不倒退）。
+
+### Changed
+
+- **课程目录** `course/` → `courses/quick-start/`（issue #3）：扩展的课程树新路径优先，
+  旧布局仍兼容。
+
 ## [0.98.2] - 2026-11-03
 
 ### Changed

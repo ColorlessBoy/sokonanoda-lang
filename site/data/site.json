@@ -2,19 +2,19 @@
   "arena": {
     "accepted": 126,
     "bad": 80,
-    "corpus": "master@236ab462a",
-    "created_at": "2026-11-02T17:26:32Z",
+    "corpus": "master@8139f2840",
+    "created_at": "2026-11-04T08:42:08Z",
     "declined": 2,
     "good": 127,
     "known_slow": 1,
     "known_unsupported": 2,
     "rejected": 78,
-    "revision": "236ab462a8b675bc7fbb7b5d37d6dc9907745e16",
-    "run_id": "41491209588",
+    "revision": "8139f284045e9f3a9bcf5f86119270b854057aeb",
+    "run_id": "41801528175",
     "slow_timeouts": 1
   },
-  "release_url": "https://github.com/ColorlessBoy/sokonanoda-lang/releases/tag/v0.98.2",
+  "release_url": "https://github.com/ColorlessBoy/sokonanoda-lang/releases/tag/v0.98.3",
   "schema": "soko.site/2",
-  "tag": "v0.98.2",
-  "version": "0.98.2"
+  "tag": "v0.98.3",
+  "version": "0.98.3"
 }
