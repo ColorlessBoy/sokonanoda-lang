@@ -1,3 +1,6 @@
+## 修复 `·` 块内 goal state（2026-11-04 · issue #5）
+- 块内最后一条 tactic 之后的**缩进行**（块未结束）答块内状态；嵌套 `·` 按缩进配对.
+- 判据：front ×2 + LSP wire ×1；Infoview 截图见 PR（before `⊢ Q → P` / after `hp : P ⊢ Q`）.
 ## 课程目录迁移（2026-11-04）
 - `course/` → `courses/quick-start/`（issue #3）：54 个文件纯移动；活引用同步（测试常量 · 脚本扫描根 · VS Code 课程树 + 旧布局回退 · 站点链接 · skills · 文档）.
 - 判据：CLI 6 个测试套件 + notation 守卫 + `gap.py check` + `test-extension-host` 77/77 + `check-site` 10/10 + `docs-lint`；文档预算按实测腾挪，未抬上限.

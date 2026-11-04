@@ -77,6 +77,52 @@ theorem after_bullet : P ∧ Q := by
     shutdown(&mut service).await;
 }
 
+/// **用户实测（2026-11-04，issue #5）**：`·` 块里最后一条 tactic 之后的**缩进行**
+/// （块还没结束）答的必须是**块内**状态。
+///
+/// 现场（issue #5 · 单元 2 `eq_empty_iff_forall_notMem`）：`constructor` 出两个目标，
+/// `· intro hp` 之后光标停在编辑器自动缩进的下一行 ⇒ Infoview 显示的却是块结束态的
+/// 外层第二个目标（`Q → P`），而真正该看到的是 `⊢ Q` + 假设 `hp`。
+/// 这条钉**用户看得见的那一层**：`goal`（面板正文）+ `binders`（假设行）+ `step`。
+/// 真相层的同形判据在
+/// `crates/front/src/query/tests.rs::state_at_inside_a_bullet_after_its_last_tactic_keeps_the_inner_state`。
+#[tokio::test]
+async fn state_inside_a_bullet_after_its_last_tactic_is_the_inner_state() {
+    const ISSUE5: &str = concat!(
+        "axiom P : Prop\n",
+        "axiom Q : Prop\n",
+        "\n",
+        "theorem inside_bullet : (P -> Q) ∧ (Q -> P) := by\n",
+        "  constructor\n",
+        "  · intro hp\n",
+        "    \n",
+        "  sorry\n",
+    );
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, ISSUE5).await;
+    let _ = wait_diagnostics(&mut socket, "stateAt diagnostics").await;
+
+    let after_intro = offset_of(ISSUE5, "· intro hp") + "· intro hp".len();
+    let at = after_intro + 4; // 自动缩进那一行（4 空格）里
+    let result = ask_state_at(&mut service, ISSUE5, at).await;
+    assert_eq!(result["decl"]["name"], "inside_bullet");
+    assert_eq!(
+        result["goal"], "Q",
+        "块内 `intro hp` 之后的目标是 Q，不是块结束态的外层 Q → P：{result}"
+    );
+    let binders = result["binders"].as_array().expect("binders array");
+    assert_eq!(binders.len(), 1, "`hp` 仍在上下文里：{result}");
+    assert_eq!(binders[0]["name"], "hp");
+    assert_eq!(result["step"], 2, "`intro hp` is step 2");
+    assert_eq!(
+        result["goals"].as_array().expect("goals array").len(),
+        1,
+        "面板只该列这一个目标：{result}"
+    );
+    shutdown(&mut service).await;
+}
+
 #[tokio::test]
 async fn state_at_carries_semantic_runs_for_goals_and_hypotheses() {
     // docs/protocol.md §`soko/stateAt`: `soko/stateAt` ships the same

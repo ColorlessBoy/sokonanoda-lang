@@ -3,7 +3,7 @@
 //! 从 `mod.rs` 拆出（模块化硬规则：单文件 ~500 行上限）。语义与协议原文见
 //! [`select_state_at`] 的文档；适配器（LSP/CLI/MCP）只做坐标转换，不得重算。
 
-use crate::compile::{ByGoalState, DeclState, DeclStatus};
+use crate::compile::{ByGoalState, ByStepState, DeclState, DeclStatus};
 use crate::span::Span;
 
 /// 光标处的状态选择（Lean `goalsAt?` 语义的唯一实现）。
@@ -138,8 +138,9 @@ pub fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
 ///
 /// 为什么要文本：`·` 的那一格记的是**聚焦目标**（块体开跑之前），而普通 tactic
 /// 记的是**执行后** —— 选择器必须能区分这两者（`span` 本身分不出来，`have` 的
-/// span 也覆盖它的嵌套步）。本文本只用于看 `span.start` 处是不是 `·`，不参与
-/// 任何判定。
+/// span 也覆盖它的嵌套步）。本文本只用于两件事：看 `span.start` 处是不是 `·`，
+/// 以及读光标所在行的**缩进**（区分"还在 `·` 块缩进区里"与"已退到块外"，
+/// issue #5）；不参与任何判定文本。
 pub fn select_state_at_in_text(d: &DeclState, cursor: usize, text: &str) -> StateSelection {
     let legacy = state_root_legacy();
     // 无 `by` ⇒ 没有 per-tactic 状态可选。
@@ -301,7 +302,7 @@ pub fn select_state_at_in_text(d: &DeclState, cursor: usize, text: &str) -> Stat
         return entry(i);
     }
 
-    // ② 否则：**最后一条已经开始的** tactic 之后的那个状态。
+    // ② 否则：**最后一条已经开始的** tactic 之后/内部 ⇒ 它自己的后态。
     //
     // 源码顺序就是嵌套顺序（外层 `·` 的 `start` 更早、内层兄弟更晚）⇒ 取
     // `rposition(start < cursor)` 自动是**最内层**的那一条；`·` 的块入口态
@@ -309,21 +310,81 @@ pub fn select_state_at_in_text(d: &DeclState, cursor: usize, text: &str) -> Stat
     //
     // 这同时覆盖两种旧行为：tactic **内部**（`start < cursor`）答它自己的后态；
     // 两条 tactic **之间**（gap）答前一条的后态 —— 不是块入口的旧聚焦态。
-    // ② 否则：**最后一条已经开始的** tactic 之后/内部 ⇒ 它自己的后态。
     //
     // 既有协议：tactic **起点**（①）答进入态，**内部**答它执行后的状态（老测试
     // `state_at_inside_a_tactic_shows_the_state_after_it` 钉的）；`cases` 这类
     // **后序**块的起点由 ① 的 `entry` 修正，内部仍按后态。
-    if let Some(i) = d
+    //
+    // ⚠ **`·` 的零宽闭合态**（2026-11-03 补记的块尾那一格）不能提前用：光标还停在
+    // 块的**缩进区**里（行首缩进比 `·` 深）⇒ 块还没结束，该答块里最后一条 tactic
+    // 的后态（issue #5：`· intro h x hx` 下一行自动缩进的空行上，面板把外层第二个
+    // 目标显示成了当前目标 ✗）。只有缩进退回到 `·` 那一列或更浅时，闭合态才生效
+    // （`·` 块后第一条 tactic 的进入态 —— 2026-11-03 用户实测的 `subset_empty_iff`）。
+    // 嵌套 `·` 的闭合态按表里「焦点态先、闭合态后」的顺序用栈配对（见
+    // [`bullet_end_columns`]）：由内向外跳过所有**光标仍在其缩进区里**的闭合态。
+    let mut selected = d
         .by_steps
         .iter()
-        .rposition(|s| s.span.start.offset < cursor)
-    {
+        .rposition(|s| s.span.start.offset < cursor);
+    if !text.is_empty() && selected.is_some_and(|i| is_bullet_end(&d.by_steps[i])) {
+        let columns = bullet_end_columns(&d.by_steps, text);
+        let indent = line_indent_at(text, cursor);
+        while let Some(i) = selected {
+            let Some(column) = columns[i] else { break };
+            if indent <= column {
+                break;
+            }
+            selected = d.by_steps[..i]
+                .iter()
+                .rposition(|s| s.span.start.offset < cursor);
+        }
+    }
+    if let Some(i) = selected {
         return at(i);
     }
 
     // ③ 第一条 tactic 之前 ⇒ 根状态（题面）。
     root()
+}
+
+/// 这一步是不是 `·` 块尾的**零宽闭合态**（`by.rs` 在块跑完后补记的那一步）。
+///
+/// 判据只有 span 零宽：引擎里没有别的零宽 step（`sorry`/`intro` 的 span 都来自
+/// 真实 token）。文本不可见（[`select_state_at`] 的空文本通道）时选择器退回旧行为，
+/// 不会走到这里做缩进判断 ✓。
+fn is_bullet_end(step: &ByStepState) -> bool {
+    step.span.start.offset == step.span.end.offset
+}
+
+/// 光标所在行的**行首缩进**（行首连续空格 / 制表符个数）。
+///
+/// 只用于区分「光标还在 `·` 块的缩进区里」与「已退回到块外」——不看光标前面的
+/// 内容，也不影响任何判定文本。
+fn line_indent_at(text: &str, cursor: usize) -> usize {
+    let cursor = cursor.min(text.len());
+    let line_start = text[..cursor].rfind('\n').map_or(0, |i| i + 1);
+    text[line_start..]
+        .chars()
+        .take_while(|c| *c == ' ' || *c == '\t')
+        .count()
+}
+
+/// 每条**零宽 `·` 闭合态**所属 `·` 的缩进列（0 基）；`None` = 不是闭合态 / 配不上。
+///
+/// 配对靠表的入表顺序：`·` 的焦点态先入表、块内步进随后、闭合态最后 ⇒
+/// 扫描时焦点态压栈、闭合态弹栈。嵌套 `·`（内层块是外层块的最后一条 tactic）
+/// 因此各弹到自己的那一层，外层闭合态不会冒领内层的缩进 ✓。
+fn bullet_end_columns(steps: &[ByStepState], text: &str) -> Vec<Option<usize>> {
+    let mut columns = vec![None; steps.len()];
+    let mut open: Vec<usize> = Vec::new();
+    for (i, step) in steps.iter().enumerate() {
+        if is_bullet_end(step) {
+            columns[i] = open.pop();
+        } else if is_bullet_step(step.span, text) {
+            open.push(line_indent_at(text, step.span.start.offset));
+        }
+    }
+    columns
 }
 
 /// 这一步是不是 `·` 的步进（`ByStep.span` 从 `·` 开始）。
