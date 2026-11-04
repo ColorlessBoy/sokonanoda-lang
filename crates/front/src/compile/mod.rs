@@ -14,6 +14,7 @@ mod error_hint;
 // 命名实参（`g (α := Nat) 5`，用户 2026-10-16 第 ② 条）。
 pub(crate) mod eqsubst;
 mod eqsubst_diff;
+pub(crate) mod eqsubst_motive;
 mod event;
 mod expected;
 mod expected_spine;
@@ -90,7 +91,7 @@ pub use dialect::{dialect_from_env, explicit_dialect, Dialect, DialectSources};
 pub(crate) use elab::canonical_ctor_name;
 pub use error::{CompileError, CompileStage, ErrorKind};
 pub use event::{CheckEvent, CompileOutput, CompileStats};
-pub use goals::{probe_sub_goal_types, probe_sub_goal_types_with};
+mod probe;
 pub use hints::{attach_hints, attach_hints_to_report, source_hints};
 /// **telescope 解析次数**（A4b 的判据读数）：先读数、后谈签名级缓存 ✓。
 pub use implicit::telescope_parses_total;
@@ -100,6 +101,7 @@ pub use prelude::{
     prelude_source_path, quot_types_src, CompileOptions, PreludeMode, PRELUDE_EQ_SRC,
     PRELUDE_L1_SRC, PRELUDE_NAMES, PRELUDE_NEVER_YIELDS,
 };
+pub use probe::{probe_sub_goal_types, probe_sub_goal_types_with};
 pub use report::{
     ByGoalState, ByStepState, CheckInfo, DeclKind, DeclState, DeclStatus, DocumentReport,
     GoalBinder, HoleMode, HoverType, PrintInfo, ResolvedTarget, SubGoal, REPORT_SHAPE,

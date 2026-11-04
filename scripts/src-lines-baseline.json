@@ -13,10 +13,10 @@
       "growth_reason": "2026-11-03 用户两条实测的小改：① uses-open-exercise 的落点收到声明名（Command 四个具名变体加 name_span + walk 三处 warning 改用它 + parser 记名 token）；② · 块结束态（by.rs 补一条零宽 step）。均为最小改动，文件各自的拆分计划见条目原有 reason；实际增长见各条 grew_from（评审可见）"
     },
     "crates/front/src/by.rs": {
-      "lines": 4367,
+      "lines": 4380,
       "reason": "apply 的归纳头展开候选（审计 row 2）；下一轮把 apply 的匹配链整体拆到 apply_probe",
-      "grew_from": 4351,
-      "growth_reason": "2026-11-03 用户两条实测的小改：① uses-open-exercise 的落点收到声明名（Command 四个具名变体加 name_span + walk 三处 warning 改用它 + parser 记名 token）；② · 块结束态（by.rs 补一条零宽 step）。均为最小改动，文件各自的拆分计划见条目原有 reason；实际增长见各条 grew_from（评审可见）"
+      "grew_from": 4367,
+      "growth_reason": "issue #7 第 2 条：apply 的 Eq.subst 端点类型兜底（新逻辑已拆进 compile/eqsubst_motive.rs；by.rs 只留 10 参调用，仍 +13 行）"
     },
     "crates/front/src/compile/cache.rs": {
       "lines": 1118,

@@ -12324,3 +12324,27 @@ fn apply_implicit_type_param_from_a_later_domain_is_not_a_subgoal() {
         d.by_steps[0].goals
     );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// **issue #7 第 3 条（2026-11-04 用户亲报）**：写错 tactic 不许把 lsp 打死
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// **请求期探针的 panic 兜底必须真的咬住**（`AGENTS.md`：咬不住的守卫等于没有 ✓）。
+///
+/// 背景：`soko/goals` / inlay / hover 走 `probe_sub_goal_types_with` —— 它**直接**
+/// 调内核（`crate::parse` + `judge_infer`），不在编译路径上 ⇒ 没有 `quiet_catch`。
+/// 而内核用 panic 报拒绝（`docs/architecture.md` §8 gotcha 0）⇒ 一次 panic 就让
+/// **那个请求永远不回答**（handler 被 panic 之后连接还在，客户端等的是不会来的响应
+/// ⇒ 用户看到的是"lsp server 死掉了，只能 Reload Window"）。
+///
+/// 探针本来就是尽力而为（"算不出就返回空——不倒退"）⇒ 按同一语义降级。
+/// **反向验证**：把 `catch_probe_panic` 里的 `catch_unwind` 去掉 ⇒ 这条当场 panic ✗。
+#[test]
+fn the_request_probe_swallows_a_kernel_panic() {
+    let got: Vec<(usize, String)> =
+        crate::compile::probe::catch_probe_panic(|| panic!("内核用 panic 报拒绝（模拟）"));
+    assert!(got.is_empty(), "panic 之后必须按「算不出」降级成空表");
+    // 正对照：不 panic 时原值原样透出（别把兜底写成"永远空"✗）。
+    let ok = crate::compile::probe::catch_probe_panic(|| vec![(7usize, "Set α".to_string())]);
+    assert_eq!(ok, vec![(7usize, "Set α".to_string())]);
+}

@@ -396,26 +396,8 @@ pub(crate) struct ProbeEnv<'a> {
     display: crate::display::DisplayNotations,
 }
 
-/// 请求期 kernel 探针入口（方案 A，front-only，内核零改动）：
-/// 重解析文档、定位开放练习声明，再用 [`judge_infer`] 为**函数 spine 子洞**
-/// 重算期望类型。返回 `(洞起点 offset, 类型文本)`；调用方按 span 覆盖
-/// report 中为 `None` 的 `sub_goals[i].ty`。
-///
-/// 纪律（docs/design/spine-meta-a.md §2/§4）：只在 LSP 的
-/// `soko/goals` / inlay / hover 请求路径调用，绝不进 didChange / keystroke
-/// 路径；`open_goal` 的廉价 AST 走查仍是「是否 Open + 洞 span」的唯一来源。
-/// 算不出（深层嵌套、无类型 binder 等）就返回空——不倒退、永不比 B′ 差。
-pub fn probe_sub_goal_types(
-    doc_src: &str,
-    options: &CompileOptions,
-    decl_span: Span,
-) -> Vec<(usize, String)> {
-    probe_sub_goal_types_with("", doc_src, options, decl_span)
-}
-
-/// 同 [`probe_sub_goal_types`]，但把 `extra_prefix`（闭包上下文）交给探针：
-/// 项目模式下子洞期望类型才会用**闭包环境**算（否则被导入的名字看不见）。
-pub fn probe_sub_goal_types_with(
+/// [`crate::compile::probe::probe_sub_goal_types_with`] 的正文（panic 兜底在外层）。
+pub(super) fn probe_sub_goal_types_inner(
     extra_prefix: &str,
     doc_src: &str,
     options: &CompileOptions,

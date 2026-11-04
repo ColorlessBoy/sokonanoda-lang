@@ -539,3 +539,98 @@ theorem t (α : Type) (A : Set α) (x : α) (hx : x ∈ A) (h : A = empty) : x �
     assert!(checked_names(&out).contains(&"t".to_string()));
     assert_eq!(compile(src).errors, vec![], "宽松档同样必须绿");
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// **issue #7 第 2 条（2026-11-04 用户亲报）**：`apply Eq.subst hx`（**不给** `p := …`）
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// 现场（用户 issue 原文，课程 `unit02` 的下一题）：
+///
+/// ```text
+/// theorem singleton_ne_empty (α : Type) (a : α) : {a} ≠ ∅ := by
+///   intro hx
+///   apply Set.notMem_empty a
+///   apply Eq.subst hx           -- ✗ 修前：「4 个隐式参数补不出来 / 两条线索互相矛盾」
+///   apply Set.mem_singleton_self
+/// ```
+///
+/// 与既有形状 ③ 的现场（`hx : x ∈ A`、`h : A = ∅` 都是**源里写的**假设）不同，
+/// 这里的 `hx` 是 `intro` 从目标里**切下来**的 ⇒ 它的类型是**内核装配**的形态，
+/// 三处都要补（本测试一起钉住）：
+///
+/// 1. `decompose_eq` 只认「`fun.fun` 直接是 `Eq` 头」⇒ 内核形态
+///    `@Eq.{1} T a b`（**3** 位，头是 `Eq T`）判否 ⇒ 一条形状 ③ 都走不到；
+/// 2. 等式**两端都不是局部名**（`@Set.singleton α a` / `@Set.empty α`）⇒ 原来
+///    `local_type` 两头都拿不到 ⇒ motive 的 binder 标注缺失（新增 `EndpointTy`
+///    兜底：问 `apply` 要任意小项的类型）；
+/// 3. 目标里的写法是 pp 的**闭项形态**（`Set.empty`，省略前导隐式），假设里是
+///    **显式脊**（`@Set.empty α`）⇒ 逐字比对 0 命中（新增"剥前导实参"再试）。
+#[test]
+fn apply_eqsubst_with_one_argument_from_an_intro_equality() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def Set.empty {α : Type} : Set α := fun (_ : α) => False
+def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a
+infix:50 \" ∈ \" => Set.mem
+notation \"∅\" => Set.empty
+theorem Set.notMem_empty {α : Type} (a : α) : ¬ (a ∈ ∅) := by
+  intro h
+  exact h
+theorem Set.mem_singleton_self {α : Type} (a : α) : a ∈ {a} := by
+  exact Eq.refl a
+
+theorem singleton_ne_empty (α : Type) (a : α) : {a} ≠ ∅ := by
+  intro hx
+  apply Set.notMem_empty a
+  apply Eq.subst hx
+  apply Set.mem_singleton_self
+";
+    let out = compile_strict(src);
+    assert_eq!(
+        out.errors,
+        vec![],
+        "`apply Eq.subst hx`（intro 切下来的等式）必须判绿：{:?}",
+        out.errors
+    );
+    assert!(
+        checked_names(&out).contains(&"singleton_ne_empty".to_string()),
+        "整条证明必须 checked：{:?}",
+        checked_names(&out)
+    );
+    // 两档同判。
+    assert_eq!(compile(src).errors, vec![], "宽松档同样必须绿");
+}
+
+/// **正对照**：写错 motive（用户 issue 里的另一条）必须**判红**，不许被新兜底放过。
+///
+/// `apply Eq.subst (p := fun x => x ∈ ∅) hx` 的结果是 `∅ ∈ ∅`，对不上目标 `a ∈ ∅`。
+#[test]
+fn a_wrong_explicit_motive_is_still_rejected() {
+    let src = "\
+def Set (α : Type) : Type := α → Prop
+def Set.mem {α : Type} (a : α) (A : Set α) : Prop := A a
+def Set.empty {α : Type} : Set α := fun (_ : α) => False
+def Set.singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a
+infix:50 \" ∈ \" => Set.mem
+notation \"∅\" => Set.empty
+theorem Set.notMem_empty {α : Type} (a : α) : ¬ (a ∈ ∅) := by
+  intro h
+  exact h
+
+theorem t (α : Type) (a : α) : {a} ≠ ∅ := by
+  intro hx
+  apply Set.notMem_empty a
+  apply Eq.subst (p := fun x => x ∈ ∅) hx
+";
+    let out = compile_strict(src);
+    assert!(
+        !out.errors.is_empty(),
+        "motive 写错必须判红（新兜底不许把错的变成绿的）"
+    );
+    assert!(
+        !checked_names(&out).contains(&"t".to_string()),
+        "判红 ⇒ 不许发 `decl.checked`：{:?}",
+        checked_names(&out)
+    );
+}

@@ -2508,9 +2508,6 @@ fn apply_tactic<'a>(
     let cur = *worklist.last().ok_or_else(|| {
         CompileError::elab(ErrorKind::ElabTacticFailed, "by 块里没有待解目标", span)
     })?;
-    let rewritten = rewrite(expr, &nodes[cur].ty, &context_binders(nodes, cur), span);
-    let expr = rewritten.as_ref().unwrap_or(expr);
-    let term = render_expr(expr);
     let spec = spec_of(nodes, cur, universe);
     // **G-31（第三处，实测 20/226 次未命中）**：先试**就地** —— 这条链上 `env` 是现成的
     // （`apply_tactic` 的签名里就有，`by.rs:2444` 也确实传了），源 binder 类型也能从
@@ -2520,6 +2517,9 @@ fn apply_tactic<'a>(
         .into_iter()
         .filter_map(|b| b.ty.map(|ty| (b.name, *ty)))
         .collect();
+    let rewritten = rewrite(expr, &nodes[cur].ty, &context_binders(nodes, cur), span);
+    let expr = rewritten.as_ref().unwrap_or(expr);
+    let term = render_expr(expr);
     // **C 子项（2026-10-12）**：`apply` 要把**当前目标**当期望类型 ——
     // `apply t` 的语义是「`t` 的结果证明目标」，而**只问 `t` 的类型**（`#check t`，
     // 没有期望类型）时，`t` 里那些**只能由目标反解**的隐式实参解不出来 ✗：
