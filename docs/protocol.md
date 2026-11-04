@@ -665,7 +665,7 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   at its **very start** → **entering** it; else after the last tactic ending at or before the caret; before the first tactic → the
   **statement state**: the declaration's **named ∀ binders** in `binders` and what is left
   after peeling them in `goal` —— **与声明卡片（`soko/goals`）逐字一致**
-  （**顶 ≡ 底** 是硬契约 ✓）；Π 语句保留自己的 `→`/`∀` ✓；**没有 `by` 步进**的声明（无 `by` 块 / 题面之前）答题面（非 null）、`step`/`total` = `-1`/`0` ✓，而**失败的 `by` 块也逐 tactic 选状态**（B1，2026-10-08：`by_steps` 只记**已经跑成功**的那些 tactic ⇒ `total` = 成功条数、`step` 可达 `total-1`；以前恒 `0/-1`、整份退回题面 ✗ = 用户报的「最后一条 tactic 报错 ⇒ 前面所有 goal 全坏」）。
+  （**顶 ≡ 底** 是硬契约 ✓）；Π 语句保留自己的 `→`/`∀` ✓；**没有 `by` 步进**的声明（无 `by` 块 / 题面之前）答题面（非 null）、`step`/`total` = `-1`/`0` ✓，而**失败的 `by` 块也逐 tactic 选状态**（B1：`by_steps` 只记**已经跑成功**的 tactic ⇒ `total` = 成功条数、`step` 可达 `total-1`；以前整份退回题面 ✗）。
 - `goals` is the **full** remaining-goal list at that position (current goal
   first, `[]` = closed), each entry carrying its own `goal` text and
   `binders` — so a multi-subgoal tactic (`apply And.intro`) shows both
@@ -679,7 +679,7 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   all other fields then default (`goal: null`, empty `binders`, `span: null`, `step: -1`, `total: 0`).
 - The response carries the document `version` so clients drop stale answers.
   Selection is entirely server-side (clients never scan the source);
-  `soko/goals` is unaffected. `messages` (**C3**, 2026-10-08) = the command outputs on the caret's line: `[{"kind": "check"|"print", "text": "…", "runs": [{…}], "range": {…}}]` (`[]` = none); `check` → `expression : type` (Lean's `logInfoAt tk m!"{e} : {type}"`), `print` → the printed declaration; selection is **by line** (Lean's `getInteractiveDiagnostics{lineRange?}`) and lives in the truth layer (`front::query`) — clients only render it. `#check`'s inline **inlay hint was removed** (2026-10-09 user request; the output is complete in the Infoview) ⇒ `textDocument/inlayHint` answers **hole hints only** ✓. `runs` (**2026-10-09**) = the semantic segmentation of `text` (notation + syntax highlighting) from the **same unique display interface** as `goal_runs`/`ty_runs` (`display.fold` + `display.runs`); the runs concatenate **byte-for-byte** to `text`. `#check` folds notation in the type half (`->` → `→`, the same look as the goal line); `#print`'s text is the kernel's declaration pp (byte-identical to the `decl.printed` event) and is only segmented, never re-folded. `#print` results now reach **project entries too** (**2026-10-09** fix: the pass-path report used to drop them, so a file with `import` showed nothing at all).
+  `soko/goals` is unaffected. `messages` = the command outputs on the caret's line: `[{"kind": "check"|"print", "text": "…", "runs": [{…}], "range": {…}}]` (`[]` = none); `check` → `expression : type`, `print` → the printed declaration; selection is **by line** and lives in the truth layer (`front::query`). `#check`'s inline **inlay hint was removed** ⇒ `textDocument/inlayHint` answers **hole hints only** ✓. `runs` = the semantic segmentation of `text` from the **same unique display interface** as `goal_runs`/`ty_runs`; the runs concatenate **byte-for-byte** to `text`. `#check` folds notation in the type half (`->` → `→`); `#print`'s text is the kernel's declaration pp and is only segmented, never re-folded. `#print` results now reach **project entries too**.
 
 
 ### `soko/project`
