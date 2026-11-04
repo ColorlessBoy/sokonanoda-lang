@@ -19,8 +19,8 @@ use super::eqsubst::{eq_endpoints, is_eqsubst_head, local_type};
 use super::eqsubst_diff::replace_all;
 use crate::ast::{Binder, BinderKind, Expr};
 use crate::compile::CompileOptions;
-use crate::judge::{judge_infer, OpenGoalSpec};
-use crate::proof::{parse_expr_text, render_expr};
+use crate::judge::OpenGoalSpec;
+use crate::proof::parse_expr_text;
 use crate::span::Span;
 use crate::spine;
 
@@ -179,21 +179,23 @@ pub(crate) fn rewrite_apply<'a>(
     prefix_src: &str,
     options: &CompileOptions,
 ) -> Option<Expr> {
+    // ⚠ **只走就地路**（`infer_type_text_inplace`）：慢路要合成 `#check` 文本，而
+    // "把项渲染成文本"必须走唯一记法接口（`DisplayNotations`）——这里没有显示上下文
+    // ⇒ 不引第二条渲染路（`scripts/audit-notation-paths.py` 会抓 ✓）。就地路答不出时
+    // 返回 `None`，形状 ③ 照旧落回原来的诊断（不倒退 ✓）。
+    let _ = (prefix_src, options);
     let mut ty_of = |target: &Expr| -> Option<Expr> {
-        let text = env
-            .as_deref_mut()
-            .and_then(|e| {
-                crate::compile::elab::infer_type_text_inplace(
-                    e,
-                    ctx,
-                    binder_srcs,
-                    target,
-                    spec.binders.len(),
-                    None,
-                )
-                .ok()
-            })
-            .or_else(|| judge_infer(prefix_src, options, &spec.binders, &render_expr(target)).ok());
+        let text = env.as_deref_mut().and_then(|e| {
+            crate::compile::elab::infer_type_text_inplace(
+                e,
+                ctx,
+                binder_srcs,
+                target,
+                spec.binders.len(),
+                None,
+            )
+            .ok()
+        });
         text.and_then(|text| parse_expr_text(&text).ok())
     };
     super::eqsubst::rewrite(expr, goal, binders, span, &mut ty_of)
