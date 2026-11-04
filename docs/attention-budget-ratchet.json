@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "round": 4,
-  "head": "c58552ce8cc19fdaca2e1575ee95f233df06c9c5",
-  "at": "2026-11-02T14:01:02+00:00",
+  "round": 5,
+  "head": "4301466bce26c3f1bab9defc248dc2887c673e43",
+  "at": "2026-11-04T09:29:01+00:00",
   "caps": {
-    "ratio_max": 15.0,
-    "ratio_warn": 13.0,
-    "share_max": 0.52,
-    "share_warn": 0.49
+    "ratio_max": 14.0,
+    "ratio_warn": 12.0,
+    "share_max": 0.5,
+    "share_warn": 0.47
   },
   "history": [
     {
@@ -114,6 +114,27 @@
       },
       "user_reading": "node editor/vscode/test-extension-host.js ⇒ 宿主 77/77（S7 翻默认后设置项与两个扩展测试同轮改完仍全绿）",
       "user_case": "courses/set-theory/units/I.8/unit19-cardinal-le.sokonanoda"
+    },
+    {
+      "round": 5,
+      "head": "4301466bce26c3f1bab9defc248dc2887c673e43",
+      "at": "2026-11-04T09:29:01+00:00",
+      "caps": {
+        "ratio_max": 14.0,
+        "ratio_warn": 12.0,
+        "share_max": 0.5,
+        "share_warn": 0.47
+      },
+      "reading": {
+        "ratio": 4.57150077392046,
+        "share": 0.3420608108108108,
+        "commits": 1184,
+        "bookkeeping_commits": 405,
+        "product_lines": 63314,
+        "gen_lines": 289440
+      },
+      "user_reading": "node editor/vscode/test-extension-host.js ⇒ 77/77 passed（stub 宿主；同轮 front/LSP 的 · 块内 goal state 判据全绿）",
+      "user_case": "courses/set-theory/units/I.1/unit02-subsets-empty.sokonanoda"
     }
   ]
 }

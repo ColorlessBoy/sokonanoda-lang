@@ -506,6 +506,111 @@ theorem after_bullet : P ∧ Q := by
     );
 }
 
+/// **用户实测（2026-11-04，issue #5）**：`·` 块里最后一条 tactic **之后的缩进行**
+/// （缩进仍比 `·` 深 ⇒ 块还没结束）必须答**块内**的状态 ——
+/// 不能提前用上块结束态（外层剩下的目标唤作本条的 goal ✗）。
+///
+/// 现场（issue #5）：`constructor` 出两个目标；`· intro hp` 只引进了第一个目标的
+/// 假设；光标停在下一行（编辑器自动缩进，4 空格）⇒ 面板显示的却是外层第二个目标
+/// `Q → P`（块结束态），而真正该看到的是 `⊢ Q` + 假设 `hp`。
+/// 判据：`goals` 的正文与 binders 都要是**块内**的；`step` 必须是 `intro` 那条。
+#[test]
+fn state_at_inside_a_bullet_after_its_last_tactic_keeps_the_inner_state() {
+    const BULLET_INSIDE_AFTER_LAST: &str = concat!(
+        "axiom P : Prop\n",
+        "axiom Q : Prop\n",
+        "\n",
+        "theorem inside_bullet : (P -> Q) ∧ (Q -> P) := by\n",
+        "  constructor\n",
+        "  · intro hp\n",
+        "    \n",
+        "  intro hq\n",
+    );
+    let d = doc(BULLET_INSIDE_AFTER_LAST);
+    // 光标停在 `·` 块尾之后、下一条外层 tactic 之前，且该行缩进 **4 > 2**（`·` 列）
+    // ⇒ 还在块里（编辑器按 Enter 自动缩进出来的那一行）。
+    let after_intro =
+        BULLET_INSIDE_AFTER_LAST.find("· intro hp").expect("bullet") + "· intro hp".len();
+    let cursor = after_intro + 4; // 下一行行首 + 3（4 空格缩进里的第 4 格）
+    let state = d.state_at(cursor).expect("answerable");
+    assert_eq!(
+        state
+            .goals
+            .iter()
+            .map(|g| g.goal.as_str())
+            .collect::<Vec<_>>(),
+        ["Q"],
+        "block 内的目标（`intro hp` 之后）不是块结束时外层的 `Q → P`"
+    );
+    assert_eq!(
+        state.step, 2,
+        "`intro hp` is step 2 (constructor · · · intro)"
+    );
+    let names: Vec<&str> = state.goals[0]
+        .binders
+        .iter()
+        .map(|b| b.name.as_str())
+        .collect();
+    assert_eq!(names, ["hp"], "`hp` 仍在上下文里（块内状态，不是外层）");
+}
+
+/// **嵌套 `·` 的闭合态配对**（issue #5 的横向守卫）：块尾闭合态的缩进按**栈**配对，
+/// 外层闭合态不许冒领内层的缩进。
+///
+/// 夹具：外层 `·` 里再 `constructor` + 两个内层 `·`；两个内层块都留了未证完的目标
+/// （引擎按 Lean `closeUsingOrAdmit` 收口）⇒
+/// * 光标在**内层块里**（缩进 6 > 内层 `·` 的 4）⇒ 内层最后一条 tactic 的后态（`Q`）；
+/// * 光标已退回**外层块里**（缩进 4 = 内层 `·` 列）⇒ 内层闭合态（外层剩的 `Q → P`）。
+#[test]
+fn nested_bullets_pair_each_closure_state_with_its_own_indentation() {
+    const NESTED_BULLETS: &str = concat!(
+        "axiom P : Prop\n",
+        "axiom Q : Prop\n",
+        "\n",
+        "theorem nested : ((P -> Q) ∧ (Q -> P)) ∧ (P -> Q) := by\n",
+        "  constructor\n",
+        "  · constructor\n",
+        "    · intro hp\n",
+        "      \n",
+        "    \n",
+        "    · intro hq\n",
+        "  · intro hp\n",
+        "    exact hp\n",
+    );
+    let d = doc(NESTED_BULLETS);
+    let inside_inner =
+        NESTED_BULLETS.find("· intro hp\n").expect("inner bullet") + "· intro hp\n".len() + 3;
+    let state = d.state_at(inside_inner).expect("answerable");
+    assert_eq!(
+        state
+            .goals
+            .iter()
+            .map(|g| g.goal.as_str())
+            .collect::<Vec<_>>(),
+        ["Q"],
+        "内层块里：答内层最后一条 tactic 的后态"
+    );
+    assert_eq!(
+        state.step, 4,
+        "outer · / constructor / inner · / intro hp（焦点态与本步之间还有块内 constructor）"
+    );
+    assert_eq!(state.goals[0].binders[0].name, "hp");
+
+    // 退回到内层 `·` 的列（4）⇒ 内层块已结束、外层块还在：内层闭合态。
+    let inner_end = NESTED_BULLETS.find("· intro hq").expect("inner bullet 2") - 4;
+    let state = d.state_at(inner_end).expect("answerable");
+    assert_eq!(
+        state
+            .goals
+            .iter()
+            .map(|g| g.goal.as_str())
+            .collect::<Vec<_>>(),
+        ["Q → P"],
+        "外层块里：内层闭合态 = 外层剩下的目标"
+    );
+    assert_eq!(state.step, 5, "the first inner block's closure state");
+}
+
 #[test]
 fn state_at_outside_declarations_is_an_error_not_an_empty_answer() {
     let doc = doc("-- 只有注释\n");

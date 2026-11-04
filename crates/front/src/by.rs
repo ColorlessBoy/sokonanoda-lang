@@ -2355,8 +2355,8 @@ pub(crate) fn run_tactics<'a>(
                 // **块结束态**（2026-11-03 用户实测 `subset_empty_iff`）：`·` 只记
                 // 聚焦态、块跑完没有"外层剩下什么"那一格 ⇒ 块后第一条 tactic 的
                 // 进入态拿到块里最后一条的后态（空 ⇒ Infoview 报「已无目标」✗）。
-                // 这里补一条**零宽** step（span 落在块尾）：块后的 `entry`/空隙取它，
-                // 块内光标（start < 块尾）选不到它 ⇒ 内层语义零变化 ✓。
+                // 这里补一条**零宽** step（span 落在块尾）：块后的 `entry`/空隙取它；
+                // 块里光标（行缩进比 `·` 深）由选择器跳过（issue #5，见 `query/state.rs`）。
                 steps.push(ByStep {
                     span: crate::Span::new(span.end, span.end),
                     goals: worklist
