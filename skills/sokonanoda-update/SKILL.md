@@ -20,6 +20,11 @@ description: Refresh the version-pinned sokonanoda CLI + LSP cache to this check
 > **VS Code 的 standalone CLI 不走本命令**：扩展升级时会自动把
 > `~/.local/share/sokonanoda/bin/sokonanoda` 换成新 VSIX 自带版本；`update`
 > 只刷新启动器缓存，不会把旧 CLI 带到新扩展版本。
+>
+> **插件升级后的项目缓存**也不走本命令：升级后第一次打开 sokonanoda **项目**里的
+> `.sokonanoda` 文件时，扩展会弹一次 **确认 / 取消**，建议 rebuild 该项目（模块根
+> 来自服务端 `soko/project`，与 `alt+shift+b` 同一目标）。确认 = 立刻重建；取消 =
+> 不重建、本会话也不静默预热。一次升级只问一次。
 
 ## 命令（从仓库根或任意目录）
 

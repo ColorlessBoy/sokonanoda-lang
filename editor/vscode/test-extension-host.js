@@ -312,9 +312,12 @@ const vscodeStub = {
     },
     // **P0 判据要用**：记录弹出的信息提示 ⇒ 断言"点声明名**不弹提示**" ✓
     //（原来这里是个丢弃返回值的空实现 ⇒ 弹了什么**测不到** ✗）。
-    showInformationMessage: async (msg) => {
+    // **issue #9**：带按钮的通知还要记下按钮，并能按 `__messageChoice` 模拟点击
+    // —— "点下去 ⇒ 可见结果"是 UI 判据的硬要求（只断言"弹了通知"等于没测动作）。
+    showInformationMessage: async (msg, ...actions) => {
       (vscodeStub.__messages ??= []).push(String(msg));
-      return undefined;
+      if (actions.length > 0) (vscodeStub.__messageActions ??= []).push(actions);
+      return actions.length > 0 ? vscodeStub.__messageChoice : undefined;
     },
     showWarningMessage: async (msg) => {
       (vscodeStub.__messages ??= []).push(String(msg));
@@ -481,21 +484,26 @@ function fakeSpawn(command, args) {
   child.kill = () => {
     kills.push({ command, args });
   };
+  // **快照**要吐的事件（与真子进程同一条纪律：一个进程的输出在 spawn 那一刻就
+  // 定了）。以前 nextTick 里读的是**活动变量** ⇒ 上一个测试遗留的 build 会在
+  // 下一个测试的 `setBuildEvents()` 之后吐出下一个测试的事件，判据互相污染。
+  const courseOutput = courseEvents.slice();
+  const buildOutput = buildEvents.slice();
   process.nextTick(() => {
-    if (Array.isArray(args) && args[0] === "course" && courseEvents.length) {
-      child.stdout.emit("data", courseEvents.map((event) => JSON.stringify(event)).join("\n") + "\n");
+    if (Array.isArray(args) && args[0] === "course" && courseOutput.length) {
+      child.stdout.emit("data", courseOutput.map((event) => JSON.stringify(event)).join("\n") + "\n");
     }
     // **2026-10-08**：`clean` / `rebuild` 是 CLI 的子命令（`build --clean` 的同义写法 ✓），
     // 它们吐的是**同一套** `build.*` 事件流 ⇒ 假 CLI 对三个入口一视同仁 ✓。
     if (
       Array.isArray(args) &&
       ["build", "clean", "rebuild"].includes(args[0]) &&
-      buildEvents.length
+      buildOutput.length
     ) {
       // **E23**：像真子进程那样**按行**吐 `build.begin` / `build.file` /
       // `build.summary`（`--json` 事件流）—— 扩展是流式消费的，一次全给
       // 也能逐行处理，但"中间态"必须真的被记下来（状态栏历史 ✓）。
-      child.stdout.emit("data", buildEvents.map((event) => JSON.stringify(event)).join("\n") + "\n");
+      child.stdout.emit("data", buildOutput.map((event) => JSON.stringify(event)).join("\n") + "\n");
     }
     child.emit("close", 0);
   });
@@ -755,7 +763,7 @@ function resetListeners() {
   for (const key of Object.keys(listeners)) listeners[key] = emitter();
 }
 
-async function activateExtension(config = {}) {
+async function activateExtension(config = {}, options = {}) {
   requests.length = 0;
   spawns.length = 0;
   kills.length = 0;
@@ -763,6 +771,11 @@ async function activateExtension(config = {}) {
   timers = [];
   vscodeStub.__clients = [];
   vscodeStub.__notifications = [];
+  // **issue #9**：通知判据要能"点按钮" —— 记录弹了什么 + 带了哪些按钮 + 模拟
+  // 用户的选择（`__messageChoice`），否则"点确认 ⇒ 真 rebuild"这条动作判据测不到。
+  vscodeStub.__messages = [];
+  vscodeStub.__messageActions = [];
+  vscodeStub.__messageChoice = undefined;
   // 每个测试重新激活一次：监听器必须重新挂，否则上一个测试的监听器还在
   //（一次事件会被处理两遍——这正是我们要测的那类放大问题）。
   resetListeners();
@@ -777,11 +790,26 @@ async function activateExtension(config = {}) {
   // 提示的「已揭示到第几条」记在 `workspaceState` 里（`hintStateKey`）——记下来才能
   // 断言"提示真的按**声明名**记账"（用户可见结果，不是"链路通"✗）。
   vscodeStub.__workspaceState = {};
+  // **issue #9**：`globalState` 从"读不到 → 写不回"升级成真的存储。不传
+  // `options.globalState` 时播种"当前版已经运行过"（= 稳定态），既有用例因此
+  // **看不到**升级提醒；要测升级的用例显式传
+  // `{ globalState: { extensionVersion: "0.57.0" } }`，要测首跑兜底的传
+  // `{ globalState: {} }`（空对象 = 存储里真的没有基线）。
+  vscodeStub.__globalState =
+    options.globalState === undefined
+      ? { extensionVersion: "0.58.0" }
+      : { ...options.globalState };
   const context = {
     subscriptions: [],
     extensionPath: __dirname,
     extension: { packageJSON: { version: "0.58.0" } },
-    globalState: { get: () => undefined, update: async () => undefined },
+    globalState: {
+      get: (key, fallback) => vscodeStub.__globalState?.[key] ?? fallback,
+      update: async (key, value) => {
+        vscodeStub.__globalState = vscodeStub.__globalState ?? {};
+        vscodeStub.__globalState[key] = value;
+      },
+    },
     workspaceState: {
       // ⚠ **必须尊重默认值**（`get(key, 0)`）：忽略它 ⇒ `revealed` 是 `undefined`
       // ⇒ `hints[undefined]` 把 `undefined` 当提示显示出来 ✗（实测踩过 ✓）。
@@ -1107,6 +1135,208 @@ test("version switch: project artifacts from another compiler trigger a rebuild 
       project: null,
       reason: "no-imports",
     });
+  }
+});
+
+// ── issue #9：扩展升级 ⇒ 在项目里建议 rebuild（确认 / 取消）────────────────
+// 判据绑**用户动作**：通知里必须有两个按钮；点「确认」⇒ 真的起一次
+// `rebuild --json <模块根>`（与 alt+shift+b 同一个目标）；点「取消」/关掉 ⇒
+// **一次都不起**，而且既有的"版本切换自动预热"不许在背后补跑（否则「取消」是谎话）。
+// `globalState` 的升级基线是"一次升级只问一次"的唯一来源，也一并钉住。
+function upgradeProjectAnswer(root, extra = {}) {
+  const entry = `${root}/u01.sokonanoda`;
+  return () => ({
+    uri: `file://${entry}`,
+    version: 1,
+    project: {
+      entry: "u01",
+      root,
+      manifest: `${root}/sokonanoda.toml`,
+      requires_warning: null,
+      modules: [],
+      diagnostics: [],
+      counts: { modules: 1, compiled: 0, failed: 0, open: 0 },
+      ...extra,
+    },
+    reason: null,
+  });
+}
+
+function restoreProjectAnswer() {
+  stubbedResponses["soko/project"] = () => ({
+    uri: "",
+    version: 1,
+    project: null,
+    reason: "no-imports",
+  });
+}
+
+test("extension upgrade suggests rebuilding the project with 确认/取消 (issue #9)", async () => {
+  const root = "/repo/units-upgrade-cancel";
+  const entry = `${root}/u01.sokonanoda`;
+  stubbedResponses["soko/project"] = upgradeProjectAnswer(root);
+  // 产物也确实是旧版本写的：如果提醒没有"先问"，既有逻辑会在这里默默起一次预热。
+  vscodeStub.__serverArtifactsStale = true;
+  try {
+    await activateExtension({}, { globalState: { extensionVersion: "0.57.0" } });
+    assert.deepStrictEqual(vscodeStub.__messages, [], "没打开项目文件时不许提前弹提醒");
+    vscodeStub.__messageChoice = "取消";
+    focus(fakeDocument(entry));
+    await settle();
+
+    assert.strictEqual(
+      vscodeStub.__messages.length,
+      1,
+      `升级后打开项目文件必须弹**一次**提醒：${JSON.stringify(vscodeStub.__messages)}`,
+    );
+    assert.match(
+      vscodeStub.__messages[0],
+      /已升级到 v0\.58\.0（之前 v0\.57\.0）/,
+      `提醒要说清升级前后版本：${vscodeStub.__messages[0]}`,
+    );
+    assert.match(vscodeStub.__messages[0], /rebuild/);
+    assert.match(vscodeStub.__messages[0], /units-upgrade-cancel/, "提醒要指名是哪个项目");
+    assert.deepStrictEqual(
+      vscodeStub.__messageActions[0],
+      ["确认", "取消"],
+      "按钮必须恰好是「确认」「取消」（issue #9 的原文）",
+    );
+
+    // 用户点「取消」⇒ 一次都不重建（包括盘后的静默预热也不许补跑）。
+    assert.deepStrictEqual(spawns, [], `取消后不许起 rebuild：${JSON.stringify(spawns)}`);
+    // 再触发一次 `loadProject`（项目刷新 / 诊断事件同一条路）⇒ 不重复问、也不补跑。
+    vscodeStub.__commands["sokonanoda.project.refresh"]();
+    await settle();
+    assert.strictEqual(vscodeStub.__messages.length, 1, "一次升级只许问一次");
+    assert.deepStrictEqual(spawns, [], "问过之后同一个根不许再静默预热");
+    // 基线已经记下这一版 ⇒ 下次窗口重载不会重复问。
+    assert.strictEqual(
+      vscodeStub.__globalState.extensionVersion,
+      "0.58.0",
+      "答过之后必须把当前版写进 globalState（一次升级只问一次）",
+    );
+  } finally {
+    vscodeStub.__serverArtifactsStale = undefined;
+    restoreProjectAnswer();
+  }
+});
+
+test("extension upgrade: 确认 rebuilds the project exactly once (issue #9)", async () => {
+  const root = "/repo/units-upgrade-confirm";
+  const entry = `${root}/u01.sokonanoda`;
+  stubbedResponses["soko/project"] = upgradeProjectAnswer(root);
+  vscodeStub.__serverArtifactsStale = true;
+  try {
+    await activateExtension({}, { globalState: { extensionVersion: "0.57.0" } });
+    vscodeStub.__messageChoice = "确认";
+    focus(fakeDocument(entry));
+    await settle();
+    // **动作 ⇒ 结果**：点确认 = 与 `alt+shift+b` 同一条命令、同一个模块根，且只跑一次
+    //（问过之后静默预热已被记账挡住，不许再补一次）。
+    assert.deepStrictEqual(
+      spawns.map((s) => s.args),
+      [["rebuild", "--json", root]],
+      `确认后必须恰好起一次项目 rebuild：${JSON.stringify(spawns)}`,
+    );
+    // 让确认后那次 `runBuild` 收完尾（假子进程的 close 在 nextTick）：不排空的话
+    // 它会往**下一个测试**的状态栏/通知里写（判据互相污染）。
+    await new Promise((resolve) => setImmediate(resolve));
+    await settle();
+  } finally {
+    vscodeStub.__serverArtifactsStale = undefined;
+    restoreProjectAnswer();
+  }
+});
+
+test("an upgraded extension waits until a project is open before suggesting a rebuild (issue #9)", async () => {
+  const root = "/repo/units-upgrade-wait";
+  const entry = `${root}/u01.sokonanoda`;
+  // 先答"单文件"（不是项目）⇒ 不许弹；再答项目 ⇒ 这时才提醒。
+  stubbedResponses["soko/project"] = () => ({
+    uri: `file://${entry}`,
+    version: 1,
+    project: null,
+    reason: "no-imports",
+  });
+  try {
+    await activateExtension({}, { globalState: { extensionVersion: "0.57.0" } });
+    vscodeStub.__messageChoice = "取消";
+    focus(fakeDocument(entry));
+    await settle();
+    assert.deepStrictEqual(
+      vscodeStub.__messages,
+      [],
+      "不在 sokonanoda 项目里（单文件）不许建议 rebuild",
+    );
+    // 换成项目答案（同一份文档重新取一次）⇒ 这时才问。
+    stubbedResponses["soko/project"] = upgradeProjectAnswer(root);
+    vscodeStub.__commands["sokonanoda.project.refresh"]();
+    await settle();
+    assert.strictEqual(vscodeStub.__messages.length, 1, "进入项目后必须补上那次提醒");
+    assert.match(vscodeStub.__messages[0], /rebuild/);
+  } finally {
+    restoreProjectAnswer();
+  }
+});
+
+test("the first activation after installing this feature falls back to stale artifact writers (issue #9)", async () => {
+  // 本功能上线的那一版：`globalState` 里没有基线 ⇒ 只按版本对比会永远错过那一次
+  // 升级。兜底看项目产物是谁写的（`soko/project` 的 `artifacts`，零额外 I/O）：
+  // 更旧的写者 ⇒ 仍然提醒一次。基线在那次激活就写进去 ⇒ 兜底不会反复出现。
+  const root = "/repo/units-upgrade-first-run";
+  const entry = `${root}/u01.sokonanoda`;
+  stubbedResponses["soko/project"] = upgradeProjectAnswer(root, {
+    artifacts: {
+      dir: `${root}/.sokonanoda`,
+      entries: 2,
+      bytes: 2048,
+      compiler: "0.57.0",
+      writers: [{ compiler: "0.57.0", build_stamp: "aaaa", entries: 2 }],
+      stale: true,
+      current: "0.58.0",
+    },
+  });
+  vscodeStub.__serverArtifactsStale = true;
+  try {
+    await activateExtension({}, { globalState: {} });
+    vscodeStub.__messageChoice = "取消";
+    focus(fakeDocument(entry));
+    await settle();
+    assert.strictEqual(vscodeStub.__messages.length, 1, "首跑兜底必须提醒一次");
+    assert.match(
+      vscodeStub.__messages[0],
+      /编译缓存由 v0\.57\.0 写入（当前 v0\.58\.0）/,
+      `首跑兜底要说清产物写者与当前版本：${vscodeStub.__messages[0]}`,
+    );
+    assert.deepStrictEqual(vscodeStub.__messageActions[0], ["确认", "取消"]);
+    assert.deepStrictEqual(spawns, [], "用户取消 ⇒ 不许静默预热");
+    assert.strictEqual(
+      vscodeStub.__globalState.extensionVersion,
+      "0.58.0",
+      "首跑必须立刻建立版本基线（兜底只在那一次激活有效）",
+    );
+  } finally {
+    vscodeStub.__serverArtifactsStale = undefined;
+    restoreProjectAnswer();
+  }
+});
+
+test("downgrading the extension neither prompts nor breaks the next upgrade (issue #9)", async () => {
+  const root = "/repo/units-upgrade-downgrade";
+  const entry = `${root}/u01.sokonanoda`;
+  stubbedResponses["soko/project"] = upgradeProjectAnswer(root);
+  try {
+    await activateExtension({}, { globalState: { extensionVersion: "0.59.0" } });
+    focus(fakeDocument(entry));
+    await settle();
+    assert.deepStrictEqual(vscodeStub.__messages, [], "降级不是升级 ⇒ 不许建议 rebuild");
+    assert.strictEqual(
+      vscodeStub.__globalState.extensionVersion,
+      "0.58.0",
+      "降级后基线要跟到当前版，否则下一次真升级会被漏掉",
+    );
+  } finally {
+    restoreProjectAnswer();
   }
 });
 
