@@ -5613,6 +5613,67 @@ fn apply_with_mismatched_function_is_a_tactic_error() {
     assert_eq!(report.errors[0].code(), "elab-tactic-failed");
 }
 
+/// **issue #10**：目标本身是 Π 时 `apply` 的**部分应用** —— Lean 4
+/// `MVarId.apply` 从 `i = n - m` 起逐档试 `forallMetaTelescope`；`i < n` 那档下
+/// 被应用项的前 `i` 个实参由合一赋值、余下层正好是目标的 Π 望远镜。
+///
+/// 现场：`h1 : A ⊆ B`（展开成 `∀ x, x ∈ A → x ∈ B`）在目标 `x ∈ A → x ∈ B` 上应当
+/// 直接关掉（证明项 `h1 x`）。修前报「`h1` 的结果是 `x ∈ B`，无法对齐当前目标
+/// `x ∈ A → x ∈ B`」。
+#[test]
+fn apply_closes_a_pi_goal_with_a_partial_application() {
+    let src = concat!(
+        "def Sub (\u{3b1} : Type) (A B : \u{3b1} -> Prop) : Prop := ",
+        "forall (x : \u{3b1}), A x -> B x\n",
+        "axiom Ext {\u{3b1} : Type} (A B : \u{3b1} -> Prop) : ",
+        "(forall (x : \u{3b1}), A x \u{2194} B x) -> A = B\n",
+        "theorem issue10 (\u{3b1} : Type) (A B : \u{3b1} -> Prop) ",
+        "(h1 : Sub \u{3b1} A B) (h2 : Sub \u{3b1} B A) : A = B := by\n",
+        "  apply Ext\n",
+        "  intro x\n",
+        "  constructor\n",
+        "  apply h1\n",
+        "  apply h2\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert_eq!(
+        report.errors,
+        vec![],
+        "issue #10 的骨架必须判绿：{:?}",
+        report.errors
+    );
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("issue10"))
+        .expect("declaration issue10 missing");
+    assert_eq!(d.status, DeclStatus::Checked);
+}
+
+/// **部分应用不许把方向错吞掉**：`h : B ⊆ A` 在目标 `x ∈ A → x ∈ B` 上，
+/// `h ?x` 的类型是 `?x ∈ B → ?x ∈ A` ⇒ 域/陪域都对不上 ⇒ 仍是 `apply` 那条诊断。
+#[test]
+fn a_partial_application_with_the_wrong_direction_is_still_rejected() {
+    let src = concat!(
+        "def Sub (\u{3b1} : Type) (A B : \u{3b1} -> Prop) : Prop := ",
+        "forall (x : \u{3b1}), A x -> B x\n",
+        "theorem bad (\u{3b1} : Type) (A B : \u{3b1} -> Prop) (h : Sub \u{3b1} B A) ",
+        "(x : \u{3b1}) : A x -> B x := by\n",
+        "  apply h\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    let err = report
+        .errors
+        .iter()
+        .find(|e| e.code() == "elab-tactic-failed")
+        .unwrap_or_else(|| panic!("方向错必须报 apply 目标不匹配：{:?}", report.errors));
+    assert!(
+        err.message.contains("`apply` 的目标不匹配"),
+        "文案要点名 apply：{}",
+        err.message
+    );
+}
+
 #[test]
 fn by_block_with_sorry_placeholder_is_open_exercise() {
     // `:= by intro a; intro h; sorry`：sorry 把当前目标留空 → 合法 Open 状态。
