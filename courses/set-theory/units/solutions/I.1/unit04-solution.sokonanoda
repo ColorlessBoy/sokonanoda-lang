@@ -14,9 +14,10 @@
 --
 -- 一条**书写纪律**（判卷器的实测边界，不是风格偏好）：`∅` 是零元记法，落在
 -- 「被应用」的位置（`(∅) x`）补不出类型参数 ⇒ 第 8 题的语句里 `\` 与 `∪`
--- 写点名形式（`Set.sdiff` / `Set.union`）。画布 `demo_sdiff_self` 给出了
--- 另一条边界：`apply Set.ext` 会把子目标写成 `(A \ A) x ↔ (∅) x`，
--- 所以那里先用 `have` 写出逐元素 Iff 的**源形态**再交给 `Set.ext`。
+-- 写点名形式（`Set.sdiff` / `Set.union`）。画布 `demo_sdiff_self` 那条
+-- `have` 绕法（逐元素 Iff 写源形态再交给 `Set.ext`）**现在只是对照**：
+-- issue #10 修好 `Set.ext` 的陈述后，`apply Set.ext` 直接产源形态
+-- `x ∈ A \ A ↔ x ∈ ∅`（早先是 `(A \ A) x ↔ ∅ x`）。
 import lib.Logic
 import lib.Set
 

@@ -106,7 +106,7 @@ def sep {α : Type} (A : Set α) (P : α → Prop) : Set α :=
 
 -- ── 外延性（**公理**：Mathlib 由 propext + funext 推出，我们两者都没有）──────
 axiom ext : {α : Type} → (A B : Set α) →
-  (∀ (x : α), A x ↔ B x) → A = B
+  (∀ (x : α), Set.mem x A ↔ Set.mem x B) → A = B  -- soko:notation-ok: `∈` 记法在本文件第 140 行才声明，声明体只能写点名
 
 -- ── 记法（G-04 第二刀，0.60.0）：卷 I 的**数学符号**────────────────────────
 --
