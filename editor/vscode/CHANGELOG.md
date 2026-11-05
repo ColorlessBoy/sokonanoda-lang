@@ -1,4 +1,14 @@
 <!-- doc-refs: history-only（旧版本的 `docs/**` 指针是历史位置；恢复方式：原文 ⇒ git log --all -- <path>） -->
+## [Unreleased]
+
+### Added
+
+- **扩展升级后在项目里建议 rebuild**（[issue #9](https://github.com/ColorlessBoy/sokonanoda-lang/issues/9)）：
+  升级后第一次在 sokonanoda **项目**里打开 `.sokonanoda` 文件时，通知会建议 rebuild
+  这个项目（目标是服务端 `soko/project` 的模块根，与 `Rebuild` 命令同一个），按钮
+  **确认**（立刻跑 `rebuild`）/ **取消**（不重建，本会话不再静默预热）。一次升级只
+  提醒一次；升级前没有版本基线的**首跑**按项目产物的写者版本补一次提醒。
+
 ## [0.98.3] - 2026-11-04
 
 ### Fixed

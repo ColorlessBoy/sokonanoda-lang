@@ -436,6 +436,16 @@ and warn — never fail silently — when a file does not compile.
 **`0` = no limit**) — a cold build of a whole course can exceed the default, and
 the timeout message names the setting so you know where to change it.
 
+**After an extension upgrade** the extension suggests rebuilding, once: the first
+time you open a `.sokonanoda` file of a **project**, a notification offers
+**确认** / **取消**. 确认 runs `rebuild` on the project's module root — the same
+target as `alt+shift+b`; 取消 does not rebuild, and that project is not silently
+warmed up later in the session either (the notification never lies about "no").
+The prompt is shown once per upgrade (an upgraded window with no project open
+waits until you open one; a downgrade is not an upgrade). The first release that
+ships this prompt also recognises an upgrade from the writer version of existing
+project artifacts, so the upgrade that introduces the prompt is not missed.
+
 - **`Sokonanoda: Install Command Line (安装命令行)`** — copy the CLI that ships
   **inside this extension** to `~/.local/share/sokonanoda/bin/`, so you get a
   `sokonanoda` command **without downloading anything** (no network, no mirror,

@@ -45,6 +45,11 @@ let extensionRoot;
 // "判不了" ⇒ **不出声**（绝不拿"判不了"当"不匹配" ✗）。
 let extensionVersionCache;
 let lastResolution; // {command, source} of the last successful resolveServerForStart
+// 激活时的 `context` / 课程树 provider：`loadProject()` 是模块级函数（诊断事件、
+// 切文档都会调它），而升级提醒里的「确认」要跑一次 Rebuild —— `runBuild()` 需要
+// 这两样才能把输出通道挂到订阅上、跑完刷新课程树。
+let extensionContext;
+let activeCourseProvider;
 
 // 例行化 e2e 的诊断日志：`scripts/vscode-e2e.sh` 设 `SOKO_E2E_LOG` 时启用。
 // 为什么需要它：扩展宿主的 `console` 在 vscode-test 的输出里**看不到**，
@@ -1395,8 +1400,10 @@ async function loadProject() {
     // **版本切换 ⇒ 自动全量预热**（用户 2026-10-11：「最小编译策略在版本切换时
     // 自动变成 rebuild」）。模块根就在 `answer` 里（零额外取数），判定只读一次
     // 目录（`server.js::projectArtifactsWrittenByOtherVersion`）。
+    // issue #9 起**先问升级提醒**：刚升级过就在项目里建议 rebuild（确认/取消），
+    // 用户明确答过（含取消）就不再走下面那条静默预热。
     // **不 await**：它是后台活，绝不能拖慢"打开文档 ⇒ 看到目标"。
-    void autoRebuildOnVersionChange(answer);
+    void handleProjectVersionChange(answer);
   } catch (error) {
     e2eLog(`soko/project failed for ${uri}: ${error?.message ?? error}`);
     return;
@@ -2367,6 +2374,150 @@ function parseBuildEvents(stdout) {
   return events;
 }
 
+// ── 扩展升级 ⇒ 在项目里建议 rebuild（issue #9，2026-11-05）──────────────
+// 用户原话：「我希望Vscode sokonanoda 插件升级，不只是弹窗提醒我升级了，如果在
+// sokonanoda代码项目里，还增加一个建议，建议 rebuild 项目，然后是按钮"确认"和"取消"」。
+//
+// 触发点是**扩展版本变化**（`globalState` 记上次见过的版本），不是"每次打开项目"：
+// 升级后第一次打开任意 `.sokonanoda` 项目文件时问一次，答完（确认/取消/关掉）就
+// 记下这一版，**一次升级只问一次**。判"在项目里"用的是服务端 `soko/project` 的
+// `project.root` —— 与 E22 的 Build/Rebuild 同一个目标（模块根），客户端不自己找清单。
+//
+// ⚠ **首跑兜底**：本功能上线的那一版，老用户 `globalState` 里没有基线 ⇒ 只靠版本
+// 对比会**永远错过那一次升级**。所以"没有基线"的那一次激活额外看项目产物的写者
+// 版本（`project.artifacts.writers`，零额外 I/O）：写者更旧 ⇒ 也提醒一次。基线在
+// 那次激活就写进 `globalState`，所以兜底**只可能在功能上线后的第一次运行**发生。
+//
+// 与「版本切换 ⇒ 自动全量预热」（2026-10-11）的关系：**升级提醒优先**。同一个
+// 模块根，问过之后就不再在后台默默跑 —— 否则用户点「取消」之后仍会被那次静默
+// 预热违背（`autoRebuiltRoots` 同时充当"这个根已经处理过"的记号）。
+const EXTENSION_VERSION_STATE_KEY = "extensionVersion";
+/// 这次激活是否刚升级过：`{from,to}` = 有基线；`{firstRun:true}` = 没基线（首跑）。
+let pendingUpgrade;
+/// 本会话已经问过的模块根（`soko/project` 会因切文档/诊断/切窗口反复到达）。
+const upgradePromptedRoots = new Set();
+
+/// 读 `globalState` 里的扩展版本基线，决定这次激活要不要提醒（纯函数式，除
+/// `remember` 外无副作用；`context` 缺失/存储不可用时一律"不提醒"）。
+function rememberExtensionVersion(context, version) {
+  if (!context || typeof version !== "string") return;
+  try {
+    const pending = context.globalState.update(EXTENSION_VERSION_STATE_KEY, version);
+    if (pending && typeof pending.then === "function") pending.catch(() => {});
+  } catch {
+    // 写不进去只是少了下一次的升级提醒，不影响任何功能。
+  }
+}
+
+function detectExtensionUpgrade(context) {
+  const current = extensionVersion(context);
+  if (!versionParts(current)) return undefined;
+  let previous;
+  try {
+    previous = context.globalState.get(EXTENSION_VERSION_STATE_KEY);
+  } catch {
+    return undefined;
+  }
+  if (typeof previous !== "string" || !versionParts(previous)) {
+    // 没有基线（首次安装 / 本功能上线的那一版）：先记下当前版，再允许**这一会话**
+    // 用更旧的项目产物写者补一次提醒。同一会话之外不会再触发（基线已存在）。
+    rememberExtensionVersion(context, current);
+    return { firstRun: true };
+  }
+  const order = compareVersions(current, previous);
+  if (order > 0) return { from: previous, to: current };
+  if (order < 0) rememberExtensionVersion(context, current); // 降级：基线跟到当前版
+  return undefined;
+}
+
+/// 项目产物的**更旧**写者版本（只认严格更旧的；同版本不同构建戳不算升级）。
+/// 数据来自 `soko/project` 的 `project.artifacts`（`writers[].compiler`），零额外 I/O。
+function olderArtifactWriter(artifacts) {
+  const current = artifacts?.current;
+  if (typeof current !== "string" || !versionParts(current)) return undefined;
+  let previous;
+  for (const writer of Array.isArray(artifacts.writers) ? artifacts.writers : []) {
+    const version = writer?.compiler;
+    if (typeof version !== "string" || !versionParts(version)) continue;
+    if (compareVersions(version, current) >= 0) continue;
+    if (previous === undefined || compareVersions(version, previous) > 0) previous = version;
+  }
+  return previous;
+}
+
+function projectDisplayName(root) {
+  return path.basename(String(root)) || String(root);
+}
+
+/// 升级提醒：返回 `true` = 这个模块根已经处理过（问过），调用方不得再跑静默预热。
+///
+/// 三条纪律：
+///  ① **问之前先记账**（`pendingUpgrade` 清空 + 两个 Set 都加根）：`soko/project`
+///     会并发到达（切文档/诊断），不记账就会弹出好几个一样的通知；
+///  ② **「取消」就是取消**：同一个根不再自动预热 —— 否则后台那次 22 秒的活会让
+///     「取消」变成一句谎话；
+///  ③ **不阻塞项目视图**：调用方是 `void`；等待用户点击期间，视图照常渲染。
+async function promptUpgradeRebuild(answer) {
+  const root = answer?.project?.root;
+  if (typeof root !== "string" || root.length === 0) return false;
+  const upgrade = pendingUpgrade;
+  if (!upgrade) return false;
+  if (autoRebuiltRoots.has(root) || upgradePromptedRoots.has(root)) return false;
+  let from = upgrade.from;
+  let to = upgrade.to;
+  if (upgrade.firstRun) {
+    // 首次运行：没有版本基线，只能拿"项目产物是谁写的"当升级证据。
+    from = olderArtifactWriter(answer.project.artifacts);
+    to = answer.project.artifacts?.current;
+    if (!from || !to) return false;
+  }
+  const name = projectDisplayName(root);
+  const text =
+    upgrade.firstRun
+      ? `sokonanoda: 项目「${name}」的编译缓存由 v${from} 写入（当前 v${to}）。建议 rebuild，让缓存与新版本对齐。`
+      : `sokonanoda 已升级到 v${to}（之前 v${from}）。建议 rebuild 项目「${name}」，让编译缓存与新版本对齐。`;
+  // 记账要在**弹通知之前**：等待用户点击期间可能有第二个 `loadProject` 到达。
+  pendingUpgrade = undefined;
+  upgradePromptedRoots.add(root);
+  autoRebuiltRoots.add(root);
+  // 一次升级只问一次：**弹了**就记下这一版（用户点取消/关掉也算答过）。
+  if (!upgrade.firstRun) rememberExtensionVersion(extensionContext, to);
+  e2eLog(`upgrade prompt: root=${root} ${upgrade.firstRun ? `artifact ${from} -> ${to}` : `${from} -> ${to}`}`);
+  let choice;
+  try {
+    choice = await vscode.window.showInformationMessage(text, "确认", "取消");
+  } catch {
+    choice = undefined;
+  }
+  e2eLog(`upgrade prompt choice: ${choice ?? "dismissed"} root=${root}`);
+  if (choice !== "确认") return true; // 取消 / 关掉通知：不重建（也不再静默重建）
+  await runBuild(extensionContext, {
+    clean: true,
+    courseProvider: activeCourseProvider,
+    target: root,
+  });
+  return true;
+}
+
+/// 升级提醒是否**有可能**落在这一份项目答案上（同步预判，只为保住"没有升级时
+/// 走原来那条路、不多一个 await"——`autoRebuildOnVersionChange` 的时序被既有测试
+/// 依赖）。真正的判定仍在 `promptUpgradeRebuild` 里（首次运行的产物写者只有它知道）。
+function upgradePromptApplies(answer) {
+  if (!pendingUpgrade) return false;
+  const root = answer?.project?.root;
+  if (typeof root !== "string" || root.length === 0) return false;
+  return !autoRebuiltRoots.has(root) && !upgradePromptedRoots.has(root);
+}
+
+/// `loadProject()` 尾部的版本处理入口：先问（升级提醒），问不了才走既有的静默预热。
+function handleProjectVersionChange(answer) {
+  if (!upgradePromptApplies(answer)) return autoRebuildOnVersionChange(answer);
+  return (async () => {
+    if (await promptUpgradeRebuild(answer)) return;
+    await autoRebuildOnVersionChange(answer);
+  })();
+}
+
 /// **版本切换 ⇒ 自动全量预热**（2026-10-11 用户要求，最小改动）。
 ///
 /// 用户原话：「**最小编译策略**在版本切换时自动变成 rebuild」。打开一份项目文件时
@@ -2740,10 +2891,12 @@ async function installCli(context) {
 
 /// 跑一次 build/rebuild；返回给用户/测试看的摘要文本（跑不起来时 undefined）。
 /// 会刷新三个视图：build 改变了缓存状态，"面板像是没反应"正是它要回答的问题。
-async function runBuild(context, { clean = false, courseProvider } = {}) {
+/// `target` 可选：issue #9 的升级提醒**钉住通知里点名的那个模块根** —— 用户
+/// 可能在按「确认」前切到了别的文件，不能让 `buildTarget()` 把项目换成另一个。
+async function runBuild(context, { clean = false, courseProvider, target: explicitTarget } = {}) {
   const channel = buildOutput(context);
   channel.show(true);
-  const target = buildTarget();
+  const target = explicitTarget || buildTarget();
   if (!target) {
     vscode.window.showWarningMessage(
       "sokonanoda: 先打开一个 .sokonanoda 文件或一个工作区文件夹，再 build。",
@@ -3135,6 +3288,11 @@ async function uninstallCli() {
 async function activate(context) {
   extensionRoot = context.extensionPath;
   extensionVersionCache = extensionVersion(context);
+  // issue #9：扩展升级 ⇒ 在项目里建议 rebuild。判定必须在第一次 `loadProject()`
+  // 之前完成（激活的异步续段结尾就会调用它）；`globalState` 的读取是同步的。
+  extensionContext = context;
+  pendingUpgrade = detectExtensionUpgrade(context);
+  upgradePromptedRoots.clear();
 
   // **模块级进度状态必须回到初始态**：`compileShown` / `compileShowTimer` 是
   // 跨调用活着的（`$/progress` 的处理器挂在模块作用域上）。激活再来一次时
@@ -3270,6 +3428,7 @@ async function activate(context) {
   // 课程面板：数据来自 CLI 子进程（跨文件聚合）；不挂诊断刷新——诊断是
   // 单文档事件，课程地图只需激活时与手动刷新（sokonanoda.courseRefresh）。
   const courseProvider = new CourseTreeDataProvider();
+  activeCourseProvider = courseProvider;
   const courseTree = vscode.window.createTreeView("sokonanoda.courseMap", {
     treeDataProvider: courseProvider,
     showCollapseAll: true,
