@@ -1,5 +1,5 @@
 <!-- doc-refs: history-only（旧版本的 `docs/**` 指针是历史位置；恢复方式：原文 ⇒ git log --all -- <path>） -->
-## [Unreleased]
+## [0.98.4] - 2026-11-06
 
 ### Added
 
@@ -8,6 +8,16 @@
   这个项目（目标是服务端 `soko/project` 的模块根，与 `Rebuild` 命令同一个），按钮
   **确认**（立刻跑 `rebuild`）/ **取消**（不重建，本会话不再静默预热）。一次升级只
   提醒一次；升级前没有版本基线的**首跑**按项目产物的写者版本补一次提醒。
+
+### Fixed
+
+- **`apply` 支持部分应用**（[issue #10](https://github.com/ColorlessBoy/sokonanoda-lang/issues/10)）：
+  目标本身是 `→` / `∀` 时，`apply h1`（`h1 : A ⊆ B`，逐点目标 `x ∈ A → x ∈ B`）
+  不再报「`h1` 的结果是 `x ∈ B`，无法对齐当前目标」—— 按 Lean 4 的逐档匹配直接关掉
+  目标；方向写错仍报原诊断。逃生门 `SOKO_APPLY_PARTIAL=0` 逐字节回到旧行为。
+- **`apply Set.ext` 之后的目标面板**（issue #10 的显示根因）：课程库 `Set.ext` 的
+  陈述改用 `Set.mem` ⇒ 面板显示 `x ∈ A ↔ x ∈ B`（`A` / `x` 正常着色），不再是
+  `A x ↔ B x`；同一处的 `apply h1` / `apply h2` 随之对上目标。
 
 ## [0.98.3] - 2026-11-04
 
