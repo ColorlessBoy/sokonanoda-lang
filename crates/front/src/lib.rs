@@ -17,6 +17,9 @@
 // crate 级显式豁免并在此注明取舍。
 #![allow(clippy::result_large_err)]
 
+// `apply` 的**部分应用**（目标本身是 Π 时前 `i` 个实参由合一赋值）—— 从
+// `by.rs` 拆出来腾判据 ⑨ 的预算（那个文件在存量棘轮上，只许减不许增）。
+mod apply_partial;
 mod apply_probe;
 pub mod by;
 pub mod by_defer;

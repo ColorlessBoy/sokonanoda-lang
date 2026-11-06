@@ -60,8 +60,9 @@ theorem demo_union_univ (α : Type) (A : Set α) :
 
 -- 演示（已写好）：散文「A 去掉自己什么都不剩」译成形式等式。
 -- 注意套路：这里先把逐元素的 Iff 用 `have` 写成**源形态**（`x ∈ A \ A ↔ x ∈ ∅`），
--- 再交给 `Set.ext`——直接 `apply Set.ext` 会把子目标写成"记法被应用"的
--- `(A \ A) x ↔ (∅) x`，而 `∅` 是**零元**记法，那个形状回读不出类型参数。
+-- 再交给 `Set.ext`。**这条绕法现在只是对照**：早先 `apply Set.ext` 会把子目标
+-- 写成"记法被应用"的 `(A \ A) x ↔ ∅ x`（`∅` 那个位置回读不出类型参数）；
+-- issue #10 修好 `Set.ext` 的陈述之后，直接 `apply Set.ext` 就得到源形态 ✓。
 theorem demo_sdiff_self (α : Type) (A : Set α) :
     A \ A = ∅ := by
   have h : ∀ (x : α), x ∈ A \ A ↔ x ∈ ∅ := by

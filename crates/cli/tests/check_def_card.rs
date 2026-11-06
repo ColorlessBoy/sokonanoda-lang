@@ -173,7 +173,7 @@ fn only_defs_get_the_card() {
     assert_eq!(
         humans[1],
         "Set.ext: {α : Type} -> (A : Set α) -> (B : Set α) -> \
-         ((x : α) -> Iff (A x) (B x)) -> Eq A B"
+         ((x : α) -> Iff (Set.mem x A) (Set.mem x B)) -> Eq A B"
     );
     // `Set` 是 **def** ⇒ 有卡片（它是"集合类型"本身，`fun (α : Type 0) => α → Prop`）。
     assert_eq!(

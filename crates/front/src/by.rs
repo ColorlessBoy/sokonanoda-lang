@@ -2750,42 +2750,52 @@ fn apply_tactic<'a>(
                 })
         }
     };
-    let Some(sigma) = matched else {
-        // **G-109 第二刀（内核判等兜底）**：三条源级尝试全对不上时，让**内核**判
-        // 一次「这条应用是不是本来就证明了目标」。
-        //
-        // 依据（Lean 4 对照）：`apply` 的实参给完了就**没有子目标**，这时
-        // `apply` ≡ `exact`；Lean 的 `MVarId.apply` 走 `isDefEqApply`
-        // （`Meta/Tactic/Apply.lean:206`）⇒ 两侧 whnf ⇒ **default transparency
-        // 展开定义**。我们的表面匹配（源 AST 比头名 + 实参位）做不到"展开式
-        // 判等"，而**内核本来就会**（`def_eq_at`，`exact` 走的就是它）⇒ 复用它 ✓。
-        //
-        // 用户现场：目标 `a ∈ ({a})` 与 `Eq.refl a` 的结果 `a = a` 是 defeq
-        // （`Set.mem` 展开 + beta + `Set.singleton` 展开）⇒ 以前报「目标不匹配」
-        // 而 `exact` 能过 ✗。
-        //
-        // ⚠ 只在**今天就要报错的输入**上多这一趟（失败路径）⇒ 今天能过的 `apply`
-        // 逐字节不变 ✓（零回归面）。失败时 `exact_tactic` 不改 `nodes`/`worklist`
-        // （Err 臂只构造错误 ✓）⇒ 仍回落原来那句诊断 ✓。
-        if exact_tactic(
-            expr, span, nodes, worklist, universe, prefix_src, options, defs, None,
-        )
-        .is_ok()
-        {
-            // 内核判等成功 ⇒ 目标**已闭合**（没有子目标）⇒ 收工
-            // （`exact_tactic` 已把节点标成 `Closed` 并弹了 worklist ✓）。
-            return Ok(());
+    let (sigma, used) = match matched {
+        Some(sigma) => (sigma, layers.len()),
+        None => {
+            // **G-109 第二刀（内核判等兜底）**：三条源级尝试全对不上时，让**内核**判
+            // 一次「这条应用是不是本来就证明了目标」。
+            //
+            // 依据（Lean 4 对照）：`apply` 的实参给完了就**没有子目标**，这时
+            // `apply` ≡ `exact`；Lean 的 `MVarId.apply` 走 `isDefEqApply`
+            // （`Meta/Tactic/Apply.lean:206`）⇒ 两侧 whnf ⇒ **default transparency
+            // 展开定义**。我们的表面匹配（源 AST 比头名 + 实参位）做不到"展开式
+            // 判等"，而**内核本来就会**（`def_eq_at`，`exact` 走的就是它）⇒ 复用它 ✓。
+            //
+            // 用户现场：目标 `a ∈ ({a})` 与 `Eq.refl a` 的结果 `a = a` 是 defeq
+            // （`Set.mem` 展开 + beta + `Set.singleton` 展开）⇒ 以前报「目标不匹配」
+            // 而 `exact` 能过 ✗。
+            //
+            // ⚠ 只在**今天就要报错的输入**上多这一趟（失败路径）⇒ 今天能过的 `apply`
+            // 逐字节不变 ✓（零回归面）。失败时 `exact_tactic` 不改 `nodes`/`worklist`
+            // （Err 臂只构造错误 ✓）⇒ 仍回落原来那句诊断 ✓。
+            if exact_tactic(
+                expr, span, nodes, worklist, universe, prefix_src, options, defs, None,
+            )
+            .is_ok()
+            {
+                // 内核判等成功 ⇒ 目标**已闭合**（没有子目标）⇒ 收工
+                // （`exact_tactic` 已把节点标成 `Closed` 并弹了 worklist ✓）。
+                return Ok(());
+            }
+            // **部分应用**（issue #10）：目标本身是 `→`/`∀` 链 ⇒ 见 `apply_partial`。
+            // 同样只在失败边 ⇒ 今天能过的输入逐字节不变 ✓。
+            match crate::apply_partial::match_partial(&layers, &codomain, &goal, defs) {
+                Some((used, sigma)) => (sigma, used),
+                None => {
+                    return Err(CompileError::elab(
+                        ErrorKind::ElabTacticFailed,
+                        format!(
+                            "`apply` 的目标不匹配：`{}` 的结果是 `{}`，无法对齐当前目标 `{}`",
+                            display_expr(prefix_src, expr),
+                            display_expr(prefix_src, &codomain),
+                            display_expr(prefix_src, &goal)
+                        ),
+                        span,
+                    ))
+                }
+            }
         }
-        return Err(CompileError::elab(
-            ErrorKind::ElabTacticFailed,
-            format!(
-                "`apply` 的目标不匹配：`{}` 的结果是 `{}`，无法对齐当前目标 `{}`",
-                display_expr(prefix_src, expr),
-                display_expr(prefix_src, &codomain),
-                display_expr(prefix_src, &goal)
-            ),
-            span,
-        ));
     };
     // —— 类型参数**二次求解**（R2 实测的 `apply Set.ext` 静默错子目标）——
     //
@@ -2807,10 +2817,11 @@ fn apply_tactic<'a>(
         &layers, &codomain, &goal, &mut sigma, &spec, prefix_src, options,
     );
     // 按层序构造实参：codomain 里出现的命名 binder = 类型参数（σ 填充）；
-    // 其余 = 子目标（域类型 σ 代入）。
+    // 其余 = 子目标（域类型 σ 代入）。**部分应用**只消费前 `used` 层——余下层是
+    // 目标自己的 Π 链（`apply_partial` 已逐层对齐过），不再变参数/子目标。
     let mut args: Vec<ApplyArg> = Vec::new();
     let mut sub_nodes: Vec<usize> = Vec::new();
-    for (layer_idx, (name, domain)) in layers.iter().enumerate() {
+    for (layer_idx, (name, domain)) in layers.iter().take(used).enumerate() {
         // 这一层是不是**类型参数**：看它的名字有没有出现在「结论」里。
         //
         // **两边都要看**：内核 pp 会丢掉隐式实参——`Eq.{1} (Set α) A B` 打成
