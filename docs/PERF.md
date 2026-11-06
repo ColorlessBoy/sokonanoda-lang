@@ -83,7 +83,7 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
   跳过，CI 不依赖它）。
 - **发版门禁（2026-10-24）**：`python3 scripts/arena-gate.py` 现查最新 master
   `test-tarball`；`bump.py` 写版本前强制、`release-preflight.sh` ④ 复核。已知慢
-  `perf/magma-list-pair-n21` 只允许 timeout（README/官网写 126/127 + 1 性能超时）。
+  `perf/magma-list-pair-n21`、`perf/magma-list-deep-n36` 只允许 timeout。
 - 语料很大且属外部仓库，**不 vendor**；获取：`git clone` 后
   `uv run lka.py build-test` 生成 `_build/tests/*.ndjson`（人工准备；agent 不调用
   官方 Lean 工具链）。

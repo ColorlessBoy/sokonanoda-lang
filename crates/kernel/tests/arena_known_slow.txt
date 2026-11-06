@@ -5,4 +5,8 @@
 #
 # This is not a correctness skip list. Keep it minimal; the arena page remains
 # the performance reference for these cases.
+#
+# 2026-11-06：deep-n36 单独跑实测 117.9s（accept）——120s 默认线在满载/全量 207 条
+# 一起跑时会越线（0.98.4 的发版门禁实跑即超时）⇒ 按 perf-only 压力用例登记。
 perf/magma-list-pair-n21
+perf/magma-list-deep-n36

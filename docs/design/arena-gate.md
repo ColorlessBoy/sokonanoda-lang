@@ -12,8 +12,8 @@
 - **两层**：tarball tier（≤10MB 计分用例，必经）· full tier（`LEAN_KERNEL_ARENA`
   / `--full`，>10MB；仍受 64MB 上限，跳过数打印）。`either` 在 full tier 跳过。
 - **每 case 有超时**（默认 120s）；超时按失败，`arena_known_slow.txt` 里的
-  `perf/magma-list-pair-n21` 除外（pin `7b51784` >400s，当前上游 6.5s；只允许
-  timeout，完成的 case 仍判 accept/reject）。
+  `perf/magma-list-pair-n21`（>400s）、`perf/magma-list-deep-n36`（≈118s）允许
+  timeout，完成仍判 accept/reject。
 - **已知不支持** `tutorial/140_falseFromUnsafe`、`141_falseFromPartial`：必须
   declined/rejected，**accepted ⇒ 判负**；名单缺条目 ⇒ 判负。
   其他任何 decline/timeout/线程失联 panic 判负；内核 panic 按 arena 的
