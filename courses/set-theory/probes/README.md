@@ -33,6 +33,13 @@
   `sum2_succ` 由 `rfl` 判绿。这是 P3 的 workaround，不是语言 bug 的定论。
 - 结果：3 条声明 checked、0 diagnostic、0 open；exit 0。
 
+## p4-continuity-ivt.sokonanoda
+
+- 目的：验证连续（ε-δ）/ 连续函数 / 介值定理的**陈述形状**。
+- 抽象 `R`：`R` 及其运算 / 序都是 axiom；`IVTStatement` 只是命题，**未证明**。
+- 结果：12 条声明 checked、0 diagnostic、0 open；exit 0。
+
 ## 当前合集
 
-P1 + P2 + P3：**11 + 25 + 3 = 39 条声明 checked**，0 diagnostic，0 open。
+P1 + P2 + P3 + P4：**11 + 25 + 3 + 12 = 51 条声明 checked**，0 diagnostic，0 open。
+
