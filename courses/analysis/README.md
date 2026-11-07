@@ -5,15 +5,18 @@
 
 ## 状态
 
-- **C0（M0）完成**：P1–P5 可行性探针 + `ROUTE.md` 设计文档；探针不是课程单元。
-- **M1 未开始**：ℤ + ℚ，18 单元；`course.json` / `lib/` / 课程门禁随 M1 落。
+- **C0（M0）完成并 merge 进 `agent/real-analysis-integration`**：P1–P5 可行性探针 + `ROUTE.md`。
+- **M1 进行中**：ℤ + ℚ，18 单元。已落 `course.json`、`lib/`（9 个模块 + Demo）、单元①（画布 + 解答）；其余 17 单元继续。
+- **课程门禁**：`tools/check.py` 已从卷 I 移植，尚待 0.98.4 环境跑通；C3 收口前必须 0 判负。
 - 提案与追踪：issue #13；C0 子 issue #14；C0 PR #23。
 
 ## 入口
 
 - `ROUTE.md`：路线、探针结论、前置、里程碑、风险。
 - `probes/`：M0 可行性探针（P1–P5），不进课程门禁。
-- `probes/Prelude.sokonanoda`：探针本地的最小逻辑 prelude；M1 起换成 `lib/`。
+- `lib/`：M1 从卷 I 移植的 L2 库（`Logic` / `Exists` / `Set` / `Prod` / `Rel` / `Fun` / `Image` / `Equiv` / `Order`）。
+- `units/II.1/`：M1 的单元①（整数与商构造）；解答在 `units/solutions/II.1/`。
+- `course.json`：M1 课程清单（当前只列已落地的单元，随写作增长）。
 
 ## 边界
 

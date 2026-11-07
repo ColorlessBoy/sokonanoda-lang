@@ -1,0 +1,1670 @@
+#!/usr/bin/env python3
+"""课程门禁（卷 I《集合论》）：判据 G1–G6，**与课程规模无关**。
+
+设计：`docs/design/course-gate-in-ci.md`（判据 §3、三条坑 §4、输出 §5）、
+`docs/design/course-manifest-v2.md`（G6 / 清单 v2，台账 G-07）。
+
+判据（判红的**只有**这六条；计数从不参与判红）：
+
+* **G1** 每个目标 `grade` 退出码 0（G-10：判据只认 `grade` 的退出码，不认 `query check`）；
+* **G2** 目标存在：`course.json` 条目、`lib/`、每个画布（含非单元页面）的解答文件都在；
+* **G3** 解答：`exercise.open == 0` 且 `decl.checked > 0`（退出码对合法 open 返回 0，
+  只靠 G1 抓不到没填的洞）；
+* **G4** 解答覆盖：画布每个具名 `exercise.open.name` 都能在对应解答的
+  `decl.checked.name` 里找到（防止"删题代替填洞"）。**非单元页面**
+  （`units/` 下不进 `course.json` 的画布，如记法对照页）走**同一套** G1/G3/G4：
+  它们不是单元（没有单元号/配额），但同样是"有 `sorry` 的画布 + 有解答"。
+* **G5** `lib` + Demo：`exercise.open == 0`（库里有 `sorry` 会让引用它的单元判卷失真）。
+* **G7** 课程侧复现件重放：`gaps/*.sh` 每条**自带登记状态**（exit 0 = 与登记一致）
+  ⇒ 逐条重放、有一条不一致就判负（`--gaps-only` 只跑这条，秒级）；
+* **G6** 清单自洽（v2；v1 扁平清单天然满足）：volume/chapter id 唯一且非空、
+  每个 unit 恰好属于一个 chapter（`file` 不重复）、`prereqs` 指向存在的 chapter id。
+  **`quota.exercises` 与画布实际练习数的差额只报告、绝不判红**——课程门禁的
+  设计原则是「只判形状、不锁计数」（设计 §2/§4.2）。
+
+**成本台账**（设计 `docs/design/course-manifest-v2.md` §4.6）：`--ledger [路径]` 把
+每次跑完的**机器可读**记录追加进 `docs/courses/ledger.jsonl`
+（`soko.course-ledger/1`：日期 / 课程名 / 目标数 / checked / open / 判负 / 用时 ms /
+版本）。**默认关闭**——CI 不该往仓库里写文件（写进仓库的只有人工收尾跑的那一次）；
+`--selftest` 按 `LEDGER_FIELDS` 判字段齐全，守护不许漂移。
+
+清单两种格式都读（台账 G-07，`docs/design/course-manifest-v2.md`）：v1 扁平数组与
+v2 `{schema, volumes[].chapters[].units[]}`；`flatten_manifest()` 把 v2 展平成
+**与 v1 同形**的单元列表，所以 G1–G5 的判定代码一行未改。
+
+三条坑的工程化：
+
+* **G-10**（`query check` 假绿）：判据只走 `grade`；`--selftest` 用一份故意坏的单元
+  走**同一个判卷函数**，它必须被判负——判据通道失效时门禁自己红；
+* **G-12**（相对路径打空模块根）：入口一律 `str(path.resolve())`；`--selftest` 从另一个
+  cwd 再判一个带 `import lib.*` 的目标；
+* **G-15 已修（WO-010，0.59.0）**（诊断位置自带单位与坐标空间）：失败信息三段式——权威段（标签 + 绝对路径 + 退出码）、
+  参考段（诊断原样，标注 span 只作参考）、定位段（`--only <标签> --bisect`：按顶层
+  声明边界二分，结论**不依赖诊断 span**）；
+* **BUILD-STALE**（2026-10-14，第十二次复核的坑 1「守卫看得见却不用」）：启动器
+  （`scripts/soko version --json`）早就算出 `build.stale`（源码比二进制新），但**没有
+  消费者** ✗ ⇒ 陈旧引擎把同一份课程判出 **14 条假红**（而重建后 0 判负）。现在
+  `resolve_channel()` 把它变成**前置判据**：启动器选出来的链接是 `repo-build` 且
+  `stale` ⇒ `Prerequisite`（**exit 2**）+ 人话 + 正解
+  （`cargo build --release -p sokonanoda-cli` 或 `scripts/soko update`）✓；
+  同一处还**警告 debug 构建**（比 release 慢约 2×，见坑 2）。`--selftest` 用夹具仓
+  把"陈旧 ⇒ 拒 / 新鲜 ⇒ 放行 / release 优先 / debug 出声 / 版本对不上仍拒 /
+  显式 `--bin` 不受约束"六条逐条咬住 ✓。
+
+用法：
+
+```bash
+python3 courses/set-theory/tools/check.py                    # 人读表 + 汇总
+python3 courses/set-theory/tools/check.py --selftest         # 判据通道自检（G-12 cwd 自检 + G6 清单自检 + 台账字段）
+python3 courses/set-theory/tools/check.py --json             # 机器可读（含计数）
+python3 courses/set-theory/tools/check.py --only "单元 5" --bisect   # 二分定位
+python3 courses/set-theory/tools/check.py --report /tmp/gate.json --summary "$GITHUB_STEP_SUMMARY" --annotations
+python3 courses/set-theory/tools/check.py --ledger           # 追加一条成本台账（默认 docs/courses/ledger.jsonl；默认关闭）
+```
+
+退出码：**0** 全绿 / **1** 有目标被判负 / **2** 前置缺失或用法错误（无法判定 ≠ 绿）。
+"""
+
+from __future__ import annotations
+
+import argparse
+import contextlib
+import io
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+
+COURSE = Path(__file__).resolve().parent.parent
+COURSE_JSON = COURSE / "course.json"
+GAPS = COURSE / "gaps"          # G7：课程侧复现件（`gaps/*.sh`，见 gaps/README.md）
+LIB = COURSE / "lib"
+UNITS = COURSE / "units"
+SOLUTION_DIR = COURSE / "units" / "solutions"
+SCHEMA = "soko.course.check/2"
+LEDGER_SCHEMA = "soko.course-ledger/1"
+LEDGER_DEFAULT = "docs/courses/ledger.jsonl"
+# 成本台账一条记录必须带的**机器可读**字段（设计 course-manifest-v2.md §4.6）：
+# 日期 / 课程名 / 目标数 / checked / open / 判负 / 用时 ms / 版本。
+# `--selftest` 与 `tools/test_manifest_v2.py` 都按这份清单判（守护不许漂移）。
+LEDGER_FIELDS = ("schema", "version", "commit", "date", "course", "targets",
+                 "checked", "open", "rejected", "elapsed_ms", "solutions_open")
+# 单个目标判卷的墙钟上限（秒）；与课程规模无关。
+#
+# 180 → 600（2026-09-21）。这个数的作用是**抓挂死**（不返回的判卷），不是给速度定
+# 预算——挂死的判卷在 10 分钟内也不会返回，而一个又大又对的解答不该因为 runner 慢
+# 就被记成 `exit=124` 判负。实测（方法同 docs/CI-FAILURES.md 里 perf 预算那条：
+# 用同一轮里跑完了的同源步骤换算 runner 比值）：
+#   * 本机（M 系 mac，target/debug）单独判 `units/solutions/I.4/unit12-solution.sokonanoda`
+#     **2m03s**；整卷 36 个目标 4m46s（unit12 一个就占 43%）；
+#   * 同轮 CI 的 `--selftest` 16.7s vs 本机 8.5s ⇒ runner ≈ 本机 ×2.0；
+#   * ⇒ runner 上 unit12 约 **4m06s** > 180s ⇒ ci `35516857130` 判它
+#     `exit=124`，G1/G3/G4 连锁判负、0.62.0 因此发不出去。
+# 600s 对最慢实测留约 2.4× 余量；判据（G1–G6）与语义**一个都没动**。
+GRADE_TIMEOUT = 600
+
+# 顶层声明的行首关键字（--bisect 的边界；设计 §8 未决①：namespace/section 也算边界）。
+DECL_KEYWORDS = ("theorem", "def", "axiom", "inductive", "example", "namespace", "section")
+DECL_START = re.compile(r"^(?:" + "|".join(DECL_KEYWORDS) + r")\b")
+
+
+# ── 前置：判卷通道（§4.4：二进制必须与仓库同版本）──────────────────────────
+
+
+class Prerequisite(Exception):
+    """前置缺失/不可信：不判绿，退出码 2。"""
+
+
+@dataclass(frozen=True)
+class Channel:
+    """判卷命令前缀 + 可信来源说明。"""
+
+    argv: list[str]
+    source: str
+    path: str
+    version: str | None
+
+
+def repo_root() -> Path | None:
+    for parent in [COURSE, *COURSE.parents]:
+        if (parent / "scripts" / "soko").is_file():
+            return parent
+    return None
+
+
+def binary_version(binary: Path) -> str | None:
+    """二进制自报的版本；跑不起来/不说 `--version` ⇒ None。"""
+    try:
+        proc = subprocess.run([str(binary), "--version"], capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    match = re.search(r"(\d+\.\d+\.\d+)", proc.stdout or "")
+    return match.group(1) if match else None
+
+
+def repo_pin(root: Path) -> tuple[str | None, str]:
+    """本检出的版本钉：`sokonanoda-version.txt` → `Cargo.toml`（课程仓没有 Cargo.toml）。"""
+    version_txt = root / "sokonanoda-version.txt"
+    if version_txt.is_file():
+        for line in version_txt.read_text(encoding="utf-8").splitlines():
+            value = line.strip()
+            if not value or value.startswith("#"):
+                continue
+            match = re.fullmatch(r"v?(\d+\.\d+\.\d+)", value)
+            if match:
+                return match.group(1), version_txt.name
+            break
+    cargo = root / "Cargo.toml"
+    if cargo.is_file():
+        match = re.search(r'^version\s*=\s*"([^"]+)"', cargo.read_text(encoding="utf-8"), re.M)
+        if match:
+            return match.group(1), cargo.name
+    return None, ""
+
+
+def resolve_channel(root: Path, explicit: str | None) -> Channel:
+    """解析判卷命令：显式 `--bin`/`SOKONANODA_BIN` → 直用（比对版本）；否则走启动器。"""
+    override = explicit or os.environ.get("SOKONANODA_BIN")
+    if override:
+        binary = Path(override)
+        if not binary.is_file():
+            raise Prerequisite(f"--bin/SOKONANODA_BIN 指向的文件不存在：{binary}")
+        reported = binary_version(binary)
+        if reported is None:
+            raise Prerequisite(f"判卷二进制跑不起来（或不回答 --version）：{binary}")
+        pin, pin_source = repo_pin(root)
+        if pin and reported != pin:
+            raise Prerequisite(
+                f"判卷二进制与仓库版本不一致，结果不可信：\n"
+                f"  {binary} 自报 v{reported}，仓库钉是 v{pin}（{pin_source}）。\n"
+                f"  请用当轮构建（`cargo build -p sokonanoda-cli --locked`）或 `scripts/soko update`。"
+            )
+        note = f"override（对上 {pin_source} 的 v{pin}）" if pin else "override（本检出没有版本钉，跳过比对）"
+        return Channel([str(binary)], note, str(binary), reported)
+
+    soko = root / "scripts" / "soko"
+    if not soko.is_file():
+        raise Prerequisite(f"找不到启动器 {soko}；也没有给出 --bin/SOKONANODA_BIN")
+    node = shutil.which("node")
+    if node is None:
+        raise Prerequisite("找不到 node（`scripts/soko` 是 node 启动器）；或显式给出 --bin <sokonanoda>")
+    proc = subprocess.run([node, str(soko), "version", "--json"], capture_output=True, text=True,
+                          cwd=str(root), timeout=60)
+    try:
+        report = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        raise Prerequisite(
+            f"`scripts/soko version --json` 没有给出 JSON（exit {proc.returncode}）："
+            f"{(proc.stderr or proc.stdout).strip().splitlines()[-1] if (proc.stderr or proc.stdout).strip() else '无输出'}"
+        ) from None
+    cli = report.get("cli") or {}
+    path, source = cli.get("path"), str(cli.get("source") or "")
+    if not report.get("version"):
+        raise Prerequisite(
+            f"启动器解析不出期望版本（{report.get('version_error') or '没有版本钉'}）——判卷结果不可信。"
+        )
+    if not path or not Path(path).is_file():
+        raise Prerequisite(f"启动器没有解析出可执行的 CLI（{path or 'nothing'} [{source or '?'}]）——不判绿。")
+    if "STALE" in source or "unknown" in source or "unverified" in source:
+        raise Prerequisite(
+            f"启动器解析到的二进制不可信：{path} [{source}]。\n"
+            f"  先跑 `scripts/soko update`（或 `scripts/soko doctor --json`）再重试——不判绿。"
+        )
+    # ⚠ **补上 `--bin` 分支早就有的精确探针** ✗✓（E00 切片 C 第 12 条）：
+    #   上面那条黑名单只能挡**标签文案里写了** STALE/unknown/unverified 的情形 ✗；
+    #   而 `Channel.version` 记的是**版本钉**、不是二进制自报 ✗ ⇒
+    #   **「marker 写 0.65.5、二进制其实是 0.65.4」** 这类**看不出来** ✗
+    #   —— 那正是 `docs/E2-HANDOVER.md` §5 记的**真实事故** ✓。
+    #   ⇒ 照 `--bin` 分支（:165-172）**同口径**：跑一次 `--version`，
+    #     跑不起来 **或** 与版本钉不一致 ⇒ 都 `Prerequisite`（exit 2）✓。
+    #   ⚠ **不改 `Channel.version` 的语义**（仍记版本钉 ✓）—— 只加**交叉核对**，
+    #     免得动到台账契约 ✗（C 片提醒过这一点 ✓）。
+    reported = binary_version(Path(path))
+    if reported is None:
+        raise Prerequisite(
+            f"启动器解析到的 CLI 跑不起来（或不回答 --version）：{path} [{source}] —— 不判绿。"
+        )
+    if reported != report.get("version"):
+        raise Prerequisite(
+            f"启动器解析到的 CLI **自报版本与版本钉不一致**：自报 {reported} · "
+            f"钉 {report.get('version')}（{path} [{source}]）——\n"
+            f"  ⚠ 这正是 E2-HANDOVER §5 记的那次事故（marker 写 0.65.5、二进制其实是 0.65.4）✗\n"
+            f"  先跑 `scripts/soko update` 再重试——不判绿。"
+        )
+    # ⚠ **陈旧的仓库构建 ⇒ 拒绝判绿**（2026-10-14 BUILD-Q，坑 1 的**消费者**）。
+    #   病根：`scripts/soko version --json` 早就算出 `build.stale`（源码比二进制新），
+    #   可**没有消费者** ✗ —— 上面那条黑名单只看 `source` 的**文案**里有没有
+    #   `STALE`/`unknown`/`unverified`，而**仓库构建**的 source 恰好是干净的
+    #   `repo-build` ⇒ 「守卫看得见却不用」✗。
+    #   实测代价（第十二次复核）：陈旧引擎把**同一份课程**判出 **14 条假红**
+    #   （`checked` 也比新鲜态少），而 `cargo build --release -p sokonanoda-cli`
+    #   之后同一棵树是 **0 判负** ⇒ 那些判负不是课程坏了，是**读数不属于当前 commit** ✗。
+    #   ⇒ 这是"拿引擎判绿"的**唯一接缝**（`main()` 里 G1–G7 全在它之后）✓：
+    #     `stale` ⇒ `Prerequisite`（exit 2）+ 人话 + 正解。
+    #   ⚠ **只在启动器选出来的 `repo-build` 上判**：`--bin`/`SOKONANODA_BIN` 是显式
+    #     逃生门，而 A/B 对拍工具（`scripts/kernel-diff.sh` 拿两个二进制判同一棵树）
+    #     **本来就要求**"旧的那一份"能被判 ⇒ 拿 stale 去拦会打断它们 ✗（语义不许改）。
+    build = report.get("build") or {}
+    if source == "repo-build" and build.get("stale"):
+        raise Prerequisite(
+            f"判卷二进制是**陈旧的仓库构建**：{path} [repo-build, {build.get('profile') or '?'}]\n"
+            f"  二进制 mtime: {build.get('mtime')}\n"
+            f"  最新源文件:   {build.get('source_newest_file')} @ {build.get('source_newest')}\n"
+            f"  ⇒ 源码比二进制新 ⇒ **这次判卷不属于当前 commit**（同一份源码会有两个读数）✗\n"
+            f"  正解（无需联网，约 2 分钟）：cargo build --release -p sokonanoda-cli --locked\n"
+            f"  想改判已发布版本：scripts/soko update\n"
+        )
+    # ⚠ **debug 构建要出声**（2026-10-14 BUILD-Q，坑 2 的第二半）：解析优先级已改成
+    #   release 先（`scripts/soko` 的 `repoBuildCandidates`）⇒ 这里只剩"没有版本对得上的
+    #   release"的情形。**警告而不拒绝**：debug 是仓库自己记录过的本地迭代配置
+    #   （`GRADE_TIMEOUT` 的标定就用它），拒绝会打断"编 debug（21s）⇒ 判卷"的内环 ✓；
+    #   要消灭的是**静默** ✗（实测：debug 让 258 个目标的门禁从约 1–2 分钟变成 >20 分钟，
+    #   撞上调用方超时 ⇒ 124，与"判负"完全是两回事）。
+    if source == "repo-build" and build.get("profile") == "debug":
+        print(
+            "warning: 判卷引擎是 **debug** 构建（同一份判卷比 release 慢约 2×；\n"
+            "  本门禁 258 个目标实测从约 1–2 分钟变成 >20 分钟，可能撞上单目标 600s\n"
+            "  上限 ⇒ 假红/超时，不是课程坏了）\n"
+            f"  引擎：{path}\n"
+            "  判据请用 release：cargo build --release -p sokonanoda-cli --locked\n",
+            file=sys.stderr,
+        )
+    return Channel([path], source, path, report.get("version"))
+
+
+# ── 判卷（G-10：只认 `grade` 的退出码；G-12：只传绝对路径）─────────────────
+
+
+@dataclass
+class GradeResult:
+    code: int
+    checked: int = 0
+    open: int = 0
+    checked_names: list[str] = field(default_factory=list)
+    open_names: list[str] = field(default_factory=list)
+    diagnostics: list[dict] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+
+
+def grade(channel: Channel, path: Path, *, cwd: Path | None = None) -> GradeResult:
+    """判一个文件：`grade <绝对路径> --json`（退出码是唯一判据，事件流只用来计数/报错）。"""
+    argv = [*channel.argv, "grade", "--json", str(path.resolve())]
+    try:
+        proc = subprocess.run(argv, capture_output=True, text=True,
+                              cwd=str(cwd or COURSE), timeout=GRADE_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        return GradeResult(code=124, notes=[f"判卷超过 {GRADE_TIMEOUT}s 未返回"])
+    except OSError as error:
+        return GradeResult(code=125, notes=[f"判卷命令跑不起来：{error}"])
+
+    result = GradeResult(code=proc.returncode)
+    for line in proc.stdout.splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        kind = event.get("type")
+        if kind == "decl.checked":
+            result.checked += 1
+            if event.get("name"):
+                result.checked_names.append(str(event["name"]))
+        elif kind == "exercise.open":
+            result.open += 1
+            if event.get("name"):
+                result.open_names.append(str(event["name"]))
+        elif kind == "diagnostic":
+            result.diagnostics.append({key: event.get(key) for key in ("stage", "code", "message")})
+    if not result.diagnostics:
+        tail = [line for line in (proc.stderr or "").splitlines() if line.strip()]
+        if tail:
+            result.notes.append(tail[-1].strip())
+    return result
+
+
+_BISECT_SERIAL = 0
+
+
+def grade_text(channel: Channel, origin: Path, text: str) -> GradeResult:
+    """判一段文本（--bisect 的前缀）。
+
+    临时文件必须落在 **origin 同目录**：`grade` 不支持 `--root`，模块根靠祖先清单发现
+    （G-12 的安全形状）。文件名不带 `.sokonanoda` 后缀，任何 glob 都不会捡到它。
+    """
+    global _BISECT_SERIAL
+    _BISECT_SERIAL += 1
+    tmp = origin.parent / f".soko-bisect-{os.getpid()}-{_BISECT_SERIAL}.tmp"
+    try:
+        tmp.write_text(text, encoding="utf-8")
+        return grade(channel, tmp)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+# ── 清单：v1 扁平数组 / v2 结构化对象（台账 G-07）────────────────────────────
+
+MANIFEST_SCHEMA_V2 = "soko.course/2"
+
+
+@dataclass
+class Chapter:
+    """v2 的一章：id/title + 先修 + 标签 + 配额 + 它的单元（保持文档序）。"""
+
+    id: str
+    title: str
+    prereqs: list[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
+    quota: int | None = None
+    units: list[dict] = field(default_factory=list)
+    volume_id: str = ""
+    volume_title: str = ""
+
+
+@dataclass
+class ManifestInfo:
+    """清单的结构面：v1 时为全零/空（向后兼容：v1 没有结构可谈）。"""
+
+    source: Path
+    volumes: int = 0
+    chapters: list[Chapter] = field(default_factory=list)
+    v2: bool = False
+    # v2 清单的 `name`（课程 id）；v1 没有名字 ⇒ 空串，台账退回目录名。
+    name: str = ""
+
+
+def _string_list(value) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str)]
+
+
+def _quota_of(chapter: dict) -> int | None:
+    quota = chapter.get("quota")
+    if not isinstance(quota, dict):
+        return None
+    exercises = quota.get("exercises")
+    return exercises if isinstance(exercises, int) and not isinstance(exercises, bool) else None
+
+
+def flatten_manifest(value, source: Path) -> tuple[list[dict], list[str], ManifestInfo]:
+    """把清单（v1 数组 / v2 对象）展平成 `(units, problems, info)`。
+
+    展平后的 `units` 与 v1 条目**同形**（`file`/`title`/`title_en`/`unit`），
+    另外挂两个只在门禁内部用的键：`_chapter`（章 id，v1 为空串）与
+    `_volume`（卷 id）——G1–G5 的判定代码只读 v1 的那几个键，一行未改。
+
+    **G6 的判红在这里产出**（结构非法：id 重复/缺失、unit 重复、prereqs 悬空），
+    `problems` 走与 G2 同一条通道 ⇒ 判定/退出码/`--json` 自动跟上。
+    """
+    info = ManifestInfo(source=source)
+
+    if isinstance(value, list):
+        units = [entry for entry in value if isinstance(entry, dict)]
+        return units, [], info
+
+    if not isinstance(value, dict):
+        raise Prerequisite("course.json 既不是数组（v1）也不是对象（v2）")
+
+    schema = value.get("schema")
+    if schema is not None and schema != MANIFEST_SCHEMA_V2:
+        raise Prerequisite(
+            f"course.json 的 schema 是 {schema!r}，只认 {MANIFEST_SCHEMA_V2!r}"
+            f"（或没有 schema 的 v1 扁平数组）——不猜"
+        )
+
+    volumes = value.get("volumes", [])
+    if not isinstance(volumes, list):
+        raise Prerequisite("course.json 的 volumes 必须是数组")
+    info.v2 = True
+    info.volumes = len(volumes)
+    name = value.get("name")
+    info.name = name if isinstance(name, str) else ""
+
+    problems: list[str] = []
+    units: list[dict] = []
+    seen_volumes: set[str] = set()
+    seen_chapters: set[str] = set()
+    seen_files: dict[str, str] = {}
+
+    for index, volume in enumerate(volumes):
+        if not isinstance(volume, dict):
+            problems.append(f"G6：volumes[{index}] 不是对象")
+            continue
+        volume_id = volume.get("id")
+        if not isinstance(volume_id, str) or not volume_id.strip():
+            problems.append(f"G6：volumes[{index}] 缺 id")
+            volume_id = f"<volumes[{index}]>"
+        elif volume_id in seen_volumes:
+            problems.append(f"G6：volume id 重复：{volume_id}")
+        seen_volumes.add(volume_id)
+        volume_title = volume.get("title") if isinstance(volume.get("title"), str) else ""
+
+        chapters = volume.get("chapters", [])
+        if not isinstance(chapters, list):
+            problems.append(f"G6：volume {volume_id} 的 chapters 必须是数组")
+            continue
+        for position, chapter in enumerate(chapters):
+            if not isinstance(chapter, dict):
+                problems.append(f"G6：volume {volume_id} 的 chapters[{position}] 不是对象")
+                continue
+            chapter_id = chapter.get("id")
+            if not isinstance(chapter_id, str) or not chapter_id.strip():
+                problems.append(f"G6：volume {volume_id} 的 chapters[{position}] 缺 id")
+                chapter_id = f"<{volume_id}.chapters[{position}]>"
+            elif chapter_id in seen_chapters:
+                problems.append(f"G6：chapter id 重复：{chapter_id}")
+            seen_chapters.add(chapter_id)
+
+            raw_units = chapter.get("units", [])
+            if not isinstance(raw_units, list):
+                problems.append(f"G6：chapter {chapter_id} 的 units 必须是数组")
+                raw_units = []
+            entry_units: list[dict] = []
+            for raw in raw_units:
+                if not isinstance(raw, dict):
+                    problems.append(f"G6：chapter {chapter_id} 里有一个不是对象的单元条目")
+                    continue
+                file = raw.get("file")
+                if not isinstance(file, str) or not file.strip():
+                    problems.append(f"G6：chapter {chapter_id} 里有条目缺 file：{raw!r}")
+                    continue
+                _unit = raw.get("unit")
+                # ⚠ **不只断言「非 null」，还要断言「是整数」** ✗✓（E00 切片 C 第 13 条，实测 ✓）：
+                #   原来 `if raw.get("unit") is None` **只挡 None** ✗ ⇒ 实测
+                #   `"unit": "abc"` 与 `"unit": true` **都返回 `problems == []`** ✗
+                #   （`true` 还会被后面的 `int()` **静默当成 1 号** ✗）；
+                #   而 `"abc"` 随后在 `int(number)` 抛 ValueError、**不被 `except Prerequisite`
+                #   接住** ✗ ⇒ 门禁以 **traceback 收场**（退出码 1，**伪装成「有目标被判负」** ✗）。
+                #   同文件的 `_quota_of` 早就严谨地用
+                #   `isinstance(exercises, int) and not isinstance(exercises, bool)` ✓
+                #   ⇒ 这里照**同一口径** ✓（`bool` 是 `int` 的子类，**必须显式排除** ✗）。
+                if _unit is None:
+                    problems.append(f"G6：chapter {chapter_id} 的 {file} 缺 unit 号")
+                elif not isinstance(_unit, int) or isinstance(_unit, bool):
+                    problems.append(
+                        f"G6：chapter {chapter_id} 的 {file} 的 unit 号**必须是整数**，"
+                        f"实得 {type(_unit).__name__}（{_unit!r}）")
+                if file in seen_files:
+                    problems.append(
+                        f"G6：单元 {file} 同时属于 {seen_files[file]} 与 {chapter_id}"
+                        "（每个 unit 只能属于一个 chapter）"
+                    )
+                    continue
+                seen_files[file] = chapter_id
+                entry = dict(raw)
+                entry["_chapter"] = chapter_id
+                entry["_volume"] = volume_id
+                entry_units.append(entry)
+                units.append(entry)
+
+            info.chapters.append(
+                Chapter(
+                    id=chapter_id,
+                    title=chapter.get("title") if isinstance(chapter.get("title"), str) else "",
+                    prereqs=_string_list(chapter.get("prereqs")),
+                    tags=_string_list(chapter.get("tags")),
+                    quota=_quota_of(chapter),
+                    units=entry_units,
+                    volume_id=volume_id,
+                    volume_title=volume_title,
+                )
+            )
+
+    # prereqs 只能在**全部** chapter id 收齐后判（允许前向引用；课程是长出来的）。
+    for chapter in info.chapters:
+        for prereq in chapter.prereqs:
+            if prereq not in seen_chapters:
+                problems.append(f"G6：chapter {chapter.id} 的 prereqs 指向不存在的 {prereq}")
+    return units, problems, info
+
+
+def quota_notes(value, source: Path, canvas_open: dict[str, int] | None = None) -> list[str]:
+    """`quota.exercises` 与画布实际练习数的差额——**只报告**（设计 §2/§4.2）。
+
+    `canvas_open` = `{单元 file: 该画布的实测练习数（exercise.open）}`；不给时
+    只报计划数（`--selftest` 与清单自检用得上）。差额**永不**参与判红：
+    课程还在长，锁死计数会让门禁从质量闸退化成记账本。
+    """
+    units, _, info = flatten_manifest(value, source)
+    if not info.v2:
+        return []
+    by_file = {str(entry.get("file")): entry for entry in units}
+    notes: list[str] = []
+    for chapter in info.chapters:
+        if chapter.quota is None:
+            continue
+        files = [str(entry.get("file")) for entry in chapter.units]
+        planned = chapter.quota
+        if canvas_open is None:
+            notes.append(
+                f"chapter {chapter.id} 计划练习 {planned} · 单元 {len(files)} 个（未判卷，无实测）"
+            )
+            continue
+        measured = sum(canvas_open.get(file, 0) for file in files if file in by_file)
+        delta = measured - planned
+        sign = "+" if delta > 0 else ""
+        notes.append(
+            f"chapter {chapter.id} 计划练习 {planned} · 画布实测 {measured}（差额 {sign}{delta}）"
+        )
+    return notes
+
+
+
+@dataclass
+class Target:
+    label: str
+    path: Path
+    kind: str  # lib | unit | solution | page
+    canvas: Path | None = None
+    unit: int | None = None
+
+
+def solution_unit(path: Path) -> int | None:
+    match = re.match(r"unit(\d+)", path.stem)
+    return int(match.group(1)) if match else None
+
+
+def page_solution(canvas: Path, course: Path = COURSE) -> Path:
+    """非单元页面（`<画布名>.sokonanoda`）的解答路径；缺失由 G2 判负（不在这里报）。
+
+    **页面**（记法对照页）留在 `units/` 顶层 ⇒ 它的解答也留在 `units/solutions/` 顶层；
+    单元的画布/解答按**章**分子目录（见 `unit_solution_dir`），两套布局并存是刻意的。
+    """
+    return course / "units" / "solutions" / f"{canvas.stem}-solution.sokonanoda"
+
+
+def unit_solution_dir(canvas: Path, units_dir: Path, solutions_dir: Path) -> Path:
+    """单元的解答目录 = **画布所在章**对应的解答子目录（画布与解答同构分层）。
+
+    画布在顶层（旧布局/自检夹具）时退回解答顶层，行为与搬迁前一致。
+    """
+    rel = canvas.parent.relative_to(units_dir)
+    return solutions_dir / rel if str(rel) not in (".", "") else solutions_dir
+
+
+def discover(course: Path = COURSE) -> tuple[list[Target], list[str], int, ManifestInfo, list[dict]]:
+    """目标清单 = lib/*（含 Demo 复判一次）+ course.json 的单元 + 每个画布的解答。
+
+    `units/` 下**不计入 `course.json` 的页面**（记法对照页 `notation-cheatsheet`，大纲 §4
+    的"第二遍"）按 `units/*.sokonanoda` 里剩下的文件发现：它们不是单元（没有单元号、没有
+    配额），但是画布——有 `sorry`、有解答，所以照样过 G1/G3/G4。**画布是发现入口**：
+    解答缺了会被 G2 点名，而不是让整个页面悄悄从门禁里消失。
+
+    清单两种格式都读（v1 数组 / v2 对象）：`flatten_manifest()` 展平成 v1 同形的
+    单元列表，G1–G5 的判定因此一行未改；**G6 的结构非法**与 G2 走同一条
+    `problems` 通道（同一个判负行、同一套退出码）。
+    """
+    # `course` 参数只给 `--selftest` 的临时夹具用（默认 = 本课程目录）：
+    # 判据代码因此能在**故意坏的清单**上被验证，而不必先污染真清单。
+    manifest_path = course / "course.json"
+    lib_dir = course / "lib"
+    units_dir = course / "units"
+    solutions_dir = units_dir / "solutions"
+    if not manifest_path.is_file():
+        raise Prerequisite(f"找不到课程清单 {manifest_path}")
+    try:
+        raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise Prerequisite(f"course.json 读不出来或不是 JSON：{error}")
+    units, problems, info = flatten_manifest(raw, manifest_path)
+    if not units:
+        raise Prerequisite("course.json 里没有任何单元")
+
+    targets: list[Target] = []
+    # **只收文件**（审计 #10，2026-09-25 ✓）：产物目录 `<模块根>/.sokonanoda/` 的
+    # 名字以 `.sokonanoda` 结尾 ⇒ `glob("*.sokonanoda")` 会把**目录**也收进来 ✗
+    #（Python 3.14 实测 ✓，pathlib 不像 glob 模块那样隐藏点开头项 ✓）⇒ 之后
+    # `read_text()` 直接 `IsADirectoryError` ⇒ **门禁崩掉却不判** ✗（R-3 同形 ✓）。
+    modules = sorted(p for p in lib_dir.glob("*.sokonanoda") if p.is_file())
+    if not modules:
+        problems.append(f"课程标准库是空的：{lib_dir}")
+    for module in modules:
+        targets.append(Target(f"lib {module.stem}", module, "lib"))
+    targets.append(Target("lib 自检", lib_dir / "Demo.sokonanoda", "lib"))
+
+    canvases: list[tuple[int, Path]] = []
+    listed: set[Path] = set()
+    for entry in units:
+        rel, number = entry.get("file"), entry.get("unit")
+        if not rel or number is None:
+            problems.append(f"course.json 条目缺 file/unit：{entry!r}")
+            continue
+        canvas = course / str(rel)
+        canvases.append((int(number), canvas))
+        listed.add(canvas)
+        targets.append(Target(f"单元 {number}", canvas, "unit", unit=int(number)))
+
+    by_unit: dict[int, Path] = {}
+    # 同上：只收文件 ✓（审计 #10 ✓）。
+    # 解答与画布**同构**按章分子目录（`units/solutions/<章>/…`）⇒ 这里必须**递归**收，
+    # 否则搬进子目录后一份解答都发现不了（G3 会整片判负）。
+    for solution in sorted(
+        p for p in solutions_dir.rglob("*-solution.sokonanoda") if p.is_file()
+    ):
+        number = solution_unit(solution)
+        if number is None:
+            continue  # 非单元页面的解答由**画布**那一侧发现（见下）
+        if number in by_unit:
+            problems.append(f"同一单元有两份解答：unit{number:02d} → {by_unit[number].name} / {solution.name}")
+            continue
+        by_unit[number] = solution
+
+    for number, canvas in canvases:
+        # 解答缺失由这一行自己报（status=missing），所以不进 `problems`（不重复计数）。
+        # 兜底路径也要落在**画布同章**的子目录里（否则诊断会指到一个永远不会有的位置）。
+        solution = by_unit.get(number) or (
+            unit_solution_dir(canvas, units_dir, solutions_dir)
+            / f"unit{number:02d}-solution.sokonanoda"
+        )
+        targets.append(Target(f"解答 unit{number:02d}", solution, "solution", canvas=canvas, unit=number))
+    for number, solution in sorted(by_unit.items()):
+        if all(number != seen for seen, _ in canvases):
+            targets.append(Target(f"解答 unit{number:02d}（画布不在 course.json）", solution, "solution", unit=number))
+
+    # 非单元页面：画布 + 解答成对进目标，判据与单元同一条 G1/G3/G4。
+    # 同上：只收文件 ✓（审计 #10 ✓）。
+    # ⚠ 这里**故意不递归**：页面（记法对照页）按约定留在 `units/` 顶层 ⇒ 章子目录里的
+    # 单元画布不会被误当页面（它们已由 `course.json` 那条路发现）。
+    for canvas in sorted(p for p in units_dir.glob("*.sokonanoda") if p.is_file()):
+        if canvas in listed:
+            continue
+        targets.append(Target(f"页面 {canvas.stem}", canvas, "page"))
+        targets.append(Target(f"页面解答 {canvas.stem}", page_solution(canvas, course),
+                             "solution", canvas=canvas))
+    return targets, problems, len(canvases), info, units
+
+
+# ── 判据 G1/G3/G4/G5 ────────────────────────────────────────────────────────
+
+
+def evaluate(rows: list[dict], judge) -> None:
+    """给每行挂上判负理由（G1/G3/G5 就地判定；G4 需要画布，按需补判）。"""
+    for row in rows:
+        if row["status"] != "ok":
+            continue
+        reasons = row["reasons"]
+        if row["exit"] != 0:
+            reasons.append("G1：`grade` 退出码非 0（解析/elaborate/内核拒绝）")
+        if row["kind"] == "solution":
+            if row["open"] > 0:
+                reasons.append("G3：解答里还有未填的洞 " + "、".join(row["open_names"]))
+            if row["checked"] == 0:
+                reasons.append("G3：解答没有任何声明通过内核（`decl.checked == 0`）")
+        if row["kind"] == "lib" and row["open"] > 0:
+            reasons.append("G5：课程标准库里有 sorry " + "、".join(row["open_names"]))
+
+    # G4 独立于 G1/G3：解答即使已经判负，也要说清"画布的哪些练习它没覆盖"。
+    by_path = {row["path"]: row for row in rows if row.get("path")}
+    for row in rows:
+        if row["kind"] != "solution" or row["canvas"] is None or row["exit"] is None:
+            continue
+        canvas = by_path.get(row["canvas"])
+        if canvas is None:
+            # `--only 解答 …` 时画布不在选中集合里：按需补判一次（判卷结果有缓存）。
+            result = judge(Path(row["canvas"]))
+            canvas = {"exit": result.code, "open_names": result.open_names}
+        if canvas["exit"] != 0:
+            continue  # 画布自己判负 ⇒ G1 已报，覆盖度无从谈起
+        if not canvas["open_names"]:
+            # ⚠ **空集 ⇒ G4 真空通过** ✗✓（E00 切片 C 第 2 条）：`open_names` 为空 ⇒
+            #   `missing` 必为空 ⇒ G4 **判绿** —— 而它**声称镜像的那个旧测试自带这条
+            #   防空洞** ✓（`crates/cli/tests/course.rs:228-231`：
+            #   `assert!(!exercises.is_empty(), "canvas … has no named exercises — nothing to cross-check")`）
+            #   ⇒ check.py 的"无计数版"把它丢了 ✗。
+            #   今天 13 个画布 open 全 ≥1（**潜在洞、不是活洞** ✓），但 `exercise.open` 的
+            #   `name` 在协议里是 **optional**（`docs/protocol.md:60`，匿名 `example` 就是无名 ✓）
+            #   ⇒ 一旦出现就**静默失效** ✗ ⇒ 补与旧测试同口径的守卫 ✓。
+            row["reasons"].append(
+                "G4：画布没有具名练习，覆盖度无从谈起"
+                f"（{Path(row['canvas']).name} 的 open_names 为空）")
+        covered = set(row["checked_names"])
+        missing = [name for name in canvas["open_names"] if name not in covered]
+        if missing:
+            row["reasons"].append("G4：解答没有覆盖画布的练习 " + "、".join(missing))
+
+    for row in rows:
+        if row["status"] == "ok" and row["reasons"]:
+            row["status"] = "rejected"
+
+
+# ── --bisect（定位段：不依赖诊断 span，解析失败/多条错误时最稳）───────────────
+
+
+def declaration_starts(text: str) -> list[tuple[int, str]]:
+    """顶层声明边界：行首关键字扫描 ⇒ [(0-based 行号, 名字)]。"""
+    found: list[tuple[int, str]] = []
+    for index, line in enumerate(text.splitlines()):
+        stripped = line.lstrip()
+        if not stripped or stripped.startswith("--"):
+            continue
+        match = DECL_START.match(stripped)
+        if not match:
+            continue
+        rest = stripped[match.end():].lstrip()
+        name = match.group(0)
+        token = re.split(r"[\s:({\[]", rest, maxsplit=1)[0] if rest else ""
+        if token:
+            name = f"{name} {token}"
+        found.append((index, name))
+    return found
+
+
+def bisect(channel: Channel, target: Path) -> dict:
+    """二分出**最后一个全绿前缀**与**第一个判红的声明**（结论不依赖诊断 span）。"""
+    text = target.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    starts = declaration_starts(text)
+    if not starts:
+        return {"file": str(target), "decls": 0, "green_decls": None, "green_lines": None,
+                "first_bad": None, "first_bad_line": None, "note": "行首没扫到任何顶层声明"}
+    results: dict[int, int] = {}
+
+    def prefix_exit(count: int) -> int:
+        if count not in results:
+            if count >= len(starts):
+                results[count] = grade(channel, target).code
+            else:
+                cut = starts[count][0]
+                results[count] = grade_text(channel, target, "\n".join(lines[:cut]) + "\n").code
+        return results[count]
+
+    full = prefix_exit(len(starts))
+    if full == 0:
+        return {"file": str(target), "decls": len(starts), "green_decls": len(starts),
+                "green_lines": len(lines), "first_bad": None, "first_bad_line": None,
+                "note": "整份文件判绿，无需二分"}
+    low, high = 0, len(starts)  # 不变量：前缀 low 个声明判绿、high 个判红（索引，不是课程规模）
+    while low + 1 < high:
+        middle = (low + high) // 2
+        if prefix_exit(middle) == 0:
+            low = middle
+        else:
+            high = middle
+    name, line = starts[high - 1][1], starts[high - 1][0] + 1
+    return {"file": str(target), "decls": len(starts), "green_decls": low,
+            "green_lines": starts[low][0] if low < len(starts) else len(lines),
+            "first_bad": name, "first_bad_line": line, "full_exit": full,
+            "note": "依赖「前缀单调」假定；结论来自退出码，不含诊断 span"}
+
+
+def render_bisect(target: Target, found: dict, check_py: Path) -> list[str]:
+    lines = [f"--bisect {target.label}（{target.path}）"]
+    if found.get("first_bad") is None:
+        lines.append(f"  整份文件判绿：{found['decls']} 个顶层声明，无需二分。")
+        return lines
+    lines.append(f"  最后全绿的前缀 = 前 {found['green_decls']} 个顶层声明（到第 {found['green_lines']} 行）")
+    lines.append(f"  第一个判红的声明 = {found['first_bad']}（第 {found['first_bad_line']} 行）")
+    lines.append("  这个结论来自退出码而不是诊断 span；改完重跑："
+                 f"python3 {check_py} --only \"{target.label}\" --bisect")
+    return lines
+
+
+# ── --selftest（G-10 的判据通道自检 + G-12 的 cwd 自检 + G6 的清单自检）────
+
+BAD_UNIT = "theorem selftest_bad (P : Prop) (h : P) : P := by\n  exact bogus_name\n"
+BISECT_UNIT = (
+    "theorem selftest_ok1 (P : Prop) (h : P) : P := by\n"
+    "  exact h\n"
+    "\n"
+    "theorem selftest_ok2 (P : Prop) : P -> P := by\n"
+    "  intro h\n"
+    "  exact h\n"
+    "\n"
+    "theorem selftest_bad3 (P : Prop) (h : P) : P := by\n"
+    "  exact bogus_name\n"
+)
+
+SELFTEST_LIB = "def selftestId (P : Prop) : Prop := P\n"
+SELFTEST_UNIT = "import lib.Logic\n\ndef u (P : Prop) : Prop := selftestId P\n"
+SELFTEST_SOLUTION = SELFTEST_UNIT + "\ntheorem solved (P : Prop) : P -> P := fun h => h\n"
+
+# G6 的三类**结构非法**：每一种都必须被判负（判据通道失效时自检自己红）。
+SELFTEST_G6_BAD = {
+    "重复的 chapter id": {
+        "schema": MANIFEST_SCHEMA_V2,
+        "volumes": [{"id": "I", "chapters": [
+            {"id": "I.1", "units": [{"file": "units/a.sokonanoda", "unit": 1}]},
+            {"id": "I.1", "units": []},
+        ]}],
+    },
+    "prereqs 指向不存在的章": {
+        "schema": MANIFEST_SCHEMA_V2,
+        "volumes": [{"id": "I", "chapters": [
+            {"id": "I.1", "prereqs": ["I.9"],
+             "units": [{"file": "units/a.sokonanoda", "unit": 1}]},
+        ]}],
+    },
+    "同一 unit 挂在两个章": {
+        "schema": MANIFEST_SCHEMA_V2,
+        "volumes": [{"id": "I", "chapters": [
+            {"id": "I.1", "units": [{"file": "units/a.sokonanoda", "unit": 1}]},
+            {"id": "I.2", "units": [{"file": "units/a.sokonanoda", "unit": 1}]},
+        ]}],
+    },
+}
+
+# G6 的**合法**清单（正控制）：结构面干净，配额差额只报告不判红。
+SELFTEST_G6_GOOD = {
+    "schema": MANIFEST_SCHEMA_V2,
+    "volumes": [{"id": "I", "title": "卷", "chapters": [
+        {"id": "I.1", "title": "章", "prereqs": [], "tags": ["t"],
+         "quota": {"exercises": 99},
+         "units": [{"file": "units/a.sokonanoda", "title": "A", "unit": 1}]},
+    ]}],
+}
+
+
+def selftest_course_fixture(root: Path, manifest) -> Path:
+    """造一个最小课程目录（lib + units + 解答），供 G6 自检用。"""
+    (root / "lib").mkdir(parents=True, exist_ok=True)
+    (root / "units" / "solutions").mkdir(parents=True, exist_ok=True)
+    (root / "lib" / "Logic.sokonanoda").write_text(SELFTEST_LIB, encoding="utf-8")
+    (root / "units" / "a.sokonanoda").write_text(SELFTEST_UNIT, encoding="utf-8")
+    (root / "units" / "solutions" / "a-solution.sokonanoda").write_text(
+        SELFTEST_SOLUTION, encoding="utf-8"
+    )
+    (root / "course.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+    return root
+
+
+def selftest_g6(failures: list[str], tmp: Path) -> None:
+    """G6 自检：三类结构非法必须判负，一份合法清单必须判绿（正控制）。"""
+    for index, (label, manifest) in enumerate(SELFTEST_G6_BAD.items()):
+        course = selftest_course_fixture(tmp / f"g6-bad-{index}", manifest)
+        try:
+            _, problems, _, _, _ = discover(course)
+        except Prerequisite as error:
+            failures.append(f"G6 自检失败（{label}）：清单被判成前置错误而不是结构判负：{error}")
+            continue
+        if not any(problem.startswith("G6") for problem in problems):
+            failures.append(f"G6 自检失效：{label} 没有被判负（problems={problems}）")
+
+    good = selftest_course_fixture(tmp / "g6-good", SELFTEST_G6_GOOD)
+    try:
+        _, problems, _, info, units = discover(good)
+    except Prerequisite as error:
+        failures.append(f"G6 自检失败（正控制）：合法 v2 清单被判成前置错误：{error}")
+        return
+    if problems:
+        failures.append(f"G6 自检失效（正控制）：合法 v2 清单被判负（problems={problems}）")
+    if info.volumes != 1 or len(info.chapters) != 1:
+        failures.append(f"G6 自检失败（正控制）：卷/章计数错（volumes={info.volumes} chapters={len(info.chapters)}）")
+    # 配额 99 vs 画布 0 道 sorry：**只报告**，绝不进 problems。
+    notes = quota_notes(SELFTEST_G6_GOOD, good / "course.json", {"units/a.sokonanoda": 0})
+    # ⚠ **断言具体值，不是子串** ✗✓（E00 切片 C 第 6 条，实测 ✓）：原来只查
+    #   `any("99" in note ...)` —— 而 note 里 **99 / 0 / -99 同时出现** ✗ ⇒
+    #   差额算成 `+99` 或 `0` 都**照样过** ✗ ⇒ 与校准事故 `summary !== 'null'` **同形** ✗。
+    #   ⇒ 按正则取出三个数**逐一断言** ✓。
+    _m = re.search(r"计划练习 (\d+) · 画布实测 (\d+)（差额 ([+-]?\d+)）", " ".join(notes))
+    if not _m:
+        failures.append(f"G6 自检失效：配额差额 note 形状不对（notes={notes}）")
+    else:
+        _planned, _measured, _delta = (int(_m.group(1)), int(_m.group(2)), int(_m.group(3)))
+        if (_planned, _measured, _delta) != (99, 0, -99):
+            failures.append(
+                f"G6 自检失效：配额差额**被算错**（计划练习={_planned} 画布实测={_measured} "
+                f"差额={_delta}，期望 99 / 0 / -99）")
+    if len(units) != 1:
+        failures.append(f"G6 自检失败（正控制）：展平后应有 1 个单元，实得 {len(units)}")
+
+    # **判红逻辑也进自检** ✓（E00 切片 C 第 1 条：`evaluate()` 原来一行没被覆盖 ✗）
+    _evaluate_selftest(failures)
+
+    # **G6：unit 号必须是「非 bool 的整数」** ✓（E00 切片 C 第 13 条）。
+    # `99336f4` 修了守卫，但**只做了一次性演示、没固化进自检** ✗ ⇒ 这里补上 ✓
+    # （**判据不落成守卫、守卫不落成自检 ⇒ 几轮之后必然失效** ✓）。
+    def _mk_manifest(unit_value):
+        return {"schema": "soko.course/2", "volumes": [{"id": "I", "chapters": [
+            {"id": "I.1", "units": [{"file": "units/a.sokonanoda", "unit": unit_value}]}]}]}
+
+    for _bad, _label in (("abc", "字符串"), (True, "布尔")):
+        _, _probs, _ = flatten_manifest(_mk_manifest(_bad), tmp / "course.json")
+        if not any("必须是整数" in x for x in _probs):
+            failures.append(
+                f"G6 自检失效：unit 号是{_label}时**没判红**（problems={_probs}）"
+                "—— 正是 99336f4 修掉的那个洞 ✗")
+    # 正控制：合法整数 unit ⇒ **不该**因这条红（防误伤 ✓）
+    _, _probs, _ = flatten_manifest(_mk_manifest(1), tmp / "course.json")
+    if any("必须是整数" in x for x in _probs):
+        failures.append(f"G6 自检失败（正控制）：合法整数 unit 被判负（problems={_probs}）")
+
+
+def _evaluate_selftest(failures: list) -> None:
+    """**让 `evaluate()` 第一次进自检** ✓（E00 切片 C 第 1/2 条）。
+
+    ⚠ 切片 C 实测：`--selftest` **从不调用 `evaluate()`** ✗（唯一调用点在 `run()` 里）
+    ⇒ **G1/G2/G3/G4/G5 零负例** —— 把它 patch 成"一调用就 raise"，自检**仍 PASS** ✗。
+
+    **现已覆盖 `evaluate()` 里的全部四条** ✓（`90ab11e` 起补 G4，本轮补齐其余三条）：
+    G4（画布空集 / 正控制）· G1（退出码非 0）· G3（有洞 / 全灭）· G5（库里有 sorry），
+    外加两条**正控制**（覆盖完整、干净的一行 ⇒ 都不许红 ✓）。
+    ⚠ **G2 不在 `evaluate()` 里**（它在 `run()` 里做"点名具体缺失文件"）⇒ 本函数**覆盖不到** ✓。
+    """
+
+    class _Judged:
+        def __init__(self, code, open_names):
+            self.code, self.open_names = code, open_names
+
+    base = {
+        "kind": "solution", "canvas": "/nonexistent/Canvas.sokonanoda",
+        "exit": 0, "status": "ok", "reasons": [], "open": 0, "open_names": [],
+        "checked": 3, "checked_names": ["p1"],
+    }
+    # 负例：画布**没有具名练习** ⇒ 覆盖度无从谈起（不许真空判绿 ✗）
+    neg = dict(base, reasons=[])
+    evaluate([neg], lambda _p: _Judged(0, []))
+    if not any("G4：画布没有具名练习" in r for r in neg["reasons"]):
+        failures.append(
+            "G4 自检失效：画布 `open_names` 为空时 **G4 真空判绿**（vacuously true）"
+            f"—— reasons={neg['reasons']}")
+    # 正控制：画布有具名练习、且解答全覆盖 ⇒ **不该红**（防误伤 ✓）
+    pos = dict(base, reasons=[])
+    evaluate([pos], lambda _p: _Judged(0, ["p1"]))
+    if any("G4" in r for r in pos["reasons"]):
+        failures.append(f"G4 自检失败（正控制）：覆盖完整却被判负 —— reasons={pos['reasons']}")
+
+    # ⚠ 下面把 `evaluate()` 里**其余三条判据**也各补一条负例 ✓（2026-09-27 补，续 90ab11e）。
+    #   每条都断言**是哪一条判据开火**（前缀点名 ✓），不是"有没有红" ✗。
+    #   ⚠ **G2 不在 `evaluate()` 里**（它是 `run()` 里"点名具体缺失文件"的那条）⇒
+    #     **本函数覆盖不到它** ✓ —— 不含糊地说成"全覆盖" ✗。
+    def _case(label, want_prefix, **over):
+        row = dict(base, reasons=[], canvas=None, open=0, open_names=[],
+                   checked=3, checked_names=["p1"], exit=0)
+        row.update(over)
+        evaluate([row], lambda _p: _Judged(0, []))
+        if not any(r.startswith(want_prefix) for r in row["reasons"]):
+            failures.append(
+                f"{label} 自检失效：期望 `{want_prefix}` 开火，实际 reasons={row['reasons']}")
+
+    # G1：`grade` 退出码非 0
+    _case("G1", "G1：", exit=1)
+    # G3-a：解答里还有未填的洞
+    _case("G3(有洞)", "G3：解答里还有未填的洞", open=2, open_names=["a", "b"])
+    # G3-b：解答没有任何声明通过内核
+    _case("G3(全灭)", "G3：解答没有任何声明通过内核", checked=0)
+    # G5：课程标准库里有 sorry
+    _case("G5", "G5：", kind="lib", open=1, open_names=["x"])
+
+    # 正控制：完全干净的一行 ⇒ **一条理由都不该有**（防误伤 ✓）
+    clean = dict(base, reasons=[], canvas=None, open=0, open_names=[],
+                 checked=3, checked_names=["p1"], exit=0)
+    evaluate([clean], lambda _p: _Judged(0, []))
+    if clean["reasons"]:
+        failures.append(f"evaluate 自检失败（正控制）：干净的一行被判负 —— reasons={clean['reasons']}")
+
+
+def selftest_build_trust(failures: list[str], tmp: Path, channel: Channel) -> int:
+    """**构建闸门自检**（2026-10-14 BUILD-Q）：陈旧/新鲜/优先级/逃生门六条断言。
+
+    为什么需要它：坑 1 的病根正是「**算得出 `build.stale`、没人消费**」✗ ⇒
+    修法若没有一条**能咬住**的守卫，同一个接缝下一轮还会静默回来
+    （`AGENTS.md`：**咬不住的守卫等于没有**）。这里造**夹具仓**（真 `scripts/soko`
+    + 判卷二进制的副本 + 受控 mtime），逐条断言：
+
+    ① 陈旧（源码比二进制新）⇒ `resolve_channel` **必须拒绝**（exit 2 那条路）；
+    ② 新鲜 ⇒ **照旧放行**（正控制：闸门不许误伤）；
+    ③ release 与 debug 都在、debug 更新 ⇒ **必须解析到 release**（坑 2 的第一层）；
+    ④ 只有 debug ⇒ **仍放行**（不许打断 debug 内环），且警告**真的出声**；
+    ⑤ 版本钉对不上 ⇒ **仓库构建仍必须被拒**（旧守卫一条不许松）；
+    ⑥ 显式 `--bin` ⇒ **不受 stale 闸门约束**（逃生门语义不许改：A/B 对拍要它）。
+
+    返回造出来的夹具数（早退路径自己记 failure ⇒ 调用方不必再补一条）。
+    """
+    def expect(desc: str, ok: bool) -> None:
+        if not ok:
+            failures.append(f"构建闸门自检失败：{desc}")
+
+    root = repo_root()
+    if root is None or not (root / "scripts" / "soko").is_file():
+        failures.append("构建闸门自检跑不了：找不到语言仓的 scripts/soko")
+        return 0
+    if shutil.which("node") is None:
+        # 不静默跳过（同 `scripts/soko gate` 对 python3 的口径）：`--bin` 判卷在没有
+        # node 的机器上合法，但那样**这条闸门根本没被验过** ⇒ 如实报出来。
+        failures.append(
+            "构建闸门自检跑不了：找不到 node（启动器是 node 程序）⇒ 陈旧构建闸门没被验过 ✗"
+        )
+        return 0
+    pin = channel.version
+    if not pin:
+        failures.append("构建闸门自检跑不了：判卷通道没有版本钉（夹具造不出可比的版本）")
+        return 0
+    binary = "sokonanoda.exe" if os.name == "nt" else "sokonanoda"
+    made: list[Path] = []
+    saved = {key: os.environ.get(key) for key in
+             ("SOKONANODA_BIN", "SOKONANODA_LSP_BIN", "SOKONANODA_VERSION",
+              "SOKONANODA_CACHE_DIR", "SOKONANODA_OFFLINE", "CARGO_TARGET_DIR")}
+
+    def fixture(tag: str, *, profiles: tuple[str, ...] = ("release",),
+                stale_source: bool = False, pin_text: str | None = None) -> Path:
+        home = tmp / f"build-trust-{tag}"
+        (home / "scripts").mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(root / "scripts" / "soko", home / "scripts" / "soko")
+        stamp = time.time()
+        if pin_text is None:
+            manifest = home / "Cargo.toml"
+            manifest.write_text(f'[package]\nname = "fixture"\nversion = "{pin}"\n',
+                                encoding="utf-8")
+            os.utime(manifest, (stamp - 60, stamp - 60))   # 明确比二进制旧，别靠同一秒的巧合
+        else:
+            (home / "sokonanoda-version.txt").write_text(f"{pin_text}\n", encoding="utf-8")
+        for profile in profiles:
+            target = home / "target" / profile
+            target.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(channel.path, target / binary)
+            os.chmod(target / binary, 0o755)
+            os.utime(target / binary, (stamp, stamp))
+        if stale_source:
+            source = home / "crates" / "front" / "src" / "fixture.rs"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text("-- 夹具：只为把 mtime 推后（内容不参与判定）\n", encoding="utf-8")
+            later = stamp + 3600
+            os.utime(source, (later, later))
+        made.append(home)
+        return home
+
+    try:
+        # 夹具环境必须**不带任何覆盖**（否则走 `--bin` 分支，闸门根本没被问到 ✗），
+        # 缓存指到夹具自己的空目录（不读也不写真缓存）。
+        # ⚠ **`CARGO_TARGET_DIR` 也要剥**（2026-10-14 实测被自己的臂咬住 ✓）：受管环境
+        #   （`compile-cache.py env`）把它指到 worktree 外的 target ⇒ 夹具的启动器会**同时**
+        #   看见外层的 `release` 构建 ⇒ "release 优先"直接选它、夹具的 `debug` 永远轮不上
+        #   ⇒ ④ 号臂当场判红（stderr 空）✓ —— **夹具不密封，臂就咬不住** ✓。
+        for key in ("SOKONANODA_BIN", "SOKONANODA_LSP_BIN", "SOKONANODA_VERSION",
+                    "CARGO_TARGET_DIR"):
+            os.environ.pop(key, None)
+        os.environ["SOKONANODA_CACHE_DIR"] = str(tmp / "build-trust-cache")
+        os.environ["SOKONANODA_OFFLINE"] = "1"
+
+        # ① 陈旧 ⇒ 必须拒绝（本闸门的存在理由）
+        stale_home = fixture("stale", stale_source=True)
+        try:
+            resolve_channel(stale_home, None)
+            expect("陈旧仓库构建（源码比二进制新）**没有被拒绝** —— 闸门失效", False)
+        except Prerequisite as error:
+            text = str(error)
+            expect(f"拒绝理由要点名「陈旧」（实得：{text.splitlines()[0][:90]}）", "陈旧" in text)
+            expect("拒绝理由要给出正解 `cargo build --release -p sokonanoda-cli`",
+                   "cargo build --release -p sokonanoda-cli" in text)
+
+        # ② 正控制：同一夹具、**没有**更晚的源码 ⇒ 必须照旧放行
+        fresh_home = fixture("fresh")
+        try:
+            fresh = resolve_channel(fresh_home, None)
+            expect(f"新鲜仓库构建必须报 repo-build（实得 {fresh.source}）",
+                   fresh.source == "repo-build")
+        except Prerequisite as error:
+            expect(f"新鲜仓库构建被误拒（闸门误伤）：{error}", False)
+
+        # ③ 坑 2：debug 更新也**不许**遮蔽 release
+        both_home = fixture("both", profiles=("release", "debug"))
+        newer = time.time() + 600
+        os.utime(both_home / "target" / "debug" / binary, (newer, newer))
+        try:
+            both = resolve_channel(both_home, None)
+            expect("debug 比 release 新时仍必须解析到 release（坑 2：debug 遮蔽 release）"
+                   f"—— 实得 {both.path}",
+                   both.path.endswith(str(Path("release") / binary)))
+        except Prerequisite as error:
+            expect(f"release 与 debug 都在时被误拒：{error}", False)
+
+        # ④ 只有 debug ⇒ 仍放行（本地内环）+ 警告**真的出声**（不许静默地慢）
+        debug_home = fixture("debug-only", profiles=("debug",))
+        noise = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(noise):
+                debug_channel = resolve_channel(debug_home, None)
+            expect(f"只有 debug 时不许拒绝（会打断本地 debug 内环）：{debug_channel.source}",
+                   debug_channel.source == "repo-build")
+        except Prerequisite as error:
+            expect(f"只有 debug 的树被误拒：{error}", False)
+        expect(f"debug 构建必须出声（stderr 实得：{noise.getvalue()[:60]!r}）",
+               "debug" in noise.getvalue())
+
+        # ⑤ 版本钉对不上 ⇒ 仓库构建仍必须被拒（旧守卫一条不许松）
+        pin_home = fixture("bad-pin", pin_text="9.9.9")
+        try:
+            bad = resolve_channel(pin_home, None)
+            expect("版本钉对不上（9.9.9 vs 二进制自报）时仍把仓库构建交给了判卷 —— 旧守卫松了",
+                   bad.source != "repo-build")
+        except Prerequisite as error:
+            expect(f"版本钉对不上时的拒绝理由不该是「陈旧」：{error}", "陈旧" not in str(error))
+
+        # ⑥ 显式 override 不受 stale 闸门约束（逃生门语义不许改）
+        try:
+            override = resolve_channel(stale_home, channel.path)
+            expect(f"显式 --bin/SOKONANODA_BIN 没走 override 分支（实得 {override.source}）",
+                   override.source.startswith("override"))
+        except Prerequisite as error:
+            expect(f"显式 --bin 被 stale 闸门拦了（逃生门语义被改 ✗）：{error}", False)
+    finally:
+        for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+        for home in made:
+            shutil.rmtree(home, ignore_errors=True)
+    return len(made)
+
+
+def selftest(channel: Channel, check_py: Path) -> int:
+    failures: list[str] = []
+    tmp = Path(tempfile.mkdtemp(prefix="soko-course-selftest-"))
+
+    # ① 正控制 + G-12：从**另一个 cwd** 判一个真的、带 `import lib.*` 的目标。
+    control = LIB / "Demo.sokonanoda"
+    result = grade(channel, control, cwd=tmp)
+    if result.code != 0:
+        failures.append(
+            f"正控制失败：{control.name} 从 {tmp} 判卷 exit={result.code}"
+            f"（判卷通道坏了，或绝对路径/模块根回归——G-12）"
+        )
+    elif result.checked == 0:
+        failures.append(f"正控制失败：{control.name} 一个声明都没 checked")
+
+    # ② 变异：故意坏的单元（合法前缀 + `exact bogus_name`）必须被判负。
+    bad = tmp / "selftest-bad.sokonanoda"
+    bad.write_text(BAD_UNIT, encoding="utf-8")
+    result = grade(channel, bad, cwd=tmp)
+    if result.code == 0:
+        failures.append("判据通道失效（G-10 类）：故意坏的声明被判绿——门禁结论不可信")
+
+    # ③ 二分：3 个声明、第 3 个坏 ⇒ 必须点名第 3 个（且不靠诊断 span）。
+    triple = tmp / "selftest-bisect.sokonanoda"
+    triple.write_text(BISECT_UNIT, encoding="utf-8")
+    found = bisect(channel, triple)
+    if found.get("first_bad") != "theorem selftest_bad3":
+        failures.append(f"二分自检失败：期望点名 theorem selftest_bad3，实得 {found.get('first_bad')!r}")
+    elif found.get("green_decls") != 2:
+        failures.append(f"二分自检失败：期望最后全绿前缀 = 前 2 个声明，实得 {found.get('green_decls')!r}")
+
+    # ③b **缓存一致性**（2026-09-29 用户要求 ✓："缓存失效/污染这条新失败模式要有守卫：
+    #     命中缓存与冷跑**结果必须一致**"）——CI 的 `actions/cache` 缓存
+    #     `<模块根>/.sokonanoda/compiled/`（实测冷 **313.8s** → 热 **0.51s**，**615×**），
+    #     而**缓存污染 = 拿旧产物判新课程 = 错判**（用户红线："错判比慢严重"）⇒
+    #     必须有守卫**咬住**它。
+    #     **做法**：造一个**带 import 的**最小课程 → 先**清掉产物冷跑**取基线 →
+    #     再**热跑**（走产物）⇒ 两次的判卷结果（exit/checked/open/名字集）**必须逐项相同**。
+    #     **反向验证**：把产物目录换成一个**内容被篡改**的副本 ⇒ 守卫必须能报不一致
+    #     （下面 ③c 真做这件事，不是只写在注释里 ✓）。
+    cache_root = tmp / "cache-fixture"
+    (cache_root / "lib").mkdir(parents=True, exist_ok=True)
+    (cache_root / "lib" / "L.sokonanoda").write_text(
+        "def cacheId (P : Prop) : Prop := P\n", encoding="utf-8")
+    cache_unit = cache_root / "U.sokonanoda"
+    cache_unit.write_text(
+        "import lib.L\n\ndef u2 (P : Prop) : Prop := cacheId P\n"
+        "theorem t2 (P : Prop) : P -> P := fun h => h\n", encoding="utf-8")
+    # 冷跑：先清掉这个夹具自己的产物（只清夹具，不碰真课程）。
+    import shutil as _shutil
+    _shutil.rmtree(cache_root / ".sokonanoda", ignore_errors=True)
+    cold = grade(channel, cache_unit, cwd=tmp)
+    if cold.code != 0:
+        failures.append(f"缓存一致性自检的**冷跑**就没过（exit={cold.code}）⇒ 夹具坏了，守卫不可信")
+    else:
+        hot = grade(channel, cache_unit, cwd=tmp)  # 第二次：走产物
+        same = (hot.code == cold.code and hot.checked == cold.checked and hot.open == cold.open
+                and sorted(hot.checked_names) == sorted(cold.checked_names)
+                and sorted(hot.open_names) == sorted(cold.open_names))
+        if not same:
+            failures.append(
+                "**缓存污染**：热跑与冷跑结果不一致 "
+                f"（冷 exit={cold.code} checked={cold.checked} open={cold.open}；"
+                f"热 exit={hot.code} checked={hot.checked} open={hot.open}）"
+                "—— 拿旧产物判新课程就是错判 ✗")
+        elif not (cache_root / ".sokonanoda").is_dir():
+            failures.append("缓存一致性自检没造出产物（热跑其实还是冷跑）⇒ 守卫**空转** ✗")
+
+    # ③c **反向验证**：篡改产物 ⇒ 守卫必须咬得住（"咬不住的守卫等于没有"）。
+    #     把产物目录整体复制一份、改掉其中一个 `.json` 的字节 ⇒ 判卷**必须**与冷跑不同
+    #     （内容寻址的意义：改了内容就 miss ⇒ 重编 ⇒ 结果回到正确值）。
+    #     ⚠ 这条**不是**要求"篡改后判错"，而是要求**系统不静默采信坏产物**：
+    #     要么重编得正确结果（= 与冷跑相同 ✓），要么报错；**唯一不可接受的是**给出
+    #     一个与冷跑不同、又不报错的"第三种答案" ✗。
+    tampered = False
+    compiled = cache_root / ".sokonanoda" / "compiled"
+    if compiled.is_dir():
+        victim = sorted(compiled.glob("*.json"))
+        if victim:
+            # **全部**产物都写坏（不只一个）：只坏一个的话，判卷可能**根本不读它**
+            # （那个模块在这次判卷里没被问到）⇒ 守卫会**空转** ✗（"咬不住的守卫等于没有"）。
+            for path in victim:
+                path.write_bytes(b"not json at all\n")
+            tampered = True
+            after = grade(channel, cache_unit, cwd=tmp)
+            # **判据**：坏产物**不许产生"第三种答案"** ✗ ——
+            # 内容寻址的正解是"读不出来 ⇒ 当不存在 ⇒ 重编" ⇒ 结果应与冷跑**一致**；
+            # 或者干脆报错（exit != 0）。**唯一不可接受**：给出一个与冷跑不同、
+            # 又不报错的答案（= 静默采信坏产物 ⇒ 错判）。
+            if after.code == 0 and (
+                after.checked != cold.checked
+                or after.open != cold.open
+                or sorted(after.checked_names) != sorted(cold.checked_names)
+                or sorted(after.open_names) != sorted(cold.open_names)
+            ):
+                failures.append(
+                    "**坏产物被静默采信**（缓存污染的实质）：全部产物写成非 JSON 后，"
+                    f"判卷给出与冷跑**不同**的答案且不报错 —— 冷 checked={cold.checked} "
+                    f"open={cold.open} / 坏产物后 checked={after.checked} open={after.open} ✗")
+    if not tampered:
+        failures.append("反向验证没跑到（没有可篡改的产物）⇒ 咬不住 ✗")
+
+    # ④ G6 清单自检：三类结构非法必须判负 + 一份合法 v2 清单必须判绿。
+    selftest_g6(failures, tmp)
+
+    # ⑤ 成本台账契约（设计 course-manifest-v2.md §4.6）：一条合成记录必须带齐
+    #    日期/课程名/目标数/checked/open/判负/用时 ms/版本。默认**不写**文件——
+    #    `--ledger [路径]` 才追加（CI 不往仓库里写）。
+    sample = json.loads(ledger_entry(
+        [{"label": "单元 1", "status": "ok", "checked": 2, "open": 1}],
+        {"targets": 1, "checked": 2, "open": 1, "rejected": 0, "solutions_open": 0},
+        repo_root() or COURSE, course="selftest", elapsed_ms=1,
+    ))
+    missing = [key for key in LEDGER_FIELDS if key not in sample]
+    if missing:
+        failures.append(f"成本台账缺字段（{LEDGER_SCHEMA}）：{missing}")
+    elif sample["elapsed_ms"] != 1 or sample["course"] != "selftest":
+        failures.append(f"成本台账字段值不对：{sample}")
+
+    # ⑥ **构建闸门**（2026-10-14 BUILD-Q）：陈旧 ⇒ 拒绝 · 新鲜 ⇒ 照旧 ·
+    #    release 优先 · debug 出声 · 版本对不上仍拒 · 显式 --bin 不受 stale 约束。
+    #    早退路径自己记 failure ⇒ 这里不必再补一条（但它返回 0 时必须有 failure ✓）。
+    selftest_build_trust(failures, tmp, channel)
+
+    print(f"--selftest：判卷通道 [{channel.source}] {channel.path}"
+          + (f"（v{channel.version}）" if channel.version else ""))
+    if failures:
+        for line in failures:
+            print(f"  ✗ {line}")
+        print("--selftest FAIL：判据通道不可信，门禁不判绿。")
+        return 1
+    print("  ✓ 正控制（另一个 cwd + import lib.*）判绿 · ✓ 故意坏的单元被判负 · "
+          "✓ 二分点名坏声明 · ✓ **缓存冷热一致 + 坏产物不被静默采信** · "
+          "✓ G6 三类结构非法被判负 + 合法 v2 判绿 · ✓ 成本台账字段齐全 · "
+          "✓ **陈旧构建被拒 + 新鲜照旧 + release 优先 + debug 出声 + 逃生门不受约束**")
+    print("--selftest PASS")
+    return 0
+
+
+# ── 输出（人读 / JSON / 注解 / step summary / 台账）─────────────────────────
+
+
+def gh_escape(text: str) -> str:
+    return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+def gh_property(text: str) -> str:
+    return gh_escape(text).replace(":", "%3A").replace(",", "%2C")
+
+
+def failure_block(row: dict, check_py: Path) -> list[str]:
+    shown_exit = row["exit"] if row["exit"] is not None else "—"
+    head = f"✗ {row['label']}  exit={shown_exit}  {row['file']}"
+    if row["diagnostics"]:
+        first = row["diagnostics"][0]
+        head += f"  stage={first['stage']} code={first['code']} message={first['message']}"
+    lines = [head]
+    for reason in row["reasons"]:
+        lines.append(f"    {reason}")
+    for note in row["notes"]:
+        lines.append(f"    {note}")
+    if row["diagnostics"]:
+        lines.append("    参考段：诊断原样如上（span 自带行列、可信）；要看「第一个判红的声明」仍用下面的二分。")
+    if row["exit"]:
+        lines.append(f"    定位：python3 {check_py} --only \"{row['label']}\" --bisect")
+    else:
+        lines.append("    `grade` 没判红（exit 0 或文件不存在）⇒ --bisect 不适用；按上面的理由定位。")
+    return lines
+
+
+def summary_markdown(rows: list[dict], summary: dict, channel: Channel) -> str:
+    lines = ["### 课程门禁 · 卷 I《集合论》（G1–G6，与规模无关）", ""]
+    lines.append(f"判卷通道：`{channel.path}` [{channel.source}]"
+                 + (f" · v{channel.version}" if channel.version else ""))
+    lines.append("")
+    lines.append("| 状态 | checked | open | 目标 |")
+    lines.append("|---|---:|---:|---|")
+    for row in rows:
+        mark = {"ok": "ok", "rejected": "**判负**", "missing": "**缺失**"}.get(row["status"], row["status"])
+        lines.append(f"| {mark} | {row['checked']} | {row['open']} | `{row['file']}` |")
+    lines.append("")
+    lines.append(f"**{summary['targets']} 个目标 —— {summary['checked']} checked · "
+                 f"{summary['open']} open · {summary['rejected']} 个被判负**")
+    return "\n".join(lines) + "\n"
+
+
+def git_commit(root: Path) -> str | None:
+    try:
+        proc = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"],
+                              capture_output=True, text=True, timeout=15)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return proc.stdout.strip() if proc.returncode == 0 else None
+
+
+def ledger_entry(rows: list[dict], summary: dict, root: Path, *,
+                 course: str, elapsed_ms: int) -> str:
+    """一条**机器可读**的成本台账记录（设计 course-manifest-v2.md §4.6）。
+
+    字段：日期（UTC ISO-8601）/ 课程名 / 目标数 / checked / open / 判负 /
+    用时 ms / 版本（外加 `schema`/`commit`/`solutions_open`/逐目标 `rows`）。
+    **默认不写**：`--ledger [路径]` 才追加——CI 不该往仓库里写文件（见 §4.6）。
+    """
+    pin, _ = repo_pin(root)
+    entry = {
+        "schema": LEDGER_SCHEMA,
+        "version": pin,
+        "commit": git_commit(root),
+        "date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "course": course,
+        "targets": summary["targets"],
+        "checked": summary["checked"],
+        "open": summary["open"],
+        "rejected": summary["rejected"],
+        "elapsed_ms": elapsed_ms,
+        "solutions_open": summary["solutions_open"],
+        "rows": [{"label": row["label"], "status": row["status"],
+                  "checked": row["checked"], "open": row["open"]} for row in rows],
+    }
+    return json.dumps(entry, ensure_ascii=False)
+
+
+# ── main ────────────────────────────────────────────────────────────────────
+
+
+def parse_args(argv: list[str] | None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="check.py",
+        description="课程门禁（卷 I 集合论）：判据 G1–G6，与课程规模无关。",
+    )
+    parser.add_argument("--json", action="store_true", help="机器可读报告（含计数）打到 stdout")
+    parser.add_argument("--only", metavar="标签", action="append", default=[],
+                        help="只判匹配这个标签的目标（可重复；子串匹配）")
+    parser.add_argument("--bisect", action="store_true",
+                        help="按顶层声明边界二分出第一个判红的声明（不依赖诊断 span）")
+    parser.add_argument("--selftest", action="store_true",
+                        help="判据通道自检：故意坏的单元必须被判负（另含 G-12 的 cwd 自检）")
+    parser.add_argument("--annotations", action="store_true",
+                        help="失败逐条打 GitHub 注解（::error file=…::，不带行号）")
+    parser.add_argument("--report", metavar="路径", help="把 --json 报告写到文件（CI artifact）")
+    parser.add_argument("--gaps-only", action="store_true",
+                        help="只重放 G7 的课程侧复现件（gaps/*.sh），秒级，便于反向验证")
+    parser.add_argument("--summary", metavar="路径", help="把 markdown 表追加到文件（$GITHUB_STEP_SUMMARY）")
+    parser.add_argument("--ledger", nargs="?", const=LEDGER_DEFAULT, metavar="路径",
+                        help=f"追加一条成本台账（默认 {LEDGER_DEFAULT}）；"
+                             "**默认关闭**——CI 不往仓库里写文件，人工收尾才跑")
+    parser.add_argument("--bin", metavar="路径", dest="bin_path",
+                        help="判卷二进制（默认取 $SOKONANODA_BIN，再退回 scripts/soko）")
+    return parser.parse_args(argv)
+
+
+def replay_gap_repros(limit: int = 600) -> list[dict]:
+    """**G7**：重放课程侧 `gaps/*.sh` 复现件（每条**自带登记状态**）。
+
+    约定（与 `docs/gaps/README.md` 的 `.sh` 复现件同形）：**exit 0 = 与登记一致**
+    （缺口仍在的条目就该继续判红 ⇒ 复现件成功"观测到"它；已结案的条目就该判绿），
+    **exit ≠ 0 = 与登记不一致** ⇒ G7 判负。所以判据就是"每条都 exit 0"。
+
+    为什么需要它：课程侧的账目（C-01/C-03/C-04/C-05）**不在语言仓台账里**
+    （那是语言缺口用的），若没有这条判据，坏了没有任何东西会拦。
+    """
+    rows: list[dict] = []
+    for repro in sorted(GAPS.glob("*.sh")):
+        rel = str(repro.relative_to(COURSE))
+        started = time.monotonic()
+        # **G7 复现件必须看**启动器自己的**解析** ✓ —— 不许继承 gate 塞进来的
+        # `SOKONANODA_BIN` ✗：`scripts/soko gate` 为了省掉 34 个目标各自重新解析，
+        # 把**已解析**的二进制经这个变量交给本文件（见 `scripts/soko` 的课程门禁那一步 ✓）；
+        # 而显式覆盖在启动器里是「**直用、不过版本守卫**」✓ ⇒ 一旦漏给复现件，
+        # `C-03(b)` 那种"注入一个无匹配二进制的版本钉 ⇒ 必须被拒"的判据就**永远绿** ✗
+        # （2026-10-03 实测：gate 里红 `BAD C-03(b): a pin with no matching binary was
+        # ACCEPTED -- the version guard is gone` ✗，单独跑同一件却 `exit 0` ✓）。
+        # ⇒ 复现件一律在**去掉覆盖**的环境里跑 ✓（判卷目标那条路**不受影响** ✓）。
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("SOKONANODA_BIN", "SOKONANODA_LSP_BIN")}
+        try:
+            proc = subprocess.run(["bash", str(repro)], capture_output=True, text=True,
+                                  timeout=limit, env=env)
+            code = proc.returncode
+            out = (proc.stdout + proc.stderr).strip()
+        except subprocess.TimeoutExpired:
+            code, out = 124, f"超时（>{limit}s）"
+        except OSError as error:
+            code, out = 126, str(error)
+        last = out.splitlines()[-1] if out else ""
+        rows.append({
+            "label": f"复现 {repro.stem}", "file": rel, "kind": "gap",
+            "status": "ok" if code == 0 else "rejected",
+            "reasons": [] if code == 0 else
+                       [f"G7：复现件与登记状态不一致（exit={code}）：{last}"],
+            "exit": 0, "checked": 0, "open": 0, "checked_names": [], "open_names": [],
+            "diagnostics": [], "notes": [last] if last else [],
+            "path": str(repro), "canvas": None,
+            "ms": int((time.monotonic() - started) * 1000),
+        })
+    return rows
+
+
+def run(rows: list[dict], judge, channel: Channel, args: argparse.Namespace, check_py: Path,
+        info: ManifestInfo | None = None, manifest: list[dict] | None = None,
+        elapsed_ms: int = 0) -> int:
+    evaluate(rows, judge)
+
+    summary = {
+        "targets": len(rows),
+        "checked": sum(row["checked"] for row in rows),
+        "open": sum(row["open"] for row in rows),
+        "rejected": sum(1 for row in rows if row["status"] != "ok"),
+        "solutions_open": sum(row["open"] for row in rows if row["kind"] == "solution"),
+        "lib_open": sum(row["open"] for row in rows if row["kind"] == "lib"),
+        "canvas_open": sum(row["open"] for row in rows if row["kind"] == "unit"),
+    }
+
+    # ── 清单结构面（v2；台账 G-07）─────────────────────────────────────────
+    # 每行挂上它所属的卷/章（**只加不删**：v1 时是 null，消费者照旧读 v1 的键），
+    # 章的配额差额**只报告**（`quota_notes`；判红永远只看 G1–G6 的结构面）。
+    if info is not None:
+        by_file = {str(entry.get("file")): entry for entry in (manifest or [])}
+        for row in rows:
+            entry = by_file.get(row["file"])
+            row["volume"] = entry.get("_volume") if entry else None
+            row["chapter"] = entry.get("_chapter") if entry else None
+    canvas_open = {row["file"]: row["open"] for row in rows if row["kind"] == "unit"}
+    quota: list[str] = []
+    if info is not None and info.v2:
+        try:
+            quota = quota_notes(json.loads(info.source.read_text(encoding="utf-8")),
+                                info.source, canvas_open)
+        except (OSError, json.JSONDecodeError, Prerequisite):
+            quota = []  # 清单在 discover() 里已经判过了；这里只补报告，不再判负
+
+    report = {
+        "schema": SCHEMA,
+        "units": sum(1 for row in rows if row["kind"] == "unit"),
+        "course": {"root": str(COURSE), "units": sum(1 for row in rows if row["kind"] == "unit"),
+                   "volumes": info.volumes if info else 0,
+                   "chapters": len(info.chapters) if info else 0},
+        "channel": {"path": channel.path, "source": channel.source, "version": channel.version},
+        "summary": summary,
+        "quota_notes": quota,
+        "targets": rows,
+        "failed": summary["rejected"],
+    }
+
+    annotations = [row for row in rows if row["status"] != "ok"]
+    if args.annotations:
+        stream = sys.stderr if args.json else sys.stdout
+        for row in annotations:
+            detail = "；".join(row["reasons"]) or (row["notes"][0] if row["notes"] else "判负")
+            print(f"::error file={gh_property(row['file'])}::{gh_escape(row['label'])} 判负"
+                  f"（exit {row['exit']}）{gh_escape(detail)}", file=stream)
+
+    bisected: list[str] = []
+    if args.bisect:
+        for row in rows:
+            if not row.get("path") or not Path(row["path"]).is_file() or not row["exit"]:
+                continue  # 文件不在、或 `grade` 判绿（判负只来自 G3/G4/G5）⇒ 二分不适用
+            if row["status"] == "ok" and not args.only:
+                continue  # 全量跑时只二分判负的目标；--only 选了谁就二分谁
+            found = bisect(channel, Path(row["path"]))
+            row["bisect"] = found
+            bisected.extend(render_bisect(Target(row["label"], Path(row["path"]), row["kind"]), found, check_py))
+    if bisected:
+        report["bisect"] = bisected
+
+    # 落盘放在最后：artifact 里的报告与 stdout 的 `--json` 是同一份（含 bisect）。
+    if args.report:
+        try:
+            Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+                                         encoding="utf-8")
+        except OSError as error:
+            print(f"warning: 写不了报告（{args.report}）：{error}", file=sys.stderr)
+    if args.summary:
+        try:
+            with open(args.summary, "a", encoding="utf-8") as handle:
+                handle.write(summary_markdown(rows, summary, channel))
+        except OSError as error:
+            print(f"warning: 写不了 step summary（{args.summary}）：{error}", file=sys.stderr)
+    if args.ledger is not None:
+        # 课程名：v2 清单的 `name` 优先，其次课程目录名（v1 清单没有名字）。
+        course_name = (info.name if info and info.name else COURSE.name)
+        path = Path(args.ledger)
+        if not path.is_absolute():
+            path = (repo_root() or COURSE) / path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(ledger_entry(rows, summary, repo_root() or COURSE,
+                                      course=course_name, elapsed_ms=elapsed_ms) + "\n")
+
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 1 if summary["rejected"] else 0
+
+    print(f"{'状态':<10}{'checked':>8}{'open':>6}  目标")
+    # v2：按卷/章分段（同章的目标连续打印，段头只印一次）；v1 不印段头（逐字节照旧）。
+    heading = None
+    for row in rows:
+        marker = (row.get("volume"), row.get("chapter"))
+        if info is not None and info.v2 and row.get("chapter") and marker != heading:
+            heading = marker
+            title = next((c.title for c in info.chapters if c.id == row["chapter"]), "")
+            print(f"\n── 卷 {row['volume']} · 章 {row['chapter']} {title} ──")
+        print(f"{row['status']:<10}{row['checked']:>8}{row['open']:>6}  {row['file']}")
+        if row["status"] != "ok":
+            for line in failure_block(row, check_py):
+                print(line)
+    if quota:
+        print("\n配额对照（G6 报告，**不判红**）：")
+        for note in quota:
+            print(f"  {note}")
+    if bisected:
+        print()
+        for line in bisected:
+            print(line)
+    print(f"\n{summary['targets']} 个目标 —— {summary['checked']} checked · "
+          f"{summary['open']} open · {summary['rejected']} 个被判负")
+    return 1 if summary["rejected"] else 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    check_py = Path(__file__).resolve()
+    root = repo_root()
+    if root is None:
+        print("error: 找不到语言仓根的 scripts/soko（本课程应建在 sokonanoda-lang 内）", file=sys.stderr)
+        return 2
+    try:
+        channel = resolve_channel(root, args.bin_path)
+        if args.selftest:
+            return selftest(channel, check_py)
+        if args.gaps_only:
+            rows = replay_gap_repros()
+            for row in rows:
+                mark = "✓" if row["status"] == "ok" else "✗"
+                detail = row["reasons"][0] if row["reasons"] else (row["notes"][0] if row["notes"] else "")
+                print(f"{mark} {row['label']}：{detail}")
+            print(f"\nG7：{len(rows)} 条复现件 · "
+                  f"{sum(1 for row in rows if row['status'] != 'ok')} 条与登记不一致")
+            return 1 if any(row["status"] != "ok" for row in rows) else 0
+        # 成本台账的时钟：只量**判卷这一段**（通道解析/版本探针不算课程成本）。
+        started = time.monotonic()
+        targets, problems, unit_count, info, units = discover()
+    except Prerequisite as error:
+        print(f"error: 前置缺失，门禁不判绿（exit 2）：\n{error}", file=sys.stderr)
+        return 2
+
+    if args.only:
+        wanted: list[Target] = []
+        for needle in args.only:
+            # 先精确：门禁自己打印的 `--only "单元 5"` 必须只选中那一个（子串会把 1/10/11/12 一网打尽）。
+            exact = [target for target in targets if target.label == needle]
+            wanted.extend(exact or [target for target in targets if needle in target.label])
+        unique: list[Target] = []
+        for target in wanted:
+            if target not in unique:
+                unique.append(target)
+        if not unique:
+            print(f"error: --only 没匹配到任何目标：{args.only}\n"
+                  f"  可用标签：" + "、".join(target.label for target in targets), file=sys.stderr)
+            return 2
+        targets = unique
+
+    cache: dict[Path, GradeResult] = {}
+
+    def judge(path: Path) -> GradeResult:
+        key = path.resolve()
+        if key not in cache:
+            cache[key] = grade(channel, key)
+        return cache[key]
+
+    rows: list[dict] = []
+    for target in targets:
+        if not target.path.is_file():
+            rows.append({"label": target.label, "file": str(target.path.relative_to(COURSE)),
+                         "kind": target.kind, "status": "missing", "exit": None, "checked": 0,
+                         "open": 0, "checked_names": [], "open_names": [], "diagnostics": [],
+                         "notes": [], "reasons": ["G2：目标文件不存在"], "path": str(target.path),
+                         "canvas": str(target.canvas) if target.canvas else None})
+            continue
+        result = judge(target.path)
+        rows.append({"label": target.label, "file": str(target.path.relative_to(COURSE)),
+                     "kind": target.kind, "status": "ok", "exit": result.code,
+                     "checked": result.checked, "open": result.open,
+                     "checked_names": result.checked_names, "open_names": result.open_names,
+                     "diagnostics": result.diagnostics, "notes": result.notes, "reasons": [],
+                     "path": str(target.path),
+                     "canvas": str(target.canvas) if target.canvas else None})
+
+    if problems:
+        # G6 的结构非法自带前缀（判据名要能对上），G2 的补齐——别叠成「G2：G6：…」。
+        rows.append({"label": "课程结构（G2/G6）", "file": "course.json", "kind": "course",
+                     "status": "missing", "exit": None, "checked": 0, "open": 0,
+                     "checked_names": [], "open_names": [], "diagnostics": [],
+                     "notes": problems,
+                     "reasons": [line if re.match(r"^G\d：", line) else f"G2：{line}"
+                                 for line in problems],
+                     "path": None, "canvas": None})
+    if not args.only:
+        # G7：课程侧复现件重放（`--only` 走单目标快路径时不跑，全量门禁与 CI 跑）。
+        rows.extend(replay_gap_repros())
+    if unit_count == 0:
+        print("error: course.json 里没有可判的单元", file=sys.stderr)
+        return 2
+    elapsed_ms = int((time.monotonic() - started) * 1000)
+    return run(rows, judge, channel, args, check_py, info, units, elapsed_ms=elapsed_ms)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,120 @@
+-- Prod.sokonanoda —— 卷 I 的**序对标准库**（L2 层）
+--
+-- 分层判据（docs/design/course-stdlib.md）：
+--   L2（本文件）= 序对的**类型 + 词汇 + 定义展开**：`Prod`、构造子、两个投影、
+--                 以及"投影算在构造子上"的展开引理 —— 每一条在 Mathlib 里都是
+--                 `rfl` 或一行、**没有数学内容**；
+--   L3（units/）= 一切**有数学内容**的陈述（配对定理 `(a,b) = (a',b') → a = a' ∧ b = b'`、
+--                 `A × B` 的成员刻画、`A × B = B × A` 的反例…）——哪怕 Mathlib 早就有，
+--                 课程就是要让学习者自己证一遍（那是单元⑤ 的练习）。
+--
+-- 名字一律照抄 **Mathlib 取证名**（docs/design/set-theory-syllabus.md §4 第 7 行）：
+--   Prod A B  ↔ A × B   ·   prod_mk A B a b ↔ (a, b)
+--   Prod.fst A B p ↔ p.1  ·  Prod.snd A B p ↔ p.2
+--
+-- ── 构造子为什么叫 `prod_mk`（台账 G-02：必须点名的语言缺陷）────────────────
+-- 今天的教学语言里**构造子是裸名、且全项目唯一**：官方 Lean 4 的
+-- `inductive Prod (A B : Type) where | mk : A → B → Prod A B` 会让构造子自动进入
+-- 类型自己的命名空间、叫 **`Prod.mk`**，于是 `Prod.mk` / `Subtype.mk` / `Exists.intro`
+-- 可以同时存在；我们没有命名空间（也没有 `namespace`/`open`，见 G-05），两个
+-- `ctor mk` 会直接撞成 `duplicate declaration mk`（最小复现：
+-- docs/gaps/repro/G02-ctor-namespace.sokonanoda）。
+-- ⇒ 本文件里的构造子只能是**假唯一名** `prod_mk`（台账 G-02 的 workaround）。
+-- **G-02 修好之后，本文件的构造子应当机械改名回 `Prod.mk`**（syllabus §4 与 §5 的
+-- 联动表都记着这条：裸名降级为别名、前缀名 `Prod.mk` 转正），届时
+-- `prod_mk A B a b` → `Prod.mk A B a b`，`Prod.fst_mk` / `Prod.snd_mk` 的名字不变。
+--
+-- ── 递归子：参数在最前、motive 在后（务必带显式宇宙层级）───────────────────
+-- 自动派生的递归子（`inductive` / `ctor` / `end`，不用手写 `rec`/`iota`）形状是
+--     Prod.rec.{u} : (A B : Type) → (motive : (Prod A B) → Sort u) →
+--                    (∀ (a : A) (b : B), motive (prod_mk A B a b)) →
+--                    (target : Prod A B) → motive target
+-- 即**参数 A B 在最外层、motive 在其后**（与 `Or.rec a b (fun (_ : a ∨ b) => c) f g h`、
+-- `Option.rec A motive …` 同一约定）；投影的 motive 是**常值**——结果 A（或 B）
+-- 与"是哪个序对"无关，所以 binder 写通配 `fun (_ : Prod A B) => A`。
+--
+-- ⚠ 必须在调用点上写 **`Prod.rec.{1}`**：motive 落在 `Sort u`（Prod 在 Type，可大消去），
+-- 省略层级时前端把 `u` 取默认 `0`，于是内核看到 `motive : Prod A B → Sort 0` 而
+-- `A : Type 0 = Sort 1`，报「期望 `Sort(0)`，实际是 `Sort(1)`」。同类命题型归纳
+-- （`Or`/`False`）目标本来就在 `Prop`，默认 `0` 恰好够用，所以只在投影这种
+-- **Type 值**的消去上会咬人。
+import lib.Logic
+import lib.Set
+import lib.Rel
+
+-- ── 类型与构造子（Mathlib: Mathlib/Data/Prod.lean，逐字同款语义）─────────────
+inductive Prod (A B : Type) : Type
+ctor prod_mk (a : A) (b : B) : Prod A B
+end
+
+-- ── 投影（消去子：参数在前、motive 在后；Motive 常量 ⇒ 通配 binder）──────────
+def Prod.fst (A B : Type) (p : Prod A B) : A :=
+  Prod.rec.{1} A B (fun (_ : Prod A B) => A) (fun (a : A) (b : B) => a) p
+
+def Prod.snd (A B : Type) (p : Prod A B) : B :=
+  Prod.rec.{1} A B (fun (_ : Prod A B) => B) (fun (a : A) (b : B) => b) p
+
+-- ── 展开引理（L2：证明全是 `Eq.refl`，即 iota 计算——投影算在构造子上就还原）──
+-- Mathlib 里对应的名字是 `Prod.fst_mk` / `Prod.snd_mk`（`rfl` 级，`simp` 也用它）。
+theorem Prod.fst_mk (A B : Type) (a : A) (b : B) :
+    Prod.fst A B (@prod_mk A B a b) = a :=  @Eq.refl.{1} A a
+
+theorem Prod.snd_mk (A B : Type) (a : A) (b : B) :
+    Prod.snd A B (@prod_mk A B a b) = b :=  @Eq.refl.{1} B b
+
+-- ── 集合积（Mathlib: `Set.prod`，记法 `s ×ˢ t`）──────────────────────────────
+-- **E02（0.74.0）把它从单元⑤ 的画布收进这里**：记法 `×ˢ` 由 `lib/Set` 声明，
+-- 而它的**目标**原先只活在单元⑤ 里 ⇒ 任何别的地方写 `s ×ˢ t` 都报
+-- `elab-notation-unknown-target`（"记法 `×ˢ` 指向的目标 `Set.prod` 不存在"）✗。
+-- 收进库之后，`import lib.Set`（记法声明）+ `import lib.Prod`（目标）就能用，
+-- 目标也在闭包内 ✓（`lib/Set` 的注释里"三条记法目标"那条跨模块尾巴因此收口）。
+--
+-- 返回值是 `Set (Prod A B)`——也就是谓词 `Prod A B → Prop`；定义体照课程库的
+-- 统一写法**点名**（定义是词汇，不是证明）：两个坐标分别满足 s 与 t。
+def Set.prod (A B : Type) (s : Set A) (t : Set B) : Set (Prod A B) :=
+  fun (p : Prod A B) => (s (Prod.fst A B p)) ∧ (t (Prod.snd A B p))
+
+-- ── 演示（库自检）：两条展开引理合起来 = 序对的两个坐标都被还原。────────────
+-- 单元⑤ 的配对定理（从 (a,b) = (a',b') 推出 a = a' ∧ b = b'）**不在这里**：
+-- 那是 L3，属于画布上的练习。
+theorem Prod.fst_snd_mk (A B : Type) (a : A) (b : B) :
+    Prod.fst A B (@prod_mk A B a b) = a
+      ∧ Prod.snd A B (@prod_mk A B a b) = b :=
+    -- soko:notation-ok: `And.intro h1 h2` 对 Eq 结果的**应用**（非局部变量）仍解不出前导 Prop
+    And.intro
+      (Prod.fst_mk A B a b) (Prod.snd_mk A B a b)
+
+-- ── 积集合的成员刻画（L2：`Set.prod` 的定义体就是"两个坐标各自满足"，两向都是恒等）──
+theorem Set.mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
+    p ∈ (s ×ˢ t) ↔ ((Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) :=
+  Iff.intro (fun (h : p ∈ (s ×ˢ t)) => h) (fun (h : (Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) => h)
+
+-- 序对形态：把两个投影算掉（这条要**用** `Prod.fst_mk`/`Prod.snd_mk`，不是恒等）
+theorem Set.mem_prod_mk (A B : Type) (s : Set A) (t : Set B) (a : A) (b : B) :
+    (@prod_mk A B a b) ∈ (s ×ˢ t) ↔ (a ∈ s ∧ b ∈ t) :=
+  Iff.intro
+    (fun (h : (@prod_mk A B a b) ∈ (s ×ˢ t)) =>
+      (fun (h' : (Prod.fst A B (@prod_mk A B a b)) ∈ s ∧
+          (Prod.snd A B (@prod_mk A B a b)) ∈ t) =>
+        And.intro
+          (rel_subst_right A (fun (u : A) (v : A) => v ∈ s) a (Prod.fst A B (@prod_mk A B a b)) a
+            (Prod.fst_mk A B a b) (And.left h'))
+          (rel_subst_right B (fun (u : B) (v : B) => v ∈ t) b (Prod.snd A B (@prod_mk A B a b)) b
+            (Prod.snd_mk A B a b) (And.right h')))
+        (Iff.mp (Set.mem_prod_iff A B s t (@prod_mk A B a b)) h))
+    (fun (h : a ∈ s ∧ b ∈ t) =>
+      Iff.mpr (Set.mem_prod_iff A B s t (@prod_mk A B a b))
+        (And.intro
+          (rel_subst_left A (fun (u : A) (v : A) => v ∈ s) (Prod.fst A B (@prod_mk A B a b)) a a
+            (Prod.fst_mk A B a b) (And.left h))
+          (rel_subst_left B (fun (u : B) (v : B) => v ∈ t) (Prod.snd A B (@prod_mk A B a b)) b b
+            (Prod.snd_mk A B a b) (And.right h))))
+
+-- ── η 律（L2：Mathlib 的 `Prod.mk.eta`）──────────────────────────────────────
+-- 读法：任何序对都等于"把自己的两个投影再配起来" ✓ —— 序对**只有**两个坐标。
+-- 证明走 `Prod.rec`（本语言**没有 η 转换**，见 G-61 的说明 ⇒ 这条必须显式证出来）
+theorem Prod.eta (A B : Type) (p : Prod A B) :
+    @prod_mk A B (Prod.fst A B p) (Prod.snd A B p) = p :=
+  Prod.rec.{0} A B
+    (fun (q : Prod A B) => @prod_mk A B (Prod.fst A B q) (Prod.snd A B q) = q)
+    (fun (a : A) (b : B) => @Eq.refl.{1} (Prod A B) (@prod_mk A B a b)) p

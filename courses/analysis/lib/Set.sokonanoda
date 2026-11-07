@@ -1,0 +1,267 @@
+-- Set.sokonanoda —— 卷 I 的**集合标准库**（L2 层：**只有词汇 + 定义展开**）
+--
+-- 分层判据（docs/design/course-stdlib.md）：
+--   L2（本文件）= 集合的**词汇 + 定义展开**：Mathlib 里是 `rfl` 或一行、**没有数学内容**；
+--   L3（units/）= 一切**有数学内容**的陈述（包含三律、最小元、分配律、像/原像…）——
+--                 哪怕 Mathlib 早就有，课程就是要让学习者自己证一遍。
+-- 台账 L-04 记录了这一层缺什么；L-05 记录了"把 L3 误放进库"的教训。
+--
+-- **G-05（0.60.0）**：本文件已改用 `namespace Set` 包起来（设计
+-- `docs/design/namespace-open.md`）。**全局名一个都没变**（`Set.mem` 还是
+-- `Set.mem`，只是源里写成短名 `mem`），所以库外引用（units/、其他 lib/）
+-- 一行都不用改。注意 `def Set`（集合**类型**本身）留在命名空间**外面**：
+-- 放进去它会变成 `Set.Set`，`Set α` 全部失效（Mathlib 也是把 `Set` 放根上）。
+--
+-- **L-05 第二刀（2026-09-19）后的完整清单**——本文件只允许留这三类（源里除
+-- 集合类型 `Set` 外都写在 `namespace Set` 内、写短名；全局名 = 短名加 `Set.` 前缀）：
+--   · 12 个定义：集合类型 Set（在命名空间外）/ mem / subset / empty / univ /
+--     singleton / pair / union / inter / sdiff / compl / powerset；
+--   · 1 条公理：Set.ext（Mathlib 由 propext + funext 推出，我们两者都没有）；
+--   · 10 条定义展开引理：Set.subset_def / Set.mem_empty_iff_false / Set.notMem_empty /
+--     Set.mem_univ / Set.mem_singleton_iff / Set.mem_singleton_self / Set.mem_union /
+--     Set.mem_inter_iff / Set.mem_sdiff / Set.mem_powerset_iff。
+--   往这里加声明之前先问一句：**它有数学内容吗**？有 → 写进 units/ 当练习，不进库。
+--
+-- L-05 那批**内容型**引理一条都不在本文件里，全在单元中（同名进解答、自证、不引用 lib 版本）：
+--   · 单元①：singleton_subset_iff；
+--   · 单元②：subset_refl / subset_trans / subset_antisymm / empty_subset /
+--             subset_empty_iff / eq_empty_iff_forall_notMem；
+--   · 单元③：subset_union_left / subset_union_right / union_subset_iff /
+--             inter_subset_left / inter_subset_right / subset_inter / subset_inter_iff /
+--             sdiff_subset / powerset_mono；
+--   · 单元④：union_comm / inter_comm / inter_union_distrib_left。
+--   例外核查（2026-09-19）：`grep -rn` 扫过整个 lib/，以上名字**零出现**——Image/Equiv/Fun/Rel
+--   等模块都不依赖内容型集合引理，所以没有"为别的模块保留"的例外。
+--   本刀新增练习：**subset_inter_iff**（原先 12 条里唯一画布与解答都没覆盖的一条）。
+--   残留待决定：台账 L-05 原表里的 subset_antisymm_iff 至今没有单独立题——它的两半已被
+--   单元② 的 subset_antisymm 与单元④ 的外延套路覆盖（这是设计判断，不是遗漏的证明）；
+--   要不要像 eq_empty_iff_forall_notMem 那样再包一条 iff，留待下一刀定。
+--
+-- 名字一律用 **Loogle 取证版**（docs/design/course-stdlib.md §3.1）：
+--   Set.notMem_empty（大写 M）、Set.mem_powerset_iff（不是 power）、Set.mem_sdiff（不是 diff）、
+--   Set.Subset.refl/trans/antisymm（点号在 Subset 上）。
+--
+-- 记法一览（记法在**本文件下半段**声明，见"记法"一节；下表只列记法本身）：
+--   a ∈ A（成员） · A ⊆ B（子集） · ∅（空集）
+--   A ∪ B（并） · 𝒫 A（幂集）
+-- 本文件自己的定理也**用记法写**（声明点在它们之前，所以文件内已生效）。
+import lib.Logic
+
+-- ── 词汇（Mathlib: Mathlib/Data/Set/Defs.lean，逐字同款）────────────────────
+-- 集合**类型**本身在根命名空间（`Set α` 的 `Set`）。
+--
+-- 下面这些定义体用**语言内建记法**写（`→ ∀ ∧ ∨ ¬ ↔ =`，零声明即可用）；
+-- `∈ ⊆ ∪ ∩ \ ∅ 𝒫` 是**本文件自己声明的**，声明点在本文件下半段，所以定义
+-- 体里还不能用它们（自己定义自己）——这一层用点名形式是正确的。
+def Set (α : Type) : Type := α → Prop
+
+namespace Set
+
+def mem {α : Type} (a : α) (A : Set α) : Prop := A a
+
+-- ⚠ **体里写点名（`∈` 记法的目标名），不写展开形态 `A x`** ✗
+-- （2026-10-08 用户报「`apply h a` 之后目标显示成 `A a`」的根因）：`A ⊆ B` 被 `apply`
+-- 时内核要 whnf 出 `∀ x, …`，**新目标的文本就是这里的体** ⇒ 体写展开形态就丢记法
+-- （`A a`，显示层折不回来 ✗）；写点名 ⇒ 目标保持点名形态 ⇒ 显示层折成 `a ∈ A` ✓。
+-- 记法 `∈` 在本文件下半段才声明，所以这里**只能写点名** ✓（同 `Exists.sokonanoda`
+-- 的先例 ✓；`lib/Equiv.sokonanoda` 的 `Set.MapsTo` 体里直接用 `x ∈ A` ✓）。
+def subset {α : Type} (A B : Set α) : Prop := ∀ (x : α), Set.mem x A → Set.mem x B  -- soko:notation-ok: `∈` 记法在本文件第 140 行才声明，定义体只能写点名
+
+def empty {α : Type} : Set α := fun (x : α) => False
+
+def univ {α : Type} : Set α := fun (x : α) => True
+
+def singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a
+
+def pair {α : Type} (a b : α) : Set α :=
+  fun (x : α) => x = a ∨ x = b
+
+-- **ST17（v0.77.0）：`abbrev` 的真实用法** ─────────────────────────────────
+-- `abbrev` 与 `def` **同语义**（`docs/design/abbrev.md`），差别只在**读法**：
+-- 它是"给已有东西起个短名字" ⇒ 这里给 `Set.pair` 起一个**读起来就是"无序对"**的
+-- 别名，供**三元素及以上**的集合字面量手工嵌套时用：
+--   `{a, b, c}` 今天写不出来（G-60 同族：集合字面量 v1 只支持 1–2 个元素，
+--   三个及以上要给专用诊断）⇒ 点名写法是 `Set.triple α a b c`（下面那条）
+--   或 `Set.pair α a b`（soko:notation-ok: 讨论三元素时要点名那个二元目标）再套 `Set.union`。
+-- ⚠ 为什么用 `abbrev` 而不是 `def`：它是**别名**（名字换名字，没有新数学内容），
+-- 正是 `abbrev` 的语义位置 ✓；`def` 会让人以为"这里定义了一个新概念"✗。
+abbrev triple {α : Type} (a b c : α) : Set α :=
+  fun (x : α) => x = a ∨ x = b ∨ x = c
+
+def union {α : Type} (A B : Set α) : Set α := fun (x : α) => A x ∨ B x
+
+def inter {α : Type} (A B : Set α) : Set α := fun (x : α) => A x ∧ B x
+
+def sdiff {α : Type} (A B : Set α) : Set α := fun (x : α) => A x ∧ ¬ (B x)
+
+def compl {α : Type} (A : Set α) : Set α := fun (x : α) => ¬ (A x)
+
+def powerset {α : Type} (A : Set α) : Set (Set α) := fun (B : Set α) => subset B A
+
+-- **ST3（v0.77.0）：分离**（Mathlib `Mathlib/Data/Set/Defs.lean` 的 `Set.sep`，
+-- 逐字同款）：`{x ∈ A | P x}` 的**目标常量**。谓词式里它就是"谓词取交"——
+-- 定义展开引理（L2 层）见文件下半段。
+def sep {α : Type} (A : Set α) (P : α → Prop) : Set α :=
+  fun (x : α) => A x ∧ P x
+
+-- ── 外延性（**公理**：Mathlib 由 propext + funext 推出，我们两者都没有）──────
+axiom ext : {α : Type} → (A B : Set α) →
+  (∀ (x : α), Set.mem x A ↔ Set.mem x B) → A = B  -- soko:notation-ok: `∈` 记法在本文件第 140 行才声明，声明体只能写点名
+
+-- ── 记法（G-04 第二刀，0.60.0）：卷 I 的**数学符号**────────────────────────
+--
+-- 设计 `docs/design/notation-subset.md` §10。记法**不是声明**（N6）：它不产生
+-- 任何事件、不进声明表，所以本文件加这一段**不改变任何计数**（课程门禁的
+-- 36 目标 / 329 checked / 99 open 逐项不变）。
+--
+-- 五条都是**集合论专用**符号，所以放课程库、**不进 prelude**（L1 的 30 个名字
+-- 与记法无关）。被导入模块声明的记法在**入口文件里直接可用**（第二刀 §10.3 的
+-- 跨 `import` 传播）：单元只要 `import lib.Set` 就能写 `𝒫 A`，不必自己重声明
+-- ——这也意味着**同一符号全课程只能声明一次**（重声明是 parse 错误）。
+--
+-- 目标名在**使用点**解析（§9.4）：`Set.powerset` / `Set.compl` 就在本文件里，
+-- `Set.image` / `Set.preimage` 在 `lib/Image.sokonanoda`（单元⑧⑫ 会 import 它），
+-- `Set.prod` 在 `lib/Prod.sokonanoda`（**E02 起收进库**——以前它只活在单元⑤ 的
+-- 画布里 ⇒ 别处写 `×ˢ` 报"目标不存在"）。用到某个符号
+-- 时，那个目标必须在作用域里——否则报 `elab-notation-unknown-target`，
+-- 报错信息会点名缺的是哪个名字。
+--
+-- 形状与优先级（§10.1、§10.4）：`𝒫`/`ᶜ` 取 100（比 `∪`/`∩` 的 65 紧）、
+-- `''`/`⁻¹'`/`×ˢ` 取 80（`''`/`⁻¹'` 的 80 是 Lean 源码逐字取证版）。
+-- ── 集合论核心符号（课程 Lean 化 W1）────────────────────────────────────────
+--
+-- 这六条原先散在 `units/notation-cheatsheet.sokonanoda`（画布自带），
+-- 全课程启用之后**必须只有一个家**——同一个符号全课程只能声明一次，
+-- 而 24 个 unit/solution 全都 `import lib.Set`，所以家就是这里。
+--
+-- 逻辑连接符（`∧ ∨ ↔ ¬`）**不在这里**：它们是**语言内建记法**
+-- （`docs/design/course-lean-style.md` L2.2），任何文件零声明可用。
+-- `→` 同理（与 ASCII 箭头写法同义）。
+infix:50 " ∈ " => Set.mem
+infix:50 " ⊆ " => Set.subset
+infixl:65 " ∪ " => Set.union
+-- `∩` 与 `\` 取 70（Lean core 的梯子）：比 `∪` 紧，所以 `A ∩ B ∪ C` 读作
+-- `(A ∩ B) ∪ C`。
+infixl:70 " ∩ " => Set.inter
+infixl:70 " \ " => Set.sdiff
+notation "∅" => Set.empty
+
+prefix:100 " 𝒫 " => Set.powerset
+postfix:100 " ᶜ " => Set.compl
+infixr:80 " '' " => Set.image
+infixr:80 " ⁻¹' " => Set.preimage
+infixr:80 " ×ˢ " => Set.prod
+
+-- ── 定义展开引理（L2：证明全是"恒等函数"，没有数学内容）────────────────────
+-- R2 课程 Lean 化：语句用**记法**（上面那段声明在本文件里已经生效），证明用
+-- `by` tactic 块。这些引理的作用就是"把定义展开写成一条等式"，所以两边都是
+-- 恒等函数——`constructor` 拆 `↔`，两个方向 `intro h; exact h`。
+theorem subset_def {α : Type} (A B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem mem_empty_iff_false {α : Type} (a : α) :
+    a ∈ ∅ ↔ False := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem notMem_empty {α : Type} (a : α) : ¬ (a ∈ ∅) := by
+  intro h
+  exact h
+
+theorem mem_univ {α : Type} (a : α) : a ∈ univ := by
+  exact True.intro
+
+theorem mem_singleton_iff {α : Type} (a b : α) :
+    a ∈ {b} ↔ a = b := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem mem_singleton_self {α : Type} (a : α) : a ∈ {a} := by
+  exact @Eq.refl.{1} α a
+
+theorem mem_union {α : Type} (a : α) (A B : Set α) :
+    a ∈ A ∪ B ↔ a ∈ A ∨ a ∈ B := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem mem_inter_iff {α : Type} (a : α) (A B : Set α) :
+    a ∈ A ∩ B ↔ a ∈ A ∧ a ∈ B := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem mem_sdiff {α : Type} (a : α) (A B : Set α) :
+    a ∈ A \ B ↔ a ∈ A ∧ ¬ (a ∈ B) := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem mem_powerset_iff {α : Type} (A B : Set α) :
+    B ∈ 𝒫 A ↔ B ⊆ A := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+-- ── ST3：分离的展开引理（L2 层，Mathlib 的 `Set.mem_sep_iff`）──────────────
+theorem mem_sep_iff {α : Type} (A : Set α) (P : α → Prop) (a : α) :
+    a ∈ sep A P ↔ (a ∈ A ∧ P a) := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem sep_subset {α : Type} (A : Set α) (P : α → Prop) :
+    sep A P ⊆ A := by
+  intro x
+  intro h
+  exact And.left (Iff.mp (mem_sep_iff A P x) h)
+
+-- **G-60（0.83.0）：集合建构式的课程侧落点** —— `{x ∈ A | P x}` 与点名
+-- `Set.sep A P` 是**同一个头常量**（脱糖成 `Set.sep A (fun x => P x)`），
+-- 而这一条的谓词本来就写成 `fun (x : α) => x ∈ A` ⇒ 用记法写**逐字**就是原来的项
+-- （零风险：两边是同一个 kernel 项）。对照 Mathlib：`sep_subset` 那条也用记法写
+-- 陈述（`{ x ∈ s | p x } ⊆ s`，`Mathlib/Data/Set/Basic.lean:887`）✓。
+theorem sep_self {α : Type} (A : Set α) :
+    {x ∈ A | x ∈ A} = A := by
+  apply Set.ext (sep A (fun (x : α) => x ∈ A)) A
+  intro x
+  constructor
+  intro h
+  exact And.left (Iff.mp (mem_sep_iff A (fun (x : α) => x ∈ A) x) h)
+  intro h
+  exact Iff.mpr (mem_sep_iff A (fun (x : α) => x ∈ A) x) (And.intro h h)
+
+-- ── **ST17（v0.77.0）：`scoped` 的真实用法 —— 本版未落（边界已实测）** ──────
+-- 试过并**放弃**：`scoped notation "⋂ₚ" => Set.sep` 放在 `namespace Set` 里。
+-- 它**在同模块内可用**，但**跨模块必然失败**：使用者 `import lib.Set` +
+-- `open scoped Set` 之后写 `A ⋂ₚ P` ⇒ `elab-notation-argument-unsolved`
+-- （「补不出前面的类型参数」）。**对照组证明这不是 `scoped` 的毛病**：
+-- 同一形状的**非 scoped** 写法（`notation "∈₉" => Set.mem` 写在别的文件里）
+-- **报同一个错** ⇒ 这是记法的**既有边界**：**前导类型参数只在「目标与记法声明
+-- 在同一个模块」时解得出**（设计 `docs/design/notation-subset.md` 的边界）。
+-- ⇒ 一门课要用的记法**都得住在库模块里**，`scoped` 交给"同模块内的可选拼写"。
+-- ⚠ 所以本文件**不放**这条记法（放了会误导：库内可用、学习者一用就报错）✗。
+-- `abbrev` 那一半**已落**（见上面的 `triple`）✓。
+
+end Set

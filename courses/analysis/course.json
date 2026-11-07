@@ -1,0 +1,28 @@
+{
+  "schema": "soko.course/2",
+  "name": "analysis",
+  "title": "从集合论到实分析",
+  "volumes": [
+    {
+      "id": "II",
+      "title": "卷 II 数系与实数",
+      "chapters": [
+        {
+          "id": "II.1",
+          "title": "整数：从 ℕ 到 ℤ",
+          "prereqs": [],
+          "tags": ["int-quotient", "int-rel"],
+          "quota": { "exercises": 4 },
+          "units": [
+            {
+              "file": "units/II.1/unit01-int-quotient.sokonanoda",
+              "title": "单元① 整数与商构造",
+              "title_en": "Unit 1 — Integers via Quotient",
+              "unit": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
