@@ -1,0 +1,12 @@
+-- M1 lib 自检入口：把当前 9 个库模块一次 import 完。
+import lib.Logic
+import lib.Exists
+import lib.Set
+import lib.Prod
+import lib.Rel
+import lib.Fun
+import lib.Image
+import lib.Equiv
+import lib.Order
+
+theorem demo_lib_closure : True := True.intro

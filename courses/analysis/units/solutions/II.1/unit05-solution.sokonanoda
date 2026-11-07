@@ -1,0 +1,69 @@
+import lib.Logic
+import lib.Prod
+
+def intRel (a b : Prod Nat Nat) : Prop :=
+  Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =
+  Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)
+
+def Int : Type := @Quot.{1} (Prod Nat Nat) intRel
+
+def intOfNat (n : Nat) : Int :=
+  @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat n Nat.zero)
+
+def myAdd (a b : Nat) : Nat :=
+  Nat.rec (fun (_ : Nat) => Nat) a (fun (n : Nat) (ih : Nat) => Nat.succ ih) b
+
+def myMul (a b : Nat) : Nat :=
+  Nat.rec (fun (_ : Nat) => Nat) Nat.zero
+    (fun (n : Nat) (ih : Nat) => myAdd a ih) b
+
+def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
+  @prod_mk Nat Nat
+    (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.fst Nat Nat b))
+             (myMul (Prod.snd Nat Nat a) (Prod.snd Nat Nat b)))
+    (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.snd Nat Nat b))
+             (myMul (Prod.snd Nat Nat a) (Prod.fst Nat Nat b)))
+
+theorem demo_mulRep :
+    mulRep (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 3 1) =
+    @prod_mk Nat Nat 6 2 :=
+  Eq.refl (@prod_mk Nat Nat 6 2)
+
+theorem demo_mulRep_zero :
+    mulRep (@prod_mk Nat Nat 2 5) (@prod_mk Nat Nat Nat.zero Nat.zero) =
+    @prod_mk Nat Nat Nat.zero Nat.zero :=
+  Eq.refl (@prod_mk Nat Nat Nat.zero Nat.zero)
+
+theorem mulRep_mk (a b c d : Nat) :
+    mulRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d) =
+    @prod_mk Nat Nat
+      (Nat.add (myMul a c) (myMul b d))
+      (Nat.add (myMul a d) (myMul b c)) :=
+  Eq.refl (@prod_mk Nat Nat
+    (Nat.add (myMul a c) (myMul b d))
+    (Nat.add (myMul a d) (myMul b c)))
+
+theorem mulRep_closed :
+    mulRep (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 3 1) =
+    @prod_mk Nat Nat 6 2 :=
+  Eq.refl (@prod_mk Nat Nat 6 2)
+
+theorem mulRep_zero :
+    mulRep (@prod_mk Nat Nat 2 5) (@prod_mk Nat Nat Nat.zero Nat.zero) =
+    @prod_mk Nat Nat Nat.zero Nat.zero :=
+  Eq.refl (@prod_mk Nat Nat Nat.zero Nat.zero)
+
+theorem mulRep_one :
+    mulRep (@prod_mk Nat Nat 2 5) (@prod_mk Nat Nat 1 Nat.zero) =
+    @prod_mk Nat Nat 2 5 :=
+  Eq.refl (@prod_mk Nat Nat 2 5)
+
+theorem mulRep_neg :
+    mulRep (@prod_mk Nat Nat 2 5) (@prod_mk Nat Nat Nat.zero 1) =
+    @prod_mk Nat Nat 5 2 :=
+  Eq.refl (@prod_mk Nat Nat 5 2)
+
+theorem mulRep_comm_closed :
+    mulRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 2 Nat.zero) =
+    @prod_mk Nat Nat 6 2 :=
+  Eq.refl (@prod_mk Nat Nat 6 2)
