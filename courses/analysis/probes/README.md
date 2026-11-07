@@ -1,6 +1,7 @@
 # M0 可行性探针
 
 这些文件是**探针**，不是课程单元：不进 `course.json`、不进课程门禁、不面向学习者。
+它们放在独立课程根 `courses/analysis/` 下；`Prelude.sokonanoda` 只是探针本地的最小逻辑 prelude。
 它们只回答「这个形状能不能在本语言里写出来」，不承担课程内容的证明责任。
 
 ## p2-real-skeleton.sokonanoda
@@ -12,7 +13,7 @@
 - 运行：
 
   ```bash
-  scripts/soko grade "$PWD/courses/set-theory/probes/p2-real-skeleton.sokonanoda"
+  scripts/soko grade "$PWD/courses/analysis/probes/p2-real-skeleton.sokonanoda"
   ```
 
 - 0.98.3 本机结果：25 条声明 checked、0 diagnostic、0 open；exit 0（0.98.4 分支由 CI 复验）。

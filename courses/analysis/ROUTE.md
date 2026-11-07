@@ -1,6 +1,6 @@
 # 设计：从集合论到实分析——路线与 M0 探针（2026-11-07）
 
-> **状态**：M0/C0 设计文档；提案与追踪见 issue #13，C0 子 issue #14。
+> **状态**：M0/C0 设计文档；独立课程根 `courses/analysis/`；提案与追踪见 issue #13，C0 子 issue #14。
 > **靶子**：Tao《Analysis I》第 4–11 章；新增约 161 个课程单元（见 #13 §3）。
 > 本文只记录 C0 的探针结论、路线、前置与风险；不重复课程单元内容。
 
@@ -10,7 +10,7 @@
 |---|---|
 | D1 终点 | 做到 Riemann 积分（Tao ch4–11），不中途停在连续 |
 | D2 ℝ 路线 | Cauchy 序列商；P2 完整探针红且无安全绕法时再评估 Dedekind |
-| D3 落点 | 在现有 `courses/set-theory/` 追加卷 II/III；先过 scale gate |
+| D3 落点 | 新建独立课程 `courses/analysis/`；先过 scale gate（2026-11-07 用户改口径） |
 
 分支模型：`main`（发布口，人 merge）← `agent/real-analysis-integration`（集成口，agent 可 push）← 子分支。`main` 只在 milestone 收口接收 integration → main。
 
@@ -30,7 +30,7 @@
 复跑：
 
 ```bash
-for f in courses/set-theory/probes/p*.sokonanoda; do
+for f in courses/analysis/probes/p*.sokonanoda; do
   scripts/soko grade "$PWD/$f" || exit 1
 done
 ```
@@ -89,7 +89,7 @@ done
 
 ## 8. 参考
 
-- `courses/set-theory/probes/README.md`（探针说明）
+- `courses/analysis/probes/README.md`（探针说明）
 - issue #13（提案与追踪）· #14（C0）
 - `docs/design/course-stdlib.md`（L1/L2/L3 分界）
 - `docs/design/teaching-project.md`（项目上游设计）

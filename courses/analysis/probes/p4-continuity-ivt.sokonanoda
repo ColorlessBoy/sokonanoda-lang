@@ -2,7 +2,7 @@
 -- Purpose: type-level feasibility only; epsilon-delta and IVT are stated,
 -- not proved. The real proof needs the constructed R from P2.
 
-import lib.Exists
+import probes.Prelude
 
 axiom R : Type
 axiom R.zero : R

@@ -1,5 +1,5 @@
 -- P2 probe: Cauchy / Real quotient skeleton over an abstract ordered field Q.
-import lib.Exists
+import probes.Prelude
 -- Purpose: type-level feasibility only; no course units and no arithmetic proofs.
 -- The hard parts (Q construction, well-definedness, completeness) are deliberately
 -- left as axioms so this file tests the Quot / Quot.lift / Quot.exact shape.
