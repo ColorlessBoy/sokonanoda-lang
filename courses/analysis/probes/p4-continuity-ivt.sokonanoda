@@ -1,0 +1,30 @@
+-- P4 probe: continuity / IVT statement shape over an abstract ordered field R.
+-- Purpose: type-level feasibility only; epsilon-delta and IVT are stated,
+-- not proved. The real proof needs the constructed R from P2.
+
+import probes.Prelude
+
+axiom R : Type
+axiom R.zero : R
+axiom R.add : R → R → R
+axiom R.sub : R → R → R
+axiom R.abs : R → R
+axiom R.lt : R → R → Prop
+axiom R.le : R → R → Prop
+
+def dist (x y : R) : R := R.abs (R.sub x y)
+
+def ContinuousAt (f : R → R) (x0 : R) : Prop :=
+  ∀ (eps : R), R.lt R.zero eps →
+    ∃ (delta : R), R.lt R.zero delta ∧
+      ∀ (x : R), R.lt (dist x x0) delta → R.lt (dist (f x) (f x0)) eps
+
+def Continuous (f : R → R) : Prop := ∀ (x : R), ContinuousAt f x
+
+def Between (a b x : R) : Prop := R.le a x ∧ R.le x b
+
+def IVTStatement : Prop :=
+  ∀ (f : R → R) (a b : R),
+    Continuous f → R.le a b →
+    R.lt (f a) R.zero → R.lt R.zero (f b) →
+    ∃ (c : R), Between a b c ∧ f c = R.zero
