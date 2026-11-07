@@ -39,7 +39,13 @@
 - 抽象 `R`：`R` 及其运算 / 序都是 axiom；`IVTStatement` 只是命题，**未证明**。
 - 结果：12 条声明 checked、0 diagnostic、0 open；exit 0。
 
+## p5-partition-integral.sokonanoda
+
+- 目的：验证分割 / 上下和 / `Integrable` / `FTCStatement` 的**陈述形状**。
+- 抽象 `R`：`R`、上下和、`deriv`、`integral` 都是 axiom；FTC **未证明**。
+- 结果：18 条声明 checked、0 diagnostic、0 open；exit 0。
+
 ## 当前合集
 
-P1 + P2 + P3 + P4：**11 + 25 + 3 + 12 = 51 条声明 checked**，0 diagnostic，0 open。
+P1 + P2 + P3 + P4 + P5：**11 + 25 + 3 + 12 + 18 = 69 条声明 checked**，0 diagnostic，0 open。
 

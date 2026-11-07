@@ -1,0 +1,46 @@
+-- P5 probe: partition / Riemann integral / FTC statement shape over abstract R.
+-- Purpose: type-level feasibility only; sums, integrability and FTC are stated,
+-- not proved. The real proof needs the constructed R from P2 and finite sums from P3.
+
+import lib.Exists
+
+axiom R : Type
+axiom R.zero : R
+axiom R.add : R → R → R
+axiom R.sub : R → R → R
+axiom R.le : R → R → Prop
+axiom R.lt : R → R → Prop
+
+inductive Pair (α β : Type) : Type
+ctor Pair.mk (fst : α) (snd : β) : Pair α β
+end
+
+def bound (p : Pair Nat (Nat → R)) : Nat :=
+  Pair.rec.{1} Nat (Nat → R) (fun (_ : Pair Nat (Nat → R)) => Nat)
+    (fun (n : Nat) (_ : Nat → R) => n) p
+
+def points (p : Pair Nat (Nat → R)) : Nat → R :=
+  Pair.rec.{1} Nat (Nat → R) (fun (_ : Pair Nat (Nat → R)) => Nat → R)
+    (fun (_ : Nat) (g : Nat → R) => g) p
+
+def Partition (a b : R) : Type := Pair Nat (Nat → R)
+
+def point (a b : R) (p : Partition a b) (i : Nat) : R := points p i
+
+def IsPartition (a b : R) (p : Partition a b) : Prop :=
+  point a b p 0 = a ∧ point a b p (bound p) = b
+
+axiom upperSum (a b : R) (f : R → R) (p : Partition a b) : R
+axiom lowerSum (a b : R) (f : R → R) (p : Partition a b) : R
+
+def Integrable (a b : R) (f : R → R) : Prop :=
+  ∃ (L : R), ∀ (eps : R), R.lt R.zero eps →
+    ∃ (p : Partition a b),
+      R.lt (R.sub (upperSum a b f p) (lowerSum a b f p)) eps
+
+axiom deriv : (R → R) → R → R
+axiom integral : (R → R) → R → R → R
+
+def FTCStatement : Prop :=
+  ∀ (f : R → R) (a b : R), Integrable a b f →
+    integral (deriv f) a b = R.sub (f b) (f a)
