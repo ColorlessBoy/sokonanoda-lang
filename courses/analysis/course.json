@@ -16,7 +16,7 @@
             "int-rel"
           ],
           "quota": {
-            "exercises": 36
+            "exercises": 42
           },
           "units": [
             {
@@ -42,6 +42,12 @@
               "title": "单元④ 整数加法 / 负 / 减的代表元公式",
               "title_en": "Unit 4 — Integer Operations on Representatives",
               "unit": 4
+            },
+            {
+              "file": "units/II.1/unit05-int-mul-reps.sokonanoda",
+              "title": "单元⑤ 整数乘法的代表元公式",
+              "title_en": "Unit 5 — Integer Multiplication on Representatives",
+              "unit": 5
             }
           ]
         }
