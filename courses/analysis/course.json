@@ -11,14 +11,31 @@
           "id": "II.1",
           "title": "整数：从 ℕ 到 ℤ",
           "prereqs": [],
-          "tags": ["int-quotient", "int-rel"],
-          "quota": { "exercises": 4 },
+          "tags": [
+            "int-quotient",
+            "int-rel"
+          ],
+          "quota": {
+            "exercises": 30
+          },
           "units": [
             {
               "file": "units/II.1/unit01-int-quotient.sokonanoda",
               "title": "单元① 整数与商构造",
               "title_en": "Unit 1 — Integers via Quotient",
               "unit": 1
+            },
+            {
+              "file": "units/II.1/unit02-quotients-review.sokonanoda",
+              "title": "单元② 商类型与良定义性（复习）",
+              "title_en": "Unit 2 — Quotients Review",
+              "unit": 2
+            },
+            {
+              "file": "units/II.1/unit03-nat-arith-review.sokonanoda",
+              "title": "单元③ ℕ 的算术律（复习）",
+              "title_en": "Unit 3 — Nat Arithmetic Review",
+              "unit": 3
             }
           ]
         }
