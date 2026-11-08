@@ -1,3 +1,7 @@
+## 修 G-118（2026-11-08 · issue #25 · 投影/递归子不归约含 `Nat.add` 的 pair def）
+- **根因**：`crates/kernel/src/conv.rs::unify_direct` 的 `(_, Unfold)` / `(Unfold, _)` 两臂抢在递归子/商常量两臂之前 —— `fst … (h a b)` 展开成 `Pair.rec … (h a b)` 后，对侧是卡住的 `Unfold(Nat.add a b)`（参数是变量 ⇒ nat 扩展不归约）；旧顺序只试着展开 `Nat.add`、展不动就 `false` ⇒ **iota 一次都没跑** ✗。
+- **修法**：把两条 `Unfold` 臂移到递归子/商常量两臂**之后**（那两臂本来就会对另一侧的 `Unfold` 调 `unfold_value_demand`，先给 iota 机会不丢旧能力）。
+- **判据**：`crates/front/tests/g118_proj_over_nat_add_def.rs`（正例 `gap` checked + 反向「`Nat.add a b = Nat.add b a` 仍必须判红」）· 反向验证 = 未改 conv 前同一夹具 `gap` 报 `kernel-rejected`（期望 `fst … = Nat.add a b`、实际 `Nat.add a b = Nat.add a b`）· `scripts/kernel-diff.sh --fast /tmp/soko-g118-base/debug/sokonanoda target/debug/sokonanoda` **9/9 组逐字节相同** · 台账 G-118 转 fixed（复现件 `docs/gaps/repro/G118-prod-fst-nat-add-def.sokonanoda` 干净判卷）。
 ## 修复 `apply` 目标不对齐（2026-11-05 · issue #10 · `Set.ext` 之后 `apply h1`）
 - **根因**：`apply` 只做「把被应用项的 Π 层**全部**剥成子目标、拿结论对**整条**目标」这一档；目标本身是 `→`/`∀` 时对不上（Lean 4 的 `MVarId.apply` 从 `i = n - m` 起逐档试，`h1 x` 一个函数就关掉目标）。新增 `apply_partial.rs`（失败边），`apply h1` 在 `x ∈ A → x ∈ B` 上直接关掉；方向错仍报原诊断.
 - **显示根因**：`Set.ext` 的陈述原来写 `A x ↔ B x`（没用 `Set.mem`）⇒ `apply Set.ext` 之后目标面板是 `A x ↔ B x`（`A`/`x` 无着色）。改成 `Set.mem x A ↔ Set.mem x B` ⇒ 面板 `x ∈ A ↔ x ∈ B`.
