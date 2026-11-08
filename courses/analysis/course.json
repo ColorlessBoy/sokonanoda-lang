@@ -54,6 +54,12 @@
               "title": "单元⑥ 整数加法的良定义性",
               "title_en": "Unit 6 — Addition is Well-Defined",
               "unit": 6
+            },
+            {
+              "file": "units/II.1/unit07-int-add-laws.sokonanoda",
+              "title": "单元⑦ 整数加法的交换律与结合律",
+              "title_en": "Unit 7 — Addition Laws on Integers",
+              "unit": 7
             }
           ]
         }

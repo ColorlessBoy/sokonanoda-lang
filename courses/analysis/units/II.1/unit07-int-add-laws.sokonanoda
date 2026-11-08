@@ -1,0 +1,129 @@
+-- 单元⑦ 整数加法的交换律与结合律
+--
+-- 单元⑥ 证了 addRep 尊重 intRel（加法的良定义性）。现在把代表元上的两条
+-- 算术律搬到商上：交换律与结合律。商上的等式只有一个来源 ——
+--   `Quot.sound : r a b → mk a = mk b`（相关的代表元在商里相等）。
+-- 本单元先在代表元上证 `intRel`，再用 `Quot.sound` 得到 `Int` 里的等式。
+--
+-- 注意：本语言没有 `funext`，所以不把加法「下降」成 `Int → Int → Int` 的函数，
+-- 而是对**代表元给出的整数**陈述等式；这也正是课程后面 ℚ/ℝ 章要处理的形式。
+import lib.Logic
+import lib.Prod
+
+def intRel (a b : Prod Nat Nat) : Prop :=
+  Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =
+  Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)
+
+def Int : Type := @Quot.{1} (Prod Nat Nat) intRel
+
+def addRep (a b : Prod Nat Nat) : Prod Nat Nat :=
+  @prod_mk Nat Nat
+    (Nat.add (Prod.fst Nat Nat a) (Prod.fst Nat Nat b))
+    (Nat.add (Prod.snd Nat Nat a) (Prod.snd Nat Nat b))
+
+-- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+theorem zero_add (b : Nat) :
+    @Eq.{1} Nat (Nat.add Nat.zero b) b :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add Nat.zero n) n)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add Nat.zero n) n) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add Nat.zero n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (Nat.add Nat.zero n) n ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add Nat.zero n))))
+    b
+
+theorem succ_add (a b : Nat) :
+    @Eq.{1} Nat (Nat.add (Nat.succ a) b) (Nat.succ (Nat.add a b)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat (Nat.succ a))
+    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n))) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n))))
+    b
+
+theorem add_assoc (a b c : Nat) :
+    @Eq.{1} Nat (Nat.add (Nat.add a b) c) (Nat.add a (Nat.add b c)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat (Nat.add a b))
+    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n))) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
+    c
+
+theorem add_comm (a b : Nat) :
+    @Eq.{1} Nat (Nat.add a b) (Nat.add b a) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add a n) (Nat.add n a))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.symm.{1} Nat (Nat.add Nat.zero a) a (zero_add a))
+    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add a n) (Nat.add n a)) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.trans.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ (Nat.add n a)) (Nat.add (Nat.succ n) a)
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (Nat.add a n) (Nat.add n a) ih
+          (@Eq.refl.{1} Nat (Nat.succ (Nat.add a n))))
+        (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
+    b
+
+-- soko:hint 思路：先用交换律把 a+0 换成 0+a，再用 zero_add 收尾。
+-- soko:hint 目标形态：a + 0 = a（ℕ 上的加法零元在右）。
+-- soko:hint 关键件：add_comm a Nat.zero · zero_add a · Eq.trans。
+theorem add_zero (a : Nat) :
+    @Eq.{1} Nat (Nat.add a Nat.zero) a :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry
+
+-- soko:hint 思路：把右边的 d+b 换成 b+d（改写右加数），再把 a+c 换成 c+a（改写左加数）。
+-- soko:hint 目标形态：((a+c)+(d+b)) = ((c+a)+(b+d))。
+-- soko:hint 关键件：add_comm d b · add_comm a c · Eq.subst · Eq.trans（每次改写都取「可证的那一边」为自反）。
+theorem addRep_comm (a b c d : Nat) :
+    intRel (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+           (addRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat a b)) :=
+  sorry
+
+-- soko:hint 思路：左端把 (a+c)+e 按结合律拼成 a+(c+e)；右端把 b+(d+f) 拼成 (b+d)+f。
+-- soko:hint 目标形态：(((a+c)+e)+(b+(d+f))) = ((a+(c+e))+((b+d)+f))。
+-- soko:hint 关键件：add_assoc a c e · add_assoc b d f（取对称）· Eq.subst · Eq.trans。
+theorem addRep_assoc (a b c d e f : Nat) :
+    intRel (addRep (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+                   (@prod_mk Nat Nat e f))
+           (addRep (@prod_mk Nat Nat a b)
+                   (addRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f))) :=
+  sorry
+
+-- soko:hint 思路：商里的等式只能由 Quot.sound 得到 —— 把 addRep_comm 作为相关性证明交出去。
+-- soko:hint 目标形态：mk (addRep p q) = mk (addRep q p)。
+-- soko:hint 关键件：Quot.sound（宇宙层级与论域都写全）· addRep_comm。
+theorem int_add_comm (a b c d : Nat) :
+    @Eq.{1} (@Quot.{1} (Prod Nat Nat) intRel)
+      (@Quot.mk.{1} (Prod Nat Nat) intRel (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d)))
+      (@Quot.mk.{1} (Prod Nat Nat) intRel (addRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat a b))) :=
+  sorry
+
+-- soko:hint 思路：与上一题同形；这次交出去的是 addRep_assoc。
+-- soko:hint 目标形态：mk (addRep (addRep p q) r) = mk (addRep p (addRep q r))。
+-- soko:hint 关键件：Quot.sound（写全宇宙层级）· addRep_assoc。
+theorem int_add_assoc (a b c d e f : Nat) :
+    @Eq.{1} (@Quot.{1} (Prod Nat Nat) intRel)
+      (@Quot.mk.{1} (Prod Nat Nat) intRel
+        (addRep (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+                (@prod_mk Nat Nat e f)))
+      (@Quot.mk.{1} (Prod Nat Nat) intRel
+        (addRep (@prod_mk Nat Nat a b)
+                (addRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f)))) :=
+  sorry
+
+-- 演示：具体数字上交换一次 —— (2-0)+(3-1) 与 (3-1)+(2-0) 是同一个整数。
+-- 两边都算成 (5,1)，而 intRel (5,1) (5,1) 是 6 = 6。
+theorem demo_int_add_comm :
+    @Eq.{1} (@Quot.{1} (Prod Nat Nat) intRel)
+      (@Quot.mk.{1} (Prod Nat Nat) intRel
+        (addRep (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 3 1)))
+      (@Quot.mk.{1} (Prod Nat Nat) intRel
+        (addRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 2 Nat.zero))) :=
+  @Quot.sound.{1} (Prod Nat Nat) intRel
+    (addRep (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 3 1))
+    (addRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 2 Nat.zero))
+    (@Eq.refl.{1} Nat 6)
