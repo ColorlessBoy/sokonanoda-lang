@@ -72,6 +72,12 @@
               "title": "单元⑨ 整数减法的良定义性与基本律",
               "title_en": "Unit 9 — Subtraction is Well-Defined",
               "unit": 9
+            },
+            {
+              "file": "units/II.1/unit10-int-mul-identity.sokonanoda",
+              "title": "单元⑩ 整数乘法的零元与单位元",
+              "title_en": "Unit 10 — Multiplication: Zero and One",
+              "unit": 10
             }
           ]
         }
