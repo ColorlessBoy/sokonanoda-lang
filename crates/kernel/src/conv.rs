@@ -266,35 +266,6 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 }
             }
 
-            (Value::Unfold { .. }, _) if RIGID => {
-                if self.try_proof_irrel_at(depth, t, t2) {
-                    return true;
-                }
-                let v1 = self.unfold_value(depth, t);
-                if std::ptr::eq(v1, t) {
-                    let f1 = self.unfold_value_demand(depth, t);
-                    if std::ptr::eq(f1, t) {
-                        return false;
-                    }
-                    return self.unify::<true>(depth, f1, t2);
-                }
-                self.unify::<true>(depth, v1, t2)
-            }
-            (_, Value::Unfold { .. }) if RIGID => {
-                if self.try_proof_irrel_at(depth, t, t2) {
-                    return true;
-                }
-                let v2 = self.unfold_value(depth, t2);
-                if std::ptr::eq(v2, t2) {
-                    let f2 = self.unfold_value_demand(depth, t2);
-                    if std::ptr::eq(f2, t2) {
-                        return false;
-                    }
-                    return self.unify::<true>(depth, t, f2);
-                }
-                self.unify::<true>(depth, t, v2)
-            }
-
             (Value::Rigid { head: RigidHead::Recursor(..) | RigidHead::QuotConst(..), .. }, _) if RIGID => {
                 if self.try_proof_irrel_at(depth, t, t2) {
                     return true;
@@ -329,6 +300,35 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                     }
                 }
                 false
+            }
+            // **G-118**：`Unfold` 两臂必须排在递归子/商常量两臂之后 —— 否则对侧展不动时会跳过 iota（issue #25；递归子两臂自己会对 `Unfold` 调 `unfold_value_demand`）。
+            (Value::Unfold { .. }, _) if RIGID => {
+                if self.try_proof_irrel_at(depth, t, t2) {
+                    return true;
+                }
+                let v1 = self.unfold_value(depth, t);
+                if std::ptr::eq(v1, t) {
+                    let f1 = self.unfold_value_demand(depth, t);
+                    if std::ptr::eq(f1, t) {
+                        return false;
+                    }
+                    return self.unify::<true>(depth, f1, t2);
+                }
+                self.unify::<true>(depth, v1, t2)
+            }
+            (_, Value::Unfold { .. }) if RIGID => {
+                if self.try_proof_irrel_at(depth, t, t2) {
+                    return true;
+                }
+                let v2 = self.unfold_value(depth, t2);
+                if std::ptr::eq(v2, t2) {
+                    let f2 = self.unfold_value_demand(depth, t2);
+                    if std::ptr::eq(f2, t2) {
+                        return false;
+                    }
+                    return self.unify::<true>(depth, t, f2);
+                }
+                self.unify::<true>(depth, t, v2)
             }
 
             _ => false,
