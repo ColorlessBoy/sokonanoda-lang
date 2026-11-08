@@ -59,12 +59,17 @@ fn projection_over_a_def_with_a_neutral_nat_add_component_reduces() {
         .events
         .iter()
         .filter_map(|e| match e {
-            sokonanoda_front::compile::CheckEvent::DeclarationChecked { name } => Some(name.as_str()),
+            sokonanoda_front::compile::CheckEvent::DeclarationChecked { name } => {
+                Some(name.as_str())
+            }
             _ => None,
         })
         .collect();
     for want in ["fst", "g", "control", "h", "gap"] {
-        assert!(checked.contains(&want), "`{want}` 必须被 checked：{checked:?}");
+        assert!(
+            checked.contains(&want),
+            "`{want}` 必须被 checked：{checked:?}"
+        );
     }
 }
 
