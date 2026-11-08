@@ -1,0 +1,160 @@
+-- 单元⑧ 整数加法的零元与负元 —— 解答
+--
+-- 单元⑥/⑦ 把加法搬到 Int 上并证了交换律与结合律。本单元补上单位元与逆元：
+--   (a-b) + (0-0) = a-b      （加法零元）
+--   (a-b) + (b-a) = 0-0      （加法逆元）
+-- 再把这两条代表元事实用 `Quot.sound` 搬到商上。最后 `negRep` 是「交换两个分量」，
+-- 做两次回到原处（定义性相等）。
+import lib.Logic
+import lib.Prod
+
+def intRel (a b : Prod Nat Nat) : Prop :=
+  Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =
+  Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)
+
+def Int : Type := @Quot.{1} (Prod Nat Nat) intRel
+
+def addRep (a b : Prod Nat Nat) : Prod Nat Nat :=
+  @prod_mk Nat Nat
+    (Nat.add (Prod.fst Nat Nat a) (Prod.fst Nat Nat b))
+    (Nat.add (Prod.snd Nat Nat a) (Prod.snd Nat Nat b))
+
+def negRep (p : Prod Nat Nat) : Prod Nat Nat :=
+  @prod_mk Nat Nat (Prod.snd Nat Nat p) (Prod.fst Nat Nat p)
+
+-- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+theorem zero_add (b : Nat) :
+    @Eq.{1} Nat (Nat.add Nat.zero b) b :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add Nat.zero n) n)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add Nat.zero n) n) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add Nat.zero n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (Nat.add Nat.zero n) n ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add Nat.zero n))))
+    b
+
+theorem succ_add (a b : Nat) :
+    @Eq.{1} Nat (Nat.add (Nat.succ a) b) (Nat.succ (Nat.add a b)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat (Nat.succ a))
+    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n))) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n))))
+    b
+
+theorem add_comm (a b : Nat) :
+    @Eq.{1} Nat (Nat.add a b) (Nat.add b a) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add a n) (Nat.add n a))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.symm.{1} Nat (Nat.add Nat.zero a) a (zero_add a))
+    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add a n) (Nat.add n a)) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.trans.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ (Nat.add n a)) (Nat.add (Nat.succ n) a)
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (Nat.add a n) (Nat.add n a) ih
+          (@Eq.refl.{1} Nat (Nat.succ (Nat.add a n))))
+        (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
+    b
+
+theorem add_zero (a : Nat) :
+    @Eq.{1} Nat (Nat.add a Nat.zero) a :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  @Eq.trans.{1} Nat (Nat.add a Nat.zero) (Nat.add Nat.zero a) a
+    (add_comm a Nat.zero)
+    (zero_add a)
+
+-- 零元的代表元事实：(a+0)+b = a+(b+0)。
+theorem zero_rep (a b : Nat) :
+    intRel (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat Nat.zero Nat.zero))
+           (@prod_mk Nat Nat a b) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add a Nat.zero) b)
+    (Nat.add a b)
+    (Nat.add a (Nat.add b Nat.zero))
+    (@Eq.subst.{1} Nat
+      (fun (m : Nat) =>
+        @Eq.{1} Nat (Nat.add m b) (Nat.add a b))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      (Nat.add a Nat.zero) a (add_zero a)
+      (@Eq.refl.{1} Nat (Nat.add (Nat.add a Nat.zero) b)))
+    (@Eq.symm.{1} Nat (Nat.add a (Nat.add b Nat.zero)) (Nat.add a b)
+      (@Eq.subst.{1} Nat
+        (fun (m : Nat) =>
+          @Eq.{1} Nat (Nat.add a m) (Nat.add a b))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (Nat.add b Nat.zero) b (add_zero b)
+        (@Eq.refl.{1} Nat (Nat.add a (Nat.add b Nat.zero)))))
+
+-- 商上的零元：把 zero_rep 交给 Quot.sound。
+theorem int_add_zero (a b : Nat) :
+    @Eq.{1} (@Quot.{1} (Prod Nat Nat) intRel)
+      (@Quot.mk.{1} (Prod Nat Nat) intRel
+        (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat Nat.zero Nat.zero)))
+      (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b)) :=
+  @Quot.sound.{1} (Prod Nat Nat) intRel
+    (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat Nat.zero Nat.zero))
+    (@prod_mk Nat Nat a b)
+    (zero_rep a b)
+
+-- 负元尊重 intRel：把 h 的两边交换再各用一次交换律。
+theorem negRep_wd (a b a' b' : Nat)
+    (h : intRel (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a' b')) :
+    intRel (negRep (@prod_mk Nat Nat a b)) (negRep (@prod_mk Nat Nat a' b')) :=
+  @Eq.trans.{1} Nat
+    (Nat.add b a')
+    (Nat.add a' b)
+    (Nat.add b' a)
+    (add_comm b a')
+    (@Eq.trans.{1} Nat (Nat.add a' b) (Nat.add a b') (Nat.add b' a)
+      (@Eq.symm.{1} Nat (Nat.add a b') (Nat.add a' b) h)
+      (@Eq.symm.{1} Nat (Nat.add b' a) (Nat.add a b') (add_comm b' a)))
+
+-- 逆元的代表元事实：(a+b)+0 = 0+(b+a)。
+theorem add_neg_rep (a b : Nat) :
+    intRel (addRep (@prod_mk Nat Nat a b) (negRep (@prod_mk Nat Nat a b)))
+           (@prod_mk Nat Nat Nat.zero Nat.zero) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add a b) Nat.zero)
+    (Nat.add a b)
+    (Nat.add Nat.zero (Nat.add b a))
+    (add_zero (Nat.add a b))
+    (@Eq.trans.{1} Nat (Nat.add a b) (Nat.add b a) (Nat.add Nat.zero (Nat.add b a))
+      (add_comm a b)
+      (@Eq.symm.{1} Nat (Nat.add Nat.zero (Nat.add b a)) (Nat.add b a)
+        (zero_add (Nat.add b a))))
+
+-- 商上的逆元。
+theorem int_add_neg (a b : Nat) :
+    @Eq.{1} (@Quot.{1} (Prod Nat Nat) intRel)
+      (@Quot.mk.{1} (Prod Nat Nat) intRel
+        (addRep (@prod_mk Nat Nat a b) (negRep (@prod_mk Nat Nat a b))))
+      (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat Nat.zero Nat.zero)) :=
+  @Quot.sound.{1} (Prod Nat Nat) intRel
+    (addRep (@prod_mk Nat Nat a b) (negRep (@prod_mk Nat Nat a b)))
+    (@prod_mk Nat Nat Nat.zero Nat.zero)
+    (add_neg_rep a b)
+
+-- 负元做两次回到原处（定义性相等）。
+theorem negRep_neg (a b : Nat) :
+    negRep (negRep (@prod_mk Nat Nat a b)) = @prod_mk Nat Nat a b :=
+  @Eq.refl.{1} (Prod Nat Nat) (@prod_mk Nat Nat a b)
+
+-- 商上的对合律。
+theorem int_neg_neg (a b : Nat) :
+    @Eq.{1} (@Quot.{1} (Prod Nat Nat) intRel)
+      (@Quot.mk.{1} (Prod Nat Nat) intRel
+        (negRep (negRep (@prod_mk Nat Nat a b))))
+      (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b)) :=
+  @Eq.refl.{1} (@Quot.{1} (Prod Nat Nat) intRel)
+    (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b))
+
+-- 演示：具体数字上零元可计算 —— (2-5)+(0-0) 与 (2-5) 在 (7,7) 处等价。
+theorem demo_zero_rep :
+    intRel (addRep (@prod_mk Nat Nat 2 5) (@prod_mk Nat Nat Nat.zero Nat.zero))
+           (@prod_mk Nat Nat 2 5) :=
+  @Eq.refl.{1} Nat 7
+
+-- 演示：(2-5)+(5-2) = 0-0，两边都算成 7 = 7。
+theorem demo_add_neg :
+    intRel (addRep (@prod_mk Nat Nat 2 5) (negRep (@prod_mk Nat Nat 2 5)))
+           (@prod_mk Nat Nat Nat.zero Nat.zero) :=
+  @Eq.refl.{1} Nat 7

@@ -60,6 +60,12 @@
               "title": "单元⑦ 整数加法的交换律与结合律",
               "title_en": "Unit 7 — Addition Laws on Integers",
               "unit": 7
+            },
+            {
+              "file": "units/II.1/unit08-int-add-group.sokonanoda",
+              "title": "单元⑧ 整数加法的零元与负元",
+              "title_en": "Unit 8 — Additive Identity and Inverse",
+              "unit": 8
             }
           ]
         }
