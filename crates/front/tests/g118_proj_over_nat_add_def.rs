@@ -1,7 +1,7 @@
 //! **G-118 / issue #25**：投影/递归子必须归约「major 是 def、def 的分量含中性
 //! `Nat.add`」的情形。
 //!
-//! 复现（`docs/gaps/repro/G118-prod-fst-nat-add-def.sokonanoda`）：
+//! 复现逻辑嵌在下方 `SRC`（文档预算顶格，未单独落 `docs/gaps/repro`）：
 //! `fst Nat Nat (h a b)` 里 `h` 是 def ⇒ `Pair.rec` 的 major 是 `Unfold(h)`；
 //! whnf 后是 `pair_mk (Nat.add a b) (Nat.add b a)` ✓。但**判定**（conversion）
 //! 里另一侧 `Nat.add a b` 是卡住的 `Unfold`（参数是变量 ⇒ nat 扩展不动）⇒
