@@ -6,7 +6,7 @@
 ## 状态
 
 - **C0（M0）完成并 merge 进 `agent/real-analysis-integration`**：P1–P5 可行性探针 + `ROUTE.md`。
-- **M1 进行中**：ℤ + ℚ，18 单元。已落 `course.json`、`lib/`（9 个模块 + Demo）、单元①–⑧（画布 + 解答）；其余 10 单元继续。
+- **M1 进行中**：ℤ + ℚ，18 单元。已落 `course.json`、`lib/`（9 个模块 + Demo）、单元①–⑨（画布 + 解答）；其余 9 单元继续。
 - **课程门禁**：`tools/check.py` 已从卷 I 移植，用 0.98.4 构建跑通；C3 收口前必须 0 判负。
 - 提案与追踪：issue #13；C0 子 issue #14；C0 PR #23。
 
@@ -15,7 +15,7 @@
 - `ROUTE.md`：路线、探针结论、前置、里程碑、风险。
 - `probes/`：M0 可行性探针（P1–P5），不进课程门禁。
 - `lib/`：M1 从卷 I 移植的 L2 库（`Logic` / `Exists` / `Set` / `Prod` / `Rel` / `Fun` / `Image` / `Equiv` / `Order`）。
-- `units/II.1/`：M1 的整数单元（序对商、代表元公式、加法良定义与律、零元与负元）；解答在 `units/solutions/II.1/`。
+- `units/II.1/`：M1 的整数单元（序对商、代表元公式、加法良定义与律、零元与负元、减法良定义与基本律）；解答在 `units/solutions/II.1/`。
 - `course.json`：M1 课程清单（当前只列已落地的单元，随写作增长）。
 
 ## 边界

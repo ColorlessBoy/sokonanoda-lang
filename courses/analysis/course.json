@@ -66,6 +66,12 @@
               "title": "单元⑧ 整数加法的零元与负元",
               "title_en": "Unit 8 — Additive Identity and Inverse",
               "unit": 8
+            },
+            {
+              "file": "units/II.1/unit09-int-sub.sokonanoda",
+              "title": "单元⑨ 整数减法的良定义性与基本律",
+              "title_en": "Unit 9 — Subtraction is Well-Defined",
+              "unit": 9
             }
           ]
         }
