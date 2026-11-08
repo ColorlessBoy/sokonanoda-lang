@@ -78,6 +78,12 @@
               "title": "单元⑩ 整数乘法的零元与单位元",
               "title_en": "Unit 10 — Multiplication: Zero and One",
               "unit": 10
+            },
+            {
+              "file": "units/II.1/unit11-int-mul-wd.sokonanoda",
+              "title": "单元⑪ 整数乘法的良定义性",
+              "title_en": "Unit 11 — Multiplication is Well-Defined",
+              "unit": 11
             }
           ]
         }

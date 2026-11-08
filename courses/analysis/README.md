@@ -6,7 +6,7 @@
 ## 状态
 
 - **C0（M0）完成并 merge 进 `agent/real-analysis-integration`**：P1–P5 可行性探针 + `ROUTE.md`。
-- **M1 进行中**：ℤ + ℚ，18 单元。已落 `course.json`、`lib/`（9 个模块 + Demo）、单元①–⑨（画布 + 解答）；其余 9 单元继续。
+- **M1 进行中**：ℤ + ℚ，18 单元。已落 `course.json`、`lib/`（9 个模块 + Demo）、单元①–⑪（画布 + 解答）；其余 7 单元继续。
 - **课程门禁**：`tools/check.py` 已从卷 I 移植，用 0.98.4 构建跑通；C3 收口前必须 0 判负。
 - 提案与追踪：issue #13；C0 子 issue #14；C0 PR #23。
 
