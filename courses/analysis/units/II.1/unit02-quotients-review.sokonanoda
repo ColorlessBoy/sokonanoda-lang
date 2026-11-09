@@ -40,7 +40,7 @@ import lib.Set
 -- ⚠ 这条的**结论是相等命题**，而在这个位置**等号的记法解不出宇宙层级** ⇒ 必须点名声明星
 --   （写全宇宙层级与论域，G-73 形状 ③）。
 theorem demo_quot_sound (α : Type) (r : α → α → Prop) (a b : α) (h : r a b) :
-    @Eq.{1} (@Quot.{1} α r) (@Quot.mk.{1} α r a) (@Quot.mk.{1} α r b) :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    @Quot.mk.{1} α r a = @Quot.mk.{1} α r b :=
   @Quot.sound.{1} α r a b h
 
 -- 演示：**`Quot.lift` 的 iota 归约** —— 下降后的函数作用在 `mk a` 上**算得动**
@@ -122,9 +122,8 @@ theorem quot_lift_id (α : Type) (a : α) :
 --   关系取"两边的缩回值相等"、`a b c` 三个点按 `(mk a) (mk a) (mk b)` 给、等式是那条假设）·
 --   `Eq.refl`（写全宇宙层级与论域）· **别用 `congrArg`**（大类型上解不出宇宙层级，实测）✓
 theorem quot_mk_injective (α : Type) (a b : α)
-    (h : @Eq.{1} (@Quot.{1} α (fun (x y : α) => @Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      (@Quot.mk.{1} α (fun (x y : α) => x = y) a)
-      (@Quot.mk.{1} α (fun (x y : α) => x = y) b)) : a = b := by
+    (h : @Quot.mk.{1} α (fun (x y : α) => x = y) a =
+      @Quot.mk.{1} α (fun (x y : α) => x = y) b) : a = b := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -136,9 +135,8 @@ theorem quot_mk_injective (α : Type) (a b : α)
 -- soko:hint 目标形态：`mk a = mk b`（关系取 `fun _ _ => True`）。
 -- soko:hint 关键件：`Quot.sound`（**结论含 `Eq` ⇒ 点名声明星**）· `True.intro`。
 theorem quot_all_eq (α : Type) (a b : α) :
-    @Eq.{1} (@Quot.{1} α (fun (_ _ : α) => True))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      (@Quot.mk.{1} α (fun (_ _ : α) => True) a)
-      (@Quot.mk.{1} α (fun (_ _ : α) => True) b) := by
+    @Quot.mk.{1} α (fun (_ _ : α) => True) a =
+      @Quot.mk.{1} α (fun (_ _ : α) => True) b := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────

@@ -22,46 +22,46 @@ def addRep (a b : Prod Nat Nat) : Prod Nat Nat :=
 
 -- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
 theorem zero_add (b : Nat) :
-    @Eq.{1} Nat (Nat.add Nat.zero b) b :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add Nat.zero n) n)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add Nat.zero b = b :=
+  Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
     (@Eq.refl.{1} Nat Nat.zero)
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add Nat.zero n) n) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add Nat.zero n = n) =>
       @Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add Nat.zero n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.succ (Nat.add Nat.zero n) = Nat.succ m)
         (Nat.add Nat.zero n) n ih
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add Nat.zero n))))
     b
 
 theorem succ_add (a b : Nat) :
-    @Eq.{1} Nat (Nat.add (Nat.succ a) b) (Nat.succ (Nat.add a b)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add (Nat.succ a) b = Nat.succ (Nat.add a b) :=
+  Nat.rec (fun (n : Nat) => Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n))
     (@Eq.refl.{1} Nat (Nat.succ a))
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n))) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n)) =>
       @Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.succ (Nat.add (Nat.succ a) n) = Nat.succ m)
         (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)) ih
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n))))
     b
 
 theorem add_assoc (a b c : Nat) :
-    @Eq.{1} Nat (Nat.add (Nat.add a b) c) (Nat.add a (Nat.add b c)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add (Nat.add a b) c = Nat.add a (Nat.add b c) :=
+  Nat.rec (fun (n : Nat) => Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n))
     (@Eq.refl.{1} Nat (Nat.add a b))
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n))) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n)) =>
       @Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.succ (Nat.add (Nat.add a b) n) = Nat.succ m)
         (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)) ih
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
     c
 
 theorem add_comm (a b : Nat) :
-    @Eq.{1} Nat (Nat.add a b) (Nat.add b a) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add a n) (Nat.add n a))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add a b = Nat.add b a :=
+  Nat.rec (fun (n : Nat) => Nat.add a n = Nat.add n a)
     (@Eq.symm.{1} Nat (Nat.add Nat.zero a) a (zero_add a))
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add a n) (Nat.add n a)) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add a n = Nat.add n a) =>
       @Eq.trans.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ (Nat.add n a)) (Nat.add (Nat.succ n) a)
         (@Eq.subst.{1} Nat
-          (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (fun (m : Nat) => Nat.succ (Nat.add a n) = Nat.succ m)
           (Nat.add a n) (Nat.add n a) ih
           (@Eq.refl.{1} Nat (Nat.succ (Nat.add a n))))
         (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
@@ -69,8 +69,8 @@ theorem add_comm (a b : Nat) :
 
 -- 搬运律：把两个和里的加法因子换个配对，值不变。
 theorem add_shift (a b c d : Nat) :
-    @Eq.{1} Nat (Nat.add (Nat.add a c) (Nat.add b d))
-                 (Nat.add (Nat.add a b) (Nat.add c d)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add (Nat.add a c) (Nat.add b d) =
+    Nat.add (Nat.add a b) (Nat.add c d) :=
   @Eq.trans.{1} Nat
     (Nat.add (Nat.add a c) (Nat.add b d))
     (Nat.add a (Nat.add c (Nat.add b d)))
@@ -81,7 +81,7 @@ theorem add_shift (a b c d : Nat) :
       (Nat.add a (Nat.add (Nat.add c b) d))
       (Nat.add (Nat.add a b) (Nat.add c d))
       (@Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.add a (Nat.add c (Nat.add b d))) (Nat.add a m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.add a (Nat.add c (Nat.add b d)) = Nat.add a m)
         (Nat.add c (Nat.add b d)) (Nat.add (Nat.add c b) d)
         (@Eq.symm.{1} Nat (Nat.add (Nat.add c b) d) (Nat.add c (Nat.add b d)) (add_assoc c b d))
         (@Eq.refl.{1} Nat (Nat.add a (Nat.add c (Nat.add b d)))))
@@ -90,7 +90,7 @@ theorem add_shift (a b c d : Nat) :
         (Nat.add a (Nat.add (Nat.add b c) d))
         (Nat.add (Nat.add a b) (Nat.add c d))
         (@Eq.subst.{1} Nat
-          (fun (m : Nat) => @Eq.{1} Nat (Nat.add a (Nat.add (Nat.add c b) d)) (Nat.add a (Nat.add m d)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (fun (m : Nat) => Nat.add a (Nat.add (Nat.add c b) d) = Nat.add a (Nat.add m d))
           (Nat.add c b) (Nat.add b c)
           (add_comm c b)
           (@Eq.refl.{1} Nat (Nat.add a (Nat.add (Nat.add c b) d))))
@@ -99,7 +99,7 @@ theorem add_shift (a b c d : Nat) :
           (Nat.add a (Nat.add b (Nat.add c d)))
           (Nat.add (Nat.add a b) (Nat.add c d))
           (@Eq.subst.{1} Nat
-            (fun (m : Nat) => @Eq.{1} Nat (Nat.add a (Nat.add (Nat.add b c) d)) (Nat.add a m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+            (fun (m : Nat) => Nat.add a (Nat.add (Nat.add b c) d) = Nat.add a m)
             (Nat.add (Nat.add b c) d) (Nat.add b (Nat.add c d))
             (add_assoc b c d)
             (@Eq.refl.{1} Nat (Nat.add a (Nat.add (Nat.add b c) d))))
@@ -123,7 +123,7 @@ theorem addRep_wd (a b a' b' c d : Nat)
       (Nat.add (Nat.add a' b) (Nat.add c d))
       (Nat.add (Nat.add a' c) (Nat.add b d))
       (@Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.add (Nat.add a b') (Nat.add c d)) (Nat.add m (Nat.add c d)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.add (Nat.add a b') (Nat.add c d) = Nat.add m (Nat.add c d))
         (Nat.add a b') (Nat.add a' b) h
         (@Eq.refl.{1} Nat (Nat.add (Nat.add a b') (Nat.add c d))))
       (@Eq.symm.{1} Nat

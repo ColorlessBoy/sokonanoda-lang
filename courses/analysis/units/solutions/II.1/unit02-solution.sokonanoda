@@ -2,7 +2,7 @@ import lib.Rel
 import lib.Set
 
 theorem demo_quot_sound (α : Type) (r : α → α → Prop) (a b : α) (h : r a b) :
-    @Eq.{1} (@Quot.{1} α r) (@Quot.mk.{1} α r a) (@Quot.mk.{1} α r b) :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    @Quot.mk.{1} α r a = @Quot.mk.{1} α r b :=
   @Quot.sound.{1} α r a b h
 
 theorem demo_quot_lift_iota (α β : Type) (r : α → α → Prop) (f : α → β)
@@ -31,39 +31,36 @@ theorem quot_lift_comp (α β : Type) (r : α → α → Prop) (f : α → β)
     (fun (q : @Quot.{1} α r) => @Quot.lift.{1, 1} α r β f h q) (@Quot.mk.{1} α r a) = f a :=
   @Eq.refl.{1} β (f a)
 
-theorem quot_eq_rel_id (α : Type) (a b : α) (h : @Eq.{1} α a b) : @Eq.{1} α a b :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+theorem quot_eq_rel_id (α : Type) (a b : α) (h : a = b) : a = b :=
   h
 
 theorem quot_lift_id (α : Type) (a : α) :
-    @Quot.lift.{1, 1} α (fun (x y : α) => @Eq.{1} α x y) α (fun (x : α) => x)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      (fun (x y : α) (hxy : @Eq.{1} α x y) => hxy)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      (@Quot.mk.{1} α (fun (x y : α) => @Eq.{1} α x y) a) = a :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    @Quot.lift.{1, 1} α (fun (x y : α) => x = y) α (fun (x : α) => x)
+      (fun (x y : α) (hxy : x = y) => hxy)
+      (@Quot.mk.{1} α (fun (x y : α) => x = y) a) = a :=
   @Eq.refl.{1} α a
 
 theorem quot_mk_injective (α : Type) (a b : α)
-    (h : @Eq.{1} (@Quot.{1} α (fun (x y : α) => @Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      (@Quot.mk.{1} α (fun (x y : α) => @Eq.{1} α x y) a)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      (@Quot.mk.{1} α (fun (x y : α) => @Eq.{1} α x y) b)) : @Eq.{1} α a b :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-  rel_subst_right (@Quot.{1} α (fun (x y : α) => @Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-    (fun (u : @Quot.{1} α (fun (x y : α) => @Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      (v : @Quot.{1} α (fun (x y : α) => @Eq.{1} α x y)) =>  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      @Eq.{1} α  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-        (@Quot.lift.{1, 1} α (fun (x y : α) => @Eq.{1} α x y) α (fun (x : α) => x)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-          (fun (x y : α) (hxy : @Eq.{1} α x y) => hxy) u)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-        (@Quot.lift.{1, 1} α (fun (x y : α) => @Eq.{1} α x y) α (fun (x : α) => x)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-          (fun (x y : α) (hxy : @Eq.{1} α x y) => hxy) v))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-    (@Quot.mk.{1} α (fun (x y : α) => @Eq.{1} α x y) a)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-    (@Quot.mk.{1} α (fun (x y : α) => @Eq.{1} α x y) a)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-    (@Quot.mk.{1} α (fun (x y : α) => @Eq.{1} α x y) b) h  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    (h : @Quot.mk.{1} α (fun (x y : α) => x = y) a =
+      @Quot.mk.{1} α (fun (x y : α) => x = y) b) : a = b :=
+  rel_subst_right (@Quot.{1} α (fun (x y : α) => x = y))
+    (fun (u : @Quot.{1} α (fun (x y : α) => x = y))
+      (v : @Quot.{1} α (fun (x y : α) => x = y)) =>
+      @Quot.lift.{1, 1} α (fun (x y : α) => x = y) α (fun (x : α) => x)
+          (fun (x y : α) (hxy : x = y) => hxy) u =
+        @Quot.lift.{1, 1} α (fun (x y : α) => x = y) α (fun (x : α) => x)
+          (fun (x y : α) (hxy : x = y) => hxy) v)
+    (@Quot.mk.{1} α (fun (x y : α) => x = y) a)
+    (@Quot.mk.{1} α (fun (x y : α) => x = y) a)
+    (@Quot.mk.{1} α (fun (x y : α) => x = y) b) h
     (@Eq.refl.{1} α
-      (@Quot.lift.{1, 1} α (fun (x y : α) => @Eq.{1} α x y) α (fun (x : α) => x)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-        (fun (x y : α) (hxy : @Eq.{1} α x y) => hxy)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-        (@Quot.mk.{1} α (fun (x y : α) => @Eq.{1} α x y) a)))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (@Quot.lift.{1, 1} α (fun (x y : α) => x = y) α (fun (x : α) => x)
+        (fun (x y : α) (hxy : x = y) => hxy)
+        (@Quot.mk.{1} α (fun (x y : α) => x = y) a)))
 
 theorem quot_all_eq (α : Type) (a b : α) :
-    @Eq.{1} (@Quot.{1} α (fun (_ _ : α) => True))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
-      (@Quot.mk.{1} α (fun (_ _ : α) => True) a)
-      (@Quot.mk.{1} α (fun (_ _ : α) => True) b) :=
+    @Quot.mk.{1} α (fun (_ _ : α) => True) a =
+      @Quot.mk.{1} α (fun (_ _ : α) => True) b :=
   @Quot.sound.{1} α (fun (_ _ : α) => True) a b True.intro
 
 theorem quot_lift_unique (α β : Type) (r : α → α → Prop) (f : α → β)
