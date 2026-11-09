@@ -160,6 +160,12 @@
               "title": "单元㉑ 整数相等的传递性",
               "title_en": "Unit 21 — Transitivity of Integer Equality",
               "unit": 21
+            },
+            {
+              "file": "units/II.2/unit22-nat-mul-laws.sokonanoda",
+              "title": "单元㉒ ℕ 乘法的分配律与结合律",
+              "title_en": "Unit 22 — Distributivity and Associativity of Nat Multiplication",
+              "unit": 22
             }
           ]
         }
