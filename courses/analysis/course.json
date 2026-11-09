@@ -114,6 +114,12 @@
               "title": "单元⑯ 整数序的传递性与加法单调",
               "title_en": "Unit 16 — Transitivity and Translation Invariance",
               "unit": 16
+            },
+            {
+              "file": "units/II.1/unit17-int-mul-comm.sokonanoda",
+              "title": "单元⑰ 整数乘法的交换律（代表元层）",
+              "title_en": "Unit 17 — Multiplication is Commutative",
+              "unit": 17
             }
           ]
         }
