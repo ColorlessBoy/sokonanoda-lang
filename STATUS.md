@@ -1,3 +1,7 @@
+## M1 单元⑫ 整数序的代表元公式（2026-11-09 · issue #17 / PR #24）
+- `unit12-int-order-reps`：课程自定义 `LeNat`（`le_refl` / `le_succ`）· `leRep p q := a+d ≤ c+b` · `leRep_mk` / `leRep_refl` / `leRep_to_leNat` / `leRep_of_leNat` / `leNat_zero_le` / `leRep_one_two`；画布 6 checked / 6 open，解答 13 checked / 0 open.
+- 判据：课程门禁 **35 目标 · 522 checked · 66 open · 0 判负**（修复后的 0.98.4 构建，`--bin /tmp/soko-kernel/target/debug/sokonanoda`）；`notation-lint` 绿.
+- 边界：本单元只落代表元公式（与单元④平行），序的良定义性与序公理留给单元⑬；II.1 仍需序收尾后转 ℚ.
 ## M1 单元⑪ 整数乘法的良定义性（2026-11-09 · issue #17 / PR #24）
 - `unit11-int-mul-wd`：`mul_add`（分配律 (a+b)·c = a·c + b·c）· `mul_shift_c`（等价假设乘开）· `mulRep_wd`（p ~ p' ⇒ p*q ~ p'*q，第二个分量固定）；画布 15 checked / 3 open，解答 18 checked / 0 open.
 - 判据：课程门禁 **33 目标 · 503 checked · 60 open · 0 判负**（修复后的 0.98.4 构建）；docs-lint / status-lint 绿.

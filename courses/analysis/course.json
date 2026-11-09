@@ -84,6 +84,12 @@
               "title": "单元⑪ 整数乘法的良定义性",
               "title_en": "Unit 11 — Multiplication is Well-Defined",
               "unit": 11
+            },
+            {
+              "file": "units/II.1/unit12-int-order-reps.sokonanoda",
+              "title": "单元⑫ 整数序的代表元公式",
+              "title_en": "Unit 12 — Order on Representatives",
+              "unit": 12
             }
           ]
         }
