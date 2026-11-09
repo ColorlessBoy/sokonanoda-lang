@@ -96,6 +96,12 @@
               "title": "单元⑬ ℕ 序的传递性与单调性",
               "title_en": "Unit 13 — Order: Transitivity and Monotonicity",
               "unit": 13
+            },
+            {
+              "file": "units/II.1/unit14-leNat-cancel.sokonanoda",
+              "title": "单元⑭ ℕ 序的加法消去律",
+              "title_en": "Unit 14 — Cancelling an Addend in the Order",
+              "unit": 14
             }
           ]
         }
