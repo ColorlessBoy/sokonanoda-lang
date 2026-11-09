@@ -44,6 +44,8 @@ mod notation_levels;
 // **a15**：`by.rs`（在 `compile` 之外）要读 `cases_scrutinee_type` ⇒ 这一处放开到 crate。
 pub(crate) mod implicit_msg;
 mod level;
+// 模式编译器（从 `elab.rs` 拆出：判据 ⑨ 的行数预算；纯源级）。
+mod match_pat;
 mod meta;
 mod pp_shape;
 mod prelude;

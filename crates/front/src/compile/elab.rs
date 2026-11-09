@@ -11,7 +11,7 @@ use super::notation_levels::notation_level_texts;
 use super::prelude::CompileOptions;
 use super::report::ResolvedTarget;
 use super::scope::NamespaceScope;
-use crate::ast::{MatchArm, Pattern};
+use crate::ast::Pattern;
 use crate::judge::{judge_infer, GoalBinderSpec};
 use crate::proof::render_expr;
 use crate::{Binder, BinderKind, CtorDecl, Expr, IotaRule, NotationAssoc, RecDecl, SortKind, Span};
@@ -6457,17 +6457,36 @@ pub(crate) fn elab_expr<'a>(
                     ctx,
                 );
             };
+            // 带索引归纳的 **dependent elimination**（issue #27）：结果类型依赖
+            // 索引、或上下文假设依赖索引时，motive 要把索引抽象出来、分支里把
+            // 索引细化为构造子的索引实参。计划在 [`IndexRefine`]（文件下方）。
+            //
             // 依赖 motive 触发（v1，design docs/design/match-dependent-motive.md §1）：
             // scrutinee 是裸局部变量 `x`，且 `x` 在结果类型 R 中出现。否则保持
-            // 常量 motive（完全兼容既有行为）。
-            let dependent_var: Option<String> = match &**scrutinee {
-                Expr::Ident { name, .. }
-                    if scope.names.iter().any(|n| n == name)
-                        && mentions_ident(expected_src, name) =>
-                {
+            // 常量 motive（完全兼容既有行为）。**索引细化启用时 v1 由它取代**。
+            let scrutinee_var: Option<String> = match &**scrutinee {
+                Expr::Ident { name, .. } if scope.names.iter().any(|n| n == name) => {
                     Some(name.clone())
                 }
                 _ => None,
+            };
+            let refine = IndexRefine::build(
+                info,
+                &ind_name,
+                expected_src,
+                scope,
+                scrutinee_var.as_deref(),
+                &index_args_src,
+                known,
+                *span,
+            );
+            let dependent_var: Option<String> = if refine.is_some() {
+                None
+            } else {
+                match &scrutinee_var {
+                    Some(name) if mentions_ident(expected_src, name) => Some(name.clone()),
+                    _ => None,
+                }
             };
             // 3) level：judge_infer(R) 的类型文本映射宇宙（design §5 step 3）。
             // **G-29 第 4 棒**：带上**活环境**（`builder` 就是本趟的环境）⇒ 开关 `on`
@@ -6503,7 +6522,10 @@ pub(crate) fn elab_expr<'a>(
                     span: *span,
                 },
             );
-            let (motive_name, body_src) = if let Some(x) = &dependent_var {
+            let (motive_name, body_src) = if let Some(plan) = &refine {
+                // 索引细化档：motive 体 = `∀ 依赖假设', R'`（索引/major 已代换）。
+                (plan.major_name.clone(), plan.motive_body_src.clone())
+            } else if let Some(x) = &dependent_var {
                 // 新鲜 motive binder 名 `t`：避让作用域内全部名字（包括 x）。
                 let motive_name = {
                     let mut candidate = String::from("t");
@@ -6603,7 +6625,7 @@ pub(crate) fn elab_expr<'a>(
             //    （类型 = motive 结果 R，v1 非依赖 motive；design §5 / Phase 2）。
             let base = scope.len();
             let mut minors = Vec::with_capacity(info.ctors.len());
-            for (ctor, canon) in info.ctors.iter().zip(canon_arms.iter()) {
+            for (ctor_idx, (ctor, canon)) in info.ctors.iter().zip(canon_arms.iter()).enumerate() {
                 let arm = canon;
                 // canonical arm 的参数就是该构造子的字段绑定（顺序与 fields 对齐）。
                 let binders: Vec<Binder> = match &arm.pattern {
@@ -6699,10 +6721,21 @@ pub(crate) fn elab_expr<'a>(
                             }
                             candidate
                         };
-                        // 依赖 motive：IH 类型 = motive <field> = R[x := field]；
-                        // 否则保持常量 R（Phase 2 非依赖）。须在当前 minor 作用域
-                        // 里 elaborate（索引相对已推入的字段/IH binder）。
-                        let ih_src = if let Some(x) = &dependent_var {
+                        // IH 类型 = `motive <该递归出现的索引实参> <field>`：
+                        //  - 索引细化档：`∀ 依赖假设', R'`（索引按该递归出现细化）；
+                        //  - v1 依赖档：`R[x := field]`；
+                        //  - 非依赖：常量 R。
+                        // 须在当前 minor 作用域里 elaborate（de Bruijn 相对已推入的字段/IH）。
+                        let ih_src = if let Some(plan) = &refine {
+                            plan.ih_src(
+                                field_src_ty.as_ref(),
+                                &ind_name,
+                                &binder.name,
+                                binder.span,
+                                expected_src,
+                                info.num_params,
+                            )
+                        } else if let Some(x) = &dependent_var {
                             let mut map = HashMap::new();
                             map.insert(
                                 x.clone(),
@@ -6733,41 +6766,52 @@ pub(crate) fn elab_expr<'a>(
                         ));
                     }
                 }
-                // 依赖 motive：分支期望类型 = R[x := C params v…]（把 scrutinee
-                // 变量替换成该分支的构造子项）；否则保持常量 R。同样在当前 minor
-                // 作用域里 elaborate（branch body 就在这个作用域下）。
-                let branch_expected_src = if let Some(x) = &dependent_var {
-                    let mut term = Expr::Ident {
-                        name: ctor.name.clone(),
-                        span: arm.span,
+                // 分支期望类型 = `motive <构造子索引实参> <构造子项>` 的**展开**：
+                //  - 索引细化档：先把「索引变量 → 构造子索引实参」「scrutinee 变量
+                //    → 构造子项」代换；被泛化的依赖假设也按同一份代换细化后，作为
+                //    **分支内的新绑定**压进作用域（分支体引用 `h1` 拿到细化版，
+                //    与 Lean / Agda 的 dependent elimination 同观感）。
+                //  - v1 依赖档：`R[x := C params v…]`。
+                //  - 否则常量 R。
+                let (branch_expected_src, refined_hyps): (Expr, Vec<(String, ExprPtr<'a>)>) =
+                    if let Some(plan) = &refine {
+                        let ctor_index_args =
+                            plan.ctor_index_args(ctor_idx, &param_map, &field_rename);
+                        let mut map: HashMap<String, Expr> = HashMap::new();
+                        for ((var, _), arg) in plan.index_vars.iter().zip(ctor_index_args) {
+                            map.insert(var.clone(), arg);
+                        }
+                        if let Some(x) = &plan.major_var {
+                            map.insert(
+                                x.clone(),
+                                ctor_term(ctor, &param_args_src, &binders, arm.span, ctx.options),
+                            );
+                        }
+                        let expected =
+                            super::goals::substitute_names(expected_src, &map, &HashMap::new());
+                        let mut refined = Vec::with_capacity(plan.hyps.len());
+                        for (name, ty) in &plan.hyps {
+                            let src = super::goals::substitute_names(ty, &map, &HashMap::new());
+                            let k = elab_expr(
+                                builder, &src, scope, univ, known, hovers, None, None, ctx,
+                            )?;
+                            scope.push(name.clone(), k, Some(src), arm.span);
+                            refined.push((name.clone(), k));
+                        }
+                        (expected, refined)
+                    } else if let Some(x) = &dependent_var {
+                        let mut map = HashMap::new();
+                        map.insert(
+                            x.clone(),
+                            ctor_term(ctor, &param_args_src, &binders, arm.span, ctx.options),
+                        );
+                        (
+                            super::goals::substitute_names(expected_src, &map, &HashMap::new()),
+                            Vec::new(),
+                        )
+                    } else {
+                        (expected_src.clone(), Vec::new())
                     };
-                    // 脊 = 构造子整条望远镜 ⇒ 严格档要标 `@`（a17：写死 `false` 被判红）。
-                    let at = crate::compile::implicit_msg::strict_at_enabled(ctx.options);
-                    for p in &param_args_src {
-                        term = Expr::App {
-                            fun: Box::new(term),
-                            arg: Box::new(p.clone()),
-                            explicit_spine: at,
-                            span: arm.span,
-                        };
-                    }
-                    for b in &binders {
-                        term = Expr::App {
-                            fun: Box::new(term),
-                            arg: Box::new(Expr::Ident {
-                                name: b.name.clone(),
-                                span: b.span,
-                            }),
-                            explicit_spine: at,
-                            span: arm.span,
-                        };
-                    }
-                    let mut map = HashMap::new();
-                    map.insert(x.clone(), term);
-                    super::goals::substitute_names(expected_src, &map, &HashMap::new())
-                } else {
-                    expected_src.clone()
-                };
                 let branch_expected = elab_expr(
                     builder,
                     &branch_expected_src,
@@ -6791,6 +6835,12 @@ pub(crate) fn elab_expr<'a>(
                     ctx,
                 )?;
                 scope.truncate(base);
+                // 细化后的依赖假设是**分支自己的 λ**（motive 的 Π 假设 = minor 的
+                // 形参）：分支体在扩展作用域里引用 `h1` 拿到的是细化版绑定。
+                for (name, ty) in refined_hyps.iter().rev() {
+                    let nm = builder.name_from_str(name);
+                    body = builder.mk_lambda(nm, BinderStyle::Default, *ty, body);
+                }
                 for (name, style, ty, _src) in minor_binders.iter().rev() {
                     let nm = builder.name_from_str(name);
                     body = builder.mk_lambda(nm, *style, *ty, body);
@@ -6820,6 +6870,19 @@ pub(crate) fn elab_expr<'a>(
                 app = builder.mk_app(app, *index);
             }
             app = builder.mk_app(app, scrutinee_kernel);
+            // 索引细化档：motive 的 Π 假设实参 = 外层上下文里那些假设本身（顺序与
+            // motive 的 Π 链一致）⇒ 整个 match 项把它们作为实参交回去。
+            if let Some(plan) = &refine {
+                for (name, _) in &plan.hyps {
+                    let ident = Expr::Ident {
+                        name: name.clone(),
+                        span: *span,
+                    };
+                    let arg =
+                        elab_expr(builder, &ident, scope, univ, known, hovers, None, None, ctx)?;
+                    app = builder.mk_app(app, arg);
+                }
+            }
             record_hover(hovers, scope, *span, app, None);
             Ok(app)
         }
@@ -6830,6 +6893,311 @@ pub(crate) fn elab_expr<'a>(
             *span,
         )),
     }
+}
+
+// ---- 带索引归纳的 dependent elimination（issue #27）----
+//
+// `match` 的 v1 motive 只抽象 **major**（scrutinee 变量）；带索引归纳（`Vec A n`
+// 的 `n`、`LeNat b c` 的 `b/c`）的**结果类型/上下文假设依赖索引**时，分支里的
+// 索引必须细化成构造子的索引实参（`le_refl n` 分支里 `b`,`c` 细化为 `n`），
+// 否则内核正当地拒绝（issue #27 的 `leNat_trans`）。
+//
+// 本计划（[`IndexRefine`]）在**源级**收集三样东西：
+//   ① `index_vars`：被匹配项书写类型里的索引实参**恰好是局部变量**的那些 ⇒
+//      可抽象成 motive 的索引 binder（`__soko_i{k}`）；
+//   ② `hyps`：上下文中**类型提到这些索引变量 / scrutinee 变量**的假设 ——
+//      dependent elimination 要把它们「泛化」进 motive 的 Π 链。这一步绕不开：
+//      分支体里的 `h1` 必须拿到细化后的类型，而它的**原类型**在内核里改不了；
+//      与显式 `Ind.rec` 的动机 `fun i j h => h1' : … → R` 同构（Lean 4 / Agda
+//      的 dependent elimination 也把依赖假设泛化进目标）；
+//   ③ `ctor_indices`：每个构造子结果里的索引实参（源级）——分支期望类型与
+//      细化后的假设类型都用它们代入。
+//
+// **内核零改动**：全部是源级的「抽象 + 代入」，判定仍由完整内核终审。
+// 判据：`crates/front/src/compile/tests.rs` 的 `match_indexed_*`；复现件
+// `docs/gaps/repro/G-119-indexed-dependent-match.sokonanoda`。
+struct IndexRefine {
+    /// （书写索引实参里的变量名, motive 里新鲜的索引 binder 名）
+    index_vars: Vec<(String, String)>,
+    /// 被泛化进 motive Π 链的假设（作用域顺序）：（名字, 书写类型）
+    hyps: Vec<(String, Expr)>,
+    /// 结果类型/假设类型里出现过的 scrutinee 变量（`Some` ⇒ motive 需要 major binder）
+    major_var: Option<String>,
+    /// motive 的 major binder 名（`major_var == None` 时为空 = 匿名 binder）
+    major_name: String,
+    /// motive 的**体**（源级）：`∀ hyps', R'`；索引/major 已代换
+    motive_body_src: Expr,
+    /// 每个构造子的索引实参（源级；字段名是**声明**里的名字，用前按分支改名）
+    ctor_indices: Vec<Vec<Expr>>,
+}
+
+impl IndexRefine {
+    /// 收集计划；**任何**前提不满足（索引实参不是局部变量 / 构造子签名回读失败 /
+    /// 递归字段是箭头链 / 重复索引变量…）⇒ `None` = 逐字节回退 v1 路径
+    /// （绝不猜：v1 的判红至少与今天一致）。
+    #[allow(clippy::too_many_arguments)]
+    fn build<'a>(
+        info: &InductiveInfo<'a>,
+        ind_name: &str,
+        expected_src: &Expr,
+        scope: &ElabScope<'a>,
+        scrutinee_var: Option<&str>,
+        index_args_src: &[Expr],
+        known: &KnownTable,
+        span: Span,
+    ) -> Option<Self> {
+        if info.num_indices == 0 || index_args_src.len() != info.num_indices {
+            return None;
+        }
+        // ① 索引位上的**可见局部变量**（同一变量出现两次 ⇒ 两次代入可能不同 ⇒ 不做）。
+        let mut index_vars: Vec<(String, String)> = Vec::new();
+        for (k, arg) in index_args_src.iter().enumerate() {
+            let Expr::Ident { name, .. } = arg else {
+                continue;
+            };
+            if scope.find_last(name).is_none() || index_vars.iter().any(|(v, _)| v == name) {
+                return None;
+            }
+            index_vars.push((name.clone(), fresh_aux_name(scope, &format!("__soko_i{k}"))));
+        }
+        if index_vars.is_empty() {
+            return None;
+        }
+        // ② 每个构造子的索引实参：回读**声明类型文本**（`KnownName::Decl::signature`
+        //    的既有消费者是隐式实参反解 —— 同一条「render → parse」路，不新造解析器）。
+        let mut ctor_indices: Vec<Vec<Expr>> = Vec::with_capacity(info.ctors.len());
+        for ctor in &info.ctors {
+            let ty = ctor_decl_type(known, &ctor.canonical)?;
+            let (head, args) = spine_of_codomain(&ty)?;
+            if head != ind_name {
+                return None;
+            }
+            let idx: Vec<Expr> = args.into_iter().skip(info.num_params).collect();
+            if idx.len() != info.num_indices {
+                return None;
+            }
+            ctor_indices.push(idx);
+        }
+        // 递归字段必须是**具名**字段（箭头链字段的 IH 望远镜本版不做 ⇒ 回退）。
+        for ctor in &info.ctors {
+            for field in &ctor.fields {
+                let Some(src_ty) = field.src_ty.as_ref() else {
+                    continue;
+                };
+                if mentions_ident(src_ty, ind_name) {
+                    let (head, args) = spine_of_codomain(src_ty)?;
+                    if head != ind_name
+                        || args.len().saturating_sub(info.num_params) != info.num_indices
+                        || !result_chain_binders(src_ty).is_empty()
+                    {
+                        return None;
+                    }
+                }
+            }
+        }
+        // ③ 泛化哪些假设：类型提到可细化索引变量、或提到 scrutinee 变量的**可见**
+        //    局部绑定（跳过 scrutinee 自己）。`let` 绑定不能做成 Π 假设 ⇒ 回退。
+        let mut hyps: Vec<(String, Expr)> = Vec::new();
+        let mut major_needed = scrutinee_var.is_some_and(|x| mentions_ident(expected_src, x));
+        for (pos, name) in scope.names.iter().enumerate() {
+            if name.is_empty() || Some(name.as_str()) == scrutinee_var {
+                continue;
+            }
+            if scope.names.iter().rposition(|n| n == name) != Some(pos) {
+                continue; // 被后面的同名 binder 遮蔽 ⇒ 不可见，不计
+            }
+            let Some(ty) = scope.src_tys[pos].as_ref() else {
+                continue;
+            };
+            let hits_index = index_vars.iter().any(|(var, _)| mentions_ident(ty, var));
+            let hits_major = scrutinee_var.is_some_and(|x| mentions_ident(ty, x));
+            if !hits_index && !hits_major {
+                continue;
+            }
+            if scope.lets[pos] {
+                return None;
+            }
+            major_needed |= hits_major;
+            hyps.push((name.clone(), ty.clone()));
+        }
+        let r_depends_on_index = index_vars
+            .iter()
+            .any(|(var, _)| mentions_ident(expected_src, var));
+        if !r_depends_on_index && hyps.is_empty() {
+            return None; // 没有可细化的东西 ⇒ 保持 v1（逐字节兼容）
+        }
+        // ④ motive 体 = `∀ hyps', R'`（索引 → 索引 binder；scrutinee → major binder）。
+        let major_var = if major_needed {
+            scrutinee_var.map(str::to_string)
+        } else {
+            None
+        };
+        let major_name = if major_var.is_some() {
+            fresh_aux_name(scope, "t")
+        } else {
+            String::new()
+        };
+        let mut map: HashMap<String, Expr> = HashMap::new();
+        for (var, binder) in &index_vars {
+            map.insert(
+                var.clone(),
+                Expr::Ident {
+                    name: binder.clone(),
+                    span,
+                },
+            );
+        }
+        if let Some(x) = &major_var {
+            map.insert(
+                x.clone(),
+                Expr::Ident {
+                    name: major_name.clone(),
+                    span,
+                },
+            );
+        }
+        let motive_body_src = refined_dependent_result(&hyps, &map, expected_src, span);
+        Some(IndexRefine {
+            index_vars,
+            hyps,
+            major_var,
+            major_name,
+            motive_body_src,
+            ctor_indices,
+        })
+    }
+
+    /// 分支里构造子的索引实参：声明里的字段名 → 用户 match binder 名，参数 → 实参。
+    fn ctor_index_args(
+        &self,
+        ctor_idx: usize,
+        param_map: &HashMap<String, Expr>,
+        field_rename: &HashMap<String, Expr>,
+    ) -> Vec<Expr> {
+        let mut map = param_map.clone();
+        map.extend(field_rename.clone());
+        self.ctor_indices[ctor_idx]
+            .iter()
+            .map(|e| super::goals::substitute_names(e, &map, &HashMap::new()))
+            .collect()
+    }
+
+    /// 递归字段的 IH 类型 = `motive <该递归出现的索引实参> <字段>` =
+    /// `∀ hyps', R'`（索引按该字段自己的实参细化）。
+    fn ih_src(
+        &self,
+        field_src_ty: Option<&Expr>,
+        ind_name: &str,
+        field_name: &str,
+        span: Span,
+        expected_src: &Expr,
+        num_params: usize,
+    ) -> Expr {
+        let Some((head, args)) = field_src_ty.and_then(spine_of_codomain) else {
+            return expected_src.clone();
+        };
+        if head != ind_name {
+            return expected_src.clone();
+        }
+        let field_indices: Vec<Expr> = args.into_iter().skip(num_params).collect();
+        if field_indices.len() != self.index_vars.len() {
+            return expected_src.clone();
+        }
+        let mut map: HashMap<String, Expr> = HashMap::new();
+        for ((var, _), arg) in self.index_vars.iter().zip(field_indices) {
+            map.insert(var.clone(), arg);
+        }
+        if let Some(x) = &self.major_var {
+            map.insert(
+                x.clone(),
+                Expr::Ident {
+                    name: field_name.to_string(),
+                    span,
+                },
+            );
+        }
+        refined_dependent_result(&self.hyps, &map, expected_src, span)
+    }
+}
+
+/// `∀ hyps', R'`：motive / IH / 分支期望类型里的**同一份**代入 ⇒ 两端由构造保证同形。
+/// `hyps` 为空 ⇒ 直接返回 `R'`。
+fn refined_dependent_result(
+    hyps: &[(String, Expr)],
+    map: &HashMap<String, Expr>,
+    expected_src: &Expr,
+    span: Span,
+) -> Expr {
+    let body = super::goals::substitute_names(expected_src, map, &HashMap::new());
+    let binders: Vec<Binder> = hyps
+        .iter()
+        .map(|(name, ty)| Binder {
+            name: name.clone(),
+            ty: Some(Box::new(super::goals::substitute_names(
+                ty,
+                map,
+                &HashMap::new(),
+            ))),
+            style: BinderKind::Explicit,
+            span,
+        })
+        .collect();
+    if binders.is_empty() {
+        body
+    } else {
+        e_forall(binders, body, span)
+    }
+}
+
+/// 构造子声明类型的源级回读：`signature` 是 `decl_signature` 的产物，而
+/// `implicit::telescope` 一直用它做「render → parse」⇒ 同一条既有路。
+fn ctor_decl_type(known: &KnownTable, canonical: &str) -> Option<Expr> {
+    crate::proof::parse_expr_text(known.get(canonical)?.signature()?).ok()
+}
+
+/// 避让作用域内已有名字的辅助 binder 名（`__soko_i0` / `t`）。
+fn fresh_aux_name(scope: &ElabScope, base: &str) -> String {
+    let mut candidate = base.to_string();
+    while scope.names.iter().any(|n| n == &candidate) {
+        candidate.push('_');
+    }
+    candidate
+}
+
+/// 分支里的构造子项 `C params 字段…`（v1 依赖档与索引细化档共用）。
+fn ctor_term(
+    ctor: &MatchCtor,
+    param_args_src: &[Expr],
+    binders: &[Binder],
+    span: Span,
+    options: &CompileOptions,
+) -> Expr {
+    let mut term = Expr::Ident {
+        name: ctor.name.clone(),
+        span,
+    };
+    // 脊 = 构造子整条望远镜 ⇒ 严格档要标 `@`（a17：写死 `false` 被判红）。
+    let at = crate::compile::implicit_msg::strict_at_enabled(options);
+    for p in param_args_src {
+        term = Expr::App {
+            fun: Box::new(term),
+            arg: Box::new(p.clone()),
+            explicit_spine: at,
+            span,
+        };
+    }
+    for b in binders {
+        term = Expr::App {
+            fun: Box::new(term),
+            arg: Box::new(Expr::Ident {
+                name: b.name.clone(),
+                span: b.span,
+            }),
+            explicit_spine: at,
+            span,
+        };
+    }
+    term
 }
 
 /// Peel a constructor's elaborated kernel type into its field binder types
@@ -6858,7 +7226,7 @@ pub(crate) fn kernel_field_binders<'a>(mut ty: ExprPtr<'a>) -> Vec<(BinderStyle,
 
 /// The head identifier of a type expression (`Color`, `Color A`, `@{…}`), used
 /// to map a scrutinee/expected type onto the inductive registry.
-fn head_ident(expr: &Expr) -> Option<String> {
+pub(crate) fn head_ident(expr: &Expr) -> Option<String> {
     match expr {
         Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => Some(name.clone()),
         Expr::App { fun, .. } => head_ident(fun),
@@ -6876,7 +7244,7 @@ fn head_ident(expr: &Expr) -> Option<String> {
 /// Lean 风格里的常见写法「`have h : A ∨ B := …` 之后 `cases h`」，逼学习者
 /// 把局部假设的类型写成点名形式。操作数按**源序**收集：中缀 `[lhs, rhs]`、
 /// 前缀 `[rhs]`（`¬ A`）、后缀 `[lhs]`、零元 `[]`（`∅`）。
-fn src_spine(expr: &Expr) -> Option<(String, Vec<Expr>)> {
+pub(crate) fn src_spine(expr: &Expr) -> Option<(String, Vec<Expr>)> {
     match expr {
         Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => {
             Some((name.clone(), Vec::new()))
@@ -6981,414 +7349,8 @@ fn annotate_application_lambda(expr: &Expr, ctx: &ElabCtx, scope: &ElabScope) ->
     Some(rebuilt)
 }
 
-// ---- 模式编译器（docs/design/match-patterns.md §4）----
-//
-// 把用户写的 `| <pattern> [if <guard>] => body`（可能含通配、绑定、嵌套构造子、
-// Nat 字面量）**源到源** canonical 化成「每构造子恰好一条 arm、参数全是绑定」
-// 的 `Expr::Match` 树；嵌套匹配生成在该 arm 的 body 里，交回本模块既有的
-// lowering 逐层处理。好处：不手搓 de Bruijn，守卫复用 prelude `Bool.rec`。
-
-/// 待匹配的一列（顶层是用户写的 scrutinee；嵌套是字段 binder 名）。
-#[derive(Clone)]
-struct ColVar<'c, 'a> {
-    expr: Expr,
-    /// 该列类型的归纳元数据（`None` = 参数/未知 → 只能绑定或通配）。
-    ind: Option<&'c InductiveInfo<'a>>,
-    ind_name: Option<String>,
-    /// 该列类型的参数实例（参数名 → 书写实参），用于把字段类型 `A` 代换成
-    /// `Option Nat` 里的 `Nat`（否则嵌套模式看不到内层归纳）。
-    subst: HashMap<String, Expr>,
-}
-
-/// 编译器的一行：模式串（长度 = 列数）+ body + 守卫。
-#[derive(Clone)]
-struct PatternRow {
-    pats: Vec<Pattern>,
-    guard: Option<Expr>,
-    body: Expr,
-}
-
-/// 模式在某一列的解析结果。
-enum Resolved {
-    Ctor { ci: usize, args: Vec<Pattern> },
-    Bind(String),
-    Wild,
-}
-
-fn bad_arm(message: &str, span: Span) -> CompileError {
-    CompileError::elab(ErrorKind::ElabMatchBadArm, message.to_string(), span)
-}
-
-fn ident_expr(name: &str, span: Span) -> Expr {
-    Expr::Ident {
-        name: name.to_string(),
-        span,
-    }
-}
-
-/// 错误消息里列出的构造子拼写：源名与规范名都给（R1 之后源名已不是内核名，
-/// 学员按提示写哪一个都能过 —— R3）。
-fn ctor_names_text_from(info: &InductiveInfo) -> String {
-    info.ctors
-        .iter()
-        .map(|c| {
-            if c.name == c.canonical {
-                format!("`{}`", c.name)
-            } else {
-                format!("`{}`（或 `{}`）", c.canonical, c.name)
-            }
-        })
-        .collect::<Vec<_>>()
-        .join("、")
-}
-
-/// 构造子下标：源名（`succ`，R3 的源级写法）、规范名（`Nat.succ`，R1）与
-/// 该归纳内唯一的裸后缀都命中。
-fn ctor_index(info: &InductiveInfo, name: &str) -> Option<usize> {
-    if let Some(i) = info.ctors.iter().position(|c| c.name == name) {
-        return Some(i);
-    }
-    if let Some(i) = info.ctors.iter().position(|c| c.canonical == name) {
-        return Some(i);
-    }
-    if name.contains('.') {
-        return None;
-    }
-    let hits: Vec<usize> = info
-        .ctors
-        .iter()
-        .enumerate()
-        .filter(|(_, c)| c.canonical.rsplit('.').next() == Some(name))
-        .map(|(i, _)| i)
-        .collect();
-    if hits.len() == 1 {
-        Some(hits[0])
-    } else {
-        None
-    }
-}
-
-/// Nat 形状：零构造子（0 字段）+ succ 构造子（1 字段，类型回到自身）。
-fn nat_shape(info: &InductiveInfo, name: &str) -> Option<(usize, usize)> {
-    let zero = info.ctors.iter().position(|c| c.fields.is_empty())?;
-    let succ = info.ctors.iter().position(|c| {
-        c.fields.len() == 1
-            && c.fields[0].src_ty.as_ref().and_then(head_ident).as_deref() == Some(name)
-    })?;
-    Some((zero, succ))
-}
-
-fn resolve_pattern(pat: &Pattern, col: &ColVar) -> Result<Resolved, CompileError> {
-    match pat {
-        Pattern::Wild { .. } => Ok(Resolved::Wild),
-        Pattern::Num { value, span } => {
-            let info = col.ind.ok_or_else(|| {
-                bad_arm(
-                    "数字字面量模式只能用在 Nat 上：这一列不是已知的归纳类型",
-                    *span,
-                )
-            })?;
-            let name = col.ind_name.as_deref().unwrap_or("");
-            let (zero, succ) = nat_shape(info, name).ok_or_else(|| {
-                bad_arm(
-                    "数字字面量模式只能用在 Nat 上（0 元零构造子 + 一元 succ 构造子）",
-                    *span,
-                )
-            })?;
-            let n: u64 = value.parse().unwrap_or(0);
-            if n == 0 {
-                Ok(Resolved::Ctor {
-                    ci: zero,
-                    args: Vec::new(),
-                })
-            } else {
-                Ok(Resolved::Ctor {
-                    ci: succ,
-                    args: vec![Pattern::Num {
-                        value: (n - 1).to_string(),
-                        span: *span,
-                    }],
-                })
-            }
-        }
-        Pattern::Ident { name, args, span } => {
-            if let Some(info) = col.ind {
-                if let Some(ci) = ctor_index(info, name) {
-                    let want = info.ctors[ci].fields.len();
-                    if args.len() != want {
-                        return Err(bad_arm(
-                            &format!(
-                                "构造子 `{}` 有 {} 个字段，但这一支写了 {} 个子模式；请写满字段",
-                                info.ctors[ci].canonical,
-                                want,
-                                args.len()
-                            ),
-                            *span,
-                        ));
-                    }
-                    return Ok(Resolved::Ctor {
-                        ci,
-                        args: args.clone(),
-                    });
-                }
-            }
-            if args.is_empty() {
-                return Ok(Resolved::Bind(name.clone()));
-            }
-            let ty = col.ind_name.clone().unwrap_or_default();
-            let available = col.ind.map(ctor_names_text_from).unwrap_or_default();
-            Err(bad_arm(
-                &format!("`{ty}` 没有构造子 `{name}`；可用的是：{available}"),
-                *span,
-            ))
-        }
-    }
-}
-
-/// 守卫链：`| p if g1 => b1 | …` 在「模式都已匹配」后按顺序判定，第一个为真
-/// 的 body 胜；为假落到下一行；最后一行若仍有守卫 → 没有兜底。
-fn guard_chain(rows: &[PatternRow], span: Span) -> Result<Expr, CompileError> {
-    let Some(row) = rows.first() else {
-        return Err(CompileError::elab(
-            ErrorKind::ElabMatchNonExhaustive,
-            "`match` 的守卫为假时没有兜底分支：请在后面补一条不加守卫的分支".to_string(),
-            span,
-        ));
-    };
-    match &row.guard {
-        None => Ok(row.body.clone()),
-        Some(g) => {
-            let fallback = guard_chain(&rows[1..], span)?;
-            let gspan = g.span();
-            Ok(Expr::Match {
-                scrutinee: Box::new(g.clone()),
-                arms: vec![
-                    MatchArm {
-                        pattern: Pattern::Ident {
-                            name: "Bool.true".to_string(),
-                            args: Vec::new(),
-                            span: gspan,
-                        },
-                        guard: None,
-                        body: row.body.clone(),
-                        span: gspan,
-                    },
-                    MatchArm {
-                        pattern: Pattern::Ident {
-                            name: "Bool.false".to_string(),
-                            args: Vec::new(),
-                            span: gspan,
-                        },
-                        guard: None,
-                        body: fallback,
-                        span: gspan,
-                    },
-                ],
-                span,
-            })
-        }
-    }
-}
-
-/// 子模式的列变量：字段的书写类型给出嵌套归纳。
-fn field_col<'c, 'a>(
-    name: &str,
-    src_ty: Option<&Expr>,
-    parent_subst: &HashMap<String, Expr>,
-    ctx: &'c ElabCtx<'a, '_>,
-) -> ColVar<'c, 'a> {
-    // 参数化归纳：字段类型里的参数名先代入（`some (a : A)` 在 `Option Nat`
-    // 下 → `Nat`），嵌套模式才能解析内层构造子。
-    let substituted =
-        src_ty.map(|t| super::goals::substitute_names(t, parent_subst, &HashMap::new()));
-    let spine = substituted.as_ref().and_then(src_spine);
-    let head = spine.as_ref().map(|(h, _)| h.clone());
-    let args = spine.map(|(_, a)| a).unwrap_or_default();
-    let ind = head.as_deref().and_then(|h| ctx.inductives.get(h));
-    let subst = match ind {
-        Some(info) => info
-            .param_names
-            .iter()
-            .cloned()
-            .zip(args)
-            .collect::<HashMap<String, Expr>>(),
-        None => HashMap::new(),
-    };
-    ColVar {
-        expr: ident_expr(name, Span::default()),
-        ind,
-        ind_name: head,
-        subst,
-    }
-}
-
-/// 编译一层的 `match`（`vars` 都已在作用域里），返回一个 body 表达式
-/// （可能是生成出来的嵌套 `Expr::Match`，也可能直接就是叶子 body）。
-fn compile_pattern_body<'c, 'a>(
-    ctx: &'c ElabCtx<'a, '_>,
-    vars: &[ColVar<'c, 'a>],
-    rows: &[PatternRow],
-    span: Span,
-) -> Result<Expr, CompileError> {
-    if rows.is_empty() {
-        return Err(CompileError::elab(
-            ErrorKind::ElabMatchNonExhaustive,
-            "`match` 的分支不完整：有些取值没有对应分支".to_string(),
-            span,
-        ));
-    }
-    let mut resolved: Vec<Vec<Resolved>> = Vec::with_capacity(rows.len());
-    let mut all_irrefutable = true;
-    for row in rows {
-        let mut this = Vec::with_capacity(vars.len());
-        for (j, pat) in row.pats.iter().enumerate() {
-            let res = resolve_pattern(pat, &vars[j])?;
-            if !matches!(res, Resolved::Bind(_) | Resolved::Wild) {
-                all_irrefutable = false;
-            }
-            this.push(res);
-        }
-        resolved.push(this);
-    }
-    if all_irrefutable {
-        // 这一层所有模式都不可反驳：顺序 + 守卫决定，无需再造 match。
-        return guard_chain(rows, span);
-    }
-    // 选第一处含可反驳模式的列。
-    let col = (0..vars.len())
-        .find(|&j| {
-            resolved
-                .iter()
-                .any(|r| matches!(r[j], Resolved::Ctor { .. }))
-        })
-        .expect("at least one refutable pattern exists");
-    let info = vars[col]
-        .ind
-        .ok_or_else(|| bad_arm("无法确定被匹配类型的归纳信息", span))?;
-    let mut arms: Vec<MatchArm> = Vec::with_capacity(info.ctors.len());
-    for (ci, ctor) in info.ctors.iter().enumerate() {
-        let k = ctor.fields.len();
-        // 每个字段的嵌套归纳（用于判定某个子模式是不是构造子）。
-        let field_inds: Vec<Option<&InductiveInfo<'a>>> = ctor
-            .fields
-            .iter()
-            .map(|f| f.src_ty.as_ref().and_then(head_ident))
-            .map(|head| head.and_then(|h| ctx.inductives.get(&h)))
-            .collect();
-        // 子模式是「绑定」吗（无子模式，且名字不是该字段类型的构造子）。
-        let is_bind_arg = |j: usize, name: &str| -> bool {
-            !name.contains('.') && field_inds[j].is_none_or(|ind| ctor_index(ind, name).is_none())
-        };
-        // 1) 字段名：某行在该字段是「绑定」时优先沿用它的名字（canonical 输入
-        //    因此保持名字不变 → 编译幂等）；否则用新鲜名。
-        let mut field_names: Vec<String> = Vec::with_capacity(k);
-        for j in 0..k {
-            let mut chosen: Option<String> = None;
-            for (ri, _) in rows.iter().enumerate() {
-                if let Resolved::Ctor { ci: rci, args } = &resolved[ri][col] {
-                    if *rci == ci {
-                        if let Pattern::Ident { name, args: a, .. } = &args[j] {
-                            if a.is_empty() && is_bind_arg(j, name) && !field_names.contains(name) {
-                                chosen = Some(name.clone());
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            field_names.push(chosen.unwrap_or_else(|| format!("__soko_m{col}_{ci}_{j}")));
-        }
-        // 2) 逐行特化（去掉 col，换成该构造子的 k 个子模式）。
-        let mut sub_rows: Vec<PatternRow> = Vec::new();
-        for (ri, row) in rows.iter().enumerate() {
-            let (args, bound_column) = match &resolved[ri][col] {
-                Resolved::Ctor { ci: rci, args } if *rci == ci => (args.clone(), None),
-                Resolved::Ctor { .. } => continue,
-                Resolved::Wild => (
-                    vec![
-                        Pattern::Wild {
-                            span: row.pats[col].span(),
-                        };
-                        k
-                    ],
-                    None,
-                ),
-                Resolved::Bind(name) => (
-                    vec![
-                        Pattern::Wild {
-                            span: row.pats[col].span(),
-                        };
-                        k
-                    ],
-                    Some(name.clone()),
-                ),
-            };
-            let mut map: HashMap<String, Expr> = HashMap::new();
-            for (j, arg) in args.iter().enumerate() {
-                if let Pattern::Ident {
-                    name, args: sub, ..
-                } = arg
-                {
-                    if sub.is_empty() && is_bind_arg(j, name) && field_names[j] != *name {
-                        map.insert(name.clone(), ident_expr(&field_names[j], arg.span()));
-                    }
-                }
-            }
-            if let Some(name) = bound_column {
-                map.insert(name, vars[col].expr.clone());
-            }
-            let mut pats = row.pats.clone();
-            pats.splice(col..=col, args.iter().cloned());
-            let body = super::goals::substitute_names(&row.body, &map, &HashMap::new());
-            let guard = row
-                .guard
-                .as_ref()
-                .map(|g| super::goals::substitute_names(g, &map, &HashMap::new()));
-            sub_rows.push(PatternRow { pats, guard, body });
-        }
-        // 3) 新列：去掉 col、在 col 处插入 k 个字段列。
-        let mut next_vars: Vec<ColVar<'c, 'a>> = Vec::with_capacity(vars.len() - 1 + k);
-        for (j, v) in vars.iter().enumerate() {
-            if j != col {
-                next_vars.push(v.clone());
-            }
-        }
-        let field_vars: Vec<ColVar<'c, 'a>> = (0..k)
-            .map(|j| {
-                field_col(
-                    &field_names[j],
-                    ctor.fields[j].src_ty.as_ref(),
-                    &vars[col].subst,
-                    ctx,
-                )
-            })
-            .collect();
-        next_vars.splice(col..col, field_vars);
-        let body = compile_pattern_body(ctx, &next_vars, &sub_rows, span)?;
-        arms.push(MatchArm {
-            pattern: Pattern::Ident {
-                name: ctor.name.clone(),
-                args: field_names
-                    .iter()
-                    .map(|n| Pattern::Ident {
-                        name: n.clone(),
-                        args: Vec::new(),
-                        span,
-                    })
-                    .collect(),
-                span,
-            },
-            guard: None,
-            body,
-            span,
-        });
-    }
-    Ok(Expr::Match {
-        scrutinee: Box::new(vars[col].expr.clone()),
-        arms,
-        span,
-    })
-}
+// 模式编译器拆到 `compile::match_pat`（判据 ⑨ 的行数预算；纯源级、零行为变化）。
+use crate::compile::match_pat::{compile_pattern_body, ColVar, PatternRow};
 
 /// The inductive a `match` scrutinee eliminates, plus (when the scrutinee is a
 /// local variable with a written source type) the source arguments of that
