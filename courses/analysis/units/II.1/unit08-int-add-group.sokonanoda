@@ -27,42 +27,42 @@ def negRep (p : Prod Nat Nat) : Prod Nat Nat :=
 
 -- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
 theorem zero_add (b : Nat) :
-    @Eq.{1} Nat (Nat.add Nat.zero b) b :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add Nat.zero n) n)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add Nat.zero b = b :=
+  Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
     (@Eq.refl.{1} Nat Nat.zero)
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add Nat.zero n) n) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add Nat.zero n = n) =>
       @Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add Nat.zero n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.succ (Nat.add Nat.zero n) = Nat.succ m)
         (Nat.add Nat.zero n) n ih
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add Nat.zero n))))
     b
 
 theorem succ_add (a b : Nat) :
-    @Eq.{1} Nat (Nat.add (Nat.succ a) b) (Nat.succ (Nat.add a b)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add (Nat.succ a) b = Nat.succ (Nat.add a b) :=
+  Nat.rec (fun (n : Nat) => Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n))
     (@Eq.refl.{1} Nat (Nat.succ a))
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n))) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n)) =>
       @Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.succ (Nat.add (Nat.succ a) n) = Nat.succ m)
         (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)) ih
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n))))
     b
 
 theorem add_comm (a b : Nat) :
-    @Eq.{1} Nat (Nat.add a b) (Nat.add b a) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add a n) (Nat.add n a))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add a b = Nat.add b a :=
+  Nat.rec (fun (n : Nat) => Nat.add a n = Nat.add n a)
     (@Eq.symm.{1} Nat (Nat.add Nat.zero a) a (zero_add a))
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add a n) (Nat.add n a)) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add a n = Nat.add n a) =>
       @Eq.trans.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ (Nat.add n a)) (Nat.add (Nat.succ n) a)
         (@Eq.subst.{1} Nat
-          (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (fun (m : Nat) => Nat.succ (Nat.add a n) = Nat.succ m)
           (Nat.add a n) (Nat.add n a) ih
           (@Eq.refl.{1} Nat (Nat.succ (Nat.add a n))))
         (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
     b
 
 theorem add_zero (a : Nat) :
-    @Eq.{1} Nat (Nat.add a Nat.zero) a :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add a Nat.zero = a :=
   @Eq.trans.{1} Nat (Nat.add a Nat.zero) (Nat.add Nat.zero a) a
     (add_comm a Nat.zero)
     (zero_add a)
@@ -79,10 +79,9 @@ theorem zero_rep (a b : Nat) :
 -- soko:hint 目标形态：mk (addRep p 0) = mk p。
 -- soko:hint 关键件：Quot.sound（宇宙层级与两个代表元都写全）· zero_rep。
 theorem int_add_zero (a b : Nat) :
-    @Eq.{1} (@Quot.{1} (Prod Nat Nat) intRel)
-      (@Quot.mk.{1} (Prod Nat Nat) intRel
-        (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat Nat.zero Nat.zero)))
-      (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b)) :=
+    @Quot.mk.{1} (Prod Nat Nat) intRel
+        (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat Nat.zero Nat.zero)) =
+      @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b) :=
   sorry
 
 -- soko:hint 思路：negRep 把 (a,b) 换成 (b,a)。目标变成 b+a' = b'+a；先用交换律把两边都翻成 a'+b 与 a+b'，再用 h 的对称接上。
@@ -105,10 +104,9 @@ theorem add_neg_rep (a b : Nat) :
 -- soko:hint 目标形态：mk (addRep p (negRep p)) = mk (0,0)。
 -- soko:hint 关键件：Quot.sound（写全宇宙层级）· add_neg_rep。
 theorem int_add_neg (a b : Nat) :
-    @Eq.{1} (@Quot.{1} (Prod Nat Nat) intRel)
-      (@Quot.mk.{1} (Prod Nat Nat) intRel
-        (addRep (@prod_mk Nat Nat a b) (negRep (@prod_mk Nat Nat a b))))
-      (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat Nat.zero Nat.zero)) :=
+    @Quot.mk.{1} (Prod Nat Nat) intRel
+        (addRep (@prod_mk Nat Nat a b) (negRep (@prod_mk Nat Nat a b))) =
+      @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat Nat.zero Nat.zero) :=
   sorry
 
 -- soko:hint 思路：negRep 交换两个分量；做两次就回到 (a,b)，这是定义性相等。
@@ -122,10 +120,9 @@ theorem negRep_neg (a b : Nat) :
 -- soko:hint 目标形态：mk (negRep (negRep p)) = mk p。
 -- soko:hint 关键件：Eq.refl（不用 Quot.sound；也可用 Quot.sound + add_comm 绕一圈）。
 theorem int_neg_neg (a b : Nat) :
-    @Eq.{1} (@Quot.{1} (Prod Nat Nat) intRel)
-      (@Quot.mk.{1} (Prod Nat Nat) intRel
-        (negRep (negRep (@prod_mk Nat Nat a b))))
-      (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b)) :=
+    @Quot.mk.{1} (Prod Nat Nat) intRel
+        (negRep (negRep (@prod_mk Nat Nat a b))) =
+      @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b) :=
   sorry
 
 -- 演示：具体数字上零元可计算 —— (2-5)+(0-0) 与 (2-5) 在 (7,7) 处等价。

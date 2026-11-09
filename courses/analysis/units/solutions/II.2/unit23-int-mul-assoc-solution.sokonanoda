@@ -46,61 +46,61 @@ def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
 
 -- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
 theorem zero_add (b : Nat) :
-    @Eq.{1} Nat (Nat.add Nat.zero b) b :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add Nat.zero n) n)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add Nat.zero b = b :=
+  Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
     (@Eq.refl.{1} Nat Nat.zero)
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add Nat.zero n) n) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add Nat.zero n = n) =>
       @Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add Nat.zero n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.succ (Nat.add Nat.zero n) = Nat.succ m)
         (Nat.add Nat.zero n) n ih
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add Nat.zero n))))
     b
 
 theorem succ_add (a b : Nat) :
-    @Eq.{1} Nat (Nat.add (Nat.succ a) b) (Nat.succ (Nat.add a b)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add (Nat.succ a) b = Nat.succ (Nat.add a b) :=
+  Nat.rec (fun (n : Nat) => Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n))
     (@Eq.refl.{1} Nat (Nat.succ a))
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n))) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n)) =>
       @Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.succ (Nat.add (Nat.succ a) n) = Nat.succ m)
         (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)) ih
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n))))
     b
 
 theorem add_comm (a b : Nat) :
-    @Eq.{1} Nat (Nat.add a b) (Nat.add b a) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add a n) (Nat.add n a))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add a b = Nat.add b a :=
+  Nat.rec (fun (n : Nat) => Nat.add a n = Nat.add n a)
     (@Eq.symm.{1} Nat (Nat.add Nat.zero a) a (zero_add a))
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add a n) (Nat.add n a)) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add a n = Nat.add n a) =>
       @Eq.trans.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ (Nat.add n a)) (Nat.add (Nat.succ n) a)
         (@Eq.subst.{1} Nat
-          (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (fun (m : Nat) => Nat.succ (Nat.add a n) = Nat.succ m)
           (Nat.add a n) (Nat.add n a) ih
           (@Eq.refl.{1} Nat (Nat.succ (Nat.add a n))))
         (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
     b
 
 theorem add_zero (a : Nat) :
-    @Eq.{1} Nat (Nat.add a Nat.zero) a :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add a Nat.zero = a :=
   @Eq.trans.{1} Nat (Nat.add a Nat.zero) (Nat.add Nat.zero a) a
     (add_comm a Nat.zero)
     (zero_add a)
 
 theorem add_assoc (a b c : Nat) :
-    @Eq.{1} Nat (Nat.add (Nat.add a b) c) (Nat.add a (Nat.add b c)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add (Nat.add a b) c = Nat.add a (Nat.add b c) :=
+  Nat.rec (fun (n : Nat) => Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n))
     (@Eq.refl.{1} Nat (Nat.add a b))
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n))) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n)) =>
       @Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.succ (Nat.add (Nat.add a b) n) = Nat.succ m)
         (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)) ih
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
     c
 
 -- 搬运律：把两个和里的加法因子换个配对，值不变。
 theorem add_shift (a b c d : Nat) :
-    @Eq.{1} Nat (Nat.add (Nat.add a c) (Nat.add b d))
-                 (Nat.add (Nat.add a b) (Nat.add c d)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add (Nat.add a c) (Nat.add b d) =
+    Nat.add (Nat.add a b) (Nat.add c d) :=
   @Eq.trans.{1} Nat
     (Nat.add (Nat.add a c) (Nat.add b d))
     (Nat.add a (Nat.add c (Nat.add b d)))
@@ -111,7 +111,7 @@ theorem add_shift (a b c d : Nat) :
       (Nat.add a (Nat.add (Nat.add c b) d))
       (Nat.add (Nat.add a b) (Nat.add c d))
       (@Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.add a (Nat.add c (Nat.add b d))) (Nat.add a m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.add a (Nat.add c (Nat.add b d)) = Nat.add a m)
         (Nat.add c (Nat.add b d)) (Nat.add (Nat.add c b) d)
         (@Eq.symm.{1} Nat (Nat.add (Nat.add c b) d) (Nat.add c (Nat.add b d)) (add_assoc c b d))
         (@Eq.refl.{1} Nat (Nat.add a (Nat.add c (Nat.add b d)))))
@@ -120,7 +120,7 @@ theorem add_shift (a b c d : Nat) :
         (Nat.add a (Nat.add (Nat.add b c) d))
         (Nat.add (Nat.add a b) (Nat.add c d))
         (@Eq.subst.{1} Nat
-          (fun (m : Nat) => @Eq.{1} Nat (Nat.add a (Nat.add (Nat.add c b) d)) (Nat.add a (Nat.add m d)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (fun (m : Nat) => Nat.add a (Nat.add (Nat.add c b) d) = Nat.add a (Nat.add m d))
           (Nat.add c b) (Nat.add b c)
           (add_comm c b)
           (@Eq.refl.{1} Nat (Nat.add a (Nat.add (Nat.add c b) d))))
@@ -129,7 +129,7 @@ theorem add_shift (a b c d : Nat) :
           (Nat.add a (Nat.add b (Nat.add c d)))
           (Nat.add (Nat.add a b) (Nat.add c d))
           (@Eq.subst.{1} Nat
-            (fun (m : Nat) => @Eq.{1} Nat (Nat.add a (Nat.add (Nat.add b c) d)) (Nat.add a m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+            (fun (m : Nat) => Nat.add a (Nat.add (Nat.add b c) d) = Nat.add a m)
             (Nat.add (Nat.add b c) d) (Nat.add b (Nat.add c d))
             (add_assoc b c d)
             (@Eq.refl.{1} Nat (Nat.add a (Nat.add (Nat.add b c) d))))
@@ -141,18 +141,18 @@ theorem add_shift (a b c d : Nat) :
 
 -- 定义性相等：myMul 在第二个参数上递归，base 就是 0。
 theorem myMul_zero (a : Nat) :
-    @Eq.{1} Nat (myMul a Nat.zero) Nat.zero :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    myMul a Nat.zero = Nat.zero :=
   Eq.refl Nat.zero
 
 -- 定义性相等：递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)。
 theorem myMul_succ (a b : Nat) :
-    @Eq.{1} Nat (myMul a (Nat.succ b)) (Nat.add a (myMul a b)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    myMul a (Nat.succ b) = Nat.add a (myMul a b) :=
   Eq.refl (Nat.add a (myMul a b))
 
-theorem zero_mul (a : Nat) : @Eq.{1} Nat (myMul Nat.zero a) Nat.zero :=
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (myMul Nat.zero n) Nat.zero)
+theorem zero_mul (a : Nat) : myMul Nat.zero a = Nat.zero :=
+  Nat.rec (fun (n : Nat) => myMul Nat.zero n = Nat.zero)
     (@Eq.refl.{1} Nat Nat.zero)
-    (fun (n : Nat) (ih : @Eq.{1} Nat (myMul Nat.zero n) Nat.zero) =>
+    (fun (n : Nat) (ih : myMul Nat.zero n = Nat.zero) =>
       @Eq.trans.{1} Nat (myMul Nat.zero (Nat.succ n)) (Nat.add Nat.zero (myMul Nat.zero n)) Nat.zero
         (@Eq.refl.{1} Nat (Nat.add Nat.zero (myMul Nat.zero n)))
         (@Eq.trans.{1} Nat (Nat.add Nat.zero (myMul Nat.zero n)) (myMul Nat.zero n) Nat.zero
@@ -163,16 +163,16 @@ theorem zero_mul (a : Nat) : @Eq.{1} Nat (myMul Nat.zero a) Nat.zero :=
 -- soko:hint 目标形态：(a+1) * b = a*b + b。
 -- soko:hint 关键件：Nat.rec · Eq.subst（把 ih 换进 add (a+1) 的第二个位置）· succ_add · add_assoc · Eq.refl（add x (succ n) 定义性归约）。
 theorem succ_mul (a b : Nat) :
-    @Eq.{1} Nat (myMul (Nat.succ a) b) (Nat.add (myMul a b) b) :=
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (myMul (Nat.succ a) n) (Nat.add (myMul a n) n))
+    myMul (Nat.succ a) b = Nat.add (myMul a b) b :=
+  Nat.rec (fun (n : Nat) => myMul (Nat.succ a) n = Nat.add (myMul a n) n)
     (@Eq.trans.{1} Nat (myMul (Nat.succ a) Nat.zero) Nat.zero (Nat.add (myMul a Nat.zero) Nat.zero)
       (@Eq.refl.{1} Nat Nat.zero)
       (@Eq.symm.{1} Nat (Nat.add (myMul a Nat.zero) Nat.zero) Nat.zero (add_zero (myMul a Nat.zero))))
     (fun (n : Nat)
-         (ih : @Eq.{1} Nat (myMul (Nat.succ a) n) (Nat.add (myMul a n) n)) =>
+         (ih : myMul (Nat.succ a) n = Nat.add (myMul a n) n) =>
       @Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.add (Nat.succ a) m)
-          (Nat.add (Nat.add a (myMul a n)) (Nat.succ n)))
+        (fun (m : Nat) => Nat.add (Nat.succ a) m =
+        Nat.add (Nat.add a (myMul a n)) (Nat.succ n))
         (Nat.add (myMul a n) n) (myMul (Nat.succ a) n)
         (@Eq.symm.{1} Nat (myMul (Nat.succ a) n) (Nat.add (myMul a n) n) ih)
         (@Eq.trans.{1} Nat
@@ -194,12 +194,12 @@ theorem succ_mul (a b : Nat) :
 -- soko:hint 目标形态：myMul a b = myMul b a。
 -- soko:hint 关键件：Nat.rec · congrArg（在 add a 下改写 ih）· add_comm · succ_mul（取对称）。
 theorem myMul_comm (a b : Nat) :
-    @Eq.{1} Nat (myMul a b) (myMul b a) :=
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (myMul a n) (myMul n a))
+    myMul a b = myMul b a :=
+  Nat.rec (fun (n : Nat) => myMul a n = myMul n a)
     (@Eq.trans.{1} Nat (myMul a Nat.zero) Nat.zero (myMul Nat.zero a)
       (@Eq.refl.{1} Nat Nat.zero)
       (@Eq.symm.{1} Nat (myMul Nat.zero a) Nat.zero (zero_mul a)))
-    (fun (n : Nat) (ih : @Eq.{1} Nat (myMul a n) (myMul n a)) =>
+    (fun (n : Nat) (ih : myMul a n = myMul n a) =>
       @Eq.trans.{1} Nat (myMul a (Nat.succ n)) (Nat.add a (myMul a n)) (myMul (Nat.succ n) a)
         (@Eq.refl.{1} Nat (Nat.add a (myMul a n)))
         (@Eq.trans.{1} Nat (Nat.add a (myMul a n)) (Nat.add (myMul n a) a) (myMul (Nat.succ n) a)
@@ -217,7 +217,7 @@ theorem myMul_comm (a b : Nat) :
 -- ─────────────────────────────────────────────────────────────
 
 theorem add_mid (a x y : Nat) :
-    @Eq.{1} Nat (Nat.add a (Nat.add x y)) (Nat.add x (Nat.add a y)) :=
+    Nat.add a (Nat.add x y) = Nat.add x (Nat.add a y) :=
   @Eq.trans.{1} Nat
     (Nat.add a (Nat.add x y))
     (Nat.add (Nat.add a x) y)
@@ -238,11 +238,11 @@ theorem add_mid (a x y : Nat) :
 -- soko:hint 目标形态：myMul a (b + c) = myMul a b + myMul a c。
 -- soko:hint 关键件：Nat.rec · congrArg（在 add a 下改写 ih）· add_mid · Eq.refl（定义性展开）。
 theorem mul_add (a b c : Nat) :
-    @Eq.{1} Nat (myMul a (Nat.add b c)) (Nat.add (myMul a b) (myMul a c)) :=
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (myMul a (Nat.add b n)) (Nat.add (myMul a b) (myMul a n)))
+    myMul a (Nat.add b c) = Nat.add (myMul a b) (myMul a c) :=
+  Nat.rec (fun (n : Nat) => myMul a (Nat.add b n) = Nat.add (myMul a b) (myMul a n))
     (@Eq.refl.{1} Nat (myMul a b))
     (fun (n : Nat)
-         (ih : @Eq.{1} Nat (myMul a (Nat.add b n)) (Nat.add (myMul a b) (myMul a n))) =>
+         (ih : myMul a (Nat.add b n) = Nat.add (myMul a b) (myMul a n)) =>
       @Eq.trans.{1} Nat
         (myMul a (Nat.add b (Nat.succ n)))
         (Nat.add a (myMul a (Nat.add b n)))
@@ -264,7 +264,7 @@ theorem mul_add (a b c : Nat) :
 -- soko:hint 目标形态：myMul (a + b) c = myMul a c + myMul b c。
 -- soko:hint 关键件：myMul_comm · mul_add · congrArg（两次，分别改第一个与第二个加数）· Eq.trans。
 theorem mul_add_right (a b c : Nat) :
-    @Eq.{1} Nat (myMul (Nat.add a b) c) (Nat.add (myMul a c) (myMul b c)) :=
+    myMul (Nat.add a b) c = Nat.add (myMul a c) (myMul b c) :=
   @Eq.trans.{1} Nat
     (myMul (Nat.add a b) c)
     (myMul c (Nat.add a b))
@@ -290,11 +290,11 @@ theorem mul_add_right (a b c : Nat) :
 -- soko:hint 目标形态：myMul (myMul a b) c = myMul a (myMul b c)。
 -- soko:hint 关键件：Nat.rec · congrArg（在 add (a*b) 下改写 ih）· mul_add（取对称）· Eq.refl（定义性展开）。
 theorem myMul_assoc (a b c : Nat) :
-    @Eq.{1} Nat (myMul (myMul a b) c) (myMul a (myMul b c)) :=
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (myMul (myMul a b) n) (myMul a (myMul b n)))
+    myMul (myMul a b) c = myMul a (myMul b c) :=
+  Nat.rec (fun (n : Nat) => myMul (myMul a b) n = myMul a (myMul b n))
     (@Eq.refl.{1} Nat Nat.zero)
     (fun (n : Nat)
-         (ih : @Eq.{1} Nat (myMul (myMul a b) n) (myMul a (myMul b n))) =>
+         (ih : myMul (myMul a b) n = myMul a (myMul b n)) =>
       @Eq.trans.{1} Nat
         (myMul (myMul a b) (Nat.succ n))
         (Nat.add (myMul a b) (myMul a (myMul b n)))
@@ -312,8 +312,8 @@ theorem myMul_assoc (a b c : Nat) :
 -- ─────────────────────────────────────────────────────────────
 
 theorem add_congr {a a' b b' : Nat}
-    (h1 : @Eq.{1} Nat a a') (h2 : @Eq.{1} Nat b b') :
-    @Eq.{1} Nat (Nat.add a b) (Nat.add a' b') :=
+    (h1 : a = a') (h2 : b = b') :
+    Nat.add a b = Nat.add a' b' :=
   @Eq.trans.{1} Nat (Nat.add a b) (Nat.add a' b) (Nat.add a' b')
     (congrArg.{1} (fun (x : Nat) => Nat.add x b) h1)
     (congrArg.{1} (fun (y : Nat) => Nat.add a' y) h2)
@@ -335,33 +335,30 @@ def T8 (b d f : Nat) : Nat := myMul b (myMul d f)
 
 -- 左边：((a*c + b*d)*e + (a*d + b*c)*f) 展开成四个乘积。
 theorem fst_expand_left (a b c d e f : Nat) :
-    @Eq.{1} Nat
-      (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) e)
-               (myMul (Nat.add (myMul a d) (myMul b c)) f))
-      (Nat.add (Nat.add (myMul (myMul a c) e) (myMul (myMul b d) e))
-               (Nat.add (myMul (myMul a d) f) (myMul (myMul b c) f))) :=
+    Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) e)
+               (myMul (Nat.add (myMul a d) (myMul b c)) f) =
+      Nat.add (Nat.add (myMul (myMul a c) e) (myMul (myMul b d) e))
+               (Nat.add (myMul (myMul a d) f) (myMul (myMul b c) f)) :=
   add_congr
     (mul_add_right (myMul a c) (myMul b d) e)
     (mul_add_right (myMul a d) (myMul b c) f)
 
 -- 右边：a*(c*e + d*f) + b*(c*f + d*e) 展开成四个乘积。
 theorem fst_expand_right (a b c d e f : Nat) :
-    @Eq.{1} Nat
-      (Nat.add (myMul a (Nat.add (myMul c e) (myMul d f)))
-               (myMul b (Nat.add (myMul c f) (myMul d e))))
-      (Nat.add (Nat.add (T1 a c e) (T3 a d f))
-               (Nat.add (T4 b c f) (T2 b d e))) :=
+    Nat.add (myMul a (Nat.add (myMul c e) (myMul d f)))
+               (myMul b (Nat.add (myMul c f) (myMul d e))) =
+      Nat.add (Nat.add (T1 a c e) (T3 a d f))
+               (Nat.add (T4 b c f) (T2 b d e)) :=
   add_congr
     (mul_add a (myMul c e) (myMul d f))
     (mul_add b (myMul c f) (myMul d e))
 
 -- 左边四个乘积用结合律改成规范形。
 theorem fst_normalize (a b c d e f : Nat) :
-    @Eq.{1} Nat
-      (Nat.add (Nat.add (myMul (myMul a c) e) (myMul (myMul b d) e))
-               (Nat.add (myMul (myMul a d) f) (myMul (myMul b c) f)))
-      (Nat.add (Nat.add (T1 a c e) (T2 b d e))
-               (Nat.add (T3 a d f) (T4 b c f))) :=
+    Nat.add (Nat.add (myMul (myMul a c) e) (myMul (myMul b d) e))
+               (Nat.add (myMul (myMul a d) f) (myMul (myMul b c) f)) =
+      Nat.add (Nat.add (T1 a c e) (T2 b d e))
+               (Nat.add (T3 a d f) (T4 b c f)) :=
   add_congr
     (add_congr (myMul_assoc a c e) (myMul_assoc b d e))
     (add_congr (myMul_assoc a d f) (myMul_assoc b c f))
@@ -369,11 +366,10 @@ theorem fst_normalize (a b c d e f : Nat) :
 -- 规范形上换一次配对：add_shift 把中间两个加数对调，
 -- 再用 add_comm 把第四个与第二个加数对调。
 theorem fst_shift (a b c d e f : Nat) :
-    @Eq.{1} Nat
-      (Nat.add (Nat.add (T1 a c e) (T2 b d e))
-               (Nat.add (T3 a d f) (T4 b c f)))
-      (Nat.add (Nat.add (T1 a c e) (T3 a d f))
-               (Nat.add (T4 b c f) (T2 b d e))) :=
+    Nat.add (Nat.add (T1 a c e) (T2 b d e))
+               (Nat.add (T3 a d f) (T4 b c f)) =
+      Nat.add (Nat.add (T1 a c e) (T3 a d f))
+               (Nat.add (T4 b c f) (T2 b d e)) :=
   @Eq.trans.{1} Nat
     (Nat.add (Nat.add (T1 a c e) (T2 b d e))
              (Nat.add (T3 a d f) (T4 b c f)))
@@ -390,41 +386,37 @@ theorem fst_shift (a b c d e f : Nat) :
 -- ─────────────────────────────────────────────────────────────
 
 theorem snd_expand_left (a b c d e f : Nat) :
-    @Eq.{1} Nat
-      (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) f)
-               (myMul (Nat.add (myMul a d) (myMul b c)) e))
-      (Nat.add (Nat.add (myMul (myMul a c) f) (myMul (myMul b d) f))
-               (Nat.add (myMul (myMul a d) e) (myMul (myMul b c) e))) :=
+    Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) f)
+               (myMul (Nat.add (myMul a d) (myMul b c)) e) =
+      Nat.add (Nat.add (myMul (myMul a c) f) (myMul (myMul b d) f))
+               (Nat.add (myMul (myMul a d) e) (myMul (myMul b c) e)) :=
   add_congr
     (mul_add_right (myMul a c) (myMul b d) f)
     (mul_add_right (myMul a d) (myMul b c) e)
 
 theorem snd_expand_right (a b c d e f : Nat) :
-    @Eq.{1} Nat
-      (Nat.add (myMul a (Nat.add (myMul c f) (myMul d e)))
-               (myMul b (Nat.add (myMul c e) (myMul d f))))
-      (Nat.add (Nat.add (T5 a c f) (T6 a d e))
-               (Nat.add (T7 b c e) (T8 b d f))) :=
+    Nat.add (myMul a (Nat.add (myMul c f) (myMul d e)))
+               (myMul b (Nat.add (myMul c e) (myMul d f))) =
+      Nat.add (Nat.add (T5 a c f) (T6 a d e))
+               (Nat.add (T7 b c e) (T8 b d f)) :=
   add_congr
     (mul_add a (myMul c f) (myMul d e))
     (mul_add b (myMul c e) (myMul d f))
 
 theorem snd_normalize (a b c d e f : Nat) :
-    @Eq.{1} Nat
-      (Nat.add (Nat.add (myMul (myMul a c) f) (myMul (myMul b d) f))
-               (Nat.add (myMul (myMul a d) e) (myMul (myMul b c) e)))
-      (Nat.add (Nat.add (T5 a c f) (T8 b d f))
-               (Nat.add (T6 a d e) (T7 b c e))) :=
+    Nat.add (Nat.add (myMul (myMul a c) f) (myMul (myMul b d) f))
+               (Nat.add (myMul (myMul a d) e) (myMul (myMul b c) e)) =
+      Nat.add (Nat.add (T5 a c f) (T8 b d f))
+               (Nat.add (T6 a d e) (T7 b c e)) :=
   add_congr
     (add_congr (myMul_assoc a c f) (myMul_assoc b d f))
     (add_congr (myMul_assoc a d e) (myMul_assoc b c e))
 
 theorem snd_shift (a b c d e f : Nat) :
-    @Eq.{1} Nat
-      (Nat.add (Nat.add (T5 a c f) (T8 b d f))
-               (Nat.add (T6 a d e) (T7 b c e)))
-      (Nat.add (Nat.add (T5 a c f) (T6 a d e))
-               (Nat.add (T7 b c e) (T8 b d f))) :=
+    Nat.add (Nat.add (T5 a c f) (T8 b d f))
+               (Nat.add (T6 a d e) (T7 b c e)) =
+      Nat.add (Nat.add (T5 a c f) (T6 a d e))
+               (Nat.add (T7 b c e) (T8 b d f)) :=
   Eq.symm
     (@Eq.trans.{1} Nat
       (Nat.add (Nat.add (T5 a c f) (T6 a d e))
@@ -442,11 +434,10 @@ theorem snd_shift (a b c d e f : Nat) :
 -- ─────────────────────────────────────────────────────────────
 
 theorem mulRep_assoc_fst (a b c d e f : Nat) :
-    @Eq.{1} Nat
-      (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) e)
-               (myMul (Nat.add (myMul a d) (myMul b c)) f))
-      (Nat.add (myMul a (Nat.add (myMul c e) (myMul d f)))
-               (myMul b (Nat.add (myMul c f) (myMul d e)))) :=
+    Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) e)
+               (myMul (Nat.add (myMul a d) (myMul b c)) f) =
+      Nat.add (myMul a (Nat.add (myMul c e) (myMul d f)))
+               (myMul b (Nat.add (myMul c f) (myMul d e))) :=
   @Eq.trans.{1} Nat
     (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) e)
              (myMul (Nat.add (myMul a d) (myMul b c)) f))
@@ -474,11 +465,10 @@ theorem mulRep_assoc_fst (a b c d e f : Nat) :
         (Eq.symm (fst_expand_right a b c d e f))))
 
 theorem mulRep_assoc_snd (a b c d e f : Nat) :
-    @Eq.{1} Nat
-      (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) f)
-               (myMul (Nat.add (myMul a d) (myMul b c)) e))
-      (Nat.add (myMul a (Nat.add (myMul c f) (myMul d e)))
-               (myMul b (Nat.add (myMul c e) (myMul d f)))) :=
+    Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) f)
+               (myMul (Nat.add (myMul a d) (myMul b c)) e) =
+      Nat.add (myMul a (Nat.add (myMul c f) (myMul d e)))
+               (myMul b (Nat.add (myMul c e) (myMul d f))) :=
   @Eq.trans.{1} Nat
     (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) f)
              (myMul (Nat.add (myMul a d) (myMul b c)) e))
