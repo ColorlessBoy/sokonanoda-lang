@@ -184,6 +184,12 @@
               "title": "单元㉕ 有理数相等的传递性",
               "title_en": "Unit 25 — Transitivity of Rational Equality",
               "unit": 25
+            },
+            {
+              "file": "units/II.2/unit26-rat-add.sokonanoda",
+              "title": "单元㉖ 有理数加法的代表元公式与良定义性",
+              "title_en": "Unit 26 — Addition of Rationals",
+              "unit": 26
             }
           ]
         }
