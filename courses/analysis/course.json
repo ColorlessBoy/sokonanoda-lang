@@ -146,7 +146,7 @@
             "rat-rel"
           ],
           "quota": {
-            "exercises": 36
+            "exercises": 38
           },
           "units": [
             {
@@ -196,6 +196,12 @@
               "title": "单元㉗ 有理数乘法的代表元公式与具体计算",
               "title_en": "Unit 27 — Multiplication of Rationals",
               "unit": 27
+            },
+            {
+              "file": "units/II.2/unit28-rat-mul-wd.sokonanoda",
+              "title": "单元㉘ 有理数乘法的良定义性",
+              "title_en": "Unit 28 — Multiplication is Well-Defined",
+              "unit": 28
             }
           ]
         }
