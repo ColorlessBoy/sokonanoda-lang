@@ -166,6 +166,12 @@
               "title": "单元㉒ ℕ 乘法的分配律与结合律",
               "title_en": "Unit 22 — Distributivity and Associativity of Nat Multiplication",
               "unit": 22
+            },
+            {
+              "file": "units/II.2/unit23-int-mul-assoc.sokonanoda",
+              "title": "单元㉓ ℤ 乘法的结合律（代表元层）",
+              "title_en": "Unit 23 — Associativity of Integer Multiplication",
+              "unit": 23
             }
           ]
         }
