@@ -134,6 +134,28 @@
               "unit": 19
             }
           ]
+        },
+        {
+          "id": "II.2",
+          "title": "有理数：从 ℤ 到 ℚ",
+          "prereqs": [
+            "II.1"
+          ],
+          "tags": [
+            "rat-quotient",
+            "rat-rel"
+          ],
+          "quota": {
+            "exercises": 20
+          },
+          "units": [
+            {
+              "file": "units/II.2/unit20-rat-quotient.sokonanoda",
+              "title": "单元⑳ 有理数与商构造",
+              "title_en": "Unit 20 — Rationals via Quotient",
+              "unit": 20
+            }
+          ]
         }
       ]
     }
