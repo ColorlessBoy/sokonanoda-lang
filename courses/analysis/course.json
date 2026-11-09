@@ -102,6 +102,12 @@
               "title": "单元⑭ ℕ 序的加法消去律",
               "title_en": "Unit 14 — Cancelling an Addend in the Order",
               "unit": 14
+            },
+            {
+              "file": "units/II.1/unit15-leRep-wd.sokonanoda",
+              "title": "单元⑮ 整数序的良定义性",
+              "title_en": "Unit 15 — Order is Well-Defined",
+              "unit": 15
             }
           ]
         }
