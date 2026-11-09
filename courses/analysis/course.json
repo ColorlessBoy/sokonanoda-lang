@@ -108,6 +108,12 @@
               "title": "单元⑮ 整数序的良定义性",
               "title_en": "Unit 15 — Order is Well-Defined",
               "unit": 15
+            },
+            {
+              "file": "units/II.1/unit16-int-order-axioms.sokonanoda",
+              "title": "单元⑯ 整数序的传递性与加法单调",
+              "title_en": "Unit 16 — Transitivity and Translation Invariance",
+              "unit": 16
             }
           ]
         }
