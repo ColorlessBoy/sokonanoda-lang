@@ -1,0 +1,35 @@
+-- Extensionality.sokonanoda —— #28 A0：课程 L2 的外延性
+--
+-- 语言 **不加** `funext`/`propext` 公理，也不动 kernel/front/prelude：
+--   · `funext` 在这里是**定理**，从 `Quot.sound` 证出（与 Lean 4 `Init/Core.lean`
+--     的构造同构；`Quot` 是 prelude 唯一公理 `Quot.sound` 所在，零新增信任）；
+--   · `propext` 是本文件显式声明的**公理**（卷 I 已有 axiom 先例；它只影响
+--     Prop 相等，不参与类型检查的判定）。
+--
+-- 用途（M2 起）：`Int.add : Int → Int → Int`、`Int.le` 等可以经 `Quot.lift`
+-- 下降成真正的函数，而不必永远停在代表元层。M1 的 27 个 II.1/II.2 单元不变。
+
+-- 逐点相等的命题。
+def funextRel (α β : Type) (f g : α → β) : Prop :=
+  ∀ (x : α), f x = g x
+
+-- 在商 `(α → β) / funextRel` 上取应用：`Quot.lift` 的良定义性由逐点相等直接给出。
+def funextApp (α β : Type) (q : @Quot.{1} (α → β) (funextRel α β)) (x : α) : β :=
+  @Quot.lift.{1, 1} (α → β) (funextRel α β) β
+    (fun (f : α → β) => f x)
+    (fun (f g : α → β) (h : funextRel α β f g) => h x)
+    q
+
+-- `funext`：逐点相等 ⇒ 函数相等；证明 = `Quot.sound` 后用 `congrArg` 把商投影到函数。
+theorem funext {α β : Type} (f g : α → β)
+    (h : ∀ (x : α), f x = g x) : f = g :=
+  @congrArg.{1}
+    (@Quot.{1} (α → β) (funextRel α β))
+    (α → β)
+    (@Quot.mk.{1} (α → β) (funextRel α β) f)
+    (@Quot.mk.{1} (α → β) (funextRel α β) g)
+    (fun (q : @Quot.{1} (α → β) (funextRel α β)) => funextApp α β q)
+    (@Quot.sound.{1} (α → β) (funextRel α β) f g h)
+
+-- `propext`：显式公理（卷 I 先例）；只在 Prop 层用。
+axiom propext (a b : Prop) : Iff a b → a = b
