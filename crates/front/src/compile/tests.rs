@@ -7560,6 +7560,130 @@ fn match_field_types_follow_the_user_binder_names() {
         .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "head_or")));
 }
 
+// ── 带索引归纳的 dependent elimination（issue #27 / 台账 G-119）──────────────
+
+/// `LeNat : Nat -> Nat -> Prop`（**两个指标、零参数**）：`le_refl` 的指标由构造子
+/// 细化（`b`/`c` → `n`），`le_succ` 同理。issue #27 的现场就是这个形状。
+const INDEXED_LE_NAT: &str = "\
+inductive LeNat : Nat -> Nat -> Prop
+ctor le_refl (n : Nat) : LeNat n n
+ctor le_succ (m : Nat) (n : Nat) : LeNat m n -> LeNat m (Nat.succ n)
+end
+";
+
+/// **结果类型依赖指标**。修前 motive 只抽象 major、`a`/`b` 留在外层 ⇒ 判红
+/// `期望 ∀(n_ : Nat), LeNat a b，实际是 ∀(n : Nat), LeNat n n`。
+#[test]
+fn match_indexed_dependent_result_refines_the_indices() {
+    let src = format!(
+        "{INDEXED_LE_NAT}\
+         theorem leNat_self (a b : Nat) (h : LeNat a b) : LeNat a b :=\n\
+           match h with\n\
+           | le_refl n => le_refl n\n\
+           | le_succ m n hh => le_succ m n hh\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse indexed dependent match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "leNat_self")),
+        "leNat_self 必须被内核接受：{:?}",
+        out.events
+    );
+}
+
+/// **上下文假设依赖指标**（issue #27 的 `leNat_trans`）：`h1 : LeNat a b` 的
+/// `b` 就是被匹配项 `h2 : LeNat b c` 的指标 ⇒ `h1` 必须泛化进 motive
+/// （分支里拿到细化后的 `LeNat a n`），`ih` 因此是**细化假设的函数**。
+#[test]
+fn match_indexed_dependent_hypothesis_is_generalized_into_the_motive() {
+    let src = format!(
+        "{INDEXED_LE_NAT}\
+         theorem leNat_trans (a b c : Nat) (h1 : LeNat a b) (h2 : LeNat b c) : LeNat a c :=\n\
+           match h2 with\n\
+           | le_refl n => h1\n\
+           | le_succ m n h => le_succ a n (ih h1)\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse indexed dependent match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "leNat_trans")),
+        "leNat_trans 必须被内核接受：{:?}",
+        out.events
+    );
+}
+
+/// **反向判据**：索引细化只把期望类型变正确，**不吞**真正的类型错误 ——
+/// `ih` 是「细化假设的函数」而不是结论本身，直接把它当 `LeNat a n` 用仍须判红。
+#[test]
+fn match_indexed_generalized_ih_is_still_type_checked() {
+    let src = format!(
+        "{INDEXED_LE_NAT}\
+         theorem leNat_trans_bad (a b c : Nat) (h1 : LeNat a b) (h2 : LeNat b c) : LeNat a c :=\n\
+           match h2 with\n\
+           | le_refl n => h1\n\
+           | le_succ m n h => le_succ a n ih\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse indexed dependent match"));
+    assert!(
+        out.errors.iter().any(|e| e.code() == "kernel-rejected"),
+        "把 `ih`（函数）直接当结论用必须被内核拒：{:?}",
+        out.errors
+    );
+    assert!(
+        !out.events.iter().any(
+            |e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "leNat_trans_bad")
+        ),
+        "反向判据的声明不许进环境：{:?}",
+        out.events
+    );
+}
+
+/// **参数 + 指标**组合（`Vec A n`）：指标 `n` 出现在结果类型里 ⇒ motive 抽象
+/// 索引、分支期望按构造子的索引实参（`0` / `Nat.succ m`）细化。
+#[test]
+fn match_parameterized_indexed_dependent_result() {
+    let src = format!(
+        "{INDEXED_VEC}\
+         def vhead2 (A : Type) (n : Nat) (v : Vec A n) : Vec A n :=\n\
+           match v with\n\
+           | vnil => vnil\n\
+           | vcons a m w => vcons a m w\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse parameterized indexed match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "vhead2")),
+        "vhead2 必须被内核接受：{:?}",
+        out.events
+    );
+}
+
+/// **复现件本身也在判据里**（issue #27 / G-119）：`docs/gaps/repro/` 的复现件因
+/// **docs 活文档预算顶格**（main 只剩 213 B 余量）暂放 `crates/front/tests/fixtures/`
+/// （台账登记时 repro 指向该路径）。这条把它当**真夹具**重放：修前两条定理
+/// `kernel-rejected`，修后干净判卷（3 checked / 0 诊断）。
+#[test]
+fn match_indexed_gap_fixture_is_clean() {
+    let src = include_str!("../../tests/fixtures/G-119-indexed-dependent-match.sokonanoda");
+    let out = compile_fol(&parse(src).expect("parse G-119 fixture"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    for name in ["LeNat", "leNat_self", "leNat_trans"] {
+        assert!(
+            out.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
+            "复现件的 {name} 必须被内核接受：{:?}",
+            out.events
+        );
+    }
+}
+
 // ── 多余的 `sorry`（用户实测反馈，`docs/design/redundant-sorry.md`）────────────
 //
 // 学生把答案写在 `:=` 右边、却保留了原来那行 `sorry` 时，整条声明被解析成
