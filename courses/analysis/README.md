@@ -6,7 +6,8 @@
 ## 状态
 
 - **C0（M0）完成并 merge 进 `agent/real-analysis-integration`**：P1–P5 可行性探针 + `ROUTE.md`。
-- **M1 进行中**：ℤ + ℚ，18 单元。已落 `course.json`、`lib/`（9 个模块 + Demo）、单元①–⑱（画布 + 解答）；II.1 的整数段到此收口，下一步 II.2 ℚ。
+- **M1 进行中**：ℤ + ℚ，18 单元。已落 `course.json`、`lib/`（9 个模块 + Demo）、单元①–⑲（画布 + 解答）；II.1 的整数段到此收口，下一步 II.2 ℚ。
+- **单元⑲ `unit19-quot-lift`**：第一次真正下降 —— 取负经 `Quot.lift` 成为 `Int → Int` 的函数（`intNeg`），并说明**二元**运算为何仍留在代表元层（`Int → Int` 的 lift 需要 `funext`，本语言没有）。
 - **课程门禁**：`tools/check.py` 已从卷 I 移植，用 0.98.4 构建跑通；C3 收口前必须 0 判负。
 - 提案与追踪：issue #13；C0 子 issue #14；C0 PR #23。
 
