@@ -62,11 +62,11 @@ def ratOf (a : Prod Nat Nat) (n : Nat) : Rat :=
 
 -- 演示：1/2 与 2/4 是同一个有理数（交叉相乘 1·4 = 2·2）。
 theorem demo_rat_half :
-    ratOf (@prod_mk Nat Nat 2 Nat.zero) 1 = ratOf (@prod_mk Nat Nat 1 Nat.zero) 0 :=
+    ratOf (@prod_mk Nat Nat 1 Nat.zero) 1 = ratOf (@prod_mk Nat Nat 2 Nat.zero) 3 :=
   @Quot.sound.{1} ratRep ratRel
-    (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat 2 Nat.zero) 1)
-    (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat 1 Nat.zero) 0)
-    (Eq.refl 2)
+    (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat 1 Nat.zero) 1)
+    (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat 2 Nat.zero) 3)
+    (Eq.refl 4)
 
 -- 演示：0/1 与 0/6 是同一个有理数（交叉相乘 0·6 = 0·1）。
 theorem demo_rat_zero :
@@ -77,12 +77,12 @@ theorem demo_rat_zero :
     (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat Nat.zero Nat.zero) 5)
     (Eq.refl Nat.zero)
 
--- 演示：ratRel 展开成一条纯 ℕ 的交叉和等式 —— 1/2 ~ 2/4 就是 2 = 2。
+-- 演示：ratRel 展开成一条纯 ℕ 的交叉和等式 —— 1/2 ~ 2/4 就是 4 = 4。
 theorem demo_ratRel_unfold :
     ratRel
-      (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat 2 Nat.zero) 1)
-      (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat 1 Nat.zero) 0) :=
-  Eq.refl 2
+      (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat 1 Nat.zero) 1)
+      (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat 2 Nat.zero) 3) :=
+  Eq.refl 4
 
 -- ─────────────────────────────────────────────────────────────
 -- ⑳.1 整数代表元的自反性

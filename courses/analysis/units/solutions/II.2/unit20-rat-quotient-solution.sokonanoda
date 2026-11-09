@@ -126,7 +126,7 @@ theorem rat_sound (x y : ratRep) (h : ratRel x y) :
     @Quot.mk.{1} ratRep ratRel x = @Quot.mk.{1} ratRep ratRel y :=
   @Quot.sound.{1} ratRep ratRel x y h
 
--- 演示：自反性在具体有理数上 —— 3/5 与自身相等（Quot.sound + ⑳.2）。
+-- 演示：自反性在具体有理数上 —— 2/5 与自身相等（Quot.sound + ⑳.2）。
 theorem demo_rat_sound_refl :
     ratOf (@prod_mk Nat Nat 3 1) 4 = ratOf (@prod_mk Nat Nat 3 1) 4 :=
   rat_sound
