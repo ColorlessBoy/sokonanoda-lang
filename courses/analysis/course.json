@@ -178,6 +178,12 @@
               "title": "单元㉔ ℕ 正因子的消去律",
               "title_en": "Unit 24 — Cancelling a Positive Factor in ℕ",
               "unit": 24
+            },
+            {
+              "file": "units/II.2/unit25-rat-rel-trans.sokonanoda",
+              "title": "单元㉕ 有理数相等的传递性",
+              "title_en": "Unit 25 — Transitivity of Rational Equality",
+              "unit": 25
             }
           ]
         }
