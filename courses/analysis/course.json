@@ -154,6 +154,12 @@
               "title": "单元⑳ 有理数与商构造",
               "title_en": "Unit 20 — Rationals via Quotient",
               "unit": 20
+            },
+            {
+              "file": "units/II.2/unit21-int-rel-trans.sokonanoda",
+              "title": "单元㉑ 整数相等的传递性",
+              "title_en": "Unit 21 — Transitivity of Integer Equality",
+              "unit": 21
             }
           ]
         }
