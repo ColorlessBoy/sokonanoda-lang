@@ -6,7 +6,7 @@
 ## 状态
 
 - **C0（M0）完成并 merge 进 `agent/real-analysis-integration`**：P1–P5 可行性探针 + `ROUTE.md`。
-- **M1 进行中**：ℤ + ℚ，**28 单元**（II.1 19 + II.2 9）；当前 **II.1 19/19 · II.2 5/9**（M1 未完成）。已落 `course.json`、`lib/`（9 个模块 + Demo）、单元①–㉔（画布 + 解答）。
+- **M1 进行中**：ℤ + ℚ，**28 单元**（II.1 19 + II.2 9）；当前 **II.1 19/19 · II.2 6/9**（M1 未完成，**25/28**）。已落 `course.json`、`lib/`（9 个模块 + Demo）、单元①–㉕（画布 + 解答）。
 - **单元⑲ `unit19-quot-lift`**：第一次真正下降 —— 取负经 `Quot.lift` 成为 `Int → Int` 的函数（`intNeg`），并说明**二元**运算为何仍留在代表元层（`Int → Int` 的 lift 需要 `funext`，本语言没有）。
 - **单元⑳ `unit20-rat-quotient`**：ℚ 的载体 `Rat := Quot ratRel`，分母用 `Nat.succ n` 编码成正整数（分母永不为 0），`ratRel` 在**整数代表元**上交叉相乘；本单元结清自反与对称两条腿，**传递性**（交叉相乘后消去正因子）留给单元㉑。
 - **单元㉑ `unit21-int-rel-trans`**：`intRel` 的传递性（`intRel p q ⇒ intRel q r ⇒ intRel p r`）——两条假设各加一个数把中间项对齐，`add_rotate` 把同一 `d` 转到最右，`nat_add_cancel_right` 消掉。这是 `ratRel_trans` 依赖链的**第一块**，也是唯一能独立成单元的一块。
@@ -14,6 +14,7 @@
 - **单元㉓ `unit23-int-mul-assoc`**：ℤ 乘法在**代表元层**的结合律 `mulRep (mulRep p q) r ~ mulRep p (mulRep q r)`。四步：右分配律展开 → ℕ 结合律规范形 → `add_shift` 换配对 → 左分配律收回；两个分量各走一遍，最后用 `add_congr` 拼成 `intRel`。仍停在代表元层，不碰 `funext`、不加公理（#28）。画布 38 checked / 3 open，解答 41 checked / 0 open。
 - **`ratRel_trans` 的剩余前置（2026-11-09 实测的依赖链，别再按「一步」估）**：`ratRel` 传递性要消去同一个正分母，链上是 ① `intRel` 传递（纯 ℕ 加法旋转 + 消去，可独立成单元）→ ② **ℤ 乘法结合律**（II.1 只做了交换/单位/良定义，**没有结合律**）→ ③ ℕ 正因子消去 `a·(n+1)=b·(n+1) ⇒ a=b`（要 ② 与 ≤ 反对称）。⇒ ① 已在单元㉑、② 已在单元㉓、③ 已在单元㉔ 结清；**下一步是 `ratRel_trans` 本身**。
 - **单元㉔ `unit24-nat-mul-cancel`**：ℕ 的**正因子消去律** `a·(n+1)=b·(n+1) ⇒ a=b`。对 `a` 归纳：零情形用「非零因子乘出 0 ⇒ 因子为 0」（`mul_eq_zero_right`），后继情形把 `(a+1)·d` 展开成 `a·d + d` 后用单元⑭的加法消去律剥掉。证明全部停在 ℕ 上，不碰商、不碰 `funext`、不加公理（#28）。画布 4 个练习，解答 0 open。
+- **单元㉕ `unit25-rat-rel-trans`**：把 ㉑–㉔ 三块地基拼起来，结清 `ratRel` 的**传递性**（`mulRep_den` 规范形 → `mulRep_den_cancel` 消去正分母 → `mulRep_den_swap` 对齐 → 五步链）。全部停在 ℤ 代表元层，不碰商、不碰 `funext`、不加公理（#28）。画布 68 checked / 6 open，解答 74 checked / 0 open。
 - **课程门禁**：`tools/check.py` 已从卷 I 移植，用 0.98.4 构建跑通；C3 收口前必须 0 判负。
 - 提案与追踪：issue #13；C0 子 issue #14；C0 PR #23。
 
@@ -23,7 +24,7 @@
 - `probes/`：M0 可行性探针（P1–P5），不进课程门禁。
 - `lib/`：M1 从卷 I 移植的 L2 库（`Logic` / `Exists` / `Set` / `Prod` / `Rel` / `Fun` / `Image` / `Equiv` / `Order`）。
 - `units/II.1/`：M1 的整数单元（序对商、代表元公式、加法良定义与律、零元与负元、减法良定义与基本律、乘法良定义、序的代表元公式、ℕ 序的传递与单调、ℕ 序的加法消去律、整数序的良定义性、整数序的传递性与加法单调、整数乘法的交换律、乘法第二个因子良定义、取负下降成函数）；解答在 `units/solutions/II.1/`。
-- `units/II.2/`：M1 的有理数单元（当前 5 个：ℚ 的商载体与相等的自反/对称；整数相等的传递性；ℕ 乘法分配律与结合律；ℤ 乘法结合律；ℕ 正因子消去律）；解答在 `units/solutions/II.2/`。
+- `units/II.2/`：M1 的有理数单元（当前 6 个：ℚ 的商载体与相等的自反/对称；整数相等的传递性；ℕ 乘法分配律与结合律；ℤ 乘法结合律；ℕ 正因子消去律；`ratRel` 的传递性）；解答在 `units/solutions/II.2/`。
 - `course.json`：M1 课程清单（当前只列已落地的单元，随写作增长）。
 
 ## 边界
