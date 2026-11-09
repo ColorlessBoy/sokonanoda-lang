@@ -1228,6 +1228,27 @@ jobs:
             --annotations \
             --report /tmp/course-gate.json \
             --summary "$GITHUB_STEP_SUMMARY"
+      - name: Course gate (analysis, G1–G6)
+        # 卷 II/III《从集合论到实分析》（courses/analysis）的课程门禁。
+        # 与卷 I 同判据通道（G1–G6），但**独立课程根/独立 lib**；用同一个 release
+        # 二进制（SOKONANODA_BIN）判卷。冷跑 + 28 单元，给 90 分钟（与卷 I 同档）。
+        timeout-minutes: 90
+        env:
+          SOKONANODA_BIN: ${{ github.workspace }}/target/release/sokonanoda
+        shell: bash
+        run: |
+          python3 "$GITHUB_WORKSPACE/courses/analysis/tools/check.py" --selftest
+          python3 "$GITHUB_WORKSPACE/courses/analysis/tools/check.py" \
+            --annotations \
+            --report /tmp/analysis-gate.json \
+            --summary "$GITHUB_STEP_SUMMARY"
+      - name: Upload analysis gate report (always)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: analysis-gate-report
+          path: /tmp/analysis-gate.json
+          include-hidden-files: false
       - name: Save course artifacts（仅 main；门禁跑完后产物才齐）
         if: always() && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v4
