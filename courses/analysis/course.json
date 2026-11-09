@@ -172,6 +172,12 @@
               "title": "单元㉓ ℤ 乘法的结合律（代表元层）",
               "title_en": "Unit 23 — Associativity of Integer Multiplication",
               "unit": 23
+            },
+            {
+              "file": "units/II.2/unit24-nat-mul-cancel.sokonanoda",
+              "title": "单元㉔ ℕ 正因子的消去律",
+              "title_en": "Unit 24 — Cancelling a Positive Factor in ℕ",
+              "unit": 24
             }
           ]
         }
