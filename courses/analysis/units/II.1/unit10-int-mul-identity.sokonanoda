@@ -36,12 +36,12 @@ def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
 
 -- 单元③的 ℕ 零元律，本单元自用（L3：律必须留在单元里）。
 theorem zero_add (b : Nat) :
-    @Eq.{1} Nat (Nat.add Nat.zero b) b :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add Nat.zero n) n)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add Nat.zero b = b :=
+  Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
     (@Eq.refl.{1} Nat Nat.zero)
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add Nat.zero n) n) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add Nat.zero n = n) =>
       @Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add Nat.zero n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.succ (Nat.add Nat.zero n) = Nat.succ m)
         (Nat.add Nat.zero n) n ih
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add Nat.zero n))))
     b
@@ -49,26 +49,26 @@ theorem zero_add (b : Nat) :
 
 -- 定义性相等：myMul 在第二个参数上递归，base 就是 0。
 theorem myMul_zero (a : Nat) :
-    @Eq.{1} Nat (myMul a Nat.zero) Nat.zero :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    myMul a Nat.zero = Nat.zero :=
   Eq.refl Nat.zero
 
 -- 定义性相等：递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)。
 theorem myMul_succ (a b : Nat) :
-    @Eq.{1} Nat (myMul a (Nat.succ b)) (myAdd a (myMul a b)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    myMul a (Nat.succ b) = myAdd a (myMul a b) :=
   Eq.refl (myAdd a (myMul a b))
 
 -- soko:hint 思路：myMul a 1 展开成 myAdd a (myMul a 0) = myAdd a 0 = a。
 -- soko:hint 目标形态：myMul a 1 = a。
 -- soko:hint 关键件：Eq.refl a（两边定义性相等）。
 theorem myMul_one (a : Nat) :
-    @Eq.{1} Nat (myMul a (Nat.succ Nat.zero)) a :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    myMul a (Nat.succ Nat.zero) = a :=
   sorry
 
 -- soko:hint 思路：对 a 归纳。base：myMul 0 0 定义性等于 0。
 -- soko:hint 目标形态：myMul 0 (succ n) = 0；它定义性等于 myMyMul 0 n，用 ih 改写。
 -- soko:hint 关键件：Nat.rec · Eq.subst · Eq.refl。
 theorem zero_mul (a : Nat) :
-    @Eq.{1} Nat (myMul Nat.zero a) Nat.zero :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    myMul Nat.zero a = Nat.zero :=
   sorry
 
 -- soko:hint 思路：mulRep (a,b) (0,0) 的两个分量都是 a*0+b*0，定义性归约为 0。

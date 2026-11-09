@@ -40,61 +40,61 @@ def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
 
 -- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
 theorem zero_add (b : Nat) :
-    @Eq.{1} Nat (Nat.add Nat.zero b) b :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add Nat.zero n) n)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add Nat.zero b = b :=
+  Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
     (@Eq.refl.{1} Nat Nat.zero)
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add Nat.zero n) n) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add Nat.zero n = n) =>
       @Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add Nat.zero n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.succ (Nat.add Nat.zero n) = Nat.succ m)
         (Nat.add Nat.zero n) n ih
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add Nat.zero n))))
     b
 
 theorem succ_add (a b : Nat) :
-    @Eq.{1} Nat (Nat.add (Nat.succ a) b) (Nat.succ (Nat.add a b)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add (Nat.succ a) b = Nat.succ (Nat.add a b) :=
+  Nat.rec (fun (n : Nat) => Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n))
     (@Eq.refl.{1} Nat (Nat.succ a))
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n))) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n)) =>
       @Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.succ (Nat.add (Nat.succ a) n) = Nat.succ m)
         (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)) ih
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n))))
     b
 
 theorem add_comm (a b : Nat) :
-    @Eq.{1} Nat (Nat.add a b) (Nat.add b a) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add a n) (Nat.add n a))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add a b = Nat.add b a :=
+  Nat.rec (fun (n : Nat) => Nat.add a n = Nat.add n a)
     (@Eq.symm.{1} Nat (Nat.add Nat.zero a) a (zero_add a))
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add a n) (Nat.add n a)) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add a n = Nat.add n a) =>
       @Eq.trans.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ (Nat.add n a)) (Nat.add (Nat.succ n) a)
         (@Eq.subst.{1} Nat
-          (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (fun (m : Nat) => Nat.succ (Nat.add a n) = Nat.succ m)
           (Nat.add a n) (Nat.add n a) ih
           (@Eq.refl.{1} Nat (Nat.succ (Nat.add a n))))
         (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
     b
 
 theorem add_zero (a : Nat) :
-    @Eq.{1} Nat (Nat.add a Nat.zero) a :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add a Nat.zero = a :=
   @Eq.trans.{1} Nat (Nat.add a Nat.zero) (Nat.add Nat.zero a) a
     (add_comm a Nat.zero)
     (zero_add a)
 
 theorem add_assoc (a b c : Nat) :
-    @Eq.{1} Nat (Nat.add (Nat.add a b) c) (Nat.add a (Nat.add b c)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-  Nat.rec (fun (n : Nat) => @Eq.{1} Nat (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add (Nat.add a b) c = Nat.add a (Nat.add b c) :=
+  Nat.rec (fun (n : Nat) => Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n))
     (@Eq.refl.{1} Nat (Nat.add a b))
-    (fun (n : Nat) (ih : @Eq.{1} Nat (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n))) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n)) =>
       @Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.succ (Nat.add (Nat.add a b) n) = Nat.succ m)
         (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)) ih
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
     c
 
 -- 搬运律：把两个和里的加法因子换个配对，值不变。
 theorem add_shift (a b c d : Nat) :
-    @Eq.{1} Nat (Nat.add (Nat.add a c) (Nat.add b d))
-                 (Nat.add (Nat.add a b) (Nat.add c d)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    Nat.add (Nat.add a c) (Nat.add b d) =
+    Nat.add (Nat.add a b) (Nat.add c d) :=
   @Eq.trans.{1} Nat
     (Nat.add (Nat.add a c) (Nat.add b d))
     (Nat.add a (Nat.add c (Nat.add b d)))
@@ -105,7 +105,7 @@ theorem add_shift (a b c d : Nat) :
       (Nat.add a (Nat.add (Nat.add c b) d))
       (Nat.add (Nat.add a b) (Nat.add c d))
       (@Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat (Nat.add a (Nat.add c (Nat.add b d))) (Nat.add a m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (m : Nat) => Nat.add a (Nat.add c (Nat.add b d)) = Nat.add a m)
         (Nat.add c (Nat.add b d)) (Nat.add (Nat.add c b) d)
         (@Eq.symm.{1} Nat (Nat.add (Nat.add c b) d) (Nat.add c (Nat.add b d)) (add_assoc c b d))
         (@Eq.refl.{1} Nat (Nat.add a (Nat.add c (Nat.add b d)))))
@@ -114,7 +114,7 @@ theorem add_shift (a b c d : Nat) :
         (Nat.add a (Nat.add (Nat.add b c) d))
         (Nat.add (Nat.add a b) (Nat.add c d))
         (@Eq.subst.{1} Nat
-          (fun (m : Nat) => @Eq.{1} Nat (Nat.add a (Nat.add (Nat.add c b) d)) (Nat.add a (Nat.add m d)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (fun (m : Nat) => Nat.add a (Nat.add (Nat.add c b) d) = Nat.add a (Nat.add m d))
           (Nat.add c b) (Nat.add b c)
           (add_comm c b)
           (@Eq.refl.{1} Nat (Nat.add a (Nat.add (Nat.add c b) d))))
@@ -123,7 +123,7 @@ theorem add_shift (a b c d : Nat) :
           (Nat.add a (Nat.add b (Nat.add c d)))
           (Nat.add (Nat.add a b) (Nat.add c d))
           (@Eq.subst.{1} Nat
-            (fun (m : Nat) => @Eq.{1} Nat (Nat.add a (Nat.add (Nat.add b c) d)) (Nat.add a m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+            (fun (m : Nat) => Nat.add a (Nat.add (Nat.add b c) d) = Nat.add a m)
             (Nat.add (Nat.add b c) d) (Nat.add b (Nat.add c d))
             (add_assoc b c d)
             (@Eq.refl.{1} Nat (Nat.add a (Nat.add (Nat.add b c) d))))
@@ -135,12 +135,12 @@ theorem add_shift (a b c d : Nat) :
 
 -- 定义性相等：myMul 在第二个参数上递归，base 就是 0。
 theorem myMul_zero (a : Nat) :
-    @Eq.{1} Nat (myMul a Nat.zero) Nat.zero :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    myMul a Nat.zero = Nat.zero :=
   Eq.refl Nat.zero
 
 -- 定义性相等：递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)。
 theorem myMul_succ (a b : Nat) :
-    @Eq.{1} Nat (myMul a (Nat.succ b)) (Nat.add a (myMul a b)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    myMul a (Nat.succ b) = Nat.add a (myMul a b) :=
   Eq.refl (Nat.add a (myMul a b))
 
 -- soko:hint 思路：myMul a 1 展开成 myAdd a (myMul a 0) = myAdd a 0 = a。
@@ -148,17 +148,17 @@ theorem myMul_succ (a b : Nat) :
 
 -- 分配律（右）：(a + b) * c = a * c + b * c。
 theorem mul_add (a b c : Nat) :
-    @Eq.{1} Nat (myMul (Nat.add a b) c) (Nat.add (myMul a c) (myMul b c)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    myMul (Nat.add a b) c = Nat.add (myMul a c) (myMul b c) :=
   Nat.rec
-    (fun (n : Nat) => @Eq.{1} Nat (myMul (Nat.add a b) n) (Nat.add (myMul a n) (myMul b n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) => myMul (Nat.add a b) n = Nat.add (myMul a n) (myMul b n))
     (@Eq.refl.{1} Nat Nat.zero)
-    (fun (n : Nat) (ih : @Eq.{1} Nat (myMul (Nat.add a b) n) (Nat.add (myMul a n) (myMul b n))) =>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (n : Nat) (ih : myMul (Nat.add a b) n = Nat.add (myMul a n) (myMul b n)) =>
       @Eq.trans.{1} Nat
         (myMul (Nat.add a b) (Nat.succ n))
         (Nat.add (Nat.add a b) (Nat.add (myMul a n) (myMul b n)))
         (Nat.add (Nat.add a (myMul a n)) (Nat.add b (myMul b n)))
         (@Eq.subst.{1} Nat
-          (fun (m : Nat) => @Eq.{1} Nat (myMul (Nat.add a b) (Nat.succ n)) (Nat.add (Nat.add a b) m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (fun (m : Nat) => myMul (Nat.add a b) (Nat.succ n) = Nat.add (Nat.add a b) m)
           (myMul (Nat.add a b) n)
           (Nat.add (myMul a n) (myMul b n))
           ih
@@ -171,18 +171,18 @@ theorem mul_add (a b c : Nat) :
 
 -- 等式两边同时乘一个数：把假设 h 沿 `fun x => myMul x c` 搬过去。
 theorem mul_congr (a b a' b' c : Nat)
-    (h : @Eq.{1} Nat (Nat.add a b') (Nat.add a' b)) :
-    @Eq.{1} Nat (myMul (Nat.add a b') c) (myMul (Nat.add a' b) c) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (h : Nat.add a b' = Nat.add a' b) :
+    myMul (Nat.add a b') c = myMul (Nat.add a' b) c :=
   @Eq.subst.{1} Nat
-    (fun (x : Nat) => @Eq.{1} Nat (myMul (Nat.add a b') c) (myMul x c))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (x : Nat) => myMul (Nat.add a b') c = myMul x c)
     (Nat.add a b') (Nat.add a' b) h
     (@Eq.refl.{1} Nat (myMul (Nat.add a b') c))
 
 -- h 乘开：a·c + b'·c = a'·c + b·c。
 theorem mul_shift_c (a b a' b' c : Nat)
-    (h : @Eq.{1} Nat (Nat.add a b') (Nat.add a' b)) :
-    @Eq.{1} Nat (Nat.add (myMul a c) (myMul b' c))
-                 (Nat.add (myMul a' c) (myMul b c)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (h : Nat.add a b' = Nat.add a' b) :
+    Nat.add (myMul a c) (myMul b' c) =
+    Nat.add (myMul a' c) (myMul b c) :=
   @Eq.trans.{1} Nat
     (Nat.add (myMul a c) (myMul b' c))
     (myMul (Nat.add a b') c)
@@ -218,9 +218,8 @@ theorem mulRep_wd (a b a' b' c d : Nat)
       (Nat.add (Nat.add (myMul a c) (myMul b' c))
                (Nat.add (myMul b d) (myMul a' d)))
       (@Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat
-          (Nat.add (Nat.add (myMul a c) (myMul b d)) (Nat.add (myMul a' d) (myMul b' c)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-          (Nat.add (Nat.add (myMul a c) (myMul b d)) m))
+        (fun (m : Nat) => Nat.add (Nat.add (myMul a c) (myMul b d)) (Nat.add (myMul a' d) (myMul b' c)) =
+          Nat.add (Nat.add (myMul a c) (myMul b d)) m)
         (Nat.add (myMul a' d) (myMul b' c))
         (Nat.add (myMul b' c) (myMul a' d))
         (add_comm (myMul a' d) (myMul b' c))
@@ -234,9 +233,8 @@ theorem mulRep_wd (a b a' b' c d : Nat)
       (Nat.add (Nat.add (myMul a' c) (myMul b' d))
                (Nat.add (myMul a d) (myMul b c)))
       (@Eq.subst.{1} Nat
-        (fun (m : Nat) => @Eq.{1} Nat
-          (Nat.add (Nat.add (myMul a c) (myMul b' c)) (Nat.add (myMul b d) (myMul a' d)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-          (Nat.add m (Nat.add (myMul b d) (myMul a' d))))
+        (fun (m : Nat) => Nat.add (Nat.add (myMul a c) (myMul b' c)) (Nat.add (myMul b d) (myMul a' d)) =
+          Nat.add m (Nat.add (myMul b d) (myMul a' d)))
         (Nat.add (myMul a c) (myMul b' c))
         (Nat.add (myMul a' c) (myMul b c))
         (mul_shift_c a b a' b' c h)
@@ -249,9 +247,8 @@ theorem mulRep_wd (a b a' b' c d : Nat)
         (Nat.add (Nat.add (myMul a' c) (myMul b' d))
                  (Nat.add (myMul a d) (myMul b c)))
         (@Eq.subst.{1} Nat
-          (fun (m : Nat) => @Eq.{1} Nat
-            (Nat.add (Nat.add (myMul a' c) (myMul b c)) (Nat.add (myMul b d) (myMul a' d)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-            (Nat.add (Nat.add (myMul a' c) (myMul b c)) m))
+          (fun (m : Nat) => Nat.add (Nat.add (myMul a' c) (myMul b c)) (Nat.add (myMul b d) (myMul a' d)) =
+            Nat.add (Nat.add (myMul a' c) (myMul b c)) m)
           (Nat.add (myMul b d) (myMul a' d))
           (Nat.add (myMul b' d) (myMul a d))
           (@Eq.trans.{1} Nat
@@ -283,9 +280,8 @@ theorem mulRep_wd (a b a' b' c d : Nat)
                      (Nat.add (myMul b' d) (myMul a d)))
             (add_shift (myMul a' c) (myMul b c) (myMul b' d) (myMul a d)))
           (@Eq.subst.{1} Nat
-            (fun (m : Nat) => @Eq.{1} Nat
-              (Nat.add (Nat.add (myMul a' c) (myMul b' d)) (Nat.add (myMul b c) (myMul a d)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
-              (Nat.add (Nat.add (myMul a' c) (myMul b' d)) m))
+            (fun (m : Nat) => Nat.add (Nat.add (myMul a' c) (myMul b' d)) (Nat.add (myMul b c) (myMul a d)) =
+              Nat.add (Nat.add (myMul a' c) (myMul b' d)) m)
             (Nat.add (myMul b c) (myMul a d))
             (Nat.add (myMul a d) (myMul b c))
             (add_comm (myMul b c) (myMul a d))
