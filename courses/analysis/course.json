@@ -120,6 +120,12 @@
               "title": "单元⑰ 整数乘法的交换律（代表元层）",
               "title_en": "Unit 17 — Multiplication is Commutative",
               "unit": 17
+            },
+            {
+              "file": "units/II.1/unit18-int-mul-wd-snd.sokonanoda",
+              "title": "单元⑱ 整数乘法的第二个因子良定义（代表元层）",
+              "title_en": "Unit 18 — Multiplication is Well-Defined in the Second Factor",
+              "unit": 18
             }
           ]
         }
