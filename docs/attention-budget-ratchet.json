@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "round": 5,
-  "head": "4301466bce26c3f1bab9defc248dc2887c673e43",
-  "at": "2026-11-04T09:29:01+00:00",
+  "round": 6,
+  "head": "1860e712cd965db0feb1f01f50df3b14108aea22",
+  "at": "2026-11-09T23:01:46+00:00",
   "caps": {
-    "ratio_max": 14.0,
-    "ratio_warn": 12.0,
-    "share_max": 0.5,
-    "share_warn": 0.47
+    "ratio_max": 13.0,
+    "ratio_warn": 11.0,
+    "share_max": 0.48,
+    "share_warn": 0.45
   },
   "history": [
     {
@@ -135,6 +135,27 @@
       },
       "user_reading": "node editor/vscode/test-extension-host.js ⇒ 77/77 passed（stub 宿主；同轮 front/LSP 的 · 块内 goal state 判据全绿）",
       "user_case": "courses/set-theory/units/I.1/unit02-subsets-empty.sokonanoda"
+    },
+    {
+      "round": 6,
+      "head": "1860e712cd965db0feb1f01f50df3b14108aea22",
+      "at": "2026-11-09T23:01:46+00:00",
+      "caps": {
+        "ratio_max": 13.0,
+        "ratio_warn": 11.0,
+        "share_max": 0.48,
+        "share_warn": 0.45
+      },
+      "reading": {
+        "ratio": 3.1085250512619567,
+        "share": 0.3212312549329124,
+        "commits": 1267,
+        "bookkeeping_commits": 407,
+        "product_lines": 93149,
+        "gen_lines": 289556
+      },
+      "user_reading": "code ⇒ 打开 courses/analysis/units/II.2/unit28-rat-mul-wd.sokonanoda 的画布与解答 ⇒ 判卷 0 rejected、解答 0 open；notation 批后课程可正常学习",
+      "user_case": "courses/analysis/units/II.2/unit28-rat-mul-wd.sokonanoda"
     }
   ]
 }
