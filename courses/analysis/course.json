@@ -295,6 +295,12 @@
               "title": "单元㊳ 有理数的序：传递性",
               "title_en": "Unit 38 — Transitivity of the Order",
               "unit": 38
+            },
+            {
+              "file": "units/II.4/unit39-order-wd.sokonanoda",
+              "title": "单元㊴ 有理数的序与相等相容",
+              "title_en": "Unit 39 — The Order Respects Equality",
+              "unit": 39
             }
           ]
         }
