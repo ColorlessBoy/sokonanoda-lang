@@ -691,6 +691,21 @@ theorem ratDenRep_succ (m n : Nat) :
       (Nat.add (myMul m (Nat.succ n)) (Nat.succ n))
       (succ_mul m (Nat.succ n)))
 
+-- 分母字段的对称性：两个正分母换位（㊷ 的 `ratSubRep` 反交换要用它）。
+-- `ratDenRep m n = (m*n + m) + n`，交换 `m`、`n` 后靠 `myMul_comm` 与
+-- `add_rotate`（`(a+k)+j = (a+j)+k`）把两项换回来。
+
+
+theorem ratDenRep_comm (m n : Nat) :
+    ratDenRep m n = ratDenRep n m :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add (myMul m n) m) n)
+    (Nat.add (Nat.add (myMul n m) m) n)
+    (Nat.add (Nat.add (myMul n m) n) m)
+    (congrArg.{1} (fun (x : Nat) => Nat.add (Nat.add x m) n)
+      (myMul_comm m n))
+    (add_rotate (myMul n m) m n)
+
 -- ─────────────────────────────────────────────────────────────
 -- ㉖.2 加法的代表元公式
 -- ─────────────────────────────────────────────────────────────

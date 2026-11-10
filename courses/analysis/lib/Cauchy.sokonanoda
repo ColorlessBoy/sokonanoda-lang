@@ -44,6 +44,96 @@ def Real : Type := @Quot.{1} Seq realRel
 def Real.mk (x : Seq) : Real := @Quot.mk.{1} Seq realRel x
 
 -- ─────────────────────────────────────────────────────────────
+-- ㉛ / ㉜ 已判卷事实进库：取负与减法的代表元律
+-- ─────────────────────────────────────────────────────────────
+
+-- ㊷ 的 `ratSubRep` 反交换用到「取负保持 `ratRel`」与「减法的计算规则」。
+-- 这两条在 ㉛ / ㉜ 的画布里判过卷，这里按「前序证明进库」惯例收进 L2：
+-- 下面的证明与那两单元的解答逐字同形。
+
+-- ㉛.1 负元在交叉乘积上的形状。
+
+theorem negRep_mulRep_den (p : Prod Nat Nat) (n : Nat) :
+    negRep (mulRep p (den n)) = mulRep (negRep p) (den n) :=
+  @Eq.trans.{1} (Prod Nat Nat)
+    (negRep (mulRep p (den n)))
+    (@prod_mk Nat Nat
+      (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+      (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+    (mulRep (negRep p) (den n))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (negRep (mulRep p (den n)))
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (myMul (Prod.fst Nat Nat p) (Nat.succ n)))
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (Eq.refl (negRep (mulRep p (den n))))
+      (@congrArg.{1} Nat (Prod Nat Nat)
+        (myMul (Prod.fst Nat Nat p) (Nat.succ n))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n)))
+        (fun (y : Nat) =>
+          @prod_mk Nat Nat
+            (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n))) y)
+        (Eq.symm (zero_add (myMul (Prod.fst Nat Nat p) (Nat.succ n))))))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (@prod_mk Nat Nat
+        (myMul (Prod.snd Nat Nat p) (Nat.succ n))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (mulRep (negRep p) (den n))
+      (@congrArg.{1} Nat (Prod Nat Nat)
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (myMul (Prod.snd Nat Nat p) (Nat.succ n))
+        (fun (x : Nat) =>
+          @prod_mk Nat Nat x
+            (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+        (zero_add (myMul (Prod.snd Nat Nat p) (Nat.succ n))))
+      (Eq.refl (mulRep (negRep p) (den n))))
+
+-- ㉛.2 负元的良定义性。
+
+theorem ratNegRep_wd (x y : ratRep) (h : ratRel x y) :
+    ratRel (ratNegRep x) (ratNegRep y) :=
+  intRel_trans
+    (mulRep (negRep (numOf x)) (den (denOf y)))
+    (negRep (mulRep (numOf x) (den (denOf y))))
+    (mulRep (negRep (numOf y)) (den (denOf x)))
+    (intRel_of_eq
+      (mulRep (negRep (numOf x)) (den (denOf y)))
+      (negRep (mulRep (numOf x) (den (denOf y))))
+      (@Eq.symm.{1} (Prod Nat Nat)
+        (negRep (mulRep (numOf x) (den (denOf y))))
+        (mulRep (negRep (numOf x)) (den (denOf y)))
+        (negRep_mulRep_den (numOf x) (denOf y))))
+    (@intRel_trans
+      (negRep (mulRep (numOf x) (den (denOf y))))
+      (negRep (mulRep (numOf y) (den (denOf x))))
+      (mulRep (negRep (numOf y)) (den (denOf x)))
+      (negRep_wd (mulRep (numOf x) (den (denOf y)))
+                 (mulRep (numOf y) (den (denOf x))) h)
+      (intRel_of_eq
+        (negRep (mulRep (numOf y) (den (denOf x))))
+        (mulRep (negRep (numOf y)) (den (denOf x)))
+        (negRep_mulRep_den (numOf y) (denOf x))))
+
+-- ㉜.1 减法的计算规则（`ratSubRep` 展开成同一个 `qrep`，定义性相等）。
+
+theorem ratSubRep_mk (a b c d m n : Nat) :
+    ratSubRep (qrep a b m) (qrep c d n) =
+      qrep
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (ratDenRep m n) :=
+  Eq.refl (qrep
+    (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+    (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+    (ratDenRep m n))
+
+-- ─────────────────────────────────────────────────────────────
 -- ㉟.0 预备：零的绝对值与零的 close
 -- ─────────────────────────────────────────────────────────────
 
@@ -123,3 +213,100 @@ theorem ratRel_trans_gen (x y z : ratRep)
 theorem ratNegRep_invol (x : ratRep) :
     ratRel (ratNegRep (ratNegRep x)) x :=
   intRel_refl (mulRep (numOf x) (den (denOf x)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊶ 已判卷事实的**通用版本**（㊷ 起的单元直接引用）
+-- ─────────────────────────────────────────────────────────────
+
+-- 单元㊶ 在画布里证的是「序被取负反转」与「绝对值对取负不变」；这里收录同一批
+-- 事实、名字带 `_gen`，与画布里的 `ratLeRep_neg` / `ratAbsRel_neg` 区分
+-- （两个模块各自声明、互不冲突）。
+
+-- ㊶.1 取负反转序（字面形式）。
+
+theorem ratLeRep_neg_lit_gen (a b c d m n : Nat)
+    (h : ratLeRep (qrep a b m) (qrep c d n)) :
+    ratLeRep (qrep d c n) (qrep b a m) :=
+  leRep_wd_pair
+    (@prod_mk Nat Nat (myMul d (Nat.succ m)) (myMul c (Nat.succ m)))
+    (mulRep (@prod_mk Nat Nat d c) (den m))
+    (@prod_mk Nat Nat (myMul b (Nat.succ n)) (myMul a (Nat.succ n)))
+    (mulRep (@prod_mk Nat Nat b a) (den n))
+    (intRel_of_eq
+      (@prod_mk Nat Nat (myMul d (Nat.succ m)) (myMul c (Nat.succ m)))
+      (mulRep (@prod_mk Nat Nat d c) (den m))
+      (Eq.symm (mulRep_den_form (@prod_mk Nat Nat d c) m)))
+    (intRel_of_eq
+      (@prod_mk Nat Nat (myMul b (Nat.succ n)) (myMul a (Nat.succ n)))
+      (mulRep (@prod_mk Nat Nat b a) (den n))
+      (Eq.symm (mulRep_den_form (@prod_mk Nat Nat b a) n)))
+    (@Eq.subst.{1} Nat
+      (fun (x : Nat) =>
+        LeNat x (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m))))
+      (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+      (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+      (add_comm (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+      (@Eq.subst.{1} Nat
+        (fun (x : Nat) =>
+          LeNat (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m))) x)
+        (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (add_comm (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (leRep_wd_pair
+          (mulRep (@prod_mk Nat Nat a b) (den n))
+          (@prod_mk Nat Nat (myMul a (Nat.succ n)) (myMul b (Nat.succ n)))
+          (mulRep (@prod_mk Nat Nat c d) (den m))
+          (@prod_mk Nat Nat (myMul c (Nat.succ m)) (myMul d (Nat.succ m)))
+          (intRel_of_eq
+            (mulRep (@prod_mk Nat Nat a b) (den n))
+            (@prod_mk Nat Nat (myMul a (Nat.succ n)) (myMul b (Nat.succ n)))
+            (mulRep_den_form (@prod_mk Nat Nat a b) n))
+          (intRel_of_eq
+            (mulRep (@prod_mk Nat Nat c d) (den m))
+            (@prod_mk Nat Nat (myMul c (Nat.succ m)) (myMul d (Nat.succ m)))
+            (mulRep_den_form (@prod_mk Nat Nat c d) m))
+          h)))
+
+-- ㊶.2 取负反转序（任意代表元；`ratRep` 是定义别名，先匹配展开类型）。
+
+theorem ratLeRep_neg_aux_gen (x y : Prod (Prod Nat Nat) Nat) :
+    ratLeRep x y → ratLeRep (ratNegRep y) (ratNegRep x) :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match y with
+    | prod_mk (prod_mk c d) n =>
+      fun (h : ratLeRep (prod_mk (prod_mk a b) m) (prod_mk (prod_mk c d) n)) =>
+        ratLeRep_neg_lit_gen a b c d m n h
+
+theorem ratLeRep_neg_gen (x y : ratRep) (h : ratLeRep x y) :
+    ratLeRep (ratNegRep y) (ratNegRep x) :=
+  ratLeRep_neg_aux_gen x y h
+
+-- ㊶.3 绝对值对取负不变。
+
+theorem ratAbsRel_neg_aux_gen (x : Prod (Prod Nat Nat) Nat) (y : ratRep) :
+    ratAbsRel x y → ratAbsRel (ratNegRep x) y :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    fun (h : ratAbsRel (prod_mk (prod_mk a b) m) y) =>
+      Or.elim
+        (fun (h1 : ratLeRep ratZeroRep (prod_mk (prod_mk a b) m) ∧
+                   ratRel y (prod_mk (prod_mk a b) m)) =>
+          Or.inr (And.intro
+            (ratLeRep_neg_gen ratZeroRep (prod_mk (prod_mk a b) m) (And.left h1))
+            (ratRel_trans_gen y (prod_mk (prod_mk a b) m)
+              (ratNegRep (ratNegRep (prod_mk (prod_mk a b) m)))
+              (And.right h1)
+              (ratRel_symm (ratNegRep (ratNegRep (prod_mk (prod_mk a b) m)))
+                (prod_mk (prod_mk a b) m)
+                (ratNegRep_invol (prod_mk (prod_mk a b) m))))))
+        (fun (h2 : ratLeRep (prod_mk (prod_mk a b) m) ratZeroRep ∧
+                   ratRel y (ratNegRep (prod_mk (prod_mk a b) m))) =>
+          Or.inl (And.intro
+            (ratLeRep_neg_gen (prod_mk (prod_mk a b) m) ratZeroRep (And.left h2))
+            (And.right h2)))
+        h
+
+theorem ratAbsRel_neg_gen (x y : ratRep) (h : ratAbsRel x y) :
+    ratAbsRel (ratNegRep x) y :=
+  ratAbsRel_neg_aux_gen x y h

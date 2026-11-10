@@ -216,6 +216,124 @@ theorem leRep_cancel_den (p q : Prod Nat Nat) (k : Nat)
             (mulRep_den_form q k))
           h)))
 
+-- ─────────────────────────────────────────────────────────────
+-- ㊴ 已判卷事实的**通用版本**（㊷ 起的单元直接引用）
+-- ─────────────────────────────────────────────────────────────
+
+-- 单元㊴ 在画布里证的是「相等可替换」的**字面三元组**版本（`qrep a b m`）。
+-- 后续单元要把它用在任意代表元上，于是这里收录同一批事实的通用版本；
+-- 名字带 `congr`，与画布里的 `ratLeRep_wd` / `ratLeRep_wd_snd` 区分
+-- （两个模块各自声明、互不冲突）。
+
+-- ㊴.1 通用：等价的两边同乘一个正分母。
+
+theorem scale_den_congr (p q : Prod Nat Nat) (n : Nat) (h : intRel p q) :
+    intRel (mulRep p (den n)) (mulRep q (den n)) :=
+  @Eq.subst.{1} (Prod Nat Nat)
+    (fun (y : Prod Nat Nat) =>
+      intRel (mulRep p (den n)) (mulRep y (den n)))
+    (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q))
+    q
+    (Prod.eta Nat Nat q)
+    (@Eq.subst.{1} (Prod Nat Nat)
+      (fun (x : Prod Nat Nat) =>
+        intRel (mulRep x (den n))
+          (mulRep (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q)) (den n)))
+      (@prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+      p
+      (Prod.eta Nat Nat p)
+      (mulRep_wd
+        (Prod.fst Nat Nat p) (Prod.snd Nat Nat p)
+        (Prod.fst Nat Nat q) (Prod.snd Nat Nat q)
+        (Nat.succ n) Nat.zero
+        (@Eq.subst.{1} (Prod Nat Nat)
+          (fun (y : Prod Nat Nat) =>
+            intRel
+              (@prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+              y)
+          q
+          (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q))
+          (@Eq.symm.{1} (Prod Nat Nat)
+            (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q))
+            q
+            (Prod.eta Nat Nat q))
+          (@Eq.subst.{1} (Prod Nat Nat)
+            (fun (x : Prod Nat Nat) =>
+              intRel x (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q)))
+            p
+            (@prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+            (@Eq.symm.{1} (Prod Nat Nat)
+              (@prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+              p
+              (Prod.eta Nat Nat p))
+            h))))
+
+-- ㊴.2 通用：相等可替换（第一个因子）。
+
+theorem ratLeRep_congr (a b a' b' c d m m' n : Nat)
+    (hxx' : ratRel (qrep a b m) (qrep a' b' m'))
+    (h : ratLeRep (qrep a b m) (qrep c d n)) :
+    ratLeRep (qrep a' b' m') (qrep c d n) :=
+  leRep_cancel_den
+    (mulRep (@prod_mk Nat Nat a' b') (den n))
+    (mulRep (@prod_mk Nat Nat c d) (den m'))
+    m
+    (leRep_wd_pair
+      (mulRep (mulRep (@prod_mk Nat Nat a b) (den n)) (den m'))
+      (mulRep (mulRep (@prod_mk Nat Nat a' b') (den n)) (den m))
+      (mulRep (mulRep (@prod_mk Nat Nat c d) (den m)) (den m'))
+      (mulRep (mulRep (@prod_mk Nat Nat c d) (den m')) (den m))
+      (intRel_trans
+        (mulRep (mulRep (@prod_mk Nat Nat a b) (den n)) (den m'))
+        (mulRep (mulRep (@prod_mk Nat Nat a b) (den m')) (den n))
+        (mulRep (mulRep (@prod_mk Nat Nat a' b') (den n)) (den m))
+        (mulRep_den_swap a b n m')
+        (intRel_trans
+          (mulRep (mulRep (@prod_mk Nat Nat a b) (den m')) (den n))
+          (mulRep (mulRep (@prod_mk Nat Nat a' b') (den m)) (den n))
+          (mulRep (mulRep (@prod_mk Nat Nat a' b') (den n)) (den m))
+          (scale_den_congr (mulRep (@prod_mk Nat Nat a b) (den m'))
+                           (mulRep (@prod_mk Nat Nat a' b') (den m)) n hxx')
+          (mulRep_den_swap a' b' m n)))
+      (mulRep_den_swap c d m m')
+      (leRep_mul_den_right
+        (mulRep (@prod_mk Nat Nat a b) (den n))
+        (mulRep (@prod_mk Nat Nat c d) (den m))
+        m' h))
+
+-- ㊴.3 通用：相等可替换（第二个因子）。
+
+theorem ratLeRep_congr_snd (a b c d c' d' m n n' : Nat)
+    (hyy' : ratRel (qrep c d n) (qrep c' d' n'))
+    (h : ratLeRep (qrep a b m) (qrep c d n)) :
+    ratLeRep (qrep a b m) (qrep c' d' n') :=
+  leRep_cancel_den
+    (mulRep (@prod_mk Nat Nat a b) (den n'))
+    (mulRep (@prod_mk Nat Nat c' d') (den m))
+    n
+    (leRep_wd_pair
+      (mulRep (mulRep (@prod_mk Nat Nat a b) (den n)) (den n'))
+      (mulRep (mulRep (@prod_mk Nat Nat a b) (den n')) (den n))
+      (mulRep (mulRep (@prod_mk Nat Nat c d) (den m)) (den n'))
+      (mulRep (mulRep (@prod_mk Nat Nat c' d') (den m)) (den n))
+      (mulRep_den_swap a b n n')
+      (intRel_trans
+        (mulRep (mulRep (@prod_mk Nat Nat c d) (den m)) (den n'))
+        (mulRep (mulRep (@prod_mk Nat Nat c d) (den n')) (den m))
+        (mulRep (mulRep (@prod_mk Nat Nat c' d') (den m)) (den n))
+        (mulRep_den_swap c d m n')
+        (intRel_trans
+          (mulRep (mulRep (@prod_mk Nat Nat c d) (den n')) (den m))
+          (mulRep (mulRep (@prod_mk Nat Nat c' d') (den n)) (den m))
+          (mulRep (mulRep (@prod_mk Nat Nat c' d') (den m)) (den n))
+          (scale_den_congr (mulRep (@prod_mk Nat Nat c d) (den n'))
+                           (mulRep (@prod_mk Nat Nat c' d') (den n)) m hyy')
+          (mulRep_den_swap c' d' n m)))
+      (leRep_mul_den_right
+        (mulRep (@prod_mk Nat Nat a b) (den n))
+        (mulRep (@prod_mk Nat Nat c d) (den m))
+        n' h))
+
 -- 有理数的零（分子 0-0、分母字段 0）。
 
 def ratZeroRep : ratRep := qrep Nat.zero Nat.zero Nat.zero

@@ -269,7 +269,7 @@
             "real"
           ],
           "quota": {
-            "exercises": 40
+            "exercises": 44
           },
           "units": [
             {
@@ -313,6 +313,12 @@
               "title": "单元㊶ 取负与序：绝对值的对称性",
               "title_en": "Unit 41 — Negation, Order and Absolute Value",
               "unit": 41
+            },
+            {
+              "file": "units/II.4/unit42-close-symm.sokonanoda",
+              "title": "单元㊷ close 的对称性：实数的相等可以换方向",
+              "title_en": "Unit 42 — Symmetry of Close and Real Equality",
+              "unit": 42
             }
           ]
         }
