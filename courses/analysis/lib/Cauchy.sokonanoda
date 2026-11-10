@@ -1,0 +1,88 @@
+-- 课程库：有理 Cauchy 序列与实数的载体
+--
+-- ㉟ 与 ㊱ 在画布里立了下面的词汇并判卷；这里收进 L2，㊴ 起的单元直接引用，
+-- 不再重抄（M2 的「前序证明进库」惯例，见 README）。
+--
+--   · `Seq` / `close` / `Cauchy` —— 有理 Cauchy 序列（㉟）
+--   · `realRel` / `Real` / `Real.mk` / `Real.sound` —— 实数的商载体（㊱）
+--   · `ratNegRep` / `ratSubRep` / `ratLtRep` / `ratAbsRel` —— 前序词汇
+--
+-- 序的引擎（`ratLeRep` / `ratZeroRep` / `leRep_mul_den_right` /
+-- `leRep_cancel_den`）在 `lib/RatOrder`，本模块直接复用。
+
+import lib.RatOrder
+
+def ratNegRep (x : ratRep) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat (negRep (numOf x)) (denOf x)
+
+def ratSubRep (x y : ratRep) : ratRep :=
+  ratAddRep x (ratNegRep y)
+
+def ratLtRep (x y : ratRep) : Prop :=
+  ratLeRep x y ∧ ¬ ratRel x y
+
+def ratAbsRel (x y : ratRep) : Prop :=
+  (ratLeRep ratZeroRep x ∧ ratRel y x) ∨
+    (ratLeRep x ratZeroRep ∧ ratRel y (ratNegRep x))
+
+def Seq : Type := Nat → ratRep
+
+def close (x y : ratRep) (eps : ratRep) : Prop :=
+  ∃ (d : ratRep), ratAbsRel (ratSubRep x y) d ∧ ratLtRep d eps
+
+def Cauchy (x : Seq) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (N : Nat), ∀ (n m : Nat), LeNat N n → LeNat N m → close (x n) (x m) eps
+
+def realRel (x y : Seq) : Prop :=
+  Cauchy x ∧ Cauchy y ∧
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (y n) eps
+
+def Real : Type := @Quot.{1} Seq realRel
+
+def Real.mk (x : Seq) : Real := @Quot.mk.{1} Seq realRel x
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉟.0 预备：零的绝对值与零的 close
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAbsRel_zero : ratAbsRel ratZeroRep ratZeroRep :=
+  Or.inl
+    (And.intro
+      (leRep_refl (mulRep (numOf ratZeroRep) (den (denOf ratZeroRep))))
+      (ratRel_refl ratZeroRep))
+
+theorem close_zero_zero (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    close ratZeroRep ratZeroRep eps :=
+  Exists.intro ratZeroRep (And.intro ratAbsRel_zero h)
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉟.1 常零序列是 Cauchy 的
+-- ─────────────────────────────────────────────────────────────
+
+def zeroSeq : Seq := fun (_ : Nat) => ratZeroRep
+
+theorem cauchy_zero : Cauchy zeroSeq :=
+  fun (eps : ratRep) (h : ratLtRep ratZeroRep eps) =>
+    Exists.intro Nat.zero
+      (fun (n m : Nat) (hn : LeNat Nat.zero n) (hm : LeNat Nat.zero m) =>
+        close_zero_zero eps h)
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊱.1 常零序列与自身等价
+-- ─────────────────────────────────────────────────────────────
+
+theorem realRel_zero : realRel zeroSeq zeroSeq :=
+  And.intro cauchy_zero
+    (And.intro cauchy_zero
+      (fun (eps : ratRep) (h : ratLtRep ratZeroRep eps) =>
+        Exists.intro Nat.zero
+          (fun (n : Nat) (hn : LeNat Nat.zero n) => close_zero_zero eps h)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊱.2 相关 ⇒ 实数相等（Quot.sound）
+-- ─────────────────────────────────────────────────────────────
+
+theorem Real.sound (x y : Seq) (h : realRel x y) : Real.mk x = Real.mk y :=
+  @Quot.sound.{1} Seq realRel x y h

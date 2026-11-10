@@ -301,6 +301,12 @@
               "title": "单元㊴ 有理数的序与相等相容",
               "title_en": "Unit 39 — The Order Respects Equality",
               "unit": 39
+            },
+            {
+              "file": "units/II.4/unit40-real-refl.sokonanoda",
+              "title": "单元㊵ 实数的相等：自反性",
+              "title_en": "Unit 40 — Reflexivity of Real Equality",
+              "unit": 40
             }
           ]
         }

@@ -9,5 +9,6 @@ import lib.Image
 import lib.Equiv
 import lib.Order
 import lib.RatOrder
+import lib.Cauchy
 
 theorem demo_lib_closure : True := True.intro
