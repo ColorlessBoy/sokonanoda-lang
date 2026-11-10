@@ -1,0 +1,85 @@
+-- 单元㊹ 序与加法相容：`x ≤ y ⇒ x + z ≤ y + z`
+--
+-- 单元㊳ 结清了序的传递性，㊴ 结清了序与**相等**相容；但要把序用在
+-- Cauchy 的三角不等式上，还差一条**与加法**相容：
+--
+--   x ≤ y  ⟹  x + z ≤ y + z        （㊹.4，右加）
+--
+-- 证明路线（把两边换到同一个公分母上比较）：
+--
+--   设 x = a/(m+1)、y = c/(n+1)、z = e/(k+1)。`x ≤ y` 交叉相乘后是
+--
+--       a(n+1) + d(m+1) ≤ c(m+1) + b(n+1)               （h）
+--
+--   `x + z` 与 `y + z` 的分母分别是 (m+1)(k+1) 与 (n+1)(k+1)；交叉相乘再
+--   乘开，两边都带公共正因子 (k+1) 与同一块 z 的贡献（由加法交换对齐），
+--   消去后剩下的正是「h 两边同乘 (k+1)」，所以
+--
+--   · ㊹.1 先证 `mulRep` 对 `addRep` 的分配律（分子层面的展开）；
+--   · ㊹.2 把 `den (ratDenRep m n)` 换成 `mulRep (den m) (den n)`
+--     （分母层面的乘积），两个正分母就能搬到最外层；
+--   · ㊹.3 证 `addRep` 保 `intRel`（把两个加数的等价搬运拼起来）；
+--   · ㊹.4 主定理：把 `leNum` 层层化到「h 两边乘 (k+1)」，再用 ㊲ 的
+--     `leRep_mul_den_right` / `leRep_add_right` 收口。
+--
+-- 写法提醒：`ratRep` 是 `Prod (Prod Nat Nat) Nat` 的定义别名，`match` 只认
+-- 归纳类型本身；所以通用包装（`_gen` 系列）都先 match 到字面坐标再转发给
+-- `lib/Rat` 里只有字面坐标版本的引理 —— 与 ㊷/㊸ 的 `_aux` 同一写法。
+
+import lib.Cauchy
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊹.1 `mulRep` 对 `addRep` 的分配律
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：在字面坐标 `(a,b)`、`(c,d)`、`(e,f)` 上 match。`mulRep (addRep p q) r` 的两个坐标分别是 `(a+c)e + (b+d)f` 与 `(a+c)f + (b+d)e`；用 `mul_add_right` 各展开成两组乘积之和，再用 `add4` 把配对换成 `addRep (mulRep p r) (mulRep q r)` 的两组和。
+-- soko:hint 目标形态：`mulRep (addRep p q) r = addRep (mulRep p r) (mulRep q r)`。
+-- soko:hint 关键件：mul_add_right · add_congr · add4 · prod_mk_congr · Eq.trans。
+theorem mulRep_add (p q r : Prod Nat Nat) :
+    mulRep (addRep p q) r = addRep (mulRep p r) (mulRep q r) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊹.2 分母的乘积：`den (ratDenRep m n)` 与 `mulRep (den m) (den n)`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`mulRep_den_den` 给出 `mulRep (den m) (den n) ~ ((m+1)(n+1), 0)`；`den (ratDenRep m n)` 的两个坐标是 `(succ (ratDenRep m n), 0)`，而 `ratDenRep_succ` 恰好说 `succ (ratDenRep m n) = (m+1)(n+1)`。用 `congrArg` 把第二个序对的坐标换掉，再把两段用 `intRel_trans` 串起来。
+-- soko:hint 目标形态：`intRel (mulRep (den m) (den n)) (den (ratDenRep m n))`。
+-- soko:hint 关键件：mulRep_den_den · ratDenRep_succ · congrArg · intRel_of_eq · intRel_trans。
+theorem mulRep_den_den_gen (m n : Nat) :
+    intRel (mulRep (den m) (den n)) (den (ratDenRep m n)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊹.3 `addRep` 保持 `intRel`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`intRel p p'` 是 `p₁+p'₂ = p'₁+p₂`，`intRel q q'` 是 `q₁+q'₂ = q'₁+q₂`。两条各用 `add_congr` 相加得 `(p₁+p'₂)+(q₁+q'₂) = (p'₁+p₂)+(q'₁+q₂)`，两边各用一次 `add4` 换成 `(p₁+q₁)+(p'₂+q'₂)` 与 `(p'₁+q'₁)+(p₂+q₂)` —— 正是 `intRel (addRep p q) (addRep p' q')` 展开后的两边。
+-- soko:hint 目标形态：`intRel p p' → intRel q q' → intRel (addRep p q) (addRep p' q')`。
+-- soko:hint 关键件：add_congr · add4（两次，其中一次取对称）· Eq.trans。
+theorem intRel_add (p p' q q' : Prod Nat Nat) :
+    intRel p p' → intRel q q' → intRel (addRep p q) (addRep p' q') :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊹.4 主定理：序与右加相容
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `ratLeRep (x+z) (y+z)` 写成 `leRep (leNum …) (leNum …)`。用 ㊹.1 把 `leNum (x+z) (y+z)` 的第一因子拆成两个乘好分母的分子之和（`ratAddRep` 的分子比这个 `addRep` 只多两个 `+0`，用 `zero_add` 消掉），再用 ㊹.2 与 `mulRep_den_swap` 把 x 的项搬成 `(leNum x y)·dz·dz`、y 的项搬成 `(leNum y x)·dz·dz`，z 的两项经分母交换后是**同一块**，交给 `leRep_add_right` 当公共加数。最后 `ratLeRep x y` 两边各乘两次 `den z`（`leRep_mul_den_right`）就是前提。`lib/Rat` 的乘法律只有字面坐标版本，先在展开类型上 match 包装成 `_gen` 通用版（`mulRep_wd_gen` / `mulRep_assoc_gen` / `mulRep_den_swap_gen` / `leRep_add_right_gen`）。
+-- soko:hint 目标形态：`ratLeRep x y → ratLeRep (ratAddRep x z) (ratAddRep y z)`。
+-- soko:hint 关键件：leRep_wd_pair · intRel_of_eq · mulRep_add · numOf_ratAddRep · mulRep_den_ratDenRep · mulRep_den_swap_gen · intRel_add · leRep_add_right_gen · leRep_mul_den_right（两次）。
+theorem ratLeRep_add_right (x y z : ratRep)
+    (h : ratLeRep x y) : ratLeRep (ratAddRep x z) (ratAddRep y z) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊹.5 具体：`0 ≤ 1/2 ⇒ 1/2 ≤ 1`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：取 z = 1/2（`qrep 1 0 1`），对 ㊹.4 用一次。前提 `0 ≤ 1/2` 交叉相乘后是 `LeNat 0 1`，用 `le_succ` 叠出来；结论的右边 `1/2 + 1/2` 定义性归约成 `qrep 4 0 3`（即 1）。
+-- soko:hint 目标形态：`ratLeRep (ratAddRep ratZeroRep (qrep 1 0 1)) (ratAddRep (qrep 1 0 1) (qrep 1 0 1))`。
+-- soko:hint 关键件：ratLeRep_add_right · le_succ · le_refl。
+theorem demo_add_right :
+    ratLeRep (ratAddRep ratZeroRep (qrep 1 0 1))
+             (ratAddRep (qrep 1 0 1) (qrep 1 0 1)) :=
+  sorry

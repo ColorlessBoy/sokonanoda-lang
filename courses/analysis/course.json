@@ -325,6 +325,12 @@
               "title": "单元㊸ 有理数加法的代表元律：交换与零元",
               "title_en": "Unit 43 — Addition Laws on Representatives: Commutativity and Zero",
               "unit": 43
+            },
+            {
+              "file": "units/II.4/unit44-order-add.sokonanoda",
+              "title": "单元㊹ 序与加法相容：x ≤ y ⇒ x + z ≤ y + z",
+              "title_en": "Unit 44 — Order Compatible with Addition",
+              "unit": 44
             }
           ]
         }
