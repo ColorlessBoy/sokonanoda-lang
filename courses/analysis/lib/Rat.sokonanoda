@@ -2254,3 +2254,82 @@ theorem intRel_of_eq (p q : Prod Nat Nat) (h : p = q) : intRel p q :=
   @Eq.subst.{1} (Prod Nat Nat) (fun (x : Prod Nat Nat) => intRel p x) p q h
     (intRel_refl p)
 
+
+
+theorem leNat_succ_zero_absurd (n : Nat) (h : LeNat (Nat.succ n) Nat.zero) : False :=
+  @LeNat.rec
+    (fun (m k : Nat) (_ : LeNat m k) =>
+      ∀ (p : Nat), m = Nat.succ p → k = Nat.zero → False)
+    (fun (k : Nat) => fun (p : Nat) (e1 : k = Nat.succ p) (e2 : k = Nat.zero) =>
+      succ_ne_zero p (@Eq.trans.{1} Nat (Nat.succ p) k Nat.zero
+        (@Eq.symm.{1} Nat k (Nat.succ p) e1) e2))
+    (fun (m k : Nat) (h : LeNat m k)
+         (ih : ∀ (p : Nat), m = Nat.succ p → k = Nat.zero → False) =>
+      fun (p : Nat) (e1 : m = Nat.succ p) (e2 : Nat.succ k = Nat.zero) =>
+        succ_ne_zero k e2)
+    (Nat.succ n) Nat.zero h n (Eq.refl (Nat.succ n)) (Eq.refl Nat.zero)
+
+theorem leNat_mul_right (a b d : Nat) (h : LeNat a b) :
+    LeNat (myMul a d) (myMul b d) :=
+  @LeNat.rec (fun (m n : Nat) (_ : LeNat m n) => LeNat (myMul m d) (myMul n d))
+    (fun (n : Nat) => le_refl (myMul n d))
+    (fun (m n : Nat) (h : LeNat m n) (ih : LeNat (myMul m d) (myMul n d)) =>
+      @Eq.subst.{1} Nat
+        (fun (x : Nat) => LeNat (myMul m d) x)
+        (Nat.add (myMul n d) d)
+        (myMul (Nat.succ n) d)
+        (@Eq.symm.{1} Nat (myMul (Nat.succ n) d) (Nat.add (myMul n d) d) (succ_mul n d))
+        (leNat_trans (myMul m d) (Nat.add (myMul m d) d) (Nat.add (myMul n d) d)
+          (leNat_self_add (myMul m d) d)
+          (leNat_add_right (myMul m d) (myMul n d) d ih)))
+    a b h
+
+theorem leNat_mul_cancel (a b d : Nat)
+    (h : LeNat (myMul a (Nat.succ d)) (myMul b (Nat.succ d))) : LeNat a b :=
+  @Nat.rec
+    (fun (a : Nat) =>
+      ∀ (b : Nat), LeNat (myMul a (Nat.succ d)) (myMul b (Nat.succ d)) → LeNat a b)
+    (fun (b : Nat) (h0 : LeNat (myMul Nat.zero (Nat.succ d)) (myMul b (Nat.succ d))) =>
+      leNat_zero_le b)
+    (fun (a : Nat)
+         (ih : ∀ (b : Nat),
+           LeNat (myMul a (Nat.succ d)) (myMul b (Nat.succ d)) → LeNat a b) =>
+      fun (b : Nat) =>
+        @Nat.rec
+          (fun (b : Nat) =>
+            LeNat (myMul (Nat.succ a) (Nat.succ d)) (myMul b (Nat.succ d)) →
+              LeNat (Nat.succ a) b)
+          (fun (h0 : LeNat (myMul (Nat.succ a) (Nat.succ d)) (myMul Nat.zero (Nat.succ d))) =>
+            @False.elim (LeNat (Nat.succ a) Nat.zero)
+              (leNat_succ_zero_absurd (Nat.add (myMul a (Nat.succ d)) d)
+              (@Eq.subst.{1} Nat
+                (fun (x : Nat) => LeNat x Nat.zero)
+                (myMul (Nat.succ a) (Nat.succ d))
+                (Nat.succ (Nat.add (myMul a (Nat.succ d)) d))
+                (succ_mul a (Nat.succ d))
+                (@Eq.subst.{1} Nat
+                  (fun (x : Nat) => LeNat (myMul (Nat.succ a) (Nat.succ d)) x)
+                  (myMul Nat.zero (Nat.succ d)) Nat.zero
+                  (zero_mul (Nat.succ d)) h0))))
+          (fun (b' : Nat)
+               (ihb : LeNat (myMul (Nat.succ a) (Nat.succ d)) (myMul b' (Nat.succ d)) →
+                      LeNat (Nat.succ a) b') =>
+            fun (h0 : LeNat (myMul (Nat.succ a) (Nat.succ d)) (myMul (Nat.succ b') (Nat.succ d))) =>
+              leNat_succ_succ a b'
+                (ih b'
+                  (@leNat_add_cancel_right (myMul a (Nat.succ d)) (myMul b' (Nat.succ d)) (Nat.succ d)
+                    (@Eq.subst.{1} Nat
+                      (fun (x : Nat) => LeNat x (Nat.add (myMul b' (Nat.succ d)) (Nat.succ d)))
+                      (myMul (Nat.succ a) (Nat.succ d))
+                      (Nat.add (myMul a (Nat.succ d)) (Nat.succ d))
+                      (succ_mul a (Nat.succ d))
+                      (@Eq.subst.{1} Nat
+                        (fun (x : Nat) =>
+                          LeNat (myMul (Nat.succ a) (Nat.succ d)) x)
+                        (myMul (Nat.succ b') (Nat.succ d))
+                        (Nat.add (myMul b' (Nat.succ d)) (Nat.succ d))
+                        (succ_mul b' (Nat.succ d))
+                        h0)))))
+          b)
+    a b h
+

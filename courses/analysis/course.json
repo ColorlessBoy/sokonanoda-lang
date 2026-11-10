@@ -249,6 +249,12 @@
               "title": "单元㉝ 有理数的绝对值：关系定义与两条引入规则",
               "title_en": "Unit 33 — Absolute Value of Rationals",
               "unit": 33
+            },
+            {
+              "file": "units/II.3/unit34-rat-pow.sokonanoda",
+              "title": "单元㉞ 有理数的幂：定义与计算规则",
+              "title_en": "Unit 34 — Powers of Rationals",
+              "unit": 34
             }
           ]
         }
