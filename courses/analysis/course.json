@@ -378,6 +378,12 @@
               "title": "单元㊾ 严格序的传递与 close 对 ε 的单调性",
               "title_en": "Unit 49 — Transitivity of the Strict Order; Monotonicity of close in ε",
               "unit": 49
+            },
+            {
+              "file": "units/II.5/unit50-lt-add.sokonanoda",
+              "title": "单元㊿ 严格序与加法相容：加法消去",
+              "title_en": "Unit 50 — Strict Order Compatible with Addition; Cancellation",
+              "unit": 50
             }
           ]
         }

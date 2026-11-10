@@ -536,20 +536,16 @@ theorem numOf_ratAddRep (x z : ratRep) :
         (zero_add (myMul (Prod.snd Nat Nat (numOf x)) (Nat.succ (denOf z))))
         (zero_add (myMul (Prod.snd Nat Nat (numOf z)) (Nat.succ (denOf x))))))
 
--- soko:hint 思路：把 `ratLeRep (x+z) (y+z)` 写成 `leRep (leNum …) (leNum …)`。㊹.4 用 `leRep_wd_pair` 把两边各换成「x、y 各乘两次 z 的分母，再加同一块 z 的贡献」：x 的项用 ㊹.1/㊹.2 与 `mulRep_den_swap` 搬成 `(leNum x y)·dz·dz`，y 的项同理；z 的两项经交换分母后是**同一块**，交给 `leRep_add_right` 当公共加数。最后 `ratLeRep x y` 两边各乘两次 `den z`（`leRep_mul_den_right`）就是 `leRep_add_right` 的前提。
--- soko:hint 目标形态：`ratLeRep x y → ratLeRep (ratAddRep x z) (ratAddRep y z)`。
--- soko:hint 关键件：leRep_wd_pair · intRel_of_eq · mulRep_add · numOf_ratAddRep · mulRep_den_ratDenRep · mulRep_den_swap_gen · intRel_add · leRep_add_right_gen · leRep_mul_den_right（两次）。
-theorem ratLeRep_add_right (x y z : ratRep)
-    (h : ratLeRep x y) : ratLeRep (ratAddRep x z) (ratAddRep y z) :=
-  leRep_wd_pair
-    (addRep
-      (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
-      (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
-    (leNum (ratAddRep x z) (ratAddRep y z))
-    (addRep
-      (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
-      (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
-    (leNum (ratAddRep y z) (ratAddRep x z))
+-- ㊹.4 的两种换形单独抽出来：把 `leNum (x+z) (y+z)` 搬到「x、y 各乘两次
+-- z 的分母，再加同一块 z」的形状。㊿ 的**加法消去**要用它们的逆，证明整段
+-- 逐字取自原来的 `ratLeRep_add_right`，只是把中间式命名。
+
+theorem leNum_ratAddRep_left (x y z : ratRep) :
+    intRel
+      (addRep
+        (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (leNum (ratAddRep x z) (ratAddRep y z)) :=
     (intRel_symm
       (leNum (ratAddRep x z) (ratAddRep y z))
       (addRep
@@ -626,6 +622,13 @@ theorem ratLeRep_add_right (x y z : ratRep)
               (mulRep (mulRep (leNum z y) (den (denOf x)))
                       (den (denOf z)))
               (mulRep_den_ratDenRep (leNum z y) (denOf x) (denOf z))))))))
+
+theorem leNum_ratAddRep_right (x y z : ratRep) :
+    intRel
+      (addRep
+        (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (leNum (ratAddRep y z) (ratAddRep x z)) :=
     (intRel_symm
       (leNum (ratAddRep y z) (ratAddRep x z))
       (addRep
@@ -678,6 +681,65 @@ theorem ratLeRep_add_right (x y z : ratRep)
             (mulRep_den_swap_gen (numOf y) (denOf z) (denOf x))))
         (intRel_refl
           (mulRep (leNum z y) (den (denOf (ratAddRep x z))))))))
+
+-- 加法消去的 ℕ 部分：`leRep (p+r) (q+r) → leRep p q`。两边展开成
+-- `(p₁+r₁)+(q₂+r₂) ≤ (q₁+r₁)+(p₂+r₂)`，用 `add4` 把公共加数 `r₁+r₂` 收到
+-- 最外层，再交给 `leNat_add_cancel_right`。
+
+theorem leRep_add_cancel_right (p q r : Prod Nat Nat) :
+    leRep (addRep p r) (addRep q r) → leRep p q :=
+  fun (h : leRep (addRep p r) (addRep q r)) =>
+    leNat_add_cancel_right
+      (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+      (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
+      (Nat.add (Prod.fst Nat Nat r) (Prod.snd Nat Nat r))
+      (@Eq.subst.{1} Nat
+        (fun (u : Nat) =>
+          LeNat u
+            (Nat.add
+              (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
+              (Nat.add (Prod.fst Nat Nat r) (Prod.snd Nat Nat r))))
+        (Nat.add
+          (Nat.add (Prod.fst Nat Nat p) (Prod.fst Nat Nat r))
+          (Nat.add (Prod.snd Nat Nat q) (Prod.snd Nat Nat r)))
+        (Nat.add
+          (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+          (Nat.add (Prod.fst Nat Nat r) (Prod.snd Nat Nat r)))
+        (add4 (Prod.fst Nat Nat p) (Prod.fst Nat Nat r)
+              (Prod.snd Nat Nat q) (Prod.snd Nat Nat r))
+        (@Eq.subst.{1} Nat
+          (fun (u : Nat) =>
+            LeNat
+              (Nat.add
+                (Nat.add (Prod.fst Nat Nat p) (Prod.fst Nat Nat r))
+                (Nat.add (Prod.snd Nat Nat q) (Prod.snd Nat Nat r)))
+              u)
+          (Nat.add
+            (Nat.add (Prod.fst Nat Nat q) (Prod.fst Nat Nat r))
+            (Nat.add (Prod.snd Nat Nat p) (Prod.snd Nat Nat r)))
+          (Nat.add
+            (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
+            (Nat.add (Prod.fst Nat Nat r) (Prod.snd Nat Nat r)))
+          (add4 (Prod.fst Nat Nat q) (Prod.fst Nat Nat r)
+                (Prod.snd Nat Nat p) (Prod.snd Nat Nat r))
+          h))
+
+-- soko:hint 思路：把 `ratLeRep (x+z) (y+z)` 写成 `leRep (leNum …) (leNum …)`。㊹.4 用 `leRep_wd_pair` 把两边各换成「x、y 各乘两次 z 的分母，再加同一块 z 的贡献」：x 的项用 ㊹.1/㊹.2 与 `mulRep_den_swap` 搬成 `(leNum x y)·dz·dz`，y 的项同理；z 的两项经交换分母后是**同一块**，交给 `leRep_add_right` 当公共加数。最后 `ratLeRep x y` 两边各乘两次 `den z`（`leRep_mul_den_right`）就是 `leRep_add_right` 的前提。
+-- soko:hint 目标形态：`ratLeRep x y → ratLeRep (ratAddRep x z) (ratAddRep y z)`。
+-- soko:hint 关键件：leRep_wd_pair · intRel_of_eq · mulRep_add · numOf_ratAddRep · mulRep_den_ratDenRep · mulRep_den_swap_gen · intRel_add · leRep_add_right_gen · leRep_mul_den_right（两次）。
+theorem ratLeRep_add_right (x y z : ratRep)
+    (h : ratLeRep x y) : ratLeRep (ratAddRep x z) (ratAddRep y z) :=
+  leRep_wd_pair
+    (addRep
+      (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+      (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+    (leNum (ratAddRep x z) (ratAddRep y z))
+    (addRep
+      (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+      (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+    (leNum (ratAddRep y z) (ratAddRep x z))
+    (leNum_ratAddRep_left x y z)
+    (leNum_ratAddRep_right x y z)
     (leRep_add_right_gen
       (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
       (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
