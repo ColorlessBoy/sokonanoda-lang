@@ -319,6 +319,12 @@
               "title": "单元㊷ close 的对称性：实数的相等可以换方向",
               "title_en": "Unit 42 — Symmetry of Close and Real Equality",
               "unit": 42
+            },
+            {
+              "file": "units/II.4/unit43-add-laws.sokonanoda",
+              "title": "单元㊸ 有理数加法的代表元律：交换与零元",
+              "title_en": "Unit 43 — Addition Laws on Representatives: Commutativity and Zero",
+              "unit": 43
             }
           ]
         }
