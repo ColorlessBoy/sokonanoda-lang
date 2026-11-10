@@ -231,6 +231,18 @@
               "title": "单元㉚ 有理数的严格序：< 与不相等",
               "title_en": "Unit 30 — Strict Order on Rationals",
               "unit": 30
+            },
+            {
+              "file": "units/II.3/unit31-rat-neg.sokonanoda",
+              "title": "单元㉛ 有理数的负元：代表元层定义与良定义性",
+              "title_en": "Unit 31 — Negation of Rationals",
+              "unit": 31
+            },
+            {
+              "file": "units/II.3/unit32-rat-sub.sokonanoda",
+              "title": "单元㉜ 有理数的减法：加法与负元的组合",
+              "title_en": "Unit 32 — Subtraction of Rationals",
+              "unit": 32
             }
           ]
         }

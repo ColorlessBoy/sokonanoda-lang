@@ -2248,3 +2248,9 @@ theorem leRep_wd_pair (p p' q q' : Prod Nat Nat)
 theorem ratRel_refl (x : ratRep) : ratRel x x :=
   intRel_refl
     (mulRep (Prod.fst (Prod Nat Nat) Nat x) (den (Prod.snd (Prod Nat Nat) Nat x)))
+
+-- 序对相等 ⇒ 整数代表元相等（`intRel` 是交叉和等式，不是序对等式）。
+theorem intRel_of_eq (p q : Prod Nat Nat) (h : p = q) : intRel p q :=
+  @Eq.subst.{1} (Prod Nat Nat) (fun (x : Prod Nat Nat) => intRel p x) p q h
+    (intRel_refl p)
+

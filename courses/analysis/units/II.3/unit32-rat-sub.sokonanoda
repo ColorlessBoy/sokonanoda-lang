@@ -1,0 +1,160 @@
+-- 单元㉜ 有理数的减法：加法与负元的组合
+--
+-- 单元㉛ 有了负元，减法就是 `x - y := x + (-y)`：
+--
+--   ratSubRep x y := ratAddRep x (ratNegRep y)
+--
+-- 代表元上，`-(c-d)/(n+1) = (d-c)/(n+1)`，所以减法的分子是
+-- `a(n+1) + d(m+1)`，负部是 `b(n+1) + c(m+1)`（与加法的公式只差
+-- 第二个分子的两个坐标互换）。
+--
+-- 本单元结清：
+--   · 计算规则（`ratSubRep_mk`，ι 归约）；
+--   · 对第一、第二因子的良定义性（都化归到 ㉖ 的加法义务 + ㉛ 的负元义务）；
+--   · 具体计算：1 - 1/2 = 1/2。
+--
+-- 减法的代数律（`x - x ~ 0`、`x - y = -(y - x)`）留给后续单元。
+--
+-- 本单元自带定义与前序地基（L3：律必须留在单元里）；负元来自 `lib/Rat`。
+
+import lib.Rat
+
+def ratNegRep (x : ratRep) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat (negRep (numOf x)) (denOf x)
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉛.1 负元在交叉乘积上的形状
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两边都展开成同一个序对，只差两处 `0 + n`；用 `zero_add` 把两处零头消掉，再用 `Eq.trans` 串起来。`prod_mk` 的两个坐标分别改写时用 `@congrArg`（隐式参数要全写）。
+-- soko:hint 目标形态：`negRep (mulRep p (den n)) = mulRep (negRep p) (den n)`。
+-- soko:hint 关键件：zero_add · congrArg · Eq.symm · Eq.trans。
+theorem negRep_mulRep_den (p : Prod Nat Nat) (n : Nat) :
+    negRep (mulRep p (den n)) = mulRep (negRep p) (den n) :=
+  @Eq.trans.{1} (Prod Nat Nat)
+    (negRep (mulRep p (den n)))
+    (@prod_mk Nat Nat
+      (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+      (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+    (mulRep (negRep p) (den n))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (negRep (mulRep p (den n)))
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (myMul (Prod.fst Nat Nat p) (Nat.succ n)))
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (Eq.refl (negRep (mulRep p (den n))))
+      (@congrArg.{1} Nat (Prod Nat Nat)
+        (myMul (Prod.fst Nat Nat p) (Nat.succ n))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n)))
+        (fun (y : Nat) =>
+          @prod_mk Nat Nat
+            (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n))) y)
+        (Eq.symm (zero_add (myMul (Prod.fst Nat Nat p) (Nat.succ n))))))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (@prod_mk Nat Nat
+        (myMul (Prod.snd Nat Nat p) (Nat.succ n))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (mulRep (negRep p) (den n))
+      (@congrArg.{1} Nat (Prod Nat Nat)
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (myMul (Prod.snd Nat Nat p) (Nat.succ n))
+        (fun (x : Nat) =>
+          @prod_mk Nat Nat x
+            (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+        (zero_add (myMul (Prod.snd Nat Nat p) (Nat.succ n))))
+      (Eq.refl (mulRep (negRep p) (den n))))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉛.2 负元的良定义性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`h : ratRel x y` 是交叉乘积的整数相等；`negRep_wd` 把它搬到两个 `negRep` 上；㉛.1 说 `negRep (mulRep …)` 与 `mulRep (negRep …) …` 命题相等。用两次 `intRel_trans` 拼成目标。
+-- soko:hint 目标形态：`ratRel x y → ratRel (ratNegRep x) (ratNegRep y)`。
+-- soko:hint 关键件：negRep_mulRep_den · negRep_wd · intRel_trans · Eq.symm。
+theorem ratNegRep_wd (x y : ratRep) (h : ratRel x y) :
+    ratRel (ratNegRep x) (ratNegRep y) :=
+  intRel_trans
+    (mulRep (negRep (numOf x)) (den (denOf y)))
+    (negRep (mulRep (numOf x) (den (denOf y))))
+    (mulRep (negRep (numOf y)) (den (denOf x)))
+    (intRel_of_eq
+      (mulRep (negRep (numOf x)) (den (denOf y)))
+      (negRep (mulRep (numOf x) (den (denOf y))))
+      (@Eq.symm.{1} (Prod Nat Nat)
+        (negRep (mulRep (numOf x) (den (denOf y))))
+        (mulRep (negRep (numOf x)) (den (denOf y)))
+        (negRep_mulRep_den (numOf x) (denOf y))))
+    (@intRel_trans
+      (negRep (mulRep (numOf x) (den (denOf y))))
+      (negRep (mulRep (numOf y) (den (denOf x))))
+      (mulRep (negRep (numOf y)) (den (denOf x)))
+      (negRep_wd (mulRep (numOf x) (den (denOf y)))
+                 (mulRep (numOf y) (den (denOf x))) h)
+      (intRel_of_eq
+        (negRep (mulRep (numOf y) (den (denOf x))))
+        (mulRep (negRep (numOf y)) (den (denOf x)))
+        (negRep_mulRep_den (numOf y) (denOf x))))
+
+
+
+def ratSubRep (x y : ratRep) : ratRep :=
+  ratAddRep x (ratNegRep y)
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉜.1 减法的计算规则
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratSubRep`、`ratNegRep`、`ratAddRep` 依次展开后，两边是同一个 `qrep`，直接 `Eq.refl`。
+-- soko:hint 目标形态：`ratSubRep (qrep a b m) (qrep c d n) = qrep (a(n+1)+d(m+1)) (b(n+1)+c(m+1)) (ratDenRep m n)`。
+-- soko:hint 关键件：定义展开（ι 归约）· Eq.refl。
+theorem ratSubRep_mk (a b c d m n : Nat) :
+    ratSubRep (qrep a b m) (qrep c d n) =
+      qrep
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (ratDenRep m n) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉜.2 减法对第一个因子良定义
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratSubRep x y` 展开成 `ratAddRep x (ratNegRep y)`；`ratNegRep (qrep c d n)` 定义性等于 `qrep d c n`，于是这正是加法对第一因子的义务 `ratAddRep_wd`。
+-- soko:hint 目标形态：`x ~ x' → (x - y) ~ (x' - y)`。
+-- soko:hint 关键件：ratAddRep_wd · ratNegRep 的 ι 归约。
+theorem ratSubRep_wd (a b a' b' c d m n : Nat)
+    (h : ratRel (qrep a b m) (qrep a' b' m)) :
+    ratRel (ratSubRep (qrep a b m) (qrep c d n))
+           (ratSubRep (qrep a' b' m) (qrep c d n)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉜.3 减法对第二个因子良定义
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先用 `ratNegRep_wd` 把 `y ~ y'` 搬到负元上（它展开成 `(d,c,n) ~ (d',c',n)`），再交给加法对第二因子的义务 `ratAddRep_wd_snd`。
+-- soko:hint 目标形态：`y ~ y' → (x - y) ~ (x - y')`。
+-- soko:hint 关键件：ratNegRep_wd · ratAddRep_wd_snd。
+theorem ratSubRep_wd_snd (a b c d c' d' m n : Nat)
+    (h : ratRel (qrep c d n) (qrep c' d' n)) :
+    ratRel (ratSubRep (qrep a b m) (qrep c d n))
+           (ratSubRep (qrep a b m) (qrep c' d' n)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉜.4 具体计算：1 - 1/2 = 1/2
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：展开后左边是 `qrep 2 1 1`，右边是 `qrep 1 0 1`；交叉相乘得 `4 = 4`，用 `Eq.refl 4` 交给 `intRel`。
+-- soko:hint 目标形态：`ratRel (ratSubRep (qrep 1 0 0) (qrep 1 0 1)) (qrep 1 0 1)`。
+-- soko:hint 关键件：ratSubRep_mk · Eq.refl。
+theorem demo_one_sub_half :
+    ratRel (ratSubRep (qrep 1 Nat.zero Nat.zero) (qrep 1 Nat.zero 1))
+           (qrep 1 Nat.zero 1) :=
+  sorry
