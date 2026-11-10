@@ -225,6 +225,12 @@
               "title": "单元㉙ 有理数的序：代表元公式与自反性",
               "title_en": "Unit 29 — Order on Rationals",
               "unit": 29
+            },
+            {
+              "file": "units/II.3/unit30-rat-strict-order.sokonanoda",
+              "title": "单元㉚ 有理数的严格序：< 与不相等",
+              "title_en": "Unit 30 — Strict Order on Rationals",
+              "unit": 30
             }
           ]
         }

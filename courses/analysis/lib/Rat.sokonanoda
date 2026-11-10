@@ -2243,3 +2243,8 @@ theorem leRep_wd_pair (p p' q q' : Prod Nat Nat)
       (Prod.fst Nat Nat q) (Prod.snd Nat Nat q)
       (Prod.fst Nat Nat q') (Prod.snd Nat Nat q')
       hpp hqq hl
+
+-- 有理数相等的自反性（M1 单元⑳ 已判卷）。
+theorem ratRel_refl (x : ratRep) : ratRel x x :=
+  intRel_refl
+    (mulRep (Prod.fst (Prod Nat Nat) Nat x) (den (Prod.snd (Prod Nat Nat) Nat x)))
