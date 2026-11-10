@@ -372,6 +372,12 @@
               "title": "单元㊽ 三角不等式：|u + v| ≤ |u| + |v|",
               "title_en": "Unit 48 — Triangle Inequality",
               "unit": 48
+            },
+            {
+              "file": "units/II.5/unit49-lt-close-mono.sokonanoda",
+              "title": "单元㊾ 严格序的传递与 close 对 ε 的单调性",
+              "title_en": "Unit 49 — Transitivity of the Strict Order; Monotonicity of close in ε",
+              "unit": 49
             }
           ]
         }
