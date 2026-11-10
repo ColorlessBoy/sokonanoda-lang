@@ -204,6 +204,29 @@
               "unit": 28
             }
           ]
+        },
+        {
+          "id": "II.3",
+          "title": "有理数的性质：序、绝对值、幂与间隙",
+          "prereqs": [
+            "II.2"
+          ],
+          "tags": [
+            "rat-order",
+            "rat-abs",
+            "rat-pow"
+          ],
+          "quota": {
+            "exercises": 40
+          },
+          "units": [
+            {
+              "file": "units/II.3/unit29-rat-order.sokonanoda",
+              "title": "单元㉙ 有理数的序：代表元公式与自反性",
+              "title_en": "Unit 29 — Order on Rationals",
+              "unit": 29
+            }
+          ]
         }
       ]
     }
