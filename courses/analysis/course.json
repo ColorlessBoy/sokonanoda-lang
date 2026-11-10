@@ -354,6 +354,12 @@
               "title": "单元㊺ 序的全性：每个有理数都有绝对值",
               "title_en": "Unit 45 — Totality of the Order; Existence of Absolute Values",
               "unit": 45
+            },
+            {
+              "file": "units/II.5/unit46-order-antisymm.sokonanoda",
+              "title": "单元㊻ 序的反对称性：两边夹出相等",
+              "title_en": "Unit 46 — Antisymmetry of the Order",
+              "unit": 46
             }
           ]
         }

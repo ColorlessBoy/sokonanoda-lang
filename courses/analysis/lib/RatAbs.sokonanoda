@@ -1,0 +1,701 @@
+-- 课程库：有理数的序、零元与加法的通用引擎（II.5 起复用）
+--
+-- 本模块把 M2 前序单元**已判卷**的引擎收进 L2，供 ㊺ 起的单元直接引用，
+-- 不再重抄（惯例见 `README.md`：前序证明进库）。
+--
+--   · ㉙ 序的基础：`ratLeRep_refl` / `ratLeRep_of_ratRel`
+--   · ㊸ 零元：`ratAdd_zero_num` / `ratAdd_zero_den` / `ratAdd_comm` /
+--     `ratAdd_zero` / `ratAdd_zero_left`
+--   · ㊳ 序的传递性：`mulRep_den_perm` / `ratLeRep_trans`
+--   · ㊹ 序与加法相容：`ratLeRep_add_right` 及其分配/换位引擎
+--
+-- 算术内核（`ratRep` / `ratRel` / `ratAddRep` / `ratLeRep`）仍来自
+-- `lib/Rat` 与 `lib/RatOrder`；本模块只补「序 + 加法 + 零元」这一层。
+
+import lib.Cauchy
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉙ 序的基础（已判卷，原样收进 L2）
+-- ─────────────────────────────────────────────────────────────
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉙.1 序的自反性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratLeRep x x` 展开后两边是同一个整数代表元 `mulRep …`，用 `leRep_refl`。
+-- soko:hint 目标形态：`ratLeRep x x`。
+-- soko:hint 关键件：leRep_refl。
+theorem ratLeRep_refl (x : ratRep) : ratLeRep x x :=
+  leRep_refl (mulRep (numOf x) (den (denOf x)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉙.2 相等蕴含序
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`h : ratRel x y` 就是两个交叉乘积的整数相等；序的良定义性 `leRep_wd_pair` 把 `leRep p p` 搬到 `leRep p q`，其中 `p`、`q` 正是 `ratLeRep` 展开后的两个乘积。
+-- soko:hint 目标形态：`ratRel x y → ratLeRep x y`。
+-- soko:hint 关键件：leRep_wd_pair · intRel_refl · leRep_refl。
+theorem ratLeRep_of_ratRel (x y : ratRep) (h : ratRel x y) : ratLeRep x y :=
+  leRep_wd_pair
+    (mulRep (numOf y) (den (denOf x)))
+    (mulRep (numOf x) (den (denOf y)))
+    (mulRep (numOf y) (den (denOf x)))
+    (mulRep (numOf y) (den (denOf x)))
+    (intRel_symm
+      (mulRep (numOf x) (den (denOf y)))
+      (mulRep (numOf y) (den (denOf x))) h)
+    (intRel_refl (mulRep (numOf y) (den (denOf x))))
+    (leRep_refl (mulRep (numOf y) (den (denOf x))))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸ 零元（已判卷，原样收进 L2）
+-- ─────────────────────────────────────────────────────────────
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_zero_num (a m : Nat) :
+    Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)) = a :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)))
+    (Nat.add (Nat.add a Nat.zero) (myMul Nat.zero (Nat.succ m)))
+    a
+    (congrArg.{1}
+      (fun (Z : Nat) => Nat.add Z (myMul Nat.zero (Nat.succ m)))
+      (@Eq.trans.{1} Nat
+        (myMul a (Nat.succ Nat.zero))
+        (Nat.add a (myMul a Nat.zero))
+        (Nat.add a Nat.zero)
+        (myMul_succ a Nat.zero)
+        (congrArg.{1} (fun (Z : Nat) => Nat.add a Z) (myMul_zero a))))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add a Nat.zero) (myMul Nat.zero (Nat.succ m)))
+      (Nat.add (Nat.add a Nat.zero) Nat.zero)
+      a
+      (congrArg.{1}
+        (fun (Z : Nat) => Nat.add (Nat.add a Nat.zero) Z)
+        (zero_mul (Nat.succ m)))
+      (@Eq.trans.{1} Nat
+        (Nat.add (Nat.add a Nat.zero) Nat.zero)
+        (Nat.add a Nat.zero)
+        a
+        (add_zero (Nat.add a Nat.zero))
+        (add_zero a)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.2
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_zero_den (m : Nat) : ratDenRep m Nat.zero = m :=
+  @Eq.trans.{1} Nat
+    (ratDenRep m Nat.zero)
+    (Nat.add (Nat.add Nat.zero m) Nat.zero)
+    m
+    (congrArg.{1}
+      (fun (Z : Nat) => Nat.add (Nat.add Z m) Nat.zero)
+      (myMul_zero m))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add Nat.zero m) Nat.zero)
+      (Nat.add m Nat.zero)
+      m
+      (congrArg.{1}
+        (fun (Z : Nat) => Nat.add Z Nat.zero)
+        (zero_add m))
+      (add_zero m))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.3 的辅助：`ratRep` 是定义别名，先在展开类型上 match 到字面三元组
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_comm_aux (x y : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratAddRep x y) (ratAddRep y x) :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match y with
+    | prod_mk (prod_mk p q) n =>
+      intRel_trans
+        (mulRep
+          (numOf (ratAddRep (qrep a b m) (qrep p q n)))
+          (den (denOf (ratAddRep (qrep p q n) (qrep a b m)))))
+        (@prod_mk Nat Nat
+          (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                 (Nat.succ (ratDenRep n m)))
+          (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                 (Nat.succ (ratDenRep n m))))
+        (mulRep
+          (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+          (den (denOf (ratAddRep (qrep a b m) (qrep p q n)))))
+        (intRel_of_eq
+          (mulRep
+            (numOf (ratAddRep (qrep a b m) (qrep p q n)))
+            (den (denOf (ratAddRep (qrep p q n) (qrep a b m)))))
+          (@prod_mk Nat Nat
+            (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                   (Nat.succ (ratDenRep n m)))
+            (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                   (Nat.succ (ratDenRep n m))))
+          (mulRep_den_form
+            (numOf (ratAddRep (qrep a b m) (qrep p q n)))
+            (ratDenRep n m)))
+        (intRel_trans
+          (@prod_mk Nat Nat
+            (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                   (Nat.succ (ratDenRep n m)))
+            (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                   (Nat.succ (ratDenRep n m))))
+          (@prod_mk Nat Nat
+            (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                   (Nat.succ (ratDenRep m n)))
+            (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                   (Nat.succ (ratDenRep m n))))
+          (mulRep
+            (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+            (den (denOf (ratAddRep (qrep a b m) (qrep p q n)))))
+          (intRel_of_eq
+            (@prod_mk Nat Nat
+              (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                     (Nat.succ (ratDenRep n m)))
+              (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                     (Nat.succ (ratDenRep n m))))
+            (@prod_mk Nat Nat
+              (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n)))
+              (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n))))
+            (prod_mk_congr
+              (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                     (Nat.succ (ratDenRep n m)))
+              (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n)))
+              (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                     (Nat.succ (ratDenRep n m)))
+              (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n)))
+              (@Eq.trans.{1} Nat
+                (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                       (Nat.succ (ratDenRep n m)))
+                (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                       (Nat.succ (ratDenRep n m)))
+                (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                       (Nat.succ (ratDenRep m n)))
+                (congrArg.{1}
+                  (fun (Z : Nat) => myMul Z (Nat.succ (ratDenRep n m)))
+                  (add_comm (myMul a (Nat.succ n)) (myMul p (Nat.succ m))))
+                (congrArg.{1}
+                  (fun (Z : Nat) => myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n))) Z)
+                  (congrArg.{1} Nat.succ (ratDenRep_comm n m))))
+              (@Eq.trans.{1} Nat
+                (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                       (Nat.succ (ratDenRep n m)))
+                (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                       (Nat.succ (ratDenRep n m)))
+                (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                       (Nat.succ (ratDenRep m n)))
+                (congrArg.{1}
+                  (fun (Z : Nat) => myMul Z (Nat.succ (ratDenRep n m)))
+                  (add_comm (myMul b (Nat.succ n)) (myMul q (Nat.succ m))))
+                (congrArg.{1}
+                  (fun (Z : Nat) => myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n))) Z)
+                  (congrArg.{1} Nat.succ (ratDenRep_comm n m))))))
+          (intRel_symm
+            (mulRep
+              (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+              (den (denOf (ratAddRep (qrep a b m) (qrep p q n)))))
+            (@prod_mk Nat Nat
+              (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n)))
+              (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n))))
+            (intRel_of_eq
+              (mulRep
+                (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+                (den (denOf (ratAddRep (qrep a b m) (qrep p q n)))))
+              (@prod_mk Nat Nat
+                (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                       (Nat.succ (ratDenRep m n)))
+                (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                       (Nat.succ (ratDenRep m n))))
+              (mulRep_den_form
+                (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+                (ratDenRep m n)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.3 交换律（转发字面结果）
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_comm (x y : ratRep) :
+    ratRel (ratAddRep x y) (ratAddRep y x) :=
+  ratAdd_comm_aux x y
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.4 的辅助：把 `x + 0` 的三元组搬成 `qrep a b m`
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_zero_aux (x : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratAddRep x ratZeroRep) x :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    @Eq.subst.{1} ratRep
+      (fun (y : ratRep) => ratRel y (qrep a b m))
+      (qrep a b m)
+      (ratAddRep (qrep a b m) ratZeroRep)
+      (@Eq.symm.{1} ratRep
+        (ratAddRep (qrep a b m) ratZeroRep)
+        (qrep a b m)
+        (@Eq.trans.{1} (Prod (Prod Nat Nat) Nat)
+        (ratAddRep (qrep a b m) ratZeroRep)
+        (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) (ratDenRep m Nat.zero))
+        (qrep a b m)
+        (congrArg.{1}
+          (fun (P : Prod Nat Nat) =>
+            @prod_mk (Prod Nat Nat) Nat P (ratDenRep m Nat.zero))
+          (prod_mk_congr
+            (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m))) a
+            (Nat.add (myMul b (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m))) b
+            (ratAdd_zero_num a m) (ratAdd_zero_num b m)))
+        (@Eq.trans.{1} (Prod (Prod Nat Nat) Nat)
+          (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) (ratDenRep m Nat.zero))
+          (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) m)
+          (qrep a b m)
+          (congrArg.{1}
+            (fun (Z : Nat) => @prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) Z)
+            (ratAdd_zero_den m))
+          (Eq.refl (qrep a b m)))))
+      (ratRel_refl (qrep a b m))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.4 右加零
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_zero (x : ratRep) : ratRel (ratAddRep x ratZeroRep) x :=
+  ratAdd_zero_aux x
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.5 左加零：交换律 + ㊸.4 + `ratRel` 传递
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_zero_left (x : ratRep) : ratRel (ratAddRep ratZeroRep x) x :=
+  ratRel_trans_gen (ratAddRep ratZeroRep x) (ratAddRep x ratZeroRep) x
+    (ratAdd_comm ratZeroRep x) (ratAdd_zero x)
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊳ 序的传递性（已判卷，原样收进 L2）
+-- ─────────────────────────────────────────────────────────────
+
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两边各用一次 `mulRep_assoc` 拆成 `p·(den m · den k)` 与 `p·(den k · den m)`，中间用 `mulRep_comm` 交换括号里的两个正分母；`intRel_trans` 把三段串起来（第二段是等式，用 `intRel_of_eq` 读成 `intRel`）。
+-- soko:hint 目标形态：`intRel (mulRep (mulRep p (den m)) (den k)) (mulRep (mulRep p (den k)) (den m))`。
+-- soko:hint 关键件：mulRep_assoc（两次，其中一次取 `intRel_symm`）· mulRep_comm · congrArg · intRel_of_eq · intRel_trans。
+theorem mulRep_den_perm (p : Prod Nat Nat) (m k : Nat) :
+    intRel (mulRep (mulRep p (den m)) (den k))
+           (mulRep (mulRep p (den k)) (den m)) :=
+  match p with
+  | prod_mk a b =>
+    intRel_trans
+      (mulRep (mulRep (prod_mk a b) (den m)) (den k))
+      (mulRep (prod_mk a b) (mulRep (den m) (den k)))
+      (mulRep (mulRep (prod_mk a b) (den k)) (den m))
+      (mulRep_assoc a b (Nat.succ m) Nat.zero (Nat.succ k) Nat.zero)
+      (intRel_trans
+        (mulRep (prod_mk a b) (mulRep (den m) (den k)))
+        (mulRep (prod_mk a b) (mulRep (den k) (den m)))
+        (mulRep (mulRep (prod_mk a b) (den k)) (den m))
+        (intRel_of_eq
+          (mulRep (prod_mk a b) (mulRep (den m) (den k)))
+          (mulRep (prod_mk a b) (mulRep (den k) (den m)))
+          (congrArg
+            (fun (x : Prod Nat Nat) => mulRep (prod_mk a b) x)
+            (mulRep_comm (Nat.succ m) Nat.zero (Nat.succ k) Nat.zero)))
+        (intRel_symm
+          (mulRep (mulRep (prod_mk a b) (den k)) (den m))
+          (mulRep (prod_mk a b) (mulRep (den k) (den m)))
+          (mulRep_assoc a b (Nat.succ k) Nat.zero (Nat.succ m) Nat.zero)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊳.2 序的传递性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：h1 两边乘 `den z`、h2 两边乘 `den x`（`leRep_mul_den_right`）；中间项 `(y·x_den)·z_den` 与 `(y·z_den)·x_den` 用 ㊳.1 换位，再用 `leRep_trans` 串成一条；最后两边各用 ㊳.1 把 `y_den` 挪到最外层，`leRep_cancel_den` 消去它。
+-- soko:hint 目标形态：`ratLeRep x y → ratLeRep y z → ratLeRep x z`。
+-- soko:hint 关键件：leRep_mul_den_right · mulRep_den_perm · leRep_wd_pair · leRep_trans · leRep_cancel_den。
+theorem ratLeRep_trans (x y z : ratRep)
+    (h1 : ratLeRep x y) (h2 : ratLeRep y z) : ratLeRep x z :=
+  leRep_cancel_den
+    (leNum x z) (leNum z x) (denOf y)
+    (leRep_wd_pair
+      (mulRep (leNum x y) (den (denOf z)))
+      (mulRep (leNum x z) (den (denOf y)))
+      (mulRep (leNum z y) (den (denOf x)))
+      (mulRep (leNum z x) (den (denOf y)))
+      (mulRep_den_perm (numOf x) (denOf y) (denOf z))
+      (mulRep_den_perm (numOf z) (denOf y) (denOf x))
+      (leRep_trans
+        (Prod.fst Nat Nat (mulRep (leNum x y) (den (denOf z))))
+        (Prod.snd Nat Nat (mulRep (leNum x y) (den (denOf z))))
+        (Prod.fst Nat Nat (mulRep (leNum y z) (den (denOf x))))
+        (Prod.snd Nat Nat (mulRep (leNum y z) (den (denOf x))))
+        (Prod.fst Nat Nat (mulRep (leNum z y) (den (denOf x))))
+        (Prod.snd Nat Nat (mulRep (leNum z y) (den (denOf x))))
+        (leRep_wd_pair
+          (mulRep (leNum x y) (den (denOf z)))
+          (mulRep (leNum x y) (den (denOf z)))
+          (mulRep (leNum y x) (den (denOf z)))
+          (mulRep (leNum y z) (den (denOf x)))
+          (intRel_refl (mulRep (leNum x y) (den (denOf z))))
+          (mulRep_den_perm (numOf y) (denOf x) (denOf z))
+          (leRep_mul_den_right (leNum x y) (leNum y x) (denOf z) h1))
+        (leRep_mul_den_right (leNum y z) (leNum z y) (denOf x) h2)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊹ 序与加法相容（已判卷，原样收进 L2）
+-- ─────────────────────────────────────────────────────────────
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊹.1 `mulRep` 对 `addRep` 的分配律
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：在字面坐标 `(a,b)`、`(c,d)`、`(e,f)` 上 match。`mulRep (addRep p q) r` 的两个坐标分别是 `(a+c)e + (b+d)f` 与 `(a+c)f + (b+d)e`；用 `mul_add_right` 各展开成两组乘积之和，再用 `add4` 把配对换成 `addRep (mulRep p r) (mulRep q r)` 的两组和。
+-- soko:hint 目标形态：`mulRep (addRep p q) r = addRep (mulRep p r) (mulRep q r)`。
+-- soko:hint 关键件：mul_add_right · add_congr · add4 · prod_mk_congr · Eq.trans。
+theorem mulRep_add (p q r : Prod Nat Nat) :
+    mulRep (addRep p q) r = addRep (mulRep p r) (mulRep q r) :=
+  match p with
+  | prod_mk a b =>
+    match q with
+    | prod_mk c d =>
+      match r with
+      | prod_mk e f =>
+        prod_mk_congr
+          (Nat.add (myMul (Nat.add a c) e) (myMul (Nat.add b d) f))
+          (Nat.add (Nat.add (myMul a e) (myMul b f))
+                   (Nat.add (myMul c e) (myMul d f)))
+          (Nat.add (myMul (Nat.add a c) f) (myMul (Nat.add b d) e))
+          (Nat.add (Nat.add (myMul a f) (myMul b e))
+                   (Nat.add (myMul c f) (myMul d e)))
+          (Eq.trans
+            (add_congr (mul_add_right a c e) (mul_add_right b d f))
+            (add4 (myMul a e) (myMul c e) (myMul b f) (myMul d f)))
+          (Eq.trans
+            (add_congr (mul_add_right a c f) (mul_add_right b d e))
+            (add4 (myMul a f) (myMul c f) (myMul b e) (myMul d e)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊹.2 分母的乘积：`den (ratDenRep m n)` 与 `mulRep (den m) (den n)`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`mulRep_den_den` 给出 `mulRep (den m) (den n) ~ ((m+1)(n+1), 0)`；`den (ratDenRep m n)` 的两个坐标是 `(succ (ratDenRep m n), 0)`，而 `ratDenRep_succ` 恰好说 `succ (ratDenRep m n) = (m+1)(n+1)`。用 `congrArg` 把第二个序对的坐标换掉，再把两段用 `intRel_trans` 串起来。
+-- soko:hint 目标形态：`intRel (mulRep (den m) (den n)) (den (ratDenRep m n))`。
+-- soko:hint 关键件：mulRep_den_den · ratDenRep_succ · congrArg · intRel_of_eq · intRel_trans。
+theorem mulRep_den_den_gen (m n : Nat) :
+    intRel (mulRep (den m) (den n)) (den (ratDenRep m n)) :=
+  intRel_trans
+    (mulRep (den m) (den n))
+    (@prod_mk Nat Nat (myMul (Nat.succ m) (Nat.succ n)) Nat.zero)
+    (den (ratDenRep m n))
+    (mulRep_den_den m n)
+    (intRel_of_eq
+      (@prod_mk Nat Nat (myMul (Nat.succ m) (Nat.succ n)) Nat.zero)
+      (den (ratDenRep m n))
+      (Eq.symm
+        (congrArg (fun (x : Nat) => @prod_mk Nat Nat x Nat.zero)
+          (ratDenRep_succ m n))))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊹.3 `addRep` 保持 `intRel`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`intRel p p'` 是 `p₁+p'₂ = p'₁+p₂`，`intRel q q'` 是 `q₁+q'₂ = q'₁+q₂`。两条各用 `add_congr` 相加得 `(p₁+p'₂)+(q₁+q'₂) = (p'₁+p₂)+(q'₁+q₂)`，两边各用一次 `add4` 换成 `(p₁+q₁)+(p'₂+q'₂)` 与 `(p'₁+q'₁)+(p₂+q₂)` —— 正是 `intRel (addRep p q) (addRep p' q')` 展开后的两边。
+-- soko:hint 目标形态：`intRel p p' → intRel q q' → intRel (addRep p q) (addRep p' q')`。
+-- soko:hint 关键件：add_congr · add4（两次，其中一次取对称）· Eq.trans。
+theorem intRel_add (p p' q q' : Prod Nat Nat) :
+    intRel p p' → intRel q q' → intRel (addRep p q) (addRep p' q') :=
+  match p with
+  | prod_mk a b =>
+    match p' with
+    | prod_mk a' b' =>
+      match q with
+      | prod_mk c d =>
+        match q' with
+        | prod_mk c' d' =>
+          fun (h1 : Nat.add a b' = Nat.add a' b)
+              (h2 : Nat.add c d' = Nat.add c' d) =>
+            Eq.trans
+              (Eq.symm (add4 a b' c d'))
+              (Eq.trans
+                (add_congr h1 h2)
+                (add4 a' b c' d))
+
+-- ─────────────────────────────────────────────────────────────
+-- 通用包装：`lib/Rat` 的乘法律只有字面坐标版本
+-- ─────────────────────────────────────────────────────────────
+
+-- 下面五条与 ㊷ 的 `ratRel_trans_aux` 同一写法：先在 `Prod` 上 match 到字面
+-- 坐标，再转发给 `lib/Rat` 的字面版本。它们不是新的数学，只是把 M1 已判卷的
+-- 律搬到任意代表元上，供 ㊹.4 直接用。
+
+theorem mulRep_wd_gen (p p' q : Prod Nat Nat) :
+    intRel p p' → intRel (mulRep p q) (mulRep p' q) :=
+  match p with
+  | prod_mk a b =>
+    match p' with
+    | prod_mk a' b' =>
+      match q with
+      | prod_mk c d =>
+        fun (h : intRel (prod_mk a b) (prod_mk a' b')) =>
+          mulRep_wd a b a' b' c d h
+
+theorem mulRep_wd_snd_gen (p q q' : Prod Nat Nat) :
+    intRel q q' → intRel (mulRep p q) (mulRep p q') :=
+  match p with
+  | prod_mk c d =>
+    match q with
+    | prod_mk a b =>
+      match q' with
+      | prod_mk a' b' =>
+        fun (h : intRel (prod_mk a b) (prod_mk a' b')) =>
+          mulRep_wd_snd a b a' b' c d h
+
+theorem mulRep_assoc_gen (p q r : Prod Nat Nat) :
+    intRel (mulRep (mulRep p q) r) (mulRep p (mulRep q r)) :=
+  match p with
+  | prod_mk a b =>
+    match q with
+    | prod_mk c d =>
+      match r with
+      | prod_mk e f =>
+        mulRep_assoc a b c d e f
+
+theorem mulRep_den_swap_gen (p : Prod Nat Nat) (a b : Nat) :
+    intRel (mulRep (mulRep p (den a)) (den b))
+           (mulRep (mulRep p (den b)) (den a)) :=
+  match p with
+  | prod_mk p1 p2 =>
+    mulRep_den_swap p1 p2 a b
+
+theorem leRep_add_right_gen (p q r : Prod Nat Nat) :
+    leRep p q → leRep (addRep p r) (addRep q r) :=
+  match p with
+  | prod_mk a b =>
+    match q with
+    | prod_mk c d =>
+      match r with
+      | prod_mk e f =>
+        fun (h : leRep (prod_mk a b) (prod_mk c d)) =>
+          leRep_add_right a b c d e f h
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊹.4 主定理：序与右加相容
+-- ─────────────────────────────────────────────────────────────
+
+-- 先把 `den (ratDenRep a b)` 与 `mulRep (den a) (den b)` 的互换包成一条，
+-- 主证明里的每一条链都用它把「分母的积」搬到最外层。
+
+theorem mulRep_den_ratDenRep (p : Prod Nat Nat) (a b : Nat) :
+    intRel (mulRep p (den (ratDenRep a b)))
+           (mulRep (mulRep p (den a)) (den b)) :=
+  intRel_trans
+    (mulRep p (den (ratDenRep a b)))
+    (mulRep p (mulRep (den a) (den b)))
+    (mulRep (mulRep p (den a)) (den b))
+    (mulRep_wd_snd_gen p (den (ratDenRep a b)) (mulRep (den a) (den b))
+      (intRel_symm (mulRep (den a) (den b)) (den (ratDenRep a b))
+        (mulRep_den_den_gen a b)))
+    (intRel_symm (mulRep (mulRep p (den a)) (den b))
+      (mulRep p (mulRep (den a) (den b)))
+      (mulRep_assoc_gen p (den a) (den b)))
+
+-- `ratAddRep` 的分子就是两个「乘好对方分母」的分子之和（差两个 `+0`，
+-- 由 `zero_add` 消掉）；主证明要把 `leNum` 的第一因子换成这个 `addRep`。
+
+theorem numOf_ratAddRep (x z : ratRep) :
+    numOf (ratAddRep x z) =
+      addRep (mulRep (numOf x) (den (denOf z)))
+             (mulRep (numOf z) (den (denOf x))) :=
+  prod_mk_congr
+    (Nat.add (myMul (Prod.fst Nat Nat (numOf x)) (Nat.succ (denOf z)))
+             (myMul (Prod.fst Nat Nat (numOf z)) (Nat.succ (denOf x))))
+    (Prod.fst Nat Nat
+      (addRep (mulRep (numOf x) (den (denOf z)))
+              (mulRep (numOf z) (den (denOf x)))))
+    (Nat.add (myMul (Prod.snd Nat Nat (numOf x)) (Nat.succ (denOf z)))
+             (myMul (Prod.snd Nat Nat (numOf z)) (Nat.succ (denOf x))))
+    (Prod.snd Nat Nat
+      (addRep (mulRep (numOf x) (den (denOf z)))
+              (mulRep (numOf z) (den (denOf x)))))
+    (Eq.refl
+      (Nat.add (myMul (Prod.fst Nat Nat (numOf x)) (Nat.succ (denOf z)))
+               (myMul (Prod.fst Nat Nat (numOf z)) (Nat.succ (denOf x)))))
+    (Eq.symm
+      (add_congr
+        (zero_add (myMul (Prod.snd Nat Nat (numOf x)) (Nat.succ (denOf z))))
+        (zero_add (myMul (Prod.snd Nat Nat (numOf z)) (Nat.succ (denOf x))))))
+
+-- soko:hint 思路：把 `ratLeRep (x+z) (y+z)` 写成 `leRep (leNum …) (leNum …)`。㊹.4 用 `leRep_wd_pair` 把两边各换成「x、y 各乘两次 z 的分母，再加同一块 z 的贡献」：x 的项用 ㊹.1/㊹.2 与 `mulRep_den_swap` 搬成 `(leNum x y)·dz·dz`，y 的项同理；z 的两项经交换分母后是**同一块**，交给 `leRep_add_right` 当公共加数。最后 `ratLeRep x y` 两边各乘两次 `den z`（`leRep_mul_den_right`）就是 `leRep_add_right` 的前提。
+-- soko:hint 目标形态：`ratLeRep x y → ratLeRep (ratAddRep x z) (ratAddRep y z)`。
+-- soko:hint 关键件：leRep_wd_pair · intRel_of_eq · mulRep_add · numOf_ratAddRep · mulRep_den_ratDenRep · mulRep_den_swap_gen · intRel_add · leRep_add_right_gen · leRep_mul_den_right（两次）。
+theorem ratLeRep_add_right (x y z : ratRep)
+    (h : ratLeRep x y) : ratLeRep (ratAddRep x z) (ratAddRep y z) :=
+  leRep_wd_pair
+    (addRep
+      (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+      (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+    (leNum (ratAddRep x z) (ratAddRep y z))
+    (addRep
+      (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+      (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+    (leNum (ratAddRep y z) (ratAddRep x z))
+    (intRel_symm
+      (leNum (ratAddRep x z) (ratAddRep y z))
+      (addRep
+        (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (intRel_trans
+        (leNum (ratAddRep x z) (ratAddRep y z))
+      (addRep
+        (mulRep (mulRep (numOf x) (den (denOf z)))
+                (den (denOf (ratAddRep y z))))
+        (mulRep (leNum z x) (den (denOf (ratAddRep y z)))))
+      (addRep
+        (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (intRel_of_eq
+        (leNum (ratAddRep x z) (ratAddRep y z))
+        (addRep
+          (mulRep (mulRep (numOf x) (den (denOf z)))
+                  (den (denOf (ratAddRep y z))))
+          (mulRep (mulRep (numOf z) (den (denOf x)))
+                  (den (denOf (ratAddRep y z)))))
+        (Eq.trans
+          (congrArg
+            (fun (p : Prod Nat Nat) =>
+              mulRep p (den (denOf (ratAddRep y z))))
+            (numOf_ratAddRep x z))
+          (mulRep_add
+            (mulRep (numOf x) (den (denOf z)))
+            (mulRep (numOf z) (den (denOf x)))
+            (den (denOf (ratAddRep y z))))))
+      (intRel_add
+        (mulRep (mulRep (numOf x) (den (denOf z)))
+                (den (denOf (ratAddRep y z))))
+        (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+        (mulRep (mulRep (numOf z) (den (denOf x)))
+                (den (denOf (ratAddRep y z))))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z))))
+        (intRel_trans
+          (mulRep (mulRep (numOf x) (den (denOf z)))
+                  (den (denOf (ratAddRep y z))))
+          (mulRep (mulRep (mulRep (numOf x) (den (denOf z)))
+                          (den (denOf y)))
+                  (den (denOf z)))
+          (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+          (mulRep_den_ratDenRep (mulRep (numOf x) (den (denOf z)))
+            (denOf y) (denOf z))
+          (mulRep_wd_gen
+            (mulRep (mulRep (numOf x) (den (denOf z))) (den (denOf y)))
+            (mulRep (leNum x y) (den (denOf z)))
+            (den (denOf z))
+            (mulRep_den_swap_gen (numOf x) (denOf z) (denOf y))))
+        (intRel_trans
+          (mulRep (mulRep (numOf z) (den (denOf x)))
+                  (den (denOf (ratAddRep y z))))
+          (mulRep (mulRep (mulRep (numOf z) (den (denOf x)))
+                          (den (denOf y)))
+                  (den (denOf z)))
+          (mulRep (leNum z y) (den (denOf (ratAddRep x z))))
+          (mulRep_den_ratDenRep (mulRep (numOf z) (den (denOf x)))
+            (denOf y) (denOf z))
+          (intRel_trans
+            (mulRep (mulRep (mulRep (numOf z) (den (denOf x)))
+                            (den (denOf y)))
+                    (den (denOf z)))
+            (mulRep (mulRep (leNum z y) (den (denOf x))) (den (denOf z)))
+            (mulRep (leNum z y) (den (denOf (ratAddRep x z))))
+            (mulRep_wd_gen
+              (mulRep (mulRep (numOf z) (den (denOf x))) (den (denOf y)))
+              (mulRep (leNum z y) (den (denOf x)))
+              (den (denOf z))
+              (mulRep_den_swap_gen (numOf z) (denOf x) (denOf y)))
+            (intRel_symm
+              (mulRep (leNum z y) (den (denOf (ratAddRep x z))))
+              (mulRep (mulRep (leNum z y) (den (denOf x)))
+                      (den (denOf z)))
+              (mulRep_den_ratDenRep (leNum z y) (denOf x) (denOf z))))))))
+    (intRel_symm
+      (leNum (ratAddRep y z) (ratAddRep x z))
+      (addRep
+        (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (intRel_trans
+        (leNum (ratAddRep y z) (ratAddRep x z))
+      (addRep
+        (mulRep (mulRep (numOf y) (den (denOf z)))
+                (den (denOf (ratAddRep x z))))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (addRep
+        (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (intRel_of_eq
+        (leNum (ratAddRep y z) (ratAddRep x z))
+        (addRep
+          (mulRep (mulRep (numOf y) (den (denOf z)))
+                  (den (denOf (ratAddRep x z))))
+          (mulRep (mulRep (numOf z) (den (denOf y)))
+                  (den (denOf (ratAddRep x z)))))
+        (Eq.trans
+          (congrArg
+            (fun (p : Prod Nat Nat) =>
+              mulRep p (den (denOf (ratAddRep x z))))
+            (numOf_ratAddRep y z))
+          (mulRep_add
+            (mulRep (numOf y) (den (denOf z)))
+            (mulRep (numOf z) (den (denOf y)))
+            (den (denOf (ratAddRep x z))))))
+      (intRel_add
+        (mulRep (mulRep (numOf y) (den (denOf z)))
+                (den (denOf (ratAddRep x z))))
+        (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z))))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z))))
+        (intRel_trans
+          (mulRep (mulRep (numOf y) (den (denOf z)))
+                  (den (denOf (ratAddRep x z))))
+          (mulRep (mulRep (mulRep (numOf y) (den (denOf z)))
+                          (den (denOf x)))
+                  (den (denOf z)))
+          (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+          (mulRep_den_ratDenRep (mulRep (numOf y) (den (denOf z)))
+            (denOf x) (denOf z))
+          (mulRep_wd_gen
+            (mulRep (mulRep (numOf y) (den (denOf z))) (den (denOf x)))
+            (mulRep (leNum y x) (den (denOf z)))
+            (den (denOf z))
+            (mulRep_den_swap_gen (numOf y) (denOf z) (denOf x))))
+        (intRel_refl
+          (mulRep (leNum z y) (den (denOf (ratAddRep x z))))))))
+    (leRep_add_right_gen
+      (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+      (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+      (mulRep (leNum z y) (den (denOf (ratAddRep x z))))
+      (leRep_mul_den_right
+        (mulRep (leNum x y) (den (denOf z)))
+        (mulRep (leNum y x) (den (denOf z)))
+        (denOf z)
+        (leRep_mul_den_right (leNum x y) (leNum y x) (denOf z) h)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊺ 的小引理进库：`k ≤ m` 时「`k = m`」或「`k + 1 ≤ m`」必居其一
+-- ─────────────────────────────────────────────────────────────
+
+-- ㊻ 的反对称性要用它把 `a ≤ b` 拆成「相等」与「严格小」两支。
+
+theorem leNat_eq_or_succ (k m : Nat) (h : LeNat k m) :
+    (k = m) ∨ LeNat (Nat.succ k) m :=
+  match h with
+  | le_refl n => Or.inl (Eq.refl n)
+  | le_succ a b hh => Or.inr (leNat_succ_succ a b hh)
