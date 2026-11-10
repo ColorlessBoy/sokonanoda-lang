@@ -86,3 +86,40 @@ theorem realRel_zero : realRel zeroSeq zeroSeq :=
 
 theorem Real.sound (x y : Seq) (h : realRel x y) : Real.mk x = Real.mk y :=
   @Quot.sound.{1} Seq realRel x y h
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊶ 预备：任意代表元上的对称 / 传递 / 取负对合
+-- ─────────────────────────────────────────────────────────────
+
+-- 下面三条是 M1 已判卷事实的**通用包装**：㉐ 的对称、㉕ 的传递、㉛ 的对合。
+-- 单元里的引理常以字面三元组 `qrep a b m` 陈述（`ratRel_trans` 就是这样），
+-- 这里把它们搬到任意 `ratRep` 上，供 ㊶ 起的单元直接引用。
+--
+-- `ratRel_trans_aux` 之所以多一层：`ratRep` 是 `Prod (Prod Nat Nat) Nat` 的
+-- **定义别名**，`match` 只认归纳类型本身，所以先在别名展开后的类型上消去，
+-- 泛型定理只做一次转发。
+
+theorem ratRel_symm (x y : ratRep) (h : ratRel x y) : ratRel y x :=
+  intRel_symm
+    (mulRep (numOf x) (den (denOf y)))
+    (mulRep (numOf y) (den (denOf x))) h
+
+theorem ratRel_trans_aux (x y z : Prod (Prod Nat Nat) Nat) :
+    ratRel x y → ratRel y z → ratRel x z :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match y with
+    | prod_mk (prod_mk c d) n =>
+      match z with
+      | prod_mk (prod_mk e f) k =>
+        fun (h1 : ratRel (prod_mk (prod_mk a b) m) (prod_mk (prod_mk c d) n))
+            (h2 : ratRel (prod_mk (prod_mk c d) n) (prod_mk (prod_mk e f) k)) =>
+          ratRel_trans a b c d e f m n k h1 h2
+
+theorem ratRel_trans_gen (x y z : ratRep)
+    (h1 : ratRel x y) (h2 : ratRel y z) : ratRel x z :=
+  ratRel_trans_aux x y z h1 h2
+
+theorem ratNegRep_invol (x : ratRep) :
+    ratRel (ratNegRep (ratNegRep x)) x :=
+  intRel_refl (mulRep (numOf x) (den (denOf x)))

@@ -307,6 +307,12 @@
               "title": "单元㊵ 实数的相等：自反性",
               "title_en": "Unit 40 — Reflexivity of Real Equality",
               "unit": 40
+            },
+            {
+              "file": "units/II.4/unit41-neg-order.sokonanoda",
+              "title": "单元㊶ 取负与序：绝对值的对称性",
+              "title_en": "Unit 41 — Negation, Order and Absolute Value",
+              "unit": 41
             }
           ]
         }
