@@ -257,6 +257,40 @@
               "unit": 34
             }
           ]
+        },
+        {
+          "id": "II.4",
+          "title": "有理 Cauchy 序列与实数的载体",
+          "prereqs": [
+            "II.3"
+          ],
+          "tags": [
+            "cauchy",
+            "real"
+          ],
+          "quota": {
+            "exercises": 40
+          },
+          "units": [
+            {
+              "file": "units/II.4/unit35-cauchy-def.sokonanoda",
+              "title": "单元㉟ 有理 Cauchy 序列：close 与 Cauchy 的定义",
+              "title_en": "Unit 35 — Cauchy Sequences: Definitions",
+              "unit": 35
+            },
+            {
+              "file": "units/II.4/unit36-real-carrier.sokonanoda",
+              "title": "单元㊱ 实数的载体：Real := Quot realRel",
+              "title_en": "Unit 36 — The Carrier of the Reals",
+              "unit": 36
+            },
+            {
+              "file": "units/II.4/unit37-order-den.sokonanoda",
+              "title": "单元㊲ 序与正分母：乘法、消去与配对搬运",
+              "title_en": "Unit 37 — Order and Positive Denominators",
+              "unit": 37
+            }
+          ]
         }
       ]
     }
