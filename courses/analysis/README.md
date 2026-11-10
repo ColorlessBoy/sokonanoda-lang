@@ -18,6 +18,7 @@
 - **单元㉖ `unit26-rat-add`**：ℚ **加法**的代表元公式 `(a-b)/(m+1) + (c-d)/(n+1) = [(a(n+1)+c(m+1)) - (b(n+1)+d(m+1))] / ((m+1)(n+1))`，分母字段取 `m*n + m + n`（㉖.1 证 `succ (m*n+m+n) = (m+1)(n+1)`）。两条良定义义务（第一、第二因子）都在代表元层：`ratAdd_cross` 消去同一个正分母，`ratAdd_num_wd`/`_snd` 做分子搬运，`mul_shift_c` 得到交叉和。**不下降成 `Rat → Rat → Rat`**（需要 `funext`，issue #28），不加公理。画布 54 checked / 6 open，解答 60 checked / 0 open。
 - **单元㉗ `unit27-rat-mul`**：ℚ **乘法**的代表元公式 `(a-b)/(m+1) * (c-d)/(n+1) = [(ac+bd) - (ad+bc)] / ((m+1)(n+1))`，分子就是整数代表元乘法 `mulRep`，分母字段仍是 `ratDenRep m n`；给出具体数字 `1/2*1/3=1/6`、`1/2*2/3=1/3`、`2/3*3/4=1/2`。**本单元只到公式与计算**：乘法的两条 `Quot.lift` 良定义义务（需要整数层 `mulRep_wd` + 分母 `(m+1)(n+1)` 的重排）留在 ㉘ 与序/嵌入一起收口，不假装已经下降成 `Rat → Rat → Rat`（无 `funext`，issue #28）。画布 74 checked / 5 open，解答 79 checked / 0 open。
 - **单元㉘ `unit28-rat-mul-wd`**：ℚ **乘法**的良定义性，两条义务 `ratMulRep_wd`（x~x' ⇒ x*y~x'*y）与 `ratMulRep_wd_snd`（y~y' ⇒ x*y~x*y'）在代表元层结清。先把同分母的 `ratRel` 化成整数代表元相等（`rat_cross`），再交给整数层已证的 `mulRep_wd` / `mulRep_wd_snd` 把相等搬到两个分子，最后乘回公分母。仍不下降成 `Rat → Rat → Rat`（无 `funext`，issue #28），不加公理。画布 80 checked / 2 open，解答 82 checked / 0 open。
+- **M2 单元㉝（2026-11-10）**：ℚ 的**绝对值**。本语言没有可判定的序，所以 `|x|` 用**关系** `ratAbsRel x y := (0≤x ∧ y~x) ∨ (x≤0 ∧ y~-x)` 定义；结清零的绝对值、两条引入规则与 `|-1/2| = 1/2`。唯一性留到后续单元。画布 4 open / 0 rejected，解答 0 open。
 - **M2 单元㉛–㉜（2026-11-10）**：**负元与减法**。㉛ 在代表元层定义 `ratNegRep`（交换分子序对），结清交叉乘积形状、良定义性与对合 `-(-x) ~ x`；㉜ 用 `ratSubRep := ratAddRep x (ratNegRep y)` 定义减法，结清计算规则、两条良定义义务与 `1 - 1/2 = 1/2`。两单元画布各 4 open / 0 rejected，解答 0 open。
 - **M2 单元㉚（2026-11-10）**：ℚ 的**严格序** `ratLtRep x y := ratLeRep x y ∧ ¬ ratRel x y`。结清 `<` 不⊂自反（`ratLtRep_irrefl`）、`< ⇒ ≤`、`≤ + ≠ ⇒ <`，以及 `0 < 1`（序用 `le_succ`，不等把 `ratRel 0 1` 化成 `0 = 1` 后交给 `succ_ne_zero`）。画布 4 open / 0 rejected，解答 0 open。
 - **M2 开工（单元㉙，2026-11-10）**：ℚ 的**序**。`ratLeRep` 用交叉相乘后的 ℕ 不等式定义：`a(n+1)+d(m+1) ≤ c(m+1)+b(n+1)`；本单元结清自反性与「相等 ⇒ 序」(`ratLeRep_of_ratRel`)，并给出 0≤1、1/2≤3/4 两个具体计算。传递性、全序与加法/乘法相容留给后续单元。同时把 M1 已判卷的 ℤ/ℚ 算术内核收进 `lib/Rat`（定义 + 已教法律），M2 单元不再重复抄 1000 行前序证明。画布 4 open / 0 rejected，解答 0 open。
@@ -31,7 +32,7 @@
 - `probes/`：M0 可行性探针（P1–P5），不进课程门禁。
 - `lib/`：M1 从卷 I 移植的 L2 库（`Logic` / `Exists` / `Set` / `Prod` / `Rel` / `Fun` / `Image` / `Equiv` / `Order`）+ `Extensionality`（#28 A0：`funext` 定理 + `propext` axiom）。
 - `units/II.1/`：M1 的整数单元（序对商、代表元公式、加法良定义与律、零元与负元、减法良定义与基本律、乘法良定义、序的代表元公式、ℕ 序的传递与单调、ℕ 序的加法消去律、整数序的良定义性、整数序的传递性与加法单调、整数乘法的交换律、乘法第二个因子良定义、取负下降成函数）；解答在 `units/solutions/II.1/`。
-- `units/II.3/`：M2 的有理数性质（当前 4 个：序的代表元公式与自反性；严格序与不相等；负元；减法）；解答在 `units/solutions/II.3/`。
+- `units/II.3/`：M2 的有理数性质（当前 5 个：序；严格序；负元；减法；绝对值）；解答在 `units/solutions/II.3/`。
 - `units/II.2/`：M1 的有理数单元（9 个：ℚ 的商载体与相等的自反/对称；整数相等的传递性；ℕ 乘法分配律与结合律；ℤ 乘法结合律；ℕ 正因子消去律；`ratRel` 的传递性；ℚ 加法的代表元公式与良定义性；ℚ 乘法的代表元公式与具体计算；ℚ 乘法的良定义性）；解答在 `units/solutions/II.2/`。
 - `course.json`：M1 课程清单（当前只列已落地的单元，随写作增长）。
 

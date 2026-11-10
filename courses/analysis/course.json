@@ -243,6 +243,12 @@
               "title": "单元㉜ 有理数的减法：加法与负元的组合",
               "title_en": "Unit 32 — Subtraction of Rationals",
               "unit": 32
+            },
+            {
+              "file": "units/II.3/unit33-rat-abs.sokonanoda",
+              "title": "单元㉝ 有理数的绝对值：关系定义与两条引入规则",
+              "title_en": "Unit 33 — Absolute Value of Rationals",
+              "unit": 33
             }
           ]
         }
