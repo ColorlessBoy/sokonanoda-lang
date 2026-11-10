@@ -366,6 +366,12 @@
               "title": "单元㊼ 绝对值的唯一性：同一个数的两个见证相等",
               "title_en": "Unit 47 — Uniqueness of the Absolute Value",
               "unit": 47
+            },
+            {
+              "file": "units/II.5/unit48-triangle.sokonanoda",
+              "title": "单元㊽ 三角不等式：|u + v| ≤ |u| + |v|",
+              "title_en": "Unit 48 — Triangle Inequality",
+              "unit": 48
             }
           ]
         }
