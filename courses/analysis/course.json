@@ -333,6 +333,29 @@
               "unit": 44
             }
           ]
+        },
+        {
+          "id": "II.5",
+          "title": "ℝ 的商、代数与序",
+          "prereqs": [
+            "II.4"
+          ],
+          "tags": [
+            "real",
+            "order",
+            "equivalence"
+          ],
+          "quota": {
+            "exercises": 40
+          },
+          "units": [
+            {
+              "file": "units/II.5/unit45-order-total.sokonanoda",
+              "title": "单元㊺ 序的全性：每个有理数都有绝对值",
+              "title_en": "Unit 45 — Totality of the Order; Existence of Absolute Values",
+              "unit": 45
+            }
+          ]
         }
       ]
     }
