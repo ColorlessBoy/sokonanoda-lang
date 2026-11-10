@@ -384,6 +384,12 @@
               "title": "单元㊿ 严格序与加法相容：加法消去",
               "title_en": "Unit 50 — Strict Order Compatible with Addition; Cancellation",
               "unit": 50
+            },
+            {
+              "file": "units/II.5/unit51-lt-trans-add.sokonanoda",
+              "title": "单元51 严格序的传递与加法相容",
+              "title_en": "Unit 51 — Transitivity of the Strict Order and Compatibility with Addition",
+              "unit": 51
             }
           ]
         }

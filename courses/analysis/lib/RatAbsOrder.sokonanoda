@@ -103,3 +103,77 @@ theorem leRep_antisymm (p q : Prod Nat Nat)
 theorem ratLeRep_antisymm (x y : ratRep)
     (h1 : ratLeRep x y) (h2 : ratLeRep y x) : ratRel x y :=
   leRep_antisymm (leNum x y) (leNum y x) h1 h2
+
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊿ 的加法消去进库（画布里叫 `ratLeRep_add_cancel` / `ratRel_add_cancel`；
+-- 库里的版本带 `_gen`，两个模块各自声明、互不冲突）
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratLeRep_add_addends_gen (x y z : ratRep)
+    (h : ratLeRep (ratAddRep x z) (ratAddRep y z)) :
+    leRep
+      (addRep
+        (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (addRep
+        (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z))))) :=
+  leRep_wd_pair
+    (leNum (ratAddRep x z) (ratAddRep y z))
+    (addRep
+      (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+      (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+    (leNum (ratAddRep y z) (ratAddRep x z))
+    (addRep
+      (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+      (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+    (intRel_symm
+      (addRep
+        (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (leNum (ratAddRep x z) (ratAddRep y z))
+      (leNum_ratAddRep_left x y z))
+    (intRel_symm
+      (addRep
+        (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (leNum (ratAddRep y z) (ratAddRep x z))
+      (leNum_ratAddRep_right x y z))
+    h
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊿.2 加法消去（弱序）
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：从 ㊿.1 得到「加同一块 z」的 `leRep`，用 `leRep_add_cancel_right` 消掉公共加数；剩下的是 `leRep (A·dz) (B·dz)`，用 `leRep_cancel_den` 消一次 `den z` 得 `leRep A B`，再消一次得 `leRep (leNum x y) (leNum y x)`，正是 `ratLeRep x y`。
+-- soko:hint 目标形态：`ratLeRep (ratAddRep x z) (ratAddRep y z) → ratLeRep x y`。
+-- soko:hint 关键件：ratLeRep_add_addends_gen · leRep_add_cancel_right · leRep_cancel_den（两次）。
+theorem ratLeRep_add_cancel_gen (x y z : ratRep)
+    (h : ratLeRep (ratAddRep x z) (ratAddRep y z)) : ratLeRep x y :=
+  leRep_cancel_den (leNum x y) (leNum y x) (denOf z)
+    (leRep_cancel_den
+      (mulRep (leNum x y) (den (denOf z)))
+      (mulRep (leNum y x) (den (denOf z)))
+      (denOf z)
+      (leRep_add_cancel_right
+        (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+        (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z))))
+        (ratLeRep_add_addends_gen x y z h)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊿.3 加法消去（相等）
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratRel (x+z) (y+z)` 同时给出两个方向的弱序（`ratLeRep_of_ratRel`，反方向先 `ratRel_symm`）；各用 ㊿.2 消去 `z` 得 `x ≤ y` 与 `y ≤ x`，再交给 ㊻ 的 `ratLeRep_antisymm`。
+-- soko:hint 目标形态：`ratRel (ratAddRep x z) (ratAddRep y z) → ratRel x y`。
+-- soko:hint 关键件：ratLeRep_add_cancel_gen（两次）· ratLeRep_of_ratRel · ratRel_symm · ratLeRep_antisymm。
+theorem ratRel_add_cancel_gen (x y z : ratRep)
+    (h : ratRel (ratAddRep x z) (ratAddRep y z)) : ratRel x y :=
+  ratLeRep_antisymm x y
+    (ratLeRep_add_cancel_gen x y z
+      (ratLeRep_of_ratRel (ratAddRep x z) (ratAddRep y z) h))
+    (ratLeRep_add_cancel_gen y x z
+      (ratLeRep_of_ratRel (ratAddRep y z) (ratAddRep x z)
+        (ratRel_symm (ratAddRep x z) (ratAddRep y z) h)))

@@ -750,6 +750,31 @@ theorem ratLeRep_add_right (x y z : ratRep)
         (denOf z)
         (leRep_mul_den_right (leNum x y) (leNum y x) (denOf z) h)))
 
+
+-- ㊿ 起要用的通用一致性：`ratLeRep` 只依赖两个因子的等价类（㊴ 的字面版本
+-- 是 `ratLeRep_congr` / `ratLeRep_congr_snd`，这里在任意代表元上转发一次）。
+-- `ratRep` 是定义别名，先在展开类型上消去。
+
+theorem ratLeRep_congr_aux (x x' y y' : Prod (Prod Nat Nat) Nat) :
+    ratRel x x' → ratRel y y' → ratLeRep x y → ratLeRep x' y' :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match x' with
+    | prod_mk (prod_mk a' b') m' =>
+      match y with
+      | prod_mk (prod_mk c d) n =>
+        match y' with
+        | prod_mk (prod_mk c' d') n' =>
+          fun (hxx : ratRel (prod_mk (prod_mk a b) m) (prod_mk (prod_mk a' b') m'))
+              (hyy : ratRel (prod_mk (prod_mk c d) n) (prod_mk (prod_mk c' d') n'))
+              (h : ratLeRep (prod_mk (prod_mk a b) m) (prod_mk (prod_mk c d) n)) =>
+            ratLeRep_congr_snd a' b' c d c' d' m' n n' hyy
+              (ratLeRep_congr a b a' b' c d m m' n hxx h)
+
+theorem ratLeRep_congr_gen (x x' y y' : ratRep) :
+    ratRel x x' → ratRel y y' → ratLeRep x y → ratLeRep x' y' :=
+  ratLeRep_congr_aux x x' y y'
+
 -- ─────────────────────────────────────────────────────────────
 -- ㊺ 的小引理进库：`k ≤ m` 时「`k = m`」或「`k + 1 ≤ m`」必居其一
 -- ─────────────────────────────────────────────────────────────

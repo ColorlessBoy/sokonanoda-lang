@@ -1,0 +1,117 @@
+-- 单元51 严格序的传递与加法相容（解答）
+--
+-- ㊾ 给了严格序自身的传递（`ratLtRep_trans`），㊿ 给了它和**右加**的相容。
+-- `close` 的传递性还要把「弱序」与「严格序」混着串，并把两个严格界相加：
+--
+--   a ≤ b ∧ b < c  ⇒  a < c        （本单元 51.2）
+--   a < b ∧ b ≤ c  ⇒  a < c        （本单元 51.3）
+--   a < b ∧ c < d  ⇒  a + c < b + d（本单元 51.4）
+--
+-- 三条的证明都是「弱序用 ㊳ 的传递性串、不相等用 ㊻ 的反对称性把中间项夹成
+-- 相等、再撞上某个 `<` 的第二分量」——与 ㊾.2 同一个套路。51.4 还要先把
+-- **左加**补上（51.1）：㊹ 只有右加 `x + z ≤ y + z`，而 `b + c ≤ b + d`
+-- 是左加；交换两边的顺序（㊸ 的 `ratAdd_comm`）再用库里的
+-- `ratLeRep_congr_gen` 把 `ratLeRep` 搬过去即可。51.4 的不相等部分只用到
+-- `a < b`：`a+c ~ b+d` 把 `a+c ≤ b+c ≤ b+d` 夹成 `b+c ~ a+c`，
+-- 用 ㊿ 的加法消去（库里的 `ratRel_add_cancel_gen`）得 `b ~ a`。
+
+import lib.RatAbsOrder
+
+-- ─────────────────────────────────────────────────────────────
+-- 51.1 弱序可以加在左边
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：㊹ 只给了右加。先用 ㊸ 的 `ratAdd_comm` 把 `z + x` 换成 `x + z`、`z + y` 换成 `y + z`（两条 `ratRel`），用库里的 `ratLeRep_congr_gen` 把 `ratLeRep` 从 `(x+z, y+z)` 搬到 `(z+x, z+y)`，中间的 `ratLeRep (x+z) (y+z)` 由 `ratLeRep_add_right` 给出。
+-- soko:hint 目标形态：`ratLeRep x y → ratLeRep (ratAddRep z x) (ratAddRep z y)`。
+-- soko:hint 关键件：ratLeRep_congr_gen · ratAdd_comm · ratLeRep_add_right。
+theorem ratLeRep_add_left (x y z : ratRep)
+    (h : ratLeRep x y) : ratLeRep (ratAddRep z x) (ratAddRep z y) :=
+  ratLeRep_congr_gen
+    (ratAddRep x z) (ratAddRep z x) (ratAddRep y z) (ratAddRep z y)
+    (ratAdd_comm x z) (ratAdd_comm y z)
+    (ratLeRep_add_right x y z h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 51.2 弱序 + 严格序 ⇒ 严格序（左弱右严）
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：弱序部分 `a ≤ b ≤ c` 用 `ratLeRep_trans`。不相等部分假设 `a ~ c`，则 `c ≤ a`（`ratLeRep_of_ratRel` + `ratRel_symm`），与 `a ≤ b`、`b ≤ c` 把 `b` 与 `c` 夹成 `b ~ c`（`ratLeRep_antisymm b c`），撞上 `b < c` 的第二分量。
+-- soko:hint 目标形态：`ratLeRep a b → ratLtRep b c → ratLtRep a c`。
+-- soko:hint 关键件：And.intro · And.left · And.right · ratLeRep_trans · ratLeRep_of_ratRel · ratRel_symm · ratLeRep_antisymm。
+theorem ratLtRep_of_le_lt (a b c : ratRep)
+    (h1 : ratLeRep a b) (h2 : ratLtRep b c) : ratLtRep a c :=
+  And.intro
+    (ratLeRep_trans a b c h1 (And.left h2))
+    (fun (hac : ratRel a c) =>
+      And.right h2
+        (ratLeRep_antisymm b c (And.left h2)
+          (ratLeRep_trans c a b
+            (ratLeRep_of_ratRel c a (ratRel_symm a c hac))
+            h1)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 51.3 严格序 + 弱序 ⇒ 严格序（左严右弱）
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：弱序部分 `a ≤ b ≤ c` 用 `ratLeRep_trans`。不相等部分假设 `a ~ c`，则 `c ≤ a`，与 `b ≤ c` 得 `b ≤ a`；再与 `a ≤ b` 用 `ratLeRep_antisymm a b` 夹成 `a ~ b`，撞上 `a < b` 的第二分量。
+-- soko:hint 目标形态：`ratLtRep a b → ratLeRep b c → ratLtRep a c`。
+-- soko:hint 关键件：And.intro · And.left · And.right · ratLeRep_trans · ratLeRep_of_ratRel · ratRel_symm · ratLeRep_antisymm。
+theorem ratLtRep_of_lt_le (a b c : ratRep)
+    (h1 : ratLtRep a b) (h2 : ratLeRep b c) : ratLtRep a c :=
+  And.intro
+    (ratLeRep_trans a b c (And.left h1) h2)
+    (fun (hac : ratRel a c) =>
+      And.right h1
+        (ratLeRep_antisymm a b (And.left h1)
+          (ratLeRep_trans b c a h2
+            (ratLeRep_of_ratRel c a (ratRel_symm a c hac)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 51.4 两个严格序可以相加
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：弱序是两段——`a+c ≤ b+c` 用 ㊹/㊿ 的 `ratLeRep_add_right`，`b+c ≤ b+d` 用 51.1 的 `ratLeRep_add_left`，再 `ratLeRep_trans`。不相等部分假设 `a+c ~ b+d`：由 `b+c ≤ b+d` 与 `b+d ~ a+c` 得 `b+c ≤ a+c`，与 `a+c ≤ b+c` 用反对称性夹成 `b+c ~ a+c`，再用库里的 `ratRel_add_cancel_gen` 消去 `c` 得 `b ~ a`；取对称后撞上 `a < b`。
+-- soko:hint 目标形态：`ratLtRep a b → ratLtRep c d → ratLtRep (a+c) (b+d)`。
+-- soko:hint 关键件：And.intro · ratLeRep_trans · ratLeRep_add_right · ratLeRep_add_left · ratLeRep_of_ratRel · ratRel_symm · ratLeRep_antisymm · ratRel_add_cancel_gen。
+theorem ratLtRep_add (a b c d : ratRep)
+    (h1 : ratLtRep a b) (h2 : ratLtRep c d) :
+    ratLtRep (ratAddRep a c) (ratAddRep b d) :=
+  And.intro
+    (ratLeRep_trans (ratAddRep a c) (ratAddRep b c) (ratAddRep b d)
+      (ratLeRep_add_right a b c (And.left h1))
+      (ratLeRep_add_left c d b (And.left h2)))
+    (fun (h : ratRel (ratAddRep a c) (ratAddRep b d)) =>
+      And.right h1
+        (ratRel_symm b a
+          (ratRel_add_cancel_gen b a c
+            (ratLeRep_antisymm (ratAddRep b c) (ratAddRep a c)
+              (ratLeRep_trans (ratAddRep b c) (ratAddRep b d) (ratAddRep a c)
+                (ratLeRep_add_left c d b (And.left h2))
+                (ratLeRep_of_ratRel (ratAddRep b d) (ratAddRep a c)
+                  (ratRel_symm (ratAddRep a c) (ratAddRep b d) h)))
+              (ratLeRep_add_right a b c (And.left h1))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 51.5 具体：`0 + 0 < 1 + 1`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 ㉚ 的 `0 < 1` 用两次，交给 51.4。`0 < 1` 的弱序是 `LeNat 0 1`（`le_succ` + `le_refl`），不相等把 `0 ~ 1` 化成 `0 = 1` 后交给 `succ_ne_zero`。
+-- soko:hint 目标形态：`ratLtRep (ratAddRep 0 0) (ratAddRep 1 1)`。
+-- soko:hint 关键件：ratLtRep_add · le_succ · le_refl · succ_ne_zero · Eq.symm。
+theorem demo_add_lt_add :
+    ratLtRep
+      (ratAddRep (qrep Nat.zero Nat.zero Nat.zero) (qrep Nat.zero Nat.zero Nat.zero))
+      (ratAddRep (qrep 1 Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) :=
+  ratLtRep_add
+    (qrep Nat.zero Nat.zero Nat.zero)
+    (qrep 1 Nat.zero Nat.zero)
+    (qrep Nat.zero Nat.zero Nat.zero)
+    (qrep 1 Nat.zero Nat.zero)
+    (And.intro
+      (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+      (fun (h : ratRel (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) =>
+        succ_ne_zero Nat.zero (Eq.symm h)))
+    (And.intro
+      (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+      (fun (h : ratRel (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) =>
+        succ_ne_zero Nat.zero (Eq.symm h)))
