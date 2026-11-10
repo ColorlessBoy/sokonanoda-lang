@@ -1,0 +1,19 @@
+-- issue #27 / 台账 G-119 的最小复现（由 `compile/tests.rs::match_indexed_gap_fixture_is_clean`
+-- 用 include_str! 真跑；台账登记时 repro 指向本文件）。
+-- 修前（0.98.4）：两条 theorem 都 kernel-rejected（指标不细化、依赖指标的 h1 不泛化）；
+-- 修后：3 decl.checked / 0 诊断。语义：泛化后的 ih 是「细化假设的函数」⇒ `ih h1`。
+
+inductive LeNat : Nat → Nat → Prop
+ctor le_refl (n : Nat) : LeNat n n
+ctor le_succ (m : Nat) (n : Nat) : LeNat m n → LeNat m (Nat.succ n)
+end
+
+theorem leNat_self (a b : Nat) (h : LeNat a b) : LeNat a b :=
+  match h with
+  | le_refl n => le_refl n
+  | le_succ m n hh => le_succ m n hh
+
+theorem leNat_trans (a b c : Nat) (h1 : LeNat a b) (h2 : LeNat b c) : LeNat a c :=
+  match h2 with
+  | le_refl n => h1
+  | le_succ m n h => le_succ a n (ih h1)
