@@ -18,6 +18,7 @@
 - **单元㉖ `unit26-rat-add`**：ℚ **加法**的代表元公式 `(a-b)/(m+1) + (c-d)/(n+1) = [(a(n+1)+c(m+1)) - (b(n+1)+d(m+1))] / ((m+1)(n+1))`，分母字段取 `m*n + m + n`（㉖.1 证 `succ (m*n+m+n) = (m+1)(n+1)`）。两条良定义义务（第一、第二因子）都在代表元层：`ratAdd_cross` 消去同一个正分母，`ratAdd_num_wd`/`_snd` 做分子搬运，`mul_shift_c` 得到交叉和。**不下降成 `Rat → Rat → Rat`**（需要 `funext`，issue #28），不加公理。画布 54 checked / 6 open，解答 60 checked / 0 open。
 - **单元㉗ `unit27-rat-mul`**：ℚ **乘法**的代表元公式 `(a-b)/(m+1) * (c-d)/(n+1) = [(ac+bd) - (ad+bc)] / ((m+1)(n+1))`，分子就是整数代表元乘法 `mulRep`，分母字段仍是 `ratDenRep m n`；给出具体数字 `1/2*1/3=1/6`、`1/2*2/3=1/3`、`2/3*3/4=1/2`。**本单元只到公式与计算**：乘法的两条 `Quot.lift` 良定义义务（需要整数层 `mulRep_wd` + 分母 `(m+1)(n+1)` 的重排）留在 ㉘ 与序/嵌入一起收口，不假装已经下降成 `Rat → Rat → Rat`（无 `funext`，issue #28）。画布 74 checked / 5 open，解答 79 checked / 0 open。
 - **单元㉘ `unit28-rat-mul-wd`**：ℚ **乘法**的良定义性，两条义务 `ratMulRep_wd`（x~x' ⇒ x*y~x'*y）与 `ratMulRep_wd_snd`（y~y' ⇒ x*y~x*y'）在代表元层结清。先把同分母的 `ratRel` 化成整数代表元相等（`rat_cross`），再交给整数层已证的 `mulRep_wd` / `mulRep_wd_snd` 把相等搬到两个分子，最后乘回公分母。仍不下降成 `Rat → Rat → Rat`（无 `funext`，issue #28），不加公理。画布 80 checked / 2 open，解答 82 checked / 0 open。
+- **M2 单元㊳（2026-11-10）**：有理数的**序的传递性**。㊳.1 `mulRep_den_perm` 把两个正分母换位；㊳.2 `ratLeRep_trans` 把 `x ≤ y` 乘 `z_den`、`y ≤ z` 乘 `x_den`，中间项换位后用 `leRep_trans` 串起来，最后 `leRep_cancel_den` 消去 `y_den`；㊳.3 在 `0 ≤ 1/2 ≤ 3/4` 上具体走一遍。引擎收在新建的 `lib/RatOrder`（㊲ 已判卷的五条律 + `ratLeRep` 定义）。画布 3 open / 0 rejected，解答 0 open。
 - **M2 单元㊲（2026-11-10）**：**序与正分母**。`mulRep_den_form`（乘 `(k+1)` 的规范形）、`mul_den_swap_nat`（`(a·m)·k = (a·k)·m`）、`prod_mk_congr`（序对逐坐标相等）、`leRep_mul_den_right`（乘正分母保序）、`leRep_cancel_den`（正分母可消去）。这是序的传递性的引擎。画布 5 open / 0 rejected，解答 0 open。
 - **M2 单元㊱（2026-11-10）**：**实数的载体**。`realRel x y := Cauchy x ∧ Cauchy y ∧ ∀ eps>0, ∃ N, ∀ n≥N, close (x n) (y n) eps`，`Real := Quot realRel`；结清常零序列自等价、`Real.sound`（`Quot.sound`）与 `mk 0 = mk 0`。画布 3 open / 0 rejected，解答 0 open。
 - **M2 单元㉟（2026-11-10）**：进入 **II.4**。`Seq := Nat → ratRep`，`close x y eps := ∃ d, |x-y| ~ d ∧ d < eps`，`Cauchy` 按 Tao 的量词顺序定义；结清 `close 0 0 eps`、常零序列是 Cauchy、`close 0 0 1`。画布 3 open / 0 rejected，解答 0 open。
@@ -34,10 +35,10 @@
 
 - `ROUTE.md`：路线、探针结论、前置、里程碑、风险。
 - `probes/`：M0 可行性探针（P1–P5），不进课程门禁。
-- `lib/`：M1 从卷 I 移植的 L2 库（`Logic` / `Exists` / `Set` / `Prod` / `Rel` / `Fun` / `Image` / `Equiv` / `Order`）+ `Extensionality`（#28 A0：`funext` 定理 + `propext` axiom）。
+- `lib/`：L2 库 —— M1 从卷 I 移植的（`Logic` / `Exists` / `Set` / `Prod` / `Rel` / `Fun` / `Image` / `Equiv` / `Order`）、`Extensionality`（#28 A0：`funext` 定理 + `propext` axiom）与 M2 的 `Rat`（ℤ/ℚ 算术内核）、`RatOrder`（有理数序的引擎：`ratLeRep` + 正分母乘/消去）。
 - `units/II.1/`：M1 的整数单元（序对商、代表元公式、加法良定义与律、零元与负元、减法良定义与基本律、乘法良定义、序的代表元公式、ℕ 序的传递与单调、ℕ 序的加法消去律、整数序的良定义性、整数序的传递性与加法单调、整数乘法的交换律、乘法第二个因子良定义、取负下降成函数）；解答在 `units/solutions/II.1/`。
 - `units/II.3/`：M2 的有理数性质（当前 6 个：序；严格序；负元；减法；绝对值；幂）；解答在 `units/solutions/II.3/`。
-- `units/II.4/`：M2 的 Cauchy 序列与 ℝ（当前 3 个：`close` / `Cauchy` 定义；实数的载体；序与正分母）；解答在 `units/solutions/II.4/`。
+- `units/II.4/`：M2 的 Cauchy 序列与 ℝ（当前 4 个：`close` / `Cauchy` 定义；实数的载体；序与正分母；序的传递性）；解答在 `units/solutions/II.4/`。
 - `units/II.2/`：M1 的有理数单元（9 个：ℚ 的商载体与相等的自反/对称；整数相等的传递性；ℕ 乘法分配律与结合律；ℤ 乘法结合律；ℕ 正因子消去律；`ratRel` 的传递性；ℚ 加法的代表元公式与良定义性；ℚ 乘法的代表元公式与具体计算；ℚ 乘法的良定义性）；解答在 `units/solutions/II.2/`。
 - `course.json`：M1 课程清单（当前只列已落地的单元，随写作增长）。
 

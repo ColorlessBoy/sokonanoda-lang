@@ -289,6 +289,12 @@
               "title": "单元㊲ 序与正分母：乘法、消去与配对搬运",
               "title_en": "Unit 37 — Order and Positive Denominators",
               "unit": 37
+            },
+            {
+              "file": "units/II.4/unit38-order-trans.sokonanoda",
+              "title": "单元㊳ 有理数的序：传递性",
+              "title_en": "Unit 38 — Transitivity of the Order",
+              "unit": 38
             }
           ]
         }

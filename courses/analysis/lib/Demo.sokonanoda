@@ -1,4 +1,4 @@
--- M1 lib 自检入口：把当前 9 个库模块一次 import 完。
+-- lib 自检入口：把当前库模块一次 import 完。
 import lib.Logic
 import lib.Exists
 import lib.Set
@@ -8,5 +8,6 @@ import lib.Fun
 import lib.Image
 import lib.Equiv
 import lib.Order
+import lib.RatOrder
 
 theorem demo_lib_closure : True := True.intro
