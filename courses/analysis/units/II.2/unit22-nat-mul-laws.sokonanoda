@@ -1,0 +1,282 @@
+-- 单元㉒ ℕ 乘法的分配律与结合律（ℤ 乘法结合律的引擎）
+--
+-- 单元㉑ 把 `intRel` 的传递性结清了，ℚ 的传递性还差**消去一个正分母**。
+-- 那条链的下一步是 ℤ 乘法结合律：交叉相乘后要把 `(a·d)·f` 与 `a·(d·f)`
+-- 对齐。可是 `mulRep` 只在代表元层展开成四项的和，真正干活的是 ℕ 乘法的
+-- **分配律**与**结合律** —— II.1 只做了交换律（单元⑰）/ 单位元（单元⑩）/
+-- 良定义（⑪/⑱），这两条从没证过。
+--
+-- 本单元就把引擎造出来（全部停在 ℕ 上，不碰商、不碰 `funext`、不加公理）：
+--   add_mid        : a + (x + y) = x + (a + y)      （加法搬运，已给）
+--   mul_add        : a * (b + c) = a*b + a*c        （左分配，对 c 归纳）  ← 练习
+--   mul_add_right  : (a + b) * c = a*c + b*c        （右分配，交换律 + 左分配）← 练习
+--   myMul_assoc    : (a * b) * c = a * (b * c)      （对 c 归纳，步例用 mul_add）← 练习
+--
+-- 下一单元才把这三条搬到 `mulRep` 上，得到 ℤ 乘法结合律。
+--
+-- 本单元自带全部 ℕ 加法律与乘法的交换律（L3：律必须留在单元里；它们来自
+-- 单元③与单元⑰）。
+import lib.Logic
+import lib.Prod
+
+def intRel (a b : Prod Nat Nat) : Prop :=
+  Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =
+  Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)
+
+def Int : Type := @Quot.{1} (Prod Nat Nat) intRel
+
+def intOfNat (n : Nat) : Int :=
+  @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat n Nat.zero)
+
+-- 递归步直接用 prelude 的 Nat.add（与单元⑤的 myAdd 逐点相等；
+-- 本语言里 Nat.add 是原生自指定义，两者不是定义性相等）。
+def myMul (a b : Nat) : Nat :=
+  Nat.rec (fun (_ : Nat) => Nat) Nat.zero
+    (fun (n : Nat) (ih : Nat) => Nat.add a ih) b
+
+def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
+  @prod_mk Nat Nat
+    (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.fst Nat Nat b))
+             (myMul (Prod.snd Nat Nat a) (Prod.snd Nat Nat b)))
+    (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.snd Nat Nat b))
+             (myMul (Prod.snd Nat Nat a) (Prod.fst Nat Nat b)))
+
+-- 单元③的 ℕ 零元律，本单元自用（L3：律必须留在单元里）。
+
+-- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+theorem zero_add (b : Nat) :
+    Nat.add Nat.zero b = b :=
+  Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : Nat.add Nat.zero n = n) =>
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => Nat.succ (Nat.add Nat.zero n) = Nat.succ m)
+        (Nat.add Nat.zero n) n ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add Nat.zero n))))
+    b
+
+theorem succ_add (a b : Nat) :
+    Nat.add (Nat.succ a) b = Nat.succ (Nat.add a b) :=
+  Nat.rec (fun (n : Nat) => Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n))
+    (@Eq.refl.{1} Nat (Nat.succ a))
+    (fun (n : Nat) (ih : Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n)) =>
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => Nat.succ (Nat.add (Nat.succ a) n) = Nat.succ m)
+        (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n))))
+    b
+
+theorem add_comm (a b : Nat) :
+    Nat.add a b = Nat.add b a :=
+  Nat.rec (fun (n : Nat) => Nat.add a n = Nat.add n a)
+    (@Eq.symm.{1} Nat (Nat.add Nat.zero a) a (zero_add a))
+    (fun (n : Nat) (ih : Nat.add a n = Nat.add n a) =>
+      @Eq.trans.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ (Nat.add n a)) (Nat.add (Nat.succ n) a)
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) => Nat.succ (Nat.add a n) = Nat.succ m)
+          (Nat.add a n) (Nat.add n a) ih
+          (@Eq.refl.{1} Nat (Nat.succ (Nat.add a n))))
+        (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
+    b
+
+theorem add_zero (a : Nat) :
+    Nat.add a Nat.zero = a :=
+  @Eq.trans.{1} Nat (Nat.add a Nat.zero) (Nat.add Nat.zero a) a
+    (add_comm a Nat.zero)
+    (zero_add a)
+
+theorem add_assoc (a b c : Nat) :
+    Nat.add (Nat.add a b) c = Nat.add a (Nat.add b c) :=
+  Nat.rec (fun (n : Nat) => Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n))
+    (@Eq.refl.{1} Nat (Nat.add a b))
+    (fun (n : Nat) (ih : Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n)) =>
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => Nat.succ (Nat.add (Nat.add a b) n) = Nat.succ m)
+        (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
+    c
+
+-- 搬运律：把两个和里的加法因子换个配对，值不变。
+theorem add_shift (a b c d : Nat) :
+    Nat.add (Nat.add a c) (Nat.add b d) =
+    Nat.add (Nat.add a b) (Nat.add c d) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add a c) (Nat.add b d))
+    (Nat.add a (Nat.add c (Nat.add b d)))
+    (Nat.add (Nat.add a b) (Nat.add c d))
+    (add_assoc a c (Nat.add b d))
+    (@Eq.trans.{1} Nat
+      (Nat.add a (Nat.add c (Nat.add b d)))
+      (Nat.add a (Nat.add (Nat.add c b) d))
+      (Nat.add (Nat.add a b) (Nat.add c d))
+      (@Eq.subst.{1} Nat
+        (fun (m : Nat) => Nat.add a (Nat.add c (Nat.add b d)) = Nat.add a m)
+        (Nat.add c (Nat.add b d)) (Nat.add (Nat.add c b) d)
+        (@Eq.symm.{1} Nat (Nat.add (Nat.add c b) d) (Nat.add c (Nat.add b d)) (add_assoc c b d))
+        (@Eq.refl.{1} Nat (Nat.add a (Nat.add c (Nat.add b d)))))
+      (@Eq.trans.{1} Nat
+        (Nat.add a (Nat.add (Nat.add c b) d))
+        (Nat.add a (Nat.add (Nat.add b c) d))
+        (Nat.add (Nat.add a b) (Nat.add c d))
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) => Nat.add a (Nat.add (Nat.add c b) d) = Nat.add a (Nat.add m d))
+          (Nat.add c b) (Nat.add b c)
+          (add_comm c b)
+          (@Eq.refl.{1} Nat (Nat.add a (Nat.add (Nat.add c b) d))))
+        (@Eq.trans.{1} Nat
+          (Nat.add a (Nat.add (Nat.add b c) d))
+          (Nat.add a (Nat.add b (Nat.add c d)))
+          (Nat.add (Nat.add a b) (Nat.add c d))
+          (@Eq.subst.{1} Nat
+            (fun (m : Nat) => Nat.add a (Nat.add (Nat.add b c) d) = Nat.add a m)
+            (Nat.add (Nat.add b c) d) (Nat.add b (Nat.add c d))
+            (add_assoc b c d)
+            (@Eq.refl.{1} Nat (Nat.add a (Nat.add (Nat.add b c) d))))
+          (@Eq.symm.{1} Nat
+            (Nat.add (Nat.add a b) (Nat.add c d))
+            (Nat.add a (Nat.add b (Nat.add c d)))
+            (add_assoc a b (Nat.add c d))))))
+
+
+-- 定义性相等：myMul 在第二个参数上递归，base 就是 0。
+theorem myMul_zero (a : Nat) :
+    myMul a Nat.zero = Nat.zero :=
+  Eq.refl Nat.zero
+
+-- 定义性相等：递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)。
+theorem myMul_succ (a b : Nat) :
+    myMul a (Nat.succ b) = Nat.add a (myMul a b) :=
+  Eq.refl (Nat.add a (myMul a b))
+
+theorem zero_mul (a : Nat) : myMul Nat.zero a = Nat.zero :=
+  Nat.rec (fun (n : Nat) => myMul Nat.zero n = Nat.zero)
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : myMul Nat.zero n = Nat.zero) =>
+      @Eq.trans.{1} Nat (myMul Nat.zero (Nat.succ n)) (Nat.add Nat.zero (myMul Nat.zero n)) Nat.zero
+        (@Eq.refl.{1} Nat (Nat.add Nat.zero (myMul Nat.zero n)))
+        (@Eq.trans.{1} Nat (Nat.add Nat.zero (myMul Nat.zero n)) (myMul Nat.zero n) Nat.zero
+          (zero_add (myMul Nat.zero n)) ih))
+    a
+
+-- soko:hint 思路：对 b 归纳。零情形两边都归约成 0；后继情形把左边展开成 (a+1) + myMul (a+1) n，用 ih 把 myMul (a+1) n 换成 a*n + n，再用 succ_add / add_assoc 把两边对到 succ (a + (a*n + n))。
+-- soko:hint 目标形态：(a+1) * b = a*b + b。
+-- soko:hint 关键件：Nat.rec · Eq.subst（把 ih 换进 add (a+1) 的第二个位置）· succ_add · add_assoc · Eq.refl（add x (succ n) 定义性归约）。
+theorem succ_mul (a b : Nat) :
+    myMul (Nat.succ a) b = Nat.add (myMul a b) b :=
+  Nat.rec (fun (n : Nat) => myMul (Nat.succ a) n = Nat.add (myMul a n) n)
+    (@Eq.trans.{1} Nat (myMul (Nat.succ a) Nat.zero) Nat.zero (Nat.add (myMul a Nat.zero) Nat.zero)
+      (@Eq.refl.{1} Nat Nat.zero)
+      (@Eq.symm.{1} Nat (Nat.add (myMul a Nat.zero) Nat.zero) Nat.zero (add_zero (myMul a Nat.zero))))
+    (fun (n : Nat)
+         (ih : myMul (Nat.succ a) n = Nat.add (myMul a n) n) =>
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => Nat.add (Nat.succ a) m =
+        Nat.add (Nat.add a (myMul a n)) (Nat.succ n))
+        (Nat.add (myMul a n) n) (myMul (Nat.succ a) n)
+        (@Eq.symm.{1} Nat (myMul (Nat.succ a) n) (Nat.add (myMul a n) n) ih)
+        (@Eq.trans.{1} Nat
+          (Nat.add (Nat.succ a) (Nat.add (myMul a n) n))
+          (Nat.succ (Nat.add a (Nat.add (myMul a n) n)))
+          (Nat.add (Nat.add a (myMul a n)) (Nat.succ n))
+          (succ_add a (Nat.add (myMul a n) n))
+          (@Eq.trans.{1} Nat
+            (Nat.succ (Nat.add a (Nat.add (myMul a n) n)))
+            (Nat.succ (Nat.add (Nat.add a (myMul a n)) n))
+            (Nat.add (Nat.add a (myMul a n)) (Nat.succ n))
+            (congrArg.{1} Nat.succ
+              (@Eq.symm.{1} Nat (Nat.add (Nat.add a (myMul a n)) n)
+                (Nat.add a (Nat.add (myMul a n) n)) (add_assoc a (myMul a n) n)))
+            (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a (myMul a n)) n))))))
+    b
+
+-- soko:hint 思路：对 b 归纳。零情形用 zero_mul 把两边都变成 0；后继情形 myMul a (n+1) = a + myMul a n，用 ih 换成 a + myMul n a，再用 add_comm 换成 myMul n a + a，最后用 succ_mul 的对称收口。
+-- soko:hint 目标形态：myMul a b = myMul b a。
+-- soko:hint 关键件：Nat.rec · congrArg（在 add a 下改写 ih）· add_comm · succ_mul（取对称）。
+theorem myMul_comm (a b : Nat) :
+    myMul a b = myMul b a :=
+  Nat.rec (fun (n : Nat) => myMul a n = myMul n a)
+    (@Eq.trans.{1} Nat (myMul a Nat.zero) Nat.zero (myMul Nat.zero a)
+      (@Eq.refl.{1} Nat Nat.zero)
+      (@Eq.symm.{1} Nat (myMul Nat.zero a) Nat.zero (zero_mul a)))
+    (fun (n : Nat) (ih : myMul a n = myMul n a) =>
+      @Eq.trans.{1} Nat (myMul a (Nat.succ n)) (Nat.add a (myMul a n)) (myMul (Nat.succ n) a)
+        (@Eq.refl.{1} Nat (Nat.add a (myMul a n)))
+        (@Eq.trans.{1} Nat (Nat.add a (myMul a n)) (Nat.add (myMul n a) a) (myMul (Nat.succ n) a)
+          (@Eq.trans.{1} Nat (Nat.add a (myMul a n)) (Nat.add a (myMul n a)) (Nat.add (myMul n a) a)
+            (congrArg.{1} (fun (x : Nat) => Nat.add a x) ih)
+            (add_comm a (myMul n a)))
+          (@Eq.symm.{1} Nat (myMul (Nat.succ n) a) (Nat.add (myMul n a) a) (succ_mul n a))))
+    b
+
+-- soko:hint 思路：逐分量证明两个 prod_mk 相等。第一个分量用两次 congrArg（myMul_comm a c 与 myMul_comm b d）；第二个分量先把 a*d 与 b*c 对调，再用 add_comm 把两个加数顺序换过来；最后两次 congrArg 把分量相等装回序对。
+-- soko:hint 目标形态：mulRep (a,b) (c,d) = mulRep (c,d) (a,b)。
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉒.1 加法搬运（分配律步例要用）
+-- ─────────────────────────────────────────────────────────────
+
+theorem add_mid (a x y : Nat) :
+    Nat.add a (Nat.add x y) = Nat.add x (Nat.add a y) :=
+  @Eq.trans.{1} Nat
+    (Nat.add a (Nat.add x y))
+    (Nat.add (Nat.add a x) y)
+    (Nat.add x (Nat.add a y))
+    (@Eq.symm.{1} Nat (Nat.add (Nat.add a x) y) (Nat.add a (Nat.add x y)) (add_assoc a x y))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add a x) y)
+      (Nat.add (Nat.add x a) y)
+      (Nat.add x (Nat.add a y))
+      (congrArg.{1} (fun (m : Nat) => Nat.add m y) (add_comm a x))
+      (add_assoc x a y))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉒.2 左分配律：a * (b + c) = a*b + a*c（对 c 归纳）
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对 c 归纳。基例 c = 0 时 `b + 0` 定义性等于 b、`a * 0` 定义性等于 0，两边都是 `a*b`，`Eq.refl` 即可；步例把 `a * (b + succ n)` 展开成 `a + a*(b+n)`，用 ih 换成 `a + (a*b + a*n)`，再交给 add_mid 换成 `a*b + (a + a*n)`。
+-- soko:hint 目标形态：myMul a (b + c) = myMul a b + myMul a c。
+-- soko:hint 关键件：Nat.rec · congrArg（在 add a 下改写 ih）· add_mid · Eq.refl（定义性展开）。
+theorem mul_add (a b c : Nat) :
+    myMul a (Nat.add b c) = Nat.add (myMul a b) (myMul a c) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉒.3 右分配律：(a + b) * c = a*c + b*c
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把左边用 myMul_comm 翻成 `c * (a+b)`，交给 mul_add 展开，再用两次 myMul_comm（一次对 c a，一次对 c b）把因子顺序摆回来。
+-- soko:hint 目标形态：myMul (a + b) c = myMul a c + myMul b c。
+-- soko:hint 关键件：myMul_comm · mul_add · congrArg（两次，分别改第一个与第二个加数）· Eq.trans。
+theorem mul_add_right (a b c : Nat) :
+    myMul (Nat.add a b) c = Nat.add (myMul a c) (myMul b c) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉒.4 结合律：(a * b) * c = a * (b * c)（对 c 归纳）
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对 c 归纳。基例两边都归约成 0；步例把左边展开成 `(a*b) + (a*b)*n`，用 ih 把第二个加数换成 `a*(b*n)`，右边展开成 `a * (b + b*n)`，交给 mul_add 的对称收口。
+-- soko:hint 目标形态：myMul (myMul a b) c = myMul a (myMul b c)。
+-- soko:hint 关键件：Nat.rec · congrArg（在 add (a*b) 下改写 ih）· mul_add（取对称）· Eq.refl（定义性展开）。
+theorem myMul_assoc (a b c : Nat) :
+    myMul (myMul a b) c = myMul a (myMul b c) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉒.5 具体数字上验一遍
+-- ─────────────────────────────────────────────────────────────
+
+-- 2 * (3 + 4) = 2*3 + 2*4。
+theorem demo_mul_add :
+    myMul 2 (Nat.add 3 4) = Nat.add (myMul 2 3) (myMul 2 4) :=
+  mul_add 2 3 4
+
+-- (2 * 3) * 4 = 2 * (3 * 4)。
+theorem demo_mul_assoc :
+    myMul (myMul 2 3) 4 = myMul 2 (myMul 3 4) :=
+  myMul_assoc 2 3 4
+
+-- 内核直接算：2 * 7 归约成 14。
+theorem demo_two_seven :
+    myMul 2 7 = 14 :=
+  Eq.refl 14

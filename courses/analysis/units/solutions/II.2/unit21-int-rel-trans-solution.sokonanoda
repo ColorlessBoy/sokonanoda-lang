@@ -1,0 +1,195 @@
+-- 单元㉑ 整数相等的传递性（ℚ 传递性的第一块地基）
+--
+-- 单元⑳ 把 ℚ 建成 `Quot ratRel`，并结清了自反与对称两条腿。要说明 `ratRel`
+-- 是一个等价关系（`Quot` 的商才有意义），还差**传递性**：
+--
+--   ratRel x y ⇒ ratRel y z ⇒ ratRel x z
+--
+-- 把 ratRel 展开就是「交叉相乘后的两个整数代表元相等」。所以第一块地基是
+-- **整数相等的传递性**：
+--
+--   intRel p q ⇒ intRel q r ⇒ intRel p r
+--
+-- 它纯是 ℕ 加法的活儿：两条假设各加一个数把中间项对齐，用 `add_rotate`
+-- 把同一个 `d` 转到最右边，再用加法消去律 `nat_add_cancel_right` 把它消掉。
+-- 这一步不需要乘法，也不需要 `funext`，是整条链里唯一能独立成单元的。
+--
+-- 下一单元才动 ℤ 乘法结合律（交叉相乘要把 `(a·d)·f` 与 `a·(d·f)` 对齐），
+-- 再下一单元是 ℕ 正因子消去，最后才是 `ratRel_trans`。**别把传递性硬塞进
+-- 一个单元**：这三步缺一步都过不了内核（2026-11-09 实测）。
+import lib.Logic
+import lib.Prod
+
+-- 「差相等」关系：a - b = c - d  ⟺  a + d = b + c
+def intRel (a b : Prod Nat Nat) : Prop :=
+  Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =
+  Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)
+
+def Int : Type := @Quot.{1} (Prod Nat Nat) intRel
+
+-- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+theorem zero_add (b : Nat) :
+    Nat.add Nat.zero b = b :=
+  Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : Nat.add Nat.zero n = n) =>
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => Nat.succ (Nat.add Nat.zero n) = Nat.succ m)
+        (Nat.add Nat.zero n) n ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add Nat.zero n))))
+    b
+
+theorem succ_add (a b : Nat) :
+    Nat.add (Nat.succ a) b = Nat.succ (Nat.add a b) :=
+  Nat.rec (fun (n : Nat) => Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n))
+    (@Eq.refl.{1} Nat (Nat.succ a))
+    (fun (n : Nat) (ih : Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n)) =>
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => Nat.succ (Nat.add (Nat.succ a) n) = Nat.succ m)
+        (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n))))
+    b
+
+theorem add_comm (a b : Nat) :
+    Nat.add a b = Nat.add b a :=
+  Nat.rec (fun (n : Nat) => Nat.add a n = Nat.add n a)
+    (@Eq.symm.{1} Nat (Nat.add Nat.zero a) a (zero_add a))
+    (fun (n : Nat) (ih : Nat.add a n = Nat.add n a) =>
+      @Eq.trans.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ (Nat.add n a)) (Nat.add (Nat.succ n) a)
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) => Nat.succ (Nat.add a n) = Nat.succ m)
+          (Nat.add a n) (Nat.add n a) ih
+          (@Eq.refl.{1} Nat (Nat.succ (Nat.add a n))))
+        (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
+    b
+
+theorem add_assoc (a b c : Nat) :
+    Nat.add (Nat.add a b) c = Nat.add a (Nat.add b c) :=
+  Nat.rec (fun (n : Nat) => Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n))
+    (@Eq.refl.{1} Nat (Nat.add a b))
+    (fun (n : Nat) (ih : Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n)) =>
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => Nat.succ (Nat.add (Nat.add a b) n) = Nat.succ m)
+        (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
+    c
+
+-- 转动加数：把 (a+k)+j 换成 (a+j)+k（消去律最后一步要用）。
+theorem add_rotate (a k j : Nat) :
+    Nat.add (Nat.add a k) j = Nat.add (Nat.add a j) k :=
+  @Eq.trans.{1} Nat (Nat.add (Nat.add a k) j) (Nat.add a (Nat.add k j)) (Nat.add (Nat.add a j) k)
+    (add_assoc a k j)
+    (@Eq.trans.{1} Nat (Nat.add a (Nat.add k j)) (Nat.add a (Nat.add j k)) (Nat.add (Nat.add a j) k)
+      (congrArg.{1} (fun (x : Nat) => Nat.add a x) (add_comm k j))
+      (@Eq.symm.{1} Nat (Nat.add (Nat.add a j) k) (Nat.add a (Nat.add j k)) (add_assoc a j k)))
+
+-- 前驱：`pred (succ n) = n` 是定义性相等；用于从前驱等式换回原等式。
+def Nat.pred (n : Nat) : Nat := match n with
+| zero => Nat.zero
+| succ m => m
+
+-- 本语言没有内建的 `Nat.succ.inj`：对等式两边取前驱即得（定义性相等）。
+theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) :
+    a = b :=
+  congrArg.{1} Nat.pred h
+
+-- soko:hint 思路：对 k 归纳。基例 k = 0 时 `a + 0` 定义性等于 a，假设 h 的类型就是 a = b；步例 k = succ n 时两边各露一层 succ，用 Nat.succ.inj 剥掉后再交给归纳假设。
+-- soko:hint 目标形态：`a + k = b + k → a = b`（对 k 归纳，动机把两边都带上）。
+-- soko:hint 关键件：Nat.rec · Nat.succ.inj（本文件已给）。
+theorem nat_add_cancel_right (a b k : Nat) :
+    Nat.add a k = Nat.add b k → a = b :=
+  Nat.rec
+    (fun (n : Nat) => Nat.add a n = Nat.add b n → a = b)
+    (fun (h : a = b) => h)
+    (fun (n : Nat)
+         (ih : Nat.add a n = Nat.add b n → a = b) =>
+      fun (h : Nat.succ (Nat.add a n) = Nat.succ (Nat.add b n)) =>
+        ih (Nat.succ.inj (Nat.add a n) (Nat.add b n) h))
+    k
+
+-- 演示：2 + 2 = 4 + 0 说明 (2-0) 与 (4-2) 差相同。
+theorem demo_intRel :
+    intRel (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 4 2) :=
+  Eq.refl 4
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉑.1 把两条假设接到同一条中间式上
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：给 h1 两边同时加 f（congrArg），给 h2 两边同时加 b；中间用 add_rotate c b f 把 (c+b)+f 转成 (c+f)+b，两次 Eq.trans 串起来。
+-- soko:hint 目标形态：(a+d)+f = (e+d)+b。
+-- soko:hint 关键件：congrArg（fun x => x + f 与 fun x => x + b）· add_rotate c b f · Eq.trans。
+theorem intRel_trans_mid (a b c d e f : Nat)
+    (h1 : Nat.add a d = Nat.add c b)
+    (h2 : Nat.add c f = Nat.add e d) :
+    Nat.add (Nat.add a d) f = Nat.add (Nat.add e d) b :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add a d) f)
+    (Nat.add (Nat.add c b) f)
+    (Nat.add (Nat.add e d) b)
+    (congrArg.{1} (fun (x : Nat) => Nat.add x f) h1)
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add c b) f)
+      (Nat.add (Nat.add c f) b)
+      (Nat.add (Nat.add e d) b)
+      (add_rotate c b f)
+      (congrArg.{1} (fun (x : Nat) => Nat.add x b) h2))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉑.2 整数相等是传递的
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先用 ㉑.1 得到 (a+d)+f = (e+d)+b；再把两边各自的 d 转到最右边（add_rotate 两次，左边取对称）；最后把 d 交给 nat_add_cancel_right 消掉。
+-- soko:hint 目标形态：intRel p q ⇒ intRel q r ⇒ intRel p r（展开就是 a+f = e+b）。
+-- soko:hint 关键件：intRel_trans_mid · add_rotate（两次，一次取对称）· nat_add_cancel_right · Eq.trans。
+theorem intRel_trans (p q r : Prod Nat Nat)
+    (h1 : intRel p q) (h2 : intRel q r) : intRel p r :=
+  nat_add_cancel_right
+    (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat r))
+    (Nat.add (Prod.fst Nat Nat r) (Prod.snd Nat Nat p))
+    (Prod.snd Nat Nat q)
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat r)) (Prod.snd Nat Nat q))
+      (Nat.add (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q)) (Prod.snd Nat Nat r))
+      (Nat.add (Nat.add (Prod.fst Nat Nat r) (Prod.snd Nat Nat p)) (Prod.snd Nat Nat q))
+      (@Eq.symm.{1} Nat
+        (Nat.add (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q)) (Prod.snd Nat Nat r))
+        (Nat.add (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat r)) (Prod.snd Nat Nat q))
+        (add_rotate (Prod.fst Nat Nat p) (Prod.snd Nat Nat q) (Prod.snd Nat Nat r)))
+      (@Eq.trans.{1} Nat
+        (Nat.add (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q)) (Prod.snd Nat Nat r))
+        (Nat.add (Nat.add (Prod.fst Nat Nat r) (Prod.snd Nat Nat q)) (Prod.snd Nat Nat p))
+        (Nat.add (Nat.add (Prod.fst Nat Nat r) (Prod.snd Nat Nat p)) (Prod.snd Nat Nat q))
+        (intRel_trans_mid
+          (Prod.fst Nat Nat p) (Prod.snd Nat Nat p)
+          (Prod.fst Nat Nat q) (Prod.snd Nat Nat q)
+          (Prod.fst Nat Nat r) (Prod.snd Nat Nat r) h1 h2)
+        (add_rotate (Prod.fst Nat Nat r) (Prod.snd Nat Nat q) (Prod.snd Nat Nat p))))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉑.3 连跳三步：把传递性用两次
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先对 p q r 用一次 intRel_trans 得到 intRel p r，再对 p r s 用一次。
+-- soko:hint 目标形态：intRel p q ⇒ intRel q r ⇒ intRel r s ⇒ intRel p s。
+-- soko:hint 关键件：intRel_trans（两次）。
+theorem intRel_chain4 (p q r s : Prod Nat Nat)
+    (h1 : intRel p q) (h2 : intRel q r) (h3 : intRel r s) : intRel p s :=
+  intRel_trans p r s (intRel_trans p q r h1 h2) h3
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉑.4 具体数字上走一遍
+-- ─────────────────────────────────────────────────────────────
+
+-- 5-2 与 4-1 差相同（5+1 = 4+2），4-1 与 3-0 差相同（4+0 = 3+1），所以 5-2 与 3-0 差相同（5+0 = 3+2）。
+-- soko:hint 思路：直接对具体序对用 intRel_trans；两条小前提都是具体数字等式，用 Eq.refl 即可。
+-- soko:hint 目标形态：intRel (5,2) (3,0)。
+-- soko:hint 关键件：intRel_trans · Eq.refl（内核会把 5+1 与 4+2 都归约成 6）。
+theorem intRel_trans_demo :
+    intRel (@prod_mk Nat Nat 5 2) (@prod_mk Nat Nat 3 Nat.zero) :=
+  intRel_trans
+    (@prod_mk Nat Nat 5 2)
+    (@prod_mk Nat Nat 4 1)
+    (@prod_mk Nat Nat 3 Nat.zero)
+    (@Eq.refl.{1} Nat 6)
+    (@Eq.refl.{1} Nat 4)

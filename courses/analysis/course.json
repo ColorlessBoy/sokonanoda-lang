@@ -1,0 +1,211 @@
+{
+  "schema": "soko.course/2",
+  "name": "analysis",
+  "title": "从集合论到实分析",
+  "volumes": [
+    {
+      "id": "II",
+      "title": "卷 II 数系与实数",
+      "chapters": [
+        {
+          "id": "II.1",
+          "title": "整数：从 ℕ 到 ℤ",
+          "prereqs": [],
+          "tags": [
+            "int-quotient",
+            "int-rel"
+          ],
+          "quota": {
+            "exercises": 94
+          },
+          "units": [
+            {
+              "file": "units/II.1/unit01-int-quotient.sokonanoda",
+              "title": "单元① 整数与商构造",
+              "title_en": "Unit 1 — Integers via Quotient",
+              "unit": 1
+            },
+            {
+              "file": "units/II.1/unit02-quotients-review.sokonanoda",
+              "title": "单元② 商类型与良定义性（复习）",
+              "title_en": "Unit 2 — Quotients Review",
+              "unit": 2
+            },
+            {
+              "file": "units/II.1/unit03-nat-arith-review.sokonanoda",
+              "title": "单元③ ℕ 的算术律（复习）",
+              "title_en": "Unit 3 — Nat Arithmetic Review",
+              "unit": 3
+            },
+            {
+              "file": "units/II.1/unit04-int-reps.sokonanoda",
+              "title": "单元④ 整数加法 / 负 / 减的代表元公式",
+              "title_en": "Unit 4 — Integer Operations on Representatives",
+              "unit": 4
+            },
+            {
+              "file": "units/II.1/unit05-int-mul-reps.sokonanoda",
+              "title": "单元⑤ 整数乘法的代表元公式",
+              "title_en": "Unit 5 — Integer Multiplication on Representatives",
+              "unit": 5
+            },
+            {
+              "file": "units/II.1/unit06-int-add-wd.sokonanoda",
+              "title": "单元⑥ 整数加法的良定义性",
+              "title_en": "Unit 6 — Addition is Well-Defined",
+              "unit": 6
+            },
+            {
+              "file": "units/II.1/unit07-int-add-laws.sokonanoda",
+              "title": "单元⑦ 整数加法的交换律与结合律",
+              "title_en": "Unit 7 — Addition Laws on Integers",
+              "unit": 7
+            },
+            {
+              "file": "units/II.1/unit08-int-add-group.sokonanoda",
+              "title": "单元⑧ 整数加法的零元与负元",
+              "title_en": "Unit 8 — Additive Identity and Inverse",
+              "unit": 8
+            },
+            {
+              "file": "units/II.1/unit09-int-sub.sokonanoda",
+              "title": "单元⑨ 整数减法的良定义性与基本律",
+              "title_en": "Unit 9 — Subtraction is Well-Defined",
+              "unit": 9
+            },
+            {
+              "file": "units/II.1/unit10-int-mul-identity.sokonanoda",
+              "title": "单元⑩ 整数乘法的零元与单位元",
+              "title_en": "Unit 10 — Multiplication: Zero and One",
+              "unit": 10
+            },
+            {
+              "file": "units/II.1/unit11-int-mul-wd.sokonanoda",
+              "title": "单元⑪ 整数乘法的良定义性",
+              "title_en": "Unit 11 — Multiplication is Well-Defined",
+              "unit": 11
+            },
+            {
+              "file": "units/II.1/unit12-int-order-reps.sokonanoda",
+              "title": "单元⑫ 整数序的代表元公式",
+              "title_en": "Unit 12 — Order on Representatives",
+              "unit": 12
+            },
+            {
+              "file": "units/II.1/unit13-nat-order-lemmas.sokonanoda",
+              "title": "单元⑬ ℕ 序的传递性与单调性",
+              "title_en": "Unit 13 — Order: Transitivity and Monotonicity",
+              "unit": 13
+            },
+            {
+              "file": "units/II.1/unit14-leNat-cancel.sokonanoda",
+              "title": "单元⑭ ℕ 序的加法消去律",
+              "title_en": "Unit 14 — Cancelling an Addend in the Order",
+              "unit": 14
+            },
+            {
+              "file": "units/II.1/unit15-leRep-wd.sokonanoda",
+              "title": "单元⑮ 整数序的良定义性",
+              "title_en": "Unit 15 — Order is Well-Defined",
+              "unit": 15
+            },
+            {
+              "file": "units/II.1/unit16-int-order-axioms.sokonanoda",
+              "title": "单元⑯ 整数序的传递性与加法单调",
+              "title_en": "Unit 16 — Transitivity and Translation Invariance",
+              "unit": 16
+            },
+            {
+              "file": "units/II.1/unit17-int-mul-comm.sokonanoda",
+              "title": "单元⑰ 整数乘法的交换律（代表元层）",
+              "title_en": "Unit 17 — Multiplication is Commutative",
+              "unit": 17
+            },
+            {
+              "file": "units/II.1/unit18-int-mul-wd-snd.sokonanoda",
+              "title": "单元⑱ 整数乘法的第二个因子良定义（代表元层）",
+              "title_en": "Unit 18 — Multiplication is Well-Defined in the Second Factor",
+              "unit": 18
+            },
+            {
+              "file": "units/II.1/unit19-quot-lift.sokonanoda",
+              "title": "单元⑲ 把取负下降成函数（`Quot.lift`）",
+              "title_en": "Unit 19 — Descending Negation with Quot.lift",
+              "unit": 19
+            }
+          ]
+        },
+        {
+          "id": "II.2",
+          "title": "有理数：从 ℤ 到 ℚ",
+          "prereqs": [
+            "II.1"
+          ],
+          "tags": [
+            "rat-quotient",
+            "rat-rel"
+          ],
+          "quota": {
+            "exercises": 38
+          },
+          "units": [
+            {
+              "file": "units/II.2/unit20-rat-quotient.sokonanoda",
+              "title": "单元⑳ 有理数与商构造",
+              "title_en": "Unit 20 — Rationals via Quotient",
+              "unit": 20
+            },
+            {
+              "file": "units/II.2/unit21-int-rel-trans.sokonanoda",
+              "title": "单元㉑ 整数相等的传递性",
+              "title_en": "Unit 21 — Transitivity of Integer Equality",
+              "unit": 21
+            },
+            {
+              "file": "units/II.2/unit22-nat-mul-laws.sokonanoda",
+              "title": "单元㉒ ℕ 乘法的分配律与结合律",
+              "title_en": "Unit 22 — Distributivity and Associativity of Nat Multiplication",
+              "unit": 22
+            },
+            {
+              "file": "units/II.2/unit23-int-mul-assoc.sokonanoda",
+              "title": "单元㉓ ℤ 乘法的结合律（代表元层）",
+              "title_en": "Unit 23 — Associativity of Integer Multiplication",
+              "unit": 23
+            },
+            {
+              "file": "units/II.2/unit24-nat-mul-cancel.sokonanoda",
+              "title": "单元㉔ ℕ 正因子的消去律",
+              "title_en": "Unit 24 — Cancelling a Positive Factor in ℕ",
+              "unit": 24
+            },
+            {
+              "file": "units/II.2/unit25-rat-rel-trans.sokonanoda",
+              "title": "单元㉕ 有理数相等的传递性",
+              "title_en": "Unit 25 — Transitivity of Rational Equality",
+              "unit": 25
+            },
+            {
+              "file": "units/II.2/unit26-rat-add.sokonanoda",
+              "title": "单元㉖ 有理数加法的代表元公式与良定义性",
+              "title_en": "Unit 26 — Addition of Rationals",
+              "unit": 26
+            },
+            {
+              "file": "units/II.2/unit27-rat-mul.sokonanoda",
+              "title": "单元㉗ 有理数乘法的代表元公式与具体计算",
+              "title_en": "Unit 27 — Multiplication of Rationals",
+              "unit": 27
+            },
+            {
+              "file": "units/II.2/unit28-rat-mul-wd.sokonanoda",
+              "title": "单元㉘ 有理数乘法的良定义性",
+              "title_en": "Unit 28 — Multiplication is Well-Defined",
+              "unit": 28
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

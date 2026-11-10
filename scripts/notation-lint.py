@@ -78,6 +78,9 @@ DEFAULT_ROOTS = [
     # 那 5 篇（4 篇 + 索引）与 tactic 正文同待遇 —— **随 VSIX 发出去**的正文 ⇒
     # 它的 ```sokonanoda 例子同样受「一律写记法」这条硬规则（AGENTS.md 硬规则 3）管 ✓。
     "reference/commands",
+    # 卷 II/III《从集合论到实分析》（2026-11-10 接入；#29 后 notation 519→0）：
+    # 新课程和卷 I 同一条硬规则，CI 的 notation-lint 默认根覆盖它，避免再漂移 ✓。
+    "courses/analysis",
 ]
 
 # ── markdown 里的代码围栏（与 `crates/front/tests/tactic_docs.rs::fenced_sokonanoda_blocks`

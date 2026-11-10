@@ -1,19 +1,12 @@
-## 修复 `apply` 目标不对齐（2026-11-05 · issue #10 · `Set.ext` 之后 `apply h1`）
-- **根因**：`apply` 只做「把被应用项的 Π 层**全部**剥成子目标、拿结论对**整条**目标」这一档；目标本身是 `→`/`∀` 时对不上（Lean 4 的 `MVarId.apply` 从 `i = n - m` 起逐档试，`h1 x` 一个函数就关掉目标）。新增 `apply_partial.rs`（失败边），`apply h1` 在 `x ∈ A → x ∈ B` 上直接关掉；方向错仍报原诊断.
-- **显示根因**：`Set.ext` 的陈述原来写 `A x ↔ B x`（没用 `Set.mem`）⇒ `apply Set.ext` 之后目标面板是 `A x ↔ B x`（`A`/`x` 无着色）。改成 `Set.mem x A ↔ Set.mem x B` ⇒ 面板 `x ∈ A ↔ x ∈ B`.
-- 判据：front ×2（正向 + 方向错仍红）· CLI `tests/apply_pi_goal.rs` ×5（真课程库骨架 · 记法面板 · 不许吞错 · 无约束层仍是子目标 · 逃生门回退）· 课程门禁 258 目标 / 2191 checked / 0 判负 · front `--lib` 1198 passed.
-## 扩展升级后建议 rebuild（2026-11-05 · issue #9）
-- 升级后第一次在 sokonanoda **项目**里打开 `.sokonanoda` ⇒ 通知建议 rebuild，按钮 **确认 / 取消**；确认走 `rebuild --json <模块根>`（与 `alt+shift+b` 同一目标，来自 `soko/project`）；取消不重建、本会话也不再静默预热（否则 2026-10-11 的自动预热会让「取消」变谎话）。一次升级只问一次（`globalState` 基线）；首跑兜底看项目产物写者版本（上线那一版不会错过）。
-- 判据：stub **82/82**（取消 ⇒ 零 spawn 且不补跑 · 确认 ⇒ 恰好一次 `rebuild --json <模块根>` · 单文件不问 · 降级不问 · 首跑兜底）· `cargo test -p sokonanoda-cli --test extension` 43/43 · `npm run test:unit` 全绿.
-- 边界：只问**第一次**遇到的模块根；升级后没打开项目文件就不问（基线已记下）.
-## 修复 issue #7（2026-11-04 · goal 里的 `{a}` · `apply Eq.subst hx` · 请求期探针 panic）
-- 显示：显式脊 `@Set.singleton α a` 折回 `{a}`（部分应用仍不折）；elaboration：`apply Eq.subst hx` 判绿（错 motive 仍红）；健壮性：请求期探针 panic 降级成「算不出」.
-- ⚠ 用户报的「写错 `p` 后 lsp 死掉」在 0.98.2 与 HEAD 都复现不出来 ⇒ 修的是同族可证的机制（请求期 panic → 永不回答），不是已确认现场.
-- 判据：display ×3 + front ×2 + LSP 集成 ×1；截图见 PR.
-## 更早轮次（`·` 块内 goal state 2026-11-04 · 课程目录迁移 2026-11-04 · metavar 2026-10-26 · LKA 2026-10-24）
-- 原文已删（只留最近 3 轮）⇒ `git log --all -- STATUS.md`。metavar 只认 `docs/design/metavar-pattern.md` §9；课程目录迁移 = issue #3（`course/` → `courses/quick-start/`）.
-
-## 更早轮次（原文已删 ⇒ `git log --all -- STATUS.md`）：v0.97.4–v0.97.8 已发版（资产核对 = `gh release list`）· v0.97.6 前 `apply Eq.subst h hx` 判绿 ✓
-## 未决项：**权威 = `docs/ONBOARDING.md` §0.2**（本节不自报条数；2026-10-13 订正过"6 条"与实测不符 ✗）
-## 已发布线：`v0.79.0`…`v0.83.0` ⇒ `docs/archive/status-removed-rounds-2026-10-13.md.gz`；**"最新是哪版/多少没发"不许写这里**（死格，2026-10-16 实测落后 15 个 release ✗）⇒ 活读数 `python3 scripts/release-metric.py` ✓
-## 硬事实（接手先读）⇒ 原文已删（`docs-lint` ⑦ 顶格，按本文件规矩腾空间）· `git log --all -- STATUS.md` ✓
+## M1 单元㉘ ℚ 乘法的良定义性（2026-11-10 · issue #17 / PR #24）
+- `unit28-rat-mul-wd`：乘法两条代表元层义务 `ratMulRep_wd`（x~x' ⇒ x*y~x'*y）与 `ratMulRep_wd_snd`（y~y' ⇒ x*y~x*y'）。`rat_cross` 先把同分母 `ratRel` 化成 `a+b'=a'+b`，整数层 `mulRep_wd` / `mulRep_wd_snd` 把相等搬到两个分子，最后乘回公分母。画布 **80 checked / 2 open**，解答 **82 checked / 0 open**.
+- 判据：课程门禁 **67 目标 · 1580 checked · 132 open · 0 判负**（0.98.4 仓库构建）；M1 单元 **28/28**（II.1 **19/19** · II.2 **9/9**）。
+- 未收口：`notation-lint --root courses/analysis` 仍 **rc=1**（613 处 / 75 文件，issue #29）；在 notation 清零与审计阻塞项修完前不宣称 M1 完成。仍不下降成 `Rat → Rat → Rat`（无 `funext`，issue #28），不加公理.
+## M1 单元㉗ ℚ 乘法的代表元公式与具体计算（2026-11-10 · issue #17 / PR #24）
+- `unit27-rat-mul`：`ratMulRep` 的分子是整数代表元乘法 `mulRep`（`(ac+bd, ad+bc)`），分母字段仍取 `ratDenRep m n`；`ratMulRep_mk` / `ratMul_den` / `ratMul_num_comm` + 三个具体计算（`1/2*1/3=1/6`、`1/2*2/3=1/3`、`2/3*3/4=1/2`）。画布 **74 checked / 5 open**，解答 **79 checked / 0 open**.
+- 判据：课程门禁 **65 目标 · 1418 checked · 130 open · 0 判负**（0.98.4 仓库构建）；`notation-lint` / `docs-lint` / `status-lint` 绿.
+- 边界：本单元**只到公式与计算**；乘法的两条 `Quot.lift` 良定义义务留下（同 #28：无 `funext`，不下降成 `Rat → Rat → Rat`，不加公理）。M1 = **27/28**（II.1 **19/19** · II.2 **8/9**），M1 未完成.
+## M1 单元㉖ ℚ 加法的代表元公式与良定义性（2026-11-10 · issue #17 / PR #24）
+- `unit26-rat-add`：`ratDenRep m n = m*n + m + n`（㉖.1 证 `succ (m*n+m+n) = (m+1)(n+1)`）· `ratAddRep`（交叉乘加、分母字段取 `ratDenRep`）· 两条良定义义务：`ratAdd_cross`（消去同一正分母）→ `ratAdd_num_wd` / `_snd`（分子四步搬运）→ `mul_shift_c` → `mulRep_den` + `intRel_trans` 收口；画布 **54 checked / 6 open**，解答 **60 checked / 0 open**.
+- 判据：课程门禁 **63 目标 · 1265 checked · 125 open · 0 判负**（0.98.4 仓库构建）；`notation-lint` / `docs-lint` 绿.
+- 边界：加法仍停在**代表元层**（`Rat → Rat → Rat` 需要 `funext`，issue #28），不加公理。M1 = **26/28**（II.1 **19/19** · II.2 **7/9**），M1 未完成.
