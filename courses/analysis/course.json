@@ -360,6 +360,12 @@
               "title": "单元㊻ 序的反对称性：两边夹出相等",
               "title_en": "Unit 46 — Antisymmetry of the Order",
               "unit": 46
+            },
+            {
+              "file": "units/II.5/unit47-abs-unique.sokonanoda",
+              "title": "单元㊼ 绝对值的唯一性：同一个数的两个见证相等",
+              "title_en": "Unit 47 — Uniqueness of the Absolute Value",
+              "unit": 47
             }
           ]
         }
