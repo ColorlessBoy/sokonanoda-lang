@@ -503,6 +503,12 @@
               "title": "单元67 实数的序：自反、传递、反对称",
               "title_en": "Unit 67 — Order on the Reals: Reflexivity, Transitivity, Antisymmetry",
               "unit": 67
+            },
+            {
+              "file": "units/II.6/unit68-complete.sokonanoda",
+              "title": "单元68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类",
+              "title_en": "Unit 68 — Completeness: Rational Cauchy Sequences Converge in ℝ",
+              "unit": 68
             }
           ]
         }
