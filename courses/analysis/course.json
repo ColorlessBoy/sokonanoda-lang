@@ -461,6 +461,12 @@
               "title": "单元60 实数的加法：下降之前的两条义务",
               "title_en": "Unit 60 — Addition on the Reals: Two Obligations Before Descending",
               "unit": 60
+            },
+            {
+              "file": "units/II.6/unit61-real-addrel.sokonanoda",
+              "title": "单元61 实数的加法：三元关系（存在 + 唯一）",
+              "title_en": "Unit 61 — Addition on the Reals: A Ternary Relation (Existence + Uniqueness)",
+              "unit": 61
             }
           ]
         }
