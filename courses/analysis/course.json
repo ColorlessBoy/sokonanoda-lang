@@ -497,6 +497,12 @@
               "title": "单元66 实数的序：沿 realRel 下降成 Real 上的关系",
               "title_en": "Unit 66 — Order on the Reals: Descending to a Relation on Real",
               "unit": 66
+            },
+            {
+              "file": "units/II.6/unit67-real-order-laws.sokonanoda",
+              "title": "单元67 实数的序：自反、传递、反对称",
+              "title_en": "Unit 67 — Order on the Reals: Reflexivity, Transitivity, Antisymmetry",
+              "unit": 67
             }
           ]
         }
