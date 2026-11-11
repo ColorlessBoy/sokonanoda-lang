@@ -4,7 +4,7 @@
 // ε slider, answer a question, press Enter on a focused choice.  Data-only
 // checks (like "the JSON says 5") are not enough; the page must show it.
 
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   sleep,
@@ -112,9 +112,14 @@ export async function browserChecks({ client, log = () => {} } = {}) {
       await client.evaluate("window.scrollTo(0, 0)");
       await sleep(80);
       const buffer = await fullPageCapture(client);
-      ensureDir(join(ROOT, "screenshots"));
-      writeFileSync(join(ROOT, "screenshots", `${name}.png`), buffer);
       writeFileSync(`${TMP_PREFIX}${name}.png`, buffer);
+      const committed = join(ROOT, "screenshots", `${name}.png`);
+      // Chrome's PNG bytes vary by a few pixels between runs.  Do not dirty the
+      // committed evidence on every check; refresh it explicitly instead.
+      if (process.env.SOKO_UPDATE_SHOTS === "1" || !existsSync(committed)) {
+        ensureDir(join(ROOT, "screenshots"));
+        writeFileSync(committed, buffer);
+      }
       details.screenshots.push(`${TMP_PREFIX}${name}.png`);
       expect(buffer.length > 5000, `screenshot ${name} is non-empty`, buffer.length);
     } catch (error) {

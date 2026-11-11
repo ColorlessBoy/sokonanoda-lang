@@ -155,7 +155,7 @@ echo $?   # 0
    形式卡折叠；5 道题逐题用真实点击/键盘答对；错答不 award XP；Q4 错误顺序指出第
    二格；Q5 先选 N 的提示不计错；完成徽章标题精确；重启；390/1440 逐元素溢出；
    减少动态；零外部请求、零 console/page error。
-3. **截图**：写到 `/tmp/learn-demo-*.png` 与 `scripts/learn_demo/screenshots/`。
+3. **截图**：默认写到 `/tmp/learn-demo-*.png`；`SOKO_UPDATE_SHOTS=1 node scripts/learn_demo/check.mjs` 才刷新提交的 `scripts/learn_demo/screenshots/`（避免 Chrome 每次差几像素把仓库弄脏）。
 
 本次验收结果（提交前）：`node scripts/learn_demo/check.mjs` → `rc=0`，静态 80 项 + 浏览器 186 项，共 **266 项**通过。截图：
 
