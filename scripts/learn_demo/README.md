@@ -6,7 +6,7 @@
 
 - **演示页**：`scripts/learn_demo/index.html`
 - **评审副本**：`scripts/learn_demo/preview/index.html`（逐字节相同，供 raw.githack）
-- **预览（commit 固定）**：<https://raw.githack.com/ColorlessBoy/sokonanoda-lang/77886854dcecf8d601a6f5e801ef56c8ac127cb4/scripts/learn_demo/preview/index.html>
+- **预览（commit 固定）**：<https://raw.githack.com/ColorlessBoy/sokonanoda-lang/74e4a40720def19cf18621c7d4552ab6d1db0b5f/scripts/learn_demo/preview/index.html>
 （同一份 `preview/index.html` 也随本分支提交；页面自包含，无外部资源。）
 
 ```bash
