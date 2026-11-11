@@ -1,0 +1,4177 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#fbf7ef">
+  <meta name="description" content="Duolingo 式数学小课原型：6 步互动，先用蓝红计数器讲清整数为什么写成二元组，再走到整数加法逆元。 单文件、离线可开，形式证明默认折叠。">
+  <meta name="robots" content="noindex">
+  <title>整数加法有逆元 · 单元⑧ | 数学小课</title>
+  <style>
+/* Unit ⑧ lesson prototype — mobile-first, no external assets. */
+
+:root {
+  --ink: #22314a;
+  --ink-soft: #3c4d67;
+  --muted: #738097;
+  --faint: #98a3b5;
+  --paper: #fbf7ef;
+  --paper-deep: #f4ede1;
+  --card: #fffdf8;
+  --line: #e7dfd2;
+  --line-cool: #e2e9f1;
+  --green: #58cc02;
+  --green-dark: #3f9c00;
+  --green-soft: #ebf9dc;
+  --green-line: #c3e9a3;
+  --blue: #1cb0f6;
+  --blue-dark: #1386bf;
+  --blue-soft: #e8f7ff;
+  --blue-line: #bfeaff;
+  --orange: #ff9600;
+  --orange-soft: #fff2d4;
+  --orange-line: #ffd899;
+  --red: #ff4b4b;
+  --red-soft: #ffeded;
+  --red-line: #ffc9c9;
+  --violet: #8b5cf6;
+  --sans: ui-rounded, "SF Pro Rounded", "Nunito", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --math: "STIX Two Math", "Latin Modern Math", "Cambria Math", "Times New Roman", "Songti SC", "STSong", serif;
+  --mono: ui-monospace, "SFMono-Regular", "Cascadia Code", "Menlo", "Consolas", monospace;
+  --radius-xl: 28px;
+  --radius-lg: 20px;
+  --radius-md: 16px;
+  --shadow-card: 0 22px 60px rgba(72, 53, 23, 0.10), 0 2px 0 rgba(255, 255, 255, 0.9) inset;
+  --shadow-soft: 0 8px 24px rgba(72, 53, 23, 0.07);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  overflow-wrap: break-word;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 7% -4%, rgba(255, 238, 204, 0.9) 0, rgba(255, 238, 204, 0) 34rem),
+    radial-gradient(circle at 98% 3%, rgba(218, 242, 255, 0.9) 0, rgba(218, 242, 255, 0) 32rem),
+    radial-gradient(circle at 50% 110%, rgba(235, 249, 220, 0.75) 0, rgba(235, 249, 220, 0) 34rem),
+    var(--paper);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  opacity: 0.4;
+  background-image: radial-gradient(rgba(112, 95, 66, 0.18) 0.7px, transparent 0.7px);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(180deg, #000 0, transparent 60%);
+}
+
+body.is-locked {
+  overflow: hidden;
+}
+
+button,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+}
+
+button:focus-visible,
+summary:focus-visible,
+a:focus-visible {
+  outline: 4px solid rgba(28, 176, 246, 0.34);
+  outline-offset: 3px;
+}
+
+::selection {
+  color: #173300;
+  background: #caf3a9;
+}
+
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 100;
+  padding: 10px 14px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  color: var(--ink);
+  background: #fff;
+  font-weight: 800;
+  text-decoration: none;
+  transform: translateY(-160%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.app {
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
+  padding-bottom: 20px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Top bar                                                             */
+/* ------------------------------------------------------------------ */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  border-bottom: 1px solid rgba(229, 219, 203, 0.85);
+  background: rgba(251, 247, 239, 0.88);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.topbar-inner {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 12px 16px 8px;
+}
+
+.brand {
+  display: flex;
+  min-width: 0;
+  gap: 9px;
+  align-items: center;
+}
+
+.brand-mark {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 3px;
+  place-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #6be015, #43b000);
+  box-shadow: 0 3px 0 #389700;
+}
+
+.brand-mark i {
+  display: block;
+  width: 100%;
+  height: 3px;
+  border-radius: 99px;
+  background: #fff;
+}
+
+.brand-mark i:nth-child(2) {
+  width: 72%;
+}
+
+.brand-mark i:nth-child(3) {
+  width: 86%;
+}
+
+.brand-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand-course {
+  overflow: hidden;
+  max-width: 23ch;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.brand-title {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.stats {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.stat {
+  display: inline-flex;
+  gap: 4px;
+  align-items: baseline;
+  min-height: 34px;
+  padding: 5px 9px;
+  border: 1px solid rgba(226, 216, 199, 0.9);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.9);
+  box-shadow: 0 2px 0 rgba(231, 223, 210, 0.75);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.stat.is-bump {
+  background: #fff;
+  transform: translateY(-2px) scale(1.06);
+}
+
+.stat-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.stat-xp .stat-icon {
+  color: var(--green-dark);
+}
+
+.stat-streak .stat-icon {
+  filter: saturate(1.15);
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.progress-row {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 16px 10px;
+}
+
+.progress-copy {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+}
+
+.progress-unit {
+  color: var(--faint);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.progress-track {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  overflow: hidden;
+  border: 1px solid #e4dccf;
+  border-radius: 999px;
+  background: #ede6da;
+  box-shadow: 0 2px 0 rgba(255, 255, 255, 0.7) inset;
+}
+
+.progress-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 5%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #65d80d, #58cc02 60%, #4fc700);
+  box-shadow: 0 0 12px rgba(88, 204, 2, 0.36);
+  transition: width 480ms cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+
+.progress-ticks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.progress-ticks i {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 20%;
+  width: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.progress-ticks i:nth-child(2) {
+  left: 40%;
+}
+
+.progress-ticks i:nth-child(3) {
+  left: 60%;
+}
+
+.progress-ticks i:nth-child(4) {
+  left: 80%;
+}
+
+/* ------------------------------------------------------------------ */
+/* Layout                                                              */
+/* ------------------------------------------------------------------ */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px 14px 0;
+}
+
+.stage {
+  min-width: 0;
+}
+
+.journey {
+  display: none;
+  min-width: 0;
+}
+
+.boot-card {
+  display: grid;
+  place-items: center;
+  min-height: 320px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  color: var(--muted);
+}
+
+.boot-orb {
+  display: block;
+  width: 54px;
+  height: 54px;
+  border: 6px solid #e8f7d9;
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 1.1s linear infinite;
+}
+
+/* ------------------------------------------------------------------ */
+/* Step card                                                           */
+/* ------------------------------------------------------------------ */
+
+.step-card,
+.completion-card {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  padding: 22px 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(232, 247, 255, 0.72) 0, transparent 19rem),
+    linear-gradient(180deg, #fffefa 0%, #fffaf1 100%);
+  box-shadow: var(--shadow-card);
+  animation: rise 420ms cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
+.step-card::before,
+.completion-card::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 5px;
+  content: "";
+  background: linear-gradient(90deg, var(--green), var(--blue) 55%, var(--orange));
+}
+
+.step-top {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.kicker {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 10px;
+  border: 1px solid #cceba9;
+  border-radius: 999px;
+  color: #3c7e0a;
+  background: var(--green-soft);
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.step-mini {
+  flex: 0 0 auto;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.step-title {
+  max-width: 24ch;
+  margin: 0 0 10px;
+  color: var(--ink);
+  font-size: clamp(25px, 6.6vw, 36px);
+  font-weight: 950;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+}
+
+.step-title:focus {
+  outline: none;
+}
+
+.body-copy {
+  max-width: 58ch;
+  margin: 0 0 8px;
+  color: var(--ink-soft);
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+
+.goal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 2px;
+}
+
+.meta-pill {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 5px 9px;
+  border: 1px solid #e6dfd3;
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.meta-pill::before {
+  width: 5px;
+  height: 5px;
+  content: "";
+  border-radius: 50%;
+  background: var(--green);
+}
+
+/* Formula + language help */
+
+.formula-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  margin: 16px 0 0;
+  padding: 12px 13px;
+  border: 1px solid #dceacb;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #f6fced, #fbf8ef);
+}
+
+.formula {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #26364d;
+  font-family: var(--math);
+  font-size: clamp(22px, 6vw, 34px);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+}
+
+.help-btn {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 2px solid #b9e4f8;
+  border-radius: 50%;
+  color: #087ead;
+  background: var(--blue-soft);
+  box-shadow: 0 3px 0 #b7e6fb;
+  font-size: 18px;
+  font-weight: 950;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease;
+}
+
+.help-btn:hover {
+  background: #d8f3ff;
+}
+
+.help-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #b7e6fb;
+}
+
+.symbol-help {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 7px;
+}
+
+.symbol-help-label {
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.help-chip {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 9px 4px 6px;
+  border: 1px solid #d7e6f2;
+  border-radius: 999px;
+  color: #2f5f78;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.help-chip:hover {
+  background: var(--blue-soft);
+}
+
+.help-chip:active {
+  transform: translateY(1px);
+}
+
+.help-q {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--blue);
+  font-size: 11px;
+  font-weight: 950;
+}
+
+/* ------------------------------------------------------------------ */
+/* Visuals                                                             */
+/* ------------------------------------------------------------------ */
+
+.visual {
+  min-width: 0;
+  margin-top: 15px;
+}
+
+.numberline-wrap {
+  padding: 14px 12px 11px;
+  border: 1px solid var(--line-cool);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 15% 0%, rgba(216, 242, 255, 0.65), transparent 12rem),
+    linear-gradient(180deg, #fbfdff, #fbf7ef);
+}
+
+.numberline {
+  padding: 0 16px;
+}
+
+.nl-track {
+  position: relative;
+  height: 82px;
+}
+
+.nl-rail {
+  position: absolute;
+  top: 43px;
+  right: 0;
+  left: 0;
+  height: 14px;
+  border: 1px solid rgba(151, 184, 207, 0.34);
+  border-radius: 999px;
+  background: linear-gradient(90deg, #82ccf7 0%, #cdeaff 27%, #f5ead2 50%, #ffd7ad 73%, #ffab7e 100%);
+  box-shadow: 0 3px 8px rgba(64, 111, 145, 0.13) inset, 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.nl-tick {
+  position: absolute;
+  top: 38px;
+  left: var(--x);
+  width: 2px;
+  height: 24px;
+  border-radius: 2px;
+  background: #c6d2e0;
+  transform: translateX(-50%);
+}
+
+.nl-tick.is-major {
+  top: 35px;
+  height: 30px;
+  background: #9bacc0;
+}
+
+.nl-tick span {
+  position: absolute;
+  top: 31px;
+  left: 50%;
+  color: #7e8ba0;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.nl-zero {
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  width: 3px;
+  height: 44px;
+  border-radius: 3px;
+  background: #33455f;
+  transform: translateX(-50%);
+  box-shadow: 0 0 0 4px rgba(51, 69, 95, 0.08);
+}
+
+.nl-marker {
+  position: absolute;
+  top: 0;
+  left: var(--x);
+  width: 54px;
+  height: 82px;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+
+.nl-marker:focus-visible {
+  outline: 4px solid rgba(28, 176, 246, 0.35);
+  outline-offset: 1px;
+}
+
+.nl-bubble {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  padding: 3px 8px;
+  border: 2px solid #d7e1ec;
+  border-radius: 999px;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 3px 0 rgba(222, 229, 237, 0.85);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.nl-dot {
+  position: absolute;
+  top: 34px;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 2px 6px rgba(51, 69, 95, 0.2);
+  transition: transform 140ms ease;
+}
+
+.nl-marker.tone-warm .nl-bubble {
+  border-color: #ffcf8f;
+  color: #9a5b00;
+}
+
+.nl-marker.tone-warm .nl-dot {
+  background: var(--orange);
+}
+
+.nl-marker.tone-cold .nl-bubble {
+  border-color: #a9ddf8;
+  color: #0a719e;
+}
+
+.nl-marker.tone-cold .nl-dot {
+  background: var(--blue);
+}
+
+.nl-marker:hover .nl-bubble,
+.nl-marker.is-active .nl-bubble {
+  color: #fff;
+  background: var(--ink);
+  border-color: var(--ink);
+  transform: translateX(-50%) translateY(-2px) scale(1.04);
+}
+
+.nl-marker.is-active .nl-dot {
+  transform: translateX(-50%) scale(1.22);
+}
+
+.nl-marker.is-static {
+  pointer-events: none;
+  cursor: default;
+}
+
+.nl-marker.is-revealed {
+  animation: marker-in 460ms cubic-bezier(0.22, 1.3, 0.36, 1) both;
+}
+
+.nl-ghost {
+  position: absolute;
+  top: 30px;
+  left: var(--x);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px dashed #9bacc0;
+  border-radius: 50%;
+  color: #7e8ba0;
+  background: rgba(255, 255, 255, 0.72);
+  font-family: var(--math);
+  font-size: 15px;
+  font-weight: 700;
+  transform: translateX(-50%);
+}
+
+.nl-caption,
+.board-caption {
+  min-height: 20px;
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.pairboard {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 17px 10px 14px;
+  border: 1px solid var(--line-cool);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 80% 0%, rgba(255, 242, 212, 0.7), transparent 12rem),
+    linear-gradient(180deg, #fbfdff, #fbf7ef);
+}
+
+.pair-stage {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+  align-items: center;
+}
+
+.pair-caption {
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.pair {
+  display: inline-flex;
+  align-items: center;
+  color: #26364d;
+  font-family: var(--math);
+  font-size: clamp(28px, 7.5vw, 42px);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pair .paren {
+  color: #8a97a9;
+  font-weight: 500;
+}
+
+.pair .comma {
+  margin: 0 2px;
+  color: #8a97a9;
+  font-size: 0.8em;
+}
+
+.slot {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.35em;
+  height: 1.55em;
+  padding: 0 0.1em;
+  border: 2px solid #dfe7f0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 0 #edf2f7;
+  font-weight: 700;
+}
+
+.slot.is-unknown {
+  color: #8a97a9;
+  background: #fbfcfe;
+  border-style: dashed;
+}
+
+/* ---------------------------------------------------------------- */
+/* Pair representation: blue/red counters (v2 centerpiece)          */
+/* ---------------------------------------------------------------- */
+
+.chips-board,
+.family-board {
+  min-width: 0;
+  padding: 14px 11px 11px;
+  border: 1px solid var(--line-cool);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 14% 0%, rgba(216, 242, 255, 0.62), transparent 12rem),
+    radial-gradient(circle at 92% 100%, rgba(255, 236, 214, 0.5), transparent 12rem),
+    linear-gradient(180deg, #fbfdff, #fbf7ef);
+}
+
+.chips-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 9px;
+  align-items: center;
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.chips-legend .chip {
+  width: 13px;
+  height: 13px;
+}
+
+.legend-cancel {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  margin-left: auto;
+  color: var(--red);
+  white-space: nowrap;
+}
+
+.chip {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.14), 0 1px 0 rgba(255, 255, 255, 0.85);
+  vertical-align: middle;
+}
+
+.chip.tone-blue {
+  background: radial-gradient(circle at 35% 28%, #86d8ff, #1cb0f6 62%, #0d86c4);
+}
+
+.chip.tone-red {
+  background: radial-gradient(circle at 35% 28%, #ffa0a0, #ff4b4b 62%, #d92b2b);
+}
+
+.chip.is-cancelled {
+  position: relative;
+  border: 1.6px dashed #c2cddb;
+  background: #f4f7fb;
+  box-shadow: none;
+  opacity: 0.88;
+}
+
+.chip.is-cancelled::after {
+  position: absolute;
+  inset: -1px;
+  content: "";
+  border-radius: 50%;
+  background: linear-gradient(45deg, transparent 44%, #ff8a8a 45%, #ff8a8a 56%, transparent 57%);
+}
+
+.chip-dots {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+  min-height: 17px;
+}
+
+.chip-empty {
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border: 1.5px dashed #cfd8e4;
+  border-radius: 50%;
+  color: #9aa6b8;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.chip-block {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+}
+
+.chip-line {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  min-height: 19px;
+  min-width: 0;
+}
+
+.chip-key {
+  display: inline-flex;
+  gap: 3px;
+  align-items: baseline;
+  min-width: 34px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.chip-key.tone-blue b {
+  color: var(--blue-dark);
+}
+
+.chip-key.tone-red b {
+  color: #d92b2b;
+}
+
+.chip-card-grid {
+  display: grid;
+  gap: 9px;
+}
+
+.chip-card {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #dce7f3;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 2px 0 rgba(226, 234, 244, 0.9);
+}
+
+.chip-card.is-negative {
+  border-color: #f3d9d9;
+  background: rgba(255, 250, 250, 0.9);
+}
+
+.chip-card-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chip-pair {
+  color: #26364d;
+  font-family: var(--math);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.chip-tag {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+  font-size: 9.5px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.chip-card.is-negative .chip-tag {
+  background: var(--red-soft);
+  color: #c92e2e;
+}
+
+.chip-meaning {
+  margin: 2px 0 7px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.chip-eq {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px dashed #e2e9f2;
+  color: var(--ink-soft);
+  font-family: var(--math);
+  font-size: 15px;
+}
+
+.chip-eq-op {
+  color: #9aa6b8;
+}
+
+.chip-card .chip-result {
+  color: var(--green-dark);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.chip-card.is-negative .chip-result {
+  color: #d92b2b;
+}
+
+.family-rows {
+  display: grid;
+  gap: 7px;
+}
+
+.family-row {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #e0e9f3;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.family-row-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: baseline;
+  margin-bottom: 5px;
+}
+
+.family-pair {
+  color: #26364d;
+  font-family: var(--math);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.family-note {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 9.5px;
+  font-weight: 800;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.family-math {
+  color: var(--muted);
+  font-family: var(--math);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.family-board.is-solved .family-row {
+  border-color: #cfe8b8;
+  background: #fbfef5;
+}
+
+.family-board.is-solved .family-note {
+  color: var(--green-dark);
+}
+
+.family-board.is-solved .chip.is-cancelled,
+.sum-board.is-solved .chip.is-cancelled {
+  animation: chip-cancel 560ms cubic-bezier(0.22, 1.2, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+.family-board .board-caption,
+.sum-board .board-caption {
+  margin-top: 9px;
+}
+
+.pair-stage .chip-block {
+  margin-top: 6px;
+}
+
+.pairboard.is-solved .pair-stage.is-answer .chip {
+  animation: chip-pop 420ms cubic-bezier(0.22, 1.3, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+.pair-pending {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 46px;
+  border: 2px dashed #c8d3e1;
+  border-radius: 12px;
+  color: #9aa6b8;
+  font-family: var(--math);
+  font-size: 24px;
+}
+
+.sum-chips {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid #e4ecf5;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.sum-chip-col {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.sum-chip-label {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.sum-chip-col .chip-dots {
+  justify-content: flex-end;
+}
+
+.cancel-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 11px;
+  border: 1px solid #ffd9d9;
+  border-radius: 999px;
+  background: #fff3f3;
+  color: #c92e2e;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.cancel-result {
+  color: var(--red);
+  font-family: var(--math);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.sum-board.is-solved .cancel-strip {
+  border-color: #cdebb4;
+  background: #eefbe2;
+  color: var(--green-dark);
+}
+
+.sum-board.is-solved .cancel-result {
+  color: var(--green-dark);
+}
+
+.insight-callout {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 10px 0 2px;
+  padding: 10px 12px;
+  border: 1px solid #d9ebc2;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f4fbe9, #fbf8ee);
+  color: #3c5a1c;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.insight-icon {
+  flex: 0 0 auto;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.body-copy.is-second {
+  margin-top: -2px;
+}
+
+.conclusion-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border: 1px solid #e5edf6;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.conclusion-flow .chip {
+  width: 12px;
+  height: 12px;
+}
+
+.flow-op {
+  color: #9aa6b8;
+  font-family: var(--math);
+  font-weight: 700;
+}
+
+.flow-zero {
+  color: var(--green-dark);
+  font-family: var(--math);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.swap-arrow {
+  display: flex;
+  min-width: 66px;
+  flex-direction: column;
+  gap: 1px;
+  align-items: center;
+  color: var(--blue-dark);
+  font-weight: 950;
+}
+
+.swap-arrow span {
+  font-size: 24px;
+  line-height: 1;
+  animation: bob 2.1s ease-in-out infinite;
+}
+
+.swap-arrow small {
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pairboard.is-solved .swap-arrow {
+  color: var(--green-dark);
+}
+
+.pairboard.is-solved .pair-stage.is-answer .slot {
+  border-color: var(--green-line);
+  background: var(--green-soft);
+}
+
+.sum-board {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  padding: 14px 8px 10px;
+  border: 1px solid var(--line-cool);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(216, 242, 255, 0.6), transparent 11rem),
+    linear-gradient(180deg, #fbfdff, #fbf7ef);
+}
+
+.sum-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 9px;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.sum-line .op {
+  color: #8a97a9;
+  font-family: var(--math);
+  font-size: clamp(24px, 6vw, 34px);
+}
+
+.sum-line .pair {
+  font-size: clamp(24px, 6.4vw, 36px);
+}
+
+.sum-line.is-result .pair {
+  color: #2f6b0b;
+}
+
+.conclusion-board {
+  display: grid;
+  gap: 10px;
+  place-items: center;
+  padding: 18px 12px 16px;
+  border: 1px solid #dceacb;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 50% 0%, #fff 0, rgba(255, 255, 255, 0) 13rem),
+    linear-gradient(180deg, #f8fceF, #fbf8ef);
+}
+
+.target {
+  display: grid;
+  place-items: center;
+  width: 86px;
+  height: 86px;
+  border: 10px solid #e4f5d1;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 2px #b9e295 inset, 0 8px 20px rgba(88, 204, 2, 0.12);
+}
+
+.target span {
+  color: var(--green-dark);
+  font-family: var(--math);
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.conclusion-eq {
+  color: var(--ink);
+  font-family: var(--math);
+  font-size: clamp(28px, 7.5vw, 42px);
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.conclusion-chip {
+  max-width: 100%;
+  padding: 6px 11px;
+  overflow-wrap: anywhere;
+  border: 1px solid #e2e8ef;
+  border-radius: 999px;
+  color: #5b697c;
+  background: #fff;
+  font-family: var(--math);
+  font-size: 12.5px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ */
+/* Choices + feedback                                                  */
+/* ------------------------------------------------------------------ */
+
+.choices {
+  display: grid;
+  gap: 9px;
+  margin-top: 15px;
+}
+
+.choice {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  width: 100%;
+  min-height: 62px;
+  padding: 11px 13px;
+  border: 2px solid #e3e8ef;
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 3px 0 #e5e9ef;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 130ms ease, background 130ms ease, transform 130ms ease, box-shadow 130ms ease;
+}
+
+.choice:hover {
+  border-color: #c7d3e3;
+  background: #fdfefe;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 #e5e9ef;
+}
+
+.choice:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #e5e9ef;
+}
+
+.choice-key {
+  display: none;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  color: #7c8aa0;
+  background: #f2f5f8;
+  font-size: 11px;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+}
+
+.choice-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.choice-label {
+  overflow-wrap: anywhere;
+  color: #26364d;
+  font-family: var(--math);
+  font-size: clamp(22px, 5.8vw, 28px);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.choice.is-sentence .choice-label {
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.choice-sub {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.choice-mark {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.choice.is-correct {
+  border-color: var(--green);
+  background: var(--green-soft);
+  box-shadow: 0 3px 0 #bce49b;
+  animation: correct-pop 360ms ease both;
+}
+
+.choice.is-correct .choice-mark {
+  color: #fff;
+  background: var(--green);
+}
+
+.choice.is-correct .choice-label {
+  color: #2c6308;
+}
+
+.choice.is-wrong {
+  border-color: var(--red);
+  background: var(--red-soft);
+  box-shadow: 0 3px 0 #ffbcbc;
+  animation: shake 360ms ease both;
+}
+
+.choice.is-wrong .choice-mark {
+  color: #fff;
+  background: var(--red);
+}
+
+.choice:disabled {
+  cursor: default;
+}
+
+.choice:disabled:not(.is-correct) {
+  opacity: 0.48;
+}
+
+.choice:disabled:hover {
+  transform: none;
+  border-color: #e3e8ef;
+  background: #fff;
+  box-shadow: 0 3px 0 #e5e9ef;
+}
+
+.choice.is-correct:disabled:hover {
+  border-color: var(--green);
+  background: var(--green-soft);
+  box-shadow: 0 3px 0 #bce49b;
+}
+
+.feedback {
+  margin-top: 13px;
+  outline: none;
+  padding: 13px 14px;
+  border: 1px solid;
+  border-radius: var(--radius-md);
+  animation: rise 280ms ease both;
+}
+
+.feedback.is-correct {
+  border-color: var(--green-line);
+  background: var(--green-soft);
+}
+
+.feedback.is-wrong {
+  border-color: var(--red-line);
+  background: var(--red-soft);
+}
+
+.feedback.is-hint {
+  border-color: var(--blue-line);
+  background: var(--blue-soft);
+}
+
+.feedback-head {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.feedback-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.feedback.is-correct .feedback-icon {
+  background: var(--green);
+}
+
+.feedback.is-wrong .feedback-icon {
+  background: var(--red);
+}
+
+.feedback.is-hint .feedback-icon {
+  background: var(--blue);
+}
+
+.feedback-copy {
+  min-width: 0;
+}
+
+.feedback-title {
+  margin: 1px 0 2px;
+  font-size: 14.5px;
+  font-weight: 950;
+  line-height: 1.35;
+}
+
+.feedback-body {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.62;
+}
+
+.feedback-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.xp-award,
+.hint-meta {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.015em;
+}
+
+.xp-award {
+  color: #2f6b0b;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #cceba9;
+}
+
+.hint-meta {
+  color: #0b719d;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #bfeaff;
+}
+
+/* ------------------------------------------------------------------ */
+/* Actions                                                             */
+/* ------------------------------------------------------------------ */
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+
+.action-note {
+  color: var(--faint);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.btn {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 950;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: transform 110ms ease, box-shadow 110ms ease, filter 110ms ease;
+}
+
+.btn-primary {
+  color: #fff;
+  background: linear-gradient(180deg, #65d90c, #58cc02);
+  box-shadow: 0 4px 0 var(--green-dark), 0 8px 18px rgba(88, 204, 2, 0.18);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.03);
+}
+
+.btn-primary:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--green-dark);
+}
+
+.btn-hint {
+  min-height: 44px;
+  padding: 0 13px;
+  border: 2px solid var(--blue-line);
+  color: #0a719d;
+  background: var(--blue-soft);
+  box-shadow: 0 3px 0 #b5e5fb;
+  font-size: 13px;
+}
+
+.btn-hint:hover {
+  background: #d9f3ff;
+}
+
+.btn-hint:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #b5e5fb;
+}
+
+.btn-hint:disabled {
+  opacity: 0.58;
+  cursor: default;
+  transform: none;
+  box-shadow: 0 3px 0 #b5e5fb;
+}
+
+.btn-wide {
+  width: 100%;
+}
+
+.btn-ghost {
+  min-height: 44px;
+  border: 2px solid var(--line);
+  color: var(--ink-soft);
+  background: #fff;
+  box-shadow: 0 3px 0 #e5e9ef;
+}
+
+.btn-ghost:hover {
+  background: #fbfcfe;
+}
+
+.btn-ghost:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #e5e9ef;
+}
+
+.micro {
+  color: var(--faint);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------------ */
+/* Journey sidebar                                                     */
+/* ------------------------------------------------------------------ */
+
+.journey-card {
+  position: sticky;
+  top: 138px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 253, 248, 0.8);
+  box-shadow: var(--shadow-soft);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.journey-kicker {
+  margin: 0 0 10px;
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.journey-list {
+  display: grid;
+  gap: 3px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.journey-item {
+  position: relative;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding: 8px 8px;
+  border-radius: 11px;
+  color: var(--muted);
+}
+
+.journey-item.is-current {
+  background: var(--green-soft);
+  color: var(--ink);
+}
+
+.journey-item.is-done {
+  color: #4a7c24;
+}
+
+.j-marker {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  border: 1.5px solid #dfe5ec;
+  border-radius: 50%;
+  background: #fff;
+  color: #9aa6b7;
+  font-size: 10px;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+}
+
+.journey-item.is-current .j-marker {
+  border-color: var(--green);
+  color: #fff;
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(88, 204, 2, 0.13);
+}
+
+.journey-item.is-done .j-marker {
+  border-color: var(--green-line);
+  color: var(--green-dark);
+  background: var(--green-soft);
+}
+
+.j-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.j-copy strong {
+  font-size: 11.5px;
+  font-weight: 900;
+}
+
+.j-copy small {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 9.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.journey-item.is-current .j-copy small {
+  color: var(--muted);
+}
+
+.journey-foot,
+.journey-unlock {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px dashed #d9e2ec;
+  border-radius: 12px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.journey-unlock {
+  border-style: solid;
+  border-color: var(--green-line);
+  color: #3c7e0a;
+  background: var(--green-soft);
+}
+
+/* ------------------------------------------------------------------ */
+/* Completion                                                          */
+/* ------------------------------------------------------------------ */
+
+.completion-card {
+  padding-bottom: 22px;
+  text-align: center;
+}
+
+.completion-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.medal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 128px;
+  height: 128px;
+  margin: 8px auto 12px;
+  border-radius: 50%;
+  background: conic-gradient(from 200deg, #58cc02, #1cb0f6, #ff9600, #8b5cf6, #58cc02);
+  box-shadow: 0 14px 34px rgba(88, 204, 2, 0.24);
+  animation: medal-pop 620ms cubic-bezier(0.2, 1.35, 0.36, 1) both;
+}
+
+.medal::before {
+  position: absolute;
+  inset: 7px;
+  content: "";
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 20%, #ffffff 0, #f6fcef 70%, #e9f8d9 100%);
+  box-shadow: 0 2px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+.medal::after {
+  position: absolute;
+  right: -7px;
+  bottom: 14px;
+  width: 34px;
+  height: 24px;
+  content: "";
+  border-radius: 0 0 10px 10px;
+  background: var(--green);
+  transform: rotate(-14deg);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 70%, 0 100%);
+  box-shadow: 0 5px 0 #3f9c00;
+}
+
+.medal-check {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(145deg, #6be015, #43b000);
+  box-shadow: 0 5px 0 #389700, 0 10px 22px rgba(67, 176, 0, 0.28);
+  font-size: 34px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.completion-card .kicker {
+  margin: 0 auto 8px;
+}
+
+.completion-title {
+  max-width: 18ch;
+  margin: 0 auto 10px;
+  color: var(--ink);
+  font-size: clamp(30px, 8vw, 48px);
+  font-weight: 950;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+}
+
+.completion-title:focus {
+  outline: none;
+}
+
+.completion-body {
+  max-width: 40ch;
+  margin: 0 auto 13px;
+  color: var(--ink-soft);
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.badge-pill {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  min-height: 36px;
+  padding: 5px 13px 5px 7px;
+  border: 1px solid #cceba9;
+  border-radius: 999px;
+  color: #3c7e0a;
+  background: var(--green-soft);
+  font-size: 12px;
+  font-weight: 900;
+  box-shadow: 0 3px 0 #d7efbf;
+}
+
+.badge-check {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--green);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  margin: 18px auto 0;
+}
+
+.stat-box {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+  align-items: flex-start;
+  padding: 11px 12px;
+  border: 1px solid #e7e0d4;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  text-align: left;
+}
+
+.stat-box-label {
+  color: var(--faint);
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.stat-box-value {
+  color: var(--ink);
+  font-size: 21px;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+}
+
+.stat-box-note {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.completion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.completion-next {
+  margin: 14px 0 0;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.proof {
+  width: 100%;
+  margin: 16px 0 0;
+  border: 1px solid #dfe6ef;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.62);
+  text-align: left;
+}
+
+.proof summary {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 13px;
+  border-radius: var(--radius-md);
+  color: var(--ink-soft);
+  cursor: pointer;
+  list-style: none;
+}
+
+.proof summary::-webkit-details-marker {
+  display: none;
+}
+
+.proof summary:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.proof-plus {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border: 1px solid #d6e3ee;
+  border-radius: 9px;
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+  font-size: 16px;
+  font-weight: 900;
+  transition: transform 160ms ease;
+}
+
+.proof[open] .proof-plus {
+  transform: rotate(45deg);
+}
+
+.proof summary > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.proof summary strong {
+  font-size: 12.5px;
+  font-weight: 900;
+}
+
+.proof summary small {
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.proof-body {
+  padding: 0 13px 14px;
+  border-top: 1px solid #edf1f5;
+}
+
+.proof-summary {
+  margin: 11px 0 12px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.65;
+}
+
+.proof-lead {
+  margin: 0 0 8px;
+  color: var(--faint);
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.theorem-list {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.theorem {
+  padding: 9px 10px;
+  border: 1px solid #e7edf4;
+  border-radius: 11px;
+  background: rgba(251, 253, 255, 0.9);
+}
+
+.theorem-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 3px;
+}
+
+.theorem code {
+  color: #2d5f86;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.theorem-kind {
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: #5f6e82;
+  background: #eef3f8;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.theorem p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.proof-evidence {
+  margin: 11px 0 0;
+  padding: 8px 10px;
+  border: 1px dashed #cceba9;
+  border-radius: 10px;
+  color: #3c7e0a;
+  background: var(--green-soft);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.proof-note {
+  margin: 9px 0 0;
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+/* ------------------------------------------------------------------ */
+/* Help modal                                                          */
+/* ------------------------------------------------------------------ */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(32, 42, 58, 0.42);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+  animation: fade-in 180ms ease both;
+}
+
+.help-sheet {
+  position: relative;
+  width: min(100%, 420px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: 18px 17px 17px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 24px;
+  background: linear-gradient(180deg, #fffefa, #fbf7ef);
+  box-shadow: 0 28px 70px rgba(22, 34, 52, 0.3);
+  animation: sheet-in 300ms cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
+.help-timer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 5px;
+  background: #e7edf4;
+}
+
+.help-timer-bar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), #6ad4ff);
+  transform-origin: left center;
+}
+
+.help-top {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 4px 0 8px;
+}
+
+.help-kicker {
+  color: var(--faint);
+  font-size: 9.5px;
+  font-weight: 950;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.help-count {
+  min-width: 34px;
+  color: var(--blue-dark);
+  font-size: 11px;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.help-reading {
+  margin: 2px 0 10px;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.help-plain {
+  margin: 0 0 10px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.help-example {
+  margin: 0 0 10px;
+  padding: 11px 12px;
+  border: 1px solid #dceacb;
+  border-radius: 13px;
+  color: #2f5c0f;
+  background: var(--green-soft);
+  font-family: var(--math);
+  font-size: 20px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.help-foot {
+  margin: 0 0 13px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.help-sheet .btn {
+  width: 100%;
+}
+
+/* ------------------------------------------------------------------ */
+/* Toast + footer                                                      */
+/* ------------------------------------------------------------------ */
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  z-index: 90;
+  max-width: calc(100% - 32px);
+  padding: 9px 14px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(34, 49, 74, 0.94);
+  box-shadow: 0 8px 24px rgba(22, 34, 52, 0.24);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 10px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.page-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 16px 4px;
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.foot-dot {
+  color: #c7beb0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Confetti                                                           */
+/* ------------------------------------------------------------------ */
+
+.confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -16px;
+  display: block;
+  width: 9px;
+  height: 15px;
+  border-radius: 2px;
+  opacity: 0.95;
+  animation: confetti-fall var(--dur, 2.4s) cubic-bezier(0.18, 0.7, 0.32, 1) var(--delay, 0s) forwards;
+}
+
+/* ------------------------------------------------------------------ */
+/* Breakpoints                                                        */
+/* ------------------------------------------------------------------ */
+
+@media (min-width: 520px) {
+  .chip-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+
+  .step-card,
+  .completion-card {
+    padding: 28px 26px 25px;
+  }
+
+  .choices {
+    gap: 10px;
+  }
+
+  .choice {
+    min-height: 66px;
+    padding: 12px 15px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+}
+
+@media (min-width: 900px) {
+  .topbar-inner {
+    padding: 14px 24px 8px;
+  }
+
+  .progress-row {
+    padding: 0 24px 12px;
+  }
+
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 248px;
+    gap: 26px;
+    padding: 24px 24px 0;
+  }
+
+  .journey {
+    display: block;
+  }
+
+  .step-card,
+  .completion-card {
+    padding: 34px 34px 30px;
+  }
+
+  .step-title {
+    font-size: 38px;
+  }
+
+  .body-copy {
+    font-size: 15.5px;
+  }
+
+  .choice-key {
+    display: grid;
+  }
+
+  .modal-backdrop {
+    align-items: center;
+  }
+
+  .help-sheet {
+    padding: 20px 20px 18px;
+  }
+
+  .formula {
+    font-size: 36px;
+  }
+}
+
+@media (max-width: 369px) {
+  .brand-course {
+    max-width: 15ch;
+  }
+
+  .stat-label {
+    display: none;
+  }
+
+  .progress-unit {
+    display: none;
+  }
+}
+
+@media (hover: none) {
+  .choice:hover {
+    border-color: #e3e8ef;
+    background: #fff;
+    transform: none;
+    box-shadow: 0 3px 0 #e5e9ef;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Keyframes                                                          */
+/* ------------------------------------------------------------------ */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes marker-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-9px) scale(0.7);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes chip-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4) translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes chip-cancel {
+  from {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+
+  60% {
+    opacity: 1;
+    transform: scale(0.92);
+  }
+
+  to {
+    opacity: 0.88;
+    transform: scale(1);
+  }
+}
+
+@keyframes correct-pop {
+  0% {
+    transform: scale(0.985);
+  }
+
+  55% {
+    transform: scale(1.012);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-5px);
+  }
+
+  40% {
+    transform: translateX(5px);
+  }
+
+  60% {
+    transform: translateX(-3px);
+  }
+
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes medal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.55) rotate(-12deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -10vh, 0) rotate(0deg);
+  }
+
+  8% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.9;
+    transform: translate3d(var(--drift, 0px), 108vh, 0) rotate(var(--spin, 540deg));
+  }
+}
+
+  </style>
+</head>
+<body data-lesson-id="analysis-unit8">
+  <a class="skip-link" href="#main">跳到题目</a>
+  <div class="app" id="app">
+    <div class="confetti" id="confetti" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="brand-copy">
+            <span class="brand-course" id="brandCourse">从集合论到实分析 · Unit ⑧</span>
+            <span class="brand-title">数学小课</span>
+          </span>
+        </div>
+        <div class="stats" aria-label="本课状态">
+          <span class="stat stat-xp" id="xpStat" title="经验值">
+            <span class="stat-icon" aria-hidden="true">✦</span>
+            <span class="stat-value" id="xpValue">0</span>
+            <span class="stat-label">XP</span>
+          </span>
+          <span class="stat stat-streak" id="streakStat" title="连续答对">
+            <span class="stat-icon" aria-hidden="true">🔥</span>
+            <span class="stat-value" id="streakValue">0</span>
+            <span class="stat-label">连对</span>
+          </span>
+        </div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-copy">
+          <span id="stepLabel">第 1 / 6 步</span>
+          <span class="progress-unit" id="progressUnit">Unit ⑧ · 约 5 分钟</span>
+        </div>
+        <div class="progress-track" id="progressTrack" role="progressbar" aria-label="课程进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="5">
+          <div class="progress-fill" id="progressFill"></div>
+          <span class="progress-ticks" aria-hidden="true"></span>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <main class="stage" id="main" tabindex="-1">
+        <div class="boot-card" aria-hidden="true">
+          <span class="boot-orb"></span>
+          <p>正在准备本课…</p>
+        </div>
+      </main>
+      <aside class="journey" id="journey" aria-label="本课路线"></aside>
+    </div>
+
+    <footer class="page-foot">
+      <span>形式证明是后台裁判</span>
+      <span class="foot-dot" aria-hidden="true">·</span>
+      <span>你只需要点选</span>
+    </footer>
+
+    <div class="sr-only" id="announcer" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="modalRoot"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <script id="lesson-data" type="application/json">{"schema":"soko.lesson/1","id":"analysis-unit8","version":"0.2.0","title":"整数加法有逆元","title_en":"Additive inverses in the integers","course_title":"从集合论到实分析","course_title_en":"From Set Theory to Real Analysis","unit":8,"unit_title":"单元⑧ 整数加法的零元与负元","unit_title_en":"Unit 8 — Additive Identity and Inverse","source":{"unit_file":"courses/analysis/units/II.1/unit08-int-add-group.sokonanoda","solution_file":"courses/analysis/units/solutions/II.1/unit08-solution.sokonanoda"},"estimated_minutes":5,"xp_total":95,"badge":{"icon":"✓","title":"整数加法有逆元","subtitle":"Unit ⑧ · 每个整数都能找到相反数","message":"你从「只有自然数」出发，用蓝红计数器写出 −3，并看见 (3,0) 与 (0,3) 相加回到 0。"},"symbols":{"pair":{"term":"二元组 (a,b)","reading":"pair","plain":"把整数写成一对自然数 (a,b)：a 个蓝筹记正向，b 个红筹记负向，意思是 a − b。比如 (3,0) 是 3 个蓝、0 个红，代表 3。","example":"(3,0) 代表 3；(0,3) 代表 −3。","seconds":20,"help":"一蓝一红互相抵消，所以同一个整数有很多种写法。"},"cancel":{"term":"抵消","reading":"dǐ xiāo","plain":"1 个蓝筹（+1）和 1 个红筹（−1）放在一起，正好等于 0，这就是抵消。抵消一对，代表的整数不变。","example":"(3,0) 加 1 蓝 1 红 ⇒ (4,1)，仍然代表 3。","seconds":20,"help":"抵消是「同一个整数的不同写法」的来源。"},"opposite":{"term":"相反数","reading":"xiāng fǎn shù","plain":"两个数相加等于 0，它们就互为相反数。3 的相反数是 −3，−3 的相反数是 3。","example":"3 + (−3) = 0","seconds":20,"help":"在数轴上，相反数就是关于 0 对称的那两个点。"},"integer":{"term":"整数","reading":"zhěng shù","plain":"整数是 …、−2、−1、0、1、2、… 这些没有小数部分的数。这门课不假设负数天生存在，而是用两个自然数配对把它们造出来。","example":"(3,0) 造出 3；(0,3) 造出 −3。","seconds":20,"help":"正数、负数和 0 都属于整数。"},"inverse":{"term":"加法逆元","reading":"nì yuán","plain":"在一个加法系统里，能让 x 回到 0 的那个数，就叫 x 的加法逆元。整数的逆元就是相反数。","example":"x + (−x) = 0","seconds":20,"help":"「逆」表示往回走：走 3 步，再往回走 3 步，就回到原点。"},"zero":{"term":"0 / 零元","reading":"líng yuán","plain":"加上它，数不会改变：x + 0 = x。所以 0 是加法的零元。在配对写法里，(a,a) 代表 a − a = 0。","example":"(3,3) 代表 3 − 3 = 0","seconds":20,"help":"零元像「空操作」，不改变原来的数。"}},"steps":[{"id":"goal","type":"goal","short":"目标","kicker":"本课目标 · 约 5 分钟","title":"整数里每个数都有相反数","formula":"x + (-x) = 0","body":"不管 x 是 3、是 −7，还是 0，总能找到另一个整数，和它相加正好回到 0。这一课，我们从 3 出发把它找出来。","visual":{"type":"numberline","caption":"上下对称的两个温度：+3° 与 −3°","default_note":"点一下两个温度，看看它们离 0 有多远。","markers":[{"value":-3,"label":"−3°","tone":"cold","note":"−3 在 0 左边 3 格。往右走 3 格，就回到 0。"},{"value":3,"label":"+3°","tone":"warm","note":"+3 在 0 右边 3 格。往左走 3 格，就回到 0。"}]},"help":["opposite","integer"],"primary":"明白了，开始","xp":5,"first_try_bonus":0},{"id":"why-pairs","type":"insight","short":"为什么成对","kicker":"第 2 步 · 先解决一个麻烦","title":"只有自然数，怎么写出 −3？","formula":"(a,b) 读作 a − b","body":"到现在为止，我们手上只有 0、1、2、3……这些自然数。它们里面没有负数，所以「−3」没办法直接写出来。","body2":"办法是换一种写法：拿两个计数器。蓝筹记「正向」，红筹记「负向」，1 个蓝筹算 +1、1 个红筹算 −1，一蓝一红放在一起正好抵消。把它们写成 (a,b)，意思是 a − b。","callout":"所以整数不是凭空多出来的数，而是两个自然数的一种配对写法。看懂配色，就看懂了这一课的全部机关。","visual":{"type":"pairs_intro","caption":"两个计数器一正一负：蓝筹 3 个 ⇒ 3；红筹 3 个 ⇒ −3。","legend":{"blue":"蓝 = 正向","red":"红 = 负向"},"cards":[{"pair":[3,0],"tag":"蓝多 3 个","meaning":"3 个蓝 · 0 个红","math":"3 − 0 = 3","result":"3"},{"pair":[0,3],"tag":"红多 3 个","meaning":"0 个蓝 · 3 个红","math":"0 − 3 = −3","result":"−3"}]},"help":["pair","integer"],"primary":"原来 −3 能写出来，继续","xp":10,"first_try_bonus":0},{"id":"pair-family","type":"choice","short":"同一个整数","kicker":"第 3 步 · 同一个整数的不同写法","title":"哪个二元组也代表 3？","prompt":"看 (3,0)：3 个蓝。再放 1 个蓝和 1 个红，它们一正一负，正好抵消，于是 (4,1) 还是 3；再抵消一对，(5,2) 也还是 3。下面哪个二元组也代表 3？","formula":"(3,0) = (4,1) = (5,2) = 3","visual":{"type":"pair_family","caption":"蓝比红多 3 个，就代表 3。抵消一对，代表的数不变。","result_caption":"同一个整数有无数种配对写法。所以形式证明里要先说明：换一个代表元，运算结果不变——这叫良定义。","legend":{"blue":"蓝 = 正向","red":"红 = 负向","cancel":"✕ = 一对抵消"},"rows":[{"pair":[3,0],"added":0,"note":"起点","math":"3 − 0 = 3","result":"3"},{"pair":[4,1],"added":1,"note":"＋1 蓝 ＋1 红","math":"4 − 1 = 3","result":"3"},{"pair":[5,2],"added":2,"note":"再抵消 1 对","math":"5 − 2 = 3","result":"3"}]},"help":["pair","cancel"],"choices":[{"id":"pair-six-three","label":"(6,3)","aria":"六三二元组"},{"id":"pair-four-two","label":"(4,2)","aria":"四二二元组"},{"id":"pair-two-five","label":"(2,5)","aria":"二五二元组"}],"answer":"pair-six-three","feedback":{"correct":{"title":"对，(6,3)。","body":"6 − 3 = 3：蓝比红多 3 个，抵消 3 对后还剩 3 个蓝。同一个整数可以有无穷多种配对写法，所以形式证明里必须说明：换一个代表元，加法和取负的结果都不变——这一步叫「良定义」。"},"wrong":{"pair-four-two":"(4,2) 是 4 − 2 = 2：蓝只比红多 2 个，代表 2，不是 3。","pair-two-five":"(2,5) 是 2 − 5 = −3：红比蓝多 3 个，方向反了。"}},"hints":[{"title":"只看差额","body":"不要被总数骗了。数「蓝比红多几个」：多 3 个就代表 3，多 2 个就代表 2。"},{"title":"逐项算 a − b","body":"(6,3) 是 6 − 3；(4,2) 是 4 − 2；(2,5) 是 2 − 5。哪个等于 3？"},{"title":"先排除一个","body":"(2,5) 红比蓝多，代表负数，先排除；(4,2) 只多 2 个，也不是 3。"}],"continue_label":"继续","xp":15,"first_try_bonus":5},{"id":"pair-swap","type":"choice","short":"取负","kicker":"第 4 步 · 取负 = 交换计数器","title":"把 (3,0) 取负，二元组会变成什么？","prompt":"取负就是让方向反过来：把两个计数器交换。原来 3 个蓝 (3,0)，交换后变成 3 个红。","formula":"(3,0) → ?","visual":{"type":"pair_swap","before":[3,0],"after":[0,3],"caption":"交换两个计数器 = 取负","after_caption":"(0,3)：0 个蓝、3 个红，代表 0 − 3 = −3"},"help":["pair","opposite"],"choices":[{"id":"pair-zero-three","label":"(0,3)","aria":"零三二元组"},{"id":"pair-three-zero","label":"(3,0)","aria":"三零二元组"},{"id":"pair-neg-three-zero","label":"(−3,0)","aria":"负三零二元组"}],"answer":"pair-zero-three","feedback":{"correct":{"title":"对，(0,3)。","body":"交换后是 0 个蓝、3 个红，代表 0 − 3 = −3。它正好是 3 的相反数。"},"wrong":{"pair-three-zero":"(3,0) 没有变，仍然代表 3。取负要交换两个计数器，让 a − b 变成 b − a。","pair-neg-three-zero":"二元组的分量是自然数，不能写 (−3,0)。这里的「取负」就是交换两个计数器。"}},"hints":[{"title":"看公式","body":"(a,b) 代表 a − b。取负后，原来的 a − b 应该变成 b − a。"},{"title":"交换两个位置","body":"把 3 和 0 对调：前面放 0，后面放 3。"},{"title":"认出它","body":"(0,3) 代表 0 − 3 = −3，正是 3 的相反数。"}],"continue_label":"继续","xp":10,"first_try_bonus":5},{"id":"pair-sum","type":"choice","short":"相加","kicker":"第 5 步 · 同色计数器合起来","title":"两个二元组相加，结果代表哪个整数？","prompt":"相加就是「同色计数器合在一起」：(3,0) 有 3 蓝 0 红，(0,3) 有 0 蓝 3 红；合起来是 3 蓝 3 红，也就是 (3,3)。蓝和红两两抵消后，还剩多少？","formula":"(3,0) + (0,3) = (3,3)","visual":{"type":"pair_sum","left":[3,0],"right":[0,3],"sum":[3,3],"caption":"同色相加：蓝 3+0，红 0+3","result_caption":"3 对蓝红全部抵消 ⇒ (3,3) 代表 3 − 3 = 0"},"help":["pair","cancel","zero"],"choices":[{"id":"zero","label":"0","aria":"零"},{"id":"three","label":"3","aria":"三"},{"id":"six","label":"6","aria":"六"}],"answer":"zero","feedback":{"correct":{"title":"对，0。","body":"3 个蓝和 3 个红正好配成 3 对，全部抵消，所以 (3,3) 代表 3 − 3 = 0。这就是 (3,0) 和它的相反数相加的结果。"},"wrong":{"three":"(3,3) 是 3 个蓝、3 个红，不是 3 个蓝 0 个红。抵消后一个都不剩，代表 0。","six":"相加时只把同色计数器并在一起（蓝 3+0、红 0+3），不是把两个 3 相加。3 蓝 3 红抵消后是 0。"}},"hints":[{"title":"先看规则","body":"(a,b) 代表 a − b。两个分量相等时，a − b = 0。"},{"title":"数一数抵消","body":"1 个蓝配 1 个红抵消成 0。现在有 3 对蓝红，一共抵消掉多少？"},{"title":"排除法","body":"(3,3) 里有 3 个红，说明有负向的量；它不可能是 3 或 6。"}],"continue_label":"继续","xp":10,"first_try_bonus":5},{"id":"conclusion","type":"choice","short":"结论","kicker":"第 6 步 · 得出结论","title":"所以，哪一个结论成立？","prompt":"我们只用计数器配对，就看见 (3,0) 与 (0,3) 合起来是 0。下面哪句话被刚才的步骤支持？","formula":"(3,3) ≡ (0,0)","visual":{"type":"conclusion","equation":"3 + (-3) = 0","chip":"(3,0) + (0,3) = (3,3) ≡ 0","chips":{"blue":3,"red":3,"result":"0"}},"help":["inverse","zero"],"choices":[{"id":"inverse","label":"x + (-x) = 0","sub":"每个整数都有加法逆元。","aria":"每个整数都有加法逆元"},{"id":"identity","label":"x + (-x) = x","sub":"相反数还是自己。","aria":"相反数还是自己"},{"id":"one","label":"x + (-x) = 1","sub":"相加总是 1。","aria":"相加总是一"}],"answer":"inverse","feedback":{"correct":{"title":"正是这样。","body":"(3,3) 代表 0，因此 3 + (−3) = 0。3 只是样板：每个整数 x 都有相反数 −x，使 x + (-x) = 0。"},"wrong":{"identity":"如果 x + (-x) = x，那 −x 就等于 0；但 3 的相反数是 −3，不是 0。","one":"3 + (−3) 回到的是 0，不是 1。逆元的目标是零元。"}},"hints":[{"title":"回到刚才的计算","body":"我们在第 5 步得到 3 蓝 3 红全部抵消，也就是 (3,3) 代表 0。"},{"title":"把 3 换成 x","body":"如果每个整数 x 都能找到对应的 −x，那么 x + (-x) 应该等于什么？"},{"title":"抓住关键词","body":"「逆元」的意思是相加后回到零元 0；不是回到自己，也不是 1。"}],"continue_label":"领取徽章","xp":10,"first_try_bonus":5}],"completion":{"xp":15,"eyebrow":"本课完成","title":"整数加法有逆元","body":"你只用自然数就写出了 −3：蓝红计数器配对；又看见 (3,0) 与 (0,3) 相加，3 对蓝红全部抵消成 0。","replay":"再玩一次","next":"下一课：整数减法（即将上线）"},"formal_proof":{"summary":"这一课前台只做选择。下面这些名字是后台裁判用来确认结论的；你不需要会写它们。","theorem_lead":"单元⑧ 里与逆元有关的声明","theorems":[{"name":"zero_rep","kind":"代表元层","plain":"给 (a,b) 加上 (0,0)，两个代表元仍然等价。"},{"name":"int_add_zero","kind":"整数层","plain":"把这层代表元的等价交给形式化处理，得到整数上的 x + 0 = x。"},{"name":"negRep_wd","kind":"良定义","plain":"交换两个计数器得到 −x；换一个代表元，结果仍然一致。"},{"name":"add_neg_rep","kind":"代表元层","plain":"(a,b) 与 (b,a) 相加，等价于 (0,0)。"},{"name":"int_add_neg","kind":"整数层","plain":"于是整数上 x + (-x) = 0。这就是本课的徽章。"},{"name":"negRep_neg","kind":"对合","plain":"交换两次回到原处：(−x) 的相反数是 x。"},{"name":"int_neg_neg","kind":"整数层","plain":"在整数上也一样：−(−x) = x。"}],"evidence":"徽章证据：int_add_neg","note":"形式证明默认折叠，是本课的证据层，不是主界面。"}}</script>
+  <script>
+(function () {
+  "use strict";
+
+  var data = JSON.parse(document.getElementById("lesson-data").textContent);
+  var TOTAL = data.steps.length;
+  var GRADED = data.steps.filter(function (step) {
+    return step.type === "choice";
+  }).length;
+  var MAX_XP = data.xp_total;
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var state = {
+    index: 0,
+    xp: 0,
+    streak: 0,
+    maxStreak: 0,
+    hintsUsed: 0,
+    firstTryCount: 0,
+    hintTier: 0,
+    wrongAttempts: 0,
+    attempts: 0,
+    solved: false,
+    completed: false,
+    feedback: null,
+    wrongChoice: null,
+    markerValue: null,
+    startedAt: null,
+    lastXp: 0,
+    lastStreak: 0,
+    awarded: {},
+    help: null,
+    helpTimer: null,
+    helpEnds: 0,
+    announceTimer: null,
+    toastTimer: null
+  };
+
+  function $(selector, root) {
+    return (root || document).querySelector(selector);
+  }
+
+  function $$(selector, root) {
+    return Array.prototype.slice.call((root || document).querySelectorAll(selector));
+  }
+
+  function esc(value) {
+    return String(value).replace(/[&<>"']/g, function (character) {
+      return {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[character];
+    });
+  }
+
+  function stepAt(index) {
+    return data.steps[index];
+  }
+
+  function symbolAt(id) {
+    return data.symbols[id];
+  }
+
+  function announce(message) {
+    var node = document.getElementById("announcer");
+    if (!node) {
+      return;
+    }
+    window.clearTimeout(state.announceTimer);
+    node.textContent = "";
+    state.announceTimer = window.setTimeout(function () {
+      node.textContent = message;
+    }, 30);
+  }
+
+  function showToast(message) {
+    var node = document.getElementById("toast");
+    if (!node) {
+      return;
+    }
+    window.clearTimeout(state.toastTimer);
+    node.textContent = message;
+    node.classList.add("is-visible");
+    state.toastTimer = window.setTimeout(function () {
+      node.classList.remove("is-visible");
+    }, 2400);
+  }
+
+  function popStat(node) {
+    if (!node) {
+      return;
+    }
+    node.classList.remove("is-bump");
+    void node.offsetWidth;
+    node.classList.add("is-bump");
+    window.clearTimeout(node._bumpTimer);
+    node._bumpTimer = window.setTimeout(function () {
+      node.classList.remove("is-bump");
+    }, 280);
+  }
+
+  function pairHTML(values, label) {
+    var slots = values
+      .map(function (value) {
+        var unknown = value === "?";
+        return (
+          '<span class="slot' +
+          (unknown ? " is-unknown" : "") +
+          '">' +
+          esc(String(value)) +
+          "</span>"
+        );
+      })
+      .join('<span class="comma" aria-hidden="true">,</span>');
+    return (
+      '<span class="pair" aria-label="' +
+      esc(label || "二元组 " + values.join("，")) +
+      '"><span class="paren" aria-hidden="true">(</span>' +
+      slots +
+      '<span class="paren" aria-hidden="true">)</span></span>'
+    );
+  }
+
+  function chipDots(count, tone, options) {
+    options = options || {};
+    var chips = [];
+    for (var index = 0; index < count; index += 1) {
+      var cancelled =
+        tone === "blue"
+          ? typeof options.cancelFrom === "number" && index >= options.cancelFrom
+          : typeof options.cancelRed === "number" && index < options.cancelRed;
+      chips.push(
+        '<span class="chip tone-' +
+          tone +
+          (cancelled ? " is-cancelled" : "") +
+          '" style="--i:' +
+          index +
+          '"></span>'
+      );
+    }
+    if (!chips.length) {
+      return '<span class="chip-empty" aria-hidden="true">0</span>';
+    }
+    return (
+      '<span class="chip-dots" aria-hidden="true">' + chips.join("") + "</span>"
+    );
+  }
+
+  function chipLine(label, count, tone, options) {
+    return (
+      '<div class="chip-line"><span class="chip-key tone-' +
+      tone +
+      '">' +
+      esc(label) +
+      " <b>" +
+      count +
+      "</b></span>" +
+      chipDots(count, tone, options) +
+      "</div>"
+    );
+  }
+
+  function pairChips(a, b, options) {
+    options = options || {};
+    return (
+      '<div class="chip-block">' +
+      chipLine("蓝", a, "blue", options) +
+      chipLine("红", b, "red", options) +
+      "</div>"
+    );
+  }
+
+  function chipsLegend(visual, withCancel) {
+    var legend = visual.legend || {};
+    return (
+      '<div class="chips-legend"><span class="chip tone-blue"></span>' +
+      esc(legend.blue || "蓝 = 正向") +
+      '<span class="chip tone-red"></span>' +
+      esc(legend.red || "红 = 负向") +
+      (withCancel
+        ? '<span class="legend-cancel"><span class="chip tone-blue is-cancelled"></span><span class="chip tone-red is-cancelled"></span>' +
+          esc(legend.cancel || "一对抵消") +
+          "</span>"
+        : "") +
+      "</div>"
+    );
+  }
+
+  function mathHTML(value) {
+    var parts = String(value).split(" = ");
+    if (parts.length !== 2) {
+      return esc(value);
+    }
+    return (
+      '<span class="chip-eq-lhs">' +
+      esc(parts[0]) +
+      '</span><span class="chip-eq-op" aria-hidden="true">=</span><strong class="chip-result">' +
+      esc(parts[1]) +
+      "</strong>"
+    );
+  }
+
+  function numberlinePosition(value) {
+    return ((Number(value) + 5) / 10) * 100;
+  }
+
+  function staticMarker(value, tone, revealed) {
+    var label =
+      value > 0 ? "+" + value + "°" : value < 0 ? value + "°" : "0°";
+    return (
+      '<span class="nl-marker tone-' +
+      tone +
+      " is-static" +
+      (revealed ? " is-revealed" : "") +
+      '" style="--x:' +
+      numberlinePosition(value) +
+      '%" aria-hidden="true"><span class="nl-bubble">' +
+      esc(label) +
+      '</span><span class="nl-dot"></span></span>'
+    );
+  }
+
+  function numberlineVisual(visual, mode) {
+    var ticks = [];
+    for (var value = -5; value <= 5; value += 1) {
+      var major = value === 0 || Math.abs(value) === 3 || Math.abs(value) === 5;
+      var label = major
+        ? "<span>" + (value === 0 ? "0" : value > 0 ? "+" + value : value) + "</span>"
+        : "";
+      ticks.push(
+        '<span class="nl-tick' +
+          (major ? " is-major" : "") +
+          '" style="--x:' +
+          numberlinePosition(value) +
+          '%" aria-hidden="true">' +
+          label +
+          "</span>"
+      );
+    }
+
+    var markers = "";
+    var ghost = "";
+    var caption = visual.caption || "";
+    var ariaLabel = "数轴：−3 与 +3 关于 0 对称";
+
+    if (mode === "interactive") {
+      markers = visual.markers
+        .map(function (marker) {
+          var active = state.markerValue === marker.value;
+          return (
+            '<button class="nl-marker tone-' +
+            esc(marker.tone) +
+            (active ? " is-active" : "") +
+            '" style="--x:' +
+            numberlinePosition(marker.value) +
+            '%" type="button" data-marker="' +
+            esc(marker.value) +
+            '" data-note="' +
+            esc(marker.note) +
+            '" aria-pressed="' +
+            (active ? "true" : "false") +
+            '" aria-label="选择数轴上的 ' +
+            esc(marker.label) +
+            '"><span class="nl-bubble">' +
+            esc(marker.label) +
+            '</span><span class="nl-dot"></span></button>'
+          );
+        })
+        .join("");
+      caption = state.markerValue === null ? visual.default_note : caption;
+      ariaLabel = "可点的温度数轴：−3 与 +3 关于 0 对称";
+    } else if (mode === "quiz") {
+      markers = staticMarker(Number(visual.value), "warm", false);
+      if (state.solved) {
+        markers += staticMarker(-Number(visual.value), "cold", true);
+        caption = "找到了：−3 与 +3 关于 0 对称。";
+        ariaLabel = "数轴：−3 与 +3 关于 0 对称";
+      } else {
+        ghost =
+          '<span class="nl-ghost" style="--x:' +
+          numberlinePosition(-Number(visual.value)) +
+          '%" aria-hidden="true">?</span>';
+        caption = visual.caption || "";
+        ariaLabel = "数轴：3 在 0 右边 3 格";
+      }
+    }
+
+    var captionId = mode === "interactive" ? ' id="markerCaption" aria-live="polite"' : "";
+    return (
+      '<div class="numberline-wrap"><div class="numberline" role="' +
+      (mode === "interactive" ? "group" : "img") +
+      '" aria-label="' +
+      esc(ariaLabel) +
+      '"><div class="nl-track"><span class="nl-rail" aria-hidden="true"></span>' +
+      ticks.join("") +
+      '<span class="nl-zero" aria-hidden="true"></span>' +
+      ghost +
+      markers +
+      '</div></div><p class="nl-caption"' +
+      captionId +
+      ">" +
+      esc(caption) +
+      "</p></div>"
+    );
+  }
+
+  function pairsIntroVisual(visual) {
+    var cards = (visual.cards || [])
+      .map(function (card, index) {
+        var pair = card.pair || [0, 0];
+        return (
+          '<article class="chip-card' +
+          (index === 1 ? " is-negative" : "") +
+          '"><div class="chip-card-head"><span class="chip-pair">(' +
+          pair[0] +
+          "," +
+          pair[1] +
+          ')</span><span class="chip-tag">' +
+          esc(card.tag) +
+          '</span></div><p class="chip-meaning">' +
+          esc(card.meaning) +
+          "</p>" +
+          pairChips(pair[0], pair[1], {}) +
+          '<div class="chip-eq">' +
+          mathHTML(card.math) +
+          "</div></article>"
+        );
+      })
+      .join("");
+
+    return (
+      '<div class="chips-board">' +
+      chipsLegend(visual, false) +
+      '<div class="chip-card-grid">' +
+      cards +
+      "</div>" +
+      '<p class="board-caption">' +
+      esc(visual.caption) +
+      "</p></div>"
+    );
+  }
+
+  function pairFamilyVisual(visual) {
+    var rows = (visual.rows || [])
+      .map(function (row) {
+        var pair = row.pair || [0, 0];
+        // The base 3 blue chips are kept; every added blue/red pair cancels.
+        var options = { cancelFrom: 3, cancelRed: row.added };
+        return (
+          '<div class="family-row"><div class="family-row-head"><span class="family-pair">(' +
+          pair[0] +
+          "," +
+          pair[1] +
+          ')</span><span class="family-note">' +
+          esc(row.note) +
+          '</span><span class="family-math">' +
+          esc(row.math) +
+          "</span></div>" +
+          pairChips(pair[0], pair[1], options) +
+          "</div>"
+        );
+      })
+      .join("");
+
+    return (
+      '<div class="family-board' +
+      (state.solved ? " is-solved" : "") +
+      '">' +
+      chipsLegend(visual, true) +
+      '<div class="family-rows">' +
+      rows +
+      "</div>" +
+      '<p class="board-caption">' +
+      esc(state.solved ? visual.result_caption : visual.caption) +
+      "</p></div>"
+    );
+  }
+
+  function renderVisual(step) {
+    var visual = step.visual || {};
+
+    if (visual.type === "numberline") {
+      return numberlineVisual(visual, "interactive");
+    }
+
+    if (visual.type === "numberline_quiz") {
+      return numberlineVisual(visual, "quiz");
+    }
+
+    if (visual.type === "pairs_intro") {
+      return pairsIntroVisual(visual);
+    }
+
+    if (visual.type === "pair_family") {
+      return pairFamilyVisual(visual);
+    }
+
+    if (visual.type === "pair_swap") {
+      var solved = state.solved;
+      return (
+        '<div class="pairboard' +
+        (solved ? " is-solved" : "") +
+        '"><div class="pair-stage"><span class="pair-caption">取负前</span>' +
+        pairHTML(visual.before) +
+        pairChips(visual.before[0], visual.before[1], {}) +
+        '</div><div class="swap-arrow" aria-hidden="true"><span>⇄</span><small>交换计数器</small></div>' +
+        '<div class="pair-stage is-answer"><span class="pair-caption">取负后</span>' +
+        (solved
+          ? pairHTML(visual.after, "取负后的二元组") +
+            pairChips(visual.after[0], visual.after[1], {})
+          : '<span class="pair-pending" aria-hidden="true">?</span>') +
+        "</div></div><p class=\"board-caption\">" +
+        esc(solved ? visual.after_caption : visual.caption) +
+        "</p>"
+      );
+    }
+
+    if (visual.type === "pair_sum") {
+      var sumSolved = state.solved;
+      var sum = visual.sum || [0, 0];
+      var cancelOptions = sumSolved ? { cancelFrom: 0, cancelRed: sum[1] } : {};
+      var cancelCount = Math.min(sum[0], sum[1]);
+      return (
+        '<div class="sum-board' +
+        (sumSolved ? " is-solved" : "") +
+        '"><div class="sum-line">' +
+        pairHTML(visual.left) +
+        '<span class="op" aria-hidden="true">+</span>' +
+        pairHTML(visual.right) +
+        '<span class="op" aria-hidden="true">=</span>' +
+        pairHTML(sum) +
+        '</div><div class="sum-chips"><div class="sum-chip-col"><span class="sum-chip-label">蓝：' +
+        visual.left[0] +
+        " + " +
+        visual.right[0] +
+        " = " +
+        sum[0] +
+        "</span>" +
+        chipDots(sum[0], "blue", cancelOptions) +
+        '</div><div class="sum-chip-col"><span class="sum-chip-label">红：' +
+        visual.left[1] +
+        " + " +
+        visual.right[1] +
+        " = " +
+        sum[1] +
+        "</span>" +
+        chipDots(sum[1], "red", cancelOptions) +
+        '</div></div><div class="cancel-strip"><span class="cancel-badge">' +
+        cancelCount +
+        ' 对蓝红互相抵消</span><span class="cancel-arrow" aria-hidden="true">⇒</span><strong class="cancel-result">' +
+        (sumSolved ? "0" : "?") +
+        "</strong></div><p class=\"board-caption\">" +
+        esc(sumSolved ? visual.result_caption : visual.caption) +
+        "</p></div>"
+      );
+    }
+
+    if (visual.type === "conclusion") {
+      var chips = visual.chips || {};
+      return (
+        '<div class="conclusion-board"><div class="target" aria-hidden="true"><span>0</span></div>' +
+        '<div class="conclusion-eq">' +
+        esc(visual.equation) +
+        '</div><div class="conclusion-flow" aria-hidden="true">' +
+        chipDots(chips.blue, "blue", {}) +
+        '<span class="flow-op">+</span>' +
+        chipDots(chips.red, "red", {}) +
+        '<span class="flow-op">=</span><span class="flow-zero">' +
+        esc(chips.result) +
+        '</span></div><div class="conclusion-chip">' +
+        esc(visual.chip) +
+        "</div></div>"
+      );
+    }
+
+    return "";
+  }
+
+  function renderFormulaHelp(step) {
+    var first = symbolAt(step.help[0]);
+    var chips = step.help
+      .map(function (id) {
+        var symbol = symbolAt(id);
+        return (
+          '<button class="help-chip" type="button" data-symbol="' +
+          esc(id) +
+          '" aria-label="打开 20 秒符号卡：' +
+          esc(symbol.term) +
+          '"><span class="help-q" aria-hidden="true">?</span>' +
+          esc(symbol.term) +
+          "</button>"
+        );
+      })
+      .join("");
+
+    return (
+      '<div class="formula-row"><div class="formula" aria-label="' +
+      esc(step.formula) +
+      '">' +
+      esc(step.formula) +
+      '</div><button class="help-btn" type="button" data-symbol="' +
+      esc(step.help[0]) +
+      '" aria-label="打开 20 秒符号卡：' +
+      esc(first.term) +
+      '" title="20 秒符号卡">?</button></div>' +
+      '<div class="symbol-help"><span class="symbol-help-label">符号小帮手</span>' +
+      chips +
+      "</div>"
+    );
+  }
+
+  function renderChoices(step) {
+    var choices = step.choices
+      .map(function (choice, index) {
+        var isCorrect = state.solved && choice.id === step.answer;
+        var isWrong = !state.solved && state.wrongChoice === choice.id;
+        var mark = isCorrect ? "✓" : isWrong ? "!" : "";
+        return (
+          '<button class="choice' +
+          (choice.sub ? " is-sentence" : "") +
+          (isCorrect ? " is-correct" : "") +
+          (isWrong ? " is-wrong" : "") +
+          '" type="button" data-choice-id="' +
+          esc(choice.id) +
+          '" data-choice-index="' +
+          (index + 1) +
+          '" aria-pressed="' +
+          (isCorrect ? "true" : "false") +
+          '" aria-label="' +
+          esc(choice.label + "，" + choice.aria) +
+          '"' +
+          (state.solved ? " disabled" : "") +
+          "><span class=\"choice-key\" aria-hidden=\"true\">" +
+          (index + 1) +
+          '</span><span class="choice-copy"><span class="choice-label">' +
+          esc(choice.label) +
+          "</span>" +
+          (choice.sub ? '<span class="choice-sub">' + esc(choice.sub) + "</span>" : "") +
+          '</span><span class="choice-mark" aria-hidden="true">' +
+          mark +
+          "</span></button>"
+        );
+      })
+      .join("");
+    return '<div class="choices" role="group" aria-label="选项">' + choices + "</div>";
+  }
+
+  function renderFeedback(step) {
+    if (!state.feedback) {
+      return "";
+    }
+    var feedback = state.feedback;
+    var icon = feedback.kind === "correct" ? "✓" : feedback.kind === "wrong" ? "!" : "?";
+    var meta = "";
+    if (feedback.kind === "correct") {
+      meta +=
+        '<span class="xp-award">+' +
+        feedback.xpEarned +
+        " XP" +
+        (feedback.bonus > 0 ? " · 首次答对 +" + feedback.bonus : "") +
+        "</span>";
+    } else if (feedback.kind === "hint") {
+      meta +=
+        '<span class="hint-meta">提示 ' +
+        state.hintTier +
+        " / " +
+        step.hints.length +
+        " · 不扣 XP</span>";
+    } else {
+      meta += '<span class="hint-meta">再试一次 · 不扣 XP</span>';
+    }
+    return (
+      '<div class="feedback is-' +
+      feedback.kind +
+      '" id="feedback" tabindex="-1"><div class="feedback-head"><span class="feedback-icon" aria-hidden="true">' +
+      icon +
+      '</span><div class="feedback-copy"><p class="feedback-title">' +
+      esc(feedback.title) +
+      '</p><p class="feedback-body">' +
+      esc(feedback.body) +
+      '</p><div class="feedback-meta">' +
+      meta +
+      "</div></div></div></div>"
+    );
+  }
+
+  function renderActions(step) {
+    if (step.type === "goal") {
+      return (
+        '<div class="action-row"><button class="btn btn-primary btn-wide" type="button" data-action="start" id="primaryAction">' +
+        esc(step.primary) +
+        ' <span aria-hidden="true">→</span></button><span class="micro">点选即可 · 无需输入</span></div>'
+      );
+    }
+
+    if (step.type === "insight") {
+      return (
+        '<div class="action-row"><button class="btn btn-primary btn-wide" type="button" data-action="continue" id="primaryAction">' +
+        esc(step.primary) +
+        ' <span aria-hidden="true">→</span></button><span class="micro">看懂了就继续 · 无判分题</span></div>'
+      );
+    }
+
+    if (state.solved) {
+      return (
+        '<div class="action-row"><button class="btn btn-primary btn-wide" type="button" data-action="continue" id="primaryAction">' +
+        esc(step.continue_label) +
+        ' <span aria-hidden="true">→</span></button></div>'
+      );
+    }
+
+    var allHints = state.hintTier >= step.hints.length;
+    var hintLabel = allHints
+      ? "提示已用完"
+      : state.hintTier === 0
+        ? "提示"
+        : "下一条提示 " + (state.hintTier + 1) + "/" + step.hints.length;
+    var note =
+      state.hintTier === 0
+        ? "点选即判定 · 提示不扣 XP"
+        : "再点选一次 · 提示不扣 XP";
+
+    return (
+      '<div class="action-row"><button class="btn btn-hint" type="button" data-action="hint"' +
+      (allHints ? " disabled" : "") +
+      '><span aria-hidden="true">💡</span> ' +
+      hintLabel +
+      '</button><span class="action-note">' +
+      note +
+      "</span></div>"
+    );
+  }
+
+  function renderStep() {
+    var step = stepAt(state.index);
+    var parts = [];
+    parts.push(
+      '<article class="step-card" data-step-id="' +
+        esc(step.id) +
+        '" data-step-type="' +
+        esc(step.type) +
+        '" aria-labelledby="stepTitle">'
+    );
+    parts.push(
+      '<div class="step-top"><span class="kicker">' +
+        esc(step.kicker) +
+        '</span><span class="step-mini">' +
+        (state.index + 1) +
+        " / " +
+        TOTAL +
+        "</span></div>"
+    );
+    parts.push(
+      '<h1 class="step-title" id="stepTitle" tabindex="-1">' + esc(step.title) + "</h1>"
+    );
+
+    if (step.type === "goal") {
+      parts.push('<div class="body-copy">' + esc(step.body) + "</div>");
+      parts.push(
+        '<div class="goal-meta"><span class="meta-pill">' +
+          TOTAL +
+          " 个互动</span><span class=\"meta-pill\">无需写代码</span><span class=\"meta-pill\">约 " +
+          data.estimated_minutes +
+          " 分钟</span></div>"
+      );
+    } else if (step.type === "insight") {
+      parts.push('<div class="body-copy">' + esc(step.body) + "</div>");
+      parts.push('<div class="body-copy is-second">' + esc(step.body2) + "</div>");
+    } else {
+      parts.push('<div class="body-copy">' + esc(step.prompt) + "</div>");
+    }
+
+    parts.push(renderFormulaHelp(step));
+    parts.push(renderVisual(step));
+    if (step.type === "insight") {
+      parts.push(
+        '<p class="insight-callout"><span class="insight-icon" aria-hidden="true">💡</span><span>' +
+          esc(step.callout) +
+          "</span></p>"
+      );
+    }
+    if (step.type === "choice") {
+      parts.push(renderChoices(step));
+      parts.push(renderFeedback(step));
+    }
+    parts.push(renderActions(step));
+    parts.push("</article>");
+    document.getElementById("main").innerHTML = parts.join("");
+  }
+
+  function renderJourney() {
+    var journey = document.getElementById("journey");
+    if (!journey) {
+      return;
+    }
+    var items = data.steps
+      .map(function (step, index) {
+        var isCurrent = !state.completed && index === state.index;
+        var isDone =
+          state.completed || index < state.index || (index === state.index && state.solved);
+        var marker = isDone ? "✓" : String(index + 1);
+        var classes =
+          "journey-item" +
+          (isDone ? " is-done" : "") +
+          (isCurrent ? " is-current" : "");
+        return (
+          '<li class="' +
+          classes +
+          '"' +
+          (isCurrent ? ' aria-current="step"' : "") +
+          '><span class="j-marker" aria-hidden="true">' +
+          marker +
+          '</span><span class="j-copy"><strong>' +
+          esc(step.short) +
+          "</strong><small>" +
+          esc(step.title) +
+          "</small></span></li>"
+        );
+      })
+      .join("");
+
+    var foot = state.completed
+      ? '<div class="journey-unlock">✓ 徽章已解锁 · ' + esc(data.badge.title) + "</div>"
+      : '<div class="journey-foot">完成 ' +
+        TOTAL +
+        " 步，解锁「" +
+        esc(data.badge.title) +
+        "」</div>";
+
+    journey.innerHTML =
+      '<div class="journey-card"><p class="journey-kicker">本课路线</p><ol class="journey-list">' +
+      items +
+      "</ol>" +
+      foot +
+      "</div>";
+  }
+
+  function formatDuration() {
+    if (!state.startedAt) {
+      return "—";
+    }
+    var seconds = Math.max(1, Math.round((Date.now() - state.startedAt) / 1000));
+    if (seconds < 60) {
+      return seconds + " 秒";
+    }
+    var minutes = Math.floor(seconds / 60);
+    var rest = seconds % 60;
+    return rest ? minutes + " 分 " + rest + " 秒" : minutes + " 分钟";
+  }
+
+  function renderCompletion() {
+    var completion = data.completion;
+    var proof = data.formal_proof;
+    var firstTryRate =
+      GRADED > 0 ? Math.round((state.firstTryCount / GRADED) * 100) : 0;
+    var theorems = proof.theorems
+      .map(function (theorem) {
+        return (
+          '<li class="theorem"><div class="theorem-head"><code>' +
+          esc(theorem.name) +
+          '</code><span class="theorem-kind">' +
+          esc(theorem.kind) +
+          '</span></div><p>' +
+          esc(theorem.plain) +
+          "</p></li>"
+        );
+      })
+      .join("");
+
+    var stats = [
+      ["本轮 XP", state.xp, "/ " + MAX_XP + " XP"],
+      ["首次答对", state.firstTryCount + " / " + GRADED, firstTryRate + "%"],
+      ["最高连对", state.maxStreak, "共 " + GRADED + " 道"],
+      ["用时", formatDuration(), state.hintsUsed + " 次提示"]
+    ]
+      .map(function (item) {
+        return (
+          '<div class="stat-box"><span class="stat-box-label">' +
+          esc(item[0]) +
+          '</span><span class="stat-box-value">' +
+          esc(item[1]) +
+          '</span><span class="stat-box-note">' +
+          esc(item[2]) +
+          "</span></div>"
+        );
+      })
+      .join("");
+
+    document.getElementById("main").innerHTML =
+      '<article class="completion-card" data-step-id="complete" aria-labelledby="stepTitle">' +
+      '<div class="completion-head"><div class="medal" aria-hidden="true"><span class="medal-check">✓</span></div>' +
+      '<p class="kicker">' +
+      esc(completion.eyebrow) +
+      '</p><h1 class="completion-title" id="stepTitle" tabindex="-1">' +
+      esc(completion.title) +
+      '</h1><p class="completion-body">' +
+      esc(completion.body) +
+      '</p><span class="badge-pill"><span class="badge-check" aria-hidden="true">✓</span>徽章解锁 · ' +
+      esc(data.badge.title) +
+      "</span></div>" +
+      '<div class="stats-grid">' +
+      stats +
+      "</div>" +
+      '<div class="completion-actions"><button class="btn btn-primary" type="button" data-action="replay" id="primaryAction">' +
+      esc(completion.replay) +
+      ' <span aria-hidden="true">↻</span></button></div>' +
+      '<details class="proof"><summary><span class="proof-plus" aria-hidden="true">+</span><span><strong>看形式证明</strong><small>可选 · 后台证据，不是主界面</small></span></summary>' +
+      '<div class="proof-body"><p class="proof-summary">' +
+      esc(proof.summary) +
+      '</p><p class="proof-lead">' +
+      esc(proof.theorem_lead) +
+      '</p><ol class="theorem-list">' +
+      theorems +
+      '</ol><p class="proof-evidence">' +
+      esc(proof.evidence) +
+      '</p><p class="proof-note">' +
+      esc(proof.note) +
+      "</p></div></details>" +
+      '<p class="completion-next">' +
+      esc(completion.next) +
+      "</p></article>";
+  }
+
+  function updateHeader() {
+    var progress = state.completed
+      ? 1
+      : Math.min(1, (state.index + (state.solved ? 1 : 0.22)) / TOTAL);
+    var percent = Math.max(5, Math.min(100, Math.round(progress * 100)));
+    var fill = document.getElementById("progressFill");
+    var track = document.getElementById("progressTrack");
+    if (fill) {
+      fill.style.width = percent + "%";
+    }
+    if (track) {
+      track.setAttribute("aria-valuenow", String(percent));
+    }
+    var stepLabel = document.getElementById("stepLabel");
+    if (stepLabel) {
+      stepLabel.textContent = state.completed
+        ? TOTAL + " / " + TOTAL + " · 完成"
+        : "第 " + (state.index + 1) + " / " + TOTAL + " 步";
+    }
+    var xpValue = document.getElementById("xpValue");
+    if (xpValue) {
+      xpValue.textContent = String(state.xp);
+    }
+    var streakValue = document.getElementById("streakValue");
+    if (streakValue) {
+      streakValue.textContent = String(state.streak);
+    }
+    if (state.lastXp !== state.xp) {
+      popStat(document.getElementById("xpStat"));
+      state.lastXp = state.xp;
+    }
+    if (state.lastStreak !== state.streak) {
+      popStat(document.getElementById("streakStat"));
+      state.lastStreak = state.streak;
+    }
+  }
+
+  function render() {
+    if (state.completed) {
+      renderCompletion();
+    } else {
+      renderStep();
+    }
+    renderJourney();
+    updateHeader();
+  }
+
+  function focusStep() {
+    window.requestAnimationFrame(function () {
+      var title = document.getElementById("stepTitle");
+      if (title) {
+        title.focus({ preventScroll: true });
+      }
+    });
+  }
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  }
+
+  function revealFeedback() {
+    window.requestAnimationFrame(function () {
+      var target =
+        document.getElementById("primaryAction") ||
+        document.getElementById("feedback");
+      if (target) {
+        target.scrollIntoView({
+          block: "nearest",
+          behavior: reduceMotion ? "auto" : "smooth"
+        });
+      }
+    });
+  }
+
+  function resetStepState() {
+    state.hintTier = 0;
+    state.wrongAttempts = 0;
+    state.attempts = 0;
+    state.solved = false;
+    state.feedback = null;
+    state.wrongChoice = null;
+    state.markerValue = null;
+  }
+
+  function awardStepXp(step, bonus) {
+    var key = String(state.index);
+    if (state.awarded[key]) {
+      return 0;
+    }
+    var earned = step.xp + (bonus || 0);
+    state.awarded[key] = true;
+    state.lastXp = state.xp;
+    state.xp += earned;
+    return earned;
+  }
+
+  function goNext() {
+    if (state.index >= TOTAL - 1) {
+      finishLesson();
+      return;
+    }
+    state.index += 1;
+    resetStepState();
+    render();
+    focusStep();
+    scrollToTop();
+  }
+
+  function startLesson() {
+    if (state.completed) {
+      return;
+    }
+    if (state.startedAt === null) {
+      state.startedAt = Date.now();
+    }
+    awardStepXp(stepAt(0), 0);
+    goNext();
+  }
+
+  function continueLesson() {
+    if (state.completed) {
+      return;
+    }
+    var step = stepAt(state.index);
+    if (step.type === "choice" && !state.solved) {
+      return;
+    }
+    if (step.type === "insight") {
+      awardStepXp(step, 0);
+    }
+    if (state.index >= TOTAL - 1) {
+      finishLesson();
+    } else {
+      goNext();
+    }
+  }
+
+  function answerChoice(choiceId) {
+    if (state.solved || state.completed) {
+      return;
+    }
+    var step = stepAt(state.index);
+    if (step.type !== "choice") {
+      return;
+    }
+    var choice = step.choices.filter(function (item) {
+      return item.id === choiceId;
+    })[0];
+    if (!choice) {
+      return;
+    }
+    state.attempts += 1;
+
+    if (choiceId === step.answer) {
+      var firstTry = state.attempts === 1;
+      var bonus = firstTry ? step.first_try_bonus : 0;
+      state.solved = true;
+      state.wrongChoice = null;
+      var earned = awardStepXp(step, bonus);
+      state.streak += 1;
+      state.maxStreak = Math.max(state.maxStreak, state.streak);
+      state.firstTryCount += firstTry ? 1 : 0;
+      state.feedback = {
+        kind: "correct",
+        title: step.feedback.correct.title,
+        body: step.feedback.correct.body,
+        xpEarned: earned,
+        bonus: bonus,
+        firstTry: firstTry
+      };
+      state.wrongAttempts = 0;
+      render();
+      announce("回答正确。" + step.feedback.correct.body);
+      window.requestAnimationFrame(function () {
+        var primary = document.getElementById("primaryAction");
+        if (primary) {
+          primary.focus({ preventScroll: true });
+        }
+        revealFeedback();
+      });
+      return;
+    }
+
+    state.wrongAttempts += 1;
+    state.streak = 0;
+    state.wrongChoice = choiceId;
+    state.feedback = {
+      kind: "wrong",
+      title: "再想一想",
+      body: step.feedback.wrong[choiceId]
+    };
+    render();
+    announce("回答不对。" + step.feedback.wrong[choiceId]);
+    window.requestAnimationFrame(function () {
+      var button = document.querySelector('[data-choice-id="' + choiceId + '"]');
+      if (button) {
+        button.focus({ preventScroll: true });
+      }
+      revealFeedback();
+    });
+  }
+
+  function showHint() {
+    if (state.completed || state.solved) {
+      return;
+    }
+    var step = stepAt(state.index);
+    if (step.type !== "choice" || state.hintTier >= step.hints.length) {
+      return;
+    }
+    var hint = step.hints[state.hintTier];
+    state.hintTier += 1;
+    state.hintsUsed += 1;
+    state.feedback = {
+      kind: "hint",
+      title: "提示 " + state.hintTier + "/" + step.hints.length + " · " + hint.title,
+      body: hint.body
+    };
+    render();
+    announce("提示 " + state.hintTier + "。" + hint.body);
+    window.requestAnimationFrame(function () {
+      var feedback = document.getElementById("feedback");
+      if (feedback) {
+        feedback.focus({ preventScroll: true });
+      }
+      revealFeedback();
+    });
+  }
+
+  function selectMarker(button) {
+    var note = button.getAttribute("data-note") || "";
+    var value = Number(button.getAttribute("data-marker"));
+    state.markerValue = value;
+    $$(".nl-marker[data-marker]").forEach(function (marker) {
+      marker.classList.remove("is-active");
+      marker.setAttribute("aria-pressed", "false");
+    });
+    button.classList.add("is-active");
+    button.setAttribute("aria-pressed", "true");
+    var caption = document.getElementById("markerCaption");
+    if (caption) {
+      caption.textContent = note;
+    }
+    announce(note);
+  }
+
+  function closeHelp(restoreFocus) {
+    if (!state.help && !state.helpTimer) {
+      return;
+    }
+    var trigger = state.help ? state.help.trigger : null;
+    window.clearInterval(state.helpTimer);
+    state.helpTimer = null;
+    state.help = null;
+    state.helpEnds = 0;
+    var root = document.getElementById("modalRoot");
+    if (root) {
+      root.innerHTML = "";
+    }
+    document.body.classList.remove("is-locked");
+    if (restoreFocus !== false && trigger && trigger.isConnected) {
+      trigger.focus({ preventScroll: true });
+    }
+  }
+
+  function tickHelp() {
+    if (!state.help) {
+      return;
+    }
+    var total = state.help.symbol.seconds * 1000;
+    var left = Math.max(0, state.helpEnds - performance.now());
+    var ratio = total > 0 ? left / total : 0;
+    var bar = document.getElementById("helpTimerBar");
+    if (bar) {
+      bar.style.transform = "scaleX(" + ratio + ")";
+    }
+    var count = document.getElementById("helpCount");
+    if (count) {
+      count.textContent = Math.ceil(left / 1000) + "s";
+    }
+    if (left <= 0) {
+      closeHelp();
+      announce("20 秒到，符号卡已收起。");
+      showToast("20 秒到，符号卡已收起");
+    }
+  }
+
+  function openHelp(symbolId, trigger) {
+    var symbol = symbolAt(symbolId);
+    if (!symbol) {
+      return;
+    }
+    closeHelp(false);
+    state.help = { symbolId: symbolId, symbol: symbol, trigger: trigger };
+    state.helpEnds = performance.now() + symbol.seconds * 1000;
+    var root = document.getElementById("modalRoot");
+    root.innerHTML =
+      '<div class="modal-backdrop" id="helpBackdrop"><article class="help-sheet" id="helpSheet" role="dialog" aria-modal="true" aria-labelledby="helpTitle" aria-describedby="helpPlain">' +
+      '<div class="help-timer" aria-hidden="true"><span class="help-timer-bar" id="helpTimerBar"></span></div>' +
+      '<div class="help-top"><span class="help-kicker">20 秒符号卡</span><span class="help-count" id="helpCount" aria-hidden="true">' +
+      symbol.seconds +
+      's</span></div><h2 id="helpTitle">' +
+      esc(symbol.term) +
+      '</h2><p class="help-reading">' +
+      esc(symbol.reading) +
+      '</p><p class="help-plain" id="helpPlain">' +
+      esc(symbol.plain) +
+      '</p><div class="help-example">' +
+      esc(symbol.example) +
+      '</div><p class="help-foot">' +
+      esc(symbol.help) +
+      '</p><button class="btn btn-primary" type="button" data-action="close-help" id="helpClose">知道了</button></article></div>';
+    document.body.classList.add("is-locked");
+    window.requestAnimationFrame(function () {
+      var close = document.getElementById("helpClose");
+      if (close) {
+        close.focus();
+      }
+    });
+    window.clearInterval(state.helpTimer);
+    state.helpTimer = window.setInterval(tickHelp, 100);
+    tickHelp();
+  }
+
+  function launchConfetti(count) {
+    if (reduceMotion) {
+      return;
+    }
+    var layer = document.getElementById("confetti");
+    if (!layer) {
+      return;
+    }
+    layer.innerHTML = "";
+    var colors = ["#58cc02", "#1cb0f6", "#ff9600", "#8b5cf6", "#ff4b4b", "#ffd166"];
+    var fragment = document.createDocumentFragment();
+    for (var i = 0; i < count; i += 1) {
+      var piece = document.createElement("span");
+      piece.className = "confetti-piece";
+      piece.style.left = Math.random() * 100 + "%";
+      piece.style.background = colors[i % colors.length];
+      piece.style.width = 6 + Math.random() * 6 + "px";
+      piece.style.height = 10 + Math.random() * 10 + "px";
+      piece.style.setProperty("--drift", Math.round(Math.random() * 260 - 130) + "px");
+      piece.style.setProperty("--spin", Math.round(Math.random() * 900 - 450) + "deg");
+      piece.style.setProperty("--delay", (Math.random() * 0.45).toFixed(2) + "s");
+      piece.style.setProperty("--dur", (2.1 + Math.random() * 1.6).toFixed(2) + "s");
+      fragment.appendChild(piece);
+    }
+    layer.appendChild(fragment);
+    window.setTimeout(function () {
+      if (layer) {
+        layer.innerHTML = "";
+      }
+    }, 4400);
+  }
+
+  function finishLesson() {
+    if (state.completed) {
+      return;
+    }
+    if (state.startedAt === null) {
+      state.startedAt = Date.now();
+    }
+    state.xp += data.completion.xp;
+    state.completed = true;
+    state.solved = true;
+    state.feedback = null;
+    render();
+    focusStep();
+    scrollToTop();
+    launchConfetti(40);
+    announce(
+      "本课完成。徽章已解锁：" +
+        data.badge.title +
+        "。本轮 " +
+        state.xp +
+        " XP。"
+    );
+    var elapsedSeconds = Math.max(
+      1,
+      Math.round((Date.now() - state.startedAt) / 1000)
+    );
+    window.dispatchEvent(
+      new CustomEvent("soko:lesson-complete", {
+        detail: {
+          lessonId: data.id,
+          badge: data.badge.title,
+          xp: state.xp,
+          maxXp: MAX_XP,
+          firstTryCount: state.firstTryCount,
+          gradedSteps: GRADED,
+          maxStreak: state.maxStreak,
+          hintsUsed: state.hintsUsed,
+          elapsedSeconds: elapsedSeconds
+        }
+      })
+    );
+  }
+
+  function replayLesson() {
+    closeHelp(false);
+    state.index = 0;
+    state.xp = 0;
+    state.streak = 0;
+    state.maxStreak = 0;
+    state.hintsUsed = 0;
+    state.firstTryCount = 0;
+    state.startedAt = null;
+    state.lastXp = 0;
+    state.lastStreak = 0;
+    state.completed = false;
+    state.awarded = {};
+    resetStepState();
+    var confetti = document.getElementById("confetti");
+    if (confetti) {
+      confetti.innerHTML = "";
+    }
+    render();
+    focusStep();
+    scrollToTop();
+    announce("重新开始。");
+  }
+
+  function onClick(event) {
+    if (event.target && event.target.id === "helpBackdrop") {
+      closeHelp();
+      return;
+    }
+
+    var actionNode = event.target.closest("[data-action]");
+    if (actionNode) {
+      var action = actionNode.getAttribute("data-action");
+      if (action === "start") {
+        startLesson();
+      } else if (action === "continue") {
+        continueLesson();
+      } else if (action === "hint") {
+        showHint();
+      } else if (action === "replay") {
+        replayLesson();
+      } else if (action === "close-help") {
+        closeHelp();
+      }
+      return;
+    }
+
+    var helpNode = event.target.closest("[data-symbol]");
+    if (helpNode) {
+      event.preventDefault();
+      openHelp(helpNode.getAttribute("data-symbol"), helpNode);
+      return;
+    }
+
+    var choiceNode = event.target.closest("[data-choice-id]");
+    if (choiceNode) {
+      answerChoice(choiceNode.getAttribute("data-choice-id"));
+      return;
+    }
+
+    var markerNode = event.target.closest("[data-marker]");
+    if (markerNode) {
+      selectMarker(markerNode);
+    }
+  }
+
+  function onKeyDown(event) {
+    if (state.help) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeHelp();
+      } else if (event.key === "Tab") {
+        event.preventDefault();
+        var close = document.getElementById("helpClose");
+        if (close) {
+          close.focus();
+        }
+      }
+      return;
+    }
+
+    if (
+      event.metaKey ||
+      event.ctrlKey ||
+      event.altKey ||
+      event.defaultPrevented ||
+      event.repeat ||
+      state.completed
+    ) {
+      return;
+    }
+
+    var step = stepAt(state.index);
+    if (!step || step.type !== "choice" || state.solved) {
+      return;
+    }
+    if (/^[1-9]$/.test(event.key)) {
+      var index = Number(event.key) - 1;
+      var choice = step.choices[index];
+      if (choice) {
+        event.preventDefault();
+        answerChoice(choice.id);
+      }
+    }
+  }
+
+  function renderProgressTicks() {
+    var track = document.querySelector(".progress-ticks");
+    if (!track) {
+      return;
+    }
+    var ticks = [];
+    for (var index = 1; index < TOTAL; index += 1) {
+      ticks.push(
+        '<i style="left:' + ((index / TOTAL) * 100).toFixed(3) + '%"></i>'
+      );
+    }
+    track.innerHTML = ticks.join("");
+  }
+
+  function init() {
+    var brandCourse = document.getElementById("brandCourse");
+    if (brandCourse) {
+      brandCourse.textContent = data.course_title + " · Unit ⑧";
+    }
+    var progressUnit = document.getElementById("progressUnit");
+    if (progressUnit) {
+      progressUnit.textContent =
+        "Unit ⑧ · 约 " + data.estimated_minutes + " 分钟";
+    }
+    renderProgressTicks();
+    render();
+    window.SokoLesson = Object.freeze({
+      version: data.version,
+      lessonId: data.id,
+      steps: TOTAL,
+      getState: function () {
+        return {
+          lessonId: data.id,
+          stepIndex: state.index,
+          stepId: state.completed ? null : stepAt(state.index).id,
+          completed: state.completed,
+          xp: state.xp,
+          maxXp: MAX_XP,
+          streak: state.streak,
+          maxStreak: state.maxStreak,
+          firstTryCount: state.firstTryCount,
+          hintsUsed: state.hintsUsed,
+          attempts: state.attempts,
+          wrongAttempts: state.wrongAttempts,
+          hintTier: state.hintTier,
+          badge: state.completed ? data.badge.title : null
+        };
+      },
+      reset: replayLesson
+    });
+    window.dispatchEvent(
+      new CustomEvent("soko:lesson-ready", {
+        detail: { lessonId: data.id, steps: TOTAL }
+      })
+    );
+  }
+
+  document.addEventListener("click", onClick);
+  document.addEventListener("keydown", onKeyDown);
+  init();
+})();
+
+  </script>
+</body>
+</html>
