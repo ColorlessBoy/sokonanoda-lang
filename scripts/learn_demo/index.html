@@ -788,7 +788,6 @@ input[type="range"] {
 
 /* ── game ─────────────────────────────────────────────────── */
 .game-card {
-  scroll-margin-top: 92px;
   width: min(1240px, calc(100% - 48px));
   margin: 22px auto 0;
   padding: 24px;
@@ -816,6 +815,12 @@ input[type="range"] {
 .q-index { background: var(--paper-2); color: var(--ink-soft); }
 .q-type { background: var(--amber-wash); color: var(--amber-ink); }
 .q-done { background: var(--teal-wash); color: var(--teal-ink); }
+
+#game-title,
+.q-title,
+#completion-title {
+  scroll-margin-top: 96px;
+}
 
 .q-title {
   margin: 6px 0;
@@ -1031,7 +1036,7 @@ input[type="range"] {
 .q5-choices { max-width: 460px; }
 
 /* completion */
-.completion { margin-top: 8px; }
+.completion { margin-top: 8px; scroll-margin-top: 96px; }
 .badge-card {
   padding: 26px 20px;
   border: 1px solid var(--line-strong);
