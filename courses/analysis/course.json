@@ -346,7 +346,7 @@
             "equivalence"
           ],
           "quota": {
-            "exercises": 40
+            "exercises": 44
           },
           "units": [
             {
@@ -390,6 +390,18 @@
               "title": "单元51 严格序的传递与加法相容",
               "title_en": "Unit 51 — Transitivity of the Strict Order and Compatibility with Addition",
               "unit": 51
+            },
+            {
+              "file": "units/II.5/unit52-eps-half.sokonanoda",
+              "title": "单元52 ε 折半：半数的存在与加倍",
+              "title_en": "Unit 52 — Halving: Existence of ε/2 and x/2 + x/2 = x",
+              "unit": 52
+            },
+            {
+              "file": "units/II.5/unit53-half-pos.sokonanoda",
+              "title": "单元53 半数的正性：0 < ε ⇒ 0 < ε/2",
+              "title_en": "Unit 53 — Positivity of the Half: 0 < ε implies 0 < ε/2",
+              "unit": 53
             }
           ]
         }

@@ -786,3 +786,34 @@ theorem leNat_eq_or_succ (k m : Nat) (h : LeNat k m) :
   match h with
   | le_refl n => Or.inl (Eq.refl n)
   | le_succ a b hh => Or.inr (leNat_succ_succ a b hh)
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊺ 的序全性进库（㊿ 之后「半数正性」要用它做反证）
+-- ─────────────────────────────────────────────────────────────
+
+-- 证明与 ㊺ 的画布逐字同形：对第二个变量归纳，`leNat_eq_or_succ` 负责拆
+-- 「相等」与「严格小」两支。
+
+theorem leNat_total (m n : Nat) : LeNat m n ∨ LeNat n m :=
+  Nat.rec (fun (n : Nat) => LeNat m n ∨ LeNat n m)
+    (Or.inr (leNat_zero_le m))
+    (fun (k : Nat) (ih : LeNat m k ∨ LeNat k m) =>
+      Or.elim
+        (fun (h : LeNat m k) => Or.inl (le_succ m k h))
+        (fun (h : LeNat k m) =>
+          Or.elim
+            (fun (heq : k = m) =>
+              Or.inl
+                (le_succ m k
+                  (@Eq.subst.{1} Nat (fun (z : Nat) => LeNat z k) k m heq
+                    (le_refl k))))
+            (fun (hlt : LeNat (Nat.succ k) m) => Or.inr hlt)
+            (leNat_eq_or_succ k m h))
+        ih)
+    n
+
+-- `ratLeRep` 就是交叉相乘后的 `LeNat`，所以全性一步转发。
+
+theorem ratLeRep_total (x y : ratRep) : ratLeRep x y ∨ ratLeRep y x :=
+  leNat_total (Nat.add (Prod.fst Nat Nat (leNum x y)) (Prod.snd Nat Nat (leNum y x)))
+              (Nat.add (Prod.fst Nat Nat (leNum y x)) (Prod.snd Nat Nat (leNum x y)))
