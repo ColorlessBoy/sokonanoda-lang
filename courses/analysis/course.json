@@ -473,6 +473,12 @@
               "title": "单元62 实数的加法：交换律与零元（三元关系版）",
               "title_en": "Unit 62 — Addition on the Reals: Commutativity and Zero (Ternary Relation)",
               "unit": 62
+            },
+            {
+              "file": "units/II.6/unit63-real-add-assoc.sokonanoda",
+              "title": "单元63 实数的加法：结合律（三元关系版）",
+              "title_en": "Unit 63 — Addition on the Reals: Associativity (Ternary Relation)",
+              "unit": 63
             }
           ]
         }
