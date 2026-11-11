@@ -289,6 +289,26 @@ export async function browserChecks({ client, log = () => {} } = {}) {
   expect(s.formulaHolds === true && s.formulaText.includes("= 11"), "0.10 formula and strict invariant hold", s.formulaText);
   expect(s.caption.includes("第 11 项"), "caption for 0.10 names the 11th term", s.caption);
   expect((await count(client, ".sc-dot.is-in")) === 10, "0.10 paints exactly 10 terms inside");
+  const labelOverlap = await client.evaluate(
+    `(() => {
+      const boxes = ["#sc-band-label", "#sc-eps-label", ".sc-axis-name", "#sc-n-pill", ".sc-tick-label"]
+        .flatMap((selector) => [...document.querySelectorAll(selector)].map((el) => ({
+          selector, text: el.textContent, box: el.getBBox()
+        })));
+      const hits = [];
+      for (let i = 0; i < boxes.length; i += 1) {
+        for (let j = i + 1; j < boxes.length; j += 1) {
+          const a = boxes[i].box;
+          const b = boxes[j].box;
+          const overlap = !(a.x + a.width < b.x || b.x + b.width < a.x ||
+            a.y + a.height < b.y || b.y + b.height < a.y);
+          if (overlap) hits.push(boxes[i].selector + " ↔ " + boxes[j].selector);
+        }
+      }
+      return hits;
+    })()`
+  );
+  expect(labelOverlap.length === 0, "no SVG labels collide at ε = 0.10", labelOverlap);
 
   await click('.preset[data-preset="0.25"]');
   s = await state(client);

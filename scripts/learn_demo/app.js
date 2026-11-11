@@ -395,17 +395,16 @@
     }
     dom.sceneLayer.innerHTML =
       '<rect class="sc-band" id="sc-band" x="' + SCENE.x0 + '" y="' + SCENE.bandTop + '" width="0" height="' + (SCENE.bandBottom - SCENE.bandTop) + '" rx="4"/>' +
-      '<text class="sc-band-label" id="sc-band-label" x="' + (SCENE.x0 + 10) + '" y="' + (SCENE.bandTop - 10) + '">误差带 0 ≤ aₙ &lt; ε</text>' +
+      '<text class="sc-band-label" id="sc-band-label" x="' + (SCENE.x0 + 10) + '" y="' + (SCENE.bandTop + 24) + '">误差带</text>' +
       '<line class="sc-axis" id="sc-axis" x1="' + SCENE.x0 + '" x2="' + SCENE.x1 + '" y1="' + SCENE.axisY + '" y2="' + SCENE.axisY + '"/>' +
       tickMarkup +
       '<line class="sc-eps-line" id="sc-eps-line" x1="0" x2="0" y1="42" y2="256"/>' +
-      '<text class="sc-eps-label" id="sc-eps-label" x="0" y="34" text-anchor="start">ε</text>' +
+      '<text class="sc-eps-label" id="sc-eps-label" x="0" y="214" text-anchor="start">ε</text>' +
       '<g id="sc-n-pill"><rect id="sc-n-rect" x="0" y="286" width="60" height="24" rx="12"/><text id="sc-n-text" x="0" y="302" text-anchor="middle">N</text></g>' +
       '<line class="sc-n-line" id="sc-n-line" x1="0" x2="0" y1="42" y2="256"/>' +
       '<circle class="sc-n-halo" id="sc-n-halo" cx="0" cy="' + SCENE.axisY + '" r="12" opacity="0"/>' +
       '<g id="sc-dots">' + dots + '</g>' +
       '<text class="sc-axis-name" x="' + SCENE.x0 + '" y="30">值轴 0–1 · aₙ = 1/n</text>' +
-      '<text class="sc-axis-name" x="' + SCENE.x0 + '" y="298">序号轴 n = 1…20</text>' +
       '<g id="sc-cells">' + cells + '</g>' +
       '<line class="sc-index-line" id="sc-index-line" x1="0" x2="0" y1="310" y2="352" opacity="0"/>' +
       '<text class="sc-index-note" id="sc-index-note" x="' + SCENE.x0 + '" y="372" text-anchor="start"></text>';
