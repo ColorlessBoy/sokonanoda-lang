@@ -1,0 +1,1536 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="小析（Xiao Xi）——实分析教学产品的原创 2D 虚拟学习同伴。角色圣经、人格切换、ε–N 场景样张与可访问性控制。视觉探针，不是课程单元。">
+<title>小析 · 2D 数学学习同伴（视觉探针）</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   小析 · 2D companion probe
+   单文件：无外部字体、无 CDN、无请求、无图片、无 npm 依赖。
+   颜色与课程站点同属「纸面 + 墨 + 少量语义色」家族；这里的语义色是
+   深蓝（结构/身体）、青绿（带内/提示）、琥珀（N/焦点）。
+   ══════════════════════════════════════════════════════════════════ */
+
+:root{
+  color-scheme: light;
+
+  --paper: #f4f1e9;
+  --paper-2: #ece8dc;
+  --surface: #fffdf8;
+  --surface-2: #fbf8f1;
+
+  --ink: #182430;
+  --ink-2: #4c5a66;
+  --ink-3: #5b6772;
+
+  --navy: #17324d;
+  --navy-2: #27506f;
+  --teal: #1f8a7a;
+  --teal-ink: #146a5d;
+  --teal-wash: #e3f1ec;
+  --amber: #e9a23b;
+  --amber-ink: #7d520e;
+  --amber-wash: #fbefd8;
+  --rose: #c96f52;
+  --rose-ink: #a14530;
+  --rose-wash: #faece6;
+
+  --rule: #d9d4c7;
+  --rule-strong: #b9b3a4;
+  --focus: #17324d;
+
+  --radius-card: 12px;
+  --radius-control: 8px;
+
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei",
+    sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", "Songti SC", "Noto Serif CJK SC",
+    Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  --shadow-soft: 0 18px 50px rgba(23, 50, 77, .07);
+}
+
+*, *::before, *::after{ box-sizing: border-box; }
+[hidden]{ display: none !important; }
+html{ scroll-behavior: smooth; }
+body{
+  margin: 0;
+  background:
+    radial-gradient(1100px 500px at 85% -10%, rgba(31, 138, 122, .07), transparent 60%),
+    radial-gradient(900px 420px at 8% 0%, rgba(233, 162, 59, .08), transparent 55%),
+    var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+button, input{ font: inherit; }
+button{ cursor: pointer; }
+a{ color: var(--teal-ink); text-underline-offset: 3px; }
+a:hover{ color: var(--navy); }
+::selection{ background: var(--teal-wash); color: var(--navy); }
+:focus-visible{ outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+h1, h2, h3, p{ margin-top: 0; }
+code, pre{ font-family: var(--font-mono); }
+
+.sr-only{
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.skip-link{
+  position: fixed; left: 16px; top: 12px; z-index: 50;
+  transform: translateY(-180%);
+  background: var(--navy); color: #fff; padding: 10px 14px;
+  border-radius: var(--radius-control); text-decoration: none; font-weight: 650;
+  transition: transform .16s ease;
+}
+.skip-link:focus{ transform: translateY(0); color: #fff; }
+
+.page{
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 32px 56px;
+}
+
+/* ── topbar ─────────────────────────────────────────────────── */
+.topbar{
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px 0 16px;
+  border-bottom: 1px solid var(--rule);
+}
+.brand{ display: flex; align-items: center; gap: 11px; min-width: 0; }
+.brand-mark{
+  width: 38px; height: 38px; flex: none;
+  display: grid; place-items: center;
+  background: var(--navy); color: var(--amber);
+  border-radius: 10px;
+  font-family: var(--font-serif); font-size: 23px; line-height: 1;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .16);
+}
+.brand-name{ font-size: 17px; font-weight: 750; letter-spacing: .01em; line-height: 1.2; }
+.brand-sub{ display: block; margin-top: 1px; font-size: 10.5px; color: var(--ink-3); letter-spacing: .13em; font-weight: 600; }
+.topbar-meta{ margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.probe-chip{
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 10px; border: 1px dashed var(--rule-strong); border-radius: 999px;
+  font-size: 11.5px; color: var(--ink-2); background: rgba(255, 253, 248, .62);
+  white-space: nowrap;
+}
+.probe-chip::before{
+  content: ""; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--teal); box-shadow: 0 0 0 3px rgba(31, 138, 122, .12);
+}
+.quiet-link{
+  display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px;
+  border: 1px solid var(--rule); border-radius: var(--radius-control);
+  background: rgba(255, 253, 248, .62);
+  color: var(--ink-2); font-size: 12.5px; font-weight: 620; text-decoration: none;
+}
+.quiet-link:hover{ background: var(--surface); border-color: var(--rule-strong); color: var(--navy); }
+
+/* ── intro ──────────────────────────────────────────────────── */
+.intro{ padding: 26px 0 22px; max-width: 900px; }
+.eyebrow{
+  margin: 0 0 9px;
+  color: var(--teal-ink); font-size: 10.5px; font-weight: 750;
+  letter-spacing: .17em; text-transform: uppercase;
+}
+.intro h1{
+  margin: 0 0 12px;
+  font-size: clamp(2rem, 1.35rem + 2.2vw, 3.05rem);
+  line-height: 1.14; letter-spacing: -.025em; font-weight: 780;
+  color: var(--navy);
+}
+.intro h1 .thin{ color: var(--ink-2); font-weight: 520; }
+.lede .thin-inline{ color: var(--ink-3); }
+.lede{ max-width: 680px; margin: 0; color: var(--ink-2); font-size: 16px; line-height: 1.7; }
+.intro-tags{ display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.tag{
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 9px; border-radius: 6px;
+  background: var(--surface); border: 1px solid var(--rule);
+  color: var(--ink-2); font-size: 11.5px; font-weight: 600; white-space: nowrap;
+}
+.tag .dot-sm{ width: 6px; height: 6px; border-radius: 50%; background: var(--teal); flex: none; }
+.tag .dot-sm.amber{ background: var(--amber); }
+
+/* ── layout ─────────────────────────────────────────────────── */
+.layout{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 392px;
+  gap: 24px;
+  align-items: start;
+}
+.rail{ min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+
+/* ── stage ──────────────────────────────────────────────────── */
+.stage{
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  position: relative;
+}
+.stage::before{
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+  background: linear-gradient(90deg, var(--teal), var(--amber) 58%, var(--navy));
+  opacity: .8;
+}
+.stage-head{
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--rule);
+  background: linear-gradient(180deg, var(--surface), var(--surface-2));
+}
+.stage-kicker{
+  margin: 0 0 4px; color: var(--teal-ink);
+  font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; font-weight: 750;
+}
+.stage-title{
+  margin: 0; color: var(--navy); font-size: 21px; line-height: 1.3; font-weight: 740;
+  letter-spacing: -.01em;
+}
+.stage-tags{ display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; padding-top: 2px; }
+.mini-chip{
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 24px; padding: 2px 8px; border-radius: 5px;
+  background: var(--surface); border: 1px solid var(--rule);
+  color: var(--ink-2); font-size: 11px; font-weight: 650; white-space: nowrap;
+}
+.mini-chip.persona{ border-color: rgba(31, 138, 122, .35); background: var(--teal-wash); color: var(--teal-ink); }
+.mini-chip.persona.mentor{ border-color: rgba(233, 162, 59, .5); background: var(--amber-wash); color: var(--amber-ink); }
+.mini-chip code{ font-size: 11px; }
+
+/* ── scene ──────────────────────────────────────────────────── */
+.scene{
+  position: relative;
+  padding: 18px 24px 20px;
+  background-image:
+    linear-gradient(rgba(23, 50, 77, .028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 50, 77, .028) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: -1px -1px;
+}
+.scene::after{
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 253, 248, .1), rgba(255, 253, 248, .62) 62%, var(--surface) 100%);
+}
+.scene > *{ position: relative; z-index: 1; }
+
+.plot{ margin: 0; }
+.plot-callouts{ position: relative; height: 44px; margin: 0 22px; }
+.plot-tag{
+  position: absolute; top: 0;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 26px; padding: 3px 9px;
+  border-radius: 5px; border: 1px solid transparent;
+  font-size: 11.5px; font-weight: 700; line-height: 1.3; white-space: nowrap;
+}
+.band-tag{ left: 0; color: var(--teal-ink); background: var(--teal-wash); border-color: rgba(31, 138, 122, .3); }
+.band-tag .tag-mark{ width: 7px; height: 7px; border-radius: 2px; background: var(--teal); }
+.n-tag{
+  left: 20%; transform: translateX(-50%);
+  color: var(--amber-ink); background: var(--amber-wash); border-color: rgba(233, 162, 59, .48);
+  font-variant-numeric: tabular-nums;
+}
+.n-tag::before{ content: ""; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--amber); }
+
+.plot-main{
+  position: relative;
+  height: 156px;
+  margin: 0 22px;
+}
+.axis{
+  position: absolute; left: 0; right: 0; top: 96px; height: 2px;
+  background: var(--navy); border-radius: 2px;
+}
+.axis::before, .axis::after{
+  content: ""; position: absolute; top: -3px; width: 1px; height: 8px; background: var(--navy-2);
+}
+.axis::before{ left: 0; }
+.axis::after{ right: 0; }
+
+.band{
+  position: absolute; left: 0; top: 62px; height: 68px; width: 22%;
+  background: linear-gradient(180deg, rgba(31, 138, 122, .16), rgba(31, 138, 122, .1));
+  border: 1.5px dashed rgba(31, 138, 122, .55);
+  border-left: 0;
+  border-radius: 0 9px 9px 0;
+  transition: background .18s ease, box-shadow .18s ease;
+}
+.ghost-band{
+  position: absolute; left: 0; top: 62px; height: 68px; width: 11%;
+  border: 1.5px dashed rgba(233, 162, 59, .8);
+  border-left: 0; border-radius: 0 9px 9px 0;
+  background: rgba(233, 162, 59, .055);
+  opacity: 0; transition: opacity .18s ease;
+  pointer-events: none;
+}
+.ghost-band::after{
+  content: "ε/2";
+  position: absolute; right: 4px; top: 5px;
+  color: var(--amber-ink); font: 700 10px/1 var(--font-mono);
+  background: rgba(251, 239, 216, .9); padding: 2px 3px; border-radius: 3px;
+  opacity: .9;
+}
+.n-line{
+  position: absolute; left: 20%; top: 4px; bottom: 30px; width: 0;
+  border-left: 2px dashed var(--amber);
+  opacity: .92;
+}
+.n-line::after{
+  content: ""; position: absolute; left: -4px; bottom: -4px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--amber); box-shadow: 0 0 0 3px rgba(233, 162, 59, .16);
+}
+.ghost-n-line{
+  position: absolute; left: 10%; top: 4px; bottom: 30px; width: 0;
+  border-left: 1.5px dashed rgba(233, 162, 59, .75);
+  opacity: 0; transition: opacity .18s ease;
+}
+.ghost-n-line::after{
+  content: "N′";
+  position: absolute; left: 4px; top: 2px;
+  color: var(--amber-ink); font: 700 9.5px/1 var(--font-mono);
+  background: rgba(251, 239, 216, .92); padding: 2px 3px; border-radius: 3px;
+}
+
+
+.dots{ position: absolute; inset: 0; }
+.dot{
+  position: absolute; top: 96px; left: var(--x);
+  width: 11px; height: 11px; border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--ink-2);
+  border: 1.5px solid var(--surface);
+  box-shadow: 0 1px 2px rgba(23, 50, 77, .14);
+  transition: background .15s ease, box-shadow .15s ease;
+}
+.dot.in{ background: var(--teal); }
+.dot .dot-label{
+  position: absolute; top: 13px; left: 50%; transform: translateX(-50%);
+  color: var(--ink-2); font: 600 11px/1 var(--font-serif);
+  white-space: nowrap; letter-spacing: .01em;
+}
+.dot.in .dot-label{ color: var(--teal-ink); }
+.dot[data-n="1"] .dot-label{ transform: translateX(-70%); }
+
+.ticks{ position: relative; height: 28px; margin: 0 22px; }
+.tick{
+  position: absolute; top: 0; transform: translateX(-50%);
+  color: var(--ink-3); font: 500 10.5px/1.4 var(--font-mono); white-space: nowrap;
+}
+.tick:first-child{ transform: translateX(0); }
+.tick:last-child{ transform: translateX(-100%); }
+
+.plot-foot{
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  margin: 6px 22px 0;
+  padding-top: 10px; border-top: 1px solid var(--rule);
+  color: var(--ink-3); font-size: 11.5px;
+}
+.legend{ display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.legend-dot{ width: 8px; height: 8px; border-radius: 50%; background: var(--ink-2); }
+.legend-dot.in{ background: var(--teal); }
+.plot-foot .formula{
+  margin-left: auto; color: var(--navy); font-family: var(--font-serif); font-size: 12px;
+  white-space: nowrap;
+}
+.plot-foot .formula i{ font-style: italic; }
+
+.scene-note{
+  flex: 1 1 260px; max-width: 440px;
+  display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px;
+  margin: 0;
+  padding: 11px 13px;
+  background: rgba(255, 253, 248, .72);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--teal);
+  border-radius: 0 7px 7px 0;
+  color: var(--ink-2); font-size: 12.5px; line-height: 1.6;
+}
+.scene-note .note-label{
+  color: var(--teal-ink); font-size: 10px; font-weight: 750;
+  letter-spacing: .1em; text-transform: uppercase; padding-top: 2px;
+}
+.scene-note p{ margin: 0; }
+
+/* scene focus: the avatar points with the scene, never talks over it */
+.plot[data-focus="band"] .band{ animation: band-focus 2.8s ease-in-out infinite; }
+.plot[data-focus="tail"] .dot.in{ animation: dot-focus 2.8s ease-in-out infinite; }
+.plot[data-focus="tail"] .n-line{ box-shadow: 0 0 0 4px rgba(233, 162, 59, .09); border-radius: 2px; }
+.plot[data-focus="whatif"] .ghost-band,
+.plot[data-focus="whatif"] .ghost-n-line{ opacity: 1; }
+@keyframes band-focus{
+  0%, 100%{ box-shadow: inset 0 0 0 0 rgba(31, 138, 122, 0); }
+  50%{ box-shadow: inset 0 0 0 2px rgba(31, 138, 122, .34); }
+}
+@keyframes dot-focus{
+  0%, 100%{ box-shadow: 0 1px 2px rgba(23, 50, 77, .14), 0 0 0 0 rgba(31, 138, 122, .22); }
+  50%{ box-shadow: 0 1px 2px rgba(23, 50, 77, .14), 0 0 0 5px rgba(31, 138, 122, .12); }
+}
+
+/* ── companion corner ───────────────────────────────────────── */
+.scene-bottom{
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
+  margin-top: 12px;
+}
+.companion{
+  flex: none;
+  display: flex; align-items: flex-start; justify-content: flex-end; gap: 13px;
+  min-width: 0;
+}
+.bubble{
+  position: relative;
+  width: min(300px, 36vw);
+  padding: 13px 15px 14px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  box-shadow: 0 12px 28px rgba(23, 50, 77, .09), 0 1px 0 rgba(255, 255, 255, .7) inset;
+}
+.bubble::after{
+  content: ""; position: absolute; right: -8px; bottom: 26px;
+  width: 14px; height: 14px;
+  background: var(--surface);
+  border-top: 1px solid var(--rule); border-right: 1px solid var(--rule);
+  transform: rotate(45deg);
+}
+.bubble-speaker{
+  display: flex; align-items: center; gap: 7px;
+  margin: 0 0 5px; color: var(--ink-3);
+  font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
+}
+.bubble-speaker::before{
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--teal); box-shadow: 0 0 0 2px rgba(31, 138, 122, .12);
+}
+.bubble-text{
+  margin: 0; color: var(--navy);
+  font-size: 15px; line-height: 1.62; font-weight: 620; letter-spacing: .005em;
+  min-height: 2.6em;
+}
+.avatar-wrap{
+  flex: none; width: 158px;
+  filter: drop-shadow(0 18px 20px rgba(23, 50, 77, .13));
+}
+.xiao-xi{ display: block; width: 100%; height: auto; overflow: visible; }
+.avatar-hidden .companion{ display: none; }
+
+
+/* ── character palette + states (shared by stage + sheet) ───── */
+.xiao-xi .ground{ fill: var(--navy); opacity: .1; }
+.xiao-xi .torso{ fill: var(--navy); }
+.xiao-xi .neck{ fill: var(--paper-face, #f4e3cb); }
+.xiao-xi .face{ fill: #f4e3cb; }
+.xiao-xi .hair{ fill: var(--navy); }
+.xiao-xi .hair-side{ fill: var(--navy); }
+.xiao-xi .hair-hi{ stroke: var(--navy-2); stroke-width: 4; stroke-linecap: round; fill: none; opacity: .72; }
+.xiao-xi .arm{ stroke: var(--navy); stroke-width: 17; stroke-linecap: round; fill: none; }
+.xiao-xi .hand{ fill: #f4e3cb; stroke: #e2cbb0; stroke-width: 1.2; }
+.xiao-xi .scarf{ fill: var(--teal); }
+.xiao-xi .scarf-tail{ fill: #187467; }
+.xiao-xi .scarf-pin{ fill: var(--amber); }
+.xiao-xi .nb-cover{ fill: #fbf5e9; stroke: #cbbda6; stroke-width: 1.5; }
+.xiao-xi .nb-spine{ fill: var(--teal); }
+.xiao-xi .nb-rule{ stroke: #b8c6cc; stroke-width: 1.5; stroke-linecap: round; }
+.xiao-xi .nb-eps{ stroke: var(--amber); stroke-width: 2.6; stroke-linecap: round; fill: none; }
+.xiao-xi .brow{ stroke: var(--navy); stroke-width: 3.4; stroke-linecap: round; fill: none; }
+.xiao-xi .eye{ fill: #16202c; }
+.xiao-xi .catch{ fill: #fff; opacity: .92; }
+.xiao-xi .eyes-closed path, .xiao-xi .eyes-happy path{ stroke: #16202c; stroke-width: 3.2; stroke-linecap: round; fill: none; }
+.xiao-xi .blush{ fill: #df8a70; }
+.xiao-xi .mouth{ stroke: #8b4a3c; stroke-width: 3; stroke-linecap: round; fill: none; }
+.xiao-xi .mouth-curious{ fill: #8b4a3c; stroke: none; }
+.xiao-xi .thought circle{ fill: var(--navy); opacity: .55; }
+.xiao-xi .wave-arm{ opacity: 0; }
+
+.xiao-xi .head{
+  transform-box: view-box; transform-origin: 130px 154px;
+  transition: transform .2s ease;
+}
+.xiao-xi .figure{ animation: breathe 6.4s ease-in-out infinite; }
+@keyframes breathe{ 0%, 100%{ transform: translateY(0); } 50%{ transform: translateY(-2px); } }
+.xiao-xi .eyes{ transition: opacity .04s ease; }
+.xiao-xi .eyes-open{ opacity: 1; }
+.xiao-xi .eyes-closed, .xiao-xi .eyes-happy{ opacity: 0; }
+.xiao-xi .mouths .mouth{ opacity: 0; transition: opacity .12s ease; }
+.xiao-xi .mouths .mouth-neutral{ opacity: 1; }
+.xiao-xi .brow{ transition: transform .16s ease; transform-box: fill-box; transform-origin: center; }
+.xiao-xi .blush{ opacity: 0; transition: opacity .15s ease; }
+.xiao-xi .thought{ opacity: 0; transition: opacity .15s ease; }
+
+.xiao-xi[data-expression="curious"] .head{ transform: rotate(-2.2deg); }
+.xiao-xi[data-expression="curious"] .brow-l{ transform: translateY(-4px) rotate(-9deg); }
+.xiao-xi[data-expression="curious"] .brow-r{ transform: translateY(1px) rotate(3deg); }
+.xiao-xi[data-expression="curious"] .eyes-open{ transform: scale(1.08); transform-box: view-box; transform-origin: 130px 125px; }
+.xiao-xi[data-expression="curious"] .mouth-neutral{ opacity: 0; }
+.xiao-xi[data-expression="curious"] .mouth-curious{ opacity: 1; }
+
+.xiao-xi[data-expression="thinking"] .head{ transform: rotate(2.4deg); }
+.xiao-xi[data-expression="thinking"] .brow-l{ transform: translateY(2px) rotate(5deg); }
+.xiao-xi[data-expression="thinking"] .brow-r{ transform: translateY(-1px) rotate(-4deg); }
+.xiao-xi[data-expression="thinking"] .eyes-open{ transform: translate(-1.5px, -2px); }
+.xiao-xi[data-expression="thinking"] .mouth-neutral{ opacity: 0; }
+.xiao-xi[data-expression="thinking"] .mouth-thinking{ opacity: 1; }
+.xiao-xi[data-expression="thinking"] .thought{ opacity: 1; }
+
+.xiao-xi[data-expression="happy"] .head{ transform: rotate(-1deg); }
+.xiao-xi[data-expression="happy"] .eyes-open{ opacity: 0; }
+.xiao-xi[data-expression="happy"] .eyes-happy{ opacity: 1; }
+.xiao-xi[data-expression="happy"] .mouth-neutral{ opacity: 0; }
+.xiao-xi[data-expression="happy"] .mouth-happy{ opacity: 1; }
+.xiao-xi[data-expression="happy"] .blush{ opacity: .55; }
+
+.xiao-xi[data-expression="oops"] .head{ transform: rotate(-3deg); }
+.xiao-xi[data-expression="oops"] .brow-l{ transform: translateY(-5px) rotate(-9deg); }
+.xiao-xi[data-expression="oops"] .brow-r{ transform: translateY(-5px) rotate(9deg); }
+.xiao-xi[data-expression="oops"] .eyes-open{ transform: scale(1.16); transform-box: view-box; transform-origin: 130px 125px; }
+.xiao-xi[data-expression="oops"] .mouth-neutral{ opacity: 0; }
+.xiao-xi[data-expression="oops"] .mouth-oops{ opacity: 1; }
+.xiao-xi[data-expression="oops"] .blush{ opacity: .25; }
+
+.xiao-xi[data-blink="1"] .eyes-open{ opacity: 0; }
+.xiao-xi[data-blink="1"] .eyes-closed{ opacity: 1; }
+.xiao-xi[data-expression="happy"][data-blink="1"] .eyes-closed{ opacity: 0; }
+
+.xiao-xi.is-waving .wave-arm{
+  opacity: 1;
+  transform-box: view-box; transform-origin: 88px 204px;
+  animation: wave .55s ease-in-out 3;
+}
+.xiao-xi.is-waving .arm-l, .xiao-xi.is-waving .hand-l{ opacity: 0; }
+@keyframes wave{
+  0%, 100%{ transform: rotate(-3deg); }
+  50%{ transform: rotate(12deg); }
+}
+
+/* ── line switcher ──────────────────────────────────────────── */
+.linebar{
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 14px 24px;
+  border-top: 1px solid var(--rule);
+  background: var(--surface-2);
+}
+.linebar-label{ color: var(--ink-3); font-size: 11px; font-weight: 700; letter-spacing: .08em; white-space: nowrap; }
+.lines{ display: flex; gap: 6px; flex-wrap: wrap; }
+.line-btn{
+  display: inline-flex; align-items: center; gap: 7px;
+  min-height: 38px; padding: 0 12px;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 7px;
+  color: var(--ink-2); font-size: 12px; font-weight: 650;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.line-btn .lnum{ color: var(--ink-3); font: 600 10px/1 var(--font-mono); }
+.line-btn:hover{ border-color: var(--rule-strong); color: var(--navy); }
+.line-btn[aria-pressed="true"]{ background: var(--navy); border-color: var(--navy); color: #fff; }
+.line-btn[aria-pressed="true"] .lnum{ color: var(--amber); }
+.linebar-hint{ margin: 0 0 0 auto; color: var(--ink-3); font-size: 11.5px; }
+
+/* ── control dock ───────────────────────────────────────────── */
+.dock-card{
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  box-shadow: 0 8px 30px rgba(23, 50, 77, .045);
+  padding: 20px;
+}
+.dock-head{ display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.dock-head h2{ margin: 0; color: var(--navy); font-size: 16px; font-weight: 760; letter-spacing: .01em; }
+.dock-head span{ color: var(--ink-3); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; }
+.control-group{ border: 0; margin: 16px 0 0; padding: 16px 0 0; border-top: 1px solid var(--rule); min-width: 0; }
+.control-group:first-of-type{ margin-top: 0; padding-top: 0; border-top: 0; }
+.control-label{
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  padding: 0; margin: 0 0 9px; width: 100%;
+  color: var(--navy); font-size: 12.5px; font-weight: 720;
+}
+.control-label small{ color: var(--ink-3); font-size: 10.5px; font-weight: 500; letter-spacing: .01em; }
+.segmented{ display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.persona-btn{
+  display: block; min-height: 58px; padding: 8px 11px; text-align: left;
+  background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--radius-control);
+  color: var(--ink-2); transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.persona-btn strong{ display: block; color: var(--navy); font-size: 13.5px; font-weight: 730; line-height: 1.3; }
+.persona-btn span{ display: block; margin-top: 1px; color: var(--ink-3); font-size: 10.5px; }
+.persona-btn:hover{ border-color: var(--rule-strong); }
+.persona-btn[aria-pressed="true"]{ background: var(--navy); border-color: var(--navy); color: #fff; }
+.persona-btn[aria-pressed="true"] strong{ color: #fff; }
+.persona-btn[aria-pressed="true"] span{ color: rgba(255, 255, 255, .72); }
+.expr-grid{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+.expr-btn{
+  min-height: 42px; padding: 5px 2px;
+  background: var(--surface-2); border: 1px solid var(--rule); border-radius: 7px;
+  color: var(--ink-2); font-size: 11.5px; font-weight: 650;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.expr-btn:hover{ border-color: var(--rule-strong); }
+.expr-btn[aria-pressed="true"]{ background: var(--teal-wash); border-color: rgba(31, 138, 122, .62); color: var(--teal-ink); box-shadow: inset 0 -2px 0 rgba(31, 138, 122, .22); }
+.state-use{
+  margin: 9px 0 0; min-height: 2.9em; padding: 7px 9px;
+  background: var(--surface-2); border-left: 2px solid var(--teal);
+  color: var(--ink-2); font-size: 11.5px; line-height: 1.5; border-radius: 0 4px 4px 0;
+}
+.state-use strong{ color: var(--teal-ink); font-weight: 700; }
+.toggles{ display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.btn-soft{
+  min-height: 40px; padding: 0 12px;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 7px;
+  color: var(--ink-2); font-size: 12px; font-weight: 650;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.btn-soft:hover{ border-color: var(--rule-strong); color: var(--navy); }
+.btn-soft[aria-pressed="false"]{ background: var(--amber-wash); border-color: rgba(233, 162, 59, .45); color: var(--amber-ink); }
+.btn-soft:disabled{ opacity: .5; cursor: not-allowed; }
+.switch{
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 40px; padding: 0 4px 0 2px;
+  color: var(--ink-2); font-size: 12px; font-weight: 620; cursor: pointer;
+  user-select: none;
+}
+.switch input{ position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch .track{
+  position: relative; width: 36px; height: 21px; flex: none;
+  background: var(--paper-2); border: 1px solid var(--rule-strong); border-radius: 999px;
+  transition: background .15s ease, border-color .15s ease;
+}
+.switch .track::after{
+  content: ""; position: absolute; left: 2px; top: 2px;
+  width: 15px; height: 15px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--rule-strong);
+  transition: transform .15s ease, background .15s ease, border-color .15s ease;
+}
+.switch input:checked + .track{ background: var(--teal); border-color: var(--teal); }
+.switch input:checked + .track::after{ transform: translateX(15px); background: #fff; border-color: #fff; }
+.switch input:focus-visible + .track{ outline: 2px solid var(--focus); outline-offset: 2px; }
+.motion-note{ margin: 9px 0 0; color: var(--ink-3); font-size: 10.5px; line-height: 1.5; }
+
+/* ── character bible ────────────────────────────────────────── */
+.bible{
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  box-shadow: 0 8px 30px rgba(23, 50, 77, .045);
+  padding: 22px;
+}
+.bible-head{ padding-bottom: 16px; border-bottom: 1px solid var(--rule); }
+.bible-head .eyebrow{ margin-bottom: 5px; }
+.bible-head h2{ margin: 0 0 6px; color: var(--navy); font-size: 22px; font-weight: 760; letter-spacing: -.01em; }
+.bible-head p{ margin: 0; color: var(--ink-2); font-size: 12.5px; line-height: 1.6; }
+.bible-section{ padding: 17px 0; border-bottom: 1px solid var(--rule); }
+.bible-section:last-of-type{ border-bottom: 0; padding-bottom: 2px; }
+.bible-section h3{
+  display: flex; align-items: baseline; gap: 8px;
+  margin: 0 0 9px; color: var(--navy); font-size: 13.5px; font-weight: 740;
+}
+.bible-section h3 .num{
+  color: var(--teal-ink); font: 700 10px/1 var(--font-mono); letter-spacing: .04em;
+  background: var(--teal-wash); border-radius: 3px; padding: 3px 4px;
+}
+.bible-section p{ margin: 0 0 8px; color: var(--ink-2); font-size: 12.5px; line-height: 1.62; }
+.bible-section p:last-child{ margin-bottom: 0; }
+.kv{ display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 4px 8px; margin: 0; }
+.kv dt{ color: var(--ink-3); font-size: 11px; font-weight: 650; }
+.kv dd{ margin: 0; color: var(--ink); font-size: 12.5px; line-height: 1.55; }
+.bible-list{ margin: 0; padding-left: 16px; color: var(--ink-2); font-size: 12.5px; line-height: 1.6; }
+.bible-list li{ margin: 3px 0; }
+.bible-list li::marker{ color: var(--teal); }
+.voice-table{ width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 11.5px; line-height: 1.5; }
+.voice-table th, .voice-table td{ padding: 6px 6px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+.voice-table th{ color: var(--ink-3); font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+.voice-table td:first-child, .voice-table th:first-child{ width: 48px; padding-left: 0; color: var(--ink-3); font-size: 10.5px; }
+.voice-table td:last-child{ padding-right: 0; }
+.voice-table .col-peer, .voice-table .col-mentor{ transition: background .15s ease; }
+body[data-persona="peer"] .voice-table .col-peer{ background: var(--teal-wash); }
+body[data-persona="mentor"] .voice-table .col-mentor{ background: var(--amber-wash); }
+.voice-table tr:last-child td{ border-bottom: 0; }
+.state-rows{ display: grid; gap: 6px; }
+.state-row{
+  display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 8px;
+  align-items: baseline; padding: 6px 8px;
+  background: var(--surface-2); border: 1px solid var(--rule); border-radius: 5px;
+}
+.state-row .state-name{ color: var(--navy); font-size: 11.5px; font-weight: 720; white-space: nowrap; }
+.state-row .state-name em{ display: block; color: var(--ink-3); font-style: normal; font-family: var(--font-mono); font-size: 9px; font-weight: 500; letter-spacing: .02em; }
+.state-row .state-when{ color: var(--ink-2); font-size: 11.5px; line-height: 1.5; }
+.palette{ display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; margin: 11px 0 0; }
+.swatch{ min-width: 0; }
+.swatch i{ display: block; height: 26px; border-radius: 4px; border: 1px solid rgba(23, 50, 77, .13); }
+.swatch span{ display: block; margin-top: 3px; color: var(--ink-3); font: 500 8.5px/1.2 var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.two-col{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.two-col h4{ margin: 0 0 4px; color: var(--teal-ink); font-size: 10.5px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+.two-col .no h4{ color: var(--rose-ink); }
+.two-col ul{ margin: 0; padding-left: 14px; color: var(--ink-2); font-size: 11px; line-height: 1.5; }
+.two-col li{ margin: 2px 0; }
+.appear-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.appear{
+  padding: 7px 8px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 5px;
+}
+.appear strong{ display: block; color: var(--navy); font-size: 11px; font-weight: 700; }
+.appear span{ display: block; color: var(--ink-3); font-size: 10.5px; line-height: 1.45; }
+.embed-code{
+  margin: 8px 0 0; padding: 10px 11px;
+  background: var(--navy); color: #e9f1f5;
+  border-radius: 6px; font-size: 10.5px; line-height: 1.55;
+  overflow-x: auto; white-space: pre;
+}
+.embed-code .c{ color: #93a9b8; }
+.embed-code .a{ color: #f0c47a; }
+.bible-note{
+  margin: 14px 0 0; padding: 9px 10px;
+  background: var(--amber-wash); border: 1px solid rgba(233, 162, 59, .34);
+  border-radius: 5px; color: var(--amber-ink); font-size: 11px; line-height: 1.55;
+}
+
+/* ── footer ─────────────────────────────────────────────────── */
+.foot{
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px 24px;
+  margin-top: 28px; padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-3); font-size: 11.5px;
+}
+.foot p{ margin: 0; }
+.foot code{ color: var(--ink-2); font-size: 10.5px; }
+
+/* ── character sheet view (?view=sheet) ─────────────────────── */
+.sheet-page{ max-width: 1440px; margin: 0 auto; padding: 0 32px 56px; }
+.sheet-top{ display: flex; align-items: center; gap: 14px; padding: 18px 0; border-bottom: 1px solid var(--rule); }
+.sheet-top .quiet-link{ margin-left: auto; }
+.sheet-intro{ padding: 30px 0 24px; max-width: 860px; }
+.sheet-intro h1{ margin: 0 0 8px; color: var(--navy); font-size: clamp(1.8rem, 3vw, 2.6rem); line-height: 1.16; letter-spacing: -.02em; }
+.sheet-intro p{ margin: 0; color: var(--ink-2); font-size: 14px; }
+.sheet-grid{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.sheet-card{
+  min-width: 0; padding: 14px 14px 13px;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(23, 50, 77, .05);
+}
+.sheet-card .sheet-fig{ height: 220px; display: flex; align-items: flex-end; justify-content: center; }
+.sheet-card .sheet-avatar{ width: 160px; }
+.sheet-card h2{ margin: 8px 0 2px; color: var(--navy); font-size: 14px; font-weight: 750; }
+.sheet-card .en{ color: var(--ink-3); font: 500 10px/1.3 var(--font-mono); letter-spacing: .05em; text-transform: uppercase; }
+.sheet-card .use{ margin: 7px 0 0; color: var(--ink-2); font-size: 11px; line-height: 1.5; }
+.sheet-card .line{ margin: 7px 0 0; padding-top: 7px; border-top: 1px solid var(--rule); color: var(--teal-ink); font-size: 11px; line-height: 1.5; }
+.sheet-foot{ display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; margin-top: 20px; }
+.sheet-panel{ background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; }
+.sheet-panel h2{ margin: 0 0 6px; color: var(--navy); font-size: 13px; font-weight: 740; }
+.sheet-panel p{ margin: 0; color: var(--ink-2); font-size: 11.5px; line-height: 1.6; }
+.sheet-panel .palette{ margin-top: 7px; }
+
+/* ── responsive ─────────────────────────────────────────────── */
+@media (max-width: 1180px){
+  .layout{ grid-template-columns: minmax(0, 1fr); }
+  .rail{ display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); align-items: start; }
+}
+@media (max-width: 900px){
+  .page{ padding-left: 20px; padding-right: 20px; }
+  .rail{ grid-template-columns: minmax(0, 1fr); }
+  .scene{ padding: 18px 18px 20px; }
+  .scene-bottom{ flex-direction: column; align-items: stretch; gap: 14px; }
+  .scene-note{ flex: none; max-width: none; }
+  .companion{ align-self: stretch; gap: 10px; }
+  .bubble{ width: auto; flex: 1; min-width: 0; }
+  .bubble-text{ min-height: 0; font-size: 14px; }
+  .avatar-wrap{ width: 126px; }
+  .stage-tags{ justify-content: flex-start; }
+  .stage-head{ flex-direction: column; gap: 8px; }
+  .linebar-hint{ margin-left: 0; }
+  .sheet-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sheet-foot{ grid-template-columns: 1fr; }
+}
+@media (max-width: 700px){
+  .topbar{ flex-wrap: wrap; gap: 10px; }
+  .topbar-meta{ width: 100%; margin-left: 0; justify-content: flex-start; }
+  .intro{ padding: 24px 0 20px; }
+  .intro h1{ font-size: clamp(1.8rem, 8.2vw, 2.35rem); }
+  .lede{ font-size: 14.5px; }
+  .lede .thin-inline{ display: none; }
+  .stage-head{ padding: 16px 16px 13px; }
+  .stage-title{ font-size: 18px; }
+  .scene{ padding: 14px 14px 20px; }
+  .plot-callouts{ height: 54px; margin: 0 14px; }
+  .band-tag{ top: 0; font-size: 11px; }
+  .n-tag{ top: 25px; left: 20%; font-size: 11px; }
+  .plot-main{ height: 132px; margin: 0 14px; }
+  .axis{ top: 82px; }
+  .band, .ghost-band{ top: 52px; height: 60px; }
+  .dot{ top: 82px; width: 10px; height: 10px; }
+  .dot .dot-label{ top: 12px; font-size: 10px; }
+  .dot.dl-extra .dot-label{ display: none; }
+  .ticks{ margin: 0 14px; height: 26px; }
+  .tick{ font-size: 9.5px; }
+  .tick.minor{ visibility: hidden; }
+  .plot-foot{ margin: 5px 14px 0; gap: 6px 12px; font-size: 10.5px; }
+  .plot-foot .formula{ margin-left: 0; font-size: 11px; }
+  .scene-note{ grid-template-columns: 1fr; gap: 2px; margin-top: 12px; font-size: 12px; }
+  .scene-note .note-label{ padding-top: 0; }
+  .bubble{ padding: 11px 12px 12px; }
+  .bubble-text{ font-size: 13.5px; }
+  .avatar-wrap{ width: 108px; }
+  .bubble::after{ right: -7px; bottom: 20px; }
+  .linebar{ padding: 12px 14px; gap: 8px; }
+  .line-btn{ min-height: 40px; padding: 0 9px; font-size: 11.5px; }
+  .dock-card, .bible{ padding: 16px; }
+  .expr-grid{ gap: 4px; }
+  .expr-btn{ min-height: 44px; font-size: 11px; }
+  .segmented{ gap: 6px; }
+  .persona-btn{ min-height: 62px; }
+  .voice-table{ font-size: 11px; }
+  .voice-table th, .voice-table td{ padding: 5px 5px; }
+  .palette{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .two-col{ grid-template-columns: 1fr; gap: 10px; }
+  .sheet-page{ padding-left: 20px; padding-right: 20px; }
+  .sheet-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sheet-card .sheet-fig{ height: 190px; }
+  .sheet-card .sheet-avatar{ width: 124px; }
+}
+@media (max-width: 430px){
+  .page{ padding-left: 14px; padding-right: 14px; }
+  .topbar{ padding-top: 14px; }
+  .probe-chip{ font-size: 10.5px; }
+  .intro{ padding-top: 22px; }
+  .intro-tags{ gap: 5px; }
+  .tag{ font-size: 10.5px; }
+  .scene{ padding-left: 10px; padding-right: 10px; }
+  .plot-callouts{ margin: 0 10px; }
+  .plot-main{ margin: 0 10px; }
+  .ticks{ margin: 0 10px; }
+  .plot-foot{ margin-left: 10px; margin-right: 10px; }
+  .stage-head{ padding-left: 14px; padding-right: 14px; }
+  .linebar{ padding-left: 12px; padding-right: 12px; }
+  .dock-card, .bible{ padding: 14px; }
+  .avatar-wrap{ width: 104px; }
+  .bubble-text{ font-size: 13px; }
+  .sheet-grid{ grid-template-columns: 1fr; }
+}
+
+/* reduced motion: one switch, one source of truth; system preference
+   initializes the switch but the page always exposes the manual control. */
+[data-motion="off"] *,
+[data-motion="off"] *::before,
+[data-motion="off"] *::after{
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior: auto; }
+}
+</style>
+</head>
+<body data-persona="peer" data-line="0" data-motion="on" data-avatar="shown">
+<a class="skip-link" href="#main">跳到样张正文</a>
+
+<div class="page" id="page">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">析</span>
+      <span>
+        <span class="brand-name">小析 <span class="brand-sub">XIAO XI · 2D 学习同伴</span></span>
+      </span>
+    </div>
+    <div class="topbar-meta">
+      <span class="probe-chip">C8.3 · 视觉探针 · 非课程单元</span>
+      <a class="quiet-link" href="?view=sheet">角色表 →</a>
+    </div>
+  </header>
+
+  <section class="intro" aria-labelledby="intro-title">
+    <p class="eyebrow">a 2D companion, not a lecturer</p>
+    <h1 id="intro-title">小析：站在学习者这一侧</h1>
+    <p class="lede">
+      原创 2D 同伴的在场样张：把下一步指出来。<span class="thin-inline">形象负责社会存在，数学画面负责清楚；每一句台词只做一个数学动作——指认、追问、提示或确认。不是真人出镜，不是讲师，也不是自动解题器。</span>
+    </p>
+    <div class="intro-tags" aria-label="这个探针的边界">
+      <span class="tag"><i class="dot-sm"></i>原创形象，不复制 Doubao</span>
+      <span class="tag"><i class="dot-sm amber"></i>同一形象，两种人格</span>
+      <span class="tag">无语音 / 无外部资源 / 可隐藏</span>
+      <span class="tag">减少动态 + aria-live</span>
+    </div>
+  </section>
+
+  <main id="main">
+    <div class="layout">
+      <article class="stage" id="stage" aria-labelledby="stage-title">
+        <header class="stage-head">
+          <div>
+            <p class="stage-kicker">场景样张 · ε–N · 比例与在场</p>
+            <h2 class="stage-title" id="stage-title">允许误差带与起点 N</h2>
+          </div>
+          <div class="stage-tags">
+            <span class="mini-chip"><code>a<sub>n</sub> = 1/n</code></span>
+            <span class="mini-chip persona" id="persona-chip">同伴模式</span>
+          </div>
+        </header>
+
+        <div class="scene" id="scene">
+          <figure class="plot" id="plot" data-focus="band" role="img"
+            aria-label="ε–N 示意：a_n 等于 1 除以 n 的前 10 个点画在 0 到 1 的数轴上。允许误差 ε 等于 0.22，带子覆盖 0 到 0.22。从第 5 项起，a₅ 等于 0.2 及之后的点都在带内；a₄ 等于 0.25，还在带外。">
+            <div class="plot-callouts" aria-hidden="true">
+              <span class="plot-tag band-tag"><i class="tag-mark"></i>允许误差 ε = 0.22</span>
+              <span class="plot-tag n-tag" id="n-tag">N = 5</span>
+            </div>
+            <div class="plot-main" aria-hidden="true">
+              <div class="ghost-band"></div>
+              <div class="band"></div>
+              <div class="axis"></div>
+              <div class="ghost-n-line"></div>
+              <div class="n-line"></div>
+              <div class="dots">
+                <i class="dot out" data-n="1" style="--x:100%"><span class="dot-label">a₁</span></i>
+                <i class="dot out" data-n="2" style="--x:50%"><span class="dot-label">a₂</span></i>
+                <i class="dot out" data-n="3" style="--x:33.3333%"><span class="dot-label">a₃</span></i>
+                <i class="dot out dl-extra" data-n="4" style="--x:25%"><span class="dot-label">a₄</span></i>
+                <i class="dot in" data-n="5" style="--x:20%"><span class="dot-label">a₅</span></i>
+                <i class="dot in dl-extra" data-n="6" style="--x:16.6667%"></i>
+                <i class="dot in dl-extra" data-n="7" style="--x:14.2857%"></i>
+                <i class="dot in dl-extra" data-n="8" style="--x:12.5%"></i>
+                <i class="dot in dl-extra" data-n="9" style="--x:11.1111%"></i>
+                <i class="dot in dl-extra" data-n="10" style="--x:10%"></i>
+              </div>
+            </div>
+            <div class="ticks" aria-hidden="true">
+              <span class="tick" style="left:0%">0</span>
+              <span class="tick minor" style="left:25%">0.25</span>
+              <span class="tick" style="left:50%">0.5</span>
+              <span class="tick minor" style="left:75%">0.75</span>
+              <span class="tick" style="left:100%">1</span>
+            </div>
+            <div class="plot-foot" aria-hidden="true">
+              <span class="legend"><i class="legend-dot"></i>带外 · n &lt; N</span>
+              <span class="legend"><i class="legend-dot in"></i>带内 · n ≥ N</span>
+              <span>画面只画 a₁…a₁₀；序列本身没有最后一项。</span>
+              <span class="formula">∀ ε &gt; 0, ∃ N, ∀ n ≥ N, |<i>a<sub>n</sub></i> − 0| &lt; ε</span>
+            </div>
+          </figure>
+
+          <div class="scene-bottom">
+            <div class="scene-note" id="scene-note">
+              <span class="note-label" id="scene-note-label">读法</span>
+              <p id="scene-note-text">带子定“允许多近”。0 到 0.22 之间的点都算进入允许误差；带外的点还差一点。</p>
+            </div>
+
+            <div class="companion" id="companion">
+            <div class="bubble" id="bubble" role="status" aria-live="polite" aria-atomic="true">
+              <p class="bubble-speaker" id="bubble-speaker">小析 · 同伴模式</p>
+              <p class="bubble-text" id="bubble-text">这条带子就是允许误差 ε。</p>
+            </div>
+            <div class="avatar-wrap" id="avatar-wrap" aria-hidden="false">
+              <svg class="xiao-xi" id="xiao-xi" data-expression="neutral" data-blink="0"
+                viewBox="0 0 260 310" role="img"
+                aria-label="小析，2D 数学学习同伴，平静表情">
+                <ellipse class="ground" cx="130" cy="298" rx="60" ry="9"/>
+                <g class="figure">
+                  <path class="torso" d="M70 198 Q70 174 102 170 L158 170 Q190 174 190 198 L190 272 Q190 288 172 288 L88 288 Q70 288 70 272 Z"/>
+                  <path class="arm arm-l" d="M82 206 Q70 236 88 258"/>
+                  <path class="arm arm-r" d="M178 206 Q190 236 172 258"/>
+                  <g class="wave-arm">
+                    <path class="arm" d="M86 204 Q64 182 55 162"/>
+                    <circle class="hand" cx="54" cy="158" r="9"/>
+                  </g>
+                  <rect class="neck" x="116" y="152" width="28" height="26" rx="11"/>
+                  <path class="scarf-tail" d="M112 184 Q100 204 106 224 Q111 235 120 229 Q113 209 120 190 Z"/>
+                  <path class="scarf" d="M103 174 Q130 189 157 174 L154 192 Q130 205 106 192 Z"/>
+                  <circle class="scarf-pin" cx="111" cy="181" r="3.4"/>
+                  <g class="pencil" transform="rotate(20 205 70)">
+                    <rect x="201" y="34" width="8" height="52" rx="4" fill="#e9a23b"/>
+                    <path d="M201 34 L205 23 L209 34 Z" fill="#f4e3cb"/>
+                    <path d="M203.4 27 L205 22 L206.6 27 Z" fill="#16202c"/>
+                    <rect x="201" y="82" width="8" height="7" rx="2" fill="#c96f52"/>
+                    <rect x="201" y="78" width="8" height="5" fill="#17324d"/>
+                  </g>
+                  <g class="head-scale" transform="translate(130 158) scale(0.94) translate(-130 -158)">
+                  <g class="head">
+                    <rect class="face" x="64" y="30" width="132" height="128" rx="44"/>
+                    <path class="hair" d="M58 112 C58 52 82 24 130 24 C178 24 202 52 202 112 L202 120 C196 104 190 92 180 82 C166 96 146 102 126 101 C104 100 86 93 74 80 C66 90 62 104 64 122 Z"/>
+                    <path class="hair-side" d="M60 94 C56 116 59 136 68 152 C66 140 66 126 70 110 Z"/>
+                    <path class="hair-side" d="M200 94 C204 116 201 136 192 152 C194 140 194 126 190 110 Z"/>
+                    <path class="hair-hi" d="M84 52 C104 36 142 32 166 44"/>
+                    <g class="brows">
+                      <path class="brow brow-l" d="M91 111 Q103 106 115 111"/>
+                      <path class="brow brow-r" d="M145 111 Q157 106 169 111"/>
+                    </g>
+                    <g class="eyes eyes-open">
+                      <ellipse class="eye" cx="104" cy="125" rx="5.2" ry="7.2"/>
+                      <ellipse class="eye" cx="156" cy="125" rx="5.2" ry="7.2"/>
+                      <circle class="catch" cx="102.2" cy="122.2" r="1.5"/>
+                      <circle class="catch" cx="154.2" cy="122.2" r="1.5"/>
+                    </g>
+                    <g class="eyes eyes-closed">
+                      <path d="M97 126 Q104 131 111 126"/>
+                      <path d="M149 126 Q156 131 163 126"/>
+                    </g>
+                    <g class="eyes eyes-happy">
+                      <path d="M97 128 Q104 120 111 128"/>
+                      <path d="M149 128 Q156 120 163 128"/>
+                    </g>
+                    <ellipse class="blush" cx="88" cy="140" rx="9" ry="4.2"/>
+                    <ellipse class="blush" cx="172" cy="140" rx="9" ry="4.2"/>
+                    <g class="mouths">
+                      <path class="mouth mouth-neutral" d="M121 145 Q130 151 139 145"/>
+                      <ellipse class="mouth mouth-curious" cx="130" cy="148" rx="4" ry="5.4"/>
+                      <path class="mouth mouth-thinking" d="M122 148 Q130 145 138 148"/>
+                      <path class="mouth mouth-happy" d="M117 144 Q130 160 143 144"/>
+                      <path class="mouth mouth-oops" d="M122 148 Q130 144 138 149"/>
+                    </g>
+                    <g class="thought"><circle cx="52" cy="82" r="1.6"/><circle cx="44" cy="72" r="2.2"/><circle cx="36" cy="62" r="2.8"/></g>
+                  </g>
+                  </g>
+                  <g class="notebook" transform="rotate(-4 130 250)">
+                    <rect class="nb-cover" x="88" y="224" width="84" height="58" rx="7"/>
+                    <rect class="nb-spine" x="88" y="224" width="9" height="58" rx="4"/>
+                    <path class="nb-rule" d="M106 240 H160"/>
+                    <path class="nb-rule" d="M106 249 H154"/>
+                    <path class="nb-rule" d="M106 258 H162"/>
+                    <path class="nb-eps" d="M173 245 C166 243 163 248 168 251 C174 254 174 262 165 260"/>
+                  </g>
+                  <circle class="hand hand-l" cx="94" cy="257" r="8.5"/>
+                  <circle class="hand hand-r" cx="167" cy="256" r="8.5"/>
+                </g>
+              </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="linebar" role="group" aria-label="台词样张：点一句，看小析指向哪里">
+          <span class="linebar-label">台词样张</span>
+          <div class="lines">
+            <button type="button" class="line-btn" data-line-btn="0" aria-pressed="true"><span class="lnum">01</span>带子</button>
+            <button type="button" class="line-btn" data-line-btn="1" aria-pressed="false"><span class="lnum">02</span>起点</button>
+            <button type="button" class="line-btn" data-line-btn="2" aria-pressed="false"><span class="lnum">03</span>收紧</button>
+          </div>
+          <p class="linebar-hint">一句一个数学动作 · 气泡不遮数轴</p>
+        </div>
+      </article>
+
+      <div class="rail">
+        <section class="dock-card" aria-labelledby="dock-title">
+          <div class="dock-head">
+            <h2 id="dock-title">控制台</h2>
+            <span>try the states</span>
+          </div>
+
+          <fieldset class="control-group">
+            <legend class="control-label">人格 <small>同一形象，只换说话方式</small></legend>
+            <div class="segmented" role="group" aria-label="人格选择">
+              <button type="button" class="persona-btn" data-persona-btn="peer" aria-pressed="true">
+                <strong>同伴</strong><span>一起追问「为什么」</span>
+              </button>
+              <button type="button" class="persona-btn" data-persona-btn="mentor" aria-pressed="false">
+                <strong>导师</strong><span>给一行可用的提示</span>
+              </button>
+            </div>
+          </fieldset>
+
+          <fieldset class="control-group">
+            <legend class="control-label">表情 <small>每个状态对应一个教学时刻</small></legend>
+            <div class="expr-grid" role="group" aria-label="表情选择" aria-describedby="state-use">
+              <button type="button" class="expr-btn" data-expr-btn="neutral" aria-pressed="true">平静</button>
+              <button type="button" class="expr-btn" data-expr-btn="curious" aria-pressed="false">好奇</button>
+              <button type="button" class="expr-btn" data-expr-btn="thinking" aria-pressed="false">思考</button>
+              <button type="button" class="expr-btn" data-expr-btn="happy" aria-pressed="false">开心</button>
+              <button type="button" class="expr-btn" data-expr-btn="oops" aria-pressed="false">哎呀</button>
+            </div>
+            <p class="state-use" id="state-use"><strong>平静</strong> · 用于开场落地、等待学习者读题。</p>
+          </fieldset>
+
+          <fieldset class="control-group">
+            <legend class="control-label">画面 <small>角落、可隐藏、可减动</small></legend>
+            <div class="toggles">
+              <button type="button" class="btn-soft" id="avatar-toggle" aria-pressed="true">隐藏小析</button>
+              <button type="button" class="btn-soft" id="wave-btn">挥手</button>
+              <label class="switch" for="motion-toggle">
+                <input type="checkbox" id="motion-toggle">
+                <span class="track" aria-hidden="true"></span>
+                <span>减少动态</span>
+              </label>
+            </div>
+            <p class="motion-note" id="motion-note">小析在角落待命；不遮住数轴，也不自动播放长台词。系统「减少动态」会在打开时自动勾上。</p>
+          </fieldset>
+        </section>
+
+        <aside class="bible" aria-labelledby="bible-title">
+          <header class="bible-head">
+            <p class="eyebrow">character bible · v0.1</p>
+            <h2 id="bible-title">角色圣经</h2>
+            <p>一页写清楚：小析是谁、怎么说话、什么时候出现、什么不做。</p>
+          </header>
+
+          <section class="bible-section">
+            <h3><span class="num">01</span>身份</h3>
+            <dl class="kv">
+              <dt>名字</dt><dd>小析（Xiao Xi）。“析” = 把问题拆开看。</dd>
+              <dt>角色</dt><dd>同伴型引导者（peer-guide）。不是讲师、不是监考、不是真人。</dd>
+              <dt>一句话</dt><dd>站在学习者旁边，指出下一步该看哪里。</dd>
+              <dt>气质</dt><dd>成年 / 中性 / 友好；好奇但克制，不卖萌。</dd>
+            </dl>
+          </section>
+
+          <section class="bible-section">
+            <h3><span class="num">02</span>声音</h3>
+            <p>短句；一句只做一个数学动作。先问，再给一行提示；不替学习者把题做完。不假装人类：不说“我刚看到你”“我一直在后台陪你”“我很担心你”。夸这一步，不夸这个人。</p>
+            <table class="voice-table">
+              <caption class="sr-only">两种人格在开场、提示、反馈、收尾的微文案样例</caption>
+              <thead>
+                <tr><th scope="col">时刻</th><th scope="col" class="col-peer">同伴 peer</th><th scope="col" class="col-mentor">导师 mentor</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>开场</td><td class="col-peer">嗨，我是小析。这条带子是什么？</td><td class="col-mentor">嗨，我是小析。先看带子，再找 N。</td></tr>
+                <tr><td>提示</td><td class="col-peer">为什么是 N，不是 N−1？</td><td class="col-mentor">提示：先让 1/N &lt; ε。</td></tr>
+                <tr><td>答对</td><td class="col-peer">对，就是这个 N。</td><td class="col-mentor">对。N 取到了。</td></tr>
+                <tr><td>没接住</td><td class="col-peer">诶，等等——a₄ 在带里吗？</td><td class="col-mentor">再看一眼：a_N 落在带里吗？</td></tr>
+                <tr><td>收尾</td><td class="col-peer">原来 ε 一收紧，N 就得往后跑。</td><td class="col-mentor">小结：ε 定带宽，N 定起点。</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="bible-section">
+            <h3><span class="num">03</span>状态</h3>
+            <div class="state-rows">
+              <div class="state-row"><span class="state-name">平静<em>neutral</em></span><span class="state-when">出现、等待读题。“先看这条带子。”</span></div>
+              <div class="state-row"><span class="state-name">好奇<em>curious</em></span><span class="state-when">追问、把问题递回。“那 N 是什么？”</span></div>
+              <div class="state-row"><span class="state-name">思考<em>thinking</em></span><span class="state-when">提示前的停顿、等学习者算。“先别急，找 N。”</span></div>
+              <div class="state-row"><span class="state-name">开心<em>happy</em></span><span class="state-when">答对一步、完成小目标。“对，就是这个 N。”</span></div>
+              <div class="state-row"><span class="state-name">哎呀<em>oops</em></span><span class="state-when">没接住、给方向，不评价人。“再看一眼：a₄ 在带里吗？”</span></div>
+            </div>
+            <p style="margin-top:8px">静息 4–7 秒随机眨眼；开场/答对可挥手一次。减少动态时两者都不播放。表情只改眼、眉、嘴与头部角度，不换装、不加装饰。</p>
+          </section>
+
+          <section class="bible-section">
+            <h3><span class="num">04</span>外观</h3>
+            <p>圆角几何头身、简单的眼睛、笔记本 + 铅笔两件身份道具；成年/中性比例，避免真实人脸和幼态吉祥物。轮廓在 96px 仍要读得出。</p>
+            <div class="palette" aria-label="角色与场景配色">
+              <div class="swatch"><i style="background:#17324d"></i><span>#17324d</span></div>
+              <div class="swatch"><i style="background:#1f8a7a"></i><span>#1f8a7a</span></div>
+              <div class="swatch"><i style="background:#e9a23b"></i><span>#e9a23b</span></div>
+              <div class="swatch"><i style="background:#f4e3cb"></i><span>#f4e3cb</span></div>
+              <div class="swatch"><i style="background:#c96f52"></i><span>#c96f52</span></div>
+              <div class="swatch"><i style="background:#fffdf8"></i><span>#fffdf8</span></div>
+            </div>
+            <div class="two-col" style="margin-top:11px">
+              <div class="yes">
+                <h4>Do</h4>
+                <ul><li>先指画面，再说话</li><li>一句一个动作</li><li>表情服务于时刻</li><li>保持道具一致</li></ul>
+              </div>
+              <div class="no">
+                <h4>Don’t</h4>
+                <ul><li>不讲课、不长篇</li><li>不装真人经历</li><li>不遮住数学</li><li>不堆装饰/闪粉</li></ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="bible-section">
+            <h3><span class="num">05</span>出场</h3>
+            <div class="appear-grid">
+              <div class="appear"><strong>开场 5–10s</strong><span>角落一句问候 + 一次挥手；可跳过。</span></div>
+              <div class="appear"><strong>提示</strong><span>按需或停顿后出现；只一行。</span></div>
+              <div class="appear"><strong>反馈</strong><span>对/没接住各一句；说完回平静。</span></div>
+              <div class="appear"><strong>收尾</strong><span>一行小结；不复述整课。</span></div>
+            </div>
+            <p style="margin-top:8px">常驻右下角，可隐藏；隐藏后不留空洞。桌面约 158px 高；移动 100–126px。气泡最多 2–3 行。</p>
+          </section>
+
+          <section class="bible-section">
+            <h3><span class="num">06</span>接入</h3>
+            <p>先把 SVG + 状态机抽成 Web Component；同一份数据契约接 Rive/Lottie（更细的 idle/挥手）或 Remotion（录课视频）。语音以后再加：默认静音、必须带字幕。</p>
+            <pre class="embed-code"><span class="c">// 以后</span>
+const x = SokoCompanion.mount(el, { <span class="a">persona</span>: "peer" });
+x.say({ <span class="a">line</span>: 2, expression: "curious", focus: "tail" });
+x.<span class="a">setPersona</span>("mentor"); x.hide();</pre>
+            <p class="bible-note">这是视觉探针，不是课程单元：只新增 <code>scripts/avatar_proto/**</code>；不改课程、kernel、front、CI、docs。</p>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <p>小析 · C8.3 视觉探针 · 原创形象，无外部资源、无语音、无请求。</p>
+    <p>验收：<code>node scripts/avatar_proto/check.mjs</code> · 预览：<code>preview/index.html</code> · <a href="?view=sheet">角色表</a></p>
+  </footer>
+</div>
+
+<!-- Character sheet view: ?view=sheet. Shot script uses the same page. -->
+<section class="sheet-page" id="sheet" hidden aria-labelledby="sheet-title">
+  <header class="sheet-top">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">析</span>
+      <span><span class="brand-name">小析 <span class="brand-sub">CHARACTER SHEET · v0.1</span></span></span>
+    </div>
+    <a class="quiet-link" href="index.html">← 回到场景样张</a>
+  </header>
+  <div class="sheet-intro">
+    <p class="eyebrow">same silhouette · five usable states</p>
+    <h1 id="sheet-title">小析 · 表情状态表</h1>
+    <p>同一套眼、眉、嘴与头部角度，服务五个教学时刻；不是五套服装。减少动态时这是静态参考表。</p>
+  </div>
+  <div class="sheet-grid" id="sheet-grid">
+    <article class="sheet-card" data-sheet-card="neutral">
+      <div class="sheet-fig" data-sheet-fig="neutral"></div>
+      <h2>平静</h2><p class="en">neutral</p>
+      <p class="use">出现 · 等待读题</p>
+      <p class="line">“先看这条带子。”</p>
+    </article>
+    <article class="sheet-card" data-sheet-card="curious">
+      <div class="sheet-fig" data-sheet-fig="curious"></div>
+      <h2>好奇</h2><p class="en">curious</p>
+      <p class="use">追问 · 把问题递回</p>
+      <p class="line">“那 N 是什么？”</p>
+    </article>
+    <article class="sheet-card" data-sheet-card="thinking">
+      <div class="sheet-fig" data-sheet-fig="thinking"></div>
+      <h2>思考</h2><p class="en">thinking</p>
+      <p class="use">提示前的停顿 · 等学习者算</p>
+      <p class="line">“先别急，找 N。”</p>
+    </article>
+    <article class="sheet-card" data-sheet-card="happy">
+      <div class="sheet-fig" data-sheet-fig="happy"></div>
+      <h2>开心</h2><p class="en">happy</p>
+      <p class="use">答对一步 · 完成小目标</p>
+      <p class="line">“对，就是这个 N。”</p>
+    </article>
+    <article class="sheet-card" data-sheet-card="oops">
+      <div class="sheet-fig" data-sheet-fig="oops"></div>
+      <h2>哎呀</h2><p class="en">oops</p>
+      <p class="use">没接住 · 给方向，不评价人</p>
+      <p class="line">“再看一眼：a₄ 在带里吗？”</p>
+    </article>
+  </div>
+  <div class="sheet-foot">
+    <section class="sheet-panel">
+      <h2>使用规则</h2>
+      <p>表情只服务于教学时刻；同一时刻只出现一个。气泡一句话，数学画面永远优先。状态切换只动眼、眉、嘴与头部角度，保证跨镜头一致。</p>
+    </section>
+    <section class="sheet-panel">
+      <h2>调色板</h2>
+      <div class="palette">
+        <div class="swatch"><i style="background:#17324d"></i><span>#17324d</span></div>
+        <div class="swatch"><i style="background:#1f8a7a"></i><span>#1f8a7a</span></div>
+        <div class="swatch"><i style="background:#e9a23b"></i><span>#e9a23b</span></div>
+        <div class="swatch"><i style="background:#f4e3cb"></i><span>#f4e3cb</span></div>
+        <div class="swatch"><i style="background:#c96f52"></i><span>#c96f52</span></div>
+        <div class="swatch"><i style="background:#fffdf8"></i><span>#fffdf8</span></div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+  const avatar = $("#xiao-xi");
+  const companion = $("#companion");
+  const stage = $("#stage");
+  const plot = $("#plot");
+  const bubbleText = $("#bubble-text");
+  const bubbleSpeaker = $("#bubble-speaker");
+  const personaChip = $("#persona-chip");
+  const sceneNoteLabel = $("#scene-note-label");
+  const sceneNoteText = $("#scene-note-text");
+  const stateUse = $("#state-use");
+  const motionNote = $("#motion-note");
+  const motionToggle = $("#motion-toggle");
+  const avatarToggle = $("#avatar-toggle");
+  const waveBtn = $("#wave-btn");
+
+  const EXPRESSION = {
+    neutral: { label: "平静", english: "neutral", use: "用于开场落地、等待学习者读题。", hint: "先看这条带子。" },
+    curious: { label: "好奇", english: "curious", use: "用于追问「为什么 / 那 N 是什么」，把问题递回给学习者。", hint: "那 N 是什么？" },
+    thinking: { label: "思考", english: "thinking", use: "用于提示前的半秒停顿，等学习者自己算。", hint: "先别急，找 N。" },
+    happy: { label: "开心", english: "happy", use: "用于答对一步、完成一个小目标；夸这一步，不夸这个人。", hint: "对，就是这个 N。" },
+    oops: { label: "哎呀", english: "oops", use: "用于没接住时给方向，不评价人、不嘲讽。", hint: "再看一眼：a₄ 在带里吗？" },
+  };
+
+  // Each line = one math action. The `focus` drives the scene highlight so the
+  // avatar points instead of covering the math.
+  const LINES = {
+    peer: [
+      {
+        text: "这条带子就是允许误差 ε。",
+        noteLabel: "带子",
+        note: "带子定“允许多近”。0 到 0.22 之间的点都算进入允许误差；带外的点还差一点。",
+        expression: "neutral",
+        focus: "band",
+      },
+      {
+        text: "从第 N 项开始，后面的点都进来了吗？",
+        noteLabel: "起点",
+        note: "起点定“从哪一项开始”。N = 5：a₅ = 0.2 起，后面的点都在带内；a₄ = 0.25 还在带外。",
+        expression: "curious",
+        focus: "tail",
+      },
+      {
+        text: "ε 再小一点，N 会怎么变？",
+        noteLabel: "收紧",
+        note: "如果 ε 减半到 0.11：带子更窄，N 从 5 挪到 10。ε 越小，N 只会往后走，不会往前。",
+        expression: "curious",
+        focus: "whatif",
+      },
+    ],
+    mentor: [
+      {
+        text: "这条带子就是允许误差 ε。",
+        noteLabel: "带子",
+        note: "带子定“允许多近”。0 到 0.22 之间的点都算进入允许误差；带外的点还差一点。",
+        expression: "neutral",
+        focus: "band",
+      },
+      {
+        text: "从第 N 项开始，后面的点都进来了。",
+        noteLabel: "起点",
+        note: "N = 5 是第一个进带的起点：a₅ = 0.2 在带内，a₄ = 0.25 在带外。",
+        expression: "thinking",
+        focus: "tail",
+      },
+      {
+        text: "ε 再小一点，N 会怎么变？先估一眼。",
+        noteLabel: "收紧",
+        note: "ε 减半到 0.11，N 从 5 变成 10。先估方向，再算；N 不会往前退。",
+        expression: "thinking",
+        focus: "whatif",
+      },
+    ],
+  };
+
+  const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const state = {
+    persona: "peer",
+    line: 0,
+    expression: "neutral",
+    hidden: false,
+    motion: !motionQuery.matches,
+  };
+
+  let blinkTimer = null;
+  let blinkOffTimer = null;
+  let waveTimer = null;
+  let noteTimer = null;
+
+  function activeLine() {
+    return LINES[state.persona][state.line];
+  }
+
+  function setPressed(selector, attr, value) {
+    for (const button of $$(selector)) {
+      button.setAttribute("aria-pressed", String(button.getAttribute(attr) === value));
+    }
+  }
+
+  function renderPersona() {
+    document.body.dataset.persona = state.persona;
+    setPressed("[data-persona-btn]", "data-persona-btn", state.persona);
+    const isPeer = state.persona === "peer";
+    personaChip.textContent = isPeer ? "同伴模式" : "导师模式";
+    personaChip.classList.toggle("mentor", !isPeer);
+    bubbleSpeaker.textContent = isPeer ? "小析 · 同伴模式" : "小析 · 导师模式";
+    renderLine(true);
+  }
+
+  function renderLine(keepExpression = false) {
+    const line = activeLine();
+    bubbleText.textContent = line.text;
+    sceneNoteLabel.textContent = line.noteLabel;
+    sceneNoteText.textContent = line.note;
+    plot.dataset.focus = line.focus;
+    document.body.dataset.line = String(state.line);
+    setPressed("[data-line-btn]", "data-line-btn", String(state.line));
+    if (!keepExpression) setExpression(line.expression, { fromLine: true });
+  }
+
+  function renderExpression() {
+    const meta = EXPRESSION[state.expression];
+    avatar.dataset.expression = state.expression;
+    avatar.dataset.blink = "0";
+    avatar.setAttribute("aria-label", `小析，2D 数学学习同伴，${meta.label}表情`);
+    setPressed("[data-expr-btn]", "data-expr-btn", state.expression);
+    stateUse.innerHTML = `<strong>${meta.label}</strong> · ${meta.use}`;
+    scheduleBlink();
+  }
+
+  function setExpression(name, { fromLine = false } = {}) {
+    if (!EXPRESSION[name]) return;
+    state.expression = name;
+    renderExpression();
+  }
+
+  function renderMotion() {
+    document.body.dataset.motion = state.motion ? "on" : "off";
+    motionToggle.checked = !state.motion;
+    if (!state.motion) {
+      clearTimeout(blinkTimer);
+      clearTimeout(blinkOffTimer);
+      avatar.dataset.blink = "0";
+      stopWave();
+    } else {
+      scheduleBlink();
+    }
+  }
+
+  function blinkNow() {
+    if (!state.motion || state.hidden || state.expression === "happy") return false;
+    clearTimeout(blinkTimer);
+    clearTimeout(blinkOffTimer);
+    avatar.dataset.blink = "1";
+    blinkOffTimer = setTimeout(() => {
+      avatar.dataset.blink = "0";
+      scheduleBlink();
+    }, 120);
+    return true;
+  }
+
+  function scheduleBlink() {
+    clearTimeout(blinkTimer);
+    clearTimeout(blinkOffTimer);
+    avatar.dataset.blink = "0";
+    if (!state.motion || state.hidden || state.expression === "happy") return;
+    const delay = 4200 + Math.random() * 3000;
+    blinkTimer = setTimeout(blinkNow, delay);
+  }
+
+  function stopWave() {
+    clearTimeout(waveTimer);
+    avatar.classList.remove("is-waving");
+  }
+
+  function wave() {
+    if (state.hidden) return;
+    if (!state.motion) {
+      motionNote.textContent = "减少动态已开启：挥手不播放，保留静态在场。";
+      clearTimeout(noteTimer);
+      noteTimer = setTimeout(() => {
+        motionNote.textContent = "小析在角落待命；不遮住数轴，也不自动播放长台词。系统「减少动态」会在打开时自动勾上。";
+      }, 2600);
+      return;
+    }
+    stopWave();
+    avatar.classList.add("is-waving");
+    waveTimer = setTimeout(() => avatar.classList.remove("is-waving"), 1700);
+  }
+
+  function setHidden(hidden) {
+    state.hidden = hidden;
+    companion.hidden = hidden;
+    stage.classList.toggle("avatar-hidden", hidden);
+    document.body.dataset.avatar = hidden ? "hidden" : "shown";
+    avatarToggle.setAttribute("aria-pressed", String(!hidden));
+    avatarToggle.textContent = hidden ? "显示小析" : "隐藏小析";
+    waveBtn.disabled = hidden;
+    if (hidden) {
+      stopWave();
+      clearTimeout(blinkTimer);
+      clearTimeout(blinkOffTimer);
+      avatar.dataset.blink = "0";
+    } else {
+      scheduleBlink();
+    }
+  }
+
+  function setMotion(on) {
+    state.motion = on;
+    renderMotion();
+  }
+
+  function setPersona(name) {
+    if (name !== "peer" && name !== "mentor") return;
+    state.persona = name;
+    renderPersona();
+  }
+
+  function setLine(index) {
+    const next = Number(index);
+    if (!Number.isInteger(next) || next < 0 || next >= LINES.peer.length) return;
+    state.line = next;
+    renderLine(false);
+    document.body.dataset.line = String(next);
+  }
+
+  // ── wire real controls ───────────────────────────────────────
+  for (const button of $$("[data-persona-btn]")) {
+    button.addEventListener("click", () => setPersona(button.dataset.personaBtn));
+  }
+  for (const button of $$("[data-expr-btn]")) {
+    button.addEventListener("click", () => setExpression(button.dataset.exprBtn));
+  }
+  for (const button of $$("[data-line-btn]")) {
+    button.addEventListener("click", () => setLine(button.dataset.lineBtn));
+  }
+  avatarToggle.addEventListener("click", () => setHidden(!state.hidden));
+  waveBtn.addEventListener("click", wave);
+  motionToggle.addEventListener("change", () => setMotion(!motionToggle.checked));
+
+  // ── init ─────────────────────────────────────────────────────
+  renderPersona();
+  renderExpression();
+  renderMotion();
+  if (!state.motion) {
+    motionNote.textContent = "系统「减少动态」已生效：不眨眼、不挥手、不做补间。";
+  }
+
+  // One greeting wave, not a loop. It never blocks interaction.
+  if (state.motion) {
+    setTimeout(() => {
+      if (!state.hidden && !document.hidden) wave();
+    }, 900);
+  }
+
+  // ── public surface (tests + future embed) ────────────────────
+  window.SokoAvatar = {
+    version: "0.1.0",
+    state: () => ({ ...state }),
+    setPersona,
+    setLine,
+    setExpression,
+    setHidden,
+    setMotion,
+    wave,
+    blink: blinkNow,
+    lines: LINES,
+    expressions: EXPRESSION,
+  };
+
+  // ── character sheet view (?view=sheet) ───────────────────────
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("view") === "sheet") {
+    document.getElementById("page").hidden = true;
+    const sheet = document.getElementById("sheet");
+    sheet.hidden = false;
+    document.body.classList.add("sheet-mode");
+    state.motion = false;
+    document.body.dataset.motion = "off";
+    for (const card of $$("[data-sheet-card]")) {
+      const name = card.dataset.sheetCard;
+      const holder = $("[data-sheet-fig]", card);
+      if (!holder || !EXPRESSION[name]) continue;
+      const clone = avatar.cloneNode(true);
+      clone.removeAttribute("id");
+      clone.removeAttribute("data-blink");
+      clone.classList.add("sheet-avatar");
+      clone.dataset.expression = name;
+      clone.setAttribute("aria-label", `小析，${EXPRESSION[name].label}表情`);
+      holder.append(clone);
+    }
+    document.title = "小析 · 表情状态表";
+  }
+
+  document.body.dataset.ready = "1";
+})();
+</script>
+</body>
+</html>
