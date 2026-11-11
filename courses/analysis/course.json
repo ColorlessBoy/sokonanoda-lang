@@ -410,6 +410,29 @@
               "unit": 54
             }
           ]
+        },
+        {
+          "id": "II.6",
+          "title": "实数的商与完备性",
+          "prereqs": [
+            "II.5"
+          ],
+          "tags": [
+            "cauchy",
+            "real",
+            "completeness"
+          ],
+          "quota": {
+            "exercises": 40
+          },
+          "units": [
+            {
+              "file": "units/II.6/unit55-rat-add-neg.sokonanoda",
+              "title": "单元55 有理数的加法逆元：x + (-x) = 0",
+              "title_en": "Unit 55 — Additive Inverses in the Rationals",
+              "unit": 55
+            }
+          ]
         }
       ]
     }
