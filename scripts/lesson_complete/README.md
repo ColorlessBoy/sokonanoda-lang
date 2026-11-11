@@ -6,7 +6,7 @@
 
 - **页面**：`scripts/lesson_complete/index.html`（自包含，`file://` 可开）
 - **评审副本**：`scripts/lesson_complete/preview/index.html`（与 `index.html` 逐字节相同）
-- **预览**：<https://raw.githack.com/ColorlessBoy/sokonanoda-lang/COMMIT_PLACEHOLDER/scripts/lesson_complete/preview/index.html>
+- **预览**：<https://raw.githack.com/ColorlessBoy/sokonanoda-lang/62878e0d505c0efe998f604fb4cfbcbb663f449c/scripts/lesson_complete/preview/index.html>
 - **范围**：一节课、一个概念、一个同伴、一条主路径。无 CDN、无外部字体、无图片、无 npm、无网络请求。
 
 ## 为什么这是一节“课”，不是又一个探针
