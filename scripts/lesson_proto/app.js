@@ -599,7 +599,7 @@
       return (
         '<div class="action-row"><button class="btn btn-primary btn-wide" type="button" data-action="continue" id="primaryAction">' +
         esc(step.primary) +
-        ' <span aria-hidden="true">→</span></button><span class="micro">看懂了就继续 · 这一步不计分</span></div>'
+        ' <span aria-hidden="true">→</span></button><span class="micro">看懂了就继续 · 无判分题</span></div>'
       );
     }
 
