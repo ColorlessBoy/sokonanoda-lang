@@ -1,0 +1,228 @@
+-- 课程库：实数的相等的自反 / 对称（㊵ 与 ㊷ 的已判卷事实进库）
+--
+-- 单元59 要把 `realRel` 收成等价关系，需要三条腿。传递性由 58 在画布里
+-- 证过；自反与对称在 ㊵ / ㊷ 的画布里证过，这里按「前序证明进库」惯例
+-- 收进 L2（证明与那两单元的解答逐字同形）：
+--
+--   · `cauchy_close_self` / `realRel_refl`（㊵）—— Cauchy 的对角线；
+--   · `ratSubRep_neg`（㊷）—— `y - x ~ -(x - y)`；
+--   · `close_symm`（㊷）—— `close` 对调；
+--   · `realRel_close_symm` / `realRel_symm`（㊷）—— `realRel` 对调。
+--
+-- 证明全部停在商 + 已判卷的库引理上，不碰 `funext`、不加公理。
+
+import lib.Cauchy
+import lib.RatClose
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊵ 自反性
+-- ─────────────────────────────────────────────────────────────
+
+theorem cauchy_close_self (x : Seq) (hx : Cauchy x) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (x n) eps :=
+  fun (eps : ratRep) (h : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hx eps h)
+      (fun (N : Nat) (hN : ∀ (n m : Nat), LeNat N n → LeNat N m → close (x n) (x m) eps) =>
+        Exists.intro N
+          (fun (n : Nat) (hn : LeNat N n) => hN n n hn hn))
+
+theorem realRel_refl (x : Seq) (hx : Cauchy x) : realRel x x :=
+  And.intro hx (And.intro hx (cauchy_close_self x hx))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊷.1 减法的反交换：`y - x ~ -(x - y)`
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratSubRep_neg_qrep (a b c d m n : Nat) :
+    qrep
+      (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+      (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+      (ratDenRep n m) =
+    qrep
+      (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+      (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+      (ratDenRep m n) :=
+  @Eq.trans.{1} ratRep
+    (qrep
+      (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+      (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+      (ratDenRep n m))
+    (@prod_mk (Prod Nat Nat) Nat
+      (@prod_mk Nat Nat
+        (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n))))
+      (ratDenRep m n))
+    (@prod_mk (Prod Nat Nat) Nat
+      (@prod_mk Nat Nat
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m))))
+      (ratDenRep m n))
+    (congrArg.{1}
+      (fun (dd : Nat) =>
+        @prod_mk (Prod Nat Nat) Nat
+          (@prod_mk Nat Nat
+            (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+            (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n))))
+          dd)
+      (ratDenRep_comm n m))
+    (congrArg.{1}
+      (fun (p : Prod Nat Nat) =>
+        @prod_mk (Prod Nat Nat) Nat p (ratDenRep m n))
+      (prod_mk_congr
+        (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+        (add_comm (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (add_comm (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))))
+
+theorem ratSubRep_neg_negrep (a b c d m n : Nat) :
+    ratNegRep (ratSubRep (qrep a b m) (qrep c d n)) =
+      qrep
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+        (ratDenRep m n) :=
+  @congrArg.{1} ratRep ratRep
+    (ratSubRep (qrep a b m) (qrep c d n))
+    (qrep
+      (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+      (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+      (ratDenRep m n))
+    (fun (z : ratRep) => ratNegRep z)
+    (ratSubRep_mk a b c d m n)
+
+theorem ratSubRep_neg_lit (a b c d m n : Nat) :
+    ratRel (ratSubRep (qrep c d n) (qrep a b m))
+           (ratNegRep (ratSubRep (qrep a b m) (qrep c d n))) :=
+  @Eq.subst.{1} ratRep
+    (fun (z : ratRep) =>
+      ratRel z (ratNegRep (ratSubRep (qrep a b m) (qrep c d n))))
+    (qrep
+      (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+      (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+      (ratDenRep n m))
+    (ratSubRep (qrep c d n) (qrep a b m))
+    (@Eq.symm.{1} ratRep
+      (ratSubRep (qrep c d n) (qrep a b m))
+      (qrep
+        (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+        (ratDenRep n m))
+      (ratSubRep_mk c d a b n m))
+    (@Eq.subst.{1} ratRep
+      (fun (z : ratRep) =>
+        ratRel
+          (qrep
+            (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+            (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+            (ratDenRep n m))
+          z)
+      (qrep
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+        (ratDenRep m n))
+      (ratNegRep (ratSubRep (qrep a b m) (qrep c d n)))
+      (@Eq.symm.{1} ratRep
+        (ratNegRep (ratSubRep (qrep a b m) (qrep c d n)))
+        (qrep
+          (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+          (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+          (ratDenRep m n))
+        (ratSubRep_neg_negrep a b c d m n))
+      (@Eq.subst.{1} ratRep
+        (fun (z : ratRep) =>
+          ratRel z
+            (qrep
+              (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+              (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+              (ratDenRep m n)))
+        (qrep
+          (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+          (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+          (ratDenRep m n))
+        (qrep
+          (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+          (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+          (ratDenRep n m))
+        (@Eq.symm.{1} ratRep
+          (qrep
+            (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+            (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+            (ratDenRep n m))
+          (qrep
+            (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+            (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+            (ratDenRep m n))
+          (ratSubRep_neg_qrep a b c d m n))
+        (ratRel_refl
+          (qrep
+            (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+            (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+            (ratDenRep m n)))))
+
+theorem ratSubRep_neg_aux (x y : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratSubRep y x) (ratNegRep (ratSubRep x y)) :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match y with
+    | prod_mk (prod_mk c d) n =>
+      ratSubRep_neg_lit a b c d m n
+
+theorem ratSubRep_neg (x y : ratRep) :
+    ratRel (ratSubRep y x) (ratNegRep (ratSubRep x y)) :=
+  ratSubRep_neg_aux x y
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊷.3 `close` 的对称性
+-- ─────────────────────────────────────────────────────────────
+
+theorem close_symm (x y eps : ratRep) (h : close x y eps) :
+    close y x eps :=
+  Exists.elim h
+    (fun (d : ratRep)
+         (hd : ratAbsRel (ratSubRep x y) d ∧ ratLtRep d eps) =>
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left
+            (ratNegRep (ratSubRep x y))
+            (ratSubRep y x)
+            d
+            (ratRel_symm
+              (ratSubRep y x)
+              (ratNegRep (ratSubRep x y))
+              (ratSubRep_neg x y))
+            (ratAbsRel_neg_gen (ratSubRep x y) d (And.left hd)))
+          (And.right hd)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊷.4 实数相等的对称性
+-- ─────────────────────────────────────────────────────────────
+
+theorem realRel_close_symm (x y : Seq)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (y n) eps) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (y n) (x n) eps :=
+  fun (eps : ratRep) (he : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps he)
+      (fun (N : Nat)
+           (hN : ∀ (n : Nat), LeNat N n → close (x n) (y n) eps) =>
+        Exists.intro N
+          (fun (n : Nat) (hn : LeNat N n) =>
+            close_symm (x n) (y n) eps (hN n hn)))
+
+theorem realRel_symm (x y : Seq) (h : realRel x y) : realRel y x :=
+  And.intro
+    (And.left (And.right h))
+    (And.intro
+      (And.left h)
+      (realRel_close_symm x y (And.right (And.right h))))
+
+-- 第三分量的**命名投影**：后续单元要反复写「逐点 close」这一项，
+-- 给它一个名字，调用点就不用把 `And.right (And.right h)` 再当函数用。
+
+theorem realRel_close (x y : Seq) (h : realRel x y) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (y n) eps :=
+  And.right (And.right h)

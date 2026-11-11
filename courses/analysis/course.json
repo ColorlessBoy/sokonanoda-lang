@@ -449,6 +449,12 @@
               "title": "单元58 实数的相等：传递性",
               "title_en": "Unit 58 — Transitivity of Real Equality",
               "unit": 58
+            },
+            {
+              "file": "units/II.6/unit59-real-neg.sokonanoda",
+              "title": "单元59 实数的取负：第一次把运算下降到商上",
+              "title_en": "Unit 59 — Negation on the Reals: Lifting an Operation to the Quotient",
+              "unit": 59
             }
           ]
         }
