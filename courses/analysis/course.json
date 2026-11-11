@@ -538,6 +538,18 @@
               "title": "单元70 数系链：加法在四层间的迁移",
               "title_en": "Unit 70 — The Number Chain: Addition Across the Four Layers",
               "unit": 70
+            },
+            {
+              "file": "units/II.7/unit71-quotient-cost.sokonanoda",
+              "title": "单元71 数系综合：商的代价——一座桥与两座桥",
+              "title_en": "Unit 71 — The Cost of Quotients: One Bridge and Two Bridges",
+              "unit": 71
+            },
+            {
+              "file": "units/II.7/unit72-completeness-inventory.sokonanoda",
+              "title": "单元72 数系综合：完备性盘点——代表元层与集合层",
+              "title_en": "Unit 72 — Completeness Inventory: Representatives and Sets",
+              "unit": 72
             }
           ]
         }
