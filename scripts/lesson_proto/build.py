@@ -27,34 +27,40 @@ STYLE = HERE / "style.css"
 APP = HERE / "app.js"
 DEFAULT_OUT = Path("dist/lesson/unit8")
 
-# The five-step flow is part of the product contract, not just presentation.
+# The six-step flow is part of the product contract, not just presentation.
+# The first graded step after the goal used to be "opposite of 3" on a number
+# line; v2 inserts the explicit pair-representation layer ("why pairs" +
+# "same integer, many pairs") before any negation/addition, because the owner
+# feedback was that the pair idea was too vague for a lay reader.
 EXPECTED_STEPS = [
     ("goal", "goal"),
-    ("opposite-of-3", "choice"),
+    ("why-pairs", "insight"),
+    ("pair-family", "choice"),
     ("pair-swap", "choice"),
     ("pair-sum", "choice"),
     ("conclusion", "choice"),
 ]
 EXPECTED_ANSWERS = {
-    "opposite-of-3": "minus-three",
+    "pair-family": "pair-six-three",
     "pair-swap": "pair-zero-three",
     "pair-sum": "zero",
     "conclusion": "inverse",
 }
 EXPECTED_LABEL_FRAGMENTS = {
-    "opposite-of-3": "-3",
+    "pair-family": "(6,3)",
     "pair-swap": "(0,3)",
     "pair-sum": "0",
     "conclusion": "x+(-x)=0",
 }
 EXPECTED_VISUALS = {
-    "opposite-of-3": "numberline_quiz",
+    "why-pairs": "pairs_intro",
+    "pair-family": "pair_family",
     "pair-swap": "pair_swap",
     "pair-sum": "pair_sum",
     "conclusion": "conclusion",
 }
-REQUIRED_SYMBOLS = {"opposite", "pair", "integer", "inverse", "zero"}
-FORBIDDEN_MAIN_PATH = ("sorry", ":=", "import ", "Quot.sound", "Lean")
+REQUIRED_SYMBOLS = {"opposite", "pair", "cancel", "integer", "inverse", "zero"}
+FORBIDDEN_MAIN_PATH = ("sorry", ":=", "import ", "Quot", "Lean")
 EXTERNAL_URL = re.compile(r"https?://", re.IGNORECASE)
 PROTOCOL_RELATIVE = re.compile(
     r"""(?:\b(?:src|href)\s*=\s*["']\s*//)|(?:url\(\s*["']?\s*//)""",
@@ -101,6 +107,45 @@ def require_int(
     if maximum is not None:
         require(value <= maximum, f"{where}.{key} must be <= {maximum}")
     return value
+
+
+def normalize_math(value: str) -> str:
+    """Normalize typographic math (minus sign, spacing) for exact comparisons."""
+    return value.replace("−", "-").replace(" ", "").replace("\u00a0", "")
+
+
+def require_math(mapping: dict[str, Any], key: str, where: str, expected: str) -> str:
+    value = require_str(mapping, key, where)
+    require(
+        normalize_math(value) == expected,
+        f"{where}.{key} must be {expected!r} after normalization, got {value!r}",
+    )
+    return value
+
+
+def require_pair(
+    mapping: dict[str, Any],
+    key: str,
+    where: str,
+    *,
+    expected: list[int] | None = None,
+) -> list[int]:
+    pair = mapping.get(key)
+    require(
+        isinstance(pair, list)
+        and len(pair) == 2
+        and all(
+            isinstance(value, int) and not isinstance(value, bool) and value >= 0
+            for value in pair
+        ),
+        f"{where}.{key} must be two natural numbers",
+    )
+    if expected is not None:
+        require(
+            pair == expected,
+            f"{where}.{key} must be {expected}, got {pair}",
+        )
+    return pair
 
 
 def iter_strings(value: Any, trail: str = "") -> list[tuple[str, str]]:
@@ -201,6 +246,193 @@ def validate_goal(step: dict[str, Any], where: str, symbol_ids: set[str]) -> Non
     )
 
 
+def validate_legend(
+    visual: dict[str, Any], where: str, *, require_cancel: bool = False
+) -> None:
+    legend = visual.get("legend")
+    require(isinstance(legend, dict), f"{where}.legend must be an object")
+    for key in ("blue", "red"):
+        require_str(legend, key, f"{where}.legend")
+    if require_cancel:
+        require_str(legend, "cancel", f"{where}.legend")
+
+
+def validate_pairs_intro(step: dict[str, Any], where: str) -> None:
+    """The v2 'why pairs' layer must show both directions with real counts."""
+    visual = step.get("visual")
+    require(isinstance(visual, dict), f"{where}.visual must be an object")
+    require(
+        visual.get("type") == "pairs_intro",
+        f"{where}.visual.type must be pairs_intro",
+    )
+    require_str(visual, "caption", f"{where}.visual")
+    validate_legend(visual, f"{where}.visual")
+
+    cards = visual.get("cards")
+    require(
+        isinstance(cards, list) and len(cards) == 2,
+        f"{where}.visual.cards must contain exactly the two cards (3,0) and (0,3)",
+    )
+    expected = [
+        ([3, 0], "3-0=3", "3"),
+        ([0, 3], "0-3=-3", "-3"),
+    ]
+    for index, (pair, math_text, result) in enumerate(expected):
+        cwhere = f"{where}.visual.cards[{index}]"
+        card = cards[index]
+        require(isinstance(card, dict), f"{cwhere} must be an object")
+        require_pair(card, "pair", cwhere, expected=pair)
+        require_str(card, "tag", cwhere)
+        meaning = require_str(card, "meaning", cwhere)
+        require(
+            "蓝" in meaning and "红" in meaning,
+            f"{cwhere}.meaning must name the blue and red counters",
+        )
+        require_math(card, "math", cwhere, math_text)
+        require(
+            normalize_math(require_str(card, "result", cwhere)) == result,
+            f"{cwhere}.result must be {result!r}",
+        )
+
+    # The copy itself must explain why pairs are needed, in plain language.
+    plain = "".join(
+        str(step.get(key, "")) for key in ("body", "body2", "callout")
+    )
+    for token in ("自然数", "蓝", "红", "(a,b)"):
+        require(
+            token in plain,
+            f"{where} plain-language copy must mention {token!r}",
+        )
+    require(
+        "-3" in normalize_math(plain),
+        f"{where} plain-language copy must show the target -3",
+    )
+
+
+def validate_pair_family(step: dict[str, Any], where: str) -> None:
+    """The 'same integer, many pairs' insight: 3 rows whose value stays 3."""
+    visual = step.get("visual")
+    require(isinstance(visual, dict), f"{where}.visual must be an object")
+    require(
+        visual.get("type") == "pair_family",
+        f"{where}.visual.type must be pair_family",
+    )
+    require_str(visual, "caption", f"{where}.visual")
+    caption = require_str(visual, "result_caption", f"{where}.visual")
+    require(
+        "良定义" in caption,
+        f"{where}.visual.result_caption must state the well-definedness takeaway",
+    )
+    validate_legend(visual, f"{where}.visual", require_cancel=True)
+
+    rows = visual.get("rows")
+    require(
+        isinstance(rows, list) and len(rows) == 3,
+        f"{where}.visual.rows must contain exactly (3,0), (4,1), (5,2)",
+    )
+    expected = [([3, 0], 0), ([4, 1], 1), ([5, 2], 2)]
+    for index, (pair, added) in enumerate(expected):
+        rwhere = f"{where}.visual.rows[{index}]"
+        row = rows[index]
+        require(isinstance(row, dict), f"{rwhere} must be an object")
+        require_pair(row, "pair", rwhere, expected=pair)
+        got_added = require_int(row, "added", rwhere, minimum=0, maximum=2)
+        require(
+            got_added == added,
+            f"{rwhere}.added must be {added} (cancelled blue/red pairs)",
+        )
+        require_math(row, "math", rwhere, f"{pair[0]}-{pair[1]}=3")
+        require(
+            require_str(row, "result", rwhere) == "3",
+            f"{rwhere}.result must stay 3 for every representative",
+        )
+        require_str(row, "note", rwhere)
+
+    require(
+        "抵消" in step["prompt"],
+        f"{where}.prompt must teach the one-blue-one-red cancellation",
+    )
+
+
+def validate_pair_swap(step: dict[str, Any], where: str) -> None:
+    visual = step.get("visual")
+    require(isinstance(visual, dict), f"{where}.visual must be an object")
+    require(visual.get("type") == "pair_swap", f"{where}.visual.type must be pair_swap")
+    require_pair(visual, "before", f"{where}.visual", expected=[3, 0])
+    require_pair(visual, "after", f"{where}.visual", expected=[0, 3])
+    require_str(visual, "caption", f"{where}.visual")
+    require_str(visual, "after_caption", f"{where}.visual")
+
+
+def validate_pair_sum(step: dict[str, Any], where: str) -> None:
+    visual = step.get("visual")
+    require(isinstance(visual, dict), f"{where}.visual must be an object")
+    require(visual.get("type") == "pair_sum", f"{where}.visual.type must be pair_sum")
+    left = require_pair(visual, "left", f"{where}.visual", expected=[3, 0])
+    right = require_pair(visual, "right", f"{where}.visual", expected=[0, 3])
+    total = require_pair(visual, "sum", f"{where}.visual", expected=[3, 3])
+    require(
+        [a + b for a, b in zip(left, right)] == total,
+        f"{where}.visual.sum must be the component-wise sum of left and right",
+    )
+    require_str(visual, "caption", f"{where}.visual")
+    require_str(visual, "result_caption", f"{where}.visual")
+    require(
+        "抵消" in step["prompt"],
+        f"{where}.prompt must connect the sum to chip cancellation",
+    )
+
+
+def validate_conclusion(step: dict[str, Any], where: str) -> None:
+    visual = step.get("visual")
+    require(isinstance(visual, dict), f"{where}.visual must be an object")
+    require(
+        visual.get("type") == "conclusion", f"{where}.visual.type must be conclusion"
+    )
+    equation = require_str(visual, "equation", f"{where}.visual")
+    require(
+        normalize_math(equation).endswith("=0"),
+        f"{where}.visual.equation must land on 0",
+    )
+    require_str(visual, "chip", f"{where}.visual")
+    chips = visual.get("chips")
+    require(isinstance(chips, dict), f"{where}.visual.chips must be an object")
+    require_int(chips, "blue", f"{where}.visual.chips", minimum=1) == 3
+    require_int(chips, "red", f"{where}.visual.chips", minimum=1) == 3
+    require(
+        require_str(chips, "result", f"{where}.visual.chips") == "0",
+        f"{where}.visual.chips.result must be 0",
+    )
+
+
+VISUAL_VALIDATORS = {
+    "pair_family": validate_pair_family,
+    "pair_swap": validate_pair_swap,
+    "pair_sum": validate_pair_sum,
+    "conclusion": validate_conclusion,
+}
+
+
+def validate_insight(step: dict[str, Any], where: str, symbol_ids: set[str]) -> None:
+    """The new ungraded 'why pairs' step: copy + blue/red counter cards."""
+    require_str(step, "body", where)
+    require_str(step, "body2", where)
+    require_str(step, "callout", where)
+    require_str(step, "primary", where)
+    require(
+        "choices" not in step,
+        f"{where}.choices must not exist on the ungraded insight step",
+    )
+    validate_help(step, where, symbol_ids)
+    require_int(step, "xp", where, minimum=1)
+    require_int(step, "first_try_bonus", where, minimum=0)
+    require(
+        step.get("first_try_bonus") == 0,
+        f"{where}.first_try_bonus must be 0 for the ungraded insight step",
+    )
+    validate_pairs_intro(step, where)
+
+
 def validate_choice(step: dict[str, Any], where: str, symbol_ids: set[str]) -> None:
     require_str(step, "prompt", where)
     require_str(step, "continue_label", where)
@@ -215,6 +447,7 @@ def validate_choice(step: dict[str, Any], where: str, symbol_ids: set[str]) -> N
         visual.get("type") == expected_visual,
         f"{where}.visual.type must be {expected_visual}",
     )
+    VISUAL_VALIDATORS[expected_visual](step, where)
 
     choices = step.get("choices")
     require(isinstance(choices, list), f"{where}.choices must be a list")
@@ -241,7 +474,7 @@ def validate_choice(step: dict[str, Any], where: str, symbol_ids: set[str]) -> N
 
     correct_choices = [choice for choice in choices if choice["id"] == answer]
     require(len(correct_choices) == 1, f"{where} must have exactly one correct choice")
-    label = correct_choices[0]["label"].replace("−", "-").replace(" ", "")
+    label = normalize_math(correct_choices[0]["label"])
     require(
         EXPECTED_LABEL_FRAGMENTS[step["id"]] in label,
         f"{where} correct choice label does not match the expected math",
@@ -387,6 +620,8 @@ def validate_lesson(data: Any) -> dict[str, int]:
         require_str(step, "formula", where)
         if expected_type == "goal":
             validate_goal(step, where, symbol_ids)
+        elif expected_type == "insight":
+            validate_insight(step, where, symbol_ids)
         else:
             validate_choice(step, where, symbol_ids)
 
@@ -462,7 +697,8 @@ def inline_assets() -> dict[str, str]:
 def render_lesson(data: dict[str, Any], assets: dict[str, str]) -> str:
     title = f'{data["title"]} · 单元⑧ | 数学小课'
     description = (
-        "Duolingo 式数学小课原型：5 步互动，从 3 的相反数走到整数加法逆元。"
+        f"Duolingo 式数学小课原型：{len(data['steps'])} 步互动，"
+        "先用蓝红计数器讲清整数为什么写成二元组，再走到整数加法逆元。"
         " 单文件、离线可开，形式证明默认折叠。"
     )
     unit_label = f'{data["course_title"]} · Unit ⑧'
@@ -512,7 +748,7 @@ def build(data_path: Path, out_dir: Path, *, check_only: bool) -> int:
                 size_kb = output.stat().st_size / 1024
                 print(
                     f"check: generated output OK ({output}, {size_kb:.1f} KiB, "
-                    "5 steps embedded, 0 external asset references)"
+                    f"{counts['steps']} steps embedded, 0 external asset references)"
                 )
             else:
                 print(
@@ -582,9 +818,21 @@ def validate_output_text(rendered: str, data: dict[str, Any]) -> None:
         fail(f"embedded lesson JSON does not parse: {exc}")
     require(embedded == data, "embedded lesson JSON is stale; re-run the build")
     require(
-        len(embedded.get("steps", [])) == 5,
-        "generated HTML must embed exactly 5 lesson steps",
+        len(embedded.get("steps", [])) == len(EXPECTED_STEPS),
+        f"generated HTML must embed exactly {len(EXPECTED_STEPS)} lesson steps",
     )
+    # The v2 pair layer is the whole point; make sure the renderer shipped with it.
+    for marker in (
+        'class="chip-dots"',
+        "pairs_intro",
+        "pair_family",
+        "chip.is-cancelled",
+        "@keyframes chip-cancel",
+    ):
+        require(
+            marker in rendered,
+            f"generated HTML is missing the pair-representation layer ({marker!r})",
+        )
     for step in data["steps"]:
         require(
             step["id"] in embedded_raw,

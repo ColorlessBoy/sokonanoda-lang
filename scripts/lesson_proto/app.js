@@ -27,6 +27,7 @@
     startedAt: null,
     lastXp: 0,
     lastStreak: 0,
+    awarded: {},
     help: null,
     helpTimer: null,
     helpEnds: 0,
@@ -119,6 +120,85 @@
       '"><span class="paren" aria-hidden="true">(</span>' +
       slots +
       '<span class="paren" aria-hidden="true">)</span></span>'
+    );
+  }
+
+  function chipDots(count, tone, options) {
+    options = options || {};
+    var chips = [];
+    for (var index = 0; index < count; index += 1) {
+      var cancelled =
+        tone === "blue"
+          ? typeof options.cancelFrom === "number" && index >= options.cancelFrom
+          : typeof options.cancelRed === "number" && index < options.cancelRed;
+      chips.push(
+        '<span class="chip tone-' +
+          tone +
+          (cancelled ? " is-cancelled" : "") +
+          '" style="--i:' +
+          index +
+          '"></span>'
+      );
+    }
+    if (!chips.length) {
+      return '<span class="chip-empty" aria-hidden="true">0</span>';
+    }
+    return (
+      '<span class="chip-dots" aria-hidden="true">' + chips.join("") + "</span>"
+    );
+  }
+
+  function chipLine(label, count, tone, options) {
+    return (
+      '<div class="chip-line"><span class="chip-key tone-' +
+      tone +
+      '">' +
+      esc(label) +
+      " <b>" +
+      count +
+      "</b></span>" +
+      chipDots(count, tone, options) +
+      "</div>"
+    );
+  }
+
+  function pairChips(a, b, options) {
+    options = options || {};
+    return (
+      '<div class="chip-block">' +
+      chipLine("蓝", a, "blue", options) +
+      chipLine("红", b, "red", options) +
+      "</div>"
+    );
+  }
+
+  function chipsLegend(visual, withCancel) {
+    var legend = visual.legend || {};
+    return (
+      '<div class="chips-legend"><span class="chip tone-blue"></span>' +
+      esc(legend.blue || "蓝 = 正向") +
+      '<span class="chip tone-red"></span>' +
+      esc(legend.red || "红 = 负向") +
+      (withCancel
+        ? '<span class="legend-cancel"><span class="chip tone-blue is-cancelled"></span><span class="chip tone-red is-cancelled"></span>' +
+          esc(legend.cancel || "一对抵消") +
+          "</span>"
+        : "") +
+      "</div>"
+    );
+  }
+
+  function mathHTML(value) {
+    var parts = String(value).split(" = ");
+    if (parts.length !== 2) {
+      return esc(value);
+    }
+    return (
+      '<span class="chip-eq-lhs">' +
+      esc(parts[0]) +
+      '</span><span class="chip-eq-op" aria-hidden="true">=</span><strong class="chip-result">' +
+      esc(parts[1]) +
+      "</strong>"
     );
   }
 
@@ -226,6 +306,78 @@
     );
   }
 
+  function pairsIntroVisual(visual) {
+    var cards = (visual.cards || [])
+      .map(function (card, index) {
+        var pair = card.pair || [0, 0];
+        return (
+          '<article class="chip-card' +
+          (index === 1 ? " is-negative" : "") +
+          '"><div class="chip-card-head"><span class="chip-pair">(' +
+          pair[0] +
+          "," +
+          pair[1] +
+          ')</span><span class="chip-tag">' +
+          esc(card.tag) +
+          '</span></div><p class="chip-meaning">' +
+          esc(card.meaning) +
+          "</p>" +
+          pairChips(pair[0], pair[1], {}) +
+          '<div class="chip-eq">' +
+          mathHTML(card.math) +
+          "</div></article>"
+        );
+      })
+      .join("");
+
+    return (
+      '<div class="chips-board">' +
+      chipsLegend(visual, false) +
+      '<div class="chip-card-grid">' +
+      cards +
+      "</div>" +
+      '<p class="board-caption">' +
+      esc(visual.caption) +
+      "</p></div>"
+    );
+  }
+
+  function pairFamilyVisual(visual) {
+    var rows = (visual.rows || [])
+      .map(function (row) {
+        var pair = row.pair || [0, 0];
+        // The base 3 blue chips are kept; every added blue/red pair cancels.
+        var options = { cancelFrom: 3, cancelRed: row.added };
+        return (
+          '<div class="family-row"><div class="family-row-head"><span class="family-pair">(' +
+          pair[0] +
+          "," +
+          pair[1] +
+          ')</span><span class="family-note">' +
+          esc(row.note) +
+          '</span><span class="family-math">' +
+          esc(row.math) +
+          "</span></div>" +
+          pairChips(pair[0], pair[1], options) +
+          "</div>"
+        );
+      })
+      .join("");
+
+    return (
+      '<div class="family-board' +
+      (state.solved ? " is-solved" : "") +
+      '">' +
+      chipsLegend(visual, true) +
+      '<div class="family-rows">' +
+      rows +
+      "</div>" +
+      '<p class="board-caption">' +
+      esc(state.solved ? visual.result_caption : visual.caption) +
+      "</p></div>"
+    );
+  }
+
   function renderVisual(step) {
     var visual = step.visual || {};
 
@@ -237,42 +389,87 @@
       return numberlineVisual(visual, "quiz");
     }
 
+    if (visual.type === "pairs_intro") {
+      return pairsIntroVisual(visual);
+    }
+
+    if (visual.type === "pair_family") {
+      return pairFamilyVisual(visual);
+    }
+
     if (visual.type === "pair_swap") {
-      var after = state.solved ? visual.after : ["?", "?"];
+      var solved = state.solved;
       return (
         '<div class="pairboard' +
-        (state.solved ? " is-solved" : "") +
+        (solved ? " is-solved" : "") +
         '"><div class="pair-stage"><span class="pair-caption">取负前</span>' +
         pairHTML(visual.before) +
-        '</div><div class="swap-arrow" aria-hidden="true"><span>⇄</span><small>交换分量</small></div>' +
+        pairChips(visual.before[0], visual.before[1], {}) +
+        '</div><div class="swap-arrow" aria-hidden="true"><span>⇄</span><small>交换计数器</small></div>' +
         '<div class="pair-stage is-answer"><span class="pair-caption">取负后</span>' +
-        pairHTML(after, state.solved ? "取负后的二元组" : "待填的二元组") +
+        (solved
+          ? pairHTML(visual.after, "取负后的二元组") +
+            pairChips(visual.after[0], visual.after[1], {})
+          : '<span class="pair-pending" aria-hidden="true">?</span>') +
         "</div></div><p class=\"board-caption\">" +
-        esc(state.solved ? visual.after_caption : visual.caption) +
+        esc(solved ? visual.after_caption : visual.caption) +
         "</p>"
       );
     }
 
     if (visual.type === "pair_sum") {
+      var sumSolved = state.solved;
+      var sum = visual.sum || [0, 0];
+      var cancelOptions = sumSolved ? { cancelFrom: 0, cancelRed: sum[1] } : {};
+      var cancelCount = Math.min(sum[0], sum[1]);
       return (
-        '<div class="sum-stack"><div class="sum-line">' +
+        '<div class="sum-board' +
+        (sumSolved ? " is-solved" : "") +
+        '"><div class="sum-line">' +
         pairHTML(visual.left) +
         '<span class="op" aria-hidden="true">+</span>' +
         pairHTML(visual.right) +
-        '</div><div class="sum-line is-result"><span class="op" aria-hidden="true">=</span>' +
-        pairHTML(visual.sum) +
-        "</div></div><p class=\"board-caption\">" +
-        esc(state.solved ? visual.result_caption : visual.caption) +
-        "</p>"
+        '<span class="op" aria-hidden="true">=</span>' +
+        pairHTML(sum) +
+        '</div><div class="sum-chips"><div class="sum-chip-col"><span class="sum-chip-label">蓝：' +
+        visual.left[0] +
+        " + " +
+        visual.right[0] +
+        " = " +
+        sum[0] +
+        "</span>" +
+        chipDots(sum[0], "blue", cancelOptions) +
+        '</div><div class="sum-chip-col"><span class="sum-chip-label">红：' +
+        visual.left[1] +
+        " + " +
+        visual.right[1] +
+        " = " +
+        sum[1] +
+        "</span>" +
+        chipDots(sum[1], "red", cancelOptions) +
+        '</div></div><div class="cancel-strip"><span class="cancel-badge">' +
+        cancelCount +
+        ' 对蓝红互相抵消</span><span class="cancel-arrow" aria-hidden="true">⇒</span><strong class="cancel-result">' +
+        (sumSolved ? "0" : "?") +
+        "</strong></div><p class=\"board-caption\">" +
+        esc(sumSolved ? visual.result_caption : visual.caption) +
+        "</p></div>"
       );
     }
 
     if (visual.type === "conclusion") {
+      var chips = visual.chips || {};
       return (
         '<div class="conclusion-board"><div class="target" aria-hidden="true"><span>0</span></div>' +
         '<div class="conclusion-eq">' +
         esc(visual.equation) +
-        '</div><div class="conclusion-chip">' +
+        '</div><div class="conclusion-flow" aria-hidden="true">' +
+        chipDots(chips.blue, "blue", {}) +
+        '<span class="flow-op">+</span>' +
+        chipDots(chips.red, "red", {}) +
+        '<span class="flow-op">=</span><span class="flow-zero">' +
+        esc(chips.result) +
+        '</span></div><div class="conclusion-chip">' +
         esc(visual.chip) +
         "</div></div>"
       );
@@ -398,6 +595,14 @@
       );
     }
 
+    if (step.type === "insight") {
+      return (
+        '<div class="action-row"><button class="btn btn-primary btn-wide" type="button" data-action="continue" id="primaryAction">' +
+        esc(step.primary) +
+        ' <span aria-hidden="true">→</span></button><span class="micro">看懂了就继续 · 这一步不计分</span></div>'
+      );
+    }
+
     if (state.solved) {
       return (
         '<div class="action-row"><button class="btn btn-primary btn-wide" type="button" data-action="continue" id="primaryAction">' +
@@ -460,12 +665,22 @@
           data.estimated_minutes +
           " 分钟</span></div>"
       );
+    } else if (step.type === "insight") {
+      parts.push('<div class="body-copy">' + esc(step.body) + "</div>");
+      parts.push('<div class="body-copy is-second">' + esc(step.body2) + "</div>");
     } else {
       parts.push('<div class="body-copy">' + esc(step.prompt) + "</div>");
     }
 
     parts.push(renderFormulaHelp(step));
     parts.push(renderVisual(step));
+    if (step.type === "insight") {
+      parts.push(
+        '<p class="insight-callout"><span class="insight-icon" aria-hidden="true">💡</span><span>' +
+          esc(step.callout) +
+          "</span></p>"
+      );
+    }
     if (step.type === "choice") {
       parts.push(renderChoices(step));
       parts.push(renderFeedback(step));
@@ -692,6 +907,18 @@
     state.markerValue = null;
   }
 
+  function awardStepXp(step, bonus) {
+    var key = String(state.index);
+    if (state.awarded[key]) {
+      return 0;
+    }
+    var earned = step.xp + (bonus || 0);
+    state.awarded[key] = true;
+    state.lastXp = state.xp;
+    state.xp += earned;
+    return earned;
+  }
+
   function goNext() {
     if (state.index >= TOTAL - 1) {
       finishLesson();
@@ -711,8 +938,7 @@
     if (state.startedAt === null) {
       state.startedAt = Date.now();
     }
-    state.xp += stepAt(0).xp;
-    state.lastXp = state.xp - stepAt(0).xp;
+    awardStepXp(stepAt(0), 0);
     goNext();
   }
 
@@ -723,6 +949,9 @@
     var step = stepAt(state.index);
     if (step.type === "choice" && !state.solved) {
       return;
+    }
+    if (step.type === "insight") {
+      awardStepXp(step, 0);
     }
     if (state.index >= TOTAL - 1) {
       finishLesson();
@@ -750,10 +979,9 @@
     if (choiceId === step.answer) {
       var firstTry = state.attempts === 1;
       var bonus = firstTry ? step.first_try_bonus : 0;
-      var earned = step.xp + bonus;
       state.solved = true;
       state.wrongChoice = null;
-      state.xp += earned;
+      var earned = awardStepXp(step, bonus);
       state.streak += 1;
       state.maxStreak = Math.max(state.maxStreak, state.streak);
       state.firstTryCount += firstTry ? 1 : 0;
@@ -1006,6 +1234,7 @@
     state.lastXp = 0;
     state.lastStreak = 0;
     state.completed = false;
+    state.awarded = {};
     resetStepState();
     var confetti = document.getElementById("confetti");
     if (confetti) {
@@ -1099,11 +1328,31 @@
     }
   }
 
+  function renderProgressTicks() {
+    var track = document.querySelector(".progress-ticks");
+    if (!track) {
+      return;
+    }
+    var ticks = [];
+    for (var index = 1; index < TOTAL; index += 1) {
+      ticks.push(
+        '<i style="left:' + ((index / TOTAL) * 100).toFixed(3) + '%"></i>'
+      );
+    }
+    track.innerHTML = ticks.join("");
+  }
+
   function init() {
     var brandCourse = document.getElementById("brandCourse");
     if (brandCourse) {
       brandCourse.textContent = data.course_title + " · Unit ⑧";
     }
+    var progressUnit = document.getElementById("progressUnit");
+    if (progressUnit) {
+      progressUnit.textContent =
+        "Unit ⑧ · 约 " + data.estimated_minutes + " 分钟";
+    }
+    renderProgressTicks();
     render();
     window.SokoLesson = Object.freeze({
       version: data.version,
