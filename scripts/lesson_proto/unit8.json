@@ -1,0 +1,399 @@
+{
+  "schema": "soko.lesson/1",
+  "id": "analysis-unit8",
+  "version": "0.1.0",
+  "title": "整数加法有逆元",
+  "title_en": "Additive inverses in the integers",
+  "course_title": "从集合论到实分析",
+  "course_title_en": "From Set Theory to Real Analysis",
+  "unit": 8,
+  "unit_title": "单元⑧ 整数加法的零元与负元",
+  "unit_title_en": "Unit 8 — Additive Identity and Inverse",
+  "source": {
+    "unit_file": "courses/analysis/units/II.1/unit08-int-add-group.sokonanoda",
+    "solution_file": "courses/analysis/units/solutions/II.1/unit08-solution.sokonanoda"
+  },
+  "estimated_minutes": 4,
+  "xp_total": 80,
+  "badge": {
+    "icon": "✓",
+    "title": "整数加法有逆元",
+    "subtitle": "Unit ⑧ · 每个整数都能找到相反数",
+    "message": "你从 (3,0) 出发，遇见 (0,3)，把它们加回 0。"
+  },
+  "symbols": {
+    "opposite": {
+      "term": "相反数",
+      "reading": "xiāng fǎn shù",
+      "plain": "两个数相加等于 0，它们就互为相反数。3 的相反数是 −3，−3 的相反数是 3。",
+      "example": "3 + (−3) = 0",
+      "seconds": 20,
+      "help": "在数轴上，相反数就是关于 0 对称的那两个点。"
+    },
+    "pair": {
+      "term": "pair / 二元组",
+      "reading": "pair",
+      "plain": "这里把整数写成一对自然数 (a,b)，读作「a 减 b」。比如 (3,0) 就是 3 − 0 = 3。",
+      "example": "(3,0) 代表 3；(0,3) 代表 −3。",
+      "seconds": 20,
+      "help": "两个分量交换后，代表的方向就反过来了。"
+    },
+    "integer": {
+      "term": "整数",
+      "reading": "zhěng shù",
+      "plain": "整数是 …、−2、−1、0、1、2、… 这些没有小数部分的数。这门课把它们成对地构造出来。",
+      "example": "…, −3, −2, −1, 0, 1, 2, 3, …",
+      "seconds": 20,
+      "help": "正数、负数和 0 都属于整数。"
+    },
+    "inverse": {
+      "term": "加法逆元",
+      "reading": "nì yuán",
+      "plain": "在一个加法系统里，能让 x 回到 0 的那个数，就叫 x 的加法逆元。整数的逆元就是相反数。",
+      "example": "x + (−x) = 0",
+      "seconds": 20,
+      "help": "「逆」表示往回走：走 3 步，再往回走 3 步，就回到原点。"
+    },
+    "zero": {
+      "term": "0 / 零元",
+      "reading": "líng yuán",
+      "plain": "加上它，数不会改变：x + 0 = x。所以 0 是加法的零元。",
+      "example": "3 + 0 = 3",
+      "seconds": 20,
+      "help": "零元像「空操作」，不改变原来的数。"
+    }
+  },
+  "steps": [
+    {
+      "id": "goal",
+      "type": "goal",
+      "short": "目标",
+      "kicker": "本课目标 · 约 4 分钟",
+      "title": "整数里每个数都有相反数",
+      "formula": "x + (-x) = 0",
+      "body": "不管 x 是 3、是 −7，还是 0，总能找到另一个整数，和它相加正好回到 0。这一课，我们从 3 出发把它找出来。",
+      "visual": {
+        "type": "numberline",
+        "caption": "上下对称的两个温度：+3° 与 −3°",
+        "default_note": "点一下两个温度，看看它们离 0 有多远。",
+        "markers": [
+          {
+            "value": -3,
+            "label": "−3°",
+            "tone": "cold",
+            "note": "−3 在 0 左边 3 格。往右走 3 格，就回到 0。"
+          },
+          {
+            "value": 3,
+            "label": "+3°",
+            "tone": "warm",
+            "note": "+3 在 0 右边 3 格。往左走 3 格，就回到 0。"
+          }
+        ]
+      },
+      "help": ["opposite", "integer"],
+      "primary": "明白了，开始",
+      "xp": 5,
+      "first_try_bonus": 0
+    },
+    {
+      "id": "opposite-of-3",
+      "type": "choice",
+      "short": "相反数",
+      "kicker": "第 2 步 · 找到相反方向",
+      "title": "3 的相反数是哪个？",
+      "prompt": "从 0 向右走 3 格到 3。要回到 0，需要往相反方向走 3 格。点一下答案。",
+      "formula": "3 + ? = 0",
+      "visual": {
+        "type": "numberline_quiz",
+        "value": 3,
+        "caption": "3 在 0 右边 3 格；相反方向是哪里？"
+      },
+      "help": ["opposite"],
+      "choices": [
+        {
+          "id": "minus-three",
+          "label": "−3",
+          "aria": "负三"
+        },
+        {
+          "id": "zero",
+          "label": "0",
+          "aria": "零"
+        },
+        {
+          "id": "three",
+          "label": "3",
+          "aria": "三"
+        }
+      ],
+      "answer": "minus-three",
+      "feedback": {
+        "correct": {
+          "title": "对，−3。",
+          "body": "3 向右，−3 向左；它们到 0 的距离都是 3。3 + (−3) = 0。"
+        },
+        "wrong": {
+          "zero": "0 + 3 = 3，还没有回到 0。0 是零元，不是 3 的相反数。",
+          "three": "3 + 3 = 6，越走越远。相反数要能把 3 抵消掉。"
+        }
+      },
+      "hints": [
+        {
+          "title": "从数轴看",
+          "body": "相反数在数轴上关于 0 对称。3 在 0 右边，它的相反数就在 0 左边同样远的位置。"
+        },
+        {
+          "title": "数一数距离",
+          "body": "3 离 0 有 3 格。向左走 3 格，会落在哪个刻度？"
+        },
+        {
+          "title": "排除法",
+          "body": "0 加上 3 还是 3；3 加上 3 是 6。只有负数那一项能让结果回到 0。"
+        }
+      ],
+      "continue_label": "继续",
+      "xp": 10,
+      "first_try_bonus": 5
+    },
+    {
+      "id": "pair-swap",
+      "type": "choice",
+      "short": "二元组",
+      "kicker": "第 3 步 · 换一种写法",
+      "title": "把 (3,0) 取负，二元组会变成什么？",
+      "prompt": "这门课把整数写成二元组：(a,b) 代表 a − b。所以 (3,0) 代表 3。取负就是交换两个分量。",
+      "formula": "(3,0) → ?",
+      "visual": {
+        "type": "pair_swap",
+        "before": [3, 0],
+        "after": [0, 3],
+        "caption": "交换分量 = 取负",
+        "after_caption": "(0,3) 代表 0 − 3 = −3"
+      },
+      "help": ["pair", "opposite"],
+      "choices": [
+        {
+          "id": "pair-zero-three",
+          "label": "(0,3)",
+          "aria": "零三二元组"
+        },
+        {
+          "id": "pair-three-zero",
+          "label": "(3,0)",
+          "aria": "三零二元组"
+        },
+        {
+          "id": "pair-neg-three-zero",
+          "label": "(−3,0)",
+          "aria": "负三零二元组"
+        }
+      ],
+      "answer": "pair-zero-three",
+      "feedback": {
+        "correct": {
+          "title": "对，(0,3)。",
+          "body": "交换分量后，(0,3) 代表 0 − 3 = −3。它正好是 3 的相反数。"
+        },
+        "wrong": {
+          "pair-three-zero": "(3,0) 没有变，仍然代表 3。取负要交换两个分量，让 a − b 变成 b − a。",
+          "pair-neg-three-zero": "这个写法把负号塞进了分量里，但二元组的分量是自然数。这里的「取负」是交换两个分量。"
+        }
+      },
+      "hints": [
+        {
+          "title": "看公式",
+          "body": "(a,b) 代表 a − b。取负后，原来的 a − b 应该变成 b − a。"
+        },
+        {
+          "title": "交换两个位置",
+          "body": "把 3 和 0 对调：前面放 0，后面放 3。"
+        },
+        {
+          "title": "认出它",
+          "body": "(0,3) 代表 0 − 3 = −3，正是 3 的相反数。"
+        }
+      ],
+      "continue_label": "继续",
+      "xp": 10,
+      "first_try_bonus": 5
+    },
+    {
+      "id": "pair-sum",
+      "type": "choice",
+      "short": "相加",
+      "kicker": "第 4 步 · 合起来看",
+      "title": "把两个二元组相加，结果代表哪个整数？",
+      "prompt": "分量分别相加：(3,0) + (0,3) = (3,3)。(a,b) 代表 a − b，那么 (3,3) 代表什么？",
+      "formula": "(3,0) + (0,3) = (3,3)",
+      "visual": {
+        "type": "pair_sum",
+        "left": [3, 0],
+        "right": [0, 3],
+        "sum": [3, 3],
+        "caption": "分量分别相加",
+        "result_caption": "两个分量相等 ⇒ 代表 0"
+      },
+      "help": ["pair", "integer", "zero"],
+      "choices": [
+        {
+          "id": "zero",
+          "label": "0",
+          "aria": "零"
+        },
+        {
+          "id": "three",
+          "label": "3",
+          "aria": "三"
+        },
+        {
+          "id": "six",
+          "label": "6",
+          "aria": "六"
+        }
+      ],
+      "answer": "zero",
+      "feedback": {
+        "correct": {
+          "title": "对，0。",
+          "body": "(3,3) 代表 3 − 3 = 0。两个分量相等，就代表 0；所以 (3,0) 和它的相反数相加，回到了 0。"
+        },
+        "wrong": {
+          "three": "3 − 0 = 3，但这里是 (3,3)：两个分量相等时相减得 0，不是 3。",
+          "six": "相加时不是把 3 和 3 加起来。二元组的规则是「前减后」：3 − 3 = 0。"
+        }
+      },
+      "hints": [
+        {
+          "title": "先看规则",
+          "body": "二元组 (a,b) 代表 a − b。前一个分量减后一个分量。"
+        },
+        {
+          "title": "代入 (3,3)",
+          "body": "前一个分量是 3，后一个也是 3。3 − 3 等于多少？"
+        },
+        {
+          "title": "相等的分量",
+          "body": "a = b 时，a − b = 0。所以 (3,3) 代表 0。"
+        }
+      ],
+      "continue_label": "继续",
+      "xp": 10,
+      "first_try_bonus": 5
+    },
+    {
+      "id": "conclusion",
+      "type": "choice",
+      "short": "结论",
+      "kicker": "第 5 步 · 得出结论",
+      "title": "所以，哪一个结论成立？",
+      "prompt": "我们没有写一行代码，只做了配对与相加。下面哪句话被刚才的步骤支持？",
+      "formula": "(3,3) ≡ (0,0)",
+      "visual": {
+        "type": "conclusion",
+        "equation": "3 + (-3) = 0",
+        "chip": "(3,0) + (0,3) = (3,3) ≡ 0"
+      },
+      "help": ["inverse", "zero"],
+      "choices": [
+        {
+          "id": "inverse",
+          "label": "x + (-x) = 0",
+          "sub": "每个整数都有加法逆元。",
+          "aria": "每个整数都有加法逆元"
+        },
+        {
+          "id": "identity",
+          "label": "x + (-x) = x",
+          "sub": "相反数还是自己。",
+          "aria": "相反数还是自己"
+        },
+        {
+          "id": "one",
+          "label": "x + (-x) = 1",
+          "sub": "相加总是 1。",
+          "aria": "相加总是一"
+        }
+      ],
+      "answer": "inverse",
+      "feedback": {
+        "correct": {
+          "title": "正是这样。",
+          "body": "(3,3) 代表 0，因此 3 + (−3) = 0。3 只是样板：每个整数 x 都有相反数 −x，使 x + (-x) = 0。"
+        },
+        "wrong": {
+          "identity": "如果 x + (-x) = x，那 −x 就等于 0；但 3 的相反数是 −3，不是 0。",
+          "one": "3 + (−3) 回到的是 0，不是 1。逆元的目标是零元。"
+        }
+      },
+      "hints": [
+        {
+          "title": "回到刚才的计算",
+          "body": "我们在第 4 步得到 (3,3) ≡ (0,0)，也就是 3 − 3 = 0。"
+        },
+        {
+          "title": "把 3 换成 x",
+          "body": "如果每个整数 x 都能找到对应的 −x，那么 x + (-x) 应该等于什么？"
+        },
+        {
+          "title": "抓住关键词",
+          "body": "「逆元」的意思是相加后回到零元 0；不是回到自己，也不是 1。"
+        }
+      ],
+      "continue_label": "领取徽章",
+      "xp": 10,
+      "first_try_bonus": 5
+    }
+  ],
+  "completion": {
+    "xp": 15,
+    "eyebrow": "本课完成",
+    "title": "整数加法有逆元",
+    "body": "你从 3 出发，找到 −3，又用二元组 (3,0) 与 (0,3) 看见 3 + (-3) = 0。",
+    "replay": "再玩一次",
+    "next": "下一课：整数减法（即将上线）"
+  },
+  "formal_proof": {
+    "summary": "这一课前台只做选择。下面这些名字是后台裁判用来确认结论的；你不需要会写它们。",
+    "theorem_lead": "单元⑧ 里与逆元有关的声明",
+    "theorems": [
+      {
+        "name": "zero_rep",
+        "kind": "代表元层",
+        "plain": "给 (a,b) 加上 (0,0)，两个代表元仍然等价。"
+      },
+      {
+        "name": "int_add_zero",
+        "kind": "商层",
+        "plain": "把上一条交给 Quot.sound，得到整数上的 x + 0 = x。"
+      },
+      {
+        "name": "negRep_wd",
+        "kind": "良定义",
+        "plain": "交换两个分量，不会因为换代表元而改变结果。"
+      },
+      {
+        "name": "add_neg_rep",
+        "kind": "代表元层",
+        "plain": "(a,b) 与 (b,a) 相加，等价于 (0,0)。"
+      },
+      {
+        "name": "int_add_neg",
+        "kind": "商层",
+        "plain": "于是整数上 x + (-x) = 0。这就是本课的徽章。"
+      },
+      {
+        "name": "negRep_neg",
+        "kind": "对合",
+        "plain": "交换两次回到原处：(−x) 的相反数是 x。"
+      },
+      {
+        "name": "int_neg_neg",
+        "kind": "商层",
+        "plain": "在整数上也一样：−(−x) = x。"
+      }
+    ],
+    "evidence": "徽章证据：int_add_neg",
+    "note": "形式证明默认折叠，是本课的证据层，不是主界面。"
+  }
+}

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#fbf7ef">
+  <meta name="description" content="{{DESCRIPTION}}">
+  <meta name="robots" content="noindex">
+  <title>{{TITLE}}</title>
+  <style>
+{{STYLE_CSS}}
+  </style>
+</head>
+<body data-lesson-id="{{LESSON_ID}}">
+  <a class="skip-link" href="#main">跳到题目</a>
+  <div class="app" id="app">
+    <div class="confetti" id="confetti" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="brand-copy">
+            <span class="brand-course" id="brandCourse">{{UNIT_LABEL}}</span>
+            <span class="brand-title">数学小课</span>
+          </span>
+        </div>
+        <div class="stats" aria-label="本课状态">
+          <span class="stat stat-xp" id="xpStat" title="经验值">
+            <span class="stat-icon" aria-hidden="true">✦</span>
+            <span class="stat-value" id="xpValue">0</span>
+            <span class="stat-label">XP</span>
+          </span>
+          <span class="stat stat-streak" id="streakStat" title="连续答对">
+            <span class="stat-icon" aria-hidden="true">🔥</span>
+            <span class="stat-value" id="streakValue">0</span>
+            <span class="stat-label">连对</span>
+          </span>
+        </div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-copy">
+          <span id="stepLabel">第 1 / 5 步</span>
+          <span class="progress-unit">Unit ⑧ · 约 4 分钟</span>
+        </div>
+        <div class="progress-track" id="progressTrack" role="progressbar" aria-label="课程进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="5">
+          <div class="progress-fill" id="progressFill"></div>
+          <span class="progress-ticks" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <main class="stage" id="main" tabindex="-1">
+        <div class="boot-card" aria-hidden="true">
+          <span class="boot-orb"></span>
+          <p>正在准备本课…</p>
+        </div>
+      </main>
+      <aside class="journey" id="journey" aria-label="本课路线"></aside>
+    </div>
+
+    <footer class="page-foot">
+      <span>形式证明是后台裁判</span>
+      <span class="foot-dot" aria-hidden="true">·</span>
+      <span>你只需要点选</span>
+    </footer>
+
+    <div class="sr-only" id="announcer" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="modalRoot"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <script id="lesson-data" type="application/json">{{LESSON_JSON}}</script>
+  <script>
+{{APP_JS}}
+  </script>
+</body>
+</html>
