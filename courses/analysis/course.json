@@ -443,6 +443,12 @@
               "title": "单元57 close 的传递性：两个 ε/2 的界加起来",
               "title_en": "Unit 57 — Transitivity of Close: Adding Two ε/2 Bounds",
               "unit": 57
+            },
+            {
+              "file": "units/II.6/unit58-real-trans.sokonanoda",
+              "title": "单元58 实数的相等：传递性",
+              "title_en": "Unit 58 — Transitivity of Real Equality",
+              "unit": 58
             }
           ]
         }
