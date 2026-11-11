@@ -402,6 +402,12 @@
               "title": "单元53 半数的正性：0 < ε ⇒ 0 < ε/2",
               "title_en": "Unit 53 — Positivity of the Half: 0 < ε implies 0 < ε/2",
               "unit": 53
+            },
+            {
+              "file": "units/II.5/unit54-rat-add-assoc.sokonanoda",
+              "title": "单元54 有理数加法的结合律：公分母的三层嵌套",
+              "title_en": "Unit 54 — Associativity of Rational Addition",
+              "unit": 54
             }
           ]
         }
