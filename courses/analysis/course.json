@@ -491,6 +491,12 @@
               "title": "单元65 实数的序：传递性",
               "title_en": "Unit 65 — Order on the Reals: Transitivity",
               "unit": 65
+            },
+            {
+              "file": "units/II.6/unit66-real-order-lift.sokonanoda",
+              "title": "单元66 实数的序：沿 realRel 下降成 Real 上的关系",
+              "title_en": "Unit 66 — Order on the Reals: Descending to a Relation on Real",
+              "unit": 66
             }
           ]
         }
