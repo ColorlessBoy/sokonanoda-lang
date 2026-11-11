@@ -2,13 +2,17 @@
 // scripts/lesson_proto/shot.mjs —— 390px headless Chrome 截图 + 验收断言。
 //
 // 为什么要有这条脚本：PR 的验收不能只靠"我看了一眼"。这里把 owner 反馈
-// 对应的新层（蓝红计数器的 "why pairs" 页）变成**可复跑的截图证据**，并在同一
-// 次运行里断言：
-//   ① 页面零外部请求（只允许 file:/data:）；
-//   ② 390px 下无横向溢出（文档 + 逐元素边界）；
-//   ③ 新流程真的按 goal → why-pairs → pair-family → swap → sum → conclusion
-//      走完，且完成态 XP == unit8.json 的 xp_total；
-//   ④ 答错不会推进步骤、不会给 XP，反馈是 wrong。
+// 对应的两层变成**可复跑的截图证据**：
+//   v2 蓝红计数器的 "why pairs" 页；v3 每一步的「直觉 ↔ 形式」映射块
+//   （one-line summary 默认折叠，点开后是 concept ↔ identifier 矩阵 + 小代码片段）。
+// 同一次运行里断言：
+//   ① 页面零外部请求（只允许 file:/data:）与零 page/console 错误；
+//   ② 390px 下无横向溢出（文档 + 逐元素边界），映射块展开后同样无溢出；
+//   ③ 6 步都有 formal-map，默认折叠，点 summary 后展开且带确切标识符；
+//   ④ 流程按 goal → why-pairs → pair-family → swap → sum → conclusion 走完，
+//      完成态 XP == unit8.json 的 xp_total；
+//   ⑤ 答错不会推进步骤、不会给 XP，反馈是 wrong；
+//   ⑥ 映射块没有任何自由输入控件（textarea/input/contenteditable）。
 //
 // 依赖：本机 Chrome（macOS 默认路径，可用 SOKO_CHROME 覆盖）+ Node 自带 WebSocket。
 // 零 npm 依赖；判据全部落在 DOM/像素上，不靠"等 3 秒"。
@@ -220,7 +224,109 @@ async function stepState(client) {
   return client.evaluateJSON("window.SokoLesson.getState()");
 }
 
+async function formalMapState(client, stepId) {
+  const selector = `[data-formal-map="${stepId}"]`;
+  return client.evaluateJSON(
+    `(() => {
+      const map = document.querySelector(${JSON.stringify(selector)});
+      const text = (node) => node ? node.textContent.trim() : "";
+      return {
+        exists: !!map,
+        open: !!map && map.open,
+        badge: text(map && map.querySelector(".fm-badge")),
+        summary: text(map && map.querySelector(".fm-summary-text")),
+        summaryClipped: (() => {
+          const node = map ? map.querySelector(".fm-summary-text") : null;
+          return node ? Math.max(0, node.scrollWidth - node.clientWidth) : 0;
+        })(),
+        title: map && map.querySelector("summary")
+          ? map.querySelector("summary").getAttribute("title") || ""
+          : "",
+        note: text(map && map.querySelector(".fm-note")),
+        rows: map ? map.querySelectorAll(".fm-row:not(.fm-head)").length : 0,
+        head: map
+          ? [...map.querySelectorAll(".fm-head [role=columnheader]")]
+              .map((node) => node.textContent.trim())
+              .filter(Boolean)
+          : [],
+        concepts: map
+          ? [...map.querySelectorAll(".fm-concept")].map((node) => node.textContent.trim())
+          : [],
+        formals: map
+          ? [...map.querySelectorAll(".fm-formal")].map((node) => node.textContent.trim())
+          : [],
+        ids: map
+          ? [...map.querySelectorAll(".fm-id")].map((node) => node.textContent.trim())
+          : [],
+        snippets: map ? map.querySelectorAll(".fm-snippet").length : 0,
+        codes: map
+          ? [...map.querySelectorAll(".fm-code")].map((node) => node.textContent)
+          : [],
+        code: map
+          ? [...map.querySelectorAll(".fm-code")]
+              .map((node) => node.textContent)
+              .join("\\n")
+          : "",
+        inputFree: map
+          ? map.querySelectorAll("textarea, input, [contenteditable]").length === 0
+          : false,
+      };
+    })()`
+  );
+}
+
+async function expandFormalMap(client, stepId) {
+  const before = await formalMapState(client, stepId);
+  assert(before.exists, `${stepId}: 直觉 ↔ 形式 mapping block exists`);
+  assert(before.badge === "直觉 ↔ 形式", `${stepId}: mapping badge reads 直觉 ↔ 形式`);
+  assert(before.summary.length > 0, `${stepId}: a one-line mapping summary is visible`);
+  assert(
+    before.summaryClipped <= 1,
+    `${stepId}: the one-line summary is fully visible, not ellipsized (clipped ${before.summaryClipped}px)`
+  );
+  assert(before.title === before.summary, `${stepId}: full summary is exposed on the collapsed line`);
+  assert(!before.open, `${stepId}: mapping starts collapsed on mobile`);
+  await click(client, `[data-formal-map="${stepId}"] summary`);
+  const after = await formalMapState(client, stepId);
+  assert(after.open, `${stepId}: clicking the summary expands the mapping`);
+  return after;
+}
+
+async function assertMapping(client, stepId, expected) {
+  const map = await expandFormalMap(client, stepId);
+  assert(map.rows === expected.rows, `${stepId}: ${expected.rows} concept ↔ formal rows (got ${map.rows})`);
+  assert(
+    JSON.stringify(map.head) === JSON.stringify(expected.head),
+    `${stepId}: mapping columns are ${expected.head.join(" / ")} (got ${map.head.join(" / ")})`
+  );
+  for (const identifier of expected.ids) {
+    assert(
+      map.ids.includes(identifier),
+      `${stepId}: a row maps to the exact identifier ${identifier}`
+    );
+  }
+  const prose = [map.summary, map.note, ...map.concepts, ...map.formals].join(" ");
+  for (const token of expected.tokens || []) {
+    assert(prose.includes(token), `${stepId}: mapping explains ${JSON.stringify(token)}`);
+  }
+  assert(map.snippets >= 1, `${stepId}: mapping includes a formatted Lean snippet`);
+  assert(map.code.includes(expected.code), `${stepId}: snippet shows ${JSON.stringify(expected.code)}`);
+  assert(map.inputFree, `${stepId}: mapping has no free-form input control`);
+  return map;
+}
+
 async function shot(client, name) {
+  // Reset to the phone viewport before measuring: a previous full-page capture
+  // must not inflate 100dvh and force the next screenshot to stay tall.
+  await client.call("Emulation.setDeviceMetricsOverride", {
+    width: WIDTH,
+    height: HEIGHT,
+    deviceScaleFactor: 2,
+    mobile: true,
+    screenWidth: WIDTH,
+    screenHeight: HEIGHT,
+  });
+  await sleep(80);
   const height = await client.evaluate(
     "Math.ceil(Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, 844))"
   );
@@ -262,7 +368,7 @@ async function shot(client, name) {
   const response = await client.call("Page.captureScreenshot", { format: "png" });
   const buffer = Buffer.from(response.result.data, "base64");
   writeFileSync(join(args.outDir, `${name}.png`), buffer);
-  writeFileSync(join(args.tmpDir, `lesson-v2-${name}.png`), buffer);
+  writeFileSync(join(args.tmpDir, `lesson-v3-${name}.png`), buffer);
   log(`png · ${join(args.outDir, `${name}.png`)} (390×${viewportHeight} css, 2x)`);
   return layout;
 }
@@ -306,6 +412,17 @@ async function main() {
     const goalTitle = await client.evaluate('document.getElementById("stepTitle").textContent');
     assert(goalTitle.includes("整数里每个数都有相反数"), "goal card states the math goal");
     await shot(client, "first");
+    const goalMap = await assertMapping(client, "goal", {
+      rows: 3,
+      head: ["直觉", "形式实现", "标识符"],
+      ids: ["int_add_neg", "Quot.sound", "negRep"],
+      tokens: ["代表元", "x + (-x) = 0"],
+      code: "theorem int_add_neg",
+    });
+    assert(
+      goalMap.summary.includes("int_add_neg") && goalMap.note.includes("Quot.sound"),
+      "goal: the collapsed line names int_add_neg and the expanded note explains Quot.sound"
+    );
 
     // ── 2. Why pairs? (the new representation layer) ───────────────────
     await click(client, "#primaryAction");
@@ -353,7 +470,19 @@ async function main() {
       intro.body.includes("自然数") && intro.callout.includes("配对写法"),
       "why-pairs explains why natural numbers force the pair representation"
     );
-    await shot(client, "representation");
+    const pairsMap = await assertMapping(client, "why-pairs", {
+      rows: 5,
+      head: ["直觉", "形式实现", "标识符"],
+      ids: ["@prod_mk Nat Nat a b", "Prod.fst", "Prod.snd", "intRel", "Quot intRel"],
+      tokens: ["蓝", "红", "Prod Nat Nat", "Quot intRel"],
+      code: "def Int : Type := @Quot.{1} (Prod Nat Nat) intRel",
+    });
+    assert(
+      pairsMap.concepts.join(" ").includes("蓝筹 = 正向") &&
+        pairsMap.concepts.join(" ").includes("红筹 = 负向"),
+      "why-pairs maps blue=fst and red=snd explicitly"
+    );
+    await shot(client, "representation-map");
 
     // ── 3. Same integer, many pairs (representation insight) ───────────
     await click(client, "#primaryAction");
@@ -383,12 +512,23 @@ async function main() {
       family.prompt.includes("抵消"),
       "pair-family prompt teaches one-blue-one-red cancellation"
     );
-    await shot(client, "family");
+    await assertMapping(client, "pair-family", {
+      rows: 3,
+      head: ["直觉", "形式实现", "标识符"],
+      ids: ["intRel", "Quot intRel"],
+      tokens: ["等价类", "交叉和"],
+      code: "intRel (@prod_mk Nat Nat 3 0)",
+    });
 
     // ── 4. Negation = swap ─────────────────────────────────────────────
     await click(client, '[data-choice-id="pair-six-three"]');
     state = await stepState(client);
     assert(state.attempts === 1 && state.xp === 35, `answering (6,3) is correct first try and awards step XP (xp=${state.xp})`);
+    const reRenderedMap = await formalMapState(client, "pair-family");
+    assert(
+      reRenderedMap.open,
+      "pair-family: the mapping stays open when the answer feedback re-renders the step"
+    );
     await click(client, "#primaryAction");
     state = await stepState(client);
     assert(state.stepId === "pair-swap", "step 4 is negation = swap");
@@ -406,6 +546,13 @@ async function main() {
       'document.querySelectorAll(".pair-stage.is-answer .chip.tone-red").length'
     );
     assert(swapped === 3, `negation swaps (3,0) into 3 red counters (got ${swapped})`);
+    await assertMapping(client, "pair-swap", {
+      rows: 3,
+      head: ["直觉", "形式实现", "标识符"],
+      ids: ["negRep", "negRep_wd"],
+      tokens: ["良定义", "交换"],
+      code: "def negRep (p : Prod Nat Nat)",
+    });
 
     // ── 5. Addition = add counters ─────────────────────────────────────
     await click(client, "#primaryAction");
@@ -436,11 +583,55 @@ async function main() {
       solvedSum.solved && solvedSum.cancelled === 6 && solvedSum.result === "0",
       `sum board cancels 3 blue + 3 red to 0 (cancelled=${solvedSum.cancelled}, result=${solvedSum.result})`
     );
+    const sumMap = await assertMapping(client, "pair-sum", {
+      rows: 4,
+      head: ["直觉", "形式实现", "标识符"],
+      ids: ["addRep", "add_neg_rep", "int_add_neg", "Quot.sound"],
+      tokens: ["代表元", "相等", "同色"],
+      code: "Quot.sound (add_neg_rep a b)",
+    });
+    assert(
+      sumMap.snippets === 2,
+      `pair-sum shows both addRep and the Quot.sound bridge (got ${sumMap.snippets} snippets)`
+    );
+    await shot(client, "formal-map");
 
     // ── 6. Conclusion + badge ──────────────────────────────────────────
     await click(client, "#primaryAction");
     state = await stepState(client);
     assert(state.stepId === "conclusion", "step 6 is the conclusion");
+    const conclusionMap = await assertMapping(client, "conclusion", {
+      rows: 7,
+      head: ["概念", "形式对象", "引理"],
+      ids: [
+        "Quot intRel",
+        "Quot.sound",
+        "int_add_zero",
+        "negRep_wd",
+        "addRep",
+        "add_neg_rep",
+        "int_add_neg",
+      ],
+      tokens: ["概念", "形式对象", "引理", "代表元层"],
+      code: "add_neg_rep (a b)",
+    });
+    assert(
+      conclusionMap.summary.includes("概念") && conclusionMap.summary.includes("引理"),
+      "conclusion: the summary announces the concept / formal object / lemma table"
+    );
+    const stepProof = await client.evaluateJSON(
+      `(() => {
+        const proof = document.querySelector(".step-card .proof");
+        return {
+          exists: !!proof,
+          open: !!proof && proof.open,
+        };
+      })()`
+    );
+    assert(
+      stepProof.exists && !stepProof.open,
+      "conclusion: the formal proof evidence layer exists and stays collapsed"
+    );
     await click(client, '[data-choice-id="inverse"]');
     state = await stepState(client);
     assert(state.attempts === 1 && state.xp === 80, `conclusion is correct first try and awards the final choice XP (xp=${state.xp})`);
@@ -525,8 +716,9 @@ async function main() {
       ok: true,
       steps: DATA.steps.length,
       xp: completionXp,
-      screenshots: ["first", "representation", "family", "complete"].map((name) =>
-        join(args.outDir, `${name}.png`)
+      mapping_blocks: DATA.steps.length,
+      screenshots: ["first", "representation-map", "formal-map", "complete"].map(
+        (name) => join(args.outDir, `${name}.png`)
       ),
       requests: requests.length,
       external_requests: 0,

@@ -28,6 +28,7 @@
     lastXp: 0,
     lastStreak: 0,
     awarded: {},
+    formalOpen: {},
     help: null,
     helpTimer: null,
     helpEnds: 0,
@@ -511,6 +512,109 @@
     );
   }
 
+  // v3 bridge: every step pairs the intuitive chunk with the exact formal
+  // identifier from unit08-int-add-group.sokonanoda.  The summary is the
+  // always-visible one-liner; rows + snippets live behind <details> so the
+  // mobile lesson keeps its one-step-at-a-time rhythm.
+  function renderFormalMap(step) {
+    var map = step.formal_map;
+    if (!map) {
+      return "";
+    }
+    var columns = map.columns || ["直觉", "形式实现", "标识符"];
+    var rows = map.rows
+      .map(function (row) {
+        return (
+          '<div class="fm-row" role="row">' +
+          '<span class="fm-concept" role="cell">' +
+          esc(row.concept) +
+          '</span><span class="fm-arrow" role="cell" aria-label="对应">↔</span>' +
+          '<span class="fm-formal" role="cell">' +
+          esc(row.formal) +
+          '</span><code class="fm-id" role="cell">' +
+          esc(row.lemma) +
+          "</code></div>"
+        );
+      })
+      .join("");
+    var snippets = (map.snippets || [])
+      .map(function (snippet) {
+        return (
+          '<figure class="fm-snippet"><figcaption class="fm-snippet-head">' +
+          '<span class="fm-snippet-title">' +
+          esc(snippet.title) +
+          '</span><span class="fm-snippet-tag">Lean 片段</span></figcaption>' +
+          '<pre class="fm-code"><code>' +
+          esc(snippet.code) +
+          '</code></pre><p class="fm-snippet-caption">' +
+          esc(snippet.caption) +
+          "</p></figure>"
+        );
+      })
+      .join("");
+
+    return (
+      '<details class="formal-map" data-formal-map="' +
+      esc(step.id) +
+      '"' +
+      (state.formalOpen[step.id] ? " open" : "") +
+      '><summary class="formal-map-summary" title="' +
+      esc(map.summary) +
+      '">' +
+      '<span class="fm-badge">直觉 ↔ 形式</span>' +
+      '<span class="fm-summary-text">' +
+      esc(map.summary) +
+      '</span><span class="fm-plus" aria-hidden="true">+</span>' +
+      '</summary><div class="formal-map-body">' +
+      (map.note ? '<p class="fm-note">' + esc(map.note) + "</p>" : "") +
+      '<div class="formal-map-table" role="table" aria-label="直觉与形式实现对照">' +
+      '<div class="fm-row fm-head" role="row">' +
+      '<span role="columnheader">' +
+      esc(columns[0]) +
+      '</span><span role="columnheader" aria-hidden="true"></span>' +
+      '<span role="columnheader">' +
+      esc(columns[1]) +
+      '</span><span role="columnheader">' +
+      esc(columns[2]) +
+      "</span></div>" +
+      rows +
+      "</div>" +
+      (snippets ? '<div class="fm-snippets">' + snippets + "</div>" : "") +
+      "</div></details>"
+    );
+  }
+
+  function proofDetailsHTML() {
+    var proof = data.formal_proof;
+    var theorems = proof.theorems
+      .map(function (theorem) {
+        return (
+          '<li class="theorem"><div class="theorem-head"><code>' +
+          esc(theorem.name) +
+          '</code><span class="theorem-kind">' +
+          esc(theorem.kind) +
+          '</span></div><p>' +
+          esc(theorem.plain) +
+          "</p></li>"
+        );
+      })
+      .join("");
+    return (
+      '<details class="proof"><summary><span class="proof-plus" aria-hidden="true">+</span><span><strong>看形式证明</strong><small>可选 · 「直觉 ↔ 形式」块的证据附录</small></span></summary>' +
+      '<div class="proof-body"><p class="proof-summary">' +
+      esc(proof.summary) +
+      '</p><p class="proof-lead">' +
+      esc(proof.theorem_lead) +
+      '</p><ol class="theorem-list">' +
+      theorems +
+      '</ol><p class="proof-evidence">' +
+      esc(proof.evidence) +
+      '</p><p class="proof-note">' +
+      esc(proof.note) +
+      "</p></div></details>"
+    );
+  }
+
   function renderChoices(step) {
     var choices = step.choices
       .map(function (choice, index) {
@@ -681,9 +785,13 @@
           "</span></p>"
       );
     }
+    parts.push(renderFormalMap(step));
     if (step.type === "choice") {
       parts.push(renderChoices(step));
       parts.push(renderFeedback(step));
+    }
+    if (step.id === "conclusion") {
+      parts.push(proofDetailsHTML());
     }
     parts.push(renderActions(step));
     parts.push("</article>");
@@ -752,22 +860,8 @@
 
   function renderCompletion() {
     var completion = data.completion;
-    var proof = data.formal_proof;
     var firstTryRate =
       GRADED > 0 ? Math.round((state.firstTryCount / GRADED) * 100) : 0;
-    var theorems = proof.theorems
-      .map(function (theorem) {
-        return (
-          '<li class="theorem"><div class="theorem-head"><code>' +
-          esc(theorem.name) +
-          '</code><span class="theorem-kind">' +
-          esc(theorem.kind) +
-          '</span></div><p>' +
-          esc(theorem.plain) +
-          "</p></li>"
-        );
-      })
-      .join("");
 
     var stats = [
       ["本轮 XP", state.xp, "/ " + MAX_XP + " XP"],
@@ -806,18 +900,7 @@
       '<div class="completion-actions"><button class="btn btn-primary" type="button" data-action="replay" id="primaryAction">' +
       esc(completion.replay) +
       ' <span aria-hidden="true">↻</span></button></div>' +
-      '<details class="proof"><summary><span class="proof-plus" aria-hidden="true">+</span><span><strong>看形式证明</strong><small>可选 · 后台证据，不是主界面</small></span></summary>' +
-      '<div class="proof-body"><p class="proof-summary">' +
-      esc(proof.summary) +
-      '</p><p class="proof-lead">' +
-      esc(proof.theorem_lead) +
-      '</p><ol class="theorem-list">' +
-      theorems +
-      '</ol><p class="proof-evidence">' +
-      esc(proof.evidence) +
-      '</p><p class="proof-note">' +
-      esc(proof.note) +
-      "</p></div></details>" +
+      proofDetailsHTML() +
       '<p class="completion-next">' +
       esc(completion.next) +
       "</p></article>";
@@ -1235,6 +1318,7 @@
     state.lastStreak = 0;
     state.completed = false;
     state.awarded = {};
+    state.formalOpen = {};
     resetStepState();
     var confetti = document.getElementById("confetti");
     if (confetti) {
@@ -1244,6 +1328,17 @@
     focusStep();
     scrollToTop();
     announce("重新开始。");
+  }
+
+  function onToggle(event) {
+    var node = event.target;
+    if (!node || !node.matches || !node.matches("details.formal-map")) {
+      return;
+    }
+    var stepId = node.getAttribute("data-formal-map");
+    if (stepId) {
+      state.formalOpen[stepId] = node.open;
+    }
   }
 
   function onClick(event) {
@@ -1387,5 +1482,6 @@
 
   document.addEventListener("click", onClick);
   document.addEventListener("keydown", onKeyDown);
+  document.addEventListener("toggle", onToggle, true);
   init();
 })();

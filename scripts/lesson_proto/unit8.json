@@ -1,7 +1,7 @@
 {
-  "schema": "soko.lesson/1",
+  "schema": "soko.lesson/2",
   "id": "analysis-unit8",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "title": "整数加法有逆元",
   "title_en": "Additive inverses in the integers",
   "course_title": "从集合论到实分析",
@@ -99,6 +99,35 @@
           }
         ]
       },
+      "formal_map": {
+        "summary": "x + (-x) = 0 ↔ int_add_neg",
+        "columns": ["直觉", "形式实现", "标识符"],
+        "note": "mk p 是 @Quot.mk.{1} (Prod Nat Nat) intRel p 的缩写；零元与负元都在代表元层陈述：先证 (a,b) 这一层的等式，再用 Quot.sound 搬到整数层。",
+        "rows": [
+          {
+            "concept": "x + (-x) = 0",
+            "formal": "int_add_neg : mk (addRep (a,b) (negRep (a,b))) = mk (0,0)",
+            "lemma": "int_add_neg"
+          },
+          {
+            "concept": "把代表元等式搬到整数层",
+            "formal": "Quot.sound : intRel p q → mk p = mk q",
+            "lemma": "Quot.sound"
+          },
+          {
+            "concept": "−x 写在二元组上",
+            "formal": "negRep (a,b) := (b,a)",
+            "lemma": "negRep"
+          }
+        ],
+        "snippets": [
+          {
+            "title": "int_add_neg · 单元⑧ 的结论",
+            "code": "theorem int_add_neg (a b : Nat) :\n    @Quot.mk.{1} (Prod Nat Nat) intRel\n        (addRep (@prod_mk Nat Nat a b)\n                (negRep (@prod_mk Nat Nat a b))) =\n      @Quot.mk.{1} (Prod Nat Nat) intRel\n        (@prod_mk Nat Nat Nat.zero Nat.zero)",
+            "caption": "陈述里出现的 0 是 (0,0)，−x 是 negRep (a,b)：两者都先写在代表元层，最后用 Quot.sound 过桥。"
+          }
+        ]
+      },
       "help": ["opposite", "integer"],
       "primary": "明白了，开始",
       "xp": 5,
@@ -135,6 +164,45 @@
             "meaning": "0 个蓝 · 3 个红",
             "math": "0 − 3 = −3",
             "result": "−3"
+          }
+        ]
+      },
+      "formal_map": {
+        "summary": "(a,b) ↔ Prod Nat Nat",
+        "columns": ["直觉", "形式实现", "标识符"],
+        "note": "蓝 = fst（第一个分量），红 = snd（第二个分量）；整数不是二元组本身，而是二元组的等价类 Quot intRel。",
+        "rows": [
+          {
+            "concept": "两个计数器组成 (a,b)",
+            "formal": "Prod Nat Nat，构造子是 @prod_mk Nat Nat a b",
+            "lemma": "@prod_mk Nat Nat a b"
+          },
+          {
+            "concept": "蓝筹 = 正向",
+            "formal": "Prod.fst Nat Nat p（第一个分量）",
+            "lemma": "Prod.fst"
+          },
+          {
+            "concept": "红筹 = 负向",
+            "formal": "Prod.snd Nat Nat p（第二个分量）",
+            "lemma": "Prod.snd"
+          },
+          {
+            "concept": "a − b（蓝减红）",
+            "formal": "intRel p q := fst p + snd q = fst q + snd p",
+            "lemma": "intRel"
+          },
+          {
+            "concept": "整数",
+            "formal": "Quot intRel：二元组按 intRel 分成的等价类",
+            "lemma": "Quot intRel"
+          }
+        ],
+        "snippets": [
+          {
+            "title": "intRel 与 Int 的实际定义",
+            "code": "def intRel (a b : Prod Nat Nat) : Prop :=\n  Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =\n  Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)\n\ndef Int : Type := @Quot.{1} (Prod Nat Nat) intRel",
+            "caption": "(a,b) 就是 @prod_mk Nat Nat a b；fst 数蓝、snd 数红；Int 是 intRel 的商类型。"
           }
         ]
       },
@@ -181,6 +249,35 @@
             "note": "再抵消 1 对",
             "math": "5 − 2 = 3",
             "result": "3"
+          }
+        ]
+      },
+      "formal_map": {
+        "summary": "(3,0) ~ (4,1) ↔ intRel",
+        "columns": ["直觉", "形式实现", "标识符"],
+        "note": "「代表同一个整数」在形式里写成 intRel；商类型 Quot intRel 把等价的二元组收成同一个点。",
+        "rows": [
+          {
+            "concept": "(3,0) 与 (4,1) 代表同一个整数（intRel 交叉和）",
+            "formal": "intRel (3,0) (4,1)，展开为 3 + 1 = 4 + 0",
+            "lemma": "intRel"
+          },
+          {
+            "concept": "并不是同一个二元组",
+            "formal": "Quot intRel 里的同一个等价类，允许不同代表元",
+            "lemma": "Quot intRel"
+          },
+          {
+            "concept": "换代表元，运算结果不变",
+            "formal": "良定义：运算必须尊重 intRel",
+            "lemma": "intRel"
+          }
+        ],
+        "snippets": [
+          {
+            "title": "同一个等价类，不同代表元",
+            "code": "-- 等价，不是相等：\nintRel (@prod_mk Nat Nat 3 0)\n       (@prod_mk Nat Nat 4 1)\n-- 交叉和：3 + 1 = 4 + 0\n-- 商类型里它们是同一个点：Quot intRel",
+            "caption": "所以后面证明加法、取负时，都要先说明「换一个代表元，结果不变」。"
           }
         ]
       },
@@ -246,6 +343,35 @@
         "caption": "交换两个计数器 = 取负",
         "after_caption": "(0,3)：0 个蓝、3 个红，代表 0 − 3 = −3"
       },
+      "formal_map": {
+        "summary": "(3,0) → (0,3) ↔ negRep",
+        "columns": ["直觉", "形式实现", "标识符"],
+        "note": "取负只在代表元上交换分量；negRep_wd 说明换代表元后仍然落在同一个整数上。",
+        "rows": [
+          {
+            "concept": "(3,0) 取负变成 (0,3)",
+            "formal": "negRep (@prod_mk Nat Nat 3 0) = (0,3)",
+            "lemma": "negRep"
+          },
+          {
+            "concept": "取负 = 交换蓝红计数器",
+            "formal": "negRep (p) := @prod_mk Nat Nat (snd p) (fst p)",
+            "lemma": "negRep"
+          },
+          {
+            "concept": "换代表元，取负结果仍一致（良定义）",
+            "formal": "intRel p q → intRel (negRep p) (negRep q)",
+            "lemma": "negRep_wd"
+          }
+        ],
+        "snippets": [
+          {
+            "title": "negRep 与它的良定义性",
+            "code": "def negRep (p : Prod Nat Nat) : Prod Nat Nat :=\n  @prod_mk Nat Nat\n    (Prod.snd Nat Nat p)\n    (Prod.fst Nat Nat p)\n\ntheorem negRep_wd (a b a' b' : Nat)\n    (h : intRel (a,b) (a',b')) :\n    intRel (negRep (a,b)) (negRep (a',b'))",
+            "caption": "negRep 交换两个分量；negRep_wd 是把它搬到整数层之前必须交出的良定义证明。"
+          }
+        ]
+      },
       "help": ["pair", "opposite"],
       "choices": [
         {
@@ -308,6 +434,45 @@
         "sum": [3, 3],
         "caption": "同色相加：蓝 3+0，红 0+3",
         "result_caption": "3 对蓝红全部抵消 ⇒ (3,3) 代表 3 − 3 = 0"
+      },
+      "formal_map": {
+        "summary": "(a,b)+(c,d) ↔ addRep",
+        "columns": ["直觉", "形式实现", "标识符"],
+        "note": "Quot.sound 只有一句：代表元等价，商里的两个点就相等。本课的最后一跳全靠它；片段里的 (a,b) 是 @prod_mk Nat Nat a b 的缩写，mk p 是 @Quot.mk.{1} (Prod Nat Nat) intRel p 的缩写。",
+        "rows": [
+          {
+            "concept": "(a,b) + (c,d) = (a+c, b+d)（同色相加）",
+            "formal": "addRep a b := (fst a + fst b, snd a + snd b)",
+            "lemma": "addRep"
+          },
+          {
+            "concept": "(3,0) + (0,3) = (3,3)，3 对抵消",
+            "formal": "intRel (addRep (3,0) (0,3)) (0,0)",
+            "lemma": "add_neg_rep"
+          },
+          {
+            "concept": "所以整数上 x + (-x) = 0",
+            "formal": "int_add_neg a b : mk (addRep p (negRep p)) = mk (0,0)",
+            "lemma": "int_add_neg"
+          },
+          {
+            "concept": "「代表元等价 ⇒ 整数相等」这一步",
+            "formal": "Quot.sound : intRel p q → mk p = mk q",
+            "lemma": "Quot.sound"
+          }
+        ],
+        "snippets": [
+          {
+            "title": "addRep：同色分量相加",
+            "code": "def addRep (a b : Prod Nat Nat) : Prod Nat Nat :=\n  @prod_mk Nat Nat\n    (Nat.add (Prod.fst Nat Nat a)\n             (Prod.fst Nat Nat b))\n    (Nat.add (Prod.snd Nat Nat a)\n             (Prod.snd Nat Nat b))",
+            "caption": "蓝加蓝、红加红：这就是「同色计数器合起来」的形式版本。"
+          },
+          {
+            "title": "add_neg_rep → int_add_neg",
+            "code": "theorem add_neg_rep (a b : Nat) :\n    intRel (addRep (a,b) (negRep (a,b)))\n           (@prod_mk Nat Nat Nat.zero Nat.zero)\n\n-- 过桥：代表元等价 ⇒ 商里相等\ntheorem int_add_neg (a b : Nat) :\n    mk (addRep (a,b) (negRep (a,b))) = mk (0,0) :=\n  Quot.sound (add_neg_rep a b)",
+            "caption": "add_neg_rep 在代表元层证完；int_add_neg 用 Quot.sound 把它抬到整数层。"
+          }
+        ]
       },
       "help": ["pair", "cancel", "zero"],
       "choices": [
@@ -374,6 +539,55 @@
           "result": "0"
         }
       },
+      "formal_map": {
+        "summary": "概念 ↔ 形式对象 ↔ 引理",
+        "columns": ["概念", "形式对象", "引理"],
+        "note": "整数层的每个结论，都能追到代表元层的一条事实，再用 Quot.sound 过桥。下面折叠的是正式证据清单。",
+        "rows": [
+          {
+            "concept": "整数",
+            "formal": "Int := Quot intRel",
+            "lemma": "Quot intRel"
+          },
+          {
+            "concept": "整数相等",
+            "formal": "Quot.sound : intRel p q → mk p = mk q",
+            "lemma": "Quot.sound"
+          },
+          {
+            "concept": "零元 0",
+            "formal": "@prod_mk Nat Nat 0 0",
+            "lemma": "int_add_zero"
+          },
+          {
+            "concept": "取负 −x",
+            "formal": "negRep p := (snd p, fst p)",
+            "lemma": "negRep_wd"
+          },
+          {
+            "concept": "加法",
+            "formal": "addRep：同色分量相加",
+            "lemma": "addRep"
+          },
+          {
+            "concept": "代表元层逆元事实",
+            "formal": "intRel (addRep p (negRep p)) (0,0)",
+            "lemma": "add_neg_rep"
+          },
+          {
+            "concept": "整数层逆元",
+            "formal": "int_add_neg : x + (-x) = 0",
+            "lemma": "int_add_neg"
+          }
+        ],
+        "snippets": [
+          {
+            "title": "整课的证据链只有两步",
+            "code": "-- 1. 代表元层事实\nadd_neg_rep (a b) :\n  intRel (addRep (a,b) (negRep (a,b)))\n         (0,0)\n\n-- 2. 用 Quot.sound 过桥\nint_add_neg (a b) :\n  mk (addRep (a,b) (negRep (a,b))) = mk (0,0)",
+            "caption": "一条代表元事实 + 一次 Quot.sound = 整数层的 x + (-x) = 0。"
+          }
+        ]
+      },
       "help": ["inverse", "zero"],
       "choices": [
         {
@@ -434,7 +648,7 @@
     "next": "下一课：整数减法（即将上线）"
   },
   "formal_proof": {
-    "summary": "这一课前台只做选择。下面这些名字是后台裁判用来确认结论的；你不需要会写它们。",
+    "summary": "每一步的「直觉 ↔ 形式」块已经把概念对上具体名字；下面这些声明是后台裁判用来确认结论的证据清单，你仍然不需要会写它们。",
     "theorem_lead": "单元⑧ 里与逆元有关的声明",
     "theorems": [
       {
@@ -474,6 +688,6 @@
       }
     ],
     "evidence": "徽章证据：int_add_neg",
-    "note": "形式证明默认折叠，是本课的证据层，不是主界面。"
+    "note": "形式证明仍然折叠，是「直觉 ↔ 形式」块的证据附录，不是主界面。"
   }
 }

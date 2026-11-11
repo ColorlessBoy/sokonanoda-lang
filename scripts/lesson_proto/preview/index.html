@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#fbf7ef">
-  <meta name="description" content="Duolingo 式数学小课原型：6 步互动，先用蓝红计数器讲清整数为什么写成二元组，再走到整数加法逆元。 单文件、离线可开，形式证明默认折叠。">
+  <meta name="description" content="Duolingo 式数学小课原型：6 步互动，每一步都有「直觉 ↔ 形式」对照，把蓝红计数器映射到 intRel / Quot intRel / addRep / negRep / Quot.sound。 单文件、离线可开，形式证明仍折叠为证据附录。">
   <meta name="robots" content="noindex">
   <title>整数加法有逆元 · 单元⑧ | 数学小课</title>
   <style>
@@ -1444,6 +1444,254 @@ a:focus-visible {
 }
 
 /* ------------------------------------------------------------------ */
+/* 直觉 ↔ 形式 mapping block (v3)                                      */
+/* Mobile: collapsed one-liner summary, rows stack. Desktop: 4-column  */
+/* matrix (concept · ↔ · formal · identifier). No free-form input.      */
+/* ------------------------------------------------------------------ */
+
+.formal-map {
+  min-width: 0;
+  margin: 13px 0 2px;
+  overflow: hidden;
+  border: 1px solid #cfdfef;
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(180deg, rgba(240, 248, 255, 0.95), rgba(251, 253, 255, 0.92));
+  box-shadow: 0 2px 0 rgba(28, 176, 246, 0.06);
+}
+
+.formal-map > summary {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 9px 11px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.formal-map > summary::-webkit-details-marker {
+  display: none;
+}
+
+.formal-map > summary:hover {
+  background: rgba(216, 242, 255, 0.42);
+}
+
+.fm-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 7px;
+  border: 1px solid #b9e1f7;
+  border-radius: 999px;
+  color: #0b6f9c;
+  background: #e3f5ff;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.fm-summary-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: #31536f;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fm-plus {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #cbe3f4;
+  border-radius: 8px;
+  color: #1175a3;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+.formal-map[open] .fm-plus {
+  transform: rotate(45deg);
+}
+
+.formal-map[open] {
+  border-color: #b7d9f0;
+}
+
+.formal-map-body {
+  min-width: 0;
+  padding: 0 10px 11px;
+  border-top: 1px solid #e2edf7;
+}
+
+.fm-note {
+  margin: 9px 0 0;
+  color: #4a6379;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.6;
+}
+
+.formal-map-table {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  margin-top: 9px;
+}
+
+.fm-row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  grid-template-areas:
+    "concept concept"
+    "arrow formal"
+    "id id";
+  gap: 3px 6px;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid #e3edf7;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.fm-concept {
+  grid-area: concept;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
+.fm-arrow {
+  grid-area: arrow;
+  color: var(--blue-dark);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.55;
+}
+
+.fm-formal {
+  grid-area: formal;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #24597c;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.fm-id {
+  grid-area: id;
+  justify-self: start;
+  max-width: 100%;
+  padding: 1px 6px;
+  overflow-wrap: anywhere;
+  border: 1px solid #d9d0f5;
+  border-radius: 6px;
+  color: #5c3fae;
+  background: #f5f1ff;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.fm-head {
+  display: none;
+}
+
+.fm-snippets {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  margin-top: 9px;
+}
+
+.fm-snippet {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #d6e6f4;
+  border-radius: 11px;
+  background: #fbfdff;
+}
+
+.fm-snippet-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 9px;
+  border-bottom: 1px solid #e6f0f9;
+  background: #f2f9ff;
+}
+
+.fm-snippet-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #1d587c;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.fm-snippet-tag {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border: 1px solid #cfe6f6;
+  border-radius: 999px;
+  color: #5b7f95;
+  background: #fff;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.fm-code {
+  max-width: 100%;
+  padding: 8px 9px;
+  margin: 0;
+  overflow-x: hidden;
+  overflow-wrap: anywhere;
+  color: #233b50;
+  background: #f9fcff;
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.55;
+  tab-size: 2;
+  white-space: pre-wrap;
+}
+
+.fm-code code {
+  font: inherit;
+}
+
+.fm-snippet-caption {
+  padding: 7px 9px 8px;
+  margin: 0;
+  border-top: 1px dashed #e3edf7;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+/* ------------------------------------------------------------------ */
 /* Choices + feedback                                                  */
 /* ------------------------------------------------------------------ */
 
@@ -2448,6 +2696,29 @@ a:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .fm-row,
+  .fm-head {
+    grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1.2fr) minmax(86px, auto);
+    grid-template-areas: "concept arrow formal id";
+    gap: 7px;
+    align-items: center;
+  }
+
+  .fm-head {
+    display: grid;
+    padding: 4px 9px 0;
+    border: 0;
+    background: transparent;
+    color: var(--faint);
+    font-size: 8.5px;
+    font-weight: 900;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .fm-summary-text {
+    font-size: 11.5px;
+  }
 
   .step-card,
   .completion-card {
@@ -2499,6 +2770,14 @@ a:focus-visible {
 
   .body-copy {
     font-size: 15.5px;
+  }
+
+  .fm-code {
+    font-size: 10.5px;
+  }
+
+  .fm-formal {
+    font-size: 11px;
   }
 
   .choice-key {
@@ -2718,7 +2997,7 @@ a:focus-visible {
 
   </style>
 </head>
-<body data-lesson-id="analysis-unit8">
+<body data-lesson-id="analysis-unit8" data-lesson-version="0.3.0">
   <a class="skip-link" href="#main">跳到题目</a>
   <div class="app" id="app">
     <div class="confetti" id="confetti" aria-hidden="true"></div>
@@ -2768,9 +3047,9 @@ a:focus-visible {
     </div>
 
     <footer class="page-foot">
-      <span>形式证明是后台裁判</span>
+      <span>每一步都有「直觉 ↔ 形式」对照</span>
       <span class="foot-dot" aria-hidden="true">·</span>
-      <span>你只需要点选</span>
+      <span>点选即可，不用写代码</span>
     </footer>
 
     <div class="sr-only" id="announcer" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -2778,7 +3057,7 @@ a:focus-visible {
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </div>
 
-  <script id="lesson-data" type="application/json">{"schema":"soko.lesson/1","id":"analysis-unit8","version":"0.2.0","title":"整数加法有逆元","title_en":"Additive inverses in the integers","course_title":"从集合论到实分析","course_title_en":"From Set Theory to Real Analysis","unit":8,"unit_title":"单元⑧ 整数加法的零元与负元","unit_title_en":"Unit 8 — Additive Identity and Inverse","source":{"unit_file":"courses/analysis/units/II.1/unit08-int-add-group.sokonanoda","solution_file":"courses/analysis/units/solutions/II.1/unit08-solution.sokonanoda"},"estimated_minutes":5,"xp_total":95,"badge":{"icon":"✓","title":"整数加法有逆元","subtitle":"Unit ⑧ · 每个整数都能找到相反数","message":"你从「只有自然数」出发，用蓝红计数器写出 −3，并看见 (3,0) 与 (0,3) 相加回到 0。"},"symbols":{"pair":{"term":"二元组 (a,b)","reading":"pair","plain":"把整数写成一对自然数 (a,b)：a 个蓝筹记正向，b 个红筹记负向，意思是 a − b。比如 (3,0) 是 3 个蓝、0 个红，代表 3。","example":"(3,0) 代表 3；(0,3) 代表 −3。","seconds":20,"help":"一蓝一红互相抵消，所以同一个整数有很多种写法。"},"cancel":{"term":"抵消","reading":"dǐ xiāo","plain":"1 个蓝筹（+1）和 1 个红筹（−1）放在一起，正好等于 0，这就是抵消。抵消一对，代表的整数不变。","example":"(3,0) 加 1 蓝 1 红 ⇒ (4,1)，仍然代表 3。","seconds":20,"help":"抵消是「同一个整数的不同写法」的来源。"},"opposite":{"term":"相反数","reading":"xiāng fǎn shù","plain":"两个数相加等于 0，它们就互为相反数。3 的相反数是 −3，−3 的相反数是 3。","example":"3 + (−3) = 0","seconds":20,"help":"在数轴上，相反数就是关于 0 对称的那两个点。"},"integer":{"term":"整数","reading":"zhěng shù","plain":"整数是 …、−2、−1、0、1、2、… 这些没有小数部分的数。这门课不假设负数天生存在，而是用两个自然数配对把它们造出来。","example":"(3,0) 造出 3；(0,3) 造出 −3。","seconds":20,"help":"正数、负数和 0 都属于整数。"},"inverse":{"term":"加法逆元","reading":"nì yuán","plain":"在一个加法系统里，能让 x 回到 0 的那个数，就叫 x 的加法逆元。整数的逆元就是相反数。","example":"x + (−x) = 0","seconds":20,"help":"「逆」表示往回走：走 3 步，再往回走 3 步，就回到原点。"},"zero":{"term":"0 / 零元","reading":"líng yuán","plain":"加上它，数不会改变：x + 0 = x。所以 0 是加法的零元。在配对写法里，(a,a) 代表 a − a = 0。","example":"(3,3) 代表 3 − 3 = 0","seconds":20,"help":"零元像「空操作」，不改变原来的数。"}},"steps":[{"id":"goal","type":"goal","short":"目标","kicker":"本课目标 · 约 5 分钟","title":"整数里每个数都有相反数","formula":"x + (-x) = 0","body":"不管 x 是 3、是 −7，还是 0，总能找到另一个整数，和它相加正好回到 0。这一课，我们从 3 出发把它找出来。","visual":{"type":"numberline","caption":"上下对称的两个温度：+3° 与 −3°","default_note":"点一下两个温度，看看它们离 0 有多远。","markers":[{"value":-3,"label":"−3°","tone":"cold","note":"−3 在 0 左边 3 格。往右走 3 格，就回到 0。"},{"value":3,"label":"+3°","tone":"warm","note":"+3 在 0 右边 3 格。往左走 3 格，就回到 0。"}]},"help":["opposite","integer"],"primary":"明白了，开始","xp":5,"first_try_bonus":0},{"id":"why-pairs","type":"insight","short":"为什么成对","kicker":"第 2 步 · 先解决一个麻烦","title":"只有自然数，怎么写出 −3？","formula":"(a,b) 读作 a − b","body":"到现在为止，我们手上只有 0、1、2、3……这些自然数。它们里面没有负数，所以「−3」没办法直接写出来。","body2":"办法是换一种写法：拿两个计数器。蓝筹记「正向」，红筹记「负向」，1 个蓝筹算 +1、1 个红筹算 −1，一蓝一红放在一起正好抵消。把它们写成 (a,b)，意思是 a − b。","callout":"所以整数不是凭空多出来的数，而是两个自然数的一种配对写法。看懂配色，就看懂了这一课的全部机关。","visual":{"type":"pairs_intro","caption":"两个计数器一正一负：蓝筹 3 个 ⇒ 3；红筹 3 个 ⇒ −3。","legend":{"blue":"蓝 = 正向","red":"红 = 负向"},"cards":[{"pair":[3,0],"tag":"蓝多 3 个","meaning":"3 个蓝 · 0 个红","math":"3 − 0 = 3","result":"3"},{"pair":[0,3],"tag":"红多 3 个","meaning":"0 个蓝 · 3 个红","math":"0 − 3 = −3","result":"−3"}]},"help":["pair","integer"],"primary":"原来 −3 能写出来，继续","xp":10,"first_try_bonus":0},{"id":"pair-family","type":"choice","short":"同一个整数","kicker":"第 3 步 · 同一个整数的不同写法","title":"哪个二元组也代表 3？","prompt":"看 (3,0)：3 个蓝。再放 1 个蓝和 1 个红，它们一正一负，正好抵消，于是 (4,1) 还是 3；再抵消一对，(5,2) 也还是 3。下面哪个二元组也代表 3？","formula":"(3,0) = (4,1) = (5,2) = 3","visual":{"type":"pair_family","caption":"蓝比红多 3 个，就代表 3。抵消一对，代表的数不变。","result_caption":"同一个整数有无数种配对写法。所以形式证明里要先说明：换一个代表元，运算结果不变——这叫良定义。","legend":{"blue":"蓝 = 正向","red":"红 = 负向","cancel":"✕ = 一对抵消"},"rows":[{"pair":[3,0],"added":0,"note":"起点","math":"3 − 0 = 3","result":"3"},{"pair":[4,1],"added":1,"note":"＋1 蓝 ＋1 红","math":"4 − 1 = 3","result":"3"},{"pair":[5,2],"added":2,"note":"再抵消 1 对","math":"5 − 2 = 3","result":"3"}]},"help":["pair","cancel"],"choices":[{"id":"pair-six-three","label":"(6,3)","aria":"六三二元组"},{"id":"pair-four-two","label":"(4,2)","aria":"四二二元组"},{"id":"pair-two-five","label":"(2,5)","aria":"二五二元组"}],"answer":"pair-six-three","feedback":{"correct":{"title":"对，(6,3)。","body":"6 − 3 = 3：蓝比红多 3 个，抵消 3 对后还剩 3 个蓝。同一个整数可以有无穷多种配对写法，所以形式证明里必须说明：换一个代表元，加法和取负的结果都不变——这一步叫「良定义」。"},"wrong":{"pair-four-two":"(4,2) 是 4 − 2 = 2：蓝只比红多 2 个，代表 2，不是 3。","pair-two-five":"(2,5) 是 2 − 5 = −3：红比蓝多 3 个，方向反了。"}},"hints":[{"title":"只看差额","body":"不要被总数骗了。数「蓝比红多几个」：多 3 个就代表 3，多 2 个就代表 2。"},{"title":"逐项算 a − b","body":"(6,3) 是 6 − 3；(4,2) 是 4 − 2；(2,5) 是 2 − 5。哪个等于 3？"},{"title":"先排除一个","body":"(2,5) 红比蓝多，代表负数，先排除；(4,2) 只多 2 个，也不是 3。"}],"continue_label":"继续","xp":15,"first_try_bonus":5},{"id":"pair-swap","type":"choice","short":"取负","kicker":"第 4 步 · 取负 = 交换计数器","title":"把 (3,0) 取负，二元组会变成什么？","prompt":"取负就是让方向反过来：把两个计数器交换。原来 3 个蓝 (3,0)，交换后变成 3 个红。","formula":"(3,0) → ?","visual":{"type":"pair_swap","before":[3,0],"after":[0,3],"caption":"交换两个计数器 = 取负","after_caption":"(0,3)：0 个蓝、3 个红，代表 0 − 3 = −3"},"help":["pair","opposite"],"choices":[{"id":"pair-zero-three","label":"(0,3)","aria":"零三二元组"},{"id":"pair-three-zero","label":"(3,0)","aria":"三零二元组"},{"id":"pair-neg-three-zero","label":"(−3,0)","aria":"负三零二元组"}],"answer":"pair-zero-three","feedback":{"correct":{"title":"对，(0,3)。","body":"交换后是 0 个蓝、3 个红，代表 0 − 3 = −3。它正好是 3 的相反数。"},"wrong":{"pair-three-zero":"(3,0) 没有变，仍然代表 3。取负要交换两个计数器，让 a − b 变成 b − a。","pair-neg-three-zero":"二元组的分量是自然数，不能写 (−3,0)。这里的「取负」就是交换两个计数器。"}},"hints":[{"title":"看公式","body":"(a,b) 代表 a − b。取负后，原来的 a − b 应该变成 b − a。"},{"title":"交换两个位置","body":"把 3 和 0 对调：前面放 0，后面放 3。"},{"title":"认出它","body":"(0,3) 代表 0 − 3 = −3，正是 3 的相反数。"}],"continue_label":"继续","xp":10,"first_try_bonus":5},{"id":"pair-sum","type":"choice","short":"相加","kicker":"第 5 步 · 同色计数器合起来","title":"两个二元组相加，结果代表哪个整数？","prompt":"相加就是「同色计数器合在一起」：(3,0) 有 3 蓝 0 红，(0,3) 有 0 蓝 3 红；合起来是 3 蓝 3 红，也就是 (3,3)。蓝和红两两抵消后，还剩多少？","formula":"(3,0) + (0,3) = (3,3)","visual":{"type":"pair_sum","left":[3,0],"right":[0,3],"sum":[3,3],"caption":"同色相加：蓝 3+0，红 0+3","result_caption":"3 对蓝红全部抵消 ⇒ (3,3) 代表 3 − 3 = 0"},"help":["pair","cancel","zero"],"choices":[{"id":"zero","label":"0","aria":"零"},{"id":"three","label":"3","aria":"三"},{"id":"six","label":"6","aria":"六"}],"answer":"zero","feedback":{"correct":{"title":"对，0。","body":"3 个蓝和 3 个红正好配成 3 对，全部抵消，所以 (3,3) 代表 3 − 3 = 0。这就是 (3,0) 和它的相反数相加的结果。"},"wrong":{"three":"(3,3) 是 3 个蓝、3 个红，不是 3 个蓝 0 个红。抵消后一个都不剩，代表 0。","six":"相加时只把同色计数器并在一起（蓝 3+0、红 0+3），不是把两个 3 相加。3 蓝 3 红抵消后是 0。"}},"hints":[{"title":"先看规则","body":"(a,b) 代表 a − b。两个分量相等时，a − b = 0。"},{"title":"数一数抵消","body":"1 个蓝配 1 个红抵消成 0。现在有 3 对蓝红，一共抵消掉多少？"},{"title":"排除法","body":"(3,3) 里有 3 个红，说明有负向的量；它不可能是 3 或 6。"}],"continue_label":"继续","xp":10,"first_try_bonus":5},{"id":"conclusion","type":"choice","short":"结论","kicker":"第 6 步 · 得出结论","title":"所以，哪一个结论成立？","prompt":"我们只用计数器配对，就看见 (3,0) 与 (0,3) 合起来是 0。下面哪句话被刚才的步骤支持？","formula":"(3,3) ≡ (0,0)","visual":{"type":"conclusion","equation":"3 + (-3) = 0","chip":"(3,0) + (0,3) = (3,3) ≡ 0","chips":{"blue":3,"red":3,"result":"0"}},"help":["inverse","zero"],"choices":[{"id":"inverse","label":"x + (-x) = 0","sub":"每个整数都有加法逆元。","aria":"每个整数都有加法逆元"},{"id":"identity","label":"x + (-x) = x","sub":"相反数还是自己。","aria":"相反数还是自己"},{"id":"one","label":"x + (-x) = 1","sub":"相加总是 1。","aria":"相加总是一"}],"answer":"inverse","feedback":{"correct":{"title":"正是这样。","body":"(3,3) 代表 0，因此 3 + (−3) = 0。3 只是样板：每个整数 x 都有相反数 −x，使 x + (-x) = 0。"},"wrong":{"identity":"如果 x + (-x) = x，那 −x 就等于 0；但 3 的相反数是 −3，不是 0。","one":"3 + (−3) 回到的是 0，不是 1。逆元的目标是零元。"}},"hints":[{"title":"回到刚才的计算","body":"我们在第 5 步得到 3 蓝 3 红全部抵消，也就是 (3,3) 代表 0。"},{"title":"把 3 换成 x","body":"如果每个整数 x 都能找到对应的 −x，那么 x + (-x) 应该等于什么？"},{"title":"抓住关键词","body":"「逆元」的意思是相加后回到零元 0；不是回到自己，也不是 1。"}],"continue_label":"领取徽章","xp":10,"first_try_bonus":5}],"completion":{"xp":15,"eyebrow":"本课完成","title":"整数加法有逆元","body":"你只用自然数就写出了 −3：蓝红计数器配对；又看见 (3,0) 与 (0,3) 相加，3 对蓝红全部抵消成 0。","replay":"再玩一次","next":"下一课：整数减法（即将上线）"},"formal_proof":{"summary":"这一课前台只做选择。下面这些名字是后台裁判用来确认结论的；你不需要会写它们。","theorem_lead":"单元⑧ 里与逆元有关的声明","theorems":[{"name":"zero_rep","kind":"代表元层","plain":"给 (a,b) 加上 (0,0)，两个代表元仍然等价。"},{"name":"int_add_zero","kind":"整数层","plain":"把这层代表元的等价交给形式化处理，得到整数上的 x + 0 = x。"},{"name":"negRep_wd","kind":"良定义","plain":"交换两个计数器得到 −x；换一个代表元，结果仍然一致。"},{"name":"add_neg_rep","kind":"代表元层","plain":"(a,b) 与 (b,a) 相加，等价于 (0,0)。"},{"name":"int_add_neg","kind":"整数层","plain":"于是整数上 x + (-x) = 0。这就是本课的徽章。"},{"name":"negRep_neg","kind":"对合","plain":"交换两次回到原处：(−x) 的相反数是 x。"},{"name":"int_neg_neg","kind":"整数层","plain":"在整数上也一样：−(−x) = x。"}],"evidence":"徽章证据：int_add_neg","note":"形式证明默认折叠，是本课的证据层，不是主界面。"}}</script>
+  <script id="lesson-data" type="application/json">{"schema":"soko.lesson/2","id":"analysis-unit8","version":"0.3.0","title":"整数加法有逆元","title_en":"Additive inverses in the integers","course_title":"从集合论到实分析","course_title_en":"From Set Theory to Real Analysis","unit":8,"unit_title":"单元⑧ 整数加法的零元与负元","unit_title_en":"Unit 8 — Additive Identity and Inverse","source":{"unit_file":"courses/analysis/units/II.1/unit08-int-add-group.sokonanoda","solution_file":"courses/analysis/units/solutions/II.1/unit08-solution.sokonanoda"},"estimated_minutes":5,"xp_total":95,"badge":{"icon":"✓","title":"整数加法有逆元","subtitle":"Unit ⑧ · 每个整数都能找到相反数","message":"你从「只有自然数」出发，用蓝红计数器写出 −3，并看见 (3,0) 与 (0,3) 相加回到 0。"},"symbols":{"pair":{"term":"二元组 (a,b)","reading":"pair","plain":"把整数写成一对自然数 (a,b)：a 个蓝筹记正向，b 个红筹记负向，意思是 a − b。比如 (3,0) 是 3 个蓝、0 个红，代表 3。","example":"(3,0) 代表 3；(0,3) 代表 −3。","seconds":20,"help":"一蓝一红互相抵消，所以同一个整数有很多种写法。"},"cancel":{"term":"抵消","reading":"dǐ xiāo","plain":"1 个蓝筹（+1）和 1 个红筹（−1）放在一起，正好等于 0，这就是抵消。抵消一对，代表的整数不变。","example":"(3,0) 加 1 蓝 1 红 ⇒ (4,1)，仍然代表 3。","seconds":20,"help":"抵消是「同一个整数的不同写法」的来源。"},"opposite":{"term":"相反数","reading":"xiāng fǎn shù","plain":"两个数相加等于 0，它们就互为相反数。3 的相反数是 −3，−3 的相反数是 3。","example":"3 + (−3) = 0","seconds":20,"help":"在数轴上，相反数就是关于 0 对称的那两个点。"},"integer":{"term":"整数","reading":"zhěng shù","plain":"整数是 …、−2、−1、0、1、2、… 这些没有小数部分的数。这门课不假设负数天生存在，而是用两个自然数配对把它们造出来。","example":"(3,0) 造出 3；(0,3) 造出 −3。","seconds":20,"help":"正数、负数和 0 都属于整数。"},"inverse":{"term":"加法逆元","reading":"nì yuán","plain":"在一个加法系统里，能让 x 回到 0 的那个数，就叫 x 的加法逆元。整数的逆元就是相反数。","example":"x + (−x) = 0","seconds":20,"help":"「逆」表示往回走：走 3 步，再往回走 3 步，就回到原点。"},"zero":{"term":"0 / 零元","reading":"líng yuán","plain":"加上它，数不会改变：x + 0 = x。所以 0 是加法的零元。在配对写法里，(a,a) 代表 a − a = 0。","example":"(3,3) 代表 3 − 3 = 0","seconds":20,"help":"零元像「空操作」，不改变原来的数。"}},"steps":[{"id":"goal","type":"goal","short":"目标","kicker":"本课目标 · 约 5 分钟","title":"整数里每个数都有相反数","formula":"x + (-x) = 0","body":"不管 x 是 3、是 −7，还是 0，总能找到另一个整数，和它相加正好回到 0。这一课，我们从 3 出发把它找出来。","visual":{"type":"numberline","caption":"上下对称的两个温度：+3° 与 −3°","default_note":"点一下两个温度，看看它们离 0 有多远。","markers":[{"value":-3,"label":"−3°","tone":"cold","note":"−3 在 0 左边 3 格。往右走 3 格，就回到 0。"},{"value":3,"label":"+3°","tone":"warm","note":"+3 在 0 右边 3 格。往左走 3 格，就回到 0。"}]},"formal_map":{"summary":"x + (-x) = 0 ↔ int_add_neg","columns":["直觉","形式实现","标识符"],"note":"mk p 是 @Quot.mk.{1} (Prod Nat Nat) intRel p 的缩写；零元与负元都在代表元层陈述：先证 (a,b) 这一层的等式，再用 Quot.sound 搬到整数层。","rows":[{"concept":"x + (-x) = 0","formal":"int_add_neg : mk (addRep (a,b) (negRep (a,b))) = mk (0,0)","lemma":"int_add_neg"},{"concept":"把代表元等式搬到整数层","formal":"Quot.sound : intRel p q → mk p = mk q","lemma":"Quot.sound"},{"concept":"−x 写在二元组上","formal":"negRep (a,b) := (b,a)","lemma":"negRep"}],"snippets":[{"title":"int_add_neg · 单元⑧ 的结论","code":"theorem int_add_neg (a b : Nat) :\n    @Quot.mk.{1} (Prod Nat Nat) intRel\n        (addRep (@prod_mk Nat Nat a b)\n                (negRep (@prod_mk Nat Nat a b))) =\n      @Quot.mk.{1} (Prod Nat Nat) intRel\n        (@prod_mk Nat Nat Nat.zero Nat.zero)","caption":"陈述里出现的 0 是 (0,0)，−x 是 negRep (a,b)：两者都先写在代表元层，最后用 Quot.sound 过桥。"}]},"help":["opposite","integer"],"primary":"明白了，开始","xp":5,"first_try_bonus":0},{"id":"why-pairs","type":"insight","short":"为什么成对","kicker":"第 2 步 · 先解决一个麻烦","title":"只有自然数，怎么写出 −3？","formula":"(a,b) 读作 a − b","body":"到现在为止，我们手上只有 0、1、2、3……这些自然数。它们里面没有负数，所以「−3」没办法直接写出来。","body2":"办法是换一种写法：拿两个计数器。蓝筹记「正向」，红筹记「负向」，1 个蓝筹算 +1、1 个红筹算 −1，一蓝一红放在一起正好抵消。把它们写成 (a,b)，意思是 a − b。","callout":"所以整数不是凭空多出来的数，而是两个自然数的一种配对写法。看懂配色，就看懂了这一课的全部机关。","visual":{"type":"pairs_intro","caption":"两个计数器一正一负：蓝筹 3 个 ⇒ 3；红筹 3 个 ⇒ −3。","legend":{"blue":"蓝 = 正向","red":"红 = 负向"},"cards":[{"pair":[3,0],"tag":"蓝多 3 个","meaning":"3 个蓝 · 0 个红","math":"3 − 0 = 3","result":"3"},{"pair":[0,3],"tag":"红多 3 个","meaning":"0 个蓝 · 3 个红","math":"0 − 3 = −3","result":"−3"}]},"formal_map":{"summary":"(a,b) ↔ Prod Nat Nat","columns":["直觉","形式实现","标识符"],"note":"蓝 = fst（第一个分量），红 = snd（第二个分量）；整数不是二元组本身，而是二元组的等价类 Quot intRel。","rows":[{"concept":"两个计数器组成 (a,b)","formal":"Prod Nat Nat，构造子是 @prod_mk Nat Nat a b","lemma":"@prod_mk Nat Nat a b"},{"concept":"蓝筹 = 正向","formal":"Prod.fst Nat Nat p（第一个分量）","lemma":"Prod.fst"},{"concept":"红筹 = 负向","formal":"Prod.snd Nat Nat p（第二个分量）","lemma":"Prod.snd"},{"concept":"a − b（蓝减红）","formal":"intRel p q := fst p + snd q = fst q + snd p","lemma":"intRel"},{"concept":"整数","formal":"Quot intRel：二元组按 intRel 分成的等价类","lemma":"Quot intRel"}],"snippets":[{"title":"intRel 与 Int 的实际定义","code":"def intRel (a b : Prod Nat Nat) : Prop :=\n  Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =\n  Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)\n\ndef Int : Type := @Quot.{1} (Prod Nat Nat) intRel","caption":"(a,b) 就是 @prod_mk Nat Nat a b；fst 数蓝、snd 数红；Int 是 intRel 的商类型。"}]},"help":["pair","integer"],"primary":"原来 −3 能写出来，继续","xp":10,"first_try_bonus":0},{"id":"pair-family","type":"choice","short":"同一个整数","kicker":"第 3 步 · 同一个整数的不同写法","title":"哪个二元组也代表 3？","prompt":"看 (3,0)：3 个蓝。再放 1 个蓝和 1 个红，它们一正一负，正好抵消，于是 (4,1) 还是 3；再抵消一对，(5,2) 也还是 3。下面哪个二元组也代表 3？","formula":"(3,0) = (4,1) = (5,2) = 3","visual":{"type":"pair_family","caption":"蓝比红多 3 个，就代表 3。抵消一对，代表的数不变。","result_caption":"同一个整数有无数种配对写法。所以形式证明里要先说明：换一个代表元，运算结果不变——这叫良定义。","legend":{"blue":"蓝 = 正向","red":"红 = 负向","cancel":"✕ = 一对抵消"},"rows":[{"pair":[3,0],"added":0,"note":"起点","math":"3 − 0 = 3","result":"3"},{"pair":[4,1],"added":1,"note":"＋1 蓝 ＋1 红","math":"4 − 1 = 3","result":"3"},{"pair":[5,2],"added":2,"note":"再抵消 1 对","math":"5 − 2 = 3","result":"3"}]},"formal_map":{"summary":"(3,0) ~ (4,1) ↔ intRel","columns":["直觉","形式实现","标识符"],"note":"「代表同一个整数」在形式里写成 intRel；商类型 Quot intRel 把等价的二元组收成同一个点。","rows":[{"concept":"(3,0) 与 (4,1) 代表同一个整数（intRel 交叉和）","formal":"intRel (3,0) (4,1)，展开为 3 + 1 = 4 + 0","lemma":"intRel"},{"concept":"并不是同一个二元组","formal":"Quot intRel 里的同一个等价类，允许不同代表元","lemma":"Quot intRel"},{"concept":"换代表元，运算结果不变","formal":"良定义：运算必须尊重 intRel","lemma":"intRel"}],"snippets":[{"title":"同一个等价类，不同代表元","code":"-- 等价，不是相等：\nintRel (@prod_mk Nat Nat 3 0)\n       (@prod_mk Nat Nat 4 1)\n-- 交叉和：3 + 1 = 4 + 0\n-- 商类型里它们是同一个点：Quot intRel","caption":"所以后面证明加法、取负时，都要先说明「换一个代表元，结果不变」。"}]},"help":["pair","cancel"],"choices":[{"id":"pair-six-three","label":"(6,3)","aria":"六三二元组"},{"id":"pair-four-two","label":"(4,2)","aria":"四二二元组"},{"id":"pair-two-five","label":"(2,5)","aria":"二五二元组"}],"answer":"pair-six-three","feedback":{"correct":{"title":"对，(6,3)。","body":"6 − 3 = 3：蓝比红多 3 个，抵消 3 对后还剩 3 个蓝。同一个整数可以有无穷多种配对写法，所以形式证明里必须说明：换一个代表元，加法和取负的结果都不变——这一步叫「良定义」。"},"wrong":{"pair-four-two":"(4,2) 是 4 − 2 = 2：蓝只比红多 2 个，代表 2，不是 3。","pair-two-five":"(2,5) 是 2 − 5 = −3：红比蓝多 3 个，方向反了。"}},"hints":[{"title":"只看差额","body":"不要被总数骗了。数「蓝比红多几个」：多 3 个就代表 3，多 2 个就代表 2。"},{"title":"逐项算 a − b","body":"(6,3) 是 6 − 3；(4,2) 是 4 − 2；(2,5) 是 2 − 5。哪个等于 3？"},{"title":"先排除一个","body":"(2,5) 红比蓝多，代表负数，先排除；(4,2) 只多 2 个，也不是 3。"}],"continue_label":"继续","xp":15,"first_try_bonus":5},{"id":"pair-swap","type":"choice","short":"取负","kicker":"第 4 步 · 取负 = 交换计数器","title":"把 (3,0) 取负，二元组会变成什么？","prompt":"取负就是让方向反过来：把两个计数器交换。原来 3 个蓝 (3,0)，交换后变成 3 个红。","formula":"(3,0) → ?","visual":{"type":"pair_swap","before":[3,0],"after":[0,3],"caption":"交换两个计数器 = 取负","after_caption":"(0,3)：0 个蓝、3 个红，代表 0 − 3 = −3"},"formal_map":{"summary":"(3,0) → (0,3) ↔ negRep","columns":["直觉","形式实现","标识符"],"note":"取负只在代表元上交换分量；negRep_wd 说明换代表元后仍然落在同一个整数上。","rows":[{"concept":"(3,0) 取负变成 (0,3)","formal":"negRep (@prod_mk Nat Nat 3 0) = (0,3)","lemma":"negRep"},{"concept":"取负 = 交换蓝红计数器","formal":"negRep (p) := @prod_mk Nat Nat (snd p) (fst p)","lemma":"negRep"},{"concept":"换代表元，取负结果仍一致（良定义）","formal":"intRel p q → intRel (negRep p) (negRep q)","lemma":"negRep_wd"}],"snippets":[{"title":"negRep 与它的良定义性","code":"def negRep (p : Prod Nat Nat) : Prod Nat Nat :=\n  @prod_mk Nat Nat\n    (Prod.snd Nat Nat p)\n    (Prod.fst Nat Nat p)\n\ntheorem negRep_wd (a b a' b' : Nat)\n    (h : intRel (a,b) (a',b')) :\n    intRel (negRep (a,b)) (negRep (a',b'))","caption":"negRep 交换两个分量；negRep_wd 是把它搬到整数层之前必须交出的良定义证明。"}]},"help":["pair","opposite"],"choices":[{"id":"pair-zero-three","label":"(0,3)","aria":"零三二元组"},{"id":"pair-three-zero","label":"(3,0)","aria":"三零二元组"},{"id":"pair-neg-three-zero","label":"(−3,0)","aria":"负三零二元组"}],"answer":"pair-zero-three","feedback":{"correct":{"title":"对，(0,3)。","body":"交换后是 0 个蓝、3 个红，代表 0 − 3 = −3。它正好是 3 的相反数。"},"wrong":{"pair-three-zero":"(3,0) 没有变，仍然代表 3。取负要交换两个计数器，让 a − b 变成 b − a。","pair-neg-three-zero":"二元组的分量是自然数，不能写 (−3,0)。这里的「取负」就是交换两个计数器。"}},"hints":[{"title":"看公式","body":"(a,b) 代表 a − b。取负后，原来的 a − b 应该变成 b − a。"},{"title":"交换两个位置","body":"把 3 和 0 对调：前面放 0，后面放 3。"},{"title":"认出它","body":"(0,3) 代表 0 − 3 = −3，正是 3 的相反数。"}],"continue_label":"继续","xp":10,"first_try_bonus":5},{"id":"pair-sum","type":"choice","short":"相加","kicker":"第 5 步 · 同色计数器合起来","title":"两个二元组相加，结果代表哪个整数？","prompt":"相加就是「同色计数器合在一起」：(3,0) 有 3 蓝 0 红，(0,3) 有 0 蓝 3 红；合起来是 3 蓝 3 红，也就是 (3,3)。蓝和红两两抵消后，还剩多少？","formula":"(3,0) + (0,3) = (3,3)","visual":{"type":"pair_sum","left":[3,0],"right":[0,3],"sum":[3,3],"caption":"同色相加：蓝 3+0，红 0+3","result_caption":"3 对蓝红全部抵消 ⇒ (3,3) 代表 3 − 3 = 0"},"formal_map":{"summary":"(a,b)+(c,d) ↔ addRep","columns":["直觉","形式实现","标识符"],"note":"Quot.sound 只有一句：代表元等价，商里的两个点就相等。本课的最后一跳全靠它；片段里的 (a,b) 是 @prod_mk Nat Nat a b 的缩写，mk p 是 @Quot.mk.{1} (Prod Nat Nat) intRel p 的缩写。","rows":[{"concept":"(a,b) + (c,d) = (a+c, b+d)（同色相加）","formal":"addRep a b := (fst a + fst b, snd a + snd b)","lemma":"addRep"},{"concept":"(3,0) + (0,3) = (3,3)，3 对抵消","formal":"intRel (addRep (3,0) (0,3)) (0,0)","lemma":"add_neg_rep"},{"concept":"所以整数上 x + (-x) = 0","formal":"int_add_neg a b : mk (addRep p (negRep p)) = mk (0,0)","lemma":"int_add_neg"},{"concept":"「代表元等价 ⇒ 整数相等」这一步","formal":"Quot.sound : intRel p q → mk p = mk q","lemma":"Quot.sound"}],"snippets":[{"title":"addRep：同色分量相加","code":"def addRep (a b : Prod Nat Nat) : Prod Nat Nat :=\n  @prod_mk Nat Nat\n    (Nat.add (Prod.fst Nat Nat a)\n             (Prod.fst Nat Nat b))\n    (Nat.add (Prod.snd Nat Nat a)\n             (Prod.snd Nat Nat b))","caption":"蓝加蓝、红加红：这就是「同色计数器合起来」的形式版本。"},{"title":"add_neg_rep → int_add_neg","code":"theorem add_neg_rep (a b : Nat) :\n    intRel (addRep (a,b) (negRep (a,b)))\n           (@prod_mk Nat Nat Nat.zero Nat.zero)\n\n-- 过桥：代表元等价 ⇒ 商里相等\ntheorem int_add_neg (a b : Nat) :\n    mk (addRep (a,b) (negRep (a,b))) = mk (0,0) :=\n  Quot.sound (add_neg_rep a b)","caption":"add_neg_rep 在代表元层证完；int_add_neg 用 Quot.sound 把它抬到整数层。"}]},"help":["pair","cancel","zero"],"choices":[{"id":"zero","label":"0","aria":"零"},{"id":"three","label":"3","aria":"三"},{"id":"six","label":"6","aria":"六"}],"answer":"zero","feedback":{"correct":{"title":"对，0。","body":"3 个蓝和 3 个红正好配成 3 对，全部抵消，所以 (3,3) 代表 3 − 3 = 0。这就是 (3,0) 和它的相反数相加的结果。"},"wrong":{"three":"(3,3) 是 3 个蓝、3 个红，不是 3 个蓝 0 个红。抵消后一个都不剩，代表 0。","six":"相加时只把同色计数器并在一起（蓝 3+0、红 0+3），不是把两个 3 相加。3 蓝 3 红抵消后是 0。"}},"hints":[{"title":"先看规则","body":"(a,b) 代表 a − b。两个分量相等时，a − b = 0。"},{"title":"数一数抵消","body":"1 个蓝配 1 个红抵消成 0。现在有 3 对蓝红，一共抵消掉多少？"},{"title":"排除法","body":"(3,3) 里有 3 个红，说明有负向的量；它不可能是 3 或 6。"}],"continue_label":"继续","xp":10,"first_try_bonus":5},{"id":"conclusion","type":"choice","short":"结论","kicker":"第 6 步 · 得出结论","title":"所以，哪一个结论成立？","prompt":"我们只用计数器配对，就看见 (3,0) 与 (0,3) 合起来是 0。下面哪句话被刚才的步骤支持？","formula":"(3,3) ≡ (0,0)","visual":{"type":"conclusion","equation":"3 + (-3) = 0","chip":"(3,0) + (0,3) = (3,3) ≡ 0","chips":{"blue":3,"red":3,"result":"0"}},"formal_map":{"summary":"概念 ↔ 形式对象 ↔ 引理","columns":["概念","形式对象","引理"],"note":"整数层的每个结论，都能追到代表元层的一条事实，再用 Quot.sound 过桥。下面折叠的是正式证据清单。","rows":[{"concept":"整数","formal":"Int := Quot intRel","lemma":"Quot intRel"},{"concept":"整数相等","formal":"Quot.sound : intRel p q → mk p = mk q","lemma":"Quot.sound"},{"concept":"零元 0","formal":"@prod_mk Nat Nat 0 0","lemma":"int_add_zero"},{"concept":"取负 −x","formal":"negRep p := (snd p, fst p)","lemma":"negRep_wd"},{"concept":"加法","formal":"addRep：同色分量相加","lemma":"addRep"},{"concept":"代表元层逆元事实","formal":"intRel (addRep p (negRep p)) (0,0)","lemma":"add_neg_rep"},{"concept":"整数层逆元","formal":"int_add_neg : x + (-x) = 0","lemma":"int_add_neg"}],"snippets":[{"title":"整课的证据链只有两步","code":"-- 1. 代表元层事实\nadd_neg_rep (a b) :\n  intRel (addRep (a,b) (negRep (a,b)))\n         (0,0)\n\n-- 2. 用 Quot.sound 过桥\nint_add_neg (a b) :\n  mk (addRep (a,b) (negRep (a,b))) = mk (0,0)","caption":"一条代表元事实 + 一次 Quot.sound = 整数层的 x + (-x) = 0。"}]},"help":["inverse","zero"],"choices":[{"id":"inverse","label":"x + (-x) = 0","sub":"每个整数都有加法逆元。","aria":"每个整数都有加法逆元"},{"id":"identity","label":"x + (-x) = x","sub":"相反数还是自己。","aria":"相反数还是自己"},{"id":"one","label":"x + (-x) = 1","sub":"相加总是 1。","aria":"相加总是一"}],"answer":"inverse","feedback":{"correct":{"title":"正是这样。","body":"(3,3) 代表 0，因此 3 + (−3) = 0。3 只是样板：每个整数 x 都有相反数 −x，使 x + (-x) = 0。"},"wrong":{"identity":"如果 x + (-x) = x，那 −x 就等于 0；但 3 的相反数是 −3，不是 0。","one":"3 + (−3) 回到的是 0，不是 1。逆元的目标是零元。"}},"hints":[{"title":"回到刚才的计算","body":"我们在第 5 步得到 3 蓝 3 红全部抵消，也就是 (3,3) 代表 0。"},{"title":"把 3 换成 x","body":"如果每个整数 x 都能找到对应的 −x，那么 x + (-x) 应该等于什么？"},{"title":"抓住关键词","body":"「逆元」的意思是相加后回到零元 0；不是回到自己，也不是 1。"}],"continue_label":"领取徽章","xp":10,"first_try_bonus":5}],"completion":{"xp":15,"eyebrow":"本课完成","title":"整数加法有逆元","body":"你只用自然数就写出了 −3：蓝红计数器配对；又看见 (3,0) 与 (0,3) 相加，3 对蓝红全部抵消成 0。","replay":"再玩一次","next":"下一课：整数减法（即将上线）"},"formal_proof":{"summary":"每一步的「直觉 ↔ 形式」块已经把概念对上具体名字；下面这些声明是后台裁判用来确认结论的证据清单，你仍然不需要会写它们。","theorem_lead":"单元⑧ 里与逆元有关的声明","theorems":[{"name":"zero_rep","kind":"代表元层","plain":"给 (a,b) 加上 (0,0)，两个代表元仍然等价。"},{"name":"int_add_zero","kind":"整数层","plain":"把这层代表元的等价交给形式化处理，得到整数上的 x + 0 = x。"},{"name":"negRep_wd","kind":"良定义","plain":"交换两个计数器得到 −x；换一个代表元，结果仍然一致。"},{"name":"add_neg_rep","kind":"代表元层","plain":"(a,b) 与 (b,a) 相加，等价于 (0,0)。"},{"name":"int_add_neg","kind":"整数层","plain":"于是整数上 x + (-x) = 0。这就是本课的徽章。"},{"name":"negRep_neg","kind":"对合","plain":"交换两次回到原处：(−x) 的相反数是 x。"},{"name":"int_neg_neg","kind":"整数层","plain":"在整数上也一样：−(−x) = x。"}],"evidence":"徽章证据：int_add_neg","note":"形式证明仍然折叠，是「直觉 ↔ 形式」块的证据附录，不是主界面。"}}</script>
   <script>
 (function () {
   "use strict";
@@ -2810,6 +3089,7 @@ a:focus-visible {
     lastXp: 0,
     lastStreak: 0,
     awarded: {},
+    formalOpen: {},
     help: null,
     helpTimer: null,
     helpEnds: 0,
@@ -3293,6 +3573,109 @@ a:focus-visible {
     );
   }
 
+  // v3 bridge: every step pairs the intuitive chunk with the exact formal
+  // identifier from unit08-int-add-group.sokonanoda.  The summary is the
+  // always-visible one-liner; rows + snippets live behind <details> so the
+  // mobile lesson keeps its one-step-at-a-time rhythm.
+  function renderFormalMap(step) {
+    var map = step.formal_map;
+    if (!map) {
+      return "";
+    }
+    var columns = map.columns || ["直觉", "形式实现", "标识符"];
+    var rows = map.rows
+      .map(function (row) {
+        return (
+          '<div class="fm-row" role="row">' +
+          '<span class="fm-concept" role="cell">' +
+          esc(row.concept) +
+          '</span><span class="fm-arrow" role="cell" aria-label="对应">↔</span>' +
+          '<span class="fm-formal" role="cell">' +
+          esc(row.formal) +
+          '</span><code class="fm-id" role="cell">' +
+          esc(row.lemma) +
+          "</code></div>"
+        );
+      })
+      .join("");
+    var snippets = (map.snippets || [])
+      .map(function (snippet) {
+        return (
+          '<figure class="fm-snippet"><figcaption class="fm-snippet-head">' +
+          '<span class="fm-snippet-title">' +
+          esc(snippet.title) +
+          '</span><span class="fm-snippet-tag">Lean 片段</span></figcaption>' +
+          '<pre class="fm-code"><code>' +
+          esc(snippet.code) +
+          '</code></pre><p class="fm-snippet-caption">' +
+          esc(snippet.caption) +
+          "</p></figure>"
+        );
+      })
+      .join("");
+
+    return (
+      '<details class="formal-map" data-formal-map="' +
+      esc(step.id) +
+      '"' +
+      (state.formalOpen[step.id] ? " open" : "") +
+      '><summary class="formal-map-summary" title="' +
+      esc(map.summary) +
+      '">' +
+      '<span class="fm-badge">直觉 ↔ 形式</span>' +
+      '<span class="fm-summary-text">' +
+      esc(map.summary) +
+      '</span><span class="fm-plus" aria-hidden="true">+</span>' +
+      '</summary><div class="formal-map-body">' +
+      (map.note ? '<p class="fm-note">' + esc(map.note) + "</p>" : "") +
+      '<div class="formal-map-table" role="table" aria-label="直觉与形式实现对照">' +
+      '<div class="fm-row fm-head" role="row">' +
+      '<span role="columnheader">' +
+      esc(columns[0]) +
+      '</span><span role="columnheader" aria-hidden="true"></span>' +
+      '<span role="columnheader">' +
+      esc(columns[1]) +
+      '</span><span role="columnheader">' +
+      esc(columns[2]) +
+      "</span></div>" +
+      rows +
+      "</div>" +
+      (snippets ? '<div class="fm-snippets">' + snippets + "</div>" : "") +
+      "</div></details>"
+    );
+  }
+
+  function proofDetailsHTML() {
+    var proof = data.formal_proof;
+    var theorems = proof.theorems
+      .map(function (theorem) {
+        return (
+          '<li class="theorem"><div class="theorem-head"><code>' +
+          esc(theorem.name) +
+          '</code><span class="theorem-kind">' +
+          esc(theorem.kind) +
+          '</span></div><p>' +
+          esc(theorem.plain) +
+          "</p></li>"
+        );
+      })
+      .join("");
+    return (
+      '<details class="proof"><summary><span class="proof-plus" aria-hidden="true">+</span><span><strong>看形式证明</strong><small>可选 · 「直觉 ↔ 形式」块的证据附录</small></span></summary>' +
+      '<div class="proof-body"><p class="proof-summary">' +
+      esc(proof.summary) +
+      '</p><p class="proof-lead">' +
+      esc(proof.theorem_lead) +
+      '</p><ol class="theorem-list">' +
+      theorems +
+      '</ol><p class="proof-evidence">' +
+      esc(proof.evidence) +
+      '</p><p class="proof-note">' +
+      esc(proof.note) +
+      "</p></div></details>"
+    );
+  }
+
   function renderChoices(step) {
     var choices = step.choices
       .map(function (choice, index) {
@@ -3463,9 +3846,13 @@ a:focus-visible {
           "</span></p>"
       );
     }
+    parts.push(renderFormalMap(step));
     if (step.type === "choice") {
       parts.push(renderChoices(step));
       parts.push(renderFeedback(step));
+    }
+    if (step.id === "conclusion") {
+      parts.push(proofDetailsHTML());
     }
     parts.push(renderActions(step));
     parts.push("</article>");
@@ -3534,22 +3921,8 @@ a:focus-visible {
 
   function renderCompletion() {
     var completion = data.completion;
-    var proof = data.formal_proof;
     var firstTryRate =
       GRADED > 0 ? Math.round((state.firstTryCount / GRADED) * 100) : 0;
-    var theorems = proof.theorems
-      .map(function (theorem) {
-        return (
-          '<li class="theorem"><div class="theorem-head"><code>' +
-          esc(theorem.name) +
-          '</code><span class="theorem-kind">' +
-          esc(theorem.kind) +
-          '</span></div><p>' +
-          esc(theorem.plain) +
-          "</p></li>"
-        );
-      })
-      .join("");
 
     var stats = [
       ["本轮 XP", state.xp, "/ " + MAX_XP + " XP"],
@@ -3588,18 +3961,7 @@ a:focus-visible {
       '<div class="completion-actions"><button class="btn btn-primary" type="button" data-action="replay" id="primaryAction">' +
       esc(completion.replay) +
       ' <span aria-hidden="true">↻</span></button></div>' +
-      '<details class="proof"><summary><span class="proof-plus" aria-hidden="true">+</span><span><strong>看形式证明</strong><small>可选 · 后台证据，不是主界面</small></span></summary>' +
-      '<div class="proof-body"><p class="proof-summary">' +
-      esc(proof.summary) +
-      '</p><p class="proof-lead">' +
-      esc(proof.theorem_lead) +
-      '</p><ol class="theorem-list">' +
-      theorems +
-      '</ol><p class="proof-evidence">' +
-      esc(proof.evidence) +
-      '</p><p class="proof-note">' +
-      esc(proof.note) +
-      "</p></div></details>" +
+      proofDetailsHTML() +
       '<p class="completion-next">' +
       esc(completion.next) +
       "</p></article>";
@@ -4017,6 +4379,7 @@ a:focus-visible {
     state.lastStreak = 0;
     state.completed = false;
     state.awarded = {};
+    state.formalOpen = {};
     resetStepState();
     var confetti = document.getElementById("confetti");
     if (confetti) {
@@ -4026,6 +4389,17 @@ a:focus-visible {
     focusStep();
     scrollToTop();
     announce("重新开始。");
+  }
+
+  function onToggle(event) {
+    var node = event.target;
+    if (!node || !node.matches || !node.matches("details.formal-map")) {
+      return;
+    }
+    var stepId = node.getAttribute("data-formal-map");
+    if (stepId) {
+      state.formalOpen[stepId] = node.open;
+    }
   }
 
   function onClick(event) {
@@ -4169,6 +4543,7 @@ a:focus-visible {
 
   document.addEventListener("click", onClick);
   document.addEventListener("keydown", onKeyDown);
+  document.addEventListener("toggle", onToggle, true);
   init();
 })();
 

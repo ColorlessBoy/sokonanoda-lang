@@ -8,11 +8,13 @@ requests.  Python standard library only.
 Usage:
     python3 scripts/lesson_proto/build.py --out dist/lesson/unit8
     python3 scripts/lesson_proto/build.py --check --out dist/lesson/unit8
+    python3 scripts/lesson_proto/build.py --selftest
 """
 
 from __future__ import annotations
 
 import argparse
+import copy
 import html
 import json
 import re
@@ -59,8 +61,90 @@ EXPECTED_VISUALS = {
     "pair-sum": "pair_sum",
     "conclusion": "conclusion",
 }
+
+# v3 contract: every step must bridge the intuitive chunk to the exact formal
+# implementation used in unit08-int-add-group.sokonanoda.  The identifiers are
+# checked inside the formal_map subtree only (not against the collapsed
+# formal_proof appendix), so a typo cannot hide behind the evidence layer.
+FORMAL_COLUMNS = ("直觉", "形式实现", "标识符")
+CONCEPT_COLUMNS = ("概念", "形式对象", "引理")
+EXPECTED_FORMAL_MAP = {
+    "goal": {
+        "identifiers": ("int_add_neg", "Quot.sound", "negRep"),
+        "phrases": ("代表元",),
+        "min_rows": 3,
+        "min_snippets": 1,
+        "columns": FORMAL_COLUMNS,
+    },
+    "why-pairs": {
+        "identifiers": (
+            "Prod Nat Nat",
+            "@prod_mk Nat Nat a b",
+            "intRel",
+            "Quot intRel",
+        ),
+        "phrases": ("蓝", "红"),
+        "min_rows": 5,
+        "min_snippets": 1,
+        "columns": FORMAL_COLUMNS,
+    },
+    "pair-family": {
+        "identifiers": ("intRel", "Quot intRel"),
+        "phrases": ("等价类",),
+        "min_rows": 3,
+        "min_snippets": 1,
+        "columns": FORMAL_COLUMNS,
+    },
+    "pair-swap": {
+        "identifiers": ("negRep", "negRep_wd"),
+        "phrases": ("良定义",),
+        "min_rows": 3,
+        "min_snippets": 1,
+        "columns": FORMAL_COLUMNS,
+    },
+    "pair-sum": {
+        "identifiers": ("addRep", "add_neg_rep", "int_add_neg", "Quot.sound"),
+        "phrases": ("代表元", "相等"),
+        "min_rows": 4,
+        "min_snippets": 2,
+        "columns": FORMAL_COLUMNS,
+    },
+    "conclusion": {
+        "identifiers": (
+            "intRel",
+            "Quot intRel",
+            "int_add_neg",
+            "Quot.sound",
+            "addRep",
+            "negRep_wd",
+            "add_neg_rep",
+        ),
+        "phrases": ("概念", "形式对象", "引理", "代表元层"),
+        "min_rows": 7,
+        "min_snippets": 1,
+        "columns": CONCEPT_COLUMNS,
+    },
+}
+ALLOWED_FORMAL_IDENTIFIERS = {
+    "intRel",
+    "Int",
+    "Prod Nat Nat",
+    "@prod_mk Nat Nat a b",
+    "Prod.fst",
+    "Prod.snd",
+    "Quot intRel",
+    "negRep",
+    "negRep_wd",
+    "addRep",
+    "add_neg_rep",
+    "int_add_neg",
+    "int_add_zero",
+    "Quot.sound",
+}
 REQUIRED_SYMBOLS = {"opposite", "pair", "cancel", "integer", "inverse", "zero"}
-FORBIDDEN_MAIN_PATH = ("sorry", ":=", "import ", "Quot", "Lean")
+# v3 intentionally puts formal identifiers on the main path — that is the
+# requested bridge.  What stays banned is proof source and tooling prose.
+FORBIDDEN_MAIN_PATH = ("sorry", "import ", "Lean")
 EXTERNAL_URL = re.compile(r"https?://", re.IGNORECASE)
 PROTOCOL_RELATIVE = re.compile(
     r"""(?:\b(?:src|href)\s*=\s*["']\s*//)|(?:url\(\s*["']?\s*//)""",
@@ -413,6 +497,109 @@ VISUAL_VALIDATORS = {
 }
 
 
+def validate_formal_map(step: dict[str, Any], where: str) -> tuple[int, int]:
+    """Validate the v3 concept ↔ formal implementation bridge for one step."""
+    spec = EXPECTED_FORMAL_MAP[step["id"]]
+    formal = step.get("formal_map")
+    require(
+        isinstance(formal, dict),
+        f"{where}.formal_map is required: every step must map intuition to the "
+        "formal implementation (v3 bridge)",
+    )
+
+    summary = require_str(formal, "summary", f"{where}.formal_map")
+    require(
+        "↔" in summary,
+        f"{where}.formal_map.summary must state the concept ↔ formal mapping",
+    )
+    require(
+        len(summary) <= 72,
+        f"{where}.formal_map.summary must stay a one-line summary (<= 72 chars), "
+        f"got {len(summary)}",
+    )
+
+    columns = formal.get("columns")
+    require(
+        isinstance(columns, list)
+        and len(columns) == 3
+        and all(isinstance(column, str) and column.strip() for column in columns),
+        f"{where}.formal_map.columns must be exactly three non-empty labels",
+    )
+    require(
+        tuple(columns) == spec["columns"],
+        f"{where}.formal_map.columns must be {list(spec['columns'])}, got {columns!r}",
+    )
+
+    require_str(formal, "note", f"{where}.formal_map")
+
+    rows = formal.get("rows")
+    require(
+        isinstance(rows, list) and len(rows) >= spec["min_rows"],
+        f"{where}.formal_map.rows must contain at least {spec['min_rows']} "
+        "concept ↔ formal rows",
+    )
+    for index, row in enumerate(rows):
+        row_where = f"{where}.formal_map.rows[{index}]"
+        require(isinstance(row, dict), f"{row_where} must be an object")
+        concept = require_str(row, "concept", row_where)
+        formal_text = require_str(row, "formal", row_where)
+        identifier = require_str(row, "lemma", row_where)
+        require(
+            identifier in ALLOWED_FORMAL_IDENTIFIERS,
+            f"{row_where}.lemma must be an exact identifier declared in the unit "
+            f"(allowed: {sorted(ALLOWED_FORMAL_IDENTIFIERS)}), got {identifier!r}",
+        )
+        require(
+            len(concept) <= 120,
+            f"{row_where}.concept must stay short enough to scan, got {len(concept)}",
+        )
+        require(
+            len(formal_text) <= 180,
+            f"{row_where}.formal must stay short enough to scan, got {len(formal_text)}",
+        )
+
+    snippets = formal.get("snippets")
+    require(
+        isinstance(snippets, list) and len(snippets) >= spec["min_snippets"],
+        f"{where}.formal_map.snippets must contain at least "
+        f"{spec['min_snippets']} small code snippet(s)",
+    )
+    for index, snippet in enumerate(snippets):
+        snippet_where = f"{where}.formal_map.snippets[{index}]"
+        require(isinstance(snippet, dict), f"{snippet_where} must be an object")
+        require_str(snippet, "title", snippet_where)
+        require_str(snippet, "caption", snippet_where)
+        code = require_str(snippet, "code", snippet_where)
+        meaningful_lines = [line for line in code.splitlines() if line.strip()]
+        require(
+            1 <= len(meaningful_lines) <= 12,
+            f"{snippet_where}.code must be a small snippet (1-12 non-empty lines), "
+            f"got {len(meaningful_lines)}",
+        )
+        for forbidden in ("sorry", "import ", "namespace ", "```"):
+            require(
+                forbidden not in code,
+                f"{snippet_where}.code must not contain {forbidden!r} "
+                "(snippets show shape, not proof source)",
+            )
+
+    rows_serialized = json.dumps(rows, ensure_ascii=False)
+    for identifier in spec["identifiers"]:
+        require(
+            identifier in rows_serialized,
+            f"{where}.formal_map.rows must map a concept chunk to the exact "
+            f"identifier {identifier!r} (it must appear in a row, not only in prose)",
+        )
+    serialized = json.dumps(formal, ensure_ascii=False)
+    for phrase in spec["phrases"]:
+        require(
+            phrase in serialized,
+            f"{where}.formal_map must explain the bridge in plain language "
+            f"(missing {phrase!r})",
+        )
+    return len(rows), len(snippets)
+
+
 def validate_insight(step: dict[str, Any], where: str, symbol_ids: set[str]) -> None:
     """The new ungraded 'why pairs' step: copy + blue/red counter cards."""
     require_str(step, "body", where)
@@ -562,7 +749,14 @@ def validate_formal_proof(data: dict[str, Any]) -> None:
 def validate_lesson(data: Any) -> dict[str, int]:
     """Validate the lesson content model and return a few summary counts."""
     require(isinstance(data, dict), "lesson data must be a JSON object")
-    require(data.get("schema") == "soko.lesson/1", "schema must be soko.lesson/1")
+    require(
+        data.get("schema") == "soko.lesson/2",
+        "schema must be soko.lesson/2 (v3 concept ↔ formal mapping layer)",
+    )
+    require(
+        data.get("version") == "0.3.0",
+        "lesson.version must be 0.3.0 for the v3 mapping layer",
+    )
     for key in (
         "id",
         "title",
@@ -618,6 +812,7 @@ def validate_lesson(data: Any) -> dict[str, int]:
         require_str(step, "kicker", where)
         require_str(step, "title", where)
         require_str(step, "formula", where)
+        validate_formal_map(step, where)
         if expected_type == "goal":
             validate_goal(step, where, symbol_ids)
         elif expected_type == "insight":
@@ -663,6 +858,10 @@ def validate_lesson(data: Any) -> dict[str, int]:
         "graded": sum(1 for step in steps if step["type"] == "choice"),
         "symbols": len(data["symbols"]),
         "theorems": len(data["formal_proof"]["theorems"]),
+        "maps": sum(1 for step in steps if isinstance(step.get("formal_map"), dict)),
+        "snippets": sum(
+            len(step.get("formal_map", {}).get("snippets", [])) for step in steps
+        ),
         "xp": data["xp_total"],
         "hints": sum(len(step.get("hints", [])) for step in steps),
     }
@@ -685,6 +884,7 @@ def inline_assets() -> dict[str, str]:
         "{{TITLE}}",
         "{{DESCRIPTION}}",
         "{{LESSON_ID}}",
+        "{{LESSON_VERSION}}",
         "{{UNIT_LABEL}}",
         "{{STYLE_CSS}}",
         "{{APP_JS}}",
@@ -698,8 +898,9 @@ def render_lesson(data: dict[str, Any], assets: dict[str, str]) -> str:
     title = f'{data["title"]} · 单元⑧ | 数学小课'
     description = (
         f"Duolingo 式数学小课原型：{len(data['steps'])} 步互动，"
-        "先用蓝红计数器讲清整数为什么写成二元组，再走到整数加法逆元。"
-        " 单文件、离线可开，形式证明默认折叠。"
+        "每一步都有「直觉 ↔ 形式」对照，把蓝红计数器映射到 "
+        "intRel / Quot intRel / addRep / negRep / Quot.sound。"
+        " 单文件、离线可开，形式证明仍折叠为证据附录。"
     )
     unit_label = f'{data["course_title"]} · Unit ⑧'
     lesson_json = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
@@ -711,6 +912,7 @@ def render_lesson(data: dict[str, Any], assets: dict[str, str]) -> str:
         "{{TITLE}}": html.escape(title, quote=True),
         "{{DESCRIPTION}}": html.escape(description, quote=True),
         "{{LESSON_ID}}": html.escape(data["id"], quote=True),
+        "{{LESSON_VERSION}}": html.escape(data["version"], quote=True),
         "{{UNIT_LABEL}}": html.escape(unit_label, quote=True),
         "{{STYLE_CSS}}": assets["style"],
         "{{APP_JS}}": assets["app"],
@@ -741,6 +943,8 @@ def build(data_path: Path, out_dir: Path, *, check_only: bool) -> int:
                 "check: lesson data OK "
                 f"({counts['steps']} steps, {counts['graded']} graded, "
                 f"xp {counts['xp']}, {counts['symbols']} symbol cards, "
+                f"{counts['maps']} concept↔formal maps, "
+                f"{counts['snippets']} snippets, "
                 f"{counts['theorems']} hidden theorem notes)"
             )
             if output.is_file():
@@ -771,7 +975,9 @@ def build(data_path: Path, out_dir: Path, *, check_only: bool) -> int:
         print(
             f"built {output} ({size_kb:.1f} KiB) · "
             f"{counts['steps']} steps · xp {counts['xp']} · "
-            f"{counts['hints']} hint tiers · 0 external asset references"
+            f"{counts['maps']} concept↔formal maps · "
+            f"{counts['snippets']} snippets · {counts['hints']} hint tiers · "
+            "0 external asset references"
         )
         return 0
     except LessonError as exc:
@@ -797,6 +1003,10 @@ def validate_output_text(rendered: str, data: dict[str, Any]) -> None:
     require(
         'name="viewport"' in rendered and "width=device-width" in rendered,
         "generated HTML is missing a mobile viewport",
+    )
+    require(
+        'data-lesson-version="' in rendered,
+        "generated HTML is missing the lesson version hook",
     )
 
     for attr, value in re.findall(r'\b(src|href)\s*=\s*"([^"]*)"', rendered, re.IGNORECASE):
@@ -833,6 +1043,26 @@ def validate_output_text(rendered: str, data: dict[str, Any]) -> None:
             marker in rendered,
             f"generated HTML is missing the pair-representation layer ({marker!r})",
         )
+    # The v3 bridge is the new contract: every step renders a collapsed
+    # 「直觉 ↔ 形式」block with rows, exact identifiers and small snippets.
+    for marker in (
+        'class="formal-map"',
+        "data-formal-map",
+        'class="fm-row"',
+        'class="fm-id"',
+        'class="fm-code"',
+        "直觉 ↔ 形式",
+        "formal-map-summary",
+    ):
+        require(
+            marker in rendered,
+            f"generated HTML is missing the concept ↔ formal bridge ({marker!r})",
+        )
+    for free_form in ("<textarea", "<input", "contenteditable"):
+        require(
+            free_form not in rendered.lower(),
+            f"generated HTML must not expose free-form Lean input ({free_form!r})",
+        )
     for step in data["steps"]:
         require(
             step["id"] in embedded_raw,
@@ -842,6 +1072,83 @@ def validate_output_text(rendered: str, data: dict[str, Any]) -> None:
             step["title"] in rendered,
             f"generated HTML is missing step title {step['title']!r}",
         )
+
+
+def replace_strings(value: Any, old: str, new: str) -> Any:
+    """Recursively replace substrings in a JSON tree (used by --selftest)."""
+    if isinstance(value, str):
+        return value.replace(old, new)
+    if isinstance(value, list):
+        return [replace_strings(child, old, new) for child in value]
+    if isinstance(value, dict):
+        return {
+            key: replace_strings(child, old, new) for key, child in value.items()
+        }
+    return value
+
+
+def run_selftest(data_path: Path) -> int:
+    """Prove the v3 validation actually bites: each mutation must be rejected."""
+    try:
+        data = json.loads(data_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"error: cannot read lesson data for selftest: {exc}", file=sys.stderr)
+        return 1
+    try:
+        validate_lesson(data)
+    except LessonError as exc:
+        print(f"error: baseline lesson data is already invalid: {exc}", file=sys.stderr)
+        return 1
+
+    def candidate(mutate: Any) -> dict[str, Any]:
+        clone = copy.deepcopy(data)
+        mutate(clone)
+        return clone
+
+    def drop_map(clone: dict[str, Any]) -> None:
+        del clone["steps"][4]["formal_map"]
+
+    def wrong_identifier(clone: dict[str, Any]) -> None:
+        clone["steps"][4]["formal_map"]["rows"][2]["lemma"] = "int_add_neg_TYPO"
+
+    def drop_snippets(clone: dict[str, Any]) -> None:
+        clone["steps"][1]["formal_map"]["snippets"] = []
+
+    def drop_rows(clone: dict[str, Any]) -> None:
+        clone["steps"][3]["formal_map"]["rows"] = []
+
+    def remove_row_identifier(clone: dict[str, Any]) -> None:
+        # Leave the prose/snippet intact on purpose: the row itself must carry
+        # the exact identifier, so this must still be rejected.
+        clone["steps"][5]["formal_map"]["rows"] = replace_strings(
+            clone["steps"][5]["formal_map"]["rows"], "Quot intRel", "Quot Int"
+        )
+
+    cases = [
+        ("missing formal_map", candidate(drop_map)),
+        ("wrong identifier", candidate(wrong_identifier)),
+        ("missing snippets", candidate(drop_snippets)),
+        ("missing mapping rows", candidate(drop_rows)),
+        ("identifier only in prose/snippet, not in a row", candidate(remove_row_identifier)),
+    ]
+
+    failures = 0
+    for label, mutated in cases:
+        try:
+            validate_lesson(mutated)
+        except LessonError as exc:
+            print(f"selftest ok · rejected {label}: {exc}")
+        else:
+            failures += 1
+            print(f"selftest FAIL · accepted {label}", file=sys.stderr)
+    if failures:
+        print(f"error: {failures} negative case(s) were not rejected", file=sys.stderr)
+        return 1
+    print(
+        f"selftest ok · {len(cases)} negative mutations rejected; "
+        "v3 concept ↔ formal validation is live"
+    )
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -861,7 +1168,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="validate the lesson and, if present, the generated HTML; write nothing",
     )
+    parser.add_argument(
+        "--selftest",
+        action="store_true",
+        help="assert the v3 mapping validation rejects missing/wrong formal mappings",
+    )
     args = parser.parse_args(argv)
+    if args.selftest:
+        return run_selftest(Path(args.data).resolve())
     return build(Path(args.data).resolve(), Path(args.out).resolve(), check_only=args.check)
 
 
