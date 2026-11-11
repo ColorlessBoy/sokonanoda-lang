@@ -1,0 +1,100 @@
+-- 单元70 数系链：加法在四层间的迁移（解答）
+--
+-- 69 把**序**从 ℕ 一路搬到 ℝ。本单元搬**加法**：
+--
+--   · ℕ 的 `Nat.add` 在 ℤ 的代表元上就是 `addRep`；
+--   · ℚ 的代表元加法是 `ratAddRep`；
+--   · ℝ 的加法是 61 的**三元关系** `addRel a b c`（存在 + 唯一），
+--     不是函数——`Quot.lift` 外层要函数相等，而杂点让像不唯一。
+--
+-- 于是「嵌入保持加法」在 ℝ 层写成：
+--
+--   addRel (natToReal n) (natToReal m) (natToReal (n + m))
+--
+-- 每一层都只做**定义性归约 + 一条已知律**：
+--
+--   · 70.1：`addRep (n,0) (m,0)` 与 `(n+m, 0)` 定义性相等（`0+0` 归约成 0）；
+--   · 70.2：`ratAddRep` 在分母 1 上归约成 `(p+q)/1`；
+--   · 70.4：`addRel_intro` 直接给出和，两个 `Cauchy` 守卫由 68.1 付清；
+--   · 70.5：70.2 与 70.4 的合成；
+--   · 70.6/70.7：具体数字与**唯一性**（`addRel_unique`）。
+--
+-- 代价说明：ℝ 层是关系而不是函数，所以本单元没有「嵌入是群同态」的
+-- 函数等式可写；写成 `addRel` 的三元组正是 61 的诚实部分结论。
+
+import lib.RatAbs
+import lib.RealComplete
+import lib.RealAddRel
+
+-- ─────────────────────────────────────────────────────────────
+-- 70.0 两个代表元嵌入（与 69 相同）
+-- ─────────────────────────────────────────────────────────────
+
+def natToIntRep (n : Nat) : Prod Nat Nat := @prod_mk Nat Nat n Nat.zero
+
+def intToRatRep (p : Prod Nat Nat) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat p Nat.zero
+
+-- ─────────────────────────────────────────────────────────────
+-- 70.1 加法在 ℕ → ℤ 上保持
+-- ─────────────────────────────────────────────────────────────
+
+-- `addRep (n,0) (m,0)` 的两个坐标是 `n + m` 与 `0 + 0`；`Nat.add 0 0`
+-- 按定义归约成 0，所以两边是同一个代表元，`intRel_refl` 收口。
+theorem natToInt_add (n m : Nat) :
+    intRel (addRep (natToIntRep n) (natToIntRep m)) (natToIntRep (Nat.add n m)) :=
+  intRel_refl (natToIntRep (Nat.add n m))
+
+-- ─────────────────────────────────────────────────────────────
+-- 70.2 加法在 ℤ → ℚ 上保持
+-- ─────────────────────────────────────────────────────────────
+
+-- 分母 1 上 `ratAddRep` 的分子就是 `addRep` 的两个坐标（乘 1、加 0 都按
+-- 定义归约），分母字段仍归约成 0，于是两边是同一个 `ratRep`。
+theorem intToRat_add (p q : Prod Nat Nat) :
+    ratRel (ratAddRep (intToRatRep p) (intToRatRep q))
+      (intToRatRep (addRep p q)) :=
+  ratRel_refl (intToRatRep (addRep p q))
+
+-- ─────────────────────────────────────────────────────────────
+-- 70.3 合成 ℕ → ℝ / 70.4 加法在 ℚ → ℝ 上保持（三元关系版）
+-- ─────────────────────────────────────────────────────────────
+
+def natToReal (n : Nat) : Real :=
+  Real.mk (constSeq (intToRatRep (natToIntRep n)))
+
+-- `addRel_intro` 要两个 Cauchy 守卫；常序列的 Cauchy 性是 68.1。
+-- `addSeq (constSeq x) (constSeq y)` 与 `constSeq (ratAddRep x y)` 在
+-- `fun n => x + y` 上定义性相等。
+theorem ratToReal_add (x y : ratRep) :
+    addRel (Real.mk (constSeq x)) (Real.mk (constSeq y))
+      (Real.mk (constSeq (ratAddRep x y))) :=
+  addRel_intro (constSeq x) (constSeq y) (cauchy_const x) (cauchy_const y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 70.5 整条链：ℕ 的加法在 ℝ 里仍是加法
+-- ─────────────────────────────────────────────────────────────
+
+theorem natToReal_add (n m : Nat) :
+    addRel (natToReal n) (natToReal m) (natToReal (Nat.add n m)) :=
+  ratToReal_add (intToRatRep (natToIntRep n)) (intToRatRep (natToIntRep m))
+
+-- ─────────────────────────────────────────────────────────────
+-- 70.6 具体：1 + 2 = 3 在 ℝ 里成立
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_natToReal_add :
+    addRel (natToReal 1) (natToReal 2) (natToReal 3) :=
+  natToReal_add 1 2
+
+-- ─────────────────────────────────────────────────────────────
+-- 70.7 具体：和是唯一的
+-- ─────────────────────────────────────────────────────────────
+
+-- 61.4 的 `addRel_unique` 保证三元关系的输出唯一：任何 `c` 只要是
+-- `1 + 2` 的输出，就与 `natToReal 3` 相等。
+theorem demo_add_unique (c : Real)
+    (h : addRel (natToReal 1) (natToReal 2) c) :
+    c = natToReal 3 :=
+  addRel_unique (natToReal 1) (natToReal 2) c (natToReal 3)
+    h (natToReal_add 1 2)

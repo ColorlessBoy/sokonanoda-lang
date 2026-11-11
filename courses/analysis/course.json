@@ -511,6 +511,35 @@
               "unit": 68
             }
           ]
+        },
+        {
+          "id": "II.7",
+          "title": "数系综合与读证明",
+          "prereqs": [
+            "II.6"
+          ],
+          "tags": [
+            "synthesis",
+            "embedding",
+            "quotient"
+          ],
+          "quota": {
+            "exercises": 16
+          },
+          "units": [
+            {
+              "file": "units/II.7/unit69-number-chain-order.sokonanoda",
+              "title": "单元69 数系链：从 ℕ 到 ℝ 的保序嵌入",
+              "title_en": "Unit 69 — The Number Chain: Order-Preserving Embeddings from ℕ to ℝ",
+              "unit": 69
+            },
+            {
+              "file": "units/II.7/unit70-number-chain-add.sokonanoda",
+              "title": "单元70 数系链：加法在四层间的迁移",
+              "title_en": "Unit 70 — The Number Chain: Addition Across the Four Layers",
+              "unit": 70
+            }
+          ]
         }
       ]
     }
