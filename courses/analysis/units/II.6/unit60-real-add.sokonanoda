@@ -1,0 +1,89 @@
+-- 单元60 实数的加法：下降之前的两条义务
+--
+-- 59 把**一元**运算 `neg` 下降成了 `Real → Real`。二元运算不能照抄这个
+-- 模板：`Quot.lift` 在外部还要一次「函数相等」，而 `realRel` 只在 Cauchy
+-- 序列上自反 —— 商里还有非 Cauchy 代表元形成的「杂点」，同一条 Cauchy
+-- 序列在杂点上的像不唯一。本课程因此**不把加法下降成函数**，而是：
+--
+--   · 先在代表元层把逐点加法 `addSeq` 定义好；
+--   · 交两条下降义务：`cauchy_add`（Cauchy 对加法封闭）与
+--     `realRel_add`（`realRel` 对加法同余）；
+--   · 下一单元再把「`mk (x + y)` 就是两个实数的和」写成**三元关系**
+--     （存在 + 唯一），不引入 `funext`、不加公理。
+--
+-- 本单元的技术核心是 `ratSubRep_add_sub`：把
+-- `(x + y) - (x' + y')` 在代表元层重排成 `(x - x') + (y - y')`，
+-- 好让 ㊽ 的三角不等式直接作用在两个已知距离上。重排只用 54 的结合律、
+-- ㊸ 的交换律与 ㊽.4 的 `ratNegRep_add`。
+--
+-- 60.1 是代表元层的重排，60.2 是逐点 `close` 的加法，60.3/60.4 是两条
+-- 下降义务，60.5 落在 `1/2 + 1/3 = 5/6` 上。
+
+import lib.RealEq
+import lib.RatCloseTrans
+import lib.RatSub
+
+-- ─────────────────────────────────────────────────────────────
+-- 逐点加法的定义
+-- ─────────────────────────────────────────────────────────────
+
+def addSeq (x y : Seq) : Seq := fun (n : Nat) => ratAddRep (x n) (y n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 60.1 代表元层：`(x + y) - (x' + y') ~ (x - x') + (y - y')`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：五步链。① `-(x'+y') ~ -x' + -y'`（㊽.4 的 `ratNegRep_add`，把右端同余进去）；② 结合律反向，把 `(x+y) + (-x' + -y')` 拆成 `((x+y) + -x') + -y'`；③ 内层结合律把 `(x+y) + -x'` 换成 `x + (y + -x')`；④ 交换 `y + -x'` 成 `-x' + y`，再结合成 `(x + -x') + y`；⑤ 最后一步结合律收成 `(x + -x') + (y + -y')`。
+-- soko:hint 目标形态：`ratRel (ratSubRep (ratAddRep x y) (ratAddRep x' y')) (ratAddRep (ratSubRep x x') (ratSubRep y y'))`。
+-- soko:hint 关键件：ratNegRep_add · ratAddRep_wd_snd_gen · ratAddRep_wd_gen · ratAdd_assoc（三次，其中两次取对称）· ratAdd_comm · ratRel_symm · ratRel_trans_gen（四次）。
+theorem ratSubRep_add_sub (x x' y y' : ratRep) :
+    ratRel (ratSubRep (ratAddRep x y) (ratAddRep x' y'))
+           (ratAddRep (ratSubRep x x') (ratSubRep y y')) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 60.2 逐点 `close` 对加法同余
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两个 `ε/2` 的界 `(x - x')`、`(y - y')` 各取见证 `dx`、`dy`；用 ㊺ 的 `ratAbsRel_total` 给 `(x-x') + (y-y')` 取见证 `d`；60.1 把 `d` 的绝对值搬到 `(x+y) - (x'+y')`（㊷ 的 `ratAbsRel_wd_left`，注意方向取 `ratRel_symm`）；㊽ 的三角不等式给 `d ≤ dx + dy`，57 的 `ratAdd_lt_half` 收到 `d < ε`，最后 `ratLtRep_of_le_lt`。
+-- soko:hint 目标形态：`close x x' (ε/2) → close y y' (ε/2) → close (x+y) (x'+y') ε`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · ratAbsRel_total · ratAbsRel_wd_left · ratRel_symm · ratLeRep_abs_add · ratAdd_lt_half · ratLtRep_of_le_lt。
+theorem close_add (x x' y y' eps : ratRep)
+    (hx : close x x' (ratHalf eps)) (hy : close y y' (ratHalf eps)) :
+    close (ratAddRep x y) (ratAddRep x' y') eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 60.3 加法保持 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：量词结构照抄 `neg`，只是要在 `ε/2` 上同时取两个阈值：`hx` 给 `N1`、`hy` 给 `N2`，用 58 的 `leNat_max` 合成 `N`；对 `n m ≥ N`，两个 `leNat_trans` 把界落到同一对下标，再交给 60.2（注意 `addSeq x y n` 定义性就是 `ratAddRep (x n) (y n)`）。
+-- soko:hint 目标形态：`Cauchy x → Cauchy y → Cauchy (addSeq x y)`。
+-- soko:hint 关键件：ratLtRep_half · leNat_max · leNat_trans · close_add · Exists.elim（两次）· Exists.intro。
+theorem cauchy_add (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    Cauchy (addSeq x y) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 60.4 加法与 `realRel` 相容
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`realRel (addSeq x y) (addSeq x' y')` 是三元组：两个 `Cauchy` 分量是 60.3（`Cauchy x`/`Cauchy x'` 来自 `hx`，`Cauchy y`/`Cauchy y'` 来自 `hy`）；第三分量对 `ε/2` 取两组阈值，用 `leNat_max` 合并后逐点用 60.2。`realRel` 的第三分量可以用 `lib/RealEq` 的 `realRel_close` 投影取出来。
+-- soko:hint 目标形态：`realRel x x' → realRel y y' → realRel (addSeq x y) (addSeq x' y')`。
+-- soko:hint 关键件：And.intro（两次）· And.left · And.right · cauchy_add · realRel_close · leNat_max · leNat_trans · close_add。
+theorem realRel_add (x x' y y' : Seq)
+    (hx : realRel x x') (hy : realRel y y') :
+    realRel (addSeq x y) (addSeq x' y') :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 60.5 具体：`1/2 + 1/3 = 5/6`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratAddRep_mk` 是定义性相等：`(1/2) + (1/3)` 归约成 `qrep 5 0 (ratDenRep 1 2)`，而 `ratDenRep 1 2` 归约成 `5`；两边就是同一个 `qrep`，交给 `ratRel_refl`。
+-- soko:hint 目标形态：`ratRel (ratAddRep (qrep 1 0 1) (qrep 1 0 2)) (qrep 5 0 5)`。
+-- soko:hint 关键件：ratRel_refl（定义性归约）。
+theorem demo_add_rep :
+    ratRel (ratAddRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 2))
+           (qrep 5 Nat.zero 5) :=
+  sorry

@@ -455,6 +455,12 @@
               "title": "单元59 实数的取负：第一次把运算下降到商上",
               "title_en": "Unit 59 — Negation on the Reals: Lifting an Operation to the Quotient",
               "unit": 59
+            },
+            {
+              "file": "units/II.6/unit60-real-add.sokonanoda",
+              "title": "单元60 实数的加法：下降之前的两条义务",
+              "title_en": "Unit 60 — Addition on the Reals: Two Obligations Before Descending",
+              "unit": 60
             }
           ]
         }

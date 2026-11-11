@@ -226,3 +226,19 @@ theorem realRel_close (x y : Seq) (h : realRel x y) :
     ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
       ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (y n) eps :=
   And.right (And.right h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 单元58 已判卷事实进库：两个 ℕ 阈值的合并
+-- ─────────────────────────────────────────────────────────────
+
+-- 单元60 的 `cauchy_add` 要对两个 Cauchy 假设各取一个阈值，再在同一个
+-- `n` 上使用；58 的 `leNat_max` 正是这一步，这里按「前序证明进库」惯例收进
+-- L2（证明与 58 的解答逐字同形）。
+
+theorem leNat_max (m n : Nat) : ∃ (N : Nat), LeNat m N ∧ LeNat n N :=
+  Or.elim
+    (fun (h : LeNat m n) =>
+      Exists.intro n (And.intro h (LeNat.le_refl n)))
+    (fun (h : LeNat n m) =>
+      Exists.intro m (And.intro (LeNat.le_refl m) h))
+    (leNat_total m n)
