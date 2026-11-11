@@ -437,6 +437,12 @@
               "title": "单元56 两次减法的相加：中间项消去",
               "title_en": "Unit 56 — Adding Two Differences: Cancelling the Middle Term",
               "unit": 56
+            },
+            {
+              "file": "units/II.6/unit57-close-trans.sokonanoda",
+              "title": "单元57 close 的传递性：两个 ε/2 的界加起来",
+              "title_en": "Unit 57 — Transitivity of Close: Adding Two ε/2 Bounds",
+              "unit": 57
             }
           ]
         }
