@@ -431,6 +431,12 @@
               "title": "单元55 有理数的加法逆元：x + (-x) = 0",
               "title_en": "Unit 55 — Additive Inverses in the Rationals",
               "unit": 55
+            },
+            {
+              "file": "units/II.6/unit56-sub-add.sokonanoda",
+              "title": "单元56 两次减法的相加：中间项消去",
+              "title_en": "Unit 56 — Adding Two Differences: Cancelling the Middle Term",
+              "unit": 56
             }
           ]
         }
