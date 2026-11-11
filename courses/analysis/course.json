@@ -467,6 +467,12 @@
               "title": "单元61 实数的加法：三元关系（存在 + 唯一）",
               "title_en": "Unit 61 — Addition on the Reals: A Ternary Relation (Existence + Uniqueness)",
               "unit": 61
+            },
+            {
+              "file": "units/II.6/unit62-real-add-laws.sokonanoda",
+              "title": "单元62 实数的加法：交换律与零元（三元关系版）",
+              "title_en": "Unit 62 — Addition on the Reals: Commutativity and Zero (Ternary Relation)",
+              "unit": 62
             }
           ]
         }

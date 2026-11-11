@@ -1,0 +1,171 @@
+-- 课程库：实数的加法三元的交换律与零元（单元62 的引擎）
+--
+-- 单元62 在画布上把下面八条证过并判卷；这里按「前序证明进库」惯例收进
+-- L2，单元63 起直接引用：
+--
+--   · `ratSubRep_ratRel_zero` / `ratAbsRel_zero_of_ratRel` —— 代表元相等
+--     `x ~ y` 时 `x - y ~ 0`，且 `|x - y| ~ 0`；
+--   · `close_of_ratRel` —— 桥：`ratRel x y ⇒ close x y ε`（ε > 0）；
+--   · `realRel_add_comm` / `addRel_comm` —— 交换律（代表元层与三元关系）；
+--   · `realRel_add_zero` / `addRel_zero_right` / `addRel_zero_left` ——
+--     右/左零元。
+--
+-- 零元律带 `Cauchy x` 假设：`addRel` 只对有 Cauchy 代表元的实数有输出，
+-- 这是 61 留下的诚实部分关系，不是被绕过的洞。
+
+import lib.RealAddRel
+import lib.RatAbs
+
+-- ─────────────────────────────────────────────────────────────
+-- 62.1 代表元层：`x ~ y ⇒ x - y ~ 0`
+-- ─────────────────────────────────────────────────────────────
+
+-- 先 `x - y ~ y - y`（加法第一个变元的同余，56 的 `ratAddRep_wd_gen`），
+-- 再用 55 的逆元律 `y + (-y) ~ 0` 传递。
+
+theorem ratSubRep_ratRel_zero (x y : ratRep) (h : ratRel x y) :
+    ratRel (ratSubRep x y) ratZeroRep :=
+  ratRel_trans_gen
+    (ratSubRep x y)
+    (ratSubRep y y)
+    ratZeroRep
+    (ratAddRep_wd_gen x y (ratNegRep y) h)
+    (ratAdd_neg_gen y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 62.2 绝对值：`x ~ y ⇒ |x - y| ~ 0`
+-- ─────────────────────────────────────────────────────────────
+
+-- 取见证 `d := 0`。`ratAbsRel` 的定义是两个析取支，按 `0 ≤ x-y` 与
+-- `x-y ≤ 0` 二分（㊺ 的 `ratLeRep_total`）：
+--   · 非负支：左支要 `0 ≤ x-y` 与 `0 ~ x-y`（62.1 调向）；
+--   · 非正支：右支要 `x-y ≤ 0` 与 `0 ~ -(x-y)`。后者由 62.1 经
+--     `ratNegRep_wd` 搬到 `-0`，而 `-0` 与 `0` 定义性相等
+--     （`ratNegRep ratZeroRep` 归约成 `ratZeroRep`），所以
+--     `ratRel_refl ratZeroRep` 直接收口。
+
+theorem ratAbsRel_zero_of_ratRel (x y : ratRep) (h : ratRel x y) :
+    ratAbsRel (ratSubRep x y) ratZeroRep :=
+  Or.elim
+    (fun (hle : ratLeRep ratZeroRep (ratSubRep x y)) =>
+      Or.inl (And.intro hle
+        (ratRel_symm (ratSubRep x y) ratZeroRep
+          (ratSubRep_ratRel_zero x y h))))
+    (fun (hle : ratLeRep (ratSubRep x y) ratZeroRep) =>
+      Or.inr (And.intro hle
+        (ratRel_symm (ratNegRep (ratSubRep x y)) ratZeroRep
+          (ratRel_trans_gen
+            (ratNegRep (ratSubRep x y))
+            (ratNegRep ratZeroRep)
+            ratZeroRep
+            (ratNegRep_wd (ratSubRep x y) ratZeroRep
+              (ratSubRep_ratRel_zero x y h))
+            (ratRel_refl ratZeroRep)))))
+    (ratLeRep_total ratZeroRep (ratSubRep x y))
+
+-- ─────────────────────────────────────────────────────────────
+-- 62.3 桥：代表元相等 ⇒ 逐点 `close`
+-- ─────────────────────────────────────────────────────────────
+
+-- `close x y ε` 是 `∃ d, ratAbsRel (x - y) d ∧ d < ε`；见证取 `d := 0`，
+-- 第一分量是 62.2，第二分量就是假设 `0 < ε`。
+
+theorem close_of_ratRel (x y : ratRep) (h : ratRel x y) (eps : ratRep)
+    (heps : ratLtRep ratZeroRep eps) : close x y eps :=
+  Exists.intro ratZeroRep
+    (And.intro (ratAbsRel_zero_of_ratRel x y h) heps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 62.4 代表元层：`(x + y) ~ (y + x)`
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个 `Cauchy` 分量是 60 的 `cauchy_add`（两个方向各一次）；第三分量
+-- 的阈值取 `N := 0`（任何 `n` 都可以），逐点用 ㊸ 的 `ratAdd_comm`
+-- 加 62.3 的桥。
+
+theorem realRel_add_comm (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    realRel (addSeq x y) (addSeq y x) :=
+  And.intro
+    (cauchy_add x y hx hy)
+    (And.intro
+      (cauchy_add y x hy hx)
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.intro Nat.zero
+          (fun (n : Nat) (_hn : LeNat Nat.zero n) =>
+            close_of_ratRel (addSeq x y n) (addSeq y x n)
+              (ratAdd_comm (x n) (y n)) eps heps)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 62.5 三元关系的交换律
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 `a`、`b` 各做一次 `Quot.ind`。进入 `mk x`、`mk y` 后，`h` 的
+-- 三次 ι 归约给出 `Cauchy x`、`Cauchy y` 与 `c = mk (x+y)`；目标
+-- `addRel (mk y) (mk x) c` 要的是 `Cauchy y`、`Cauchy x` 与
+-- `c = mk (y+x)`。前两个分量对调即可，第三个把 `c = mk (x+y)` 与
+-- 62.4 经 `Real.sound` 得到的 `mk (x+y) = mk (y+x)` 传递起来。
+
+theorem addRel_comm (a b c : Real) (h : addRel a b c) : addRel b a c :=
+  @Quot.ind.{1} Seq realRel
+    (fun (a : Real) => ∀ (b c : Real), addRel a b c → addRel b a c)
+    (fun (x : Seq) =>
+      fun (b c : Real) (hxbc : addRel (Real.mk x) b c) =>
+        @Quot.ind.{1} Seq realRel
+          (fun (b : Real) => ∀ (c : Real),
+            addRel (Real.mk x) b c → addRel b (Real.mk x) c)
+          (fun (y : Seq) =>
+            fun (c : Real) (hxy : addRel (Real.mk x) (Real.mk y) c) =>
+              And.intro
+                (And.left (And.right hxy))
+                (And.intro
+                  (And.left hxy)
+                  (Eq.trans
+                    (And.right (And.right hxy))
+                    (Real.sound (addSeq x y) (addSeq y x)
+                      (realRel_add_comm x y (And.left hxy)
+                        (And.left (And.right hxy)))))))
+          b c hxbc)
+    a b c h
+
+-- ─────────────────────────────────────────────────────────────
+-- 62.6 代表元层：`(x + 0) ~ x`
+-- ─────────────────────────────────────────────────────────────
+
+-- 第一分量是 60 的 `cauchy_add`（第二个因子用 ㉟ 的 `cauchy_zero`），
+-- 第二分量是 `hx` 本身；第三分量取 `N := 0`，逐点用 ㊸ 的
+-- `ratAdd_zero` 加 62.3 的桥。
+
+theorem realRel_add_zero (x : Seq) (hx : Cauchy x) :
+    realRel (addSeq x zeroSeq) x :=
+  And.intro
+    (cauchy_add x zeroSeq hx cauchy_zero)
+    (And.intro hx
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.intro Nat.zero
+          (fun (n : Nat) (_hn : LeNat Nat.zero n) =>
+            close_of_ratRel (addSeq x zeroSeq n) (x n)
+              (ratAdd_zero (x n)) eps heps)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 62.7 右零元：`mk x + 0 = mk x`
+-- ─────────────────────────────────────────────────────────────
+
+-- 进入 `mk x` 后，`addRel (mk x) (mk 0) (mk x)` 要 `Cauchy x`、
+-- `Cauchy 0` 与 `mk x = mk (x+0)`；最后一条是 62.6 经 `Real.sound`
+-- 再调向。
+
+theorem addRel_zero_right (x : Seq) (hx : Cauchy x) :
+    addRel (Real.mk x) (Real.mk zeroSeq) (Real.mk x) :=
+  And.intro hx
+    (And.intro cauchy_zero
+      (Eq.symm (Real.sound (addSeq x zeroSeq) x
+        (realRel_add_zero x hx))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 62.8 左零元：`0 + mk x = mk x`（交换律的直接推论）
+-- ─────────────────────────────────────────────────────────────
+
+theorem addRel_zero_left (x : Seq) (hx : Cauchy x) :
+    addRel (Real.mk zeroSeq) (Real.mk x) (Real.mk x) :=
+  addRel_comm (Real.mk x) (Real.mk zeroSeq) (Real.mk x)
+    (addRel_zero_right x hx)
