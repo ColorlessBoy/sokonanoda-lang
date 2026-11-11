@@ -479,6 +479,18 @@
               "title": "单元63 实数的加法：结合律（三元关系版）",
               "title_en": "Unit 63 — Addition on the Reals: Associativity (Ternary Relation)",
               "unit": 63
+            },
+            {
+              "file": "units/II.6/unit64-real-order.sokonanoda",
+              "title": "单元64 实数的序：代表元关系与自反性",
+              "title_en": "Unit 64 — Order on the Reals: Representative Relation and Reflexivity",
+              "unit": 64
+            },
+            {
+              "file": "units/II.6/unit65-real-order-trans.sokonanoda",
+              "title": "单元65 实数的序：传递性",
+              "title_en": "Unit 65 — Order on the Reals: Transitivity",
+              "unit": 65
             }
           ]
         }
