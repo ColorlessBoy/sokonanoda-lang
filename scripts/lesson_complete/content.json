@@ -1,0 +1,52 @@
+{
+  "schema": "soko.lesson_complete/1",
+  "id": "analysis-epsilon-n-lesson",
+  "version": "1.0.0",
+  "title": "ε–N：一条带子，一个起点",
+  "scene": {
+    "defaultEpsilon": 0.22,
+    "epsilonMin": 0.001,
+    "epsilonMax": 0.25,
+    "presets": [0.25, 0.22, 0.1, 0.05]
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "kind": "choice",
+      "epsilon": 0.22,
+      "choices": [4, 5, 10],
+      "answer": 5,
+      "hint": "先算 1/0.22 ≈ 4.545；N 要取第一个严格大于它的整数。",
+      "explanation": "1/0.22 ≈ 4.545，所以 N = ⌊4.545⌋ + 1 = 5。验算：a₅ = 0.2 < 0.22。",
+      "wrong": {
+        "4": "a₄ = 1/4 = 0.25 ≥ 0.22，第 4 项还在带外。",
+        "10": "N = 10 也能让后面的项在带内，但不是最小的起点。"
+      }
+    },
+    {
+      "id": "q2",
+      "kind": "boolean",
+      "epsilon": 0.22,
+      "choices": [true, false],
+      "answer": false,
+      "hint": "只比第 4 项：a₄ = 1/4 = 0.25。它小于 ε = 0.22 吗？",
+      "explanation": "1/4 = 0.25 ≥ 0.22，第 4 项在带外。N 必须满足 1/N < ε，所以最小起点是 N = 5。",
+      "wrong": {
+        "true": "再看一眼：1/4 = 0.25 ≥ 0.22，第 4 项还在带外。"
+      }
+    },
+    {
+      "id": "q3",
+      "kind": "choice",
+      "epsilon": 0.1,
+      "choices": [10, 11, 21],
+      "answer": 11,
+      "hint": "1/0.10 = 10 正好是整数；a₁₀ = 0.10 等于 ε，不算严格小于。",
+      "explanation": "1/0.10 = 10 是整数；a₁₀ = 0.10 不算严格小于 ε，所以 N = 10 + 1 = 11。",
+      "wrong": {
+        "10": "a₁₀ = 0.10 正好等于 ε，不满足严格小于。",
+        "21": "N = 21 也安全，但不是最小起点；⌊10⌋ + 1 = 11。"
+      }
+    }
+  ]
+}

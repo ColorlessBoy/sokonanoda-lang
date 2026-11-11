@@ -1,0 +1,2034 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#fbf7ef">
+  <meta name="description" content="3 分钟看懂 aₙ = 1/n 的 ε–N 定义：一条误差带，一个起点 N。三道小题，一次走完。">
+  <meta name="robots" content="noindex">
+  <title>ε–N：一条带子，一个起点 · 分析入门</title>
+  <style>
+/* scripts/lesson_complete/styles.css — one linear lesson, paper/ink palette.
+ * No external assets, no CDN, no web fonts. */
+
+:root {
+  --paper: #fbf7ef;
+  --paper-2: #f4eee2;
+  --card: #fffdf8;
+  --ink: #18232e;
+  --ink-soft: #41505c;
+  --muted: #6b7781;
+  --navy: #17324d;
+  --navy-2: #24425f;
+  --teal: #1f8a7a;
+  --teal-ink: #146458;
+  --teal-wash: #e3f2ee;
+  --amber: #d78a1f;
+  --amber-ink: #7a4b05;
+  --amber-wash: #fbf0dc;
+  --red: #b5452f;
+  --red-ink: #8f3322;
+  --red-wash: #fbe9e3;
+  --line: #e3d9c9;
+  --line-strong: #cbbca6;
+  --shadow: 0 18px 42px rgba(23, 50, 77, .07);
+  --font: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --math: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  --display: "Songti SC", "Noto Serif SC", Georgia, "Times New Roman", serif;
+  --radius: 22px;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: break-word;
+  background:
+    radial-gradient(1100px 460px at 10% -8%, rgba(31, 138, 122, .09), transparent 62%),
+    radial-gradient(900px 420px at 100% 0%, rgba(215, 138, 31, .09), transparent 60%),
+    var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+button,
+input,
+output { font: inherit; }
+button { color: inherit; }
+svg { max-width: 100%; }
+h1, h2, h3, p { margin-top: 0; }
+
+:focus-visible {
+  outline: 3px solid #0b6fa4;
+  outline-offset: 3px;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── topbar ─────────────────────────────────────────────── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(251, 247, 239, .94);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+}
+
+.topbar-inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  min-height: 64px;
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brand-mark {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--navy);
+  color: #fff;
+  font-family: var(--display);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.18;
+}
+
+.brand-name { color: var(--navy); font-weight: 800; font-size: 15px; }
+.brand-sub { color: var(--muted); font-size: 11px; letter-spacing: .06em; }
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.progress[hidden] { display: none !important; }
+
+.progress-label {
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress-track {
+  display: flex;
+  gap: 4px;
+}
+
+.progress-seg {
+  display: block;
+  width: 16px;
+  height: 4px;
+  border-radius: 999px;
+  background: #e2d8c8;
+  transition: background-color .25s ease;
+}
+
+.progress-seg.is-on { background: var(--teal); }
+.progress-seg.is-current { background: var(--navy); }
+
+/* ── screens ────────────────────────────────────────────── */
+main { display: block; }
+
+.screen {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  min-height: calc(100vh - 65px);
+  min-height: calc(100dvh - 65px);
+  padding: 22px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.screen[hidden] { display: none !important; }
+
+.screen:not([hidden]) {
+  animation: screen-in .3s cubic-bezier(.2, .7, .3, 1) both;
+}
+
+@keyframes screen-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--teal-ink);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .18em;
+}
+
+.screen-head { margin-bottom: 14px; }
+
+.screen h1[tabindex="-1"]:focus,
+.screen h2[tabindex="-1"]:focus { outline: none; }
+
+.screen-head h2 {
+  margin: 0;
+  color: var(--navy);
+  font-size: clamp(27px, 3.2vw, 38px);
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+
+/* ── cover ──────────────────────────────────────────────── */
+.screen-cover { justify-content: center; }
+
+.cover-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+  align-items: center;
+  gap: 36px;
+}
+
+.cover-copy { min-width: 0; }
+
+.screen-cover h1 {
+  margin: 0 0 16px;
+  max-width: 12ch;
+  color: var(--navy);
+  font-size: clamp(34px, 5.4vw, 58px);
+  line-height: 1.1;
+  letter-spacing: -.035em;
+}
+
+.title-keep {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.cover-line {
+  max-width: 32ch;
+  margin: 0 0 24px;
+  color: var(--ink-soft);
+  font-size: clamp(16px, 1.7vw, 18px);
+  line-height: 1.7;
+}
+
+.cover-meta {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.noscript {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--red-wash);
+  color: var(--red-ink);
+  font-size: 13px;
+}
+
+.cover-art { min-width: 0; }
+
+.cover-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 470px;
+  margin-left: auto;
+}
+
+.cover-card { fill: var(--card); stroke: var(--line); stroke-width: 1.5; }
+.cover-watermark {
+  fill: var(--amber);
+  opacity: .08;
+  font-family: var(--display);
+  font-size: 170px;
+  font-weight: 700;
+}
+.cover-band { fill: rgba(31, 138, 122, .12); stroke: rgba(31, 138, 122, .32); stroke-width: 1.4; stroke-dasharray: 5 4; }
+.cover-axis { stroke: var(--navy); stroke-width: 2; }
+.cover-index { stroke: var(--line-strong); stroke-width: 2; }
+.cover-tail { fill: rgba(31, 138, 122, .22); }
+.cover-eps { stroke: var(--amber); stroke-width: 2.2; stroke-dasharray: 6 5; }
+.cover-eps-label { fill: var(--amber-ink); font-size: 19px; font-weight: 800; }
+.cover-dots circle { fill: var(--navy); stroke: var(--card); stroke-width: 2; }
+.cover-dots circle:nth-child(n+5) { fill: var(--teal); }
+.cover-n rect { fill: var(--navy); }
+.cover-n text { fill: #fff; font-size: 13px; font-weight: 800; }
+.cover-zero,
+.cover-one { fill: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* ── stage / scene ──────────────────────────────────────── */
+.stage {
+  margin: 0;
+  padding: 8px 10px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #fffdf8, #fbf7ee);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.scene-svg { display: block; width: 100%; height: auto; }
+
+.scene-note {
+  margin: 0;
+  padding: 8px 8px 12px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  min-height: 30px;
+}
+
+/* scene internals */
+.sc-axis { stroke: var(--navy); stroke-width: 2; }
+.sc-tick { stroke: var(--line-strong); stroke-width: 1.5; }
+.sc-tick-label { fill: var(--muted); font-size: 17px; font-variant-numeric: tabular-nums; }
+.sc-axis-name { fill: var(--muted); font-size: 14px; }
+.sc-band { fill: rgba(31, 138, 122, .14); stroke: rgba(31, 138, 122, .42); stroke-width: 1.5; stroke-dasharray: 6 5; }
+.sc-band-label { fill: var(--teal-ink); font-size: 16px; font-weight: 800; }
+.sc-eps-line { stroke: var(--amber); stroke-width: 2.5; stroke-dasharray: 7 5; }
+.sc-eps-label { fill: var(--amber-ink); font-size: 17px; font-weight: 800; }
+.sc-dot { stroke-width: 2; transition: fill .18s ease, stroke .18s ease, r .18s ease; }
+.sc-dot.is-in { fill: var(--teal); stroke: #fff; }
+.sc-dot.is-out { fill: #fff; stroke: #a8833c; }
+.sc-dot.is-focus { stroke: var(--navy); stroke-width: 2.6; }
+.sc-focus-label { fill: var(--navy); font-size: 17px; font-weight: 800; }
+.seq-dot {
+  fill: var(--navy);
+  stroke: #fff;
+  stroke-width: 1.8;
+  opacity: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: seq-settle .52s cubic-bezier(.2, .7, .3, 1) both;
+  animation-delay: calc(var(--i) * 45ms);
+}
+
+@keyframes seq-settle {
+  from { opacity: 0; transform: translate(26px, -7px); }
+  to { opacity: 1; transform: translate(0, 0); }
+}
+.sc-index-axis { stroke: var(--line-strong); stroke-width: 2; }
+.sc-index-tick { stroke: var(--line-strong); stroke-width: 1.4; }
+.sc-index-label { fill: var(--muted); font-size: 19px; font-variant-numeric: tabular-nums; }
+.sc-index-tail { fill: rgba(31, 138, 122, .18); stroke: rgba(31, 138, 122, .4); stroke-width: 1.2; }
+.sc-n-line { stroke: var(--navy); stroke-width: 2.2; }
+.sc-n-pill rect { fill: var(--navy); }
+.sc-n-pill text { fill: #fff; font-size: 19px; font-weight: 800; }
+.sc-n-outside { fill: var(--navy); font-size: 14px; }
+/* ── coach ──────────────────────────────────────────────── */
+.coach {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 16px 0 0;
+  min-width: 0;
+}
+
+.coach-avatar {
+  flex: none;
+  width: 82px;
+  height: 98px;
+  margin-top: -4px;
+  display: grid;
+  place-items: end center;
+}
+
+.companion-avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.bubble {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 11px 15px 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 8px 20px rgba(23, 50, 77, .045);
+}
+
+.bubble::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  left: -7px;
+  width: 12px;
+  height: 12px;
+  background: var(--card);
+  border-left: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  transform: rotate(45deg);
+}
+
+.bubble-name {
+  margin: 0 0 2px;
+  color: var(--teal-ink);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.bubble-text {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15.5px;
+  line-height: 1.6;
+}
+
+/* ── avatar expressions ─────────────────────────────────── */
+.av-ground { fill: var(--navy); opacity: .08; }
+.av-neck,
+.av-face { fill: #f4e3cb; }
+.av-hand { fill: #f4e3cb; stroke: #e2cbb0; stroke-width: 1.2; }
+.av-arm { stroke: var(--navy); stroke-width: 17; stroke-linecap: round; fill: none; }
+.av-hair,
+.av-hair-side { fill: var(--navy); }
+.av-hair-hi { stroke: var(--navy-2); stroke-width: 4; stroke-linecap: round; fill: none; opacity: .72; }
+.av-brow { stroke: var(--navy); stroke-width: 3.4; stroke-linecap: round; fill: none; }
+.av-eye { fill: #16202c; }
+.av-catch { fill: #fff; opacity: .92; }
+.av-eyes-closed path,
+.av-eyes-happy path { stroke: #16202c; stroke-width: 3.2; stroke-linecap: round; fill: none; }
+.av-blush { fill: #df8a70; opacity: 0; }
+.av-mouth { stroke: #8b4a3c; stroke-width: 3; stroke-linecap: round; fill: none; }
+.av-mouth-curious { fill: #8b4a3c; stroke: none; }
+.av-thought circle { fill: var(--navy); opacity: .55; }
+.av-thought { opacity: 0; }
+.av-torso { fill: var(--navy); }
+.av-scarf { fill: var(--teal); }
+.av-scarf-tail { fill: #187467; }
+.av-scarf-pin { fill: var(--amber); }
+.av-nb-cover { fill: #fbf5e9; stroke: #cbbda6; stroke-width: 1.5; }
+.av-nb-spine { fill: var(--teal); }
+.av-nb-rule { stroke: #b8c6cc; stroke-width: 1.5; stroke-linecap: round; }
+.av-nb-eps { stroke: var(--amber); stroke-width: 2.6; stroke-linecap: round; fill: none; }
+
+.av-head,
+.av-brow {
+  transition: transform .18s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.av-eyes { transition: opacity .05s ease; }
+.av-eyes-open { opacity: 1; }
+.av-eyes-closed,
+.av-eyes-happy { opacity: 0; }
+.av-mouths .av-mouth { opacity: 0; transition: opacity .12s ease; }
+.av-mouths .av-mouth-neutral { opacity: 1; }
+.av-blush { transition: opacity .15s ease; }
+.av-thought { transition: opacity .15s ease; }
+
+.companion-avatar[data-expression="curious"] .av-head { transform: rotate(-2.2deg); }
+.companion-avatar[data-expression="curious"] .av-brow-l { transform: translateY(-4px) rotate(-9deg); }
+.companion-avatar[data-expression="curious"] .av-brow-r { transform: translateY(1px) rotate(3deg); }
+.companion-avatar[data-expression="curious"] .av-mouth-neutral { opacity: 0; }
+.companion-avatar[data-expression="curious"] .av-mouth-curious { opacity: 1; }
+
+.companion-avatar[data-expression="thinking"] .av-head { transform: rotate(2.4deg); }
+.companion-avatar[data-expression="thinking"] .av-brow-l { transform: translateY(2px) rotate(5deg); }
+.companion-avatar[data-expression="thinking"] .av-brow-r { transform: translateY(-1px) rotate(-4deg); }
+.companion-avatar[data-expression="thinking"] .av-mouth-neutral { opacity: 0; }
+.companion-avatar[data-expression="thinking"] .av-mouth-thinking { opacity: 1; }
+.companion-avatar[data-expression="thinking"] .av-thought { opacity: 1; }
+
+.companion-avatar[data-expression="happy"] .av-head { transform: rotate(-1deg); }
+.companion-avatar[data-expression="happy"] .av-eyes-open { opacity: 0; }
+.companion-avatar[data-expression="happy"] .av-eyes-happy { opacity: 1; }
+.companion-avatar[data-expression="happy"] .av-mouth-neutral { opacity: 0; }
+.companion-avatar[data-expression="happy"] .av-mouth-happy { opacity: 1; }
+.companion-avatar[data-expression="happy"] .av-blush { opacity: .55; }
+
+.companion-avatar[data-expression="oops"] .av-head { transform: rotate(1.6deg); }
+.companion-avatar[data-expression="oops"] .av-mouth-neutral { opacity: 0; }
+.companion-avatar[data-expression="oops"] .av-mouth-oops { opacity: 1; }
+
+.av-figure {
+  animation: av-breathe 6.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+@keyframes av-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+/* ── controls ───────────────────────────────────────────── */
+.control-card {
+  margin-top: 12px;
+  padding: 12px 16px 11px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: 0 8px 24px rgba(23, 50, 77, .035);
+  min-width: 0;
+}
+
+.slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.slider-head label {
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+#eps-value {
+  color: var(--navy);
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.eps-range {
+  width: 100%;
+  height: 28px;
+  margin: 2px 0 0;
+  accent-color: var(--teal);
+  cursor: pointer;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.preset {
+  min-width: 58px;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: #fbf8f1;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease, color .15s ease;
+}
+
+.preset:hover { border-color: var(--teal); color: var(--teal-ink); }
+.preset[aria-pressed="true"] {
+  border-color: var(--teal);
+  background: var(--teal-wash);
+  color: var(--teal-ink);
+}
+
+.math-strip {
+  padding: 8px 12px;
+  border-radius: 13px;
+  background: var(--paper-2);
+  min-width: 0;
+}
+
+.formula {
+  margin: 0;
+  color: var(--navy);
+  font-family: var(--math);
+  font-size: 16.5px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.checks {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-family: var(--math);
+  font-size: 12.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.check-sep { padding: 0 4px; color: var(--line-strong); }
+
+/* ── questions ──────────────────────────────────────────── */
+.coach-question { margin-top: 6px; }
+
+.question-card {
+  margin-top: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+
+.given {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 4px;
+  color: var(--navy);
+  font-family: var(--math);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.given-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--amber-wash);
+  color: var(--amber-ink);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.statement {
+  margin: 0 0 4px;
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.options-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.option {
+  min-height: 62px;
+  padding: 10px 8px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--navy);
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease, color .15s ease, opacity .15s ease;
+}
+
+.option:hover { border-color: var(--teal); background: #f2faf7; }
+.option:disabled { cursor: default; }
+
+.option.is-wrong {
+  border-color: var(--red);
+  background: var(--red-wash);
+  color: var(--red-ink);
+}
+
+.option.is-correct {
+  border-color: var(--teal);
+  background: var(--teal);
+  color: #fff;
+}
+
+.options.is-locked .option:not(.is-correct) { opacity: .48; }
+
+.question-help {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.feedback {
+  min-height: 52px;
+  margin-top: 8px;
+  padding: 10px 13px;
+  border-radius: 12px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.feedback:empty { visibility: hidden; }
+.feedback.is-wrong { background: var(--red-wash); color: var(--red-ink); }
+.feedback.is-correct { background: var(--teal-wash); color: var(--teal-ink); }
+
+.hint-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.hint-btn {
+  min-height: 36px;
+  padding: 5px 13px;
+  border: 1px solid rgba(31, 138, 122, .32);
+  border-radius: 999px;
+  background: var(--teal-wash);
+  color: var(--teal-ink);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hint-btn:hover { border-color: var(--teal); background: #d8eee7; }
+
+.hint {
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid rgba(215, 138, 31, .32);
+  border-radius: 11px;
+  background: var(--amber-wash);
+  color: var(--amber-ink);
+  font-size: 13.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.hint-btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.hint-name {
+  margin-right: 3px;
+  font-weight: 800;
+}
+
+/* ── actions ────────────────────────────────────────────── */
+.screen-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 15px;
+}
+
+.action-note {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.btn {
+  appearance: none;
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
+}
+
+.btn-primary {
+  min-width: 148px;
+  min-height: 50px;
+  padding: 0 24px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 16px;
+  box-shadow: 0 10px 22px rgba(23, 50, 77, .16);
+}
+
+.btn-primary:hover { background: var(--navy-2); }
+
+.btn-primary:disabled {
+  border-color: #d3cabb;
+  background: #e3ddd2;
+  color: #5f5a51;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.btn-start {
+  min-width: 168px;
+  min-height: 54px;
+  font-size: 17px;
+}
+
+.btn-secondary {
+  min-width: 148px;
+  min-height: 50px;
+  padding: 0 20px;
+  border-color: var(--line-strong);
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+.btn-secondary:disabled { opacity: .55; cursor: not-allowed; }
+
+/* ── summary ────────────────────────────────────────────── */
+.screen-summary { justify-content: center; }
+
+.summary-head { margin-bottom: 14px; }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 12px;
+  padding: 7px 14px 7px 9px;
+  border: 1px solid rgba(31, 138, 122, .35);
+  border-radius: 999px;
+  background: var(--teal-wash);
+  color: var(--teal-ink);
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.badge-mark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--teal);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.screen-summary h2 {
+  margin: 0;
+  color: var(--navy);
+  font-size: clamp(30px, 3.6vw, 42px);
+  line-height: 1.16;
+  letter-spacing: -.025em;
+}
+
+.definition {
+  margin: 2px 0 8px;
+  padding: 20px 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  color: var(--navy);
+  font-family: var(--math);
+  font-size: clamp(17px, 2.4vw, 25px);
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.definition-note {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.summary-card {
+  padding: 17px 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  min-width: 0;
+}
+
+.summary-card h3 {
+  margin: 0 0 6px;
+  color: var(--navy);
+  font-size: 16.5px;
+}
+
+.summary-card p {
+  margin: 0 0 7px;
+  color: var(--ink-soft);
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+
+.summary-card p:last-child { margin-bottom: 0; }
+
+.inline-math {
+  font-family: var(--math);
+  font-size: .94em;
+  white-space: nowrap;
+}
+
+.summary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.placeholder-note {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ── responsive ─────────────────────────────────────────── */
+@media (max-width: 800px) {
+  .cover-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .cover-art { order: 2; }
+  .cover-svg { margin: 0 auto; max-width: 430px; }
+  .screen-cover h1 { max-width: 14ch; }
+}
+
+@media (max-width: 620px) {
+  .topbar-inner {
+    min-height: 56px;
+    padding: 8px 16px;
+    gap: 10px;
+  }
+
+  .brand-mark { width: 34px; height: 34px; font-size: 20px; }
+  .brand-name { font-size: 14px; }
+
+  .progress { gap: 7px; }
+  .progress-label { font-size: 11px; }
+  .progress-seg { width: 10px; height: 4px; }
+
+  .screen {
+    min-height: calc(100vh - 57px);
+    min-height: calc(100dvh - 57px);
+    padding: 16px 16px 22px;
+  }
+
+  .screen-head h2 { font-size: 27px; }
+  .screen-cover h1 { max-width: 100%; font-size: clamp(32px, 9vw, 40px); }
+
+  .stage { padding: 4px 4px 0; border-radius: 18px; }
+  .scene-note { padding: 6px 9px 10px; font-size: 12px; }
+
+  .coach { gap: 9px; margin-top: 13px; }
+  .coach-avatar { width: 62px; height: 76px; margin-top: 0; }
+  .bubble { padding: 10px 12px; border-radius: 14px; }
+  .bubble::before { top: 14px; left: -6px; width: 10px; height: 10px; }
+  .bubble-text { font-size: 14.5px; line-height: 1.55; }
+
+  .control-card { padding: 13px 13px 12px; }
+  .formula { font-size: 15px; }
+  .checks { font-size: 12.5px; }
+
+  .sc-tick-label { font-size: 23px; }
+  .sc-index-label { font-size: 25px; }
+  .sc-eps-label { font-size: 23px; }
+  .sc-band-label { font-size: 22px; }
+  .sc-focus-label { font-size: 23px; }
+  .sc-n-pill text { font-size: 24px; }
+  .sc-axis-name { font-size: 20px; }
+  .scene-top-right { display: none; }
+
+  .question-card { padding: 14px; border-radius: 18px; }
+  .given { font-size: 20px; }
+  .statement { font-size: 15.5px; }
+  .options { gap: 8px; }
+  .option { min-height: 58px; font-size: 16px; }
+  .feedback { min-height: 62px; font-size: 13.5px; }
+
+  .screen-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding-top: 14px;
+  }
+  .screen-actions .btn { width: 100%; }
+  .screen-actions .action-note { text-align: center; }
+
+  .definition { padding: 16px 12px; font-size: 17px; }
+  .summary-card { padding: 14px; }
+  .summary-card p { font-size: 13.5px; }
+  .summary-actions { flex-direction: column; }
+  .summary-actions .btn { width: 100%; }
+}
+
+@media (max-width: 400px) {
+  .cover-line { font-size: 15.5px; }
+  .cover-meta { font-size: 12px; }
+  .brand-sub { display: none; }
+  .question-help { font-size: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <div class="app" id="app" data-reduced-motion="false">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand" aria-label="分析入门，第 1 课">
+          <span class="brand-mark" aria-hidden="true">ε</span>
+          <span class="brand-copy">
+            <span class="brand-name">分析入门</span>
+            <span class="brand-sub">第 1 课</span>
+          </span>
+        </div>
+        <div class="progress" id="progress" hidden>
+          <span class="progress-label" id="progress-label">第 1 / 6 步</span>
+          <span class="progress-track" id="progress-track" aria-hidden="true">
+            <span class="progress-seg"></span><span class="progress-seg"></span><span class="progress-seg"></span>
+            <span class="progress-seg"></span><span class="progress-seg"></span><span class="progress-seg"></span>
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- 0 · cover -->
+      <section class="screen screen-cover" data-screen="cover" data-step="0" aria-labelledby="cover-title">
+        <div class="cover-grid">
+          <div class="cover-copy">
+            <p class="eyebrow">微课 · 约 4 分钟</p>
+            <h1 id="cover-title" tabindex="-1">ε–N：<span class="title-keep">一条带子，一个起点</span></h1>
+            <p class="cover-line">3 分钟看懂：为什么 1/n 会无限接近 0，以及 N 到底怎么选。</p>
+            <button type="button" class="btn btn-primary btn-start" data-goto="sequence">开始</button>
+            <p class="cover-meta">3 道小题 · 不需要预备知识</p>
+            <noscript><p class="noscript">这一课需要 JavaScript 才能继续。</p></noscript>
+          </div>
+          <div class="cover-art" aria-hidden="true">
+            <svg class="cover-svg" viewBox="0 0 520 360" focusable="false">
+              <rect class="cover-card" x="10" y="10" width="500" height="340" rx="30"/>
+              <text class="cover-watermark" x="420" y="130">ε</text>
+              <rect class="cover-band" x="44" y="152" width="95" height="116" rx="10"/>
+              <line class="cover-axis" x1="44" y1="210" x2="476" y2="210"/>
+              <line class="cover-eps" x1="139" y1="142" x2="139" y2="268"/>
+              <text class="cover-eps-label" x="147" y="136">ε</text>
+              <g class="cover-dots" aria-hidden="true">
+                <circle cx="476.00" cy="210" r="7"/><circle cx="260.00" cy="210" r="7"/><circle cx="188.00" cy="210" r="7"/>
+                <circle cx="152.00" cy="210" r="7"/><circle cx="130.40" cy="210" r="7"/><circle cx="116.00" cy="210" r="7"/>
+                <circle cx="105.71" cy="210" r="7"/><circle cx="98.00" cy="210" r="7"/><circle cx="92.00" cy="210" r="7"/>
+                <circle cx="87.20" cy="210" r="7"/><circle cx="83.27" cy="210" r="7"/><circle cx="80.00" cy="210" r="7"/>
+                <circle cx="77.23" cy="210" r="7"/><circle cx="74.86" cy="210" r="7"/><circle cx="72.80" cy="210" r="7"/>
+                <circle cx="71.00" cy="210" r="7"/><circle cx="69.41" cy="210" r="7"/><circle cx="68.00" cy="210" r="7"/>
+                <circle cx="66.74" cy="210" r="7"/><circle cx="65.60" cy="210" r="7"/>
+              </g>
+              <line class="cover-index" x1="44" y1="296" x2="476" y2="296"/>
+              <rect class="cover-tail" x="130.40" y="292" width="345.60" height="8" rx="4"/>
+              <g class="cover-n">
+                <rect x="101" y="276" width="60" height="24" rx="12"/>
+                <text x="131" y="293" text-anchor="middle">N</text>
+              </g>
+              <text class="cover-zero" x="44" y="332">0</text>
+              <text class="cover-one" x="476" y="332" text-anchor="end">1</text>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- 1 · sequence -->
+      <section class="screen" data-screen="sequence" data-step="1" aria-labelledby="sequence-title" hidden>
+        <div class="screen-head">
+          <p class="eyebrow">序列</p>
+          <h2 id="sequence-title" tabindex="-1">aₙ = 1/n</h2>
+        </div>
+        <figure class="stage" id="sequence-stage">
+          <svg id="sequence-svg" class="scene-svg" viewBox="0 0 1000 330" role="img" aria-labelledby="sequence-svg-title">
+            <title id="sequence-svg-title">序列 aₙ = 1/n 的前 20 项，从 1 向 0 靠近。</title>
+            <g id="sequence-layer"></g>
+          </svg>
+          <figcaption class="scene-note">前 20 项，按 aₙ 的值排在 0–1 上。</figcaption>
+        </figure>
+        <div class="coach">
+          <div class="coach-avatar" data-coach aria-hidden="true"></div>
+          <div class="bubble">
+            <p class="bubble-name">小析</p>
+            <p class="bubble-text">这些点越来越接近 0——但“越来越近”不是证明。怎么把“足够近”说死？</p>
+          </div>
+        </div>
+        <div class="screen-actions">
+          <span class="action-note">看完了就继续</span>
+          <button type="button" class="btn btn-primary" data-goto="band">下一步</button>
+        </div>
+      </section>
+
+      <!-- 2 · band + N -->
+      <section class="screen" data-screen="band" data-step="2" aria-labelledby="band-title" hidden>
+        <div class="screen-head">
+          <p class="eyebrow">定义</p>
+          <h2 id="band-title" tabindex="-1">把“足够近”画成一条带子</h2>
+        </div>
+        <figure class="stage" id="band-stage" data-eps="0.22" data-n="5" data-ok-first="true" data-ok-prev="true">
+          <svg id="band-svg" class="scene-svg" viewBox="0 0 1000 360" role="img" aria-labelledby="band-svg-title">
+            <title id="band-svg-title">ε–N 带子：值轴放大到 0 附近，误差带从 0 到 ε，序号轴上标出起点 N。</title>
+            <g id="band-layer"></g>
+          </svg>
+          <figcaption class="scene-note" id="band-caption">ε = 0.220：画面里 n = 5 … 20 在带内；N = 5。</figcaption>
+        </figure>
+        <div class="coach">
+          <div class="coach-avatar" data-coach aria-hidden="true"></div>
+          <div class="bubble">
+            <p class="bubble-name">小析</p>
+            <p class="bubble-text">你把允许误差 ε 定下来，N 就是“从此以后都在带内”的起点。</p>
+          </div>
+        </div>
+        <div class="control-card">
+          <div class="slider-head">
+            <label for="eps-range">允许误差 ε</label>
+            <output id="eps-value" for="eps-range">ε = 0.220</output>
+          </div>
+          <input id="eps-range" class="eps-range" type="range" min="0.001" max="0.25" step="0.001" value="0.22" aria-describedby="band-caption">
+          <div class="presets" role="group" aria-label="ε 预设">
+            <button type="button" class="preset" data-eps="0.25" aria-pressed="false">0.25</button>
+            <button type="button" class="preset" data-eps="0.22" aria-pressed="true">0.22</button>
+            <button type="button" class="preset" data-eps="0.10" aria-pressed="false">0.10</button>
+            <button type="button" class="preset" data-eps="0.05" aria-pressed="false">0.05</button>
+          </div>
+          <div class="math-strip">
+            <p class="formula" id="n-formula">N = ⌊1/0.220⌋ + 1 = 5</p>
+            <p class="checks">
+              <span id="check-first">1/N &lt; ε：1/5 = 0.2000 &lt; 0.2200 ✓</span>
+              <span class="check-sep" aria-hidden="true">·</span>
+              <span id="check-prev">1/(N−1) ≥ ε：1/4 = 0.2500 ≥ 0.2200 ✓</span>
+            </p>
+          </div>
+        </div>
+        <div class="screen-actions">
+          <span class="action-note">拖一拖滑块，看 N 怎么移动</span>
+          <button type="button" class="btn btn-primary" data-goto="q1">下一步</button>
+        </div>
+      </section>
+
+      <!-- 3 · Q1 -->
+      <section class="screen" data-screen="q1" data-step="3" aria-labelledby="q1-title" hidden>
+        <div class="screen-head">
+          <p class="eyebrow">练一练</p>
+          <h2 id="q1-title" tabindex="-1">试一试：找 N</h2>
+        </div>
+        <div class="coach coach-question">
+          <div class="coach-avatar" data-coach aria-hidden="true"></div>
+          <div class="bubble">
+            <p class="bubble-name">小析</p>
+            <p class="bubble-text" id="q1-prompt">ε = 0.22 时，N 是多少？</p>
+          </div>
+        </div>
+        <div class="question-card" data-question="q1">
+          <p class="given"><span class="given-tag">给定</span>ε = 0.22</p>
+          <div class="options" data-options="q1" role="group" aria-labelledby="q1-prompt">
+            <button type="button" class="option" data-choice="4">N = 4</button>
+            <button type="button" class="option" data-choice="5">N = 5</button>
+            <button type="button" class="option" data-choice="10">N = 10</button>
+          </div>
+          <p class="question-help">选一个答案。答错没关系，可以重试。</p>
+          <div class="feedback" id="q1-feedback" role="status" aria-live="polite" aria-atomic="true"></div>
+          <div class="hint-row">
+            <button type="button" class="hint-btn" data-hint="q1" aria-expanded="false" aria-controls="q1-hint">需要提示</button>
+            <p class="hint" id="q1-hint" role="status" aria-live="polite" hidden></p>
+          </div>
+        </div>
+        <div class="screen-actions">
+          <span class="action-note" id="q1-note">答对后才能继续</span>
+          <button type="button" class="btn btn-primary" data-goto="q2" data-guard="q1" disabled>下一步</button>
+        </div>
+      </section>
+
+      <!-- 4 · Q2 -->
+      <section class="screen" data-screen="q2" data-step="4" aria-labelledby="q2-title" hidden>
+        <div class="screen-head">
+          <p class="eyebrow">判断</p>
+          <h2 id="q2-title" tabindex="-1">试一试：判断</h2>
+        </div>
+        <div class="coach coach-question">
+          <div class="coach-avatar" data-coach aria-hidden="true"></div>
+          <div class="bubble">
+            <p class="bubble-name">小析</p>
+            <p class="bubble-text" id="q2-prompt">N = 4 对 ε = 0.22 够用吗？</p>
+          </div>
+        </div>
+        <div class="question-card" data-question="q2">
+          <p class="statement">N = 4 时，从第 4 项起所有项都满足 |aₙ| &lt; 0.22。</p>
+          <div class="options options-two" data-options="q2" role="group" aria-labelledby="q2-prompt">
+            <button type="button" class="option" data-choice="true">正确</button>
+            <button type="button" class="option" data-choice="false">错误</button>
+          </div>
+          <p class="question-help">选一个答案。答错没关系，可以重试。</p>
+          <div class="feedback" id="q2-feedback" role="status" aria-live="polite" aria-atomic="true"></div>
+          <div class="hint-row">
+            <button type="button" class="hint-btn" data-hint="q2" aria-expanded="false" aria-controls="q2-hint">需要提示</button>
+            <p class="hint" id="q2-hint" role="status" aria-live="polite" hidden></p>
+          </div>
+        </div>
+        <div class="screen-actions">
+          <span class="action-note" id="q2-note">答对后才能继续</span>
+          <button type="button" class="btn btn-primary" data-goto="q3" data-guard="q2" disabled>下一步</button>
+        </div>
+      </section>
+
+      <!-- 5 · Q3 -->
+      <section class="screen" data-screen="q3" data-step="5" aria-labelledby="q3-title" hidden>
+        <div class="screen-head">
+          <p class="eyebrow">再练一次</p>
+          <h2 id="q3-title" tabindex="-1">试一试：整数边界</h2>
+        </div>
+        <div class="coach coach-question">
+          <div class="coach-avatar" data-coach aria-hidden="true"></div>
+          <div class="bubble">
+            <p class="bubble-name">小析</p>
+            <p class="bubble-text" id="q3-prompt">ε = 0.10 时，N 是多少？</p>
+          </div>
+        </div>
+        <div class="question-card" data-question="q3">
+          <p class="given"><span class="given-tag">给定</span>ε = 0.10</p>
+          <div class="options" data-options="q3" role="group" aria-labelledby="q3-prompt">
+            <button type="button" class="option" data-choice="10">N = 10</button>
+            <button type="button" class="option" data-choice="11">N = 11</button>
+            <button type="button" class="option" data-choice="21">N = 21</button>
+          </div>
+          <p class="question-help">选一个答案。答错没关系，可以重试。</p>
+          <div class="feedback" id="q3-feedback" role="status" aria-live="polite" aria-atomic="true"></div>
+          <div class="hint-row">
+            <button type="button" class="hint-btn" data-hint="q3" aria-expanded="false" aria-controls="q3-hint">需要提示</button>
+            <p class="hint" id="q3-hint" role="status" aria-live="polite" hidden></p>
+          </div>
+        </div>
+        <div class="screen-actions">
+          <span class="action-note" id="q3-note">答对后才能继续</span>
+          <button type="button" class="btn btn-primary" data-goto="summary" data-guard="q3" disabled>下一步</button>
+        </div>
+      </section>
+
+      <!-- 6 · summary -->
+      <section class="screen screen-summary" data-screen="summary" data-step="6" aria-labelledby="summary-title" hidden>
+        <div class="summary-head">
+          <p class="eyebrow">收束</p>
+          <div class="badge" id="summary-badge"><span class="badge-mark" aria-hidden="true">✓</span><span class="badge-text">你理解了 ε–N</span></div>
+          <h2 id="summary-title" tabindex="-1">把定义说死</h2>
+        </div>
+        <p class="definition" id="summary-definition">∀ε&gt;0, ∃N, ∀n≥N, |aₙ−L|&lt;ε</p>
+        <p class="definition-note">这里 aₙ = 1/n，L = 0。</p>
+        <div class="summary-card">
+          <h3>为什么是 ⌊1/ε⌋ + 1？</h3>
+          <p>带内要求严格小于：<span class="inline-math">1/n &lt; ε ⇔ n &gt; 1/ε</span>。N 取第一个严格大于 <span class="inline-math">1/ε</span> 的整数，所以 <span class="inline-math">N = ⌊1/ε⌋ + 1</span>。</p>
+          <p>当 <span class="inline-math">1/ε</span> 正好是整数时，那一项 <span class="inline-math">a_N = ε</span> 不算“严格小于”，所以也要 +1。例：<span class="inline-math">ε = 0.10 → 1/ε = 10 → N = 11</span>。</p>
+        </div>
+        <div class="summary-actions">
+          <button type="button" class="btn btn-primary" data-action="replay">再学一遍</button>
+          <button type="button" class="btn btn-secondary" disabled aria-disabled="true">下一课（占位）</button>
+        </div>
+        <p class="placeholder-note">下一课还在准备中，这里先不放链接。</p>
+      </section>
+    </main>
+  </div>
+
+  <div class="sr-only" id="announcer" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <template id="companion-template">
+    <svg class="companion-avatar" data-expression="curious" viewBox="0 0 260 310" aria-hidden="true" focusable="false">
+      <ellipse class="av-ground" cx="130" cy="298" rx="60" ry="9"/>
+      <g class="av-figure">
+        <path class="av-torso" d="M70 198 Q70 174 102 170 L158 170 Q190 174 190 198 L190 272 Q190 288 172 288 L88 288 Q70 288 70 272 Z"/>
+        <path class="av-arm" d="M82 206 Q70 236 88 258"/>
+        <path class="av-arm" d="M178 206 Q190 236 172 258"/>
+        <rect class="av-neck" x="116" y="152" width="28" height="26" rx="11"/>
+        <path class="av-scarf-tail" d="M112 184 Q100 204 106 224 Q111 235 120 229 Q113 209 120 190 Z"/>
+        <path class="av-scarf" d="M103 174 Q130 189 157 174 L154 192 Q130 205 106 192 Z"/>
+        <circle class="av-scarf-pin" cx="111" cy="181" r="3.4"/>
+        <g class="av-pencil" transform="rotate(20 205 70)">
+          <rect x="201" y="34" width="8" height="52" rx="4" fill="#e9a23b"/>
+          <path d="M201 34 L205 23 L209 34 Z" fill="#f4e3cb"/>
+          <path d="M203.4 27 L205 22 L206.6 27 Z" fill="#16202c"/>
+          <rect x="201" y="82" width="8" height="7" rx="2" fill="#c96f52"/>
+          <rect x="201" y="78" width="8" height="5" fill="#17324d"/>
+        </g>
+        <g class="av-head">
+          <rect class="av-face" x="64" y="30" width="132" height="128" rx="44"/>
+          <path class="av-hair" d="M58 112 C58 52 82 24 130 24 C178 24 202 52 202 112 L202 120 C196 104 190 92 180 82 C166 96 146 102 126 101 C104 100 86 93 74 80 C66 90 62 104 64 122 Z"/>
+          <path class="av-hair-side" d="M60 94 C56 116 59 136 68 152 C66 140 66 126 70 110 Z"/>
+          <path class="av-hair-side" d="M200 94 C204 116 201 136 192 152 C194 140 194 126 190 110 Z"/>
+          <path class="av-hair-hi" d="M84 52 C104 36 142 32 166 44"/>
+          <g class="av-brows">
+            <path class="av-brow av-brow-l" d="M91 111 Q103 106 115 111"/>
+            <path class="av-brow av-brow-r" d="M145 111 Q157 106 169 111"/>
+          </g>
+          <g class="av-eyes av-eyes-open">
+            <ellipse class="av-eye" cx="104" cy="125" rx="5.2" ry="7.2"/>
+            <ellipse class="av-eye" cx="156" cy="125" rx="5.2" ry="7.2"/>
+            <circle class="av-catch" cx="102.2" cy="122.2" r="1.5"/>
+            <circle class="av-catch" cx="154.2" cy="122.2" r="1.5"/>
+          </g>
+          <g class="av-eyes av-eyes-closed">
+            <path d="M97 126 Q104 131 111 126"/>
+            <path d="M149 126 Q156 131 163 126"/>
+          </g>
+          <g class="av-eyes av-eyes-happy">
+            <path d="M97 128 Q104 120 111 128"/>
+            <path d="M149 128 Q156 120 163 128"/>
+          </g>
+          <ellipse class="av-blush" cx="88" cy="140" rx="9" ry="4.2"/>
+          <ellipse class="av-blush" cx="172" cy="140" rx="9" ry="4.2"/>
+          <g class="av-mouths">
+            <path class="av-mouth av-mouth-neutral" d="M121 145 Q130 151 139 145"/>
+            <ellipse class="av-mouth av-mouth-curious" cx="130" cy="148" rx="4" ry="5.4"/>
+            <path class="av-mouth av-mouth-thinking" d="M122 148 Q130 145 138 148"/>
+            <path class="av-mouth av-mouth-happy" d="M117 144 Q130 160 143 144"/>
+            <path class="av-mouth av-mouth-oops" d="M122 148 Q130 144 138 149"/>
+          </g>
+          <g class="av-thought"><circle cx="52" cy="82" r="1.6"/><circle cx="44" cy="72" r="2.2"/><circle cx="36" cy="62" r="2.8"/></g>
+        </g>
+        <g class="av-notebook" transform="rotate(-4 130 250)">
+          <rect class="av-nb-cover" x="88" y="224" width="84" height="58" rx="7"/>
+          <rect class="av-nb-spine" x="88" y="224" width="9" height="58" rx="4"/>
+          <path class="av-nb-rule" d="M106 240 H160"/>
+          <path class="av-nb-rule" d="M106 249 H154"/>
+          <path class="av-nb-rule" d="M106 258 H162"/>
+          <path class="av-nb-eps" d="M173 245 C166 243 163 248 168 251 C174 254 174 262 165 260"/>
+        </g>
+        <circle class="av-hand" cx="94" cy="257" r="8.5"/>
+        <circle class="av-hand" cx="167" cy="256" r="8.5"/>
+      </g>
+    </svg>
+  </template>
+
+  <script type="application/json" id="lesson-data">
+{"schema":"soko.lesson_complete/1","id":"analysis-epsilon-n-lesson","version":"1.0.0","title":"ε–N：一条带子，一个起点","scene":{"defaultEpsilon":0.22,"epsilonMin":0.001,"epsilonMax":0.25,"presets":[0.25,0.22,0.1,0.05]},"questions":[{"id":"q1","kind":"choice","epsilon":0.22,"choices":[4,5,10],"answer":5,"hint":"先算 1/0.22 ≈ 4.545；N 要取第一个严格大于它的整数。","explanation":"1/0.22 ≈ 4.545，所以 N = ⌊4.545⌋ + 1 = 5。验算：a₅ = 0.2 \u003c 0.22。","wrong":{"4":"a₄ = 1/4 = 0.25 ≥ 0.22，第 4 项还在带外。","10":"N = 10 也能让后面的项在带内，但不是最小的起点。"}},{"id":"q2","kind":"boolean","epsilon":0.22,"choices":[true,false],"answer":false,"hint":"只比第 4 项：a₄ = 1/4 = 0.25。它小于 ε = 0.22 吗？","explanation":"1/4 = 0.25 ≥ 0.22，第 4 项在带外。N 必须满足 1/N \u003c ε，所以最小起点是 N = 5。","wrong":{"true":"再看一眼：1/4 = 0.25 ≥ 0.22，第 4 项还在带外。"}},{"id":"q3","kind":"choice","epsilon":0.1,"choices":[10,11,21],"answer":11,"hint":"1/0.10 = 10 正好是整数；a₁₀ = 0.10 等于 ε，不算严格小于。","explanation":"1/0.10 = 10 是整数；a₁₀ = 0.10 不算严格小于 ε，所以 N = 10 + 1 = 11。","wrong":{"10":"a₁₀ = 0.10 正好等于 ε，不满足严格小于。","21":"N = 21 也安全，但不是最小起点；⌊10⌋ + 1 = 11。"}}]}
+  </script>
+  <script>
+/* scripts/lesson_complete/math.js — the lesson's only math source.
+ *
+ * For aₙ = 1/n → 0:
+ *   |aₙ| < ε  ⇔  1/n < ε  ⇔  n > 1/ε.
+ *
+ * N is the FIRST integer strictly greater than 1/ε:
+ *   N = ⌊1/ε⌋ + 1
+ * even when 1/ε is an integer — the boundary term a_N = ε is not inside
+ * the band, because the definition uses strict "<".
+ *
+ * The file is a tiny UMD module: the browser gets window.LessonMath, Node
+ * gets module.exports. The page, build and checks all import this one file.
+ */
+(function (root, factory) {
+  "use strict";
+  var api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) root.LessonMath = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  "use strict";
+
+  var EPS_MIN = 0.001;
+  var EPS_MAX = 0.25;
+  var EPS_SCALE = 1000;
+  var TERMS = 20;
+  var VISIBLE_FIRST = 4; // the zoomed band scene draws n = 4 … 20
+  var VISIBLE_LAST = 20;
+
+  function clamp(value, lo, hi) {
+    return Math.min(hi, Math.max(lo, value));
+  }
+
+  function isFinitePositive(value) {
+    return typeof value === "number" && isFinite(value) && value > 0;
+  }
+
+  function quantizeEpsilon(value) {
+    if (typeof value !== "number" || !isFinite(value)) return EPS_MIN;
+    return Math.round(clamp(value, EPS_MIN, EPS_MAX) * EPS_SCALE) / EPS_SCALE;
+  }
+
+  function computeN(epsilon) {
+    if (!isFinitePositive(epsilon)) {
+      throw new RangeError("epsilon must be a positive finite number");
+    }
+    var milli = Math.round(epsilon * EPS_SCALE);
+    if (Math.abs(epsilon * EPS_SCALE - milli) <= 1e-7) {
+      var k = Math.max(1, Math.round(milli));
+      return Math.floor(EPS_SCALE / k) + 1;
+    }
+    var inv = 1 / epsilon;
+    var nearest = Math.round(inv);
+    if (Math.abs(inv - nearest) <= 1e-9) return nearest + 1;
+    return Math.floor(inv) + 1;
+  }
+
+  /** Band membership for a term value: 0 < value < ε. */
+  function isInsideValue(value, epsilon) {
+    return value > 0 && value < epsilon;
+  }
+
+  /** Band membership for a term index: n ≥ 1 and 1/n < ε. */
+  function isInside(n, epsilon) {
+    return n >= 1 && isInsideValue(1 / n, epsilon);
+  }
+
+  /** How many of the drawn terms (n = 4 … 20) are inside the band. */
+  function insideVisibleCount(epsilon) {
+    var count = 0;
+    for (var n = VISIBLE_FIRST; n <= VISIBLE_LAST; n += 1) {
+      if (isInside(n, epsilon)) count += 1;
+    }
+    return count;
+  }
+
+  /** Strict boundary checks: 1/N < ε and 1/(N−1) ≥ ε. */
+  function strictChecks(epsilon) {
+    var N = computeN(epsilon);
+    var first = 1 / N;
+    var previous = N > 1 ? 1 / (N - 1) : Infinity;
+    return {
+      N: N,
+      first: first,
+      previous: previous,
+      firstOk: first < epsilon,
+      previousOk: N === 1 || previous >= epsilon,
+      holds: first < epsilon && (N === 1 || previous >= epsilon),
+    };
+  }
+
+  /** Returns the integer k when 1/ε = k exactly; otherwise null. */
+  function exactReciprocal(epsilon) {
+    var inv = 1 / epsilon;
+    var nearest = Math.round(inv);
+    return Math.abs(inv - nearest) <= 1e-9 ? nearest : null;
+  }
+
+  function fmtEpsilon(epsilon) {
+    return Number(epsilon).toFixed(3);
+  }
+
+  /** Keeps the strict-boundary numbers readable near 0. */
+  function fmtTight(value) {
+    if (!isFinite(value)) return "∞";
+    if (value !== 0 && Math.abs(value) < 0.01) return Number(value).toFixed(6);
+    return Number(value).toFixed(4);
+  }
+
+  function fmtTerm(n) {
+    var value = 1 / n;
+    return Number.isInteger(value) ? String(value) : value.toFixed(4);
+  }
+
+  return {
+    EPS_MIN: EPS_MIN,
+    EPS_MAX: EPS_MAX,
+    EPS_SCALE: EPS_SCALE,
+    TERMS: TERMS,
+    VISIBLE_FIRST: VISIBLE_FIRST,
+    VISIBLE_LAST: VISIBLE_LAST,
+    clamp: clamp,
+    quantizeEpsilon: quantizeEpsilon,
+    computeN: computeN,
+    isInside: isInside,
+    isInsideValue: isInsideValue,
+    insideVisibleCount: insideVisibleCount,
+    strictChecks: strictChecks,
+    exactReciprocal: exactReciprocal,
+    fmtEpsilon: fmtEpsilon,
+    fmtTight: fmtTight,
+    fmtTerm: fmtTerm,
+  };
+});
+
+  </script>
+  <script>
+/* scripts/lesson_complete/app.js — one linear lesson, no dependencies.
+ *
+ * The page is a seven-screen SPA: cover → sequence → band → Q1 → Q2 → Q3 →
+ * summary. Only one screen is exposed at a time; the only forward action is
+ * the labelled "下一步" button. Mathematics comes from math.js; this file
+ * renders the scene and decides whether an answer is right.
+ */
+(function () {
+  "use strict";
+
+  var M = window.LessonMath;
+  var DATA = JSON.parse(document.getElementById("lesson-data").textContent);
+  var SCREEN_ORDER = ["cover", "sequence", "band", "q1", "q2", "q3", "summary"];
+  var STEP_COUNT = SCREEN_ORDER.length - 1; // cover is not a numbered step
+  var $ = function (selector, root) { return (root || document).querySelector(selector); };
+  var $$ = function (selector, root) {
+    return Array.prototype.slice.call((root || document).querySelectorAll(selector));
+  };
+
+  function esc(value) {
+    return String(value).replace(/[&<>"']/g, function (ch) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+    });
+  }
+
+  function subscript(n) {
+    var map = { "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉" };
+    return String(n).split("").map(function (ch) { return map[ch] || ch; }).join("");
+  }
+
+  var QUESTIONS = {};
+  DATA.questions.forEach(function (question) {
+    QUESTIONS[question.id] = question;
+  });
+
+  var state = {
+    screen: "cover",
+    epsilon: DATA.scene.defaultEpsilon,
+    questions: {},
+  };
+  DATA.questions.forEach(function (question) {
+    state.questions[question.id] = { solved: false, wrong: false, selected: null, hintOpen: false };
+  });
+
+  var dom = {
+    app: $("#app"),
+    progress: $("#progress"),
+    progressLabel: $("#progress-label"),
+    progressSegs: $$(".progress-seg"),
+    announcer: $("#announcer"),
+    epsRange: $("#eps-range"),
+    epsValue: $("#eps-value"),
+    nFormula: $("#n-formula"),
+    checkFirst: $("#check-first"),
+    checkPrev: $("#check-prev"),
+    bandStage: $("#band-stage"),
+    bandCaption: $("#band-caption"),
+  };
+
+  var motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  function syncMotionFlag() {
+    dom.app.dataset.reducedMotion = motionQuery.matches ? "true" : "false";
+  }
+  syncMotionFlag();
+  if (typeof motionQuery.addEventListener === "function") {
+    motionQuery.addEventListener("change", syncMotionFlag);
+  }
+
+  var announceTimer = 0;
+  function announce(text) {
+    window.clearTimeout(announceTimer);
+    dom.announcer.textContent = "";
+    announceTimer = window.setTimeout(function () {
+      dom.announcer.textContent = text;
+    }, 40);
+  }
+
+  // ── companion ──────────────────────────────────────────────
+  function mountCompanions() {
+    var template = document.getElementById("companion-template");
+    if (!template) return;
+    $$("[data-coach]").forEach(function (slot) {
+      slot.appendChild(template.content.cloneNode(true));
+    });
+  }
+
+  function visibleCompanion() {
+    return $(".screen:not([hidden]) .companion-avatar");
+  }
+
+  function setExpression(expression) {
+    var avatar = visibleCompanion();
+    if (avatar) avatar.setAttribute("data-expression", expression);
+  }
+
+  function questionExpression(id) {
+    var qs = state.questions[id];
+    if (!qs) return "curious";
+    if (qs.solved) return "happy";
+    if (qs.wrong) return "oops";
+    if (qs.hintOpen) return "thinking";
+    return "curious";
+  }
+
+  // ── sequence scene ─────────────────────────────────────────
+  var SEQ = { x0: 70, x1: 930, axisY: 210 };
+
+  function buildSequence() {
+    var width = SEQ.x1 - SEQ.x0;
+    var ticks = [0, 0.25, 0.5, 0.75, 1];
+    var tickMarkup = ticks.map(function (tick) {
+      var x = SEQ.x0 + tick * width;
+      var anchor = tick === 0 ? "start" : tick === 1 ? "end" : "middle";
+      var label = tick === 0.5 ? "1/2" : String(tick);
+      return '<line class="sc-tick" x1="' + x.toFixed(2) + '" x2="' + x.toFixed(2) +
+        '" y1="' + (SEQ.axisY + 10) + '" y2="' + (SEQ.axisY + 20) + '"/>' +
+        '<text class="sc-tick-label" x="' + x.toFixed(2) + '" y="' + (SEQ.axisY + 46) +
+        '" text-anchor="' + anchor + '">' + label + "</text>";
+    }).join("");
+
+    var dots = "";
+    for (var n = 1; n <= M.TERMS; n += 1) {
+      var x = SEQ.x0 + (1 / n) * width;
+      dots += '<circle class="seq-dot" data-term="' + n + '" cx="' + x.toFixed(2) +
+        '" cy="' + SEQ.axisY + '" r="8.6" style="--i:' + (n - 1) + '">' +
+        "<title>a" + n + " = " + esc(M.fmtTerm(n)) + "</title></circle>";
+    }
+
+    $("#sequence-layer").innerHTML =
+      '<text class="sc-axis-name" x="' + SEQ.x0 + '" y="42">点的位置 = aₙ 的值</text>' +
+      '<text class="sc-axis-name" x="' + SEQ.x1 + '" y="42" text-anchor="end">n = 1 … 20</text>' +
+      '<line class="sc-axis" x1="' + SEQ.x0 + '" x2="' + SEQ.x1 +
+      '" y1="' + SEQ.axisY + '" y2="' + SEQ.axisY + '"/>' +
+      '<line class="sc-tick" x1="' + SEQ.x0 + '" x2="' + SEQ.x0 + '" y1="86" y2="236"/>' +
+      tickMarkup +
+      '<g id="sequence-dots">' + dots + "</g>";
+  }
+
+  // ── band + N scene ─────────────────────────────────────────
+  var BAND = {
+    x0: 70,
+    x1: 930,
+    valueTop: 66,
+    valueBottom: 220,
+    axisY: 164,
+    indexY: 296,
+    valueMax: 0.26,
+    indexFirst: 1,
+    indexLast: 20,
+  };
+
+  function xForValue(value) {
+    return BAND.x0 + (value / BAND.valueMax) * (BAND.x1 - BAND.x0);
+  }
+
+  function xForIndex(n) {
+    var clamped = M.clamp(n, BAND.indexFirst, BAND.indexLast);
+    return BAND.x0 + ((clamped - BAND.indexFirst) / (BAND.indexLast - BAND.indexFirst)) * (BAND.x1 - BAND.x0);
+  }
+
+  function buildBand() {
+    var tickValues = [0, 0.05, 0.1, 0.15, 0.2, 0.25];
+    var ticks = tickValues.map(function (value) {
+      var x = xForValue(value);
+      var anchor = value === 0 ? "start" : value === 0.25 ? "end" : "middle";
+      return '<line class="sc-tick" x1="' + x.toFixed(2) + '" x2="' + x.toFixed(2) +
+        '" y1="' + (BAND.axisY + 10) + '" y2="' + (BAND.axisY + 20) + '"/>' +
+        '<text class="sc-tick-label" x="' + x.toFixed(2) + '" y="' + (BAND.axisY + 45) +
+        '" text-anchor="' + anchor + '">' + value.toFixed(2) + "</text>";
+    }).join("");
+
+    var dots = "";
+    for (var n = M.VISIBLE_FIRST; n <= M.VISIBLE_LAST; n += 1) {
+      var x = xForValue(1 / n);
+      dots += '<circle class="band-dot sc-dot" data-term="' + n + '" cx="' + x.toFixed(2) +
+        '" cy="' + BAND.axisY + '" r="10"><title>a' + n + " = " + esc(M.fmtTerm(n)) + "</title></circle>";
+    }
+
+    var indexTicks = "";
+    for (var i = BAND.indexFirst; i <= BAND.indexLast; i += 1) {
+      var ix = xForIndex(i);
+      indexTicks += '<line class="sc-index-tick" x1="' + ix.toFixed(2) + '" x2="' + ix.toFixed(2) +
+        '" y1="' + (BAND.indexY + 4) + '" y2="' + (BAND.indexY + 12) + '"/>';
+    }
+    var indexLabels = [1, 5, 10, 15, 20].map(function (n) {
+      var x = xForIndex(n);
+      var anchor = n === 1 ? "start" : n === 20 ? "end" : "middle";
+      return '<text class="sc-index-label" x="' + x.toFixed(2) + '" y="' + (BAND.indexY + 38) +
+        '" text-anchor="' + anchor + '">' + n + "</text>";
+    }).join("");
+
+    $("#band-layer").innerHTML =
+      '<text class="sc-axis-name" x="' + BAND.x0 + '" y="34">值轴 · 0 附近放大</text>' +
+      '<text class="sc-axis-name scene-top-right" x="' + BAND.x1 + '" y="34" text-anchor="end">n = 4 … 20</text>' +
+      '<rect class="sc-band" id="band-rect" x="' + BAND.x0 + '" y="' + BAND.valueTop +
+      '" width="0" height="' + (BAND.valueBottom - BAND.valueTop) + '" rx="8"/>' +
+      '<text class="sc-band-label" x="' + (BAND.x0 + 10) + '" y="' + (BAND.valueTop + 26) +
+      '">带内 0 &lt; 1/n &lt; ε</text>' +
+      '<line class="sc-axis" x1="' + BAND.x0 + '" x2="' + BAND.x1 +
+      '" y1="' + BAND.axisY + '" y2="' + BAND.axisY + '"/>' +
+      ticks +
+      '<line class="sc-eps-line" id="band-eps-line" x1="0" x2="0" y1="54" y2="232"/>' +
+      '<text class="sc-eps-label" id="band-eps-label" x="0" y="60">ε</text>' +
+      '<g id="band-dots">' + dots + "</g>" +
+      '<text class="sc-focus-label" id="band-focus-label" x="0" y="140" text-anchor="middle" opacity="0"></text>' +
+      '<line class="sc-n-line" id="band-n-line" x1="0" x2="0" y1="268" y2="' + BAND.indexY + '"/>' +
+      '<g class="sc-n-pill" id="band-n-pill">' +
+        '<rect id="band-n-rect" x="0" y="238" width="86" height="27" rx="13.5"/>' +
+        '<text id="band-n-text" x="0" y="257" text-anchor="middle">N = 5</text>' +
+      "</g>" +
+      '<line class="sc-index-axis" x1="' + BAND.x0 + '" x2="' + BAND.x1 +
+      '" y1="' + BAND.indexY + '" y2="' + BAND.indexY + '"/>' +
+      '<rect class="sc-index-tail" id="band-index-tail" x="0" y="' + (BAND.indexY - 5) +
+      '" width="0" height="10" rx="5"/>' +
+      indexTicks +
+      indexLabels;
+  }
+
+  function renderBand() {
+    var epsilon = state.epsilon;
+    var checks = M.strictChecks(epsilon);
+    var N = checks.N;
+    var inside = M.insideVisibleCount(epsilon);
+    var exact = M.exactReciprocal(epsilon);
+    var bandWidth = Math.max(3, xForValue(epsilon) - BAND.x0);
+    var epsX = xForValue(epsilon);
+
+    $("#band-rect").setAttribute("width", bandWidth.toFixed(2));
+    $("#band-eps-line").setAttribute("x1", epsX.toFixed(2));
+    $("#band-eps-line").setAttribute("x2", epsX.toFixed(2));
+    var epsAnchor = epsX > BAND.x1 - 130 ? "end" : "start";
+    $("#band-eps-label").setAttribute("x", (epsX + (epsAnchor === "end" ? -6 : 6)).toFixed(2));
+    $("#band-eps-label").setAttribute("text-anchor", epsAnchor);
+    $("#band-eps-label").textContent = "ε = " + M.fmtEpsilon(epsilon);
+
+    $$("#band-dots .band-dot").forEach(function (dot) {
+      var n = Number(dot.dataset.term);
+      var isIn = M.isInside(n, epsilon);
+      var isFocus = n === N;
+      dot.setAttribute("class", "band-dot sc-dot " + (isIn ? "is-in" : "is-out") + (isFocus ? " is-focus" : ""));
+      dot.setAttribute("r", isFocus ? "13" : "10");
+    });
+
+    var focusLabel = $("#band-focus-label");
+    if (N <= M.VISIBLE_LAST) {
+      focusLabel.setAttribute("x", xForValue(1 / N).toFixed(2));
+      focusLabel.setAttribute("opacity", "1");
+      focusLabel.textContent = "a" + subscript(N);
+    } else {
+      focusLabel.setAttribute("opacity", "0");
+      focusLabel.textContent = "";
+    }
+
+    var markerX = xForIndex(N);
+    var pillText = N <= M.VISIBLE_LAST ? "N = " + N : "N = " + N + " →";
+    var pillWidth = Math.max(84, pillText.length * 14 + 26);
+    var pillX = M.clamp(markerX - pillWidth / 2, BAND.x0, BAND.x1 - pillWidth);
+    $("#band-n-rect").setAttribute("x", pillX.toFixed(2));
+    $("#band-n-rect").setAttribute("width", pillWidth.toFixed(2));
+    $("#band-n-text").setAttribute("x", (pillX + pillWidth / 2).toFixed(2));
+    $("#band-n-text").textContent = pillText;
+    $("#band-n-line").setAttribute("x1", markerX.toFixed(2));
+    $("#band-n-line").setAttribute("x2", markerX.toFixed(2));
+
+    var tail = $("#band-index-tail");
+    if (N <= M.VISIBLE_LAST) {
+      tail.setAttribute("x", markerX.toFixed(2));
+      tail.setAttribute("width", Math.max(0, BAND.x1 - markerX).toFixed(2));
+      tail.setAttribute("opacity", "1");
+    } else {
+      tail.setAttribute("opacity", "0");
+    }
+
+    dom.epsValue.textContent = "ε = " + M.fmtEpsilon(epsilon);
+    dom.epsRange.value = String(epsilon);
+    dom.epsRange.setAttribute(
+      "aria-valuetext",
+      "ε = " + M.fmtEpsilon(epsilon) + "，N = " + N + "，画面里 " + inside + " 项在带内"
+    );
+    dom.nFormula.textContent = "N = ⌊1/" + M.fmtEpsilon(epsilon) + "⌋ + 1 = " + N;
+    dom.checkFirst.textContent = "1/N < ε：1/" + N + " = " + M.fmtTight(checks.first) + " < " + M.fmtTight(epsilon) + " ✓";
+    dom.checkPrev.textContent = N > 1
+      ? "1/(N−1) ≥ ε：1/" + (N - 1) + " = " + M.fmtTight(checks.previous) + " ≥ " + M.fmtTight(epsilon) + " ✓"
+      : "N = 1";
+
+    var caption;
+    if (N > M.VISIBLE_LAST) {
+      caption = "ε = " + M.fmtEpsilon(epsilon) + "：画面里没有项在带内；N = " + N +
+        " 已在序号轴外，但定义仍要求 n ≥ N 的所有项。";
+    } else {
+      caption = "ε = " + M.fmtEpsilon(epsilon) + "：画面里 n = " + N + " … 20 在带内；N = " + N + "。";
+    }
+    if (exact !== null && exact <= M.VISIBLE_LAST + 1) {
+      caption += " 1/ε = " + exact + " 是整数，a" + subscript(exact) + " = ε 不算严格小于。";
+    }
+    dom.bandCaption.textContent = caption;
+
+    dom.bandStage.dataset.eps = M.fmtEpsilon(epsilon);
+    dom.bandStage.dataset.n = String(N);
+    dom.bandStage.dataset.okFirst = String(checks.firstOk);
+    dom.bandStage.dataset.okPrev = String(checks.previousOk);
+    dom.bandStage.dataset.inside = String(inside);
+
+    $$(".preset").forEach(function (button) {
+      var active = Math.abs(Number(button.dataset.eps) - epsilon) <= 1e-9;
+      button.setAttribute("aria-pressed", String(active));
+    });
+  }
+
+  function announceBand() {
+    var checks = M.strictChecks(state.epsilon);
+    announce("ε = " + M.fmtEpsilon(state.epsilon) + "，N = " + checks.N + "。");
+  }
+
+  // ── screens ────────────────────────────────────────────────
+  function updateProgress(step) {
+    dom.progress.hidden = step === 0;
+    dom.progressLabel.textContent = "第 " + step + " / " + STEP_COUNT + " 步";
+    dom.progressSegs.forEach(function (segment, index) {
+      segment.classList.toggle("is-on", index < step);
+      segment.classList.toggle("is-current", index === step - 1);
+    });
+  }
+
+  function showScreen(name) {
+    if (SCREEN_ORDER.indexOf(name) < 0 || name === state.screen) return;
+    state.screen = name;
+    var target = $('.screen[data-screen="' + name + '"]');
+    $$(".screen").forEach(function (screen) {
+      screen.hidden = screen !== target;
+    });
+    updateProgress(Number(target.dataset.step));
+    window.scrollTo(0, 0);
+    var expression = name === "sequence" ? "curious" : name === "band" ? "thinking" : "curious";
+    if (name === "summary") expression = "happy";
+    setExpression(expression);
+    if (name === "band") renderBand();
+    var heading = target.querySelector("h1, h2");
+    if (heading) heading.focus({ preventScroll: true });
+  }
+
+  function resetQuestion(id) {
+    var qs = state.questions[id];
+    qs.solved = false;
+    qs.wrong = false;
+    qs.selected = null;
+    qs.hintOpen = false;
+    var card = $('.question-card[data-question="' + id + '"]');
+    if (!card) return;
+    var options = $$(".option", card);
+    options.forEach(function (option) {
+      option.disabled = false;
+      option.classList.remove("is-wrong", "is-correct");
+      option.removeAttribute("aria-pressed");
+      option.removeAttribute("aria-invalid");
+    });
+    var group = $(".options", card);
+    if (group) group.classList.remove("is-locked");
+    var feedback = $(".feedback", card);
+    if (feedback) {
+      feedback.textContent = "";
+      feedback.className = "feedback";
+    }
+    var hint = $(".hint", card);
+    if (hint) {
+      hint.hidden = true;
+      hint.textContent = "";
+    }
+    var hintButton = $(".hint-btn", card);
+    if (hintButton) {
+      hintButton.disabled = false;
+      hintButton.setAttribute("aria-expanded", "false");
+      hintButton.textContent = "需要提示";
+    }
+    var note = $("#" + id + "-note");
+    if (note) note.textContent = "答对后才能继续";
+    var next = $('[data-guard="' + id + '"]');
+    if (next) next.disabled = true;
+  }
+
+  function resetLesson() {
+    state.epsilon = DATA.scene.defaultEpsilon;
+    DATA.questions.forEach(function (question) { resetQuestion(question.id); });
+    renderBand();
+    state.screen = "";
+    showScreen("cover");
+    updateProgress(0);
+    window.scrollTo(0, 0);
+  }
+
+  function solveQuestion(id, option) {
+    var question = QUESTIONS[id];
+    var qs = state.questions[id];
+    if (!question || qs.solved) return;
+    qs.solved = true;
+    qs.wrong = false;
+    qs.selected = option.dataset.choice;
+    var card = $('.question-card[data-question="' + id + '"]');
+    var group = $(".options", card);
+    if (group) group.classList.add("is-locked");
+    $$(".option", card).forEach(function (choice) {
+      choice.disabled = true;
+      choice.classList.remove("is-wrong");
+      choice.removeAttribute("aria-invalid");
+    });
+    option.classList.add("is-correct");
+    option.setAttribute("aria-pressed", "true");
+    var feedback = $(".feedback", card);
+    if (feedback) {
+      feedback.className = "feedback is-correct";
+      feedback.textContent = "✓ 对了。" + question.explanation;
+    }
+    var hintButton = $(".hint-btn", card);
+    if (hintButton) hintButton.disabled = true;
+    var note = $("#" + id + "-note");
+    if (note) note.textContent = "答对了，继续吧";
+    var next = $('[data-guard="' + id + '"]');
+    if (next) {
+      next.disabled = false;
+      next.focus();
+    }
+    setExpression("happy");
+  }
+
+  function rejectQuestion(id, option) {
+    var question = QUESTIONS[id];
+    var qs = state.questions[id];
+    if (!question || qs.solved) return;
+    qs.wrong = true;
+    qs.selected = option.dataset.choice;
+    $$('.question-card[data-question="' + id + '"] .option').forEach(function (choice) {
+      choice.classList.toggle("is-wrong", choice === option);
+      if (choice === option) choice.setAttribute("aria-invalid", "true");
+      else choice.removeAttribute("aria-invalid");
+      choice.setAttribute("aria-pressed", choice === option ? "true" : "false");
+    });
+    var message = (question.wrong && question.wrong[option.dataset.choice]) ||
+      "再看一眼带内的条件：1/n < ε。";
+    var feedback = $('.question-card[data-question="' + id + '"] .feedback');
+    if (feedback) {
+      feedback.className = "feedback is-wrong";
+      feedback.textContent = "还不对。" + message;
+    }
+    var note = $("#" + id + "-note");
+    if (note) note.textContent = "再试一次";
+    setExpression("oops");
+  }
+
+  function toggleHint(id) {
+    var question = QUESTIONS[id];
+    var qs = state.questions[id];
+    var card = $('.question-card[data-question="' + id + '"]');
+    var hint = $(".hint", card);
+    var button = $(".hint-btn", card);
+    if (!question || !hint || !button || qs.solved) return;
+    qs.hintOpen = !qs.hintOpen;
+    hint.hidden = !qs.hintOpen;
+    button.setAttribute("aria-expanded", String(qs.hintOpen));
+    button.textContent = qs.hintOpen ? "收起提示" : "需要提示";
+    if (qs.hintOpen) {
+      hint.textContent = "";
+      var name = document.createElement("span");
+      name.className = "hint-name";
+      name.textContent = "阿理：";
+      hint.appendChild(name);
+      hint.appendChild(document.createTextNode(question.hint));
+      setExpression("thinking");
+    } else {
+      hint.textContent = "";
+      setExpression(questionExpression(id));
+    }
+  }
+
+  function parseChoice(question, raw) {
+    return question.kind === "boolean" ? raw === "true" : Number(raw);
+  }
+
+  // ── events ─────────────────────────────────────────────────
+  document.addEventListener("click", function (event) {
+    var goto = event.target.closest("[data-goto]");
+    if (goto) {
+      if (goto.disabled) return;
+      if (goto.dataset.guard && !state.questions[goto.dataset.guard].solved) return;
+      showScreen(goto.dataset.goto);
+      return;
+    }
+
+    var replay = event.target.closest('[data-action="replay"]');
+    if (replay) {
+      resetLesson();
+      return;
+    }
+
+    var option = event.target.closest(".option");
+    if (option && !option.disabled) {
+      var group = option.closest("[data-options]");
+      if (!group) return;
+      var id = group.dataset.options;
+      var question = QUESTIONS[id];
+      var qs = state.questions[id];
+      if (!question || !qs || qs.solved) return;
+      var value = parseChoice(question, option.dataset.choice);
+      if (value === question.answer) solveQuestion(id, option);
+      else rejectQuestion(id, option);
+      return;
+    }
+
+    var hintButton = event.target.closest("[data-hint]");
+    if (hintButton) {
+      toggleHint(hintButton.dataset.hint);
+      return;
+    }
+
+    var preset = event.target.closest(".preset");
+    if (preset) {
+      state.epsilon = M.quantizeEpsilon(Number(preset.dataset.eps));
+      renderBand();
+      announceBand();
+    }
+  });
+
+  dom.epsRange.addEventListener("input", function () {
+    state.epsilon = M.quantizeEpsilon(Number(dom.epsRange.value));
+    renderBand();
+  });
+
+  dom.epsRange.addEventListener("change", function () {
+    state.epsilon = M.quantizeEpsilon(Number(dom.epsRange.value));
+    renderBand();
+    announceBand();
+  });
+
+  $$(".options").forEach(function (group) {
+    group.addEventListener("keydown", function (event) {
+      var keys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+      if (keys.indexOf(event.key) < 0) return;
+      var buttons = $$(".option:not([disabled])", group);
+      var index = buttons.indexOf(document.activeElement);
+      if (index < 0) return;
+      event.preventDefault();
+      var step = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
+      buttons[(index + step + buttons.length) % buttons.length].focus();
+    });
+  });
+
+  // ── boot ───────────────────────────────────────────────────
+  mountCompanions();
+  buildSequence();
+  buildBand();
+  renderBand();
+  updateProgress(0);
+  setExpression("curious");
+})();
+
+  </script>
+</body>
+</html>

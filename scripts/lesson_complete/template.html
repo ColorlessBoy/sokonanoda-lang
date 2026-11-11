@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#fbf7ef">
+  <meta name="description" content="3 分钟看懂 aₙ = 1/n 的 ε–N 定义：一条误差带，一个起点 N。三道小题，一次走完。">
+  <meta name="robots" content="noindex">
+  <title>ε–N：一条带子，一个起点 · 分析入门</title>
+  <style>
+{{STYLES_CSS}}
+  </style>
+</head>
+<body>
+  <div class="app" id="app" data-reduced-motion="false">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand" aria-label="分析入门，第 1 课">
+          <span class="brand-mark" aria-hidden="true">ε</span>
+          <span class="brand-copy">
+            <span class="brand-name">分析入门</span>
+            <span class="brand-sub">第 1 课</span>
+          </span>
+        </div>
+        <div class="progress" id="progress" hidden>
+          <span class="progress-label" id="progress-label">第 1 / 6 步</span>
+          <span class="progress-track" id="progress-track" aria-hidden="true">
+            <span class="progress-seg"></span><span class="progress-seg"></span><span class="progress-seg"></span>
+            <span class="progress-seg"></span><span class="progress-seg"></span><span class="progress-seg"></span>
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- 0 · cover -->
+      <section class="screen screen-cover" data-screen="cover" data-step="0" aria-labelledby="cover-title">
+        <div class="cover-grid">
+          <div class="cover-copy">
+            <p class="eyebrow">微课 · 约 4 分钟</p>
+            <h1 id="cover-title" tabindex="-1">ε–N：<span class="title-keep">一条带子，一个起点</span></h1>
+            <p class="cover-line">3 分钟看懂：为什么 1/n 会无限接近 0，以及 N 到底怎么选。</p>
+            <button type="button" class="btn btn-primary btn-start" data-goto="sequence">开始</button>
+            <p class="cover-meta">3 道小题 · 不需要预备知识</p>
+            <noscript><p class="noscript">这一课需要 JavaScript 才能继续。</p></noscript>
+          </div>
+          <div class="cover-art" aria-hidden="true">
+            <svg class="cover-svg" viewBox="0 0 520 360" focusable="false">
+              <rect class="cover-card" x="10" y="10" width="500" height="340" rx="30"/>
+              <text class="cover-watermark" x="420" y="130">ε</text>
+              <rect class="cover-band" x="44" y="152" width="95" height="116" rx="10"/>
+              <line class="cover-axis" x1="44" y1="210" x2="476" y2="210"/>
+              <line class="cover-eps" x1="139" y1="142" x2="139" y2="268"/>
+              <text class="cover-eps-label" x="147" y="136">ε</text>
+              <g class="cover-dots" aria-hidden="true">
+                <circle cx="476.00" cy="210" r="7"/><circle cx="260.00" cy="210" r="7"/><circle cx="188.00" cy="210" r="7"/>
+                <circle cx="152.00" cy="210" r="7"/><circle cx="130.40" cy="210" r="7"/><circle cx="116.00" cy="210" r="7"/>
+                <circle cx="105.71" cy="210" r="7"/><circle cx="98.00" cy="210" r="7"/><circle cx="92.00" cy="210" r="7"/>
+                <circle cx="87.20" cy="210" r="7"/><circle cx="83.27" cy="210" r="7"/><circle cx="80.00" cy="210" r="7"/>
+                <circle cx="77.23" cy="210" r="7"/><circle cx="74.86" cy="210" r="7"/><circle cx="72.80" cy="210" r="7"/>
+                <circle cx="71.00" cy="210" r="7"/><circle cx="69.41" cy="210" r="7"/><circle cx="68.00" cy="210" r="7"/>
+                <circle cx="66.74" cy="210" r="7"/><circle cx="65.60" cy="210" r="7"/>
+              </g>
+              <line class="cover-index" x1="44" y1="296" x2="476" y2="296"/>
+              <rect class="cover-tail" x="130.40" y="292" width="345.60" height="8" rx="4"/>
+              <g class="cover-n">
+                <rect x="101" y="276" width="60" height="24" rx="12"/>
+                <text x="131" y="293" text-anchor="middle">N</text>
+              </g>
+              <text class="cover-zero" x="44" y="332">0</text>
+              <text class="cover-one" x="476" y="332" text-anchor="end">1</text>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- 1 · sequence -->
+      <section class="screen" data-screen="sequence" data-step="1" aria-labelledby="sequence-title" hidden>
+        <div class="screen-head">
+          <p class="eyebrow">序列</p>
+          <h2 id="sequence-title" tabindex="-1">aₙ = 1/n</h2>
+        </div>
+        <figure class="stage" id="sequence-stage">
+          <svg id="sequence-svg" class="scene-svg" viewBox="0 0 1000 330" role="img" aria-labelledby="sequence-svg-title">
+            <title id="sequence-svg-title">序列 aₙ = 1/n 的前 20 项，从 1 向 0 靠近。</title>
+            <g id="sequence-layer"></g>
+          </svg>
+          <figcaption class="scene-note">前 20 项，按 aₙ 的值排在 0–1 上。</figcaption>
+        </figure>
+        <div class="coach">
+          <div class="coach-avatar" data-coach aria-hidden="true"></div>
+          <div class="bubble">
+            <p class="bubble-name">小析</p>
+            <p class="bubble-text">这些点越来越接近 0——但“越来越近”不是证明。怎么把“足够近”说死？</p>
+          </div>
+        </div>
+        <div class="screen-actions">
+          <span class="action-note">看完了就继续</span>
+          <button type="button" class="btn btn-primary" data-goto="band">下一步</button>
+        </div>
+      </section>
+
+      <!-- 2 · band + N -->
+      <section class="screen" data-screen="band" data-step="2" aria-labelledby="band-title" hidden>
+        <div class="screen-head">
+          <p class="eyebrow">定义</p>
+          <h2 id="band-title" tabindex="-1">把“足够近”画成一条带子</h2>
+        </div>
+        <figure class="stage" id="band-stage" data-eps="0.22" data-n="5" data-ok-first="true" data-ok-prev="true">
+          <svg id="band-svg" class="scene-svg" viewBox="0 0 1000 360" role="img" aria-labelledby="band-svg-title">
+            <title id="band-svg-title">ε–N 带子：值轴放大到 0 附近，误差带从 0 到 ε，序号轴上标出起点 N。</title>
+            <g id="band-layer"></g>
+          </svg>
+          <figcaption class="scene-note" id="band-caption">ε = 0.220：画面里 n = 5 … 20 在带内；N = 5。</figcaption>
+        </figure>
+        <div class="coach">
+          <div class="coach-avatar" data-coach aria-hidden="true"></div>
+          <div class="bubble">
+            <p class="bubble-name">小析</p>
+            <p class="bubble-text">你把允许误差 ε 定下来，N 就是“从此以后都在带内”的起点。</p>
+          </div>
+        </div>
+        <div class="control-card">
+          <div class="slider-head">
+            <label for="eps-range">允许误差 ε</label>
+            <output id="eps-value" for="eps-range">ε = 0.220</output>
+          </div>
+          <input id="eps-range" class="eps-range" type="range" min="0.001" max="0.25" step="0.001" value="0.22" aria-describedby="band-caption">
+          <div class="presets" role="group" aria-label="ε 预设">
+            <button type="button" class="preset" data-eps="0.25" aria-pressed="false">0.25</button>
+            <button type="button" class="preset" data-eps="0.22" aria-pressed="true">0.22</button>
+            <button type="button" class="preset" data-eps="0.10" aria-pressed="false">0.10</button>
+            <button type="button" class="preset" data-eps="0.05" aria-pressed="false">0.05</button>
+          </div>
+          <div class="math-strip">
+            <p class="formula" id="n-formula">N = ⌊1/0.220⌋ + 1 = 5</p>
+            <p class="checks">
+              <span id="check-first">1/N &lt; ε：1/5 = 0.2000 &lt; 0.2200 ✓</span>
+              <span class="check-sep" aria-hidden="true">·</span>
+              <span id="check-prev">1/(N−1) ≥ ε：1/4 = 0.2500 ≥ 0.2200 ✓</span>
+            </p>
+          </div>
+        </div>
+        <div class="screen-actions">
+          <span class="action-note">拖一拖滑块，看 N 怎么移动</span>
+          <button type="button" class="btn btn-primary" data-goto="q1">下一步</button>
+        </div>
+      </section>
+
+      <!-- 3 · Q1 -->
+      <section class="screen" data-screen="q1" data-step="3" aria-labelledby="q1-title" hidden>
+        <div class="screen-head">
+          <p class="eyebrow">练一练</p>
+          <h2 id="q1-title" tabindex="-1">试一试：找 N</h2>
+        </div>
+        <div class="coach coach-question">
+          <div class="coach-avatar" data-coach aria-hidden="true"></div>
+          <div class="bubble">
+            <p class="bubble-name">小析</p>
+            <p class="bubble-text" id="q1-prompt">ε = 0.22 时，N 是多少？</p>
+          </div>
+        </div>
+        <div class="question-card" data-question="q1">
+          <p class="given"><span class="given-tag">给定</span>ε = 0.22</p>
+          <div class="options" data-options="q1" role="group" aria-labelledby="q1-prompt">
+            <button type="button" class="option" data-choice="4">N = 4</button>
+            <button type="button" class="option" data-choice="5">N = 5</button>
+            <button type="button" class="option" data-choice="10">N = 10</button>
+          </div>
+          <p class="question-help">选一个答案。答错没关系，可以重试。</p>
+          <div class="feedback" id="q1-feedback" role="status" aria-live="polite" aria-atomic="true"></div>
+          <div class="hint-row">
+            <button type="button" class="hint-btn" data-hint="q1" aria-expanded="false" aria-controls="q1-hint">需要提示</button>
+            <p class="hint" id="q1-hint" role="status" aria-live="polite" hidden></p>
+          </div>
+        </div>
+        <div class="screen-actions">
+          <span class="action-note" id="q1-note">答对后才能继续</span>
+          <button type="button" class="btn btn-primary" data-goto="q2" data-guard="q1" disabled>下一步</button>
+        </div>
+      </section>
+
+      <!-- 4 · Q2 -->
+      <section class="screen" data-screen="q2" data-step="4" aria-labelledby="q2-title" hidden>
+        <div class="screen-head">
+          <p class="eyebrow">判断</p>
+          <h2 id="q2-title" tabindex="-1">试一试：判断</h2>
+        </div>
+        <div class="coach coach-question">
+          <div class="coach-avatar" data-coach aria-hidden="true"></div>
+          <div class="bubble">
+            <p class="bubble-name">小析</p>
+            <p class="bubble-text" id="q2-prompt">N = 4 对 ε = 0.22 够用吗？</p>
+          </div>
+        </div>
+        <div class="question-card" data-question="q2">
+          <p class="statement">N = 4 时，从第 4 项起所有项都满足 |aₙ| &lt; 0.22。</p>
+          <div class="options options-two" data-options="q2" role="group" aria-labelledby="q2-prompt">
+            <button type="button" class="option" data-choice="true">正确</button>
+            <button type="button" class="option" data-choice="false">错误</button>
+          </div>
+          <p class="question-help">选一个答案。答错没关系，可以重试。</p>
+          <div class="feedback" id="q2-feedback" role="status" aria-live="polite" aria-atomic="true"></div>
+          <div class="hint-row">
+            <button type="button" class="hint-btn" data-hint="q2" aria-expanded="false" aria-controls="q2-hint">需要提示</button>
+            <p class="hint" id="q2-hint" role="status" aria-live="polite" hidden></p>
+          </div>
+        </div>
+        <div class="screen-actions">
+          <span class="action-note" id="q2-note">答对后才能继续</span>
+          <button type="button" class="btn btn-primary" data-goto="q3" data-guard="q2" disabled>下一步</button>
+        </div>
+      </section>
+
+      <!-- 5 · Q3 -->
+      <section class="screen" data-screen="q3" data-step="5" aria-labelledby="q3-title" hidden>
+        <div class="screen-head">
+          <p class="eyebrow">再练一次</p>
+          <h2 id="q3-title" tabindex="-1">试一试：整数边界</h2>
+        </div>
+        <div class="coach coach-question">
+          <div class="coach-avatar" data-coach aria-hidden="true"></div>
+          <div class="bubble">
+            <p class="bubble-name">小析</p>
+            <p class="bubble-text" id="q3-prompt">ε = 0.10 时，N 是多少？</p>
+          </div>
+        </div>
+        <div class="question-card" data-question="q3">
+          <p class="given"><span class="given-tag">给定</span>ε = 0.10</p>
+          <div class="options" data-options="q3" role="group" aria-labelledby="q3-prompt">
+            <button type="button" class="option" data-choice="10">N = 10</button>
+            <button type="button" class="option" data-choice="11">N = 11</button>
+            <button type="button" class="option" data-choice="21">N = 21</button>
+          </div>
+          <p class="question-help">选一个答案。答错没关系，可以重试。</p>
+          <div class="feedback" id="q3-feedback" role="status" aria-live="polite" aria-atomic="true"></div>
+          <div class="hint-row">
+            <button type="button" class="hint-btn" data-hint="q3" aria-expanded="false" aria-controls="q3-hint">需要提示</button>
+            <p class="hint" id="q3-hint" role="status" aria-live="polite" hidden></p>
+          </div>
+        </div>
+        <div class="screen-actions">
+          <span class="action-note" id="q3-note">答对后才能继续</span>
+          <button type="button" class="btn btn-primary" data-goto="summary" data-guard="q3" disabled>下一步</button>
+        </div>
+      </section>
+
+      <!-- 6 · summary -->
+      <section class="screen screen-summary" data-screen="summary" data-step="6" aria-labelledby="summary-title" hidden>
+        <div class="summary-head">
+          <p class="eyebrow">收束</p>
+          <div class="badge" id="summary-badge"><span class="badge-mark" aria-hidden="true">✓</span><span class="badge-text">你理解了 ε–N</span></div>
+          <h2 id="summary-title" tabindex="-1">把定义说死</h2>
+        </div>
+        <p class="definition" id="summary-definition">∀ε&gt;0, ∃N, ∀n≥N, |aₙ−L|&lt;ε</p>
+        <p class="definition-note">这里 aₙ = 1/n，L = 0。</p>
+        <div class="summary-card">
+          <h3>为什么是 ⌊1/ε⌋ + 1？</h3>
+          <p>带内要求严格小于：<span class="inline-math">1/n &lt; ε ⇔ n &gt; 1/ε</span>。N 取第一个严格大于 <span class="inline-math">1/ε</span> 的整数，所以 <span class="inline-math">N = ⌊1/ε⌋ + 1</span>。</p>
+          <p>当 <span class="inline-math">1/ε</span> 正好是整数时，那一项 <span class="inline-math">a_N = ε</span> 不算“严格小于”，所以也要 +1。例：<span class="inline-math">ε = 0.10 → 1/ε = 10 → N = 11</span>。</p>
+        </div>
+        <div class="summary-actions">
+          <button type="button" class="btn btn-primary" data-action="replay">再学一遍</button>
+          <button type="button" class="btn btn-secondary" disabled aria-disabled="true">下一课（占位）</button>
+        </div>
+        <p class="placeholder-note">下一课还在准备中，这里先不放链接。</p>
+      </section>
+    </main>
+  </div>
+
+  <div class="sr-only" id="announcer" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <template id="companion-template">
+    <svg class="companion-avatar" data-expression="curious" viewBox="0 0 260 310" aria-hidden="true" focusable="false">
+      <ellipse class="av-ground" cx="130" cy="298" rx="60" ry="9"/>
+      <g class="av-figure">
+        <path class="av-torso" d="M70 198 Q70 174 102 170 L158 170 Q190 174 190 198 L190 272 Q190 288 172 288 L88 288 Q70 288 70 272 Z"/>
+        <path class="av-arm" d="M82 206 Q70 236 88 258"/>
+        <path class="av-arm" d="M178 206 Q190 236 172 258"/>
+        <rect class="av-neck" x="116" y="152" width="28" height="26" rx="11"/>
+        <path class="av-scarf-tail" d="M112 184 Q100 204 106 224 Q111 235 120 229 Q113 209 120 190 Z"/>
+        <path class="av-scarf" d="M103 174 Q130 189 157 174 L154 192 Q130 205 106 192 Z"/>
+        <circle class="av-scarf-pin" cx="111" cy="181" r="3.4"/>
+        <g class="av-pencil" transform="rotate(20 205 70)">
+          <rect x="201" y="34" width="8" height="52" rx="4" fill="#e9a23b"/>
+          <path d="M201 34 L205 23 L209 34 Z" fill="#f4e3cb"/>
+          <path d="M203.4 27 L205 22 L206.6 27 Z" fill="#16202c"/>
+          <rect x="201" y="82" width="8" height="7" rx="2" fill="#c96f52"/>
+          <rect x="201" y="78" width="8" height="5" fill="#17324d"/>
+        </g>
+        <g class="av-head">
+          <rect class="av-face" x="64" y="30" width="132" height="128" rx="44"/>
+          <path class="av-hair" d="M58 112 C58 52 82 24 130 24 C178 24 202 52 202 112 L202 120 C196 104 190 92 180 82 C166 96 146 102 126 101 C104 100 86 93 74 80 C66 90 62 104 64 122 Z"/>
+          <path class="av-hair-side" d="M60 94 C56 116 59 136 68 152 C66 140 66 126 70 110 Z"/>
+          <path class="av-hair-side" d="M200 94 C204 116 201 136 192 152 C194 140 194 126 190 110 Z"/>
+          <path class="av-hair-hi" d="M84 52 C104 36 142 32 166 44"/>
+          <g class="av-brows">
+            <path class="av-brow av-brow-l" d="M91 111 Q103 106 115 111"/>
+            <path class="av-brow av-brow-r" d="M145 111 Q157 106 169 111"/>
+          </g>
+          <g class="av-eyes av-eyes-open">
+            <ellipse class="av-eye" cx="104" cy="125" rx="5.2" ry="7.2"/>
+            <ellipse class="av-eye" cx="156" cy="125" rx="5.2" ry="7.2"/>
+            <circle class="av-catch" cx="102.2" cy="122.2" r="1.5"/>
+            <circle class="av-catch" cx="154.2" cy="122.2" r="1.5"/>
+          </g>
+          <g class="av-eyes av-eyes-closed">
+            <path d="M97 126 Q104 131 111 126"/>
+            <path d="M149 126 Q156 131 163 126"/>
+          </g>
+          <g class="av-eyes av-eyes-happy">
+            <path d="M97 128 Q104 120 111 128"/>
+            <path d="M149 128 Q156 120 163 128"/>
+          </g>
+          <ellipse class="av-blush" cx="88" cy="140" rx="9" ry="4.2"/>
+          <ellipse class="av-blush" cx="172" cy="140" rx="9" ry="4.2"/>
+          <g class="av-mouths">
+            <path class="av-mouth av-mouth-neutral" d="M121 145 Q130 151 139 145"/>
+            <ellipse class="av-mouth av-mouth-curious" cx="130" cy="148" rx="4" ry="5.4"/>
+            <path class="av-mouth av-mouth-thinking" d="M122 148 Q130 145 138 148"/>
+            <path class="av-mouth av-mouth-happy" d="M117 144 Q130 160 143 144"/>
+            <path class="av-mouth av-mouth-oops" d="M122 148 Q130 144 138 149"/>
+          </g>
+          <g class="av-thought"><circle cx="52" cy="82" r="1.6"/><circle cx="44" cy="72" r="2.2"/><circle cx="36" cy="62" r="2.8"/></g>
+        </g>
+        <g class="av-notebook" transform="rotate(-4 130 250)">
+          <rect class="av-nb-cover" x="88" y="224" width="84" height="58" rx="7"/>
+          <rect class="av-nb-spine" x="88" y="224" width="9" height="58" rx="4"/>
+          <path class="av-nb-rule" d="M106 240 H160"/>
+          <path class="av-nb-rule" d="M106 249 H154"/>
+          <path class="av-nb-rule" d="M106 258 H162"/>
+          <path class="av-nb-eps" d="M173 245 C166 243 163 248 168 251 C174 254 174 262 165 260"/>
+        </g>
+        <circle class="av-hand" cx="94" cy="257" r="8.5"/>
+        <circle class="av-hand" cx="167" cy="256" r="8.5"/>
+      </g>
+    </svg>
+  </template>
+
+  <script type="application/json" id="lesson-data">
+{{CONTENT_JSON}}
+  </script>
+  <script>
+{{MATH_JS}}
+  </script>
+  <script>
+{{APP_JS}}
+  </script>
+</body>
+</html>
