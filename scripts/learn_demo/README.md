@@ -157,7 +157,7 @@ echo $?   # 0
    减少动态；零外部请求、零 console/page error。
 3. **截图**：默认写到 `/tmp/learn-demo-*.png`；`SOKO_UPDATE_SHOTS=1 node scripts/learn_demo/check.mjs` 才刷新提交的 `scripts/learn_demo/screenshots/`（避免 Chrome 每次差几像素把仓库弄脏）。
 
-本次验收结果（提交前）：`node scripts/learn_demo/check.mjs` → `rc=0`，静态 80 项 + 浏览器 186 项，共 **266 项**通过。截图：
+本次验收结果（提交前）：`node scripts/learn_demo/check.mjs` → `rc=0`，静态 80 项 + 浏览器 187 项，共 **267 项**通过。截图：
 
 - `screenshots/overview-1440.png` — 桌面首屏：cast、场景、公式、形式卡
 - `screenshots/cast-scene-390.png` — 390px cast + 210px 场景

@@ -189,6 +189,9 @@ export async function browserChecks({ client, log = () => {} } = {}) {
         progressNow: progress.getAttribute("aria-valuenow"),
         caption: caption.textContent.trim(),
         rangeLabel: range.getAttribute("aria-valuetext"),
+        rangeMin: range.getAttribute("min"),
+        rangeMax: range.getAttribute("max"),
+        rangeStep: range.getAttribute("step"),
         inputs: [...document.querySelectorAll("input")].map((el) => el.type),
         textareas: document.querySelectorAll("textarea").length,
         contenteditable: document.querySelectorAll('[contenteditable="true"]').length,
@@ -202,6 +205,7 @@ export async function browserChecks({ client, log = () => {} } = {}) {
   expect(a11y.progressRole === "progressbar" && a11y.progressNow === "0", "progress bar exposes aria-valuenow", a11y);
   expect(a11y.caption.length > 0, "visible caption is populated");
   expect(a11y.rangeLabel.includes("N = 5"), "slider aria-valuetext reports N = 5", a11y.rangeLabel);
+  expect(a11y.rangeMin === "0.001" && a11y.rangeMax === "0.25" && a11y.rangeStep === "0.001", "ε slider exposes the real 0.001–0.25 range", a11y);
   expect(a11y.inputs.length === 1 && a11y.inputs.every((type) => type === "range"), "initial input surface is one range", a11y.inputs);
   expect(a11y.textareas === 0 && a11y.contenteditable === 0 && a11y.forms === 0, "no free-form text or code editor path", a11y);
   expect(a11y.castCards === 2, "both cast cards exist", a11y.castCards);

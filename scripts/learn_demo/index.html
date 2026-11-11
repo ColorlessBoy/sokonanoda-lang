@@ -1272,7 +1272,7 @@ input[type="range"] {
         <div class="scene-controls">
           <div class="slider-row">
             <label for="eps-range">ε</label>
-            <input id="eps-range" type="range" min="1" max="250" step="1" value="220" aria-describedby="eps-scale">
+            <input id="eps-range" type="range" min="0.001" max="0.25" step="0.001" value="0.22" aria-describedby="eps-scale">
             <output id="eps-out" for="eps-range">0.220</output>
           </div>
           <div class="scale-row" id="eps-scale" aria-hidden="true">
@@ -1620,8 +1620,9 @@ input[type="range"] {
           '<span role="cell">' + esc(row.bridge) + "</span></div>";
       }).join("");
     dom.footNote.textContent = DATA.footer;
-    dom.epsRange.min = String(Math.round(DATA.scene.epsilonMin * EPS_SCALE));
-    dom.epsRange.max = String(Math.round(DATA.scene.epsilonMax * EPS_SCALE));
+    dom.epsRange.min = String(DATA.scene.epsilonMin);
+    dom.epsRange.max = String(DATA.scene.epsilonMax);
+    dom.epsRange.step = String(DATA.scene.epsilonMin);
   }
 
   // ── cast ───────────────────────────────────────────────────
@@ -1866,8 +1867,7 @@ input[type="range"] {
     if (N > TERMS) strict += " · N 在画面外";
     dom.strictOut.textContent = strict;
 
-    var sliderValue = Math.round(eps * EPS_SCALE);
-    dom.epsRange.value = String(sliderValue);
+    dom.epsRange.value = String(eps);
     dom.epsOut.textContent = fmtEps(eps);
     dom.epsRange.setAttribute(
       "aria-valuetext",
@@ -2398,7 +2398,7 @@ input[type="range"] {
 
     dom.epsRange.addEventListener("input", function () {
       if (state.playing) pausePlayback();
-      applyEpsilon(Number(dom.epsRange.value) / EPS_SCALE);
+      applyEpsilon(Number(dom.epsRange.value));
     });
     $$(".preset").forEach(function (button) {
       button.addEventListener("click", function () {

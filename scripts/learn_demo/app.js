@@ -263,8 +263,9 @@
           '<span role="cell">' + esc(row.bridge) + "</span></div>";
       }).join("");
     dom.footNote.textContent = DATA.footer;
-    dom.epsRange.min = String(Math.round(DATA.scene.epsilonMin * EPS_SCALE));
-    dom.epsRange.max = String(Math.round(DATA.scene.epsilonMax * EPS_SCALE));
+    dom.epsRange.min = String(DATA.scene.epsilonMin);
+    dom.epsRange.max = String(DATA.scene.epsilonMax);
+    dom.epsRange.step = String(DATA.scene.epsilonMin);
   }
 
   // ── cast ───────────────────────────────────────────────────
@@ -509,8 +510,7 @@
     if (N > TERMS) strict += " · N 在画面外";
     dom.strictOut.textContent = strict;
 
-    var sliderValue = Math.round(eps * EPS_SCALE);
-    dom.epsRange.value = String(sliderValue);
+    dom.epsRange.value = String(eps);
     dom.epsOut.textContent = fmtEps(eps);
     dom.epsRange.setAttribute(
       "aria-valuetext",
@@ -1041,7 +1041,7 @@
 
     dom.epsRange.addEventListener("input", function () {
       if (state.playing) pausePlayback();
-      applyEpsilon(Number(dom.epsRange.value) / EPS_SCALE);
+      applyEpsilon(Number(dom.epsRange.value));
     });
     $$(".preset").forEach(function (button) {
       button.addEventListener("click", function () {
