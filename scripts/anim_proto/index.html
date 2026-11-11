@@ -1,0 +1,2006 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="description" content="ε–N 定义的可交互视觉探针：a_n = 1/n，拖动误差带，看起点 N 如何把整条尾巴收进带内。">
+<title>ε–N 探针 · aₙ = 1/n · 极限 0</title>
+<link rel="icon" href="data:,">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   设计语言：暖纸 + 墨字 + 朱砂误差带 + 青绿“带内”。
+   单文件，无外部字体/图片/脚本；SVG 由页面内 JS 绘制。
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --paper: #efe8da;
+  --paper-2: #fbf7ee;
+  --paper-3: #f6f0e3;
+  --ink: #1f1d18;
+  --ink-2: #353129;
+  --muted: #736b5d;
+  --muted-2: #958b79;
+  --line: #d8cdba;
+  --line-strong: #b8ab95;
+  --accent: #c34f2e;
+  --accent-2: #a43c20;
+  --accent-soft: rgba(195, 79, 46, 0.12);
+  --teal: #0c685c;
+  --teal-2: #084c43;
+  --teal-soft: rgba(12, 104, 92, 0.13);
+  --gold: #b4862f;
+  --serif: "Iowan Old Style", "Palatino Linotype", "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", Georgia, "Times New Roman", serif;
+  --sans: "Avenir Next", Avenir, "PingFang SC", "Noto Sans CJK SC", "Source Han Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.72) inset, 0 26px 64px -42px rgba(52, 38, 15, 0.62);
+  --radius: 22px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  background:
+    radial-gradient(1100px 620px at 12% -12%, #fffaf0 0%, rgba(255, 250, 240, 0) 62%),
+    radial-gradient(900px 520px at 102% 0%, #f4e2cb 0%, rgba(244, 226, 203, 0) 58%),
+    radial-gradient(800px 700px at 50% 120%, #e7ddca 0%, rgba(231, 221, 202, 0) 64%),
+    var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 一层很淡的方格纸纹理；只在纸面背景上，不进入卡片。 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(74, 56, 30, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 56, 30, 0.045) 1px, transparent 1px);
+  background-size: 34px 34px;
+  -webkit-mask-image: radial-gradient(1200px 780px at 50% 36%, #000 0%, transparent 78%);
+          mask-image: radial-gradient(1200px 780px at 50% 36%, #000 0%, transparent 78%);
+}
+
+::selection { background: rgba(195, 79, 46, 0.22); }
+
+.shell {
+  width: min(1240px, calc(100% - 44px));
+  margin: 0 auto;
+  padding: 32px 0 34px;
+}
+
+.skip {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 20;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--paper-2);
+  font: 600 13px/1.2 var(--sans);
+  text-decoration: none;
+}
+.skip:focus { top: 12px; outline: 2px solid var(--gold); }
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* ── 页眉 ─────────────────────────────────────────────────── */
+.masthead {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  align-items: end;
+  gap: 26px;
+  margin: 10px 0 30px;
+  padding: 0 2px;
+}
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  font: 600 11px/1.2 var(--mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.eyebrow .live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(195, 79, 46, 0.12);
+}
+h1 {
+  margin: 14px 0 0;
+  max-width: 17em;
+  font-family: var(--serif);
+  font-size: clamp(38px, 4.45vw, 66px);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.018em;
+}
+h1 em {
+  color: var(--accent);
+  font-style: normal;
+}
+.lede {
+  max-width: 61ch;
+  margin: 17px 0 0;
+  color: var(--ink-2);
+  font-size: clamp(14px, 1.22vw, 17px);
+  line-height: 1.62;
+}
+.lede .mono { color: var(--ink); }
+.stamp {
+  justify-self: end;
+  align-self: end;
+  width: 118px;
+  height: 118px;
+  display: grid;
+  place-content: center;
+  gap: 3px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--muted);
+  text-align: center;
+  font: 600 9px/1.35 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transform: rotate(7deg);
+  background: rgba(251, 247, 238, 0.35);
+}
+.stamp b {
+  color: var(--accent);
+  font: 600 27px/1 var(--serif);
+  letter-spacing: 0;
+}
+.stamp span { display: block; }
+
+/* ── 主网格 ───────────────────────────────────────────────── */
+.probe {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 356px;
+  align-items: start;
+  gap: 22px;
+}
+.stage-card,
+.definition-card {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.stage-card {
+  min-width: 0;
+  padding: 22px 24px 18px;
+  border: 1px solid rgba(107, 88, 55, 0.22);
+  background: var(--paper-2);
+  overflow: hidden;
+}
+.side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.definition-card {
+  padding: 24px 23px 21px;
+  border: 1px solid rgba(255, 245, 225, 0.09);
+  background:
+    radial-gradient(420px 240px at 100% 0%, rgba(180, 134, 47, 0.2), transparent 70%),
+    linear-gradient(155deg, #26231d 0%, #1c1a16 62%, #171511 100%);
+  color: #f4ecdc;
+}
+
+/* ── 舞台头部 ─────────────────────────────────────────────── */
+.stage-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.stage-title { min-width: 0; }
+.kicker {
+  display: block;
+  color: var(--accent);
+  font: 600 10px/1.2 var(--mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.stage-title h2 {
+  margin: 6px 0 0;
+  font-family: var(--serif);
+  font-size: clamp(20px, 1.7vw, 25px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.readouts {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--paper-3);
+  overflow: hidden;
+}
+.readout {
+  min-width: 86px;
+  padding: 8px 12px 7px;
+  border-left: 1px solid var(--line);
+}
+.readout:first-child { border-left: 0; }
+.readout span {
+  display: block;
+  color: var(--muted);
+  font: 600 9px/1.2 var(--mono);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.readout strong {
+  display: inline-block;
+  margin-top: 3px;
+  color: var(--ink);
+  font: 600 20px/1.05 var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  min-width: 3ch;
+}
+.readout strong.eps { color: var(--accent-2); min-width: 6ch; }
+.readout strong.n { color: var(--teal-2); }
+.readout small {
+  color: var(--muted);
+  font: 600 10px/1 var(--mono);
+}
+
+/* ── 对称带小仪表 ─────────────────────────────────────────── */
+.band-key {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 13px;
+  min-height: 22px;
+  color: var(--muted);
+  font: 500 11px/1.35 var(--mono);
+  letter-spacing: 0.01em;
+}
+.sym-track {
+  position: relative;
+  flex: 0 0 96px;
+  height: 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-3);
+}
+.sym-track::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--line-strong);
+}
+.sym-band {
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  bottom: 2px;
+  width: var(--sym, 100%);
+  max-width: 100%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(195, 79, 46, 0.4);
+}
+.band-key .long { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.strict-flag {
+  margin-left: auto;
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background: var(--paper-3);
+  font: 600 9px/1.35 var(--mono);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.strict-flag.is-hot {
+  color: var(--accent-2);
+  border-color: rgba(195, 79, 46, 0.45);
+  background: rgba(195, 79, 46, 0.08);
+}
+
+/* ── 三段可视化 ───────────────────────────────────────────── */
+.viz {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.viz-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 2px 1px;
+  color: var(--muted);
+  font: 600 9.5px/1.3 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.viz-label .note {
+  color: var(--muted-2);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  text-align: right;
+}
+.viz-label.detail { margin-top: 2px; }
+svg.viz-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+  shape-rendering: geometricPrecision;
+  text-rendering: geometricPrecision;
+}
+#contextSvg { margin-top: 1px; }
+#detailSvg { margin-top: 0; }
+#indexSvg { margin-top: 0; }
+
+/* SVG 里的字体大小按 viewBox 单位写；在窄屏用媒体查询放大，
+   因为整张图会等比缩到 ~350px。 */
+.tick-label {
+  fill: var(--muted);
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.axis {
+  stroke: var(--ink);
+  stroke-width: 1.1;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.axis-soft {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.grid-line {
+  stroke: rgba(123, 104, 73, 0.16);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.band-fill { fill: var(--accent-soft); }
+.band-outline {
+  stroke: rgba(195, 79, 46, 0.65);
+  stroke-width: 1.3;
+  stroke-dasharray: 5 5;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.band-label {
+  fill: var(--accent-2);
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.n-line {
+  stroke: var(--teal);
+  stroke-width: 1.4;
+  stroke-dasharray: 4 4;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.n-pill { fill: var(--teal-2); }
+.n-pill-text {
+  fill: #f8f2e5;
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.dot-out {
+  fill: var(--paper-2);
+  stroke: rgba(74, 64, 47, 0.62);
+  stroke-width: 1.6;
+}
+.dot-in {
+  fill: var(--teal);
+  stroke: rgba(8, 76, 67, 0.35);
+  stroke-width: 1.4;
+}
+.dot-halo {
+  fill: rgba(12, 104, 92, 0.1);
+  stroke: none;
+}
+.dot-boundary {
+  stroke: var(--teal-2);
+  stroke-width: 2.4;
+  fill: none;
+}
+.leader {
+  stroke: rgba(98, 83, 59, 0.35);
+  stroke-width: 1;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.leader.in { stroke: rgba(12, 104, 92, 0.42); }
+.dot-label {
+  fill: var(--muted);
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.dot-label.in { fill: var(--teal-2); }
+.dot-label.minor { opacity: 0.88; }
+.index-cell-out {
+  fill: var(--paper-3);
+  stroke: var(--line-strong);
+  stroke-width: 1.2;
+}
+.index-cell-in {
+  fill: var(--teal);
+  stroke: var(--teal-2);
+  stroke-width: 1;
+}
+.index-num-out {
+  fill: var(--muted);
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+}
+.index-num-in {
+  fill: #f8f2e5;
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+}
+.index-label {
+  fill: var(--muted-2);
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 500;
+}
+.index-bracket {
+  stroke: var(--teal);
+  stroke-width: 1.2;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.index-bracket-text {
+  fill: var(--teal-2);
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.ribbon-n-flag { fill: var(--ink); }
+.ribbon-n-text {
+  fill: var(--paper-2);
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+}
+.lens-rect {
+  fill: rgba(181, 134, 47, 0.045);
+  stroke: rgba(156, 112, 35, 0.55);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  vector-effect: non-scaling-stroke;
+}
+.lens-label {
+  fill: var(--gold);
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.watermark {
+  fill: rgba(88, 72, 46, 0.3);
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+/* ── 说明文字 ─────────────────────────────────────────────── */
+.caption {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 10px 14px;
+  align-items: start;
+  min-height: 91px;
+  margin-top: 13px;
+  padding: 11px 13px 10px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--paper-3);
+}
+.caption-phase {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--accent-2);
+  font: 600 10px/1.35 var(--mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.caption-phase::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2.1s ease-in-out infinite;
+}
+html.capture .caption-phase::before,
+html.reduce .caption-phase::before { animation: none; }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(195, 79, 46, 0.28); }
+  50% { box-shadow: 0 0 0 5px rgba(195, 79, 46, 0); }
+}
+.caption-body { min-width: 0; }
+.caption-text {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.caption-text b {
+  color: var(--accent-2);
+  font: 600 13px/1 var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.caption-text .n { color: var(--teal-2); }
+.caption-math {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--muted);
+  font: 500 10.5px/1.4 var(--mono);
+  letter-spacing: 0.01em;
+}
+.caption-math .ok { color: var(--teal); font-weight: 700; }
+.caption-math .dim { color: var(--muted-2); }
+
+.progress {
+  height: 2px;
+  margin: 8px 2px 0;
+  border-radius: 99px;
+  background: var(--line);
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.progress.is-live { opacity: 1; }
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+}
+
+/* ── 控件 ─────────────────────────────────────────────────── */
+.controls {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr);
+  gap: 10px 18px;
+  align-items: center;
+  margin-top: 11px;
+}
+.transport {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.btn {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  background: var(--paper-2);
+  color: var(--ink);
+  font: 600 12px/1 var(--sans);
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease, color 120ms ease;
+  white-space: nowrap;
+}
+.btn:hover { background: #fffaf0; border-color: var(--muted-2); }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible, .preset:focus-visible, input[type="range"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.btn.primary {
+  min-width: 92px;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper-2);
+}
+.btn.primary:hover { background: #2f2b23; border-color: #2f2b23; }
+.btn.ghost { color: var(--muted); background: transparent; }
+.btn .glyph { font-size: 10px; line-height: 1; transform: translateY(-0.5px); }
+.btn.is-playing .glyph { font-size: 9px; letter-spacing: -1px; }
+
+.slider-wrap { min-width: 0; }
+.slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 1px 3px;
+  color: var(--muted);
+  font: 600 10px/1.3 var(--mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.slider-head output {
+  color: var(--accent-2);
+  font: 600 10.5px/1.3 var(--mono);
+  letter-spacing: 0;
+  text-transform: none;
+}
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, rgba(195, 79, 46, 0.78), rgba(180, 134, 47, 0.55));
+}
+input[type="range"]::-moz-range-track {
+  height: 3px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, rgba(195, 79, 46, 0.78), rgba(180, 134, 47, 0.55));
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 21px;
+  height: 21px;
+  margin-top: -9px;
+  border-radius: 50%;
+  border: 2px solid var(--paper-2);
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-2), 0 3px 8px rgba(84, 44, 20, 0.25);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: 2px solid var(--paper-2);
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-2), 0 3px 8px rgba(84, 44, 20, 0.25);
+}
+.slider-ticks {
+  position: relative;
+  height: 13px;
+  margin: -1px 3px 0;
+  color: var(--muted-2);
+  font: 500 8.5px/1 var(--mono);
+  letter-spacing: 0.02em;
+}
+.slider-ticks span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.slider-ticks span:first-child { transform: translateX(0); }
+.slider-ticks span:last-child { transform: translateX(-100%); }
+.presets {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: -1px;
+  color: var(--muted);
+  font: 600 9.5px/1 var(--mono);
+  letter-spacing: 0.05em;
+}
+.presets .preset-label { margin-right: 2px; text-transform: uppercase; }
+.preset {
+  appearance: none;
+  min-height: 28px;
+  padding: 0 9px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: 600 10.5px/1 var(--mono);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.preset:hover { border-color: var(--muted-2); color: var(--ink); }
+.preset.is-active {
+  border-color: var(--accent);
+  background: rgba(195, 79, 46, 0.09);
+  color: var(--accent-2);
+}
+.keys {
+  margin: 9px 1px 0;
+  color: var(--muted-2);
+  font: 500 9.5px/1.5 var(--mono);
+  letter-spacing: 0.02em;
+}
+.keys kbd {
+  display: inline-block;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  border-bottom-color: var(--line-strong);
+  border-radius: 4px;
+  background: var(--paper-3);
+  color: var(--muted);
+  font: 600 9px/1.4 var(--mono);
+}
+
+/* ── 定义卡 ───────────────────────────────────────────────── */
+.def-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #b9ae99;
+  font: 600 9.5px/1.3 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.def-top .tag {
+  padding: 3px 7px;
+  border: 1px solid rgba(244, 236, 220, 0.22);
+  border-radius: 5px;
+  color: #d8cbb4;
+  letter-spacing: 0.08em;
+}
+.definition-card h2 {
+  margin: 17px 0 0;
+  color: #fbf5e8;
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.28;
+  letter-spacing: -0.01em;
+}
+.formal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 9px;
+  margin: 14px 0 0;
+  padding: 13px 0 14px;
+  border-top: 1px solid rgba(244, 236, 220, 0.16);
+  border-bottom: 1px solid rgba(244, 236, 220, 0.16);
+  color: #fbf5e8;
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.005em;
+}
+.formal .q { color: var(--gold); }
+.formal .eps { color: #e88a66; }
+.formal .n { color: #7fc8b8; }
+.formal .abs { white-space: nowrap; }
+.plain {
+  margin: 14px 0 0;
+  color: #f4ecdc;
+  font-family: var(--serif);
+  font-size: 19px;
+  line-height: 1.52;
+}
+.plain strong { color: #f0b28f; font-weight: 600; }
+.why {
+  margin-top: 17px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(244, 236, 220, 0.13);
+}
+.why-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: #d8cbb4;
+  font: 600 10px/1.3 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.why-head b {
+  color: #7fc8b8;
+  font: 600 12px/1.3 var(--mono);
+  letter-spacing: 0.03em;
+  text-transform: none;
+}
+.why-steps {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+}
+.why-step {
+  display: grid;
+  grid-template-columns: 21px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+}
+.why-step .no {
+  color: #8d806b;
+  font: 500 9.5px/1.4 var(--mono);
+}
+.why-step code {
+  display: block;
+  color: #f3e8d4;
+  font: 500 13px/1.55 var(--mono);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.why-step code b { color: #e88a66; font-weight: 600; }
+.why-step code i { color: #7fc8b8; font-style: normal; font-weight: 600; }
+.why-caveat {
+  margin: 9px 0 0;
+  color: #9e927d;
+  font: 500 10.5px/1.5 var(--mono);
+  letter-spacing: 0.01em;
+}
+.why-caveat b { color: #d8cbb4; font-weight: 600; }
+.why-note {
+  min-height: 3.1em;
+  margin: 12px 0 0;
+  padding: 9px 10px;
+  border-left: 2px solid rgba(180, 134, 47, 0.7);
+  background: rgba(255, 245, 225, 0.045);
+  color: #c9bda7;
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+.why-note.is-hot {
+  border-left-color: #e88a66;
+  color: #f2c7b1;
+  background: rgba(195, 79, 46, 0.1);
+}
+.def-foot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  margin-top: 15px;
+  border: 1px solid rgba(244, 236, 220, 0.12);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(244, 236, 220, 0.12);
+}
+.def-foot div {
+  padding: 8px 9px;
+  background: #211e19;
+}
+.def-foot span {
+  display: block;
+  color: #8d806b;
+  font: 500 8.5px/1.2 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.def-foot strong {
+  display: block;
+  margin-top: 3px;
+  color: #f3e8d4;
+  font: 600 12px/1.3 var(--mono);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.def-foot .verdict { grid-column: 1 / -1; }
+.def-foot .verdict strong { color: #7fc8b8; }
+
+.side-note {
+  padding: 17px 18px 15px;
+  border: 1px solid rgba(107, 88, 55, 0.2);
+  border-radius: 16px;
+  background: rgba(251, 247, 238, 0.62);
+  color: var(--ink-2);
+}
+.side-note-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--accent-2);
+  font: 600 9.5px/1.3 var(--mono);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.side-note-head span:last-child { color: var(--muted-2); letter-spacing: 0.08em; }
+.side-note-list {
+  margin: 11px 0 0;
+  padding-left: 18px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.side-note-list li { margin: 0 0 4px; padding-left: 2px; }
+.side-note-list b { color: var(--ink); font-weight: 600; }
+.side-note-foot {
+  margin: 11px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+.side-note-foot .mono { color: var(--accent-2); }
+@media (max-width: 1079px) {
+  .side-col { width: min(100%, 920px); margin: 0 auto; }
+  .side-note { margin-top: 0; }
+}
+@media (max-width: 720px) {
+  .side-note { padding: 14px 14px 13px; border-radius: 14px; }
+  .side-note-list { font-size: 11.5px; }
+  .side-note-foot { font-size: 9.5px; }
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 22px 1px 0;
+  padding-top: 13px;
+  border-top: 1px solid rgba(107, 88, 55, 0.16);
+  color: var(--muted-2);
+  font: 500 9.5px/1.5 var(--mono);
+  letter-spacing: 0.035em;
+}
+.foot .sep { color: var(--line-strong); }
+
+/* ── 响应式：移动优先的堆叠；1080 起两栏 ─────────────────── */
+@media (max-width: 1079px) {
+  .probe { grid-template-columns: minmax(0, 1fr); }
+  .stage-card, .definition-card { width: min(100%, 920px); margin: 0 auto; }
+  .definition-card { margin-top: 2px; }
+  .masthead { grid-template-columns: minmax(0, 1fr); }
+  .stamp { display: none; }
+}
+@media (max-width: 720px) {
+  .shell { width: calc(100% - 24px); padding: 18px 0 24px; }
+  .masthead { margin: 4px 0 20px; }
+  h1 { font-size: clamp(33px, 9.2vw, 44px); line-height: 1.08; }
+  .lede { margin-top: 13px; font-size: 13.5px; line-height: 1.6; }
+  .stage-card { padding: 17px 14px 14px; border-radius: 18px; }
+  .definition-card { padding: 19px 16px 16px; border-radius: 18px; }
+  .stage-head { gap: 10px; }
+  .stage-title h2 { font-size: 19px; }
+  .readouts { width: 100%; }
+  .readout { flex: 1 1 0; min-width: 0; padding: 7px 8px 6px; }
+  .readout strong { font-size: 16.5px; }
+  .readout strong.eps { min-width: 0; }
+  .readout span { font-size: 8px; letter-spacing: 0.04em; }
+  .band-key {
+    display: grid;
+    grid-template-columns: 62px minmax(0, 1fr);
+    gap: 4px 8px;
+    font-size: 9.5px;
+  }
+  .band-key .sym-track { grid-column: 1; width: 62px; }
+  .band-key .long { grid-column: 2; white-space: normal; }
+  .strict-flag { grid-column: 1 / -1; justify-self: start; margin-left: 0; font-size: 8.5px; }
+  .viz-label { font-size: 8.5px; letter-spacing: 0.05em; }
+  .caption { grid-template-columns: 66px minmax(0, 1fr); gap: 6px 9px; min-height: 102px; padding: 9px 10px; }
+  .caption-phase { font-size: 8.5px; letter-spacing: 0.03em; }
+  .caption-text { font-size: 11.5px; line-height: 1.5; }
+  .caption-text b { font-size: 11px; }
+  .caption-math { grid-column: 2; font-size: 9px; gap: 2px 9px; }
+  .controls { grid-template-columns: minmax(0, 1fr); gap: 9px; }
+  .transport { gap: 6px; }
+  .btn { min-height: 36px; flex: 1 1 auto; padding: 0 10px; font-size: 11.5px; }
+  .btn.primary { flex-grow: 1.2; min-width: 84px; }
+  .slider-wrap { width: 100%; }
+  .presets { margin-top: 0; }
+  .preset { min-height: 27px; font-size: 10px; }
+  .keys { font-size: 8.5px; }
+  .definition-card h2 { font-size: 21px; }
+  .formal { font-size: 18px; gap: 2px 7px; }
+  .plain { font-size: 17px; }
+  .why-note { font-size: 10.5px; }
+  .foot { margin-top: 16px; font-size: 8.5px; }
+
+  /* 窄屏按 viewBox 单位放大字号，抵消等比缩小。 */
+  .tick-label { font-size: 27px; }
+  .band-label { font-size: 26px; }
+  .n-pill-text { font-size: 24px; }
+  .dot-label { font-size: 27px; }
+  .dot-label.minor { opacity: 0; }
+  .leader { stroke-width: 1.2; }
+  .index-num-out, .index-num-in { font-size: 23px; }
+  .index-label { font-size: 24px; }
+  .index-bracket-text { font-size: 22px; }
+  .ribbon-n-text { font-size: 22px; }
+  .lens-label { font-size: 24px; }
+  .watermark { font-size: 22px; }
+}
+
+/* 极窄屏（320 仍不横向溢出） */
+@media (max-width: 380px) {
+  .readout strong { font-size: 14.5px; }
+  .readout span { font-size: 7.4px; }
+  .caption { grid-template-columns: minmax(0, 1fr); }
+  .caption-math { grid-column: 1; }
+  .caption-phase { grid-column: 1; }
+  .btn { font-size: 10.5px; padding: 0 8px; }
+  .presets .preset-label { width: 100%; }
+}
+
+/* 减少动态：所有过渡/脉冲关闭；JS 也直接跳到确定状态。 */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* 截帧模式：让每个 seek 状态都是确定的。 */
+html.capture *, html.capture *::before, html.capture *::after {
+  animation: none !important;
+  transition: none !important;
+  caret-color: transparent !important;
+}
+html.capture { scroll-behavior: auto; }
+</style>
+</head>
+<body>
+<a class="skip" href="#probe">跳到交互探针</a>
+<div class="shell">
+  <header class="masthead">
+    <div>
+      <div class="eyebrow"><span class="live-dot" aria-hidden="true"></span> Real Analysis · Interactive Probe 034</div>
+      <h1>误差带再小，<br><em>也收得住整条尾巴。</em></h1>
+      <p class="lede">
+        拖动 <span class="mono">ε</span>，看 <span class="mono">aₙ = 1/n</span> 的点如何被一条对称带筛过；
+        <span class="mono">N</span> 是那个让“之后所有项”都留在带内的起点。
+      </p>
+    </div>
+    <div class="stamp" aria-hidden="true">
+      <span>probe</span>
+      <b>034</b>
+      <span>ε–N</span>
+    </div>
+  </header>
+
+  <main class="probe" id="probe">
+    <section class="stage-card" id="stageCard" aria-labelledby="stageTitle">
+      <div class="stage-head">
+        <div class="stage-title">
+          <span class="kicker">01 / The Cutoff</span>
+          <h2 id="stageTitle">一条数轴，一条带，一个起点</h2>
+        </div>
+        <div class="readouts" aria-label="当前状态">
+          <div class="readout">
+            <span>误差带 ε</span>
+            <strong class="eps" id="epsOut">0.2500</strong>
+          </div>
+          <div class="readout">
+            <span>起点 N</span>
+            <strong class="n" id="nOut">5</strong>
+          </div>
+          <div class="readout">
+            <span>带内</span>
+            <strong id="insideOut">16</strong><small> / 20</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="band-key">
+        <span class="sym-track" aria-hidden="true"><span class="sym-band" id="symBand"></span></span>
+        <span class="long">对称带 <span class="mono">|aₙ| &lt; ε</span> · 正半轴只看 <span class="mono">0 &lt; aₙ &lt; ε</span></span>
+        <span class="strict-flag" id="strictFlag">所有 n ≥ N 的项都严格小于 ε</span>
+      </div>
+
+      <div class="viz">
+        <div class="viz-label"><span>全景数轴 · 0 — 1</span><span class="note">20 项都挤在 0 附近</span></div>
+        <svg id="contextSvg" class="viz-svg" viewBox="0 0 1000 96" role="presentation" aria-hidden="true"></svg>
+
+        <div class="viz-label detail"><span>近 0 放大 · 0 — 0.26</span><span class="note" id="domainNote">n = 4…20 · n = 1–3 见上方全景</span></div>
+        <svg id="detailSvg" class="viz-svg" viewBox="0 0 1000 380" role="img">
+          <title id="detailTitle">数值轴上的误差带与起点 N</title>
+          <desc id="detailDesc">误差带 ε 从 0 到 ε，起点 N 的竖线在 1/N 处。</desc>
+        </svg>
+
+        <div class="viz-label"><span>序号轴 n · 起点之后</span><span class="note" id="ribbonNote">n ≥ 5 · 带内 16/20</span></div>
+        <svg id="indexSvg" class="viz-svg" viewBox="0 0 1000 136" role="img">
+          <title id="indexTitle">序号轴上的起点 N</title>
+          <desc id="indexDesc">20 个序号，从 N 开始向右的项都在误差带内。</desc>
+        </svg>
+      </div>
+
+      <div class="caption" aria-describedby="captionText">
+        <div class="caption-phase" id="phaseLabel"><span>手动</span></div>
+        <div class="caption-body">
+          <p class="caption-text" id="captionText"></p>
+          <div class="caption-math" id="captionMath"></div>
+        </div>
+      </div>
+      <div class="progress" id="progress" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+
+      <div class="controls">
+        <div class="transport" role="group" aria-label="播放控制">
+          <button class="btn primary" id="playBtn" type="button" aria-pressed="false">
+            <span class="glyph" id="playGlyph" aria-hidden="true">▶</span><span id="playLabel">播放</span>
+          </button>
+          <button class="btn" id="stepBtn" type="button">单步</button>
+          <button class="btn" id="replayBtn" type="button">重播</button>
+          <button class="btn ghost" id="resetBtn" type="button">重置</button>
+        </div>
+
+        <div class="slider-wrap">
+          <div class="slider-head">
+            <label for="epsRange">ε · 误差带</label>
+            <output id="sliderOut" for="epsRange">0.2500</output>
+          </div>
+          <input id="epsRange" type="range" min="0" max="1000" step="1" value="1000"
+                 aria-label="误差带 ε，对数刻度" aria-valuetext="ε = 0.2500，起点 N = 5"
+                 aria-describedby="sliderHelp">
+          <div class="slider-ticks" aria-hidden="true">
+            <span style="left: 0%">0.001</span>
+            <span style="left: 41.7%">0.01</span>
+            <span style="left: 83.4%">0.1</span>
+            <span style="left: 100%">0.25</span>
+          </div>
+          <span class="sr-only" id="sliderHelp">对数刻度，从 0.001 到 0.25。方向键微调，Home 到最小值，End 到最大值。</span>
+        </div>
+
+        <div class="presets" role="group" aria-label="ε 预设">
+          <span class="preset-label">presets</span>
+          <button class="preset" type="button" data-eps="0.25" aria-label="ε 等于 0.25">0.25</button>
+          <button class="preset" type="button" data-eps="0.1" aria-label="ε 等于 0.1">0.10</button>
+          <button class="preset" type="button" data-eps="0.052" aria-label="ε 等于 0.052">0.052</button>
+          <button class="preset" type="button" data-eps="0.01" aria-label="ε 等于 0.01">0.01</button>
+        </div>
+      </div>
+
+      <p class="keys">
+        <kbd>←</kbd><kbd>→</kbd> 调 ε · <kbd>P</kbd> 播放/暂停 · <kbd>S</kbd> 单步 · <kbd>R</kbd> 重播 · <kbd>0</kbd> 重置
+      </p>
+    </section>
+
+    <div class="side-col">
+    <aside class="definition-card" aria-labelledby="defTitle">
+      <div class="def-top"><span>形式定义 / Formal</span><span class="tag">ε–N</span></div>
+      <h2 id="defTitle">收敛到 0，究竟在说什么？</h2>
+
+      <div class="formal" aria-label="∀ ε 大于 0，存在 N，对所有 n 大于等于 N，1/n 减 0 的绝对值小于 ε">
+        <span><span class="q">∀</span> <span class="eps">ε</span> &gt; 0,</span>
+        <span><span class="q">∃</span> <span class="n">N</span>,</span>
+        <span><span class="q">∀</span> <span class="n">n</span> ≥ <span class="n">N</span>,</span>
+        <span class="abs">|1/n − 0| &lt; <span class="eps">ε</span></span>
+      </div>
+
+      <p class="plain">不管误差带多小，总能找到<strong>起点 N</strong>，之后所有项都在带内。</p>
+
+      <div class="why">
+        <div class="why-head"><span>为什么是这个 N</span><b id="whyHead">N = 5</b></div>
+        <div class="why-steps">
+          <div class="why-step"><span class="no">01</span><code>|1/n − 0| = 1/n</code></div>
+          <div class="why-step"><span class="no">02</span><code>1/n &lt; ε ⇔ n &gt; 1/ε</code></div>
+          <div class="why-step"><span class="no">03</span><code>N = ⌊1/ε⌋ + 1 = <b id="whyValue">5</b></code></div>
+        </div>
+        <p class="why-caveat">课本速记 <b>N = ⌈1/ε⌉</b>；当 <b>1/ε</b> 是整数时，严格小于要求再 +1。</p>
+        <p class="why-note" id="whyNote"></p>
+      </div>
+
+      <div class="def-foot">
+        <div><span>1 / ε</span><strong id="invOut">4.0000</strong></div>
+        <div><span>1 / N</span><strong id="invNOut">0.2000</strong></div>
+        <div class="verdict"><span>最小性 · 1/(N−1) ≥ ε</span><strong id="verdictOut">0.2500 ≥ 0.2500 ✓</strong></div>
+      </div>
+    </aside>
+    <div class="side-note">
+      <div class="side-note-head"><span>读法</span><span>How to read</span></div>
+      <ol class="side-note-list">
+        <li><b>带有多宽</b>，决定哪些项合格。</li>
+        <li><b>1/N 的竖线</b>是第一个合格项。</li>
+        <li><b>序号轴</b>上，N 之后整段都是青绿色。</li>
+      </ol>
+      <p class="side-note-foot">严格小于：边界项 <span class="mono">aₙ = ε</span> 不算带内，所以整除时要 +1。</p>
+    </div>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <span>不是课程单元 · 是 issue #34 的可交互视觉探针</span>
+    <span class="sep">/</span>
+    <span>单文件 · 无 CDN · 无外部请求 · SVG at DPR</span>
+  </footer>
+</div>
+
+<div class="sr-only" id="a11yStatus" aria-live="polite"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ── 常数 ────────────────────────────────────────────────────
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const TERMS = 20;
+  const EPS_MIN = 0.001;
+  const EPS_MAX = 0.25;
+  const START_EPS = 0.25;
+  const FINAL_EPS = 0.052;
+  const DURATION = 6.0;
+  const PRESETS = [0.25, 0.10, 0.052, 0.01];
+  const EPS_SCALE = 10000; // 显示 4 位小数；计算与显示保持同一精度
+  const DETAIL_DOMAIN = 0.26;
+  const DETAIL = { x0: 48, x1: 952, axisY: 318, bandTop: 92, bandBottom: 342, lanes: 5, laneGap: 34, labelBase: 292 };
+  const CONTEXT = { x0: 48, x1: 952, axisY: 58, bandTop: 20, bandBottom: 78 };
+  const INDEX = { x0: 64, x1: 936, y: 58, r: 13, labelY: 100 };
+
+  const KEYFRAMES = [
+    { u: 0.00, eps: 0.25 },
+    { u: 0.12, eps: 0.25 },
+    { u: 0.40, eps: 0.10 },
+    { u: 0.55, eps: 0.10 },
+    { u: 0.85, eps: 0.052 },
+    { u: 1.00, eps: 0.052 }
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const quantize = (eps) => Math.round(clamp(eps, EPS_MIN, EPS_MAX) * EPS_SCALE) / EPS_SCALE;
+  const reduceQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  // ── 数学 ────────────────────────────────────────────────────
+  // 严格小于：1/n < ε ⇔ n > 1/ε，所以 N 是第一个严格大于 1/ε 的整数。
+  // 当 1/ε 是整数时必须 +1；否则会漏掉 1/N = ε 的边界项。
+  // 课本速记 N = ⌈1/ε⌉ 在 1/ε 非整数时与此相同。
+  function computeN(eps) {
+    if (!(eps > 0) || !isFinite(eps)) throw new RangeError("epsilon must be a positive finite number");
+    const inv = 1 / eps;
+    const nearest = Math.round(inv);
+    const isInteger = Math.abs(inv - nearest) <= 1e-9;
+    return (isInteger ? nearest : Math.floor(inv)) + 1;
+  }
+
+  function isIntegerReciprocal(eps) {
+    const inv = 1 / eps;
+    return Math.abs(inv - Math.round(inv)) <= 1e-9;
+  }
+
+  function insideCountFor(N) {
+    return Math.max(0, TERMS - N + 1);
+  }
+
+  function epsilonAt(u) {
+    u = clamp(u, 0, 1);
+    if (u <= KEYFRAMES[0].u) return KEYFRAMES[0].eps;
+    for (let i = 0; i < KEYFRAMES.length - 1; i += 1) {
+      const a = KEYFRAMES[i];
+      const b = KEYFRAMES[i + 1];
+      if (u <= b.u) {
+        const span = b.u - a.u;
+        const t = span <= 0 ? 1 : (u - a.u) / span;
+        const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        return a.eps + (b.eps - a.eps) * e;
+      }
+    }
+    return KEYFRAMES[KEYFRAMES.length - 1].eps;
+  }
+
+  function epsToSlider(eps) {
+    const t = Math.log(clamp(eps, EPS_MIN, EPS_MAX) / EPS_MIN) / Math.log(EPS_MAX / EPS_MIN);
+    return Math.round(clamp(t, 0, 1) * 1000);
+  }
+
+  function sliderToEps(value) {
+    const t = clamp(Number(value) / 1000, 0, 1);
+    return EPS_MIN * Math.pow(EPS_MAX / EPS_MIN, t);
+  }
+
+  function fmtEps(eps) { return eps.toFixed(4); }
+  function fmtInv(inv) { return inv.toFixed(4); }
+  // 1/N 在 N=1001 时是 0.000999…；4 位小数会显示成 0.0010，
+  // 和 ε=0.0010 看起来相等。小于 0.01 时多给两位，保证严格不等式可读。
+  function fmtTight(value) {
+    if (!isFinite(value)) return "∞";
+    if (value !== 0 && Math.abs(value) < 0.01) return value.toFixed(6);
+    return value.toFixed(4);
+  }
+  function fmtN(n) { return String(n); }
+
+  // ── 状态 ────────────────────────────────────────────────────
+  const state = {
+    epsilon: START_EPS,
+    t: 0,
+    u: 0,
+    mode: "manual", // manual | script | capture | reduced
+    playing: false,
+    raf: 0,
+    startedAt: 0,
+    capture: false
+  };
+
+  // ── SVG 小工具 ─────────────────────────────────────────────
+  function svg(tag, attrs = {}, parent = null) {
+    const node = document.createElementNS(SVG_NS, tag);
+    for (const [key, value] of Object.entries(attrs)) {
+      if (value !== undefined && value !== null) node.setAttribute(key, String(value));
+    }
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  function textNode(text, attrs = {}, parent = null) {
+    const node = svg("text", attrs, parent);
+    node.textContent = text;
+    return node;
+  }
+
+  // ── 坐标 ────────────────────────────────────────────────────
+  const xDetail = (v) => DETAIL.x0 + (clamp(v, 0, DETAIL_DOMAIN) / DETAIL_DOMAIN) * (DETAIL.x1 - DETAIL.x0);
+  const xContext = (v) => CONTEXT.x0 + clamp(v, 0, 1) * (CONTEXT.x1 - CONTEXT.x0);
+  const xIndex = (n) => INDEX.x0 + ((n - 1) / (TERMS - 1)) * (INDEX.x1 - INDEX.x0);
+  const indexSpacing = (INDEX.x1 - INDEX.x0) / (TERMS - 1);
+
+  // ── 构建：context ───────────────────────────────────────────
+  const contextSvg = $("contextSvg");
+  const contextBand = svg("rect", { class: "band-fill", x: CONTEXT.x0, y: CONTEXT.bandTop, width: 0, height: CONTEXT.bandBottom - CONTEXT.bandTop, rx: 2 }, contextSvg);
+  const contextGrid = svg("g", {}, contextSvg);
+  for (const tick of [0.25, 0.5, 0.75]) {
+    svg("line", { class: "grid-line", x1: xContext(tick), x2: xContext(tick), y1: 18, y2: 82 }, contextGrid);
+  }
+  svg("line", { class: "axis", x1: CONTEXT.x0, x2: CONTEXT.x1, y1: CONTEXT.axisY, y2: CONTEXT.axisY }, contextSvg);
+  const contextTicks = svg("g", {}, contextSvg);
+  for (const tick of [0, 0.25, 0.5, 0.75, 1]) {
+    const x = xContext(tick);
+    svg("line", { class: "axis-soft", x1: x, x2: x, y1: CONTEXT.axisY, y2: CONTEXT.axisY + 5 }, contextTicks);
+    textNode(tick === 0 ? "0" : tick === 1 ? "1" : String(tick), {
+      class: "tick-label", x, y: 92, "text-anchor": tick === 0 ? "start" : tick === 1 ? "end" : "middle"
+    }, contextTicks);
+  }
+  const contextLens = svg("rect", {
+    class: "lens-rect", x: CONTEXT.x0, y: 9,
+    width: Math.max(1, xContext(DETAIL_DOMAIN) - CONTEXT.x0),
+    height: 74, rx: 5
+  }, contextSvg);
+  textNode("放大 0–0.26 ↓", {
+    class: "lens-label", x: xContext(DETAIL_DOMAIN) + 9, y: 27
+  }, contextSvg);
+  const contextThreshold = svg("line", {
+    class: "n-line", x1: CONTEXT.x0, x2: CONTEXT.x0, y1: 15, y2: 81
+  }, contextSvg);
+  const contextDots = [];
+  for (let n = 1; n <= TERMS; n += 1) {
+    const dot = svg("circle", {
+      class: "dot-out", cx: xContext(1 / n), cy: CONTEXT.axisY, r: n >= 18 ? 6 : 7
+    }, contextSvg);
+    dot.dataset.term = String(n);
+    contextDots.push(dot);
+  }
+
+  // ── 构建：detail ────────────────────────────────────────────
+  const detailSvg = $("detailSvg");
+  const detailBand = svg("rect", {
+    class: "band-fill", x: DETAIL.x0, y: DETAIL.bandTop,
+    width: 0, height: DETAIL.bandBottom - DETAIL.bandTop, rx: 3
+  }, detailSvg);
+  const detailGrid = svg("g", {}, detailSvg);
+  for (const tick of [0.05, 0.10, 0.15, 0.20, 0.25]) {
+    svg("line", { class: "grid-line", x1: xDetail(tick), x2: xDetail(tick), y1: DETAIL.bandTop, y2: DETAIL.bandBottom }, detailGrid);
+  }
+  svg("line", { class: "axis", x1: DETAIL.x0, x2: DETAIL.x1, y1: DETAIL.axisY, y2: DETAIL.axisY }, detailSvg);
+  const detailTicks = svg("g", {}, detailSvg);
+  for (const tick of [0, 0.05, 0.10, 0.15, 0.20, 0.25]) {
+    const x = xDetail(tick);
+    svg("line", { class: "axis-soft", x1: x, x2: x, y1: DETAIL.axisY, y2: DETAIL.axisY + 7 }, detailTicks);
+    textNode(tick === 0 ? "0" : tick.toFixed(2), {
+      class: "tick-label", x, y: 366, "text-anchor": tick === 0 ? "start" : "middle"
+    }, detailTicks);
+  }
+  const detailEdge = svg("line", {
+    class: "band-outline", x1: DETAIL.x0, x2: DETAIL.x0,
+    y1: DETAIL.bandTop, y2: DETAIL.bandBottom
+  }, detailSvg);
+  const detailEdgeLabel = textNode("ε", {
+    class: "band-label", x: DETAIL.x0, y: 88, "text-anchor": "start"
+  }, detailSvg);
+  const detailNLine = svg("line", {
+    class: "n-line", x1: DETAIL.x0, x2: DETAIL.x0, y1: 70, y2: DETAIL.bandBottom + 4
+  }, detailSvg);
+  const nPillGroup = svg("g", {}, detailSvg);
+  const nPillRect = svg("rect", { class: "n-pill", x: DETAIL.x0, y: 38, width: 52, height: 27, rx: 6 }, nPillGroup);
+  const nPillText = textNode("N=5", { class: "n-pill-text", x: DETAIL.x0, y: 53, "text-anchor": "start" }, nPillGroup);
+
+  // 17 个可见项：n=4..20；n=1..3 在右侧全景里。
+  const detailTerms = [];
+  for (let n = 20; n >= 4; n -= 1) detailTerms.push({ n, value: 1 / n, x: xDetail(1 / n) });
+  // 标签车道：按 x 排序后贪心放到不会横向相撞的最矮车道。
+  const labelLane = new Map();
+  const laneRight = new Array(DETAIL.lanes).fill(-Infinity);
+  for (const term of detailTerms.slice().sort((a, b) => a.x - b.x)) {
+    const label = String(term.n);
+    const width = 10 + label.length * 17;
+    const anchor = term.x > 890 ? "end" : "start";
+    const lx = term.x + (anchor === "end" ? -10 : 9);
+    let lane = 0;
+    for (; lane < DETAIL.lanes; lane += 1) {
+      const left = anchor === "start" ? lx : lx - width;
+      const right = anchor === "start" ? lx + width : lx;
+      if (left > laneRight[lane] + 6) {
+        laneRight[lane] = right;
+        break;
+      }
+    }
+    if (lane >= DETAIL.lanes) lane = DETAIL.lanes - 1;
+    labelLane.set(term.n, { lane, anchor, lx });
+  }
+  // 从右往左画，让密集区最后落笔（视觉上更稳）。
+  const detailDots = [];
+  const detailLabels = [];
+  for (const term of detailTerms) {
+    const { lane, anchor, lx } = labelLane.get(term.n);
+    const labelY = DETAIL.labelBase - lane * DETAIL.laneGap;
+    const leader = svg("line", {
+      class: "leader", x1: term.x, x2: term.x, y1: DETAIL.axisY - 10, y2: labelY - 6
+    }, detailSvg);
+    const dot = svg("circle", {
+      class: "dot-out", cx: term.x, cy: DETAIL.axisY, r: term.n >= 18 ? 10 : 11
+    }, detailSvg);
+    dot.dataset.term = String(term.n);
+    const halo = svg("circle", {
+      class: "dot-halo", cx: term.x, cy: DETAIL.axisY, r: term.n >= 18 ? 16 : 17, opacity: 0
+    }, detailSvg);
+    const label = textNode(String(term.n), {
+      class: "dot-label", x: lx, y: labelY, "text-anchor": anchor
+    }, detailSvg);
+    if (term.n % 2 === 1 && term.n > 5) label.classList.add("minor");
+    detailDots.push({ term, dot, halo, leader, label });
+    detailLabels.push(label);
+  }
+  // 边界环（n=N 的那颗点）画在最上层。
+  const boundaryRing = svg("circle", {
+    class: "dot-boundary", cx: DETAIL.x0, cy: DETAIL.axisY, r: 16, opacity: 0
+  }, detailSvg);
+  textNode("aₙ = 1/n", { class: "watermark", x: DETAIL.x1, y: DETAIL.bandTop + 20, "text-anchor": "end" }, detailSvg);
+
+  // ── 构建：index ─────────────────────────────────────────────
+  const indexSvg = $("indexSvg");
+  const indexBracket = svg("path", { class: "index-bracket", d: "", opacity: 0 }, indexSvg);
+  const indexBracketText = textNode("n ≥ N", {
+    class: "index-bracket-text", x: INDEX.x1, y: 17, "text-anchor": "end", opacity: 0
+  }, indexSvg);
+  const indexCells = [];
+  for (let n = 1; n <= TERMS; n += 1) {
+    const x = xIndex(n);
+    const cell = svg("circle", { class: "index-cell-out", cx: x, cy: INDEX.y, r: INDEX.r }, indexSvg);
+    cell.dataset.indexTerm = String(n);
+    const num = textNode(String(n), {
+      class: "index-num-out", x, y: INDEX.y + 5, "text-anchor": "middle"
+    }, indexSvg);
+    textNode(String(n), {
+      class: "index-label", x, y: INDEX.labelY, "text-anchor": "middle"
+    }, indexSvg);
+    indexCells.push({ n, cell, num });
+  }
+  const indexNLine = svg("line", {
+    class: "n-line", x1: INDEX.x0, x2: INDEX.x0, y1: 30, y2: 110
+  }, indexSvg);
+  const indexNGroup = svg("g", {}, indexSvg);
+  const indexNRect = svg("rect", { class: "ribbon-n-flag", x: INDEX.x0, y: 116, width: 46, height: 18, rx: 4 }, indexNGroup);
+  const indexNText = textNode("N=5", { class: "ribbon-n-text", x: INDEX.x0, y: 128, "text-anchor": "middle" }, indexNGroup);
+  textNode("序号 n", { class: "watermark", x: INDEX.x0 - 8, y: 17, "text-anchor": "end" }, indexSvg);
+
+  // ── DOM 引用 ────────────────────────────────────────────────
+  const ui = {
+    epsOut: $("epsOut"),
+    nOut: $("nOut"),
+    insideOut: $("insideOut"),
+    symBand: $("symBand"),
+    strictFlag: $("strictFlag"),
+    captionText: $("captionText"),
+    captionMath: $("captionMath"),
+    phaseLabel: $("phaseLabel"),
+    domainNote: $("domainNote"),
+    ribbonNote: $("ribbonNote"),
+    progress: $("progress"),
+    progressFill: $("progressFill"),
+    playBtn: $("playBtn"),
+    playGlyph: $("playGlyph"),
+    playLabel: $("playLabel"),
+    stepBtn: $("stepBtn"),
+    replayBtn: $("replayBtn"),
+    resetBtn: $("resetBtn"),
+    range: $("epsRange"),
+    sliderOut: $("sliderOut"),
+    whyHead: $("whyHead"),
+    whyValue: $("whyValue"),
+    whyNote: $("whyNote"),
+    invOut: $("invOut"),
+    invNOut: $("invNOut"),
+    verdictOut: $("verdictOut"),
+    a11yStatus: $("a11yStatus")
+  };
+
+  const presets = Array.from(document.querySelectorAll(".preset"));
+
+  // ── 渲染 ────────────────────────────────────────────────────
+  function phaseFor(eps, mode) {
+    if (mode === "manual") {
+      return { no: "手动", label: "", text: "拖动 ε，或按播放看它自己收紧。" };
+    }
+    if (mode === "reduced") {
+      return { no: "静态", label: "", text: "已按减少动态偏好直接显示最终状态。" };
+    }
+    const u = state.u;
+    if (u < 0.12) return { no: "01", label: "固定", text: "先固定一条误差带，数一数它在哪。" };
+    if (u < 0.40) return { no: "02", label: "收紧", text: "把带收紧：带内的项逐个退出，N 向右移动。" };
+    if (u < 0.55) return { no: "03", label: "数项", text: "停顿一下：带内还剩几项？它们都在 N 之后。" };
+    if (u < 0.85) return { no: "04", label: "再收紧", text: "再收紧一次；N 继续右移，但总有下一个起点。" };
+    return { no: "05", label: "落点", text: "停在第 20 项：之后所有项仍严格在带内。" };
+  }
+
+  function render() {
+    const eps = state.epsilon;
+    const N = computeN(eps);
+    const inside = insideCountFor(N);
+    const exact = isIntegerReciprocal(eps);
+    const inv = 1 / eps;
+    const prevInv = N > 1 ? 1 / (N - 1) : Infinity;
+    const invN = 1 / N;
+    const phase = phaseFor(eps, state.mode);
+
+    // 读数
+    ui.epsOut.textContent = fmtEps(eps);
+    ui.nOut.textContent = fmtN(N);
+    ui.insideOut.textContent = String(inside);
+    ui.sliderOut.textContent = fmtEps(eps);
+    ui.symBand.style.setProperty("--sym", ((eps / EPS_MAX) * 100).toFixed(3) + "%");
+    ui.strictFlag.textContent = exact
+      ? "边界项 aₙ = ε（n = " + String(Math.round(inv)) + "），不在带内"
+      : "所有 n ≥ N 的项都严格小于 ε";
+    ui.strictFlag.classList.toggle("is-hot", exact);
+
+    // 说明
+    ui.phaseLabel.innerHTML = '<span>' + phase.no + '</span>' + (phase.label ? ' ' + phase.label : '');
+    let caption;
+    if (N <= TERMS) {
+      if (inside === 1) {
+        caption = "ε = <b>" + fmtEps(eps) + "</b> → N = <b class=\"n\">" + N +
+          "</b>。第 " + N + " 项起，画面内 <b class=\"n\">1</b> 项在带内；前 " +
+          (N - 1) + " 项在带外。";
+      } else {
+        caption = "ε = <b>" + fmtEps(eps) + "</b> → N = <b class=\"n\">" + N +
+          "</b>。第 " + N + " 项起，n ≥ " + N + " 的 <b class=\"n\">" + inside +
+          "</b> 项都在带内；前 " + (N - 1) + " 项在带外。";
+      }
+    } else {
+      caption = "ε = <b>" + fmtEps(eps) + "</b> → N = <b class=\"n\">" + N +
+        "</b>。画面前 20 项都已出带；定义说的是第 " + N +
+        " 项之后——画面外还有无穷多项。";
+    }
+    if (exact) {
+      caption += " 1/ε = " + String(Math.round(inv)) + " 是整数：第 " + String(Math.round(inv)) +
+        " 项正好等于 ε，不算“小于”，所以 N 取 " + N + "。";
+    }
+    ui.captionText.innerHTML = caption;
+    ui.captionMath.innerHTML =
+      '<span>1/N = ' + fmtTight(invN) + ' &lt; ε <span class="ok">✓</span></span>' +
+      '<span class="dim">1/(N−1) = ' + (N > 1 ? fmtTight(prevInv) : "∞") + ' ≥ ε <span class="ok">✓</span></span>';
+    ui.domainNote.textContent = "n = 4…20 · n = 1–3 见上方全景";
+    ui.ribbonNote.textContent = N <= TERMS
+      ? "n ≥ " + N + " · 带内 " + inside + "/20"
+      : "N = " + N + " · 画面前 20 项都在带外";
+
+    // 形式卡
+    ui.whyHead.textContent = "N = " + N;
+    ui.whyValue.textContent = String(N);
+    ui.invOut.textContent = fmtInv(inv);
+    ui.invNOut.textContent = fmtTight(invN);
+    ui.verdictOut.textContent = (N > 1 ? fmtTight(prevInv) : "∞") + " ≥ " + fmtTight(eps) + " ✓";
+    if (exact) {
+      ui.whyNote.textContent = "1/ε = " + String(Math.round(inv)) + " 是整数。第 " +
+        String(Math.round(inv)) + " 项正好等于 ε；严格小于不算带内，所以 N = " +
+        String(Math.round(inv)) + " + 1 = " + N + "，不是 " + String(Math.round(inv)) + "。";
+      ui.whyNote.classList.add("is-hot");
+    } else {
+      ui.whyNote.textContent = "1/ε = " + inv.toFixed(3) + "… 不是整数；取第一个严格大于它的整数，" +
+        "即 N = ⌊1/ε⌋ + 1 = " + N + "。课本速记 N = ⌈1/ε⌉ 在这里与它相同。";
+      ui.whyNote.classList.remove("is-hot");
+    }
+
+    // 滑块
+    const sliderValue = epsToSlider(eps);
+    ui.range.value = String(sliderValue);
+    ui.range.setAttribute("aria-valuetext", "ε = " + fmtEps(eps) + "，起点 N = " + N + "，带内 " + inside + " 项");
+    presets.forEach((button) => {
+      const value = Number(button.dataset.eps);
+      button.classList.toggle("is-active", Math.abs(value - eps) < 1e-9);
+    });
+
+    // 播放按钮
+    const atEnd = state.mode === "script" && state.t >= DURATION - 1e-6;
+    const playLabel = state.playing ? "暂停" : atEnd ? "再看一次" : "播放";
+    const playGlyph = state.playing ? "❚❚" : "▶";
+    if (ui.playLabel.textContent !== playLabel) ui.playLabel.textContent = playLabel;
+    if (ui.playGlyph.textContent !== playGlyph) ui.playGlyph.textContent = playGlyph;
+    ui.playBtn.setAttribute("aria-pressed", state.playing ? "true" : "false");
+    ui.playBtn.classList.toggle("is-playing", state.playing);
+
+    // 进度
+    const live = state.mode === "script" && (state.playing || (state.t > 0 && state.t < DURATION));
+    ui.progress.classList.toggle("is-live", live);
+    ui.progressFill.style.width = (live ? (state.t / DURATION) * 100 : 0).toFixed(3) + "%";
+
+    // 全景
+    const ctxBandWidth = Math.max(0.6, xContext(eps) - CONTEXT.x0);
+    contextBand.setAttribute("width", ctxBandWidth.toFixed(2));
+    contextThreshold.setAttribute("x1", xContext(invN).toFixed(2));
+    contextThreshold.setAttribute("x2", xContext(invN).toFixed(2));
+    contextDots.forEach((dot, index) => {
+      const n = index + 1;
+      const inBand = n >= N;
+      dot.setAttribute("class", inBand ? "dot-in" : "dot-out");
+      dot.setAttribute("r", String(n >= 18 ? (inBand ? 7.5 : 6.5) : 7));
+    });
+
+    // 近 0 放大
+    const bandWidth = Math.max(0.5, xDetail(eps) - DETAIL.x0);
+    detailBand.setAttribute("width", bandWidth.toFixed(2));
+    detailEdge.setAttribute("x1", xDetail(eps).toFixed(2));
+    detailEdge.setAttribute("x2", xDetail(eps).toFixed(2));
+    detailEdgeLabel.setAttribute("x", (xDetail(eps) + 8).toFixed(2));
+    const edgeAnchor = xDetail(eps) > 700 ? "end" : "start";
+    detailEdgeLabel.setAttribute("x", (xDetail(eps) + (edgeAnchor === "end" ? -8 : 8)).toFixed(2));
+    detailEdgeLabel.setAttribute("text-anchor", edgeAnchor);
+    detailEdgeLabel.textContent = "ε = " + fmtEps(eps);
+    const nX = xDetail(invN);
+    detailNLine.setAttribute("x1", nX.toFixed(2));
+    detailNLine.setAttribute("x2", nX.toFixed(2));
+    const pillText = "N=" + String(N) + (N > TERMS ? " →" : "");
+    const pillW = Math.max(38, pillText.length * 9.2 + 14);
+    const pillAnchor = nX > 760 ? "end" : "start";
+    const pillX = pillAnchor === "end" ? nX - pillW - 4 : nX + 4;
+    nPillGroup.setAttribute("opacity", "1");
+    nPillRect.setAttribute("x", clamp(pillX, 4, 1000 - pillW - 4).toFixed(2));
+    nPillRect.setAttribute("width", pillW.toFixed(2));
+    nPillText.setAttribute("x", (clamp(pillX, 4, 1000 - pillW - 4) + pillW / 2).toFixed(2));
+    nPillText.setAttribute("text-anchor", "middle");
+    nPillText.textContent = pillText;
+    boundaryRing.setAttribute("cx", nX.toFixed(2));
+    boundaryRing.setAttribute("opacity", N <= TERMS ? "0.9" : "0");
+
+    for (const item of detailDots) {
+      const inBand = item.term.n >= N;
+      item.dot.setAttribute("class", inBand ? "dot-in" : "dot-out");
+      item.dot.setAttribute("r", inBand ? (item.term.n >= 18 ? 11 : 12) : 9);
+      item.halo.setAttribute("opacity", inBand ? "1" : "0");
+      item.leader.setAttribute("class", inBand ? "leader in" : "leader");
+      item.label.setAttribute("class", "dot-label" + (inBand ? " in" : "") + (item.label.classList.contains("minor") ? " minor" : ""));
+      item.label.setAttribute("fill-opacity", inBand ? "1" : "0.75");
+    }
+
+    // 序号轴
+    const boundary = N <= 1 ? xIndex(1) - indexSpacing / 2 : N > TERMS ? xIndex(TERMS) + indexSpacing / 2 : (xIndex(N - 1) + xIndex(N)) / 2;
+    indexNLine.setAttribute("x1", boundary.toFixed(2));
+    indexNLine.setAttribute("x2", boundary.toFixed(2));
+    indexCells.forEach(({ n, cell, num }) => {
+      const inBand = n >= N;
+      cell.setAttribute("class", inBand ? "index-cell-in" : "index-cell-out");
+      num.setAttribute("class", inBand ? "index-num-in" : "index-num-out");
+    });
+    const flagText = "N=" + String(N);
+    const flagW = Math.max(40, flagText.length * 7.8 + 12);
+    const flagX = clamp(boundary - flagW / 2, 8, 992 - flagW);
+    indexNRect.setAttribute("x", flagX.toFixed(2));
+    indexNRect.setAttribute("width", flagW.toFixed(2));
+    indexNText.setAttribute("x", (flagX + flagW / 2).toFixed(2));
+    indexNText.textContent = flagText;
+    if (N <= TERMS) {
+      const bracketLeft = boundary;
+      const bracketRight = INDEX.x1;
+      indexBracket.setAttribute("d", "M" + bracketLeft.toFixed(2) + " 28 V 22 H" + bracketRight.toFixed(2) + " V 28");
+      indexBracket.setAttribute("opacity", "0.85");
+      indexBracketText.setAttribute("x", Math.max(bracketLeft + 7, INDEX.x0).toFixed(2));
+      indexBracketText.setAttribute("y", "17");
+      indexBracketText.setAttribute("text-anchor", "start");
+      indexBracketText.textContent = "n ≥ " + N + " · 都在带内";
+      indexBracketText.setAttribute("opacity", bracketRight - bracketLeft > 95 ? "1" : "0");
+    } else {
+      indexBracket.setAttribute("opacity", "0");
+      indexBracketText.setAttribute("x", "992");
+      indexBracketText.setAttribute("y", "17");
+      indexBracketText.setAttribute("text-anchor", "end");
+      indexBracketText.textContent = "N = " + N + " → 画面外";
+      indexBracketText.setAttribute("opacity", "1");
+    }
+
+    // SVG 可访问名
+    detailSvg.setAttribute("aria-label", "数轴 0 到 0.26：ε=" + fmtEps(eps) + "，起点 N=" + N + "，20 项中 " + inside + " 项在带内");
+    indexSvg.setAttribute("aria-label", "序号 1 到 20：从第 " + N + " 项起，所有项都在误差带内");
+
+    // 只在 N/模式变化时向读屏播报，避免每帧刷屏。
+    if (runtime.lastAnnounce !== N + ":" + state.mode) {
+      runtime.lastAnnounce = N + ":" + state.mode;
+      const status = "ε = " + fmtEps(eps) + "，起点 N = " + N + "，带内 " + inside + " 项";
+      if (ui.a11yStatus) ui.a11yStatus.textContent = status;
+    }
+  }
+
+  const runtime = { lastAnnounce: "" };
+
+  // ── 播放/控制 ───────────────────────────────────────────────
+  function pause() {
+    if (state.raf) cancelAnimationFrame(state.raf);
+    state.raf = 0;
+    state.playing = false;
+  }
+
+  function tick(now) {
+    if (!state.playing) return;
+    state.t = Math.min(DURATION, (now - state.startedAt) / 1000);
+    state.u = state.t / DURATION;
+    state.epsilon = quantize(epsilonAt(state.u));
+    if (state.t >= DURATION) {
+      state.playing = false;
+      state.raf = 0;
+      state.mode = "script";
+      render();
+      return;
+    }
+    render();
+    state.raf = requestAnimationFrame(tick);
+  }
+
+  function play() {
+    const reduced = reduceQuery.matches;
+    if (reduced) {
+      pause();
+      state.mode = "reduced";
+      state.t = DURATION;
+      state.u = 1;
+      state.epsilon = quantize(FINAL_EPS);
+      render();
+      return;
+    }
+    if (state.playing) { pause(); render(); return; }
+    if (!(state.mode === "script" && state.t > 0 && state.t < DURATION)) state.t = 0;
+    state.mode = "script";
+    state.playing = true;
+    state.startedAt = performance.now() - state.t * 1000;
+    state.raf = requestAnimationFrame(tick);
+    render();
+  }
+
+  function seek(seconds) {
+    pause();
+    state.mode = "capture";
+    state.t = clamp(Number(seconds) || 0, 0, DURATION);
+    state.u = state.t / DURATION;
+    state.epsilon = quantize(epsilonAt(state.u));
+    render();
+    return getState();
+  }
+
+  function setEpsilon(raw, options = {}) {
+    if (!options.silent) pause();
+    state.epsilon = quantize(Number(raw));
+    state.mode = options.mode || "manual";
+    state.t = 0;
+    state.u = 0;
+    render();
+    return state.epsilon;
+  }
+
+  function step() {
+    pause();
+    const current = state.epsilon;
+    let next = PRESETS[0];
+    for (let i = 0; i < PRESETS.length; i += 1) {
+      if (PRESETS[i] < current - 1e-9) { next = PRESETS[i]; break; }
+    }
+    state.epsilon = quantize(next);
+    state.mode = "manual";
+    state.t = 0;
+    state.u = 0;
+    render();
+    return state.epsilon;
+  }
+
+  function reset() {
+    pause();
+    state.mode = "manual";
+    state.t = 0;
+    state.u = 0;
+    state.epsilon = START_EPS;
+    render();
+  }
+
+  function replay() {
+    pause();
+    state.t = 0;
+    state.u = 0;
+    state.epsilon = START_EPS;
+    if (reduceQuery.matches) {
+      state.mode = "reduced";
+      state.t = DURATION;
+      state.u = 1;
+      state.epsilon = quantize(FINAL_EPS);
+      render();
+      return;
+    }
+    state.mode = "script";
+    state.playing = true;
+    state.startedAt = performance.now();
+    state.raf = requestAnimationFrame(tick);
+    render();
+  }
+
+  function beginCapture() {
+    pause();
+    state.mode = "capture";
+    document.documentElement.classList.add("capture");
+    document.documentElement.classList.toggle("reduce", reduceQuery.matches);
+    render();
+  }
+
+  function endCapture() {
+    document.documentElement.classList.remove("capture");
+    document.documentElement.classList.remove("reduce");
+    state.mode = "manual";
+    render();
+  }
+
+  function getState() {
+    const eps = state.epsilon;
+    const N = computeN(eps);
+    return {
+      epsilon: eps,
+      N,
+      invEps: 1 / eps,
+      invN: 1 / N,
+      prevInv: N > 1 ? 1 / (N - 1) : null,
+      inside: insideCountFor(N),
+      t: state.t,
+      u: state.u,
+      duration: DURATION,
+      mode: state.mode,
+      playing: state.playing,
+      reducedMotion: reduceQuery.matches,
+      exactReciprocal: isIntegerReciprocal(eps),
+      formulaHolds: 1 / N < eps + 1e-12 && (N === 1 || 1 / (N - 1) >= eps - 1e-12)
+    };
+  }
+
+  // ── 事件 ────────────────────────────────────────────────────
+  ui.playBtn.addEventListener("click", play);
+  ui.stepBtn.addEventListener("click", step);
+  ui.replayBtn.addEventListener("click", replay);
+  ui.resetBtn.addEventListener("click", reset);
+
+  ui.range.addEventListener("input", (event) => {
+    pause();
+    const eps = quantize(sliderToEps(event.target.value));
+    state.epsilon = eps;
+    state.mode = "manual";
+    state.t = 0;
+    state.u = 0;
+    render();
+  });
+
+  // 原生 range 的方向键一次只走 1/1000；在 4 位小数的显示精度下
+  // 最小端几乎不动。这里改成按比例调，Home/End 仍交给原生。
+  ui.range.addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+    event.preventDefault();
+    const up = event.key === "ArrowRight" || event.key === "ArrowUp";
+    setEpsilon(state.epsilon * (up ? 1.08 : 1 / 1.08));
+  });
+
+  presets.forEach((button) => {
+    button.addEventListener("click", () => {
+      setEpsilon(Number(button.dataset.eps));
+      button.focus({ preventScroll: true });
+    });
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    const tag = event.target && event.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") return;
+    const key = event.key.toLowerCase();
+    if (key === "p" || key === " ") { event.preventDefault(); play(); return; }
+    if (key === "s") { event.preventDefault(); step(); return; }
+    if (key === "r") { event.preventDefault(); replay(); return; }
+    if (key === "0") { event.preventDefault(); reset(); return; }
+    if (key === "arrowleft" || key === "arrowright") {
+      event.preventDefault();
+      const delta = key === "arrowright" ? 12 : -12;
+      const next = clamp(epsToSlider(state.epsilon) + delta, 0, 1000);
+      setEpsilon(sliderToEps(next));
+    }
+  });
+
+  reduceQuery.addEventListener?.("change", () => {
+    if (reduceQuery.matches && state.playing) pause();
+    render();
+  });
+
+  // 切到后台时暂停，避免回来看到跳帧。
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && state.playing) { pause(); render(); }
+  });
+
+  // ── 公开探针 API（export-gif.mjs / check.mjs 用） ──────────
+  window.SokoAnim = {
+    version: "1.0.0",
+    terms: TERMS,
+    duration: DURATION,
+    fpsHint: 20,
+    presets: PRESETS.slice(),
+    epsMin: EPS_MIN,
+    epsMax: EPS_MAX,
+    computeN,
+    epsilonAt,
+    isIntegerReciprocal,
+    insideCountFor,
+    seek,
+    setEpsilon,
+    step,
+    play,
+    pause,
+    replay,
+    reset,
+    beginCapture,
+    endCapture,
+    getState,
+    render
+  };
+
+  // 初始状态
+  state.epsilon = START_EPS;
+  state.t = 0;
+  state.u = 0;
+  state.mode = "manual";
+  document.documentElement.classList.toggle("reduce", reduceQuery.matches);
+  render();
+})();
+</script>
+</body>
+</html>
