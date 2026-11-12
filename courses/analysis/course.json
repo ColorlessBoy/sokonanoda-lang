@@ -597,6 +597,12 @@
               "title": "单元76 极限的代数：加法、减法、取负",
               "title_en": "Unit 76 — Algebra of Limits: Addition, Subtraction, Negation",
               "unit": 76
+            },
+            {
+              "file": "units/III.1/unit77-converges-bounded.sokonanoda",
+              "title": "单元77 收敛序列有界",
+              "title_en": "Unit 77 — Convergent Sequences are Bounded",
+              "unit": 77
             }
           ]
         }
