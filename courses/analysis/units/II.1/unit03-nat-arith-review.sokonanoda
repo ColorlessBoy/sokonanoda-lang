@@ -1,26 +1,26 @@
--- 单元：卷 II 单元③ ℕ 的算术律（复习）
+-- 单元③ ℕ 的算术律：把递归与归纳亲手走一遍
 --
--- 本单元按教材（Enderton §4.1–§4.3、Halmos §11/§12）从 `Nat.rec` 自建
--- `add`/`mul`，用归纳证律，作为递归定义的复习。prelude 的内建 `Nat.add`
--- 不参与本单元的证明；后续单元才直接使用内建加法。
+-- 卷 I 已经把自然数搭好：有 0、有后继，也有递归定理。但自然数上的加法与乘法
+-- 不是天上掉下来的；后面的整数、有理数、实数，最后都要把等式落回这里。为了
+-- 以后在代表元层反复使用这些律，这一单元先亲手重造一遍：用 Nat.rec 定义
+-- add 与 mul，再用归纳证明零元、后继、结合、交换与分配。
 --
--- 本单元的"该学的定理"（11 条）：
--- · 定义：`add`（对第二个参数递归）· `mul`（同）；
--- · 定义性等式（ι 归约，证明项就是 `Eq.refl`）：`add_zero` · `add_succ` · `mul_zero` · `mul_succ`；
---   · 归纳律：`zero_add` · `succ_add` · `add_assoc` · `add_comm`；
--- · 搬运助手：`add_rotate`（`a+(b+c) = b+(a+c)` —— 由结合 + 交换两步接起来）；
--- · 乘法：`zero_mul` · `mul_distrib`（分配律 `a·(b+c) = a·b + a·c`）。
+-- 为什么不直接用 prelude 里现成的 Nat.add？这一章要练的是“递归定义 + 归纳
+-- 证明”的骨架。把现成加法当黑箱，后面的代表元计算就只剩符号操作；亲手造一遍，
+-- 才知道每一步的归纳假设从哪里来、为什么搬得动。
 --
--- 注意：写法要点（本单元一次判绿）：① 返回 `Nat` 的声明写 `def` ✗（`theorem` 只收 `Prop`）；
--- ② 等式一律写 `=` 记法；证明项仍显式写宇宙层级（`@Eq.refl.{1}` 一族，见卷 I 手册边界）；③ 归纳 = `Nat.rec` + Prop 动机
--- （动机写 `fun (n : Nat) => … = …`）；④ 归纳步用 `Eq.subst` + 谓词
--- （谓词方向决定结果方向）。
+-- 先看定义。add 对第二个参数递归：add a 0 = a，add a (succ b) = succ (add a b)。
+-- 这两个等式是定义性相等，证明项就是 Eq.refl；mul 也照同样方式递归：
+-- mul a 0 = 0，mul a (succ b) = add a (mul a b)。
 --
--- 本单元只允许用：`intro` / `exact` / `apply` / `constructor` / `cases` / `have`，
--- 加 `import` 进来的库引理与 prelude 的 `Classical.*`。
--- 本单元 `import` 一样：`lib.Set`。
+-- 定义之后，先证四个定义性等式（add_zero、add_succ、mul_zero、mul_succ），
+-- 再证需要归纳的 zero_add、succ_add、add_assoc、add_comm，最后补搬运助手
+-- add_rotate 与分配律 mul_distrib。零情形通常定义性成立；后继情形把归纳假设
+-- 沿 succ 搬过去，必要时用 Eq.subst 改写谓词。
 --
--- 依赖：单元106–110（`Acc`/递归/选择公理线）
+-- 做完这一单元，后面在 ℤ、ℚ、ℝ 的代表元层写加法零元、交换加数时，用的就是
+-- 这里证过的律；它们不是新公理，而是自然数上归纳法的结果。
+
 import lib.Set
 def add (a b : Nat) : Nat :=
   Nat.rec (fun (_ : Nat) => Nat) a (fun (n : Nat) (ih : Nat) => Nat.succ ih) b

@@ -1523,8 +1523,7 @@ def render_unit(book: Book, unit: Unit, chapter: Chapter, position: int) -> str:
     )
     if unit.intro:
         parts.append(
-            '<section class="unit-intro" aria-label="本单元讲什么">'
-            '<p class="unit-intro-label">本单元讲什么</p>'
+            '<section class="unit-intro" aria-label="单元导语">'
             f'<div class="unit-intro-body">{render_items(unit.intro)}</div>'
             "</section>"
         )
@@ -2602,8 +2601,8 @@ def negative_selftest(book: Book, fresh: str) -> List[str]:
     cases["copy-link control removed"] = fresh.replace(
         'data-copy-link="unit-1"', 'data-copy-link-gone="unit-1"', 1
     )
-    intro_marker = '<section class="unit-intro" aria-label="本单元讲什么">'
-    intro_label = '<p class="unit-intro-label">本单元讲什么</p>'
+    intro_marker = '<section class="unit-intro" aria-label="单元导语">'
+    intro_label = intro_marker
     cases["unit intro removed"] = fresh.replace(intro_marker, "<div>", 1)
     cases["visible ** markdown"] = fresh.replace(
         intro_label, intro_label + "<p>**junk**</p>", 1
@@ -2612,7 +2611,7 @@ def negative_selftest(book: Book, fresh: str) -> List[str]:
         intro_label, intro_label + "<p>============</p>", 1
     )
     cases["adjacent duplicate prose"] = fresh.replace(
-        intro_label, intro_label + "<p>本单元讲什么</p>", 1
+        intro_label, intro_label + "<p>相邻重复的导语。</p><p>相邻重复的导语。</p>", 1
     )
     long_paragraph = "长" * (MAX_PROSE_CHARS + 50)
     cases["over-long prose paragraph"] = fresh.replace(

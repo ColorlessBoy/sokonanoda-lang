@@ -60,7 +60,7 @@ does not judge proofs and never edits `courses/**`.
   lists, and decorative rules. Inline `**bold**` / `__bold__` / `` `code` ``
   are rendered; literal markdown markers never reach the page or the search
   results.
-- **Every unit starts with 「本单元讲什么」**: the first meaningful prose
+- **Every unit starts with a lead paragraph (no meta label)**: the first meaningful prose
   paragraph is lifted, unchanged, into a lead block. File-header boilerplate
   (靶子 / 依赖 / L3 自带 / 允许的 tactic / 写法要点) and exact heading echoes are
   moved into one collapsed **编写注记** panel per unit — moved, never deleted.
@@ -231,7 +231,7 @@ current book prints to **1012 A4 pages** (measured with headless Chrome
 - adjacent duplicate prose paragraphs (after whitespace/markdown
   normalisation), or a prose paragraph over 1200 characters without formula
   symbols;
-- a unit without a 「本单元讲什么」 intro element, a proof/code panel open by
+- a unit without a lead intro element, a proof/code panel open by
   default, or a default layer other than 并读.
 
 `--selftest` additionally proves the checker bites: injected external URL,
@@ -268,7 +268,7 @@ Headless Chrome (CDP) checks at 1440×1000 and 390×844 assert:
   focus correctly;
 - the chapter select changes the hash; localStorage restores the layer after
   reload; print media hides the toolbar and applies page breaks;
-- **readability**: every unit has a visible 「本单元讲什么」 intro; body type is
+- **readability**: every unit has a visible lead intro; body type is
   18.5 px with a ~1.7 line-height and a 68ch measure; code is smaller than body
   text; proofs/code start collapsed; no visible `**` / `__` or separator-only
   line; no adjacent duplicate prose paragraph; the search index has no

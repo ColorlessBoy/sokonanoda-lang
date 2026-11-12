@@ -160,6 +160,18 @@ BANNED_RULES: list[dict] = [
         ),
         why="English cheap-hook opening: curiosity gap/manufactured suspense, a known AI-writing tell.",
     ),
+    # 1c. 元标签 / 目录式正文（meta-label）
+    #     Owner 2026-11-12: "本单元只做一件事" 作为原则可以，但不能写成正文再罗列；
+    #     正文应当是解释本身，不是写作说明。
+    dict(
+        id="zh-meta-label",
+        category="meta-label",
+        pattern=re.compile(
+            r"(本单元只做一件事|本单元讲什么|本单元的[“\"]?该学的定理|"
+            r"本单元(?:的)?[“\"]?要学的定理)"
+        ),
+        why="把写作原则/目录标签写进正文，是课堂笔记/索引，不是教材；应直接写动机与解释。",
+    ),
     # 2. 元叙述 / AI 自指（meta / AI self-reference）
     dict(
         id="zh-meta-ai",
