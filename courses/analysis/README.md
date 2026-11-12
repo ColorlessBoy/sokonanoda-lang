@@ -5,6 +5,7 @@
 
 ## 状态
 
+- **M3 单元83（2026-11-13）**：**收敛序列是 Cauchy 序列**。收敛把尾巴拴在固定的 `L` 上，尾巴上的任意两项也彼此靠近。83.1 `close_pair_of_close_half`：第二条接近性用 `close_symm` 翻向，再与第一条走 `close_trans`；83.2 主定理 `converges_cauchy`：ε 折半，`ratLtRep_half` 付清正性，同一个阈值 `N` 下逐点合成；83.3 `converges_realRel_const`：`realRel` 的三个分量分别是 83.2、68.1 的 `cauchy_const`、收敛性本身；83.4 `converges_real_eq_const` 走 `Real.sound`；83.5 零序列实例。边界：只证「收敛 ⇒ Cauchy」；反方向在 ℚ 上不成立（截断的 √2 近似没有有理极限），要等 ℝ 的完备性。画布 1 checked / 4 open / 0 rejected，解答 5 checked / 0 open。不新增公理，也不碰 kernel/front。
 - **M3 单元82（2026-11-13）**：**单调序列的极限是上确界**。82.0 立 `Monotone` / `StrictMono`；82.1 `monotone_le` 用 `leNat_exists_add` 对差值归纳，把「每一步不降」抬成任意 `m ≤ n` 不降；82.2 `monotone_limit_upper` 让常序列与 `x` 走 75.2；82.3 `monotone_limit_lub` 补最小性；82.4/82.5 严格单调给出单调与间隔界；82.6 `strict_mono_limit_gt` 把 `≤` 收紧成 `<`；82.7 常序列实例。**引擎进库**：新建 `lib/LimitLe`（75 的四条），82 起引用。边界：反方向「有上界的单调序列收敛」要上确界原理，下一章才有。画布 3 checked / 7 open / 0 rejected，解答 11 checked / 0 open。不新增公理，也不碰 kernel/front。
 - **M3 单元81（2026-11-13）**：**尾部等价：改动有限项**。收敛只看尾部，所以两个序列从某项起逐项相等时极限不变。81.0 `TailEq x y := Eventually (fun n => ratRel (x n) (y n))`；81.1 `close_wd_left` 沿 `ratRel` 搬 `close` 的第一个点；81.2/81.3 对称与传递；81.4 `converges_congr_tail` 把两条终究性并到同一 N 后逐点搬运，81.5 合成充要条件；81.6/81.7 逐点相等作特例。边界：允许项只是代表元等价，也不要求前几项有关系。画布 2 checked / 7 open / 0 rejected，解答 9 checked / 0 open。不新增公理，也不碰 kernel/front。
 - **M3 单元80（2026-11-13）**：**极限只看尾部：平移**。收敛定义里的 `∃ N` 允许忽略前面的有限项。最直接的试验是把序列往右推 k 格：`shiftSeq k x := fun n => x (n + k)`。80.1 `eventually_shift` 沿用原阈值（`leNat_self_add` + `leNat_add_right`）；80.2 `eventually_of_shift` 把 `m ≥ N + k` 拆成 `m = (N + j) + k`（`leNat_exists_add` + `add_rotate`）；80.3 两条合成充要条件；80.4/80.5 把结论搬到 `Converges` 上：`converges_shift : Converges (shiftSeq k x) L ↔ Converges x L`；80.6 零序列平移一格的实例。**边界**：只做平移，不做「改动有限项」——后者需要单独定义「终究相等」。画布 1 checked / 6 open / 0 rejected，解答 7 checked / 0 open。不新增公理，也不碰 kernel/front。
@@ -86,7 +87,7 @@
 - `units/II.4/`：M2 的 Cauchy 序列与 ℝ（当前 10 个：`close` / `Cauchy` 定义；实数的载体；序与正分母；序的传递性；序与相等相容；实数的自反性；取负与序；`close` 的对称性；加法的交换律与零元；序与加法相容）；解答在 `units/solutions/II.4/`。
 - `units/II.6/`：M2 的 ℝ 的商与完备性（当前 14 个：有理数的加法逆元；两次减法的相加；`close` 的传递性；实数的相等的传递性；实数的取负；实数的加法（下降前的两条义务）；实数的加法（三元关系，存在 + 唯一）；实数的加法（三元关系版：交换律与零元）；实数的加法（三元关系版：结合律）；实数的序（代表元关系与自反性）；实数的序（传递性）；实数的序沿 `realRel` 下降；实数的序（自反、传递、反对称）；完备性（有理 Cauchy 序列在 ℝ 中收敛到自己的类））；解答在 `units/solutions/II.6/`。
 - `units/II.7/`：M2 的数系综合（4 个：保序嵌入 ℕ→ℝ；加法在四层间的迁移；商的代价（一次下降 vs 两次下降）；完备性盘点（代表元层 + 具体集合 LUB））；解答在 `units/solutions/II.7/`。
-- `units/III.1/`：M3 的序列与极限（当前 10 个：ε-N 定义形状；极限唯一性；极限与序；极限的代数——加法/减法/取负；收敛序列有界；夹逼定理；极限的保号性；平移不改极限；尾部等价（改动有限项）；单调序列的极限是上确界）；解答在 `units/solutions/III.1/`。
+- `units/III.1/`：M3 的序列与极限（当前 11 个：ε-N 定义形状；极限唯一性；极限与序；极限的代数——加法/减法/取负；收敛序列有界；夹逼定理；极限的保号性；平移不改极限；尾部等价（改动有限项）；单调序列的极限是上确界；收敛蕴含 Cauchy）；解答在 `units/solutions/III.1/`。
 - `units/II.5/`：M2 的 ℝ 的商、代数与序（当前 10 个：序的全性与绝对值的存在性；序的反对称性；绝对值的唯一性；三角不等式；严格序的传递与 `close` 对 `ε` 的单调性；严格序与加法相容（加法消去）；严格序的传递与加法相容；`ε` 折半；半数的正性；有理数加法的结合律）；解答在 `units/solutions/II.5/`。
 - `units/II.2/`：M1 的有理数单元（9 个：ℚ 的商载体与相等的自反/对称；整数相等的传递性；ℕ 乘法分配律与结合律；ℤ 乘法结合律；ℕ 正因子消去律；`ratRel` 的传递性；ℚ 加法的代表元公式与良定义性；ℚ 乘法的代表元公式与具体计算；ℚ 乘法的良定义性）；解答在 `units/solutions/II.2/`。
 - `course.json`：课程清单（M1 + M2 已落地单元；随写作增长）。

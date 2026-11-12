@@ -633,6 +633,12 @@
               "title": "单元82 单调序列的极限是上确界",
               "title_en": "Unit 82 — The Limit of a Monotone Sequence is its Supremum",
               "unit": 82
+            },
+            {
+              "file": "units/III.1/unit83-converges-cauchy.sokonanoda",
+              "title": "单元83 收敛序列是 Cauchy 序列",
+              "title_en": "Unit 83 — Convergent Sequences are Cauchy",
+              "unit": 83
             }
           ]
         }
