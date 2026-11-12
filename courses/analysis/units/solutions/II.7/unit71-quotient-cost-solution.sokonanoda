@@ -13,8 +13,8 @@
 --     `propext`。这正是 61/66 两个 `def` 里的两次 `Quot.lift` 与两条
 --     外延义务。
 --
--- 两件代价都**不是新公理**：`funext` 在本课程 L2 是从 `Quot.sound` 证出的
--- **定理**（`lib.Extensionality`），`propext` 是 L2 已声明的**既有 axiom**
+-- 两件代价都**不是新公理**：`funext` 在本课程 本课程 是从 `Quot.sound` 证出的
+-- **定理**（`lib.Extensionality`），`propext` 是 本课程 已声明的**既有 axiom**
 -- （只在 Prop 层用）。所以「ℝ 的加法是关系而不是函数」不是绕路：
 -- `addRel a b c` 正是两次 lift 之后能诚实拿到的全部。
 

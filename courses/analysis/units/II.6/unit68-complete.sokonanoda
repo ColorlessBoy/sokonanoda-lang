@@ -1,6 +1,6 @@
 -- 单元68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类
 --
--- 实数按 Cauchy 序列商构造。本单元证明这个构造的**完备性在代表元层**
+-- 实数按 Cauchy 序列商构造。本单元证明这个构造的完备性在代表元层
 -- 的形式：每个有理 Cauchy 序列 `x`，其类 `Real.mk x` 是常序列
 --
 --   n ↦ Real.mk (constSeq (x n))
@@ -16,10 +16,9 @@
 -- Cauchy 性同时给出 `x n - x k ≤ eps` 与 `x k - x n ≤ eps`，正好供
 -- 两条界使用；`Real.mk` 的 ι 规则（66.4）把代表元层的结论送回商。
 --
--- **边界（明说，不静默绕过）**：本课程 L2 没有 `Classical.choice`，
--- 「任意非空有上界集合有最小上界」的**集合版 LUB** 不在本单元；这里
--- 只做不需要选择的**代表元序列**完备性。差额记在 issue #18 的收口报告，
--- 不新增公理、不把 ℝ 直接立成公理。
+-- 边界（明说，不静默绕过）：本课程 没有 `Classical.choice`，
+-- 「任意非空有上界集合有最小上界」的集合版 LUB 不在本单元；这里
+-- 只做不需要选择的代表元序列完备性；不新增公理、不把 ℝ 直接立成公理。
 --
 -- 本单元：
 --   · 68.0 `constSeq` / 68.1 `cauchy_const` —— 常序列与它的 Cauchy 性；
@@ -83,7 +82,7 @@ theorem close_sub_le (a b eps : ratRep) (h : close a b eps) :
 -- 68.5 减去 `eps` 之后落到 0 以下
 -- ─────────────────────────────────────────────────────────────
 
--- soko:hint 思路：分两段。① **代数**：`a - (b + eps) ~ (a - b) - eps`——`ratNegRep_add` 把 `-(b+eps)` 换成 `-b + -eps`，`ratAddRep_wd_snd_gen` 搬进 `a + ...`，`ratAdd_assoc` 反向收成 `(a + -b) + -eps`。② **序**：`h` 右加 `-eps` 得 `(a-b) + -eps ≤ eps + -eps`，`ratAdd_neg_gen` 把右端收成 0，再用 `he : 0 ≤ e` 传递；最后用 `ratLeRep_congr_gen` 沿 ① 的等式把结论搬回 `a - (b + eps)`。
+-- soko:hint 思路：分两段。① 代数：`a - (b + eps) ~ (a - b) - eps`——`ratNegRep_add` 把 `-(b+eps)` 换成 `-b + -eps`，`ratAddRep_wd_snd_gen` 搬进 `a + ...`，`ratAdd_assoc` 反向收成 `(a + -b) + -eps`。② 序：`h` 右加 `-eps` 得 `(a-b) + -eps ≤ eps + -eps`，`ratAdd_neg_gen` 把右端收成 0，再用 `he : 0 ≤ e` 传递；最后用 `ratLeRep_congr_gen` 沿 ① 的等式把结论搬回 `a - (b + eps)`。
 -- soko:hint 目标形态：`a - b ≤ eps → 0 ≤ e → a - (b + eps) ≤ e`。
 -- soko:hint 关键件：ratNegRep_add · ratAddRep_wd_snd_gen · ratAdd_assoc · ratLeRep_add_right · ratAdd_neg_gen · ratLeRep_of_ratRel · ratLeRep_trans · ratLeRep_congr_gen · ratRel_symm · ratRel_refl。
 theorem ratLeRep_sub_add_right (a b eps e : ratRep)

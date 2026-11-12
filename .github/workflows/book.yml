@@ -23,6 +23,7 @@ on:
       - "scripts/build_book_proto.py"
       - "courses/analysis/**"
       - "scripts/notation-lint.py"
+      - "scripts/content_style/**"
       - ".github/workflows/book.yml"
   push:
     paths:
@@ -30,6 +31,7 @@ on:
       - "scripts/build_book_proto.py"
       - "courses/analysis/**"
       - "scripts/notation-lint.py"
+      - "scripts/content_style/**"
       - ".github/workflows/book.yml"
   workflow_dispatch:
 
@@ -65,6 +67,11 @@ jobs:
       - name: Checker selftest (negative cases)
         run: python3 scripts/build_book_proto.py --selftest
 
+      - name: Style lint (analysis prose + generated page)
+        run: |
+          python3 scripts/content_style/style_lint.py --root courses/analysis/units --json
+          python3 scripts/content_style/style_lint.py --html dist/book/book-v2/index.html --html-only --json
+          python3 scripts/content_style/style_lint.py --selftest
       - name: Notation lint (analysis course)
         run: python3 scripts/notation-lint.py --root courses/analysis
 

@@ -4,8 +4,8 @@
 --   (a,b) ~ (a',b')  ⇒  addRep (a,b) (c,d) ~ addRep (a',b') (c,d)
 -- 关键一步是 ℕ 的搬运律 add_shift：(a+c)+(b+d) = (a+b)+(c+d)。
 --
--- 本单元的两道练习就是这条搬运律与良定义性本身；上面四条 ℕ 加法律
--- 与单元③重复（L3 必须留在单元里），这里直接给出，复习请回看单元③。
+-- 本单元的两道练习就是这条搬运律与良定义性本身；下面四条 ℕ 加法律
+-- 与单元③重复，本单元自备（课程规范：每单元自带所需前提），复习请回看单元③。
 import lib.Logic
 import lib.Prod
 
@@ -23,7 +23,7 @@ def addRep (a b : Prod Nat Nat) : Prod Nat Nat :=
     (Nat.add (Prod.fst Nat Nat a) (Prod.fst Nat Nat b))
     (Nat.add (Prod.snd Nat Nat a) (Prod.snd Nat Nat b))
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+-- 以下四条是单元③的 ℕ 加法律，本单元自用（本单元自备）。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)

@@ -12,7 +12,7 @@
 -- `mulRep_wd_snd` 提供 —— 两条都齐，才能把
 -- `fun (p q : 代表元) => mk (mulRep p q)` 下降成 `Int → Int → Int`。
 --
--- 本单元自带全部 ℕ 加法律与乘法律（L3：律必须留在单元里；它们来自单元③/⑤/⑪/⑰）。
+-- 本单元自带所需的 ℕ 加法与乘法法律（来自单元③/⑤/⑪/⑰），不再跨单元引用。
 import lib.Logic
 import lib.Prod
 
@@ -38,9 +38,9 @@ def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
     (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.snd Nat Nat b))
              (myMul (Prod.snd Nat Nat a) (Prod.fst Nat Nat b)))
 
--- 单元③的 ℕ 零元律，本单元自用（L3：律必须留在单元里）。
+-- 单元③的 ℕ 零元律，本单元自用（本单元自备）。
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+-- 以下四条是单元③的 ℕ 加法律，本单元自用（本单元自备）。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)

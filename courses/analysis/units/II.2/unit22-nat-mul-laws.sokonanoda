@@ -6,7 +6,8 @@
 -- **分配律**与**结合律** —— II.1 只做了交换律（单元⑰）/ 单位元（单元⑩）/
 -- 良定义（⑪/⑱），这两条从没证过。
 --
--- 本单元就把引擎造出来（全部停在 ℕ 上，不碰商、不碰 `funext`、不加公理）：
+-- 本单元在 ℕ 上先证三条算术律（加法搬运、分配律、结合律）；不涉及商，
+-- 也不加公理：
 --   add_mid        : a + (x + y) = x + (a + y)      （加法搬运，已给）
 --   mul_add        : a * (b + c) = a*b + a*c        （左分配，对 c 归纳）  ← 练习
 --   mul_add_right  : (a + b) * c = a*c + b*c        （右分配，交换律 + 左分配）← 练习
@@ -14,7 +15,7 @@
 --
 -- 下一单元才把这三条搬到 `mulRep` 上，得到 ℤ 乘法结合律。
 --
--- 本单元自带全部 ℕ 加法律与乘法的交换律（L3：律必须留在单元里；它们来自
+-- 本单元自带全部 ℕ 加法律与乘法的交换律（本单元自备；它们来自
 -- 单元③与单元⑰）。
 import lib.Logic
 import lib.Prod
@@ -41,9 +42,9 @@ def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
     (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.snd Nat Nat b))
              (myMul (Prod.snd Nat Nat a) (Prod.fst Nat Nat b)))
 
--- 单元③的 ℕ 零元律，本单元自用（L3：律必须留在单元里）。
+-- 单元③的 ℕ 零元律，本单元自用（本单元自备）。
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+-- 以下四条是单元③的 ℕ 加法律，本单元自用（本单元自备）。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)

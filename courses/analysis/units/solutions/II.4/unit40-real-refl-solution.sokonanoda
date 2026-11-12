@@ -50,7 +50,7 @@ theorem realRel_refl (x : Seq) (hx : Cauchy x) : realRel x x :=
 -- ㊵.3 具体：常零序列与自身等价
 -- ─────────────────────────────────────────────────────────────
 
--- soko:hint 思路：把 ㊵.2 用在 `zeroSeq` 上，`Cauchy` 分量用库里已判卷的 `cauchy_zero`。
+-- soko:hint 思路：把 ㊵.2 用在 `zeroSeq` 上，`Cauchy` 分量用库里已证明的 `cauchy_zero`。
 -- soko:hint 目标形态：`realRel zeroSeq zeroSeq`。
 -- soko:hint 关键件：realRel_refl · cauchy_zero。
 theorem demo_realRel_refl : realRel zeroSeq zeroSeq :=

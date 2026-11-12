@@ -9,7 +9,7 @@
 --
 --   ratSubRep_add : (x - y) + (y - z) ~ x - z
 --
--- 证明路线（全部停在商 + 已判卷的库引理上，不碰 `funext`、不加公理）：
+-- 证明路线（全部停在商 + 已证明的库引理上，不碰 `funext`、不加公理）：
 --
 --   · `ratAddRep_wd_gen` / `ratAddRep_wd_snd_gen`：`ratRel` 对 `ratAddRep`
 --     的两个变元都是同余（库里的 `ratAddRep_wd` / `_snd` 只认字面三元组，

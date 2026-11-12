@@ -9,7 +9,7 @@
 --   leNat_succ_succ  : m ≤ n ⇒ succ m ≤ succ n
 -- 有了这三条，后续单元才能把等价假设搬到不等式两边。
 --
--- ⚠ 消除方式：LeNat 有**两个指标**（m 与 n）。本语言的 `match` 只把
+-- 注意：消除方式：LeNat 有**两个指标**（m 与 n）。本语言的 `match` 只把
 -- **参数**代进动机，指标仍留在分支里，所以对 `h : LeNat m n` 不能写
 --   match h with | le_refl n => ...
 -- 而要显式用归纳原理 `LeNat.rec`（motive 同时收两个指标与证明）：

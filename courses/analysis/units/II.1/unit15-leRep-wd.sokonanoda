@@ -11,7 +11,7 @@
 -- 证明的套路是「把差补平再消掉」：两边同加 b'（或 d'），再用 Hp / Hq 把新加的数
 -- 搬到对面，最后对加法消去律用一次 `leNat_add_cancel_right`（单元⑭）。
 --
--- 本文件按 L3 自带所需的前置：单元③的 ℕ 加法律、单元⑬的序单调性、
+-- 本文件按 本单元自备所需的前置：单元③的 ℕ 加法律、单元⑬的序单调性、
 -- 单元⑭的序消去律。本单元的 5 道练习是良定义性的分解：
 --   ① 关系对称 → ② 第一个坐标不变 → ③ 第二个坐标不变 → ④ 两个坐标一起 → ⑤ 当且仅当。
 import lib.Logic
@@ -33,7 +33,7 @@ def leRep (p q : Prod Nat Nat) : Prop :=
   LeNat (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
         (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+-- 以下四条是单元③的 ℕ 加法律，本单元自用（本单元自备）。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)

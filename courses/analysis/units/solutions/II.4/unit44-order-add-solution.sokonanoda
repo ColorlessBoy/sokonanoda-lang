@@ -108,7 +108,7 @@ theorem intRel_add (p p' q q' : Prod Nat Nat) :
 -- ─────────────────────────────────────────────────────────────
 
 -- 下面五条与 ㊷ 的 `ratRel_trans_aux` 同一写法：先在 `Prod` 上 match 到字面
--- 坐标，再转发给 `lib/Rat` 的字面版本。它们不是新的数学，只是把 M1 已判卷的
+-- 坐标，再转发给 `lib/Rat` 的字面版本。它们不是新的数学，只是把 卷 II 已证明的
 -- 律搬到任意代表元上，供 ㊹.4 直接用。
 
 theorem mulRep_wd_gen (p p' q : Prod Nat Nat) :

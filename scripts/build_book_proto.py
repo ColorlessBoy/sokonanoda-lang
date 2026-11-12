@@ -25,6 +25,7 @@ import hashlib
 import html
 import json
 import re
+import subprocess
 import sys
 from collections import Counter
 from dataclasses import dataclass, field
@@ -40,6 +41,7 @@ BOOK_DIR = ROOT / "scripts" / "book"
 STYLE_CSS = BOOK_DIR / "style.css"
 APP_JS = BOOK_DIR / "app.js"
 PREVIEW_HTML = BOOK_DIR / "preview" / "index.html"
+STYLE_LINT = ROOT / "scripts" / "content_style" / "style_lint.py"
 DEFAULT_OUT = "dist/book/book-v2"
 
 DECL_RE = re.compile(r"^(def|theorem|axiom|inductive)\s+([^\s(:]+)")
@@ -2652,6 +2654,54 @@ def format_stats(stats: Dict[str, object]) -> List[str]:
     ]
 
 
+def style_lint_report(html_path: Optional[Path] = None) -> Tuple[List[str], Dict[str, object]]:
+    """Run the copy-editor hard gate over source prose and the generated page.
+
+    BLOCK-class findings (AI-writing tells, internal-jargon leaks, separator
+    noise, template boilerplate, over-formatting in source) are hard failures.
+    The HTML pass checks visible text only; source-only structural rules are not
+    applied to the rendered DOM.  Counts are reported for the readability
+    sprint but only hard failures fail this check.
+    """
+    errors: List[str] = []
+    stats: Dict[str, object] = {}
+    if not STYLE_LINT.is_file():
+        return ["style linter missing: scripts/content_style/style_lint.py"], stats
+    cmd = [
+        sys.executable,
+        str(STYLE_LINT),
+        "--root",
+        str(COURSE_ROOT / "units"),
+        "--json",
+    ]
+    if html_path is not None and html_path.is_file():
+        cmd.extend(["--html", str(html_path)])
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        data = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        errors.append(
+            f"style linter produced non-JSON output (rc={proc.returncode}): {proc.stderr.strip()[:300]}"
+        )
+        return errors, stats
+    reports = data.get("reports", []) if isinstance(data, dict) else []
+    source = next((r for r in reports if r.get("mode") == "source"), {})
+    html = next((r for r in reports if r.get("mode") == "html"), {})
+    stats = {
+        "source_files": source.get("files", 0),
+        "source_errors": len(source.get("errors", [])),
+        "html_errors": len(html.get("errors", [])),
+        "ok": bool(data.get("ok")),
+    }
+    if proc.returncode != 0 or not data.get("ok"):
+        if source.get("errors"):
+            errors.append(f"style lint (source): {len(source['errors'])} hard finding(s)")
+        if html.get("errors"):
+            errors.append(f"style lint (html): {len(html['errors'])} hard finding(s)")
+        if not errors:
+            errors.append(f"style lint failed (rc={proc.returncode})")
+    return errors, stats
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -2720,6 +2770,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             if stale:
                 errors.append(stale)
             errors.extend(negative_selftest(book, fresh))
+            style_errors, style_stats = style_lint_report(target)
+            errors.extend(style_errors)
             if errors:
                 print("book v2 check: FAIL", file=sys.stderr)
                 for error in errors:
@@ -2734,6 +2786,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 "missing search index / missing copy-link / missing unit intro / "
                 "visible ** / separator line / duplicate prose / over-long prose / "
                 "stale output rejected"
+            )
+            print(
+                "  style lint: "
+                f"{style_stats.get('source_files', 0)} source files · "
+                f"{style_stats.get('source_errors', 0)} source hard · "
+                f"{style_stats.get('html_errors', 0)} html hard · "
+                f"ok={style_stats.get('ok', False)}"
             )
             print(f"  output: {target} ({stats['bytes']:,} bytes)")
 

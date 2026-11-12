@@ -14,8 +14,8 @@
 --   ④ 两边各换位一次，把 `y_den` 挪到最外层，`leRep_cancel_den` 消去它，
 --      正好得到 `ratLeRep x z` 展开后的形状。
 --
--- 引擎（`leRep_mul_den_right` / `leRep_cancel_den`）已在单元㊲ 判卷，收在
--- `lib/RatOrder`；本单元的律（㊳.1–㊳.3）留在画布里。
+-- 引擎（`leRep_mul_den_right` / `leRep_cancel_den`）已在单元㊲ 证明，收在
+-- `lib/RatOrder`；本单元的律（㊳.1–㊳.3）留在正文里。
 
 import lib.RatOrder
 

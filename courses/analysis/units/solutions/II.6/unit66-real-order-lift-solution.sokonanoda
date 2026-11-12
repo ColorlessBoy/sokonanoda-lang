@@ -14,7 +14,7 @@
 -- 两次 lift 与 61 的 `addRel` 同一构造：内层把第二个因子送到 `Prop`
 -- （良定义性是 `realLeRep_wd_snd`），外层再把第一个因子送到
 -- `Real → Prop`（良定义性是 `realLeRep_wd`，对每个 `b` 用 `Quot.ind`
--- 烧成代表元形状）。代价仍是 L2 既有的 `funext`（定理）与 `propext`
+-- 烧成代表元形状）。代价仍是 本课程 既有的 `funext`（定理）与 `propext`
 -- （既有 axiom），**不新增信任**。
 --
 -- 良定义性的证明本身很短：`realLeRep_of_realRel`（64.2）把

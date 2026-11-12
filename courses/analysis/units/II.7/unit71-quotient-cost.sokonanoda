@@ -13,12 +13,12 @@
 --     `propext`。这正是 61/66 两个 `def` 里的两次 `Quot.lift` 与两条
 --     外延义务。
 --
--- 两件代价都**不是新公理**：`funext` 在本课程 L2 是从 `Quot.sound` 证出的
--- **定理**（`lib/Extensionality`），`propext` 是 L2 已声明的**既有 axiom**
+-- 两件代价都**不是新公理**：`funext` 在本课程 本课程 是从 `Quot.sound` 证出的
+-- **定理**（`lib/Extensionality`），`propext` 是 本课程 已声明的**既有 axiom**
 -- （只在 Prop 层用）。所以「ℝ 的加法是关系而不是函数」不是绕路：
 -- `addRel a b c` 正是两次 lift 之后能诚实拿到的全部。
 --
--- 本单元把这笔账拆成可判卷的几件：
+-- 本单元把这笔账拆成可证明的几件：
 --   · 71.0 `quot_lift_mk` —— ι 规则（下降后的计算规则）；
 --   · 71.1 `quot_lift_unique` —— 两个 lift 相等的充分条件（funext + Quot.ind）；
 --   · 71.2 `intToRat_sound` —— 一座桥的过桥费就是良定义性；

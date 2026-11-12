@@ -88,7 +88,7 @@ theorem realRel_trans (x y z : Seq) (hxy : realRel x y) (hyz : realRel y z) :
 -- 58.4 具体：常零序列经由自身传递
 -- ─────────────────────────────────────────────────────────────
 
--- 两次 `realRel_zero`（㊱ 已判卷）就是传递性的两个前提。
+-- 两次 `realRel_zero`（㊱ 已证明）就是传递性的两个前提。
 
 theorem demo_realRel_trans : realRel zeroSeq zeroSeq :=
   realRel_trans zeroSeq zeroSeq zeroSeq realRel_zero realRel_zero

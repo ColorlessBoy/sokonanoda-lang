@@ -2,7 +2,7 @@
 --
 -- `ratRel` 的传递性（单元㉕）要做的最后一步是：从
 --   a·(n+1)·(k+1) = e·(n+1)·(m+1)
--- 两边消去同一个正因子 `n+1`。ℕ 没有减法，这条路只能靠**归纳**：
+-- 两边消去同一个正因子 `n+1`。ℕ 没有减法，这条路只能靠归纳：
 -- 对 `a` 归纳，`a = 0` 时用「非零因子乘出 0 ⇒ 因子为 0」逼出 `b = 0`；
 -- `a = succ a'` 时把 `(a'+1)·d` 展开成 `a'·d + d`，两边同时出现 `+ d`，
 -- 用单元⑭的加法消去律剥掉，剩下的正是归纳假设。
@@ -10,18 +10,18 @@
 -- 本单元因此收三件小工具：
 --   ① `succ_ne_zero`：`succ n = 0` 不成立（`match` + `Eq.subst`，不用公理）；
 --   ② `add_eq_zero_right` / `mul_eq_zero_right`：和 / 积为 0 时右因子为 0；
---   ③ `mul_cancel_pos`：**正因子可消去**（本单元的主定理）。
+--   ③ `mul_cancel_pos`：正因子可消去（本单元的主定理）。
 --
--- 全部停在 ℕ 上：不碰商、不碰 `funext`、不加公理（issue #28）。
+-- 全部停在 ℕ 上：不碰商、不碰 `funext`、不加公理。
 import lib.Logic
 
 def myMul (a b : Nat) : Nat :=
   Nat.rec (fun (_ : Nat) => Nat) Nat.zero
     (fun (n : Nat) (ih : Nat) => Nat.add a ih) b
 
--- 单元③的 ℕ 零元律，本单元自用（L3：律必须留在单元里）。
+-- 单元③的 ℕ 零元律，本单元自用（本单元自备）。
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+-- 以下四条是单元③的 ℕ 加法律，本单元自用（本单元自备）。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
@@ -281,7 +281,6 @@ theorem myMul_assoc (a b c : Nat) :
     c
 
 -- ─────────────────────────────────────────────────────────────
--- ─────────────────────────────────────────────────────────────
 -- ㉓.1 两个加数同时改写（congrArg 两次装成一个引理）
 -- ─────────────────────────────────────────────────────────────
 
@@ -302,7 +301,7 @@ theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) :
     a = b :=
   congrArg.{1} Nat.pred h
 
--- 单元⑭的加法消去律，本单元自用（L3：律必须留在单元里）。
+-- 单元⑭的加法消去律，本单元自用（本单元自备）。
 theorem nat_add_cancel_right (a b k : Nat) :
     Nat.add a k = Nat.add b k → a = b :=
   Nat.rec

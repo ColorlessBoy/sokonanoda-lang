@@ -1,19 +1,19 @@
 -- 单元72 数系综合：完备性盘点——代表元层与集合层
 --
--- 68 证了**代表元层**的完备性：每个有理 Cauchy 序列 `x`，其类 `mk x` 是
+-- 68 证了代表元层的完备性：每个有理 Cauchy 序列 `x`，其类 `mk x` 是
 -- 常序列 `n ↦ mk (constSeq (x n))` 的极限（`TendsTo x x`）。
 -- 本单元把这条定理放进「集合层」的语言里盘点：
 --
 --   · 上界与最小上界只用 `realLe` 陈述，不引入新公理、不用
 --     `Classical.choice`；
---   · 具体集合 `S := {x | x ≤ 0}` 有最小上界 0——这是本课程能诚实
---     拿到的集合层 LUB 实例；
+-- · 本课程没有选择公理，因此只对具体集合 `S := {x | x ≤ 0}` 证明 LUB
+-- 存在：0 是上界（72.2），且任意上界 `b'` 满足 `0 ≤ b'`（72.3）；
 --   · 68.7 在常序列上重新落地：常序列收敛到自己的类。
 --
--- **边界（明说）**：一般定理「每个非空有上界的 `S` 都有 LUB」需要
--- `Classical.choice`（或 Dedekind 切割），L2 没有，差额记在 issue #18。
--- 本单元不把这条一般定理写成 axiom，也不把 ℝ 直接立成公理；`HasLUB`
--- 只对上面的具体集合证明。
+-- 边界（明说）：一般定理「每个非空有上界的 `S` 都有 LUB」需要
+-- `Classical.choice`（或 Dedekind 切割），本课程没有引入它。本单元不把
+-- 这条一般定理写成 axiom，也不把 ℝ 直接立成公理；`HasLUB` 只对上面的
+-- 具体集合证明。
 --
 -- 本单元：
 --   · 72.0 `UpperBound` / `IsLUB` / `HasLUB` —— 集合层的词汇（只用 `realLe`）；
@@ -39,6 +39,8 @@ def IsLUB (S : Real → Prop) (b : Real) : Prop :=
 
 def HasLUB (S : Real → Prop) : Prop := ∃ (b : Real), IsLUB S b
 
+-- 72.1 `zeroReal`：常零序列的类
+--
 -- 本单元用的零：常零序列的类。66.4 的 `realLe_mk` 之后，关于它的序
 -- 都回到代表元层。
 def zeroReal : Real := Real.mk zeroSeq

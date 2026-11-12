@@ -27,7 +27,7 @@ def intRel (a b : Prod Nat Nat) : Prop :=
 
 def Int : Type := @Quot.{1} (Prod Nat Nat) intRel
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+-- 以下四条是单元③的 ℕ 加法律，本单元自用（本单元自备）。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
