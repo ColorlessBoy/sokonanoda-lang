@@ -10,7 +10,7 @@
 -- 本单元因此收三件小工具：
 --   ① `succ_ne_zero`：`succ n = 0` 不成立（`match` + `Eq.subst`，不用公理）；
 --   ② `add_eq_zero_right` / `mul_eq_zero_right`：和 / 积为 0 时右因子为 0；
---   ③ `mul_cancel_pos`：正因子可消去（本单元的主定理）。
+--   ③ `mul_cancel_pos`：正因子可消去（这里的主定理）。
 --
 -- 全部停在 ℕ 上：不碰商、不碰 `funext`、不加公理（语言边界）。
 import lib.Logic

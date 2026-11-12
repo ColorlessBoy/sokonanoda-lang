@@ -9,7 +9,7 @@
 --
 --   x ≤ y  →  y ≤ z  →  x ≤ z
 --
--- 证明是 eps 折半的标准拼装，两块地基都在前序单元：
+-- 证明是 eps 折半的标准拼装，两块地基都在前序单元。
 --   · 56 的 `ratSubRep_add`：`(x - y) + (y - z) ~ x - z`；
 --   · 52 的 `ratHalf_add_self`：`eps/2 + eps/2 ~ eps`；
 --   · 51 的 `ratLtRep_half`：`0 < eps ⇒ 0 < eps/2`。

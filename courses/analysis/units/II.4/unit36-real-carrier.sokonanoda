@@ -10,7 +10,7 @@
 --
 --   Real := Quot realRel
 --
--- 本单元只立载体与构造子：
+-- 只立载体与构造子。
 --   · `Real.mk x`（把序列放进商）；
 --   · `Real.sound`（`realRel x y ⇒ mk x = mk y`，直接是 `Quot.sound`）；
 --   · `realRel_zero`（常零序列与自身等价）与它的推论 `mk zero = mk zero`。
@@ -18,7 +18,7 @@
 -- 等价关系的传递性（`realRel_trans`）与 `Quot.exact` 的反向消去都需要
 -- 三角不等式与序的加法相容，留到后续单元。
 --
--- 本单元自带定义与前序地基（本单元自备）。
+-- 这里自带定义与前序地基（本单元自备）。
 
 import lib.Rat
 

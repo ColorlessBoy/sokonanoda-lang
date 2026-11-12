@@ -13,7 +13,7 @@
 -- 全部停在整数代表元层：不把加法下降成 `Rat → Rat → Rat`（那需要
 -- `funext`，本语言没有，见 语言边界），也不加任何公理。
 --
--- 本单元自带全部 ℕ 加/乘法律与前序地基（本单元自备）。
+-- 这里自带全部 ℕ 加/乘法律与前序地基（本单元自备）。
 
 import lib.Logic
 import lib.Prod
@@ -622,7 +622,7 @@ theorem intRel_refl (p : Prod Nat Nat) : intRel p p :=
 def ratDenRep (m n : Nat) : Nat :=
   Nat.add (Nat.add (myMul m n) m) n
 
--- 把有理数写成「分子序对 + 分母字段」的规范形状（只为本单元的陈述好读）。
+-- 把有理数写成「分子序对 + 分母字段」的规范形状（只为这里的陈述好读）。
 
 def qrep (a b m : Nat) : ratRep :=
   @prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) m

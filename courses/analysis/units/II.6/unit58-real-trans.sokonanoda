@@ -5,10 +5,10 @@
 --   realRel x y  :⟺  Cauchy x ∧ Cauchy y ∧
 --                    ∀ eps > 0, ∃ N, ∀ n ≥ N, close (x n) (y n) eps
 --
--- 要证 `realRel x z` 需要三件：
+-- 要证 `realRel x z` 需要三件。
 --   · `Cauchy x` —— 直接是 `hxy` 的第一分量；
 --   · `Cauchy z` —— 直接是 `hyz` 的第二分量；
---   · 逐点 `close` —— 本单元的内容。
+--   · 逐点 `close` —— 这里的内容。
 --
 -- 逐点部分不能直接把 `hxy` 与 `hyz` 用在同一个 `ε` 上：两个前提各给一个
 -- `N`，而且分别只保证 `ε`（而不是 `ε/2`）的界。所以：

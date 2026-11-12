@@ -22,7 +22,7 @@
 --      乘上 `y.den`，再消去公共的 `y.den`。
 --
 -- 引擎（`mulRep_den_swap` / `leRep_mul_den_right` / `leRep_cancel_den`）已在
--- ㊲–㊳ 证明，收在 `lib/RatOrder`；本单元的律留在正文里。
+-- ㊲–㊳ 证明，收在 `lib/RatOrder`；这里的律留在正文里。
 
 import lib.RatOrder
 

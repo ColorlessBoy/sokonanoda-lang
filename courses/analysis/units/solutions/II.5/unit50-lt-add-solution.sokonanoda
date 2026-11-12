@@ -14,7 +14,7 @@
 --   · 弱序：㊹ 的 `ratLeRep_add_right`；
 --   · 不相等：若 `x + z ~ y + z`，消去得 `x ~ y`，与 `<` 的第二分量矛盾。
 --
--- 本单元结清：
+-- 本单元结清。
 --   · ㊿.1 `ratLeRep_add_addends`：把 ㊹.4 的两个换形拼成「加同一块 z」；
 --   · ㊿.2 `ratLeRep_add_cancel`：加法消去（弱序）；
 --   · ㊿.3 `ratRel_add_cancel`：加法消去（相等）；

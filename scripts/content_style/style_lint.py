@@ -196,6 +196,30 @@ BANNED_RULES: list[dict] = [
         ),
         why="对话助手的套话，不是课程正文。",
     ),
+    # 2b. 元写作泄漏 / 讲稿腔（owner 2026-11-12）
+    dict(
+        id="zh-meta-writing-leak",
+        category="meta-writing",
+        pattern=re.compile(
+            r"(本单元\s*只\s*(?:做|立|讲|写|证)|本单元\s*将|本单元\s*先|本单元\s*要|"
+            r"本单元的?(?:目标|任务|目的)|本单元\s*[：:]|本单元只允许用|本单元自带|"
+            r"本节将|本节介绍|本节只|本小节)"
+        ),
+        why="写作计划/维护者口条写进正文：读者要看问题从哪来、为什么这样定义；删掉这句信息不损失。",
+    ),
+    dict(
+        id="zh-meta-unit-opener",
+        category="meta-writing",
+        pattern=re.compile(r"^本单元"),
+        why="以「本单元…」作为句子开头是讲稿/工程笔记口吻；改写为从上一单元遗留问题或反例讲起。",
+        warn_only=True,
+    ),
+    dict(
+        id="zh-meta-narrative-leak",
+        category="meta-writing",
+        pattern=re.compile(r"(接下来我们|下面我们|下面来看|本节来看|接下来看)"),
+        why="报幕式导航语；教材应直接进入下一步的动机与推理。",
+    ),
     # 3. 营销腔 / 夸张（marketing hype）
     dict(
         id="zh-marketing",
@@ -565,16 +589,18 @@ def scan_banned_phrases(
             start = max(0, match.start() - 2)
             end = min(len(body), match.end() + 2)
             snippet = body[start:end].strip()
-            report.add(
-                Hit(
-                    path=path_label,
-                    line=lineno,
-                    rule=rule["id"],
-                    category=rule["category"],
-                    message=rule["why"],
-                    snippet=snippet,
-                )
+            hit = Hit(
+                path=path_label,
+                line=lineno,
+                rule=rule["id"],
+                category=rule["category"],
+                message=rule["why"],
+                snippet=snippet,
             )
+            if rule.get("warn_only"):
+                report.warn(hit)
+            else:
+                report.add(hit)
 
 
 def check_clear_justification(
@@ -744,6 +770,40 @@ def check_structure(
                     snippet=stripped[:70],
                 )
             )
+    # 冒号 + 连续 >=3 条 `·` 列表：讲稿提纲式罗列。
+    bullet_run = 0
+    trigger_line = 0
+    for offset, raw in enumerate(lines):
+        is_comment, body = strip_comment(raw)
+        if not is_comment:
+            continue
+        stripped = body.strip()
+        if not stripped:
+            continue
+        if stripped.startswith(("·", "•")):
+            if bullet_run == 0:
+                trigger_line = offset + 1
+            bullet_run += 1
+            continue
+        if bullet_run >= 3 and trigger_line > 1:
+            prev_is_comment, prev_body = strip_comment(lines[trigger_line - 2])
+            if prev_is_comment and prev_body.strip().endswith(("：", ":")):
+                report.add(
+                    Hit(
+                        path=path_label,
+                        line=trigger_line - 1,
+                        rule="zh-list-after-colon",
+                        category="meta-writing",
+                        message="『……：』+ ≥3 条裸列表：讲稿提纲式罗列；改成叙述段，条目之间补『因为/于是/反过来』。",
+                        snippet=prev_body.strip()[:60],
+                    )
+                )
+        bullet_run = 0
+    if bullet_run >= 3 and trigger_line > 1:
+        prev_is_comment, prev_body = strip_comment(lines[trigger_line - 2])
+        if prev_is_comment and prev_body.strip().endswith(("：", ":")):
+            report.add(Hit(path=path_label, line=trigger_line - 1, rule="zh-list-after-colon", category="meta-writing", message="『……：』+ ≥3 条裸列表：讲稿提纲式罗列。", snippet=prev_body.strip()[:60]))
+
     # 同一文件内重复的散文行（≥3 次；提示模板行除外）
     for norm, count in prose_seen.items():
         if count < 3:
@@ -1064,16 +1124,18 @@ def lint_html(path: Path) -> tuple[LintReport, dict]:
             match = rule["pattern"].search(text)
             if not match:
                 continue
-            report.add(
-                Hit(
-                    path=label,
-                    line=0,
-                    rule="html-" + rule["id"],
-                    category=rule["category"],
-                    message=rule["why"],
-                    snippet=(block["unit"] + ": " + text[max(0, match.start() - 10): match.end() + 10])[:90],
-                )
+            hit = Hit(
+                path=label,
+                line=0,
+                rule="html-" + rule["id"],
+                category=rule["category"],
+                message=rule["why"],
+                snippet=(block["unit"] + ": " + text[max(0, match.start() - 10): match.end() + 10])[:90],
             )
+            if rule.get("warn_only"):
+                report.warn(hit)
+            else:
+                report.add(hit)
     report.stats = dict(
         mode="html",
         path=str(path),
@@ -1426,7 +1488,19 @@ def selftest() -> int:
         problems.append("重复散文段没有被判红")
     # 9) HTML 模式
     problems.extend(_selftest_html())
-    # 10) 高钩子开场（owner 2026-11-12）
+    # 10) 元写作泄漏（owner 2026-11-12）
+    meta = (
+        "-- 单元③ 元写作夹具\n--\n"
+        "-- 本单元只做一件事：把整数看成 ℕ×ℕ 按差相等作商。\n"
+        "-- 这里先给出定义，再给出证明。\n\n"
+        "def x : Nat := 0\n"
+    )
+    report = _lint_text_as_source(meta)
+    rules = {hit.rule for hit in report.hits}
+    if not ({"zh-meta-writing-leak", "zh-meta-label"} & rules):
+        problems.append("元写作泄漏夹具没有被判红")
+
+    # 11) 高钩子开场（owner 2026-11-12）
     hook = (
         "-- 单元⑨ 钩子夹具\n--\n"
         "-- 你有没有想过，数学其实可以这样看？\n"

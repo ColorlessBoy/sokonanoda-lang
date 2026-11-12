@@ -18,7 +18,7 @@
 -- （`realLeRep` 沿 `realRel` 良定义，再经 `Quot.lift` 得到
 -- `Real → Real → Prop`）留到下一单元之后的单元。
 --
--- 本单元：
+-- 具体有
 --   · 64.0 `realLeRep` —— 序的代表元关系；
 --   · 64.1 `realLeRep_refl` —— 每个 Cauchy 序列 ≤ 自己；
 --   · 64.2 `realLeRep_of_realRel` —— 相等 ⇒ 序；

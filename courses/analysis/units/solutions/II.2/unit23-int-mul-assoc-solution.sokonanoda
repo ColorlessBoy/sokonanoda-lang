@@ -15,7 +15,7 @@
 --   3. 在规范形上用 `add_shift` 换一次配对（`fst_shift`）；
 --   4. 右边用左分配律展开，方向反过来接上（`fst_expand_right`）。
 --
--- 本单元自带全部 ℕ 加法律、乘法律与 `add_shift`（本单元自备；
+-- 这里自带全部 ℕ 加法律、乘法律与 `add_shift`（本单元自备；
 -- 它们来自单元③/⑰/⑱/㉒）。
 import lib.Logic
 import lib.Prod
