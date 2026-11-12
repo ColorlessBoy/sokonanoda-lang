@@ -14,6 +14,8 @@ import lib.RealOrderLaws
 import lib.Sup
 import lib.ExtReal
 import lib.ExtRealOrder
+import lib.Subseq
+import lib.LimitPoint
 
 theorem demo_lib_closure : True := True.intro
 
@@ -21,3 +23,8 @@ theorem demo_ext_real_top : ele negInf posInf := True.intro
 
 theorem demo_ext_real_chain : ele negInf (fin (Real.mk zeroSeq)) :=
   negInf_le (fin (Real.mk zeroSeq))
+
+theorem demo_subseq_id : Subseq (fun (n : Nat) => n) := subseq_id
+
+theorem demo_limitPoint_zero : LimitPoint (constSeq ratZeroRep) ratZeroRep :=
+  limitPoint_const ratZeroRep

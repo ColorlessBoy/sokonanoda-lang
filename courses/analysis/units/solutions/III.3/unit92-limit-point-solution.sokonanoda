@@ -1,0 +1,111 @@
+-- 单元92 极限点（解答）
+--
+-- 单元91 说明子序列继承原序列的极限。反过来，一个点即使不是整条序列的
+-- 极限，也可能是某条子序列的极限：序列在两个值之间来回跳时，两条子序列
+-- 可以各自停在一个值上。这样的点记录「序列反复靠近哪里」，不要求整条
+-- 序列最后停在哪里。
+--
+-- 定义直接用子序列的极限：`L` 是 `x` 的极限点，若存在严格递增的轨道
+-- `g`，使 `x ∘ g` 收敛到 `L`。这样不需要选择公理；代价是反方向不能倒过来
+-- 用（见边界）。
+--
+-- 路线：
+--   · 92.1 收敛序列的极限是极限点；
+--   · 92.2 常序列的极限点是它的值；
+--   · 92.3 极限点意味着「任意阈值之后仍反复靠近」；
+--   · 92.4 收敛序列的极限点只能是它的极限；
+--   · 92.5 两个不同的极限点排除整条序列的收敛；
+--   · 92.6 常序列只有它的值一个极限点。
+--
+-- 边界：92.3 只是单向。从「频繁靠近」造一条收敛子序列，每一步都要挑一个
+-- 新的下标，需要可数选择；本课程没有选择公理，所以不把它写成定理。
+-- Bolzano–Weierstrass 受同一限制，留到后面单独处理。
+
+import lib.Subseq
+import lib.LimitOrder
+
+-- ─────────────────────────────────────────────────────────────
+-- 92.0 极限点
+-- ─────────────────────────────────────────────────────────────
+
+def LimitPoint (x : Seq) (L : ratRep) : Prop :=
+  ∃ (g : Nat → Nat), Subseq g ∧ Converges (fun (n : Nat) => x (g n)) L
+
+-- ─────────────────────────────────────────────────────────────
+-- 92.1 收敛序列的极限是极限点
+-- ─────────────────────────────────────────────────────────────
+
+-- 恒等轨道。`Subseq` 分量用 91.0 的 `subseq_id`，收敛分量原样搬运。
+theorem converges_limitPoint (x : Seq) (L : ratRep) (h : Converges x L) :
+    LimitPoint x L :=
+  Exists.intro (fun (n : Nat) => n) (And.intro subseq_id h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 92.2 常序列的极限点是它的值
+-- ─────────────────────────────────────────────────────────────
+
+theorem limitPoint_const (q : ratRep) : LimitPoint (constSeq q) q :=
+  converges_limitPoint (constSeq q) q (converges_const q)
+
+-- ─────────────────────────────────────────────────────────────
+-- 92.3 极限点意味着反复靠近
+-- ─────────────────────────────────────────────────────────────
+
+-- 收敛性在 `eps` 上给阈值 `M`。取 `K` 同时超过 `M` 与 `N`：
+-- 子序列在 `K` 处的项已经落在 `eps` 内，而它的下标 `g K` 也过了 `N`。
+theorem limitPoint_frequently (x : Seq) (L : ratRep) (h : LimitPoint x L) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∀ (N : Nat), ∃ (n : Nat), LeNat N n ∧ close (x n) L eps :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) (N : Nat) =>
+    Exists.elim h
+      (fun (g : Nat → Nat)
+          (hg : Subseq g ∧ Converges (fun (n : Nat) => x (g n)) L) =>
+        Exists.elim ((And.right hg) eps heps)
+          (fun (M : Nat)
+              (hM : ∀ (n : Nat), LeNat M n → close (x (g n)) L eps) =>
+            Exists.elim (leNat_max M N)
+              (fun (K : Nat) (hK : LeNat M K ∧ LeNat N K) =>
+                Exists.intro (g K)
+                  (And.intro
+                    (leNat_trans N K (g K) (And.right hK)
+                      (subseq_ge g (And.left hg) K))
+                    (hM K (And.left hK))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 92.4 收敛序列的极限点只能是它的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 子序列同时收敛到 `M`（极限点的定义）与 `L`（91.4）。74.7 说一个序列
+-- 至多有一个极限，所以 `M ~ L`；目标要的是相反的顺序。
+theorem limitPoint_unique_of_converges (x : Seq) (L M : ratRep)
+    (hL : Converges x L) (hM : LimitPoint x M) : ratRel L M :=
+  Exists.elim hM
+    (fun (g : Nat → Nat)
+        (hg : Subseq g ∧ Converges (fun (n : Nat) => x (g n)) M) =>
+      ratRel_symm M L
+        (converges_unique (fun (n : Nat) => x (g n)) M L
+          (And.right hg) (subseq_converges x L hL g (And.left hg))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 92.5 两个不同的极限点排除收敛
+-- ─────────────────────────────────────────────────────────────
+
+-- 假设有极限 `K`。92.4 给出 `K ~ L` 与 `K ~ M`；把第一段翻向后传递，
+-- 得到 `L ~ M`，与 `hne` 矛盾。
+theorem not_converges_of_two_limitPoints (x : Seq) (L M : ratRep)
+    (hL : LimitPoint x L) (hM : LimitPoint x M) (hne : ¬ ratRel L M) :
+    (∃ (K : ratRep), Converges x K) → False :=
+  fun (hK : ∃ (K : ratRep), Converges x K) =>
+    Exists.elim hK
+      (fun (K : ratRep) (hK : Converges x K) =>
+        hne (ratRel_trans_gen L K M
+          (ratRel_symm K L (limitPoint_unique_of_converges x K L hK hL))
+          (limitPoint_unique_of_converges x K M hK hM)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 92.6 常序列只有它的值一个极限点
+-- ─────────────────────────────────────────────────────────────
+
+theorem const_limitPoint_unique (q L : ratRep) (h : LimitPoint (constSeq q) L) :
+    ratRel q L :=
+  limitPoint_unique_of_converges (constSeq q) q L (converges_const q) h

@@ -1,6 +1,6 @@
 -- 课程库：极限论里的减法、绝对值与序（单元74 的引擎）
 --
--- 单元74 在画布里证了下面这些事实并判卷；这里按「前序证明进库」惯例收进 L2，
+-- 下面这些事实在单元74 的正文里证过；这里按「前序证明进库」的惯例收好，
 -- 单元75（极限与序）起直接引用，不再重抄。
 --
 --   · `ratSubRep_add_self` —— `(x - y) + y ~ x`（74.1）；
@@ -10,10 +10,11 @@
 --     「严格小」（74.4；辅助项只是可读性）；
 --   · `ratHalf_lt_self` —— `0 < eps ⇒ eps/2 < eps`（74.5）；
 --   · `ratLeRep_of_close_all` / `ratRel_of_close_all` —— 任意 ε 内接近 ⇒
---     `≤` / `~`（74.6 及其辅助）。
+--     `≤` / `~`（74.6 及其辅助）；
+--   · `converges_unique` —— 一个序列至多有一个极限（74.7）。
 --
--- **边界**：`ratLeRep_eq_or_lt` 用的是 ㊺ 的 `leNat_eq_or_succ`（`≤` 拆成
--- 「相等」或「严格小」），这不是排中律，也不需要 `Classical.choice`。
+-- 这里不引入新假设：`ratLeRep_eq_or_lt` 用的是 ㊺ 的 `leNat_eq_or_succ`
+-- （`≤` 拆成「相等」或「严格小」），这不是排中律，也不需要 `Classical.choice`。
 -- 全部停在 ℚ 代表元层 + 已判卷的库引理上，不碰 `funext`、不新增公理，
 -- 也不碰 kernel/front。
 
@@ -213,3 +214,27 @@ theorem ratRel_of_close_all (x y : ratRep)
     (ratLeRep_of_close_all y x
       (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
         close_symm x y eps (h eps heps)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.7 极限唯一（ℚ 层）
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 `eps > 0` 用 `eps/2`（`ratHalf_lt_self` 之前先由 `ratLtRep_half`
+-- 保证它为正）同时取两个阈值，`eventually_and` 把两条「终究」合并到
+-- 同一个 `N`；在 `n := N` 上两条接近性一条反向、一条正向，
+-- `close_trans` 合成 `close L L' eps`，最后交给 `ratRel_of_close_all`。
+theorem converges_unique (x : Seq) (L L' : ratRep)
+    (hL : Converges x L) (hL' : Converges x L') : ratRel L L' :=
+  ratRel_of_close_all L L'
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+      Exists.elim
+        (eventually_and (fun (n : Nat) => close (x n) L (ratHalf eps))
+          (fun (n : Nat) => close (x n) L' (ratHalf eps))
+          (hL (ratHalf eps) (ratLtRep_half eps heps))
+          (hL' (ratHalf eps) (ratLtRep_half eps heps)))
+        (fun (N : Nat)
+            (hN : ∀ (n : Nat), LeNat N n →
+              close (x n) L (ratHalf eps) ∧ close (x n) L' (ratHalf eps)) =>
+          close_trans L (x N) L' eps heps
+            (close_symm (x N) L (ratHalf eps) (And.left (hN N (LeNat.le_refl N))))
+            (And.right (hN N (LeNat.le_refl N)))))

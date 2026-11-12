@@ -701,6 +701,35 @@
               "unit": 90
             }
           ]
+        },
+        {
+          "id": "III.3",
+          "title": "子序列、极限点与上下极限",
+          "prereqs": [
+            "III.2"
+          ],
+          "tags": [
+            "subsequence",
+            "limit-point",
+            "limsup-liminf"
+          ],
+          "quota": {
+            "exercises": 50
+          },
+          "units": [
+            {
+              "file": "units/III.3/unit91-subsequence.sokonanoda",
+              "title": "单元91 子序列",
+              "title_en": "Unit 91 — Subsequences",
+              "unit": 91
+            },
+            {
+              "file": "units/III.3/unit92-limit-point.sokonanoda",
+              "title": "单元92 极限点",
+              "title_en": "Unit 92 — Limit Points",
+              "unit": 92
+            }
+          ]
         }
       ]
     }
