@@ -15,7 +15,7 @@
 --     57 的 `close_trans` 得 `∀ eps > 0, close L L' eps`，再过 74.6
 --     得 `ratRel L L'`；`Real.sound` 把它送进商，得 ℝ 里的相等。
 --
--- **边界（明说）**：74.4 用的是 ㊺ 的 `leNat_eq_or_succ`（`≤` 拆成
+-- 边界：74.4 用的是 ㊺ 的 `leNat_eq_or_succ`（`≤` 拆成
 -- 「相等」或「严格小」），这不是排中律：`Nat` 的 `≤` 是归纳定义的，
 -- 两支由构造子直接给出；本单元不新增公理、不用 `Classical.choice`。
 --
