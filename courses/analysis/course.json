@@ -752,6 +752,12 @@
               "title": "单元96 上下极限与常数界",
               "title_en": "Unit 96 — Limsup and Constant Bounds",
               "unit": 96
+            },
+            {
+              "file": "units/III.3/unit97-tail-limsup.sokonanoda",
+              "title": "单元97 上下极限只看尾部",
+              "title_en": "Unit 97 — Limsup and Liminf Only See the Tail",
+              "unit": 97
             }
           ]
         }
