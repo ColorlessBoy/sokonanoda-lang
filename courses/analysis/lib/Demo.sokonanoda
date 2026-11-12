@@ -12,5 +12,8 @@ import lib.RatOrder
 import lib.Cauchy
 import lib.RealOrderLaws
 import lib.Sup
+import lib.ExtReal
 
 theorem demo_lib_closure : True := True.intro
+
+theorem demo_ext_real_top : ele negInf posInf := True.intro

@@ -669,6 +669,12 @@
               "title": "单元85 下界与下确界：唯一性与比较",
               "title_en": "Unit 85 — Lower Bounds and Infima: Uniqueness and Comparison",
               "unit": 85
+            },
+            {
+              "file": "units/III.2/unit86-ext-real.sokonanoda",
+              "title": "单元86 扩展实数：±∞ 与序",
+              "title_en": "Unit 86 — Extended Reals and Their Order",
+              "unit": 86
             }
           ]
         }
