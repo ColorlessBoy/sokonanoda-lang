@@ -10,5 +10,7 @@ import lib.Equiv
 import lib.Order
 import lib.RatOrder
 import lib.Cauchy
+import lib.RealOrderLaws
+import lib.Sup
 
 theorem demo_lib_closure : True := True.intro

@@ -641,6 +641,36 @@
               "unit": 83
             }
           ]
+        },
+        {
+          "id": "III.2",
+          "title": "扩展实数、上下确界与单调收敛",
+          "prereqs": [
+            "III.1"
+          ],
+          "tags": [
+            "supremum",
+            "infimum",
+            "extended-real",
+            "monotone-convergence"
+          ],
+          "quota": {
+            "exercises": 45
+          },
+          "units": [
+            {
+              "file": "units/III.2/unit84-sup-unique.sokonanoda",
+              "title": "单元84 上界与上确界：唯一性与比较",
+              "title_en": "Unit 84 — Upper Bounds and Suprema: Uniqueness and Comparison",
+              "unit": 84
+            },
+            {
+              "file": "units/III.2/unit85-inf-unique.sokonanoda",
+              "title": "单元85 下界与下确界：唯一性与比较",
+              "title_en": "Unit 85 — Lower Bounds and Infima: Uniqueness and Comparison",
+              "unit": 85
+            }
+          ]
         }
       ]
     }

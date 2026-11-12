@@ -1,0 +1,123 @@
+-- 单元85 下界与下确界：唯一性与比较
+--
+-- 84 把序的上侧写成了上界与上确界。同一套论证把序翻过来，就是下界与
+-- 下确界。两者相遇时给出一个不依赖具体集合的不等式：非空集合的下确界
+-- 不超过上确界。后面的区间套与 limsup 都要用这个形状。
+--
+-- 本课程还没有把取负做成 ℝ 上的函数，所以下确界不借助「上确界的相反数」
+-- 来定义，而是照 84 的形状把 `≤` 的方向逐条翻转。`lib/Order` 的
+-- `LowerBound` / `IsInf` 就是这样定的：
+--
+--   LowerBound α r A m  :⟺  ∀ a, A a → r m a
+--   IsInf α r A m       :⟺  LowerBound α r A m ∧
+--                            ∀ M, LowerBound α r A M → r M m
+--
+-- 翻转之后，证明也要跟着换方向：上界的放大变成下界的缩小，最小性变成
+-- 最大性。
+--
+-- 路线：
+--   · 85.1 下界可以缩小：`m` 是下界、`m' ≤ m`，则 `m'` 也是下界；
+--   · 85.2 在下确界处，`M ≤ m` 与「`M` 是下界」等价；
+--   · 85.3 下确界唯一；
+--   · 85.4 集合含自己的下界时，这个元素就是下确界；
+--   · 85.5 单点集的下确界是那个点（带 Cauchy 见证）；
+--   · 85.6 非空集合的下确界不超过它的上确界；
+--   · 85.7 常零序列的类上的单点集。
+--
+-- 边界：与 84 相同，只证唯一性与比较，不证存在性。下确界的存在性同样
+-- 要选择公理或 Dedekind 切割，不写成公理。
+
+import lib.Order
+import lib.Sup
+import lib.RealOrderLaws
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.0 读法
+-- ─────────────────────────────────────────────────────────────
+
+-- `LowerBound Real realLe A m` 读作「`m` 是 `A` 的下界」，
+-- `IsInf Real realLe A m` 读作「`m` 是 `A` 的下确界」。
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.1 下界可以缩小
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：展开 `LowerBound`；对每个 `a ∈ A`，把 `m' ≤ m` 与 `m ≤ a` 用 `realLe_trans` 接起来。
+-- soko:hint 目标形态：`∀ a, A a → realLe m' a`。
+-- soko:hint 关键件：realLe_trans · 定义性展开。
+theorem lowerBound_of_le (A : Real → Prop) (m m' : Real)
+    (hm : LowerBound Real realLe A m) (h : realLe m' m) :
+    LowerBound Real realLe A m' :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.2 下确界处 `M ≤ m` 与「M 是下界」等价
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两个方向。若 `M ≤ m`，对 `a ∈ A` 用 `M ≤ m` 与 `m ≤ a`（`hi` 的第一分量）走传递；反过来「`M` 是下界」正是 `hi` 的第二分量在 `M` 上的取值。
+-- soko:hint 目标形态：`realLe M m ↔ LowerBound Real realLe A M`。
+-- soko:hint 关键件：Iff.intro · And.left hi · And.right hi · realLe_trans。
+theorem inf_le_iff (A : Real → Prop) (m M : Real)
+    (hi : IsInf Real realLe A m) :
+    realLe M m ↔ LowerBound Real realLe A M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.3 下确界唯一
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`m` 不超过 `m'`（`m'` 是下界，用 `hi` 的第二分量），`m'` 不超过 `m`（反过来），再交给 `realLe_antisymm`。
+-- soko:hint 目标形态：`m = m'`。
+-- soko:hint 关键件：And.left · And.right · realLe_antisymm。
+theorem inf_unique (A : Real → Prop) (m m' : Real)
+    (hi : IsInf Real realLe A m) (hj : IsInf Real realLe A m') : m = m' :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.4 集合含自己的下界时，它就是下确界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：下界分量直接是假设 `hlb`；最大性对任意下界 `M` 只用把 `hM` 作用在 `m` 与 `hm` 上，得到 `M ≤ m`。
+-- soko:hint 目标形态：`IsInf Real realLe A m`。
+-- soko:hint 关键件：And.intro · 逐点应用 `hM m hm`。
+theorem inf_of_min (A : Real → Prop) (m : Real)
+    (hm : A m) (hlb : LowerBound Real realLe A m) :
+    IsInf Real realLe A m :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.5 单点集的下确界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`And.intro` 两半。第一半用 `Eq.subst` 把等式 `a = mk x` 反向搬进目标 `realLe (mk x) a`，再用 `realLe_refl_mk x hx`；第二半把 `hM` 作用在 `Real.mk x` 与 `Eq.refl` 上。
+-- soko:hint 目标形态：`IsInf Real realLe (fun a => a = Real.mk x) (Real.mk x)`。
+-- soko:hint 关键件：Eq.subst · Eq.symm · Eq.refl · realLe_refl_mk。
+theorem inf_singleton_mk (x : Seq) (hx : Cauchy x) :
+    IsInf Real realLe (fun (a : Real) => a = Real.mk x) (Real.mk x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.6 非空集合的下确界不超过上确界
+-- ─────────────────────────────────────────────────────────────
+
+-- 取集合内的一个元素 `a`：下确界不超过 `a`，`a` 又不超过上确界。
+-- soko:hint 思路：非空给一个见证 `a`；`hi` 的第一分量给 `i ≤ a`，`hs` 的第一分量给 `a ≤ s`，再走传递。
+-- soko:hint 目标形态：`realLe i s`。
+-- soko:hint 关键件：Exists.elim · And.left hi · And.left hs · realLe_trans。
+theorem inf_le_sup_of_nonempty (A : Real → Prop) (i s : Real)
+    (hne : ∃ (a : Real), A a)
+    (hi : IsInf Real realLe A i) (hs : IsSup Real realLe A s) :
+    realLe i s :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.7 具体：常零序列的类上的单点集
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：85.5 用在 `x := zeroSeq` 上，Cauchy 见证取 `cauchy_zero`。
+-- soko:hint 目标形态：`IsInf Real realLe (fun a => a = Real.mk zeroSeq) (Real.mk zeroSeq)`。
+-- soko:hint 关键件：inf_singleton_mk · cauchy_zero。
+theorem demo_inf_zero :
+    IsInf Real realLe (fun (a : Real) => a = Real.mk zeroSeq) (Real.mk zeroSeq) :=
+  sorry

@@ -1,0 +1,112 @@
+-- 单元84 上界与上确界：唯一性与比较
+--
+-- 82.3 说单调序列的极限在值域的所有上界之下。把「极限」这一项拿掉，
+-- 剩下的是集合的词汇：上界与最小上界。后面讨论部分和、区间套与 limsup
+-- 时，要反复说「某个数是最小上界」；若一个集合有两个最小上界，那句
+-- 「它的上确界」就没有确定的指称，所以唯一性要先立稳。
+--
+-- `lib/Order` 里已有对任意类型、任意关系的定义：
+--
+--   UpperBound α r A M  :⟺  ∀ a, A a → r a M
+--   IsSup α r A s       :⟺  UpperBound α r A s ∧
+--                            ∀ M, UpperBound α r A M → r s M
+--
+-- 本单元把类型取成 `Real`、关系取成 `realLe`，只证这个实例上的比较律。
+-- 关系 `realLe` 只对带 Cauchy 见证的类有自反性，所以凡是需要自反的地方
+-- 都显式带上 `Cauchy x`，不把「每个实数都与自己可比」当作公理。
+--
+-- 路线：
+--   · 84.1 上界可以放大：`M` 是上界、`M ≤ M'`，则 `M'` 也是上界；
+--   · 84.2 在上确界处，`s ≤ M` 与「`M` 是上界」等价；
+--   · 84.3 上确界唯一；
+--   · 84.4 集合含自己的上界时，这个元素就是上确界；
+--   · 84.5 单点集的上确界是那个点（带 Cauchy 见证）；
+--   · 84.6 常零序列的类上的单点集。
+--
+-- 边界：只证唯一性与比较，不证存在性。一般「非空有上界的集合有上确界」
+-- 要选择公理或 Dedekind 切割，本课程的库没有这些；存在性能证到哪里，
+-- 留到后面的单元盘点。不新增公理。
+
+import lib.Order
+import lib.RealOrderLaws
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 84.0 读法
+-- ─────────────────────────────────────────────────────────────
+
+-- 下面一律写 `UpperBound Real realLe A M`，读作「`M` 是 `A` 的上界」；
+-- `IsSup Real realLe A s` 读作「`s` 是 `A` 的上确界」。两个定义都在
+-- `lib/Order`，这里不再重写。
+
+-- ─────────────────────────────────────────────────────────────
+-- 84.1 上界可以放大
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：展开 `UpperBound`；对每个 `a ∈ A`，把 `a ≤ M` 与 `M ≤ M'` 用 `realLe_trans` 接起来。
+-- soko:hint 目标形态：`∀ a, A a → realLe a M'`。
+-- soko:hint 关键件：realLe_trans · 定义性展开。
+theorem upperBound_of_le (A : Real → Prop) (M M' : Real)
+    (hM : UpperBound Real realLe A M) (h : realLe M M') :
+    UpperBound Real realLe A M' :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 84.2 上确界处 `s ≤ M` 与「M 是上界」等价
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两个方向。若 `s ≤ M`，对 `a ∈ A` 用 `a ≤ s`（`hs` 的第一分量）与 `s ≤ M` 走传递；反过来「`M` 是上界」正是 `hs` 的第二分量在 `M` 上的取值。
+-- soko:hint 目标形态：`realLe s M ↔ UpperBound Real realLe A M`。
+-- soko:hint 关键件：Iff.intro · And.left hs · And.right hs · realLe_trans。
+theorem sup_le_iff (A : Real → Prop) (s M : Real)
+    (hs : IsSup Real realLe A s) :
+    realLe s M ↔ UpperBound Real realLe A M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 84.3 上确界唯一
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`s` 不超过 `t`（`t` 是上界，用 `hs` 的第二分量），`t` 不超过 `s`（反过来），再交给 `realLe_antisymm`。
+-- soko:hint 目标形态：`s = t`。
+-- soko:hint 关键件：And.left · And.right · realLe_antisymm。
+theorem sup_unique (A : Real → Prop) (s t : Real)
+    (hs : IsSup Real realLe A s) (ht : IsSup Real realLe A t) : s = t :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 84.4 集合含自己的上界时，它就是上确界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：上界分量直接是假设 `hub`；最小性对任意上界 `M` 只用把 `hM` 作用在 `m` 与 `hm` 上，得到 `m ≤ M`。
+-- soko:hint 目标形态：`IsSup Real realLe A m`。
+-- soko:hint 关键件：And.intro · 逐点应用 `hM m hm`。
+theorem sup_of_max (A : Real → Prop) (m : Real)
+    (hm : A m) (hub : UpperBound Real realLe A m) :
+    IsSup Real realLe A m :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 84.5 单点集的上确界
+-- ─────────────────────────────────────────────────────────────
+
+-- `A := fun a => a = Real.mk x`。上界：把 `a = mk x` 代进目标，目标变成
+-- `realLe (mk x) (mk x)`，由 `realLe_refl_mk` 给。最小性：任一上界 `M`
+-- 作用在 `mk x` 与 `rfl` 上，直接得到 `mk x ≤ M`。
+-- soko:hint 思路：`And.intro` 两半。第一半用 `Eq.subst` 把等式 `a = mk x` 反向搬进目标，再用 `realLe_refl_mk x hx`；第二半把 `hM` 作用在 `Real.mk x` 与 `Eq.refl` 上。
+-- soko:hint 目标形态：`IsSup Real realLe (fun a => a = Real.mk x) (Real.mk x)`。
+-- soko:hint 关键件：Eq.subst · Eq.symm · Eq.refl · realLe_refl_mk。
+theorem sup_singleton_mk (x : Seq) (hx : Cauchy x) :
+    IsSup Real realLe (fun (a : Real) => a = Real.mk x) (Real.mk x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 84.6 具体：常零序列的类上的单点集
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：84.5 用在 `x := zeroSeq` 上，Cauchy 见证取 `cauchy_zero`。
+-- soko:hint 目标形态：`IsSup Real realLe (fun a => a = Real.mk zeroSeq) (Real.mk zeroSeq)`。
+-- soko:hint 关键件：sup_singleton_mk · cauchy_zero。
+theorem demo_sup_zero :
+    IsSup Real realLe (fun (a : Real) => a = Real.mk zeroSeq) (Real.mk zeroSeq) :=
+  sorry
