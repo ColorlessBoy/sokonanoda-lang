@@ -1,0 +1,253 @@
+-- 课程库：极限里的绝对值单边界与半数的减法
+--
+-- 夹逼（单元78）与保号性（单元79）都要从 `close` 取出「负侧」的单边界：
+-- `close x L eps` 不仅给 `x - L ≤ eps`，也给 `L - x ≤ eps`。这两条
+-- 再加上半数的减法恒等式，就能把「靠近 L」翻译成「落在某个正数之上」。
+--
+--   · `ratNegRep_sub` —— `-(x - L) ~ L - x`；
+--   · `ratAbsRel_le_of_bounds` —— 绝对值的见证落在两支界之内；
+--   · `close_neg_bound` —— `close x L eps` 给 `L - x ≤ eps`；
+--   · `ratSubRep_half` —— `x - x/2 ~ x/2`；
+--   · `ratAdd_sub_self` —— `(x + y) - x ~ y`。
+--
+-- 前三条与单元78 的画布逐字同形，收进 L2 供后续单元直接引用。后两条是
+-- 保号性要用的代数恒等式。全部停在代表元层与已判卷的库引理上，不新增
+-- 公理，也不碰 kernel/front。
+
+import lib.LimitOrder
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.0 绝对值的两支（展开成可消去的形状）
+-- ─────────────────────────────────────────────────────────────
+
+-- `ratAbsRel` 是定义别名，`Or.elim` 的分支拿不到它的两个析取支。
+-- 这条引理只做一次定义展开，证明就是它自己。
+theorem abs_cases (a d : ratRep) (h : ratAbsRel a d) :
+    (ratLeRep ratZeroRep a ∧ ratRel d a) ∨
+      (ratLeRep a ratZeroRep ∧ ratRel d (ratNegRep a)) :=
+  h
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.1 绝对值落在两支界之间
+-- ─────────────────────────────────────────────────────────────
+
+-- 绝对值有两支：`d ~ a` 或 `d ~ -a`。两支各有一条已知界
+-- （`a ≤ b` 与 `-a ≤ b`），于是同一个 `d ≤ b` 由代表元同余搬过去。
+theorem ratAbsRel_le_of_bounds (a b d : ratRep) (h : ratAbsRel a d)
+    (h1 : ratLeRep a b) (h2 : ratLeRep (ratNegRep a) b) : ratLeRep d b :=
+  Or.elim
+    (fun (hp : ratLeRep ratZeroRep a ∧ ratRel d a) =>
+      ratLeRep_congr_gen a d b b
+        (ratRel_symm d a (And.right hp))
+        (ratRel_refl b)
+        h1)
+    (fun (hp : ratLeRep a ratZeroRep ∧ ratRel d (ratNegRep a)) =>
+      ratLeRep_congr_gen (ratNegRep a) d b b
+        (ratRel_symm d (ratNegRep a) (And.right hp))
+        (ratRel_refl b)
+        h2)
+    (abs_cases a d h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.2 负的差等于反过来的差
+-- ─────────────────────────────────────────────────────────────
+
+-- `-(x - L) ~ L - x`：`ratNegRep_add` 把负号推进括号，
+-- `ratNegRep_invol` 消掉 `-(-L)`，交换律把两项换位。
+theorem ratNegRep_sub (x L : ratRep) :
+    ratRel (ratNegRep (ratSubRep x L)) (ratSubRep L x) :=
+  ratRel_trans_gen
+    (ratNegRep (ratSubRep x L))
+    (ratAddRep (ratNegRep x) (ratNegRep (ratNegRep L)))
+    (ratAddRep L (ratNegRep x))
+    (ratNegRep_add x (ratNegRep L))
+    (ratRel_trans_gen
+      (ratAddRep (ratNegRep x) (ratNegRep (ratNegRep L)))
+      (ratAddRep (ratNegRep x) L)
+      (ratAddRep L (ratNegRep x))
+      (ratAddRep_wd_snd_gen (ratNegRep x) (ratNegRep (ratNegRep L)) L
+        (ratNegRep_invol L))
+      (ratAdd_comm (ratNegRep x) L))
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.3 close 的负侧单边界
+-- ─────────────────────────────────────────────────────────────
+
+-- 正侧是 68.4 的 `close_sub_le`。负侧从见证 `d` 出发：
+-- `ratAbsRel_neg_le` 给 `-(x - L) ≤ d`，`d < eps` 投成 `d ≤ eps`，
+-- 再把 `-(x - L)` 沿 78.2 认成 `L - x`。
+theorem close_neg_bound (x L eps : ratRep) (h : close x L eps) :
+    ratLeRep (ratSubRep L x) eps :=
+  Exists.elim h
+    (fun (d : ratRep)
+        (hd : ratAbsRel (ratSubRep x L) d ∧ ratLtRep d eps) =>
+      ratLeRep_congr_gen
+        (ratNegRep (ratSubRep x L)) (ratSubRep L x)
+        eps eps
+        (ratNegRep_sub x L)
+        (ratRel_refl eps)
+        (ratLeRep_trans (ratNegRep (ratSubRep x L)) d eps
+          (ratAbsRel_neg_le (ratSubRep x L) d (And.left hd))
+          (ratLtRep_le d eps (And.right hd))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.0a 减半再相减
+-- ─────────────────────────────────────────────────────────────
+
+-- `x - x/2 ~ x/2`。由 `x/2 + x/2 ~ x` 反过来把 `x` 换掉，
+-- 再用结合律、逆元律与加零律收口。
+theorem ratSubRep_half (x : ratRep) :
+    ratRel (ratSubRep x (ratHalf x)) (ratHalf x) :=
+  ratRel_trans_gen
+    (ratSubRep x (ratHalf x))
+    (ratAddRep (ratAddRep (ratHalf x) (ratHalf x)) (ratNegRep (ratHalf x)))
+    (ratHalf x)
+    (ratAddRep_wd_gen x (ratAddRep (ratHalf x) (ratHalf x))
+      (ratNegRep (ratHalf x))
+      (ratRel_symm (ratAddRep (ratHalf x) (ratHalf x)) x
+        (ratHalf_add_self x)))
+    (ratRel_trans_gen
+      (ratAddRep (ratAddRep (ratHalf x) (ratHalf x))
+        (ratNegRep (ratHalf x)))
+      (ratAddRep (ratHalf x)
+        (ratAddRep (ratHalf x) (ratNegRep (ratHalf x))))
+      (ratHalf x)
+      (ratAdd_assoc (ratHalf x) (ratHalf x) (ratNegRep (ratHalf x)))
+      (ratRel_trans_gen
+        (ratAddRep (ratHalf x)
+          (ratAddRep (ratHalf x) (ratNegRep (ratHalf x))))
+        (ratAddRep (ratHalf x) ratZeroRep)
+        (ratHalf x)
+        (ratAddRep_wd_snd_gen (ratHalf x)
+          (ratAddRep (ratHalf x) (ratNegRep (ratHalf x)))
+          ratZeroRep (ratAdd_neg_gen (ratHalf x)))
+        (ratAdd_zero (ratHalf x))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.0b 左加一项再减掉它
+-- ─────────────────────────────────────────────────────────────
+
+-- `(x + y) - x ~ y`：结合律把 `-x` 挪到 `y` 旁边，交换后
+-- `x + (-x)` 收成零，再加零。
+theorem ratAdd_sub_self (x y : ratRep) :
+    ratRel (ratSubRep (ratAddRep x y) x) y :=
+  ratRel_trans_gen
+    (ratSubRep (ratAddRep x y) x)
+    (ratAddRep x (ratAddRep y (ratNegRep x)))
+    y
+    (ratAdd_assoc x y (ratNegRep x))
+    (ratRel_trans_gen
+      (ratAddRep x (ratAddRep y (ratNegRep x)))
+      (ratAddRep x (ratAddRep (ratNegRep x) y))
+      y
+      (ratAddRep_wd_snd_gen x
+        (ratAddRep y (ratNegRep x))
+        (ratAddRep (ratNegRep x) y)
+        (ratAdd_comm y (ratNegRep x)))
+      (ratRel_trans_gen
+        (ratAddRep x (ratAddRep (ratNegRep x) y))
+        (ratAddRep (ratAddRep x (ratNegRep x)) y)
+        y
+        (ratRel_symm
+          (ratAddRep (ratAddRep x (ratNegRep x)) y)
+          (ratAddRep x (ratAddRep (ratNegRep x) y))
+          (ratAdd_assoc x (ratNegRep x) y))
+        (ratRel_trans_gen
+          (ratAddRep (ratAddRep x (ratNegRep x)) y)
+          (ratAddRep ratZeroRep y)
+          y
+          (ratAddRep_wd_gen (ratAddRep x (ratNegRep x)) ratZeroRep y
+            (ratAdd_neg_gen x))
+          (ratAdd_zero_left y))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.0c 减法界搬成加法界
+-- ─────────────────────────────────────────────────────────────
+
+-- `a - b ≤ eps` ⇒ `a ≤ eps + b`：两边右加 `b`，
+-- `(a - b) + b ~ a` 把左边收回去。
+theorem le_of_sub_le (a b eps : ratRep)
+    (h : ratLeRep (ratSubRep a b) eps) : ratLeRep a (ratAddRep eps b) :=
+  ratLeRep_congr_gen
+    (ratAddRep (ratSubRep a b) b) a
+    (ratAddRep eps b) (ratAddRep eps b)
+    (ratSubRep_add_self a b)
+    (ratRel_refl (ratAddRep eps b))
+    (ratLeRep_add_right (ratSubRep a b) eps b h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.0d 取负把严格序翻过来
+-- ─────────────────────────────────────────────────────────────
+
+-- 弱序由 ㊶ 的 `ratLeRep_neg_gen` 给；严格性靠「若 `0 ~ -x`
+-- 则 `0 ~ x`」——取负保等价（㉛ 的 `ratNegRep_wd`）再消去双重负号。
+theorem ratLtRep_pos_of_neg (x : ratRep) (h : ratLtRep x ratZeroRep) :
+    ratLtRep ratZeroRep (ratNegRep x) :=
+  And.intro
+    (ratLeRep_congr_gen
+      (ratNegRep ratZeroRep) ratZeroRep
+      (ratNegRep x) (ratNegRep x)
+      (ratRel_refl ratZeroRep)
+      (ratRel_refl (ratNegRep x))
+      (ratLeRep_neg_gen x ratZeroRep (ratLtRep_le x ratZeroRep h)))
+    (fun (h0 : ratRel ratZeroRep (ratNegRep x)) =>
+      (ratLtRep_right x ratZeroRep h)
+        (ratRel_symm ratZeroRep x
+          (ratRel_trans_gen ratZeroRep (ratNegRep (ratNegRep x)) x
+            (ratRel_trans_gen ratZeroRep (ratNegRep ratZeroRep)
+              (ratNegRep (ratNegRep x))
+              (ratRel_refl ratZeroRep)
+              (ratNegRep_wd ratZeroRep (ratNegRep x) h0))
+            (ratNegRep_invol x))))
+
+-- 反方向：`0 < x` ⇒ `-x < 0`。和上面同构，只是把 `x` 换成 `-x`。
+theorem ratLtRep_neg_of_pos (x : ratRep) (h : ratLtRep ratZeroRep x) :
+    ratLtRep (ratNegRep x) ratZeroRep :=
+  And.intro
+    (ratLeRep_congr_gen
+      (ratNegRep x) (ratNegRep x)
+      (ratNegRep ratZeroRep) ratZeroRep
+      (ratRel_refl (ratNegRep x))
+      (ratRel_refl ratZeroRep)
+      (ratLeRep_neg_gen ratZeroRep x (ratLtRep_le ratZeroRep x h)))
+    (fun (h0 : ratRel (ratNegRep x) ratZeroRep) =>
+      (ratLtRep_right ratZeroRep x h)
+        (ratRel_symm x ratZeroRep
+          (ratRel_trans_gen x (ratNegRep (ratNegRep x)) ratZeroRep
+            (ratRel_symm (ratNegRep (ratNegRep x)) x
+              (ratNegRep_invol x))
+            (ratNegRep_wd (ratNegRep x) ratZeroRep h0))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.0e 负数的一半仍是负数
+-- ─────────────────────────────────────────────────────────────
+
+-- 弱序：`x ≤ 0` 取负得 `0 ≤ -x`，半数给 `0 ≤ (-x)/2 ~ -(x/2)`，
+-- 再取负回来。严格性：若 `x/2 ~ 0`，则 `x/2 + x/2 ~ 0`，
+-- 而它又等于 `x`，与 `x < 0` 矛盾。
+theorem ratLtRep_half_neg (x : ratRep) (h : ratLtRep x ratZeroRep) :
+    ratLtRep (ratHalf x) ratZeroRep :=
+  And.intro
+    (ratLeRep_congr_gen
+      (ratNegRep (ratNegRep (ratHalf x))) (ratHalf x)
+      (ratNegRep ratZeroRep) ratZeroRep
+      (ratNegRep_invol (ratHalf x))
+      (ratRel_refl ratZeroRep)
+      (ratLeRep_neg_gen ratZeroRep (ratNegRep (ratHalf x))
+        (ratLeRep_half_of_lt (ratNegRep x) (ratLtRep_pos_of_neg x h))))
+    (fun (h0 : ratRel (ratHalf x) ratZeroRep) =>
+      (ratLtRep_right x ratZeroRep h)
+        (ratRel_trans_gen x (ratAddRep (ratHalf x) (ratHalf x)) ratZeroRep
+          (ratRel_symm
+            (ratAddRep (ratHalf x) (ratHalf x)) x
+            (ratHalf_add_self x))
+          (ratRel_trans_gen
+            (ratAddRep (ratHalf x) (ratHalf x))
+            (ratAddRep ratZeroRep (ratHalf x))
+            ratZeroRep
+            (ratAddRep_wd_gen (ratHalf x) ratZeroRep (ratHalf x) h0)
+            (ratRel_trans_gen
+              (ratAddRep ratZeroRep (ratHalf x))
+              (ratHalf x) ratZeroRep
+              (ratAdd_zero_left (ratHalf x))
+              h0))))

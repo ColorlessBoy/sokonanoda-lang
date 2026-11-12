@@ -609,6 +609,18 @@
               "title": "单元78 夹逼定理",
               "title_en": "Unit 78 — The Squeeze Theorem",
               "unit": 78
+            },
+            {
+              "file": "units/III.1/unit79-limit-sign.sokonanoda",
+              "title": "单元79 极限的保号性",
+              "title_en": "Unit 79 — Sign Preservation for Limits",
+              "unit": 79
+            },
+            {
+              "file": "units/III.1/unit80-shift.sokonanoda",
+              "title": "单元80 极限只看尾部：平移",
+              "title_en": "Unit 80 — Limits Only See the Tail: Shifts",
+              "unit": 80
             }
           ]
         }
