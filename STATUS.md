@@ -1,5 +1,5 @@
 ## M3 单元97–99：上下极限的收敛与 Cauchy 极限点（2026-11-13 · issue #19 / PR #41）
-- `unit97`（上轮落盘）：尾部等价沿子序列复合，并搬运极限点与上下极限（`limitPoint_congr_tail` / `limsup_congr_tail` / `liminf_congr_tail`）。正文 2 checked / 6 open，解答 7 checked / 0 open。
+- `unit97`（上轮落盘）：尾部等价沿子序列复合，并搬运极限点与上下极限（`limitPoint_congr_tail` / `limsup_congr_tail` / `liminf_congr_tail`）。正文 1 checked / 6 open，解答 7 checked / 0 open。
 - `unit98-limsup-converges`：6 道练习。收敛时上下极限等价、空隙排除收敛、极限点落在两界之间；有极限点时两界相等（`limsup_liminf_rel_of_le`）。正文 0 checked / 6 open / 0 rejected，解答 6 checked / 0 open。
 - `unit99-cauchy-limit`：5 道练习。Cauchy 序列有极限点就收敛到它（`cauchy_limitPoint_converges`），极限点至多一个等价类，上下极限落在同一点。正文 0 checked / 5 open / 0 rejected，解答 5 checked / 0 open。
 - 判据：`check.py --json` rc=0（246 目标 · 2714 checked · 506 open · 0 判负，M3 27/51）；`notation-lint` rc=0（254 文件，15 处豁免）；III.3 文案门禁 0 处；`style-lint --selftest` rc=0。
