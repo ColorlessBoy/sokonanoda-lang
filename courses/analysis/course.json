@@ -675,6 +675,18 @@
               "title": "单元86 扩展实数：±∞ 与序",
               "title_en": "Unit 86 — Extended Reals and Their Order",
               "unit": 86
+            },
+            {
+              "file": "units/III.2/unit87-ext-sup.sokonanoda",
+              "title": "单元87 扩展实数上的上界与上确界",
+              "title_en": "Unit 87 — Upper Bounds and Suprema over the Extended Reals",
+              "unit": 87
+            },
+            {
+              "file": "units/III.2/unit88-sup-fin-bridge.sokonanoda",
+              "title": "单元88 实数上确界与扩展上确界的相容",
+              "title_en": "Unit 88 — Real and Extended Suprema Agree",
+              "unit": 88
             }
           ]
         }

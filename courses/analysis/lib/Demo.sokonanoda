@@ -13,7 +13,11 @@ import lib.Cauchy
 import lib.RealOrderLaws
 import lib.Sup
 import lib.ExtReal
+import lib.ExtRealOrder
 
 theorem demo_lib_closure : True := True.intro
 
 theorem demo_ext_real_top : ele negInf posInf := True.intro
+
+theorem demo_ext_real_chain : ele negInf (fin (Real.mk zeroSeq)) :=
+  negInf_le (fin (Real.mk zeroSeq))

@@ -1,0 +1,124 @@
+-- 单元88 实数上确界与扩展上确界的相容（解答）
+--
+-- 87 在扩展实数里重证了 84 的比较律，两套词汇之间还差一步：把一个实数
+-- 集合搬到扩展实数里，它的上确界是否还是同一个点？
+--
+-- 把集合 `A` 的每个元素换成 `fin a`，得到扩展实数里的集合 `finImage A`。
+-- 若 `s` 是 `A` 在 ℝ 里的上确界，则 `fin s` 是 `finImage A` 在扩展实数里
+-- 的上确界；反过来，`finImage A` 的上确界若落在有限点上，那个点就是 `A`
+-- 的实数上确界。正方向要求 `A` 非空：空集在扩展实数里的上确界是 `negInf`，
+-- 不可能是任何 `fin s`。
+--
+-- 这条桥在后面的部分和与 limsup 里反复用到：先在实数层把界算出来，再
+-- 搬进扩展实数。
+
+import lib.Order
+import lib.ExtReal
+import lib.ExtRealOrder
+import lib.Sup
+import lib.RealOrderLaws
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 88.0 把实数集合搬进扩展实数
+-- ─────────────────────────────────────────────────────────────
+
+def finImage (A : Real → Prop) : ExtReal → Prop :=
+  fun (e : ExtReal) => ∃ (a : Real), A a ∧ e = fin a
+
+-- ─────────────────────────────────────────────────────────────
+-- 88.1 成员资格
+-- ─────────────────────────────────────────────────────────────
+
+-- 见证就是 `a` 自己。
+theorem finImage_mem (A : Real → Prop) (a : Real) (ha : A a) :
+    finImage A (fin a) :=
+  Exists.intro a (And.intro ha (@Eq.refl.{1} ExtReal (fin a)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 88.2 上界随集合一起搬过去
+-- ─────────────────────────────────────────────────────────────
+
+-- `e` 的见证是某个 `a`，且 `e = fin a`。把等式翻向，`ele (fin a) (fin M)`
+-- 就搬成 `ele e (fin M)`；`ele (fin a) (fin M)` 由 `ele_fin_fin` 从
+-- `realLe a M` 得到。
+theorem finImage_upperBound (A : Real → Prop) (M : Real)
+    (hM : UpperBound Real realLe A M) :
+    UpperBound ExtReal ele (finImage A) (fin M) :=
+  fun (e : ExtReal) (he : finImage A e) =>
+    Exists.elim he
+      (fun (a : Real) (ha : A a ∧ e = fin a) =>
+        @Eq.subst.{1} ExtReal (fun (z : ExtReal) => ele z (fin M))
+          (fin a) e (Eq.symm (And.right ha))
+          (Iff.mpr (ele_fin_fin a M) (hM a (And.left ha))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 88.3 实数上确界搬到扩展实数
+-- ─────────────────────────────────────────────────────────────
+
+-- 上界分量是 88.2。最小性对候选上界 `M` 分三种：
+-- 负无穷不可能——非空集合给一个 `fin a`，而 `ele (fin a) negInf` 是假；
+-- 有限点 `fin t` 归到实数层：`t` 是 `A` 的上界，`s` 最小，于是 `s ≤ t`；
+-- 正无穷那一支直接是顶。
+theorem ext_sup_fin_of_sup (A : Real → Prop) (s : Real)
+    (hne : ∃ (a : Real), A a)
+    (hs : IsSup Real realLe A s) :
+    IsSup ExtReal ele (finImage A) (fin s) :=
+  And.intro
+    (finImage_upperBound A s (isSup_upper Real realLe A s hs))
+    (fun (M : ExtReal) (hM : UpperBound ExtReal ele (finImage A) M) =>
+      @ExtReal.rec.{0}
+        (fun (M' : ExtReal) => UpperBound ExtReal ele (finImage A) M' → ele (fin s) M')
+        (fun (hMneg : UpperBound ExtReal ele (finImage A) negInf) =>
+          Exists.elim hne
+            (fun (a : Real) (ha : A a) =>
+              False.elim (not_ele_fin_negInf a (hMneg (fin a) (finImage_mem A a ha)))))
+        (fun (t : Real) (hMt : UpperBound ExtReal ele (finImage A) (fin t)) =>
+          Iff.mpr (ele_fin_fin s t)
+            (isSup_least Real realLe A s hs t
+              (fun (a : Real) (ha : A a) =>
+                Iff.mp (ele_fin_fin a t) (hMt (fin a) (finImage_mem A a ha)))))
+        (fun (_ : UpperBound ExtReal ele (finImage A) posInf) => True.intro)
+        M hM)
+
+-- ─────────────────────────────────────────────────────────────
+-- 88.4 扩展上确界若落在有限点上，它就是实数上确界
+-- ─────────────────────────────────────────────────────────────
+
+-- 上界：`fin a` 在 `finImage A` 里，`fin s` 是它的上界，展开就是 `a ≤ s`。
+-- 最小性：实数上界 `M` 经 88.2 变成扩展上界 `fin M`，于是 `fin s ≤ fin M`，
+-- 展开就是 `s ≤ M`。
+theorem real_sup_of_ext_sup (A : Real → Prop) (s : Real)
+    (hs : IsSup ExtReal ele (finImage A) (fin s)) :
+    IsSup Real realLe A s :=
+  And.intro
+    (fun (a : Real) (ha : A a) =>
+      Iff.mp (ele_fin_fin a s)
+        (isSup_upper ExtReal ele (finImage A) (fin s) hs (fin a)
+          (finImage_mem A a ha)))
+    (fun (M : Real) (hM : UpperBound Real realLe A M) =>
+      Iff.mp (ele_fin_fin s M)
+        (isSup_least ExtReal ele (finImage A) (fin s) hs (fin M)
+          (finImage_upperBound A M hM)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 88.5 两套上确界等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个方向分别是 88.3 与 88.4；非空前提只在前者用到。
+theorem ext_sup_fin_iff (A : Real → Prop) (s : Real)
+    (hne : ∃ (a : Real), A a) :
+    IsSup Real realLe A s ↔ IsSup ExtReal ele (finImage A) (fin s) :=
+  Iff.intro (ext_sup_fin_of_sup A s hne) (real_sup_of_ext_sup A s)
+
+-- ─────────────────────────────────────────────────────────────
+-- 88.6 具体：常零序列的类上的单点集
+-- ─────────────────────────────────────────────────────────────
+
+-- 84.5 的 `sup_singleton_mk` 提供实数上确界，非空见证取那个点本身。
+theorem demo_ext_sup_fin_zero :
+    IsSup ExtReal ele (finImage (fun (a : Real) => a = Real.mk zeroSeq))
+      (fin (Real.mk zeroSeq)) :=
+  ext_sup_fin_of_sup (fun (a : Real) => a = Real.mk zeroSeq) (Real.mk zeroSeq)
+    (Exists.intro (Real.mk zeroSeq) (@Eq.refl.{1} Real (Real.mk zeroSeq)))
+    (sup_singleton_mk zeroSeq cauchy_zero)
