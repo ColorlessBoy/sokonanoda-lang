@@ -137,10 +137,11 @@ python3 scripts/notation-lint.py --root courses/analysis
 ```
 
 The generated `index.html` is uploaded as the `book-v2-html` artifact.
-⚠ Because this workflow is added in PR #35, GitHub evaluates the base branch's
-workflows for that PR, so it will not run until the file lands on the base
-branch (or someone triggers `workflow_dispatch`). The local commands above are
-the gate for this PR; the workflow guards later PRs/pushes.
+Observed on the PR that added it (#35): push run 43133044100 and pull_request
+run 43133052960 both succeeded, reporting 72 units / 1365 search entries and
+uploading a 301,534-byte artifact. `workflow_dispatch` remains for manual runs.
+Fork PRs may evaluate workflows with different base-branch approval rules, so
+the local commands above remain the source of truth.
 
 ## Math
 

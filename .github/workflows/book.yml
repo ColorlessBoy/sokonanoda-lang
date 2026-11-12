@@ -6,10 +6,12 @@ name: book
 # browser, no PDF engine, no npm.  The page itself is built by the same script
 # a reader runs locally, so CI checks exactly the committed generator contract.
 #
-# ⚠ This workflow is added by PR #35, so it will NOT run on that PR itself:
-# GitHub evaluates `pull_request` workflows from the base branch.  It starts
-# guarding pushes/PRs once this file lands on the base, and
-# `workflow_dispatch` lets a maintainer trigger it manually meanwhile.
+# ✅ Observed on PR #35 (the PR that added this file): push run 43133044100 and
+# pull_request run 43133052960 both succeeded (build → --check → preview check →
+# --selftest → notation-lint → artifact book-v2-html).  `workflow_dispatch`
+# remains for manual runs.  Fork PRs may still evaluate workflows differently
+# (base-branch approval/permission rules), so the local command chain below is
+# the source of truth.
 #
 # The committed review copy (scripts/book/preview/index.html) is checked too:
 # source changes that forget to regenerate it fail here rather than drifting.
