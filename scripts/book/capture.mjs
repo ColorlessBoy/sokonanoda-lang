@@ -78,6 +78,8 @@ async function stopChrome() {
 }
 process.on("exit", stopChrome);
 
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
 try {
   const portFile = await waitFile(resolve(userDir, "DevToolsActivePort"));
   const port = Number(portFile.split("\n")[0]);
@@ -131,6 +133,11 @@ try {
     });
   }
 
+  function track(method, handler) {
+    if (!events.has(method)) events.set(method, new Set());
+    events.get(method).add(handler);
+  }
+
   async function evaluate(expression) {
     const result = await send("Runtime.evaluate", {
       expression,
@@ -152,19 +159,25 @@ try {
     });
   }
 
-  async function load(width, height, mobile = false) {
+  let loadSequence = 0;
+  async function load(width, height, mobile = false, hash = "") {
     await setViewport(width, height, mobile);
     const loaded = once("Page.loadEventFired");
-    await send("Page.navigate", { url: `file://${BOOK_HTML}` });
+    // A unique query forces a real document load even when only the hash
+    // differs; navigating to the same document with a new fragment does not
+    // fire Page.loadEventFired.
+    await send("Page.navigate", {
+      url: `file://${BOOK_HTML}?capture=${++loadSequence}${hash}`,
+    });
     await loaded;
-    await new Promise((r) => setTimeout(r, 450));
+    await wait(500);
   }
 
   async function reload() {
     const loaded = once("Page.loadEventFired");
     await send("Page.reload", { ignoreCache: true });
     await loaded;
-    await new Promise((r) => setTimeout(r, 350));
+    await wait(400);
   }
 
   async function scrollTo(selector, offset = 70) {
@@ -178,7 +191,7 @@ try {
       document.documentElement.style.scrollBehavior = previous;
       return true;
     })()`);
-    await new Promise((r) => setTimeout(r, 400));
+    await wait(400);
   }
 
   async function screenshot(name, clip = null) {
@@ -192,6 +205,29 @@ try {
     await writeFile(resolve(OUT_DIR, name), Buffer.from(result.data, "base64"));
   }
 
+  const externalRequests = [];
+  const consoleErrors = [];
+  const pageErrors = [];
+  track("Network.requestWillBeSent", ({ request }) => {
+    if (/^https?:/i.test(request.url)) externalRequests.push(request.url);
+  });
+  track("Runtime.exceptionThrown", ({ exceptionDetails }) => {
+    pageErrors.push(
+      exceptionDetails.exception?.description ||
+        exceptionDetails.text ||
+        "uncaught exception"
+    );
+  });
+  track("Runtime.consoleAPICalled", ({ type, args }) => {
+    if (type !== "error") return;
+    consoleErrors.push(
+      (args || []).map((arg) => arg.value ?? arg.description ?? "").join(" ")
+    );
+  });
+  track("Log.entryAdded", ({ entry }) => {
+    if (entry.level === "error") consoleErrors.push(entry.text || "log error");
+  });
+
   const failures = [];
   const assert = (condition, label, detail = "") => {
     if (!condition) failures.push(`${label}${detail ? `: ${detail}` : ""}`);
@@ -199,6 +235,8 @@ try {
 
   await send("Page.enable");
   await send("Runtime.enable");
+  await send("Network.enable");
+  await send("Log.enable");
   await load(1440, 1000);
 
   const desktop = await evaluate(`(() => {
@@ -230,7 +268,21 @@ try {
         collapse: Boolean(document.querySelector('[data-action="collapse-all"]')),
         print: Boolean(document.querySelector('[data-action="print"]')),
         chapterJump: Boolean(document.querySelector('[data-action="chapter-jump"]')),
+        search: Boolean(document.getElementById("book-search")),
+        progress: Boolean(document.querySelector('[data-progress-widget] [role="progressbar"]')),
+        reset: Boolean(document.querySelector('[data-action="reset-progress"]')),
+        copy: document.querySelectorAll("[data-copy-link]").length,
       },
+      searchEntries: Number(document.body.dataset.searchEntries || 0),
+      searchVisible: (() => {
+        const input = document.getElementById("book-search");
+        const rect = input.getBoundingClientRect();
+        const style = getComputedStyle(input);
+        return style.display !== "none" && style.visibility !== "hidden" && rect.width > 80;
+      })(),
+      searchWidth: Math.round(document.getElementById("book-search").getBoundingClientRect().width),
+      progressToggles: document.querySelectorAll("[data-progress-toggle]").length,
+      progressCount: document.querySelector('[data-progress-widget] [data-progress-count]').textContent,
       coverHeight: Math.ceil(document.querySelector(".cover").getBoundingClientRect().height),
     };
   })()`);
@@ -244,9 +296,15 @@ try {
   assert(desktop.emptyUnits.length === 0, "empty units", desktop.emptyUnits.join(","));
   assert(desktop.scrollWidth <= desktop.innerWidth + 1, "desktop overflow", `${desktop.scrollWidth}`);
   assert(desktop.controls.views === 3 && desktop.controls.expand && desktop.controls.collapse && desktop.controls.print && desktop.controls.chapterJump, "reading controls");
+  assert(desktop.controls.search && desktop.controls.progress && desktop.controls.reset, "search/progress controls");
+  assert(desktop.controls.copy === desktop.units, "copy-link controls", `${desktop.controls.copy}/${desktop.units}`);
+  assert(desktop.searchEntries > desktop.units + desktop.chapters, "search index entries", String(desktop.searchEntries));
+  assert(desktop.searchVisible && desktop.searchWidth > 80, "search input is visible", String(desktop.searchWidth));
+  assert(desktop.progressToggles === desktop.units, "progress toggles", String(desktop.progressToggles));
+  assert(desktop.progressCount === "已读 0 / 72", "initial progress count", desktop.progressCount);
 
   await evaluate("window.scrollTo(0, 0)");
-  await new Promise((r) => setTimeout(r, 200));
+  await wait(200);
   await screenshot("book-v2-cover.png", {
     x: 0,
     y: 0,
@@ -258,6 +316,392 @@ try {
   await scrollTo("#toc");
   await screenshot("book-v2-toc.png");
 
+  /* ── search ──────────────────────────────────────────────────────────── */
+
+  const searchBasics = await evaluate(`(() => {
+    const input = document.getElementById("book-search");
+    input.focus();
+    input.value = "极限";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    const options = [...document.querySelectorAll("#book-search-results [role=option]")];
+    const first = options[0];
+    const panel = document.getElementById("book-search-panel");
+    const panelRect = panel.getBoundingClientRect();
+    return {
+      panelLeft: Math.round(panelRect.left),
+      panelRight: Math.round(panelRect.right),
+      innerWidth,
+      indexEntries: JSON.parse(document.getElementById("book-search-index").textContent).length,
+      matchCount: Number(input.dataset.matchCount),
+      optionCount: options.length,
+      firstTitle: first ? first.querySelector(".search-title").textContent : "",
+      firstAnchor: first ? first.dataset.anchor : "",
+      status: document.getElementById("book-search-status").textContent,
+      expanded: input.getAttribute("aria-expanded"),
+      panelHidden: document.getElementById("book-search-panel").hidden,
+      listboxRole: document.getElementById("book-search-results").getAttribute("role"),
+      live: document.getElementById("book-search-status").getAttribute("aria-live"),
+    };
+  })()`);
+  assert(searchBasics.matchCount >= 1, "search 极限 match count", String(searchBasics.matchCount));
+  assert(searchBasics.optionCount >= 1, "search 极限 option count", String(searchBasics.optionCount));
+  assert(searchBasics.status.includes("找到"), "search result count status", searchBasics.status);
+  assert(searchBasics.expanded === "true" && searchBasics.panelHidden === false, "search panel open");
+  assert(searchBasics.listboxRole === "listbox" && searchBasics.live === "polite", "search ARIA semantics");
+  assert(searchBasics.panelLeft >= 0 && searchBasics.panelRight <= searchBasics.innerWidth + 1, "desktop search panel does not overflow", `${searchBasics.panelLeft}..${searchBasics.panelRight} / ${searchBasics.innerWidth}`);
+
+  const searchArrows = await evaluate(`(() => {
+    const input = document.getElementById("book-search");
+    const dispatch = (key) => input.dispatchEvent(new KeyboardEvent("keydown", {
+      key, bubbles: true, cancelable: true,
+    }));
+    input.value = "theorem";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    const optionCount = document.querySelectorAll('#book-search-results [role="option"]').length;
+    dispatch("ArrowDown");
+    const firstActive = input.getAttribute("aria-activedescendant");
+    dispatch("ArrowDown");
+    const secondActive = input.getAttribute("aria-activedescendant");
+    dispatch("ArrowUp");
+    const backActive = input.getAttribute("aria-activedescendant");
+    return { optionCount, firstActive, secondActive, backActive };
+  })()`);
+  assert(searchArrows.optionCount === 10, "arrow test has multiple results", String(searchArrows.optionCount));
+  assert(searchArrows.firstActive && searchArrows.secondActive && searchArrows.firstActive !== searchArrows.secondActive, "search ArrowDown moves the active option", `${searchArrows.firstActive} / ${searchArrows.secondActive}`);
+  assert(searchArrows.backActive === searchArrows.firstActive, "search ArrowUp moves back", searchArrows.backActive);
+
+  const searchNav = await evaluate(`(() => {
+    const input = document.getElementById("book-search");
+    const dispatch = (key) => input.dispatchEvent(new KeyboardEvent("keydown", {
+      key, bubbles: true, cancelable: true,
+    }));
+    input.value = "极限";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    dispatch("ArrowDown");
+    const selected = document.querySelector('#book-search-results [aria-selected="true"]');
+    const anchor = selected ? selected.dataset.anchor : "";
+    dispatch("Enter");
+    const target = anchor ? document.getElementById(anchor) : null;
+    return {
+      activeBeforeEnter: Boolean(selected),
+      expectedHash: anchor ? "#" + anchor : "",
+      hash: window.location.hash,
+      inUnit: Boolean(target && target.closest(".unit")),
+      panelHidden: document.getElementById("book-search-panel").hidden,
+      expanded: input.getAttribute("aria-expanded"),
+    };
+  })()`);
+  assert(searchNav.activeBeforeEnter, "search ArrowDown selects a result");
+  assert(searchNav.hash === searchNav.expectedHash && searchNav.hash.length > 1, "search Enter navigates to hash", `${searchNav.hash} != ${searchNav.expectedHash}`);
+  assert(searchNav.inUnit, "search result target is inside a unit");
+  assert(searchNav.panelHidden && searchNav.expanded === "false", "search closes after Enter");
+
+  const searchClick = await evaluate(`(() => {
+    const input = document.getElementById("book-search");
+    input.focus();
+    input.value = "极限";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    const option = document.querySelector('#book-search-results [role="option"]');
+    const anchor = option ? option.dataset.anchor : "";
+    if (option) option.click();
+    return {
+      anchor,
+      hash: window.location.hash,
+      panelHidden: document.getElementById("book-search-panel").hidden,
+      inUnit: Boolean(document.getElementById(anchor)?.closest(".unit")),
+    };
+  })()`);
+  assert(searchClick.anchor && searchClick.hash === "#" + searchClick.anchor && searchClick.panelHidden && searchClick.inUnit, "search result click navigates and closes", JSON.stringify(searchClick));
+
+  const searchNames = await evaluate(`(() => {
+    const input = document.getElementById("book-search");
+    const entries = JSON.parse(document.getElementById("book-search-index").textContent);
+    const decl = entries.find((entry) => entry.t === "demo_intRel")
+      || entries.find((entry) => ["def", "theorem", "inductive"].includes(entry.k) && entry.t.length > 5);
+    const probe = (query) => {
+      input.focus();
+      input.value = query;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const options = [...document.querySelectorAll("#book-search-results [role=option]")];
+      return {
+        count: Number(input.dataset.matchCount),
+        optionCount: options.length,
+        firstTitle: options[0] ? options[0].querySelector(".search-title").textContent : "",
+        more: Boolean(document.querySelector(".search-more")),
+        empty: Boolean(document.querySelector(".search-empty")),
+        status: document.getElementById("book-search-status").textContent,
+      };
+    };
+    const byName = probe(decl.t);
+    const byType = probe("theorem");
+    const byUpperType = probe("THEOREM");
+    const byChineseType = probe("定理");
+    const none = probe("zzzz-no-such-entry");
+    input.value = "";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    return { declName: decl.t, byName, byType, byUpperType, byChineseType, none };
+  })()`);
+  assert(searchNames.byName.count >= 1, "search by declaration name", `${searchNames.declName} → ${searchNames.byName.count}`);
+  assert(searchNames.byName.firstTitle.toLowerCase() === searchNames.declName.toLowerCase(), "declaration name is the first hit", searchNames.byName.firstTitle);
+  assert(searchNames.byType.count >= 1 && searchNames.byType.optionCount === 10 && searchNames.byType.more, "search by type caps at 10 with 更多 note", JSON.stringify(searchNames.byType));
+  assert(searchNames.byUpperType.count === searchNames.byType.count, "search is case-insensitive", `${searchNames.byUpperType.count} vs ${searchNames.byType.count}`);
+  assert(searchNames.byChineseType.count >= 1, "search by Chinese type 定理", String(searchNames.byChineseType.count));
+  assert(searchNames.none.count === 0 && searchNames.none.optionCount === 0 && searchNames.none.empty, "search empty state", JSON.stringify(searchNames.none));
+  assert(searchNames.none.status.includes("0"), "search empty count status", searchNames.none.status);
+
+  const searchEscape = await evaluate(`(() => {
+    const input = document.getElementById("book-search");
+    input.focus();
+    input.value = "定理";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    const opened = !document.getElementById("book-search-panel").hidden;
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    return {
+      opened,
+      hiddenAfter: document.getElementById("book-search-panel").hidden,
+      valueAfter: input.value,
+      expandedAfter: input.getAttribute("aria-expanded"),
+    };
+  })()`);
+  assert(searchEscape.opened && searchEscape.hiddenAfter && searchEscape.valueAfter === "" && searchEscape.expandedAfter === "false", "search Escape closes and clears", JSON.stringify(searchEscape));
+
+  await evaluate("window.scrollTo(0, 0)");
+  await evaluate(`(() => {
+    const input = document.getElementById("book-search");
+    input.focus();
+    input.value = "极限";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  await wait(250);
+  await screenshot("book-v2-search.png");
+  await evaluate(`(() => {
+    const input = document.getElementById("book-search");
+    input.value = "";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.blur();
+  })()`);
+
+  /* ── reading progress ────────────────────────────────────────────────── */
+
+  await load(1440, 1000);
+  const progressInit = await evaluate(`(() => {
+    try { localStorage.removeItem("soko-book-progress-v1"); } catch (_) {}
+    return {
+      key: (() => { try { return localStorage.getItem("soko-book-progress-v1"); } catch (_) { return "unavailable"; } })(),
+      count: document.querySelector('[data-progress-widget] [data-progress-count]').textContent,
+      read: document.body.dataset.progressRead,
+    };
+  })()`);
+  assert(progressInit.count === "已读 0 / 72" && progressInit.read === "0", "initial progress is zero", JSON.stringify(progressInit));
+
+  const progressMark = await evaluate(`(() => {
+    const toggles = [...document.querySelectorAll("[data-progress-toggle]")];
+    const one = toggles.find((button) => button.dataset.unit === "1");
+    const two = toggles.find((button) => button.dataset.unit === "2");
+    one.click();
+    two.click();
+    const bar = document.querySelector('[data-progress-widget] [role="progressbar"]');
+    return {
+      pressed: [one.getAttribute("aria-pressed"), two.getAttribute("aria-pressed")],
+      labels: [
+        one.querySelector(".unit-progress-text").textContent,
+        two.querySelector(".unit-progress-text").textContent,
+      ],
+      unitClass: document.getElementById("unit-1").classList.contains("is-read"),
+      countTop: document.querySelector('[data-progress-widget] [data-progress-count]').textContent,
+      countToc: document.querySelector('[data-progress-settings] [data-progress-count]').textContent,
+      now: bar.getAttribute("aria-valuenow"),
+      valuetext: bar.getAttribute("aria-valuetext"),
+      fill: document.querySelector('[data-progress-widget] [data-progress-fill]').style.width,
+      stored: JSON.parse(localStorage.getItem("soko-book-progress-v1")),
+      read: document.body.dataset.progressRead,
+    };
+  })()`);
+  assert(progressMark.pressed[0] === "true" && progressMark.pressed[1] === "true", "progress aria-pressed", progressMark.pressed.join(","));
+  assert(progressMark.labels[0] === "已读" && progressMark.labels[1] === "已读", "progress labels", progressMark.labels.join(","));
+  assert(progressMark.unitClass, "read unit class");
+  assert(progressMark.countTop === "已读 2 / 72" && progressMark.countToc === "已读 2 / 72", "topbar/TOC progress count", `${progressMark.countTop} | ${progressMark.countToc}`);
+  assert(progressMark.now === "2" && progressMark.valuetext.includes("2 / 72"), "progressbar aria values", `${progressMark.now} ${progressMark.valuetext}`);
+  assert(progressMark.stored.join(",") === "1,2" && progressMark.read === "2", "progress localStorage", JSON.stringify(progressMark.stored));
+
+  await scrollTo("#unit-1");
+  await screenshot("book-v2-progress.png");
+
+  await reload();
+  const progressReload = await evaluate(`(() => {
+    const bar = document.querySelector('[data-progress-widget] [role="progressbar"]');
+    return {
+      count: document.querySelector('[data-progress-widget] [data-progress-count]').textContent,
+      now: bar.getAttribute("aria-valuenow"),
+      stored: JSON.parse(localStorage.getItem("soko-book-progress-v1")),
+      pressed: [...document.querySelectorAll("[data-progress-toggle]")]
+        .filter((button) => button.getAttribute("aria-pressed") === "true")
+        .map((button) => button.dataset.unit),
+    };
+  })()`);
+  assert(progressReload.count === "已读 2 / 72", "progress survives reload", progressReload.count);
+  assert(progressReload.now === "2" && progressReload.stored.join(",") === "1,2", "progress bar/storage after reload", JSON.stringify(progressReload));
+  assert(progressReload.pressed.join(",") === "1,2", "progress toggles after reload", progressReload.pressed.join(","));
+
+  const progressToggle = await evaluate(`(() => {
+    const one = [...document.querySelectorAll("[data-progress-toggle]")]
+      .find((button) => button.dataset.unit === "1");
+    one.click();
+    const afterUnmark = {
+      count: document.querySelector('[data-progress-widget] [data-progress-count]').textContent,
+      stored: JSON.parse(localStorage.getItem("soko-book-progress-v1")),
+    };
+    one.click();
+    const afterRemark = {
+      count: document.querySelector('[data-progress-widget] [data-progress-count]').textContent,
+      stored: JSON.parse(localStorage.getItem("soko-book-progress-v1")),
+    };
+    return { afterUnmark, afterRemark };
+  })()`);
+  assert(progressToggle.afterUnmark.count === "已读 1 / 72" && progressToggle.afterUnmark.stored.join(",") === "2", "unmark updates count", JSON.stringify(progressToggle.afterUnmark));
+  assert(progressToggle.afterRemark.count === "已读 2 / 72" && progressToggle.afterRemark.stored.join(",") === "1,2", "re-mark updates count", JSON.stringify(progressToggle.afterRemark));
+
+  const resetFlow = await evaluate(`(() => {
+    const reset = document.querySelector('[data-action="reset-progress"]');
+    const confirmBox = document.querySelector('[data-reset-confirm]');
+    const confirmButton = document.querySelector('[data-action="reset-progress-confirm"]');
+    const count = () => document.querySelector('[data-progress-widget] [data-progress-count]').textContent;
+    reset.click();
+    const afterFirstClick = {
+      visible: !confirmBox.hidden,
+      count: count(),
+      stored: localStorage.getItem("soko-book-progress-v1"),
+      status: document.querySelector('[data-reset-status]').textContent,
+      expanded: reset.getAttribute("aria-expanded"),
+    };
+    confirmButton.click();
+    return {
+      afterFirstClick,
+      countAfter: count(),
+      storedAfter: JSON.parse(localStorage.getItem("soko-book-progress-v1")),
+      pressedAfter: [...document.querySelectorAll("[data-progress-toggle]")]
+        .filter((button) => button.getAttribute("aria-pressed") === "true").length,
+      statusAfter: document.querySelector('[data-reset-status]').textContent,
+    };
+  })()`);
+  assert(resetFlow.afterFirstClick.visible, "reset asks for confirmation");
+  assert(resetFlow.afterFirstClick.count === "已读 2 / 72" && resetFlow.afterFirstClick.stored === "[1,2]", "reset does not clear before confirmation", JSON.stringify(resetFlow.afterFirstClick));
+  assert(resetFlow.countAfter === "已读 0 / 72" && resetFlow.storedAfter.length === 0, "reset clears progress", `${resetFlow.countAfter} ${JSON.stringify(resetFlow.storedAfter)}`);
+  assert(resetFlow.pressedAfter === 0 && resetFlow.statusAfter.includes("重置"), "reset updates toggles and status", resetFlow.statusAfter);
+
+  await reload();
+  const progressAfterReset = await evaluate(`(() => ({
+    count: document.querySelector('[data-progress-widget] [data-progress-count]').textContent,
+    stored: JSON.parse(localStorage.getItem("soko-book-progress-v1")),
+  }))()`);
+  assert(progressAfterReset.count === "已读 0 / 72" && progressAfterReset.stored.length === 0, "reset survives reload", JSON.stringify(progressAfterReset));
+
+  /* ── per-unit URLs / copy link / back-forward ────────────────────────── */
+
+  await load(1440, 1000, false, "#unit-42");
+  const deepLink = await evaluate(`(() => {
+    const unit = document.getElementById("unit-42");
+    return {
+      hash: window.location.hash,
+      scrollY: window.scrollY,
+      top: Math.round(unit.getBoundingClientRect().top),
+      active: document.activeElement.id,
+      chapterValue: document.querySelector('select[data-action="chapter-jump"]').value,
+    };
+  })()`);
+  assert(deepLink.hash === "#unit-42", "deep link hash", deepLink.hash);
+  assert(deepLink.scrollY > 0, "deep link scrolled", String(deepLink.scrollY));
+  assert(deepLink.top >= -8 && deepLink.top <= 170, "deep link lands below the toolbar", String(deepLink.top));
+  assert(deepLink.active === "unit-42", "deep link focuses unit", deepLink.active);
+  assert(deepLink.chapterValue.startsWith("#chapter-"), "deep link syncs chapter select", deepLink.chapterValue);
+
+  const nextNav = await evaluate(`(() => {
+    const next = document.querySelector('#unit-42 .unit-nav a[rel="next"]');
+    next.click();
+    return new Promise((done) => setTimeout(() => done({
+      hash: window.location.hash,
+      active: document.activeElement.id,
+      top: Math.round(document.getElementById("unit-43").getBoundingClientRect().top),
+    }), 180));
+  })()`);
+  assert(nextNav.hash === "#unit-43", "prev/next updates hash", nextNav.hash);
+  assert(nextNav.active === "unit-43" && nextNav.top >= -8 && nextNav.top <= 170, "next unit scrolls/focuses", JSON.stringify(nextNav));
+
+  const backNav = await evaluate(`(() => {
+    history.back();
+    return new Promise((done) => setTimeout(() => done({
+      hash: window.location.hash,
+      active: document.activeElement.id,
+      top: Math.round(document.getElementById("unit-42").getBoundingClientRect().top),
+    }), 450));
+  })()`);
+  assert(backNav.hash === "#unit-42", "back restores hash", backNav.hash);
+  assert(backNav.active === "unit-42" && backNav.top >= -8 && backNav.top <= 170, "back restores scroll/focus", JSON.stringify(backNav));
+
+  const copyLink = await evaluate(`(async () => {
+    const button = document.querySelector('[data-copy-link="unit-42"]');
+    button.click();
+    await new Promise((done) => setTimeout(done, 250));
+    const status = button.closest(".unit-actions").querySelector("[data-copy-status]");
+    const field = status.querySelector("input");
+    return {
+      hasButton: Boolean(button),
+      label: button.getAttribute("aria-label"),
+      status: status.textContent,
+      fallback: field ? field.value : "",
+    };
+  })()`);
+  assert(copyLink.hasButton && copyLink.label.includes("42"), "copy-link control exists", JSON.stringify(copyLink));
+  assert(copyLink.status.includes("#unit-42") || copyLink.fallback.includes("#unit-42"), "copy-link reports success or shows the URL", JSON.stringify(copyLink));
+  await screenshot("book-v2-unit-url.png");
+
+  await load(1440, 1000, false, "#chapter-ii-7");
+  const chapterDeep = await evaluate(`(() => ({
+    hash: window.location.hash,
+    active: document.activeElement.id,
+    top: Math.round(document.getElementById("chapter-ii-7").getBoundingClientRect().top),
+  }))()`);
+  assert(chapterDeep.hash === "#chapter-ii-7", "chapter deep link hash", chapterDeep.hash);
+  assert(chapterDeep.active === "chapter-ii-7", "chapter deep link focuses chapter", chapterDeep.active);
+  assert(chapterDeep.top >= -8 && chapterDeep.top <= 170, "chapter deep link lands below the toolbar", String(chapterDeep.top));
+
+  await load(1440, 1000, false, "#appendix-unit-42");
+  const appendixDeep = await evaluate(`(() => ({
+    hash: window.location.hash,
+    active: document.activeElement.id,
+    top: Math.round(document.getElementById("appendix-unit-42").getBoundingClientRect().top),
+  }))()`);
+  assert(appendixDeep.hash === "#appendix-unit-42", "appendix deep link hash", appendixDeep.hash);
+  assert(appendixDeep.active === "appendix-unit-42", "appendix deep link focuses section", appendixDeep.active);
+  assert(appendixDeep.top >= -8 && appendixDeep.top <= 170, "appendix deep link lands below the toolbar", String(appendixDeep.top));
+
+  await load(1440, 1000);
+  const tocNav = await evaluate(`(() => {
+    const link = document.querySelector('#toc a[href="#unit-5"]');
+    link.click();
+    return new Promise((done) => setTimeout(() => done({
+      hash: window.location.hash,
+      active: document.activeElement.id,
+      top: Math.round(document.getElementById("unit-5").getBoundingClientRect().top),
+    }), 180));
+  })()`);
+  assert(tocNav.hash === "#unit-5" && tocNav.active === "unit-5", "TOC link updates hash without reload", JSON.stringify(tocNav));
+
+  const hashChange = await evaluate(`(() => {
+    window.location.hash = "#unit-7";
+    return new Promise((done) => setTimeout(() => done({
+      hash: window.location.hash,
+      active: document.activeElement.id,
+      top: Math.round(document.getElementById("unit-7").getBoundingClientRect().top),
+    }), 450));
+  })()`);
+  assert(hashChange.hash === "#unit-7" && hashChange.active === "unit-7", "hashchange scrolls and focuses", JSON.stringify(hashChange));
+
+  await load(1440, 1000);
+
+  /* ── layers / details / print (unchanged features) ───────────────────── */
+
+  await scrollTo("#toc");
   const layers = await evaluate(`(() => {
     const formal = document.querySelector(".proof-panel, .code-panel");
     const intuition = document.querySelector(".hint, .block.prose");
@@ -294,7 +738,7 @@ try {
   assert(panels.collapsed === 0, "collapse all", String(panels.collapsed));
 
   await evaluate('document.querySelector(\'[data-view="formal"]\').click()');
-  await new Promise((r) => setTimeout(r, 100));
+  await wait(100);
   await reload();
   const remembered = await evaluate("document.body.dataset.view");
   assert(remembered === "formal", "localStorage view memory", remembered);
@@ -333,7 +777,7 @@ try {
   await send("Emulation.setEmulatedMedia", { media: "" });
 
   await evaluate('document.querySelector(\'[data-action="expand-all"]\').click()');
-  await new Promise((r) => setTimeout(r, 250));
+  await wait(250);
   const pdf = await send("Page.printToPDF", {
     printBackground: true,
     preferCSSPageSize: true,
@@ -343,6 +787,8 @@ try {
   const pageCounts = [...pdfBytes.toString("latin1").matchAll(/\/Count\s+(\d+)/g)]
     .map((match) => Number(match[1]));
   const pageCount = pageCounts.length ? Math.max(...pageCounts) : null;
+
+  /* ── mobile ──────────────────────────────────────────────────────────── */
 
   await evaluate("try { localStorage.clear(); } catch (error) {}");
   await load(390, 844, true);
@@ -357,6 +803,9 @@ try {
       bodyScrollWidth: document.body.scrollWidth,
       innerWidth,
       missingAnchors: [...new Set(missingAnchors)],
+      search: Boolean(document.getElementById("book-search")),
+      progressToggles: document.querySelectorAll("[data-progress-toggle]").length,
+      copyLinks: document.querySelectorAll("[data-copy-link]").length,
     };
   })()`);
   assert(mobile.units === 72, "mobile unit count", String(mobile.units));
@@ -364,8 +813,37 @@ try {
   assert(mobile.scrollWidth <= mobile.innerWidth + 1, "mobile overflow", `${mobile.scrollWidth}`);
   assert(mobile.bodyScrollWidth <= mobile.innerWidth + 1, "mobile body overflow", `${mobile.bodyScrollWidth}`);
   assert(mobile.missingAnchors.length === 0, "mobile anchors", mobile.missingAnchors.join(","));
+  assert(mobile.search && mobile.progressToggles === 72 && mobile.copyLinks === 72, "mobile search/progress controls", JSON.stringify(mobile));
+
+  const mobileSearch = await evaluate(`(() => {
+    const input = document.getElementById("book-search");
+    input.focus();
+    input.value = "定理";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    const panel = document.getElementById("book-search-panel");
+    const rect = panel.getBoundingClientRect();
+    return {
+      hidden: panel.hidden,
+      count: Number(input.dataset.matchCount),
+      optionCount: document.querySelectorAll("#book-search-results [role=option]").length,
+      left: Math.round(rect.left),
+      right: Math.round(rect.right),
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth,
+    };
+  })()`);
+  assert(!mobileSearch.hidden && mobileSearch.count > 0 && mobileSearch.optionCount === 10, "mobile search opens", JSON.stringify(mobileSearch));
+  assert(mobileSearch.left >= -1 && mobileSearch.right <= mobileSearch.innerWidth + 1, "mobile search panel does not overflow", JSON.stringify(mobileSearch));
+  assert(mobileSearch.scrollWidth <= mobileSearch.innerWidth + 1, "mobile search no page overflow", `${mobileSearch.scrollWidth}`);
+  await evaluate(`(() => {
+    const input = document.getElementById("book-search");
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    input.blur();
+  })()`);
+  await wait(150);
+
   await evaluate("window.scrollTo(0, 0)");
-  await new Promise((r) => setTimeout(r, 200));
+  await wait(200);
   await screenshot("book-v2-mobile.png");
 
   const mobileControls = await evaluate(`(() => {
@@ -379,17 +857,26 @@ try {
   })()`);
   assert(mobileControls.formal && mobileControls.opened && mobileControls.closed, "mobile controls");
 
+  assert(externalRequests.length === 0, "zero external requests", externalRequests.slice(0, 5).join(","));
+  assert(pageErrors.length === 0, "no uncaught page errors", pageErrors.slice(0, 3).join(" | "));
+  assert(consoleErrors.length === 0, "no console errors", consoleErrors.slice(0, 3).join(" | "));
+
   ws.close();
 
   console.log(JSON.stringify({
     desktop,
+    search: { basics: searchBasics, arrows: searchArrows, nav: searchNav, click: searchClick, names: searchNames },
+    progress: { init: progressInit, mark: progressMark, reload: progressReload, toggle: progressToggle, reset: resetFlow, afterReset: progressAfterReset },
+    urls: { deepLink, nextNav, backNav, copyLink, chapterDeep, appendixDeep, tocNav, hashChange },
     layers,
     panels,
     jump,
     printCss,
     mobile,
+    mobileSearch,
+    network: { externalRequests, consoleErrors, pageErrors },
     pdf: { path: PDF_PATH, bytes: pdfBytes.length, pages: pageCount },
-    screenshots: ["cover", "toc", "unit-ii7", "formal", "mobile"].map(
+    screenshots: ["cover", "toc", "search", "progress", "unit-url", "formal", "unit-ii7", "mobile"].map(
       (name) => `${OUT_DIR}/book-v2-${name}.png`
     ),
   }, null, 2));
