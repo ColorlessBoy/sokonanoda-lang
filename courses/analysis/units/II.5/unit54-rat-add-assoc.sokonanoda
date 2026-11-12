@@ -24,7 +24,7 @@
 --   4. `ratAdd_assoc` 在展开类型 `Prod (Prod Nat Nat) Nat` 上 `match`
 --      到字面三元组，转发 3。
 --
--- 本单元不引入新定义；`ratAddRep` / `qrep` / `ratDenRep` 来自 `lib/Rat`。
+-- 我们不引入新定义；`ratAddRep` / `qrep` / `ratDenRep` 来自 `lib/Rat`。
 
 import lib.RatHalf
 

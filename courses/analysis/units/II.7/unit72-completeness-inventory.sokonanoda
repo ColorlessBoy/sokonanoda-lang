@@ -32,7 +32,7 @@ def HasLUB (S : Real → Prop) : Prop := ∃ (b : Real), IsLUB S b
 
 -- 72.1 `zeroReal`：常零序列的类
 --
--- 本单元用的零：常零序列的类。66.4 的 `realLe_mk` 之后，关于它的序
+-- 我们用的零：常零序列的类。66.4 的 `realLe_mk` 之后，关于它的序
 -- 都回到代表元层。
 def zeroReal : Real := Real.mk zeroSeq
 

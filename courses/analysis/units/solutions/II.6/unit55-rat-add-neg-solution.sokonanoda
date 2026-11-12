@@ -20,7 +20,7 @@
 --   · `ratSubRep_self`：减法就是「加负元」，定义性展开；
 --   · `demo_neg_self`：具体 `1/2 - 1/2 ~ 0`。
 --
--- 本单元不引入新定义；`ratAddRep` / `ratNegRep` / `ratSubRep` /
+-- 我们不引入新定义；`ratAddRep` / `ratNegRep` / `ratSubRep` /
 -- `ratZeroRep` 来自 `lib/Cauchy`。
 
 import lib.Cauchy

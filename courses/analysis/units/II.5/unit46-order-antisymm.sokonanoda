@@ -28,7 +28,7 @@
 -- 交给一条 `leRep_antisymm`（解答里的辅助引理）；**不要**把 `leNum` 再展开
 -- （`Prod.fst (leNum …)` 会卡在定义上，内核不归约）。
 --
--- 本单元不引入新定义；序的引擎来自 `lib/RatOrder`，`leNat_eq_or_succ` 与
+-- 我们不引入新定义；序的引擎来自 `lib/RatOrder`，`leNat_eq_or_succ` 与
 -- ㊹ 的加法相容已收在 `lib/RatAbs`。
 
 import lib.RatAbs

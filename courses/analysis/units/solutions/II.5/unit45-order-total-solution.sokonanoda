@@ -29,7 +29,7 @@
 -- ㊺.4 的通用包装要先把参数写成展开类型、在 match 之后引入假设（`ratRep` 是
 -- 定义别名，见 ㊷ 的 `_aux` 写法）。
 --
--- 本单元不引入新定义；ℚ 的算术与序的引擎来自 `lib/Rat` / `lib/RatOrder`。
+-- 我们不引入新定义；ℚ 的算术与序的引擎来自 `lib/Rat` / `lib/RatOrder`。
 
 import lib.Cauchy
 

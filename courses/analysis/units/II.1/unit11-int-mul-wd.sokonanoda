@@ -8,7 +8,7 @@
 --   mul_shift_c : a + b' = a' + b  ⇒  a*c + b'*c = a'*c + b*c
 -- 后者正是把等价假设「乘开」的形状；剩下的是 ℕ 加法的搬运与重排。
 --
--- 本单元仍然自带全部 ℕ 加法律（本单元自备；它们来自单元③）。
+-- 我们仍然自带全部 ℕ 加法律（本单元自备；它们来自单元③）。
 import lib.Logic
 import lib.Prod
 import lib.Logic

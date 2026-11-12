@@ -22,7 +22,7 @@
 --   · ㊾.3 `close_mono_eps`：`close x y ε → ε ≤ ε' → close x y ε'`；
 --   · ㊾.4 具体：`close 0 0 1` 放大成 `close 0 0 2`。
 --
--- 本单元不引入新定义；`ratLtRep` 来自 `lib/Cauchy`，序的引擎来自
+-- 我们不引入新定义；`ratLtRep` 来自 `lib/Cauchy`，序的引擎来自
 -- `lib/RatAbs` 与 `lib/RatAbsOrder`。
 
 import lib.RatAbsOrder

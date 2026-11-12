@@ -25,7 +25,7 @@
 --   ③ 把 ①② 拼起来就是 `close` 的对称性（㊷.3），逐点作用到 `realRel` 上
 --      就是实数相等的对称性（㊷.4）。
 --
--- 本单元不引入新定义；`ratDenRep_comm` 是 ㊷.1 的分母换位引擎，已随本单元
+-- 我们不引入新定义；`ratDenRep_comm` 是 ㊷.1 的分母换位引擎，已随本单元
 -- 收进 `lib/Rat`（`lib/Cauchy` 经 `lib/RatOrder` 传递可见）。㊷.2 要用的
 -- 通用序替换律收在 `lib/RatOrder`（`ratLeRep_congr` / `ratLeRep_congr_snd`，
 -- 即 ㊴ 两条律的任意代表元版本）。

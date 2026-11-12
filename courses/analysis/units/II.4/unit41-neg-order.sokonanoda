@@ -17,7 +17,7 @@
 -- 而 `-y ≤ -x` 展开成 `LeNat (d·(m+1) + a·(n+1)) (b·(n+1) + c·(m+1))`，
 -- 差别只是两个加法交换。㊶.2 再把字面形式搬到任意 `ratRep` 上。
 --
--- 本单元不引入新定义；`ratRel_symm` / `ratRel_trans_gen` / `ratNegRep_invol`
+-- 我们不引入新定义；`ratRel_symm` / `ratRel_trans_gen` / `ratNegRep_invol`
 -- 的通用形式已收在 `lib/Cauchy`（它们分别是 ㉐ / ㉕ / ㉛ 已证明事实的包装）。
 
 import lib.Cauchy

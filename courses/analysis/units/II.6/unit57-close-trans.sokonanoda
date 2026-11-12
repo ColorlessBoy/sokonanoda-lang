@@ -18,7 +18,7 @@
 -- 57.1 是严格序在右端的搬运（③ 要用），57.2 是两个半数界相加，57.3 是主定理，
 -- 57.4 落在 `close 0 0 2` 上。
 --
--- 本单元不引入新定义；前序事实证明已在 `lib/RatClose`。
+-- 我们不引入新定义；前序事实证明已在 `lib/RatClose`。
 
 import lib.RatClose
 import lib.RatSub

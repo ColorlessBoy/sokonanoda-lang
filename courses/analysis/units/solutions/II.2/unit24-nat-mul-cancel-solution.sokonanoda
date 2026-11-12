@@ -7,7 +7,7 @@
 -- `a = succ a'` 时把 `(a'+1)·d` 展开成 `a'·d + d`，两边同时出现 `+ d`，
 -- 用单元⑭的加法消去律剥掉，剩下的正是归纳假设。
 --
--- 本单元因此收三件小工具：
+-- 我们因此收三件小工具：
 --   ① `succ_ne_zero`：`succ n = 0` 不成立（`match` + `Eq.subst`，不用公理）；
 --   ② `add_eq_zero_right` / `mul_eq_zero_right`：和 / 积为 0 时右因子为 0；
 --   ③ `mul_cancel_pos`：正因子可消去（这里的主定理）。

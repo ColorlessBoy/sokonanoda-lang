@@ -12,7 +12,7 @@
 -- 一个取 `-x`）。要把它们认成同一个，必须先知道「`0 ≤ x` 与 `x ≤ 0` 同时
 -- 成立时 `x ~ 0`」——这正是反对称性。
 --
--- 本单元结清：
+-- 我们结清：
 --
 --   · ㊻.1 `leNat_succ_not_self`：`n + 1 ≤ n` 不成立（没有任何数严格大于自己）；
 --   · ㊻.2 `leNat_antisymm`：ℕ 的 `≤` 反对称（`a ≤ b ≤ a ⇒ a = b`）；
@@ -25,7 +25,7 @@
 -- `Nat.succ.inj` 剥掉一层）。㊻.2 用 ㊺ 的 `leNat_eq_or_succ` 把 `a ≤ b` 拆成
 -- 「`a = b`」与「`a+1 ≤ b`」；后者与 `b ≤ a` 串起来就是 ㊻.1 的矛盾。
 --
--- 本单元不引入新定义；序的引擎来自 `lib/RatOrder`，`leNat_eq_or_succ` 与
+-- 我们不引入新定义；序的引擎来自 `lib/RatOrder`，`leNat_eq_or_succ` 与
 -- ㊹ 的加法相容已收在 `lib/RatAbs`。
 
 import lib.RatAbs

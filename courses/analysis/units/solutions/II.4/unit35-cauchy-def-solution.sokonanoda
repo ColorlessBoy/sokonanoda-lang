@@ -12,7 +12,7 @@
 -- 序（单元㉝），所以「存在一个 d，它等于 |x-y| 且 d < eps」是唯一诚实的写法。
 -- `Cauchy` 的量词顺序与 Tao 的定义一致：先给 eps，再找 N，最后对 n,m。
 --
--- 本单元结清。
+-- 我们结清。
 --   · 常零序列是 Cauchy；
 --   · `close zero zero eps`（只需 eps > 0）；
 --   · 具体 eps = 1 时 `close zero zero 1`。

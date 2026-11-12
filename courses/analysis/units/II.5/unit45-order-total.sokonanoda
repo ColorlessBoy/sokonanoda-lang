@@ -27,7 +27,7 @@
 -- 归纳类型本身；通用包装要把参数写成展开类型、并**在 match 之后**再引入假设
 -- （㊷ 的 `ratSubRep_neg_aux` / `ratAbsRel_wd_left_aux` 是同一个写法）。
 --
--- 本单元不引入新定义；ℚ 的算术与序的引擎来自 `lib/Rat` / `lib/RatOrder`。
+-- 我们不引入新定义；ℚ 的算术与序的引擎来自 `lib/Rat` / `lib/RatOrder`。
 
 import lib.Cauchy
 

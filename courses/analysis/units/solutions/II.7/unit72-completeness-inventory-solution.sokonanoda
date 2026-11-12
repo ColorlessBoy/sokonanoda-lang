@@ -2,7 +2,7 @@
 --
 -- 68 证了代表元层的完备性：每个有理 Cauchy 序列 `x`，其类 `mk x` 是
 -- 常序列 `n ↦ mk (constSeq (x n))` 的极限（`TendsTo x x`）。
--- 本单元把这条定理放进「集合层」的语言里盘点：
+-- 我们把这条定理放进「集合层」的语言里盘点：
 --
 --   · 上界与最小上界只用 `realLe` 陈述，不引入新公理、不用
 --     `Classical.choice`；
@@ -12,7 +12,7 @@
 --
 -- 边界（明说）：一般定理「每个非空有上界的 `S` 都有 LUB」需要
 -- `Classical.choice`（或 Dedekind 切割），本课程 没有，差额记在 语言边界。
--- 本单元不把这条一般定理写成 axiom，也不把 ℝ 直接立成公理；`HasLUB`
+-- 我们不把这条一般定理写成 axiom，也不把 ℝ 直接立成公理；`HasLUB`
 -- 只对上面的具体集合证明。
 
 import lib.RealComplete
@@ -30,7 +30,7 @@ def IsLUB (S : Real → Prop) (b : Real) : Prop :=
 
 def HasLUB (S : Real → Prop) : Prop := ∃ (b : Real), IsLUB S b
 
--- 本单元用的零：常零序列的类。66.4 的 `realLe_mk` 之后，关于它的序
+-- 我们用的零：常零序列的类。66.4 的 `realLe_mk` 之后，关于它的序
 -- 都回到代表元层。
 def zeroReal : Real := Real.mk zeroSeq
 

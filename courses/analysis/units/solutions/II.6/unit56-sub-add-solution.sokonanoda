@@ -20,7 +20,7 @@
 --     `x + ((-y + y) + -z)`，中间项换成 0，再用左零元收尾；
 --   · `demo_sub_add`：`(1/2 - 1/3) + (1/3 - 1/4) ~ 1/2 - 1/4`。
 --
--- 本单元不引入新定义；`ratSubRep` 是 ㉜ 的减法定义。
+-- 我们不引入新定义；`ratSubRep` 是 ㉜ 的减法定义。
 
 import lib.RatAssoc
 import lib.RatGroup

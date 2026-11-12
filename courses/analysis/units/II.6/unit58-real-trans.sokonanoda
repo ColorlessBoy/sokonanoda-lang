@@ -19,7 +19,7 @@
 --
 -- 58.1 是阈值的合并，58.2 是逐点部分，58.3 是主定理，58.4 落在常零序列上。
 --
--- 本单元不引入新定义；用到的 `close_trans` 与 `ratLtRep_half` 已在
+-- 我们不引入新定义；用到的 `close_trans` 与 `ratLtRep_half` 已在
 -- `lib/RatCloseTrans` / `lib/RatClose` 里判过卷。
 
 import lib.RatCloseTrans
