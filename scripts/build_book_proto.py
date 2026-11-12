@@ -1312,6 +1312,17 @@ def render_unit(book: Book, unit: Unit, chapter: Chapter, position: int) -> str:
         [
             f'<p class="unit-meta">{meta} · '
             f'<a href="#appendix-unit-{unit.index}">解答附录</a></p>',
+            '<div class="unit-actions no-print">'
+            '<button type="button" class="unit-progress-toggle" '
+            f'data-progress-toggle data-unit="{unit.index}" aria-pressed="false">'
+            '<span class="unit-progress-mark" aria-hidden="true"></span>'
+            '<span class="unit-progress-text">标记已读</span></button>'
+            '<button type="button" class="unit-copy-link" '
+            f'data-copy-link="unit-{unit.index}" '
+            f'aria-label="复制单元 {unit.index} 的链接">复制链接</button>'
+            '<span class="unit-copy-status" role="status" aria-live="polite" '
+            "data-copy-status></span>"
+            "</div>",
             '<a class="back-to-toc" href="#toc">↑ 目录</a>',
             "</header>",
         ]
@@ -1369,6 +1380,7 @@ def render_toc(book: Book) -> str:
         f'<p class="toc-lede">{len(book.chapters)} 章 · {len(book.units)} 个单元 · '
         f"{book.exercises} 道练习 · {book.hints} 条提示 · "
         "单元内可折叠证明、提示与解答。</p>"
+        + render_progress_settings(book)
         + "".join(volume_blocks)
         + '<p class="toc-footer"><a href="#appendix-solutions">→ 解答附录</a>'
         ' · <a href="#top">回到封面</a></p>'
@@ -1465,10 +1477,170 @@ def render_cover(book: Book) -> str:
         f'<p class="cover-note">范围：{escape(volume_line)} 的 '
         f"{len(book.chapters)} 章 {len(book.units)} 个单元（{escape(book.chapter_span)}）。"
         "M3 及以后单元加入 <code>course.json</code> 后会在下一次构建自动出现。"
+        "工具栏可搜索全书、记录阅读进度；每个单元标题下可「标记已读」与「复制链接」。"
         "数学 = Unicode 衬线体 + 原生 MathML（简单分式/上标结构化，复杂或代码式公式回退为"
         " Unicode / 等宽，不丢内容）；无 CDN、无 Web 字体。证明、提示、解答均可折叠；"
         "打印按 A4 分页，每个单元另起一页。</p>"
         "</header>"
+    )
+
+
+def search_entries(book: Book) -> List[Dict[str, object]]:
+    """Build the static in-page search index.
+
+    Every anchor is one that ``--check`` can resolve: chapter/unit section ids,
+    declaration and exercise article ids, and unit anchors for trailing prose
+    headings.  Prose headings are included so Chinese phrases that only appear
+    in a section title (e.g. 极限) remain findable; prose paragraphs are not
+    indexed, which keeps the payload small and the result targets stable.
+    """
+    entries: List[Dict[str, object]] = []
+    for chapter in book.chapters:
+        entries.append(
+            {"t": f"{chapter.id} {chapter.title}", "a": chapter.anchor, "k": "chapter"}
+        )
+    for unit in book.units:
+        entries.append(
+            {
+                "t": f"{unit.index:02d} {unit.display_title}",
+                "a": f"unit-{unit.index}",
+                "k": "unit",
+                "u": unit.index,
+            }
+        )
+        for decl in unit.decls:
+            anchor = (
+                f"ex-{unit.index}-{decl.exercise_no}"
+                if decl.is_exercise
+                else f"decl-{unit.index}-{decl.index}"
+            )
+            entries.append(
+                {
+                    "t": decl.name,
+                    "a": anchor,
+                    "k": "exercise" if decl.is_exercise else decl.kind,
+                    "u": unit.index,
+                    "h": unit.display_title,
+                }
+            )
+            for item in decl.lead:
+                if item.kind != "heading":
+                    continue
+                entries.append(
+                    {
+                        "t": item.text.strip(),
+                        "a": anchor,
+                        "k": "section",
+                        "u": unit.index,
+                        "h": unit.display_title,
+                    }
+                )
+        for item in unit.trailing:
+            if item.kind != "heading":
+                continue
+            entries.append(
+                {
+                    "t": item.text.strip(),
+                    "a": f"unit-{unit.index}",
+                    "k": "section",
+                    "u": unit.index,
+                    "h": unit.display_title,
+                }
+            )
+        entries.append(
+            {
+                "t": f"解答：{unit.display_title}",
+                "a": f"appendix-unit-{unit.index}",
+                "k": "appendix",
+                "u": unit.index,
+            }
+        )
+        for position, decl in enumerate(unit.extra_solutions, start=1):
+            entries.append(
+                {
+                    "t": decl.name,
+                    "a": f"app-extra-{unit.index}-{position}",
+                    "k": "solution",
+                    "u": unit.index,
+                    "h": f"解答附录 · {unit.display_title}",
+                }
+            )
+    return entries
+
+
+def render_search_index(book: Book) -> str:
+    payload = json.dumps(
+        search_entries(book), ensure_ascii=False, separators=(",", ":")
+    )
+    # A JSON script block must not contain "</script" or "<!--"; escaping "<"
+    # with a JSON unicode escape keeps the payload parsed by browsers as data.
+    payload = payload.replace("<", "\\u003c")
+    return (
+        '<script type="application/json" id="book-search-index">'
+        f"{payload}</script>"
+    )
+
+
+def render_search() -> str:
+    """Topbar search box; the index itself is embedded as JSON below <main>."""
+    return (
+        '<div class="search" role="search" data-search>'
+        '<label class="search-label" for="book-search">搜索</label>'
+        '<input id="book-search" class="search-input" type="search" '
+        'placeholder="搜索单元 / 定义 / 定理" autocomplete="off" spellcheck="false" '
+        'role="combobox" aria-autocomplete="list" aria-expanded="false" '
+        'aria-controls="book-search-results" aria-describedby="book-search-status">'
+        '<div class="search-panel" id="book-search-panel" hidden>'
+        '<p class="search-status" id="book-search-status" role="status" aria-live="polite"></p>'
+        '<ul class="search-results" id="book-search-results" role="listbox" '
+        'aria-label="搜索结果"></ul>'
+        "</div>"
+        "</div>"
+    )
+
+
+def render_progress_widget(book: Book) -> str:
+    total = len(book.units)
+    return (
+        '<div class="reading-progress" data-progress-widget>'
+        f'<span class="progress-count" data-progress-count>已读 0 / {total}</span>'
+        f'<span class="progress-track" role="progressbar" aria-label="阅读进度" '
+        f'aria-valuemin="0" aria-valuemax="{total}" aria-valuenow="0" '
+        f'aria-valuetext="已读 0 / {total} 单元" data-progressbar>'
+        '<span class="progress-fill" data-progress-fill></span></span>'
+        "</div>"
+    )
+
+
+def render_progress_settings(book: Book) -> str:
+    total = len(book.units)
+    return (
+        '<div class="toc-progress no-print" data-progress-settings>'
+        '<div class="toc-progress-head">'
+        '<span class="toc-progress-label">阅读进度</span>'
+        f'<strong data-progress-count>已读 0 / {total}</strong>'
+        "</div>"
+        f'<span class="progress-track" role="progressbar" aria-label="阅读进度" '
+        f'aria-valuemin="0" aria-valuemax="{total}" aria-valuenow="0" '
+        f'aria-valuetext="已读 0 / {total} 单元" data-progressbar>'
+        '<span class="progress-fill" data-progress-fill></span></span>'
+        '<div class="toc-progress-actions">'
+        '<button type="button" class="plain" data-action="reset-progress" '
+        'aria-expanded="false">重置进度</button>'
+        '<span class="reset-confirm" data-reset-confirm hidden>'
+        "<span>确定清除全部已读标记？</span>"
+        '<button type="button" class="plain danger" '
+        'data-action="reset-progress-confirm">确认重置</button>'
+        '<button type="button" class="plain" '
+        'data-action="reset-progress-cancel">取消</button>'
+        "</span>"
+        '<span class="reset-status" role="status" aria-live="polite" '
+        'data-reset-status></span>'
+        "</div>"
+        '<p class="toc-progress-note">进度只保存在本机浏览器'
+        "（localStorage），不做账号同步，也不按停留时间自动标记；"
+        "点单元标题下的「标记已读」才会记入。</p>"
+        "</div>"
     )
 
 
@@ -1486,7 +1658,9 @@ def render_toolbar(book: Book) -> str:
         '<button type="button" data-view="intuition" aria-pressed="false">直觉</button>'
         '<button type="button" data-view="formal" aria-pressed="false">形式</button>'
         "</div>"
-        '<label class="chapter-jump"><span>章节</span>'
+        + render_search()
+        + render_progress_widget(book)
+        + '<label class="chapter-jump"><span>章节</span>'
         f'<select data-action="chapter-jump" aria-label="跳转到章">{options}</select>'
         "</label>"
         '<button type="button" class="plain" data-action="expand-all">展开全部</button>'
@@ -1509,7 +1683,8 @@ def render_footer(book: Book) -> str:
         "<p>静态读本，不替代课程门禁：页面不判卷、不改课程。"
         "无外部 http(s) 资源；数学公式使用浏览器原生 MathML，"
         "不能结构化的公式回退为 Unicode 文本。"
-        "单元与附录锚点稳定，可直接用 <code>#unit-N</code> 深链。</p>"
+        "单元与附录锚点稳定，可直接用 <code>#unit-N</code> 深链；"
+        "搜索索引与阅读进度都在本机运行，进度存于 localStorage。</p>"
         "</footer>"
     )
 
@@ -1530,13 +1705,14 @@ def render_book(book: Book) -> str:
         f"{render_cover(book)}\n"
         f"{render_toolbar(book)}\n"
         '<noscript><p class="noscript-note">JavaScript 已关闭：正文与原生折叠面板仍可阅读；'
-        "图层切换、章节跳转与「展开全部」不可用。</p></noscript>\n"
+        "图层切换、章节跳转、搜索、阅读进度与「展开全部」不可用。</p></noscript>\n"
         "<main>\n"
         f"{render_toc(book)}\n"
         f"{chapters}\n"
         f"{render_appendix(book)}\n"
         "</main>\n"
         f"{render_footer(book)}\n"
+        f"{render_search_index(book)}\n"
         f"<script>\n{script}\n</script>\n</body>\n</html>\n"
     )
 
@@ -1798,6 +1974,95 @@ def validate(book: Book, html_text: str) -> Tuple[List[str], Dict[str, object]]:
     if "beforeprint" not in html_text:
         errors.append("beforeprint handling missing")
 
+    # ── search ────────────────────────────────────────────────────────────
+    if 'id="book-search"' not in html_text:
+        errors.append("search input missing")
+    if 'placeholder="搜索单元 / 定义 / 定理"' not in html_text:
+        errors.append("search placeholder missing")
+    if 'role="combobox"' not in html_text or 'role="listbox"' not in html_text:
+        errors.append("search combobox/listbox semantics missing")
+    if 'aria-live="polite"' not in html_text:
+        errors.append("search result live region missing")
+    search_match = re.search(
+        r'<script type="application/json" id="book-search-index">(.*?)</script>',
+        html_text,
+        re.DOTALL,
+    )
+    search_payload: object = []
+    if search_match is None:
+        errors.append("search index script missing")
+    else:
+        try:
+            search_payload = json.loads(search_match.group(1))
+        except json.JSONDecodeError as exc:
+            errors.append(f"search index is not valid JSON: {exc}")
+    expected_search = search_entries(book)
+    if search_payload != expected_search:
+        errors.append("search index does not match the live book model")
+    if isinstance(search_payload, list):
+        stats["search_entries"] = len(search_payload)
+        stats["search_sections"] = sum(
+            1
+            for entry in search_payload
+            if isinstance(entry, dict) and entry.get("k") == "section"
+        )
+        stats["search_declarations"] = sum(
+            1
+            for entry in search_payload
+            if isinstance(entry, dict)
+            and entry.get("k") in ("def", "theorem", "axiom", "inductive")
+        )
+        stats["search_appendix"] = sum(
+            1
+            for entry in search_payload
+            if isinstance(entry, dict)
+            and entry.get("k") in ("appendix", "solution")
+        )
+        broken = [
+            entry.get("a")
+            for entry in search_payload
+            if isinstance(entry, dict) and entry.get("a") not in ids
+        ]
+        if broken:
+            errors.append(
+                "search index anchors do not resolve: "
+                + ", ".join(str(anchor) for anchor in broken[:6])
+            )
+    else:
+        stats["search_entries"] = 0
+        stats["search_sections"] = 0
+        stats["search_declarations"] = 0
+        stats["search_appendix"] = 0
+
+    # ── reading progress / per-unit links ─────────────────────────────────
+    progress_toggles = len(
+        re.findall(r'data-progress-toggle data-unit="\d+"', html_text)
+    )
+    copy_links = len(re.findall(r'data-copy-link="unit-\d+"', html_text))
+    stats["progress_toggles"] = progress_toggles
+    stats["copy_links"] = copy_links
+    if progress_toggles != len(units):
+        errors.append(
+            f"progress toggles: expected {len(units)}, found {progress_toggles}"
+        )
+    if copy_links != len(units):
+        errors.append(f"copy-link controls: expected {len(units)}, found {copy_links}")
+    if "soko-book-progress-v1" not in html_text:
+        errors.append("reading-progress localStorage key missing")
+    if 'role="progressbar"' not in html_text:
+        errors.append("reading-progress bar (role=progressbar) missing")
+    if 'data-progress-count' not in html_text:
+        errors.append("reading-progress count missing")
+    for action in ("reset-progress", "reset-progress-confirm", "reset-progress-cancel"):
+        if f'data-action="{action}"' not in html_text:
+            errors.append(f"progress reset control missing: {action}")
+    if "pushState" not in html_text:
+        errors.append("pushState navigation missing")
+    if "hashchange" not in html_text:
+        errors.append("hashchange handling missing")
+    if "data-copy-status" not in html_text:
+        errors.append("copy-link visible status missing")
+
     toc_start = html_text.find('<nav class="toc" id="toc"')
     toc_end = html_text.find("</nav>", toc_start)
     toc_segment = html_text[toc_start:toc_end] if toc_start >= 0 and toc_end > toc_start else ""
@@ -1937,6 +2202,12 @@ def negative_selftest(book: Book, fresh: str) -> List[str]:
     cases["duplicate toc id"] = fresh.replace(
         "</main>", '<span id="toc"></span></main>', 1
     )
+    cases["search index removed"] = fresh.replace(
+        'id="book-search-index"', 'id="book-search-index-gone"', 1
+    )
+    cases["copy-link control removed"] = fresh.replace(
+        'data-copy-link="unit-1"', 'data-copy-link-gone="unit-1"', 1
+    )
     for label, tampered in cases.items():
         found, _ = validate(book, tampered)
         if not found:
@@ -1965,6 +2236,11 @@ def format_stats(stats: Dict[str, object]) -> List[str]:
         f"  rendered: {stats['exercise_cards']} exercise cards · "
         f"{stats['solution_panels']} solution toggles · {stats['details']} details · "
         f"{stats['mathml']} MathML blocks · {stats['formula_fallbacks']} formula fallbacks",
+        f"  search: {stats['search_entries']} entries "
+        f"({stats['search_declarations']} declarations · "
+        f"{stats['search_sections']} section headings · "
+        f"{stats['search_appendix']} appendix entries) · "
+        f"{stats['progress_toggles']} progress toggles · {stats['copy_links']} copy links",
         f"  toc links: {stats['toc_links']} · ids: {stats['ids']} · "
         f"external refs: {stats['external_refs']}",
     ]
@@ -2010,7 +2286,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 print(f"  - {error}", file=sys.stderr)
             return 1
         print("book selftest: PASS")
-        print("  external URL / broken anchor / duplicate id / stale output: all rejected")
+        print(
+            "  external URL / broken anchor / duplicate id / missing search index / "
+            "missing copy-link / stale output: all rejected"
+        )
         return 0
 
     fresh_errors, fresh_stats = validate(book, fresh)
@@ -2043,7 +2322,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             for line in format_stats(stats):
                 print(line)
             print("  math helper: fraction + superscript + fallback self-test OK")
-            print("  negative selftest: external URL / broken anchor / duplicate id / stale output rejected")
+            print(
+                "  negative selftest: external URL / broken anchor / duplicate id / "
+                "missing search index / missing copy-link / stale output rejected"
+            )
             print(f"  output: {target} ({stats['bytes']:,} bytes)")
 
         if args.check_preview:
