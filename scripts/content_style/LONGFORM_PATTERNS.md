@@ -1,3 +1,5 @@
+> **Not adopted as a hook playbook (owner correction 2026-11-12).** Engagement is a weak, polarizing signal; we keep only structural clarity observations (one idea per section, concrete example, claim headings). No hook/clickbait/emoji/engagement mechanics in the book. The standard is clarity for more readers, not exhaustive knowledge lists.
+
 # 平台验证过的长文模式（C8.4 增量研究）
 
 > **这份文件回答**：除了专家书单（见 `GOOD_WRITING_GUIDE.md` §1），**被大量读者投票验证过**

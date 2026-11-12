@@ -1756,3 +1756,22 @@ body[data-view="formal"] .exercise-statement { display: block; }
   summary { list-style: none; }
   summary::before { content: ""; width: 0; }
 }
+
+
+/* Clarity-first: exhaustive declaration/lemma lists are secondary. */
+.decl-index {
+  margin: 10px 0 14px;
+  border: 1px solid var(--line, #e2d8c8);
+  border-radius: 12px;
+  background: var(--card, #fffdf8);
+  padding: 8px 12px;
+}
+.decl-index > summary {
+  cursor: pointer;
+  color: var(--muted, #6b6358);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.decl-index .prose-list {
+  margin: 8px 0 2px;
+}

@@ -1,3 +1,11 @@
+# Owner correction (2026-11-12): clarity first, not hooks
+
+High-engagement hook articles are **not** the model: hooks are polarizing (one side loves them, the other bounces). The requirement is **clarity**: explain one idea so more readers understand it, not exhaustive knowledge-point lists. Keep the positive craft rules below, but:
+- no clickbait/hook openings, no emoji/engagement mechanics;
+- one unit = one core idea; plain-language explanation + one concrete example;
+- exhaustive declaration/lemma lists go to a collapsed detail section, not the main read;
+- tests: can a non-expert retell the idea? Can they explain why it matters? Not: did they see every lemma?
+
 # 好文风指南与六维可读性评分表（C8.4）
 
 > **一句话**：`style_lint.py` 管**下限**（别写出 AI 痕迹与噪声），这份指南管**上限**

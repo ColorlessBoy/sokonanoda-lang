@@ -1240,6 +1240,15 @@ def render_item(item: Item) -> str:
             content = _join_prose_lines([first, *[part for part in parts[1:]]])
             rendered_items.append(f"<li>{render_inline(content)}</li>")
         items = "".join(rendered_items)
+        # Clarity-first: exhaustive lists (declarations, lemma inventories,
+        # proof-route enumerations) stay available but do not dominate the
+        # learner's first read.  Short lists (≤4) remain inline.
+        if len(item.lines) >= 5:
+            return (
+                '<details class="decl-index intuition-only">'
+                f'<summary>细节清单（{len(item.lines)} 项，展开）</summary>'
+                f'<ul class="prose-list">{items}</ul></details>'
+            )
         return (
             '<div class="block prose intuition-only">'
             f'<ul class="prose-list">{items}</ul></div>'
