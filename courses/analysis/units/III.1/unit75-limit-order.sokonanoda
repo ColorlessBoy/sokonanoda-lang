@@ -1,0 +1,76 @@
+-- 单元75 极限与序
+--
+-- 73 立了 ε-N 定义，74 证了极限唯一。本单元把极限与序接起来：
+-- **极限保持非严格不等式**——若 `x n` 终究不超过 `y n`，则 `lim x ≤ lim y`。
+--
+-- 路线：
+--
+--   · 75.1 先做一条与 `close` 无关的引理：若对任意 `eps > 0` 都有
+--     `(x - y) ≤ eps`，则 `x ≤ y`。反证：`y < x` 时令 `d := x - y > 0`
+--     （74.3），取 `eps := d/2`，得 `d ≤ d/2`，撞上 74.5 的 `d/2 < d`；
+--   · 75.2 主定理：两个序列各在 `eps/2` 内接近自己的极限；把
+--     「`x n ≤ y n`」与两条接近性用 73.2 的 `eventually_and` 并到同一个
+--     `N`，在 `n := N` 上 `(L - x n) + (x n - M) ≤ eps/2 + eps/2`；
+--     56 的 `ratSubRep_add` 把左边认成 `L - M`，52 的 `ratHalf_add_self`
+--     把右边认成 `eps`；
+--   · 75.3 / 75.4 两条推论：终究非负的序列极限非负；终究不超过常数 `c`
+--     的序列极限不超过 `c`。
+--
+-- **边界（明说）**：本单元只证**非严格**不等式。`x n < y n` 终究成立时
+-- 结论仍是 `≤`（75.2 的直接实例）；把严格性搬进结论要额外的「极限与
+-- 常数分离」引理，留到后续单元。不新增公理，也不碰 kernel/front。
+
+import lib.Limit
+import lib.LimitOrder
+import lib.RatSub
+import lib.RatClose
+
+-- ─────────────────────────────────────────────────────────────
+-- 75.1 单侧界：任意 ε 内 `x - y ≤ ε` ⇒ `x ≤ y`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先用 ㊺ 的全性分两支：`x ≤ y` 直接收；`y ≤ x` 时再用 74.4 分「y ~ x」与「y < x」。前者经对称性转成 `x ≤ y`；后者令 `d := x - y`（74.3 给 `0 < d`），取 `eps := d/2`：假设给 `d ≤ d/2`，74.5 给 `d/2 ≤ d`，反对称性夹出 `d/2 ~ d`，撞上 74.5 的严格性。
+-- soko:hint 目标形态：`(∀ eps > 0, (x - y) ≤ eps) → ratLeRep x y`。
+-- soko:hint 关键件：ratLeRep_total · ratLeRep_eq_or_lt · ratLtRep_sub_pos · ratHalf_lt_self · ratLtRep_half_irrel · ratLeRep_antisymm · False.elim。
+theorem ratLeRep_of_sub_le_all (x y : ratRep)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ratLeRep (ratSubRep x y) eps) :
+    ratLeRep x y :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 75.2 极限保持非严格不等式
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对任意 `eps > 0` 用 75.1。取阈值：`eventually_and` 先把「x n ≤ y n」与「两条 `eps/2` 接近性」并到同一个 `N`，在 `n := N` 上把 `L - M` 拆成 `(L - x N) + (x N - M)`：第一项由 `close_symm` + `close_sub_le` 给 `eps/2`，第二项先由 `x N ≤ y N` 单调右加 `-M`、再由 `y N` 的接近性给 `eps/2`；`ratLeRep_add` 相加，`ratSubRep_add` 与 `ratHalf_add_self` 两边换形。
+-- soko:hint 目标形态：`ratLeRep L M`。
+-- soko:hint 关键件：ratLeRep_of_sub_le_all · eventually_and · close_symm · close_sub_le · ratLeRep_add_right · ratLeRep_trans · ratLeRep_add · ratSubRep_add · ratHalf_add_self · ratLeRep_congr_gen。
+theorem converges_le_of_eventually (x y : Seq) (L M : ratRep)
+    (hx : Converges x L) (hy : Converges y M)
+    (hxy : Eventually (fun (n : Nat) => ratLeRep (x n) (y n))) :
+    ratLeRep L M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 75.3 推论：终究非负 ⇒ 极限非负
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 75.2 用在常零序列 `constSeq ratZeroRep` 与 `x` 上：常零序列收敛到零（73.5/73.6），`eventually` 的方向正好是 `0 ≤ x n`。
+-- soko:hint 目标形态：`ratLeRep ratZeroRep L`。
+-- soko:hint 关键件：converges_le_of_eventually · demo_converges_zero。
+theorem converges_nonneg (x : Seq) (L : ratRep) (h : Converges x L)
+    (hx : Eventually (fun (n : Nat) => ratLeRep ratZeroRep (x n))) :
+    ratLeRep ratZeroRep L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 75.4 推论：终究不超过常数 ⇒ 极限不超过该常数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 75.2 用在 `x` 与常序列 `constSeq c` 上：常序列收敛到 `c`（73.5），前提 `x n ≤ c` 就是 `x n ≤ constSeq c n`。
+-- soko:hint 目标形态：`ratLeRep L c`。
+-- soko:hint 关键件：converges_le_of_eventually · converges_const。
+theorem converges_le_const (x : Seq) (L c : ratRep) (h : Converges x L)
+    (hc : Eventually (fun (n : Nat) => ratLeRep (x n) c)) :
+    ratLeRep L c :=
+  sorry

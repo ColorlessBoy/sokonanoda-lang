@@ -585,6 +585,18 @@
               "title": "单元74 极限的唯一性",
               "title_en": "Unit 74 — Uniqueness of Limits",
               "unit": 74
+            },
+            {
+              "file": "units/III.1/unit75-limit-order.sokonanoda",
+              "title": "单元75 极限与序",
+              "title_en": "Unit 75 — Limits and Order",
+              "unit": 75
+            },
+            {
+              "file": "units/III.1/unit76-limit-algebra-add.sokonanoda",
+              "title": "单元76 极限的代数：加法、减法、取负",
+              "title_en": "Unit 76 — Algebra of Limits: Addition, Subtraction, Negation",
+              "unit": 76
             }
           ]
         }
