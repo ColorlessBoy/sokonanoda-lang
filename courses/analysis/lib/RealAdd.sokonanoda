@@ -1,0 +1,204 @@
+-- 课程库：实数的加法（单元60 的引擎）
+--
+-- 单元60 在画布上判卷的下面五条收进 L2，单元61 起直接引用：
+--
+--   · `addSeq` —— 逐点加法 `fun n => x n + y n`；
+--   · `ratSubRep_add_sub` —— `(x+y) - (x'+y') ~ (x-x') + (y-y')`；
+--   · `close_add` —— 两个 `ε/2` 的 `close` 界相加；
+--   · `cauchy_add` —— Cauchy 对逐点加法封闭；
+--   · `realRel_add` —— `realRel` 对逐点加法同余。
+--
+-- 本模块只做**代表元层**的加法与两条下降义务；把加法写成 `Real` 上的
+-- 三元关系（存在 + 唯一）是单元61 的内容。证明全部停在商 + 已判卷的
+-- 库引理上，不碰 `funext`、不加公理。
+
+import lib.RealEq
+import lib.RatCloseTrans
+import lib.RatSub
+
+def addSeq (x y : Seq) : Seq := fun (n : Nat) => ratAddRep (x n) (y n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 60.1 代表元层：`(x + y) - (x' + y') ~ (x - x') + (y - y')`
+-- ─────────────────────────────────────────────────────────────
+
+-- 五步链：① `-(x'+y') ~ -x' + -y'`（㊽.4 的 `ratNegRep_add`，右端同余）；
+-- ② 结合律反向，把 `(x+y) + (-x' + -y')` 拆成 `((x+y) + -x') + -y'`；
+-- ③ 内层结合律把 `(x+y) + -x'` 换成 `x + (y + -x')`；
+-- ④ 交换 `y + -x'` 成 `-x' + y`，再结合成 `(x + -x') + y`；
+-- ⑤ 最后一步结合律收成 `(x + -x') + (y + -y')`。
+
+theorem ratSubRep_add_sub (x x' y y' : ratRep) :
+    ratRel (ratSubRep (ratAddRep x y) (ratAddRep x' y'))
+           (ratAddRep (ratSubRep x x') (ratSubRep y y')) :=
+  ratRel_trans_gen
+    (ratSubRep (ratAddRep x y) (ratAddRep x' y'))
+    (ratAddRep (ratAddRep x y) (ratAddRep (ratNegRep x') (ratNegRep y')))
+    (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+    (ratAddRep_wd_snd_gen
+      (ratAddRep x y)
+      (ratNegRep (ratAddRep x' y'))
+      (ratAddRep (ratNegRep x') (ratNegRep y'))
+      (ratNegRep_add x' y'))
+    (ratRel_trans_gen
+      (ratAddRep (ratAddRep x y) (ratAddRep (ratNegRep x') (ratNegRep y')))
+      (ratAddRep (ratAddRep (ratAddRep x y) (ratNegRep x'))
+                 (ratNegRep y'))
+      (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+      (ratRel_symm
+        (ratAddRep (ratAddRep (ratAddRep x y) (ratNegRep x'))
+                   (ratNegRep y'))
+        (ratAddRep (ratAddRep x y)
+                   (ratAddRep (ratNegRep x') (ratNegRep y')))
+        (ratAdd_assoc (ratAddRep x y) (ratNegRep x') (ratNegRep y')))
+      (ratRel_trans_gen
+        (ratAddRep (ratAddRep (ratAddRep x y) (ratNegRep x'))
+                   (ratNegRep y'))
+        (ratAddRep (ratAddRep x (ratAddRep y (ratNegRep x')))
+                   (ratNegRep y'))
+        (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+        (ratAddRep_wd_gen
+          (ratAddRep (ratAddRep x y) (ratNegRep x'))
+          (ratAddRep x (ratAddRep y (ratNegRep x')))
+          (ratNegRep y')
+          (ratAdd_assoc x y (ratNegRep x')))
+        (ratRel_trans_gen
+          (ratAddRep (ratAddRep x (ratAddRep y (ratNegRep x')))
+                     (ratNegRep y'))
+          (ratAddRep (ratAddRep x (ratAddRep (ratNegRep x') y))
+                     (ratNegRep y'))
+          (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+          (ratAddRep_wd_gen
+            (ratAddRep x (ratAddRep y (ratNegRep x')))
+            (ratAddRep x (ratAddRep (ratNegRep x') y))
+            (ratNegRep y')
+            (ratAddRep_wd_snd_gen
+              x
+              (ratAddRep y (ratNegRep x'))
+              (ratAddRep (ratNegRep x') y)
+              (ratAdd_comm y (ratNegRep x'))))
+          (ratRel_trans_gen
+            (ratAddRep (ratAddRep x (ratAddRep (ratNegRep x') y))
+                       (ratNegRep y'))
+            (ratAddRep (ratAddRep (ratAddRep x (ratNegRep x')) y)
+                       (ratNegRep y'))
+            (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+            (ratAddRep_wd_gen
+              (ratAddRep x (ratAddRep (ratNegRep x') y))
+              (ratAddRep (ratAddRep x (ratNegRep x')) y)
+              (ratNegRep y')
+              (ratRel_symm
+                (ratAddRep (ratAddRep x (ratNegRep x')) y)
+                (ratAddRep x (ratAddRep (ratNegRep x') y))
+                (ratAdd_assoc x (ratNegRep x') y)))
+            (ratAdd_assoc (ratAddRep x (ratNegRep x')) y
+              (ratNegRep y'))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 60.2 逐点 `close` 对加法同余
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个 `ε/2` 的界 `(x - x')`、`(y - y')`，经 60.1 搬到 `(x+y) - (x'+y')`；
+-- ㊽ 的三角不等式把它们加成 `dx + dy`，57 的 `ratAdd_lt_half` 收到 `ε`，
+-- 最后 `ratLtRep_of_le_lt` 夹出结论。
+
+theorem close_add (x x' y y' eps : ratRep)
+    (hx : close x x' (ratHalf eps)) (hy : close y y' (ratHalf eps)) :
+    close (ratAddRep x y) (ratAddRep x' y') eps :=
+  Exists.elim hx
+    (fun (dx : ratRep)
+        (hdx : ratAbsRel (ratSubRep x x') dx ∧
+               ratLtRep dx (ratHalf eps)) =>
+      Exists.elim hy
+        (fun (dy : ratRep)
+            (hdy : ratAbsRel (ratSubRep y y') dy ∧
+                   ratLtRep dy (ratHalf eps)) =>
+          Exists.elim
+            (ratAbsRel_total
+              (ratAddRep (ratSubRep x x') (ratSubRep y y')))
+            (fun (d : ratRep)
+                (hd : ratAbsRel
+                  (ratAddRep (ratSubRep x x') (ratSubRep y y')) d) =>
+              Exists.intro d
+                (And.intro
+                  (ratAbsRel_wd_left
+                    (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+                    (ratSubRep (ratAddRep x y) (ratAddRep x' y'))
+                    d
+                    (ratRel_symm
+                      (ratSubRep (ratAddRep x y) (ratAddRep x' y'))
+                      (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+                      (ratSubRep_add_sub x x' y y'))
+                    hd)
+                  (ratLtRep_of_le_lt d (ratAddRep dx dy) eps
+                    (ratLeRep_abs_add
+                      (ratSubRep x x') (ratSubRep y y') dx dy d
+                      (And.left hdx) (And.left hdy) hd)
+                    (ratAdd_lt_half dx dy eps
+                      (And.right hdx) (And.right hdy)))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 60.3 加法保持 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- 量词结构与 `neg` 相同，只是要在 `ε/2` 上同时取两个阈值；58 的
+-- `leNat_max` 把 `N1`、`N2` 合成一个 `N`，再逐点用 60.2。
+
+theorem cauchy_add (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    Cauchy (addSeq x y) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hx (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (N1 : Nat)
+          (h1 : ∀ (n m : Nat), LeNat N1 n → LeNat N1 m →
+            close (x n) (x m) (ratHalf eps)) =>
+        Exists.elim (hy (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (N2 : Nat)
+              (h2 : ∀ (n m : Nat), LeNat N2 n → LeNat N2 m →
+                close (y n) (y m) (ratHalf eps)) =>
+            Exists.elim (leNat_max N1 N2)
+              (fun (N : Nat) (hN : LeNat N1 N ∧ LeNat N2 N) =>
+                Exists.intro N
+                  (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =>
+                    close_add (x n) (x m) (y n) (y m) eps
+                      (h1 n m
+                        (leNat_trans N1 N n (And.left hN) hn)
+                        (leNat_trans N1 N m (And.left hN) hm))
+                      (h2 n m
+                        (leNat_trans N2 N n (And.right hN) hn)
+                        (leNat_trans N2 N m (And.right hN) hm))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 60.4 加法与 `realRel` 相容
+-- ─────────────────────────────────────────────────────────────
+
+-- 三元组逐分量：两个 `Cauchy` 分量是 60.3；第三分量对 `ε/2` 取两组阈值，
+-- 合并后逐点用 60.2。
+
+theorem realRel_add (x x' y y' : Seq)
+    (hx : realRel x x') (hy : realRel y y') :
+    realRel (addSeq x y) (addSeq x' y') :=
+  And.intro
+    (cauchy_add x y (And.left hx) (And.left hy))
+    (And.intro
+      (cauchy_add x' y'
+        (And.left (And.right hx)) (And.left (And.right hy)))
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim
+          (realRel_close x x' hx (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (N1 : Nat)
+              (h1 : ∀ (n : Nat), LeNat N1 n →
+                close (x n) (x' n) (ratHalf eps)) =>
+            Exists.elim
+              (realRel_close y y' hy (ratHalf eps)
+                (ratLtRep_half eps heps))
+              (fun (N2 : Nat)
+                  (h2 : ∀ (n : Nat), LeNat N2 n →
+                    close (y n) (y' n) (ratHalf eps)) =>
+                Exists.elim (leNat_max N1 N2)
+                  (fun (N : Nat) (hN : LeNat N1 N ∧ LeNat N2 N) =>
+                    Exists.intro N
+                      (fun (n : Nat) (hn : LeNat N n) =>
+                        close_add (x n) (x' n) (y n) (y' n) eps
+                          (h1 n (leNat_trans N1 N n (And.left hN) hn))
+                          (h2 n
+                            (leNat_trans N2 N n (And.right hN) hn))))))))

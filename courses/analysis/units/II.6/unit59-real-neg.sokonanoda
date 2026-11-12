@@ -1,0 +1,113 @@
+-- 单元59 实数的取负：第一次把运算下降到商上
+--
+-- 58 与 `lib/RealEq` 备齐了 `realRel` 的三条腿（传递 / 自反 / 对称）。
+-- ⚠ 自反性只在 **Cauchy 序列**上成立：`realRel x x` 的第一个分量就是
+-- `Cauchy x`。所以 `realRel` 是 Cauchy 序列上的等价关系，而不是整个
+-- `Seq` 上的；`Quot.exact` 要求每个代表元都自反，本课程拿不到这条假设，
+-- 反向消去留到需要时再处理。
+--
+-- 现在可以把**第一个运算**从代表元搬到商上：
+--
+--   negSeq x      := fun n => -(x n)
+--   Real.neg      := Quot.lift (fun x => Real.mk (negSeq x)) …
+--
+-- 要交的两条良定义义务是：
+--
+--   · `cauchy_neg`  : Cauchy x → Cauchy (negSeq x)
+--   · `realRel_neg` : realRel x y → realRel (negSeq x) (negSeq y)
+--
+-- 关键是**绝对值对取负不变**（㊶ 的 `ratAbsRel_neg_gen`）：代表元层
+-- `(-x) - (-y)` 与 `-(x - y)` 只差分子序对的交换与加法交换（㊷ 的
+-- `ratSubRep_neg`），所以 `close` 可以在取负下原样搬过去。
+--
+-- 59.1 是代表元层的形状，59.2 是 `close` 的搬运，59.3/59.4 是两条良定义
+-- 义务，59.5 是 `Quot.lift` 的 ι 规则，59.6 落在常零序列上。
+--
+-- `negSeq` 与 `Real.neg` 是本单元给出的定义；其余是练习。
+
+import lib.RealEq
+import lib.RatSub
+
+-- ─────────────────────────────────────────────────────────────
+-- 负序列的定义
+-- ─────────────────────────────────────────────────────────────
+
+def negSeq (x : Seq) : Seq := fun (n : Nat) => ratNegRep (x n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.1 代表元层：`(-x) - (-y) ~ -(x - y)`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`(-x) - (-y)` 是 `-x + -(-y)`。用 ㉛ 的对合 `ratNegRep_invol` 把 `-(-y)` 换成 `y`（`ratAddRep_wd_snd_gen`），再用 ㊸ 的 `ratAdd_comm` 把 `-x + y` 换成 `y + -x`（即 `y - x`），最后接上 ㊷ 的 `ratSubRep_neg`。两次 `ratRel_trans_gen` 串起来。
+-- soko:hint 目标形态：`ratRel (ratSubRep (-x) (-y)) (ratNegRep (ratSubRep x y))`。
+-- soko:hint 关键件：ratNegRep_invol · ratAddRep_wd_snd_gen · ratAdd_comm · ratSubRep_neg · ratRel_trans_gen（两次）。
+theorem ratSubRep_neg_neg (x y : ratRep) :
+    ratRel (ratSubRep (ratNegRep x) (ratNegRep y))
+           (ratNegRep (ratSubRep x y)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.2 `close` 在取负下不变
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：取出 `|x - y| ~ d` 的见证 `d`。先用 ㊶ 的 `ratAbsRel_neg_gen` 把绝对值搬到 `|-(x - y)|`；59.1 的方向是 `|(-x)-(-y)| ~ |-(x-y)|`，取对称后用 ㊷ 的 `ratAbsRel_wd_left` 从 `|-(x-y)|` 搬到 `|(-x)-(-y)|`；`d < eps` 原样交出去。
+-- soko:hint 目标形态：`close x y eps → close (-x) (-y) eps`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · And.intro · ratAbsRel_neg_gen · ratRel_symm · ratAbsRel_wd_left · ratSubRep_neg_neg。
+theorem close_neg (x y eps : ratRep) (h : close x y eps) :
+    close (ratNegRep x) (ratNegRep y) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.3 取负保持 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：量词结构原样保留：对 `eps > 0` 取 `hx` 的 `N`，对每个 `n m ≥ N` 调用 59.2（注意 `negSeq x n` 就是 `ratNegRep (x n)`，定义性）。
+-- soko:hint 目标形态：`Cauchy x → Cauchy (negSeq x)`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · close_neg。
+theorem cauchy_neg (x : Seq) (hx : Cauchy x) : Cauchy (negSeq x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.4 取负与 `realRel` 相容
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`realRel (negSeq x) (negSeq y)` 是三元组。两个 `Cauchy` 分量是 59.3（分别对 `x`、`y`；`Cauchy y` 是 `h` 的第二个分量）；第三分量逐点用 59.2。
+-- soko:hint 目标形态：`realRel x y → realRel (negSeq x) (negSeq y)`。
+-- soko:hint 关键件：And.intro（两次）· And.left · And.right · cauchy_neg · close_neg。
+theorem realRel_neg (x y : Seq) (h : realRel x y) :
+    realRel (negSeq x) (negSeq y) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 取负下降成 `Real → Real`（本单元给出的定义）
+-- ─────────────────────────────────────────────────────────────
+
+-- `Quot.lift` 要两条材料：作用在代表元上的函数（`fun x => Real.mk (negSeq x)`）
+-- 与良定义性（`realRel x y ⇒ 两边的像相等`，正是 59.4 + `Real.sound`）。
+
+def Real.neg : Real → Real :=
+  @Quot.lift.{1, 1} Seq realRel Real
+    (fun (x : Seq) => Real.mk (negSeq x))
+    (fun (x y : Seq) (h : realRel x y) =>
+      Real.sound (negSeq x) (negSeq y) (realRel_neg x y h))
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.5 `Quot.lift` 的 ι 规则
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`Real.neg (Real.mk x)` 展开成 `Quot.lift f … (Quot.mk x)`，ι 归约直接给出 `f x = Real.mk (negSeq x)`，所以 `Eq.refl` 就够（在 `Eq.refl` 前加 `@` 并显式给出类型）。
+-- soko:hint 目标形态：`Real.neg (Real.mk x) = Real.mk (negSeq x)`。
+-- soko:hint 关键件：Eq.refl（ι 归约）。
+theorem Real.neg_mk (x : Seq) :
+    Real.neg (Real.mk x) = Real.mk (negSeq x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.6 具体：零的取负还是零
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两段链：59.5 把 `Real.neg (Real.mk zeroSeq)` 换成 `Real.mk (negSeq zeroSeq)`；`negSeq zeroSeq` 与 `zeroSeq` 定义性相同（`-(0/1) = 0/1`），所以 `Real.sound` 后面接 `realRel_refl zeroSeq cauchy_zero` 就够。
+-- soko:hint 目标形态：`Real.neg (Real.mk zeroSeq) = Real.mk zeroSeq`。
+-- soko:hint 关键件：Eq.trans · Real.neg_mk · Real.sound · realRel_refl · cauchy_zero。
+theorem demo_real_neg : Real.neg (Real.mk zeroSeq) = Real.mk zeroSeq :=
+  sorry

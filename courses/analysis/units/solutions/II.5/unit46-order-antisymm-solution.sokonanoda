@@ -1,0 +1,138 @@
+-- 单元㊻ 序的反对称性：两边夹出相等（解答）
+--
+-- ㊺ 结清了「ℚ 的序是全序」，但要把序用在绝对值上还差一条**反对称性**：
+--
+--   x ≤ y  ∧  y ≤ x   ⟹   x ~ y
+--
+-- 为什么它挡在三角不等式前面：㉝ 的绝对值是**关系**而不是函数，
+--
+--   ratAbsRel x d  :⟺  (0 ≤ x ∧ d ~ x) ∨ (x ≤ 0 ∧ d ~ -x)
+--
+-- 同一个 `x` 的两个绝对值的见证 `d`、`d'` 可能落在不同分支上（一个取 `x`、
+-- 一个取 `-x`）。要把它们认成同一个，必须先知道「`0 ≤ x` 与 `x ≤ 0` 同时
+-- 成立时 `x ~ 0`」——这正是反对称性。
+--
+-- 本单元结清：
+--
+--   · ㊻.1 `leNat_succ_not_self`：`n + 1 ≤ n` 不成立（没有任何数严格大于自己）；
+--   · ㊻.2 `leNat_antisymm`：ℕ 的 `≤` 反对称（`a ≤ b ≤ a ⇒ a = b`）；
+--   · ㊻.3 `ratLeRep_antisymm`：ℚ 的 `≤` 反对称（交叉相乘后交给 ㊻.2）；
+--   · ㊻.4 具体：`1/2` 与 `2/4` 互相 ≤，所以相等。
+--
+-- 证明路线：㊻.1 先把 `n+1 ≤ n` 化成 `n = (n+1) + k`（`leNat_exists_add`），
+-- 再用 `succ_add` / `add_succ` 把它搬成 `n = n + (k+1)`，交给辅助引理
+-- `nat_add_succ_ne_self`（对 `n` 归纳：零情形 `succ_ne_zero`，后继情形
+-- `Nat.succ.inj` 剥掉一层）。㊻.2 用 ㊺ 的 `leNat_eq_or_succ` 把 `a ≤ b` 拆成
+-- 「`a = b`」与「`a+1 ≤ b`」；后者与 `b ≤ a` 串起来就是 ㊻.1 的矛盾。
+--
+-- 本单元不引入新定义；序的引擎来自 `lib/RatOrder`，`leNat_eq_or_succ` 与
+-- ㊹ 的加法相容已收在 `lib/RatAbs`。
+
+import lib.RatAbs
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊻.1 `n + 1 ≤ n` 不成立
+-- ─────────────────────────────────────────────────────────────
+
+-- 辅助：`n + (k+1) = n` 不成立（对 `n` 归纳；后继情形用 `Nat.succ.inj` 剥一层）。
+theorem nat_add_succ_ne_self (n k : Nat) :
+    Nat.add n (Nat.succ k) = n → False :=
+  Nat.rec
+    (fun (m : Nat) => ∀ (k : Nat), Nat.add m (Nat.succ k) = m → False)
+    (fun (k : Nat) (h : Nat.add Nat.zero (Nat.succ k) = Nat.zero) =>
+      succ_ne_zero k
+        (@Eq.trans.{1} Nat
+          (Nat.succ k)
+          (Nat.add Nat.zero (Nat.succ k))
+          Nat.zero
+          (@Eq.symm.{1} Nat (Nat.add Nat.zero (Nat.succ k)) (Nat.succ k)
+            (zero_add (Nat.succ k)))
+          h))
+    (fun (m : Nat)
+         (ih : ∀ (k : Nat), Nat.add m (Nat.succ k) = m → False) =>
+      fun (k : Nat) (h : Nat.add (Nat.succ m) (Nat.succ k) = Nat.succ m) =>
+        ih k
+          (Nat.succ.inj (Nat.add m (Nat.succ k)) m
+            (@Eq.trans.{1} Nat
+              (Nat.succ (Nat.add m (Nat.succ k)))
+              (Nat.add (Nat.succ m) (Nat.succ k))
+              (Nat.succ m)
+              (@Eq.symm.{1} Nat
+                (Nat.add (Nat.succ m) (Nat.succ k))
+                (Nat.succ (Nat.add m (Nat.succ k)))
+                (succ_add m (Nat.succ k)))
+              h)))
+    n k
+
+-- soko:hint 思路：把 `h : n+1 ≤ n` 交给 `leNat_exists_add`，得到 `k` 与 `n = (n+1) + k`；用 `succ_add` 把 `(n+1)+k` 化成 `succ (n+k)`，再用 `add_succ` 的对称把它写成 `n + (k+1)`。于是 `n = n + (k+1)`，交给 `nat_add_succ_ne_self`（对 `n` 归纳；零情形 `succ_ne_zero`，后继情形 `Nat.succ.inj` 剥一层）。
+-- soko:hint 目标形态：`LeNat (Nat.succ n) n → False`。
+-- soko:hint 关键件：leNat_exists_add · Exists.elim · succ_add · add_succ（取对称）· nat_add_succ_ne_self。
+theorem leNat_succ_not_self (n : Nat) (h : LeNat (Nat.succ n) n) : False :=
+  Exists.elim
+    (leNat_exists_add (Nat.succ n) n h)
+    (fun (k : Nat) (hk : n = Nat.add (Nat.succ n) k) =>
+      nat_add_succ_ne_self n k
+        (@Eq.symm.{1} Nat
+          n
+          (Nat.add n (Nat.succ k))
+          (@Eq.trans.{1} Nat
+            n
+            (Nat.add (Nat.succ n) k)
+            (Nat.add n (Nat.succ k))
+            hk
+            (@Eq.trans.{1} Nat
+              (Nat.add (Nat.succ n) k)
+              (Nat.succ (Nat.add n k))
+              (Nat.add n (Nat.succ k))
+              (succ_add n k)
+              (@Eq.symm.{1} Nat
+                (Nat.add n (Nat.succ k))
+                (Nat.succ (Nat.add n k))
+                (add_succ n k))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊻.2 ℕ 的序反对称
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：用 ㊺ 的 `leNat_eq_or_succ` 把 `h1 : a ≤ b` 拆成两支。第一支 `a = b` 就是答案；第二支 `a+1 ≤ b`，与 `h2 : b ≤ a` 用 `leNat_trans` 串成 `a+1 ≤ a`，交给 ㊻.1 得到 `False`，再 `False.elim`。
+-- soko:hint 目标形态：`LeNat a b → LeNat b a → a = b`。
+-- soko:hint 关键件：leNat_eq_or_succ · leNat_trans · leNat_succ_not_self · @False.elim（显式给目标类型）· Or.elim。
+theorem leNat_antisymm (a b : Nat) (h1 : LeNat a b) (h2 : LeNat b a) : a = b :=
+  Or.elim
+    (fun (heq : a = b) => heq)
+    (fun (hlt : LeNat (Nat.succ a) b) =>
+      @False.elim (a = b)
+        (leNat_succ_not_self a (leNat_trans (Nat.succ a) b a hlt h2)))
+    (leNat_eq_or_succ a b h1)
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊻.3 ℚ 的序反对称
+-- ─────────────────────────────────────────────────────────────
+
+-- 辅助：把 `leRep` 的反对称性单独表述（`leRep` 展开就是 `LeNat`，交给 ㊻.2）。
+-- 这样 `ratLeRep` 只需在**头部**展开一次，不必把 `leNum` 投进 `Prod.fst`。
+theorem leRep_antisymm (p q : Prod Nat Nat)
+    (h1 : leRep p q) (h2 : leRep q p) : intRel p q :=
+  leNat_antisymm
+    (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+    (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
+    h1 h2
+
+-- soko:hint 思路：`ratLeRep x y` 展开是 `leRep (leNum x y) (leNum y x)`，`ratLeRep y x` 展开是 `leRep (leNum y x) (leNum x y)`；把这对乘积交给 `leRep_antisymm`，得到的 `intRel (leNum x y) (leNum y x)` 正是 `ratRel x y`。不要试图把 `leNum` 再展开（`Prod.fst` 会卡在定义上）。
+-- soko:hint 目标形态：`ratLeRep x y → ratLeRep y x → ratRel x y`。
+-- soko:hint 关键件：leRep_antisymm · leNat_antisymm。
+theorem ratLeRep_antisymm (x y : ratRep)
+    (h1 : ratLeRep x y) (h2 : ratLeRep y x) : ratRel x y :=
+  leRep_antisymm (leNum x y) (leNum y x) h1 h2
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊻.4 具体：1/2 与 2/4 互相 ≤，所以相等
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两个方向交叉相乘后都是 `LeNat 4 4`，各用 `le_refl 4`；交给 ㊻.3。
+-- soko:hint 目标形态：`ratRel (qrep 1 0 1) (qrep 2 0 3)`。
+-- soko:hint 关键件：ratLeRep_antisymm · le_refl。
+theorem demo_antisymm :
+    ratRel (qrep 1 Nat.zero 1) (qrep 2 Nat.zero 3) :=
+  ratLeRep_antisymm (qrep 1 Nat.zero 1) (qrep 2 Nat.zero 3)
+    (le_refl 4) (le_refl 4)

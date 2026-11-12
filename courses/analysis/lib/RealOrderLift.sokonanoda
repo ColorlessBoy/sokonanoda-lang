@@ -1,0 +1,94 @@
+-- 课程库：实数的序沿 `realRel` 下降（单元66 的引擎）
+--
+-- 单元66 在画布上把代表元层的序 `realLeRep` 沿 `realRel` 下降成
+--
+--   realLe : Real → Real → Prop
+--
+-- 并判卷；这里按「引擎进库」惯例收进 L2，单元67 起直接引用。
+--
+--   · `realLeRep_wd` / `realLeRep_wd_snd` —— 换左/右因子，序不变；
+--   · `realLeY` —— 固定左因子，对第二个因子做 `Quot.lift`；
+--   · `realLe` —— 对第一个因子再做一次 `Quot.lift`；
+--   · `realLe_mk` —— 两次 lift 的 ι 规则。
+--
+-- 代价仍是 L2 既有的 `funext`（定理）与 `propext`（既有 axiom），**不新增信任**。
+
+import lib.RealOrderTrans
+import lib.Extensionality
+
+-- 66.0 换左因子：`realRel x x' → (x ≤ y ↔ x' ≤ y)`
+-- ─────────────────────────────────────────────────────────────
+
+theorem realLeRep_wd (x x' y : Seq) (hx : realRel x x') :
+    realLeRep x y ↔ realLeRep x' y :=
+  @Iff.intro (realLeRep x y) (realLeRep x' y)
+    (fun (h : realLeRep x y) =>
+      realLeRep_trans x' x y
+        (realLeRep_of_realRel x' x (realRel_symm x x' hx))
+        h)
+    (fun (h : realLeRep x' y) =>
+      realLeRep_trans x x' y
+        (realLeRep_of_realRel x x' hx)
+        h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 66.1 换右因子：`realRel y y' → (x ≤ y ↔ x ≤ y')`
+-- ─────────────────────────────────────────────────────────────
+
+theorem realLeRep_wd_snd (x y y' : Seq) (hy : realRel y y') :
+    realLeRep x y ↔ realLeRep x y' :=
+  @Iff.intro (realLeRep x y) (realLeRep x y')
+    (fun (h : realLeRep x y) =>
+      realLeRep_trans x y y' h
+        (realLeRep_of_realRel y y' hy))
+    (fun (h : realLeRep x y') =>
+      realLeRep_trans x y' y h
+        (realLeRep_of_realRel y' y (realRel_symm y y' hy)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 66.2 内层下降：固定 `x`，对 `y` 做 `Quot.lift`
+-- ─────────────────────────────────────────────────────────────
+
+-- 外层类型是 `Prop`，良定义性要 `propext` 把 66.1 的 `↔` 变成命题相等。
+def realLeY (x : Seq) : Real → Prop :=
+  @Quot.lift.{1, 1} Seq realRel Prop
+    (fun (y : Seq) => realLeRep x y)
+    (fun (y y' : Seq) (hy : realRel y y') =>
+      propext (realLeRep x y) (realLeRep x y')
+        (realLeRep_wd_snd x y y' hy))
+
+-- ─────────────────────────────────────────────────────────────
+-- 66.3 外层下降：对 `x` 再做一次 `Quot.lift`
+-- ─────────────────────────────────────────────────────────────
+
+-- 外层要证 `realLeY x = realLeY x'`：先用 `funext` 逐点化，进入 `b` 后
+-- 用 `Quot.ind` 把 `b` 烧成 `mk y`，两次 ι 归约把目标变成
+-- `realLeRep x y = realLeRep x' y`，交给 66.0 与 `propext`。
+def realLe (a : Real) : Real → Prop :=
+  @Quot.lift.{1, 1} Seq realRel (Real → Prop)
+    (fun (x : Seq) => realLeY x)
+    (fun (x x' : Seq) (hx : realRel x x') =>
+      funext (fun (b : Real) => realLeY x b)
+             (fun (b : Real) => realLeY x' b)
+             (fun (b : Real) =>
+               @Quot.ind.{1} Seq realRel
+                 (fun (b : Real) => realLeY x b = realLeY x' b)
+                 (fun (y : Seq) =>
+                   propext (realLeRep x y) (realLeRep x' y)
+                     (realLeRep_wd x x' y hx))
+                 b))
+    a
+
+-- ─────────────────────────────────────────────────────────────
+-- 66.4 ι 规则：作用在 `mk` 上回到代表元形状
+-- ─────────────────────────────────────────────────────────────
+
+-- 两次 `Quot.lift` 都按 ι 归约，所以两边是定义性相等的命题，
+-- `Iff.intro` 的两个人射都取恒等函数。
+theorem realLe_mk (x y : Seq) :
+    realLe (Real.mk x) (Real.mk y) ↔ realLeRep x y :=
+  @Iff.intro (realLe (Real.mk x) (Real.mk y)) (realLeRep x y)
+    (fun (h : realLe (Real.mk x) (Real.mk y)) => h)
+    (fun (h : realLeRep x y) => h)
+
+-- ─────────────────────────────────────────────────────────────

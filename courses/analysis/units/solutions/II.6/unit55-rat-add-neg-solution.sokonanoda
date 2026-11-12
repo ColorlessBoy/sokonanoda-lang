@@ -1,0 +1,221 @@
+-- 单元55 有理数的加法逆元：`x + (-x) = 0`（解答）
+--
+-- `close` 的传递性要把 `x - y` 与 `y - z` 加起来，再把 `x - z` 认成
+-- `(x - y) + (y - z)`。这条等式在代表元层要先把 `-y + y` 收成 `0`——
+-- 也就是本单元证明的加法逆元律：
+--
+--   ratAdd_neg : x + (-x) ~ 0
+--
+-- 证明路线（全部停在代表元层，不碰商、不碰 `funext`、不加公理）：
+--
+--   · `lhs0_eq` / `rhs0_eq`：把交叉乘积两边的「零尾巴」收干净
+--     （`x + 0`、`0 + 0` 都只是 ℕ 的加法恒等，但内核不替你归约，
+--     必须显式用 `add_zero` / `zero_add` 走）；
+--   · `neg_zero_case`：两个分子坐标只差一个 `add_comm`（`(a+b) - (b+a)`），
+--     所以交叉和相等；
+--   · `ratAdd_neg_mk`：把分母里的 `myMul 0 (succ D)` 用 `zero_mul`
+--     换成 `0`（`Eq.subst` 的方向是 `0 = z`，不是 `z = 0`），
+--     再交给 `neg_zero_case`；
+--   · `ratAdd_neg_aux` / `ratAdd_neg`：在展开类型上 `match` 到字面三元组；
+--   · `ratSubRep_self`：减法就是「加负元」，定义性展开；
+--   · `demo_neg_self`：具体 `1/2 - 1/2 ~ 0`。
+--
+-- 本单元不引入新定义；`ratAddRep` / `ratNegRep` / `ratSubRep` /
+-- `ratZeroRep` 来自 `lib/Cauchy`。
+
+import lib.Cauchy
+
+theorem lhs0_eq (a b m : Nat) :
+    Nat.add
+      (Nat.add
+        (Nat.add (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m))) Nat.zero)
+        Nat.zero)
+      (Nat.add Nat.zero Nat.zero) =
+    Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (Nat.add
+        (Nat.add (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m))) Nat.zero)
+        Nat.zero)
+      (Nat.add Nat.zero Nat.zero))
+    (Nat.add
+      (Nat.add
+        (Nat.add (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m))) Nat.zero)
+        Nat.zero)
+      Nat.zero)
+    (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m)))
+    (@congrArg.{1} Nat Nat
+      (Nat.add Nat.zero Nat.zero)
+      Nat.zero
+      (fun (x : Nat) =>
+        Nat.add
+          (Nat.add
+            (Nat.add (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m))) Nat.zero)
+            Nat.zero)
+          x)
+      (zero_add Nat.zero))
+    (@Eq.trans.{1} Nat
+      (Nat.add
+        (Nat.add
+          (Nat.add (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m))) Nat.zero)
+          Nat.zero)
+        Nat.zero)
+      (Nat.add
+        (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m)))
+        Nat.zero)
+      (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m)))
+      (add_zero
+        (Nat.add
+          (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m)))
+          Nat.zero))
+      (@Eq.trans.{1} Nat
+        (Nat.add
+          (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m)))
+          Nat.zero)
+        (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m)))
+        (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m)))
+        (add_zero (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m))))
+        (Eq.refl (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m))))))
+
+theorem rhs0_eq (a b m : Nat) :
+    Nat.add
+      (Nat.add Nat.zero Nat.zero)
+      (Nat.add Nat.zero
+        (Nat.add
+          (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+          Nat.zero)) =
+    Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (Nat.add Nat.zero Nat.zero)
+      (Nat.add Nat.zero
+        (Nat.add
+          (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+          Nat.zero)))
+    (Nat.add Nat.zero
+      (Nat.add Nat.zero
+        (Nat.add
+          (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+          Nat.zero)))
+    (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+    (@congrArg.{1} Nat Nat
+      (Nat.add Nat.zero Nat.zero)
+      Nat.zero
+      (fun (x : Nat) =>
+        Nat.add x
+          (Nat.add Nat.zero
+            (Nat.add
+              (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+              Nat.zero)))
+      (zero_add Nat.zero))
+    (@Eq.trans.{1} Nat
+      (Nat.add Nat.zero
+        (Nat.add Nat.zero
+          (Nat.add
+            (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+            Nat.zero)))
+      (Nat.add Nat.zero
+        (Nat.add
+          (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+          Nat.zero))
+      (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+      (zero_add
+        (Nat.add Nat.zero
+          (Nat.add
+            (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+            Nat.zero)))
+      (@Eq.trans.{1} Nat
+        (Nat.add Nat.zero
+          (Nat.add
+            (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+            Nat.zero))
+        (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+        (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+        (zero_add
+          (Nat.add
+            (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+            Nat.zero))
+        (Eq.refl (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m))))))
+
+theorem neg_zero_case (a b m : Nat) :
+    Nat.add
+      (Nat.add
+        (Nat.add (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m))) Nat.zero)
+        Nat.zero)
+      (Nat.add Nat.zero Nat.zero) =
+    Nat.add
+      (Nat.add Nat.zero Nat.zero)
+      (Nat.add Nat.zero
+        (Nat.add
+          (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+          Nat.zero)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (Nat.add
+        (Nat.add (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m))) Nat.zero)
+        Nat.zero)
+      (Nat.add Nat.zero Nat.zero))
+    (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m)))
+    (Nat.add
+      (Nat.add Nat.zero Nat.zero)
+      (Nat.add Nat.zero
+        (Nat.add
+          (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+          Nat.zero)))
+    (lhs0_eq a b m)
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m)))
+      (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+      (Nat.add
+        (Nat.add Nat.zero Nat.zero)
+        (Nat.add Nat.zero
+          (Nat.add
+            (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+            Nat.zero)))
+      (add_comm (myMul a (Nat.succ m)) (myMul b (Nat.succ m)))
+      (@Eq.symm.{1} Nat
+        (Nat.add
+          (Nat.add Nat.zero Nat.zero)
+          (Nat.add Nat.zero
+            (Nat.add
+              (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+              Nat.zero)))
+        (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+        (rhs0_eq a b m)))
+
+theorem ratAdd_neg_mk (a b m : Nat) :
+    ratRel (ratAddRep (qrep a b m) (ratNegRep (qrep a b m))) ratZeroRep :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) =>
+      Nat.add
+        (Nat.add
+          (Nat.add (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m))) Nat.zero)
+          Nat.zero)
+        (Nat.add Nat.zero z) =
+      Nat.add
+        (Nat.add z Nat.zero)
+        (Nat.add Nat.zero
+          (Nat.add
+            (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
+            Nat.zero)))
+    Nat.zero
+    (myMul Nat.zero (Nat.succ (ratDenRep m m)))
+    (@Eq.symm.{1} Nat (myMul Nat.zero (Nat.succ (ratDenRep m m))) Nat.zero (zero_mul (Nat.succ (ratDenRep m m))))
+    (neg_zero_case a b m)
+
+theorem ratAdd_neg_aux (x : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratAddRep x (ratNegRep x)) ratZeroRep :=
+  match x with
+  | prod_mk (prod_mk a b) m => ratAdd_neg_mk a b m
+
+theorem ratAdd_neg (x : ratRep) :
+    ratRel (ratAddRep x (ratNegRep x)) ratZeroRep :=
+  ratAdd_neg_aux x
+
+theorem ratSubRep_self (x : ratRep) :
+    ratRel (ratSubRep x x) ratZeroRep :=
+  ratAdd_neg x
+
+theorem demo_neg_self :
+    ratRel (ratSubRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1)) ratZeroRep :=
+  ratSubRep_self (qrep 1 Nat.zero 1)

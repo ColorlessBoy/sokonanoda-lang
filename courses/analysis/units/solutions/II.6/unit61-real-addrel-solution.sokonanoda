@@ -1,0 +1,188 @@
+-- 单元61 实数的加法：三元关系（存在 + 唯一）（解答）
+--
+-- 60 在代表元层建立了 `addSeq`，并交清了两条下降义务：
+-- `cauchy_add`（Cauchy 对加法封闭）与 `realRel_add`（`realRel` 对加法同余）。
+-- 二元运算仍然不能直接写成 `Real → Real → Real` 的函数：`Quot.lift` 的外层
+-- 还要一次「函数相等」，而 `realRel` 只在 Cauchy 序列上自反 —— 商里还有
+-- 非 Cauchy 代表元形成的「杂点」，同一条 Cauchy 序列在杂点上的像不唯一。
+--
+-- 本单元把加法写成 **三元关系**：
+--
+--   addRel a b c  :⟺  a、b 有 Cauchy 代表元 x、y，且 c = mk (x + y)
+--
+-- 这个关系在 Cauchy 代表元上**存在且唯一**；在杂点上没有输出（这是诚实的
+-- 部分关系，不是把洞绕过去）。定义要经两次 `Quot.lift`；两次的良定义性
+-- 就是两个 `def` 里的 `funext` + `propext` 义务，代价是 L2 既有的
+-- `funext`（定理）与 `propext`（既有 axiom）——不新增任何信任。
+--
+-- 一个刻意留下的边界：`mk z = mk (x + y)` 反推 `realRel z (x + y)` 需要
+-- `Quot.exact`，而它要求 `realRel` 在整个 `Seq` 上自反；本载体拿不到这条
+-- （杂点不自反）。所以本单元只给「相关 ⇒ 是同一个输出」的**声音方向**
+-- （61.3），反推留作已知边界，不写成公理。
+--
+-- 61.1 是 ι 规则，61.2/61.3 是存在与声音方向，61.4 是唯一性，
+-- 61.5 是「存在且唯一」，61.6 落在常零序列上。
+
+import lib.RealAdd
+import lib.Extensionality
+
+-- ─────────────────────────────────────────────────────────────
+-- 关系在代表元上的形状
+-- ─────────────────────────────────────────────────────────────
+
+-- `addRelRep x y c` 读作「`c` 是 `x`、`y` 的和」。两个 `Cauchy` 守卫是
+-- 必要的：没有它们，第二次 lift 在杂点上没有 `realRel y y` 可用。
+def addRelRep (x y : Seq) (c : Real) : Prop :=
+  Cauchy x ∧ Cauchy y ∧ c = Real.mk (addSeq x y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 两次下降：`addRelY` 先下降第二个因子，`addRel` 再下降第一个
+-- ─────────────────────────────────────────────────────────────
+
+-- 固定 `x`，对 `y` 做 `Quot.lift`。外层类型是 `Real → Prop`，
+-- 所以良定义性要 `funext` + `propext` 把两个 `addRelRep` 的 `↔`
+-- 变成函数相等。`Cauchy x` 在两边都由假设提供，`Cauchy y` 与
+-- `Cauchy y'` 来自 `hy`；`mk` 下的等式由 60.4 的 `realRel_add` 给出。
+def addRelY (x : Seq) : Real → Real → Prop :=
+  @Quot.lift.{1, 1} Seq realRel (Real → Prop)
+    (fun (y : Seq) (c : Real) => addRelRep x y c)
+    (fun (y y' : Seq) (hy : realRel y y') =>
+      funext (fun (c : Real) => addRelRep x y c)
+             (fun (c : Real) => addRelRep x y' c)
+             (fun (c : Real) =>
+               propext (addRelRep x y c) (addRelRep x y' c)
+                 (Iff.intro
+                   (fun (h : addRelRep x y c) =>
+                     And.intro (And.left h)
+                       (And.intro (And.left (And.right hy))
+                         (Eq.trans (And.right (And.right h))
+                           (Real.sound (addSeq x y) (addSeq x y')
+                             (realRel_add x x y y'
+                               (realRel_refl x (And.left h)) hy)))))
+                   (fun (h : addRelRep x y' c) =>
+                     And.intro (And.left h)
+                       (And.intro (And.left hy)
+                         (Eq.trans (And.right (And.right h))
+                           (Eq.symm
+                             (Real.sound (addSeq x y) (addSeq x y')
+                               (realRel_add x x y y'
+                                 (realRel_refl x (And.left h)) hy)))))))))
+
+-- 再对第一个因子做一次 `Quot.lift`。里层要对 `b` 用 `Quot.ind`
+-- （命题层消去），把 `addRelY x (mk y)` 烧成代表元形状；两个方向
+-- 同样用 `realRel_add`（这次第一个假设是 `hx`，第二个由 `Cauchy y`
+-- 经 `realRel_refl` 反射）把 `mk` 下的代表元换掉。
+def addRel (a : Real) : Real → Real → Prop :=
+  @Quot.lift.{1, 1} Seq realRel (Real → Real → Prop)
+    (fun (x : Seq) => addRelY x)
+    (fun (x x' : Seq) (hx : realRel x x') =>
+      funext (fun (b : Real) => addRelY x b)
+             (fun (b : Real) => addRelY x' b)
+             (fun (b : Real) =>
+               @Quot.ind.{1} Seq realRel
+                 (fun (b : Real) => addRelY x b = addRelY x' b)
+                 (fun (y : Seq) =>
+                   funext (fun (c : Real) => addRelRep x y c)
+                          (fun (c : Real) => addRelRep x' y c)
+                          (fun (c : Real) =>
+                            propext (addRelRep x y c) (addRelRep x' y c)
+                              (Iff.intro
+                                (fun (h : addRelRep x y c) =>
+                                  And.intro (And.left (And.right hx))
+                                    (And.intro (And.left (And.right h))
+                                      (Eq.trans (And.right (And.right h))
+                                        (Real.sound (addSeq x y) (addSeq x' y)
+                                          (realRel_add x x' y y hx
+                                            (realRel_refl y (And.left (And.right h))))))))
+                                (fun (h : addRelRep x' y c) =>
+                                  And.intro (And.left hx)
+                                    (And.intro (And.left (And.right h))
+                                      (Eq.trans (And.right (And.right h))
+                                        (Eq.symm
+                                          (Real.sound (addSeq x y) (addSeq x' y)
+                                            (realRel_add x x' y y hx
+                                              (realRel_refl y (And.left (And.right h))))))))))))
+                 b))
+    a
+
+-- ─────────────────────────────────────────────────────────────
+-- 61.1 ι 规则：关系作用在 `mk` 上回到代表元形状
+-- ─────────────────────────────────────────────────────────────
+
+-- 两次 `Quot.lift` 都按 ι 归约，所以两边是定义性相等的命题，
+-- `Iff.intro` 的两个人射都取恒等函数。
+theorem addRel_mk (x y : Seq) (c : Real) :
+    (addRel (Real.mk x) (Real.mk y) c) ↔ (addRelRep x y c) :=
+  Iff.intro (fun (h : addRel (Real.mk x) (Real.mk y) c) => h)
+            (fun (h : addRelRep x y c) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 61.2 引入：Cauchy 代表元的和是关系的一个输出
+-- ─────────────────────────────────────────────────────────────
+
+theorem addRel_intro (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    addRel (Real.mk x) (Real.mk y) (Real.mk (addSeq x y)) :=
+  And.intro hx (And.intro hy (Eq.refl (Real.mk (addSeq x y))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 61.3 声音方向：与 `addSeq` 相关的实数就是那个输出
+-- ─────────────────────────────────────────────────────────────
+
+theorem addRel_sound (x y z : Seq) (hx : Cauchy x) (hy : Cauchy y)
+    (hz : realRel z (addSeq x y)) :
+    addRel (Real.mk x) (Real.mk y) (Real.mk z) :=
+  And.intro hx (And.intro hy (Real.sound z (addSeq x y) hz))
+
+-- ─────────────────────────────────────────────────────────────
+-- 61.4 唯一性：关系的两个输出相等
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 `a`、`b` 各做一次 `Quot.ind`；`addRel` 的两次 ι 归约把两个假设
+-- 都变成 `c = mk (x+y)` 与 `c' = mk (x+y)`，直接传递。
+theorem addRel_unique (a b c c' : Real)
+    (h : addRel a b c) (h' : addRel a b c') :
+    c = c' :=
+  @Quot.ind.{1} Seq realRel
+    (fun (a : Real) =>
+      ∀ (b c c' : Real), addRel a b c → addRel a b c' → c = c')
+    (fun (x : Seq) =>
+      fun (b c c' : Real)
+          (h : addRel (Real.mk x) b c)
+          (h' : addRel (Real.mk x) b c') =>
+        @Quot.ind.{1} Seq realRel
+          (fun (b : Real) =>
+            ∀ (c c' : Real),
+              addRel (Real.mk x) b c → addRel (Real.mk x) b c' → c = c')
+          (fun (y : Seq) =>
+            fun (c c' : Real)
+                (hc : addRel (Real.mk x) (Real.mk y) c)
+                (hc' : addRel (Real.mk x) (Real.mk y) c') =>
+              Eq.trans
+                (And.right (And.right hc))
+                (Eq.symm (And.right (And.right hc'))))
+          b c c' h h')
+    a b c c' h h'
+
+-- ─────────────────────────────────────────────────────────────
+-- 61.5 存在且唯一
+-- ─────────────────────────────────────────────────────────────
+
+theorem addRel_exists_unique (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    ∃ (c : Real),
+      addRel (Real.mk x) (Real.mk y) c ∧
+        ∀ (c' : Real), addRel (Real.mk x) (Real.mk y) c' → c' = c :=
+  Exists.intro (Real.mk (addSeq x y))
+    (And.intro
+      (addRel_intro x y hx hy)
+      (fun (c' : Real) (hc' : addRel (Real.mk x) (Real.mk y) c') =>
+        addRel_unique (Real.mk x) (Real.mk y) c' (Real.mk (addSeq x y))
+          hc' (addRel_intro x y hx hy)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 61.6 常零序列：关系确实有输出
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_addRel_zero :
+    addRel (Real.mk zeroSeq) (Real.mk zeroSeq)
+      (Real.mk (addSeq zeroSeq zeroSeq)) :=
+  addRel_intro zeroSeq zeroSeq cauchy_zero cauchy_zero

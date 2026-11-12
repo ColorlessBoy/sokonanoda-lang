@@ -1,0 +1,124 @@
+-- 单元56 两次减法的相加：中间项消去（解答）
+--
+-- `close` 的传递性要把两个距离加起来：
+--
+--   |x - y| < ε/2，  |y - z| < ε/2   ⟹   |x - z| < ε
+--
+-- 但 `x - z` 与 `(x - y) + (y - z)` 是两个不同的代表元，要先把它们认成
+-- 同一个有理数。本单元结清这条**代数恒等式**：
+--
+--   ratSubRep_add : (x - y) + (y - z) ~ x - z
+--
+-- 证明路线（全部停在商 + 已判卷的库引理上，不碰 `funext`、不加公理）：
+--
+--   · `ratAddRep_wd_gen` / `ratAddRep_wd_snd_gen`：`ratRel` 对 `ratAddRep`
+--     的两个变元都是同余（库里的 `ratAddRep_wd` / `_snd` 只认字面三元组，
+--     这里用 ㊴ 的 `ratLeRep_congr_gen` + ㊹ 的加法单调 + ㊻ 的反对称性
+--     在任意代表元上补出通用版本）；
+--   · `ratNegRep_add_self`：`(-y) + y ~ 0`（㉚–㉟ 的交换律 + 55 的逆元律）；
+--   · `ratSubRep_add`：结合律把 `(x + -y) + (y + -z)` 收成
+--     `x + ((-y + y) + -z)`，中间项换成 0，再用左零元收尾；
+--   · `demo_sub_add`：`(1/2 - 1/3) + (1/3 - 1/4) ~ 1/2 - 1/4`。
+--
+-- 本单元不引入新定义；`ratSubRep` 是 ㉜ 的减法定义。
+
+import lib.RatAssoc
+import lib.RatGroup
+
+-- ─────────────────────────────────────────────────────────────
+-- 56.1 `ratAddRep` 对第一个变元的通用同余
+-- ─────────────────────────────────────────────────────────────
+
+-- 库里的 `ratAddRep_wd` 只认**字面三元组**（两个变元必须同分母）。任意代表元上
+-- 用序来补：`x ~ x'` 给两个方向的弱序，各加同一个 `z`（㊹ 的 `ratLeRep_add_right`），
+-- 再用 ㊻ 的反对称性把两条弱序夹成 `ratRel`。
+
+theorem ratAddRep_wd_gen (x x' z : ratRep) (h : ratRel x x') :
+    ratRel (ratAddRep x z) (ratAddRep x' z) :=
+  ratLeRep_antisymm (ratAddRep x z) (ratAddRep x' z)
+    (ratLeRep_add_right x x' z (ratLeRep_of_ratRel x x' h))
+    (ratLeRep_add_right x' x z
+      (ratLeRep_of_ratRel x' x (ratRel_symm x x' h)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 56.2 `ratAddRep` 对第二个变元的通用同余
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAddRep_wd_snd_gen (x z z' : ratRep) (h : ratRel z z') :
+    ratRel (ratAddRep x z) (ratAddRep x z') :=
+  ratLeRep_antisymm (ratAddRep x z) (ratAddRep x z')
+    (ratLeRep_add_left z z' x (ratLeRep_of_ratRel z z' h))
+    (ratLeRep_add_left z' z x
+      (ratLeRep_of_ratRel z' z (ratRel_symm z z' h)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 56.3 `(-y) + y ~ 0`
+-- ─────────────────────────────────────────────────────────────
+
+-- 55 给的是 `y + (-y) ~ 0`；交换两个加数即可。这条是中间项消去的引擎。
+
+theorem ratNegRep_add_self (y : ratRep) :
+    ratRel (ratAddRep (ratNegRep y) y) ratZeroRep :=
+  ratRel_trans_gen
+    (ratAddRep (ratNegRep y) y)
+    (ratAddRep y (ratNegRep y))
+    ratZeroRep
+    (ratAdd_comm (ratNegRep y) y)
+    (ratAdd_neg_gen y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 56.4 主定理：`(x - y) + (y - z) ~ x - z`
+-- ─────────────────────────────────────────────────────────────
+
+-- 四步链（中间项 `-y + y` 换成 0）：
+--
+--   (x + -y) + (y + -z)
+--     ~ x + (-y + (y + -z))      结合律
+--     ~ x + ((-y + y) + -z)      结合律（反向）
+--     ~ x + (0 + -z)             中间项消去
+--     ~ x + -z                   左零元
+
+theorem ratSubRep_add (x y z : ratRep) :
+    ratRel (ratAddRep (ratSubRep x y) (ratSubRep y z)) (ratSubRep x z) :=
+  ratRel_trans_gen
+    (ratAddRep (ratSubRep x y) (ratSubRep y z))
+    (ratAddRep x (ratAddRep (ratNegRep y) (ratAddRep y (ratNegRep z))))
+    (ratSubRep x z)
+    (ratAdd_assoc x (ratNegRep y) (ratAddRep y (ratNegRep z)))
+    (ratRel_trans_gen
+      (ratAddRep x (ratAddRep (ratNegRep y) (ratAddRep y (ratNegRep z))))
+      (ratAddRep x (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z)))
+      (ratSubRep x z)
+      (ratAddRep_wd_snd_gen x
+        (ratAddRep (ratNegRep y) (ratAddRep y (ratNegRep z)))
+        (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z))
+        (ratRel_symm
+          (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z))
+          (ratAddRep (ratNegRep y) (ratAddRep y (ratNegRep z)))
+          (ratAdd_assoc (ratNegRep y) y (ratNegRep z))))
+      (ratRel_trans_gen
+        (ratAddRep x (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z)))
+        (ratAddRep x (ratAddRep ratZeroRep (ratNegRep z)))
+        (ratSubRep x z)
+        (ratAddRep_wd_snd_gen x
+          (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z))
+          (ratAddRep ratZeroRep (ratNegRep z))
+          (ratAddRep_wd_gen
+            (ratAddRep (ratNegRep y) y) ratZeroRep (ratNegRep z)
+            (ratNegRep_add_self y)))
+        (ratAddRep_wd_snd_gen x
+          (ratAddRep ratZeroRep (ratNegRep z))
+          (ratNegRep z)
+          (ratAdd_zero_left (ratNegRep z)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 56.5 具体：`(1/2 - 1/3) + (1/3 - 1/4) ~ 1/2 - 1/4`
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_sub_add :
+    ratRel
+      (ratAddRep
+        (ratSubRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 2))
+        (ratSubRep (qrep 1 Nat.zero 2) (qrep 1 Nat.zero 3)))
+      (ratSubRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 3)) :=
+  ratSubRep_add (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 2) (qrep 1 Nat.zero 3)

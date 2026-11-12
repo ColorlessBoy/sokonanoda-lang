@@ -1,0 +1,299 @@
+-- 单元㊸ 有理数加法的代表元律：交换与零元（解答）
+--
+-- ㉖ 立了 ℚ 加法的代表元公式
+--
+--   (a-b)/(m+1) + (c-d)/(n+1) = [a(n+1)+c(m+1) - (b(n+1)+d(m+1))] / ((m+1)(n+1))
+--
+-- 并结清了两条良定义义务；但**运算律**还没证。本单元结清两条：
+--
+--   x + y ~ y + x          （㊸.3）
+--   x + 0 ~ x              （㊸.4）
+--   0 + x ~ x              （㊸.5，由交换律与 ㊸.4）
+--
+-- 为什么需要它们：下一单元的「序与加法相容」要把 `x ≤ y` 搬到 `x + z ≤ y + z`，
+-- 而**左**加（`z + x ≤ z + y`）靠的是「先交换、用右加、再交换回来」——
+-- 没有 ㊸.3 就无法把右加版本变成左加版本。
+--
+-- 证明路线：
+--
+--   ㊸.1 / ㊸.2 是加零的**算术小件**：`a·1` 定义性展开成 `a + a*0`，`a*0 = 0`
+--   再 `add_zero` 消掉；分母 `ratDenRep m 0 = (m*0 + m) + 0` 同理退化成 `m`。
+--
+--   ㊸.3 在**代表元层**比较：`x + y` 与 `y + x` 的分子只差两次 `add_comm`，
+--   分母只差 `ratDenRep_comm`。所以先把两边都用 `mulRep_den_form` 化成
+--   「分子 × 正分母」的规范形（`ratRel` 的交叉乘积），再用
+--   `prod_mk_congr` + `congrArg` 把两个规范形证成**相等**，最后 `intRel_of_eq`。
+--
+--   ㊸.4 先把 `x + 0` 这个**三元组**搬成 `qrep a b m`（㊸.1/㊸.2 消掉零项），
+--   再用 `ratRel_refl`。`ratRep` 是 `Prod (Prod Nat Nat) Nat` 的定义别名，
+--   `match` 只认归纳类型本身，所以通用陈述先在一个 `_aux`（展开类型上的）
+--   定理里 match 到字面三元组，再把字面结果转发给通用陈述 —— 这是本课程
+--   处理「ratRep 上的通用引理」的固定写法（㊷ 的 `ratSubRep_neg_aux` 同形）。
+--
+--   ㊸.5 是 `ratRel` 的传递链：`0 + x ~ x + 0`（㊸.3）→ `x`（㊸.4）。
+--
+--   ㊸.6 是具体计算：`1/2 + 1/3` 的代表元公式定义性归约成 `5/6 = qrep 5 0 5`，
+--   两边是同一个三元组，直接 `ratRel_refl`。
+
+import lib.Cauchy
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.1 加零的分子形状
+-- ─────────────────────────────────────────────────────────────
+
+-- `myMul a (succ 0)` 定义性展开成 `a + a*0`；`a*0 = 0`（myMul_zero）后是 `a + 0`，
+-- `add_zero` 收成 `a`。另一个加数 `0*(m+1) = 0`（zero_mul），整个和就是 `a`。
+
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.1
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_zero_num (a m : Nat) :
+    Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)) = a :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)))
+    (Nat.add (Nat.add a Nat.zero) (myMul Nat.zero (Nat.succ m)))
+    a
+    (congrArg.{1}
+      (fun (Z : Nat) => Nat.add Z (myMul Nat.zero (Nat.succ m)))
+      (@Eq.trans.{1} Nat
+        (myMul a (Nat.succ Nat.zero))
+        (Nat.add a (myMul a Nat.zero))
+        (Nat.add a Nat.zero)
+        (myMul_succ a Nat.zero)
+        (congrArg.{1} (fun (Z : Nat) => Nat.add a Z) (myMul_zero a))))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add a Nat.zero) (myMul Nat.zero (Nat.succ m)))
+      (Nat.add (Nat.add a Nat.zero) Nat.zero)
+      a
+      (congrArg.{1}
+        (fun (Z : Nat) => Nat.add (Nat.add a Nat.zero) Z)
+        (zero_mul (Nat.succ m)))
+      (@Eq.trans.{1} Nat
+        (Nat.add (Nat.add a Nat.zero) Nat.zero)
+        (Nat.add a Nat.zero)
+        a
+        (add_zero (Nat.add a Nat.zero))
+        (add_zero a)))
+
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.2
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_zero_den (m : Nat) : ratDenRep m Nat.zero = m :=
+  @Eq.trans.{1} Nat
+    (ratDenRep m Nat.zero)
+    (Nat.add (Nat.add Nat.zero m) Nat.zero)
+    m
+    (congrArg.{1}
+      (fun (Z : Nat) => Nat.add (Nat.add Z m) Nat.zero)
+      (myMul_zero m))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add Nat.zero m) Nat.zero)
+      (Nat.add m Nat.zero)
+      m
+      (congrArg.{1}
+        (fun (Z : Nat) => Nat.add Z Nat.zero)
+        (zero_add m))
+      (add_zero m))
+
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.3 的辅助：`ratRep` 是定义别名，先在展开类型上 match 到字面三元组
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_comm_aux (x y : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratAddRep x y) (ratAddRep y x) :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match y with
+    | prod_mk (prod_mk p q) n =>
+      intRel_trans
+        (mulRep
+          (numOf (ratAddRep (qrep a b m) (qrep p q n)))
+          (den (denOf (ratAddRep (qrep p q n) (qrep a b m)))))
+        (@prod_mk Nat Nat
+          (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                 (Nat.succ (ratDenRep n m)))
+          (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                 (Nat.succ (ratDenRep n m))))
+        (mulRep
+          (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+          (den (denOf (ratAddRep (qrep a b m) (qrep p q n)))))
+        (intRel_of_eq
+          (mulRep
+            (numOf (ratAddRep (qrep a b m) (qrep p q n)))
+            (den (denOf (ratAddRep (qrep p q n) (qrep a b m)))))
+          (@prod_mk Nat Nat
+            (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                   (Nat.succ (ratDenRep n m)))
+            (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                   (Nat.succ (ratDenRep n m))))
+          (mulRep_den_form
+            (numOf (ratAddRep (qrep a b m) (qrep p q n)))
+            (ratDenRep n m)))
+        (intRel_trans
+          (@prod_mk Nat Nat
+            (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                   (Nat.succ (ratDenRep n m)))
+            (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                   (Nat.succ (ratDenRep n m))))
+          (@prod_mk Nat Nat
+            (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                   (Nat.succ (ratDenRep m n)))
+            (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                   (Nat.succ (ratDenRep m n))))
+          (mulRep
+            (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+            (den (denOf (ratAddRep (qrep a b m) (qrep p q n)))))
+          (intRel_of_eq
+            (@prod_mk Nat Nat
+              (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                     (Nat.succ (ratDenRep n m)))
+              (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                     (Nat.succ (ratDenRep n m))))
+            (@prod_mk Nat Nat
+              (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n)))
+              (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n))))
+            (prod_mk_congr
+              (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                     (Nat.succ (ratDenRep n m)))
+              (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n)))
+              (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                     (Nat.succ (ratDenRep n m)))
+              (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n)))
+              (@Eq.trans.{1} Nat
+                (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                       (Nat.succ (ratDenRep n m)))
+                (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                       (Nat.succ (ratDenRep n m)))
+                (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                       (Nat.succ (ratDenRep m n)))
+                (congrArg.{1}
+                  (fun (Z : Nat) => myMul Z (Nat.succ (ratDenRep n m)))
+                  (add_comm (myMul a (Nat.succ n)) (myMul p (Nat.succ m))))
+                (congrArg.{1}
+                  (fun (Z : Nat) => myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n))) Z)
+                  (congrArg.{1} Nat.succ (ratDenRep_comm n m))))
+              (@Eq.trans.{1} Nat
+                (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                       (Nat.succ (ratDenRep n m)))
+                (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                       (Nat.succ (ratDenRep n m)))
+                (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                       (Nat.succ (ratDenRep m n)))
+                (congrArg.{1}
+                  (fun (Z : Nat) => myMul Z (Nat.succ (ratDenRep n m)))
+                  (add_comm (myMul b (Nat.succ n)) (myMul q (Nat.succ m))))
+                (congrArg.{1}
+                  (fun (Z : Nat) => myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n))) Z)
+                  (congrArg.{1} Nat.succ (ratDenRep_comm n m))))))
+          (intRel_symm
+            (mulRep
+              (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+              (den (denOf (ratAddRep (qrep a b m) (qrep p q n)))))
+            (@prod_mk Nat Nat
+              (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n)))
+              (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n))))
+            (intRel_of_eq
+              (mulRep
+                (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+                (den (denOf (ratAddRep (qrep a b m) (qrep p q n)))))
+              (@prod_mk Nat Nat
+                (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                       (Nat.succ (ratDenRep m n)))
+                (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                       (Nat.succ (ratDenRep m n))))
+              (mulRep_den_form
+                (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+                (ratDenRep m n)))))
+
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.3 交换律（转发字面结果）
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_comm (x y : ratRep) :
+    ratRel (ratAddRep x y) (ratAddRep y x) :=
+  ratAdd_comm_aux x y
+-- ㊸.2 的算术小件-- ㊸.2 的算术小件
+
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.4 的辅助：把 `x + 0` 的三元组搬成 `qrep a b m`
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_zero_aux (x : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratAddRep x ratZeroRep) x :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    @Eq.subst.{1} ratRep
+      (fun (y : ratRep) => ratRel y (qrep a b m))
+      (qrep a b m)
+      (ratAddRep (qrep a b m) ratZeroRep)
+      (@Eq.symm.{1} ratRep
+        (ratAddRep (qrep a b m) ratZeroRep)
+        (qrep a b m)
+        (@Eq.trans.{1} (Prod (Prod Nat Nat) Nat)
+        (ratAddRep (qrep a b m) ratZeroRep)
+        (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) (ratDenRep m Nat.zero))
+        (qrep a b m)
+        (congrArg.{1}
+          (fun (P : Prod Nat Nat) =>
+            @prod_mk (Prod Nat Nat) Nat P (ratDenRep m Nat.zero))
+          (prod_mk_congr
+            (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m))) a
+            (Nat.add (myMul b (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m))) b
+            (ratAdd_zero_num a m) (ratAdd_zero_num b m)))
+        (@Eq.trans.{1} (Prod (Prod Nat Nat) Nat)
+          (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) (ratDenRep m Nat.zero))
+          (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) m)
+          (qrep a b m)
+          (congrArg.{1}
+            (fun (Z : Nat) => @prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) Z)
+            (ratAdd_zero_den m))
+          (Eq.refl (qrep a b m)))))
+      (ratRel_refl (qrep a b m))
+
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.4 右加零
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_zero (x : ratRep) : ratRel (ratAddRep x ratZeroRep) x :=
+  ratAdd_zero_aux x
+
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.5 左加零：交换律 + ㊸.4 + `ratRel` 传递
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_zero_left (x : ratRep) : ratRel (ratAddRep ratZeroRep x) x :=
+  ratRel_trans_gen (ratAddRep ratZeroRep x) (ratAddRep x ratZeroRep) x
+    (ratAdd_comm ratZeroRep x) (ratAdd_zero x)
+
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.6 具体计算：1/2 + 1/3 = 5/6
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_add_compute :
+    ratRel (ratAddRep (qrep 1 0 1) (qrep 1 0 2)) (qrep 5 0 5) :=
+  ratRel_refl (qrep 5 0 5)
+

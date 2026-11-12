@@ -1,0 +1,510 @@
+-- 单元54 有理数加法的结合律：公分母的三层嵌套（解答）
+--
+-- 为什么需要这条律：`close` 的传递性要把 `x - y` 与 `y - z` 加起来，
+-- 并把 `x - z` 认成 `(x - y) + (y - z)`。代表元层的加法不是定义性结合：
+-- 三个分母的 `ratDenRep` 嵌套顺序不同，分子也要重新分配。本单元把
+-- `(x + y) + z ~ x + (y + z)` 完整证出来，并为下一单元（`close` 的
+-- 传递性）备好引擎。
+--
+-- 证明路线：
+--   · `assoc_lhs` / `assoc_rhs`：分母乘开后的两个分量各自归一；
+--   · `assoc_num1`：上分量的结合律；
+--   · `den_assoc`：`ratDenRep` 的结合律；
+--   · `qrep_congr`：把两个 `qrep` 收成同一个；
+--   · `assoc_num1_lit` / `assoc_num2_lit`：把 `succ (ratDenRep m n)`
+--     换成 `(m+1)(n+1)` 后接上 54.2；
+--   · `ratAdd_assoc_mk`：字面三元组的结合律；
+--   · `ratAdd_assoc`：在展开类型上 `match` 到字面三元组后转发。
+--
+-- 全部停在代表元层，不碰商、不碰 `funext`、不加公理。
+
+import lib.RatHalf
+
+theorem assoc_lhs (a b c d e f m n k : Nat) :
+    Nat.add
+      (myMul (Nat.add (myMul a (Nat.succ n)) (myMul c (Nat.succ m))) (Nat.succ k))
+      (myMul e (myMul (Nat.succ m) (Nat.succ n))) =
+    Nat.add
+      (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+      (Nat.add
+        (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+        (myMul e (myMul (Nat.succ m) (Nat.succ n)))) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (myMul (Nat.add (myMul a (Nat.succ n)) (myMul c (Nat.succ m))) (Nat.succ k))
+      (myMul e (myMul (Nat.succ m) (Nat.succ n))))
+    (Nat.add
+      (Nat.add
+        (myMul (myMul a (Nat.succ n)) (Nat.succ k))
+        (myMul (myMul c (Nat.succ m)) (Nat.succ k)))
+      (myMul e (myMul (Nat.succ m) (Nat.succ n))))
+    (Nat.add
+      (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+      (Nat.add
+        (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+        (myMul e (myMul (Nat.succ m) (Nat.succ n)))))
+    (@congrArg.{1} Nat Nat
+      (myMul (Nat.add (myMul a (Nat.succ n)) (myMul c (Nat.succ m))) (Nat.succ k))
+      (Nat.add
+        (myMul (myMul a (Nat.succ n)) (Nat.succ k))
+        (myMul (myMul c (Nat.succ m)) (Nat.succ k)))
+      (fun (x : Nat) =>
+        Nat.add x (myMul e (myMul (Nat.succ m) (Nat.succ n))))
+      (mul_add_right
+        (myMul a (Nat.succ n))
+        (myMul c (Nat.succ m))
+        (Nat.succ k)))
+    (@Eq.trans.{1} Nat
+      (Nat.add
+        (Nat.add
+          (myMul (myMul a (Nat.succ n)) (Nat.succ k))
+          (myMul (myMul c (Nat.succ m)) (Nat.succ k)))
+        (myMul e (myMul (Nat.succ m) (Nat.succ n))))
+      (Nat.add
+        (Nat.add
+          (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+          (myMul (myMul c (Nat.succ m)) (Nat.succ k)))
+        (myMul e (myMul (Nat.succ m) (Nat.succ n))))
+      (Nat.add
+        (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+        (Nat.add
+          (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+          (myMul e (myMul (Nat.succ m) (Nat.succ n)))))
+      (@congrArg.{1} Nat Nat
+        (myMul (myMul a (Nat.succ n)) (Nat.succ k))
+        (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+        (fun (x : Nat) =>
+          Nat.add
+            (Nat.add x (myMul (myMul c (Nat.succ m)) (Nat.succ k)))
+            (myMul e (myMul (Nat.succ m) (Nat.succ n))))
+        (myMul_assoc a (Nat.succ n) (Nat.succ k)))
+      (@Eq.trans.{1} Nat
+        (Nat.add
+          (Nat.add
+            (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+            (myMul (myMul c (Nat.succ m)) (Nat.succ k)))
+          (myMul e (myMul (Nat.succ m) (Nat.succ n))))
+        (Nat.add
+          (Nat.add
+            (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+            (myMul c (myMul (Nat.succ m) (Nat.succ k))))
+          (myMul e (myMul (Nat.succ m) (Nat.succ n))))
+        (Nat.add
+          (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+          (Nat.add
+            (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+            (myMul e (myMul (Nat.succ m) (Nat.succ n)))))
+        (@congrArg.{1} Nat Nat
+          (myMul (myMul c (Nat.succ m)) (Nat.succ k))
+          (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+          (fun (x : Nat) =>
+            Nat.add
+              (Nat.add (myMul a (myMul (Nat.succ n) (Nat.succ k))) x)
+              (myMul e (myMul (Nat.succ m) (Nat.succ n))))
+          (myMul_assoc c (Nat.succ m) (Nat.succ k)))
+        (add_assoc
+          (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+          (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+          (myMul e (myMul (Nat.succ m) (Nat.succ n))))))
+
+theorem assoc_rhs (a b c d e f m n k : Nat) :
+    Nat.add
+      (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+      (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m)) =
+    Nat.add
+      (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+      (Nat.add
+        (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+        (myMul e (myMul (Nat.succ m) (Nat.succ n)))) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+      (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m)))
+    (Nat.add
+      (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+      (Nat.add
+        (myMul (myMul c (Nat.succ k)) (Nat.succ m))
+        (myMul (myMul e (Nat.succ n)) (Nat.succ m))))
+    (Nat.add
+      (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+      (Nat.add
+        (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+        (myMul e (myMul (Nat.succ m) (Nat.succ n)))))
+    (@congrArg.{1} Nat Nat
+      (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m))
+      (Nat.add
+        (myMul (myMul c (Nat.succ k)) (Nat.succ m))
+        (myMul (myMul e (Nat.succ n)) (Nat.succ m)))
+      (fun (x : Nat) =>
+        Nat.add (myMul a (myMul (Nat.succ n) (Nat.succ k))) x)
+      (mul_add_right
+        (myMul c (Nat.succ k))
+        (myMul e (Nat.succ n))
+        (Nat.succ m)))
+    (@Eq.trans.{1} Nat
+      (Nat.add
+        (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+        (Nat.add
+          (myMul (myMul c (Nat.succ k)) (Nat.succ m))
+          (myMul (myMul e (Nat.succ n)) (Nat.succ m))))
+      (Nat.add
+        (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+        (Nat.add
+          (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+          (myMul (myMul e (Nat.succ n)) (Nat.succ m))))
+      (Nat.add
+        (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+        (Nat.add
+          (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+          (myMul e (myMul (Nat.succ m) (Nat.succ n)))))
+      (@congrArg.{1} Nat Nat
+        (Nat.add
+          (myMul (myMul c (Nat.succ k)) (Nat.succ m))
+          (myMul (myMul e (Nat.succ n)) (Nat.succ m)))
+        (Nat.add
+          (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+          (myMul (myMul e (Nat.succ n)) (Nat.succ m)))
+        (fun (x : Nat) =>
+          Nat.add
+            (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+            x)
+        (@congrArg.{1} Nat Nat
+          (myMul (myMul c (Nat.succ k)) (Nat.succ m))
+          (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+          (fun (x : Nat) => Nat.add x (myMul (myMul e (Nat.succ n)) (Nat.succ m)))
+          (@Eq.trans.{1} Nat
+            (myMul (myMul c (Nat.succ k)) (Nat.succ m))
+            (myMul c (myMul (Nat.succ k) (Nat.succ m)))
+            (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+            (myMul_assoc c (Nat.succ k) (Nat.succ m))
+            (@congrArg.{1} Nat Nat
+              (myMul (Nat.succ k) (Nat.succ m))
+              (myMul (Nat.succ m) (Nat.succ k))
+              (fun (z : Nat) => myMul c z)
+              (myMul_comm (Nat.succ k) (Nat.succ m))))))
+      (@congrArg.{1} Nat Nat
+        (Nat.add
+          (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+          (myMul (myMul e (Nat.succ n)) (Nat.succ m)))
+        (Nat.add
+          (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+          (myMul e (myMul (Nat.succ m) (Nat.succ n))))
+        (fun (x : Nat) =>
+          Nat.add
+            (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+            x)
+        (@congrArg.{1} Nat Nat
+          (myMul (myMul e (Nat.succ n)) (Nat.succ m))
+          (myMul e (myMul (Nat.succ m) (Nat.succ n)))
+          (fun (x : Nat) => Nat.add (myMul c (myMul (Nat.succ m) (Nat.succ k))) x)
+          (@Eq.trans.{1} Nat
+            (myMul (myMul e (Nat.succ n)) (Nat.succ m))
+            (myMul e (myMul (Nat.succ n) (Nat.succ m)))
+            (myMul e (myMul (Nat.succ m) (Nat.succ n)))
+            (myMul_assoc e (Nat.succ n) (Nat.succ m))
+            (@congrArg.{1} Nat Nat
+              (myMul (Nat.succ n) (Nat.succ m))
+              (myMul (Nat.succ m) (Nat.succ n))
+              (fun (z : Nat) => myMul e z)
+              (myMul_comm (Nat.succ n) (Nat.succ m)))))))
+
+theorem assoc_num1 (a b c d e f m n k : Nat) :
+    Nat.add
+      (myMul (Nat.add (myMul a (Nat.succ n)) (myMul c (Nat.succ m))) (Nat.succ k))
+      (myMul e (myMul (Nat.succ m) (Nat.succ n))) =
+    Nat.add
+      (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+      (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (myMul (Nat.add (myMul a (Nat.succ n)) (myMul c (Nat.succ m))) (Nat.succ k))
+      (myMul e (myMul (Nat.succ m) (Nat.succ n))))
+    (Nat.add
+      (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+      (Nat.add
+        (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+        (myMul e (myMul (Nat.succ m) (Nat.succ n)))))
+    (Nat.add
+      (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+      (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m)))
+    (assoc_lhs a b c d e f m n k)
+    (@Eq.symm.{1} Nat
+      (Nat.add
+        (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+        (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m)))
+      (Nat.add
+        (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+        (Nat.add
+          (myMul c (myMul (Nat.succ m) (Nat.succ k)))
+          (myMul e (myMul (Nat.succ m) (Nat.succ n)))))
+      (assoc_rhs a b c d e f m n k))
+
+theorem den_assoc (m n k : Nat) :
+    ratDenRep (ratDenRep m n) k = ratDenRep m (ratDenRep n k) :=
+  Nat.succ.inj
+    (ratDenRep (ratDenRep m n) k)
+    (ratDenRep m (ratDenRep n k))
+    (@Eq.trans.{1} Nat
+      (Nat.succ (ratDenRep (ratDenRep m n) k))
+      (myMul (myMul (Nat.succ m) (Nat.succ n)) (Nat.succ k))
+      (Nat.succ (ratDenRep m (ratDenRep n k)))
+      (@Eq.trans.{1} Nat
+        (Nat.succ (ratDenRep (ratDenRep m n) k))
+        (myMul (Nat.succ (ratDenRep m n)) (Nat.succ k))
+        (myMul (myMul (Nat.succ m) (Nat.succ n)) (Nat.succ k))
+        (ratDenRep_succ (ratDenRep m n) k)
+        (@congrArg.{1} Nat Nat
+          (Nat.succ (ratDenRep m n))
+          (myMul (Nat.succ m) (Nat.succ n))
+          (fun (x : Nat) => myMul x (Nat.succ k))
+          (ratDenRep_succ m n)))
+      (@Eq.symm.{1} Nat
+        (Nat.succ (ratDenRep m (ratDenRep n k)))
+        (myMul (myMul (Nat.succ m) (Nat.succ n)) (Nat.succ k))
+        (@Eq.trans.{1} Nat
+          (Nat.succ (ratDenRep m (ratDenRep n k)))
+          (myMul (Nat.succ m) (Nat.succ (ratDenRep n k)))
+          (myMul (myMul (Nat.succ m) (Nat.succ n)) (Nat.succ k))
+          (ratDenRep_succ m (ratDenRep n k))
+          (@Eq.trans.{1} Nat
+            (myMul (Nat.succ m) (Nat.succ (ratDenRep n k)))
+            (myMul (Nat.succ m) (myMul (Nat.succ n) (Nat.succ k)))
+            (myMul (myMul (Nat.succ m) (Nat.succ n)) (Nat.succ k))
+            (@congrArg.{1} Nat Nat
+              (Nat.succ (ratDenRep n k))
+              (myMul (Nat.succ n) (Nat.succ k))
+              (fun (x : Nat) => myMul (Nat.succ m) x)
+              (ratDenRep_succ n k))
+            (@Eq.symm.{1} Nat
+              (myMul (myMul (Nat.succ m) (Nat.succ n)) (Nat.succ k))
+              (myMul (Nat.succ m) (myMul (Nat.succ n) (Nat.succ k)))
+              (myMul_assoc (Nat.succ m) (Nat.succ n) (Nat.succ k)))))))
+
+theorem qrep_congr (a a' b b' m m' : Nat)
+    (ha : a = a') (hb : b = b') (hm : m = m') :
+    qrep a b m = qrep a' b' m' :=
+  @Eq.subst.{1} (Prod Nat Nat)
+    (fun (p : Prod Nat Nat) =>
+      qrep a b m = @prod_mk (Prod Nat Nat) Nat p m')
+    (@prod_mk Nat Nat a b)
+    (@prod_mk Nat Nat a' b')
+    (prod_mk_congr a a' b b' ha hb)
+    (@Eq.subst.{1} Nat
+      (fun (x : Nat) =>
+        qrep a b m = @prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) x)
+      m m' hm
+      (Eq.refl (qrep a b m)))
+
+def qL (a b c d e f m n k : Nat) : ratRep :=
+  qrep
+    (Nat.add
+      (myMul (Nat.add (myMul a (Nat.succ n)) (myMul c (Nat.succ m))) (Nat.succ k))
+      (myMul e (Nat.succ (ratDenRep m n))))
+    (Nat.add
+      (myMul (Nat.add (myMul b (Nat.succ n)) (myMul d (Nat.succ m))) (Nat.succ k))
+      (myMul f (Nat.succ (ratDenRep m n))))
+    (ratDenRep (ratDenRep m n) k)
+
+def qR (a b c d e f m n k : Nat) : ratRep :=
+  qrep
+    (Nat.add
+      (myMul a (Nat.succ (ratDenRep n k)))
+      (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m)))
+    (Nat.add
+      (myMul b (Nat.succ (ratDenRep n k)))
+      (myMul (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))) (Nat.succ m)))
+    (ratDenRep m (ratDenRep n k))
+
+theorem assoc_num1_lit (a b c d e f m n k : Nat) :
+    Nat.add
+      (myMul (Nat.add (myMul a (Nat.succ n)) (myMul c (Nat.succ m))) (Nat.succ k))
+      (myMul e (Nat.succ (ratDenRep m n))) =
+    Nat.add
+      (myMul a (Nat.succ (ratDenRep n k)))
+      (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (myMul (Nat.add (myMul a (Nat.succ n)) (myMul c (Nat.succ m))) (Nat.succ k))
+      (myMul e (Nat.succ (ratDenRep m n))))
+    (Nat.add
+      (myMul (Nat.add (myMul a (Nat.succ n)) (myMul c (Nat.succ m))) (Nat.succ k))
+      (myMul e (myMul (Nat.succ m) (Nat.succ n))))
+    (Nat.add
+      (myMul a (Nat.succ (ratDenRep n k)))
+      (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m)))
+    (@congrArg.{1} Nat Nat
+      (Nat.succ (ratDenRep m n))
+      (myMul (Nat.succ m) (Nat.succ n))
+      (fun (x : Nat) =>
+        Nat.add
+          (myMul (Nat.add (myMul a (Nat.succ n)) (myMul c (Nat.succ m))) (Nat.succ k))
+          (myMul e x))
+      (ratDenRep_succ m n))
+    (@Eq.trans.{1} Nat
+      (Nat.add
+        (myMul (Nat.add (myMul a (Nat.succ n)) (myMul c (Nat.succ m))) (Nat.succ k))
+        (myMul e (myMul (Nat.succ m) (Nat.succ n))))
+      (Nat.add
+        (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+        (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m)))
+      (Nat.add
+        (myMul a (Nat.succ (ratDenRep n k)))
+        (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m)))
+      (assoc_num1 a b c d e f m n k)
+      (@congrArg.{1} Nat Nat
+        (myMul a (myMul (Nat.succ n) (Nat.succ k)))
+        (myMul a (Nat.succ (ratDenRep n k)))
+        (fun (x : Nat) =>
+          Nat.add x
+            (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m)))
+        (@congrArg.{1} Nat Nat
+          (myMul (Nat.succ n) (Nat.succ k))
+          (Nat.succ (ratDenRep n k))
+          (fun (z : Nat) => myMul a z)
+          (@Eq.symm.{1} Nat
+            (Nat.succ (ratDenRep n k))
+            (myMul (Nat.succ n) (Nat.succ k))
+            (ratDenRep_succ n k)))))
+
+theorem assoc_num2_lit (a b c d e f m n k : Nat) :
+    Nat.add
+      (myMul (Nat.add (myMul b (Nat.succ n)) (myMul d (Nat.succ m))) (Nat.succ k))
+      (myMul f (Nat.succ (ratDenRep m n))) =
+    Nat.add
+      (myMul b (Nat.succ (ratDenRep n k)))
+      (myMul (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))) (Nat.succ m)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (myMul (Nat.add (myMul b (Nat.succ n)) (myMul d (Nat.succ m))) (Nat.succ k))
+      (myMul f (Nat.succ (ratDenRep m n))))
+    (Nat.add
+      (myMul (Nat.add (myMul b (Nat.succ n)) (myMul d (Nat.succ m))) (Nat.succ k))
+      (myMul f (myMul (Nat.succ m) (Nat.succ n))))
+    (Nat.add
+      (myMul b (Nat.succ (ratDenRep n k)))
+      (myMul (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))) (Nat.succ m)))
+    (@congrArg.{1} Nat Nat
+      (Nat.succ (ratDenRep m n))
+      (myMul (Nat.succ m) (Nat.succ n))
+      (fun (x : Nat) =>
+        Nat.add
+          (myMul (Nat.add (myMul b (Nat.succ n)) (myMul d (Nat.succ m))) (Nat.succ k))
+          (myMul f x))
+      (ratDenRep_succ m n))
+    (@Eq.trans.{1} Nat
+      (Nat.add
+        (myMul (Nat.add (myMul b (Nat.succ n)) (myMul d (Nat.succ m))) (Nat.succ k))
+        (myMul f (myMul (Nat.succ m) (Nat.succ n))))
+      (Nat.add
+        (myMul b (myMul (Nat.succ n) (Nat.succ k)))
+        (myMul (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))) (Nat.succ m)))
+      (Nat.add
+        (myMul b (Nat.succ (ratDenRep n k)))
+        (myMul (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))) (Nat.succ m)))
+      (assoc_num1 b b d d f f m n k)
+      (@congrArg.{1} Nat Nat
+        (myMul b (myMul (Nat.succ n) (Nat.succ k)))
+        (myMul b (Nat.succ (ratDenRep n k)))
+        (fun (x : Nat) =>
+          Nat.add x
+            (myMul (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))) (Nat.succ m)))
+        (@congrArg.{1} Nat Nat
+          (myMul (Nat.succ n) (Nat.succ k))
+          (Nat.succ (ratDenRep n k))
+          (fun (z : Nat) => myMul b z)
+          (@Eq.symm.{1} Nat
+            (Nat.succ (ratDenRep n k))
+            (myMul (Nat.succ n) (Nat.succ k))
+            (ratDenRep_succ n k)))))
+
+theorem ratAdd_assoc_mk (a b c d e f m n k : Nat) :
+    ratRel
+      (ratAddRep (ratAddRep (qrep a b m) (qrep c d n)) (qrep e f k))
+      (ratAddRep (qrep a b m) (ratAddRep (qrep c d n) (qrep e f k))) :=
+  @ratRel_trans_gen
+    (ratAddRep (ratAddRep (qrep a b m) (qrep c d n)) (qrep e f k))
+    (qR a b c d e f m n k)
+    (ratAddRep (qrep a b m) (ratAddRep (qrep c d n) (qrep e f k)))
+    (@Eq.subst.{1} ratRep
+      (fun (w : ratRep) =>
+        ratRel
+          (ratAddRep (ratAddRep (qrep a b m) (qrep c d n)) (qrep e f k)) w)
+      (qL a b c d e f m n k)
+      (qR a b c d e f m n k)
+      (@Eq.trans.{1} ratRep
+        (qL a b c d e f m n k)
+        (qrep
+          (Nat.add
+            (myMul a (Nat.succ (ratDenRep n k)))
+            (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m)))
+          (Nat.add
+            (myMul b (Nat.succ (ratDenRep n k)))
+            (myMul (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))) (Nat.succ m)))
+          (ratDenRep (ratDenRep m n) k))
+        (qR a b c d e f m n k)
+        (qrep_congr
+          (Nat.add
+            (myMul (Nat.add (myMul a (Nat.succ n)) (myMul c (Nat.succ m))) (Nat.succ k))
+            (myMul e (Nat.succ (ratDenRep m n))))
+          (Nat.add
+            (myMul a (Nat.succ (ratDenRep n k)))
+            (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m)))
+          (Nat.add
+            (myMul (Nat.add (myMul b (Nat.succ n)) (myMul d (Nat.succ m))) (Nat.succ k))
+            (myMul f (Nat.succ (ratDenRep m n))))
+          (Nat.add
+            (myMul b (Nat.succ (ratDenRep n k)))
+            (myMul (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))) (Nat.succ m)))
+          (ratDenRep (ratDenRep m n) k)
+          (ratDenRep (ratDenRep m n) k)
+          (assoc_num1_lit a b c d e f m n k)
+          (assoc_num2_lit a b c d e f m n k)
+          (Eq.refl (ratDenRep (ratDenRep m n) k)))
+        (@congrArg.{1} Nat ratRep
+          (ratDenRep (ratDenRep m n) k)
+          (ratDenRep m (ratDenRep n k))
+          (fun (x : Nat) =>
+            qrep
+              (Nat.add
+                (myMul a (Nat.succ (ratDenRep n k)))
+                (myMul (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))) (Nat.succ m)))
+              (Nat.add
+                (myMul b (Nat.succ (ratDenRep n k)))
+                (myMul (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))) (Nat.succ m)))
+              x)
+          (den_assoc m n k)))
+      (ratRel_refl
+        (ratAddRep (ratAddRep (qrep a b m) (qrep c d n)) (qrep e f k))))
+    (ratRel_refl
+      (ratAddRep (qrep a b m) (ratAddRep (qrep c d n) (qrep e f k))))
+
+theorem ratAdd_assoc_aux (x y z : Prod (Prod Nat Nat) Nat) :
+    ratRel
+      (ratAddRep (ratAddRep x y) z)
+      (ratAddRep x (ratAddRep y z)) :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match y with
+    | prod_mk (prod_mk c d) n =>
+      match z with
+      | prod_mk (prod_mk e f) k =>
+        ratAdd_assoc_mk a b c d e f m n k
+
+theorem ratAdd_assoc (x y z : ratRep) :
+    ratRel
+      (ratAddRep (ratAddRep x y) z)
+      (ratAddRep x (ratAddRep y z)) :=
+  ratAdd_assoc_aux x y z
+
+theorem demo_assoc :
+    ratRel
+      (ratAddRep
+        (ratAddRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 2))
+        (qrep 1 Nat.zero 3))
+      (ratAddRep
+        (qrep 1 Nat.zero 1)
+        (ratAddRep (qrep 1 Nat.zero 2) (qrep 1 Nat.zero 3))) :=
+  ratAdd_assoc
+    (qrep 1 Nat.zero 1)
+    (qrep 1 Nat.zero 2)
+    (qrep 1 Nat.zero 3)
