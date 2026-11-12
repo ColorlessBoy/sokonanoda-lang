@@ -1,0 +1,99 @@
+-- 单元100 Cauchy 序列的尾部刻画
+--
+-- Cauchy 的定义要求尾巴上的任意两项彼此靠近。这个量词管两个下标，估计时
+-- 要同时照看 n 与 m。实际使用中往往只需要一个参照点：尾巴的第一项 x N。
+-- 证明这两种写法等价，是把 Cauchy 性用到具体序列上的第一步。
+--
+-- 从「两项比较」到「与 x N 比较」是直接的削弱；反过来要把 ε 折半，
+-- 两个尾巴项各自落在 x N 的 ε/2 邻域里，再由三角不等式合成。
+--
+-- 边界：这里只改写 Cauchy 的定义，不证明 Cauchy 序列收敛。有理数上的
+-- Cauchy 序列未必有有理极限（截断的 √2 近似是一例），完备性在实数层谈。
+-- 不新增公理。
+
+import lib.Limit
+import lib.LimitOrder
+import lib.Tail
+
+-- ─────────────────────────────────────────────────────────────
+-- 100.0 与尾巴的第一项比较
+-- ─────────────────────────────────────────────────────────────
+
+-- 原定义对 n、m 同时要求；把 m 固定成 N，右边的 `N ≤ N` 由自反性付清。
+--
+-- soko:hint 思路：对每个 ε 取原定义给的 N；对 n ≥ N，用 `hN n N hn (LeNat.le_refl N)`。
+-- soko:hint 目标形态：`∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (x N) eps`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · LeNat.le_refl。
+theorem cauchy_tail (x : Seq) (h : Cauchy x) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (x N) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 100.1 从参照点回到两项比较
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 ε/2 取 N。两条接近性都指向 x N；第二条翻向，再由 `close_trans`
+-- 把 ε/2 的两段拼成 ε。
+--
+-- soko:hint 思路：以 ε/2 为前提调用参照点形式，得 N。对 n、m ≥ N，第一条直接是 `close (x n) (x N) (ε/2)`；第二条 `close (x m) (x N) (ε/2)` 用 `close_symm` 翻成 `close (x N) (x m) (ε/2)`。
+-- soko:hint 目标形态：`Cauchy x`。
+-- soko:hint 关键件：ratLtRep_half · close_symm · close_trans · Exists.elim · Exists.intro。
+theorem cauchy_of_tail (x : Seq)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (x N) eps) :
+    Cauchy x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 100.2 两种写法等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个方向分别由 100.0 与 100.1 给出。
+--
+-- soko:hint 思路：`Iff.intro`，正向交 100.0，反向交 100.1。
+-- soko:hint 目标形态：`Cauchy x ↔ ∀ eps > 0, ∃ N, ∀ n ≥ N, close (x n) (x N) eps`。
+-- soko:hint 关键件：Iff.intro · cauchy_tail · cauchy_of_tail。
+theorem cauchy_tail_iff (x : Seq) :
+    Cauchy x ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (x N) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 100.3 平移保持 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- 原阈值 N 仍然够用：n ≤ n + k，所以 n + k 也在 N 之后。
+--
+-- soko:hint 思路：沿用原定义的 N。对 n ≥ N，先由 `leNat_self_add n k` 得 `n ≤ n + k`，再用 `leNat_trans` 把 `N ≤ n` 接上去；m 那一侧同形。
+-- soko:hint 目标形态：`Cauchy (fun (n : Nat) => x (Nat.add n k))`。
+-- soko:hint 关键件：leNat_self_add · leNat_trans · Exists.elim · Exists.intro。
+theorem cauchy_shift (x : Seq) (k : Nat) (h : Cauchy x) :
+    Cauchy (fun (n : Nat) => x (Nat.add n k)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 100.4 终究为常数推出 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾巴上的每一项都等于 q，两条 `close_of_ratRel` 各给 ε/2，再合成 ε。
+--
+-- soko:hint 思路：取终究性的阈值 N。n、m ≥ N 时，`hN n hn` 与 `hN m hm` 各给 `ratRel (x ·) q`；`close_of_ratRel` 把它们变成 ε/2 的接近性，第二条用 `close_symm` 翻向，最后 `close_trans`。
+-- soko:hint 目标形态：`Cauchy x`。
+-- soko:hint 关键件：close_of_ratRel · close_symm · close_trans · ratLtRep_half。
+theorem cauchy_of_eventually_const (x : Seq) (q : ratRep)
+    (h : Eventually (fun (n : Nat) => ratRel (x n) q)) : Cauchy x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 100.5 常序列
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列逐点等于 q，尾部相等的自反性直接给出 100.4 的前提。
+--
+-- soko:hint 思路：`tailEq_refl (constSeq q)` 给出 `Eventually (fun n => ratRel ((constSeq q) n) ((constSeq q) n))`；展开 `constSeq` 后交给 100.4。
+-- soko:hint 目标形态：`Cauchy (constSeq q)`。
+-- soko:hint 关键件：tailEq_refl · cauchy_of_eventually_const。
+theorem demo_cauchy_tail_const (q : ratRep) : Cauchy (constSeq q) :=
+  sorry

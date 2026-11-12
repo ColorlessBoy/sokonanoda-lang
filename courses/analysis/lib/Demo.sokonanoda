@@ -21,6 +21,8 @@ import lib.Liminf
 import lib.SubseqLimit
 import lib.LimsupBound
 import lib.Tail
+import lib.CauchyTail
+import lib.Bounded
 
 theorem demo_lib_closure : True := True.intro
 
@@ -60,3 +62,9 @@ theorem demo_converges_congr_tail_zero :
     Converges (constSeq ratZeroRep) ratZeroRep :=
   converges_congr_tail (constSeq ratZeroRep) (constSeq ratZeroRep) ratZeroRep
     (converges_const ratZeroRep) (tailEq_refl (constSeq ratZeroRep))
+
+theorem demo_cauchy_tail_zero : Cauchy (constSeq ratZeroRep) :=
+  demo_cauchy_tail_const ratZeroRep
+
+theorem demo_bounded_const_zero : Bounded (constSeq ratZeroRep) :=
+  demo_bounded_const ratZeroRep

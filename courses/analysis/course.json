@@ -772,6 +772,34 @@
               "unit": 99
             }
           ]
+        },
+        {
+          "id": "III.4",
+          "title": "Cauchy 序列与完备性",
+          "prereqs": [
+            "III.3"
+          ],
+          "tags": [
+            "cauchy-sequence",
+            "completeness"
+          ],
+          "quota": {
+            "exercises": 50
+          },
+          "units": [
+            {
+              "file": "units/III.4/unit100-cauchy-tail.sokonanoda",
+              "title": "单元100 Cauchy 序列的尾部刻画",
+              "title_en": "Unit 100 — Tail Characterisation of Cauchy Sequences",
+              "unit": 100
+            },
+            {
+              "file": "units/III.4/unit101-cauchy-bounded.sokonanoda",
+              "title": "单元101 Cauchy 序列有界",
+              "title_en": "Unit 101 — Cauchy Sequences are Bounded",
+              "unit": 101
+            }
+          ]
         }
       ]
     }
