@@ -130,6 +130,36 @@ BANNED_RULES: list[dict] = [
         ),
         why="英文同理：总结句与『值得注意』是 LLM 的高频填充。",
     ),
+    # 1b. 高钩子 / curiosity-gap 开场（hook-opening）
+    #     Owner 2026-11-12: cheap hooks are now an AI-writing tell; credibility
+    #     collapse. The math book opens by stating the question/missing idea.
+    dict(
+        id="zh-hook-opening",
+        category="hook-opening",
+        pattern=re.compile(
+            r"(你有没有(?:想过|发现|注意)|你是否(?:曾经|想过|注意)|你可曾|"
+            r"你知道(?:吗|么)|想象一下|设想一下|试想一下|"
+            r"如果我说|假如我说|如果告诉你|大多数人(?:都)?不知道|"
+            r"99%\s*的?人|百分之九十九|别急着|先别急|先别划走|看到最后|"
+            r"看完这|颠覆你的|刷新你的|你以为|其实不然|真相是|"
+            r"故事的开始|故事要从|这一切要从|凌晨三点|我曾经也|直到我|"
+            r"你可能没注意|你一定(?:会|遇到|见过)|不是普通的|这不是一篇)"
+        ),
+        why="劣质钩子/伪悬念：第二人称提问或制造好奇缺口，是 AI 文章高频开场；数学书应先说清问题。",
+    ),
+    dict(
+        id="en-hook-opening",
+        category="hook-opening",
+        pattern=re.compile(
+            r"(?i)\b(imagine (?:a|an|that|if)|have you ever|did you know|"
+            r"what if i told you|most people don't (?:know|realize)|"
+            r"nobody (?:talks|tells)|here(?:'s| is) the thing|the truth is|"
+            r"let me tell you|it all started|at 3\s*am|stop scrolling|"
+            r"you won't believe|this changed (?:everything|my life)|"
+            r"i used to think|until i (?:discovered|realized))\b"
+        ),
+        why="English cheap-hook opening: curiosity gap/manufactured suspense, a known AI-writing tell.",
+    ),
     # 2. 元叙述 / AI 自指（meta / AI self-reference）
     dict(
         id="zh-meta-ai",
@@ -1384,6 +1414,16 @@ def selftest() -> int:
         problems.append("重复散文段没有被判红")
     # 9) HTML 模式
     problems.extend(_selftest_html())
+    # 10) 高钩子开场（owner 2026-11-12）
+    hook = (
+        "-- 单元⑨ 钩子夹具\n--\n"
+        "-- 你有没有想过，数学其实可以这样看？\n"
+        "-- 这一单元讲一件事，所以这里有一段合格的导语。\n\n"
+        "def x : Nat := 0\n"
+    )
+    report = _lint_text_as_source(hook)
+    if "zh-hook-opening" not in {hit.rule for hit in report.hits}:
+        problems.append("高钩子开场夹具没有被判红")
 
     if problems:
         print("style-lint --selftest: 失败", file=sys.stderr)
