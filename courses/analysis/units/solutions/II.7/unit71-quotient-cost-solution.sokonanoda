@@ -1,0 +1,118 @@
+-- 单元71 数系综合：商的代价——一座桥与两座桥（解答）
+--
+-- 69 把 ℤ→ℚ 的函数 `intToRat : Int → Rat` **下降**了一次；61 与 66 把 ℝ 的
+-- 加法与序各**下降两次**。两次不是笔误，是 `Quot.lift` 的类型决定的：
+--
+--   Quot.lift : (f : α → β) → (∀ a b, r a b → f a = f b) → Quot r → β
+--
+--   · 当 `β = Rat`（一个 Type），lift 的返回值仍是元素，义务只有一条：
+--     换代表元后像相等（69.2 的 `intToRatRep_wd`）。
+--   · 当 `β = Real → Prop`（61 的加法关系、66 的序），外层 lift 的 `f`
+--     是 `Real → (Real → Prop)`，于是「换代表元后像相等」变成了**函数
+--     相等**：把函数相等化成逐点相等要 `funext`，每个点上的命题相等要
+--     `propext`。这正是 61/66 两个 `def` 里的两次 `Quot.lift` 与两条
+--     外延义务。
+--
+-- 两件代价都**不是新公理**：`funext` 在本课程 L2 是从 `Quot.sound` 证出的
+-- **定理**（`lib.Extensionality`），`propext` 是 L2 已声明的**既有 axiom**
+-- （只在 Prop 层用）。所以「ℝ 的加法是关系而不是函数」不是绕路：
+-- `addRel a b c` 正是两次 lift 之后能诚实拿到的全部。
+
+import lib.Rat
+import lib.RealAddRel
+import lib.Extensionality
+
+-- ─────────────────────────────────────────────────────────────
+-- 71.0 ι 规则：lift 作用在 mk 上回到代表元
+-- ─────────────────────────────────────────────────────────────
+
+-- `Quot.lift` 作用在 `Quot.mk a` 上按 ι 归约成 `f a`，两边定义性相等。
+theorem quot_lift_mk (α β : Type) (r : α → α → Prop)
+    (f : α → β) (h : ∀ (a b : α), r a b → f a = f b) (a : α) :
+    @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r a) = f a :=
+  @Eq.refl.{1} β (f a)
+
+-- ─────────────────────────────────────────────────────────────
+-- 71.1 两个 lift 相等：逐点相等就够了（funext）
+-- ─────────────────────────────────────────────────────────────
+
+-- 先 `funext` 把函数相等化成逐点相等，再 `Quot.ind` 把商点烧成
+-- `mk a`；两次 ι 归约后目标就是 `f a = g a`，交给逐点假设。
+theorem quot_lift_unique (α β : Type) (r : α → α → Prop)
+    (f g : α → β)
+    (hf : ∀ (a b : α), r a b → f a = f b)
+    (hg : ∀ (a b : α), r a b → g a = g b)
+    (h : ∀ (a : α), f a = g a) :
+    @Quot.lift.{1, 1} α r β f hf = @Quot.lift.{1, 1} α r β g hg :=
+  funext
+    (@Quot.lift.{1, 1} α r β f hf)
+    (@Quot.lift.{1, 1} α r β g hg)
+    (fun (q : @Quot.{1} α r) =>
+      @Quot.ind.{1} α r
+        (fun (q : @Quot.{1} α r) =>
+          @Quot.lift.{1, 1} α r β f hf q =
+          @Quot.lift.{1, 1} α r β g hg q)
+        (fun (a : α) => h a)
+        q)
+
+-- ─────────────────────────────────────────────────────────────
+-- 71.2 一座桥：`Int → Rat` 的下降与它的过桥费
+-- ─────────────────────────────────────────────────────────────
+
+def intToRatRep (p : Prod Nat Nat) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat p Nat.zero
+
+-- 过桥费：换代表元，像在 `ratRel` 下相等。与 69.2 同一条 `mulRep_wd`。
+theorem intToRatRep_wd (p q : Prod Nat Nat) (h : intRel p q) :
+    ratRel (intToRatRep p) (intToRatRep q) :=
+  mulRep_wd (Prod.fst Nat Nat p) (Prod.snd Nat Nat p)
+    (Prod.fst Nat Nat q) (Prod.snd Nat Nat q) 1 0 h
+
+def intToRat : Int → Rat :=
+  @Quot.lift.{1, 1} (Prod Nat Nat) intRel Rat
+    (fun (p : Prod Nat Nat) => ratOf p Nat.zero)
+    (fun (p q : Prod Nat Nat) (h : intRel p q) =>
+      @Quot.sound.{1} ratRep ratRel (intToRatRep p) (intToRatRep q)
+        (intToRatRep_wd p q h))
+
+-- `intToRat` 作用在 `mk p` 上按 ι 归约成 `Quot.mk ratRel (intToRatRep p)`；
+-- 于是 `Quot.sound` 把 `intToRatRep_wd` 直接升级成商里的相等。
+theorem intToRat_sound (p q : Prod Nat Nat) (h : intRel p q) :
+    intToRat (@Quot.mk.{1} (Prod Nat Nat) intRel p) =
+    intToRat (@Quot.mk.{1} (Prod Nat Nat) intRel q) :=
+  @Quot.sound.{1} ratRep ratRel (intToRatRep p) (intToRatRep q)
+    (intToRatRep_wd p q h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 71.3 两座桥的代价：关系可以沿三个位置搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- `addRel` 不是函数，不能 `congrArg`；但三个参数都是相等可替换的。
+-- 从右到左搬：先 `c`，再 `b`，最后 `a`。
+theorem addRel_congr (a a' b b' c c' : Real)
+    (h : addRel a b c) (ha : a = a') (hb : b = b') (hc : c = c') :
+    addRel a' b' c' :=
+  @Eq.subst.{1} Real (fun (x : Real) => addRel a' b' x) c c' hc
+    (@Eq.subst.{1} Real (fun (x : Real) => addRel a' x c) b b' hb
+      (@Eq.subst.{1} Real (fun (x : Real) => addRel x b c) a a' ha h))
+
+-- ─────────────────────────────────────────────────────────────
+-- 71.4 关系在 Cauchy 代表元上有输出
+-- ─────────────────────────────────────────────────────────────
+
+-- 输出取 `Real.mk (addSeq x y)`；`addRel_intro` 正好给出这个三元组。
+theorem addRel_total_on_cauchy (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    ∃ (c : Real), addRel (Real.mk x) (Real.mk y) c :=
+  Exists.intro (Real.mk (addSeq x y)) (addRel_intro x y hx hy)
+
+-- ─────────────────────────────────────────────────────────────
+-- 71.5 具体：常零序列上「存在且唯一」
+-- ─────────────────────────────────────────────────────────────
+
+-- 61.5 的直接实例；两个 Cauchy 守卫是 `cauchy_zero`。
+theorem demo_addRel_exists_unique :
+    ∃ (c : Real),
+      addRel (Real.mk zeroSeq) (Real.mk zeroSeq) c ∧
+        ∀ (c' : Real),
+          addRel (Real.mk zeroSeq) (Real.mk zeroSeq) c' → c' = c :=
+  addRel_exists_unique zeroSeq zeroSeq cauchy_zero cauchy_zero

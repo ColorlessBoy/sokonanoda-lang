@@ -1,0 +1,61 @@
+-- 课程库：`close` 传递性的引擎（单元57）
+--
+-- 单元57 在画布里证了下面三条并判卷；这里收进 L2，`realRel` 的传递性
+-- （单元58）起直接引用，不再重抄：
+--
+--   · `ratLtRep_congr_snd` —— 严格序在右端沿 `ratRel` 搬运；
+--   · `ratAdd_lt_half` —— 两个 `ε/2` 的严格界相加得 `< ε`；
+--   · `close_trans` —— `close x y ε/2` 与 `close y z ε/2` 得 `close x z ε`。
+--
+-- 证明全部停在商 + 已判卷的库引理上，不碰 `funext`、不加公理。
+
+import lib.RatClose
+import lib.RatSub
+
+theorem ratLtRep_congr_snd (a b c : ratRep)
+    (h : ratLtRep a b) (hbc : ratRel b c) : ratLtRep a c :=
+  And.intro
+    (ratLeRep_congr_gen a a b c (ratRel_refl a) hbc (And.left h))
+    (fun (hac : ratRel a c) =>
+      And.right h
+        (ratRel_trans_gen a c b hac (ratRel_symm b c hbc)))
+
+theorem ratAdd_lt_half (dx dy eps : ratRep)
+    (hx : ratLtRep dx (ratHalf eps)) (hy : ratLtRep dy (ratHalf eps)) :
+    ratLtRep (ratAddRep dx dy) eps :=
+  ratLtRep_congr_snd
+    (ratAddRep dx dy)
+    (ratAddRep (ratHalf eps) (ratHalf eps))
+    eps
+    (ratLtRep_add dx (ratHalf eps) dy (ratHalf eps) hx hy)
+    (ratHalf_add_self eps)
+
+theorem close_trans (x y z eps : ratRep) (heps : ratLtRep ratZeroRep eps)
+    (hxy : close x y (ratHalf eps)) (hyz : close y z (ratHalf eps)) :
+    close x z eps :=
+  Exists.elim hxy
+    (fun (dx : ratRep)
+        (hdx : ratAbsRel (ratSubRep x y) dx ∧ ratLtRep dx (ratHalf eps)) =>
+      Exists.elim hyz
+        (fun (dy : ratRep)
+            (hdy : ratAbsRel (ratSubRep y z) dy ∧ ratLtRep dy (ratHalf eps)) =>
+          Exists.elim
+            (ratAbsRel_total
+              (ratAddRep (ratSubRep x y) (ratSubRep y z)))
+            (fun (d : ratRep)
+                (hd : ratAbsRel
+                  (ratAddRep (ratSubRep x y) (ratSubRep y z)) d) =>
+              Exists.intro d
+                (And.intro
+                  (ratAbsRel_wd_left
+                    (ratAddRep (ratSubRep x y) (ratSubRep y z))
+                    (ratSubRep x z)
+                    d
+                    (ratSubRep_add x y z)
+                    hd)
+                  (ratLtRep_of_le_lt d (ratAddRep dx dy) eps
+                    (ratLeRep_abs_add
+                      (ratSubRep x y) (ratSubRep y z) dx dy d
+                      (And.left hdx) (And.left hdy) hd)
+                    (ratAdd_lt_half dx dy eps
+                      (And.right hdx) (And.right hdy)))))))

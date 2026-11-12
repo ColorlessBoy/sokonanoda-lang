@@ -1,0 +1,72 @@
+-- 单元58 `realRel` 的传递性：逐点 `close` 与 Cauchy 的三段常数
+--
+-- ㊱ 把实数的相等定义成 Cauchy 序列的逐点接近：
+--
+--   realRel x y  :⟺  Cauchy x ∧ Cauchy y ∧
+--                    ∀ eps > 0, ∃ N, ∀ n ≥ N, close (x n) (y n) eps
+--
+-- 要证 `realRel x z` 需要三件：
+--   · `Cauchy x` —— 直接是 `hxy` 的第一分量；
+--   · `Cauchy z` —— 直接是 `hyz` 的第二分量；
+--   · 逐点 `close` —— 本单元的内容。
+--
+-- 逐点部分不能直接把 `hxy` 与 `hyz` 用在同一个 `ε` 上：两个前提各给一个
+-- `N`，而且分别只保证 `ε`（而不是 `ε/2`）的界。所以：
+--
+--   ① 对 `ε/2` 取两个阈值 `N1`、`N2`（`0 < ε ⇒ 0 < ε/2` 是 53）；
+--   ② 取一个同时大于等于两者的 `N`（ℕ 的 `≤` 全性 + 传递）；
+--   ③ 在 `n ≥ N` 上把两个 `ε/2` 的界交给 57 的 `close_trans`。
+--
+-- 58.1 是阈值的合并，58.2 是逐点部分，58.3 是主定理，58.4 落在常零序列上。
+--
+-- 本单元不引入新定义；用到的 `close_trans` 与 `ratLtRep_half` 已在
+-- `lib/RatCloseTrans` / `lib/RatClose` 里判过卷。
+
+import lib.RatCloseTrans
+
+-- ─────────────────────────────────────────────────────────────
+-- 58.1 两个 ℕ 阈值的合并
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：用 ㊺ 的 `leNat_total` 把 `m ≤ n` 与 `n ≤ m` 分成两支。第一支取 `N = n`：`m ≤ n` 就是假设，`n ≤ n` 用构造子 `LeNat.le_refl n`；第二支取 `N = m`：`m ≤ m` 是 `LeNat.le_refl m`，`n ≤ m` 就是假设（注意两个分量的顺序：第一个是 `m ≤ N`，第二个是 `n ≤ N`）。
+-- soko:hint 目标形态：`∃ N, LeNat m N ∧ LeNat n N`。
+-- soko:hint 关键件：leNat_total · LeNat.le_refl · Exists.intro · And.intro（`Or.elim` 的两个分支在前，`Or` 的证明在最后）。
+theorem leNat_max (m n : Nat) : ∃ (N : Nat), LeNat m N ∧ LeNat n N :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 58.2 逐点 `close` 的传递
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先对 `ε/2` 取两个阈值（`ratLtRep_half eps heps` 给 `0 < ε/2`），用 58.1 合并成 `N`；对 `n ≥ N`，两个前提各自用 `leNat_trans` 把 `n ≥ N ≥ N1`、`n ≥ N ≥ N2` 落到 `n`，再交给 `close_trans (x n) (y n) (z n) eps heps`。
+-- soko:hint 目标形态：两个「逐点 close」前提 ⇒ `∀ eps > 0, ∃ N, ∀ n ≥ N, close (x n) (z n) eps`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · ratLtRep_half · leNat_max · leNat_trans · close_trans。
+theorem realRel_close_trans (x y z : Seq)
+    (hxy : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (y n) eps)
+    (hyz : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (y n) (z n) eps) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (z n) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 58.3 主定理：`realRel` 的传递性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`realRel x z` 是 `Cauchy x ∧ Cauchy z ∧ 逐点 close`。第一分量取 `And.left hxy`；第二分量是 `hyz` 的第二个分量 `And.left (And.right hyz)`（小心 `hxy` / `hyz` 里第一个 `Cauchy` 是哪个序列）；第三分量交给 58.2，两个前提分别是 `And.right (And.right hxy)` 与 `And.right (And.right hyz)`。
+-- soko:hint 目标形态：`realRel x y → realRel y z → realRel x z`。
+-- soko:hint 关键件：And.intro（两次）· And.left · And.right · realRel_close_trans。
+theorem realRel_trans (x y z : Seq) (hxy : realRel x y) (hyz : realRel y z) :
+    realRel x z :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 58.4 具体：常零序列经由自身传递
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两次 `realRel_zero`（㊱ 已判卷）就是传递性的两个前提。
+-- soko:hint 目标形态：`realRel zeroSeq zeroSeq`。
+-- soko:hint 关键件：realRel_trans · realRel_zero。
+theorem demo_realRel_trans : realRel zeroSeq zeroSeq :=
+  sorry

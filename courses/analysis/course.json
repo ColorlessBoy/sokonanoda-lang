@@ -204,6 +204,354 @@
               "unit": 28
             }
           ]
+        },
+        {
+          "id": "II.3",
+          "title": "有理数的性质：序、绝对值、幂与间隙",
+          "prereqs": [
+            "II.2"
+          ],
+          "tags": [
+            "rat-order",
+            "rat-abs",
+            "rat-pow"
+          ],
+          "quota": {
+            "exercises": 40
+          },
+          "units": [
+            {
+              "file": "units/II.3/unit29-rat-order.sokonanoda",
+              "title": "单元㉙ 有理数的序：代表元公式与自反性",
+              "title_en": "Unit 29 — Order on Rationals",
+              "unit": 29
+            },
+            {
+              "file": "units/II.3/unit30-rat-strict-order.sokonanoda",
+              "title": "单元㉚ 有理数的严格序：< 与不相等",
+              "title_en": "Unit 30 — Strict Order on Rationals",
+              "unit": 30
+            },
+            {
+              "file": "units/II.3/unit31-rat-neg.sokonanoda",
+              "title": "单元㉛ 有理数的负元：代表元层定义与良定义性",
+              "title_en": "Unit 31 — Negation of Rationals",
+              "unit": 31
+            },
+            {
+              "file": "units/II.3/unit32-rat-sub.sokonanoda",
+              "title": "单元㉜ 有理数的减法：加法与负元的组合",
+              "title_en": "Unit 32 — Subtraction of Rationals",
+              "unit": 32
+            },
+            {
+              "file": "units/II.3/unit33-rat-abs.sokonanoda",
+              "title": "单元㉝ 有理数的绝对值：关系定义与两条引入规则",
+              "title_en": "Unit 33 — Absolute Value of Rationals",
+              "unit": 33
+            },
+            {
+              "file": "units/II.3/unit34-rat-pow.sokonanoda",
+              "title": "单元㉞ 有理数的幂：定义与计算规则",
+              "title_en": "Unit 34 — Powers of Rationals",
+              "unit": 34
+            }
+          ]
+        },
+        {
+          "id": "II.4",
+          "title": "有理 Cauchy 序列与实数的载体",
+          "prereqs": [
+            "II.3"
+          ],
+          "tags": [
+            "cauchy",
+            "real"
+          ],
+          "quota": {
+            "exercises": 44
+          },
+          "units": [
+            {
+              "file": "units/II.4/unit35-cauchy-def.sokonanoda",
+              "title": "单元㉟ 有理 Cauchy 序列：close 与 Cauchy 的定义",
+              "title_en": "Unit 35 — Cauchy Sequences: Definitions",
+              "unit": 35
+            },
+            {
+              "file": "units/II.4/unit36-real-carrier.sokonanoda",
+              "title": "单元㊱ 实数的载体：Real := Quot realRel",
+              "title_en": "Unit 36 — The Carrier of the Reals",
+              "unit": 36
+            },
+            {
+              "file": "units/II.4/unit37-order-den.sokonanoda",
+              "title": "单元㊲ 序与正分母：乘法、消去与配对搬运",
+              "title_en": "Unit 37 — Order and Positive Denominators",
+              "unit": 37
+            },
+            {
+              "file": "units/II.4/unit38-order-trans.sokonanoda",
+              "title": "单元㊳ 有理数的序：传递性",
+              "title_en": "Unit 38 — Transitivity of the Order",
+              "unit": 38
+            },
+            {
+              "file": "units/II.4/unit39-order-wd.sokonanoda",
+              "title": "单元㊴ 有理数的序与相等相容",
+              "title_en": "Unit 39 — The Order Respects Equality",
+              "unit": 39
+            },
+            {
+              "file": "units/II.4/unit40-real-refl.sokonanoda",
+              "title": "单元㊵ 实数的相等：自反性",
+              "title_en": "Unit 40 — Reflexivity of Real Equality",
+              "unit": 40
+            },
+            {
+              "file": "units/II.4/unit41-neg-order.sokonanoda",
+              "title": "单元㊶ 取负与序：绝对值的对称性",
+              "title_en": "Unit 41 — Negation, Order and Absolute Value",
+              "unit": 41
+            },
+            {
+              "file": "units/II.4/unit42-close-symm.sokonanoda",
+              "title": "单元㊷ close 的对称性：实数的相等可以换方向",
+              "title_en": "Unit 42 — Symmetry of Close and Real Equality",
+              "unit": 42
+            },
+            {
+              "file": "units/II.4/unit43-add-laws.sokonanoda",
+              "title": "单元㊸ 有理数加法的代表元律：交换与零元",
+              "title_en": "Unit 43 — Addition Laws on Representatives: Commutativity and Zero",
+              "unit": 43
+            },
+            {
+              "file": "units/II.4/unit44-order-add.sokonanoda",
+              "title": "单元㊹ 序与加法相容：x ≤ y ⇒ x + z ≤ y + z",
+              "title_en": "Unit 44 — Order Compatible with Addition",
+              "unit": 44
+            }
+          ]
+        },
+        {
+          "id": "II.5",
+          "title": "ℝ 的商、代数与序",
+          "prereqs": [
+            "II.4"
+          ],
+          "tags": [
+            "real",
+            "order",
+            "equivalence"
+          ],
+          "quota": {
+            "exercises": 44
+          },
+          "units": [
+            {
+              "file": "units/II.5/unit45-order-total.sokonanoda",
+              "title": "单元㊺ 序的全性：每个有理数都有绝对值",
+              "title_en": "Unit 45 — Totality of the Order; Existence of Absolute Values",
+              "unit": 45
+            },
+            {
+              "file": "units/II.5/unit46-order-antisymm.sokonanoda",
+              "title": "单元㊻ 序的反对称性：两边夹出相等",
+              "title_en": "Unit 46 — Antisymmetry of the Order",
+              "unit": 46
+            },
+            {
+              "file": "units/II.5/unit47-abs-unique.sokonanoda",
+              "title": "单元㊼ 绝对值的唯一性：同一个数的两个见证相等",
+              "title_en": "Unit 47 — Uniqueness of the Absolute Value",
+              "unit": 47
+            },
+            {
+              "file": "units/II.5/unit48-triangle.sokonanoda",
+              "title": "单元㊽ 三角不等式：|u + v| ≤ |u| + |v|",
+              "title_en": "Unit 48 — Triangle Inequality",
+              "unit": 48
+            },
+            {
+              "file": "units/II.5/unit49-lt-close-mono.sokonanoda",
+              "title": "单元㊾ 严格序的传递与 close 对 ε 的单调性",
+              "title_en": "Unit 49 — Transitivity of the Strict Order; Monotonicity of close in ε",
+              "unit": 49
+            },
+            {
+              "file": "units/II.5/unit50-lt-add.sokonanoda",
+              "title": "单元㊿ 严格序与加法相容：加法消去",
+              "title_en": "Unit 50 — Strict Order Compatible with Addition; Cancellation",
+              "unit": 50
+            },
+            {
+              "file": "units/II.5/unit51-lt-trans-add.sokonanoda",
+              "title": "单元51 严格序的传递与加法相容",
+              "title_en": "Unit 51 — Transitivity of the Strict Order and Compatibility with Addition",
+              "unit": 51
+            },
+            {
+              "file": "units/II.5/unit52-eps-half.sokonanoda",
+              "title": "单元52 ε 折半：半数的存在与加倍",
+              "title_en": "Unit 52 — Halving: Existence of ε/2 and x/2 + x/2 = x",
+              "unit": 52
+            },
+            {
+              "file": "units/II.5/unit53-half-pos.sokonanoda",
+              "title": "单元53 半数的正性：0 < ε ⇒ 0 < ε/2",
+              "title_en": "Unit 53 — Positivity of the Half: 0 < ε implies 0 < ε/2",
+              "unit": 53
+            },
+            {
+              "file": "units/II.5/unit54-rat-add-assoc.sokonanoda",
+              "title": "单元54 有理数加法的结合律：公分母的三层嵌套",
+              "title_en": "Unit 54 — Associativity of Rational Addition",
+              "unit": 54
+            }
+          ]
+        },
+        {
+          "id": "II.6",
+          "title": "实数的商与完备性",
+          "prereqs": [
+            "II.5"
+          ],
+          "tags": [
+            "cauchy",
+            "real",
+            "completeness"
+          ],
+          "quota": {
+            "exercises": 40
+          },
+          "units": [
+            {
+              "file": "units/II.6/unit55-rat-add-neg.sokonanoda",
+              "title": "单元55 有理数的加法逆元：x + (-x) = 0",
+              "title_en": "Unit 55 — Additive Inverses in the Rationals",
+              "unit": 55
+            },
+            {
+              "file": "units/II.6/unit56-sub-add.sokonanoda",
+              "title": "单元56 两次减法的相加：中间项消去",
+              "title_en": "Unit 56 — Adding Two Differences: Cancelling the Middle Term",
+              "unit": 56
+            },
+            {
+              "file": "units/II.6/unit57-close-trans.sokonanoda",
+              "title": "单元57 close 的传递性：两个 ε/2 的界加起来",
+              "title_en": "Unit 57 — Transitivity of Close: Adding Two ε/2 Bounds",
+              "unit": 57
+            },
+            {
+              "file": "units/II.6/unit58-real-trans.sokonanoda",
+              "title": "单元58 实数的相等：传递性",
+              "title_en": "Unit 58 — Transitivity of Real Equality",
+              "unit": 58
+            },
+            {
+              "file": "units/II.6/unit59-real-neg.sokonanoda",
+              "title": "单元59 实数的取负：第一次把运算下降到商上",
+              "title_en": "Unit 59 — Negation on the Reals: Lifting an Operation to the Quotient",
+              "unit": 59
+            },
+            {
+              "file": "units/II.6/unit60-real-add.sokonanoda",
+              "title": "单元60 实数的加法：下降之前的两条义务",
+              "title_en": "Unit 60 — Addition on the Reals: Two Obligations Before Descending",
+              "unit": 60
+            },
+            {
+              "file": "units/II.6/unit61-real-addrel.sokonanoda",
+              "title": "单元61 实数的加法：三元关系（存在 + 唯一）",
+              "title_en": "Unit 61 — Addition on the Reals: A Ternary Relation (Existence + Uniqueness)",
+              "unit": 61
+            },
+            {
+              "file": "units/II.6/unit62-real-add-laws.sokonanoda",
+              "title": "单元62 实数的加法：交换律与零元（三元关系版）",
+              "title_en": "Unit 62 — Addition on the Reals: Commutativity and Zero (Ternary Relation)",
+              "unit": 62
+            },
+            {
+              "file": "units/II.6/unit63-real-add-assoc.sokonanoda",
+              "title": "单元63 实数的加法：结合律（三元关系版）",
+              "title_en": "Unit 63 — Addition on the Reals: Associativity (Ternary Relation)",
+              "unit": 63
+            },
+            {
+              "file": "units/II.6/unit64-real-order.sokonanoda",
+              "title": "单元64 实数的序：代表元关系与自反性",
+              "title_en": "Unit 64 — Order on the Reals: Representative Relation and Reflexivity",
+              "unit": 64
+            },
+            {
+              "file": "units/II.6/unit65-real-order-trans.sokonanoda",
+              "title": "单元65 实数的序：传递性",
+              "title_en": "Unit 65 — Order on the Reals: Transitivity",
+              "unit": 65
+            },
+            {
+              "file": "units/II.6/unit66-real-order-lift.sokonanoda",
+              "title": "单元66 实数的序：沿 realRel 下降成 Real 上的关系",
+              "title_en": "Unit 66 — Order on the Reals: Descending to a Relation on Real",
+              "unit": 66
+            },
+            {
+              "file": "units/II.6/unit67-real-order-laws.sokonanoda",
+              "title": "单元67 实数的序：自反、传递、反对称",
+              "title_en": "Unit 67 — Order on the Reals: Reflexivity, Transitivity, Antisymmetry",
+              "unit": 67
+            },
+            {
+              "file": "units/II.6/unit68-complete.sokonanoda",
+              "title": "单元68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类",
+              "title_en": "Unit 68 — Completeness: Rational Cauchy Sequences Converge in ℝ",
+              "unit": 68
+            }
+          ]
+        },
+        {
+          "id": "II.7",
+          "title": "数系综合与读证明",
+          "prereqs": [
+            "II.6"
+          ],
+          "tags": [
+            "synthesis",
+            "embedding",
+            "quotient"
+          ],
+          "quota": {
+            "exercises": 16
+          },
+          "units": [
+            {
+              "file": "units/II.7/unit69-number-chain-order.sokonanoda",
+              "title": "单元69 数系链：从 ℕ 到 ℝ 的保序嵌入",
+              "title_en": "Unit 69 — The Number Chain: Order-Preserving Embeddings from ℕ to ℝ",
+              "unit": 69
+            },
+            {
+              "file": "units/II.7/unit70-number-chain-add.sokonanoda",
+              "title": "单元70 数系链：加法在四层间的迁移",
+              "title_en": "Unit 70 — The Number Chain: Addition Across the Four Layers",
+              "unit": 70
+            },
+            {
+              "file": "units/II.7/unit71-quotient-cost.sokonanoda",
+              "title": "单元71 数系综合：商的代价——一座桥与两座桥",
+              "title_en": "Unit 71 — The Cost of Quotients: One Bridge and Two Bridges",
+              "unit": 71
+            },
+            {
+              "file": "units/II.7/unit72-completeness-inventory.sokonanoda",
+              "title": "单元72 数系综合：完备性盘点——代表元层与集合层",
+              "title_en": "Unit 72 — Completeness Inventory: Representatives and Sets",
+              "unit": 72
+            }
+          ]
         }
       ]
     }

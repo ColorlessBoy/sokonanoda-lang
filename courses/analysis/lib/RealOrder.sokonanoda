@@ -1,0 +1,82 @@
+-- 课程库：实数的序（单元64 的引擎）
+--
+-- 单元64 在画布上立了序的代表元关系并判卷；这里按「引擎进库」惯例收进
+-- L2，单元65 起直接引用：
+--
+--   · `realLeRep` —— 序的代表元关系：
+--       `Cauchy x ∧ Cauchy y ∧ ∀ eps > 0, ∃ N, ∀ n ≥ N, x n - y n ≤ eps`；
+--   · `realLeRep_refl` —— 每个 Cauchy 序列 ≤ 自己；
+--   · `realLeRep_of_realRel` —— 相等 ⇒ 序（`realRel` 的接近性给见证 `d`，
+--     绝对值压成减法界）；
+--   · `realLeRep_close` —— 第三分量的命名投影（后续单元反复要它，
+--     调用点不必把 `And.right` 连写两遍再接实参）；
+--   · `demo_realLe_zero` —— 常零序列上的具体例。
+--
+-- 两个 `Cauchy` 守卫与 61 的三元加法同一纪律：只有带 Cauchy 代表元的
+-- 实数之间才断序，商里的杂点没有输出。序的**下降**（`realLeRep` 沿
+-- `realRel` 良定义，再经 `Quot.lift` 得到 `Real → Real → Prop`）在后续
+-- 单元，本模块只收代表元层。
+
+import lib.RealEq
+import lib.RatGroup
+
+-- ─────────────────────────────────────────────────────────────
+-- 64.0 定义：代表元层的序
+-- ─────────────────────────────────────────────────────────────
+
+def realLeRep (x y : Seq) : Prop :=
+  Cauchy x ∧ Cauchy y ∧
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+        ratLeRep (ratSubRep (x n) (y n)) eps
+
+-- 第三分量的命名投影：后续单元要反复写「逐点减法界」，给它一个名字。
+
+theorem realLeRep_close (x y : Seq) (h : realLeRep x y) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+        ratLeRep (ratSubRep (x n) (y n)) eps :=
+  And.right (And.right h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 64.1 自反性：`x` ≤ `x`
+-- ─────────────────────────────────────────────────────────────
+
+theorem realLeRep_refl (x : Seq) (hx : Cauchy x) : realLeRep x x :=
+  And.intro hx
+    (And.intro hx
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.intro Nat.zero
+          (fun (n : Nat) (_hn : LeNat Nat.zero n) =>
+            ratLeRep_trans (ratSubRep (x n) (x n)) ratZeroRep eps
+              (ratLeRep_of_ratRel (ratSubRep (x n) (x n)) ratZeroRep
+                (ratAdd_neg_gen (x n)))
+              (ratLtRep_le ratZeroRep eps heps))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 64.2 相等 ⇒ 序：`realRel x y → x ≤ y`
+-- ─────────────────────────────────────────────────────────────
+
+theorem realLeRep_of_realRel (x y : Seq) (h : realRel x y) : realLeRep x y :=
+  And.intro (And.left h)
+    (And.intro (And.left (And.right h))
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim (realRel_close x y h eps heps)
+          (fun (N : Nat)
+              (hN : ∀ (n : Nat), LeNat N n → close (x n) (y n) eps) =>
+            Exists.intro N
+              (fun (n : Nat) (hn : LeNat N n) =>
+                Exists.elim (hN n hn)
+                  (fun (d : ratRep)
+                      (hd : ratAbsRel (ratSubRep (x n) (y n)) d ∧
+                            ratLtRep d eps) =>
+                    ratLeRep_trans (ratSubRep (x n) (y n)) d eps
+                      (ratAbsRel_le (ratSubRep (x n) (y n)) d (And.left hd))
+                      (ratLtRep_le d eps (And.right hd)))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 64.3 具体：常零序列 ≤ 常零序列
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_realLe_zero : realLeRep zeroSeq zeroSeq :=
+  realLeRep_of_realRel zeroSeq zeroSeq realRel_zero

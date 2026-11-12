@@ -1,0 +1,286 @@
+-- 课程库：`close` 传递性的引擎（单元57）
+--
+-- `close` 的传递性（单元57）要把两个 `ε/2` 的界加起来，用到的都是前序单元
+-- **已判卷**的事实。这里按「引擎进库」惯例收进 L2，证明与那几单元的解答逐字同形：
+--
+--   · `ratAbsRel_total`（㊺）—— 每个有理数都有绝对值见证；
+--   · `ratLeRep_add` / `ratAbsRel_le` / `ratAbsRel_neg_le` / `ratNegRep_add` /
+--     `ratLeRep_abs_add`（㊽）—— 三角不等式；
+--   · `ratAbsRel_wd_left`（㊷）—— `ratAbsRel` 只依赖第一个因子的等价类；
+--   · `ratLtRep_le` / `ratLtRep_trans`（㊾）—— 严格序的投影与传递；
+--   · `ratLtRep_of_le_lt` / `ratLtRep_of_lt_le` / `ratLtRep_add`（51）——
+--     严格序与弱序混串、两个严格界相加；
+--   · `ratLeRep_half_of_lt` / `ratRel_half_zero` / `ratLtRep_right` /
+--     `ratLtRep_half`（53）—— `0 < ε ⇒ 0 < ε/2`；
+--   · `ratLtRep_congr_snd`（57 的新引擎）—— 严格序在**右端**沿 `ratRel` 搬运。
+--
+-- 全部停在商 + 已判卷的库引理上，不碰 `funext`、不加公理。
+
+import lib.RatHalf
+
+theorem ratAbsRel_total (x : ratRep) : ∃ (d : ratRep), ratAbsRel x d :=
+  Or.elim
+    (fun (h : ratLeRep ratZeroRep x) =>
+      Exists.intro x (Or.inl (And.intro h (ratRel_refl x))))
+    (fun (h : ratLeRep x ratZeroRep) =>
+      Exists.intro (ratNegRep x)
+        (Or.inr (And.intro h (ratRel_refl (ratNegRep x)))))
+    (ratLeRep_total ratZeroRep x)
+
+theorem ratLeRep_add (a b c d : ratRep)
+    (h1 : ratLeRep a b) (h2 : ratLeRep c d) :
+    ratLeRep (ratAddRep a c) (ratAddRep b d) :=
+  ratLeRep_trans (ratAddRep a c) (ratAddRep b c) (ratAddRep b d)
+    (ratLeRep_add_right a b c h1)
+    (ratLeRep_trans (ratAddRep b c) (ratAddRep c b) (ratAddRep b d)
+      (ratLeRep_of_ratRel (ratAddRep b c) (ratAddRep c b) (ratAdd_comm b c))
+      (ratLeRep_trans (ratAddRep c b) (ratAddRep d b) (ratAddRep b d)
+        (ratLeRep_add_right c d b h2)
+        (ratLeRep_of_ratRel (ratAddRep d b) (ratAddRep b d) (ratAdd_comm d b))))
+
+theorem ratAbsRel_le_aux (x d : Prod (Prod Nat Nat) Nat) :
+    ratAbsRel x d → ratLeRep x d :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match d with
+    | prod_mk (prod_mk a' b') m' =>
+      fun (h : ratAbsRel (qrep a b m) (qrep a' b' m')) =>
+        Or.elim
+          (fun (h1 : ratLeRep ratZeroRep (qrep a b m) ∧
+                     ratRel (qrep a' b' m') (qrep a b m)) =>
+            ratLeRep_trans (qrep a b m) (qrep a b m) (qrep a' b' m')
+              (ratLeRep_refl (qrep a b m))
+              (ratLeRep_of_ratRel (qrep a b m) (qrep a' b' m')
+                (ratRel_symm (qrep a' b' m') (qrep a b m) (And.right h1))))
+          (fun (h2 : ratLeRep (qrep a b m) ratZeroRep ∧
+                     ratRel (qrep a' b' m') (ratNegRep (qrep a b m))) =>
+            ratLeRep_trans (qrep a b m) (ratNegRep (qrep a b m)) (qrep a' b' m')
+              (ratLeRep_trans (qrep a b m) ratZeroRep (ratNegRep (qrep a b m))
+                (And.left h2)
+                (ratLeRep_neg_gen (qrep a b m) ratZeroRep (And.left h2)))
+              (ratLeRep_of_ratRel (ratNegRep (qrep a b m)) (qrep a' b' m')
+                (ratRel_symm (qrep a' b' m') (ratNegRep (qrep a b m))
+                  (And.right h2))))
+          h
+
+theorem ratAbsRel_le (x d : ratRep) (h : ratAbsRel x d) : ratLeRep x d :=
+  ratAbsRel_le_aux x d h
+
+theorem ratAbsRel_neg_le_aux (x d : Prod (Prod Nat Nat) Nat) :
+    ratAbsRel x d → ratLeRep (ratNegRep x) d :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match d with
+    | prod_mk (prod_mk a' b') m' =>
+      fun (h : ratAbsRel (qrep a b m) (qrep a' b' m')) =>
+        Or.elim
+          (fun (h1 : ratLeRep ratZeroRep (qrep a b m) ∧
+                     ratRel (qrep a' b' m') (qrep a b m)) =>
+            ratLeRep_trans (ratNegRep (qrep a b m)) (qrep a b m) (qrep a' b' m')
+              (ratLeRep_trans (ratNegRep (qrep a b m)) ratZeroRep (qrep a b m)
+                (ratLeRep_neg_gen ratZeroRep (qrep a b m) (And.left h1))
+                (And.left h1))
+              (ratLeRep_of_ratRel (qrep a b m) (qrep a' b' m')
+                (ratRel_symm (qrep a' b' m') (qrep a b m) (And.right h1))))
+          (fun (h2 : ratLeRep (qrep a b m) ratZeroRep ∧
+                     ratRel (qrep a' b' m') (ratNegRep (qrep a b m))) =>
+            ratLeRep_of_ratRel (ratNegRep (qrep a b m)) (qrep a' b' m')
+              (ratRel_symm (qrep a' b' m') (ratNegRep (qrep a b m))
+                (And.right h2)))
+          h
+
+theorem ratAbsRel_neg_le (x d : ratRep) (h : ratAbsRel x d) :
+    ratLeRep (ratNegRep x) d :=
+  ratAbsRel_neg_le_aux x d h
+
+theorem ratNegRep_add_aux (x y : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratNegRep (ratAddRep x y))
+           (ratAddRep (ratNegRep x) (ratNegRep y)) :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match y with
+    | prod_mk (prod_mk c d) n =>
+      ratRel_refl (ratNegRep (ratAddRep (qrep a b m) (qrep c d n)))
+
+theorem ratNegRep_add (x y : ratRep) :
+    ratRel (ratNegRep (ratAddRep x y))
+           (ratAddRep (ratNegRep x) (ratNegRep y)) :=
+  ratNegRep_add_aux x y
+
+theorem ratLeRep_abs_add (x y dx dy d : ratRep)
+    (hx : ratAbsRel x dx) (hy : ratAbsRel y dy)
+    (h : ratAbsRel (ratAddRep x y) d) :
+    ratLeRep d (ratAddRep dx dy) :=
+  Or.elim
+    (fun (h1 : ratLeRep ratZeroRep (ratAddRep x y) ∧
+               ratRel d (ratAddRep x y)) =>
+      ratLeRep_trans d (ratAddRep x y) (ratAddRep dx dy)
+        (ratLeRep_of_ratRel d (ratAddRep x y) (And.right h1))
+        (ratLeRep_add x dx y dy (ratAbsRel_le x dx hx) (ratAbsRel_le y dy hy)))
+    (fun (h2 : ratLeRep (ratAddRep x y) ratZeroRep ∧
+               ratRel d (ratNegRep (ratAddRep x y))) =>
+      ratLeRep_trans d (ratNegRep (ratAddRep x y)) (ratAddRep dx dy)
+        (ratLeRep_of_ratRel d (ratNegRep (ratAddRep x y)) (And.right h2))
+        (ratLeRep_trans (ratNegRep (ratAddRep x y))
+          (ratAddRep (ratNegRep x) (ratNegRep y))
+          (ratAddRep dx dy)
+          (ratLeRep_of_ratRel (ratNegRep (ratAddRep x y))
+            (ratAddRep (ratNegRep x) (ratNegRep y)) (ratNegRep_add x y))
+          (ratLeRep_add (ratNegRep x) dx (ratNegRep y) dy
+            (ratAbsRel_neg_le x dx hx) (ratAbsRel_neg_le y dy hy))))
+    h
+
+theorem ratAbsRel_wd_left_aux (u v : Prod (Prod Nat Nat) Nat) (d : ratRep) :
+    ratRel u v → ratAbsRel u d → ratAbsRel v d :=
+  match u with
+  | prod_mk (prod_mk a b) m =>
+    match v with
+    | prod_mk (prod_mk a' b') m' =>
+      fun (h : ratRel (prod_mk (prod_mk a b) m) (prod_mk (prod_mk a' b') m'))
+          (hab : ratAbsRel (prod_mk (prod_mk a b) m) d) =>
+        Or.elim
+          (fun (h1 : ratLeRep ratZeroRep (prod_mk (prod_mk a b) m) ∧
+                     ratRel d (prod_mk (prod_mk a b) m)) =>
+            Or.inl (And.intro
+              (ratLeRep_congr_snd Nat.zero Nat.zero a b a' b' Nat.zero m m'
+                h (And.left h1))
+              (ratRel_trans_gen d (prod_mk (prod_mk a b) m)
+                (prod_mk (prod_mk a' b') m') (And.right h1) h)))
+          (fun (h2 : ratLeRep (prod_mk (prod_mk a b) m) ratZeroRep ∧
+                     ratRel d (ratNegRep (prod_mk (prod_mk a b) m))) =>
+            Or.inr (And.intro
+              (ratLeRep_congr a b a' b' Nat.zero Nat.zero m m' Nat.zero
+                h (And.left h2))
+              (ratRel_trans_gen d (ratNegRep (prod_mk (prod_mk a b) m))
+                (ratNegRep (prod_mk (prod_mk a' b') m'))
+                (And.right h2)
+                (ratNegRep_wd (prod_mk (prod_mk a b) m)
+                  (prod_mk (prod_mk a' b') m') h))))
+          hab
+
+theorem ratAbsRel_wd_left (u v : ratRep) (d : ratRep)
+    (h : ratRel u v) (hab : ratAbsRel u d) : ratAbsRel v d :=
+  ratAbsRel_wd_left_aux u v d h hab
+
+theorem ratLtRep_le (a b : ratRep) (h : ratLtRep a b) : ratLeRep a b :=
+  And.left h
+
+theorem ratLtRep_trans (a b c : ratRep)
+    (h1 : ratLtRep a b) (h2 : ratLtRep b c) : ratLtRep a c :=
+  And.intro
+    (ratLeRep_trans a b c (And.left h1) (And.left h2))
+    (fun (hac : ratRel a c) =>
+      And.right h2
+        (ratLeRep_antisymm b c (And.left h2)
+          (ratLeRep_trans c a b
+            (ratLeRep_of_ratRel c a (ratRel_symm a c hac))
+            (And.left h1))))
+
+theorem ratLtRep_of_le_lt (a b c : ratRep)
+    (h1 : ratLeRep a b) (h2 : ratLtRep b c) : ratLtRep a c :=
+  And.intro
+    (ratLeRep_trans a b c h1 (And.left h2))
+    (fun (hac : ratRel a c) =>
+      And.right h2
+        (ratLeRep_antisymm b c (And.left h2)
+          (ratLeRep_trans c a b
+            (ratLeRep_of_ratRel c a (ratRel_symm a c hac))
+            h1)))
+
+theorem ratLtRep_of_lt_le (a b c : ratRep)
+    (h1 : ratLtRep a b) (h2 : ratLeRep b c) : ratLtRep a c :=
+  And.intro
+    (ratLeRep_trans a b c (And.left h1) h2)
+    (fun (hac : ratRel a c) =>
+      And.right h1
+        (ratLeRep_antisymm a b (And.left h1)
+          (ratLeRep_trans b c a h2
+            (ratLeRep_of_ratRel c a (ratRel_symm a c hac)))))
+
+theorem ratLtRep_add (a b c d : ratRep)
+    (h1 : ratLtRep a b) (h2 : ratLtRep c d) :
+    ratLtRep (ratAddRep a c) (ratAddRep b d) :=
+  And.intro
+    (ratLeRep_trans (ratAddRep a c) (ratAddRep b c) (ratAddRep b d)
+      (ratLeRep_add_right a b c (And.left h1))
+      (ratLeRep_add_left c d b (And.left h2)))
+    (fun (h : ratRel (ratAddRep a c) (ratAddRep b d)) =>
+      And.right h1
+        (ratRel_symm b a
+          (ratRel_add_cancel_gen b a c
+            (ratLeRep_antisymm (ratAddRep b c) (ratAddRep a c)
+              (ratLeRep_trans (ratAddRep b c) (ratAddRep b d) (ratAddRep a c)
+                (ratLeRep_add_left c d b (And.left h2))
+                (ratLeRep_of_ratRel (ratAddRep b d) (ratAddRep a c)
+                  (ratRel_symm (ratAddRep a c) (ratAddRep b d) h)))
+              (ratLeRep_add_right a b c (And.left h1))))))
+
+theorem ratLeRep_half_of_lt (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLeRep ratZeroRep (ratHalf eps) :=
+  Or.elim
+    (fun (hh : ratLeRep ratZeroRep (ratHalf eps)) => hh)
+    (fun (hh : ratLeRep (ratHalf eps) ratZeroRep) =>
+      False.elim
+        (And.right h
+          (ratLeRep_antisymm ratZeroRep eps
+            (And.left h)
+            (ratLeRep_congr_gen
+              (ratAddRep (ratHalf eps) (ratHalf eps)) eps
+              ratZeroRep ratZeroRep
+              (ratHalf_add_self eps) (ratRel_refl ratZeroRep)
+              (ratLeRep_congr_gen
+                (ratAddRep (ratHalf eps) (ratHalf eps))
+                (ratAddRep (ratHalf eps) (ratHalf eps))
+                (ratAddRep ratZeroRep ratZeroRep) ratZeroRep
+                (ratRel_refl (ratAddRep (ratHalf eps) (ratHalf eps)))
+                (ratAdd_zero ratZeroRep)
+                (ratLeRep_trans
+                  (ratAddRep (ratHalf eps) (ratHalf eps))
+                  (ratAddRep ratZeroRep (ratHalf eps))
+                  (ratAddRep ratZeroRep ratZeroRep)
+                  (ratLeRep_add_right (ratHalf eps) ratZeroRep (ratHalf eps) hh)
+                  (ratLeRep_add_left (ratHalf eps) ratZeroRep ratZeroRep hh)))))))
+    (ratLeRep_total ratZeroRep (ratHalf eps))
+
+theorem ratRel_half_zero (eps : ratRep)
+    (h0 : ratRel (ratHalf eps) ratZeroRep) : ratRel eps ratZeroRep :=
+  ratRel_trans_gen eps (ratAddRep (ratHalf eps) (ratHalf eps)) ratZeroRep
+    (ratRel_symm (ratAddRep (ratHalf eps) (ratHalf eps)) eps (ratHalf_add_self eps))
+    (ratRel_trans_gen
+      (ratAddRep (ratHalf eps) (ratHalf eps))
+      (ratAddRep ratZeroRep ratZeroRep) ratZeroRep
+      (ratLeRep_antisymm
+        (ratAddRep (ratHalf eps) (ratHalf eps))
+        (ratAddRep ratZeroRep ratZeroRep)
+        (ratLeRep_trans
+          (ratAddRep (ratHalf eps) (ratHalf eps))
+          (ratAddRep ratZeroRep (ratHalf eps))
+          (ratAddRep ratZeroRep ratZeroRep)
+          (ratLeRep_add_right (ratHalf eps) ratZeroRep (ratHalf eps)
+            (ratLeRep_of_ratRel (ratHalf eps) ratZeroRep h0))
+          (ratLeRep_add_left (ratHalf eps) ratZeroRep ratZeroRep
+            (ratLeRep_of_ratRel (ratHalf eps) ratZeroRep h0)))
+        (ratLeRep_trans
+          (ratAddRep ratZeroRep ratZeroRep)
+          (ratAddRep ratZeroRep (ratHalf eps))
+          (ratAddRep (ratHalf eps) (ratHalf eps))
+          (ratLeRep_add_left ratZeroRep (ratHalf eps) ratZeroRep
+            (ratLeRep_of_ratRel ratZeroRep (ratHalf eps)
+              (ratRel_symm (ratHalf eps) ratZeroRep h0)))
+          (ratLeRep_add_right ratZeroRep (ratHalf eps) (ratHalf eps)
+            (ratLeRep_of_ratRel ratZeroRep (ratHalf eps)
+              (ratRel_symm (ratHalf eps) ratZeroRep h0)))))
+      (ratAdd_zero ratZeroRep))
+
+theorem ratLtRep_right (x y : ratRep) (h : ratLtRep x y) : ¬ ratRel x y :=
+  And.right h
+
+theorem ratLtRep_half (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLtRep ratZeroRep (ratHalf eps) :=
+  And.intro
+    (ratLeRep_half_of_lt eps h)
+    (fun (h0 : ratRel ratZeroRep (ratHalf eps)) =>
+      (ratLtRep_right ratZeroRep eps h)
+        (ratRel_symm eps ratZeroRep
+          (ratRel_half_zero eps (ratRel_symm ratZeroRep (ratHalf eps) h0))))
+

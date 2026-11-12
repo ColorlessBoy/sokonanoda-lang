@@ -1,0 +1,67 @@
+-- 单元㉛ 有理数的负元：代表元层定义与良定义性
+--
+-- 单元㉙–㉚ 建立了 ℚ 的序与严格序。本单元补上**取负**：
+--
+--   -(a-b)/(m+1)  =  (b-a)/(m+1)
+--
+-- 代表元上就是交换分子序对的两个坐标：
+--   `ratNegRep x := (negRep (numOf x), denOf x)`。
+--
+-- 本单元结清：
+--   · 良定义性（x ~ x' ⇒ -x ~ -x'）：把 `ratNegRep` 与整数层的 `negRep`
+--     在交叉乘积上对齐，再交给 `negRep_wd`；
+--   · 对合（-(-x) ~ x）：交换两次回到原序对，交叉和是自反的；
+--   · 具体计算：-(1/2) = (0-1)/2 = (-1)/2。
+--
+-- 减法本单元不做（`ratAddRep` + `ratNegRep` 的组合留到下一单元）。
+--
+-- 本单元自带定义与前序地基（L3：律必须留在单元里）。
+
+import lib.Rat
+
+def ratNegRep (x : ratRep) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat (negRep (numOf x)) (denOf x)
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉛.1 负元在交叉乘积上的形状
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两边都展开成同一个序对，只差两处 `0 + n`；用 `zero_add` 把两处零头消掉，再用 `Eq.trans` 串起来。`prod_mk` 的两个坐标分别改写时用 `@congrArg`（隐式参数要全写）。
+-- soko:hint 目标形态：`negRep (mulRep p (den n)) = mulRep (negRep p) (den n)`。
+-- soko:hint 关键件：zero_add · congrArg · Eq.symm · Eq.trans。
+theorem negRep_mulRep_den (p : Prod Nat Nat) (n : Nat) :
+    negRep (mulRep p (den n)) = mulRep (negRep p) (den n) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉛.2 负元的良定义性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`h : ratRel x y` 是交叉乘积的整数相等；`negRep_wd` 把它搬到两个 `negRep` 上；㉛.1 说 `negRep (mulRep …)` 与 `mulRep (negRep …) …` 命题相等。用两次 `intRel_trans` 拼成目标。
+-- soko:hint 目标形态：`ratRel x y → ratRel (ratNegRep x) (ratNegRep y)`。
+-- soko:hint 关键件：negRep_mulRep_den · negRep_wd · intRel_trans · Eq.symm。
+theorem ratNegRep_wd (x y : ratRep) (h : ratRel x y) :
+    ratRel (ratNegRep x) (ratNegRep y) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉛.3 对合：-(-x) ~ x
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratNegRep` 作用两次把分子序对换回来，两个交叉乘积是同一个项，用 `intRel_refl`。
+-- soko:hint 目标形态：`ratRel (ratNegRep (ratNegRep x)) x`。
+-- soko:hint 关键件：intRel_refl。
+theorem ratNegRep_invol (x : ratRep) :
+    ratRel (ratNegRep (ratNegRep x)) x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉛.4 具体计算：-(1/2) = (-1)/2
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratNegRep (qrep 1 0 1)` 定义性等于 `qrep 0 1 1`；再用自反性把它与自身判等。
+-- soko:hint 目标形态：`ratRel (ratNegRep (qrep 1 0 1)) (qrep 0 1 1)`。
+-- soko:hint 关键件：ratNegRep 的 ι 归约 · ratRel_refl。
+theorem demo_neg_half :
+    ratRel (ratNegRep (qrep 1 Nat.zero 1)) (qrep Nat.zero 1 1) :=
+  sorry

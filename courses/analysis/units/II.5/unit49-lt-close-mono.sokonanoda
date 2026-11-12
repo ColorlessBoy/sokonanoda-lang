@@ -1,0 +1,72 @@
+-- 单元㊾ 严格序的传递与 `close` 对 `ε` 的单调性
+--
+-- ㊽ 给了三角不等式，`close` 的传递性还差两件工程件：
+--
+--   · `ε` 一旦定下来，往**大**走不改变 `close`（本单元 ㊾.3）；
+--   · 严格序 `a < b < c` 可以**串**起来（本单元 ㊾.2）——折半之后
+--     `0 < ε/2`、`ε/2 < ε` 这类链条都要靠它。
+--
+-- 两条都不需要新的算术，只是把 ㉚ 的定义、㊻ 的反对称性与 ㊳ 的传递性
+-- 拼起来：
+--
+--   ratLtRep a b  :=  ratLeRep a b ∧ ¬ ratRel a b
+--
+-- 严格序的传递性唯一的「不相等」义务是：若 `a ~ c`，则 `c ≤ a`，与
+-- `a ≤ b ≤ c` 一起把 `b` 夹成 `b ~ c`，正好撞上 `b < c` 的第二分量。
+--
+-- `close` 对 `ε` 的单调性同理：`d < ε ≤ ε'` 的「不相等」义务是
+-- 「`d ~ ε'` 会把 `ε'` 与 `ε` 夹成相等，从而 `d ~ ε`」。本单元结清：
+--
+--   · ㊾.1 `ratLtRep_le`：严格序给出弱序（第二分量的投影）；
+--   · ㊾.2 `ratLtRep_trans`：严格序的传递性；
+--   · ㊾.3 `close_mono_eps`：`close x y ε → ε ≤ ε' → close x y ε'`；
+--   · ㊾.4 具体：`close 0 0 1` 放大成 `close 0 0 2`。
+--
+-- 本单元不引入新定义；`ratLtRep` 来自 `lib/Cauchy`，序的引擎来自
+-- `lib/RatAbs` 与 `lib/RatAbsOrder`。
+
+import lib.RatAbsOrder
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊾.1 严格序给出弱序
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratLtRep a b` 就是 `ratLeRep a b ∧ ¬ ratRel a b`，取第一个分量即可（`And.left`）。
+-- soko:hint 目标形态：`ratLtRep a b → ratLeRep a b`。
+-- soko:hint 关键件：And.left。
+theorem ratLtRep_le (a b : ratRep) (h : ratLtRep a b) : ratLeRep a b :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊾.2 严格序的传递性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：弱序部分用 ㊳ 的 `ratLeRep_trans` 直接串。不相等部分：假设 `a ~ c`，则 `c ≤ a`（`ratLeRep_of_ratRel` + 对称），与 `b ≤ c`、`a ≤ b` 得 `c ≤ b`；再用 ㊻ 的 `ratLeRep_antisymm b c` 把 `b ≤ c ≤ b` 压成 `b ~ c`，与 `h2` 的第二分量矛盾。
+-- soko:hint 目标形态：`ratLtRep a b → ratLtRep b c → ratLtRep a c`。
+-- soko:hint 关键件：ratLeRep_trans · ratLeRep_of_ratRel · ratRel_symm · ratLeRep_antisymm · And.intro。
+theorem ratLtRep_trans (a b c : ratRep)
+    (h1 : ratLtRep a b) (h2 : ratLtRep b c) : ratLtRep a c :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊾.3 `close` 对 `ε` 单调：把 `ε` 放大不破坏 `close`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：展开 `h`，取出见证 `d` 与 `d < ε`。新的 `d < ε'`：弱序用 `ratLeRep_trans d ε ε'`；不相等部分假设 `d ~ ε'`，则 `ε' ≤ d`，与 `d ≤ ε`、`ε ≤ ε'` 用 `ratLeRep_antisymm ε ε'` 得 `ε ~ ε'`，于是 `d ~ ε`，撞上 `d < ε` 的第二分量。
+-- soko:hint 目标形态：`close x y ε → ratLeRep ε ε' → close x y ε'`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · ratLeRep_trans · ratLeRep_of_ratRel · ratRel_symm · ratLeRep_antisymm · ratRel_trans_gen。
+theorem close_mono_eps (x y eps eps' : ratRep)
+    (h : close x y eps) (hle : ratLeRep eps eps') :
+    close x y eps' :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊾.4 具体：`close 0 0 1` 放大成 `close 0 0 2`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`close 0 0 1` 由库里的 `close_zero_zero` 给出，前提 `0 < 1`：弱序是 `LeNat 0 1`（`le_succ` + `le_refl`），不相等把 `0 ~ 1` 化成 `0 = 1` 后交给 `succ_ne_zero`。放大用的 `1 ≤ 2` 交叉相乘后是 `LeNat 1 2`，同样 `le_succ` 一步。
+-- soko:hint 目标形态：`close ratZeroRep ratZeroRep (qrep 2 Nat.zero Nat.zero)`。
+-- soko:hint 关键件：close_mono_eps · close_zero_zero · le_succ · le_refl · succ_ne_zero · Eq.symm。
+theorem demo_close_mono :
+    close ratZeroRep ratZeroRep (qrep 2 Nat.zero Nat.zero) :=
+  sorry
