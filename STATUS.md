@@ -1,3 +1,9 @@
+## M3 单元81–82：尾部等价 + 单调序列的极限是上确界（2026-11-13 · issue #19 / PR #41）
+- `unit81-tail-eq`：`TailEq`、`close_wd_left`、`tailEq_symm` / `tailEq_trans`、`converges_congr_tail` / `converges_congr_tail_iff`、`tailEq_of_pointwise`。画布 2 checked / 7 open，解答 9 checked / 0 open。
+- `unit82-mono-lub`：`Monotone` / `StrictMono`；`monotone_le`、`monotone_limit_upper` / `monotone_limit_lub`、`strict_mono_limit_gt`。画布 3 checked / 7 open，解答 11 checked / 0 open。新建 `lib/LimitLe`。
+- 判据：`check.py --json` rc=0（201 目标 · 2460 checked · 409 open · 0 判负，10/51）；`notation-lint` / III.1 文案门禁 / `style-lint --selftest` / `docs-lint` 均 rc=0。
+- 边界：82 只证收敛的单调序列极限是上确界；81 允许项只是代表元等价。不新增公理、不碰 kernel/front。下一单元 = 收敛 ⇒ Cauchy。
+
 ## M3 单元79–80：极限的保号性 + 平移（2026-11-13 · issue #19 / PR #41）
 - `unit79-limit-sign`：`converges_pos_of_pos`（ε 取 L/2；`close_neg_bound` → 右加 x n → 右加 -(L/2)，`ratSubRep_half` / `ratAdd_sub_self` 收口）、`close_half_neg_lt`、`neg_limit_absurd`、`converges_nonneg_of_eventually_nonneg`、`converges_ne_zero_of_pos`、`demo_pos_one`。画布 2 checked / 6 open，解答 8 checked / 0 open。新建 `lib/LimitAbs`（78 的三条 + 半减、左加再减、减界搬加界、取负反序、半数保负号）。
 - `unit80-shift`：`shiftSeq k x := fun n => x (n + k)`；`eventually_shift` / `eventually_of_shift`（`leNat_exists_add` + `add_rotate`）/ `converges_shift` / `demo_shift_zero`。画布 1 checked / 6 open，解答 7 checked / 0 open。
@@ -9,8 +15,3 @@
 - `unit78-limit-squeeze`：夹逼定理。`ratAbsRel_le_of_bounds`（绝对值的见证被两支界压住）、`ratNegRep_sub`（`-(x - L) ~ L - x`）、`close_neg_bound`、`close_of_two_bounds`（两侧 eps/2 ⇒ `close`）、`squeeze_step`、`converges_squeeze`（三条「终究」用 `eventually_and` 并到同一 N）、`demo_squeeze_zero`。画布 1 checked / 7 open，解答 8 checked / 0 open。
 - 判据：`check.py --json` **rc=0** —— 191 目标 · 2403 checked · 383 open · **0 判负**（M3 6/51；M1+M2 72/72 不变）；`notation-lint` **rc=0**（0 命中）；文案门禁对两个新单元 **0 处**；`docs-lint` rc=0。
 - 边界：有界性只是乘法律的前置之一（乘积上界还要乘法与序相容）；夹逼只做两侧极限相同的情形。不新增公理、不碰 kernel/front。下一单元 = 乘法与序相容（乘法律的第一步）。
-
-## M3 单元75–76：极限与序 + 极限的代数（2026-11-13 · issue #19 / PR #41）
-- `unit75-limit-order`：极限保持非严格不等式。`ratLeRep_of_sub_le_all`（任意 ε 内 `x − y ≤ ε` ⇒ `x ≤ y`）；`converges_le_of_eventually` 把三条「终究」并到同一 `N`；推论 `converges_nonneg` / `converges_le_const`。画布 0 checked / 4 open，解答 4 checked / 0 open。
-- `unit76-limit-algebra-add`：加法群。`converges_congr_limit`、`converges_add`（`eventually_and` + `close_add`）、`converges_neg`、`converges_sub`、`demo_add_zero`。画布 1 checked / 5 open，解答 6 checked / 0 open。
-- 边界：乘法律要有界性，留到后续单元；不新增公理、不碰 kernel/front。`lib/LimitOrder` 收 74 的 12 条，`lib/RealNeg` 收 59 的 5 条。

@@ -1,0 +1,118 @@
+-- 单元82 单调序列的极限是上确界
+--
+-- 收敛只说尾部靠近 `L`，不保证 `L` 与每一项的关系。单调序列多给了一条信息：
+-- 项与项按顺序排列。两边合起来就能定出极限在值域里的位置——它落在所有项
+-- 之上，又在所有上界之下。换成通常的说法，极限是值域的上确界。
+--
+-- 路线：
+--
+--   · 82.1 把「每一步不降」抬成「任意 m ≤ n 时不降」，对差值归纳；
+--   · 82.2 极限是上界：把常序列 `x n` 与 `x` 比较，交给 75 的「极限保持序」；
+--   · 82.3 极限是最小上界：任取上界 `M`，同样由 75 得 `L ≤ M`；
+--   · 82.4 / 82.5 严格单调蕴含单调，于是 82.1 的界对严格单调序列也可用；
+--   · 82.6 严格单调时 82.2 的 `≤` 收紧成 `<`：极限严格大于每一项；
+--   · 82.7 常序列的实例。
+--
+-- 边界：只证「已经收敛的单调序列，其极限是上确界」。反方向——有上界的
+-- 单调序列一定收敛——需要上确界原理，下一章才备齐，这里不能提前使用。
+-- 不新增公理。
+
+import lib.Limit
+import lib.LimitOrder
+import lib.LimitLe
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.0 单调与严格单调
+-- ─────────────────────────────────────────────────────────────
+
+-- `Monotone x`：每一项不超过下一项。任意间隔由 82.1 抬。
+def Monotone (x : Seq) : Prop :=
+  ∀ (n : Nat), ratLeRep (x n) (x (Nat.succ n))
+
+-- `StrictMono x`：每一项严格小于下一项。
+def StrictMono (x : Seq) : Prop :=
+  ∀ (n : Nat), ratLtRep (x n) (x (Nat.succ n))
+
+-- 常序列是最简单的单调序列：每一步都是自反性。直接给出，不作练习。
+theorem monotone_const (q : ratRep) : Monotone (constSeq q) :=
+  fun (n : Nat) => ratLeRep_refl q
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.1 单调：任意 m ≤ n 时 `x m ≤ x n`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`leNat_exists_add` 把 `n` 写成 `m + j`，对 `j` 归纳。`j = 0` 时 `n` 归约成 `m`，自反性收口；`j + 1` 时目标拆成 `x m ≤ x (m + j)` 与 `x (m + j) ≤ x (m + j + 1)`，前者是归纳假设，后者是单调性。
+-- soko:hint 目标形态：`ratLeRep (x m) (x n)`。
+-- soko:hint 关键件：leNat_exists_add · Nat.rec · ratLeRep_refl · ratLeRep_trans · Eq.subst · Eq.symm。
+theorem monotone_le (x : Seq) (h : Monotone x) (m n : Nat) (hmn : LeNat m n) :
+    ratLeRep (x m) (x n) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.2 极限是值域的上界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：固定 `n`，拿常序列 `constSeq (x n)`（73.5 给收敛到 `x n`）与 `x`（收敛到 `L`）作 75.2 的比较。「终究 `x n ≤ x m`」的阈值取 `n`，逐点由 82.1 给。
+-- soko:hint 目标形态：`∀ (n : Nat), ratLeRep (x n) L`。
+-- soko:hint 关键件：converges_const · converges_le_of_eventually · Exists.intro · monotone_le。
+theorem monotone_limit_upper (x : Seq) (L : ratRep) (hmono : Monotone x)
+    (h : Converges x L) : ∀ (n : Nat), ratLeRep (x n) L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.3 极限是最小上界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：上界那一半交给 82.2。最小性：任取上界 `M`（`∀ n, x n ≤ M`），用 75.4 的「终究不超过常数」，阈值取 0。
+-- soko:hint 目标形态：`(∀ n, x n ≤ L) ∧ (∀ M, (∀ n, x n ≤ M) → L ≤ M)`。
+-- soko:hint 关键件：And.intro · monotone_limit_upper · converges_le_const · Exists.intro。
+theorem monotone_limit_lub (x : Seq) (L : ratRep) (hmono : Monotone x)
+    (h : Converges x L) :
+    (∀ (n : Nat), ratLeRep (x n) L) ∧
+      (∀ (M : ratRep), (∀ (n : Nat), ratLeRep (x n) M) → ratLeRep L M) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.4 严格单调蕴含单调
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：逐点把严格序投成弱序，用 ㊾ 的 `ratLtRep_le`。
+-- soko:hint 目标形态：`Monotone x`。
+-- soko:hint 关键件：ratLtRep_le。
+theorem strict_mono_monotone (x : Seq) (h : StrictMono x) : Monotone x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.5 严格单调时任意间隔也不降
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：82.4 把严格单调降成单调，再转发 82.1。
+-- soko:hint 目标形态：`ratLeRep (x m) (x n)`。
+-- soko:hint 关键件：strict_mono_monotone · monotone_le。
+theorem strict_mono_le (x : Seq) (h : StrictMono x) (m n : Nat)
+    (hmn : LeNat m n) : ratLeRep (x m) (x n) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.6 严格单调时极限严格大于每一项
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：82.2 已给 `x n ≤ L`。若 `x n ~ L`，先把方向反过来得到 `L ≤ x n`；另一方面 `x (n+1) ≤ L`（82.2）与 `L ~ x n` 给出 `x (n+1) ≤ x n`，与 `x n ≤ x (n+1)`（82.5）经反对称性夹出 `x (n+1) ~ x n`，撞上严格性 `x n < x (n+1)` 的第二分量。
+-- soko:hint 目标形态：`∀ (n : Nat), ratLtRep (x n) L`。
+-- soko:hint 关键件：monotone_limit_upper · strict_mono_le · ratLeRep_antisymm · ratLtRep_right · ratRel_symm · ratLeRep_congr_gen。
+theorem strict_mono_limit_gt (x : Seq) (L : ratRep) (hmono : StrictMono x)
+    (h : Converges x L) : ∀ (n : Nat), ratLtRep (x n) L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.7 常序列的实例
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常序列单调（82.0）且收敛到自己的值（73.5），把 82.3 用上去。
+-- soko:hint 目标形态：`(∀ n, ratLeRep (constSeq q n) q) ∧ (∀ M, (∀ n, ratLeRep (constSeq q n) M) → ratLeRep q M)`。
+-- soko:hint 关键件：monotone_limit_lub · monotone_const · converges_const。
+theorem demo_const_lub (q : ratRep) :
+    (∀ (n : Nat), ratLeRep (constSeq q n) q) ∧
+      (∀ (M : ratRep),
+        (∀ (n : Nat), ratLeRep (constSeq q n) M) → ratLeRep q M) :=
+  sorry

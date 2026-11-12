@@ -1,0 +1,136 @@
+-- 单元82 单调序列的极限是上确界
+--
+-- 收敛只说尾部靠近 `L`，不保证 `L` 与每一项的关系。单调序列多给了一条信息：
+-- 项与项按顺序排列。两边合起来就能定出极限在值域里的位置——它落在所有项
+-- 之上，又在所有上界之下。换成通常的说法，极限是值域的上确界。
+--
+-- 路线：
+--
+--   · 82.1 把「每一步不降」抬成「任意 m ≤ n 时不降」，对差值归纳；
+--   · 82.2 极限是上界：把常序列 `x n` 与 `x` 比较，交给 75 的「极限保持序」；
+--   · 82.3 极限是最小上界：任取上界 `M`，同样由 75 得 `L ≤ M`；
+--   · 82.4 / 82.5 严格单调蕴含单调，于是 82.1 的界对严格单调序列也可用；
+--   · 82.6 严格单调时 82.2 的 `≤` 收紧成 `<`：极限严格大于每一项；
+--   · 82.7 常序列的实例。
+--
+-- 边界：只证「已经收敛的单调序列，其极限是上确界」。反方向——有上界的
+-- 单调序列一定收敛——需要上确界原理，下一章才备齐，这里不能提前使用。
+-- 不新增公理。
+
+import lib.Limit
+import lib.LimitOrder
+import lib.LimitLe
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.0 单调与严格单调
+-- ─────────────────────────────────────────────────────────────
+
+def Monotone (x : Seq) : Prop :=
+  ∀ (n : Nat), ratLeRep (x n) (x (Nat.succ n))
+
+def StrictMono (x : Seq) : Prop :=
+  ∀ (n : Nat), ratLtRep (x n) (x (Nat.succ n))
+
+theorem monotone_const (q : ratRep) : Monotone (constSeq q) :=
+  fun (n : Nat) => ratLeRep_refl q
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.1 单调：任意 m ≤ n 时 `x m ≤ x n`
+-- ─────────────────────────────────────────────────────────────
+
+-- `n` 写成 `m + j`，对 `j` 归纳：零情形是自反性，后继情形把归纳假设与
+-- 单调性一步用 `ratLeRep_trans` 串起来。归纳单独放成一条 `∀ j` 的引理，
+-- 这样 `Eq.subst` 只作用在一个应用上，不必直接套在 `Nat.rec` 外面。
+theorem monotone_le_aux (x : Seq) (h : Monotone x) (m : Nat) :
+    ∀ (j : Nat), ratLeRep (x m) (x (Nat.add m j)) :=
+  fun (j : Nat) =>
+    Nat.rec (fun (k : Nat) => ratLeRep (x m) (x (Nat.add m k)))
+      (ratLeRep_refl (x m))
+      (fun (k : Nat) (ih : ratLeRep (x m) (x (Nat.add m k))) =>
+        ratLeRep_trans (x m) (x (Nat.add m k))
+          (x (Nat.add m (Nat.succ k))) ih (h (Nat.add m k)))
+      j
+
+theorem monotone_le (x : Seq) (h : Monotone x) (m n : Nat) (hmn : LeNat m n) :
+    ratLeRep (x m) (x n) :=
+  Exists.elim (leNat_exists_add m n hmn)
+    (fun (j : Nat) (hj : n = Nat.add m j) =>
+      @Eq.subst.{1} Nat (fun (t : Nat) => ratLeRep (x m) (x t))
+        (Nat.add m j) n (Eq.symm hj) (monotone_le_aux x h m j))
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.2 极限是值域的上界
+-- ─────────────────────────────────────────────────────────────
+
+-- 固定 `n`，让常序列 `constSeq (x n)` 与 `x` 走 75.2；逐点的界由 82.1 给。
+theorem monotone_limit_upper (x : Seq) (L : ratRep) (hmono : Monotone x)
+    (h : Converges x L) : ∀ (n : Nat), ratLeRep (x n) L :=
+  fun (n : Nat) =>
+    converges_le_of_eventually (constSeq (x n)) x (x n) L
+      (converges_const (x n)) h
+      (Exists.intro n
+        (fun (m : Nat) (hm : LeNat n m) =>
+          monotone_le x hmono n m hm))
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.3 极限是最小上界
+-- ─────────────────────────────────────────────────────────────
+
+theorem monotone_limit_lub (x : Seq) (L : ratRep) (hmono : Monotone x)
+    (h : Converges x L) :
+    (∀ (n : Nat), ratLeRep (x n) L) ∧
+      (∀ (M : ratRep), (∀ (n : Nat), ratLeRep (x n) M) → ratLeRep L M) :=
+  And.intro
+    (monotone_limit_upper x L hmono h)
+    (fun (M : ratRep) (hM : ∀ (n : Nat), ratLeRep (x n) M) =>
+      converges_le_const x L M h
+        (Exists.intro Nat.zero
+          (fun (n : Nat) (_hn : LeNat Nat.zero n) => hM n)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.4 严格单调蕴含单调
+-- ─────────────────────────────────────────────────────────────
+
+theorem strict_mono_monotone (x : Seq) (h : StrictMono x) : Monotone x :=
+  fun (n : Nat) => ratLtRep_le (x n) (x (Nat.succ n)) (h n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.5 严格单调时任意间隔也不降
+-- ─────────────────────────────────────────────────────────────
+
+theorem strict_mono_le (x : Seq) (h : StrictMono x) (m n : Nat)
+    (hmn : LeNat m n) : ratLeRep (x m) (x n) :=
+  monotone_le x (strict_mono_monotone x h) m n hmn
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.6 严格单调时极限严格大于每一项
+-- ─────────────────────────────────────────────────────────────
+
+-- 弱序是 82.2。若 `x n ~ L`，则 `x (n+1) ≤ L ~ x n`，与 `x n ≤ x (n+1)`
+-- 夹出相邻两项相等，撞上严格性。
+theorem strict_mono_limit_gt (x : Seq) (L : ratRep) (hmono : StrictMono x)
+    (h : Converges x L) : ∀ (n : Nat), ratLtRep (x n) L :=
+  fun (n : Nat) =>
+    And.intro
+      (monotone_limit_upper x L (strict_mono_monotone x hmono) h n)
+      (fun (hnL : ratRel (x n) L) =>
+        (ratLtRep_right (x n) (x (Nat.succ n)) (hmono n))
+          (ratRel_symm (x (Nat.succ n)) (x n)
+            (ratLeRep_antisymm (x (Nat.succ n)) (x n)
+              (ratLeRep_congr_gen (x (Nat.succ n)) (x (Nat.succ n)) L (x n)
+                (ratRel_refl (x (Nat.succ n)))
+                (ratRel_symm (x n) L hnL)
+                (monotone_limit_upper x L (strict_mono_monotone x hmono) h
+                  (Nat.succ n)))
+              (strict_mono_le x hmono n (Nat.succ n)
+                (le_succ n n (le_refl n))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 82.7 常序列的实例
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_const_lub (q : ratRep) :
+    (∀ (n : Nat), ratLeRep (constSeq q n) q) ∧
+      (∀ (M : ratRep),
+        (∀ (n : Nat), ratLeRep (constSeq q n) M) → ratLeRep q M) :=
+  monotone_limit_lub (constSeq q) q (monotone_const q) (converges_const q)

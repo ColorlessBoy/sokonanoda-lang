@@ -621,6 +621,18 @@
               "title": "单元80 极限只看尾部：平移",
               "title_en": "Unit 80 — Limits Only See the Tail: Shifts",
               "unit": 80
+            },
+            {
+              "file": "units/III.1/unit81-tail-eq.sokonanoda",
+              "title": "单元81 尾部等价：改动有限项",
+              "title_en": "Unit 81 — Tail Equivalence: Finite Changes Do Not Move the Limit",
+              "unit": 81
+            },
+            {
+              "file": "units/III.1/unit82-mono-lub.sokonanoda",
+              "title": "单元82 单调序列的极限是上确界",
+              "title_en": "Unit 82 — The Limit of a Monotone Sequence is its Supremum",
+              "unit": 82
             }
           ]
         }
