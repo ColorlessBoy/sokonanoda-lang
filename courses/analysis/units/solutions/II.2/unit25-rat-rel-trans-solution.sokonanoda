@@ -697,7 +697,6 @@ theorem add_rotate (a k j : Nat) :
       (congrArg.{1} (fun (x : Nat) => Nat.add a x) (add_comm k j))
       (@Eq.symm.{1} Nat (Nat.add (Nat.add a j) k) (Nat.add a (Nat.add j k)) (add_assoc a j k)))
 
--- 前驱：`pred (succ n) = n` 是定义性相等；用于从前驱等式换回原等式。
 
 theorem intRel_trans_mid (a b c d e f : Nat)
     (h1 : Nat.add a d = Nat.add c b)
