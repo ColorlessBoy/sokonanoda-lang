@@ -18,6 +18,8 @@ import lib.Subseq
 import lib.LimitPoint
 import lib.Limsup
 import lib.Liminf
+import lib.SubseqLimit
+import lib.LimsupBound
 
 theorem demo_lib_closure : True := True.intro
 
@@ -36,3 +38,16 @@ theorem demo_limsup_const_zero : Limsup (constSeq ratZeroRep) ratZeroRep :=
 
 theorem demo_liminf_const_zero : Liminf (constSeq ratZeroRep) ratZeroRep :=
   liminf_const ratZeroRep
+
+theorem demo_limsup_subseq_const_zero :
+    Limsup (subseqSeq (fun (n : Nat) => n) (constSeq ratZeroRep)) ratZeroRep :=
+  limsup_subseq_of_converges (constSeq ratZeroRep) (fun (n : Nat) => n) subseq_id
+    ratZeroRep (converges_const ratZeroRep)
+
+theorem demo_zero_bounded_above : BoundedAbove (constSeq ratZeroRep) ratZeroRep :=
+  fun (n : Nat) => ratLeRep_refl ratZeroRep
+
+theorem demo_limsup_le_of_boundedAbove_zero :
+    ratLeRep ratZeroRep ratZeroRep :=
+  limsup_le_of_boundedAbove (constSeq ratZeroRep) ratZeroRep ratZeroRep
+    demo_zero_bounded_above (limsup_const ratZeroRep)

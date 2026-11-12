@@ -1,0 +1,97 @@
+-- 单元95 子序列与上下极限
+--
+-- 上极限和下极限各自压住或托住极限点集合。把项按一条严格递增的轨道重新
+-- 取出来，得到一条子序列；它的极限点集合是原集合的子集，因为它的每条收敛
+-- 见证都能并回原序列的一条轨道。集合变小，上确界只会往下走，下确界只会
+-- 往上走。
+--
+-- 95.0 给按轨道取项一个名字。95.1 把「子序列的极限点」这层嵌套拆开：收敛
+-- 的见证本身是一条子序列，两条轨道复合仍是子序列。95.2 与 95.3 把这条包含
+-- 关系翻译成上确界与下确界的不等式。95.4 与 95.5 是收敛情形：子序列继承
+-- 极限，于是两个界都落回同一个数。
+--
+-- 边界：这里只有「子序列的界不超过原序列的界」这一个方向。反方向不成立：
+-- 原序列多出来的极限点不必出现在某一条固定的子序列里。不新增公理。
+
+import lib.Limsup
+import lib.Liminf
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.0 按轨道取项
+-- ─────────────────────────────────────────────────────────────
+
+-- `subseqSeq g x` 的第 n 项是原序列的第 `g n` 项。
+def subseqSeq (g : Nat → Nat) (x : Seq) : Seq :=
+  fun (n : Nat) => x (g n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.1 子序列的极限点也是原序列的极限点
+-- ─────────────────────────────────────────────────────────────
+
+-- `LimitPoint` 展开成一条轨道与它的收敛性。子序列 `x ∘ g` 的极限点由轨道
+-- `h` 见证；把两条轨道复合，`x ∘ (g ∘ h)` 就是原序列的一条子序列。这就是
+-- 集合包含 `S(x ∘ g) ⊆ S(x)` 的证明，后面两条不等式都从这里来。
+theorem subseq_limitPoint (x : Seq) (g : Nat → Nat) (hg : Subseq g) (L : ratRep)
+    (h : LimitPoint (subseqSeq g x) L) : LimitPoint x L :=
+  Exists.elim h
+    (fun (h' : Nat → Nat)
+        (hh : Subseq h' ∧ Converges (fun (n : Nat) => subseqSeq g x (h' n)) L) =>
+      Exists.intro (fun (n : Nat) => g (h' n))
+        (And.intro
+          (subseq_comp g h' hg (And.left hh))
+          (And.right hh)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.2 上极限沿子序列只降不升
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：上确界的最小性（93.2）：要证 `M ≤ L`，就把 `L` 当成候选上界交给它——需要 `L` 压住子序列的每个极限点。这一步用 95.1 把点搬回原序列，再用 93.1。
+-- soko:hint 目标形态：`ratLeRep M L`。
+-- soko:hint 关键件：limsup_least · limsup_upper · subseq_limitPoint。
+theorem limsup_subseq_le (x : Seq) (g : Nat → Nat) (hg : Subseq g) (L M : ratRep)
+    (hL : Limsup x L) (hM : Limsup (subseqSeq g x) M) : ratLeRep M L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.3 下极限沿子序列只升不降
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：94.2 的最大性：要证 `L ≤ M`，把 `L` 当成候选下界交出去，只需要 `L` 托住子序列的每个极限点；95.1 把它们搬回原序列，94.1 给出托住。
+-- soko:hint 目标形态：`ratLeRep L M`。
+-- soko:hint 关键件：liminf_greatest · liminf_lower · subseq_limitPoint。
+theorem liminf_le_subseq (x : Seq) (g : Nat → Nat) (hg : Subseq g) (L M : ratRep)
+    (hL : Liminf x L) (hM : Liminf (subseqSeq g x) M) : ratLeRep L M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.4 收敛序列的子序列以上极限为极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：子序列继承极限（91.5），再把「收敛到 L」换成「以上极限为极限」（93.5）。两步的直接组合。
+-- soko:hint 目标形态：`Limsup (subseqSeq g x) L`。
+-- soko:hint 关键件：subseq_converges · limsup_of_converges。
+theorem limsup_subseq_of_converges (x : Seq) (g : Nat → Nat) (hg : Subseq g)
+    (L : ratRep) (h : Converges x L) : Limsup (subseqSeq g x) L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.5 收敛序列的子序列以下极限为极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：与 95.4 同形，把上极限换成下极限（94.5）。仍是 91.5 与 94.5 的组合。
+-- soko:hint 目标形态：`Liminf (subseqSeq g x) L`。
+-- soko:hint 关键件：subseq_converges · liminf_of_converges。
+theorem liminf_subseq_of_converges (x : Seq) (g : Nat → Nat) (hg : Subseq g)
+    (L : ratRep) (h : Converges x L) : Liminf (subseqSeq g x) L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.6 常序列的子序列
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常序列收敛到自己的值（73.5），把这个收敛性交给 95.4。
+-- soko:hint 目标形态：`Limsup (subseqSeq g (constSeq q)) q`。
+-- soko:hint 关键件：converges_const · limsup_subseq_of_converges。
+theorem demo_subseq_const (g : Nat → Nat) (hg : Subseq g) (q : ratRep) :
+    Limsup (subseqSeq g (constSeq q)) q :=
+  sorry
