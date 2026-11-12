@@ -1,0 +1,93 @@
+-- 单元89 扩展实数上的下界与下确界
+--
+-- 87 把上界与上确界搬到了扩展实数里，下侧还停在实数层。全体实数在
+-- 上侧以 `posInf` 为界，在下侧以 `negInf` 为界；只做上确界，遇到「最小」
+-- 的地方就还得回到实数层，而那里恰好没有全体实数的下确界。下侧的词汇
+-- 要单独补一次。
+--
+-- `LowerBound ExtReal ele A m` 读作「`m` 是 `A` 在扩展实数里的下界」，
+-- `IsInf ExtReal ele A m` 读作「`m` 是 `A` 的下确界」。两个定义都在
+-- `lib/Order`，这里把类型取成 `ExtReal`、关系取成 `ele`。
+--
+-- 证明与 87 逐条对称：上界的放大换成下界的缩小，最小性换成最大性。
+-- 两个极端的角色也对调：空集的下确界是 `posInf`，全空间的是 `negInf`。
+-- 任意集合下确界的存在性仍不证明。
+
+import lib.Order
+import lib.ExtReal
+import lib.ExtRealOrder
+
+-- ─────────────────────────────────────────────────────────────
+-- 89.0 读法
+-- ─────────────────────────────────────────────────────────────
+
+-- 下面一律写 `LowerBound ExtReal ele A m` 与 `IsInf ExtReal ele A m`。
+-- 它们在 `lib/Order` 里对任意类型、任意关系陈述，这里只固定参数。
+
+-- ─────────────────────────────────────────────────────────────
+-- 89.1 下界可以缩小
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：展开 `LowerBound`；对每个 `a`，把 `m' ≤ m` 与 `m ≤ a` 用 `ele_trans` 接起来。
+-- soko:hint 目标形态：`∀ a, A a → ele m' a`。
+-- soko:hint 关键件：ele_trans · 定义性展开。
+theorem ext_lowerBound_of_le (A : ExtReal → Prop) (m m' : ExtReal)
+    (hm : LowerBound ExtReal ele A m) (h : ele m' m) :
+    LowerBound ExtReal ele A m' :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 89.2 下确界处 `M ≤ m` 与「M 是下界」等价
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：正方向用 `ele_trans` 把 `M ≤ m` 与 `m ≤ a`（`isInf_lower`）接起来；反方向就是 `isInf_greatest`。
+-- soko:hint 目标形态：`ele M m ↔ LowerBound ExtReal ele A M`。
+-- soko:hint 关键件：Iff.intro · isInf_lower · isInf_greatest · ele_trans。
+theorem ext_inf_le_iff (A : ExtReal → Prop) (m M : ExtReal)
+    (hi : IsInf ExtReal ele A m) :
+    ele M m ↔ LowerBound ExtReal ele A M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 89.3 下确界唯一
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`m` 不超过 `m'`（`m'` 是下界），`m'` 不超过 `m`（反过来），再交给 `ele_antisymm`。
+-- soko:hint 目标形态：`m = m'`。
+-- soko:hint 关键件：isInf_lower · isInf_greatest · ele_antisymm。
+theorem ext_inf_unique (A : ExtReal → Prop) (m m' : ExtReal)
+    (hi : IsInf ExtReal ele A m) (hj : IsInf ExtReal ele A m') : m = m' :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 89.4 集合含负无穷时，下确界是负无穷
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：下界分量对每个 `a` 都用 `negInf_le`；最大性把任取的下界作用在 `negInf` 与 `h` 上。
+-- soko:hint 目标形态：`IsInf ExtReal ele A negInf`。
+-- soko:hint 关键件：And.intro · negInf_le · 逐点应用 `hM negInf h`。
+theorem ext_inf_of_bot (A : ExtReal → Prop) (h : A negInf) :
+    IsInf ExtReal ele A negInf :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 89.5 空集的下确界是正无穷
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：空集没有元素，下界分量对 `False` 消去；最大性就是 `le_posInf M`。
+-- soko:hint 目标形态：`IsInf ExtReal ele (fun _ => False) posInf`。
+-- soko:hint 关键件：False.elim · le_posInf。
+theorem ext_inf_empty :
+    IsInf ExtReal ele (fun (_ : ExtReal) => False) posInf :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 89.6 全空间的下确界是负无穷
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：下界分量是 `negInf_le`；最大性把下界作用在 `negInf` 与 `True.intro` 上。
+-- soko:hint 目标形态：`IsInf ExtReal ele (fun _ => True) negInf`。
+-- soko:hint 关键件：And.intro · negInf_le · `True.intro`。
+theorem ext_inf_univ :
+    IsInf ExtReal ele (fun (_ : ExtReal) => True) negInf :=
+  sorry

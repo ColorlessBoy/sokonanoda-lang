@@ -687,6 +687,18 @@
               "title": "单元88 实数上确界与扩展上确界的相容",
               "title_en": "Unit 88 — Real and Extended Suprema Agree",
               "unit": 88
+            },
+            {
+              "file": "units/III.2/unit89-ext-inf.sokonanoda",
+              "title": "单元89 扩展实数上的下界与下确界",
+              "title_en": "Unit 89 — Lower Bounds and Infima over the Extended Reals",
+              "unit": 89
+            },
+            {
+              "file": "units/III.2/unit90-inf-fin-bridge.sokonanoda",
+              "title": "单元90 实数下确界与扩展下确界的相容",
+              "title_en": "Unit 90 — Real and Extended Infima Agree",
+              "unit": 90
             }
           ]
         }
