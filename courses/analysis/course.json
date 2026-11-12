@@ -758,6 +758,18 @@
               "title": "单元97 上下极限只看尾部",
               "title_en": "Unit 97 — Limsup and Liminf Only See the Tail",
               "unit": 97
+            },
+            {
+              "file": "units/III.3/unit98-limsup-converges.sokonanoda",
+              "title": "单元98 上下极限与收敛",
+              "title_en": "Unit 98 — Limsup, Liminf, and Convergence",
+              "unit": 98
+            },
+            {
+              "file": "units/III.3/unit99-cauchy-limit.sokonanoda",
+              "title": "单元99 Cauchy 序列与极限点",
+              "title_en": "Unit 99 — Cauchy Sequences and Limit Points",
+              "unit": 99
             }
           ]
         }

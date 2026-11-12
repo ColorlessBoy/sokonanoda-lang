@@ -1,0 +1,88 @@
+-- 单元98 上下极限与收敛（解答）
+--
+-- 收敛时，上极限与下极限都回到极限；两个界之间有空隙时，序列不可能收敛。
+-- 反过来不成立：上下极限相等仍推不出收敛。
+--
+-- 98.0 接起两条唯一性。98.1 把空隙变成不收敛的判据。98.2 把极限点夹在
+-- 下极限与上极限之间。98.3 与 98.4 处理两个界相等的情形。98.5 是常序列。
+--
+-- 边界：反方向要从「无穷多次偏离」造子序列，需要可数选择；有界有理序列
+-- 也未必有有理极限点。这两点都不在本单元的定理里。不新增公理。
+
+import lib.Limsup
+import lib.Liminf
+
+-- ─────────────────────────────────────────────────────────────
+-- 98.0 收敛时上下极限彼此等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 上极限 M 与极限 L 相等，下极限 N 也与 L 相等；把 N ~ L 翻向后与 M ~ L 传递。
+theorem limsup_liminf_rel_of_converges (x : Seq) (L M N : ratRep)
+    (h : Converges x L) (hM : Limsup x M) (hN : Liminf x N) : ratRel M N :=
+  ratRel_trans_gen M L N
+    (limsup_unique_of_converges x L M h hM)
+    (ratRel_symm N L (liminf_unique_of_converges x L N h hN))
+
+-- ─────────────────────────────────────────────────────────────
+-- 98.1 上下极限之间有空隙，序列就不收敛
+-- ─────────────────────────────────────────────────────────────
+
+-- 存在极限 K 时，98.0 让 M 与 N 落在同一个等价类，与空隙矛盾。
+theorem not_converges_of_limsup_liminf_gap (x : Seq) (M N : ratRep)
+    (hM : Limsup x M) (hN : Liminf x N) (hne : ¬ ratRel M N) :
+    (∃ (K : ratRep), Converges x K) → False :=
+  fun (hK : ∃ (K : ratRep), Converges x K) =>
+    Exists.elim hK
+      (fun (K : ratRep) (h : Converges x K) =>
+        hne (limsup_liminf_rel_of_converges x K M N h hM hN))
+
+-- ─────────────────────────────────────────────────────────────
+-- 98.2 极限点落在两个界之间
+-- ─────────────────────────────────────────────────────────────
+
+-- 左支是下极限的下界，右支是上极限的上界。
+theorem limitPoint_between_limsup_liminf (x : Seq) (L M P : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hP : LimitPoint x P) :
+    ratLeRep M P ∧ ratLeRep P L :=
+  And.intro (liminf_lower x M hM P hP) (limsup_upper x L hL P hP)
+
+-- ─────────────────────────────────────────────────────────────
+-- 98.3 上下极限相等时极限点至多一个等价类
+-- ─────────────────────────────────────────────────────────────
+
+-- P 与 Q 都在 [M, L] 里。P ≤ L ≤ M ≤ Q 给 P ≤ Q，反方向同理，反对称收口。
+theorem limitPoints_rel_of_le (x : Seq) (L M P Q : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hLM : ratLeRep L M)
+    (hP : LimitPoint x P) (hQ : LimitPoint x Q) : ratRel P Q :=
+  ratLeRep_antisymm P Q
+    (ratLeRep_trans P L Q
+      (limsup_upper x L hL P hP)
+      (ratLeRep_trans L M Q hLM (liminf_lower x M hM Q hQ)))
+    (ratLeRep_trans Q L P
+      (limsup_upper x L hL Q hQ)
+      (ratLeRep_trans L M P hLM (liminf_lower x M hM P hP)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 98.4 有极限点时两个界相等
+-- ─────────────────────────────────────────────────────────────
+
+-- M ≤ P ≤ L 与 L ≤ M 夹出 M ~ L，再翻向。
+theorem limsup_liminf_rel_of_le (x : Seq) (L M P : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hLM : ratLeRep L M)
+    (hP : LimitPoint x P) : ratRel L M :=
+  ratRel_symm M L
+    (ratLeRep_antisymm M L
+      (ratLeRep_trans M P L
+        (liminf_lower x M hM P hP)
+        (limsup_upper x L hL P hP))
+      hLM)
+
+-- ─────────────────────────────────────────────────────────────
+-- 98.5 常序列的实例
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列的上极限、下极限与极限点都取 q。
+theorem demo_const_between (q : ratRep) :
+    ratLeRep q q ∧ ratLeRep q q :=
+  limitPoint_between_limsup_liminf (constSeq q) q q q
+    (limsup_const q) (liminf_const q) (limitPoint_const q)
