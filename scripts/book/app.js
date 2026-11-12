@@ -1,47 +1,52 @@
 /*
- * app.js — II.1 interactive book prototype.
+ * app.js — analysis interactive book (M1+M2, all units).
  *
  * Deliberately tiny and dependency-free: no CDN, no math renderer, no framework.
  * Everything is delegated from a handful of data-* hooks so the static HTML
  * remains usable when JavaScript is disabled (native <details> still works).
+ *
+ * State kept in localStorage: the reader's layer choice only.  Expanded /
+ * collapsed panel state is intentionally not persisted, so a fresh visit shows
+ * the book's own defaults.
  */
 (() => {
   "use strict";
 
   const body = document.body;
-  const VIEW_KEY = "soko-book-proto-view";
+  const VIEW_KEY = "soko-book-v2-view";
   const views = ["both", "intuition", "formal"];
-  const buttons = Array.from(document.querySelectorAll("[data-view]"));
+  const buttons = Array.from(document.querySelectorAll(".seg button[data-view]"));
 
-  function setView(view) {
-    nextView = views.includes(view) ? view : "both";
-    body.dataset.view = nextView;
+  let currentView = "both";
+
+  function setView(view, persist = true) {
+    currentView = views.includes(view) ? view : "both";
+    body.dataset.view = currentView;
     for (const button of buttons) {
-      button.setAttribute("aria-pressed", String(button.dataset.view === nextView));
+      button.setAttribute("aria-pressed", String(button.dataset.view === currentView));
     }
-    try {
-      localStorage.setItem(VIEW_KEY, nextView);
-    } catch (_) {
-      /* file:// or private mode: the toggle still works for this session */
+    if (persist) {
+      try {
+        localStorage.setItem(VIEW_KEY, currentView);
+      } catch (_) {
+        /* file:// or private mode: the toggle still works for this session */
+      }
     }
   }
 
-  let nextView = "both";
   for (const button of buttons) {
     button.addEventListener("click", () => setView(button.dataset.view));
   }
 
   try {
     const saved = localStorage.getItem(VIEW_KEY);
-    if (views.includes(saved)) setView(saved);
-    else setView("both");
+    setView(views.includes(saved) ? saved : "both", false);
   } catch (_) {
-    setView("both");
+    setView("both", false);
   }
 
   function setAllDetails(open) {
-    const details = document.querySelectorAll("details");
-    for (const item of details) item.open = open;
+    for (const item of document.querySelectorAll("details")) item.open = open;
   }
 
   for (const action of document.querySelectorAll("[data-action]")) {
@@ -51,6 +56,26 @@
       else if (name === "collapse-all") setAllDetails(false);
       else if (name === "print") window.print();
     });
+  }
+
+  /* Chapter jump: a plain select keeps the toolbar compact on mobile. */
+  const chapterJump = document.querySelector('select[data-action="chapter-jump"]');
+  if (chapterJump) {
+    chapterJump.addEventListener("change", () => {
+      if (chapterJump.value) window.location.hash = chapterJump.value;
+    });
+    const syncChapter = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith("#chapter-")) {
+        chapterJump.value = hash;
+      } else if (hash.startsWith("#unit-")) {
+        const unit = document.getElementById(hash.slice(1));
+        const chapter = unit && unit.closest(".chapter");
+        if (chapter) chapterJump.value = "#" + chapter.id;
+      }
+    };
+    window.addEventListener("hashchange", syncChapter);
+    syncChapter();
   }
 
   /*
@@ -87,4 +112,16 @@
 
   window.addEventListener("hashchange", focusHash);
   focusHash();
+
+  /* Expose the layer state for the headless DOM test without changing
+     visible behaviour. */
+  body.dataset.viewReady = "true";
+  const syncViewState = () => {
+    body.dataset.viewCurrent = body.dataset.view || currentView;
+  };
+  syncViewState();
+  new MutationObserver(syncViewState).observe(body, {
+    attributes: true,
+    attributeFilter: ["data-view"],
+  });
 })();

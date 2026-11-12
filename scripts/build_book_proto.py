@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""Build the interactive HTML prototype for course II.1 (19 units).
+"""Build the interactive HTML book for the whole analysis course (M1+M2).
 
-This is deliberately a *prototype*: it reads the existing course canvas and
-solution files, renders them as a static book page, and implements a small
-check mode.  It does not judge proofs, call the kernel, or edit course files.
+The builder discovers every chapter/unit from ``courses/analysis/course.json``
+and reads the matching canvases and solution files from ``courses/analysis/``.
+It does not hardcode a chapter id or a unit count: adding M3 units to the
+course manifest (and the unit files) makes them appear on the next build.
 
 Usage (from the repository root):
 
-    python3 scripts/build_book_proto.py --out dist/book/proto-II.1
-    python3 scripts/build_book_proto.py --check --out dist/book/proto-II.1
+    python3 scripts/build_book_proto.py --out dist/book/book-v2
+    python3 scripts/build_book_proto.py --check --out dist/book/book-v2
+    python3 scripts/build_book_proto.py --out scripts/book/preview
+    python3 scripts/build_book_proto.py --check --check-preview
 
-The generated page has no external assets: CSS and JS are inlined, math is
-Unicode plus native MathML, and the few simple fractions/superscripts are
-converted by the tiny ``mathml()`` helper below.  Standard library only.
+The generated page is a single self-contained HTML file: CSS and JavaScript are
+inlined, math is Unicode plus native MathML, and there are no external http(s)
+references, CDN assets, or web fonts.  Standard library only.
 """
 
 from __future__ import annotations
@@ -27,24 +30,29 @@ from collections import Counter
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
 
 
 ROOT = Path(__file__).resolve().parent.parent
-COURSE_JSON = ROOT / "courses" / "analysis" / "course.json"
+COURSE_ROOT = ROOT / "courses" / "analysis"
+COURSE_JSON = COURSE_ROOT / "course.json"
 BOOK_DIR = ROOT / "scripts" / "book"
 STYLE_CSS = BOOK_DIR / "style.css"
 APP_JS = BOOK_DIR / "app.js"
-CHAPTER_ID = "II.1"
-EXPECTED_UNITS = 19
+PREVIEW_HTML = BOOK_DIR / "preview" / "index.html"
+DEFAULT_OUT = "dist/book/book-v2"
 
 DECL_RE = re.compile(r"^(def|theorem|axiom|inductive)\s+([^\s(:]+)")
 IMPORT_RE = re.compile(r"^import\s+")
 TITLE_RE = re.compile(r"^unit\d+[-_].*\.sokonanoda")
-CIRCLED = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳"
+UNIT_PREFIX_RE = re.compile(
+    r"^单元\s*(?:[①-⑳]|[㉑-㉟]|[㊱-㊿]|[0-9]+)\s*"
+)
 
 FORMULA_MARKERS = set("=∀∃→←↔∈∉⊆⊂≤≥≠⇒⇔⟺∧∨¬")
-MATH_SYMBOLS = FORMULA_MARKERS | set("ℕℤℚℝℂαβγδεζηθικλμνξοπρστυφχψωΓΔΘΛΞΠΣΦΨΩ×·−+⁰¹²³⁴⁵⁶⁷⁸⁹⁻")
+MATH_SYMBOLS = FORMULA_MARKERS | set(
+    "ℕℤℚℝℂαβγδεζηθικλμνξοπρστυφχψωΓΔΘΛΞΠΣΦΨΩ×·−+⁰¹²³⁴⁵⁶⁷⁸⁹⁻"
+)
 MATH_RUN_RE = re.compile(
     r"[A-Za-z0-9_'.(){}\[\]+\-*/=<>"
     r"≤≥≠∈∉⊆⊂→←↔⇒⇔⟺∀∃∧∨¬"
@@ -114,12 +122,27 @@ class Unit:
     title: str
     title_en: str
     file: str
+    chapter_id: str
+    chapter_title: str
+    chapter_position: int
+    volume_id: str
+    volume_title: str
     decls: List[Decl] = field(default_factory=list)
     trailing: List[Item] = field(default_factory=list)
     imports: List[str] = field(default_factory=list)
     solution_path: Optional[Path] = None
     solution_decls: Dict[str, Decl] = field(default_factory=dict)
     extra_solutions: List[Decl] = field(default_factory=list)
+    stray: List[str] = field(default_factory=list)
+
+    @property
+    def display_title(self) -> str:
+        stripped = UNIT_PREFIX_RE.sub("", self.title).strip()
+        return stripped or self.title
+
+    @property
+    def chapter_slug(self) -> str:
+        return chapter_slug(self.chapter_id)
 
     @property
     def exercises(self) -> List[Decl]:
@@ -158,12 +181,55 @@ class Unit:
 
 
 @dataclass
+class Chapter:
+    id: str
+    title: str
+    volume_id: str
+    volume_title: str
+    position: int
+    units: List[Unit] = field(default_factory=list)
+
+    @property
+    def slug(self) -> str:
+        return chapter_slug(self.id)
+
+    @property
+    def anchor(self) -> str:
+        return f"chapter-{self.slug}"
+
+    @property
+    def exercises(self) -> int:
+        return sum(unit.exercise_count for unit in self.units)
+
+    @property
+    def hints(self) -> int:
+        return sum(len(unit.hints) for unit in self.units)
+
+    @property
+    def declarations(self) -> int:
+        return sum(len(unit.decls) for unit in self.units)
+
+
+@dataclass
 class Book:
-    chapter_title: str
-    units: List[Unit]
+    title: str
+    volume_titles: List[str]
+    chapters: List[Chapter]
     source_fingerprint: str
     import_count: int
-    html: str = ""
+    unlisted_unit_files: List[str] = field(default_factory=list)
+    manifest_unit_count: int = 0
+
+    @property
+    def units(self) -> List[Unit]:
+        return [unit for chapter in self.chapters for unit in chapter.units]
+
+    @property
+    def chapter_span(self) -> str:
+        if not self.chapters:
+            return ""
+        first, last = self.chapters[0].id, self.chapters[-1].id
+        return first if first == last else f"{first}–{last}"
 
     @property
     def exercises(self) -> int:
@@ -180,6 +246,26 @@ class Book:
     @property
     def solutions(self) -> int:
         return sum(1 for unit in self.units for decl in unit.exercises if decl.solution)
+
+    @property
+    def extra_solutions(self) -> int:
+        return sum(len(unit.extra_solutions) for unit in self.units)
+
+    @property
+    def defs(self) -> int:
+        return sum(unit.defs for unit in self.units)
+
+    @property
+    def theorems(self) -> int:
+        return sum(unit.theorems for unit in self.units)
+
+    @property
+    def axioms(self) -> int:
+        return sum(unit.axioms for unit in self.units)
+
+    @property
+    def inductives(self) -> int:
+        return sum(unit.inductives for unit in self.units)
 
 
 # ── source parsing ──────────────────────────────────────────────────────────
@@ -204,7 +290,7 @@ def _is_cjk(ch: str) -> bool:
 
 def _looks_formula(line: str) -> bool:
     text = line.strip()
-    if len(text) < 2 or len(text) > 220:
+    if len(text) < 2 or len(text) > 320:
         return False
     if BULLET_RE.match(line):
         return False
@@ -303,6 +389,7 @@ def _split_paragraph_lines(lines: Sequence[str], unit_title: str, filename: str)
     flush_list()
     return items
 
+
 def _clean_items(items: Sequence[Item]) -> List[Item]:
     """Collapse decorative rules and drop leading/trailing ones."""
     cleaned: List[Item] = []
@@ -383,11 +470,13 @@ def _split_statement_body(code: str) -> Tuple[str, str]:
 
 def parse_declarations(
     lines: Sequence[str], unit_title: str, filename: str
-) -> Tuple[List[Decl], List[Item], List[str]]:
-    """Split a canvas/solution file into declarations, trailing prose, imports."""
+) -> Tuple[List[Decl], List[Item], List[str], List[str]]:
+    """Split a canvas/solution file into declarations, trailing prose, imports,
+    and top-level lines the parser could not place (reported, never silent)."""
     decls: List[Decl] = []
     pending: List[Item] = []
     imports: List[str] = []
+    stray: List[str] = []
     index = 0
     total = len(lines)
 
@@ -412,8 +501,7 @@ def parse_declarations(
 
         match = DECL_RE.match(line)
         if not match:
-            # Defensive: an unexpected top-level line belongs to the current
-            # declaration start, not to prose.  The corpus does not hit this.
+            stray.append(f"{filename}:{index + 1}: {line.strip()[:120]}")
             index += 1
             continue
 
@@ -448,19 +536,11 @@ def parse_declarations(
         decls.append(decl)
         pending = []
 
-    return decls, _clean_items(pending), imports
+    return decls, _clean_items(pending), imports, stray
 
 
 def load_source(path: Path) -> List[str]:
     return path.read_text(encoding="utf-8").splitlines()
-
-
-def find_chapter(course: dict, chapter_id: str) -> dict:
-    for volume in course.get("volumes", []):
-        for chapter in volume.get("chapters", []):
-            if chapter.get("id") == chapter_id:
-                return chapter
-    raise SystemExit(f"course.json: chapter {chapter_id!r} not found")
 
 
 def find_solution(unit_file: Path, chapter_id: str) -> Optional[Path]:
@@ -488,20 +568,32 @@ def _unit_title_en(unit: dict) -> str:
     return str(unit.get("title_en") or "").strip()
 
 
-def parse_unit(unit: dict, chapter: dict, course_root: Path) -> Unit:
-    unit_file = course_root / unit["file"]
+def parse_unit(
+    entry: dict,
+    chapter: dict,
+    volume: dict,
+    chapter_position: int,
+    course_root: Path,
+) -> Unit:
+    unit_file = course_root / str(entry["file"])
     lines = load_source(unit_file)
-    title = str(unit.get("title") or "").strip()
-    title_en = _unit_title_en(unit)
-    decls, trailing, imports = parse_declarations(lines, title, unit_file.name)
+    title = str(entry.get("title") or "").strip()
+    title_en = _unit_title_en(entry)
+    decls, trailing, imports, stray = parse_declarations(lines, title, unit_file.name)
     result = Unit(
-        index=int(unit["unit"]),
+        index=int(entry["unit"]),
         title=title,
         title_en=title_en,
-        file=unit["file"],
+        file=str(entry["file"]),
+        chapter_id=str(chapter["id"]),
+        chapter_title=str(chapter.get("title") or ""),
+        chapter_position=chapter_position,
+        volume_id=str(volume.get("id") or ""),
+        volume_title=str(volume.get("title") or ""),
         decls=decls,
         trailing=trailing,
         imports=imports,
+        stray=stray,
     )
 
     exercise_no = 0
@@ -514,8 +606,11 @@ def parse_unit(unit: dict, chapter: dict, course_root: Path) -> Unit:
     result.solution_path = solution_path
     if solution_path is not None:
         solution_lines = load_source(solution_path)
-        solution_decls, _, _ = parse_declarations(
+        solution_decls, _, _, solution_stray = parse_declarations(
             solution_lines, title, solution_path.name
+        )
+        result.stray.extend(
+            f"解答 {item}" for item in solution_stray
         )
         result.solution_decls = {decl.name: decl for decl in solution_decls}
         for decl in result.decls:
@@ -562,28 +657,91 @@ def _solution_note(exercise: Decl, solution: Decl) -> str:
 def source_fingerprint(paths: Iterable[Path]) -> str:
     digest = hashlib.sha256()
     for path in sorted(paths):
-        digest.update(path.name.encode("utf-8"))
+        try:
+            label = path.resolve().relative_to(ROOT).as_posix()
+        except ValueError:
+            label = path.name
+        digest.update(label.encode("utf-8"))
         digest.update(b"\0")
         digest.update(path.read_bytes())
     return digest.hexdigest()[:12]
 
 
+def chapter_slug(chapter_id: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", chapter_id.lower()).strip("-")
+
+
+def _filesystem_unit_files() -> set[Path]:
+    return {path.resolve() for path in COURSE_ROOT.glob("units/*/*.sokonanoda")}
+
+
 def load_book() -> Book:
     course = json.loads(COURSE_JSON.read_text(encoding="utf-8"))
-    chapter = find_chapter(course, CHAPTER_ID)
-    course_root = COURSE_JSON.parent
-    units = [parse_unit(unit, chapter, course_root) for unit in chapter.get("units", [])]
-    source_paths: List[Path] = []
-    for unit in units:
-        source_paths.append(course_root / unit.file)
-        if unit.solution_path is not None:
-            source_paths.append(unit.solution_path)
+    volumes = course.get("volumes")
+    if not isinstance(volumes, list) or not volumes:
+        raise SystemExit("course.json: expected a non-empty volumes array")
+    chapters: List[Chapter] = []
+    manifest_paths: set[Path] = set()
+    source_paths: List[Path] = [COURSE_JSON]
+    manifest_unit_count = 0
+
+    for volume in volumes:
+        volume_title = str(volume.get("title") or volume.get("id") or "")
+        for position, chapter in enumerate(volume.get("chapters", []), start=1):
+            chapter_id = str(chapter.get("id") or "")
+            if not chapter_id:
+                raise SystemExit("course.json: chapter without id")
+            chapter_obj = Chapter(
+                id=chapter_id,
+                title=str(chapter.get("title") or ""),
+                volume_id=str(volume.get("id") or ""),
+                volume_title=volume_title,
+                position=position,
+            )
+            entries = chapter.get("units")
+            if not isinstance(entries, list):
+                raise SystemExit(f"course.json: chapter {chapter_id!r} has no units array")
+            for unit_position, entry in enumerate(entries, start=1):
+                file_name = str(entry.get("file") or "")
+                if not file_name:
+                    raise SystemExit(f"course.json: chapter {chapter_id!r} has a unit without file")
+                path = COURSE_ROOT / file_name
+                if not path.is_file():
+                    raise SystemExit(f"course.json: unit file missing: {file_name}")
+                manifest_paths.add(path.resolve())
+                unit = parse_unit(entry, chapter, volume, unit_position, COURSE_ROOT)
+                chapter_obj.units.append(unit)
+                source_paths.append(path)
+                if unit.solution_path is not None:
+                    source_paths.append(unit.solution_path)
+                manifest_unit_count += 1
+            chapters.append(chapter_obj)
+
+    if not chapters:
+        raise SystemExit("course.json: no chapters found")
+    for chapter in chapters:
+        if not chapter.units:
+            raise SystemExit(f"course.json: chapter {chapter.id!r} has no units")
+
+    filesystem_paths = _filesystem_unit_files()
+    unlisted = sorted(
+        path.relative_to(ROOT).as_posix() for path in filesystem_paths - manifest_paths
+    )
+    missing = sorted(
+        path.relative_to(ROOT).as_posix() for path in manifest_paths - filesystem_paths
+    )
+    if missing:
+        raise SystemExit("course.json lists unit files that are absent: " + ", ".join(missing))
+
     source_paths.extend([STYLE_CSS, APP_JS])
     return Book(
-        chapter_title=str(chapter.get("title") or ""),
-        units=units,
+        title=str(course.get("title") or "analytical reader"),
+        volume_titles=list(dict.fromkeys(chapter.volume_title for chapter in chapters)),
+        chapters=chapters,
         source_fingerprint=source_fingerprint(source_paths),
-        import_count=sum(len(unit.imports) for unit in units),
+        import_count=sum(len(unit.imports) for chapter in chapters for unit in chapter.units),
+        unlisted_unit_files=unlisted,
+        manifest_unit_count=manifest_unit_count,
     )
 
 
@@ -703,9 +861,10 @@ def _mml_expr(text: str) -> str:
 
 
 def mathml(text: str) -> Optional[str]:
-    """Return a small block MathML node, or None for text MathML should not own."""
+    """Return a small block MathML node, or None when MathML should not own the
+    formula (CJK text, code-shaped formulas, or oversized display lines)."""
     source = text.strip().replace("`", "").strip("。；，、 ")
-    if not source or len(source) > 220:
+    if not source or len(source) > 320:
         return None
     if any(_is_cjk(ch) for ch in source):
         return None
@@ -747,7 +906,7 @@ def _wrap_math(text: str) -> str:
         if not stripped or not any(ch in MATH_SYMBOLS for ch in stripped):
             continue
         leading = span[: len(span) - len(span.lstrip())]
-        trailing = span[len(span.rstrip()) :]
+        trailing = span[len(span.rstrip()):]
         out.append(escape(text[position:match.start()]))
         if leading:
             out.append(escape(leading))
@@ -813,10 +972,11 @@ def render_inline(text: str) -> str:
     """Escape prose and add inline code, bold, and serif math spans."""
     return _render_inline(text)
 
+
 # ── HTML rendering ──────────────────────────────────────────────────────────
 
 
-CJK_PUNCT = set("，。；：！？、（）「」『』《》“”‘’…—·\"\'")
+CJK_PUNCT = set("，。；：！？、（）「」『』《》“”‘’…—·\"'")
 
 
 def _join_prose_lines(lines: Sequence[str]) -> str:
@@ -901,12 +1061,10 @@ def render_item(item: Item) -> str:
     return ""
 
 
-def render_items(items: Sequence[Item], *, include_hints: bool = False) -> str:
+def render_items(items: Sequence[Item]) -> str:
     out: List[str] = []
     for item in items:
         if item.kind == "hint":
-            if include_hints and item.hint is not None:
-                out.append(render_hint(item.hint, 1))
             continue
         out.append(render_item(item))
     return "".join(part for part in out if part)
@@ -981,9 +1139,6 @@ def render_code_panel(decl: Decl) -> str:
 def render_decl(unit: Unit, decl: Decl) -> str:
     outside = _outside_prompt(decl.lead)
     prompt = _prompt_items(decl.lead)
-    # Exercises keep their prompt inside the exercise card; every other
-    # declaration renders all of its lead prose before the card.  (Hints are
-    # rendered separately, inside the card.)
     prefix = render_items(outside if decl.is_exercise else decl.lead)
     kind_label = KIND_LABELS.get(decl.kind, decl.kind)
     decl_id = f"decl-{unit.index}-{decl.index}"
@@ -992,15 +1147,17 @@ def render_decl(unit: Unit, decl: Decl) -> str:
         prompt_html = render_items(prompt)
         return (
             prefix
-            + f'<article class="exercise" id="ex-{unit.index}-{decl.exercise_no}">'
+            + f'<article class="exercise" id="ex-{unit.index}-{decl.exercise_no}" '
+            + f'data-exercise="{decl.exercise_no}">'
             + '<header class="exercise-head">'
             + f'<span class="exercise-badge">练习 {decl.exercise_no}</span>'
             + f'<code class="exercise-name">{escape(decl.name)}</code>'
             + f'<span class="exercise-kind">{escape(kind_label)}</span>'
+            + f'<a class="exercise-appendix" href="#app-sol-{unit.index}-{decl.exercise_no}">附录解答</a>'
             + "</header>"
             + '<div class="exercise-body">'
             + (f'<div class="exercise-prompt">{prompt_html}</div>' if prompt_html else "")
-            + f'<pre class="exercise-statement"><code>{escape(decl.statement)}</code></pre>'
+            + f'<pre class="exercise-statement"><code>{escape(decl.code)}</code></pre>'
             + render_hints(decl.hints)
             + render_solution(unit, decl)
             + "</div></article>"
@@ -1060,58 +1217,156 @@ def render_solution(unit: Unit, decl: Decl) -> str:
     )
 
 
-def render_unit(unit: Unit) -> str:
+def unit_meta_bits(unit: Unit) -> List[str]:
+    bits: List[str] = []
+    for count, label in (
+        (unit.defs, "定义"),
+        (unit.theorems, "定理"),
+        (unit.axioms, "公理"),
+        (unit.inductives, "归纳类型"),
+    ):
+        if count:
+            bits.append(f"{count} 个{label}")
+    bits.append(f"{unit.exercise_count} 道练习")
+    if unit.hints:
+        bits.append(f"{len(unit.hints)} 条提示")
+    return bits
+
+
+def render_unit_nav(book: Book, unit: Unit, position: int) -> str:
+    previous = book.units[position - 1] if position > 0 else None
+    following = book.units[position + 1] if position + 1 < len(book.units) else None
+
+    def link(target: Optional[Unit], direction: str, label: str) -> str:
+        if target is None:
+            return (
+                '<span class="unit-nav-link is-disabled">'
+                f'<span class="unit-nav-label">{label}</span>'
+                '<span class="unit-nav-title">没有更多单元</span>'
+                "</span>"
+            )
+        arrow = "←" if direction == "prev" else "→"
+        return (
+            f'<a class="unit-nav-link" href="#unit-{target.index}" rel="{direction}">'
+            f'<span class="unit-nav-label">{arrow} {label}</span>'
+            f'<span class="unit-nav-title">{render_inline(target.display_title)}</span>'
+            "</a>"
+        )
+
+    return (
+        '<nav class="unit-nav no-print" aria-label="单元导航">'
+        + link(previous, "prev", "上一单元")
+        + '<a class="unit-nav-home" href="#toc">目录</a>'
+        + link(following, "next", "下一单元")
+        + "</nav>"
+    )
+
+
+def render_chapter(book: Book, chapter: Chapter) -> str:
+    units = "\n".join(
+        render_unit(book, unit, chapter, position)
+        for position, unit in enumerate(chapter.units)
+    )
+    first = chapter.units[0].index
+    last = chapter.units[-1].index
+    meta = [
+        f"{len(chapter.units)} 单元",
+        f"{chapter.exercises} 道练习",
+        f"{chapter.declarations} 个声明",
+        f"{chapter.hints} 条提示",
+    ]
+    return (
+        f'<section class="chapter" id="{chapter.anchor}">'
+        '<header class="chapter-head">'
+        f'<p class="chapter-kicker">{render_inline(chapter.volume_title)} · 第 {chapter.position} 章</p>'
+        f'<h2><span class="chapter-id">{escape(chapter.id)}</span>'
+        f"<span>{render_inline(chapter.title)}</span></h2>"
+        f'<p class="chapter-meta">单元 {first}–{last} · {" · ".join(meta)}</p>'
+        "</header>"
+        f"{units}"
+        "</section>"
+    )
+
+
+def render_unit(book: Book, unit: Unit, chapter: Chapter, position: int) -> str:
     hints = unit.hints
-    meta_bits = [
-        f"{unit.defs} 个定义",
-        f"{unit.theorems} 个定理",
-        f"{len(unit.exercises)} 道练习",
-        f"{len(hints)} 条提示",
-    ]
-    if unit.inductives:
-        meta_bits.insert(1, f"{unit.inductives} 个归纳类型")
-    if unit.axioms:
-        meta_bits.insert(1, f"{unit.axioms} 个公理")
+    meta = " · ".join(unit_meta_bits(unit))
+    classes = "unit first-of-chapter" if position == 0 else "unit"
     parts = [
-        f'<section class="unit" id="unit-{unit.index}">',
+        f'<section class="{classes}" id="unit-{unit.index}">',
         '<header class="unit-head">',
-        f'<p class="unit-kicker">II.1 · 单元 {unit.index} / {EXPECTED_UNITS}</p>',
-        f'<h2><span class="unit-circled">{CIRCLED[unit.index - 1]}</span>'
-        f"<span>{render_inline(unit.title.removeprefix('单元' + CIRCLED[unit.index - 1]).strip())}</span></h2>",
-        f'<p class="unit-title-en">{escape(unit.title_en)}</p>',
-        f'<p class="unit-meta">{" · ".join(meta_bits)} · '
-        f'<a href="#appendix-unit-{unit.index}">解答附录</a></p>',
-        '<a class="back-to-toc" href="#toc">↑ 目录</a>',
-        "</header>",
+        f'<p class="unit-kicker"><a href="#{chapter.anchor}">{escape(unit.chapter_id)}</a>'
+        f' · 本章第 {position + 1} / {len(chapter.units)} 单元 · '
+        f'全书第 {unit.index} / {len(book.units)} 单元</p>',
+        f'<h2><span class="unit-number">{unit.index:02d}</span>'
+        f"<span>{render_inline(unit.display_title)}</span></h2>",
     ]
+    if unit.title_en:
+        parts.append(f'<p class="unit-title-en">{escape(unit.title_en)}</p>')
+    parts.extend(
+        [
+            f'<p class="unit-meta">{meta} · '
+            f'<a href="#appendix-unit-{unit.index}">解答附录</a></p>',
+            '<a class="back-to-toc" href="#toc">↑ 目录</a>',
+            "</header>",
+        ]
+    )
     for decl in unit.decls:
         parts.append(render_decl(unit, decl))
     if unit.trailing:
         parts.append(render_items(unit.trailing))
+    parts.append(render_unit_nav(book, unit, book.units.index(unit)))
     parts.append("</section>")
     return "\n".join(parts)
 
 
 def render_toc(book: Book) -> str:
-    items: List[str] = []
-    for unit in book.units:
-        items.append(
-            "<li>"
-            f'<a href="#unit-{unit.index}">'
-            f'<span class="toc-num">{unit.index:02d}</span>'
-            f'<span class="toc-title">{render_inline(unit.title)}</span>'
-            "</a>"
-            f'<span class="toc-meta">{len(unit.exercises)} 道练习 · {len(unit.hints)} 条提示</span>'
-            "</li>"
+    volume_blocks: List[str] = []
+    for volume_title in book.volume_titles:
+        chapters = [chapter for chapter in book.chapters if chapter.volume_title == volume_title]
+        if not chapters:
+            continue
+        chapter_blocks: List[str] = []
+        for chapter in chapters:
+            unit_items: List[str] = []
+            for unit in chapter.units:
+                unit_items.append(
+                    "<li>"
+                    f'<a href="#unit-{unit.index}">'
+                    f'<span class="toc-num">{unit.index:02d}</span>'
+                    f'<span class="toc-title">{render_inline(unit.display_title)}</span>'
+                    "</a>"
+                    f'<span class="toc-meta">{unit.exercise_count} 道练习 · '
+                    f"{len(unit.hints)} 条提示</span>"
+                    "</li>"
+                )
+            chapter_blocks.append(
+                '<section class="toc-chapter">'
+                '<div class="toc-chapter-head">'
+                f'<h4><a href="#{chapter.anchor}">'
+                f'<span class="toc-chapter-id">{escape(chapter.id)}</span>'
+                f"<span>{render_inline(chapter.title)}</span></a></h4>"
+                f'<p class="toc-chapter-meta">{len(chapter.units)} 单元 · '
+                f"{chapter.exercises} 道练习 · {chapter.declarations} 个声明</p>"
+                "</div>"
+                f'<ol class="toc-units">{"".join(unit_items)}</ol>'
+                "</section>"
+            )
+        volume_blocks.append(
+            '<div class="toc-volume">'
+            f'<h3 class="toc-volume-title">{render_inline(volume_title)}</h3>'
+            f'{"".join(chapter_blocks)}'
+            "</div>"
         )
     return (
-        '<nav class="toc" id="toc" aria-label="章节目录">'
+        '<nav class="toc" id="toc" aria-label="全书目录">'
         "<h2>目录</h2>"
-        f'<p class="toc-lede">19 个单元 · {book.exercises} 道练习 · '
-        f"{book.hints} 条提示 · 单元内可折叠证明与提示。</p>"
-        f'<ol>{"".join(items)}</ol>'
-        '<p class="toc-footer"><a href="#appendix-solutions">→ 解答附录</a>'
-        " · <a href=\"#top\">回到封面</a></p>"
+        f'<p class="toc-lede">{len(book.chapters)} 章 · {len(book.units)} 个单元 · '
+        f"{book.exercises} 道练习 · {book.hints} 条提示 · "
+        "单元内可折叠证明、提示与解答。</p>"
+        + "".join(volume_blocks)
+        + '<p class="toc-footer"><a href="#appendix-solutions">→ 解答附录</a>'
+        ' · <a href="#top">回到封面</a></p>'
         "</nav>"
     )
 
@@ -1133,9 +1388,7 @@ def render_appendix(book: Book) -> str:
                 note = ""
                 if decl.solution_note:
                     note = f'<p class="solution-note">{render_inline(decl.solution_note)}</p>'
-                body = (
-                    f"{note}<pre><code>{escape(solution.code)}</code></pre>"
-                )
+                body = f"{note}<pre><code>{escape(solution.code)}</code></pre>"
             exercise_rows.append(
                 f'<details class="appendix-solution" id="app-sol-{unit.index}-{decl.exercise_no}">'
                 f"<summary>练习 {decl.exercise_no} · {escape(decl.name)} "
@@ -1144,18 +1397,23 @@ def render_appendix(book: Book) -> str:
             )
 
         extras: List[str] = []
-        for decl in unit.extra_solutions:
+        for position, decl in enumerate(unit.extra_solutions, start=1):
             extras.append(
-                '<details class="appendix-solution">'
+                f'<details class="appendix-solution" id="app-extra-{unit.index}-{position}">'
                 f"<summary>补充 · {escape(decl.name)} "
                 f'<span class="sol-meta">{escape(KIND_LABELS.get(decl.kind, decl.kind))}</span></summary>'
-                f'<pre><code>{escape(decl.code)}</code></pre></details>'
+                f"<pre><code>{escape(decl.code)}</code></pre></details>"
             )
 
-        meta = f"{len(unit.exercises)} 道练习 · {sum(1 for d in unit.exercises if d.solution)} 份按名匹配的解答"
+        meta = (
+            f"{len(unit.exercises)} 道练习 · "
+            f"{sum(1 for decl in unit.exercises if decl.solution)} 份按名匹配的解答"
+        )
+        if unit.extra_solutions:
+            meta += f" · {len(unit.extra_solutions)} 个解答独有声明"
         sections.append(
             f'<section class="appendix-unit" id="appendix-unit-{unit.index}">'
-            f'<h3><a href="#unit-{unit.index}">{render_inline(unit.title)}</a></h3>'
+            f'<h3><a href="#unit-{unit.index}">{render_inline(unit.display_title)}</a></h3>'
             f'<p class="appendix-meta">{meta}</p>'
             + "".join(exercise_rows)
             + ("".join(extras) if extras else "")
@@ -1164,38 +1422,57 @@ def render_appendix(book: Book) -> str:
     return (
         '<section class="appendix" id="appendix-solutions">'
         "<h2>解答附录</h2>"
-        f'<p class="appendix-lede">按单元汇总 {book.solutions} 份练习解答。'
-        "正文里的「查看解答」与这里指向同一份解答代码，便于顺序复习与打印。</p>"
+        f'<p class="appendix-lede">按单元汇总 {book.solutions} 份练习解答'
+        f"（另有 {book.extra_solutions} 个只存在于解答文件的声明）。"
+        "正文练习卡片里的「查看解答」与这里指向同一份代码，便于顺序复习与打印。</p>"
         + "".join(sections)
         + "</section>"
     )
 
 
 def render_cover(book: Book) -> str:
+    volume_line = " / ".join(book.volume_titles)
     return (
         '<header class="cover" id="top">'
-        '<p class="cover-kicker">sokonanoda · analysis · interactive book prototype</p>'
-        f"<h1>{render_inline(book.chapter_title)}</h1>"
-        '<p class="cover-en">Chapter II.1 · Integers: from ℕ to ℤ</p>'
-        '<p class="cover-lede">把「直觉」与「形式」放在同一页：先读中文讲解与提示，'
-        "再展开声明、证明步骤和解答。所有内容来自课程画布与解答文件，"
-        "页面本身不判卷、不改课程，也不依赖任何在线资源。</p>"
+        '<p class="cover-kicker">sokonanoda · analysis · interactive book · v2</p>'
+        f"<h1>{render_inline(book.title)}</h1>"
+        f'<p class="cover-en">{escape(volume_line)} · 第 {escape(book.chapter_span)} 章 · '
+        f"{len(book.chapters)} 章 {len(book.units)} 单元 · M1+M2 全书</p>"
+        '<p class="cover-lede">把「直觉」与「形式」放在同一页：先读中文讲解、动机与提示，'
+        "再展开声明、证明步骤、完整代码和解答。所有内容来自课程画布与解答文件；"
+        "这不是 II.1 的样章，而是当前课程清单里全部章节的连续读本。</p>"
         '<ul class="cover-stats">'
+        f"<li><strong>{len(book.chapters)}</strong><span>章</span></li>"
         f"<li><strong>{len(book.units)}</strong><span>单元</span></li>"
         f"<li><strong>{book.declarations}</strong><span>声明</span></li>"
         f"<li><strong>{book.exercises}</strong><span>练习</span></li>"
         f"<li><strong>{book.hints}</strong><span>提示</span></li>"
         f"<li><strong>{book.solutions}</strong><span>解答</span></li>"
         "</ul>"
-        '<p class="cover-note">原型范围：卷 II 第 II.1 章（19 单元）。'
-        "数学排版 = Unicode 衬线体 + 原生 MathML（简单分式/上标），无 CDN、无前端数学库。"
-        "工具栏可切换「直觉 / 形式 / 并读」；证明、提示、解答均可折叠；"
-        "打印按 A4 分页，单元另起一页。</p>"
+        '<div class="reading-guide" aria-label="阅读方式">'
+        '<div class="guide-card"><span class="guide-name">直觉</span>'
+        "<p>中文讲解、动机与 <code>soko:hint</code> 提示；先建立图景。</p></div>"
+        '<div class="guide-card"><span class="guide-name">形式</span>'
+        "<p>声明签名、证明步骤与完整代码；核对每一步。</p></div>"
+        '<div class="guide-card"><span class="guide-name">并读</span>'
+        "<p>两层同页对照；工具栏切换，浏览器会记住你的选择。</p></div>"
+        "</div>"
+        f'<p class="cover-note">范围：{escape(volume_line)} 的 '
+        f"{len(book.chapters)} 章 {len(book.units)} 个单元（{escape(book.chapter_span)}）。"
+        "M3 及以后单元加入 <code>course.json</code> 后会在下一次构建自动出现。"
+        "数学 = Unicode 衬线体 + 原生 MathML（简单分式/上标结构化，复杂或代码式公式回退为"
+        " Unicode / 等宽，不丢内容）；无 CDN、无 Web 字体。证明、提示、解答均可折叠；"
+        "打印按 A4 分页，每个单元另起一页。</p>"
         "</header>"
     )
 
 
-def render_toolbar() -> str:
+def render_toolbar(book: Book) -> str:
+    options = "".join(
+        f'<option value="#{chapter.anchor}">{escape(chapter.id)} '
+        f"{escape(chapter.title)}</option>"
+        for chapter in book.chapters
+    )
     return (
         '<nav class="toolbar no-print" aria-label="阅读控制">'
         '<span class="toolbar-label">阅读层</span>'
@@ -1204,40 +1481,57 @@ def render_toolbar() -> str:
         '<button type="button" data-view="intuition" aria-pressed="false">直觉</button>'
         '<button type="button" data-view="formal" aria-pressed="false">形式</button>'
         "</div>"
+        '<label class="chapter-jump"><span>章节</span>'
+        f'<select data-action="chapter-jump" aria-label="跳转到章">{options}</select>'
+        "</label>"
         '<button type="button" class="plain" data-action="expand-all">展开全部</button>'
         '<button type="button" class="plain" data-action="collapse-all">折叠全部</button>'
         '<span class="toolbar-spacer"></span>'
+        '<a class="plain" href="#top">封面</a>'
         '<a class="plain" href="#toc">目录</a>'
         '<button type="button" class="plain" data-action="print">打印 / PDF</button>'
         "</nav>"
     )
 
 
+def render_footer(book: Book) -> str:
+    return (
+        '<footer class="book-footer">'
+        f"<p>本页由 <code>scripts/build_book_proto.py</code> 从 "
+        f"<code>courses/analysis/</code> 的 {len(book.chapters)} 章 "
+        f"{len(book.units)} 个单元画布与解答生成；源文件指纹 "
+        f"<code>{book.source_fingerprint}</code>。</p>"
+        "<p>静态读本，不替代课程门禁：页面不判卷、不改课程。"
+        "无外部 http(s) 资源；数学公式使用浏览器原生 MathML，"
+        "不能结构化的公式回退为 Unicode 文本。"
+        "单元与附录锚点稳定，可直接用 <code>#unit-N</code> 深链。</p>"
+        "</footer>"
+    )
+
+
 def render_book(book: Book) -> str:
     style = STYLE_CSS.read_text(encoding="utf-8")
     script = APP_JS.read_text(encoding="utf-8")
-    units = "\n".join(render_unit(unit) for unit in book.units)
+    chapters = "\n".join(render_chapter(book, chapter) for chapter in book.chapters)
+    title = f"{book.title} · 卷 II 全书"
     return (
         "<!DOCTYPE html>\n"
         '<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        f"<title>{escape(book.chapter_title)} · 交互式 HTML 书原型</title>\n"
+        f"<title>{escape(title)}</title>\n"
+        '<meta name="description" content="从集合论到实分析：卷 II 数系与实数的交互式 HTML 全书">\n'
         f"<style>\n{style}\n</style>\n</head>\n<body data-view=\"both\">\n"
         '<a class="skip-link" href="#toc">跳到目录</a>\n'
         f"{render_cover(book)}\n"
-        f"{render_toolbar()}\n"
+        f"{render_toolbar(book)}\n"
+        '<noscript><p class="noscript-note">JavaScript 已关闭：正文与原生折叠面板仍可阅读；'
+        "图层切换、章节跳转与「展开全部」不可用。</p></noscript>\n"
         "<main>\n"
         f"{render_toc(book)}\n"
-        f"{units}\n"
+        f"{chapters}\n"
         f"{render_appendix(book)}\n"
         "</main>\n"
-        '<footer class="book-footer">'
-        f"<p>本页由 <code>scripts/build_book_proto.py</code> 从 "
-        f"<code>courses/analysis/</code> 的 II.1 画布与解答生成；"
-        f"源文件指纹 <code>{book.source_fingerprint}</code>。</p>"
-        "<p>静态原型，不替代课程门禁；课程内容、判定与前端代码均未改动。"
-        "无外部 http(s) 资源；数学公式使用浏览器原生 MathML。</p>"
-        "</footer>\n"
+        f"{render_footer(book)}\n"
         f"<script>\n{script}\n</script>\n</body>\n</html>\n"
     )
 
@@ -1252,9 +1546,11 @@ class AuditParser(HTMLParser):
         self.hrefs: List[str] = []
         self.sections: List[str] = []
         self.classes: Counter[str] = Counter()
+        self.tags: Counter[str] = Counter()
 
     def handle_starttag(self, tag: str, attrs: Sequence[Tuple[str, Optional[str]]]) -> None:
         data = {key: value for key, value in attrs}
+        self.tags[tag] += 1
         if data.get("id"):
             self.ids.append(str(data["id"]))
         if data.get("href"):
@@ -1269,46 +1565,193 @@ class AuditParser(HTMLParser):
 
 def math_helper_selftest() -> List[str]:
     """The course comments are mostly Unicode only; keep the tiny fraction /
-    superscript helper honest with a direct assertion."""
+    superscript helper honest with direct assertions, including the fallback
+    shapes used by M2."""
     errors: List[str] = []
-    fraction = mathml("(a+b)/(c+d)")
-    if fraction is None or "<mfrac>" not in fraction:
-        errors.append("MathML helper: simple fraction did not produce <mfrac>")
-    power = mathml("x² + y²")
-    if power is None or "<msup>" not in power:
-        errors.append("MathML helper: Unicode superscript did not produce <msup>")
-    ascii_power = mathml("x^2")
-    if ascii_power is None or "<msup>" not in ascii_power:
-        errors.append("MathML helper: ASCII ^ superscript did not produce <msup>")
+    cases = [
+        ("(a+b)/(c+d)", "<mfrac>", "simple fraction"),
+        ("x² + y²", "<msup>", "Unicode superscript"),
+        ("x^2", "<msup>", "ASCII caret superscript"),
+        ("f(x) ≤ g(y)", "<mo>≤</mo>", "relation"),
+        ("a → b", "<mo>→</mo>", "arrow"),
+    ]
+    for source, needle, label in cases:
+        rendered = mathml(source)
+        if rendered is None or needle not in rendered:
+            errors.append(f"MathML helper: {label} did not produce {needle}")
+    if mathml("中文公式 x = y") is not None:
+        errors.append("MathML helper: CJK text should fall back, not become MathML")
+    if mathml("fun x => x") is not None:
+        errors.append("MathML helper: code-shaped formula should fall back")
+    fallback = render_formula("中文公式 x = y")
+    if "math-display" not in fallback or "中文公式" not in fallback:
+        errors.append("formula fallback dropped content")
     return errors
+
+
+def _unit_segments(html_text: str) -> Dict[str, str]:
+    starts = list(
+        re.finditer(r'<section class="unit[^"]*" id="(unit-\d+)">', html_text)
+    )
+    segments: Dict[str, str] = {}
+    for index, match in enumerate(starts):
+        end = starts[index + 1].start() if index + 1 < len(starts) else html_text.find(
+            '<section class="appendix"', match.end()
+        )
+        if end < 0:
+            end = len(html_text)
+        segments[match.group(1)] = html_text[match.start():end]
+    return segments
+
+
+def _chapter_segments(html_text: str) -> Dict[str, str]:
+    starts = list(
+        re.finditer(r'<section class="chapter" id="(chapter-[^"]+)">', html_text)
+    )
+    segments: Dict[str, str] = {}
+    for index, match in enumerate(starts):
+        end = starts[index + 1].start() if index + 1 < len(starts) else html_text.find(
+            '<section class="appendix"', match.end()
+        )
+        if end < 0:
+            end = len(html_text)
+        segments[match.group(1)] = html_text[match.start():end]
+    return segments
+
+
+def formula_selfcheck(book: Book) -> Tuple[int, int, List[str]]:
+    """Render every formula item once.  Return (mathml, fallback, errors)."""
+    errors: List[str] = []
+    mathml_count = 0
+    fallback_count = 0
+
+    def check_item(item: Item, where: str) -> None:
+        nonlocal mathml_count, fallback_count
+        if item.kind != "formula":
+            return
+        source = item.text.strip()
+        rendered = render_formula(source)
+        if not rendered:
+            errors.append(f"{where}: formula rendered as empty")
+            return
+        structured = mathml(source) is not None
+        if structured:
+            mathml_count += 1
+        else:
+            fallback_count += 1
+            needle = escape(source.replace("`", "").strip("。；，、 "))
+            if needle not in rendered:
+                errors.append(f"{where}: fallback formula dropped its text")
+
+    for unit in book.units:
+        for decl in unit.decls:
+            for item in decl.lead:
+                check_item(item, f"unit {unit.index} {decl.name}")
+            for hint in decl.hints:
+                for line in hint.body.splitlines():
+                    if _looks_formula(line):
+                        fake = Item("formula", text=line.strip())
+                        check_item(fake, f"unit {unit.index} hint")
+        for item in unit.trailing:
+            check_item(item, f"unit {unit.index} trailing")
+    return mathml_count, fallback_count, errors
+
+
+def stale_error(written: str, fresh: str) -> Optional[str]:
+    if written == fresh:
+        return None
+    written_lines = written.splitlines()
+    fresh_lines = fresh.splitlines()
+    for index, (left, right) in enumerate(zip(written_lines, fresh_lines), start=1):
+        if left != right:
+            return (
+                f"output is stale; first difference at line {index} "
+                "(re-run the build)"
+            )
+    return "output is stale; file length differs (re-run the build)"
 
 
 def validate(book: Book, html_text: str) -> Tuple[List[str], Dict[str, object]]:
     errors: List[str] = []
     stats: Dict[str, object] = {}
+    units = book.units
+    expected_units = sum(len(chapter.units) for chapter in book.chapters)
 
-    if len(book.units) != EXPECTED_UNITS:
-        errors.append(f"expected {EXPECTED_UNITS} units, found {len(book.units)}")
-    stats["units"] = len(book.units)
+    stats["units"] = len(units)
+    stats["manifest_units"] = book.manifest_unit_count
+    stats["chapters"] = len(book.chapters)
     stats["declarations"] = book.declarations
     stats["exercises"] = book.exercises
     stats["hints"] = book.hints
     stats["solutions"] = book.solutions
+    stats["extra_solutions"] = book.extra_solutions
+    stats["chapter_units"] = {chapter.id: len(chapter.units) for chapter in book.chapters}
+    stats["chapter_exercises"] = {
+        chapter.id: chapter.exercises for chapter in book.chapters
+    }
 
-    for unit in book.units:
+    if not units:
+        errors.append("book has no units")
+    if len(units) != expected_units:
+        errors.append(f"loaded unit count {len(units)} != manifest sum {expected_units}")
+    if len(units) != book.manifest_unit_count:
+        errors.append(
+            f"loaded unit count {len(units)} != course.json unit count {book.manifest_unit_count}"
+        )
+    if not book.chapters:
+        errors.append("book has no chapters")
+    if book.declarations <= 0:
+        errors.append("declaration count is zero")
+    if book.exercises <= 0:
+        errors.append("exercise count is zero")
+    if book.hints <= 0:
+        errors.append("hint count is zero")
+    if book.solutions <= 0:
+        errors.append("solution count is zero")
+    if book.solutions != book.exercises:
+        errors.append(
+            f"solution count {book.solutions} != exercise count {book.exercises}"
+        )
+    if book.unlisted_unit_files:
+        errors.append(
+            "unit files exist under courses/analysis/units but are absent from course.json: "
+            + ", ".join(book.unlisted_unit_files[:8])
+        )
+
+    numbers = [unit.index for unit in units]
+    if len(set(numbers)) != len(numbers):
+        errors.append("duplicate unit numbers")
+    if numbers != sorted(numbers):
+        errors.append("unit numbers are not in ascending order")
+    for chapter in book.chapters:
+        if not chapter.units:
+            errors.append(f"chapter {chapter.id}: no units")
+        chapter_ids = [unit.index for unit in chapter.units]
+        if chapter_ids != list(range(chapter_ids[0], chapter_ids[0] + len(chapter_ids))):
+            errors.append(f"chapter {chapter.id}: unit numbers are not contiguous")
+
+    for unit in units:
         if not unit.title:
             errors.append(f"unit {unit.index}: empty title")
-        if not unit.title_en:
-            errors.append(f"unit {unit.index}: empty title_en")
+        if not unit.display_title:
+            errors.append(f"unit {unit.index}: empty display title")
         if not unit.blocks:
             errors.append(f"unit {unit.index}: no blocks")
+        if not unit.decls:
+            errors.append(f"unit {unit.index}: no declarations")
         if not unit.exercises:
             errors.append(f"unit {unit.index}: no exercises")
-        for decl in unit.exercises:
-            if decl.solution is None:
-                errors.append(f"unit {unit.index}: exercise {decl.name} has no matching solution")
-        if render_inline(unit.title) not in html_text:
-            errors.append(f"unit {unit.index}: title missing from HTML")
+        if unit.stray:
+            errors.append(
+                f"unit {unit.index}: unparsed source lines: " + "; ".join(unit.stray[:4])
+            )
+        for decl in unit.decls:
+            if decl.solution is None and decl.is_exercise:
+                errors.append(
+                    f"unit {unit.index}: exercise {decl.name} has no matching solution"
+                )
+        if render_inline(unit.display_title) not in html_text:
+            errors.append(f"unit {unit.index}: display title missing from HTML")
         if unit.title_en and escape(unit.title_en) not in html_text:
             errors.append(f"unit {unit.index}: title_en missing from HTML")
 
@@ -1316,6 +1759,13 @@ def validate(book: Book, html_text: str) -> Tuple[List[str], Dict[str, object]]:
     parser.feed(html_text)
     stats["ids"] = len(parser.ids)
     stats["toc_links"] = sum(1 for href in parser.hrefs if href.startswith("#"))
+    stats["details"] = parser.tags.get("details", 0)
+    stats["mathml"] = parser.classes.get("mathml", 0)
+    stats["math_displays"] = parser.classes.get("math-display", 0)
+    stats["exercise_cards"] = parser.classes.get("exercise", 0)
+    stats["hint_blocks"] = parser.classes.get("hint", 0)
+    stats["solution_panels"] = parser.classes.get("solution-panel", 0)
+    stats["appendix_solutions"] = parser.classes.get("appendix-solution", 0)
 
     duplicates = sorted({item for item in parser.ids if parser.ids.count(item) > 1})
     if duplicates:
@@ -1328,114 +1778,300 @@ def validate(book: Book, html_text: str) -> Tuple[List[str], Dict[str, object]]:
         target = href[1:]
         if target and target not in ids:
             errors.append(f"internal link does not resolve: {href}")
-    if len([href for href in parser.hrefs if href.startswith("#unit-")]) < EXPECTED_UNITS:
-        errors.append("TOC does not link every unit")
 
-    unit_ids = {item for item in ids if re.fullmatch(r"unit-\d+", item)}
-    expected_ids = {f"unit-{index}" for index in range(1, EXPECTED_UNITS + 1)}
-    if unit_ids != expected_ids:
-        errors.append(f"unit section ids mismatch: {sorted(unit_ids)}")
+    if "top" not in ids:
+        errors.append("cover anchor #top missing")
+    if "toc" not in ids:
+        errors.append("TOC anchor #toc missing")
+    if 'data-view="both"' not in html_text:
+        errors.append("layer toggle default state missing")
+    for action in ("expand-all", "collapse-all", "print", "chapter-jump"):
+        if f'data-action="{action}"' not in html_text:
+            errors.append(f"reading control missing: {action}")
+    if "localStorage" not in html_text:
+        errors.append("localStorage view memory missing")
+    if "beforeprint" not in html_text:
+        errors.append("beforeprint handling missing")
 
-    for unit in book.units:
-        match = re.search(
-            rf'<section class="unit" id="unit-{unit.index}">(.*?)(?=<section class="unit" id="unit-|\Z)',
-            html_text,
-            re.S,
+    toc_start = html_text.find('<nav class="toc" id="toc"')
+    toc_end = html_text.find("</nav>", toc_start)
+    toc_segment = html_text[toc_start:toc_end] if toc_start >= 0 and toc_end > toc_start else ""
+    for chapter in book.chapters:
+        if f'href="#{chapter.anchor}"' not in toc_segment:
+            errors.append(f"TOC does not link chapter {chapter.id}")
+        if f'id="{chapter.anchor}"' not in html_text:
+            errors.append(f"chapter anchor missing: {chapter.anchor}")
+        for unit in chapter.units:
+            if f'href="#unit-{unit.index}"' not in toc_segment:
+                errors.append(f"TOC does not link unit {unit.index}")
+
+    chapter_segments = _chapter_segments(html_text)
+    for chapter in book.chapters:
+        if chapter.anchor not in chapter_segments:
+            errors.append(f"chapter {chapter.id}: rendered section not found")
+            continue
+        segment = chapter_segments[chapter.anchor]
+        rendered_units = len(
+            re.findall(r'<section class="unit[^"]*" id="unit-\d+">', segment)
         )
-        if not match:
+        if rendered_units != len(chapter.units):
+            errors.append(
+                f"chapter {chapter.id}: expected {len(chapter.units)} unit sections, "
+                f"found {rendered_units}"
+            )
+        for unit in chapter.units:
+            if f'id="unit-{unit.index}"' not in segment:
+                errors.append(f"chapter {chapter.id}: unit {unit.index} missing from section")
+
+    unit_segments = _unit_segments(html_text)
+    expected_unit_ids = {f"unit-{unit.index}" for unit in units}
+    if set(unit_segments) != expected_unit_ids:
+        errors.append(
+            "unit section ids mismatch: "
+            f"missing={sorted(expected_unit_ids - set(unit_segments))[:6]} "
+            f"extra={sorted(set(unit_segments) - expected_unit_ids)[:6]}"
+        )
+
+    for unit in units:
+        segment = unit_segments.get(f"unit-{unit.index}")
+        if segment is None:
             errors.append(f"unit {unit.index}: rendered section not found")
             continue
-        segment = match.group(1)
         if not any(
             token in segment
             for token in ('class="block prose', 'class="decl ', 'class="exercise"')
         ):
             errors.append(f"unit {unit.index}: rendered section has no content blocks")
+        for decl in unit.decls:
+            if escape(decl.name) not in segment:
+                errors.append(f"unit {unit.index}: declaration {decl.name} missing from HTML")
+        for decl in unit.exercises:
+            if f'id="ex-{unit.index}-{decl.exercise_no}"' not in segment:
+                errors.append(f"unit {unit.index}: exercise card {decl.exercise_no} missing")
+            if f'id="sol-{unit.index}-{decl.exercise_no}"' not in segment:
+                errors.append(f"unit {unit.index}: solution toggle {decl.exercise_no} missing")
+            if f'id="app-sol-{unit.index}-{decl.exercise_no}"' not in html_text:
+                errors.append(f"unit {unit.index}: appendix solution {decl.exercise_no} missing")
+        position = units.index(unit)
+        if position > 0:
+            previous = units[position - 1]
+            if f'href="#unit-{previous.index}"' not in segment:
+                errors.append(f"unit {unit.index}: missing previous-unit link")
+        if position + 1 < len(units):
+            following = units[position + 1]
+            if f'href="#unit-{following.index}"' not in segment:
+                errors.append(f"unit {unit.index}: missing next-unit link")
+        if f'id="appendix-unit-{unit.index}"' not in html_text:
+            errors.append(f"unit {unit.index}: appendix unit anchor missing")
 
-    if re.search(r"https?://", html_text):
+    if parser.classes.get("exercise", 0) != book.exercises:
+        errors.append(
+            f"exercise cards: expected {book.exercises}, "
+            f"found {parser.classes.get('exercise', 0)}"
+        )
+    if parser.classes.get("hint", 0) != book.hints:
+        errors.append(
+            f"hint blocks: expected {book.hints}, found {parser.classes.get('hint', 0)}"
+        )
+    if parser.classes.get("solution-panel", 0) != book.exercises:
+        errors.append(
+            f"solution toggles: expected {book.exercises}, "
+            f"found {parser.classes.get('solution-panel', 0)}"
+        )
+    expected_appendix = book.exercises + book.extra_solutions
+    if parser.classes.get("appendix-solution", 0) != expected_appendix:
+        errors.append(
+            f"appendix solutions: expected {expected_appendix}, "
+            f"found {parser.classes.get('appendix-solution', 0)}"
+        )
+    if parser.classes.get("math-display", 0) <= 0:
+        errors.append("no display formulas rendered")
+    if parser.classes.get("mathml", 0) <= 0:
+        errors.append("no native MathML rendered")
+
+    mathml_count, fallback_count, formula_errors = formula_selfcheck(book)
+    errors.extend(formula_errors)
+    stats["formula_mathml"] = mathml_count
+    stats["formula_fallbacks"] = fallback_count
+
+    if re.search(r"https?://", html_text, re.I):
         errors.append("generated HTML contains an external http(s) reference")
     if re.search(r"<link\b", html_text, re.I):
         errors.append("generated HTML contains a <link> tag")
     if re.search(r"<script[^>]+\bsrc\s*=", html_text, re.I):
         errors.append("generated HTML contains an external <script src>")
+    if re.search(r"(?:src|href)\s*=\s*[\"']//", html_text, re.I):
+        errors.append("generated HTML contains a protocol-relative reference")
+    if re.search(r"@import\s+(?:url\(|[\"'])", html_text, re.I):
+        errors.append("generated HTML contains a CSS @import")
 
     if "@page" not in html_text or "break-before: page" not in html_text:
         errors.append("print CSS (@page / break-before) missing")
-    if 'data-view="both"' not in html_text:
-        errors.append("layer toggle default state missing")
+    if "size: A4" not in html_text:
+        errors.append("print CSS is not A4")
+    if 'lang="zh-CN"' not in html_text:
+        errors.append("document language is not zh-CN")
 
-    exercise_cards = parser.classes.get("exercise", 0)
-    if exercise_cards != book.exercises:
-        errors.append(f"exercise cards: expected {book.exercises}, found {exercise_cards}")
-    stats["exercise_cards"] = exercise_cards
     stats["external_refs"] = len(re.findall(r"https?://", html_text))
     stats["bytes"] = len(html_text.encode("utf-8"))
     return errors, stats
+
+
+def negative_selftest(book: Book, fresh: str) -> List[str]:
+    """Prove the checker bites: external URL, broken anchor, duplicate id,
+    stale output must each be rejected."""
+    errors: List[str] = []
+    cases: Dict[str, str] = {}
+    cases["external URL"] = fresh.replace(
+        "</main>", '<a href="https://example.com/injected">bad</a></main>', 1
+    )
+    first_unit = f'id="unit-{book.units[0].index}"'
+    cases["broken unit anchor"] = fresh.replace(
+        first_unit, f'id="unit-{book.units[0].index}-broken"', 1
+    )
+    cases["duplicate toc id"] = fresh.replace(
+        "</main>", '<span id="toc"></span></main>', 1
+    )
+    for label, tampered in cases.items():
+        found, _ = validate(book, tampered)
+        if not found:
+            errors.append(f"negative selftest: {label} was not rejected")
+    if stale_error(fresh + "\n", fresh) is None:
+        errors.append("negative selftest: stale output was not rejected")
+    return errors
 
 
 def output_path(out_dir: Path) -> Path:
     return out_dir / "index.html"
 
 
+def format_stats(stats: Dict[str, object]) -> List[str]:
+    chapter_units = stats.get("chapter_units", {})
+    chapter_exercises = stats.get("chapter_exercises", {})
+    return [
+        f"  units: {stats['units']} (course.json {stats['manifest_units']}) · "
+        f"chapters: {stats['chapters']}",
+        "  per chapter: " + " · ".join(
+            f"{key} {count}u/{chapter_exercises.get(key, 0)}ex" for key, count in chapter_units.items()
+        ),
+        f"  blocks: {stats['declarations']} declarations · "
+        f"{stats['exercises']} exercises · {stats['hints']} hints · "
+        f"{stats['solutions']} solutions · {stats['extra_solutions']} extras",
+        f"  rendered: {stats['exercise_cards']} exercise cards · "
+        f"{stats['solution_panels']} solution toggles · {stats['details']} details · "
+        f"{stats['mathml']} MathML blocks · {stats['formula_fallbacks']} formula fallbacks",
+        f"  toc links: {stats['toc_links']} · ids: {stats['ids']} · "
+        f"external refs: {stats['external_refs']}",
+    ]
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--out",
-        default="dist/book/proto-II.1",
-        help="output directory (default: dist/book/proto-II.1)",
+        default=DEFAULT_OUT,
+        help=f"output directory (default: {DEFAULT_OUT})",
     )
     parser.add_argument(
         "--check",
         action="store_true",
         help="validate the already-generated output (does not write)",
     )
+    parser.add_argument(
+        "--check-preview",
+        action="store_true",
+        help="also validate the committed scripts/book/preview/index.html",
+    )
+    parser.add_argument(
+        "--selftest",
+        action="store_true",
+        help="run negative checker tests and exit (does not write)",
+    )
     args = parser.parse_args(argv)
 
     book = load_book()
-    html_text = render_book(book)
+    fresh = render_book(book)
     out_dir = Path(args.out)
     if not out_dir.is_absolute():
         out_dir = (ROOT / out_dir).resolve()
     target = output_path(out_dir)
 
-    if args.check:
-        if not target.is_file():
-            print(f"FAIL: {target} does not exist; run the build first", file=sys.stderr)
-            return 1
-        written = target.read_text(encoding="utf-8")
-        errors, stats = validate(book, written)
-        errors.extend(math_helper_selftest())
-        if written != html_text:
-            errors.append("output is stale; re-run the build")
+    if args.selftest:
+        errors = math_helper_selftest()
+        errors.extend(negative_selftest(book, fresh))
         if errors:
-            print("book prototype check: FAIL", file=sys.stderr)
+            print("book selftest: FAIL", file=sys.stderr)
             for error in errors:
                 print(f"  - {error}", file=sys.stderr)
             return 1
-        print("book prototype check: PASS")
-        print(f"  units: {stats['units']} / {EXPECTED_UNITS}")
-        print(
-            f"  blocks: {stats['declarations']} declarations · "
-            f"{stats['exercises']} exercises · {stats['hints']} hints · "
-            f"{stats['solutions']} solutions"
-        )
-        print(
-            f"  toc links: {stats['toc_links']} · ids: {stats['ids']} · "
-            f"external refs: {stats['external_refs']}"
-        )
-        print("  math helper: fraction + superscript self-test OK")
-        print(f"  output: {target} ({stats['bytes']:,} bytes)")
+        print("book selftest: PASS")
+        print("  external URL / broken anchor / duplicate id / stale output: all rejected")
+        return 0
+
+    fresh_errors, fresh_stats = validate(book, fresh)
+    if fresh_errors:
+        print("book build: FAIL (fresh render did not pass its own contract)", file=sys.stderr)
+        for error in fresh_errors:
+            print(f"  - {error}", file=sys.stderr)
+        return 1
+
+    if args.check or args.check_preview:
+        errors: List[str] = []
+        stats: Dict[str, object] = {}
+        if args.check:
+            if not target.is_file():
+                print(f"FAIL: {target} does not exist; run the build first", file=sys.stderr)
+                return 1
+            written = target.read_text(encoding="utf-8")
+            errors, stats = validate(book, written)
+            errors.extend(math_helper_selftest())
+            stale = stale_error(written, fresh)
+            if stale:
+                errors.append(stale)
+            errors.extend(negative_selftest(book, fresh))
+            if errors:
+                print("book v2 check: FAIL", file=sys.stderr)
+                for error in errors:
+                    print(f"  - {error}", file=sys.stderr)
+                return 1
+            print("book v2 check: PASS")
+            for line in format_stats(stats):
+                print(line)
+            print("  math helper: fraction + superscript + fallback self-test OK")
+            print("  negative selftest: external URL / broken anchor / duplicate id / stale output rejected")
+            print(f"  output: {target} ({stats['bytes']:,} bytes)")
+
+        if args.check_preview:
+            if not PREVIEW_HTML.is_file():
+                print(f"FAIL: preview missing: {PREVIEW_HTML}", file=sys.stderr)
+                return 1
+            preview = PREVIEW_HTML.read_text(encoding="utf-8")
+            preview_errors, preview_stats = validate(book, preview)
+            preview_errors.extend(math_helper_selftest())
+            stale = stale_error(preview, fresh)
+            if stale:
+                preview_errors.append("preview " + stale)
+            if preview_errors:
+                print("book v2 preview check: FAIL", file=sys.stderr)
+                for error in preview_errors:
+                    print(f"  - {error}", file=sys.stderr)
+                return 1
+            print("book v2 preview check: PASS")
+            print(
+                f"  preview: {PREVIEW_HTML} ({preview_stats['bytes']:,} bytes, "
+                f"{preview_stats['external_refs']} external refs)"
+            )
         return 0
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    target.write_text(html_text, encoding="utf-8")
-    print(f"wrote {target} ({len(html_text.encode('utf-8')):,} bytes)")
-    print(
-        f"  units: {len(book.units)} · declarations: {book.declarations} · "
-        f"exercises: {book.exercises} · hints: {book.hints} · "
-        f"solutions: {book.solutions}"
-    )
+    target.write_text(fresh, encoding="utf-8")
+    print(f"wrote {target} ({len(fresh.encode('utf-8')):,} bytes)")
+    for line in format_stats(fresh_stats):
+        print(line)
     print(f"  source fingerprint: {book.source_fingerprint}")
+    print(
+        "  preview: python3 scripts/build_book_proto.py --out scripts/book/preview"
+    )
     return 0
 
 
