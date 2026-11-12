@@ -554,6 +554,41 @@
           ]
         }
       ]
+    },
+    {
+      "id": "III",
+      "title": "卷 III 序列与级数",
+      "chapters": [
+        {
+          "id": "III.1",
+          "title": "序列与极限",
+          "prereqs": [
+            "II.7"
+          ],
+          "tags": [
+            "sequence",
+            "limit",
+            "epsilon-n"
+          ],
+          "quota": {
+            "exercises": 55
+          },
+          "units": [
+            {
+              "file": "units/III.1/unit73-seq-limit.sokonanoda",
+              "title": "单元73 序列与极限：ε-N 的定义形状",
+              "title_en": "Unit 73 — Sequences and Limits: The ε-N Definition",
+              "unit": 73
+            },
+            {
+              "file": "units/III.1/unit74-limit-unique.sokonanoda",
+              "title": "单元74 极限的唯一性",
+              "title_en": "Unit 74 — Uniqueness of Limits",
+              "unit": 74
+            }
+          ]
+        }
+      ]
     }
   ]
 }

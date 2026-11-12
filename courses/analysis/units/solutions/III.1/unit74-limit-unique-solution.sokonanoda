@@ -1,0 +1,276 @@
+-- 单元74 极限的唯一性（解答）
+--
+-- 73 给了 ε-N 定义；本单元证明第一条真正的定理：**收敛序列的极限唯一**。
+--
+-- 在 ℚ 上，「唯一」就是 `ratRel L L'`。证明分三层：
+--
+--   · 第一层（74.1–74.3）：把减法与序接起来——
+--     `(x - y) + y ~ x`、`0 ~ x - y ⇒ x ~ y`、`y < x ⇒ 0 < x - y`；
+--   · 第二层（74.4–74.6）：把「任意 ε 内接近」压成 `ratLeRep`——先用
+--     ㊺ 的全性把 `x ≤ y` 归到 `y ≤ x` 的情形，再用 74.4 的
+--     「≤ 是相等或严格小」二选一：相等直接转，严格小则令 `d := x - y`，
+--     取 `eps := d/2`，`close x y (d/2)` 给 `d ≤ d/2`，74.5 给
+--     `d/2 < d`，反对称性把 `d/2 ~ d` 夹出来撞矛盾；
+--   · 第三层（74.7–74.9）：两个极限在同一个 `n` 上各占 `eps/2`，
+--     57 的 `close_trans` 得 `∀ eps > 0, close L L' eps`，再过 74.6
+--     得 `ratRel L L'`；`Real.sound` 把它送进商，得 ℝ 里的相等。
+--
+-- **边界（明说）**：`ratLeRep_eq_or_lt` 用的是 ㊺ 的 `leNat_eq_or_succ`
+-- （`≤` 拆成「相等」或「严格小」），这是本课程第一次在序上做这种
+-- 二选一；它**不是**排中律，也不需要 `Classical.choice`——`Nat` 的
+-- `≤` 是归纳定义的，两支由构造子直接给出。本单元不新增公理。
+
+import lib.Limit
+import lib.RatAbsOrder
+import lib.RatSub
+import lib.RatClose
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.0 序的分子：把 `leNum` 的两个坐标单独命名
+-- ─────────────────────────────────────────────────────────────
+
+-- `ratLeRep x y` 展开是 `LeNat (A.fst + B.snd) (B.fst + A.snd)`，
+-- 其中 `A = leNum x y`、`B = leNum y x`。证明里要反复写这两项，
+-- 单独命名只是可读性，不引入新数学。
+def leNumFst (x y : ratRep) : Nat := Prod.fst Nat Nat (leNum x y)
+
+def leNumSnd (x y : ratRep) : Nat := Prod.snd Nat Nat (leNum x y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.1 `(x - y) + y ~ x`
+-- ─────────────────────────────────────────────────────────────
+
+-- 展开 `x - y = x + (-y)`，54 的结合律把 `-y + y` 收成 `0`
+-- （55 的 `ratNegRep_add_self`），再用加零律。
+theorem ratSubRep_add_self (x y : ratRep) :
+    ratRel (ratAddRep (ratSubRep x y) y) x :=
+  ratRel_trans_gen
+    (ratAddRep (ratSubRep x y) y)
+    (ratAddRep x (ratAddRep (ratNegRep y) y))
+    x
+    (ratAdd_assoc x (ratNegRep y) y)
+    (ratRel_trans_gen
+      (ratAddRep x (ratAddRep (ratNegRep y) y))
+      (ratAddRep x ratZeroRep)
+      x
+      (ratAddRep_wd_snd_gen x (ratAddRep (ratNegRep y) y) ratZeroRep
+        (ratNegRep_add_self y))
+      (ratAdd_zero x))
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.2 `0 ~ x - y` ⇒ `x ~ y`
+-- ─────────────────────────────────────────────────────────────
+
+-- 三段：`x ~ (x - y) + y`（74.1 反向）→ 同余到 `0 + y` → `0 + y ~ y`。
+theorem ratRel_of_sub_zero (x y : ratRep)
+    (h : ratRel ratZeroRep (ratSubRep x y)) : ratRel x y :=
+  ratRel_trans_gen x (ratAddRep (ratSubRep x y) y) y
+    (ratRel_symm (ratAddRep (ratSubRep x y) y) x (ratSubRep_add_self x y))
+    (ratRel_trans_gen
+      (ratAddRep (ratSubRep x y) y)
+      (ratAddRep ratZeroRep y)
+      y
+      (ratAddRep_wd_gen (ratSubRep x y) ratZeroRep y
+        (ratRel_symm ratZeroRep (ratSubRep x y) h))
+      (ratAdd_zero_left y))
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.3 `y < x` ⇒ `0 < x - y`
+-- ─────────────────────────────────────────────────────────────
+
+-- 弱序：`y ≤ x` 两边加 `-y`（54 的加法单调），左边 `y + (-y) ~ 0`。
+-- 严格性：若 `0 ~ x - y`，74.2 给 `x ~ y`，撞上 `y < x` 的第二分量。
+theorem ratLtRep_sub_pos (x y : ratRep) (h : ratLtRep y x) :
+    ratLtRep ratZeroRep (ratSubRep x y) :=
+  And.intro
+    (ratLeRep_congr_gen
+      (ratAddRep y (ratNegRep y)) ratZeroRep
+      (ratSubRep x y) (ratAddRep x (ratNegRep y))
+      (ratAdd_neg_gen y)
+      (ratRel_refl (ratSubRep x y))
+      (ratLeRep_add_right y x (ratNegRep y) (ratLtRep_le y x h)))
+    (fun (h0 : ratRel ratZeroRep (ratSubRep x y)) =>
+      ratLtRep_right y x h (ratRel_symm x y (ratRel_of_sub_zero x y h0)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.4 `≤` 是「相等」或「严格小」
+-- ─────────────────────────────────────────────────────────────
+
+-- `ratLeRep x y` 展开成 `LeNat k m`；㊺ 的 `leNat_eq_or_succ` 把它拆成
+-- `k = m`（这正是 `ratRel x y`）或 `succ k ≤ m`（严格小）。后一支用
+-- `ratLeRep_of_ratRel y x` 反着给出 `LeNat m k`，与 `leNat_succ_not_self`
+-- 撞矛盾。这里的 `Or.elim` 三个命题写全——`ratRel` / `ratLtRep` 是定义
+-- 别名，推断不会替你展开成 `Or`。
+theorem ratLeRep_eq_or_lt (x y : ratRep) (h : ratLeRep x y) :
+    ratRel x y ∨ ratLtRep x y :=
+  Or.elim
+    (fun (heq : Nat.add (leNumFst x y) (leNumSnd y x) =
+                Nat.add (leNumFst y x) (leNumSnd x y)) =>
+      Or.inl heq)
+    (fun (hlt : LeNat (Nat.succ (Nat.add (leNumFst x y) (leNumSnd y x)))
+                     (Nat.add (leNumFst y x) (leNumSnd x y))) =>
+      Or.inr
+        ((fun (hp : ratLeRep x y ∧ ¬ ratRel x y) => hp)
+          (And.intro h
+            (fun (hxy : ratRel x y) =>
+            leNat_succ_not_self
+              (Nat.add (leNumFst x y) (leNumSnd y x))
+              (leNat_trans
+                (Nat.succ (Nat.add (leNumFst x y) (leNumSnd y x)))
+                (Nat.add (leNumFst y x) (leNumSnd x y))
+                (Nat.add (leNumFst x y) (leNumSnd y x))
+                hlt
+                (ratLeRep_of_ratRel y x (ratRel_symm x y hxy)))))))
+    (leNat_eq_or_succ
+      (Nat.add (leNumFst x y) (leNumSnd y x))
+      (Nat.add (leNumFst y x) (leNumSnd x y))
+      h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.5 半数严格小于自身
+-- ─────────────────────────────────────────────────────────────
+
+-- 弱序：`0 ≤ eps/2`（53）两边同加 `eps/2`，右边经 52 的
+-- `ratHalf_add_self` 认成 `eps`。严格性：若 `eps/2 ~ eps`，两边同加
+-- `eps/2` 得 `eps ~ eps + eps/2`，与 `eps ~ eps + 0` 一起用 ㊿ 的加法
+-- 消去得 `0 ~ eps/2`，撞上 53 的 `0 < eps/2`。
+theorem ratHalf_lt_self (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLtRep (ratHalf eps) eps :=
+  And.intro
+    (ratLeRep_congr_gen
+      (ratAddRep ratZeroRep (ratHalf eps)) (ratHalf eps)
+      (ratAddRep (ratHalf eps) (ratHalf eps)) eps
+      (ratAdd_zero_left (ratHalf eps))
+      (ratHalf_add_self eps)
+      (ratLeRep_add_right ratZeroRep (ratHalf eps) (ratHalf eps)
+        (ratLeRep_half_of_lt eps h)))
+    (fun (heq : ratRel (ratHalf eps) eps) =>
+      (ratLtRep_right ratZeroRep (ratHalf eps) (ratLtRep_half eps h))
+        (ratRel_add_cancel_gen ratZeroRep (ratHalf eps) eps
+          (ratRel_trans_gen
+            (ratAddRep ratZeroRep eps)
+            (ratAddRep (ratHalf eps) (ratHalf eps))
+            (ratAddRep (ratHalf eps) eps)
+            (ratRel_trans_gen
+              (ratAddRep ratZeroRep eps) eps
+              (ratAddRep (ratHalf eps) (ratHalf eps))
+              (ratAdd_zero_left eps)
+              (ratRel_symm
+                (ratAddRep (ratHalf eps) (ratHalf eps)) eps
+                (ratHalf_add_self eps)))
+            (ratRel_trans_gen
+              (ratAddRep (ratHalf eps) (ratHalf eps))
+              (ratAddRep eps (ratHalf eps))
+              (ratAddRep (ratHalf eps) eps)
+              (ratAddRep_wd_gen (ratHalf eps) eps (ratHalf eps) heq)
+              (ratAdd_comm eps (ratHalf eps))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.6 任意 ε 内接近 ⇒ `≤`
+-- ─────────────────────────────────────────────────────────────
+
+-- 解法辅助：`d/2 < d` 的第二分量（`¬ d/2 ~ d`），供本单元的两处反证用。
+theorem ratLtRep_half_irrel (d : ratRep) (hd : ratLtRep ratZeroRep d) :
+    ¬ ratRel (ratHalf d) d :=
+  (fun (hp : ratLtRep (ratHalf d) d) => And.right hp) (ratHalf_lt_self d hd)
+
+-- 解法辅助：`y < x` 与「任意 ε 内接近」不能共存。
+-- 令 `d := x - y > 0`（74.3），`eps := d/2 > 0`（53）：
+-- `close x y (d/2)` 经 68.4 的 `close_sub_le` 给 `d ≤ d/2`，
+-- 74.5 给 `d/2 ≤ d`，反对称性夹出 `d/2 ~ d`，撞上 74.5 的严格性。
+theorem ratLtRep_sub_absurd (x y : ratRep) (h : ratLtRep y x)
+    (hc : ∀ (eps : ratRep), ratLtRep ratZeroRep eps → close x y eps) : False :=
+  ratLtRep_half_irrel (ratSubRep x y) (ratLtRep_sub_pos x y h)
+    (ratRel_symm (ratSubRep x y) (ratHalf (ratSubRep x y))
+      (ratLeRep_antisymm (ratSubRep x y) (ratHalf (ratSubRep x y))
+        (close_sub_le x y (ratHalf (ratSubRep x y))
+          (hc (ratHalf (ratSubRep x y))
+            (ratLtRep_half (ratSubRep x y) (ratLtRep_sub_pos x y h))))
+        (ratLtRep_le (ratHalf (ratSubRep x y)) (ratSubRep x y)
+          (ratHalf_lt_self (ratSubRep x y) (ratLtRep_sub_pos x y h)))))
+
+-- 解法辅助：`y ≤ x` 这一支的收口（74.4 的二选一）。
+theorem ratLeRep_of_le_or_lt (x y : ratRep) (hyx : ratLeRep y x)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps → close x y eps) :
+    ratLeRep x y :=
+  Or.elim
+    (fun (hyx_eq : ratRel y x) => ratLeRep_of_ratRel x y (ratRel_symm y x hyx_eq))
+    (fun (hyx_lt : ratLtRep y x) => False.elim (ratLtRep_sub_absurd x y hyx_lt h))
+    (ratLeRep_eq_or_lt y x hyx)
+
+-- 主引理：㊺ 的全性把目标归到 `y ≤ x` 的情形，后面交给 74.6 的辅助。
+theorem ratLeRep_of_close_all (x y : ratRep)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps → close x y eps) :
+    ratLeRep x y :=
+  Or.elim
+    (fun (hxy : ratLeRep x y) => hxy)
+    (fun (hyx : ratLeRep y x) => ratLeRep_of_le_or_lt x y hyx h)
+    (ratLeRep_total x y)
+
+-- 解法辅助：两个方向各来一次，交给 ㊻ 的反对称性。
+theorem ratRel_of_close_all (x y : ratRep)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps → close x y eps) :
+    ratRel x y :=
+  ratLeRep_antisymm x y
+    (ratLeRep_of_close_all x y h)
+    (ratLeRep_of_close_all y x
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        close_symm x y eps (h eps heps)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.7 极限唯一（ℚ 层）
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 `eps > 0` 用 `eps/2`（74.5 给 `0 < eps/2`）同时取两个阈值，
+-- 73.2 把两条「终究」合并到同一个 `N`；在 `n := N` 上两条接近性
+-- 一条反向（`close_symm`）、一条正向，57 的 `close_trans` 合成
+-- `close L L' eps`。最后交给 74.6 的辅助。
+theorem converges_unique (x : Seq) (L L' : ratRep)
+    (hL : Converges x L) (hL' : Converges x L') : ratRel L L' :=
+  ratRel_of_close_all L L'
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+      Exists.elim
+        (eventually_and (fun (n : Nat) => close (x n) L (ratHalf eps))
+          (fun (n : Nat) => close (x n) L' (ratHalf eps))
+          (hL (ratHalf eps) (ratLtRep_half eps heps))
+          (hL' (ratHalf eps) (ratLtRep_half eps heps)))
+        (fun (N : Nat)
+            (hN : ∀ (n : Nat), LeNat N n →
+              close (x n) L (ratHalf eps) ∧ close (x n) L' (ratHalf eps)) =>
+          close_trans L (x N) L' eps heps
+            (close_symm (x N) L (ratHalf eps) (And.left (hN N (LeNat.le_refl N))))
+            (And.right (hN N (LeNat.le_refl N)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.8 极限唯一（ℝ 层：两个类相等）
+-- ─────────────────────────────────────────────────────────────
+
+-- `ratRel L L'` 经 73.4 变成常序列的逐点接近；两条 `cauchy_const`
+-- 是 `realRel` 的守卫，`Real.sound` 把代表元关系升级成商里的相等。
+-- 解法辅助：`realRel` 是定义别名，`And.intro` 的隐式实参不会从别名展开；
+-- 这里先把三个分量写成一个显式的合取，调用处再按定义相等交给 `Real.sound`。
+theorem realRel_const_intro (L L' : ratRep) (h : ratRel L L') :
+    Cauchy (constSeq L) ∧ Cauchy (constSeq L') ∧
+      (∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+          close (constSeq L n) (constSeq L' n) eps) :=
+  And.intro (cauchy_const L)
+    (And.intro (cauchy_const L')
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.intro Nat.zero
+          (fun (n : Nat) (_hn : LeNat Nat.zero n) =>
+            close_of_ratRel L L' h eps heps)))
+
+theorem converges_unique_class (x : Seq) (L L' : ratRep)
+    (hL : Converges x L) (hL' : Converges x L') :
+    Real.mk (constSeq L) = Real.mk (constSeq L') :=
+  Real.sound (constSeq L) (constSeq L')
+    (realRel_const_intro L L' (converges_unique x L L' hL hL'))
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.9 具体：常零序列的极限在 ℝ 里是零
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_unique_zero (L : ratRep) (hL : Converges zeroSeq L) :
+    Real.mk (constSeq L) = Real.mk zeroSeq :=
+  converges_unique_class zeroSeq L ratZeroRep hL demo_converges_zero

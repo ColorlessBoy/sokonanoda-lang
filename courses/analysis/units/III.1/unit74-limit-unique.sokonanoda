@@ -1,0 +1,140 @@
+-- 单元74 极限的唯一性
+--
+-- 73 给了 ε-N 定义；本单元证明第一条真正的定理：**收敛序列的极限唯一**。
+--
+-- 在 ℚ 上，「唯一」就是 `ratRel L L'`。路线分三层：
+--
+--   · 第一层（74.1–74.3）：把减法与序接起来——
+--     `(x - y) + y ~ x`、`0 ~ x - y ⇒ x ~ y`、`y < x ⇒ 0 < x - y`；
+--   · 第二层（74.4–74.6）：把「任意 ε 内接近」压成 `ratLeRep`——先用
+--     ㊺ 的全性把 `x ≤ y` 归到 `y ≤ x` 的情形，再用 74.4 的
+--     「≤ 是相等或严格小」二选一：相等直接转，严格小则令 `d := x - y`，
+--     取 `eps := d/2`，`close x y (d/2)` 给 `d ≤ d/2`，74.5 给
+--     `d/2 < d`，反对称性把 `d/2 ~ d` 夹出来撞矛盾；
+--   · 第三层（74.7–74.9）：两个极限在同一个 `n` 上各占 `eps/2`，
+--     57 的 `close_trans` 得 `∀ eps > 0, close L L' eps`，再过 74.6
+--     得 `ratRel L L'`；`Real.sound` 把它送进商，得 ℝ 里的相等。
+--
+-- **边界（明说）**：74.4 用的是 ㊺ 的 `leNat_eq_or_succ`（`≤` 拆成
+-- 「相等」或「严格小」），这不是排中律：`Nat` 的 `≤` 是归纳定义的，
+-- 两支由构造子直接给出；本单元不新增公理、不用 `Classical.choice`。
+--
+-- 本单元：
+--   · 74.1 `ratSubRep_add_self` —— `(x - y) + y ~ x`；
+--   · 74.2 `ratRel_of_sub_zero` —— 差为零 ⇒ 相等；
+--   · 74.3 `ratLtRep_sub_pos` —— `y < x ⇒ 0 < x - y`；
+--   · 74.4 `ratLeRep_eq_or_lt` —— `≤` 是「相等」或「严格小」；
+--   · 74.5 `ratHalf_lt_self` —— `0 < eps ⇒ eps/2 < eps`；
+--   · 74.6 `ratLeRep_of_close_all` —— 任意 ε 内接近 ⇒ `≤`；
+--   · 74.7 `converges_unique` —— 极限唯一（ℚ 层）；
+--   · 74.8 `converges_unique_class` —— 极限唯一（ℝ 层：两个类相等）；
+--   · 74.9 具体：常零序列的极限在 ℝ 里是零。
+
+import lib.Limit
+import lib.RatAbsOrder
+import lib.RatSub
+import lib.RatClose
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.1 `(x - y) + y ~ x`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `x - y` 展开成 `x + (-y)`；54 的结合律把括号挪成 `x + ((-y) + y)`，55 的逆元律把 `(-y) + y` 收成 `0`，最后用加零律。
+-- soko:hint 目标形态：`ratRel (ratAddRep (ratSubRep x y) y) x`。
+-- soko:hint 关键件：ratAdd_assoc · ratAddRep_wd_snd_gen · ratNegRep_add_self · ratAdd_zero · ratRel_trans_gen。
+theorem ratSubRep_add_self (x y : ratRep) :
+    ratRel (ratAddRep (ratSubRep x y) y) x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.2 差为零 ⇒ 相等
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：三段链——`x ~ (x - y) + y`（74.1 反向）→ `(x - y) + y ~ 0 + y`（同余，用 `0 ~ x - y` 的反向）→ `0 + y ~ y`。
+-- soko:hint 目标形态：`ratRel 0 (x - y) → ratRel x y`。
+-- soko:hint 关键件：ratSubRep_add_self · ratAddRep_wd_gen · ratAdd_zero_left · ratRel_trans_gen · ratRel_symm。
+theorem ratRel_of_sub_zero (x y : ratRep)
+    (h : ratRel ratZeroRep (ratSubRep x y)) : ratRel x y :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.3 `y < x` ⇒ `0 < x - y`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：弱序一侧——`y ≤ x` 两边加 `-y`（54 的加法单调），左边 `y + (-y) ~ 0`，再沿同余把结论搬到 `x - y`。严格一侧——若 `0 ~ x - y`，用 74.2 得 `x ~ y`，撞上 `y < x` 的第二分量。
+-- soko:hint 目标形态：`ratLtRep ratZeroRep (ratSubRep x y)`。
+-- soko:hint 关键件：ratLeRep_add_right · ratAdd_neg_gen · ratLeRep_congr_gen · ratLtRep_le · ratRel_of_sub_zero · And.right。
+theorem ratLtRep_sub_pos (x y : ratRep) (h : ratLtRep y x) :
+    ratLtRep ratZeroRep (ratSubRep x y) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.4 `≤` 是「相等」或「严格小」
+-- ─────────────────────────────────────────────────────────────
+
+-- `ratLeRep x y` 的展开是 `LeNat (A.fst + B.snd) (B.fst + A.snd)`，
+-- 其中 `A = leNum x y`、`B = leNum y x`。
+--
+-- soko:hint 思路：把 `ratLeRep` 的头部展开成 `LeNat k m`（不要展开 `leNum` 里的 `Prod.fst`），交给 ㊺ 的 `leNat_eq_or_succ`：相等那支的等式正是 `ratRel x y`；严格小那支假设 `ratRel x y`，用 `ratLeRep_of_ratRel y x` 反着给出 `LeNat m k`，与 `leNat_succ_not_self` 撞矛盾。
+-- soko:hint 目标形态：`ratRel x y ∨ ratLtRep x y`。
+-- soko:hint 关键件：leNat_eq_or_succ · leNat_succ_not_self · leNat_trans · ratLeRep_of_ratRel · ratRel_symm · And.intro。
+theorem ratLeRep_eq_or_lt (x y : ratRep) (h : ratLeRep x y) :
+    ratRel x y ∨ ratLtRep x y :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.5 半数严格小于自身
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：弱序 `eps/2 ≤ eps` 由 53 的半数正性出发，两边同加 `eps/2`，右边经 52 的 `ratHalf_add_self` 认成 `eps`。严格性用加法消去：若 `eps/2 ~ eps`，两边同加 `eps/2` 得 `eps ~ eps + eps/2`，与 `eps ~ eps + 0` 消去 `eps` 后落到 `0 ~ eps/2`，撞上 53 的 `0 < eps/2`。
+-- soko:hint 目标形态：`ratLtRep (ratHalf eps) eps`。
+-- soko:hint 关键件：ratLeRep_half_of_lt · ratHalf_add_self · ratLeRep_congr_gen · ratRel_add_cancel_gen · ratLtRep_half · ratLtRep_right。
+theorem ratHalf_lt_self (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLtRep (ratHalf eps) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.6 任意 ε 内接近 ⇒ `≤`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先用 ㊺ 的全性分两支：`x ≤ y` 直接收；`y ≤ x` 时再用 74.4 分「y ~ x」与「y < x」。前者经对称性转成 `x ≤ y`；后者令 `d := x - y`（74.3 给 `0 < d`），取 `eps := d/2`：`close x y (d/2)` 经 68.4 的 `close_sub_le` 给 `d ≤ d/2`，74.5 给 `d/2 ≤ d`，反对称性夹出 `d/2 ~ d`，撞上 74.5 的严格性。
+-- soko:hint 目标形态：`(∀ eps > 0, close x y eps) → ratLeRep x y`。
+-- soko:hint 关键件：ratLeRep_total · ratLeRep_eq_or_lt · ratLtRep_sub_pos · ratLtRep_half · close_sub_le · ratHalf_lt_self · ratLeRep_antisymm · False.elim。
+theorem ratLeRep_of_close_all (x y : ratRep)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps → close x y eps) :
+    ratLeRep x y :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.7 极限唯一（ℚ 层）
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对任意 `eps > 0`，用 74.5 得 `0 < eps/2`；两个极限各取阈值，73.2 的 `eventually_and` 合并到同一个 `N`。在 `n := N` 上一条用 `close_symm` 反向，与另一条一起交给 57 的 `close_trans`，得 `close L L' eps`。最后对 `∀ eps > 0, close L L' eps` 用 74.6 两次（反向那次套 `close_symm`）与 ㊻ 的 `ratLeRep_antisymm`。
+-- soko:hint 目标形态：`ratRel L L'`。
+-- soko:hint 关键件：ratLtRep_half · eventually_and · close_symm · close_trans · ratLeRep_of_close_all · ratLeRep_antisymm。
+theorem converges_unique (x : Seq) (L L' : ratRep)
+    (hL : Converges x L) (hL' : Converges x L') : ratRel L L' :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.8 极限唯一（ℝ 层：两个类相等）
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 74.7 的 `ratRel L L'` 经 73.4 的 `close_of_ratRel` 变成常序列的逐点接近；连同两条 `cauchy_const` 正好是 `realRel (constSeq L) (constSeq L')` 的三个分量，最后交给 `Real.sound`。外层是 `realRel` 这个定义别名，内部的 `And.intro` 要把命题写全。
+-- soko:hint 目标形态：`Real.mk (constSeq L) = Real.mk (constSeq L')`。
+-- soko:hint 关键件：Real.sound · cauchy_const · close_of_ratRel · converges_unique · Exists.intro Nat.zero。
+theorem converges_unique_class (x : Seq) (L L' : ratRep)
+    (hL : Converges x L) (hL' : Converges x L') :
+    Real.mk (constSeq L) = Real.mk (constSeq L') :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 74.9 具体：常零序列的极限在 ℝ 里是零
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`zeroSeq` 收敛到 `0` 是 73.6；把 74.8 用在两个极限 `L` 与 `ratZeroRep` 上。
+-- soko:hint 目标形态：`Real.mk (constSeq L) = Real.mk zeroSeq`。
+-- soko:hint 关键件：converges_unique_class · demo_converges_zero。
+theorem demo_unique_zero (L : ratRep) (hL : Converges zeroSeq L) :
+    Real.mk (constSeq L) = Real.mk zeroSeq :=
+  sorry
