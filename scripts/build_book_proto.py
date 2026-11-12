@@ -645,13 +645,18 @@ def _solution_note(exercise: Decl, solution: Decl) -> str:
             continue
         if item.kind in ("heading", "rule"):
             continue
-        text = item.text.strip()
+        if item.kind == "list":
+            text = "；".join(
+                line.lstrip("·•-–— ").strip() for line in item.lines if line.strip()
+            )
+        else:
+            text = item.text.strip()
         if not text:
             continue
         if _normalise_text(text) in known:
             continue
         notes.append(text)
-    return "\n\n".join(notes[:2])
+    return "\n\n".join(notes)
 
 
 def source_fingerprint(paths: Iterable[Path]) -> str:

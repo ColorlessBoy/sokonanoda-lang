@@ -9473,7 +9473,9 @@ end</code></pre></div></article>
       ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (x n) eps :=
   sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>hx eps h</code> 消去，得到 <code>∃ N, ∀ n m ≥ N, close (x n) (x m) eps</code>；对同一个 <code>N</code>，把 <code>n</code>、<code>m</code> 两个位置都填 <code>n</code>（同一个 <code>hn</code> 用两次）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Cauchy x → ∀ eps &gt; 0, ∃ N, ∀ n ≥ N, close (x n) (x n) eps</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.elim · Exists.intro</span>。</p></div></details></div><details class="solution-panel" id="sol-40-1"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><p class="solution-note">realRel x y  :<span class="math">⟺  Cauchy x ∧ Cauchy y ∧</span>
 
-<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, close (x n) (y n) eps</p><pre><code>theorem cauchy_close_self (x : Seq) (hx : Cauchy x) :
+<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, close (x n) (y n) eps
+
+Real :<span class="math">= Quot realRel</span></p><pre><code>theorem cauchy_close_self (x : Seq) (hx : Cauchy x) :
     ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
       ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (x n) eps :=
   fun (eps : ratRep) (h : ratLtRep ratZeroRep eps) =&gt;
@@ -9628,7 +9630,23 @@ end</code></pre></div></article>
 
 为什么需要它们：下一单元的「序与加法相容」要把 <code>x ≤ y</code> 搬到 <code>x + z ≤ y + z</code>，
 而<strong>左</strong>加（<code>z + x ≤ z + y</code>）靠的是「先交换、用右加、再交换回来」——
-没有 ㊸.3 就无法把右加版本变成左加版本。</p><pre><code>theorem ratAdd_zero_num (a m : Nat) :
+没有 ㊸.3 就无法把右加版本变成左加版本。
+
+㊸.4 先把 <code>x + 0</code> 这个<strong>三元组</strong>搬成 <code>qrep a b m</code>（㊸.1/㊸.2 消掉零项），
+  再用 <code>ratRel_refl</code>。<code>ratRep</code> 是 <code>Prod (Prod Nat Nat) Nat</code> 的定义别名，
+  <code>match</code> 只认归纳类型本身，所以通用陈述先在一个 <code>_aux</code>（展开类型上的）
+  定理里 match 到字面三元组，再把字面结果转发给通用陈述 —— 这是本课程
+  处理「ratRep 上的通用引理」的固定写法（㊷ 的 <code>ratSubRep_neg_aux</code> 同形）。
+
+㊸.6 是具体计算：<code>1/2 + 1/3</code> 的代表元公式定义性归约成 <code>5/6 = qrep 5 0 5</code>，
+  两边是同一个三元组，直接 <code>ratRel_refl</code>。
+
+㊸.1 加零的分子形状
+
+<code>myMul a (succ 0)</code> 定义性展开成 <code>a + a*0</code>；<code>a*0 = 0</code>（myMul_zero）后是 <code>a + 0</code>，
+<code>add_zero</code> 收成 <code>a</code>。另一个加数 <code>0*(m+1) = 0</code>（zero_mul），整个和就是 <code>a</code>。
+
+㊸.1</p><pre><code>theorem ratAdd_zero_num (a m : Nat) :
     Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)) = a :=
   @Eq.trans.{1} Nat
     (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)))
@@ -9702,6 +9720,10 @@ end</code></pre></div></article>
 <article class="exercise" id="ex-44-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">mulRep_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-44-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>单元㊳ 结清了序的传递性，㊴ 结清了序与<strong>相等</strong>相容；但要把序用在 Cauchy 的三角不等式上，还差一条<strong>与加法</strong>相容：</p></div><div class="block prose intuition-only"><p><span class="math">x ≤ y</span>  ⟹  <span class="math">x + z ≤ y + z</span>        （㊹.4，右加）</p></div><div class="block prose intuition-only"><p>证明路线（把两边换到同一个公分母上比较）：</p></div><div class="block prose intuition-only"><p>设 <span class="math">x = a/(m+1)</span>、<span class="math">y = c/(n+1)</span>、<span class="math">z = e/(k+1)</span>。<code>x ≤ y</code> 交叉相乘后是</p></div><div class="math-display intuition-only" role="math" aria-label="a(n+1) + d(m+1) ≤ c(m+1) + b(n+1)               （h）"><math display="block" class="mathml"><mrow><mi>a</mi><mrow><mo>(</mo><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi>d</mi><mrow><mo>(</mo><mrow><mi>m</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>≤</mo><mspace width="0.22em"/><mi>c</mi><mrow><mo>(</mo><mrow><mi>m</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi>b</mi><mrow><mo>(</mo><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>（</mo><mi>h</mi><mo>）</mo></mrow></math></div><div class="block prose intuition-only"><p><code>x + z</code> 与 <code>y + z</code> 的分母分别是 <span class="math">(m+1)(k+1)</span> 与 <span class="math">(n+1)(k+1)</span>；交叉相乘再乘开，两边都带公共正因子 <span class="math">(k+1)</span> 与同一块 z 的贡献（由加法交换对齐），消去后剩下的正是「h 两边同乘 <span class="math">(k+1)</span>」，所以</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>㊹.1 先证 <code>mulRep</code> 对 <code>addRep</code> 的分配律（分子层面的展开）；</li><li>㊹.2 把 <code>den (ratDenRep m n)</code> 换成 <code>mulRep (den m) (den n)</code>（分母层面的乘积），两个正分母就能搬到最外层；</li><li>㊹.3 证 <code>addRep</code> 保 <code>intRel</code>（把两个加数的等价搬运拼起来）；</li><li>㊹.4 主定理：把 <code>leNum</code> 层层化到「h 两边乘 <span class="math">(k+1)</span>」，再用 ㊲ 的 <code>leRep_mul_den_right</code> / <code>leRep_add_right</code> 收口。</li></ul></div><div class="block prose intuition-only"><p>写法提醒：<code>ratRep</code> 是 <code>Prod (Prod Nat Nat) Nat</code> 的定义别名，<code>match</code> 只认归纳类型本身；所以通用包装（<code>_gen</code> 系列）都先 match 到字面坐标再转发给 <code>lib/Rat</code> 里只有字面坐标版本的引理 —— 与 ㊷/㊸ 的 <code>_aux</code> 同一写法。</p></div><div class="block prose intuition-only"><p>㊹.1 <code>mulRep</code> 对 <code>addRep</code> 的分配律</p></div></div><pre class="exercise-statement"><code>theorem mulRep_add (p q r : Prod Nat Nat) :
     mulRep (addRep p q) r = addRep (mulRep p r) (mulRep q r) :=
   sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>在字面坐标 <code>(a,b)</code>、<code>(c,d)</code>、<code>(e,f)</code> 上 match。<code>mulRep (addRep p q) r</code> 的两个坐标分别是 <code>(a+c)e + (b+d)f</code> 与 <code>(a+c)f + (b+d)e</code>；用 <code>mul_add_right</code> 各展开成两组乘积之和，再用 <code>add4</code> 把配对换成 <code>addRep (mulRep p r) (mulRep q r)</code> 的两组和。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>mulRep (addRep p q) r = addRep (mulRep p r) (mulRep q r)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">mul_add_right · add_congr · add4 · prod_mk_congr · Eq.trans</span>。</p></div></details></div><details class="solution-panel" id="sol-44-1"><summary>查看解答 <span class="sol-meta">定理 · 21 行</span></summary><div class="solution-body"><p class="solution-note"><span class="math">a(n+1) + d(m+1) ≤ c(m+1) + b(n+1)</span>               （h）
+
+㊹.1 先证 <code>mulRep</code> 对 <code>addRep</code> 的分配律（分子层面的展开）；；㊹.2 把 <code>den (ratDenRep m n)</code> 换成 <code>mulRep (den m) (den n)</code>
+（分母层面的乘积），两个正分母就能搬到最外层；；㊹.3 证 <code>addRep</code> 保 <code>intRel</code>（把两个加数的等价搬运拼起来）；；㊹.4 主定理：把 <code>leNum</code> 层层化到「h 两边乘 <span class="math">(k+1)</span>」，再用 ㊲ 的
+<code>leRep_mul_den_right</code> / <code>leRep_add_right</code> 收口。
 
 写法提醒：<code>ratRep</code> 是 <code>Prod (Prod Nat Nat) Nat</code> 的定义别名，<code>match</code> 只认
 归纳类型本身；所以通用包装（㊹ 的 <code>_gen</code> 系列）都先 match 到字面坐标再
@@ -10040,7 +10062,19 @@ end</code></pre></div></article>
     ratRel d d' :=
   sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>h1</code> 给 <code>d ~ x</code>，<code>h2</code> 给 <code>d' ~ -x</code>；先用 ㊻ 的 <code>ratLeRep_antisymm 0 x</code>（前提是 <code>0 ≤ x</code> 与 <code>x ≤ 0</code>）得到 <code>0 ~ x</code>，反转得 <code>x ~ 0</code>，再用 <code>ratNegRep_wd</code> 得 <code>0 ~ -x</code>，最后把「<code>d ~ x</code>」「<code>x ~ 0</code>」「<code>0 ~ -x</code>」「<code>-x ~ d'</code>」四段用 <code>ratRel_trans_gen</code> 串起来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(0 ≤ x ∧ d ~ x) → (x ≤ 0 ∧ d' ~ -x) → ratRel d d'</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_antisymm · ratNegRep_wd · ratRel_symm · ratRel_trans_gen · And.left · And.right</span>。</p></div></details></div><details class="solution-panel" id="sol-47-1"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><p class="solution-note"><span class="math">ratAbsRel x d  ∧  ratAbsRel x d'</span>   ⟹   d ~ d'
 
-<span class="math">(0 ≤ x ∧ d</span> ~ <span class="math">x) ∨ (x ≤ 0 ∧ d</span> ~ -x)</p><pre><code>theorem ratAbsRel_left_right (x d d' : ratRep)
+<span class="math">(0 ≤ x ∧ d</span> ~ <span class="math">x) ∨ (x ≤ 0 ∧ d</span> ~ -x)
+
+同一个 <code>x</code> 的两个见证可能落在<strong>不同分支</strong>（一个取 <code>x</code>、一个取 <code>-x</code>）。
+㊻ 的 <code>ratLeRep_antisymm</code> 正好把「<code>0 ≤ x</code> 与 <code>x ≤ 0</code> 同时成立」压成
+<code>x ~ 0</code>，于是 <code>x ~ 0 ~ -x</code>，两个分支的见证就接上了。
+
+本单元结清：
+
+㊼.1 <code>ratAbsRel_unique</code>：绝对值的唯一性（四个分支两两配对）；；㊼.2 具体：<code>|-1/2|</code> 的两个见证 <code>1/2</code> 与 <code>2/4</code> 相等。
+
+证明路线：四个分支里「同号」两支只是 <code>ratRel</code> 的传递；「异号」两支先用
+㊻ 把 <code>0 ≤ x ≤ 0</code> 压成 <code>0 ~ x</code>，再用 <code>ratNegRep_wd</code> 把 <code>0 ~ x</code> 搬到
+<code>0 ~ -x</code>（或反向），最后用 <code>ratRel_trans_gen</code> 把四段串起来。</p><pre><code>theorem ratAbsRel_left_right (x d d' : ratRep)
     (hl : ratLeRep ratZeroRep x ∧ ratRel d x)
     (hr : ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x)) :
     ratRel d d' :=
@@ -10117,7 +10151,14 @@ end</code></pre></div></article>
     ratLeRep (ratAddRep a c) (ratAddRep b d) :=
   sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先对 <code>h1</code> 用右加（<code>ratLeRep_add_right a b c</code>）得 <code>a+c ≤ b+c</code>；再把 <code>c+b ≤ d+b</code>（对 <code>h2</code> 用右加、以 <code>b</code> 为加数）经两次交换律搬成 <code>b+c ≤ b+d</code>；最后 <code>ratLeRep_trans</code> 串起来。交换律给的是 <code>ratRel</code>，用 <code>ratLeRep_of_ratRel</code> 读成序。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep a b → ratLeRep c d → ratLeRep (ratAddRep a c) (ratAddRep b d)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_add_right · ratAdd_comm · ratLeRep_of_ratRel · ratLeRep_trans</span>。</p></div></details></div><details class="solution-panel" id="sol-48-1"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><p class="solution-note"><span class="math">ratAbsRel x dx  ∧  ratAbsRel y dy  ∧  ratAbsRel (x + y) d</span>
 
-⟹  <span class="math">d ≤ dx + dy</span></p><pre><code>theorem ratLeRep_add (a b c d : ratRep)
+⟹  <span class="math">d ≤ dx + dy</span>
+
+㊽.1 <code>ratLeRep_add</code>：序对两个因子都单调（右加用 ㊹ 的
+<code>ratLeRep_add_right</code>，左加靠交换律转成右加）；；㊽.2 <code>ratAbsRel_le</code>：<code>x ≤ d</code>（第一支 <code>x ≤ x ~ d</code>，第二支
+<code>x ≤ 0 ≤ -x ~ d</code>）；；㊽.3 <code>ratAbsRel_neg_le</code>：<code>-x ≤ d</code>（第一支 <code>-x ≤ 0 ≤ x ~ d</code>，
+第二支 <code>-x ~ d</code>）；；㊽.4 <code>ratNegRep_add</code>：<code>-(x + y) ~ (-x) + (-y)</code>（两边在代表元上
+<strong>定义性相等</strong>：交换两个分子后 <code>addRep</code> 的两个坐标恰好对调）；；㊽.5 <code>ratLeRep_abs_add</code>：主定理。对 <code>d</code> 落在哪一支分两种情形：
+非负支 <code>d ~ x+y ≤ dx+dy</code>；非正支 <code>d ~ -(x+y) ~ (-x)+(-y) ≤ dx+dy</code>；；㊽.6 具体：<code>|1/2 + 1/2| = 1 ≤ 1/2 + 1/2</code>。</p><pre><code>theorem ratLeRep_add (a b c d : ratRep)
     (h1 : ratLeRep a b) (h2 : ratLeRep c d) :
     ratLeRep (ratAddRep a c) (ratAddRep b d) :=
   ratLeRep_trans (ratAddRep a c) (ratAddRep b c) (ratAddRep b d)
@@ -10204,7 +10245,12 @@ end</code></pre></div></article>
 <a class="back-to-toc" href="#toc">↑ 目录</a>
 </header>
 <article class="exercise" id="ex-49-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratLtRep_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-49-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>单元㊾ 严格序的传递与 <code>close</code> 对 <code>ε</code> 的单调性</p></div><div class="block prose intuition-only"><p>㊽ 给了三角不等式，<code>close</code> 的传递性还差两件工程件：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><code>ε</code> 一旦定下来，往<strong>大</strong>走不改变 <code>close</code>（本单元 ㊾.3）；</li><li>严格序 <code>a &lt; b &lt; c</code> 可以<strong>串</strong>起来（本单元 ㊾.2）——折半之后 <code>0 &lt; ε/2</code>、<code>ε/2 &lt; ε</code> 这类链条都要靠它。</li></ul></div><div class="block prose intuition-only"><p>两条都不需要新的算术，只是把 ㉚ 的定义、㊻ 的反对称性与 ㊳ 的传递性拼起来：</p></div><div class="math-display intuition-only"><pre class="display-code"><code>ratLtRep a b  :=  ratLeRep a b ∧ ¬ ratRel a b</code></pre></div><div class="block prose intuition-only"><p>严格序的传递性唯一的「不相等」义务是：若 <code>a ~ c</code>，则 <code>c ≤ a</code>，与 <code>a ≤ b ≤ c</code> 一起把 <code>b</code> 夹成 <code>b ~ c</code>，正好撞上 <code>b &lt; c</code> 的第二分量。</p></div><div class="block prose intuition-only"><p><code>close</code> 对 <code>ε</code> 的单调性同理：<code>d &lt; ε ≤ ε'</code> 的「不相等」义务是「<code>d ~ ε'</code> 会把 <code>ε'</code> 与 <code>ε</code> 夹成相等，从而 <code>d ~ ε</code>」。本单元结清：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>㊾.1 <code>ratLtRep_le</code>：严格序给出弱序（第二分量的投影）；</li><li>㊾.2 <code>ratLtRep_trans</code>：严格序的传递性；</li><li>㊾.3 <code>close_mono_eps</code>：<code>close x y ε → ε ≤ ε' → close x y ε'</code>；</li><li>㊾.4 具体：<code>close 0 0 1</code> 放大成 <code>close 0 0 2</code>。</li></ul></div><div class="block prose intuition-only"><p>本单元不引入新定义；<code>ratLtRep</code> 来自 <code>lib/Cauchy</code>，序的引擎来自 <code>lib/RatAbs</code> 与 <code>lib/RatAbsOrder</code>。</p></div><div class="block prose intuition-only"><p>㊾.1 严格序给出弱序</p></div></div><pre class="exercise-statement"><code>theorem ratLtRep_le (a b : ratRep) (h : ratLtRep a b) : ratLeRep a b :=
-  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratLtRep a b</code> 就是 <code>ratLeRep a b ∧ ¬ ratRel a b</code>，取第一个分量即可（<code>And.left</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep a b → ratLeRep a b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>And.left。</p></div></details></div><details class="solution-panel" id="sol-49-1"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><p class="solution-note">ratLtRep a b  :<span class="math">=  ratLeRep a b ∧ ¬ ratRel a b</span></p><pre><code>theorem ratLtRep_le (a b : ratRep) (h : ratLtRep a b) : ratLeRep a b :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratLtRep a b</code> 就是 <code>ratLeRep a b ∧ ¬ ratRel a b</code>，取第一个分量即可（<code>And.left</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep a b → ratLeRep a b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>And.left。</p></div></details></div><details class="solution-panel" id="sol-49-1"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><p class="solution-note"><code>ε</code> 一旦定下来，往<strong>大</strong>走不改变 <code>close</code>（本单元 ㊾.3）；；严格序 <code>a &lt; b &lt; c</code> 可以<strong>串</strong>起来（本单元 ㊾.2）——折半之后
+<code>0 &lt; ε/2</code>、<code>ε/2 &lt; ε</code> 这类链条都要靠它。
+
+ratLtRep a b  :<span class="math">=  ratLeRep a b ∧ ¬ ratRel a b</span>
+
+㊾.1 <code>ratLtRep_le</code>：严格序给出弱序（第二分量的投影）；；㊾.2 <code>ratLtRep_trans</code>：严格序的传递性；；㊾.3 <code>close_mono_eps</code>：<code>close x y ε → ε ≤ ε' → close x y ε'</code>；；㊾.4 具体：<code>close 0 0 1</code> 放大成 <code>close 0 0 2</code>。</p><pre><code>theorem ratLtRep_le (a b : ratRep) (h : ratLtRep a b) : ratLeRep a b :=
   And.left h</code></pre></div></details></div></article>
 <article class="exercise" id="ex-49-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratLtRep_trans</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-49-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊾.2 严格序的传递性</p></div></div><pre class="exercise-statement"><code>theorem ratLtRep_trans (a b c : ratRep)
     (h1 : ratLtRep a b) (h2 : ratLtRep b c) : ratLtRep a c :=
@@ -10270,7 +10316,11 @@ end</code></pre></div></article>
       (addRep
         (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
         (mulRep (leNum z y) (den (denOf (ratAddRep x z))))) :=
-  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratLeRep (x+z) (y+z)</code> 展开是 <code>leRep (leNum (x+z) (y+z)) (leNum (y+z) (x+z))</code>。用 <code>leRep_wd_pair</code> 把两个 <code>leNum</code> 换成 ㊹.4 的中间形状——两个中间形状恰好加的是<strong>同一块</strong> <code>mulRep (leNum z y) (den (denOf (ratAddRep x z)))</code>。换形由库里的 <code>leNum_ratAddRep_left/right</code> 给出，注意 <code>leRep_wd_pair</code> 要的是 <code>intRel</code> 从 <code>leNum</code> 出发的方向，所以取 <code>intRel_symm</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>leRep (addRep A Z) (addRep B Z)</code>，其中 <code>A = leNum x y · dz · dz</code>、<code>B = leNum y x · dz · dz</code>、<code>Z = leNum z y · den (x+z)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">leRep_wd_pair · intRel_symm · leNum_ratAddRep_left · leNum_ratAddRep_right</span>。</p></div></details></div><details class="solution-panel" id="sol-50-1"><summary>查看解答 <span class="sol-meta">定理 · 31 行</span></summary><div class="solution-body"><p class="solution-note"><span class="math">ratLeRep (x + z) (y + z) ⇒ ratLeRep x y</span></p><pre><code>theorem ratLeRep_add_addends (x y z : ratRep)
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratLeRep (x+z) (y+z)</code> 展开是 <code>leRep (leNum (x+z) (y+z)) (leNum (y+z) (x+z))</code>。用 <code>leRep_wd_pair</code> 把两个 <code>leNum</code> 换成 ㊹.4 的中间形状——两个中间形状恰好加的是<strong>同一块</strong> <code>mulRep (leNum z y) (den (denOf (ratAddRep x z)))</code>。换形由库里的 <code>leNum_ratAddRep_left/right</code> 给出，注意 <code>leRep_wd_pair</code> 要的是 <code>intRel</code> 从 <code>leNum</code> 出发的方向，所以取 <code>intRel_symm</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>leRep (addRep A Z) (addRep B Z)</code>，其中 <code>A = leNum x y · dz · dz</code>、<code>B = leNum y x · dz · dz</code>、<code>Z = leNum z y · den (x+z)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">leRep_wd_pair · intRel_symm · leNum_ratAddRep_left · leNum_ratAddRep_right</span>。</p></div></details></div><details class="solution-panel" id="sol-50-1"><summary>查看解答 <span class="sol-meta">定理 · 31 行</span></summary><div class="solution-body"><p class="solution-note"><span class="math">ratLeRep (x + z) (y + z) ⇒ ratLeRep x y</span>
+
+弱序：㊹ 的 <code>ratLeRep_add_right</code>；；不相等：若 <code>x + z ~ y + z</code>，消去得 <code>x ~ y</code>，与 <code>&lt;</code> 的第二分量矛盾。
+
+㊿.1 <code>ratLeRep_add_addends</code>：把 ㊹.4 的两个换形拼成「加同一块 z」；；㊿.2 <code>ratLeRep_add_cancel</code>：加法消去（弱序）；；㊿.3 <code>ratRel_add_cancel</code>：加法消去（相等）；；㊿.4 <code>ratLtRep_add_right</code>：<code>x &lt; y ⇒ x + z &lt; y + z</code>；；㊿.5 具体：<code>0 + 1/2 &lt; 1 + 1/2</code>。</p><pre><code>theorem ratLeRep_add_addends (x y z : ratRep)
     (h : ratLeRep (ratAddRep x z) (ratAddRep y z)) :
     leRep
       (addRep
@@ -10663,7 +10713,12 @@ end</code></pre></div></article>
 </header>
 <h3 class="unit-subhead">53.1 <code>0 &lt; ε</code> <span class="math">⇒</span> <code>0 ≤ ε/2</code></h3><article class="exercise" id="ex-53-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratLeRep_half_of_lt</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-53-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>52 给出了「半数」与 <code>x/2 + x/2 ~ x</code>。<code>close</code> 的传递性还要能<strong>用</strong>这个半数：把 Cauchy 假设放在 <code>ε/2</code> 上要求 <code>0 &lt; ε/2</code>。本单元补上这一条。</p></div><div class="block prose intuition-only"><p>证明路线（不碰代表元，全部走序 <span class="math">+</span> 加法的抽象律）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>53.1 <code>0 ≤ ε/2</code>：用 ㊺ 的全性把 <code>0 ≤ ε/2</code> 与 <code>ε/2 ≤ 0</code> 两分支切开；第二支把 <code>ε/2 ≤ 0</code> 加到两边（㊹ 的右加 <span class="math">+ 51.1</span> 的左加，已进库）得到 <code>ε/2 + ε/2 ≤ 0 + 0</code>，再用 52 的 <code>ε/2 + ε/2 ~ ε</code> 搬到 <code>ε ≤ 0</code>；与 <code>0 ≤ ε</code> 用 ㊻ 的反对称性夹出 <code>0 ~ ε</code>，撞上严格序的第二分量。</li><li>53.2 <code>ε/2 ~ 0 ⇒ ε ~ 0</code>：把 <code>ε/2 ~ 0</code> 读成两条弱序，用同样的加法相容把 <code>ε/2 + ε/2</code> 与 <code>0 + 0</code> <strong>互相</strong>夹住，反对称性给出它们相等；再串上 <code>0 + 0 ~ 0</code> 与 52 的 <code>ε/2 + ε/2 ~ ε</code>。</li><li>53.3 把两条装成严格正性；53.4 落在 <code>1/2 &gt; 0</code> 上。</li></ul></div></div><pre class="exercise-statement"><code>theorem ratLeRep_half_of_lt (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
     ratLeRep ratZeroRep (ratHalf eps) :=
-  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用 <code>ratLeRep_total</code> 把目标 <code>0 ≤ ε/2</code> 与 <code>ε/2 ≤ 0</code> 两支切开，右支导出矛盾（<code>False.elim</code>）。矛盾链：<code>ε/2 ≤ 0</code> 经 <code>ratLeRep_add_right</code> 得 <code>ε/2+ε/2 ≤ 0+ε/2</code>，<code>ε/2 ≤ 0</code> 再经 <code>ratLeRep_add_left</code>（<code>z = 0</code>）得 <code>0+ε/2 ≤ 0+0</code>，<code>ratLeRep_trans</code> 串起来；再用 <code>ratAdd_zero 0</code> 把右端换成 <code>0</code>（<code>ratLeRep_congr_gen</code>），用 <code>ratHalf_add_self</code> 把左端换成 <code>ε</code>，得到 <code>ε ≤ 0</code>；与 <code>And.left h</code> 用 <code>ratLeRep_antisymm</code> 夹出 <code>0 ~ ε</code>，撞上 <code>And.right h</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep 0 eps → ratLeRep 0 (ratHalf eps)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_total · ratLeRep_add_right · ratLeRep_add_left · ratLeRep_trans · ratLeRep_congr_gen · ratAdd_zero · ratHalf_add_self · ratLeRep_antisymm · False.elim</span>。</p></div></details></div><details class="solution-panel" id="sol-53-1"><summary>查看解答 <span class="sol-meta">定理 · 26 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_half_of_lt (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用 <code>ratLeRep_total</code> 把目标 <code>0 ≤ ε/2</code> 与 <code>ε/2 ≤ 0</code> 两支切开，右支导出矛盾（<code>False.elim</code>）。矛盾链：<code>ε/2 ≤ 0</code> 经 <code>ratLeRep_add_right</code> 得 <code>ε/2+ε/2 ≤ 0+ε/2</code>，<code>ε/2 ≤ 0</code> 再经 <code>ratLeRep_add_left</code>（<code>z = 0</code>）得 <code>0+ε/2 ≤ 0+0</code>，<code>ratLeRep_trans</code> 串起来；再用 <code>ratAdd_zero 0</code> 把右端换成 <code>0</code>（<code>ratLeRep_congr_gen</code>），用 <code>ratHalf_add_self</code> 把左端换成 <code>ε</code>，得到 <code>ε ≤ 0</code>；与 <code>And.left h</code> 用 <code>ratLeRep_antisymm</code> 夹出 <code>0 ~ ε</code>，撞上 <code>And.right h</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep 0 eps → ratLeRep 0 (ratHalf eps)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_total · ratLeRep_add_right · ratLeRep_add_left · ratLeRep_trans · ratLeRep_congr_gen · ratAdd_zero · ratHalf_add_self · ratLeRep_antisymm · False.elim</span>。</p></div></details></div><details class="solution-panel" id="sol-53-1"><summary>查看解答 <span class="sol-meta">定理 · 26 行</span></summary><div class="solution-body"><p class="solution-note">53.1 <code>0 ≤ ε/2</code>：用 ㊺ 的全性把 <code>0 ≤ ε/2</code> 与 <code>ε/2 ≤ 0</code> 两分支切开；
+第二支把 <code>ε/2 ≤ 0</code> 加到两边（㊹ 的右加 <span class="math">+ 51.1</span> 的左加，已进库）
+得到 <code>ε/2 + ε/2 ≤ 0 + 0</code>，再用 52 的 <code>ε/2 + ε/2 ~ ε</code> 搬到 <code>ε ≤ 0</code>；
+与 <code>0 ≤ ε</code> 用 ㊻ 的反对称性夹出 <code>0 ~ ε</code>，撞上严格序的第二分量。；53.2 <code>ε/2 ~ 0 ⇒ ε ~ 0</code>：把 <code>ε/2 ~ 0</code> 读成两条弱序，用同样的加法
+相容把 <code>ε/2 + ε/2</code> 与 <code>0 + 0</code> <strong>互相</strong>夹住，反对称性给出它们相等；
+再串上 <code>0 + 0 ~ 0</code> 与 52 的 <code>ε/2 + ε/2 ~ ε</code>。；53.3 把两条装成严格正性；53.4 落在 <code>1/2 &gt; 0</code> 上。</p><pre><code>theorem ratLeRep_half_of_lt (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
     ratLeRep ratZeroRep (ratHalf eps) :=
   Or.elim
     (fun (hh : ratLeRep ratZeroRep (ratHalf eps)) =&gt; hh)
@@ -10992,7 +11047,17 @@ end</code></pre></div></article>
     ratRel (ratAddRep x z) (ratAddRep x' z) :=
   sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratRel x x'</code> 给两个方向的弱序（㉙ 的 <code>ratLeRep_of_ratRel</code>）；各加同一个 <code>z</code>（㊹ 的 <code>ratLeRep_add_right</code>），再用 ㊻ 的 <code>ratLeRep_antisymm</code> 把两条弱序夹成 <code>ratRel</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel x x' → ratRel (ratAddRep x z) (ratAddRep x' z)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_of_ratRel · ratLeRep_add_right · ratLeRep_antisymm · ratRel_symm</span>。</p></div></details></div><details class="solution-panel" id="sol-56-1"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note">证明路线（全部停在商 <span class="math">+</span> 已判卷的库引理上，不碰 <code>funext</code>、不加公理）：
 
-本单元不引入新定义；<code>ratSubRep</code> 是 ㉜ 的减法定义。</p><pre><code>theorem ratAddRep_wd_gen (x x' z : ratRep) (h : ratRel x x') :
+<code>ratAddRep_wd_gen</code> / <code>ratAddRep_wd_snd_gen</code>：<code>ratRel</code> 对 <code>ratAddRep</code>
+的两个变元都是同余（库里的 <code>ratAddRep_wd</code> / <code>_snd</code> 只认字面三元组，
+这里用 ㊴ 的 <code>ratLeRep_congr_gen</code> <span class="math">+</span> ㊹ 的加法单调 <span class="math">+</span> ㊻ 的反对称性
+在任意代表元上补出通用版本）；；<code>ratNegRep_add_self</code>：<code>(-y) + y ~ 0</code>（㉚–㉟ 的交换律 <span class="math">+ 55</span> 的逆元律）；；<code>ratSubRep_add</code>：结合律把 <code>(x + -y) + (y + -z)</code> 收成
+<code>x + ((-y + y) + -z)</code>，中间项换成 0，再用左零元收尾；；<code>demo_sub_add</code>：<code>(1/2 - 1/3) + (1/3 - 1/4) ~ 1/2 - 1/4</code>。
+
+本单元不引入新定义；<code>ratSubRep</code> 是 ㉜ 的减法定义。
+
+库里的 <code>ratAddRep_wd</code> 只认<strong>字面三元组</strong>（两个变元必须同分母）。任意代表元上
+用序来补：<code>x ~ x'</code> 给两个方向的弱序，各加同一个 <code>z</code>（㊹ 的 <code>ratLeRep_add_right</code>），
+再用 ㊻ 的反对称性把两条弱序夹成 <code>ratRel</code>。</p><pre><code>theorem ratAddRep_wd_gen (x x' z : ratRep) (h : ratRel x x') :
     ratRel (ratAddRep x z) (ratAddRep x' z) :=
   ratLeRep_antisymm (ratAddRep x z) (ratAddRep x' z)
     (ratLeRep_add_right x x' z (ratLeRep_of_ratRel x x' h))
@@ -11088,7 +11153,12 @@ end</code></pre></div></article>
      再用 ㊷ 的 <code>ratAbsRel_wd_left</code> 搬过去）；
   ② 三角不等式（㊽ 的 <code>ratLeRep_abs_add</code>）给出 <code>d ≤ dx + dy</code>；
   ③ <code>dx &lt; ε/2</code> 与 <code>dy &lt; ε/2</code> 加起来是 <code>dx + dy &lt; ε</code>（51 的两个严格界相加，
-     再用 52 的 <code>ε/2 + ε/2 ~ ε</code> 把右端搬成 <code>ε</code>）。</p><pre><code>theorem ratLtRep_congr_snd (a b c : ratRep)
+     再用 52 的 <code>ε/2 + ε/2 ~ ε</code> 把右端搬成 <code>ε</code>）。
+
+本单元不引入新定义；用到的前序事实证明已收进 <code>lib/RatClose</code>。
+
+<code>ratLtRep a b</code> 是 <code>ratLeRep a b ∧ ¬ ratRel a b</code>：弱序沿 <code>b ~ c</code> 搬
+（㊴ 的 <code>ratLeRep_congr_gen</code>），不相等部分把 <code>a ~ c</code> 与 <code>c ~ b</code> 串成 <code>a ~ b</code>。</p><pre><code>theorem ratLtRep_congr_snd (a b c : ratRep)
     (h : ratLtRep a b) (hbc : ratRel b c) : ratLtRep a c :=
   And.intro
     (ratLeRep_congr_gen a a b c (ratRel_refl a) hbc (And.left h))
@@ -11181,7 +11251,12 @@ end</code></pre></div></article>
 <h3 class="unit-subhead">58.1 是阈值的合并，58.2 是逐点部分，58.3 是主定理，58.4 落在常零序列上。</h3><h3 class="unit-subhead">58.1 两个 <span class="math">ℕ</span> 阈值的合并</h3><article class="exercise" id="ex-58-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">leNat_max</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-58-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>单元58 <code>realRel</code> 的传递性：逐点 <code>close</code> 与 Cauchy 的三段常数</p></div><div class="block prose intuition-only"><p>㊱ 把实数的相等定义成 Cauchy 序列的逐点接近：</p></div><div class="math-display intuition-only" role="math" aria-label="realRel x y  :⟺  Cauchy x ∧ Cauchy y ∧"><math display="block" class="mathml"><mrow><mi mathvariant="normal">realRel</mi><mspace width="0.22em"/><mi>x</mi><mspace width="0.22em"/><mi>y</mi><mspace width="0.22em"/><mo>:</mo><mo>⟺</mo><mspace width="0.22em"/><mi mathvariant="normal">Cauchy</mi><mspace width="0.22em"/><mi>x</mi><mspace width="0.22em"/><mo>∧</mo><mspace width="0.22em"/><mi mathvariant="normal">Cauchy</mi><mspace width="0.22em"/><mi>y</mi><mspace width="0.22em"/><mo>∧</mo></mrow></math></div><div class="math-display intuition-only" role="math" aria-label="∀ eps &gt; 0, ∃ N, ∀ n ≥ N, close (x n) (y n) eps"><math display="block" class="mathml"><mrow><mo>∀</mo><mspace width="0.22em"/><mi mathvariant="normal">eps</mi><mspace width="0.22em"/><mo>&gt;</mo><mspace width="0.22em"/><mn>0</mn><mo>,</mo><mspace width="0.22em"/><mo>∃</mo><mspace width="0.22em"/><mi>N</mi><mo>,</mo><mspace width="0.22em"/><mo>∀</mo><mspace width="0.22em"/><mi>n</mi><mspace width="0.22em"/><mo>≥</mo><mspace width="0.22em"/><mi>N</mi><mo>,</mo><mspace width="0.22em"/><mi mathvariant="normal">close</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>x</mi><mspace width="0.22em"/><mi>n</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>y</mi><mspace width="0.22em"/><mi>n</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mi mathvariant="normal">eps</mi></mrow></math></div><div class="block prose intuition-only"><p>要证 <code>realRel x z</code> 需要三件：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><code>Cauchy x</code> —— 直接是 <code>hxy</code> 的第一分量；</li><li><code>Cauchy z</code> —— 直接是 <code>hyz</code> 的第二分量；</li><li>逐点 <code>close</code> —— 本单元的内容。</li></ul></div><div class="block prose intuition-only"><p>逐点部分不能直接把 <code>hxy</code> 与 <code>hyz</code> 用在同一个 <code>ε</code> 上：两个前提各给一个 <code>N</code>，而且分别只保证 <code>ε</code>（而不是 <code>ε/2</code>）的界。所以：</p></div><div class="block prose intuition-only"><p>① 对 <code>ε/2</code> 取两个阈值 <code>N1</code>、<code>N2</code>（<code>0 &lt; ε ⇒ 0 &lt; ε/2</code> 是 53）；② 取一个同时大于等于两者的 <code>N</code>（<span class="math">ℕ</span> 的 <code>≤</code> 全性 <span class="math">+</span> 传递）；③ 在 <code>n ≥ N</code> 上把两个 <code>ε/2</code> 的界交给 57 的 <code>close_trans</code>。</p></div><div class="block prose intuition-only"><p>本单元不引入新定义；用到的 <code>close_trans</code> 与 <code>ratLtRep_half</code> 已在 <code>lib/RatCloseTrans</code> / <code>lib/RatClose</code> 里判过卷。</p></div></div><pre class="exercise-statement"><code>theorem leNat_max (m n : Nat) : ∃ (N : Nat), LeNat m N ∧ LeNat n N :=
   sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用 ㊺ 的 <code>leNat_total</code> 把 <code>m ≤ n</code> 与 <code>n ≤ m</code> 分成两支。第一支取 <code>N = n</code>：<code>m ≤ n</code> 就是假设，<code>n ≤ n</code> 用构造子 <code>LeNat.le_refl n</code>；第二支取 <code>N = m</code>：<code>m ≤ m</code> 是 <code>LeNat.le_refl m</code>，<code>n ≤ m</code> 就是假设（注意两个分量的顺序：第一个是 <code>m ≤ N</code>，第二个是 <code>n ≤ N</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ N, LeNat m N ∧ LeNat n N</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">leNat_total · LeNat.le_refl · Exists.intro · And.intro</span>（<code>Or.elim</code> 的两个分支在前，<code>Or</code> 的证明在最后）。</p></div></details></div><details class="solution-panel" id="sol-58-1"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note">realRel x y  :<span class="math">⟺  Cauchy x ∧ Cauchy y ∧</span>
 
-<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, close (x n) (y n) eps</p><pre><code>theorem leNat_max (m n : Nat) : ∃ (N : Nat), LeNat m N ∧ LeNat n N :=
+<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, close (x n) (y n) eps
+
+<code>Cauchy x</code> —— 直接是 <code>hxy</code> 的第一分量；；<code>Cauchy z</code> —— 直接是 <code>hyz</code> 的第二分量；；逐点 <code>close</code> —— 本单元的内容。
+
+<code>leNat_total</code> 给出 <code>m ≤ n</code> 或 <code>n ≤ m</code>：前者取 <code>N = n</code>（<code>n ≤ n</code> 是构造子
+<code>LeNat.le_refl</code>），后者取 <code>N = m</code>，再用 <code>leNat_trans</code> 把 <code>n ≤ m</code> 搬到 <code>m ≤ m</code>。</p><pre><code>theorem leNat_max (m n : Nat) : ∃ (N : Nat), LeNat m N ∧ LeNat n N :=
   Or.elim
     (fun (h : LeNat m n) =&gt;
       Exists.intro n (And.intro h (LeNat.le_refl n)))
@@ -11673,7 +11748,12 @@ end</code></pre></div></article>
 <h3 class="unit-subhead">62.2 绝对值：<code>x ~ y ⇒ |x - y| ~ 0</code></h3><article class="exercise" id="ex-62-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratAbsRel_zero_of_ratRel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-62-2">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem ratAbsRel_zero_of_ratRel (x y : ratRep) (h : ratRel x y) :
     ratAbsRel (ratSubRep x y) ratZeroRep :=
   sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>见证取 <code>0</code>。按㊺的 <code>ratLeRep_total</code> 把 <code>0 ≤ x-y</code> 与 <code>x-y ≤ 0</code> 二分：非负支走左支（62.1 调向），非正支走右支——62.1 经 <code>ratNegRep_wd</code> 得到 <code>-(x-y) ~ -0</code>，而 <code>-0</code> 与 <code>0</code> 定义性相等，<code>ratRel_refl ratZeroRep</code> 收口。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratAbsRel (ratSubRep x y) ratZeroRep</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Or.elim · ratLeRep_total · Or.inl/Or.inr · ratRel_symm · ratRel_trans_gen · ratNegRep_wd · ratRel_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-62-2"><summary>查看解答 <span class="sol-meta">定理 · 18 行</span></summary><div class="solution-body"><p class="solution-note">取见证 <code>d := 0</code>。<code>ratAbsRel</code> 的定义是两个析取支，按 <code>0 ≤ x-y</code> 与
-<code>x-y ≤ 0</code> 二分（㊺ 的 <code>ratLeRep_total</code>）：</p><pre><code>theorem ratAbsRel_zero_of_ratRel (x y : ratRep) (h : ratRel x y) :
+<code>x-y ≤ 0</code> 二分（㊺ 的 <code>ratLeRep_total</code>）：
+
+非负支：左支要 <code>0 ≤ x-y</code> 与 <code>0 ~ x-y</code>（62.1 调向）；；非正支：右支要 <code>x-y ≤ 0</code> 与 <code>0 ~ -(x-y)</code>。后者由 62.1 经
+<code>ratNegRep_wd</code> 搬到 <code>-0</code>，而 <code>-0</code> 与 <code>0</code> 定义性相等
+（<code>ratNegRep ratZeroRep</code> 归约成 <code>ratZeroRep</code>），所以
+<code>ratRel_refl ratZeroRep</code> 直接收口。</p><pre><code>theorem ratAbsRel_zero_of_ratRel (x y : ratRep) (h : ratRel x y) :
     ratAbsRel (ratSubRep x y) ratZeroRep :=
   Or.elim
     (fun (hle : ratLeRep ratZeroRep (ratSubRep x y)) =&gt;
@@ -11788,6 +11868,11 @@ end</code></pre></div></article>
     realRel (addSeq (addSeq x y) z) (addSeq x (addSeq y z)) :=
   sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个 <code>Cauchy</code> 分量各是两次 60 的 <code>cauchy_add</code>；第三分量取 <code>N := 0</code>，逐点用㉔的 <code>ratAdd_assoc</code> 加 62 的 <code>close_of_ratRel</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>realRel (addSeq (addSeq x y) z) (addSeq x (addSeq y z))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">And.intro · cauchy_add</span>（两次）<span class="math">· Exists.intro Nat.zero · ratAdd_assoc · close_of_ratRel</span>。</p></div></details></div><details class="solution-panel" id="sol-63-1"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><p class="solution-note"><span class="math">addRel a b s → addRel s c t → ∃ u</span>, <span class="math">addRel b c u ∧ addRel a u t</span>
 
+63.1 代表元层：<code>(x+y)+z ~ x+(y+z)</code>（㉔ 的 <code>ratAdd_assoc</code> 经
+62 的 <code>close_of_ratRel</code> 逐点搬到 <code>realRel</code>）；；63.2 <code>mk</code> 层：已知 <code>(x+y)+z = t</code>，取 <code>u := mk (y+z)</code>，把
+
+63.3 商层：对 <code>a</code>、<code>b</code>、<code>c</code> 各做一次 <code>Quot.ind</code>，用 63.2。
+
 两个 <code>Cauchy</code> 分量各是两次 60 的 <code>cauchy_add</code>；第三分量取 <code>N := 0</code>，
 逐点用㉔的 <code>ratAdd_assoc</code> 加 62 的 <code>close_of_ratRel</code>。</p><pre><code>theorem realRel_add_assoc (x y z : Seq) (hx : Cauchy x) (hy : Cauchy y)
     (hz : Cauchy z) :
@@ -11807,7 +11892,12 @@ end</code></pre></div></article>
     (h : addRel (Real.mk (addSeq x y)) (Real.mk z) t) :
     ∃ (u : Real), addRel (Real.mk y) (Real.mk z) u ∧
       addRel (Real.mk x) u t :=
-  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>见证取 <code>u := mk (y+z)</code>。第一个 <code>addRel</code> 用 61 的 <code>addRel_intro</code>（<code>Cauchy y</code> 是假设，<code>Cauchy z</code> 从 <code>h</code> 的第二个守卫取）；第二个要 <code>Cauchy x</code>、<code>cauchy_add y z</code>，以及 <code>t = mk (x+(y+z))</code>——用 <code>Eq.trans</code> 把 <code>h</code> 给出的 <code>t = mk ((x+y)+z)</code> 与 63.1 经 <code>Real.sound</code> 的等式接起来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ u, addRel (mk y) (mk z) u ∧ addRel (mk x) u t</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.intro · addRel_intro · cauchy_add · Eq.trans · Real.sound · realRel_add_assoc</span>。</p></div></details></div><details class="solution-panel" id="sol-63-2"><summary>查看解答 <span class="sol-meta">定理 · 17 行</span></summary><div class="solution-body"><p class="solution-note">见证取 <code>u := mk (y + z)</code>。</p><pre><code>theorem addRel_assoc_mk (x y z : Seq) (t : Real)
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>见证取 <code>u := mk (y+z)</code>。第一个 <code>addRel</code> 用 61 的 <code>addRel_intro</code>（<code>Cauchy y</code> 是假设，<code>Cauchy z</code> 从 <code>h</code> 的第二个守卫取）；第二个要 <code>Cauchy x</code>、<code>cauchy_add y z</code>，以及 <code>t = mk (x+(y+z))</code>——用 <code>Eq.trans</code> 把 <code>h</code> 给出的 <code>t = mk ((x+y)+z)</code> 与 63.1 经 <code>Real.sound</code> 的等式接起来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ u, addRel (mk y) (mk z) u ∧ addRel (mk x) u t</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.intro · addRel_intro · cauchy_add · Eq.trans · Real.sound · realRel_add_assoc</span>。</p></div></details></div><details class="solution-panel" id="sol-63-2"><summary>查看解答 <span class="sol-meta">定理 · 17 行</span></summary><div class="solution-body"><p class="solution-note">见证取 <code>u := mk (y + z)</code>。
+
+<code>addRel (mk y) (mk z) u</code>：61 的 <code>addRel_intro</code>，要 <code>Cauchy y</code>（假设）
+与 <code>Cauchy z</code>（从 <code>h</code> 的第二个守卫）；；<code>addRel (mk x) u t</code>：<code>Cauchy x</code> 是假设，<code>Cauchy (y+z)</code> 是
+<code>cauchy_add</code>，第三分量是
+<code>t = mk ((x+y)+z) = mk (x+(y+z))</code>——后半段由 63.1 经 <code>Real.sound</code>。</p><pre><code>theorem addRel_assoc_mk (x y z : Seq) (t : Real)
     (hx : Cauchy x) (hy : Cauchy y)
     (h : addRel (Real.mk (addSeq x y)) (Real.mk z) t) :
     ∃ (u : Real), addRel (Real.mk y) (Real.mk z) u ∧
@@ -11945,7 +12035,17 @@ end</code></pre></div></article>
     ratLeRep (ratSubRep x z) (ratAddRep eps eps) :=
   sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratLeRep_add</code> 先把两个界加成 <code>(x-y)+(y-z) ≤ eps+eps</code>；左边用 56 的 <code>ratSubRep_add</code> 换成 <code>x-z</code>，右边不动（<code>ratRel_refl</code>），交给 <code>ratLeRep_congr_gen</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (ratSubRep x y) eps → ratLeRep (ratSubRep y z) eps → ratLeRep (ratSubRep x z) (ratAddRep eps eps)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_add · ratSubRep_add · ratRel_refl · ratLeRep_congr_gen</span>。</p></div></details></div><details class="solution-panel" id="sol-65-1"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><p class="solution-note">realLeRep x y  :<span class="math">⟺  Cauchy x ∧ Cauchy y ∧</span>
 
-<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, <span class="math">(x n - y n) ≤ eps</span></p><pre><code>theorem ratLeRep_sub_add (x y z eps : ratRep)
+<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, <span class="math">(x n - y n) ≤ eps</span>
+
+<span class="math">x ≤ y  →  y ≤ z  →  x ≤ z</span>
+
+56 的 <code>ratSubRep_add</code>：<code>(x - y) + (y - z) ~ x - z</code>；；52 的 <code>ratHalf_add_self</code>：<code>eps/2 + eps/2 ~ eps</code>；；51 的 <code>ratLtRep_half</code>：<code>0 &lt; eps ⇒ 0 &lt; eps/2</code>。
+
+65.1 <code>ratLeRep_sub_add</code> —— 代表元层的拼装件；；65.2 <code>realLeRep_trans</code> —— 序的传递性；；65.3 常零序列上的具体例。
+
+<code>ratLeRep_add</code> 先把两个界加成 <code>(x-y)+(y-z) ≤ eps+eps</code>；左边用 56 的
+<code>ratSubRep_add</code> 换成 <code>x-z</code>，右边不动（<code>ratRel_refl</code>），交给
+<code>ratLeRep_congr_gen</code>。</p><pre><code>theorem ratLeRep_sub_add (x y z eps : ratRep)
     (h1 : ratLeRep (ratSubRep x y) eps)
     (h2 : ratLeRep (ratSubRep y z) eps) :
     ratLeRep (ratSubRep x z) (ratAddRep eps eps) :=
@@ -12008,7 +12108,11 @@ end</code></pre></div></article>
     realLeRep x y ↔ realLeRep x' y :=
   sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个方向都是「相等 <span class="math">⇒</span> 序」加传递。正向：<code>x' ≤ x</code>（<code>realRel_symm</code> 把 <code>hx</code> 反过来，交给 64.2）再与 <code>x ≤ y</code> 传递；反向：<code>x ≤ x'</code>（<code>hx</code> 直接交给 64.2）再与 <code>x' ≤ y</code> 传递。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>realLeRep x y ↔ realLeRep x' y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">realRel_symm · realLeRep_of_realRel · realLeRep_trans · Iff.intro</span>。</p></div></details></div><details class="solution-panel" id="sol-66-1"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><p class="solution-note">realLeRep x y  :<span class="math">⟺  Cauchy x ∧ Cauchy y ∧</span>
 
-<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, <span class="math">(x n - y n) ≤ eps</span></p><pre><code>theorem realLeRep_wd (x x' y : Seq) (hx : realRel x x') :
+<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, <span class="math">(x n - y n) ≤ eps</span>
+
+realLe : <span class="math">Real → Real → Prop</span>
+
+66.0 <code>realLeRep_wd</code> —— 换左因子，序不变；；66.1 <code>realLeRep_wd_snd</code> —— 换右因子，序不变；；66.2 <code>realLeY</code> —— 固定左因子，对第二个因子做 <code>Quot.lift</code>；；66.3 <code>realLe</code> —— 对第一个因子再做一次 <code>Quot.lift</code>；；66.4 <code>realLe_mk</code> —— 两次 lift 的 <span class="math">ι</span> 规则；；66.5 常零序列上的具体例。</p><pre><code>theorem realLeRep_wd (x x' y : Seq) (hx : realRel x x') :
     realLeRep x y ↔ realLeRep x' y :=
   @Iff.intro (realLeRep x y) (realLeRep x' y)
     (fun (h : realLeRep x y) =&gt;
@@ -12075,7 +12179,22 @@ end</code></pre></div></article>
 </header>
 <h3 class="unit-subhead">65.2 的 <code>realLeRep_trans</code>。</h3><h3 class="unit-subhead">67.0 半数严格小于自身</h3><article class="exercise" id="ex-67-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratHalf_lt_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-67-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>单元66 已经把代表元层的序下降到实数上：</p></div><div class="math-display intuition-only" role="math" aria-label="realLe (Real.mk x) (Real.mk y)  ↔  realLeRep x y"><math display="block" class="mathml"><mrow><mi mathvariant="normal">realLe</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi mathvariant="normal">Real.mk</mi><mspace width="0.22em"/><mi>x</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi mathvariant="normal">Real.mk</mi><mspace width="0.22em"/><mi>y</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>↔</mo><mspace width="0.22em"/><mi mathvariant="normal">realLeRep</mi><mspace width="0.22em"/><mi>x</mi><mspace width="0.22em"/><mi>y</mi></mrow></math></div><div class="block prose intuition-only"><p>其中 <code>realLeRep x y</code> 仍带两个 <code>Cauchy</code> 守卫。本单元把 <code>realLe</code> 收成 <strong>偏序</strong>，三条公理各有各的难点：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>自反</strong>只在「有 Cauchy 代表元」的实数上成立：<code>Real</code> 是商，商里的非 Cauchy「杂点」让 <code>realLe</code> 没有输出。所以自反写成代表元形式 <code>realLe (mk x) (mk x)</code>，假设 <code>Cauchy x</code>——不把「每个 Real 都是 Cauchy 类」写成公理。</li><li><strong>传递</strong>对任意三个实数成立：两个前提本身就是 <code>realLe</code>，经 66 的 <span class="math">ι</span> 规则回到代表元层后，<code>Cauchy</code> 守卫已经由前提付清；接力棒交给</li></ul></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>反对称</strong>是真正的数学内容：<code>x ≤ y</code> 与 <code>y ≤ x</code> 只给出 <code>x n - y n ≤ eps</code> 与 <code>y n - x n ≤ eps</code>，要得到 <code>realRel x y</code> 的第三分量（<code>close</code>），必须把两个界折半，再用绝对值的两分支把 <code>|x n - y n|</code> 夹到 <code>eps</code> 以下。折半之后还需要 <code>eps/2 &lt; eps</code> 这条<strong>严格</strong>不等式（52 只给了 <code>0 &lt; eps/2</code>），本单元用加法消去补上（67.0）。</li></ul></div><div class="block prose intuition-only"><ul class="prose-list"><li>67.0 <code>ratHalf_lt_self</code> —— <code>0 &lt; eps ⇒ eps/2 &lt; eps</code>；</li><li>67.1 <code>ratAbsRel_lt_of_bounds</code> —— 两侧界 <code>&lt; eps</code> <span class="math">⇒</span> 绝对值 <code>&lt; eps</code>；</li><li>67.2 <code>realLe_refl_mk</code> —— 代表元层的自反；</li><li>67.3 <code>realLe_trans</code> —— 传递；</li><li>67.4 <code>realLe_antisymm_mk</code> —— 代表元层的反对称（给出 <code>realRel</code>）；</li><li>67.5 <code>realLe_antisymm</code> —— 商上的反对称；</li><li>67.6 常零序列上的具体例。</li></ul></div><div class="block prose intuition-only"><p>全程只用已判卷的库引理（64/65 的序、52/53 的半数、56 的加法消去），不新增信任，也不碰 kernel/front。</p></div></div><pre class="exercise-statement"><code>theorem ratHalf_lt_self (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
     ratLtRep (ratHalf eps) eps :=
-  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先证 <code>eps/2 ≤ eps</code>：把 53 的 <code>ratLeRep_half_of_lt</code> 右加 <code>eps/2</code>，左边用 <code>ratAdd_zero_left</code>、右边用 52 的 <code>ratHalf_add_self</code> 认成 <code>eps</code>。再证 <code>¬ eps/2 ~ eps</code>：若相等，两边同加 <code>eps/2</code>，左边是 <code>eps/2+eps/2 ~ eps</code>，右边用交换律，于是 <code>eps ~ eps + eps/2</code>；与 <code>eps ~ eps + 0</code> 一起交给 ㊿ 的 <code>ratRel_add_cancel_gen</code> 消去 <code>eps</code>，得 <code>0 ~ eps/2</code>，撞上 53 的 <code>ratLtRep_half</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep (ratHalf eps) eps</code>（即 <code>eps/2 &lt; eps</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_congr_gen · ratAdd_zero_left · ratHalf_add_self · ratLeRep_add_right · ratRel_add_cancel_gen · ratAddRep_wd_gen · ratAdd_comm · ratLtRep_half</span>。</p></div></details></div><details class="solution-panel" id="sol-67-1"><summary>查看解答 <span class="sol-meta">定理 · 30 行</span></summary><div class="solution-body"><p class="solution-note"><span class="math">realLe (Real.mk x) (Real.mk y)  ↔  realLeRep x y</span></p><pre><code>theorem ratHalf_lt_self (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先证 <code>eps/2 ≤ eps</code>：把 53 的 <code>ratLeRep_half_of_lt</code> 右加 <code>eps/2</code>，左边用 <code>ratAdd_zero_left</code>、右边用 52 的 <code>ratHalf_add_self</code> 认成 <code>eps</code>。再证 <code>¬ eps/2 ~ eps</code>：若相等，两边同加 <code>eps/2</code>，左边是 <code>eps/2+eps/2 ~ eps</code>，右边用交换律，于是 <code>eps ~ eps + eps/2</code>；与 <code>eps ~ eps + 0</code> 一起交给 ㊿ 的 <code>ratRel_add_cancel_gen</code> 消去 <code>eps</code>，得 <code>0 ~ eps/2</code>，撞上 53 的 <code>ratLtRep_half</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep (ratHalf eps) eps</code>（即 <code>eps/2 &lt; eps</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_congr_gen · ratAdd_zero_left · ratHalf_add_self · ratLeRep_add_right · ratRel_add_cancel_gen · ratAddRep_wd_gen · ratAdd_comm · ratLtRep_half</span>。</p></div></details></div><details class="solution-panel" id="sol-67-1"><summary>查看解答 <span class="sol-meta">定理 · 30 行</span></summary><div class="solution-body"><p class="solution-note"><span class="math">realLe (Real.mk x) (Real.mk y)  ↔  realLeRep x y</span>
+
+<strong>自反</strong>只在「有 Cauchy 代表元」的实数上成立：<code>Real</code> 是商，商里的
+非 Cauchy「杂点」让 <code>realLe</code> 没有输出。所以自反写成代表元形式
+<code>realLe (mk x) (mk x)</code>，假设 <code>Cauchy x</code>——不把「每个 Real 都是
+Cauchy 类」写成公理。；<strong>传递</strong>对任意三个实数成立：两个前提本身就是 <code>realLe</code>，经 66 的
+<span class="math">ι</span> 规则回到代表元层后，<code>Cauchy</code> 守卫已经由前提付清；接力棒交给
+
+<strong>反对称</strong>是真正的数学内容：<code>x ≤ y</code> 与 <code>y ≤ x</code> 只给出
+<code>x n - y n ≤ eps</code> 与 <code>y n - x n ≤ eps</code>，
+要得到 <code>realRel x y</code> 的第三分量（<code>close</code>），必须把两个界折半，
+再用绝对值的两分支把 <code>|x n - y n|</code> 夹到 <code>eps</code> 以下。折半之后
+还需要 <code>eps/2 &lt; eps</code> 这条<strong>严格</strong>不等式（52 只给了 <code>0 &lt; eps/2</code>），
+本单元用加法消去补上（67.0）。
+
+67.0 <code>ratHalf_lt_self</code> —— <code>0 &lt; eps ⇒ eps/2 &lt; eps</code>；；67.1 <code>ratAbsRel_lt_of_bounds</code> —— 两侧界 <code>&lt; eps</code> <span class="math">⇒</span> 绝对值 <code>&lt; eps</code>；；67.2 <code>realLe_refl_mk</code> —— 代表元层的自反；；67.3 <code>realLe_trans</code> —— 传递；；67.4 <code>realLe_antisymm_mk</code> —— 代表元层的反对称（给出 <code>realRel</code>）；；67.5 <code>realLe_antisymm</code> —— 商上的反对称；；67.6 常零序列上的具体例。</p><pre><code>theorem ratHalf_lt_self (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
     ratLtRep (ratHalf eps) eps :=
   And.intro
     (ratLeRep_congr_gen
@@ -12308,6 +12427,8 @@ end</code></pre></div></article>
   sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对 <code>eps &gt; 0</code> 取 Cauchy 性的阈值 <code>N</code>。固定 <code>n ≥ N</code> 后，对每个 <code>e &gt; 0</code>：上界用 <code>hN n k</code> 得 <code>x n - x k ≤ eps</code>，68.5 给 <code>x n - (x k + eps) ≤ e</code>；下界用 <code>hN k n</code> 得 <code>x k - x n ≤ eps</code>，68.5 给 <code>x k - (x n + eps) ≤ e</code>。两条 <code>realLeRep</code> 的 Cauchy 守卫分别由 68.1/68.3 付清，再经 66.4 的 <code>realLe_mk</code> 送回 <code>realLe</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Cauchy x → TendsTo x x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hx · close_sub_le · ratLeRep_sub_add_right · ratLtRep_le · cauchy_const · cauchy_add_const · realLe_mk · Iff.mpr</span>。</p></div></details></div><details class="solution-panel" id="sol-68-5"><summary>查看解答 <span class="sol-meta">定理 · 30 行</span></summary><div class="solution-body"><p class="solution-note">对 <code>eps &gt; 0</code> 取 Cauchy 性的阈值 <code>N</code>。固定 <code>n ≥ N</code> 后，
 对每个 <code>e &gt; 0</code>：
 
+上界：<code>hN n k</code> 给 <code>x n - x k ≤ eps</code>，68.5 得 <code>x n - (x k + eps) ≤ e</code>；；下界：<code>hN k n</code> 给 <code>x k - x n ≤ eps</code>，68.5 得 <code>x k - (x n + eps) ≤ e</code>。
+
 两条 <code>realLeRep</code> 经 66.4 的 <span class="math">ι</span> 规则送回商上的 <code>realLe</code>。</p><pre><code>theorem cauchy_tends_to_class (x : Seq) (hx : Cauchy x) :
     TendsTo x x :=
   fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
@@ -12494,10 +12615,19 @@ end</code></pre></div></article>
     @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r a) = f a :=
   sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>Quot.lift</code> 作用在 <code>Quot.mk a</code> 上按 <span class="math">ι</span> 归约成 <code>f a</code>，两边是<strong>定义性相等</strong>，直接 <code>Eq.refl</code>；不要用 <code>Quot.sound</code> 或 <code>congrArg</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>lift f h (mk a) = f a</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Eq.refl（类型写成归约后的 <code>f a</code>）。</p></div></details></div><details class="solution-panel" id="sol-71-1"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">Quot.lift : (f : <span class="math">α → β) → (∀ a b</span>, <span class="math">r a b → f a = f b) → Quot r → β</span>
 
+当 <code>β = Rat</code>（一个 Type），lift 的返回值仍是元素，义务只有一条：
+换代表元后像相等（69.2 的 <code>intToRatRep_wd</code>）。；当 <code>β = Real → Prop</code>（61 的加法关系、66 的序），外层 lift 的 <code>f</code>
+是 <code>Real → (Real → Prop)</code>，于是「换代表元后像相等」变成了<strong>函数
+相等</strong>：把函数相等化成逐点相等要 <code>funext</code>，每个点上的命题相等要
+<code>propext</code>。这正是 61/66 两个 <code>def</code> 里的两次 <code>Quot.lift</code> 与两条
+外延义务。
+
 两件代价都<strong>不是新公理</strong>：<code>funext</code> 在本课程 L2 是从 <code>Quot.sound</code> 证出的
 <strong>定理</strong>（<code>lib.Extensionality</code>），<code>propext</code> 是 L2 已声明的<strong>既有 axiom</strong>
 （只在 Prop 层用）。所以「<span class="math">ℝ</span> 的加法是关系而不是函数」不是绕路：
-<code>addRel a b c</code> 正是两次 lift 之后能诚实拿到的全部。</p><pre><code>theorem quot_lift_mk (α β : Type) (r : α → α → Prop)
+<code>addRel a b c</code> 正是两次 lift 之后能诚实拿到的全部。
+
+<code>Quot.lift</code> 作用在 <code>Quot.mk a</code> 上按 <span class="math">ι</span> 归约成 <code>f a</code>，两边定义性相等。</p><pre><code>theorem quot_lift_mk (α β : Type) (r : α → α → Prop)
     (f : α → β) (h : ∀ (a b : α), r a b → f a = f b) (a : α) :
     @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r a) = f a :=
   @Eq.refl.{1} β (f a)</code></pre></div></details></div></article>
@@ -14821,7 +14951,9 @@ end</code></pre></div></article>
     (intRel_refl (@prod_mk Nat Nat 24 Nat.zero))
     (le_succ 4 5 (le_succ 4 4 (le_refl 4)))</code></pre></details></section><section class="appendix-unit" id="appendix-unit-40"><h3><a href="#unit-40">实数的相等：自反性</a></h3><p class="appendix-meta">3 道练习 · 3 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-40-1"><summary>练习 1 · cauchy_close_self <span class="sol-meta">定理</span></summary><p class="solution-note">realRel x y  :<span class="math">⟺  Cauchy x ∧ Cauchy y ∧</span>
 
-<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, close (x n) (y n) eps</p><pre><code>theorem cauchy_close_self (x : Seq) (hx : Cauchy x) :
+<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, close (x n) (y n) eps
+
+Real :<span class="math">= Quot realRel</span></p><pre><code>theorem cauchy_close_self (x : Seq) (hx : Cauchy x) :
     ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
       ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (x n) eps :=
   fun (eps : ratRep) (h : ratLtRep ratZeroRep eps) =&gt;
@@ -15104,7 +15236,23 @@ end</code></pre></div></article>
 
 为什么需要它们：下一单元的「序与加法相容」要把 <code>x ≤ y</code> 搬到 <code>x + z ≤ y + z</code>，
 而<strong>左</strong>加（<code>z + x ≤ z + y</code>）靠的是「先交换、用右加、再交换回来」——
-没有 ㊸.3 就无法把右加版本变成左加版本。</p><pre><code>theorem ratAdd_zero_num (a m : Nat) :
+没有 ㊸.3 就无法把右加版本变成左加版本。
+
+㊸.4 先把 <code>x + 0</code> 这个<strong>三元组</strong>搬成 <code>qrep a b m</code>（㊸.1/㊸.2 消掉零项），
+  再用 <code>ratRel_refl</code>。<code>ratRep</code> 是 <code>Prod (Prod Nat Nat) Nat</code> 的定义别名，
+  <code>match</code> 只认归纳类型本身，所以通用陈述先在一个 <code>_aux</code>（展开类型上的）
+  定理里 match 到字面三元组，再把字面结果转发给通用陈述 —— 这是本课程
+  处理「ratRep 上的通用引理」的固定写法（㊷ 的 <code>ratSubRep_neg_aux</code> 同形）。
+
+㊸.6 是具体计算：<code>1/2 + 1/3</code> 的代表元公式定义性归约成 <code>5/6 = qrep 5 0 5</code>，
+  两边是同一个三元组，直接 <code>ratRel_refl</code>。
+
+㊸.1 加零的分子形状
+
+<code>myMul a (succ 0)</code> 定义性展开成 <code>a + a*0</code>；<code>a*0 = 0</code>（myMul_zero）后是 <code>a + 0</code>，
+<code>add_zero</code> 收成 <code>a</code>。另一个加数 <code>0*(m+1) = 0</code>（zero_mul），整个和就是 <code>a</code>。
+
+㊸.1</p><pre><code>theorem ratAdd_zero_num (a m : Nat) :
     Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)) = a :=
   @Eq.trans.{1} Nat
     (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)))
@@ -15293,6 +15441,10 @@ end</code></pre></div></article>
             (ratAdd_zero_den m))
           (Eq.refl (qrep a b m)))))
       (ratRel_refl (qrep a b m))</code></pre></details></section><section class="appendix-unit" id="appendix-unit-44"><h3><a href="#unit-44">序与加法相容：<span class="math">x ≤ y ⇒ x + z ≤ y + z</span></a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答 · 7 个解答独有声明</p><details class="appendix-solution" id="app-sol-44-1"><summary>练习 1 · mulRep_add <span class="sol-meta">定理</span></summary><p class="solution-note"><span class="math">a(n+1) + d(m+1) ≤ c(m+1) + b(n+1)</span>               （h）
+
+㊹.1 先证 <code>mulRep</code> 对 <code>addRep</code> 的分配律（分子层面的展开）；；㊹.2 把 <code>den (ratDenRep m n)</code> 换成 <code>mulRep (den m) (den n)</code>
+（分母层面的乘积），两个正分母就能搬到最外层；；㊹.3 证 <code>addRep</code> 保 <code>intRel</code>（把两个加数的等价搬运拼起来）；；㊹.4 主定理：把 <code>leNum</code> 层层化到「h 两边乘 <span class="math">(k+1)</span>」，再用 ㊲ 的
+<code>leRep_mul_den_right</code> / <code>leRep_add_right</code> 收口。
 
 写法提醒：<code>ratRep</code> 是 <code>Prod (Prod Nat Nat) Nat</code> 的定义别名，<code>match</code> 只认
 归纳类型本身；所以通用包装（㊹ 的 <code>_gen</code> 系列）都先 match 到字面坐标再
@@ -15692,7 +15844,19 @@ end</code></pre></div></article>
     (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
     h1 h2</code></pre></details></section><section class="appendix-unit" id="appendix-unit-47"><h3><a href="#unit-47">绝对值的唯一性：同一个数的两个见证相等</a></h3><p class="appendix-meta">3 道练习 · 3 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-47-1"><summary>练习 1 · ratAbsRel_left_right <span class="sol-meta">定理</span></summary><p class="solution-note"><span class="math">ratAbsRel x d  ∧  ratAbsRel x d'</span>   ⟹   d ~ d'
 
-<span class="math">(0 ≤ x ∧ d</span> ~ <span class="math">x) ∨ (x ≤ 0 ∧ d</span> ~ -x)</p><pre><code>theorem ratAbsRel_left_right (x d d' : ratRep)
+<span class="math">(0 ≤ x ∧ d</span> ~ <span class="math">x) ∨ (x ≤ 0 ∧ d</span> ~ -x)
+
+同一个 <code>x</code> 的两个见证可能落在<strong>不同分支</strong>（一个取 <code>x</code>、一个取 <code>-x</code>）。
+㊻ 的 <code>ratLeRep_antisymm</code> 正好把「<code>0 ≤ x</code> 与 <code>x ≤ 0</code> 同时成立」压成
+<code>x ~ 0</code>，于是 <code>x ~ 0 ~ -x</code>，两个分支的见证就接上了。
+
+本单元结清：
+
+㊼.1 <code>ratAbsRel_unique</code>：绝对值的唯一性（四个分支两两配对）；；㊼.2 具体：<code>|-1/2|</code> 的两个见证 <code>1/2</code> 与 <code>2/4</code> 相等。
+
+证明路线：四个分支里「同号」两支只是 <code>ratRel</code> 的传递；「异号」两支先用
+㊻ 把 <code>0 ≤ x ≤ 0</code> 压成 <code>0 ~ x</code>，再用 <code>ratNegRep_wd</code> 把 <code>0 ~ x</code> 搬到
+<code>0 ~ -x</code>（或反向），最后用 <code>ratRel_trans_gen</code> 把四段串起来。</p><pre><code>theorem ratAbsRel_left_right (x d d' : ratRep)
     (hl : ratLeRep ratZeroRep x ∧ ratRel d x)
     (hr : ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x)) :
     ratRel d d' :=
@@ -15749,7 +15913,14 @@ end</code></pre></div></article>
           (mulRep (@prod_mk Nat Nat 1 Nat.zero) (den 3))
           (Eq.refl (mulRep (@prod_mk Nat Nat 2 Nat.zero) (den 1))))))</code></pre></details></section><section class="appendix-unit" id="appendix-unit-48"><h3><a href="#unit-48">三角不等式：|<span class="math">u + v</span>| <span class="math">≤</span> |u| <span class="math">+</span> |v|</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答 · 3 个解答独有声明</p><details class="appendix-solution" id="app-sol-48-1"><summary>练习 1 · ratLeRep_add <span class="sol-meta">定理</span></summary><p class="solution-note"><span class="math">ratAbsRel x dx  ∧  ratAbsRel y dy  ∧  ratAbsRel (x + y) d</span>
 
-⟹  <span class="math">d ≤ dx + dy</span></p><pre><code>theorem ratLeRep_add (a b c d : ratRep)
+⟹  <span class="math">d ≤ dx + dy</span>
+
+㊽.1 <code>ratLeRep_add</code>：序对两个因子都单调（右加用 ㊹ 的
+<code>ratLeRep_add_right</code>，左加靠交换律转成右加）；；㊽.2 <code>ratAbsRel_le</code>：<code>x ≤ d</code>（第一支 <code>x ≤ x ~ d</code>，第二支
+<code>x ≤ 0 ≤ -x ~ d</code>）；；㊽.3 <code>ratAbsRel_neg_le</code>：<code>-x ≤ d</code>（第一支 <code>-x ≤ 0 ≤ x ~ d</code>，
+第二支 <code>-x ~ d</code>）；；㊽.4 <code>ratNegRep_add</code>：<code>-(x + y) ~ (-x) + (-y)</code>（两边在代表元上
+<strong>定义性相等</strong>：交换两个分子后 <code>addRep</code> 的两个坐标恰好对调）；；㊽.5 <code>ratLeRep_abs_add</code>：主定理。对 <code>d</code> 落在哪一支分两种情形：
+非负支 <code>d ~ x+y ≤ dx+dy</code>；非正支 <code>d ~ -(x+y) ~ (-x)+(-y) ≤ dx+dy</code>；；㊽.6 具体：<code>|1/2 + 1/2| = 1 ≤ 1/2 + 1/2</code>。</p><pre><code>theorem ratLeRep_add (a b c d : ratRep)
     (h1 : ratLeRep a b) (h2 : ratLeRep c d) :
     ratLeRep (ratAddRep a c) (ratAddRep b d) :=
   ratLeRep_trans (ratAddRep a c) (ratAddRep b c) (ratAddRep b d)
@@ -15857,7 +16028,12 @@ end</code></pre></div></article>
   | prod_mk (prod_mk a b) m =&gt;
     match y with
     | prod_mk (prod_mk c d) n =&gt;
-      ratRel_refl (ratNegRep (ratAddRep (qrep a b m) (qrep c d n)))</code></pre></details></section><section class="appendix-unit" id="appendix-unit-49"><h3><a href="#unit-49">严格序的传递与 close 对 <span class="math">ε</span> 的单调性</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-49-1"><summary>练习 1 · ratLtRep_le <span class="sol-meta">定理</span></summary><p class="solution-note">ratLtRep a b  :<span class="math">=  ratLeRep a b ∧ ¬ ratRel a b</span></p><pre><code>theorem ratLtRep_le (a b : ratRep) (h : ratLtRep a b) : ratLeRep a b :=
+      ratRel_refl (ratNegRep (ratAddRep (qrep a b m) (qrep c d n)))</code></pre></details></section><section class="appendix-unit" id="appendix-unit-49"><h3><a href="#unit-49">严格序的传递与 close 对 <span class="math">ε</span> 的单调性</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-49-1"><summary>练习 1 · ratLtRep_le <span class="sol-meta">定理</span></summary><p class="solution-note"><code>ε</code> 一旦定下来，往<strong>大</strong>走不改变 <code>close</code>（本单元 ㊾.3）；；严格序 <code>a &lt; b &lt; c</code> 可以<strong>串</strong>起来（本单元 ㊾.2）——折半之后
+<code>0 &lt; ε/2</code>、<code>ε/2 &lt; ε</code> 这类链条都要靠它。
+
+ratLtRep a b  :<span class="math">=  ratLeRep a b ∧ ¬ ratRel a b</span>
+
+㊾.1 <code>ratLtRep_le</code>：严格序给出弱序（第二分量的投影）；；㊾.2 <code>ratLtRep_trans</code>：严格序的传递性；；㊾.3 <code>close_mono_eps</code>：<code>close x y ε → ε ≤ ε' → close x y ε'</code>；；㊾.4 具体：<code>close 0 0 1</code> 放大成 <code>close 0 0 2</code>。</p><pre><code>theorem ratLtRep_le (a b : ratRep) (h : ratLtRep a b) : ratLeRep a b :=
   And.left h</code></pre></details><details class="appendix-solution" id="app-sol-49-2"><summary>练习 2 · ratLtRep_trans <span class="sol-meta">定理</span></summary><pre><code>theorem ratLtRep_trans (a b c : ratRep)
     (h1 : ratLtRep a b) (h2 : ratLtRep b c) : ratLtRep a c :=
   And.intro
@@ -15893,7 +16069,11 @@ end</code></pre></div></article>
         (fun (h : ratRel ratZeroRep (qrep 1 Nat.zero Nat.zero)) =&gt;
           succ_ne_zero Nat.zero
             (@Eq.symm.{1} Nat Nat.zero (Nat.succ Nat.zero) h))))
-    (le_succ 1 1 (le_refl 1))</code></pre></details></section><section class="appendix-unit" id="appendix-unit-50"><h3><a href="#unit-50">严格序与加法相容：加法消去</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-50-1"><summary>练习 1 · ratLeRep_add_addends <span class="sol-meta">定理</span></summary><p class="solution-note"><span class="math">ratLeRep (x + z) (y + z) ⇒ ratLeRep x y</span></p><pre><code>theorem ratLeRep_add_addends (x y z : ratRep)
+    (le_succ 1 1 (le_refl 1))</code></pre></details></section><section class="appendix-unit" id="appendix-unit-50"><h3><a href="#unit-50">严格序与加法相容：加法消去</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-50-1"><summary>练习 1 · ratLeRep_add_addends <span class="sol-meta">定理</span></summary><p class="solution-note"><span class="math">ratLeRep (x + z) (y + z) ⇒ ratLeRep x y</span>
+
+弱序：㊹ 的 <code>ratLeRep_add_right</code>；；不相等：若 <code>x + z ~ y + z</code>，消去得 <code>x ~ y</code>，与 <code>&lt;</code> 的第二分量矛盾。
+
+㊿.1 <code>ratLeRep_add_addends</code>：把 ㊹.4 的两个换形拼成「加同一块 z」；；㊿.2 <code>ratLeRep_add_cancel</code>：加法消去（弱序）；；㊿.3 <code>ratRel_add_cancel</code>：加法消去（相等）；；㊿.4 <code>ratLtRep_add_right</code>：<code>x &lt; y ⇒ x + z &lt; y + z</code>；；㊿.5 具体：<code>0 + 1/2 &lt; 1 + 1/2</code>。</p><pre><code>theorem ratLeRep_add_addends (x y z : ratRep)
     (h : ratLeRep (ratAddRep x z) (ratAddRep y z)) :
     leRep
       (addRep
@@ -16187,7 +16367,12 @@ end</code></pre></div></article>
       (ratAddRep (ratHalf (qrep 1 Nat.zero Nat.zero))
                  (ratHalf (qrep 1 Nat.zero Nat.zero)))
       (qrep 1 Nat.zero Nat.zero) :=
-  ratHalf_add_self (qrep 1 Nat.zero Nat.zero)</code></pre></details></section><section class="appendix-unit" id="appendix-unit-53"><h3><a href="#unit-53">半数的正性：<span class="math">0 &lt; ε ⇒ 0 &lt; ε/2</span></a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-53-1"><summary>练习 1 · ratLeRep_half_of_lt <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_half_of_lt (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+  ratHalf_add_self (qrep 1 Nat.zero Nat.zero)</code></pre></details></section><section class="appendix-unit" id="appendix-unit-53"><h3><a href="#unit-53">半数的正性：<span class="math">0 &lt; ε ⇒ 0 &lt; ε/2</span></a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-53-1"><summary>练习 1 · ratLeRep_half_of_lt <span class="sol-meta">定理</span></summary><p class="solution-note">53.1 <code>0 ≤ ε/2</code>：用 ㊺ 的全性把 <code>0 ≤ ε/2</code> 与 <code>ε/2 ≤ 0</code> 两分支切开；
+第二支把 <code>ε/2 ≤ 0</code> 加到两边（㊹ 的右加 <span class="math">+ 51.1</span> 的左加，已进库）
+得到 <code>ε/2 + ε/2 ≤ 0 + 0</code>，再用 52 的 <code>ε/2 + ε/2 ~ ε</code> 搬到 <code>ε ≤ 0</code>；
+与 <code>0 ≤ ε</code> 用 ㊻ 的反对称性夹出 <code>0 ~ ε</code>，撞上严格序的第二分量。；53.2 <code>ε/2 ~ 0 ⇒ ε ~ 0</code>：把 <code>ε/2 ~ 0</code> 读成两条弱序，用同样的加法
+相容把 <code>ε/2 + ε/2</code> 与 <code>0 + 0</code> <strong>互相</strong>夹住，反对称性给出它们相等；
+再串上 <code>0 + 0 ~ 0</code> 与 52 的 <code>ε/2 + ε/2 ~ ε</code>。；53.3 把两条装成严格正性；53.4 落在 <code>1/2 &gt; 0</code> 上。</p><pre><code>theorem ratLeRep_half_of_lt (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
     ratLeRep ratZeroRep (ratHalf eps) :=
   Or.elim
     (fun (hh : ratLeRep ratZeroRep (ratHalf eps)) =&gt; hh)
@@ -16898,7 +17083,17 @@ end</code></pre></div></article>
         (Nat.add (myMul b (Nat.succ m)) (myMul a (Nat.succ m)))
         (rhs0_eq a b m)))</code></pre></details></section><section class="appendix-unit" id="appendix-unit-56"><h3><a href="#unit-56">两次减法的相加：中间项消去</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-56-1"><summary>练习 1 · ratAddRep_wd_gen <span class="sol-meta">定理</span></summary><p class="solution-note">证明路线（全部停在商 <span class="math">+</span> 已判卷的库引理上，不碰 <code>funext</code>、不加公理）：
 
-本单元不引入新定义；<code>ratSubRep</code> 是 ㉜ 的减法定义。</p><pre><code>theorem ratAddRep_wd_gen (x x' z : ratRep) (h : ratRel x x') :
+<code>ratAddRep_wd_gen</code> / <code>ratAddRep_wd_snd_gen</code>：<code>ratRel</code> 对 <code>ratAddRep</code>
+的两个变元都是同余（库里的 <code>ratAddRep_wd</code> / <code>_snd</code> 只认字面三元组，
+这里用 ㊴ 的 <code>ratLeRep_congr_gen</code> <span class="math">+</span> ㊹ 的加法单调 <span class="math">+</span> ㊻ 的反对称性
+在任意代表元上补出通用版本）；；<code>ratNegRep_add_self</code>：<code>(-y) + y ~ 0</code>（㉚–㉟ 的交换律 <span class="math">+ 55</span> 的逆元律）；；<code>ratSubRep_add</code>：结合律把 <code>(x + -y) + (y + -z)</code> 收成
+<code>x + ((-y + y) + -z)</code>，中间项换成 0，再用左零元收尾；；<code>demo_sub_add</code>：<code>(1/2 - 1/3) + (1/3 - 1/4) ~ 1/2 - 1/4</code>。
+
+本单元不引入新定义；<code>ratSubRep</code> 是 ㉜ 的减法定义。
+
+库里的 <code>ratAddRep_wd</code> 只认<strong>字面三元组</strong>（两个变元必须同分母）。任意代表元上
+用序来补：<code>x ~ x'</code> 给两个方向的弱序，各加同一个 <code>z</code>（㊹ 的 <code>ratLeRep_add_right</code>），
+再用 ㊻ 的反对称性把两条弱序夹成 <code>ratRel</code>。</p><pre><code>theorem ratAddRep_wd_gen (x x' z : ratRep) (h : ratRel x x') :
     ratRel (ratAddRep x z) (ratAddRep x' z) :=
   ratLeRep_antisymm (ratAddRep x z) (ratAddRep x' z)
     (ratLeRep_add_right x x' z (ratLeRep_of_ratRel x x' h))
@@ -16965,7 +17160,12 @@ end</code></pre></div></article>
      再用 ㊷ 的 <code>ratAbsRel_wd_left</code> 搬过去）；
   ② 三角不等式（㊽ 的 <code>ratLeRep_abs_add</code>）给出 <code>d ≤ dx + dy</code>；
   ③ <code>dx &lt; ε/2</code> 与 <code>dy &lt; ε/2</code> 加起来是 <code>dx + dy &lt; ε</code>（51 的两个严格界相加，
-     再用 52 的 <code>ε/2 + ε/2 ~ ε</code> 把右端搬成 <code>ε</code>）。</p><pre><code>theorem ratLtRep_congr_snd (a b c : ratRep)
+     再用 52 的 <code>ε/2 + ε/2 ~ ε</code> 把右端搬成 <code>ε</code>）。
+
+本单元不引入新定义；用到的前序事实证明已收进 <code>lib/RatClose</code>。
+
+<code>ratLtRep a b</code> 是 <code>ratLeRep a b ∧ ¬ ratRel a b</code>：弱序沿 <code>b ~ c</code> 搬
+（㊴ 的 <code>ratLeRep_congr_gen</code>），不相等部分把 <code>a ~ c</code> 与 <code>c ~ b</code> 串成 <code>a ~ b</code>。</p><pre><code>theorem ratLtRep_congr_snd (a b c : ratRep)
     (h : ratLtRep a b) (hbc : ratRel b c) : ratLtRep a c :=
   And.intro
     (ratLeRep_congr_gen a a b c (ratRel_refl a) hbc (And.left h))
@@ -17035,7 +17235,12 @@ end</code></pre></div></article>
             succ_ne_zero 1
               (@Eq.symm.{1} Nat Nat.zero (Nat.succ (Nat.succ Nat.zero)) h)))))</code></pre></details></section><section class="appendix-unit" id="appendix-unit-58"><h3><a href="#unit-58">实数的相等：传递性</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-58-1"><summary>练习 1 · leNat_max <span class="sol-meta">定理</span></summary><p class="solution-note">realRel x y  :<span class="math">⟺  Cauchy x ∧ Cauchy y ∧</span>
 
-<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, close (x n) (y n) eps</p><pre><code>theorem leNat_max (m n : Nat) : ∃ (N : Nat), LeNat m N ∧ LeNat n N :=
+<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, close (x n) (y n) eps
+
+<code>Cauchy x</code> —— 直接是 <code>hxy</code> 的第一分量；；<code>Cauchy z</code> —— 直接是 <code>hyz</code> 的第二分量；；逐点 <code>close</code> —— 本单元的内容。
+
+<code>leNat_total</code> 给出 <code>m ≤ n</code> 或 <code>n ≤ m</code>：前者取 <code>N = n</code>（<code>n ≤ n</code> 是构造子
+<code>LeNat.le_refl</code>），后者取 <code>N = m</code>，再用 <code>leNat_trans</code> 把 <code>n ≤ m</code> 搬到 <code>m ≤ m</code>。</p><pre><code>theorem leNat_max (m n : Nat) : ∃ (N : Nat), LeNat m N ∧ LeNat n N :=
   Or.elim
     (fun (h : LeNat m n) =&gt;
       Exists.intro n (And.intro h (LeNat.le_refl n)))
@@ -17344,7 +17549,12 @@ end</code></pre></div></article>
     ratZeroRep
     (ratAddRep_wd_gen x y (ratNegRep y) h)
     (ratAdd_neg_gen y)</code></pre></details><details class="appendix-solution" id="app-sol-62-2"><summary>练习 2 · ratAbsRel_zero_of_ratRel <span class="sol-meta">定理</span></summary><p class="solution-note">取见证 <code>d := 0</code>。<code>ratAbsRel</code> 的定义是两个析取支，按 <code>0 ≤ x-y</code> 与
-<code>x-y ≤ 0</code> 二分（㊺ 的 <code>ratLeRep_total</code>）：</p><pre><code>theorem ratAbsRel_zero_of_ratRel (x y : ratRep) (h : ratRel x y) :
+<code>x-y ≤ 0</code> 二分（㊺ 的 <code>ratLeRep_total</code>）：
+
+非负支：左支要 <code>0 ≤ x-y</code> 与 <code>0 ~ x-y</code>（62.1 调向）；；非正支：右支要 <code>x-y ≤ 0</code> 与 <code>0 ~ -(x-y)</code>。后者由 62.1 经
+<code>ratNegRep_wd</code> 搬到 <code>-0</code>，而 <code>-0</code> 与 <code>0</code> 定义性相等
+（<code>ratNegRep ratZeroRep</code> 归约成 <code>ratZeroRep</code>），所以
+<code>ratRel_refl ratZeroRep</code> 直接收口。</p><pre><code>theorem ratAbsRel_zero_of_ratRel (x y : ratRep) (h : ratRel x y) :
     ratAbsRel (ratSubRep x y) ratZeroRep :=
   Or.elim
     (fun (hle : ratLeRep ratZeroRep (ratSubRep x y)) =&gt;
@@ -17425,6 +17635,11 @@ end</code></pre></div></article>
     addRel (Real.mk zeroSeq) (Real.mk zeroSeq) (Real.mk zeroSeq) :=
   addRel_zero_right zeroSeq cauchy_zero</code></pre></details></section><section class="appendix-unit" id="appendix-unit-63"><h3><a href="#unit-63">实数的加法：结合律（三元关系版）</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-63-1"><summary>练习 1 · realRel_add_assoc <span class="sol-meta">定理</span></summary><p class="solution-note"><span class="math">addRel a b s → addRel s c t → ∃ u</span>, <span class="math">addRel b c u ∧ addRel a u t</span>
 
+63.1 代表元层：<code>(x+y)+z ~ x+(y+z)</code>（㉔ 的 <code>ratAdd_assoc</code> 经
+62 的 <code>close_of_ratRel</code> 逐点搬到 <code>realRel</code>）；；63.2 <code>mk</code> 层：已知 <code>(x+y)+z = t</code>，取 <code>u := mk (y+z)</code>，把
+
+63.3 商层：对 <code>a</code>、<code>b</code>、<code>c</code> 各做一次 <code>Quot.ind</code>，用 63.2。
+
 两个 <code>Cauchy</code> 分量各是两次 60 的 <code>cauchy_add</code>；第三分量取 <code>N := 0</code>，
 逐点用㉔的 <code>ratAdd_assoc</code> 加 62 的 <code>close_of_ratRel</code>。</p><pre><code>theorem realRel_add_assoc (x y z : Seq) (hx : Cauchy x) (hy : Cauchy y)
     (hz : Cauchy z) :
@@ -17438,7 +17653,12 @@ end</code></pre></div></article>
           (fun (n : Nat) (_hn : LeNat Nat.zero n) =&gt;
             close_of_ratRel (addSeq (addSeq x y) z n)
               (addSeq x (addSeq y z) n)
-              (ratAdd_assoc (x n) (y n) (z n)) eps heps)))</code></pre></details><details class="appendix-solution" id="app-sol-63-2"><summary>练习 2 · addRel_assoc_mk <span class="sol-meta">定理</span></summary><p class="solution-note">见证取 <code>u := mk (y + z)</code>。</p><pre><code>theorem addRel_assoc_mk (x y z : Seq) (t : Real)
+              (ratAdd_assoc (x n) (y n) (z n)) eps heps)))</code></pre></details><details class="appendix-solution" id="app-sol-63-2"><summary>练习 2 · addRel_assoc_mk <span class="sol-meta">定理</span></summary><p class="solution-note">见证取 <code>u := mk (y + z)</code>。
+
+<code>addRel (mk y) (mk z) u</code>：61 的 <code>addRel_intro</code>，要 <code>Cauchy y</code>（假设）
+与 <code>Cauchy z</code>（从 <code>h</code> 的第二个守卫）；；<code>addRel (mk x) u t</code>：<code>Cauchy x</code> 是假设，<code>Cauchy (y+z)</code> 是
+<code>cauchy_add</code>，第三分量是
+<code>t = mk ((x+y)+z) = mk (x+(y+z))</code>——后半段由 63.1 经 <code>Real.sound</code>。</p><pre><code>theorem addRel_assoc_mk (x y z : Seq) (t : Real)
     (hx : Cauchy x) (hy : Cauchy y)
     (h : addRel (Real.mk (addSeq x y)) (Real.mk z) t) :
     ∃ (u : Real), addRel (Real.mk y) (Real.mk z) u ∧
@@ -17531,7 +17751,17 @@ end</code></pre></div></article>
                       (ratLtRep_le d eps (And.right hd)))))))</code></pre></details><details class="appendix-solution" id="app-sol-64-3"><summary>练习 3 · demo_realLe_zero <span class="sol-meta">定理</span></summary><pre><code>theorem demo_realLe_zero : realLeRep zeroSeq zeroSeq :=
   realLeRep_of_realRel zeroSeq zeroSeq realRel_zero</code></pre></details></section><section class="appendix-unit" id="appendix-unit-65"><h3><a href="#unit-65">实数的序：传递性</a></h3><p class="appendix-meta">3 道练习 · 3 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-65-1"><summary>练习 1 · ratLeRep_sub_add <span class="sol-meta">定理</span></summary><p class="solution-note">realLeRep x y  :<span class="math">⟺  Cauchy x ∧ Cauchy y ∧</span>
 
-<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, <span class="math">(x n - y n) ≤ eps</span></p><pre><code>theorem ratLeRep_sub_add (x y z eps : ratRep)
+<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, <span class="math">(x n - y n) ≤ eps</span>
+
+<span class="math">x ≤ y  →  y ≤ z  →  x ≤ z</span>
+
+56 的 <code>ratSubRep_add</code>：<code>(x - y) + (y - z) ~ x - z</code>；；52 的 <code>ratHalf_add_self</code>：<code>eps/2 + eps/2 ~ eps</code>；；51 的 <code>ratLtRep_half</code>：<code>0 &lt; eps ⇒ 0 &lt; eps/2</code>。
+
+65.1 <code>ratLeRep_sub_add</code> —— 代表元层的拼装件；；65.2 <code>realLeRep_trans</code> —— 序的传递性；；65.3 常零序列上的具体例。
+
+<code>ratLeRep_add</code> 先把两个界加成 <code>(x-y)+(y-z) ≤ eps+eps</code>；左边用 56 的
+<code>ratSubRep_add</code> 换成 <code>x-z</code>，右边不动（<code>ratRel_refl</code>），交给
+<code>ratLeRep_congr_gen</code>。</p><pre><code>theorem ratLeRep_sub_add (x y z eps : ratRep)
     (h1 : ratLeRep (ratSubRep x y) eps)
     (h2 : ratLeRep (ratSubRep y z) eps) :
     ratLeRep (ratSubRep x z) (ratAddRep eps eps) :=
@@ -17576,7 +17806,11 @@ end</code></pre></div></article>
     (realLeRep_refl zeroSeq cauchy_zero)
     (realLeRep_refl zeroSeq cauchy_zero)</code></pre></details></section><section class="appendix-unit" id="appendix-unit-66"><h3><a href="#unit-66">实数的序：沿 realRel 下降成 Real 上的关系</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-66-1"><summary>练习 1 · realLeRep_wd <span class="sol-meta">定理</span></summary><p class="solution-note">realLeRep x y  :<span class="math">⟺  Cauchy x ∧ Cauchy y ∧</span>
 
-<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, <span class="math">(x n - y n) ≤ eps</span></p><pre><code>theorem realLeRep_wd (x x' y : Seq) (hx : realRel x x') :
+<span class="math">∀ eps &gt; 0</span>, <span class="math">∃ N</span>, <span class="math">∀ n ≥ N</span>, <span class="math">(x n - y n) ≤ eps</span>
+
+realLe : <span class="math">Real → Real → Prop</span>
+
+66.0 <code>realLeRep_wd</code> —— 换左因子，序不变；；66.1 <code>realLeRep_wd_snd</code> —— 换右因子，序不变；；66.2 <code>realLeY</code> —— 固定左因子，对第二个因子做 <code>Quot.lift</code>；；66.3 <code>realLe</code> —— 对第一个因子再做一次 <code>Quot.lift</code>；；66.4 <code>realLe_mk</code> —— 两次 lift 的 <span class="math">ι</span> 规则；；66.5 常零序列上的具体例。</p><pre><code>theorem realLeRep_wd (x x' y : Seq) (hx : realRel x x') :
     realLeRep x y ↔ realLeRep x' y :=
   @Iff.intro (realLeRep x y) (realLeRep x' y)
     (fun (h : realLeRep x y) =&gt;
@@ -17602,7 +17836,22 @@ end</code></pre></div></article>
     (fun (h : realLeRep x y) =&gt; h)</code></pre></details><details class="appendix-solution" id="app-sol-66-4"><summary>练习 4 · demo_realLe_lift <span class="sol-meta">定理</span></summary><pre><code>theorem demo_realLe_lift : realLe (Real.mk zeroSeq) (Real.mk zeroSeq) :=
   @Iff.mpr (realLe (Real.mk zeroSeq) (Real.mk zeroSeq)) (realLeRep zeroSeq zeroSeq)
     (realLe_mk zeroSeq zeroSeq)
-    (realLeRep_of_realRel zeroSeq zeroSeq realRel_zero)</code></pre></details></section><section class="appendix-unit" id="appendix-unit-67"><h3><a href="#unit-67">实数的序：自反、传递、反对称</a></h3><p class="appendix-meta">7 道练习 · 7 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-67-1"><summary>练习 1 · ratHalf_lt_self <span class="sol-meta">定理</span></summary><p class="solution-note"><span class="math">realLe (Real.mk x) (Real.mk y)  ↔  realLeRep x y</span></p><pre><code>theorem ratHalf_lt_self (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    (realLeRep_of_realRel zeroSeq zeroSeq realRel_zero)</code></pre></details></section><section class="appendix-unit" id="appendix-unit-67"><h3><a href="#unit-67">实数的序：自反、传递、反对称</a></h3><p class="appendix-meta">7 道练习 · 7 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-67-1"><summary>练习 1 · ratHalf_lt_self <span class="sol-meta">定理</span></summary><p class="solution-note"><span class="math">realLe (Real.mk x) (Real.mk y)  ↔  realLeRep x y</span>
+
+<strong>自反</strong>只在「有 Cauchy 代表元」的实数上成立：<code>Real</code> 是商，商里的
+非 Cauchy「杂点」让 <code>realLe</code> 没有输出。所以自反写成代表元形式
+<code>realLe (mk x) (mk x)</code>，假设 <code>Cauchy x</code>——不把「每个 Real 都是
+Cauchy 类」写成公理。；<strong>传递</strong>对任意三个实数成立：两个前提本身就是 <code>realLe</code>，经 66 的
+<span class="math">ι</span> 规则回到代表元层后，<code>Cauchy</code> 守卫已经由前提付清；接力棒交给
+
+<strong>反对称</strong>是真正的数学内容：<code>x ≤ y</code> 与 <code>y ≤ x</code> 只给出
+<code>x n - y n ≤ eps</code> 与 <code>y n - x n ≤ eps</code>，
+要得到 <code>realRel x y</code> 的第三分量（<code>close</code>），必须把两个界折半，
+再用绝对值的两分支把 <code>|x n - y n|</code> 夹到 <code>eps</code> 以下。折半之后
+还需要 <code>eps/2 &lt; eps</code> 这条<strong>严格</strong>不等式（52 只给了 <code>0 &lt; eps/2</code>），
+本单元用加法消去补上（67.0）。
+
+67.0 <code>ratHalf_lt_self</code> —— <code>0 &lt; eps ⇒ eps/2 &lt; eps</code>；；67.1 <code>ratAbsRel_lt_of_bounds</code> —— 两侧界 <code>&lt; eps</code> <span class="math">⇒</span> 绝对值 <code>&lt; eps</code>；；67.2 <code>realLe_refl_mk</code> —— 代表元层的自反；；67.3 <code>realLe_trans</code> —— 传递；；67.4 <code>realLe_antisymm_mk</code> —— 代表元层的反对称（给出 <code>realRel</code>）；；67.5 <code>realLe_antisymm</code> —— 商上的反对称；；67.6 常零序列上的具体例。</p><pre><code>theorem ratHalf_lt_self (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
     ratLtRep (ratHalf eps) eps :=
   And.intro
     (ratLeRep_congr_gen
@@ -17782,6 +18031,8 @@ end</code></pre></div></article>
       he)</code></pre></details><details class="appendix-solution" id="app-sol-68-5"><summary>练习 5 · cauchy_tends_to_class <span class="sol-meta">定理</span></summary><p class="solution-note">对 <code>eps &gt; 0</code> 取 Cauchy 性的阈值 <code>N</code>。固定 <code>n ≥ N</code> 后，
 对每个 <code>e &gt; 0</code>：
 
+上界：<code>hN n k</code> 给 <code>x n - x k ≤ eps</code>，68.5 得 <code>x n - (x k + eps) ≤ e</code>；；下界：<code>hN k n</code> 给 <code>x k - x n ≤ eps</code>，68.5 得 <code>x k - (x n + eps) ≤ e</code>。
+
 两条 <code>realLeRep</code> 经 66.4 的 <span class="math">ι</span> 规则送回商上的 <code>realLe</code>。</p><pre><code>theorem cauchy_tends_to_class (x : Seq) (hx : Cauchy x) :
     TendsTo x x :=
   fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
@@ -17867,10 +18118,19 @@ end</code></pre></div></article>
   addRel_unique (natToReal 1) (natToReal 2) c (natToReal 3)
     h (natToReal_add 1 2)</code></pre></details></section><section class="appendix-unit" id="appendix-unit-71"><h3><a href="#unit-71">数系综合：商的代价——一座桥与两座桥</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-71-1"><summary>练习 1 · quot_lift_mk <span class="sol-meta">定理</span></summary><p class="solution-note">Quot.lift : (f : <span class="math">α → β) → (∀ a b</span>, <span class="math">r a b → f a = f b) → Quot r → β</span>
 
+当 <code>β = Rat</code>（一个 Type），lift 的返回值仍是元素，义务只有一条：
+换代表元后像相等（69.2 的 <code>intToRatRep_wd</code>）。；当 <code>β = Real → Prop</code>（61 的加法关系、66 的序），外层 lift 的 <code>f</code>
+是 <code>Real → (Real → Prop)</code>，于是「换代表元后像相等」变成了<strong>函数
+相等</strong>：把函数相等化成逐点相等要 <code>funext</code>，每个点上的命题相等要
+<code>propext</code>。这正是 61/66 两个 <code>def</code> 里的两次 <code>Quot.lift</code> 与两条
+外延义务。
+
 两件代价都<strong>不是新公理</strong>：<code>funext</code> 在本课程 L2 是从 <code>Quot.sound</code> 证出的
 <strong>定理</strong>（<code>lib.Extensionality</code>），<code>propext</code> 是 L2 已声明的<strong>既有 axiom</strong>
 （只在 Prop 层用）。所以「<span class="math">ℝ</span> 的加法是关系而不是函数」不是绕路：
-<code>addRel a b c</code> 正是两次 lift 之后能诚实拿到的全部。</p><pre><code>theorem quot_lift_mk (α β : Type) (r : α → α → Prop)
+<code>addRel a b c</code> 正是两次 lift 之后能诚实拿到的全部。
+
+<code>Quot.lift</code> 作用在 <code>Quot.mk a</code> 上按 <span class="math">ι</span> 归约成 <code>f a</code>，两边定义性相等。</p><pre><code>theorem quot_lift_mk (α β : Type) (r : α → α → Prop)
     (f : α → β) (h : ∀ (a b : α), r a b → f a = f b) (a : α) :
     @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r a) = f a :=
   @Eq.refl.{1} β (f a)</code></pre></details><details class="appendix-solution" id="app-sol-71-2"><summary>练习 2 · quot_lift_unique <span class="sol-meta">定理</span></summary><p class="solution-note">先 <code>funext</code> 把函数相等化成逐点相等，再 <code>Quot.ind</code> 把商点烧成

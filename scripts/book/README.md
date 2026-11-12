@@ -95,7 +95,7 @@ does not judge proofs and never edits `courses/**`.
 breaks; every chapter starts on a new page, and each subsequent unit gets its
 own page; the appendix starts on its own page. Code and display math switch to
 `white-space: pre-wrap` so nothing is clipped. With all panels open the
-current book prints to **1007 A4 pages** (measured with headless Chrome
+current book prints to **1012 A4 pages** (measured with headless Chrome
 `Page.printToPDF`); print the whole book or use the browser's page range.
 
 ## Check contract
