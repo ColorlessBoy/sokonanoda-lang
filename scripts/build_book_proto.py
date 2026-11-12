@@ -63,6 +63,27 @@ MATH_SPAN_RE = re.compile(rf"(?:{MATH_RUN_RE.pattern})(?:[ \t]+(?:{MATH_RUN_RE.p
 BULLET_RE = re.compile(r"^\s*(?:[·•]|[-–—](?=\s))")
 HEADING_RE = re.compile(r"^\s*(?:[0-9]+(?:\.[0-9]+)+|[①-⑳]\.\d+)\s+")
 DECOR_RE = re.compile(r"^\s*[=─━\-—_*]{4,}\s*$")
+SEPARATOR_LINE_RE = re.compile(r"^\s*[=\-─]{10,}\s*$")
+# A paragraph that only repeats the unit heading ("单元㉕ 有理数相等的传递性
+# （ratRel_trans）") is a heading echo, not learner-facing prose.
+TITLE_ECHO_RE = re.compile(
+    r"^\s*单元\s*(?:[①-⑳]|[㉑-㉟]|[㊱-㊿]|[0-9]+)\s*[：:·\-—]?\s*"
+)
+# File-header / course-engineering notes.  They are kept (never dropped) but
+# rendered in a collapsed "编写注记" panel instead of the reading flow.
+COURSE_NOTE_RE = re.compile(
+    r"^(?:"
+    r"靶子(?:\s*[（(]教材[）)])?\s*[：:]"
+    r"|大纲\s*[：:]"
+    r"|依赖\s*[：:]"
+    r"|本单元只允许用"
+    r"|本单元\s*`?[Ii]mport`?"
+    r"|本单元自带"
+    r"|本文件按\s*L3"
+    r"|⚠"
+    r")"
+)
+MAX_PROSE_CHARS = 1200
 SUP_RE = re.compile(r"^[⁻]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+$")
 SUP_TRANS = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹⁻", "0123456789-")
 MML_TOKEN_RE = re.compile(
@@ -129,6 +150,8 @@ class Unit:
     volume_title: str
     decls: List[Decl] = field(default_factory=list)
     trailing: List[Item] = field(default_factory=list)
+    intro: List[Item] = field(default_factory=list)
+    notes: List[Item] = field(default_factory=list)
     imports: List[str] = field(default_factory=list)
     solution_path: Optional[Path] = None
     solution_decls: Dict[str, Decl] = field(default_factory=dict)
@@ -659,6 +682,164 @@ def _solution_note(exercise: Decl, solution: Decl) -> str:
     return "\n\n".join(notes)
 
 
+_MARKDOWN_EMPHASIS_RE = re.compile(r"\*\*(.+?)\*\*|__(.+?)__", re.S)
+
+
+def plain_text(text: str) -> str:
+    """Markdown markers out of text that is displayed as plain text.
+
+    Search results and contexts are rendered with ``textContent``, so they must
+    carry no ``**`` / ``__`` / backtick markers.  The replacement is repeated
+    so nested emphasis collapses too; nothing else is removed.
+    """
+    previous = None
+    while previous != text:
+        previous = text
+        text = _MARKDOWN_EMPHASIS_RE.sub(
+            lambda match: match.group(1) if match.group(1) is not None else match.group(2),
+            text,
+        )
+    return re.sub(r"\s+", " ", text.replace("`", "")).strip()
+
+
+def _comparison_key(text: str) -> str:
+    return re.sub(
+        r"[\s`*_，。：；、！？（）()\[\]{}「」『』《》·—\-–]+", "", plain_text(text)
+    )
+
+
+def _is_title_echo(text: str, unit: Unit) -> bool:
+    """True when a paragraph merely repeats the unit heading.
+
+    The heading is already rendered as the unit ``<h2>``; repeating it as the
+    first paragraph adds noise without adding information.  This intentionally
+    only matches paragraphs that start with ``单元N`` and whose remainder is the
+    heading (plus an optional parenthetical gloss).
+    """
+    first_line = plain_text(text.splitlines()[0]) if text.strip() else ""
+    if not TITLE_ECHO_RE.match(first_line):
+        return False
+    rest = _comparison_key(TITLE_ECHO_RE.sub("", first_line))
+    title = _comparison_key(unit.display_title)
+    if not rest or not title:
+        return False
+    if rest == title:
+        return True
+    if rest.startswith(title) and len(rest) <= len(title) + 40:
+        return True
+    return False
+
+
+def _is_course_note(text: str) -> bool:
+    stripped = plain_text(text)
+    return bool(stripped) and bool(COURSE_NOTE_RE.match(stripped))
+
+
+def _is_heading_restatement(text: str, unit: Unit) -> bool:
+    """Exact ``单元N …`` heading echoes are moved out of the reading flow.
+
+    Kept as a separate hook from course-note detection: the two removals have
+    different reasons (duplicate heading vs. engineering metadata) even though
+    both end up in the collapsed notes panel.
+    """
+    return _is_title_echo(text, unit)
+
+
+def _detach_course_notes(items: Sequence[Item]) -> Tuple[List[Item], List[Item]]:
+    """Split a lead/trailing sequence into reading prose and engineering notes.
+
+    Notes are moved, never deleted: the renderer puts them into one collapsed
+    ``编写注记`` panel per unit.  A note ending in ``：`` also takes the list or
+    formula block that immediately follows it, so the moved note keeps its
+    attachment.
+    """
+    kept: List[Item] = []
+    notes: List[Item] = []
+    index = 0
+    while index < len(items):
+        item = items[index]
+        if item.kind == "text" and _is_course_note(item.text):
+            notes.append(item)
+            index += 1
+            if item.text.rstrip().endswith(("：", ":")):
+                while index < len(items) and items[index].kind in ("list", "formula"):
+                    notes.append(items[index])
+                    index += 1
+            continue
+        kept.append(item)
+        index += 1
+    return kept, notes
+
+
+def _detach_heading_restatements(
+    items: Sequence[Item], unit: Unit
+) -> Tuple[List[Item], List[Item]]:
+    kept: List[Item] = []
+    moved: List[Item] = []
+    for item in items:
+        if item.kind == "text" and _is_heading_restatement(item.text, unit):
+            moved.append(item)
+        else:
+            kept.append(item)
+    return kept, moved
+
+
+def prepare_unit_prose(unit: Unit) -> None:
+    """Lift the first meaningful paragraph into ``unit.intro`` and move
+    course-engineering notes into ``unit.notes``.
+
+    The paragraph is moved, not copied or rewritten: the unit keeps exactly the
+    author's words.  Notes stay retrievable in a collapsed panel.  This is a
+    presentation pass over the existing course files; no course file is edited.
+    """
+    notes: List[Item] = []
+    for decl in unit.decls:
+        decl.lead, detached = _detach_heading_restatements(decl.lead, unit)
+        notes.extend(detached)
+        decl.lead, detached = _detach_course_notes(decl.lead)
+        notes.extend(detached)
+    unit.trailing, detached = _detach_heading_restatements(unit.trailing, unit)
+    notes.extend(detached)
+    unit.trailing, detached = _detach_course_notes(unit.trailing)
+    notes.extend(detached)
+    unit.notes = notes
+
+    for decl in unit.decls:
+        for index, item in enumerate(decl.lead):
+            if item.kind != "text":
+                continue
+            text = item.text.strip()
+            if not text or _is_title_echo(text, unit) or _is_course_note(text):
+                continue
+            take = [item]
+            end = index + 1
+            # A lead often opens with "…定义成" / "…如下：" and is completed by
+            # the formula or the next prose paragraph.  Take at most three
+            # items (and ~900 chars) so the block stays a lead, not a section.
+            while end < len(decl.lead) and len(take) < 3:
+                current = " ".join(
+                    part.text.strip() if part.kind == "text" else ""
+                    for part in take
+                ).strip()
+                if current and current.rstrip().endswith(("。", "！", "？")):
+                    break
+                nxt = decl.lead[end]
+                if nxt.kind in ("hint", "heading", "rule"):
+                    break
+                candidate_len = len(current) + len(
+                    nxt.text if nxt.kind == "text" else " ".join(nxt.lines)
+                )
+                if candidate_len > 900:
+                    break
+                take.append(nxt)
+                end += 1
+                if nxt.kind == "text" and nxt.text.strip().endswith(("。", "！", "？")):
+                    break
+            del decl.lead[index:end]
+            unit.intro = take
+            return
+
+
 def source_fingerprint(paths: Iterable[Path]) -> str:
     digest = hashlib.sha256()
     for path in sorted(paths):
@@ -715,6 +896,7 @@ def load_book() -> Book:
                     raise SystemExit(f"course.json: unit file missing: {file_name}")
                 manifest_paths.add(path.resolve())
                 unit = parse_unit(entry, chapter, volume, unit_position, COURSE_ROOT)
+                prepare_unit_prose(unit)
                 chapter_obj.units.append(unit)
                 source_paths.append(path)
                 if unit.solution_path is not None:
@@ -923,8 +1105,8 @@ def _wrap_math(text: str) -> str:
     return "".join(out)
 
 
-def _find_bold_close(text: str, start: int) -> int:
-    """Find a closing ``**`` that is not inside an inline-code span."""
+def _find_emphasis_close(text: str, start: int, marker: str) -> int:
+    """Find a closing emphasis marker that is not inside an inline-code span."""
     position = start
     while position < len(text) - 1:
         if text[position] == "`":
@@ -933,14 +1115,14 @@ def _find_bold_close(text: str, start: int) -> int:
                 return -1
             position = closing + 1
             continue
-        if text.startswith("**", position):
+        if text.startswith(marker, position):
             return position
         position += 1
     return -1
 
 
 def _render_inline(text: str, depth: int = 0) -> str:
-    """Tiny inline parser for `code`, **bold**, and serif math spans."""
+    """Tiny inline parser for `code`, **bold** / __bold__, and serif math spans."""
     out: List[str] = []
     buf: List[str] = []
 
@@ -959,16 +1141,19 @@ def _render_inline(text: str, depth: int = 0) -> str:
                 out.append(f"<code>{escape(text[position + 1:closing])}</code>")
                 position = closing + 1
                 continue
-        if text.startswith("**", position) and depth < 4:
-            closing = _find_bold_close(text, position + 2)
+        for marker in ("**", "__"):
+            if not text.startswith(marker, position) or depth >= 4:
+                continue
+            closing = _find_emphasis_close(text, position + 2, marker)
             if closing >= 0 and closing > position + 2:
                 flush()
                 inner = _render_inline(text[position + 2:closing], depth + 1)
                 out.append(f"<strong>{inner}</strong>")
                 position = closing + 2
-                continue
-        buf.append(char)
-        position += 1
+                break
+        else:
+            buf.append(char)
+            position += 1
     flush()
     return "".join(out)
 
@@ -1026,7 +1211,7 @@ def render_hint(hint: Hint, index: int) -> str:
     return (
         '<details class="hint intuition-only">'
         f'<summary><span class="hint-index">提示 {index}</span>'
-        f'<span class="hint-label">{escape(hint.label)}</span></summary>'
+        f'<span class="hint-label">{render_inline(hint.label)}</span></summary>'
         f'<div class="hint-body">{"".join(paragraphs)}</div>'
         "</details>"
     )
@@ -1116,12 +1301,11 @@ def render_proof(decl: Decl) -> str:
     if not steps:
         return ""
     line_count = len([line for line in decl.body.splitlines() if line.strip()])
-    open_attr = " open" if len(steps) <= 2 and line_count <= 10 else ""
     step_html = "".join(
         f"<li><pre><code>{escape(step)}</code></pre></li>" for step in steps
     )
     return (
-        f'<details class="proof-panel formal-only"{open_attr}>'
+        '<details class="proof-panel formal-only">'
         f"<summary>证明 · {len(steps)} 步 · {line_count} 行</summary>"
         f'<ol class="proof-steps">{step_html}</ol>'
         "</details>"
@@ -1132,9 +1316,8 @@ def render_code_panel(decl: Decl) -> str:
     if decl.code == decl.statement:
         return ""
     line_count = len(decl.code.splitlines())
-    open_attr = " open" if line_count <= 6 else ""
     return (
-        f'<details class="code-panel formal-only"{open_attr}>'
+        '<details class="code-panel formal-only">'
         f"<summary>完整代码 · {line_count} 行</summary>"
         f'<pre><code>{escape(decl.code)}</code></pre>'
         "</details>"
@@ -1327,10 +1510,24 @@ def render_unit(book: Book, unit: Unit, chapter: Chapter, position: int) -> str:
             "</header>",
         ]
     )
+    if unit.intro:
+        parts.append(
+            '<section class="unit-intro" aria-label="本单元讲什么">'
+            '<p class="unit-intro-label">本单元讲什么</p>'
+            f'<div class="unit-intro-body">{render_items(unit.intro)}</div>'
+            "</section>"
+        )
     for decl in unit.decls:
         parts.append(render_decl(unit, decl))
     if unit.trailing:
         parts.append(render_items(unit.trailing))
+    if unit.notes:
+        parts.append(
+            '<details class="unit-notes">'
+            f"<summary>编写注记 · 教材对照与课程边界（{len(unit.notes)} 条）</summary>"
+            f'<div class="unit-notes-body">{render_items(unit.notes)}</div>'
+            "</details>"
+        )
     parts.append(render_unit_nav(book, unit, book.units.index(unit)))
     parts.append("</section>")
     return "\n".join(parts)
@@ -1497,12 +1694,12 @@ def search_entries(book: Book) -> List[Dict[str, object]]:
     entries: List[Dict[str, object]] = []
     for chapter in book.chapters:
         entries.append(
-            {"t": f"{chapter.id} {chapter.title}", "a": chapter.anchor, "k": "chapter"}
+            {"t": f"{chapter.id} {plain_text(chapter.title)}", "a": chapter.anchor, "k": "chapter"}
         )
     for unit in book.units:
         entries.append(
             {
-                "t": f"{unit.index:02d} {unit.display_title}",
+                "t": f"{unit.index:02d} {plain_text(unit.display_title)}",
                 "a": f"unit-{unit.index}",
                 "k": "unit",
                 "u": unit.index,
@@ -1516,11 +1713,11 @@ def search_entries(book: Book) -> List[Dict[str, object]]:
             )
             entries.append(
                 {
-                    "t": decl.name,
+                    "t": plain_text(decl.name),
                     "a": anchor,
                     "k": "exercise" if decl.is_exercise else decl.kind,
                     "u": unit.index,
-                    "h": unit.display_title,
+                    "h": plain_text(unit.display_title),
                 }
             )
             for item in decl.lead:
@@ -1528,11 +1725,11 @@ def search_entries(book: Book) -> List[Dict[str, object]]:
                     continue
                 entries.append(
                     {
-                        "t": item.text.strip(),
+                        "t": plain_text(item.text),
                         "a": anchor,
                         "k": "section",
                         "u": unit.index,
-                        "h": unit.display_title,
+                        "h": plain_text(unit.display_title),
                     }
                 )
         for item in unit.trailing:
@@ -1540,16 +1737,16 @@ def search_entries(book: Book) -> List[Dict[str, object]]:
                 continue
             entries.append(
                 {
-                    "t": item.text.strip(),
+                    "t": plain_text(item.text),
                     "a": f"unit-{unit.index}",
                     "k": "section",
                     "u": unit.index,
-                    "h": unit.display_title,
+                    "h": plain_text(unit.display_title),
                 }
             )
         entries.append(
             {
-                "t": f"解答：{unit.display_title}",
+                "t": f"解答：{plain_text(unit.display_title)}",
                 "a": f"appendix-unit-{unit.index}",
                 "k": "appendix",
                 "u": unit.index,
@@ -1558,11 +1755,11 @@ def search_entries(book: Book) -> List[Dict[str, object]]:
         for position, decl in enumerate(unit.extra_solutions, start=1):
             entries.append(
                 {
-                    "t": decl.name,
+                    "t": plain_text(decl.name),
                     "a": f"app-extra-{unit.index}-{position}",
                     "k": "solution",
                     "u": unit.index,
-                    "h": f"解答附录 · {unit.display_title}",
+                    "h": f"解答附录 · {plain_text(unit.display_title)}",
                 }
             )
     return entries
@@ -1744,6 +1941,167 @@ class AuditParser(HTMLParser):
     handle_startendtag = handle_starttag
 
 
+class ReadingParser(HTMLParser):
+    """Collect the text a reader can actually see in each unit.
+
+    ``pre``/``code`` are excluded from the marker and separator audits (code is
+    content, not markdown), but paragraphs of prose are collected in document
+    order so the checker can detect adjacent duplicates.  Search widgets, the
+    cover, the TOC, the appendix and scripts/styles are outside the unit set.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.skip = 0
+        self.current_unit: Optional[str] = None
+        self.current_para: Optional[List[str]] = None
+        self.unit_text: Dict[str, List[str]] = {}
+        self.paragraphs: List[Tuple[str, str]] = []
+        self.intro_units: List[str] = []
+
+    def handle_starttag(self, tag: str, attrs: Sequence[Tuple[str, Optional[str]]]) -> None:
+        data = {key: value for key, value in attrs}
+        if tag == "section":
+            classes = str(data.get("class") or "").split()
+            if "unit" in classes and data.get("id"):
+                self.current_unit = str(data["id"])
+            elif "appendix" in classes:
+                self.current_unit = None
+            elif "unit-intro" in classes and self.current_unit:
+                self.intro_units.append(self.current_unit)
+        if tag in ("script", "style", "pre", "code"):
+            self.skip += 1
+            return
+        if tag == "p" and self.skip == 0:
+            self.current_para = []
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in ("script", "style", "pre", "code"):
+            self.skip = max(0, self.skip - 1)
+            return
+        if tag == "p" and self.current_para is not None:
+            text = "".join(self.current_para).strip()
+            if text and self.current_unit:
+                self.paragraphs.append((self.current_unit, text))
+            self.current_para = None
+
+    def handle_data(self, data: str) -> None:
+        if self.skip:
+            return
+        if self.current_unit:
+            self.unit_text.setdefault(self.current_unit, []).append(data)
+        if self.current_para is not None:
+            self.current_para.append(data)
+
+
+def _prose_normal(text: str) -> str:
+    return re.sub(r"\s+", "", plain_text(text))
+
+
+def readability_checks(
+    book: Book, html_text: str, parser: ReadingParser
+) -> Tuple[List[str], Dict[str, object]]:
+    """Human-facing assertions: no parser junk, a lead paragraph, sane
+    paragraph sizes, and a readable default layer.  These complement the
+    structural checks; they never rewrite or judge course prose."""
+    errors: List[str] = []
+    stats: Dict[str, object] = {}
+    units = book.units
+    expected_units = {f"unit-{unit.index}": unit for unit in units}
+
+    stats["unit_intros"] = len(parser.intro_units)
+    if len(parser.intro_units) != len(units) or set(parser.intro_units) != set(expected_units):
+        errors.append(
+            f"unit intro elements: expected {len(units)}, found {len(parser.intro_units)}"
+        )
+    for unit in units:
+        if not unit.intro:
+            errors.append(f"unit {unit.index}: no lead/intro paragraph was found")
+        if f"unit-{unit.index}" not in parser.intro_units:
+            errors.append(f"unit {unit.index}: intro element missing from HTML")
+
+    literal = Counter()
+    separator = []
+    for unit_id, chunks in parser.unit_text.items():
+        for chunk in chunks:
+            for marker in ("**", "__"):
+                if marker in chunk:
+                    literal[marker] += 1
+            for line in chunk.splitlines():
+                if SEPARATOR_LINE_RE.match(line):
+                    separator.append(f"{unit_id}: {line.strip()[:24]}")
+    stats["literal_markers"] = sum(literal.values())
+    stats["separator_lines"] = len(separator)
+    if literal:
+        errors.append(
+            "visible markdown markers leaked into unit text: "
+            + ", ".join(f"{marker}×{count}" for marker, count in literal.items())
+        )
+    if separator:
+        errors.append("separator-only prose lines are visible: " + "; ".join(separator[:4]))
+
+    hint_markers = [
+        unit_id
+        for unit_id, chunks in parser.unit_text.items()
+        if any("soko:hint" in chunk for chunk in chunks)
+    ]
+    if hint_markers:
+        errors.append(
+            "raw soko:hint markers are visible in units: " + ", ".join(hint_markers[:6])
+        )
+
+    # Adjacent duplicate prose paragraphs, after whitespace/markdown normalisation.
+    # Excluded on purpose: mathematical statements repeated in separate
+    # declaration cards or in prompt vs. solution panels (intentional repetition,
+    # not adjacent prose), and code/proof text inside <pre> (never parsed here).
+    duplicates = []
+    by_unit: Dict[str, List[str]] = {}
+    for unit_id, text in parser.paragraphs:
+        by_unit.setdefault(unit_id, []).append(text)
+    for unit_id, paragraphs in by_unit.items():
+        for left, right in zip(paragraphs, paragraphs[1:]):
+            if _prose_normal(left) and _prose_normal(left) == _prose_normal(right):
+                duplicates.append(f"{unit_id}: {plain_text(left)[:60]}")
+    stats["duplicate_paragraphs"] = len(duplicates)
+    if duplicates:
+        errors.append(
+            "adjacent duplicate prose paragraphs: " + "; ".join(duplicates[:4])
+        )
+
+    long_paragraphs = []
+    for unit_id, text in parser.paragraphs:
+        clean = plain_text(text)
+        if len(clean) <= MAX_PROSE_CHARS:
+            continue
+        # Long mathematical definitions legitimately mix prose and formulas;
+        # the cap targets prose walls, not displayed mathematics.
+        if any(ch in MATH_SYMBOLS for ch in clean):
+            continue
+        long_paragraphs.append(f"{unit_id}: {len(clean)} chars")
+    stats["long_paragraphs"] = len(long_paragraphs)
+    stats["max_prose_chars"] = max(
+        (len(plain_text(text)) for _, text in parser.paragraphs), default=0
+    )
+    if long_paragraphs:
+        errors.append(
+            f"prose paragraph longer than {MAX_PROSE_CHARS} chars: "
+            + "; ".join(long_paragraphs[:4])
+        )
+
+    # Code/proof panels must start collapsed: the first read is prose.
+    if re.search(r'<details class="(?:proof|code)-panel[^"]*"\s+open', html_text):
+        errors.append("proof/code panel is open by default")
+    if not re.search(
+        r'<button type="button" data-view="both" aria-pressed="true">', html_text
+    ):
+        errors.append("default reading layer is not 并读 (both)")
+    if 'body data-view="both"' not in html_text:
+        errors.append("body is not initialised to the 并读 layer")
+
+    stats["unit_notes"] = sum(1 for unit in units if unit.notes)
+    return errors, stats
+
+
 def math_helper_selftest() -> List[str]:
     """The course comments are mostly Unicode only; keep the tiny fraction /
     superscript helper honest with direct assertions, including the fallback
@@ -1825,6 +2183,10 @@ def formula_selfcheck(book: Book) -> Tuple[int, int, List[str]]:
                 errors.append(f"{where}: fallback formula dropped its text")
 
     for unit in book.units:
+        for item in unit.intro:
+            check_item(item, f"unit {unit.index} intro")
+        for item in unit.notes:
+            check_item(item, f"unit {unit.index} notes")
         for decl in unit.decls:
             for item in decl.lead:
                 check_item(item, f"unit {unit.index} {decl.name}")
@@ -1938,6 +2300,11 @@ def validate(book: Book, html_text: str) -> Tuple[List[str], Dict[str, object]]:
 
     parser = AuditParser()
     parser.feed(html_text)
+    reading = ReadingParser()
+    reading.feed(html_text)
+    readability_errors, readability_stats = readability_checks(book, html_text, reading)
+    errors.extend(readability_errors)
+    stats.update(readability_stats)
     stats["ids"] = len(parser.ids)
     stats["toc_links"] = sum(1 for href in parser.hrefs if href.startswith("#"))
     stats["details"] = parser.tags.get("details", 0)
@@ -2001,6 +2368,22 @@ def validate(book: Book, html_text: str) -> Tuple[List[str], Dict[str, object]]:
         errors.append("search index does not match the live book model")
     if isinstance(search_payload, list):
         stats["search_entries"] = len(search_payload)
+        search_markdown = [
+            entry
+            for entry in search_payload
+            if isinstance(entry, dict)
+            and any(
+                isinstance(entry.get(key), str)
+                and re.search(r"\*\*|__|`", str(entry.get(key)))
+                for key in ("t", "h")
+            )
+        ]
+        stats["search_markdown"] = len(search_markdown)
+        if search_markdown:
+            errors.append(
+                "search index display text still contains markdown markers: "
+                + "; ".join(str(entry.get("t"))[:60] for entry in search_markdown[:4])
+            )
         stats["search_sections"] = sum(
             1
             for entry in search_payload
@@ -2208,6 +2591,22 @@ def negative_selftest(book: Book, fresh: str) -> List[str]:
     cases["copy-link control removed"] = fresh.replace(
         'data-copy-link="unit-1"', 'data-copy-link-gone="unit-1"', 1
     )
+    intro_marker = '<section class="unit-intro" aria-label="本单元讲什么">'
+    intro_label = '<p class="unit-intro-label">本单元讲什么</p>'
+    cases["unit intro removed"] = fresh.replace(intro_marker, "<div>", 1)
+    cases["visible ** markdown"] = fresh.replace(
+        intro_label, intro_label + "<p>**junk**</p>", 1
+    )
+    cases["separator-only prose line"] = fresh.replace(
+        intro_label, intro_label + "<p>============</p>", 1
+    )
+    cases["adjacent duplicate prose"] = fresh.replace(
+        intro_label, intro_label + "<p>本单元讲什么</p>", 1
+    )
+    long_paragraph = "长" * (MAX_PROSE_CHARS + 50)
+    cases["over-long prose paragraph"] = fresh.replace(
+        intro_label, intro_label + f"<p>{long_paragraph}</p>", 1
+    )
     for label, tampered in cases.items():
         found, _ = validate(book, tampered)
         if not found:
@@ -2239,8 +2638,15 @@ def format_stats(stats: Dict[str, object]) -> List[str]:
         f"  search: {stats['search_entries']} entries "
         f"({stats['search_declarations']} declarations · "
         f"{stats['search_sections']} section headings · "
-        f"{stats['search_appendix']} appendix entries) · "
+        f"{stats['search_appendix']} appendix entries · "
+        f"{stats.get('search_markdown', 0)} markdown leftovers) · "
         f"{stats['progress_toggles']} progress toggles · {stats['copy_links']} copy links",
+        f"  readability: {stats['unit_intros']} unit intros · "
+        f"{stats.get('unit_notes', 0)} units with collapsed notes · "
+        f"max prose paragraph {stats.get('max_prose_chars', 0)} chars · "
+        f"{stats.get('literal_markers', 0)} literal markdown markers · "
+        f"{stats.get('separator_lines', 0)} separator lines · "
+        f"{stats.get('duplicate_paragraphs', 0)} duplicate paragraphs",
         f"  toc links: {stats['toc_links']} · ids: {stats['ids']} · "
         f"external refs: {stats['external_refs']}",
     ]
@@ -2288,7 +2694,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print("book selftest: PASS")
         print(
             "  external URL / broken anchor / duplicate id / missing search index / "
-            "missing copy-link / stale output: all rejected"
+            "missing copy-link / missing unit intro / visible ** / separator line / "
+            "duplicate prose / over-long prose / stale output: all rejected"
         )
         return 0
 
@@ -2324,7 +2731,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print("  math helper: fraction + superscript + fallback self-test OK")
             print(
                 "  negative selftest: external URL / broken anchor / duplicate id / "
-                "missing search index / missing copy-link / stale output rejected"
+                "missing search index / missing copy-link / missing unit intro / "
+                "visible ** / separator line / duplicate prose / over-long prose / "
+                "stale output rejected"
             )
             print(f"  output: {target} ({stats['bytes']:,} bytes)")
 

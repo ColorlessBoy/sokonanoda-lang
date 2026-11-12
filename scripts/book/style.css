@@ -38,8 +38,11 @@
     monospace;
   --math: "STIX Two Math", "Cambria Math", "Latin Modern Math", "STIXGeneral",
     "Times New Roman", "Songti SC", serif;
-  --shadow: 0 1px 2px rgba(44, 38, 27, 0.05), 0 12px 32px rgba(44, 38, 27, 0.06);
+  --shadow: 0 1px 2px rgba(44, 38, 27, 0.05), 0 10px 26px rgba(44, 38, 27, 0.05);
   --radius: 10px;
+  /* A book measure: 65–75 Latin characters, or ~34 CJK glyphs. */
+  --measure: 68ch;
+  --body-size: 18.5px;
 }
 
 * { box-sizing: border-box; }
@@ -57,8 +60,8 @@ body {
     var(--paper);
   color: var(--ink);
   font-family: var(--serif);
-  font-size: 17px;
-  line-height: 1.72;
+  font-size: var(--body-size);
+  line-height: 1.7;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -101,8 +104,8 @@ pre {
   border-left: 3px solid rgba(138, 75, 42, 0.5);
   border-radius: 0 7px 7px 0;
   overflow-x: auto;
-  font-size: 0.8rem;
-  line-height: 1.6;
+  font-size: 0.78em;
+  line-height: 1.55;
   tab-size: 2;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -142,7 +145,7 @@ pre code {
 .display-code {
   margin: 0.85rem 0;
   text-align: left;
-  font-size: 0.8rem;
+  font-size: 0.8em;
   background: rgba(243, 239, 230, 0.72);
 }
 
@@ -158,11 +161,12 @@ pre code {
   flex-wrap: wrap;
   width: 100%;
   padding: 0.55rem max(1rem, calc((100vw - 1060px) / 2));
-  background: rgba(251, 250, 246, 0.94);
+  background: rgba(251, 250, 246, 0.96);
+  border-top: 3px solid var(--accent);
   border-bottom: 1px solid rgba(220, 214, 201, 0.8);
   backdrop-filter: blur(8px);
   font-family: var(--sans);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   box-shadow: 0 1px 8px rgba(44, 38, 27, 0.04);
 }
 
@@ -229,13 +233,13 @@ pre code {
 
 .chapter-jump select {
   max-width: min(19rem, 50vw);
-  padding: 0.28rem 0.45rem;
-  border: 1px solid var(--line);
+  padding: 0.3rem 0.5rem;
+  border: 1px solid rgba(138, 75, 42, 0.55);
   border-radius: 999px;
   background: var(--paper-strong);
-  color: var(--ink-soft);
+  color: var(--accent-strong);
   font: inherit;
-  font-size: 0.74rem;
+  font-size: 0.78rem;
 }
 
 /* ── topbar search ─────────────────────────────────────────────────────── */
@@ -895,6 +899,69 @@ pre code {
 
 .back-to-toc:hover { color: var(--accent-strong); }
 
+/* ── unit lead: what this unit is about ────────────────────────────────── */
+
+.unit-intro {
+  max-width: calc(var(--measure) + 3rem);
+  margin: 0 0 2rem;
+  padding: 1rem 1.25rem 0.9rem;
+  border-left: 4px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: linear-gradient(105deg, rgba(138, 75, 42, 0.075), rgba(47, 93, 98, 0.045));
+}
+
+.unit-intro-label {
+  margin: 0 0 0.55rem;
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.unit-intro .block.prose {
+  max-width: var(--measure);
+  margin: 0 0 0.45rem;
+}
+
+.unit-intro .block.prose:last-child { margin-bottom: 0; }
+
+.unit-intro .block.prose p {
+  margin: 0 0 0.35rem;
+  color: var(--ink);
+  font-size: 1.04em;
+  line-height: 1.78;
+}
+
+.unit-intro .prose-list { margin-bottom: 0.2rem; }
+
+/* ── collapsed course-engineering notes ────────────────────────────────── */
+
+.unit-notes {
+  max-width: var(--measure);
+  margin: 2.2rem 0 0;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.5);
+}
+
+.unit-notes > summary {
+  padding: 0.55rem 0.85rem;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.74rem;
+}
+
+.unit-notes-body {
+  padding: 0 0.95rem 0.8rem;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.7;
+}
+
+.unit-notes-body .block.prose { margin-bottom: 0.55rem; }
+
 .unit-actions {
   display: flex;
   flex-wrap: wrap;
@@ -995,26 +1062,29 @@ pre code {
 /* ── prose / headings ──────────────────────────────────────────────────── */
 
 .block.prose {
-  max-width: 72ch;
-  margin: 0 0 1.3rem;
+  max-width: var(--measure);
+  margin: 0 0 1.15rem;
 }
 
 .block.prose p {
-  margin: 0 0 0.7rem;
+  margin: 0 0 0.6rem;
 }
 
 .prose-list {
-  margin: 0.2rem 0 0.9rem;
-  padding-left: 1.2rem;
+  margin: 0.25rem 0 0.8rem;
+  padding-left: 1.3rem;
 }
 
-.prose-list li { margin: 0.22rem 0; }
+.prose-list li { margin: 0.28rem 0; }
 
 .unit-subhead {
-  margin: 2rem 0 0.75rem;
+  max-width: var(--measure);
+  margin: 2.5rem 0 0.85rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--line-soft);
   color: var(--teal);
   font-family: var(--sans);
-  font-size: 0.92rem;
+  font-size: 1.02rem;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -1070,7 +1140,7 @@ pre code {
 .decl-name,
 .exercise-name {
   font-family: var(--mono);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   color: var(--ink);
   background: none;
   padding: 0;
@@ -1089,8 +1159,10 @@ pre code {
 .decl-statement,
 .exercise-statement {
   margin: 0 0 0.8rem;
-  background: #f8f4eb;
+  background: rgba(248, 244, 235, 0.72);
   border-left-color: var(--teal);
+  font-size: 0.76em;
+  line-height: 1.6;
 }
 
 .decl-statement code,
@@ -1187,10 +1259,10 @@ details[open] > summary::before { content: "▾"; }
 }
 
 .hint > summary {
-  padding: 0.45rem 0.8rem;
+  padding: 0.5rem 0.85rem;
   color: #315a50;
   font-family: var(--sans);
-  font-size: 0.76rem;
+  font-size: 0.8rem;
 }
 
 .hint-index {
@@ -1205,10 +1277,10 @@ details[open] > summary::before { content: "▾"; }
 .hint-label { font-weight: 600; }
 
 .hint-body {
-  padding: 0 0.9rem 0.7rem 1.95rem;
+  padding: 0 0.95rem 0.75rem 1.95rem;
   color: var(--ink-soft);
-  font-size: 0.88rem;
-  line-height: 1.7;
+  font-size: 0.94rem;
+  line-height: 1.72;
 }
 
 .hint-body p { margin: 0.3rem 0; }
@@ -1251,10 +1323,10 @@ details[open] > summary::before { content: "▾"; }
 }
 
 .exercise-prompt {
-  max-width: 72ch;
+  max-width: var(--measure);
   color: var(--ink-soft);
-  font-size: 0.92rem;
-  line-height: 1.75;
+  font-size: 0.98rem;
+  line-height: 1.78;
 }
 
 .exercise-prompt p { margin: 0 0 0.5rem; }
@@ -1471,7 +1543,7 @@ body[data-view="formal"] .exercise-statement { display: block; }
 /* ── responsive ────────────────────────────────────────────────────────── */
 
 @media (max-width: 880px) {
-  body { font-size: 16px; }
+  body { font-size: 18px; }
   .cover-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .reading-guide { grid-template-columns: 1fr; }
   .toc ol { columns: 1; }
@@ -1502,11 +1574,14 @@ body[data-view="formal"] .exercise-statement { display: block; }
   .progress-track { width: 4rem; }
   .toc-progress { padding: 0.75rem 0.8rem; }
   .unit-actions { margin-top: 0.7rem; }
+  .unit-intro { max-width: 100%; padding: 0.85rem 1rem 0.8rem; }
+  .unit-intro .block.prose p { font-size: 1.02em; }
+  .unit-notes { max-width: 100%; }
   .unit-head h2 { display: block; }
   .unit-circled { margin-right: 0.35rem; }
   .decl-head, .exercise-head { padding-inline: 0.75rem; }
   .decl-body, .exercise-body { padding-inline: 0.75rem; }
-  pre { font-size: 0.74rem; padding: 0.8rem; }
+  pre { font-size: 0.74em; padding: 0.8rem; }
 }
 
 /* ── print: A4, page breaks before units, no clipped code/math ─────────── */
@@ -1626,6 +1701,21 @@ body[data-view="formal"] .exercise-statement { display: block; }
     box-shadow: none;
     break-inside: avoid;
   }
+
+  /* Engineering notes stay in the HTML for screen reading; a printed book
+     should carry the course prose, not the build ledger. */
+  .unit-notes { display: none !important; }
+
+  .unit-intro {
+    max-width: none;
+    margin-bottom: 4mm;
+    padding: 3mm 4mm;
+    break-inside: avoid;
+  }
+
+  .unit-intro .block.prose { max-width: none; }
+  .block.prose,
+  .exercise-prompt { max-width: none; }
 
   .decl-statement,
   .exercise-statement,

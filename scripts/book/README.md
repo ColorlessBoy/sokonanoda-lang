@@ -57,7 +57,13 @@ does not judge proofs and never edits `courses/**`.
   **复制链接** control, prev/next unit navigation, and a stable `#unit-N`
   anchor.
 - **Prose comments** (`-- ...`) become paragraphs, numbered headings, bullet
-  lists, and decorative rules.
+  lists, and decorative rules. Inline `**bold**` / `__bold__` / `` `code` ``
+  are rendered; literal markdown markers never reach the page or the search
+  results.
+- **Every unit starts with 「本单元讲什么」**: the first meaningful prose
+  paragraph is lifted, unchanged, into a lead block. File-header boilerplate
+  (靶子 / 依赖 / L3 自带 / 允许的 tactic / 写法要点) and exact heading echoes are
+  moved into one collapsed **编写注记** panel per unit — moved, never deleted.
 - **Declarations** (`def` / `theorem` / `axiom` / `inductive`) as cards:
   signature, full definition code for `def`, collapsible proof steps for
   `theorem`, full code for `axiom` / `inductive`.
@@ -71,7 +77,9 @@ does not judge proofs and never edits `courses/**`.
 
 ## Reading controls
 
-- **并读 / 直觉 / 形式** layer switch (`body[data-view]`). 直觉 keeps prose,
+- **并读 / 直觉 / 形式** layer switch (`body[data-view]`). The page opens in
+  **并读** (not 形式); proof steps and full code panels are **collapsed by
+  default**, so the first read is prose and signatures. 直觉 keeps prose,
   hints, formulas, and target statements; 形式 keeps declarations, proofs,
   exercise code, and solutions, hiding prose/hints; 并读 shows both.
 - **搜索** filters the embedded index by case-insensitive substring. Results
@@ -107,6 +115,33 @@ does not judge proofs and never edits `courses/**`.
   including an open search panel. At ≤620 px the chapter select is hidden
   (the TOC remains), the search box takes its own row, the toolbar wraps, and
   prev/next navigation stacks.
+
+## Readability pass (2026-11-12)
+
+The owner's directive for C8.1 is **「可读性排在第一位」**. This pass is
+presentation-only: no course file is edited and no feature is added.
+
+- **Typography**: body 18.5 px (18 px on narrow screens), line-height 1.7,
+  68ch measure for prose, paragraphs spaced, code 0.78 em (~14.4 px) with a distinct
+  paper panel, and a clear h2 → h3 hierarchy. The sticky topbar keeps the
+  layer switch, search, progress, and chapter jump in reach; print stays A4.
+- **Default**: `body[data-view="both"]`, proofs/code collapsed. A lead block
+  per unit carries the author's opening paragraph; the formal cards are
+  visually secondary to the prose.
+- **No parser junk**: inline `**` / `__` are rendered as `<strong>` in prose,
+  headings, and hint labels; the search index stores plain text (no `**`,
+  `__`, or backticks); `soko:hint` itself appears only in the cover reading
+  guide; separator lines are `<hr>` or stripped, never prose.
+- **Engineering notes**: 26 units have course-engineering paragraphs; they
+  live in a collapsed `编写注记` panel at the end of the unit (and are hidden in
+  print, which is for reading).
+- **Checks**: `--check` now also fails on visible `**`/`__`, separator-only
+  prose lines, adjacent duplicate prose paragraphs, a missing unit intro, a
+  proof/code panel open by default, and prose paragraphs over 1200 characters
+  (legitimate formula-bearing paragraphs are exempt). `--selftest` proves each
+  new check bites. `capture.mjs` additionally asserts 18–19.5 px body type,
+  ~1.7 line-height, a 64–76ch measure, smaller code, a sticky chapter/search
+  bar, no visible junk, and no adjacent duplicates at 1440 px and 390 px.
 
 ## Deep links / per-unit URLs
 
@@ -189,11 +224,20 @@ current book prints to **1012 A4 pages** (measured with headless Chrome
   pushState/hashchange wiring;
 - missing copy-link controls (one per unit) or the visible copy status;
 - output that differs from a fresh render (stale build);
-- formula fallbacks that drop their text, or MathML helper regressions.
+- formula fallbacks that drop their text, or MathML helper regressions;
+- a visible literal `**` / `__` in unit text, or markdown markers left in the
+  search index display;
+- a separator-only prose line (`^[=\-─]{10,}$`) in a unit;
+- adjacent duplicate prose paragraphs (after whitespace/markdown
+  normalisation), or a prose paragraph over 1200 characters without formula
+  symbols;
+- a unit without a 「本单元讲什么」 intro element, a proof/code panel open by
+  default, or a default layer other than 并读.
 
 `--selftest` additionally proves the checker bites: injected external URL,
 broken anchor, duplicate `id`, removed search index, removed copy-link control,
-and stale output must each be rejected.
+removed unit intro, visible `**`, separator-only line, duplicate prose,
+over-long prose, and stale output must each be rejected.
 
 ## Evidence
 
@@ -204,7 +248,7 @@ Headless Chrome (CDP) checks at 1440×1000 and 390×844 assert:
 - no duplicate `id`s, no empty unit, `documentElement.scrollWidth <= innerWidth`
   at 1440 px and 390 px (also with the mobile search panel open);
 - 并读/直觉/形式 hide/show the right layers;
-- 展开全部 opens all 2571 `<details>`, 折叠全部 closes them;
+- 展开全部 opens all 2597 `<details>`, 折叠全部 closes them;
 - search: 「极限」 returns 1 hit and declares its unit; ArrowDown+Enter and a
   click both land on the result target (#ex-68-6, inside unit 68) and close the
   panel; ArrowDown/ArrowDown/ArrowUp moves option 0 → 1 → 0; Escape closes and
@@ -224,15 +268,23 @@ Headless Chrome (CDP) checks at 1440×1000 and 390×844 assert:
   focus correctly;
 - the chapter select changes the hash; localStorage restores the layer after
   reload; print media hides the toolbar and applies page breaks;
+- **readability**: every unit has a visible 「本单元讲什么」 intro; body type is
+  18.5 px with a ~1.7 line-height and a 68ch measure; code is smaller than body
+  text; proofs/code start collapsed; no visible `**` / `__` or separator-only
+  line; no adjacent duplicate prose paragraph; the search index has no
+  markdown markers; the toolbar is sticky;
 - zero `http(s)` requests, zero uncaught exceptions, zero console errors.
 
 Representative screenshots are committed in `scripts/book/screenshots/`
 (`cover.png`, `toc.png`, `search.png`, `progress.png`, `unit-url.png`,
-`formal.png`, `unit-ii7.png`, `mobile.png`). They are regenerated with
-`node scripts/book/capture.mjs` after a build; the script prints the DOM
-assertion report and writes `search/progress/unit-url` plus the original
-`/tmp/book-v2-*.png` files. It also writes `/tmp/book-v2-print.pdf`
-(1012 A4 pages with every panel open).
+`formal.png`, `unit-ii7.png`, `mobile.png`, plus the readability samples
+`readable-unit-ii1.png`, `readable-unit-ii4.png`, `readable-mobile.png`).
+They are regenerated with `node scripts/book/capture.mjs` after a build; the
+script prints the DOM assertion report and writes the original
+`/tmp/book-v2-*.png` files plus `/tmp/book-readable-unit-ii1.png`,
+`/tmp/book-readable-unit-ii4.png`, `/tmp/book-readable-unit-ii7.png`, and
+`/tmp/book-readable-mobile.png`. It also writes `/tmp/book-v2-print.pdf`
+(1022 A4 pages with every panel open).
 
 ## Limits / known gaps
 

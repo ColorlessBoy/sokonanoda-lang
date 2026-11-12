@@ -303,6 +303,84 @@ try {
   assert(desktop.progressToggles === desktop.units, "progress toggles", String(desktop.progressToggles));
   assert(desktop.progressCount === "已读 0 / 72", "initial progress count", desktop.progressCount);
 
+  /* ── readability / book presentation (the owner's top priority) ──────── */
+  const readability = await evaluate(`(() => {
+    const bodyStyle = getComputedStyle(document.body);
+    const units = [...document.querySelectorAll(".unit")];
+    const introMissing = units.filter((unit) => !unit.querySelector(".unit-intro")).map((unit) => unit.id);
+    const introHidden = units.filter((unit) => {
+      const intro = unit.querySelector(".unit-intro");
+      if (!intro) return true;
+      const style = getComputedStyle(intro);
+      return style.display === "none" || style.visibility === "hidden" || intro.getBoundingClientRect().height < 20;
+    }).map((unit) => unit.id);
+    const prose = document.querySelector("#unit-3 .block.prose");
+    const canvas = document.createElement("canvas").getContext("2d");
+    canvas.font = bodyStyle.font;
+    const chWidth = canvas.measureText("0").width || 1;
+    const proseWidth = prose ? prose.getBoundingClientRect().width : 0;
+    const measureCh = Math.round(proseWidth / chWidth);
+    const codeStyle = getComputedStyle(document.querySelector("#unit-3 pre"));
+    const visibleText = units.map((unit) => [...unit.querySelectorAll("p, li, h3, h4, summary, .hint-label")]
+      .map((element) => element.textContent).join("\\n")).join("\\n");
+    const marker = /\\*\\*|__/.test(visibleText);
+    const separator = visibleText.split("\\n").some((line) => /^[=\\-─]{10,}$/.test(line.trim()));
+    const duplicates = [];
+    for (const unit of units) {
+      const paragraphs = [...unit.querySelectorAll("p")]
+        .map((p) => p.textContent.replace(/\\s+/g, "").replace(/[*_]/g, ""));
+      for (let index = 1; index < paragraphs.length; index++) {
+        if (paragraphs[index] && paragraphs[index] === paragraphs[index - 1]) duplicates.push(unit.id);
+      }
+    }
+    const longParas = [];
+    for (const unit of units) {
+      for (const p of unit.querySelectorAll("p")) {
+        const text = p.textContent.trim();
+        if (text.length > 1200 && !/[=∀∃→←↔∈∉⊆⊂≤≥≠⇒⇔∧∨¬]/.test(text)) longParas.push(unit.id);
+      }
+    }
+    const searchData = JSON.parse(document.getElementById("book-search-index").textContent);
+    return {
+      bodyFont: parseFloat(bodyStyle.fontSize),
+      lineHeight: parseFloat(bodyStyle.lineHeight) / parseFloat(bodyStyle.fontSize),
+      proseWidth: Math.round(proseWidth),
+      measureCh,
+      codeFont: parseFloat(codeStyle.fontSize),
+      introMissing,
+      introHidden,
+      openFormal: document.querySelectorAll("details.proof-panel[open], details.code-panel[open]").length,
+      defaultView: document.body.dataset.view,
+      marker,
+      separator,
+      duplicates,
+      longParas,
+      searchMarkdown: searchData.filter((entry) => {
+        const text = (entry.t || "") + (entry.h || "");
+        return text.includes("**") || text.includes("__") || text.includes(String.fromCharCode(96));
+      }).length,
+      toolbarPosition: getComputedStyle(document.querySelector(".toolbar")).position,
+      chapterJumpVisible: getComputedStyle(document.querySelector(".chapter-jump")).display !== "none",
+      unitIntros: document.querySelectorAll(".unit-intro").length,
+    };
+  })()`);
+  assert(readability.unitIntros === desktop.units, "every unit has a lead/intro", `${readability.unitIntros}/${desktop.units}`);
+  assert(readability.introMissing.length === 0, "intro element present in every unit", readability.introMissing.join(","));
+  assert(readability.introHidden.length === 0, "intro visible in the default layer", readability.introHidden.join(","));
+  assert(readability.openFormal === 0, "proof/code panels are collapsed by default", String(readability.openFormal));
+  assert(readability.defaultView === "both", "default layer is 并读", readability.defaultView);
+  assert(readability.bodyFont >= 18 && readability.bodyFont <= 19.5, "body font is 18–19.5px", String(readability.bodyFont));
+  assert(readability.lineHeight >= 1.65 && readability.lineHeight <= 1.8, "line-height is ~1.7", String(readability.lineHeight));
+  assert(readability.measureCh >= 64 && readability.measureCh <= 76, "prose measure is 65–75ch", String(readability.measureCh));
+  assert(readability.codeFont < readability.bodyFont, "code is smaller than body text", `${readability.codeFont}/${readability.bodyFont}`);
+  assert(!readability.marker, "no literal ** or __ in visible unit text");
+  assert(!readability.separator, "no separator-only prose line is visible");
+  assert(readability.duplicates.length === 0, "no adjacent duplicate prose paragraphs", readability.duplicates.join(","));
+  assert(readability.longParas.length === 0, "no over-long prose paragraph", readability.longParas.join(","));
+  assert(readability.searchMarkdown === 0, "search index display has no markdown markers", String(readability.searchMarkdown));
+  assert(readability.toolbarPosition === "sticky", "chapter/search toolbar is sticky", readability.toolbarPosition);
+  assert(readability.chapterJumpVisible, "chapter jump is visible on desktop");
+
   await evaluate("window.scrollTo(0, 0)");
   await wait(200);
   await screenshot("book-v2-cover.png", {
@@ -753,6 +831,14 @@ try {
   await scrollTo("#unit-69");
   await screenshot("book-v2-unit-ii7.png");
 
+  /* Readability evidence: the three units read as a human learner. */
+  await scrollTo("#unit-3");
+  await screenshot("book-readable-unit-ii1.png");
+  await scrollTo("#unit-35");
+  await screenshot("book-readable-unit-ii4.png");
+  await scrollTo("#unit-72");
+  await screenshot("book-readable-unit-ii7.png");
+
   const jump = await evaluate(`(() => {
     const select = document.querySelector('select[data-action="chapter-jump"]');
     select.value = "#chapter-ii-7";
@@ -806,6 +892,8 @@ try {
       search: Boolean(document.getElementById("book-search")),
       progressToggles: document.querySelectorAll("[data-progress-toggle]").length,
       copyLinks: document.querySelectorAll("[data-copy-link]").length,
+      unitIntros: document.querySelectorAll(".unit-intro").length,
+      bodyFont: parseFloat(getComputedStyle(document.body).fontSize),
     };
   })()`);
   assert(mobile.units === 72, "mobile unit count", String(mobile.units));
@@ -814,6 +902,8 @@ try {
   assert(mobile.bodyScrollWidth <= mobile.innerWidth + 1, "mobile body overflow", `${mobile.bodyScrollWidth}`);
   assert(mobile.missingAnchors.length === 0, "mobile anchors", mobile.missingAnchors.join(","));
   assert(mobile.search && mobile.progressToggles === 72 && mobile.copyLinks === 72, "mobile search/progress controls", JSON.stringify(mobile));
+  assert(mobile.unitIntros === 72, "mobile every unit has a lead/intro", String(mobile.unitIntros));
+  assert(mobile.bodyFont >= 18 && mobile.bodyFont <= 19.5, "mobile body font is 18–19.5px", String(mobile.bodyFont));
 
   const mobileSearch = await evaluate(`(() => {
     const input = document.getElementById("book-search");
@@ -846,6 +936,9 @@ try {
   await wait(200);
   await screenshot("book-v2-mobile.png");
 
+  await scrollTo("#unit-35", 110);
+  await screenshot("book-readable-mobile.png");
+
   const mobileControls = await evaluate(`(() => {
     document.querySelector('[data-view="formal"]').click();
     const formal = document.body.dataset.view === "formal";
@@ -869,6 +962,7 @@ try {
     progress: { init: progressInit, mark: progressMark, reload: progressReload, toggle: progressToggle, reset: resetFlow, afterReset: progressAfterReset },
     urls: { deepLink, nextNav, backNav, copyLink, chapterDeep, appendixDeep, tocNav, hashChange },
     layers,
+    readability,
     panels,
     jump,
     printCss,
@@ -876,9 +970,14 @@ try {
     mobileSearch,
     network: { externalRequests, consoleErrors, pageErrors },
     pdf: { path: PDF_PATH, bytes: pdfBytes.length, pages: pageCount },
-    screenshots: ["cover", "toc", "search", "progress", "unit-url", "formal", "unit-ii7", "mobile"].map(
-      (name) => `${OUT_DIR}/book-v2-${name}.png`
-    ),
+    screenshots: [
+      ...["cover", "toc", "search", "progress", "unit-url", "formal", "unit-ii7", "mobile"].map(
+        (name) => `${OUT_DIR}/book-v2-${name}.png`
+      ),
+      ...["unit-ii1", "unit-ii4", "unit-ii7", "mobile"].map(
+        (name) => `${OUT_DIR}/book-readable-${name}.png`
+      ),
+    ],
   }, null, 2));
   if (failures.length) {
     console.error("DOM TEST: FAIL\n" + failures.join("\n"));
