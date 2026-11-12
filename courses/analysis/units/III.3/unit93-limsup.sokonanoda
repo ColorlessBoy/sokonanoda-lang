@@ -1,0 +1,100 @@
+-- 单元93 上极限
+--
+-- 单元92 把「反复靠近的点」收成极限点集合，但集合本身还不回答「它最高到
+-- 哪儿」。序列在两个值之间来回跳时，极限点有两个；要概括它反复靠近的上界，
+-- 得把这些点一起压在某个数下面，再取其中最小的那个。这个数就是上极限。
+--
+-- 直接写「极限点集合的上确界」会遇到存在性问题：课程没有选择公理，也没有
+-- 一般集合的最小上界。于是这里把「L 是极限点集合的上确界」整体写成谓词
+-- `Limsup x L`，证明它给出的关系，而不声称每条序列都有这样的 L。得到的是
+-- 三条：每个极限点不超过 L；任何压住所有极限点的数不小于 L；满足这两条的
+-- 数彼此相等。收敛序列只有一个极限点，上极限于是回到极限本身。
+--
+-- 边界：`Limsup` 是关系不是函数，存在性留待完备性那一层。不新增公理。
+
+import lib.LimitPoint
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 93.0 上极限
+-- ─────────────────────────────────────────────────────────────
+
+-- `Limsup x L` 读作「`L` 是 `x` 的极限点集合的上确界」：它压住每个极限点，
+-- 并且是这类界里最小的。
+def Limsup (x : Seq) (L : ratRep) : Prop :=
+  IsSup ratRep ratLeRep (LimitPoint x) L
+
+-- ─────────────────────────────────────────────────────────────
+-- 93.1 上极限压住每个极限点
+-- ─────────────────────────────────────────────────────────────
+
+theorem limsup_upper (x : Seq) (L : ratRep) (h : Limsup x L) :
+    ∀ (M : ratRep), LimitPoint x M → ratLeRep M L :=
+  fun (M : ratRep) (hM : LimitPoint x M) => (And.left h) M hM
+
+-- ─────────────────────────────────────────────────────────────
+-- 93.2 上极限是这类界里最小的
+-- ─────────────────────────────────────────────────────────────
+
+theorem limsup_least (x : Seq) (L : ratRep) (h : Limsup x L) :
+    ∀ (B : ratRep), (∀ (M : ratRep), LimitPoint x M → ratLeRep M B) →
+      ratLeRep L B :=
+  fun (B : ratRep)
+      (hB : ∀ (M : ratRep), LimitPoint x M → ratLeRep M B) =>
+    (And.right h) B hB
+
+-- ─────────────────────────────────────────────────────────────
+-- 93.3 比较的充要条件
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：正方向把 93.1 的 `M ≤ L` 与假设 `L ≤ B` 传递起来；反方向正是 93.2，把给定的 `hB` 当成「B 压住所有极限点」的证明。
+-- soko:hint 目标形态：`ratLeRep L B ↔ ∀ (M : ratRep), LimitPoint x M → ratLeRep M B`。
+-- soko:hint 关键件：Iff.intro · ratLeRep_trans · And.right。
+theorem limsup_le_iff (x : Seq) (L : ratRep) (h : Limsup x L) :
+    ∀ (B : ratRep),
+      ratLeRep L B ↔
+        ∀ (M : ratRep), LimitPoint x M → ratLeRep M B :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 93.4 上极限至多一个
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两个上确界互相压。用 `h` 的最小性把 `L` 压在 `L'` 下，再用 `h'` 反方向压回来，两条合起来交给序的反对称性。
+-- soko:hint 目标形态：`ratRel L L'`。
+-- soko:hint 关键件：ratLeRep_antisymm · And.right · And.left。
+theorem limsup_unique (x : Seq) (L L' : ratRep)
+    (h : Limsup x L) (h' : Limsup x L') : ratRel L L' :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 93.5 收敛序列的上极限是它的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：上界那一条用单元92 的极限点唯一性：每个极限点都等于 `L`，翻向后就得到 `M ≤ L`。最小性那一条把 `L` 本身是极限点（92.1）交给任意上界 `B`。
+-- soko:hint 目标形态：`Limsup x L`。
+-- soko:hint 关键件：And.intro · limitPoint_unique_of_converges · ratRel_symm · converges_limitPoint。
+theorem limsup_of_converges (x : Seq) (L : ratRep) (h : Converges x L) :
+    Limsup x L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 93.6 收敛序列的上极限与它的极限相等
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：93.5 已把 `L` 变成上极限，与假设的上极限 `M` 一起交给 93.4 的至多一个性质。
+-- soko:hint 目标形态：`ratRel M L`。
+-- soko:hint 关键件：limsup_of_converges · limsup_unique。
+theorem limsup_unique_of_converges (x : Seq) (L M : ratRep)
+    (h : Converges x L) (hM : Limsup x M) : ratRel M L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 93.7 常序列的上极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常序列收敛到它的值（`converges_const`），把它交给 93.5。
+-- soko:hint 目标形态：`Limsup (constSeq q) q`。
+-- soko:hint 关键件：converges_const · limsup_of_converges。
+theorem limsup_const (q : ratRep) : Limsup (constSeq q) q :=
+  sorry

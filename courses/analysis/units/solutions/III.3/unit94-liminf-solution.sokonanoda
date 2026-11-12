@@ -1,0 +1,111 @@
+-- 单元94 下极限（解答）
+--
+-- 上极限把极限点集合从上面压住；同一个集合还可以从下面托住，得到下极限。
+-- 两个量合起来描述一条序列反复靠近的区间：最高处与最低处。
+--
+-- 定义与上极限逐条对偶：`Liminf x L` 说 L 是极限点集合的下确界。94.8 把
+-- 两个界放在一起：只要极限点集合里有一个点，下极限就不超过上极限。
+--
+-- 边界：94.8 带非空前提。集合为空时上下确界这两个谓词都不可满足；要从前提
+-- 反推出非空，得另证「空集没有下确界」，这里不展开这一步。不新增公理。
+
+import lib.Limsup
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.0 下极限
+-- ─────────────────────────────────────────────────────────────
+
+def Liminf (x : Seq) (L : ratRep) : Prop :=
+  IsInf ratRep ratLeRep (LimitPoint x) L
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.1 下极限托住每个极限点
+-- ─────────────────────────────────────────────────────────────
+
+-- 「L 是下界」按定义展开就是 `∀ M, LimitPoint x M → L ≤ M`。
+theorem liminf_lower (x : Seq) (L : ratRep) (h : Liminf x L) :
+    ∀ (M : ratRep), LimitPoint x M → ratLeRep L M :=
+  fun (M : ratRep) (hM : LimitPoint x M) => (And.left h) M hM
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.2 下极限是这类下界里最大的
+-- ─────────────────────────────────────────────────────────────
+
+-- 「最大」按定义展开：任何下界 B 都不大于 L。
+theorem liminf_greatest (x : Seq) (L : ratRep) (h : Liminf x L) :
+    ∀ (B : ratRep), (∀ (M : ratRep), LimitPoint x M → ratLeRep B M) →
+      ratLeRep B L :=
+  fun (B : ratRep)
+      (hB : ∀ (M : ratRep), LimitPoint x M → ratLeRep B M) =>
+    (And.right h) B hB
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.3 比较的充要条件
+-- ─────────────────────────────────────────────────────────────
+
+-- 正方向：`B ≤ L` 与 `L ≤ M` 传递。反方向：把 `hB` 原样交给 94.2。
+theorem le_liminf_iff (x : Seq) (L : ratRep) (h : Liminf x L) :
+    ∀ (B : ratRep),
+      ratLeRep B L ↔
+        ∀ (M : ratRep), LimitPoint x M → ratLeRep B M :=
+  fun (B : ratRep) =>
+    Iff.intro
+      (fun (hBL : ratLeRep B L) =>
+        fun (M : ratRep) (hM : LimitPoint x M) =>
+          ratLeRep_trans B L M hBL ((And.left h) M hM))
+      (fun (hB : ∀ (M : ratRep), LimitPoint x M → ratLeRep B M) =>
+        (And.right h) B hB)
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.4 下极限至多一个
+-- ─────────────────────────────────────────────────────────────
+
+-- `h` 是 L 的最大型：L' 是下界，所以 L' ≤ L。`h'` 反过来给出 L ≤ L'。
+-- 两条交给 `ratLeRep_antisymm`。
+theorem liminf_unique (x : Seq) (L L' : ratRep)
+    (h : Liminf x L) (h' : Liminf x L') : ratRel L L' :=
+  ratLeRep_antisymm L L'
+    ((And.right h') L (And.left h))
+    ((And.right h) L' (And.left h'))
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.5 收敛序列的下极限是它的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 下界：极限点 M 与极限 L 相等，得到 L ≤ M。最大性：L 自己是极限点，
+-- 所以任意下界 B 都满足 B ≤ L。
+theorem liminf_of_converges (x : Seq) (L : ratRep) (h : Converges x L) :
+    Liminf x L :=
+  And.intro
+    (fun (M : ratRep) (hM : LimitPoint x M) =>
+      ratLeRep_of_ratRel L M
+        (limitPoint_unique_of_converges x L M h hM))
+    (fun (B : ratRep)
+        (hB : ∀ (M : ratRep), LimitPoint x M → ratLeRep B M) =>
+      hB L (converges_limitPoint x L h))
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.6 收敛序列的下极限与它的极限相等
+-- ─────────────────────────────────────────────────────────────
+
+-- 94.5 把 L 变成下极限，与 M 的下极限性质一起交给 94.4。
+theorem liminf_unique_of_converges (x : Seq) (L M : ratRep)
+    (h : Converges x L) (hM : Liminf x M) : ratRel M L :=
+  liminf_unique x M L hM (liminf_of_converges x L h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.7 常序列的下极限
+-- ─────────────────────────────────────────────────────────────
+
+theorem liminf_const (q : ratRep) : Liminf (constSeq q) q :=
+  liminf_of_converges (constSeq q) q (converges_const q)
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.8 下极限不超过上极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 非空前提给一个极限点 P。下极限托住 P，上极限压住 P，两条传递。
+theorem liminf_le_limsup (x : Seq) (L M P : ratRep)
+    (hL : Liminf x L) (hM : Limsup x M) (hP : LimitPoint x P) :
+    ratLeRep L M :=
+  ratLeRep_trans L P M ((And.left hL) P hP) ((And.left hM) P hP)

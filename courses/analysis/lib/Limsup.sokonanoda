@@ -1,0 +1,70 @@
+-- 课程库：序列的上极限
+--
+-- 极限点记录一条序列反复靠近哪些点，但集合本身不回答「它最高到哪儿」。
+-- 上极限把这些点一起压在下面，取其中最小的界：`L` 是极限点集合的上确界。
+--
+-- 存在性不在这个模块里。课程没有选择公理，也没有一般集合的最小上界；
+-- 这里收的是这个关系与它给出的比较律，供后面的单元引用。
+--
+--   · `Limsup` —— `L` 是 `x` 的极限点集合的上确界；
+--   · `limsup_upper` —— 每个极限点不超过 `L`；
+--   · `limsup_least` —— 压住所有极限点的数不小于 `L`；
+--   · `limsup_le_iff` —— 把上面两条合成一个充要条件；
+--   · `limsup_unique` —— 这样的 `L` 至多一个；
+--   · `limsup_of_converges` —— 收敛序列的上极限是它的极限；
+--   · `limsup_unique_of_converges` —— 此时任何上极限都与极限相等；
+--   · `limsup_const` —— 常序列的上极限是它的值。
+--
+-- 不新增公理。
+
+import lib.LimitPoint
+import lib.Order
+
+def Limsup (x : Seq) (L : ratRep) : Prop :=
+  IsSup ratRep ratLeRep (LimitPoint x) L
+
+theorem limsup_upper (x : Seq) (L : ratRep) (h : Limsup x L) :
+    ∀ (M : ratRep), LimitPoint x M → ratLeRep M L :=
+  fun (M : ratRep) (hM : LimitPoint x M) => (And.left h) M hM
+
+theorem limsup_least (x : Seq) (L : ratRep) (h : Limsup x L) :
+    ∀ (B : ratRep), (∀ (M : ratRep), LimitPoint x M → ratLeRep M B) →
+      ratLeRep L B :=
+  fun (B : ratRep)
+      (hB : ∀ (M : ratRep), LimitPoint x M → ratLeRep M B) =>
+    (And.right h) B hB
+
+theorem limsup_le_iff (x : Seq) (L : ratRep) (h : Limsup x L) :
+    ∀ (B : ratRep),
+      ratLeRep L B ↔
+        ∀ (M : ratRep), LimitPoint x M → ratLeRep M B :=
+  fun (B : ratRep) =>
+    Iff.intro
+      (fun (hLB : ratLeRep L B) =>
+        fun (M : ratRep) (hM : LimitPoint x M) =>
+          ratLeRep_trans M L B ((And.left h) M hM) hLB)
+      (fun (hB : ∀ (M : ratRep), LimitPoint x M → ratLeRep M B) =>
+        (And.right h) B hB)
+
+theorem limsup_unique (x : Seq) (L L' : ratRep)
+    (h : Limsup x L) (h' : Limsup x L') : ratRel L L' :=
+  ratLeRep_antisymm L L'
+    ((And.right h) L' (And.left h'))
+    ((And.right h') L (And.left h))
+
+theorem limsup_of_converges (x : Seq) (L : ratRep) (h : Converges x L) :
+    Limsup x L :=
+  And.intro
+    (fun (M : ratRep) (hM : LimitPoint x M) =>
+      ratLeRep_of_ratRel M L
+        (ratRel_symm L M (limitPoint_unique_of_converges x L M h hM)))
+    (fun (B : ratRep)
+        (hB : ∀ (M : ratRep), LimitPoint x M → ratLeRep M B) =>
+      hB L (converges_limitPoint x L h))
+
+theorem limsup_unique_of_converges (x : Seq) (L M : ratRep)
+    (h : Converges x L) (hM : Limsup x M) : ratRel M L :=
+  limsup_unique x M L hM (limsup_of_converges x L h)
+
+theorem limsup_const (q : ratRep) : Limsup (constSeq q) q :=
+  limsup_of_converges (constSeq q) q (converges_const q)

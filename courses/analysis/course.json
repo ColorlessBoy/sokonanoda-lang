@@ -728,6 +728,18 @@
               "title": "单元92 极限点",
               "title_en": "Unit 92 — Limit Points",
               "unit": 92
+            },
+            {
+              "file": "units/III.3/unit93-limsup.sokonanoda",
+              "title": "单元93 上极限",
+              "title_en": "Unit 93 — Limit Superior",
+              "unit": 93
+            },
+            {
+              "file": "units/III.3/unit94-liminf.sokonanoda",
+              "title": "单元94 下极限",
+              "title_en": "Unit 94 — Limit Inferior",
+              "unit": 94
             }
           ]
         }

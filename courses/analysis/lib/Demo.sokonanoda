@@ -16,6 +16,8 @@ import lib.ExtReal
 import lib.ExtRealOrder
 import lib.Subseq
 import lib.LimitPoint
+import lib.Limsup
+import lib.Liminf
 
 theorem demo_lib_closure : True := True.intro
 
@@ -28,3 +30,9 @@ theorem demo_subseq_id : Subseq (fun (n : Nat) => n) := subseq_id
 
 theorem demo_limitPoint_zero : LimitPoint (constSeq ratZeroRep) ratZeroRep :=
   limitPoint_const ratZeroRep
+
+theorem demo_limsup_const_zero : Limsup (constSeq ratZeroRep) ratZeroRep :=
+  limsup_const ratZeroRep
+
+theorem demo_liminf_const_zero : Liminf (constSeq ratZeroRep) ratZeroRep :=
+  liminf_const ratZeroRep
