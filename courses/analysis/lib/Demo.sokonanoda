@@ -35,6 +35,8 @@ import lib.Sum
 import lib.SumSplit
 import lib.Series
 import lib.SeriesTerm
+import lib.SeriesTail
+import lib.SeriesLinear
 
 theorem demo_lib_closure : True := True.intro
 
@@ -141,3 +143,13 @@ theorem demo_lib_series_zero :
 theorem demo_lib_term_test :
     ¬ Summable (fun (_ : Nat) => ratOneRep) :=
   demo_const_one_not_summable
+
+theorem demo_lib_series_tail :
+    ratRel (Series (constSeq ratZeroRep) 3)
+      (ratAddRep (Series (constSeq ratZeroRep) 1)
+        (TailSum (constSeq ratZeroRep) 1 2)) :=
+  demo_split_three (constSeq ratZeroRep)
+
+theorem demo_lib_summable_add :
+    Summable (fun (k : Nat) => ratAddRep ratZeroRep ratZeroRep) :=
+  demo_sum_zero

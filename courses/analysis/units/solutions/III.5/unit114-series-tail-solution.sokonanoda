@@ -1,0 +1,188 @@
+-- 单元114 级数的尾巴与 Cauchy 判别（解答）
+--
+-- 112 把可和定义成部分和序列的 Cauchy 性，这个定义比较两条部分和。两条
+-- 部分和之差正好是一段连续项的和：从较小的下标取起，取到较大下标为止。
+-- 把这一段单独记下来，可和性就变成一句关于尾块的话。
+--
+-- 尾块记作 `TailSum f m k`：从第 m 项起取 k 项。`sumTo_shift` 把
+-- `Series f (m+k)` 拆成前 m 项与这个尾块；两边减去前 m 项，就得到尾块与
+-- 两个部分和之差的关系。主结果 `summable_iff_tail` 把 Cauchy 条件改写成
+-- 尾块形式，证明借用 102 的尾部跳跃判别。
+--
+-- 边界：只改写可和性的说法，不判断具体级数是否可和；`TailSum` 停在有理
+-- 代表元层，不进入 ℝ。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Sum
+import lib.SumSplit
+import lib.Series
+import lib.Limit
+import lib.Cauchy
+import lib.CauchyShapes
+import lib.RealDiff
+import lib.RealEq
+import lib.LimitClass
+
+-- ─────────────────────────────────────────────────────────────
+-- 114.0 从第 m 项起取 k 项
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾块是原序列的一个平移段。写成独立的名字，后面比较两条部分和时不必
+-- 每次重复 `fun j => f (m + j)`。
+def TailSum (f : Nat → ratRep) (m : Nat) (k : Nat) : ratRep :=
+  sumTo (fun (j : Nat) => f (Nat.add m j)) k
+
+-- ─────────────────────────────────────────────────────────────
+-- 114.1 空尾块是零
+-- ─────────────────────────────────────────────────────────────
+
+theorem tail_zero (f : Nat → ratRep) (m : Nat) :
+    ratRel (TailSum f m Nat.zero) ratZeroRep :=
+  sumTo_zero (fun (j : Nat) => f (Nat.add m j))
+
+-- ─────────────────────────────────────────────────────────────
+-- 114.2 多取一项的计算规则
+-- ─────────────────────────────────────────────────────────────
+
+-- 与 `sumTo_succ` 同一条规则：尾块增长一项时，新项是 `f (m + k)`。
+theorem tail_succ (f : Nat → ratRep) (m k : Nat) :
+    TailSum f m (Nat.succ k) = ratAddRep (TailSum f m k) (f (Nat.add m k)) :=
+  Eq.refl (ratAddRep (TailSum f m k) (f (Nat.add m k)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 114.3 部分和拆成前段与尾块
+-- ─────────────────────────────────────────────────────────────
+
+theorem series_split (f : Nat → ratRep) (m k : Nat) :
+    ratRel (Series f (Nat.add m k))
+      (ratAddRep (Series f m) (TailSum f m k)) :=
+  sumTo_shift f m k
+
+-- ─────────────────────────────────────────────────────────────
+-- 114.4 减法只换第一个加数
+-- ─────────────────────────────────────────────────────────────
+
+-- 减法是加法与取负的复合；第一个加数沿 `ratRel` 换代表元，差也跟着换。
+theorem ratSubRep_wd_fst (x x' y : ratRep) (h : ratRel x x') :
+    ratRel (ratSubRep x y) (ratSubRep x' y) :=
+  ratAddRep_wd_gen x x' (ratNegRep y) h
+
+-- ─────────────────────────────────────────────────────────────
+-- 114.5 尾块等于两条部分和之差
+-- ─────────────────────────────────────────────────────────────
+
+theorem tail_eq_sub (f : Nat → ratRep) (m k : Nat) :
+    ratRel (TailSum f m k)
+      (ratSubRep (Series f (Nat.add m k)) (Series f m)) :=
+  ratRel_symm
+    (ratSubRep (Series f (Nat.add m k)) (Series f m))
+    (TailSum f m k)
+    (ratRel_trans_gen
+      (ratSubRep (Series f (Nat.add m k)) (Series f m))
+      (ratSubRep (ratAddRep (Series f m) (TailSum f m k)) (Series f m))
+      (TailSum f m k)
+      (ratSubRep_wd_fst (Series f (Nat.add m k))
+        (ratAddRep (Series f m) (TailSum f m k))
+        (Series f m)
+        (series_split f m k))
+      (ratSubRep_add_self_sub (Series f m) (TailSum f m k)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 114.6 部分和接近当且仅当尾块小
+-- ─────────────────────────────────────────────────────────────
+
+theorem tail_close_iff (f : Nat → ratRep) (m k : Nat) (eps : ratRep) :
+    close (Series f m) (Series f (Nat.add m k)) eps ↔
+      close (TailSum f m k) ratZeroRep eps :=
+  Iff.intro
+    (fun (h : close (Series f m) (Series f (Nat.add m k)) eps) =>
+      Exists.elim
+        (Iff.mp (close_sub_zero (Series f (Nat.add m k)) (Series f m) eps)
+          (close_symm (Series f m) (Series f (Nat.add m k)) eps h))
+        (fun (d : ratRep)
+            (hd : ratAbsRel
+              (ratSubRep
+                (ratSubRep (Series f (Nat.add m k)) (Series f m))
+                ratZeroRep) d ∧
+              ratLtRep d eps) =>
+          Exists.intro d
+            (And.intro
+              (ratAbsRel_wd_left
+                (ratSubRep
+                  (ratSubRep (Series f (Nat.add m k)) (Series f m))
+                  ratZeroRep)
+                (ratSubRep (TailSum f m k) ratZeroRep)
+                d
+                (ratSubRep_wd_fst
+                  (ratSubRep (Series f (Nat.add m k)) (Series f m))
+                  (TailSum f m k)
+                  ratZeroRep
+                  (ratRel_symm (TailSum f m k)
+                    (ratSubRep (Series f (Nat.add m k)) (Series f m))
+                    (tail_eq_sub f m k)))
+                (And.left hd))
+              (And.right hd))))
+    (fun (h : close (TailSum f m k) ratZeroRep eps) =>
+      close_symm (Series f (Nat.add m k)) (Series f m) eps
+        (Iff.mpr (close_sub_zero (Series f (Nat.add m k)) (Series f m) eps)
+          (Exists.elim h
+            (fun (d : ratRep)
+                (hd : ratAbsRel
+                  (ratSubRep (TailSum f m k) ratZeroRep) d ∧
+                  ratLtRep d eps) =>
+              Exists.intro d
+                (And.intro
+                  (ratAbsRel_wd_left
+                    (ratSubRep (TailSum f m k) ratZeroRep)
+                    (ratSubRep
+                      (ratSubRep (Series f (Nat.add m k)) (Series f m))
+                      ratZeroRep)
+                    d
+                    (ratSubRep_wd_fst
+                      (TailSum f m k)
+                      (ratSubRep (Series f (Nat.add m k)) (Series f m))
+                      ratZeroRep
+                      (tail_eq_sub f m k))
+                    (And.left hd))
+                  (And.right hd))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 114.7 可和当且仅当尾块一致地小
+-- ─────────────────────────────────────────────────────────────
+
+theorem summable_iff_tail (f : Nat → ratRep) :
+    Summable f ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (m : Nat), LeNat N m →
+          ∀ (k : Nat), close (TailSum f m k) ratZeroRep eps :=
+  Iff.intro
+    (fun (h : Summable f) =>
+      fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim (cauchy_tail_jump (Series f) h eps heps)
+          (fun (N : Nat)
+              (hN : ∀ (m : Nat), LeNat N m → ∀ (k : Nat),
+                close (Series f m) (Series f (Nat.add m k)) eps) =>
+            Exists.intro N
+              (fun (m : Nat) (hm : LeNat N m) (k : Nat) =>
+                Iff.mp (tail_close_iff f m k eps) (hN m hm k))))
+    (fun (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (m : Nat), LeNat N m →
+          ∀ (k : Nat), close (TailSum f m k) ratZeroRep eps) =>
+      cauchy_of_tail_jump (Series f)
+        (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+          Exists.elim (h eps heps)
+            (fun (N : Nat)
+                (hN : ∀ (m : Nat), LeNat N m → ∀ (k : Nat),
+                  close (TailSum f m k) ratZeroRep eps) =>
+              Exists.intro N
+                (fun (m : Nat) (hm : LeNat N m) (k : Nat) =>
+                  Iff.mpr (tail_close_iff f m k eps) (hN m hm k)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 114.8 具体：前三项拆成第一项与两项尾块
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_split_three (f : Nat → ratRep) :
+    ratRel (Series f 3) (ratAddRep (Series f 1) (TailSum f 1 2)) :=
+  series_split f 1 2

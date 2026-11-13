@@ -886,6 +886,18 @@
               "title": "单元113 收敛级数的通项趋于零",
               "title_en": "Unit 113 — The Term Test for Series",
               "unit": 113
+            },
+            {
+              "file": "units/III.5/unit114-series-tail.sokonanoda",
+              "title": "单元114 级数的尾巴与 Cauchy 判别",
+              "title_en": "Unit 114 — Series Tails and the Cauchy Criterion",
+              "unit": 114
+            },
+            {
+              "file": "units/III.5/unit115-series-linear.sokonanoda",
+              "title": "单元115 可和级数的加法、取负与减法",
+              "title_en": "Unit 115 — Linearity of Summable Series",
+              "unit": 115
             }
           ]
         }
