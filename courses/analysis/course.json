@@ -828,6 +828,18 @@
               "title": "单元106 极限类的加法",
               "title_en": "Unit 106 — Addition of Limit Classes",
               "unit": 106
+            },
+            {
+              "file": "units/III.4/unit107-limit-class-neg.sokonanoda",
+              "title": "单元107 极限类的取负",
+              "title_en": "Unit 107 — Negation of Limit Classes",
+              "unit": 107
+            },
+            {
+              "file": "units/III.4/unit108-limit-class-sub.sokonanoda",
+              "title": "单元108 极限类的减法",
+              "title_en": "Unit 108 — Subtraction of Limit Classes",
+              "unit": 108
             }
           ]
         }

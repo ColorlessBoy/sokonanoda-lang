@@ -28,6 +28,8 @@ import lib.Bounded
 import lib.LimitClass
 import lib.CauchyAddBounds
 import lib.LimitClassAdd
+import lib.LimitClassNeg
+import lib.LimitClassSub
 
 theorem demo_lib_closure : True := True.intro
 
@@ -95,4 +97,18 @@ theorem demo_limit_class_add_zero :
         LimitClass (addSeq (constSeq ratZeroRep) (constSeq ratZeroRep)) c :=
   limitClass_add (constSeq ratZeroRep) (constSeq ratZeroRep)
     (Real.mk (constSeq ratZeroRep)) (Real.mk (constSeq ratZeroRep))
+    (demo_limit_class_const ratZeroRep) (demo_limit_class_const ratZeroRep)
+
+theorem demo_limit_class_neg_zero :
+    ∃ (b : Real),
+      LimitClass (negSeq (constSeq ratZeroRep)) b :=
+  limitClass_neg (constSeq ratZeroRep) (Real.mk (constSeq ratZeroRep))
+    (cauchy_const ratZeroRep) (demo_limit_class_const ratZeroRep)
+
+theorem demo_limit_class_sub_zero :
+    ∃ (c : Real),
+      LimitClass (subSeq (constSeq ratZeroRep) (constSeq ratZeroRep)) c :=
+  limitClass_sub (constSeq ratZeroRep) (constSeq ratZeroRep)
+    (Real.mk (constSeq ratZeroRep)) (Real.mk (constSeq ratZeroRep))
+    (cauchy_const ratZeroRep) (cauchy_const ratZeroRep)
     (demo_limit_class_const ratZeroRep) (demo_limit_class_const ratZeroRep)
