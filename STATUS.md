@@ -1,3 +1,9 @@
+## M3 单元120–121：望远镜级数与级数的尾块（2026-11-13 · issue #19 / PR #41）
+- `unit120-telescope-series`：3 题。`series_telescope` 把 111 的有限望远镜搬到部分和：相邻差的和只剩 `b n - b 0`；`summable_telescope` 用 `cauchy_congr` 把可和性从「`b` 加一个常数」的平移搬到差分级数；`cauchy_of_telescope_summable` 走反方向，把 `b 0` 加回 `b n - b 0`。正文 1 checked / 3 open，解答 4 / 0。
+- `unit121-series-tail`：2 题。`cauchy_shift_left` 用 `Eq.subst` 把 `cauchy_shift` 的 `x (n + k)` 改成尾块要的 `x (k + n)`；`series_tail_eq` 认出尾块级数的部分和是 `TailSum`；`summable_tail` 由 `tail_eq_sub` 与 `cauchy_add_const` 得到「可和 ⇒ 尾块可和」。正文 2 checked / 2 open，解答 4 / 0。
+- `lib/SeriesTelescope`（4）+ `lib/SeriesTailSum`（4）进库；`lib/Demo` 补两条自检（33）。
+- 判据：`check.py --json` rc=0（313 目标 · 3083 checked · 608 open · 0 rejected，M3 49/51）；`notation-lint` rc=0（324 文件，15 处豁免）；本轮改动文案 0 处（BLOCK 0 / WARN 0）；`style-lint --selftest` rc=0。边界：望远镜只处理相邻差；尾块只证「可和 ⇒ 尾块可和」。不新增公理。下一单元 122。
+
 ## M3 单元118–119：比较判别法与绝对收敛（2026-11-13 · issue #19 / PR #41）
 - `unit118-comparison`：3 题。`tailSum_le` 把逐项比较搬到尾块；`tail_close_of_le` 说明被压住的尾块也一致地小（非负见证取自身，`ratAbsRel_le` 与 `ratLtRep_of_le_lt` 收口）；`summable_of_le` 用 114 的尾块判别合成比较判别法，`not_summable_of_le` 是逆否形式。正文 2 checked / 3 open，解答 5 / 0。
 - `unit119-abs-convergence`：2 题。`ratLtRep_of_le_close` 把「y 在 ε 内靠近零」转成「不超过 y 的 d 也小于 ε」；`summable_of_abs` 用 117 的 `sumTo_abs_le` 把 f 的尾块压在 g 的尾块下；`AbsSummable` 把绝对收敛写成存在见证序列，`abs_summable_summable` 消去见证。正文 3 checked / 2 open，解答 5 / 0。
@@ -10,9 +16,3 @@
 - `lib/SumNonneg`（4）+ `lib/SumAbs`（3）进库；`lib/Demo` 补两条自检（29）。
 - 判据：`check.py --json` rc=0（301 目标 · 3031 checked · 598 open · 0 rejected，M3 45/51）；`notation-lint` rc=0（312 文件，15 处豁免）；本轮改动文案 0 处；`style-lint --selftest` rc=0。边界：只比较部分和、只给有限和的见证，不判断级数可和；不新增公理。下一单元 118。
 
-## M3 单元114–115：级数的尾块与可和级数的线性（2026-11-13 · issue #19 / PR #41）
-- `unit114-series-tail`：3 题。尾块 `TailSum f m k` 取第 m 项起的 k 项和；`sumTo_shift` 把部分和拆成前段与尾块（`series_split`），两减得 `tail_eq_sub`；`tail_close_iff` 把部分和的接近性换成尾块小；`summable_iff_tail` 借 102 的跳跃形式给出尾块判别。正文 6 checked / 3 open / 0 rejected，解答 9 checked / 0 open。
-- `unit115-series-linear`：4 题。`cauchy_congr` 把 Cauchy 性沿逐点 `ratRel` 搬运；`sumTo_add` / `sumTo_neg` 把逐项运算翻成部分和运算，得 `summable_add` / `summable_neg` / `summable_sub`。正文 3 checked / 4 open / 0 rejected，解答 7 checked / 0 open。
-- `lib/SeriesTail`（9）+ `lib/SeriesLinear`（7）进库，`lib/Demo` 补 import 与两条自检（27 checked）。
-- 判据：`check.py --json` rc=0（295 目标 · 3010 checked · 594 open · 0 rejected，M3 43/51）；`notation-lint` rc=0（306 文件，15 处豁免）；III.5 与新增 lib 文案 0 处；`style-lint --selftest` rc=0。
-- 边界：尾块判别只改写可和性；线性只在可和性上封闭，不把和类相加。不新增公理。下一单元：III.5 单元116。

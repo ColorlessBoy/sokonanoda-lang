@@ -1,0 +1,85 @@
+-- 课程库：望远镜级数
+--
+-- 单元120 在画布上证明下面四条；这里收进 L2，后面的例子与尾块估计直接引用：
+--
+--   · `series_telescope` —— 相邻差的部分和只剩首尾；
+--   · `summable_telescope` —— 端点序列 Cauchy，差分级数就可和；
+--   · `cauchy_of_telescope_summable` —— 反过来，差分级数可和则端点序列 Cauchy；
+--   · `demo_series_telescope_three` —— 三个差的和等于首尾之差。
+--
+-- 边界：只处理相邻差这一种级数；不给一般级数的求和公式，也不涉及重排。
+-- 不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatClose
+import lib.Sum
+import lib.SumSplit
+import lib.Series
+import lib.SeriesLinear
+import lib.LimitOrder
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 120.0 相邻差的部分和只剩首尾
+-- ─────────────────────────────────────────────────────────────
+
+-- 部分和就是 111 的有限望远镜：逐项差相加，中间项两两抵消。
+theorem series_telescope (b : Nat → ratRep) (n : Nat) :
+    ratRel (Series (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k)) n)
+      (ratSubRep (b n) (b Nat.zero)) :=
+  sumTo_telescope b n
+
+-- ─────────────────────────────────────────────────────────────
+-- 120.1 端点 Cauchy，差分级数可和
+-- ─────────────────────────────────────────────────────────────
+
+-- 部分和与 `b n - b 0` 逐点相等，而 `b n - b 0` 是 `b` 加一个常数。
+-- 端点序列 Cauchy，加常数后仍 Cauchy，搬运律把可和性交给差分级数。
+theorem summable_telescope (b : Nat → ratRep) (hb : Cauchy b) :
+    Summable (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k)) :=
+  cauchy_congr (addConst b (ratNegRep (b Nat.zero)))
+    (Series (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k)))
+    (fun (n : Nat) =>
+      ratRel_symm
+        (Series (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k)) n)
+        (ratSubRep (b n) (b Nat.zero))
+        (series_telescope b n))
+    (cauchy_add_const b (ratNegRep (b Nat.zero)) hb)
+
+-- ─────────────────────────────────────────────────────────────
+-- 120.2 差分级数可和，端点 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- 反过来，把端点写成「相邻差的和」再加回首项：`(b n - b 0) + b 0 ~ b n`。
+-- 差分级数可和说明 `b n - b 0` Cauchy，加常数后与 `b` 逐点相等。
+theorem cauchy_of_telescope_summable (b : Nat → ratRep)
+    (h : Summable (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k))) :
+    Cauchy b :=
+  cauchy_congr
+    (addConst (fun (n : Nat) => ratSubRep (b n) (b Nat.zero)) (b Nat.zero))
+    b
+    (fun (n : Nat) => ratSubRep_add_self (b n) (b Nat.zero))
+    (cauchy_add_const (fun (n : Nat) => ratSubRep (b n) (b Nat.zero))
+      (b Nat.zero)
+      (cauchy_congr
+        (Series (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k)))
+        (fun (n : Nat) => ratSubRep (b n) (b Nat.zero))
+        (fun (n : Nat) => series_telescope b n)
+        h))
+
+-- ─────────────────────────────────────────────────────────────
+-- 120.3 具体：三个差的和等于首尾之差
+-- ─────────────────────────────────────────────────────────────
+
+-- 取 `b k = k`：前三个差是 1、1、1，和是 3，也就是 `b 3 - b 0`。
+theorem demo_series_telescope_three :
+    ratRel
+      (Series (fun (k : Nat) => ratSubRep (qrep (Nat.succ k) 0 0) (qrep k 0 0)) 3)
+      (qrep 3 0 0) :=
+  ratRel_trans_gen
+    (Series (fun (k : Nat) => ratSubRep (qrep (Nat.succ k) 0 0) (qrep k 0 0)) 3)
+    (ratSubRep (qrep 3 0 0) (qrep Nat.zero 0 0))
+    (qrep 3 0 0)
+    (series_telescope (fun (k : Nat) => qrep k 0 0) 3)
+    (ratAdd_zero (qrep 3 0 0))

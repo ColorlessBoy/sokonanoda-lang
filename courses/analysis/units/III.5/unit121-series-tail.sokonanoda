@@ -1,0 +1,73 @@
+-- 单元121 级数的尾块
+--
+-- 120 用端点序列的 Cauchy 性造出一族可和级数。级数可和是关于整条部分和的
+-- 要求，去掉前面有限项理应不影响它。把这句话写成定理，就是可和级数的任意
+-- 尾块本身仍是可和级数：尾块级数的部分和等于两条部分和之差，而部分和向左
+-- 平移仍 Cauchy。
+--
+-- 路线：121.0 补一条向左平移的 Cauchy 性；121.1 认尾块级数的部分和；121.2
+-- 由尾块与部分和之差得到尾块可和；121.3 把望远镜级数的尾块认成另一个
+-- 望远镜级数。
+--
+-- 边界：只走「可和 ⇒ 尾块可和」这一个方向；反方向要把尾块下标换回原下标，
+-- 留到后续单元。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Sum
+import lib.SumSplit
+import lib.Series
+import lib.SeriesTail
+import lib.SeriesLinear
+import lib.SeriesTelescope
+import lib.CauchyTail
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 121.0 向左平移仍 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- `cauchy_shift` 给的是 `x (n + k)`；尾块要的是 `x (k + n)`。两条下标只差
+-- ℕ 加法的交换律，把阈值用 `Eq.subst` 搬过去即可。
+--
+-- soko:hint 思路：先取 `h` 的阈值 N；对每个 `n ≥ N`，把 `leNat_self_add n k`（`n ≤ n + k`）用 `add_comm n k` 搬到 `n ≤ k + n`，再与 `N ≤ n` 传递。
+-- soko:hint 目标形态：`Cauchy (fun (n : Nat) => x (Nat.add k n))`。
+-- soko:hint 关键件：cauchy_shift 的阈值结构 · leNat_self_add · add_comm · Eq.subst · leNat_trans。
+theorem cauchy_shift_left (x : Seq) (k : Nat) (h : Cauchy x) :
+    Cauchy (fun (n : Nat) => x (Nat.add k n)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 121.1 尾块级数的部分和
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾块级数的第 k 项就是 `f (m + k)`，它的部分和正是 114 的 `TailSum f m n`。
+theorem series_tail_eq (f : Nat → ratRep) (m n : Nat) :
+    ratRel (Series (fun (k : Nat) => f (Nat.add m k)) n) (TailSum f m n) :=
+  ratRel_refl (TailSum f m n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 121.2 可和级数的尾块仍可和
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾块级数的部分和由 121.1 认成 `TailSum f m n`，再由 114.5 读成
+-- `S (m + n) - S m`。`S` 向左平移仍 Cauchy，加常数 `-S m` 后仍 Cauchy；
+-- 搬运律把它换成尾块级数的可和性。
+--
+-- soko:hint 思路：用 `cauchy_congr` 把可和性从 `addConst (fun n => Series f (m + n)) (-(Series f m))` 搬到尾块级数；逐点等式是 121.1 接 114.5，Cauchy 性用 121.0 与 `cauchy_add_const`。
+-- soko:hint 目标形态：`Summable (fun (k : Nat) => f (Nat.add m k))`。
+-- soko:hint 关键件：cauchy_congr · cauchy_shift_left · cauchy_add_const · tail_eq_sub · ratRel_symm。
+theorem summable_tail (f : Nat → ratRep) (m : Nat) (h : Summable f) :
+    Summable (fun (k : Nat) => f (Nat.add m k)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 121.3 具体：望远镜级数的尾块仍是望远镜级数
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾块的第 k 项是 `b (m+k+1) - b (m+k)`，正是平移后端点序列的相邻差。
+theorem demo_tail_telescope (b : Nat → ratRep) (m : Nat) (hb : Cauchy b) :
+    Summable (fun (k : Nat) =>
+      ratSubRep (b (Nat.add m (Nat.succ k))) (b (Nat.add m k))) :=
+  summable_telescope (fun (j : Nat) => b (Nat.add m j))
+    (cauchy_shift_left b m hb)

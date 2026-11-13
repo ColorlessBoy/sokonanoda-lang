@@ -922,6 +922,18 @@
               "title": "单元119 绝对收敛推出收敛",
               "title_en": "Unit 119 — Absolute Convergence Implies Convergence",
               "unit": 119
+            },
+            {
+              "file": "units/III.5/unit120-telescope-series.sokonanoda",
+              "title": "单元120 望远镜级数",
+              "title_en": "Unit 120 — Telescoping Series",
+              "unit": 120
+            },
+            {
+              "file": "units/III.5/unit121-series-tail.sokonanoda",
+              "title": "单元121 级数的尾块",
+              "title_en": "Unit 121 — Tails of Series",
+              "unit": 121
             }
           ]
         }

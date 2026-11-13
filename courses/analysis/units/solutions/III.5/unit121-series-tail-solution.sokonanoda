@@ -1,0 +1,92 @@
+-- 单元121 级数的尾块（解答）
+--
+-- 120 用端点序列的 Cauchy 性造出一族可和级数。级数可和是关于整条部分和的
+-- 要求，去掉前面有限项理应不影响它。把这句话写成定理，就是可和级数的任意
+-- 尾块本身仍是可和级数：尾块级数的部分和等于两条部分和之差，而部分和向左
+-- 平移仍 Cauchy。
+--
+-- 路线：121.0 补一条向左平移的 Cauchy 性；121.1 认尾块级数的部分和；121.2
+-- 由尾块与部分和之差得到尾块可和；121.3 把望远镜级数的尾块认成另一个
+-- 望远镜级数。
+--
+-- 边界：只走「可和 ⇒ 尾块可和」这一个方向；反方向要把尾块下标换回原下标，
+-- 留到后续单元。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Sum
+import lib.SumSplit
+import lib.Series
+import lib.SeriesTail
+import lib.SeriesLinear
+import lib.SeriesTelescope
+import lib.CauchyTail
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 121.0 向左平移仍 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- `cauchy_shift` 移的是 `x (n + k)`；这里要 `x (k + n)`。两条下标只差
+-- ℕ 加法的交换律，用 `Eq.subst` 把阈值搬过去。
+theorem cauchy_shift_left (x : Seq) (k : Nat) (h : Cauchy x) :
+    Cauchy (fun (n : Nat) => x (Nat.add k n)) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (N : Nat)
+          (hN : ∀ (n m : Nat), LeNat N n → LeNat N m →
+            close (x n) (x m) eps) =>
+        Exists.intro N
+          (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =>
+            hN (Nat.add k n) (Nat.add k m)
+              (leNat_trans N n (Nat.add k n) hn
+                (@Eq.subst.{1} Nat
+                  (fun (t : Nat) => LeNat n t)
+                  (Nat.add n k) (Nat.add k n) (add_comm n k)
+                  (leNat_self_add n k)))
+              (leNat_trans N m (Nat.add k m) hm
+                (@Eq.subst.{1} Nat
+                  (fun (t : Nat) => LeNat m t)
+                  (Nat.add m k) (Nat.add k m) (add_comm m k)
+                  (leNat_self_add m k)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 121.1 尾块级数的部分和
+-- ─────────────────────────────────────────────────────────────
+
+-- 两边都是同一个 `sumTo`，只是写法不同。
+theorem series_tail_eq (f : Nat → ratRep) (m n : Nat) :
+    ratRel (Series (fun (k : Nat) => f (Nat.add m k)) n) (TailSum f m n) :=
+  ratRel_refl (TailSum f m n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 121.2 可和级数的尾块仍可和
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾块级数的部分和是 `S (m + n) - S m`（114.5）。`S` 向左平移仍 Cauchy，
+-- 再加一个常数 `-S m`；搬运律把它换成尾块级数本身。
+theorem summable_tail (f : Nat → ratRep) (m : Nat) (h : Summable f) :
+    Summable (fun (k : Nat) => f (Nat.add m k)) :=
+  cauchy_congr
+    (addConst (fun (n : Nat) => Series f (Nat.add m n))
+      (ratNegRep (Series f m)))
+    (Series (fun (k : Nat) => f (Nat.add m k)))
+    (fun (n : Nat) =>
+      ratRel_symm
+        (TailSum f m n)
+        (ratSubRep (Series f (Nat.add m n)) (Series f m))
+        (tail_eq_sub f m n))
+    (cauchy_add_const (fun (n : Nat) => Series f (Nat.add m n))
+      (ratNegRep (Series f m))
+      (cauchy_shift_left (Series f) m h))
+
+-- ─────────────────────────────────────────────────────────────
+-- 121.3 具体：望远镜级数的尾块仍是望远镜级数
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾块的第 k 项是 `b (m+k+1) - b (m+k)`，正是平移后端点序列的相邻差。
+theorem demo_tail_telescope (b : Nat → ratRep) (m : Nat) (hb : Cauchy b) :
+    Summable (fun (k : Nat) =>
+      ratSubRep (b (Nat.add m (Nat.succ k))) (b (Nat.add m k))) :=
+  summable_telescope (fun (j : Nat) => b (Nat.add m j))
+    (cauchy_shift_left b m hb)

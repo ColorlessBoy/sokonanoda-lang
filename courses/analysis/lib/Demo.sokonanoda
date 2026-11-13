@@ -41,6 +41,8 @@ import lib.SumNonneg
 import lib.SumAbs
 import lib.SeriesCompare
 import lib.SeriesAbs
+import lib.SeriesTelescope
+import lib.SeriesTailSum
 
 theorem demo_lib_closure : True := True.intro
 
@@ -175,3 +177,13 @@ theorem demo_lib_comparison_zero :
 theorem demo_lib_abs_zero :
     AbsSummable (fun (_ : Nat) => ratZeroRep) :=
   demo_abs_zero
+
+theorem demo_lib_series_telescope :
+    ratRel
+      (Series (fun (k : Nat) => ratSubRep (qrep (Nat.succ k) 0 0) (qrep k 0 0)) 3)
+      (qrep 3 0 0) :=
+  demo_series_telescope_three
+
+theorem demo_lib_summable_tail_zero (m : Nat) :
+    Summable (fun (_ : Nat) => ratZeroRep) :=
+  summable_tail (fun (_ : Nat) => ratZeroRep) m summable_zero

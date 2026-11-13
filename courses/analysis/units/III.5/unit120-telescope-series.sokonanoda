@@ -1,0 +1,79 @@
+-- 单元120 望远镜级数
+--
+-- 115 解决了可和级数的加减，但手上能算出和的可和级数还只有零级数。相邻两项
+-- 的差相加时会成对抵消，这条结构给出一整族可和级数，也把「级数可和」换回
+-- 端点序列的 Cauchy 性——判断可和性从此多了一条不用估计部分和的通道。
+--
+-- 路线：120.0 把 111 的有限望远镜搬到部分和上；120.1 由端点 Cauchy 推出
+-- 差分级数可和；120.2 走反方向；120.3 在 `b k = k` 上核对三个差的和。
+--
+-- 边界：只处理相邻差这一种级数，不给一般级数的求和公式；也不涉及重排。
+-- 不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Sum
+import lib.SumSplit
+import lib.Series
+import lib.SeriesLinear
+import lib.LimitOrder
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 120.0 相邻差的部分和只剩首尾
+-- ─────────────────────────────────────────────────────────────
+
+-- 部分和按定义就是 `sumTo`，111.1 的有限望远镜逐项抵消，只剩 `b n - b 0`。
+--
+-- soko:hint 思路：部分和按定义展开成 `sumTo`，直接引用 111.1 的 `sumTo_telescope`。
+-- soko:hint 目标形态：`ratRel (Series f n) (ratSubRep (b n) (b Nat.zero))`，其中 `f k = b (k+1) - b k`。
+-- soko:hint 关键件：sumTo_telescope · Series 的定义。
+theorem series_telescope (b : Nat → ratRep) (n : Nat) :
+    ratRel (Series (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k)) n)
+      (ratSubRep (b n) (b Nat.zero)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 120.1 端点 Cauchy，差分级数可和
+-- ─────────────────────────────────────────────────────────────
+
+-- 逐点等式 120.0 把部分和与 `b n - b 0` 接上，而后者是 `b` 加一个常数。
+-- 端点序列 Cauchy，加常数后仍 Cauchy，搬运律把可和性交还差分级数。
+--
+-- soko:hint 思路：用 `cauchy_congr` 把可和性从 `addConst b (-(b 0))` 搬到差分级数；逐点等式用 120.0，Cauchy 性用 `cauchy_add_const`。
+-- soko:hint 目标形态：`Summable (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k))`。
+-- soko:hint 关键件：cauchy_congr · cauchy_add_const · ratRel_symm · series_telescope。
+theorem summable_telescope (b : Nat → ratRep) (hb : Cauchy b) :
+    Summable (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 120.2 差分级数可和，端点 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- 反方向：差分级数可和说明 `b n - b 0` Cauchy；把 `b 0` 加回去，再与
+-- `b` 逐点比较，就得到端点序列的 Cauchy 性。
+--
+-- soko:hint 思路：先用 120.0 把差分级数的部分和读到 `b n - b 0`，得 `Cauchy (fun n => b n - b 0)`；再加回 `b 0`，最后与 `b` 逐点比较。
+-- soko:hint 目标形态：`Cauchy b`。
+-- soko:hint 关键件：cauchy_congr · cauchy_add_const · ratSubRep_add_self · series_telescope。
+theorem cauchy_of_telescope_summable (b : Nat → ratRep)
+    (h : Summable (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k))) :
+    Cauchy b :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 120.3 具体：三个差的和等于首尾之差
+-- ─────────────────────────────────────────────────────────────
+
+-- 取 `b k = k`：前三个差是 1、1、1，和是 3，也就是 `b 3 - b 0`。
+theorem demo_series_telescope_three :
+    ratRel
+      (Series (fun (k : Nat) => ratSubRep (qrep (Nat.succ k) 0 0) (qrep k 0 0)) 3)
+      (qrep 3 0 0) :=
+  ratRel_trans_gen
+    (Series (fun (k : Nat) => ratSubRep (qrep (Nat.succ k) 0 0) (qrep k 0 0)) 3)
+    (ratSubRep (qrep 3 0 0) (qrep Nat.zero 0 0))
+    (qrep 3 0 0)
+    (series_telescope (fun (k : Nat) => qrep k 0 0) 3)
+    (ratAdd_zero (qrep 3 0 0))
