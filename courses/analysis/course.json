@@ -798,6 +798,18 @@
               "title": "单元101 Cauchy 序列有界",
               "title_en": "Unit 101 — Cauchy Sequences are Bounded",
               "unit": 101
+            },
+            {
+              "file": "units/III.4/unit102-cauchy-shapes.sokonanoda",
+              "title": "单元102 Cauchy 性的等价写法",
+              "title_en": "Unit 102 — Equivalent Forms of the Cauchy Condition",
+              "unit": 102
+            },
+            {
+              "file": "units/III.4/unit103-realrel-diff.sokonanoda",
+              "title": "单元103 实数相等与差趋于零",
+              "title_en": "Unit 103 — Real Equality and Differences Tending to Zero",
+              "unit": 103
             }
           ]
         }

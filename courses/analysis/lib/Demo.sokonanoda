@@ -22,6 +22,8 @@ import lib.SubseqLimit
 import lib.LimsupBound
 import lib.Tail
 import lib.CauchyTail
+import lib.CauchyShapes
+import lib.RealDiff
 import lib.Bounded
 
 theorem demo_lib_closure : True := True.intro
@@ -68,3 +70,14 @@ theorem demo_cauchy_tail_zero : Cauchy (constSeq ratZeroRep) :=
 
 theorem demo_bounded_const_zero : Bounded (constSeq ratZeroRep) :=
   demo_bounded_const ratZeroRep
+
+theorem demo_cauchy_jump_zero :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+        ∀ (k : Nat), close ((constSeq ratZeroRep) n)
+          ((constSeq ratZeroRep) (Nat.add n k)) eps :=
+  demo_cauchy_jump_const ratZeroRep
+
+theorem demo_diff_self_zero :
+    Converges (diffSeq (constSeq ratZeroRep) (constSeq ratZeroRep)) ratZeroRep :=
+  demo_diff_self_tends_zero (constSeq ratZeroRep) (cauchy_const ratZeroRep)
