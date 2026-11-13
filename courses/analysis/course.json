@@ -934,6 +934,18 @@
               "title": "单元121 级数的尾块",
               "title_en": "Unit 121 — Tails of Series",
               "unit": 121
+            },
+            {
+              "file": "units/III.5/unit122-tail-reverse.sokonanoda",
+              "title": "单元122 尾块判别（反方向）",
+              "title_en": "Unit 122 — The Reverse Tail Criterion",
+              "unit": 122
+            },
+            {
+              "file": "units/III.5/unit123-series-swap.sokonanoda",
+              "title": "单元123 级数的重排：交换前两项",
+              "title_en": "Unit 123 — Rearranging a Series: Swapping the First Two Terms",
+              "unit": 123
             }
           ]
         }

@@ -43,6 +43,8 @@ import lib.SeriesCompare
 import lib.SeriesAbs
 import lib.SeriesTelescope
 import lib.SeriesTailSum
+import lib.SeriesTailReverse
+import lib.SeriesSwap
 
 theorem demo_lib_closure : True := True.intro
 
@@ -187,3 +189,11 @@ theorem demo_lib_series_telescope :
 theorem demo_lib_summable_tail_zero (m : Nat) :
     Summable (fun (_ : Nat) => ratZeroRep) :=
   summable_tail (fun (_ : Nat) => ratZeroRep) m summable_zero
+
+theorem demo_lib_summable_of_tail_zero (m : Nat) :
+    Summable (fun (_ : Nat) => ratZeroRep) :=
+  demo_summable_of_tail_zero m
+
+theorem demo_lib_swapFirst_zero :
+    Summable (swapFirst (fun (_ : Nat) => ratZeroRep)) :=
+  demo_swapFirst_zero
