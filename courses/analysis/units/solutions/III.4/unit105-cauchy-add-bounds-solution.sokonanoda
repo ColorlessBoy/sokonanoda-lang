@@ -1,0 +1,171 @@
+-- 单元105 极限加法的估计：两个 ε/2 界相加（解答）
+--
+-- 两个收敛序列逐点相加，极限也相加。这条结论的全部算术都在一个式子里：
+-- 把 `(x + y) - ((L + M) + eps)` 拆成两段各 `eps/2` 的差。拆开的每一步
+-- 都要和 `ratAddRep` 的括号、次序打交道，直接塞进极限的证明会让量词和
+-- 代数混在一起。
+--
+-- 105.0–105.1 先备两条搬运律：减法对第二个因子同余，四个加数重新配对。
+-- 105.2–105.3 把两条差界相加，并把两个误差对齐到同一个 eps；105.4 把
+-- `d/2` 的两条界收成一条 `d` 界。105.5 是一个具体实例。
+--
+-- 边界：只做代表元层的估计，不声称任何序列收敛，也不在类层谈加法。
+-- 不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatHalf
+import lib.RatSub
+import lib.RatAssoc
+import lib.Cauchy
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.LimitOrder
+
+-- ─────────────────────────────────────────────────────────────
+-- 105.0 减法对第二个因子同余
+-- ─────────────────────────────────────────────────────────────
+
+-- `x - y` 展开是 `x + (-y)`。要把它换成 `x - y'`，只需要取负保持等价，
+-- 再用加法对第二个因子的同余。
+--
+theorem ratSubRep_wd_snd (x y y' : ratRep) (h : ratRel y y') :
+    ratRel (ratSubRep x y) (ratSubRep x y') :=
+  ratAddRep_wd_snd_gen x (ratNegRep y) (ratNegRep y') (ratNegRep_wd y y' h)
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 105.1 四个加数重新配对
+-- ─────────────────────────────────────────────────────────────
+
+-- `(a + g) + (b + g)` 与 `(a + b) + (g + g)` 只差括号与中间两项的次序。
+-- 先把外层的结合律拆开，把 `g + (b + g)` 重排成 `b + (g + g)`，最后
+-- 再把 `a + (b + (g + g))` 收回成 `(a + b) + (g + g)`。
+--
+theorem ratAddRep_shift (a b g : ratRep) :
+    ratRel (ratAddRep (ratAddRep a g) (ratAddRep b g))
+           (ratAddRep (ratAddRep a b) (ratAddRep g g)) :=
+  ratRel_trans_gen
+    (ratAddRep (ratAddRep a g) (ratAddRep b g))
+    (ratAddRep a (ratAddRep g (ratAddRep b g)))
+    (ratAddRep (ratAddRep a b) (ratAddRep g g))
+    (ratAdd_assoc a g (ratAddRep b g))
+    (ratRel_trans_gen
+      (ratAddRep a (ratAddRep g (ratAddRep b g)))
+      (ratAddRep a (ratAddRep b (ratAddRep g g)))
+      (ratAddRep (ratAddRep a b) (ratAddRep g g))
+      (ratAddRep_wd_snd_gen a
+        (ratAddRep g (ratAddRep b g))
+        (ratAddRep b (ratAddRep g g))
+        (ratRel_trans_gen
+          (ratAddRep g (ratAddRep b g))
+          (ratAddRep (ratAddRep g b) g)
+          (ratAddRep b (ratAddRep g g))
+          (ratRel_symm (ratAddRep (ratAddRep g b) g)
+            (ratAddRep g (ratAddRep b g))
+            (ratAdd_assoc g b g))
+          (ratRel_trans_gen
+            (ratAddRep (ratAddRep g b) g)
+            (ratAddRep (ratAddRep b g) g)
+            (ratAddRep b (ratAddRep g g))
+            (ratAddRep_wd_gen (ratAddRep g b) (ratAddRep b g) g
+              (ratAdd_comm g b))
+            (ratAdd_assoc b g g))))
+      (ratRel_symm
+        (ratAddRep (ratAddRep a b) (ratAddRep g g))
+        (ratAddRep a (ratAddRep b (ratAddRep g g)))
+        (ratAdd_assoc a b (ratAddRep g g))))
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 105.2 两条差界相加
+-- ─────────────────────────────────────────────────────────────
+
+-- `(a + b) - ((A + g) + (B + g))` 拆成 `(a - (A + g)) + (b - (B + g))`，
+-- 两条 `≤ g'` 的界相加就是 `≤ g' + g'`。拆开这一步是 60.1 的
+-- `ratSubRep_add_sub`，两边再沿对称的等价搬回。
+--
+theorem ratLeRep_sub_pair (a b A B g g' : ratRep)
+    (h1 : ratLeRep (ratSubRep a (ratAddRep A g)) g')
+    (h2 : ratLeRep (ratSubRep b (ratAddRep B g)) g') :
+    ratLeRep (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A g) (ratAddRep B g)))
+              (ratAddRep g' g') :=
+  ratLeRep_congr_gen
+    (ratAddRep (ratSubRep a (ratAddRep A g)) (ratSubRep b (ratAddRep B g)))
+    (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A g) (ratAddRep B g)))
+    (ratAddRep g' g') (ratAddRep g' g')
+    (ratRel_symm
+      (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A g) (ratAddRep B g)))
+      (ratAddRep (ratSubRep a (ratAddRep A g)) (ratSubRep b (ratAddRep B g)))
+      (ratSubRep_add_sub a (ratAddRep A g) b (ratAddRep B g)))
+    (ratRel_refl (ratAddRep g' g'))
+    (ratLeRep_add (ratSubRep a (ratAddRep A g)) g'
+                  (ratSubRep b (ratAddRep B g)) g' h1 h2)
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 105.3 两个误差对齐到同一个 eps
+-- ─────────────────────────────────────────────────────────────
+
+-- 105.2 给出的减法右端是 `(A + g) + (B + g)`，目标要的是 `(A + B) + eps`。
+-- 105.1 把前者换成 `(A + B) + (g + g)`，`g + g ~ eps` 再把右边对齐；
+-- 减法对第二个因子同余，最后把两条界接起来。
+--
+theorem ratLeRep_sub_pair_eps (a b A B g eps g' : ratRep)
+    (h1 : ratLeRep (ratSubRep a (ratAddRep A g)) g')
+    (h2 : ratLeRep (ratSubRep b (ratAddRep B g)) g')
+    (hg : ratRel (ratAddRep g g) eps) :
+    ratLeRep (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A B) eps))
+              (ratAddRep g' g') :=
+  ratLeRep_congr_gen
+    (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A g) (ratAddRep B g)))
+    (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A B) eps))
+    (ratAddRep g' g') (ratAddRep g' g')
+    (ratSubRep_wd_snd (ratAddRep a b)
+      (ratAddRep (ratAddRep A g) (ratAddRep B g))
+      (ratAddRep (ratAddRep A B) eps)
+      (ratRel_trans_gen
+        (ratAddRep (ratAddRep A g) (ratAddRep B g))
+        (ratAddRep (ratAddRep A B) (ratAddRep g g))
+        (ratAddRep (ratAddRep A B) eps)
+        (ratAddRep_shift A B g)
+        (ratAddRep_wd_snd_gen (ratAddRep A B) (ratAddRep g g) eps hg)))
+    (ratRel_refl (ratAddRep g' g'))
+    (ratLeRep_sub_pair a b A B g g' h1 h2)
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 105.4 折半的界合成一条
+-- ─────────────────────────────────────────────────────────────
+
+-- 后面两条 `TendsTo` 的估计都取 `d/2`：105.3 给出 `(d/2) + (d/2)`，
+-- `ratHalf_add_self` 再把它认成 `d`。这一步之后，调用点只需要关心一条
+-- 整数界。
+--
+theorem ratLeRep_sub_pair_half (a b A B e eps d : ratRep)
+    (h1 : ratLeRep (ratSubRep a (ratAddRep A e)) (ratHalf d))
+    (h2 : ratLeRep (ratSubRep b (ratAddRep B e)) (ratHalf d))
+    (he : ratRel (ratAddRep e e) eps) :
+    ratLeRep (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A B) eps)) d :=
+  ratLeRep_congr_gen
+    (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A B) eps))
+    (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A B) eps))
+    (ratAddRep (ratHalf d) (ratHalf d)) d
+    (ratRel_refl (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A B) eps)))
+    (ratHalf_add_self d)
+    (ratLeRep_sub_pair_eps a b A B e eps (ratHalf d) h1 h2 he)
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 105.5 具体实例
+-- ─────────────────────────────────────────────────────────────
+
+-- 把 `g` 取成零：105.1 的左边退化成 `a + b`，右边也退化成 `a + b`。
+-- 这条实例只用来检查 105.1 的方向与参数顺序。
+--
+theorem demo_add_shift (a b : ratRep) :
+    ratRel (ratAddRep (ratAddRep a ratZeroRep) (ratAddRep b ratZeroRep))
+           (ratAddRep (ratAddRep a b) (ratAddRep ratZeroRep ratZeroRep)) :=
+  ratAddRep_shift a b ratZeroRep
+

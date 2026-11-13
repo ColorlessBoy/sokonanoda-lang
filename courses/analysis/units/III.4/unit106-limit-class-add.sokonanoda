@@ -1,0 +1,92 @@
+-- 单元106 极限类的加法
+--
+-- 105 备好了两条 `ε/2` 界相加的估计，但那还只是代表元层的算术。要把
+-- 「两个极限类相加」变成一个可以引用的对象，还得把估计装成 `TendsTo`
+-- 的两条非严格界，再经 `addRel` 落到商上。缺了后一步，加法只对选定的
+-- 代表元成立，换一个代表元就不知道还对不对。
+--
+-- 106.0 把 105 的左右两半组装成和的收敛；106.1 把 `a = [L]`、`b = [M]`
+-- 代回三元关系；106.2 拆开两个极限类，得到和类与 `addRel` 同时成立；
+-- 106.3 是常序列的实例。
+--
+-- 边界：只在两个已经有极限类的序列上谈加法，不构造实数的减法，也不
+-- 声称每个实数都有代表元。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatHalf
+import lib.RatClose
+import lib.Cauchy
+import lib.CauchyAddBounds
+import lib.RealComplete
+import lib.RealOrder
+import lib.RealOrderLift
+import lib.RealAdd
+import lib.RealAddRel
+import lib.LimitClass
+
+-- ─────────────────────────────────────────────────────────────
+-- 106.0 和的收敛
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 eps 折半得到 g。两条 `TendsTo` 在 g 上各给一个阈值，用 `leNat_max`
+-- 合并；对 n 超过合并阈值，第一半把「x n 靠近 L + g」与「y n 靠近
+-- M + g」各取 d/2，交给 105 的左半；第二半把两个位置对调，交给 105 的
+-- 右半。两个 `realLe` 最后由 `realLe_mk` 送回商。
+--
+-- soko:hint 思路：`g := ratHalf eps`，正性由 `ratLtRep_half`。两条 TendsTo 给 N1、N2，`leNat_max` 合成 N。两个方向各调用一次 `realLeRep_add_side` / `_right`；逐点界由 `realLeRep_close` 在 `ratHalf d` 上读出，最后经 `realLe_mk` 送回商。
+-- soko:hint 目标形态：`TendsTo (addSeq x y) (addSeq L M)`。
+-- soko:hint 关键件：ratLtRep_half · leNat_max · leNat_trans · realLeRep_close · realLeRep_add_side · realLeRep_add_side_right · realLe_mk · cauchy_add · cauchy_add_const。
+theorem tendsTo_add (x y L M : Seq) (hLc : Cauchy L) (hMc : Cauchy M)
+    (hx : TendsTo x L) (hy : TendsTo y M) :
+    TendsTo (addSeq x y) (addSeq L M) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 106.1 关系的搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- `addRel L M [L + M]` 由 `addRel_mk` 的 ι 规则直接给出，只需要两个
+-- `Cauchy` 守卫。把 `a = [L]`、`b = [M]` 代回去要两次 `Eq.subst`：
+-- 注意显式类型参数的顺序是「动机、起点、终点、等式、证明」。
+--
+-- soko:hint 思路：先构造 `addRel (mk L) (mk M) (mk (addSeq L M))`：`addRel_mk` 的反向要 `Cauchy L ∧ Cauchy M ∧ mk (addSeq L M) = mk (addSeq L M)`。再用 `Eq.symm ha`、`Eq.symm hb` 做两次替换，把 `mk L`、`mk M` 换成 `a`、`b`。
+-- soko:hint 目标形态：`addRel a b (Real.mk (addSeq L M))`。
+-- soko:hint 关键件：addRel_mk · Iff.mpr · And.intro · Eq.subst（全显式）· Eq.symm · Eq.refl。
+theorem addRel_limit (L M : Seq) (a b : Real)
+    (hLc : Cauchy L) (hMc : Cauchy M)
+    (ha : a = Real.mk L) (hb : b = Real.mk M) :
+    addRel a b (Real.mk (addSeq L M)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 106.2 极限类对加法封闭
+-- ─────────────────────────────────────────────────────────────
+
+-- 拆开两个 `LimitClass`：得到代表元 L、M，两个 `Cauchy`，两条 `TendsTo`
+-- 与 `a = [L]`、`b = [M]`。和类取 `[L + M]`：106.1 给三元关系，106.0 给
+-- 和的收敛，`cauchy_add` 说明 `L + M` 仍是 Cauchy 序列。
+--
+-- soko:hint 思路：对 hx、hy 各做一次 `Exists.elim`；`Exists.intro (mk (addSeq L M))` 装三件——`addRel_limit`、`cauchy_add`、`tendsTo_add`，最后一件的类相等用 `Eq.refl`。
+-- soko:hint 目标形态：`∃ c, addRel a b c ∧ LimitClass (addSeq x y) c`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · addRel_limit · cauchy_add · tendsTo_add · And.intro · Eq.refl。
+theorem limitClass_add (x y : Seq) (a b : Real)
+    (hx : LimitClass x a) (hy : LimitClass y b) :
+    ∃ (c : Real), addRel a b c ∧ LimitClass (addSeq x y) c :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 106.3 常序列的实例
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列的和逐点就是 `p + q`，两条常序列都收敛到自己的类。取代表元
+-- `addSeq (constSeq p) (constSeq q)`，两个 `Cauchy` 由 `cauchy_add` 付清，
+-- 收敛由 106.0 与 `cauchy_tends_to_class` 付清。
+--
+-- soko:hint 思路：`Exists.intro (addSeq (constSeq p) (constSeq q))`；`Cauchy` 分量是 `cauchy_add` 作用在两条 `cauchy_const` 上；收敛分量是 106.0 作用在两条 `cauchy_tends_to_class` 上；类相等取 `Eq.refl`。
+-- soko:hint 目标形态：`LimitClass (addSeq (constSeq p) (constSeq q)) (mk (addSeq (constSeq p) (constSeq q)))`。
+-- soko:hint 关键件：cauchy_const · cauchy_add · cauchy_tends_to_class · tendsTo_add · Exists.intro · Eq.refl。
+theorem demo_limitClass_add_const (p q : ratRep) :
+    LimitClass (addSeq (constSeq p) (constSeq q))
+      (Real.mk (addSeq (constSeq p) (constSeq q))) :=
+  sorry

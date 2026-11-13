@@ -816,6 +816,18 @@
               "title": "单元104 极限类的唯一性",
               "title_en": "Unit 104 — Uniqueness of the Limit Class",
               "unit": 104
+            },
+            {
+              "file": "units/III.4/unit105-cauchy-add-bounds.sokonanoda",
+              "title": "单元105 极限加法的估计：两个 ε/2 界相加",
+              "title_en": "Unit 105 — Adding Two ε/2 Bounds",
+              "unit": 105
+            },
+            {
+              "file": "units/III.4/unit106-limit-class-add.sokonanoda",
+              "title": "单元106 极限类的加法",
+              "title_en": "Unit 106 — Addition of Limit Classes",
+              "unit": 106
             }
           ]
         }

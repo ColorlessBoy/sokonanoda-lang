@@ -26,6 +26,8 @@ import lib.CauchyShapes
 import lib.RealDiff
 import lib.Bounded
 import lib.LimitClass
+import lib.CauchyAddBounds
+import lib.LimitClassAdd
 
 theorem demo_lib_closure : True := True.intro
 
@@ -86,3 +88,11 @@ theorem demo_diff_self_zero :
 theorem demo_limit_class_zero :
     LimitClass (constSeq ratZeroRep) (Real.mk (constSeq ratZeroRep)) :=
   demo_limit_class_const ratZeroRep
+
+theorem demo_limit_class_add_zero :
+    ∃ (c : Real),
+      addRel (Real.mk (constSeq ratZeroRep)) (Real.mk (constSeq ratZeroRep)) c ∧
+        LimitClass (addSeq (constSeq ratZeroRep) (constSeq ratZeroRep)) c :=
+  limitClass_add (constSeq ratZeroRep) (constSeq ratZeroRep)
+    (Real.mk (constSeq ratZeroRep)) (Real.mk (constSeq ratZeroRep))
+    (demo_limit_class_const ratZeroRep) (demo_limit_class_const ratZeroRep)

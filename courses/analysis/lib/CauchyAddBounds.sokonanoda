@@ -1,0 +1,178 @@
+-- 课程库：两个 ε/2 界的相加（单元105 的引擎）
+--
+-- 两个收敛序列的和收敛，估计要同时处理两条 `close` 界。单元105 把这一步
+-- 拆成可复用的形状；这里把判卷过的版本收进 L2，单元106 起直接引用：
+--
+--   · `ratSubRep_wd_snd`     减法对第二个因子同余；
+--   · `ratAddRep_shift`      四个加数重新配对：`(a+g)+(b+g) ~ (a+b)+(g+g)`；
+--   · `ratLeRep_sub_pair`    两条差界相加；
+--   · `ratLeRep_sub_pair_eps` 把两个误差对齐到同一个 eps；
+--   · `ratLeRep_sub_pair_half` 把 `d/2` 的两条界收成一条 `d` 界；
+--   · `realLeRep_add_side` / `_right` 两个 `realLeRep` 分量的组装。
+--
+-- 边界：全部停在代表元层，不谈收敛、不构造类层的加法。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatHalf
+import lib.RatSub
+import lib.RatAssoc
+import lib.Cauchy
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.LimitOrder
+import lib.RealComplete
+import lib.RealOrder
+import lib.RealAdd
+
+theorem ratSubRep_wd_snd (x y y' : ratRep) (h : ratRel y y') :
+    ratRel (ratSubRep x y) (ratSubRep x y') :=
+  ratAddRep_wd_snd_gen x (ratNegRep y) (ratNegRep y') (ratNegRep_wd y y' h)
+
+theorem ratAddRep_shift (a b g : ratRep) :
+    ratRel (ratAddRep (ratAddRep a g) (ratAddRep b g))
+           (ratAddRep (ratAddRep a b) (ratAddRep g g)) :=
+  ratRel_trans_gen
+    (ratAddRep (ratAddRep a g) (ratAddRep b g))
+    (ratAddRep a (ratAddRep g (ratAddRep b g)))
+    (ratAddRep (ratAddRep a b) (ratAddRep g g))
+    (ratAdd_assoc a g (ratAddRep b g))
+    (ratRel_trans_gen
+      (ratAddRep a (ratAddRep g (ratAddRep b g)))
+      (ratAddRep a (ratAddRep b (ratAddRep g g)))
+      (ratAddRep (ratAddRep a b) (ratAddRep g g))
+      (ratAddRep_wd_snd_gen a
+        (ratAddRep g (ratAddRep b g))
+        (ratAddRep b (ratAddRep g g))
+        (ratRel_trans_gen
+          (ratAddRep g (ratAddRep b g))
+          (ratAddRep (ratAddRep g b) g)
+          (ratAddRep b (ratAddRep g g))
+          (ratRel_symm (ratAddRep (ratAddRep g b) g)
+            (ratAddRep g (ratAddRep b g))
+            (ratAdd_assoc g b g))
+          (ratRel_trans_gen
+            (ratAddRep (ratAddRep g b) g)
+            (ratAddRep (ratAddRep b g) g)
+            (ratAddRep b (ratAddRep g g))
+            (ratAddRep_wd_gen (ratAddRep g b) (ratAddRep b g) g
+              (ratAdd_comm g b))
+            (ratAdd_assoc b g g))))
+      (ratRel_symm
+        (ratAddRep (ratAddRep a b) (ratAddRep g g))
+        (ratAddRep a (ratAddRep b (ratAddRep g g)))
+        (ratAdd_assoc a b (ratAddRep g g))))
+
+theorem ratLeRep_sub_pair (a b A B g g' : ratRep)
+    (h1 : ratLeRep (ratSubRep a (ratAddRep A g)) g')
+    (h2 : ratLeRep (ratSubRep b (ratAddRep B g)) g') :
+    ratLeRep (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A g) (ratAddRep B g)))
+              (ratAddRep g' g') :=
+  ratLeRep_congr_gen
+    (ratAddRep (ratSubRep a (ratAddRep A g)) (ratSubRep b (ratAddRep B g)))
+    (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A g) (ratAddRep B g)))
+    (ratAddRep g' g') (ratAddRep g' g')
+    (ratRel_symm
+      (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A g) (ratAddRep B g)))
+      (ratAddRep (ratSubRep a (ratAddRep A g)) (ratSubRep b (ratAddRep B g)))
+      (ratSubRep_add_sub a (ratAddRep A g) b (ratAddRep B g)))
+    (ratRel_refl (ratAddRep g' g'))
+    (ratLeRep_add (ratSubRep a (ratAddRep A g)) g'
+                  (ratSubRep b (ratAddRep B g)) g' h1 h2)
+
+theorem ratLeRep_sub_pair_eps (a b A B g eps g' : ratRep)
+    (h1 : ratLeRep (ratSubRep a (ratAddRep A g)) g')
+    (h2 : ratLeRep (ratSubRep b (ratAddRep B g)) g')
+    (hg : ratRel (ratAddRep g g) eps) :
+    ratLeRep (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A B) eps))
+              (ratAddRep g' g') :=
+  ratLeRep_congr_gen
+    (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A g) (ratAddRep B g)))
+    (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A B) eps))
+    (ratAddRep g' g') (ratAddRep g' g')
+    (ratSubRep_wd_snd (ratAddRep a b)
+      (ratAddRep (ratAddRep A g) (ratAddRep B g))
+      (ratAddRep (ratAddRep A B) eps)
+      (ratRel_trans_gen
+        (ratAddRep (ratAddRep A g) (ratAddRep B g))
+        (ratAddRep (ratAddRep A B) (ratAddRep g g))
+        (ratAddRep (ratAddRep A B) eps)
+        (ratAddRep_shift A B g)
+        (ratAddRep_wd_snd_gen (ratAddRep A B) (ratAddRep g g) eps hg)))
+    (ratRel_refl (ratAddRep g' g'))
+    (ratLeRep_sub_pair a b A B g g' h1 h2)
+
+theorem ratLeRep_sub_pair_half (a b A B e eps d : ratRep)
+    (h1 : ratLeRep (ratSubRep a (ratAddRep A e)) (ratHalf d))
+    (h2 : ratLeRep (ratSubRep b (ratAddRep B e)) (ratHalf d))
+    (he : ratRel (ratAddRep e e) eps) :
+    ratLeRep (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A B) eps)) d :=
+  ratLeRep_congr_gen
+    (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A B) eps))
+    (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A B) eps))
+    (ratAddRep (ratHalf d) (ratHalf d)) d
+    (ratRel_refl (ratSubRep (ratAddRep a b) (ratAddRep (ratAddRep A B) eps)))
+    (ratHalf_add_self d)
+    (ratLeRep_sub_pair_eps a b A B e eps (ratHalf d) h1 h2 he)
+
+theorem realLeRep_add_side (a b : ratRep) (A B : Seq) (eps : ratRep)
+    (hAc : Cauchy A) (hBc : Cauchy B)
+    (hA : ∀ (d : ratRep), ratLtRep ratZeroRep d →
+      ∃ (K : Nat), ∀ (k : Nat), LeNat K k →
+        ratLeRep (ratSubRep a (ratAddRep (A k) (ratHalf eps))) d)
+    (hB : ∀ (d : ratRep), ratLtRep ratZeroRep d →
+      ∃ (K : Nat), ∀ (k : Nat), LeNat K k →
+        ratLeRep (ratSubRep b (ratAddRep (B k) (ratHalf eps))) d) :
+    realLeRep (constSeq (ratAddRep a b)) (addConst (addSeq A B) eps) :=
+  And.intro (cauchy_const (ratAddRep a b))
+    (And.intro
+      (cauchy_add_const (addSeq A B) eps (cauchy_add A B hAc hBc))
+      (fun (d : ratRep) (hd : ratLtRep ratZeroRep d) =>
+        Exists.elim (hA (ratHalf d) (ratLtRep_half d hd))
+          (fun (K1 : Nat)
+              (hK1 : ∀ (k : Nat), LeNat K1 k →
+                ratLeRep (ratSubRep a (ratAddRep (A k) (ratHalf eps))) (ratHalf d)) =>
+            Exists.elim (hB (ratHalf d) (ratLtRep_half d hd))
+              (fun (K2 : Nat)
+                  (hK2 : ∀ (k : Nat), LeNat K2 k →
+                    ratLeRep (ratSubRep b (ratAddRep (B k) (ratHalf eps))) (ratHalf d)) =>
+                Exists.elim (leNat_max K1 K2)
+                  (fun (K : Nat) (hK : LeNat K1 K ∧ LeNat K2 K) =>
+                    Exists.intro K
+                      (fun (k : Nat) (hk : LeNat K k) =>
+                        ratLeRep_sub_pair_half a b (A k) (B k) (ratHalf eps) eps d
+                          (hK1 k (leNat_trans K1 K k (And.left hK) hk))
+                          (hK2 k (leNat_trans K2 K k (And.right hK) hk))
+                          (ratHalf_add_self eps)))))))
+
+theorem realLeRep_add_side_right (A B : Seq) (a b : ratRep) (eps : ratRep)
+    (hAc : Cauchy A) (hBc : Cauchy B)
+    (hA : ∀ (d : ratRep), ratLtRep ratZeroRep d →
+      ∃ (K : Nat), ∀ (k : Nat), LeNat K k →
+        ratLeRep (ratSubRep (A k) (ratAddRep a (ratHalf eps))) d)
+    (hB : ∀ (d : ratRep), ratLtRep ratZeroRep d →
+      ∃ (K : Nat), ∀ (k : Nat), LeNat K k →
+        ratLeRep (ratSubRep (B k) (ratAddRep b (ratHalf eps))) d) :
+    realLeRep (addSeq A B) (addConst (constSeq (ratAddRep a b)) eps) :=
+  And.intro (cauchy_add A B hAc hBc)
+    (And.intro
+      (cauchy_add_const (constSeq (ratAddRep a b)) eps
+        (cauchy_const (ratAddRep a b)))
+      (fun (d : ratRep) (hd : ratLtRep ratZeroRep d) =>
+        Exists.elim (hA (ratHalf d) (ratLtRep_half d hd))
+          (fun (K1 : Nat)
+              (hK1 : ∀ (k : Nat), LeNat K1 k →
+                ratLeRep (ratSubRep (A k) (ratAddRep a (ratHalf eps))) (ratHalf d)) =>
+            Exists.elim (hB (ratHalf d) (ratLtRep_half d hd))
+              (fun (K2 : Nat)
+                  (hK2 : ∀ (k : Nat), LeNat K2 k →
+                    ratLeRep (ratSubRep (B k) (ratAddRep b (ratHalf eps))) (ratHalf d)) =>
+                Exists.elim (leNat_max K1 K2)
+                  (fun (K : Nat) (hK : LeNat K1 K ∧ LeNat K2 K) =>
+                    Exists.intro K
+                      (fun (k : Nat) (hk : LeNat K k) =>
+                        ratLeRep_sub_pair_half (A k) (B k) a b (ratHalf eps) eps d
+                          (hK1 k (leNat_trans K1 K k (And.left hK) hk))
+                          (hK2 k (leNat_trans K2 K k (And.right hK) hk))
+                          (ratHalf_add_self eps)))))))
