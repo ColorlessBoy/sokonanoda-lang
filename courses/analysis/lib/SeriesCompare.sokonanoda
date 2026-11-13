@@ -1,0 +1,118 @@
+-- 课程库：比较判别法
+--
+-- 单元118 证明下面四条；这里收进 L2，后面的级数判别直接引用：
+--
+--   · `tailSum_le` —— 逐项比较把尾块放大；
+--   · `tail_close_of_le` —— 被压住的尾块也一致地小；
+--   · `summable_of_le` —— 非负项逐项被可和的序列压住，则它也可和；
+--   · `not_summable_of_le` —— 逆否形式。
+--
+-- 边界：要求逐项比较对所有下标成立，且 f 非负；只改动有限项的版本要先证
+-- 尾部等价。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatClose
+import lib.Sum
+import lib.SumSplit
+import lib.SumNonneg
+import lib.Series
+import lib.SeriesTail
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatClose
+import lib.Sum
+import lib.SumSplit
+import lib.SumNonneg
+import lib.Series
+import lib.SeriesTail
+
+-- ─────────────────────────────────────────────────────────────
+-- 118.0 尾块也逐项比较
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾块是平移序列的部分和，111.2 的逐项比较原样搬过来。
+theorem tailSum_le (f g : Nat → ratRep) (m k : Nat)
+    (h : ∀ (j : Nat), ratLeRep (f j) (g j)) :
+    ratLeRep (TailSum f m k) (TailSum g m k) :=
+  sumTo_le (fun (j : Nat) => f (Nat.add m j))
+    (fun (j : Nat) => g (Nat.add m j)) k
+    (fun (j : Nat) => h (Nat.add m j))
+
+-- ─────────────────────────────────────────────────────────────
+-- 118.1 被压住的尾块也小
+-- ─────────────────────────────────────────────────────────────
+
+-- f 的尾块非负，绝对值见证取它自己。它不超过 g 的尾块，而 g 的尾块在 ε
+-- 内靠近零，于是这个见证也小于 ε。
+theorem tail_close_of_le (f g : Nat → ratRep) (m k : Nat) (eps : ratRep)
+    (hf : ∀ (j : Nat), ratLeRep ratZeroRep (f j))
+    (hfg : ∀ (j : Nat), ratLeRep (f j) (g j))
+    (h : close (TailSum g m k) ratZeroRep eps) :
+    close (TailSum f m k) ratZeroRep eps :=
+  Exists.elim h
+    (fun (d : ratRep)
+        (hd : ratAbsRel (ratSubRep (TailSum g m k) ratZeroRep) d ∧
+          ratLtRep d eps) =>
+      Exists.intro (TailSum f m k)
+        (And.intro
+          (ratAbsRel_wd_left (TailSum f m k)
+            (ratSubRep (TailSum f m k) ratZeroRep) (TailSum f m k)
+            (ratRel_symm (ratAddRep (TailSum f m k) ratZeroRep)
+              (TailSum f m k) (ratAdd_zero (TailSum f m k)))
+            (Or.inl
+              (And.intro (tailSum_nonneg f hf m k)
+                (ratRel_refl (TailSum f m k)))))
+          (ratLtRep_of_le_lt (TailSum f m k) d eps
+            (ratLeRep_trans (TailSum f m k) (TailSum g m k) d
+              (tailSum_le f g m k hfg)
+              (ratAbsRel_le (TailSum g m k) d
+                (ratAbsRel_wd_left
+                  (ratSubRep (TailSum g m k) ratZeroRep)
+                  (TailSum g m k) d
+                  (ratAdd_zero (TailSum g m k))
+                  (And.left hd))))
+            (And.right hd))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 118.2 比较判别法
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 ε 从 g 的尾块判别取阈值 N；118.1 把 f 的每个尾块都收进 ε。
+theorem summable_of_le (f g : Nat → ratRep)
+    (hf : ∀ (k : Nat), ratLeRep ratZeroRep (f k))
+    (hfg : ∀ (k : Nat), ratLeRep (f k) (g k))
+    (hg : Summable g) : Summable f :=
+  Iff.mpr (summable_iff_tail f)
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+      Exists.elim ((Iff.mp (summable_iff_tail g) hg) eps heps)
+        (fun (N : Nat)
+            (hN : ∀ (m : Nat), LeNat N m → ∀ (k : Nat),
+              close (TailSum g m k) ratZeroRep eps) =>
+          Exists.intro N
+            (fun (m : Nat) (hm : LeNat N m) (k : Nat) =>
+              tail_close_of_le f g m k eps hf hfg (hN m hm k))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 118.3 逆否形式
+-- ─────────────────────────────────────────────────────────────
+
+-- f 不可和而逐项不超过 g，则 g 也不可和。
+theorem not_summable_of_le (f g : Nat → ratRep)
+    (hf : ∀ (k : Nat), ratLeRep ratZeroRep (f k))
+    (hfg : ∀ (k : Nat), ratLeRep (f k) (g k))
+    (h : ¬ Summable f) : ¬ Summable g :=
+  fun (hg : Summable g) => h (summable_of_le f g hf hfg hg)
+
+-- ─────────────────────────────────────────────────────────────
+-- 118.4 具体：零级数被自己压住
+-- ─────────────────────────────────────────────────────────────
+
+-- 零序列非负、逐项等于自己，且可和；比较判别法给出同一个结论。
+theorem demo_comparison_zero : Summable (fun (_ : Nat) => ratZeroRep) :=
+  summable_of_le (fun (_ : Nat) => ratZeroRep)
+    (fun (_ : Nat) => ratZeroRep)
+    (fun (k : Nat) => ratLeRep_refl ratZeroRep)
+    (fun (k : Nat) => ratLeRep_refl ratZeroRep)
+    summable_zero

@@ -1,0 +1,105 @@
+-- 单元119 绝对收敛推出收敛（解答）
+--
+-- 118 的比较判别法只处理非负项。项有正有负时，可以逐项取一个绝对值见证，
+-- 得到一条非负序列；如果这条序列可和，原级数也可和。这条推理就是「绝对
+-- 收敛推出收敛」，它把 117 的有限和绝对值界接到 114 的尾块判别上。
+--
+-- 路线：119.0 把「y 在 ε 内靠近零」转成「不超过 y 的 d 也小于 ε」；
+-- 119.1 用尾块判别与 117 的界，把 f 的尾块压在 g 的尾块下；119.2 把
+-- 「绝对收敛」写成存在这样一条见证序列；119.3 消去见证；119.4 核对定义。
+--
+-- 边界：不证反方向（收敛但绝对值不可和），那需要交错级数，留待后续单元；
+-- 也不证不同的绝对值见证彼此等价。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatClose
+import lib.Sum
+import lib.SumSplit
+import lib.SumNonneg
+import lib.SumAbs
+import lib.Series
+import lib.SeriesTail
+
+-- ─────────────────────────────────────────────────────────────
+-- 119.0 不超过一个小量的数也小
+-- ─────────────────────────────────────────────────────────────
+
+-- 若 y 在 ε 内靠近零，则它的绝对值见证 e 小于 ε；任何不超过 y 的 d
+-- 也就不超过 e，于是 d < ε。
+theorem ratLtRep_of_le_close (d y eps : ratRep)
+    (hdy : ratLeRep d y) (h : close y ratZeroRep eps) :
+    ratLtRep d eps :=
+  Exists.elim h
+    (fun (e : ratRep)
+        (he : ratAbsRel (ratSubRep y ratZeroRep) e ∧ ratLtRep e eps) =>
+      ratLtRep_of_le_lt d e eps
+        (ratLeRep_trans d y e hdy
+          (ratAbsRel_le y e
+            (ratAbsRel_wd_left (ratSubRep y ratZeroRep) y e
+              (ratAdd_zero y) (And.left he))))
+        (And.right he))
+
+-- ─────────────────────────────────────────────────────────────
+-- 119.1 绝对收敛推出收敛
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 ε 从 g 的尾块判别取 N。f 的尾块有一个见证 d，d 不超过 g 的尾块
+-- （117.0），所以 119.0 给出 d < ε。
+theorem summable_of_abs (f g : Nat → ratRep)
+    (h : ∀ (k : Nat), ratAbsRel (f k) (g k))
+    (hg : Summable g) : Summable f :=
+  Iff.mpr (summable_iff_tail f)
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+      Exists.elim ((Iff.mp (summable_iff_tail g) hg) eps heps)
+        (fun (N : Nat)
+            (hN : ∀ (m : Nat), LeNat N m → ∀ (k : Nat),
+              close (TailSum g m k) ratZeroRep eps) =>
+          Exists.intro N
+            (fun (m : Nat) (hm : LeNat N m) (k : Nat) =>
+              Exists.elim
+                (sumTo_abs_le (fun (j : Nat) => f (Nat.add m j))
+                  (fun (j : Nat) => g (Nat.add m j)) k
+                  (fun (j : Nat) => h (Nat.add m j)))
+                (fun (d : ratRep)
+                    (hd : ratAbsRel (TailSum f m k) d ∧
+                      ratLeRep d (TailSum g m k)) =>
+                  Exists.intro d
+                    (And.intro
+                      (ratAbsRel_wd_left (TailSum f m k)
+                        (ratSubRep (TailSum f m k) ratZeroRep) d
+                        (ratRel_symm (ratAddRep (TailSum f m k) ratZeroRep)
+                          (TailSum f m k) (ratAdd_zero (TailSum f m k)))
+                        (And.left hd))
+                      (ratLtRep_of_le_close d (TailSum g m k) eps
+                        (And.right hd) (hN m hm k)))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 119.2 绝对可和的定义
+-- ─────────────────────────────────────────────────────────────
+
+-- 本课程没有绝对值函数，所以「绝对收敛」写成：存在一条见证序列 g，逐项
+-- 见证 f 的绝对值，并且 g 可和。
+def AbsSummable (f : Nat → ratRep) : Prop :=
+  ∃ (g : Nat → ratRep), (∀ (k : Nat), ratAbsRel (f k) (g k)) ∧ Summable g
+
+-- ─────────────────────────────────────────────────────────────
+-- 119.3 定义形式导出可和
+-- ─────────────────────────────────────────────────────────────
+
+-- 把定义里的见证序列取出来，交给 119.1。
+theorem abs_summable_summable (f : Nat → ratRep)
+    (h : AbsSummable f) : Summable f :=
+  Exists.elim h
+    (fun (g : Nat → ratRep)
+        (hg : (∀ (k : Nat), ratAbsRel (f k) (g k)) ∧ Summable g) =>
+      summable_of_abs f g (And.left hg) (And.right hg))
+
+-- ─────────────────────────────────────────────────────────────
+-- 119.4 具体：零级数绝对可和
+-- ─────────────────────────────────────────────────────────────
+
+-- 零序列是零序列的绝对值见证，且零级数可和。
+theorem demo_abs_zero : AbsSummable (fun (_ : Nat) => ratZeroRep) :=
+  Exists.intro (fun (_ : Nat) => ratZeroRep)
+    (And.intro (fun (k : Nat) => ratAbsRel_zero) summable_zero)

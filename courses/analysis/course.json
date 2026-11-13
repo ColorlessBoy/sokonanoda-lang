@@ -910,6 +910,18 @@
               "title": "单元117 有限和的绝对值",
               "title_en": "Unit 117 — Absolute Values of Finite Sums",
               "unit": 117
+            },
+            {
+              "file": "units/III.5/unit118-comparison.sokonanoda",
+              "title": "单元118 比较判别法",
+              "title_en": "Unit 118 — The Comparison Test",
+              "unit": 118
+            },
+            {
+              "file": "units/III.5/unit119-abs-convergence.sokonanoda",
+              "title": "单元119 绝对收敛推出收敛",
+              "title_en": "Unit 119 — Absolute Convergence Implies Convergence",
+              "unit": 119
             }
           ]
         }
