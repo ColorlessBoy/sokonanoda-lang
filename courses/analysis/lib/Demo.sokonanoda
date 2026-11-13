@@ -30,6 +30,7 @@ import lib.CauchyAddBounds
 import lib.LimitClassAdd
 import lib.LimitClassNeg
 import lib.LimitClassSub
+import lib.LimitClassComplete
 
 theorem demo_lib_closure : True := True.intro
 
@@ -112,3 +113,9 @@ theorem demo_limit_class_sub_zero :
     (Real.mk (constSeq ratZeroRep)) (Real.mk (constSeq ratZeroRep))
     (cauchy_const ratZeroRep) (cauchy_const ratZeroRep)
     (demo_limit_class_const ratZeroRep) (demo_limit_class_const ratZeroRep)
+
+theorem demo_limit_class_complete_zero :
+    ∃ (a : Real),
+      LimitClass (constSeq ratZeroRep) a ∧
+        ∀ (b : Real), LimitClass (constSeq ratZeroRep) b → b = a :=
+  limitClass_exists_unique (constSeq ratZeroRep) (cauchy_const ratZeroRep)

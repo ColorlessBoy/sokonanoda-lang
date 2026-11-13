@@ -11,7 +11,7 @@
 --     两个上界合成一个；
 --   · `leNat_pred` / `leNat_zero` —— 前缀归纳的两条 ℕ 引理；
 --   · `exists_prefix_bound` —— 前 0..N 项的统一下界；
---   · `le_of_sub_le` / `le_of_neg_add_le` —— 把减法界搬成加法界；
+--   · `le_of_neg_add_le` —— 把减法界搬成加法界（`le_of_sub_le` 在 `lib/SubLe`）；
 --   · `close_two_bounds` —— `close` 同时给出两侧的单边界；
 --   · `exists_tail_bound` —— 尾部 `n ≥ N` 的统一下界；
 --   · `converges_bounded` —— 收敛 ⇒ 有界（单元77）；
@@ -22,6 +22,7 @@
 
 import lib.Limit
 import lib.LimitOrder
+import lib.SubLe
 
 -- ─────────────────────────────────────────────────────────────
 -- 77.0 词表
@@ -167,20 +168,6 @@ theorem exists_prefix_bound (x : Seq) (N : Nat) :
                         (leNat_eq_or_succ n (Nat.succ N) hn)))
                 (ratLeRep_total B1 B2))))
     N
-
--- ─────────────────────────────────────────────────────────────
--- 77.4 减法界可以搬成加法界
--- ─────────────────────────────────────────────────────────────
-
--- `a - b ≤ eps` 两边加 b：左边 `(a - b) + b ~ a`（74.1），右边不变。
-theorem le_of_sub_le (a b eps : ratRep)
-    (h : ratLeRep (ratSubRep a b) eps) : ratLeRep a (ratAddRep eps b) :=
-  ratLeRep_congr_gen
-    (ratAddRep (ratSubRep a b) b) a
-    (ratAddRep eps b) (ratAddRep eps b)
-    (ratSubRep_add_self a b)
-    (ratRel_refl (ratAddRep eps b))
-    (ratLeRep_add_right (ratSubRep a b) eps b h)
 
 -- ─────────────────────────────────────────────────────────────
 -- 77.5 负项上的同一条搬运

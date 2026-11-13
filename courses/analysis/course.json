@@ -840,6 +840,12 @@
               "title": "单元108 极限类的减法",
               "title_en": "Unit 108 — Subtraction of Limit Classes",
               "unit": 108
+            },
+            {
+              "file": "units/III.4/unit109-limit-class-complete.sokonanoda",
+              "title": "单元109 完备性收口：Cauchy 序列的极限类",
+              "title_en": "Unit 109 — Completeness: Limit Classes of Cauchy Sequences",
+              "unit": 109
             }
           ]
         }

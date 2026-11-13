@@ -15,6 +15,7 @@
 -- 公理，也不碰 kernel/front。
 
 import lib.LimitOrder
+import lib.SubLe
 
 -- ─────────────────────────────────────────────────────────────
 -- 78.0 绝对值的两支（展开成可消去的形状）
@@ -159,21 +160,6 @@ theorem ratAdd_sub_self (x y : ratRep) :
           (ratAddRep_wd_gen (ratAddRep x (ratNegRep x)) ratZeroRep y
             (ratAdd_neg_gen x))
           (ratAdd_zero_left y))))
-
--- ─────────────────────────────────────────────────────────────
--- 79.0c 减法界搬成加法界
--- ─────────────────────────────────────────────────────────────
-
--- `a - b ≤ eps` ⇒ `a ≤ eps + b`：两边右加 `b`，
--- `(a - b) + b ~ a` 把左边收回去。
-theorem le_of_sub_le (a b eps : ratRep)
-    (h : ratLeRep (ratSubRep a b) eps) : ratLeRep a (ratAddRep eps b) :=
-  ratLeRep_congr_gen
-    (ratAddRep (ratSubRep a b) b) a
-    (ratAddRep eps b) (ratAddRep eps b)
-    (ratSubRep_add_self a b)
-    (ratRel_refl (ratAddRep eps b))
-    (ratLeRep_add_right (ratSubRep a b) eps b h)
 
 -- ─────────────────────────────────────────────────────────────
 -- 79.0d 取负把严格序翻过来
