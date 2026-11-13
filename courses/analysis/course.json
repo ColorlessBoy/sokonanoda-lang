@@ -898,6 +898,18 @@
               "title": "单元115 可和级数的加法、取负与减法",
               "title_en": "Unit 115 — Linearity of Summable Series",
               "unit": 115
+            },
+            {
+              "file": "units/III.5/unit116-nonneg-monotone.sokonanoda",
+              "title": "单元116 非负项的部分和不会下降",
+              "title_en": "Unit 116 — Partial Sums of Nonnegative Terms",
+              "unit": 116
+            },
+            {
+              "file": "units/III.5/unit117-abs-sum.sokonanoda",
+              "title": "单元117 有限和的绝对值",
+              "title_en": "Unit 117 — Absolute Values of Finite Sums",
+              "unit": 117
             }
           ]
         }

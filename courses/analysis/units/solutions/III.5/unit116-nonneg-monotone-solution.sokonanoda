@@ -1,0 +1,83 @@
+-- 单元116 非负项的部分和不会下降（解答）
+--
+-- 级数的可和性只看部分和序列的尾巴。若每一项都非负，尾巴就只增不减，
+-- 于是「部分和是否稳定」变成「部分和有没有上界」，比较判别法就建在这条
+-- 单调性上。这里先把单调性本身证清楚。
+--
+-- 路线：116.0 对项数归纳，证明非负项的和非负；116.1 用 `sumTo_shift` 把
+-- S_n 拆成 S_m 与从第 m 项起的尾块，把 `S_m ≤ S_n` 归到尾块非负；116.2 把
+-- 同一条引理写成尾块的名字；116.3 是常 1 级数上的一个具体比较。
+--
+-- 边界：只比较部分和，不判断级数是否可和。可和性要另做尾块估计，这里的
+-- 结果只是那一步的原料。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Sum
+import lib.SumSplit
+import lib.SeriesTail
+import lib.Bounded
+
+-- ─────────────────────────────────────────────────────────────
+-- 116.0 非负项的和非负
+-- ─────────────────────────────────────────────────────────────
+
+theorem sumTo_nonneg (f : Nat → ratRep) (h : ∀ (k : Nat), ratLeRep ratZeroRep (f k))
+    (n : Nat) : ratLeRep ratZeroRep (sumTo f n) :=
+  Nat.rec
+    (fun (n : Nat) => ratLeRep ratZeroRep (sumTo f n))
+    (ratLeRep_refl ratZeroRep)
+    (fun (n : Nat) (ih : ratLeRep ratZeroRep (sumTo f n)) =>
+      ratLeRep_trans ratZeroRep (ratAddRep ratZeroRep ratZeroRep)
+        (ratAddRep (sumTo f n) (f n))
+        (ratLeRep_of_ratRel ratZeroRep (ratAddRep ratZeroRep ratZeroRep)
+          (ratRel_symm (ratAddRep ratZeroRep ratZeroRep) ratZeroRep
+            (ratAdd_zero ratZeroRep)))
+        (ratLeRep_add ratZeroRep (sumTo f n) ratZeroRep (f n) ih (h n)))
+    n
+
+-- ─────────────────────────────────────────────────────────────
+-- 116.1 非负项的部分和不降
+-- ─────────────────────────────────────────────────────────────
+
+theorem sumTo_mono (f : Nat → ratRep) (h : ∀ (k : Nat), ratLeRep ratZeroRep (f k))
+    (m n : Nat) (hmn : LeNat m n) : ratLeRep (sumTo f m) (sumTo f n) :=
+  Exists.elim (leNat_exists_add m n hmn)
+    (fun (k : Nat) (hk : n = Nat.add m k) =>
+      @Eq.subst.{1} Nat (fun (x : Nat) => ratLeRep (sumTo f m) (sumTo f x))
+        (Nat.add m k) n (Eq.symm hk)
+        (ratLeRep_congr_gen (sumTo f m) (sumTo f m)
+          (ratAddRep (sumTo f m) (TailSum f m k)) (sumTo f (Nat.add m k))
+          (ratRel_refl (sumTo f m))
+          (ratRel_symm (sumTo f (Nat.add m k))
+            (ratAddRep (sumTo f m) (TailSum f m k))
+            (sumTo_shift f m k))
+          (ratLeRep_trans (sumTo f m) (ratAddRep (sumTo f m) ratZeroRep)
+            (ratAddRep (sumTo f m) (TailSum f m k))
+            (ratLeRep_of_ratRel (sumTo f m) (ratAddRep (sumTo f m) ratZeroRep)
+              (ratRel_symm (ratAddRep (sumTo f m) ratZeroRep) (sumTo f m)
+                (ratAdd_zero (sumTo f m))))
+            (ratLeRep_add (sumTo f m) (sumTo f m) ratZeroRep (TailSum f m k)
+              (ratLeRep_refl (sumTo f m))
+              (sumTo_nonneg (fun (j : Nat) => f (Nat.add m j))
+                (fun (j : Nat) => h (Nat.add m j)) k)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 116.2 尾块非负
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾块是平移序列的部分和，同一条非负性引理直接搬运。
+theorem tailSum_nonneg (f : Nat → ratRep) (h : ∀ (k : Nat), ratLeRep ratZeroRep (f k))
+    (m k : Nat) : ratLeRep ratZeroRep (TailSum f m k) :=
+  sumTo_nonneg (fun (j : Nat) => f (Nat.add m j))
+    (fun (j : Nat) => h (Nat.add m j)) k
+
+-- ─────────────────────────────────────────────────────────────
+-- 116.3 具体：常 1 级数的第 0 个与第 3 个部分和
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_sum_monotone_one :
+    ratLeRep (sumTo (fun (_ : Nat) => ratOneRep) Nat.zero)
+      (sumTo (fun (_ : Nat) => ratOneRep) 3) :=
+  sumTo_mono (fun (_ : Nat) => ratOneRep)
+    (fun (_ : Nat) => And.left ratLtRep_zero_one) Nat.zero 3 (leNat_zero_le 3)

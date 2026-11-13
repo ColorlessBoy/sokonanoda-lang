@@ -37,6 +37,8 @@ import lib.Series
 import lib.SeriesTerm
 import lib.SeriesTail
 import lib.SeriesLinear
+import lib.SumNonneg
+import lib.SumAbs
 
 theorem demo_lib_closure : True := True.intro
 
@@ -153,3 +155,13 @@ theorem demo_lib_series_tail :
 theorem demo_lib_summable_add :
     Summable (fun (k : Nat) => ratAddRep ratZeroRep ratZeroRep) :=
   demo_sum_zero
+
+theorem demo_lib_sum_monotone_one :
+    ratLeRep (sumTo (fun (_ : Nat) => ratOneRep) Nat.zero)
+      (sumTo (fun (_ : Nat) => ratOneRep) 3) :=
+  demo_sum_monotone_one
+
+theorem demo_lib_abs_sum_one :
+    ratAbsRel (sumTo (fun (_ : Nat) => ratOneRep) 2)
+      (sumTo (fun (_ : Nat) => ratOneRep) 2) :=
+  demo_abs_sum_one

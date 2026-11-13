@@ -1,0 +1,78 @@
+-- 单元117 有限和的绝对值（解答）
+--
+-- 级数判别法几乎都要先控制「每一项的绝对值之和」。本课程的绝对值是一个
+-- 关系：`ratAbsRel x d` 说 d 是 x 的一个绝对值见证，而不是一个函数。于是
+-- 绝对值的和不能直接写成一个求和，只能逐项给出见证 g，再问和的见证是否
+-- 被 g 的和压住。
+--
+-- 路线：117.0 对项数归纳。每一步先用全性给新和取一个见证，三角不等式
+-- `ratLeRep_abs_add` 把这个见证压到「旧见证 + 新项见证」之下，归纳假设再
+-- 把旧见证压到旧和之下。117.1 是非负情形的收紧：和本身就是它的见证。
+-- 117.2 是常 1 级数上的实例。
+--
+-- 边界：只说存在一个不超过 g 之和的见证，不声称绝对值是函数，也不谈
+-- 无限项。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatClose
+import lib.Cauchy
+import lib.Sum
+import lib.Bounded
+import lib.SumNonneg
+
+-- ─────────────────────────────────────────────────────────────
+-- 117.0 和的绝对值不超过绝对值的和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对项数归纳。零项时见证取 0。后继时先用 `ratAbsRel_total` 给新和取一个见证 `d'`，`ratLeRep_abs_add` 给出 `d' ≤ d + g n`，归纳假设给 `d ≤ S_g n`，两条界经 `ratLeRep_add` 与 `ratLeRep_trans` 收口。
+-- soko:hint 目标形态：`∃ d, ratAbsRel (sumTo f n) d ∧ ratLeRep d (sumTo g n)`（已知每一项 `ratAbsRel (f k) (g k)`）。
+-- soko:hint 关键件：Nat.rec · ratAbsRel_total · ratLeRep_abs_add · ratLeRep_add · ratLeRep_trans · sumTo_zero。
+theorem sumTo_abs_le (f g : Nat → ratRep) (n : Nat)
+    (h : ∀ (k : Nat), ratAbsRel (f k) (g k)) :
+    ∃ (d : ratRep), ratAbsRel (sumTo f n) d ∧ ratLeRep d (sumTo g n) :=
+  Nat.rec
+    (fun (n : Nat) => ∃ (d : ratRep),
+      ratAbsRel (sumTo f n) d ∧ ratLeRep d (sumTo g n))
+    (Exists.intro ratZeroRep
+      (And.intro ratAbsRel_zero
+        (ratLeRep_of_ratRel ratZeroRep (sumTo g Nat.zero)
+          (ratRel_symm (sumTo g Nat.zero) ratZeroRep (sumTo_zero g)))))
+    (fun (n : Nat)
+        (ih : ∃ (d : ratRep), ratAbsRel (sumTo f n) d ∧ ratLeRep d (sumTo g n)) =>
+      Exists.elim ih
+        (fun (d : ratRep)
+            (hd : ratAbsRel (sumTo f n) d ∧ ratLeRep d (sumTo g n)) =>
+          Exists.elim (ratAbsRel_total (ratAddRep (sumTo f n) (f n)))
+            (fun (d' : ratRep)
+                (hd' : ratAbsRel (ratAddRep (sumTo f n) (f n)) d') =>
+              Exists.intro d'
+                (And.intro hd'
+                  (ratLeRep_trans d' (ratAddRep d (g n))
+                    (ratAddRep (sumTo g n) (g n))
+                    (ratLeRep_abs_add (sumTo f n) (f n) d (g n) d'
+                      (And.left hd) (h n) hd')
+                    (ratLeRep_add d (sumTo g n) (g n) (g n)
+                      (And.right hd) (ratLeRep_refl (g n))))))))
+    n
+
+-- ─────────────────────────────────────────────────────────────
+-- 117.1 非负序列的部分和是自己的绝对值见证
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：非负序列的部分和非负（116.0），所以它落在绝对值关系的第一支：见证取它自己，第一分量是这条非负性，第二分量是自反性。
+-- soko:hint 目标形态：`ratAbsRel (sumTo f n) (sumTo f n)`。
+-- soko:hint 关键件：sumTo_nonneg · Or.inl · And.intro · ratRel_refl。
+theorem sumTo_abs_self (f : Nat → ratRep) (h : ∀ (k : Nat), ratLeRep ratZeroRep (f k))
+    (n : Nat) : ratAbsRel (sumTo f n) (sumTo f n) :=
+  Or.inl (And.intro (sumTo_nonneg f h n) (ratRel_refl (sumTo f n)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 117.2 具体：常 1 级数的前两项和
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_abs_sum_one :
+    ratAbsRel (sumTo (fun (_ : Nat) => ratOneRep) 2)
+      (sumTo (fun (_ : Nat) => ratOneRep) 2) :=
+  sumTo_abs_self (fun (_ : Nat) => ratOneRep)
+    (fun (_ : Nat) => And.left ratLtRep_zero_one) 2
