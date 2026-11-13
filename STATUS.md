@@ -9,8 +9,7 @@
 - `lib/SeriesTelescope`（4）+ `lib/SeriesTailSum`（4）进库；`lib/Demo` 补两条自检（33）。
 - 判据：`check.py --json` rc=0（313 目标 · 3083 checked · 608 open · 0 rejected，M3 49/51）；`notation-lint` rc=0（324 文件，15 处豁免）；本轮改动文案 0 处（BLOCK 0 / WARN 0）；`style-lint --selftest` rc=0。边界：望远镜只处理相邻差；尾块只证「可和 ⇒ 尾块可和」。不新增公理。下一单元 122。
 
-## M3 单元118–119：比较判别法与绝对收敛（2026-11-13 · issue #19 / PR #41）
-- `unit118-comparison`：3 题。`tailSum_le` 把逐项比较搬到尾块；`tail_close_of_le` 说明被压住的尾块也一致地小（非负见证取自身，`ratAbsRel_le` 与 `ratLtRep_of_le_lt` 收口）；`summable_of_le` 用 114 的尾块判别合成比较判别法，`not_summable_of_le` 是逆否形式。正文 2 checked / 3 open，解答 5 / 0。
-- `unit119-abs-convergence`：2 题。`ratLtRep_of_le_close` 把「y 在 ε 内靠近零」转成「不超过 y 的 d 也小于 ε」；`summable_of_abs` 用 117 的 `sumTo_abs_le` 把 f 的尾块压在 g 的尾块下；`AbsSummable` 把绝对收敛写成存在见证序列，`abs_summable_summable` 消去见证。正文 3 checked / 2 open，解答 5 / 0。
-- `lib/SeriesCompare`（5）+ `lib/SeriesAbs`（5）进库；`lib/Demo` 补两条自检（31）。
-- 判据：`check.py --json` rc=0（307 目标 · 3060 checked · 603 open · 0 rejected，M3 47/51）；`notation-lint` rc=0（318 文件，15 处豁免）；本轮改动文案 0 处（BLOCK 0 / WARN 0）；`style-lint --selftest` rc=0。边界：比较要求逐项成立且 f 非负；不证反方向（收敛但绝对值不可和），那需要交错级数；不新增公理。下一单元 120。
+## M3 收口：III.1 开头三单元的文案复审（2026-11-14 · issue #19 / PR #41）
+- `unit73/74/76` 与三份解答：删去学习者文本里的阶段代号（M2/M3/L2）与「第一条真正的定理」式评价；三份画布的「本单元」压到 0 次，解答保持 ≤2 次；开头先讲缺口（有理数上的 `close` 只比较两点、极限要比较一列点），再给定义。
+- 判据：`check.py --json` rc=0（319 目标 · 3118 checked · 614 open · 0 rejected · 0 solutions_open，M3 51/51）；`notation-lint` rc=0（330 文件，15 处豁免）；`style_lint.py --root` 扫 `units/III.1` 与 `units/solutions/III.1` 均 0 处（BLOCK 0 / WARN 0）；`style-lint --selftest` rc=0。
+- 边界：只动注释，不改声明、题号、解答步骤与库；`course.json` 与 M3 的 51 个单元不变。不新增公理，不碰 kernel/front。
