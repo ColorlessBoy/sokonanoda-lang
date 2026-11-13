@@ -1,0 +1,126 @@
+-- 单元112 级数：部分和与和类
+--
+-- 110 与 111 只谈有限和。要把「无限项相加」变成有真假可言的命题，得先把
+-- 前 n 项和排成一条序列，再对这条序列用 73 的 ε-N 收敛，或者等价地用它
+-- 的 Cauchy 条件。级数的后续结论都从这条序列出发。
+--
+-- 这里定义三件东西：部分和序列 `Series`、可和 `Summable`（部分和是 Cauchy
+-- 序列）、和类 `SeriesSum`（部分和序列的极限类）。可和与有和类的等价引用
+-- 109 的完备性收口，和类至多一个引用 104 的唯一性。
+--
+-- 边界：`Summable` 是 Cauchy 性，不要求有理极限；和只以 `LimitClass` 的
+-- 形式出现，不把无限和写成 `ratRep` 上的函数。不新增公理。
+
+import lib.Sum
+import lib.Limit
+import lib.Cauchy
+import lib.CauchyTail
+import lib.LimitOrder
+import lib.LimitClass
+import lib.LimitClassComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.0 部分和序列、可和与和类
+-- ─────────────────────────────────────────────────────────────
+
+-- 把前 n 项和看成 n 的函数，就得到一条有理序列。
+def Series (f : Nat → ratRep) : Seq := fun (n : Nat) => sumTo f n
+
+-- 级数可和，指的是部分和序列满足 Cauchy 条件。
+def Summable (f : Nat → ratRep) : Prop := Cauchy (Series f)
+
+-- 「a 是级数的和」写成部分和序列的极限类。
+def SeriesSum (f : Nat → ratRep) (a : Real) : Prop := LimitClass (Series f) a
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.1 零项的部分和
+-- ─────────────────────────────────────────────────────────────
+
+theorem series_zero (f : Nat → ratRep) :
+    ratRel (Series f Nat.zero) ratZeroRep :=
+  sumTo_zero f
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.2 多一项的计算规则
+-- ─────────────────────────────────────────────────────────────
+
+-- 这一步是定义性的：`Series f (n+1)` 归约成 `Series f n + f n`。
+theorem series_succ (f : Nat → ratRep) (n : Nat) :
+    Series f (Nat.succ n) = ratAddRep (Series f n) (f n) :=
+  Eq.refl (ratAddRep (Series f n) (f n))
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.3 Cauchy 定义的展开
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`Summable f` 就是 `Cauchy (Series f)`，而 Cauchy 的定义逐字就是右边那串量词；两个方向都直接返回假设。
+-- soko:hint 目标形态：`Summable f ↔ ∀ eps > 0, ∃ N, ∀ m n ≥ N, close (Series f m) (Series f n) eps`。
+-- soko:hint 关键件：Iff.intro · Cauchy 的定义。
+theorem summable_iff (f : Nat → ratRep) :
+    Summable f ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (m n : Nat), LeNat N m → LeNat N n →
+          close (Series f m) (Series f n) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.4 有和类就可和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `SeriesSum f a` 拆成代表元 `L`、`Cauchy L` 与 `TendsTo (Series f) L`；109.4 的 `tendsTo_cauchy` 把「部分和收敛到 L」退回「部分和是 Cauchy 的」。
+-- soko:hint 目标形态：`Summable f`。
+-- soko:hint 关键件：Exists.elim · And.left · And.right · tendsTo_cauchy。
+theorem summable_of_seriesSum (f : Nat → ratRep) (a : Real)
+    (h : SeriesSum f a) : Summable f :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.5 可和就有和类
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：109.6 的 `cauchy_limitClass` 对任意 Cauchy 序列给出极限类，把 `h` 原样交给它。
+-- soko:hint 目标形态：`∃ a, SeriesSum f a`。
+-- soko:hint 关键件：cauchy_limitClass。
+theorem seriesSum_of_summable (f : Nat → ratRep) (h : Summable f) :
+    ∃ (a : Real), SeriesSum f a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.6 可和与有和类等价
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：109.7 的 `cauchy_iff_limitClass` 已经把 Cauchy 与「存在极限类」证成等价，这里的两边只是把 `Summable` 与 `SeriesSum` 展开。
+-- soko:hint 目标形态：`Summable f ↔ ∃ a, SeriesSum f a`。
+-- soko:hint 关键件：cauchy_iff_limitClass。
+theorem summable_iff_seriesSum (f : Nat → ratRep) :
+    Summable f ↔ ∃ (a : Real), SeriesSum f a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.7 和类至多一个
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：104.6 的 `limitClass_unique` 对同一个序列的两个极限类给出相等，这里只是把 `SeriesSum` 展开。
+-- soko:hint 目标形态：`a = b`。
+-- soko:hint 关键件：limitClass_unique。
+theorem seriesSum_unique (f : Nat → ratRep) (a b : Real)
+    (ha : SeriesSum f a) (hb : SeriesSum f b) : a = b :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.8 零级数可和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：零级数的每一项部分和都等于零，所以部分和序列终究为常数；100.4 的 `cauchy_of_eventually_const` 把「终究为常数」换成 Cauchy，阈值取 0。
+-- soko:hint 目标形态：`Summable (fun _ => ratZeroRep)`。
+-- soko:hint 关键件：cauchy_of_eventually_const · sumTo_zero_fun · Exists.intro。
+theorem summable_zero : Summable (fun (_ : Nat) => ratZeroRep) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.9 具体：零级数的前两项和为零
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_series_zero :
+    ratRel (Series (fun (_ : Nat) => ratZeroRep) 2) ratZeroRep :=
+  sumTo_zero_fun 2

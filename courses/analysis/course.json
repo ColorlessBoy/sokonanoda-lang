@@ -874,6 +874,18 @@
               "title": "单元111 有限和的拆分与望远镜",
               "title_en": "Unit 111 — Splitting Finite Sums and Telescoping",
               "unit": 111
+            },
+            {
+              "file": "units/III.5/unit112-series.sokonanoda",
+              "title": "单元112 级数：部分和与和类",
+              "title_en": "Unit 112 — Series: Partial Sums and Sum Classes",
+              "unit": 112
+            },
+            {
+              "file": "units/III.5/unit113-term-test.sokonanoda",
+              "title": "单元113 收敛级数的通项趋于零",
+              "title_en": "Unit 113 — The Term Test for Series",
+              "unit": 113
             }
           ]
         }
