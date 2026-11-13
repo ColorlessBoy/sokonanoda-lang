@@ -1,3 +1,9 @@
+## M3 单元104：极限类的唯一性（2026-11-13 · issue #19 / PR #41）
+- `unit104-limit-class`：8 题。减法常数并进误差（`ratSubRep_add_self_sub` / `ratSubRep_add_le_two`）；`(eps/4)+(eps/4)+(eps/4)+(eps/4) ~ eps`（`ratHalf_four`）；固定下标后的尾部估计（`tendsTo_tail_le`）；`TendsTo` 给出一个方向的类序（`tendsTo_le_class`），反对称得两个极限类相等（`tendsTo_unique_class`）；`LimitClass` 谓词与唯一性（`limitClass_unique`）；常序列实例。正文 1 checked（`eps4`）/ 8 open / 0 rejected，解答 10 checked / 0 open。
+- `lib/LimitClass`（9 checked）进库，`lib/Demo` 补 import 与一条自检（17 checked）。
+- 判据：`check.py --json` rc=0（261 目标 · 2804 checked · 537 open · 0 rejected，M3 32/51）；`notation-lint` rc=0（269 文件，15 处豁免）；III.4 与新增 lib 文案门禁 BLOCK 0 / WARN 0；`style-lint --selftest` rc=0。
+- 边界：只讨论同一个序列的两个极限类，不声称每个实数都有代表元，不在类层构造减法。不新增公理、不碰 kernel/front。下一单元：III.4 单元105。
+
 ## M3 单元102–103：Cauchy 性的写法与实数差的刻画（2026-11-13 · issue #19 / PR #41）
 - `unit102-cauchy-shapes`：7 题。定向形式与尾部跳跃形式都和 Cauchy 原定义等价（`cauchy_oriented` / `cauchy_tail_jump` 及其逆与 `iff`），常序列实例。正文 0 checked / 7 open / 0 rejected，解答 7 checked / 0 open。
 - `unit103-realrel-diff`：5 题。`close a b ε ↔ close (a-b) 0 ε`（`close_sub_zero`）；`realRel` 等价于两个 Cauchy 序列的差收敛到零。正文 1 checked（`diffSeq`）/ 5 open / 0 rejected，解答 6 checked / 0 open。
@@ -11,9 +17,3 @@
 - 判据：`check.py --json` rc=0（252 目标 · 2749 checked · 517 open · 0 rejected，M3 29/51）；`notation-lint` rc=0（260 文件，15 处豁免）；III.4 与新增 lib 文案门禁 0 处；`style-lint --selftest` rc=0。
 - 边界：只证 Cauchy ⇒ 有界，不反推；有界序列未必 Cauchy。不新增公理、不碰 kernel/front。下一单元：III.4 单元102。
 
-## M3 单元97–99：上下极限的收敛与 Cauchy 极限点（2026-11-13 · issue #19 / PR #41）
-- `unit97`（上轮落盘）：尾部等价沿子序列复合，并搬运极限点与上下极限（`limitPoint_congr_tail` / `limsup_congr_tail` / `liminf_congr_tail`）。正文 1 checked / 6 open，解答 7 checked / 0 open。
-- `unit98-limsup-converges`：6 道练习。收敛时上下极限等价、空隙排除收敛、极限点落在两界之间；有极限点时两界相等（`limsup_liminf_rel_of_le`）。正文 0 checked / 6 open / 0 rejected，解答 6 checked / 0 open。
-- `unit99-cauchy-limit`：5 道练习。Cauchy 序列有极限点就收敛到它（`cauchy_limitPoint_converges`），极限点至多一个等价类，上下极限落在同一点。正文 0 checked / 5 open / 0 rejected，解答 5 checked / 0 open。
-- 判据：`check.py --json` rc=0（246 目标 · 2714 checked · 506 open · 0 判负，M3 27/51）；`notation-lint` rc=0（254 文件，15 处豁免）；III.3 文案门禁 0 处；`style-lint --selftest` rc=0。
-- 边界：98 不反推收敛（要可数选择）；99.0 保留极限点前提。不新增公理、不碰 kernel/front。下一单元：III.4。

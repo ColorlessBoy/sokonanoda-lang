@@ -25,6 +25,7 @@ import lib.CauchyTail
 import lib.CauchyShapes
 import lib.RealDiff
 import lib.Bounded
+import lib.LimitClass
 
 theorem demo_lib_closure : True := True.intro
 
@@ -81,3 +82,7 @@ theorem demo_cauchy_jump_zero :
 theorem demo_diff_self_zero :
     Converges (diffSeq (constSeq ratZeroRep) (constSeq ratZeroRep)) ratZeroRep :=
   demo_diff_self_tends_zero (constSeq ratZeroRep) (cauchy_const ratZeroRep)
+
+theorem demo_limit_class_zero :
+    LimitClass (constSeq ratZeroRep) (Real.mk (constSeq ratZeroRep)) :=
+  demo_limit_class_const ratZeroRep
