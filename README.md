@@ -247,18 +247,11 @@ download); CLI agents get the same contract via `--json`/`watch`.
 
 ## Development principles
 
-- **TDD**: every grammar point, command and error mode is added through tests
-  first (`crates/front`, `crates/cli/tests/cli.rs`), then implemented.
-- **Repetition**: the same behavior is exercised at unit level, end-to-end
-  kernel level, and CLI level, so a regression is caught repeatedly.
-- **Feedback is a feature**: the compiler and CLI output types, reductions,
-  printed declarations, errors and environment state, so both a human and a
-  model can drive the tool without consulting documentation.
-- **Self-documenting CLI**: `--help` and REPL `#help` describe the language;
-  `#env` lists what has been declared.
-- **Arrow-first types**: prefer `A -> B -> C` and named arrows
-  `(x : A) -> B` / `{x : A} -> B`; `forall` is only for grouping when it is
-  clearer.
+- **TDD**: grammar, commands and error modes are test-first.
+- **Repetition**: unit, end-to-end kernel, and CLI levels exercise the same behavior.
+- **Feedback is a feature**: output types, reductions, errors and state are designed for humans and agents.
+- **Self-documenting CLI**: `--help` / REPL `#help` / `#env` describe the language.
+- **Arrow-first types**: prefer `A -> B -> C` and named arrows; use `forall` only for clarity.
 
 A second example defines the classic logical vocabulary from scratch and
 proves core theorems about it:
@@ -266,3 +259,7 @@ proves core theorems about it:
 ```text
 "$BIN/sokonanoda" examples/fol-basics.sokonanoda
 ```
+
+## License
+
+Apache-2.0. See [`LICENSE`](LICENSE); contributions are under the same license (see [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md)).
