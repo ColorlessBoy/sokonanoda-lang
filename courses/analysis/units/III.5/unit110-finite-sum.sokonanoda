@@ -1,0 +1,123 @@
+-- 单元110 有限和：递归定义与基本律
+--
+-- 收敛定义已经有了，但「把前 n 项加起来」还没有对象。级数的每个问题都要先写
+-- 部分和；没有部分和，「前 n 项的和收敛」这句话无法陈述。本单元先补这个对象。
+--
+-- 递归的写法顺带给出两条计算规则：零项和是零，多一项就在尾部追加。其余内容
+-- 是把相等与加法搬到和上：逐项相等、全零、取负、逐项相加。它们后面用来把
+-- 部分和的估计拆成逐项的估计。
+--
+-- 边界：只处理有限和。`sumTo` 停在有理代表元层，不进入 ℝ 的商，也不谈无限项。
+-- 不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatAssoc
+import lib.RatSub
+import lib.RatGroup
+import lib.RatClose
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.0 前 n 项和
+-- ─────────────────────────────────────────────────────────────
+
+-- 对项数递归：零项时取零，后继时把新的一项接在已有和的右边。
+def sumTo (f : Nat → ratRep) : Nat → ratRep :=
+  Nat.rec (fun (_ : Nat) => ratRep) ratZeroRep
+    (fun (k : Nat) (acc : ratRep) => ratAddRep acc (f k))
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.1 零项和是零
+-- ─────────────────────────────────────────────────────────────
+
+theorem sumTo_zero (f : Nat → ratRep) : ratRel (sumTo f Nat.zero) ratZeroRep :=
+  ratRel_refl ratZeroRep
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.2 后继项数的计算规则
+-- ─────────────────────────────────────────────────────────────
+
+-- 这一步是定义性的：`sumTo f (n+1)` 归约成 `sumTo f n + f n`。
+theorem sumTo_succ (f : Nat → ratRep) (n : Nat) :
+    sumTo f (Nat.succ n) = ratAddRep (sumTo f n) (f n) :=
+  Eq.refl (ratAddRep (sumTo f n) (f n))
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.3 逐项相等则和相等
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对项数归纳。零项两边都是零；后继步先用归纳假设换掉前 n 项的和，再用 `h n` 换掉最后一项。
+-- soko:hint 目标形态：`ratRel (sumTo f n) (sumTo g n)`。
+-- soko:hint 关键件：Nat.rec · ratAddRep_wd_gen · ratAddRep_wd_snd_gen。
+theorem sumTo_congr (f g : Nat → ratRep) (n : Nat)
+    (h : ∀ (k : Nat), ratRel (f k) (g k)) :
+    ratRel (sumTo f n) (sumTo g n) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.4 全零项的和是零
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对项数归纳。后继步把和拆成「前 n 项的和 + 零」，归纳假设把前半换成零，再用加零律。
+-- soko:hint 目标形态：`ratRel (sumTo (fun _ => ratZeroRep) n) ratZeroRep`。
+-- soko:hint 关键件：Nat.rec · ratAddRep_wd_gen · ratAdd_zero。
+theorem sumTo_zero_fun (n : Nat) :
+    ratRel (sumTo (fun (_ : Nat) => ratZeroRep) n) ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.5 取负可以搬进和里
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对项数归纳。后继步先把 `-(f k)` 的和搬到 `-(sumTo f n)`，再把 `(-F) + (-f n)` 认成 `-(F + f n)`；后一步是取负分配律的反方向。
+-- soko:hint 目标形态：`ratRel (sumTo (fun k => ratNegRep (f k)) n) (ratNegRep (sumTo f n))`。
+-- soko:hint 关键件：Nat.rec · ratAddRep_wd_gen · ratNegRep_add · ratRel_symm。
+theorem sumTo_neg (f : Nat → ratRep) (n : Nat) :
+    ratRel (sumTo (fun (k : Nat) => ratNegRep (f k)) n)
+      (ratNegRep (sumTo f n)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.6 交换后两个加数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `(a+b)+c` 结合成 `a+(b+c)`，在括号里把 `b` 与 `c` 交换，再把 `a+(c+b)` 结合回 `(a+c)+b`。
+-- soko:hint 目标形态：`ratRel (ratAddRep (ratAddRep a b) c) (ratAddRep (ratAddRep a c) b)`。
+-- soko:hint 关键件：ratAdd_assoc · ratAdd_comm · ratAddRep_wd_snd_gen · ratRel_symm。
+theorem ratAdd_swap_mid (a b c : ratRep) :
+    ratRel (ratAddRep (ratAddRep a b) c) (ratAddRep (ratAddRep a c) b) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.7 两对加数重新配对
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先把 `(F+G)+(f+g)` 右结合成 `((F+G)+f)+g`，再用 110.6 把中间两项换成 `(F+f)+G`，最后把 `((F+f)+G)+g` 结合成 `(F+f)+(G+g)`。
+-- soko:hint 目标形态：`ratRel (ratAddRep (ratAddRep F G) (ratAddRep f g)) (ratAddRep (ratAddRep F f) (ratAddRep G g))`。
+-- soko:hint 关键件：ratAdd_assoc · ratAdd_swap_mid · ratAddRep_wd_gen · ratRel_symm。
+theorem ratAdd_pair_regroup (F G f g : ratRep) :
+    ratRel (ratAddRep (ratAddRep F G) (ratAddRep f g))
+      (ratAddRep (ratAddRep F f) (ratAddRep G g)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.8 和保持逐项加法
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对项数归纳。后继步把 `(f+g)` 的和拆成 `A + (f n + g n)`，用归纳假设换掉 `A`，再用 110.7 重新配对成两边的后继形状。
+-- soko:hint 目标形态：`ratRel (sumTo (fun k => f k + g k) n) (sumTo f n + sumTo g n)`。
+-- soko:hint 关键件：Nat.rec · ratAddRep_wd_gen · ratAdd_pair_regroup。
+theorem sumTo_add (f g : Nat → ratRep) (n : Nat) :
+    ratRel (sumTo (fun (k : Nat) => ratAddRep (f k) (g k)) n)
+      (ratAddRep (sumTo f n) (sumTo g n)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.9 具体：两个 1 的和是 2
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `sumTo` 展开两次；两边的代表元相同，用自反性收口。
+-- soko:hint 目标形态：`ratRel (sumTo (fun _ => qrep 1 0 0) 2) (qrep 2 0 0)`。
+-- soko:hint 关键件：定义性展开 · ratRel_refl。
+theorem demo_sumTo_two : ratRel (sumTo (fun (_ : Nat) => qrep 1 0 0) 2) (qrep 2 0 0) :=
+  sorry

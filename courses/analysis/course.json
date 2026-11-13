@@ -848,6 +848,34 @@
               "unit": 109
             }
           ]
+        },
+        {
+          "id": "III.5",
+          "title": "级数",
+          "prereqs": [
+            "III.4"
+          ],
+          "tags": [
+            "series",
+            "finite-sum"
+          ],
+          "quota": {
+            "exercises": 50
+          },
+          "units": [
+            {
+              "file": "units/III.5/unit110-finite-sum.sokonanoda",
+              "title": "单元110 有限和：递归定义与基本律",
+              "title_en": "Unit 110 — Finite Sums: Recursive Definition and Basic Laws",
+              "unit": 110
+            },
+            {
+              "file": "units/III.5/unit111-sum-split.sokonanoda",
+              "title": "单元111 有限和的拆分与望远镜",
+              "title_en": "Unit 111 — Splitting Finite Sums and Telescoping",
+              "unit": 111
+            }
+          ]
         }
       ]
     }

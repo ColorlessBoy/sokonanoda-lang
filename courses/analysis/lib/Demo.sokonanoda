@@ -31,6 +31,8 @@ import lib.LimitClassAdd
 import lib.LimitClassNeg
 import lib.LimitClassSub
 import lib.LimitClassComplete
+import lib.Sum
+import lib.SumSplit
 
 theorem demo_lib_closure : True := True.intro
 
@@ -119,3 +121,13 @@ theorem demo_limit_class_complete_zero :
       LimitClass (constSeq ratZeroRep) a ∧
         ∀ (b : Real), LimitClass (constSeq ratZeroRep) b → b = a :=
   limitClass_exists_unique (constSeq ratZeroRep) (cauchy_const ratZeroRep)
+
+theorem demo_sumTo_zero_fun_three :
+    ratRel (sumTo (fun (_ : Nat) => ratZeroRep) 3) ratZeroRep :=
+  sumTo_zero_fun 3
+
+theorem demo_sumTo_shift_zero :
+    ratRel (sumTo (constSeq ratZeroRep) (Nat.add 2 3))
+      (ratAddRep (sumTo (constSeq ratZeroRep) 2)
+        (sumTo (fun (k : Nat) => (constSeq ratZeroRep) (Nat.add 2 k)) 3)) :=
+  sumTo_shift (constSeq ratZeroRep) 2 3

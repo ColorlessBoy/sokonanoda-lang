@@ -1,0 +1,63 @@
+-- 单元111 有限和的拆分与望远镜
+--
+-- 部分和的估计常要把和切成两段：前 m 项与从 m 开始的尾巴。收敛只看尾巴，
+-- 切分点就必须能自由移动。另一类估计来自相邻项相消：一串差的和只剩首尾。
+-- 本单元给出这两件工具，并补一条逐项比较把和放大。
+--
+-- 拆分、望远镜与单调性都只用到 110 的递归规则。拆分对第二段的长度归纳；
+-- 望远镜把最后一项接到前面，再让中间项相消。
+--
+-- 边界：不涉及无限和；拆分只对同一个序列的有限前缀做，不重排项。
+
+import lib.Sum
+import lib.RatAbs
+import lib.RatSub
+import lib.RatClose
+
+-- ─────────────────────────────────────────────────────────────
+-- 111.0 把和切成两段
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对第二段的长度 `n` 归纳。`n = 0` 时第二段是零项和，用加零律；后继步把 `sumTo f (m + n)` 的最后一项接上，用归纳假设换掉前半，再右结合。
+-- soko:hint 目标形态：`ratRel (sumTo f (m + n)) (sumTo f m + sumTo (fun k => f (m + k)) n)`。
+-- soko:hint 关键件：Nat.rec · ratAdd_zero · ratAddRep_wd_gen · ratAdd_assoc。
+theorem sumTo_shift (f : Nat → ratRep) (m n : Nat) :
+    ratRel (sumTo f (Nat.add m n))
+      (ratAddRep (sumTo f m) (sumTo (fun (k : Nat) => f (Nat.add m k)) n)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 111.1 望远镜：相邻差的和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对 `n` 归纳。零项时两边都是 `b 0 - b 0`，用逆元律；后继步把最后一项 `b (n+1) - b n` 接在前面，交换两项差的位置，再用 `(x - y) + (y - z) ~ x - z` 消去中间项。
+-- soko:hint 目标形态：`ratRel (sumTo (fun k => b (k+1) - b k) n) (b n - b 0)`。
+-- soko:hint 关键件：Nat.rec · ratAdd_neg_gen · ratAdd_comm · ratSubRep_add · ratAddRep_wd_gen。
+theorem sumTo_telescope (b : Nat → ratRep) (n : Nat) :
+    ratRel (sumTo (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k)) n)
+      (ratSubRep (b n) (b Nat.zero)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 111.2 逐项比较
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对 `n` 归纳。零项时两边都是零；后继步把两条不等式相加，加法保序用 `ratLeRep_add`。
+-- soko:hint 目标形态：`ratLeRep (sumTo f n) (sumTo g n)`。
+-- soko:hint 关键件：Nat.rec · ratLeRep_refl · ratLeRep_add。
+theorem sumTo_le (f g : Nat → ratRep) (n : Nat)
+    (h : ∀ (k : Nat), ratLeRep (f k) (g k)) :
+    ratLeRep (sumTo f n) (sumTo g n) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 111.3 具体：三个差的和等于首尾之差
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `b k := qrep k 0 0` 代进 111.1 的望远镜，首尾之差归约成 `qrep 3 0 0`。
+-- soko:hint 目标形态：`ratRel (sumTo (fun k => (k+1) - k) 3) (qrep 3 0 0)`。
+-- soko:hint 关键件：sumTo_telescope · 定义性展开 · ratRel_refl。
+theorem demo_telescope_three :
+    ratRel (sumTo (fun (k : Nat) => ratSubRep (qrep (Nat.succ k) 0 0) (qrep k 0 0)) 3)
+      (qrep 3 0 0) :=
+  sorry
