@@ -1,18 +1,12 @@
 -- 单元⑫ 整数序的代表元公式
 --
--- 单元④–⑪ 把 ℤ 的加法与乘法写成了代表元公式，并在代表元层证了良定义性
--- 与基本律。本单元转到**序**：整数 a - b 不大于 c - d，当且仅当
---   a + d ≤ c + b
--- （两边同加 b + d，把「减」消掉）。这样 ℤ 上的序就化归成 ℕ 上的序。
+-- 加法和乘法都在代表元上安顿好了，现在轮到序。整数 a-b 不大于 c-d，两边同加
+-- b+d 就能把减法消掉：它等价于 a+d ≤ c+b。于是 ℤ 上的序化归成 ℕ 上的序——
+-- 但 ℕ 上的 ≤ 本语言也没有内建，得先自己造一个。
 --
--- 本语言没有内建的 `≤`，所以先按通常的归纳定义自己造一个：
---   LeNat : ℕ → ℕ → Prop
---   le_refl n        : LeNat n n
---   le_succ m n h    : LeNat m n → LeNat m (succ n)
--- 后一条就是「n ≤ n+1，再往上传递一层」。有了它，序是**命题**而不是布尔值：
--- 证明 `leRep p q` 就是给出这条构造子链。
---
--- 只做**代表元公式**（与单元④平行）：序的良定义性与序公理留给后续单元。
+-- 造法沿用通常的归纳定义：LeNat 有两条构造规则——自反，以及从 m ≤ n 得到
+-- m ≤ n+1。序因此是命题而不是布尔值：证明 leRep p q，就是给出这条构造子链。
+-- 有了它，代表元层的序就取 a+d ≤ c+b；它的良定义性与序公理留给后续单元。
 import lib.Logic
 import lib.Prod
 
@@ -27,16 +21,16 @@ def intRel (a b : Prod Nat Nat) : Prop :=
 
 def Int : Type := @Quot.{1} (Prod Nat Nat) intRel
 
--- 代表元层的序：a - b ≤ c - d  ⇔  a + d ≤ c + b。
+-- 代表元层的序：a-b ≤ c-d 当且仅当 a+d ≤ c+b。
 def leRep (p q : Prod Nat Nat) : Prop :=
   LeNat (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
         (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
 
--- 演示：每个自然数都不大于它的后继。
+-- 先看构造子本身：每个自然数都不大于它的后继。
 theorem demo_leNat_succ_self (n : Nat) : LeNat n (Nat.succ n) :=
   le_succ n n (le_refl n)
 
--- 演示：0 - 0 ≤ 1 - 0，因为 0 + 0 ≤ 1 + 0。
+-- 具体例子：0-0 ≤ 1-0，因为 0+0 ≤ 1+0。
 theorem demo_leRep_zero_one :
     leRep (@prod_mk Nat Nat Nat.zero Nat.zero) (@prod_mk Nat Nat 1 Nat.zero) :=
   le_succ Nat.zero Nat.zero (le_refl Nat.zero)
@@ -69,7 +63,7 @@ theorem leNat_zero_le (n : Nat) : LeNat Nat.zero n := by
   | Nat.zero => le_refl Nat.zero
   | Nat.succ k => le_succ Nat.zero k ih
 
--- 演示：由 leNat_zero_le 立刻得到 0 - 0 ≤ n - 0。
+-- 具体例子：由 0 ≤ n 立刻得到 0-0 ≤ n-0。
 theorem demo_leRep_zero_le (n : Nat) :
     leRep (@prod_mk Nat Nat Nat.zero Nat.zero) (@prod_mk Nat Nat n Nat.zero) :=
   leNat_zero_le n
