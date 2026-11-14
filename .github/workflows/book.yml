@@ -1,0 +1,84 @@
+name: book
+
+# Book v2 (interactive HTML reader) gate.
+#
+# Deliberately fast and dependency-free: Python 3 standard library only, no
+# browser, no PDF engine, no npm.  The page itself is built by the same script
+# a reader runs locally, so CI checks exactly the committed generator contract.
+#
+# ✅ Observed on PR #35 (the PR that added this file): push run 43133044100 and
+# pull_request run 43133052960 both succeeded (build → --check → preview check →
+# --selftest → notation-lint → artifact book-v2-html).  `workflow_dispatch`
+# remains for manual runs.  Fork PRs may still evaluate workflows differently
+# (base-branch approval/permission rules), so the local command chain below is
+# the source of truth.
+#
+# The committed review copy (scripts/book/preview/index.html) is checked too:
+# source changes that forget to regenerate it fail here rather than drifting.
+
+on:
+  pull_request:
+    paths:
+      - "scripts/book/**"
+      - "scripts/build_book_proto.py"
+      - "courses/analysis/**"
+      - "scripts/notation-lint.py"
+      - "scripts/content_style/**"
+      - ".github/workflows/book.yml"
+  push:
+    paths:
+      - "scripts/book/**"
+      - "scripts/build_book_proto.py"
+      - "courses/analysis/**"
+      - "scripts/notation-lint.py"
+      - "scripts/content_style/**"
+      - ".github/workflows/book.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: book-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  book-v2:
+    name: book-v2（build / check / selftest / notation-lint）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build book v2
+        run: python3 scripts/build_book_proto.py --out dist/book/book-v2
+
+      - name: Check generated page
+        run: python3 scripts/build_book_proto.py --check --out dist/book/book-v2
+
+      - name: Check committed preview is current
+        run: python3 scripts/build_book_proto.py --check --check-preview
+
+      - name: Checker selftest (negative cases)
+        run: python3 scripts/build_book_proto.py --selftest
+
+      - name: Style lint (analysis prose + generated page)
+        run: |
+          python3 scripts/content_style/style_lint.py --root courses/analysis/units --json
+          python3 scripts/content_style/style_lint.py --html dist/book/book-v2/index.html --html-only --json
+          python3 scripts/content_style/style_lint.py --selftest
+      - name: Notation lint (analysis course)
+        run: python3 scripts/notation-lint.py --root courses/analysis
+
+      - name: Upload generated HTML
+        uses: actions/upload-artifact@v7
+        with:
+          name: book-v2-html
+          path: dist/book/book-v2/index.html
+          if-no-files-found: error
+          retention-days: 14

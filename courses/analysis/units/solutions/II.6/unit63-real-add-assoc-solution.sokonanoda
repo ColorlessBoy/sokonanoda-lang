@@ -1,27 +1,18 @@
--- 单元63 实数的加法：结合律（三元关系版）（解答）
+-- 单元63 实数的加法：结合律（三元关系版）
 --
--- 62 给了三元关系 `addRel` 的交换律与零元。本单元补上**结合律**：
+-- 上一单元给了三元关系 addRel 的交换律与零元。现在补上结合律：若 a+b = s 且
+-- s+c = t，则 b+c 有输出 u，且 a+u = t。写成存在形式就是
+-- addRel a b s 推出 addRel s c t 推出「存在 u，使 addRel b c u 且 addRel a u t」。
 --
---   若 `a + b = s` 且 `s + c = t`，则 `b + c` 有输出 `u`，且
---   `a + u = t`。
+-- 它是重括号的合法性：左边的 (a+b)+c 与右边的 a+(b+c) 落在同一个 t 上。注意右边
+-- 不是函数，所以结论只能写成「存在 u」；而上单元的 addRel_unique 保证这样的 u 唯一。
 --
--- 写成存在形式是
+-- 证明分两层。代表元层先证 (x+y)+z 与 x+(y+z) 相等（㉔ 的结合律经 close 的桥逐点
+-- 搬到 realRel）；再把已知的 (x+y)+z = t 换成 t = mk (x+(y+z))；然后在商层对 a、
+-- b、c 各做一次 Quot.ind，用 mk 层的结果收口。
 --
---   addRel a b s → addRel s c t → ∃ u, addRel b c u ∧ addRel a u t
---
--- 它是**重括号**的合法性：左边的 `(a+b)+c` 与右边的 `a+(b+c)` 落在
--- 同一个 `t` 上。注意右边不是函数，所以结论只能写成「存在 `u`」；
--- 但 61 的 `addRel_unique` 保证这样的 `u` 唯一。
---
--- 证明分两层：
---   · 63.1 代表元层：`(x+y)+z ~ x+(y+z)`（㉔ 的 `ratAdd_assoc` 经
---     62 的 `close_of_ratRel` 逐点搬到 `realRel`）；
---   · 63.2 `mk` 层：已知 `(x+y)+z = t`，取 `u := mk (y+z)`，把
---     63.1 经 `Real.sound` 换成 `t = mk (x+(y+z))`；
---   · 63.3 商层：对 `a`、`b`、`c` 各做一次 `Quot.ind`，用 63.2。
---
--- 边界仍是 61 的部分关系：`addRel a b s` 的两个前提分量带着 `Cauchy`
--- 守卫，所以 63.2 要显式接收 `Cauchy x`、`Cauchy y`；不新增信任。
+-- 边界仍是上一单元的部分关系：addRel a b s 的两个前提分量带着 Cauchy 守卫，所以
+-- mk 层要显式接收 Cauchy x、Cauchy y；不新增信任。
 
 import lib.RealAddLaws
 import lib.RatAssoc

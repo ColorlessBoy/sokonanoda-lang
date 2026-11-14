@@ -1,11 +1,14 @@
 -- 单元⑥ 整数加法的良定义性
 --
--- addRep 是代表元上的公式；要在商上定义加法，必须先证它尊重 intRel：
---   (a,b) ~ (a',b')  ⇒  addRep (a,b) (c,d) ~ addRep (a',b') (c,d)
--- 关键一步是 ℕ 的搬运律 add_shift：(a+c)+(b+d) = (a+b)+(c+d)。
+-- 单元④写下了加法的代表元公式，但还没有回答那个问题：换一个代表元，结果
+-- 还一样吗？在商上定义加法，必须证明这条公式尊重「差相等」：(a,b) 与 (a',b')
+-- 差相等时，把同一个 (c,d) 加到两边，得到的两个序对仍然差相等。这条不成立，
+-- addRep 就只是代表元上的操作，不是 ℤ 上的加法。
 --
--- 本单元的两道练习就是这条搬运律与良定义性本身；上面四条 ℕ 加法律
--- 与单元③重复（L3 必须留在单元里），这里直接给出，复习请回看单元③。
+-- 证明的关键是一步 ℕ 的搬运律：(a+c)+(b+d) = (a+b)+(c+d)——把四个数重新
+-- 配对，和不变。它先把两个序对的分量按需要重新组合，再把 h : a+b' = a'+b
+-- 换进去。先证这条搬运律，再证良定义性本身；为此把单元③证过的四条
+-- ℕ 加法律重新列出来，后面的证明直接引用。
 import lib.Logic
 import lib.Prod
 
@@ -23,7 +26,7 @@ def addRep (a b : Prod Nat Nat) : Prod Nat Nat :=
     (Nat.add (Prod.fst Nat Nat a) (Prod.fst Nat Nat b))
     (Nat.add (Prod.snd Nat Nat a) (Prod.snd Nat Nat b))
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+-- 下面四条是单元③证过的 ℕ 加法律，这里重新列出，后面的证明直接引用。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
@@ -70,6 +73,7 @@ theorem add_comm (a b : Nat) :
         (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
     b
 
+-- 先证搬运律：把 (a+c)+(b+d) 重新配对成 (a+b)+(c+d)，和不变。
 -- soko:hint 思路：把左式按结合律拆成 a+((c+b)+d)，再用交换律把 c+b 换成 b+c，最后按结合律拼回右式。
 -- soko:hint 目标形态：((a+c)+(b+d)) = ((a+b)+(c+d))。
 -- soko:hint 关键件：add_assoc（两次，方向相反）· add_comm · Eq.subst 与 Eq.trans。
@@ -78,6 +82,7 @@ theorem add_shift (a b c d : Nat) :
     Nat.add (Nat.add a b) (Nat.add c d) :=
   sorry
 
+-- 再证良定义性本身：h 说 (a,b) 与 (a',b') 差相等，要证把 (c,d) 加到两边后仍差相等。
 -- soko:hint 思路：hypothesis h 就是 a+b' = a'+b；两边各用一次 add_shift 把 c、d 配进去，再用 h 换掉中间那一项。
 -- soko:hint 目标形态：((a+c)+(b'+d)) = ((a'+c)+(b+d))。
 -- soko:hint 关键件：add_shift（两次，一次取对称）· Eq.subst（谓词固定右端 (c+d)）· Eq.trans。
@@ -87,8 +92,11 @@ theorem addRep_wd (a b a' b' c d : Nat)
            (addRep (@prod_mk Nat Nat a' b') (@prod_mk Nat Nat c d)) :=
   sorry
 
--- 演示：具体数字上走一遍 —— (2-0) ~ (3-1)，各自加 (4-1)，结果仍等价。
+-- 最后在具体数字上核对：2-0 与 3-1 差相等，各加 (4-1) 后仍差相等（两边都算得 8）。
 theorem demo_addRep_wd :
     intRel (addRep (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 4 1))
            (addRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 4 1)) :=
   @Eq.refl.{1} Nat 8
+
+-- 这就是第一处真正的良定义性证明：加法在 ℤ 上终于定义得下来。同样的套路会
+-- 在后面的乘法和序上反复出现——先证一条搬运律，再用它把代表元的替换搬过去。

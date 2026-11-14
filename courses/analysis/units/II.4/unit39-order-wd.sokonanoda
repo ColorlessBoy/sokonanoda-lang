@@ -1,28 +1,17 @@
 -- 单元㊴ 有理数的序与相等相容
 --
--- ℚ 是代表元的商（`Rat := Quot ratRel`）。㉙ 把 `x ≤ y` 定义成
--- **代表元上的交叉相乘比较**：
+-- ℚ 是代表元的商（Rat := Quot ratRel），而 ㉙ 把 x ≤ y 定义成代表元上的交叉相乘
+-- 比较：x.num·y.den ≤ y.num·x.den。既然是商上的关系，它就必须与代表元的选取无关：
+-- x ~ x' 且 y ~ y' 时 x ≤ y 与 x' ≤ y' 同真假；否则「ℚ 上的序」根本不是一个关系。
+-- 先结清替换一个因子的两条腿，合起来就是完整的相容性。
 --
---   ratLeRep x y  :⟺  x.num · (y.den) ≤ y.num · (x.den)
+-- 唯一的搬运工具是「把 intRel 的两边同乘一个正分母」（㊴.1）。要证 x' ≤ y：把
+-- x ≤ y 两边乘上 x' 的分母；再把 x ~ x' 两边乘上 y 的分母，用 ㊴.1 与
+-- mulRep_den_swap 把 x.num·x'.den 换到公分母上；最后用 leRep_cancel_den 消去公共的
+-- x 的分母。要证 x ≤ y' 时对称处理。
 --
--- 既然是商上的关系，它就必须与代表元的选取无关：
---
---   x ~ x'  且  y ~ y'   ⟹   (x ≤ y  ⟺  x' ≤ y')
---
--- 否则「ℚ 上的序」根本不是一个关系。本单元结清**替换一个因子**的两条腿
--- （`x` 可换、`y` 可换）；两条腿拼起来就是完整的相容性。
---
--- 证明路线（全部停在 ℤ 代表元与 ℕ 乘法的层面）：
---
---   ① 把 `intRel` 的两边同乘一个正分母（㊴.1）——这是唯一的「搬运」工具；
---   ② 要证 `x' ≤ y`：把 `x ≤ y` 两边乘上 `x'.den`；再把 `x ~ x'` 两边乘上
---      `y.den`，用 ㊴.1 与 `mulRep_den_swap` 把 `x.num·x'.den` 换到公分母上；
---      最后 `leRep_cancel_den` 消去公共的 `x.den`。
---   ③ 要证 `x ≤ y'`：对称地，把 `x ≤ y` 两边乘上 `y'.den`，`y ~ y'` 两边
---      乘上 `y.den`，再消去公共的 `y.den`。
---
--- 引擎（`mulRep_den_swap` / `leRep_mul_den_right` / `leRep_cancel_den`）已在
--- ㊲–㊳ 判卷，收在 `lib/RatOrder`；本单元的律留在画布里。
+-- 引擎（mulRep_den_swap / leRep_mul_den_right / leRep_cancel_den）已在 ㊲–㊳ 证明，
+-- 收在 lib/RatOrder；这里的律留在正文里。
 
 import lib.RatOrder
 
@@ -30,6 +19,7 @@ import lib.RatOrder
 -- ㊴.1 等价的两边同乘一个正分母
 -- ─────────────────────────────────────────────────────────────
 
+-- 先备好唯一的搬运工具：等价的两边同乘一个正分母。
 -- soko:hint 思路：`mulRep_wd` 要求的是**序对字面量** `(a, b)` 之间的 `intRel`，而现在 `p`、`q` 是抽象变量。先用 `Prod.eta` 把 `p` 换成 `(fst p, snd p)`、把 `q` 换成 `(fst q, snd q)`（`Eq.subst` 四次：两次把假设搬进字面量、两次把结论搬回来），再用一次 `mulRep_wd`。
 -- soko:hint 目标形态：`intRel p q → intRel (p·(n+1)) (q·(n+1))`。
 -- soko:hint 关键件：Prod.eta（两次）· Eq.subst（四次）· mulRep_wd（一次，乘数取 `(n+1, 0)`）。
@@ -41,6 +31,7 @@ theorem scale_den (p q : Prod Nat Nat) (n : Nat) (h : intRel p q) :
 -- ㊴.2 相等可替换：第一个因子
 -- ─────────────────────────────────────────────────────────────
 
+-- 第一个因子可换：把两条前提换到公分母上，再消去公共分母。
 -- soko:hint 思路：对目标用 `leRep_cancel_den`（消去 `x.den = m`）。内层先用 `leRep_mul_den_right` 把 `h` 两边乘上 `den m'`（`x'` 的分母），得到 `((x·dy)·dm', (y·dx)·dm')`。左端三段：`mulRep_den_swap` 把 `(x·dy)·dm'` 换成 `(x·dm')·dy`，㊴.1 把 `x ~ x'` 搬成 `(x·dm')·dy ~ (x'·dm)·dy`，再 `mulRep_den_swap` 换回 `(x'·dy)·dm`；右端一段：`mulRep_den_swap` 把 `(y·dx)·dm'` 换成 `(y·dm')·dx`。最后 `leRep_wd_pair` 把两条 `intRel` 链贴到 `leRep` 上。
 -- soko:hint 目标形态：`x ~ x' → x ≤ y → x' ≤ y`（`x`、`x'` 用 `qrep a b m` / `qrep a' b' m'` 展开）。
 -- soko:hint 关键件：leRep_cancel_den（k = m）· leRep_mul_den_right（k = m'）· mulRep_den_swap（三次）· scale_den · leRep_wd_pair。
@@ -54,6 +45,7 @@ theorem ratLeRep_wd (a b a' b' c d m m' n : Nat)
 -- ㊴.3 相等可替换：第二个因子
 -- ─────────────────────────────────────────────────────────────
 
+-- 第二个因子可换，结构与上一个对称。
 -- soko:hint 思路：与 ㊴.2 同构，但这次换的是右边那个数。对目标消去 `y.den = n`；`h` 两边乘 `y'.den = n'`。左端：`mulRep_den_swap` 把 `(x·dn)·dn'` 换成 `(x·dn')·dn`。右端三段：`mulRep_den_swap` 把 `(y·dm)·dn'` 换成 `(y·dn')·dm`，㊴.1 把 `y ~ y'`（乘 `m`）搬成 `(y·dn')·dm ~ (y'·dn)·dm`，再 `mulRep_den_swap` 换回 `(y'·dm)·dn`。最后 `leRep_wd_pair`。
 -- soko:hint 目标形态：`y ~ y' → x ≤ y → x ≤ y'`。
 -- soko:hint 关键件：leRep_cancel_den（k = n）· leRep_mul_den_right（k = n'）· mulRep_den_swap（三次）· scale_den · leRep_wd_pair。
@@ -67,6 +59,7 @@ theorem ratLeRep_wd_snd (a b c d c' d' m n n' : Nat)
 -- ㊴.4 具体：1/2 ~ 2/4，所以 1/2 ≤ 3/4 推出 2/4 ≤ 3/4
 -- ─────────────────────────────────────────────────────────────
 
+-- 具体走一遍：1/2 与 2/4 相等，所以 1/2 ≤ 3/4 可换成 2/4 ≤ 3/4。
 -- soko:hint 思路：`1/2 ~ 2/4` 展开后两边的交叉乘积都是 `(4, 0)`，用 `intRel_refl`；前提 `1/2 ≤ 3/4` 展开是 `LeNat 4 6`，用 `le_succ` 叠出来；最后交给 ㊴.2。
 -- soko:hint 目标形态：`ratLeRep (qrep 2 0 3) (qrep 3 0 3)`。
 -- soko:hint 关键件：ratLeRep_wd · intRel_refl · le_succ · le_refl。
@@ -78,6 +71,7 @@ theorem demo_ratLeRep_wd :
 -- ㊴.5 具体：3/4 ~ 6/8，所以 1/2 ≤ 3/4 推出 1/2 ≤ 6/8
 -- ─────────────────────────────────────────────────────────────
 
+-- 再走一遍：3/4 与 6/8 相等，所以 1/2 ≤ 3/4 可换成 1/2 ≤ 6/8。
 -- soko:hint 思路：`3/4 ~ 6/8` 展开后交叉乘积都是 `(24, 0)`；前提 `1/2 ≤ 3/4` 展开是 `LeNat 4 6`；交给 ㊴.3。
 -- soko:hint 目标形态：`ratLeRep (qrep 1 0 1) (qrep 6 0 7)`。
 -- soko:hint 关键件：ratLeRep_wd_snd · intRel_refl · le_succ · le_refl。

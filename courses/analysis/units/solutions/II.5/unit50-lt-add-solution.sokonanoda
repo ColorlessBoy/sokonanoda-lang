@@ -1,25 +1,17 @@
--- 单元㊿ 严格序与加法相容：加法消去与 `a < b ⇒ a + c < b + c`（解答）
+-- 单元㊿ 严格序与加法相容：加法消去与 `a < b ⇒ a + c < b + c`
 --
--- ㊹ 证明了 `x ≤ y ⇒ x + z ≤ y + z`；严格序还差**反方向**的工程件：
--- 从 `x + z ~ y + z` 要能推回 `x ~ y`。这就是**加法消去**：
+-- ㊹ 证明了 x ≤ y 推出 x+z ≤ y+z；严格序还差反方向的工程件：从 x+z ~ y+z 要能推回
+-- x ~ y。这就是加法消去。
 --
---   ratLeRep (x + z) (y + z) ⇒ ratLeRep x y
+-- 证明把 ㊹ 的换形倒过来走：leNum (x+z) (y+z) 经两条换形（现在由库里的
+-- leNum_ratAddRep_left/right 提供）变成「x、y 各乘两次 den z，再加同一块 z」；
+-- leRep_add_cancel_right 消掉公共加数，leRep_cancel_den 再把两层 den z 各消一次。
 --
--- 证明把 ㊹.4 的换形倒过来走：`leNum (x+z) (y+z)` 经那两条换形
--- （本单元起由库里的 `leNum_ratAddRep_left/right` 提供）变成
--- 「x、y 各乘两次 `den z`，再加同一块 z」；`leRep_add_cancel_right` 消掉
--- 公共加数，`leRep_cancel_den` 再把两层 `den z` 各消一次。
+-- 有了消去，严格序的加法相容只需要两条：弱序用 ㊹ 的 ratLeRep_add_right；不相等
+-- 则若 x+z ~ y+z，消去得 x ~ y，与 < 的第二分量矛盾。
 --
--- 有了消去，严格序的加法相容只需要两条：
---   · 弱序：㊹ 的 `ratLeRep_add_right`；
---   · 不相等：若 `x + z ~ y + z`，消去得 `x ~ y`，与 `<` 的第二分量矛盾。
---
--- 本单元结清：
---   · ㊿.1 `ratLeRep_add_addends`：把 ㊹.4 的两个换形拼成「加同一块 z」；
---   · ㊿.2 `ratLeRep_add_cancel`：加法消去（弱序）；
---   · ㊿.3 `ratRel_add_cancel`：加法消去（相等）；
---   · ㊿.4 `ratLtRep_add_right`：`x < y ⇒ x + z < y + z`；
---   · ㊿.5 具体：`0 + 1/2 < 1 + 1/2`。
+-- 先证把两个换形拼成「加同一块 z」的引理，再证加法消去（弱序与相等各一条），
+-- 然后拼出 x < y 推出 x+z < y+z，最后在具体数字上算 0+1/2 < 1+1/2。
 
 import lib.RatAbsOrder
 

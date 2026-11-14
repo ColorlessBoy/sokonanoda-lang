@@ -1,31 +1,17 @@
--- 单元66 实数的序：沿 `realRel` 下降成 `Real` 上的关系（解答）
+-- 单元66 实数的序：沿 `realRel` 下降成 `Real` 上的关系
 --
--- 64–65 在代表元层把序立起来并证了自反与传递：
+-- 前两个单元在代表元层把序立起来，并证了自反与传递：realLeRep x y 当且仅当 x、y
+-- 都是 Cauchy 序列，且对任意 eps>0 存在 N，使 n ≥ N 时 (x n - y n) ≤ eps。
 --
---   realLeRep x y  :⟺  Cauchy x ∧ Cauchy y ∧
---                        ∀ eps > 0, ∃ N, ∀ n ≥ N, (x n - y n) ≤ eps
+-- 但 def realLeRep : Seq → Seq → Prop 还不是 Real 上的序：同一个实数可以换代表元，
+-- 序必须与代表元的选取无关。现在补上这条良定义性，再经两次 Quot.lift 把序下降到
+-- realLe : Real → Real → Prop。两次 lift 与三元加法同一构造：内层把第二个因子送到
+-- Prop（良定义性是 realLeRep_wd_snd），外层再把第一个因子送到 Real → Prop
+-- （良定义性是 realLeRep_wd，对每个 b 用 Quot.ind 烧成代表元形状）。
 --
--- 但 `def realLeRep : Seq → Seq → Prop` 还不是 `Real` 上的序：同一个实数
--- 可以换代表元，序必须与代表元的选取无关。本单元补上这条**良定义性**，
--- 再经两次 `Quot.lift` 把序下降到
---
---   realLe : Real → Real → Prop
---
--- 两次 lift 与 61 的 `addRel` 同一构造：内层把第二个因子送到 `Prop`
--- （良定义性是 `realLeRep_wd_snd`），外层再把第一个因子送到
--- `Real → Prop`（良定义性是 `realLeRep_wd`，对每个 `b` 用 `Quot.ind`
--- 烧成代表元形状）。代价仍是 L2 既有的 `funext`（定理）与 `propext`
--- （既有 axiom），**不新增信任**。
---
--- 良定义性的证明本身很短：`realLeRep_of_realRel`（64.2）把
--- `realRel` 的两个方向投成序，`realLeRep_trans`（65.2）把三段接起来。
---
---   · 66.0 `realLeRep_wd` —— 换左因子，序不变；
---   · 66.1 `realLeRep_wd_snd` —— 换右因子，序不变；
---   · 66.2 `realLeY` —— 固定左因子，对第二个因子做 `Quot.lift`；
---   · 66.3 `realLe` —— 对第一个因子再做一次 `Quot.lift`；
---   · 66.4 `realLe_mk` —— 两次 lift 的 ι 规则；
---   · 66.5 常零序列上的具体例。
+-- 良定义性的证明本身很短：「相等推出序」把 realRel 的两个方向投成序，序的传递性
+-- 把三段接起来。先证两条替换律（换左因子、换右因子），再做两次下降，给出 ι 规则，
+-- 最后在常零序列上落一个具体例。
 
 import lib.RealOrder
 import lib.RealOrderTrans

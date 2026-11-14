@@ -1,22 +1,18 @@
 -- 单元⑲ 把取负下降成函数：`Quot.lift` 的第一座桥
 --
--- 到单元⑱ 为止，`Int` 上的运算都只在**代表元层**陈述：
---   `mk (addRep p q)`、`int_add_comm` 的等式两端都是 `mk (…)`。
--- 本单元第一次真正**下降**（`Quot.lift`）：取负是一元运算，义务只有一个参数，
--- 所以不需要函数外延性就能拿到一个货真价实的函数
+-- 到单元⑱ 为止，Int 上的运算都只在代表元层陈述：mk (addRep p q)、int_add_comm
+-- 的等式两端都是 mk (…)。本单元第一次真正下降（Quot.lift）：取负是一元运算，
+-- 义务只有一个参数，所以不需要函数外延性就能拿到一个货真价实的函数
+-- intNeg : Int → Int。
 --
---   intNeg : Int → Int
+-- 下降的两条义务（Quot.lift 的签名）是：f 把代表元映到 Int（这里取
+-- fun p => mk (negRep p)）；h 说明换代表元值不变（这里就是 negRep_wd）。下降之后
+-- intNeg (mk p) 与 mk (negRep p) 定义性相等（Quot.lift 的 ι 归约），所以计算规则
+-- intNeg_mk 只是一条 Eq.refl。
 --
--- 下降的两条义务（`Quot.lift` 的签名）：
---   · f  : 代表元 → Int，这里取 `fun p => mk (negRep p)`；
---   · h  : 代表元换掉值不变，这里就是 `negRep_wd`。
--- 下降之后 `intNeg (mk p)` 与 `mk (negRep p)` **定义性相等**（`Quot.lift` 的 ι 归约）
--- ⇒ 计算规则 `intNeg_mk` 只是一条 `Eq.refl`。
---
--- 为什么**二元**运算（加法/乘法）不这样下降：`intNeg` 的返回类型是 `Int`，
--- 而 `Int → Int` 的 `Quot.lift` 要求证明两个**函数**相等 —— 那需要函数外延性
--- `funext`，本语言没有（prelude 只有 Nat/Bool/Eq 与 Quot）。所以加法/乘法
--- 继续停在代表元层（单元⑦–⑱ 的形式），ℚ 章也在代表元层搭。
+-- 为什么二元运算（加法/乘法）不这样下降：intNeg 的返回类型是 Int，而 Int → Int 的
+-- Quot.lift 要求证明两个函数相等——那需要函数外延性 funext，本语言没有。所以加法、
+-- 乘法继续停在代表元层（单元⑦–⑱ 的形式），ℚ 章也在代表元层搭。
 import lib.Logic
 import lib.Prod
 
@@ -85,13 +81,13 @@ theorem add_assoc (a b c : Nat) :
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
     c
 
--- 搬运律：把两个和里的加法因子换个配对，值不变。
+-- 搬运律把两个和里的加数重新配对，值不变；后面的重排要用它。
 
 -- ─────────────────────────────────────────────────────────────
 -- ⑲.1 `Quot.lift` 的义务：换代表元，取负的结果仍等价
 -- ─────────────────────────────────────────────────────────────
 
--- 目标是一个交叉和等式：b + a' = b' + a，而假设是 a + b' = a' + b。
+-- 先结清下降的义务：换代表元，取负的结果仍等价。目标是一个交叉和等式：
 -- 把两边各交换一次，再把假设取对称就接上了。
 -- soko:hint 思路：目标展开成 b + a' = b' + a；假设是 a + b' = a' + b。左端先用 add_comm 换成 a' + b，再用 h 的对称换成 a + b'，最后用 add_comm 换成 b' + a。
 -- soko:hint 目标形态：intRel (b,a) (b',a')，即 b + a' = b' + a。
@@ -117,20 +113,20 @@ theorem negRep_wd (p q : Prod Nat Nat)
 -- ⑲.2 下降：`intNeg : Int → Int`
 -- ─────────────────────────────────────────────────────────────
 
--- `Quot.lift` 是唯一的下降通道；两条义务就在这里结清。
+-- 下降只有 Quot.lift 一条通道；两条义务在这里结清。
 def intNeg : Int → Int :=
   @Quot.lift.{1, 1} (Prod Nat Nat) intRel Int
     (fun (p : Prod Nat Nat) => @Quot.mk.{1} (Prod Nat Nat) intRel (negRep p))
     (fun (p q : Prod Nat Nat) (h : intRel p q) =>
       @Quot.sound.{1} (Prod Nat Nat) intRel (negRep p) (negRep q) (negRep_wd p q h))
 
--- 计算规则：`intNeg` 作用在 `mk p` 上按 ι 归约成 `mk (negRep p)`，所以是 `Eq.refl`。
+-- 下降后的计算规则：intNeg 作用在 mk p 上按 ι 归约成 mk (negRep p)。
 theorem intNeg_mk (a b : Nat) :
     intNeg (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b)) =
     @Quot.mk.{1} (Prod Nat Nat) intRel (negRep (@prod_mk Nat Nat a b)) :=
   @Eq.refl.{1} Int (@Quot.mk.{1} (Prod Nat Nat) intRel (negRep (@prod_mk Nat Nat a b)))
 
--- 取负是对合：`-(-z) = z`。
+-- 再证取负是对合：-(-z) = z（对 z 用 Quot.ind）。
 -- soko:hint 思路：对 z 用 Quot.ind（命题层消去），把 z 换成 mk p。两次 ι 归约后左边是 mk (negRep (negRep p))；negRep 翻两次回到 (fst p, snd p)，与 p 的交叉和相等是自反的，用 Quot.sound 交出去。
 -- soko:hint 目标形态：intNeg (intNeg z) = z。
 -- soko:hint 关键件：Quot.ind（动机写在 Int 上）· Quot.sound（第三项用 Eq.refl）· ι 归约（两处 intNeg 都要真的烧掉）。
@@ -144,19 +140,19 @@ theorem intNeg_invol (z : Int) :
         (@Eq.refl.{1} Nat (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))))
     z
 
--- 演示：具体数字上走一遍 —— -(2,5) 就是 (5,2)，再取负回到 (2,5)。
+-- 具体例子：-(2,5) 就是 (5,2)，再取负回到 (2,5)。
 theorem demo_intNeg_mk :
     intNeg (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat 2 5)) =
     @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat 5 2) :=
   intNeg_mk 2 5
 
--- 演示：对合在具体数字上 —— -(-(3,1)) 与 (3,1) 是同一个整数（交叉和 3+1 = 3+1）。
+-- 具体例子：-(-(3,1)) 与 (3,1) 是同一个整数（交叉和 3+1 = 3+1）。
 theorem demo_intNeg_invol :
     intNeg (intNeg (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat 3 1))) =
     @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat 3 1) :=
   intNeg_invol (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat 3 1))
 
--- 演示：取负把自然数嵌入翻到另一边 —— -(intOfNat 0) 仍是 0（(0,0) 与 (0,0) 等价）。
+-- 具体例子：-(intOfNat 0) 仍是 0（(0,0) 与 (0,0) 等价）。
 theorem demo_intNeg_zero :
     intNeg (intOfNat Nat.zero) = intOfNat Nat.zero :=
   intNeg_invol (intOfNat Nat.zero)

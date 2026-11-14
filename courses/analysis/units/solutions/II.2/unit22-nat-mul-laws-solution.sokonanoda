@@ -1,21 +1,15 @@
 -- 单元㉒ ℕ 乘法的分配律与结合律（ℤ 乘法结合律的引擎）
 --
--- 单元㉑ 把 `intRel` 的传递性结清了，ℚ 的传递性还差**消去一个正分母**。
--- 那条链的下一步是 ℤ 乘法结合律：交叉相乘后要把 `(a·d)·f` 与 `a·(d·f)`
--- 对齐。可是 `mulRep` 只在代表元层展开成四项的和，真正干活的是 ℕ 乘法的
--- **分配律**与**结合律** —— II.1 只做了交换律（单元⑰）/ 单位元（单元⑩）/
--- 良定义（⑪/⑱），这两条从没证过。
+-- 单元㉑ 把 intRel 的传递性结清了，ℚ 的传递性还差消去一个正分母。那条链的下一步
+-- 是 ℤ 乘法结合律：交叉相乘后要把 (a·d)·f 与 a·(d·f) 对齐。可 mulRep 只在代表元
+-- 层展开成四项和，真正干活的是 ℕ 乘法的分配律与结合律——II.1 只做了交换律、单位元
+-- 与良定义，这两条从没证过。
 --
--- 本单元就把引擎造出来（全部停在 ℕ 上，不碰商、不碰 `funext`、不加公理）：
---   add_mid        : a + (x + y) = x + (a + y)      （加法搬运，步例要用）
---   mul_add        : a * (b + c) = a*b + a*c        （左分配，对 c 归纳）
---   mul_add_right  : (a + b) * c = a*c + b*c        （右分配，交换律 + 左分配）
---   myMul_assoc    : (a * b) * c = a * (b * c)      （对 c 归纳，步例用 mul_add）
+-- 先不碰商，只在 ℕ 上证三条算术律：加法搬运 add_mid、左分配 mul_add（对 c 归纳）、
+-- 右分配 mul_add_right（用交换律把问题化回左分配），再用它们证结合律 myMul_assoc
+-- （对 c 归纳，步例用左分配）。三条都不加公理。
 --
--- 下一单元才把这三条搬到 `mulRep` 上，得到 ℤ 乘法结合律。
---
--- 本单元自带全部 ℕ 加法律与乘法的交换律（L3：律必须留在单元里；它们来自
--- 单元③与单元⑰）。
+-- 下一单元才把它们搬到 mulRep 上，得到 ℤ 乘法结合律。
 import lib.Logic
 import lib.Prod
 
@@ -28,8 +22,8 @@ def Int : Type := @Quot.{1} (Prod Nat Nat) intRel
 def intOfNat (n : Nat) : Int :=
   @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat n Nat.zero)
 
--- 递归步直接用 prelude 的 Nat.add（与单元⑤的 myAdd 逐点相等；
--- 本语言里 Nat.add 是原生自指定义，两者不是定义性相等）。
+-- 递归步直接用 prelude 的 Nat.add（与单元⑤的 myAdd 逐点相等）；
+-- 在本语言里 Nat.add 是原生自指定义，两者不是定义性相等。
 def myMul (a b : Nat) : Nat :=
   Nat.rec (fun (_ : Nat) => Nat) Nat.zero
     (fun (n : Nat) (ih : Nat) => Nat.add a ih) b
@@ -41,9 +35,9 @@ def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
     (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.snd Nat Nat b))
              (myMul (Prod.snd Nat Nat a) (Prod.fst Nat Nat b)))
 
--- 单元③的 ℕ 零元律，本单元自用（L3：律必须留在单元里）。
+-- 下面列出单元③证过的 ℕ 零元律。
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+-- 下面四条是单元③证过的 ℕ 加法律，这里重新列出；后面的证明直接引用。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
@@ -96,7 +90,7 @@ theorem add_assoc (a b c : Nat) :
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
     c
 
--- 搬运律：把两个和里的加法因子换个配对，值不变。
+-- 搬运律把两个和里的加数重新配对，值不变；后面的重排要用它。
 theorem add_shift (a b c d : Nat) :
     Nat.add (Nat.add a c) (Nat.add b d) =
     Nat.add (Nat.add a b) (Nat.add c d) :=
@@ -138,12 +132,12 @@ theorem add_shift (a b c d : Nat) :
             (add_assoc a b (Nat.add c d))))))
 
 
--- 定义性相等：myMul 在第二个参数上递归，base 就是 0。
+-- myMul 在第二个参数上递归，base 就是 0：乘零是定义性相等。
 theorem myMul_zero (a : Nat) :
     myMul a Nat.zero = Nat.zero :=
   Eq.refl Nat.zero
 
--- 定义性相等：递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)。
+-- 递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)，也是定义性相等。
 theorem myMul_succ (a b : Nat) :
     myMul a (Nat.succ b) = Nat.add a (myMul a b) :=
   Eq.refl (Nat.add a (myMul a b))
@@ -230,9 +224,10 @@ theorem add_mid (a x y : Nat) :
       (add_assoc x a y))
 
 -- ─────────────────────────────────────────────────────────────
--- ㉒.2 左分配律：a * (b + c) = a*b + a*c（对 c 归纳）
+-- ㉒.2 左分配律（对 c 归纳）
 -- ─────────────────────────────────────────────────────────────
 
+-- 先证左分配：对 c 归纳，基例两边都归约成 a·b，步例用归纳假设与 add_mid 重排。
 -- soko:hint 思路：对 c 归纳。基例 c = 0 时 `b + 0` 定义性等于 b、`a * 0` 定义性等于 0，两边都是 `a*b`，`Eq.refl` 即可；步例把 `a * (b + succ n)` 展开成 `a + a*(b+n)`，用 ih 换成 `a + (a*b + a*n)`，再交给 add_mid 换成 `a*b + (a + a*n)`。
 -- soko:hint 目标形态：myMul a (b + c) = myMul a b + myMul a c。
 -- soko:hint 关键件：Nat.rec · congrArg（在 add a 下改写 ih）· add_mid · Eq.refl（定义性展开）。
@@ -256,9 +251,10 @@ theorem mul_add (a b c : Nat) :
     c
 
 -- ─────────────────────────────────────────────────────────────
--- ㉒.3 右分配律：(a + b) * c = a*c + b*c
+-- ㉒.3 右分配律（用交换律化回左分配）
 -- ─────────────────────────────────────────────────────────────
 
+-- 右分配用交换律化回左分配：先翻因子、再用 mul_add、最后把顺序摆回来。
 -- soko:hint 思路：把左边用 myMul_comm 翻成 `c * (a+b)`，交给 mul_add 展开，再用两次 myMul_comm（一次对 c a，一次对 c b）把因子顺序摆回来。
 -- soko:hint 目标形态：myMul (a + b) c = myMul a c + myMul b c。
 -- soko:hint 关键件：myMul_comm · mul_add · congrArg（两次，分别改第一个与第二个加数）· Eq.trans。
@@ -282,9 +278,10 @@ theorem mul_add_right (a b c : Nat) :
         (congrArg.{1} (fun (m : Nat) => Nat.add (myMul a c) m) (myMul_comm c b))))
 
 -- ─────────────────────────────────────────────────────────────
--- ㉒.4 结合律：(a * b) * c = a * (b * c)（对 c 归纳）
+-- ㉒.4 结合律（对 c 归纳，步例用左分配）
 -- ─────────────────────────────────────────────────────────────
 
+-- 最后证结合律：对 c 归纳，步例把右边展开后交给左分配。
 -- soko:hint 思路：对 c 归纳。基例两边都归约成 0；步例把左边展开成 `(a*b) + (a*b)*n`，用 ih 把第二个加数换成 `a*(b*n)`，右边展开成 `a * (b + b*n)`，交给 mul_add 的对称收口。
 -- soko:hint 目标形态：myMul (myMul a b) c = myMul a (myMul b c)。
 -- soko:hint 关键件：Nat.rec · congrArg（在 add (a*b) 下改写 ih）· mul_add（取对称）· Eq.refl（定义性展开）。
@@ -309,17 +306,17 @@ theorem myMul_assoc (a b c : Nat) :
 -- ㉒.5 具体数字上验一遍
 -- ─────────────────────────────────────────────────────────────
 
--- 2 * (3 + 4) = 2*3 + 2*4。
+-- 具体例子：2·(3+4) = 2·3 + 2·4。
 theorem demo_mul_add :
     myMul 2 (Nat.add 3 4) = Nat.add (myMul 2 3) (myMul 2 4) :=
   mul_add 2 3 4
 
--- (2 * 3) * 4 = 2 * (3 * 4)。
+-- 具体例子：(2·3)·4 = 2·(3·4)。
 theorem demo_mul_assoc :
     myMul (myMul 2 3) 4 = myMul 2 (myMul 3 4) :=
   myMul_assoc 2 3 4
 
--- 内核直接算：2 * 7 归约成 14。
+-- 具体例子：2·7 直接归约成 14。
 theorem demo_two_seven :
     myMul 2 7 = 14 :=
   Eq.refl 14

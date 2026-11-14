@@ -1,30 +1,18 @@
 -- 单元64 实数的序：代表元关系与自反性
 --
--- 63 把加法收成结合的三元关系。现在立**序**。Tao 的定义是
+-- 上一批单元把加法收成结合的三元关系。现在立序。Tao 的定义是对每个 eps>0，最终有
+-- x_n ≤ y_n + eps；本课程用等价的减法写法：realLeRep x y 当且仅当 x、y 都是 Cauchy
+-- 序列，且对任意 eps>0 存在 N，使 n ≥ N 时 (x n - y n) ≤ eps。
 --
---   x ≤ y  :⟺  对每个 eps > 0，最终有 x_n ≤ y_n + eps
+-- 减法写法让下一单元的传递性直接对上 (x-y)+(y-z) 与 x-z 相等这条恒等式：两个 eps
+-- 的界相加就落在 x-z 上，不必每次把 eps 加到代表元里再搬序。
 --
--- 本课程用等价的**减法**写法：
+-- 关系保留两个 Cauchy 守卫，与三元加法同一纪律：只有带 Cauchy 代表元的实数之间才
+-- 断序，商里的「杂点」没有输出。序的下降（沿 realRel 良定义，再经 Quot.lift 得到
+-- Real → Real → Prop）更晚再做。
 --
---   realLeRep x y  :⟺  Cauchy x ∧ Cauchy y ∧
---                        ∀ eps > 0, ∃ N, ∀ n ≥ N, (x n - y n) ≤ eps
---
--- 减法写法让下一单元的传递性直接对上 56 的
--- `(x - y) + (y - z) ~ x - z`：两个 eps 的界相加就落在 `x - z` 上，
--- 不必每次把 eps 加到代表元里再搬序。
---
--- 关系保留两个 `Cauchy` 守卫，与 61 的三元加法同一纪律：只有带
--- Cauchy 代表元的实数之间才断序，商里的「杂点」没有输出。序的下降
--- （`realLeRep` 沿 `realRel` 良定义，再经 `Quot.lift` 得到
--- `Real → Real → Prop`）留到下一单元之后的单元。
---
--- 本单元：
---   · 64.0 `realLeRep` —— 序的代表元关系；
---   · 64.1 `realLeRep_refl` —— 每个 Cauchy 序列 ≤ 自己；
---   · 64.2 `realLeRep_of_realRel` —— 相等 ⇒ 序；
---   · 64.3 常零序列上的具体例。
---
--- 传递性（65）需要两个 eps/2 的界相加，放在下一单元。
+-- 先给定义，再证每个 Cauchy 序列 ≤ 自己、相等推出序，最后在常零序列上落一个例子。
+-- 传递性需要两个 eps/2 的界相加，放在下一单元。
 
 import lib.RealEq
 import lib.RatGroup
@@ -46,6 +34,7 @@ def realLeRep (x y : Seq) : Prop :=
 -- 64.1 自反性：`x` ≤ `x`
 -- ─────────────────────────────────────────────────────────────
 
+-- 自反性：每个 Cauchy 序列 ≤ 自己。
 -- soko:hint 思路：前两个分量都是 `hx`；第三分量取 `N := 0`，逐点把 `x n - x n` 认成 0（55 的 `ratAdd_neg_gen`，`ratSubRep` 就是 `x + (-x)`），再用 `ratLtRep_le` 把 `0 < eps` 投成 `0 ≤ eps`。
 -- soko:hint 目标形态：`Cauchy x ∧ Cauchy x ∧ ∀ eps > 0, ∃ N, ∀ n ≥ N, ratLeRep (ratSubRep (x n) (x n)) eps`。
 -- soko:hint 关键件：And.intro · Exists.intro Nat.zero · ratAdd_neg_gen · ratLeRep_of_ratRel · ratLtRep_le · ratLeRep_trans。
@@ -56,6 +45,7 @@ theorem realLeRep_refl (x : Seq) (hx : Cauchy x) : realLeRep x x :=
 -- 64.2 相等 ⇒ 序：`realRel x y → x ≤ y`
 -- ─────────────────────────────────────────────────────────────
 
+-- 相等推出序。
 -- soko:hint 思路：两个 `Cauchy` 分量直接取 `h`。第三分量对 `eps` 直接用 `realRel` 的接近性（不必折半）：它给见证 `d` 使 `|x n - y n| ~ d` 且 `d < eps`；`ratAbsRel_le` 把绝对值压成 `x n - y n ≤ d`，`ratLtRep_le` 把 `d < eps` 投成 `d ≤ eps`，再传递。
 -- soko:hint 目标形态：`realLeRep x y`。
 -- soko:hint 关键件：realRel_close · ratAbsRel_le · ratLtRep_le · ratLeRep_trans。
@@ -66,8 +56,10 @@ theorem realLeRep_of_realRel (x y : Seq) (h : realRel x y) : realLeRep x y :=
 -- 64.3 具体：常零序列 ≤ 常零序列
 -- ─────────────────────────────────────────────────────────────
 
+-- 具体：常零序列上的例子。
 -- soko:hint 思路：把 64.2 用在 `realRel_zero` 上（常零序列与自身等价）。
 -- soko:hint 目标形态：`realLeRep zeroSeq zeroSeq`。
 -- soko:hint 关键件：realLeRep_of_realRel · realRel_zero。
 theorem demo_realLe_zero : realLeRep zeroSeq zeroSeq :=
   sorry
+-- 序的代表元关系与自反性立起来了；下一单元证传递性（两个 eps/2 的界相加）。
