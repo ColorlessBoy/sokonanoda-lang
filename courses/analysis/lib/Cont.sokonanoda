@@ -1,0 +1,99 @@
+-- 课程库：一点连续与全局连续
+--
+-- 单元125 在画布里立了 `ContinuousAt` / `Continuous` 并判卷；这里收进库，
+-- 126 起的单元直接引用。除定义与展开律外，常函数、恒等函数与复合的连续性
+-- 也一并收进来，后续单元不再重抄这几段证明。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层；ℝ 层函数的翻译
+-- 留给后续单元。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.Bounded
+import lib.LimAt
+
+-- ─────────────────────────────────────────────────────────────
+-- 125：一点连续与全局连续
+-- ─────────────────────────────────────────────────────────────
+
+-- 一点连续把极限定义里的 `L` 换成函数值 `f a`，并去掉「x 不是 a」：a 本身
+-- 必须落在 ε 里。
+
+def ContinuousAt (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → close (f x) (f a) eps
+
+def Continuous (f : ratRep → ratRep) : Prop :=
+  ∀ (a : ratRep), ContinuousAt f a
+
+theorem continuousAt_iff (f : ratRep → ratRep) (a : ratRep) :
+    ContinuousAt f a ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → close (f x) (f a) eps :=
+  Iff.intro
+    (fun (h : ContinuousAt f a) => h)
+    (fun (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → close (f x) (f a) eps) => h)
+
+theorem continuous_iff (f : ratRep → ratRep) :
+    Continuous f ↔ ∀ (a : ratRep), ContinuousAt f a :=
+  Iff.intro
+    (fun (h : Continuous f) => h)
+    (fun (h : ∀ (a : ratRep), ContinuousAt f a) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 常函数与恒等函数连续
+-- ─────────────────────────────────────────────────────────────
+
+theorem continuousAt_const (c a : ratRep) :
+    ContinuousAt (fun (_ : ratRep) => c) a :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro ratOneRep
+      (And.intro ratLtRep_zero_one
+        (fun (x : ratRep) (_hx : close x a ratOneRep) =>
+          close_of_ratRel c c (ratRel_refl c) eps heps))
+
+theorem continuous_const (c : ratRep) :
+    Continuous (fun (_ : ratRep) => c) :=
+  fun (a : ratRep) => continuousAt_const c a
+
+theorem continuousAt_id (a : ratRep) :
+    ContinuousAt (fun (x : ratRep) => x) a :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro eps
+      (And.intro heps
+        (fun (x : ratRep) (hx : close x a eps) => hx))
+
+theorem continuous_id :
+    Continuous (fun (x : ratRep) => x) :=
+  fun (a : ratRep) => continuousAt_id a
+
+-- ─────────────────────────────────────────────────────────────
+-- 复合保持连续
+-- ─────────────────────────────────────────────────────────────
+
+theorem continuousAt_comp (f g : ratRep → ratRep) (a : ratRep)
+    (hg : ContinuousAt g (f a)) (hf : ContinuousAt f a) :
+    ContinuousAt (fun (x : ratRep) => g (f x)) a :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hg eps heps)
+      (fun (deltaG : ratRep)
+          (hdg : ratLtRep ratZeroRep deltaG ∧
+            ∀ (y : ratRep), close y (f a) deltaG →
+              close (g y) (g (f a)) eps) =>
+        Exists.elim (hf deltaG (And.left hdg))
+          (fun (deltaF : ratRep)
+              (hdf : ratLtRep ratZeroRep deltaF ∧
+                ∀ (x : ratRep), close x a deltaF →
+                  close (f x) (f a) deltaG) =>
+            Exists.intro deltaF
+              (And.intro (And.left hdf)
+                (fun (x : ratRep) (hx : close x a deltaF) =>
+                  (And.right hdg) (f x) ((And.right hdf) x hx)))))
+
+theorem continuous_comp (f g : ratRep → ratRep)
+    (hg : Continuous g) (hf : Continuous f) :
+    Continuous (fun (x : ratRep) => g (f x)) :=
+  fun (a : ratRep) => continuousAt_comp f g a (hg (f a)) (hf a)

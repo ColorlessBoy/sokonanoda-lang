@@ -948,6 +948,53 @@
               "unit": 123
             }
           ]
+        },
+        {
+          "id": "III.6",
+          "title": "连续函数",
+          "prereqs": ["III.5"],
+          "tags": ["continuity", "function-limit"],
+          "quota": {
+            "exercises": 60
+          },
+          "units": [
+            {
+              "file": "units/III.6/unit124-function-limit.sokonanoda",
+              "title": "单元124 函数极限：ε-δ 定义",
+              "title_en": "Unit 124 — Function Limits: The ε-δ Definition",
+              "unit": 124
+            },
+            {
+              "file": "units/III.6/unit125-continuity.sokonanoda",
+              "title": "单元125 连续：极限值就是函数值",
+              "title_en": "Unit 125 — Continuity: The Limit Is the Function Value",
+              "unit": 125
+            },
+            {
+              "file": "units/III.6/unit126-sequential-criterion.sokonanoda",
+              "title": "单元126 函数极限与序列：顺序判据",
+              "title_en": "Unit 126 — Function Limits and Sequences: The Sequential Criterion",
+              "unit": 126
+            },
+            {
+              "file": "units/III.6/unit127-limit-algebra.sokonanoda",
+              "title": "单元127 函数极限的代数：和、差与取负",
+              "title_en": "Unit 127 — Algebra of Function Limits: Sums, Differences, Negation",
+              "unit": 127
+            },
+            {
+              "file": "units/III.6/unit128-continuity-algebra.sokonanoda",
+              "title": "单元128 连续函数的代数：和、差与取负",
+              "title_en": "Unit 128 — Algebra of Continuous Functions: Sums, Differences, Negation",
+              "unit": 128
+            },
+            {
+              "file": "units/III.6/unit129-one-sided-limits.sokonanoda",
+              "title": "单元129 单侧极限：只看一边",
+              "title_en": "Unit 129 — One-Sided Limits: Looking Only One Way",
+              "unit": 129
+            }
+          ]
         }
       ]
     }

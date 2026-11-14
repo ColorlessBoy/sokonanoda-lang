@@ -1,0 +1,143 @@
+-- 单元125 连续：极限值就是函数值
+--
+-- 一个函数在 a 处连续，最朴素的说法是「a 附近的函数值都离 f a 不远」。
+-- 函数极限说的是「a 附近（不算 a 本身）的函数值都离 L 不远」。两句话只差
+-- 三处：极限里的 L 要换成 f a，邻域要把 a 自己放回来，函数在 a 处必须有
+-- 定义。把这三处写进定义，连续就成了可以逐点检验的性质。
+--
+-- 定义之后先看两个样本：常函数与恒等函数在每一点都连续。接着回答连续与
+-- 函数极限的关系：一点连续就给出「函数在该点以函数值为极限」，把极限的
+-- 定义套上去即可。最后证明连续对复合封闭：外层连续在内层值处有半径，内层
+-- 连续把这个半径换成自变量上的半径，两级半径串起来就是复合的 ε-δ。
+--
+-- 边界：函数取 `ratRep → ratRep`，连续停在有理代表元层；反方向「极限存在
+-- 就连续」要对 `ratRel` 做二选一，这条不在本课程的逻辑里，留作边界。
+-- 不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Bounded
+import lib.Limit
+import lib.LimAt
+
+-- ─────────────────────────────────────────────────────────────
+-- 一点连续与全局连续
+-- ─────────────────────────────────────────────────────────────
+
+-- 与函数极限相比只改两处：目标点换成 `f a`，邻域不再排掉 a。
+
+def ContinuousAt (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → close (f x) (f a) eps
+
+-- 每一点都连续，就是全局连续。
+def Continuous (f : ratRep → ratRep) : Prop :=
+  ∀ (a : ratRep), ContinuousAt f a
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义的展开形式
+-- ─────────────────────────────────────────────────────────────
+
+-- 定义与展开是同一个命题；两个方向都返回假设。
+theorem continuousAt_iff (f : ratRep → ratRep) (a : ratRep) :
+    ContinuousAt f a ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → close (f x) (f a) eps :=
+  Iff.intro
+    (fun (h : ContinuousAt f a) => h)
+    (fun (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → close (f x) (f a) eps) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 常函数在每一点连续
+-- ─────────────────────────────────────────────────────────────
+
+-- 半径取任意正数：函数值恒等于 `f a`，相等当然落在每个 ε 内。
+theorem continuousAt_const (c a : ratRep) :
+    ContinuousAt (fun (_ : ratRep) => c) a :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro ratOneRep
+      (And.intro ratLtRep_zero_one
+        (fun (x : ratRep) (_hx : close x a ratOneRep) =>
+          close_of_ratRel c c (ratRel_refl c) eps heps))
+
+theorem continuous_const (c : ratRep) :
+    Continuous (fun (_ : ratRep) => c) :=
+  fun (a : ratRep) => continuousAt_const c a
+
+-- ─────────────────────────────────────────────────────────────
+-- 恒等函数在每一点连续
+-- ─────────────────────────────────────────────────────────────
+
+-- 半径取 ε 本身。
+theorem continuousAt_id (a : ratRep) :
+    ContinuousAt (fun (x : ratRep) => x) a :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro eps
+      (And.intro heps
+        (fun (x : ratRep) (hx : close x a eps) => hx))
+
+theorem continuous_id :
+    Continuous (fun (x : ratRep) => x) :=
+  fun (a : ratRep) => continuousAt_id a
+
+-- ─────────────────────────────────────────────────────────────
+-- 连续给出同点的函数极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 连续的定义对 δ 邻域里的每个 x 都给结论；函数极限还多一条「x 不是 a」，
+-- 用不上，直接忽略。
+theorem tendsToAt_of_continuousAt (f : ratRep → ratRep) (a : ratRep)
+    (h : ContinuousAt f a) : TendsToAt f a (f a) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (delta : ratRep)
+          (hd : ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x a delta → close (f x) (f a) eps) =>
+        Exists.intro delta
+          (And.intro (And.left hd)
+            (fun (x : ratRep) (hx : close x a delta)
+                (_hne : ¬ ratRel x a) =>
+              (And.right hd) x hx)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 连续对复合封闭
+-- ─────────────────────────────────────────────────────────────
+
+-- 给定 ε，外层的连续给出目标值附近的半径 δg；内层的连续把这个 δg 当成
+-- 自己的 ε，得到自变量附近的半径 δf。x 落在 δf 内时 `f x` 落在 δg 内，
+-- 再落进 ε 内。
+theorem continuousAt_comp (f g : ratRep → ratRep) (a : ratRep)
+    (hg : ContinuousAt g (f a)) (hf : ContinuousAt f a) :
+    ContinuousAt (fun (x : ratRep) => g (f x)) a :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hg eps heps)
+      (fun (deltaG : ratRep)
+          (hdg : ratLtRep ratZeroRep deltaG ∧
+            ∀ (y : ratRep), close y (f a) deltaG →
+              close (g y) (g (f a)) eps) =>
+        Exists.elim (hf deltaG (And.left hdg))
+          (fun (deltaF : ratRep)
+              (hdf : ratLtRep ratZeroRep deltaF ∧
+                ∀ (x : ratRep), close x a deltaF →
+                  close (f x) (f a) deltaG) =>
+            Exists.intro deltaF
+              (And.intro (And.left hdf)
+                (fun (x : ratRep) (hx : close x a deltaF) =>
+                  (And.right hdg) (f x) ((And.right hdf) x hx)))))
+
+theorem continuous_comp (f g : ratRep → ratRep)
+    (hg : Continuous g) (hf : Continuous f) :
+    Continuous (fun (x : ratRep) => g (f x)) :=
+  fun (a : ratRep) => continuousAt_comp f g a (hg (f a)) (hf a)
+
+-- ─────────────────────────────────────────────────────────────
+-- 具体：恒等函数连续
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_continuous_id :
+    Continuous (fun (x : ratRep) => x) :=
+  continuous_id
