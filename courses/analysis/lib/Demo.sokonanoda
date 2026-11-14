@@ -54,6 +54,8 @@ import lib.LocalSign
 import lib.LastNegative
 import lib.Uniform
 import lib.UniformSeq
+import lib.LimInfinity
+import lib.LimInfinityAlgebra
 
 theorem demo_lib_closure : True := True.intro
 
@@ -273,3 +275,17 @@ theorem demo_lib_no_last_negative (a b : ratRep) :
   no_last_negative (fun (_ : ratRep) => ratNegRep ratOneRep) a b
     (fun (x : ratRep) (_hx : InClosed a b x) =>
       continuousAt_const (ratNegRep ratOneRep) x)
+
+theorem demo_lib_tendsToAtInfinity_const (c : ratRep) :
+    TendsToAtInfinity (fun (_ : ratRep) => c) c :=
+  tendsToAtInfinity_const c
+
+theorem demo_lib_not_tendsToAtInfinity_id (L : ratRep) :
+    ¬ TendsToAtInfinity (fun (x : ratRep) => x) L :=
+  not_tendsToAtInfinity_id L
+
+theorem demo_lib_tendsToAtInfinity_add_zero (f : ratRep → ratRep) (L : ratRep)
+    (hf : TendsToAtInfinity f L) :
+    TendsToAtInfinity (fun (x : ratRep) => ratAddRep (f x) ratZeroRep)
+      (ratAddRep L ratZeroRep) :=
+  tendsToAtInfinity_add_const f ratZeroRep L hf

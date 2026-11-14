@@ -1035,6 +1035,18 @@
               "title": "单元136 介值定理：最后一个非正点",
               "title_en": "Unit 136 — The Intermediate Value Theorem: The Last Nonpositive Point",
               "unit": 136
+            },
+            {
+              "file": "units/III.6/unit137-limit-at-infinity.sokonanoda",
+              "title": "单元137 无穷远处的极限：越过分界线之后靠近 L",
+              "title_en": "Unit 137 — Limits at Infinity: Getting Close Beyond a Threshold",
+              "unit": 137
+            },
+            {
+              "file": "units/III.6/unit138-limit-at-infinity-algebra.sokonanoda",
+              "title": "单元138 无穷远处极限的代数与序列判据",
+              "title_en": "Unit 138 — Algebra of Limits at Infinity and the Sequential Criterion",
+              "unit": 138
             }
           ]
         }

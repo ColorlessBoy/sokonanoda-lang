@@ -1,0 +1,137 @@
+-- 单元137 无穷远处的极限：x 变大时靠近 L
+--
+-- 序列的极限只问下标越来越大时项往哪里去；函数没有下标，只有自变量。
+-- 若让自变量一直往右走，函数值会不会也停在某个数附近？这正是「无穷远处
+-- 的极限」要回答的问题。它把 ε-N 里的阈值 N 换成一条有理数的分界线 M：
+-- 只要 x 在 M 的右边，f x 就落在 L 的 ε 邻域里。
+--
+-- 与一点处的极限相比，这里没有「挖掉 a」的必要，因为 x 只从右边来，
+-- 而且没有一个特殊的点需要排除。δ 变成了朝一个方向的 M，量词顺序不变：
+-- 先给 ε，再找 M，最后对每个越过 M 的 x 给结论。
+--
+-- 常函数在任何 M 处都合格；把图像左右平移，极限不变；两个函数从某条
+-- 分界线起逐点相等，极限也相同。恒等函数则给出反例：它一直往右走，
+-- 不可能停在某个有理数 L 附近，所以「在无穷远处有有限极限」不是自动的。
+--
+-- 边界：函数取 `ratRep → ratRep`，极限停在有理代表元层；不把 ±∞ 当成
+-- 数，也不讨论函数值趋于无穷。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatClose
+import lib.RatAbsOrder
+import lib.RatCloseTrans
+import lib.Limit
+import lib.RatSub
+import lib.LocalSign
+import lib.LimitOrder
+import lib.RealAdd
+import lib.Tail
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义：越过某条线之后一直靠近 L
+-- ─────────────────────────────────────────────────────────────
+
+-- 阈值 M 是有理数，不要求为正：它只是数轴上的一条分界线。`ratLeRep M x`
+-- 读作「x 在 M 的右边或与 M 重合」，于是量词只朝一个方向走。
+def TendsToAtInfinity (f : ratRep → ratRep) (L : ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (M : ratRep), ∀ (x : ratRep), ratLeRep M x → close (f x) L eps
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义的展开形式
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `TendsToAtInfinity` 展开，右边那串量词逐字就是定义；两个方向都直接返回假设。
+-- soko:hint 目标形态：`TendsToAtInfinity f L ↔ ∀ eps > 0, ∃ M, ∀ x, M ≤ x → close (f x) L eps`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem tendsToAtInfinity_iff (f : ratRep → ratRep) (L : ratRep) :
+    TendsToAtInfinity f L ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (M : ratRep), ∀ (x : ratRep), ratLeRep M x → close (f x) L eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个阈值可以合成一个
+-- ─────────────────────────────────────────────────────────────
+
+-- 和律要把两条分界线并成一条。全性只给「a ≤ b 或 b ≤ a」两支；两支
+-- 各自挑较大的那个当 M，另一条弱序由传递性补上。
+--
+-- soko:hint 思路：对 `ratLeRep_total a b` 分两支；第一支取 b，第二支取 a，再用自反性补齐另一边。
+-- soko:hint 目标形态：`∃ M, ratLeRep a M ∧ ratLeRep b M`。
+-- soko:hint 关键件：ratLeRep_total · ratLeRep_refl · Exists.intro · And.intro。
+theorem exists_ge_both (a b : ratRep) :
+    ∃ (M : ratRep), ratLeRep a M ∧ ratLeRep b M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 常函数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常函数的输出与 L 相等，相等就落在每个正 ε 内；分界线取零即可。
+-- soko:hint 目标形态：`TendsToAtInfinity (fun _ => c) c`。
+-- soko:hint 关键件：ratZeroRep · close_of_ratRel · ratRel_refl。
+theorem tendsToAtInfinity_const (c : ratRep) :
+    TendsToAtInfinity (fun (_ : ratRep) => c) c :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 平移不改变无穷远处的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 若 f 在 M 之后靠近 L，那么 x + c 在 M - c 之后靠近 L。分界线往前挪
+-- 一个 c：`x ≥ M - c` 两边加 c，左端用 `(M - c) + c ~ M` 收回。
+--
+-- soko:hint 思路：给定 ε，向 f 的极限要 M；新分界线取 M - c，两边加 c 后用 `(M - c) + c ~ M` 搬回。
+-- soko:hint 目标形态：`TendsToAtInfinity (fun x => f (x + c)) L`。
+-- soko:hint 关键件：ratSubRep_add_self · ratLeRep_add_right · ratLeRep_congr_gen。
+theorem tendsToAtInfinity_shift (f : ratRep → ratRep) (c L : ratRep)
+    (h : TendsToAtInfinity f L) :
+    TendsToAtInfinity (fun (x : ratRep) => f (ratAddRep x c)) L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 从某条线起逐点相等，极限相同
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个阈值 Mf 与 M0 用 `exists_ge_both` 并成 M；越过 M 的点同时越过两者，
+-- 于是 f x 与 g x 相等，`close` 沿这个等式搬到 g 那一边。
+--
+-- soko:hint 思路：把 f 的分界线与「从 M0 起相等」的分界线并成一条 M；越过 M 的点同时越过两条，逐点用 `close_wd_left` 搬运。
+-- soko:hint 目标形态：`TendsToAtInfinity f L → (∀ x, M0 ≤ x → f x ~ g x) → TendsToAtInfinity g L`。
+-- soko:hint 关键件：exists_ge_both · ratLeRep_trans · close_wd_left · Exists.elim。
+theorem tendsToAtInfinity_congr (f g : ratRep → ratRep) (L M0 : ratRep)
+    (h : ∀ (x : ratRep), ratLeRep M0 x → ratRel (f x) (g x))
+    (hf : TendsToAtInfinity f L) :
+    TendsToAtInfinity g L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 从接近性读出一条严格上界
+-- ─────────────────────────────────────────────────────────────
+
+-- 恒等函数的反例要用到：`close x L ε` 说明 x 不可能达到 L + ε。
+-- 把接近性翻向，负侧给出 `x - L < ε`；两边加 L，左端用
+-- `(x - L) + L ~ x` 收回，右端交换成 L + ε。
+--
+-- soko:hint 思路：先 `close_symm`，再用 `close_neg_lt` 得 `x - L < ε`；两边加 L，左端用 `(x - L) + L ~ x` 收回，右端用交换律。
+-- soko:hint 目标形态：`close x L ε → x < L + ε`。
+-- soko:hint 关键件：close_symm · close_neg_lt · ratLtRep_add_right · ratSubRep_add_self · ratAdd_comm。
+theorem close_lt_add_right (x L eps : ratRep) (h : close x L eps) :
+    ratLtRep x (ratAddRep L eps) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 恒等函数没有有限极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 反证：若恒等函数在无穷远处靠近 L，取 ε = 1，分界线 M。再取一个同时
+-- 越过 M 与 L + 1 的 x。上一条给出 x < L + 1，而 x ≥ L + 1，两条序相撞。
+--
+-- soko:hint 思路：反证。取 ε = 1 得 M，再用 `exists_ge_both` 取同时越过 M 与 L + 1 的 x；上一条给 x < L + 1，与 x ≥ L + 1 夹出矛盾。
+-- soko:hint 目标形态：`¬ TendsToAtInfinity (fun x => x) L`。
+-- soko:hint 关键件：exists_ge_both · close_lt_add_right · ratLeRep_antisymm · ratLtRep_right。
+theorem not_tendsToAtInfinity_id (L : ratRep) :
+    ¬ TendsToAtInfinity (fun (x : ratRep) => x) L :=
+  sorry
