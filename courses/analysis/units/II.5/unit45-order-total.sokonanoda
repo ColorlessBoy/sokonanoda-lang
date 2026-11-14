@@ -1,33 +1,19 @@
 -- 单元㊺ 序的全性：每个有理数都有绝对值
 --
--- 进入 **II.5：ℝ 的商、代数与序**。第一件事是把 `realRel` 补成**等价关系**：
--- ㊵ 做了自反、㊷ 做了对称，还差**传递性**。传递性的标准证法是三角不等式 +
--- `ε` 折半：
+-- 进入 II.5：ℝ 的商、代数与序。第一件事是把 realRel 补成等价关系：㊵ 做了自反、
+-- ㊷ 做了对称，还差传递性；传递性的标准证法是三角不等式加 ε 折半，而三角不等式要用
+-- 的第一块地基正是「ℚ 的序是全序」。
 --
---   close x y ε/2  ⇒  close y z ε/2  ⇒  close x z ε
+-- 为什么全序是前提：㉝ 的绝对值是关系而不是函数——ratAbsRel x d 当且仅当
+-- (0 ≤ x 且 d ~ x) 或 (x ≤ 0 且 d ~ -x)。要证「|x-y| 存在」就得先知道 x-y 落在哪
+-- 一边；没有全序，这个析取连一个居民都拿不出来（close 里那个「存在 d」就会是空的）。
 --
--- 而三角不等式要用的第一块地基，正是具体有**ℚ 的序是全序**。
+-- 先证三件事：ℕ 的 ≤ 是全序（对第二个变量归纳）；ℚ 的 ≤ 是全序（把 ratLeRep 展成交叉
+-- 相乘后的 LeNat，直接用上一条）；每个有理数都有绝对值（两种情况分别取 x 与 -x），且
+-- 绝对值非负。最后在具体数字上算 |-1/2| = 1/2。
 --
--- 为什么全序是前提：㉝ 的绝对值是**关系**而不是函数
---
---   ratAbsRel x d  :⟺  (0 ≤ x ∧ d ~ x) ∨ (x ≤ 0 ∧ d ~ -x)
---
--- 要证「`|x-y|` 存在」就得先知道 `x-y` 落在哪一边；没有全序，这个析取连
--- 一个居民都拿不出来（㉟ 的 `close` 里那个 `∃ d` 就会是空的）。本单元结清：
---
---   · ㊺.1 `leNat_total`：ℕ 的 `≤` 是全序（对第二个变量归纳）；
---   · ㊺.2 `ratLeRep_total`：ℚ 的 `≤` 是全序（`ratLeRep` 就是交叉相乘后的
---     `LeNat`，把 ㊺.1 直接用上）；
---   · ㊺.3 `ratAbsRel_total`：每个有理数都有绝对值（两种情况分别取 `x` 与 `-x`）；
---   · ㊺.4 `ratAbsRel_nonneg`：绝对值非负（`ratLeRep_congr_snd` 把 `x` 换成 `d`，
---     第二支再把 `0 ≤ -x` 用 ㊶ 的 `ratLeRep_neg_gen` 搬过来）；
---   · ㊺.5 具体：`|-1/2| = 1/2`。
---
--- 写法提醒：`ratRep` 是 `Prod (Prod Nat Nat) Nat` 的**定义别名**，`match` 只认
--- 归纳类型本身；通用包装要把参数写成展开类型、并**在 match 之后**再引入假设
--- （㊷ 的 `ratSubRep_neg_aux` / `ratAbsRel_wd_left_aux` 是同一个写法）。
---
--- 我们不引入新定义；ℚ 的算术与序的引擎来自 `lib/Rat` / `lib/RatOrder`。
+-- 通用包装要把参数写成展开类型、并在 match 之后再引入假设（㊷ 的 aux 是同一写法）；
+-- ℚ 的算术与序的引擎来自 lib/Rat 与 lib/RatOrder。
 
 import lib.Cauchy
 
@@ -35,6 +21,7 @@ import lib.Cauchy
 -- ㊺.1 ℕ 的序是全序
 -- ─────────────────────────────────────────────────────────────
 
+-- 先证 ℕ 的序是全序：对第二个变量归纳。
 -- soko:hint 思路：对第二个变量 `n` 归纳。`n = 0` 时 `LeNat 0 m` 由 `leNat_zero_le` 给出（走右边）。`n = succ k` 时看归纳假设：若 `LeNat m k`，用 `le_succ` 得到 `LeNat m (succ k)`；若 `LeNat k m`，再分「`k = m`」与「`LeNat (succ k) m`」——前者把 `LeNat m (succ k)` 化成 `LeNat k (succ k)`（`le_succ` + `le_refl`），后者直接就是右边的目标。这个二分用一条小引理 `leNat_eq_or_succ` 表述（对 `LeNat k m` 本身做 match）。
 -- soko:hint 目标形态：`LeNat m n ∨ LeNat n m`。
 -- soko:hint 关键件：Nat.rec · leNat_zero_le · le_succ · le_refl · leNat_succ_succ · Eq.subst · Or.inl · Or.inr · Or.elim。
@@ -45,6 +32,7 @@ theorem leNat_total (m n : Nat) : LeNat m n ∨ LeNat n m :=
 -- ㊺.2 ℚ 的序是全序
 -- ─────────────────────────────────────────────────────────────
 
+-- ℚ 的序展开成交叉相乘后的 LeNat，直接把上一条的全序用上。
 -- soko:hint 思路：`ratLeRep x y` 展开就是 `leRep (leNum x y) (leNum y x)`，而 `leRep p q` 是 `LeNat (p₁+q₂) (q₁+p₂)`；两个方向上只是把两个 `Nat.add` 的加数互换，所以把 ㊺.1 直接用在两个具体的 `Nat` 表达式上即可（两边定义性相等，不需要额外的改写）。
 -- soko:hint 目标形态：`ratLeRep x y ∨ ratLeRep y x`。
 -- soko:hint 关键件：leNat_total。
@@ -55,6 +43,7 @@ theorem ratLeRep_total (x y : ratRep) : ratLeRep x y ∨ ratLeRep y x :=
 -- ㊺.3 每个有理数都有绝对值
 -- ─────────────────────────────────────────────────────────────
 
+-- 每个有理数都有绝对值：按 0 ≤ x 与 x ≤ 0 两种情况给见证。
 -- soko:hint 思路：对 `0 ≤ x` 与 `x ≤ 0` 两分（㊺.2）。第一支取 `d := x`，`ratAbsRel x x` 的左支要 `0 ≤ x` 与 `x ~ x`（`ratRel_refl`）；第二支取 `d := -x`，右支要 `x ≤ 0` 与 `-x ~ -x`。
 -- soko:hint 目标形态：`∃ (d : ratRep), ratAbsRel x d`。
 -- soko:hint 关键件：ratLeRep_total · Exists.intro · Or.inl · Or.inr · And.intro · ratRel_refl。
@@ -65,6 +54,7 @@ theorem ratAbsRel_total (x : ratRep) : ∃ (d : ratRep), ratAbsRel x d :=
 -- ㊺.4 绝对值非负
 -- ─────────────────────────────────────────────────────────────
 
+-- 绝对值非负：把见证里那个数换成 d。
 -- soko:hint 思路：对 `h : ratAbsRel x d` 两分。两支都是「已知 `0 ≤ 某个 z`，且 `d ~ z`，要 `0 ≤ d`」：用 ㊴ 的 `ratLeRep_congr_snd` 把第二个因子从 `z` 换成 `d`（它的前提是 `z ~ d`，由 `ratRel_symm` 调向）。第一支 `z = x`；第二支 `z = -x`，`0 ≤ -x` 由 ㊶ 的 `ratLeRep_neg_gen` 从 `x ≤ 0` 得到。
 -- soko:hint 目标形态：`ratAbsRel x d → ratLeRep ratZeroRep d`。
 -- soko:hint 关键件：Or.elim · ratLeRep_congr_snd · ratRel_symm · ratLeRep_neg_gen · And.left · And.right。`ratRep` 是定义别名：先在展开类型 `Prod (Prod Nat Nat) Nat` 上 match，再引假设，最后转发。
@@ -76,6 +66,7 @@ theorem ratAbsRel_nonneg (x d : ratRep) (h : ratAbsRel x d) :
 -- ㊺.5 具体：-1/2 的绝对值是 1/2
 -- ─────────────────────────────────────────────────────────────
 
+-- 具体算 |-1/2| = 1/2：走右支。
 -- soko:hint 思路：`-1/2` 是 `qrep 0 1 1`，`1/2` 是 `qrep 1 0 1`。走 `ratAbsRel` 的右支：`qrep 0 1 1 ≤ 0` 交叉相乘后是 `LeNat 0 1`（`le_succ 0 0 (le_refl 0)`），而 `-(-1/2)` 定义性归约成 `qrep 1 0 1`，所以第二个分量是 `ratRel_refl`。
 -- soko:hint 目标形态：`ratAbsRel (qrep 0 1 1) (qrep 1 0 1)`。
 -- soko:hint 关键件：Or.inr · And.intro · le_succ · le_refl · ratRel_refl。
