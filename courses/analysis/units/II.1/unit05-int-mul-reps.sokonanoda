@@ -1,8 +1,13 @@
 -- 单元⑤ 整数乘法的代表元公式
 --
--- (a-b) * (c-d) = (ac+bd) - (ad+bc)
--- 我们只在代表元层面把这个公式写出来；把它 lift 到商上需要
--- 良定义性证明，那是后续单元的内容。
+-- 两个差相乘怎么算？把 (a-b)(c-d) 按分配律展开：ac - ad - bc + bd。把正项
+-- 放在一起、负项放在一起，就得到 (ac+bd) - (ad+bc)。所以序对上的乘法公式是
+-- mulRep (a,b) (c,d) = (ac+bd, ad+bc)。
+--
+-- 这个展开在 ℕ 上只用加法与乘法写出来：mulRep 的四个乘积分别落在两个分量里，
+-- 恰好对应上面的正项与负项。本单元用单元③自建的 myAdd 与 myMul 在代表元上
+-- 把公式写出来，再看它在具体数字上算得对不对；至于它是否尊重代表元的替换，
+-- 和加法一样要留到后续的良定义性单元。
 
 import lib.Logic
 import lib.Prod
@@ -30,18 +35,19 @@ def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
     (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.snd Nat Nat b))
              (myMul (Prod.snd Nat Nat a) (Prod.fst Nat Nat b)))
 
--- 演示：(2-0) * (3-1) = 6-2。
+-- 先算一个具体乘积：2-0 乘 3-1，两个分量是 2·3+0·1 = 6 与 2·1+0·3 = 2。
 theorem demo_mulRep :
     mulRep (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 3 1) =
     @prod_mk Nat Nat 6 2 :=
   Eq.refl (@prod_mk Nat Nat 6 2)
 
--- 演示：(2-5) * 0 = 0。
+-- 再算乘以零：(2-5) 乘 0，两个分量都是 0，得到 0-0。
 theorem demo_mulRep_zero :
     mulRep (@prod_mk Nat Nat 2 5) (@prod_mk Nat Nat Nat.zero Nat.zero) =
     @prod_mk Nat Nat Nat.zero Nat.zero :=
   Eq.refl (@prod_mk Nat Nat Nat.zero Nat.zero)
 
+-- 把一般形状写出来：(a,b) 乘 (c,d) 的两个分量分别是 ac+bd 与 ad+bc。
 -- soko:hint 思路：mulRep 的定义直接展开成 prod_mk 的两个分量。
 -- soko:hint 目标形态：prod_mk (ac+bd) (ad+bc) = prod_mk (ac+bd) (ad+bc)。
 -- soko:hint 关键件：Eq.refl。
@@ -52,6 +58,7 @@ theorem mulRep_mk (a b c d : Nat) :
       (Nat.add (myMul a d) (myMul b c)) :=
   sorry
 
+-- 回到具体例子：2-0 乘 3-1 应当得到 6-2，验证公式算得动。
 -- soko:hint 思路：闭值计算；2*3+0*1 = 6，2*1+0*3 = 2。
 -- soko:hint 目标形态：mulRep (2,0) (3,1) = (6,2)。
 -- soko:hint 关键件：Eq.refl。
@@ -60,6 +67,7 @@ theorem mulRep_closed :
     @prod_mk Nat Nat 6 2 :=
   sorry
 
+-- 乘以零的类：(2-5) 乘 0 应当得到 0。
 -- soko:hint 思路：闭值计算；任何数乘 (0,0) 的两个分量都是 0。
 -- soko:hint 目标形态：mulRep (2,5) (0,0) = (0,0)。
 -- soko:hint 关键件：Eq.refl。
@@ -68,6 +76,7 @@ theorem mulRep_zero :
     @prod_mk Nat Nat Nat.zero Nat.zero :=
   sorry
 
+-- 乘以一：任何数乘 1 还是它自己；(2-5) 乘 1 应当仍是 2-5。
 -- soko:hint 思路：闭值计算；(2-5) * 1 = 2-5。
 -- soko:hint 目标形态：mulRep (2,5) (1,0) = (2,5)。
 -- soko:hint 关键件：Eq.refl。
@@ -76,6 +85,7 @@ theorem mulRep_one :
     @prod_mk Nat Nat 2 5 :=
   sorry
 
+-- 乘以 -1：(2-5) 乘 (0-1) 应当把差翻转，得到 5-2。
 -- soko:hint 思路：闭值计算；(2-5) * (0-1) = 5-2。
 -- soko:hint 目标形态：mulRep (2,5) (0,1) = (5,2)。
 -- soko:hint 关键件：Eq.refl。
@@ -84,6 +94,7 @@ theorem mulRep_neg :
     @prod_mk Nat Nat 5 2 :=
   sorry
 
+-- 把两个代表元交换再算一次，闭值结果应当相同——这是乘法交换律的代表元影子。
 -- soko:hint 思路：交换两个代表元，闭值结果相同。
 -- soko:hint 目标形态：mulRep (3,1) (2,0) = (6,2)。
 -- soko:hint 关键件：Eq.refl。
@@ -91,3 +102,7 @@ theorem mulRep_comm_closed :
     mulRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 2 Nat.zero) =
     @prod_mk Nat Nat 6 2 :=
   sorry
+
+-- 乘法公式在代表元层已经算得动。它是否在商上良定义，是下一批单元的事：
+-- 需要证明换代表元后 mulRep 的结果仍然等价——和加法良定义性同一套路，
+-- 只是多一层乘法搬运。
