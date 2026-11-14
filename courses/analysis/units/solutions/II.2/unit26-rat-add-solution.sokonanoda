@@ -105,7 +105,7 @@ theorem add_assoc (a b c : Nat) :
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
     c
 
--- 搬运律：把两个和里的加法因子换个配对，值不变。
+-- 搬运律把两个和里的加数重新配对，值不变；后面的重排要用它。
 
 theorem add_shift (a b c d : Nat) :
     Nat.add (Nat.add a c) (Nat.add b d) =
@@ -148,13 +148,13 @@ theorem add_shift (a b c d : Nat) :
             (add_assoc a b (Nat.add c d))))))
 
 
--- 定义性相等：myMul 在第二个参数上递归，base 就是 0。
+-- myMul 在第二个参数上递归，base 就是 0：乘零是定义性相等。
 
 theorem myMul_zero (a : Nat) :
     myMul a Nat.zero = Nat.zero :=
   Eq.refl Nat.zero
 
--- 定义性相等：递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)。
+-- 递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)，也是定义性相等。
 
 theorem myMul_succ (a b : Nat) :
     myMul a (Nat.succ b) = Nat.add a (myMul a b) :=
@@ -241,7 +241,7 @@ theorem add_mid (a x y : Nat) :
       (add_assoc x a y))
 
 -- ─────────────────────────────────────────────────────────────
--- ㉒.2 左分配律：a * (b + c) = a*b + a*c（对 c 归纳）
+-- ㉒.2 左分配律（对 c 归纳）
 -- ─────────────────────────────────────────────────────────────
 
 -- soko:hint 思路：对 c 归纳。基例 c = 0 时 `b + 0` 定义性等于 b、`a * 0` 定义性等于 0，两边都是 `a*b`，`Eq.refl` 即可；步例把 `a * (b + succ n)` 展开成 `a + a*(b+n)`，用 ih 换成 `a + (a*b + a*n)`，再交给 add_mid 换成 `a*b + (a + a*n)`。
@@ -268,7 +268,7 @@ theorem mul_add (a b c : Nat) :
     c
 
 -- ─────────────────────────────────────────────────────────────
--- ㉒.3 右分配律：(a + b) * c = a*c + b*c
+-- ㉒.3 右分配律（用交换律化回左分配）
 -- ─────────────────────────────────────────────────────────────
 
 -- soko:hint 思路：把左边用 myMul_comm 翻成 `c * (a+b)`，交给 mul_add 展开，再用两次 myMul_comm（一次对 c a，一次对 c b）把因子顺序摆回来。
@@ -295,7 +295,7 @@ theorem mul_add_right (a b c : Nat) :
         (congrArg.{1} (fun (m : Nat) => Nat.add (myMul a c) m) (myMul_comm c b))))
 
 -- ─────────────────────────────────────────────────────────────
--- ㉒.4 结合律：(a * b) * c = a * (b * c)（对 c 归纳）
+-- ㉒.4 结合律（对 c 归纳，步例用左分配）
 -- ─────────────────────────────────────────────────────────────
 
 -- soko:hint 思路：对 c 归纳。基例两边都归约成 0；步例把左边展开成 `(a*b) + (a*b)*n`，用 ih 把第二个加数换成 `a*(b*n)`，右边展开成 `a * (b + b*n)`，交给 mul_add 的对称收口。
@@ -320,18 +320,18 @@ theorem myMul_assoc (a b c : Nat) :
     c
 
 -- ─────────────────────────────────────────────────────────────
--- ㉓.1 两个加数同时改写（congrArg 两次装成一个引理）
+-- ㉓.1 两个加数同时改写
 -- ─────────────────────────────────────────────────────────────
 
 -- ─────────────────────────────────────────────────────────────
--- ㉔.1 加法：`Nat.add a (succ b)` 定义性展开成 `succ (Nat.add a b)`
+-- ㉔.1 加法的后继展开（消去律的脚手架）
 -- ─────────────────────────────────────────────────────────────
 
 theorem add_succ (a b : Nat) :
     Nat.add a (Nat.succ b) = Nat.succ (Nat.add a b) :=
   Eq.refl (Nat.succ (Nat.add a b))
 
--- 前驱：`pred (succ n) = n` 是定义性相等；用于从前驱等式换回原等式。
+-- 前驱 pred (succ n) = n 是定义性相等：用它把前驱等式换回原等式。
 
 def Nat.pred (n : Nat) : Nat := match n with
 | zero => Nat.zero
@@ -343,7 +343,7 @@ theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) :
     a = b :=
   congrArg.{1} Nat.pred h
 
--- 单元⑭的加法消去律，本单元自用（本单元自备）。
+-- 下面重新列出单元⑭证过的加法消去律。
 
 theorem nat_add_cancel_right (a b k : Nat) :
     Nat.add a k = Nat.add b k → a = b :=
@@ -542,7 +542,7 @@ theorem mul_congr (a b a' b' c : Nat)
     (Nat.add a b') (Nat.add a' b) h
     (@Eq.refl.{1} Nat (myMul (Nat.add a b') c))
 
--- h 乘开：a·c + b'·c = a'·c + b·c。
+-- 有了分配律，等价假设就能「乘开」：h 两边各乘 c 与 d，得到两条可相加的等式。
 
 theorem mul_shift_c (a b a' b' c : Nat)
     (h : Nat.add a b' = Nat.add a' b) :
@@ -581,7 +581,7 @@ theorem mulRep_den (p : Prod Nat Nat) (n : Nat) :
       (zero_add (myMul (Prod.snd Nat Nat p) (Nat.succ n))))
 
 
--- 把「两边都乘上同一正分母」的等价假设化成一条 ℕ 加法等式。
+-- 先把「两边都乘上同一正分母」的等价假设化成一条 ℕ 加法等式。
 
 theorem mulRep_den_mid (u v : Prod Nat Nat) (n : Nat)
     (h : intRel (mulRep u (den n)) (mulRep v (den n))) :
@@ -604,7 +604,7 @@ theorem mulRep_den_mid (u v : Prod Nat Nat) (n : Nat)
                           (myMul (Prod.snd Nat Nat v) (Nat.succ n)))
       h (mulRep_den v n))
 
--- 正分母可消去：mulRep u (n+1,0) ~ mulRep v (n+1,0) ⇒ u ~ v。
+-- 再证正分母可消去：mulRep u (n+1,0) 与 mulRep v (n+1,0) 差相等时，u 与 v 也差相等。
 -- soko:hint 思路：先把 `mulRep u (den n)` 与 `mulRep v (den n)` 化到规范形 `(u1·d, u2·d)`、`(v1·d, v2·d)`（`d = n+1`），假设就变成 `u1·d + v2·d = v1·d + u2·d`；两边分别用 `mul_add_right` 收成 `(u1+v2)·d` 与 `(v1+u2)·d`，最后用 `mul_cancel_pos` 消去正因子 `d`。
 -- soko:hint 目标形态：mulRep u (den n) ~ mulRep v (den n) ⇒ u ~ v。
 
@@ -616,13 +616,13 @@ theorem intRel_refl (p : Prod Nat Nat) : intRel p p :=
 -- ㉖.1 公分母：`succ (m*n + m + n) = (m+1)(n+1)`
 -- ─────────────────────────────────────────────────────────────
 
--- `ratRep` 的分母字段是「`succ` 编码」：真正的分母 = 字段 + 1。两个有理数
--- 相加时公分母是 `(m+1)(n+1)`，所以结果的分母字段取 `m*n + m + n`。
+-- ratRep 的分母字段用 succ 编码：真正的分母是字段加一。两个有理数
+-- 相加时公分母是 (m+1)(n+1)，所以结果的分母字段取 m·n+m+n。
 
 def ratDenRep (m n : Nat) : Nat :=
   Nat.add (Nat.add (myMul m n) m) n
 
--- 把有理数写成「分子序对 + 分母字段」的规范形状（只为这里的陈述好读）。
+-- 把有理数写成「分子序对 + 分母字段」的规范形状，陈述会好读一些。
 
 def qrep (a b m : Nat) : ratRep :=
   @prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) m
@@ -651,9 +651,9 @@ theorem ratDenRep_succ (m n : Nat) :
 -- ㉖.2 加法的代表元公式
 -- ─────────────────────────────────────────────────────────────
 
--- (a-b)/(m+1) + (c-d)/(n+1)
---   = [(a(n+1) + c(m+1)) - (b(n+1) + d(m+1))] / ((m+1)(n+1))
--- 分母字段就是 ㉖.1 的 `ratDenRep m n`。
+-- 通分后的公式是：(a-b)/(m+1) + (c-d)/(n+1)
+--   = [(a(n+1) + c(m+1)) - (b(n+1) + d(m+1))] / ((m+1)(n+1))，
+-- 分母字段就是 ㉖.1 定义的 ratDenRep m n。
 
 def numOf (x : ratRep) : Prod Nat Nat :=
   Prod.fst (Prod Nat Nat) Nat x
