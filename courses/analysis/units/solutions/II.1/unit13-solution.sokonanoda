@@ -1,20 +1,16 @@
 -- 单元⑬ ℕ 序的传递性与单调性
 --
--- 单元⑫ 用归纳族 LeNat 定义了 ℕ 的序，并把整数序化归到它：
---   leRep (a,b) (c,d)  :=  LeNat (a+d) (c+b)
--- 要把「a-b ≤ c-d」变成整数上的序，还需要两条 ℕ 序的基本引理：
---   leNat_trans      : m ≤ n ⇒ n ≤ k ⇒ m ≤ k
---   leNat_add_right  : m ≤ n ⇒ m + k ≤ n + k
--- 以及它们的垫脚石「后继保持序」：
---   leNat_succ_succ  : m ≤ n ⇒ succ m ≤ succ n
--- 有了这三条，后续单元才能把等价假设搬到不等式两边。
+-- 单元⑫ 用归纳族 LeNat 定义了 ℕ 的序，并把整数序化归到它：a-b ≤ c-d 就是
+-- a+d ≤ c+b。要把这层化归真正用起来，还需要 ℕ 序的两条基本性质：传递性
+-- （m ≤ n 且 n ≤ k 推出 m ≤ k）与右加单调（m ≤ n 推出 m+k ≤ n+k）。后者又
+-- 依赖一条垫脚石：后继保持序（m ≤ n 推出 succ m ≤ succ n）。有了这三条，
+-- 后面才能把代表元的等式「搬到不等式的两边」。
 --
--- 注意：消除方式：LeNat 有**两个指标**（m 与 n）。本语言的 `match` 只把
--- **参数**代进动机，指标仍留在分支里，所以对 `h : LeNat m n` 不能写
---   match h with | le_refl n => ...
--- 而要显式用归纳原理 `LeNat.rec`（motive 同时收两个指标与证明）：
---   @LeNat.rec (fun m n h => …) base step m n h
--- base 对应构造子 le_refl，step 对应 le_succ，它的 ih 是较小证明的归纳假设。
+-- 证之前先说清一个技术事实：LeNat 有两个指标 m 与 n。本语言的 match 只把
+-- 参数代进动机，指标留在分支里，所以对 h : LeNat m n 不能直接 match，而要
+-- 显式用归纳原理 LeNat.rec，让动机同时收两个指标与证明：
+-- @LeNat.rec (fun m n h => …) base step m n h。base 对应 le_refl，step 对应
+-- le_succ，它的归纳假设是较小证明的。
 import lib.Logic
 import lib.Prod
 
@@ -33,7 +29,7 @@ def leRep (p q : Prod Nat Nat) : Prop :=
   LeNat (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
         (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
 
--- 演示：序的构造子链 —— 0 ≤ 0 ≤ 1 ≤ 2 的中间一段。
+-- 先看构造子链本身：0 ≤ 1 ≤ 2 的中间一段。
 theorem demo_leNat_one_two : LeNat 1 2 :=
   le_succ 1 1 (le_refl 1)
 
@@ -60,11 +56,11 @@ theorem leNat_add_right (a b k : Nat) (h : LeNat a b) :
        leNat_succ_succ (Nat.add a k) (Nat.add b k) ih)
     k
 
--- 演示：0 - 0 ≤ 2 - 0 就是 0 ≤ 2；已有 0 ≤ 1，再用传递性往前推。
+-- 具体例子：0-0 ≤ 2-0 就是 0 ≤ 2；已有 0 ≤ 1，再用传递性往前推。
 theorem demo_leNat_zero_two : LeNat Nat.zero 2 :=
   leNat_trans Nat.zero 1 2 (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
     (le_succ 1 1 (le_refl 1))
 
--- 演示：1 ≤ 4 推出 1 + 2 ≤ 4 + 2，即 3 ≤ 6。
+-- 具体例子：1 ≤ 4 推出 1+2 ≤ 4+2，即 3 ≤ 6。
 theorem demo_leNat_add_right : LeNat 3 6 :=
   leNat_add_right 1 4 2 (le_succ 1 3 (le_succ 1 2 (le_succ 1 1 (le_refl 1))))
