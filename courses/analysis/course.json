@@ -981,6 +981,18 @@
               "title": "单元127 函数极限的代数：和、差与取负",
               "title_en": "Unit 127 — Algebra of Function Limits: Sums, Differences, Negation",
               "unit": 127
+            },
+            {
+              "file": "units/III.6/unit128-continuity-algebra.sokonanoda",
+              "title": "单元128 连续函数的代数：和、差与取负",
+              "title_en": "Unit 128 — Algebra of Continuous Functions: Sums, Differences, Negation",
+              "unit": 128
+            },
+            {
+              "file": "units/III.6/unit129-one-sided-limits.sokonanoda",
+              "title": "单元129 单侧极限：只看一边",
+              "title_en": "Unit 129 — One-Sided Limits: Looking Only One Way",
+              "unit": 129
             }
           ]
         }
