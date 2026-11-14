@@ -1,18 +1,13 @@
 -- 单元㉞ 有理数的幂：定义与计算规则
 --
--- 幂在代表元上就是对乘法的 `Nat.rec`：
+-- 幂在代表元上就是对乘法的 Nat.rec：ratPowRep x 0 := 1 = qrep 1 0 0，ratPowRep x
+-- (n+1) := ratMulRep x (ratPowRep x n)。
 --
---   ratPowRep x 0      := 1 = qrep 1 0 0
---   ratPowRep x (n+1)  := ratMulRep x (ratPowRep x n)
+-- 递归子写在第二个参数上，所以两条计算规则都是 ι 归约（一条 Eq.refl）。这里先立
+-- 定义与三条最基本的计算规则（零次、后继、二次），再算一个具体例子 (1/2)^2 = 1/4。
 --
--- 递归子写在**第二个**参数上，所以两条计算规则都是 ι 归约（`Eq.refl`）。
--- 只立定义与三条最基本的计算规则（零次、后继、二次），
--- 以及具体计算 `(1/2)^2 = 1/4`。
---
--- 幂的代数律（`x^(m+n) ~ x^m * x^n`、`(x^m)^n ~ x^(m*n)`）要先把
--- `ratMulRep` 的结合/交换律搬上来，留到后续单元。
---
--- 这里自带定义与前序地基（本单元自备）。
+-- 幂的代数律（x^(m+n) 与 x^m * x^n、x^(m·n) 与 (x^m)^n）要先把 ratMulRep 的
+-- 结合/交换律搬上来，留给后续单元。
 
 import lib.Rat
 
@@ -26,7 +21,7 @@ def ratPowRep (x : ratRep) (n : Nat) : ratRep :=
 -- ㉞.1 零次幂
 -- ─────────────────────────────────────────────────────────────
 
--- soko:hint 思路：`ratPowRep x 0` 定义性归约到 `ratOneRep`，用 `Eq.refl`。
+-- -- 零次幂：直接归约到 1。
 -- soko:hint 目标形态：`ratPowRep x 0 = ratOneRep`。
 -- soko:hint 关键件：Nat.rec 的基例（ι 归约）· Eq.refl。
 theorem ratPow_zero (x : ratRep) : ratPowRep x Nat.zero = ratOneRep :=
@@ -36,7 +31,7 @@ theorem ratPow_zero (x : ratRep) : ratPowRep x Nat.zero = ratOneRep :=
 -- ㉞.2 后继幂
 -- ─────────────────────────────────────────────────────────────
 
--- soko:hint 思路：`ratPowRep x (n+1)` 定义性归约到 `ratMulRep x (ratPowRep x n)`，用 `Eq.refl`。
+-- -- 后继幂：展开成 x 乘 x^n。
 -- soko:hint 目标形态：`ratPowRep x (Nat.succ n) = ratMulRep x (ratPowRep x n)`。
 -- soko:hint 关键件：Nat.rec 的递归步（ι 归约）· Eq.refl。
 theorem ratPow_succ (x : ratRep) (n : Nat) :
@@ -47,7 +42,7 @@ theorem ratPow_succ (x : ratRep) (n : Nat) :
 -- ㉞.3 二次幂
 -- ─────────────────────────────────────────────────────────────
 
--- soko:hint 思路：连续用两次 ㉞.2 的归约：`x^2 = x * x^1 = x * (x * 1)`，整条链都是定义性相等，用 `Eq.refl`。
+-- -- 二次幂是两次展开。
 -- soko:hint 目标形态：`ratPowRep x 2 = ratMulRep x (ratMulRep x ratOneRep)`。
 -- soko:hint 关键件：Nat.rec 的两次 ι 归约 · Eq.refl。
 theorem ratPow_two (x : ratRep) :
@@ -58,7 +53,7 @@ theorem ratPow_two (x : ratRep) :
 -- ㉞.4 具体计算：(1/2)^2 = 1/4
 -- ─────────────────────────────────────────────────────────────
 
--- soko:hint 思路：展开后分子是 `(1*1+0*0, 1*0+0*1) = (1,0)`，分母字段是 `ratDenRep 1 1 = 3`，两边都是 `qrep 1 0 3`，用 `Eq.refl`。
+-- -- 具体算 (1/2)^2 = 1/4。
 -- soko:hint 目标形态：`ratPowRep (qrep 1 0 1) 2 = qrep 1 0 3`。
 -- soko:hint 关键件：ratPow_two · ratMulRep 的 ι 归约 · Eq.refl。
 theorem demo_pow_two_half :
