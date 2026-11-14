@@ -1,20 +1,14 @@
 -- 单元㉚ 有理数的严格序：`<` 与不相等
 --
--- 单元㉙ 定义了非严格序 `ratLeRep`。严格序在数学上是「≤ 且 ≠」，
--- 在商上「≠」仍然用 `ratRel` 的否定表达（`Rat` 的相等就是 `ratRel`）：
+-- 单元㉙ 定义了非严格序 ratLeRep。严格序在数学上是「≤ 且不等」，在商上「不等」仍然
+-- 用 ratRel 的否定表达（Rat 的相等就是 ratRel）：ratLtRep x y 当且仅当 ratLeRep x y
+-- 且非 ratRel x y。
 --
---   ratLtRep x y  :⟺  ratLeRep x y ∧ ¬ ratRel x y
+-- 这里先结清严格序的三条定义展开级事实：它不是自反的；它蕴含非严格序；非严格序
+-- 加上不相等就是它。再加一个具体计算 0 < 1：序的部分用 ㉙ 的 le_succ，不等的部分
+-- 把 ratRel 0 1 化成 0 = 1，由 succ_ne_zero 否定。
 --
--- 我们结清严格序的三条**定义展开**级事实。
---   · 不⊂自反（`¬ ratLtRep x x`）：自反的 `ratRel` 与 `¬ ratRel` 直接矛盾；
---   · `<` 蕴含 `≤`（`And.left`）；
---   · `≤` 加不相等就是 `<`（`And.intro`）。
--- 再加一个具体计算 `0 < 1`：序的部分用 ㉙ 的 `le_succ`，不等的部分把
--- `ratRel 0 1` 化成 `0 = 1`，由 `succ_ne_zero` 否定。
---
--- 传递性、全序与加法/乘法相容仍留给后续单元（它们要先把代表元换到公分母）。
---
--- 这里自带严格序的定义与前序地基（本单元自备）。
+-- 传递性、全序与加法/乘法相容仍要先通分，留给后续单元。
 
 import lib.Rat
 
@@ -29,7 +23,7 @@ def ratLtRep (x y : ratRep) : Prop :=
 -- ㉚.1 严格序不⊂自反
 -- ─────────────────────────────────────────────────────────────
 
--- soko:hint 思路：假设 `ratLtRep x x`，拆出 `ratLeRep x x` 与 `¬ ratRel x x`；再用 `ratRel_refl x` 撞矛盾。
+-- -- 严格序是「≤ 且不等」，所以它首先不可能自反。
 -- soko:hint 目标形态：`¬ ratLtRep x x`。
 -- soko:hint 关键件：And.right（取第二分量）· ratRel_refl · Not.elim（或 `fun h => (And.right h) (ratRel_refl x)`）。
 theorem ratLtRep_irrefl (x : ratRep) : ¬ ratLtRep x x :=
@@ -39,7 +33,7 @@ theorem ratLtRep_irrefl (x : ratRep) : ¬ ratLtRep x x :=
 -- ㉚.2 严格序蕴含非严格序
 -- ─────────────────────────────────────────────────────────────
 
--- soko:hint 思路：`ratLtRep x y` 是 `And`，取左分量。
+-- -- 严格序蕴含非严格序：取下合取式的左分量。
 -- soko:hint 目标形态：`ratLtRep x y → ratLeRep x y`。
 -- soko:hint 关键件：And.left。
 theorem ratLtRep_implies_le (x y : ratRep) (h : ratLtRep x y) : ratLeRep x y :=
@@ -49,7 +43,7 @@ theorem ratLtRep_implies_le (x y : ratRep) (h : ratLtRep x y) : ratLeRep x y :=
 -- ㉚.3 非严格序 + 不相等 = 严格序
 -- ─────────────────────────────────────────────────────────────
 
--- soko:hint 思路：两条假设正好是 `ratLtRep` 展开后的两个分量，用 `And.intro` 装起来。
+-- -- 反方向：≤ 加上不相等就是 <。
 -- soko:hint 目标形态：`ratLeRep x y → ¬ ratRel x y → ratLtRep x y`。
 -- soko:hint 关键件：And.intro。
 theorem ratLtRep_of_le_ne (x y : ratRep)
@@ -60,7 +54,7 @@ theorem ratLtRep_of_le_ne (x y : ratRep)
 -- ㉚.4 具体数字：0 < 1
 -- ─────────────────────────────────────────────────────────────
 
--- soko:hint 思路：序的部分是 `0 ≤ 1`（`le_succ 0 0 (le_refl 0)`）；不等的部分假设 `ratRel 0 1`，它展开成 `0 = 1`，取对称后与 `succ_ne_zero 0` 冲突。
+-- -- 具体算 0 < 1：序用 le_succ，不等的部分化成 0 = 1 再否定。
 -- soko:hint 目标形态：`ratLtRep (qrep 0 0 0) (qrep 1 0 0)`。
 -- soko:hint 关键件：And.intro · le_succ · le_refl · Eq.symm · succ_ne_zero。
 theorem demo_zero_lt_one :
