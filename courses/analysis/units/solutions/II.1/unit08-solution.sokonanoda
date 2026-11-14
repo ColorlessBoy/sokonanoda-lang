@@ -22,7 +22,7 @@ def addRep (a b : Prod Nat Nat) : Prod Nat Nat :=
 def negRep (p : Prod Nat Nat) : Prod Nat Nat :=
   @prod_mk Nat Nat (Prod.snd Nat Nat p) (Prod.fst Nat Nat p)
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（本单元自备）。
+-- 下面四条是单元③证过的 ℕ 加法律，这里重新列出；后面的证明直接引用。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
@@ -64,7 +64,7 @@ theorem add_zero (a : Nat) :
     (add_comm a Nat.zero)
     (zero_add a)
 
--- 零元的代表元事实：(a+0)+b = a+(b+0)。
+-- 代表元上的零元：两个 +0 分别用 add_zero 消掉。
 theorem zero_rep (a b : Nat) :
     intRel (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat Nat.zero Nat.zero))
            (@prod_mk Nat Nat a b) :=
@@ -84,7 +84,7 @@ theorem zero_rep (a b : Nat) :
         (Nat.add b Nat.zero) b (add_zero b)
         (@Eq.refl.{1} Nat (Nat.add a (Nat.add b Nat.zero)))))
 
--- 商上的零元：把 zero_rep 交给 Quot.sound。
+-- 商上的零元：把 zero_rep 交给 Quot.sound，商里的相等就得到了。
 theorem int_add_zero (a b : Nat) :
     @Quot.mk.{1} (Prod Nat Nat) intRel
         (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat Nat.zero Nat.zero)) =
@@ -94,7 +94,7 @@ theorem int_add_zero (a b : Nat) :
     (@prod_mk Nat Nat a b)
     (zero_rep a b)
 
--- 负元尊重 intRel：把 h 的两边交换再各用一次交换律。
+-- 取负尊重差相等：把 h 的两边交换，再各用一次 ℕ 的交换律。
 theorem negRep_wd (a b a' b' : Nat)
     (h : intRel (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a' b')) :
     intRel (negRep (@prod_mk Nat Nat a b)) (negRep (@prod_mk Nat Nat a' b')) :=
@@ -107,7 +107,7 @@ theorem negRep_wd (a b a' b' : Nat)
       (@Eq.symm.{1} Nat (Nat.add a b') (Nat.add a' b) h)
       (@Eq.symm.{1} Nat (Nat.add b' a) (Nat.add a b') (add_comm b' a)))
 
--- 逆元的代表元事实：(a+b)+0 = 0+(b+a)。
+-- 代表元上的逆元：两个分量 a+b 与 b+a 要证与 (0,0) 差相等。
 theorem add_neg_rep (a b : Nat) :
     intRel (addRep (@prod_mk Nat Nat a b) (negRep (@prod_mk Nat Nat a b)))
            (@prod_mk Nat Nat Nat.zero Nat.zero) :=
@@ -121,7 +121,7 @@ theorem add_neg_rep (a b : Nat) :
       (@Eq.symm.{1} Nat (Nat.add Nat.zero (Nat.add b a)) (Nat.add b a)
         (zero_add (Nat.add b a))))
 
--- 商上的逆元。
+-- 商上的逆元：把 add_neg_rep 交给 Quot.sound。
 theorem int_add_neg (a b : Nat) :
     @Quot.mk.{1} (Prod Nat Nat) intRel
         (addRep (@prod_mk Nat Nat a b) (negRep (@prod_mk Nat Nat a b))) =
@@ -131,12 +131,12 @@ theorem int_add_neg (a b : Nat) :
     (@prod_mk Nat Nat Nat.zero Nat.zero)
     (add_neg_rep a b)
 
--- 负元做两次回到原处（定义性相等）。
+-- 取负的对合：negRep 交换两个分量，做两次回到 (a,b)。
 theorem negRep_neg (a b : Nat) :
     negRep (negRep (@prod_mk Nat Nat a b)) = @prod_mk Nat Nat a b :=
   @Eq.refl.{1} (Prod Nat Nat) (@prod_mk Nat Nat a b)
 
--- 商上的对合律。
+-- 商上的对合律：两个代表元定义性相等，商里的点也相等。
 theorem int_neg_neg (a b : Nat) :
     @Quot.mk.{1} (Prod Nat Nat) intRel
         (negRep (negRep (@prod_mk Nat Nat a b))) =
@@ -144,13 +144,13 @@ theorem int_neg_neg (a b : Nat) :
   @Eq.refl.{1} (@Quot.{1} (Prod Nat Nat) intRel)
     (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b))
 
--- 演示：具体数字上零元可计算 —— (2-5)+(0-0) 与 (2-5) 在 (7,7) 处等价。
+-- 具体数字上核对零元：2-5 加 0 仍是 2-5（两边都算得 7）。
 theorem demo_zero_rep :
     intRel (addRep (@prod_mk Nat Nat 2 5) (@prod_mk Nat Nat Nat.zero Nat.zero))
            (@prod_mk Nat Nat 2 5) :=
   @Eq.refl.{1} Nat 7
 
--- 演示：(2-5)+(5-2) = 0-0，两边都算成 7 = 7。
+-- 具体数字上核对逆元：2-5 加 5-2 得到 0（两边都算得 7）。
 theorem demo_add_neg :
     intRel (addRep (@prod_mk Nat Nat 2 5) (negRep (@prod_mk Nat Nat 2 5)))
            (@prod_mk Nat Nat Nat.zero Nat.zero) :=
