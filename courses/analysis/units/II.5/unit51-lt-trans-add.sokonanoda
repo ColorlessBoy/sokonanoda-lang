@@ -1,19 +1,14 @@
 -- 单元51 严格序的传递与加法相容
 --
--- ㊾ 给了严格序自身的传递（`ratLtRep_trans`），㊿ 给了它和**右加**的相容。
--- `close` 的传递性还要把「弱序」与「严格序」混着串，并把两个严格界相加：
+-- ㊾ 给了严格序自身的传递，㊿ 给了它与右加的相容。close 的传递性还要把弱序与严格序
+-- 混着串，并把两个严格界相加：a ≤ b 且 b < c 推出 a < c；a < b 且 b ≤ c 推出
+-- a < c；以及 a < b 且 c < d 推出 a+c < b+d。
 --
---   a ≤ b ∧ b < c  ⇒  a < c        （本单元 51.2）
---   a < b ∧ b ≤ c  ⇒  a < c        （本单元 51.3）
---   a < b ∧ c < d  ⇒  a + c < b + d（本单元 51.4）
---
--- 三条的证明都是「弱序用 ㊳ 的传递性串、不相等用 ㊻ 的反对称性把中间项夹成
--- 相等、再撞上某个 `<` 的第二分量」——与 ㊾.2 同一个套路。51.4 还要先把
--- **左加**补上（51.1）：㊹ 只有右加 `x + z ≤ y + z`，而 `b + c ≤ b + d`
--- 是左加；交换两边的顺序（㊸ 的 `ratAdd_comm`）再用库里的
--- `ratLeRep_congr_gen` 把 `ratLeRep` 搬过去即可。51.4 的不相等部分只用到
--- `a < b`：`a+c ~ b+d` 把 `a+c ≤ b+c ≤ b+d` 夹成 `b+c ~ a+c`，
--- 用 ㊿ 的加法消去（库里的 `ratRel_add_cancel_gen`）得 `b ~ a`。
+-- 三条的证明都是同一套路：弱序用 ㊳ 的传递性串，不相等用 ㊻ 的反对称性把中间项夹成
+-- 相等，再撞上某个 < 的第二分量。最后一条还要先把左加补上：㊹ 只有右加，而
+-- b+c ≤ b+d 是左加；交换两边的顺序（㊸ 的加法交换律）再用 ratLeRep_congr_gen 把
+-- 弱序搬过去即可。它的不相等部分只用到 a < b：a+c ~ b+d 把 a+c ≤ b+c ≤ b+d 夹成
+-- b+c ~ a+c，用 ㊿ 的加法消去得 b ~ a。
 
 import lib.RatAbsOrder
 
@@ -21,6 +16,7 @@ import lib.RatAbsOrder
 -- 51.1 弱序可以加在左边
 -- ─────────────────────────────────────────────────────────────
 
+-- 先补左加：把交换律与右加的相容拼起来。
 -- soko:hint 思路：㊹ 只给了右加。先用 ㊸ 的 `ratAdd_comm` 把 `z + x` 换成 `x + z`、`z + y` 换成 `y + z`（两条 `ratRel`），用库里的 `ratLeRep_congr_gen` 把 `ratLeRep` 从 `(x+z, y+z)` 搬到 `(z+x, z+y)`，中间的 `ratLeRep (x+z) (y+z)` 由 `ratLeRep_add_right` 给出。
 -- soko:hint 目标形态：`ratLeRep x y → ratLeRep (ratAddRep z x) (ratAddRep z y)`。
 -- soko:hint 关键件：ratLeRep_congr_gen · ratAdd_comm · ratLeRep_add_right。
@@ -32,6 +28,7 @@ theorem ratLeRep_add_left (x y z : ratRep)
 -- 51.2 弱序 + 严格序 ⇒ 严格序（左弱右严）
 -- ─────────────────────────────────────────────────────────────
 
+-- 左弱右严：弱序传递，不相等用反对称性夹出矛盾。
 -- soko:hint 思路：弱序部分 `a ≤ b ≤ c` 用 `ratLeRep_trans`。不相等部分假设 `a ~ c`，则 `c ≤ a`（`ratLeRep_of_ratRel` + `ratRel_symm`），与 `a ≤ b`、`b ≤ c` 把 `b` 与 `c` 夹成 `b ~ c`（`ratLeRep_antisymm b c`），撞上 `b < c` 的第二分量。
 -- soko:hint 目标形态：`ratLeRep a b → ratLtRep b c → ratLtRep a c`。
 -- soko:hint 关键件：And.intro · And.left · And.right · ratLeRep_trans · ratLeRep_of_ratRel · ratRel_symm · ratLeRep_antisymm。
@@ -43,6 +40,7 @@ theorem ratLtRep_of_le_lt (a b c : ratRep)
 -- 51.3 严格序 + 弱序 ⇒ 严格序（左严右弱）
 -- ─────────────────────────────────────────────────────────────
 
+-- 左严右弱：与上一条对称。
 -- soko:hint 思路：弱序部分 `a ≤ b ≤ c` 用 `ratLeRep_trans`。不相等部分假设 `a ~ c`，则 `c ≤ a`，与 `b ≤ c` 得 `b ≤ a`；再与 `a ≤ b` 用 `ratLeRep_antisymm a b` 夹成 `a ~ b`，撞上 `a < b` 的第二分量。
 -- soko:hint 目标形态：`ratLtRep a b → ratLeRep b c → ratLtRep a c`。
 -- soko:hint 关键件：And.intro · And.left · And.right · ratLeRep_trans · ratLeRep_of_ratRel · ratRel_symm · ratLeRep_antisymm。
@@ -54,6 +52,7 @@ theorem ratLtRep_of_lt_le (a b c : ratRep)
 -- 51.4 两个严格序可以相加
 -- ─────────────────────────────────────────────────────────────
 
+-- 两个严格界相加：弱序分别相加，不相等只用到左边那个。
 -- soko:hint 思路：弱序是两段——`a+c ≤ b+c` 用 ㊹/㊿ 的 `ratLeRep_add_right`，`b+c ≤ b+d` 用 51.1 的 `ratLeRep_add_left`，再 `ratLeRep_trans`。不相等部分假设 `a+c ~ b+d`：由 `b+c ≤ b+d` 与 `b+d ~ a+c` 得 `b+c ≤ a+c`，与 `a+c ≤ b+c` 用反对称性夹成 `b+c ~ a+c`，再用库里的 `ratRel_add_cancel_gen` 消去 `c` 得 `b ~ a`；取对称后撞上 `a < b`。
 -- soko:hint 目标形态：`ratLtRep a b → ratLtRep c d → ratLtRep (a+c) (b+d)`。
 -- soko:hint 关键件：And.intro · ratLeRep_trans · ratLeRep_add_right · ratLeRep_add_left · ratLeRep_of_ratRel · ratRel_symm · ratLeRep_antisymm · ratRel_add_cancel_gen。
@@ -74,3 +73,4 @@ theorem demo_add_lt_add :
       (ratAddRep (qrep Nat.zero Nat.zero Nat.zero) (qrep Nat.zero Nat.zero Nat.zero))
       (ratAddRep (qrep 1 Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) :=
   sorry
+-- 混着串与相加的规则齐了；下一批单元把 ε 折半，再用它们证 close 的传递性。
