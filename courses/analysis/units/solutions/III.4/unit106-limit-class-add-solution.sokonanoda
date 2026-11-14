@@ -1,0 +1,155 @@
+-- 单元106 极限类的加法（解答）
+--
+-- 105 备好了两条 `ε/2` 界相加的估计，但那还只是代表元层的算术。要把
+-- 「两个极限类相加」变成一个可以引用的对象，还得把估计装成 `TendsTo`
+-- 的两条非严格界，再经 `addRel` 落到商上。缺了后一步，加法只对选定的
+-- 代表元成立，换一个代表元就不知道还对不对。
+--
+-- 106.0 把 105 的左右两半组装成和的收敛；106.1 把 `a = [L]`、`b = [M]`
+-- 代回三元关系；106.2 拆开两个极限类，得到和类与 `addRel` 同时成立；
+-- 106.3 是常序列的实例。
+--
+-- 边界：只在两个已经有极限类的序列上谈加法，不构造实数的减法，也不
+-- 声称每个实数都有代表元。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatHalf
+import lib.RatClose
+import lib.Cauchy
+import lib.CauchyAddBounds
+import lib.RealComplete
+import lib.RealOrder
+import lib.RealOrderLift
+import lib.RealAdd
+import lib.RealAddRel
+import lib.LimitClass
+
+-- ─────────────────────────────────────────────────────────────
+-- 106.0 和的收敛
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 eps 折半得到 g。两条 `TendsTo` 在 g 上各给一个阈值，用 `leNat_max`
+-- 合并；对 n 超过合并阈值，第一半把「x n 靠近 L + g」与「y n 靠近
+-- M + g」各取 d/2，交给 105 的左半；第二半把两个位置对调，交给 105 的
+-- 右半。两个 `realLe` 最后由 `realLe_mk` 送回商。
+--
+theorem tendsTo_add (x y L M : Seq) (hLc : Cauchy L) (hMc : Cauchy M)
+    (hx : TendsTo x L) (hy : TendsTo y M) :
+    TendsTo (addSeq x y) (addSeq L M) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hx (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (N1 : Nat)
+          (hN1 : ∀ (n : Nat), LeNat N1 n →
+            realLe (Real.mk (constSeq (x n))) (Real.mk (addConst L (ratHalf eps))) ∧
+            realLe (Real.mk L) (Real.mk (addConst (constSeq (x n)) (ratHalf eps)))) =>
+        Exists.elim (hy (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (N2 : Nat)
+              (hN2 : ∀ (n : Nat), LeNat N2 n →
+                realLe (Real.mk (constSeq (y n))) (Real.mk (addConst M (ratHalf eps))) ∧
+                realLe (Real.mk M) (Real.mk (addConst (constSeq (y n)) (ratHalf eps)))) =>
+            Exists.elim (leNat_max N1 N2)
+              (fun (N : Nat) (hN : LeNat N1 N ∧ LeNat N2 N) =>
+                Exists.intro N
+                  (fun (n : Nat) (hn : LeNat N n) =>
+                    And.intro
+                      (Iff.mpr (realLe_mk (constSeq (ratAddRep (x n) (y n)))
+                                          (addConst (addSeq L M) eps))
+                        (realLeRep_add_side (x n) (y n) L M eps hLc hMc
+                          (fun (d : ratRep) (hd : ratLtRep ratZeroRep d) =>
+                            realLeRep_close (constSeq (x n)) (addConst L (ratHalf eps))
+                              (Iff.mp (realLe_mk (constSeq (x n)) (addConst L (ratHalf eps)))
+                                (And.left (hN1 n (leNat_trans N1 N n (And.left hN) hn))))
+                              d hd)
+                          (fun (d : ratRep) (hd : ratLtRep ratZeroRep d) =>
+                            realLeRep_close (constSeq (y n)) (addConst M (ratHalf eps))
+                              (Iff.mp (realLe_mk (constSeq (y n)) (addConst M (ratHalf eps)))
+                                (And.left (hN2 n (leNat_trans N2 N n (And.right hN) hn))))
+                              d hd)))
+                      (Iff.mpr (realLe_mk (addSeq L M)
+                                          (addConst (constSeq (ratAddRep (x n) (y n))) eps))
+                        (realLeRep_add_side_right L M (x n) (y n) eps hLc hMc
+                          (fun (d : ratRep) (hd : ratLtRep ratZeroRep d) =>
+                            realLeRep_close L (addConst (constSeq (x n)) (ratHalf eps))
+                              (Iff.mp (realLe_mk L (addConst (constSeq (x n)) (ratHalf eps)))
+                                (And.right (hN1 n (leNat_trans N1 N n (And.left hN) hn))))
+                              d hd)
+                          (fun (d : ratRep) (hd : ratLtRep ratZeroRep d) =>
+                            realLeRep_close M (addConst (constSeq (y n)) (ratHalf eps))
+                              (Iff.mp (realLe_mk M (addConst (constSeq (y n)) (ratHalf eps)))
+                                (And.right (hN2 n (leNat_trans N2 N n (And.right hN) hn))))
+                              d hd)))))))
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 106.1 关系的搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- `addRel L M [L + M]` 由 `addRel_mk` 的 ι 规则直接给出，只需要两个
+-- `Cauchy` 守卫。把 `a = [L]`、`b = [M]` 代回去要两次 `Eq.subst`：
+-- 注意显式类型参数的顺序是「动机、起点、终点、等式、证明」。
+--
+theorem addRel_limit (L M : Seq) (a b : Real)
+    (hLc : Cauchy L) (hMc : Cauchy M)
+    (ha : a = Real.mk L) (hb : b = Real.mk M) :
+    addRel a b (Real.mk (addSeq L M)) :=
+  @Eq.subst.{1} Real
+    (fun (z : Real) => addRel z b (Real.mk (addSeq L M)))
+    (Real.mk L) a (Eq.symm ha)
+    (@Eq.subst.{1} Real
+      (fun (z : Real) => addRel (Real.mk L) z (Real.mk (addSeq L M)))
+      (Real.mk M) b (Eq.symm hb)
+      (Iff.mpr (addRel_mk L M (Real.mk (addSeq L M)))
+        (And.intro hLc (And.intro hMc (Eq.refl (Real.mk (addSeq L M)))))))
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 106.2 极限类对加法封闭
+-- ─────────────────────────────────────────────────────────────
+
+-- 拆开两个 `LimitClass`：得到代表元 L、M，两个 `Cauchy`，两条 `TendsTo`
+-- 与 `a = [L]`、`b = [M]`。和类取 `[L + M]`：106.1 给三元关系，106.0 给
+-- 和的收敛，`cauchy_add` 说明 `L + M` 仍是 Cauchy 序列。
+--
+theorem limitClass_add (x y : Seq) (a b : Real)
+    (hx : LimitClass x a) (hy : LimitClass y b) :
+    ∃ (c : Real), addRel a b c ∧ LimitClass (addSeq x y) c :=
+  Exists.elim hx
+    (fun (L : Seq) (hL : Cauchy L ∧ TendsTo x L ∧ a = Real.mk L) =>
+      Exists.elim hy
+        (fun (M : Seq) (hM : Cauchy M ∧ TendsTo y M ∧ b = Real.mk M) =>
+          Exists.intro (Real.mk (addSeq L M))
+            (And.intro
+              (addRel_limit L M a b (And.left hL) (And.left hM)
+                (And.right (And.right hL)) (And.right (And.right hM)))
+              (Exists.intro (addSeq L M)
+                (And.intro
+                  (cauchy_add L M (And.left hL) (And.left hM))
+                  (And.intro
+                    (tendsTo_add x y L M (And.left hL) (And.left hM)
+                      (And.left (And.right hL)) (And.left (And.right hM)))
+                    (Eq.refl (Real.mk (addSeq L M)))))))))
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 106.3 常序列的实例
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列的和逐点就是 `p + q`，两条常序列都收敛到自己的类。取代表元
+-- `addSeq (constSeq p) (constSeq q)`，两个 `Cauchy` 由 `cauchy_add` 付清，
+-- 收敛由 106.0 与 `cauchy_tends_to_class` 付清。
+--
+theorem demo_limitClass_add_const (p q : ratRep) :
+    LimitClass (addSeq (constSeq p) (constSeq q))
+      (Real.mk (addSeq (constSeq p) (constSeq q))) :=
+  Exists.intro (addSeq (constSeq p) (constSeq q))
+    (And.intro
+      (cauchy_add (constSeq p) (constSeq q)
+        (cauchy_const p) (cauchy_const q))
+      (And.intro
+        (tendsTo_add (constSeq p) (constSeq q) (constSeq p) (constSeq q)
+          (cauchy_const p) (cauchy_const q)
+          (cauchy_tends_to_class (constSeq p) (cauchy_const p))
+          (cauchy_tends_to_class (constSeq q) (cauchy_const q)))
+        (Eq.refl (Real.mk (addSeq (constSeq p) (constSeq q))))))
+

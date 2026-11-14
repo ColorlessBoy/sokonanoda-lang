@@ -554,6 +554,402 @@
           ]
         }
       ]
+    },
+    {
+      "id": "III",
+      "title": "卷 III 序列与级数",
+      "chapters": [
+        {
+          "id": "III.1",
+          "title": "序列与极限",
+          "prereqs": [
+            "II.7"
+          ],
+          "tags": [
+            "sequence",
+            "limit",
+            "epsilon-n"
+          ],
+          "quota": {
+            "exercises": 55
+          },
+          "units": [
+            {
+              "file": "units/III.1/unit73-seq-limit.sokonanoda",
+              "title": "单元73 序列与极限：ε-N 的定义形状",
+              "title_en": "Unit 73 — Sequences and Limits: The ε-N Definition",
+              "unit": 73
+            },
+            {
+              "file": "units/III.1/unit74-limit-unique.sokonanoda",
+              "title": "单元74 极限的唯一性",
+              "title_en": "Unit 74 — Uniqueness of Limits",
+              "unit": 74
+            },
+            {
+              "file": "units/III.1/unit75-limit-order.sokonanoda",
+              "title": "单元75 极限与序",
+              "title_en": "Unit 75 — Limits and Order",
+              "unit": 75
+            },
+            {
+              "file": "units/III.1/unit76-limit-algebra-add.sokonanoda",
+              "title": "单元76 极限的代数：加法、减法、取负",
+              "title_en": "Unit 76 — Algebra of Limits: Addition, Subtraction, Negation",
+              "unit": 76
+            },
+            {
+              "file": "units/III.1/unit77-converges-bounded.sokonanoda",
+              "title": "单元77 收敛序列有界",
+              "title_en": "Unit 77 — Convergent Sequences are Bounded",
+              "unit": 77
+            },
+            {
+              "file": "units/III.1/unit78-limit-squeeze.sokonanoda",
+              "title": "单元78 夹逼定理",
+              "title_en": "Unit 78 — The Squeeze Theorem",
+              "unit": 78
+            },
+            {
+              "file": "units/III.1/unit79-limit-sign.sokonanoda",
+              "title": "单元79 极限的保号性",
+              "title_en": "Unit 79 — Sign Preservation for Limits",
+              "unit": 79
+            },
+            {
+              "file": "units/III.1/unit80-shift.sokonanoda",
+              "title": "单元80 极限只看尾部：平移",
+              "title_en": "Unit 80 — Limits Only See the Tail: Shifts",
+              "unit": 80
+            },
+            {
+              "file": "units/III.1/unit81-tail-eq.sokonanoda",
+              "title": "单元81 尾部等价：改动有限项",
+              "title_en": "Unit 81 — Tail Equivalence: Finite Changes Do Not Move the Limit",
+              "unit": 81
+            },
+            {
+              "file": "units/III.1/unit82-mono-lub.sokonanoda",
+              "title": "单元82 单调序列的极限是上确界",
+              "title_en": "Unit 82 — The Limit of a Monotone Sequence is its Supremum",
+              "unit": 82
+            },
+            {
+              "file": "units/III.1/unit83-converges-cauchy.sokonanoda",
+              "title": "单元83 收敛序列是 Cauchy 序列",
+              "title_en": "Unit 83 — Convergent Sequences are Cauchy",
+              "unit": 83
+            }
+          ]
+        },
+        {
+          "id": "III.2",
+          "title": "扩展实数、上下确界与单调收敛",
+          "prereqs": [
+            "III.1"
+          ],
+          "tags": [
+            "supremum",
+            "infimum",
+            "extended-real",
+            "monotone-convergence"
+          ],
+          "quota": {
+            "exercises": 45
+          },
+          "units": [
+            {
+              "file": "units/III.2/unit84-sup-unique.sokonanoda",
+              "title": "单元84 上界与上确界：唯一性与比较",
+              "title_en": "Unit 84 — Upper Bounds and Suprema: Uniqueness and Comparison",
+              "unit": 84
+            },
+            {
+              "file": "units/III.2/unit85-inf-unique.sokonanoda",
+              "title": "单元85 下界与下确界：唯一性与比较",
+              "title_en": "Unit 85 — Lower Bounds and Infima: Uniqueness and Comparison",
+              "unit": 85
+            },
+            {
+              "file": "units/III.2/unit86-ext-real.sokonanoda",
+              "title": "单元86 扩展实数：±∞ 与序",
+              "title_en": "Unit 86 — Extended Reals and Their Order",
+              "unit": 86
+            },
+            {
+              "file": "units/III.2/unit87-ext-sup.sokonanoda",
+              "title": "单元87 扩展实数上的上界与上确界",
+              "title_en": "Unit 87 — Upper Bounds and Suprema over the Extended Reals",
+              "unit": 87
+            },
+            {
+              "file": "units/III.2/unit88-sup-fin-bridge.sokonanoda",
+              "title": "单元88 实数上确界与扩展上确界的相容",
+              "title_en": "Unit 88 — Real and Extended Suprema Agree",
+              "unit": 88
+            },
+            {
+              "file": "units/III.2/unit89-ext-inf.sokonanoda",
+              "title": "单元89 扩展实数上的下界与下确界",
+              "title_en": "Unit 89 — Lower Bounds and Infima over the Extended Reals",
+              "unit": 89
+            },
+            {
+              "file": "units/III.2/unit90-inf-fin-bridge.sokonanoda",
+              "title": "单元90 实数下确界与扩展下确界的相容",
+              "title_en": "Unit 90 — Real and Extended Infima Agree",
+              "unit": 90
+            }
+          ]
+        },
+        {
+          "id": "III.3",
+          "title": "子序列、极限点与上下极限",
+          "prereqs": [
+            "III.2"
+          ],
+          "tags": [
+            "subsequence",
+            "limit-point",
+            "limsup-liminf"
+          ],
+          "quota": {
+            "exercises": 50
+          },
+          "units": [
+            {
+              "file": "units/III.3/unit91-subsequence.sokonanoda",
+              "title": "单元91 子序列",
+              "title_en": "Unit 91 — Subsequences",
+              "unit": 91
+            },
+            {
+              "file": "units/III.3/unit92-limit-point.sokonanoda",
+              "title": "单元92 极限点",
+              "title_en": "Unit 92 — Limit Points",
+              "unit": 92
+            },
+            {
+              "file": "units/III.3/unit93-limsup.sokonanoda",
+              "title": "单元93 上极限",
+              "title_en": "Unit 93 — Limit Superior",
+              "unit": 93
+            },
+            {
+              "file": "units/III.3/unit94-liminf.sokonanoda",
+              "title": "单元94 下极限",
+              "title_en": "Unit 94 — Limit Inferior",
+              "unit": 94
+            },
+            {
+              "file": "units/III.3/unit95-subseq-limsup.sokonanoda",
+              "title": "单元95 子序列与上下极限",
+              "title_en": "Unit 95 — Subsequences and Limsup",
+              "unit": 95
+            },
+            {
+              "file": "units/III.3/unit96-limsup-bound.sokonanoda",
+              "title": "单元96 上下极限与常数界",
+              "title_en": "Unit 96 — Limsup and Constant Bounds",
+              "unit": 96
+            },
+            {
+              "file": "units/III.3/unit97-tail-limsup.sokonanoda",
+              "title": "单元97 上下极限只看尾部",
+              "title_en": "Unit 97 — Limsup and Liminf Only See the Tail",
+              "unit": 97
+            },
+            {
+              "file": "units/III.3/unit98-limsup-converges.sokonanoda",
+              "title": "单元98 上下极限与收敛",
+              "title_en": "Unit 98 — Limsup, Liminf, and Convergence",
+              "unit": 98
+            },
+            {
+              "file": "units/III.3/unit99-cauchy-limit.sokonanoda",
+              "title": "单元99 Cauchy 序列与极限点",
+              "title_en": "Unit 99 — Cauchy Sequences and Limit Points",
+              "unit": 99
+            }
+          ]
+        },
+        {
+          "id": "III.4",
+          "title": "Cauchy 序列与完备性",
+          "prereqs": [
+            "III.3"
+          ],
+          "tags": [
+            "cauchy-sequence",
+            "completeness"
+          ],
+          "quota": {
+            "exercises": 50
+          },
+          "units": [
+            {
+              "file": "units/III.4/unit100-cauchy-tail.sokonanoda",
+              "title": "单元100 Cauchy 序列的尾部刻画",
+              "title_en": "Unit 100 — Tail Characterisation of Cauchy Sequences",
+              "unit": 100
+            },
+            {
+              "file": "units/III.4/unit101-cauchy-bounded.sokonanoda",
+              "title": "单元101 Cauchy 序列有界",
+              "title_en": "Unit 101 — Cauchy Sequences are Bounded",
+              "unit": 101
+            },
+            {
+              "file": "units/III.4/unit102-cauchy-shapes.sokonanoda",
+              "title": "单元102 Cauchy 性的等价写法",
+              "title_en": "Unit 102 — Equivalent Forms of the Cauchy Condition",
+              "unit": 102
+            },
+            {
+              "file": "units/III.4/unit103-realrel-diff.sokonanoda",
+              "title": "单元103 实数相等与差趋于零",
+              "title_en": "Unit 103 — Real Equality and Differences Tending to Zero",
+              "unit": 103
+            },
+            {
+              "file": "units/III.4/unit104-limit-class.sokonanoda",
+              "title": "单元104 极限类的唯一性",
+              "title_en": "Unit 104 — Uniqueness of the Limit Class",
+              "unit": 104
+            },
+            {
+              "file": "units/III.4/unit105-cauchy-add-bounds.sokonanoda",
+              "title": "单元105 极限加法的估计：两个 ε/2 界相加",
+              "title_en": "Unit 105 — Adding Two ε/2 Bounds",
+              "unit": 105
+            },
+            {
+              "file": "units/III.4/unit106-limit-class-add.sokonanoda",
+              "title": "单元106 极限类的加法",
+              "title_en": "Unit 106 — Addition of Limit Classes",
+              "unit": 106
+            },
+            {
+              "file": "units/III.4/unit107-limit-class-neg.sokonanoda",
+              "title": "单元107 极限类的取负",
+              "title_en": "Unit 107 — Negation of Limit Classes",
+              "unit": 107
+            },
+            {
+              "file": "units/III.4/unit108-limit-class-sub.sokonanoda",
+              "title": "单元108 极限类的减法",
+              "title_en": "Unit 108 — Subtraction of Limit Classes",
+              "unit": 108
+            },
+            {
+              "file": "units/III.4/unit109-limit-class-complete.sokonanoda",
+              "title": "单元109 完备性收口：Cauchy 序列的极限类",
+              "title_en": "Unit 109 — Completeness: Limit Classes of Cauchy Sequences",
+              "unit": 109
+            }
+          ]
+        },
+        {
+          "id": "III.5",
+          "title": "级数",
+          "prereqs": [
+            "III.4"
+          ],
+          "tags": [
+            "series",
+            "finite-sum"
+          ],
+          "quota": {
+            "exercises": 50
+          },
+          "units": [
+            {
+              "file": "units/III.5/unit110-finite-sum.sokonanoda",
+              "title": "单元110 有限和：递归定义与基本律",
+              "title_en": "Unit 110 — Finite Sums: Recursive Definition and Basic Laws",
+              "unit": 110
+            },
+            {
+              "file": "units/III.5/unit111-sum-split.sokonanoda",
+              "title": "单元111 有限和的拆分与望远镜",
+              "title_en": "Unit 111 — Splitting Finite Sums and Telescoping",
+              "unit": 111
+            },
+            {
+              "file": "units/III.5/unit112-series.sokonanoda",
+              "title": "单元112 级数：部分和与和类",
+              "title_en": "Unit 112 — Series: Partial Sums and Sum Classes",
+              "unit": 112
+            },
+            {
+              "file": "units/III.5/unit113-term-test.sokonanoda",
+              "title": "单元113 收敛级数的通项趋于零",
+              "title_en": "Unit 113 — The Term Test for Series",
+              "unit": 113
+            },
+            {
+              "file": "units/III.5/unit114-series-tail.sokonanoda",
+              "title": "单元114 级数的尾巴与 Cauchy 判别",
+              "title_en": "Unit 114 — Series Tails and the Cauchy Criterion",
+              "unit": 114
+            },
+            {
+              "file": "units/III.5/unit115-series-linear.sokonanoda",
+              "title": "单元115 可和级数的加法、取负与减法",
+              "title_en": "Unit 115 — Linearity of Summable Series",
+              "unit": 115
+            },
+            {
+              "file": "units/III.5/unit116-nonneg-monotone.sokonanoda",
+              "title": "单元116 非负项的部分和不会下降",
+              "title_en": "Unit 116 — Partial Sums of Nonnegative Terms",
+              "unit": 116
+            },
+            {
+              "file": "units/III.5/unit117-abs-sum.sokonanoda",
+              "title": "单元117 有限和的绝对值",
+              "title_en": "Unit 117 — Absolute Values of Finite Sums",
+              "unit": 117
+            },
+            {
+              "file": "units/III.5/unit118-comparison.sokonanoda",
+              "title": "单元118 比较判别法",
+              "title_en": "Unit 118 — The Comparison Test",
+              "unit": 118
+            },
+            {
+              "file": "units/III.5/unit119-abs-convergence.sokonanoda",
+              "title": "单元119 绝对收敛推出收敛",
+              "title_en": "Unit 119 — Absolute Convergence Implies Convergence",
+              "unit": 119
+            },
+            {
+              "file": "units/III.5/unit120-telescope-series.sokonanoda",
+              "title": "单元120 望远镜级数",
+              "title_en": "Unit 120 — Telescoping Series",
+              "unit": 120
+            },
+            {
+              "file": "units/III.5/unit121-series-tail.sokonanoda",
+              "title": "单元121 级数的尾块",
+              "title_en": "Unit 121 — Tails of Series",
+              "unit": 121
+            },
+            {
+              "file": "units/III.5/unit122-tail-reverse.sokonanoda",
+              "title": "单元122 尾块判别（反方向）",
+              "title_en": "Unit 122 — The Reverse Tail Criterion",
+              "unit": 122
+            },
+            {
+              "file": "units/III.5/unit123-series-swap.sokonanoda",
+              "title": "单元123 级数的重排：交换前两项",
+              "title_en": "Unit 123 — Rearranging a Series: Swapping the First Two Terms",
+              "unit": 123
+            }
+          ]
+        }
+      ]
     }
   ]
 }

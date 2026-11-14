@@ -1,0 +1,112 @@
+-- 单元81 尾部等价：改动有限项
+--
+-- 收敛只约束「从某一项开始」的项，前面的有限项不在其中。80 把这条观察用在
+-- 整体平移上；这里换一个更弱的条件：如果两个序列从某一项起逐项相等，极限
+-- 会不会改变？不会。把「从某项起相等」写成 `TailEq` 之后，证明只剩一次
+-- 逐点搬运。
+--
+-- 路线：
+--
+--   · 81.1 `close` 的第一个点沿 `ratRel` 搬运——两条序列的项不必是同一个
+--     代表元，只要代表元等价；
+--   · 81.2 / 81.3 对称与传递：逐点用 `ratRel_symm` 与 `ratRel_trans_gen`，
+--     自反由定义直接给出；
+--   · 81.4 主定理：`TailEq x y` 时，`x` 收敛到 `L` 与 `y` 收敛到 `L` 等价，
+--     81.5 把两个方向合成充要条件；
+--   · 81.6 / 81.7 逐点相等是尾部相等的特例，收敛也随之搬运。
+--
+-- 边界：这里允许前几项任意不同，也允许对应项只是代表元等价；结论只要求
+-- 从某项起逐项相等，比「改动有限项」更宽。不新增公理。
+
+import lib.Limit
+import lib.RatSub
+
+-- ─────────────────────────────────────────────────────────────
+-- 81.0 尾部等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 从某一项起，两个序列的项代表同一个有理数。
+def TailEq (x y : Seq) : Prop :=
+  Eventually (fun (n : Nat) => ratRel (x n) (y n))
+
+-- 自反：阈值取 0，逐点用 `ratRel_refl`。这条直接给出，不作练习。
+theorem tailEq_refl (x : Seq) : TailEq x x :=
+  Exists.intro Nat.zero
+    (fun (n : Nat) (_hn : LeNat Nat.zero n) => ratRel_refl (x n))
+
+-- ─────────────────────────────────────────────────────────────
+-- 81.1 `close` 在第一个点上沿 `ratRel` 搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：展开 `close` 取见证 `d`，要证 `ratAbsRel (y - L) d`。先把 `y - L` 换成 `y + (-L)`，用 56 的 `ratAddRep_wd_gen` 把 `x + (-L)` 的等价搬到 `y + (-L)`；再让 `ratAbsRel_wd_left` 把绝对值从 `x - L` 搬到 `y - L`。`d < eps` 原样保留。
+-- soko:hint 目标形态：`close y L eps`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · ratAddRep_wd_gen · ratAbsRel_wd_left · And.left · And.right。
+theorem close_wd_left (x y L eps : ratRep) (hxy : ratRel x y)
+    (h : close x L eps) : close y L eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 81.2 尾部等价是对称的
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：取原来的阈值 `N`，把逐点的 `ratRel (x n) (y n)` 用 `ratRel_symm` 换成反方向，再经 `eventually_mono` 抬成「终究」。
+-- soko:hint 目标形态：`TailEq y x`。
+-- soko:hint 关键件：eventually_mono · ratRel_symm。
+theorem tailEq_symm (x y : Seq) (h : TailEq x y) : TailEq y x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 81.3 尾部等价是传递的
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两条「终究」用 73.2 的 `eventually_and` 并到同一个阈值，之后逐点用 `ratRel_trans_gen` 串起来。
+-- soko:hint 目标形态：`TailEq x z`。
+-- soko:hint 关键件：eventually_and · eventually_mono · ratRel_trans_gen · And.left · And.right。
+theorem tailEq_trans (x y z : Seq) (hxy : TailEq x y) (hyz : TailEq y z) :
+    TailEq x z :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 81.4 尾部等价不改变极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对每个 `eps > 0`，把极限定义给的「终究 `close (x n) L eps`」与尾部等价的「终究 `ratRel (x n) (y n)`」用 `eventually_and` 并到同一个 `N`；在同一个 `n` 上，81.1 直接给出 `close (y n) L eps`。
+-- soko:hint 目标形态：`Converges y L`。
+-- soko:hint 关键件：eventually_and · eventually_mono · close_wd_left · And.left · And.right。
+theorem converges_congr_tail (x y : Seq) (L : ratRep) (h : Converges x L)
+    (ht : TailEq x y) : Converges y L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 81.5 两个方向合起来
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：正向用 81.4；反向先由 81.2 把 `ht` 反过来，再用 81.4。
+-- soko:hint 目标形态：`Converges x L ↔ Converges y L`。
+-- soko:hint 关键件：Iff.intro · converges_congr_tail · tailEq_symm。
+theorem converges_congr_tail_iff (x y : Seq) (L : ratRep) (ht : TailEq x y) :
+    Converges x L ↔ Converges y L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 81.6 逐点相等是尾部相等的特例
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：阈值取 0。任意 `n` 都满足 `0 ≤ n`，逐点假设 `h` 直接给出所需的 `ratRel`。
+-- soko:hint 目标形态：`TailEq x y`。
+-- soko:hint 关键件：Exists.intro · Nat.zero。
+theorem tailEq_of_pointwise (x y : Seq)
+    (h : ∀ (n : Nat), ratRel (x n) (y n)) : TailEq x y :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 81.7 逐点相等也不改变极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先用 81.6 把逐点相等变成尾部等价，再交给 81.4。
+-- soko:hint 目标形态：`Converges y L`。
+-- soko:hint 关键件：tailEq_of_pointwise · converges_congr_tail。
+theorem converges_congr_pointwise (x y : Seq) (L : ratRep)
+    (h : Converges x L) (hp : ∀ (n : Nat), ratRel (x n) (y n)) :
+    Converges y L :=
+  sorry

@@ -1,0 +1,140 @@
+-- 单元102 Cauchy 性的等价写法（解答）
+--
+-- Cauchy 定义对尾巴上任意两项同时提要求。实际估计往往只固定一个下标 n，
+-- 把另一项写成 n + k；如果每个 k 都要重新挑阈值，工作量会翻倍。把两项比较
+-- 改写成定向比较与尾部跳跃两种形状，后面的级数部分和只需处理一个方向。
+--
+-- 102.0–102.2 收定向形式：只比较 n ≤ m 的一侧。102.3–102.5 收跳跃形式：
+-- 固定 n，让 k 任意跑。两种形式都与原定义等价，常序列作为实例。
+--
+-- 边界：跳跃形式要求对 k 一致成立；只要求相邻项接近（k = 1）不足以推出
+-- Cauchy，反例属于级数章，这里不展开。本单元只改写定义，不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.CauchyTail
+
+-- ─────────────────────────────────────────────────────────────
+-- 102.0 定向形式：只比较 n ≤ m 的一侧
+-- ─────────────────────────────────────────────────────────────
+
+-- 原定义对 n、m 对称；定向形式保留 n ≤ m 的一支。正向是直接削弱：
+-- Cauchy 本来就对任意一对下标给接近性，多出来的 `n ≤ m` 用不上。
+theorem cauchy_oriented (x : Seq) (h : Cauchy x) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n m : Nat), LeNat N n → LeNat n m →
+        close (x n) (x m) eps :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (N : Nat)
+          (hN : ∀ (n m : Nat), LeNat N n → LeNat N m →
+            close (x n) (x m) eps) =>
+        Exists.intro N
+          (fun (n m : Nat) (hn : LeNat N n) (hnm : LeNat n m) =>
+            hN n m hn (leNat_trans N n m hn hnm)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 102.1 从定向形式回到原定义
+-- ─────────────────────────────────────────────────────────────
+
+-- 任意一对 n、m 由全性分成 `n ≤ m` 与 `m ≤ n` 两支。前一支直接用定向假设；
+-- 后一支把 `m ≤ n` 的那条接近性翻向。
+theorem cauchy_of_oriented (x : Seq)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n m : Nat), LeNat N n → LeNat n m →
+        close (x n) (x m) eps) :
+    Cauchy x :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (N : Nat)
+          (hN : ∀ (n m : Nat), LeNat N n → LeNat n m →
+            close (x n) (x m) eps) =>
+        Exists.intro N
+          (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =>
+            Or.elim
+              (fun (hnm : LeNat n m) => hN n m hn hnm)
+              (fun (hmn : LeNat m n) =>
+                close_symm (x m) (x n) eps (hN m n hm hmn))
+              (leNat_total n m)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 102.2 两种定向写法等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个方向分别由 102.0 与 102.1 给出。
+theorem cauchy_oriented_iff (x : Seq) :
+    Cauchy x ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (n m : Nat), LeNat N n → LeNat n m →
+          close (x n) (x m) eps :=
+  Iff.intro (cauchy_oriented x) (cauchy_of_oriented x)
+
+-- ─────────────────────────────────────────────────────────────
+-- 102.3 尾部跳跃：固定 n，让 k 任意跑
+-- ─────────────────────────────────────────────────────────────
+
+-- 取原定义的阈值 N。对 n ≥ N，`n ≤ n + k` 由 `leNat_self_add` 给出，
+-- 于是 `x (n + k)` 也在尾巴上，两项比较直接可用。
+theorem cauchy_tail_jump (x : Seq) (h : Cauchy x) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+        ∀ (k : Nat), close (x n) (x (Nat.add n k)) eps :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (N : Nat)
+          (hN : ∀ (n m : Nat), LeNat N n → LeNat N m →
+            close (x n) (x m) eps) =>
+        Exists.intro N
+          (fun (n : Nat) (hn : LeNat N n) (k : Nat) =>
+            hN n (Nat.add n k) hn
+              (leNat_trans N n (Nat.add n k) hn (leNat_self_add n k))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 102.4 从跳跃形式回到原定义
+-- ─────────────────────────────────────────────────────────────
+
+-- 先走 102.1 的定向形式。对 n ≤ m，`leNat_exists_add` 给出 m = n + k；
+-- 把等式代进目标，跳跃假设正好给 `close (x n) (x (n + k)) ε`。
+theorem cauchy_of_tail_jump (x : Seq)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+        ∀ (k : Nat), close (x n) (x (Nat.add n k)) eps) :
+    Cauchy x :=
+  cauchy_of_oriented x
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+      Exists.elim (h eps heps)
+        (fun (N : Nat)
+            (hN : ∀ (n : Nat), LeNat N n → ∀ (k : Nat),
+              close (x n) (x (Nat.add n k)) eps) =>
+          Exists.intro N
+            (fun (n m : Nat) (hn : LeNat N n) (hnm : LeNat n m) =>
+              Exists.elim (leNat_exists_add n m hnm)
+                (fun (k : Nat) (hk : m = Nat.add n k) =>
+                  @Eq.subst.{1} Nat
+                    (fun (z : Nat) => close (x n) (x z) eps)
+                    (Nat.add n k) m
+                    (Eq.symm hk)
+                    (hN n hn k)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 102.5 跳跃形式与原定义等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个方向分别由 102.3 与 102.4 给出。
+theorem cauchy_tail_jump_iff (x : Seq) :
+    Cauchy x ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+          ∀ (k : Nat), close (x n) (x (Nat.add n k)) eps :=
+  Iff.intro (cauchy_tail_jump x) (cauchy_of_tail_jump x)
+
+-- ─────────────────────────────────────────────────────────────
+-- 102.6 常序列满足跳跃形式
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列是 Cauchy 的，把这条交给 102.3 的跳跃形式。
+theorem demo_cauchy_jump_const (q : ratRep) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+        ∀ (k : Nat), close ((constSeq q) n) ((constSeq q) (Nat.add n k)) eps :=
+  cauchy_tail_jump (constSeq q) (cauchy_const q)

@@ -1,0 +1,172 @@
+-- 课程库：扩展实数的序律
+--
+-- `lib/ExtReal` 只放载体与序的定义。可用的序律——底与顶、有限点之间的序、
+-- 传递、反对称、端点分离——最早在单元86 里给出；上确界与 limsup
+-- 要反复用它们，因此在这里收成一条可以直接引用的链。
+--
+-- 三种点的组合是全部的证明负担。`match` 只允许一层，所以每个二元分类都
+-- 写成 `ExtReal.rec.{0}`：把第二个点写进 motive，分支里的假设就会带上
+-- 具体的构造子，`ele (fin x) negInf` 这类前提也才展开成 `False`。
+--
+-- 边界：自反只在带 Cauchy 见证的有限点上成立（见单元86 的最后一条）。
+-- 本模块不声明它，也不声明任何公理。
+--
+--   · `negInf_le` / `le_posInf` —— 底与顶；
+--   · `ele_fin_fin` —— 有限点之间的序就是实数的序；
+--   · `ele_trans` —— 传递；
+--   · `ele_antisymm` —— 反对称；
+--   · `negInf_ne_fin` / `fin_ne_posInf` —— 端点与有限点不相等。
+
+import lib.ExtReal
+import lib.RealOrderLaws
+
+-- ─────────────────────────────────────────────────────────────
+-- 底与顶
+-- ─────────────────────────────────────────────────────────────
+
+-- 三个分支都只有 `True` 要证。
+theorem negInf_le (b : ExtReal) : ele negInf b :=
+  match b with
+  | negInf => True.intro
+  | fin y => True.intro
+  | posInf => True.intro
+
+-- 与 `negInf_le` 相同，只是分类的是第一个点。
+theorem le_posInf (a : ExtReal) : ele a posInf :=
+  match a with
+  | negInf => True.intro
+  | fin x => True.intro
+  | posInf => True.intro
+
+-- ─────────────────────────────────────────────────────────────
+-- 有限点之间的序
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个方向都不改变证明：展开后两边是同一个 `realLe x y`。
+theorem ele_fin_fin (x y : Real) : ele (fin x) (fin y) ↔ realLe x y :=
+  Iff.intro (fun (h : realLe x y) => h) (fun (h : realLe x y) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 传递
+-- ─────────────────────────────────────────────────────────────
+
+-- 第一个点固定为 `fin x`，对第二个点递归。负无穷那一支的前提是 `False`；
+-- 有限点那一支再对第三个点递归，只有「有限、有限」需要 `realLe_trans`；
+-- 正无穷那一支的两个前提分别是 `False` 与待证的 `ele posInf c`。
+theorem ele_trans_fin (x : Real) (b c : ExtReal) :
+    ele (fin x) b → ele b c → ele (fin x) c :=
+  @ExtReal.rec.{0}
+    (fun (b' : ExtReal) => ele (fin x) b' → ele b' c → ele (fin x) c)
+    (fun (h : ele (fin x) negInf) (_ : ele negInf c) =>
+      False.elim (not_ele_fin_negInf x h))
+    (fun (y : Real) =>
+      @ExtReal.rec.{0}
+        (fun (c' : ExtReal) => ele (fin x) (fin y) → ele (fin y) c' → ele (fin x) c')
+        (fun (_ : realLe x y) (h : ele (fin y) negInf) =>
+          False.elim (not_ele_fin_negInf y h))
+        (fun (z : Real) (hxy : realLe x y) (hyz : realLe y z) =>
+          realLe_trans x y z hxy hyz)
+        (fun (_ : realLe x y) (_ : ele (fin y) posInf) => True.intro)
+        c)
+    (fun (h : ele (fin x) posInf) =>
+      @ExtReal.rec.{0}
+        (fun (c' : ExtReal) => ele posInf c' → ele (fin x) c')
+        (fun (h' : ele posInf negInf) => False.elim (not_ele_posInf_negInf h'))
+        (fun (z : Real) (h' : ele posInf (fin z)) =>
+          False.elim (not_ele_posInf_fin z h'))
+        (fun (_ : ele posInf posInf) => True.intro)
+        c)
+    b
+
+-- 第一个点是正无穷时，第二个点只能是正无穷；第三个点分三种，负与有限
+-- 两支的前提是 `False`，正无穷那一支原样返回 `ele posInf c`。
+theorem ele_trans_posInf (b c : ExtReal) :
+    ele posInf b → ele b c → ele posInf c :=
+  @ExtReal.rec.{0}
+    (fun (b' : ExtReal) => ele posInf b' → ele b' c → ele posInf c)
+    (fun (h' : ele posInf negInf) (_ : ele negInf c) =>
+      False.elim (not_ele_posInf_negInf h'))
+    (fun (y : Real) (h' : ele posInf (fin y)) (_ : ele (fin y) c) =>
+      False.elim (not_ele_posInf_fin y h'))
+    (fun (_ : ele posInf posInf) (hbc : ele posInf c) => hbc)
+    b
+
+-- 对第一个点分三种，把三块拼起来。
+theorem ele_trans (a b c : ExtReal) (hab : ele a b) (hbc : ele b c) : ele a c :=
+  @ExtReal.rec.{0}
+    (fun (a' : ExtReal) => ele a' b → ele b c → ele a' c)
+    (fun (_ : ele negInf b) (_ : ele b c) => True.intro)
+    (fun (x : Real) => ele_trans_fin x b c)
+    (ele_trans_posInf b c)
+    a hab hbc
+
+-- ─────────────────────────────────────────────────────────────
+-- 反对称
+-- ─────────────────────────────────────────────────────────────
+
+-- 第一个点固定为 `fin x`。第二个点是负无穷时，第一个前提是 `False`；
+-- 是有限点时，实数的反对称给出 `x = y`，再对 `fin` 用 `congrArg`；
+-- 是正无穷时，第二个前提是 `False`。
+theorem ele_antisymm_fin (x : Real) (b : ExtReal) :
+    ele (fin x) b → ele b (fin x) → fin x = b :=
+  @ExtReal.rec.{0}
+    (fun (b' : ExtReal) => ele (fin x) b' → ele b' (fin x) → fin x = b')
+    (fun (h : ele (fin x) negInf) (_ : ele negInf (fin x)) =>
+      False.elim (not_ele_fin_negInf x h))
+    (fun (y : Real) (hxy : realLe x y) (hyx : realLe y x) =>
+      @congrArg.{1} Real ExtReal x y fin (realLe_antisymm x y hxy hyx))
+    (fun (_ : ele (fin x) posInf) (h : ele posInf (fin x)) =>
+      False.elim (not_ele_posInf_fin x h))
+    b
+
+-- 第一个点是负无穷：只有第二个点也是负无穷时才可能，此时两边都是自己。
+theorem ele_antisymm_negInf (b : ExtReal) :
+    ele negInf b → ele b negInf → negInf = b :=
+  @ExtReal.rec.{0}
+    (fun (b' : ExtReal) => ele negInf b' → ele b' negInf → negInf = b')
+    (fun (_ : ele negInf negInf) (_ : ele negInf negInf) =>
+      @Eq.refl.{1} ExtReal negInf)
+    (fun (y : Real) (_ : ele negInf (fin y)) (h : ele (fin y) negInf) =>
+      False.elim (not_ele_fin_negInf y h))
+    (fun (_ : ele negInf posInf) (h : ele posInf negInf) =>
+      False.elim (not_ele_posInf_negInf h))
+    b
+
+-- 第一个点是正无穷：与负无穷那一支对称。
+theorem ele_antisymm_posInf (b : ExtReal) :
+    ele posInf b → ele b posInf → posInf = b :=
+  @ExtReal.rec.{0}
+    (fun (b' : ExtReal) => ele posInf b' → ele b' posInf → posInf = b')
+    (fun (h : ele posInf negInf) (_ : ele negInf posInf) =>
+      False.elim (not_ele_posInf_negInf h))
+    (fun (y : Real) (h : ele posInf (fin y)) (_ : ele (fin y) posInf) =>
+      False.elim (not_ele_posInf_fin y h))
+    (fun (_ : ele posInf posInf) (_ : ele posInf posInf) =>
+      @Eq.refl.{1} ExtReal posInf)
+    b
+
+theorem ele_antisymm (a b : ExtReal) (hab : ele a b) (hba : ele b a) : a = b :=
+  @ExtReal.rec.{0}
+    (fun (a' : ExtReal) => ele a' b → ele b a' → a' = b)
+    (fun (h : ele negInf b) (h' : ele b negInf) =>
+      ele_antisymm_negInf b h h')
+    (fun (x : Real) (h : ele (fin x) b) (h' : ele b (fin x)) =>
+      ele_antisymm_fin x b h h')
+    (fun (h : ele posInf b) (h' : ele b posInf) =>
+      ele_antisymm_posInf b h h')
+    a hab hba
+
+-- ─────────────────────────────────────────────────────────────
+-- 端点与有限点分离
+-- ─────────────────────────────────────────────────────────────
+
+-- `isNegInf negInf` 是 `True`，`isNegInf (fin x)` 是 `False`。
+theorem negInf_ne_fin (x : Real) : ¬ (negInf = fin x) :=
+  fun (h : negInf = fin x) =>
+    @Eq.subst.{1} ExtReal isNegInf negInf (fin x) h True.intro
+
+-- 先把等式翻向，才能从 `posInf` 的 `True` 搬到 `fin x` 的 `False`。
+theorem fin_ne_posInf (x : Real) : ¬ (fin x = posInf) :=
+  fun (h : fin x = posInf) =>
+    @Eq.subst.{1} ExtReal isPosInf posInf (fin x)
+      (@Eq.symm.{1} ExtReal (fin x) posInf h) True.intro

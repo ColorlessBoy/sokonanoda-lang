@@ -1,0 +1,189 @@
+-- 单元78 夹逼定理
+--
+-- 75 证明了极限保持 ≤：两条序列都收敛时，极限也按同样的顺序排列。但若只
+-- 知道 y 被 x 与 z 夹住，75 还用不上——它要求 y 的极限先存在。本单元补上
+-- 这条存在性：x 与 z 收敛到同一个 L 时，夹在中间的 y 也收敛到 L。
+--
+-- 证明只用一列 eps/2。两侧各给 eps/2 的接近性，再用夹住的序把 y 的两支
+-- 单边界分别压到 z 与 x 的单边界上。绝对值的见证由 ㊺ 的全性给出，两支
+-- 各被一条单边界压住，于是 d ≤ eps/2 < eps。
+--
+-- 边界（明说）：这里只处理「两侧极限相同」的情形。x 与 z 收敛到不同的数
+-- 时，要谈 y 的极限得先有 74 的唯一性做后盾，那条留给后续单元。不新增
+-- 公理。
+
+import lib.Limit
+import lib.LimitOrder
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.0 绝对值的两支（展开成可 match 的形状）
+-- ─────────────────────────────────────────────────────────────
+
+-- `ratAbsRel` 是定义别名，`Or.elim` 的分支拿不到它的两个析取支。
+-- 这条引理只做一次定义展开，证明就是它自己。
+theorem abs_cases (a d : ratRep) (h : ratAbsRel a d) :
+    (ratLeRep ratZeroRep a ∧ ratRel d a) ∨
+      (ratLeRep a ratZeroRep ∧ ratRel d (ratNegRep a)) :=
+  h
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.1 绝对值落在两支界之间
+-- ─────────────────────────────────────────────────────────────
+
+-- 第一支 `d ~ a`，第二支 `d ~ -a`；两支各有 `a ≤ b` 与 `-a ≤ b` 可用，
+-- 于是同一个 `d ≤ b` 由 `ratLeRep_congr_gen` 从两条已知界搬过去。
+theorem ratAbsRel_le_of_bounds (a b d : ratRep) (h : ratAbsRel a d)
+    (h1 : ratLeRep a b) (h2 : ratLeRep (ratNegRep a) b) : ratLeRep d b :=
+  Or.elim
+    (fun (hp : ratLeRep ratZeroRep a ∧ ratRel d a) =>
+      ratLeRep_congr_gen a d b b
+        (ratRel_symm d a (And.right hp))
+        (ratRel_refl b)
+        h1)
+    (fun (hp : ratLeRep a ratZeroRep ∧ ratRel d (ratNegRep a)) =>
+      ratLeRep_congr_gen (ratNegRep a) d b b
+        (ratRel_symm d (ratNegRep a) (And.right hp))
+        (ratRel_refl b)
+        h2)
+    (abs_cases a d h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.2 负的差等于反过来的差
+-- ─────────────────────────────────────────────────────────────
+
+-- `-(x - L) ~ L - x`。三段：`ratNegRep_add` 把负号推进括号，
+-- `ratNegRep_invol` 消掉 `-(-L)`，交换律把两项换个位置。
+theorem ratNegRep_sub (x L : ratRep) :
+    ratRel (ratNegRep (ratSubRep x L)) (ratSubRep L x) :=
+  ratRel_trans_gen
+    (ratNegRep (ratSubRep x L))
+    (ratAddRep (ratNegRep x) (ratNegRep (ratNegRep L)))
+    (ratAddRep L (ratNegRep x))
+    (ratNegRep_add x (ratNegRep L))
+    (ratRel_trans_gen
+      (ratAddRep (ratNegRep x) (ratNegRep (ratNegRep L)))
+      (ratAddRep (ratNegRep x) L)
+      (ratAddRep L (ratNegRep x))
+      (ratAddRep_wd_snd_gen (ratNegRep x) (ratNegRep (ratNegRep L)) L
+        (ratNegRep_invol L))
+      (ratAdd_comm (ratNegRep x) L))
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.3 close 的负侧单边界
+-- ─────────────────────────────────────────────────────────────
+
+-- 正侧就是 68.4 的 `close_sub_le`。负侧从见证 `d` 出发：
+-- `ratAbsRel_neg_le` 给 `-(x - L) ≤ d`，`d < eps` 投成 `d ≤ eps`，
+-- 再把 `-(x - L)` 沿 78.2 认成 `L - x`。
+theorem close_neg_bound (x L eps : ratRep) (h : close x L eps) :
+    ratLeRep (ratSubRep L x) eps :=
+  Exists.elim h
+    (fun (d : ratRep)
+        (hd : ratAbsRel (ratSubRep x L) d ∧ ratLtRep d eps) =>
+      ratLeRep_congr_gen
+        (ratNegRep (ratSubRep x L)) (ratSubRep L x)
+        eps eps
+        (ratNegRep_sub x L)
+        (ratRel_refl eps)
+        (ratLeRep_trans (ratNegRep (ratSubRep x L)) d eps
+          (ratAbsRel_neg_le (ratSubRep x L) d (And.left hd))
+          (ratLtRep_le d eps (And.right hd))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.4 两侧 eps/2 的界合成 close
+-- ─────────────────────────────────────────────────────────────
+
+-- 全性给 `|x - L|` 的见证 `d`；78.1 把 `d` 压到 `eps/2` 以下，
+-- 再由 67 的 `ratHalf_lt_self` 得 `d < eps`。
+theorem close_of_two_bounds (x L eps : ratRep)
+    (heps : ratLtRep ratZeroRep eps)
+    (h1 : ratLeRep (ratSubRep x L) (ratHalf eps))
+    (h2 : ratLeRep (ratNegRep (ratSubRep x L)) (ratHalf eps)) :
+    close x L eps :=
+  Exists.elim (ratAbsRel_total (ratSubRep x L))
+    (fun (d : ratRep) (hd : ratAbsRel (ratSubRep x L) d) =>
+      Exists.intro d
+        (And.intro hd
+          (ratLtRep_of_le_lt d (ratHalf eps) eps
+            (ratAbsRel_le_of_bounds (ratSubRep x L) (ratHalf eps) d hd h1 h2)
+            (ratHalf_lt_self eps heps))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.5 每一步：两条 eps/2 的界把 y 夹住
+-- ─────────────────────────────────────────────────────────────
+
+-- 上界：`y - L ≤ z - L ≤ eps/2`（第一条用序的右加，第二条用 68.4）。
+-- 下界：`L - y ≤ L - x ≤ eps/2`；左边由 `x ≤ y` 取负再左加 `L`，
+-- 右边是 78.3。两条界交给 78.4。
+theorem squeeze_step (x y z : Seq) (L eps : ratRep) (n : Nat)
+    (h : close (x n) L (ratHalf eps) ∧
+         (close (z n) L (ratHalf eps) ∧
+          (ratLeRep (x n) (y n) ∧ ratLeRep (y n) (z n))))
+    (heps : ratLtRep ratZeroRep eps) : close (y n) L eps :=
+  close_of_two_bounds (y n) L eps heps
+    (ratLeRep_trans (ratSubRep (y n) L) (ratSubRep (z n) L)
+      (ratHalf eps)
+      (ratLeRep_add_right (y n) (z n) (ratNegRep L)
+        (And.right (And.right (And.right h))))
+      (close_sub_le (z n) L (ratHalf eps) (And.left (And.right h))))
+    (ratLeRep_congr_gen
+      (ratSubRep L (y n))
+      (ratNegRep (ratSubRep (y n) L))
+      (ratHalf eps) (ratHalf eps)
+      (ratRel_symm (ratNegRep (ratSubRep (y n) L))
+        (ratSubRep L (y n)) (ratNegRep_sub (y n) L))
+      (ratRel_refl (ratHalf eps))
+      (ratLeRep_trans
+        (ratSubRep L (y n))
+        (ratSubRep L (x n))
+        (ratHalf eps)
+        (ratLeRep_add_left (ratNegRep (y n)) (ratNegRep (x n)) L
+          (ratLeRep_neg_gen (x n) (y n)
+            (And.left (And.right (And.right h)))))
+        (close_neg_bound (x n) L (ratHalf eps) (And.left h))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.6 夹逼定理
+-- ─────────────────────────────────────────────────────────────
+
+-- 两条极限各在 eps/2 上取阈值，与「夹住」这个终究性用 73.2 并到同一个 N；
+-- 之后每个 n ≥ N 交给 78.5。
+theorem converges_squeeze (x y z : Seq) (L : ratRep)
+    (hx : Converges x L) (hz : Converges z L)
+    (hm : Eventually (fun (n : Nat) =>
+      ratLeRep (x n) (y n) ∧ ratLeRep (y n) (z n))) :
+    Converges y L :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    eventually_mono
+      (fun (n : Nat) =>
+        close (x n) L (ratHalf eps) ∧
+        (close (z n) L (ratHalf eps) ∧
+         (ratLeRep (x n) (y n) ∧ ratLeRep (y n) (z n))))
+      (fun (n : Nat) => close (y n) L eps)
+      (eventually_and
+        (fun (n : Nat) => close (x n) L (ratHalf eps))
+        (fun (n : Nat) => close (z n) L (ratHalf eps) ∧
+                          (ratLeRep (x n) (y n) ∧ ratLeRep (y n) (z n)))
+        (hx (ratHalf eps) (ratLtRep_half eps heps))
+        (eventually_and
+          (fun (n : Nat) => close (z n) L (ratHalf eps))
+          (fun (n : Nat) => ratLeRep (x n) (y n) ∧ ratLeRep (y n) (z n))
+          (hz (ratHalf eps) (ratLtRep_half eps heps))
+          hm))
+      (fun (n : Nat)
+          (h : close (x n) L (ratHalf eps) ∧
+               (close (z n) L (ratHalf eps) ∧
+                (ratLeRep (x n) (y n) ∧ ratLeRep (y n) (z n)))) =>
+        squeeze_step x y z L eps n h heps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.7 具体：被零序列夹住
+-- ─────────────────────────────────────────────────────────────
+
+-- 零序列收敛到零（73.6）；若 `0 ≤ y n ≤ 0` 终究成立，y 就收敛到零。
+theorem demo_squeeze_zero (y : Seq)
+    (h : Eventually (fun (n : Nat) =>
+      ratLeRep ratZeroRep (y n) ∧ ratLeRep (y n) ratZeroRep)) :
+    Converges y ratZeroRep :=
+  converges_squeeze zeroSeq y zeroSeq ratZeroRep
+    demo_converges_zero demo_converges_zero h

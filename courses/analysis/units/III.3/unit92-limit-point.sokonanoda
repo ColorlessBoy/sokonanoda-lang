@@ -1,0 +1,97 @@
+-- 单元92 极限点
+--
+-- 单元91 说明子序列继承原序列的极限。反过来，一个点即使不是整条序列的
+-- 极限，也可能是某条子序列的极限：序列在两个值之间来回跳时，两条子序列
+-- 可以各自停在一个值上。这样的点记录「序列反复靠近哪里」，不要求整条
+-- 序列最后停在哪里。
+--
+-- 定义直接用子序列的极限：`L` 是 `x` 的极限点，若存在严格递增的轨道
+-- `g`，使 `x ∘ g` 收敛到 `L`。这样不需要选择公理；代价是反方向不能倒过来
+-- 用（见边界）。
+--
+-- 路线：
+--   · 92.1 收敛序列的极限是极限点；
+--   · 92.2 常序列的极限点是它的值；
+--   · 92.3 极限点意味着「任意阈值之后仍反复靠近」；
+--   · 92.4 收敛序列的极限点只能是它的极限；
+--   · 92.5 两个不同的极限点排除整条序列的收敛；
+--   · 92.6 常序列只有它的值一个极限点。
+--
+-- 边界：92.3 只是单向。从「频繁靠近」造一条收敛子序列，每一步都要挑一个
+-- 新的下标，需要可数选择；本课程没有选择公理，所以不把它写成定理。
+-- Bolzano–Weierstrass 受同一限制，留到后面单独处理。
+
+import lib.Subseq
+import lib.LimitOrder
+
+-- ─────────────────────────────────────────────────────────────
+-- 92.0 极限点
+-- ─────────────────────────────────────────────────────────────
+
+def LimitPoint (x : Seq) (L : ratRep) : Prop :=
+  ∃ (g : Nat → Nat), Subseq g ∧ Converges (fun (n : Nat) => x (g n)) L
+
+-- ─────────────────────────────────────────────────────────────
+-- 92.1 收敛序列的极限是极限点
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：轨道取恒等。`Subseq` 分量用 `subseq_id`；收敛分量就是假设 `h`，因为 `x ∘ id` 与 `x` 定义相同。
+-- soko:hint 目标形态：`LimitPoint x L`。
+-- soko:hint 关键件：Exists.intro · And.intro · subseq_id。
+theorem converges_limitPoint (x : Seq) (L : ratRep) (h : Converges x L) :
+    LimitPoint x L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 92.2 常序列的极限点是它的值
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列收敛到自己的值（`converges_const`），再用 92.1。
+theorem limitPoint_const (q : ratRep) : LimitPoint (constSeq q) q :=
+  converges_limitPoint (constSeq q) q (converges_const q)
+
+-- ─────────────────────────────────────────────────────────────
+-- 92.3 极限点意味着反复靠近
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：拆开极限点取轨道 `g` 与它的收敛性。给定 `eps` 与 `N`，收敛性在 `eps` 上给阈值 `M`；用 `leNat_max M N` 取同时超过两者的 `K`。子序列在 `K` 处的项是 `x (g K)`，它落在 `eps` 内；`g K ≥ K ≥ N`，所以下标也过了 `N`。
+-- soko:hint 目标形态：`∀ eps > 0, ∀ N, ∃ n, LeNat N n ∧ close (x n) L eps`。
+-- soko:hint 关键件：leNat_max · subseq_ge · leNat_trans · Exists.elim。
+theorem limitPoint_frequently (x : Seq) (L : ratRep) (h : LimitPoint x L) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∀ (N : Nat), ∃ (n : Nat), LeNat N n ∧ close (x n) L eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 92.4 收敛序列的极限点只能是它的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：拆开极限点得子序列 `x ∘ g` 收敛到 `M`。91.4 又说同一条子序列收敛到 `L`。把 74.7 的极限唯一性用在子序列上，得 `M ~ L`，再翻向。
+-- soko:hint 目标形态：`ratRel L M`。
+-- soko:hint 关键件：subseq_converges · converges_unique · ratRel_symm。
+theorem limitPoint_unique_of_converges (x : Seq) (L M : ratRep)
+    (hL : Converges x L) (hM : LimitPoint x M) : ratRel L M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 92.5 两个不同的极限点排除收敛
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：假设存在极限 `K`。92.4 分别把 `K` 与两个极限点比较，得 `K ~ L` 与 `K ~ M`；传递并翻转，得 `L ~ M`，与 `hne` 矛盾。`ratRel` 的传递用 `ratRel_trans_gen`（三元版本）。
+-- soko:hint 目标形态：`(∃ K, Converges x K) → False`。
+-- soko:hint 关键件：Exists.elim · limitPoint_unique_of_converges · ratRel_trans_gen · ratRel_symm。
+theorem not_converges_of_two_limitPoints (x : Seq) (L M : ratRep)
+    (hL : LimitPoint x L) (hM : LimitPoint x M) (hne : ¬ ratRel L M) :
+    (∃ (K : ratRep), Converges x K) → False :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 92.6 常序列只有它的值一个极限点
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常序列收敛到 `q`（`converges_const`），92.4 直接给出 `q ~ L`。
+-- soko:hint 目标形态：`ratRel q L`。
+-- soko:hint 关键件：converges_const · limitPoint_unique_of_converges。
+theorem const_limitPoint_unique (q L : ratRep) (h : LimitPoint (constSeq q) L) :
+    ratRel q L :=
+  sorry

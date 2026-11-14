@@ -1,0 +1,121 @@
+-- 单元86 扩展实数：±∞ 与序
+--
+-- 84 和 85 给上确界与下确界立了唯一性，两处的陈述却都带着一个前提：
+-- 集合要有实数的上界或下界。无上界的集合在 ℝ 里没有上界，于是「它的
+-- 上确界」这句话没有指称。把 `-∞` 与 `+∞` 两个形式端点接到 ℝ 的两端，
+-- 缺口就补上了：任何集合都至少以 `+∞` 为上界。
+--
+-- 本单元先立载体与序。自反只在有限点的 Cauchy 代表元上成立；传递与
+-- 反对称要对三种点逐一检查。端点与有限点的分离也在这里做，后面的
+-- 上确界运算才能把三种点当成不同的情形处理。
+--
+-- 路线：
+--
+--   · 86.1 / 86.2 负无穷是底、正无穷是顶；
+--   · 86.3 两个有限点之间的序就是实数的序；
+--   · 86.4 传递；
+--   · 86.5 反对称；
+--   · 86.6 / 86.7 端点与有限点不相等；
+--   · 86.8 常零序列的类与自身可比。
+--
+-- 载体、序、嵌入与判别式在 `lib/ExtReal`，本单元只证序律。
+
+import lib.ExtReal
+import lib.RealOrderLaws
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 86.1 负无穷是底
+-- ─────────────────────────────────────────────────────────────
+
+-- `ele negInf b` 对三种 `b` 都展开成 `True`。
+-- soko:hint 思路：对 `b` 分三种构造子；三种情形都交给 `True.intro`。
+-- soko:hint 目标形态：`ele negInf b`。
+-- soko:hint 关键件：构造子分类 · True.intro。
+theorem negInf_le (b : ExtReal) : ele negInf b :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 86.2 正无穷是顶
+-- ─────────────────────────────────────────────────────────────
+
+-- `ele a posInf` 对三种 `a` 都展开成 `True`。
+-- soko:hint 思路：对 `a` 分三种构造子；三种情形都交给 `True.intro`。
+-- soko:hint 目标形态：`ele a posInf`。
+-- soko:hint 关键件：构造子分类 · True.intro。
+theorem le_posInf (a : ExtReal) : ele a posInf :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 86.3 有限点之间的序
+-- ─────────────────────────────────────────────────────────────
+
+-- `ele (fin x) (fin y)` 按定义就是 `realLe x y`，所以两个方向都是同一个证明。
+-- soko:hint 思路：展开 `ele`，两个方向都原样返回 `realLe x y`。
+-- soko:hint 目标形态：`ele (fin x) (fin y) ↔ realLe x y`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem ele_fin_fin (x y : Real) : ele (fin x) (fin y) ↔ realLe x y :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 86.4 传递
+-- ─────────────────────────────────────────────────────────────
+
+-- 三种点的组合里，只有「有限、有限、有限」这一支需要实数序的传递；
+-- 其余组合或者结论直接是 `True`，或者前提已经展开成 `False`。
+--
+-- 注意：本语言的 `match` 不允许在一个分支里再写一个 `match`。把下一个
+-- 要分的点写进 `ExtReal.rec.{0}` 的 motive，分支里的假设才会被特化成
+-- 对应的构造子，`False` 也才认得出来。
+-- soko:hint 思路：先对 `a` 分三种。`a = negInf` 时结论为 `True`；`a = fin x` 时对 `b` 分三种，只有 `b = fin y` 与 `b = posInf` 可能；`a = posInf` 时 `b` 只能是 `posInf`，再对 `c` 分三种。
+-- soko:hint 目标形态：`ele a b → ele b c → ele a c`。
+-- soko:hint 关键件：ExtReal.rec.{0} · realLe_trans · not_ele_fin_negInf · not_ele_posInf_negInf · not_ele_posInf_fin。
+theorem ele_trans (a b c : ExtReal) (hab : ele a b) (hbc : ele b c) : ele a c :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 86.5 反对称
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个有限点互相不超过时，`realLe_antisymm` 给出实数的相等，再对 `fin`
+-- 用一次 `congrArg`。其余八种组合里总有一个前提是 `False`。
+-- soko:hint 思路：对 `a` 分三种，再对 `b` 分三种。有限与有限那一支用 `realLe_antisymm` 得到 `x = y`，再用 `congrArg fin`；其余组合用 `not_ele_fin_negInf` / `not_ele_posInf_negInf` / `not_ele_posInf_fin` 消去。
+-- soko:hint 目标形态：`a = b`。
+-- soko:hint 关键件：ExtReal.rec.{0} · realLe_antisymm · congrArg。
+theorem ele_antisymm (a b : ExtReal) (hab : ele a b) (hba : ele b a) : a = b :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 86.6 负无穷不等于有限点
+-- ─────────────────────────────────────────────────────────────
+
+-- 判别式 `isNegInf` 在 `negInf` 上是 `True`，在 `fin x` 上是 `False`。
+-- 把等式代进判别式，就从 `True` 得到 `False`。
+-- soko:hint 思路：假设 `negInf = fin x`，用 `Eq.subst` 把 `isNegInf negInf` 的证明搬到 `isNegInf (fin x)`；后者按定义是 `False`。
+-- soko:hint 目标形态：`¬ (negInf = fin x)`。
+-- soko:hint 关键件：isNegInf · Eq.subst · True.intro。
+theorem negInf_ne_fin (x : Real) : ¬ (negInf = fin x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 86.7 有限点不等于正无穷
+-- ─────────────────────────────────────────────────────────────
+
+-- 与 86.6 对称，判别式换成 `isPosInf`。等式要从 `fin x = posInf` 翻成
+-- `posInf = fin x`，才能把 `posInf` 上的 `True` 搬到 `fin x` 上。
+-- soko:hint 思路：假设 `fin x = posInf`，先取对称得到 `posInf = fin x`；再用 `Eq.subst` 把 `isPosInf posInf` 搬到 `isPosInf (fin x)`。
+-- soko:hint 目标形态：`¬ (fin x = posInf)`。
+-- soko:hint 关键件：isPosInf · Eq.symm · Eq.subst · True.intro。
+theorem fin_ne_posInf (x : Real) : ¬ (fin x = posInf) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 86.8 常零序列的类与自己可比
+-- ─────────────────────────────────────────────────────────────
+
+-- 有限点的自反需要 Cauchy 见证；常零序列的见证由 `cauchy_zero` 给。
+-- soko:hint 思路：把目标展开成 `realLe (Real.mk zeroSeq) (Real.mk zeroSeq)`，交给 `realLe_refl_mk zeroSeq cauchy_zero`。
+-- soko:hint 目标形态：`ele (fin (Real.mk zeroSeq)) (fin (Real.mk zeroSeq))`。
+-- soko:hint 关键件：realLe_refl_mk · cauchy_zero。
+theorem demo_fin_zero_refl : ele (fin (Real.mk zeroSeq)) (fin (Real.mk zeroSeq)) :=
+  sorry

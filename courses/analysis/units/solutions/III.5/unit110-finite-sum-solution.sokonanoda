@@ -1,0 +1,201 @@
+-- 单元110 有限和：递归定义与基本律（解答）
+--
+-- 收敛定义已经有了，但「把前 n 项加起来」还没有对象。级数的每个问题都要先写
+-- 部分和；没有部分和，「前 n 项的和收敛」这句话无法陈述。本单元先补这个对象。
+--
+-- 递归的写法顺带给出两条计算规则：零项和是零，多一项就在尾部追加。其余内容
+-- 是把相等与加法搬到和上：逐项相等、全零、取负、逐项相加。它们后面用来把
+-- 部分和的估计拆成逐项的估计。
+--
+-- 边界：只处理有限和。`sumTo` 停在有理代表元层，不进入 ℝ 的商，也不谈无限项。
+-- 不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatAssoc
+import lib.RatSub
+import lib.RatGroup
+import lib.RatClose
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.0 前 n 项和
+-- ─────────────────────────────────────────────────────────────
+
+-- 对项数递归：零项时取零，后继时把新的一项接在已有和的右边。
+def sumTo (f : Nat → ratRep) : Nat → ratRep :=
+  Nat.rec (fun (_ : Nat) => ratRep) ratZeroRep
+    (fun (k : Nat) (acc : ratRep) => ratAddRep acc (f k))
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.1 零项和是零
+-- ─────────────────────────────────────────────────────────────
+
+theorem sumTo_zero (f : Nat → ratRep) : ratRel (sumTo f Nat.zero) ratZeroRep :=
+  ratRel_refl ratZeroRep
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.2 后继项数的计算规则
+-- ─────────────────────────────────────────────────────────────
+
+-- 这一步是定义性的：`sumTo f (n+1)` 归约成 `sumTo f n + f n`。
+theorem sumTo_succ (f : Nat → ratRep) (n : Nat) :
+    sumTo f (Nat.succ n) = ratAddRep (sumTo f n) (f n) :=
+  Eq.refl (ratAddRep (sumTo f n) (f n))
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.3 逐项相等则和相等
+-- ─────────────────────────────────────────────────────────────
+
+-- 对项数归纳。后继步先用归纳假设换掉前 n 项的和，再用 `h n` 换掉最后一项。
+theorem sumTo_congr (f g : Nat → ratRep) (n : Nat)
+    (h : ∀ (k : Nat), ratRel (f k) (g k)) :
+    ratRel (sumTo f n) (sumTo g n) :=
+  Nat.rec
+    (fun (n : Nat) => ratRel (sumTo f n) (sumTo g n))
+    (ratRel_refl ratZeroRep)
+    (fun (n : Nat) (ih : ratRel (sumTo f n) (sumTo g n)) =>
+      ratRel_trans_gen
+        (ratAddRep (sumTo f n) (f n))
+        (ratAddRep (sumTo g n) (f n))
+        (ratAddRep (sumTo g n) (g n))
+        (ratAddRep_wd_gen (sumTo f n) (sumTo g n) (f n) ih)
+        (ratAddRep_wd_snd_gen (sumTo g n) (f n) (g n) (h n)))
+    n
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.4 全零项的和是零
+-- ─────────────────────────────────────────────────────────────
+
+-- 归纳步把和拆成「前 n 项的和 + 零」，先换掉前半，再用加零律。
+theorem sumTo_zero_fun (n : Nat) :
+    ratRel (sumTo (fun (_ : Nat) => ratZeroRep) n) ratZeroRep :=
+  Nat.rec
+    (fun (n : Nat) => ratRel (sumTo (fun (_ : Nat) => ratZeroRep) n) ratZeroRep)
+    (ratRel_refl ratZeroRep)
+    (fun (n : Nat)
+      (ih : ratRel (sumTo (fun (_ : Nat) => ratZeroRep) n) ratZeroRep) =>
+      ratRel_trans_gen
+        (ratAddRep (sumTo (fun (_ : Nat) => ratZeroRep) n) ratZeroRep)
+        (ratAddRep ratZeroRep ratZeroRep)
+        ratZeroRep
+        (ratAddRep_wd_gen (sumTo (fun (_ : Nat) => ratZeroRep) n) ratZeroRep ratZeroRep ih)
+        (ratAdd_zero ratZeroRep))
+    n
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.5 取负可以搬进和里
+-- ─────────────────────────────────────────────────────────────
+
+-- 归纳步把 `-(F) + -(f n)` 认成 `-(F + f n)`。这一步是取负分配律的反方向。
+theorem sumTo_neg (f : Nat → ratRep) (n : Nat) :
+    ratRel (sumTo (fun (k : Nat) => ratNegRep (f k)) n)
+      (ratNegRep (sumTo f n)) :=
+  Nat.rec
+    (fun (n : Nat) => ratRel (sumTo (fun (k : Nat) => ratNegRep (f k)) n)
+      (ratNegRep (sumTo f n)))
+    (ratRel_refl ratZeroRep)
+    (fun (n : Nat)
+      (ih : ratRel (sumTo (fun (k : Nat) => ratNegRep (f k)) n)
+        (ratNegRep (sumTo f n))) =>
+      ratRel_trans_gen
+        (ratAddRep (sumTo (fun (k : Nat) => ratNegRep (f k)) n) (ratNegRep (f n)))
+        (ratAddRep (ratNegRep (sumTo f n)) (ratNegRep (f n)))
+        (ratNegRep (ratAddRep (sumTo f n) (f n)))
+        (ratAddRep_wd_gen
+          (sumTo (fun (k : Nat) => ratNegRep (f k)) n)
+          (ratNegRep (sumTo f n))
+          (ratNegRep (f n)) ih)
+        (ratRel_symm
+          (ratNegRep (ratAddRep (sumTo f n) (f n)))
+          (ratAddRep (ratNegRep (sumTo f n)) (ratNegRep (f n)))
+          (ratNegRep_add (sumTo f n) (f n))))
+    n
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.6 交换后两个加数
+-- ─────────────────────────────────────────────────────────────
+
+-- `(a+b)+c` 先结合成 `a+(b+c)`，在括号里把后两项交换，再结合回左结合。
+theorem ratAdd_swap_mid (a b c : ratRep) :
+    ratRel (ratAddRep (ratAddRep a b) c) (ratAddRep (ratAddRep a c) b) :=
+  ratRel_trans_gen
+    (ratAddRep (ratAddRep a b) c)
+    (ratAddRep a (ratAddRep b c))
+    (ratAddRep (ratAddRep a c) b)
+    (ratAdd_assoc a b c)
+    (ratRel_trans_gen
+      (ratAddRep a (ratAddRep b c))
+      (ratAddRep a (ratAddRep c b))
+      (ratAddRep (ratAddRep a c) b)
+      (ratAddRep_wd_snd_gen a (ratAddRep b c) (ratAddRep c b) (ratAdd_comm b c))
+      (ratRel_symm
+        (ratAddRep (ratAddRep a c) b)
+        (ratAddRep a (ratAddRep c b))
+        (ratAdd_assoc a c b)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.7 两对加数重新配对
+-- ─────────────────────────────────────────────────────────────
+
+-- `(F+G)+(f+g)` 先右结合，再用 110.6 把中间换成 `(F+f)+G`，最后收成
+-- `(F+f)+(G+g)`。
+theorem ratAdd_pair_regroup (F G f g : ratRep) :
+    ratRel (ratAddRep (ratAddRep F G) (ratAddRep f g))
+      (ratAddRep (ratAddRep F f) (ratAddRep G g)) :=
+  ratRel_trans_gen
+    (ratAddRep (ratAddRep F G) (ratAddRep f g))
+    (ratAddRep (ratAddRep (ratAddRep F G) f) g)
+    (ratAddRep (ratAddRep F f) (ratAddRep G g))
+    (ratRel_symm
+      (ratAddRep (ratAddRep (ratAddRep F G) f) g)
+      (ratAddRep (ratAddRep F G) (ratAddRep f g))
+      (ratAdd_assoc (ratAddRep F G) f g))
+    (ratRel_trans_gen
+      (ratAddRep (ratAddRep (ratAddRep F G) f) g)
+      (ratAddRep (ratAddRep (ratAddRep F f) G) g)
+      (ratAddRep (ratAddRep F f) (ratAddRep G g))
+      (ratAddRep_wd_gen
+        (ratAddRep (ratAddRep F G) f)
+        (ratAddRep (ratAddRep F f) G)
+        g
+        (ratAdd_swap_mid F G f))
+      (ratAdd_assoc (ratAddRep F f) G g))
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.8 和保持逐项加法
+-- ─────────────────────────────────────────────────────────────
+
+-- 归纳步把 `(f+g)` 的和拆成 `A + (f n + g n)`，用 110.7 重新配对后
+-- 恰好是两边的后继形状。
+theorem sumTo_add (f g : Nat → ratRep) (n : Nat) :
+    ratRel (sumTo (fun (k : Nat) => ratAddRep (f k) (g k)) n)
+      (ratAddRep (sumTo f n) (sumTo g n)) :=
+  Nat.rec
+    (fun (n : Nat) => ratRel (sumTo (fun (k : Nat) => ratAddRep (f k) (g k)) n)
+      (ratAddRep (sumTo f n) (sumTo g n)))
+    (ratRel_symm (ratAddRep ratZeroRep ratZeroRep) ratZeroRep
+      (ratAdd_zero ratZeroRep))
+    (fun (n : Nat)
+      (ih : ratRel (sumTo (fun (k : Nat) => ratAddRep (f k) (g k)) n)
+        (ratAddRep (sumTo f n) (sumTo g n))) =>
+      ratRel_trans_gen
+        (ratAddRep (sumTo (fun (k : Nat) => ratAddRep (f k) (g k)) n)
+          (ratAddRep (f n) (g n)))
+        (ratAddRep (ratAddRep (sumTo f n) (sumTo g n))
+          (ratAddRep (f n) (g n)))
+        (ratAddRep (ratAddRep (sumTo f n) (f n))
+          (ratAddRep (sumTo g n) (g n)))
+        (ratAddRep_wd_gen
+          (sumTo (fun (k : Nat) => ratAddRep (f k) (g k)) n)
+          (ratAddRep (sumTo f n) (sumTo g n))
+          (ratAddRep (f n) (g n)) ih)
+        (ratAdd_pair_regroup (sumTo f n) (sumTo g n) (f n) (g n)))
+    n
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.9 具体：两个 1 的和是 2
+-- ─────────────────────────────────────────────────────────────
+
+-- 展开两次 `sumTo` 后，两边是同一个代表元。
+theorem demo_sumTo_two : ratRel (sumTo (fun (_ : Nat) => qrep 1 0 0) 2) (qrep 2 0 0) :=
+  ratRel_refl (qrep 2 0 0)

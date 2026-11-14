@@ -1,0 +1,69 @@
+-- 课程库：有限和的绝对值
+--
+-- 单元117 在画布里证明下面两条；这里收进 L2，绝对收敛与比较判别法直接引用：
+--
+--   · `sumTo_abs_le` —— 逐项给出绝对值的见证，和也有见证，且不超过见证之和；
+--   · `sumTo_abs_self` —— 非负序列的部分和就是它自己的绝对值见证。
+--
+-- 本课程的绝对值是关系 `ratAbsRel x d`（d 是 x 的一个见证），不是函数，
+-- 所以「绝对值的和」写成一条逐项给出见证的序列 g。
+--
+-- 边界：只做有限和；不判断级数是否可和，也不谈重排。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatClose
+import lib.Cauchy
+import lib.Sum
+import lib.SumNonneg
+import lib.Bounded
+
+-- ─────────────────────────────────────────────────────────────
+-- 117.0 和的绝对值不超过绝对值的和
+-- ─────────────────────────────────────────────────────────────
+
+theorem sumTo_abs_le (f g : Nat → ratRep) (n : Nat)
+    (h : ∀ (k : Nat), ratAbsRel (f k) (g k)) :
+    ∃ (d : ratRep), ratAbsRel (sumTo f n) d ∧ ratLeRep d (sumTo g n) :=
+  Nat.rec
+    (fun (n : Nat) => ∃ (d : ratRep),
+      ratAbsRel (sumTo f n) d ∧ ratLeRep d (sumTo g n))
+    (Exists.intro ratZeroRep
+      (And.intro ratAbsRel_zero
+        (ratLeRep_of_ratRel ratZeroRep (sumTo g Nat.zero)
+          (ratRel_symm (sumTo g Nat.zero) ratZeroRep (sumTo_zero g)))))
+    (fun (n : Nat)
+        (ih : ∃ (d : ratRep), ratAbsRel (sumTo f n) d ∧ ratLeRep d (sumTo g n)) =>
+      Exists.elim ih
+        (fun (d : ratRep)
+            (hd : ratAbsRel (sumTo f n) d ∧ ratLeRep d (sumTo g n)) =>
+          Exists.elim (ratAbsRel_total (ratAddRep (sumTo f n) (f n)))
+            (fun (d' : ratRep)
+                (hd' : ratAbsRel (ratAddRep (sumTo f n) (f n)) d') =>
+              Exists.intro d'
+                (And.intro hd'
+                  (ratLeRep_trans d' (ratAddRep d (g n))
+                    (ratAddRep (sumTo g n) (g n))
+                    (ratLeRep_abs_add (sumTo f n) (f n) d (g n) d'
+                      (And.left hd) (h n) hd')
+                    (ratLeRep_add d (sumTo g n) (g n) (g n)
+                      (And.right hd) (ratLeRep_refl (g n))))))))
+    n
+
+-- ─────────────────────────────────────────────────────────────
+-- 117.1 非负序列的部分和是自己的绝对值见证
+-- ─────────────────────────────────────────────────────────────
+
+theorem sumTo_abs_self (f : Nat → ratRep) (h : ∀ (k : Nat), ratLeRep ratZeroRep (f k))
+    (n : Nat) : ratAbsRel (sumTo f n) (sumTo f n) :=
+  Or.inl (And.intro (sumTo_nonneg f h n) (ratRel_refl (sumTo f n)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 117.2 具体：常 1 级数的前两项和
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_abs_sum_one :
+    ratAbsRel (sumTo (fun (_ : Nat) => ratOneRep) 2)
+      (sumTo (fun (_ : Nat) => ratOneRep) 2) :=
+  sumTo_abs_self (fun (_ : Nat) => ratOneRep)
+    (fun (_ : Nat) => And.left ratLtRep_zero_one) 2

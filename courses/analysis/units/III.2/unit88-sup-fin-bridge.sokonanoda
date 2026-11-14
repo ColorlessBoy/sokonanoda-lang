@@ -1,0 +1,99 @@
+-- 单元88 实数上确界与扩展上确界的相容
+--
+-- 87 在扩展实数里重证了 84 的比较律，两套词汇之间还差一步：把一个实数
+-- 集合搬到扩展实数里，它的上确界是否还是同一个点？
+--
+-- 把集合 `A` 的每个元素换成 `fin a`，得到扩展实数里的集合 `finImage A`。
+-- 若 `s` 是 `A` 在 ℝ 里的上确界，则 `fin s` 是 `finImage A` 在扩展实数里
+-- 的上确界；反过来，`finImage A` 的上确界若落在有限点上，那个点就是 `A`
+-- 的实数上确界。正方向要求 `A` 非空：空集在扩展实数里的上确界是 `negInf`，
+-- 不可能是任何 `fin s`。
+--
+-- 这条桥在后面的部分和与 limsup 里反复用到：先在实数层把界算出来，再
+-- 搬进扩展实数。
+
+import lib.Order
+import lib.ExtReal
+import lib.ExtRealOrder
+import lib.Sup
+import lib.RealOrderLaws
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 88.0 把实数集合搬进扩展实数
+-- ─────────────────────────────────────────────────────────────
+
+def finImage (A : Real → Prop) : ExtReal → Prop :=
+  fun (e : ExtReal) => ∃ (a : Real), A a ∧ e = fin a
+
+-- ─────────────────────────────────────────────────────────────
+-- 88.1 成员资格
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：见证取 `a`；第二个分量要证 `fin a = fin a`，用 `Eq.refl`。
+-- soko:hint 目标形态：`finImage A (fin a)`。
+-- soko:hint 关键件：Exists.intro · And.intro · Eq.refl。
+theorem finImage_mem (A : Real → Prop) (a : Real) (ha : A a) :
+    finImage A (fin a) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 88.2 上界随集合一起搬过去
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：拆开 `∃` 取 `a` 与 `e = fin a`；把等式翻向后用 `Eq.subst` 把 `ele (fin a) (fin M)` 搬成 `ele e (fin M)`；`ele (fin a) (fin M)` 由 `ele_fin_fin` 从 `realLe a M` 得到。
+-- soko:hint 目标形态：`UpperBound ExtReal ele (finImage A) (fin M)`。
+-- soko:hint 关键件：Exists.elim · Eq.subst · Eq.symm · ele_fin_fin · Iff.mpr。
+theorem finImage_upperBound (A : Real → Prop) (M : Real)
+    (hM : UpperBound Real realLe A M) :
+    UpperBound ExtReal ele (finImage A) (fin M) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 88.3 实数上确界搬到扩展实数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：上界分量交给 88.2。最小性对候选 `M` 分三种：`negInf` 用非空见证与 `not_ele_fin_negInf` 消去；`fin t` 用实数上确界的最小性；`posInf` 直接 `True.intro`。
+-- soko:hint 目标形态：`IsSup ExtReal ele (finImage A) (fin s)`。
+-- soko:hint 关键件：ExtReal.rec · finImage_upperBound · not_ele_fin_negInf · isSup_least · ele_fin_fin。
+theorem ext_sup_fin_of_sup (A : Real → Prop) (s : Real)
+    (hne : ∃ (a : Real), A a)
+    (hs : IsSup Real realLe A s) :
+    IsSup ExtReal ele (finImage A) (fin s) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 88.4 扩展上确界若落在有限点上，它就是实数上确界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：上界：把 `isSup_upper` 作用在 `fin a` 上，成员资格由 88.1 给，再用 `ele_fin_fin` 展开。最小性：实数上界 `M` 经 88.2 变成扩展上界 `fin M`，用 `isSup_least` 得 `fin s ≤ fin M`，再展开。
+-- soko:hint 目标形态：`IsSup Real realLe A s`。
+-- soko:hint 关键件：isSup_upper · isSup_least · ele_fin_fin · finImage_upperBound。
+theorem real_sup_of_ext_sup (A : Real → Prop) (s : Real)
+    (hs : IsSup ExtReal ele (finImage A) (fin s)) :
+    IsSup Real realLe A s :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 88.5 两套上确界等价
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`Iff.intro` 两支分别交给 88.3 与 88.4；非空前提只在前者用到。
+-- soko:hint 目标形态：`IsSup Real realLe A s ↔ IsSup ExtReal ele (finImage A) (fin s)`。
+-- soko:hint 关键件：Iff.intro · ext_sup_fin_of_sup · real_sup_of_ext_sup。
+theorem ext_sup_fin_iff (A : Real → Prop) (s : Real)
+    (hne : ∃ (a : Real), A a) :
+    IsSup Real realLe A s ↔ IsSup ExtReal ele (finImage A) (fin s) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 88.6 具体：常零序列的类上的单点集
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：84.5 的 `sup_singleton_mk` 给实数上确界；非空见证取那个点本身，等式用 `Eq.refl`。
+-- soko:hint 目标形态：`IsSup ExtReal ele (finImage (fun a => a = Real.mk zeroSeq)) (fin (Real.mk zeroSeq))`。
+-- soko:hint 关键件：ext_sup_fin_of_sup · sup_singleton_mk · cauchy_zero · Eq.refl。
+theorem demo_ext_sup_fin_zero :
+    IsSup ExtReal ele (finImage (fun (a : Real) => a = Real.mk zeroSeq))
+      (fin (Real.mk zeroSeq)) :=
+  sorry

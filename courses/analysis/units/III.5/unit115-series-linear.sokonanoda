@@ -1,0 +1,107 @@
+-- 单元115 可和级数的加法、取负与减法
+--
+-- 114 把可和性写成尾块条件，尾块是两条部分和之差。可和本来就是部分和序列
+-- 的 Cauchy 性，所以逐项相加、取负、相减之后，部分和序列也做同样的逐项
+-- 运算。这里要确认：这些运算把 Cauchy 序列仍然送回 Cauchy 序列。
+--
+-- 先证一条搬运律：两条序列逐点代表同一个有理数时，一条是 Cauchy 的，
+-- 另一条也是。`sumTo_add` 与 `sumTo_neg` 把级数的逐项运算翻译成部分和
+-- 序列的逐项运算，搬运律再把 Cauchy 性从一边搬到另一边。
+--
+-- 边界：只处理可和性，不把两个和类相加。和类的加法要在 ℝ 的序上做估计，
+-- 不在本单元。取负与减法都停在代表元层。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Sum
+import lib.SumSplit
+import lib.Series
+import lib.Limit
+import lib.Cauchy
+import lib.Tail
+import lib.RealEq
+import lib.RealAdd
+import lib.RealNeg
+import lib.LimitClassSub
+
+-- ─────────────────────────────────────────────────────────────
+-- 115.0 逐点代表同一个有理数保持 Cauchy 性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：取 `Cauchy x` 的阈值 N。对 n、m ≥ N，先用 `close_symm` 与 `close_wd_left` 把第一个点从 `x n` 换到 `y n`，再把第二个点从 `x m` 换到 `y m`。
+-- soko:hint 目标形态：`Cauchy y`（已知 `∀ n, ratRel (x n) (y n)` 与 `Cauchy x`）。
+-- soko:hint 关键件：close_wd_left · close_symm · ratRel 的定义。
+theorem cauchy_congr (x y : Seq)
+    (hxy : ∀ (n : Nat), ratRel (x n) (y n)) (hx : Cauchy x) : Cauchy y :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 115.1 逐项相加的部分和
+-- ─────────────────────────────────────────────────────────────
+
+-- `sumTo_add` 已经给出这条等式；这里只把它写成两个部分和序列的逐点值。
+theorem series_add_pointwise (f g : Nat → ratRep) (n : Nat) :
+    ratRel (Series (fun (k : Nat) => ratAddRep (f k) (g k)) n)
+      (addSeq (Series f) (Series g) n) :=
+  sumTo_add f g n
+
+-- ─────────────────────────────────────────────────────────────
+-- 115.2 两条可和级数逐项相加仍可和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`Series (f+g)` 与 `addSeq (Series f) (Series g)` 逐点相等（115.1），后者由 106 的 `cauchy_add` 给出 Cauchy。把 115.0 的搬运律用在这个方向上。
+-- soko:hint 目标形态：`Summable (fun k => ratAddRep (f k) (g k))`。
+-- soko:hint 关键件：cauchy_congr · cauchy_add · series_add_pointwise · ratRel_symm。
+theorem summable_add (f g : Nat → ratRep)
+    (hf : Summable f) (hg : Summable g) :
+    Summable (fun (k : Nat) => ratAddRep (f k) (g k)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 115.3 逐项取负仍可和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`sumTo_neg` 说取负可以搬进有限和，所以 `Series (neg f)` 与 `negSeq (Series f)` 逐点相等；后者由 107 的 `cauchy_neg` 保持 Cauchy。交 115.0 搬运。
+-- soko:hint 目标形态：`Summable (fun k => ratNegRep (f k))`。
+-- soko:hint 关键件：cauchy_congr · cauchy_neg · sumTo_neg · ratRel_symm。
+theorem summable_neg (f : Nat → ratRep) (hf : Summable f) :
+    Summable (fun (k : Nat) => ratNegRep (f k)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 115.4 逐项相减的部分和
+-- ─────────────────────────────────────────────────────────────
+
+-- 减法先拆成「加一项、减一项」。`sumTo_add` 把和拆开，`sumTo_neg` 把第二段
+-- 的取负提到和外面，于是两个部分和序列逐点相减。
+theorem series_sub_pointwise (f g : Nat → ratRep) (n : Nat) :
+    ratRel (Series (fun (k : Nat) => ratSubRep (f k) (g k)) n)
+      (subSeq (Series f) (Series g) n) :=
+  ratRel_trans_gen
+    (Series (fun (k : Nat) => ratSubRep (f k) (g k)) n)
+    (ratAddRep (Series f n) (Series (fun (k : Nat) => ratNegRep (g k)) n))
+    (ratAddRep (Series f n) (ratNegRep (Series g n)))
+    (sumTo_add f (fun (k : Nat) => ratNegRep (g k)) n)
+    (ratAddRep_wd_snd_gen (Series f n) (Series (fun (k : Nat) => ratNegRep (g k)) n)
+      (ratNegRep (Series g n)) (sumTo_neg g n))
+
+-- ─────────────────────────────────────────────────────────────
+-- 115.5 两条可和级数逐项相减仍可和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：115.4 把 `Series (f-g)` 与 `subSeq (Series f) (Series g)` 逐点对齐，108 的 `cauchy_sub` 给出后者的 Cauchy 性，再用 115.0 搬到前者。
+-- soko:hint 目标形态：`Summable (fun k => ratSubRep (f k) (g k))`。
+-- soko:hint 关键件：cauchy_congr · cauchy_sub · series_sub_pointwise · ratRel_symm。
+theorem summable_sub (f g : Nat → ratRep)
+    (hf : Summable f) (hg : Summable g) :
+    Summable (fun (k : Nat) => ratSubRep (f k) (g k)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 115.6 具体：零级数逐项相加仍可和
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_sum_zero :
+    Summable (fun (k : Nat) => ratAddRep ratZeroRep ratZeroRep) :=
+  summable_add (fun (_ : Nat) => ratZeroRep) (fun (_ : Nat) => ratZeroRep)
+    summable_zero summable_zero

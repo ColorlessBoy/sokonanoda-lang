@@ -10,5 +10,190 @@ import lib.Equiv
 import lib.Order
 import lib.RatOrder
 import lib.Cauchy
+import lib.RealOrderLaws
+import lib.Sup
+import lib.ExtReal
+import lib.ExtRealOrder
+import lib.Subseq
+import lib.LimitPoint
+import lib.Limsup
+import lib.Liminf
+import lib.SubseqLimit
+import lib.LimsupBound
+import lib.Tail
+import lib.CauchyTail
+import lib.CauchyShapes
+import lib.RealDiff
+import lib.Bounded
+import lib.LimitClass
+import lib.CauchyAddBounds
+import lib.LimitClassAdd
+import lib.LimitClassNeg
+import lib.LimitClassSub
+import lib.LimitClassComplete
+import lib.Sum
+import lib.SumSplit
+import lib.Series
+import lib.SeriesTerm
+import lib.SeriesTail
+import lib.SeriesLinear
+import lib.SumNonneg
+import lib.SumAbs
+import lib.SeriesCompare
+import lib.SeriesAbs
+import lib.SeriesTelescope
+import lib.SeriesTailSum
+import lib.SeriesTailReverse
+import lib.SeriesSwap
 
 theorem demo_lib_closure : True := True.intro
+
+theorem demo_ext_real_top : ele negInf posInf := True.intro
+
+theorem demo_ext_real_chain : ele negInf (fin (Real.mk zeroSeq)) :=
+  negInf_le (fin (Real.mk zeroSeq))
+
+theorem demo_subseq_id : Subseq (fun (n : Nat) => n) := subseq_id
+
+theorem demo_limitPoint_zero : LimitPoint (constSeq ratZeroRep) ratZeroRep :=
+  limitPoint_const ratZeroRep
+
+theorem demo_limsup_const_zero : Limsup (constSeq ratZeroRep) ratZeroRep :=
+  limsup_const ratZeroRep
+
+theorem demo_liminf_const_zero : Liminf (constSeq ratZeroRep) ratZeroRep :=
+  liminf_const ratZeroRep
+
+theorem demo_limsup_subseq_const_zero :
+    Limsup (subseqSeq (fun (n : Nat) => n) (constSeq ratZeroRep)) ratZeroRep :=
+  limsup_subseq_of_converges (constSeq ratZeroRep) (fun (n : Nat) => n) subseq_id
+    ratZeroRep (converges_const ratZeroRep)
+
+theorem demo_zero_bounded_above : BoundedAbove (constSeq ratZeroRep) ratZeroRep :=
+  fun (n : Nat) => ratLeRep_refl ratZeroRep
+
+theorem demo_limsup_le_of_boundedAbove_zero :
+    ratLeRep ratZeroRep ratZeroRep :=
+  limsup_le_of_boundedAbove (constSeq ratZeroRep) ratZeroRep ratZeroRep
+    demo_zero_bounded_above (limsup_const ratZeroRep)
+
+theorem demo_tail_refl_zero : TailEq (constSeq ratZeroRep) (constSeq ratZeroRep) :=
+  tailEq_refl (constSeq ratZeroRep)
+
+theorem demo_converges_congr_tail_zero :
+    Converges (constSeq ratZeroRep) ratZeroRep :=
+  converges_congr_tail (constSeq ratZeroRep) (constSeq ratZeroRep) ratZeroRep
+    (converges_const ratZeroRep) (tailEq_refl (constSeq ratZeroRep))
+
+theorem demo_cauchy_tail_zero : Cauchy (constSeq ratZeroRep) :=
+  demo_cauchy_tail_const ratZeroRep
+
+theorem demo_bounded_const_zero : Bounded (constSeq ratZeroRep) :=
+  demo_bounded_const ratZeroRep
+
+theorem demo_cauchy_jump_zero :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+        ∀ (k : Nat), close ((constSeq ratZeroRep) n)
+          ((constSeq ratZeroRep) (Nat.add n k)) eps :=
+  demo_cauchy_jump_const ratZeroRep
+
+theorem demo_diff_self_zero :
+    Converges (diffSeq (constSeq ratZeroRep) (constSeq ratZeroRep)) ratZeroRep :=
+  demo_diff_self_tends_zero (constSeq ratZeroRep) (cauchy_const ratZeroRep)
+
+theorem demo_limit_class_zero :
+    LimitClass (constSeq ratZeroRep) (Real.mk (constSeq ratZeroRep)) :=
+  demo_limit_class_const ratZeroRep
+
+theorem demo_limit_class_add_zero :
+    ∃ (c : Real),
+      addRel (Real.mk (constSeq ratZeroRep)) (Real.mk (constSeq ratZeroRep)) c ∧
+        LimitClass (addSeq (constSeq ratZeroRep) (constSeq ratZeroRep)) c :=
+  limitClass_add (constSeq ratZeroRep) (constSeq ratZeroRep)
+    (Real.mk (constSeq ratZeroRep)) (Real.mk (constSeq ratZeroRep))
+    (demo_limit_class_const ratZeroRep) (demo_limit_class_const ratZeroRep)
+
+theorem demo_limit_class_neg_zero :
+    ∃ (b : Real),
+      LimitClass (negSeq (constSeq ratZeroRep)) b :=
+  limitClass_neg (constSeq ratZeroRep) (Real.mk (constSeq ratZeroRep))
+    (cauchy_const ratZeroRep) (demo_limit_class_const ratZeroRep)
+
+theorem demo_limit_class_sub_zero :
+    ∃ (c : Real),
+      LimitClass (subSeq (constSeq ratZeroRep) (constSeq ratZeroRep)) c :=
+  limitClass_sub (constSeq ratZeroRep) (constSeq ratZeroRep)
+    (Real.mk (constSeq ratZeroRep)) (Real.mk (constSeq ratZeroRep))
+    (cauchy_const ratZeroRep) (cauchy_const ratZeroRep)
+    (demo_limit_class_const ratZeroRep) (demo_limit_class_const ratZeroRep)
+
+theorem demo_limit_class_complete_zero :
+    ∃ (a : Real),
+      LimitClass (constSeq ratZeroRep) a ∧
+        ∀ (b : Real), LimitClass (constSeq ratZeroRep) b → b = a :=
+  limitClass_exists_unique (constSeq ratZeroRep) (cauchy_const ratZeroRep)
+
+theorem demo_sumTo_zero_fun_three :
+    ratRel (sumTo (fun (_ : Nat) => ratZeroRep) 3) ratZeroRep :=
+  sumTo_zero_fun 3
+
+theorem demo_sumTo_shift_zero :
+    ratRel (sumTo (constSeq ratZeroRep) (Nat.add 2 3))
+      (ratAddRep (sumTo (constSeq ratZeroRep) 2)
+        (sumTo (fun (k : Nat) => (constSeq ratZeroRep) (Nat.add 2 k)) 3)) :=
+  sumTo_shift (constSeq ratZeroRep) 2 3
+
+theorem demo_lib_series_zero :
+    Summable (fun (_ : Nat) => ratZeroRep) :=
+  summable_zero
+
+theorem demo_lib_term_test :
+    ¬ Summable (fun (_ : Nat) => ratOneRep) :=
+  demo_const_one_not_summable
+
+theorem demo_lib_series_tail :
+    ratRel (Series (constSeq ratZeroRep) 3)
+      (ratAddRep (Series (constSeq ratZeroRep) 1)
+        (TailSum (constSeq ratZeroRep) 1 2)) :=
+  demo_split_three (constSeq ratZeroRep)
+
+theorem demo_lib_summable_add :
+    Summable (fun (k : Nat) => ratAddRep ratZeroRep ratZeroRep) :=
+  demo_sum_zero
+
+theorem demo_lib_sum_monotone_one :
+    ratLeRep (sumTo (fun (_ : Nat) => ratOneRep) Nat.zero)
+      (sumTo (fun (_ : Nat) => ratOneRep) 3) :=
+  demo_sum_monotone_one
+
+theorem demo_lib_abs_sum_one :
+    ratAbsRel (sumTo (fun (_ : Nat) => ratOneRep) 2)
+      (sumTo (fun (_ : Nat) => ratOneRep) 2) :=
+  demo_abs_sum_one
+
+theorem demo_lib_comparison_zero :
+    Summable (fun (_ : Nat) => ratZeroRep) :=
+  demo_comparison_zero
+
+theorem demo_lib_abs_zero :
+    AbsSummable (fun (_ : Nat) => ratZeroRep) :=
+  demo_abs_zero
+
+theorem demo_lib_series_telescope :
+    ratRel
+      (Series (fun (k : Nat) => ratSubRep (qrep (Nat.succ k) 0 0) (qrep k 0 0)) 3)
+      (qrep 3 0 0) :=
+  demo_series_telescope_three
+
+theorem demo_lib_summable_tail_zero (m : Nat) :
+    Summable (fun (_ : Nat) => ratZeroRep) :=
+  summable_tail (fun (_ : Nat) => ratZeroRep) m summable_zero
+
+theorem demo_lib_summable_of_tail_zero (m : Nat) :
+    Summable (fun (_ : Nat) => ratZeroRep) :=
+  demo_summable_of_tail_zero m
+
+theorem demo_lib_swapFirst_zero :
+    Summable (swapFirst (fun (_ : Nat) => ratZeroRep)) :=
+  demo_swapFirst_zero

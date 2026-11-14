@@ -1,0 +1,103 @@
+-- 课程库：序列的取负（单元59 的引擎）
+--
+-- 单元59 在画布里证了下面这些事实并判卷；这里按「前序证明进库」惯例收进 L2，
+-- 单元76（极限的代数：加法与取负）起直接引用，不再重抄。
+--
+--   · `negSeq` —— 逐点取负的序列；
+--   · `ratSubRep_neg_neg` —— `(-x) - (-y) ~ -(x - y)`（59.1）；
+--   · `close_neg` —— `close` 在取负下不变（59.2）；
+--   · `cauchy_neg` / `realRel_neg` —— 取负保持 Cauchy、与 `realRel` 相容
+--     （59.3/59.4）。
+--
+-- **边界**：全部停在 ℚ 代表元层 + 已判卷的库引理上，不碰 `funext`、
+-- 不新增公理，也不碰 kernel/front。
+
+import lib.RealEq
+import lib.RatSub
+
+-- ─────────────────────────────────────────────────────────────
+-- 负序列的定义（本单元给出，不是练习）
+-- ─────────────────────────────────────────────────────────────
+
+def negSeq (x : Seq) : Seq := fun (n : Nat) => ratNegRep (x n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.1 代表元层：`(-x) - (-y) ~ -(x - y)`
+-- ─────────────────────────────────────────────────────────────
+
+-- `(-x) - (-y)` 是 `-x + -(-y)`。用 ㉛ 的对合把 `-(-y)` 换成 `y`
+-- （`ratAddRep_wd_snd_gen`），再用 ㊸ 的交换律把 `-x + y` 换成 `y + -x`
+-- （即 `y - x`），最后接上 ㊷ 的 `ratSubRep_neg`。
+theorem ratSubRep_neg_neg (x y : ratRep) :
+    ratRel (ratSubRep (ratNegRep x) (ratNegRep y))
+           (ratNegRep (ratSubRep x y)) :=
+  ratRel_trans_gen
+    (ratSubRep (ratNegRep x) (ratNegRep y))
+    (ratSubRep y x)
+    (ratNegRep (ratSubRep x y))
+    (ratRel_trans_gen
+      (ratAddRep (ratNegRep x) (ratNegRep (ratNegRep y)))
+      (ratAddRep (ratNegRep x) y)
+      (ratAddRep y (ratNegRep x))
+      (ratAddRep_wd_snd_gen (ratNegRep x) (ratNegRep (ratNegRep y)) y
+        (ratNegRep_invol y))
+      (ratAdd_comm (ratNegRep x) y))
+    (ratSubRep_neg x y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.2 `close` 在取负下不变
+-- ─────────────────────────────────────────────────────────────
+
+-- 取出 `|x - y| ~ d` 的见证 `d`。先用 ㊶ 的 `ratAbsRel_neg_gen` 把绝对值
+-- 搬到 `|-(x - y)|`，再用 59.1（取对称）沿 `ratAbsRel_wd_left` 搬到
+-- `|(-x) - (-y)|`；`d < eps` 原样。
+theorem close_neg (x y eps : ratRep) (h : close x y eps) :
+    close (ratNegRep x) (ratNegRep y) eps :=
+  Exists.elim h
+    (fun (d : ratRep) (hd : ratAbsRel (ratSubRep x y) d ∧ ratLtRep d eps) =>
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left
+            (ratNegRep (ratSubRep x y))
+            (ratSubRep (ratNegRep x) (ratNegRep y))
+            d
+            (ratRel_symm
+              (ratSubRep (ratNegRep x) (ratNegRep y))
+              (ratNegRep (ratSubRep x y))
+              (ratSubRep_neg_neg x y))
+            (ratAbsRel_neg_gen (ratSubRep x y) d (And.left hd)))
+          (And.right hd)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.3 取负保持 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- 对每个 `n m ≥ N` 调用 59.2；量词结构原样保留。
+theorem cauchy_neg (x : Seq) (hx : Cauchy x) : Cauchy (negSeq x) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hx eps heps)
+      (fun (N : Nat)
+           (hN : ∀ (n m : Nat), LeNat N n → LeNat N m →
+             close (x n) (x m) eps) =>
+        Exists.intro N
+          (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =>
+            close_neg (x n) (x m) eps (hN n m hn hm)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.4 取负与 `realRel` 相容
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个 `Cauchy` 分量由 59.3 给出；第三分量逐点用 59.2。
+theorem realRel_neg (x y : Seq) (h : realRel x y) :
+    realRel (negSeq x) (negSeq y) :=
+  And.intro
+    (cauchy_neg x (And.left h))
+    (And.intro
+      (cauchy_neg y (And.left (And.right h)))
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim (realRel_close x y h eps heps)
+          (fun (N : Nat)
+               (hN : ∀ (n : Nat), LeNat N n → close (x n) (y n) eps) =>
+            Exists.intro N
+              (fun (n : Nat) (hn : LeNat N n) =>
+                close_neg (x n) (y n) eps (hN n hn)))))

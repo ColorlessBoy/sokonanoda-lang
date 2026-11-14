@@ -1,0 +1,68 @@
+-- 单元122 尾块判别（反方向）
+--
+-- 121 说明去掉前有限项不改变可和性。反过来同样要紧：只要某个尾块自己可和，
+-- 整条级数就可和。这样判断一条级数时可以从任意一项开始，而不必从第零项
+-- 硬算部分和。
+--
+-- 路线：122.0 把尾块的部分和与平移后的部分和对齐；122.1 由尾块可和推出原
+-- 级数可和；122.2 合成充要条件；122.3 在零级数上核对。
+--
+-- 边界：只把 121 的方向反过来，不涉及重排，也不给一般通项判别法。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Sum
+import lib.SumSplit
+import lib.Series
+import lib.SeriesTail
+import lib.SeriesTailSum
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 122.0 尾块平移后的部分和
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾块 `TailSum f (m+a) k` 与「先平移再取尾块」是同一串项。两个下标只差
+-- ℕ 加法的结合律，逐项用 `Eq.subst` 把 `(m+a)+j` 认成 `m+(a+j)`。
+--
+-- soko:hint 思路：把两边都展开成 `sumTo`，对每一项用 `add_assoc m a j` 把下标对齐，再交给 `sumTo_congr`。
+-- soko:hint 目标形态：`ratRel (TailSum f (m + a) k) (TailSum (fun j => f (m + j)) a k)`。
+-- soko:hint 关键件：TailSum 的定义 · sumTo_congr · add_assoc · Eq.subst · ratRel_refl。
+theorem tailSum_shift (f : Nat → ratRep) (m a k : Nat) :
+    ratRel (TailSum f (Nat.add m a) k)
+      (TailSum (fun (j : Nat) => f (Nat.add m j)) a k) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 122.1 尾块可和推出原级数可和
+-- ─────────────────────────────────────────────────────────────
+
+-- `summable_iff_tail` 把可和性写成「所有足够靠后的尾块都一致地小」。尾块
+-- 可和时，同一个判据作用在平移后的级数上；把下标从 `m+a` 读回 `p`，就得到
+-- 原级数的尾块估计。
+--
+-- soko:hint 思路：对 ε 从尾块级数的 `summable_iff_tail` 取阈值 N'。原级数取阈值 m + N'；对 p ≥ m + N'，把 p 写成 m + a，则 a ≥ N'，再用 122.0 把 `TailSum f p k` 换成平移后的尾块。
+-- soko:hint 目标形态：`Summable f`（已知 `Summable (fun k => f (m + k))`）。
+-- soko:hint 关键件：summable_iff_tail · leNat_exists_add · leNat_add_cancel_right · tailSum_shift · close_wd_left。
+theorem summable_of_tail (f : Nat → ratRep) (m : Nat)
+    (h : Summable (fun (k : Nat) => f (Nat.add m k))) :
+    Summable f :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 122.2 尾块判别的充要条件
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个方向分别由 121 的 `summable_tail` 与 122.1 给出。
+theorem summable_tail_iff (f : Nat → ratRep) (m : Nat) :
+    Summable f ↔ Summable (fun (k : Nat) => f (Nat.add m k)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 122.3 具体：零级数的尾块还是零级数
+-- ─────────────────────────────────────────────────────────────
+
+-- 零级数的任意尾块仍是零级数，所以反方向把它送回原级数。
+theorem demo_summable_of_tail_zero (m : Nat) :
+    Summable (fun (_ : Nat) => ratZeroRep) :=
+  summable_of_tail (fun (_ : Nat) => ratZeroRep) m summable_zero

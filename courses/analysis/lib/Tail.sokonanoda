@@ -1,0 +1,85 @@
+-- 课程库：尾部等价
+--
+-- 收敛只约束从某一项起的项，前面有限项不在其中。把「从某项起逐项代表同一个
+-- 有理数」写成 `TailEq`，收敛性与极限都能沿它搬运。单元 81 在正文里走过这
+-- 条路；这里把它收进库，供上下极限与后面的级数单元引用。
+--
+--   · `TailEq` —— 存在阈值，之后逐项 `ratRel`；
+--   · `tailEq_refl` / `tailEq_symm` / `tailEq_trans` —— 它是等价关系；
+--   · `close_wd_left` —— `close` 的第一个点沿 `ratRel` 搬运；
+--   · `converges_congr_tail` —— 尾部等价不改变极限；
+--   · `converges_congr_tail_iff` —— 两个方向合起来；
+--   · `tailEq_of_pointwise` —— 逐点相等是尾部相等的特例；
+--   · `converges_congr_pointwise` —— 逐点相等也不改变极限。
+--
+-- 边界：只搬「已经存在的极限」，不声称极限存在。不新增公理，也不碰
+-- kernel/front。
+
+import lib.Limit
+import lib.RatSub
+
+-- 从某一项起，两个序列的项代表同一个有理数。
+def TailEq (x y : Seq) : Prop :=
+  Eventually (fun (n : Nat) => ratRel (x n) (y n))
+
+theorem tailEq_refl (x : Seq) : TailEq x x :=
+  Exists.intro Nat.zero
+    (fun (n : Nat) (_hn : LeNat Nat.zero n) => ratRel_refl (x n))
+
+-- `close` 只看第一个点的等价类：`x - L` 换成 `y - L` 后绝对值不变。
+theorem close_wd_left (x y L eps : ratRep) (hxy : ratRel x y)
+    (h : close x L eps) : close y L eps :=
+  Exists.elim h
+    (fun (d : ratRep)
+        (hd : ratAbsRel (ratSubRep x L) d ∧ ratLtRep d eps) =>
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left (ratSubRep x L) (ratSubRep y L) d
+            (ratAddRep_wd_gen x y (ratNegRep L) hxy)
+            (And.left hd))
+          (And.right hd)))
+
+theorem tailEq_symm (x y : Seq) (h : TailEq x y) : TailEq y x :=
+  eventually_mono (fun (n : Nat) => ratRel (x n) (y n))
+    (fun (n : Nat) => ratRel (y n) (x n)) h
+    (fun (n : Nat) (hn : ratRel (x n) (y n)) =>
+      ratRel_symm (x n) (y n) hn)
+
+theorem tailEq_trans (x y z : Seq) (hxy : TailEq x y) (hyz : TailEq y z) :
+    TailEq x z :=
+  eventually_mono
+    (fun (n : Nat) => ratRel (x n) (y n) ∧ ratRel (y n) (z n))
+    (fun (n : Nat) => ratRel (x n) (z n))
+    (eventually_and (fun (n : Nat) => ratRel (x n) (y n))
+      (fun (n : Nat) => ratRel (y n) (z n)) hxy hyz)
+    (fun (n : Nat) (h : ratRel (x n) (y n) ∧ ratRel (y n) (z n)) =>
+      ratRel_trans_gen (x n) (y n) (z n) (And.left h) (And.right h))
+
+-- 每个 `eps` 把两条终究性并到同一个阈值，之后逐点搬运 `close`。
+theorem converges_congr_tail (x y : Seq) (L : ratRep) (h : Converges x L)
+    (ht : TailEq x y) : Converges y L :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    eventually_mono
+      (fun (n : Nat) => close (x n) L eps ∧ ratRel (x n) (y n))
+      (fun (n : Nat) => close (y n) L eps)
+      (eventually_and (fun (n : Nat) => close (x n) L eps)
+        (fun (n : Nat) => ratRel (x n) (y n)) (h eps heps) ht)
+      (fun (n : Nat) (hp : close (x n) L eps ∧ ratRel (x n) (y n)) =>
+        close_wd_left (x n) (y n) L eps (And.right hp) (And.left hp))
+
+theorem converges_congr_tail_iff (x y : Seq) (L : ratRep) (ht : TailEq x y) :
+    Converges x L ↔ Converges y L :=
+  Iff.intro
+    (fun (h : Converges x L) => converges_congr_tail x y L h ht)
+    (fun (h : Converges y L) =>
+      converges_congr_tail y x L h (tailEq_symm x y ht))
+
+theorem tailEq_of_pointwise (x y : Seq)
+    (h : ∀ (n : Nat), ratRel (x n) (y n)) : TailEq x y :=
+  Exists.intro Nat.zero
+    (fun (n : Nat) (_hn : LeNat Nat.zero n) => h n)
+
+theorem converges_congr_pointwise (x y : Seq) (L : ratRep)
+    (h : Converges x L) (hp : ∀ (n : Nat), ratRel (x n) (y n)) :
+    Converges y L :=
+  converges_congr_tail x y L h (tailEq_of_pointwise x y hp)

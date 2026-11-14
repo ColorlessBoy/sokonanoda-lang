@@ -1,0 +1,61 @@
+-- 单元116 非负项的部分和不会下降
+--
+-- 级数的可和性只看部分和序列的尾巴。若每一项都非负，尾巴就只增不减，
+-- 于是「部分和是否稳定」变成「部分和有没有上界」，比较判别法就建在这条
+-- 单调性上。这里先把单调性本身证清楚。
+--
+-- 路线：116.0 对项数归纳，证明非负项的和非负；116.1 用 `sumTo_shift` 把
+-- S_n 拆成 S_m 与从第 m 项起的尾块，把 `S_m ≤ S_n` 归到尾块非负；116.2 把
+-- 同一条引理写成尾块的名字；116.3 是常 1 级数上的一个具体比较。
+--
+-- 边界：只比较部分和，不判断级数是否可和。可和性要另做尾块估计，这里的
+-- 结果只是那一步的原料。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Sum
+import lib.SumSplit
+import lib.SeriesTail
+import lib.Bounded
+
+-- ─────────────────────────────────────────────────────────────
+-- 116.0 非负项的和非负
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对项数归纳。零项和是零，自反性收口。后继时把 `S_{n+1}` 看成 `S_n + f n`，两条非负界用 `ratLeRep_add` 相加，再把 `0 + 0` 换回 `0`。
+-- soko:hint 目标形态：`ratLeRep ratZeroRep (sumTo f n)`（已知每一项非负）。
+-- soko:hint 关键件：Nat.rec · ratLeRep_refl · ratLeRep_add · ratAdd_zero · ratLeRep_of_ratRel。
+theorem sumTo_nonneg (f : Nat → ratRep) (h : ∀ (k : Nat), ratLeRep ratZeroRep (f k))
+    (n : Nat) : ratLeRep ratZeroRep (sumTo f n) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 116.1 非负项的部分和不降
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`leNat_exists_add` 把 n 写成 m + k，`sumTo_shift` 把 S_{m+k} 拆成 S_m 与尾块。尾块非负，所以 S_m ≤ S_m + 尾块；再用 `ratLeRep_congr_gen` 把右端换回 S_n。
+-- soko:hint 目标形态：`LeNat m n → ratLeRep (sumTo f m) (sumTo f n)`。
+-- soko:hint 关键件：leNat_exists_add · sumTo_shift · sumTo_nonneg · ratLeRep_add · ratLeRep_congr_gen · Eq.subst。
+theorem sumTo_mono (f : Nat → ratRep) (h : ∀ (k : Nat), ratLeRep ratZeroRep (f k))
+    (m n : Nat) (hmn : LeNat m n) : ratLeRep (sumTo f m) (sumTo f n) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 116.2 尾块非负
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾块是平移序列的部分和，同一条非负性引理直接搬运。
+theorem tailSum_nonneg (f : Nat → ratRep) (h : ∀ (k : Nat), ratLeRep ratZeroRep (f k))
+    (m k : Nat) : ratLeRep ratZeroRep (TailSum f m k) :=
+  sumTo_nonneg (fun (j : Nat) => f (Nat.add m j))
+    (fun (j : Nat) => h (Nat.add m j)) k
+
+-- ─────────────────────────────────────────────────────────────
+-- 116.3 具体：常 1 级数的第 0 个与第 3 个部分和
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_sum_monotone_one :
+    ratLeRep (sumTo (fun (_ : Nat) => ratOneRep) Nat.zero)
+      (sumTo (fun (_ : Nat) => ratOneRep) 3) :=
+  sumTo_mono (fun (_ : Nat) => ratOneRep)
+    (fun (_ : Nat) => And.left ratLtRep_zero_one) Nat.zero 3 (leNat_zero_le 3)

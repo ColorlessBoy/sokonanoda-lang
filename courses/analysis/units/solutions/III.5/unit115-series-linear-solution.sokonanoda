@@ -1,0 +1,122 @@
+-- 单元115 可和级数的加法、取负与减法（解答）
+--
+-- 114 把可和性写成尾块条件，尾块是两条部分和之差。可和本来就是部分和序列
+-- 的 Cauchy 性，所以逐项相加、取负、相减之后，部分和序列也做同样的逐项
+-- 运算。这里要确认：这些运算把 Cauchy 序列仍然送回 Cauchy 序列。
+--
+-- 先证一条搬运律：两条序列逐点代表同一个有理数时，一条是 Cauchy 的，
+-- 另一条也是。`sumTo_add` 与 `sumTo_neg` 把级数的逐项运算翻译成部分和
+-- 序列的逐项运算，搬运律再把 Cauchy 性从一边搬到另一边。
+--
+-- 边界：只处理可和性，不把两个和类相加。和类的加法要在 ℝ 的序上做估计，
+-- 不在本单元。取负与减法都停在代表元层。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Sum
+import lib.SumSplit
+import lib.Series
+import lib.Limit
+import lib.Cauchy
+import lib.Tail
+import lib.RealEq
+import lib.RealAdd
+import lib.RealNeg
+import lib.LimitClassSub
+
+-- ─────────────────────────────────────────────────────────────
+-- 115.0 逐点代表同一个有理数保持 Cauchy 性
+-- ─────────────────────────────────────────────────────────────
+
+theorem cauchy_congr (x y : Seq)
+    (hxy : ∀ (n : Nat), ratRel (x n) (y n)) (hx : Cauchy x) : Cauchy y :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hx eps heps)
+      (fun (N : Nat)
+          (hN : ∀ (n m : Nat), LeNat N n → LeNat N m →
+            close (x n) (x m) eps) =>
+        Exists.intro N
+          (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =>
+            close_wd_left (x n) (y n) (y m) eps (hxy n)
+              (close_symm (y m) (x n) eps
+                (close_wd_left (x m) (y m) (x n) eps (hxy m)
+                  (close_symm (x n) (x m) eps (hN n m hn hm))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 115.1 逐项相加的部分和
+-- ─────────────────────────────────────────────────────────────
+
+-- `sumTo_add` 已经给出这条等式；这里只把它写成两个部分和序列的逐点值。
+theorem series_add_pointwise (f g : Nat → ratRep) (n : Nat) :
+    ratRel (Series (fun (k : Nat) => ratAddRep (f k) (g k)) n)
+      (addSeq (Series f) (Series g) n) :=
+  sumTo_add f g n
+
+-- ─────────────────────────────────────────────────────────────
+-- 115.2 两条可和级数逐项相加仍可和
+-- ─────────────────────────────────────────────────────────────
+
+theorem summable_add (f g : Nat → ratRep)
+    (hf : Summable f) (hg : Summable g) :
+    Summable (fun (k : Nat) => ratAddRep (f k) (g k)) :=
+  cauchy_congr (addSeq (Series f) (Series g))
+    (Series (fun (k : Nat) => ratAddRep (f k) (g k)))
+    (fun (n : Nat) =>
+      ratRel_symm
+        (Series (fun (k : Nat) => ratAddRep (f k) (g k)) n)
+        (addSeq (Series f) (Series g) n)
+        (series_add_pointwise f g n))
+    (cauchy_add (Series f) (Series g) hf hg)
+
+-- ─────────────────────────────────────────────────────────────
+-- 115.3 逐项取负仍可和
+-- ─────────────────────────────────────────────────────────────
+
+theorem summable_neg (f : Nat → ratRep) (hf : Summable f) :
+    Summable (fun (k : Nat) => ratNegRep (f k)) :=
+  cauchy_congr (negSeq (Series f))
+    (Series (fun (k : Nat) => ratNegRep (f k)))
+    (fun (n : Nat) =>
+      ratRel_symm (Series (fun (k : Nat) => ratNegRep (f k)) n)
+        (negSeq (Series f) n) (sumTo_neg f n))
+    (cauchy_neg (Series f) hf)
+
+-- ─────────────────────────────────────────────────────────────
+-- 115.4 逐项相减的部分和
+-- ─────────────────────────────────────────────────────────────
+
+-- 减法先拆成「加一项、减一项」。`sumTo_add` 把和拆开，`sumTo_neg` 把第二段
+-- 的取负提到和外面，于是两个部分和序列逐点相减。
+theorem series_sub_pointwise (f g : Nat → ratRep) (n : Nat) :
+    ratRel (Series (fun (k : Nat) => ratSubRep (f k) (g k)) n)
+      (subSeq (Series f) (Series g) n) :=
+  ratRel_trans_gen
+    (Series (fun (k : Nat) => ratSubRep (f k) (g k)) n)
+    (ratAddRep (Series f n) (Series (fun (k : Nat) => ratNegRep (g k)) n))
+    (ratAddRep (Series f n) (ratNegRep (Series g n)))
+    (sumTo_add f (fun (k : Nat) => ratNegRep (g k)) n)
+    (ratAddRep_wd_snd_gen (Series f n) (Series (fun (k : Nat) => ratNegRep (g k)) n)
+      (ratNegRep (Series g n)) (sumTo_neg g n))
+
+-- ─────────────────────────────────────────────────────────────
+-- 115.5 两条可和级数逐项相减仍可和
+-- ─────────────────────────────────────────────────────────────
+
+theorem summable_sub (f g : Nat → ratRep)
+    (hf : Summable f) (hg : Summable g) :
+    Summable (fun (k : Nat) => ratSubRep (f k) (g k)) :=
+  cauchy_congr (subSeq (Series f) (Series g))
+    (Series (fun (k : Nat) => ratSubRep (f k) (g k)))
+    (fun (n : Nat) =>
+      ratRel_symm (Series (fun (k : Nat) => ratSubRep (f k) (g k)) n)
+        (subSeq (Series f) (Series g) n) (series_sub_pointwise f g n))
+    (cauchy_sub (Series f) (Series g) hf hg)
+
+-- ─────────────────────────────────────────────────────────────
+-- 115.6 具体：零级数逐项相加仍可和
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_sum_zero :
+    Summable (fun (k : Nat) => ratAddRep ratZeroRep ratZeroRep) :=
+  summable_add (fun (_ : Nat) => ratZeroRep) (fun (_ : Nat) => ratZeroRep)
+    summable_zero summable_zero

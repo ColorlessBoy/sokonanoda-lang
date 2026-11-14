@@ -1,0 +1,89 @@
+-- 单元76 极限的代数：加法、减法、取负
+--
+-- 73 给了 ε-N 定义，74 唯一性，75 序。接下来做**极限律**：
+-- 收敛序列的和、差、取负仍收敛，且极限是各自极限的和、差、取负。
+--
+-- 路线：
+--
+--   · 76.1 先备一条换极限的引理：`L ~ L'` 时 `Converges x L` 可换成
+--     `Converges x L'`——`close_trans` 把「`x n` 靠近 `L`」与
+--     「`L` 靠近 `L'`」串起来（两条都取 `eps/2`）；
+--   · 76.2 加法：两条 `eps/2` 的接近性用 73.2 的 `eventually_and` 合并到
+--     同一个 `N`，60.2 的 `close_add` 直接给
+--     `close (x n + y n) (L + M) eps`；
+--   · 76.3 取负：逐点用 59.2 的 `close_neg`（已进 `lib/RealNeg`）；
+--   · 76.4 减法：`x - y` 就是 `x + (-y)`，由 76.2 / 76.3 拼起来——
+--     `subSeq` 与 `ratSubRep` 都是定义展开，不需要额外的换形引理；
+--   · 76.5 具体：零序列加零序列收敛到零（用 76.1 把 `0 + 0` 换回 `0`）。
+--
+-- 边界：这里只做「加法群」这一半。乘法律需要先有
+-- **有界性**（`|x n|` 的界），那是后续单元的事；不假装已经有了。
+-- 不新增公理。
+
+import lib.Limit
+import lib.RealAdd
+import lib.RealNeg
+import lib.RatSub
+
+-- ─────────────────────────────────────────────────────────────
+-- 76.0 减法序列的定义（直接给出，不是练习）
+-- ─────────────────────────────────────────────────────────────
+
+def subSeq (x y : Seq) : Seq := fun (n : Nat) => ratAddRep (x n) (ratNegRep (y n))
+
+-- ─────────────────────────────────────────────────────────────
+-- 76.1 极限可以换成等价的代表元
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对任意 `eps > 0`，把原极限用在 `eps/2` 上；`L ~ L'` 经 73.4 的 `close_of_ratRel` 给常序列的 `eps/2` 接近性；两条用 57 的 `close_trans` 串成 `close (x n) L' eps`。
+-- soko:hint 目标形态：`Converges x L'`。
+-- soko:hint 关键件：eventually_mono · ratLtRep_half · close_trans · close_of_ratRel。
+theorem converges_congr_limit (x : Seq) (L L' : ratRep)
+    (h : Converges x L) (hLL' : ratRel L L') : Converges x L' :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 76.2 加法律
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：取 `eps/2` 同时在两个序列上取阈值，`eventually_and` 并到同一个 `N`；逐点 `close_add` 把两条 `eps/2` 的界合成 `close (x n + y n) (L + M) eps`。`addSeq` 是定义展开。
+-- soko:hint 目标形态：`Converges (addSeq x y) (ratAddRep L M)`。
+-- soko:hint 关键件：eventually_and · ratLtRep_half · close_add · eventually_mono。
+theorem converges_add (x y : Seq) (L M : ratRep)
+    (hx : Converges x L) (hy : Converges y M) :
+    Converges (addSeq x y) (ratAddRep L M) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 76.3 取负律
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：原极限在每个 `eps` 上给 `close (x n) L eps`，逐点经 59.2 的 `close_neg` 搬到 `close (-(x n)) (-L) eps`；`negSeq` 是定义展开，阈值不变。
+-- soko:hint 目标形态：`Converges (negSeq x) (ratNegRep L)`。
+-- soko:hint 关键件：eventually_mono · close_neg。
+theorem converges_neg (x : Seq) (L : ratRep) (h : Converges x L) :
+    Converges (negSeq x) (ratNegRep L) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 76.4 减法律
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`x - y` 展开成 `x + (-y)`，`ratSubRep L M` 展开成 `L + (-M)`；把 76.2 用在 `x` 与 `negSeq y` 上，第二个前提由 76.3 给。
+-- soko:hint 目标形态：`Converges (subSeq x y) (ratSubRep L M)`。
+-- soko:hint 关键件：converges_add · converges_neg。
+theorem converges_sub (x y : Seq) (L M : ratRep)
+    (hx : Converges x L) (hy : Converges y M) :
+    Converges (subSeq x y) (ratSubRep L M) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 76.5 具体：零 + 零收敛到零
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：76.2 给 `zeroSeq + zeroSeq` 收敛到 `0 + 0`；再用 76.1 把极限换成 `0`——`0 + 0 ~ 0` 是 ㊸ 的 `ratAdd_zero`。
+-- soko:hint 目标形态：`Converges (addSeq zeroSeq zeroSeq) ratZeroRep`。
+-- soko:hint 关键件：converges_add · demo_converges_zero · converges_congr_limit · ratAdd_zero。
+theorem demo_add_zero :
+    Converges (addSeq zeroSeq zeroSeq) ratZeroRep :=
+  sorry

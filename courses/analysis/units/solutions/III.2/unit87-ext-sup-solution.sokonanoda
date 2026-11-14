@@ -1,0 +1,95 @@
+-- 单元87 扩展实数上的上界与上确界（解答）
+--
+-- 86 立起了 ±∞ 的序，84 与 85 立起了上确界的唯一性，两处却还接不上：
+-- 那些定理只对「有实数上界」的集合陈述。全体实数没有实数上界，于是
+-- 「它的上确界」在 ℝ 里没有指称；在扩展实数里它有，就是 `posInf`。
+--
+-- 把 `UpperBound` 与 `IsSup` 原样取成类型 `ExtReal`、关系 `ele`，84 的
+-- 比较律就有了扩展版本。证明的形状不变，每一步的序律换成 86 的三条，
+-- 它们已经收进 `lib/ExtRealOrder`。
+--
+-- 边界：任意集合的上确界是否存在仍不证明——那要选择公理或 Dedekind
+-- 切割；这里只证「若存在则唯一」与两个能直接写出的实例。
+
+import lib.Order
+import lib.ExtReal
+import lib.ExtRealOrder
+
+-- ─────────────────────────────────────────────────────────────
+-- 87.0 读法
+-- ─────────────────────────────────────────────────────────────
+
+-- `UpperBound ExtReal ele A M` 读作「`M` 是 `A` 在扩展实数里的上界」，
+-- `IsSup ExtReal ele A s` 读作「`s` 是 `A` 的上确界」。两个定义都在
+-- `lib/Order`，这里不再重写。
+
+-- ─────────────────────────────────────────────────────────────
+-- 87.1 上界可以放大
+-- ─────────────────────────────────────────────────────────────
+
+-- 逐个元素把 `a ≤ M` 与 `M ≤ M'` 用传递接起来。
+theorem ext_upperBound_of_le (A : ExtReal → Prop) (M M' : ExtReal)
+    (hM : UpperBound ExtReal ele A M) (h : ele M M') :
+    UpperBound ExtReal ele A M' :=
+  fun (a : ExtReal) (ha : A a) => ele_trans a M M' (hM a ha) h
+
+-- ─────────────────────────────────────────────────────────────
+-- 87.2 上确界处 `s ≤ M` 与「M 是上界」等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 正方向：`a ≤ s` 与 `s ≤ M` 走传递。反方向是 `IsSup` 的第二分量。
+theorem ext_sup_le_iff (A : ExtReal → Prop) (s M : ExtReal)
+    (hs : IsSup ExtReal ele A s) :
+    ele s M ↔ UpperBound ExtReal ele A M :=
+  Iff.intro
+    (fun (h : ele s M) =>
+      fun (a : ExtReal) (ha : A a) =>
+        ele_trans a s M (isSup_upper ExtReal ele A s hs a ha) h)
+    (fun (hM : UpperBound ExtReal ele A M) =>
+      isSup_least ExtReal ele A s hs M hM)
+
+-- ─────────────────────────────────────────────────────────────
+-- 87.3 上确界唯一
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个上确界互相不超过，再交给反对称。
+theorem ext_sup_unique (A : ExtReal → Prop) (s t : ExtReal)
+    (hs : IsSup ExtReal ele A s) (ht : IsSup ExtReal ele A t) : s = t :=
+  ele_antisymm s t
+    (isSup_least ExtReal ele A s hs t (isSup_upper ExtReal ele A t ht))
+    (isSup_least ExtReal ele A t ht s (isSup_upper ExtReal ele A s hs))
+
+-- ─────────────────────────────────────────────────────────────
+-- 87.4 集合含正无穷时，上确界是正无穷
+-- ─────────────────────────────────────────────────────────────
+
+-- 上界分量是 `le_posInf`；最小性把任取的上界作用在 `posInf` 与假设上。
+theorem ext_sup_of_top (A : ExtReal → Prop) (h : A posInf) :
+    IsSup ExtReal ele A posInf :=
+  And.intro
+    (fun (a : ExtReal) (_ : A a) => le_posInf a)
+    (fun (M : ExtReal) (hM : UpperBound ExtReal ele A M) => hM posInf h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 87.5 空集的上确界是负无穷
+-- ─────────────────────────────────────────────────────────────
+
+-- 空集没有元素，所以任何点都是它的上界；最小性就是底。
+theorem ext_sup_empty :
+    IsSup ExtReal ele (fun (_ : ExtReal) => False) negInf :=
+  And.intro
+    (fun (a : ExtReal) (h : False) => False.elim h)
+    (fun (M : ExtReal) (_ : UpperBound ExtReal ele (fun (_ : ExtReal) => False) M) =>
+      negInf_le M)
+
+-- ─────────────────────────────────────────────────────────────
+-- 87.6 全空间的上确界是正无穷
+-- ─────────────────────────────────────────────────────────────
+
+-- 上界分量是 `le_posInf`；最小性把上界作用在 `posInf` 与 `True.intro` 上。
+theorem ext_sup_univ :
+    IsSup ExtReal ele (fun (_ : ExtReal) => True) posInf :=
+  And.intro
+    (fun (a : ExtReal) (_ : True) => le_posInf a)
+    (fun (M : ExtReal) (hM : UpperBound ExtReal ele (fun (_ : ExtReal) => True) M) =>
+      hM posInf True.intro)

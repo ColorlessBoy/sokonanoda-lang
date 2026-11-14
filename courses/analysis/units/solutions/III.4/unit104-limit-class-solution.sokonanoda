@@ -1,0 +1,215 @@
+-- 单元104 极限类的唯一性（解答）
+--
+-- 103 把「两个 Cauchy 序列的类相等」换成了差趋于零。完备性另有一步：
+-- 一个 Cauchy 序列在 ℝ 里有极限类，这个类不该依赖我们挑哪一个代表元。
+-- 本单元先在代表元层证明：两条都收敛到同一个序列的 Cauchy 序列，
+-- 它们的差序列落在零的类里，于是两个极限类是同一个实数。
+--
+-- 104.0–104.1 收两条减法估计：把常数并进误差、把两个半边估计相加。
+-- 104.2–104.4 用 eps/4 把两条尾部估计合成类序的一个方向。
+-- 104.5 用反对称得到极限类相等。104.6 把「极限类」包成谓词并证明唯一。
+-- 104.7 是常序列的实例。
+--
+-- 边界：只处理「同一个序列的两个极限类」，不声称每个实数都有代表元，
+-- 也不在类层构造减法。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatHalf
+import lib.RatSub
+import lib.RatClose
+import lib.RatAbsOrder
+import lib.LimitOrder
+import lib.RealOrderTrans
+import lib.RealOrderLaws
+import lib.RealComplete
+
+-- 四分之一个误差：两次取半。
+def eps4 (eps : ratRep) : ratRep := ratHalf (ratHalf eps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.0 `(b + e) - b ~ e`
+-- ─────────────────────────────────────────────────────────────
+
+-- 先看 `((b + e) - b) + b ~ b + e`（减法加回被减数），另一头
+-- `e + b ~ b + e`（交换律）。两边同加 `b` 的等式消去 `b`，得到
+-- `(b + e) - b ~ e`。
+theorem ratSubRep_add_self_sub (b e : ratRep) :
+    ratRel (ratSubRep (ratAddRep b e) b) e :=
+  ratRel_add_cancel_gen (ratSubRep (ratAddRep b e) b) e b
+    (ratRel_trans_gen
+      (ratAddRep (ratSubRep (ratAddRep b e) b) b)
+      (ratAddRep b e)
+      (ratAddRep e b)
+      (ratSubRep_add_self (ratAddRep b e) b)
+      (ratAdd_comm b e))
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.1 把常数并进误差
+-- ─────────────────────────────────────────────────────────────
+
+-- 若 `a - (b + e) ≤ e`，把左边拆成 `(a - (b + e)) + ((b + e) - b)`，
+-- 第二块由 104.0 压成 `e`，两块相加得 `a - b ≤ e + e`。
+theorem ratSubRep_add_le_two (a b e : ratRep)
+    (h : ratLeRep (ratSubRep a (ratAddRep b e)) e) :
+    ratLeRep (ratSubRep a b) (ratAddRep e e) :=
+  ratLeRep_sub_add a (ratAddRep b e) b e h
+    (ratLeRep_of_ratRel (ratSubRep (ratAddRep b e) b) e
+      (ratSubRep_add_self_sub b e))
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.2 四个四分之一是一个整体
+-- ─────────────────────────────────────────────────────────────
+
+-- 先把第一个 `e + e` 换成 `eps/2`，再把第二个也换掉，最后两半合并成 `eps`。
+theorem ratHalf_four (eps : ratRep) :
+    ratRel (ratAddRep (ratAddRep (eps4 eps) (eps4 eps))
+                     (ratAddRep (eps4 eps) (eps4 eps)))
+           eps :=
+  ratRel_trans_gen
+    (ratAddRep (ratAddRep (eps4 eps) (eps4 eps))
+               (ratAddRep (eps4 eps) (eps4 eps)))
+    (ratAddRep (ratHalf eps) (ratHalf eps))
+    eps
+    (ratRel_trans_gen
+      (ratAddRep (ratAddRep (eps4 eps) (eps4 eps))
+                 (ratAddRep (eps4 eps) (eps4 eps)))
+      (ratAddRep (ratHalf eps) (ratAddRep (eps4 eps) (eps4 eps)))
+      (ratAddRep (ratHalf eps) (ratHalf eps))
+      (ratAddRep_wd_gen
+        (ratAddRep (eps4 eps) (eps4 eps))
+        (ratHalf eps)
+        (ratAddRep (eps4 eps) (eps4 eps))
+        (ratHalf_add_self (ratHalf eps)))
+      (ratAddRep_wd_snd_gen
+        (ratHalf eps)
+        (ratAddRep (eps4 eps) (eps4 eps))
+        (ratHalf eps)
+        (ratHalf_add_self (ratHalf eps))))
+    (ratHalf_add_self eps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.3 固定一个下标后的尾部估计
+-- ─────────────────────────────────────────────────────────────
+
+-- 两条 `realLeRep` 各给一条尾部估计：`L(n) - (x(n₀) + e) ≤ e` 与
+-- `x(n₀) - (L'(n) + e) ≤ e`。104.1 把常数并进误差，得到两条 `≤ e + e`；
+-- 再用 `ratLeRep_sub_add` 相加，末了由 104.2 把 `(e+e)+(e+e)` 收成 `eps`。
+theorem tendsTo_tail_le (x L L' : Seq) (n0 : Nat) (e eps : ratRep)
+    (hLrep : realLeRep L (addConst (constSeq (x n0)) e))
+    (hL'rep : realLeRep (constSeq (x n0)) (addConst L' e))
+    (he : ratLtRep ratZeroRep e)
+    (hfour : ratRel (ratAddRep (ratAddRep e e) (ratAddRep e e)) eps) :
+    ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+      ratLeRep (ratSubRep (L n) (L' n)) eps :=
+  Exists.elim
+    (realLeRep_close L (addConst (constSeq (x n0)) e) hLrep e he)
+    (fun (M1 : Nat)
+        (hM1 : ∀ (n : Nat), LeNat M1 n →
+          ratLeRep (ratSubRep (L n) (addConst (constSeq (x n0)) e n)) e) =>
+      Exists.elim
+        (realLeRep_close (constSeq (x n0)) (addConst L' e) hL'rep e he)
+        (fun (M2 : Nat)
+            (hM2 : ∀ (n : Nat), LeNat M2 n →
+              ratLeRep (ratSubRep ((constSeq (x n0)) n) (addConst L' e n)) e) =>
+          Exists.elim (leNat_max M1 M2)
+            (fun (N : Nat) (hN : LeNat M1 N ∧ LeNat M2 N) =>
+              Exists.intro N
+                (fun (n : Nat) (hn : LeNat N n) =>
+                  ratLeRep_congr_gen
+                    (ratSubRep (L n) (L' n))
+                    (ratSubRep (L n) (L' n))
+                    (ratAddRep (ratAddRep e e) (ratAddRep e e))
+                    eps
+                    (ratRel_refl (ratSubRep (L n) (L' n)))
+                    hfour
+                    (ratLeRep_sub_add (L n) (x n0) (L' n) (ratAddRep e e)
+                      (ratSubRep_add_le_two (L n) (x n0) e
+                        (hM1 n (leNat_trans M1 N n (And.left hN) hn)))
+                      (ratSubRep_add_le_two (x n0) (L' n) e
+                        (hM2 n (leNat_trans M2 N n (And.right hN) hn))))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.4 一个方向的类序
+-- ─────────────────────────────────────────────────────────────
+
+-- 两条 `TendsTo` 各给一个阈值 `N₁`、`N₂`，合并到 `n₀`。固定 `n₀` 后，
+-- `L ≤ x(n₀) + e` 与 `x(n₀) ≤ L' + e` 就是 104.3 需要的两条代表元估计。
+theorem tendsTo_le_class (x L L' : Seq) (hLc : Cauchy L) (hL'c : Cauchy L')
+    (hL : TendsTo x L) (hL' : TendsTo x L') :
+    realLe (Real.mk L) (Real.mk L') :=
+  Iff.mpr (realLe_mk L L')
+    (And.intro hLc
+      (And.intro hL'c
+        (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+          Exists.elim
+            (hL (eps4 eps)
+              (ratLtRep_half (ratHalf eps) (ratLtRep_half eps heps)))
+            (fun (N1 : Nat)
+                (hN1 : ∀ (n : Nat), LeNat N1 n →
+                  realLe (Real.mk (constSeq (x n))) (Real.mk (addConst L (eps4 eps))) ∧
+                  realLe (Real.mk L) (Real.mk (addConst (constSeq (x n)) (eps4 eps)))) =>
+              Exists.elim
+                (hL' (eps4 eps)
+                  (ratLtRep_half (ratHalf eps) (ratLtRep_half eps heps)))
+                (fun (N2 : Nat)
+                    (hN2 : ∀ (n : Nat), LeNat N2 n →
+                      realLe (Real.mk (constSeq (x n))) (Real.mk (addConst L' (eps4 eps))) ∧
+                      realLe (Real.mk L') (Real.mk (addConst (constSeq (x n)) (eps4 eps)))) =>
+                  Exists.elim (leNat_max N1 N2)
+                    (fun (n0 : Nat) (hn0 : LeNat N1 n0 ∧ LeNat N2 n0) =>
+                      tendsTo_tail_le x L L' n0 (eps4 eps) eps
+                        (Iff.mp (realLe_mk L (addConst (constSeq (x n0)) (eps4 eps)))
+                          (And.right (hN1 n0 (And.left hn0))))
+                        (Iff.mp (realLe_mk (constSeq (x n0)) (addConst L' (eps4 eps)))
+                          (And.left (hN2 n0 (And.right hn0))))
+                        (ratLtRep_half (ratHalf eps) (ratLtRep_half eps heps))
+                        (ratHalf_four eps)))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.5 极限类相等
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个方向各用 104.4 一次，再交给 `realLe_antisymm`。
+theorem tendsTo_unique_class (x L L' : Seq) (hLc : Cauchy L) (hL'c : Cauchy L')
+    (hL : TendsTo x L) (hL' : TendsTo x L') :
+    Real.mk L = Real.mk L' :=
+  realLe_antisymm (Real.mk L) (Real.mk L')
+    (tendsTo_le_class x L L' hLc hL'c hL hL')
+    (tendsTo_le_class x L' L hL'c hLc hL' hL)
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.6 极限类
+-- ─────────────────────────────────────────────────────────────
+
+-- 「`a` 是 `x` 的极限类」：存在一个 Cauchy 代表元 `L`，它收敛到 `x`，
+-- 而 `a` 正是 `L` 的类。
+def LimitClass (x : Seq) (a : Real) : Prop :=
+  ∃ (L : Seq), Cauchy L ∧ TendsTo x L ∧ a = Real.mk L
+
+-- 104.6 的后半：两个极限类相等
+
+-- 两个极限类由 104.5 相等；把 `a = [L]`、`b = [L']` 接上即可。
+theorem limitClass_unique (x : Seq) (a b : Real)
+    (ha : LimitClass x a) (hb : LimitClass x b) : a = b :=
+  Exists.elim ha
+    (fun (L : Seq) (hL : Cauchy L ∧ TendsTo x L ∧ a = Real.mk L) =>
+      Exists.elim hb
+        (fun (L' : Seq) (hL' : Cauchy L' ∧ TendsTo x L' ∧ b = Real.mk L') =>
+          Eq.trans (And.right (And.right hL))
+            (Eq.trans
+              (tendsTo_unique_class x L L' (And.left hL) (And.left hL')
+                (And.left (And.right hL)) (And.left (And.right hL')))
+              (Eq.symm (And.right (And.right hL'))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.7 常序列的极限类
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列收敛到自己的类（68 的 `cauchy_tends_to_class`），于是它就是极限类。
+theorem demo_limit_class_const (q : ratRep) :
+    LimitClass (constSeq q) (Real.mk (constSeq q)) :=
+  Exists.intro (constSeq q)
+    (And.intro (cauchy_const q)
+      (And.intro (cauchy_tends_to_class (constSeq q) (cauchy_const q))
+        (Eq.refl (Real.mk (constSeq q)))))

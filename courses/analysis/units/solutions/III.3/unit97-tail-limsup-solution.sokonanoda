@@ -1,0 +1,107 @@
+-- 单元97 上下极限只看尾部（解答）
+--
+-- 上极限与下极限都是极限点集合的上下确界，而极限点由子序列见证：轨道的
+-- 下标可以任意大。因此改动前几项不会改变极限点集合，也不会改变上下极限。
+-- 只要两条序列从某一项起逐项代表同一个有理数，上下极限就相同。
+--
+-- 97.0 把尾部等价沿一条子序列复合。97.1 把极限点沿尾部等价搬过去。97.2 与
+-- 97.3 把这次搬运写成上极限与下极限的同一个界。97.4 合成两条序列的上下
+-- 极限彼此等价。97.5 是常序列改动有限项的例子。
+--
+-- 边界：结论只说「上下极限相同」，不说极限存在。不新增公理。
+
+import lib.Tail
+import lib.Limsup
+import lib.Liminf
+
+-- ─────────────────────────────────────────────────────────────
+-- 97.0 尾部等价沿子序列复合
+-- ─────────────────────────────────────────────────────────────
+
+-- 设两条序列从第 N 项起逐项等价。轨道不回头，`n ≤ g n`，所以 `g n` 也在
+-- 阈值之后；同一个 N 就能见证复合后的尾部等价。
+theorem tailEq_comp_subseq (x y : Seq) (h : TailEq x y) (g : Nat → Nat)
+    (hg : Subseq g) :
+    TailEq (fun (n : Nat) => x (g n)) (fun (n : Nat) => y (g n)) :=
+  Exists.elim h
+    (fun (N : Nat) (hN : ∀ (n : Nat), LeNat N n → ratRel (x n) (y n)) =>
+      Exists.intro N
+        (fun (n : Nat) (hn : LeNat N n) =>
+          hN (g n) (leNat_trans N n (g n) hn (subseq_ge g hg n))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 97.1 极限点沿尾部等价搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- `P` 由轨道 `g` 见证：`x ∘ g` 收敛到它。97.0 说明 `y ∘ g` 与它尾部等价，
+-- 尾部等价保持极限，于是同一条轨道也见证 `y` 以 `P` 为极限点。
+theorem limitPoint_congr_tail (x y : Seq) (h : TailEq x y) (P : ratRep)
+    (hp : LimitPoint x P) : LimitPoint y P :=
+  Exists.elim hp
+    (fun (g : Nat → Nat)
+        (hg : Subseq g ∧ Converges (fun (n : Nat) => x (g n)) P) =>
+      Exists.intro g
+        (And.intro (And.left hg)
+          (converges_congr_tail (fun (n : Nat) => x (g n))
+            (fun (n : Nat) => y (g n)) P (And.right hg)
+            (tailEq_comp_subseq x y h g (And.left hg)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 97.2 上极限沿尾部等价搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- 上界：`y` 的每个极限点经反方向的尾部等价回到 `x`，由 `x` 的上界压住。
+-- 最小性：压住 `y` 的候选界 B 也压住 `x` 的极限点，`x` 的最小性给出
+-- `L ≤ B`。
+theorem limsup_congr_tail (x y : Seq) (h : TailEq x y) (L : ratRep)
+    (hL : Limsup x L) : Limsup y L :=
+  And.intro
+    (fun (M : ratRep) (hM : LimitPoint y M) =>
+      limsup_upper x L hL M
+        (limitPoint_congr_tail y x (tailEq_symm x y h) M hM))
+    (fun (B : ratRep)
+        (hB : ∀ (M : ratRep), LimitPoint y M → ratLeRep M B) =>
+      limsup_least x L hL B
+        (fun (M : ratRep) (hM : LimitPoint x M) =>
+          hB M (limitPoint_congr_tail x y h M hM)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 97.3 下极限沿尾部等价搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- 与 97.2 对偶：下界与最大性逐条换成 `liminf_lower` 与 `liminf_greatest`。
+theorem liminf_congr_tail (x y : Seq) (h : TailEq x y) (L : ratRep)
+    (hL : Liminf x L) : Liminf y L :=
+  And.intro
+    (fun (M : ratRep) (hM : LimitPoint y M) =>
+      liminf_lower x L hL M
+        (limitPoint_congr_tail y x (tailEq_symm x y h) M hM))
+    (fun (B : ratRep)
+        (hB : ∀ (M : ratRep), LimitPoint y M → ratLeRep B M) =>
+      liminf_greatest x L hL B
+        (fun (M : ratRep) (hM : LimitPoint x M) =>
+          hB M (limitPoint_congr_tail x y h M hM)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 97.4 两条序列的上下极限彼此等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 搬运之后两条上极限落在同一条序列上，93.4 的唯一性收尾。
+theorem limsup_tail_rel (x y : Seq) (h : TailEq x y) (L M : ratRep)
+    (hL : Limsup x L) (hM : Limsup y M) : ratRel L M :=
+  limsup_unique y L M (limsup_congr_tail x y h L hL) hM
+
+-- 下极限的同一句话。
+theorem liminf_tail_rel (x y : Seq) (h : TailEq x y) (L M : ratRep)
+    (hL : Liminf x L) (hM : Liminf y M) : ratRel L M :=
+  liminf_unique y L M (liminf_congr_tail x y h L hL) hM
+
+-- ─────────────────────────────────────────────────────────────
+-- 97.5 常序列改动有限项
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列的上极限是它的值，尾部等价把它搬到目标序列上。
+theorem demo_tail_const (x : Seq) (q : ratRep) (h : TailEq x (constSeq q)) :
+    Limsup x q :=
+  limsup_congr_tail (constSeq q) x (tailEq_symm x (constSeq q) h) q
+    (limsup_const q)

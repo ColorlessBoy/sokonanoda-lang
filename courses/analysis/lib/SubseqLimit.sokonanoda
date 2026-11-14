@@ -1,0 +1,83 @@
+-- 课程库：子序列上的上下极限
+--
+-- 95 的结论收进 L2：按轨道取项、子序列的极限点仍属于原序列，以及由此得到的
+-- 上极限不升、下极限不降。
+--
+--   · `subseqSeq` —— 按轨道 `g` 取项得到子序列；
+--   · `subseq_limitPoint` —— 子序列的极限点也是原序列的极限点；
+--   · `limsup_subseq_le` —— 上极限沿子序列只降不升；
+--   · `liminf_le_subseq` —— 下极限沿子序列只升不降；
+--   · `limsup_subseq_of_converges` —— 收敛序列的子序列以上极限为极限；
+--   · `liminf_subseq_of_converges` —— 同上的下极限版本；
+--   · `demo_subseq_const` —— 常序列的子序列。
+--
+-- 边界：只有「子序列的界不超过原序列的界」这一个方向。原序列多出来的极限点
+-- 不必出现在某一条固定的子序列里。不新增公理，也不碰 kernel/front。
+
+import lib.Limsup
+import lib.Liminf
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.0 按轨道取项
+-- ─────────────────────────────────────────────────────────────
+
+def subseqSeq (g : Nat → Nat) (x : Seq) : Seq :=
+  fun (n : Nat) => x (g n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.1 子序列的极限点也是原序列的极限点
+-- ─────────────────────────────────────────────────────────────
+
+theorem subseq_limitPoint (x : Seq) (g : Nat → Nat) (hg : Subseq g) (L : ratRep)
+    (h : LimitPoint (subseqSeq g x) L) : LimitPoint x L :=
+  Exists.elim h
+    (fun (h' : Nat → Nat)
+        (hh : Subseq h' ∧ Converges (fun (n : Nat) => subseqSeq g x (h' n)) L) =>
+      Exists.intro (fun (n : Nat) => g (h' n))
+        (And.intro
+          (subseq_comp g h' hg (And.left hh))
+          (And.right hh)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.2 上极限沿子序列只降不升
+-- ─────────────────────────────────────────────────────────────
+
+theorem limsup_subseq_le (x : Seq) (g : Nat → Nat) (hg : Subseq g) (L M : ratRep)
+    (hL : Limsup x L) (hM : Limsup (subseqSeq g x) M) : ratLeRep M L :=
+  limsup_least (subseqSeq g x) M hM L
+    (fun (P : ratRep) (hP : LimitPoint (subseqSeq g x) P) =>
+      limsup_upper x L hL P (subseq_limitPoint x g hg P hP))
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.3 下极限沿子序列只升不降
+-- ─────────────────────────────────────────────────────────────
+
+theorem liminf_le_subseq (x : Seq) (g : Nat → Nat) (hg : Subseq g) (L M : ratRep)
+    (hL : Liminf x L) (hM : Liminf (subseqSeq g x) M) : ratLeRep L M :=
+  liminf_greatest (subseqSeq g x) M hM L
+    (fun (P : ratRep) (hP : LimitPoint (subseqSeq g x) P) =>
+      liminf_lower x L hL P (subseq_limitPoint x g hg P hP))
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.4 收敛序列的子序列以上极限为极限
+-- ─────────────────────────────────────────────────────────────
+
+theorem limsup_subseq_of_converges (x : Seq) (g : Nat → Nat) (hg : Subseq g)
+    (L : ratRep) (h : Converges x L) : Limsup (subseqSeq g x) L :=
+  limsup_of_converges (subseqSeq g x) L (subseq_converges x L h g hg)
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.5 收敛序列的子序列以下极限为极限
+-- ─────────────────────────────────────────────────────────────
+
+theorem liminf_subseq_of_converges (x : Seq) (g : Nat → Nat) (hg : Subseq g)
+    (L : ratRep) (h : Converges x L) : Liminf (subseqSeq g x) L :=
+  liminf_of_converges (subseqSeq g x) L (subseq_converges x L h g hg)
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.6 常序列的子序列
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_subseq_const (g : Nat → Nat) (hg : Subseq g) (q : ratRep) :
+    Limsup (subseqSeq g (constSeq q)) q :=
+  limsup_subseq_of_converges (constSeq q) g hg q (converges_const q)

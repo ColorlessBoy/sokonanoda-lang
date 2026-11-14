@@ -1,0 +1,122 @@
+-- 单元103 实数相等与差趋于零（解答）
+--
+-- 实数定义成 Cauchy 序列的商，x 与 y 相等当且仅当两个代表元逐点靠近。
+-- 逐点靠近与「差序列收敛到零」是同一件事，但后者把差当成一条普通序列，
+-- 可以直接用极限的机器。把两者接起来，后面谈完备性时就能在差序列上做估计。
+--
+-- 103.0 把 `close a b ε` 改写成差与零的接近性。103.1–103.3 用这条桥把
+-- `realRel` 换成「差收敛到零」，两个方向与等价各一条。103.4 是自差的实例。
+--
+-- 边界：只说「差趋于零」与「实数相等」等价，不声称差序列有极限之外的
+-- 信息，也不在这里构造实数的减法。不新增公理。
+
+import lib.Cauchy
+import lib.Limit
+import lib.RatAbs
+import lib.RealEq
+import lib.RatClose
+
+-- 两条序列逐点相减。
+def diffSeq (x y : Seq) : Seq :=
+  fun (n : Nat) => ratSubRep (x n) (y n)
+-- ─────────────────────────────────────────────────────────────
+-- 103.0 接近性只差一个零
+-- ─────────────────────────────────────────────────────────────
+
+-- `close a b ε` 的见证是 `|a - b| ~ d`。把 `a - b` 看成 `(a - b) - 0`：
+-- 两者沿 `ratAdd_zero` 等价，绝对值不变。
+theorem close_sub_zero (a b eps : ratRep) :
+    close a b eps ↔ close (ratSubRep a b) ratZeroRep eps :=
+  Iff.intro
+    (fun (h : close a b eps) =>
+      Exists.elim h
+        (fun (d : ratRep)
+            (hd : ratAbsRel (ratSubRep a b) d ∧ ratLtRep d eps) =>
+          Exists.intro d
+            (And.intro
+              (ratAbsRel_wd_left (ratSubRep a b)
+                (ratSubRep (ratSubRep a b) ratZeroRep) d
+                (ratRel_symm (ratSubRep (ratSubRep a b) ratZeroRep)
+                  (ratSubRep a b) (ratAdd_zero (ratSubRep a b)))
+                (And.left hd))
+              (And.right hd))))
+    (fun (h : close (ratSubRep a b) ratZeroRep eps) =>
+      Exists.elim h
+        (fun (d : ratRep)
+            (hd : ratAbsRel (ratSubRep (ratSubRep a b) ratZeroRep) d ∧
+                  ratLtRep d eps) =>
+          Exists.intro d
+            (And.intro
+              (ratAbsRel_wd_left (ratSubRep (ratSubRep a b) ratZeroRep)
+                (ratSubRep a b) d
+                (ratAdd_zero (ratSubRep a b))
+                (And.left hd))
+              (And.right hd))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 103.1 实数相等推出差趋于零
+-- ─────────────────────────────────────────────────────────────
+
+-- `realRel x y` 的第三项对每个 ε 给阈值与 `close (x n) (y n) ε`。
+-- 逐点把它换成 `close (x n - y n) 0 ε`，就得到 `diffSeq` 的 ε-N 陈述。
+theorem tends_zero_of_realRel (x y : Seq) (h : realRel x y) :
+    Converges (diffSeq x y) ratZeroRep :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (realRel_close x y h eps heps)
+      (fun (N : Nat)
+          (hN : ∀ (n : Nat), LeNat N n → close (x n) (y n) eps) =>
+        Exists.intro N
+          (fun (n : Nat) (hn : LeNat N n) =>
+            Iff.mp (close_sub_zero (x n) (y n) eps) (hN n hn)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 103.2 差趋于零推出实数相等
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个 Cauchy 前提直接由假设给出。逐点接近性从 `diffSeq` 的收敛陈述
+-- 经 103.0 的反向搬回来。
+theorem realRel_of_tends_zero (x y : Seq) (hx : Cauchy x) (hy : Cauchy y)
+    (h : Converges (diffSeq x y) ratZeroRep) : realRel x y :=
+  And.intro hx
+    (And.intro hy
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim (h eps heps)
+          (fun (N : Nat)
+              (hN : ∀ (n : Nat), LeNat N n →
+                close (diffSeq x y n) ratZeroRep eps) =>
+            Exists.intro N
+              (fun (n : Nat) (hn : LeNat N n) =>
+                Iff.mpr (close_sub_zero (x n) (y n) eps) (hN n hn)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 103.3 两种说法的等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 正向拆开 `realRel` 后交 103.1；反向把三件假设按 `realRel` 的形状拼好，
+-- 再交 103.2。
+theorem realRel_iff_tends_zero (x y : Seq) :
+    realRel x y ↔
+      Cauchy x ∧ Cauchy y ∧ Converges (diffSeq x y) ratZeroRep :=
+  Iff.intro
+    (fun (h : realRel x y) =>
+      And.intro (And.left h)
+        (And.intro (And.left (And.right h)) (tends_zero_of_realRel x y h)))
+    (fun (h : Cauchy x ∧ Cauchy y ∧ Converges (diffSeq x y) ratZeroRep) =>
+      realRel_of_tends_zero x y
+        (And.left h) (And.left (And.right h)) (And.right (And.right h)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 103.4 自差趋于零
+-- ─────────────────────────────────────────────────────────────
+
+-- 收敛到自身：`close (x n) (x n) ε` 由 `close_of_ratRel` 与自反性给出，
+-- 再用 103.1 换成差的形式。
+theorem demo_diff_self_tends_zero (x : Seq) (h : Cauchy x) :
+    Converges (diffSeq x x) ratZeroRep :=
+  tends_zero_of_realRel x x
+    (And.intro h
+      (And.intro h
+        (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+          Exists.intro Nat.zero
+            (fun (n : Nat) (_hn : LeNat Nat.zero n) =>
+              close_of_ratRel (x n) (x n) (ratRel_refl (x n)) eps heps))))

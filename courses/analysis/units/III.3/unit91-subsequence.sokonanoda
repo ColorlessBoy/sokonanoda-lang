@@ -1,0 +1,99 @@
+-- 单元91 子序列
+--
+-- 收敛说的是整条序列的尾巴最终落在 `L` 附近。若每隔几项取一项，得到一条
+-- 子序列，它看到的项更少；更少的项为什么还落在同一个点附近？因为子序列的
+-- 下标只会越走越远，收敛给出的阈值仍然管得住它。这条观察把「丢掉无穷多项」
+-- 变成合法操作，后面的极限点与 Bolzano–Weierstrass 都要用它。
+--
+-- 路线：
+--   · 91.1 严格递增的轨道不回头：`n ≤ g n`；
+--   · 91.2 轨道保序：`a ≤ b` 时 `g a ≤ g b`；
+--   · 91.3 两条子序列的复合仍是子序列；
+--   · 91.4 子序列继承原序列的极限；
+--   · 91.5 所有子序列都收敛到 `L`，与原序列收敛到 `L` 等价；
+--   · 91.6 平移 `n ↦ n + k` 是子序列，接上单元80 的平移序列。
+--
+-- 边界：一条子序列收敛推不出原序列收敛——它只看了下标的一个子集。
+-- 反方向要「所有子序列」，91.5 给出的正是这个形式。不新增公理。
+
+import lib.Limit
+import lib.Rat
+
+-- ─────────────────────────────────────────────────────────────
+-- 91.0 轨道：严格递增的下标映射
+-- ─────────────────────────────────────────────────────────────
+
+-- `Subseq g` 读作「`g` 是一条严格递增的轨道」：第 `n` 步之后至少再走一格。
+def Subseq (g : Nat → Nat) : Prop :=
+  ∀ (n : Nat), LeNat (Nat.succ (g n)) (g (Nat.succ n))
+
+-- 恒等轨道不动，所以它当然是子序列。
+theorem subseq_id : Subseq (fun (n : Nat) => n) :=
+  fun (n : Nat) => leNat_succ_succ n n (LeNat.le_refl n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 91.1 轨道不回头
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对 `n` 归纳。零情形用 `leNat_zero_le`；后继情形把归纳假设 `n ≤ g n` 抬一格得到 `n+1 ≤ g n+1`（`leNat_succ_succ`），再与严格性 `g n+1 ≤ g (n+1)` 传递。
+-- soko:hint 目标形态：`∀ (n : Nat), LeNat n (g n)`。
+-- soko:hint 关键件：Nat.rec · leNat_zero_le · leNat_succ_succ · leNat_trans。
+theorem subseq_ge (g : Nat → Nat) (h : Subseq g) :
+    ∀ (n : Nat), LeNat n (g n) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 91.2 轨道保序
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对 `a ≤ b` 的证明归纳。自反那一支用 `LeNat.le_refl`；后继那一支把归纳假设与「`g n < g (n+1)`」接起来，后者由严格性和 `LeNat.le_succ` 得到。
+-- soko:hint 目标形态：`∀ (a b : Nat), LeNat a b → LeNat (g a) (g b)`。
+-- soko:hint 关键件：LeNat.rec · LeNat.le_refl · LeNat.le_succ · leNat_trans。
+theorem subseq_le (g : Nat → Nat) (h : Subseq g) :
+    ∀ (a b : Nat), LeNat a b → LeNat (g a) (g b) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 91.3 复合仍是子序列
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：要证 `succ (g (h n)) ≤ g (h (n+1))`。先用 `hg (h n)` 得 `succ (g (h n)) ≤ g (succ (h n))`，再用 91.2 把 `hh n : succ (h n) ≤ h (n+1)` 抬成 `g (succ (h n)) ≤ g (h (n+1))`，最后传递。
+-- soko:hint 目标形态：`Subseq (fun n => g (h n))`。
+-- soko:hint 关键件：hg · subseq_le · leNat_trans。
+theorem subseq_comp (g h : Nat → Nat) (hg : Subseq g) (hh : Subseq h) :
+    Subseq (fun (n : Nat) => g (h n)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 91.4 子序列继承极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：给定 `eps > 0`，收敛性给出阈值 `N`。子序列的同一 `N` 就够：`n ≥ N` 时由 91.1 得 `n ≤ g n`，所以 `g n ≥ N`，原来的接近性直接可用。
+-- soko:hint 目标形态：`Converges (fun n => x (g n)) L`。
+-- soko:hint 关键件：Exists.elim · subseq_ge · leNat_trans。
+theorem subseq_converges (x : Seq) (L : ratRep) (hx : Converges x L)
+    (g : Nat → Nat) (hg : Subseq g) :
+    Converges (fun (n : Nat) => x (g n)) L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 91.5 所有子序列都收敛，等价于原序列收敛
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：正方向是 91.4。反方向把恒等轨道用在假设上，得到 `Converges (fun n => x n) L`，它与 `Converges x L` 定义相同。
+-- soko:hint 目标形态：`Converges x L ↔ ∀ g, Subseq g → Converges (fun n => x (g n)) L`。
+-- soko:hint 关键件：Iff.intro · subseq_converges · subseq_id。
+theorem converges_iff_all_subseq (x : Seq) (L : ratRep) :
+    Converges x L ↔
+      ∀ (g : Nat → Nat), Subseq g → Converges (fun (n : Nat) => x (g n)) L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 91.6 平移是子序列
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：要证 `succ (n + k) ≤ (n+1) + k`。`succ_add n k` 说 `(n+1)+k = succ (n+k)`；把等式翻向后用 `Eq.subst` 把 `LeNat.le_refl` 搬到目标上。
+-- soko:hint 目标形态：`Subseq (fun n => Nat.add n k)`。
+-- soko:hint 关键件：succ_add · Eq.symm · Eq.subst · LeNat.le_refl。
+theorem shiftIndex_subseq (k : Nat) : Subseq (fun (n : Nat) => Nat.add n k) :=
+  sorry

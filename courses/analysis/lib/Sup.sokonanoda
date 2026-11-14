@@ -1,0 +1,86 @@
+-- 课程库：实数上的上界与上确界
+--
+-- 上界、下界、上确界、下确界的一般定义已经在 `lib/Order` 里：它们对任意
+-- 类型与任意关系陈述，实数只是把类型取成 `Real`、关系取成 `realLe`。
+-- 本模块收的是**实数实例**上的比较律，供序列与极限一章反复引用。
+--
+-- 词汇只依赖 `realLe`。`Real` 是 Cauchy 序列的商，商里还留着不带 Cauchy
+-- 见证的杂点，所以自反性只对 `Real.mk x`（带 `Cauchy x`）成立；下面凡是
+-- 需要自反的地方都把这条见证显式带上。
+--
+-- 边界：只证唯一性与比较律，不证存在性。一般「非空有上界的集合有上确界」
+-- 需要选择公理或 Dedekind 切割，本课程的库没有选择公理；具体集合的存在性
+-- 留给课程单元逐个盘点，不写成公理。
+--
+--   · `upperBound_of_le` —— 上界可以放大；
+--   · `sup_le_iff` —— 上确界处 `s ≤ M` 与「M 是上界」等价；
+--   · `sup_unique` —— 上确界至多一个；
+--   · `sup_of_max` —— 集合含自己的上界时，它就是上确界；
+--   · `sup_singleton_mk` —— 单点集的上确界是那个点；
+--   · `demo_sup_zero` —— 常零序列的类上的单点集。
+
+import lib.Order
+import lib.RealOrderLaws
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 上界可以放大
+-- ─────────────────────────────────────────────────────────────
+
+theorem upperBound_of_le (A : Real → Prop) (M M' : Real)
+    (hM : UpperBound Real realLe A M) (h : realLe M M') :
+    UpperBound Real realLe A M' :=
+  fun (a : Real) (ha : A a) => realLe_trans a M M' (hM a ha) h
+
+-- ─────────────────────────────────────────────────────────────
+-- 上确界处：`s ≤ M` 与「M 是上界」等价
+-- ─────────────────────────────────────────────────────────────
+
+theorem sup_le_iff (A : Real → Prop) (s M : Real)
+    (hs : IsSup Real realLe A s) :
+    realLe s M ↔ UpperBound Real realLe A M :=
+  Iff.intro
+    (fun (h : realLe s M) =>
+      fun (a : Real) (ha : A a) =>
+        realLe_trans a s M ((And.left hs) a ha) h)
+    (fun (hM : UpperBound Real realLe A M) => (And.right hs) M hM)
+
+-- ─────────────────────────────────────────────────────────────
+-- 上确界至多一个
+-- ─────────────────────────────────────────────────────────────
+
+theorem sup_unique (A : Real → Prop) (s t : Real)
+    (hs : IsSup Real realLe A s) (ht : IsSup Real realLe A t) : s = t :=
+  realLe_antisymm s t
+    ((And.right hs) t (And.left ht))
+    ((And.right ht) s (And.left hs))
+
+-- ─────────────────────────────────────────────────────────────
+-- 集合含自己的上界时，它就是上确界
+-- ─────────────────────────────────────────────────────────────
+
+theorem sup_of_max (A : Real → Prop) (m : Real)
+    (hm : A m) (hub : UpperBound Real realLe A m) :
+    IsSup Real realLe A m :=
+  And.intro hub (fun (M : Real) (hM : UpperBound Real realLe A M) => hM m hm)
+
+-- ─────────────────────────────────────────────────────────────
+-- 单点集的上确界
+-- ─────────────────────────────────────────────────────────────
+
+theorem sup_singleton_mk (x : Seq) (hx : Cauchy x) :
+    IsSup Real realLe (fun (a : Real) => a = Real.mk x) (Real.mk x) :=
+  And.intro
+    (fun (a : Real) (ha : a = Real.mk x) =>
+      @Eq.subst.{1} Real (fun (z : Real) => realLe z (Real.mk x))
+        (Real.mk x) a (Eq.symm ha) (realLe_refl_mk x hx))
+    (fun (M : Real) (hM : UpperBound Real realLe (fun (a : Real) => a = Real.mk x) M) =>
+      hM (Real.mk x) (@Eq.refl.{1} Real (Real.mk x)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 具体：常零序列的类上的单点集
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_sup_zero :
+    IsSup Real realLe (fun (a : Real) => a = Real.mk zeroSeq) (Real.mk zeroSeq) :=
+  sup_singleton_mk zeroSeq cauchy_zero

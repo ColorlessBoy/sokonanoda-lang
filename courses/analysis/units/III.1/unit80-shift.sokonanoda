@@ -1,0 +1,87 @@
+-- 单元80 极限只看尾部：平移
+--
+-- 收敛的定义里有一个 `∃ N`：性质只要从某个下标起成立。前面的有限项因此
+-- 不影响极限。把这句话变成定理，最直接的试验是把序列整体往右推 k 格，
+-- 看收敛性与极限是否原样保留。答案是两边都保留。
+--
+-- 证明是两个方向。若原序列收敛，同一个阈值 N 仍然管用，因为 n + k ≥ n；
+-- 反过来，从平移后的序列取阈值 N，原来的序列从 N + k 起都对应平移序列
+-- 的第 N 项以后。后一个方向需要把 m ≥ N + k 拆成 m = (N + j) + k，这一步
+-- 用 ㊺ 的 `leNat_exists_add` 与 `add_rotate`。
+--
+-- 边界：这里只做平移，不做「改动有限项」。后者的说法更强，需要把
+-- 「终究相等」单独定义，留给下一个单元。不新增公理。
+
+import lib.Limit
+
+-- ─────────────────────────────────────────────────────────────
+-- 80.0 平移序列
+-- ─────────────────────────────────────────────────────────────
+
+-- `shiftSeq k x` 的第 n 项是原序列的第 n + k 项。
+def shiftSeq (k : Nat) (x : Seq) : Seq := fun (n : Nat) => x (Nat.add n k)
+
+-- ─────────────────────────────────────────────────────────────
+-- 80.1 终究性沿平移往前搬
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：沿用原阈值 N。对 n ≥ N，先由 `leNat_self_add` 得 N ≤ N + k，再由 `leNat_add_right` 得 N + k ≤ n + k，传递后交给原终究性。
+-- soko:hint 目标形态：`Eventually (fun (n : Nat) => P (Nat.add n k))`。
+-- soko:hint 关键件：Exists.intro · Exists.elim · leNat_self_add · leNat_add_right · leNat_trans。
+theorem eventually_shift (P : Nat → Prop) (h : Eventually P) (k : Nat) :
+    Eventually (fun (n : Nat) => P (Nat.add n k)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 80.2 从平移后的终究性回到原来的终究性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：平移的阈值是 N，原序列取 N + k。对 m ≥ N + k，`leNat_exists_add` 给 m = (N + k) + j；`add_rotate` 把它改写成 (N + j) + k，于是 m 正是平移序列第 N + j 项，而 N ≤ N + j 由 `leNat_self_add` 给。
+-- soko:hint 目标形态：`Eventually P`。
+-- soko:hint 关键件：leNat_exists_add · add_rotate · leNat_self_add · Eq.subst · Eq.trans · Eq.symm。
+theorem eventually_of_shift (P : Nat → Prop) (k : Nat)
+    (h : Eventually (fun (n : Nat) => P (Nat.add n k))) : Eventually P :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 80.3 两条合起来
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两个方向分别交给 80.1 与 80.2。
+-- soko:hint 目标形态：`Eventually (fun (n : Nat) => P (Nat.add n k)) ↔ Eventually P`。
+-- soko:hint 关键件：Iff.intro · eventually_shift · eventually_of_shift。
+theorem eventually_shift_iff (P : Nat → Prop) (k : Nat) :
+    Eventually (fun (n : Nat) => P (Nat.add n k)) ↔ Eventually P :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 80.4 收敛沿平移往前搬
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对每个 ε，把原极限的终究性用 80.1 平移到 `fun n => close (x (n + k)) L ε`；`shiftSeq k x n` 就是 `x (n + k)`，定义展开即可。
+-- soko:hint 目标形态：`Converges (shiftSeq k x) L`。
+-- soko:hint 关键件：eventually_shift · converges_iff。
+theorem converges_shift_of (x : Seq) (L : ratRep) (k : Nat)
+    (h : Converges x L) : Converges (shiftSeq k x) L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 80.5 平移不改变收敛性与极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：正向由 80.4；反向对每个 ε 用 80.2 把平移后的终究性搬回来。
+-- soko:hint 目标形态：`Converges (shiftSeq k x) L ↔ Converges x L`。
+-- soko:hint 关键件：Iff.intro · converges_shift_of · eventually_of_shift。
+theorem converges_shift (x : Seq) (L : ratRep) (k : Nat) :
+    Converges (shiftSeq k x) L ↔ Converges x L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 80.6 具体：零序列平移一格
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：73.6 给零序列收敛到零，80.4 把结论搬到平移一格上。
+-- soko:hint 目标形态：`Converges (shiftSeq 1 zeroSeq) ratZeroRep`。
+-- soko:hint 关键件：converges_shift_of · demo_converges_zero。
+theorem demo_shift_zero : Converges (shiftSeq 1 zeroSeq) ratZeroRep :=
+  sorry

@@ -1,0 +1,113 @@
+-- 课程库：级数与部分和
+--
+-- 单元112 在画布上把「前 n 项和」接成一条序列，并把级数收敛定义成
+-- 部分和序列的 Cauchy 性；这里收进 L2，后续级数单元直接引用：
+--
+--   · `Series` / `Summable` / `SeriesSum` —— 部分和序列、可和与和类；
+--   · `series_zero` / `series_succ` —— 两条计算规则；
+--   · `summable_iff` —— Cauchy 定义的展开；
+--   · `summable_of_seriesSum` / `seriesSum_of_summable` —— 可和与有和类互通；
+--   · `summable_iff_seriesSum` —— 两者等价；
+--   · `seriesSum_unique` —— 和类至多一个；
+--   · `summable_zero` / `demo_series_zero` —— 零级数的实例。
+--
+-- 边界：和只写成 `LimitClass`，不把无限和当成一个求和函数；`Summable`
+-- 是部分和的 Cauchy 性，因此每个可和级数在 ℝ 里有和类，但不声称和是有理数。
+-- 不新增公理。
+
+import lib.Rat
+import lib.Sum
+import lib.Limit
+import lib.Cauchy
+import lib.CauchyTail
+import lib.LimitOrder
+import lib.LimitClass
+import lib.LimitClassComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.0 部分和序列与可和
+-- ─────────────────────────────────────────────────────────────
+
+def Series (f : Nat → ratRep) : Seq := fun (n : Nat) => sumTo f n
+
+def Summable (f : Nat → ratRep) : Prop := Cauchy (Series f)
+
+def SeriesSum (f : Nat → ratRep) (a : Real) : Prop := LimitClass (Series f) a
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.1 零项的部分和
+-- ─────────────────────────────────────────────────────────────
+
+theorem series_zero (f : Nat → ratRep) :
+    ratRel (Series f Nat.zero) ratZeroRep :=
+  sumTo_zero f
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.2 多一项的计算规则
+-- ─────────────────────────────────────────────────────────────
+
+theorem series_succ (f : Nat → ratRep) (n : Nat) :
+    Series f (Nat.succ n) = ratAddRep (Series f n) (f n) :=
+  Eq.refl (ratAddRep (Series f n) (f n))
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.3 Cauchy 定义的展开
+-- ─────────────────────────────────────────────────────────────
+
+theorem summable_iff (f : Nat → ratRep) :
+    Summable f ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (m n : Nat), LeNat N m → LeNat N n →
+          close (Series f m) (Series f n) eps :=
+  Iff.intro (fun (h : Summable f) => h) (fun (h : Summable f) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.4 有和类就可和
+-- ─────────────────────────────────────────────────────────────
+
+theorem summable_of_seriesSum (f : Nat → ratRep) (a : Real)
+    (h : SeriesSum f a) : Summable f :=
+  Exists.elim h
+    (fun (L : Seq) (hL : Cauchy L ∧ TendsTo (Series f) L ∧ a = Real.mk L) =>
+      tendsTo_cauchy (Series f) L (And.left hL) (And.left (And.right hL)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.5 可和就有和类
+-- ─────────────────────────────────────────────────────────────
+
+theorem seriesSum_of_summable (f : Nat → ratRep) (h : Summable f) :
+    ∃ (a : Real), SeriesSum f a :=
+  cauchy_limitClass (Series f) h
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.6 可和与有和类等价
+-- ─────────────────────────────────────────────────────────────
+
+theorem summable_iff_seriesSum (f : Nat → ratRep) :
+    Summable f ↔ ∃ (a : Real), SeriesSum f a :=
+  cauchy_iff_limitClass (Series f)
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.7 和类至多一个
+-- ─────────────────────────────────────────────────────────────
+
+theorem seriesSum_unique (f : Nat → ratRep) (a b : Real)
+    (ha : SeriesSum f a) (hb : SeriesSum f b) : a = b :=
+  limitClass_unique (Series f) a b ha hb
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.8 零级数可和
+-- ─────────────────────────────────────────────────────────────
+
+theorem summable_zero : Summable (fun (_ : Nat) => ratZeroRep) :=
+  cauchy_of_eventually_const (Series (fun (_ : Nat) => ratZeroRep)) ratZeroRep
+    (Exists.intro Nat.zero
+      (fun (n : Nat) (_hn : LeNat Nat.zero n) => sumTo_zero_fun n))
+
+-- ─────────────────────────────────────────────────────────────
+-- 112.9 具体：零级数的前两项和为零
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_series_zero :
+    ratRel (Series (fun (_ : Nat) => ratZeroRep) 2) ratZeroRep :=
+  sumTo_zero_fun 2

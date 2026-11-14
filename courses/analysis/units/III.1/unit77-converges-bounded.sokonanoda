@@ -1,0 +1,160 @@
+-- 单元77 收敛序列有界
+--
+-- 76 做完了极限的加法群。乘法律还欠一件东西：要估 x n * y n 的大小，
+-- 得先有一个不随 n 变化的界。收敛只描述尾部——从某个 N 起 x n 落在 L
+-- 附近；前面有限项没有任何约束。把尾部与有限前缀接起来，是本单元的任务。
+--
+-- 尾部的界由 ε = 1 给出：x n ≤ 1 + L、-x n ≤ 1 + (-L)，两条再用有理数
+-- 的全性合成一个。前有限项要一次归纳：给 0..N 的每一项配一个同时压住
+-- x n 与 -x n 的数，相邻两项的界再用全性合并。
+--
+-- 有界性只是乘法律的前置之一。乘积的上界还要乘法与序相容
+-- （0 ≤ a ≤ A、0 ≤ b ≤ B ⇒ ab ≤ AB），那条尚未证明，留到后续单元。
+-- 这里不新增公理。
+
+import lib.Limit
+import lib.LimitOrder
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.0 词表
+-- ─────────────────────────────────────────────────────────────
+
+def ratOneRep : ratRep := qrep 1 Nat.zero Nat.zero
+
+-- `0 < 1`：序的部分是 `0 ≤ 1`，不等的部分把 `ratRel 0 1` 化成 `0 = 1`
+-- 后交给 `succ_ne_zero`。
+theorem ratLtRep_zero_one : ratLtRep ratZeroRep ratOneRep :=
+  And.intro
+    (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+    (fun (h : ratRel ratZeroRep ratOneRep) =>
+      succ_ne_zero Nat.zero (Eq.symm h))
+
+-- 「有界」写成两侧的单边界：同一个 B 既压住 x n，也压住 -x n。
+def Bounded (x : Seq) : Prop :=
+  ∃ (B : ratRep), ∀ (n : Nat),
+    ratLeRep (x n) B ∧ ratLeRep (ratNegRep (x n)) B
+
+-- 以下是两条 ℕ 上的技术引理，证明直接给出，不作练习。
+
+-- n < N+1 ⇒ n ≤ N：把 `succ n ≤ succ N` 化成 `succ N = succ n + k`，
+-- 再用 `succ_add` 把右边提成 `succ (n + k)`，剥掉一层 `succ` 即得。
+theorem leNat_pred (n N : Nat) (h : LeNat (Nat.succ n) (Nat.succ N)) :
+    LeNat n N :=
+  Exists.elim (leNat_exists_add (Nat.succ n) (Nat.succ N) h)
+    (fun (k : Nat) (hk : Nat.succ N = Nat.add (Nat.succ n) k) =>
+      leNat_of_exists_add n N
+        (Exists.intro k
+          (Nat.succ.inj N (Nat.add n k)
+            (Eq.trans hk (succ_add n k)))))
+
+-- n ≤ 0 ⇒ n = 0：`leNat_eq_or_succ` 给出 `n = 0` 或 `succ n ≤ 0`，
+-- 后者由 `leNat_succ_zero_absurd` 否定。
+theorem leNat_zero (n : Nat) (h : LeNat n Nat.zero) : n = Nat.zero :=
+  Or.elim
+    (fun (heq : n = Nat.zero) => heq)
+    (fun (hlt : LeNat (Nat.succ n) Nat.zero) =>
+      False.elim (leNat_succ_zero_absurd n hlt))
+    (leNat_eq_or_succ n Nat.zero h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.1 单个数的双侧界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对 `a` 与 `-a` 用全性 `ratLeRep_total`，分成 `a ≤ -a` 与 `-a ≤ a` 两支；两支都返回同一个存在命题，各取较大者作 B。
+-- soko:hint 目标形态：`∃ B, ratLeRep a B ∧ ratLeRep (ratNegRep a) B`。
+-- soko:hint 关键件：ratLeRep_total · Or.elim · Exists.intro · ratLeRep_refl。
+theorem exists_two_sided_bound (a : ratRep) :
+    ∃ (B : ratRep), ratLeRep a B ∧ ratLeRep (ratNegRep a) B :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.2 两个上界合成一个
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：与 77.1 同一个手法——全性给出 `B1 ≤ B2` 或 `B2 ≤ B1`，两支都取较大者。
+-- soko:hint 目标形态：`∃ B, ratLeRep B1 B ∧ ratLeRep B2 B`。
+-- soko:hint 关键件：ratLeRep_total · Exists.intro · ratLeRep_refl。
+theorem exists_upper_of_two (B1 B2 : ratRep) :
+    ∃ (B : ratRep), ratLeRep B1 B ∧ ratLeRep B2 B :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.3 有限前缀的统一下界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对 N 归纳（`Nat.rec`）。零情形用 77.1 处理 `x 0`，`n ≤ 0` 由 `leNat_zero` 化成 `n = 0` 后用 `Eq.subst` 搬过去。后继情形把旧界与 `x (N+1)` 的界用 77.2 合并；`n ≤ N+1` 用 `leNat_eq_or_succ` 分「n = N+1」与「n ≤ N」（后者用 `leNat_pred`）。
+-- soko:hint 目标形态：`∃ B, ∀ n, LeNat n N → ratLeRep (x n) B ∧ ratLeRep (ratNegRep (x n)) B`。
+-- soko:hint 关键件：Nat.rec · leNat_eq_or_succ · leNat_pred · leNat_zero · Eq.subst · ratLeRep_trans。
+theorem exists_prefix_bound (x : Seq) (N : Nat) :
+    ∃ (B : ratRep), ∀ (n : Nat), LeNat n N →
+      ratLeRep (x n) B ∧ ratLeRep (ratNegRep (x n)) B :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.4 减法界可以搬成加法界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两边右加 b，左边 `(a - b) + b` 用 74.1 的 `ratSubRep_add_self` 认成 `a`，再用 `ratLeRep_congr_gen` 把序搬过去。
+-- soko:hint 目标形态：`ratLeRep a (ratAddRep eps b)`。
+-- soko:hint 关键件：ratSubRep_add_self · ratLeRep_add_right · ratLeRep_congr_gen · ratRel_refl。
+theorem le_of_sub_le (a b eps : ratRep)
+    (h : ratLeRep (ratSubRep a b) eps) : ratLeRep a (ratAddRep eps b) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.5 负项上的同一条搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`(-a) + b` 读成 `(-a) - (-b)`。先用 `ratNegRep_invol` 把第二项换成 `-(-b)`（`ratAddRep_wd_snd_gen` 加 `ratRel_symm`），再交给 77.4。
+-- soko:hint 目标形态：`ratLeRep (ratNegRep a) (ratAddRep eps (ratNegRep b))`。
+-- soko:hint 关键件：ratNegRep_invol · ratAddRep_wd_snd_gen · ratLeRep_congr_gen · le_of_sub_le。
+theorem le_of_neg_add_le (a b eps : ratRep)
+    (h : ratLeRep (ratAddRep (ratNegRep a) b) eps) :
+    ratLeRep (ratNegRep a) (ratAddRep eps (ratNegRep b)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.6 close 同时给两侧的单边界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：第一支用 68.4 的 `close_sub_le`。第二支拆绝对值的见证 d：`ratAbsRel_neg_le` 给 `-(x - L) ≤ d`，`d < eps` 投成 `d ≤ eps`，再把 `-(x - L)` 沿 `ratNegRep_add` 认成 `-x + L`。
+-- soko:hint 目标形态：`ratLeRep (ratSubRep x L) eps ∧ ratLeRep (ratAddRep (ratNegRep x) L) eps`。
+-- soko:hint 关键件：close_sub_le · ratAbsRel_neg_le · ratLtRep_le · ratNegRep_add · ratAddRep_wd_snd_gen · ratLeRep_congr_gen。
+theorem close_two_bounds (x L eps : ratRep) (h : close x L eps) :
+    ratLeRep (ratSubRep x L) eps ∧
+    ratLeRep (ratAddRep (ratNegRep x) L) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.7 尾部的统一下界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两条界 `eps + L` 与 `eps + (-L)` 先用 77.2 合成 B；对 n ≥ N 用 77.6 取两侧界，再用 77.4 / 77.5 与传递性接上 B。
+-- soko:hint 目标形态：`∃ B, ∀ n, LeNat N n → ratLeRep (x n) B ∧ ratLeRep (ratNegRep (x n)) B`。
+-- soko:hint 关键件：exists_upper_of_two · close_two_bounds · le_of_sub_le · le_of_neg_add_le · ratLeRep_trans。
+theorem exists_tail_bound (x : Seq) (L eps : ratRep) (N : Nat)
+    (hN : ∀ (n : Nat), LeNat N n → close (x n) L eps) :
+    ∃ (B : ratRep), ∀ (n : Nat), LeNat N n →
+      ratLeRep (x n) B ∧ ratLeRep (ratNegRep (x n)) B :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.8 收敛 ⇒ 有界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：ε 取 `ratOneRep`（77.0 的 `ratLtRep_zero_one`）得阈值 N。前缀用 77.3，尾部用 77.7，两个界用 77.2 合成 B。对每个 n 用 `leNat_total N n` 分「n ≤ N」与「N ≤ n」两支。
+-- soko:hint 目标形态：`Bounded x`。
+-- soko:hint 关键件：exists_prefix_bound · exists_tail_bound · exists_upper_of_two · leNat_total · ratLeRep_trans。
+theorem converges_bounded (x : Seq) (L : ratRep) (h : Converges x L) :
+    Bounded x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.9 具体：常序列有界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常序列的每一项都是 q，取 q 的双侧界（77.1）；这里的阈值 N 不起作用。
+-- soko:hint 目标形态：`Bounded (constSeq q)`。
+-- soko:hint 关键件：exists_two_sided_bound · constSeq · Exists.intro。
+theorem demo_bounded_const (q : ratRep) : Bounded (constSeq q) :=
+  sorry

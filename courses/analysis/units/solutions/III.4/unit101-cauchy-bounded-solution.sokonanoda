@@ -1,0 +1,120 @@
+-- 单元101 Cauchy 序列有界（解答）
+--
+-- 100 把 Cauchy 性收成「尾巴上的项都靠近 x N」。这条控制只覆盖尾巴，
+-- 前面的有限项仍然任意。有界性要把两段接起来：尾巴由 1 这个固定的 ε
+-- 给出双侧界，前缀由一次归纳给出另一个界，两个界再用全性合成一个。
+--
+-- 有界性是乘积估计的前置：要证 Cauchy 序列的乘积仍是 Cauchy 序列，
+-- 就得先有一个不随 n 变化的界去乘另一个因子。
+--
+-- 边界：只证有界，不反推 Cauchy；有界序列未必 Cauchy（交替的 0、1 是
+-- 一例）。这里也不做乘积本身。不新增公理。
+
+import lib.Bounded
+import lib.CauchyTail
+
+-- ─────────────────────────────────────────────────────────────
+-- 101.0 尾巴上有界
+-- ─────────────────────────────────────────────────────────────
+
+-- 取 ε = 1。100.0 给出阈值 N 与 `close (x n) (x N) 1`；库里的
+-- `exists_tail_bound` 把每一对界合成同一个 B。
+theorem cauchy_eventually_bounded (x : Seq) (h : Cauchy x) :
+    ∃ (N : Nat), ∃ (B : ratRep), ∀ (n : Nat), LeNat N n →
+      ratLeRep (x n) B ∧ ratLeRep (ratNegRep (x n)) B :=
+  Exists.elim (cauchy_tail x h ratOneRep ratLtRep_zero_one)
+    (fun (N : Nat)
+        (hN : ∀ (n : Nat), LeNat N n → close (x n) (x N) ratOneRep) =>
+      Exists.intro N (exists_tail_bound x (x N) ratOneRep N hN))
+
+-- ─────────────────────────────────────────────────────────────
+-- 101.1 整条序列有界
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾巴的界来自 101.0，前缀 0..N 的界来自 `exists_prefix_bound`。
+-- 两个界用 `exists_upper_of_two` 合成，再对每个 n 用全性分两支。
+theorem cauchy_bounded (x : Seq) (h : Cauchy x) : Bounded x :=
+  Exists.elim (cauchy_eventually_bounded x h)
+    (fun (N : Nat)
+        (hN : ∃ (B : ratRep), ∀ (n : Nat), LeNat N n →
+          ratLeRep (x n) B ∧ ratLeRep (ratNegRep (x n)) B) =>
+      Exists.elim hN
+        (fun (Btail : ratRep)
+            (hBtail : ∀ (n : Nat), LeNat N n →
+              ratLeRep (x n) Btail ∧ ratLeRep (ratNegRep (x n)) Btail) =>
+          Exists.elim (exists_prefix_bound x N)
+            (fun (Bpre : ratRep)
+                (hBpre : ∀ (n : Nat), LeNat n N →
+                  ratLeRep (x n) Bpre ∧ ratLeRep (ratNegRep (x n)) Bpre) =>
+              Exists.elim (exists_upper_of_two Bpre Btail)
+                (fun (B : ratRep)
+                    (hB : ratLeRep Bpre B ∧ ratLeRep Btail B) =>
+                  Exists.intro B
+                    (fun (n : Nat) =>
+                      Or.elim
+                        (fun (hn : LeNat N n) =>
+                          And.intro
+                            (ratLeRep_trans (x n) Btail B
+                              (And.left (hBtail n hn)) (And.right hB))
+                            (ratLeRep_trans (ratNegRep (x n)) Btail B
+                              (And.right (hBtail n hn)) (And.right hB)))
+                        (fun (hn : LeNat n N) =>
+                          And.intro
+                            (ratLeRep_trans (x n) Bpre B
+                              (And.left (hBpre n hn)) (And.left hB))
+                            (ratLeRep_trans (ratNegRep (x n)) Bpre B
+                              (And.right (hBpre n hn)) (And.left hB)))
+                        (leNat_total N n))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 101.2 平移也保持有界
+-- ─────────────────────────────────────────────────────────────
+
+-- 100.3 给 Cauchy 性，101.1 把它换成有界性。
+theorem cauchy_bounded_shift (x : Seq) (k : Nat) (h : Cauchy x) :
+    Bounded (fun (n : Nat) => x (Nat.add n k)) :=
+  cauchy_bounded (fun (n : Nat) => x (Nat.add n k)) (cauchy_shift x k h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 101.3 加一个常数保持有界
+-- ─────────────────────────────────────────────────────────────
+
+-- 若 |x n| ≤ B，则 `x n + q ≤ B + q`、`-(x n + q) ≤ B + (-q)`。
+-- 两条界再用 `exists_upper_of_two` 合成。
+theorem bounded_add_const (x : Seq) (q : ratRep) (h : Bounded x) :
+    Bounded (fun (n : Nat) => ratAddRep (x n) q) :=
+  Exists.elim h
+    (fun (B : ratRep)
+        (hB : ∀ (n : Nat),
+          ratLeRep (x n) B ∧ ratLeRep (ratNegRep (x n)) B) =>
+      Exists.elim
+        (exists_upper_of_two (ratAddRep B q) (ratAddRep B (ratNegRep q)))
+        (fun (C : ratRep)
+            (hC : ratLeRep (ratAddRep B q) C ∧
+                  ratLeRep (ratAddRep B (ratNegRep q)) C) =>
+          Exists.intro C
+            (fun (n : Nat) =>
+              And.intro
+                (ratLeRep_trans (ratAddRep (x n) q) (ratAddRep B q) C
+                  (ratLeRep_add_right (x n) B q (And.left (hB n)))
+                  (And.left hC))
+                (ratLeRep_trans (ratNegRep (ratAddRep (x n) q))
+                  (ratAddRep B (ratNegRep q)) C
+                  (ratLeRep_congr_gen
+                    (ratNegRep (ratAddRep (x n) q))
+                    (ratAddRep (ratNegRep (x n)) (ratNegRep q))
+                    (ratAddRep B (ratNegRep q))
+                    (ratAddRep B (ratNegRep q))
+                    (ratNegRep_add (x n) q)
+                    (ratRel_refl (ratAddRep B (ratNegRep q)))
+                    (ratLeRep_add_right (ratNegRep (x n)) B (ratNegRep q)
+                      (And.right (hB n))))
+                  (And.right hC)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 101.4 常序列
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列是 Cauchy 的，101.1 因此给出有界性。
+theorem demo_cauchy_bounded_const (q : ratRep) : Bounded (constSeq q) :=
+  cauchy_bounded (constSeq q) (cauchy_const q)

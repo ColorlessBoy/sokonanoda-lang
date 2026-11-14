@@ -1,0 +1,110 @@
+-- 单元94 下极限
+--
+-- 上极限把极限点集合从上面压住；同一个集合还可以从下面托住，得到下极限。
+-- 两个量合起来描述一条序列反复靠近的区间：最高处与最低处。收敛序列把这个
+-- 区间缩成一个点，来回跳的序列则留下一段宽度。
+--
+-- 定义与上极限逐条对偶：`Liminf x L` 说 L 是极限点集合的下确界。对偶的
+-- 证明只需把序的方向翻过来，所以 94.1–94.7 与 93.1–93.7 平行。94.8 再把
+-- 两个界放在一起：只要极限点集合里有一个点，下极限就不超过上极限。
+--
+-- 边界：94.8 带非空前提。集合为空时上下确界这两个谓词都不可满足；要从前提
+-- 反推出非空，得另证「空集没有下确界」，这里不展开这一步。不新增公理。
+
+import lib.Limsup
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.0 下极限
+-- ─────────────────────────────────────────────────────────────
+
+-- `Liminf x L` 读作「`L` 是 `x` 的极限点集合的下确界」：它托住每个极限点，
+-- 并且是这类下界里最大的。
+def Liminf (x : Seq) (L : ratRep) : Prop :=
+  IsInf ratRep ratLeRep (LimitPoint x) L
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.1 下极限托住每个极限点
+-- ─────────────────────────────────────────────────────────────
+
+theorem liminf_lower (x : Seq) (L : ratRep) (h : Liminf x L) :
+    ∀ (M : ratRep), LimitPoint x M → ratLeRep L M :=
+  fun (M : ratRep) (hM : LimitPoint x M) => (And.left h) M hM
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.2 下极限是这类下界里最大的
+-- ─────────────────────────────────────────────────────────────
+
+theorem liminf_greatest (x : Seq) (L : ratRep) (h : Liminf x L) :
+    ∀ (B : ratRep), (∀ (M : ratRep), LimitPoint x M → ratLeRep B M) →
+      ratLeRep B L :=
+  fun (B : ratRep)
+      (hB : ∀ (M : ratRep), LimitPoint x M → ratLeRep B M) =>
+    (And.right h) B hB
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.3 比较的充要条件
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：正方向把假设 `B ≤ L` 与 94.1 的 `L ≤ M` 传递；反方向正是 94.2，把给定的 `hB` 当成「B 托住所有极限点」的证明。
+-- soko:hint 目标形态：`ratLeRep B L ↔ ∀ (M : ratRep), LimitPoint x M → ratLeRep B M`。
+-- soko:hint 关键件：Iff.intro · ratLeRep_trans · And.right。
+theorem le_liminf_iff (x : Seq) (L : ratRep) (h : Liminf x L) :
+    ∀ (B : ratRep),
+      ratLeRep B L ↔
+        ∀ (M : ratRep), LimitPoint x M → ratLeRep B M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.4 下极限至多一个
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两个下确界互相托。`h'` 的最大性把 `L` 压在 `L'` 下（`L` 是下界），`h` 反过来给出 `L' ≤ L`，两条交给序的反对称性。
+-- soko:hint 目标形态：`ratRel L L'`。
+-- soko:hint 关键件：ratLeRep_antisymm · And.right · And.left。
+theorem liminf_unique (x : Seq) (L L' : ratRep)
+    (h : Liminf x L) (h' : Liminf x L') : ratRel L L' :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.5 收敛序列的下极限是它的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：下界那一条用单元92 的极限点唯一性：每个极限点都等于 `L`，直接得到 `L ≤ M`。最大性那一条把 `L` 本身是极限点（92.1）交给任意下界 `B`。
+-- soko:hint 目标形态：`Liminf x L`。
+-- soko:hint 关键件：And.intro · limitPoint_unique_of_converges · converges_limitPoint。
+theorem liminf_of_converges (x : Seq) (L : ratRep) (h : Converges x L) :
+    Liminf x L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.6 收敛序列的下极限与它的极限相等
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：94.5 已把 `L` 变成下极限，与假设的下极限 `M` 一起交给 94.4 的至多一个性质。
+-- soko:hint 目标形态：`ratRel M L`。
+-- soko:hint 关键件：liminf_of_converges · liminf_unique。
+theorem liminf_unique_of_converges (x : Seq) (L M : ratRep)
+    (h : Converges x L) (hM : Liminf x M) : ratRel M L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.7 常序列的下极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常序列收敛到它的值（`converges_const`），把它交给 94.5。
+-- soko:hint 目标形态：`Liminf (constSeq q) q`。
+-- soko:hint 关键件：converges_const · liminf_of_converges。
+theorem liminf_const (q : ratRep) : Liminf (constSeq q) q :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 94.8 下极限不超过上极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：非空前提给一个极限点 `P`。下极限托住它（`L ≤ P`），上极限压住它（`P ≤ M`），两条传递即得。
+-- soko:hint 目标形态：`ratLeRep L M`。
+-- soko:hint 关键件：And.left · ratLeRep_trans。
+theorem liminf_le_limsup (x : Seq) (L M P : ratRep)
+    (hL : Liminf x L) (hM : Limsup x M) (hP : LimitPoint x P) :
+    ratLeRep L M :=
+  sorry

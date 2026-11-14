@@ -1,0 +1,93 @@
+-- 课程库：收敛级数的项趋于零
+--
+-- 单元113 在画布上证明「可和级数的通项趋于零」，并由此得到常数非零级数
+-- 不可和。这里收进 L2，后续判别法直接引用：
+--
+--   · `close_step_zero` —— 相邻部分和的差靠近零，则这一项靠近零；
+--   · `summable_terms_tend_zero` —— 可和级数的通项趋于零；
+--   · `not_summable_const` —— 常数非零的级数不可和；
+--   · `demo_const_one_not_summable` —— 常数 1 的实例。
+--
+-- 边界：只给必要条件，不给充分条件；通项趋于零的级数未必可和，反例
+-- 要到调和级数才有，这里不涉及。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Sum
+import lib.Series
+import lib.Limit
+import lib.LimitOrder
+import lib.LimitClass
+import lib.Bounded
+
+-- ─────────────────────────────────────────────────────────────
+-- 113.0 相邻部分和的差靠近零，则这一项靠近零
+-- ─────────────────────────────────────────────────────────────
+
+theorem close_step_zero (a b eps : ratRep)
+    (h : close (ratAddRep a b) a eps) : close b ratZeroRep eps :=
+  Exists.elim h
+    (fun (d : ratRep) (hd : ratAbsRel (ratSubRep (ratAddRep a b) a) d ∧
+        ratLtRep d eps) =>
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left b (ratSubRep b ratZeroRep) d
+            (ratRel_symm (ratSubRep b ratZeroRep) b
+              (ratRel_trans_gen
+                (ratSubRep b ratZeroRep)
+                (ratAddRep b ratZeroRep)
+                b
+                (ratAddRep_wd_snd_gen b (ratNegRep ratZeroRep) ratZeroRep
+                  (ratRel_refl ratZeroRep))
+                (ratAdd_zero b)))
+            (ratAbsRel_wd_left (ratSubRep (ratAddRep a b) a) b d
+              (ratSubRep_add_self_sub a b) (And.left hd)))
+          (And.right hd)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 113.1 可和级数的通项趋于零
+-- ─────────────────────────────────────────────────────────────
+
+theorem summable_terms_tend_zero (f : Nat → ratRep) (h : Summable f) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      Eventually (fun (n : Nat) => close (f n) ratZeroRep eps) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (N : Nat)
+          (hN : ∀ (m n : Nat), LeNat N m → LeNat N n →
+            close (Series f m) (Series f n) eps) =>
+        Exists.intro N
+          (fun (n : Nat) (hn : LeNat N n) =>
+            close_step_zero (Series f n) (f n) eps
+              (close_symm (Series f n) (Series f (Nat.succ n)) eps
+                (hN n (Nat.succ n) hn
+                  (leNat_trans N n (Nat.succ n) hn
+                    (leNat_self_add n 1))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 113.2 常数非零的级数不可和
+-- ─────────────────────────────────────────────────────────────
+
+theorem not_summable_const (q : ratRep) (hq : ¬ ratRel q ratZeroRep) :
+    ¬ Summable (fun (_ : Nat) => q) :=
+  fun (hsum : Summable (fun (_ : Nat) => q)) =>
+    hq (ratRel_of_close_all q ratZeroRep
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        @Exists.elim Nat
+          (fun (N : Nat) => ∀ (n : Nat), LeNat N n →
+            close ((fun (_ : Nat) => q) n) ratZeroRep eps)
+          (close q ratZeroRep eps)
+          (summable_terms_tend_zero (fun (_ : Nat) => q) hsum eps heps)
+          (fun (N : Nat) (hN : ∀ (n : Nat), LeNat N n →
+              close ((fun (_ : Nat) => q) n) ratZeroRep eps) =>
+            hN N (LeNat.le_refl N))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 113.3 具体：常数 1 的级数不可和
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_const_one_not_summable :
+    ¬ Summable (fun (_ : Nat) => ratOneRep) :=
+  not_summable_const ratOneRep
+    (fun (h : ratRel ratOneRep ratZeroRep) =>
+      (And.right ratLtRep_zero_one) (ratRel_symm ratOneRep ratZeroRep h))

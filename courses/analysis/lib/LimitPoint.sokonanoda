@@ -1,0 +1,71 @@
+-- 课程库：极限点
+--
+-- 收敛记录整条序列最后停在哪里；极限点记录它反复靠近哪里。两者用子序列
+-- 连起来：`L` 是极限点，若某条子序列收敛到 `L`。这样定义不需要选择公理，
+-- 也让「极限点」直接继承单元91 的子序列定理。
+--
+--   · `LimitPoint x L` —— `L` 是 `x` 的极限点；
+--   · `converges_limitPoint` —— 收敛序列的极限是极限点；
+--   · `limitPoint_const` —— 常序列以它的值为极限点；
+--   · `limitPoint_frequently` —— 极限点在任意阈值之后仍反复靠近；
+--   · `limitPoint_unique_of_converges` —— 收敛序列的极限点只能等于极限；
+--   · `not_converges_of_two_limitPoints` —— 两个不同的极限点排除收敛；
+--   · `const_limitPoint_unique` —— 常序列只有它的值一个极限点。
+--
+-- 边界：`limitPoint_frequently` 只有「极限点 ⇒ 频繁靠近」这一向。反过来从
+-- 频繁靠近造子序列，每一步都要挑新的下标，需要可数选择；本课程没有选择
+-- 公理，不把它写成定理。不新增公理，也不碰 kernel/front。
+
+import lib.Subseq
+import lib.LimitOrder
+
+def LimitPoint (x : Seq) (L : ratRep) : Prop :=
+  ∃ (g : Nat → Nat), Subseq g ∧ Converges (fun (n : Nat) => x (g n)) L
+
+theorem converges_limitPoint (x : Seq) (L : ratRep) (h : Converges x L) :
+    LimitPoint x L :=
+  Exists.intro (fun (n : Nat) => n) (And.intro subseq_id h)
+
+theorem limitPoint_const (q : ratRep) : LimitPoint (constSeq q) q :=
+  converges_limitPoint (constSeq q) q (converges_const q)
+
+theorem limitPoint_frequently (x : Seq) (L : ratRep) (h : LimitPoint x L) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∀ (N : Nat), ∃ (n : Nat), LeNat N n ∧ close (x n) L eps :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) (N : Nat) =>
+    Exists.elim h
+      (fun (g : Nat → Nat)
+          (hg : Subseq g ∧ Converges (fun (n : Nat) => x (g n)) L) =>
+        Exists.elim ((And.right hg) eps heps)
+          (fun (M : Nat)
+              (hM : ∀ (n : Nat), LeNat M n → close (x (g n)) L eps) =>
+            Exists.elim (leNat_max M N)
+              (fun (K : Nat) (hK : LeNat M K ∧ LeNat N K) =>
+                Exists.intro (g K)
+                  (And.intro
+                    (leNat_trans N K (g K) (And.right hK)
+                      (subseq_ge g (And.left hg) K))
+                    (hM K (And.left hK))))))
+
+theorem limitPoint_unique_of_converges (x : Seq) (L M : ratRep)
+    (hL : Converges x L) (hM : LimitPoint x M) : ratRel L M :=
+  Exists.elim hM
+    (fun (g : Nat → Nat)
+        (hg : Subseq g ∧ Converges (fun (n : Nat) => x (g n)) M) =>
+      ratRel_symm M L
+        (converges_unique (fun (n : Nat) => x (g n)) M L
+          (And.right hg) (subseq_converges x L hL g (And.left hg))))
+
+theorem not_converges_of_two_limitPoints (x : Seq) (L M : ratRep)
+    (hL : LimitPoint x L) (hM : LimitPoint x M) (hne : ¬ ratRel L M) :
+    (∃ (K : ratRep), Converges x K) → False :=
+  fun (hK : ∃ (K : ratRep), Converges x K) =>
+    Exists.elim hK
+      (fun (K : ratRep) (hK : Converges x K) =>
+        hne (ratRel_trans_gen L K M
+          (ratRel_symm K L (limitPoint_unique_of_converges x K L hK hL))
+          (limitPoint_unique_of_converges x K M hK hM)))
+
+theorem const_limitPoint_unique (q L : ratRep) (h : LimitPoint (constSeq q) L) :
+    ratRel q L :=
+  limitPoint_unique_of_converges (constSeq q) q L (converges_const q) h

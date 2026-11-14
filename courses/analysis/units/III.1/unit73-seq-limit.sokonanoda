@@ -1,0 +1,114 @@
+-- 单元73 序列与极限：ε-N 的定义形状
+--
+-- 数系造到 ℝ 之后，下一步要谈「越来越接近」。有理数上的 `close` 只能
+-- 比较两个点，极限却要比较一列点与一个点，并且允许前有限项不满足。
+-- 缺的正是这两个层次：先把「从某项起」与 ε-N 收敛写成定义，后面的
+-- 唯一性、夹逼与四则运算才有共同的语言。
+--
+-- 这里的 `Seq` 是 `Nat → ratRep`（㉟ 的 `Seq`），`close` 是
+-- 「两个有理数在 ε 内接近」。于是 ε-N 极限在这一层是：
+--
+--   `Converges x L  :⟺  ∀ eps > 0, 终究 (close (x n) L eps)`
+--
+-- 其中 `Eventually P` 是「存在阈值 N，从 N 起 P 一直成立」。把
+-- 「终究」单独命名，是因为后面几乎每条极限证明都要合并两个阈值
+-- （唯一性、夹逼、四则运算）；这里先把它自己的两条结构律备齐。
+--
+-- 边界：`Real` 上的加法在本课程里是三元关系 `addRel`
+-- 而不是函数，所以「实数列的 ε-N」暂时不能写成 `L + eps` 这样的项。
+-- 这里停在有理代表元层；68.6 的 `TendsTo` 已经是类层的写法，
+-- 把两者接起来留到后续单元。不新增公理。
+--
+-- 内容：
+--   · 73.0 `Eventually` / `Converges` —— 「终究」与 ε-N 极限的定义；
+--   · 73.1 `eventually_mono` —— 终究性对更强的性质封闭；
+--   · 73.2 `eventually_and` —— 两条终究性合并（阈值取 max）；
+--   · 73.3 `converges_iff` —— 定义的展开形式；
+--   · 73.4 `close_of_ratRel` —— 相等 ⇒ 任意 ε 内接近；
+--   · 73.5 `converges_const` —— 常序列收敛到自己的值；
+--   · 73.6 具体：常零序列收敛到零。
+
+import lib.RealComplete
+import lib.RatCloseTrans
+import lib.RealEq
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.0 终究与 ε-N 极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 「从某个阈值起一直成立」。注意阈值是**存在**给出的，不是「对每个 n」。
+def Eventually (P : Nat → Prop) : Prop :=
+  ∃ (N : Nat), ∀ (n : Nat), LeNat N n → P n
+
+-- ε-N 极限：每个正有理 ε 都有一个阈值，从那里起 `x n` 与 `L` 在 ε 内。
+def Converges (x : Seq) (L : ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    Eventually (fun (n : Nat) => close (x n) L eps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.1 终究性对更强的性质封闭
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`Eventually P` 拆出阈值 `N` 与「从 N 起 P」；对同一个 `N` 把每个 `P n` 用 `hpq n` 换成 `Q n`。
+-- soko:hint 目标形态：`Eventually Q`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · 逐点假设 `hpq`。
+theorem eventually_mono (P Q : Nat → Prop) (h : Eventually P)
+    (hpq : ∀ (n : Nat), P n → Q n) : Eventually Q :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.2 两条终究性可以合并（阈值取 max）
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两条假设各给一个阈值 `Np`、`Nq`；用 58 的 `leNat_max` 取一个同时 ≥ 两者的 `N`，再对 `n ≥ N` 用 `leNat_trans` 落回两个旧阈值。
+-- soko:hint 目标形态：`Eventually (fun n => P n ∧ Q n)`。
+-- soko:hint 关键件：leNat_max · leNat_trans · And.intro · 两次 Exists.elim。
+theorem eventually_and (P Q : Nat → Prop) (hp : Eventually P) (hq : Eventually Q) :
+    Eventually (fun (n : Nat) => P n ∧ Q n) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.3 定义的展开形式
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`Converges` 与 `Eventually` 都是 `def`；把两边展开后是**同一个**命题，两个方向都取恒等函数。
+-- soko:hint 目标形态：`Converges x L ↔ ∀ eps, 0 < eps → ∃ N, ∀ n ≥ N, close (x n) L eps`。
+-- soko:hint 关键件：Iff.intro · 定义性展开（`fun h => h`）。
+theorem converges_iff (x : Seq) (L : ratRep) :
+    Converges x L ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) L eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.4 相等 ⇒ 任意 ε 内接近
+-- ─────────────────────────────────────────────────────────────
+
+-- 见证取 `0`：`x ~ y` 时 `x - y ~ 0`，绝对值那一支由 `ratAbsRel_zero`
+-- 经 ㊷ 的 `ratAbsRel_wd_left` 搬过去；`0 < eps` 直接用假设。
+-- soko:hint 思路：`close` 是 `∃ d, ratAbsRel (x - y) d ∧ d < eps`；取 `d := 0`。先由 `x ~ y` 得 `x - y ~ 0`（55 的逆元律 + 加法同余），再用 ㊷ 的 `ratAbsRel_wd_left` 把 `ratAbsRel 0 0` 搬成 `ratAbsRel (x - y) 0`。
+-- soko:hint 目标形态：`close x y eps`。
+-- soko:hint 关键件：Exists.intro ratZeroRep · ratAddRep_wd_gen · ratAdd_neg_gen · ratAbsRel_wd_left · ratAbsRel_zero。
+theorem close_of_ratRel (x y : ratRep) (h : ratRel x y) (eps : ratRep)
+    (heps : ratLtRep ratZeroRep eps) : close x y eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.5 常序列收敛到自己的值
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常序列每项都是 `q`；对任意 `eps > 0` 取阈值 `0`，每一项都用 73.4 的 `close_of_ratRel q q (ratRel_refl q)`。
+-- soko:hint 目标形态：`Converges (constSeq q) q`。
+-- soko:hint 关键件：converges_iff（或直接展开）· close_of_ratRel · ratRel_refl · Exists.intro Nat.zero。
+theorem converges_const (q : ratRep) : Converges (constSeq q) q :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.6 具体：常零序列收敛到零
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 73.5 用在 `q := ratZeroRep` 上；`zeroSeq` 与 `constSeq ratZeroRep` 定义性相等。
+-- soko:hint 目标形态：`Converges zeroSeq ratZeroRep`。
+-- soko:hint 关键件：converges_const。
+theorem demo_converges_zero : Converges zeroSeq ratZeroRep :=
+  sorry

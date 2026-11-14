@@ -1,0 +1,104 @@
+-- 课程库：序列的极限（M3 / III.1 的引擎）
+--
+-- 单元73 在画布里立了 ε-N 极限的词汇并判卷；这里收进 L2，单元74 起直接
+-- 引用，不再重抄（M2 的「前序证明进库」惯例，见 README）。
+--
+--   · `Eventually` / `Converges` —— 「终究」与 ε-N 极限（73.0）；
+--   · `eventually_mono` / `eventually_and` —— 终究性的两条结构律（73.1/73.2）；
+--   · `converges_iff` —— 定义展开（73.3）；
+--   · `close_of_ratRel` —— 相等 ⇒ 任意 ε 内接近（73.4）；
+--   · `converges_const` / `demo_converges_zero` —— 常序列收敛（73.5/73.6）。
+--
+-- **边界**：本模块停在有理代表元层（`Seq := Nat → ratRep`）。`Real` 上的
+-- 加法在本课程 L2 里是三元关系 `addRel` 而不是函数，所以 `Real` 上的 ε-N
+-- 陈述要等后续单元用类层语言接起来；68.6 的 `TendsTo` 已经是那条路的
+-- 类层版本。本模块不新增公理，也不碰 kernel/front。
+
+import lib.RealComplete
+import lib.RatCloseTrans
+import lib.RealEq
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.0 终究与 ε-N 极限
+-- ─────────────────────────────────────────────────────────────
+
+def Eventually (P : Nat → Prop) : Prop :=
+  ∃ (N : Nat), ∀ (n : Nat), LeNat N n → P n
+
+def Converges (x : Seq) (L : ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    Eventually (fun (n : Nat) => close (x n) L eps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.1 终究性对更强的性质封闭
+-- ─────────────────────────────────────────────────────────────
+
+theorem eventually_mono (P Q : Nat → Prop) (h : Eventually P)
+    (hpq : ∀ (n : Nat), P n → Q n) : Eventually Q :=
+  Exists.elim h
+    (fun (N : Nat) (hN : ∀ (n : Nat), LeNat N n → P n) =>
+      Exists.intro N (fun (n : Nat) (hn : LeNat N n) => hpq n (hN n hn)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.2 两条终究性可以合并（阈值取 max）
+-- ─────────────────────────────────────────────────────────────
+
+theorem eventually_and (P Q : Nat → Prop) (hp : Eventually P) (hq : Eventually Q) :
+    Eventually (fun (n : Nat) => P n ∧ Q n) :=
+  Exists.elim hp
+    (fun (Np : Nat) (hNp : ∀ (n : Nat), LeNat Np n → P n) =>
+      Exists.elim hq
+        (fun (Nq : Nat) (hNq : ∀ (n : Nat), LeNat Nq n → Q n) =>
+          Exists.elim (leNat_max Np Nq)
+            (fun (N : Nat) (hN : LeNat Np N ∧ LeNat Nq N) =>
+              Exists.intro N
+                (fun (n : Nat) (hn : LeNat N n) =>
+                  And.intro
+                    (hNp n (leNat_trans Np N n (And.left hN) hn))
+                    (hNq n (leNat_trans Nq N n (And.right hN) hn))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.3 定义的展开形式
+-- ─────────────────────────────────────────────────────────────
+
+theorem converges_iff (x : Seq) (L : ratRep) :
+    Converges x L ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) L eps :=
+  Iff.intro
+    (fun (h : Converges x L) => h)
+    (fun (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) L eps) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.4 相等 ⇒ 任意 ε 内接近
+-- ─────────────────────────────────────────────────────────────
+
+theorem close_of_ratRel (x y : ratRep) (h : ratRel x y) (eps : ratRep)
+    (heps : ratLtRep ratZeroRep eps) : close x y eps :=
+  Exists.intro ratZeroRep
+    (And.intro
+      (ratAbsRel_wd_left ratZeroRep (ratSubRep x y) ratZeroRep
+        (ratRel_symm (ratSubRep x y) ratZeroRep
+          (ratRel_trans_gen (ratSubRep x y) (ratSubRep y y) ratZeroRep
+            (ratAddRep_wd_gen x y (ratNegRep y) h)
+            (ratAdd_neg_gen y)))
+        ratAbsRel_zero)
+      heps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.5 常序列收敛到自己的值
+-- ─────────────────────────────────────────────────────────────
+
+theorem converges_const (q : ratRep) : Converges (constSeq q) q :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro Nat.zero
+      (fun (n : Nat) (_hn : LeNat Nat.zero n) =>
+        close_of_ratRel q q (ratRel_refl q) eps heps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.6 具体：常零序列收敛到零
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_converges_zero : Converges zeroSeq ratZeroRep :=
+  converges_const ratZeroRep

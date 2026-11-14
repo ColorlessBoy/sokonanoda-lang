@@ -1,0 +1,91 @@
+-- 单元83 收敛序列是 Cauchy 序列
+--
+-- 收敛把序列的尾巴拴在一个固定的点 `L` 上：从某个阈值起，每一项都落在
+-- `L` 的 ε 邻域里。尾巴上的任意两项因此也彼此靠近——它们各自离 `L`
+-- 不到 ε/2，折半相加就得到 ε。这就是 Cauchy 条件：任意正 ε，存在阈值，
+-- 从那里起任意两项都在 ε 内。
+--
+-- 这条推理把极限的 ε-N 语言接到前面定义的 `Cauchy` 上，也让一个收敛序列
+-- 有资格作为实数的代表元：`Real.mk x` 与 `Real.mk (constSeq L)` 相等。
+-- 反方向——Cauchy 序列在 ℚ 上收敛——不成立；截断的 √2 近似就是反例，
+-- 要等 ℝ 的完备性，不能在这里假设。
+--
+-- 路线：
+--
+--   · 83.1 两点各自靠近同一点，则彼此靠近（示范）；
+--   · 83.2 主定理：收敛序列满足 Cauchy 条件；
+--   · 83.3 / 83.4 收敛序列与常序列代表同一个实数；
+--   · 83.5 零序列的实例。
+--
+-- 常序列的 Cauchy 性在 68.1 已经证过，这里直接引用，不再重证。
+-- 只证「收敛 ⇒ Cauchy」，不假设反方向。不新增公理。
+
+import lib.Limit
+import lib.Cauchy
+
+-- ─────────────────────────────────────────────────────────────
+-- 83.1 两点靠近同一点，则彼此靠近
+-- ─────────────────────────────────────────────────────────────
+
+-- 第一条接近性是 `a` 到 `L`。第二条是 `b` 到 `L`，用 `close_symm`
+-- 翻成 `L` 到 `b`，两条 `ε/2` 界就接上了 `close_trans` 的三段式。
+theorem close_pair_of_close_half (a b L eps : ratRep)
+    (heps : ratLtRep ratZeroRep eps)
+    (ha : close a L (ratHalf eps)) (hb : close b L (ratHalf eps)) :
+    close a b eps :=
+  close_trans a L b eps heps ha
+    (close_symm b L (ratHalf eps) hb)
+
+-- ─────────────────────────────────────────────────────────────
+-- 83.2 收敛序列满足 Cauchy 条件
+-- ─────────────────────────────────────────────────────────────
+
+-- 给定 `ε > 0`，先折半。`ratLtRep_half` 保证 `ε/2 > 0`，收敛性用这个
+-- 半径给出阈值 `N`。对 `n, m ≥ N`，两条 `close (x n) L (ε/2)` 与
+-- `close (x m) L (ε/2)` 正是 83.1 的前提。
+theorem converges_cauchy (x : Seq) (L : ratRep) (h : Converges x L) :
+    Cauchy x :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (N : Nat)
+          (hN : ∀ (n : Nat), LeNat N n → close (x n) L (ratHalf eps)) =>
+        Exists.intro N
+          (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =>
+            close_pair_of_close_half (x n) (x m) L eps heps
+              (hN n hn) (hN m hm)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 83.3 收敛序列与常序列在实数层等价
+-- ─────────────────────────────────────────────────────────────
+
+-- `realRel` 的第一分量用 83.2，第二分量用 68.1 的 `cauchy_const`。
+-- 第三分量要求逐点 `close (x n) (constSeq L n) eps`；`constSeq L n`
+-- 展开成 `L`，所以收敛性给的见证可以直接搬过来。
+theorem converges_realRel_const (x : Seq) (L : ratRep) (h : Converges x L) :
+    realRel x (constSeq L) :=
+  And.intro (converges_cauchy x L h)
+    (And.intro (cauchy_const L)
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim (h eps heps)
+          (fun (N : Nat)
+              (hN : ∀ (n : Nat), LeNat N n → close (x n) L eps) =>
+            Exists.intro N
+              (fun (n : Nat) (hn : LeNat N n) => hN n hn))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 83.4 收敛序列代表的实数就是它的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- `Real.sound` 把 `realRel` 翻译成商类型里的等式；前提是 83.3。
+theorem converges_real_eq_const (x : Seq) (L : ratRep) (h : Converges x L) :
+    Real.mk x = Real.mk (constSeq L) :=
+  Real.sound x (constSeq L) (converges_realRel_const x L h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 83.5 零序列的实例
+-- ─────────────────────────────────────────────────────────────
+
+-- 库里的 `demo_converges_zero` 已经给出 `Converges zeroSeq 0`；
+-- 主定理直接把它转成 Cauchy 条件。
+theorem demo_zero_cauchy : Cauchy zeroSeq :=
+  converges_cauchy zeroSeq ratZeroRep demo_converges_zero

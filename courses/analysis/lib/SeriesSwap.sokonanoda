@@ -1,0 +1,172 @@
+-- 课程库：级数的重排（交换前两项）
+--
+-- 单元123 证明交换前两项不改变可和性：从第三项起两条级数逐项相同，所以
+-- 从第二项起的尾块完全一样。这里收进 L2，后面的重排章节直接引用：
+--
+--   · `swapFirst` —— 交换前两项的序列变换；
+--   · `swapFirst_eq_of_two_le` / `tailSum_swapFirst` —— 从第三项起项与尾块不变；
+--   · `summable_swapFirst_iff` —— 可和性不变；
+--   · 辅助的 `two_add_eq_succ_succ` / `swapFirst_invol` /
+--     `summable_swapFirst_step` / `summable_swapFirst_of` / `summable_of_swapFirst`；
+--   · `demo_swapFirst_zero` —— 零级数实例。
+--
+-- 边界：只交换前两项。一般有限置换与和类的保持不在本模块。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Sum
+import lib.SumSplit
+import lib.Series
+import lib.SeriesTail
+import lib.SeriesLinear
+import lib.RealEq
+
+-- ─────────────────────────────────────────────────────────────
+-- 123.0 交换前两项
+-- ─────────────────────────────────────────────────────────────
+
+-- 下标 0 取原来的第 1 项，下标 1 取原来的第 0 项，其余下标不动。
+def swapFirst (f : Nat → ratRep) : Nat → ratRep :=
+  fun (n : Nat) =>
+    match n with
+    | Nat.zero => f (Nat.succ Nat.zero)
+    | Nat.succ Nat.zero => f Nat.zero
+    | Nat.succ (Nat.succ j) => f (Nat.succ (Nat.succ j))
+
+-- ─────────────────────────────────────────────────────────────
+-- 123.1 从第三项起交换不改变项
+-- ─────────────────────────────────────────────────────────────
+
+-- `leNat_exists_add` 把 `2 ≤ n` 写成 `n = 2 + j`；再用 `2 + j = succ (succ j)`
+-- 把下标化成第三个分支。
+theorem two_add_eq_succ_succ (j : Nat) :
+    Nat.add 2 j = Nat.succ (Nat.succ j) :=
+  @Eq.trans.{1} Nat
+    (Nat.add 2 j)
+    (Nat.succ (Nat.add 1 j))
+    (Nat.succ (Nat.succ j))
+    (succ_add 1 j)
+    (@Eq.trans.{1} Nat
+      (Nat.succ (Nat.add 1 j))
+      (Nat.succ (Nat.succ (Nat.add Nat.zero j)))
+      (Nat.succ (Nat.succ j))
+      (congrArg Nat.succ (succ_add Nat.zero j))
+      (congrArg Nat.succ (congrArg Nat.succ (zero_add j))))
+
+theorem swapFirst_eq_of_two_le (f : Nat → ratRep) (n : Nat)
+    (h : LeNat 2 n) : swapFirst f n = f n :=
+  Exists.elim (leNat_exists_add 2 n h)
+    (fun (j : Nat) (hj : n = Nat.add 2 j) =>
+      @Eq.subst.{1} Nat
+        (fun (t : Nat) => swapFirst f t = f t)
+        (Nat.succ (Nat.succ j)) n
+        (@Eq.symm.{1} Nat n (Nat.succ (Nat.succ j))
+          (@Eq.trans.{1} Nat n (Nat.add 2 j) (Nat.succ (Nat.succ j))
+            hj (two_add_eq_succ_succ j)))
+        (Eq.refl (f (Nat.succ (Nat.succ j)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 123.2 从第二项起的尾块不变
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾块从下标 m ≥ 2 开始，逐项都与原序列相同，`sumTo_congr` 把这条逐项
+-- 相等抬成尾块相等。
+theorem tailSum_swapFirst (f : Nat → ratRep) (m k : Nat)
+    (hm : LeNat 2 m) :
+    ratRel (TailSum (swapFirst f) m k) (TailSum f m k) :=
+  sumTo_congr
+    (fun (j : Nat) => swapFirst f (Nat.add m j))
+    (fun (j : Nat) => f (Nat.add m j))
+    k
+    (fun (j : Nat) =>
+      @Eq.subst.{1} ratRep
+        (fun (x : ratRep) => ratRel x (f (Nat.add m j)))
+        (f (Nat.add m j)) (swapFirst f (Nat.add m j))
+        (@Eq.symm.{1} ratRep (swapFirst f (Nat.add m j)) (f (Nat.add m j))
+          (swapFirst_eq_of_two_le f (Nat.add m j)
+            (leNat_trans 2 m (Nat.add m j) hm (leNat_self_add m j))))
+        (ratRel_refl (f (Nat.add m j))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 123.3 可和性不变
+-- ─────────────────────────────────────────────────────────────
+
+-- 交换两次回到原序列：三个分支都直接归约。
+theorem swapFirst_invol (f : Nat → ratRep) (n : Nat) :
+    swapFirst (swapFirst f) n = f n :=
+  match n with
+  | Nat.zero => Eq.refl (f Nat.zero)
+  | Nat.succ Nat.zero => Eq.refl (f (Nat.succ Nat.zero))
+  | Nat.succ (Nat.succ j) => Eq.refl (f (Nat.succ (Nat.succ j)))
+
+-- 固定 ε 与一个满足尾块估计的阈值 N；阈值与 2 取较大者，之后每个尾块都由
+-- 123.2 换成原序列的尾块。
+theorem summable_swapFirst_step (f : Nat → ratRep) (eps : ratRep)
+    (N : Nat)
+    (hN : ∀ (m : Nat), LeNat N m → ∀ (k : Nat),
+      close (TailSum f m k) ratZeroRep eps) :
+    ∃ (M : Nat), ∀ (m : Nat), LeNat M m → ∀ (k : Nat),
+      close (TailSum (swapFirst f) m k) ratZeroRep eps :=
+  @Exists.elim Nat
+    (fun (M : Nat) => LeNat N M ∧ LeNat 2 M)
+    (∃ (M : Nat), ∀ (m : Nat), LeNat M m → ∀ (k : Nat),
+      close (TailSum (swapFirst f) m k) ratZeroRep eps)
+    (leNat_max N 2)
+    (fun (M : Nat) (hM : LeNat N M ∧ LeNat 2 M) =>
+      Exists.intro M
+        (fun (m : Nat) (hm : LeNat M m) (k : Nat) =>
+          close_wd_left (TailSum f m k) (TailSum (swapFirst f) m k)
+            ratZeroRep eps
+            (ratRel_symm (TailSum (swapFirst f) m k) (TailSum f m k)
+              (tailSum_swapFirst f m k
+                (leNat_trans 2 M m (And.right hM) hm)))
+            (hN m (leNat_trans N M m (And.left hM) hm) k)))
+
+theorem summable_swapFirst_of (f : Nat → ratRep) (h : Summable f) :
+    Summable (swapFirst f) :=
+  Iff.mpr (summable_iff_tail (swapFirst f))
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+      Exists.elim
+        (@Iff.mp (Summable f)
+          (∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+            ∃ (N : Nat), ∀ (m : Nat), LeNat N m → ∀ (k : Nat),
+              close (TailSum f m k) ratZeroRep eps)
+          (summable_iff_tail f) h eps heps)
+        (fun (N : Nat)
+            (hN : ∀ (m : Nat), LeNat N m → ∀ (k : Nat),
+              close (TailSum f m k) ratZeroRep eps) =>
+          summable_swapFirst_step f eps N hN))
+
+-- 反方向：先交换一次，再用 `swapFirst_invol` 把两次交换收回原序列。
+theorem summable_of_swapFirst (f : Nat → ratRep)
+    (h : Summable (swapFirst f)) : Summable f :=
+  cauchy_congr
+    (Series (swapFirst (swapFirst f)))
+    (Series f)
+    (fun (n : Nat) =>
+      sumTo_congr
+        (fun (k : Nat) => swapFirst (swapFirst f) k)
+        f n
+        (fun (k : Nat) =>
+          @Eq.subst.{1} ratRep
+            (fun (x : ratRep) => ratRel x (f k))
+            (f k) (swapFirst (swapFirst f) k)
+            (@Eq.symm.{1} ratRep (swapFirst (swapFirst f) k) (f k)
+              (swapFirst_invol f k))
+            (ratRel_refl (f k))))
+    (summable_swapFirst_of (swapFirst f) h)
+
+theorem summable_swapFirst_iff (f : Nat → ratRep) :
+    Summable (swapFirst f) ↔ Summable f :=
+  Iff.intro
+    (fun (h : Summable (swapFirst f)) => summable_of_swapFirst f h)
+    (fun (h : Summable f) => summable_swapFirst_of f h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 123.4 具体：零级数交换前两项还是零级数
+-- ─────────────────────────────────────────────────────────────
+
+-- 零序列交换前两项仍是零序列，可和性由 123.3 送回。
+theorem demo_swapFirst_zero :
+    Summable (swapFirst (fun (_ : Nat) => ratZeroRep)) :=
+  Iff.mpr (summable_swapFirst_iff (fun (_ : Nat) => ratZeroRep)) summable_zero
