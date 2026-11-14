@@ -25,10 +25,13 @@ thread_local! {
 /// **P2-11c**：带宇宙参数的 `Ident` 头进内核路径（K1d：不带层的 `Const` ⇒ 内核每个 uparam 发一个会话层元变量）。
 fn universe_heads_enabled() -> bool {
     #[cfg(test)]
-    if TEST_NO_UNIVERSE_HEADS.with(|c| c.get()) {
-        return false;
+    {
+        !TEST_NO_UNIVERSE_HEADS.with(|c| c.get())
     }
-    true
+    #[cfg(not(test))]
+    {
+        true
+    }
 }
 
 /// 仍挡在门外的宇宙多态头：**高阶 motive**（`Eq.subst {motive : α → Prop}`，结果 `motive b`）。内核没有 motive
@@ -73,10 +76,13 @@ pub(super) fn bare_levels<'a>(builder: &mut EnvBuilder<'a>, head: ExprPtr<'a>) -
 /// **P2-11e**：`Name.{…}` 头（`=` 记法降成的 `Eq.{u}`、用户写的 `Eq.{1}`）进内核路径。
 fn universe_app_enabled() -> bool {
     #[cfg(test)]
-    if TEST_NO_UNIVERSE_APP.with(|c| c.get()) {
-        return false;
+    {
+        !TEST_NO_UNIVERSE_APP.with(|c| c.get())
     }
-    true
+    #[cfg(not(test))]
+    {
+        true
+    }
 }
 
 /// **P2-11e**：`attempt` 的头 ⇒ `(名字, span)`。`Ident` 原样；`Name.{…}` 放行（方案 A：**显式层原样保留**——
