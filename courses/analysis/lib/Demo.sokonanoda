@@ -47,6 +47,7 @@ import lib.SeriesTailReverse
 import lib.SeriesSwap
 import lib.LimAt
 import lib.Cont
+import lib.LocalBounded
 import lib.Uniform
 import lib.UniformSeq
 
@@ -228,3 +229,11 @@ theorem demo_lib_uniform_converges (x : Seq) (L : ratRep)
     Converges (fun (n : Nat) => x n) L :=
   uniformlyContinuous_converges (fun (x : ratRep) => x)
     uniformlyContinuous_id x L hx
+
+theorem demo_lib_localBounded_const (c a : ratRep) :
+    LocallyBoundedAt (fun (_ : ratRep) => c) a :=
+  demo_locallyBoundedAt_const c a
+
+theorem demo_lib_localBounded_id (a : ratRep) :
+    LocallyBoundedPunct (fun (x : ratRep) => x) a :=
+  demo_locallyBoundedPunct_id a

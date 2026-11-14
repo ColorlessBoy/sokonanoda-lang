@@ -284,3 +284,47 @@ theorem ratLtRep_half (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
         (ratRel_symm eps ratZeroRep
           (ratRel_half_zero eps (ratRel_symm ratZeroRep (ratHalf eps) h0))))
 
+-- ─────────────────────────────────────────────────────────────
+-- 绝对值非负（单元㊺ 的引擎，132 起直接引用）
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个分支分别把 `0 ≤ x` 与 `x ≤ 0` 搬到见证 `d` 上：第一支沿 `d ~ x`，
+-- 第二支先由 `ratLeRep_neg_gen` 得 `0 ≤ -x`，再沿 `d ~ -x` 搬运。
+theorem ratAbsRel_nonneg_aux (x d : Prod (Prod Nat Nat) Nat) :
+    ratAbsRel x d → ratLeRep ratZeroRep d :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match d with
+    | prod_mk (prod_mk a' b') m' =>
+      fun (h : ratAbsRel (prod_mk (prod_mk a b) m) (prod_mk (prod_mk a' b') m')) =>
+        @Or.elim
+          (ratLeRep ratZeroRep (qrep a b m) ∧ ratRel (qrep a' b' m') (qrep a b m))
+          (ratLeRep (qrep a b m) ratZeroRep ∧
+            ratRel (qrep a' b' m') (ratNegRep (qrep a b m)))
+          (ratLeRep ratZeroRep (qrep a' b' m'))
+          (fun (h1 : ratLeRep ratZeroRep (qrep a b m) ∧ ratRel (qrep a' b' m') (qrep a b m)) =>
+            ratLeRep_congr_snd Nat.zero Nat.zero a b a' b' Nat.zero m m'
+              (ratRel_symm (qrep a' b' m') (qrep a b m) (And.right h1))
+              (And.left h1))
+          (fun (h2 : ratLeRep (qrep a b m) ratZeroRep ∧
+                     ratRel (qrep a' b' m') (ratNegRep (qrep a b m))) =>
+            ratLeRep_congr_snd Nat.zero Nat.zero b a a' b' Nat.zero m m'
+              (ratRel_symm (qrep a' b' m') (ratNegRep (qrep a b m))
+                (And.right h2))
+              (ratLeRep_neg_gen (qrep a b m) ratZeroRep (And.left h2)))
+          h
+
+theorem ratAbsRel_nonneg (x d : ratRep) (h : ratAbsRel x d) :
+    ratLeRep ratZeroRep d :=
+  ratAbsRel_nonneg_aux x d h
+
+-- `ratLeRep_add` 给 `0 + 0 ≤ u + v`；左边与 0 是同一个数，沿 `ratAdd_zero`
+-- 搬回来。这一步不能省：定义里要的正是 `0 ≤ u + v`。
+theorem ratLeRep_zero_add_nonneg (u v : ratRep)
+    (hu : ratLeRep ratZeroRep u) (hv : ratLeRep ratZeroRep v) :
+    ratLeRep ratZeroRep (ratAddRep u v) :=
+  ratLeRep_trans ratZeroRep (ratAddRep ratZeroRep ratZeroRep) (ratAddRep u v)
+    (ratLeRep_of_ratRel ratZeroRep (ratAddRep ratZeroRep ratZeroRep)
+      (ratRel_symm (ratAddRep ratZeroRep ratZeroRep) ratZeroRep
+        (ratAdd_zero ratZeroRep)))
+    (ratLeRep_add ratZeroRep u ratZeroRep v hu hv)

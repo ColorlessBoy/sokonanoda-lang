@@ -1,0 +1,128 @@
+-- 单元132 局部有界：极限给出的第一个盒子
+--
+-- 两个函数相乘再取极限，最容易想到的估计是
+--
+--   |f x · g x - L · M| ≤ |f x| · |g x - M| + |M| · |f x - L|。
+--
+-- 右边第二项由 g 的极限控制，第一项里的 |g x - M| 也由极限控制，可 |f x|
+-- 本身没有被任何极限陈述直接管住：f x 趋于 L 说的是「离 L 近」，不是
+-- 「有界」。这一步差的正是一个局部估计：只要极限有限，f 在 a 附近就落进
+-- 一个以 L 为中心、半径 1 的盒子里，再由三角不等式换成以 0 为心的界。
+--
+-- 连续与极限给出的盒子形状不同。连续管的是整个 δ 邻域，a 本身也在内，
+-- 于是可以直接取 ε = 1 把 |f x - f a| 压到 1 以下，再用 |f a| 抬成
+-- |f x| ≤ |f a| + 1。函数极限的定义排掉了 a 点，得到的只是去心邻域里的界；
+-- 乘积与商要的正是这个去心版本，因为在 a 点取值不影响极限。
+--
+-- 盒子的半径依赖 a，不是整片定义域的统一界：这正是「局部」二字的含义，
+-- 也是后面一致连续与最值问题要跨过的门槛。乘积还要乘法对序的相容性，
+-- 那是另一层估计；函数仍取 `ratRep → ratRep`，停在有理代表元层。不新增公理。
+
+import lib.Rat
+import lib.Cauchy
+import lib.RatAbs
+import lib.RatClose
+import lib.RatSub
+import lib.RatAssoc
+import lib.RatGroup
+import lib.Bounded
+import lib.LimAt
+import lib.Cont
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义：整邻域有界与去心邻域有界
+-- ─────────────────────────────────────────────────────────────
+
+-- 整邻域版本：有一个正半径 δ 和一个非负界 B，δ 邻域里每个点的 `|f x|`
+-- 都有见证不超过 B。「有见证不超过 B」写成 `∃ d, ratAbsRel (f x) d ∧ d ≤ B`，
+-- 因为库里的绝对值是关系而不是函数，B 不必是某个点的绝对值本身。
+def LocallyBoundedAt (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∃ (B : ratRep), ratLeRep ratZeroRep B ∧
+      ∀ (x : ratRep), close x a delta →
+        ∃ (d : ratRep), ratAbsRel (f x) d ∧ ratLeRep d B
+
+-- 去心版本：与上面同形，只在 `x` 与 `a` 代表元等价时不做要求。函数极限
+-- 不管 a 点的取值，乘积与商需要的也正是这一版。
+def LocallyBoundedPunct (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∃ (B : ratRep), ratLeRep ratZeroRep B ∧
+      ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+        ∃ (d : ratRep), ratAbsRel (f x) d ∧ ratLeRep d B
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义与展开形式
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：定义与展开是同一个命题，两个方向都直接返回假设。
+-- soko:hint 目标形态：`LocallyBoundedAt f a ↔ ∃ delta > 0, ∃ B ≥ 0, ∀ x, close x a delta → ∃ d, |f x| ~ d ∧ d ≤ B`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem locallyBoundedAt_iff (f : ratRep → ratRep) (a : ratRep) :
+    LocallyBoundedAt f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∃ (B : ratRep), ratLeRep ratZeroRep B ∧
+          ∀ (x : ratRep), close x a delta →
+            ∃ (d : ratRep), ratAbsRel (f x) d ∧ ratLeRep d B :=
+  sorry
+
+-- soko:hint 思路：与整邻域版本同形，结论里多一条「x 不是 a」的前提，直接原样保留。
+-- soko:hint 目标形态：`LocallyBoundedPunct f a ↔ ∃ delta > 0, ∃ B ≥ 0, ∀ x, close x a delta → ¬ ratRel x a → ∃ d, |f x| ~ d ∧ d ≤ B`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem locallyBoundedPunct_iff (f : ratRep → ratRep) (a : ratRep) :
+    LocallyBoundedPunct f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∃ (B : ratRep), ratLeRep ratZeroRep B ∧
+          ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+            ∃ (d : ratRep), ratAbsRel (f x) d ∧ ratLeRep d B :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 整邻域有界推出其去心版本
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：拆开整邻域版本的 δ 与 B；结论只多一条「x 不是 a」，把它当额外前提忽略。
+-- soko:hint 目标形态：`LocallyBoundedPunct f a`。
+-- soko:hint 关键件：Exists.elim · And.left / And.right · 两次 Exists.intro。
+theorem locallyBoundedPunct_of_locallyBoundedAt (f : ratRep → ratRep)
+    (a : ratRep) (h : LocallyBoundedAt f a) : LocallyBoundedPunct f a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 连续给出整邻域的盒子
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：取 ε = 1；连续给 δ 与 |f x - f a| < 1，再用三角不等式 |f x| ≤ |f x - f a| + |f a| ≤ 1 + |f a|，界取 |f a| 的见证加 1。
+-- soko:hint 目标形态：`LocallyBoundedAt f a`。
+-- soko:hint 关键件：ratAbsRel_total · ratLeRep_abs_add · ratSubRep_add_self · ratLeRep_zero_add_nonneg · ratAbsRel_nonneg。
+theorem locallyBoundedAt_of_continuousAt (f : ratRep → ratRep) (a : ratRep)
+    (hf : ContinuousAt f a) : LocallyBoundedAt f a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 函数极限给出一个去心邻域的盒子
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：与上一条同形，极限定义多给一条「x 不是 a」的前提；结论落在去心版本上，三角不等式的计算不变。
+-- soko:hint 目标形态：`LocallyBoundedPunct f a`。
+-- soko:hint 关键件：ratAbsRel_total · ratLeRep_abs_add · ratSubRep_add_self · ratLeRep_zero_add_nonneg。
+theorem locallyBoundedPunct_of_tendsToAt (f : ratRep → ratRep) (a L : ratRep)
+    (hf : TendsToAt f a L) : LocallyBoundedPunct f a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个具体样本
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常函数连续，把 `locallyBoundedAt_of_continuousAt` 直接交出去。
+-- soko:hint 目标形态：`LocallyBoundedAt (fun _ => c) a`。
+-- soko:hint 关键件：continuousAt_const · locallyBoundedAt_of_continuousAt。
+theorem demo_locallyBoundedAt_const (c a : ratRep) :
+    LocallyBoundedAt (fun (_ : ratRep) => c) a :=
+  sorry
+
+-- soko:hint 思路：恒等函数在 a 的极限是 a，交给 `locallyBoundedPunct_of_tendsToAt`。
+-- soko:hint 目标形态：`LocallyBoundedPunct (fun x => x) a`。
+-- soko:hint 关键件：tendsToAt_id · locallyBoundedPunct_of_tendsToAt。
+theorem demo_locallyBoundedPunct_id (a : ratRep) :
+    LocallyBoundedPunct (fun (x : ratRep) => x) a :=
+  sorry

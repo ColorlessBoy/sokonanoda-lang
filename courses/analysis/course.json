@@ -1005,6 +1005,12 @@
               "title": "单元131 一致连续与序列：Cauchy 序列的像",
               "title_en": "Unit 131 — Uniform Continuity and Sequences: Images of Cauchy Sequences",
               "unit": 131
+            },
+            {
+              "file": "units/III.6/unit132-local-boundedness.sokonanoda",
+              "title": "单元132 局部有界：极限给出的第一个盒子",
+              "title_en": "Unit 132 — Local Boundedness: The First Box a Limit Gives",
+              "unit": 132
             }
           ]
         }
