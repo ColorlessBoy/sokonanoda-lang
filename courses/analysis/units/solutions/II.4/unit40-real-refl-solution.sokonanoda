@@ -1,22 +1,16 @@
 -- 单元㊵ 实数的相等：自反性（解答）
 --
--- ㊱ 把实数定义成 Cauchy 序列的商：
+-- ㊱ 把实数定义成 Cauchy 序列的商：realRel x y 当且仅当 x、y 都是 Cauchy 序列，
+-- 且对任意 eps>0 存在 N，使 n ≥ N 时 close (x n) (y n) eps 成立；Real := Quot
+-- realRel。
 --
---   realRel x y  :⟺  Cauchy x ∧ Cauchy y ∧
---                    ∀ eps > 0, ∃ N, ∀ n ≥ N, close (x n) (y n) eps
---   Real := Quot realRel
+-- 要让 Real 上的相等成为等价关系，需要自反、对称、传递三条腿。先结清自反：
+-- Cauchy x 推出 realRel x x。关键观察只有一句话——realRel x x 的第三分量要求
+-- 「x 的任意两项最终任意接近」，而 Cauchy x 给的正是任意两项都接近；取 m = n
+-- 就是对角线情形。所以自反性不需要新的算术，只需要把量词用对。
 --
--- 要让 `Real` 上的相等成为一个**等价关系**，需要三条腿：自反、对称、传递。
--- 我们结清第一条——**自反性**：
---
---   Cauchy x  ⟹  realRel x x
---
--- 关键观察只有一句话：`realRel x x` 的第三分量要求「x 的两项最终任意接近」，
--- 而 `Cauchy x` 给的正是**任意两项**（`∀ n m ≥ N`）都接近；取 `m = n` 就是
--- 对角线情形。所以自反性不需要任何新的算术，只需要把量词用对。
---
--- 对称性要 `close` 对调（需要 `|x−y| ~ |y−x|` 的引擎），传递性要三角不等式，
--- 都留到后续单元。
+-- 对称性要 close 对调（需要 |x-y| 与 |y-x| 相等的引擎），传递性要三角不等式，
+-- 都留给后续单元。
 
 import lib.Cauchy
 
@@ -24,6 +18,7 @@ import lib.Cauchy
 -- ㊵.1 Cauchy 序列的对角线
 -- ─────────────────────────────────────────────────────────────
 
+-- 先把 Cauchy 拆成「存在 N，任意两项都接近」，再把两个位置都填同一个 n。
 -- soko:hint 思路：把 `hx eps h` 消去，得到 `∃ N, ∀ n m ≥ N, close (x n) (x m) eps`；对同一个 `N`，把 `n`、`m` 两个位置都填 `n`（同一个 `hn` 用两次）。
 -- soko:hint 目标形态：`Cauchy x → ∀ eps > 0, ∃ N, ∀ n ≥ N, close (x n) (x n) eps`。
 -- soko:hint 关键件：Exists.elim · Exists.intro。
@@ -40,6 +35,7 @@ theorem cauchy_close_self (x : Seq) (hx : Cauchy x) :
 -- ㊵.2 realRel 是自反的
 -- ─────────────────────────────────────────────────────────────
 
+-- 再组装 realRel：两个 Cauchy 分量都是 hx，第三分量正是上一题。
 -- soko:hint 思路：`realRel` 是三元组；两个 `Cauchy` 分量都是 `hx`，第三分量正是 ㊵.1。
 -- soko:hint 目标形态：`Cauchy x → realRel x x`。
 -- soko:hint 关键件：And.intro（两次）· cauchy_close_self。
@@ -50,6 +46,7 @@ theorem realRel_refl (x : Seq) (hx : Cauchy x) : realRel x x :=
 -- ㊵.3 具体：常零序列与自身等价
 -- ─────────────────────────────────────────────────────────────
 
+-- 具体：常零序列与自身等价。
 -- soko:hint 思路：把 ㊵.2 用在 `zeroSeq` 上，`Cauchy` 分量用库里已证明的 `cauchy_zero`。
 -- soko:hint 目标形态：`realRel zeroSeq zeroSeq`。
 -- soko:hint 关键件：realRel_refl · cauchy_zero。
