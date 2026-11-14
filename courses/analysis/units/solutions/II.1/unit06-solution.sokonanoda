@@ -20,7 +20,7 @@ def addRep (a b : Prod Nat Nat) : Prod Nat Nat :=
     (Nat.add (Prod.fst Nat Nat a) (Prod.fst Nat Nat b))
     (Nat.add (Prod.snd Nat Nat a) (Prod.snd Nat Nat b))
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（本单元自备）。
+-- 下面四条是单元③证过的 ℕ 加法律，这里重新列出，后面的证明直接引用。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
@@ -67,7 +67,8 @@ theorem add_comm (a b : Nat) :
         (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
     b
 
--- 搬运律：把两个和里的加法因子换个配对，值不变。
+-- 搬运律说：把两个和里的加数重新配对，值不变。这正是把 (a+c)+(b+d) 与
+-- (a+b)+(c+d) 对上的那一步。
 theorem add_shift (a b c d : Nat) :
     Nat.add (Nat.add a c) (Nat.add b d) =
     Nat.add (Nat.add a b) (Nat.add c d) :=
@@ -108,7 +109,8 @@ theorem add_shift (a b c d : Nat) :
             (Nat.add a (Nat.add b (Nat.add c d)))
             (add_assoc a b (Nat.add c d))))))
 
--- 结论：加法尊重等价关系（第二个分量固定）。
+-- 结论：加法尊重差相等。这里证的是第二个因子 (c,d) 固定、第一个因子换代表元；
+-- 另一个因子固定的那一半同理，不在本单元展开。
 theorem addRep_wd (a b a' b' c d : Nat)
     (h : intRel (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a' b')) :
     intRel (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
@@ -131,7 +133,7 @@ theorem addRep_wd (a b a' b' c d : Nat)
         (Nat.add (Nat.add a' b) (Nat.add c d))
         (add_shift a' b c d)))
 
--- 演示：具体数字上走一遍 —— (2-0) ~ (3-1)，各自加 (4-1)，结果仍等价。
+-- 具体数字上核对：2-0 与 3-1 差相等，各加 (4-1) 后仍差相等（两边都算得 8）。
 theorem demo_addRep_wd :
     intRel (addRep (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 4 1))
            (addRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 4 1)) :=
