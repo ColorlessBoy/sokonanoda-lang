@@ -19,7 +19,7 @@
 -- 「相等」或「严格小」），这不是排中律：`Nat` 的 `≤` 是归纳定义的，
 -- 两支由构造子直接给出；不新增公理，也不用 `Classical.choice`。
 --
--- 内容：
+-- 本单元按顺序做下面几件事。
 --   · 74.1 `ratSubRep_add_self` —— `(x - y) + y ~ x`；
 --   · 74.2 `ratRel_of_sub_zero` —— 差为零 ⇒ 相等；
 --   · 74.3 `ratLtRep_sub_pos` —— `y < x ⇒ 0 < x - y`；
