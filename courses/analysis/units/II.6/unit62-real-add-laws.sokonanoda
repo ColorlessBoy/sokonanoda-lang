@@ -1,28 +1,20 @@
 -- 单元62 实数的加法：交换律与零元（三元关系版）
 --
--- 61 把加法写成了三元关系：
+-- 上一单元把加法写成了三元关系：addRel a b c 当且仅当 a、b 有 Cauchy 代表元 x、y，
+-- 且 c = mk (x+y)。现在把这个关系的代数律从代表元层搬上来。
 --
---   addRel a b c  :⟺  a、b 有 Cauchy 代表元 x、y，且 c = mk (x + y)
+-- 搬运的关键是一条桥：代表元相等（ratRel x y）推出任意 ε>0 时 close x y ε。代表元
+-- 相等是「差为零」，而 close 要求「差的绝对值小于 ε」；差为零时取见证 d := 0，再用
+-- 序的全性决定 x-y 落在零的哪一边，就能把「x-y 的绝对值等于 0」拼出来。有了这条桥，
+-- 代表元层的加法交换律与零元律就能逐点搬成 realRel 的等式，再经 Real.sound 送进商。
 --
--- 我们把这个关系的**代数律**从代表元层搬上来。搬运的关键是一条桥：
+-- 先证桥的两块（差为零、绝对值为零），再把它用在交换律上，然后把零元律搬上来、
+-- 用交换律得到左零元，最后落在常零序列上。
 --
---   ratRel x y  ⇒  close x y ε      （任意 ε > 0）
---
--- 代表元相等是「差为零」，而 `close` 要求「差的绝对值小于 ε」；差为零
--- 时取见证 `d := 0`，再用序的全性（㊺ 的 `ratLeRep_total`）决定
--- `x - y` 落在零的哪一边，就能把 `ratAbsRel (x - y) 0` 拼出来。
--- 有了这条桥，代表元层的 `ratAdd_comm` 与 `ratAdd_zero` 就能逐点搬成
--- `realRel` 的等式，再经 `Real.sound` 送进商。
---
--- 62.1/62.2 是桥的两块（差为零、绝对值为零），62.3 把它用在交换律上，
--- 62.4 是三元关系的交换律；62.5/62.6 是零元，62.7 用交换律得到左零元，
--- 62.8 落在常零序列上。
---
--- 边界与 61 相同：`addRel` 只对**有 Cauchy 代表元**的实数有输出，所以
--- 零元律的陈述带 `Cauchy x` 假设（不把「每个 Real 都是 Cauchy 类」写成
--- 公理）；交换律本身不需要额外假设，因为两个前提分量就带着 Cauchy 守卫。
---
--- `addRel` 的构造与五条基本律在 `lib/RealAddRel`（单元61 的引擎）。
+-- 边界与上一单元相同：addRel 只对有 Cauchy 代表元的实数有输出，所以零元律的陈述带
+-- Cauchy 假设（不把「每个 Real 都是 Cauchy 类」写成公理）；交换律本身不需要额外
+-- 假设，因为两个前提分量就带着 Cauchy 守卫。addRel 的构造与五条基本律在
+-- lib/RealAddRel。
 
 import lib.RealAddRel
 import lib.RatAbs
@@ -31,6 +23,7 @@ import lib.RatAbs
 -- 62.1 代表元层：`x ~ y ⇒ x - y ~ 0`
 -- ─────────────────────────────────────────────────────────────
 
+-- 桥的第一块：x 与 y 相等时 x-y 与 0 相等。
 -- soko:hint 思路：先 `x - y ~ y - y`（56 的 `ratAddRep_wd_gen`，第一个变元用 `h`），再用 55 的逆元律 `y + (-y) ~ 0` 传递。
 -- soko:hint 目标形态：`ratRel (ratSubRep x y) ratZeroRep`。
 -- soko:hint 关键件：ratRel_trans_gen · ratAddRep_wd_gen · ratAdd_neg_gen。
@@ -42,6 +35,7 @@ theorem ratSubRep_ratRel_zero (x y : ratRep) (h : ratRel x y) :
 -- 62.2 绝对值：`x ~ y ⇒ |x - y| ~ 0`
 -- ─────────────────────────────────────────────────────────────
 
+-- 桥的第二块：x 与 y 相等时 |x-y| 与 0 相等。
 -- soko:hint 思路：见证取 `0`。按㊺的 `ratLeRep_total` 把 `0 ≤ x-y` 与 `x-y ≤ 0` 二分：非负支走左支（62.1 调向），非正支走右支——62.1 经 `ratNegRep_wd` 得到 `-(x-y) ~ -0`，而 `-0` 与 `0` 定义性相等，`ratRel_refl ratZeroRep` 收口。
 -- soko:hint 目标形态：`ratAbsRel (ratSubRep x y) ratZeroRep`。
 -- soko:hint 关键件：Or.elim · ratLeRep_total · Or.inl/Or.inr · ratRel_symm · ratRel_trans_gen · ratNegRep_wd · ratRel_refl。
@@ -53,6 +47,7 @@ theorem ratAbsRel_zero_of_ratRel (x y : ratRep) (h : ratRel x y) :
 -- 62.3 桥：代表元相等 ⇒ 逐点 `close`
 -- ─────────────────────────────────────────────────────────────
 
+-- 用桥把代表元层的交换律搬成逐点 close。
 -- soko:hint 思路：`close x y ε` 是 `∃ d, ratAbsRel (x-y) d ∧ d < ε`；见证取 `0`，第一分量是 62.2，第二分量就是假设 `0 < ε`。
 -- soko:hint 目标形态：`ratRel x y → ratLtRep ratZeroRep eps → close x y eps`。
 -- soko:hint 关键件：Exists.intro · And.intro · ratAbsRel_zero_of_ratRel。
@@ -64,6 +59,7 @@ theorem close_of_ratRel (x y : ratRep) (h : ratRel x y) (eps : ratRep)
 -- 62.4 代表元层：`(x + y) ~ (y + x)`
 -- ─────────────────────────────────────────────────────────────
 
+-- 三元关系的交换律。
 -- soko:hint 思路：两个 `Cauchy` 分量是 60 的 `cauchy_add`（两个方向各一次）；第三分量取 `N := 0`，逐点用㊸的 `ratAdd_comm` 加 62.3 的桥。
 -- soko:hint 目标形态：`realRel (addSeq x y) (addSeq y x)`。
 -- soko:hint 关键件：And.intro · cauchy_add · Exists.intro Nat.zero · ratAdd_comm · close_of_ratRel。
@@ -75,6 +71,7 @@ theorem realRel_add_comm (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
 -- 62.5 三元关系的交换律
 -- ─────────────────────────────────────────────────────────────
 
+-- 零元律（代表元层）：x + 0 与 x 相等。
 -- soko:hint 思路：对 `a`、`b` 各做一次 `Quot.ind`（动机都写在 `Real` 上）。进入 `mk x`、`mk y` 后，`h` 的三次 ι 归约给出两个 `Cauchy` 分量与 `c = mk (x+y)`；目标只需把两个 `Cauchy` 分量对调，第三个用 `c = mk (x+y)`、62.4 经 `Real.sound` 的 `mk (x+y) = mk (y+x)` 传递。
 -- soko:hint 目标形态：`addRel a b c → addRel b a c`。
 -- soko:hint 关键件：Quot.ind（两次，动机写明）· ι 归约 · And.intro · Eq.trans · Real.sound。
@@ -85,6 +82,7 @@ theorem addRel_comm (a b c : Real) (h : addRel a b c) : addRel b a c :=
 -- 62.6 代表元层：`(x + 0) ~ x`
 -- ─────────────────────────────────────────────────────────────
 
+-- 零元律（三元关系）。
 -- soko:hint 思路：第一分量是 60 的 `cauchy_add`（第二个因子用㉟的 `cauchy_zero`），第二分量就是 `hx`；第三分量取 `N := 0`，逐点用㊸的 `ratAdd_zero` 加 62.3 的桥。
 -- soko:hint 目标形态：`realRel (addSeq x zeroSeq) x`。
 -- soko:hint 关键件：And.intro · cauchy_add · cauchy_zero · ratAdd_zero · close_of_ratRel。
@@ -96,6 +94,7 @@ theorem realRel_add_zero (x : Seq) (hx : Cauchy x) :
 -- 62.7 右零元：`mk x + 0 = mk x`
 -- ─────────────────────────────────────────────────────────────
 
+-- 左零元：用交换律转成右零元。
 -- soko:hint 思路：ι 归约后目标是 `Cauchy x ∧ Cauchy zeroSeq ∧ mk x = mk (x+0)`；前两个是 `hx` 与 `cauchy_zero`，第三个是 62.6 经 `Real.sound` 再 `Eq.symm`。
 -- soko:hint 目标形态：`addRel (mk x) (mk zeroSeq) (mk x)`。
 -- soko:hint 关键件：And.intro · cauchy_zero · Real.sound · Eq.symm。
@@ -107,6 +106,7 @@ theorem addRel_zero_right (x : Seq) (hx : Cauchy x) :
 -- 62.8 左零元：`0 + mk x = mk x`（交换律的直接推论）
 -- ─────────────────────────────────────────────────────────────
 
+-- 具体落在常零序列上。
 -- soko:hint 思路：把 62.5 的交换律用在 62.7 上（`a := mk x`、`b := mk zeroSeq`）。
 -- soko:hint 目标形态：`addRel (mk zeroSeq) (mk x) (mk x)`。
 -- soko:hint 关键件：addRel_comm · addRel_zero_right。
@@ -118,9 +118,11 @@ theorem addRel_zero_left (x : Seq) (hx : Cauchy x) :
 -- 62.9 具体：常零序列上的零元律
 -- ─────────────────────────────────────────────────────────────
 
+-- 具体数字上验证交换律。
 -- soko:hint 思路：把 62.7 用在 `zeroSeq` 上；`Cauchy zeroSeq` 是㉟的 `cauchy_zero`。
 -- soko:hint 目标形态：`addRel (mk zeroSeq) (mk zeroSeq) (mk zeroSeq)`。
 -- soko:hint 关键件：addRel_zero_right · cauchy_zero。
 theorem demo_addRel_zero_seq :
     addRel (Real.mk zeroSeq) (Real.mk zeroSeq) (Real.mk zeroSeq) :=
   sorry
+-- 交换律与零元搬到三元关系上；下一单元补结合律。
