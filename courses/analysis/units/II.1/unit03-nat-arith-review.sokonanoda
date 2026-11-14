@@ -2,24 +2,24 @@
 --
 -- 卷 I 已经把自然数搭好：有 0、有后继，也有递归定理。但自然数上的加法与乘法
 -- 不是天上掉下来的；后面的整数、有理数、实数，最后都要把等式落回这里。为了
--- 以后在代表元层反复使用这些律，这一单元先亲手重造一遍：用 Nat.rec 定义
+-- 后面在代表元层反复使用这些律时，道理都在这里；先把它们亲手重造一遍：用 Nat.rec 定义
 -- add 与 mul，再用归纳证明零元、后继、结合、交换与分配。
 --
--- 为什么不直接用 prelude 里现成的 Nat.add？这一章要练的是“递归定义 + 归纳
--- 证明”的骨架。把现成加法当黑箱，后面的代表元计算就只剩符号操作；亲手造一遍，
--- 才知道每一步的归纳假设从哪里来、为什么搬得动。
+-- 为什么不直接用 prelude 里现成的 Nat.add？因为后面在代表元层做的每一步计算，
+-- 最后都要归结到「递归定义 + 归纳证明」这个骨架上。把现成加法当黑箱，代表元
+-- 计算就只剩符号操作；亲手造一遍，才知道归纳假设从哪里来、为什么搬得动。
 --
 -- 先看定义。add 对第二个参数递归：add a 0 = a，add a (succ b) = succ (add a b)。
 -- 这两个等式是定义性相等，证明项就是 Eq.refl；mul 也照同样方式递归：
 -- mul a 0 = 0，mul a (succ b) = add a (mul a b)。
 --
--- 定义之后，先证四个定义性等式（add_zero、add_succ、mul_zero、mul_succ），
--- 再证需要归纳的 zero_add、succ_add、add_assoc、add_comm，最后补搬运助手
--- add_rotate 与分配律 mul_distrib。零情形通常定义性成立；后继情形把归纳假设
--- 沿 succ 搬过去，必要时用 Eq.subst 改写谓词。
+-- 定义直接给出四条定义性等式（add_zero、add_succ、mul_zero、mul_succ）：
+-- 证明项就是 Eq.refl。真正要用归纳的是 zero_add、succ_add、add_assoc、
+-- add_comm，以及搬运助手 add_rotate 与分配律 mul_distrib。零情形通常定义性
+-- 成立；后继情形把归纳假设沿 succ 搬过去，必要时用 Eq.subst 改写谓词。
 --
--- 做完这一单元，后面在 ℤ、ℚ、ℝ 的代表元层写加法零元、交换加数时，用的就是
--- 这里证过的律；它们不是新公理，而是自然数上归纳法的结果。
+-- 这七条律此后可以直接引用。ℤ、ℚ、ℝ 的代表元层再写加法零元、交换加数时，
+-- 用的就是这里证过的结果——它们不是新公理，而是自然数上归纳法的直接推论。
 
 import lib.Set
 def add (a b : Nat) : Nat :=
@@ -32,47 +32,47 @@ theorem add_zero (a : Nat) : add a Nat.zero = a :=
 theorem add_succ (a b : Nat) : add a (Nat.succ b) = Nat.succ (add a b) :=
   @Eq.refl.{1} Nat (Nat.succ (add a b))
 
--- 练习 1（L 类）：`0 + b = b`。
+-- 先证零元律：0 + b = b。
 -- 思路：对 `b` 归纳（`Nat.rec` + Prop 动机）；零情形定义性成立（`Eq.refl`）；后继情形把归纳假设沿 `Nat.succ` 搬过去（`Eq.subst` + 谓词）。
 -- 关键件：`Nat.rec`（动机 · 零情形 · 后继情形 · 被归纳项）· `@Eq.refl.{1}` / `@Eq.subst.{1}`
 theorem zero_add (b : Nat) : add Nat.zero b = b := by
   sorry
 
--- 练习 2（L 类）：`(s a) + b = s (a + b)`。
--- 思路：同练习 1 的归纳骨架，但零情形是 `s a = s a`、后继情形把假设搬过一层 `Nat.succ`。
--- 关键件：同练习 1
+-- 再证后继律：(s a) + b = s (a + b)。
+-- 思路：和 zero_add 同一个归纳骨架，但零情形是 `s a = s a`、后继情形把假设搬过一层 `Nat.succ`。
+-- 关键件：`Nat.rec` · `@Eq.refl.{1}` · `@Eq.subst.{1}`
 theorem succ_add (a b : Nat) : add (Nat.succ a) b = Nat.succ (add a b) := by
   sorry
 
--- 练习 3（L 类）：加法结合律 `(a+b)+c = a+(b+c)`。
+-- 加法结合律：(a+b)+c = a+(b+c)。
 -- 思路：对 `c` 归纳；后继情形两边都变成 `Nat.succ` 套同一个中间项 ⇒ 搬运归纳假设。
--- 关键件：同练习 1
+-- 关键件：`Nat.rec` · `@Eq.refl.{1}` · `@Eq.subst.{1}`
 theorem add_assoc (a b c : Nat) :
     add (add a b) c = add a (add b c) := by
   sorry
 
--- 练习 4（L 类）：加法交换律 `a+b = b+a`。
+-- 加法交换律：a+b = b+a。
 -- 思路：对 `b` 归纳。零情形要 `zero_add` 的对称（`Eq.symm`）；后继情形用两步 `Eq.trans`：先把归纳假设搬到 `Nat.succ` 下，再用 `succ_add` 的对称把 `s (b+a)` 换成 `(s b)+a`。
--- 关键件：练习 1 · 练习 2 · `Eq.symm.{1}` · `Eq.trans.{1}`（三步要写清中间项）
+-- 关键件：`zero_add` · `succ_add` · `Eq.symm.{1}` · `Eq.trans.{1}`（三步要写清中间项）
 theorem add_comm (a b : Nat) : add a b = add b a := by
   sorry
 
--- 练习 5（L 类，搬运助手）：`a+(b+c) = b+(a+c)`。
+-- 搬运助手：a+(b+c) = b+(a+c)，把内层加数换个位置。
 -- 思路：先拆链 —— `a+(b+c) = (a+b)+c`（结合律的对称）⇒ `= (b+a)+c`（把内层交换，用 `Eq.subst` + 谓词）⇒ `= b+(a+c)`（结合律）。
--- 关键件：练习 3（两次，一次取对称）· 练习 4 · `Eq.subst.{1}`（谓词 `fun m => (a+b)+c = m+c`）· `Eq.trans.{1}`
+-- 关键件：`add_assoc`（两次，一次取对称）· `add_comm` · `Eq.subst.{1}`（谓词 `fun m => (a+b)+c = m+c`）· `Eq.trans.{1}`
 theorem add_rotate (a b c : Nat) :
     add a (add b c) = add b (add a c) := by
   sorry
 
--- 练习 6（L 类）：`0 · b = 0`。
+-- 零乘：0 · b = 0。
 -- 思路：对 `b` 归纳；后继情形 `0·(s n) = 0 + 0·n`（ι 归约）⇒ 用归纳假设把第二项换成 `0` ⇒ 再用 `zero_add` 收尾。
--- 关键件：`Eq.subst.{1}`（谓词 `fun m => 0 + 0·n = 0 + m`）· 练习 1 · `Eq.trans.{1}`
+-- 关键件：`Eq.subst.{1}`（谓词 `fun m => 0 + 0·n = 0 + m`）· `zero_add` · `Eq.trans.{1}`
 theorem zero_mul (b : Nat) : mul Nat.zero b = Nat.zero := by
   sorry
 
--- 练习 7（L 类，分配律）：`a·(b+c) = a·b + a·c`。
+-- 分配律：a·(b+c) = a·b + a·c。
 -- 思路：对 `c` 归纳。零情形定义性成立；后继情形：左边 ι 归约成 `a + a·(b+n)`，用归纳假设替换内层，再用 `add_rotate` 把 `a + (a·b + a·n)` 旋成 `a·b + (a + a·n)` —— 右边正好 ι 归约成它。
--- 关键件：练习 5 · `Eq.subst.{1}` · `Eq.trans.{1}` · `Eq.refl.{1}`（零情形）
+-- 关键件：`add_rotate` · `Eq.subst.{1}` · `Eq.trans.{1}` · `Eq.refl.{1}`（零情形）
 theorem mul_distrib (a b c : Nat) :
     mul a (add b c) = add (mul a b) (mul a c) := by
   sorry
