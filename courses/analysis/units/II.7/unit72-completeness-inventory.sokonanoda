@@ -1,19 +1,18 @@
 -- 单元72 完备性盘点：代表元层的结论，放到集合层还剩下多少
 --
--- 68 证了：每个有理 Cauchy 序列 x 在 ℝ 中收敛到自己的类。那是在代表元层
--- 说的话。到了集合层，上界、最小上界这些词要用 realLe 重新陈述；我们自然
--- 要问：这条完备性还能保住多少？
+-- 前面证了：每个有理 Cauchy 序列 x 在 ℝ 中收敛到自己的类。那是在代表元层说的话。
+-- 到了集合层，上界、最小上界这些词要用 realLe 重新陈述；我们自然要问：这条完备性
+-- 还能保住多少？
 --
--- 结论先说：能保住一个具体集合的 LUB——S={x | x≤0} 的最小上界是 0；但一般
--- 定理“每个非空有上界集合都有 LUB”需要 Classical.choice，本课程没有，所以
--- 不能写。
+-- 结论先说：能保住一个具体集合的 LUB——S = {x | x ≤ 0} 的最小上界是 0；但一般定理
+-- 「每个非空有上界集合都有 LUB」需要选择公理，本课程没有，所以不能写。
 --
--- 为什么只做具体集合？因为选择公理不在本课程里；与其把一般定理写成 axiom，
--- 不如把能构造性拿到的实例做干净。72.1 先定义 zeroReal；72.2/72.3 证 0 是 S
--- 的上界且最小；72.4 把两件事合成 HasLUB；72.5 回到 68.7 的常序列版本。
+-- 为什么只做具体集合？因为选择公理不在本课程里；与其把一般定理写成公理，不如把能
+-- 构造性拿到的实例做干净：先定义零实数为常零序列的类，再证 0 是 S 的上界且最小，
+-- 把两件事合成「有 LUB」，最后回到常序列版本的完备性。
 --
--- 这一单元不是新造数，而是检查前面造好的 ℝ 在集合语言里能说到哪一步；边界
--- 就是本课程与“完整实数完备性”之间的距离。
+-- 这一单元不是新造数，而是检查前面造好的 ℝ 在集合语言里能说到哪一步；边界就是
+-- 本课程与「完整实数完备性」之间的距离。
 
 import lib.RealComplete
 import lib.RealOrderLift
@@ -40,6 +39,7 @@ def zeroReal : Real := Real.mk zeroSeq
 -- 72.2 0 是 `{x | x ≤ 0}` 的上界
 -- ─────────────────────────────────────────────────────────────
 
+-- 0 是 {x | x ≤ 0} 的上界。
 -- soko:hint 思路：把 `UpperBound` 展开就是 `∀ x, realLe x zeroReal → realLe x zeroReal`，直接取恒等函数。
 -- soko:hint 目标形态：`UpperBound (fun x => realLe x zeroReal) zeroReal`。
 -- soko:hint 关键件：定义性展开 · `fun x h => h`。
@@ -54,6 +54,7 @@ theorem upperBound_nonpos :
 -- `hb` 对任意 `x ∈ S` 给 `x ≤ b`；取 `x = 0`，只需交 `0 ≤ 0`。
 -- 后者经 66.4 的 `realLe_mk` 回到 `realLeRep zeroSeq zeroSeq`，
 -- 由 64.1 的自反（`cauchy_zero` 付守卫）给出。
+-- 0 是最小上界。
 -- soko:hint 思路：`hb` 是 `∀ x, realLe x zeroReal → realLe x b`，用在 `x := zeroReal` 上；剩下 `realLe zeroReal zeroReal` 用 `Iff.mpr (realLe_mk zeroSeq zeroSeq) (realLeRep_refl zeroSeq cauchy_zero)`。
 -- soko:hint 目标形态：`UpperBound S b → realLe zeroReal b`。
 -- soko:hint 关键件：hb（作用在 zeroReal）· realLe_mk · realLeRep_refl · cauchy_zero。
@@ -66,6 +67,7 @@ theorem least_nonpos (b : Real)
 -- 72.4 具体集合有 LUB：构造性的存在
 -- ─────────────────────────────────────────────────────────────
 
+-- 把两件事合成「有 LUB」。
 -- soko:hint 思路：`HasLUB` 是一个 `∃ b`；输出取 `zeroReal`，`IsLUB` 是 `And.intro` 72.2 与 72.3。这里没有 `Classical.choice`：见证是显式给出的。
 -- soko:hint 目标形态：`∃ b, IsLUB (fun x => realLe x zeroReal) b`。
 -- soko:hint 关键件：Exists.intro zeroReal · And.intro upperBound_nonpos least_nonpos。
@@ -79,6 +81,7 @@ theorem hasLUB_nonpos :
 
 -- 68.7 的 `cauchy_tends_to_class` 对任意 Cauchy 序列给 `TendsTo x x`；
 -- 常序列的 Cauchy 性是 68.1 的 `cauchy_const`。
+-- 回到常序列版本的完备性。
 -- soko:hint 思路：把 68.7 用在 `x := constSeq q` 上，第二个参数是 68.1 的 `cauchy_const q`。
 -- soko:hint 目标形态：`TendsTo (constSeq q) (constSeq q)`。
 -- soko:hint 关键件：cauchy_tends_to_class · cauchy_const。
@@ -90,6 +93,7 @@ theorem const_tends_to_class (q : ratRep) :
 -- 72.6 具体：常 1 序列收敛到 1
 -- ─────────────────────────────────────────────────────────────
 
+-- 具体：常 1 序列收敛到 1。
 -- soko:hint 思路：把 72.5 用在 `q := qrep 1 0 0` 上（分母字段 0 就是分母 1）。
 -- soko:hint 目标形态：`TendsTo (constSeq (qrep 1 0 0)) (constSeq (qrep 1 0 0))`。
 -- soko:hint 关键件：const_tends_to_class · qrep。
@@ -97,3 +101,5 @@ theorem demo_const_tends_to_one :
     TendsTo (constSeq (qrep 1 Nat.zero Nat.zero))
       (constSeq (qrep 1 Nat.zero Nat.zero)) :=
   sorry
+-- 完备性盘点完成：72 个单元的叙述重写到此收尾，前面造好的 ℝ 在集合语言里能说到
+-- 哪一步，这个单元给出了答案。
