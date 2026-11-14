@@ -993,6 +993,18 @@
               "title": "单元129 单侧极限：只看一边",
               "title_en": "Unit 129 — One-Sided Limits: Looking Only One Way",
               "unit": 129
+            },
+            {
+              "file": "units/III.6/unit130-uniform-continuity.sokonanoda",
+              "title": "单元130 一致连续：一个 δ 管住整片定义域",
+              "title_en": "Unit 130 — Uniform Continuity: One δ for the Whole Domain",
+              "unit": 130
+            },
+            {
+              "file": "units/III.6/unit131-uniform-continuity-sequences.sokonanoda",
+              "title": "单元131 一致连续与序列：Cauchy 序列的像",
+              "title_en": "Unit 131 — Uniform Continuity and Sequences: Images of Cauchy Sequences",
+              "unit": 131
             }
           ]
         }

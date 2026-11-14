@@ -1,0 +1,111 @@
+-- 单元130 一致连续：一个 δ 管住整片定义域
+--
+-- 连续是对每个点分别说的：给定 ε，点 a 有一个 δ；函数在别处更陡，那个 δ
+-- 就得变小。若把定义域当成一个整体，一个自然的问题是：能不能挑出一个 δ，
+-- 让所有相距小于 δ 的两点都满足同一个 ε 界？这就是一致连续。它比连续强，
+-- 强在 δ 不依赖点；后面的 Cauchy 序列正是靠这一点才被函数送过去。
+--
+-- 逐点版本是「对每个 a，存在 δ(a)」；一致版本把这两个量词对调成「存在 δ，
+-- 对每个 x、y」。对调之后 δ 必须先于点选出，于是它只能依赖 ε。常函数与
+-- 恒等函数各有一个显然的 δ；一致连续推出逐点连续，只是把同一个 δ 原样
+-- 交给基点，不再需要为每个点重新挑半径。
+--
+-- 复合与平移是两道闭包练习：外层的 ε 先换成它的 δ，内层的 δ 再换成更小的
+-- δ，两层都不问「点在哪里」，所以复合仍是一致连续的；平移把两点同时挪动
+-- 同一个常数，误差不变。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层；「连续但不一致连续」
+-- 的具体反例要有乘法或倒数，留到后面的单元。不新增公理。
+
+import lib.Rat
+import lib.RatClose
+import lib.RatHalf
+import lib.Bounded
+import lib.RealAdd
+import lib.LimAt
+import lib.Cont
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义：一个 δ 管住整片定义域
+-- ─────────────────────────────────────────────────────────────
+
+-- 与 `Continuous` 相比，`∀ a` 从这里消失了：ε 给定后直接要一个正 δ，然后
+-- 对所有相距小于 δ 的 x、y 给出同一个误差界。定义里不出现基点，也不排掉
+-- `x = y`；相等的两点本来就该落在任何 ε 内。
+def UniformlyContinuous (f : ratRep → ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x y : ratRep), close x y delta → close (f x) (f y) eps
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义的展开形式
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：定义与展开是同一个命题，两个方向都直接返回假设。
+-- soko:hint 目标形态：`UniformlyContinuous f ↔ ∀ eps > 0, ∃ delta > 0, ∀ x y, close x y delta → close (f x) (f y) eps`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem uniformlyContinuous_iff (f : ratRep → ratRep) :
+    UniformlyContinuous f ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x y : ratRep), close x y delta → close (f x) (f y) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 常函数与恒等函数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：半径取 1；常函数在任意两点取同一个值，相等落在每个正 ε 内。
+-- soko:hint 目标形态：`UniformlyContinuous (fun _ => c)`。
+-- soko:hint 关键件：ratOneRep · ratLtRep_zero_one · close_of_ratRel · ratRel_refl。
+theorem uniformlyContinuous_const (c : ratRep) :
+    UniformlyContinuous (fun (_ : ratRep) => c) :=
+  sorry
+
+-- soko:hint 思路：半径取 ε 本身，邻域前提 `close x y ε` 就是结论。
+-- soko:hint 目标形态：`UniformlyContinuous (fun x => x)`。
+-- soko:hint 关键件：Exists.intro · And.intro · 假设 `close x y eps`。
+theorem uniformlyContinuous_id :
+    UniformlyContinuous (fun (x : ratRep) => x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 一致连续推出逐点连续
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把一致连续的 δ 直接交给基点 a；对邻域里的 x，用定理在 x 与 a 上取值。
+-- soko:hint 目标形态：`ContinuousAt f a`。
+-- soko:hint 关键件：Exists.elim · And.left · And.right。
+theorem continuousAt_of_uniformlyContinuous (f : ratRep → ratRep) (a : ratRep)
+    (hf : UniformlyContinuous f) : ContinuousAt f a :=
+  sorry
+
+-- soko:hint 思路：逐点版本对每个 a 成立，直接把它交出去。
+-- soko:hint 目标形态：`Continuous f`。
+-- soko:hint 关键件：continuousAt_of_uniformlyContinuous · 定义性展开。
+theorem continuous_of_uniformlyContinuous (f : ratRep → ratRep)
+    (hf : UniformlyContinuous f) : Continuous f :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 复合封闭
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：ε 交给外层 g 得 δg，δg 交给内层 f 得 δf；对相距小于 δf 的 x、y，内层先给 `close (f x) (f y) δg`，外层再给 ε 的界。
+-- soko:hint 目标形态：`UniformlyContinuous (fun x => g (f x))`。
+-- soko:hint 关键件：Exists.elim · And.left / And.right · 两次取值。
+theorem uniformlyContinuous_comp (f g : ratRep → ratRep)
+    (hg : UniformlyContinuous g) (hf : UniformlyContinuous f) :
+    UniformlyContinuous (fun (x : ratRep) => g (f x)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 具体：平移是一致连续的
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：半径取 ε/2；两点平移同一个 c，误差用 `close_add` 合成，常数那一半用 `close_of_ratRel` 与自反性。
+-- soko:hint 目标形态：`UniformlyContinuous (fun x => x + c)`。
+-- soko:hint 关键件：ratLtRep_half · close_add · close_of_ratRel · ratRel_refl。
+theorem demo_uniformlyContinuous_add_const (c : ratRep) :
+    UniformlyContinuous (fun (x : ratRep) => ratAddRep x c) :=
+  sorry

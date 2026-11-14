@@ -1,0 +1,80 @@
+-- 单元131 一致连续与序列：Cauchy 序列的像
+--
+-- Cauchy 序列的项彼此越来越近，却不一定知道它们往哪里去。要把这种「彼此
+-- 接近」推过函数，需要的那条半径不能依赖项的位置：逐点连续的 δ 随基点变，
+-- 项一走动就失效；一致连续的 δ 对整片定义域通用，于是可以直接把 Cauchy
+-- 条件里的 ε 换成 δ，再把函数逐项作用上去。
+--
+-- 结论是：一致连续把 Cauchy 序列送到 Cauchy 序列。证明只有一次量词交换：
+-- 给定 ε，先向一致连续要 δ；这个 δ 交给原序列的 Cauchy 条件，换回一个
+-- 阈值 N；N 之后的任意两项都落在 δ 邻域里，于是它们的像落在 ε 界内。
+--
+-- 收敛序列是同一件事的特例：极限点给出阈值，一致连续把「项靠近极限」
+-- 换成「像靠近 f L」。这两条合起来说明，一致连续不仅逐点连续，而且把
+-- 整条序列的渐近行为原样送过去；把平移用进来，就是一次具体核对。
+--
+-- 边界：反方向（像总是 Cauchy 就断定原函数一致连续）要从每个失败的 δ
+-- 挑见证点列，课程库没有选择函数；这里只做正方向。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Bounded
+import lib.Cauchy
+import lib.Limit
+import lib.RealAdd
+import lib.LimAt
+import lib.Cont
+import lib.Uniform
+
+-- ─────────────────────────────────────────────────────────────
+-- Cauchy 序列的像
+-- ─────────────────────────────────────────────────────────────
+
+-- 给定 ε，一致连续给出 δ；原序列在 δ 处的 Cauchy 条件给出阈值 N。
+-- N 之后的任意两项相距小于 δ，函数把它们送到 ε 界内。
+--
+-- soko:hint 思路：先向一致连续要 δ，再把 δ 当半径交给原序列的 Cauchy 条件；阈值不变，逐项用一致连续的结论。
+-- soko:hint 目标形态：`Cauchy (fun n => f (x n))`。
+-- soko:hint 关键件：UniformlyContinuous 的展开 · Cauchy 的展开 · And.left / And.right。
+theorem uniformlyContinuous_cauchy (f : ratRep → ratRep)
+    (hf : UniformlyContinuous f) (x : Seq) (hx : Cauchy x) :
+    Cauchy (fun (n : Nat) => f (x n)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 收敛序列的像
+-- ─────────────────────────────────────────────────────────────
+
+-- 收敛陈述与 Cauchy 条件同形，只是把「两项互相接近」换成「每一项接近 L」；
+-- 一致连续的 δ 一样可以直接搬过来。
+--
+-- soko:hint 思路：ε 交给一致连续得 δ，δ 交给 `hx` 得阈值 N；N 之后每一项的像都落在 `f L` 的 ε 界内。
+-- soko:hint 目标形态：`Converges (fun n => f (x n)) (f L)`。
+-- soko:hint 关键件：UniformlyContinuous 的展开 · Converges 的展开 · And.left / And.right。
+theorem uniformlyContinuous_converges (f : ratRep → ratRep)
+    (hf : UniformlyContinuous f) (x : Seq) (L : ratRep)
+    (hx : Converges x L) : Converges (fun (n : Nat) => f (x n)) (f L) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 具体：平移保持 Cauchy 与收敛
+-- ─────────────────────────────────────────────────────────────
+
+-- 平移是一致连续的，把上一条定理直接用在 `fun x => x + c` 上。
+--
+-- soko:hint 思路：`uniformlyContinuous_add_const` 提供一致连续性，交给 `uniformlyContinuous_cauchy`，目标里的函数定义性相等。
+-- soko:hint 目标形态：`Cauchy (fun n => x n + c)`。
+-- soko:hint 关键件：uniformlyContinuous_add_const · uniformlyContinuous_cauchy。
+theorem demo_cauchy_add_const (x : Seq) (c : ratRep) (hx : Cauchy x) :
+    Cauchy (fun (n : Nat) => ratAddRep (x n) c) :=
+  sorry
+
+-- 收敛版本同样只换一条定理。
+--
+-- soko:hint 思路：把 `uniformlyContinuous_converges` 用在平移函数上，极限是 `L + c`。
+-- soko:hint 目标形态：`Converges (fun n => x n + c) (L + c)`。
+-- soko:hint 关键件：uniformlyContinuous_add_const · uniformlyContinuous_converges。
+theorem demo_converges_add_const (x : Seq) (L c : ratRep)
+    (hx : Converges x L) :
+    Converges (fun (n : Nat) => ratAddRep (x n) c) (ratAddRep L c) :=
+  sorry

@@ -47,6 +47,8 @@ import lib.SeriesTailReverse
 import lib.SeriesSwap
 import lib.LimAt
 import lib.Cont
+import lib.Uniform
+import lib.UniformSeq
 
 theorem demo_lib_closure : True := True.intro
 
@@ -211,3 +213,18 @@ theorem demo_lib_tendsToAt_unfold (f : ratRep → ratRep) (a L : ratRep)
 theorem demo_lib_continuous_unfold (f : ratRep → ratRep) (h : Continuous f) :
     ∀ (a : ratRep), ContinuousAt f a :=
   h
+
+theorem demo_lib_uniform_id :
+    UniformlyContinuous (fun (x : ratRep) => x) :=
+  uniformlyContinuous_id
+
+theorem demo_lib_uniform_cauchy (x : Seq) (hx : Cauchy x) :
+    Cauchy (fun (n : Nat) => x n) :=
+  uniformlyContinuous_cauchy (fun (x : ratRep) => x)
+    uniformlyContinuous_id x hx
+
+theorem demo_lib_uniform_converges (x : Seq) (L : ratRep)
+    (hx : Converges x L) :
+    Converges (fun (n : Nat) => x n) L :=
+  uniformlyContinuous_converges (fun (x : ratRep) => x)
+    uniformlyContinuous_id x L hx
