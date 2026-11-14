@@ -48,19 +48,25 @@ thread_local! {
 
 fn routing_enabled() -> bool {
     #[cfg(test)]
-    if TEST_NO_NOTATION.with(|c| c.get()) {
-        return false;
+    {
+        !TEST_NO_NOTATION.with(|c| c.get())
     }
-    true
+    #[cfg(not(test))]
+    {
+        true
+    }
 }
 
 /// P2-12 S4b 的重试开关（生产恒开；只在测试里被关掉做反向验证）。
 fn retry_enabled() -> bool {
     #[cfg(test)]
-    if TEST_NO_RETRY.with(|c| c.get()) {
-        return false;
+    {
+        !TEST_NO_RETRY.with(|c| c.get())
     }
-    true
+    #[cfg(not(test))]
+    {
+        true
+    }
 }
 
 #[cfg(test)]

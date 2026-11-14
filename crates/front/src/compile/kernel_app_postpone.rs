@@ -22,10 +22,13 @@ thread_local! {
 /// 推迟是否开着（生产恒开；只在 strict 档的内核路径里被问到）。
 pub(crate) fn enabled() -> bool {
     #[cfg(test)]
-    if TEST_NO_POSTPONE.with(|c| c.get()) {
-        return false;
+    {
+        !TEST_NO_POSTPONE.with(|c| c.get())
     }
-    true
+    #[cfg(not(test))]
+    {
+        true
+    }
 }
 
 #[cfg(test)]
@@ -191,10 +194,13 @@ thread_local! {
 /// P2-3 的 binder 合一是否开着（生产恒开）。
 pub(crate) fn binder_unify_enabled() -> bool {
     #[cfg(test)]
-    if TEST_NO_BINDER_UNIFY.with(|c| c.get()) {
-        return false;
+    {
+        !TEST_NO_BINDER_UNIFY.with(|c| c.get())
     }
-    true
+    #[cfg(not(test))]
+    {
+        true
+    }
 }
 
 /// 项里最大的 loose `Var` 下标 + 1（= 它至少要在几个 binder 之下；前端拿不到内核的 `num_loose_bvars`）。
