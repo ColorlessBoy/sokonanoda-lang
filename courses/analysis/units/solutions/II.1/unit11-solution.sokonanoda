@@ -1,14 +1,13 @@
 -- 单元⑪ 整数乘法的良定义性
 --
--- 单元⑩ 补齐了 ℕ 乘法的零元与单位元。要把代表元公式
---   mulRep (a,b) (c,d) = (a*c + b*d, a*d + b*c)
--- 降到商 Int 上，还差最后一步：p ~ p' ⇒ p * q ~ p' * q（良定义性）。
--- 关键的新工具是分配律
---   mul_add     : (a + b) * c = a * c + b * c
---   mul_shift_c : a + b' = a' + b  ⇒  a*c + b'*c = a'*c + b*c
--- 后者正是把等价假设「乘开」的形状；剩下的是 ℕ 加法的搬运与重排。
+-- 乘法的代表元公式已经写下，零元与单位元也补齐了。要把 mulRep 搬上商，还差
+-- 最后一步：证明它尊重代表元的替换——p 与 p' 差相等时，p 乘 q 与 p' 乘 q 也
+-- 差相等。这一步和加法良定义性同一套路，但多了一个新工具：分配律
+-- mul_add : (a+b)·c = a·c + b·c。
 --
--- 我们仍然自带全部 ℕ 加法律（本单元自备；它们来自单元③）。
+-- 分配律把「乘开」变成合法动作：等价假设 a+b' = a'+b 两边各乘 c 与 d，就得到
+-- 两条可以相加的等式；剩下的全是 ℕ 加法的搬运与重排。先把要用的 ℕ 加法律与
+-- 分配律都列出来，再证良定义性。
 import lib.Logic
 import lib.Prod
 import lib.Logic
@@ -23,8 +22,8 @@ def Int : Type := @Quot.{1} (Prod Nat Nat) intRel
 def intOfNat (n : Nat) : Int :=
   @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat n Nat.zero)
 
--- 递归步直接用 prelude 的 Nat.add（与单元⑤的 myAdd 逐点相等；
--- 本语言里 Nat.add 是原生自指定义，两者不是定义性相等）。
+-- 递归步用的是 prelude 的 Nat.add（与单元⑤的 myAdd 逐点相等）；
+-- 在本语言里 Nat.add 是原生自指定义，两者不是定义性相等。
 def myMul (a b : Nat) : Nat :=
   Nat.rec (fun (_ : Nat) => Nat) Nat.zero
     (fun (n : Nat) (ih : Nat) => Nat.add a ih) b
@@ -36,9 +35,9 @@ def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
     (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.snd Nat Nat b))
              (myMul (Prod.snd Nat Nat a) (Prod.fst Nat Nat b)))
 
--- 单元③的 ℕ 零元律，本单元自用（本单元自备）。
+-- 下面列出单元③证过的 ℕ 零元律。
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（本单元自备）。
+-- 下面四条是单元③证过的 ℕ 加法律，这里重新列出；后面的证明直接引用。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
@@ -91,7 +90,7 @@ theorem add_assoc (a b c : Nat) :
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
     c
 
--- 搬运律：把两个和里的加法因子换个配对，值不变。
+-- 搬运律把两个和里的加数重新配对，值不变；后面的重排要用它。
 theorem add_shift (a b c d : Nat) :
     Nat.add (Nat.add a c) (Nat.add b d) =
     Nat.add (Nat.add a b) (Nat.add c d) :=
@@ -133,12 +132,12 @@ theorem add_shift (a b c d : Nat) :
             (add_assoc a b (Nat.add c d))))))
 
 
--- 定义性相等：myMul 在第二个参数上递归，base 就是 0。
+-- myMul 在第二个参数上递归，base 就是 0：乘零是定义性相等。
 theorem myMul_zero (a : Nat) :
     myMul a Nat.zero = Nat.zero :=
   Eq.refl Nat.zero
 
--- 定义性相等：递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)。
+-- 递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)，也是定义性相等。
 theorem myMul_succ (a b : Nat) :
     myMul a (Nat.succ b) = Nat.add a (myMul a b) :=
   Eq.refl (Nat.add a (myMul a b))
@@ -146,7 +145,7 @@ theorem myMul_succ (a b : Nat) :
 -- soko:hint 思路：myMul a 1 展开成 myAdd a (myMul a 0) = myAdd a 0 = a。
 -- soko:hint 目标形态：myMul a 1 = a。
 
--- 分配律（右）：(a + b) * c = a * c + b * c。
+-- 先证分配律：(a+b)·c = a·c + b·c，对 c 归纳。
 theorem mul_add (a b c : Nat) :
     myMul (Nat.add a b) c = Nat.add (myMul a c) (myMul b c) :=
   Nat.rec
@@ -169,7 +168,7 @@ theorem mul_add (a b c : Nat) :
           (add_shift a b (myMul a n) (myMul b n))))
     c
 
--- 等式两边同时乘一个数：把假设 h 沿 `fun x => myMul x c` 搬过去。
+-- 再把等式两边同时乘一个数：把假设 h 沿 fun x => myMul x c 搬过去。
 theorem mul_congr (a b a' b' c : Nat)
     (h : Nat.add a b' = Nat.add a' b) :
     myMul (Nat.add a b') c = myMul (Nat.add a' b) c :=
@@ -178,7 +177,7 @@ theorem mul_congr (a b a' b' c : Nat)
     (Nat.add a b') (Nat.add a' b) h
     (@Eq.refl.{1} Nat (myMul (Nat.add a b') c))
 
--- h 乘开：a·c + b'·c = a'·c + b·c。
+-- 有了分配律，等价假设就能「乘开」：h 两边各乘 c 与 d，得到两条可相加的等式。
 theorem mul_shift_c (a b a' b' c : Nat)
     (h : Nat.add a b' = Nat.add a' b) :
     Nat.add (myMul a c) (myMul b' c) =
@@ -198,7 +197,7 @@ theorem mul_shift_c (a b a' b' c : Nat)
       (mul_congr a b a' b' c h)
       (mul_add a' b c))
 
--- 良定义性（第二个分量固定）：p ~ p' ⇒ p * q ~ p' * q。
+-- 最后证良定义性：第二个分量固定，p ~ p' 时 p 乘 q 与 p' 乘 q 差相等。
 theorem mulRep_wd (a b a' b' c d : Nat)
     (h : intRel (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a' b')) :
     intRel (mulRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
@@ -287,8 +286,8 @@ theorem mulRep_wd (a b a' b' c d : Nat)
             (add_comm (myMul b c) (myMul a d))
             (@Eq.refl.{1} Nat (Nat.add (Nat.add (myMul a' c) (myMul b' d)) (Nat.add (myMul b c) (myMul a d))))))))
 
--- 演示：具体数字上走一遍 —— (2-0) ~ (3-1)，各自乘 (4-1)，结果仍等价。
--- (2,0)*(4,1) = (8,2)，(3,1)*(4,1) = (13,7)，而 8+7 = 13+2 = 15。
+-- 具体数字上核对：2-0 与 3-1 差相等，各乘 4-1 后仍差相等——
+-- (2,0)*(4,1) = (8,2)、(3,1)*(4,1) = (13,7)，而 8+7 = 13+2 = 15。
 theorem demo_mulRep_wd :
     intRel (mulRep (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 4 1))
            (mulRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 4 1)) :=
