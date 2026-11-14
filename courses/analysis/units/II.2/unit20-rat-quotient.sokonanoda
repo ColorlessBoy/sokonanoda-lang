@@ -1,36 +1,32 @@
 -- 单元⑳ 有理数与商构造：ℚ 的载体
 --
--- 整数是「差」的商；有理数是「比」的商。本单元把有理数写成
+-- 整数是「差」的商；有理数是「比」的商。要造 ℚ，先得选定表示方式：分子用一个
+-- 整数代表元 a（ℕ×ℕ 的序对），分母用 Nat.succ n 编码成正整数。于是有理数的载体是
+-- ℚ = Quot ratRel，其中 ratRel (a,m) (c,n) 表示 a·(n+1) = c·(m+1)。
 --
---   ℚ = Quot ratRel,   ratRel (a,m) (c,n) :⟺ a·(n+1) = c·(m+1)
+-- 分母用 succ 编码有个好处：不必先造一个「非零 / 正」的判定函数，也不会把 0/0 混
+-- 进商里——分母永远不为 0。分子则停在整数代表元层：Int → Int 的 Quot.lift 需要
+-- 函数外延性，本语言没有（单元⑲ 已经说明），所以 ratRel 直接对整数代表元做
+-- mulRep，再用 intRel 比较两个乘积；这和 II.1 把整数运算停在代表元层是同一个决定。
 --
--- 的载体，其中 a 是一个**整数代表元**（ℕ × ℕ 的序对），分母用 `Nat.succ n`
--- 编码成正整数 —— 这样不必先有一个「非零 / 正」的判定函数，也不会把
--- 0/0 混进商里（分母永不为 0）。
---
--- 为什么分子也停在代表元层：`Int → Int` 的 `Quot.lift` 需要函数外延性
--- `funext`（单元⑲ 的边界，语言边界），本语言没有。所以 `ratRel` 直接对
--- **整数代表元**做乘法 `mulRep`，再用 `intRel` 比较两个乘积；这与单元⑦–⑱
--- 的整数运算停在代表元层是同一个决定。
---
--- 只做载体与相等关系的自反/对称两条腿；**传递性**（交叉相乘后要
--- 消去一个正因子）留给单元㉑。
+-- 先立起载体，再证相等关系的自反与对称；传递性（交叉相乘后要消去一个正
+-- 因子）留到单元㉑之后。
 import lib.Logic
 import lib.Prod
 
--- 「差相等」关系：a - b = c - d  ⟺  a + d = b + c
+-- 「差相等」关系：a-b = c-d 当且仅当 a+d = b+c。
 def intRel (a b : Prod Nat Nat) : Prop :=
   Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =
   Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)
 
 def Int : Type := @Quot.{1} (Prod Nat Nat) intRel
 
--- 递归步用 prelude 的 Nat.add；与单元⑤ 的 myAdd 逐点相等。
+-- 递归步用 prelude 的 Nat.add；它与单元⑤的 myAdd 逐点相等。
 def myMul (a b : Nat) : Nat :=
   Nat.rec (fun (_ : Nat) => Nat) Nat.zero
     (fun (n : Nat) (ih : Nat) => Nat.add a ih) b
 
--- 整数乘法的代表元公式（单元⑤）：(a-b)(c-d) = (ac+bd) - (ad+bc)。
+-- 整数乘法的代表元公式在单元⑤证过：(a-b)(c-d) = (ac+bd) - (ad+bc)。
 def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
   @prod_mk Nat Nat
     (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.fst Nat Nat b))
@@ -38,14 +34,14 @@ def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
     (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.snd Nat Nat b))
              (myMul (Prod.snd Nat Nat a) (Prod.fst Nat Nat b)))
 
--- 有理数的载体：一个整数代表元 + 一个自然数分母（实际分母是 `succ n`）。
+-- 有理数的载体：一个整数代表元加一个自然数分母（实际分母是 succ n）。
 def ratRep : Type := Prod (Prod Nat Nat) Nat
 
--- 正整数分母的整数代表元：n+1 - 0。
+-- 正整数 n+1 的整数代表元是 n+1-0。
 def den (n : Nat) : Prod Nat Nat :=
   @prod_mk Nat Nat (Nat.succ n) Nat.zero
 
--- 交叉相乘：a/(m+1) = c/(n+1)  ⟺  a·(n+1) = c·(m+1)。
+-- 交叉相乘：a/(m+1) = c/(n+1) 当且仅当 a·(n+1) = c·(m+1)。
 def ratRel (x y : ratRep) : Prop :=
   intRel
     (mulRep (Prod.fst (Prod Nat Nat) Nat x)
@@ -53,14 +49,14 @@ def ratRel (x y : ratRep) : Prop :=
     (mulRep (Prod.fst (Prod Nat Nat) Nat y)
             (den (Prod.snd (Prod Nat Nat) Nat x)))
 
--- 有理数类型：整数代表元 × ℕ 的商。
+-- 有理数类型：整数代表元与 ℕ 的序对之商。
 def Rat : Type := @Quot.{1} ratRep ratRel
 
--- 构造子：把「分子 a、分母 n+1」放进商。
+-- 构造子把分子 a、分母 n+1 放进商。
 def ratOf (a : Prod Nat Nat) (n : Nat) : Rat :=
   @Quot.mk.{1} ratRep ratRel (@prod_mk (Prod Nat Nat) Nat a n)
 
--- 演示：1/2 与 2/4 是同一个有理数（交叉相乘 1·4 = 2·2）。
+-- 具体例子：1/2 与 2/4 是同一个有理数（交叉相乘 1·4 = 2·2）。
 theorem demo_rat_half :
     ratOf (@prod_mk Nat Nat 1 Nat.zero) 1 = ratOf (@prod_mk Nat Nat 2 Nat.zero) 3 :=
   @Quot.sound.{1} ratRep ratRel
@@ -68,7 +64,7 @@ theorem demo_rat_half :
     (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat 2 Nat.zero) 3)
     (Eq.refl 4)
 
--- 演示：0/1 与 0/6 是同一个有理数（交叉相乘 0·6 = 0·1）。
+-- 具体例子：0/1 与 0/6 是同一个有理数（交叉相乘 0·6 = 0·1）。
 theorem demo_rat_zero :
     ratOf (@prod_mk Nat Nat Nat.zero Nat.zero) 0
       = ratOf (@prod_mk Nat Nat Nat.zero Nat.zero) 5 :=
@@ -77,7 +73,7 @@ theorem demo_rat_zero :
     (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat Nat.zero Nat.zero) 5)
     (Eq.refl Nat.zero)
 
--- 演示：ratRel 展开成一条纯 ℕ 的交叉和等式 —— 1/2 ~ 2/4 就是 4 = 4。
+-- 具体例子：ratRel 展开成一条纯 ℕ 的交叉和等式——1/2 与 2/4 展开后是 4 = 4。
 theorem demo_ratRel_unfold :
     ratRel
       (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat 1 Nat.zero) 1)
@@ -88,6 +84,7 @@ theorem demo_ratRel_unfold :
 -- ⑳.1 整数代表元的自反性
 -- ─────────────────────────────────────────────────────────────
 
+-- 先证整数代表元的自反：intRel p p 展开后两边是同一个 ℕ 表达式。
 -- soko:hint 思路：intRel p p 展开后两边是同一个 ℕ 表达式，直接 Eq.refl。
 -- soko:hint 目标形态：Nat.add (fst p) (snd p) = Nat.add (fst p) (snd p)。
 -- soko:hint 关键件：Eq.refl。
@@ -98,6 +95,7 @@ theorem intRel_refl (p : Prod Nat Nat) : intRel p p :=
 -- ⑳.2 有理数相等关系的自反性
 -- ─────────────────────────────────────────────────────────────
 
+-- 再证有理数相等的自反：展开后两边是同一个 mulRep，交给上一题。
 -- soko:hint 思路：ratRel x x 展开成 intRel (mulRep ...) (mulRep ...)，两边同一个项，用 ⑳.1。
 -- soko:hint 目标形态：ratRel x x。
 -- soko:hint 关键件：intRel_refl。
@@ -105,9 +103,10 @@ theorem ratRel_refl (x : ratRep) : ratRel x x :=
   sorry
 
 -- ─────────────────────────────────────────────────────────────
--- ⑳.3 有理数相等关系的对称性
+-- ⑳.3 对称性
 -- ─────────────────────────────────────────────────────────────
 
+-- 对称性只需把假设两边互换：ratRel y x 展开后正好是 h 的两边互换。
 -- soko:hint 思路：ratRel y x 展开后正好是 h 的两边互换，用 Eq.symm。
 -- soko:hint 目标形态：ratRel y x。
 -- soko:hint 关键件：Eq.symm。
@@ -115,9 +114,10 @@ theorem ratRel_symm (x y : ratRep) (h : ratRel x y) : ratRel y x :=
   sorry
 
 -- ─────────────────────────────────────────────────────────────
--- ⑳.4 相关 ⇒ 相等（Quot.sound）
+-- ⑳.4 相关就连到相等（Quot.sound）
 -- ─────────────────────────────────────────────────────────────
 
+-- 最后把相关的关系搬进商：这是 Quot 的构造子规则，把 ratRel 的证明交给 Quot.sound。
 -- soko:hint 思路：这是 Quot 的构造子公理；把 ratRel 的证明交给 Quot.sound。
 -- soko:hint 目标形态：Quot.mk x = Quot.mk y。
 -- soko:hint 关键件：Quot.sound。
@@ -125,7 +125,7 @@ theorem rat_sound (x y : ratRep) (h : ratRel x y) :
     @Quot.mk.{1} ratRep ratRel x = @Quot.mk.{1} ratRep ratRel y :=
   sorry
 
--- 演示：自反性在具体有理数上 —— 3/5 与自身相等（Quot.sound + ⑳.2）。
+-- 具体例子：3/5 与自身相等（Quot.sound 加自反性）。
 theorem demo_rat_sound_refl :
     ratOf (@prod_mk Nat Nat 3 1) 4 = ratOf (@prod_mk Nat Nat 3 1) 4 :=
   rat_sound
