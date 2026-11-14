@@ -1,26 +1,16 @@
--- 单元58 `realRel` 的传递性：逐点 `close` 与 Cauchy 的三段常数（解答）
+-- 单元58 `realRel` 的传递性：逐点 `close` 与 Cauchy 的三段常数
 --
--- ㊱ 把实数的相等定义成 Cauchy 序列的逐点接近：
+-- ㊱ 把实数的相等定义成 Cauchy 序列的逐点接近：realRel x y 当且仅当 x、y 都是
+-- Cauchy 序列，且对任意 eps>0 存在 N，使 n ≥ N 时 close (x n) (y n) eps。
 --
---   realRel x y  :⟺  Cauchy x ∧ Cauchy y ∧
---                    ∀ eps > 0, ∃ N, ∀ n ≥ N, close (x n) (y n) eps
+-- 要证 realRel x z 需要三件：Cauchy x 直接是 hxy 的第一分量，Cauchy z 直接是 hyz 的
+-- 第二分量，逐点 close 才是这里的内容。逐点部分不能直接把 hxy 与 hyz 用在同一个 ε
+-- 上：两个前提各给一个 N，而且分别只保证 ε（而不是 ε/2）的界。所以先对 ε/2 取两个
+-- 阈值（0 < ε 推出 0 < ε/2），再取一个同时大于等于两者的 N（ℕ 的 ≤ 全性与传递），
+-- 最后在 n ≥ N 上把两个 ε/2 的界交给上一单元的 close 传递性。
 --
--- 要证 `realRel x z` 需要三件。
---   · `Cauchy x` —— 直接是 `hxy` 的第一分量；
---   · `Cauchy z` —— 直接是 `hyz` 的第二分量；
---   · 逐点 `close` —— 这里的内容。
---
--- 逐点部分不能直接把 `hxy` 与 `hyz` 用在同一个 `ε` 上：两个前提各给一个
--- `N`，而且分别只保证 `ε`（而不是 `ε/2`）的界。所以：
---
---   ① 对 `ε/2` 取两个阈值 `N1`、`N2`（`0 < ε ⇒ 0 < ε/2` 是 53）；
---   ② 取一个同时大于等于两者的 `N`（ℕ 的 `≤` 全性 + 传递）；
---   ③ 在 `n ≥ N` 上把两个 `ε/2` 的界交给 57 的 `close_trans`。
---
--- 58.1 是阈值的合并，58.2 是逐点部分，58.3 是主定理，58.4 落在常零序列上。
---
--- 我们不引入新定义；用到的 `close_trans` 与 `ratLtRep_half` 已在
--- `lib/RatCloseTrans` / `lib/RatClose` 里判过卷。
+-- 先证两个 ℕ 阈值的合并，再证逐点部分，然后拼出主定理，最后落在常零序列上。
+-- 用到的 close_trans 与 ratLtRep_half 已在 lib/RatCloseTrans 与 lib/RatClose 里。
 
 import lib.RatCloseTrans
 
