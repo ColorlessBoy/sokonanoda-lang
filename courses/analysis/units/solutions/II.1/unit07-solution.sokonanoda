@@ -1,9 +1,13 @@
 -- 单元⑦ 整数加法的交换律与结合律 —— 解答
 --
--- 单元⑥ 证了 addRep 尊重 intRel；本单元把代表元上的两条算术律搬到商上：
---   · 交换律：intRel (addRep p q) (addRep q p) —— ℕ 的 add_comm 两次；
---   · 结合律：intRel (addRep (addRep p q) r) (addRep p (addRep q r)) —— add_assoc 两次。
--- 商上的等式由 Quot.sound 得到：相关的代表元 ⇒ 商里相等。
+-- 加法在 ℤ 上定义好之后，第一件事是把 ℕ 上熟悉的律搬上来。搬之前先看清商里
+-- 的等式从哪来：商只有一条相等规则，相关的代表元在商里相等。所以商上等式的
+-- 证明只有一条路——先在代表元上「差相等」，再用这条规则搬过去。
+--
+-- 还有一层形式上的限制：本语言没有函数外延，加法不能先写成 Int → Int → Int
+-- 的函数再谈律；律只能对「由代表元给出的整数」陈述。后面 ℚ、ℝ 章沿用同一形式。
+--
+-- 证明要用到 ℕ 的交换律与结合律，先把它们在下面重新列出来。
 import lib.Logic
 import lib.Prod
 
@@ -18,7 +22,7 @@ def addRep (a b : Prod Nat Nat) : Prod Nat Nat :=
     (Nat.add (Prod.fst Nat Nat a) (Prod.fst Nat Nat b))
     (Nat.add (Prod.snd Nat Nat a) (Prod.snd Nat Nat b))
 
--- 以下四条是单元③的 ℕ 加法律（本单元自备）。
+-- 下面四条是单元③证过的 ℕ 加法律，这里重新列出；后面的证明直接引用。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
@@ -65,14 +69,14 @@ theorem add_comm (a b : Nat) :
         (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
     b
 
--- 加法零元在右：由交换律与 zero_add 各一次。
+-- 先把右零元证出来：a+0 用交换律换成 0+a，再用 zero_add。
 theorem add_zero (a : Nat) :
     Nat.add a Nat.zero = a :=
   @Eq.trans.{1} Nat (Nat.add a Nat.zero) (Nat.add Nat.zero a) a
     (add_comm a Nat.zero)
     (zero_add a)
 
--- 交换律在代表元上：(a+c)+(b+d) 与 (c+a)+(d+b) 相关。
+-- 代表元上的交换律：两个分量各用一次 ℕ 的 add_comm。
 theorem addRep_comm (a b c d : Nat) :
     intRel (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
            (addRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat a b)) :=
@@ -91,7 +95,7 @@ theorem addRep_comm (a b c d : Nat) :
       (Nat.add a c) (Nat.add c a) (add_comm a c)
       (@Eq.refl.{1} Nat (Nat.add (Nat.add a c) (Nat.add b d))))
 
--- 结合律在代表元上：左边的两个分量各用一次 add_assoc。
+-- 代表元上的结合律：左边的两个和分别用 add_assoc 重新结合。
 theorem addRep_assoc (a b c d e f : Nat) :
     intRel (addRep (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
                    (@prod_mk Nat Nat e f))
@@ -120,7 +124,7 @@ theorem addRep_assoc (a b c d e f : Nat) :
       (@Eq.refl.{1} Nat
         (Nat.add (Nat.add a (Nat.add c e)) (Nat.add b (Nat.add d f)))))
 
--- 搬到商上：相关的代表元在商里相等（Quot.sound）。
+-- 搬到商上：把代表元关系交给 Quot.sound，商里的相等就得到了。
 theorem int_add_comm (a b c d : Nat) :
     @Quot.mk.{1} (Prod Nat Nat) intRel (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d)) =
       @Quot.mk.{1} (Prod Nat Nat) intRel (addRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat a b)) :=
@@ -143,7 +147,7 @@ theorem int_add_assoc (a b c d e f : Nat) :
             (addRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f)))
     (addRep_assoc a b c d e f)
 
--- 演示：具体数字上交换一次 —— (2-0)+(3-1) 与 (3-1)+(2-0) 是同一个整数。
+-- 具体数字上核对：2-0 与 3-1 相加，交换次序结果不变——两边都算成 5-1。
 theorem demo_int_add_comm :
     @Quot.mk.{1} (Prod Nat Nat) intRel
         (addRep (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 3 1)) =
