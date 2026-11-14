@@ -1588,6 +1588,7 @@ def render_toc(book: Book) -> str:
         f"{book.exercises} 道练习 · {book.hints} 条提示 · "
         "单元内可折叠证明、提示与解答。</p>"
         + render_progress_settings(book)
+        + '<p class="toc-quick"><a href="#unit-1">跳过目录，直接开始阅读 →</a></p>'
         + "".join(volume_blocks)
         + '<p class="toc-footer"><a href="#appendix-solutions">→ 解答附录</a>'
         ' · <a href="#top">回到封面</a></p>'
@@ -1665,6 +1666,8 @@ def render_cover(book: Book) -> str:
         '<p class="cover-lede">把「直觉」与「形式」放在同一页：先读中文讲解、动机与提示，'
         "再展开声明、证明步骤、完整代码和解答。所有内容来自课程画布与解答文件；"
         "这不是 II.1 的样章，而是当前课程清单里全部章节的连续读本。</p>"
+        '<p class="cover-cta"><a class="cover-start" href="#unit-1">开始阅读 → 单元 1</a>'
+        '<a class="plain" href="#toc">先看目录</a></p>'
         '<ul class="cover-stats">'
         f"<li><strong>{len(book.chapters)}</strong><span>章</span></li>"
         f"<li><strong>{len(book.units)}</strong><span>单元</span></li>"
