@@ -1,21 +1,14 @@
 -- 单元㉜ 有理数的减法：加法与负元的组合
 --
--- 单元㉛ 有了负元，减法就是 `x - y := x + (-y)`：
+-- 单元㉛ 有了负元，减法就是 x - y := x + (-y)，代表元上即 ratSubRep x y :=
+-- ratAddRep x (ratNegRep y)。由于 -(c-d)/(n+1) = (d-c)/(n+1)，减法的分子是
+-- a(n+1) + d(m+1)，负部是 b(n+1) + c(m+1)——与加法公式只差第二个分子的两个坐标
+-- 互换。
 --
---   ratSubRep x y := ratAddRep x (ratNegRep y)
+-- 这里要结清三件事：计算规则（一条 ι 归约）；对第一、第二因子的良定义性（都化归到
+-- ㉖ 的加法义务与 ㉛ 的负元义务）；以及具体计算 1 - 1/2 = 1/2。
 --
--- 代表元上，`-(c-d)/(n+1) = (d-c)/(n+1)`，所以减法的分子是
--- `a(n+1) + d(m+1)`，负部是 `b(n+1) + c(m+1)`（与加法的公式只差
--- 第二个分子的两个坐标互换）。
---
--- 我们结清。
---   · 计算规则（`ratSubRep_mk`，ι 归约）；
---   · 对第一、第二因子的良定义性（都化归到 ㉖ 的加法义务 + ㉛ 的负元义务）；
---   · 具体计算：1 - 1/2 = 1/2。
---
--- 减法的代数律（`x - x ~ 0`、`x - y = -(y - x)`）留给后续单元。
---
--- 这里自带定义与前序地基（本单元自备）；负元来自 `lib/Rat`。
+-- 减法的代数律（x - x 与 0 相等、x - y 与 -(y - x) 相等）留给后续单元。
 
 import lib.Rat
 
@@ -110,7 +103,7 @@ def ratSubRep (x y : ratRep) : ratRep :=
 -- ㉜.1 减法的计算规则
 -- ─────────────────────────────────────────────────────────────
 
--- soko:hint 思路：`ratSubRep`、`ratNegRep`、`ratAddRep` 依次展开后，两边是同一个 `qrep`，直接 `Eq.refl`。
+-- -- 先写减法在代表元上的计算公式：依次展开三个定义，两边是同一个 qrep。
 -- soko:hint 目标形态：`ratSubRep (qrep a b m) (qrep c d n) = qrep (a(n+1)+d(m+1)) (b(n+1)+c(m+1)) (ratDenRep m n)`。
 -- soko:hint 关键件：定义展开（ι 归约）· Eq.refl。
 theorem ratSubRep_mk (a b c d m n : Nat) :
@@ -125,7 +118,7 @@ theorem ratSubRep_mk (a b c d m n : Nat) :
 -- ㉜.2 减法对第一个因子良定义
 -- ─────────────────────────────────────────────────────────────
 
--- soko:hint 思路：`ratSubRep x y` 展开成 `ratAddRep x (ratNegRep y)`；`ratNegRep (qrep c d n)` 定义性等于 `qrep d c n`，于是这正是加法对第一因子的义务 `ratAddRep_wd`。
+-- -- 减法对第一个因子良定义：展开后正好是加法对第一因子的义务。
 -- soko:hint 目标形态：`x ~ x' → (x - y) ~ (x' - y)`。
 -- soko:hint 关键件：ratAddRep_wd · ratNegRep 的 ι 归约。
 theorem ratSubRep_wd (a b a' b' c d m n : Nat)
@@ -138,7 +131,7 @@ theorem ratSubRep_wd (a b a' b' c d m n : Nat)
 -- ㉜.3 减法对第二个因子良定义
 -- ─────────────────────────────────────────────────────────────
 
--- soko:hint 思路：先用 `ratNegRep_wd` 把 `y ~ y'` 搬到负元上（它展开成 `(d,c,n) ~ (d',c',n)`），再交给加法对第二因子的义务 `ratAddRep_wd_snd`。
+-- -- 对第二个因子：先把相等搬到负元上，再交给加法的第二义务。
 -- soko:hint 目标形态：`y ~ y' → (x - y) ~ (x - y')`。
 -- soko:hint 关键件：ratNegRep_wd · ratAddRep_wd_snd。
 theorem ratSubRep_wd_snd (a b c d c' d' m n : Nat)
