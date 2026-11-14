@@ -1,30 +1,17 @@
 -- 单元54 有理数加法的结合律：公分母的三层嵌套
 --
--- 三个分数相加，先加哪两个，结果一样吗？在代表元层，答案取决于括号。
--- 要证 `close` 的传递性，得把两个距离 `x - y`、`y - z` 加起来，再认成
--- `x - z`。麻烦在于：这条等式不是定义性相等——三个分母相乘的顺序不同，
--- `ratDenRep` 的嵌套就不同。本单元补上
+-- 三个分数相加，先加哪两个，结果一样吗？在代表元层，答案取决于括号。要证 close 的
+-- 传递性，得把两个距离 x-y、y-z 加起来，再认成 x-z。麻烦在于：这条等式不是定义性
+-- 相等——三个分母相乘的顺序不同，ratDenRep 的嵌套就不同。这里补上
+-- (x+y)+z 与 x+(y+z) 相等，以及它的两个算术零件：分母的结合律与分子的结合律。
 --
---   ratAdd_assoc : (x + y) + z ~ x + (y + z)
+-- 证明全部停在代表元层，不碰商、不碰函数外延性、不加公理。分子部分先用分配律把
+-- (aB+cA)C 展开，两个乘积用乘法结合律归一到 a(BC) 与 c(AC)，最后把括号右结合；
+-- 分母部分两边各用 ratDenRep_succ 化成 (AB)C 与 A(BC)，中间用乘法结合律，最后用
+-- succ 单射剥掉一层。然后把这些零件装成嵌套 ratAddRep 的显式 qrep 相等，最后在
+-- 展开类型上 match 到字面三元组、转发给通用陈述。
 --
--- 以及它的两个算术零件：
---
---   · den_assoc：`ratDenRep (ratDenRep m n) k = ratDenRep m (ratDenRep n k)`；
---   · assoc_num1：分子在「先乘哪个分母」下的结合律。
---
--- 证明路线（全部停在代表元层，不碰商、不碰 funext、不加公理）：
---   1. `assoc_num1` 先用 `mul_add_right` 把 `(aB + cA)C` 展开，两个乘积
---      用 `myMul_assoc` 归一到 `a(BC)`、`c(AC)`，最后 `add_assoc` 把括号
---      右结合；右式反向走同一条链。
---   2. `den_assoc` 两边各用 `ratDenRep_succ` 化成 `(AB)C` 与 `A(BC)`，
---      中间用 `myMul_assoc`，最后 `Nat.succ.inj` 剥掉 `succ`。
---   3. `ratAdd_assoc_mk` 把嵌套的 `ratAddRep` 化成显式 `qrep`（这是
---      定义性相等，`ratAddRep_mk` 一步），再用 `den_assoc` 对齐分母、
---      `assoc_num1` 对齐分子，`qrep_congr` 把两边收成同一个 `qrep`。
---   4. `ratAdd_assoc` 在展开类型 `Prod (Prod Nat Nat) Nat` 上 `match`
---      到字面三元组，转发 3。
---
--- 我们不引入新定义；`ratAddRep` / `qrep` / `ratDenRep` 来自 `lib/Rat`。
+-- ratAddRep、qrep、ratDenRep 来自 lib/Rat。
 
 import lib.RatHalf
 
@@ -32,6 +19,7 @@ import lib.RatHalf
 -- 54.1 分母的结合律：`ratDenRep (ratDenRep m n) k = ratDenRep m (ratDenRep n k)`
 -- ─────────────────────────────────────────────────────────────
 
+-- 分母的结合律：两边化成 (AB)C 与 A(BC)，剥掉 succ。
 -- soko:hint 思路：两边各用 `ratDenRep_succ` 把 `succ` 提到 `(m+1)(n+1)` 的形状；再用 `myMul_assoc` 把 `(AB)C` 与 `A(BC)` 对齐；最后 `Nat.succ.inj` 剥掉最外层的 `succ`。
 -- soko:hint 目标形态：`ratDenRep (ratDenRep m n) k = ratDenRep m (ratDenRep n k)`。
 -- soko:hint 关键件：ratDenRep_succ · myMul_assoc · congrArg · Nat.succ.inj · Eq.trans · Eq.symm。
@@ -43,6 +31,7 @@ theorem den_assoc (m n k : Nat) :
 -- 54.2 分子的结合律（上分量）
 -- ─────────────────────────────────────────────────────────────
 
+-- 分子的结合律（上分量）。
 -- soko:hint 思路：左式先用 `mul_add_right` 展开成 `(aB)C + (cA)C`，两个乘积各用一次 `myMul_assoc` 归一到 `a(BC)`、`c(AC)`，再用 `add_assoc` 把括号右结合。右式反向走同一条链（`mul_add_right` + `myMul_assoc` + `add_assoc` 的对称）。
 -- soko:hint 目标形态：
 --   `((aB + cA)C + e(AB)) = a(BC) + (c(AC) + e(AB))`。
@@ -62,6 +51,7 @@ theorem assoc_num1 (a b c d e f m n k : Nat) :
 -- 54.3 字面三元组上的结合律
 -- ─────────────────────────────────────────────────────────────
 
+-- 分子的结合律（下分量）。
 -- soko:hint 思路：嵌套的 `ratAddRep` 在字面 `qrep` 上可以定义性化成显式 `qrep`（`ratAddRep_mk` 一步，甚至 `ratRel_refl` 直接认）。两边化开后，分母用 54.1、分子用 54.2 的两条等式对齐；`qrep_congr`（`prod_mk_congr` + `congrArg`）把两个 `qrep` 收成同一个，再用 `ratRel_refl`。
 -- soko:hint 目标形态：
 --   `ratRel ((X + Y) + Z) (X + (Y + Z))`，其中 `X = qrep a b m` 等。
@@ -76,6 +66,7 @@ theorem ratAdd_assoc_mk (a b c d e f m n k : Nat) :
 -- 54.4 任意代表元上的结合律
 -- ─────────────────────────────────────────────────────────────
 
+-- 把嵌套加法化成显式 qrep 并证相等。
 -- soko:hint 思路：`ratRep` 是 `Prod (Prod Nat Nat) Nat` 的定义别名，`match` 只认归纳类型本身；先在展开类型上对 `x`、`y`、`z` 三层 `match` 到字面三元组，再转发 54.3。
 -- soko:hint 目标形态：`ratRel ((x + y) + z) (x + (y + z))`。
 -- soko:hint 关键件：match（三层）· ratAdd_assoc_mk。
@@ -89,6 +80,7 @@ theorem ratAdd_assoc (x y z : ratRep) :
 -- 54.5 具体：1/2 + 1/3 + 1/4
 -- ─────────────────────────────────────────────────────────────
 
+-- 最后在展开类型上 match 到字面三元组。
 -- soko:hint 思路：直接调用 54.4，三个数取 `qrep 1 0 1`、`qrep 1 0 2`、`qrep 1 0 3`。
 -- soko:hint 目标形态：`ratRel ((1/2 + 1/3) + 1/4) (1/2 + (1/3 + 1/4))`。
 -- soko:hint 关键件：ratAdd_assoc。
@@ -101,3 +93,4 @@ theorem demo_assoc :
         (qrep 1 Nat.zero 1)
         (ratAddRep (qrep 1 Nat.zero 2) (qrep 1 Nat.zero 3))) :=
   sorry
+-- 加法结合律到手；II.5 的零件齐了，下一批单元（II.6）把 close 的传递性与实数的运算律收口。
