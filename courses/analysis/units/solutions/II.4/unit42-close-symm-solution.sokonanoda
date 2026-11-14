@@ -1,34 +1,20 @@
--- 单元㊷ `close` 的对称性：实数的相等可以换方向（解答）
+-- 单元㊷ `close` 的对称性：实数的相等可以换方向
 --
--- ㊱ 把实数的相等定义成
+-- ㊱ 把实数的相等定义成 realRel x y：x、y 都是 Cauchy 序列，且对任意 eps>0 存在 N，
+-- 使 n ≥ N 时 close (x n) (y n) eps 成立。其中 close x y eps 说的是「x-y 的绝对值
+-- 小于 eps」：存在一个 d，它等于 |x-y| 且 d < eps。
 --
---   realRel x y  :⟺  Cauchy x ∧ Cauchy y ∧
---                    ∀ eps > 0, ∃ N, ∀ n ≥ N, close (x n) (y n) eps
+-- ㊵ 结清了自反性；要和它凑成等价关系，还差对称性：close x y eps 推出 close y x eps，
+-- 以及 realRel x y 推出 realRel y x。
 --
--- 其中 `close x y eps` 说的是「`x - y` 的绝对值 < eps」：
+-- 直觉上「y-x 与 x-y 只差一个负号，绝对值一样」，但代表元层要真的搬过去：y-x 的
+-- 代表元与 -(x-y) 的代表元并不相同（分母字段是 ratDenRep n m 与 ratDenRep m n），
+-- 两者相等靠 ratDenRep_comm（㊷.1）；绝对值对取负不变由 ㊶ 提供，但要把它从 -(x-y)
+-- 搬到 y-x，还需要「ratAbsRel 只依赖第一个因子的等价类」（㊷.2）。把这两步拼起来就是
+-- close 的对称性（㊷.3），逐点作用到 realRel 上就是实数相等的对称性（㊷.4）。
 --
---   close x y eps  :⟺  ∃ d, |x - y| ~ d ∧ d < eps
---
--- 要和自反性（㊵）凑成等价关系，还差**对称性**：
---
---   close x y eps  ⟹  close y x eps
---   realRel x y    ⟹  realRel y x
---
--- 直觉上「`y - x` 与 `x - y` 只差一个负号，绝对值一样」，但代表元层要真的搬过去：
---
---   ① `y - x` 的代表元与 `-(x - y)` 的代表元**不同**（分母字段的次序换了）：
---      `ratSubRep y x` 的分母字段是 `ratDenRep n m`，`ratNegRep (ratSubRep x y)`
---      的是 `ratDenRep m n`。两者相等正是 `lib/Rat` 里新收的 `ratDenRep_comm`。
---      这一步就是 ㊷.1 的 `ratSubRep_neg`。
---   ② 绝对值对取负不变是 ㊶.3 的 `ratAbsRel_neg`（通用版本 `ratAbsRel_neg_gen`）；但要把它从 `-(x - y)` 搬到
---      `y - x`，还需要「`ratAbsRel` 只依赖第一个因子的等价类」：㊷.2。
---   ③ 把 ①② 拼起来就是 `close` 的对称性（㊷.3），逐点作用到 `realRel` 上
---      就是实数相等的对称性（㊷.4）。
---
--- 我们不引入新定义；`ratDenRep_comm` 是 ㊷.1 的分母换位引擎，已随本单元
--- 收进 `lib/Rat`（`lib/Cauchy` 经 `lib/RatOrder` 传递可见）。㊷.2 要用的
--- 通用序替换律收在 `lib/RatOrder`（`ratLeRep_congr` / `ratLeRep_congr_snd`，
--- 即 ㊴ 两条律的任意代表元版本）。
+-- 序的通用替换律收在 lib/RatOrder：ratLeRep_congr 换第一个因子，
+-- ratLeRep_congr_snd 换第二个。
 
 import lib.Cauchy
 
@@ -194,6 +180,7 @@ theorem ratSubRep_neg (x y : ratRep) :
 -- ㊷.2 `ratAbsRel` 只依赖第一个因子的等价类
 -- ─────────────────────────────────────────────────────────────
 
+-- 绝对值只依赖第一个因子的等价类：把两个分支里的 u 都换成等价的 v。
 -- soko:hint 思路：`ratAbsRel u d` 是两个分支的析取。第一分支 `0 ≤ u ∧ d ~ u` 要落到第一分支：`0 ≤ u` 用 `ratLeRep_congr_snd` 把第二个因子换成 `v`（`0 ≤ v`），`d ~ u` 再用 `ratRel_trans_gen` 沿 `u ~ v` 换成 `d ~ v`。第二分支 `u ≤ 0 ∧ d ~ -u` 要落到第二分支：`u ≤ 0` 用 `ratLeRep_congr` 把**第一个**因子换成 `v`（`v ≤ 0`），`d ~ -v` 由 `d ~ -u` 与 `-u ~ -v`（`ratNegRep_wd`）经 `ratRel_trans_gen` 串起来。
 -- soko:hint 目标形态：`ratRel u v → ratAbsRel u d → ratAbsRel v d`。
 -- soko:hint 关键件：Or.elim · ratLeRep_congr（换第一个因子）· ratLeRep_congr_snd（换第二个因子）· ratNegRep_wd · ratRel_trans_gen · match（在展开类型上消去 u、v）。
@@ -258,6 +245,7 @@ theorem close_symm (x y eps : ratRep) (h : close x y eps) :
 -- ㊷.4 实数相等的对称性
 -- ─────────────────────────────────────────────────────────────
 
+-- 最后逐点作用到实数相等的定义上。
 -- soko:hint 思路：`realRel x y` 是 `Cauchy x ∧ Cauchy y ∧ 逐点 close`。`realRel y x` 只要把两个 `Cauchy` 分量对调，第三分量在每个 `n` 上调用 ㊷.3 把 `close (x n) (y n) eps` 翻成 `close (y n) (x n) eps`。
 -- soko:hint 目标形态：`realRel x y → realRel y x`。
 -- soko:hint 关键件：And.intro · And.left · And.right · Exists.elim · Exists.intro · close_symm。
