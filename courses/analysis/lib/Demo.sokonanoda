@@ -49,6 +49,7 @@ import lib.LimAt
 import lib.Cont
 import lib.ContAlgebra
 import lib.LocalBounded
+import lib.MaxOn
 import lib.Uniform
 import lib.UniformSeq
 
@@ -248,3 +249,12 @@ theorem demo_lib_continuousAt_sub_self (a : ratRep) :
     ContinuousAt (fun (x : ratRep) => ratSubRep x x) a :=
   continuousAt_sub (fun (x : ratRep) => x) (fun (x : ratRep) => x) a
     (continuousAt_id a) (continuousAt_id a)
+
+theorem demo_lib_attMax_id_closed :
+    AttainsMaxOn (fun (x : ratRep) => x) (InClosed ratZeroRep ratOneRep) :=
+  attMax_id_closed
+
+theorem demo_lib_not_attMax_id_open :
+    ¬ AttainsMaxOn (fun (x : ratRep) => x)
+      (fun (x : ratRep) => ratLtRep ratZeroRep x ∧ ratLtRep x ratOneRep) :=
+  not_attMax_id_open

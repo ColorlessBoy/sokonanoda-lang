@@ -1,0 +1,270 @@
+-- 单元134 闭区间上的最值：上确界与达到
+--
+-- 连续函数在闭区间上取到最大值，这是分析里第一个「存在性」结论：它不是
+-- 从定义直接读出来的，而是先取像的上确界，再证明这个上确界被某个点取到。
+-- 前一半只依赖序，后一半才是真正的分析内容。
+--
+-- 把两半分开写，结构就清楚了。设 A 是区间里的点，f 的像指所有 f x 的
+-- 等价类。若像有上确界 M，并且有 c ∈ A 使 f c ~ M，那么 M 就是最大值：
+-- 上界给出 f x ≤ M，而 f c ~ M 说明 M 本身在像里。反过来，若最大值存在，
+-- 它的值就是像的上确界。于是「最大值存在」与「像的上确界存在且被取到」
+-- 是同一件事；连续性的全部工作，都花在证明后一句的后半段上。
+--
+-- 这一步在 ℚ 上会断。像的上确界可能是一个无理数，因而没有任何有理点取到
+-- 它；要把它写成一个具体反例，需要乘法与序的相容性，以及 2 没有有理平方根
+-- 这条数论事实。课程库还没有这两样，所以这里先把「上确界被取到」留作
+-- 假设，等 ℝ 层的完备性接上以后再用。
+--
+-- 能立刻证明的充分条件是单调。f 在 [a,b] 上不降时，右端点 b 就是最大值：
+-- 每个 x ≤ b，单调性直接把 f x 压到 f b 以下；左端点 a 同理给出最小值。
+-- 这条定理不需要完备性，也不需要乘法，是闭区间上最值问题的一块干净样本。
+--
+-- 闭区间三个字不能省。把 [0,1] 换成开区间 (0,1)，恒等函数就没有最大值：
+-- 任取 c ∈ (0,1)，c + (1-c)/2 仍落在区间里，而且比 c 大。取中点是构造性的，
+-- 只用加法和减法，正好说明「端点闭」在最大值的论证里承担了什么。
+--
+-- 边界：函数取 `ratRep → ratRep`，序取有理代表元上的 `ratLeRep`；不新增
+-- 公理，也不碰 kernel/front。连续函数的无条件最值定理留到完备性一章。
+
+import lib.Rat
+import lib.Cauchy
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.RatHalf
+import lib.RatSub
+import lib.RatAssoc
+import lib.RatGroup
+import lib.LimitOrder
+import lib.Bounded
+import lib.Order
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义：区间、像、最大值与单调
+-- ─────────────────────────────────────────────────────────────
+
+-- 闭区间的成员谓词：两端都取非严格序。把它写成谓词而不是集合，后面的
+-- 上界与上确界就能直接套 `lib/Order` 里的定义。
+def InClosed (a b x : ratRep) : Prop :=
+  ratLeRep a x ∧ ratLeRep x b
+
+-- 像里的一个值：存在 A 中的点，其函数值与 y 代表元等价。用 `ratRel` 而不是
+-- 字面相等，是因为函数的输出本来就只在商的意义下比较。
+def ImageOn (f : ratRep → ratRep) (A : ratRep → Prop) (y : ratRep) : Prop :=
+  ∃ (x : ratRep), A x ∧ ratRel (f x) y
+
+-- 「M 是 f 在 A 上的最大值」分两件事：M 确实被某点取到，且 M 压住所有
+-- 函数值。两件事缺一不可：只有上界不知道是否取到，只有取到不知道是不是最大。
+def IsMaxOn (f : ratRep → ratRep) (A : ratRep → Prop) (M : ratRep) : Prop :=
+  (∃ (c : ratRep), A c ∧ ratRel (f c) M) ∧
+    ∀ (x : ratRep), A x → ratLeRep (f x) M
+
+-- 「f 在 A 上取到最大值」：有一个点，它的函数值压住 A 上所有函数值。
+def AttainsMaxOn (f : ratRep → ratRep) (A : ratRep → Prop) : Prop :=
+  ∃ (c : ratRep), A c ∧ ∀ (x : ratRep), A x → ratLeRep (f x) (f c)
+
+-- 闭区间上的单调不降：只比较区间里的点，所以量词带着两个成员前提。
+def NondecreasingOn (f : ratRep → ratRep) (a b : ratRep) : Prop :=
+  ∀ (x y : ratRep), InClosed a b x → InClosed a b y →
+    ratLeRep x y → ratLeRep (f x) (f y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义的展开形式与投影
+-- ─────────────────────────────────────────────────────────────
+
+-- 定义与展开是同一个命题，两个方向都直接返回假设。
+theorem inClosed_iff (a b x : ratRep) :
+    InClosed a b x ↔ ratLeRep a x ∧ ratLeRep x b :=
+  Iff.intro
+    (fun (h : InClosed a b x) => h)
+    (fun (h : ratLeRep a x ∧ ratLeRep x b) => h)
+
+theorem imageOn_iff (f : ratRep → ratRep) (A : ratRep → Prop) (y : ratRep) :
+    ImageOn f A y ↔ ∃ (x : ratRep), A x ∧ ratRel (f x) y :=
+  Iff.intro
+    (fun (h : ImageOn f A y) => h)
+    (fun (h : ∃ (x : ratRep), A x ∧ ratRel (f x) y) => h)
+
+theorem isMaxOn_iff (f : ratRep → ratRep) (A : ratRep → Prop) (M : ratRep) :
+    IsMaxOn f A M ↔
+      (∃ (c : ratRep), A c ∧ ratRel (f c) M) ∧
+        ∀ (x : ratRep), A x → ratLeRep (f x) M :=
+  Iff.intro
+    (fun (h : IsMaxOn f A M) => h)
+    (fun (h : (∃ (c : ratRep), A c ∧ ratRel (f c) M) ∧
+        ∀ (x : ratRep), A x → ratLeRep (f x) M) => h)
+
+-- 从区间成员取出两端的界。单调定理一个方向用左端，另一个方向用右端。
+theorem inClosed_left (a b x : ratRep) (h : InClosed a b x) :
+    ratLeRep a x :=
+  And.left (Iff.mp (inClosed_iff a b x) h)
+
+theorem inClosed_right (a b x : ratRep) (h : InClosed a b x) :
+    ratLeRep x b :=
+  And.right (Iff.mp (inClosed_iff a b x) h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 最大值给出像的上界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把像里的 y 写成 f x，沿 `ratRel` 换成 f x ≤ y，再和最大值自带的 f x ≤ M 传递。
+-- soko:hint 目标形态：`UpperBound ratRep ratLeRep (ImageOn f A) M`。
+-- soko:hint 关键件：imageOn_iff · ratRel_symm · ratLeRep_of_ratRel · ratLeRep_trans。
+theorem maxOn_upperBound (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M : ratRep) (h : IsMaxOn f A M) :
+    UpperBound ratRep ratLeRep (ImageOn f A) M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 最大值就是像的上确界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：上界取上一条；最小性取最大值点 c，任何上界都要压住像里的 f c，而 f c 与 M 等价。
+-- soko:hint 目标形态：`IsSup ratRep ratLeRep (ImageOn f A) M`。
+-- soko:hint 关键件：maxOn_upperBound · And.left h · ratRel_symm · ratLeRep_trans。
+theorem maxOn_isSup (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M : ratRep) (h : IsMaxOn f A M) :
+    IsSup ratRep ratLeRep (ImageOn f A) M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 上确界被取到就是最大值
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：上确界的第一分量就是上界；第二分量原样当作最大值的「被取到」。
+-- soko:hint 目标形态：`IsMaxOn f A M`。
+-- soko:hint 关键件：And.intro · And.left hsup · Exists.intro · ratRel_refl。
+theorem isMaxOn_of_isSup (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M : ratRep) (hsup : IsSup ratRep ratLeRep (ImageOn f A) M)
+    (hmem : ∃ (c : ratRep), A c ∧ ratRel (f c) M) :
+    IsMaxOn f A M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个方向合起来：条件版的最值定理
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：最大值点 c 取 M := f c；`IsMaxOn` 的「被取到」用 `ratRel_refl`。
+-- soko:hint 目标形态：`∃ M, IsSup ... M ∧ ∃ c, A c ∧ f c ~ M`。
+-- soko:hint 关键件：Exists.elim · maxOn_isSup · Exists.intro · ratRel_refl。
+theorem exists_isSup_of_maxOn (f : ratRep → ratRep) (A : ratRep → Prop)
+    (h : ∃ (M : ratRep), IsMaxOn f A M) :
+    ∃ (M : ratRep), IsSup ratRep ratLeRep (ImageOn f A) M ∧
+      (∃ (c : ratRep), A c ∧ ratRel (f c) M) :=
+  sorry
+
+-- soko:hint 思路：上确界与「被取到」装成 `IsMaxOn`，上界部分直接来自 `And.left hsup`。
+-- soko:hint 目标形态：`∃ M, IsMaxOn f A M`。
+-- soko:hint 关键件：Exists.elim · isMaxOn_of_isSup · And.left · And.right。
+theorem exists_maxOn_of_isSup (f : ratRep → ratRep) (A : ratRep → Prop)
+    (h : ∃ (M : ratRep), IsSup ratRep ratLeRep (ImageOn f A) M ∧
+      (∃ (c : ratRep), A c ∧ ratRel (f c) M)) :
+    ∃ (M : ratRep), IsMaxOn f A M :=
+  sorry
+
+-- soko:hint 思路：两个方向分别是上两条定理，`Iff.intro` 把正、反两个蕴含接起来。
+-- soko:hint 目标形态：`(∃ M, IsMaxOn f A M) ↔ (∃ M, IsSup ... M ∧ ∃ c, A c ∧ f c ~ M)`。
+-- soko:hint 关键件：Iff.intro · exists_isSup_of_maxOn · exists_maxOn_of_isSup。
+theorem maxOn_iff_isSup (f : ratRep → ratRep) (A : ratRep → Prop) :
+    (∃ (M : ratRep), IsMaxOn f A M) ↔
+      (∃ (M : ratRep), IsSup ratRep ratLeRep (ImageOn f A) M ∧
+        (∃ (c : ratRep), A c ∧ ratRel (f c) M)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 最大值的值唯一
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：M 压住 hM' 的见证点、M' 压住 hM 的见证点，两个方向各得一条弱序，再反对称。
+-- soko:hint 目标形态：`IsMaxOn f A M → IsMaxOn f A M' → M ~ M'`。
+-- soko:hint 关键件：两次 Exists.elim · ratRel_symm · ratLeRep_trans · ratLeRep_antisymm。
+theorem maxValue_unique (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M M' : ratRep) (hM : IsMaxOn f A M) (hM' : IsMaxOn f A M') :
+    ratRel M M' :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 常函数：只要定义域非空就取到最大值
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：定义域非空给一个点 a，所有函数值都等于 c，用自反性收口。
+-- soko:hint 目标形态：`AttainsMaxOn (fun _ => c) A`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · ratLeRep_refl。
+theorem attMax_const (A : ratRep → Prop) (c : ratRep)
+    (hA : ∃ (a : ratRep), A a) :
+    AttainsMaxOn (fun (_ : ratRep) => c) A :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 单调：闭区间的右端点是最大值
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：见证取 b；b ∈ [a,b] 用 `hab` 与自反，其余 x 的 x ≤ b 来自 `inClosed_right`，交给单调性。
+-- soko:hint 目标形态：`AttainsMaxOn f (InClosed a b)`。
+-- soko:hint 关键件：Exists.intro · And.intro · ratLeRep_refl · inClosed_right · h。
+theorem attMax_of_monotone (f : ratRep → ratRep) (a b : ratRep)
+    (hab : ratLeRep a b) (h : NondecreasingOn f a b) :
+    AttainsMaxOn f (InClosed a b) :=
+  sorry
+
+-- soko:hint 思路：见证取 a；a ≤ x 来自 `inClosed_left`，单调性给出 f a ≤ f x。
+-- soko:hint 目标形态：`∃ c, InClosed a b c ∧ ∀ x, InClosed a b x → f c ≤ f x`。
+-- soko:hint 关键件：Exists.intro · ratLeRep_refl · inClosed_left · h。
+theorem attMin_of_monotone (f : ratRep → ratRep) (a b : ratRep)
+    (hab : ratLeRep a b) (h : NondecreasingOn f a b) :
+    ∃ (c : ratRep), InClosed a b c ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep (f c) (f x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 具体：闭区间上的恒等函数取到最大值
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：恒等函数不降（前提就是结论），0 ≤ 1 由 `0 < 1` 投影；交给单调定理。
+-- soko:hint 目标形态：`AttainsMaxOn (fun x => x) (InClosed 0 1)`。
+-- soko:hint 关键件：attMax_of_monotone · ratLtRep_le · ratLtRep_zero_one。
+theorem attMax_id_closed :
+    AttainsMaxOn (fun (x : ratRep) => x)
+      (InClosed ratZeroRep ratOneRep) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 反例：开区间上的恒等函数没有最大值
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：弱序用 `ratLeRep_add_right`；若两边相加后相等，`ratRel_add_cancel_gen` 消去 z 回到 x ~ y，撞上严格序的第二分量。
+-- soko:hint 目标形态：`x < y → x + z < y + z`。
+-- soko:hint 关键件：ratLeRep_add_right · ratLtRep_le · ratRel_add_cancel_gen · ratLtRep_right。
+theorem ratLtRep_add_right (x y z : ratRep) (h : ratLtRep x y) :
+    ratLtRep (ratAddRep x z) (ratAddRep y z) :=
+  sorry
+
+-- soko:hint 思路：`0 + x < h + x` 由严格序加法得到；右端换成 x + h，左端用 `0 + x ~ x` 收回。
+-- soko:hint 目标形态：`0 < h → x < x + h`。
+-- soko:hint 关键件：ratLtRep_add_right · ratLtRep_congr_snd · ratAdd_comm · ratLtRep_of_le_lt · ratAdd_zero_left。
+theorem ratLtRep_self_add_pos (x h : ratRep) (hh : ratLtRep ratZeroRep h) :
+    ratLtRep x (ratAddRep x h) :=
+  sorry
+
+-- soko:hint 思路：由 c < b 得 0 < b - c，半数仍正，再交给 `ratLtRep_self_add_pos`。
+-- soko:hint 目标形态：`c < b → c < c + (b-c)/2`。
+-- soko:hint 关键件：ratLtRep_sub_pos · ratLtRep_half · ratLtRep_self_add_pos。
+theorem lt_add_mid (b c : ratRep) (h : ratLtRep c b) :
+    ratLtRep c (ratAddRep c (ratHalf (ratSubRep b c))) :=
+  sorry
+
+-- soko:hint 思路：半数 < b-c，两边同加 c；把 (b-c)+c 收回 b，再把 h+c 交换成 c+h，左端用弱序接上交换。
+-- soko:hint 目标形态：`c < b → c + (b-c)/2 < b`。
+-- soko:hint 关键件：ratHalf_lt_self · ratLtRep_add_right · ratSubRep_add_self · ratAdd_comm · ratLeRep_of_ratRel · ratLtRep_of_le_lt。
+theorem add_mid_lt_right (b c : ratRep) (h : ratLtRep c b) :
+    ratLtRep (ratAddRep c (ratHalf (ratSubRep b c))) b :=
+  sorry
+
+-- soko:hint 思路：假设有最大值点 c，取 x = c + (1-c)/2：它比 c 大（`lt_add_mid`）且仍在 (0,1)（`add_mid_lt_right` 与传递），与 c 压住所有值矛盾。
+-- soko:hint 目标形态：`¬ AttainsMaxOn (fun x => x) (fun x => 0 < x ∧ x < 1)`。
+-- soko:hint 关键件：Exists.elim · lt_add_mid · add_mid_lt_right · ratLeRep_antisymm · ratLtRep_right。
+theorem not_attMax_id_open :
+    ¬ AttainsMaxOn (fun (x : ratRep) => x)
+      (fun (x : ratRep) => ratLtRep ratZeroRep x ∧ ratLtRep x ratOneRep) :=
+  sorry
