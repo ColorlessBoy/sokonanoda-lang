@@ -1,15 +1,15 @@
 -- 单元⑭ ℕ 序的加法消去律
 --
--- 单元⑬ 证了「同加一个数保持序」（leNat_add_right）。要把序良定义地搬到 ℤ 上，
--- 还需要**反方向**的消去律：
---   m + k ≤ n + k  ⇒  m ≤ n
--- 直接对 k 归纳走不通：归纳到后继会卡在「succ m ≤ succ n ⇒ m ≤ n」——
--- LeNat 的证明没法直接拆掉一层。所以改走两步：
---   ① 把序**刻画**成「存在一个加数」：LeNat m n ⇔ ∃ k, n = m + k；
---   ② 消去律落到等式层：a + k = b + k ⇒ a = b（对 k 归纳，用 Nat.succ.inj）。
--- 下一单元用这条消去律证整数序的良定义性（leRep_wd）。
+-- 单元⑬ 证了「同加一个数保持序」：m+k ≤ n+k。要把序良定义地搬到 ℤ 上，还需要
+-- 反方向的消去律：m+k ≤ n+k 推出 m ≤ n。
 --
--- 这里的 5 道练习就是这条论证链：等式消去 → 序的刻画 → 刻画的使用 → 序的消去。
+-- 直接对 k 归纳走不通：归纳到后继会卡在「succ m ≤ succ n ⇒ m ≤ n」——LeNat 的
+-- 证明没法直接拆掉一层。于是换一条路：先把序刻画成「存在一个加数」
+-- （LeNat m n 当且仅当存在 k 使 n = m+k），再把消去律落到等式层
+-- （a+k = b+k 推出 a = b，对 k 归纳，用 succ 的单射）。等式链算完，序的消去律
+-- 只是把刻画翻译回去。
+--
+-- 接下来几道练习就是这条论证链：等式消去 → 序的刻画 → 刻画的使用 → 序的消去。
 import lib.Logic
 import lib.Exists
 import lib.Prod
@@ -29,7 +29,7 @@ def leRep (p q : Prod Nat Nat) : Prop :=
   LeNat (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
         (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（本单元自备）。
+-- 下面四条是单元③证过的 ℕ 加法律，这里重新列出；后面的证明直接引用。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
@@ -76,7 +76,7 @@ theorem add_comm (a b : Nat) :
         (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
     b
 
--- 前驱：`pred (succ n) = n` 是定义性相等；用于从前驱等式换回原等式。
+-- 前驱 `pred (succ n) = n` 是定义性相等：用它把前驱等式换回原等式。
 def Nat.pred (n : Nat) : Nat := match n with
 | zero => Nat.zero
 | succ m => m
@@ -86,7 +86,7 @@ theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) :
     a = b :=
   congrArg.{1} Nat.pred h
 
--- 转动加数：把 (a+k)+j 换成 (a+j)+k（消去律最后一步要用）。
+-- 转动加数把 (a+k)+j 换成 (a+j)+k；消去律最后一步要用它。
 theorem add_rotate (a k j : Nat) :
     Nat.add (Nat.add a k) j = Nat.add (Nat.add a j) k :=
   @Eq.trans.{1} Nat (Nat.add (Nat.add a k) j) (Nat.add a (Nat.add k j)) (Nat.add (Nat.add a j) k)
@@ -95,22 +95,24 @@ theorem add_rotate (a k j : Nat) :
       (congrArg.{1} (fun (x : Nat) => Nat.add a x) (add_comm k j))
       (@Eq.symm.{1} Nat (Nat.add (Nat.add a j) k) (Nat.add a (Nat.add j k)) (add_assoc a j k)))
 
--- 演示：前驱把 succ 的等式还原。
+-- 具体例子：前驱把 succ 的等式还原。
 theorem demo_succ_inj : 1 = 1 :=
   Nat.succ.inj 1 1 (@Eq.refl.{1} Nat 2)
 
--- 演示：2 - 0 ≤ 4 - 2 就是 2 + 2 ≤ 4 + 0，两边都是 4。
+-- 具体例子：2-0 ≤ 4-2 就是 2+2 ≤ 4+0，两边都是 4。
 theorem demo_leRep_two_four :
     leRep (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 4 2) :=
   le_refl 4
 
+-- 先证等式层的消去：a+k = b+k 推出 a = b，对 k 归纳，用前驱剥掉 succ。
 -- soko:hint 思路：对 k 归纳。基例 k = 0 时 `a + 0` 定义性等于 a，假设 h 的类型就是 a = b；步例 k = succ n 时两边各露一层 succ，用 Nat.succ.inj 剥掉后再交给归纳假设。
 -- soko:hint 目标形态：`a + k = b + k → a = b`（对 k 归纳，动机把两边都带上）。
--- soko:hint 关键件：Nat.rec · Nat.succ.inj（本文件已给）。
+-- soko:hint 关键件：Nat.rec · Nat.succ.inj。
 theorem nat_add_cancel_right (a b k : Nat) :
     Nat.add a k = Nat.add b k → a = b :=
   sorry
 
+-- 再把序刻画成存在加数：LeNat m n 推出存在 k 使 n = m+k（对 h 归纳）。
 -- soko:hint 思路：对 h 用 LeNat.rec（两个指标 + 证明都要进 motive）。基例 le_refl n：取加数 0，`n + 0` 定义性等于 n；步例 le_succ：把归纳假设给的存在加数 k 抬成 succ k —— `m + succ k` 定义性等于 `succ (m + k)`，再用 congrArg 把等式包一层 succ。
 -- soko:hint 目标形态：`LeNat m n → ∃ (k : Nat), n = m + k`。
 -- soko:hint 关键件：@LeNat.rec · @Exists.intro（隐式位要写全：类型、谓词）· @Exists.elim · congrArg。
@@ -118,27 +120,30 @@ theorem leNat_exists_add (m n : Nat) (h : LeNat m n) :
     ∃ (k : Nat), n = Nat.add m k :=
   sorry
 
+-- 反方向的一半：m 不大于 m+k（对 k 归纳）。
 -- soko:hint 思路：对 k 归纳。基例是 le_refl m（m + 0 定义性等于 m）；步例把归纳假设 `LeNat m (m + k)` 用一次 le_succ 抬到 succ (m + k)，而 `m + succ k` 定义性就是它。
 -- soko:hint 目标形态：`LeNat m (m + k)`。
 -- soko:hint 关键件：Nat.rec（动机 `fun n => LeNat m (m + n)`）· le_refl · le_succ。
 theorem leNat_self_add (m k : Nat) : LeNat m (Nat.add m k) :=
   sorry
 
+-- 反方向的另一半：有了加数见证，就能得到 m ≤ n。
 -- soko:hint 思路：从存在假设里取出加数 k 与等式 hk，用 leNat_self_add 得到 `LeNat m (m + k)`，再沿 `m + k = n`（hk 取对称）把目标换掉。
 -- soko:hint 目标形态：`(∃ (k : Nat), n = m + k) → LeNat m n`。
--- soko:hint 关键件：@Exists.elim · leNat_self_add（练习 ③）· @Eq.subst（谓词 `fun x => LeNat m x`）· @Eq.symm。
+-- soko:hint 关键件：@Exists.elim · leNat_self_add · @Eq.subst（谓词 `fun x => LeNat m x`）· @Eq.symm。
 theorem leNat_of_exists_add (m n : Nat)
     (h : ∃ (k : Nat), n = Nat.add m k) :
     LeNat m n :=
   sorry
 
--- soko:hint 思路：先用 leNat_exists_add（练习 ②）把 h 变成 `∃ j, b + k = (a + k) + j`；取出的 j 就是见证。把右边用 add_rotate 转成 `(a + j) + k`，于是 `b + k = (a + j) + k`，交给 nat_add_cancel_right（练习 ①）得 `b = a + j`，最后用 leNat_of_exists_add（练习 ④）收口。
+-- 最后证序的消去律：m+k ≤ n+k 推出 m ≤ n，把前面几步串起来。
+-- soko:hint 思路：先用 leNat_exists_add 把 h 变成 `∃ j, b + k = (a + k) + j`；取出的 j 就是见证。把右边用 add_rotate 转成 `(a + j) + k`，于是 `b + k = (a + j) + k`，交给 nat_add_cancel_right 得 `b = a + j`，最后用 leNat_of_exists_add 收口。
 -- soko:hint 目标形态：`LeNat (a + k) (b + k) → LeNat a b`。
--- soko:hint 关键件：leNat_exists_add · add_rotate（本文件已给）· nat_add_cancel_right · leNat_of_exists_add · @Eq.trans。
+-- soko:hint 关键件：leNat_exists_add · add_rotate · nat_add_cancel_right · leNat_of_exists_add · @Eq.trans。
 theorem leNat_add_cancel_right (a b k : Nat)
     (h : LeNat (Nat.add a k) (Nat.add b k)) : LeNat a b :=
   sorry
 
--- 演示：2 + 3 ≤ 2 + 3 消去 3 得 2 ≤ 2。（要等练习 ⑤ 补完才会变成 `checked`。）
+-- 具体例子：2+3 ≤ 2+3 消去 3 得 2 ≤ 2。
 theorem demo_leNat_cancel : LeNat 2 2 :=
   leNat_add_cancel_right 2 2 3 (le_refl 5)
