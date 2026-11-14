@@ -1,0 +1,126 @@
+-- 单元124 函数极限：ε-δ 定义
+--
+-- 序列的极限看下标 n 越来越大时项往哪里去；函数极限看自变量 x 走近一个
+-- 固定点 a 时 f x 往哪里去。下标只能整步前进，x 却可以从两边以任意小的
+-- 步长靠近，所以「终究」那套阈值语言在这里不够用，要把「靠近」写成一个
+-- 可调的半径。
+--
+-- 定义对每个正 ε 要求一个正 δ：只要 x 与 a 的距离小于 δ，并且 x 与 a 不是
+-- 同一个有理数，就有 f x 与 L 的距离小于 ε。排掉 a 本身，是因为函数在 a
+-- 处取什么值与它在 a 附近的走向无关；「在 a 之外相等的两个函数有同一个
+-- 极限」正是这条排除的用处。常函数与恒等函数是两个可以直接算的样本。
+--
+-- 边界：函数取 `ratRep → ratRep`，极限停在有理代表元层；ℝ 层函数的翻译与
+-- 极限的唯一性留到后面的单元。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Bounded
+import lib.Limit
+import lib.Tail
+
+-- ─────────────────────────────────────────────────────────────
+-- 函数极限的 ε-δ 定义
+-- ─────────────────────────────────────────────────────────────
+
+-- 三个量词依次是：半径 ε、半径 δ、以及落在 δ 邻域里的点 x。`¬ ratRel x a`
+-- 就是「x 不是 a」；用 `ratRel` 而不是构造子相等，因为有理数按交叉相乘判等。
+def TendsToAt (f : ratRep → ratRep) (a L : ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ¬ ratRel x a → close (f x) L eps
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义的展开形式
+-- ─────────────────────────────────────────────────────────────
+
+-- 定义与它的展开是同一个命题；两个方向都直接返回假设。
+theorem tendsToAt_iff (f : ratRep → ratRep) (a L : ratRep) :
+    TendsToAt f a L ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+            close (f x) L eps :=
+  Iff.intro
+    (fun (h : TendsToAt f a L) => h)
+    (fun (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+            close (f x) L eps) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 常函数的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 半径取任意正数即可，函数值与 L 处处相等，相等当然落在每个 ε 内。
+theorem tendsToAt_const (c a : ratRep) :
+    TendsToAt (fun (_ : ratRep) => c) a c :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro ratOneRep
+      (And.intro ratLtRep_zero_one
+        (fun (x : ratRep) (_hx : close x a ratOneRep)
+            (_hne : ¬ ratRel x a) =>
+          close_of_ratRel c c (ratRel_refl c) eps heps))
+
+-- ─────────────────────────────────────────────────────────────
+-- 恒等函数的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 半径直接取 ε：`close x a eps` 正是需要证明的那条接近性。
+theorem tendsToAt_id (a : ratRep) :
+    TendsToAt (fun (x : ratRep) => x) a a :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro eps
+      (And.intro heps
+        (fun (x : ratRep) (hx : close x a eps) (_hne : ¬ ratRel x a) => hx))
+
+-- ─────────────────────────────────────────────────────────────
+-- 在一点之外相等，极限相同
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个函数在 a 之外逐点相等。给定 ε 后沿用同一个 δ；落在邻域里的 x 本来
+-- 就满足 `¬ ratRel x a`，于是 `f x` 与 `g x` 相等，`close` 沿这个等式搬运。
+theorem tendsToAt_congr_off (f g : ratRep → ratRep) (a L : ratRep)
+    (h : ∀ (x : ratRep), ¬ ratRel x a → ratRel (f x) (g x)) :
+    TendsToAt f a L ↔ TendsToAt g a L :=
+  Iff.intro
+    (fun (hf : TendsToAt f a L) =>
+      fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim (hf eps heps)
+          (fun (delta : ratRep)
+              (hd : ratLtRep ratZeroRep delta ∧
+                ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+                  close (f x) L eps) =>
+            Exists.intro delta
+              (And.intro (And.left hd)
+                (fun (x : ratRep) (hx : close x a delta)
+                    (hne : ¬ ratRel x a) =>
+                  close_wd_left (f x) (g x) L eps (h x hne)
+                    ((And.right hd) x hx hne)))))
+    (fun (hg : TendsToAt g a L) =>
+      fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim (hg eps heps)
+          (fun (delta : ratRep)
+              (hd : ratLtRep ratZeroRep delta ∧
+                ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+                  close (g x) L eps) =>
+            Exists.intro delta
+              (And.intro (And.left hd)
+                (fun (x : ratRep) (hx : close x a delta)
+                    (hne : ¬ ratRel x a) =>
+                  close_wd_left (g x) (f x) L eps
+                    (ratRel_symm (f x) (g x) (h x hne))
+                    ((And.right hd) x hx hne)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 具体：在恒等函数上加零
+-- ─────────────────────────────────────────────────────────────
+
+-- `fun x => x + 0` 与恒等函数在每一点都相等，极限由上面那条搬运定理送回。
+theorem demo_tendsToAt_add_zero (a : ratRep) :
+    TendsToAt (fun (x : ratRep) => ratAddRep x ratZeroRep) a a :=
+  Iff.mpr
+    (tendsToAt_congr_off (fun (x : ratRep) => ratAddRep x ratZeroRep)
+      (fun (x : ratRep) => x) a a
+      (fun (x : ratRep) (_hne : ¬ ratRel x a) => ratAdd_zero x))
+    (tendsToAt_id a)

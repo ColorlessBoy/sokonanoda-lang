@@ -1,0 +1,91 @@
+-- 单元124 函数极限：ε-δ 定义
+--
+-- 序列的极限看下标 n 越来越大时项往哪里去；函数极限看自变量 x 走近一个
+-- 固定点 a 时 f x 往哪里去。下标只能整步前进，x 却可以从两边以任意小的
+-- 步长靠近，所以「终究」那套阈值语言在这里不够用，要把「靠近」写成一个
+-- 可调的半径。
+--
+-- 定义对每个正 ε 要求一个正 δ：只要 x 与 a 的距离小于 δ，并且 x 与 a 不是
+-- 同一个有理数，就有 f x 与 L 的距离小于 ε。排掉 a 本身，是因为函数在 a
+-- 处取什么值与它在 a 附近的走向无关；「在 a 之外相等的两个函数有同一个
+-- 极限」正是这条排除的用处。常函数与恒等函数是两个可以直接算的样本。
+--
+-- 边界：函数取 `ratRep → ratRep`，极限停在有理代表元层；ℝ 层函数的翻译与
+-- 极限的唯一性留到后面的单元。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Bounded
+import lib.Limit
+import lib.Tail
+
+-- ─────────────────────────────────────────────────────────────
+-- 函数极限的 ε-δ 定义
+-- ─────────────────────────────────────────────────────────────
+
+-- 三个量词依次是：半径 ε、半径 δ、以及落在 δ 邻域里的点 x。`¬ ratRel x a`
+-- 就是「x 不是 a」；用 `ratRel` 而不是构造子相等，因为有理数按交叉相乘判等。
+def TendsToAt (f : ratRep → ratRep) (a L : ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ¬ ratRel x a → close (f x) L eps
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义的展开形式
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `TendsToAt` 展开，右边那串量词逐字就是定义；两个方向都直接返回假设。
+-- soko:hint 目标形态：`TendsToAt f a L ↔ ∀ eps > 0, ∃ delta > 0, ∀ x, close x a delta → ¬ ratRel x a → close (f x) L eps`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem tendsToAt_iff (f : ratRep → ratRep) (a L : ratRep) :
+    TendsToAt f a L ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+            close (f x) L eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 常函数的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：半径取 1；常函数的值与 L 相等，相等就落在每个正 ε 内。
+-- soko:hint 目标形态：`TendsToAt (fun _ => c) a c`。
+-- soko:hint 关键件：ratOneRep · ratLtRep_zero_one · close_of_ratRel · ratRel_refl。
+theorem tendsToAt_const (c a : ratRep) :
+    TendsToAt (fun (_ : ratRep) => c) a c :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 恒等函数的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：半径直接取 ε；前提 `close x a ε` 就是要证的结论。
+-- soko:hint 目标形态：`TendsToAt (fun x => x) a a`。
+-- soko:hint 关键件：Exists.intro · And.intro · 假设 `close x a eps`。
+theorem tendsToAt_id (a : ratRep) :
+    TendsToAt (fun (x : ratRep) => x) a a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 在一点之外相等，极限相同
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两个方向都沿用对方的 δ。落在邻域里的 x 满足 `¬ ratRel x a`，于是 `f x` 与 `g x` 相等，把 `close` 沿这个等式搬过去；反方向先交换相等。
+-- soko:hint 目标形态：`TendsToAt f a L ↔ TendsToAt g a L`。
+-- soko:hint 关键件：close_wd_left · ratRel_symm · 逐点假设 `h`。
+theorem tendsToAt_congr_off (f g : ratRep → ratRep) (a L : ratRep)
+    (h : ∀ (x : ratRep), ¬ ratRel x a → ratRel (f x) (g x)) :
+    TendsToAt f a L ↔ TendsToAt g a L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 具体：在恒等函数上加零
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`x + 0` 与 `x` 逐点相等，把上一条搬运定理用在恒等函数的极限上。
+-- soko:hint 目标形态：`TendsToAt (fun x => x + 0) a a`。
+-- soko:hint 关键件：tendsToAt_congr_off · ratAdd_zero · tendsToAt_id · Iff.mpr。
+theorem demo_tendsToAt_add_zero (a : ratRep) :
+    TendsToAt (fun (x : ratRep) => ratAddRep x ratZeroRep) a a :=
+  sorry

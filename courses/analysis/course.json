@@ -948,6 +948,29 @@
               "unit": 123
             }
           ]
+        },
+        {
+          "id": "III.6",
+          "title": "连续函数",
+          "prereqs": ["III.5"],
+          "tags": ["continuity", "function-limit"],
+          "quota": {
+            "exercises": 60
+          },
+          "units": [
+            {
+              "file": "units/III.6/unit124-function-limit.sokonanoda",
+              "title": "单元124 函数极限：ε-δ 定义",
+              "title_en": "Unit 124 — Function Limits: The ε-δ Definition",
+              "unit": 124
+            },
+            {
+              "file": "units/III.6/unit125-continuity.sokonanoda",
+              "title": "单元125 连续：极限值就是函数值",
+              "title_en": "Unit 125 — Continuity: The Limit Is the Function Value",
+              "unit": 125
+            }
+          ]
         }
       ]
     }

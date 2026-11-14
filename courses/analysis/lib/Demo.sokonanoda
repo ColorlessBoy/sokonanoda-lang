@@ -45,6 +45,8 @@ import lib.SeriesTelescope
 import lib.SeriesTailSum
 import lib.SeriesTailReverse
 import lib.SeriesSwap
+import lib.LimAt
+import lib.Cont
 
 theorem demo_lib_closure : True := True.intro
 
@@ -197,3 +199,15 @@ theorem demo_lib_summable_of_tail_zero (m : Nat) :
 theorem demo_lib_swapFirst_zero :
     Summable (swapFirst (fun (_ : Nat) => ratZeroRep)) :=
   demo_swapFirst_zero
+
+theorem demo_lib_tendsToAt_unfold (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+          close (f x) L eps :=
+  h
+
+theorem demo_lib_continuous_unfold (f : ratRep → ratRep) (h : Continuous f) :
+    ∀ (a : ratRep), ContinuousAt f a :=
+  h
