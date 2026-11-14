@@ -1,0 +1,164 @@
+-- 单元133 局部保号：连续函数在一点附近不变号
+--
+-- 连续的定义说：给定 ε，存在 δ，邻域里的函数值都落在 f a 的 ε 内。如果
+-- f a 是正的，能不能断言 f 在这片邻域里仍然是正的？「离 f a 近」本身不
+-- 回答这个问题：一个正数附近既有正数也有负数，要断言整片邻域落在 0 的
+-- 同一侧，必须把 ε 选得比 f a 到 0 的距离更小。
+--
+-- 取 ε = f a 就够了。绝对值界同时给出上下两条边：上边 `f x - f a < f a`
+-- 把 f x 压在 2 f a 以下，下边 `f a - f x < f a` 才是保号真正要用的那一半，
+-- 它把 f x 抬到 0 以上。两条边都来自同一个绝对值见证，只是分别走
+-- `ratAbsRel_le` 与 `ratAbsRel_neg_le`；后一条经过 `-(f x - f a)` 的换形，
+-- 也就是 `f a - f x`。
+--
+-- 这条局部信息在介值定理里要派用场：连续函数在零点以外的取值会被邻域
+-- 原样保留，于是「f c < 0」意味着 c 的右边一小段全是负的。介值定理要把
+-- 上确界逼到符号变化的边界上，靠的正是它；没有它，邻域里可能混进反号的
+-- 点，上确界的论证就断在最后一步。
+--
+-- 把同样的估计用在两个函数之差上，就得到严格不等式的稳定性：f a < g a
+-- 时，邻域里仍有 f x < g x。差 `g - f` 的连续性由单元128 的加法群提供，
+-- 保号性只需要再判一次符号。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层。不新增公理。
+
+import lib.Rat
+import lib.Cauchy
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatClose
+import lib.RatGroup
+import lib.RatSub
+import lib.LimitAbs
+import lib.LimitOrder
+import lib.RealAdd
+import lib.RealNeg
+import lib.LimAtAlgebra
+import lib.Cont
+import lib.ContAlgebra
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义：邻域里的正值
+-- ─────────────────────────────────────────────────────────────
+
+-- 「f 在 a 附近为正」= 有一个正半径，δ 邻域里的每个点都取正值。定义里
+-- 不出现 ε：ε 的角色已经被固定成 f a 本身，剩下的只是半径与全称量词。
+def PositiveNear (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), close x a delta → ratLtRep ratZeroRep (f x)
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义的展开形式
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：定义与展开是同一个命题，两个方向都直接返回假设。
+-- soko:hint 目标形态：`PositiveNear f a ↔ ∃ delta > 0, ∀ x, close x a delta → 0 < f x`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem positiveNear_iff (f : ratRep → ratRep) (a : ratRep) :
+    PositiveNear f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLtRep ratZeroRep (f x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 四条序的换形
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：见证 d 满足 `L - x ≤ d < eps`；前一条由 `ratAbsRel_neg_le` 与 `ratNegRep_sub` 换形得到，再与 `d < eps` 接力。
+-- soko:hint 目标形态：`close x L eps → (L - x) < eps`。
+-- soko:hint 关键件：Exists.elim · ratAbsRel_neg_le · ratNegRep_sub · ratLtRep_of_le_lt。
+theorem close_neg_lt (x L eps : ratRep) (h : close x L eps) :
+    ratLtRep (ratSubRep L x) eps :=
+  sorry
+
+-- soko:hint 思路：弱序交给 `ratLeRep_add_right`；严格性用加法消去，若两边相加后相等就得到原两项相等，撞上严格序的第二分量。
+-- soko:hint 目标形态：`x < y → x + z < y + z`。
+-- soko:hint 关键件：ratLeRep_add_right · ratLeRep_add_cancel_gen · ratLtRep_right。
+theorem ratLtRep_add_right (x y z : ratRep) (h : ratLtRep x y) :
+    ratLtRep (ratAddRep x z) (ratAddRep y z) :=
+  sorry
+
+-- soko:hint 思路：弱序沿 `ratRel` 把左端点换成新的代表元；不相等部分把等价关系反着串一次。
+-- soko:hint 目标形态：`b < c → a ~ b → a < c`。
+-- soko:hint 关键件：ratLeRep_congr_gen · ratRel_symm · ratRel_trans_gen。
+theorem ratLtRep_congr_fst (a b c : ratRep)
+    (h : ratLtRep b c) (hab : ratRel a b) : ratLtRep a c :=
+  sorry
+
+-- soko:hint 思路：两边同加 y；(x - y) + y 收回 x，0 + y 收回 y，得到 y < x。
+-- soko:hint 目标形态：`0 < x - y → y < x`。
+-- soko:hint 关键件：ratLtRep_add_right · ratSubRep_add_self · ratAdd_zero_left。
+theorem ratLtRep_of_sub_pos (x y : ratRep)
+    (h : ratLtRep ratZeroRep (ratSubRep x y)) : ratLtRep y x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 连续给出邻域里的正号
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：取 ε = f a；负侧严格界给出 f a - f x < f a，两边加 f x 得 f a < f a + f x，再把左端收回 f x。
+-- soko:hint 目标形态：`PositiveNear f a`。
+-- soko:hint 关键件：close_neg_lt · ratLtRep_add_right · ratLtRep_congr_fst · ratLtRep_sub_pos · ratAdd_sub_self。
+theorem positiveNear_of_continuousAt (f : ratRep → ratRep) (a : ratRep)
+    (hf : ContinuousAt f a) (h : ratLtRep ratZeroRep (f a)) :
+    PositiveNear f a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 连续给出邻域里的负号
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：取 ε = -f a；这次走正侧 `ratAbsRel_le`，f x - f a < -f a，两边加 f a 后左端收回 f x、右端收成 0。
+-- soko:hint 目标形态：`∃ delta > 0, ∀ x, close x a delta → f x < 0`。
+-- soko:hint 关键件：ratLtRep_pos_of_neg · ratAbsRel_le · ratLtRep_add_right · ratAdd_neg_gen。
+theorem negativeNear_of_continuousAt (f : ratRep → ratRep) (a : ratRep)
+    (hf : ContinuousAt f a) (h : ratLtRep (f a) ratZeroRep) :
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ratLtRep (f x) ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 邻域里不为零
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：序的全性把 f a 分到正、负两支，各用上一条定理；「严格正/负」的第二分量就是「不等于零」。
+-- soko:hint 目标形态：`¬ f a ~ 0 → ∃ delta > 0, ∀ x, close x a delta → ¬ f x ~ 0`。
+-- soko:hint 关键件：ratLeRep_total · ratRel_symm · ratLtRep_right · 上两条定理。
+theorem neZeroNear_of_continuousAt (f : ratRep → ratRep) (a : ratRep)
+    (hf : ContinuousAt f a) (h : ¬ ratRel (f a) ratZeroRep) :
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ¬ ratRel (f x) ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 严格不等式的稳定性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：差 g - f 连续、在 a 处为正，保号性给出邻域里的正差，再读回 f x < g x。
+-- soko:hint 目标形态：`f a < g a → ∃ delta > 0, ∀ x, close x a delta → f x < g x`。
+-- soko:hint 关键件：continuousAt_sub · ratLtRep_sub_pos · positiveNear_of_continuousAt · ratLtRep_of_sub_pos。
+theorem continuousAt_lt_of_lt (f g : ratRep → ratRep) (a : ratRep)
+    (hf : ContinuousAt f a) (hg : ContinuousAt g a)
+    (h : ratLtRep (f a) (g a)) :
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ratLtRep (f x) (g x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 具体：恒等函数在正点附近为正
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：恒等函数连续，把「a 为正」原样交给保号性。
+-- soko:hint 目标形态：`0 < a → PositiveNear (fun x => x) a`。
+-- soko:hint 关键件：continuousAt_id · positiveNear_of_continuousAt。
+theorem demo_positiveNear_id (a : ratRep) (h : ratLtRep ratZeroRep a) :
+    PositiveNear (fun (x : ratRep) => x) a :=
+  sorry
+
+-- soko:hint 思路：同上，这次用负号版本。
+-- soko:hint 目标形态：`a < 0 → ∃ delta > 0, ∀ x, close x a delta → x < 0`。
+-- soko:hint 关键件：continuousAt_id · negativeNear_of_continuousAt。
+theorem demo_negativeNear_id (a : ratRep) (h : ratLtRep a ratZeroRep) :
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ratLtRep x ratZeroRep :=
+  sorry

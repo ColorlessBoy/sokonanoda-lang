@@ -1011,6 +1011,12 @@
               "title": "单元132 局部有界：极限给出的第一个盒子",
               "title_en": "Unit 132 — Local Boundedness: The First Box a Limit Gives",
               "unit": 132
+            },
+            {
+              "file": "units/III.6/unit133-local-sign.sokonanoda",
+              "title": "单元133 局部保号：连续函数在一点附近不变号",
+              "title_en": "Unit 133 — Local Sign Preservation: A Continuous Function Keeps Its Sign",
+              "unit": 133
             }
           ]
         }

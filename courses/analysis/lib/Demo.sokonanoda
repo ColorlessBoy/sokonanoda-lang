@@ -47,6 +47,7 @@ import lib.SeriesTailReverse
 import lib.SeriesSwap
 import lib.LimAt
 import lib.Cont
+import lib.ContAlgebra
 import lib.LocalBounded
 import lib.Uniform
 import lib.UniformSeq
@@ -237,3 +238,13 @@ theorem demo_lib_localBounded_const (c a : ratRep) :
 theorem demo_lib_localBounded_id (a : ratRep) :
     LocallyBoundedPunct (fun (x : ratRep) => x) a :=
   demo_locallyBoundedPunct_id a
+
+theorem demo_lib_continuousAt_add_const (c a : ratRep) :
+    ContinuousAt (fun (x : ratRep) => ratAddRep x c) a :=
+  continuousAt_add (fun (x : ratRep) => x) (fun (_ : ratRep) => c) a
+    (continuousAt_id a) (continuousAt_const c a)
+
+theorem demo_lib_continuousAt_sub_self (a : ratRep) :
+    ContinuousAt (fun (x : ratRep) => ratSubRep x x) a :=
+  continuousAt_sub (fun (x : ratRep) => x) (fun (x : ratRep) => x) a
+    (continuousAt_id a) (continuousAt_id a)
