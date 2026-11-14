@@ -1,0 +1,162 @@
+-- 单元136 介值定理：最后一个非正点
+--
+-- 连续函数从一个负值走到一个正值，中间必有一点取零。在 ℚ 上这句话不能
+-- 无条件成立：`x ↦ x² - 2` 在 [1,2] 上连续，两端异号，却没有任何有理点
+-- 使它取零。二分法把区间越切越短，切到的是一个实数，而 ℚ 里没有那个点。
+-- 所以缺的不是连续性，而是「切点存在」。
+--
+-- 把缺的那一块写成假设，剩下的全是连续性的工作。设 m 是区间里所有非正点
+-- 的最大元，且 m 严格在右端点左边。上一单元证明了严格负点集没有最大元，
+-- 所以 f m 不能小于零；而 m 属于非正点集，f m 又不能大于零。两头一夹，
+-- f m 只能等于零。
+--
+-- 最后把结论换成介值的语言：f a < 0 < f b，非正点集有最大元 m，那么 m
+-- 落在区间内部，且 f m ~ 0。为了让「m 在内部」这句话有内容，函数还得
+-- 尊重代表元的等价：等价的两个点给出等价的函数值。没有这一条，同一个
+-- 实数的两个代表元可以取到不同的值，端点附近的论证就断了。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层；「非正点集有最大元」
+-- 是完整介值定理在 ℚ 上真正缺的那一步，这里把它作为显式假设，不写成公理。
+-- 不碰 kernel/front。
+
+import lib.Rat
+import lib.Cauchy
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.RatHalf
+import lib.RatSub
+import lib.RatAssoc
+import lib.RatGroup
+import lib.LimitAbs
+import lib.LimitOrder
+import lib.Bounded
+import lib.Order
+import lib.MaxOn
+import lib.LocalSign
+import lib.LastNegative
+import lib.Cont
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义：非正点集与「尊重等价」
+-- ─────────────────────────────────────────────────────────────
+
+-- 区间里函数值不为正的点。介值定理的切点从这个集合的最大元里来。
+def NonpositivePoints (f : ratRep → ratRep) (a b : ratRep) : ratRep → Prop :=
+  fun (x : ratRep) => InClosed a b x ∧ ratLeRep (f x) ratZeroRep
+
+-- 函数尊重代表元的等价：等价的两个输入给出等价的输出。这是「函数定义在
+-- 实数上」而不是「定义在代表元上」的形式说法。
+def RespectsRel (f : ratRep → ratRep) : Prop :=
+  ∀ (x y : ratRep), ratRel x y → ratRel (f x) (f y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义的展开形式与投影
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：定义展开后就是同一个合取，两个方向都直接返回假设。
+-- soko:hint 目标形态：`NonpositivePoints f a b x ↔ InClosed a b x ∧ f x ≤ 0`。
+-- soko:hint 关键件：Iff.intro。
+theorem nonpositivePoints_iff (f : ratRep → ratRep) (a b x : ratRep) :
+    NonpositivePoints f a b x ↔ InClosed a b x ∧ ratLeRep (f x) ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：区间成员原样搬；严格负用 `ratLtRep_le` 弱化成非正。
+-- soko:hint 目标形态：`NegativePoints f a b x → NonpositivePoints f a b x`。
+-- soko:hint 关键件：And.intro · ratLtRep_le。
+theorem nonpositive_of_negative (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NegativePoints f a b x) : NonpositivePoints f a b x :=
+  sorry
+
+-- soko:hint 思路：先沿 `nonpositivePoints_iff` 展开成合取，再取第一分量。
+-- soko:hint 目标形态：`NonpositivePoints f a b x → InClosed a b x`。
+-- soko:hint 关键件：Iff.mp · And.left。
+theorem nonpositivePoints_mem (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NonpositivePoints f a b x) : InClosed a b x :=
+  sorry
+
+-- soko:hint 思路：同样展开成合取，再取第二分量。
+-- soko:hint 目标形态：`NonpositivePoints f a b x → f x ≤ 0`。
+-- soko:hint 关键件：Iff.mp · And.right。
+theorem nonpositivePoints_value (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NonpositivePoints f a b x) : ratLeRep (f x) ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：`HasGreatest` 的见证先经 `hasGreatest_mem` 取出集合成员，再投影成区间成员。
+-- soko:hint 目标形态：`HasGreatest (NonpositivePoints f a b) m → InClosed a b m`。
+-- soko:hint 关键件：hasGreatest_mem · nonpositivePoints_mem。
+theorem hasGreatest_nonpositive_mem (f : ratRep → ratRep) (a b m : ratRep)
+    (h : HasGreatest (NonpositivePoints f a b) m) : InClosed a b m :=
+  sorry
+
+-- soko:hint 思路：同上，投影换成函数值的非正界。
+-- soko:hint 目标形态：`HasGreatest (NonpositivePoints f a b) m → f m ≤ 0`。
+-- soko:hint 关键件：hasGreatest_mem · nonpositivePoints_value。
+theorem hasGreatest_nonpositive_value (f : ratRep → ratRep) (a b m : ratRep)
+    (h : HasGreatest (NonpositivePoints f a b) m) :
+    ratLeRep (f m) ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 端点不在切点上
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：若 a ~ m，则 f a ~ f m ~ 0；用传递性把 f a ~ 0 交给 `f a < 0` 的第二分量。
+-- soko:hint 目标形态：`f a < 0 → f m ~ 0 → ¬ a ~ m`。
+-- soko:hint 关键件：hwf · ratRel_trans_gen · ratLtRep_right。
+theorem not_rel_left_of_negative (f : ratRep → ratRep) (a m : ratRep)
+    (hwf : RespectsRel f) (hfa : ratLtRep (f a) ratZeroRep)
+    (hzero : ratRel (f m) ratZeroRep) : ¬ ratRel a m :=
+  sorry
+
+-- soko:hint 思路：若 m ~ b，则 f m ~ f b；由 0 < f b 得 0 < f m，再与 f m ≤ 0 夹出 0 < 0。
+-- soko:hint 目标形态：`0 < f b → f m ≤ 0 → ¬ m ~ b`。
+-- soko:hint 关键件：hwf · ratLtRep_congr_snd · ratLtRep_of_lt_le · ratLtRep_right · ratRel_refl。
+theorem not_rel_right_of_positive (f : ratRep → ratRep) (b m : ratRep)
+    (hwf : RespectsRel f) (hfb : ratLtRep ratZeroRep (f b))
+    (hle : ratLeRep (f m) ratZeroRep) : ¬ ratRel m b :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 非正点集的最大元是零点
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`f m ≤ 0` 分「等于零」与「严格小于零」两支。后一支把 m 看成严格负点集的最大元（严格负都非正），交给库里的 `no_greatest_negative_at`。
+-- soko:hint 目标形态：`HasGreatest 非正点集 m → m < b → ContinuousAt f m → f m ~ 0`。
+-- soko:hint 关键件：ratLeRep_eq_or_lt · no_greatest_negative_at · nonpositive_of_negative · hasGreatest_upper。
+theorem zero_of_greatest_nonpositive (f : ratRep → ratRep) (a b m : ratRep)
+    (hgreat : HasGreatest (NonpositivePoints f a b) m)
+    (hmb : ratLtRep m b) (hf : ContinuousAt f m) :
+    ratRel (f m) ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 介值定理：零点落在区间内部
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：见证取 m；区间成员来自最大元，a < m 由 `not_rel_left_of_negative` 排除左端点，m < b 直接是前提。
+-- soko:hint 目标形态：`∃ c, c ∈ [a,b] ∧ a < c ∧ c < b ∧ f c ~ 0`。
+-- soko:hint 关键件：Exists.intro · hasGreatest_upper · not_rel_left_of_negative · nonpositive_of_negative。
+theorem interior_of_zero (f : ratRep → ratRep) (a b m : ratRep)
+    (hwf : RespectsRel f)
+    (hfa : ratLtRep (f a) ratZeroRep)
+    (hgreat : HasGreatest (NonpositivePoints f a b) m)
+    (hzero : ratRel (f m) ratZeroRep)
+    (hmb : ratLtRep m b) :
+    ∃ (c : ratRep), InClosed a b c ∧ ratLtRep a c ∧ ratLtRep c b ∧
+      ratRel (f c) ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：先由 `not_rel_right_of_positive` 排除 m ~ b，得到 m < b；再用 `zero_of_greatest_nonpositive` 得零点；最后交给 `interior_of_zero`。
+-- soko:hint 目标形态：`连续 + f a < 0 < f b + 最大元 → ∃ 内部零点`。
+-- soko:hint 关键件：not_rel_right_of_positive · zero_of_greatest_nonpositive · interior_of_zero · hasGreatest_nonpositive_mem/value。
+theorem ivt_of_greatest_nonpositive (f : ratRep → ratRep) (a b m : ratRep)
+    (hcont : ∀ (x : ratRep), InClosed a b x → ContinuousAt f x)
+    (hwf : RespectsRel f)
+    (hfa : ratLtRep (f a) ratZeroRep)
+    (hfb : ratLtRep ratZeroRep (f b))
+    (hgreat : HasGreatest (NonpositivePoints f a b) m) :
+    ∃ (c : ratRep), InClosed a b c ∧ ratLtRep a c ∧ ratLtRep c b ∧
+      ratRel (f c) ratZeroRep :=
+  sorry

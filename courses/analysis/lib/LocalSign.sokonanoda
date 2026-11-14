@@ -1,0 +1,160 @@
+-- 课程库：连续函数的局部保号（单元133 的引擎）
+--
+-- 单元133 在画布上把「连续函数在一点附近不变号」立起来并判卷；介值定理
+-- 要把符号变化的边界逼到一个点上，靠的正是这条局部信息，所以按「引擎进库」
+-- 的惯例收进 L2，135 起的单元直接引用：
+--
+--   · `PositiveNear` —— 「f 在 a 附近为正」：有一个正半径，邻域里全取正值；
+--   · `positiveNear_iff` —— 定义与它的展开形式；
+--   · `close_neg_lt` —— `close x L eps` 的负侧是严格的（`L - x < eps`）；
+--   · `ratLtRep_congr_fst` / `ratLtRep_of_sub_pos` —— 严格序的换形；
+--   · `positiveNear_of_continuousAt` —— f a > 0 ⇒ 邻域里为正；
+--   · `negativeNear_of_continuousAt` —— f a < 0 ⇒ 邻域里为负。
+--
+-- 证明与单元133 的解答逐字同形（`ratLtRep_add_right` 已随 `lib/MaxOn`
+-- 进库，这里不再重抄）。边界：函数取 `ratRep → ratRep`，停在有理代表元层；
+-- 不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.Cauchy
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.RatGroup
+import lib.RatSub
+import lib.LimitAbs
+import lib.LimitOrder
+import lib.Cont
+import lib.MaxOn
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义：邻域里的正值
+-- ─────────────────────────────────────────────────────────────
+
+-- 「f 在 a 附近为正」= 有一个正半径，δ 邻域里的每个点都取正值。定义里
+-- 不出现 ε：ε 的角色已经被固定成 f a 本身，剩下的只是半径与全称量词。
+def PositiveNear (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), close x a delta → ratLtRep ratZeroRep (f x)
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义的展开形式
+-- ─────────────────────────────────────────────────────────────
+
+theorem positiveNear_iff (f : ratRep → ratRep) (a : ratRep) :
+    PositiveNear f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLtRep ratZeroRep (f x) :=
+  Iff.intro
+    (fun (h : PositiveNear f a) => h)
+    (fun (h : ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLtRep ratZeroRep (f x)) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 两条序的换形
+-- ─────────────────────────────────────────────────────────────
+
+-- `close x L eps` 的负侧是严格的：见证 `d` 满足 `L - x ≤ d < eps`。
+-- 正侧的严格版本可以直接从 `ratAbsRel_le` 得到，负侧要先过
+-- `ratAbsRel_neg_le` 与 `ratNegRep_sub` 的换形。
+theorem close_neg_lt (x L eps : ratRep) (h : close x L eps) :
+    ratLtRep (ratSubRep L x) eps :=
+  Exists.elim h
+    (fun (d : ratRep)
+        (hd : ratAbsRel (ratSubRep x L) d ∧ ratLtRep d eps) =>
+      ratLtRep_of_le_lt (ratSubRep L x) d eps
+        (ratLeRep_congr_gen
+          (ratNegRep (ratSubRep x L)) (ratSubRep L x) d d
+          (ratNegRep_sub x L) (ratRel_refl d)
+          (ratAbsRel_neg_le (ratSubRep x L) d (And.left hd)))
+        (And.right hd))
+
+-- 严格序只改写左端点：弱序沿 `ratRel` 搬运，不相等部分把等价关系
+-- 反着串一次。
+theorem ratLtRep_congr_fst (a b c : ratRep)
+    (h : ratLtRep b c) (hab : ratRel a b) : ratLtRep a c :=
+  And.intro
+    (ratLeRep_congr_gen b a c c (ratRel_symm a b hab) (ratRel_refl c)
+      (ratLtRep_le b c h))
+    (fun (hac : ratRel a c) =>
+      ratLtRep_right b c h (ratRel_trans_gen b a c (ratRel_symm a b hab) hac))
+
+-- `0 < x - y` 反过来读成 `y < x`：两边同加 `y`，左边用
+-- `(x - y) + y ~ x` 收回，右边用左零元收回。
+theorem ratLtRep_of_sub_pos (x y : ratRep)
+    (h : ratLtRep ratZeroRep (ratSubRep x y)) : ratLtRep y x :=
+  ratLtRep_congr_snd y (ratAddRep (ratSubRep x y) y) x
+    (ratLtRep_congr_fst
+      y (ratAddRep ratZeroRep y) (ratAddRep (ratSubRep x y) y)
+      (ratLtRep_add_right ratZeroRep (ratSubRep x y) y h)
+      (ratRel_symm (ratAddRep ratZeroRep y) y (ratAdd_zero_left y)))
+    (ratSubRep_add_self x y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 连续给出邻域里的正号
+-- ─────────────────────────────────────────────────────────────
+
+-- 取 ε = f a。`close_neg_lt` 给出 `f a - f x < f a`；两边加 f x 得
+-- `f a < f a + f x`，再用 `(f a + f x) - f a ~ f x` 把左端收回 f x。
+theorem positiveNear_of_continuousAt (f : ratRep → ratRep) (a : ratRep)
+    (hf : ContinuousAt f a) (h : ratLtRep ratZeroRep (f a)) :
+    PositiveNear f a :=
+  Exists.elim (hf (f a) h)
+    (fun (delta : ratRep)
+        (hd : ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → close (f x) (f a) (f a)) =>
+      Exists.intro delta
+        (And.intro (And.left hd)
+          (fun (x : ratRep) (hx : close x a delta) =>
+            ratLtRep_congr_snd ratZeroRep
+              (ratSubRep (ratAddRep (f a) (f x)) (f a)) (f x)
+              (ratLtRep_sub_pos (ratAddRep (f a) (f x)) (f a)
+                (ratLtRep_congr_fst
+                  (f a)
+                  (ratAddRep (ratSubRep (f a) (f x)) (f x))
+                  (ratAddRep (f a) (f x))
+                  (ratLtRep_add_right (ratSubRep (f a) (f x)) (f a) (f x)
+                    (close_neg_lt (f x) (f a) (f a) ((And.right hd) x hx)))
+                  (ratRel_symm (ratAddRep (ratSubRep (f a) (f x)) (f x))
+                    (f a) (ratSubRep_add_self (f a) (f x)))))
+              (ratAdd_sub_self (f a) (f x)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 连续给出邻域里的负号
+-- ─────────────────────────────────────────────────────────────
+
+-- 取 ε = -f a，它是正的。这次用正侧 `ratAbsRel_le`：`f x - f a < -f a`，
+-- 两边加 f a 后左端收回 f x，右端用逆元律收成 0。
+theorem negativeNear_of_continuousAt (f : ratRep → ratRep) (a : ratRep)
+    (hf : ContinuousAt f a) (h : ratLtRep (f a) ratZeroRep) :
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ratLtRep (f x) ratZeroRep :=
+  Exists.elim (hf (ratNegRep (f a)) (ratLtRep_pos_of_neg (f a) h))
+    (fun (delta : ratRep)
+        (hd : ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → close (f x) (f a) (ratNegRep (f a))) =>
+      Exists.intro delta
+        (And.intro (And.left hd)
+          (fun (x : ratRep) (hx : close x a delta) =>
+            ratLtRep_congr_snd (f x) (ratAddRep (ratNegRep (f a)) (f a))
+              ratZeroRep
+              (ratLtRep_congr_fst
+                (f x)
+                (ratAddRep (ratSubRep (f x) (f a)) (f a))
+                (ratAddRep (ratNegRep (f a)) (f a))
+                (ratLtRep_add_right (ratSubRep (f x) (f a)) (ratNegRep (f a)) (f a)
+                  (Exists.elim ((And.right hd) x hx)
+                    (fun (d : ratRep)
+                        (hd2 : ratAbsRel (ratSubRep (f x) (f a)) d ∧
+                          ratLtRep d (ratNegRep (f a))) =>
+                      ratLtRep_of_le_lt (ratSubRep (f x) (f a)) d
+                        (ratNegRep (f a))
+                        (ratAbsRel_le (ratSubRep (f x) (f a)) d (And.left hd2))
+                        (And.right hd2))))
+                (ratRel_symm (ratAddRep (ratSubRep (f x) (f a)) (f a))
+                  (f x) (ratSubRep_add_self (f x) (f a))))
+              (ratRel_trans_gen (ratAddRep (ratNegRep (f a)) (f a))
+                (ratAddRep (f a) (ratNegRep (f a))) ratZeroRep
+                (ratAdd_comm (ratNegRep (f a)) (f a))
+                (ratAdd_neg_gen (f a))))))

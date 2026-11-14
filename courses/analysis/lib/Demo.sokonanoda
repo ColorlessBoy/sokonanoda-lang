@@ -50,6 +50,8 @@ import lib.Cont
 import lib.ContAlgebra
 import lib.LocalBounded
 import lib.MaxOn
+import lib.LocalSign
+import lib.LastNegative
 import lib.Uniform
 import lib.UniformSeq
 
@@ -258,3 +260,16 @@ theorem demo_lib_not_attMax_id_open :
     ¬ AttainsMaxOn (fun (x : ratRep) => x)
       (fun (x : ratRep) => ratLtRep ratZeroRep x ∧ ratLtRep x ratOneRep) :=
   not_attMax_id_open
+
+theorem demo_lib_positiveNear_one (a : ratRep) :
+    PositiveNear (fun (_ : ratRep) => ratOneRep) a :=
+  positiveNear_of_continuousAt (fun (_ : ratRep) => ratOneRep) a
+    (continuousAt_const ratOneRep a) ratLtRep_zero_one
+
+theorem demo_lib_no_last_negative (a b : ratRep) :
+    ¬ (∃ (m : ratRep),
+      HasGreatest (NegativePoints (fun (_ : ratRep) => ratNegRep ratOneRep) a b) m ∧
+      ratLtRep m b) :=
+  no_last_negative (fun (_ : ratRep) => ratNegRep ratOneRep) a b
+    (fun (x : ratRep) (_hx : InClosed a b x) =>
+      continuousAt_const (ratNegRep ratOneRep) x)
