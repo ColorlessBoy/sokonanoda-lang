@@ -1,24 +1,14 @@
 -- 单元㊶ 取负与序：绝对值的对称性
 --
--- ㉛ 给了 ℚ 的取负 `ratNegRep`（交换分子序对，分母不动），㊴ 给了序对相等代表元的
--- 替换律 `ratLeRep_wd` / `ratLeRep_wd_snd`。本单元把「序」与「取负」接上：
+-- ㉛ 给了 ℚ 的取负 ratNegRep（交换分子序对，分母不动），㊴ 给了序对相等代表元的替换
+-- 律。现在把序与取负接上：x ≤ y 推出 -y ≤ -x（序被取负反转），以及 |x| 与 y 相等时
+-- |-x| 与 y 也相等（绝对值对取负不变）。这两条是下一单元「close 的对称性」的引擎：
+-- close x y eps 说的是 x-y 的绝对值小于 eps，要换成 close y x eps，就得把 y-x 看成
+-- -(x-y)，再用绝对值不变把负号去掉。
 --
---   x ≤ y  ⟹  -y ≤ -x          （㊶.2，序被取负反转）
---   |x| ~ y  ⟹  |-x| ~ y        （㊶.3，绝对值对取负不变）
---
--- 这两条是单元㊷「`close` 的对称性」的引擎：`close x y eps` 说的是
--- 「`x - y` 的绝对值小于 eps」，要换成 `close y x eps`，就要把
--- `y - x` 看成 `-(x - y)`，再用 ㊶.3 把绝对值里的负号去掉。
---
--- ㊶.1 先把反转律在**字面三元组** `qrep a b m` 上做掉：这时 `ratLeRep` 展开成
---
---   LeNat (a·(n+1) + d·(m+1)) (c·(m+1) + b·(n+1))
---
--- 而 `-y ≤ -x` 展开成 `LeNat (d·(m+1) + a·(n+1)) (b·(n+1) + c·(m+1))`，
--- 差别只是两个加法交换。㊶.2 再把字面形式搬到任意 `ratRep` 上。
---
--- 我们不引入新定义；`ratRel_symm` / `ratRel_trans_gen` / `ratNegRep_invol`
--- 的通用形式已收在 `lib/Cauchy`（它们分别是 ㉐ / ㉕ / ㉛ 已证明事实的包装）。
+-- 反转律先在字面三元组 qrep a b m 上做——这时两个不等式展开后只差几次加法交换；
+-- 再把字面形式搬到任意代表元上。通用引理（相等对称、传递、取负对合）已收在
+-- lib/Cauchy，这里直接引用。
 
 import lib.Cauchy
 
@@ -26,6 +16,7 @@ import lib.Cauchy
 -- ㊶.1 取负反转序（字面形式）
 -- ─────────────────────────────────────────────────────────────
 
+-- 先把反转律在字面三元组上做掉：两个不等式只差加法交换。
 -- soko:hint 思路：先用 `leRep_wd_pair` + `mulRep_den_form` 把 `h` 化成干净序对上的 `LeNat (a(n+1)+d(m+1)) (c(m+1)+b(n+1))`；再用两次 `add_comm` 把它变成 `LeNat (d(m+1)+a(n+1)) (b(n+1)+c(m+1))`（一次换左边、一次换右边）；最后用 `leRep_wd_pair` + `mulRep_den_form` 的对称把干净序对贴回 `mulRep … (den …)`。
 -- soko:hint 目标形态：`ratLeRep (qrep a b m) (qrep c d n) → ratLeRep (qrep d c n) (qrep b a m)`。
 -- soko:hint 关键件：mulRep_den_form · leRep_wd_pair · intRel_of_eq · add_comm · Eq.subst。
@@ -38,6 +29,7 @@ theorem ratLeRep_neg_lit (a b c d m n : Nat)
 -- ㊶.2 取负反转序（任意代表元）
 -- ─────────────────────────────────────────────────────────────
 
+-- 再把字面形式搬到任意代表元：先在展开类型上 match 到字面坐标。
 -- soko:hint 思路：`ratRep` 是 `Prod (Prod Nat Nat) Nat` 的**定义别名**，`match` 只认归纳类型本身 ⇒ 先在展开后的类型上写一个辅助定理，`match x`、`match y`，并把 `h` 作为 match **之后**引入的函数参数（写在 `fun (h : …) =>` 里，类型用字面三元组），否则 `h` 的类型不会随 match 改写。辅助定理的体就是 ㊶.1。
 -- soko:hint 目标形态：`ratLeRep x y → ratLeRep (ratNegRep y) (ratNegRep x)`。
 -- soko:hint 关键件：match（在 `Prod (Prod Nat Nat) Nat` 上）· ratLeRep_neg_lit · 定义性归约（`ratNegRep` 与 `ratRep` 别名）。
@@ -49,6 +41,7 @@ theorem ratLeRep_neg (x y : ratRep) (h : ratLeRep x y) :
 -- ㊶.3 绝对值对取负不变
 -- ─────────────────────────────────────────────────────────────
 
+-- 绝对值对取负不变：把两个分支都翻过去。
 -- soko:hint 思路：`ratAbsRel x y` 是两个分支的析取（`Or.elim`，参数顺序是 `(f) (g) (h)`）。`Or.inl`（0≤x 且 y~x）要落到第二分支：`0≤x` 经 ㊶.2 得 `-x≤0`；`y~x` 与 `x~-(-x)`（`ratNegRep_invol` 取对称）用 `ratRel_trans_gen` 串成 `y~-(-x)`。`Or.inr`（x≤0 且 y~-x）落到第一分支：`x≤0` 经 ㊶.2 得 `-x≤0`，第二个分量原样。
 -- soko:hint 目标形态：`ratAbsRel x y → ratAbsRel (ratNegRep x) y`。
 -- soko:hint 关键件：Or.elim · ratLeRep_neg · ratRel_trans_gen · ratRel_symm · ratNegRep_invol。
@@ -60,6 +53,7 @@ theorem ratAbsRel_neg (x y : ratRep) (h : ratAbsRel x y) :
 -- ㊶.4 具体：0 ≤ 1/2 推出 -1/2 ≤ 0
 -- ─────────────────────────────────────────────────────────────
 
+-- 具体算：0 ≤ 1/2 推出 -1/2 ≤ 0。
 -- soko:hint 思路：把 ㊶.2 用在 `x = 0`、`y = 1/2` 上；前提 `0 ≤ 1/2` 展开成 `LeNat 0 1`，用 `le_succ 0 0 (le_refl 0)`。`-0` 定义性等于 0。
 -- soko:hint 目标形态：`ratLeRep (ratNegRep (qrep 1 0 1)) ratZeroRep`。
 -- soko:hint 关键件：ratLeRep_neg · le_succ · le_refl。
@@ -71,6 +65,7 @@ theorem demo_neg_half_le_zero :
 -- ㊶.5 具体：|-1/2| ~ 1/2
 -- ─────────────────────────────────────────────────────────────
 
+-- 具体算：|-1/2| 与 1/2 相等。
 -- soko:hint 思路：先立 `|1/2| ~ 1/2`（第一分支：`0 ≤ 1/2` 与 `ratRel_refl`），再用 ㊶.3 把里面的 `1/2` 换成 `-1/2`。
 -- soko:hint 目标形态：`ratAbsRel (ratNegRep (qrep 1 0 1)) (qrep 1 0 1)`。
 -- soko:hint 关键件：ratAbsRel_neg · Or.inl · And.intro · le_succ · ratRel_refl。
