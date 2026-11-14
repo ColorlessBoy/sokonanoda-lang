@@ -1,0 +1,115 @@
+-- 单元126 函数极限与序列：顺序判据
+--
+-- 函数极限盯住 a 的一个邻域，序列只给出可数的无穷多个点。如果每一个走到
+-- a 的序列（各项不取 a）都被 f 送到 L，能不能反过来断定 f 在 a 处趋于 L？
+-- 这是函数极限的序列判据。其中从函数极限到序列极限的一半是直接的：δ 邻域
+-- 里的每个点都满足结论，序列迟早落进这个邻域。
+--
+-- 这一半把 ε-δ 的结论翻译成 ε-N，连续的序列刻画也由它给出。连续的定义不
+-- 排掉 a，所以不需要「各项不取 a」；函数极限排掉 a，所以那条前提要跟着
+-- 序列一起传下去，两个阈值取较大者。把结论用在恒等函数与零序列上，就是
+-- 一次具体核对。
+--
+-- 反方向需要从每个 ε 挑一个见证点，把挑出的点排成序列；课程库没有选择函数，
+-- 这一步留作边界。已经能说的是：只要找到一条走到 a 的序列而 f 的像不趋于 L，
+-- f 在 a 处就没有极限。
+--
+-- 边界：函数取 `ratRep → ratRep`，序列取 `Nat → ratRep`，两边都停在有理
+-- 代表元层。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Bounded
+import lib.Limit
+import lib.Tail
+import lib.RealEq
+import lib.LimAt
+import lib.Cont
+
+-- ─────────────────────────────────────────────────────────────
+-- 函数极限送到序列极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 给定 ε，函数极限给出 δ；序列极限把这个 δ 当自己的 ε，给出阈值 N；「各项
+-- 不取 a」给出阈值 M。取 K 同时超过 N 与 M，第 n 项就同时落进 δ 邻域并且
+-- 不等于 a，函数极限的结论随即落到 `f (x n)` 上。
+--
+-- soko:hint 思路：把 ε 交给函数极限得到 δ；把 δ 交给序列极限得到 N；再把「终究不等于 a」的阈值 M 并进来，K = max N M 之后逐项落进 δ 邻域。
+-- soko:hint 目标形态：`Converges (fun n => f (x n)) L`。
+-- soko:hint 关键件：TendsToAt 的展开 · leNat_max · leNat_trans · Exists.elim。
+theorem converges_apply_of_tendsToAt (f : ratRep → ratRep) (a L : ratRep)
+    (x : Seq) (hf : TendsToAt f a L) (hx : Converges x a)
+    (hne : Eventually (fun (n : Nat) => ¬ ratRel (x n) a)) :
+    Converges (fun (n : Nat) => f (x n)) L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 换一条终究相同的序列
+-- ─────────────────────────────────────────────────────────────
+
+-- 序列换成从某项起逐项相等的 y。收敛性由 `converges_congr_tail` 搬过去；
+-- 「各项不取 a」要重新论证：x n 与 y n 相等，x n 又不是 a，所以 y n 也不是 a。
+--
+-- soko:hint 思路：先用 `converges_congr_tail` 把序列极限从 x 搬到 y；再把「x n ~ y n」与「x n 不是 a」并成同一个阈值，推出 y n 不是 a。
+-- soko:hint 目标形态：`Converges (fun n => f (y n)) L`。
+-- soko:hint 关键件：converges_congr_tail · eventually_and · eventually_mono · ratRel_trans_gen。
+theorem converges_apply_of_tail (f : ratRep → ratRep) (a L : ratRep)
+    (x y : Seq) (hf : TendsToAt f a L) (hx : Converges x a)
+    (ht : TailEq x y) (hne : Eventually (fun (n : Nat) => ¬ ratRel (x n) a)) :
+    Converges (fun (n : Nat) => f (y n)) L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 连续与序列
+-- ─────────────────────────────────────────────────────────────
+
+-- 连续的定义对 δ 邻域里的每个点都给结论，a 自己也在邻域里，所以「各项不取
+-- a」用不上。给定 ε 取连续的 δ，再把 δ 当序列极限的 ε。
+--
+-- soko:hint 思路：连续给出的 δ 邻域包含 a 自己，所以「x n 不是 a」用不上；ε 折半也不需要，直接把 δ 当序列极限的 ε。
+-- soko:hint 目标形态：`Converges (fun n => f (x n)) (f a)`。
+-- soko:hint 关键件：ContinuousAt 的展开 · Exists.elim · And.left / And.right。
+theorem converges_apply_of_continuousAt (f : ratRep → ratRep) (a : ratRep)
+    (x : Seq) (hf : ContinuousAt f a) (hx : Converges x a) :
+    Converges (fun (n : Nat) => f (x n)) (f a) :=
+  sorry
+
+-- 全局连续在每一点都是局部连续，逐点用上一条。
+--
+-- soko:hint 思路：在 a 处用 `hf a` 得到局部连续，再交给上一条。
+-- soko:hint 目标形态：`Converges (fun n => f (x n)) (f a)`。
+-- soko:hint 关键件：converges_apply_of_continuousAt · 全称量词。
+theorem converges_apply_of_continuous (f : ratRep → ratRep) (a : ratRep)
+    (x : Seq) (hf : Continuous f) (hx : Converges x a) :
+    Converges (fun (n : Nat) => f (x n)) (f a) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 用序列否定函数极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 主定理的逆否形式：若序列走到 a、各项不取 a，而函数值不趋于 L，那么 f 在
+-- a 处不可能以 L 为极限。
+--
+-- soko:hint 思路：反证。假设函数极限存在，主定理把序列的像送到 L，与「像不收敛」矛盾。
+-- soko:hint 目标形态：`¬ TendsToAt f a L`。
+-- soko:hint 关键件：converges_apply_of_tendsToAt · Not.intro。
+theorem not_tendsToAt_of_seq (f : ratRep → ratRep) (a L : ratRep)
+    (x : Seq) (hx : Converges x a)
+    (hne : Eventually (fun (n : Nat) => ¬ ratRel (x n) a))
+    (hbad : ¬ Converges (fun (n : Nat) => f (x n)) L) :
+    ¬ TendsToAt f a L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 具体核对：恒等函数与零序列
+-- ─────────────────────────────────────────────────────────────
+
+-- 恒等函数在 0 处连续，零序列收敛到 0；复合之后仍然是零序列，极限还是 0。
+--
+-- soko:hint 思路：恒等函数在 0 处连续，零序列收敛到 0；复合后的序列仍是零序列。
+-- soko:hint 目标形态：`Converges (fun n => zeroSeq n) ratZeroRep`。
+-- soko:hint 关键件：continuousAt_id · converges_const · converges_apply_of_continuousAt。
+theorem demo_converges_apply_id :
+    Converges (fun (n : Nat) => zeroSeq n) ratZeroRep :=
+  sorry

@@ -1,7 +1,7 @@
 -- 课程库：函数在一点的 ε-δ 极限
 --
 -- 单元124 在画布里立了 `TendsToAt` 并判卷；这里收进库，125 起的单元直接
--- 引用，不再重抄。只放定义与展开律，具体的极限例子留在单元里。
+-- 引用，不再重抄。除定义与展开律外，常函数与恒等函数的极限也一并收进来。
 --
 -- 边界：函数取 `ratRep → ratRep`，停在有理代表元层；ℝ 层函数的翻译
 -- 留给后续单元。不新增公理，也不碰 kernel/front。
@@ -33,3 +33,23 @@ theorem tendsToAt_iff (f : ratRep → ratRep) (a L : ratRep) :
           ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
             close (f x) L eps) => h)
 
+
+-- ─────────────────────────────────────────────────────────────
+-- 常函数与恒等函数的极限
+-- ─────────────────────────────────────────────────────────────
+
+theorem tendsToAt_const (c a : ratRep) :
+    TendsToAt (fun (_ : ratRep) => c) a c :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro ratOneRep
+      (And.intro ratLtRep_zero_one
+        (fun (x : ratRep) (_hx : close x a ratOneRep)
+            (_hne : ¬ ratRel x a) =>
+          close_of_ratRel c c (ratRel_refl c) eps heps))
+
+theorem tendsToAt_id (a : ratRep) :
+    TendsToAt (fun (x : ratRep) => x) a a :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro eps
+      (And.intro heps
+        (fun (x : ratRep) (hx : close x a eps) (_hne : ¬ ratRel x a) => hx))

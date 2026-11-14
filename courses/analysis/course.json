@@ -969,6 +969,18 @@
               "title": "单元125 连续：极限值就是函数值",
               "title_en": "Unit 125 — Continuity: The Limit Is the Function Value",
               "unit": 125
+            },
+            {
+              "file": "units/III.6/unit126-sequential-criterion.sokonanoda",
+              "title": "单元126 函数极限与序列：顺序判据",
+              "title_en": "Unit 126 — Function Limits and Sequences: The Sequential Criterion",
+              "unit": 126
+            },
+            {
+              "file": "units/III.6/unit127-limit-algebra.sokonanoda",
+              "title": "单元127 函数极限的代数：和、差与取负",
+              "title_en": "Unit 127 — Algebra of Function Limits: Sums, Differences, Negation",
+              "unit": 127
             }
           ]
         }
