@@ -1,20 +1,14 @@
 -- 单元㊲ 序与正分母：乘法、消去与配对搬运
 --
--- 这一单元是 **序的传递性** 的引擎。三个零件：
+-- 这一单元是序的传递性的引擎。要用交叉相乘比较两个有理数，第一步是把它们的代表元
+-- 换到公分母上——也就是「乘一个正分母」这个动作。这里备齐三件：mulRep p (den k)
+-- 的规范形（两个坐标各乘 k+1，只差两处零头）；乘正分母保序（p ≤ q 推出
+-- p·(k+1) ≤ q·(k+1)）；以及反方向的消去（p·(k+1) ≤ q·(k+1) 推出 p ≤ q）。
+-- 另加两条搬运律：mul_den_swap_nat 把 (a·m)·k 换成 (a·k)·m，
+-- prod_mk_congr 把逐坐标相等装成序对相等。
 --
---   ① `mulRep_den_form`：`mulRep p (den k)` 的两个坐标就是
---      `(p₁·(k+1), p₂·(k+1))`（只差两处 `+0` / `0+`）；
---   ② `leRep_mul_den_right`：`p ≤ q ⇒ p·(k+1) ≤ q·(k+1)`；
---   ③ `leRep_cancel_den`：`p·(k+1) ≤ q·(k+1) ⇒ p ≤ q`。
---
--- ②③ 合起来说明「乘一个正分母」不改变整数序 —— 这正是把两个有理数的
--- 代表元换到公分母时要用的。另加两条搬运律：`mul_den_swap_nat`
--- （`(a·m)·k = (a·k)·m`）与 `prod_mk_congr`（序对逐坐标相等）。
---
--- 证明全部停在 ℕ 的乘法和 `LeNat` 上；`leNat_mul_right` / `leNat_mul_cancel`
--- 来自 `lib/Rat`（单元㉞ 时补的通用引理）。序的传递性本身留到下一单元。
---
--- 这里自带定义与前序地基（本单元自备）。
+-- 证明全部停在 ℕ 的乘法与 LeNat 上；leNat_mul_right 与 leNat_mul_cancel 来自
+-- lib/Rat（前面补过的通用引理）。序的传递性本身留给下一单元。
 
 import lib.Rat
 
@@ -26,6 +20,7 @@ def ratLeRep (x y : ratRep) : Prop :=
 -- ㊲.1 乘正分母后的规范形
 -- ─────────────────────────────────────────────────────────────
 
+-- 先算乘正分母后的规范形：两个坐标各乘 k+1，只差两处零头。
 -- soko:hint 思路：`mulRep p (den k)` 展开成 `(p₁·(k+1) + p₂·0, p₁·0 + p₂·(k+1))`；第一坐标的 `+0` 用 `add_zero`、第二坐标的 `0+` 用 `zero_add` 消掉。两个坐标各用一次 `@congrArg`。
 -- soko:hint 目标形态：`mulRep p (den k) = (p₁·(k+1), p₂·(k+1))`。
 -- soko:hint 关键件：add_zero · zero_add · congrArg · Eq.trans。
@@ -38,6 +33,7 @@ theorem mulRep_den_form (p : Prod Nat Nat) (k : Nat) :
 
 -- ─────────────────────────────────────────────────────────────
 
+-- 再证两条正分母可以换位。
 -- soko:hint 思路：两边都用 `myMul_assoc` 拆成 `a·(m·k)` 与 `a·(k·m)`，中间用 `myMul_comm` 交换括号里的两个因子。
 -- soko:hint 目标形态：`(a·(m+1))·(k+1) = (a·(k+1))·(m+1)`。
 -- soko:hint 关键件：myMul_assoc（两次，其中一次取对称）· myMul_comm · congrArg。
@@ -48,6 +44,7 @@ theorem mul_den_swap_nat (a m k : Nat) :
 
 -- ─────────────────────────────────────────────────────────────
 
+-- 逐坐标相等可以装成一个序对相等。
 -- soko:hint 思路：先对第二坐标 `Eq.subst`（motive 固定第一坐标），再对第一坐标 `Eq.subst`。
 -- soko:hint 目标形态：`a = a' → b = b' → (a,b) = (a',b')`。
 -- soko:hint 关键件：Eq.subst（两次）· Eq.refl。
@@ -57,6 +54,7 @@ theorem prod_mk_congr (a a' b b' : Nat) (ha : a = a') (hb : b = b') :
 
 -- ─────────────────────────────────────────────────────────────
 
+-- 乘正分母保序：把两边换成规范形后比较。
 -- soko:hint 思路：先用 ㊲.1 把两边的 `mulRep … (den k)` 换成规范形，再用 `leRep_wd_pair` 把目标搬过去；规范形上的 `LeNat` 用 `leNat_mul_right` 乘开，再用 `mul_add_right` 分配到两个坐标。
 -- soko:hint 目标形态：`leRep p q → leRep (mulRep p (den k)) (mulRep q (den k))`。
 -- soko:hint 关键件：mulRep_den_form · leRep_wd_pair · intRel_of_eq · leNat_mul_right · mul_add_right。
@@ -67,6 +65,7 @@ theorem leRep_mul_den_right (p q : Prod Nat Nat) (k : Nat)
 
 -- ─────────────────────────────────────────────────────────────
 
+-- 反方向消去：规范形上的公共正因子可以约掉。
 -- soko:hint 思路：与 ㊲.4 相反：先把假设搬到 ㊲.1 的规范形，用 `mul_add_right` 的对称把两个和收成 `(p₁+p₂)·(k+1)`，再用 `leNat_mul_cancel` 消去正因子。
 -- soko:hint 目标形态：`leRep (mulRep p (den k)) (mulRep q (den k)) → leRep p q`。
 -- soko:hint 关键件：leRep_wd_pair · mul_add_right（取对称）· leNat_mul_cancel。
