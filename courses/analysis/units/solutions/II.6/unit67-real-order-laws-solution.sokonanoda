@@ -1,36 +1,19 @@
--- 单元67 实数的序：自反、传递、反对称（解答）
+-- 单元67 实数的序：自反、传递、反对称
 --
--- 单元66 已经把代表元层的序下降到实数上：
+-- 上一单元已经把代表元层的序下降到实数上：realLe (Real.mk x) (Real.mk y) 当且仅当
+-- realLeRep x y，其中 realLeRep 仍带两个 Cauchy 守卫。现在把 realLe 收成偏序，
+-- 三条公理各有各的难点。
 --
---   realLe (Real.mk x) (Real.mk y)  ↔  realLeRep x y
+-- 自反只在「有 Cauchy 代表元」的实数上成立：Real 是商，商里的非 Cauchy「杂点」让
+-- realLe 没有输出，所以自反写成代表元形式 realLe (mk x) (mk x) 并假设 Cauchy x，
+-- 不把「每个 Real 都是 Cauchy 类」写成公理。传递对任意三个实数成立：两个前提本身
+-- 就是 realLe，经 ι 规则回到代表元层后 Cauchy 守卫已由前提付清，接力棒交给序的
+-- 传递性。反对称是三条里唯一需要新证明的：x ≤ y 与 y ≤ x 只给出每个 eps 下的近似
+-- 界，要得到 x 与 y 相等，必须把两个界折半，再让 |x n - y n| 小于任意 eps；折半之后
+-- 还需要 eps/2 < eps 这条严格不等式（半数只给了 0 < eps/2），用加法消去补上。
 --
--- 其中 `realLeRep x y` 仍带两个 `Cauchy` 守卫。本单元把 `realLe` 收成
--- **偏序**，三条公理各有各的难点：
---
---   · **自反**只在「有 Cauchy 代表元」的实数上成立：`Real` 是商，商里的
---     非 Cauchy「杂点」让 `realLe` 没有输出。所以自反写成代表元形式
---     `realLe (mk x) (mk x)`，假设 `Cauchy x`——不把「每个 Real 都是
---     Cauchy 类」写成公理。
---   · **传递**对任意三个实数成立：两个前提本身就是 `realLe`，经 66 的
---     ι 规则回到代表元层后，`Cauchy` 守卫已经由前提付清；接力棒交给
---     65.2 的 `realLeRep_trans`。
---   · **反对称**是真正的数学内容：`x ≤ y` 与 `y ≤ x` 只给出
---       `x n - y n ≤ eps` 与 `y n - x n ≤ eps`，
---     要得到 `realRel x y` 的第三分量（`close`），必须把两个界折半，
---     再用绝对值的两分支把 `|x n - y n|` 夹到 `eps` 以下。折半之后
---     还需要 `eps/2 < eps` 这条**严格**不等式（52 只给了 `0 < eps/2`），
---     我们用加法消去补上（67.0）。
---
---   · 67.0 `ratHalf_lt_self` —— `0 < eps ⇒ eps/2 < eps`；
---   · 67.1 `ratAbsRel_lt_of_bounds` —— 两侧界 `< eps` ⇒ 绝对值 `< eps`；
---   · 67.2 `realLe_refl_mk` —— 代表元层的自反；
---   · 67.3 `realLe_trans` —— 传递；
---   · 67.4 `realLe_antisymm_mk` —— 代表元层的反对称（给出 `realRel`）；
---   · 67.5 `realLe_antisymm` —— 商上的反对称；
---   · 67.6 常零序列上的具体例。
---
--- 全程只用已证明的库引理（64/65 的序、52/53 的半数、56 的加法消去），
--- 不新增信任，也不碰 kernel/front。
+-- 先证 eps/2 < eps 与「两侧界推出绝对值界」，再依次证自反、传递、反对称（先代表元
+-- 层、再商上），最后在常零序列上落一个具体例。全程只用已证明的库引理。
 
 import lib.RealOrderLift
 import lib.RatAbsOrder
