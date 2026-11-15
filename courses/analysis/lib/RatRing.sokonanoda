@@ -1,0 +1,297 @@
+-- 课程库：乘法的零元、单位元与交换律（III.7 的代数准备）
+--
+-- 到 III.6 收口为止，ℚ 的加法群与序已经齐了，乘法却只用到「良定义」与
+-- 几条具体计算。差商要把增量与斜率相乘，乘积法则还要把两个增量相乘，
+-- 于是乘法必须先在代表元层开口说话。本模块收进三条最基础的法律：
+--
+--   · `ratMul_zero_right` / `ratMul_zero_left` —— 乘零得零；
+--   · `ratMul_one_right` / `ratMul_one_left` —— 乘一不变；
+--   · `ratMul_comm` —— 乘法交换。
+--
+-- 证明全部停在代表元层：把两个有理数写成 `qrep a b m`，`ratMulRep_mk`
+-- 给出乘法的代表元形状，`prod_mk_congr` 把分子两格化成同一个序对，
+-- `ratDenRep` 的加零律把分母收回去。商层没有新的信任，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatOrder
+import lib.RatSub
+import lib.RatGroup
+import lib.Bounded
+import lib.Cauchy
+
+-- ─────────────────────────────────────────────────────────────
+-- 乘法交换
+-- ─────────────────────────────────────────────────────────────
+
+-- 两边化成 `qrep` 后，差别只有两处：分子的两个因子换了位置，分母字段
+-- 也换了位置。前者用整数层的 `mulRep_comm`，后者用 `ratDenRep_comm`；
+-- 两次改写把目标逼成自反。
+
+theorem ratMul_comm_aux (x y : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratMulRep x y) (ratMulRep y x) :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match y with
+    | prod_mk (prod_mk c d) n =>
+      @Eq.subst.{1} (Prod Nat Nat)
+        (fun (r : Prod Nat Nat) =>
+          intRel r
+            (mulRep (mulRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat a b))
+              (den (ratDenRep m n))))
+        (mulRep (mulRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat a b))
+          (den (ratDenRep m n)))
+        (mulRep (mulRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+          (den (ratDenRep n m)))
+        (@Eq.symm.{1} (Prod Nat Nat)
+          (mulRep (mulRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+            (den (ratDenRep n m)))
+          (mulRep (mulRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat a b))
+            (den (ratDenRep m n)))
+          (@Eq.trans.{1} (Prod Nat Nat)
+            (mulRep (mulRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+              (den (ratDenRep n m)))
+            (mulRep (mulRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat a b))
+              (den (ratDenRep n m)))
+            (mulRep (mulRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat a b))
+              (den (ratDenRep m n)))
+            (@congrArg.{1} (Prod Nat Nat) (Prod Nat Nat)
+              (mulRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+              (mulRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat a b))
+              (fun (r : Prod Nat Nat) => mulRep r (den (ratDenRep n m)))
+              (mulRep_comm a b c d))
+            (@congrArg.{1} Nat (Prod Nat Nat)
+              (ratDenRep n m)
+              (ratDenRep m n)
+              (fun (D : Nat) =>
+                mulRep (mulRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat a b)) (den D))
+              (ratDenRep_comm n m))))
+        (intRel_refl
+          (mulRep (mulRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat a b))
+            (den (ratDenRep m n))))
+
+
+theorem ratMul_comm (x y : ratRep) :
+    ratRel (ratMulRep x y) (ratMulRep y x) :=
+  ratMul_comm_aux x y
+
+-- ─────────────────────────────────────────────────────────────
+-- 乘一：分子的两格
+-- ─────────────────────────────────────────────────────────────
+
+-- (a,b)/(m+1) * 1 的分子第一格是 `a·1 + b·0`。`myMul a 1` 展开成
+-- `a + a·0`，`a·0` 是零，再加零不变；第二格 `a·0 + b·1` 对称地收成 `b`。
+
+theorem ratMul_one_num_fst (a b : Nat) :
+    Nat.add (myMul a (Nat.succ Nat.zero)) (myMul b Nat.zero) = a :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul b Nat.zero))
+    (Nat.add (Nat.add a Nat.zero) Nat.zero)
+    a
+    (add_congr
+      (@Eq.trans.{1} Nat
+        (myMul a (Nat.succ Nat.zero))
+        (Nat.add a Nat.zero)
+        (Nat.add a Nat.zero)
+        (@Eq.trans.{1} Nat
+          (myMul a (Nat.succ Nat.zero))
+          (Nat.add a (myMul a Nat.zero))
+          (Nat.add a Nat.zero)
+          (myMul_succ a Nat.zero)
+          (congrArg.{1} (fun (z : Nat) => Nat.add a z) (myMul_zero a)))
+        (@Eq.refl.{1} Nat (Nat.add a Nat.zero)))
+      (myMul_zero b))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add a Nat.zero) Nat.zero)
+      (Nat.add a Nat.zero)
+      a
+      (add_zero (Nat.add a Nat.zero))
+      (add_zero a))
+
+theorem ratMul_one_num_snd (a b : Nat) :
+    Nat.add (myMul a Nat.zero) (myMul b (Nat.succ Nat.zero)) = b :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul a Nat.zero) (myMul b (Nat.succ Nat.zero)))
+    (Nat.add Nat.zero (Nat.add b Nat.zero))
+    b
+    (add_congr
+      (myMul_zero a)
+      (@Eq.trans.{1} Nat
+        (myMul b (Nat.succ Nat.zero))
+        (Nat.add b (myMul b Nat.zero))
+        (Nat.add b Nat.zero)
+        (myMul_succ b Nat.zero)
+        (congrArg.{1} (fun (z : Nat) => Nat.add b z) (myMul_zero b))))
+    (@Eq.trans.{1} Nat
+      (Nat.add Nat.zero (Nat.add b Nat.zero))
+      (Nat.add b Nat.zero)
+      b
+      (zero_add (Nat.add b Nat.zero))
+      (add_zero b))
+
+-- ─────────────────────────────────────────────────────────────
+-- 乘一：整条代表元等式
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratMul_one_eq (a b m : Nat) :
+    ratMulRep (qrep a b m) ratOneRep = qrep a b m :=
+  @Eq.trans.{1} ratRep
+    (ratMulRep (qrep a b m) ratOneRep)
+    (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) (ratDenRep m Nat.zero))
+    (qrep a b m)
+    (@Eq.trans.{1} ratRep
+      (ratMulRep (qrep a b m) ratOneRep)
+      (qrep (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul b Nat.zero))
+            (Nat.add (myMul a Nat.zero) (myMul b (Nat.succ Nat.zero)))
+            (ratDenRep m Nat.zero))
+      (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) (ratDenRep m Nat.zero))
+      (ratMulRep_mk a b (Nat.succ Nat.zero) Nat.zero m Nat.zero)
+      (@congrArg.{1} (Prod Nat Nat) ratRep
+        (@prod_mk Nat Nat
+          (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul b Nat.zero))
+          (Nat.add (myMul a Nat.zero) (myMul b (Nat.succ Nat.zero))))
+        (@prod_mk Nat Nat a b)
+        (fun (P : Prod Nat Nat) =>
+          @prod_mk (Prod Nat Nat) Nat P (ratDenRep m Nat.zero))
+        (prod_mk_congr
+          (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul b Nat.zero)) a
+          (Nat.add (myMul a Nat.zero) (myMul b (Nat.succ Nat.zero))) b
+          (ratMul_one_num_fst a b) (ratMul_one_num_snd a b))))
+    (@congrArg.{1} Nat ratRep
+      (ratDenRep m Nat.zero) m
+      (fun (Z : Nat) => @prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) Z)
+      (ratAdd_zero_den m))
+
+-- soko:hint 思路：把 `x` 拆成 `qrep a b m`；`ratMul_one_eq` 把 `x * 1` 化成 `qrep a b m`，再用 `Eq.subst` 沿这条等式把 `ratRel (qrep a b m) (qrep a b m)` 搬回目标类型。
+-- soko:hint 目标形态：`ratRel (ratMulRep x ratOneRep) x`。
+-- soko:hint 关键件：ratMul_one_eq · Eq.symm · Eq.subst · ratRel_refl。
+theorem ratMul_one_aux (x : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratMulRep x ratOneRep) x :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    @Eq.subst.{1} ratRep
+      (fun (y : ratRep) => ratRel y (qrep a b m))
+      (qrep a b m)
+      (ratMulRep (qrep a b m) ratOneRep)
+      (@Eq.symm.{1} ratRep
+        (ratMulRep (qrep a b m) ratOneRep)
+        (qrep a b m)
+        (ratMul_one_eq a b m))
+      (ratRel_refl (qrep a b m))
+
+theorem ratMul_one_right (x : ratRep) :
+    ratRel (ratMulRep x ratOneRep) x :=
+  ratMul_one_aux x
+
+theorem ratMul_one_left (x : ratRep) :
+    ratRel (ratMulRep ratOneRep x) x :=
+  ratRel_trans_gen (ratMulRep ratOneRep x) (ratMulRep x ratOneRep) x
+    (ratMul_comm ratOneRep x) (ratMul_one_right x)
+
+-- ─────────────────────────────────────────────────────────────
+-- 乘零：分子的两格都归零
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratMul_zero_num (a b : Nat) :
+    Nat.add (myMul a Nat.zero) (myMul b Nat.zero) = Nat.zero :=
+  add_congr (myMul_zero a) (myMul_zero b)
+
+theorem ratMul_zero_eq (a b m : Nat) :
+    ratMulRep (qrep a b m) ratZeroRep = qrep Nat.zero Nat.zero m :=
+  @Eq.trans.{1} ratRep
+    (ratMulRep (qrep a b m) ratZeroRep)
+    (qrep (Nat.add (myMul a Nat.zero) (myMul b Nat.zero))
+          (Nat.add (myMul a Nat.zero) (myMul b Nat.zero))
+          (ratDenRep m Nat.zero))
+    (qrep Nat.zero Nat.zero m)
+    (ratMulRep_mk a b Nat.zero Nat.zero m Nat.zero)
+    (@Eq.trans.{1} ratRep
+      (qrep (Nat.add (myMul a Nat.zero) (myMul b Nat.zero))
+            (Nat.add (myMul a Nat.zero) (myMul b Nat.zero))
+            (ratDenRep m Nat.zero))
+      (qrep Nat.zero Nat.zero (ratDenRep m Nat.zero))
+      (qrep Nat.zero Nat.zero m)
+      (@congrArg.{1} (Prod Nat Nat) ratRep
+        (@prod_mk Nat Nat
+          (Nat.add (myMul a Nat.zero) (myMul b Nat.zero))
+          (Nat.add (myMul a Nat.zero) (myMul b Nat.zero)))
+        (@prod_mk Nat Nat Nat.zero Nat.zero)
+        (fun (P : Prod Nat Nat) =>
+          @prod_mk (Prod Nat Nat) Nat P (ratDenRep m Nat.zero))
+        (prod_mk_congr
+          (Nat.add (myMul a Nat.zero) (myMul b Nat.zero)) Nat.zero
+          (Nat.add (myMul a Nat.zero) (myMul b Nat.zero)) Nat.zero
+          (ratMul_zero_num a b) (ratMul_zero_num a b)))
+      (@congrArg.{1} Nat ratRep
+        (ratDenRep m Nat.zero) m
+        (fun (Z : Nat) =>
+          @prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat Nat.zero Nat.zero) Z)
+        (ratAdd_zero_den m)))
+
+-- 两个零分母的 `qrep` 只差分母字段，`ratRel` 不看它：两边的整数代表元
+-- 都是 `(0,0)`。先把 `(0,0)·(m+1)` 化简成 `(0,0)`，`ratRel` 就退化成自反。
+
+theorem ratMulRep_zero_den (m : Nat) :
+    mulRep (@prod_mk Nat Nat Nat.zero Nat.zero) (den m) =
+      @prod_mk Nat Nat Nat.zero Nat.zero :=
+  prod_mk_congr
+    (Nat.add (myMul Nat.zero (Nat.succ m)) (myMul Nat.zero Nat.zero)) Nat.zero
+    (Nat.add (myMul Nat.zero Nat.zero) (myMul Nat.zero (Nat.succ m))) Nat.zero
+    (add_congr (zero_mul (Nat.succ m)) (zero_mul Nat.zero))
+    (add_congr (zero_mul Nat.zero) (zero_mul (Nat.succ m)))
+
+theorem ratRel_zero_qrep (m : Nat) :
+    ratRel (qrep Nat.zero Nat.zero m) ratZeroRep :=
+  @Eq.subst.{1} (Prod Nat Nat)
+    (fun (y : Prod Nat Nat) =>
+      intRel
+        (mulRep (@prod_mk Nat Nat Nat.zero Nat.zero) (den Nat.zero))
+        y)
+    (@prod_mk Nat Nat Nat.zero Nat.zero)
+    (mulRep (@prod_mk Nat Nat Nat.zero Nat.zero) (den m))
+    (@Eq.symm.{1} (Prod Nat Nat)
+      (mulRep (@prod_mk Nat Nat Nat.zero Nat.zero) (den m))
+      (@prod_mk Nat Nat Nat.zero Nat.zero)
+      (ratMulRep_zero_den m))
+    (intRel_refl (@prod_mk Nat Nat Nat.zero Nat.zero))
+
+-- soko:hint 思路：把 `x` 拆成 `qrep a b m`；`ratMul_zero_eq` 把 `x * 0` 化成 `qrep 0 0 m`，`ratRel_zero_qrep` 再把它接到 `0` 上，最后沿等式把结论搬回。
+-- soko:hint 目标形态：`ratRel (ratMulRep x ratZeroRep) ratZeroRep`。
+-- soko:hint 关键件：ratMul_zero_eq · ratRel_zero_qrep · Eq.subst。
+theorem ratMul_zero_aux (x : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratMulRep x ratZeroRep) ratZeroRep :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    @Eq.subst.{1} ratRep
+      (fun (y : ratRep) => ratRel y ratZeroRep)
+      (qrep Nat.zero Nat.zero m)
+      (ratMulRep (qrep a b m) ratZeroRep)
+      (@Eq.symm.{1} ratRep
+        (ratMulRep (qrep a b m) ratZeroRep)
+        (qrep Nat.zero Nat.zero m)
+        (ratMul_zero_eq a b m))
+      (ratRel_zero_qrep m)
+
+theorem ratMul_zero_right (x : ratRep) :
+    ratRel (ratMulRep x ratZeroRep) ratZeroRep :=
+  ratMul_zero_aux x
+
+theorem ratMul_zero_left (x : ratRep) :
+    ratRel (ratMulRep ratZeroRep x) ratZeroRep :=
+  ratRel_trans_gen (ratMulRep ratZeroRep x) (ratMulRep x ratZeroRep)
+    ratZeroRep (ratMul_comm ratZeroRep x) (ratMul_zero_right x)
+
+-- ─────────────────────────────────────────────────────────────
+-- 加减法的同余：差商的分子要沿函数的相等搬运
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratSubRep_self (x : ratRep) :
+    ratRel (ratSubRep x x) ratZeroRep :=
+  ratAdd_neg_gen x
+
+theorem ratSubRep_wd (x x' y y' : ratRep)
+    (hx : ratRel x x') (hy : ratRel y y') :
+    ratRel (ratSubRep x y) (ratSubRep x' y') :=
+  ratRel_trans_gen (ratSubRep x y) (ratAddRep x (ratNegRep y')) (ratSubRep x' y')
+    (ratAddRep_wd_snd_gen x (ratNegRep y) (ratNegRep y') (ratNegRep_wd y y' hy))
+    (ratAddRep_wd_gen x x' (ratNegRep y') hx)

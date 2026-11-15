@@ -1055,6 +1055,23 @@
               "unit": 139
             }
           ]
+        },
+        {
+          "id": "III.7",
+          "title": "微分",
+          "prereqs": ["III.6"],
+          "tags": ["derivative", "differentiation"],
+          "quota": {
+            "exercises": 40
+          },
+          "units": [
+            {
+              "file": "units/III.7/unit140-derivative-definition.sokonanoda",
+              "title": "单元140 导数的定义：斜率函数与它的极限",
+              "title_en": "Unit 140 — The Derivative: Slope Functions and Their Limits",
+              "unit": 140
+            }
+          ]
         }
       ]
     }

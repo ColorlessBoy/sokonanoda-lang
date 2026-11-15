@@ -57,6 +57,8 @@ import lib.UniformSeq
 import lib.LimInfinity
 import lib.LimInfinityAlgebra
 import lib.Monotone
+import lib.RatRing
+import lib.Deriv
 
 theorem demo_lib_closure : True := True.intro
 
@@ -303,3 +305,15 @@ theorem demo_lib_strict_injective (x y : ratRep)
     (fun (u v : ratRep) (huv : ratLtRep u v) =>
       ratLtRep_add_right u v ratOneRep huv)
     x y h
+
+theorem demo_lib_deriv_id (a : ratRep) :
+    HasDerivAt (fun (x : ratRep) => x) a ratOneRep :=
+  hasDerivAt_id a
+
+theorem demo_lib_deriv_const (c a : ratRep) :
+    HasDerivAt (fun (_ : ratRep) => c) a ratZeroRep :=
+  hasDerivAt_const c a
+
+theorem demo_lib_mul_zero (x : ratRep) :
+    ratRel (ratMulRep x ratZeroRep) ratZeroRep :=
+  ratMul_zero_right x
