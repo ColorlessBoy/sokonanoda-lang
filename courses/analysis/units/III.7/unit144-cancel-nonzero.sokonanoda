@@ -57,9 +57,10 @@ theorem intRel_zero_of_eq (p q : Nat) (h : p = q) :
   sorry
 
 -- 有理数的分母是正的，乘上它不会把非零的分子变成零。反过来，分子为零时，
--- 整个有理数也为零：先把分子乘回自己的分母，再把零乘上同一个分母。
+-- 整个有理数也为零：把 `ratRel` 展开成交叉相乘，左边只剩分子，右边是零
+-- 乘上 x 的分母。
 
--- soko:hint 思路：从假设 `numOf x ~ 0` 出发，两边同时乘上 x 的分母 `den (denOf x)`；左边用 `mulRep_den` 收回 `numOf x`，右边是零乘同一个分母，收成零之后再把两边接起来。
+-- soko:hint 思路：把 `ratRel x 0` 展开成交叉相乘：左边是 `numOf x` 乘零的分母 `(1,0)`，右边是零乘 x 的分母。左边用 `mulRep_den` 收回 `numOf x`，右边用零乘收成零，再把假设接上去。
 -- soko:hint 目标形态：`intRel (numOf x) (0, 0) → ratRel x ratZeroRep`。
 -- soko:hint 关键件：mulRep_den · 零乘 · intRel_symm · intRel_trans · intRel_of_eq。
 theorem ratRel_zero_of_num_zero (x : ratRep)
@@ -67,10 +68,10 @@ theorem ratRel_zero_of_num_zero (x : ratRep)
     ratRel x ratZeroRep :=
   sorry
 
--- 反方向同样成立。若 x 与零相等，交叉相乘后的整数等式里，x 的分子被两个
--- 正分母夹着；把分母约掉，剩下的就是分子与零的相等。
+-- 反方向同样成立。若 x 与零相等，把交叉相乘的等式左边约掉零的分母 `den 0`，
+-- 剩下的就是分子；右边是零乘 x 的分母，仍是零。
 
--- soko:hint 思路：两个方向都把等式展开成交叉相乘；从 x 到零时，x 的分母乘上零的分母收回分子，零的一侧化成零；从零到 x 时走反方向。
+-- soko:hint 思路：把 `ratRel` 展开成交叉相乘；左边约掉零的分母 `den 0` 后就是分子，右边零乘 x 的分母仍是零，两个方向都沿这条等式接起来。
 -- soko:hint 目标形态：`ratRel (qrep p q m) ratZeroRep ↔ intRel (p, q) (0, 0)`。
 -- soko:hint 关键件：mulRep_den · 零乘 · intRel_of_eq · intRel_symm · intRel_trans · Iff.intro。
 theorem ratRel_zero_iff_num_zero (p q m : Nat) :
