@@ -1,0 +1,92 @@
+-- 课程库：导数值的唯一性（III.7 的收口）
+--
+-- 导数的定义是「存在一个斜率函数，它的极限是 L」。定义本身没有说 L 唯一；
+-- 两条不同的斜率函数在这个极限下也可能给出同一个 L。要谈「函数在一点的
+-- 导数」，先把这件事补上。
+--
+-- 同一个函数在 a 处的两条斜率函数，在 a 之外逐点相等：两边都满足
+-- `(x - a) · q x ~ f x - f a`，把右边接起来，就从 `(x - a) · q x` 得到
+-- `(x - a) · r x`。`x ≠ a` 说明 `x - a` 不为零，消去它得到 `q x ~ r x`。
+-- 于是 q 与 r 在 a 附近相等；极限只读邻域，两个极限就相等。
+--
+-- 这条唯一性让「导数」有了确定的值，也解释了为什么定义里敢用存在量词：
+-- 存在性由可导给出，唯一性由这一页给出。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层；不新增公理，也不碰
+-- kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatOrder
+import lib.RatRing
+import lib.RatHalf
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.RatSub
+import lib.Bounded
+import lib.LimAt
+import lib.LimAtAlgebra
+import lib.LimUnique
+import lib.LimLocal
+import lib.Deriv
+import lib.RatZero
+import lib.RatCancel
+
+theorem ratSubRep_ne_zero (x a : ratRep) (h : ¬ ratRel x a) :
+    ¬ ratRel (ratSubRep x a) ratZeroRep :=
+  fun (hz : ratRel (ratSubRep x a) ratZeroRep) =>
+    h (ratRel_trans_gen x (ratAddRep (ratSubRep x a) a) a
+      (ratRel_symm (ratAddRep (ratSubRep x a) a) x
+        (ratSubRep_add_self x a))
+      (ratRel_trans_gen (ratAddRep (ratSubRep x a) a)
+        (ratAddRep ratZeroRep a) a
+        (ratAddRep_wd_gen (ratSubRep x a) ratZeroRep a hz)
+        (ratAdd_zero_left a)))
+
+theorem isSlope_agree (f : ratRep → ratRep) (a : ratRep)
+    (q r : ratRep → ratRep) (hq : IsSlope f a q) (hr : IsSlope f a r)
+    (x : ratRep) (hx : ¬ ratRel x a) : ratRel (q x) (r x) :=
+  ratMul_cancel (ratSubRep x a) (q x) (r x)
+    (ratSubRep_ne_zero x a hx)
+    (ratRel_trans_gen
+      (ratMulRep (ratSubRep x a) (q x))
+      (ratSubRep (f x) (f a))
+      (ratMulRep (ratSubRep x a) (r x))
+      (hq x hx)
+      (ratRel_symm (ratMulRep (ratSubRep x a) (r x))
+        (ratSubRep (f x) (f a)) (hr x hx)))
+
+theorem slope_agree_near (f : ratRep → ratRep) (a : ratRep)
+    (q r : ratRep → ratRep) (hq : IsSlope f a q) (hr : IsSlope f a r) :
+    AgreeNear q r a :=
+  Exists.intro ratOneRep
+    (And.intro ratLtRep_zero_one
+      (fun (x : ratRep) (_hx : close x a ratOneRep)
+          (hne : ¬ ratRel x a) =>
+        isSlope_agree f a q r hq hr x hne))
+
+theorem hasDerivAt_unique (f : ratRep → ratRep) (a L M : ratRep)
+    (hL : HasDerivAt f a L) (hM : HasDerivAt f a M) : ratRel L M :=
+  Exists.elim hL
+    (fun (q : ratRep → ratRep)
+        (hq : IsSlope f a q ∧ TendsToAt q a L) =>
+      Exists.elim hM
+        (fun (r : ratRep → ratRep)
+            (hr : IsSlope f a r ∧ TendsToAt r a M) =>
+          tendsToAt_unique r a L M
+            (tendsToAt_congr q r a L (And.right hq)
+              (slope_agree_near f a q r (And.left hq) (And.left hr)))
+            (And.right hr)))
+
+theorem demo_deriv_id_unique (a L : ratRep)
+    (h : HasDerivAt (fun (x : ratRep) => x) a L) :
+    ratRel L ratOneRep :=
+  hasDerivAt_unique (fun (x : ratRep) => x) a L ratOneRep h
+    (hasDerivAt_id a)
+
+theorem demo_deriv_const_unique (c a L : ratRep)
+    (h : HasDerivAt (fun (_ : ratRep) => c) a L) :
+    ratRel L ratZeroRep :=
+  hasDerivAt_unique (fun (_ : ratRep) => c) a L ratZeroRep h
+    (hasDerivAt_const c a)
+

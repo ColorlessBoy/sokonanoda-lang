@@ -1,0 +1,166 @@
+-- 单元144 非零因子消去：导数为什么只有一个值
+--
+-- 导数的定义把「曲线在一点附近最像哪条直线」交给两个存在量词：存在一个
+-- 斜率函数，存在一个极限值。可导只保证这样的值至少有一个。要把「函数在
+-- 这一点的导数」当成确定的数来用，还得说明至多有一个。极限值的唯一性已经
+-- 补上了；斜率函数本身的唯一性还欠着。
+--
+-- 同一个函数的两条斜率函数在 a 之外都满足同一个乘积等式，
+-- (x - a) · q x ~ f x - f a 与 (x - a) · r x ~ f x - f a。把右边接起来，
+-- 就得到 (x - a) · q x ~ (x - a) · r x。只要 x ≠ a，因子 x - a 就不为零；
+-- 从乘积等式里约掉它，q x 与 r x 就相等。
+--
+-- 于是问题归结为一道纯代数题：在 ℚ 里，若 u ≠ 0 且 u · v ~ u · w，能不能
+-- 断言 v ~ w？答案是能，但证明并不只是「两边除以 u」——课程还没有构造
+-- 有理数的倒数。得回到代表元：有理数写成 (p - q)/(m+1)，乘法是整数代表元
+-- 的乘法。消去非零因子就变成从整数等式里约掉一个非零代表元。
+--
+-- 整数层的钥匙是 ℕ 的正因子消去律。若 (p - q) ≠ 0，则 p 与 q 有一边更大；
+-- 把大的写成小的加上 k+1，等式两边就出现公共因子 (k+1)，约掉之后剩下的
+-- 正是两个分子的相等。两支只差一个符号：差为正时公共因子是 k+1，差为负
+-- 时是 -(k+1)，交换律把负号挪到另一侧。
+--
+-- 得到消去律之后，导数值的唯一性是几步直接的搬运：两条斜率函数在 a 附近
+-- 相等，极限只读邻域，于是两个极限相等。常函数与恒等函数是两个可以逐字
+-- 读出的样本：它们的导数只能是零与一。
+--
+-- 边界：函数取 ratRep → ratRep，停在有理代表元层；不构造倒数，不新增公理，
+-- 也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatOrder
+import lib.RatRing
+import lib.RatHalf
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.RatSub
+import lib.Bounded
+import lib.LimAt
+import lib.LimAtAlgebra
+import lib.LimUnique
+import lib.LimLocal
+import lib.Deriv
+
+-- ─────────────────────────────────────────────────────────────
+-- 零的判别
+-- ─────────────────────────────────────────────────────────────
+
+-- 整数代表元 (p, q) 与零相等，条件是 p + 0 = 0 + q，也就是 p = q。
+-- 先取一个方向：若 p 与 q 相等，两个交叉和就相同。
+
+-- soko:hint 思路：把 `intRel` 展开成 `p + 0 = 0 + q`；用假设把 q 换成 p，再用 `add_zero` 与 `zero_add` 收拢。
+-- soko:hint 目标形态：`p = q → intRel (p, q) (0, 0)`。
+-- soko:hint 关键件：add_zero · zero_add · Eq.symm · Eq.trans。
+theorem intRel_zero_of_eq (p q : Nat) (h : p = q) :
+    intRel (@prod_mk Nat Nat p q) (@prod_mk Nat Nat Nat.zero Nat.zero) :=
+  sorry
+
+-- 有理数的分母是正的，乘上它不会把非零的分子变成零。反过来，分子为零时，
+-- 整个有理数也为零：先把分子乘回自己的分母，再把零乘上同一个分母。
+
+-- soko:hint 思路：从假设 `numOf x ~ 0` 出发，两边同时乘上 x 的分母 `den (denOf x)`；左边用 `mulRep_den` 收回 `numOf x`，右边是零乘同一个分母，收成零之后再把两边接起来。
+-- soko:hint 目标形态：`intRel (numOf x) (0, 0) → ratRel x ratZeroRep`。
+-- soko:hint 关键件：mulRep_den · 零乘 · intRel_symm · intRel_trans · intRel_of_eq。
+theorem ratRel_zero_of_num_zero (x : ratRep)
+    (h : intRel (numOf x) (@prod_mk Nat Nat Nat.zero Nat.zero)) :
+    ratRel x ratZeroRep :=
+  sorry
+
+-- 反方向同样成立。若 x 与零相等，交叉相乘后的整数等式里，x 的分子被两个
+-- 正分母夹着；把分母约掉，剩下的就是分子与零的相等。
+
+-- soko:hint 思路：两个方向都把等式展开成交叉相乘；从 x 到零时，x 的分母乘上零的分母收回分子，零的一侧化成零；从零到 x 时走反方向。
+-- soko:hint 目标形态：`ratRel (qrep p q m) ratZeroRep ↔ intRel (p, q) (0, 0)`。
+-- soko:hint 关键件：mulRep_den · 零乘 · intRel_of_eq · intRel_symm · intRel_trans · Iff.intro。
+theorem ratRel_zero_iff_num_zero (p q m : Nat) :
+    ratRel (qrep p q m) ratZeroRep ↔
+      intRel (@prod_mk Nat Nat p q) (@prod_mk Nat Nat Nat.zero Nat.zero) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 整数层的消去
+-- ─────────────────────────────────────────────────────────────
+
+-- 若代表元 (p, q) 不为零，而它与两个分子的乘积相等，就可以约掉它。
+-- p 与 q 有一边更大，把大的写成小的加 k+1，等式两边出现公共因子 k+1；
+-- 正因子消去律把它约掉，剩下的正是 (c, d) 与 (e, f) 的交叉和。
+
+-- soko:hint 思路：序是全的，对 `p ≤ q` 与 `q ≤ p` 分两支；非零假设先排掉 `p = q`，剩下的一支把大的写成小的加 `k+1`，两边约掉公共的正因子，再换回交叉和。
+-- soko:hint 目标形态：`¬ intRel (p, q) (0, 0) → (p, q)*(c, d) ~ (p, q)*(e, f) → (c, d) ~ (e, f)`。
+-- soko:hint 关键件：leNat_total · leNat_eq_or_succ · Or.elim · mul_cancel_pos。
+theorem intRel_cancel_nonzero (p q c d e f : Nat)
+    (hne : ¬ intRel (@prod_mk Nat Nat p q)
+      (@prod_mk Nat Nat Nat.zero Nat.zero))
+    (h : intRel (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d))
+                (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f))) :
+    intRel (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f) :=
+  sorry
+
+-- 有理数层的同一件事。把 u 拆成 (p - q)/(m+1)，把 v 与 w 拆成各自的
+-- 分子与分母；多出来的公共分母先对齐，再交给整数层的消去。u 不为零
+-- 翻译成 (p, q) 不为零，这正是上一条的入口。
+
+-- soko:hint 思路：对 u、v、w 依次拆成 `qrep`；用 `ratRel_zero_iff_num_zero` 把 `u ≠ 0` 翻成分子序对不为零；把两侧的公共分母对齐，再约掉非零的分子。
+-- soko:hint 目标形态：`u ≠ 0 → u*v ~ u*w → v ~ w`。
+-- soko:hint 关键件：ratRel_zero_iff_num_zero · Iff.mpr · mulRep_den_swap_gen · mul_cancel_pos。
+theorem ratMul_cancel (u v w : Prod (Prod Nat Nat) Nat) :
+    ¬ ratRel u ratZeroRep →
+    ratRel (ratMulRep u v) (ratMulRep u w) → ratRel v w :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 从差商到导数
+-- ─────────────────────────────────────────────────────────────
+
+-- 差 x - a 不为零，等价于 x 与 a 不相等。若差为零，两边同时加上 a，
+-- 左边收回 x，右边是 0 + a，于是 x 与 a 相等，与假设冲突。
+
+-- soko:hint 思路：若 `x - a ~ 0`，两边同加 a；左边用 `ratSubRep_add_self` 收回 x，右边用 `ratAdd_zero_left` 收回 a，再用 `ratRel_trans` 得到 `x ~ a`。
+-- soko:hint 目标形态：`x ≠ a → x - a ≠ 0`。
+-- soko:hint 关键件：ratSubRep_add_self · ratAdd_zero_left · ratAddRep_wd_gen · ratRel_trans_gen。
+theorem ratSubRep_ne_zero (x a : ratRep) (h : ¬ ratRel x a) :
+    ¬ ratRel (ratSubRep x a) ratZeroRep :=
+  sorry
+
+-- 两条斜率函数在 a 之外逐点相等。把两条乘积等式的右边接起来，左边就是
+-- (x - a) · q x ~ (x - a) · r x；x - a 不为零，消去它即可。
+
+-- soko:hint 思路：把 `hq x hx` 与 `hr x hx` 的右边接起来，得到 `(x-a)*q x ~ (x-a)*r x`；再用 `ratMul_cancel` 与 `ratSubRep_ne_zero` 约掉 `x-a`。
+-- soko:hint 目标形态：`IsSlope f a q → IsSlope f a r → x ≠ a → q x ~ r x`。
+-- soko:hint 关键件：IsSlope · ratRel_trans_gen · ratRel_symm · ratMul_cancel · ratSubRep_ne_zero。
+theorem isSlope_agree (f : ratRep → ratRep) (a : ratRep)
+    (q r : ratRep → ratRep) (hq : IsSlope f a q) (hr : IsSlope f a r)
+    (x : ratRep) (hx : ¬ ratRel x a) : ratRel (q x) (r x) :=
+  sorry
+
+-- 逐点相等可以升成邻域里的相等：半径取 1 就够，因为逐点相等在每一点都成立。
+
+-- soko:hint 思路：取 δ = 1，把 `ratLtRep_zero_one` 与逐点的 `isSlope_agree` 装进 `AgreeNear`。
+-- soko:hint 目标形态：`IsSlope f a q → IsSlope f a r → AgreeNear q r a`。
+-- soko:hint 关键件：AgreeNear · ratOneRep · ratLtRep_zero_one · isSlope_agree。
+theorem slope_agree_near (f : ratRep → ratRep) (a : ratRep)
+    (q r : ratRep → ratRep) (hq : IsSlope f a q) (hr : IsSlope f a r) :
+    AgreeNear q r a :=
+  sorry
+
+-- 导数值的唯一性。两条导数各给一个斜率函数与一个极限；两个斜率函数在 a
+-- 附近相等，极限只读邻域，所以第二条极限也是第一条的极限值；再交给极限
+-- 值的唯一性。
+
+-- soko:hint 思路：拆开 hL 与 hM，得到 q、r 及两条极限；用 `slope_agree_near` 与 `tendsToAt_congr` 把 L 搬到 r 上；最后用 `tendsToAt_unique` 收口。
+-- soko:hint 目标形态：`HasDerivAt f a L → HasDerivAt f a M → L ~ M`。
+-- soko:hint 关键件：Exists.elim · slope_agree_near · tendsToAt_congr · tendsToAt_unique。
+theorem hasDerivAt_unique (f : ratRep → ratRep) (a L M : ratRep)
+    (hL : HasDerivAt f a L) (hM : HasDerivAt f a M) : ratRel L M :=
+  sorry
+
+-- 恒等函数的导数是 1；唯一性说，任何以它为导数的数都与 1 相等。
+
+-- soko:hint 思路：把 `hasDerivAt_id a` 与假设一起交给 `hasDerivAt_unique`。
+-- soko:hint 目标形态：`HasDerivAt (fun x => x) a L → L ~ 1`。
+-- soko:hint 关键件：hasDerivAt_unique · hasDerivAt_id。
+theorem demo_deriv_id_unique (a L : ratRep)
+    (h : HasDerivAt (fun (x : ratRep) => x) a L) :
+    ratRel L ratOneRep :=
+  sorry

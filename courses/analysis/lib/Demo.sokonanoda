@@ -62,6 +62,10 @@ import lib.Deriv
 import lib.DerivShift
 import lib.LimUnique
 import lib.LimLocal
+import lib.RatZero
+import lib.IntCancel
+import lib.RatCancel
+import lib.DerivUnique
 
 theorem demo_lib_closure : True := True.intro
 
@@ -352,3 +356,22 @@ theorem demo_lib_tendsToAt_congr (f g : ratRep → ratRep) (a L : ratRep)
     (h : TendsToAt f a L) (hfg : AgreeNear f g a) :
     TendsToAt g a L :=
   tendsToAt_congr f g a L h hfg
+
+theorem demo_lib_ratRel_zero_iff_num_zero (p q m : Nat) :
+    ratRel (qrep p q m) ratZeroRep ↔
+      intRel (@prod_mk Nat Nat p q) (@prod_mk Nat Nat Nat.zero Nat.zero) :=
+  ratRel_zero_iff_num_zero p q m
+
+theorem demo_lib_ratMul_cancel (u v w : Prod (Prod Nat Nat) Nat)
+    (hu : ¬ ratRel u ratZeroRep)
+    (h : ratRel (ratMulRep u v) (ratMulRep u w)) : ratRel v w :=
+  ratMul_cancel u v w hu h
+
+theorem demo_lib_slope_agree_near (f : ratRep → ratRep) (a : ratRep)
+    (q r : ratRep → ratRep) (hq : IsSlope f a q) (hr : IsSlope f a r) :
+    AgreeNear q r a :=
+  slope_agree_near f a q r hq hr
+
+theorem demo_lib_deriv_unique (f : ratRep → ratRep) (a L M : ratRep)
+    (hL : HasDerivAt f a L) (hM : HasDerivAt f a M) : ratRel L M :=
+  hasDerivAt_unique f a L M hL hM

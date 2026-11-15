@@ -1088,6 +1088,12 @@
               "title": "单元143 极限只看邻域：换掉远处的函数值",
               "title_en": "Unit 143 — Limits Only See a Neighborhood: Changing Values Far Away",
               "unit": 143
+            },
+            {
+              "file": "units/III.7/unit144-cancel-nonzero.sokonanoda",
+              "title": "单元144 非零因子消去：导数为什么只有一个值",
+              "title_en": "Unit 144 — Cancelling a Nonzero Factor: Why the Derivative Has One Value",
+              "unit": 144
             }
           ]
         }

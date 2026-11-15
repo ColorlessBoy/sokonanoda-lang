@@ -1,0 +1,88 @@
+-- 课程库：有理数的零与分子
+--
+-- 有理数写成 `(p - q)/(m+1)`。它等于零，当且仅当分子 `p - q` 等于零，
+-- 也就是 `p = q`：分母是正的，不会把非零的分子压成零。这条判别看起来
+-- 琐碎，却是消去律的入口——「乘数不为零」要翻译成「分子两格不相等」，
+-- 后面的整数消去才能开工。
+--
+-- 两个方向都不需要新的公理。从 `x ~ 0` 回到分子，靠把等式两边的分母都
+-- 摆到台面上：零的分母是 `(1,0)`，乘上它不改变分子；从分子回到 `x ~ 0`，
+-- 则把零乘上同一个分母，再用 `ratRel` 的传递性接起来。
+--
+-- 边界：停在有理代表元层，不构造倒数，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatRing
+
+theorem mulRep_zero_pair (c d : Nat) :
+    mulRep (@prod_mk Nat Nat Nat.zero Nat.zero) (@prod_mk Nat Nat c d) =
+      @prod_mk Nat Nat Nat.zero Nat.zero :=
+  prod_mk_congr
+    (Nat.add (myMul Nat.zero c) (myMul Nat.zero d)) Nat.zero
+    (Nat.add (myMul Nat.zero d) (myMul Nat.zero c)) Nat.zero
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul Nat.zero c) (myMul Nat.zero d))
+      (Nat.add Nat.zero Nat.zero)
+      Nat.zero
+      (add_congr (zero_mul c) (zero_mul d))
+      (zero_add Nat.zero))
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul Nat.zero d) (myMul Nat.zero c))
+      (Nat.add Nat.zero Nat.zero)
+      Nat.zero
+      (add_congr (zero_mul d) (zero_mul c))
+      (zero_add Nat.zero))
+
+theorem mulRep_den_zero (p q : Nat) :
+    intRel (mulRep (@prod_mk Nat Nat p q) (den Nat.zero))
+      (@prod_mk Nat Nat p q) :=
+  mulRep_den (@prod_mk Nat Nat p q) Nat.zero
+
+theorem ratRel_zero_of_num_zero (x : ratRep)
+    (h : intRel (numOf x) (@prod_mk Nat Nat Nat.zero Nat.zero)) :
+    ratRel x ratZeroRep :=
+  intRel_trans
+    (mulRep (numOf x) (den (denOf ratZeroRep)))
+    (numOf x)
+    (mulRep (numOf ratZeroRep) (den (denOf x)))
+    (mulRep_den_zero (Prod.fst Nat Nat (numOf x)) (Prod.snd Nat Nat (numOf x)))
+    (intRel_trans
+      (numOf x)
+      (@prod_mk Nat Nat Nat.zero Nat.zero)
+      (mulRep (numOf ratZeroRep) (den (denOf x)))
+      h
+      (intRel_symm
+        (mulRep (numOf ratZeroRep) (den (denOf x)))
+        (@prod_mk Nat Nat Nat.zero Nat.zero)
+        (intRel_of_eq
+          (mulRep (numOf ratZeroRep) (den (denOf x)))
+          (@prod_mk Nat Nat Nat.zero Nat.zero)
+          (mulRep_zero_pair (Nat.succ (denOf x)) Nat.zero))))
+
+
+theorem ratRel_zero_iff_num_zero (p q m : Nat) :
+    ratRel (qrep p q m) ratZeroRep ↔
+      intRel (@prod_mk Nat Nat p q) (@prod_mk Nat Nat Nat.zero Nat.zero) :=
+  Iff.intro
+    (fun (h : ratRel (qrep p q m) ratZeroRep) =>
+      intRel_trans
+        (@prod_mk Nat Nat p q)
+        (mulRep (@prod_mk Nat Nat p q) (den Nat.zero))
+        (@prod_mk Nat Nat Nat.zero Nat.zero)
+        (intRel_symm
+          (mulRep (@prod_mk Nat Nat p q) (den Nat.zero))
+          (@prod_mk Nat Nat p q)
+          (mulRep_den_zero p q))
+        (intRel_trans
+          (mulRep (@prod_mk Nat Nat p q) (den Nat.zero))
+          (mulRep (@prod_mk Nat Nat Nat.zero Nat.zero) (den m))
+          (@prod_mk Nat Nat Nat.zero Nat.zero)
+          h
+          (intRel_of_eq
+            (mulRep (@prod_mk Nat Nat Nat.zero Nat.zero) (den m))
+            (@prod_mk Nat Nat Nat.zero Nat.zero)
+            (mulRep_zero_pair (Nat.succ m) Nat.zero))))
+    (fun (h : intRel (@prod_mk Nat Nat p q)
+        (@prod_mk Nat Nat Nat.zero Nat.zero)) =>
+      ratRel_zero_of_num_zero (qrep p q m) h)
+
