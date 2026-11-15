@@ -1076,6 +1076,18 @@
               "title": "单元141 导数的代数：垂直平移与取负",
               "title_en": "Unit 141 — Algebra of Derivatives: Vertical Shifts and Negation",
               "unit": 141
+            },
+            {
+              "file": "units/III.7/unit142-limit-unique.sokonanoda",
+              "title": "单元142 极限唯一：一条曲线不能同时逼近两个值",
+              "title_en": "Unit 142 — Uniqueness of the Limit: A Curve Cannot Approach Two Values at Once",
+              "unit": 142
+            },
+            {
+              "file": "units/III.7/unit143-limit-local.sokonanoda",
+              "title": "单元143 极限只看邻域：换掉远处的函数值",
+              "title_en": "Unit 143 — Limits Only See a Neighborhood: Changing Values Far Away",
+              "unit": 143
             }
           ]
         }

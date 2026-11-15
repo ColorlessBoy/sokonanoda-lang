@@ -60,6 +60,8 @@ import lib.Monotone
 import lib.RatRing
 import lib.Deriv
 import lib.DerivShift
+import lib.LimUnique
+import lib.LimLocal
 
 theorem demo_lib_closure : True := True.intro
 
@@ -333,3 +335,20 @@ theorem demo_lib_deriv_sub_const (f : ratRep → ratRep) (a L c : ratRep)
     (h : HasDerivAt f a L) :
     HasDerivAt (fun (x : ratRep) => ratSubRep (f x) c) a L :=
   hasDerivAt_sub_const f a L c h
+
+theorem demo_lib_tendsToAt_unique (f : ratRep → ratRep) (a L M : ratRep)
+    (hL : TendsToAt f a L) (hM : TendsToAt f a M) : ratRel L M :=
+  tendsToAt_unique f a L M hL hM
+
+theorem demo_lib_tendsToAt_congr_value (f : ratRep → ratRep) (a L M : ratRep)
+    (h : TendsToAt f a L) (hLM : ratRel L M) : TendsToAt f a M :=
+  tendsToAt_congr_value f a L M h hLM
+
+theorem demo_lib_agreeNear_refl (f : ratRep → ratRep) (a : ratRep) :
+    AgreeNear f f a :=
+  agreeNear_refl f a
+
+theorem demo_lib_tendsToAt_congr (f g : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L) (hfg : AgreeNear f g a) :
+    TendsToAt g a L :=
+  tendsToAt_congr f g a L h hfg
