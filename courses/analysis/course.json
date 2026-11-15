@@ -1100,6 +1100,12 @@
               "title": "单元145 导数的和与差：先让乘法对加法分配",
               "title_en": "Unit 145 — Sums and Differences of Derivatives: Distributing Multiplication Over Addition",
               "unit": 145
+            },
+            {
+              "file": "units/III.7/unit146-mul-order.sokonanoda",
+              "title": "单元146 乘法的保序性：正因子不改变不等号",
+              "title_en": "Unit 146 — Multiplication Preserves Order: Positive Factors Do Not Flip Inequalities",
+              "unit": 146
             }
           ]
         }

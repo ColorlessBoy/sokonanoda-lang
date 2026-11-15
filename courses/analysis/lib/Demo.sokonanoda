@@ -67,6 +67,7 @@ import lib.IntCancel
 import lib.RatCancel
 import lib.DerivUnique
 import lib.DerivAlgebra
+import lib.RatMulOrder
 
 theorem demo_lib_closure : True := True.intro
 
@@ -398,3 +399,13 @@ theorem demo_lib_hasDerivAt_sub (f g : ratRep → ratRep) (a L M : ratRep)
     HasDerivAt (fun (x : ratRep) => ratSubRep (f x) (g x)) a
       (ratSubRep L M) :=
   hasDerivAt_sub f g a L M hf hg
+
+theorem demo_lib_ratMul_pos (x y : ratRep)
+    (hx : ratLtRep ratZeroRep x) (hy : ratLtRep ratZeroRep y) :
+    ratLtRep ratZeroRep (ratMulRep x y) :=
+  ratMul_pos x y hx hy
+
+theorem demo_lib_ratLtRep_mul_pos_right (x y z : ratRep)
+    (hxy : ratLtRep x y) (hz : ratLtRep ratZeroRep z) :
+    ratLtRep (ratMulRep x z) (ratMulRep y z) :=
+  ratLtRep_mul_pos_right x y z hxy hz
