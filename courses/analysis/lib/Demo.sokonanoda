@@ -66,6 +66,7 @@ import lib.RatZero
 import lib.IntCancel
 import lib.RatCancel
 import lib.DerivUnique
+import lib.DerivAlgebra
 
 theorem demo_lib_closure : True := True.intro
 
@@ -375,3 +376,25 @@ theorem demo_lib_slope_agree_near (f : ratRep → ratRep) (a : ratRep)
 theorem demo_lib_deriv_unique (f : ratRep → ratRep) (a L M : ratRep)
     (hL : HasDerivAt f a L) (hM : HasDerivAt f a M) : ratRel L M :=
   hasDerivAt_unique f a L M hL hM
+
+theorem demo_lib_ratMul_add (x y z : ratRep) :
+    ratRel (ratMulRep x (ratAddRep y z))
+      (ratAddRep (ratMulRep x y) (ratMulRep x z)) :=
+  ratMul_add x y z
+
+theorem demo_lib_ratMul_sub (x y z : ratRep) :
+    ratRel (ratMulRep x (ratSubRep y z))
+      (ratSubRep (ratMulRep x y) (ratMulRep x z)) :=
+  ratMul_sub x y z
+
+theorem demo_lib_hasDerivAt_add (f g : ratRep → ratRep) (a L M : ratRep)
+    (hf : HasDerivAt f a L) (hg : HasDerivAt g a M) :
+    HasDerivAt (fun (x : ratRep) => ratAddRep (f x) (g x)) a
+      (ratAddRep L M) :=
+  hasDerivAt_add f g a L M hf hg
+
+theorem demo_lib_hasDerivAt_sub (f g : ratRep → ratRep) (a L M : ratRep)
+    (hf : HasDerivAt f a L) (hg : HasDerivAt g a M) :
+    HasDerivAt (fun (x : ratRep) => ratSubRep (f x) (g x)) a
+      (ratSubRep L M) :=
+  hasDerivAt_sub f g a L M hf hg

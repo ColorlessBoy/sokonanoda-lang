@@ -1094,6 +1094,12 @@
               "title": "单元144 非零因子消去：导数为什么只有一个值",
               "title_en": "Unit 144 — Cancelling a Nonzero Factor: Why the Derivative Has One Value",
               "unit": 144
+            },
+            {
+              "file": "units/III.7/unit145-deriv-sum.sokonanoda",
+              "title": "单元145 导数的和与差：先让乘法对加法分配",
+              "title_en": "Unit 145 — Sums and Differences of Derivatives: Distributing Multiplication Over Addition",
+              "unit": 145
             }
           ]
         }
