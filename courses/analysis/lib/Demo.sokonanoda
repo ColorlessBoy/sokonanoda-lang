@@ -56,6 +56,7 @@ import lib.Uniform
 import lib.UniformSeq
 import lib.LimInfinity
 import lib.LimInfinityAlgebra
+import lib.Monotone
 
 theorem demo_lib_closure : True := True.intro
 
@@ -289,3 +290,16 @@ theorem demo_lib_tendsToAtInfinity_add_zero (f : ratRep → ratRep) (L : ratRep)
     TendsToAtInfinity (fun (x : ratRep) => ratAddRep (f x) ratZeroRep)
       (ratAddRep L ratZeroRep) :=
   tendsToAtInfinity_add_const f ratZeroRep L hf
+
+theorem demo_lib_monotone_ivp_id (a b c : ratRep) (hac : ratLtRep a c)
+    (hcb : ratLtRep c b) :
+    ContinuousAt (fun (x : ratRep) => x) c :=
+  demo_continuousAt_id_ivp a b c hac hcb
+
+theorem demo_lib_strict_injective (x y : ratRep)
+    (h : ratRel (ratAddRep x ratOneRep) (ratAddRep y ratOneRep)) :
+    ratRel x y :=
+  strictlyIncreasing_injective (fun (t : ratRep) => ratAddRep t ratOneRep)
+    (fun (u v : ratRep) (huv : ratLtRep u v) =>
+      ratLtRep_add_right u v ratOneRep huv)
+    x y h

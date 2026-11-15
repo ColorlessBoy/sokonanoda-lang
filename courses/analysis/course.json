@@ -1047,6 +1047,12 @@
               "title": "单元138 无穷远处极限的代数与序列判据",
               "title_en": "Unit 138 — Algebra of Limits at Infinity and the Sequential Criterion",
               "unit": 138
+            },
+            {
+              "file": "units/III.6/unit139-monotone-ivp.sokonanoda",
+              "title": "单元139 单调函数：介值性反过来给出连续",
+              "title_en": "Unit 139 — Monotone Functions: Intermediate Values Force Continuity",
+              "unit": 139
             }
           ]
         }
