@@ -1070,6 +1070,12 @@
               "title": "单元140 导数的定义：斜率函数与它的极限",
               "title_en": "Unit 140 — The Derivative: Slope Functions and Their Limits",
               "unit": 140
+            },
+            {
+              "file": "units/III.7/unit141-deriv-shift-neg.sokonanoda",
+              "title": "单元141 导数的代数：垂直平移与取负",
+              "title_en": "Unit 141 — Algebra of Derivatives: Vertical Shifts and Negation",
+              "unit": 141
             }
           ]
         }

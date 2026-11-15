@@ -59,6 +59,7 @@ import lib.LimInfinityAlgebra
 import lib.Monotone
 import lib.RatRing
 import lib.Deriv
+import lib.DerivShift
 
 theorem demo_lib_closure : True := True.intro
 
@@ -317,3 +318,18 @@ theorem demo_lib_deriv_const (c a : ratRep) :
 theorem demo_lib_mul_zero (x : ratRep) :
     ratRel (ratMulRep x ratZeroRep) ratZeroRep :=
   ratMul_zero_right x
+
+theorem demo_lib_deriv_add_const (f : ratRep → ratRep) (a L c : ratRep)
+    (h : HasDerivAt f a L) :
+    HasDerivAt (fun (x : ratRep) => ratAddRep (f x) c) a L :=
+  hasDerivAt_add_const f a L c h
+
+theorem demo_lib_deriv_neg (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) :
+    HasDerivAt (fun (x : ratRep) => ratNegRep (f x)) a (ratNegRep L) :=
+  hasDerivAt_neg f a L h
+
+theorem demo_lib_deriv_sub_const (f : ratRep → ratRep) (a L c : ratRep)
+    (h : HasDerivAt f a L) :
+    HasDerivAt (fun (x : ratRep) => ratSubRep (f x) c) a L :=
+  hasDerivAt_sub_const f a L c h
