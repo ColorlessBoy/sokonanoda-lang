@@ -272,3 +272,31 @@ pre,code,.math,.math-display{max-width:100%;overflow-wrap:anywhere;word-break:br
 .math-display{overflow-x:auto}
 table{display:block;max-width:100%;overflow-x:auto}
 .block.prose p,.unit-intro-body p,.exercise-prompt p,.hint-body p{overflow-wrap:anywhere;word-break:break-word}
+
+/* ---------- two-volume entry: visible immediately ---------- */
+.volumes{margin:1.2rem 0 1.8rem!important}
+.volumes h2{font-size:1.1rem;margin:.2rem 0 .3rem}
+.volume-links{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr))}
+.volume-card{display:block;border:1px solid var(--line);border-radius:var(--radius);padding:1rem 1.1rem;text-decoration:none;color:var(--ink);background:var(--panel);transition:border-color .15s ease,transform .15s ease}
+.volume-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.volume-card strong{display:block;font-size:1.15rem;margin:.1rem 0}
+.volume-card span{display:block;color:var(--muted);font-size:.86rem}
+.volume-card .volume-num{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.volume-card.is-current{background:color-mix(in srgb,var(--accent) 7%,var(--panel));border-color:var(--accent)}
+
+/* ---------- smooth cross-document navigation ---------- */
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.18s;animation-timing-function:ease}
+::view-transition-old(root){animation-name:v3-fade-out}
+::view-transition-new(root){animation-name:v3-fade-in}
+@keyframes v3-fade-out{from{opacity:1}to{opacity:0}}
+@keyframes v3-fade-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){@view-transition{navigation:none}::view-transition-old(root),::view-transition-new(root){animation:none}}
+
+/* ---------- animated mobile drawer ---------- */
+@media (max-width:1279px){
+  .site-side{display:block!important;transform:translateX(-102%);visibility:hidden;transition:transform .2s ease,visibility .2s}
+  .site-side.is-open{transform:none;visibility:visible}
+  body.side-open::before{animation:v3-backdrop-in .2s ease}
+  @keyframes v3-backdrop-in{from{opacity:0}to{opacity:1}}
+}
