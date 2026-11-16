@@ -185,3 +185,7 @@ img{max-width:100%;height:auto}
 .site-shell{grid-template-columns:15rem minmax(0,1fr)!important}
 @media (max-width:960px){.view-switch button{padding:.28rem .4rem;font-size:.72rem}}
 @media print{.view-switch{display:none!important}}
+
+/* cover: no decorative vertical rule next to the start button */
+.cover::before{display:none!important}
+.cover > *{margin-left:0!important}
