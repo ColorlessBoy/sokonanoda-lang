@@ -1375,10 +1375,12 @@ def render_decl(unit: Unit, decl: Decl) -> str:
             + render_proof(decl)
         )
     else:
+        # Definitions are content, not a signature teaser: show the whole
+        # declaration in the reading layer.  Hiding the body behind
+        # “完整代码” leaves a dangling ``:=`` and hides the definition itself.
         body_html = (
-            f'<pre class="decl-statement"><code>{escape(decl.statement)}</code></pre>'
+            f'<pre class="decl-statement"><code>{escape(decl.code)}</code></pre>'
             + hints_html
-            + render_code_panel(decl)
         )
 
     return (
