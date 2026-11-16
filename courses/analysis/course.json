@@ -1177,6 +1177,18 @@
               "title": "单元156 常值函数的面积：与分割无关",
               "title_en": "Unit 156 — The Area of a Constant Function Is Independent of the Partition",
               "unit": 156
+            },
+            {
+              "file": "units/III.8/unit157-step-bounds.sokonanoda",
+              "title": "单元157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间",
+              "title_en": "Unit 157 — Upper and Lower Step Bounds: Trapping a Curve Between Two Staircases",
+              "unit": 157
+            },
+            {
+              "file": "units/III.8/unit158-upper-lower-sums.sokonanoda",
+              "title": "单元158 上下和与可积性：两条台阶之间的宽度",
+              "title_en": "Unit 158 — Upper and Lower Sums: Integrability as a Small Gap",
+              "unit": 158
             }
           ]
         }

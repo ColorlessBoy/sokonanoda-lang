@@ -71,6 +71,8 @@ import lib.RatMulOrder
 import lib.RatMulSign
 import lib.DerivSign
 import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
 
 theorem demo_lib_closure : True := True.intro
 
@@ -431,3 +433,21 @@ theorem demo_lib_point_mono (a b : ratRep) (p : Partition) (hp : IsPartition a b
     (i j : Nat) (hij : LeNat i j) (hj : LeNat j (partCount p)) :
     ratLeRep (partPoint p i) (partPoint p j) :=
   point_mono a b p hp i j hij hj
+
+theorem demo_lib_stepSum_mono (a b : ratRep) (p : Partition)
+    (hp : IsPartition a b p) (c d : Nat → ratRep)
+    (hcd : ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+      ratLeRep (c i) (d i)) :
+    ratLeRep (stepSum p c) (stepSum p d) :=
+  stepSum_mono a b p hp c d hcd
+
+theorem demo_lib_upperStep_const (a b : ratRep) (p : Partition) (k : ratRep) :
+    UpperStep a b p (fun (_ : ratRep) => k) (fun (_ : Nat) => k) :=
+  upperStep_const a b p k
+
+theorem demo_lib_upperStep_value (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (u : Nat → ratRep) (h : UpperStep a b p f u)
+    (hp : IsPartition a b p) (i : Nat)
+    (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLeRep (f (partPoint p i)) (u i) :=
+  upperStep_value a b p f u h hp i hi
