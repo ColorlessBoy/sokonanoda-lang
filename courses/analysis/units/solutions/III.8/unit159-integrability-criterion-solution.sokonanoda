@@ -1,0 +1,187 @@
+-- 单元159 可积性的直接判据：把上下和搬到台阶上
+--
+-- 可积的定义先取两个数，一个来自上界那摞台阶，一个来自下界那摞台阶，再要求
+-- 这两个数之差小于 ε。做估计时，这两层存在量词总要一次走完：给定 ε，先取
+-- 分割，再从上和与下和里各自取出产生它们的台阶。把这两步合成一条判据，估
+-- 计就只谈台阶本身，不必每回都先把两个数拆开。
+--
+-- 判据的两个方向各是一段搬动。从可积到台阶：已知 `U - L < ε`，而上和 `U`
+-- 与上界的矩形和只差一次等价，下和同理；把两条等价送进减法，就得到两摞台
+-- 阶的矩形和之差小于 ε。从台阶到可积：把下界的矩形和直接当作下和、上界的
+-- 矩形和直接当作上和，它们与自己的等价关系是自反的。
+--
+-- 这条判据还带来两个小读数。差已经小于 ε 时，把 ε 放大仍然成立；上界与下
+-- 界取同一摞高度时，两个矩形和是同一个数，差为零。常值函数的可积性可以直接
+-- 引用库里已经判过的结论，这里只把它作为判据的一个例子。
+--
+-- 边界：只改写可积性的陈述，不证明新的函数可积，也不定义积分值。函数取
+-- `ratRep → ratRep`，停在有理代表元层。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.Cauchy
+import lib.RatSub
+import lib.RatRing
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+
+-- ─────────────────────────────────────────────────────────────
+-- 同一个分割上的两个和
+-- ─────────────────────────────────────────────────────────────
+
+-- 逐段用下界不超过上界，乘上同一个正宽；矩形和的保序把每段的不等式收成整
+-- 条和。
+theorem stepGap_nonneg (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (l u : Nat → ratRep) (hp : IsPartition a b p)
+    (hl : LowerStep a b p f l) (hu : UpperStep a b p f u) :
+    ratLeRep (stepSum p l) (stepSum p u) :=
+  stepSum_mono a b p hp l u
+    (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =>
+      lowerStep_le_upperStep a b p f l u hp hl hu i hi)
+
+-- ─────────────────────────────────────────────────────────────
+-- 从可积到两摞台阶
+-- ─────────────────────────────────────────────────────────────
+
+-- 上和与下和先各自展开成一摞台阶。矩形和之差与 `U - L` 的等价关系由减法
+-- 的同余给出：两个因子分别沿 `stepSum u ~ U`、`stepSum l ~ L` 换过去。原来
+-- 的严格界沿这条等价关系的左端搬一次，就是台阶版本的差。
+theorem gap_of_sums (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (L U eps : ratRep) (hL : LowerSum a b p f L) (hU : UpperSum a b p f U)
+    (hgap : ratLtRep (ratSubRep U L) eps) :
+    ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+      LowerStep a b p f l ∧ UpperStep a b p f u ∧
+        ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps :=
+  Exists.elim (lowerSum_witness a b p f L hL)
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p f l ∧ ratRel L (stepSum p l)) =>
+      Exists.elim (upperSum_witness a b p f U hU)
+        (fun (u : Nat → ratRep)
+            (hu : UpperStep a b p f u ∧ ratRel U (stepSum p u)) =>
+          Exists.intro l
+            (Exists.intro u
+              (And.intro (And.left hl)
+                (And.intro (And.left hu)
+                  (ratLtRep_congr_fst
+                    (ratSubRep (stepSum p u) (stepSum p l))
+                    (ratSubRep U L) eps hgap
+                    (ratSubRep_wd (stepSum p u) U (stepSum p l) L
+                      (ratRel_symm U (stepSum p u) (And.right hu))
+                      (ratRel_symm L (stepSum p l) (And.right hl)))))))))
+
+-- 把可积性的定义逐层拆开：分割、下和、上和，最后交给上一条。每一层都只
+-- 消去一个存在量词，结论里的 `IsPartition` 从第一层原样保留。
+theorem gap_of_integrable (a b : ratRep) (f : ratRep → ratRep)
+    (h : Integrable a b f) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (p : Partition), IsPartition a b p ∧
+        ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+          LowerStep a b p f l ∧ UpperStep a b p f u ∧
+            ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (p : Partition)
+          (hp : IsPartition a b p ∧
+            ∃ (L : ratRep), ∃ (U : ratRep),
+              LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                ratLtRep (ratSubRep U L) eps) =>
+        Exists.elim (And.right hp)
+          (fun (L : ratRep)
+              (hLex : ∃ (U : ratRep),
+                LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                  ratLtRep (ratSubRep U L) eps) =>
+            Exists.elim hLex
+              (fun (U : ratRep)
+                  (hTriple : LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                    ratLtRep (ratSubRep U L) eps) =>
+                Exists.intro p
+                  (And.intro (And.left hp)
+                    (gap_of_sums a b p f L U eps
+                      (And.left hTriple)
+                      (And.left (And.right hTriple))
+                      (And.right (And.right hTriple)))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 从两摞台阶回到可积
+-- ─────────────────────────────────────────────────────────────
+
+-- 两摞台阶直接充当两个和的见证。下和取 `stepSum l`，它来自下界 `l`，与自
+-- 己的等价关系是自反的；上和同理。两者之差就是假设里那条严格界。
+theorem integrable_of_gap (a b : ratRep) (f : ratRep → ratRep)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (p : Partition), IsPartition a b p ∧
+        ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+          LowerStep a b p f l ∧ UpperStep a b p f u ∧
+            ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps) :
+    Integrable a b f :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (p : Partition)
+          (hp : IsPartition a b p ∧
+            ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+              LowerStep a b p f l ∧ UpperStep a b p f u ∧
+                ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps) =>
+        Exists.elim (And.right hp)
+          (fun (l : Nat → ratRep)
+              (hlu : ∃ (u : Nat → ratRep),
+                LowerStep a b p f l ∧ UpperStep a b p f u ∧
+                  ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps) =>
+            Exists.elim hlu
+              (fun (u : Nat → ratRep)
+                  (hu : LowerStep a b p f l ∧ UpperStep a b p f u ∧
+                    ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps) =>
+                Exists.intro p
+                  (And.intro (And.left hp)
+                    (Exists.intro (stepSum p l)
+                      (Exists.intro (stepSum p u)
+                        (And.intro
+                          (Exists.intro l
+                            (And.intro (And.left hu)
+                              (ratRel_refl (stepSum p l))))
+                          (And.intro
+                            (Exists.intro u
+                              (And.intro (And.left (And.right hu))
+                                (ratRel_refl (stepSum p u))))
+                            (And.right (And.right hu))))))))))
+
+-- 两个方向已经各自成条，等价性只是把两条装进 `Iff.intro`。
+theorem integrable_iff_gap (a b : ratRep) (f : ratRep → ratRep) :
+    Integrable a b f ↔
+      (∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (p : Partition), IsPartition a b p ∧
+          ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+            LowerStep a b p f l ∧ UpperStep a b p f u ∧
+              ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps) :=
+  Iff.intro (gap_of_integrable a b f) (integrable_of_gap a b f)
+
+-- ─────────────────────────────────────────────────────────────
+-- 放大 ε 与两摞相同的台阶
+-- ─────────────────────────────────────────────────────────────
+
+-- 差小于 ε，而 ε 不超过 ε'，严格序与弱序混串一步得到差小于 ε'。
+theorem stepGap_lt_of_le (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (l u : Nat → ratRep) (eps eps' : ratRep)
+    (h : ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps)
+    (he : ratLeRep eps eps') :
+    ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps' :=
+  ratLtRep_of_lt_le (ratSubRep (stepSum p u) (stepSum p l)) eps eps' h he
+
+-- 上界与下界取同一摞高度，两个矩形和是同一个数，差等价于零。
+theorem stepGap_self (p : Partition) (c : Nat → ratRep) :
+    ratRel (ratSubRep (stepSum p c) (stepSum p c)) ratZeroRep :=
+  ratSubRep_self (stepSum p c)
+
+-- ─────────────────────────────────────────────────────────────
+-- 常值函数
+-- ─────────────────────────────────────────────────────────────
+
+-- 常值函数的可积性已经在库里判过，这里直接引用。
+theorem demo_integrable_zero (a b : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) => ratZeroRep) :=
+  integrable_const a b ratZeroRep hab

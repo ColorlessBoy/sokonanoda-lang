@@ -1189,6 +1189,18 @@
               "title": "单元158 上下和与可积性：两条台阶之间的宽度",
               "title_en": "Unit 158 — Upper and Lower Sums: Integrability as a Small Gap",
               "unit": 158
+            },
+            {
+              "file": "units/III.8/unit159-integrability-criterion.sokonanoda",
+              "title": "单元159 可积性的直接判据：把上下和搬到台阶上",
+              "title_en": "Unit 159 — A Direct Criterion for Integrability",
+              "unit": 159
+            },
+            {
+              "file": "units/III.8/unit160-integrability-neg.sokonanoda",
+              "title": "单元160 取负与逐点等价：可积性只看函数值",
+              "title_en": "Unit 160 — Negation and Pointwise Equality Preserve Integrability",
+              "unit": 160
             }
           ]
         }

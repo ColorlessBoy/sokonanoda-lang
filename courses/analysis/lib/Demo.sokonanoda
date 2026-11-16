@@ -73,6 +73,9 @@ import lib.DerivSign
 import lib.Integral
 import lib.IntegralRect
 import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralGap
+import lib.IntegralNeg
 
 theorem demo_lib_closure : True := True.intro
 
@@ -451,3 +454,12 @@ theorem demo_lib_upperStep_value (a b : ratRep) (p : Partition)
     (hi : LeNat (Nat.succ i) (partCount p)) :
     ratLeRep (f (partPoint p i)) (u i) :=
   upperStep_value a b p f u h hp i hi
+
+theorem demo_lib_integrable_const (a b k : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) => k) :=
+  integrable_const a b k hab
+
+theorem demo_lib_integrable_neg (a b k : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) => ratNegRep k) :=
+  integrable_neg a b (fun (_ : ratRep) => k)
+    (integrable_const a b k hab)
