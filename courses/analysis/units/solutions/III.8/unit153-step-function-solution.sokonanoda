@@ -1,0 +1,230 @@
+-- 单元153 阶梯函数：每一段上取常值
+--
+-- 区间被切成有限段之后，每一段上仍然有曲线的一整段弧，面积还是算不出来。
+-- 能直接算的是一类更窄的函数：它在每一段里只取一个值，图像由若干条水平线
+-- 段拼成，像一级一级的台阶。一个台阶的高度乘上那一段的长度就是一个矩形
+-- 的面积，有限多个矩形加起来，就是曲线下面积的第一次近似。要问的是「每
+-- 一段」怎么划：如果一段取闭区间，相邻两段在公共端点上都算数，那个点就
+-- 必须同时等于两个不同的高度，台阶也就跳不起来。
+--
+-- 面积不受个别点的影响，所以让每一段只认左边：左端点算进来，右端点留给
+-- 下一段。这样每段的常数在自己的左端点被钉住，相邻两段可以取不同的值，
+-- 公共端点的归属不改变任何一个矩形的宽。`StepOn` 把「函数在第 i 段上取
+-- 常值 c i」写成一条量词，`threePoint` 是最小的、真正会跳一次的分割。
+--
+-- 边界：只谈「在每一段上取常值」这件事与它对加法、取负的封闭性，不谈面积
+-- 的和，也不谈加细。函数取 `ratRep → ratRep`，停在有理代表元层。不新增
+-- 公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Cauchy
+import lib.RatSub
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+
+-- ─────────────────────────────────────────────────────────────
+-- 每段只认左边
+-- ─────────────────────────────────────────────────────────────
+
+-- 「x 落在 [a, b) 里」：左端点算，右端点不算。写成两个分量，是因为后面
+-- 取常值只需要这两条：x 不早于左端点、x 严格早于右端点。
+def InHalfOpen (a b x : ratRep) : Prop :=
+  ratLeRep a x ∧ ratLtRep x b
+
+theorem inHalfOpen_left (a b x : ratRep) (h : InHalfOpen a b x) :
+    ratLeRep a x :=
+  And.left h
+
+theorem inHalfOpen_right (a b x : ratRep) (h : InHalfOpen a b x) :
+    ratLtRep x b :=
+  And.right h
+
+-- ─────────────────────────────────────────────────────────────
+-- 阶梯函数
+-- ─────────────────────────────────────────────────────────────
+
+-- 函数 f 在分割 p 的每一段上取常值 c i。量词里带着「第 i 段存在」的前提：
+-- 下标越过段数时没有义务。段是左闭右开的，所以两条相邻的段只在左端点这一
+-- 侧与常数相接。
+def StepOn (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c : Nat → ratRep) : Prop :=
+  ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+    ∀ (x : ratRep), InHalfOpen (partPoint p i) (partPoint p (Nat.succ i)) x →
+      ratRel (f x) (c i)
+
+-- 左端点落在自己的段里，是两条前提的直接拼装：弱序的自反性管左边，相邻
+-- 切点的严格上升管右边。这一段不需要任何关于 f 的信息，`StepOn` 的定义
+-- 本身就把结论交出来了。
+theorem stepOn_value (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c : Nat → ratRep) (h : StepOn a b p f c) (hp : IsPartition a b p)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratRel (f (partPoint p i)) (c i) :=
+  h i hi (partPoint p i)
+    (And.intro (ratLeRep_refl (partPoint p i))
+      (isPartition_step a b p hp i hi))
+
+-- 同一个函数的两组常数在同一个左端点上都取到，于是它们彼此等价。这条唯一
+-- 性说明常数由函数与分割决定，换一组写法不会换出另一个高度。
+theorem stepOn_unique (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c d : Nat → ratRep) (hp : IsPartition a b p)
+    (hc : StepOn a b p f c) (hd : StepOn a b p f d)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratRel (c i) (d i) :=
+  ratRel_trans_gen (c i) (f (partPoint p i)) (d i)
+    (ratRel_symm (f (partPoint p i)) (c i)
+      (stepOn_value a b p f c hc hp i hi))
+    (stepOn_value a b p f d hd hp i hi)
+
+theorem stepOn_const (a b : ratRep) (p : Partition) (k : ratRep) :
+    StepOn a b p (fun (_ : ratRep) => k) (fun (_ : Nat) => k) :=
+  fun (_i : Nat) (_hi : LeNat (Nat.succ _i) (partCount p))
+      (_x : ratRep) (_hx : InHalfOpen (partPoint p _i)
+        (partPoint p (Nat.succ _i)) _x) =>
+    ratRel_refl k
+
+theorem stepOn_congr (a b : ratRep) (p : Partition) (f g : ratRep → ratRep)
+    (c : Nat → ratRep) (hfg : ∀ (x : ratRep), ratRel (f x) (g x))
+    (h : StepOn a b p f c) : StepOn a b p g c :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep) (hx : InHalfOpen (partPoint p i)
+        (partPoint p (Nat.succ i)) x) =>
+    ratRel_trans_gen (g x) (f x) (c i)
+      (ratRel_symm (f x) (g x) (hfg x))
+      (h i hi x hx)
+
+-- ─────────────────────────────────────────────────────────────
+-- 加法与取负
+-- ─────────────────────────────────────────────────────────────
+
+-- 两条常数各搬一个加数：先把 `f x` 换成 `c i`，再把 `g x` 换成 `d i`。两
+-- 步都是加法的同余律，中间那一项 `c i + g x` 只是桥。
+theorem stepOn_add (a b : ratRep) (p : Partition) (f g : ratRep → ratRep)
+    (c d : Nat → ratRep) (hf : StepOn a b p f c) (hg : StepOn a b p g d) :
+    StepOn a b p (fun (x : ratRep) => ratAddRep (f x) (g x))
+      (fun (i : Nat) => ratAddRep (c i) (d i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep) (hx : InHalfOpen (partPoint p i)
+        (partPoint p (Nat.succ i)) x) =>
+    ratRel_trans_gen (ratAddRep (f x) (g x)) (ratAddRep (c i) (g x))
+      (ratAddRep (c i) (d i))
+      (ratAddRep_wd_gen (f x) (c i) (g x) (hf i hi x hx))
+      (ratAddRep_wd_snd_gen (c i) (g x) (d i) (hg i hi x hx))
+
+theorem stepOn_neg (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c : Nat → ratRep) (h : StepOn a b p f c) :
+    StepOn a b p (fun (x : ratRep) => ratNegRep (f x))
+      (fun (i : Nat) => ratNegRep (c i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep) (hx : InHalfOpen (partPoint p i)
+        (partPoint p (Nat.succ i)) x) =>
+    ratNegRep_wd (f x) (c i) (h i hi x hx)
+
+-- ─────────────────────────────────────────────────────────────
+-- 会跳一次的分割
+-- ─────────────────────────────────────────────────────────────
+
+-- 三个切点 a、m、b 把区间切成两段，段数是 2。切点函数按两层拆开写：先看
+-- 下标是不是零，再看剩下的是不是零，因为 `def` 里不能嵌套 `match`。
+def threePointTail (m b : ratRep) (j : Nat) : ratRep :=
+  match j with
+  | Nat.zero => m
+  | Nat.succ _ => b
+
+def threePointAt (a m b : ratRep) (i : Nat) : ratRep :=
+  match i with
+  | Nat.zero => a
+  | Nat.succ j => threePointTail m b j
+
+def threePoint (a m b : ratRep) : Partition :=
+  @prod_mk Nat (Nat → ratRep) (Nat.succ (Nat.succ Nat.zero)) (threePointAt a m b)
+
+theorem threePoint_zero (a m b : ratRep) :
+    partPoint (threePoint a m b) Nat.zero = a :=
+  @Eq.refl.{1} ratRep a
+
+theorem threePoint_one (a m b : ratRep) :
+    partPoint (threePoint a m b) (Nat.succ Nat.zero) = m :=
+  @Eq.refl.{1} ratRep m
+
+theorem threePoint_two (a m b : ratRep) :
+    partPoint (threePoint a m b) (Nat.succ (Nat.succ Nat.zero)) = b :=
+  @Eq.refl.{1} ratRep b
+
+-- 两次归纳：外层管下标 0，内层管下标 1 与更远的。内层只剩两个可能：1 时前
+-- 提 `2 ≤ 2` 成立，结论是 m < b；再往后前提要求 `k+3 ≤ 2`，两次 `leNat_pred`
+-- 剥到 `k+1 ≤ 0`，与 `leNat_succ_zero_absurd` 冲突。
+theorem threePoint_step (a m b : ratRep) (ham : ratLtRep a m)
+    (hmb : ratLtRep m b) :
+    ∀ (i : Nat), LeNat (Nat.succ i) (partCount (threePoint a m b)) →
+      ratLtRep (partPoint (threePoint a m b) i)
+        (partPoint (threePoint a m b) (Nat.succ i)) :=
+  fun (i : Nat) =>
+    Nat.rec
+      (fun (i : Nat) =>
+        LeNat (Nat.succ i) (partCount (threePoint a m b)) →
+          ratLtRep (partPoint (threePoint a m b) i)
+            (partPoint (threePoint a m b) (Nat.succ i)))
+      (fun (_hi : LeNat (Nat.succ Nat.zero) (partCount (threePoint a m b))) =>
+        ham)
+      (fun (j : Nat)
+          (_ih : LeNat (Nat.succ j) (partCount (threePoint a m b)) →
+            ratLtRep (partPoint (threePoint a m b) j)
+              (partPoint (threePoint a m b) (Nat.succ j))) =>
+        Nat.rec
+          (fun (j : Nat) =>
+            LeNat (Nat.succ (Nat.succ j)) (partCount (threePoint a m b)) →
+              ratLtRep (partPoint (threePoint a m b) (Nat.succ j))
+                (partPoint (threePoint a m b) (Nat.succ (Nat.succ j))))
+          (fun (_h : LeNat (Nat.succ (Nat.succ Nat.zero))
+              (partCount (threePoint a m b))) => hmb)
+          (fun (k : Nat)
+              (_ih2 : LeNat (Nat.succ (Nat.succ k))
+                  (partCount (threePoint a m b)) →
+                ratLtRep (partPoint (threePoint a m b) (Nat.succ k))
+                  (partPoint (threePoint a m b) (Nat.succ (Nat.succ k))))
+              (hbad : LeNat (Nat.succ (Nat.succ (Nat.succ k)))
+                (partCount (threePoint a m b))) =>
+            False.elim
+              (leNat_succ_zero_absurd k
+                (leNat_pred (Nat.succ k) Nat.zero
+                  (leNat_pred (Nat.succ (Nat.succ k)) (Nat.succ Nat.zero)
+                    hbad))))
+          j)
+      i
+
+theorem threePoint_isPartition (a m b : ratRep) (ham : ratLtRep a m)
+    (hmb : ratLtRep m b) : IsPartition a b (threePoint a m b) :=
+  And.intro
+    (@Eq.refl.{1} ratRep a)
+    (And.intro
+      (@Eq.refl.{1} ratRep b)
+      (threePoint_step a m b ham hmb))
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个读数
+-- ─────────────────────────────────────────────────────────────
+
+-- 两段的常数：下标 0 取 c0，其余取 c1。
+def twoStep (c0 c1 : ratRep) (i : Nat) : ratRep :=
+  match i with
+  | Nat.zero => c0
+  | Nat.succ _ => c1
+
+-- 第 0 段的左端点是 a，第 1 段的左端点是 m；两段都存在，因为段数是 2。
+-- `stepOn_value` 把两处的函数值分别钉在 c0 与 c1 上，这就是一个真正跳了
+-- 一次的阶梯函数在两段上的取值。
+theorem demo_threePoint_values (a m b c0 c1 : ratRep) (f : ratRep → ratRep)
+    (ham : ratLtRep a m) (hmb : ratLtRep m b)
+    (h : StepOn a b (threePoint a m b) f (twoStep c0 c1)) :
+    ratRel (f a) c0 ∧ ratRel (f m) c1 :=
+  And.intro
+    (stepOn_value a b (threePoint a m b) f (twoStep c0 c1) h
+      (threePoint_isPartition a m b ham hmb) Nat.zero
+      (le_succ (Nat.succ Nat.zero) (Nat.succ Nat.zero)
+        (le_refl (Nat.succ Nat.zero))))
+    (stepOn_value a b (threePoint a m b) f (twoStep c0 c1) h
+      (threePoint_isPartition a m b ham hmb) (Nat.succ Nat.zero)
+      (le_refl (Nat.succ (Nat.succ Nat.zero))))

@@ -1,0 +1,137 @@
+-- 单元154 矩形和：把每一段的面积加起来
+--
+-- 阶梯函数把曲线换成了一级一级的台阶，剩下的事是算出台阶下面的面积。每
+-- 一段上高度是常数，宽是这一段两个切点之差，于是每一段贡献一个矩形；有限
+-- 多个矩形排在一起，面积就是它们的和。这个和只用到两样东西：每一段的高
+-- 度，以及每一段的宽。高度由阶梯函数给出；宽要说明是正的，否则「矩形」
+-- 会退化成一条线段，面积的比较也就失去方向。
+--
+-- 求和落在前 n 项上，n 是段数，所以两条关于「只看前 n 项」的引理要先备好：
+-- 非负的项加起来非负，逐项变大则和变大。把这两条接到矩形上，就得到面积的
+-- 两条基本性质——高度非负则面积非负，高度逐段变大则面积变大。后面比较上
+-- 下和时，用的正是这两条。
+--
+-- 边界：只算阶梯函数的矩形和，不讨论一般函数的上下和，也不谈加细。函数取
+-- `ratRep → ratRep`，停在有理代表元层。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Cauchy
+import lib.RatSub
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.Sum
+import lib.SumSplit
+import lib.RatMulOrder
+import lib.RatRing
+import lib.RatClose
+
+-- ─────────────────────────────────────────────────────────────
+-- 矩形的宽与面积
+-- ─────────────────────────────────────────────────────────────
+
+-- 第 i 段的宽：右切点减左切点。段数记作 n 时，第 i 段只在 i < n 时存在。
+def segLen (p : Partition) (i : Nat) : ratRep :=
+  ratSubRep (partPoint p (Nat.succ i)) (partPoint p i)
+
+-- 阶梯函数的矩形和：每段的高度乘上那一段的宽，再把段数那么多项加起来。
+def stepSum (p : Partition) (c : Nat → ratRep) : ratRep :=
+  sumTo (fun (i : Nat) => ratMulRep (c i) (segLen p i)) (partCount p)
+
+-- soko:hint 思路：相邻切点严格上升，把这条严格序交给「右减左为正」的引理；右切点正是第 i 段的右端。
+-- soko:hint 目标形态：`0 < segLen p i`。
+-- soko:hint 关键件：isPartition_step · ratLtRep_sub_pos · 定义性展开。
+theorem segLen_pos (a b : ratRep) (p : Partition) (hp : IsPartition a b p)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLtRep ratZeroRep (segLen p i) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个具体读数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两切点的分割只有一段，和退化成 `0 + c 0 · (b - a)`；左端点是 a、右端点是 b 都是定义性展开。
+-- soko:hint 目标形态：`ratRel (stepSum (twoPoint a b) c) (c 0 · (b - a))`。
+-- soko:hint 关键件：sumTo 的后继规则 · ratAdd_zero_left。
+theorem stepSum_twoPoint (a b : ratRep) (c : Nat → ratRep) :
+    ratRel (stepSum (twoPoint a b) c)
+      (ratMulRep (c Nat.zero) (ratSubRep b a)) :=
+  sorry
+
+-- 三个切点 a、m、b 把区间切成两段。切点函数按两层拆开写，因为 `def` 里
+-- 不能嵌套 `match`。
+def threePointTail (m b : ratRep) (j : Nat) : ratRep :=
+  match j with
+  | Nat.zero => m
+  | Nat.succ _ => b
+
+def threePointAt (a m b : ratRep) (i : Nat) : ratRep :=
+  match i with
+  | Nat.zero => a
+  | Nat.succ j => threePointTail m b j
+
+def threePoint (a m b : ratRep) : Partition :=
+  @prod_mk Nat (Nat → ratRep) (Nat.succ (Nat.succ Nat.zero)) (threePointAt a m b)
+
+-- soko:hint 思路：两段的和展开成 `(0 + c 0 · (m - a)) + c 1 · (b - m)`；把首项的 `0 +` 收掉，其余是定义性展开。
+-- soko:hint 目标形态：`c 0 · (m - a) + c 1 · (b - m)`。
+-- soko:hint 关键件：sumTo 的后继规则 · ratAdd_zero_left · ratAddRep_wd_gen。
+theorem stepSum_threePoint (a m b : ratRep) (c : Nat → ratRep) :
+    ratRel (stepSum (threePoint a m b) c)
+      (ratAddRep (ratMulRep (c Nat.zero) (ratSubRep m a))
+        (ratMulRep (c (Nat.succ Nat.zero)) (ratSubRep b m))) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 只看前 n 项
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对 n 归纳。零项和是零，用自反性。后继时和是「前 n 项」加第 n 项；归纳假设拿到前 n 项非负（它的前提是「k+1 ≤ n」，由 `k+1 ≤ n+1` 沿 `le_succ` 与传递性缩小），第 n 项由假设直接给（`n+1 ≤ n+1`），两条用加法保序加起来，再把 `0 + 0` 收成 0。
+-- soko:hint 目标形态：`0 ≤ sumTo f n`，前提是 `∀ k, k+1 ≤ n → 0 ≤ f k`。
+-- soko:hint 关键件：Nat.rec · ratLeRep_refl · leNat_trans · le_succ · ratLeRep_add · ratAdd_zero_left · ratLeRep_congr_gen。
+theorem sumTo_nonneg_upto (f : Nat → ratRep) (n : Nat)
+    (h : ∀ (k : Nat), LeNat (Nat.succ k) n → ratLeRep ratZeroRep (f k)) :
+    ratLeRep ratZeroRep (sumTo f n) :=
+  sorry
+
+-- soko:hint 思路：与上一条同一条归纳，只是把「非负」换成「逐项 ≤」：后继时前 n 项用归纳假设，第 n 项用假设，两条用 `ratLeRep_add` 加起来。
+-- soko:hint 目标形态：`sumTo f n ≤ sumTo g n`，前提是 `∀ k, k+1 ≤ n → f k ≤ g k`。
+-- soko:hint 关键件：Nat.rec · ratLeRep_refl · leNat_trans · le_succ · ratLeRep_add。
+theorem sumTo_le_upto (f g : Nat → ratRep) (n : Nat)
+    (h : ∀ (k : Nat), LeNat (Nat.succ k) n → ratLeRep (f k) (g k)) :
+    ratLeRep (sumTo f n) (sumTo g n) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 面积保号与保序
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：每一项是「高度乘宽」，高度非负、宽为正，乘积非负；再用「前 n 项和非负」把逐项结论收成整条和。乘积非负要把 `0 · 宽 ≤ c i · 宽` 的左端沿 `0 · 宽 ~ 0` 换掉。
+-- soko:hint 目标形态：`0 ≤ stepSum p c`。
+-- soko:hint 关键件：sumTo_nonneg_upto · ratLeRep_mul_pos_right · segLen_pos · ratMul_zero_left · ratLeRep_congr_gen。
+theorem stepSum_nonneg (a b : ratRep) (p : Partition) (hp : IsPartition a b p)
+    (c : Nat → ratRep)
+    (hc : ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+      ratLeRep ratZeroRep (c i)) :
+    ratLeRep ratZeroRep (stepSum p c) :=
+  sorry
+
+-- soko:hint 思路：逐项用「正因子保持不等号」把 `c i ≤ d i` 乘上同一个宽，再用「前 n 项和逐项比较」把每一段收成整条和。
+-- soko:hint 目标形态：`stepSum p c ≤ stepSum p d`。
+-- soko:hint 关键件：sumTo_le_upto · ratLeRep_mul_pos_right · segLen_pos。
+theorem stepSum_mono (a b : ratRep) (p : Partition) (hp : IsPartition a b p)
+    (c d : Nat → ratRep)
+    (hcd : ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+      ratLeRep (c i) (d i)) :
+    ratLeRep (stepSum p c) (stepSum p d) :=
+  sorry
+
+-- soko:hint 思路：常函数 1 的矩形和是 `1 · (b - a)`，再用「1 乘任何数等于它自己」收成 b - a。
+-- soko:hint 目标形态：`ratRel (stepSum (twoPoint a b) (fun _ => 1)) (b - a)`。
+-- soko:hint 关键件：stepSum_twoPoint · ratMul_one_left · ratRel_trans_gen。
+theorem demo_const_one_area (a b : ratRep) :
+    ratRel (stepSum (twoPoint a b) (fun (_ : Nat) => ratOneRep))
+      (ratSubRep b a) :=
+  sorry

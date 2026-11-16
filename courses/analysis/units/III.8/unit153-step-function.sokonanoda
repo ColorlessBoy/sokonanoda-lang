@@ -1,0 +1,179 @@
+-- 单元153 阶梯函数：每一段上取常值
+--
+-- 区间被切成有限段之后，每一段上仍然有曲线的一整段弧，面积还是算不出来。
+-- 能直接算的是一类更窄的函数：它在每一段里只取一个值，图像由若干条水平线
+-- 段拼成，像一级一级的台阶。一个台阶的高度乘上那一段的长度就是一个矩形
+-- 的面积，有限多个矩形加起来，就是曲线下面积的第一次近似。要问的是「每
+-- 一段」怎么划：如果一段取闭区间，相邻两段在公共端点上都算数，那个点就
+-- 必须同时等于两个不同的高度，台阶也就跳不起来。
+--
+-- 面积不受个别点的影响，所以让每一段只认左边：左端点算进来，右端点留给
+-- 下一段。这样每段的常数在自己的左端点被钉住，相邻两段可以取不同的值，
+-- 公共端点的归属不改变任何一个矩形的宽。`StepOn` 把「函数在第 i 段上取
+-- 常值 c i」写成一条量词，`threePoint` 是最小的、真正会跳一次的分割。
+--
+-- 边界：只谈「在每一段上取常值」这件事与它对加法、取负的封闭性，不谈面积
+-- 的和，也不谈加细。函数取 `ratRep → ratRep`，停在有理代表元层。不新增
+-- 公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Cauchy
+import lib.RatSub
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+
+-- ─────────────────────────────────────────────────────────────
+-- 每段只认左边
+-- ─────────────────────────────────────────────────────────────
+
+-- 「x 落在 [a, b) 里」：左端点算，右端点不算。写成两个分量，是因为后面
+-- 取常值只需要这两条：x 不早于左端点、x 严格早于右端点。
+def InHalfOpen (a b x : ratRep) : Prop :=
+  ratLeRep a x ∧ ratLtRep x b
+
+theorem inHalfOpen_left (a b x : ratRep) (h : InHalfOpen a b x) :
+    ratLeRep a x :=
+  And.left h
+
+theorem inHalfOpen_right (a b x : ratRep) (h : InHalfOpen a b x) :
+    ratLtRep x b :=
+  And.right h
+
+-- ─────────────────────────────────────────────────────────────
+-- 阶梯函数
+-- ─────────────────────────────────────────────────────────────
+
+-- 函数 f 在分割 p 的每一段上取常值 c i。量词里带着「第 i 段存在」的前提：
+-- 下标越过段数时没有义务。段是左闭右开的，所以两条相邻的段只在左端点这一
+-- 侧与常数相接。
+def StepOn (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c : Nat → ratRep) : Prop :=
+  ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+    ∀ (x : ratRep), InHalfOpen (partPoint p i) (partPoint p (Nat.succ i)) x →
+      ratRel (f x) (c i)
+
+-- soko:hint 思路：把左端点本身代进定义，它落在自己的段里：左边是自反的弱序，右边是相邻切点的严格上升。
+-- soko:hint 目标形态：`ratRel (f (partPoint p i)) (c i)`。
+-- soko:hint 关键件：定义性展开 · ratLeRep_refl · isPartition_step · And.intro。
+theorem stepOn_value (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c : Nat → ratRep) (h : StepOn a b p f c) (hp : IsPartition a b p)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratRel (f (partPoint p i)) (c i) :=
+  sorry
+
+-- soko:hint 思路：同一个左端点被两组常数各钉一次，把 `f (point i) ~ c i` 翻向，再与 `f (point i) ~ d i` 串起来。
+-- soko:hint 目标形态：`ratRel (c i) (d i)`。
+-- soko:hint 关键件：stepOn_value · ratRel_symm · ratRel_trans_gen。
+theorem stepOn_unique (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c d : Nat → ratRep) (hp : IsPartition a b p)
+    (hc : StepOn a b p f c) (hd : StepOn a b p f d)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratRel (c i) (d i) :=
+  sorry
+
+-- soko:hint 思路：常函数与常数列都是同一个 k，目标退化成 `k ~ k`；四个前提都用不上。
+-- soko:hint 目标形态：`StepOn a b p (fun _ => k) (fun _ => k)`。
+-- soko:hint 关键件：ratRel_refl · 逐层写 `fun`。
+theorem stepOn_const (a b : ratRep) (p : Partition) (k : ratRep) :
+    StepOn a b p (fun (_ : ratRep) => k) (fun (_ : Nat) => k) :=
+  sorry
+
+-- soko:hint 思路：在每一段上把 `g x ~ f x` 与 `f x ~ c i` 串起来，前一条要翻向。
+-- soko:hint 目标形态：`StepOn a b p g c`。
+-- soko:hint 关键件：ratRel_symm · ratRel_trans_gen · 逐层写 `fun`。
+theorem stepOn_congr (a b : ratRep) (p : Partition) (f g : ratRep → ratRep)
+    (c : Nat → ratRep) (hfg : ∀ (x : ratRep), ratRel (f x) (g x))
+    (h : StepOn a b p f c) : StepOn a b p g c :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 加法与取负
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：在每一段上，`f x ~ c i` 与 `g x ~ d i` 各自搬到同一个和的左右两侧，用两条加法的同余律接起来。
+-- soko:hint 目标形态：`StepOn a b p (fun x => f x + g x) (fun i => c i + d i)`。
+-- soko:hint 关键件：ratAddRep_wd_gen · ratAddRep_wd_snd_gen · ratRel_trans_gen。
+theorem stepOn_add (a b : ratRep) (p : Partition) (f g : ratRep → ratRep)
+    (c d : Nat → ratRep) (hf : StepOn a b p f c) (hg : StepOn a b p g d) :
+    StepOn a b p (fun (x : ratRep) => ratAddRep (f x) (g x))
+      (fun (i : Nat) => ratAddRep (c i) (d i)) :=
+  sorry
+
+-- soko:hint 思路：取负保持代表元的等价，所以在每一段上直接把 `f x ~ c i` 搬过去。
+-- soko:hint 目标形态：`StepOn a b p (fun x => -f x) (fun i => -c i)`。
+-- soko:hint 关键件：ratNegRep_wd · 逐层写 `fun`。
+theorem stepOn_neg (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c : Nat → ratRep) (h : StepOn a b p f c) :
+    StepOn a b p (fun (x : ratRep) => ratNegRep (f x))
+      (fun (i : Nat) => ratNegRep (c i)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 会跳一次的分割
+-- ─────────────────────────────────────────────────────────────
+
+-- 三个切点 a、m、b 把区间切成两段，段数是 2。切点函数按两层拆开写：先看
+-- 下标是不是零，再看剩下的是不是零，因为 `def` 里不能嵌套 `match`。
+def threePointTail (m b : ratRep) (j : Nat) : ratRep :=
+  match j with
+  | Nat.zero => m
+  | Nat.succ _ => b
+
+def threePointAt (a m b : ratRep) (i : Nat) : ratRep :=
+  match i with
+  | Nat.zero => a
+  | Nat.succ j => threePointTail m b j
+
+def threePoint (a m b : ratRep) : Partition :=
+  @prod_mk Nat (Nat → ratRep) (Nat.succ (Nat.succ Nat.zero)) (threePointAt a m b)
+
+theorem threePoint_zero (a m b : ratRep) :
+    partPoint (threePoint a m b) Nat.zero = a :=
+  @Eq.refl.{1} ratRep a
+
+theorem threePoint_one (a m b : ratRep) :
+    partPoint (threePoint a m b) (Nat.succ Nat.zero) = m :=
+  @Eq.refl.{1} ratRep m
+
+theorem threePoint_two (a m b : ratRep) :
+    partPoint (threePoint a m b) (Nat.succ (Nat.succ Nat.zero)) = b :=
+  @Eq.refl.{1} ratRep b
+
+-- soko:hint 思路：对下标归纳。0 时前提是 `1 ≤ 2`，结论就是 a < m；1 时前提是 `2 ≤ 2`，结论就是 m < b；再往后前提是 `k+3 ≤ 2`，两次 `leNat_pred` 化成 `k+1 ≤ 0`，交给 `leNat_succ_zero_absurd` 排除。
+-- soko:hint 目标形态：`∀ i, LeNat (succ i) 2 → ratLtRep (partPoint (threePoint a m b) i) (partPoint (threePoint a m b) (succ i))`。
+-- soko:hint 关键件：Nat.rec（两层）· leNat_pred · leNat_succ_zero_absurd。
+theorem threePoint_step (a m b : ratRep) (ham : ratLtRep a m)
+    (hmb : ratLtRep m b) :
+    ∀ (i : Nat), LeNat (Nat.succ i) (partCount (threePoint a m b)) →
+      ratLtRep (partPoint (threePoint a m b) i)
+        (partPoint (threePoint a m b) (Nat.succ i)) :=
+  sorry
+
+-- soko:hint 思路：端点两条是定义性展开；上升条件整条交给 `threePoint_step`。
+-- soko:hint 目标形态：`IsPartition a b (threePoint a m b)`。
+-- soko:hint 关键件：定义性展开 · threePoint_step · And.intro。
+theorem threePoint_isPartition (a m b : ratRep) (ham : ratLtRep a m)
+    (hmb : ratLtRep m b) : IsPartition a b (threePoint a m b) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个读数
+-- ─────────────────────────────────────────────────────────────
+
+-- 两段的常数：下标 0 取 c0，其余取 c1。
+def twoStep (c0 c1 : ratRep) (i : Nat) : ratRep :=
+  match i with
+  | Nat.zero => c0
+  | Nat.succ _ => c1
+
+-- soko:hint 思路：对第 0 段用一次 `stepOn_value`，对第 1 段再用一次；两段都存在，因为段数是 2。
+-- soko:hint 目标形态：`ratRel (f a) c0 ∧ ratRel (f m) c1`。
+-- soko:hint 关键件：stepOn_value · threePoint_isPartition · le_succ · le_refl · And.intro。
+theorem demo_threePoint_values (a m b c0 c1 : ratRep) (f : ratRep → ratRep)
+    (ham : ratLtRep a m) (hmb : ratLtRep m b)
+    (h : StepOn a b (threePoint a m b) f (twoStep c0 c1)) :
+    ratRel (f a) c0 ∧ ratRel (f m) c1 :=
+  sorry

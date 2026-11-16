@@ -70,6 +70,7 @@ import lib.DerivAlgebra
 import lib.RatMulOrder
 import lib.RatMulSign
 import lib.DerivSign
+import lib.Integral
 
 theorem demo_lib_closure : True := True.intro
 
@@ -421,3 +422,12 @@ theorem demo_lib_risesRight_id :
     RisesRight (fun (x : ratRep) => x) ratZeroRep :=
   risesRight_of_deriv_pos (fun (x : ratRep) => x) ratZeroRep ratOneRep
     (hasDerivAt_id ratZeroRep) ratLtRep_zero_one
+
+theorem demo_lib_twoPoint_isPartition (a b : ratRep) (h : ratLtRep a b) :
+    IsPartition a b (twoPoint a b) :=
+  twoPoint_isPartition a b h
+
+theorem demo_lib_point_mono (a b : ratRep) (p : Partition) (hp : IsPartition a b p)
+    (i j : Nat) (hij : LeNat i j) (hj : LeNat j (partCount p)) :
+    ratLeRep (partPoint p i) (partPoint p j) :=
+  point_mono a b p hp i j hij hj

@@ -1153,6 +1153,18 @@
               "title": "单元152 切点只往前走：分割上的序",
               "title_en": "Unit 152 — Partition Points Move Forward: Order on a Partition",
               "unit": 152
+            },
+            {
+              "file": "units/III.8/unit153-step-function.sokonanoda",
+              "title": "单元153 阶梯函数：每一段上取常值",
+              "title_en": "Unit 153 — Step Functions: Constant on Each Piece",
+              "unit": 153
+            },
+            {
+              "file": "units/III.8/unit154-rectangle-sum.sokonanoda",
+              "title": "单元154 矩形和：把每一段的面积加起来",
+              "title_en": "Unit 154 — The Rectangle Sum: Adding Up the Area of Each Piece",
+              "unit": 154
             }
           ]
         }
