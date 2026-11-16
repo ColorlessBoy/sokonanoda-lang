@@ -428,3 +428,6 @@ html{scroll-behavior:smooth}
   .unit-page{grid-column:1;min-width:0}
   .unit-layout>.page-outline{grid-column:2;grid-row:2;position:sticky;top:calc(var(--header-h) + 1rem);max-height:calc(100dvh - var(--header-h) - 2rem);overflow:auto}
 }
+
+/* chapter pages: skip off-screen unit rendering; keeps long chapters responsive */
+.chapter-unit{content-visibility:auto;contain-intrinsic-size:auto 800px}
