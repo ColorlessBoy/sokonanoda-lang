@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="../assets/v3.css">
 <script defer src="../assets/v3.js"></script>
 </head>
-<body id="top" data-view="both" data-page="unit">
+<body id="top" data-view="intuition" data-page="unit">
 <a class="skip-link" href="#main">跳过目录，直接读正文</a>
 <header class="site-head" role="banner">
   <div class="site-head-inner">
@@ -19,6 +19,11 @@
     <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
     <nav class="site-nav" id="site-nav" aria-label="站点">
       <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
       <a href="../sitemap.html">目录</a>
       <a href="../search.html">搜索</a>
       <a href="../sitemap.html#print">打印 / PDF</a>
@@ -511,7 +516,7 @@
       (myMul (Nat.succ m) (Nat.succ n))
       (Nat.add (myMul m (Nat.succ n)) (Nat.succ n))
       (succ_mul m (Nat.succ n)))</code></pre></div></details></div></article>
-<div class="block prose intuition-only"><p>㉖.2 加法的代表元公式</p></div><div class="block prose intuition-only"><p>通分后的公式是：<span class="math">(a-b)/(m+1) + (c-d)/(n+1)</span></p></div><div class="math-display intuition-only" role="math" aria-label="= [(a(n+1) + c(m+1)) - (b(n+1) + d(m+1))] / ((m+1)(n+1))"><math display="block" class="mathml"><mfrac><mrow><mo>=</mo><mspace width="0.22em"/><mrow><mo>[</mo><mrow><mo>(</mo><mi>a</mi><mrow><mo>(</mo><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi>c</mi><mrow><mo>(</mo><mrow><mi>m</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mo>)</mo><mspace width="0.22em"/><mo>−</mo><mspace width="0.22em"/><mo>(</mo><mi>b</mi><mrow><mo>(</mo><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi>d</mi><mrow><mo>(</mo><mrow><mi>m</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mo>)</mo></mrow><mo>]</mo></mrow></mrow><mrow><mrow><mo>(</mo><mrow><mi>m</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mrow><mo>(</mo><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow></mrow></mfrac></math></div><div class="block prose intuition-only"><p>分母字段就是 ㉖.1 定义的 ratDenRep m n。</p></div><article class="decl decl-def" id="decl-26-49"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">numOf</code><span class="decl-where">声明 49</span></header><div class="decl-body"><pre class="decl-statement"><code>def numOf (x : ratRep) : Prod Nat Nat :=
+<div class="block prose intuition-only"><p>㉖.2 加法的代表元公式</p></div><div class="block prose intuition-only"><p>通分后的公式是：<span class="math"><span class="frac-inline"><span class="num">a−b</span><span class="den">m+1</span></span> + <span class="frac-inline"><span class="num">c−d</span><span class="den">n+1</span></span></span></p></div><div class="math-display intuition-only" role="math" aria-label="= [(a(n+1) + c(m+1)) - (b(n+1) + d(m+1))] / ((m+1)(n+1))"><math display="block" class="mathml"><mfrac><mrow><mo>=</mo><mspace width="0.22em"/><mrow><mo>[</mo><mrow><mo>(</mo><mi>a</mi><mrow><mo>(</mo><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi>c</mi><mrow><mo>(</mo><mrow><mi>m</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mo>)</mo><mspace width="0.22em"/><mo>−</mo><mspace width="0.22em"/><mo>(</mo><mi>b</mi><mrow><mo>(</mo><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi>d</mi><mrow><mo>(</mo><mrow><mi>m</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mo>)</mo></mrow><mo>]</mo></mrow></mrow><mrow><mrow><mo>(</mo><mrow><mi>m</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mrow><mo>(</mo><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow></mrow></mfrac></math></div><div class="block prose intuition-only"><p>分母字段就是 ㉖.1 定义的 ratDenRep m n。</p></div><article class="decl decl-def" id="decl-26-49"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">numOf</code><span class="decl-where">声明 49</span></header><div class="decl-body"><pre class="decl-statement"><code>def numOf (x : ratRep) : Prod Nat Nat :=
   Prod.fst (Prod Nat Nat) Nat x</code></pre></div></article>
 <article class="decl decl-def" id="decl-26-50"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">denOf</code><span class="decl-where">声明 50</span></header><div class="decl-body"><pre class="decl-statement"><code>def denOf (x : ratRep) : Nat :=
   Prod.snd (Prod Nat Nat) Nat x</code></pre></div></article>

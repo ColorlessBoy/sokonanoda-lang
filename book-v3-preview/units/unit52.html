@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="../assets/v3.css">
 <script defer src="../assets/v3.js"></script>
 </head>
-<body id="top" data-view="both" data-page="unit">
+<body id="top" data-view="intuition" data-page="unit">
 <a class="skip-link" href="#main">跳过目录，直接读正文</a>
 <header class="site-head" role="banner">
   <div class="site-head-inner">
@@ -19,6 +19,11 @@
     <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
     <nav class="site-nav" id="site-nav" aria-label="站点">
       <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
       <a href="../sitemap.html">目录</a>
       <a href="../search.html">搜索</a>
       <a href="../sitemap.html#print">打印 / PDF</a>
@@ -64,7 +69,7 @@
 <p class="unit-print-entry no-print"><a href="../print/unit52.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-5.html#units">↑ 目录</a>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>close 的传递性要把两个 <span class="math">ε/2</span> 的界加起来，所以先要有「半数」：对任意有理数 x，构造 x/2 的一个代表元，并证明 <span class="math">x/2 + x/2</span> 与 x 相等。</p></div></div></section>
-<div class="block prose intuition-only"><p>代表元层不需要除法：<span class="math">(a-b)/(m+1)</span> 的一半就是 <span class="math">(a-b)/(2m+2)</span>，也就是把分母字段从 m 换成 <span class="math">2m+1</span>（真正的分母 <span class="math">2m+2 = 2(m+1)</span>）。于是 ratHalf (qrep a b m) :<span class="math">= qrep a b (2m+1)</span>，分子序对根本不用动。</p></div><div class="block prose intuition-only"><p>先补一条定义性等式：<span class="math">2m+2 = (m+1)+(m+1)</span>（注意 Nat.add 对第二个参数递归，所以这条不是 Eq.refl，要走 succ_add 与 add_succ）；再证两条纯 <span class="math">ℕ</span> 算术：<span class="math">D(m+1)+D(m+1) = D·D</span>（<span class="math">D = 2m+2</span>）与 <span class="math">(x·D+x·D)(m+1) = x·(D·D)</span>。最后把这两条装成 <span class="math">x/2 + x/2</span> 与 x 相等，再用 aux 把字面三元组搬到任意代表元（ratRep 是定义别名，match 只认展开类型）。</p></div><div class="block prose intuition-only"><p>定义：半数</p></div><div class="block prose intuition-only"><p>半数在分母字段上的写法：<code>(a-b)/(m+1)</code> 的一半是 <code>(a-b)/(2m+2)</code>，所以新分母字段是 <code>2m+1</code>。</p></div><article class="decl decl-def" id="decl-52-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">halfDen</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def halfDen (m : Nat) : Nat := Nat.succ (Nat.add m m)</code></pre></div></article>
+<div class="block prose intuition-only"><p>代表元层不需要除法：<span class="math"><span class="frac-inline"><span class="num">a−b</span><span class="den">m+1</span></span></span> 的一半就是 <span class="math"><span class="frac-inline"><span class="num">a−b</span><span class="den">2m+2</span></span></span>，也就是把分母字段从 m 换成 <span class="math">2m+1</span>（真正的分母 <span class="math">2m+2 = 2(m+1)</span>）。于是 ratHalf (qrep a b m) :<span class="math">= qrep a b (2m+1)</span>，分子序对根本不用动。</p></div><div class="block prose intuition-only"><p>先补一条定义性等式：<span class="math">2m+2 = (m+1)+(m+1)</span>（注意 Nat.add 对第二个参数递归，所以这条不是 Eq.refl，要走 succ_add 与 add_succ）；再证两条纯 <span class="math">ℕ</span> 算术：<span class="math">D(m+1)+D(m+1) = D·D</span>（<span class="math">D = 2m+2</span>）与 <span class="math">(x·D+x·D)(m+1) = x·(D·D)</span>。最后把这两条装成 <span class="math">x/2 + x/2</span> 与 x 相等，再用 aux 把字面三元组搬到任意代表元（ratRep 是定义别名，match 只认展开类型）。</p></div><div class="block prose intuition-only"><p>定义：半数</p></div><div class="block prose intuition-only"><p>半数在分母字段上的写法：<code>(a-b)/(m+1)</code> 的一半是 <code>(a-b)/(2m+2)</code>，所以新分母字段是 <code>2m+1</code>。</p></div><article class="decl decl-def" id="decl-52-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">halfDen</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def halfDen (m : Nat) : Nat := Nat.succ (Nat.add m m)</code></pre></div></article>
 <div class="block prose intuition-only"><p>两倍的分母字段：<code>2m+2 = succ (2m+1)</code>，也正是 <code>(m+1)+(m+1)</code>。</p></div><article class="decl decl-def" id="decl-52-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">twoDen</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def twoDen (m : Nat) : Nat := Nat.succ (halfDen m)</code></pre></div></article>
 <article class="decl decl-def" id="decl-52-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratHalf</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratHalf (x : ratRep) : ratRep :=
   @prod_mk (Prod Nat Nat) Nat (numOf x) (halfDen (denOf x))</code></pre></div></article>

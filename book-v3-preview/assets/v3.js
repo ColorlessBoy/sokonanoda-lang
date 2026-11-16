@@ -68,6 +68,24 @@
     });
   });
 
+  /* ---------- reading layer (default intuition) ---------- */
+  var VIEW_KEY = "soko-book-v3-view";
+  function applyView(v) {
+    if (!v) v = "intuition";
+    document.body.setAttribute("data-view", v);
+    $$("[data-view-btn]").forEach(function (b) {
+      b.setAttribute("aria-pressed", b.getAttribute("data-view-btn") === v ? "true" : "false");
+    });
+    try { localStorage.setItem(VIEW_KEY, v); } catch (e) {}
+  }
+  var savedView = "intuition";
+  try { savedView = localStorage.getItem(VIEW_KEY) || "intuition"; } catch (e) {}
+  if (["intuition", "both", "formal"].indexOf(savedView) < 0) savedView = "intuition";
+  applyView(savedView);
+  $$("[data-view-btn]").forEach(function (b) {
+    b.addEventListener("click", function () { applyView(b.getAttribute("data-view-btn")); });
+  });
+
   /* ---------- unit sidebar (mobile) ---------- */
   var sideToggle = $("[data-side-toggle]");
   if (sideToggle) {

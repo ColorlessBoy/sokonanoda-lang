@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="../assets/v3.css">
 <script defer src="../assets/v3.js"></script>
 </head>
-<body id="top" data-view="both" data-page="unit">
+<body id="top" data-view="intuition" data-page="unit">
 <a class="skip-link" href="#main">跳过目录，直接读正文</a>
 <header class="site-head" role="banner">
   <div class="site-head-inner">
@@ -19,6 +19,11 @@
     <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
     <nav class="site-nav" id="site-nav" aria-label="站点">
       <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
       <a href="../sitemap.html">目录</a>
       <a href="../search.html">搜索</a>
       <a href="../sitemap.html#print">打印 / PDF</a>
@@ -58,7 +63,7 @@
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="43" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-43" aria-label="复制单元 43 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
 <p class="unit-print-entry no-print"><a href="../print/unit43.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-4.html#units">↑ 目录</a>
 </header>
-<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㉖ 立了 <span class="math">ℚ</span> 加法的代表元公式：<span class="math">(a-b)/(m+1) + (c-d)/(n+1)</span> 等于 <span class="math">[a(n+1)+c(m+1) - (b(n+1)+d(m+1))] / ((m+1)(n+1))</span>，并结清了两条良定义义务；但运算律还没证。先证两条最常用的：交换律 <span class="math">x + y</span> 与 <span class="math">y + x</span> 相等；零元 <span class="math">x + 0</span> 与 x 相等、<span class="math">0 + x</span> 与 x 相等。</p></div></div></section>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㉖ 立了 <span class="math">ℚ</span> 加法的代表元公式：<span class="math"><span class="frac-inline"><span class="num">a−b</span><span class="den">m+1</span></span> + <span class="frac-inline"><span class="num">c−d</span><span class="den">n+1</span></span></span> 等于 <span class="math">[a(n+1)+c(m+1) - (b(n+1)+d(m+1))] / ((m+1)(n+1))</span>，并结清了两条良定义义务；但运算律还没证。先证两条最常用的：交换律 <span class="math">x + y</span> 与 <span class="math">y + x</span> 相等；零元 <span class="math">x + 0</span> 与 x 相等、<span class="math">0 + x</span> 与 x 相等。</p></div></div></section>
 <article class="exercise" id="ex-43-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratAdd_zero_num</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-43-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>为什么先做它们：下一单元的「序与加法相容」要把 <span class="math">x ≤ y</span> 搬到 <span class="math">x+z ≤ y+z</span>，而左加（<span class="math">z+x ≤ z+y</span>）靠的是「先交换、用右加、再交换回来」——没有交换律就变不出左加版本。</p></div><div class="block prose intuition-only"><p>证明分两层。先是加零的算术小件：<span class="math">a·1</span> 定义性展开成 <span class="math">a+a*0</span>，再消掉 a*0；分母字段 ratDenRep m 0 同理退化成 m。然后在代表元层比较 <span class="math">x+y</span> 与 <span class="math">y+x</span>：两边用 mulRep_den_form 化成「分子乘正分母」的规范形，用 prod_mk_congr 与 congrArg 证成相等，最后 intRel_of_eq 收口。<span class="math">x+0</span> 则先把三元组搬成 qrep a b m（消掉零项），再用自反性。</p></div><div class="block prose intuition-only"><p>通用陈述要先在展开类型上 match 到字面三元组（ratRep 是定义别名，match 只认归纳类型本身），再把字面结果转发给通用陈述——与 ㊷ 的 ratSubRep_neg_aux 是同一写法。</p></div><div class="block prose intuition-only"><p>㊸.1 加零的分子形状：<code>a·1 + 0·(m+1) = a</code></p></div><div class="block prose intuition-only"><p>先算加零的分子形状：<span class="math">a·1</span> 展开后消掉零项。</p></div></div><pre class="exercise-statement"><code>theorem ratAdd_zero_num (a m : Nat) :
     Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)) = a :=
   sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>myMul a (succ 0)</code> 定义性展开成 <code>a + a*0</code>；<code>myMul_zero a</code> 把 <code>a*0</code> 换成 <code>0</code>，<code>add_zero</code> 消掉 <code>+0</code> 得 <code>a</code>。第二个加数 <code>0*(m+1)</code> 用 <code>zero_mul</code> 换成 <code>0</code>，再用一次 <code>add_zero</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)) = a</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">myMul_succ · myMul_zero · zero_mul · add_zero · congrArg · Eq.trans</span>。</p></div></details></div><details class="solution-panel" id="sol-43-1"><summary>查看解答 <span class="sol-meta">定理 · 27 行</span></summary><div class="solution-body"><p class="solution-note">㊸.1 加零的分子形状

@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="../assets/v3.css">
 <script defer src="../assets/v3.js"></script>
 </head>
-<body id="top" data-view="both" data-page="unit">
+<body id="top" data-view="intuition" data-page="unit">
 <a class="skip-link" href="#main">跳过目录，直接读正文</a>
 <header class="site-head" role="banner">
   <div class="site-head-inner">
@@ -19,6 +19,11 @@
     <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
     <nav class="site-nav" id="site-nav" aria-label="站点">
       <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
       <a href="../sitemap.html">目录</a>
       <a href="../search.html">搜索</a>
       <a href="../sitemap.html#print">打印 / PDF</a>
@@ -60,7 +65,7 @@
 <p class="unit-print-entry no-print"><a href="../print/unit29.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-3.html#units">↑ 目录</a>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>卷 II 把 <span class="math">ℚ</span> 建成 Quot ratRel（单元⑳），并在代表元层结清了加法与乘法的良定义性（㉖–㉘）。接下来进入 <span class="math">ℚ</span> 的性质：序、绝对值、幂、间隙。先做序，因为后面的绝对值与极限都要用它。</p></div></div></section>
-<div class="block prose intuition-only"><p>序的定义沿用整数序的同一套想法：<span class="math">(a-b)/(m+1) ≤ (c-d)/(n+1)</span> 等价于交叉相乘后的 <span class="math">ℕ</span> 不等式 <span class="math">a·(n+1) + d·(m+1) ≤ c·(m+1) + b·(n+1)</span>。右边不是笔误：<span class="math">(a-b)(n+1) ≤ (c-d)(m+1)</span> 移项后，负部 <span class="math">-b(n+1)</span> 与 <span class="math">-d(m+1)</span> 都搬到对面。分母 <span class="math">(m+1)(n+1)</span> 是正的，所以交叉相乘不改变方向。</p></div><div class="block prose intuition-only"><p>这里先立起序的定义、自反、以及「相等蕴含序」；传递性、全序与加法/乘法相容都要先把两个代表元换到公分母，留给后续单元。</p></div><div class="block prose intuition-only"><p>有理数的非严格序：交叉相乘后的 <span class="math">ℕ</span> 不等式。</p></div><article class="decl decl-def" id="decl-29-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLeRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLeRep (x y : ratRep) : Prop :=
+<div class="block prose intuition-only"><p>序的定义沿用整数序的同一套想法：<span class="math"><span class="frac-inline"><span class="num">a−b</span><span class="den">m+1</span></span> ≤ <span class="frac-inline"><span class="num">c−d</span><span class="den">n+1</span></span></span> 等价于交叉相乘后的 <span class="math">ℕ</span> 不等式 <span class="math">a·(n+1) + d·(m+1) ≤ c·(m+1) + b·(n+1)</span>。右边不是笔误：<span class="math">(a-b)(n+1) ≤ (c-d)(m+1)</span> 移项后，负部 <span class="math">-b(n+1)</span> 与 <span class="math">-d(m+1)</span> 都搬到对面。分母 <span class="math">(m+1)(n+1)</span> 是正的，所以交叉相乘不改变方向。</p></div><div class="block prose intuition-only"><p>这里先立起序的定义、自反、以及「相等蕴含序」；传递性、全序与加法/乘法相容都要先把两个代表元换到公分母，留给后续单元。</p></div><div class="block prose intuition-only"><p>有理数的非严格序：交叉相乘后的 <span class="math">ℕ</span> 不等式。</p></div><article class="decl decl-def" id="decl-29-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLeRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLeRep (x y : ratRep) : Prop :=
   leRep (mulRep (numOf x) (den (denOf y)))
         (mulRep (numOf y) (den (denOf x)))</code></pre></div></article>
 <div class="block prose intuition-only"><p>严格序：<span class="math">≤</span> 且不相等（相等仍用商上的 <code>ratRel</code> 表达）。</p></div><article class="decl decl-def" id="decl-29-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLtRep</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLtRep (x y : ratRep) : Prop :=

@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="../assets/v3.css">
 <script defer src="../assets/v3.js"></script>
 </head>
-<body id="top" data-view="both" data-page="unit">
+<body id="top" data-view="intuition" data-page="unit">
 <a class="skip-link" href="#main">跳过目录，直接读正文</a>
 <header class="site-head" role="banner">
   <div class="site-head-inner">
@@ -19,6 +19,11 @@
     <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
     <nav class="site-nav" id="site-nav" aria-label="站点">
       <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
       <a href="../sitemap.html">目录</a>
       <a href="../search.html">搜索</a>
       <a href="../sitemap.html#print">打印 / PDF</a>
