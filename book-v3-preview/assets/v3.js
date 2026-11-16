@@ -68,6 +68,30 @@
     });
   });
 
+  /* ---------- instant next page: prefetch/preload on intent ---------- */
+  var prefetched = {};
+  function prefetch(href) {
+    if (!href || prefetched[href]) return;
+    if (href.charAt(0) === "#" || /^(https?:|mailto:)/.test(href)) return;
+    if (!/\.html(?:#|$)/.test(href)) return;
+    prefetched[href] = true;
+    var l = document.createElement("link");
+    l.rel = "prefetch";
+    l.href = href;
+    l.as = "document";
+    document.head.appendChild(l);
+  }
+  function intentPrefetch(ev) {
+    var a = ev.target && ev.target.closest ? ev.target.closest("a[href]") : null;
+    if (a) prefetch(a.getAttribute("href"));
+  }
+  document.addEventListener("pointerover", function (ev) {
+    if (ev.pointerType === "mouse") intentPrefetch(ev);
+  }, {passive: true});
+  document.addEventListener("pointerdown", intentPrefetch, {passive: true});
+  document.addEventListener("focusin", intentPrefetch, {passive: true});
+  document.addEventListener("touchstart", intentPrefetch, {passive: true});
+
   /* ---------- reading layer (default intuition) ---------- */
   var VIEW_KEY = "soko-book-v3-view";
   function applyView(v) {
