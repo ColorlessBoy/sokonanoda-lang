@@ -22,9 +22,14 @@
     <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
     <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
     <nav class="site-nav" id="site-nav" aria-label="站点">
+      <span class="book-switch no-print" aria-label="两卷切换"><a href="../volume-i/index.html">卷 I</a><a href="index.html" aria-current="true">卷 II</a></span>
+      <form class="top-search no-print" action="./search.html" method="get" role="search">
+        <label class="sr-only" for="top-q">搜索</label>
+        <input id="top-q" name="q" type="search" placeholder="搜索全书…" autocomplete="off">
+        <button type="submit">搜索</button>
+      </form>
       <a href="./index.html">首页</a>
       <a href="./sitemap.html">目录</a>
-      <a href="./search.html">搜索</a>
       <a href="./sitemap.html#print">打印 / PDF</a>
       <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
     </nav>

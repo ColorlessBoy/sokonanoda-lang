@@ -1,37 +1,28 @@
 <!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>从集合论到实分析 · 两卷</title>
-<meta name="description" content="从集合论到实分析：卷 I 集合论，卷 II 数系与实数。">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>从集合论到实分析 · 两卷</title>
 <link rel="stylesheet" href="assets/v3.css">
 <style>
-.library{max-width:56rem;margin:0 auto;padding:clamp(3rem,9vw,7rem) 1.2rem 3rem}
+.library{max-width:64rem;margin:0 auto;padding:clamp(2.4rem,7vw,5.5rem) 1.2rem 3rem}
 .library-kicker{font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 .8rem}
-.library h1{font-size:clamp(2.2rem,6vw,4rem);line-height:1.15;margin:0 0 .8rem;letter-spacing:-.02em}
-.library-lede{font-size:1.05rem;color:var(--muted);max-width:38rem;line-height:1.8;margin:0 0 2rem}
-.library .volume-links{grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));gap:1rem}
-.library .volume-card{padding:1.2rem 1.3rem}
-.library .volume-card strong{font-size:1.35rem}
+.library h1{font-size:clamp(2.2rem,6vw,4rem);line-height:1.12;margin:0 0 .8rem;letter-spacing:-.02em}
+.library-lede{font-size:1.05rem;color:var(--muted);max-width:44rem;line-height:1.85;margin:0 0 2.4rem}
+.books{display:grid;grid-template-columns:repeat(auto-fit,minmax(18rem,1fr));gap:1.2rem}
+.book{display:grid;grid-template-columns:3.6rem minmax(0,1fr);gap:1rem;border:1px solid var(--line);border-radius:6px;padding:.75rem;background:var(--panel);text-decoration:none;color:var(--ink);transition:transform .15s ease,border-color .15s ease}
+.book:hover{transform:translateY(-2px);border-color:var(--accent)}
+.book-spine{display:flex;align-items:center;justify-content:center;background:var(--accent);color:var(--accent-ink);border-radius:3px;font-weight:700;font-size:.8rem;letter-spacing:.08em;writing-mode:vertical-rl;text-orientation:mixed;min-height:13rem}
+.book-cover{padding:.35rem .2rem}.book-vol{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.book-title{display:block;font-family:var(--font-body);font-size:1.65rem;line-height:1.25;margin:.3rem 0 .2rem}
+.book-sub{display:block;color:var(--muted);font-size:.86rem}.book-desc{display:block;color:var(--muted);font-size:.9rem;line-height:1.7;margin-top:.8rem}
+.book-open{display:inline-flex;align-items:center;gap:.3rem;margin-top:1rem;font-size:.86rem;color:var(--accent)}
 .library-foot{margin-top:3rem;color:var(--muted);font-size:.85rem}
 .library-back{position:fixed;left:1rem;bottom:1rem;z-index:50;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:.45rem .8rem;color:var(--ink);text-decoration:none;font-size:.85rem}
-</style>
-</head>
-<body>
-<main class="library">
-  <p class="library-kicker">interactive book · v3</p>
-  <h1>从集合论到实分析</h1>
-  <p class="library-lede">两卷连续读本：卷 I 先建集合语言与证明习惯，卷 II 从有理数走到实数与完备性。每卷有封面、章页和单元页。</p>
-  <div class="volume-links">
-    <a class="volume-card" href="volume-i/index.html">
-      <span class="volume-num">卷 I</span><strong>集合论</strong><span>112 单元 · 13 章</span>
-    </a>
-    <a class="volume-card" href="volume-ii/index.html">
-      <span class="volume-num">卷 II</span><strong>数系与实数</strong><span>72 单元 · 7 章</span>
-    </a>
-  </div>
-  <p class="library-foot">选择一卷开始；进入后左侧是本书目录。</p>
-</main>
-</body>
-</html>
+@media (max-width:520px){.book{grid-template-columns:2.8rem minmax(0,1fr)}.book-spine{min-height:11rem}}
+</style></head><body><main class="library">
+<p class="library-kicker">interactive book · v3</p><h1>从集合论到实分析</h1>
+<p class="library-lede">一套两卷的连续读本。先有集合与证明，再谈数系与实数；每卷有独立的封面、章页和单元页，章内可连续读。</p>
+<div class="books">
+<a class="book" href="volume-i/index.html"><span class="book-spine">卷 I</span><span class="book-cover"><span class="book-vol">Volume I</span><span class="book-title">集合论</span><span class="book-sub">112 单元 · 13 章</span><span class="book-desc">从集合、子集与运算开始，经过关系、函数、序数、基数，最后到集合代数与关系代数。</span><span class="book-open">打开卷 I →</span></span></a>
+<a class="book" href="volume-ii/index.html"><span class="book-spine">卷 II</span><span class="book-cover"><span class="book-vol">Volume II</span><span class="book-title">数系与实数</span><span class="book-sub">72 单元 · 7 章</span><span class="book-desc">从整数、有理数到 Cauchy 序列与实数，最后用完备性盘点把数系链收束起来。</span><span class="book-open">打开卷 II →</span></span></a>
+</div><p class="library-foot">选择一卷开始；进入后顶栏可切换两卷，搜索在顶栏。</p>
+</main></body></html>
