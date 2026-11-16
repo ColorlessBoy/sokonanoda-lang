@@ -1132,6 +1132,29 @@
               "unit": 150
             }
           ]
+        },
+        {
+          "id": "III.8",
+          "title": "Riemann 积分",
+          "prereqs": ["III.7"],
+          "tags": ["riemann-integral", "partition", "integrability"],
+          "quota": {
+            "exercises": 50
+          },
+          "units": [
+            {
+              "file": "units/III.8/unit151-partition.sokonanoda",
+              "title": "单元151 分割：把区间切成有限段",
+              "title_en": "Unit 151 — Partitions: Cutting an Interval into Finitely Many Pieces",
+              "unit": 151
+            },
+            {
+              "file": "units/III.8/unit152-partition-order.sokonanoda",
+              "title": "单元152 切点只往前走：分割上的序",
+              "title_en": "Unit 152 — Partition Points Move Forward: Order on a Partition",
+              "unit": 152
+            }
+          ]
         }
       ]
     }
