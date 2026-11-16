@@ -147,7 +147,7 @@ img{max-width:100%;height:auto}
 
 /* ---------- global unit sidebar (v3.1) ---------- */
 .site-shell{max-width:var(--maxw);margin:0 auto;padding:0 1rem;display:grid;grid-template-columns:17rem minmax(0,1fr);gap:1.4rem;align-items:start}
-.site-side{position:sticky;top:calc(var(--head-h) + .6rem);max-height:calc(100vh - var(--head-h) - 1.2rem);overflow:auto;border-right:1px solid var(--line);padding:.2rem 1rem .8rem 0;font-size:.86rem}
+.site-side{position:sticky;top:calc(var(--head-h) + .6rem);max-height:calc(100vh - var(--head-h) - 1.2rem);overflow:auto;border-right:0;padding:.2rem 1rem .8rem 0;font-size:.86rem}
 .side-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.4rem 0 .6rem;border-bottom:1px solid var(--line)}
 .side-close{display:none;border:0;background:none;font-size:1.2rem;line-height:1;cursor:pointer;color:var(--ink)}
 .side-chapter{margin:.7rem 0}
