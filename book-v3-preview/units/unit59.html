@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>59 实数的取负：第一次把运算下降到商上 · 从集合论到实分析</title>
+<meta name="description" content="单元59 实数的取负：第一次把运算下降到商上：导语、定义与定理、练习与解答。Unit 59 — Negation on the Reals: Lifting an Operation to the Quotient">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit59.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></li><li aria-current="page">单元 59 实数的取负：第一次把运算下降到商上</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#ex-59-1">59.1 代表元层：(-x) - (-y) ~ -(x - y)</a></li>
+<li><a href="#ex-59-2">59.2 close 在取负下不变</a></li>
+<li><a href="#ex-59-3">59.3 取负保持 Cauchy</a></li>
+<li><a href="#ex-59-4">59.4 取负与 realRel 相容</a></li>
+<li><a href="#ex-59-5">59.5 Quot.lift 的 ι 规则</a></li>
+<li><a href="#ex-59-6">59.6 具体：零的取负还是零</a></li>
+<li><a href="#appendix-unit-59">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-6.html#units">↑ 本章目录</a>
+      <a href="../print/unit59.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-59">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-6.html>II.6</a> · 本章第 5 / 14 单元 · 全书第 59 / 72 单元</p>
+<h1><span class="unit-number">59</span> <span>实数的取负：第一次把运算下降到商上</span></h1>
+<p class="unit-title-en">Unit 59 — Negation on the Reals: Lifting an Operation to the Quotient</p>
+<p class="unit-meta">2 个定义 · 6 个定理 · 6 道练习 · 18 条提示 · <a #appendix-unit-59>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="59" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-59" aria-label="复制单元 59 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit59.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-6.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>上一批单元与 lib/RealEq 备齐了 realRel 的三条腿（传递、自反、对称）。注意自反性只在 Cauchy 序列上成立：realRel x x 的第一个分量就是 Cauchy x。所以 realRel 是 Cauchy 序列上的等价关系，而不是整个 Seq 上的；Quot.exact 要求每个代表元都自反，本课程拿不到这条假设，反向消去留到需要时再处理。</p></div></div></section>
+<div class="block prose intuition-only"><p>现在可以把第一个运算从代表元搬到商上：negSeq x :<span class="math">= fun n =&gt; -(x n)</span>，Real.neg :<span class="math">= Quot.lift (fun x =&gt; Real.mk (negSeq x))</span> …。要交的两条良定义义务是 Cauchy x 推出 Cauchy (negSeq x)，以及 realRel x y 推出 realRel (negSeq x) (negSeq y)。关键是绝对值对取负不变：代表元层 (-x)-(-y) 与 -(x-y) 只差分子序对的交换与加法交换，所以 close 可以在取负下原样搬过去。</p></div><div class="block prose intuition-only"><p>先看代表元层的形状，再证 close 的搬运，然后交两条良定义义务，最后给出 Quot.lift 的 <span class="math">ι</span> 规则并落在常零序列上。negSeq 与 Real.neg 是本单元给出的定义；其余是练习。</p></div><div class="block prose intuition-only"><p>负序列的定义</p></div><article class="decl decl-def" id="decl-59-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">negSeq</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def negSeq (x : Seq) : Seq :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def negSeq (x : Seq) : Seq := fun (n : Nat) =&gt; ratNegRep (x n)</code></pre></details></div></article>
+<h3 class="unit-subhead">59.1 代表元层：<code>(-x) - (-y) ~ -(x - y)</code></h3><article class="exercise" id="ex-59-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratSubRep_neg_neg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-59-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>代表元层的形状：(-x) - (-y) 与 -(x-y) 相等。</p></div></div><pre class="exercise-statement"><code>theorem ratSubRep_neg_neg (x y : ratRep) :
+    ratRel (ratSubRep (ratNegRep x) (ratNegRep y))
+           (ratNegRep (ratSubRep x y)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>(-x) - (-y)</code> 是 <code>-x + -(-y)</code>。用 ㉛ 的对合 <code>ratNegRep_invol</code> 把 <code>-(-y)</code> 换成 <code>y</code>（<code>ratAddRep_wd_snd_gen</code>），再用 ㊸ 的 <code>ratAdd_comm</code> 把 <code>-x + y</code> 换成 <code>y + -x</code>（即 <code>y - x</code>），最后接上 ㊷ 的 <code>ratSubRep_neg</code>。两次 <code>ratRel_trans_gen</code> 串起来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratSubRep (-x) (-y)) (ratNegRep (ratSubRep x y))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratNegRep_invol · ratAddRep_wd_snd_gen · ratAdd_comm · ratSubRep_neg · ratRel_trans_gen</span>（两次）。</p></div></details></div><details class="solution-panel" id="sol-59-1"><summary>查看解答 <span class="sol-meta">定理 · 15 行</span></summary><div class="solution-body"><p class="solution-note"><code>(-x) - (-y)</code> 是 <code>-x + -(-y)</code>。用 ㉛ 的对合把 <code>-(-y)</code> 换成 <code>y</code>
+（<code>ratAddRep_wd_snd_gen</code>），再用 ㊸ 的交换律把 <code>-x + y</code> 换成 <code>y + -x</code>
+（即 <code>y - x</code>），最后接上 ㊷ 的 <code>ratSubRep_neg</code>。</p><pre><code>theorem ratSubRep_neg_neg (x y : ratRep) :
+    ratRel (ratSubRep (ratNegRep x) (ratNegRep y))
+           (ratNegRep (ratSubRep x y)) :=
+  ratRel_trans_gen
+    (ratSubRep (ratNegRep x) (ratNegRep y))
+    (ratSubRep y x)
+    (ratNegRep (ratSubRep x y))
+    (ratRel_trans_gen
+      (ratAddRep (ratNegRep x) (ratNegRep (ratNegRep y)))
+      (ratAddRep (ratNegRep x) y)
+      (ratAddRep y (ratNegRep x))
+      (ratAddRep_wd_snd_gen (ratNegRep x) (ratNegRep (ratNegRep y)) y
+        (ratNegRep_invol y))
+      (ratAdd_comm (ratNegRep x) y))
+    (ratSubRep_neg x y)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">59.2 <code>close</code> 在取负下不变</h3><article class="exercise" id="ex-59-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">close_neg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-59-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>close 在取负下不变：绝对值不受负号影响。</p></div></div><pre class="exercise-statement"><code>theorem close_neg (x y eps : ratRep) (h : close x y eps) :
+    close (ratNegRep x) (ratNegRep y) eps :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>取出 <code>|x - y| ~ d</code> 的见证 <code>d</code>。先用 ㊶ 的 <code>ratAbsRel_neg_gen</code> 把绝对值搬到 <code>|-(x - y)|</code>；59.1 的方向是 <code>|(-x)-(-y)| ~ |-(x-y)|</code>，取对称后用 ㊷ 的 <code>ratAbsRel_wd_left</code> 从 <code>|-(x-y)|</code> 搬到 <code>|(-x)-(-y)|</code>；<code>d &lt; eps</code> 原样交出去。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>close x y eps → close (-x) (-y) eps</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.elim · Exists.intro · And.intro · ratAbsRel_neg_gen · ratRel_symm · ratAbsRel_wd_left · ratSubRep_neg_neg</span>。</p></div></details></div><details class="solution-panel" id="sol-59-2"><summary>查看解答 <span class="sol-meta">定理 · 16 行</span></summary><div class="solution-body"><p class="solution-note">取出 <code>|x - y| ~ d</code> 的见证 <code>d</code>。先用 ㊶ 的 <code>ratAbsRel_neg_gen</code> 把绝对值
+搬到 <code>|-(x - y)|</code>，再用 59.1（取对称）沿 <code>ratAbsRel_wd_left</code> 搬到
+<code>|(-x) - (-y)|</code>；<code>d &lt; eps</code> 原样。</p><pre><code>theorem close_neg (x y eps : ratRep) (h : close x y eps) :
+    close (ratNegRep x) (ratNegRep y) eps :=
+  Exists.elim h
+    (fun (d : ratRep) (hd : ratAbsRel (ratSubRep x y) d ∧ ratLtRep d eps) =&gt;
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left
+            (ratNegRep (ratSubRep x y))
+            (ratSubRep (ratNegRep x) (ratNegRep y))
+            d
+            (ratRel_symm
+              (ratSubRep (ratNegRep x) (ratNegRep y))
+              (ratNegRep (ratSubRep x y))
+              (ratSubRep_neg_neg x y))
+            (ratAbsRel_neg_gen (ratSubRep x y) d (And.left hd)))
+          (And.right hd)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">59.3 取负保持 Cauchy</h3><article class="exercise" id="ex-59-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">cauchy_neg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-59-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>第一条良定义义务：Cauchy 序列取负后仍是 Cauchy。</p></div></div><pre class="exercise-statement"><code>theorem cauchy_neg (x : Seq) (hx : Cauchy x) : Cauchy (negSeq x) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>量词结构原样保留：对 <code>eps &gt; 0</code> 取 <code>hx</code> 的 <code>N</code>，对每个 <code>n m ≥ N</code> 调用 59.2（注意 <code>negSeq x n</code> 就是 <code>ratNegRep (x n)</code>，定义性）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Cauchy x → Cauchy (negSeq x)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.elim · Exists.intro · close_neg</span>。</p></div></details></div><details class="solution-panel" id="sol-59-3"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><p class="solution-note">对每个 <code>n m ≥ N</code> 调用 59.2；量词结构原样保留。</p><pre><code>theorem cauchy_neg (x : Seq) (hx : Cauchy x) : Cauchy (negSeq x) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+    Exists.elim (hx eps heps)
+      (fun (N : Nat)
+           (hN : ∀ (n m : Nat), LeNat N n → LeNat N m → close (x n) (x m) eps) =&gt;
+        Exists.intro N
+          (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =&gt;
+            close_neg (x n) (x m) eps (hN n m hn hm)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">59.4 取负与 <code>realRel</code> 相容</h3><article class="exercise" id="ex-59-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">realRel_neg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-59-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>第二条良定义义务：取负尊重 realRel。</p></div></div><pre class="exercise-statement"><code>theorem realRel_neg (x y : Seq) (h : realRel x y) :
+    realRel (negSeq x) (negSeq y) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>realRel (negSeq x) (negSeq y)</code> 是三元组。两个 <code>Cauchy</code> 分量是 59.3（分别对 <code>x</code>、<code>y</code>；<code>Cauchy y</code> 是 <code>h</code> 的第二个分量）；第三分量逐点用 59.2。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>realRel x y → realRel (negSeq x) (negSeq y)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>And.intro（两次）<span class="math">· And.left · And.right · cauchy_neg · close_neg</span>。</p></div></details></div><details class="solution-panel" id="sol-59-4"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><p class="solution-note">两个 <code>Cauchy</code> 分量由 59.3 给出；第三分量逐点用 59.2。</p><pre><code>theorem realRel_neg (x y : Seq) (h : realRel x y) :
+    realRel (negSeq x) (negSeq y) :=
+  And.intro
+    (cauchy_neg x (And.left h))
+    (And.intro
+      (cauchy_neg y (And.left (And.right h)))
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+        Exists.elim (realRel_close x y h eps heps)
+          (fun (N : Nat)
+               (hN : ∀ (n : Nat), LeNat N n → close (x n) (y n) eps) =&gt;
+            Exists.intro N
+              (fun (n : Nat) (hn : LeNat N n) =&gt;
+                close_neg (x n) (y n) eps (hN n hn)))))</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>取负下降成 <code>Real → Real</code>（本单元给出的定义）</p></div><div class="block prose intuition-only"><p><code>Quot.lift</code> 要两条材料：作用在代表元上的函数（<code>fun x =&gt; Real.mk (negSeq x)</code>）与良定义性（<code>realRel x y ⇒ 两边的像相等</code>，正是 <span class="math">59.4 +</span> <code>Real.sound</code>）。</p></div><article class="decl decl-def" id="decl-59-6"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Real.neg</code><span class="decl-where">声明 6</span></header><div class="decl-body"><pre class="decl-statement"><code>def Real.neg : Real → Real :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 5 行</summary><pre><code>def Real.neg : Real → Real :=
+  @Quot.lift.{1, 1} Seq realRel Real
+    (fun (x : Seq) =&gt; Real.mk (negSeq x))
+    (fun (x y : Seq) (h : realRel x y) =&gt;
+      Real.sound (negSeq x) (negSeq y) (realRel_neg x y h))</code></pre></details></div></article>
+<h3 class="unit-subhead">59.5 <code>Quot.lift</code> 的 <span class="math">ι</span> 规则</h3><article class="exercise" id="ex-59-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">Real.neg_mk</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-59-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>Quot.lift 的 <span class="math">ι</span> 规则：Real.neg 作用在 mk x 上按定义归约。</p></div></div><pre class="exercise-statement"><code>theorem Real.neg_mk (x : Seq) :
+    Real.neg (Real.mk x) = Real.mk (negSeq x) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>Real.neg (Real.mk x)</code> 展开成 <code>Quot.lift f … (Quot.mk x)</code>，<span class="math">ι</span> 归约直接给出 <code>f x = Real.mk (negSeq x)</code>，所以 <code>Eq.refl</code> 就够（在 <code>Eq.refl</code> 前加 <code>@</code> 并显式给出类型）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Real.neg (Real.mk x) = Real.mk (negSeq x)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Eq.refl（<span class="math">ι</span> 归约）。</p></div></details></div><details class="solution-panel" id="sol-59-5"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note"><code>Real.neg (Real.mk x)</code> 展开成 <code>Quot.lift f … (Quot.mk x)</code>，<span class="math">ι</span> 归约直接给出
+<code>f x = Real.mk (negSeq x)</code>，所以是 <code>Eq.refl</code>。</p><pre><code>theorem Real.neg_mk (x : Seq) :
+    Real.neg (Real.mk x) = Real.mk (negSeq x) :=
+  @Eq.refl.{1} Real (Real.mk (negSeq x))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">59.6 具体：零的取负还是零</h3><article class="exercise" id="ex-59-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">demo_real_neg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-59-6>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>具体：常零序列取负还是它自己。</p></div></div><pre class="exercise-statement"><code>theorem demo_real_neg : Real.neg (Real.mk zeroSeq) = Real.mk zeroSeq :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两段链：59.5 把 <code>Real.neg (Real.mk zeroSeq)</code> 换成 <code>Real.mk (negSeq zeroSeq)</code>；<code>negSeq zeroSeq</code> 与 <code>zeroSeq</code> 定义性相同（<code>-(0/1) = 0/1</code>），所以 <code>Real.sound</code> 后面接 <code>realRel_refl zeroSeq cauchy_zero</code> 就够。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Real.neg (Real.mk zeroSeq) = Real.mk zeroSeq</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Eq.trans · Real.neg_mk · Real.sound · realRel_refl · cauchy_zero</span>。</p></div></details></div><details class="solution-panel" id="sol-59-6"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note"><code>negSeq zeroSeq</code> 与 <code>zeroSeq</code> 定义性相同（<code>-(0/1) = 0/1</code>），所以
+<code>realRel_refl</code> 就够；两段分别是 59.5 与 <code>Real.sound</code>。</p><pre><code>theorem demo_real_neg : Real.neg (Real.mk zeroSeq) = Real.mk zeroSeq :=
+  @Eq.trans.{1} Real
+    (Real.neg (Real.mk zeroSeq))
+    (Real.mk (negSeq zeroSeq))
+    (Real.mk zeroSeq)
+    (Real.neg_mk zeroSeq)
+    (Real.sound (negSeq zeroSeq) zeroSeq (realRel_refl zeroSeq cauchy_zero))</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>实数取负下降到商上；下一批单元把加法与乘法也搬上 Real，<span class="math">ℝ</span> 的运算就立起来了。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit58.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">实数的相等：传递性</span></a><a class="unit-nav-home" ../chapters/ii-6.html#units>目录</a><a class="unit-nav-link" ../units/unit60.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">实数的加法：下降之前的两条义务</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-59"><h3><a #top>实数的取负：第一次把运算下降到商上</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-59-1"><summary>练习 1 · ratSubRep_neg_neg <span class="sol-meta">定理</span></summary><p class="solution-note"><code>(-x) - (-y)</code> 是 <code>-x + -(-y)</code>。用 ㉛ 的对合把 <code>-(-y)</code> 换成 <code>y</code>
+（<code>ratAddRep_wd_snd_gen</code>），再用 ㊸ 的交换律把 <code>-x + y</code> 换成 <code>y + -x</code>
+（即 <code>y - x</code>），最后接上 ㊷ 的 <code>ratSubRep_neg</code>。</p><pre><code>theorem ratSubRep_neg_neg (x y : ratRep) :
+    ratRel (ratSubRep (ratNegRep x) (ratNegRep y))
+           (ratNegRep (ratSubRep x y)) :=
+  ratRel_trans_gen
+    (ratSubRep (ratNegRep x) (ratNegRep y))
+    (ratSubRep y x)
+    (ratNegRep (ratSubRep x y))
+    (ratRel_trans_gen
+      (ratAddRep (ratNegRep x) (ratNegRep (ratNegRep y)))
+      (ratAddRep (ratNegRep x) y)
+      (ratAddRep y (ratNegRep x))
+      (ratAddRep_wd_snd_gen (ratNegRep x) (ratNegRep (ratNegRep y)) y
+        (ratNegRep_invol y))
+      (ratAdd_comm (ratNegRep x) y))
+    (ratSubRep_neg x y)</code></pre></details><details class="appendix-solution" id="app-sol-59-2"><summary>练习 2 · close_neg <span class="sol-meta">定理</span></summary><p class="solution-note">取出 <code>|x - y| ~ d</code> 的见证 <code>d</code>。先用 ㊶ 的 <code>ratAbsRel_neg_gen</code> 把绝对值
+搬到 <code>|-(x - y)|</code>，再用 59.1（取对称）沿 <code>ratAbsRel_wd_left</code> 搬到
+<code>|(-x) - (-y)|</code>；<code>d &lt; eps</code> 原样。</p><pre><code>theorem close_neg (x y eps : ratRep) (h : close x y eps) :
+    close (ratNegRep x) (ratNegRep y) eps :=
+  Exists.elim h
+    (fun (d : ratRep) (hd : ratAbsRel (ratSubRep x y) d ∧ ratLtRep d eps) =&gt;
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left
+            (ratNegRep (ratSubRep x y))
+            (ratSubRep (ratNegRep x) (ratNegRep y))
+            d
+            (ratRel_symm
+              (ratSubRep (ratNegRep x) (ratNegRep y))
+              (ratNegRep (ratSubRep x y))
+              (ratSubRep_neg_neg x y))
+            (ratAbsRel_neg_gen (ratSubRep x y) d (And.left hd)))
+          (And.right hd)))</code></pre></details><details class="appendix-solution" id="app-sol-59-3"><summary>练习 3 · cauchy_neg <span class="sol-meta">定理</span></summary><p class="solution-note">对每个 <code>n m ≥ N</code> 调用 59.2；量词结构原样保留。</p><pre><code>theorem cauchy_neg (x : Seq) (hx : Cauchy x) : Cauchy (negSeq x) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+    Exists.elim (hx eps heps)
+      (fun (N : Nat)
+           (hN : ∀ (n m : Nat), LeNat N n → LeNat N m → close (x n) (x m) eps) =&gt;
+        Exists.intro N
+          (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =&gt;
+            close_neg (x n) (x m) eps (hN n m hn hm)))</code></pre></details><details class="appendix-solution" id="app-sol-59-4"><summary>练习 4 · realRel_neg <span class="sol-meta">定理</span></summary><p class="solution-note">两个 <code>Cauchy</code> 分量由 59.3 给出；第三分量逐点用 59.2。</p><pre><code>theorem realRel_neg (x y : Seq) (h : realRel x y) :
+    realRel (negSeq x) (negSeq y) :=
+  And.intro
+    (cauchy_neg x (And.left h))
+    (And.intro
+      (cauchy_neg y (And.left (And.right h)))
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+        Exists.elim (realRel_close x y h eps heps)
+          (fun (N : Nat)
+               (hN : ∀ (n : Nat), LeNat N n → close (x n) (y n) eps) =&gt;
+            Exists.intro N
+              (fun (n : Nat) (hn : LeNat N n) =&gt;
+                close_neg (x n) (y n) eps (hN n hn)))))</code></pre></details><details class="appendix-solution" id="app-sol-59-5"><summary>练习 5 · Real.neg_mk <span class="sol-meta">定理</span></summary><p class="solution-note"><code>Real.neg (Real.mk x)</code> 展开成 <code>Quot.lift f … (Quot.mk x)</code>，<span class="math">ι</span> 归约直接给出
+<code>f x = Real.mk (negSeq x)</code>，所以是 <code>Eq.refl</code>。</p><pre><code>theorem Real.neg_mk (x : Seq) :
+    Real.neg (Real.mk x) = Real.mk (negSeq x) :=
+  @Eq.refl.{1} Real (Real.mk (negSeq x))</code></pre></details><details class="appendix-solution" id="app-sol-59-6"><summary>练习 6 · demo_real_neg <span class="sol-meta">定理</span></summary><p class="solution-note"><code>negSeq zeroSeq</code> 与 <code>zeroSeq</code> 定义性相同（<code>-(0/1) = 0/1</code>），所以
+<code>realRel_refl</code> 就够；两段分别是 59.5 与 <code>Real.sound</code>。</p><pre><code>theorem demo_real_neg : Real.neg (Real.mk zeroSeq) = Real.mk zeroSeq :=
+  @Eq.trans.{1} Real
+    (Real.neg (Real.mk zeroSeq))
+    (Real.mk (negSeq zeroSeq))
+    (Real.mk zeroSeq)
+    (Real.neg_mk zeroSeq)
+    (Real.sound (negSeq zeroSeq) zeroSeq (realRel_refl zeroSeq cauchy_zero))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit58.html">← 58 实数的相等：传递性</a><a class="next" href="../units/unit60.html">60 实数的加法：下降之前的两条义务 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

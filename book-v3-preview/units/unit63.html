@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>63 实数的加法：结合律（三元关系版） · 从集合论到实分析</title>
+<meta name="description" content="单元63 实数的加法：结合律（三元关系版）：导语、定义与定理、练习与解答。Unit 63 — Addition on the Reals: Associativity (Ternary Relation)">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit63.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></li><li aria-current="page">单元 63 实数的加法：结合律（三元关系版）</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#ex-63-1">63.1 代表元层：(x + y) + z ~ x + (y + z)</a></li>
+<li><a href="#ex-63-2">63.2 mk 层：(x + y) + z = t ⇒ ∃ u, y + z = u ∧ x + u = t</a></li>
+<li><a href="#ex-63-3">63.3 商层：三元关系的结合律</a></li>
+<li><a href="#ex-63-4">63.4 具体：常零序列上的结合律</a></li>
+<li><a href="#appendix-unit-63">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-6.html#units">↑ 本章目录</a>
+      <a href="../print/unit63.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-63">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-6.html>II.6</a> · 本章第 9 / 14 单元 · 全书第 63 / 72 单元</p>
+<h1><span class="unit-number">63</span> <span>实数的加法：结合律（三元关系版）</span></h1>
+<p class="unit-title-en">Unit 63 — Addition on the Reals: Associativity (Ternary Relation)</p>
+<p class="unit-meta">4 个定理 · 4 道练习 · 12 条提示 · <a #appendix-unit-63>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="63" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-63" aria-label="复制单元 63 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit63.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-6.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>上一单元给了三元关系 addRel 的交换律与零元。现在补上结合律：若 <span class="math">a+b = s</span> 且 <span class="math">s+c = t</span>，则 <span class="math">b+c</span> 有输出 u，且 <span class="math">a+u = t</span>。写成存在形式就是 addRel a b s 推出 addRel s c t 推出「存在 u，使 addRel b c u 且 addRel a u t」。</p></div></div></section>
+<h3 class="unit-subhead">63.1 代表元层：<code>(x + y) + z ~ x + (y + z)</code></h3><article class="exercise" id="ex-63-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">realRel_add_assoc</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-63-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>它是重括号的合法性：左边的 <span class="math">(a+b)+c</span> 与右边的 <span class="math">a+(b+c)</span> 落在同一个 t 上。注意右边不是函数，所以结论只能写成「存在 u」；而上单元的 addRel_unique 保证这样的 u 唯一。</p></div><div class="block prose intuition-only"><p>证明分两层。代表元层先证 <span class="math">(x+y)+z</span> 与 <span class="math">x+(y+z)</span> 相等（㉔ 的结合律经 close 的桥逐点搬到 realRel）；再把已知的 <span class="math">(x+y)+z = t</span> 换成 <span class="math">t = mk (x+(y+z))</span>；然后在商层对 a、b、c 各做一次 Quot.ind，用 mk 层的结果收口。</p></div><div class="block prose intuition-only"><p>边界仍是上一单元的部分关系：addRel a b s 的两个前提分量带着 Cauchy 守卫，所以 mk 层要显式接收 Cauchy x、Cauchy y；不新增信任。</p></div><div class="block prose intuition-only"><p>代表元层：<span class="math">(x+y)+z</span> 与 <span class="math">x+(y+z)</span> 相等。</p></div></div><pre class="exercise-statement"><code>theorem realRel_add_assoc (x y z : Seq) (hx : Cauchy x) (hy : Cauchy y)
+    (hz : Cauchy z) :
+    realRel (addSeq (addSeq x y) z) (addSeq x (addSeq y z)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个 <code>Cauchy</code> 分量各是两次 60 的 <code>cauchy_add</code>；第三分量取 <code>N := 0</code>，逐点用㉔的 <code>ratAdd_assoc</code> 加 62 的 <code>close_of_ratRel</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>realRel (addSeq (addSeq x y) z) (addSeq x (addSeq y z))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">And.intro · cauchy_add</span>（两次）<span class="math">· Exists.intro Nat.zero · ratAdd_assoc · close_of_ratRel</span>。</p></div></details></div><details class="solution-panel" id="sol-63-1"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><p class="solution-note">两个 <code>Cauchy</code> 分量各是两次 60 的 <code>cauchy_add</code>；第三分量取 <code>N := 0</code>，
+逐点用㉔的 <code>ratAdd_assoc</code> 加 62 的 <code>close_of_ratRel</code>。</p><pre><code>theorem realRel_add_assoc (x y z : Seq) (hx : Cauchy x) (hy : Cauchy y)
+    (hz : Cauchy z) :
+    realRel (addSeq (addSeq x y) z) (addSeq x (addSeq y z)) :=
+  And.intro
+    (cauchy_add (addSeq x y) z (cauchy_add x y hx hy) hz)
+    (And.intro
+      (cauchy_add x (addSeq y z) hx (cauchy_add y z hy hz))
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+        Exists.intro Nat.zero
+          (fun (n : Nat) (_hn : LeNat Nat.zero n) =&gt;
+            close_of_ratRel (addSeq (addSeq x y) z n)
+              (addSeq x (addSeq y z) n)
+              (ratAdd_assoc (x n) (y n) (z n)) eps heps)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">63.2 <code>mk</code> 层：<code>(x + y) + z = t ⇒ ∃ u, y + z = u ∧ x + u = t</code></h3><article class="exercise" id="ex-63-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">addRel_assoc_mk</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-63-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>mk 层：已知 <span class="math">(x+y)+z = t</span>，构造 u :<span class="math">= mk (y+z)</span>。</p></div></div><pre class="exercise-statement"><code>theorem addRel_assoc_mk (x y z : Seq) (t : Real)
+    (hx : Cauchy x) (hy : Cauchy y)
+    (h : addRel (Real.mk (addSeq x y)) (Real.mk z) t) :
+    ∃ (u : Real), addRel (Real.mk y) (Real.mk z) u ∧
+      addRel (Real.mk x) u t :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>见证取 <code>u := mk (y+z)</code>。第一个 <code>addRel</code> 用 61 的 <code>addRel_intro</code>（<code>Cauchy y</code> 是假设，<code>Cauchy z</code> 从 <code>h</code> 的第二个守卫取）；第二个要 <code>Cauchy x</code>、<code>cauchy_add y z</code>，以及 <code>t = mk (x+(y+z))</code>——用 <code>Eq.trans</code> 把 <code>h</code> 给出的 <code>t = mk ((x+y)+z)</code> 与 63.1 经 <code>Real.sound</code> 的等式接起来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ u, addRel (mk y) (mk z) u ∧ addRel (mk x) u t</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.intro · addRel_intro · cauchy_add · Eq.trans · Real.sound · realRel_add_assoc</span>。</p></div></details></div><details class="solution-panel" id="sol-63-2"><summary>查看解答 <span class="sol-meta">定理 · 17 行</span></summary><div class="solution-body"><p class="solution-note">见证取 <code>u := mk (y + z)</code>。
+
+<code>addRel (mk y) (mk z) u</code>：61 的 <code>addRel_intro</code>，要 <code>Cauchy y</code>（假设）
+与 <code>Cauchy z</code>（从 <code>h</code> 的第二个守卫）；；<code>addRel (mk x) u t</code>：<code>Cauchy x</code> 是假设，<code>Cauchy (y+z)</code> 是
+<code>cauchy_add</code>，第三分量是
+<code>t = mk ((x+y)+z) = mk (x+(y+z))</code>——后半段由 63.1 经 <code>Real.sound</code>。</p><pre><code>theorem addRel_assoc_mk (x y z : Seq) (t : Real)
+    (hx : Cauchy x) (hy : Cauchy y)
+    (h : addRel (Real.mk (addSeq x y)) (Real.mk z) t) :
+    ∃ (u : Real), addRel (Real.mk y) (Real.mk z) u ∧
+      addRel (Real.mk x) u t :=
+  Exists.intro (Real.mk (addSeq y z))
+    (And.intro
+      (addRel_intro y z hy (And.left (And.right h)))
+      (And.intro
+        hx
+        (And.intro
+          (cauchy_add y z hy (And.left (And.right h)))
+          (Eq.trans
+            (And.right (And.right h))
+            (Real.sound (addSeq (addSeq x y) z) (addSeq x (addSeq y z))
+              (realRel_add_assoc x y z hx hy
+                (And.left (And.right h))))))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">63.3 商层：三元关系的结合律</h3><article class="exercise" id="ex-63-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">addRel_assoc</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-63-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>商层：对三个因子各做一次 Quot.ind。</p></div></div><pre class="exercise-statement"><code>theorem addRel_assoc (a b c s t : Real)
+    (h1 : addRel a b s) (h2 : addRel s c t) :
+    ∃ (u : Real), addRel b c u ∧ addRel a u t :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对 <code>a</code>、<code>b</code>、<code>c</code> 各做一次 <code>Quot.ind</code>（动机依次写在 <code>Real</code> 上）。进入 <code>mk x</code>、<code>mk y</code>、<code>mk z</code> 后，<code>h1</code> 的 <span class="math">ι</span> 归约给出 <code>s = mk (x+y)</code>；用 <code>Eq.subst</code> 把它代进 <code>h2</code>，得到 <code>addRel (mk (x+y)) (mk z) t</code>，正好交给 63.2。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>addRel a b s → addRel s c t → ∃ u, addRel b c u ∧ addRel a u t</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Quot.ind（三次，动机写明）<span class="math">· ι</span> 归约 <span class="math">· Eq.subst · addRel_assoc_mk</span>。</p></div></details></div><details class="solution-panel" id="sol-63-3"><summary>查看解答 <span class="sol-meta">定理 · 36 行</span></summary><div class="solution-body"><p class="solution-note">对 <code>a</code>、<code>b</code>、<code>c</code> 各做一次 <code>Quot.ind</code>。进入 <code>mk x</code>、<code>mk y</code>、<code>mk z</code> 后，
+<code>h1</code> 的 <span class="math">ι</span> 归约给出 <code>s = mk (x+y)</code>；把它代进 <code>h2</code>（<code>Eq.subst</code>）得到
+<code>addRel (mk (x+y)) (mk z) t</code>，正好是 63.2 的前提。</p><pre><code>theorem addRel_assoc (a b c s t : Real)
+    (h1 : addRel a b s) (h2 : addRel s c t) :
+    ∃ (u : Real), addRel b c u ∧ addRel a u t :=
+  @Quot.ind.{1} Seq realRel
+    (fun (a : Real) =&gt;
+      ∀ (b c s t : Real), addRel a b s → addRel s c t →
+        ∃ (u : Real), addRel b c u ∧ addRel a u t)
+    (fun (x : Seq) =&gt;
+      fun (b c s t : Real)
+          (h1 : addRel (Real.mk x) b s) (h2 : addRel s c t) =&gt;
+        @Quot.ind.{1} Seq realRel
+          (fun (b : Real) =&gt;
+            ∀ (c s t : Real), addRel (Real.mk x) b s → addRel s c t →
+              ∃ (u : Real), addRel b c u ∧ addRel (Real.mk x) u t)
+          (fun (y : Seq) =&gt;
+            fun (c s t : Real)
+                (h1 : addRel (Real.mk x) (Real.mk y) s) (h2 : addRel s c t) =&gt;
+              @Quot.ind.{1} Seq realRel
+                (fun (c : Real) =&gt;
+                  ∀ (s t : Real), addRel (Real.mk x) (Real.mk y) s →
+                    addRel s c t →
+                    ∃ (u : Real), addRel (Real.mk y) c u ∧ addRel (Real.mk x) u t)
+                (fun (z : Seq) =&gt;
+                  fun (s t : Real)
+                      (h1 : addRel (Real.mk x) (Real.mk y) s)
+                      (h2 : addRel s (Real.mk z) t) =&gt;
+                    (fun (h2' : addRel (Real.mk (addSeq x y)) (Real.mk z) t) =&gt;
+                      addRel_assoc_mk x y z t
+                        (And.left h1) (And.left (And.right h1)) h2')
+                    (@Eq.subst.{1} Real
+                      (fun (s' : Real) =&gt; addRel s' (Real.mk z) t)
+                      s (Real.mk (addSeq x y))
+                      (And.right (And.right h1)) h2))
+                c s t h1 h2)
+          b c s t h1 h2)
+    a b c s t h1 h2</code></pre></div></details></div></article>
+<h3 class="unit-subhead">63.4 具体：常零序列上的结合律</h3><article class="exercise" id="ex-63-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">demo_addRel_assoc</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-63-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>具体数字上验证重括号。</p></div></div><pre class="exercise-statement"><code>theorem demo_addRel_assoc :
+    ∃ (u : Real),
+      addRel (Real.mk zeroSeq) (Real.mk zeroSeq) u ∧
+        addRel (Real.mk zeroSeq) u (Real.mk zeroSeq) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 63.3 用在五个 <code>mk zeroSeq</code> 上；两个前提都是 62 的 <code>addRel_zero_right</code>（配 <code>cauchy_zero</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ u, addRel (mk zeroSeq) (mk zeroSeq) u ∧ addRel (mk zeroSeq) u (mk zeroSeq)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">addRel_assoc · addRel_zero_right · cauchy_zero</span>。</p></div></details></div><details class="solution-panel" id="sol-63-4"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem demo_addRel_assoc :
+    ∃ (u : Real),
+      addRel (Real.mk zeroSeq) (Real.mk zeroSeq) u ∧
+        addRel (Real.mk zeroSeq) u (Real.mk zeroSeq) :=
+  addRel_assoc
+    (Real.mk zeroSeq) (Real.mk zeroSeq) (Real.mk zeroSeq)
+    (Real.mk zeroSeq) (Real.mk zeroSeq)
+    (addRel_zero_right zeroSeq cauchy_zero)
+    (addRel_zero_right zeroSeq cauchy_zero)</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>结合律到手；下一单元立实数的序（代表元关系与自反性）。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit62.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">实数的加法：交换律与零元（三元关系版）</span></a><a class="unit-nav-home" ../chapters/ii-6.html#units>目录</a><a class="unit-nav-link" ../units/unit64.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">实数的序：代表元关系与自反性</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-63"><h3><a #top>实数的加法：结合律（三元关系版）</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-63-1"><summary>练习 1 · realRel_add_assoc <span class="sol-meta">定理</span></summary><p class="solution-note">两个 <code>Cauchy</code> 分量各是两次 60 的 <code>cauchy_add</code>；第三分量取 <code>N := 0</code>，
+逐点用㉔的 <code>ratAdd_assoc</code> 加 62 的 <code>close_of_ratRel</code>。</p><pre><code>theorem realRel_add_assoc (x y z : Seq) (hx : Cauchy x) (hy : Cauchy y)
+    (hz : Cauchy z) :
+    realRel (addSeq (addSeq x y) z) (addSeq x (addSeq y z)) :=
+  And.intro
+    (cauchy_add (addSeq x y) z (cauchy_add x y hx hy) hz)
+    (And.intro
+      (cauchy_add x (addSeq y z) hx (cauchy_add y z hy hz))
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+        Exists.intro Nat.zero
+          (fun (n : Nat) (_hn : LeNat Nat.zero n) =&gt;
+            close_of_ratRel (addSeq (addSeq x y) z n)
+              (addSeq x (addSeq y z) n)
+              (ratAdd_assoc (x n) (y n) (z n)) eps heps)))</code></pre></details><details class="appendix-solution" id="app-sol-63-2"><summary>练习 2 · addRel_assoc_mk <span class="sol-meta">定理</span></summary><p class="solution-note">见证取 <code>u := mk (y + z)</code>。
+
+<code>addRel (mk y) (mk z) u</code>：61 的 <code>addRel_intro</code>，要 <code>Cauchy y</code>（假设）
+与 <code>Cauchy z</code>（从 <code>h</code> 的第二个守卫）；；<code>addRel (mk x) u t</code>：<code>Cauchy x</code> 是假设，<code>Cauchy (y+z)</code> 是
+<code>cauchy_add</code>，第三分量是
+<code>t = mk ((x+y)+z) = mk (x+(y+z))</code>——后半段由 63.1 经 <code>Real.sound</code>。</p><pre><code>theorem addRel_assoc_mk (x y z : Seq) (t : Real)
+    (hx : Cauchy x) (hy : Cauchy y)
+    (h : addRel (Real.mk (addSeq x y)) (Real.mk z) t) :
+    ∃ (u : Real), addRel (Real.mk y) (Real.mk z) u ∧
+      addRel (Real.mk x) u t :=
+  Exists.intro (Real.mk (addSeq y z))
+    (And.intro
+      (addRel_intro y z hy (And.left (And.right h)))
+      (And.intro
+        hx
+        (And.intro
+          (cauchy_add y z hy (And.left (And.right h)))
+          (Eq.trans
+            (And.right (And.right h))
+            (Real.sound (addSeq (addSeq x y) z) (addSeq x (addSeq y z))
+              (realRel_add_assoc x y z hx hy
+                (And.left (And.right h))))))))</code></pre></details><details class="appendix-solution" id="app-sol-63-3"><summary>练习 3 · addRel_assoc <span class="sol-meta">定理</span></summary><p class="solution-note">对 <code>a</code>、<code>b</code>、<code>c</code> 各做一次 <code>Quot.ind</code>。进入 <code>mk x</code>、<code>mk y</code>、<code>mk z</code> 后，
+<code>h1</code> 的 <span class="math">ι</span> 归约给出 <code>s = mk (x+y)</code>；把它代进 <code>h2</code>（<code>Eq.subst</code>）得到
+<code>addRel (mk (x+y)) (mk z) t</code>，正好是 63.2 的前提。</p><pre><code>theorem addRel_assoc (a b c s t : Real)
+    (h1 : addRel a b s) (h2 : addRel s c t) :
+    ∃ (u : Real), addRel b c u ∧ addRel a u t :=
+  @Quot.ind.{1} Seq realRel
+    (fun (a : Real) =&gt;
+      ∀ (b c s t : Real), addRel a b s → addRel s c t →
+        ∃ (u : Real), addRel b c u ∧ addRel a u t)
+    (fun (x : Seq) =&gt;
+      fun (b c s t : Real)
+          (h1 : addRel (Real.mk x) b s) (h2 : addRel s c t) =&gt;
+        @Quot.ind.{1} Seq realRel
+          (fun (b : Real) =&gt;
+            ∀ (c s t : Real), addRel (Real.mk x) b s → addRel s c t →
+              ∃ (u : Real), addRel b c u ∧ addRel (Real.mk x) u t)
+          (fun (y : Seq) =&gt;
+            fun (c s t : Real)
+                (h1 : addRel (Real.mk x) (Real.mk y) s) (h2 : addRel s c t) =&gt;
+              @Quot.ind.{1} Seq realRel
+                (fun (c : Real) =&gt;
+                  ∀ (s t : Real), addRel (Real.mk x) (Real.mk y) s →
+                    addRel s c t →
+                    ∃ (u : Real), addRel (Real.mk y) c u ∧ addRel (Real.mk x) u t)
+                (fun (z : Seq) =&gt;
+                  fun (s t : Real)
+                      (h1 : addRel (Real.mk x) (Real.mk y) s)
+                      (h2 : addRel s (Real.mk z) t) =&gt;
+                    (fun (h2' : addRel (Real.mk (addSeq x y)) (Real.mk z) t) =&gt;
+                      addRel_assoc_mk x y z t
+                        (And.left h1) (And.left (And.right h1)) h2')
+                    (@Eq.subst.{1} Real
+                      (fun (s' : Real) =&gt; addRel s' (Real.mk z) t)
+                      s (Real.mk (addSeq x y))
+                      (And.right (And.right h1)) h2))
+                c s t h1 h2)
+          b c s t h1 h2)
+    a b c s t h1 h2</code></pre></details><details class="appendix-solution" id="app-sol-63-4"><summary>练习 4 · demo_addRel_assoc <span class="sol-meta">定理</span></summary><pre><code>theorem demo_addRel_assoc :
+    ∃ (u : Real),
+      addRel (Real.mk zeroSeq) (Real.mk zeroSeq) u ∧
+        addRel (Real.mk zeroSeq) u (Real.mk zeroSeq) :=
+  addRel_assoc
+    (Real.mk zeroSeq) (Real.mk zeroSeq) (Real.mk zeroSeq)
+    (Real.mk zeroSeq) (Real.mk zeroSeq)
+    (addRel_zero_right zeroSeq cauchy_zero)
+    (addRel_zero_right zeroSeq cauchy_zero)</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit62.html">← 62 实数的加法：交换律与零元（三元关系版）</a><a class="next" href="../units/unit64.html">64 实数的序：代表元关系与自反性 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

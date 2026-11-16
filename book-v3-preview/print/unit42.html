@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 42 close 的对称性：实数的相等可以换方向</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit42.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 42 close 的对称性：实数的相等可以换方向</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit42.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">II.4 有理 Cauchy 序列与实数的载体 · 单元 42</p><h1>close 的对称性：实数的相等可以换方向</h1><p class="note">Unit 42 — Symmetry of Close and Real Equality</p></header><section class="unit" id="unit-42">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-4.html>II.4</a> · 本章第 8 / 10 单元 · 全书第 42 / 72 单元</p>
+<h2><span class="unit-number">42</span><span>close 的对称性：实数的相等可以换方向</span></h2>
+<p class="unit-title-en">Unit 42 — Symmetry of Close and Real Equality</p>
+<p class="unit-meta">4 个定理 · 4 道练习 · 12 条提示 · <a #appendix-unit-42>解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㊱ 把实数的相等定义成 realRel x y：x、y 都是 Cauchy 序列，且对任意 eps&gt;0 存在 N，使 <span class="math">n ≥ N</span> 时 close (x n) (y n) eps 成立。其中 close x y eps 说的是「x-y 的绝对值小于 eps」：存在一个 d，它等于 |x-y| 且 d &lt; eps。</p></div></div></section>
+<article class="exercise" id="ex-42-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratSubRep_neg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-42-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊵ 结清了自反性；要和它凑成等价关系，还差对称性：close x y eps 推出 close y x eps，以及 realRel x y 推出 realRel y x。</p></div><div class="block prose intuition-only"><p>直觉上「y-x 与 x-y 只差一个负号，绝对值一样」，但代表元层要真的搬过去：y-x 的代表元与 -(x-y) 的代表元并不相同（分母字段是 ratDenRep n m 与 ratDenRep m n），两者相等靠 ratDenRep_comm（㊷.1）；绝对值对取负不变由 ㊶ 提供，但要把它从 -(x-y) 搬到 y-x，还需要「ratAbsRel 只依赖第一个因子的等价类」（㊷.2）。把这两步拼起来就是 close 的对称性（㊷.3），逐点作用到 realRel 上就是实数相等的对称性（㊷.4）。</p></div><div class="block prose intuition-only"><p>序的通用替换律收在 lib/RatOrder：ratLeRep_congr 换第一个因子，ratLeRep_congr_snd 换第二个。</p></div><div class="block prose intuition-only"><p>㊷.1 减法的反交换：<code>y - x ~ -(x - y)</code></p></div><div class="block prose intuition-only"><p>先证减法的反交换：y-x 与 -(x-y) 相差两次加法交换与一次分母换位。</p></div></div><pre class="exercise-statement"><code>theorem ratSubRep_neg (x y : ratRep) :
+    ratRel (ratSubRep y x) (ratNegRep (ratSubRep x y)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边都先用 <code>ratSubRep_mk</code> 展开成字面三元组。左边是 <code>qrep (c(m+1)+b(n+1)) (d(m+1)+a(n+1)) (ratDenRep n m)</code>；右边的 <code>ratNegRep</code> 只是交换分子序对，定义性给出 <code>qrep (b(n+1)+c(m+1)) (a(n+1)+d(m+1)) (ratDenRep m n)</code>。于是两边的分子只差两次 <code>add_comm</code>、分母只差 <code>ratDenRep_comm</code>。先把这两个等式写成 <code>qrep … = qrep …</code>（<code>prod_mk_congr</code> <span class="math">+</span> <code>congrArg</code> <span class="math">+</span> <code>Eq.trans</code>），再用 <code>Eq.subst</code> 把 <code>ratRel_refl</code> 从右边三元组搬到左边。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratSubRep y x) (ratNegRep (ratSubRep x y))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratSubRep_mk · ratDenRep_comm · add_comm · prod_mk_congr · congrArg · Eq.trans · Eq.subst · ratRel_refl</span>。<code>ratRep</code> 是定义别名，最后用 <code>match</code> 在 <code>Prod (Prod Nat Nat) Nat</code> 上搬到任意代表元。</p></div></details></div><details open class="solution-panel" id="sol-42-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem ratSubRep_neg (x y : ratRep) :
+    ratRel (ratSubRep y x) (ratNegRep (ratSubRep x y)) :=
+  ratSubRep_neg_aux x y</code></pre></div></details></div></article>
+<article class="exercise" id="ex-42-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratAbsRel_wd_left</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-42-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊷.2 <code>ratAbsRel</code> 只依赖第一个因子的等价类</p></div><div class="block prose intuition-only"><p>绝对值只依赖第一个因子的等价类：把两个分支里的 u 都换成等价的 v。</p></div></div><pre class="exercise-statement"><code>theorem ratAbsRel_wd_left (u v : ratRep) (d : ratRep)
+    (h : ratRel u v) (hab : ratAbsRel u d) : ratAbsRel v d :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratAbsRel u d</code> 是两个分支的析取。第一分支 <code>0 ≤ u ∧ d ~ u</code> 要落到第一分支：<code>0 ≤ u</code> 用 <code>ratLeRep_congr_snd</code> 把第二个因子换成 <code>v</code>（<code>0 ≤ v</code>），<code>d ~ u</code> 再用 <code>ratRel_trans_gen</code> 沿 <code>u ~ v</code> 换成 <code>d ~ v</code>。第二分支 <code>u ≤ 0 ∧ d ~ -u</code> 要落到第二分支：<code>u ≤ 0</code> 用 <code>ratLeRep_congr</code> 把<strong>第一个</strong>因子换成 <code>v</code>（<code>v ≤ 0</code>），<code>d ~ -v</code> 由 <code>d ~ -u</code> 与 <code>-u ~ -v</code>（<code>ratNegRep_wd</code>）经 <code>ratRel_trans_gen</code> 串起来。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel u v → ratAbsRel u d → ratAbsRel v d</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Or.elim · ratLeRep_congr</span>（换第一个因子）<span class="math">· ratLeRep_congr_snd</span>（换第二个因子）<span class="math">· ratNegRep_wd · ratRel_trans_gen · match</span>（在展开类型上消去 u、v）。</p></div></details></div><details open class="solution-panel" id="sol-42-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem ratAbsRel_wd_left (u v : ratRep) (d : ratRep)
+    (h : ratRel u v) (hab : ratAbsRel u d) : ratAbsRel v d :=
+  ratAbsRel_wd_left_aux u v d h hab</code></pre></div></details></div></article>
+<article class="exercise" id="ex-42-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">close_symm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-42-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊷.3 <code>close</code> 的对称性</p></div><div class="block prose intuition-only"><p>拼成 close 的对称性：同一份绝对值证据可以左右互换。</p></div></div><pre class="exercise-statement"><code>theorem close_symm (x y eps : ratRep) (h : close x y eps) :
+    close y x eps :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>close x y eps</code> 拆成 <code>∃ d, |x-y| ~ d ∧ d &lt; eps</code>，用同一个 <code>d</code> 造 <code>close y x eps</code>。第一分量：㊶ 的 <code>ratAbsRel_neg</code>（通用版本 <code>ratAbsRel_neg_gen</code>） 把 <code>|x-y| ~ d</code> 变成 <code>|-(x-y)| ~ d</code>，再用 ㊷.2 沿 <code>ratRel (-(x-y)) (y-x)</code>（㊷.1 取对称）搬到 <code>|y-x| ~ d</code>；第二分量 <code>d &lt; eps</code> 原样。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>close x y eps → close y x eps</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.elim · Exists.intro · ratAbsRel_neg_gen · ratAbsRel_wd_left · ratSubRep_neg · ratRel_symm</span>。</p></div></details></div><details open class="solution-panel" id="sol-42-3"><summary>查看解答 <span class="sol-meta">定理 · 17 行</span></summary><div class="solution-body"><pre><code>theorem close_symm (x y eps : ratRep) (h : close x y eps) :
+    close y x eps :=
+  Exists.elim h
+    (fun (d : ratRep)
+         (hd : ratAbsRel (ratSubRep x y) d ∧ ratLtRep d eps) =&gt;
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left
+            (ratNegRep (ratSubRep x y))
+            (ratSubRep y x)
+            d
+            (ratRel_symm
+              (ratSubRep y x)
+              (ratNegRep (ratSubRep x y))
+              (ratSubRep_neg x y))
+            (ratAbsRel_neg_gen (ratSubRep x y) d (And.left hd)))
+          (And.right hd)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-42-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">realRel_symm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-42-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊷.4 实数相等的对称性</p></div><div class="block prose intuition-only"><p>最后逐点作用到实数相等的定义上。</p></div></div><pre class="exercise-statement"><code>theorem realRel_symm (x y : Seq) (h : realRel x y) : realRel y x :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>realRel x y</code> 是 <code>Cauchy x ∧ Cauchy y ∧ 逐点 close</code>。<code>realRel y x</code> 只要把两个 <code>Cauchy</code> 分量对调，第三分量在每个 <code>n</code> 上调用 ㊷.3 把 <code>close (x n) (y n) eps</code> 翻成 <code>close (y n) (x n) eps</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>realRel x y → realRel y x</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">And.intro · And.left · And.right · Exists.elim · Exists.intro · close_symm</span>。</p></div></details></div><details open class="solution-panel" id="sol-42-4"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem realRel_symm (x y : Seq) (h : realRel x y) : realRel y x :=
+  And.intro
+    (And.left (And.right h))
+    (And.intro
+      (And.left h)
+      (realRel_close_symm x y (And.right (And.right h))))</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（1 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>单元㊷ <code>close</code> 的对称性：实数的相等可以换方向</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit41.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">取负与序：绝对值的对称性</span></a><a class="unit-nav-home" ../chapters/ii-4.html#units>目录</a><a class="unit-nav-link" ../units/unit43.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">有理数加法的代表元律：交换与零元</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-42"><h3><a #top>close 的对称性：实数的相等可以换方向</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答 · 6 个解答独有声明</p><details open class="appendix-solution" id="app-sol-42-1"><summary>练习 1 · ratSubRep_neg <span class="sol-meta">定理</span></summary><pre><code>theorem ratSubRep_neg (x y : ratRep) :
+    ratRel (ratSubRep y x) (ratNegRep (ratSubRep x y)) :=
+  ratSubRep_neg_aux x y</code></pre></details><details open class="appendix-solution" id="app-sol-42-2"><summary>练习 2 · ratAbsRel_wd_left <span class="sol-meta">定理</span></summary><pre><code>theorem ratAbsRel_wd_left (u v : ratRep) (d : ratRep)
+    (h : ratRel u v) (hab : ratAbsRel u d) : ratAbsRel v d :=
+  ratAbsRel_wd_left_aux u v d h hab</code></pre></details><details open class="appendix-solution" id="app-sol-42-3"><summary>练习 3 · close_symm <span class="sol-meta">定理</span></summary><pre><code>theorem close_symm (x y eps : ratRep) (h : close x y eps) :
+    close y x eps :=
+  Exists.elim h
+    (fun (d : ratRep)
+         (hd : ratAbsRel (ratSubRep x y) d ∧ ratLtRep d eps) =&gt;
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left
+            (ratNegRep (ratSubRep x y))
+            (ratSubRep y x)
+            d
+            (ratRel_symm
+              (ratSubRep y x)
+              (ratNegRep (ratSubRep x y))
+              (ratSubRep_neg x y))
+            (ratAbsRel_neg_gen (ratSubRep x y) d (And.left hd)))
+          (And.right hd)))</code></pre></details><details open class="appendix-solution" id="app-sol-42-4"><summary>练习 4 · realRel_symm <span class="sol-meta">定理</span></summary><pre><code>theorem realRel_symm (x y : Seq) (h : realRel x y) : realRel y x :=
+  And.intro
+    (And.left (And.right h))
+    (And.intro
+      (And.left h)
+      (realRel_close_symm x y (And.right (And.right h))))</code></pre></details><details open class="appendix-solution" id="app-extra-42-1"><summary>补充 · ratSubRep_neg_qrep <span class="sol-meta">定理</span></summary><pre><code>theorem ratSubRep_neg_qrep (a b c d m n : Nat) :
+    qrep
+      (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+      (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+      (ratDenRep n m) =
+    qrep
+      (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+      (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+      (ratDenRep m n) :=
+  @Eq.trans.{1} ratRep
+    (qrep
+      (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+      (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+      (ratDenRep n m))
+    (@prod_mk (Prod Nat Nat) Nat
+      (@prod_mk Nat Nat
+        (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n))))
+      (ratDenRep m n))
+    (@prod_mk (Prod Nat Nat) Nat
+      (@prod_mk Nat Nat
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m))))
+      (ratDenRep m n))
+    (congrArg.{1}
+      (fun (dd : Nat) =&gt;
+        @prod_mk (Prod Nat Nat) Nat
+          (@prod_mk Nat Nat
+            (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+            (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n))))
+          dd)
+      (ratDenRep_comm n m))
+    (congrArg.{1}
+      (fun (p : Prod Nat Nat) =&gt;
+        @prod_mk (Prod Nat Nat) Nat p (ratDenRep m n))
+      (prod_mk_congr
+        (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+        (add_comm (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (add_comm (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))))</code></pre></details><details open class="appendix-solution" id="app-extra-42-2"><summary>补充 · ratSubRep_neg_negrep <span class="sol-meta">定理</span></summary><pre><code>theorem ratSubRep_neg_negrep (a b c d m n : Nat) :
+    ratNegRep (ratSubRep (qrep a b m) (qrep c d n)) =
+      qrep
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+        (ratDenRep m n) :=
+  @congrArg.{1} ratRep ratRep
+    (ratSubRep (qrep a b m) (qrep c d n))
+    (qrep
+      (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+      (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+      (ratDenRep m n))
+    (fun (z : ratRep) =&gt; ratNegRep z)
+    (ratSubRep_mk a b c d m n)</code></pre></details><details open class="appendix-solution" id="app-extra-42-3"><summary>补充 · ratSubRep_neg_lit <span class="sol-meta">定理</span></summary><pre><code>theorem ratSubRep_neg_lit (a b c d m n : Nat) :
+    ratRel (ratSubRep (qrep c d n) (qrep a b m))
+           (ratNegRep (ratSubRep (qrep a b m) (qrep c d n))) :=
+  @Eq.subst.{1} ratRep
+    (fun (z : ratRep) =&gt;
+      ratRel z (ratNegRep (ratSubRep (qrep a b m) (qrep c d n))))
+    (qrep
+      (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+      (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+      (ratDenRep n m))
+    (ratSubRep (qrep c d n) (qrep a b m))
+    (@Eq.symm.{1} ratRep
+      (ratSubRep (qrep c d n) (qrep a b m))
+      (qrep
+        (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+        (ratDenRep n m))
+      (ratSubRep_mk c d a b n m))
+    (@Eq.subst.{1} ratRep
+      (fun (z : ratRep) =&gt;
+        ratRel
+          (qrep
+            (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+            (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+            (ratDenRep n m))
+          z)
+      (qrep
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+        (ratDenRep m n))
+      (ratNegRep (ratSubRep (qrep a b m) (qrep c d n)))
+      (@Eq.symm.{1} ratRep
+        (ratNegRep (ratSubRep (qrep a b m) (qrep c d n)))
+        (qrep
+          (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+          (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+          (ratDenRep m n))
+        (ratSubRep_neg_negrep a b c d m n))
+      (@Eq.subst.{1} ratRep
+        (fun (z : ratRep) =&gt;
+          ratRel z
+            (qrep
+              (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+              (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+              (ratDenRep m n)))
+        (qrep
+          (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+          (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+          (ratDenRep m n))
+        (qrep
+          (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+          (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+          (ratDenRep n m))
+        (@Eq.symm.{1} ratRep
+          (qrep
+            (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+            (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+            (ratDenRep n m))
+          (qrep
+            (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+            (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+            (ratDenRep m n))
+          (ratSubRep_neg_qrep a b c d m n))
+        (ratRel_refl
+          (qrep
+            (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+            (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+            (ratDenRep m n)))))</code></pre></details><details open class="appendix-solution" id="app-extra-42-4"><summary>补充 · ratSubRep_neg_aux <span class="sol-meta">定理</span></summary><pre><code>theorem ratSubRep_neg_aux (x y : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratSubRep y x) (ratNegRep (ratSubRep x y)) :=
+  match x with
+  | prod_mk (prod_mk a b) m =&gt;
+    match y with
+    | prod_mk (prod_mk c d) n =&gt;
+      ratSubRep_neg_lit a b c d m n</code></pre></details><details open class="appendix-solution" id="app-extra-42-5"><summary>补充 · ratAbsRel_wd_left_aux <span class="sol-meta">定理</span></summary><pre><code>theorem ratAbsRel_wd_left_aux (u v : Prod (Prod Nat Nat) Nat) (d : ratRep) :
+    ratRel u v → ratAbsRel u d → ratAbsRel v d :=
+  match u with
+  | prod_mk (prod_mk a b) m =&gt;
+    match v with
+    | prod_mk (prod_mk a' b') m' =&gt;
+      fun (h : ratRel (prod_mk (prod_mk a b) m) (prod_mk (prod_mk a' b') m'))
+          (hab : ratAbsRel (prod_mk (prod_mk a b) m) d) =&gt;
+        Or.elim
+          (fun (h1 : ratLeRep ratZeroRep (prod_mk (prod_mk a b) m) ∧
+                     ratRel d (prod_mk (prod_mk a b) m)) =&gt;
+            Or.inl (And.intro
+              (ratLeRep_congr_snd Nat.zero Nat.zero a b a' b' Nat.zero m m'
+                h (And.left h1))
+              (ratRel_trans_gen d (prod_mk (prod_mk a b) m)
+                (prod_mk (prod_mk a' b') m') (And.right h1) h)))
+          (fun (h2 : ratLeRep (prod_mk (prod_mk a b) m) ratZeroRep ∧
+                     ratRel d (ratNegRep (prod_mk (prod_mk a b) m))) =&gt;
+            Or.inr (And.intro
+              (ratLeRep_congr a b a' b' Nat.zero Nat.zero m m' Nat.zero
+                h (And.left h2))
+              (ratRel_trans_gen d (ratNegRep (prod_mk (prod_mk a b) m))
+                (ratNegRep (prod_mk (prod_mk a' b') m'))
+                (And.right h2)
+                (ratNegRep_wd (prod_mk (prod_mk a b) m)
+                  (prod_mk (prod_mk a' b') m') h))))
+          hab</code></pre></details><details open class="appendix-solution" id="app-extra-42-6"><summary>补充 · realRel_close_symm <span class="sol-meta">定理</span></summary><pre><code>theorem realRel_close_symm (x y : Seq)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (y n) eps) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (y n) (x n) eps :=
+  fun (eps : ratRep) (he : ratLtRep ratZeroRep eps) =&gt;
+    Exists.elim (h eps he)
+      (fun (N : Nat)
+           (hN : ∀ (n : Nat), LeNat N n → close (x n) (y n) eps) =&gt;
+        Exists.intro N
+          (fun (n : Nat) (hn : LeNat N n) =&gt;
+            close_symm (x n) (y n) eps (hN n hn)))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

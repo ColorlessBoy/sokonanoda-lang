@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · II.7 数系综合与读证明</title>
+<meta name="description" content="章打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/chapter-ii-7.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>II.7 数系综合与读证明</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../chapters/ii-7.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">II.7 · 卷 II</p><h1>II.7 数系综合与读证明</h1><p class="note">4 单元 · 干净打印页（A4）</p></header><section class="unit first-of-chapter" id="unit-69">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-7.html>II.7</a> · 本章第 1 / 4 单元 · 全书第 69 / 72 单元</p>
+<h2><span class="unit-number">69</span><span>数系链：从 <span class="math">ℕ</span> 到 <span class="math">ℝ</span> 的保序嵌入</span></h2>
+<p class="unit-title-en">Unit 69 — The Number Chain: Order-Preserving Embeddings from ℕ to ℝ</p>
+<p class="unit-meta">4 个定义 · 8 个定理 · 7 道练习 · 21 条提示 · <a #appendix-unit-69>解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>数字 2 在本书里走了四站：<span class="math">ℕ</span> 的 <span class="math">2 → ℤ</span> 的 (2,<span class="math">0) → ℚ</span> 的 (2,<span class="math">0)/1 → ℝ</span> 的常序列类。每站都要换一次「相等」的定义。本单元把这四层接起来读：<span class="math">ℕ → ℤ</span> 只换代表元，(n,0) 直接就是整数的 n；<span class="math">ℤ → ℚ</span> 要把代表元映射下降成 <span class="math">Int → Rat</span>——必须交良定义性，再经一次 Quot.lift；<span class="math">ℚ → ℝ</span> 的像是常序列 constSeq q，Cauchy 性由前序单元的常序列引理付清。三段嵌入的代价各不相同。</p></div></div></section>
+<div class="block prose intuition-only"><p>序的迁移分两段陈述：前两段停在代表元层（<span class="math">ℤ</span> 的序在本课程里没有下降成 <span class="math">Int → Int → Prop</span>，这里也不替它下降），<span class="math">ℝ</span> 上的序则是已经下降好的 realLe。于是「<span class="math">ℕ</span> 的 <span class="math">≤</span> 一路走到 <span class="math">ℝ</span> 的 <span class="math">≤</span>」就是最后的合成。</p></div><div class="block prose intuition-only"><p>一个明说的边界：本单元只把函数（<span class="math">ℤ → ℚ</span> 的嵌入）下降一次，不把 <span class="math">ℤ</span> 的序再下降；序保持的前两段因此写成代表元关系 leRep 与 ratLeRep。也就是说，只证明「函数从 <span class="math">ℕ</span> 嵌入到 <span class="math">ℝ</span> 保序」；<span class="math">ℤ</span> 的序没有再下降一次，因为那需要函数外延性（本语言没有）。</p></div><div class="block prose intuition-only"><p>先给两段代表元嵌入与下降，再逐层验证序保持，最后合成整条链并落在 <span class="math">1 ≤ 3</span> 上。</p></div><h3 class="unit-subhead">69.0 自然数到整数的代表元</h3><div class="block prose intuition-only"><p><code>intOfNat n</code> 就是 <code>Quot.mk (n, 0)</code>；这里把代表元单独命名，后面的序与加法都直接对它陈述。</p></div><article class="decl decl-def" id="decl-69-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">natToIntRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def natToIntRep (n : Nat) : Prod Nat Nat :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def natToIntRep (n : Nat) : Prod Nat Nat := @prod_mk Nat Nat n Nat.zero</code></pre></details></div></article>
+<h3 class="unit-subhead">69.1 整数到有理数的代表元：<code>(a, b) ↦ (a - b) / 1</code></h3><div class="block prose intuition-only"><p><code>ratRep</code> 的第三个坐标 <code>n</code> 表示分母 <code>n + 1</code>；取 <code>n = 0</code> 就是除以 1。于是整数的代表元 <code>(a, b)</code>（表示 <code>a - b</code>）原样搬成有理数 <code>(a - b)/1</code>。</p></div><article class="decl decl-def" id="decl-69-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intToRatRep</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def intToRatRep (p : Prod Nat Nat) : ratRep :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def intToRatRep (p : Prod Nat Nat) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat p Nat.zero</code></pre></details></div></article>
+<h3 class="unit-subhead">69.2 嵌入尊重整数的相等</h3><div class="block prose intuition-only"><p><code>intRel p q</code> 是交叉和等式；<code>ratRel (p/1) (q/1)</code> 展开后只是把两边各乘 <code>den 0 = (1,0)</code>，正是 <code>mulRep_wd</code> 的形状。坐标用 <code>Prod.fst</code> / <code>Prod.snd</code> 取出来，避免对变量 <code>p</code> 做模式匹配（假设位不会跟着重写）。</p></div><article class="decl decl-theorem" id="decl-69-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">intToRatRep_wd</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem intToRatRep_wd (p q : Prod Nat Nat) (h : intRel p q) :
+    ratRel (intToRatRep p) (intToRatRep q) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  mulRep_wd (Prod.fst Nat Nat p) (Prod.snd Nat Nat p)
+    (Prod.fst Nat Nat q) (Prod.snd Nat Nat q) 1 0 h</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">69.3 下降成 <code>Int → Rat</code></h3><div class="block prose intuition-only"><p>与 ⑲ 的 <code>intNeg</code> 同一写法：<code>Quot.lift</code> 的函数取 <code>ratOf p 0</code>，良定义性用 <code>Quot.sound</code> 把 69.2 的代表元关系升级成商里的相等。</p></div><article class="decl decl-def" id="decl-69-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intToRat</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def intToRat : Int → Rat :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 6 行</summary><pre><code>def intToRat : Int → Rat :=
+  @Quot.lift.{1, 1} (Prod Nat Nat) intRel Rat
+    (fun (p : Prod Nat Nat) =&gt; ratOf p Nat.zero)
+    (fun (p q : Prod Nat Nat) (h : intRel p q) =&gt;
+      @Quot.sound.{1} ratRep ratRel (intToRatRep p) (intToRatRep q)
+        (intToRatRep_wd p q h))</code></pre></details></div></article>
+<h3 class="unit-subhead"><span class="math">69.4 ι</span> 规则</h3><article class="exercise" id="ex-69-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">intToRat_mk</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-69-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><span class="math">ℕ</span> 的整数代表元：n 进 <span class="math">ℤ</span> 就是 (n,0)。</p></div></div><pre class="exercise-statement"><code>theorem intToRat_mk (a b : Nat) :
+    intToRat (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b)) =
+    ratOf (@prod_mk Nat Nat a b) Nat.zero :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>Quot.lift</code> 作用在 <code>Quot.mk p</code> 上按 <span class="math">ι</span> 归约成 <code>f p</code>，两条边是定义性相等——直接 <code>Eq.refl</code>，不要试图用 <code>Quot.sound</code> 或 <code>congrArg</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>intToRat (mk (a,b)) = ratOf (a,b) 0</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Eq.refl（类型要写成归约后的右边）。</p></div></details></div><details open class="solution-panel" id="sol-69-1"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note"><code>Quot.lift</code> 作用在 <code>Quot.mk p</code> 上按 <span class="math">ι</span> 归约成 <code>f p</code>，所以是定义性相等。</p><pre><code>theorem intToRat_mk (a b : Nat) :
+    intToRat (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b)) =
+    ratOf (@prod_mk Nat Nat a b) Nat.zero :=
+  @Eq.refl.{1} Rat (ratOf (@prod_mk Nat Nat a b) Nat.zero)</code></pre></div></details></div></article>
+<h3 class="unit-subhead"><span class="math">69.5 ℕ</span> 序嵌入 <span class="math">ℤ</span>（代表元层）</h3><article class="exercise" id="ex-69-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">natToInt_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-69-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>整数的有理代表元：分母取 1。</p></div></div><pre class="exercise-statement"><code>theorem natToInt_le (n m : Nat) (h : LeNat n m) :
+    leRep (natToIntRep n) (natToIntRep m) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>leRep (n,0) (m,0)</code> 展开就是 <code>LeNat (n + 0) (m + 0)</code>。<code>leNat_add_right</code> 正好把 <code>LeNat n m</code> 右加同一个数，取 <code>0</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LeNat n m → leRep (natToIntRep n) (natToIntRep m)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>leNat_add_right（第三个参数 <code>Nat.zero</code>）。</p></div></details></div><details open class="solution-panel" id="sol-69-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note"><code>leRep (n, 0) (m, 0)</code> 展开就是 <code>LeNat (n + 0) (m + 0)</code>；<code>leNat_add_right</code>
+把 <code>LeNat n m</code> 右加 0 直接搬过去。</p><pre><code>theorem natToInt_le (n m : Nat) (h : LeNat n m) :
+    leRep (natToIntRep n) (natToIntRep m) :=
+  leNat_add_right n m Nat.zero h</code></pre></div></details></div></article>
+<h3 class="unit-subhead"><span class="math">69.6 ℤ</span> 序嵌入 <span class="math">ℚ</span></h3><article class="exercise" id="ex-69-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">intToRat_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-69-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>嵌入尊重整数的相等：这是下降的样板。</p></div></div><pre class="exercise-statement"><code>theorem intToRat_le (p q : Prod Nat Nat) (h : leRep p q) :
+    ratLeRep (intToRatRep p) (intToRatRep q) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratLeRep (p/1) (q/1)</code> 是交叉相乘后的 <code>leRep</code>；「乘正分母保序」<code>leRep_mul_den_right</code> 把 <code>leRep p q</code> 搬到 <code>den 0 = (1,0)</code> 上，分母参数取 <code>0</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>leRep p q → ratLeRep (intToRatRep p) (intToRatRep q)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>leRep_mul_den_right（第三个参数 <code>Nat.zero</code>）。</p></div></details></div><details open class="solution-panel" id="sol-69-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note"><code>ratLeRep (p/1) (q/1)</code> 是交叉相乘后的 <code>leRep</code>；「乘正分母保序」
+（<code>leRep_mul_den_right</code>）正好把 <code>leRep p q</code> 搬到 <code>den 0 = (1, 0)</code> 上。</p><pre><code>theorem intToRat_le (p q : Prod Nat Nat) (h : leRep p q) :
+    ratLeRep (intToRatRep p) (intToRatRep q) :=
+  leRep_mul_den_right p q Nat.zero h</code></pre></div></details></div></article>
+<h3 class="unit-subhead">69.7 <code>x ≤ y ⇒ x - y ≤ 0</code></h3><article class="exercise" id="ex-69-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">ratLeRep_sub_nonpos</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-69-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>下降成 <span class="math">Int → Rat</span>。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_sub_nonpos (x y : ratRep) (h : ratLeRep x y) :
+    ratLeRep (ratSubRep x y) ratZeroRep :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>x ≤ y</code> 两边同加 <code>-y</code>（㊹ 的 <code>ratLeRep_add_right</code>），右边 <code>y + -y</code> 用 55 的 <code>ratAdd_neg_gen</code> 收成 0，再用 <code>ratLeRep_trans</code> 传递。<code>ratSubRep x y</code> 就是 <code>x + -y</code> 的定义。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep x y → ratLeRep (ratSubRep x y) ratZeroRep</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_add_right · ratAdd_neg_gen · ratLeRep_of_ratRel · ratLeRep_trans</span>。</p></div></details></div><details open class="solution-panel" id="sol-69-4"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><p class="solution-note">把 <code>x ≤ y</code> 两边同加 <code>-y</code>（㊹ 的加法相容），右边 <code>y + -y</code> 用 55 的
+逆元律收成 0，再用传递性。<code>ratSubRep x y</code> 就是 <code>x + -y</code> 的定义。</p><pre><code>theorem ratLeRep_sub_nonpos (x y : ratRep) (h : ratLeRep x y) :
+    ratLeRep (ratSubRep x y) ratZeroRep :=
+  ratLeRep_trans (ratAddRep x (ratNegRep y)) (ratAddRep y (ratNegRep y)) ratZeroRep
+    (ratLeRep_add_right x y (ratNegRep y) h)
+    (ratLeRep_of_ratRel (ratAddRep y (ratNegRep y)) ratZeroRep (ratAdd_neg_gen y))</code></pre></div></details></div></article>
+<h3 class="unit-subhead"><span class="math">69.8 ℚ</span> 序嵌入 <span class="math">ℝ</span>（常序列）</h3><article class="exercise" id="ex-69-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">ratToReal_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-69-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><span class="math">ι</span> 规则：下降后的函数作用在 mk 上按定义归约。</p></div></div><pre class="exercise-statement"><code>theorem ratToReal_le (x y : ratRep) (h : ratLeRep x y) :
+    realLe (Real.mk (constSeq x)) (Real.mk (constSeq y)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>66 的 <code>realLe_mk</code> 把商上的 <code>realLe</code> 化回代表元层的 <code>realLeRep</code>。三个分量：两个常序列的 Cauchy 性（68.1），以及逐点把 <code>x - y ≤ 0</code> 接到 <code>0 ≤ eps</code>（<code>ratLtRep_le</code>）上。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep x y → realLe (mk (constSeq x)) (mk (constSeq y))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Iff.mpr · realLe_mk · cauchy_const · ratLeRep_sub_nonpos · ratLtRep_le · ratLeRep_trans</span>。</p></div></details></div><details open class="solution-panel" id="sol-69-5"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><p class="solution-note">66 的 <span class="math">ι</span> 规则 <code>realLe_mk</code> 把商上的 <code>realLe</code> 化回代表元层的 <code>realLeRep</code>。
+三个分量：两个常序列的 Cauchy 性（68.1），以及逐点的
+<code>(constSeq x n) - (constSeq y n) = x - y ≤ 0 ≤ eps</code>。</p><pre><code>theorem ratToReal_le (x y : ratRep) (h : ratLeRep x y) :
+    realLe (Real.mk (constSeq x)) (Real.mk (constSeq y)) :=
+  Iff.mpr (realLe_mk (constSeq x) (constSeq y))
+    (And.intro (cauchy_const x)
+      (And.intro (cauchy_const y)
+        (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+          Exists.intro Nat.zero
+            (fun (n : Nat) (_hn : LeNat Nat.zero n) =&gt;
+              ratLeRep_trans (ratSubRep (constSeq x n) (constSeq y n)) ratZeroRep eps
+                (ratLeRep_sub_nonpos (constSeq x n) (constSeq y n) h)
+                (ratLtRep_le ratZeroRep eps heps)))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">69.9 合成：<span class="math">ℕ → ℝ</span></h3><div class="block prose intuition-only"><p>有理数层的像是 <code>intToRatRep (natToIntRep n)</code>；<code>Real.mk</code> 再把常序列送进商。这里不需要 <code>intToRat</code>（<code>Rat</code> 的商）——<code>Real</code> 的代表元是序列，常序列取的是有理数的代表元，不是商元素。</p></div><article class="decl decl-def" id="decl-69-10"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">natToReal</code><span class="decl-where">声明 10</span></header><div class="decl-body"><pre class="decl-statement"><code>def natToReal (n : Nat) : Real :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def natToReal (n : Nat) : Real :=
+  Real.mk (constSeq (intToRatRep (natToIntRep n)))</code></pre></details></div></article>
+<h3 class="unit-subhead">69.10 整条链保序</h3><article class="exercise" id="ex-69-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">natToReal_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-69-6>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><span class="math">ℕ</span> 序进 <span class="math">ℤ</span>（代表元层）。</p></div></div><pre class="exercise-statement"><code>theorem natToReal_le (n m : Nat) (h : LeNat n m) :
+    realLe (natToReal n) (natToReal m) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先 <code>natToInt_le</code> 把 <span class="math">ℕ</span> 的序送进 <span class="math">ℤ</span> 的代表元，再 <code>intToRat_le</code> 送进 <span class="math">ℚ</span> 的代表元，最后把这两个代表元交给 69.8 <code>ratToReal_le</code>。这是 <span class="math">69.5 → 69.6 → 69.8</span> 的合成，不需要新的算术。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LeNat n m → realLe (natToReal n) (natToReal m)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratToReal_le · intToRat_le · natToInt_le</span>。</p></div></details></div><details open class="solution-panel" id="sol-69-6"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem natToReal_le (n m : Nat) (h : LeNat n m) :
+    realLe (natToReal n) (natToReal m) :=
+  ratToReal_le (intToRatRep (natToIntRep n)) (intToRatRep (natToIntRep m))
+    (intToRat_le (natToIntRep n) (natToIntRep m) (natToInt_le n m h))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">69.11 具体：<span class="math">1 ≤ 3</span> 在 <span class="math">ℝ</span> 里仍成立</h3><article class="exercise" id="ex-69-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">demo_natToReal_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-69-7>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><span class="math">ℤ</span> 序进 <span class="math">ℚ</span>（代表元层）。</p></div></div><pre class="exercise-statement"><code>theorem demo_natToReal_le :
+    realLe (natToReal 1) (natToReal 3) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 69.10 用在 <code>1 ≤ 3</code> 上；<code>1 ≤ 3</code> 用两次 <code>le_succ</code> 从 <code>le_refl 1</code> 造出来。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>realLe (natToReal 1) (natToReal 3)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">natToReal_le · le_succ · le_refl</span>。</p></div></details></div><details open class="solution-panel" id="sol-69-7"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem demo_natToReal_le :
+    realLe (natToReal 1) (natToReal 3) :=
+  natToReal_le 1 3 (le_succ 1 2 (le_succ 1 1 (le_refl 1)))</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>函数与两条代表元层的序保持到手；下一单元把加法沿同一条链搬过去。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit68.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">完备性：有理 Cauchy 序列在 <span class="math">ℝ</span> 中收敛到自己的类</span></a><a class="unit-nav-home" ../chapters/ii-7.html#units>目录</a><a class="unit-nav-link" ../units/unit70.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">数系链：加法在四层间的迁移</span></a></nav>
+</section>
+<section class="appendix-unit" id="appendix-unit-69"><h3><a #top>数系链：从 <span class="math">ℕ</span> 到 <span class="math">ℝ</span> 的保序嵌入</a></h3><p class="appendix-meta">7 道练习 · 7 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-69-1"><summary>练习 1 · intToRat_mk <span class="sol-meta">定理</span></summary><p class="solution-note"><code>Quot.lift</code> 作用在 <code>Quot.mk p</code> 上按 <span class="math">ι</span> 归约成 <code>f p</code>，所以是定义性相等。</p><pre><code>theorem intToRat_mk (a b : Nat) :
+    intToRat (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b)) =
+    ratOf (@prod_mk Nat Nat a b) Nat.zero :=
+  @Eq.refl.{1} Rat (ratOf (@prod_mk Nat Nat a b) Nat.zero)</code></pre></details><details open class="appendix-solution" id="app-sol-69-2"><summary>练习 2 · natToInt_le <span class="sol-meta">定理</span></summary><p class="solution-note"><code>leRep (n, 0) (m, 0)</code> 展开就是 <code>LeNat (n + 0) (m + 0)</code>；<code>leNat_add_right</code>
+把 <code>LeNat n m</code> 右加 0 直接搬过去。</p><pre><code>theorem natToInt_le (n m : Nat) (h : LeNat n m) :
+    leRep (natToIntRep n) (natToIntRep m) :=
+  leNat_add_right n m Nat.zero h</code></pre></details><details open class="appendix-solution" id="app-sol-69-3"><summary>练习 3 · intToRat_le <span class="sol-meta">定理</span></summary><p class="solution-note"><code>ratLeRep (p/1) (q/1)</code> 是交叉相乘后的 <code>leRep</code>；「乘正分母保序」
+（<code>leRep_mul_den_right</code>）正好把 <code>leRep p q</code> 搬到 <code>den 0 = (1, 0)</code> 上。</p><pre><code>theorem intToRat_le (p q : Prod Nat Nat) (h : leRep p q) :
+    ratLeRep (intToRatRep p) (intToRatRep q) :=
+  leRep_mul_den_right p q Nat.zero h</code></pre></details><details open class="appendix-solution" id="app-sol-69-4"><summary>练习 4 · ratLeRep_sub_nonpos <span class="sol-meta">定理</span></summary><p class="solution-note">把 <code>x ≤ y</code> 两边同加 <code>-y</code>（㊹ 的加法相容），右边 <code>y + -y</code> 用 55 的
+逆元律收成 0，再用传递性。<code>ratSubRep x y</code> 就是 <code>x + -y</code> 的定义。</p><pre><code>theorem ratLeRep_sub_nonpos (x y : ratRep) (h : ratLeRep x y) :
+    ratLeRep (ratSubRep x y) ratZeroRep :=
+  ratLeRep_trans (ratAddRep x (ratNegRep y)) (ratAddRep y (ratNegRep y)) ratZeroRep
+    (ratLeRep_add_right x y (ratNegRep y) h)
+    (ratLeRep_of_ratRel (ratAddRep y (ratNegRep y)) ratZeroRep (ratAdd_neg_gen y))</code></pre></details><details open class="appendix-solution" id="app-sol-69-5"><summary>练习 5 · ratToReal_le <span class="sol-meta">定理</span></summary><p class="solution-note">66 的 <span class="math">ι</span> 规则 <code>realLe_mk</code> 把商上的 <code>realLe</code> 化回代表元层的 <code>realLeRep</code>。
+三个分量：两个常序列的 Cauchy 性（68.1），以及逐点的
+<code>(constSeq x n) - (constSeq y n) = x - y ≤ 0 ≤ eps</code>。</p><pre><code>theorem ratToReal_le (x y : ratRep) (h : ratLeRep x y) :
+    realLe (Real.mk (constSeq x)) (Real.mk (constSeq y)) :=
+  Iff.mpr (realLe_mk (constSeq x) (constSeq y))
+    (And.intro (cauchy_const x)
+      (And.intro (cauchy_const y)
+        (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+          Exists.intro Nat.zero
+            (fun (n : Nat) (_hn : LeNat Nat.zero n) =&gt;
+              ratLeRep_trans (ratSubRep (constSeq x n) (constSeq y n)) ratZeroRep eps
+                (ratLeRep_sub_nonpos (constSeq x n) (constSeq y n) h)
+                (ratLtRep_le ratZeroRep eps heps)))))</code></pre></details><details open class="appendix-solution" id="app-sol-69-6"><summary>练习 6 · natToReal_le <span class="sol-meta">定理</span></summary><pre><code>theorem natToReal_le (n m : Nat) (h : LeNat n m) :
+    realLe (natToReal n) (natToReal m) :=
+  ratToReal_le (intToRatRep (natToIntRep n)) (intToRatRep (natToIntRep m))
+    (intToRat_le (natToIntRep n) (natToIntRep m) (natToInt_le n m h))</code></pre></details><details open class="appendix-solution" id="app-sol-69-7"><summary>练习 7 · demo_natToReal_le <span class="sol-meta">定理</span></summary><pre><code>theorem demo_natToReal_le :
+    realLe (natToReal 1) (natToReal 3) :=
+  natToReal_le 1 3 (le_succ 1 2 (le_succ 1 1 (le_refl 1)))</code></pre></details></section>
+<section class="unit" id="unit-70">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-7.html>II.7</a> · 本章第 2 / 4 单元 · 全书第 70 / 72 单元</p>
+<h2><span class="unit-number">70</span><span>数系链：加法在四层间的迁移</span></h2>
+<p class="unit-title-en">Unit 70 — The Number Chain: Addition Across the Four Layers</p>
+<p class="unit-meta">3 个定义 · 6 个定理 · 6 道练习 · 18 条提示 · <a #appendix-unit-70>解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>上一单元把序从 <span class="math">ℕ</span> 一路搬到 <span class="math">ℝ</span>。本单元搬加法：<span class="math">ℕ</span> 的 Nat.add 在 <span class="math">ℤ</span> 的代表元上就是 addRep；<span class="math">ℚ</span> 的代表元加法是 ratAddRep；<span class="math">ℝ</span> 的加法是三元关系 addRel a b c（存在且唯一），不是函数——Quot.lift 外层要函数相等，而杂点让像不唯一。</p></div></div></section>
+<div class="block prose intuition-only"><p>于是「嵌入保持加法」在 <span class="math">ℝ</span> 层写成 <span class="math">addRel (natToReal n) (natToReal m) (natToReal (n+m))</span>。每一层都只做定义性归约加一条已知律：addRep 在分母 0 的序对上归约成 <span class="math">(n+m</span>, 0)（<span class="math">0+0</span> 归约成 0）；ratAddRep 在分母 1 上归约成 <span class="math">(p+q)/1</span>；addRel 的引入规则直接给出和，两个 Cauchy 守卫由常序列引理付清；把这些合成就是整条链保持加法。</p></div><div class="block prose intuition-only"><p>代价说明：<span class="math">ℝ</span> 层是关系而不是函数，所以没有「嵌入是群同态」的函数等式可写；写成 addRel 的三元组正是上一批单元的诚实部分结论。</p></div><div class="block prose intuition-only"><p>先给两个代表元嵌入与两层加法保持，再合成 <span class="math">ℕ → ℝ</span> 并验证它保持加法，最后落在具体数字与和的唯一性上。</p></div><h3 class="unit-subhead">70.0 两个代表元嵌入（与 69 相同）</h3><article class="decl decl-def" id="decl-70-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">natToIntRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def natToIntRep (n : Nat) : Prod Nat Nat :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def natToIntRep (n : Nat) : Prod Nat Nat := @prod_mk Nat Nat n Nat.zero</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-70-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intToRatRep</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def intToRatRep (p : Prod Nat Nat) : ratRep :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def intToRatRep (p : Prod Nat Nat) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat p Nat.zero</code></pre></details></div></article>
+<h3 class="unit-subhead">70.1 加法在 <span class="math">ℕ → ℤ</span> 上保持</h3><article class="exercise" id="ex-70-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">natToInt_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-70-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两个代表元嵌入（与上一单元相同）。</p></div></div><pre class="exercise-statement"><code>theorem natToInt_add (n m : Nat) :
+    intRel (addRep (natToIntRep n) (natToIntRep m)) (natToIntRep (Nat.add n m)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>addRep (n,0) (m,0)</code> 的两个坐标是 <code>n + m</code> 与 <code>0 + 0</code>；<code>Nat.add 0 0</code> 按定义归约成 0，所以两边就是同一个代表元。用 <code>intRel_refl</code> 收口，不要展开交叉和。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>intRel (addRep (natToIntRep n) (natToIntRep m)) (natToIntRep (n + m))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>intRel_refl。</p></div></details></div><details open class="solution-panel" id="sol-70-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note"><code>addRep (n,0) (m,0)</code> 的两个坐标是 <code>n + m</code> 与 <code>0 + 0</code>；<code>Nat.add 0 0</code>
+按定义归约成 0，所以两边是同一个代表元，<code>intRel_refl</code> 收口。</p><pre><code>theorem natToInt_add (n m : Nat) :
+    intRel (addRep (natToIntRep n) (natToIntRep m)) (natToIntRep (Nat.add n m)) :=
+  intRel_refl (natToIntRep (Nat.add n m))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">70.2 加法在 <span class="math">ℤ → ℚ</span> 上保持</h3><article class="exercise" id="ex-70-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">intToRat_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-70-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><span class="math">ℕ</span> 的加法进 <span class="math">ℤ</span>：序对逐坐标相加。</p></div></div><pre class="exercise-statement"><code>theorem intToRat_add (p q : Prod Nat Nat) :
+    ratRel (ratAddRep (intToRatRep p) (intToRatRep q))
+      (intToRatRep (addRep p q)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>分母 1 上 <code>ratAddRep</code> 的分子就是 <code>addRep</code> 的两个坐标（乘 1、加 0 都按定义归约），分母字段 <code>ratDenRep 0 0</code> 也归约成 0，于是两边是同一个 <code>ratRep</code>；用 <code>ratRel_refl</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratAddRep (intToRatRep p) (intToRatRep q)) (intToRatRep (addRep p q))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>ratRel_refl。</p></div></details></div><details open class="solution-panel" id="sol-70-2"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">分母 1 上 <code>ratAddRep</code> 的分子就是 <code>addRep</code> 的两个坐标（乘 1、加 0 都按
+定义归约），分母字段仍归约成 0，于是两边是同一个 <code>ratRep</code>。</p><pre><code>theorem intToRat_add (p q : Prod Nat Nat) :
+    ratRel (ratAddRep (intToRatRep p) (intToRatRep q))
+      (intToRatRep (addRep p q)) :=
+  ratRel_refl (intToRatRep (addRep p q))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">70.3 合成：<span class="math">ℕ → ℝ</span></h3><article class="decl decl-def" id="decl-70-5"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">natToReal</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>def natToReal (n : Nat) : Real :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def natToReal (n : Nat) : Real :=
+  Real.mk (constSeq (intToRatRep (natToIntRep n)))</code></pre></details></div></article>
+<h3 class="unit-subhead">70.4 加法在 <span class="math">ℚ → ℝ</span> 上保持（三元关系版）</h3><article class="exercise" id="ex-70-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratToReal_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-70-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><span class="math">ℤ</span> 的加法进 <span class="math">ℚ</span>：分母 1 上的归约。</p></div></div><pre class="exercise-statement"><code>theorem ratToReal_add (x y : ratRep) :
+    addRel (Real.mk (constSeq x)) (Real.mk (constSeq y))
+      (Real.mk (constSeq (ratAddRep x y))) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>addRel_intro</code> 要两个 Cauchy 守卫；常序列的 Cauchy 性是 68.1 的 <code>cauchy_const</code>。<code>addSeq (constSeq x) (constSeq y)</code> 与 <code>constSeq (ratAddRep x y)</code> 在 <code>fun n =&gt; x + y</code> 上定义性相等，所以不用再证代表元等式。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>addRel (mk (constSeq x)) (mk (constSeq y)) (mk (constSeq (ratAddRep x y)))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">addRel_intro · cauchy_const</span>。</p></div></details></div><details open class="solution-panel" id="sol-70-3"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note"><code>addRel_intro</code> 要两个 Cauchy 守卫；常序列的 Cauchy 性是 68.1。
+<code>addSeq (constSeq x) (constSeq y)</code> 与 <code>constSeq (ratAddRep x y)</code> 在
+<code>fun n =&gt; x + y</code> 上定义性相等。</p><pre><code>theorem ratToReal_add (x y : ratRep) :
+    addRel (Real.mk (constSeq x)) (Real.mk (constSeq y))
+      (Real.mk (constSeq (ratAddRep x y))) :=
+  addRel_intro (constSeq x) (constSeq y) (cauchy_const x) (cauchy_const y)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">70.5 整条链：<span class="math">ℕ</span> 的加法在 <span class="math">ℝ</span> 里仍是加法</h3><article class="exercise" id="ex-70-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">natToReal_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-70-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>合成 <span class="math">ℕ → ℝ</span>。</p></div></div><pre class="exercise-statement"><code>theorem natToReal_add (n m : Nat) :
+    addRel (natToReal n) (natToReal m) (natToReal (Nat.add n m)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 70.4 用在两个有理代表元 <code>intToRatRep (natToIntRep n)</code> 与 <code>… m</code> 上。结果正好是 <code>addRel (natToReal n) (natToReal m) (natToReal (n+m))</code>——三个 <code>natToReal</code> 都按定义展开。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>addRel (natToReal n) (natToReal m) (natToReal (n + m))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>ratToReal_add。</p></div></details></div><details open class="solution-panel" id="sol-70-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem natToReal_add (n m : Nat) :
+    addRel (natToReal n) (natToReal m) (natToReal (Nat.add n m)) :=
+  ratToReal_add (intToRatRep (natToIntRep n)) (intToRatRep (natToIntRep m))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">70.6 具体：<span class="math">1 + 2 = 3</span> 在 <span class="math">ℝ</span> 里成立</h3><article class="exercise" id="ex-70-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">demo_natToReal_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-70-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><span class="math">ℚ</span> 的加法进 <span class="math">ℝ</span>（三元关系）。</p></div></div><pre class="exercise-statement"><code>theorem demo_natToReal_add :
+    addRel (natToReal 1) (natToReal 2) (natToReal 3) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 70.5 用在 <code>1</code> 与 <code>2</code> 上；<code>Nat.add 1 2</code> 按定义归约成 <code>3</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>addRel (natToReal 1) (natToReal 2) (natToReal 3)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>natToReal_add。</p></div></details></div><details open class="solution-panel" id="sol-70-5"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem demo_natToReal_add :
+    addRel (natToReal 1) (natToReal 2) (natToReal 3) :=
+  natToReal_add 1 2</code></pre></div></details></div></article>
+<h3 class="unit-subhead">70.7 具体：和是唯一的</h3><article class="exercise" id="ex-70-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">demo_add_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-70-6>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>整条链保持加法。</p></div></div><pre class="exercise-statement"><code>theorem demo_add_unique (c : Real)
+    (h : addRel (natToReal 1) (natToReal 2) c) :
+    c = natToReal 3 :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>61.4 的 <code>addRel_unique</code> 保证三元关系的输出唯一：参数顺序是 <code>a b c c' h h'</code>，结论是 <code>c = c'</code>。这里 <code>c</code> 是任给的输出，<code>c'</code> 取 <code>natToReal 3</code>，两个假设分别是 <code>h</code> 与 70.6。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>addRel (natToReal 1) (natToReal 2) c → c = natToReal 3</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">addRel_unique · demo_natToReal_add</span>。</p></div></details></div><details open class="solution-panel" id="sol-70-6"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><p class="solution-note"><code>1 + 2</code> 的输出，就与 <code>natToReal 3</code> 相等。</p><pre><code>theorem demo_add_unique (c : Real)
+    (h : addRel (natToReal 1) (natToReal 2) c) :
+    c = natToReal 3 :=
+  addRel_unique (natToReal 1) (natToReal 2) c (natToReal 3)
+    h (natToReal_add 1 2)</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>加法沿四层链保住了；下一单元把「商的代价」这笔账算清楚。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit69.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">数系链：从 <span class="math">ℕ</span> 到 <span class="math">ℝ</span> 的保序嵌入</span></a><a class="unit-nav-home" ../chapters/ii-7.html#units>目录</a><a class="unit-nav-link" ../units/unit71.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">数系综合：商的代价——一座桥与两座桥</span></a></nav>
+</section>
+<section class="appendix-unit" id="appendix-unit-70"><h3><a #top>数系链：加法在四层间的迁移</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-70-1"><summary>练习 1 · natToInt_add <span class="sol-meta">定理</span></summary><p class="solution-note"><code>addRep (n,0) (m,0)</code> 的两个坐标是 <code>n + m</code> 与 <code>0 + 0</code>；<code>Nat.add 0 0</code>
+按定义归约成 0，所以两边是同一个代表元，<code>intRel_refl</code> 收口。</p><pre><code>theorem natToInt_add (n m : Nat) :
+    intRel (addRep (natToIntRep n) (natToIntRep m)) (natToIntRep (Nat.add n m)) :=
+  intRel_refl (natToIntRep (Nat.add n m))</code></pre></details><details open class="appendix-solution" id="app-sol-70-2"><summary>练习 2 · intToRat_add <span class="sol-meta">定理</span></summary><p class="solution-note">分母 1 上 <code>ratAddRep</code> 的分子就是 <code>addRep</code> 的两个坐标（乘 1、加 0 都按
+定义归约），分母字段仍归约成 0，于是两边是同一个 <code>ratRep</code>。</p><pre><code>theorem intToRat_add (p q : Prod Nat Nat) :
+    ratRel (ratAddRep (intToRatRep p) (intToRatRep q))
+      (intToRatRep (addRep p q)) :=
+  ratRel_refl (intToRatRep (addRep p q))</code></pre></details><details open class="appendix-solution" id="app-sol-70-3"><summary>练习 3 · ratToReal_add <span class="sol-meta">定理</span></summary><p class="solution-note"><code>addRel_intro</code> 要两个 Cauchy 守卫；常序列的 Cauchy 性是 68.1。
+<code>addSeq (constSeq x) (constSeq y)</code> 与 <code>constSeq (ratAddRep x y)</code> 在
+<code>fun n =&gt; x + y</code> 上定义性相等。</p><pre><code>theorem ratToReal_add (x y : ratRep) :
+    addRel (Real.mk (constSeq x)) (Real.mk (constSeq y))
+      (Real.mk (constSeq (ratAddRep x y))) :=
+  addRel_intro (constSeq x) (constSeq y) (cauchy_const x) (cauchy_const y)</code></pre></details><details open class="appendix-solution" id="app-sol-70-4"><summary>练习 4 · natToReal_add <span class="sol-meta">定理</span></summary><pre><code>theorem natToReal_add (n m : Nat) :
+    addRel (natToReal n) (natToReal m) (natToReal (Nat.add n m)) :=
+  ratToReal_add (intToRatRep (natToIntRep n)) (intToRatRep (natToIntRep m))</code></pre></details><details open class="appendix-solution" id="app-sol-70-5"><summary>练习 5 · demo_natToReal_add <span class="sol-meta">定理</span></summary><pre><code>theorem demo_natToReal_add :
+    addRel (natToReal 1) (natToReal 2) (natToReal 3) :=
+  natToReal_add 1 2</code></pre></details><details open class="appendix-solution" id="app-sol-70-6"><summary>练习 6 · demo_add_unique <span class="sol-meta">定理</span></summary><p class="solution-note"><code>1 + 2</code> 的输出，就与 <code>natToReal 3</code> 相等。</p><pre><code>theorem demo_add_unique (c : Real)
+    (h : addRel (natToReal 1) (natToReal 2) c) :
+    c = natToReal 3 :=
+  addRel_unique (natToReal 1) (natToReal 2) c (natToReal 3)
+    h (natToReal_add 1 2)</code></pre></details></section>
+<section class="unit" id="unit-71">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-7.html>II.7</a> · 本章第 3 / 4 单元 · 全书第 71 / 72 单元</p>
+<h2><span class="unit-number">71</span><span>数系综合：商的代价——一座桥与两座桥</span></h2>
+<p class="unit-title-en">Unit 71 — The Cost of Quotients: One Bridge and Two Bridges</p>
+<p class="unit-meta">2 个定义 · 7 个定理 · 6 道练习 · 18 条提示 · <a #appendix-unit-71>解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>上一批单元把 <span class="math">ℤ→ℚ</span> 的函数 intToRat : <span class="math">Int → Rat</span> 下降了一次；而 <span class="math">ℝ</span> 的加法与序各下降了两次。两次不是笔误，是 Quot.lift 的类型决定的：它的签名是</p></div><div class="math-display intuition-only" role="math" aria-label="(f : α → β) → (∀ a b, r a b → f a = f b) → Quot r → β"><math display="block" class="mathml"><mrow><mrow><mo>(</mo><mrow><mi>f</mi><mspace width="0.22em"/><mo>:</mo><mspace width="0.22em"/><mo>α</mo><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mo>β</mo></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mo>∀</mo><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mi>b</mi><mo>,</mo><mspace width="0.22em"/><mi>r</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mi>b</mi><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mi>f</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>f</mi><mspace width="0.22em"/><mi>b</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mi mathvariant="normal">Quot</mi><mspace width="0.22em"/><mi>r</mi><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mo>β</mo></mrow></math></div><div class="block prose intuition-only"><p>当 <span class="math">β = Rat</span>（一个类型），lift 的返回值仍是元素，义务只有一条：换代表元后像相等。当 <span class="math">β = Real → Prop</span>（加法的三元关系、序），外层 lift 的 f 是 <span class="math">Real → (Real → Prop)</span>，于是「换代表元后像相等」变成了函数相等：把函数相等化成逐点相等要函数外延性，每个点上的命题相等要命题外延性。这正是那两个 def 里的两次 Quot.lift 与两条外延义务。</p></div></div></section>
+<h3 class="unit-subhead"><span class="math">71.0 ι</span> 规则：lift 作用在 mk 上回到代表元</h3><article class="exercise" id="ex-71-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">quot_lift_mk</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-71-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两件代价都不是新公理：函数外延性在本课程里是从 Quot.sound 证出的定理，命题外延性是已经声明的既有公理（只在命题层用）。所以「<span class="math">ℝ</span> 的加法是关系而不是函数」不是绕路：addRel a b c 正是两次 lift 之后能诚实拿到的全部。</p></div><div class="block prose intuition-only"><p>把这笔账拆成可证明的几件：先给 <span class="math">ι</span> 规则，再给两个 lift 相等的充分条件，然后用一座桥与两座桥的实例分别验证「过桥费就是良定义性」，最后落在常零序列上。</p></div><div class="block prose intuition-only"><p><span class="math">ι</span> 规则：lift 作用在 mk 上回到代表元。</p></div></div><pre class="exercise-statement"><code>theorem quot_lift_mk (α β : Type) (r : α → α → Prop)
+    (f : α → β) (h : ∀ (a b : α), r a b → f a = f b) (a : α) :
+    @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r a) = f a :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>Quot.lift</code> 作用在 <code>Quot.mk a</code> 上按 <span class="math">ι</span> 归约成 <code>f a</code>，两边是<strong>定义性相等</strong>，直接 <code>Eq.refl</code>；不要用 <code>Quot.sound</code> 或 <code>congrArg</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>lift f h (mk a) = f a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Eq.refl（类型写成归约后的 <code>f a</code>）。</p></div></details></div><details open class="solution-panel" id="sol-71-1"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">(f : <span class="math">α → β) → (∀ a b</span>, <span class="math">r a b → f a = f b) → Quot r → β</span>。
+
+<code>Quot.lift</code> 作用在 <code>Quot.mk a</code> 上按 <span class="math">ι</span> 归约成 <code>f a</code>，两边定义性相等。</p><pre><code>theorem quot_lift_mk (α β : Type) (r : α → α → Prop)
+    (f : α → β) (h : ∀ (a b : α), r a b → f a = f b) (a : α) :
+    @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r a) = f a :=
+  @Eq.refl.{1} β (f a)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">71.1 两个 lift 相等：逐点相等就够了（funext）</h3><article class="exercise" id="ex-71-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">quot_lift_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-71-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>外层 lift 的返回值是函数；要证两个 lift 相等，先 <code>funext</code> 化成「对每个商点相等」，再 <code>Quot.ind</code> 把商点烧成 <code>mk a</code>，两次 <span class="math">ι</span> 归约后目标就是 <code>f a = g a</code>，交给逐点假设。两个 lift 相等：逐点相等就够了（函数外延性）。</p></div></div><pre class="exercise-statement"><code>theorem quot_lift_unique (α β : Type) (r : α → α → Prop)
+    (f g : α → β)
+    (hf : ∀ (a b : α), r a b → f a = f b)
+    (hg : ∀ (a b : α), r a b → g a = g b)
+    (h : ∀ (a : α), f a = g a) :
+    @Quot.lift.{1, 1} α r β f hf = @Quot.lift.{1, 1} α r β g hg :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>funext f g h</code> 三件都要显式给（两个被比的函数 <span class="math">+</span> 逐点证明）；逐点证明里对商点做 <code>Quot.ind</code>，基例经两次 <span class="math">ι</span> 归约就是 <code>h a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>lift f hf = lift g hg</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>funext（显式两个函数）<span class="math">· Quot.ind · ι</span> 归约。</p></div></details></div><details open class="solution-panel" id="sol-71-2"><summary>查看解答 <span class="sol-meta">定理 · 16 行</span></summary><div class="solution-body"><p class="solution-note">先 <code>funext</code> 把函数相等化成逐点相等，再 <code>Quot.ind</code> 把商点烧成
+<code>mk a</code>；两次 <span class="math">ι</span> 归约后目标就是 <code>f a = g a</code>，交给逐点假设。</p><pre><code>theorem quot_lift_unique (α β : Type) (r : α → α → Prop)
+    (f g : α → β)
+    (hf : ∀ (a b : α), r a b → f a = f b)
+    (hg : ∀ (a b : α), r a b → g a = g b)
+    (h : ∀ (a : α), f a = g a) :
+    @Quot.lift.{1, 1} α r β f hf = @Quot.lift.{1, 1} α r β g hg :=
+  funext
+    (@Quot.lift.{1, 1} α r β f hf)
+    (@Quot.lift.{1, 1} α r β g hg)
+    (fun (q : @Quot.{1} α r) =&gt;
+      @Quot.ind.{1} α r
+        (fun (q : @Quot.{1} α r) =&gt;
+          @Quot.lift.{1, 1} α r β f hf q =
+          @Quot.lift.{1, 1} α r β g hg q)
+        (fun (a : α) =&gt; h a)
+        q)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">71.2 一座桥：<code>Int → Rat</code> 的下降与它的过桥费</h3><article class="decl decl-def" id="decl-71-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intToRatRep</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def intToRatRep (p : Prod Nat Nat) : ratRep :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def intToRatRep (p : Prod Nat Nat) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat p Nat.zero</code></pre></details></div></article>
+<div class="block prose intuition-only"><p>过桥费：换代表元，像在 <code>ratRel</code> 下相等。与 69.2 同一条 <code>mulRep_wd</code>。</p></div><article class="decl decl-theorem" id="decl-71-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">intToRatRep_wd</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem intToRatRep_wd (p q : Prod Nat Nat) (h : intRel p q) :
+    ratRel (intToRatRep p) (intToRatRep q) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  mulRep_wd (Prod.fst Nat Nat p) (Prod.snd Nat Nat p)
+    (Prod.fst Nat Nat q) (Prod.snd Nat Nat q) 1 0 h</code></pre></li></ol></details></div></article>
+<article class="decl decl-def" id="decl-71-5"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intToRat</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>def intToRat : Int → Rat :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 6 行</summary><pre><code>def intToRat : Int → Rat :=
+  @Quot.lift.{1, 1} (Prod Nat Nat) intRel Rat
+    (fun (p : Prod Nat Nat) =&gt; ratOf p Nat.zero)
+    (fun (p q : Prod Nat Nat) (h : intRel p q) =&gt;
+      @Quot.sound.{1} ratRep ratRel (intToRatRep p) (intToRatRep q)
+        (intToRatRep_wd p q h))</code></pre></details></div></article>
+<article class="exercise" id="ex-71-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">intToRat_sound</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-71-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>一座桥的过桥费就是良定义性。</p></div></div><pre class="exercise-statement"><code>theorem intToRat_sound (p q : Prod Nat Nat) (h : intRel p q) :
+    intToRat (@Quot.mk.{1} (Prod Nat Nat) intRel p) =
+    intToRat (@Quot.mk.{1} (Prod Nat Nat) intRel q) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>intToRat</code> 作用在 <code>mk p</code> 上按 <span class="math">ι</span> 归约成 <code>Quot.mk ratRel (intToRatRep p)</code>；于是 <code>Quot.sound</code> 把 71.2 的 <code>intToRatRep_wd</code> 直接升级成商里的相等。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>intToRat (mk p) = intToRat (mk q)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Quot.sound · ι</span> 归约（两处 intToRat 都要烧掉）。</p></div></details></div><details open class="solution-panel" id="sol-71-3"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><p class="solution-note"><code>intToRat</code> 作用在 <code>mk p</code> 上按 <span class="math">ι</span> 归约成 <code>Quot.mk ratRel (intToRatRep p)</code>；
+于是 <code>Quot.sound</code> 把 <code>intToRatRep_wd</code> 直接升级成商里的相等。</p><pre><code>theorem intToRat_sound (p q : Prod Nat Nat) (h : intRel p q) :
+    intToRat (@Quot.mk.{1} (Prod Nat Nat) intRel p) =
+    intToRat (@Quot.mk.{1} (Prod Nat Nat) intRel q) :=
+  @Quot.sound.{1} ratRep ratRel (intToRatRep p) (intToRatRep q)
+    (intToRatRep_wd p q h)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">71.3 两座桥的代价：关系可以沿三个位置搬运</h3><article class="exercise" id="ex-71-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">addRel_congr</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-71-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><code>addRel</code> 不是函数，不能 <code>congrArg</code>；但它的三个参数都是相等可替换的。依次沿 <code>c</code>、<code>b</code>、<code>a</code> 做三次 <code>Eq.subst</code>，就把关系搬到新的三元组上。关系沿三个位置的相等搬运。</p></div></div><pre class="exercise-statement"><code>theorem addRel_congr (a a' b b' c c' : Real)
+    (h : addRel a b c) (ha : a = a') (hb : b = b') (hc : c = c') :
+    addRel a' b' c' :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>h : addRel a b c</code>。先沿 <code>hc : c = c'</code> 搬第三个位置（motive <code>fun x =&gt; addRel a b x</code>），再沿 <code>hb</code> 搬第二个，最后沿 <code>ha</code> 搬第一个；<code>Eq.subst</code> 的参数是 motive、等式、旧证明。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>addRel a b c → a = a' → b = b' → c = c' → addRel a' b' c'</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Eq.subst（三次，位置从右到左）<span class="math">·</span> 每次的 motive 只挖一个洞。</p></div></details></div><details open class="solution-panel" id="sol-71-4"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note"><code>addRel</code> 不是函数，不能 <code>congrArg</code>；但三个参数都是相等可替换的。
+从右到左搬：先 <code>c</code>，再 <code>b</code>，最后 <code>a</code>。</p><pre><code>theorem addRel_congr (a a' b b' c c' : Real)
+    (h : addRel a b c) (ha : a = a') (hb : b = b') (hc : c = c') :
+    addRel a' b' c' :=
+  @Eq.subst.{1} Real (fun (x : Real) =&gt; addRel a' b' x) c c' hc
+    (@Eq.subst.{1} Real (fun (x : Real) =&gt; addRel a' x c) b b' hb
+      (@Eq.subst.{1} Real (fun (x : Real) =&gt; addRel x b c) a a' ha h))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">71.4 关系在 Cauchy 代表元上有输出</h3><article class="exercise" id="ex-71-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">addRel_total_on_cauchy</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-71-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>取输出 <code>c := Real.mk (addSeq x y)</code>；<code>addRel_intro</code> 正好是这个三元组，两个 <code>Cauchy</code> 守卫由假设付清。在 Cauchy 代表元上关系有输出。</p></div></div><pre class="exercise-statement"><code>theorem addRel_total_on_cauchy (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    ∃ (c : Real), addRel (Real.mk x) (Real.mk y) c :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>Exists.intro</code> 的输出取 <code>Real.mk (addSeq x y)</code>，证明交给 61.2 的 <code>addRel_intro x y hx hy</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ (c : Real), addRel (mk x) (mk y) c</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.intro · addRel_intro</span>。</p></div></details></div><details open class="solution-panel" id="sol-71-5"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">输出取 <code>Real.mk (addSeq x y)</code>；<code>addRel_intro</code> 正好给出这个三元组。</p><pre><code>theorem addRel_total_on_cauchy (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    ∃ (c : Real), addRel (Real.mk x) (Real.mk y) c :=
+  Exists.intro (Real.mk (addSeq x y)) (addRel_intro x y hx hy)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">71.5 具体：常零序列上「存在且唯一」</h3><article class="exercise" id="ex-71-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">demo_addRel_exists_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-71-6>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>具体：常零序列上「存在且唯一」。</p></div></div><pre class="exercise-statement"><code>theorem demo_addRel_exists_unique :
+    ∃ (c : Real),
+      addRel (Real.mk zeroSeq) (Real.mk zeroSeq) c ∧
+        ∀ (c' : Real),
+          addRel (Real.mk zeroSeq) (Real.mk zeroSeq) c' → c' = c :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 61.5 的 <code>addRel_exists_unique</code> 用在 <code>zeroSeq</code>、<code>zeroSeq</code> 上；两个 Cauchy 守卫是 <code>cauchy_zero</code>。输出的唯一性方向是 <code>c' = c</code>（与 61.4 的 <code>c = c'</code> 相反），照抄库里的形状。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ c, addRel (mk zeroSeq) (mk zeroSeq) c ∧ ∀ c', addRel ... c' → c' = c</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">addRel_exists_unique · cauchy_zero</span>。</p></div></details></div><details open class="solution-panel" id="sol-71-6"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem demo_addRel_exists_unique :
+    ∃ (c : Real),
+      addRel (Real.mk zeroSeq) (Real.mk zeroSeq) c ∧
+        ∀ (c' : Real),
+          addRel (Real.mk zeroSeq) (Real.mk zeroSeq) c' → c' = c :=
+  addRel_exists_unique zeroSeq zeroSeq cauchy_zero cauchy_zero</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>商的代价算清楚了：下一卷（II.7 最后一单元）盘点完备性在集合层还剩下什么。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit70.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">数系链：加法在四层间的迁移</span></a><a class="unit-nav-home" ../chapters/ii-7.html#units>目录</a><a class="unit-nav-link" ../units/unit72.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">数系综合：完备性盘点——代表元层与集合层</span></a></nav>
+</section>
+<section class="appendix-unit" id="appendix-unit-71"><h3><a #top>数系综合：商的代价——一座桥与两座桥</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-71-1"><summary>练习 1 · quot_lift_mk <span class="sol-meta">定理</span></summary><p class="solution-note">(f : <span class="math">α → β) → (∀ a b</span>, <span class="math">r a b → f a = f b) → Quot r → β</span>。
+
+<code>Quot.lift</code> 作用在 <code>Quot.mk a</code> 上按 <span class="math">ι</span> 归约成 <code>f a</code>，两边定义性相等。</p><pre><code>theorem quot_lift_mk (α β : Type) (r : α → α → Prop)
+    (f : α → β) (h : ∀ (a b : α), r a b → f a = f b) (a : α) :
+    @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r a) = f a :=
+  @Eq.refl.{1} β (f a)</code></pre></details><details open class="appendix-solution" id="app-sol-71-2"><summary>练习 2 · quot_lift_unique <span class="sol-meta">定理</span></summary><p class="solution-note">先 <code>funext</code> 把函数相等化成逐点相等，再 <code>Quot.ind</code> 把商点烧成
+<code>mk a</code>；两次 <span class="math">ι</span> 归约后目标就是 <code>f a = g a</code>，交给逐点假设。</p><pre><code>theorem quot_lift_unique (α β : Type) (r : α → α → Prop)
+    (f g : α → β)
+    (hf : ∀ (a b : α), r a b → f a = f b)
+    (hg : ∀ (a b : α), r a b → g a = g b)
+    (h : ∀ (a : α), f a = g a) :
+    @Quot.lift.{1, 1} α r β f hf = @Quot.lift.{1, 1} α r β g hg :=
+  funext
+    (@Quot.lift.{1, 1} α r β f hf)
+    (@Quot.lift.{1, 1} α r β g hg)
+    (fun (q : @Quot.{1} α r) =&gt;
+      @Quot.ind.{1} α r
+        (fun (q : @Quot.{1} α r) =&gt;
+          @Quot.lift.{1, 1} α r β f hf q =
+          @Quot.lift.{1, 1} α r β g hg q)
+        (fun (a : α) =&gt; h a)
+        q)</code></pre></details><details open class="appendix-solution" id="app-sol-71-3"><summary>练习 3 · intToRat_sound <span class="sol-meta">定理</span></summary><p class="solution-note"><code>intToRat</code> 作用在 <code>mk p</code> 上按 <span class="math">ι</span> 归约成 <code>Quot.mk ratRel (intToRatRep p)</code>；
+于是 <code>Quot.sound</code> 把 <code>intToRatRep_wd</code> 直接升级成商里的相等。</p><pre><code>theorem intToRat_sound (p q : Prod Nat Nat) (h : intRel p q) :
+    intToRat (@Quot.mk.{1} (Prod Nat Nat) intRel p) =
+    intToRat (@Quot.mk.{1} (Prod Nat Nat) intRel q) :=
+  @Quot.sound.{1} ratRep ratRel (intToRatRep p) (intToRatRep q)
+    (intToRatRep_wd p q h)</code></pre></details><details open class="appendix-solution" id="app-sol-71-4"><summary>练习 4 · addRel_congr <span class="sol-meta">定理</span></summary><p class="solution-note"><code>addRel</code> 不是函数，不能 <code>congrArg</code>；但三个参数都是相等可替换的。
+从右到左搬：先 <code>c</code>，再 <code>b</code>，最后 <code>a</code>。</p><pre><code>theorem addRel_congr (a a' b b' c c' : Real)
+    (h : addRel a b c) (ha : a = a') (hb : b = b') (hc : c = c') :
+    addRel a' b' c' :=
+  @Eq.subst.{1} Real (fun (x : Real) =&gt; addRel a' b' x) c c' hc
+    (@Eq.subst.{1} Real (fun (x : Real) =&gt; addRel a' x c) b b' hb
+      (@Eq.subst.{1} Real (fun (x : Real) =&gt; addRel x b c) a a' ha h))</code></pre></details><details open class="appendix-solution" id="app-sol-71-5"><summary>练习 5 · addRel_total_on_cauchy <span class="sol-meta">定理</span></summary><p class="solution-note">输出取 <code>Real.mk (addSeq x y)</code>；<code>addRel_intro</code> 正好给出这个三元组。</p><pre><code>theorem addRel_total_on_cauchy (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    ∃ (c : Real), addRel (Real.mk x) (Real.mk y) c :=
+  Exists.intro (Real.mk (addSeq x y)) (addRel_intro x y hx hy)</code></pre></details><details open class="appendix-solution" id="app-sol-71-6"><summary>练习 6 · demo_addRel_exists_unique <span class="sol-meta">定理</span></summary><pre><code>theorem demo_addRel_exists_unique :
+    ∃ (c : Real),
+      addRel (Real.mk zeroSeq) (Real.mk zeroSeq) c ∧
+        ∀ (c' : Real),
+          addRel (Real.mk zeroSeq) (Real.mk zeroSeq) c' → c' = c :=
+  addRel_exists_unique zeroSeq zeroSeq cauchy_zero cauchy_zero</code></pre></details></section>
+<section class="unit" id="unit-72">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-7.html>II.7</a> · 本章第 4 / 4 单元 · 全书第 72 / 72 单元</p>
+<h2><span class="unit-number">72</span><span>数系综合：完备性盘点——代表元层与集合层</span></h2>
+<p class="unit-title-en">Unit 72 — Completeness Inventory: Representatives and Sets</p>
+<p class="unit-meta">4 个定义 · 5 个定理 · 5 道练习 · 15 条提示 · <a #appendix-unit-72>解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元72 完备性盘点：代表元层的结论，放到集合层还剩下多少</p></div><div class="block prose intuition-only"><p>前面证了：每个有理 Cauchy 序列 x 在 <span class="math">ℝ</span> 中收敛到自己的类。那是在代表元层说的话。到了集合层，上界、最小上界这些词要用 realLe 重新陈述；我们自然要问：这条完备性还能保住多少？</p></div></div></section>
+<div class="block prose intuition-only"><p>结论先说：能保住一个具体集合的 LUB——<span class="math">S = {x</span> | <span class="math">x ≤ 0}</span> 的最小上界是 0；但一般定理「每个非空有上界集合都有 LUB」需要选择公理，本课程没有，所以不能写。</p></div><div class="block prose intuition-only"><p>为什么只做具体集合？因为选择公理不在本课程里；与其把一般定理写成公理，不如把能构造性拿到的实例做干净：先定义零实数为常零序列的类，再证 0 是 S 的上界且最小，把两件事合成「有 LUB」，最后回到常序列版本的完备性。</p></div><div class="block prose intuition-only"><p>这一单元不是新造数，而是检查前面造好的 <span class="math">ℝ</span> 在集合语言里能说到哪一步；边界就是本课程与「完整实数完备性」之间的距离。</p></div><h3 class="unit-subhead">72.0 集合层的词汇：上界、最小上界、有 LUB</h3><article class="decl decl-def" id="decl-72-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">UpperBound</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def UpperBound (S : Real → Prop) (b : Real) : Prop :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def UpperBound (S : Real → Prop) (b : Real) : Prop :=
+  ∀ (x : Real), S x → realLe x b</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-72-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">IsLUB</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def IsLUB (S : Real → Prop) (b : Real) : Prop :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def IsLUB (S : Real → Prop) (b : Real) : Prop :=
+  UpperBound S b ∧ ∀ (b' : Real), UpperBound S b' → realLe b b'</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-72-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">HasLUB</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def HasLUB (S : Real → Prop) : Prop :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def HasLUB (S : Real → Prop) : Prop := ∃ (b : Real), IsLUB S b</code></pre></details></div></article>
+<h3 class="unit-subhead">72.1 <code>zeroReal</code>：常零序列的类</h3><div class="block prose intuition-only"><p>我们用的零：常零序列的类。66.4 的 <code>realLe_mk</code> 之后，关于它的序都回到代表元层。</p></div><article class="decl decl-def" id="decl-72-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">zeroReal</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def zeroReal : Real :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def zeroReal : Real := Real.mk zeroSeq</code></pre></details></div></article>
+<h3 class="unit-subhead">72.2 0 是 <code>{x | x ≤ 0}</code> 的上界</h3><article class="exercise" id="ex-72-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">upperBound_nonpos</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-72-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>0 是 {x | <span class="math">x ≤ 0}</span> 的上界。</p></div></div><pre class="exercise-statement"><code>theorem upperBound_nonpos :
+    UpperBound (fun (x : Real) =&gt; realLe x zeroReal) zeroReal :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>UpperBound</code> 展开就是 <code>∀ x, realLe x zeroReal → realLe x zeroReal</code>，直接取恒等函数。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>UpperBound (fun x =&gt; realLe x zeroReal) zeroReal</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>定义性展开 <span class="math">·</span> <code>fun x h =&gt; h</code>。</p></div></details></div><details open class="solution-panel" id="sol-72-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">展开 <code>UpperBound</code> 后目标就是 <code>∀ x, realLe x zeroReal → realLe x zeroReal</code>。</p><pre><code>theorem upperBound_nonpos :
+    UpperBound (fun (x : Real) =&gt; realLe x zeroReal) zeroReal :=
+  fun (x : Real) (h : realLe x zeroReal) =&gt; h</code></pre></div></details></div></article>
+<h3 class="unit-subhead">72.3 0 是最小上界</h3><article class="exercise" id="ex-72-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">least_nonpos</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-72-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><code>hb</code> 对任意 <code>x ∈ S</code> 给 <code>x ≤ b</code>；取 <code>x = 0</code>，只需交 <code>0 ≤ 0</code>。后者经 66.4 的 <code>realLe_mk</code> 回到 <code>realLeRep zeroSeq zeroSeq</code>，由 64.1 的自反（<code>cauchy_zero</code> 付守卫）给出。0 是最小上界。</p></div></div><pre class="exercise-statement"><code>theorem least_nonpos (b : Real)
+    (hb : UpperBound (fun (x : Real) =&gt; realLe x zeroReal) b) :
+    realLe zeroReal b :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>hb</code> 是 <code>∀ x, realLe x zeroReal → realLe x b</code>，用在 <code>x := zeroReal</code> 上；剩下 <code>realLe zeroReal zeroReal</code> 用 <code>Iff.mpr (realLe_mk zeroSeq zeroSeq) (realLeRep_refl zeroSeq cauchy_zero)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>UpperBound S b → realLe zeroReal b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>hb（作用在 zeroReal）<span class="math">· realLe_mk · realLeRep_refl · cauchy_zero</span>。</p></div></details></div><details open class="solution-panel" id="sol-72-2"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note"><code>hb</code> 对任意 <code>x ∈ S</code> 给 <code>x ≤ b</code>；取 <code>x = 0</code>，只需交 <code>0 ≤ 0</code>。
+后者经 66.4 的 <code>realLe_mk</code> 回到 <code>realLeRep zeroSeq zeroSeq</code>，
+由 64.1 的自反（<code>cauchy_zero</code> 付守卫）给出。</p><pre><code>theorem least_nonpos (b : Real)
+    (hb : UpperBound (fun (x : Real) =&gt; realLe x zeroReal) b) :
+    realLe zeroReal b :=
+  hb zeroReal
+    (Iff.mpr (realLe_mk zeroSeq zeroSeq)
+      (realLeRep_refl zeroSeq cauchy_zero))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">72.4 具体集合有 LUB：构造性的存在</h3><article class="exercise" id="ex-72-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">hasLUB_nonpos</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-72-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>把两件事合成「有 LUB」。</p></div></div><pre class="exercise-statement"><code>theorem hasLUB_nonpos :
+    HasLUB (fun (x : Real) =&gt; realLe x zeroReal) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>HasLUB</code> 是一个 <code>∃ b</code>；输出取 <code>zeroReal</code>，<code>IsLUB</code> 是 <code>And.intro</code> 72.2 与 72.3。这里没有 <code>Classical.choice</code>：见证是显式给出的。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ b, IsLUB (fun x =&gt; realLe x zeroReal) b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.intro zeroReal · And.intro upperBound_nonpos least_nonpos</span>。</p></div></details></div><details open class="solution-panel" id="sol-72-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note"><code>HasLUB</code> 是一个 <code>∃ b</code>；见证取 <code>zeroReal</code>，两部分交给 72.2 与 72.3。
+这里没有 <code>Classical.choice</code>：见证是显式给出的。</p><pre><code>theorem hasLUB_nonpos :
+    HasLUB (fun (x : Real) =&gt; realLe x zeroReal) :=
+  Exists.intro zeroReal (And.intro upperBound_nonpos least_nonpos)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">72.5 代表元层完备性的常序列版</h3><h3 class="unit-subhead">68.7 的 <code>cauchy_tends_to_class</code> 对任意 Cauchy 序列给 <code>TendsTo x x</code>；</h3><article class="exercise" id="ex-72-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">const_tends_to_class</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-72-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>常序列的 Cauchy 性是 68.1 的 <code>cauchy_const</code>。回到常序列版本的完备性。</p></div></div><pre class="exercise-statement"><code>theorem const_tends_to_class (q : ratRep) :
+    TendsTo (constSeq q) (constSeq q) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 68.7 用在 <code>x := constSeq q</code> 上，第二个参数是 68.1 的 <code>cauchy_const q</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>TendsTo (constSeq q) (constSeq q)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">cauchy_tends_to_class · cauchy_const</span>。</p></div></details></div><details open class="solution-panel" id="sol-72-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem const_tends_to_class (q : ratRep) :
+    TendsTo (constSeq q) (constSeq q) :=
+  cauchy_tends_to_class (constSeq q) (cauchy_const q)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">72.6 具体：常 1 序列收敛到 1</h3><article class="exercise" id="ex-72-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">demo_const_tends_to_one</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-72-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>具体：常 1 序列收敛到 1。</p></div></div><pre class="exercise-statement"><code>theorem demo_const_tends_to_one :
+    TendsTo (constSeq (qrep 1 Nat.zero Nat.zero))
+      (constSeq (qrep 1 Nat.zero Nat.zero)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 72.5 用在 <code>q := qrep 1 0 0</code> 上（分母字段 0 就是分母 1）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>TendsTo (constSeq (qrep 1 0 0)) (constSeq (qrep 1 0 0))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">const_tends_to_class · qrep</span>。</p></div></details></div><details open class="solution-panel" id="sol-72-5"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">把 72.5 用在 <code>q := qrep 1 0 0</code> 上（分母字段 0 就是分母 1）。</p><pre><code>theorem demo_const_tends_to_one :
+    TendsTo (constSeq (qrep 1 Nat.zero Nat.zero))
+      (constSeq (qrep 1 Nat.zero Nat.zero)) :=
+  const_tends_to_class (qrep 1 Nat.zero Nat.zero)</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>完备性盘点完成：72 个单元的叙述重写到此收尾，前面造好的 <span class="math">ℝ</span> 在集合语言里能说到哪一步，这个单元给出了答案。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit71.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">数系综合：商的代价——一座桥与两座桥</span></a><a class="unit-nav-home" ../chapters/ii-7.html#units>目录</a><span class="unit-nav-link is-disabled"><span class="unit-nav-label">下一单元</span><span class="unit-nav-title">没有更多单元</span></span></nav>
+</section>
+<section class="appendix-unit" id="appendix-unit-72"><h3><a #top>数系综合：完备性盘点——代表元层与集合层</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-72-1"><summary>练习 1 · upperBound_nonpos <span class="sol-meta">定理</span></summary><p class="solution-note">展开 <code>UpperBound</code> 后目标就是 <code>∀ x, realLe x zeroReal → realLe x zeroReal</code>。</p><pre><code>theorem upperBound_nonpos :
+    UpperBound (fun (x : Real) =&gt; realLe x zeroReal) zeroReal :=
+  fun (x : Real) (h : realLe x zeroReal) =&gt; h</code></pre></details><details open class="appendix-solution" id="app-sol-72-2"><summary>练习 2 · least_nonpos <span class="sol-meta">定理</span></summary><p class="solution-note"><code>hb</code> 对任意 <code>x ∈ S</code> 给 <code>x ≤ b</code>；取 <code>x = 0</code>，只需交 <code>0 ≤ 0</code>。
+后者经 66.4 的 <code>realLe_mk</code> 回到 <code>realLeRep zeroSeq zeroSeq</code>，
+由 64.1 的自反（<code>cauchy_zero</code> 付守卫）给出。</p><pre><code>theorem least_nonpos (b : Real)
+    (hb : UpperBound (fun (x : Real) =&gt; realLe x zeroReal) b) :
+    realLe zeroReal b :=
+  hb zeroReal
+    (Iff.mpr (realLe_mk zeroSeq zeroSeq)
+      (realLeRep_refl zeroSeq cauchy_zero))</code></pre></details><details open class="appendix-solution" id="app-sol-72-3"><summary>练习 3 · hasLUB_nonpos <span class="sol-meta">定理</span></summary><p class="solution-note"><code>HasLUB</code> 是一个 <code>∃ b</code>；见证取 <code>zeroReal</code>，两部分交给 72.2 与 72.3。
+这里没有 <code>Classical.choice</code>：见证是显式给出的。</p><pre><code>theorem hasLUB_nonpos :
+    HasLUB (fun (x : Real) =&gt; realLe x zeroReal) :=
+  Exists.intro zeroReal (And.intro upperBound_nonpos least_nonpos)</code></pre></details><details open class="appendix-solution" id="app-sol-72-4"><summary>练习 4 · const_tends_to_class <span class="sol-meta">定理</span></summary><pre><code>theorem const_tends_to_class (q : ratRep) :
+    TendsTo (constSeq q) (constSeq q) :=
+  cauchy_tends_to_class (constSeq q) (cauchy_const q)</code></pre></details><details open class="appendix-solution" id="app-sol-72-5"><summary>练习 5 · demo_const_tends_to_one <span class="sol-meta">定理</span></summary><p class="solution-note">把 72.5 用在 <code>q := qrep 1 0 0</code> 上（分母字段 0 就是分母 1）。</p><pre><code>theorem demo_const_tends_to_one :
+    TendsTo (constSeq (qrep 1 Nat.zero Nat.zero))
+      (constSeq (qrep 1 Nat.zero Nat.zero)) :=
+  const_tends_to_class (qrep 1 Nat.zero Nat.zero)</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

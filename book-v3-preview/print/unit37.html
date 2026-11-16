@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 37 序与正分母：乘法、消去与配对搬运</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit37.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 37 序与正分母：乘法、消去与配对搬运</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit37.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">II.4 有理 Cauchy 序列与实数的载体 · 单元 37</p><h1>序与正分母：乘法、消去与配对搬运</h1><p class="note">Unit 37 — Order and Positive Denominators</p></header><section class="unit" id="unit-37">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-4.html>II.4</a> · 本章第 3 / 10 单元 · 全书第 37 / 72 单元</p>
+<h2><span class="unit-number">37</span><span>序与正分母：乘法、消去与配对搬运</span></h2>
+<p class="unit-title-en">Unit 37 — Order and Positive Denominators</p>
+<p class="unit-meta">1 个定义 · 5 个定理 · 5 道练习 · 15 条提示 · <a #appendix-unit-37>解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>这一单元是序的传递性的引擎。要用交叉相乘比较两个有理数，第一步是把它们的代表元换到公分母上——也就是「乘一个正分母」这个动作。这里备齐三件：mulRep p (den k) 的规范形（两个坐标各乘 <span class="math">k+1</span>，只差两处零头）；乘正分母保序（<span class="math">p ≤ q</span> 推出 <span class="math">p·(k+1) ≤ q·(k+1)</span>）；以及反方向的消去（<span class="math">p·(k+1) ≤ q·(k+1)</span> 推出 <span class="math">p ≤ q</span>）。另加两条搬运律：mul_den_swap_nat 把 <span class="math">(a·m)·k</span> 换成 <span class="math">(a·k)·m</span>，prod_mk_congr 把逐坐标相等装成序对相等。</p></div></div></section>
+<div class="block prose intuition-only"><p>证明全部停在 <span class="math">ℕ</span> 的乘法与 LeNat 上；leNat_mul_right 与 leNat_mul_cancel 来自 lib/Rat（前面补过的通用引理）。序的传递性本身留给下一单元。</p></div><article class="decl decl-def" id="decl-37-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLeRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLeRep (x y : ratRep) : Prop :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 3 行</summary><pre><code>def ratLeRep (x y : ratRep) : Prop :=
+  leRep (mulRep (numOf x) (den (denOf y)))
+        (mulRep (numOf y) (den (denOf x)))</code></pre></details></div></article>
+<article class="exercise" id="ex-37-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">mulRep_den_form</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-37-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊲.1 乘正分母后的规范形</p></div><div class="block prose intuition-only"><p>先算乘正分母后的规范形：两个坐标各乘 <span class="math">k+1</span>，只差两处零头。</p></div></div><pre class="exercise-statement"><code>theorem mulRep_den_form (p : Prod Nat Nat) (k : Nat) :
+    mulRep p (den k) =
+      @prod_mk Nat Nat
+        (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+        (myMul (Prod.snd Nat Nat p) (Nat.succ k)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>mulRep p (den k)</code> 展开成 <code>(p₁·(k+1) + p₂·0, p₁·0 + p₂·(k+1))</code>；第一坐标的 <code>+0</code> 用 <code>add_zero</code>、第二坐标的 <code>0+</code> 用 <code>zero_add</code> 消掉。两个坐标各用一次 <code>@congrArg</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>mulRep p (den k) = (p₁·(k+1), p₂·(k+1))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">add_zero · zero_add · congrArg · Eq.trans</span>。</p></div></details></div><details open class="solution-panel" id="sol-37-1"><summary>查看解答 <span class="sol-meta">定理 · 37 行</span></summary><div class="solution-body"><pre><code>theorem mulRep_den_form (p : Prod Nat Nat) (k : Nat) :
+    mulRep p (den k) =
+      @prod_mk Nat Nat
+        (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+        (myMul (Prod.snd Nat Nat p) (Nat.succ k)) :=
+  @Eq.trans.{1} (Prod Nat Nat)
+    (mulRep p (den k))
+    (@prod_mk Nat Nat
+      (Nat.add (myMul (Prod.fst Nat Nat p) (Nat.succ k)) (myMul (Prod.snd Nat Nat p) Nat.zero))
+      (Nat.add (myMul (Prod.fst Nat Nat p) Nat.zero) (myMul (Prod.snd Nat Nat p) (Nat.succ k))))
+    (@prod_mk Nat Nat
+      (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+      (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+    (Eq.refl (mulRep p (den k)))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (@prod_mk Nat Nat
+        (Nat.add (myMul (Prod.fst Nat Nat p) (Nat.succ k)) (myMul (Prod.snd Nat Nat p) Nat.zero))
+        (Nat.add (myMul (Prod.fst Nat Nat p) Nat.zero) (myMul (Prod.snd Nat Nat p) (Nat.succ k))))
+      (@prod_mk Nat Nat
+        (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+        (Nat.add (myMul (Prod.fst Nat Nat p) Nat.zero) (myMul (Prod.snd Nat Nat p) (Nat.succ k))))
+      (@prod_mk Nat Nat
+        (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+        (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+      (@congrArg.{1} Nat (Prod Nat Nat)
+        (Nat.add (myMul (Prod.fst Nat Nat p) (Nat.succ k)) (myMul (Prod.snd Nat Nat p) Nat.zero))
+        (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+        (fun (x : Nat) =&gt;
+          @prod_mk Nat Nat x
+            (Nat.add (myMul (Prod.fst Nat Nat p) Nat.zero) (myMul (Prod.snd Nat Nat p) (Nat.succ k))))
+        (add_zero (myMul (Prod.fst Nat Nat p) (Nat.succ k))))
+      (@congrArg.{1} Nat (Prod Nat Nat)
+        (Nat.add (myMul (Prod.fst Nat Nat p) Nat.zero) (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+        (myMul (Prod.snd Nat Nat p) (Nat.succ k))
+        (fun (y : Nat) =&gt;
+          @prod_mk Nat Nat (myMul (Prod.fst Nat Nat p) (Nat.succ k)) y)
+        (zero_add (myMul (Prod.snd Nat Nat p) (Nat.succ k)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-37-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">mul_den_swap_nat</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-37-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>再证两条正分母可以换位。</p></div></div><pre class="exercise-statement"><code>theorem mul_den_swap_nat (a m k : Nat) :
+    myMul (myMul a (Nat.succ m)) (Nat.succ k) =
+      myMul (myMul a (Nat.succ k)) (Nat.succ m) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边都用 <code>myMul_assoc</code> 拆成 <code>a·(m·k)</code> 与 <code>a·(k·m)</code>，中间用 <code>myMul_comm</code> 交换括号里的两个因子。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(a·(m+1))·(k+1) = (a·(k+1))·(m+1)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>myMul_assoc（两次，其中一次取对称）<span class="math">· myMul_comm · congrArg</span>。</p></div></details></div><details open class="solution-panel" id="sol-37-2"><summary>查看解答 <span class="sol-meta">定理 · 21 行</span></summary><div class="solution-body"><p class="solution-note">㊲.2 正分母的交换律：<span class="math">(a·m)·k = (a·k)·m</span></p><pre><code>theorem mul_den_swap_nat (a m k : Nat) :
+    myMul (myMul a (Nat.succ m)) (Nat.succ k) =
+      myMul (myMul a (Nat.succ k)) (Nat.succ m) :=
+  @Eq.trans.{1} Nat
+    (myMul (myMul a (Nat.succ m)) (Nat.succ k))
+    (myMul a (myMul (Nat.succ m) (Nat.succ k)))
+    (myMul (myMul a (Nat.succ k)) (Nat.succ m))
+    (myMul_assoc a (Nat.succ m) (Nat.succ k))
+    (@Eq.trans.{1} Nat
+      (myMul a (myMul (Nat.succ m) (Nat.succ k)))
+      (myMul a (myMul (Nat.succ k) (Nat.succ m)))
+      (myMul (myMul a (Nat.succ k)) (Nat.succ m))
+      (@congrArg.{1} Nat Nat
+        (myMul (Nat.succ m) (Nat.succ k))
+        (myMul (Nat.succ k) (Nat.succ m))
+        (fun (x : Nat) =&gt; myMul a x)
+        (myMul_comm (Nat.succ m) (Nat.succ k)))
+      (@Eq.symm.{1} Nat
+        (myMul (myMul a (Nat.succ k)) (Nat.succ m))
+        (myMul a (myMul (Nat.succ k) (Nat.succ m)))
+        (myMul_assoc a (Nat.succ k) (Nat.succ m))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-37-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">prod_mk_congr</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-37-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>逐坐标相等可以装成一个序对相等。</p></div></div><pre class="exercise-statement"><code>theorem prod_mk_congr (a a' b b' : Nat) (ha : a = a') (hb : b = b') :
+    @prod_mk Nat Nat a b = @prod_mk Nat Nat a' b' :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先对第二坐标 <code>Eq.subst</code>（motive 固定第一坐标），再对第一坐标 <code>Eq.subst</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>a = a' → b = b' → (a,b) = (a',b')</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Eq.subst（两次）<span class="math">· Eq.refl</span>。</p></div></details></div><details open class="solution-panel" id="sol-37-3"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note">㊲.3 序对逐坐标相等</p><pre><code>theorem prod_mk_congr (a a' b b' : Nat) (ha : a = a') (hb : b = b') :
+    @prod_mk Nat Nat a b = @prod_mk Nat Nat a' b' :=
+  @Eq.subst.{1} Nat
+    (fun (x : Nat) =&gt; @prod_mk Nat Nat a b = @prod_mk Nat Nat x b')
+    a a' ha
+    (@Eq.subst.{1} Nat
+      (fun (y : Nat) =&gt; @prod_mk Nat Nat a b = @prod_mk Nat Nat a y)
+      b b' hb
+      (@Eq.refl.{1} (Prod Nat Nat) (@prod_mk Nat Nat a b)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-37-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">leRep_mul_den_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-37-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>乘正分母保序：把两边换成规范形后比较。</p></div></div><pre class="exercise-statement"><code>theorem leRep_mul_den_right (p q : Prod Nat Nat) (k : Nat)
+    (h : leRep p q) :
+    leRep (mulRep p (den k)) (mulRep q (den k)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先用 ㊲.1 把两边的 <code>mulRep … (den k)</code> 换成规范形，再用 <code>leRep_wd_pair</code> 把目标搬过去；规范形上的 <code>LeNat</code> 用 <code>leNat_mul_right</code> 乘开，再用 <code>mul_add_right</code> 分配到两个坐标。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>leRep p q → leRep (mulRep p (den k)) (mulRep q (den k))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">mulRep_den_form · leRep_wd_pair · intRel_of_eq · leNat_mul_right · mul_add_right</span>。</p></div></details></div><details open class="solution-panel" id="sol-37-4"><summary>查看解答 <span class="sol-meta">定理 · 44 行</span></summary><div class="solution-body"><p class="solution-note">㊲.4 乘正分母保序</p><pre><code>theorem leRep_mul_den_right (p q : Prod Nat Nat) (k : Nat)
+    (h : leRep p q) :
+    leRep (mulRep p (den k)) (mulRep q (den k)) :=
+  leRep_wd_pair
+    (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+                      (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+    (mulRep p (den k))
+    (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                      (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+    (mulRep q (den k))
+    (intRel_of_eq
+      (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+                        (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+      (mulRep p (den k))
+      (@Eq.symm.{1} (Prod Nat Nat) (mulRep p (den k))
+        (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+                          (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+        (mulRep_den_form p k)))
+    (intRel_of_eq
+      (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                        (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+      (mulRep q (den k))
+      (@Eq.symm.{1} (Prod Nat Nat) (mulRep q (den k))
+        (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                          (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+        (mulRep_den_form q k)))
+    (@Eq.subst.{1} Nat
+      (fun (x : Nat) =&gt;
+        LeNat x (Nat.add (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                         (myMul (Prod.snd Nat Nat p) (Nat.succ k))))
+      (myMul (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q)) (Nat.succ k))
+      (Nat.add (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+               (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+      (mul_add_right (Prod.fst Nat Nat p) (Prod.snd Nat Nat q) (Nat.succ k))
+      (@Eq.subst.{1} Nat
+        (fun (x : Nat) =&gt;
+          LeNat (myMul (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q)) (Nat.succ k)) x)
+        (myMul (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p)) (Nat.succ k))
+        (Nat.add (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                 (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+        (mul_add_right (Prod.fst Nat Nat q) (Prod.snd Nat Nat p) (Nat.succ k))
+        (leNat_mul_right (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+                         (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
+                         (Nat.succ k) h)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-37-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">leRep_cancel_den</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-37-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>反方向消去：规范形上的公共正因子可以约掉。</p></div></div><pre class="exercise-statement"><code>theorem leRep_cancel_den (p q : Prod Nat Nat) (k : Nat)
+    (h : leRep (mulRep p (den k)) (mulRep q (den k))) : leRep p q :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与 ㊲.4 相反：先把假设搬到 ㊲.1 的规范形，用 <code>mul_add_right</code> 的对称把两个和收成 <code>(p₁+p₂)·(k+1)</code>，再用 <code>leNat_mul_cancel</code> 消去正因子。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>leRep (mulRep p (den k)) (mulRep q (den k)) → leRep p q</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">leRep_wd_pair · mul_add_right</span>（取对称）<span class="math">· leNat_mul_cancel</span>。</p></div></details></div><details open class="solution-panel" id="sol-37-5"><summary>查看解答 <span class="sol-meta">定理 · 44 行</span></summary><div class="solution-body"><p class="solution-note">㊲.5 正分母可消去</p><pre><code>theorem leRep_cancel_den (p q : Prod Nat Nat) (k : Nat)
+    (h : leRep (mulRep p (den k)) (mulRep q (den k))) : leRep p q :=
+  leNat_mul_cancel
+    (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+    (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p)) k
+    (@Eq.subst.{1} Nat
+      (fun (x : Nat) =&gt;
+        LeNat x (myMul (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p)) (Nat.succ k)))
+      (Nat.add (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+               (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+      (myMul (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q)) (Nat.succ k))
+      (@Eq.symm.{1} Nat
+        (myMul (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q)) (Nat.succ k))
+        (Nat.add (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+                 (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+        (mul_add_right (Prod.fst Nat Nat p) (Prod.snd Nat Nat q) (Nat.succ k)))
+      (@Eq.subst.{1} Nat
+        (fun (x : Nat) =&gt;
+          LeNat (Nat.add (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+                         (myMul (Prod.snd Nat Nat q) (Nat.succ k))) x)
+        (Nat.add (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                 (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+        (myMul (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p)) (Nat.succ k))
+        (@Eq.symm.{1} Nat
+          (myMul (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p)) (Nat.succ k))
+          (Nat.add (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                   (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+          (mul_add_right (Prod.fst Nat Nat q) (Prod.snd Nat Nat p) (Nat.succ k)))
+        (leRep_wd_pair
+          (mulRep p (den k))
+          (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+                            (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+          (mulRep q (den k))
+          (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                            (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+          (intRel_of_eq (mulRep p (den k))
+            (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+                              (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+            (mulRep_den_form p k))
+          (intRel_of_eq (mulRep q (den k))
+            (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                              (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+            (mulRep_den_form q k))
+          h)))</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit36.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">实数的载体：Real :<span class="math">= Quot realRel</span></span></a><a class="unit-nav-home" ../chapters/ii-4.html#units>目录</a><a class="unit-nav-link" ../units/unit38.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">有理数的序：传递性</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-37"><h3><a #top>序与正分母：乘法、消去与配对搬运</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-37-1"><summary>练习 1 · mulRep_den_form <span class="sol-meta">定理</span></summary><pre><code>theorem mulRep_den_form (p : Prod Nat Nat) (k : Nat) :
+    mulRep p (den k) =
+      @prod_mk Nat Nat
+        (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+        (myMul (Prod.snd Nat Nat p) (Nat.succ k)) :=
+  @Eq.trans.{1} (Prod Nat Nat)
+    (mulRep p (den k))
+    (@prod_mk Nat Nat
+      (Nat.add (myMul (Prod.fst Nat Nat p) (Nat.succ k)) (myMul (Prod.snd Nat Nat p) Nat.zero))
+      (Nat.add (myMul (Prod.fst Nat Nat p) Nat.zero) (myMul (Prod.snd Nat Nat p) (Nat.succ k))))
+    (@prod_mk Nat Nat
+      (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+      (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+    (Eq.refl (mulRep p (den k)))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (@prod_mk Nat Nat
+        (Nat.add (myMul (Prod.fst Nat Nat p) (Nat.succ k)) (myMul (Prod.snd Nat Nat p) Nat.zero))
+        (Nat.add (myMul (Prod.fst Nat Nat p) Nat.zero) (myMul (Prod.snd Nat Nat p) (Nat.succ k))))
+      (@prod_mk Nat Nat
+        (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+        (Nat.add (myMul (Prod.fst Nat Nat p) Nat.zero) (myMul (Prod.snd Nat Nat p) (Nat.succ k))))
+      (@prod_mk Nat Nat
+        (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+        (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+      (@congrArg.{1} Nat (Prod Nat Nat)
+        (Nat.add (myMul (Prod.fst Nat Nat p) (Nat.succ k)) (myMul (Prod.snd Nat Nat p) Nat.zero))
+        (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+        (fun (x : Nat) =&gt;
+          @prod_mk Nat Nat x
+            (Nat.add (myMul (Prod.fst Nat Nat p) Nat.zero) (myMul (Prod.snd Nat Nat p) (Nat.succ k))))
+        (add_zero (myMul (Prod.fst Nat Nat p) (Nat.succ k))))
+      (@congrArg.{1} Nat (Prod Nat Nat)
+        (Nat.add (myMul (Prod.fst Nat Nat p) Nat.zero) (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+        (myMul (Prod.snd Nat Nat p) (Nat.succ k))
+        (fun (y : Nat) =&gt;
+          @prod_mk Nat Nat (myMul (Prod.fst Nat Nat p) (Nat.succ k)) y)
+        (zero_add (myMul (Prod.snd Nat Nat p) (Nat.succ k)))))</code></pre></details><details open class="appendix-solution" id="app-sol-37-2"><summary>练习 2 · mul_den_swap_nat <span class="sol-meta">定理</span></summary><p class="solution-note">㊲.2 正分母的交换律：<span class="math">(a·m)·k = (a·k)·m</span></p><pre><code>theorem mul_den_swap_nat (a m k : Nat) :
+    myMul (myMul a (Nat.succ m)) (Nat.succ k) =
+      myMul (myMul a (Nat.succ k)) (Nat.succ m) :=
+  @Eq.trans.{1} Nat
+    (myMul (myMul a (Nat.succ m)) (Nat.succ k))
+    (myMul a (myMul (Nat.succ m) (Nat.succ k)))
+    (myMul (myMul a (Nat.succ k)) (Nat.succ m))
+    (myMul_assoc a (Nat.succ m) (Nat.succ k))
+    (@Eq.trans.{1} Nat
+      (myMul a (myMul (Nat.succ m) (Nat.succ k)))
+      (myMul a (myMul (Nat.succ k) (Nat.succ m)))
+      (myMul (myMul a (Nat.succ k)) (Nat.succ m))
+      (@congrArg.{1} Nat Nat
+        (myMul (Nat.succ m) (Nat.succ k))
+        (myMul (Nat.succ k) (Nat.succ m))
+        (fun (x : Nat) =&gt; myMul a x)
+        (myMul_comm (Nat.succ m) (Nat.succ k)))
+      (@Eq.symm.{1} Nat
+        (myMul (myMul a (Nat.succ k)) (Nat.succ m))
+        (myMul a (myMul (Nat.succ k) (Nat.succ m)))
+        (myMul_assoc a (Nat.succ k) (Nat.succ m))))</code></pre></details><details open class="appendix-solution" id="app-sol-37-3"><summary>练习 3 · prod_mk_congr <span class="sol-meta">定理</span></summary><p class="solution-note">㊲.3 序对逐坐标相等</p><pre><code>theorem prod_mk_congr (a a' b b' : Nat) (ha : a = a') (hb : b = b') :
+    @prod_mk Nat Nat a b = @prod_mk Nat Nat a' b' :=
+  @Eq.subst.{1} Nat
+    (fun (x : Nat) =&gt; @prod_mk Nat Nat a b = @prod_mk Nat Nat x b')
+    a a' ha
+    (@Eq.subst.{1} Nat
+      (fun (y : Nat) =&gt; @prod_mk Nat Nat a b = @prod_mk Nat Nat a y)
+      b b' hb
+      (@Eq.refl.{1} (Prod Nat Nat) (@prod_mk Nat Nat a b)))</code></pre></details><details open class="appendix-solution" id="app-sol-37-4"><summary>练习 4 · leRep_mul_den_right <span class="sol-meta">定理</span></summary><p class="solution-note">㊲.4 乘正分母保序</p><pre><code>theorem leRep_mul_den_right (p q : Prod Nat Nat) (k : Nat)
+    (h : leRep p q) :
+    leRep (mulRep p (den k)) (mulRep q (den k)) :=
+  leRep_wd_pair
+    (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+                      (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+    (mulRep p (den k))
+    (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                      (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+    (mulRep q (den k))
+    (intRel_of_eq
+      (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+                        (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+      (mulRep p (den k))
+      (@Eq.symm.{1} (Prod Nat Nat) (mulRep p (den k))
+        (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+                          (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+        (mulRep_den_form p k)))
+    (intRel_of_eq
+      (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                        (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+      (mulRep q (den k))
+      (@Eq.symm.{1} (Prod Nat Nat) (mulRep q (den k))
+        (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                          (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+        (mulRep_den_form q k)))
+    (@Eq.subst.{1} Nat
+      (fun (x : Nat) =&gt;
+        LeNat x (Nat.add (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                         (myMul (Prod.snd Nat Nat p) (Nat.succ k))))
+      (myMul (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q)) (Nat.succ k))
+      (Nat.add (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+               (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+      (mul_add_right (Prod.fst Nat Nat p) (Prod.snd Nat Nat q) (Nat.succ k))
+      (@Eq.subst.{1} Nat
+        (fun (x : Nat) =&gt;
+          LeNat (myMul (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q)) (Nat.succ k)) x)
+        (myMul (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p)) (Nat.succ k))
+        (Nat.add (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                 (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+        (mul_add_right (Prod.fst Nat Nat q) (Prod.snd Nat Nat p) (Nat.succ k))
+        (leNat_mul_right (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+                         (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
+                         (Nat.succ k) h)))</code></pre></details><details open class="appendix-solution" id="app-sol-37-5"><summary>练习 5 · leRep_cancel_den <span class="sol-meta">定理</span></summary><p class="solution-note">㊲.5 正分母可消去</p><pre><code>theorem leRep_cancel_den (p q : Prod Nat Nat) (k : Nat)
+    (h : leRep (mulRep p (den k)) (mulRep q (den k))) : leRep p q :=
+  leNat_mul_cancel
+    (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+    (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p)) k
+    (@Eq.subst.{1} Nat
+      (fun (x : Nat) =&gt;
+        LeNat x (myMul (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p)) (Nat.succ k)))
+      (Nat.add (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+               (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+      (myMul (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q)) (Nat.succ k))
+      (@Eq.symm.{1} Nat
+        (myMul (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q)) (Nat.succ k))
+        (Nat.add (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+                 (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+        (mul_add_right (Prod.fst Nat Nat p) (Prod.snd Nat Nat q) (Nat.succ k)))
+      (@Eq.subst.{1} Nat
+        (fun (x : Nat) =&gt;
+          LeNat (Nat.add (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+                         (myMul (Prod.snd Nat Nat q) (Nat.succ k))) x)
+        (Nat.add (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                 (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+        (myMul (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p)) (Nat.succ k))
+        (@Eq.symm.{1} Nat
+          (myMul (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p)) (Nat.succ k))
+          (Nat.add (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                   (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+          (mul_add_right (Prod.fst Nat Nat q) (Prod.snd Nat Nat p) (Nat.succ k)))
+        (leRep_wd_pair
+          (mulRep p (den k))
+          (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+                            (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+          (mulRep q (den k))
+          (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                            (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+          (intRel_of_eq (mulRep p (den k))
+            (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+                              (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+            (mulRep_den_form p k))
+          (intRel_of_eq (mulRep q (den k))
+            (@prod_mk Nat Nat (myMul (Prod.fst Nat Nat q) (Nat.succ k))
+                              (myMul (Prod.snd Nat Nat q) (Nat.succ k)))
+            (mulRep_den_form q k))
+          h)))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

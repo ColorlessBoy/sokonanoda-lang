@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 19 把取负下降成函数（Quot.lift）</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit19.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 19 把取负下降成函数（Quot.lift）</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit19.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">II.1 整数：从 ℕ 到 ℤ · 单元 19</p><h1>把取负下降成函数（Quot.lift）</h1><p class="note">Unit 19 — Descending Negation with Quot.lift</p></header><section class="unit" id="unit-19">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-1.html>II.1</a> · 本章第 19 / 19 单元 · 全书第 19 / 72 单元</p>
+<h2><span class="unit-number">19</span><span>把取负下降成函数（<code>Quot.lift</code>）</span></h2>
+<p class="unit-title-en">Unit 19 — Descending Negation with Quot.lift</p>
+<p class="unit-meta">5 个定义 · 11 个定理 · 2 道练习 · 6 条提示 · <a #appendix-unit-19>解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>到单元⑱ 为止，Int 上的运算都只在代表元层陈述：mk (addRep p q)、int_add_comm 的等式两端都是 mk (…)。本单元第一次真正下降（Quot.lift）：取负是一元运算，义务只有一个参数，所以不需要函数外延性就能拿到一个货真价实的函数</p></div><div class="math-display intuition-only" role="math" aria-label="intNeg : Int → Int"><math display="block" class="mathml"><mrow><mi mathvariant="normal">intNeg</mi><mspace width="0.22em"/><mo>:</mo><mspace width="0.22em"/><mi mathvariant="normal">Int</mi><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mi mathvariant="normal">Int</mi></mrow></math></div><div class="block prose intuition-only"><p>下降的两条义务（Quot.lift 的签名）是：f 把代表元映到 Int（这里取 <span class="math">fun p =&gt; mk (negRep p)</span>）；h 说明换代表元值不变（这里就是 negRep_wd）。下降之后 intNeg (mk p) 与 mk (negRep p) 定义性相等（Quot.lift 的 <span class="math">ι</span> 归约），所以计算规则 intNeg_mk 只是一条 Eq.refl。</p></div></div></section>
+<div class="block prose intuition-only"><p>为什么二元运算（加法/乘法）不这样下降：intNeg 的返回类型是 Int，而 <span class="math">Int → Int</span> 的 Quot.lift 要求证明两个函数相等——那需要函数外延性 funext，本语言没有。所以加法、乘法继续停在代表元层（单元⑦–⑱ 的形式），<span class="math">ℚ</span> 章也在代表元层搭。</p></div><article class="decl decl-def" id="decl-19-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def intRel (a b : Prod Nat Nat) : Prop :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 3 行</summary><pre><code>def intRel (a b : Prod Nat Nat) : Prop :=
+  Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =
+  Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-19-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Int</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def Int : Type :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def Int : Type := @Quot.{1} (Prod Nat Nat) intRel</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-19-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intOfNat</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def intOfNat (n : Nat) : Int :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def intOfNat (n : Nat) : Int :=
+  @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat n Nat.zero)</code></pre></details></div></article>
+<div class="block prose intuition-only"><p>代表元上的取负：把序对 (a,b) 翻成 (b,a)。</p></div><article class="decl decl-def" id="decl-19-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">negRep</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def negRep (p : Prod Nat Nat) : Prod Nat Nat :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def negRep (p : Prod Nat Nat) : Prod Nat Nat :=
+  @prod_mk Nat Nat (Prod.snd Nat Nat p) (Prod.fst Nat Nat p)</code></pre></details></div></article>
+<article class="decl decl-theorem" id="decl-19-5"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">zero_add</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem zero_add (b : Nat) :
+    Nat.add Nat.zero b = b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add Nat.zero n = n)
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : Nat.add Nat.zero n = n) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (Nat.add Nat.zero n) = Nat.succ m)
+        (Nat.add Nat.zero n) n ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add Nat.zero n))))
+    b</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-19-6"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">succ_add</code><span class="decl-where">声明 6</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem succ_add (a b : Nat) :
+    Nat.add (Nat.succ a) b = Nat.succ (Nat.add a b) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n))
+    (@Eq.refl.{1} Nat (Nat.succ a))
+    (fun (n : Nat) (ih : Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n)) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (Nat.add (Nat.succ a) n) = Nat.succ m)
+        (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n))))
+    b</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-19-7"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_comm</code><span class="decl-where">声明 7</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_comm (a b : Nat) :
+    Nat.add a b = Nat.add b a :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 10 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add a n = Nat.add n a)
+    (@Eq.symm.{1} Nat (Nat.add Nat.zero a) a (zero_add a))
+    (fun (n : Nat) (ih : Nat.add a n = Nat.add n a) =&gt;
+      @Eq.trans.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ (Nat.add n a)) (Nat.add (Nat.succ n) a)
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; Nat.succ (Nat.add a n) = Nat.succ m)
+          (Nat.add a n) (Nat.add n a) ih
+          (@Eq.refl.{1} Nat (Nat.succ (Nat.add a n))))
+        (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
+    b</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-19-8"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_zero</code><span class="decl-where">声明 8</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_zero (a : Nat) :
+    Nat.add a Nat.zero = a :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 3 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.trans.{1} Nat (Nat.add a Nat.zero) (Nat.add Nat.zero a) a
+    (add_comm a Nat.zero)
+    (zero_add a)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-19-9"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_assoc</code><span class="decl-where">声明 9</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_assoc (a b c : Nat) :
+    Nat.add (Nat.add a b) c = Nat.add a (Nat.add b c) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n))
+    (@Eq.refl.{1} Nat (Nat.add a b))
+    (fun (n : Nat) (ih : Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n)) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (Nat.add (Nat.add a b) n) = Nat.succ m)
+        (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
+    c</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">⑲.1 <code>Quot.lift</code> 的义务：换代表元，取负的结果仍等价</h3><article class="exercise" id="ex-19-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">negRep_wd</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-19-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>搬运律把两个和里的加数重新配对，值不变；后面的重排要用它。</p></div><div class="block prose intuition-only"><p>先结清下降的义务：换代表元，取负的结果仍等价。目标是一个交叉和等式：把两边各交换一次，再把假设取对称就接上了。</p></div></div><pre class="exercise-statement"><code>theorem negRep_wd (p q : Prod Nat Nat)
+    (h : intRel p q) :
+    intRel (negRep p) (negRep q) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>目标展开成 <span class="math">b + a' = b' + a</span>；假设是 <span class="math">a + b' = a' + b</span>。左端先用 add_comm 换成 <span class="math">a' + b</span>，再用 h 的对称换成 <span class="math">a + b'</span>，最后用 add_comm 换成 <span class="math">b' + a</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>intRel (b,a) (b',a')，即 <span class="math">b + a' = b' + a</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>add_comm（两次，作用在最外层）<span class="math">· Eq.symm</span>（h 的方向）<span class="math">· Eq.trans</span>（两个中间项都写清）。</p></div></details></div><details open class="solution-panel" id="sol-19-1"><summary>查看解答 <span class="sol-meta">定理 · 16 行</span></summary><div class="solution-body"><pre><code>theorem negRep_wd (p q : Prod Nat Nat)
+    (h : intRel p q) :
+    intRel (negRep p) (negRep q) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Prod.snd Nat Nat p) (Prod.fst Nat Nat q))
+    (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
+    (Nat.add (Prod.snd Nat Nat q) (Prod.fst Nat Nat p))
+    (add_comm (Prod.snd Nat Nat p) (Prod.fst Nat Nat q))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
+      (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+      (Nat.add (Prod.snd Nat Nat q) (Prod.fst Nat Nat p))
+      (@Eq.symm.{1} Nat
+        (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+        (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p)) h)
+      (add_comm (Prod.fst Nat Nat p) (Prod.snd Nat Nat q)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">⑲.2 下降：<code>intNeg : Int → Int</code></h3><div class="block prose intuition-only"><p>下降只有 Quot.lift 一条通道；两条义务在这里结清。</p></div><article class="decl decl-def" id="decl-19-11"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intNeg</code><span class="decl-where">声明 11</span></header><div class="decl-body"><pre class="decl-statement"><code>def intNeg : Int → Int :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 5 行</summary><pre><code>def intNeg : Int → Int :=
+  @Quot.lift.{1, 1} (Prod Nat Nat) intRel Int
+    (fun (p : Prod Nat Nat) =&gt; @Quot.mk.{1} (Prod Nat Nat) intRel (negRep p))
+    (fun (p q : Prod Nat Nat) (h : intRel p q) =&gt;
+      @Quot.sound.{1} (Prod Nat Nat) intRel (negRep p) (negRep q) (negRep_wd p q h))</code></pre></details></div></article>
+<div class="block prose intuition-only"><p>下降后的计算规则：intNeg 作用在 mk p 上按 <span class="math">ι</span> 归约成 mk (negRep p)。</p></div><article class="decl decl-theorem" id="decl-19-12"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">intNeg_mk</code><span class="decl-where">声明 12</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem intNeg_mk (a b : Nat) :
+    intNeg (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b)) =
+    @Quot.mk.{1} (Prod Nat Nat) intRel (negRep (@prod_mk Nat Nat a b)) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.refl.{1} Int (@Quot.mk.{1} (Prod Nat Nat) intRel (negRep (@prod_mk Nat Nat a b)))</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-19-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">intNeg_invol</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-19-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>再证取负是对合：<span class="math">-(-z) = z</span>（对 z 用 Quot.ind）。</p></div></div><pre class="exercise-statement"><code>theorem intNeg_invol (z : Int) :
+    intNeg (intNeg z) = z :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对 z 用 Quot.ind（命题层消去），把 z 换成 mk p。两次 <span class="math">ι</span> 归约后左边是 mk (negRep (negRep p))；negRep 翻两次回到 (fst p, snd p)，与 p 的交叉和相等是自反的，用 Quot.sound 交出去。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="intNeg (intNeg z) = z"><math display="block" class="mathml"><mrow><mi mathvariant="normal">intNeg</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi mathvariant="normal">intNeg</mi><mspace width="0.22em"/><mi>z</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>z</mi></mrow></math></div></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Quot.ind（动机写在 Int 上）<span class="math">· Quot.sound</span>（第三项用 Eq.refl）<span class="math">· ι</span> 归约（两处 intNeg 都要真的烧掉）。</p></div></details></div><details open class="solution-panel" id="sol-19-2"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem intNeg_invol (z : Int) :
+    intNeg (intNeg z) = z :=
+  @Quot.ind.{1} (Prod Nat Nat) intRel
+    (fun (z : Int) =&gt; intNeg (intNeg z) = z)
+    (fun (p : Prod Nat Nat) =&gt;
+      @Quot.sound.{1} (Prod Nat Nat) intRel
+        (negRep (negRep p)) p
+        (@Eq.refl.{1} Nat (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))))
+    z</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>具体例子：-(2,5) 就是 (5,2)，再取负回到 (2,5)。</p></div><article class="decl decl-theorem" id="decl-19-14"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_intNeg_mk</code><span class="decl-where">声明 14</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_intNeg_mk :
+    intNeg (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat 2 5)) =
+    @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat 5 2) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  intNeg_mk 2 5</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>具体例子：-(-(3,1)) 与 (3,1) 是同一个整数（交叉和 <span class="math">3+1 = 3+1</span>）。</p></div><article class="decl decl-theorem" id="decl-19-15"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_intNeg_invol</code><span class="decl-where">声明 15</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_intNeg_invol :
+    intNeg (intNeg (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat 3 1))) =
+    @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat 3 1) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  intNeg_invol (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat 3 1))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>具体例子：-(intOfNat 0) 仍是 0（(0,0) 与 (0,0) 等价）。</p></div><article class="decl decl-theorem" id="decl-19-16"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_intNeg_zero</code><span class="decl-where">声明 16</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_intNeg_zero :
+    intNeg (intOfNat Nat.zero) = intOfNat Nat.zero :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  intNeg_invol (intOfNat Nat.zero)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>本卷到此收尾：<span class="math">ℤ</span> 的运算与序都在代表元层立起来了，取负还下降成了真正的函数。下一卷（II.2）用同一套方法构造 <span class="math">ℚ</span>：先写代表元公式、再证良定义、再下降。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit18.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">整数乘法的第二个因子良定义（代表元层）</span></a><a class="unit-nav-home" ../chapters/ii-1.html#units>目录</a><a class="unit-nav-link" ../units/unit20.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">有理数与商构造</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-19"><h3><a #top>把取负下降成函数（<code>Quot.lift</code>）</a></h3><p class="appendix-meta">2 道练习 · 2 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-19-1"><summary>练习 1 · negRep_wd <span class="sol-meta">定理</span></summary><pre><code>theorem negRep_wd (p q : Prod Nat Nat)
+    (h : intRel p q) :
+    intRel (negRep p) (negRep q) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Prod.snd Nat Nat p) (Prod.fst Nat Nat q))
+    (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
+    (Nat.add (Prod.snd Nat Nat q) (Prod.fst Nat Nat p))
+    (add_comm (Prod.snd Nat Nat p) (Prod.fst Nat Nat q))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
+      (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+      (Nat.add (Prod.snd Nat Nat q) (Prod.fst Nat Nat p))
+      (@Eq.symm.{1} Nat
+        (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+        (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p)) h)
+      (add_comm (Prod.fst Nat Nat p) (Prod.snd Nat Nat q)))</code></pre></details><details open class="appendix-solution" id="app-sol-19-2"><summary>练习 2 · intNeg_invol <span class="sol-meta">定理</span></summary><pre><code>theorem intNeg_invol (z : Int) :
+    intNeg (intNeg z) = z :=
+  @Quot.ind.{1} (Prod Nat Nat) intRel
+    (fun (z : Int) =&gt; intNeg (intNeg z) = z)
+    (fun (p : Prod Nat Nat) =&gt;
+      @Quot.sound.{1} (Prod Nat Nat) intRel
+        (negRep (negRep p)) p
+        (@Eq.refl.{1} Nat (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))))
+    z</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

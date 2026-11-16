@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>50 严格序与加法相容：加法消去 · 从集合论到实分析</title>
+<meta name="description" content="单元㊿ 严格序与加法相容：加法消去：导语、定义与定理、练习与解答。Unit 50 — Strict Order Compatible with Addition; Cancellation">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit50.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></li><li aria-current="page">单元 50 严格序与加法相容：加法消去</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#ex-50-1">练习</a></li>
+<li><a href="#appendix-unit-50">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-5.html#units">↑ 本章目录</a>
+      <a href="../print/unit50.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-50">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-5.html>II.5</a> · 本章第 6 / 10 单元 · 全书第 50 / 72 单元</p>
+<h1><span class="unit-number">50</span> <span>严格序与加法相容：加法消去</span></h1>
+<p class="unit-title-en">Unit 50 — Strict Order Compatible with Addition; Cancellation</p>
+<p class="unit-meta">5 个定理 · 5 道练习 · 15 条提示 · <a #appendix-unit-50>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="50" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-50" aria-label="复制单元 50 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit50.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-5.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㊹ 证明了 <span class="math">x ≤ y</span> 推出 <span class="math">x+z ≤ y+z</span>；严格序还差反方向的工程件：从 <span class="math">x+z</span> ~ <span class="math">y+z</span> 要能推回 x ~ y。这就是加法消去。</p></div></div></section>
+<article class="exercise" id="ex-50-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratLeRep_add_addends</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-50-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>证明把 ㊹ 的换形倒过来走：<span class="math">leNum (x+z) (y+z)</span> 经两条换形（现在由库里的 leNum_ratAddRep_left/right 提供）变成「x、y 各乘两次 den z，再加同一块 z」；leRep_add_cancel_right 消掉公共加数，leRep_cancel_den 再把两层 den z 各消一次。</p></div><div class="block prose intuition-only"><p>有了消去，严格序的加法相容只需要两条：弱序用 ㊹ 的 ratLeRep_add_right；不相等则若 <span class="math">x+z</span> ~ <span class="math">y+z</span>，消去得 x ~ y，与 &lt; 的第二分量矛盾。</p></div><div class="block prose intuition-only"><p>先证把两个换形拼成「加同一块 z」的引理，再证加法消去（弱序与相等各一条），然后拼出 x &lt; y 推出 <span class="math">x+z &lt; y+z</span>，最后在具体数字上算 <span class="math">0+1/2 &lt; 1+1/2</span>。</p></div><div class="block prose intuition-only"><p>㊿.1 把 ㊹.4 的两个换形拼成「加同一块 z」</p></div><div class="block prose intuition-only"><p>先把 ㊹ 的两个换形拼成「加同一块 z」。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_add_addends (x y z : ratRep)
+    (h : ratLeRep (ratAddRep x z) (ratAddRep y z)) :
+    leRep
+      (addRep
+        (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (addRep
+        (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z))))) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratLeRep (x+z) (y+z)</code> 展开是 <code>leRep (leNum (x+z) (y+z)) (leNum (y+z) (x+z))</code>。用 <code>leRep_wd_pair</code> 把两个 <code>leNum</code> 换成 ㊹.4 的中间形状——两个中间形状恰好加的是<strong>同一块</strong> <code>mulRep (leNum z y) (den (denOf (ratAddRep x z)))</code>。换形由库里的 <code>leNum_ratAddRep_left/right</code> 给出，注意 <code>leRep_wd_pair</code> 要的是 <code>intRel</code> 从 <code>leNum</code> 出发的方向，所以取 <code>intRel_symm</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>leRep (addRep A Z) (addRep B Z)</code>，其中 <code>A = leNum x y · dz · dz</code>、<code>B = leNum y x · dz · dz</code>、<code>Z = leNum z y · den (x+z)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">leRep_wd_pair · intRel_symm · leNum_ratAddRep_left · leNum_ratAddRep_right</span>。</p></div></details></div><details class="solution-panel" id="sol-50-1"><summary>查看解答 <span class="sol-meta">定理 · 31 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_add_addends (x y z : ratRep)
+    (h : ratLeRep (ratAddRep x z) (ratAddRep y z)) :
+    leRep
+      (addRep
+        (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (addRep
+        (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z))))) :=
+  leRep_wd_pair
+    (leNum (ratAddRep x z) (ratAddRep y z))
+    (addRep
+      (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+      (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+    (leNum (ratAddRep y z) (ratAddRep x z))
+    (addRep
+      (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+      (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+    (intRel_symm
+      (addRep
+        (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (leNum (ratAddRep x z) (ratAddRep y z))
+      (leNum_ratAddRep_left x y z))
+    (intRel_symm
+      (addRep
+        (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (leNum (ratAddRep y z) (ratAddRep x z))
+      (leNum_ratAddRep_right x y z))
+    h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-50-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratLeRep_add_cancel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-50-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊿.2 加法消去（弱序）</p></div><div class="block prose intuition-only"><p>加法消去（弱序）：消掉公共加数，再消掉两层正分母。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_add_cancel (x y z : ratRep)
+    (h : ratLeRep (ratAddRep x z) (ratAddRep y z)) : ratLeRep x y :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>从 ㊿.1 得到「加同一块 z」的 <code>leRep</code>，用 <code>leRep_add_cancel_right</code> 消掉公共加数；剩下的是 <code>leRep (A·dz) (B·dz)</code>，用 <code>leRep_cancel_den</code> 消一次 <code>den z</code> 得 <code>leRep A B</code>，再消一次得 <code>leRep (leNum x y) (leNum y x)</code>，正是 <code>ratLeRep x y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (ratAddRep x z) (ratAddRep y z) → ratLeRep x y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_add_addends · leRep_add_cancel_right · leRep_cancel_den</span>（两次）。</p></div></details></div><details class="solution-panel" id="sol-50-2"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_add_cancel (x y z : ratRep)
+    (h : ratLeRep (ratAddRep x z) (ratAddRep y z)) : ratLeRep x y :=
+  leRep_cancel_den (leNum x y) (leNum y x) (denOf z)
+    (leRep_cancel_den
+      (mulRep (leNum x y) (den (denOf z)))
+      (mulRep (leNum y x) (den (denOf z)))
+      (denOf z)
+      (leRep_add_cancel_right
+        (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+        (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z))))
+        (ratLeRep_add_addends x y z h)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-50-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratRel_add_cancel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-50-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊿.3 加法消去（相等）</p></div><div class="block prose intuition-only"><p>加法消去（相等）：弱序两边都能消去，再用反对称性。</p></div></div><pre class="exercise-statement"><code>theorem ratRel_add_cancel (x y z : ratRep)
+    (h : ratRel (ratAddRep x z) (ratAddRep y z)) : ratRel x y :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratRel (x+z) (y+z)</code> 同时给出两个方向的弱序（<code>ratLeRep_of_ratRel</code>，反方向先 <code>ratRel_symm</code>）；各用 ㊿.2 消去 <code>z</code> 得 <code>x ≤ y</code> 与 <code>y ≤ x</code>，再交给 ㊻ 的 <code>ratLeRep_antisymm</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratAddRep x z) (ratAddRep y z) → ratRel x y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>ratLeRep_add_cancel（两次）<span class="math">· ratLeRep_of_ratRel · ratRel_symm · ratLeRep_antisymm</span>。</p></div></details></div><details class="solution-panel" id="sol-50-3"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem ratRel_add_cancel (x y z : ratRep)
+    (h : ratRel (ratAddRep x z) (ratAddRep y z)) : ratRel x y :=
+  ratLeRep_antisymm x y
+    (ratLeRep_add_cancel x y z
+      (ratLeRep_of_ratRel (ratAddRep x z) (ratAddRep y z) h))
+    (ratLeRep_add_cancel y x z
+      (ratLeRep_of_ratRel (ratAddRep y z) (ratAddRep x z)
+        (ratRel_symm (ratAddRep x z) (ratAddRep y z) h)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-50-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">ratLtRep_add_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-50-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊿.4 严格序与右加相容</p></div><div class="block prose intuition-only"><p>严格序的右加：弱序用加法相容，不相等用消去。</p></div></div><pre class="exercise-statement"><code>theorem ratLtRep_add_right (x y z : ratRep)
+    (h : ratLtRep x y) : ratLtRep (ratAddRep x z) (ratAddRep y z) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratLtRep x y</code> 是 <code>ratLeRep x y ∧ ¬ ratRel x y</code>。弱序用 ㊹ 的 <code>ratLeRep_add_right</code>；不相等用 ㊿.3 的消去——若 <code>x+z ~ y+z</code>，消去得 <code>x ~ y</code>，撞上第二分量。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep x y → ratLtRep (ratAddRep x z) (ratAddRep y z)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">And.intro · And.left · And.right · ratLeRep_add_right · ratRel_add_cancel</span>。</p></div></details></div><details class="solution-panel" id="sol-50-4"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem ratLtRep_add_right (x y z : ratRep)
+    (h : ratLtRep x y) : ratLtRep (ratAddRep x z) (ratAddRep y z) :=
+  And.intro
+    (ratLeRep_add_right x y z (And.left h))
+    (fun (hz : ratRel (ratAddRep x z) (ratAddRep y z)) =&gt;
+      (And.right h) (ratRel_add_cancel x y z hz))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-50-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">demo_zero_lt_one_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-50-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊿.5 具体：<code>0 + 1/2 &lt; 1 + 1/2</code></p></div><div class="block prose intuition-only"><p>具体算 <span class="math">0 + 1/2 &lt; 1 + 1/2</span>。</p></div></div><pre class="exercise-statement"><code>theorem demo_zero_lt_one_add :
+    ratLtRep
+      (ratAddRep (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero 1))
+      (ratAddRep (qrep 1 Nat.zero Nat.zero) (qrep 1 Nat.zero 1)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>直接对 ㉚ 的 <code>0 &lt; 1</code> 用 ㊿.4。<code>0 &lt; 1</code> 的弱序是 <code>LeNat 0 1</code>（<code>le_succ</code> <span class="math">+</span> <code>le_refl</code>）；不相等把 <code>0 ~ 1</code> 化成 <code>0 = 1</code> 后交给 <code>succ_ne_zero</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep (ratAddRep 0 (1/2)) (ratAddRep 1 (1/2))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLtRep_add_right · le_succ · le_refl · succ_ne_zero · Eq.symm</span>。</p></div></details></div><details class="solution-panel" id="sol-50-5"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem demo_zero_lt_one_add :
+    ratLtRep
+      (ratAddRep (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero 1))
+      (ratAddRep (qrep 1 Nat.zero Nat.zero) (qrep 1 Nat.zero 1)) :=
+  ratLtRep_add_right
+    (qrep Nat.zero Nat.zero Nat.zero)
+    (qrep 1 Nat.zero Nat.zero)
+    (qrep 1 Nat.zero 1)
+    (And.intro
+      (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+      (fun (h : ratRel (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) =&gt;
+        succ_ne_zero Nat.zero (Eq.symm h)))</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>加法消去与严格序的右加到手；下一单元把它们与严格序传递混着串起来，为 close 的传递性备料。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit49.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">严格序的传递与 close 对 <span class="math">ε</span> 的单调性</span></a><a class="unit-nav-home" ../chapters/ii-5.html#units>目录</a><a class="unit-nav-link" ../units/unit51.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">严格序的传递与加法相容</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-50"><h3><a #top>严格序与加法相容：加法消去</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-50-1"><summary>练习 1 · ratLeRep_add_addends <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_add_addends (x y z : ratRep)
+    (h : ratLeRep (ratAddRep x z) (ratAddRep y z)) :
+    leRep
+      (addRep
+        (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (addRep
+        (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z))))) :=
+  leRep_wd_pair
+    (leNum (ratAddRep x z) (ratAddRep y z))
+    (addRep
+      (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+      (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+    (leNum (ratAddRep y z) (ratAddRep x z))
+    (addRep
+      (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+      (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+    (intRel_symm
+      (addRep
+        (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (leNum (ratAddRep x z) (ratAddRep y z))
+      (leNum_ratAddRep_left x y z))
+    (intRel_symm
+      (addRep
+        (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z)))))
+      (leNum (ratAddRep y z) (ratAddRep x z))
+      (leNum_ratAddRep_right x y z))
+    h</code></pre></details><details class="appendix-solution" id="app-sol-50-2"><summary>练习 2 · ratLeRep_add_cancel <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_add_cancel (x y z : ratRep)
+    (h : ratLeRep (ratAddRep x z) (ratAddRep y z)) : ratLeRep x y :=
+  leRep_cancel_den (leNum x y) (leNum y x) (denOf z)
+    (leRep_cancel_den
+      (mulRep (leNum x y) (den (denOf z)))
+      (mulRep (leNum y x) (den (denOf z)))
+      (denOf z)
+      (leRep_add_cancel_right
+        (mulRep (mulRep (leNum x y) (den (denOf z))) (den (denOf z)))
+        (mulRep (mulRep (leNum y x) (den (denOf z))) (den (denOf z)))
+        (mulRep (leNum z y) (den (denOf (ratAddRep x z))))
+        (ratLeRep_add_addends x y z h)))</code></pre></details><details class="appendix-solution" id="app-sol-50-3"><summary>练习 3 · ratRel_add_cancel <span class="sol-meta">定理</span></summary><pre><code>theorem ratRel_add_cancel (x y z : ratRep)
+    (h : ratRel (ratAddRep x z) (ratAddRep y z)) : ratRel x y :=
+  ratLeRep_antisymm x y
+    (ratLeRep_add_cancel x y z
+      (ratLeRep_of_ratRel (ratAddRep x z) (ratAddRep y z) h))
+    (ratLeRep_add_cancel y x z
+      (ratLeRep_of_ratRel (ratAddRep y z) (ratAddRep x z)
+        (ratRel_symm (ratAddRep x z) (ratAddRep y z) h)))</code></pre></details><details class="appendix-solution" id="app-sol-50-4"><summary>练习 4 · ratLtRep_add_right <span class="sol-meta">定理</span></summary><pre><code>theorem ratLtRep_add_right (x y z : ratRep)
+    (h : ratLtRep x y) : ratLtRep (ratAddRep x z) (ratAddRep y z) :=
+  And.intro
+    (ratLeRep_add_right x y z (And.left h))
+    (fun (hz : ratRel (ratAddRep x z) (ratAddRep y z)) =&gt;
+      (And.right h) (ratRel_add_cancel x y z hz))</code></pre></details><details class="appendix-solution" id="app-sol-50-5"><summary>练习 5 · demo_zero_lt_one_add <span class="sol-meta">定理</span></summary><pre><code>theorem demo_zero_lt_one_add :
+    ratLtRep
+      (ratAddRep (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero 1))
+      (ratAddRep (qrep 1 Nat.zero Nat.zero) (qrep 1 Nat.zero 1)) :=
+  ratLtRep_add_right
+    (qrep Nat.zero Nat.zero Nat.zero)
+    (qrep 1 Nat.zero Nat.zero)
+    (qrep 1 Nat.zero 1)
+    (And.intro
+      (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+      (fun (h : ratRel (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) =&gt;
+        succ_ne_zero Nat.zero (Eq.symm h)))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit49.html">← 49 严格序的传递与 close 对 ε 的单调性</a><a class="next" href="../units/unit51.html">51 严格序的传递与加法相容 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 52 ε 折半：半数的存在与加倍</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit52.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 52 ε 折半：半数的存在与加倍</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit52.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">II.5 ℝ 的商、代数与序 · 单元 52</p><h1>ε 折半：半数的存在与加倍</h1><p class="note">Unit 52 — Halving: Existence of ε/2 and x/2 + x/2 = x</p></header><section class="unit" id="unit-52">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-5.html>II.5</a> · 本章第 8 / 10 单元 · 全书第 52 / 72 单元</p>
+<h2><span class="unit-number">52</span><span><span class="math">ε</span> 折半：半数的存在与加倍</span></h2>
+<p class="unit-title-en">Unit 52 — Halving: Existence of ε/2 and x/2 + x/2 = x</p>
+<p class="unit-meta">3 个定义 · 7 个定理 · 7 道练习 · 18 条提示 · <a #appendix-unit-52>解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>close 的传递性要把两个 <span class="math">ε/2</span> 的界加起来，所以先要有「半数」：对任意有理数 x，构造 x/2 的一个代表元，并证明 <span class="math">x/2 + x/2</span> 与 x 相等。</p></div></div></section>
+<div class="block prose intuition-only"><p>代表元层不需要除法：<span class="math">(a-b)/(m+1)</span> 的一半就是 <span class="math">(a-b)/(2m+2)</span>，也就是把分母字段从 m 换成 <span class="math">2m+1</span>（真正的分母 <span class="math">2m+2 = 2(m+1)</span>）。于是 ratHalf (qrep a b m) :<span class="math">= qrep a b (2m+1)</span>，分子序对根本不用动。</p></div><div class="block prose intuition-only"><p>先补一条定义性等式：<span class="math">2m+2 = (m+1)+(m+1)</span>（注意 Nat.add 对第二个参数递归，所以这条不是 Eq.refl，要走 succ_add 与 add_succ）；再证两条纯 <span class="math">ℕ</span> 算术：<span class="math">D(m+1)+D(m+1) = D·D</span>（<span class="math">D = 2m+2</span>）与 <span class="math">(x·D+x·D)(m+1) = x·(D·D)</span>。最后把这两条装成 <span class="math">x/2 + x/2</span> 与 x 相等，再用 aux 把字面三元组搬到任意代表元（ratRep 是定义别名，match 只认展开类型）。</p></div><div class="block prose intuition-only"><p>定义：半数</p></div><div class="block prose intuition-only"><p>半数在分母字段上的写法：<code>(a-b)/(m+1)</code> 的一半是 <code>(a-b)/(2m+2)</code>，所以新分母字段是 <code>2m+1</code>。</p></div><article class="decl decl-def" id="decl-52-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">halfDen</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def halfDen (m : Nat) : Nat :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def halfDen (m : Nat) : Nat := Nat.succ (Nat.add m m)</code></pre></details></div></article>
+<div class="block prose intuition-only"><p>两倍的分母字段：<code>2m+2 = succ (2m+1)</code>，也正是 <code>(m+1)+(m+1)</code>。</p></div><article class="decl decl-def" id="decl-52-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">twoDen</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def twoDen (m : Nat) : Nat :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def twoDen (m : Nat) : Nat := Nat.succ (halfDen m)</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-52-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratHalf</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratHalf (x : ratRep) : ratRep :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def ratHalf (x : ratRep) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat (numOf x) (halfDen (denOf x))</code></pre></details></div></article>
+<h3 class="unit-subhead">52.1 两倍的分母就是 <code>(m+1)+(m+1)</code></h3><article class="exercise" id="ex-52-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">half_den_two</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-52-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>先补两倍分母的定义性等式：<span class="math">2m+2 = (m+1)+(m+1)</span>。</p></div></div><pre class="exercise-statement"><code>theorem half_den_two (m : Nat) :
+    twoDen m = Nat.add (Nat.succ m) (Nat.succ m) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>Nat.add</code> 对第二个参数递归，所以 <code>(m+1)+(m+1)</code> 要用 <code>succ_add</code> 提出一个 <code>succ</code>，再把 <code>m+(m+1)</code> 用 <code>add_succ</code> 收成 <code>succ (m+m)</code>；最后取对称（目标写的是 <code>twoDen</code> 在左边）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>twoDen m = (m+1)+(m+1)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">succ_add · add_succ · congrArg · Eq.symm</span>。</p></div></details></div><details open class="solution-panel" id="sol-52-1"><summary>查看解答 <span class="sol-meta">定理 · 15 行</span></summary><div class="solution-body"><pre><code>theorem half_den_two (m : Nat) :
+    twoDen m = Nat.add (Nat.succ m) (Nat.succ m) :=
+  @Eq.symm.{1} Nat
+    (Nat.add (Nat.succ m) (Nat.succ m))
+    (Nat.succ (Nat.succ (Nat.add m m)))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.succ m) (Nat.succ m))
+      (Nat.succ (Nat.add m (Nat.succ m)))
+      (Nat.succ (Nat.succ (Nat.add m m)))
+      (succ_add m (Nat.succ m))
+      (@congrArg.{1} Nat Nat
+        (Nat.add m (Nat.succ m))
+        (Nat.succ (Nat.add m m))
+        Nat.succ
+        (add_succ m m)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">52.2 两倍分母乘一个正分母：<code>D·(m+1) + D·(m+1) = D·D</code></h3><article class="exercise" id="ex-52-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">den_two_mul</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-52-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>第一条纯 <span class="math">ℕ</span> 算术：<span class="math">D(m+1)+D(m+1) = D·D</span>。</p></div></div><pre class="exercise-statement"><code>theorem den_two_mul (m : Nat) :
+    Nat.add
+      (myMul (twoDen m) (Nat.succ m))
+      (myMul (twoDen m) (Nat.succ m)) =
+    myMul (twoDen m) (twoDen m) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>D = (m+1)+(m+1)</code>（52.1），所以 <code>D·D = D·((m+1)+(m+1))</code>；用 <code>mul_add</code> 把右边拆开，正好是 <code>D·(m+1) + D·(m+1)</code>。链是：<code>mul_add</code>（取对称）<span class="math">→</span> 在 <code>D·_</code> 下改写 52.1（取对称）<span class="math">→</span> 取对称把方向对上。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>D*(m+1) + D*(m+1) = D*D</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">mul_add · congrArg · half_den_two</span>（取对称）<span class="math">· Eq.symm · Eq.trans</span>。</p></div></details></div><details open class="solution-panel" id="sol-52-2"><summary>查看解答 <span class="sol-meta">定理 · 27 行</span></summary><div class="solution-body"><pre><code>theorem den_two_mul (m : Nat) :
+    Nat.add
+      (myMul (twoDen m) (Nat.succ m))
+      (myMul (twoDen m) (Nat.succ m)) =
+    myMul (twoDen m) (twoDen m) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (myMul (twoDen m) (Nat.succ m))
+      (myMul (twoDen m) (Nat.succ m)))
+    (myMul (twoDen m)
+      (Nat.add (Nat.succ m) (Nat.succ m)))
+    (myMul (twoDen m) (twoDen m))
+    (@Eq.symm.{1} Nat
+      (myMul (twoDen m)
+        (Nat.add (Nat.succ m) (Nat.succ m)))
+      (Nat.add
+        (myMul (twoDen m) (Nat.succ m))
+        (myMul (twoDen m) (Nat.succ m)))
+      (mul_add (twoDen m) (Nat.succ m) (Nat.succ m)))
+    (@congrArg.{1} Nat Nat
+      (Nat.add (Nat.succ m) (Nat.succ m))
+      (twoDen m)
+      (fun (z : Nat) =&gt; myMul (twoDen m) z)
+      (@Eq.symm.{1} Nat
+        (twoDen m)
+        (Nat.add (Nat.succ m) (Nat.succ m))
+        (half_den_two m)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">52.3 分子乘开：<code>(x·D + x·D)·(m+1) = x·(D·D)</code></h3><article class="exercise" id="ex-52-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">half_num_mul</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-52-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>第二条纯 <span class="math">ℕ</span> 算术：把分子的两倍提到分母上。</p></div></div><pre class="exercise-statement"><code>theorem half_num_mul (x m : Nat) :
+    myMul
+      (Nat.add (myMul x (twoDen m)) (myMul x (twoDen m)))
+      (Nat.succ m) =
+    myMul x (myMul (twoDen m) (twoDen m)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>四步链。① <code>mul_add_right</code> 把 <code>(x·D + x·D)·(m+1)</code> 拆成两个 <code>(x·D)·(m+1)</code>；② <code>myMul_assoc</code>（取对称）把两个都换成 <code>x·(D·(m+1))</code>，用 <code>congrArg (fun z =&gt; z + z)</code> 一次改两个；③ <code>mul_add</code>（取对称）把两个 <code>x·…</code> 收回 <code>x·(D·(m+1) + D·(m+1))</code>；④ 在 <code>x·_</code> 下用 52.2。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(x*D + x*D)*(m+1) = x*(D*D)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">mul_add_right · myMul_assoc</span>（取对称）<span class="math">· congrArg · mul_add</span>（取对称）<span class="math">· den_two_mul · Eq.trans</span>。</p></div></details></div><details open class="solution-panel" id="sol-52-3"><summary>查看解答 <span class="sol-meta">定理 · 54 行</span></summary><div class="solution-body"><pre><code>theorem half_num_mul (x m : Nat) :
+    myMul
+      (Nat.add (myMul x (twoDen m)) (myMul x (twoDen m)))
+      (Nat.succ m) =
+    myMul x (myMul (twoDen m) (twoDen m)) :=
+  @Eq.trans.{1} Nat
+    (myMul
+      (Nat.add (myMul x (twoDen m)) (myMul x (twoDen m)))
+      (Nat.succ m))
+    (Nat.add
+      (myMul (myMul x (twoDen m)) (Nat.succ m))
+      (myMul (myMul x (twoDen m)) (Nat.succ m)))
+    (myMul x (myMul (twoDen m) (twoDen m)))
+    (mul_add_right (myMul x (twoDen m)) (myMul x (twoDen m)) (Nat.succ m))
+    (@Eq.trans.{1} Nat
+      (Nat.add
+        (myMul (myMul x (twoDen m)) (Nat.succ m))
+        (myMul (myMul x (twoDen m)) (Nat.succ m)))
+      (Nat.add
+        (myMul x (myMul (twoDen m) (Nat.succ m)))
+        (myMul x (myMul (twoDen m) (Nat.succ m))))
+      (myMul x (myMul (twoDen m) (twoDen m)))
+      (@congrArg.{1} Nat Nat
+        (myMul (myMul x (twoDen m)) (Nat.succ m))
+        (myMul x (myMul (twoDen m) (Nat.succ m)))
+        (fun (z : Nat) =&gt; Nat.add z z)
+        (myMul_assoc x (twoDen m) (Nat.succ m)))
+      (@Eq.trans.{1} Nat
+        (Nat.add
+          (myMul x (myMul (twoDen m) (Nat.succ m)))
+          (myMul x (myMul (twoDen m) (Nat.succ m))))
+        (myMul x
+          (Nat.add
+            (myMul (twoDen m) (Nat.succ m))
+            (myMul (twoDen m) (Nat.succ m))))
+        (myMul x (myMul (twoDen m) (twoDen m)))
+        (@Eq.symm.{1} Nat
+          (myMul x
+            (Nat.add
+              (myMul (twoDen m) (Nat.succ m))
+              (myMul (twoDen m) (Nat.succ m))))
+          (Nat.add
+            (myMul x (myMul (twoDen m) (Nat.succ m)))
+            (myMul x (myMul (twoDen m) (Nat.succ m))))
+          (mul_add x
+            (myMul (twoDen m) (Nat.succ m))
+            (myMul (twoDen m) (Nat.succ m))))
+        (@congrArg.{1} Nat Nat
+          (Nat.add
+            (myMul (twoDen m) (Nat.succ m))
+            (myMul (twoDen m) (Nat.succ m)))
+          (myMul (twoDen m) (twoDen m))
+          (fun (z : Nat) =&gt; myMul x z)
+          (den_two_mul m))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">52.4 字面三元组上的加倍：<code>x/2 + x/2 ~ x</code></h3><article class="exercise" id="ex-52-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">ratHalf_add_self_mk</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-52-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>把两条算术装成 <span class="math">x/2 + x/2</span> 与 x 相等。</p></div></div><pre class="exercise-statement"><code>theorem ratHalf_add_self_mk (a b m : Nat) :
+    ratRel (ratAddRep (ratHalf (qrep a b m)) (ratHalf (qrep a b m))) (qrep a b m) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边各用 <code>mulRep_den_form</code> 化成序对，目标变成序对相等。左坐标与右坐标分别是 52.3（两次：<code>x = a</code>、<code>x = b</code>）；另一边还要把 <code>succ (ratDenRep M M)</code> 用 <code>ratDenRep_succ</code> 换成 <code>D·D</code>（在 <code>a·_</code>、<code>b·_</code> 下各改写一次）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratHalf (qrep a b m) + ratHalf (qrep a b m)) (qrep a b m)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">intRel_of_eq · mulRep_den_form</span>（两次）<span class="math">· prod_mk_congr · half_num_mul</span>（两次）<span class="math">· ratDenRep_succ</span>（两次）<span class="math">· congrArg · Eq.symm · Eq.trans</span>。</p></div></details></div><details open class="solution-panel" id="sol-52-4"><summary>查看解答 <span class="sol-meta">定理 · 74 行</span></summary><div class="solution-body"><pre><code>theorem ratHalf_add_self_mk (a b m : Nat) :
+    ratRel (ratAddRep (ratHalf (qrep a b m)) (ratHalf (qrep a b m))) (qrep a b m) :=
+  intRel_of_eq
+    (mulRep
+      (@prod_mk Nat Nat
+        (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m)))
+        (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))))
+      (den m))
+    (mulRep (@prod_mk Nat Nat a b)
+      (den (ratDenRep (halfDen m) (halfDen m))))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (mulRep
+        (@prod_mk Nat Nat
+          (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m)))
+          (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))))
+        (den m))
+      (@prod_mk Nat Nat
+        (myMul (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m))) (Nat.succ m))
+        (myMul (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))) (Nat.succ m)))
+      (mulRep (@prod_mk Nat Nat a b)
+        (den (ratDenRep (halfDen m) (halfDen m))))
+      (mulRep_den_form
+        (@prod_mk Nat Nat
+          (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m)))
+          (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))))
+        m)
+      (@Eq.trans.{1} (Prod Nat Nat)
+        (@prod_mk Nat Nat
+          (myMul (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m))) (Nat.succ m))
+          (myMul (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))) (Nat.succ m)))
+        (@prod_mk Nat Nat
+          (myMul a (myMul (twoDen m) (twoDen m)))
+          (myMul b (myMul (twoDen m) (twoDen m))))
+        (mulRep (@prod_mk Nat Nat a b)
+          (den (ratDenRep (halfDen m) (halfDen m))))
+        (prod_mk_congr
+          (myMul (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m))) (Nat.succ m))
+          (myMul a (myMul (twoDen m) (twoDen m)))
+          (myMul (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))) (Nat.succ m))
+          (myMul b (myMul (twoDen m) (twoDen m)))
+          (half_num_mul a m)
+          (half_num_mul b m))
+        (@Eq.symm.{1} (Prod Nat Nat)
+          (mulRep (@prod_mk Nat Nat a b)
+            (den (ratDenRep (halfDen m) (halfDen m))))
+          (@prod_mk Nat Nat
+            (myMul a (myMul (twoDen m) (twoDen m)))
+            (myMul b (myMul (twoDen m) (twoDen m))))
+          (@Eq.trans.{1} (Prod Nat Nat)
+            (mulRep (@prod_mk Nat Nat a b)
+              (den (ratDenRep (halfDen m) (halfDen m))))
+            (@prod_mk Nat Nat
+              (myMul a (Nat.succ (ratDenRep (halfDen m) (halfDen m))))
+              (myMul b (Nat.succ (ratDenRep (halfDen m) (halfDen m)))))
+            (@prod_mk Nat Nat
+              (myMul a (myMul (twoDen m) (twoDen m)))
+              (myMul b (myMul (twoDen m) (twoDen m))))
+            (mulRep_den_form (@prod_mk Nat Nat a b)
+              (ratDenRep (halfDen m) (halfDen m)))
+            (prod_mk_congr
+              (myMul a (Nat.succ (ratDenRep (halfDen m) (halfDen m))))
+              (myMul a (myMul (twoDen m) (twoDen m)))
+              (myMul b (Nat.succ (ratDenRep (halfDen m) (halfDen m))))
+              (myMul b (myMul (twoDen m) (twoDen m)))
+              (@congrArg.{1} Nat Nat
+                (Nat.succ (ratDenRep (halfDen m) (halfDen m)))
+                (myMul (twoDen m) (twoDen m))
+                (fun (z : Nat) =&gt; myMul a z)
+                (ratDenRep_succ (halfDen m) (halfDen m)))
+              (@congrArg.{1} Nat Nat
+                (Nat.succ (ratDenRep (halfDen m) (halfDen m)))
+                (myMul (twoDen m) (twoDen m))
+                (fun (z : Nat) =&gt; myMul b z)
+                (ratDenRep_succ (halfDen m) (halfDen m))))))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">52.5 任意代表元上的加倍</h3><article class="exercise" id="ex-52-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">ratHalf_add_self_aux</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-52-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>再用 aux 把字面三元组搬到任意代表元。</p></div></div><pre class="exercise-statement"><code>theorem ratHalf_add_self_aux (x : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratAddRep (ratHalf x) (ratHalf x)) x :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratRep</code> 是 <code>Prod (Prod Nat Nat) Nat</code> 的定义别名，<code>match</code> 只认展开类型；先在展开类型上把三元组拆开，转发给 52.4。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (x/2 + x/2) x</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>match（三层 <code>prod_mk</code>）<span class="math">· ratHalf_add_self_mk</span>。</p></div></details></div><details open class="solution-panel" id="sol-52-5"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem ratHalf_add_self_aux (x : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratAddRep (ratHalf x) (ratHalf x)) x :=
+  match x with
+  | prod_mk (prod_mk a b) m =&gt; ratHalf_add_self_mk a b m</code></pre></div></details></div></article>
+<article class="exercise" id="ex-52-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">ratHalf_add_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-52-6>附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem ratHalf_add_self (x : ratRep) :
+    ratRel (ratAddRep (ratHalf x) (ratHalf x)) x :=
+  sorry</code></pre><details open class="solution-panel" id="sol-52-6"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem ratHalf_add_self (x : ratRep) :
+    ratRel (ratAddRep (ratHalf x) (ratHalf x)) x :=
+  ratHalf_add_self_aux x</code></pre></div></details></div></article>
+<h3 class="unit-subhead">52.6 具体：<code>1/2 + 1/2 ~ 1</code></h3><article class="exercise" id="ex-52-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">demo_half_one</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-52-7>附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem demo_half_one :
+    ratRel
+      (ratAddRep (ratHalf (qrep 1 Nat.zero Nat.zero))
+                 (ratHalf (qrep 1 Nat.zero Nat.zero)))
+      (qrep 1 Nat.zero Nat.zero) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 52.5 用在一个具体的 <code>1</code>（<code>qrep 1 0 0</code>）上。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (1/2 + 1/2) 1</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>ratHalf_add_self。</p></div></details></div><details open class="solution-panel" id="sol-52-7"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem demo_half_one :
+    ratRel
+      (ratAddRep (ratHalf (qrep 1 Nat.zero Nat.zero))
+                 (ratHalf (qrep 1 Nat.zero Nat.zero)))
+      (qrep 1 Nat.zero Nat.zero) :=
+  ratHalf_add_self (qrep 1 Nat.zero Nat.zero)</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>半数存在且加倍回到原数；下一单元补它的正性，close 的传递性才能把 <span class="math">ε</span> 折半用起来。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit51.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">严格序的传递与加法相容</span></a><a class="unit-nav-home" ../chapters/ii-5.html#units>目录</a><a class="unit-nav-link" ../units/unit53.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">半数的正性：<span class="math">0 &lt; ε ⇒ 0 &lt; ε/2</span></span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-52"><h3><a #top><span class="math">ε</span> 折半：半数的存在与加倍</a></h3><p class="appendix-meta">7 道练习 · 7 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-52-1"><summary>练习 1 · half_den_two <span class="sol-meta">定理</span></summary><pre><code>theorem half_den_two (m : Nat) :
+    twoDen m = Nat.add (Nat.succ m) (Nat.succ m) :=
+  @Eq.symm.{1} Nat
+    (Nat.add (Nat.succ m) (Nat.succ m))
+    (Nat.succ (Nat.succ (Nat.add m m)))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.succ m) (Nat.succ m))
+      (Nat.succ (Nat.add m (Nat.succ m)))
+      (Nat.succ (Nat.succ (Nat.add m m)))
+      (succ_add m (Nat.succ m))
+      (@congrArg.{1} Nat Nat
+        (Nat.add m (Nat.succ m))
+        (Nat.succ (Nat.add m m))
+        Nat.succ
+        (add_succ m m)))</code></pre></details><details open class="appendix-solution" id="app-sol-52-2"><summary>练习 2 · den_two_mul <span class="sol-meta">定理</span></summary><pre><code>theorem den_two_mul (m : Nat) :
+    Nat.add
+      (myMul (twoDen m) (Nat.succ m))
+      (myMul (twoDen m) (Nat.succ m)) =
+    myMul (twoDen m) (twoDen m) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (myMul (twoDen m) (Nat.succ m))
+      (myMul (twoDen m) (Nat.succ m)))
+    (myMul (twoDen m)
+      (Nat.add (Nat.succ m) (Nat.succ m)))
+    (myMul (twoDen m) (twoDen m))
+    (@Eq.symm.{1} Nat
+      (myMul (twoDen m)
+        (Nat.add (Nat.succ m) (Nat.succ m)))
+      (Nat.add
+        (myMul (twoDen m) (Nat.succ m))
+        (myMul (twoDen m) (Nat.succ m)))
+      (mul_add (twoDen m) (Nat.succ m) (Nat.succ m)))
+    (@congrArg.{1} Nat Nat
+      (Nat.add (Nat.succ m) (Nat.succ m))
+      (twoDen m)
+      (fun (z : Nat) =&gt; myMul (twoDen m) z)
+      (@Eq.symm.{1} Nat
+        (twoDen m)
+        (Nat.add (Nat.succ m) (Nat.succ m))
+        (half_den_two m)))</code></pre></details><details open class="appendix-solution" id="app-sol-52-3"><summary>练习 3 · half_num_mul <span class="sol-meta">定理</span></summary><pre><code>theorem half_num_mul (x m : Nat) :
+    myMul
+      (Nat.add (myMul x (twoDen m)) (myMul x (twoDen m)))
+      (Nat.succ m) =
+    myMul x (myMul (twoDen m) (twoDen m)) :=
+  @Eq.trans.{1} Nat
+    (myMul
+      (Nat.add (myMul x (twoDen m)) (myMul x (twoDen m)))
+      (Nat.succ m))
+    (Nat.add
+      (myMul (myMul x (twoDen m)) (Nat.succ m))
+      (myMul (myMul x (twoDen m)) (Nat.succ m)))
+    (myMul x (myMul (twoDen m) (twoDen m)))
+    (mul_add_right (myMul x (twoDen m)) (myMul x (twoDen m)) (Nat.succ m))
+    (@Eq.trans.{1} Nat
+      (Nat.add
+        (myMul (myMul x (twoDen m)) (Nat.succ m))
+        (myMul (myMul x (twoDen m)) (Nat.succ m)))
+      (Nat.add
+        (myMul x (myMul (twoDen m) (Nat.succ m)))
+        (myMul x (myMul (twoDen m) (Nat.succ m))))
+      (myMul x (myMul (twoDen m) (twoDen m)))
+      (@congrArg.{1} Nat Nat
+        (myMul (myMul x (twoDen m)) (Nat.succ m))
+        (myMul x (myMul (twoDen m) (Nat.succ m)))
+        (fun (z : Nat) =&gt; Nat.add z z)
+        (myMul_assoc x (twoDen m) (Nat.succ m)))
+      (@Eq.trans.{1} Nat
+        (Nat.add
+          (myMul x (myMul (twoDen m) (Nat.succ m)))
+          (myMul x (myMul (twoDen m) (Nat.succ m))))
+        (myMul x
+          (Nat.add
+            (myMul (twoDen m) (Nat.succ m))
+            (myMul (twoDen m) (Nat.succ m))))
+        (myMul x (myMul (twoDen m) (twoDen m)))
+        (@Eq.symm.{1} Nat
+          (myMul x
+            (Nat.add
+              (myMul (twoDen m) (Nat.succ m))
+              (myMul (twoDen m) (Nat.succ m))))
+          (Nat.add
+            (myMul x (myMul (twoDen m) (Nat.succ m)))
+            (myMul x (myMul (twoDen m) (Nat.succ m))))
+          (mul_add x
+            (myMul (twoDen m) (Nat.succ m))
+            (myMul (twoDen m) (Nat.succ m))))
+        (@congrArg.{1} Nat Nat
+          (Nat.add
+            (myMul (twoDen m) (Nat.succ m))
+            (myMul (twoDen m) (Nat.succ m)))
+          (myMul (twoDen m) (twoDen m))
+          (fun (z : Nat) =&gt; myMul x z)
+          (den_two_mul m))))</code></pre></details><details open class="appendix-solution" id="app-sol-52-4"><summary>练习 4 · ratHalf_add_self_mk <span class="sol-meta">定理</span></summary><pre><code>theorem ratHalf_add_self_mk (a b m : Nat) :
+    ratRel (ratAddRep (ratHalf (qrep a b m)) (ratHalf (qrep a b m))) (qrep a b m) :=
+  intRel_of_eq
+    (mulRep
+      (@prod_mk Nat Nat
+        (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m)))
+        (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))))
+      (den m))
+    (mulRep (@prod_mk Nat Nat a b)
+      (den (ratDenRep (halfDen m) (halfDen m))))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (mulRep
+        (@prod_mk Nat Nat
+          (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m)))
+          (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))))
+        (den m))
+      (@prod_mk Nat Nat
+        (myMul (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m))) (Nat.succ m))
+        (myMul (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))) (Nat.succ m)))
+      (mulRep (@prod_mk Nat Nat a b)
+        (den (ratDenRep (halfDen m) (halfDen m))))
+      (mulRep_den_form
+        (@prod_mk Nat Nat
+          (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m)))
+          (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))))
+        m)
+      (@Eq.trans.{1} (Prod Nat Nat)
+        (@prod_mk Nat Nat
+          (myMul (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m))) (Nat.succ m))
+          (myMul (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))) (Nat.succ m)))
+        (@prod_mk Nat Nat
+          (myMul a (myMul (twoDen m) (twoDen m)))
+          (myMul b (myMul (twoDen m) (twoDen m))))
+        (mulRep (@prod_mk Nat Nat a b)
+          (den (ratDenRep (halfDen m) (halfDen m))))
+        (prod_mk_congr
+          (myMul (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m))) (Nat.succ m))
+          (myMul a (myMul (twoDen m) (twoDen m)))
+          (myMul (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))) (Nat.succ m))
+          (myMul b (myMul (twoDen m) (twoDen m)))
+          (half_num_mul a m)
+          (half_num_mul b m))
+        (@Eq.symm.{1} (Prod Nat Nat)
+          (mulRep (@prod_mk Nat Nat a b)
+            (den (ratDenRep (halfDen m) (halfDen m))))
+          (@prod_mk Nat Nat
+            (myMul a (myMul (twoDen m) (twoDen m)))
+            (myMul b (myMul (twoDen m) (twoDen m))))
+          (@Eq.trans.{1} (Prod Nat Nat)
+            (mulRep (@prod_mk Nat Nat a b)
+              (den (ratDenRep (halfDen m) (halfDen m))))
+            (@prod_mk Nat Nat
+              (myMul a (Nat.succ (ratDenRep (halfDen m) (halfDen m))))
+              (myMul b (Nat.succ (ratDenRep (halfDen m) (halfDen m)))))
+            (@prod_mk Nat Nat
+              (myMul a (myMul (twoDen m) (twoDen m)))
+              (myMul b (myMul (twoDen m) (twoDen m))))
+            (mulRep_den_form (@prod_mk Nat Nat a b)
+              (ratDenRep (halfDen m) (halfDen m)))
+            (prod_mk_congr
+              (myMul a (Nat.succ (ratDenRep (halfDen m) (halfDen m))))
+              (myMul a (myMul (twoDen m) (twoDen m)))
+              (myMul b (Nat.succ (ratDenRep (halfDen m) (halfDen m))))
+              (myMul b (myMul (twoDen m) (twoDen m)))
+              (@congrArg.{1} Nat Nat
+                (Nat.succ (ratDenRep (halfDen m) (halfDen m)))
+                (myMul (twoDen m) (twoDen m))
+                (fun (z : Nat) =&gt; myMul a z)
+                (ratDenRep_succ (halfDen m) (halfDen m)))
+              (@congrArg.{1} Nat Nat
+                (Nat.succ (ratDenRep (halfDen m) (halfDen m)))
+                (myMul (twoDen m) (twoDen m))
+                (fun (z : Nat) =&gt; myMul b z)
+                (ratDenRep_succ (halfDen m) (halfDen m))))))))</code></pre></details><details open class="appendix-solution" id="app-sol-52-5"><summary>练习 5 · ratHalf_add_self_aux <span class="sol-meta">定理</span></summary><pre><code>theorem ratHalf_add_self_aux (x : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratAddRep (ratHalf x) (ratHalf x)) x :=
+  match x with
+  | prod_mk (prod_mk a b) m =&gt; ratHalf_add_self_mk a b m</code></pre></details><details open class="appendix-solution" id="app-sol-52-6"><summary>练习 6 · ratHalf_add_self <span class="sol-meta">定理</span></summary><pre><code>theorem ratHalf_add_self (x : ratRep) :
+    ratRel (ratAddRep (ratHalf x) (ratHalf x)) x :=
+  ratHalf_add_self_aux x</code></pre></details><details open class="appendix-solution" id="app-sol-52-7"><summary>练习 7 · demo_half_one <span class="sol-meta">定理</span></summary><pre><code>theorem demo_half_one :
+    ratRel
+      (ratAddRep (ratHalf (qrep 1 Nat.zero Nat.zero))
+                 (ratHalf (qrep 1 Nat.zero Nat.zero)))
+      (qrep 1 Nat.zero Nat.zero) :=
+  ratHalf_add_self (qrep 1 Nat.zero Nat.zero)</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

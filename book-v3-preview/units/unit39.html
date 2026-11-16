@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>39 有理数的序与相等相容 · 从集合论到实分析</title>
+<meta name="description" content="单元㊴ 有理数的序与相等相容：导语、定义与定理、练习与解答。Unit 39 — The Order Respects Equality">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit39.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></li><li aria-current="page">单元 39 有理数的序与相等相容</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#ex-39-1">练习</a></li>
+<li><a href="#appendix-unit-39">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-4.html#units">↑ 本章目录</a>
+      <a href="../print/unit39.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-39">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-4.html>II.4</a> · 本章第 5 / 10 单元 · 全书第 39 / 72 单元</p>
+<h1><span class="unit-number">39</span> <span>有理数的序与相等相容</span></h1>
+<p class="unit-title-en">Unit 39 — The Order Respects Equality</p>
+<p class="unit-meta">5 个定理 · 5 道练习 · 15 条提示 · <a #appendix-unit-39>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="39" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-39" aria-label="复制单元 39 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit39.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-4.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p><span class="math">ℚ</span> 是代表元的商（Rat :<span class="math">= Quot ratRel</span>），而 ㉙ 把 <span class="math">x ≤ y</span> 定义成代表元上的交叉相乘比较：<span class="math">x.num·y.den ≤ y.num·x.den</span>。既然是商上的关系，它就必须与代表元的选取无关：x ~ x' 且 y ~ y' 时 <span class="math">x ≤ y</span> 与 <span class="math">x' ≤ y'</span> 同真假；否则「<span class="math">ℚ</span> 上的序」根本不是一个关系。先结清替换一个因子的两条腿，合起来就是完整的相容性。</p></div></div></section>
+<article class="exercise" id="ex-39-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">scale_den</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-39-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>唯一的搬运工具是「把 intRel 的两边同乘一个正分母」（㊴.1）。要证 <span class="math">x' ≤ y</span>：把 <span class="math">x ≤ y</span> 两边乘上 x' 的分母；再把 x ~ x' 两边乘上 y 的分母，用 ㊴.1 与 mulRep_den_swap 把 <span class="math">x.num·x'.den</span> 换到公分母上；最后用 leRep_cancel_den 消去公共的 x 的分母。要证 <span class="math">x ≤ y'</span> 时对称处理。</p></div><div class="block prose intuition-only"><p>引擎（mulRep_den_swap / leRep_mul_den_right / leRep_cancel_den）已在 ㊲–㊳ 证明，收在 lib/RatOrder；这里的律留在正文里。</p></div><div class="block prose intuition-only"><p>㊴.1 等价的两边同乘一个正分母</p></div><div class="block prose intuition-only"><p>先备好唯一的搬运工具：等价的两边同乘一个正分母。</p></div></div><pre class="exercise-statement"><code>theorem scale_den (p q : Prod Nat Nat) (n : Nat) (h : intRel p q) :
+    intRel (mulRep p (den n)) (mulRep q (den n)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>mulRep_wd</code> 要求的是<strong>序对字面量</strong> <code>(a, b)</code> 之间的 <code>intRel</code>，而现在 <code>p</code>、<code>q</code> 是抽象变量。先用 <code>Prod.eta</code> 把 <code>p</code> 换成 <code>(fst p, snd p)</code>、把 <code>q</code> 换成 <code>(fst q, snd q)</code>（<code>Eq.subst</code> 四次：两次把假设搬进字面量、两次把结论搬回来），再用一次 <code>mulRep_wd</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>intRel p q → intRel (p·(n+1)) (q·(n+1))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Prod.eta（两次）<span class="math">· Eq.subst</span>（四次）<span class="math">· mulRep_wd</span>（一次，乘数取 <code>(n+1, 0)</code>）。</p></div></details></div><details class="solution-panel" id="sol-39-1"><summary>查看解答 <span class="sol-meta">定理 · 40 行</span></summary><div class="solution-body"><pre><code>theorem scale_den (p q : Prod Nat Nat) (n : Nat) (h : intRel p q) :
+    intRel (mulRep p (den n)) (mulRep q (den n)) :=
+  @Eq.subst.{1} (Prod Nat Nat)
+    (fun (y : Prod Nat Nat) =&gt;
+      intRel (mulRep p (den n)) (mulRep y (den n)))
+    (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q))
+    q
+    (Prod.eta Nat Nat q)
+    (@Eq.subst.{1} (Prod Nat Nat)
+      (fun (x : Prod Nat Nat) =&gt;
+        intRel (mulRep x (den n))
+          (mulRep (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q)) (den n)))
+      (@prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+      p
+      (Prod.eta Nat Nat p)
+      (mulRep_wd
+        (Prod.fst Nat Nat p) (Prod.snd Nat Nat p)
+        (Prod.fst Nat Nat q) (Prod.snd Nat Nat q)
+        (Nat.succ n) Nat.zero
+        (@Eq.subst.{1} (Prod Nat Nat)
+          (fun (y : Prod Nat Nat) =&gt;
+            intRel
+              (@prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+              y)
+          q
+          (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q))
+          (@Eq.symm.{1} (Prod Nat Nat)
+            (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q))
+            q
+            (Prod.eta Nat Nat q))
+          (@Eq.subst.{1} (Prod Nat Nat)
+            (fun (x : Prod Nat Nat) =&gt;
+              intRel x (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q)))
+            p
+            (@prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+            (@Eq.symm.{1} (Prod Nat Nat)
+              (@prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+              p
+              (Prod.eta Nat Nat p))
+            h))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-39-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratLeRep_wd</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-39-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊴.2 相等可替换：第一个因子</p></div><div class="block prose intuition-only"><p>第一个因子可换：把两条前提换到公分母上，再消去公共分母。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_wd (a b a' b' c d m m' n : Nat)
+    (hxx' : ratRel (qrep a b m) (qrep a' b' m'))
+    (h : ratLeRep (qrep a b m) (qrep c d n)) :
+    ratLeRep (qrep a' b' m') (qrep c d n) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对目标用 <code>leRep_cancel_den</code>（消去 <code>x.den = m</code>）。内层先用 <code>leRep_mul_den_right</code> 把 <code>h</code> 两边乘上 <code>den m'</code>（<code>x'</code> 的分母），得到 <code>((x·dy)·dm', (y·dx)·dm')</code>。左端三段：<code>mulRep_den_swap</code> 把 <code>(x·dy)·dm'</code> 换成 <code>(x·dm')·dy</code>，㊴.1 把 <code>x ~ x'</code> 搬成 <code>(x·dm')·dy ~ (x'·dm)·dy</code>，再 <code>mulRep_den_swap</code> 换回 <code>(x'·dy)·dm</code>；右端一段：<code>mulRep_den_swap</code> 把 <code>(y·dx)·dm'</code> 换成 <code>(y·dm')·dx</code>。最后 <code>leRep_wd_pair</code> 把两条 <code>intRel</code> 链贴到 <code>leRep</code> 上。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>x ~ x' → x ≤ y → x' ≤ y</code>（<code>x</code>、<code>x'</code> 用 <code>qrep a b m</code> / <code>qrep a' b' m'</code> 展开）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>leRep_cancel_den（<span class="math">k = m</span>）<span class="math">· leRep_mul_den_right</span>（<span class="math">k = m'</span>）<span class="math">· mulRep_den_swap</span>（三次）<span class="math">· scale_den · leRep_wd_pair</span>。</p></div></details></div><details class="solution-panel" id="sol-39-2"><summary>查看解答 <span class="sol-meta">定理 · 30 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_wd (a b a' b' c d m m' n : Nat)
+    (hxx' : ratRel (qrep a b m) (qrep a' b' m'))
+    (h : ratLeRep (qrep a b m) (qrep c d n)) :
+    ratLeRep (qrep a' b' m') (qrep c d n) :=
+  leRep_cancel_den
+    (mulRep (@prod_mk Nat Nat a' b') (den n))
+    (mulRep (@prod_mk Nat Nat c d) (den m'))
+    m
+    (leRep_wd_pair
+      (mulRep (mulRep (@prod_mk Nat Nat a b) (den n)) (den m'))
+      (mulRep (mulRep (@prod_mk Nat Nat a' b') (den n)) (den m))
+      (mulRep (mulRep (@prod_mk Nat Nat c d) (den m)) (den m'))
+      (mulRep (mulRep (@prod_mk Nat Nat c d) (den m')) (den m))
+      (intRel_trans
+        (mulRep (mulRep (@prod_mk Nat Nat a b) (den n)) (den m'))
+        (mulRep (mulRep (@prod_mk Nat Nat a b) (den m')) (den n))
+        (mulRep (mulRep (@prod_mk Nat Nat a' b') (den n)) (den m))
+        (mulRep_den_swap a b n m')
+        (intRel_trans
+          (mulRep (mulRep (@prod_mk Nat Nat a b) (den m')) (den n))
+          (mulRep (mulRep (@prod_mk Nat Nat a' b') (den m)) (den n))
+          (mulRep (mulRep (@prod_mk Nat Nat a' b') (den n)) (den m))
+          (scale_den (mulRep (@prod_mk Nat Nat a b) (den m'))
+                     (mulRep (@prod_mk Nat Nat a' b') (den m)) n hxx')
+          (mulRep_den_swap a' b' m n)))
+      (mulRep_den_swap c d m m')
+      (leRep_mul_den_right
+        (mulRep (@prod_mk Nat Nat a b) (den n))
+        (mulRep (@prod_mk Nat Nat c d) (den m))
+        m' h))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-39-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratLeRep_wd_snd</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-39-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊴.3 相等可替换：第二个因子</p></div><div class="block prose intuition-only"><p>第二个因子可换，结构与上一个对称。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_wd_snd (a b c d c' d' m n n' : Nat)
+    (hyy' : ratRel (qrep c d n) (qrep c' d' n'))
+    (h : ratLeRep (qrep a b m) (qrep c d n)) :
+    ratLeRep (qrep a b m) (qrep c' d' n') :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与 ㊴.2 同构，但这次换的是右边那个数。对目标消去 <code>y.den = n</code>；<code>h</code> 两边乘 <code>y'.den = n'</code>。左端：<code>mulRep_den_swap</code> 把 <code>(x·dn)·dn'</code> 换成 <code>(x·dn')·dn</code>。右端三段：<code>mulRep_den_swap</code> 把 <code>(y·dm)·dn'</code> 换成 <code>(y·dn')·dm</code>，㊴.1 把 <code>y ~ y'</code>（乘 <code>m</code>）搬成 <code>(y·dn')·dm ~ (y'·dn)·dm</code>，再 <code>mulRep_den_swap</code> 换回 <code>(y'·dm)·dn</code>。最后 <code>leRep_wd_pair</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>y ~ y' → x ≤ y → x ≤ y'</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>leRep_cancel_den（<span class="math">k = n</span>）<span class="math">· leRep_mul_den_right</span>（<span class="math">k = n'</span>）<span class="math">· mulRep_den_swap</span>（三次）<span class="math">· scale_den · leRep_wd_pair</span>。</p></div></details></div><details class="solution-panel" id="sol-39-3"><summary>查看解答 <span class="sol-meta">定理 · 30 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_wd_snd (a b c d c' d' m n n' : Nat)
+    (hyy' : ratRel (qrep c d n) (qrep c' d' n'))
+    (h : ratLeRep (qrep a b m) (qrep c d n)) :
+    ratLeRep (qrep a b m) (qrep c' d' n') :=
+  leRep_cancel_den
+    (mulRep (@prod_mk Nat Nat a b) (den n'))
+    (mulRep (@prod_mk Nat Nat c' d') (den m))
+    n
+    (leRep_wd_pair
+      (mulRep (mulRep (@prod_mk Nat Nat a b) (den n)) (den n'))
+      (mulRep (mulRep (@prod_mk Nat Nat a b) (den n')) (den n))
+      (mulRep (mulRep (@prod_mk Nat Nat c d) (den m)) (den n'))
+      (mulRep (mulRep (@prod_mk Nat Nat c' d') (den m)) (den n))
+      (mulRep_den_swap a b n n')
+      (intRel_trans
+        (mulRep (mulRep (@prod_mk Nat Nat c d) (den m)) (den n'))
+        (mulRep (mulRep (@prod_mk Nat Nat c d) (den n')) (den m))
+        (mulRep (mulRep (@prod_mk Nat Nat c' d') (den m)) (den n))
+        (mulRep_den_swap c d m n')
+        (intRel_trans
+          (mulRep (mulRep (@prod_mk Nat Nat c d) (den n')) (den m))
+          (mulRep (mulRep (@prod_mk Nat Nat c' d') (den n)) (den m))
+          (mulRep (mulRep (@prod_mk Nat Nat c' d') (den m)) (den n))
+          (scale_den (mulRep (@prod_mk Nat Nat c d) (den n'))
+                     (mulRep (@prod_mk Nat Nat c' d') (den n)) m hyy')
+          (mulRep_den_swap c' d' n m)))
+      (leRep_mul_den_right
+        (mulRep (@prod_mk Nat Nat a b) (den n))
+        (mulRep (@prod_mk Nat Nat c d) (den m))
+        n' h))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-39-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">demo_ratLeRep_wd</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-39-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊴.4 具体：1/2 ~ 2/4，所以 <span class="math">1/2 ≤ 3/4</span> 推出 <span class="math">2/4 ≤ 3/4</span></p></div><div class="block prose intuition-only"><p>具体走一遍：1/2 与 2/4 相等，所以 <span class="math">1/2 ≤ 3/4</span> 可换成 <span class="math">2/4 ≤ 3/4</span>。</p></div></div><pre class="exercise-statement"><code>theorem demo_ratLeRep_wd :
+    ratLeRep (qrep 2 0 3) (qrep 3 0 3) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>1/2 ~ 2/4</code> 展开后两边的交叉乘积都是 <code>(4, 0)</code>，用 <code>intRel_refl</code>；前提 <code>1/2 ≤ 3/4</code> 展开是 <code>LeNat 4 6</code>，用 <code>le_succ</code> 叠出来；最后交给 ㊴.2。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (qrep 2 0 3) (qrep 3 0 3)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_wd · intRel_refl · le_succ · le_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-39-4"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem demo_ratLeRep_wd :
+    ratLeRep (qrep 2 0 3) (qrep 3 0 3) :=
+  ratLeRep_wd 1 0 2 0 3 0 1 3 3
+    (intRel_refl (@prod_mk Nat Nat 4 Nat.zero))
+    (le_succ 4 5 (le_succ 4 4 (le_refl 4)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-39-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">demo_ratLeRep_wd_snd</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-39-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊴.5 具体：3/4 ~ 6/8，所以 <span class="math">1/2 ≤ 3/4</span> 推出 <span class="math">1/2 ≤ 6/8</span></p></div><div class="block prose intuition-only"><p>再走一遍：3/4 与 6/8 相等，所以 <span class="math">1/2 ≤ 3/4</span> 可换成 <span class="math">1/2 ≤ 6/8</span>。</p></div></div><pre class="exercise-statement"><code>theorem demo_ratLeRep_wd_snd :
+    ratLeRep (qrep 1 0 1) (qrep 6 0 7) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>3/4 ~ 6/8</code> 展开后交叉乘积都是 <code>(24, 0)</code>；前提 <code>1/2 ≤ 3/4</code> 展开是 <code>LeNat 4 6</code>；交给 ㊴.3。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (qrep 1 0 1) (qrep 6 0 7)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_wd_snd · intRel_refl · le_succ · le_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-39-5"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem demo_ratLeRep_wd_snd :
+    ratLeRep (qrep 1 0 1) (qrep 6 0 7) :=
+  ratLeRep_wd_snd 1 0 3 0 6 0 1 3 7
+    (intRel_refl (@prod_mk Nat Nat 24 Nat.zero))
+    (le_succ 4 5 (le_succ 4 4 (le_refl 4)))</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit38.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">有理数的序：传递性</span></a><a class="unit-nav-home" ../chapters/ii-4.html#units>目录</a><a class="unit-nav-link" ../units/unit40.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">实数的相等：自反性</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-39"><h3><a #top>有理数的序与相等相容</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-39-1"><summary>练习 1 · scale_den <span class="sol-meta">定理</span></summary><pre><code>theorem scale_den (p q : Prod Nat Nat) (n : Nat) (h : intRel p q) :
+    intRel (mulRep p (den n)) (mulRep q (den n)) :=
+  @Eq.subst.{1} (Prod Nat Nat)
+    (fun (y : Prod Nat Nat) =&gt;
+      intRel (mulRep p (den n)) (mulRep y (den n)))
+    (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q))
+    q
+    (Prod.eta Nat Nat q)
+    (@Eq.subst.{1} (Prod Nat Nat)
+      (fun (x : Prod Nat Nat) =&gt;
+        intRel (mulRep x (den n))
+          (mulRep (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q)) (den n)))
+      (@prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+      p
+      (Prod.eta Nat Nat p)
+      (mulRep_wd
+        (Prod.fst Nat Nat p) (Prod.snd Nat Nat p)
+        (Prod.fst Nat Nat q) (Prod.snd Nat Nat q)
+        (Nat.succ n) Nat.zero
+        (@Eq.subst.{1} (Prod Nat Nat)
+          (fun (y : Prod Nat Nat) =&gt;
+            intRel
+              (@prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+              y)
+          q
+          (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q))
+          (@Eq.symm.{1} (Prod Nat Nat)
+            (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q))
+            q
+            (Prod.eta Nat Nat q))
+          (@Eq.subst.{1} (Prod Nat Nat)
+            (fun (x : Prod Nat Nat) =&gt;
+              intRel x (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q)))
+            p
+            (@prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+            (@Eq.symm.{1} (Prod Nat Nat)
+              (@prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+              p
+              (Prod.eta Nat Nat p))
+            h))))</code></pre></details><details class="appendix-solution" id="app-sol-39-2"><summary>练习 2 · ratLeRep_wd <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_wd (a b a' b' c d m m' n : Nat)
+    (hxx' : ratRel (qrep a b m) (qrep a' b' m'))
+    (h : ratLeRep (qrep a b m) (qrep c d n)) :
+    ratLeRep (qrep a' b' m') (qrep c d n) :=
+  leRep_cancel_den
+    (mulRep (@prod_mk Nat Nat a' b') (den n))
+    (mulRep (@prod_mk Nat Nat c d) (den m'))
+    m
+    (leRep_wd_pair
+      (mulRep (mulRep (@prod_mk Nat Nat a b) (den n)) (den m'))
+      (mulRep (mulRep (@prod_mk Nat Nat a' b') (den n)) (den m))
+      (mulRep (mulRep (@prod_mk Nat Nat c d) (den m)) (den m'))
+      (mulRep (mulRep (@prod_mk Nat Nat c d) (den m')) (den m))
+      (intRel_trans
+        (mulRep (mulRep (@prod_mk Nat Nat a b) (den n)) (den m'))
+        (mulRep (mulRep (@prod_mk Nat Nat a b) (den m')) (den n))
+        (mulRep (mulRep (@prod_mk Nat Nat a' b') (den n)) (den m))
+        (mulRep_den_swap a b n m')
+        (intRel_trans
+          (mulRep (mulRep (@prod_mk Nat Nat a b) (den m')) (den n))
+          (mulRep (mulRep (@prod_mk Nat Nat a' b') (den m)) (den n))
+          (mulRep (mulRep (@prod_mk Nat Nat a' b') (den n)) (den m))
+          (scale_den (mulRep (@prod_mk Nat Nat a b) (den m'))
+                     (mulRep (@prod_mk Nat Nat a' b') (den m)) n hxx')
+          (mulRep_den_swap a' b' m n)))
+      (mulRep_den_swap c d m m')
+      (leRep_mul_den_right
+        (mulRep (@prod_mk Nat Nat a b) (den n))
+        (mulRep (@prod_mk Nat Nat c d) (den m))
+        m' h))</code></pre></details><details class="appendix-solution" id="app-sol-39-3"><summary>练习 3 · ratLeRep_wd_snd <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_wd_snd (a b c d c' d' m n n' : Nat)
+    (hyy' : ratRel (qrep c d n) (qrep c' d' n'))
+    (h : ratLeRep (qrep a b m) (qrep c d n)) :
+    ratLeRep (qrep a b m) (qrep c' d' n') :=
+  leRep_cancel_den
+    (mulRep (@prod_mk Nat Nat a b) (den n'))
+    (mulRep (@prod_mk Nat Nat c' d') (den m))
+    n
+    (leRep_wd_pair
+      (mulRep (mulRep (@prod_mk Nat Nat a b) (den n)) (den n'))
+      (mulRep (mulRep (@prod_mk Nat Nat a b) (den n')) (den n))
+      (mulRep (mulRep (@prod_mk Nat Nat c d) (den m)) (den n'))
+      (mulRep (mulRep (@prod_mk Nat Nat c' d') (den m)) (den n))
+      (mulRep_den_swap a b n n')
+      (intRel_trans
+        (mulRep (mulRep (@prod_mk Nat Nat c d) (den m)) (den n'))
+        (mulRep (mulRep (@prod_mk Nat Nat c d) (den n')) (den m))
+        (mulRep (mulRep (@prod_mk Nat Nat c' d') (den m)) (den n))
+        (mulRep_den_swap c d m n')
+        (intRel_trans
+          (mulRep (mulRep (@prod_mk Nat Nat c d) (den n')) (den m))
+          (mulRep (mulRep (@prod_mk Nat Nat c' d') (den n)) (den m))
+          (mulRep (mulRep (@prod_mk Nat Nat c' d') (den m)) (den n))
+          (scale_den (mulRep (@prod_mk Nat Nat c d) (den n'))
+                     (mulRep (@prod_mk Nat Nat c' d') (den n)) m hyy')
+          (mulRep_den_swap c' d' n m)))
+      (leRep_mul_den_right
+        (mulRep (@prod_mk Nat Nat a b) (den n))
+        (mulRep (@prod_mk Nat Nat c d) (den m))
+        n' h))</code></pre></details><details class="appendix-solution" id="app-sol-39-4"><summary>练习 4 · demo_ratLeRep_wd <span class="sol-meta">定理</span></summary><pre><code>theorem demo_ratLeRep_wd :
+    ratLeRep (qrep 2 0 3) (qrep 3 0 3) :=
+  ratLeRep_wd 1 0 2 0 3 0 1 3 3
+    (intRel_refl (@prod_mk Nat Nat 4 Nat.zero))
+    (le_succ 4 5 (le_succ 4 4 (le_refl 4)))</code></pre></details><details class="appendix-solution" id="app-sol-39-5"><summary>练习 5 · demo_ratLeRep_wd_snd <span class="sol-meta">定理</span></summary><pre><code>theorem demo_ratLeRep_wd_snd :
+    ratLeRep (qrep 1 0 1) (qrep 6 0 7) :=
+  ratLeRep_wd_snd 1 0 3 0 6 0 1 3 7
+    (intRel_refl (@prod_mk Nat Nat 24 Nat.zero))
+    (le_succ 4 5 (le_succ 4 4 (le_refl 4)))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit38.html">← 38 有理数的序：传递性</a><a class="next" href="../units/unit40.html">40 实数的相等：自反性 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

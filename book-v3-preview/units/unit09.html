@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>09 整数减法的良定义性与基本律 · 从集合论到实分析</title>
+<meta name="description" content="单元⑨ 整数减法的良定义性与基本律：导语、定义与定理、练习与解答。Unit 9 — Subtraction is Well-Defined">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit09.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></li><li aria-current="page">单元 09 整数减法的良定义性与基本律</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-9-1">定义与定理</a></li>
+<li><a href="#ex-9-1">练习</a></li>
+<li><a href="#appendix-unit-9">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-1.html#units">↑ 本章目录</a>
+      <a href="../print/unit09.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-9">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-1.html>II.1</a> · 本章第 9 / 19 单元 · 全书第 9 / 72 单元</p>
+<h1><span class="unit-number">09</span> <span>整数减法的良定义性与基本律</span></h1>
+<p class="unit-title-en">Unit 9 — Subtraction is Well-Defined</p>
+<p class="unit-meta">5 个定义 · 20 个定理 · 7 道练习 · 21 条提示 · <a #appendix-unit-9>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="9" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-9" aria-label="复制单元 9 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit09.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-1.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>减法在代表元上早就写下了：<span class="math">subRep p q = addRep p (negRep q)</span>。加法与负元搬上商之后，减法也应该跟着搬。要搬的正好三条：减法尊重两个因子的替换；一个数减自己得零；差加上减数回到被减数。后两条是减法真正要用的性质，也是后面构造 <span class="math">ℚ</span> 时反复出现的「先算代表元、再搬进商」模式。</p></div></div></section>
+<div class="block prose intuition-only"><p>三条里最容易的是良定义性：它只是把加法的良定义性与负元的良定义性拼起来。真正要算的是后面两条 <span class="math">ℕ</span> 等式链——自减为零，以及差的加法相消。</p></div><article class="decl decl-def" id="decl-9-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def intRel (a b : Prod Nat Nat) : Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 3 行</summary><pre><code>def intRel (a b : Prod Nat Nat) : Prop :=
+  Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =
+  Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-9-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Int</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def Int : Type :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def Int : Type := @Quot.{1} (Prod Nat Nat) intRel</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-9-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">addRep</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def addRep (a b : Prod Nat Nat) : Prod Nat Nat :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 4 行</summary><pre><code>def addRep (a b : Prod Nat Nat) : Prod Nat Nat :=
+  @prod_mk Nat Nat
+    (Nat.add (Prod.fst Nat Nat a) (Prod.fst Nat Nat b))
+    (Nat.add (Prod.snd Nat Nat a) (Prod.snd Nat Nat b))</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-9-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">negRep</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def negRep (p : Prod Nat Nat) : Prod Nat Nat :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def negRep (p : Prod Nat Nat) : Prod Nat Nat :=
+  @prod_mk Nat Nat (Prod.snd Nat Nat p) (Prod.fst Nat Nat p)</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-9-5"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">subRep</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>def subRep (a b : Prod Nat Nat) : Prod Nat Nat :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def subRep (a b : Prod Nat Nat) : Prod Nat Nat :=
+  addRep a (negRep b)</code></pre></details></div></article>
+<div class="block prose intuition-only"><p>下面四条是单元③证过的 <span class="math">ℕ</span> 加法律，这里重新列出；后面的证明直接引用。</p></div><article class="decl decl-theorem" id="decl-9-6"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">zero_add</code><span class="decl-where">声明 6</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem zero_add (b : Nat) :
+    Nat.add Nat.zero b = b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add Nat.zero n = n)
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : Nat.add Nat.zero n = n) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (Nat.add Nat.zero n) = Nat.succ m)
+        (Nat.add Nat.zero n) n ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add Nat.zero n))))
+    b</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-9-7"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">succ_add</code><span class="decl-where">声明 7</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem succ_add (a b : Nat) :
+    Nat.add (Nat.succ a) b = Nat.succ (Nat.add a b) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n))
+    (@Eq.refl.{1} Nat (Nat.succ a))
+    (fun (n : Nat) (ih : Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n)) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (Nat.add (Nat.succ a) n) = Nat.succ m)
+        (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n))))
+    b</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-9-8"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_comm</code><span class="decl-where">声明 8</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_comm (a b : Nat) :
+    Nat.add a b = Nat.add b a :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 10 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add a n = Nat.add n a)
+    (@Eq.symm.{1} Nat (Nat.add Nat.zero a) a (zero_add a))
+    (fun (n : Nat) (ih : Nat.add a n = Nat.add n a) =&gt;
+      @Eq.trans.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ (Nat.add n a)) (Nat.add (Nat.succ n) a)
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; Nat.succ (Nat.add a n) = Nat.succ m)
+          (Nat.add a n) (Nat.add n a) ih
+          (@Eq.refl.{1} Nat (Nat.succ (Nat.add a n))))
+        (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
+    b</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-9-9"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_zero</code><span class="decl-where">声明 9</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_zero (a : Nat) :
+    Nat.add a Nat.zero = a :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 3 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.trans.{1} Nat (Nat.add a Nat.zero) (Nat.add Nat.zero a) a
+    (add_comm a Nat.zero)
+    (zero_add a)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-9-10"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_assoc</code><span class="decl-where">声明 10</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_assoc (a b c : Nat) :
+    Nat.add (Nat.add a b) c = Nat.add a (Nat.add b c) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n))
+    (@Eq.refl.{1} Nat (Nat.add a b))
+    (fun (n : Nat) (ih : Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n)) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (Nat.add (Nat.add a b) n) = Nat.succ m)
+        (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
+    c</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>搬运律把两个和里的加数重新配对，值不变：减法良定义性靠它把四个分量重排。</p></div><article class="decl decl-theorem" id="decl-9-11"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_shift</code><span class="decl-where">声明 11</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_shift (a b c d : Nat) :
+    Nat.add (Nat.add a c) (Nat.add b d) =
+    Nat.add (Nat.add a b) (Nat.add c d) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 36 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add a c) (Nat.add b d))
+    (Nat.add a (Nat.add c (Nat.add b d)))
+    (Nat.add (Nat.add a b) (Nat.add c d))
+    (add_assoc a c (Nat.add b d))
+    (@Eq.trans.{1} Nat
+      (Nat.add a (Nat.add c (Nat.add b d)))
+      (Nat.add a (Nat.add (Nat.add c b) d))
+      (Nat.add (Nat.add a b) (Nat.add c d))
+      (@Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.add a (Nat.add c (Nat.add b d)) = Nat.add a m)
+        (Nat.add c (Nat.add b d)) (Nat.add (Nat.add c b) d)
+        (@Eq.symm.{1} Nat (Nat.add (Nat.add c b) d) (Nat.add c (Nat.add b d)) (add_assoc c b d))
+        (@Eq.refl.{1} Nat (Nat.add a (Nat.add c (Nat.add b d)))))
+      (@Eq.trans.{1} Nat
+        (Nat.add a (Nat.add (Nat.add c b) d))
+        (Nat.add a (Nat.add (Nat.add b c) d))
+        (Nat.add (Nat.add a b) (Nat.add c d))
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; Nat.add a (Nat.add (Nat.add c b) d) = Nat.add a (Nat.add m d))
+          (Nat.add c b) (Nat.add b c)
+          (add_comm c b)
+          (@Eq.refl.{1} Nat (Nat.add a (Nat.add (Nat.add c b) d))))
+        (@Eq.trans.{1} Nat
+          (Nat.add a (Nat.add (Nat.add b c) d))
+          (Nat.add a (Nat.add b (Nat.add c d)))
+          (Nat.add (Nat.add a b) (Nat.add c d))
+          (@Eq.subst.{1} Nat
+            (fun (m : Nat) =&gt; Nat.add a (Nat.add (Nat.add b c) d) = Nat.add a m)
+            (Nat.add (Nat.add b c) d) (Nat.add b (Nat.add c d))
+            (add_assoc b c d)
+            (@Eq.refl.{1} Nat (Nat.add a (Nat.add (Nat.add b c) d))))
+          (@Eq.symm.{1} Nat
+            (Nat.add (Nat.add a b) (Nat.add c d))
+            (Nat.add a (Nat.add b (Nat.add c d)))
+            (add_assoc a b (Nat.add c d))))))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>先证代表元上的零元事实：<span class="math">(a+0)+b = a+(b+0)</span>。</p></div><article class="decl decl-theorem" id="decl-9-12"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">zero_rep</code><span class="decl-where">声明 12</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem zero_rep (a b : Nat) :
+    intRel (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat Nat.zero Nat.zero))
+           (@prod_mk Nat Nat a b) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 15 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add a Nat.zero) b)
+    (Nat.add a b)
+    (Nat.add a (Nat.add b Nat.zero))
+    (@Eq.subst.{1} Nat
+      (fun (m : Nat) =&gt;
+        Nat.add m b = Nat.add a b)
+      (Nat.add a Nat.zero) a (add_zero a)
+      (@Eq.refl.{1} Nat (Nat.add (Nat.add a Nat.zero) b)))
+    (@Eq.symm.{1} Nat (Nat.add a (Nat.add b Nat.zero)) (Nat.add a b)
+      (@Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt;
+          Nat.add a m = Nat.add a b)
+        (Nat.add b Nat.zero) b (add_zero b)
+        (@Eq.refl.{1} Nat (Nat.add a (Nat.add b Nat.zero)))))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>搬到商上：把 zero_rep 交给 Quot.sound。</p></div><article class="decl decl-theorem" id="decl-9-13"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">int_add_zero</code><span class="decl-where">声明 13</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem int_add_zero (a b : Nat) :
+    @Quot.mk.{1} (Prod Nat Nat) intRel
+        (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat Nat.zero Nat.zero)) =
+      @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 4 行</summary><ol class="proof-steps"><li><pre><code>  @Quot.sound.{1} (Prod Nat Nat) intRel
+    (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat Nat.zero Nat.zero))
+    (@prod_mk Nat Nat a b)
+    (zero_rep a b)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>取负尊重差相等：把 h 的两边交换，再各用一次 <span class="math">ℕ</span> 的交换律。</p></div><article class="decl decl-theorem" id="decl-9-14"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">negRep_wd</code><span class="decl-where">声明 14</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem negRep_wd (a b a' b' : Nat)
+    (h : intRel (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a' b')) :
+    intRel (negRep (@prod_mk Nat Nat a b)) (negRep (@prod_mk Nat Nat a' b')) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.trans.{1} Nat
+    (Nat.add b a')
+    (Nat.add a' b)
+    (Nat.add b' a)
+    (add_comm b a')
+    (@Eq.trans.{1} Nat (Nat.add a' b) (Nat.add a b') (Nat.add b' a)
+      (@Eq.symm.{1} Nat (Nat.add a b') (Nat.add a' b) h)
+      (@Eq.symm.{1} Nat (Nat.add b' a) (Nat.add a b') (add_comm b' a)))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>代表元上的逆元：<span class="math">(a+b)+0</span> 与 <span class="math">0+(b+a)</span> 差相等。</p></div><article class="decl decl-theorem" id="decl-9-15"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_neg_rep</code><span class="decl-where">声明 15</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_neg_rep (a b : Nat) :
+    intRel (addRep (@prod_mk Nat Nat a b) (negRep (@prod_mk Nat Nat a b)))
+           (@prod_mk Nat Nat Nat.zero Nat.zero) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 9 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add a b) Nat.zero)
+    (Nat.add a b)
+    (Nat.add Nat.zero (Nat.add b a))
+    (add_zero (Nat.add a b))
+    (@Eq.trans.{1} Nat (Nat.add a b) (Nat.add b a) (Nat.add Nat.zero (Nat.add b a))
+      (add_comm a b)
+      (@Eq.symm.{1} Nat (Nat.add Nat.zero (Nat.add b a)) (Nat.add b a)
+        (zero_add (Nat.add b a))))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>搬到商上：把 add_neg_rep 交给 Quot.sound。</p></div><article class="decl decl-theorem" id="decl-9-16"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">int_add_neg</code><span class="decl-where">声明 16</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem int_add_neg (a b : Nat) :
+    @Quot.mk.{1} (Prod Nat Nat) intRel
+        (addRep (@prod_mk Nat Nat a b) (negRep (@prod_mk Nat Nat a b))) =
+      @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat Nat.zero Nat.zero) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 4 行</summary><ol class="proof-steps"><li><pre><code>  @Quot.sound.{1} (Prod Nat Nat) intRel
+    (addRep (@prod_mk Nat Nat a b) (negRep (@prod_mk Nat Nat a b)))
+    (@prod_mk Nat Nat Nat.zero Nat.zero)
+    (add_neg_rep a b)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>取负做两次回到原处，这是定义性相等。</p></div><article class="decl decl-theorem" id="decl-9-17"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">negRep_neg</code><span class="decl-where">声明 17</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem negRep_neg (a b : Nat) :
+    negRep (negRep (@prod_mk Nat Nat a b)) = @prod_mk Nat Nat a b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.refl.{1} (Prod Nat Nat) (@prod_mk Nat Nat a b)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>商上的对合律：两个代表元定义性相等，商里的点也相等。</p></div><article class="decl decl-theorem" id="decl-9-18"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">int_neg_neg</code><span class="decl-where">声明 18</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem int_neg_neg (a b : Nat) :
+    @Quot.mk.{1} (Prod Nat Nat) intRel
+        (negRep (negRep (@prod_mk Nat Nat a b))) =
+      @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.refl.{1} (@Quot.{1} (Prod Nat Nat) intRel)
+    (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b))</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-9-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">subRep_wd</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-9-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>先证减法尊重两个因子的替换：subRep p q 展开成 addRep p (negRep q)，用搬运律重排。</p></div></div><pre class="exercise-statement"><code>theorem subRep_wd (a b c d a' b' c' d' : Nat)
+    (h1 : intRel (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a' b'))
+    (h2 : intRel (@prod_mk Nat Nat c d) (@prod_mk Nat Nat c' d')) :
+    intRel (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+           (subRep (@prod_mk Nat Nat a' b') (@prod_mk Nat Nat c' d')) :=  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>subRep p q 就是 addRep p (negRep q)。目标两边展开成 <span class="math">(a+d)+(b'+c')</span> 与 <span class="math">(a'+d')+(b+c)</span>；用搬运律把 <span class="math">(a+d)+(b'+c')</span> 换成 <span class="math">(a+b')+(d+c')</span>，h1 改写第一个和，h2 把 <span class="math">d+c'</span> 换成 <span class="math">d'+c</span>，最后反用搬运律。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="(a+d)+(b&#x27;+c&#x27;) = (a&#x27;+d&#x27;)+(b+c)"><math display="block" class="mathml"><mrow><mrow><mo>(</mo><mrow><mi>a</mi><mo>+</mo><mi>d</mi></mrow><mo>)</mo></mrow><mo>+</mo><mrow><mo>(</mo><mrow><mi mathvariant="normal">b'</mi><mo>+</mo><mi mathvariant="normal">c'</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi mathvariant="normal">a'</mi><mo>+</mo><mi mathvariant="normal">d'</mi></mrow><mo>)</mo></mrow><mo>+</mo><mrow><mo>(</mo><mrow><mi>b</mi><mo>+</mo><mi>c</mi></mrow><mo>)</mo></mrow></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">add_shift a b' d c' · h1 · add_comm d c' · Eq.symm h2 · add_comm c d' · add_shift a' d' b c</span>。</p></div></details></div><details class="solution-panel" id="sol-9-1"><summary>查看解答 <span class="sol-meta">定理 · 32 行</span></summary><div class="solution-body"><pre><code>theorem subRep_wd (a b c d a' b' c' d' : Nat)
+    (h1 : intRel (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a' b'))
+    (h2 : intRel (@prod_mk Nat Nat c d) (@prod_mk Nat Nat c' d')) :
+    intRel (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+           (subRep (@prod_mk Nat Nat a' b') (@prod_mk Nat Nat c' d')) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add a d) (Nat.add b' c'))
+    (Nat.add (Nat.add a b') (Nat.add d c'))
+    (Nat.add (Nat.add a' d') (Nat.add b c))
+    (add_shift a b' d c')
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add a b') (Nat.add d c'))
+      (Nat.add (Nat.add a' b) (Nat.add d c'))
+      (Nat.add (Nat.add a' d') (Nat.add b c))
+      (@Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.add (Nat.add a b') (Nat.add d c') = Nat.add m (Nat.add d c'))
+        (Nat.add a b') (Nat.add a' b) h1
+        (@Eq.refl.{1} Nat (Nat.add (Nat.add a b') (Nat.add d c'))))
+      (@Eq.trans.{1} Nat
+        (Nat.add (Nat.add a' b) (Nat.add d c'))
+        (Nat.add (Nat.add a' b) (Nat.add d' c))
+        (Nat.add (Nat.add a' d') (Nat.add b c))
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; Nat.add (Nat.add a' b) (Nat.add d c') = Nat.add (Nat.add a' b) m)
+          (Nat.add d c') (Nat.add d' c)
+          (@Eq.trans.{1} Nat (Nat.add d c') (Nat.add c' d) (Nat.add d' c)
+            (add_comm d c')
+            (@Eq.trans.{1} Nat (Nat.add c' d) (Nat.add c d') (Nat.add d' c)
+              (@Eq.symm.{1} Nat (Nat.add c d') (Nat.add c' d) h2)
+              (add_comm c d')))
+          (@Eq.refl.{1} Nat (Nat.add (Nat.add a' b) (Nat.add d c'))))
+        (add_shift a' d' b c)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-9-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">subRep_add_rep</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-9-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>再证差的加法相消：<span class="math">(x-y)+y</span> 展开后，用结合律与交换律把两个和重新配对。</p></div></div><pre class="exercise-statement"><code>theorem subRep_add_rep (a b c d : Nat) :
+    intRel (addRep (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+                   (@prod_mk Nat Nat c d))
+           (@prod_mk Nat Nat a b) :=  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <span class="math">(x-y)+y</span> 展开成 <span class="math">((a+d)+c</span>, <span class="math">(b+c)+d)</span>。目标 <span class="math">((a+d)+c)+b = a+((b+c)+d)</span>；结合律把左边折成 <span class="math">(a+d)+(c+b)</span>，交换 c/b，再把 <span class="math">a+d</span> 与 <span class="math">(b+c)</span> 重新结合、交换 d 与 <span class="math">b+c</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="((a+d)+c)+b = a+((b+c)+d)"><math display="block" class="mathml"><mrow><mo>(</mo><mrow><mo>(</mo><mrow><mi>a</mi><mo>+</mo><mi>d</mi></mrow><mo>)</mo></mrow><mo>+</mo><mi>c</mi><mo>)</mo><mo>+</mo><mi>b</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>a</mi><mo>+</mo><mo>(</mo><mrow><mo>(</mo><mrow><mi>b</mi><mo>+</mo><mi>c</mi></mrow><mo>)</mo></mrow><mo>+</mo><mi>d</mi><mo>)</mo></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">add_assoc (a+d) c b · add_comm c b · Eq.symm (add_assoc a d (b+c)) · add_comm d (b+c)</span>。</p></div></details></div><details class="solution-panel" id="sol-9-2"><summary>查看解答 <span class="sol-meta">定理 · 26 行</span></summary><div class="solution-body"><pre><code>theorem subRep_add_rep (a b c d : Nat) :
+    intRel (addRep (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+                   (@prod_mk Nat Nat c d))
+           (@prod_mk Nat Nat a b) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add (Nat.add a d) c) b)
+    (Nat.add (Nat.add a d) (Nat.add c b))
+    (Nat.add a (Nat.add (Nat.add b c) d))
+    (add_assoc (Nat.add a d) c b)
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add a d) (Nat.add c b))
+      (Nat.add (Nat.add a d) (Nat.add b c))
+      (Nat.add a (Nat.add (Nat.add b c) d))
+      (@Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.add (Nat.add a d) (Nat.add c b) = Nat.add (Nat.add a d) m)
+        (Nat.add c b) (Nat.add b c) (add_comm c b)
+        (@Eq.refl.{1} Nat (Nat.add (Nat.add a d) (Nat.add c b))))
+      (@Eq.trans.{1} Nat
+        (Nat.add (Nat.add a d) (Nat.add b c))
+        (Nat.add a (Nat.add d (Nat.add b c)))
+        (Nat.add a (Nat.add (Nat.add b c) d))
+        (add_assoc a d (Nat.add b c))
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; Nat.add a (Nat.add d (Nat.add b c)) = Nat.add a m)
+          (Nat.add d (Nat.add b c)) (Nat.add (Nat.add b c) d) (add_comm d (Nat.add b c))
+          (@Eq.refl.{1} Nat (Nat.add a (Nat.add d (Nat.add b c)))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-9-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">int_sub_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-9-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>自减为零：subRep p p 按定义是 addRep p (negRep p)，逆元律正好说它与 (0,0) 相关。</p></div></div><pre class="exercise-statement"><code>theorem int_sub_self (a b : Nat) :
+    @Quot.mk.{1} (Prod Nat Nat) intRel
+        (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a b)) =
+      @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat Nat.zero Nat.zero) :=  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>subRep p p 按定义就是 addRep p (negRep p)；add_neg_rep 正好说它与 (0,0) 相关。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="mk (p - p) = mk (0,0)"><math display="block" class="mathml"><mrow><mi mathvariant="normal">mk</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>p</mi><mspace width="0.22em"/><mo>−</mo><mspace width="0.22em"/><mi>p</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi mathvariant="normal">mk</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mn>0</mn><mo>,</mo><mn>0</mn></mrow><mo>)</mo></mrow></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Quot.sound · add_neg_rep a b</span>。</p></div></details></div><details class="solution-panel" id="sol-9-3"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem int_sub_self (a b : Nat) :
+    @Quot.mk.{1} (Prod Nat Nat) intRel
+        (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a b)) =
+      @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat Nat.zero Nat.zero) :=
+  @Quot.sound.{1} (Prod Nat Nat) intRel
+    (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a b))
+    (@prod_mk Nat Nat Nat.zero Nat.zero)
+    (add_neg_rep a b)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-9-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">int_sub_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-9-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>搬到商上：把 subRep_add_rep 交给 Quot.sound。</p></div></div><pre class="exercise-statement"><code>theorem int_sub_add (a b c d : Nat) :
+    @Quot.mk.{1} (Prod Nat Nat) intRel
+        (addRep (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+                (@prod_mk Nat Nat c d)) =
+      @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b) :=  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>商里的等式由代表元关系给出；把 subRep_add_rep 交给 Quot.sound。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="mk ((p - q) + q) = mk p"><math display="block" class="mathml"><mrow><mi mathvariant="normal">mk</mi><mspace width="0.22em"/><mo>(</mo><mrow><mo>(</mo><mrow><mi>p</mi><mspace width="0.22em"/><mo>−</mo><mspace width="0.22em"/><mi>q</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi>q</mi><mo>)</mo><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi mathvariant="normal">mk</mi><mspace width="0.22em"/><mi>p</mi></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Quot.sound · subRep_add_rep a b c d</span>。</p></div></details></div><details class="solution-panel" id="sol-9-4"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem int_sub_add (a b c d : Nat) :
+    @Quot.mk.{1} (Prod Nat Nat) intRel
+        (addRep (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+                (@prod_mk Nat Nat c d)) =
+      @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b) :=
+  @Quot.sound.{1} (Prod Nat Nat) intRel
+    (addRep (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+            (@prod_mk Nat Nat c d))
+    (@prod_mk Nat Nat a b)
+    (subRep_add_rep a b c d)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-9-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">demo_subRep</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-9-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>具体数字上核对减法：(3-1) 减 (1-0) 得 2-1（两边都算得 3）。</p></div></div><pre class="exercise-statement"><code>theorem demo_subRep :
+    intRel (subRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 1 Nat.zero))
+           (@prod_mk Nat Nat 1 Nat.zero) :=  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>subRep (3,1) (1,0) 展开成 <span class="math">(3+0</span>, <span class="math">1+1) = (3</span>,2)；与 (1,0) 相关要证 <span class="math">3+0 = 1+2</span>，两边都是 3。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>intRel (3,2) (1,0)。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Eq.refl 3。</p></div></details></div><details class="solution-panel" id="sol-9-5"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem demo_subRep :
+    intRel (subRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 1 Nat.zero))
+           (@prod_mk Nat Nat 1 Nat.zero) :=
+  @Eq.refl.{1} Nat 3</code></pre></div></details></div></article>
+<article class="exercise" id="ex-9-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">demo_sub_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-9-6>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>具体数字上核对自减为零：(2-5) 减自己得 0（两边都算得 7）。</p></div></div><pre class="exercise-statement"><code>theorem demo_sub_self :
+    intRel (subRep (@prod_mk Nat Nat 2 5) (@prod_mk Nat Nat 2 5))
+           (@prod_mk Nat Nat Nat.zero Nat.zero) :=  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>(2,5) - (2,5) 展开成 <span class="math">(2+5</span>, <span class="math">5+2) = (7</span>,7)；与 (0,0) 相关要证 <span class="math">7+0 = 0+7</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>intRel (7,7) (0,0)。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Eq.refl 7。</p></div></details></div><details class="solution-panel" id="sol-9-6"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem demo_sub_self :
+    intRel (subRep (@prod_mk Nat Nat 2 5) (@prod_mk Nat Nat 2 5))
+           (@prod_mk Nat Nat Nat.zero Nat.zero) :=
+  @Eq.refl.{1} Nat 7</code></pre></div></details></div></article>
+<article class="exercise" id="ex-9-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">demo_sub_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-9-7>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>具体数字上核对相消：(3-1) 减 (1-0) 再加 (1-0)，回到 3-1（两边都算得 5）。</p></div></div><pre class="exercise-statement"><code>theorem demo_sub_add :
+    intRel (addRep (subRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 1 Nat.zero))
+                   (@prod_mk Nat Nat 1 Nat.zero))
+           (@prod_mk Nat Nat 3 1) :=  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先算 subRep (3,1) (1,<span class="math">0) = (3</span>,2)，再加 (1,0) 得 (4,2)；与 (3,1) 相关要证 <span class="math">4+1 = 3+2</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>intRel (4,2) (3,1)。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Eq.refl 5。</p></div></details></div><details class="solution-panel" id="sol-9-7"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem demo_sub_add :
+    intRel (addRep (subRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 1 Nat.zero))
+                   (@prod_mk Nat Nat 1 Nat.zero))
+           (@prod_mk Nat Nat 3 1) :=
+  @Eq.refl.{1} Nat 5</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit08.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">整数加法的零元与负元</span></a><a class="unit-nav-home" ../chapters/ii-1.html#units>目录</a><a class="unit-nav-link" ../units/unit10.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">整数乘法的零元与单位元</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-9"><h3><a #top>整数减法的良定义性与基本律</a></h3><p class="appendix-meta">7 道练习 · 7 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-9-1"><summary>练习 1 · subRep_wd <span class="sol-meta">定理</span></summary><pre><code>theorem subRep_wd (a b c d a' b' c' d' : Nat)
+    (h1 : intRel (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a' b'))
+    (h2 : intRel (@prod_mk Nat Nat c d) (@prod_mk Nat Nat c' d')) :
+    intRel (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+           (subRep (@prod_mk Nat Nat a' b') (@prod_mk Nat Nat c' d')) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add a d) (Nat.add b' c'))
+    (Nat.add (Nat.add a b') (Nat.add d c'))
+    (Nat.add (Nat.add a' d') (Nat.add b c))
+    (add_shift a b' d c')
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add a b') (Nat.add d c'))
+      (Nat.add (Nat.add a' b) (Nat.add d c'))
+      (Nat.add (Nat.add a' d') (Nat.add b c))
+      (@Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.add (Nat.add a b') (Nat.add d c') = Nat.add m (Nat.add d c'))
+        (Nat.add a b') (Nat.add a' b) h1
+        (@Eq.refl.{1} Nat (Nat.add (Nat.add a b') (Nat.add d c'))))
+      (@Eq.trans.{1} Nat
+        (Nat.add (Nat.add a' b) (Nat.add d c'))
+        (Nat.add (Nat.add a' b) (Nat.add d' c))
+        (Nat.add (Nat.add a' d') (Nat.add b c))
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; Nat.add (Nat.add a' b) (Nat.add d c') = Nat.add (Nat.add a' b) m)
+          (Nat.add d c') (Nat.add d' c)
+          (@Eq.trans.{1} Nat (Nat.add d c') (Nat.add c' d) (Nat.add d' c)
+            (add_comm d c')
+            (@Eq.trans.{1} Nat (Nat.add c' d) (Nat.add c d') (Nat.add d' c)
+              (@Eq.symm.{1} Nat (Nat.add c d') (Nat.add c' d) h2)
+              (add_comm c d')))
+          (@Eq.refl.{1} Nat (Nat.add (Nat.add a' b) (Nat.add d c'))))
+        (add_shift a' d' b c)))</code></pre></details><details class="appendix-solution" id="app-sol-9-2"><summary>练习 2 · subRep_add_rep <span class="sol-meta">定理</span></summary><pre><code>theorem subRep_add_rep (a b c d : Nat) :
+    intRel (addRep (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+                   (@prod_mk Nat Nat c d))
+           (@prod_mk Nat Nat a b) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add (Nat.add a d) c) b)
+    (Nat.add (Nat.add a d) (Nat.add c b))
+    (Nat.add a (Nat.add (Nat.add b c) d))
+    (add_assoc (Nat.add a d) c b)
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add a d) (Nat.add c b))
+      (Nat.add (Nat.add a d) (Nat.add b c))
+      (Nat.add a (Nat.add (Nat.add b c) d))
+      (@Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.add (Nat.add a d) (Nat.add c b) = Nat.add (Nat.add a d) m)
+        (Nat.add c b) (Nat.add b c) (add_comm c b)
+        (@Eq.refl.{1} Nat (Nat.add (Nat.add a d) (Nat.add c b))))
+      (@Eq.trans.{1} Nat
+        (Nat.add (Nat.add a d) (Nat.add b c))
+        (Nat.add a (Nat.add d (Nat.add b c)))
+        (Nat.add a (Nat.add (Nat.add b c) d))
+        (add_assoc a d (Nat.add b c))
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; Nat.add a (Nat.add d (Nat.add b c)) = Nat.add a m)
+          (Nat.add d (Nat.add b c)) (Nat.add (Nat.add b c) d) (add_comm d (Nat.add b c))
+          (@Eq.refl.{1} Nat (Nat.add a (Nat.add d (Nat.add b c)))))))</code></pre></details><details class="appendix-solution" id="app-sol-9-3"><summary>练习 3 · int_sub_self <span class="sol-meta">定理</span></summary><pre><code>theorem int_sub_self (a b : Nat) :
+    @Quot.mk.{1} (Prod Nat Nat) intRel
+        (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a b)) =
+      @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat Nat.zero Nat.zero) :=
+  @Quot.sound.{1} (Prod Nat Nat) intRel
+    (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a b))
+    (@prod_mk Nat Nat Nat.zero Nat.zero)
+    (add_neg_rep a b)</code></pre></details><details class="appendix-solution" id="app-sol-9-4"><summary>练习 4 · int_sub_add <span class="sol-meta">定理</span></summary><pre><code>theorem int_sub_add (a b c d : Nat) :
+    @Quot.mk.{1} (Prod Nat Nat) intRel
+        (addRep (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+                (@prod_mk Nat Nat c d)) =
+      @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b) :=
+  @Quot.sound.{1} (Prod Nat Nat) intRel
+    (addRep (subRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+            (@prod_mk Nat Nat c d))
+    (@prod_mk Nat Nat a b)
+    (subRep_add_rep a b c d)</code></pre></details><details class="appendix-solution" id="app-sol-9-5"><summary>练习 5 · demo_subRep <span class="sol-meta">定理</span></summary><pre><code>theorem demo_subRep :
+    intRel (subRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 1 Nat.zero))
+           (@prod_mk Nat Nat 1 Nat.zero) :=
+  @Eq.refl.{1} Nat 3</code></pre></details><details class="appendix-solution" id="app-sol-9-6"><summary>练习 6 · demo_sub_self <span class="sol-meta">定理</span></summary><pre><code>theorem demo_sub_self :
+    intRel (subRep (@prod_mk Nat Nat 2 5) (@prod_mk Nat Nat 2 5))
+           (@prod_mk Nat Nat Nat.zero Nat.zero) :=
+  @Eq.refl.{1} Nat 7</code></pre></details><details class="appendix-solution" id="app-sol-9-7"><summary>练习 7 · demo_sub_add <span class="sol-meta">定理</span></summary><pre><code>theorem demo_sub_add :
+    intRel (addRep (subRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 1 Nat.zero))
+                   (@prod_mk Nat Nat 1 Nat.zero))
+           (@prod_mk Nat Nat 3 1) :=
+  @Eq.refl.{1} Nat 5</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit08.html">← 08 整数加法的零元与负元</a><a class="next" href="../units/unit10.html">10 整数乘法的零元与单位元 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>16 整数序的传递性与加法单调 · 从集合论到实分析</title>
+<meta name="description" content="单元⑯ 整数序的传递性与加法单调：导语、定义与定理、练习与解答。Unit 16 — Transitivity and Translation Invariance">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit16.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></li><li aria-current="page">单元 16 整数序的传递性与加法单调</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-16-1">定义与定理</a></li>
+<li><a href="#ex-16-1">练习</a></li>
+<li><a href="#appendix-unit-16">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-1.html#units">↑ 本章目录</a>
+      <a href="../print/unit16.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-16">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-1.html>II.1</a> · 本章第 16 / 19 单元 · 全书第 16 / 72 单元</p>
+<h1><span class="unit-number">16</span> <span>整数序的传递性与加法单调</span></h1>
+<p class="unit-title-en">Unit 16 — Transitivity and Translation Invariance</p>
+<p class="unit-meta">5 个定义 · 19 个定理 · 1 个归纳类型 · 2 道练习 · 7 条提示 · <a #appendix-unit-16>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="16" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-16" aria-label="复制单元 16 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit16.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-1.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元⑮ 把整数序证成了良定义的关系：换代表元不改变真假。既然真假稳定，就可以在代表元层谈序的性质。整数序的两条核心性质是传递性（<span class="math">a ≤ b</span> 且 <span class="math">b ≤ c</span> 推出 <span class="math">a ≤ c</span>）与平移不变（<span class="math">a ≤ b</span> 推出 <span class="math">a+r ≤ b+r</span>）；自反性已在单元⑫证过。本单元补上前两条，证明只用到单元⑬的 <span class="math">ℕ</span> 序传递与右加单调、单元⑭的序消去律，外加一条纯算术的四项交换引理 add4。</p></div></div></section>
+<div class="block prose intuition-only"><p>序公理仍在代表元层陈述：本语言没有函数外延，也还没把关系下降成 <span class="math">Int → Int → Prop</span> 的机制；这和单元⑦处理加法律的方式一致。</p></div><article class="decl decl-inductive" id="decl-16-1"><header class="decl-head"><span class="decl-kind kind-inductive">归纳类型</span><code class="decl-name">LeNat</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>inductive LeNat : Nat → Nat → Prop
+ctor le_refl (n : Nat) : LeNat n n
+ctor le_succ (m : Nat) (n : Nat) : LeNat m n → LeNat m (Nat.succ n)
+end</code></pre></div></article>
+<article class="decl decl-def" id="decl-16-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intRel</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def intRel (a b : Prod Nat Nat) : Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 3 行</summary><pre><code>def intRel (a b : Prod Nat Nat) : Prop :=
+  Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =
+  Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-16-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Int</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def Int : Type :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def Int : Type := @Quot.{1} (Prod Nat Nat) intRel</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-16-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">leRep</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def leRep (p q : Prod Nat Nat) : Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 3 行</summary><pre><code>def leRep (p q : Prod Nat Nat) : Prop :=
+  LeNat (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+        (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-16-5"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">addRep</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>def addRep (p q : Prod Nat Nat) : Prod Nat Nat :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 4 行</summary><pre><code>def addRep (p q : Prod Nat Nat) : Prod Nat Nat :=
+  @prod_mk Nat Nat
+    (Nat.add (Prod.fst Nat Nat p) (Prod.fst Nat Nat q))
+    (Nat.add (Prod.snd Nat Nat p) (Prod.snd Nat Nat q))</code></pre></details></div></article>
+<div class="block prose intuition-only"><p>下面四条是单元③证过的 <span class="math">ℕ</span> 加法律，这里重新列出；后面的证明直接引用。</p></div><article class="decl decl-theorem" id="decl-16-6"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">zero_add</code><span class="decl-where">声明 6</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem zero_add (b : Nat) :
+    Nat.add Nat.zero b = b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add Nat.zero n = n)
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : Nat.add Nat.zero n = n) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (Nat.add Nat.zero n) = Nat.succ m)
+        (Nat.add Nat.zero n) n ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add Nat.zero n))))
+    b</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-16-7"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">succ_add</code><span class="decl-where">声明 7</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem succ_add (a b : Nat) :
+    Nat.add (Nat.succ a) b = Nat.succ (Nat.add a b) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n))
+    (@Eq.refl.{1} Nat (Nat.succ a))
+    (fun (n : Nat) (ih : Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n)) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (Nat.add (Nat.succ a) n) = Nat.succ m)
+        (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n))))
+    b</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-16-8"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_assoc</code><span class="decl-where">声明 8</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_assoc (a b c : Nat) :
+    Nat.add (Nat.add a b) c = Nat.add a (Nat.add b c) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n))
+    (@Eq.refl.{1} Nat (Nat.add a b))
+    (fun (n : Nat) (ih : Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n)) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (Nat.add (Nat.add a b) n) = Nat.succ m)
+        (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
+    c</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-16-9"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_comm</code><span class="decl-where">声明 9</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_comm (a b : Nat) :
+    Nat.add a b = Nat.add b a :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 10 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add a n = Nat.add n a)
+    (@Eq.symm.{1} Nat (Nat.add Nat.zero a) a (zero_add a))
+    (fun (n : Nat) (ih : Nat.add a n = Nat.add n a) =&gt;
+      @Eq.trans.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ (Nat.add n a)) (Nat.add (Nat.succ n) a)
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; Nat.succ (Nat.add a n) = Nat.succ m)
+          (Nat.add a n) (Nat.add n a) ih
+          (@Eq.refl.{1} Nat (Nat.succ (Nat.add a n))))
+        (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
+    b</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>前驱 <code>pred (succ n) = n</code> 是定义性相等：用它把前驱等式换回原等式。</p></div><article class="decl decl-def" id="decl-16-10"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Nat.pred</code><span class="decl-where">声明 10</span></header><div class="decl-body"><pre class="decl-statement"><code>def Nat.pred (n : Nat) : Nat :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 3 行</summary><pre><code>def Nat.pred (n : Nat) : Nat := match n with
+| zero =&gt; Nat.zero
+| succ m =&gt; m</code></pre></details></div></article>
+<div class="block prose intuition-only"><p>本语言没有内建的 <code>Nat.succ.inj</code>：对等式两边取前驱即得（定义性相等）。</p></div><article class="decl decl-theorem" id="decl-16-11"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">Nat.succ.inj</code><span class="decl-where">声明 11</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) :
+    a = b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  congrArg.{1} Nat.pred h</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>转动加数把 <span class="math">(a+k)+j</span> 换成 <span class="math">(a+j)+k</span>；消去律最后一步要用它。</p></div><article class="decl decl-theorem" id="decl-16-12"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_rotate</code><span class="decl-where">声明 12</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_rotate (a k j : Nat) :
+    Nat.add (Nat.add a k) j = Nat.add (Nat.add a j) k :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 5 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.trans.{1} Nat (Nat.add (Nat.add a k) j) (Nat.add a (Nat.add k j)) (Nat.add (Nat.add a j) k)
+    (add_assoc a k j)
+    (@Eq.trans.{1} Nat (Nat.add a (Nat.add k j)) (Nat.add a (Nat.add j k)) (Nat.add (Nat.add a j) k)
+      (congrArg.{1} (fun (x : Nat) =&gt; Nat.add a x) (add_comm k j))
+      (@Eq.symm.{1} Nat (Nat.add (Nat.add a j) k) (Nat.add a (Nat.add j k)) (add_assoc a j k)))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>这里重新证 <span class="math">ℕ</span> 序的传递性（单元⑬）：对 h2 归纳，动机取 <span class="math">LeNat a m → LeNat a n</span>。</p></div><article class="decl decl-theorem" id="decl-16-13"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">leNat_trans</code><span class="decl-where">声明 13</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem leNat_trans (a b c : Nat) (h1 : LeNat a b) (h2 : LeNat b c) : LeNat a c :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 5 行</summary><ol class="proof-steps"><li><pre><code>  @LeNat.rec (fun (m n : Nat) (_ : LeNat m n) =&gt; LeNat a m → LeNat a n)
+    (fun (n : Nat) =&gt; fun (h : LeNat a n) =&gt; h)
+    (fun (m n : Nat) (h : LeNat m n) (ih : LeNat a m → LeNat a n) =&gt;
+       fun (h1 : LeNat a m) =&gt; le_succ a n (ih h1))
+    b c h2 h1</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-16-14"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">nat_add_cancel_right</code><span class="decl-where">声明 14</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem nat_add_cancel_right (a b k : Nat) :
+    Nat.add a k = Nat.add b k → a = b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec
+    (fun (n : Nat) =&gt; Nat.add a n = Nat.add b n → a = b)
+    (fun (h : a = b) =&gt; h)
+    (fun (n : Nat)
+         (ih : Nat.add a n = Nat.add b n → a = b) =&gt;
+      fun (h : Nat.succ (Nat.add a n) = Nat.succ (Nat.add b n)) =&gt;
+        ih (Nat.succ.inj (Nat.add a n) (Nat.add b n) h))
+    k</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-16-15"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">leNat_exists_add</code><span class="decl-where">声明 15</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem leNat_exists_add (m n : Nat) (h : LeNat m n) :
+    ∃ (k : Nat), n = Nat.add m k :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 10 行</summary><ol class="proof-steps"><li><pre><code>  @LeNat.rec
+    (fun (m n : Nat) (_ : LeNat m n) =&gt;
+      ∃ (k : Nat), n = Nat.add m k)
+    (fun (n : Nat) =&gt;
+      Exists.intro Nat.zero (@Eq.refl.{1} Nat n))
+    (fun (m n : Nat) (h : LeNat m n)
+         (ih : ∃ (k : Nat), n = Nat.add m k) =&gt;
+      Exists.elim ih (fun (k : Nat) (hk : n = Nat.add m k) =&gt;
+          Exists.intro (Nat.succ k) (congrArg.{1} Nat.succ hk)))
+    m n h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-16-16"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">leNat_self_add</code><span class="decl-where">声明 16</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem leNat_self_add (m k : Nat) : LeNat m (Nat.add m k) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 4 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; LeNat m (Nat.add m n))
+    (le_refl m)
+    (fun (n : Nat) (ih : LeNat m (Nat.add m n)) =&gt; le_succ m (Nat.add m n) ih)
+    k</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-16-17"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">leNat_of_exists_add</code><span class="decl-where">声明 17</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem leNat_of_exists_add (m n : Nat)
+    (h : ∃ (k : Nat), n = Nat.add m k) :
+    LeNat m n :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 4 行</summary><ol class="proof-steps"><li><pre><code>  Exists.elim h (fun (k : Nat) (hk : n = Nat.add m k) =&gt;
+      @Eq.subst.{1} Nat (fun (x : Nat) =&gt; LeNat m x) (Nat.add m k) n
+        (@Eq.symm.{1} Nat n (Nat.add m k) hk)
+        (leNat_self_add m k))</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-16-18"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">leNat_add_cancel_right</code><span class="decl-where">声明 18</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem leNat_add_cancel_right (a b k : Nat)
+    (h : LeNat (Nat.add a k) (Nat.add b k)) : LeNat a b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  leNat_of_exists_add a b
+    (Exists.elim (leNat_exists_add (Nat.add a k) (Nat.add b k) h) (fun (j : Nat)
+           (hj : Nat.add b k = Nat.add (Nat.add a k) j) =&gt;
+        Exists.intro j (nat_add_cancel_right b (Nat.add a j) k
+            (@Eq.trans.{1} Nat (Nat.add b k) (Nat.add (Nat.add a k) j)
+              (Nat.add (Nat.add a j) k)
+              hj
+              (add_rotate a k j)))))</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-16-19"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">leNat_succ_succ</code><span class="decl-where">声明 19</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem leNat_succ_succ (a b : Nat) (h : LeNat a b) :
+    LeNat (Nat.succ a) (Nat.succ b) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 5 行</summary><ol class="proof-steps"><li><pre><code>  @LeNat.rec (fun (m n : Nat) (_ : LeNat m n) =&gt; LeNat (Nat.succ m) (Nat.succ n))
+    (fun (n : Nat) =&gt; le_refl (Nat.succ n))
+    (fun (m n : Nat) (h : LeNat m n) (ih : LeNat (Nat.succ m) (Nat.succ n)) =&gt;
+       le_succ (Nat.succ m) (Nat.succ n) ih)
+    a b h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-16-20"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">leNat_add_right</code><span class="decl-where">声明 20</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem leNat_add_right (a b k : Nat) (h : LeNat a b) :
+    LeNat (Nat.add a k) (Nat.add b k) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 5 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (k : Nat) =&gt; LeNat (Nat.add a k) (Nat.add b k))
+    h
+    (fun (k : Nat) (ih : LeNat (Nat.add a k) (Nat.add b k)) =&gt;
+       leNat_succ_succ (Nat.add a k) (Nat.add b k) ih)
+    k</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>四项交换引理把 <span class="math">(a+d)+(e+f)</span> 重新配成 <span class="math">(a+e)+(d+f)</span>；两条平移不变性都靠它把「先加在哪一侧」对齐。</p></div><article class="decl decl-theorem" id="decl-16-21"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add4</code><span class="decl-where">声明 21</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add4 (a d e f : Nat) :
+    Nat.add (Nat.add a d) (Nat.add e f) = Nat.add (Nat.add a e) (Nat.add d f) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 28 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add a d) (Nat.add e f))
+    (Nat.add a (Nat.add e (Nat.add d f)))
+    (Nat.add (Nat.add a e) (Nat.add d f))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add a d) (Nat.add e f))
+      (Nat.add a (Nat.add d (Nat.add e f)))
+      (Nat.add a (Nat.add e (Nat.add d f)))
+      (add_assoc a d (Nat.add e f))
+      (@Eq.trans.{1} Nat
+        (Nat.add a (Nat.add d (Nat.add e f)))
+        (Nat.add a (Nat.add (Nat.add d e) f))
+        (Nat.add a (Nat.add e (Nat.add d f)))
+        (congrArg.{1} (fun (x : Nat) =&gt; Nat.add a x)
+          (@Eq.symm.{1} Nat (Nat.add (Nat.add d e) f) (Nat.add d (Nat.add e f))
+            (add_assoc d e f)))
+        (@Eq.trans.{1} Nat
+          (Nat.add a (Nat.add (Nat.add d e) f))
+          (Nat.add a (Nat.add (Nat.add e d) f))
+          (Nat.add a (Nat.add e (Nat.add d f)))
+          (congrArg.{1} (fun (x : Nat) =&gt; Nat.add a x)
+            (congrArg.{1} (fun (x : Nat) =&gt; Nat.add x f) (add_comm d e)))
+          (congrArg.{1} (fun (x : Nat) =&gt; Nat.add a x)
+            (add_assoc e d f)))))
+    (@Eq.symm.{1} Nat
+      (Nat.add (Nat.add a e) (Nat.add d f))
+      (Nat.add a (Nat.add e (Nat.add d f)))
+      (add_assoc a e (Nat.add d f)))</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-16-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">leRep_trans</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-16-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>先证传递性：两条假设在代表元层是 H1 : <span class="math">a+d ≤ c+b</span>、H2 : <span class="math">c+f ≤ e+d</span>，目标是 <span class="math">a+f ≤ e+b</span>。</p></div></div><pre class="exercise-statement"><code>theorem leRep_trans (a b c d e f : Nat)
+    (h1 : leRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+    (h2 : leRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f)) :
+    leRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat e f) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两条假设在代表元层是 H1 : <span class="math">a+d ≤ c+b</span>、H2 : <span class="math">c+f ≤ e+d</span>。目标是 <span class="math">a+f ≤ e+b</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>H1 两边同加 f 得 <span class="math">(a+d)+f ≤ (c+b)+f</span>，用 add_rotate 两边各转一次变成 <span class="math">(a+f)+d ≤ (c+f)+b</span>；H2 两边同加 b 得 <span class="math">(c+f)+b ≤ (e+d)+b</span>，再把右边转成 <span class="math">(e+b)+d</span>。传递后对 d 用 leNat_add_cancel_right。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>leRep (a,b) (e,f) 即 <span class="math">LeNat (a+f) (e+b)</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 4</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">leNat_add_right · add_rotate · Eq.subst · leNat_trans · leNat_add_cancel_right</span>。</p></div></details></div><details class="solution-panel" id="sol-16-1"><summary>查看解答 <span class="sol-meta">定理 · 18 行</span></summary><div class="solution-body"><pre><code>theorem leRep_trans (a b c d e f : Nat)
+    (h1 : leRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+    (h2 : leRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f)) :
+    leRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat e f) :=
+  leNat_add_cancel_right (Nat.add a f) (Nat.add e b) d
+    (leNat_trans (Nat.add (Nat.add a f) d) (Nat.add (Nat.add c f) b)
+      (Nat.add (Nat.add e b) d)
+      (@Eq.subst.{1} Nat
+        (fun (x : Nat) =&gt; LeNat x (Nat.add (Nat.add c f) b))
+        (Nat.add (Nat.add a d) f) (Nat.add (Nat.add a f) d) (add_rotate a d f)
+        (@Eq.subst.{1} Nat
+          (fun (x : Nat) =&gt; LeNat (Nat.add (Nat.add a d) f) x)
+          (Nat.add (Nat.add c b) f) (Nat.add (Nat.add c f) b) (add_rotate c b f)
+          (leNat_add_right (Nat.add a d) (Nat.add c b) f h1)))
+      (@Eq.subst.{1} Nat
+        (fun (x : Nat) =&gt; LeNat (Nat.add (Nat.add c f) b) x)
+        (Nat.add (Nat.add e d) b) (Nat.add (Nat.add e b) d) (add_rotate e d b)
+        (leNat_add_right (Nat.add c f) (Nat.add e d) b h2)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-16-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">leRep_add_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-16-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>再证平移不变：h 两边同加 <span class="math">(e+f)</span>，用 add4 把两层和重新配对。</p></div></div><pre class="exercise-statement"><code>theorem leRep_add_right (a b c d e f : Nat)
+    (h : leRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d)) :
+    leRep (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat e f))
+          (addRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>h : <span class="math">a+d ≤ c+b</span>；两边同加 <span class="math">(e+f)</span> 得 <span class="math">(a+d)+(e+f) ≤ (c+b)+(e+f)</span>。用 add4 把左边改成 <span class="math">(a+e)+(d+f)</span>、右边改成 <span class="math">(c+e)+(b+f)</span>，正是 leRep (addRep (a,b) (e,f)) (addRep (c,d) (e,f)) 展开后的两层。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">LeNat ((a+e)+(d+f)) ((c+e)+(b+f))</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">leNat_add_right · add4 · Eq.subst</span>。</p></div></details></div><details class="solution-panel" id="sol-16-2"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><pre><code>theorem leRep_add_right (a b c d e f : Nat)
+    (h : leRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d)) :
+    leRep (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat e f))
+          (addRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f)) :=
+  @Eq.subst.{1} Nat
+    (fun (x : Nat) =&gt; LeNat (Nat.add (Nat.add a e) (Nat.add d f)) x)
+    (Nat.add (Nat.add c b) (Nat.add e f)) (Nat.add (Nat.add c e) (Nat.add b f))
+    (add4 c b e f)
+    (@Eq.subst.{1} Nat
+      (fun (x : Nat) =&gt; LeNat x (Nat.add (Nat.add c b) (Nat.add e f)))
+      (Nat.add (Nat.add a d) (Nat.add e f)) (Nat.add (Nat.add a e) (Nat.add d f))
+      (add4 a d e f)
+      (leNat_add_right (Nat.add a d) (Nat.add c b) (Nat.add e f) h))</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>具体例子：<span class="math">0-0 ≤ 1-0 ≤ 2-0</span> 推出 <span class="math">0-0 ≤ 2-0</span>。</p></div><article class="decl decl-theorem" id="decl-16-24"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_leRep_trans</code><span class="decl-where">声明 24</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_leRep_trans :
+    leRep (@prod_mk Nat Nat Nat.zero Nat.zero) (@prod_mk Nat Nat 2 Nat.zero) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 3 行</summary><ol class="proof-steps"><li><pre><code>  leRep_trans Nat.zero Nat.zero 1 Nat.zero 2 Nat.zero
+    (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+    (le_succ 1 1 (le_refl 1))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>具体例子：<span class="math">1-0 ≤ 3-0</span>，两边同加 2-1，得到 <span class="math">3-1 ≤ 5-1</span>。</p></div><article class="decl decl-theorem" id="decl-16-25"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_leRep_add_right</code><span class="decl-where">声明 25</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_leRep_add_right :
+    leRep (addRep (@prod_mk Nat Nat 1 Nat.zero) (@prod_mk Nat Nat 2 1))
+          (addRep (@prod_mk Nat Nat 3 Nat.zero) (@prod_mk Nat Nat 2 1)) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  leRep_add_right 1 Nat.zero 3 Nat.zero 2 1
+    (le_succ 1 2 (le_succ 1 1 (le_refl 1)))</code></pre></li></ol></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（1 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>单元⑯ 整数序的传递性与加法单调（序公理，代表元层）</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit15.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">整数序的良定义性</span></a><a class="unit-nav-home" ../chapters/ii-1.html#units>目录</a><a class="unit-nav-link" ../units/unit17.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">整数乘法的交换律（代表元层）</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-16"><h3><a #top>整数序的传递性与加法单调</a></h3><p class="appendix-meta">2 道练习 · 2 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-16-1"><summary>练习 1 · leRep_trans <span class="sol-meta">定理</span></summary><pre><code>theorem leRep_trans (a b c d e f : Nat)
+    (h1 : leRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+    (h2 : leRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f)) :
+    leRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat e f) :=
+  leNat_add_cancel_right (Nat.add a f) (Nat.add e b) d
+    (leNat_trans (Nat.add (Nat.add a f) d) (Nat.add (Nat.add c f) b)
+      (Nat.add (Nat.add e b) d)
+      (@Eq.subst.{1} Nat
+        (fun (x : Nat) =&gt; LeNat x (Nat.add (Nat.add c f) b))
+        (Nat.add (Nat.add a d) f) (Nat.add (Nat.add a f) d) (add_rotate a d f)
+        (@Eq.subst.{1} Nat
+          (fun (x : Nat) =&gt; LeNat (Nat.add (Nat.add a d) f) x)
+          (Nat.add (Nat.add c b) f) (Nat.add (Nat.add c f) b) (add_rotate c b f)
+          (leNat_add_right (Nat.add a d) (Nat.add c b) f h1)))
+      (@Eq.subst.{1} Nat
+        (fun (x : Nat) =&gt; LeNat (Nat.add (Nat.add c f) b) x)
+        (Nat.add (Nat.add e d) b) (Nat.add (Nat.add e b) d) (add_rotate e d b)
+        (leNat_add_right (Nat.add c f) (Nat.add e d) b h2)))</code></pre></details><details class="appendix-solution" id="app-sol-16-2"><summary>练习 2 · leRep_add_right <span class="sol-meta">定理</span></summary><pre><code>theorem leRep_add_right (a b c d e f : Nat)
+    (h : leRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d)) :
+    leRep (addRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat e f))
+          (addRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f)) :=
+  @Eq.subst.{1} Nat
+    (fun (x : Nat) =&gt; LeNat (Nat.add (Nat.add a e) (Nat.add d f)) x)
+    (Nat.add (Nat.add c b) (Nat.add e f)) (Nat.add (Nat.add c e) (Nat.add b f))
+    (add4 c b e f)
+    (@Eq.subst.{1} Nat
+      (fun (x : Nat) =&gt; LeNat x (Nat.add (Nat.add c b) (Nat.add e f)))
+      (Nat.add (Nat.add a d) (Nat.add e f)) (Nat.add (Nat.add a e) (Nat.add d f))
+      (add4 a d e f)
+      (leNat_add_right (Nat.add a d) (Nat.add c b) (Nat.add e f) h))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit15.html">← 15 整数序的良定义性</a><a class="next" href="../units/unit17.html">17 整数乘法的交换律（代表元层） →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

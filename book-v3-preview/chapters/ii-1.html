@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>II.1 整数：从 ℕ 到 ℤ · 从集合论到实分析</title>
+<meta name="description" content="整数：从 ℕ 到 ℤ：19 单元。">
+<link rel="canonical" href="https://example.invalid/book-v3/chapters/ii-1.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="chapter">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li aria-current="page">II.1 整数：从 ℕ 到 ℤ</li></ol></div></nav>
+<main id="main" class="page ">
+<header class="page-head">
+  <p class="kicker">卷 II 数系与实数 · 第 1 章</p>
+  <h1><span class="chapter-id">II.1</span> 整数：从 ℕ 到 ℤ</h1>
+  <p class="meta">19 单元 · 94 道练习 · 314 个声明 · 265 条提示</p>
+  <p class="lede">本章共 19 单元，从「整数与商构造」到「把取负下降成函数（Quot.lift）」。按顺序读；每单元一页，含导语、定义/定理、练习与解答。</p>
+</header>
+<section class="chapter-progress" aria-label="本章进度">
+  <div class="progress-row">
+    <span class="progress-label">本章进度</span>
+    <strong data-progress-count data-progress-total="19">已读 0 / 19</strong>
+  </div>
+  <span class="progress-track" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="19" aria-valuenow="0" data-progressbar><span class="progress-fill" data-progress-fill></span></span>
+</section>
+<nav id="units" class="chapter-units" aria-label="本章单元">
+  <h2>本章单元（19）</h2>
+  <ol>
+<li><article class="unit-card" data-unit="1"><a class="unit-card-title" href="../units/unit01.html"><span class="num">01</span><span>整数与商构造</span></a><span class="en">Unit 1 — Integers via Quotient</span><p class="summary">自然数上减法常常做不了：3-5 在 ℕ 里没有结果。但「差」是有的——3-5 与 4-6 是同一个差，5-2 与 4-1 也是同一个差。要把这种「差」本身变成可运算的对象，可以把序对 (a,b) 读成 a-b，再把表示同一个差的序对粘成一点；粘出来的东西就是整数。</p><div class="row"><span class="counts">3 个定义 · 6 个定理 · 4 道练习 · 12 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="1" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="2"><a class="unit-card-title" href="../units/unit02.html"><span class="num">02</span><span>商类型与良定义性（复习）</span></a><span class="en">Unit 2 — Quotients Review</span><p class="summary">单元② 商类型与良定义性</p><div class="row"><span class="counts">12 个定理 · 9 道练习 · 27 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="2" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="3"><a class="unit-card-title" href="../units/unit03.html"><span class="num">03</span><span>ℕ 的算术律（复习）</span></a><span class="en">Unit 3 — Nat Arithmetic Review</span><p class="summary">卷 I 已经把自然数搭好：有 0、有后继，也有递归定理。但自然数上的加法与乘法不是天上掉下来的；后面的整数、有理数、实数，最后都要把等式落回这里。为了后面在代表元层反复使用这些律时，道理都在这里；先把它们亲手重造一遍：用 Nat.rec 定义 add 与 mul，再用归纳证明零元…</p><div class="row"><span class="counts">2 个定义 · 9 个定理 · 7 道练习</span><button type="button" class="card-progress" data-card-progress data-unit="3" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="4"><a class="unit-card-title" href="../units/unit04.html"><span class="num">04</span><span>整数加法 / 负 / 减的代表元公式</span></a><span class="en">Unit 4 — Integer Operations on Representatives</span><p class="summary">整数是 ℕ×ℕ 的商，商上的加法还没有定义。想在商上写加法，最自然的做法是先在代表元上写公式：序对 (a,b) 读成 a-b，那么两个差相加应该得到 (a+c)-(b+d)，取负应该把两个分量对调（a-b 的负是 b-a），减法则是加法与取负的复合。这三条公式正是下面要定义的 a…</p><div class="row"><span class="counts">6 个定义 · 8 个定理 · 6 道练习 · 18 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="4" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="5"><a class="unit-card-title" href="../units/unit05.html"><span class="num">05</span><span>整数乘法的代表元公式</span></a><span class="en">Unit 5 — Integer Multiplication on Representatives</span><p class="summary">两个差相乘怎么算？把 (a-b)(c-d) 按分配律展开：ac - ad - bc + bd。把正项放在一起、负项放在一起，就得到 (ac+bd) - (ad+bc)。所以序对上的乘法公式是</p><div class="row"><span class="counts">6 个定义 · 8 个定理 · 6 道练习 · 18 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="5" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="6"><a class="unit-card-title" href="../units/unit06.html"><span class="num">06</span><span>整数加法的良定义性</span></a><span class="en">Unit 6 — Addition is Well-Defined</span><p class="summary">单元④写下了加法的代表元公式，但还没有回答那个问题：换一个代表元，结果还一样吗？在商上定义加法，必须证明这条公式尊重「差相等」：(a,b) 与 (a&#x27;,b&#x27;) 差相等时，把同一个 (c,d) 加到两边，得到的两个序对仍然差相等。这条不成立，addRep 就只是代表元上的操作，不是…</p><div class="row"><span class="counts">4 个定义 · 7 个定理 · 2 道练习 · 6 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="6" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="7"><a class="unit-card-title" href="../units/unit07.html"><span class="num">07</span><span>整数加法的交换律与结合律</span></a><span class="en">Unit 7 — Addition Laws on Integers</span><p class="summary">加法在 ℤ 上定义好之后，第一件事是把 ℕ 上熟悉的律搬上来。搬之前先看清商里的等式从哪来：商只有一条相等规则，相关的代表元在商里相等。所以商上等式的证明只有一条路——先在代表元上「差相等」，再用这条规则搬过去。</p><div class="row"><span class="counts">3 个定义 · 10 个定理 · 5 道练习 · 15 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="7" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="8"><a class="unit-card-title" href="../units/unit08.html"><span class="num">08</span><span>整数加法的零元与负元</span></a><span class="en">Unit 8 — Additive Identity and Inverse</span><p class="summary">加法在 ℤ 上已经有了交换律与结合律，但还没有「加什么也不变」的元素，也没有「加了之后回到零」的元素。ℕ 里没有负数，零也只有一个；直到整数，加法的群结构才完整。这个单元补上单位元与逆元。</p><div class="row"><span class="counts">4 个定义 · 13 个定理 · 7 道练习 · 21 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="8" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="9"><a class="unit-card-title" href="../units/unit09.html"><span class="num">09</span><span>整数减法的良定义性与基本律</span></a><span class="en">Unit 9 — Subtraction is Well-Defined</span><p class="summary">减法在代表元上早就写下了：subRep p q = addRep p (negRep q)。加法与负元搬上商之后，减法也应该跟着搬。要搬的正好三条：减法尊重两个因子的替换；一个数减自己得零；差加上减数回到被减数。后两条是减法真正要用的性质，也是后面构造 ℚ 时反复出现的「先算代表…</p><div class="row"><span class="counts">5 个定义 · 20 个定理 · 7 道练习 · 21 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="9" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="10"><a class="unit-card-title" href="../units/unit10.html"><span class="num">10</span><span>整数乘法的零元与单位元</span></a><span class="en">Unit 10 — Multiplication: Zero and One</span><p class="summary">乘法在代表元上的公式已经写下，但一条乘法律都还没证。要把 mulRep 搬上商（下一单元的 mulRep_wd），先得把 ℕ 上最小的乘法律补齐：乘零得零、乘一不变。这两条里，myMul_zero 与 myMul_succ 是定义性相等，只有 0·a = 0 需要归纳——它是本课…</p><div class="row"><span class="counts">6 个定义 · 9 个定理 · 4 道练习 · 12 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="10" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="11"><a class="unit-card-title" href="../units/unit11.html"><span class="num">11</span><span>整数乘法的良定义性</span></a><span class="en">Unit 11 — Multiplication is Well-Defined</span><p class="summary">乘法的代表元公式已经写下，零元与单位元也补齐了。要把 mulRep 搬上商，还差最后一步：证明它尊重代表元的替换——p 与 p&#x27; 差相等时，p 乘 q 与 p&#x27; 乘 q 也差相等。这一步和加法良定义性同一套路，但多了一个新工具：分配律</p><div class="row"><span class="counts">5 个定义 · 13 个定理 · 3 道练习 · 9 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="11" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="12"><a class="unit-card-title" href="../units/unit12.html"><span class="num">12</span><span>整数序的代表元公式</span></a><span class="en">Unit 12 — Order on Representatives</span><p class="summary">加法和乘法都在代表元上安顿好了，现在轮到序。整数 a-b 不大于 c-d，两边同加 b+d 就能把减法消掉：它等价于 a+d ≤ c+b。于是 ℤ 上的序化归成 ℕ 上的序——但 ℕ 上的 ≤ 本语言也没有内建，得先自己造一个。</p><div class="row"><span class="counts">3 个定义 · 8 个定理 · 6 道练习 · 18 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="12" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="13"><a class="unit-card-title" href="../units/unit13.html"><span class="num">13</span><span>ℕ 序的传递性与单调性</span></a><span class="en">Unit 13 — Order: Transitivity and Monotonicity</span><p class="summary">单元⑫ 用归纳族 LeNat 定义了 ℕ 的序，并把整数序化归到它：a-b ≤ c-d 就是 a+d ≤ c+b。要把这层化归真正用起来，还需要 ℕ 序的两条基本性质：传递性（m ≤ n 且 n ≤ k 推出 m ≤ k）与右加单调（m ≤ n 推出 m+k ≤ n+k）。后者又…</p><div class="row"><span class="counts">3 个定义 · 6 个定理 · 3 道练习 · 12 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="13" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="14"><a class="unit-card-title" href="../units/unit14.html"><span class="num">14</span><span>ℕ 序的加法消去律</span></a><span class="en">Unit 14 — Cancelling an Addend in the Order</span><p class="summary">单元⑬ 证了「同加一个数保持序」：m+k ≤ n+k。要把序良定义地搬到 ℤ 上，还需要反方向的消去律：m+k ≤ n+k 推出 m ≤ n。</p><div class="row"><span class="counts">4 个定义 · 14 个定理 · 5 道练习 · 15 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="14" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="15"><a class="unit-card-title" href="../units/unit15.html"><span class="num">15</span><span>整数序的良定义性</span></a><span class="en">Unit 15 — Order is Well-Defined</span><p class="summary">单元⑫ 把整数序写成了代表元公式：a-b ≤ c-d 当且仅当 a+d ≤ c+b。要把这个序搬到商类型 Int 上（Quot.lift），必须先证它不依赖代表元的选择：若 (a,b) ~ (a&#x27;,b&#x27;) 且 (c,d) ~ (c&#x27;,d&#x27;)，则 leRep (a,b) (c,d)…</p><div class="row"><span class="counts">4 个定义 · 23 个定理 · 5 道练习 · 15 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="15" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="16"><a class="unit-card-title" href="../units/unit16.html"><span class="num">16</span><span>整数序的传递性与加法单调</span></a><span class="en">Unit 16 — Transitivity and Translation Invariance</span><p class="summary">单元⑮ 把整数序证成了良定义的关系：换代表元不改变真假。既然真假稳定，就可以在代表元层谈序的性质。整数序的两条核心性质是传递性（a ≤ b 且 b ≤ c 推出 a ≤ c）与平移不变（a ≤ b 推出 a+r ≤ b+r）；自反性已在单元⑫证过。本单元补上前两条，证明只用到单元…</p><div class="row"><span class="counts">5 个定义 · 19 个定理 · 2 道练习 · 7 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="16" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="17"><a class="unit-card-title" href="../units/unit17.html"><span class="num">17</span><span>整数乘法的交换律（代表元层）</span></a><span class="en">Unit 17 — Multiplication is Commutative</span><p class="summary">单元⑪ 证完了「第一个因子换代表元不改变乘积」。要把乘法真正放到 Int 上，还差两件：第二个因子换代表元也不改变乘积（这要用交换律），以及乘法自身的交换、结合、分配律。先做第一件的一半：乘法的交换律。</p><div class="row"><span class="counts">5 个定义 · 14 个定理 · 3 道练习 · 9 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="17" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="18"><a class="unit-card-title" href="../units/unit18.html"><span class="num">18</span><span>整数乘法的第二个因子良定义（代表元层）</span></a><span class="en">Unit 18 — Multiplication is Well-Defined in the Second Factor</span><p class="summary">单元⑪ 证了 mulRep_wd：第一个因子换代表元，乘积不变；单元⑰ 又证了乘法的交换律 mulRep_comm。把这两件事合起来，就得到第二个因子换代表元乘积也不变：先交换因子、用第一个因子的良定义性、再交换回来。</p><div class="row"><span class="counts">5 个定义 · 21 个定理 · 8 道练习 · 24 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="18" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="19"><a class="unit-card-title" href="../units/unit19.html"><span class="num">19</span><span>把取负下降成函数（Quot.lift）</span></a><span class="en">Unit 19 — Descending Negation with Quot.lift</span><p class="summary">到单元⑱ 为止，Int 上的运算都只在代表元层陈述：mk (addRep p q)、int_add_comm 的等式两端都是 mk (…)。本单元第一次真正下降（Quot.lift）：取负是一元运算，义务只有一个参数，所以不需要函数外延性就能拿到一个货真价实的函数</p><div class="row"><span class="counts">5 个定义 · 11 个定理 · 2 道练习 · 6 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="19" aria-pressed="false">标记已读</button></div></article></li>
+  </ol>
+</nav>
+<nav class="pager" aria-label="章间导航">
+  <span class="empty">本章到头了</span><a class="next" href="../chapters/ii-2.html">II.2 有理数：从 ℤ 到 ℚ →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

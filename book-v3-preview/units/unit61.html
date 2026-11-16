@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>61 实数的加法：三元关系（存在 + 唯一） · 从集合论到实分析</title>
+<meta name="description" content="单元61 实数的加法：三元关系（存在 + 唯一）：导语、定义与定理、练习与解答。Unit 61 — Addition on the Reals: A Ternary Relation (Existence + Uniqueness)">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit61.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></li><li aria-current="page">单元 61 实数的加法：三元关系（存在 + 唯一）</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#ex-61-1">61.1 ι 规则：关系作用在 mk 上回到代表元形状</a></li>
+<li><a href="#ex-61-2">61.2 引入：Cauchy 代表元的和是关系的一个输出</a></li>
+<li><a href="#ex-61-3">61.3 声音方向：与 addSeq 相关的实数就是那个输出</a></li>
+<li><a href="#ex-61-4">61.4 唯一性：关系的两个输出相等</a></li>
+<li><a href="#ex-61-5">61.5 存在且唯一</a></li>
+<li><a href="#ex-61-6">61.6 常零序列：关系确实有输出</a></li>
+<li><a href="#appendix-unit-61">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-6.html#units">↑ 本章目录</a>
+      <a href="../print/unit61.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-61">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-6.html>II.6</a> · 本章第 7 / 14 单元 · 全书第 61 / 72 单元</p>
+<h1><span class="unit-number">61</span> <span>实数的加法：三元关系（存在 <span class="math">+</span> 唯一）</span></h1>
+<p class="unit-title-en">Unit 61 — Addition on the Reals: A Ternary Relation (Existence + Uniqueness)</p>
+<p class="unit-meta">3 个定义 · 6 个定理 · 6 道练习 · 18 条提示 · <a #appendix-unit-61>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="61" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-61" aria-label="复制单元 61 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit61.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-6.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>上一单元在代表元层建立了 addSeq，并交清了两条下降义务：cauchy_add（Cauchy 对加法封闭）与 realRel_add（realRel 对加法同余）。二元运算仍然不能直接写成 <span class="math">Real → Real → Real</span> 的函数：Quot.lift 的外层还要一次「函数相等」，而 realRel 只在 Cauchy 序列上自反——商里还有非 Cauchy 代表元形成的「杂点」，同一条 Cauchy 序列在杂点上的像不唯一。</p></div></div></section>
+<div class="block prose intuition-only"><p>于是把加法写成三元关系：addRel a b c 当且仅当 a、b 有 Cauchy 代表元 x、y，且 <span class="math">c = mk (x+y)</span>。这个关系在 Cauchy 代表元上存在且唯一；在杂点上没有输出——这是诚实的分关系，不是把洞绕过去。定义要经两次 Quot.lift，两次的良定义性就是两个 def 里的函数外延性与命题外延性义务，用的都是课程里已经有的东西，不新增信任。</p></div><div class="block prose intuition-only"><p>一个刻意留下的边界：<span class="math">mk z = mk (x+y)</span> 反推 <span class="math">realRel z (x+y)</span> 需要 Quot.exact，而它要求 realRel 在整个 Seq 上自反；本载体拿不到这条（杂点不自反）。所以这里只给「相关推出是同一个输出」的声音方向，反推留作已知边界，不写成公理。</p></div><div class="block prose intuition-only"><p>先给出关系在代表元上的形状与两次下降，再证存在、声音方向与唯一性，把它们拼成「存在且唯一」，最后落在常零序列上。</p></div><div class="block prose intuition-only"><p>关系在代表元上的形状</p></div><div class="block prose intuition-only"><p><code>addRelRep x y c</code> 读作「<code>c</code> 是 <code>x</code>、<code>y</code> 的和」。两个 <code>Cauchy</code> 守卫是必要的：没有它们，第二次 lift 在杂点上没有 <code>realRel y y</code> 可用。</p></div><article class="decl decl-def" id="decl-61-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">addRelRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def addRelRep (x y : Seq) (c : Real) : Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def addRelRep (x y : Seq) (c : Real) : Prop :=
+  Cauchy x ∧ Cauchy y ∧ c = Real.mk (addSeq x y)</code></pre></details></div></article>
+<div class="block prose intuition-only"><p>两次下降：<code>addRelY</code> 先下降第二个因子，<code>addRel</code> 再下降第一个</p></div><div class="block prose intuition-only"><p>固定 <code>x</code>，对 <code>y</code> 做 <code>Quot.lift</code>。外层类型是 <code>Real → Prop</code>，所以良定义性要 <code>funext</code> <span class="math">+</span> <code>propext</code> 把两个 <code>addRelRep</code> 的 <code>↔</code> 变成函数相等。<code>Cauchy x</code> 在两边都由假设提供，<code>Cauchy y</code> 与 <code>Cauchy y'</code> 来自 <code>hy</code>；<code>mk</code> 下的等式由 60.4 的 <code>realRel_add</code> 给出。</p></div><article class="decl decl-def" id="decl-61-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">addRelY</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def addRelY (x : Seq) : Real → Real → Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 24 行</summary><pre><code>def addRelY (x : Seq) : Real → Real → Prop :=
+  @Quot.lift.{1, 1} Seq realRel (Real → Prop)
+    (fun (y : Seq) (c : Real) =&gt; addRelRep x y c)
+    (fun (y y' : Seq) (hy : realRel y y') =&gt;
+      funext (fun (c : Real) =&gt; addRelRep x y c)
+             (fun (c : Real) =&gt; addRelRep x y' c)
+             (fun (c : Real) =&gt;
+               propext (addRelRep x y c) (addRelRep x y' c)
+                 (Iff.intro
+                   (fun (h : addRelRep x y c) =&gt;
+                     And.intro (And.left h)
+                       (And.intro (And.left (And.right hy))
+                         (Eq.trans (And.right (And.right h))
+                           (Real.sound (addSeq x y) (addSeq x y')
+                             (realRel_add x x y y'
+                               (realRel_refl x (And.left h)) hy)))))
+                   (fun (h : addRelRep x y' c) =&gt;
+                     And.intro (And.left h)
+                       (And.intro (And.left hy)
+                         (Eq.trans (And.right (And.right h))
+                           (Eq.symm
+                             (Real.sound (addSeq x y) (addSeq x y')
+                               (realRel_add x x y y'
+                                 (realRel_refl x (And.left h)) hy)))))))))</code></pre></details></div></article>
+<div class="block prose intuition-only"><p>再对第一个因子做一次 <code>Quot.lift</code>。里层要对 <code>b</code> 用 <code>Quot.ind</code>（命题层消去），把 <code>addRelY x (mk y)</code> 烧成代表元形状；两个方向同样用 <code>realRel_add</code>（这次第一个假设是 <code>hx</code>，第二个由 <code>Cauchy y</code> 经 <code>realRel_refl</code> 反射）把 <code>mk</code> 下的代表元换掉。</p></div><article class="decl decl-def" id="decl-61-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">addRel</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def addRel (a : Real) : Real → Real → Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 32 行</summary><pre><code>def addRel (a : Real) : Real → Real → Prop :=
+  @Quot.lift.{1, 1} Seq realRel (Real → Real → Prop)
+    (fun (x : Seq) =&gt; addRelY x)
+    (fun (x x' : Seq) (hx : realRel x x') =&gt;
+      funext (fun (b : Real) =&gt; addRelY x b)
+             (fun (b : Real) =&gt; addRelY x' b)
+             (fun (b : Real) =&gt;
+               @Quot.ind.{1} Seq realRel
+                 (fun (b : Real) =&gt; addRelY x b = addRelY x' b)
+                 (fun (y : Seq) =&gt;
+                   funext (fun (c : Real) =&gt; addRelRep x y c)
+                          (fun (c : Real) =&gt; addRelRep x' y c)
+                          (fun (c : Real) =&gt;
+                            propext (addRelRep x y c) (addRelRep x' y c)
+                              (Iff.intro
+                                (fun (h : addRelRep x y c) =&gt;
+                                  And.intro (And.left (And.right hx))
+                                    (And.intro (And.left (And.right h))
+                                      (Eq.trans (And.right (And.right h))
+                                        (Real.sound (addSeq x y) (addSeq x' y)
+                                          (realRel_add x x' y y hx
+                                            (realRel_refl y (And.left (And.right h))))))))
+                                (fun (h : addRelRep x' y c) =&gt;
+                                  And.intro (And.left hx)
+                                    (And.intro (And.left (And.right h))
+                                      (Eq.trans (And.right (And.right h))
+                                        (Eq.symm
+                                          (Real.sound (addSeq x y) (addSeq x' y)
+                                            (realRel_add x x' y y hx
+                                              (realRel_refl y (And.left (And.right h))))))))))))
+                 b))
+    a</code></pre></details></div></article>
+<h3 class="unit-subhead"><span class="math">61.1 ι</span> 规则：关系作用在 <code>mk</code> 上回到代表元形状</h3><article class="exercise" id="ex-61-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">addRel_mk</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-61-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><span class="math">ι</span> 规则：addRel 作用在 Cauchy 代表元上按定义归约。</p></div></div><pre class="exercise-statement"><code>theorem addRel_mk (x y : Seq) (c : Real) :
+    (addRel (Real.mk x) (Real.mk y) c) ↔ (addRelRep x y c) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>addRel</code> 与 <code>addRelY</code> 都是 <code>Quot.lift</code>；作用到 <code>Real.mk x</code> / <code>Real.mk y</code> 上按 <span class="math">ι</span> 归约成 <code>addRelRep x y c</code>。因此两边是<strong>定义性相等</strong>的命题，两个方向都取恒等函数。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(addRel (Real.mk x) (Real.mk y) c) ↔ (addRelRep x y c)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Iff.intro · ι</span> 归约（两处 Quot.lift 都要真的烧掉）。</p></div></details></div><details class="solution-panel" id="sol-61-1"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">两次 <code>Quot.lift</code> 都按 <span class="math">ι</span> 归约，所以两边是定义性相等的命题，
+<code>Iff.intro</code> 的两个人射都取恒等函数。</p><pre><code>theorem addRel_mk (x y : Seq) (c : Real) :
+    (addRel (Real.mk x) (Real.mk y) c) ↔ (addRelRep x y c) :=
+  Iff.intro (fun (h : addRel (Real.mk x) (Real.mk y) c) =&gt; h)
+            (fun (h : addRelRep x y c) =&gt; h)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">61.2 引入：Cauchy 代表元的和是关系的一个输出</h3><article class="exercise" id="ex-61-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">addRel_intro</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-61-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>存在性：两个 Cauchy 代表元的和是关系的输出。</p></div></div><pre class="exercise-statement"><code>theorem addRel_intro (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    addRel (Real.mk x) (Real.mk y) (Real.mk (addSeq x y)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>addRel</code> 在 <code>mk</code> 上归约成 <code>addRelRep</code>，于是要交的就是三元组 <code>Cauchy x</code>、<code>Cauchy y</code> 与 <code>mk (addSeq x y) = mk (addSeq x y)</code>；前两个是假设，第三个是 <code>Eq.refl</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>addRel (mk x) (mk y) (mk (addSeq x y))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>And.intro（两次）<span class="math">· Eq.refl · ι</span> 归约。</p></div></details></div><details class="solution-panel" id="sol-61-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem addRel_intro (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    addRel (Real.mk x) (Real.mk y) (Real.mk (addSeq x y)) :=
+  And.intro hx (And.intro hy (Eq.refl (Real.mk (addSeq x y))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">61.3 声音方向：与 <code>addSeq</code> 相关的实数就是那个输出</h3><article class="exercise" id="ex-61-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">addRel_sound</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-61-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>声音方向：相关的输出互相连到同一个 c。</p></div></div><pre class="exercise-statement"><code>theorem addRel_sound (x y z : Seq) (hx : Cauchy x) (hy : Cauchy y)
+    (hz : realRel z (addSeq x y)) :
+    addRel (Real.mk x) (Real.mk y) (Real.mk z) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>hx</code>、<code>hy</code> 填前两个守卫；<code>hz : realRel z (addSeq x y)</code> 经 <code>Real.sound</code> 给出 <code>mk z = mk (addSeq x y)</code>，正好是第三个分量。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>realRel z (addSeq x y) → addRel (mk x) (mk y) (mk z)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>And.intro（两次）<span class="math">· Real.sound</span>。</p></div></details></div><details class="solution-panel" id="sol-61-3"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem addRel_sound (x y z : Seq) (hx : Cauchy x) (hy : Cauchy y)
+    (hz : realRel z (addSeq x y)) :
+    addRel (Real.mk x) (Real.mk y) (Real.mk z) :=
+  And.intro hx (And.intro hy (Real.sound z (addSeq x y) hz))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">61.4 唯一性：关系的两个输出相等</h3><article class="exercise" id="ex-61-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">addRel_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-61-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>唯一性：同一个和的两个输出相等。</p></div></div><pre class="exercise-statement"><code>theorem addRel_unique (a b c c' : Real)
+    (h : addRel a b c) (h' : addRel a b c') :
+    c = c' :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对 <code>a</code> 做一次 <code>Quot.ind</code>（动机是「对一切 b c c'，两个输出相等」），进入 <code>mk x</code> 后对 <code>b</code> 再做一次 <code>Quot.ind</code>（动机把 c、c' 一起量化）。两次 <span class="math">ι</span> 归约把 <code>h</code>、<code>h'</code> 都变成 <code>c = mk (x+y)</code> 与 <code>c' = mk (x+y)</code>，用 <code>Eq.trans</code> 与 <code>Eq.symm</code> 接起来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>addRel a b c → addRel a b c' → c = c'</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Quot.ind（两次，动机都写在 Real 上）<span class="math">· ι</span> 归约 <span class="math">· Eq.trans · Eq.symm · And.right</span>。</p></div></details></div><details class="solution-panel" id="sol-61-4"><summary>查看解答 <span class="sol-meta">定理 · 23 行</span></summary><div class="solution-body"><p class="solution-note">对 <code>a</code>、<code>b</code> 各做一次 <code>Quot.ind</code>；<code>addRel</code> 的两次 <span class="math">ι</span> 归约把两个假设
+都变成 <code>c = mk (x+y)</code> 与 <code>c' = mk (x+y)</code>，直接传递。</p><pre><code>theorem addRel_unique (a b c c' : Real)
+    (h : addRel a b c) (h' : addRel a b c') :
+    c = c' :=
+  @Quot.ind.{1} Seq realRel
+    (fun (a : Real) =&gt;
+      ∀ (b c c' : Real), addRel a b c → addRel a b c' → c = c')
+    (fun (x : Seq) =&gt;
+      fun (b c c' : Real)
+          (h : addRel (Real.mk x) b c)
+          (h' : addRel (Real.mk x) b c') =&gt;
+        @Quot.ind.{1} Seq realRel
+          (fun (b : Real) =&gt;
+            ∀ (c c' : Real),
+              addRel (Real.mk x) b c → addRel (Real.mk x) b c' → c = c')
+          (fun (y : Seq) =&gt;
+            fun (c c' : Real)
+                (hc : addRel (Real.mk x) (Real.mk y) c)
+                (hc' : addRel (Real.mk x) (Real.mk y) c') =&gt;
+              Eq.trans
+                (And.right (And.right hc))
+                (Eq.symm (And.right (And.right hc'))))
+          b c c' h h')
+    a b c c' h h'</code></pre></div></details></div></article>
+<h3 class="unit-subhead">61.5 存在且唯一</h3><article class="exercise" id="ex-61-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">addRel_exists_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-61-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>存在且唯一装成一个命题。</p></div></div><pre class="exercise-statement"><code>theorem addRel_exists_unique (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    ∃ (c : Real),
+      addRel (Real.mk x) (Real.mk y) c ∧
+        ∀ (c' : Real), addRel (Real.mk x) (Real.mk y) c' → c' = c :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>见证取 <code>mk (addSeq x y)</code>。存在分量是 61.2；唯一分量对任意 <code>c'</code> 用 61.4，把 <code>c'</code> 与见证的两个证明接起来（注意 61.4 的结论方向是 <code>c' = c</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ c, addRel (mk x) (mk y) c ∧ ∀ c', addRel (mk x) (mk y) c' → c' = c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.intro · And.intro · addRel_intro · addRel_unique</span>。</p></div></details></div><details class="solution-panel" id="sol-61-5"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem addRel_exists_unique (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    ∃ (c : Real),
+      addRel (Real.mk x) (Real.mk y) c ∧
+        ∀ (c' : Real), addRel (Real.mk x) (Real.mk y) c' → c' = c :=
+  Exists.intro (Real.mk (addSeq x y))
+    (And.intro
+      (addRel_intro x y hx hy)
+      (fun (c' : Real) (hc' : addRel (Real.mk x) (Real.mk y) c') =&gt;
+        addRel_unique (Real.mk x) (Real.mk y) c' (Real.mk (addSeq x y))
+          hc' (addRel_intro x y hx hy)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">61.6 常零序列：关系确实有输出</h3><article class="exercise" id="ex-61-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">demo_addRel_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-61-6>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>具体落在常零序列上。</p></div></div><pre class="exercise-statement"><code>theorem demo_addRel_zero :
+    addRel (Real.mk zeroSeq) (Real.mk zeroSeq)
+      (Real.mk (addSeq zeroSeq zeroSeq)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 61.2 用在 <code>zeroSeq</code> 上；两个 <code>Cauchy</code> 守卫都是 ㉟.1 的 <code>cauchy_zero</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>addRel (mk zeroSeq) (mk zeroSeq) (mk (addSeq zeroSeq zeroSeq))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">addRel_intro · cauchy_zero</span>。</p></div></details></div><details class="solution-panel" id="sol-61-6"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem demo_addRel_zero :
+    addRel (Real.mk zeroSeq) (Real.mk zeroSeq)
+      (Real.mk (addSeq zeroSeq zeroSeq)) :=
+  addRel_intro zeroSeq zeroSeq cauchy_zero cauchy_zero</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>三元关系与「存在且唯一」立起来了；下一单元把代表元层的交换律与零元搬上来。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit60.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">实数的加法：下降之前的两条义务</span></a><a class="unit-nav-home" ../chapters/ii-6.html#units>目录</a><a class="unit-nav-link" ../units/unit62.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">实数的加法：交换律与零元（三元关系版）</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-61"><h3><a #top>实数的加法：三元关系（存在 <span class="math">+</span> 唯一）</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-61-1"><summary>练习 1 · addRel_mk <span class="sol-meta">定理</span></summary><p class="solution-note">两次 <code>Quot.lift</code> 都按 <span class="math">ι</span> 归约，所以两边是定义性相等的命题，
+<code>Iff.intro</code> 的两个人射都取恒等函数。</p><pre><code>theorem addRel_mk (x y : Seq) (c : Real) :
+    (addRel (Real.mk x) (Real.mk y) c) ↔ (addRelRep x y c) :=
+  Iff.intro (fun (h : addRel (Real.mk x) (Real.mk y) c) =&gt; h)
+            (fun (h : addRelRep x y c) =&gt; h)</code></pre></details><details class="appendix-solution" id="app-sol-61-2"><summary>练习 2 · addRel_intro <span class="sol-meta">定理</span></summary><pre><code>theorem addRel_intro (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    addRel (Real.mk x) (Real.mk y) (Real.mk (addSeq x y)) :=
+  And.intro hx (And.intro hy (Eq.refl (Real.mk (addSeq x y))))</code></pre></details><details class="appendix-solution" id="app-sol-61-3"><summary>练习 3 · addRel_sound <span class="sol-meta">定理</span></summary><pre><code>theorem addRel_sound (x y z : Seq) (hx : Cauchy x) (hy : Cauchy y)
+    (hz : realRel z (addSeq x y)) :
+    addRel (Real.mk x) (Real.mk y) (Real.mk z) :=
+  And.intro hx (And.intro hy (Real.sound z (addSeq x y) hz))</code></pre></details><details class="appendix-solution" id="app-sol-61-4"><summary>练习 4 · addRel_unique <span class="sol-meta">定理</span></summary><p class="solution-note">对 <code>a</code>、<code>b</code> 各做一次 <code>Quot.ind</code>；<code>addRel</code> 的两次 <span class="math">ι</span> 归约把两个假设
+都变成 <code>c = mk (x+y)</code> 与 <code>c' = mk (x+y)</code>，直接传递。</p><pre><code>theorem addRel_unique (a b c c' : Real)
+    (h : addRel a b c) (h' : addRel a b c') :
+    c = c' :=
+  @Quot.ind.{1} Seq realRel
+    (fun (a : Real) =&gt;
+      ∀ (b c c' : Real), addRel a b c → addRel a b c' → c = c')
+    (fun (x : Seq) =&gt;
+      fun (b c c' : Real)
+          (h : addRel (Real.mk x) b c)
+          (h' : addRel (Real.mk x) b c') =&gt;
+        @Quot.ind.{1} Seq realRel
+          (fun (b : Real) =&gt;
+            ∀ (c c' : Real),
+              addRel (Real.mk x) b c → addRel (Real.mk x) b c' → c = c')
+          (fun (y : Seq) =&gt;
+            fun (c c' : Real)
+                (hc : addRel (Real.mk x) (Real.mk y) c)
+                (hc' : addRel (Real.mk x) (Real.mk y) c') =&gt;
+              Eq.trans
+                (And.right (And.right hc))
+                (Eq.symm (And.right (And.right hc'))))
+          b c c' h h')
+    a b c c' h h'</code></pre></details><details class="appendix-solution" id="app-sol-61-5"><summary>练习 5 · addRel_exists_unique <span class="sol-meta">定理</span></summary><pre><code>theorem addRel_exists_unique (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    ∃ (c : Real),
+      addRel (Real.mk x) (Real.mk y) c ∧
+        ∀ (c' : Real), addRel (Real.mk x) (Real.mk y) c' → c' = c :=
+  Exists.intro (Real.mk (addSeq x y))
+    (And.intro
+      (addRel_intro x y hx hy)
+      (fun (c' : Real) (hc' : addRel (Real.mk x) (Real.mk y) c') =&gt;
+        addRel_unique (Real.mk x) (Real.mk y) c' (Real.mk (addSeq x y))
+          hc' (addRel_intro x y hx hy)))</code></pre></details><details class="appendix-solution" id="app-sol-61-6"><summary>练习 6 · demo_addRel_zero <span class="sol-meta">定理</span></summary><pre><code>theorem demo_addRel_zero :
+    addRel (Real.mk zeroSeq) (Real.mk zeroSeq)
+      (Real.mk (addSeq zeroSeq zeroSeq)) :=
+  addRel_intro zeroSeq zeroSeq cauchy_zero cauchy_zero</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit60.html">← 60 实数的加法：下降之前的两条义务</a><a class="next" href="../units/unit62.html">62 实数的加法：交换律与零元（三元关系版） →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

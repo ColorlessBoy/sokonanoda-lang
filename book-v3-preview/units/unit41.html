@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>41 取负与序：绝对值的对称性 · 从集合论到实分析</title>
+<meta name="description" content="单元㊶ 取负与序：绝对值的对称性：导语、定义与定理、练习与解答。Unit 41 — Negation, Order and Absolute Value">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit41.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></li><li aria-current="page">单元 41 取负与序：绝对值的对称性</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#ex-41-1">练习</a></li>
+<li><a href="#appendix-unit-41">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-4.html#units">↑ 本章目录</a>
+      <a href="../print/unit41.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-41">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-4.html>II.4</a> · 本章第 7 / 10 单元 · 全书第 41 / 72 单元</p>
+<h1><span class="unit-number">41</span> <span>取负与序：绝对值的对称性</span></h1>
+<p class="unit-title-en">Unit 41 — Negation, Order and Absolute Value</p>
+<p class="unit-meta">5 个定理 · 5 道练习 · 15 条提示 · <a #appendix-unit-41>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="41" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-41" aria-label="复制单元 41 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit41.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-4.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㉛ 给了 <span class="math">ℚ</span> 的取负 ratNegRep（交换分子序对，分母不动），㊴ 给了序对相等代表元的替换律。现在把序与取负接上：<span class="math">x ≤ y</span> 推出 <span class="math">-y ≤ -x</span>（序被取负反转），以及 |x| 与 y 相等时 |-x| 与 y 也相等（绝对值对取负不变）。这两条是下一单元「close 的对称性」的引擎：close x y eps 说的是 x-y 的绝对值小于 eps，要换成 close y x eps，就得把 y-x 看成 -(x-y)，再用绝对值不变把负号去掉。</p></div></div></section>
+<article class="exercise" id="ex-41-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratLeRep_neg_lit</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-41-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>反转律先在字面三元组 qrep a b m 上做——这时两个不等式展开后只差几次加法交换；再把字面形式搬到任意代表元上。通用引理（相等对称、传递、取负对合）已收在 lib/Cauchy，这里直接引用。</p></div><div class="block prose intuition-only"><p>㊶.1 取负反转序（字面形式）</p></div><div class="block prose intuition-only"><p>先把反转律在字面三元组上做掉：两个不等式只差加法交换。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_neg_lit (a b c d m n : Nat)
+    (h : ratLeRep (qrep a b m) (qrep c d n)) :
+    ratLeRep (qrep d c n) (qrep b a m) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先用 <code>leRep_wd_pair</code> <span class="math">+</span> <code>mulRep_den_form</code> 把 <code>h</code> 化成干净序对上的 <code>LeNat (a(n+1)+d(m+1)) (c(m+1)+b(n+1))</code>；再用两次 <code>add_comm</code> 把它变成 <code>LeNat (d(m+1)+a(n+1)) (b(n+1)+c(m+1))</code>（一次换左边、一次换右边）；最后用 <code>leRep_wd_pair</code> <span class="math">+</span> <code>mulRep_den_form</code> 的对称把干净序对贴回 <code>mulRep … (den …)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (qrep a b m) (qrep c d n) → ratLeRep (qrep d c n) (qrep b a m)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">mulRep_den_form · leRep_wd_pair · intRel_of_eq · add_comm · Eq.subst</span>。</p></div></details></div><details class="solution-panel" id="sol-41-1"><summary>查看解答 <span class="sol-meta">定理 · 42 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_neg_lit (a b c d m n : Nat)
+    (h : ratLeRep (qrep a b m) (qrep c d n)) :
+    ratLeRep (qrep d c n) (qrep b a m) :=
+  leRep_wd_pair
+    (@prod_mk Nat Nat (myMul d (Nat.succ m)) (myMul c (Nat.succ m)))
+    (mulRep (@prod_mk Nat Nat d c) (den m))
+    (@prod_mk Nat Nat (myMul b (Nat.succ n)) (myMul a (Nat.succ n)))
+    (mulRep (@prod_mk Nat Nat b a) (den n))
+    (intRel_of_eq
+      (@prod_mk Nat Nat (myMul d (Nat.succ m)) (myMul c (Nat.succ m)))
+      (mulRep (@prod_mk Nat Nat d c) (den m))
+      (Eq.symm (mulRep_den_form (@prod_mk Nat Nat d c) m)))
+    (intRel_of_eq
+      (@prod_mk Nat Nat (myMul b (Nat.succ n)) (myMul a (Nat.succ n)))
+      (mulRep (@prod_mk Nat Nat b a) (den n))
+      (Eq.symm (mulRep_den_form (@prod_mk Nat Nat b a) n)))
+    (@Eq.subst.{1} Nat
+      (fun (x : Nat) =&gt;
+        LeNat x (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m))))
+      (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+      (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+      (add_comm (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+      (@Eq.subst.{1} Nat
+        (fun (x : Nat) =&gt;
+          LeNat (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m))) x)
+        (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (add_comm (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (leRep_wd_pair
+          (mulRep (@prod_mk Nat Nat a b) (den n))
+          (@prod_mk Nat Nat (myMul a (Nat.succ n)) (myMul b (Nat.succ n)))
+          (mulRep (@prod_mk Nat Nat c d) (den m))
+          (@prod_mk Nat Nat (myMul c (Nat.succ m)) (myMul d (Nat.succ m)))
+          (intRel_of_eq
+            (mulRep (@prod_mk Nat Nat a b) (den n))
+            (@prod_mk Nat Nat (myMul a (Nat.succ n)) (myMul b (Nat.succ n)))
+            (mulRep_den_form (@prod_mk Nat Nat a b) n))
+          (intRel_of_eq
+            (mulRep (@prod_mk Nat Nat c d) (den m))
+            (@prod_mk Nat Nat (myMul c (Nat.succ m)) (myMul d (Nat.succ m)))
+            (mulRep_den_form (@prod_mk Nat Nat c d) m))
+          h)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-41-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratLeRep_neg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-41-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊶.2 取负反转序（任意代表元）</p></div><div class="block prose intuition-only"><p>再把字面形式搬到任意代表元：先在展开类型上 match 到字面坐标。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_neg (x y : ratRep) (h : ratLeRep x y) :
+    ratLeRep (ratNegRep y) (ratNegRep x) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratRep</code> 是 <code>Prod (Prod Nat Nat) Nat</code> 的<strong>定义别名</strong>，<code>match</code> 只认归纳类型本身 <span class="math">⇒</span> 先在展开后的类型上写一个辅助定理，<code>match x</code>、<code>match y</code>，并把 <code>h</code> 作为 match <strong>之后</strong>引入的函数参数（写在 <code>fun (h : …) =&gt;</code> 里，类型用字面三元组），否则 <code>h</code> 的类型不会随 match 改写。辅助定理的体就是 ㊶.1。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep x y → ratLeRep (ratNegRep y) (ratNegRep x)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>match（在 <code>Prod (Prod Nat Nat) Nat</code> 上）<span class="math">· ratLeRep_neg_lit ·</span> 定义性归约（<code>ratNegRep</code> 与 <code>ratRep</code> 别名）。</p></div></details></div><details class="solution-panel" id="sol-41-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_neg (x y : ratRep) (h : ratLeRep x y) :
+    ratLeRep (ratNegRep y) (ratNegRep x) :=
+  ratLeRep_neg_aux x y h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-41-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratAbsRel_neg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-41-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊶.3 绝对值对取负不变</p></div><div class="block prose intuition-only"><p>绝对值对取负不变：把两个分支都翻过去。</p></div></div><pre class="exercise-statement"><code>theorem ratAbsRel_neg (x y : ratRep) (h : ratAbsRel x y) :
+    ratAbsRel (ratNegRep x) y :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratAbsRel x y</code> 是两个分支的析取（<code>Or.elim</code>，参数顺序是 <code>(f) (g) (h)</code>）。<code>Or.inl</code>（<span class="math">0≤x</span> 且 y~x）要落到第二分支：<code>0≤x</code> 经 ㊶.2 得 <code>-x≤0</code>；<code>y~x</code> 与 <code>x~-(-x)</code>（<code>ratNegRep_invol</code> 取对称）用 <code>ratRel_trans_gen</code> 串成 <code>y~-(-x)</code>。<code>Or.inr</code>（<span class="math">x≤0</span> 且 y~-x）落到第一分支：<code>x≤0</code> 经 ㊶.2 得 <code>-x≤0</code>，第二个分量原样。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratAbsRel x y → ratAbsRel (ratNegRep x) y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Or.elim · ratLeRep_neg · ratRel_trans_gen · ratRel_symm · ratNegRep_invol</span>。</p></div></details></div><details class="solution-panel" id="sol-41-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem ratAbsRel_neg (x y : ratRep) (h : ratAbsRel x y) :
+    ratAbsRel (ratNegRep x) y :=
+  ratAbsRel_neg_aux x y h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-41-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">demo_neg_half_le_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-41-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊶.4 具体：<span class="math">0 ≤ 1/2</span> 推出 <span class="math">-1/2 ≤ 0</span></p></div><div class="block prose intuition-only"><p>具体算：<span class="math">0 ≤ 1/2</span> 推出 <span class="math">-1/2 ≤ 0</span>。</p></div></div><pre class="exercise-statement"><code>theorem demo_neg_half_le_zero :
+    ratLeRep (ratNegRep (qrep 1 Nat.zero 1)) ratZeroRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 ㊶.2 用在 <code>x = 0</code>、<code>y = 1/2</code> 上；前提 <code>0 ≤ 1/2</code> 展开成 <code>LeNat 0 1</code>，用 <code>le_succ 0 0 (le_refl 0)</code>。<code>-0</code> 定义性等于 0。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (ratNegRep (qrep 1 0 1)) ratZeroRep</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_neg · le_succ · le_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-41-4"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem demo_neg_half_le_zero :
+    ratLeRep (ratNegRep (qrep 1 Nat.zero 1)) ratZeroRep :=
+  ratLeRep_neg ratZeroRep (qrep 1 Nat.zero 1)
+    (le_succ Nat.zero Nat.zero (le_refl Nat.zero))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-41-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">demo_abs_neg_half</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-41-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊶.5 具体：|-1/2| ~ 1/2</p></div><div class="block prose intuition-only"><p>具体算：|-1/2| 与 1/2 相等。</p></div></div><pre class="exercise-statement"><code>theorem demo_abs_neg_half :
+    ratAbsRel (ratNegRep (qrep 1 Nat.zero 1)) (qrep 1 Nat.zero 1) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先立 <code>|1/2| ~ 1/2</code>（第一分支：<code>0 ≤ 1/2</code> 与 <code>ratRel_refl</code>），再用 ㊶.3 把里面的 <code>1/2</code> 换成 <code>-1/2</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratAbsRel (ratNegRep (qrep 1 0 1)) (qrep 1 0 1)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratAbsRel_neg · Or.inl · And.intro · le_succ · ratRel_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-41-5"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem demo_abs_neg_half :
+    ratAbsRel (ratNegRep (qrep 1 Nat.zero 1)) (qrep 1 Nat.zero 1) :=
+  ratAbsRel_neg (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1)
+    (Or.inl (And.intro
+      (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+      (ratRel_refl (qrep 1 Nat.zero 1))))</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit40.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">实数的相等：自反性</span></a><a class="unit-nav-home" ../chapters/ii-4.html#units>目录</a><a class="unit-nav-link" ../units/unit42.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">close 的对称性：实数的相等可以换方向</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-41"><h3><a #top>取负与序：绝对值的对称性</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答 · 2 个解答独有声明</p><details class="appendix-solution" id="app-sol-41-1"><summary>练习 1 · ratLeRep_neg_lit <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_neg_lit (a b c d m n : Nat)
+    (h : ratLeRep (qrep a b m) (qrep c d n)) :
+    ratLeRep (qrep d c n) (qrep b a m) :=
+  leRep_wd_pair
+    (@prod_mk Nat Nat (myMul d (Nat.succ m)) (myMul c (Nat.succ m)))
+    (mulRep (@prod_mk Nat Nat d c) (den m))
+    (@prod_mk Nat Nat (myMul b (Nat.succ n)) (myMul a (Nat.succ n)))
+    (mulRep (@prod_mk Nat Nat b a) (den n))
+    (intRel_of_eq
+      (@prod_mk Nat Nat (myMul d (Nat.succ m)) (myMul c (Nat.succ m)))
+      (mulRep (@prod_mk Nat Nat d c) (den m))
+      (Eq.symm (mulRep_den_form (@prod_mk Nat Nat d c) m)))
+    (intRel_of_eq
+      (@prod_mk Nat Nat (myMul b (Nat.succ n)) (myMul a (Nat.succ n)))
+      (mulRep (@prod_mk Nat Nat b a) (den n))
+      (Eq.symm (mulRep_den_form (@prod_mk Nat Nat b a) n)))
+    (@Eq.subst.{1} Nat
+      (fun (x : Nat) =&gt;
+        LeNat x (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m))))
+      (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+      (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+      (add_comm (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+      (@Eq.subst.{1} Nat
+        (fun (x : Nat) =&gt;
+          LeNat (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m))) x)
+        (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (add_comm (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (leRep_wd_pair
+          (mulRep (@prod_mk Nat Nat a b) (den n))
+          (@prod_mk Nat Nat (myMul a (Nat.succ n)) (myMul b (Nat.succ n)))
+          (mulRep (@prod_mk Nat Nat c d) (den m))
+          (@prod_mk Nat Nat (myMul c (Nat.succ m)) (myMul d (Nat.succ m)))
+          (intRel_of_eq
+            (mulRep (@prod_mk Nat Nat a b) (den n))
+            (@prod_mk Nat Nat (myMul a (Nat.succ n)) (myMul b (Nat.succ n)))
+            (mulRep_den_form (@prod_mk Nat Nat a b) n))
+          (intRel_of_eq
+            (mulRep (@prod_mk Nat Nat c d) (den m))
+            (@prod_mk Nat Nat (myMul c (Nat.succ m)) (myMul d (Nat.succ m)))
+            (mulRep_den_form (@prod_mk Nat Nat c d) m))
+          h)))</code></pre></details><details class="appendix-solution" id="app-sol-41-2"><summary>练习 2 · ratLeRep_neg <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_neg (x y : ratRep) (h : ratLeRep x y) :
+    ratLeRep (ratNegRep y) (ratNegRep x) :=
+  ratLeRep_neg_aux x y h</code></pre></details><details class="appendix-solution" id="app-sol-41-3"><summary>练习 3 · ratAbsRel_neg <span class="sol-meta">定理</span></summary><pre><code>theorem ratAbsRel_neg (x y : ratRep) (h : ratAbsRel x y) :
+    ratAbsRel (ratNegRep x) y :=
+  ratAbsRel_neg_aux x y h</code></pre></details><details class="appendix-solution" id="app-sol-41-4"><summary>练习 4 · demo_neg_half_le_zero <span class="sol-meta">定理</span></summary><pre><code>theorem demo_neg_half_le_zero :
+    ratLeRep (ratNegRep (qrep 1 Nat.zero 1)) ratZeroRep :=
+  ratLeRep_neg ratZeroRep (qrep 1 Nat.zero 1)
+    (le_succ Nat.zero Nat.zero (le_refl Nat.zero))</code></pre></details><details class="appendix-solution" id="app-sol-41-5"><summary>练习 5 · demo_abs_neg_half <span class="sol-meta">定理</span></summary><pre><code>theorem demo_abs_neg_half :
+    ratAbsRel (ratNegRep (qrep 1 Nat.zero 1)) (qrep 1 Nat.zero 1) :=
+  ratAbsRel_neg (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1)
+    (Or.inl (And.intro
+      (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+      (ratRel_refl (qrep 1 Nat.zero 1))))</code></pre></details><details class="appendix-solution" id="app-extra-41-1"><summary>补充 · ratLeRep_neg_aux <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_neg_aux (x y : Prod (Prod Nat Nat) Nat) :
+    ratLeRep x y → ratLeRep (ratNegRep y) (ratNegRep x) :=
+  match x with
+  | prod_mk (prod_mk a b) m =&gt;
+    match y with
+    | prod_mk (prod_mk c d) n =&gt;
+      fun (h : ratLeRep (prod_mk (prod_mk a b) m) (prod_mk (prod_mk c d) n)) =&gt;
+        ratLeRep_neg_lit a b c d m n h</code></pre></details><details class="appendix-solution" id="app-extra-41-2"><summary>补充 · ratAbsRel_neg_aux <span class="sol-meta">定理</span></summary><pre><code>theorem ratAbsRel_neg_aux (x : Prod (Prod Nat Nat) Nat) (y : ratRep) :
+    ratAbsRel x y → ratAbsRel (ratNegRep x) y :=
+  match x with
+  | prod_mk (prod_mk a b) m =&gt;
+    fun (h : ratAbsRel (prod_mk (prod_mk a b) m) y) =&gt;
+      Or.elim
+        (fun (h1 : ratLeRep ratZeroRep (prod_mk (prod_mk a b) m) ∧
+                   ratRel y (prod_mk (prod_mk a b) m)) =&gt;
+          Or.inr (And.intro
+            (ratLeRep_neg ratZeroRep (prod_mk (prod_mk a b) m) (And.left h1))
+            (ratRel_trans_gen y (prod_mk (prod_mk a b) m)
+              (ratNegRep (ratNegRep (prod_mk (prod_mk a b) m)))
+              (And.right h1)
+              (ratRel_symm (ratNegRep (ratNegRep (prod_mk (prod_mk a b) m)))
+                (prod_mk (prod_mk a b) m)
+                (ratNegRep_invol (prod_mk (prod_mk a b) m))))))
+        (fun (h2 : ratLeRep (prod_mk (prod_mk a b) m) ratZeroRep ∧
+                   ratRel y (ratNegRep (prod_mk (prod_mk a b) m))) =&gt;
+          Or.inl (And.intro
+            (ratLeRep_neg (prod_mk (prod_mk a b) m) ratZeroRep (And.left h2))
+            (And.right h2)))
+        h</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit40.html">← 40 实数的相等：自反性</a><a class="next" href="../units/unit42.html">42 close 的对称性：实数的相等可以换方向 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

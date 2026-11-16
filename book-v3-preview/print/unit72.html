@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 72 数系综合：完备性盘点——代表元层与集合层</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit72.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 72 数系综合：完备性盘点——代表元层与集合层</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit72.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">II.7 数系综合与读证明 · 单元 72</p><h1>数系综合：完备性盘点——代表元层与集合层</h1><p class="note">Unit 72 — Completeness Inventory: Representatives and Sets</p></header><section class="unit" id="unit-72">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-7.html>II.7</a> · 本章第 4 / 4 单元 · 全书第 72 / 72 单元</p>
+<h2><span class="unit-number">72</span><span>数系综合：完备性盘点——代表元层与集合层</span></h2>
+<p class="unit-title-en">Unit 72 — Completeness Inventory: Representatives and Sets</p>
+<p class="unit-meta">4 个定义 · 5 个定理 · 5 道练习 · 15 条提示 · <a #appendix-unit-72>解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元72 完备性盘点：代表元层的结论，放到集合层还剩下多少</p></div><div class="block prose intuition-only"><p>前面证了：每个有理 Cauchy 序列 x 在 <span class="math">ℝ</span> 中收敛到自己的类。那是在代表元层说的话。到了集合层，上界、最小上界这些词要用 realLe 重新陈述；我们自然要问：这条完备性还能保住多少？</p></div></div></section>
+<div class="block prose intuition-only"><p>结论先说：能保住一个具体集合的 LUB——<span class="math">S = {x</span> | <span class="math">x ≤ 0}</span> 的最小上界是 0；但一般定理「每个非空有上界集合都有 LUB」需要选择公理，本课程没有，所以不能写。</p></div><div class="block prose intuition-only"><p>为什么只做具体集合？因为选择公理不在本课程里；与其把一般定理写成公理，不如把能构造性拿到的实例做干净：先定义零实数为常零序列的类，再证 0 是 S 的上界且最小，把两件事合成「有 LUB」，最后回到常序列版本的完备性。</p></div><div class="block prose intuition-only"><p>这一单元不是新造数，而是检查前面造好的 <span class="math">ℝ</span> 在集合语言里能说到哪一步；边界就是本课程与「完整实数完备性」之间的距离。</p></div><h3 class="unit-subhead">72.0 集合层的词汇：上界、最小上界、有 LUB</h3><article class="decl decl-def" id="decl-72-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">UpperBound</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def UpperBound (S : Real → Prop) (b : Real) : Prop :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def UpperBound (S : Real → Prop) (b : Real) : Prop :=
+  ∀ (x : Real), S x → realLe x b</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-72-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">IsLUB</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def IsLUB (S : Real → Prop) (b : Real) : Prop :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def IsLUB (S : Real → Prop) (b : Real) : Prop :=
+  UpperBound S b ∧ ∀ (b' : Real), UpperBound S b' → realLe b b'</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-72-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">HasLUB</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def HasLUB (S : Real → Prop) : Prop :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def HasLUB (S : Real → Prop) : Prop := ∃ (b : Real), IsLUB S b</code></pre></details></div></article>
+<h3 class="unit-subhead">72.1 <code>zeroReal</code>：常零序列的类</h3><div class="block prose intuition-only"><p>我们用的零：常零序列的类。66.4 的 <code>realLe_mk</code> 之后，关于它的序都回到代表元层。</p></div><article class="decl decl-def" id="decl-72-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">zeroReal</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def zeroReal : Real :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def zeroReal : Real := Real.mk zeroSeq</code></pre></details></div></article>
+<h3 class="unit-subhead">72.2 0 是 <code>{x | x ≤ 0}</code> 的上界</h3><article class="exercise" id="ex-72-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">upperBound_nonpos</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-72-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>0 是 {x | <span class="math">x ≤ 0}</span> 的上界。</p></div></div><pre class="exercise-statement"><code>theorem upperBound_nonpos :
+    UpperBound (fun (x : Real) =&gt; realLe x zeroReal) zeroReal :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>UpperBound</code> 展开就是 <code>∀ x, realLe x zeroReal → realLe x zeroReal</code>，直接取恒等函数。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>UpperBound (fun x =&gt; realLe x zeroReal) zeroReal</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>定义性展开 <span class="math">·</span> <code>fun x h =&gt; h</code>。</p></div></details></div><details open class="solution-panel" id="sol-72-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">展开 <code>UpperBound</code> 后目标就是 <code>∀ x, realLe x zeroReal → realLe x zeroReal</code>。</p><pre><code>theorem upperBound_nonpos :
+    UpperBound (fun (x : Real) =&gt; realLe x zeroReal) zeroReal :=
+  fun (x : Real) (h : realLe x zeroReal) =&gt; h</code></pre></div></details></div></article>
+<h3 class="unit-subhead">72.3 0 是最小上界</h3><article class="exercise" id="ex-72-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">least_nonpos</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-72-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><code>hb</code> 对任意 <code>x ∈ S</code> 给 <code>x ≤ b</code>；取 <code>x = 0</code>，只需交 <code>0 ≤ 0</code>。后者经 66.4 的 <code>realLe_mk</code> 回到 <code>realLeRep zeroSeq zeroSeq</code>，由 64.1 的自反（<code>cauchy_zero</code> 付守卫）给出。0 是最小上界。</p></div></div><pre class="exercise-statement"><code>theorem least_nonpos (b : Real)
+    (hb : UpperBound (fun (x : Real) =&gt; realLe x zeroReal) b) :
+    realLe zeroReal b :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>hb</code> 是 <code>∀ x, realLe x zeroReal → realLe x b</code>，用在 <code>x := zeroReal</code> 上；剩下 <code>realLe zeroReal zeroReal</code> 用 <code>Iff.mpr (realLe_mk zeroSeq zeroSeq) (realLeRep_refl zeroSeq cauchy_zero)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>UpperBound S b → realLe zeroReal b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>hb（作用在 zeroReal）<span class="math">· realLe_mk · realLeRep_refl · cauchy_zero</span>。</p></div></details></div><details open class="solution-panel" id="sol-72-2"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note"><code>hb</code> 对任意 <code>x ∈ S</code> 给 <code>x ≤ b</code>；取 <code>x = 0</code>，只需交 <code>0 ≤ 0</code>。
+后者经 66.4 的 <code>realLe_mk</code> 回到 <code>realLeRep zeroSeq zeroSeq</code>，
+由 64.1 的自反（<code>cauchy_zero</code> 付守卫）给出。</p><pre><code>theorem least_nonpos (b : Real)
+    (hb : UpperBound (fun (x : Real) =&gt; realLe x zeroReal) b) :
+    realLe zeroReal b :=
+  hb zeroReal
+    (Iff.mpr (realLe_mk zeroSeq zeroSeq)
+      (realLeRep_refl zeroSeq cauchy_zero))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">72.4 具体集合有 LUB：构造性的存在</h3><article class="exercise" id="ex-72-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">hasLUB_nonpos</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-72-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>把两件事合成「有 LUB」。</p></div></div><pre class="exercise-statement"><code>theorem hasLUB_nonpos :
+    HasLUB (fun (x : Real) =&gt; realLe x zeroReal) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>HasLUB</code> 是一个 <code>∃ b</code>；输出取 <code>zeroReal</code>，<code>IsLUB</code> 是 <code>And.intro</code> 72.2 与 72.3。这里没有 <code>Classical.choice</code>：见证是显式给出的。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ b, IsLUB (fun x =&gt; realLe x zeroReal) b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.intro zeroReal · And.intro upperBound_nonpos least_nonpos</span>。</p></div></details></div><details open class="solution-panel" id="sol-72-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note"><code>HasLUB</code> 是一个 <code>∃ b</code>；见证取 <code>zeroReal</code>，两部分交给 72.2 与 72.3。
+这里没有 <code>Classical.choice</code>：见证是显式给出的。</p><pre><code>theorem hasLUB_nonpos :
+    HasLUB (fun (x : Real) =&gt; realLe x zeroReal) :=
+  Exists.intro zeroReal (And.intro upperBound_nonpos least_nonpos)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">72.5 代表元层完备性的常序列版</h3><h3 class="unit-subhead">68.7 的 <code>cauchy_tends_to_class</code> 对任意 Cauchy 序列给 <code>TendsTo x x</code>；</h3><article class="exercise" id="ex-72-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">const_tends_to_class</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-72-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>常序列的 Cauchy 性是 68.1 的 <code>cauchy_const</code>。回到常序列版本的完备性。</p></div></div><pre class="exercise-statement"><code>theorem const_tends_to_class (q : ratRep) :
+    TendsTo (constSeq q) (constSeq q) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 68.7 用在 <code>x := constSeq q</code> 上，第二个参数是 68.1 的 <code>cauchy_const q</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>TendsTo (constSeq q) (constSeq q)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">cauchy_tends_to_class · cauchy_const</span>。</p></div></details></div><details open class="solution-panel" id="sol-72-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem const_tends_to_class (q : ratRep) :
+    TendsTo (constSeq q) (constSeq q) :=
+  cauchy_tends_to_class (constSeq q) (cauchy_const q)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">72.6 具体：常 1 序列收敛到 1</h3><article class="exercise" id="ex-72-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">demo_const_tends_to_one</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-72-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>具体：常 1 序列收敛到 1。</p></div></div><pre class="exercise-statement"><code>theorem demo_const_tends_to_one :
+    TendsTo (constSeq (qrep 1 Nat.zero Nat.zero))
+      (constSeq (qrep 1 Nat.zero Nat.zero)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 72.5 用在 <code>q := qrep 1 0 0</code> 上（分母字段 0 就是分母 1）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>TendsTo (constSeq (qrep 1 0 0)) (constSeq (qrep 1 0 0))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">const_tends_to_class · qrep</span>。</p></div></details></div><details open class="solution-panel" id="sol-72-5"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">把 72.5 用在 <code>q := qrep 1 0 0</code> 上（分母字段 0 就是分母 1）。</p><pre><code>theorem demo_const_tends_to_one :
+    TendsTo (constSeq (qrep 1 Nat.zero Nat.zero))
+      (constSeq (qrep 1 Nat.zero Nat.zero)) :=
+  const_tends_to_class (qrep 1 Nat.zero Nat.zero)</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>完备性盘点完成：72 个单元的叙述重写到此收尾，前面造好的 <span class="math">ℝ</span> 在集合语言里能说到哪一步，这个单元给出了答案。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit71.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">数系综合：商的代价——一座桥与两座桥</span></a><a class="unit-nav-home" ../chapters/ii-7.html#units>目录</a><span class="unit-nav-link is-disabled"><span class="unit-nav-label">下一单元</span><span class="unit-nav-title">没有更多单元</span></span></nav>
+</section><section class="appendix-unit" id="appendix-unit-72"><h3><a #top>数系综合：完备性盘点——代表元层与集合层</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-72-1"><summary>练习 1 · upperBound_nonpos <span class="sol-meta">定理</span></summary><p class="solution-note">展开 <code>UpperBound</code> 后目标就是 <code>∀ x, realLe x zeroReal → realLe x zeroReal</code>。</p><pre><code>theorem upperBound_nonpos :
+    UpperBound (fun (x : Real) =&gt; realLe x zeroReal) zeroReal :=
+  fun (x : Real) (h : realLe x zeroReal) =&gt; h</code></pre></details><details open class="appendix-solution" id="app-sol-72-2"><summary>练习 2 · least_nonpos <span class="sol-meta">定理</span></summary><p class="solution-note"><code>hb</code> 对任意 <code>x ∈ S</code> 给 <code>x ≤ b</code>；取 <code>x = 0</code>，只需交 <code>0 ≤ 0</code>。
+后者经 66.4 的 <code>realLe_mk</code> 回到 <code>realLeRep zeroSeq zeroSeq</code>，
+由 64.1 的自反（<code>cauchy_zero</code> 付守卫）给出。</p><pre><code>theorem least_nonpos (b : Real)
+    (hb : UpperBound (fun (x : Real) =&gt; realLe x zeroReal) b) :
+    realLe zeroReal b :=
+  hb zeroReal
+    (Iff.mpr (realLe_mk zeroSeq zeroSeq)
+      (realLeRep_refl zeroSeq cauchy_zero))</code></pre></details><details open class="appendix-solution" id="app-sol-72-3"><summary>练习 3 · hasLUB_nonpos <span class="sol-meta">定理</span></summary><p class="solution-note"><code>HasLUB</code> 是一个 <code>∃ b</code>；见证取 <code>zeroReal</code>，两部分交给 72.2 与 72.3。
+这里没有 <code>Classical.choice</code>：见证是显式给出的。</p><pre><code>theorem hasLUB_nonpos :
+    HasLUB (fun (x : Real) =&gt; realLe x zeroReal) :=
+  Exists.intro zeroReal (And.intro upperBound_nonpos least_nonpos)</code></pre></details><details open class="appendix-solution" id="app-sol-72-4"><summary>练习 4 · const_tends_to_class <span class="sol-meta">定理</span></summary><pre><code>theorem const_tends_to_class (q : ratRep) :
+    TendsTo (constSeq q) (constSeq q) :=
+  cauchy_tends_to_class (constSeq q) (cauchy_const q)</code></pre></details><details open class="appendix-solution" id="app-sol-72-5"><summary>练习 5 · demo_const_tends_to_one <span class="sol-meta">定理</span></summary><p class="solution-note">把 72.5 用在 <code>q := qrep 1 0 0</code> 上（分母字段 0 就是分母 1）。</p><pre><code>theorem demo_const_tends_to_one :
+    TendsTo (constSeq (qrep 1 Nat.zero Nat.zero))
+      (constSeq (qrep 1 Nat.zero Nat.zero)) :=
+  const_tends_to_class (qrep 1 Nat.zero Nat.zero)</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

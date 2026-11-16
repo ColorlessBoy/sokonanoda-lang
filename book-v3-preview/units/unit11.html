@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>11 整数乘法的良定义性 · 从集合论到实分析</title>
+<meta name="description" content="单元⑪ 整数乘法的良定义性：导语、定义与定理、练习与解答。Unit 11 — Multiplication is Well-Defined">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit11.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></li><li aria-current="page">单元 11 整数乘法的良定义性</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-11-1">定义与定理</a></li>
+<li><a href="#ex-11-1">练习</a></li>
+<li><a href="#appendix-unit-11">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-1.html#units">↑ 本章目录</a>
+      <a href="../print/unit11.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-11">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-1.html>II.1</a> · 本章第 11 / 19 单元 · 全书第 11 / 72 单元</p>
+<h1><span class="unit-number">11</span> <span>整数乘法的良定义性</span></h1>
+<p class="unit-title-en">Unit 11 — Multiplication is Well-Defined</p>
+<p class="unit-meta">5 个定义 · 13 个定理 · 3 道练习 · 9 条提示 · <a #appendix-unit-11>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="11" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-11" aria-label="复制单元 11 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit11.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-1.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>乘法的代表元公式已经写下，零元与单位元也补齐了。要把 mulRep 搬上商，还差最后一步：证明它尊重代表元的替换——p 与 p' 差相等时，p 乘 q 与 p' 乘 q 也差相等。这一步和加法良定义性同一套路，但多了一个新工具：分配律</p></div><div class="math-display intuition-only" role="math" aria-label="mul_add : (a+b)·c = a·c + b·c"><math display="block" class="mathml"><mrow><mi mathvariant="normal">mul_add</mi><mspace width="0.22em"/><mo>:</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>a</mi><mo>+</mo><mi>b</mi></mrow><mo>)</mo></mrow><mo>·</mo><mi>c</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>a</mi><mo>·</mo><mi>c</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi>b</mi><mo>·</mo><mi>c</mi></mrow></math></div><div class="block prose intuition-only"><p>分配律把「乘开」变成合法动作：等价假设 <span class="math">a+b' = a'+b</span> 两边各乘 c 与 d，就得到两条可以相加的等式；剩下的全是 <span class="math">ℕ</span> 加法的搬运与重排。先把要用的 <span class="math">ℕ</span> 加法律与分配律都列出来，再证良定义性。</p></div></div></section>
+<article class="decl decl-def" id="decl-11-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def intRel (a b : Prod Nat Nat) : Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 3 行</summary><pre><code>def intRel (a b : Prod Nat Nat) : Prop :=
+  Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =
+  Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-11-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Int</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def Int : Type :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def Int : Type := @Quot.{1} (Prod Nat Nat) intRel</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-11-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intOfNat</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def intOfNat (n : Nat) : Int :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def intOfNat (n : Nat) : Int :=
+  @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat n Nat.zero)</code></pre></details></div></article>
+<div class="block prose intuition-only"><p>递归步用的是 prelude 的 Nat.add（与单元⑤的 myAdd 逐点相等）；在本语言里 Nat.add 是原生自指定义，两者不是定义性相等。</p></div><article class="decl decl-def" id="decl-11-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">myMul</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def myMul (a b : Nat) : Nat :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 3 行</summary><pre><code>def myMul (a b : Nat) : Nat :=
+  Nat.rec (fun (_ : Nat) =&gt; Nat) Nat.zero
+    (fun (n : Nat) (ih : Nat) =&gt; Nat.add a ih) b</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-11-5"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">mulRep</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 6 行</summary><pre><code>def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
+  @prod_mk Nat Nat
+    (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.fst Nat Nat b))
+             (myMul (Prod.snd Nat Nat a) (Prod.snd Nat Nat b)))
+    (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.snd Nat Nat b))
+             (myMul (Prod.snd Nat Nat a) (Prod.fst Nat Nat b)))</code></pre></details></div></article>
+<div class="block prose intuition-only"><p>下面列出单元③证过的 <span class="math">ℕ</span> 零元律。</p></div><div class="block prose intuition-only"><p>下面四条是单元③证过的 <span class="math">ℕ</span> 加法律，这里重新列出；后面的证明直接引用。</p></div><article class="decl decl-theorem" id="decl-11-6"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">zero_add</code><span class="decl-where">声明 6</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem zero_add (b : Nat) :
+    Nat.add Nat.zero b = b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add Nat.zero n = n)
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : Nat.add Nat.zero n = n) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (Nat.add Nat.zero n) = Nat.succ m)
+        (Nat.add Nat.zero n) n ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add Nat.zero n))))
+    b</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-11-7"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">succ_add</code><span class="decl-where">声明 7</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem succ_add (a b : Nat) :
+    Nat.add (Nat.succ a) b = Nat.succ (Nat.add a b) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n))
+    (@Eq.refl.{1} Nat (Nat.succ a))
+    (fun (n : Nat) (ih : Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n)) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (Nat.add (Nat.succ a) n) = Nat.succ m)
+        (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n))))
+    b</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-11-8"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_comm</code><span class="decl-where">声明 8</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_comm (a b : Nat) :
+    Nat.add a b = Nat.add b a :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 10 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add a n = Nat.add n a)
+    (@Eq.symm.{1} Nat (Nat.add Nat.zero a) a (zero_add a))
+    (fun (n : Nat) (ih : Nat.add a n = Nat.add n a) =&gt;
+      @Eq.trans.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ (Nat.add n a)) (Nat.add (Nat.succ n) a)
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; Nat.succ (Nat.add a n) = Nat.succ m)
+          (Nat.add a n) (Nat.add n a) ih
+          (@Eq.refl.{1} Nat (Nat.succ (Nat.add a n))))
+        (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
+    b</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-11-9"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_zero</code><span class="decl-where">声明 9</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_zero (a : Nat) :
+    Nat.add a Nat.zero = a :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 3 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.trans.{1} Nat (Nat.add a Nat.zero) (Nat.add Nat.zero a) a
+    (add_comm a Nat.zero)
+    (zero_add a)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-11-10"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_assoc</code><span class="decl-where">声明 10</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_assoc (a b c : Nat) :
+    Nat.add (Nat.add a b) c = Nat.add a (Nat.add b c) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  Nat.rec (fun (n : Nat) =&gt; Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n))
+    (@Eq.refl.{1} Nat (Nat.add a b))
+    (fun (n : Nat) (ih : Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n)) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (Nat.add (Nat.add a b) n) = Nat.succ m)
+        (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
+    c</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>搬运律把两个和里的加数重新配对，值不变；后面的重排要用它。</p></div><article class="decl decl-theorem" id="decl-11-11"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_shift</code><span class="decl-where">声明 11</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_shift (a b c d : Nat) :
+    Nat.add (Nat.add a c) (Nat.add b d) =
+    Nat.add (Nat.add a b) (Nat.add c d) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 36 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add a c) (Nat.add b d))
+    (Nat.add a (Nat.add c (Nat.add b d)))
+    (Nat.add (Nat.add a b) (Nat.add c d))
+    (add_assoc a c (Nat.add b d))
+    (@Eq.trans.{1} Nat
+      (Nat.add a (Nat.add c (Nat.add b d)))
+      (Nat.add a (Nat.add (Nat.add c b) d))
+      (Nat.add (Nat.add a b) (Nat.add c d))
+      (@Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.add a (Nat.add c (Nat.add b d)) = Nat.add a m)
+        (Nat.add c (Nat.add b d)) (Nat.add (Nat.add c b) d)
+        (@Eq.symm.{1} Nat (Nat.add (Nat.add c b) d) (Nat.add c (Nat.add b d)) (add_assoc c b d))
+        (@Eq.refl.{1} Nat (Nat.add a (Nat.add c (Nat.add b d)))))
+      (@Eq.trans.{1} Nat
+        (Nat.add a (Nat.add (Nat.add c b) d))
+        (Nat.add a (Nat.add (Nat.add b c) d))
+        (Nat.add (Nat.add a b) (Nat.add c d))
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; Nat.add a (Nat.add (Nat.add c b) d) = Nat.add a (Nat.add m d))
+          (Nat.add c b) (Nat.add b c)
+          (add_comm c b)
+          (@Eq.refl.{1} Nat (Nat.add a (Nat.add (Nat.add c b) d))))
+        (@Eq.trans.{1} Nat
+          (Nat.add a (Nat.add (Nat.add b c) d))
+          (Nat.add a (Nat.add b (Nat.add c d)))
+          (Nat.add (Nat.add a b) (Nat.add c d))
+          (@Eq.subst.{1} Nat
+            (fun (m : Nat) =&gt; Nat.add a (Nat.add (Nat.add b c) d) = Nat.add a m)
+            (Nat.add (Nat.add b c) d) (Nat.add b (Nat.add c d))
+            (add_assoc b c d)
+            (@Eq.refl.{1} Nat (Nat.add a (Nat.add (Nat.add b c) d))))
+          (@Eq.symm.{1} Nat
+            (Nat.add (Nat.add a b) (Nat.add c d))
+            (Nat.add a (Nat.add b (Nat.add c d)))
+            (add_assoc a b (Nat.add c d))))))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>myMul 在第二个参数上递归，base 就是 0：乘零是定义性相等。</p></div><article class="decl decl-theorem" id="decl-11-12"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">myMul_zero</code><span class="decl-where">声明 12</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem myMul_zero (a : Nat) :
+    myMul a Nat.zero = Nat.zero :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Eq.refl Nat.zero</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)，也是定义性相等。</p></div><article class="decl decl-theorem" id="decl-11-13"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">myMul_succ</code><span class="decl-where">声明 13</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem myMul_succ (a b : Nat) :
+    myMul a (Nat.succ b) = Nat.add a (myMul a b) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Eq.refl (Nat.add a (myMul a b))</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-11-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">mul_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-11-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>先证分配律：<span class="math">(a+b)·c = a·c + b·c</span>，对 c 归纳。分配律的证明对 c 归纳：零情形两边都得 0，后继情形用归纳假设换掉内层，再用搬运律配对。</p></div></div><pre class="exercise-statement"><code>theorem mul_add (a b c : Nat) :
+    myMul (Nat.add a b) c = Nat.add (myMul a c) (myMul b c) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对 c 归纳。零情形两边都算成 0；后继情形把左边展开成 <span class="math">(a+b) + myMul (a+b) n</span>，用归纳假设换掉内层，再用 add_shift 把 <span class="math">(a+b)+(X+Y)</span> 与 <span class="math">(a+X)+(b+Y)</span> 对上。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">(a + b) * c = a * c + b * c</span>（<span class="math">ℕ</span> 上对第二个因子归纳）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Nat.rec（动机 <span class="math">myMul (a+b) n =</span> …）<span class="math">· Eq.subst</span>（谓词 <span class="math">(a+b) + m</span>）<span class="math">· add_shift</span>（取对称）<span class="math">· Eq.trans</span>。</p></div></details></div><details class="solution-panel" id="sol-11-1"><summary>查看解答 <span class="sol-meta">定理 · 21 行</span></summary><div class="solution-body"><p class="solution-note">先证分配律：<span class="math">(a+b)·c = a·c + b·c</span>，对 c 归纳。</p><pre><code>theorem mul_add (a b c : Nat) :
+    myMul (Nat.add a b) c = Nat.add (myMul a c) (myMul b c) :=
+  Nat.rec
+    (fun (n : Nat) =&gt; myMul (Nat.add a b) n = Nat.add (myMul a n) (myMul b n))
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : myMul (Nat.add a b) n = Nat.add (myMul a n) (myMul b n)) =&gt;
+      @Eq.trans.{1} Nat
+        (myMul (Nat.add a b) (Nat.succ n))
+        (Nat.add (Nat.add a b) (Nat.add (myMul a n) (myMul b n)))
+        (Nat.add (Nat.add a (myMul a n)) (Nat.add b (myMul b n)))
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; myMul (Nat.add a b) (Nat.succ n) = Nat.add (Nat.add a b) m)
+          (myMul (Nat.add a b) n)
+          (Nat.add (myMul a n) (myMul b n))
+          ih
+          (@Eq.refl.{1} Nat (myMul (Nat.add a b) (Nat.succ n))))
+        (@Eq.symm.{1} Nat
+          (Nat.add (Nat.add a (myMul a n)) (Nat.add b (myMul b n)))
+          (Nat.add (Nat.add a b) (Nat.add (myMul a n) (myMul b n)))
+          (add_shift a b (myMul a n) (myMul b n))))
+    c</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>再把等式两边同时乘一个数：把假设 h 沿 <span class="math">fun x =&gt; myMul x c</span> 搬过去。</p></div><article class="decl decl-theorem" id="decl-11-15"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">mul_congr</code><span class="decl-where">声明 15</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem mul_congr (a b a' b' c : Nat)
+    (h : Nat.add a b' = Nat.add a' b) :
+    myMul (Nat.add a b') c = myMul (Nat.add a' b) c :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 4 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.subst.{1} Nat
+    (fun (x : Nat) =&gt; myMul (Nat.add a b') c = myMul x c)
+    (Nat.add a b') (Nat.add a' b) h
+    (@Eq.refl.{1} Nat (myMul (Nat.add a b') c))</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-11-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">mul_shift_c</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-11-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>有了分配律，等价假设就能「乘开」：h 两边各乘 c 与 d，得到两条可相加的等式。把等价假设乘开：用分配律把 <span class="math">a·c+b'·c</span> 收回成 <span class="math">(a+b')·c</span>，再用 h 替换，最后展开。</p></div></div><pre class="exercise-statement"><code>theorem mul_shift_c (a b a' b' c : Nat)
+    (h : Nat.add a b' = Nat.add a' b) :
+    Nat.add (myMul a c) (myMul b' c) =
+    Nat.add (myMul a' c) (myMul b c) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先把 <span class="math">a*c + b'*c</span> 用 mul_add 的对称收回成 <span class="math">(a+b')*c</span>，再用 h 把 <span class="math">(a+b')</span> 换成 <span class="math">(a'+b)</span>，最后用 mul_add 展开。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="a + b&#x27; = a&#x27; + b ⇒ a*c + b&#x27;*c = a&#x27;*c + b*c"><math display="block" class="mathml"><mrow><mi>a</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi mathvariant="normal">b'</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi mathvariant="normal">a'</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi>b</mi><mspace width="0.22em"/><mo>⇒</mo><mspace width="0.22em"/><mi>a</mi><mo>×</mo><mi>c</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi mathvariant="normal">b'</mi><mo>×</mo><mi>c</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi mathvariant="normal">a'</mi><mo>×</mo><mi>c</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi>b</mi><mo>×</mo><mi>c</mi></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>mul_add（两次，一次取对称）<span class="math">· mul_congr · Eq.trans</span>。</p></div></details></div><details class="solution-panel" id="sol-11-2"><summary>查看解答 <span class="sol-meta">定理 · 18 行</span></summary><div class="solution-body"><p class="solution-note">有了分配律，等价假设就能「乘开」：h 两边各乘 c 与 d，得到两条可相加的等式。</p><pre><code>theorem mul_shift_c (a b a' b' c : Nat)
+    (h : Nat.add a b' = Nat.add a' b) :
+    Nat.add (myMul a c) (myMul b' c) =
+    Nat.add (myMul a' c) (myMul b c) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul a c) (myMul b' c))
+    (myMul (Nat.add a b') c)
+    (Nat.add (myMul a' c) (myMul b c))
+    (@Eq.symm.{1} Nat
+      (myMul (Nat.add a b') c)
+      (Nat.add (myMul a c) (myMul b' c))
+      (mul_add a b' c))
+    (@Eq.trans.{1} Nat
+      (myMul (Nat.add a b') c)
+      (myMul (Nat.add a' b) c)
+      (Nat.add (myMul a' c) (myMul b c))
+      (mul_congr a b a' b' c h)
+      (mul_add a' b c))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-11-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">mulRep_wd</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-11-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>最后证良定义性：第二个分量固定，p ~ p' 时 p 乘 q 与 p' 乘 q 差相等。全部化到 <span class="math">ℕ</span> 加法：左端先重排，用两次「乘开」换掉两个乘积，最后重排成右端。</p></div></div><pre class="exercise-statement"><code>theorem mulRep_wd (a b a' b' c d : Nat)
+    (h : intRel (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a' b')) :
+    intRel (mulRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+           (mulRep (@prod_mk Nat Nat a' b') (@prod_mk Nat Nat c d)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>全部化到 <span class="math">ℕ</span> 加法。左端 <span class="math">(ac+bd)+(a'd+b'c)</span> 先重排成 <span class="math">(ac+b'c)+(bd+a'd)</span>；用 mul_shift_c 换掉第一项；用 mul_shift_c（d）加交换换掉第二项；最后重排成 <span class="math">(a'c+b'd)+(ad+bc)</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">(ac+bd)+(a'd+b'c) = (a'c+b'd)+(ad+bc)</span>（就是 intRel 展开）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>mul_shift_c（c 与 d 各一次）<span class="math">· add_shift · add_comm · Eq.subst · Eq.trans</span>（每个中间项都写清）。</p></div></details></div><details class="solution-panel" id="sol-11-3"><summary>查看解答 <span class="sol-meta">定理 · 87 行</span></summary><div class="solution-body"><p class="solution-note">最后证良定义性：第二个分量固定，p ~ p' 时 p 乘 q 与 p' 乘 q 差相等。</p><pre><code>theorem mulRep_wd (a b a' b' c d : Nat)
+    (h : intRel (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a' b')) :
+    intRel (mulRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+           (mulRep (@prod_mk Nat Nat a' b') (@prod_mk Nat Nat c d)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add (myMul a c) (myMul b d))
+             (Nat.add (myMul a' d) (myMul b' c)))
+    (Nat.add (Nat.add (myMul a c) (myMul b' c))
+             (Nat.add (myMul b d) (myMul a' d)))
+    (Nat.add (Nat.add (myMul a' c) (myMul b' d))
+             (Nat.add (myMul a d) (myMul b c)))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add (myMul a c) (myMul b d))
+               (Nat.add (myMul a' d) (myMul b' c)))
+      (Nat.add (Nat.add (myMul a c) (myMul b d))
+               (Nat.add (myMul b' c) (myMul a' d)))
+      (Nat.add (Nat.add (myMul a c) (myMul b' c))
+               (Nat.add (myMul b d) (myMul a' d)))
+      (@Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.add (Nat.add (myMul a c) (myMul b d)) (Nat.add (myMul a' d) (myMul b' c)) =
+          Nat.add (Nat.add (myMul a c) (myMul b d)) m)
+        (Nat.add (myMul a' d) (myMul b' c))
+        (Nat.add (myMul b' c) (myMul a' d))
+        (add_comm (myMul a' d) (myMul b' c))
+        (@Eq.refl.{1} Nat (Nat.add (Nat.add (myMul a c) (myMul b d)) (Nat.add (myMul a' d) (myMul b' c)))))
+      (add_shift (myMul a c) (myMul b' c) (myMul b d) (myMul a' d)))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add (myMul a c) (myMul b' c))
+               (Nat.add (myMul b d) (myMul a' d)))
+      (Nat.add (Nat.add (myMul a' c) (myMul b c))
+               (Nat.add (myMul b d) (myMul a' d)))
+      (Nat.add (Nat.add (myMul a' c) (myMul b' d))
+               (Nat.add (myMul a d) (myMul b c)))
+      (@Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.add (Nat.add (myMul a c) (myMul b' c)) (Nat.add (myMul b d) (myMul a' d)) =
+          Nat.add m (Nat.add (myMul b d) (myMul a' d)))
+        (Nat.add (myMul a c) (myMul b' c))
+        (Nat.add (myMul a' c) (myMul b c))
+        (mul_shift_c a b a' b' c h)
+        (@Eq.refl.{1} Nat (Nat.add (Nat.add (myMul a c) (myMul b' c)) (Nat.add (myMul b d) (myMul a' d)))))
+      (@Eq.trans.{1} Nat
+        (Nat.add (Nat.add (myMul a' c) (myMul b c))
+                 (Nat.add (myMul b d) (myMul a' d)))
+        (Nat.add (Nat.add (myMul a' c) (myMul b c))
+                 (Nat.add (myMul b' d) (myMul a d)))
+        (Nat.add (Nat.add (myMul a' c) (myMul b' d))
+                 (Nat.add (myMul a d) (myMul b c)))
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; Nat.add (Nat.add (myMul a' c) (myMul b c)) (Nat.add (myMul b d) (myMul a' d)) =
+            Nat.add (Nat.add (myMul a' c) (myMul b c)) m)
+          (Nat.add (myMul b d) (myMul a' d))
+          (Nat.add (myMul b' d) (myMul a d))
+          (@Eq.trans.{1} Nat
+            (Nat.add (myMul b d) (myMul a' d))
+            (Nat.add (myMul a' d) (myMul b d))
+            (Nat.add (myMul b' d) (myMul a d))
+            (add_comm (myMul b d) (myMul a' d))
+            (@Eq.trans.{1} Nat
+              (Nat.add (myMul a' d) (myMul b d))
+              (Nat.add (myMul a d) (myMul b' d))
+              (Nat.add (myMul b' d) (myMul a d))
+              (@Eq.symm.{1} Nat
+                (Nat.add (myMul a d) (myMul b' d))
+                (Nat.add (myMul a' d) (myMul b d))
+                (mul_shift_c a b a' b' d h))
+              (add_comm (myMul a d) (myMul b' d))))
+          (@Eq.refl.{1} Nat (Nat.add (Nat.add (myMul a' c) (myMul b c)) (Nat.add (myMul b d) (myMul a' d)))))
+        (@Eq.trans.{1} Nat
+          (Nat.add (Nat.add (myMul a' c) (myMul b c))
+                   (Nat.add (myMul b' d) (myMul a d)))
+          (Nat.add (Nat.add (myMul a' c) (myMul b' d))
+                   (Nat.add (myMul b c) (myMul a d)))
+          (Nat.add (Nat.add (myMul a' c) (myMul b' d))
+                   (Nat.add (myMul a d) (myMul b c)))
+          (@Eq.symm.{1} Nat
+            (Nat.add (Nat.add (myMul a' c) (myMul b' d))
+                     (Nat.add (myMul b c) (myMul a d)))
+            (Nat.add (Nat.add (myMul a' c) (myMul b c))
+                     (Nat.add (myMul b' d) (myMul a d)))
+            (add_shift (myMul a' c) (myMul b c) (myMul b' d) (myMul a d)))
+          (@Eq.subst.{1} Nat
+            (fun (m : Nat) =&gt; Nat.add (Nat.add (myMul a' c) (myMul b' d)) (Nat.add (myMul b c) (myMul a d)) =
+              Nat.add (Nat.add (myMul a' c) (myMul b' d)) m)
+            (Nat.add (myMul b c) (myMul a d))
+            (Nat.add (myMul a d) (myMul b c))
+            (add_comm (myMul b c) (myMul a d))
+            (@Eq.refl.{1} Nat (Nat.add (Nat.add (myMul a' c) (myMul b' d)) (Nat.add (myMul b c) (myMul a d))))))))</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>具体数字上核对：2-0 与 3-1 差相等，各乘 4-1 后仍差相等——(2,0)*(4,<span class="math">1) = (8</span>,2)、(3,1)*(4,<span class="math">1) = (13</span>,7)，而 <span class="math">8+7 = 13+2 = 15</span>。</p></div><article class="decl decl-theorem" id="decl-11-18"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mulRep_wd</code><span class="decl-where">声明 18</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mulRep_wd :
+    intRel (mulRep (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 4 1))
+           (mulRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 4 1)) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.refl.{1} Nat 15</code></pre></li></ol></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit10.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">整数乘法的零元与单位元</span></a><a class="unit-nav-home" ../chapters/ii-1.html#units>目录</a><a class="unit-nav-link" ../units/unit12.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">整数序的代表元公式</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-11"><h3><a #top>整数乘法的良定义性</a></h3><p class="appendix-meta">3 道练习 · 3 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-11-1"><summary>练习 1 · mul_add <span class="sol-meta">定理</span></summary><p class="solution-note">先证分配律：<span class="math">(a+b)·c = a·c + b·c</span>，对 c 归纳。</p><pre><code>theorem mul_add (a b c : Nat) :
+    myMul (Nat.add a b) c = Nat.add (myMul a c) (myMul b c) :=
+  Nat.rec
+    (fun (n : Nat) =&gt; myMul (Nat.add a b) n = Nat.add (myMul a n) (myMul b n))
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : myMul (Nat.add a b) n = Nat.add (myMul a n) (myMul b n)) =&gt;
+      @Eq.trans.{1} Nat
+        (myMul (Nat.add a b) (Nat.succ n))
+        (Nat.add (Nat.add a b) (Nat.add (myMul a n) (myMul b n)))
+        (Nat.add (Nat.add a (myMul a n)) (Nat.add b (myMul b n)))
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; myMul (Nat.add a b) (Nat.succ n) = Nat.add (Nat.add a b) m)
+          (myMul (Nat.add a b) n)
+          (Nat.add (myMul a n) (myMul b n))
+          ih
+          (@Eq.refl.{1} Nat (myMul (Nat.add a b) (Nat.succ n))))
+        (@Eq.symm.{1} Nat
+          (Nat.add (Nat.add a (myMul a n)) (Nat.add b (myMul b n)))
+          (Nat.add (Nat.add a b) (Nat.add (myMul a n) (myMul b n)))
+          (add_shift a b (myMul a n) (myMul b n))))
+    c</code></pre></details><details class="appendix-solution" id="app-sol-11-2"><summary>练习 2 · mul_shift_c <span class="sol-meta">定理</span></summary><p class="solution-note">有了分配律，等价假设就能「乘开」：h 两边各乘 c 与 d，得到两条可相加的等式。</p><pre><code>theorem mul_shift_c (a b a' b' c : Nat)
+    (h : Nat.add a b' = Nat.add a' b) :
+    Nat.add (myMul a c) (myMul b' c) =
+    Nat.add (myMul a' c) (myMul b c) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul a c) (myMul b' c))
+    (myMul (Nat.add a b') c)
+    (Nat.add (myMul a' c) (myMul b c))
+    (@Eq.symm.{1} Nat
+      (myMul (Nat.add a b') c)
+      (Nat.add (myMul a c) (myMul b' c))
+      (mul_add a b' c))
+    (@Eq.trans.{1} Nat
+      (myMul (Nat.add a b') c)
+      (myMul (Nat.add a' b) c)
+      (Nat.add (myMul a' c) (myMul b c))
+      (mul_congr a b a' b' c h)
+      (mul_add a' b c))</code></pre></details><details class="appendix-solution" id="app-sol-11-3"><summary>练习 3 · mulRep_wd <span class="sol-meta">定理</span></summary><p class="solution-note">最后证良定义性：第二个分量固定，p ~ p' 时 p 乘 q 与 p' 乘 q 差相等。</p><pre><code>theorem mulRep_wd (a b a' b' c d : Nat)
+    (h : intRel (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a' b')) :
+    intRel (mulRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d))
+           (mulRep (@prod_mk Nat Nat a' b') (@prod_mk Nat Nat c d)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add (myMul a c) (myMul b d))
+             (Nat.add (myMul a' d) (myMul b' c)))
+    (Nat.add (Nat.add (myMul a c) (myMul b' c))
+             (Nat.add (myMul b d) (myMul a' d)))
+    (Nat.add (Nat.add (myMul a' c) (myMul b' d))
+             (Nat.add (myMul a d) (myMul b c)))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add (myMul a c) (myMul b d))
+               (Nat.add (myMul a' d) (myMul b' c)))
+      (Nat.add (Nat.add (myMul a c) (myMul b d))
+               (Nat.add (myMul b' c) (myMul a' d)))
+      (Nat.add (Nat.add (myMul a c) (myMul b' c))
+               (Nat.add (myMul b d) (myMul a' d)))
+      (@Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.add (Nat.add (myMul a c) (myMul b d)) (Nat.add (myMul a' d) (myMul b' c)) =
+          Nat.add (Nat.add (myMul a c) (myMul b d)) m)
+        (Nat.add (myMul a' d) (myMul b' c))
+        (Nat.add (myMul b' c) (myMul a' d))
+        (add_comm (myMul a' d) (myMul b' c))
+        (@Eq.refl.{1} Nat (Nat.add (Nat.add (myMul a c) (myMul b d)) (Nat.add (myMul a' d) (myMul b' c)))))
+      (add_shift (myMul a c) (myMul b' c) (myMul b d) (myMul a' d)))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add (myMul a c) (myMul b' c))
+               (Nat.add (myMul b d) (myMul a' d)))
+      (Nat.add (Nat.add (myMul a' c) (myMul b c))
+               (Nat.add (myMul b d) (myMul a' d)))
+      (Nat.add (Nat.add (myMul a' c) (myMul b' d))
+               (Nat.add (myMul a d) (myMul b c)))
+      (@Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.add (Nat.add (myMul a c) (myMul b' c)) (Nat.add (myMul b d) (myMul a' d)) =
+          Nat.add m (Nat.add (myMul b d) (myMul a' d)))
+        (Nat.add (myMul a c) (myMul b' c))
+        (Nat.add (myMul a' c) (myMul b c))
+        (mul_shift_c a b a' b' c h)
+        (@Eq.refl.{1} Nat (Nat.add (Nat.add (myMul a c) (myMul b' c)) (Nat.add (myMul b d) (myMul a' d)))))
+      (@Eq.trans.{1} Nat
+        (Nat.add (Nat.add (myMul a' c) (myMul b c))
+                 (Nat.add (myMul b d) (myMul a' d)))
+        (Nat.add (Nat.add (myMul a' c) (myMul b c))
+                 (Nat.add (myMul b' d) (myMul a d)))
+        (Nat.add (Nat.add (myMul a' c) (myMul b' d))
+                 (Nat.add (myMul a d) (myMul b c)))
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; Nat.add (Nat.add (myMul a' c) (myMul b c)) (Nat.add (myMul b d) (myMul a' d)) =
+            Nat.add (Nat.add (myMul a' c) (myMul b c)) m)
+          (Nat.add (myMul b d) (myMul a' d))
+          (Nat.add (myMul b' d) (myMul a d))
+          (@Eq.trans.{1} Nat
+            (Nat.add (myMul b d) (myMul a' d))
+            (Nat.add (myMul a' d) (myMul b d))
+            (Nat.add (myMul b' d) (myMul a d))
+            (add_comm (myMul b d) (myMul a' d))
+            (@Eq.trans.{1} Nat
+              (Nat.add (myMul a' d) (myMul b d))
+              (Nat.add (myMul a d) (myMul b' d))
+              (Nat.add (myMul b' d) (myMul a d))
+              (@Eq.symm.{1} Nat
+                (Nat.add (myMul a d) (myMul b' d))
+                (Nat.add (myMul a' d) (myMul b d))
+                (mul_shift_c a b a' b' d h))
+              (add_comm (myMul a d) (myMul b' d))))
+          (@Eq.refl.{1} Nat (Nat.add (Nat.add (myMul a' c) (myMul b c)) (Nat.add (myMul b d) (myMul a' d)))))
+        (@Eq.trans.{1} Nat
+          (Nat.add (Nat.add (myMul a' c) (myMul b c))
+                   (Nat.add (myMul b' d) (myMul a d)))
+          (Nat.add (Nat.add (myMul a' c) (myMul b' d))
+                   (Nat.add (myMul b c) (myMul a d)))
+          (Nat.add (Nat.add (myMul a' c) (myMul b' d))
+                   (Nat.add (myMul a d) (myMul b c)))
+          (@Eq.symm.{1} Nat
+            (Nat.add (Nat.add (myMul a' c) (myMul b' d))
+                     (Nat.add (myMul b c) (myMul a d)))
+            (Nat.add (Nat.add (myMul a' c) (myMul b c))
+                     (Nat.add (myMul b' d) (myMul a d)))
+            (add_shift (myMul a' c) (myMul b c) (myMul b' d) (myMul a d)))
+          (@Eq.subst.{1} Nat
+            (fun (m : Nat) =&gt; Nat.add (Nat.add (myMul a' c) (myMul b' d)) (Nat.add (myMul b c) (myMul a d)) =
+              Nat.add (Nat.add (myMul a' c) (myMul b' d)) m)
+            (Nat.add (myMul b c) (myMul a d))
+            (Nat.add (myMul a d) (myMul b c))
+            (add_comm (myMul b c) (myMul a d))
+            (@Eq.refl.{1} Nat (Nat.add (Nat.add (myMul a' c) (myMul b' d)) (Nat.add (myMul b c) (myMul a d))))))))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit10.html">← 10 整数乘法的零元与单位元</a><a class="next" href="../units/unit12.html">12 整数序的代表元公式 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

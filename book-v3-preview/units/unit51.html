@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>51 严格序的传递与加法相容 · 从集合论到实分析</title>
+<meta name="description" content="单元51 严格序的传递与加法相容：导语、定义与定理、练习与解答。Unit 51 — Transitivity of the Strict Order and Compatibility with Addition">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit51.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></li><li aria-current="page">单元 51 严格序的传递与加法相容</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#ex-51-1">51.1 弱序可以加在左边</a></li>
+<li><a href="#ex-51-2">51.2 弱序 + 严格序 ⇒ 严格序（左弱右严）</a></li>
+<li><a href="#ex-51-3">51.3 严格序 + 弱序 ⇒ 严格序（左严右弱）</a></li>
+<li><a href="#ex-51-4">51.4 两个严格序可以相加</a></li>
+<li><a href="#ex-51-5">51.5 具体：0 + 0 &lt; 1 + 1</a></li>
+<li><a href="#appendix-unit-51">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-5.html#units">↑ 本章目录</a>
+      <a href="../print/unit51.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-51">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-5.html>II.5</a> · 本章第 7 / 10 单元 · 全书第 51 / 72 单元</p>
+<h1><span class="unit-number">51</span> <span>严格序的传递与加法相容</span></h1>
+<p class="unit-title-en">Unit 51 — Transitivity of the Strict Order and Compatibility with Addition</p>
+<p class="unit-meta">5 个定理 · 5 道练习 · 15 条提示 · <a #appendix-unit-51>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="51" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-51" aria-label="复制单元 51 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit51.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-5.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㊾ 给了严格序自身的传递，㊿ 给了它与右加的相容。close 的传递性还要把弱序与严格序混着串，并把两个严格界相加：<span class="math">a ≤ b</span> 且 b &lt; c 推出 a &lt; c；a &lt; b 且 <span class="math">b ≤ c</span> 推出 a &lt; c；以及 a &lt; b 且 c &lt; d 推出 <span class="math">a+c &lt; b+d</span>。</p></div></div></section>
+<h3 class="unit-subhead">51.1 弱序可以加在左边</h3><article class="exercise" id="ex-51-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratLeRep_add_left</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-51-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>三条的证明都是同一套路：弱序用 ㊳ 的传递性串，不相等用 ㊻ 的反对称性把中间项夹成相等，再撞上某个 &lt; 的第二分量。最后一条还要先把左加补上：㊹ 只有右加，而 <span class="math">b+c ≤ b+d</span> 是左加；交换两边的顺序（㊸ 的加法交换律）再用 ratLeRep_congr_gen 把弱序搬过去即可。它的不相等部分只用到 a &lt; b：<span class="math">a+c</span> ~ <span class="math">b+d</span> 把 <span class="math">a+c ≤ b+c ≤ b+d</span> 夹成 <span class="math">b+c</span> ~ <span class="math">a+c</span>，用 ㊿ 的加法消去得 b ~ a。</p></div><div class="block prose intuition-only"><p>先补左加：把交换律与右加的相容拼起来。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_add_left (x y z : ratRep)
+    (h : ratLeRep x y) : ratLeRep (ratAddRep z x) (ratAddRep z y) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>㊹ 只给了右加。先用 ㊸ 的 <code>ratAdd_comm</code> 把 <code>z + x</code> 换成 <code>x + z</code>、<code>z + y</code> 换成 <code>y + z</code>（两条 <code>ratRel</code>），用库里的 <code>ratLeRep_congr_gen</code> 把 <code>ratLeRep</code> 从 <code>(x+z, y+z)</code> 搬到 <code>(z+x, z+y)</code>，中间的 <code>ratLeRep (x+z) (y+z)</code> 由 <code>ratLeRep_add_right</code> 给出。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep x y → ratLeRep (ratAddRep z x) (ratAddRep z y)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_congr_gen · ratAdd_comm · ratLeRep_add_right</span>。</p></div></details></div><details class="solution-panel" id="sol-51-1"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_add_left (x y z : ratRep)
+    (h : ratLeRep x y) : ratLeRep (ratAddRep z x) (ratAddRep z y) :=
+  ratLeRep_congr_gen
+    (ratAddRep x z) (ratAddRep z x) (ratAddRep y z) (ratAddRep z y)
+    (ratAdd_comm x z) (ratAdd_comm y z)
+    (ratLeRep_add_right x y z h)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">51.2 弱序 <span class="math">+</span> 严格序 <span class="math">⇒</span> 严格序（左弱右严）</h3><article class="exercise" id="ex-51-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratLtRep_of_le_lt</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-51-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>左弱右严：弱序传递，不相等用反对称性夹出矛盾。</p></div></div><pre class="exercise-statement"><code>theorem ratLtRep_of_le_lt (a b c : ratRep)
+    (h1 : ratLeRep a b) (h2 : ratLtRep b c) : ratLtRep a c :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>弱序部分 <code>a ≤ b ≤ c</code> 用 <code>ratLeRep_trans</code>。不相等部分假设 <code>a ~ c</code>，则 <code>c ≤ a</code>（<code>ratLeRep_of_ratRel</code> <span class="math">+</span> <code>ratRel_symm</code>），与 <code>a ≤ b</code>、<code>b ≤ c</code> 把 <code>b</code> 与 <code>c</code> 夹成 <code>b ~ c</code>（<code>ratLeRep_antisymm b c</code>），撞上 <code>b &lt; c</code> 的第二分量。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep a b → ratLtRep b c → ratLtRep a c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">And.intro · And.left · And.right · ratLeRep_trans · ratLeRep_of_ratRel · ratRel_symm · ratLeRep_antisymm</span>。</p></div></details></div><details class="solution-panel" id="sol-51-2"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem ratLtRep_of_le_lt (a b c : ratRep)
+    (h1 : ratLeRep a b) (h2 : ratLtRep b c) : ratLtRep a c :=
+  And.intro
+    (ratLeRep_trans a b c h1 (And.left h2))
+    (fun (hac : ratRel a c) =&gt;
+      And.right h2
+        (ratLeRep_antisymm b c (And.left h2)
+          (ratLeRep_trans c a b
+            (ratLeRep_of_ratRel c a (ratRel_symm a c hac))
+            h1)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">51.3 严格序 <span class="math">+</span> 弱序 <span class="math">⇒</span> 严格序（左严右弱）</h3><article class="exercise" id="ex-51-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratLtRep_of_lt_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-51-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>左严右弱：与上一条对称。</p></div></div><pre class="exercise-statement"><code>theorem ratLtRep_of_lt_le (a b c : ratRep)
+    (h1 : ratLtRep a b) (h2 : ratLeRep b c) : ratLtRep a c :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>弱序部分 <code>a ≤ b ≤ c</code> 用 <code>ratLeRep_trans</code>。不相等部分假设 <code>a ~ c</code>，则 <code>c ≤ a</code>，与 <code>b ≤ c</code> 得 <code>b ≤ a</code>；再与 <code>a ≤ b</code> 用 <code>ratLeRep_antisymm a b</code> 夹成 <code>a ~ b</code>，撞上 <code>a &lt; b</code> 的第二分量。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep a b → ratLeRep b c → ratLtRep a c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">And.intro · And.left · And.right · ratLeRep_trans · ratLeRep_of_ratRel · ratRel_symm · ratLeRep_antisymm</span>。</p></div></details></div><details class="solution-panel" id="sol-51-3"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem ratLtRep_of_lt_le (a b c : ratRep)
+    (h1 : ratLtRep a b) (h2 : ratLeRep b c) : ratLtRep a c :=
+  And.intro
+    (ratLeRep_trans a b c (And.left h1) h2)
+    (fun (hac : ratRel a c) =&gt;
+      And.right h1
+        (ratLeRep_antisymm a b (And.left h1)
+          (ratLeRep_trans b c a h2
+            (ratLeRep_of_ratRel c a (ratRel_symm a c hac)))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">51.4 两个严格序可以相加</h3><article class="exercise" id="ex-51-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">ratLtRep_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-51-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两个严格界相加：弱序分别相加，不相等只用到左边那个。</p></div></div><pre class="exercise-statement"><code>theorem ratLtRep_add (a b c d : ratRep)
+    (h1 : ratLtRep a b) (h2 : ratLtRep c d) :
+    ratLtRep (ratAddRep a c) (ratAddRep b d) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>弱序是两段——<code>a+c ≤ b+c</code> 用 ㊹/㊿ 的 <code>ratLeRep_add_right</code>，<code>b+c ≤ b+d</code> 用 51.1 的 <code>ratLeRep_add_left</code>，再 <code>ratLeRep_trans</code>。不相等部分假设 <code>a+c ~ b+d</code>：由 <code>b+c ≤ b+d</code> 与 <code>b+d ~ a+c</code> 得 <code>b+c ≤ a+c</code>，与 <code>a+c ≤ b+c</code> 用反对称性夹成 <code>b+c ~ a+c</code>，再用库里的 <code>ratRel_add_cancel_gen</code> 消去 <code>c</code> 得 <code>b ~ a</code>；取对称后撞上 <code>a &lt; b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep a b → ratLtRep c d → ratLtRep (a+c) (b+d)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">And.intro · ratLeRep_trans · ratLeRep_add_right · ratLeRep_add_left · ratLeRep_of_ratRel · ratRel_symm · ratLeRep_antisymm · ratRel_add_cancel_gen</span>。</p></div></details></div><details class="solution-panel" id="sol-51-4"><summary>查看解答 <span class="sol-meta">定理 · 17 行</span></summary><div class="solution-body"><pre><code>theorem ratLtRep_add (a b c d : ratRep)
+    (h1 : ratLtRep a b) (h2 : ratLtRep c d) :
+    ratLtRep (ratAddRep a c) (ratAddRep b d) :=
+  And.intro
+    (ratLeRep_trans (ratAddRep a c) (ratAddRep b c) (ratAddRep b d)
+      (ratLeRep_add_right a b c (And.left h1))
+      (ratLeRep_add_left c d b (And.left h2)))
+    (fun (h : ratRel (ratAddRep a c) (ratAddRep b d)) =&gt;
+      And.right h1
+        (ratRel_symm b a
+          (ratRel_add_cancel_gen b a c
+            (ratLeRep_antisymm (ratAddRep b c) (ratAddRep a c)
+              (ratLeRep_trans (ratAddRep b c) (ratAddRep b d) (ratAddRep a c)
+                (ratLeRep_add_left c d b (And.left h2))
+                (ratLeRep_of_ratRel (ratAddRep b d) (ratAddRep a c)
+                  (ratRel_symm (ratAddRep a c) (ratAddRep b d) h)))
+              (ratLeRep_add_right a b c (And.left h1))))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">51.5 具体：<code>0 + 0 &lt; 1 + 1</code></h3><article class="exercise" id="ex-51-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">demo_add_lt_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-51-5>附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem demo_add_lt_add :
+    ratLtRep
+      (ratAddRep (qrep Nat.zero Nat.zero Nat.zero) (qrep Nat.zero Nat.zero Nat.zero))
+      (ratAddRep (qrep 1 Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 ㉚ 的 <code>0 &lt; 1</code> 用两次，交给 51.4。<code>0 &lt; 1</code> 的弱序是 <code>LeNat 0 1</code>（<code>le_succ</code> <span class="math">+</span> <code>le_refl</code>），不相等把 <code>0 ~ 1</code> 化成 <code>0 = 1</code> 后交给 <code>succ_ne_zero</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep (ratAddRep 0 0) (ratAddRep 1 1)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLtRep_add · le_succ · le_refl · succ_ne_zero · Eq.symm</span>。</p></div></details></div><details class="solution-panel" id="sol-51-5"><summary>查看解答 <span class="sol-meta">定理 · 17 行</span></summary><div class="solution-body"><pre><code>theorem demo_add_lt_add :
+    ratLtRep
+      (ratAddRep (qrep Nat.zero Nat.zero Nat.zero) (qrep Nat.zero Nat.zero Nat.zero))
+      (ratAddRep (qrep 1 Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) :=
+  ratLtRep_add
+    (qrep Nat.zero Nat.zero Nat.zero)
+    (qrep 1 Nat.zero Nat.zero)
+    (qrep Nat.zero Nat.zero Nat.zero)
+    (qrep 1 Nat.zero Nat.zero)
+    (And.intro
+      (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+      (fun (h : ratRel (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) =&gt;
+        succ_ne_zero Nat.zero (Eq.symm h)))
+    (And.intro
+      (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+      (fun (h : ratRel (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) =&gt;
+        succ_ne_zero Nat.zero (Eq.symm h)))</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>混着串与相加的规则齐了；下一批单元把 <span class="math">ε</span> 折半，再用它们证 close 的传递性。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit50.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">严格序与加法相容：加法消去</span></a><a class="unit-nav-home" ../chapters/ii-5.html#units>目录</a><a class="unit-nav-link" ../units/unit52.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title"><span class="math">ε</span> 折半：半数的存在与加倍</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-51"><h3><a #top>严格序的传递与加法相容</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-51-1"><summary>练习 1 · ratLeRep_add_left <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_add_left (x y z : ratRep)
+    (h : ratLeRep x y) : ratLeRep (ratAddRep z x) (ratAddRep z y) :=
+  ratLeRep_congr_gen
+    (ratAddRep x z) (ratAddRep z x) (ratAddRep y z) (ratAddRep z y)
+    (ratAdd_comm x z) (ratAdd_comm y z)
+    (ratLeRep_add_right x y z h)</code></pre></details><details class="appendix-solution" id="app-sol-51-2"><summary>练习 2 · ratLtRep_of_le_lt <span class="sol-meta">定理</span></summary><pre><code>theorem ratLtRep_of_le_lt (a b c : ratRep)
+    (h1 : ratLeRep a b) (h2 : ratLtRep b c) : ratLtRep a c :=
+  And.intro
+    (ratLeRep_trans a b c h1 (And.left h2))
+    (fun (hac : ratRel a c) =&gt;
+      And.right h2
+        (ratLeRep_antisymm b c (And.left h2)
+          (ratLeRep_trans c a b
+            (ratLeRep_of_ratRel c a (ratRel_symm a c hac))
+            h1)))</code></pre></details><details class="appendix-solution" id="app-sol-51-3"><summary>练习 3 · ratLtRep_of_lt_le <span class="sol-meta">定理</span></summary><pre><code>theorem ratLtRep_of_lt_le (a b c : ratRep)
+    (h1 : ratLtRep a b) (h2 : ratLeRep b c) : ratLtRep a c :=
+  And.intro
+    (ratLeRep_trans a b c (And.left h1) h2)
+    (fun (hac : ratRel a c) =&gt;
+      And.right h1
+        (ratLeRep_antisymm a b (And.left h1)
+          (ratLeRep_trans b c a h2
+            (ratLeRep_of_ratRel c a (ratRel_symm a c hac)))))</code></pre></details><details class="appendix-solution" id="app-sol-51-4"><summary>练习 4 · ratLtRep_add <span class="sol-meta">定理</span></summary><pre><code>theorem ratLtRep_add (a b c d : ratRep)
+    (h1 : ratLtRep a b) (h2 : ratLtRep c d) :
+    ratLtRep (ratAddRep a c) (ratAddRep b d) :=
+  And.intro
+    (ratLeRep_trans (ratAddRep a c) (ratAddRep b c) (ratAddRep b d)
+      (ratLeRep_add_right a b c (And.left h1))
+      (ratLeRep_add_left c d b (And.left h2)))
+    (fun (h : ratRel (ratAddRep a c) (ratAddRep b d)) =&gt;
+      And.right h1
+        (ratRel_symm b a
+          (ratRel_add_cancel_gen b a c
+            (ratLeRep_antisymm (ratAddRep b c) (ratAddRep a c)
+              (ratLeRep_trans (ratAddRep b c) (ratAddRep b d) (ratAddRep a c)
+                (ratLeRep_add_left c d b (And.left h2))
+                (ratLeRep_of_ratRel (ratAddRep b d) (ratAddRep a c)
+                  (ratRel_symm (ratAddRep a c) (ratAddRep b d) h)))
+              (ratLeRep_add_right a b c (And.left h1))))))</code></pre></details><details class="appendix-solution" id="app-sol-51-5"><summary>练习 5 · demo_add_lt_add <span class="sol-meta">定理</span></summary><pre><code>theorem demo_add_lt_add :
+    ratLtRep
+      (ratAddRep (qrep Nat.zero Nat.zero Nat.zero) (qrep Nat.zero Nat.zero Nat.zero))
+      (ratAddRep (qrep 1 Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) :=
+  ratLtRep_add
+    (qrep Nat.zero Nat.zero Nat.zero)
+    (qrep 1 Nat.zero Nat.zero)
+    (qrep Nat.zero Nat.zero Nat.zero)
+    (qrep 1 Nat.zero Nat.zero)
+    (And.intro
+      (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+      (fun (h : ratRel (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) =&gt;
+        succ_ne_zero Nat.zero (Eq.symm h)))
+    (And.intro
+      (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+      (fun (h : ratRel (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) =&gt;
+        succ_ne_zero Nat.zero (Eq.symm h)))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit50.html">← 50 严格序与加法相容：加法消去</a><a class="next" href="../units/unit52.html">52 ε 折半：半数的存在与加倍 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

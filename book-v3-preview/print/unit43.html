@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 43 有理数加法的代表元律：交换与零元</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit43.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 43 有理数加法的代表元律：交换与零元</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit43.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">II.4 有理 Cauchy 序列与实数的载体 · 单元 43</p><h1>有理数加法的代表元律：交换与零元</h1><p class="note">Unit 43 — Addition Laws on Representatives: Commutativity and Zero</p></header><section class="unit" id="unit-43">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-4.html>II.4</a> · 本章第 9 / 10 单元 · 全书第 43 / 72 单元</p>
+<h2><span class="unit-number">43</span><span>有理数加法的代表元律：交换与零元</span></h2>
+<p class="unit-title-en">Unit 43 — Addition Laws on Representatives: Commutativity and Zero</p>
+<p class="unit-meta">6 个定理 · 6 道练习 · 18 条提示 · <a #appendix-unit-43>解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㉖ 立了 <span class="math">ℚ</span> 加法的代表元公式：<span class="math">(a-b)/(m+1) + (c-d)/(n+1)</span> 等于 <span class="math">[a(n+1)+c(m+1) - (b(n+1)+d(m+1))] / ((m+1)(n+1))</span>，并结清了两条良定义义务；但运算律还没证。先证两条最常用的：交换律 <span class="math">x + y</span> 与 <span class="math">y + x</span> 相等；零元 <span class="math">x + 0</span> 与 x 相等、<span class="math">0 + x</span> 与 x 相等。</p></div></div></section>
+<article class="exercise" id="ex-43-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratAdd_zero_num</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-43-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>为什么先做它们：下一单元的「序与加法相容」要把 <span class="math">x ≤ y</span> 搬到 <span class="math">x+z ≤ y+z</span>，而左加（<span class="math">z+x ≤ z+y</span>）靠的是「先交换、用右加、再交换回来」——没有交换律就变不出左加版本。</p></div><div class="block prose intuition-only"><p>证明分两层。先是加零的算术小件：<span class="math">a·1</span> 定义性展开成 <span class="math">a+a*0</span>，再消掉 a*0；分母字段 ratDenRep m 0 同理退化成 m。然后在代表元层比较 <span class="math">x+y</span> 与 <span class="math">y+x</span>：两边用 mulRep_den_form 化成「分子乘正分母」的规范形，用 prod_mk_congr 与 congrArg 证成相等，最后 intRel_of_eq 收口。<span class="math">x+0</span> 则先把三元组搬成 qrep a b m（消掉零项），再用自反性。</p></div><div class="block prose intuition-only"><p>通用陈述要先在展开类型上 match 到字面三元组（ratRep 是定义别名，match 只认归纳类型本身），再把字面结果转发给通用陈述——与 ㊷ 的 ratSubRep_neg_aux 是同一写法。</p></div><div class="block prose intuition-only"><p>㊸.1 加零的分子形状：<code>a·1 + 0·(m+1) = a</code></p></div><div class="block prose intuition-only"><p>先算加零的分子形状：<span class="math">a·1</span> 展开后消掉零项。</p></div></div><pre class="exercise-statement"><code>theorem ratAdd_zero_num (a m : Nat) :
+    Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)) = a :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>myMul a (succ 0)</code> 定义性展开成 <code>a + a*0</code>；<code>myMul_zero a</code> 把 <code>a*0</code> 换成 <code>0</code>，<code>add_zero</code> 消掉 <code>+0</code> 得 <code>a</code>。第二个加数 <code>0*(m+1)</code> 用 <code>zero_mul</code> 换成 <code>0</code>，再用一次 <code>add_zero</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)) = a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">myMul_succ · myMul_zero · zero_mul · add_zero · congrArg · Eq.trans</span>。</p></div></details></div><details open class="solution-panel" id="sol-43-1"><summary>查看解答 <span class="sol-meta">定理 · 27 行</span></summary><div class="solution-body"><p class="solution-note">㊸.1 加零的分子形状
+
+<code>myMul a (succ 0)</code> 定义性展开成 <code>a + a*0</code>；<code>a*0 = 0</code>（myMul_zero）后是 <code>a + 0</code>，
+<code>add_zero</code> 收成 <code>a</code>。另一个加数 <code>0*(m+1) = 0</code>（zero_mul），整个和就是 <code>a</code>。
+
+㊸.1</p><pre><code>theorem ratAdd_zero_num (a m : Nat) :
+    Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)) = a :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)))
+    (Nat.add (Nat.add a Nat.zero) (myMul Nat.zero (Nat.succ m)))
+    a
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt; Nat.add Z (myMul Nat.zero (Nat.succ m)))
+      (@Eq.trans.{1} Nat
+        (myMul a (Nat.succ Nat.zero))
+        (Nat.add a (myMul a Nat.zero))
+        (Nat.add a Nat.zero)
+        (myMul_succ a Nat.zero)
+        (congrArg.{1} (fun (Z : Nat) =&gt; Nat.add a Z) (myMul_zero a))))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add a Nat.zero) (myMul Nat.zero (Nat.succ m)))
+      (Nat.add (Nat.add a Nat.zero) Nat.zero)
+      a
+      (congrArg.{1}
+        (fun (Z : Nat) =&gt; Nat.add (Nat.add a Nat.zero) Z)
+        (zero_mul (Nat.succ m)))
+      (@Eq.trans.{1} Nat
+        (Nat.add (Nat.add a Nat.zero) Nat.zero)
+        (Nat.add a Nat.zero)
+        a
+        (add_zero (Nat.add a Nat.zero))
+        (add_zero a)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-43-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratAdd_zero_den</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-43-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊸.2 加零的分母形状：<code>ratDenRep m 0 = m</code></p></div><div class="block prose intuition-only"><p>分母字段也要退化成 m。</p></div></div><pre class="exercise-statement"><code>theorem ratAdd_zero_den (m : Nat) : ratDenRep m Nat.zero = m :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratDenRep m 0</code> 定义性展开成 <code>(m*0 + m) + 0</code>。<code>myMul_zero m</code> 把 <code>m*0</code> 换成 <code>0</code>，<code>zero_add m</code> 把 <code>0 + m</code> 换成 <code>m</code>，最后 <code>add_zero m</code> 消掉尾巴。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratDenRep m Nat.zero = m</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">myMul_zero · zero_add · add_zero · congrArg · Eq.trans</span>。</p></div></details></div><details open class="solution-panel" id="sol-43-2"><summary>查看解答 <span class="sol-meta">定理 · 16 行</span></summary><div class="solution-body"><p class="solution-note">㊸.2</p><pre><code>theorem ratAdd_zero_den (m : Nat) : ratDenRep m Nat.zero = m :=
+  @Eq.trans.{1} Nat
+    (ratDenRep m Nat.zero)
+    (Nat.add (Nat.add Nat.zero m) Nat.zero)
+    m
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt; Nat.add (Nat.add Z m) Nat.zero)
+      (myMul_zero m))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add Nat.zero m) Nat.zero)
+      (Nat.add m Nat.zero)
+      m
+      (congrArg.{1}
+        (fun (Z : Nat) =&gt; Nat.add Z Nat.zero)
+        (zero_add m))
+      (add_zero m))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-43-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratAdd_comm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-43-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊸.3 交换律：<code>x + y ~ y + x</code></p></div><div class="block prose intuition-only"><p>交换律：两个分子差一次加法交换，分母字段差一次换位。</p></div></div><pre class="exercise-statement"><code>theorem ratAdd_comm (x y : ratRep) :
+    ratRel (ratAddRep x y) (ratAddRep y x) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>在展开类型上 match 到 <code>qrep a b m</code>、<code>qrep p q n</code>。<code>x + y</code> 的分子是 <code>a(n+1) + p(m+1)</code>，<code>y + x</code> 的是 <code>p(m+1) + a(n+1)</code>（差一次 <code>add_comm</code>）；分母字段是 <code>ratDenRep m n</code> 与 <code>ratDenRep n m</code>（差 <code>ratDenRep_comm</code>）。两边各用 <code>mulRep_den_form</code> 化成 <code>(分子·(m+1)(n+1), …)</code> 的规范形；<code>prod_mk_congr</code> <span class="math">+</span> 两次 <code>congrArg</code> 把两个规范形证成相等，<code>intRel_of_eq</code> 收口，中间用 <code>intRel_trans</code> 串。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratAddRep x y) (ratAddRep y x)</code>；字面形式的目标里分母字段分别是 <code>ratDenRep n m</code> 与 <code>ratDenRep m n</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">mulRep_den_form · ratDenRep_comm · add_comm · prod_mk_congr · intRel_of_eq · intRel_trans · intRel_symm · congrArg</span>。</p></div></details></div><details open class="solution-panel" id="sol-43-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">㊸.3 交换律（转发字面结果）</p><pre><code>theorem ratAdd_comm (x y : ratRep) :
+    ratRel (ratAddRep x y) (ratAddRep y x) :=
+  ratAdd_comm_aux x y</code></pre></div></details></div></article>
+<article class="exercise" id="ex-43-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">ratAdd_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-43-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊸.4 右加零：<code>x + 0 ~ x</code></p></div><div class="block prose intuition-only"><p>加零不变：把三元组搬成 qrep a b m，再交给自反性。</p></div></div><pre class="exercise-statement"><code>theorem ratAdd_zero (x : ratRep) : ratRel (ratAddRep x ratZeroRep) x :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>x + 0</code> 的代表元是 <code>qrep (a·1 + 0·(m+1)) (b·1 + 0·(m+1)) (ratDenRep m 0)</code>。用 ㊸.1、㊸.2 把它搬成 <code>qrep a b m</code>（<code>prod_mk_congr</code> 拼分子，<code>congrArg</code> 改分母字段），再把等式用 <code>Eq.subst</code> 代进 <code>ratRel · (qrep a b m)</code>，目标就变成自反性 <code>ratRel_refl</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratAddRep x ratZeroRep) x</code>；字面形式是 <code>ratRel (qrep (a·1+0·(m+1)) (b·1+0·(m+1)) (ratDenRep m 0)) (qrep a b m)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratAdd_zero_num · ratAdd_zero_den · prod_mk_congr · congrArg · Eq.trans · Eq.symm · Eq.subst · ratRel_refl</span>。</p></div></details></div><details open class="solution-panel" id="sol-43-4"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><p class="solution-note">㊸.4 右加零</p><pre><code>theorem ratAdd_zero (x : ratRep) : ratRel (ratAddRep x ratZeroRep) x :=
+  ratAdd_zero_aux x</code></pre></div></details></div></article>
+<article class="exercise" id="ex-43-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">ratAdd_zero_left</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-43-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊸.5 左加零：<code>0 + x ~ x</code></p></div><div class="block prose intuition-only"><p>左零元由交换律与上一题拼出来。</p></div></div><pre class="exercise-statement"><code>theorem ratAdd_zero_left (x : ratRep) : ratRel (ratAddRep ratZeroRep x) x :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先 ㊸.3 把 <code>0 + x</code> 换成 <code>x + 0</code>，再用 ㊸.4 换成 <code>x</code>；两段用 <code>ratRel_trans_gen</code>（<code>lib/Cauchy</code> 已经收好的任意代表元传递律）串起来。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratAddRep ratZeroRep x) x</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratAdd_comm · ratAdd_zero · ratRel_trans_gen</span>。</p></div></details></div><details open class="solution-panel" id="sol-43-5"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">㊸.5 左加零：交换律 <span class="math">+</span> ㊸<span class="math">.4 +</span> <code>ratRel</code> 传递</p><pre><code>theorem ratAdd_zero_left (x : ratRep) : ratRel (ratAddRep ratZeroRep x) x :=
+  ratRel_trans_gen (ratAddRep ratZeroRep x) (ratAddRep x ratZeroRep) x
+    (ratAdd_comm ratZeroRep x) (ratAdd_zero x)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-43-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">demo_add_compute</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-43-6>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊸.6 具体计算：<code>1/2 + 1/3 = 5/6</code></p></div><div class="block prose intuition-only"><p>具体算 <span class="math">1/2 + 1/3 = 5/6</span>。</p></div></div><pre class="exercise-statement"><code>theorem demo_add_compute :
+    ratRel (ratAddRep (qrep 1 0 1) (qrep 1 0 2)) (qrep 5 0 5) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>1/2 + 1/3</code> 按代表元公式算出来：分子第一坐标 <code>1·3 + 1·2 = 5</code>，第二坐标 <code>0·3 + 0·2 = 0</code>，分母字段 <code>ratDenRep 1 2 = 1*2 + 1 + 2 = 5</code>。<code>qrep 5 0 5</code> 的分母是 <code>5+1 = 6</code>，正好是 <code>5/6</code>。两个三元组定义性相等，所以 <code>ratRel_refl (qrep 5 0 5)</code> 直接判。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratAddRep (qrep 1 0 1) (qrep 1 0 2)) (qrep 5 0 5)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>ratRel_refl（两边定义性归约成同一个三元组）。</p></div></details></div><details open class="solution-panel" id="sol-43-6"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">㊸.6 具体计算：<span class="math">1/2 + 1/3 = 5/6</span></p><pre><code>theorem demo_add_compute :
+    ratRel (ratAddRep (qrep 1 0 1) (qrep 1 0 2)) (qrep 5 0 5) :=
+  ratRel_refl (qrep 5 0 5)</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit42.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">close 的对称性：实数的相等可以换方向</span></a><a class="unit-nav-home" ../chapters/ii-4.html#units>目录</a><a class="unit-nav-link" ../units/unit44.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">序与加法相容：<span class="math">x ≤ y ⇒ x + z ≤ y + z</span></span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-43"><h3><a #top>有理数加法的代表元律：交换与零元</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答 · 2 个解答独有声明</p><details open class="appendix-solution" id="app-sol-43-1"><summary>练习 1 · ratAdd_zero_num <span class="sol-meta">定理</span></summary><p class="solution-note">㊸.1 加零的分子形状
+
+<code>myMul a (succ 0)</code> 定义性展开成 <code>a + a*0</code>；<code>a*0 = 0</code>（myMul_zero）后是 <code>a + 0</code>，
+<code>add_zero</code> 收成 <code>a</code>。另一个加数 <code>0*(m+1) = 0</code>（zero_mul），整个和就是 <code>a</code>。
+
+㊸.1</p><pre><code>theorem ratAdd_zero_num (a m : Nat) :
+    Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)) = a :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)))
+    (Nat.add (Nat.add a Nat.zero) (myMul Nat.zero (Nat.succ m)))
+    a
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt; Nat.add Z (myMul Nat.zero (Nat.succ m)))
+      (@Eq.trans.{1} Nat
+        (myMul a (Nat.succ Nat.zero))
+        (Nat.add a (myMul a Nat.zero))
+        (Nat.add a Nat.zero)
+        (myMul_succ a Nat.zero)
+        (congrArg.{1} (fun (Z : Nat) =&gt; Nat.add a Z) (myMul_zero a))))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add a Nat.zero) (myMul Nat.zero (Nat.succ m)))
+      (Nat.add (Nat.add a Nat.zero) Nat.zero)
+      a
+      (congrArg.{1}
+        (fun (Z : Nat) =&gt; Nat.add (Nat.add a Nat.zero) Z)
+        (zero_mul (Nat.succ m)))
+      (@Eq.trans.{1} Nat
+        (Nat.add (Nat.add a Nat.zero) Nat.zero)
+        (Nat.add a Nat.zero)
+        a
+        (add_zero (Nat.add a Nat.zero))
+        (add_zero a)))</code></pre></details><details open class="appendix-solution" id="app-sol-43-2"><summary>练习 2 · ratAdd_zero_den <span class="sol-meta">定理</span></summary><p class="solution-note">㊸.2</p><pre><code>theorem ratAdd_zero_den (m : Nat) : ratDenRep m Nat.zero = m :=
+  @Eq.trans.{1} Nat
+    (ratDenRep m Nat.zero)
+    (Nat.add (Nat.add Nat.zero m) Nat.zero)
+    m
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt; Nat.add (Nat.add Z m) Nat.zero)
+      (myMul_zero m))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add Nat.zero m) Nat.zero)
+      (Nat.add m Nat.zero)
+      m
+      (congrArg.{1}
+        (fun (Z : Nat) =&gt; Nat.add Z Nat.zero)
+        (zero_add m))
+      (add_zero m))</code></pre></details><details open class="appendix-solution" id="app-sol-43-3"><summary>练习 3 · ratAdd_comm <span class="sol-meta">定理</span></summary><p class="solution-note">㊸.3 交换律（转发字面结果）</p><pre><code>theorem ratAdd_comm (x y : ratRep) :
+    ratRel (ratAddRep x y) (ratAddRep y x) :=
+  ratAdd_comm_aux x y</code></pre></details><details open class="appendix-solution" id="app-sol-43-4"><summary>练习 4 · ratAdd_zero <span class="sol-meta">定理</span></summary><p class="solution-note">㊸.4 右加零</p><pre><code>theorem ratAdd_zero (x : ratRep) : ratRel (ratAddRep x ratZeroRep) x :=
+  ratAdd_zero_aux x</code></pre></details><details open class="appendix-solution" id="app-sol-43-5"><summary>练习 5 · ratAdd_zero_left <span class="sol-meta">定理</span></summary><p class="solution-note">㊸.5 左加零：交换律 <span class="math">+</span> ㊸<span class="math">.4 +</span> <code>ratRel</code> 传递</p><pre><code>theorem ratAdd_zero_left (x : ratRep) : ratRel (ratAddRep ratZeroRep x) x :=
+  ratRel_trans_gen (ratAddRep ratZeroRep x) (ratAddRep x ratZeroRep) x
+    (ratAdd_comm ratZeroRep x) (ratAdd_zero x)</code></pre></details><details open class="appendix-solution" id="app-sol-43-6"><summary>练习 6 · demo_add_compute <span class="sol-meta">定理</span></summary><p class="solution-note">㊸.6 具体计算：<span class="math">1/2 + 1/3 = 5/6</span></p><pre><code>theorem demo_add_compute :
+    ratRel (ratAddRep (qrep 1 0 1) (qrep 1 0 2)) (qrep 5 0 5) :=
+  ratRel_refl (qrep 5 0 5)</code></pre></details><details open class="appendix-solution" id="app-extra-43-1"><summary>补充 · ratAdd_comm_aux <span class="sol-meta">定理</span></summary><pre><code>theorem ratAdd_comm_aux (x y : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratAddRep x y) (ratAddRep y x) :=
+  match x with
+  | prod_mk (prod_mk a b) m =&gt;
+    match y with
+    | prod_mk (prod_mk p q) n =&gt;
+      intRel_trans
+        (mulRep
+          (numOf (ratAddRep (qrep a b m) (qrep p q n)))
+          (den (denOf (ratAddRep (qrep p q n) (qrep a b m)))))
+        (@prod_mk Nat Nat
+          (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                 (Nat.succ (ratDenRep n m)))
+          (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                 (Nat.succ (ratDenRep n m))))
+        (mulRep
+          (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+          (den (denOf (ratAddRep (qrep a b m) (qrep p q n)))))
+        (intRel_of_eq
+          (mulRep
+            (numOf (ratAddRep (qrep a b m) (qrep p q n)))
+            (den (denOf (ratAddRep (qrep p q n) (qrep a b m)))))
+          (@prod_mk Nat Nat
+            (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                   (Nat.succ (ratDenRep n m)))
+            (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                   (Nat.succ (ratDenRep n m))))
+          (mulRep_den_form
+            (numOf (ratAddRep (qrep a b m) (qrep p q n)))
+            (ratDenRep n m)))
+        (intRel_trans
+          (@prod_mk Nat Nat
+            (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                   (Nat.succ (ratDenRep n m)))
+            (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                   (Nat.succ (ratDenRep n m))))
+          (@prod_mk Nat Nat
+            (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                   (Nat.succ (ratDenRep m n)))
+            (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                   (Nat.succ (ratDenRep m n))))
+          (mulRep
+            (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+            (den (denOf (ratAddRep (qrep a b m) (qrep p q n)))))
+          (intRel_of_eq
+            (@prod_mk Nat Nat
+              (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                     (Nat.succ (ratDenRep n m)))
+              (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                     (Nat.succ (ratDenRep n m))))
+            (@prod_mk Nat Nat
+              (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n)))
+              (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n))))
+            (prod_mk_congr
+              (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                     (Nat.succ (ratDenRep n m)))
+              (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n)))
+              (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                     (Nat.succ (ratDenRep n m)))
+              (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n)))
+              (@Eq.trans.{1} Nat
+                (myMul (Nat.add (myMul a (Nat.succ n)) (myMul p (Nat.succ m)))
+                       (Nat.succ (ratDenRep n m)))
+                (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                       (Nat.succ (ratDenRep n m)))
+                (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                       (Nat.succ (ratDenRep m n)))
+                (congrArg.{1}
+                  (fun (Z : Nat) =&gt; myMul Z (Nat.succ (ratDenRep n m)))
+                  (add_comm (myMul a (Nat.succ n)) (myMul p (Nat.succ m))))
+                (congrArg.{1}
+                  (fun (Z : Nat) =&gt; myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n))) Z)
+                  (congrArg.{1} Nat.succ (ratDenRep_comm n m))))
+              (@Eq.trans.{1} Nat
+                (myMul (Nat.add (myMul b (Nat.succ n)) (myMul q (Nat.succ m)))
+                       (Nat.succ (ratDenRep n m)))
+                (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                       (Nat.succ (ratDenRep n m)))
+                (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                       (Nat.succ (ratDenRep m n)))
+                (congrArg.{1}
+                  (fun (Z : Nat) =&gt; myMul Z (Nat.succ (ratDenRep n m)))
+                  (add_comm (myMul b (Nat.succ n)) (myMul q (Nat.succ m))))
+                (congrArg.{1}
+                  (fun (Z : Nat) =&gt; myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n))) Z)
+                  (congrArg.{1} Nat.succ (ratDenRep_comm n m))))))
+          (intRel_symm
+            (mulRep
+              (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+              (den (denOf (ratAddRep (qrep a b m) (qrep p q n)))))
+            (@prod_mk Nat Nat
+              (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n)))
+              (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                     (Nat.succ (ratDenRep m n))))
+            (intRel_of_eq
+              (mulRep
+                (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+                (den (denOf (ratAddRep (qrep a b m) (qrep p q n)))))
+              (@prod_mk Nat Nat
+                (myMul (Nat.add (myMul p (Nat.succ m)) (myMul a (Nat.succ n)))
+                       (Nat.succ (ratDenRep m n)))
+                (myMul (Nat.add (myMul q (Nat.succ m)) (myMul b (Nat.succ n)))
+                       (Nat.succ (ratDenRep m n))))
+              (mulRep_den_form
+                (numOf (ratAddRep (qrep p q n) (qrep a b m)))
+                (ratDenRep m n)))))</code></pre></details><details open class="appendix-solution" id="app-extra-43-2"><summary>补充 · ratAdd_zero_aux <span class="sol-meta">定理</span></summary><pre><code>theorem ratAdd_zero_aux (x : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratAddRep x ratZeroRep) x :=
+  match x with
+  | prod_mk (prod_mk a b) m =&gt;
+    @Eq.subst.{1} ratRep
+      (fun (y : ratRep) =&gt; ratRel y (qrep a b m))
+      (qrep a b m)
+      (ratAddRep (qrep a b m) ratZeroRep)
+      (@Eq.symm.{1} ratRep
+        (ratAddRep (qrep a b m) ratZeroRep)
+        (qrep a b m)
+        (@Eq.trans.{1} (Prod (Prod Nat Nat) Nat)
+        (ratAddRep (qrep a b m) ratZeroRep)
+        (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) (ratDenRep m Nat.zero))
+        (qrep a b m)
+        (congrArg.{1}
+          (fun (P : Prod Nat Nat) =&gt;
+            @prod_mk (Prod Nat Nat) Nat P (ratDenRep m Nat.zero))
+          (prod_mk_congr
+            (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m))) a
+            (Nat.add (myMul b (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m))) b
+            (ratAdd_zero_num a m) (ratAdd_zero_num b m)))
+        (@Eq.trans.{1} (Prod (Prod Nat Nat) Nat)
+          (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) (ratDenRep m Nat.zero))
+          (@prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) m)
+          (qrep a b m)
+          (congrArg.{1}
+            (fun (Z : Nat) =&gt; @prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) Z)
+            (ratAdd_zero_den m))
+          (Eq.refl (qrep a b m)))))
+      (ratRel_refl (qrep a b m))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

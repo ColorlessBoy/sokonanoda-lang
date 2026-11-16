@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2 · 从集合论到实分析</title>
+<meta name="description" content="单元53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2：导语、定义与定理、练习与解答。Unit 53 — Positivity of the Half: 0 &lt; ε implies 0 &lt; ε/2">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit53.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></li><li aria-current="page">单元 53 半数的正性：0 < ε ⇒ 0 < ε/2</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#ex-53-1">53.1 0 &lt; ε ⇒ 0 ≤ ε/2</a></li>
+<li><a href="#ex-53-2">53.2 ε/2 ~ 0 ⇒ ε ~ 0</a></li>
+<li><a href="#ex-53-3">53.3 0 &lt; ε ⇒ 0 &lt; ε/2</a></li>
+<li><a href="#ex-53-5">53.4 具体：0 &lt; 1/2</a></li>
+<li><a href="#appendix-unit-53">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-5.html#units">↑ 本章目录</a>
+      <a href="../print/unit53.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-53">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-5.html>II.5</a> · 本章第 9 / 10 单元 · 全书第 53 / 72 单元</p>
+<h1><span class="unit-number">53</span> <span>半数的正性：<span class="math">0 &lt; ε ⇒ 0 &lt; ε/2</span></span></h1>
+<p class="unit-title-en">Unit 53 — Positivity of the Half: 0 &lt; ε implies 0 &lt; ε/2</p>
+<p class="unit-meta">5 个定理 · 5 道练习 · 14 条提示 · <a #appendix-unit-53>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="53" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-53" aria-label="复制单元 53 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit53.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-5.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>52 给出了半数与 <span class="math">x/2 + x/2</span> 和 x 相等。close 的传递性还要能用这个半数：把 Cauchy 假设放在 <span class="math">ε/2</span> 上，要求 <span class="math">0 &lt; ε/2</span>。这条也得补上。</p></div></div></section>
+<h3 class="unit-subhead">53.1 <code>0 &lt; ε</code> <span class="math">⇒</span> <code>0 ≤ ε/2</code></h3><article class="exercise" id="ex-53-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratLeRep_half_of_lt</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-53-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>证明不碰代表元，全部走序与加法的抽象律。先证 <span class="math">0 ≤ ε/2</span>：用全性把 <span class="math">0 ≤ ε/2</span> 与 <span class="math">ε/2 ≤ 0</span> 两分支切开；第二支把 <span class="math">ε/2 ≤ 0</span> 加到两边得到 <span class="math">ε/2 + ε/2 ≤ 0 + 0</span>，再用 <span class="math">ε/2 + ε/2</span> 与 <span class="math">ε</span> 相等搬到 <span class="math">ε ≤ 0</span>；与 <span class="math">0 ≤ ε</span> 用反对称性夹出 0 ~ <span class="math">ε</span>，撞上严格序的第二分量。再证 <span class="math">ε/2</span> ~ 0 推出 <span class="math">ε</span> ~ 0：把前者读成两条弱序，用同样的加法相容把 <span class="math">ε/2 + ε/2</span> 与 <span class="math">0+0</span> 互相夹住，反对称性给出相等，再串上 <span class="math">0+0</span> ~ 0 与半数加倍律。最后把两条装成严格正性，并落在 1/2 &gt; 0 上。</p></div><div class="block prose intuition-only"><p>先证 <span class="math">0 ≤ ε/2</span>：把目标与反方向两支切开，反方向导出矛盾。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_half_of_lt (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLeRep ratZeroRep (ratHalf eps) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用 <code>ratLeRep_total</code> 把目标 <code>0 ≤ ε/2</code> 与 <code>ε/2 ≤ 0</code> 两支切开，右支导出矛盾（<code>False.elim</code>）。矛盾链：<code>ε/2 ≤ 0</code> 经 <code>ratLeRep_add_right</code> 得 <code>ε/2+ε/2 ≤ 0+ε/2</code>，<code>ε/2 ≤ 0</code> 再经 <code>ratLeRep_add_left</code>（<code>z = 0</code>）得 <code>0+ε/2 ≤ 0+0</code>，<code>ratLeRep_trans</code> 串起来；再用 <code>ratAdd_zero 0</code> 把右端换成 <code>0</code>（<code>ratLeRep_congr_gen</code>），用 <code>ratHalf_add_self</code> 把左端换成 <code>ε</code>，得到 <code>ε ≤ 0</code>；与 <code>And.left h</code> 用 <code>ratLeRep_antisymm</code> 夹出 <code>0 ~ ε</code>，撞上 <code>And.right h</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep 0 eps → ratLeRep 0 (ratHalf eps)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_total · ratLeRep_add_right · ratLeRep_add_left · ratLeRep_trans · ratLeRep_congr_gen · ratAdd_zero · ratHalf_add_self · ratLeRep_antisymm · False.elim</span>。</p></div></details></div><details class="solution-panel" id="sol-53-1"><summary>查看解答 <span class="sol-meta">定理 · 26 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_half_of_lt (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLeRep ratZeroRep (ratHalf eps) :=
+  Or.elim
+    (fun (hh : ratLeRep ratZeroRep (ratHalf eps)) =&gt; hh)
+    (fun (hh : ratLeRep (ratHalf eps) ratZeroRep) =&gt;
+      False.elim
+        (And.right h
+          (ratLeRep_antisymm ratZeroRep eps
+            (And.left h)
+            (ratLeRep_congr_gen
+              (ratAddRep (ratHalf eps) (ratHalf eps)) eps
+              ratZeroRep ratZeroRep
+              (ratHalf_add_self eps) (ratRel_refl ratZeroRep)
+              (ratLeRep_congr_gen
+                (ratAddRep (ratHalf eps) (ratHalf eps))
+                (ratAddRep (ratHalf eps) (ratHalf eps))
+                (ratAddRep ratZeroRep ratZeroRep) ratZeroRep
+                (ratRel_refl (ratAddRep (ratHalf eps) (ratHalf eps)))
+                (ratAdd_zero ratZeroRep)
+                (ratLeRep_trans
+                  (ratAddRep (ratHalf eps) (ratHalf eps))
+                  (ratAddRep ratZeroRep (ratHalf eps))
+                  (ratAddRep ratZeroRep ratZeroRep)
+                  (ratLeRep_add_right (ratHalf eps) ratZeroRep (ratHalf eps) hh)
+                  (ratLeRep_add_left (ratHalf eps) ratZeroRep ratZeroRep hh)))))))
+    (ratLeRep_total ratZeroRep (ratHalf eps))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">53.2 <code>ε/2 ~ 0</code> <span class="math">⇒</span> <code>ε ~ 0</code></h3><article class="exercise" id="ex-53-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratRel_half_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-53-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>再证 <span class="math">ε/2</span> ~ 0 推出 <span class="math">ε</span> ~ 0：把两个方向互相夹住。</p></div></div><pre class="exercise-statement"><code>theorem ratRel_half_zero (eps : ratRep)
+    (h0 : ratRel (ratHalf eps) ratZeroRep) : ratRel eps ratZeroRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>h0 : ε/2 ~ 0</code> 的两个方向各用 <code>ratLeRep_of_ratRel</code> 读成弱序。<code>ε/2+ε/2 ≤ 0+0</code> 由「右加 <code>ε/2 ≤ 0</code>、再左加 <code>0 ≤ 0</code>（<code>z = 0</code>）」串联；<code>0+0 ≤ ε/2+ε/2</code> 由「左加 <code>0 ≤ ε/2</code>（<code>z = 0</code>）、再右加同一个」串联；<code>ratLeRep_antisymm</code> 得到 <code>ε/2+ε/2 ~ 0+0</code>，串 <code>ratAdd_zero 0</code> 得 <code>ε/2+ε/2 ~ 0</code>，最后从 <code>ε ~ ε/2+ε/2</code>（<code>ratHalf_add_self</code> 取对称）过去。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratHalf eps) 0 → ratRel eps 0</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_of_ratRel · ratRel_symm · ratLeRep_add_right · ratLeRep_add_left · ratLeRep_trans · ratLeRep_antisymm · ratRel_trans_gen · ratAdd_zero · ratHalf_add_self</span>。</p></div></details></div><details class="solution-panel" id="sol-53-2"><summary>查看解答 <span class="sol-meta">定理 · 29 行</span></summary><div class="solution-body"><pre><code>theorem ratRel_half_zero (eps : ratRep)
+    (h0 : ratRel (ratHalf eps) ratZeroRep) : ratRel eps ratZeroRep :=
+  ratRel_trans_gen eps (ratAddRep (ratHalf eps) (ratHalf eps)) ratZeroRep
+    (ratRel_symm (ratAddRep (ratHalf eps) (ratHalf eps)) eps (ratHalf_add_self eps))
+    (ratRel_trans_gen
+      (ratAddRep (ratHalf eps) (ratHalf eps))
+      (ratAddRep ratZeroRep ratZeroRep) ratZeroRep
+      (ratLeRep_antisymm
+        (ratAddRep (ratHalf eps) (ratHalf eps))
+        (ratAddRep ratZeroRep ratZeroRep)
+        (ratLeRep_trans
+          (ratAddRep (ratHalf eps) (ratHalf eps))
+          (ratAddRep ratZeroRep (ratHalf eps))
+          (ratAddRep ratZeroRep ratZeroRep)
+          (ratLeRep_add_right (ratHalf eps) ratZeroRep (ratHalf eps)
+            (ratLeRep_of_ratRel (ratHalf eps) ratZeroRep h0))
+          (ratLeRep_add_left (ratHalf eps) ratZeroRep ratZeroRep
+            (ratLeRep_of_ratRel (ratHalf eps) ratZeroRep h0)))
+        (ratLeRep_trans
+          (ratAddRep ratZeroRep ratZeroRep)
+          (ratAddRep ratZeroRep (ratHalf eps))
+          (ratAddRep (ratHalf eps) (ratHalf eps))
+          (ratLeRep_add_left ratZeroRep (ratHalf eps) ratZeroRep
+            (ratLeRep_of_ratRel ratZeroRep (ratHalf eps)
+              (ratRel_symm (ratHalf eps) ratZeroRep h0)))
+          (ratLeRep_add_right ratZeroRep (ratHalf eps) (ratHalf eps)
+            (ratLeRep_of_ratRel ratZeroRep (ratHalf eps)
+              (ratRel_symm (ratHalf eps) ratZeroRep h0)))))
+      (ratAdd_zero ratZeroRep))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">53.3 <code>0 &lt; ε</code> <span class="math">⇒</span> <code>0 &lt; ε/2</code></h3><article class="exercise" id="ex-53-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratLtRep_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-53-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>严格正性：把弱序与不相等两条装起来。</p></div></div><pre class="exercise-statement"><code>theorem ratLtRep_right (x y : ratRep) (h : ratLtRep x y) : ¬ ratRel x y :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>严格序是 <code>And</code>；第二分量单独取出来（<code>ratLtRep_right</code>），再把它用在 53.2 给出的 <code>ε ~ 0</code> 上（方向要先用 <code>ratRel_symm</code> 摆正）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep x y → ¬ ratRel x y</code>。</p></div></details></div><details class="solution-panel" id="sol-53-3"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem ratLtRep_right (x y : ratRep) (h : ratLtRep x y) : ¬ ratRel x y :=
+  And.right h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-53-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">ratLtRep_half</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-53-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>具体落在 1/2 &gt; 0 上。</p></div></div><pre class="exercise-statement"><code>theorem ratLtRep_half (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLtRep ratZeroRep (ratHalf eps) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>弱序是 53.1；不相等假设 <code>0 ~ ε/2</code>，取对称后交给 53.2 得 <code>ε ~ 0</code>，再对称一次撞上 53.3 的前一条投影。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep 0 eps → ratLtRep 0 (ratHalf eps)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">And.intro · ratLeRep_half_of_lt · ratRel_half_zero · ratRel_symm · ratLtRep_right</span>。</p></div></details></div><details class="solution-panel" id="sol-53-4"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem ratLtRep_half (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLtRep ratZeroRep (ratHalf eps) :=
+  And.intro
+    (ratLeRep_half_of_lt eps h)
+    (fun (h0 : ratRel ratZeroRep (ratHalf eps)) =&gt;
+      (ratLtRep_right ratZeroRep eps h)
+        (ratRel_symm eps ratZeroRep
+          (ratRel_half_zero eps (ratRel_symm ratZeroRep (ratHalf eps) h0))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">53.4 具体：<code>0 &lt; 1/2</code></h3><article class="exercise" id="ex-53-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">demo_zero_lt_half_one</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-53-5>附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem demo_zero_lt_half_one :
+    ratLtRep ratZeroRep (ratHalf (qrep 1 Nat.zero Nat.zero)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先证 <code>0 &lt; 1</code>（弱序 <code>le_succ 0 0 (le_refl 0)</code>，不相等把 <code>0 ~ 1</code> 化成 <code>0 = 1</code> 后交给 <code>succ_ne_zero</code>），交给 53.3。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep 0 (ratHalf 1)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLtRep_half · And.intro · le_succ · le_refl · Eq.symm · succ_ne_zero</span>。</p></div></details></div><details class="solution-panel" id="sol-53-5"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem demo_zero_lt_half_one :
+    ratLtRep ratZeroRep (ratHalf (qrep 1 Nat.zero Nat.zero)) :=
+  ratLtRep_half (qrep 1 Nat.zero Nat.zero)
+    (And.intro
+      (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+      (fun (h : ratRel (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) =&gt;
+        succ_ne_zero Nat.zero (Eq.symm h)))</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>半数的正性到手；下一批单元证明加法结合律，把两个距离加起来再认成第三个距离。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit52.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title"><span class="math">ε</span> 折半：半数的存在与加倍</span></a><a class="unit-nav-home" ../chapters/ii-5.html#units>目录</a><a class="unit-nav-link" ../units/unit54.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">有理数加法的结合律：公分母的三层嵌套</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-53"><h3><a #top>半数的正性：<span class="math">0 &lt; ε ⇒ 0 &lt; ε/2</span></a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-53-1"><summary>练习 1 · ratLeRep_half_of_lt <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_half_of_lt (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLeRep ratZeroRep (ratHalf eps) :=
+  Or.elim
+    (fun (hh : ratLeRep ratZeroRep (ratHalf eps)) =&gt; hh)
+    (fun (hh : ratLeRep (ratHalf eps) ratZeroRep) =&gt;
+      False.elim
+        (And.right h
+          (ratLeRep_antisymm ratZeroRep eps
+            (And.left h)
+            (ratLeRep_congr_gen
+              (ratAddRep (ratHalf eps) (ratHalf eps)) eps
+              ratZeroRep ratZeroRep
+              (ratHalf_add_self eps) (ratRel_refl ratZeroRep)
+              (ratLeRep_congr_gen
+                (ratAddRep (ratHalf eps) (ratHalf eps))
+                (ratAddRep (ratHalf eps) (ratHalf eps))
+                (ratAddRep ratZeroRep ratZeroRep) ratZeroRep
+                (ratRel_refl (ratAddRep (ratHalf eps) (ratHalf eps)))
+                (ratAdd_zero ratZeroRep)
+                (ratLeRep_trans
+                  (ratAddRep (ratHalf eps) (ratHalf eps))
+                  (ratAddRep ratZeroRep (ratHalf eps))
+                  (ratAddRep ratZeroRep ratZeroRep)
+                  (ratLeRep_add_right (ratHalf eps) ratZeroRep (ratHalf eps) hh)
+                  (ratLeRep_add_left (ratHalf eps) ratZeroRep ratZeroRep hh)))))))
+    (ratLeRep_total ratZeroRep (ratHalf eps))</code></pre></details><details class="appendix-solution" id="app-sol-53-2"><summary>练习 2 · ratRel_half_zero <span class="sol-meta">定理</span></summary><pre><code>theorem ratRel_half_zero (eps : ratRep)
+    (h0 : ratRel (ratHalf eps) ratZeroRep) : ratRel eps ratZeroRep :=
+  ratRel_trans_gen eps (ratAddRep (ratHalf eps) (ratHalf eps)) ratZeroRep
+    (ratRel_symm (ratAddRep (ratHalf eps) (ratHalf eps)) eps (ratHalf_add_self eps))
+    (ratRel_trans_gen
+      (ratAddRep (ratHalf eps) (ratHalf eps))
+      (ratAddRep ratZeroRep ratZeroRep) ratZeroRep
+      (ratLeRep_antisymm
+        (ratAddRep (ratHalf eps) (ratHalf eps))
+        (ratAddRep ratZeroRep ratZeroRep)
+        (ratLeRep_trans
+          (ratAddRep (ratHalf eps) (ratHalf eps))
+          (ratAddRep ratZeroRep (ratHalf eps))
+          (ratAddRep ratZeroRep ratZeroRep)
+          (ratLeRep_add_right (ratHalf eps) ratZeroRep (ratHalf eps)
+            (ratLeRep_of_ratRel (ratHalf eps) ratZeroRep h0))
+          (ratLeRep_add_left (ratHalf eps) ratZeroRep ratZeroRep
+            (ratLeRep_of_ratRel (ratHalf eps) ratZeroRep h0)))
+        (ratLeRep_trans
+          (ratAddRep ratZeroRep ratZeroRep)
+          (ratAddRep ratZeroRep (ratHalf eps))
+          (ratAddRep (ratHalf eps) (ratHalf eps))
+          (ratLeRep_add_left ratZeroRep (ratHalf eps) ratZeroRep
+            (ratLeRep_of_ratRel ratZeroRep (ratHalf eps)
+              (ratRel_symm (ratHalf eps) ratZeroRep h0)))
+          (ratLeRep_add_right ratZeroRep (ratHalf eps) (ratHalf eps)
+            (ratLeRep_of_ratRel ratZeroRep (ratHalf eps)
+              (ratRel_symm (ratHalf eps) ratZeroRep h0)))))
+      (ratAdd_zero ratZeroRep))</code></pre></details><details class="appendix-solution" id="app-sol-53-3"><summary>练习 3 · ratLtRep_right <span class="sol-meta">定理</span></summary><pre><code>theorem ratLtRep_right (x y : ratRep) (h : ratLtRep x y) : ¬ ratRel x y :=
+  And.right h</code></pre></details><details class="appendix-solution" id="app-sol-53-4"><summary>练习 4 · ratLtRep_half <span class="sol-meta">定理</span></summary><pre><code>theorem ratLtRep_half (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLtRep ratZeroRep (ratHalf eps) :=
+  And.intro
+    (ratLeRep_half_of_lt eps h)
+    (fun (h0 : ratRel ratZeroRep (ratHalf eps)) =&gt;
+      (ratLtRep_right ratZeroRep eps h)
+        (ratRel_symm eps ratZeroRep
+          (ratRel_half_zero eps (ratRel_symm ratZeroRep (ratHalf eps) h0))))</code></pre></details><details class="appendix-solution" id="app-sol-53-5"><summary>练习 5 · demo_zero_lt_half_one <span class="sol-meta">定理</span></summary><pre><code>theorem demo_zero_lt_half_one :
+    ratLtRep ratZeroRep (ratHalf (qrep 1 Nat.zero Nat.zero)) :=
+  ratLtRep_half (qrep 1 Nat.zero Nat.zero)
+    (And.intro
+      (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+      (fun (h : ratRel (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) =&gt;
+        succ_ne_zero Nat.zero (Eq.symm h)))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit52.html">← 52 ε 折半：半数的存在与加倍</a><a class="next" href="../units/unit54.html">54 有理数加法的结合律：公分母的三层嵌套 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 48 三角不等式：|u + v| ≤ |u| + |v|</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit48.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 48 三角不等式：|u + v| ≤ |u| + |v|</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit48.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">II.5 ℝ 的商、代数与序 · 单元 48</p><h1>三角不等式：|u + v| ≤ |u| + |v|</h1><p class="note">Unit 48 — Triangle Inequality</p></header><section class="unit" id="unit-48">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-5.html>II.5</a> · 本章第 4 / 10 单元 · 全书第 48 / 72 单元</p>
+<h2><span class="unit-number">48</span><span>三角不等式：|<span class="math">u + v</span>| <span class="math">≤</span> |u| <span class="math">+</span> |v|</span></h2>
+<p class="unit-title-en">Unit 48 — Triangle Inequality</p>
+<p class="unit-meta">6 个定理 · 6 道练习 · 18 条提示 · <a #appendix-unit-48>解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>先看一个反例：1 的绝对值见证是 1，-1/2 的见证是 -1/2；把两个见证相加得到 3/2，而 |<span class="math">1 + (-1/2)</span>| <span class="math">= 1/2</span>。见证相加得不到 <span class="math">x+y</span> 的见证。</p></div></div></section>
+<article class="exercise" id="ex-48-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratLeRep_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-48-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>我们证明 <span class="math">ℚ</span> 的三角不等式，它是 close 传递性（<span class="math">ε</span> 折半）唯一的数学内容：ratAbsRel x dx 且 ratAbsRel y dy 且 <span class="math">ratAbsRel (x+y) d</span> 推出 <span class="math">d ≤ dx+dy</span>。这里 ratAbsRel 是关系而不是函数，所以结论只能是 <span class="math">≤</span>，不能是等号。</p></div><div class="block prose intuition-only"><p>证明路线是把两边都化成「对 x、y 的四个界」：先证序对两个因子都单调（右加用 ㊹ 的加法相容，左加靠交换律转成右加）；再证 <span class="math">x ≤ d</span> 与 <span class="math">-x ≤ d</span>（把绝对值见证的两个分支分别压住）；然后证 <span class="math">-(x+y)</span> 与 <span class="math">(-x)+(-y)</span> 相等（代表元上逐坐标对调）；最后按 d 落在哪一支分两种情形收口，并具体算 |<span class="math">1/2 + 1/2</span>| <span class="math">= 1 ≤ 1/2 + 1/2</span>。</p></div><div class="block prose intuition-only"><p>ratLeRep 只做头部展开；序与加法的引擎来自 lib/RatAbs。</p></div><div class="block prose intuition-only"><p>㊽.1 序对两个因子都单调</p></div><div class="block prose intuition-only"><p>先证序对两个因子都单调：右加用加法相容，左加用交换律转成右加。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_add (a b c d : ratRep)
+    (h1 : ratLeRep a b) (h2 : ratLeRep c d) :
+    ratLeRep (ratAddRep a c) (ratAddRep b d) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先对 <code>h1</code> 用右加（<code>ratLeRep_add_right a b c</code>）得 <code>a+c ≤ b+c</code>；再把 <code>c+b ≤ d+b</code>（对 <code>h2</code> 用右加、以 <code>b</code> 为加数）经两次交换律搬成 <code>b+c ≤ b+d</code>；最后 <code>ratLeRep_trans</code> 串起来。交换律给的是 <code>ratRel</code>，用 <code>ratLeRep_of_ratRel</code> 读成序。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep a b → ratLeRep c d → ratLeRep (ratAddRep a c) (ratAddRep b d)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_add_right · ratAdd_comm · ratLeRep_of_ratRel · ratLeRep_trans</span>。</p></div></details></div><details open class="solution-panel" id="sol-48-1"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_add (a b c d : ratRep)
+    (h1 : ratLeRep a b) (h2 : ratLeRep c d) :
+    ratLeRep (ratAddRep a c) (ratAddRep b d) :=
+  ratLeRep_trans (ratAddRep a c) (ratAddRep b c) (ratAddRep b d)
+    (ratLeRep_add_right a b c h1)
+    (ratLeRep_trans (ratAddRep b c) (ratAddRep c b) (ratAddRep b d)
+      (ratLeRep_of_ratRel (ratAddRep b c) (ratAddRep c b) (ratAdd_comm b c))
+      (ratLeRep_trans (ratAddRep c b) (ratAddRep d b) (ratAddRep b d)
+        (ratLeRep_add_right c d b h2)
+        (ratLeRep_of_ratRel (ratAddRep d b) (ratAddRep b d) (ratAdd_comm d b))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-48-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratAbsRel_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-48-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊽.2 <code>x</code> 被自己的绝对值见证压住：<code>x ≤ d</code></p></div><div class="block prose intuition-only"><p>x 被自己的绝对值见证压住：<span class="math">x ≤ d</span>。</p></div></div><pre class="exercise-statement"><code>theorem ratAbsRel_le (x d : ratRep) (h : ratAbsRel x d) : ratLeRep x d :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>第一支（<code>0 ≤ x</code>、<code>d ~ x</code>）中 <code>x ≤ x</code> 是自反，再用 <code>d ~ x</code> 的对称把右边换成 <code>d</code>；第二支（<code>x ≤ 0</code>、<code>d ~ -x</code>）先由 <code>x ≤ 0</code> 得 <code>x ≤ 0 ≤ -x</code>：<code>0 ≤ -x</code> 用 <code>ratLeRep_neg_gen x 0</code>（它把 <code>x ≤ 0</code> 反转成 <code>-0 ≤ -x</code>，而 <code>-0</code> 定义性归约成 <code>0</code>），再把 <code>-x</code> 换成 <code>d</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratAbsRel x d → ratLeRep x d</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_refl · ratRel_symm · ratLeRep_of_ratRel · ratLeRep_neg_gen · ratLeRep_trans</span>。</p></div></details></div><details open class="solution-panel" id="sol-48-2"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem ratAbsRel_le (x d : ratRep) (h : ratAbsRel x d) : ratLeRep x d :=
+  ratAbsRel_le_aux x d h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-48-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratAbsRel_neg_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-48-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊽.3 <code>-x</code> 被同一个见证压住：<code>-x ≤ d</code></p></div><div class="block prose intuition-only"><p>-x 也被同一个见证压住：<span class="math">-x ≤ d</span>。</p></div></div><pre class="exercise-statement"><code>theorem ratAbsRel_neg_le (x d : ratRep) (h : ratAbsRel x d) :
+    ratLeRep (ratNegRep x) d :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>第一支（<code>0 ≤ x</code>、<code>d ~ x</code>）用 <code>ratLeRep_neg_gen 0 x</code> 得 <code>-x ≤ 0</code>，再串上 <code>0 ≤ x</code> 与 <code>x ~ d</code>；第二支（<code>x ≤ 0</code>、<code>d ~ -x</code>）直接由 <code>d ~ -x</code> 的对称得到 <code>-x ≤ d</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratAbsRel x d → ratLeRep (ratNegRep x) d</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_neg_gen · ratLeRep_trans · ratLeRep_of_ratRel · ratRel_symm</span>。</p></div></details></div><details open class="solution-panel" id="sol-48-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem ratAbsRel_neg_le (x d : ratRep) (h : ratAbsRel x d) :
+    ratLeRep (ratNegRep x) d :=
+  ratAbsRel_neg_le_aux x d h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-48-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">ratNegRep_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-48-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊽.4 取负穿进加法：<code>-(x + y) ~ (-x) + (-y)</code></p></div><div class="block prose intuition-only"><p>取负与加法交换：<span class="math">-(x+y)</span> 与 <span class="math">(-x)+(-y)</span> 相等（代表元上逐坐标对调）。</p></div></div><pre class="exercise-statement"><code>theorem ratNegRep_add (x y : ratRep) :
+    ratRel (ratNegRep (ratAddRep x y))
+           (ratAddRep (ratNegRep x) (ratNegRep y)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>在字面坐标上展开。<code>x + y</code> 的分子是 <code>(a(n+1) + c(m+1), b(n+1) + d(m+1))</code>；取负把它对调。而 <code>-x + -y</code> 的分子是 <code>(b(n+1) + d(m+1), a(n+1) + c(m+1))</code>——逐字相同，分母也都是 <code>ratDenRep m n</code>。所以两边定义性相等，<code>ratRel_refl</code> 即可。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratNegRep (ratAddRep x y)) (ratAddRep (ratNegRep x) (ratNegRep y))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>ratRel_refl（先在展开类型上 match 到字面坐标，两边定义性相等，不需要额外引理）。</p></div></details></div><details open class="solution-panel" id="sol-48-4"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem ratNegRep_add (x y : ratRep) :
+    ratRel (ratNegRep (ratAddRep x y))
+           (ratAddRep (ratNegRep x) (ratNegRep y)) :=
+  ratNegRep_add_aux x y</code></pre></div></details></div></article>
+<article class="exercise" id="ex-48-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">ratLeRep_abs_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-48-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊽.5 主定理：三角不等式</p></div><div class="block prose intuition-only"><p>主定理：按 d 落在哪一支分两种情形，用四个界收口。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_abs_add (x y dx dy d : ratRep)
+    (hx : ratAbsRel x dx) (hy : ratAbsRel y dy)
+    (h : ratAbsRel (ratAddRep x y) d) :
+    ratLeRep d (ratAddRep dx dy) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先备好四个界：<code>x ≤ dx</code>、<code>-x ≤ dx</code>（㊽.2/㊽.3 对 <code>hx</code>），<code>y ≤ dy</code>、<code>-y ≤ dy</code>（对 <code>hy</code>）。对 <code>h</code> 分两支：非负支里 <code>d ~ x+y</code>，而 <code>x+y ≤ dx+dy</code> 由 ㊽.1 给出；非正支里 <code>d ~ -(x+y)</code>，用 ㊽.4 把 <code>-(x+y)</code> 换成 <code>(-x)+(-y)</code>，再由 ㊽.1 得 <code>(-x)+(-y) ≤ dx+dy</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratAbsRel x dx → ratAbsRel y dy → ratAbsRel (ratAddRep x y) d → ratLeRep d (ratAddRep dx dy)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratAbsRel_le · ratAbsRel_neg_le · ratLeRep_add · ratNegRep_add · ratLeRep_of_ratRel · ratLeRep_trans · Or.elim</span>。</p></div></details></div><details open class="solution-panel" id="sol-48-5"><summary>查看解答 <span class="sol-meta">定理 · 22 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_abs_add (x y dx dy d : ratRep)
+    (hx : ratAbsRel x dx) (hy : ratAbsRel y dy)
+    (h : ratAbsRel (ratAddRep x y) d) :
+    ratLeRep d (ratAddRep dx dy) :=
+  Or.elim
+    (fun (h1 : ratLeRep ratZeroRep (ratAddRep x y) ∧
+               ratRel d (ratAddRep x y)) =&gt;
+      ratLeRep_trans d (ratAddRep x y) (ratAddRep dx dy)
+        (ratLeRep_of_ratRel d (ratAddRep x y) (And.right h1))
+        (ratLeRep_add x dx y dy (ratAbsRel_le x dx hx) (ratAbsRel_le y dy hy)))
+    (fun (h2 : ratLeRep (ratAddRep x y) ratZeroRep ∧
+               ratRel d (ratNegRep (ratAddRep x y))) =&gt;
+      ratLeRep_trans d (ratNegRep (ratAddRep x y)) (ratAddRep dx dy)
+        (ratLeRep_of_ratRel d (ratNegRep (ratAddRep x y)) (And.right h2))
+        (ratLeRep_trans (ratNegRep (ratAddRep x y))
+          (ratAddRep (ratNegRep x) (ratNegRep y))
+          (ratAddRep dx dy)
+          (ratLeRep_of_ratRel (ratNegRep (ratAddRep x y))
+            (ratAddRep (ratNegRep x) (ratNegRep y)) (ratNegRep_add x y))
+          (ratLeRep_add (ratNegRep x) dx (ratNegRep y) dy
+            (ratAbsRel_neg_le x dx hx) (ratAbsRel_neg_le y dy hy))))
+    h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-48-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">demo_triangle</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-48-6>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊽.6 具体：<code>|1/2 + 1/2| = 1 ≤ 1/2 + 1/2</code></p></div><div class="block prose intuition-only"><p>具体算 |<span class="math">1/2 + 1/2</span>| <span class="math">= 1 ≤ 1/2 + 1/2</span>。</p></div></div><pre class="exercise-statement"><code>theorem demo_triangle :
+    ratLeRep (qrep 1 Nat.zero Nat.zero)
+             (ratAddRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>取 <code>x = y = dx = dy = 1/2</code>，<code>d = 1</code>。<code>hx</code> 是 <code>Or.inl</code>：<code>0 ≤ 1/2</code>（交叉相乘是 <code>LeNat 0 1</code>）与 <code>1/2 ~ 1/2</code>；<code>h</code> 同形：<code>1/2 + 1/2</code> 定义性归约成 <code>4/4</code>，<code>0 ≤ 4/4</code> 用 <code>leNat_zero_le</code>，<code>1 ~ 4/4</code> 两边交叉相乘都是 <code>(4,0)</code>。结论 <code>1 ≤ 1/2+1/2</code> 两边交叉相乘都是 <code>(4,0)</code>，是自反的 <code>LeNat</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (qrep 1 Nat.zero Nat.zero) (ratAddRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_abs_add · Or.inl · And.intro · le_succ · le_refl · leNat_zero_le · ratRel_refl · intRel_of_eq · Eq.refl</span>。</p></div></details></div><details open class="solution-panel" id="sol-48-6"><summary>查看解答 <span class="sol-meta">定理 · 22 行</span></summary><div class="solution-body"><pre><code>theorem demo_triangle :
+    ratLeRep (qrep 1 Nat.zero Nat.zero)
+             (ratAddRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1)) :=
+  ratLeRep_abs_add
+    (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1)
+    (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1)
+    (qrep 1 Nat.zero Nat.zero)
+    (Or.inl
+      (And.intro
+        (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+        (ratRel_refl (qrep 1 Nat.zero 1))))
+    (Or.inl
+      (And.intro
+        (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+        (ratRel_refl (qrep 1 Nat.zero 1))))
+    (Or.inl
+      (And.intro
+        (leNat_zero_le 4)
+        (intRel_of_eq
+          (mulRep (@prod_mk Nat Nat 1 Nat.zero) (den 3))
+          (mulRep (@prod_mk Nat Nat 4 Nat.zero) (den Nat.zero))
+          (Eq.refl (mulRep (@prod_mk Nat Nat 1 Nat.zero) (den 3))))))</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>三角不等式到手；下一单元补 close 对 <span class="math">ε</span> 的单调性与严格序的传递性，close 的传递就齐了。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit47.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">绝对值的唯一性：同一个数的两个见证相等</span></a><a class="unit-nav-home" ../chapters/ii-5.html#units>目录</a><a class="unit-nav-link" ../units/unit49.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">严格序的传递与 close 对 <span class="math">ε</span> 的单调性</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-48"><h3><a #top>三角不等式：|<span class="math">u + v</span>| <span class="math">≤</span> |u| <span class="math">+</span> |v|</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答 · 3 个解答独有声明</p><details open class="appendix-solution" id="app-sol-48-1"><summary>练习 1 · ratLeRep_add <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_add (a b c d : ratRep)
+    (h1 : ratLeRep a b) (h2 : ratLeRep c d) :
+    ratLeRep (ratAddRep a c) (ratAddRep b d) :=
+  ratLeRep_trans (ratAddRep a c) (ratAddRep b c) (ratAddRep b d)
+    (ratLeRep_add_right a b c h1)
+    (ratLeRep_trans (ratAddRep b c) (ratAddRep c b) (ratAddRep b d)
+      (ratLeRep_of_ratRel (ratAddRep b c) (ratAddRep c b) (ratAdd_comm b c))
+      (ratLeRep_trans (ratAddRep c b) (ratAddRep d b) (ratAddRep b d)
+        (ratLeRep_add_right c d b h2)
+        (ratLeRep_of_ratRel (ratAddRep d b) (ratAddRep b d) (ratAdd_comm d b))))</code></pre></details><details open class="appendix-solution" id="app-sol-48-2"><summary>练习 2 · ratAbsRel_le <span class="sol-meta">定理</span></summary><pre><code>theorem ratAbsRel_le (x d : ratRep) (h : ratAbsRel x d) : ratLeRep x d :=
+  ratAbsRel_le_aux x d h</code></pre></details><details open class="appendix-solution" id="app-sol-48-3"><summary>练习 3 · ratAbsRel_neg_le <span class="sol-meta">定理</span></summary><pre><code>theorem ratAbsRel_neg_le (x d : ratRep) (h : ratAbsRel x d) :
+    ratLeRep (ratNegRep x) d :=
+  ratAbsRel_neg_le_aux x d h</code></pre></details><details open class="appendix-solution" id="app-sol-48-4"><summary>练习 4 · ratNegRep_add <span class="sol-meta">定理</span></summary><pre><code>theorem ratNegRep_add (x y : ratRep) :
+    ratRel (ratNegRep (ratAddRep x y))
+           (ratAddRep (ratNegRep x) (ratNegRep y)) :=
+  ratNegRep_add_aux x y</code></pre></details><details open class="appendix-solution" id="app-sol-48-5"><summary>练习 5 · ratLeRep_abs_add <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_abs_add (x y dx dy d : ratRep)
+    (hx : ratAbsRel x dx) (hy : ratAbsRel y dy)
+    (h : ratAbsRel (ratAddRep x y) d) :
+    ratLeRep d (ratAddRep dx dy) :=
+  Or.elim
+    (fun (h1 : ratLeRep ratZeroRep (ratAddRep x y) ∧
+               ratRel d (ratAddRep x y)) =&gt;
+      ratLeRep_trans d (ratAddRep x y) (ratAddRep dx dy)
+        (ratLeRep_of_ratRel d (ratAddRep x y) (And.right h1))
+        (ratLeRep_add x dx y dy (ratAbsRel_le x dx hx) (ratAbsRel_le y dy hy)))
+    (fun (h2 : ratLeRep (ratAddRep x y) ratZeroRep ∧
+               ratRel d (ratNegRep (ratAddRep x y))) =&gt;
+      ratLeRep_trans d (ratNegRep (ratAddRep x y)) (ratAddRep dx dy)
+        (ratLeRep_of_ratRel d (ratNegRep (ratAddRep x y)) (And.right h2))
+        (ratLeRep_trans (ratNegRep (ratAddRep x y))
+          (ratAddRep (ratNegRep x) (ratNegRep y))
+          (ratAddRep dx dy)
+          (ratLeRep_of_ratRel (ratNegRep (ratAddRep x y))
+            (ratAddRep (ratNegRep x) (ratNegRep y)) (ratNegRep_add x y))
+          (ratLeRep_add (ratNegRep x) dx (ratNegRep y) dy
+            (ratAbsRel_neg_le x dx hx) (ratAbsRel_neg_le y dy hy))))
+    h</code></pre></details><details open class="appendix-solution" id="app-sol-48-6"><summary>练习 6 · demo_triangle <span class="sol-meta">定理</span></summary><pre><code>theorem demo_triangle :
+    ratLeRep (qrep 1 Nat.zero Nat.zero)
+             (ratAddRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1)) :=
+  ratLeRep_abs_add
+    (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1)
+    (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1)
+    (qrep 1 Nat.zero Nat.zero)
+    (Or.inl
+      (And.intro
+        (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+        (ratRel_refl (qrep 1 Nat.zero 1))))
+    (Or.inl
+      (And.intro
+        (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+        (ratRel_refl (qrep 1 Nat.zero 1))))
+    (Or.inl
+      (And.intro
+        (leNat_zero_le 4)
+        (intRel_of_eq
+          (mulRep (@prod_mk Nat Nat 1 Nat.zero) (den 3))
+          (mulRep (@prod_mk Nat Nat 4 Nat.zero) (den Nat.zero))
+          (Eq.refl (mulRep (@prod_mk Nat Nat 1 Nat.zero) (den 3))))))</code></pre></details><details open class="appendix-solution" id="app-extra-48-1"><summary>补充 · ratAbsRel_le_aux <span class="sol-meta">定理</span></summary><pre><code>theorem ratAbsRel_le_aux (x d : Prod (Prod Nat Nat) Nat) :
+    ratAbsRel x d → ratLeRep x d :=
+  match x with
+  | prod_mk (prod_mk a b) m =&gt;
+    match d with
+    | prod_mk (prod_mk a' b') m' =&gt;
+      fun (h : ratAbsRel (qrep a b m) (qrep a' b' m')) =&gt;
+        Or.elim
+          (fun (h1 : ratLeRep ratZeroRep (qrep a b m) ∧
+                     ratRel (qrep a' b' m') (qrep a b m)) =&gt;
+            ratLeRep_trans (qrep a b m) (qrep a b m) (qrep a' b' m')
+              (ratLeRep_refl (qrep a b m))
+              (ratLeRep_of_ratRel (qrep a b m) (qrep a' b' m')
+                (ratRel_symm (qrep a' b' m') (qrep a b m) (And.right h1))))
+          (fun (h2 : ratLeRep (qrep a b m) ratZeroRep ∧
+                     ratRel (qrep a' b' m') (ratNegRep (qrep a b m))) =&gt;
+            ratLeRep_trans (qrep a b m) (ratNegRep (qrep a b m)) (qrep a' b' m')
+              (ratLeRep_trans (qrep a b m) ratZeroRep (ratNegRep (qrep a b m))
+                (And.left h2)
+                (ratLeRep_neg_gen (qrep a b m) ratZeroRep (And.left h2)))
+              (ratLeRep_of_ratRel (ratNegRep (qrep a b m)) (qrep a' b' m')
+                (ratRel_symm (qrep a' b' m') (ratNegRep (qrep a b m))
+                  (And.right h2))))
+          h</code></pre></details><details open class="appendix-solution" id="app-extra-48-2"><summary>补充 · ratAbsRel_neg_le_aux <span class="sol-meta">定理</span></summary><pre><code>theorem ratAbsRel_neg_le_aux (x d : Prod (Prod Nat Nat) Nat) :
+    ratAbsRel x d → ratLeRep (ratNegRep x) d :=
+  match x with
+  | prod_mk (prod_mk a b) m =&gt;
+    match d with
+    | prod_mk (prod_mk a' b') m' =&gt;
+      fun (h : ratAbsRel (qrep a b m) (qrep a' b' m')) =&gt;
+        Or.elim
+          (fun (h1 : ratLeRep ratZeroRep (qrep a b m) ∧
+                     ratRel (qrep a' b' m') (qrep a b m)) =&gt;
+            ratLeRep_trans (ratNegRep (qrep a b m)) (qrep a b m) (qrep a' b' m')
+              (ratLeRep_trans (ratNegRep (qrep a b m)) ratZeroRep (qrep a b m)
+                (ratLeRep_neg_gen ratZeroRep (qrep a b m) (And.left h1))
+                (And.left h1))
+              (ratLeRep_of_ratRel (qrep a b m) (qrep a' b' m')
+                (ratRel_symm (qrep a' b' m') (qrep a b m) (And.right h1))))
+          (fun (h2 : ratLeRep (qrep a b m) ratZeroRep ∧
+                     ratRel (qrep a' b' m') (ratNegRep (qrep a b m))) =&gt;
+            ratLeRep_of_ratRel (ratNegRep (qrep a b m)) (qrep a' b' m')
+              (ratRel_symm (qrep a' b' m') (ratNegRep (qrep a b m))
+                (And.right h2)))
+          h</code></pre></details><details open class="appendix-solution" id="app-extra-48-3"><summary>补充 · ratNegRep_add_aux <span class="sol-meta">定理</span></summary><pre><code>theorem ratNegRep_add_aux (x y : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratNegRep (ratAddRep x y))
+           (ratAddRep (ratNegRep x) (ratNegRep y)) :=
+  match x with
+  | prod_mk (prod_mk a b) m =&gt;
+    match y with
+    | prod_mk (prod_mk c d) n =&gt;
+      ratRel_refl (ratNegRep (ratAddRep (qrep a b m) (qrep c d n)))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

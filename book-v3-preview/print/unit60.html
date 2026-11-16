@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 60 实数的加法：下降之前的两条义务</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit60.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 60 实数的加法：下降之前的两条义务</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit60.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">II.6 实数的商与完备性 · 单元 60</p><h1>实数的加法：下降之前的两条义务</h1><p class="note">Unit 60 — Addition on the Reals: Two Obligations Before Descending</p></header><section class="unit" id="unit-60">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-6.html>II.6</a> · 本章第 6 / 14 单元 · 全书第 60 / 72 单元</p>
+<h2><span class="unit-number">60</span><span>实数的加法：下降之前的两条义务</span></h2>
+<p class="unit-title-en">Unit 60 — Addition on the Reals: Two Obligations Before Descending</p>
+<p class="unit-meta">1 个定义 · 5 个定理 · 5 道练习 · 15 条提示 · <a #appendix-unit-60>解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>上一批单元把一元运算 neg 下降成了 <span class="math">Real → Real</span>。二元运算不能照抄这个模板：Quot.lift 在外部还要一次「函数相等」，而 realRel 只在 Cauchy 序列上自反——商里还有非 Cauchy 代表元形成的「杂点」，同一条 Cauchy 序列在杂点上的像不唯一。课程因此不把加法下降成函数，而是先在代表元层把逐点加法 addSeq 定义好，再交两条下降义务：cauchy_add（Cauchy 对加法封闭）与 realRel_add（realRel 对加法同余）；下一单元再把「<span class="math">mk (x+y)</span> 就是两个实数的和」写成三元关系（存在且唯一）。</p></div></div></section>
+<div class="block prose intuition-only"><p>这里的关键是 <span class="math">(x+y)-(x'+y')</span> 与 <span class="math">(x-x')+(y-y')</span> 在代表元层相等：它把三角不等式直接作用在两个已知距离上。重排只用结合律、交换律与取负对加法的分配（ratNegRep_add）。</p></div><div class="block prose intuition-only"><p>先在代表元层做这个重排，再证逐点 close 对加法同余，然后交两条下降义务，最后落在 <span class="math">1/2 + 1/3 = 5/6</span> 上。不引入函数外延性、不加公理。</p></div><div class="block prose intuition-only"><p>逐点加法的定义</p></div><article class="decl decl-def" id="decl-60-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">addSeq</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def addSeq (x y : Seq) : Seq :=</code></pre><details open class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def addSeq (x y : Seq) : Seq := fun (n : Nat) =&gt; ratAddRep (x n) (y n)</code></pre></details></div></article>
+<h3 class="unit-subhead">60.1 代表元层：<code>(x + y) - (x' + y') ~ (x - x') + (y - y')</code></h3><article class="exercise" id="ex-60-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratSubRep_add_sub</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-60-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>代表元层重排：<span class="math">(x+y)-(x'+y')</span> 与 <span class="math">(x-x')+(y-y')</span> 相等。</p></div></div><pre class="exercise-statement"><code>theorem ratSubRep_add_sub (x x' y y' : ratRep) :
+    ratRel (ratSubRep (ratAddRep x y) (ratAddRep x' y'))
+           (ratAddRep (ratSubRep x x') (ratSubRep y y')) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>五步链。① <code>-(x'+y') ~ -x' + -y'</code>（㊽.4 的 <code>ratNegRep_add</code>，把右端同余进去）；② 结合律反向，把 <code>(x+y) + (-x' + -y')</code> 拆成 <code>((x+y) + -x') + -y'</code>；③ 内层结合律把 <code>(x+y) + -x'</code> 换成 <code>x + (y + -x')</code>；④ 交换 <code>y + -x'</code> 成 <code>-x' + y</code>，再结合成 <code>(x + -x') + y</code>；⑤ 最后一步结合律收成 <code>(x + -x') + (y + -y')</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratSubRep (ratAddRep x y) (ratAddRep x' y')) (ratAddRep (ratSubRep x x') (ratSubRep y y'))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratNegRep_add · ratAddRep_wd_snd_gen · ratAddRep_wd_gen · ratAdd_assoc</span>（三次，其中两次取对称）<span class="math">· ratAdd_comm · ratRel_symm · ratRel_trans_gen</span>（四次）。</p></div></details></div><details open class="solution-panel" id="sol-60-1"><summary>查看解答 <span class="sol-meta">定理 · 65 行</span></summary><div class="solution-body"><p class="solution-note">五步链：① <code>-(x'+y') ~ -x' + -y'</code>（㊽.4 的 <code>ratNegRep_add</code>，右端同余）；
+② 结合律反向，把 <code>(x+y) + (-x' + -y')</code> 拆成 <code>((x+y) + -x') + -y'</code>；
+③ 内层结合律把 <code>(x+y) + -x'</code> 换成 <code>x + (y + -x')</code>；
+④ 交换 <code>y + -x'</code> 成 <code>-x' + y</code>，再结合成 <code>(x + -x') + y</code>；
+⑤ 最后一步结合律收成 <code>(x + -x') + (y + -y')</code>。</p><pre><code>theorem ratSubRep_add_sub (x x' y y' : ratRep) :
+    ratRel (ratSubRep (ratAddRep x y) (ratAddRep x' y'))
+           (ratAddRep (ratSubRep x x') (ratSubRep y y')) :=
+  ratRel_trans_gen
+    (ratSubRep (ratAddRep x y) (ratAddRep x' y'))
+    (ratAddRep (ratAddRep x y) (ratAddRep (ratNegRep x') (ratNegRep y')))
+    (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+    (ratAddRep_wd_snd_gen
+      (ratAddRep x y)
+      (ratNegRep (ratAddRep x' y'))
+      (ratAddRep (ratNegRep x') (ratNegRep y'))
+      (ratNegRep_add x' y'))
+    (ratRel_trans_gen
+      (ratAddRep (ratAddRep x y) (ratAddRep (ratNegRep x') (ratNegRep y')))
+      (ratAddRep (ratAddRep (ratAddRep x y) (ratNegRep x'))
+                 (ratNegRep y'))
+      (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+      (ratRel_symm
+        (ratAddRep (ratAddRep (ratAddRep x y) (ratNegRep x'))
+                   (ratNegRep y'))
+        (ratAddRep (ratAddRep x y)
+                   (ratAddRep (ratNegRep x') (ratNegRep y')))
+        (ratAdd_assoc (ratAddRep x y) (ratNegRep x') (ratNegRep y')))
+      (ratRel_trans_gen
+        (ratAddRep (ratAddRep (ratAddRep x y) (ratNegRep x'))
+                   (ratNegRep y'))
+        (ratAddRep (ratAddRep x (ratAddRep y (ratNegRep x')))
+                   (ratNegRep y'))
+        (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+        (ratAddRep_wd_gen
+          (ratAddRep (ratAddRep x y) (ratNegRep x'))
+          (ratAddRep x (ratAddRep y (ratNegRep x')))
+          (ratNegRep y')
+          (ratAdd_assoc x y (ratNegRep x')))
+        (ratRel_trans_gen
+          (ratAddRep (ratAddRep x (ratAddRep y (ratNegRep x')))
+                     (ratNegRep y'))
+          (ratAddRep (ratAddRep x (ratAddRep (ratNegRep x') y))
+                     (ratNegRep y'))
+          (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+          (ratAddRep_wd_gen
+            (ratAddRep x (ratAddRep y (ratNegRep x')))
+            (ratAddRep x (ratAddRep (ratNegRep x') y))
+            (ratNegRep y')
+            (ratAddRep_wd_snd_gen
+              x
+              (ratAddRep y (ratNegRep x'))
+              (ratAddRep (ratNegRep x') y)
+              (ratAdd_comm y (ratNegRep x'))))
+          (ratRel_trans_gen
+            (ratAddRep (ratAddRep x (ratAddRep (ratNegRep x') y))
+                       (ratNegRep y'))
+            (ratAddRep (ratAddRep (ratAddRep x (ratNegRep x')) y)
+                       (ratNegRep y'))
+            (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+            (ratAddRep_wd_gen
+              (ratAddRep x (ratAddRep (ratNegRep x') y))
+              (ratAddRep (ratAddRep x (ratNegRep x')) y)
+              (ratNegRep y')
+              (ratRel_symm
+                (ratAddRep (ratAddRep x (ratNegRep x')) y)
+                (ratAddRep x (ratAddRep (ratNegRep x') y))
+                (ratAdd_assoc x (ratNegRep x') y)))
+            (ratAdd_assoc (ratAddRep x (ratNegRep x')) y
+              (ratNegRep y'))))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">60.2 逐点 <code>close</code> 对加法同余</h3><article class="exercise" id="ex-60-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">close_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-60-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>逐点 close 对加法同余：两个距离相加。</p></div></div><pre class="exercise-statement"><code>theorem close_add (x x' y y' eps : ratRep)
+    (hx : close x x' (ratHalf eps)) (hy : close y y' (ratHalf eps)) :
+    close (ratAddRep x y) (ratAddRep x' y') eps :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个 <code>ε/2</code> 的界 <code>(x - x')</code>、<code>(y - y')</code> 各取见证 <code>dx</code>、<code>dy</code>；用 ㊺ 的 <code>ratAbsRel_total</code> 给 <code>(x-x') + (y-y')</code> 取见证 <code>d</code>；60.1 把 <code>d</code> 的绝对值搬到 <code>(x+y) - (x'+y')</code>（㊷ 的 <code>ratAbsRel_wd_left</code>，注意方向取 <code>ratRel_symm</code>）；㊽ 的三角不等式给 <code>d ≤ dx + dy</code>，57 的 <code>ratAdd_lt_half</code> 收到 <code>d &lt; ε</code>，最后 <code>ratLtRep_of_le_lt</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>close x x' (ε/2) → close y y' (ε/2) → close (x+y) (x'+y') ε</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.elim · Exists.intro · ratAbsRel_total · ratAbsRel_wd_left · ratRel_symm · ratLeRep_abs_add · ratAdd_lt_half · ratLtRep_of_le_lt</span>。</p></div></details></div><details open class="solution-panel" id="sol-60-2"><summary>查看解答 <span class="sol-meta">定理 · 34 行</span></summary><div class="solution-body"><p class="solution-note">两个 <code>ε/2</code> 的界 <code>(x - x')</code>、<code>(y - y')</code>，经 60.1 搬到 <code>(x+y) - (x'+y')</code>；
+㊽ 的三角不等式把它们加成 <code>dx + dy</code>，57 的 <code>ratAdd_lt_half</code> 收到 <code>ε</code>，
+最后 <code>ratLtRep_of_le_lt</code> 夹出结论。</p><pre><code>theorem close_add (x x' y y' eps : ratRep)
+    (hx : close x x' (ratHalf eps)) (hy : close y y' (ratHalf eps)) :
+    close (ratAddRep x y) (ratAddRep x' y') eps :=
+  Exists.elim hx
+    (fun (dx : ratRep)
+        (hdx : ratAbsRel (ratSubRep x x') dx ∧
+               ratLtRep dx (ratHalf eps)) =&gt;
+      Exists.elim hy
+        (fun (dy : ratRep)
+            (hdy : ratAbsRel (ratSubRep y y') dy ∧
+                   ratLtRep dy (ratHalf eps)) =&gt;
+          Exists.elim
+            (ratAbsRel_total
+              (ratAddRep (ratSubRep x x') (ratSubRep y y')))
+            (fun (d : ratRep)
+                (hd : ratAbsRel
+                  (ratAddRep (ratSubRep x x') (ratSubRep y y')) d) =&gt;
+              Exists.intro d
+                (And.intro
+                  (ratAbsRel_wd_left
+                    (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+                    (ratSubRep (ratAddRep x y) (ratAddRep x' y'))
+                    d
+                    (ratRel_symm
+                      (ratSubRep (ratAddRep x y) (ratAddRep x' y'))
+                      (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+                      (ratSubRep_add_sub x x' y y'))
+                    hd)
+                  (ratLtRep_of_le_lt d (ratAddRep dx dy) eps
+                    (ratLeRep_abs_add
+                      (ratSubRep x x') (ratSubRep y y') dx dy d
+                      (And.left hdx) (And.left hdy) hd)
+                    (ratAdd_lt_half dx dy eps
+                      (And.right hdx) (And.right hdy)))))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">60.3 加法保持 Cauchy</h3><article class="exercise" id="ex-60-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">cauchy_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-60-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>第一条下降义务：Cauchy 序列对加法封闭。</p></div></div><pre class="exercise-statement"><code>theorem cauchy_add (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    Cauchy (addSeq x y) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>量词结构照抄 <code>neg</code>，只是要在 <code>ε/2</code> 上同时取两个阈值：<code>hx</code> 给 <code>N1</code>、<code>hy</code> 给 <code>N2</code>，用 58 的 <code>leNat_max</code> 合成 <code>N</code>；对 <code>n m ≥ N</code>，两个 <code>leNat_trans</code> 把界落到同一对下标，再交给 60.2（注意 <code>addSeq x y n</code> 定义性就是 <code>ratAddRep (x n) (y n)</code>）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Cauchy x → Cauchy y → Cauchy (addSeq x y)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLtRep_half · leNat_max · leNat_trans · close_add · Exists.elim</span>（两次）<span class="math">· Exists.intro</span>。</p></div></details></div><details open class="solution-panel" id="sol-60-3"><summary>查看解答 <span class="sol-meta">定理 · 22 行</span></summary><div class="solution-body"><p class="solution-note">量词结构与 <code>neg</code> 相同，只是要在 <code>ε/2</code> 上同时取两个阈值；58 的
+<code>leNat_max</code> 把 <code>N1</code>、<code>N2</code> 合成一个 <code>N</code>，再逐点用 60.2。</p><pre><code>theorem cauchy_add (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    Cauchy (addSeq x y) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+    Exists.elim (hx (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (N1 : Nat)
+          (h1 : ∀ (n m : Nat), LeNat N1 n → LeNat N1 m →
+            close (x n) (x m) (ratHalf eps)) =&gt;
+        Exists.elim (hy (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (N2 : Nat)
+              (h2 : ∀ (n m : Nat), LeNat N2 n → LeNat N2 m →
+                close (y n) (y m) (ratHalf eps)) =&gt;
+            Exists.elim (leNat_max N1 N2)
+              (fun (N : Nat) (hN : LeNat N1 N ∧ LeNat N2 N) =&gt;
+                Exists.intro N
+                  (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =&gt;
+                    close_add (x n) (x m) (y n) (y m) eps
+                      (h1 n m
+                        (leNat_trans N1 N n (And.left hN) hn)
+                        (leNat_trans N1 N m (And.left hN) hm))
+                      (h2 n m
+                        (leNat_trans N2 N n (And.right hN) hn)
+                        (leNat_trans N2 N m (And.right hN) hm))))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">60.4 加法与 <code>realRel</code> 相容</h3><article class="exercise" id="ex-60-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">realRel_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-60-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>第二条下降义务：realRel 对加法同余。</p></div></div><pre class="exercise-statement"><code>theorem realRel_add (x x' y y' : Seq)
+    (hx : realRel x x') (hy : realRel y y') :
+    realRel (addSeq x y) (addSeq x' y') :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>realRel (addSeq x y) (addSeq x' y')</code> 是三元组：两个 <code>Cauchy</code> 分量是 60.3（<code>Cauchy x</code>/<code>Cauchy x'</code> 来自 <code>hx</code>，<code>Cauchy y</code>/<code>Cauchy y'</code> 来自 <code>hy</code>）；第三分量对 <code>ε/2</code> 取两组阈值，用 <code>leNat_max</code> 合并后逐点用 60.2。<code>realRel</code> 的第三分量可以用 <code>lib/RealEq</code> 的 <code>realRel_close</code> 投影取出来。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>realRel x x' → realRel y y' → realRel (addSeq x y) (addSeq x' y')</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>And.intro（两次）<span class="math">· And.left · And.right · cauchy_add · realRel_close · leNat_max · leNat_trans · close_add</span>。</p></div></details></div><details open class="solution-panel" id="sol-60-4"><summary>查看解答 <span class="sol-meta">定理 · 28 行</span></summary><div class="solution-body"><p class="solution-note">三元组逐分量：两个 <code>Cauchy</code> 分量是 60.3；第三分量对 <code>ε/2</code> 取两组阈值，
+合并后逐点用 60.2。</p><pre><code>theorem realRel_add (x x' y y' : Seq)
+    (hx : realRel x x') (hy : realRel y y') :
+    realRel (addSeq x y) (addSeq x' y') :=
+  And.intro
+    (cauchy_add x y (And.left hx) (And.left hy))
+    (And.intro
+      (cauchy_add x' y'
+        (And.left (And.right hx)) (And.left (And.right hy)))
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+        Exists.elim
+          (realRel_close x x' hx (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (N1 : Nat)
+              (h1 : ∀ (n : Nat), LeNat N1 n →
+                close (x n) (x' n) (ratHalf eps)) =&gt;
+            Exists.elim
+              (realRel_close y y' hy (ratHalf eps)
+                (ratLtRep_half eps heps))
+              (fun (N2 : Nat)
+                  (h2 : ∀ (n : Nat), LeNat N2 n →
+                    close (y n) (y' n) (ratHalf eps)) =&gt;
+                Exists.elim (leNat_max N1 N2)
+                  (fun (N : Nat) (hN : LeNat N1 N ∧ LeNat N2 N) =&gt;
+                    Exists.intro N
+                      (fun (n : Nat) (hn : LeNat N n) =&gt;
+                        close_add (x n) (x' n) (y n) (y' n) eps
+                          (h1 n (leNat_trans N1 N n (And.left hN) hn))
+                          (h2 n
+                            (leNat_trans N2 N n (And.right hN) hn))))))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">60.5 具体：<code>1/2 + 1/3 = 5/6</code></h3><article class="exercise" id="ex-60-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">demo_add_rep</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-60-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>具体算 <span class="math">1/2 + 1/3 = 5/6</span>。</p></div></div><pre class="exercise-statement"><code>theorem demo_add_rep :
+    ratRel (ratAddRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 2))
+           (qrep 5 Nat.zero 5) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratAddRep_mk</code> 是定义性相等：<code>(1/2) + (1/3)</code> 归约成 <code>qrep 5 0 (ratDenRep 1 2)</code>，而 <code>ratDenRep 1 2</code> 归约成 <code>5</code>；两边就是同一个 <code>qrep</code>，交给 <code>ratRel_refl</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratAddRep (qrep 1 0 1) (qrep 1 0 2)) (qrep 5 0 5)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>ratRel_refl（定义性归约）。</p></div></details></div><details open class="solution-panel" id="sol-60-5"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note"><code>ratAddRep_mk</code> 是定义性相等：<code>(1/2) + (1/3)</code> 归约成
+<code>qrep 5 0 (ratDenRep 1 2)</code>，而 <code>ratDenRep 1 2</code> 归约成 <code>5</code>；两边就是
+同一个 <code>qrep</code>，交给 <code>ratRel_refl</code>。</p><pre><code>theorem demo_add_rep :
+    ratRel (ratAddRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 2))
+           (qrep 5 Nat.zero 5) :=
+  ratRel_refl (qrep 5 Nat.zero 5)</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>两条下降义务交清；下一单元把「两个实数的和」写成三元关系（存在且唯一）。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit59.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">实数的取负：第一次把运算下降到商上</span></a><a class="unit-nav-home" ../chapters/ii-6.html#units>目录</a><a class="unit-nav-link" ../units/unit61.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">实数的加法：三元关系（存在 <span class="math">+</span> 唯一）</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-60"><h3><a #top>实数的加法：下降之前的两条义务</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-60-1"><summary>练习 1 · ratSubRep_add_sub <span class="sol-meta">定理</span></summary><p class="solution-note">五步链：① <code>-(x'+y') ~ -x' + -y'</code>（㊽.4 的 <code>ratNegRep_add</code>，右端同余）；
+② 结合律反向，把 <code>(x+y) + (-x' + -y')</code> 拆成 <code>((x+y) + -x') + -y'</code>；
+③ 内层结合律把 <code>(x+y) + -x'</code> 换成 <code>x + (y + -x')</code>；
+④ 交换 <code>y + -x'</code> 成 <code>-x' + y</code>，再结合成 <code>(x + -x') + y</code>；
+⑤ 最后一步结合律收成 <code>(x + -x') + (y + -y')</code>。</p><pre><code>theorem ratSubRep_add_sub (x x' y y' : ratRep) :
+    ratRel (ratSubRep (ratAddRep x y) (ratAddRep x' y'))
+           (ratAddRep (ratSubRep x x') (ratSubRep y y')) :=
+  ratRel_trans_gen
+    (ratSubRep (ratAddRep x y) (ratAddRep x' y'))
+    (ratAddRep (ratAddRep x y) (ratAddRep (ratNegRep x') (ratNegRep y')))
+    (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+    (ratAddRep_wd_snd_gen
+      (ratAddRep x y)
+      (ratNegRep (ratAddRep x' y'))
+      (ratAddRep (ratNegRep x') (ratNegRep y'))
+      (ratNegRep_add x' y'))
+    (ratRel_trans_gen
+      (ratAddRep (ratAddRep x y) (ratAddRep (ratNegRep x') (ratNegRep y')))
+      (ratAddRep (ratAddRep (ratAddRep x y) (ratNegRep x'))
+                 (ratNegRep y'))
+      (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+      (ratRel_symm
+        (ratAddRep (ratAddRep (ratAddRep x y) (ratNegRep x'))
+                   (ratNegRep y'))
+        (ratAddRep (ratAddRep x y)
+                   (ratAddRep (ratNegRep x') (ratNegRep y')))
+        (ratAdd_assoc (ratAddRep x y) (ratNegRep x') (ratNegRep y')))
+      (ratRel_trans_gen
+        (ratAddRep (ratAddRep (ratAddRep x y) (ratNegRep x'))
+                   (ratNegRep y'))
+        (ratAddRep (ratAddRep x (ratAddRep y (ratNegRep x')))
+                   (ratNegRep y'))
+        (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+        (ratAddRep_wd_gen
+          (ratAddRep (ratAddRep x y) (ratNegRep x'))
+          (ratAddRep x (ratAddRep y (ratNegRep x')))
+          (ratNegRep y')
+          (ratAdd_assoc x y (ratNegRep x')))
+        (ratRel_trans_gen
+          (ratAddRep (ratAddRep x (ratAddRep y (ratNegRep x')))
+                     (ratNegRep y'))
+          (ratAddRep (ratAddRep x (ratAddRep (ratNegRep x') y))
+                     (ratNegRep y'))
+          (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+          (ratAddRep_wd_gen
+            (ratAddRep x (ratAddRep y (ratNegRep x')))
+            (ratAddRep x (ratAddRep (ratNegRep x') y))
+            (ratNegRep y')
+            (ratAddRep_wd_snd_gen
+              x
+              (ratAddRep y (ratNegRep x'))
+              (ratAddRep (ratNegRep x') y)
+              (ratAdd_comm y (ratNegRep x'))))
+          (ratRel_trans_gen
+            (ratAddRep (ratAddRep x (ratAddRep (ratNegRep x') y))
+                       (ratNegRep y'))
+            (ratAddRep (ratAddRep (ratAddRep x (ratNegRep x')) y)
+                       (ratNegRep y'))
+            (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+            (ratAddRep_wd_gen
+              (ratAddRep x (ratAddRep (ratNegRep x') y))
+              (ratAddRep (ratAddRep x (ratNegRep x')) y)
+              (ratNegRep y')
+              (ratRel_symm
+                (ratAddRep (ratAddRep x (ratNegRep x')) y)
+                (ratAddRep x (ratAddRep (ratNegRep x') y))
+                (ratAdd_assoc x (ratNegRep x') y)))
+            (ratAdd_assoc (ratAddRep x (ratNegRep x')) y
+              (ratNegRep y'))))))</code></pre></details><details open class="appendix-solution" id="app-sol-60-2"><summary>练习 2 · close_add <span class="sol-meta">定理</span></summary><p class="solution-note">两个 <code>ε/2</code> 的界 <code>(x - x')</code>、<code>(y - y')</code>，经 60.1 搬到 <code>(x+y) - (x'+y')</code>；
+㊽ 的三角不等式把它们加成 <code>dx + dy</code>，57 的 <code>ratAdd_lt_half</code> 收到 <code>ε</code>，
+最后 <code>ratLtRep_of_le_lt</code> 夹出结论。</p><pre><code>theorem close_add (x x' y y' eps : ratRep)
+    (hx : close x x' (ratHalf eps)) (hy : close y y' (ratHalf eps)) :
+    close (ratAddRep x y) (ratAddRep x' y') eps :=
+  Exists.elim hx
+    (fun (dx : ratRep)
+        (hdx : ratAbsRel (ratSubRep x x') dx ∧
+               ratLtRep dx (ratHalf eps)) =&gt;
+      Exists.elim hy
+        (fun (dy : ratRep)
+            (hdy : ratAbsRel (ratSubRep y y') dy ∧
+                   ratLtRep dy (ratHalf eps)) =&gt;
+          Exists.elim
+            (ratAbsRel_total
+              (ratAddRep (ratSubRep x x') (ratSubRep y y')))
+            (fun (d : ratRep)
+                (hd : ratAbsRel
+                  (ratAddRep (ratSubRep x x') (ratSubRep y y')) d) =&gt;
+              Exists.intro d
+                (And.intro
+                  (ratAbsRel_wd_left
+                    (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+                    (ratSubRep (ratAddRep x y) (ratAddRep x' y'))
+                    d
+                    (ratRel_symm
+                      (ratSubRep (ratAddRep x y) (ratAddRep x' y'))
+                      (ratAddRep (ratSubRep x x') (ratSubRep y y'))
+                      (ratSubRep_add_sub x x' y y'))
+                    hd)
+                  (ratLtRep_of_le_lt d (ratAddRep dx dy) eps
+                    (ratLeRep_abs_add
+                      (ratSubRep x x') (ratSubRep y y') dx dy d
+                      (And.left hdx) (And.left hdy) hd)
+                    (ratAdd_lt_half dx dy eps
+                      (And.right hdx) (And.right hdy)))))))</code></pre></details><details open class="appendix-solution" id="app-sol-60-3"><summary>练习 3 · cauchy_add <span class="sol-meta">定理</span></summary><p class="solution-note">量词结构与 <code>neg</code> 相同，只是要在 <code>ε/2</code> 上同时取两个阈值；58 的
+<code>leNat_max</code> 把 <code>N1</code>、<code>N2</code> 合成一个 <code>N</code>，再逐点用 60.2。</p><pre><code>theorem cauchy_add (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    Cauchy (addSeq x y) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+    Exists.elim (hx (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (N1 : Nat)
+          (h1 : ∀ (n m : Nat), LeNat N1 n → LeNat N1 m →
+            close (x n) (x m) (ratHalf eps)) =&gt;
+        Exists.elim (hy (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (N2 : Nat)
+              (h2 : ∀ (n m : Nat), LeNat N2 n → LeNat N2 m →
+                close (y n) (y m) (ratHalf eps)) =&gt;
+            Exists.elim (leNat_max N1 N2)
+              (fun (N : Nat) (hN : LeNat N1 N ∧ LeNat N2 N) =&gt;
+                Exists.intro N
+                  (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =&gt;
+                    close_add (x n) (x m) (y n) (y m) eps
+                      (h1 n m
+                        (leNat_trans N1 N n (And.left hN) hn)
+                        (leNat_trans N1 N m (And.left hN) hm))
+                      (h2 n m
+                        (leNat_trans N2 N n (And.right hN) hn)
+                        (leNat_trans N2 N m (And.right hN) hm))))))</code></pre></details><details open class="appendix-solution" id="app-sol-60-4"><summary>练习 4 · realRel_add <span class="sol-meta">定理</span></summary><p class="solution-note">三元组逐分量：两个 <code>Cauchy</code> 分量是 60.3；第三分量对 <code>ε/2</code> 取两组阈值，
+合并后逐点用 60.2。</p><pre><code>theorem realRel_add (x x' y y' : Seq)
+    (hx : realRel x x') (hy : realRel y y') :
+    realRel (addSeq x y) (addSeq x' y') :=
+  And.intro
+    (cauchy_add x y (And.left hx) (And.left hy))
+    (And.intro
+      (cauchy_add x' y'
+        (And.left (And.right hx)) (And.left (And.right hy)))
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+        Exists.elim
+          (realRel_close x x' hx (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (N1 : Nat)
+              (h1 : ∀ (n : Nat), LeNat N1 n →
+                close (x n) (x' n) (ratHalf eps)) =&gt;
+            Exists.elim
+              (realRel_close y y' hy (ratHalf eps)
+                (ratLtRep_half eps heps))
+              (fun (N2 : Nat)
+                  (h2 : ∀ (n : Nat), LeNat N2 n →
+                    close (y n) (y' n) (ratHalf eps)) =&gt;
+                Exists.elim (leNat_max N1 N2)
+                  (fun (N : Nat) (hN : LeNat N1 N ∧ LeNat N2 N) =&gt;
+                    Exists.intro N
+                      (fun (n : Nat) (hn : LeNat N n) =&gt;
+                        close_add (x n) (x' n) (y n) (y' n) eps
+                          (h1 n (leNat_trans N1 N n (And.left hN) hn))
+                          (h2 n
+                            (leNat_trans N2 N n (And.right hN) hn))))))))</code></pre></details><details open class="appendix-solution" id="app-sol-60-5"><summary>练习 5 · demo_add_rep <span class="sol-meta">定理</span></summary><p class="solution-note"><code>ratAddRep_mk</code> 是定义性相等：<code>(1/2) + (1/3)</code> 归约成
+<code>qrep 5 0 (ratDenRep 1 2)</code>，而 <code>ratDenRep 1 2</code> 归约成 <code>5</code>；两边就是
+同一个 <code>qrep</code>，交给 <code>ratRel_refl</code>。</p><pre><code>theorem demo_add_rep :
+    ratRel (ratAddRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 2))
+           (qrep 5 Nat.zero 5) :=
+  ratRel_refl (qrep 5 Nat.zero 5)</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

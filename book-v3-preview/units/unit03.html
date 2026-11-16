@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>03 ℕ 的算术律（复习） · 从集合论到实分析</title>
+<meta name="description" content="单元③ ℕ 的算术律（复习）：导语、定义与定理、练习与解答。Unit 3 — Nat Arithmetic Review">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit03.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></li><li aria-current="page">单元 03 ℕ 的算术律（复习）</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-3-1">定义与定理</a></li>
+<li><a href="#ex-3-1">练习</a></li>
+<li><a href="#appendix-unit-3">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-1.html#units">↑ 本章目录</a>
+      <a href="../print/unit03.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-3">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-1.html>II.1</a> · 本章第 3 / 19 单元 · 全书第 3 / 72 单元</p>
+<h1><span class="unit-number">03</span> <span><span class="math">ℕ</span> 的算术律（复习）</span></h1>
+<p class="unit-title-en">Unit 3 — Nat Arithmetic Review</p>
+<p class="unit-meta">2 个定义 · 9 个定理 · 7 道练习 · <a #appendix-unit-3>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="3" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-3" aria-label="复制单元 3 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit03.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-1.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>卷 I 已经把自然数搭好：有 0、有后继，也有递归定理。但自然数上的加法与乘法不是天上掉下来的；后面的整数、有理数、实数，最后都要把等式落回这里。为了后面在代表元层反复使用这些律时，道理都在这里；先把它们亲手重造一遍：用 Nat.rec 定义 add 与 mul，再用归纳证明零元、后继、结合、交换与分配。</p></div></div></section>
+<div class="block prose intuition-only"><p>为什么不直接用 prelude 里现成的 Nat.add？因为后面在代表元层做的每一步计算，最后都要归结到「递归定义 <span class="math">+</span> 归纳证明」这个骨架上。把现成加法当黑箱，代表元计算就只剩符号操作；亲手造一遍，才知道归纳假设从哪里来、为什么搬得动。</p></div><div class="block prose intuition-only"><p>先看定义。add 对第二个参数递归：<span class="math">add a 0 = a</span>，<span class="math">add a (succ b) = succ (add a b)</span>。这两个等式是定义性相等，证明项就是 Eq.refl；mul 也照同样方式递归：</p></div><div class="math-display intuition-only" role="math" aria-label="mul a 0 = 0，mul a (succ b) = add a (mul a b)"><math display="block" class="mathml"><mrow><mi mathvariant="normal">mul</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mn>0</mn><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mn>0</mn><mo>，</mo><mi mathvariant="normal">mul</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi mathvariant="normal">succ</mi><mspace width="0.22em"/><mi>b</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi mathvariant="normal">add</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi mathvariant="normal">mul</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mi>b</mi></mrow><mo>)</mo></mrow></mrow></math></div><div class="block prose intuition-only"><p>定义直接给出四条定义性等式（add_zero、add_succ、mul_zero、mul_succ）：证明项就是 Eq.refl。真正要用归纳的是 zero_add、succ_add、add_assoc、add_comm，以及搬运助手 add_rotate 与分配律 mul_distrib。零情形通常定义性成立；后继情形把归纳假设沿 succ 搬过去，必要时用 Eq.subst 改写谓词。</p></div><div class="block prose intuition-only"><p>这七条律此后可以直接引用。<span class="math">ℤ</span>、<span class="math">ℚ</span>、<span class="math">ℝ</span> 的代表元层再写加法零元、交换加数时，用的就是这里证过的结果——它们不是新公理，而是自然数上归纳法的直接推论。</p></div><article class="decl decl-def" id="decl-3-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">add</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def add (a b : Nat) : Nat :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def add (a b : Nat) : Nat :=
+  Nat.rec (fun (_ : Nat) =&gt; Nat) a (fun (n : Nat) (ih : Nat) =&gt; Nat.succ ih) b</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-3-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">mul</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def mul (a b : Nat) : Nat :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def mul (a b : Nat) : Nat :=
+  Nat.rec (fun (_ : Nat) =&gt; Nat) Nat.zero (fun (n : Nat) (ih : Nat) =&gt; add a ih) b</code></pre></details></div></article>
+<article class="decl decl-theorem" id="decl-3-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_zero</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_zero (a : Nat) : add a Nat.zero = a :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.refl.{1} Nat a</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-3-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_succ</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_succ (a b : Nat) : add a (Nat.succ b) = Nat.succ (add a b) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.refl.{1} Nat (Nat.succ (add a b))</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-3-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">zero_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-3-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>先证零元律：<span class="math">0 + b = b</span>。思路：对 <code>b</code> 归纳（<code>Nat.rec</code> <span class="math">+ Prop</span> 动机）；零情形定义性成立（<code>Eq.refl</code>）；后继情形把归纳假设沿 <code>Nat.succ</code> 搬过去（<code>Eq.subst</code> <span class="math">+</span> 谓词）。关键件：<code>Nat.rec</code>（动机 <span class="math">·</span> 零情形 <span class="math">·</span> 后继情形 <span class="math">·</span> 被归纳项）<span class="math">·</span> <code>@Eq.refl.{1}</code> / <code>@Eq.subst.{1}</code></p></div></div><pre class="exercise-statement"><code>theorem zero_add (b : Nat) : add Nat.zero b = b := by
+  sorry</code></pre><details class="solution-panel" id="sol-3-1"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem zero_add (b : Nat) : add Nat.zero b = b :=
+  Nat.rec (fun (n : Nat) =&gt; add Nat.zero n = n)
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : add Nat.zero n = n) =&gt;
+      @Eq.subst.{1} Nat (fun (m : Nat) =&gt; Nat.succ (add Nat.zero n) = Nat.succ m)
+        (add Nat.zero n) n ih (@Eq.refl.{1} Nat (Nat.succ (add Nat.zero n))))
+    b</code></pre></div></details></div></article>
+<article class="exercise" id="ex-3-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">succ_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-3-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>再证后继律：<span class="math">(s a) + b = s (a + b)</span>。思路：和 zero_add 同一个归纳骨架，但零情形是 <code>s a = s a</code>、后继情形把假设搬过一层 <code>Nat.succ</code>。关键件：<code>Nat.rec</code> <span class="math">·</span> <code>@Eq.refl.{1}</code> <span class="math">·</span> <code>@Eq.subst.{1}</code></p></div></div><pre class="exercise-statement"><code>theorem succ_add (a b : Nat) : add (Nat.succ a) b = Nat.succ (add a b) := by
+  sorry</code></pre><details class="solution-panel" id="sol-3-2"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem succ_add (a b : Nat) : add (Nat.succ a) b = Nat.succ (add a b) :=
+  Nat.rec (fun (n : Nat) =&gt; add (Nat.succ a) n = Nat.succ (add a n))
+    (@Eq.refl.{1} Nat (Nat.succ a))
+    (fun (n : Nat) (ih : add (Nat.succ a) n = Nat.succ (add a n)) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (add (Nat.succ a) n) = Nat.succ m)
+        (add (Nat.succ a) n) (Nat.succ (add a n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (add (Nat.succ a) n))))
+    b</code></pre></div></details></div></article>
+<article class="exercise" id="ex-3-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">add_assoc</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-3-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>加法结合律：<span class="math">(a+b)+c = a+(b+c)</span>。思路：对 <code>c</code> 归纳；后继情形两边都变成 <code>Nat.succ</code> 套同一个中间项 <span class="math">⇒</span> 搬运归纳假设。关键件：<code>Nat.rec</code> <span class="math">·</span> <code>@Eq.refl.{1}</code> <span class="math">·</span> <code>@Eq.subst.{1}</code></p></div></div><pre class="exercise-statement"><code>theorem add_assoc (a b c : Nat) :
+    add (add a b) c = add a (add b c) := by
+  sorry</code></pre><details class="solution-panel" id="sol-3-3"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem add_assoc (a b c : Nat) :
+    add (add a b) c = add a (add b c) :=
+  Nat.rec (fun (n : Nat) =&gt; add (add a b) n = add a (add b n))
+    (@Eq.refl.{1} Nat (add a b))
+    (fun (n : Nat) (ih : add (add a b) n = add a (add b n)) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (add (add a b) n) = Nat.succ m)
+        (add (add a b) n) (add a (add b n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (add (add a b) n))))
+    c</code></pre></div></details></div></article>
+<article class="exercise" id="ex-3-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">add_comm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-3-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>加法交换律：<span class="math">a+b = b+a</span>。思路：对 <code>b</code> 归纳。零情形要 <code>zero_add</code> 的对称（<code>Eq.symm</code>）；后继情形用两步 <code>Eq.trans</code>：先把归纳假设搬到 <code>Nat.succ</code> 下，再用 <code>succ_add</code> 的对称把 <code>s (b+a)</code> 换成 <code>(s b)+a</code>。关键件：<code>zero_add</code> <span class="math">·</span> <code>succ_add</code> <span class="math">·</span> <code>Eq.symm.{1}</code> <span class="math">·</span> <code>Eq.trans.{1}</code>（三步要写清中间项）</p></div></div><pre class="exercise-statement"><code>theorem add_comm (a b : Nat) : add a b = add b a := by
+  sorry</code></pre><details class="solution-panel" id="sol-3-4"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem add_comm (a b : Nat) : add a b = add b a :=
+  Nat.rec (fun (n : Nat) =&gt; add a n = add n a)
+    (@Eq.symm.{1} Nat (add Nat.zero a) a (zero_add a))
+    (fun (n : Nat) (ih : add a n = add n a) =&gt;
+      @Eq.trans.{1} Nat (Nat.succ (add a n)) (Nat.succ (add n a)) (add (Nat.succ n) a)
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; Nat.succ (add a n) = Nat.succ m)
+          (add a n) (add n a) ih
+          (@Eq.refl.{1} Nat (Nat.succ (add a n))))
+        (@Eq.symm.{1} Nat (add (Nat.succ n) a) (Nat.succ (add n a)) (succ_add n a)))
+    b</code></pre></div></details></div></article>
+<article class="exercise" id="ex-3-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">add_rotate</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-3-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>搬运助手：<span class="math">a+(b+c) = b+(a+c)</span>，把内层加数换个位置。思路：先拆链 —— <code>a+(b+c) = (a+b)+c</code>（结合律的对称）<span class="math">⇒</span> <code>= (b+a)+c</code>（把内层交换，用 <code>Eq.subst</code> <span class="math">+</span> 谓词）<span class="math">⇒</span> <code>= b+(a+c)</code>（结合律）。关键件：<code>add_assoc</code>（两次，一次取对称）<span class="math">·</span> <code>add_comm</code> <span class="math">·</span> <code>Eq.subst.{1}</code>（谓词 <code>fun m =&gt; (a+b)+c = m+c</code>）<span class="math">·</span> <code>Eq.trans.{1}</code></p></div></div><pre class="exercise-statement"><code>theorem add_rotate (a b c : Nat) :
+    add a (add b c) = add b (add a c) := by
+  sorry</code></pre><details class="solution-panel" id="sol-3-5"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem add_rotate (a b c : Nat) :
+    add a (add b c) = add b (add a c) :=
+  @Eq.trans.{1} Nat (add a (add b c)) (add (add a b) c) (add b (add a c))
+    (@Eq.symm.{1} Nat (add (add a b) c) (add a (add b c)) (add_assoc a b c))
+    (@Eq.trans.{1} Nat (add (add a b) c) (add (add b a) c) (add b (add a c))
+      (@Eq.subst.{1} Nat (fun (m : Nat) =&gt; add (add a b) c = add m c)
+        (add a b) (add b a) (add_comm a b) (@Eq.refl.{1} Nat (add (add a b) c)))
+      (add_assoc b a c))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-3-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">zero_mul</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-3-6>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>零乘：<span class="math">0 · b = 0</span>。思路：对 <code>b</code> 归纳；后继情形 <code>0·(s n) = 0 + 0·n</code>（<span class="math">ι</span> 归约）<span class="math">⇒</span> 用归纳假设把第二项换成 <code>0</code> <span class="math">⇒</span> 再用 <code>zero_add</code> 收尾。关键件：<code>Eq.subst.{1}</code>（谓词 <code>fun m =&gt; 0 + 0·n = 0 + m</code>）<span class="math">·</span> <code>zero_add</code> <span class="math">·</span> <code>Eq.trans.{1}</code></p></div></div><pre class="exercise-statement"><code>theorem zero_mul (b : Nat) : mul Nat.zero b = Nat.zero := by
+  sorry</code></pre><details class="solution-panel" id="sol-3-6"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem zero_mul (b : Nat) : mul Nat.zero b = Nat.zero :=
+  Nat.rec (fun (n : Nat) =&gt; mul Nat.zero n = Nat.zero)
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : mul Nat.zero n = Nat.zero) =&gt;
+      @Eq.trans.{1} Nat (add Nat.zero (mul Nat.zero n)) (add Nat.zero Nat.zero) Nat.zero
+        (@Eq.subst.{1} Nat (fun (m : Nat) =&gt; add Nat.zero (mul Nat.zero n) = add Nat.zero m)
+          (mul Nat.zero n) Nat.zero ih (@Eq.refl.{1} Nat (add Nat.zero (mul Nat.zero n))))
+        (zero_add Nat.zero))
+    b</code></pre></div></details></div></article>
+<article class="exercise" id="ex-3-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">mul_distrib</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-3-7>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>分配律：<span class="math">a·(b+c) = a·b + a·c</span>。思路：对 <code>c</code> 归纳。零情形定义性成立；后继情形：左边 <span class="math">ι</span> 归约成 <code>a + a·(b+n)</code>，用归纳假设替换内层，再用 <code>add_rotate</code> 把 <code>a + (a·b + a·n)</code> 旋成 <code>a·b + (a + a·n)</code> —— 右边正好 <span class="math">ι</span> 归约成它。关键件：<code>add_rotate</code> <span class="math">·</span> <code>Eq.subst.{1}</code> <span class="math">·</span> <code>Eq.trans.{1}</code> <span class="math">·</span> <code>Eq.refl.{1}</code>（零情形）</p></div></div><pre class="exercise-statement"><code>theorem mul_distrib (a b c : Nat) :
+    mul a (add b c) = add (mul a b) (mul a c) := by
+  sorry</code></pre><details class="solution-panel" id="sol-3-7"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem mul_distrib (a b c : Nat) :
+    mul a (add b c) = add (mul a b) (mul a c) :=
+  Nat.rec (fun (n : Nat) =&gt; mul a (add b n) = add (mul a b) (mul a n))
+    (@Eq.refl.{1} Nat (mul a b))
+    (fun (n : Nat) (ih : mul a (add b n) = add (mul a b) (mul a n)) =&gt;
+      @Eq.trans.{1} Nat (add a (mul a (add b n))) (add a (add (mul a b) (mul a n)))
+        (add (mul a b) (add a (mul a n)))
+        (@Eq.subst.{1} Nat (fun (m : Nat) =&gt; add a (mul a (add b n)) = add a m)
+          (mul a (add b n)) (add (mul a b) (mul a n)) ih
+          (@Eq.refl.{1} Nat (add a (mul a (add b n)))))
+        (add_rotate a (mul a b) (mul a n)))
+    c</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit02.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">商类型与良定义性（复习）</span></a><a class="unit-nav-home" ../chapters/ii-1.html#units>目录</a><a class="unit-nav-link" ../units/unit04.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">整数加法 / 负 / 减的代表元公式</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-3"><h3><a #top><span class="math">ℕ</span> 的算术律（复习）</a></h3><p class="appendix-meta">7 道练习 · 7 份按名匹配的解答 · 2 个解答独有声明</p><details class="appendix-solution" id="app-sol-3-1"><summary>练习 1 · zero_add <span class="sol-meta">定理</span></summary><pre><code>theorem zero_add (b : Nat) : add Nat.zero b = b :=
+  Nat.rec (fun (n : Nat) =&gt; add Nat.zero n = n)
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : add Nat.zero n = n) =&gt;
+      @Eq.subst.{1} Nat (fun (m : Nat) =&gt; Nat.succ (add Nat.zero n) = Nat.succ m)
+        (add Nat.zero n) n ih (@Eq.refl.{1} Nat (Nat.succ (add Nat.zero n))))
+    b</code></pre></details><details class="appendix-solution" id="app-sol-3-2"><summary>练习 2 · succ_add <span class="sol-meta">定理</span></summary><pre><code>theorem succ_add (a b : Nat) : add (Nat.succ a) b = Nat.succ (add a b) :=
+  Nat.rec (fun (n : Nat) =&gt; add (Nat.succ a) n = Nat.succ (add a n))
+    (@Eq.refl.{1} Nat (Nat.succ a))
+    (fun (n : Nat) (ih : add (Nat.succ a) n = Nat.succ (add a n)) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (add (Nat.succ a) n) = Nat.succ m)
+        (add (Nat.succ a) n) (Nat.succ (add a n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (add (Nat.succ a) n))))
+    b</code></pre></details><details class="appendix-solution" id="app-sol-3-3"><summary>练习 3 · add_assoc <span class="sol-meta">定理</span></summary><pre><code>theorem add_assoc (a b c : Nat) :
+    add (add a b) c = add a (add b c) :=
+  Nat.rec (fun (n : Nat) =&gt; add (add a b) n = add a (add b n))
+    (@Eq.refl.{1} Nat (add a b))
+    (fun (n : Nat) (ih : add (add a b) n = add a (add b n)) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; Nat.succ (add (add a b) n) = Nat.succ m)
+        (add (add a b) n) (add a (add b n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (add (add a b) n))))
+    c</code></pre></details><details class="appendix-solution" id="app-sol-3-4"><summary>练习 4 · add_comm <span class="sol-meta">定理</span></summary><pre><code>theorem add_comm (a b : Nat) : add a b = add b a :=
+  Nat.rec (fun (n : Nat) =&gt; add a n = add n a)
+    (@Eq.symm.{1} Nat (add Nat.zero a) a (zero_add a))
+    (fun (n : Nat) (ih : add a n = add n a) =&gt;
+      @Eq.trans.{1} Nat (Nat.succ (add a n)) (Nat.succ (add n a)) (add (Nat.succ n) a)
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; Nat.succ (add a n) = Nat.succ m)
+          (add a n) (add n a) ih
+          (@Eq.refl.{1} Nat (Nat.succ (add a n))))
+        (@Eq.symm.{1} Nat (add (Nat.succ n) a) (Nat.succ (add n a)) (succ_add n a)))
+    b</code></pre></details><details class="appendix-solution" id="app-sol-3-5"><summary>练习 5 · add_rotate <span class="sol-meta">定理</span></summary><pre><code>theorem add_rotate (a b c : Nat) :
+    add a (add b c) = add b (add a c) :=
+  @Eq.trans.{1} Nat (add a (add b c)) (add (add a b) c) (add b (add a c))
+    (@Eq.symm.{1} Nat (add (add a b) c) (add a (add b c)) (add_assoc a b c))
+    (@Eq.trans.{1} Nat (add (add a b) c) (add (add b a) c) (add b (add a c))
+      (@Eq.subst.{1} Nat (fun (m : Nat) =&gt; add (add a b) c = add m c)
+        (add a b) (add b a) (add_comm a b) (@Eq.refl.{1} Nat (add (add a b) c)))
+      (add_assoc b a c))</code></pre></details><details class="appendix-solution" id="app-sol-3-6"><summary>练习 6 · zero_mul <span class="sol-meta">定理</span></summary><pre><code>theorem zero_mul (b : Nat) : mul Nat.zero b = Nat.zero :=
+  Nat.rec (fun (n : Nat) =&gt; mul Nat.zero n = Nat.zero)
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : mul Nat.zero n = Nat.zero) =&gt;
+      @Eq.trans.{1} Nat (add Nat.zero (mul Nat.zero n)) (add Nat.zero Nat.zero) Nat.zero
+        (@Eq.subst.{1} Nat (fun (m : Nat) =&gt; add Nat.zero (mul Nat.zero n) = add Nat.zero m)
+          (mul Nat.zero n) Nat.zero ih (@Eq.refl.{1} Nat (add Nat.zero (mul Nat.zero n))))
+        (zero_add Nat.zero))
+    b</code></pre></details><details class="appendix-solution" id="app-sol-3-7"><summary>练习 7 · mul_distrib <span class="sol-meta">定理</span></summary><pre><code>theorem mul_distrib (a b c : Nat) :
+    mul a (add b c) = add (mul a b) (mul a c) :=
+  Nat.rec (fun (n : Nat) =&gt; mul a (add b n) = add (mul a b) (mul a n))
+    (@Eq.refl.{1} Nat (mul a b))
+    (fun (n : Nat) (ih : mul a (add b n) = add (mul a b) (mul a n)) =&gt;
+      @Eq.trans.{1} Nat (add a (mul a (add b n))) (add a (add (mul a b) (mul a n)))
+        (add (mul a b) (add a (mul a n)))
+        (@Eq.subst.{1} Nat (fun (m : Nat) =&gt; add a (mul a (add b n)) = add a m)
+          (mul a (add b n)) (add (mul a b) (mul a n)) ih
+          (@Eq.refl.{1} Nat (add a (mul a (add b n)))))
+        (add_rotate a (mul a b) (mul a n)))
+    c</code></pre></details><details class="appendix-solution" id="app-extra-3-1"><summary>补充 · mul_zero <span class="sol-meta">定理</span></summary><pre><code>theorem mul_zero (a : Nat) : mul a Nat.zero = Nat.zero :=
+  @Eq.refl.{1} Nat Nat.zero</code></pre></details><details class="appendix-solution" id="app-extra-3-2"><summary>补充 · mul_succ <span class="sol-meta">定理</span></summary><pre><code>theorem mul_succ (a b : Nat) : mul a (Nat.succ b) = add a (mul a b) :=
+  @Eq.refl.{1} Nat (add a (mul a b))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit02.html">← 02 商类型与良定义性（复习）</a><a class="next" href="../units/unit04.html">04 整数加法 / 负 / 减的代表元公式 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

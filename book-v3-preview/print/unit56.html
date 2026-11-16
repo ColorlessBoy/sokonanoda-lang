@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 56 两次减法的相加：中间项消去</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit56.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 56 两次减法的相加：中间项消去</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit56.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">II.6 实数的商与完备性 · 单元 56</p><h1>两次减法的相加：中间项消去</h1><p class="note">Unit 56 — Adding Two Differences: Cancelling the Middle Term</p></header><section class="unit" id="unit-56">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-6.html>II.6</a> · 本章第 2 / 14 单元 · 全书第 56 / 72 单元</p>
+<h2><span class="unit-number">56</span><span>两次减法的相加：中间项消去</span></h2>
+<p class="unit-title-en">Unit 56 — Adding Two Differences: Cancelling the Middle Term</p>
+<p class="unit-meta">5 个定理 · 5 道练习 · 14 条提示 · <a #appendix-unit-56>解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>close 的传递性要把两个距离加起来：|x-y| <span class="math">&lt; ε/2</span> 与 |y-z| <span class="math">&lt; ε/2</span> 推出 |x-z| <span class="math">&lt; ε</span>。但 x-z 与 <span class="math">(x-y)+(y-z)</span> 是两个不同的代表元，要先把它们认成同一个有理数——本单元结清这条代数恒等式：<span class="math">(x-y)+(y-z)</span> 与 x-z 相等。</p></div></div></section>
+<h3 class="unit-subhead">56.1 <code>ratAddRep</code> 对第一个变元的通用同余</h3><article class="exercise" id="ex-56-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratAddRep_wd_gen</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-56-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>它看着像「移项」，但在商构造里要穿过三层。减法只是加负元，结合律要按 ratAddRep 的分母嵌套来搬；中间项 <span class="math">-y+y</span> 收成 0 要靠上一单元的逆元律与加法交换律；而每一步都要在同余下进行——库里的 ratAddRep_wd 与 _snd 只认字面三元组，任意代表元上要先用序把同余补出来。</p></div><div class="block prose intuition-only"><p>先补两条通用同余（对第一、第二变元各一条），再用它们做中间项消去，然后拼出主定理，最后落在具体数字上。全部停在商与已证明的库引理上，不碰函数外延性、不加公理。</p></div><div class="block prose intuition-only"><p>先补通用同余：第一个变元换等价代表元，和仍等价。</p></div></div><pre class="exercise-statement"><code>theorem ratAddRep_wd_gen (x x' z : ratRep) (h : ratRel x x') :
+    ratRel (ratAddRep x z) (ratAddRep x' z) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratRel x x'</code> 给两个方向的弱序（㉙ 的 <code>ratLeRep_of_ratRel</code>）；各加同一个 <code>z</code>（㊹ 的 <code>ratLeRep_add_right</code>），再用 ㊻ 的 <code>ratLeRep_antisymm</code> 把两条弱序夹成 <code>ratRel</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel x x' → ratRel (ratAddRep x z) (ratAddRep x' z)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_of_ratRel · ratLeRep_add_right · ratLeRep_antisymm · ratRel_symm</span>。</p></div></details></div><details open class="solution-panel" id="sol-56-1"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note">库里的 <code>ratAddRep_wd</code> 只认<strong>字面三元组</strong>（两个变元必须同分母）。任意代表元上
+用序来补：<code>x ~ x'</code> 给两个方向的弱序，各加同一个 <code>z</code>（㊹ 的 <code>ratLeRep_add_right</code>），
+再用 ㊻ 的反对称性把两条弱序夹成 <code>ratRel</code>。</p><pre><code>theorem ratAddRep_wd_gen (x x' z : ratRep) (h : ratRel x x') :
+    ratRel (ratAddRep x z) (ratAddRep x' z) :=
+  ratLeRep_antisymm (ratAddRep x z) (ratAddRep x' z)
+    (ratLeRep_add_right x x' z (ratLeRep_of_ratRel x x' h))
+    (ratLeRep_add_right x' x z
+      (ratLeRep_of_ratRel x' x (ratRel_symm x x' h)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">56.2 <code>ratAddRep</code> 对第二个变元的通用同余</h3><article class="exercise" id="ex-56-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratAddRep_wd_snd_gen</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-56-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>第二个变元的同余：用左加的单调性。</p></div></div><pre class="exercise-statement"><code>theorem ratAddRep_wd_snd_gen (x z z' : ratRep) (h : ratRel z z') :
+    ratRel (ratAddRep x z) (ratAddRep x z') :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与 56.1 同形，只是改用<strong>左加</strong>（51 的 <code>ratLeRep_add_left</code>）：<code>z ~ z'</code> 给两个方向的弱序，<code>x + z ≤ x + z'</code> 与 <code>x + z' ≤ x + z</code> 再由反对称性收成 <code>ratRel</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel z z' → ratRel (ratAddRep x z) (ratAddRep x z')</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_of_ratRel · ratLeRep_add_left · ratLeRep_antisymm · ratRel_symm</span>。</p></div></details></div><details open class="solution-panel" id="sol-56-2"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem ratAddRep_wd_snd_gen (x z z' : ratRep) (h : ratRel z z') :
+    ratRel (ratAddRep x z) (ratAddRep x z') :=
+  ratLeRep_antisymm (ratAddRep x z) (ratAddRep x z')
+    (ratLeRep_add_left z z' x (ratLeRep_of_ratRel z z' h))
+    (ratLeRep_add_left z' z x
+      (ratLeRep_of_ratRel z' z (ratRel_symm z z' h)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">56.3 <code>(-y) + y ~ 0</code></h3><article class="exercise" id="ex-56-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratNegRep_add_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-56-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>中间项消去：<span class="math">(x-y) + (y-z)</span> 与 x-z 相等。</p></div></div><pre class="exercise-statement"><code>theorem ratNegRep_add_self (y : ratRep) :
+    ratRel (ratAddRep (ratNegRep y) y) ratZeroRep :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>55 给的是 <code>y + (-y) ~ 0</code>；㊸ 的 <code>ratAdd_comm</code> 交换两个加数，再用 <code>ratRel_trans_gen</code> 串起来。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratAddRep (ratNegRep y) y) ratZeroRep</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratAdd_comm · ratAdd_neg_gen · ratRel_trans_gen</span>。</p></div></details></div><details open class="solution-panel" id="sol-56-3"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><p class="solution-note">55 给的是 <code>y + (-y) ~ 0</code>；交换两个加数即可。这条是中间项消去的引擎。</p><pre><code>theorem ratNegRep_add_self (y : ratRep) :
+    ratRel (ratAddRep (ratNegRep y) y) ratZeroRep :=
+  ratRel_trans_gen
+    (ratAddRep (ratNegRep y) y)
+    (ratAddRep y (ratNegRep y))
+    ratZeroRep
+    (ratAdd_comm (ratNegRep y) y)
+    (ratAdd_neg_gen y)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">56.4 主定理：<code>(x - y) + (y - z) ~ x - z</code></h3><article class="exercise" id="ex-56-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">ratSubRep_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-56-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>主定理：两次减法的相加与一次减法相等。</p></div></div><pre class="exercise-statement"><code>theorem ratSubRep_add (x y z : ratRep) :
+    ratRel (ratAddRep (ratSubRep x y) (ratSubRep y z)) (ratSubRep x z) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>四步链。① 54 的结合律把 <code>(x + -y) + (y + -z)</code> 收成 <code>x + (-y + (y + -z))</code>；② 结合律<strong>反向</strong>把中间的 <code>-y + (y + -z)</code> 改写成 <code>(-y + y) + -z</code>；③ 56.3 把 <code>-y + y</code> 换成 <code>0</code>（同余 56.2）；④ ㊸ 的 <code>ratAdd_zero_left</code> 收掉 <code>0 + -z</code>。每一步都用 <code>ratRel_trans_gen</code> 串，同余用 56.1/56.2。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratAddRep (ratSubRep x y) (ratSubRep y z)) (ratSubRep x z)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>ratAdd_assoc（两次，一次取对称）<span class="math">· ratAddRep_wd_gen · ratAddRep_wd_snd_gen · ratNegRep_add_self · ratAdd_zero_left · ratRel_trans_gen</span>。</p></div></details></div><details open class="solution-panel" id="sol-56-4"><summary>查看解答 <span class="sol-meta">定理 · 32 行</span></summary><div class="solution-body"><p class="solution-note">四步链（中间项 <code>-y + y</code> 换成 0）：
+
+<span class="math">(x + -y) + (y + -z)</span>
+    ~ <span class="math">x + (-y + (y + -z))</span>      结合律
+    ~ <span class="math">x + ((-y + y) + -z)</span>      结合律（反向）
+    ~ <span class="math">x + (0 + -z)</span>             中间项消去
+    ~ <span class="math">x + -z</span>                   左零元</p><pre><code>theorem ratSubRep_add (x y z : ratRep) :
+    ratRel (ratAddRep (ratSubRep x y) (ratSubRep y z)) (ratSubRep x z) :=
+  ratRel_trans_gen
+    (ratAddRep (ratSubRep x y) (ratSubRep y z))
+    (ratAddRep x (ratAddRep (ratNegRep y) (ratAddRep y (ratNegRep z))))
+    (ratSubRep x z)
+    (ratAdd_assoc x (ratNegRep y) (ratAddRep y (ratNegRep z)))
+    (ratRel_trans_gen
+      (ratAddRep x (ratAddRep (ratNegRep y) (ratAddRep y (ratNegRep z))))
+      (ratAddRep x (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z)))
+      (ratSubRep x z)
+      (ratAddRep_wd_snd_gen x
+        (ratAddRep (ratNegRep y) (ratAddRep y (ratNegRep z)))
+        (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z))
+        (ratRel_symm
+          (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z))
+          (ratAddRep (ratNegRep y) (ratAddRep y (ratNegRep z)))
+          (ratAdd_assoc (ratNegRep y) y (ratNegRep z))))
+      (ratRel_trans_gen
+        (ratAddRep x (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z)))
+        (ratAddRep x (ratAddRep ratZeroRep (ratNegRep z)))
+        (ratSubRep x z)
+        (ratAddRep_wd_snd_gen x
+          (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z))
+          (ratAddRep ratZeroRep (ratNegRep z))
+          (ratAddRep_wd_gen
+            (ratAddRep (ratNegRep y) y) ratZeroRep (ratNegRep z)
+            (ratNegRep_add_self y)))
+        (ratAddRep_wd_snd_gen x
+          (ratAddRep ratZeroRep (ratNegRep z))
+          (ratNegRep z)
+          (ratAdd_zero_left (ratNegRep z)))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">56.5 具体：<code>(1/2 - 1/3) + (1/3 - 1/4) ~ 1/2 - 1/4</code></h3><article class="exercise" id="ex-56-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">demo_sub_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-56-5>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>具体数字上验证一次。</p></div></div><pre class="exercise-statement"><code>theorem demo_sub_add :
+    ratRel
+      (ratAddRep
+        (ratSubRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 2))
+        (ratSubRep (qrep 1 Nat.zero 2) (qrep 1 Nat.zero 3)))
+      (ratSubRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 3)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>1/2 = qrep 1 0 1</code>、<code>1/3 = qrep 1 0 2</code>、<code>1/4 = qrep 1 0 3</code>，交给 56.4。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratAddRep (ratSubRep (qrep 1 0 1) (qrep 1 0 2)) (ratSubRep (qrep 1 0 2) (qrep 1 0 3))) (ratSubRep (qrep 1 0 1) (qrep 1 0 3))</code>。</p></div></details></div><details open class="solution-panel" id="sol-56-5"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem demo_sub_add :
+    ratRel
+      (ratAddRep
+        (ratSubRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 2))
+        (ratSubRep (qrep 1 Nat.zero 2) (qrep 1 Nat.zero 3)))
+      (ratSubRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 3)) :=
+  ratSubRep_add (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 2) (qrep 1 Nat.zero 3)</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>中间项消去到手；下一单元把它与三角不等式、<span class="math">ε</span> 折半拼成 close 的传递性。</p></div>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit55.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">有理数的加法逆元：<span class="math">x + (-x) = 0</span></span></a><a class="unit-nav-home" ../chapters/ii-6.html#units>目录</a><a class="unit-nav-link" ../units/unit57.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">close 的传递性：两个 <span class="math">ε/2</span> 的界加起来</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-56"><h3><a #top>两次减法的相加：中间项消去</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-56-1"><summary>练习 1 · ratAddRep_wd_gen <span class="sol-meta">定理</span></summary><p class="solution-note">库里的 <code>ratAddRep_wd</code> 只认<strong>字面三元组</strong>（两个变元必须同分母）。任意代表元上
+用序来补：<code>x ~ x'</code> 给两个方向的弱序，各加同一个 <code>z</code>（㊹ 的 <code>ratLeRep_add_right</code>），
+再用 ㊻ 的反对称性把两条弱序夹成 <code>ratRel</code>。</p><pre><code>theorem ratAddRep_wd_gen (x x' z : ratRep) (h : ratRel x x') :
+    ratRel (ratAddRep x z) (ratAddRep x' z) :=
+  ratLeRep_antisymm (ratAddRep x z) (ratAddRep x' z)
+    (ratLeRep_add_right x x' z (ratLeRep_of_ratRel x x' h))
+    (ratLeRep_add_right x' x z
+      (ratLeRep_of_ratRel x' x (ratRel_symm x x' h)))</code></pre></details><details open class="appendix-solution" id="app-sol-56-2"><summary>练习 2 · ratAddRep_wd_snd_gen <span class="sol-meta">定理</span></summary><pre><code>theorem ratAddRep_wd_snd_gen (x z z' : ratRep) (h : ratRel z z') :
+    ratRel (ratAddRep x z) (ratAddRep x z') :=
+  ratLeRep_antisymm (ratAddRep x z) (ratAddRep x z')
+    (ratLeRep_add_left z z' x (ratLeRep_of_ratRel z z' h))
+    (ratLeRep_add_left z' z x
+      (ratLeRep_of_ratRel z' z (ratRel_symm z z' h)))</code></pre></details><details open class="appendix-solution" id="app-sol-56-3"><summary>练习 3 · ratNegRep_add_self <span class="sol-meta">定理</span></summary><p class="solution-note">55 给的是 <code>y + (-y) ~ 0</code>；交换两个加数即可。这条是中间项消去的引擎。</p><pre><code>theorem ratNegRep_add_self (y : ratRep) :
+    ratRel (ratAddRep (ratNegRep y) y) ratZeroRep :=
+  ratRel_trans_gen
+    (ratAddRep (ratNegRep y) y)
+    (ratAddRep y (ratNegRep y))
+    ratZeroRep
+    (ratAdd_comm (ratNegRep y) y)
+    (ratAdd_neg_gen y)</code></pre></details><details open class="appendix-solution" id="app-sol-56-4"><summary>练习 4 · ratSubRep_add <span class="sol-meta">定理</span></summary><p class="solution-note">四步链（中间项 <code>-y + y</code> 换成 0）：
+
+<span class="math">(x + -y) + (y + -z)</span>
+    ~ <span class="math">x + (-y + (y + -z))</span>      结合律
+    ~ <span class="math">x + ((-y + y) + -z)</span>      结合律（反向）
+    ~ <span class="math">x + (0 + -z)</span>             中间项消去
+    ~ <span class="math">x + -z</span>                   左零元</p><pre><code>theorem ratSubRep_add (x y z : ratRep) :
+    ratRel (ratAddRep (ratSubRep x y) (ratSubRep y z)) (ratSubRep x z) :=
+  ratRel_trans_gen
+    (ratAddRep (ratSubRep x y) (ratSubRep y z))
+    (ratAddRep x (ratAddRep (ratNegRep y) (ratAddRep y (ratNegRep z))))
+    (ratSubRep x z)
+    (ratAdd_assoc x (ratNegRep y) (ratAddRep y (ratNegRep z)))
+    (ratRel_trans_gen
+      (ratAddRep x (ratAddRep (ratNegRep y) (ratAddRep y (ratNegRep z))))
+      (ratAddRep x (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z)))
+      (ratSubRep x z)
+      (ratAddRep_wd_snd_gen x
+        (ratAddRep (ratNegRep y) (ratAddRep y (ratNegRep z)))
+        (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z))
+        (ratRel_symm
+          (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z))
+          (ratAddRep (ratNegRep y) (ratAddRep y (ratNegRep z)))
+          (ratAdd_assoc (ratNegRep y) y (ratNegRep z))))
+      (ratRel_trans_gen
+        (ratAddRep x (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z)))
+        (ratAddRep x (ratAddRep ratZeroRep (ratNegRep z)))
+        (ratSubRep x z)
+        (ratAddRep_wd_snd_gen x
+          (ratAddRep (ratAddRep (ratNegRep y) y) (ratNegRep z))
+          (ratAddRep ratZeroRep (ratNegRep z))
+          (ratAddRep_wd_gen
+            (ratAddRep (ratNegRep y) y) ratZeroRep (ratNegRep z)
+            (ratNegRep_add_self y)))
+        (ratAddRep_wd_snd_gen x
+          (ratAddRep ratZeroRep (ratNegRep z))
+          (ratNegRep z)
+          (ratAdd_zero_left (ratNegRep z)))))</code></pre></details><details open class="appendix-solution" id="app-sol-56-5"><summary>练习 5 · demo_sub_add <span class="sol-meta">定理</span></summary><pre><code>theorem demo_sub_add :
+    ratRel
+      (ratAddRep
+        (ratSubRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 2))
+        (ratSubRep (qrep 1 Nat.zero 2) (qrep 1 Nat.zero 3)))
+      (ratSubRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 3)) :=
+  ratSubRep_add (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 2) (qrep 1 Nat.zero 3)</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

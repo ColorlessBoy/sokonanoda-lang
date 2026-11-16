@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>36 实数的载体：Real := Quot realRel · 从集合论到实分析</title>
+<meta name="description" content="单元㊱ 实数的载体：Real := Quot realRel：导语、定义与定理、练习与解答。Unit 36 — The Carrier of the Reals">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit36.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></li><li aria-current="page">单元 36 实数的载体：Real := Quot realRel</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-36-1">定义与定理</a></li>
+<li><a href="#ex-36-1">练习</a></li>
+<li><a href="#appendix-unit-36">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-4.html#units">↑ 本章目录</a>
+      <a href="../print/unit36.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-36">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-4.html>II.4</a> · 本章第 2 / 10 单元 · 全书第 36 / 72 单元</p>
+<h1><span class="unit-number">36</span> <span>实数的载体：Real :<span class="math">= Quot realRel</span></span></h1>
+<p class="unit-title-en">Unit 36 — The Carrier of the Reals</p>
+<p class="unit-meta">13 个定义 · 6 个定理 · 3 道练习 · 9 条提示 · <a #appendix-unit-36>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="36" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-36" aria-label="复制单元 36 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit36.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-4.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元㉟ 有了 Cauchy 序列。两个 Cauchy 序列「等价」当且仅当它们逐项最终任意接近：realRel x y 当且仅当 x、y 都是 Cauchy 序列，且对任意 eps&gt;0 存在 N，使 <span class="math">n ≥ N</span> 时 close (x n) (y n) eps 成立。实数就是这些序列的商：Real :<span class="math">= Quot realRel</span>。</p></div></div></section>
+<div class="block prose intuition-only"><p>这里只立载体与构造子：Real.mk 把序列放进商；Real.sound 说相关的序列在商里相等（就是 Quot.sound）；realRel_zero 说常零序列与自身等价，推论是</p></div><div class="math-display intuition-only" role="math" aria-label="mk zero = mk zero"><math display="block" class="mathml"><mrow><mi mathvariant="normal">mk</mi><mspace width="0.22em"/><mi mathvariant="normal">zero</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi mathvariant="normal">mk</mi><mspace width="0.22em"/><mi mathvariant="normal">zero</mi></mrow></math></div><div class="block prose intuition-only"><p>等价关系的传递性（realRel_trans）与 Quot.exact 的反向消去都要三角不等式与序的加法相容，留给后续单元。</p></div><article class="decl decl-def" id="decl-36-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratNegRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratNegRep (x : ratRep) : ratRep :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def ratNegRep (x : ratRep) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat (negRep (numOf x)) (denOf x)</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-36-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratSubRep</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratSubRep (x y : ratRep) : ratRep :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def ratSubRep (x y : ratRep) : ratRep :=
+  ratAddRep x (ratNegRep y)</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-36-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLeRep</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLeRep (x y : ratRep) : Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 3 行</summary><pre><code>def ratLeRep (x y : ratRep) : Prop :=
+  leRep (mulRep (numOf x) (den (denOf y)))
+        (mulRep (numOf y) (den (denOf x)))</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-36-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLtRep</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLtRep (x y : ratRep) : Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def ratLtRep (x y : ratRep) : Prop :=
+  ratLeRep x y ∧ ¬ ratRel x y</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-36-5"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratZeroRep</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratZeroRep : ratRep :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def ratZeroRep : ratRep := qrep Nat.zero Nat.zero Nat.zero</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-36-6"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratAbsRel</code><span class="decl-where">声明 6</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratAbsRel (x y : ratRep) : Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 3 行</summary><pre><code>def ratAbsRel (x y : ratRep) : Prop :=
+  (ratLeRep ratZeroRep x ∧ ratRel y x) ∨
+    (ratLeRep x ratZeroRep ∧ ratRel y (ratNegRep x))</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-36-7"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Seq</code><span class="decl-where">声明 7</span></header><div class="decl-body"><pre class="decl-statement"><code>def Seq : Type :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def Seq : Type := Nat → ratRep</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-36-8"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">close</code><span class="decl-where">声明 8</span></header><div class="decl-body"><pre class="decl-statement"><code>def close (x y : ratRep) (eps : ratRep) : Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def close (x y : ratRep) (eps : ratRep) : Prop :=
+  ∃ (d : ratRep), ratAbsRel (ratSubRep x y) d ∧ ratLtRep d eps</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-36-9"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Cauchy</code><span class="decl-where">声明 9</span></header><div class="decl-body"><pre class="decl-statement"><code>def Cauchy (x : Seq) : Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 3 行</summary><pre><code>def Cauchy (x : Seq) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (N : Nat), ∀ (n m : Nat), LeNat N n → LeNat N m → close (x n) (x m) eps</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-36-10"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">realRel</code><span class="decl-where">声明 10</span></header><div class="decl-body"><pre class="decl-statement"><code>def realRel (x y : Seq) : Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 4 行</summary><pre><code>def realRel (x y : Seq) : Prop :=
+  Cauchy x ∧ Cauchy y ∧
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (y n) eps</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-36-11"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Real</code><span class="decl-where">声明 11</span></header><div class="decl-body"><pre class="decl-statement"><code>def Real : Type :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def Real : Type := @Quot.{1} Seq realRel</code></pre></details></div></article>
+<article class="decl decl-def" id="decl-36-12"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Real.mk</code><span class="decl-where">声明 12</span></header><div class="decl-body"><pre class="decl-statement"><code>def Real.mk (x : Seq) : Real :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def Real.mk (x : Seq) : Real := @Quot.mk.{1} Seq realRel x</code></pre></details></div></article>
+<div class="block prose intuition-only"><p>㊱.0 预备：零的绝对值、零的 close、常零序列的 Cauchy</p></div><article class="decl decl-theorem" id="decl-36-13"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">ratAbsRel_zero</code><span class="decl-where">声明 13</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem ratAbsRel_zero : ratAbsRel ratZeroRep ratZeroRep :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 4 行</summary><ol class="proof-steps"><li><pre><code>  Or.inl
+    (And.intro
+      (leRep_refl (mulRep (numOf ratZeroRep) (den (denOf ratZeroRep))))
+      (ratRel_refl ratZeroRep))</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-36-14"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">close_zero_zero</code><span class="decl-where">声明 14</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem close_zero_zero (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    close ratZeroRep ratZeroRep eps :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Exists.intro ratZeroRep (And.intro ratAbsRel_zero h)</code></pre></li></ol></details></div></article>
+<article class="decl decl-def" id="decl-36-15"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">zeroSeq</code><span class="decl-where">声明 15</span></header><div class="decl-body"><pre class="decl-statement"><code>def zeroSeq : Seq :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 1 行</summary><pre><code>def zeroSeq : Seq := fun (_ : Nat) =&gt; ratZeroRep</code></pre></details></div></article>
+<article class="decl decl-theorem" id="decl-36-16"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">cauchy_zero</code><span class="decl-where">声明 16</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem cauchy_zero : Cauchy zeroSeq :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 4 行</summary><ol class="proof-steps"><li><pre><code>  fun (eps : ratRep) (h : ratLtRep ratZeroRep eps) =&gt;
+    Exists.intro Nat.zero
+      (fun (n m : Nat) (hn : LeNat Nat.zero n) (hm : LeNat Nat.zero m) =&gt;
+        close_zero_zero eps h)</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-36-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">realRel_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-36-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊱.1 常零序列与自身等价</p></div><div class="block prose intuition-only"><p>先证常零序列与自身等价：两个 Cauchy 分量都是上一单元的例子。</p></div></div><pre class="exercise-statement"><code>theorem realRel_zero : realRel zeroSeq zeroSeq :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>realRel</code> 是三元组；两个 <code>Cauchy</code> 分量都是 <code>cauchy_zero</code>，第三分量对任意 eps&gt;0 取 <span class="math">N=0</span>，逐项用 <code>close_zero_zero</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>realRel zeroSeq zeroSeq</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">And.intro · cauchy_zero · Exists.intro · close_zero_zero</span>。</p></div></details></div><details class="solution-panel" id="sol-36-1"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem realRel_zero : realRel zeroSeq zeroSeq :=
+  And.intro cauchy_zero
+    (And.intro cauchy_zero
+      (fun (eps : ratRep) (h : ratLtRep ratZeroRep eps) =&gt;
+        Exists.intro Nat.zero
+          (fun (n : Nat) (hn : LeNat Nat.zero n) =&gt; close_zero_zero eps h)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-36-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">Real.sound</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-36-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊱.2 相关 <span class="math">⇒</span> 实数相等（Quot.sound）</p></div><div class="block prose intuition-only"><p>相关就连到相等：把 realRel 的证明交给 Quot.sound。</p></div></div><pre class="exercise-statement"><code>theorem Real.sound (x y : Seq) (h : realRel x y) : Real.mk x = Real.mk y :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>商类型的构造子公理；把 <code>realRel</code> 的证明交给 <code>Quot.sound</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>realRel x y → Real.mk x = Real.mk y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Quot.sound。</p></div></details></div><details class="solution-panel" id="sol-36-2"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem Real.sound (x y : Seq) (h : realRel x y) : Real.mk x = Real.mk y :=
+  @Quot.sound.{1} Seq realRel x y h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-36-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">demo_real_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-36-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊱.3 具体：常零序列的实数与自身相等</p></div><div class="block prose intuition-only"><p>具体：常零序列的实数与自身相等。</p></div></div><pre class="exercise-statement"><code>theorem demo_real_zero :
+    Real.mk zeroSeq = Real.mk zeroSeq :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用 ㊱.2 与 ㊱.1。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Real.mk zeroSeq = Real.mk zeroSeq</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Real.sound · realRel_zero</span>。</p></div></details></div><details class="solution-panel" id="sol-36-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem demo_real_zero :
+    Real.mk zeroSeq = Real.mk zeroSeq :=
+  Real.sound zeroSeq zeroSeq realRel_zero</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit35.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">有理 Cauchy 序列：close 与 Cauchy 的定义</span></a><a class="unit-nav-home" ../chapters/ii-4.html#units>目录</a><a class="unit-nav-link" ../units/unit37.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">序与正分母：乘法、消去与配对搬运</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-36"><h3><a #top>实数的载体：Real :<span class="math">= Quot realRel</span></a></h3><p class="appendix-meta">3 道练习 · 3 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-36-1"><summary>练习 1 · realRel_zero <span class="sol-meta">定理</span></summary><pre><code>theorem realRel_zero : realRel zeroSeq zeroSeq :=
+  And.intro cauchy_zero
+    (And.intro cauchy_zero
+      (fun (eps : ratRep) (h : ratLtRep ratZeroRep eps) =&gt;
+        Exists.intro Nat.zero
+          (fun (n : Nat) (hn : LeNat Nat.zero n) =&gt; close_zero_zero eps h)))</code></pre></details><details class="appendix-solution" id="app-sol-36-2"><summary>练习 2 · Real.sound <span class="sol-meta">定理</span></summary><pre><code>theorem Real.sound (x y : Seq) (h : realRel x y) : Real.mk x = Real.mk y :=
+  @Quot.sound.{1} Seq realRel x y h</code></pre></details><details class="appendix-solution" id="app-sol-36-3"><summary>练习 3 · demo_real_zero <span class="sol-meta">定理</span></summary><pre><code>theorem demo_real_zero :
+    Real.mk zeroSeq = Real.mk zeroSeq :=
+  Real.sound zeroSeq zeroSeq realRel_zero</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit35.html">← 35 有理 Cauchy 序列：close 与 Cauchy 的定义</a><a class="next" href="../units/unit37.html">37 序与正分母：乘法、消去与配对搬运 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

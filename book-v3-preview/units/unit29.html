@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>29 有理数的序：代表元公式与自反性 · 从集合论到实分析</title>
+<meta name="description" content="单元㉙ 有理数的序：代表元公式与自反性：导语、定义与定理、练习与解答。Unit 29 — Order on Rationals">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit29.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-3.html">II.3 有理数的性质：序、绝对值、幂与间隙</a></li><li aria-current="page">单元 29 有理数的序：代表元公式与自反性</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-29-1">定义与定理</a></li>
+<li><a href="#ex-29-1">练习</a></li>
+<li><a href="#appendix-unit-29">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-3.html#units">↑ 本章目录</a>
+      <a href="../print/unit29.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit first-of-chapter" id="unit-29">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-3.html>II.3</a> · 本章第 1 / 6 单元 · 全书第 29 / 72 单元</p>
+<h1><span class="unit-number">29</span> <span>有理数的序：代表元公式与自反性</span></h1>
+<p class="unit-title-en">Unit 29 — Order on Rationals</p>
+<p class="unit-meta">2 个定义 · 4 个定理 · 4 道练习 · 8 条提示 · <a #appendix-unit-29>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="29" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-29" aria-label="复制单元 29 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit29.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-3.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>卷 II 把 <span class="math">ℚ</span> 建成 Quot ratRel（单元⑳），并在代表元层结清了加法与乘法的良定义性（㉖–㉘）。接下来进入 <span class="math">ℚ</span> 的性质：序、绝对值、幂、间隙。先做序，因为后面的绝对值与极限都要用它。</p></div></div></section>
+<div class="block prose intuition-only"><p>序的定义沿用整数序的同一套想法：<span class="math">(a-b)/(m+1) ≤ (c-d)/(n+1)</span> 等价于交叉相乘后的 <span class="math">ℕ</span> 不等式 <span class="math">a·(n+1) + d·(m+1) ≤ c·(m+1) + b·(n+1)</span>。右边不是笔误：<span class="math">(a-b)(n+1) ≤ (c-d)(m+1)</span> 移项后，负部 <span class="math">-b(n+1)</span> 与 <span class="math">-d(m+1)</span> 都搬到对面。分母 <span class="math">(m+1)(n+1)</span> 是正的，所以交叉相乘不改变方向。</p></div><div class="block prose intuition-only"><p>这里先立起序的定义、自反、以及「相等蕴含序」；传递性、全序与加法/乘法相容都要先把两个代表元换到公分母，留给后续单元。</p></div><div class="block prose intuition-only"><p>有理数的非严格序：交叉相乘后的 <span class="math">ℕ</span> 不等式。</p></div><article class="decl decl-def" id="decl-29-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLeRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLeRep (x y : ratRep) : Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 3 行</summary><pre><code>def ratLeRep (x y : ratRep) : Prop :=
+  leRep (mulRep (numOf x) (den (denOf y)))
+        (mulRep (numOf y) (den (denOf x)))</code></pre></details></div></article>
+<div class="block prose intuition-only"><p>严格序：<span class="math">≤</span> 且不相等（相等仍用商上的 <code>ratRel</code> 表达）。</p></div><article class="decl decl-def" id="decl-29-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLtRep</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLtRep (x y : ratRep) : Prop :=</code></pre><details class="code-panel formal-only"><summary>完整代码 · 2 行</summary><pre><code>def ratLtRep (x y : ratRep) : Prop :=
+  ratLeRep x y ∧ ¬ ratRel x y</code></pre></details></div></article>
+<article class="exercise" id="ex-29-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratLeRep_refl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-29-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉙.1 序的自反性</p></div><div class="block prose intuition-only"><p>-- 先看最平凡的一条：任何有理数都不小于自己。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_refl (x : ratRep) : ratLeRep x x :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep x x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>leRep_refl。</p></div></details></div><details class="solution-panel" id="sol-29-1"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_refl (x : ratRep) : ratLeRep x x :=
+  leRep_refl (mulRep (numOf x) (den (denOf x)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-29-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratLeRep_of_ratRel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-29-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉙.2 相等蕴含序</p></div><div class="block prose intuition-only"><p>-- 再证相等蕴含序：相等时两个交叉乘积的整数相等，序的良定义性把它搬过来。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_of_ratRel (x y : ratRep) (h : ratRel x y) : ratLeRep x y :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel x y → ratLeRep x y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">leRep_wd_pair · intRel_refl · leRep_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-29-2"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_of_ratRel (x y : ratRep) (h : ratRel x y) : ratLeRep x y :=
+  leRep_wd_pair
+    (mulRep (numOf y) (den (denOf x)))
+    (mulRep (numOf x) (den (denOf y)))
+    (mulRep (numOf y) (den (denOf x)))
+    (mulRep (numOf y) (den (denOf x)))
+    (intRel_symm
+      (mulRep (numOf x) (den (denOf y)))
+      (mulRep (numOf y) (den (denOf x))) h)
+    (intRel_refl (mulRep (numOf y) (den (denOf x))))
+    (leRep_refl (mulRep (numOf y) (den (denOf x))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-29-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">demo_zero_le_one</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-29-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉙.3 具体数字：<span class="math">0 ≤ 1</span></p></div><div class="block prose intuition-only"><p>-- 具体算一个：<span class="math">0 ≤ 1</span>。</p></div></div><pre class="exercise-statement"><code>theorem demo_zero_le_one :
+    ratLeRep (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (qrep 0 0 0) (qrep 1 0 0)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">le_succ · le_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-29-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem demo_zero_le_one :
+    ratLeRep (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero) :=
+  le_succ Nat.zero Nat.zero (le_refl Nat.zero)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-29-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">demo_half_le_three_quarters</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-29-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉙.4 具体数字：<span class="math">1/2 ≤ 3/4</span></p></div><div class="block prose intuition-only"><p>-- 再算 <span class="math">1/2 ≤ 3/4</span>。</p></div></div><pre class="exercise-statement"><code>theorem demo_half_le_three_quarters :
+    ratLeRep (qrep 1 Nat.zero 1) (qrep 3 Nat.zero 3) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (qrep 1 0 1) (qrep 3 0 3)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">le_succ · le_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-29-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem demo_half_le_three_quarters :
+    ratLeRep (qrep 1 Nat.zero 1) (qrep 3 Nat.zero 3) :=
+  le_succ 4 5 (le_succ 4 4 (le_refl 4))</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit28.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">有理数乘法的良定义性</span></a><a class="unit-nav-home" ../chapters/ii-3.html#units>目录</a><a class="unit-nav-link" ../units/unit30.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">有理数的严格序：&lt; 与不相等</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-29"><h3><a #top>有理数的序：代表元公式与自反性</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-29-1"><summary>练习 1 · ratLeRep_refl <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_refl (x : ratRep) : ratLeRep x x :=
+  leRep_refl (mulRep (numOf x) (den (denOf x)))</code></pre></details><details class="appendix-solution" id="app-sol-29-2"><summary>练习 2 · ratLeRep_of_ratRel <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_of_ratRel (x y : ratRep) (h : ratRel x y) : ratLeRep x y :=
+  leRep_wd_pair
+    (mulRep (numOf y) (den (denOf x)))
+    (mulRep (numOf x) (den (denOf y)))
+    (mulRep (numOf y) (den (denOf x)))
+    (mulRep (numOf y) (den (denOf x)))
+    (intRel_symm
+      (mulRep (numOf x) (den (denOf y)))
+      (mulRep (numOf y) (den (denOf x))) h)
+    (intRel_refl (mulRep (numOf y) (den (denOf x))))
+    (leRep_refl (mulRep (numOf y) (den (denOf x))))</code></pre></details><details class="appendix-solution" id="app-sol-29-3"><summary>练习 3 · demo_zero_le_one <span class="sol-meta">定理</span></summary><pre><code>theorem demo_zero_le_one :
+    ratLeRep (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero) :=
+  le_succ Nat.zero Nat.zero (le_refl Nat.zero)</code></pre></details><details class="appendix-solution" id="app-sol-29-4"><summary>练习 4 · demo_half_le_three_quarters <span class="sol-meta">定理</span></summary><pre><code>theorem demo_half_le_three_quarters :
+    ratLeRep (qrep 1 Nat.zero 1) (qrep 3 Nat.zero 3) :=
+  le_succ 4 5 (le_succ 4 4 (le_refl 4))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit28.html">← 28 有理数乘法的良定义性</a><a class="next" href="../units/unit30.html">30 有理数的严格序：&lt; 与不相等 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

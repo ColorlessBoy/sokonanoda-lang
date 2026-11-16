@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>46 序的反对称性：两边夹出相等 · 从集合论到实分析</title>
+<meta name="description" content="单元㊻ 序的反对称性：两边夹出相等：导语、定义与定理、练习与解答。Unit 46 — Antisymmetry of the Order">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit46.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></li><li aria-current="page">单元 46 序的反对称性：两边夹出相等</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#ex-46-1">练习</a></li>
+<li><a href="#appendix-unit-46">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-5.html#units">↑ 本章目录</a>
+      <a href="../print/unit46.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-46">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-5.html>II.5</a> · 本章第 2 / 10 单元 · 全书第 46 / 72 单元</p>
+<h1><span class="unit-number">46</span> <span>序的反对称性：两边夹出相等</span></h1>
+<p class="unit-title-en">Unit 46 — Antisymmetry of the Order</p>
+<p class="unit-meta">4 个定理 · 4 道练习 · 12 条提示 · <a #appendix-unit-46>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="46" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-46" aria-label="复制单元 46 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit46.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-5.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㊺ 结清了「<span class="math">ℚ</span> 的序是全序」，但要把序用在绝对值上还差一条反对称性：<span class="math">x ≤ y</span> 且 <span class="math">y ≤ x</span> 推出 x ~ y。</p></div></div></section>
+<article class="exercise" id="ex-46-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">leNat_succ_not_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-46-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>为什么它挡在三角不等式前面：㉝ 的绝对值是关系而不是函数；同一个 x 的两个绝对值见证 d、d' 可能落在不同分支上（一个取 x、一个取 -x）。要把它们认成同一个，必须先知道「<span class="math">0 ≤ x</span> 与 <span class="math">x ≤ 0</span> 同时成立时 x ~ 0」——这正是反对称性。</p></div><div class="block prose intuition-only"><p>先证一条辅助事实：<span class="math">n+1 ≤ n</span> 不成立（没有数严格大于自己）。做法是把它化成 <span class="math">n = (n+1)+k</span>，再用后继运算搬成 <span class="math">n = n+(k+1)</span>，交给对 n 归纳的辅助引理。再证 <span class="math">ℕ</span> 与 <span class="math">ℚ</span> 的反对称性：<span class="math">ℕ</span> 上把 <span class="math">a ≤ b</span> 拆成「<span class="math">a = b</span>」与「<span class="math">a+1 ≤ b</span>」，后者与 <span class="math">b ≤ a</span> 串起来就是矛盾；<span class="math">ℚ</span> 上交叉相乘后交给 <span class="math">ℕ</span> 的反对称性。最后在具体数字上验证 1/2 与 2/4 互相 <span class="math">≤</span> 所以相等。</p></div><div class="block prose intuition-only"><p>ratLeRep 只在头部展开成 leRep (leNum x y) (leNum y x)，再交给 leRep_antisymm；不把 leNum 再展开（Prod.fst 会卡在定义上，内核不归约）。</p></div><div class="block prose intuition-only"><p>㊻.1 <code>n + 1 ≤ n</code> 不成立</p></div><div class="block prose intuition-only"><p>先证没有数严格大于自己。</p></div></div><pre class="exercise-statement"><code>theorem leNat_succ_not_self (n : Nat) (h : LeNat (Nat.succ n) n) : False :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>h : n+1 ≤ n</code> 交给 <code>leNat_exists_add</code>，得到 <code>k</code> 与 <code>n = (n+1) + k</code>；用 <code>succ_add</code> 把 <code>(n+1)+k</code> 化成 <code>succ (n+k)</code>，再用 <code>add_succ</code> 的对称把它写成 <code>n + (k+1)</code>。于是 <code>n = n + (k+1)</code>，交给辅助引理 <code>nat_add_succ_ne_self</code>（对 <code>n</code> 归纳；零情形 <code>succ_ne_zero</code>，后继情形 <code>Nat.succ.inj</code> 剥一层）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LeNat (Nat.succ n) n → False</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">leNat_exists_add · Exists.elim · succ_add · add_succ</span>（取对称）<span class="math">· nat_add_succ_ne_self</span>。</p></div></details></div><details class="solution-panel" id="sol-46-1"><summary>查看解答 <span class="sol-meta">定理 · 22 行</span></summary><div class="solution-body"><pre><code>theorem leNat_succ_not_self (n : Nat) (h : LeNat (Nat.succ n) n) : False :=
+  Exists.elim
+    (leNat_exists_add (Nat.succ n) n h)
+    (fun (k : Nat) (hk : n = Nat.add (Nat.succ n) k) =&gt;
+      nat_add_succ_ne_self n k
+        (@Eq.symm.{1} Nat
+          n
+          (Nat.add n (Nat.succ k))
+          (@Eq.trans.{1} Nat
+            n
+            (Nat.add (Nat.succ n) k)
+            (Nat.add n (Nat.succ k))
+            hk
+            (@Eq.trans.{1} Nat
+              (Nat.add (Nat.succ n) k)
+              (Nat.succ (Nat.add n k))
+              (Nat.add n (Nat.succ k))
+              (succ_add n k)
+              (@Eq.symm.{1} Nat
+                (Nat.add n (Nat.succ k))
+                (Nat.succ (Nat.add n k))
+                (add_succ n k))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-46-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">leNat_antisymm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-46-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊻<span class="math">.2 ℕ</span> 的序反对称</p></div><div class="block prose intuition-only"><p><span class="math">ℕ</span> 的反对称性：把 <span class="math">a ≤ b</span> 拆成相等或 <span class="math">a+1 ≤ b</span>。</p></div></div><pre class="exercise-statement"><code>theorem leNat_antisymm (a b : Nat) (h1 : LeNat a b) (h2 : LeNat b a) : a = b :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用 ㊺ 的 <code>leNat_eq_or_succ</code> 把 <code>h1 : a ≤ b</code> 拆成两支。第一支 <code>a = b</code> 就是答案；第二支 <code>a+1 ≤ b</code>，与 <code>h2 : b ≤ a</code> 用 <code>leNat_trans</code> 串成 <code>a+1 ≤ a</code>，交给 ㊻.1 得到 <code>False</code>，再 <code>False.elim</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LeNat a b → LeNat b a → a = b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">leNat_eq_or_succ · leNat_trans · leNat_succ_not_self ·</span> @False.elim（显式给目标类型）<span class="math">· Or.elim</span>。</p></div></details></div><details class="solution-panel" id="sol-46-2"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem leNat_antisymm (a b : Nat) (h1 : LeNat a b) (h2 : LeNat b a) : a = b :=
+  Or.elim
+    (fun (heq : a = b) =&gt; heq)
+    (fun (hlt : LeNat (Nat.succ a) b) =&gt;
+      @False.elim (a = b)
+        (leNat_succ_not_self a (leNat_trans (Nat.succ a) b a hlt h2)))
+    (leNat_eq_or_succ a b h1)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-46-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratLeRep_antisymm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-46-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊻<span class="math">.3 ℚ</span> 的序反对称</p></div><div class="block prose intuition-only"><p><span class="math">ℚ</span> 的反对称性：交叉相乘后交给上一条。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_antisymm (x y : ratRep)
+    (h1 : ratLeRep x y) (h2 : ratLeRep y x) : ratRel x y :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>ratLeRep x y</code> 展开是 <code>leRep (leNum x y) (leNum y x)</code>，<code>ratLeRep y x</code> 展开是 <code>leRep (leNum y x) (leNum x y)</code>；把这对乘积交给解答里的辅助引理 <code>leRep_antisymm</code>（它就是 ㊻.2 的 <code>leRep</code> 版本），得到的 <code>intRel (leNum x y) (leNum y x)</code> 正是 <code>ratRel x y</code>。不要试图把 <code>leNum</code> 再展开（<code>Prod.fst</code> 会卡在定义上）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep x y → ratLeRep y x → ratRel x y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">leRep_antisymm · leNat_antisymm</span>。</p></div></details></div><details class="solution-panel" id="sol-46-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_antisymm (x y : ratRep)
+    (h1 : ratLeRep x y) (h2 : ratLeRep y x) : ratRel x y :=
+  leRep_antisymm (leNum x y) (leNum y x) h1 h2</code></pre></div></details></div></article>
+<article class="exercise" id="ex-46-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">demo_antisymm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-46-4>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊻.4 具体：1/2 与 2/4 互相 <span class="math">≤</span>，所以相等</p></div><div class="block prose intuition-only"><p>具体验证：1/2 与 2/4 互相 <span class="math">≤</span>，所以相等。</p></div></div><pre class="exercise-statement"><code>theorem demo_antisymm :
+    ratRel (qrep 1 Nat.zero 1) (qrep 2 Nat.zero 3) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个方向交叉相乘后都是 <code>LeNat 4 4</code>，各用 <code>le_refl 4</code>；交给 ㊻.3。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (qrep 1 0 1) (qrep 2 0 3)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_antisymm · le_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-46-4"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem demo_antisymm :
+    ratRel (qrep 1 Nat.zero 1) (qrep 2 Nat.zero 3) :=
+  ratLeRep_antisymm (qrep 1 Nat.zero 1) (qrep 2 Nat.zero 3)
+    (le_refl 4) (le_refl 4)</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit45.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">序的全性：每个有理数都有绝对值</span></a><a class="unit-nav-home" ../chapters/ii-5.html#units>目录</a><a class="unit-nav-link" ../units/unit47.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">绝对值的唯一性：同一个数的两个见证相等</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-46"><h3><a #top>序的反对称性：两边夹出相等</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答 · 2 个解答独有声明</p><details class="appendix-solution" id="app-sol-46-1"><summary>练习 1 · leNat_succ_not_self <span class="sol-meta">定理</span></summary><pre><code>theorem leNat_succ_not_self (n : Nat) (h : LeNat (Nat.succ n) n) : False :=
+  Exists.elim
+    (leNat_exists_add (Nat.succ n) n h)
+    (fun (k : Nat) (hk : n = Nat.add (Nat.succ n) k) =&gt;
+      nat_add_succ_ne_self n k
+        (@Eq.symm.{1} Nat
+          n
+          (Nat.add n (Nat.succ k))
+          (@Eq.trans.{1} Nat
+            n
+            (Nat.add (Nat.succ n) k)
+            (Nat.add n (Nat.succ k))
+            hk
+            (@Eq.trans.{1} Nat
+              (Nat.add (Nat.succ n) k)
+              (Nat.succ (Nat.add n k))
+              (Nat.add n (Nat.succ k))
+              (succ_add n k)
+              (@Eq.symm.{1} Nat
+                (Nat.add n (Nat.succ k))
+                (Nat.succ (Nat.add n k))
+                (add_succ n k))))))</code></pre></details><details class="appendix-solution" id="app-sol-46-2"><summary>练习 2 · leNat_antisymm <span class="sol-meta">定理</span></summary><pre><code>theorem leNat_antisymm (a b : Nat) (h1 : LeNat a b) (h2 : LeNat b a) : a = b :=
+  Or.elim
+    (fun (heq : a = b) =&gt; heq)
+    (fun (hlt : LeNat (Nat.succ a) b) =&gt;
+      @False.elim (a = b)
+        (leNat_succ_not_self a (leNat_trans (Nat.succ a) b a hlt h2)))
+    (leNat_eq_or_succ a b h1)</code></pre></details><details class="appendix-solution" id="app-sol-46-3"><summary>练习 3 · ratLeRep_antisymm <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_antisymm (x y : ratRep)
+    (h1 : ratLeRep x y) (h2 : ratLeRep y x) : ratRel x y :=
+  leRep_antisymm (leNum x y) (leNum y x) h1 h2</code></pre></details><details class="appendix-solution" id="app-sol-46-4"><summary>练习 4 · demo_antisymm <span class="sol-meta">定理</span></summary><pre><code>theorem demo_antisymm :
+    ratRel (qrep 1 Nat.zero 1) (qrep 2 Nat.zero 3) :=
+  ratLeRep_antisymm (qrep 1 Nat.zero 1) (qrep 2 Nat.zero 3)
+    (le_refl 4) (le_refl 4)</code></pre></details><details class="appendix-solution" id="app-extra-46-1"><summary>补充 · nat_add_succ_ne_self <span class="sol-meta">定理</span></summary><pre><code>theorem nat_add_succ_ne_self (n k : Nat) :
+    Nat.add n (Nat.succ k) = n → False :=
+  Nat.rec
+    (fun (m : Nat) =&gt; ∀ (k : Nat), Nat.add m (Nat.succ k) = m → False)
+    (fun (k : Nat) (h : Nat.add Nat.zero (Nat.succ k) = Nat.zero) =&gt;
+      succ_ne_zero k
+        (@Eq.trans.{1} Nat
+          (Nat.succ k)
+          (Nat.add Nat.zero (Nat.succ k))
+          Nat.zero
+          (@Eq.symm.{1} Nat (Nat.add Nat.zero (Nat.succ k)) (Nat.succ k)
+            (zero_add (Nat.succ k)))
+          h))
+    (fun (m : Nat)
+         (ih : ∀ (k : Nat), Nat.add m (Nat.succ k) = m → False) =&gt;
+      fun (k : Nat) (h : Nat.add (Nat.succ m) (Nat.succ k) = Nat.succ m) =&gt;
+        ih k
+          (Nat.succ.inj (Nat.add m (Nat.succ k)) m
+            (@Eq.trans.{1} Nat
+              (Nat.succ (Nat.add m (Nat.succ k)))
+              (Nat.add (Nat.succ m) (Nat.succ k))
+              (Nat.succ m)
+              (@Eq.symm.{1} Nat
+                (Nat.add (Nat.succ m) (Nat.succ k))
+                (Nat.succ (Nat.add m (Nat.succ k)))
+                (succ_add m (Nat.succ k)))
+              h)))
+    n k</code></pre></details><details class="appendix-solution" id="app-extra-46-2"><summary>补充 · leRep_antisymm <span class="sol-meta">定理</span></summary><pre><code>theorem leRep_antisymm (p q : Prod Nat Nat)
+    (h1 : leRep p q) (h2 : leRep q p) : intRel p q :=
+  leNat_antisymm
+    (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+    (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
+    h1 h2</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit45.html">← 45 序的全性：每个有理数都有绝对值</a><a class="next" href="../units/unit47.html">47 绝对值的唯一性：同一个数的两个见证相等 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>

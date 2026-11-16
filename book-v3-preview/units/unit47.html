@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>47 绝对值的唯一性：同一个数的两个见证相等 · 从集合论到实分析</title>
+<meta name="description" content="单元㊼ 绝对值的唯一性：同一个数的两个见证相等：导语、定义与定理、练习与解答。Unit 47 — Uniqueness of the Absolute Value">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit47.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<nav class="breadcrumb" aria-label="面包屑"><div><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></li><li aria-current="page">单元 47 绝对值的唯一性：同一个数的两个见证相等</li></ol></div></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#ex-47-1">练习</a></li>
+<li><a href="#appendix-unit-47">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/ii-5.html#units">↑ 本章目录</a>
+      <a href="../print/unit47.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-47">
+<header class="unit-head">
+<p class="unit-kicker"><a ../chapters/ii-5.html>II.5</a> · 本章第 3 / 10 单元 · 全书第 47 / 72 单元</p>
+<h1><span class="unit-number">47</span> <span>绝对值的唯一性：同一个数的两个见证相等</span></h1>
+<p class="unit-title-en">Unit 47 — Uniqueness of the Absolute Value</p>
+<p class="unit-meta">3 个定理 · 3 道练习 · 9 条提示 · <a #appendix-unit-47>解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="47" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-47" aria-label="复制单元 47 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit47.html">打印 / PDF 本单元</a></p><a class="back-to-toc" ../chapters/ii-5.html#units>↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㊺ 证了每个有理数都有绝对值，㊻ 证了序的反对称性。两者合起来就能回答绝对值是函数的那个问题：同一个 x 的两个见证 d、d' 相等。</p></div></div></section>
+<article class="exercise" id="ex-47-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratAbsRel_left_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-47-1>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>为什么它不是一句废话：ratAbsRel 是关系，定义是两个析取的并——<span class="math">(0 ≤ x</span> 且 d ~ x) 或 <span class="math">(x ≤ 0</span> 且 d ~ -x)。同一个 x 的两个见证可能落在不同分支（一个取 x、一个取 -x）。㊻ 的反对称性正好把「<span class="math">0 ≤ x</span> 与 <span class="math">x ≤ 0</span> 同时成立」压成 x ~ 0，于是 x ~ 0 ~ -x，两个分支的见证就接上了。</p></div><div class="block prose intuition-only"><p>先证异号两支相等（d ~ x 与 d' ~ -x），再把四个分支两两配对得到唯一性；最后在具体数字上验证 |-1/2| 的两个见证 1/2 与 2/4 相等。同号两支只是 ratRel 的传递；异号两支先用反对称性把 <span class="math">0 ≤ x ≤ 0</span> 压成 0 ~ x，再用 ratNegRep_wd 搬过去，最后用 ratRel_trans_gen 串起来。</p></div><div class="block prose intuition-only"><p>ratLeRep 与 leRep 只做头部展开；-0 是闭项，定义性归约回 0。</p></div><div class="block prose intuition-only"><p>㊼.1 异号两支：<code>d ~ x</code>、<code>d' ~ -x</code> 时 <code>d ~ d'</code></p></div><div class="block prose intuition-only"><p>先证异号两支相等：把 <span class="math">0 ≤ x ≤ 0</span> 压成 0 ~ x，再搬到 -x。</p></div></div><pre class="exercise-statement"><code>theorem ratAbsRel_left_right (x d d' : ratRep)
+    (hl : ratLeRep ratZeroRep x ∧ ratRel d x)
+    (hr : ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x)) :
+    ratRel d d' :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>h1</code> 给 <code>d ~ x</code>，<code>h2</code> 给 <code>d' ~ -x</code>；先用 ㊻ 的 <code>ratLeRep_antisymm 0 x</code>（前提是 <code>0 ≤ x</code> 与 <code>x ≤ 0</code>）得到 <code>0 ~ x</code>，反转得 <code>x ~ 0</code>，再用 <code>ratNegRep_wd</code> 得 <code>0 ~ -x</code>，最后把「<code>d ~ x</code>」「<code>x ~ 0</code>」「<code>0 ~ -x</code>」「<code>-x ~ d'</code>」四段用 <code>ratRel_trans_gen</code> 串起来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(0 ≤ x ∧ d ~ x) → (x ≤ 0 ∧ d' ~ -x) → ratRel d d'</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_antisymm · ratNegRep_wd · ratRel_symm · ratRel_trans_gen · And.left · And.right</span>。</p></div></details></div><details class="solution-panel" id="sol-47-1"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><pre><code>theorem ratAbsRel_left_right (x d d' : ratRep)
+    (hl : ratLeRep ratZeroRep x ∧ ratRel d x)
+    (hr : ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x)) :
+    ratRel d d' :=
+  ratRel_trans_gen d x d'
+    (And.right hl)
+    (ratRel_trans_gen x (ratNegRep x) d'
+      (ratRel_trans_gen x ratZeroRep (ratNegRep x)
+        (ratRel_symm ratZeroRep x
+          (ratLeRep_antisymm ratZeroRep x (And.left hl) (And.left hr)))
+        (ratNegRep_wd ratZeroRep x
+          (ratLeRep_antisymm ratZeroRep x (And.left hl) (And.left hr))))
+      (ratRel_symm d' (ratNegRep x) (And.right hr)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-47-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratAbsRel_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-47-2>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊼.2 绝对值的唯一性</p></div><div class="block prose intuition-only"><p>唯一性：四个分支两两配对。</p></div></div><pre class="exercise-statement"><code>theorem ratAbsRel_unique (x d d' : ratRep)
+    (h1 : ratAbsRel x d) (h2 : ratAbsRel x d') : ratRel d d' :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对 <code>h1</code>、<code>h2</code> 各做一次 <code>Or.elim</code>，四支。「同号」两支只是 <code>ratRel</code> 的传递（<code>ratRel_trans_gen</code> <span class="math">+</span> <code>ratRel_symm</code>）；「左/右」交给 ㊼.1；「右/左」把 ㊼.1 的两个见证对调后再 <code>ratRel_symm</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratAbsRel x d → ratAbsRel x d' → ratRel d d'</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Or.elim · ratRel_trans_gen · ratRel_symm · ratAbsRel_left_right</span>。</p></div></details></div><details class="solution-panel" id="sol-47-2"><summary>查看解答 <span class="sol-meta">定理 · 31 行</span></summary><div class="solution-body"><pre><code>theorem ratAbsRel_unique (x d d' : ratRep)
+    (h1 : ratAbsRel x d) (h2 : ratAbsRel x d') : ratRel d d' :=
+  @Or.elim
+    (ratLeRep ratZeroRep x ∧ ratRel d x)
+    (ratLeRep x ratZeroRep ∧ ratRel d (ratNegRep x))
+    (ratRel d d')
+    (fun (h1l : ratLeRep ratZeroRep x ∧ ratRel d x) =&gt;
+      @Or.elim
+        (ratLeRep ratZeroRep x ∧ ratRel d' x)
+        (ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x))
+        (ratRel d d')
+        (fun (h2l : ratLeRep ratZeroRep x ∧ ratRel d' x) =&gt;
+          ratRel_trans_gen d x d'
+            (And.right h1l)
+            (ratRel_symm d' x (And.right h2l)))
+        (fun (h2r : ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x)) =&gt;
+          ratAbsRel_left_right x d d' h1l h2r)
+        h2)
+    (fun (h1r : ratLeRep x ratZeroRep ∧ ratRel d (ratNegRep x)) =&gt;
+      @Or.elim
+        (ratLeRep ratZeroRep x ∧ ratRel d' x)
+        (ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x))
+        (ratRel d d')
+        (fun (h2l : ratLeRep ratZeroRep x ∧ ratRel d' x) =&gt;
+          ratRel_symm d' d (ratAbsRel_left_right x d' d h2l h1r))
+        (fun (h2r : ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x)) =&gt;
+          ratRel_trans_gen d (ratNegRep x) d'
+            (And.right h1r)
+            (ratRel_symm d' (ratNegRep x) (And.right h2r)))
+        h2)
+    h1</code></pre></div></details></div></article>
+<article class="exercise" id="ex-47-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">demo_abs_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" #app-sol-47-3>附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊼.3 具体：|-1/2| 的两个见证 1/2 与 2/4 相等</p></div><div class="block prose intuition-only"><p>第二支的 <code>2/4 ~ -(-1/2)</code>：<code>-(-1/2)</code> 定义性归约成 <code>1/2</code>，交叉相乘两边都是 <code>(4, 0)</code>。</p></div><div class="block prose intuition-only"><p>具体验证：|-1/2| 的两个见证 1/2 与 2/4 相等。</p></div></div><pre class="exercise-statement"><code>theorem demo_abs_unique :
+    ratRel (qrep 1 Nat.zero 1) (qrep 2 Nat.zero 3) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>-1/2</code> 是 <code>qrep 0 1 1</code>，<code>1/2</code> 是 <code>qrep 1 0 1</code>、<code>2/4</code> 是 <code>qrep 2 0 3</code>。两个见证都走右支：<code>qrep 0 1 1 ≤ 0</code> 是 <code>LeNat 0 1</code>（<code>le_succ 0 0 (le_refl 0)</code>）；<code>-(-1/2)</code> 定义性归约成 <code>1/2</code>，所以第二个分量分别是 <code>ratRel_refl</code> 与 <code>intRel_of_eq</code>（交叉相乘两边都是 <code>(4,0)</code>，<code>Eq.refl</code> 即可）。最后交给 ㊼.2。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (qrep 1 0 1) (qrep 2 0 3)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratAbsRel_unique · Or.inr · And.intro · le_succ · le_refl · ratRel_refl · intRel_of_eq · Eq.refl</span>。</p></div></details></div><details class="solution-panel" id="sol-47-3"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><pre><code>theorem demo_abs_unique :
+    ratRel (qrep 1 Nat.zero 1) (qrep 2 Nat.zero 3) :=
+  ratAbsRel_unique (qrep Nat.zero 1 1) (qrep 1 Nat.zero 1) (qrep 2 Nat.zero 3)
+    (Or.inr
+      (And.intro
+        (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+        (ratRel_refl (qrep 1 Nat.zero 1))))
+    (Or.inr
+      (And.intro
+        (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+        (intRel_of_eq
+          (mulRep (@prod_mk Nat Nat 2 Nat.zero) (den 1))
+          (mulRep (@prod_mk Nat Nat 1 Nat.zero) (den 3))
+          (Eq.refl (mulRep (@prod_mk Nat Nat 2 Nat.zero) (den 1))))))</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" ../units/unit46.html rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">序的反对称性：两边夹出相等</span></a><a class="unit-nav-home" ../chapters/ii-5.html#units>目录</a><a class="unit-nav-link" ../units/unit48.html rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">三角不等式：|<span class="math">u + v</span>| <span class="math">≤</span> |u| <span class="math">+</span> |v|</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-47"><h3><a #top>绝对值的唯一性：同一个数的两个见证相等</a></h3><p class="appendix-meta">3 道练习 · 3 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-47-1"><summary>练习 1 · ratAbsRel_left_right <span class="sol-meta">定理</span></summary><pre><code>theorem ratAbsRel_left_right (x d d' : ratRep)
+    (hl : ratLeRep ratZeroRep x ∧ ratRel d x)
+    (hr : ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x)) :
+    ratRel d d' :=
+  ratRel_trans_gen d x d'
+    (And.right hl)
+    (ratRel_trans_gen x (ratNegRep x) d'
+      (ratRel_trans_gen x ratZeroRep (ratNegRep x)
+        (ratRel_symm ratZeroRep x
+          (ratLeRep_antisymm ratZeroRep x (And.left hl) (And.left hr)))
+        (ratNegRep_wd ratZeroRep x
+          (ratLeRep_antisymm ratZeroRep x (And.left hl) (And.left hr))))
+      (ratRel_symm d' (ratNegRep x) (And.right hr)))</code></pre></details><details class="appendix-solution" id="app-sol-47-2"><summary>练习 2 · ratAbsRel_unique <span class="sol-meta">定理</span></summary><pre><code>theorem ratAbsRel_unique (x d d' : ratRep)
+    (h1 : ratAbsRel x d) (h2 : ratAbsRel x d') : ratRel d d' :=
+  @Or.elim
+    (ratLeRep ratZeroRep x ∧ ratRel d x)
+    (ratLeRep x ratZeroRep ∧ ratRel d (ratNegRep x))
+    (ratRel d d')
+    (fun (h1l : ratLeRep ratZeroRep x ∧ ratRel d x) =&gt;
+      @Or.elim
+        (ratLeRep ratZeroRep x ∧ ratRel d' x)
+        (ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x))
+        (ratRel d d')
+        (fun (h2l : ratLeRep ratZeroRep x ∧ ratRel d' x) =&gt;
+          ratRel_trans_gen d x d'
+            (And.right h1l)
+            (ratRel_symm d' x (And.right h2l)))
+        (fun (h2r : ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x)) =&gt;
+          ratAbsRel_left_right x d d' h1l h2r)
+        h2)
+    (fun (h1r : ratLeRep x ratZeroRep ∧ ratRel d (ratNegRep x)) =&gt;
+      @Or.elim
+        (ratLeRep ratZeroRep x ∧ ratRel d' x)
+        (ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x))
+        (ratRel d d')
+        (fun (h2l : ratLeRep ratZeroRep x ∧ ratRel d' x) =&gt;
+          ratRel_symm d' d (ratAbsRel_left_right x d' d h2l h1r))
+        (fun (h2r : ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x)) =&gt;
+          ratRel_trans_gen d (ratNegRep x) d'
+            (And.right h1r)
+            (ratRel_symm d' (ratNegRep x) (And.right h2r)))
+        h2)
+    h1</code></pre></details><details class="appendix-solution" id="app-sol-47-3"><summary>练习 3 · demo_abs_unique <span class="sol-meta">定理</span></summary><pre><code>theorem demo_abs_unique :
+    ratRel (qrep 1 Nat.zero 1) (qrep 2 Nat.zero 3) :=
+  ratAbsRel_unique (qrep Nat.zero 1 1) (qrep 1 Nat.zero 1) (qrep 2 Nat.zero 3)
+    (Or.inr
+      (And.intro
+        (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+        (ratRel_refl (qrep 1 Nat.zero 1))))
+    (Or.inr
+      (And.intro
+        (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+        (intRel_of_eq
+          (mulRep (@prod_mk Nat Nat 2 Nat.zero) (den 1))
+          (mulRep (@prod_mk Nat Nat 1 Nat.zero) (den 3))
+          (Eq.refl (mulRep (@prod_mk Nat Nat 2 Nat.zero) (den 1))))))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit46.html">← 46 序的反对称性：两边夹出相等</a><a class="next" href="../units/unit48.html">48 三角不等式：|u + v| ≤ |u| + |v| →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</body>
+</html>
