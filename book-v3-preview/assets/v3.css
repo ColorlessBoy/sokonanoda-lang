@@ -420,3 +420,11 @@ html{scroll-behavior:smooth}
 .exercise-kind{display:inline!important;background:none!important;border:0!important;border-radius:0!important;padding:0!important;color:var(--muted)!important;font-size:.85em!important;font-weight:400!important}
 .exercise-kind::before{content:"（"} .exercise-kind::after{content:"）"}
 .exercise-prompt{font-style:normal}
+
+/* unit page: page TOC on the right at wide widths */
+@media (min-width:1280px){
+  .unit-layout{display:grid!important;grid-template-columns:minmax(0,1fr) 14rem;gap:1.5rem;align-items:start}
+  .unit-side{grid-column:1/-1!important}
+  .unit-page{grid-column:1;min-width:0}
+  .unit-layout>.page-outline{grid-column:2;grid-row:2;position:sticky;top:calc(var(--header-h) + 1rem);max-height:calc(100dvh - var(--header-h) - 2rem);overflow:auto}
+}
