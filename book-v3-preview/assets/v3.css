@@ -47,10 +47,14 @@ img{max-width:100%;height:auto}
 .note{color:var(--muted);font-size:.88rem}
 .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.4rem 1rem;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:var(--radius);text-decoration:none}
 .btn.plain{background:transparent;color:var(--accent)}
-/* breadcrumb */
-.breadcrumb ol{list-style:none;display:flex;flex-wrap:wrap;gap:.35rem;margin:0;padding:.8rem 1rem;font-size:.86rem;max-width:var(--maxw);color:var(--muted)}
-.breadcrumb li+li::before{content:"/";margin-right:.35rem;color:var(--line-strong)}
-.breadcrumb a{color:var(--muted)}
+/* breadcrumb: one aligned row, no default list indent/marker */
+.breadcrumb{max-width:var(--maxw);margin:0 auto;padding:.8rem 1rem 0;color:var(--muted);font-size:.86rem}
+.breadcrumb ol{list-style:none;display:flex;align-items:center;flex-wrap:wrap;gap:0;margin:0;padding:0}
+.breadcrumb li{display:inline-flex;align-items:center;line-height:1.45;min-width:0}
+.breadcrumb li+li::before{content:"/";display:inline-block;margin:0 .5rem;color:var(--line-strong);font-weight:400}
+.breadcrumb a{color:var(--muted);text-decoration:none}
+.breadcrumb a:hover{color:var(--ink)}
+.breadcrumb [aria-current="page"]{color:var(--ink)}
 /* cover */
 .cover{border-bottom:1px solid var(--line);margin:0 0 1.4rem}
 .cover h1{font-size:clamp(1.8rem,7vw,3rem);line-height:1.15;margin:.3rem 0}
