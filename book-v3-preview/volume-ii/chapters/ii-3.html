@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>II.3 有理数的性质：序、绝对值、幂与间隙 · 从集合论到实分析</title>
+<meta name="description" content="有理数的性质：序、绝对值、幂与间隙：6 单元。">
+<link rel="canonical" href="https://example.invalid/book-v3/chapters/ii-3.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="both" data-page="chapter">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="72">已读 0 / 72</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><details class="side-chapter"><summary><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></summary><ol><li><a href="../units/unit01.html">01 整数与商构造</a></li><li><a href="../units/unit02.html">02 商类型与良定义性（复习）</a></li><li><a href="../units/unit03.html">03 ℕ 的算术律（复习）</a></li><li><a href="../units/unit04.html">04 整数加法 / 负 / 减的代表元公式</a></li><li><a href="../units/unit05.html">05 整数乘法的代表元公式</a></li><li><a href="../units/unit06.html">06 整数加法的良定义性</a></li><li><a href="../units/unit07.html">07 整数加法的交换律与结合律</a></li><li><a href="../units/unit08.html">08 整数加法的零元与负元</a></li><li><a href="../units/unit09.html">09 整数减法的良定义性与基本律</a></li><li><a href="../units/unit10.html">10 整数乘法的零元与单位元</a></li><li><a href="../units/unit11.html">11 整数乘法的良定义性</a></li><li><a href="../units/unit12.html">12 整数序的代表元公式</a></li><li><a href="../units/unit13.html">13 ℕ 序的传递性与单调性</a></li><li><a href="../units/unit14.html">14 ℕ 序的加法消去律</a></li><li><a href="../units/unit15.html">15 整数序的良定义性</a></li><li><a href="../units/unit16.html">16 整数序的传递性与加法单调</a></li><li><a href="../units/unit17.html">17 整数乘法的交换律（代表元层）</a></li><li><a href="../units/unit18.html">18 整数乘法的第二个因子良定义（代表元层）</a></li><li><a href="../units/unit19.html">19 把取负下降成函数（Quot.lift）</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-2.html">II.2 有理数：从 ℤ 到 ℚ</a></summary><ol><li><a href="../units/unit20.html">20 有理数与商构造</a></li><li><a href="../units/unit21.html">21 整数相等的传递性</a></li><li><a href="../units/unit22.html">22 ℕ 乘法的分配律与结合律</a></li><li><a href="../units/unit23.html">23 ℤ 乘法的结合律（代表元层）</a></li><li><a href="../units/unit24.html">24 ℕ 正因子的消去律</a></li><li><a href="../units/unit25.html">25 有理数相等的传递性</a></li><li><a href="../units/unit26.html">26 有理数加法的代表元公式与良定义性</a></li><li><a href="../units/unit27.html">27 有理数乘法的代表元公式与具体计算</a></li><li><a href="../units/unit28.html">28 有理数乘法的良定义性</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-3.html">II.3 有理数的性质：序、绝对值、幂与间隙</a></summary><ol><li><a href="../units/unit29.html">29 有理数的序：代表元公式与自反性</a></li><li><a href="../units/unit30.html">30 有理数的严格序：&lt; 与不相等</a></li><li><a href="../units/unit31.html">31 有理数的负元：代表元层定义与良定义性</a></li><li><a href="../units/unit32.html">32 有理数的减法：加法与负元的组合</a></li><li><a href="../units/unit33.html">33 有理数的绝对值：关系定义与两条引入规则</a></li><li><a href="../units/unit34.html">34 有理数的幂：定义与计算规则</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></summary><ol><li><a href="../units/unit35.html">35 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li><li><a href="../units/unit36.html">36 实数的载体：Real := Quot realRel</a></li><li><a href="../units/unit37.html">37 序与正分母：乘法、消去与配对搬运</a></li><li><a href="../units/unit38.html">38 有理数的序：传递性</a></li><li><a href="../units/unit39.html">39 有理数的序与相等相容</a></li><li><a href="../units/unit40.html">40 实数的相等：自反性</a></li><li><a href="../units/unit41.html">41 取负与序：绝对值的对称性</a></li><li><a href="../units/unit42.html">42 close 的对称性：实数的相等可以换方向</a></li><li><a href="../units/unit43.html">43 有理数加法的代表元律：交换与零元</a></li><li><a href="../units/unit44.html">44 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></summary><ol><li><a href="../units/unit45.html">45 序的全性：每个有理数都有绝对值</a></li><li><a href="../units/unit46.html">46 序的反对称性：两边夹出相等</a></li><li><a href="../units/unit47.html">47 绝对值的唯一性：同一个数的两个见证相等</a></li><li><a href="../units/unit48.html">48 三角不等式：|u + v| ≤ |u| + |v|</a></li><li><a href="../units/unit49.html">49 严格序的传递与 close 对 ε 的单调性</a></li><li><a href="../units/unit50.html">50 严格序与加法相容：加法消去</a></li><li><a href="../units/unit51.html">51 严格序的传递与加法相容</a></li><li><a href="../units/unit52.html">52 ε 折半：半数的存在与加倍</a></li><li><a href="../units/unit53.html">53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li><li><a href="../units/unit54.html">54 有理数加法的结合律：公分母的三层嵌套</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></summary><ol><li><a href="../units/unit55.html">55 有理数的加法逆元：x + (-x) = 0</a></li><li><a href="../units/unit56.html">56 两次减法的相加：中间项消去</a></li><li><a href="../units/unit57.html">57 close 的传递性：两个 ε/2 的界加起来</a></li><li><a href="../units/unit58.html">58 实数的相等：传递性</a></li><li><a href="../units/unit59.html">59 实数的取负：第一次把运算下降到商上</a></li><li><a href="../units/unit60.html">60 实数的加法：下降之前的两条义务</a></li><li><a href="../units/unit61.html">61 实数的加法：三元关系（存在 + 唯一）</a></li><li><a href="../units/unit62.html">62 实数的加法：交换律与零元（三元关系版）</a></li><li><a href="../units/unit63.html">63 实数的加法：结合律（三元关系版）</a></li><li><a href="../units/unit64.html">64 实数的序：代表元关系与自反性</a></li><li><a href="../units/unit65.html">65 实数的序：传递性</a></li><li><a href="../units/unit66.html">66 实数的序：沿 realRel 下降成 Real 上的关系</a></li><li><a href="../units/unit67.html">67 实数的序：自反、传递、反对称</a></li><li><a href="../units/unit68.html">68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-7.html">II.7 数系综合与读证明</a></summary><ol><li><a href="../units/unit69.html">69 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li><li><a href="../units/unit70.html">70 数系链：加法在四层间的迁移</a></li><li><a href="../units/unit71.html">71 数系综合：商的代价——一座桥与两座桥</a></li><li><a href="../units/unit72.html">72 数系综合：完备性盘点——代表元层与集合层</a></li></ol></details></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li aria-current="page">II.3 有理数的性质：序、绝对值、幂与间隙</li></ol></nav>
+<main id="main" class="page ">
+<header class="page-head">
+  <p class="kicker">卷 II 数系与实数 · 第 3 章</p>
+  <h1><span class="chapter-id">II.3</span> 有理数的性质：序、绝对值、幂与间隙</h1>
+  <p class="meta">6 单元 · 24 道练习 · 39 个声明 · 55 条提示</p>
+  <p class="lede">本章共 6 单元，从「有理数的序：代表元公式与自反性」到「有理数的幂：定义与计算规则」。本章所有单元在同一页，按顺序向下读；点上方单元可以直接滑到对应位置。</p>
+</header>
+<section class="chapter-progress" aria-label="本章进度">
+  <div class="progress-row">
+    <span class="progress-label">本章进度</span>
+    <strong data-progress-count data-progress-total="6">已读 0 / 6</strong>
+  </div>
+  <span class="progress-track" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="6" aria-valuenow="0" data-progressbar><span class="progress-fill" data-progress-fill></span></span>
+</section>
+<nav id="units" class="chapter-units" aria-label="本章单元">
+  <h2>本章单元（6）</h2>
+  <ol class="unit-jump-list">
+<li><a class="unit-jump" href="#unit-29"><span class="num">29</span><span>有理数的序：代表元公式与自反性</span></a></li>
+<li><a class="unit-jump" href="#unit-30"><span class="num">30</span><span>有理数的严格序：&lt; 与不相等</span></a></li>
+<li><a class="unit-jump" href="#unit-31"><span class="num">31</span><span>有理数的负元：代表元层定义与良定义性</span></a></li>
+<li><a class="unit-jump" href="#unit-32"><span class="num">32</span><span>有理数的减法：加法与负元的组合</span></a></li>
+<li><a class="unit-jump" href="#unit-33"><span class="num">33</span><span>有理数的绝对值：关系定义与两条引入规则</span></a></li>
+<li><a class="unit-jump" href="#unit-34"><span class="num">34</span><span>有理数的幂：定义与计算规则</span></a></li>
+  </ol>
+</nav>
+<div class="chapter-body">
+<div class="chapter-unit" data-unit="29"><section class="unit first-of-chapter" id="unit-29">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/ii-3.html">II.3</a> · 本章第 1 / 6 单元 · 全书第 29 / 72 单元</p>
+<h2><span class="unit-number">29</span><span>有理数的序：代表元公式与自反性</span></h2>
+<p class="unit-title-en">Unit 29 — Order on Rationals</p>
+<p class="unit-meta">2 个定义 · 4 个定理 · 4 道练习 · 8 条提示 · <a href="#appendix-unit-29">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="29" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-29" aria-label="复制单元 29 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<a class="back-to-toc" href="../chapters/ii-3.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>卷 II 把 <span class="math">ℚ</span> 建成 Quot ratRel（单元⑳），并在代表元层结清了加法与乘法的良定义性（㉖–㉘）。接下来进入 <span class="math">ℚ</span> 的性质：序、绝对值、幂、间隙。先做序，因为后面的绝对值与极限都要用它。</p></div></div></section>
+<div class="block prose intuition-only"><p>序的定义沿用整数序的同一套想法：<span class="math"><span class="frac-inline"><span class="num">a−b</span><span class="den">m+1</span></span> ≤ <span class="frac-inline"><span class="num">c−d</span><span class="den">n+1</span></span></span> 等价于交叉相乘后的 <span class="math">ℕ</span> 不等式 <span class="math">a·(n+1) + d·(m+1) ≤ c·(m+1) + b·(n+1)</span>。右边不是笔误：<span class="math">(a-b)(n+1) ≤ (c-d)(m+1)</span> 移项后，负部 <span class="math">-b(n+1)</span> 与 <span class="math">-d(m+1)</span> 都搬到对面。分母 <span class="math">(m+1)(n+1)</span> 是正的，所以交叉相乘不改变方向。</p></div><div class="block prose intuition-only"><p>这里先立起序的定义、自反、以及「相等蕴含序」；传递性、全序与加法/乘法相容都要先把两个代表元换到公分母，留给后续单元。</p></div><div class="block prose intuition-only"><p>有理数的非严格序：交叉相乘后的 <span class="math">ℕ</span> 不等式。</p></div><article class="decl decl-def" id="decl-29-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLeRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLeRep (x y : ratRep) : Prop :=
+  leRep (mulRep (numOf x) (den (denOf y)))
+        (mulRep (numOf y) (den (denOf x)))</code></pre></div></article>
+<div class="block prose intuition-only"><p>严格序：<span class="math">≤</span> 且不相等（相等仍用商上的 <code>ratRel</code> 表达）。</p></div><article class="decl decl-def" id="decl-29-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLtRep</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLtRep (x y : ratRep) : Prop :=
+  ratLeRep x y ∧ ¬ ratRel x y</code></pre></div></article>
+<article class="exercise" id="ex-29-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratLeRep_refl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-29-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉙.1 序的自反性</p></div><div class="block prose intuition-only"><p>-- 先看最平凡的一条：任何有理数都不小于自己。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_refl (x : ratRep) : ratLeRep x x :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep x x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>leRep_refl。</p></div></details></div><details class="solution-panel" id="sol-29-1"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_refl (x : ratRep) : ratLeRep x x :=
+  leRep_refl (mulRep (numOf x) (den (denOf x)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-29-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratLeRep_of_ratRel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-29-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉙.2 相等蕴含序</p></div><div class="block prose intuition-only"><p>-- 再证相等蕴含序：相等时两个交叉乘积的整数相等，序的良定义性把它搬过来。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_of_ratRel (x y : ratRep) (h : ratRel x y) : ratLeRep x y :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel x y → ratLeRep x y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">leRep_wd_pair · intRel_refl · leRep_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-29-2"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem ratLeRep_of_ratRel (x y : ratRep) (h : ratRel x y) : ratLeRep x y :=
+  leRep_wd_pair
+    (mulRep (numOf y) (den (denOf x)))
+    (mulRep (numOf x) (den (denOf y)))
+    (mulRep (numOf y) (den (denOf x)))
+    (mulRep (numOf y) (den (denOf x)))
+    (intRel_symm
+      (mulRep (numOf x) (den (denOf y)))
+      (mulRep (numOf y) (den (denOf x))) h)
+    (intRel_refl (mulRep (numOf y) (den (denOf x))))
+    (leRep_refl (mulRep (numOf y) (den (denOf x))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-29-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">demo_zero_le_one</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-29-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉙.3 具体数字：<span class="math">0 ≤ 1</span></p></div><div class="block prose intuition-only"><p>-- 具体算一个：<span class="math">0 ≤ 1</span>。</p></div></div><pre class="exercise-statement"><code>theorem demo_zero_le_one :
+    ratLeRep (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (qrep 0 0 0) (qrep 1 0 0)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">le_succ · le_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-29-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem demo_zero_le_one :
+    ratLeRep (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero) :=
+  le_succ Nat.zero Nat.zero (le_refl Nat.zero)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-29-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">demo_half_le_three_quarters</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-29-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉙.4 具体数字：<span class="math">1/2 ≤ 3/4</span></p></div><div class="block prose intuition-only"><p>-- 再算 <span class="math">1/2 ≤ 3/4</span>。</p></div></div><pre class="exercise-statement"><code>theorem demo_half_le_three_quarters :
+    ratLeRep (qrep 1 Nat.zero 1) (qrep 3 Nat.zero 3) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (qrep 1 0 1) (qrep 3 0 3)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">le_succ · le_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-29-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem demo_half_le_three_quarters :
+    ratLeRep (qrep 1 Nat.zero 1) (qrep 3 Nat.zero 3) :=
+  le_succ 4 5 (le_succ 4 4 (le_refl 4))</code></pre></div></details></div></article>
+
+</section><section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-29"><h3><a href="#top">有理数的序：代表元公式与自反性</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-29-1"><summary>练习 1 · ratLeRep_refl <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_refl (x : ratRep) : ratLeRep x x :=
+  leRep_refl (mulRep (numOf x) (den (denOf x)))</code></pre></details><details class="appendix-solution" id="app-sol-29-2"><summary>练习 2 · ratLeRep_of_ratRel <span class="sol-meta">定理</span></summary><pre><code>theorem ratLeRep_of_ratRel (x y : ratRep) (h : ratRel x y) : ratLeRep x y :=
+  leRep_wd_pair
+    (mulRep (numOf y) (den (denOf x)))
+    (mulRep (numOf x) (den (denOf y)))
+    (mulRep (numOf y) (den (denOf x)))
+    (mulRep (numOf y) (den (denOf x)))
+    (intRel_symm
+      (mulRep (numOf x) (den (denOf y)))
+      (mulRep (numOf y) (den (denOf x))) h)
+    (intRel_refl (mulRep (numOf y) (den (denOf x))))
+    (leRep_refl (mulRep (numOf y) (den (denOf x))))</code></pre></details><details class="appendix-solution" id="app-sol-29-3"><summary>练习 3 · demo_zero_le_one <span class="sol-meta">定理</span></summary><pre><code>theorem demo_zero_le_one :
+    ratLeRep (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero) :=
+  le_succ Nat.zero Nat.zero (le_refl Nat.zero)</code></pre></details><details class="appendix-solution" id="app-sol-29-4"><summary>练习 4 · demo_half_le_three_quarters <span class="sol-meta">定理</span></summary><pre><code>theorem demo_half_le_three_quarters :
+    ratLeRep (qrep 1 Nat.zero 1) (qrep 3 Nat.zero 3) :=
+  le_succ 4 5 (le_succ 4 4 (le_refl 4))</code></pre></details></section></section></div>
+<div class="chapter-unit" data-unit="30"><section class="unit" id="unit-30">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/ii-3.html">II.3</a> · 本章第 2 / 6 单元 · 全书第 30 / 72 单元</p>
+<h2><span class="unit-number">30</span><span>有理数的严格序：&lt; 与不相等</span></h2>
+<p class="unit-title-en">Unit 30 — Strict Order on Rationals</p>
+<p class="unit-meta">2 个定义 · 4 个定理 · 4 道练习 · 8 条提示 · <a href="#appendix-unit-30">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="30" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-30" aria-label="复制单元 30 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<a class="back-to-toc" href="../chapters/ii-3.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元㉙ 定义了非严格序 ratLeRep。严格序在数学上是「<span class="math">≤</span> 且不等」，在商上「不等」仍然用 ratRel 的否定表达（Rat 的相等就是 ratRel）：ratLtRep x y 当且仅当 ratLeRep x y 且非 ratRel x y。</p></div></div></section>
+<div class="block prose intuition-only"><p>这里先结清严格序的三条定义展开级事实：它不是自反的；它蕴含非严格序；非严格序加上不相等就是它。再加一个具体计算 0 &lt; 1：序的部分用 ㉙ 的 le_succ，不等的部分把 ratRel 0 1 化成 <span class="math">0 = 1</span>，由 succ_ne_zero 否定。</p></div><div class="block prose intuition-only"><p>传递性、全序与加法/乘法相容仍要先通分，留给后续单元。</p></div><article class="decl decl-def" id="decl-30-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLeRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLeRep (x y : ratRep) : Prop :=
+  leRep (mulRep (numOf x) (den (denOf y)))
+        (mulRep (numOf y) (den (denOf x)))</code></pre></div></article>
+<article class="decl decl-def" id="decl-30-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLtRep</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLtRep (x y : ratRep) : Prop :=
+  ratLeRep x y ∧ ¬ ratRel x y</code></pre></div></article>
+<article class="exercise" id="ex-30-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratLtRep_irrefl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-30-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉚.1 严格序不<span class="math">⊂</span>自反</p></div><div class="block prose intuition-only"><p>-- 严格序是「<span class="math">≤</span> 且不等」，所以它首先不可能自反。</p></div></div><pre class="exercise-statement"><code>theorem ratLtRep_irrefl (x : ratRep) : ¬ ratLtRep x x :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>¬ ratLtRep x x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>And.right（取第二分量）<span class="math">· ratRel_refl · Not.elim</span>（或 <code>fun h =&gt; (And.right h) (ratRel_refl x)</code>）。</p></div></details></div><details class="solution-panel" id="sol-30-1"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem ratLtRep_irrefl (x : ratRep) : ¬ ratLtRep x x :=
+  fun (h : ratLtRep x x) =&gt; (And.right h) (ratRel_refl x)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-30-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratLtRep_implies_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-30-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉚.2 严格序蕴含非严格序</p></div><div class="block prose intuition-only"><p>-- 严格序蕴含非严格序：取下合取式的左分量。</p></div></div><pre class="exercise-statement"><code>theorem ratLtRep_implies_le (x y : ratRep) (h : ratLtRep x y) : ratLeRep x y :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep x y → ratLeRep x y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>And.left。</p></div></details></div><details class="solution-panel" id="sol-30-2"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem ratLtRep_implies_le (x y : ratRep) (h : ratLtRep x y) : ratLeRep x y :=
+  And.left h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-30-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratLtRep_of_le_ne</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-30-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉚.3 非严格序 <span class="math">+</span> 不相等 <span class="math">=</span> 严格序</p></div><div class="block prose intuition-only"><p>-- 反方向：<span class="math">≤</span> 加上不相等就是 &lt;。</p></div></div><pre class="exercise-statement"><code>theorem ratLtRep_of_le_ne (x y : ratRep)
+    (hle : ratLeRep x y) (hne : ¬ ratRel x y) : ratLtRep x y :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep x y → ¬ ratRel x y → ratLtRep x y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>And.intro。</p></div></details></div><details class="solution-panel" id="sol-30-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem ratLtRep_of_le_ne (x y : ratRep)
+    (hle : ratLeRep x y) (hne : ¬ ratRel x y) : ratLtRep x y :=
+  And.intro hle hne</code></pre></div></details></div></article>
+<article class="exercise" id="ex-30-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">demo_zero_lt_one</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-30-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉚.4 具体数字：0 &lt; 1</p></div><div class="block prose intuition-only"><p>-- 具体算 0 &lt; 1：序用 le_succ，不等的部分化成 <span class="math">0 = 1</span> 再否定。</p></div></div><pre class="exercise-statement"><code>theorem demo_zero_lt_one :
+    ratLtRep (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep (qrep 0 0 0) (qrep 1 0 0)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">And.intro · le_succ · le_refl · Eq.symm · succ_ne_zero</span>。</p></div></details></div><details class="solution-panel" id="sol-30-4"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem demo_zero_lt_one :
+    ratLtRep (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero) :=
+  And.intro
+    (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+    (fun (h : ratRel (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) =&gt;
+      succ_ne_zero Nat.zero (Eq.symm h))</code></pre></div></details></div></article>
+
+</section><section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-30"><h3><a href="#top">有理数的严格序：&lt; 与不相等</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-30-1"><summary>练习 1 · ratLtRep_irrefl <span class="sol-meta">定理</span></summary><pre><code>theorem ratLtRep_irrefl (x : ratRep) : ¬ ratLtRep x x :=
+  fun (h : ratLtRep x x) =&gt; (And.right h) (ratRel_refl x)</code></pre></details><details class="appendix-solution" id="app-sol-30-2"><summary>练习 2 · ratLtRep_implies_le <span class="sol-meta">定理</span></summary><pre><code>theorem ratLtRep_implies_le (x y : ratRep) (h : ratLtRep x y) : ratLeRep x y :=
+  And.left h</code></pre></details><details class="appendix-solution" id="app-sol-30-3"><summary>练习 3 · ratLtRep_of_le_ne <span class="sol-meta">定理</span></summary><pre><code>theorem ratLtRep_of_le_ne (x y : ratRep)
+    (hle : ratLeRep x y) (hne : ¬ ratRel x y) : ratLtRep x y :=
+  And.intro hle hne</code></pre></details><details class="appendix-solution" id="app-sol-30-4"><summary>练习 4 · demo_zero_lt_one <span class="sol-meta">定理</span></summary><pre><code>theorem demo_zero_lt_one :
+    ratLtRep (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero) :=
+  And.intro
+    (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+    (fun (h : ratRel (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) =&gt;
+      succ_ne_zero Nat.zero (Eq.symm h))</code></pre></details></section></section></div>
+<div class="chapter-unit" data-unit="31"><section class="unit" id="unit-31">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/ii-3.html">II.3</a> · 本章第 3 / 6 单元 · 全书第 31 / 72 单元</p>
+<h2><span class="unit-number">31</span><span>有理数的负元：代表元层定义与良定义性</span></h2>
+<p class="unit-title-en">Unit 31 — Negation of Rationals</p>
+<p class="unit-meta">1 个定义 · 4 个定理 · 4 道练习 · 8 条提示 · <a href="#appendix-unit-31">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="31" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-31" aria-label="复制单元 31 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<a class="back-to-toc" href="../chapters/ii-3.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元㉙–㉚ 建立了 <span class="math">ℚ</span> 的序与严格序。现在补上取负：一个分数取负，就是分子序对的两个坐标对调——<span class="math"><span class="frac-inline"><span class="num">a−b</span><span class="den">m+1</span></span></span> 的负是 <span class="math"><span class="frac-inline"><span class="num">b−a</span><span class="den">m+1</span></span></span>。代表元上正是 <span class="math">ratNegRep x = (negRep (numOf x)</span>, denOf x)。</p></div></div></section>
+<div class="block prose intuition-only"><p>要结清三件事：取负尊重相等（x 与 x' 相等时负元也相等）；取负做两次回到原处；以及一个具体计算 <span class="math">-(1/2) = (-1)/2</span>。良定义性的做法是把 ratNegRep 与整数层的 negRep 在交叉乘积上对齐，再交给 negRep_wd。</p></div><div class="block prose intuition-only"><p>减法在这里不做：它只是加法与取负的组合，留到下一单元。</p></div><article class="decl decl-def" id="decl-31-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratNegRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratNegRep (x : ratRep) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat (negRep (numOf x)) (denOf x)</code></pre></div></article>
+<article class="exercise" id="ex-31-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">negRep_mulRep_den</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-31-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉛.1 负元在交叉乘积上的形状</p></div><div class="block prose intuition-only"><p>-- 先把取负在交叉乘积上的形状对齐：negRep 与乘分母的次序可以交换。</p></div></div><pre class="exercise-statement"><code>theorem negRep_mulRep_den (p : Prod Nat Nat) (n : Nat) :
+    negRep (mulRep p (den n)) = mulRep (negRep p) (den n) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>negRep (mulRep p (den n)) = mulRep (negRep p) (den n)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">zero_add · congrArg · Eq.symm · Eq.trans</span>。</p></div></details></div><details class="solution-panel" id="sol-31-1"><summary>查看解答 <span class="sol-meta">定理 · 40 行</span></summary><div class="solution-body"><pre><code>theorem negRep_mulRep_den (p : Prod Nat Nat) (n : Nat) :
+    negRep (mulRep p (den n)) = mulRep (negRep p) (den n) :=
+  @Eq.trans.{1} (Prod Nat Nat)
+    (negRep (mulRep p (den n)))
+    (@prod_mk Nat Nat
+      (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+      (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+    (mulRep (negRep p) (den n))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (negRep (mulRep p (den n)))
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (myMul (Prod.fst Nat Nat p) (Nat.succ n)))
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (Eq.refl (negRep (mulRep p (den n))))
+      (@congrArg.{1} Nat (Prod Nat Nat)
+        (myMul (Prod.fst Nat Nat p) (Nat.succ n))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n)))
+        (fun (y : Nat) =&gt;
+          @prod_mk Nat Nat
+            (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n))) y)
+        (Eq.symm (zero_add (myMul (Prod.fst Nat Nat p) (Nat.succ n))))))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (@prod_mk Nat Nat
+        (myMul (Prod.snd Nat Nat p) (Nat.succ n))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (mulRep (negRep p) (den n))
+      (@congrArg.{1} Nat (Prod Nat Nat)
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (myMul (Prod.snd Nat Nat p) (Nat.succ n))
+        (fun (x : Nat) =&gt;
+          @prod_mk Nat Nat x
+            (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+        (zero_add (myMul (Prod.snd Nat Nat p) (Nat.succ n))))
+      (Eq.refl (mulRep (negRep p) (den n))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-31-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratNegRep_wd</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-31-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉛.2 负元的良定义性</p></div><div class="block prose intuition-only"><p>-- 取负尊重相等：把假设搬到两个负元上，再用上一题的形状对齐。</p></div></div><pre class="exercise-statement"><code>theorem ratNegRep_wd (x y : ratRep) (h : ratRel x y) :
+    ratRel (ratNegRep x) (ratNegRep y) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel x y → ratRel (ratNegRep x) (ratNegRep y)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">negRep_mulRep_den · negRep_wd · intRel_trans · Eq.symm</span>。</p></div></details></div><details class="solution-panel" id="sol-31-2"><summary>查看解答 <span class="sol-meta">定理 · 23 行</span></summary><div class="solution-body"><pre><code>theorem ratNegRep_wd (x y : ratRep) (h : ratRel x y) :
+    ratRel (ratNegRep x) (ratNegRep y) :=
+  intRel_trans
+    (mulRep (negRep (numOf x)) (den (denOf y)))
+    (negRep (mulRep (numOf x) (den (denOf y))))
+    (mulRep (negRep (numOf y)) (den (denOf x)))
+    (intRel_of_eq
+      (mulRep (negRep (numOf x)) (den (denOf y)))
+      (negRep (mulRep (numOf x) (den (denOf y))))
+      (@Eq.symm.{1} (Prod Nat Nat)
+        (negRep (mulRep (numOf x) (den (denOf y))))
+        (mulRep (negRep (numOf x)) (den (denOf y)))
+        (negRep_mulRep_den (numOf x) (denOf y))))
+    (@intRel_trans
+      (negRep (mulRep (numOf x) (den (denOf y))))
+      (negRep (mulRep (numOf y) (den (denOf x))))
+      (mulRep (negRep (numOf y)) (den (denOf x)))
+      (negRep_wd (mulRep (numOf x) (den (denOf y)))
+                 (mulRep (numOf y) (den (denOf x))) h)
+      (intRel_of_eq
+        (negRep (mulRep (numOf y) (den (denOf x))))
+        (mulRep (negRep (numOf y)) (den (denOf x)))
+        (negRep_mulRep_den (numOf y) (denOf x))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-31-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratNegRep_invol</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-31-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉛.3 对合：-(-x) ~ x</p></div><div class="block prose intuition-only"><p>-- 取负做两次回到原处。</p></div></div><pre class="exercise-statement"><code>theorem ratNegRep_invol (x : ratRep) :
+    ratRel (ratNegRep (ratNegRep x)) x :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratNegRep (ratNegRep x)) x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>intRel_refl。</p></div></details></div><details class="solution-panel" id="sol-31-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem ratNegRep_invol (x : ratRep) :
+    ratRel (ratNegRep (ratNegRep x)) x :=
+  intRel_refl (mulRep (numOf x) (den (denOf x)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-31-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">demo_neg_half</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-31-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉛.4 具体计算：<span class="math">-(1/2) = (-1)/2</span></p></div><div class="block prose intuition-only"><p>-- 具体算：<span class="math">-(1/2) = (-1)/2</span>。</p></div></div><pre class="exercise-statement"><code>theorem demo_neg_half :
+    ratRel (ratNegRep (qrep 1 Nat.zero 1)) (qrep Nat.zero 1 1) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratNegRep (qrep 1 0 1)) (qrep 0 1 1)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>ratNegRep 的 <span class="math">ι</span> 归约 <span class="math">· ratRel_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-31-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem demo_neg_half :
+    ratRel (ratNegRep (qrep 1 Nat.zero 1)) (qrep Nat.zero 1 1) :=
+  ratRel_refl (qrep Nat.zero 1 1)</code></pre></div></details></div></article>
+
+</section><section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-31"><h3><a href="#top">有理数的负元：代表元层定义与良定义性</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-31-1"><summary>练习 1 · negRep_mulRep_den <span class="sol-meta">定理</span></summary><pre><code>theorem negRep_mulRep_den (p : Prod Nat Nat) (n : Nat) :
+    negRep (mulRep p (den n)) = mulRep (negRep p) (den n) :=
+  @Eq.trans.{1} (Prod Nat Nat)
+    (negRep (mulRep p (den n)))
+    (@prod_mk Nat Nat
+      (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+      (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+    (mulRep (negRep p) (den n))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (negRep (mulRep p (den n)))
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (myMul (Prod.fst Nat Nat p) (Nat.succ n)))
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (Eq.refl (negRep (mulRep p (den n))))
+      (@congrArg.{1} Nat (Prod Nat Nat)
+        (myMul (Prod.fst Nat Nat p) (Nat.succ n))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n)))
+        (fun (y : Nat) =&gt;
+          @prod_mk Nat Nat
+            (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n))) y)
+        (Eq.symm (zero_add (myMul (Prod.fst Nat Nat p) (Nat.succ n))))))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (@prod_mk Nat Nat
+        (myMul (Prod.snd Nat Nat p) (Nat.succ n))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (mulRep (negRep p) (den n))
+      (@congrArg.{1} Nat (Prod Nat Nat)
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (myMul (Prod.snd Nat Nat p) (Nat.succ n))
+        (fun (x : Nat) =&gt;
+          @prod_mk Nat Nat x
+            (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+        (zero_add (myMul (Prod.snd Nat Nat p) (Nat.succ n))))
+      (Eq.refl (mulRep (negRep p) (den n))))</code></pre></details><details class="appendix-solution" id="app-sol-31-2"><summary>练习 2 · ratNegRep_wd <span class="sol-meta">定理</span></summary><pre><code>theorem ratNegRep_wd (x y : ratRep) (h : ratRel x y) :
+    ratRel (ratNegRep x) (ratNegRep y) :=
+  intRel_trans
+    (mulRep (negRep (numOf x)) (den (denOf y)))
+    (negRep (mulRep (numOf x) (den (denOf y))))
+    (mulRep (negRep (numOf y)) (den (denOf x)))
+    (intRel_of_eq
+      (mulRep (negRep (numOf x)) (den (denOf y)))
+      (negRep (mulRep (numOf x) (den (denOf y))))
+      (@Eq.symm.{1} (Prod Nat Nat)
+        (negRep (mulRep (numOf x) (den (denOf y))))
+        (mulRep (negRep (numOf x)) (den (denOf y)))
+        (negRep_mulRep_den (numOf x) (denOf y))))
+    (@intRel_trans
+      (negRep (mulRep (numOf x) (den (denOf y))))
+      (negRep (mulRep (numOf y) (den (denOf x))))
+      (mulRep (negRep (numOf y)) (den (denOf x)))
+      (negRep_wd (mulRep (numOf x) (den (denOf y)))
+                 (mulRep (numOf y) (den (denOf x))) h)
+      (intRel_of_eq
+        (negRep (mulRep (numOf y) (den (denOf x))))
+        (mulRep (negRep (numOf y)) (den (denOf x)))
+        (negRep_mulRep_den (numOf y) (denOf x))))</code></pre></details><details class="appendix-solution" id="app-sol-31-3"><summary>练习 3 · ratNegRep_invol <span class="sol-meta">定理</span></summary><pre><code>theorem ratNegRep_invol (x : ratRep) :
+    ratRel (ratNegRep (ratNegRep x)) x :=
+  intRel_refl (mulRep (numOf x) (den (denOf x)))</code></pre></details><details class="appendix-solution" id="app-sol-31-4"><summary>练习 4 · demo_neg_half <span class="sol-meta">定理</span></summary><pre><code>theorem demo_neg_half :
+    ratRel (ratNegRep (qrep 1 Nat.zero 1)) (qrep Nat.zero 1 1) :=
+  ratRel_refl (qrep Nat.zero 1 1)</code></pre></details></section></section></div>
+<div class="chapter-unit" data-unit="32"><section class="unit" id="unit-32">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/ii-3.html">II.3</a> · 本章第 4 / 6 单元 · 全书第 32 / 72 单元</p>
+<h2><span class="unit-number">32</span><span>有理数的减法：加法与负元的组合</span></h2>
+<p class="unit-title-en">Unit 32 — Subtraction of Rationals</p>
+<p class="unit-meta">2 个定义 · 6 个定理 · 4 道练习 · 15 条提示 · <a href="#appendix-unit-32">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="32" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-32" aria-label="复制单元 32 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<a class="back-to-toc" href="../chapters/ii-3.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元㉛ 有了负元，减法就是 x - y :<span class="math">= x + (-y)</span>，代表元上即 ratSubRep x y :<span class="math">= ratAddRep x (ratNegRep y)</span>。由于 <span class="math">-<span class="frac-inline"><span class="num">c−d</span><span class="den">n+1</span></span> = <span class="frac-inline"><span class="num">d−c</span><span class="den">n+1</span></span></span>，减法的分子是 <span class="math">a(n+1) + d(m+1)</span>，负部是 <span class="math">b(n+1) + c(m+1)</span>——与加法公式只差第二个分子的两个坐标互换。</p></div></div></section>
+<div class="block prose intuition-only"><p>这里要结清三件事：计算规则（一条 <span class="math">ι</span> 归约）；对第一、第二因子的良定义性（都化归到 ㉖ 的加法义务与 ㉛ 的负元义务）；以及具体计算 <span class="math">1 - 1/2 = 1/2</span>。</p></div><div class="block prose intuition-only"><p>减法的代数律（x - x 与 0 相等、x - y 与 -(y - x) 相等）留给后续单元。</p></div><article class="decl decl-def" id="decl-32-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratNegRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratNegRep (x : ratRep) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat (negRep (numOf x)) (denOf x)</code></pre></div></article>
+<div class="block prose intuition-only"><p>㉛.1 负元在交叉乘积上的形状</p></div><article class="decl decl-theorem" id="decl-32-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">negRep_mulRep_den</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem negRep_mulRep_den (p : Prod Nat Nat) (n : Nat) :
+    negRep (mulRep p (den n)) = mulRep (negRep p) (den n) :=</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边都展开成同一个序对，只差两处 <code>0 + n</code>；用 <code>zero_add</code> 把两处零头消掉，再用 <code>Eq.trans</code> 串起来。<code>prod_mk</code> 的两个坐标分别改写时用 <code>@congrArg</code>（隐式参数要全写）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>negRep (mulRep p (den n)) = mulRep (negRep p) (den n)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">zero_add · congrArg · Eq.symm · Eq.trans</span>。</p></div></details></div><details class="proof-panel formal-only"><summary>证明 · 1 步 · 38 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.trans.{1} (Prod Nat Nat)
+    (negRep (mulRep p (den n)))
+    (@prod_mk Nat Nat
+      (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+      (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+    (mulRep (negRep p) (den n))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (negRep (mulRep p (den n)))
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (myMul (Prod.fst Nat Nat p) (Nat.succ n)))
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (Eq.refl (negRep (mulRep p (den n))))
+      (@congrArg.{1} Nat (Prod Nat Nat)
+        (myMul (Prod.fst Nat Nat p) (Nat.succ n))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n)))
+        (fun (y : Nat) =&gt;
+          @prod_mk Nat Nat
+            (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n))) y)
+        (Eq.symm (zero_add (myMul (Prod.fst Nat Nat p) (Nat.succ n))))))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (@prod_mk Nat Nat
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (@prod_mk Nat Nat
+        (myMul (Prod.snd Nat Nat p) (Nat.succ n))
+        (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+      (mulRep (negRep p) (den n))
+      (@congrArg.{1} Nat (Prod Nat Nat)
+        (Nat.add Nat.zero (myMul (Prod.snd Nat Nat p) (Nat.succ n)))
+        (myMul (Prod.snd Nat Nat p) (Nat.succ n))
+        (fun (x : Nat) =&gt;
+          @prod_mk Nat Nat x
+            (Nat.add Nat.zero (myMul (Prod.fst Nat Nat p) (Nat.succ n))))
+        (zero_add (myMul (Prod.snd Nat Nat p) (Nat.succ n))))
+      (Eq.refl (mulRep (negRep p) (den n))))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>㉛.2 负元的良定义性</p></div><article class="decl decl-theorem" id="decl-32-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">ratNegRep_wd</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem ratNegRep_wd (x y : ratRep) (h : ratRel x y) :
+    ratRel (ratNegRep x) (ratNegRep y) :=</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>h : ratRel x y</code> 是交叉乘积的整数相等；<code>negRep_wd</code> 把它搬到两个 <code>negRep</code> 上；㉛.1 说 <code>negRep (mulRep …)</code> 与 <code>mulRep (negRep …) …</code> 命题相等。用两次 <code>intRel_trans</code> 拼成目标。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel x y → ratRel (ratNegRep x) (ratNegRep y)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">negRep_mulRep_den · negRep_wd · intRel_trans · Eq.symm</span>。</p></div></details></div><details class="proof-panel formal-only"><summary>证明 · 1 步 · 21 行</summary><ol class="proof-steps"><li><pre><code>  intRel_trans
+    (mulRep (negRep (numOf x)) (den (denOf y)))
+    (negRep (mulRep (numOf x) (den (denOf y))))
+    (mulRep (negRep (numOf y)) (den (denOf x)))
+    (intRel_of_eq
+      (mulRep (negRep (numOf x)) (den (denOf y)))
+      (negRep (mulRep (numOf x) (den (denOf y))))
+      (@Eq.symm.{1} (Prod Nat Nat)
+        (negRep (mulRep (numOf x) (den (denOf y))))
+        (mulRep (negRep (numOf x)) (den (denOf y)))
+        (negRep_mulRep_den (numOf x) (denOf y))))
+    (@intRel_trans
+      (negRep (mulRep (numOf x) (den (denOf y))))
+      (negRep (mulRep (numOf y) (den (denOf x))))
+      (mulRep (negRep (numOf y)) (den (denOf x)))
+      (negRep_wd (mulRep (numOf x) (den (denOf y)))
+                 (mulRep (numOf y) (den (denOf x))) h)
+      (intRel_of_eq
+        (negRep (mulRep (numOf y) (den (denOf x))))
+        (mulRep (negRep (numOf y)) (den (denOf x)))
+        (negRep_mulRep_den (numOf y) (denOf x))))</code></pre></li></ol></details></div></article>
+<article class="decl decl-def" id="decl-32-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratSubRep</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratSubRep (x y : ratRep) : ratRep :=
+  ratAddRep x (ratNegRep y)</code></pre></div></article>
+<article class="exercise" id="ex-32-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratSubRep_mk</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-32-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉜.1 减法的计算规则</p></div><div class="block prose intuition-only"><p>-- 先写减法在代表元上的计算公式：依次展开三个定义，两边是同一个 qrep。</p></div></div><pre class="exercise-statement"><code>theorem ratSubRep_mk (a b c d m n : Nat) :
+    ratSubRep (qrep a b m) (qrep c d n) =
+      qrep
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (ratDenRep m n) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratSubRep (qrep a b m) (qrep c d n) = qrep (a(n+1)+d(m+1)) (b(n+1)+c(m+1)) (ratDenRep m n)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>定义展开（<span class="math">ι</span> 归约）<span class="math">· Eq.refl</span>。</p></div></details></div><details class="solution-panel" id="sol-32-1"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem ratSubRep_mk (a b c d m n : Nat) :
+    ratSubRep (qrep a b m) (qrep c d n) =
+      qrep
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (ratDenRep m n) :=
+  Eq.refl (qrep
+    (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+    (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+    (ratDenRep m n))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-32-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratSubRep_wd</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-32-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉜.2 减法对第一个因子良定义</p></div><div class="block prose intuition-only"><p>-- 减法对第一个因子良定义：展开后正好是加法对第一因子的义务。</p></div></div><pre class="exercise-statement"><code>theorem ratSubRep_wd (a b a' b' c d m n : Nat)
+    (h : ratRel (qrep a b m) (qrep a' b' m)) :
+    ratRel (ratSubRep (qrep a b m) (qrep c d n))
+           (ratSubRep (qrep a' b' m) (qrep c d n)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>x ~ x' → (x - y) ~ (x' - y)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratAddRep_wd · ratNegRep</span> 的 <span class="math">ι</span> 归约。</p></div></details></div><details class="solution-panel" id="sol-32-2"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem ratSubRep_wd (a b a' b' c d m n : Nat)
+    (h : ratRel (qrep a b m) (qrep a' b' m)) :
+    ratRel (ratSubRep (qrep a b m) (qrep c d n))
+           (ratSubRep (qrep a' b' m) (qrep c d n)) :=
+  ratAddRep_wd a b a' b' d c m n h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-32-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratSubRep_wd_snd</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-32-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉜.3 减法对第二个因子良定义</p></div><div class="block prose intuition-only"><p>-- 对第二个因子：先把相等搬到负元上，再交给加法的第二义务。</p></div></div><pre class="exercise-statement"><code>theorem ratSubRep_wd_snd (a b c d c' d' m n : Nat)
+    (h : ratRel (qrep c d n) (qrep c' d' n)) :
+    ratRel (ratSubRep (qrep a b m) (qrep c d n))
+           (ratSubRep (qrep a b m) (qrep c' d' n)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>y ~ y' → (x - y) ~ (x - y')</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratNegRep_wd · ratAddRep_wd_snd</span>。</p></div></details></div><details class="solution-panel" id="sol-32-3"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem ratSubRep_wd_snd (a b c d c' d' m n : Nat)
+    (h : ratRel (qrep c d n) (qrep c' d' n)) :
+    ratRel (ratSubRep (qrep a b m) (qrep c d n))
+           (ratSubRep (qrep a b m) (qrep c' d' n)) :=
+  ratAddRep_wd_snd a b d c d' c' m n (ratNegRep_wd (qrep c d n) (qrep c' d' n) h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-32-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">demo_one_sub_half</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-32-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉜.4 具体计算：<span class="math">1 - 1/2 = 1/2</span></p></div></div><pre class="exercise-statement"><code>theorem demo_one_sub_half :
+    ratRel (ratSubRep (qrep 1 Nat.zero Nat.zero) (qrep 1 Nat.zero 1))
+           (qrep 1 Nat.zero 1) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>展开后左边是 <code>qrep 2 1 1</code>，右边是 <code>qrep 1 0 1</code>；交叉相乘得 <code>4 = 4</code>，用 <code>Eq.refl 4</code> 交给 <code>intRel</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratSubRep (qrep 1 0 0) (qrep 1 0 1)) (qrep 1 0 1)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratSubRep_mk · Eq.refl</span>。</p></div></details></div><details class="solution-panel" id="sol-32-4"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem demo_one_sub_half :
+    ratRel (ratSubRep (qrep 1 Nat.zero Nat.zero) (qrep 1 Nat.zero 1))
+           (qrep 1 Nat.zero 1) :=
+  Eq.refl 4</code></pre></div></details></div></article>
+
+</section><section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-32"><h3><a href="#top">有理数的减法：加法与负元的组合</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-32-1"><summary>练习 1 · ratSubRep_mk <span class="sol-meta">定理</span></summary><pre><code>theorem ratSubRep_mk (a b c d m n : Nat) :
+    ratSubRep (qrep a b m) (qrep c d n) =
+      qrep
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (ratDenRep m n) :=
+  Eq.refl (qrep
+    (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+    (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+    (ratDenRep m n))</code></pre></details><details class="appendix-solution" id="app-sol-32-2"><summary>练习 2 · ratSubRep_wd <span class="sol-meta">定理</span></summary><pre><code>theorem ratSubRep_wd (a b a' b' c d m n : Nat)
+    (h : ratRel (qrep a b m) (qrep a' b' m)) :
+    ratRel (ratSubRep (qrep a b m) (qrep c d n))
+           (ratSubRep (qrep a' b' m) (qrep c d n)) :=
+  ratAddRep_wd a b a' b' d c m n h</code></pre></details><details class="appendix-solution" id="app-sol-32-3"><summary>练习 3 · ratSubRep_wd_snd <span class="sol-meta">定理</span></summary><pre><code>theorem ratSubRep_wd_snd (a b c d c' d' m n : Nat)
+    (h : ratRel (qrep c d n) (qrep c' d' n)) :
+    ratRel (ratSubRep (qrep a b m) (qrep c d n))
+           (ratSubRep (qrep a b m) (qrep c' d' n)) :=
+  ratAddRep_wd_snd a b d c d' c' m n (ratNegRep_wd (qrep c d n) (qrep c' d' n) h)</code></pre></details><details class="appendix-solution" id="app-sol-32-4"><summary>练习 4 · demo_one_sub_half <span class="sol-meta">定理</span></summary><pre><code>theorem demo_one_sub_half :
+    ratRel (ratSubRep (qrep 1 Nat.zero Nat.zero) (qrep 1 Nat.zero 1))
+           (qrep 1 Nat.zero 1) :=
+  Eq.refl 4</code></pre></details></section></section></div>
+<div class="chapter-unit" data-unit="33"><section class="unit" id="unit-33">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/ii-3.html">II.3</a> · 本章第 5 / 6 单元 · 全书第 33 / 72 单元</p>
+<h2><span class="unit-number">33</span><span>有理数的绝对值：关系定义与两条引入规则</span></h2>
+<p class="unit-title-en">Unit 33 — Absolute Value of Rationals</p>
+<p class="unit-meta">4 个定义 · 4 个定理 · 4 道练习 · 8 条提示 · <a href="#appendix-unit-33">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="33" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-33" aria-label="复制单元 33 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<a class="back-to-toc" href="../chapters/ii-3.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>绝对值 |x| 在代表元上要按 <span class="math">x ≥ 0</span> 与 <span class="math">x ≤ 0</span> 分情况，但本语言没有可判定的序（也就没有 if），所以用关系而不是函数来定义它：ratAbsRel x y 当且仅当 <span class="math">(0 ≤ x</span> 且 y ~ x) 或 <span class="math">(x ≤ 0</span> 且 y ~ -x)。</p></div></div></section>
+<div class="block prose intuition-only"><p>读作「y 是 x 的绝对值」。两条引入规则正好对应两个分支；具体计算 |-1/2| <span class="math">= 1/2</span> 走右分支。唯一性（|x| 真的只有一个值）需要序的三歧性，留给后续单元；这里先把定义与两条引入规则立起来，供 Cauchy 序列的 |x_n - x_m| 使用。</p></div><article class="decl decl-def" id="decl-33-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLeRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLeRep (x y : ratRep) : Prop :=
+  leRep (mulRep (numOf x) (den (denOf y)))
+        (mulRep (numOf y) (den (denOf x)))</code></pre></div></article>
+<article class="decl decl-def" id="decl-33-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratNegRep</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratNegRep (x : ratRep) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat (negRep (numOf x)) (denOf x)</code></pre></div></article>
+<article class="decl decl-def" id="decl-33-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratZeroRep</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratZeroRep : ratRep := qrep Nat.zero Nat.zero Nat.zero</code></pre></div></article>
+<article class="decl decl-def" id="decl-33-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratAbsRel</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratAbsRel (x y : ratRep) : Prop :=
+  (ratLeRep ratZeroRep x ∧ ratRel y x) ∨
+    (ratLeRep x ratZeroRep ∧ ratRel y (ratNegRep x))</code></pre></div></article>
+<article class="exercise" id="ex-33-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratAbsRel_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-33-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉝.1 零的绝对值是零</p></div><div class="block prose intuition-only"><p>-- 先看最平凡的情形：零的绝对值是零，走左分支。</p></div></div><pre class="exercise-statement"><code>theorem ratAbsRel_zero : ratAbsRel ratZeroRep ratZeroRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratAbsRel ratZeroRep ratZeroRep</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Or.inl · And.intro · leRep_refl · ratRel_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-33-1"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem ratAbsRel_zero : ratAbsRel ratZeroRep ratZeroRep :=
+  Or.inl
+    (And.intro
+      (leRep_refl (mulRep (numOf ratZeroRep) (den (denOf ratZeroRep))))
+      (ratRel_refl ratZeroRep))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-33-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratAbsRel_of_nonneg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-33-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>-- 非负数的绝对值就是它自己。</p></div></div><pre class="exercise-statement"><code>theorem ratAbsRel_of_nonneg (x : ratRep) (h : ratLeRep ratZeroRep x) :
+    ratAbsRel x x :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep ratZeroRep x → ratAbsRel x x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Or.inl · And.intro · ratRel_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-33-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">㉝.2 非负数的绝对值是自身</p><pre><code>theorem ratAbsRel_of_nonneg (x : ratRep) (h : ratLeRep ratZeroRep x) :
+    ratAbsRel x x :=
+  Or.inl (And.intro h (ratRel_refl x))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-33-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratAbsRel_of_nonpos</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-33-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>-- 非正数的绝对值是它的负。</p></div></div><pre class="exercise-statement"><code>theorem ratAbsRel_of_nonpos (x : ratRep) (h : ratLeRep x ratZeroRep) :
+    ratAbsRel x (ratNegRep x) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep x ratZeroRep → ratAbsRel x (ratNegRep x)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Or.inr · And.intro · ratRel_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-33-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">㉝.3 非正数的绝对值是它的负元</p><pre><code>theorem ratAbsRel_of_nonpos (x : ratRep) (h : ratLeRep x ratZeroRep) :
+    ratAbsRel x (ratNegRep x) :=
+  Or.inr (And.intro h (ratRel_refl (ratNegRep x)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-33-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">demo_abs_neg_half</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-33-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>-- 具体算 |-1/2| <span class="math">= 1/2</span>：走右分支。</p></div></div><pre class="exercise-statement"><code>theorem demo_abs_neg_half :
+    ratAbsRel (qrep Nat.zero 1 1) (qrep 1 Nat.zero 1) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratAbsRel (qrep 0 1 1) (qrep 1 0 1)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Or.inr · le_succ · le_refl · ratRel_refl · ratNegRep</span> 的 <span class="math">ι</span> 归约。</p></div></details></div><details class="solution-panel" id="sol-33-4"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note">㉝.4 具体计算：|-1/2| <span class="math">= 1/2</span></p><pre><code>theorem demo_abs_neg_half :
+    ratAbsRel (qrep Nat.zero 1 1) (qrep 1 Nat.zero 1) :=
+  Or.inr
+    (And.intro
+      (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+      (ratRel_refl (qrep 1 Nat.zero 1)))</code></pre></div></details></div></article>
+
+</section><section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-33"><h3><a href="#top">有理数的绝对值：关系定义与两条引入规则</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-33-1"><summary>练习 1 · ratAbsRel_zero <span class="sol-meta">定理</span></summary><pre><code>theorem ratAbsRel_zero : ratAbsRel ratZeroRep ratZeroRep :=
+  Or.inl
+    (And.intro
+      (leRep_refl (mulRep (numOf ratZeroRep) (den (denOf ratZeroRep))))
+      (ratRel_refl ratZeroRep))</code></pre></details><details class="appendix-solution" id="app-sol-33-2"><summary>练习 2 · ratAbsRel_of_nonneg <span class="sol-meta">定理</span></summary><p class="solution-note">㉝.2 非负数的绝对值是自身</p><pre><code>theorem ratAbsRel_of_nonneg (x : ratRep) (h : ratLeRep ratZeroRep x) :
+    ratAbsRel x x :=
+  Or.inl (And.intro h (ratRel_refl x))</code></pre></details><details class="appendix-solution" id="app-sol-33-3"><summary>练习 3 · ratAbsRel_of_nonpos <span class="sol-meta">定理</span></summary><p class="solution-note">㉝.3 非正数的绝对值是它的负元</p><pre><code>theorem ratAbsRel_of_nonpos (x : ratRep) (h : ratLeRep x ratZeroRep) :
+    ratAbsRel x (ratNegRep x) :=
+  Or.inr (And.intro h (ratRel_refl (ratNegRep x)))</code></pre></details><details class="appendix-solution" id="app-sol-33-4"><summary>练习 4 · demo_abs_neg_half <span class="sol-meta">定理</span></summary><p class="solution-note">㉝.4 具体计算：|-1/2| <span class="math">= 1/2</span></p><pre><code>theorem demo_abs_neg_half :
+    ratAbsRel (qrep Nat.zero 1 1) (qrep 1 Nat.zero 1) :=
+  Or.inr
+    (And.intro
+      (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+      (ratRel_refl (qrep 1 Nat.zero 1)))</code></pre></details></section></section></div>
+<div class="chapter-unit" data-unit="34"><section class="unit" id="unit-34">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/ii-3.html">II.3</a> · 本章第 6 / 6 单元 · 全书第 34 / 72 单元</p>
+<h2><span class="unit-number">34</span><span>有理数的幂：定义与计算规则</span></h2>
+<p class="unit-title-en">Unit 34 — Powers of Rationals</p>
+<p class="unit-meta">2 个定义 · 4 个定理 · 4 道练习 · 8 条提示 · <a href="#appendix-unit-34">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="34" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-34" aria-label="复制单元 34 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<a class="back-to-toc" href="../chapters/ii-3.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>幂在代表元上就是对乘法的 Nat.rec：ratPowRep x 0 :<span class="math">= 1 = qrep 1 0 0</span>，ratPowRep x</p></div><div class="math-display intuition-only"><pre class="display-code"><code>(n+1) := ratMulRep x (ratPowRep x n)。</code></pre></div><div class="block prose intuition-only"><p>递归子写在第二个参数上，所以两条计算规则都是 <span class="math">ι</span> 归约（一条 Eq.refl）。这里先立定义与三条最基本的计算规则（零次、后继、二次），再算一个具体例子 (1/2)^<span class="math">2 = 1/4</span>。</p></div></div></section>
+<div class="block prose intuition-only"><p>幂的代数律（x^<span class="math">(m+n)</span> 与 x^m * x^n、x^<span class="math">(m·n)</span> 与 (x^m)^n）要先把 ratMulRep 的结合/交换律搬上来，留给后续单元。</p></div><article class="decl decl-def" id="decl-34-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratOneRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratOneRep : ratRep := qrep 1 Nat.zero Nat.zero</code></pre></div></article>
+<article class="decl decl-def" id="decl-34-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratPowRep</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratPowRep (x : ratRep) (n : Nat) : ratRep :=
+  Nat.rec (fun (_ : Nat) =&gt; ratRep) ratOneRep
+    (fun (k : Nat) (ih : ratRep) =&gt; ratMulRep x ih) n</code></pre></div></article>
+<article class="exercise" id="ex-34-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratPow_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-34-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㉞.1 零次幂</p></div><div class="block prose intuition-only"><p>-- 零次幂：直接归约到 1。</p></div></div><pre class="exercise-statement"><code>theorem ratPow_zero (x : ratRep) : ratPowRep x Nat.zero = ratOneRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratPowRep x 0 = ratOneRep</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Nat.rec 的基例（<span class="math">ι</span> 归约）<span class="math">· Eq.refl</span>。</p></div></details></div><details class="solution-panel" id="sol-34-1"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem ratPow_zero (x : ratRep) : ratPowRep x Nat.zero = ratOneRep :=
+  Eq.refl ratOneRep</code></pre></div></details></div></article>
+<article class="exercise" id="ex-34-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratPow_succ</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-34-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>-- 后继幂：展开成 x 乘 x^n。</p></div></div><pre class="exercise-statement"><code>theorem ratPow_succ (x : ratRep) (n : Nat) :
+    ratPowRep x (Nat.succ n) = ratMulRep x (ratPowRep x n) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratPowRep x (Nat.succ n) = ratMulRep x (ratPowRep x n)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Nat.rec 的递归步（<span class="math">ι</span> 归约）<span class="math">· Eq.refl</span>。</p></div></details></div><details class="solution-panel" id="sol-34-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">㉞.2 后继幂</p><pre><code>theorem ratPow_succ (x : ratRep) (n : Nat) :
+    ratPowRep x (Nat.succ n) = ratMulRep x (ratPowRep x n) :=
+  Eq.refl (ratMulRep x (ratPowRep x n))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-34-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratPow_two</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-34-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>-- 二次幂是两次展开。</p></div></div><pre class="exercise-statement"><code>theorem ratPow_two (x : ratRep) :
+    ratPowRep x 2 = ratMulRep x (ratMulRep x ratOneRep) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratPowRep x 2 = ratMulRep x (ratMulRep x ratOneRep)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Nat.rec 的两次 <span class="math">ι</span> 归约 <span class="math">· Eq.refl</span>。</p></div></details></div><details class="solution-panel" id="sol-34-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">㉞.3 二次幂</p><pre><code>theorem ratPow_two (x : ratRep) :
+    ratPowRep x 2 = ratMulRep x (ratMulRep x ratOneRep) :=
+  Eq.refl (ratMulRep x (ratMulRep x ratOneRep))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-34-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">demo_pow_two_half</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-34-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>-- 具体算 (1/2)^<span class="math">2 = 1/4</span>。</p></div></div><pre class="exercise-statement"><code>theorem demo_pow_two_half :
+    ratPowRep (qrep 1 Nat.zero 1) 2 = qrep 1 Nat.zero 3 :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratPowRep (qrep 1 0 1) 2 = qrep 1 0 3</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratPow_two · ratMulRep</span> 的 <span class="math">ι</span> 归约 <span class="math">· Eq.refl</span>。</p></div></details></div><details class="solution-panel" id="sol-34-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">㉞.4 具体计算：(1/2)^<span class="math">2 = 1/4</span></p><pre><code>theorem demo_pow_two_half :
+    ratPowRep (qrep 1 Nat.zero 1) 2 = qrep 1 Nat.zero 3 :=
+  Eq.refl (qrep 1 Nat.zero 3)</code></pre></div></details></div></article>
+
+</section><section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-34"><h3><a href="#top">有理数的幂：定义与计算规则</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-34-1"><summary>练习 1 · ratPow_zero <span class="sol-meta">定理</span></summary><pre><code>theorem ratPow_zero (x : ratRep) : ratPowRep x Nat.zero = ratOneRep :=
+  Eq.refl ratOneRep</code></pre></details><details class="appendix-solution" id="app-sol-34-2"><summary>练习 2 · ratPow_succ <span class="sol-meta">定理</span></summary><p class="solution-note">㉞.2 后继幂</p><pre><code>theorem ratPow_succ (x : ratRep) (n : Nat) :
+    ratPowRep x (Nat.succ n) = ratMulRep x (ratPowRep x n) :=
+  Eq.refl (ratMulRep x (ratPowRep x n))</code></pre></details><details class="appendix-solution" id="app-sol-34-3"><summary>练习 3 · ratPow_two <span class="sol-meta">定理</span></summary><p class="solution-note">㉞.3 二次幂</p><pre><code>theorem ratPow_two (x : ratRep) :
+    ratPowRep x 2 = ratMulRep x (ratMulRep x ratOneRep) :=
+  Eq.refl (ratMulRep x (ratMulRep x ratOneRep))</code></pre></details><details class="appendix-solution" id="app-sol-34-4"><summary>练习 4 · demo_pow_two_half <span class="sol-meta">定理</span></summary><p class="solution-note">㉞.4 具体计算：(1/2)^<span class="math">2 = 1/4</span></p><pre><code>theorem demo_pow_two_half :
+    ratPowRep (qrep 1 Nat.zero 1) 2 = qrep 1 Nat.zero 3 :=
+  Eq.refl (qrep 1 Nat.zero 3)</code></pre></details></section></section></div>
+</div>
+<nav class="pager" aria-label="章间导航">
+  <a href="../chapters/ii-2.html">← II.2 有理数：从 ℤ 到 ℚ</a><a class="next" href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 72 单元 / 7 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>
