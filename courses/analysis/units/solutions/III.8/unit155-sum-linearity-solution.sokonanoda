@@ -1,0 +1,184 @@
+-- 单元155 矩形和保持加法与取负：面积可以拆开算
+--
+-- 两块阶梯叠在同一组切点上，如果每一段的高度都写成两个高度之和，那么底下
+-- 的面积是不是正好等于两块面积之和？这个问题不能靠直觉回答：面积被定义成
+-- 一串乘积的和，而乘积只对一个因子分配，不会自动对两个高度函数分配。要把
+-- 它拆开，得先在一段上把乘积拆成两份，再把每一份分别求和。
+--
+-- 高度全为零时，每一项都是零乘宽，整条和为零。高度相加时，第 i 段的乘积
+-- 先换成两份乘积之和，有限和的加法律再把它们按段分开，收成两个矩形和。
+-- 高度取负时，乘积的负号可以搬到和的外面，因为取负对加法分配。有了加法与
+-- 取负两条，矩形和对高度就是一个加群同态：先拆高度再算面积，与先算面积再
+-- 拆，结果相同。差是加法的特例，于是同一高度减去自己，面积为零。
+--
+-- 边界：只谈同一个分割上的矩形和，不在两个分割之间作比较，也不谈加细；
+-- 高度取有理代表元，停在 `ratRep` 层。不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Cauchy
+import lib.RatSub
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.Sum
+import lib.RatRing
+import lib.RatMulSign
+import lib.DerivAlgebra
+
+-- ─────────────────────────────────────────────────────────────
+-- 矩形的宽与面积
+-- ─────────────────────────────────────────────────────────────
+
+-- 第 i 段的宽：右切点减左切点。段数记作 n 时，第 i 段只在 i < n 时存在。
+def segLen (p : Partition) (i : Nat) : ratRep :=
+  ratSubRep (partPoint p (Nat.succ i)) (partPoint p i)
+
+-- 阶梯函数的矩形和：每段的高度乘上那一段的宽，再把段数那么多项加起来。
+def stepSum (p : Partition) (c : Nat → ratRep) : ratRep :=
+  sumTo (fun (i : Nat) => ratMulRep (c i) (segLen p i)) (partCount p)
+
+-- ─────────────────────────────────────────────────────────────
+-- 零高度
+-- ─────────────────────────────────────────────────────────────
+
+-- 每一项都是零乘宽。逐项把它换成零之后，整条和就是全零项的和，等于零。
+theorem stepSum_zero (p : Partition) :
+    ratRel (stepSum p (fun (_ : Nat) => ratZeroRep)) ratZeroRep :=
+  ratRel_trans_gen
+    (stepSum p (fun (_ : Nat) => ratZeroRep))
+    (sumTo (fun (_ : Nat) => ratZeroRep) (partCount p))
+    ratZeroRep
+    (sumTo_congr (fun (i : Nat) => ratMulRep ratZeroRep (segLen p i))
+      (fun (_ : Nat) => ratZeroRep) (partCount p)
+      (fun (i : Nat) => ratMul_zero_left (segLen p i)))
+    (sumTo_zero_fun (partCount p))
+
+-- ─────────────────────────────────────────────────────────────
+-- 高度相加
+-- ─────────────────────────────────────────────────────────────
+
+-- 一段上的乘积拆成两份：先交换乘法，把 `(c + d) · 宽` 写成 `宽 · (c + d)`；
+-- 分配律给出 `宽 · c + 宽 · d`；两个因子各自换回 `c · 宽` 与 `d · 宽`。
+theorem segLen_mul_add (p : Partition) (c d : Nat → ratRep) (i : Nat) :
+    ratRel (ratMulRep (ratAddRep (c i) (d i)) (segLen p i))
+      (ratAddRep (ratMulRep (c i) (segLen p i))
+        (ratMulRep (d i) (segLen p i))) :=
+  ratRel_trans_gen
+    (ratMulRep (ratAddRep (c i) (d i)) (segLen p i))
+    (ratMulRep (segLen p i) (ratAddRep (c i) (d i)))
+    (ratAddRep (ratMulRep (c i) (segLen p i))
+      (ratMulRep (d i) (segLen p i)))
+    (ratMul_comm (ratAddRep (c i) (d i)) (segLen p i))
+    (ratRel_trans_gen
+      (ratMulRep (segLen p i) (ratAddRep (c i) (d i)))
+      (ratAddRep (ratMulRep (segLen p i) (c i))
+        (ratMulRep (segLen p i) (d i)))
+      (ratAddRep (ratMulRep (c i) (segLen p i))
+        (ratMulRep (d i) (segLen p i)))
+      (ratMul_add (segLen p i) (c i) (d i))
+      (ratRel_trans_gen
+        (ratAddRep (ratMulRep (segLen p i) (c i))
+          (ratMulRep (segLen p i) (d i)))
+        (ratAddRep (ratMulRep (c i) (segLen p i))
+          (ratMulRep (segLen p i) (d i)))
+        (ratAddRep (ratMulRep (c i) (segLen p i))
+          (ratMulRep (d i) (segLen p i)))
+        (ratAddRep_wd_gen
+          (ratMulRep (segLen p i) (c i))
+          (ratMulRep (c i) (segLen p i))
+          (ratMulRep (segLen p i) (d i))
+          (ratMul_comm (segLen p i) (c i)))
+        (ratAddRep_wd_snd_gen
+          (ratMulRep (c i) (segLen p i))
+          (ratMulRep (segLen p i) (d i))
+          (ratMulRep (d i) (segLen p i))
+          (ratMul_comm (segLen p i) (d i)))))
+
+-- 每一段都拆成两份之后，有限和的加法律把整条和按段分开，收成两个矩形和。
+theorem stepSum_add (p : Partition) (c d : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratAddRep (c i) (d i)))
+      (ratAddRep (stepSum p c) (stepSum p d)) :=
+  ratRel_trans_gen
+    (stepSum p (fun (i : Nat) => ratAddRep (c i) (d i)))
+    (sumTo (fun (i : Nat) => ratAddRep (ratMulRep (c i) (segLen p i))
+      (ratMulRep (d i) (segLen p i))) (partCount p))
+    (ratAddRep (stepSum p c) (stepSum p d))
+    (sumTo_congr
+      (fun (i : Nat) => ratMulRep (ratAddRep (c i) (d i)) (segLen p i))
+      (fun (i : Nat) => ratAddRep (ratMulRep (c i) (segLen p i))
+        (ratMulRep (d i) (segLen p i)))
+      (partCount p) (fun (i : Nat) => segLen_mul_add p c d i))
+    (sumTo_add (fun (i : Nat) => ratMulRep (c i) (segLen p i))
+      (fun (i : Nat) => ratMulRep (d i) (segLen p i)) (partCount p))
+
+-- ─────────────────────────────────────────────────────────────
+-- 高度取负
+-- ─────────────────────────────────────────────────────────────
+
+-- 一段上的乘积先按「取负与乘法交换」换成乘积的负数，整条和再把负号搬到
+-- 外面；后者是有限和的取负律。
+theorem stepSum_neg (p : Partition) (c : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratNegRep (c i)))
+      (ratNegRep (stepSum p c)) :=
+  ratRel_trans_gen
+    (stepSum p (fun (i : Nat) => ratNegRep (c i)))
+    (sumTo (fun (i : Nat) => ratNegRep (ratMulRep (c i) (segLen p i)))
+      (partCount p))
+    (ratNegRep (stepSum p c))
+    (sumTo_congr
+      (fun (i : Nat) => ratMulRep (ratNegRep (c i)) (segLen p i))
+      (fun (i : Nat) => ratNegRep (ratMulRep (c i) (segLen p i)))
+      (partCount p)
+      (fun (i : Nat) => ratMul_neg_left (c i) (segLen p i)))
+    (sumTo_neg (fun (i : Nat) => ratMulRep (c i) (segLen p i)) (partCount p))
+
+-- ─────────────────────────────────────────────────────────────
+-- 差是加法的特例
+-- ─────────────────────────────────────────────────────────────
+
+-- 减法按定义就是加上取负，所以先按加法律分成两块，再把第二块换成
+-- `-stepSum d`。
+theorem stepSum_sub (p : Partition) (c d : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratSubRep (c i) (d i)))
+      (ratSubRep (stepSum p c) (stepSum p d)) :=
+  ratRel_trans_gen
+    (stepSum p (fun (i : Nat) => ratSubRep (c i) (d i)))
+    (ratAddRep (stepSum p c) (stepSum p (fun (i : Nat) => ratNegRep (d i))))
+    (ratSubRep (stepSum p c) (stepSum p d))
+    (stepSum_add p c (fun (i : Nat) => ratNegRep (d i)))
+    (ratAddRep_wd_snd_gen
+      (stepSum p c)
+      (stepSum p (fun (i : Nat) => ratNegRep (d i)))
+      (ratNegRep (stepSum p d))
+      (stepSum_neg p d))
+
+-- 同一高度减去自己，整条和是零：先分成两个相同的矩形和相减，再收成零。
+theorem demo_stepSum_cancel (p : Partition) (c : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratSubRep (c i) (c i))) ratZeroRep :=
+  ratRel_trans_gen
+    (stepSum p (fun (i : Nat) => ratSubRep (c i) (c i)))
+    (ratSubRep (stepSum p c) (stepSum p c))
+    ratZeroRep
+    (stepSum_sub p c c)
+    (ratSubRep_self (stepSum p c))
+
+-- 高度加上零不改变面积：加法律分出零高度的一块，零高度那块面积为零，
+-- 再用右零元收尾。
+theorem demo_stepSum_add_zero (p : Partition) (c : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratAddRep (c i) ratZeroRep))
+      (stepSum p c) :=
+  ratRel_trans_gen
+    (stepSum p (fun (i : Nat) => ratAddRep (c i) ratZeroRep))
+    (ratAddRep (stepSum p c) (stepSum p (fun (_ : Nat) => ratZeroRep)))
+    (stepSum p c)
+    (stepSum_add p c (fun (_ : Nat) => ratZeroRep))
+    (ratRel_trans_gen
+      (ratAddRep (stepSum p c) (stepSum p (fun (_ : Nat) => ratZeroRep)))
+      (ratAddRep (stepSum p c) ratZeroRep)
+      (stepSum p c)
+      (ratAddRep_wd_snd_gen (stepSum p c)
+        (stepSum p (fun (_ : Nat) => ratZeroRep)) ratZeroRep
+        (stepSum_zero p))
+      (ratAdd_zero (stepSum p c)))

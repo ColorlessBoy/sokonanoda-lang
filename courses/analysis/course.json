@@ -1165,6 +1165,18 @@
               "title": "单元154 矩形和：把每一段的面积加起来",
               "title_en": "Unit 154 — The Rectangle Sum: Adding Up the Area of Each Piece",
               "unit": 154
+            },
+            {
+              "file": "units/III.8/unit155-sum-linearity.sokonanoda",
+              "title": "单元155 矩形和保持加法与取负",
+              "title_en": "Unit 155 — Rectangular Sums Preserve Addition and Negation",
+              "unit": 155
+            },
+            {
+              "file": "units/III.8/unit156-constant-area.sokonanoda",
+              "title": "单元156 常值函数的面积：与分割无关",
+              "title_en": "Unit 156 — The Area of a Constant Function Is Independent of the Partition",
+              "unit": 156
             }
           ]
         }
