@@ -1,0 +1,110 @@
+-- 单元147 乘法的符号：负因子把不等号翻过来
+--
+-- 曲线在一点取极大值，意味着往左往右走，函数值都不再增加。把这句话翻译成
+-- 斜率，最后要判断两个量相乘的符号：自变量的改变是正还是负，函数值的改变
+-- 又跟着谁走。正正得正、正负得负、负负得正，这条关于乘法的常识在 ℚ 上要
+-- 回到代表元才能落地。
+--
+-- 证明的骨架是单元141 的 `ratMul_neg`：`x·(-y) ~ -(x·y)`。把 `(-x)·y`
+-- 先交换成 `y·(-x)`，再用这条等式收成 `-(x·y)`；于是「负数乘正数」化归为
+-- 「正数乘正数的积取负」。单元146 的 `ratMul_pos` 给出正积，
+-- `ratLtRep_neg_of_pos` 与 `ratLtRep_pos_of_neg` 负责把积的符号翻回去。
+-- 两个负因子相乘则连翻两次，回到正积。
+--
+-- 边界：只做符号的乘法表（同号得正、异号得负），不反过来从积的符号反推
+-- 因子的符号；那一步要用「积为零则因子为零」，留到后面的单元。函数仍取
+-- `ratRep → ratRep`，不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatRing
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.LimitAbs
+import lib.LocalSign
+import lib.RatMulOrder
+import lib.DerivShift
+
+-- ─────────────────────────────────────────────────────────────
+-- 取负把严格序翻回去
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `ratLtRep_neg_of_pos` 用在 `-z` 上，得到 `-(-z) < 0`；再把左端点沿 `-(-z) ~ z` 换回来。
+-- soko:hint 目标形态：`ratLtRep z ratZeroRep`。
+-- soko:hint 关键件：ratLtRep_neg_of_pos · ratNegRep_invol · ratLtRep_congr_fst。
+theorem ratLtRep_of_neg_pos (z : ratRep)
+    (h : ratLtRep ratZeroRep (ratNegRep z)) :
+    ratLtRep z ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：同样先翻一次，得到 `0 < -(-z)`；再把右端点沿 `-(-z) ~ z` 换回 z。
+-- soko:hint 目标形态：`ratLtRep ratZeroRep z`。
+-- soko:hint 关键件：ratLtRep_pos_of_neg · ratNegRep_invol · ratLtRep_congr_snd。
+theorem ratLtRep_of_neg_neg (z : ratRep)
+    (h : ratLtRep (ratNegRep z) ratZeroRep) :
+    ratLtRep ratZeroRep z :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 负因子乘在左边
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先把 `(-x)·y` 交换成 `y·(-x)`，用 `ratMul_neg` 收成 `-(y·x)`，再把里面的 `y·x` 换成 `x·y`。
+-- soko:hint 目标形态：`ratRel (ratMulRep (ratNegRep x) y) (ratNegRep (ratMulRep x y))`。
+-- soko:hint 关键件：ratMul_comm · ratMul_neg · ratNegRep_wd · ratRel_trans_gen。
+theorem ratMul_neg_left (x y : ratRep) :
+    ratRel (ratMulRep (ratNegRep x) y) (ratNegRep (ratMulRep x y)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 符号的乘法表
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`-x` 为正，`ratMul_pos` 给出 `(-x)·y` 为正；`ratMul_neg_left` 把它认成 `-(x·y)`，最后用 `ratLtRep_of_neg_pos` 翻回 `x·y < 0`。
+-- soko:hint 目标形态：`x < 0 → 0 < y → x·y < 0`。
+-- soko:hint 关键件：ratLtRep_pos_of_neg · ratMul_pos · ratMul_neg_left · ratLtRep_of_neg_pos。
+theorem ratMul_neg_pos (x y : ratRep)
+    (hx : ratLtRep x ratZeroRep) (hy : ratLtRep ratZeroRep y) :
+    ratLtRep (ratMulRep x y) ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：把乘积交换成 `y·x`，交给上一条；再用交换律把左端点换回 `x·y`。
+-- soko:hint 目标形态：`0 < x → y < 0 → x·y < 0`。
+-- soko:hint 关键件：ratMul_neg_pos · ratMul_comm · ratLtRep_congr_fst。
+theorem ratMul_pos_neg (x y : ratRep)
+    (hx : ratLtRep ratZeroRep x) (hy : ratLtRep y ratZeroRep) :
+    ratLtRep (ratMulRep x y) ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：`-x` 与 `-y` 都为正，积 `(-x)·(-y)` 为正；它等于 `-(-(x·y))`，再沿双重负号回到 `x·y`。
+-- soko:hint 目标形态：`x < 0 → y < 0 → 0 < x·y`。
+-- soko:hint 关键件：ratLtRep_pos_of_neg · ratMul_pos · ratMul_neg_left · ratMul_neg · ratNegRep_wd · ratNegRep_invol · ratLtRep_congr_snd。
+theorem ratMul_neg_neg (x y : ratRep)
+    (hx : ratLtRep x ratZeroRep) (hy : ratLtRep y ratZeroRep) :
+    ratLtRep ratZeroRep (ratMulRep x y) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 三个读数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `-1` 与 `1` 都写成 `qrep` 形式；`0 < 1` 在库里，取负得 `-1 < 0`，再交给「负数乘正数」。
+-- soko:hint 目标形态：`ratLtRep (ratMulRep (qrep 0 1 0) (qrep 1 0 0)) ratZeroRep`。
+-- soko:hint 关键件：ratLtRep_zero_one · ratLtRep_neg_of_pos · ratMul_neg_pos。
+theorem demo_neg_one_mul_one :
+    ratLtRep (ratMulRep (qrep 0 1 0) (qrep 1 0 0)) ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：`-1` 的负性由 `0 < 1` 翻一次得到；两个负因子直接交给「负负得正」。
+-- soko:hint 目标形态：`ratLtRep ratZeroRep (ratMulRep (qrep 0 1 0) (qrep 0 1 0))`。
+-- soko:hint 关键件：ratLtRep_zero_one · ratLtRep_neg_of_pos · ratMul_neg_neg。
+theorem demo_neg_one_mul_neg_one :
+    ratLtRep ratZeroRep (ratMulRep (qrep 0 1 0) (qrep 0 1 0)) :=
+  sorry
+
+-- soko:hint 思路：两个因子都取 `1`，把 `0 < 1` 同时交给「正正得正」。
+-- soko:hint 目标形态：`ratLtRep ratZeroRep (ratMulRep (qrep 1 0 0) (qrep 1 0 0))`。
+-- soko:hint 关键件：ratLtRep_zero_one · ratMul_pos。
+theorem demo_one_mul_one_pos :
+    ratLtRep ratZeroRep (ratMulRep (qrep 1 0 0) (qrep 1 0 0)) :=
+  sorry

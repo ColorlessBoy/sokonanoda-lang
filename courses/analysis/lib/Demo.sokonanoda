@@ -68,6 +68,8 @@ import lib.RatCancel
 import lib.DerivUnique
 import lib.DerivAlgebra
 import lib.RatMulOrder
+import lib.RatMulSign
+import lib.DerivSign
 
 theorem demo_lib_closure : True := True.intro
 
@@ -409,3 +411,13 @@ theorem demo_lib_ratLtRep_mul_pos_right (x y z : ratRep)
     (hxy : ratLtRep x y) (hz : ratLtRep ratZeroRep z) :
     ratLtRep (ratMulRep x z) (ratMulRep y z) :=
   ratLtRep_mul_pos_right x y z hxy hz
+
+theorem demo_lib_ratMul_neg_neg (x y : ratRep)
+    (hx : ratLtRep x ratZeroRep) (hy : ratLtRep y ratZeroRep) :
+    ratLtRep ratZeroRep (ratMulRep x y) :=
+  ratMul_neg_neg x y hx hy
+
+theorem demo_lib_risesRight_id :
+    RisesRight (fun (x : ratRep) => x) ratZeroRep :=
+  risesRight_of_deriv_pos (fun (x : ratRep) => x) ratZeroRep ratOneRep
+    (hasDerivAt_id ratZeroRep) ratLtRep_zero_one

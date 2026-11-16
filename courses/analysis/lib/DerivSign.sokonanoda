@@ -1,0 +1,228 @@
+-- 课程库：导数符号给出的单侧抬高（单元148 的引擎）
+--
+-- 导数为正时，曲线在切点右侧高于切点；导数为负时，同样的抬高出现在左侧。
+-- 这条单向信息是极值判别的一半：极大值点的两侧都不能抬高。下面的引理把
+-- 它立成 `RisesRight` / `RisesLeft`，149 起的单元直接引用，不再重抄。
+--
+-- 证明分两层：先把「斜率函数的极限是 L」换成「斜率函数在去心邻域里与 L
+-- 同号」，再把符号沿斜率等式传给函数值之差。符号表来自 `lib/RatMulSign`。
+--
+-- 边界：只证单侧抬高，不声称整段区间上的单调；完整单调要中值定理。
+-- 不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatRing
+import lib.RatGroup
+import lib.RatAssoc
+import lib.RatSub
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.LimitAbs
+import lib.LimitOrder
+import lib.LocalSign
+import lib.RatMulOrder
+import lib.RatMulSign
+import lib.RatAbs
+import lib.LimAt
+import lib.LimAtAlgebra
+import lib.Deriv
+import lib.DerivShift
+
+-- 「q 在 a 的去心邻域里为正」：有一个正半径，邻域内不等于 a 的点都取正值。
+-- 与单元133 的 `PositiveNear` 相比，这里多带了「不等于 a」的前提，因为函数
+-- 极限本来就不管 a 点。
+def PositiveNearPunct (q : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+      ratLtRep ratZeroRep (q x)
+
+theorem positiveNearPunct_iff (q : ratRep → ratRep) (a : ratRep) :
+    PositiveNearPunct q a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+          ratLtRep ratZeroRep (q x) :=
+  Iff.intro
+    (fun (h : PositiveNearPunct q a) => h)
+    (fun (h : ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+          ratLtRep ratZeroRep (q x)) => h)
+
+-- ε 取 L。`close_neg_lt` 给出 `L - q x < L`；右加 q x 把左边收回 L，
+-- 得到 `L < L + q x`；再右加 -L，左边回到零，右边收回 q x。
+theorem positiveNearPunct_of_tendsToAt (q : ratRep → ratRep) (a L : ratRep)
+    (hL : ratLtRep ratZeroRep L) (h : TendsToAt q a L) :
+    PositiveNearPunct q a :=
+  Exists.elim (h L hL)
+    (fun (delta : ratRep)
+        (hd : ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+            close (q x) L L) =>
+      Exists.intro delta
+        (And.intro (And.left hd)
+          (fun (x : ratRep) (hx : close x a delta) (hne : ¬ ratRel x a) =>
+            ratLtRep_congr_snd ratZeroRep
+              (ratAddRep (ratAddRep L (q x)) (ratNegRep L)) (q x)
+              (ratLtRep_congr_fst ratZeroRep
+                (ratAddRep L (ratNegRep L))
+                (ratAddRep (ratAddRep L (q x)) (ratNegRep L))
+                (ratLtRep_add_right L (ratAddRep L (q x)) (ratNegRep L)
+                  (ratLtRep_congr_fst L
+                    (ratAddRep (ratSubRep L (q x)) (q x))
+                    (ratAddRep L (q x))
+                    (ratLtRep_add_right (ratSubRep L (q x)) L (q x)
+                      (close_neg_lt (q x) L L ((And.right hd) x hx hne)))
+                    (ratRel_symm
+                      (ratAddRep (ratSubRep L (q x)) (q x)) L
+                      (ratSubRep_add_self L (q x)))))
+                (ratRel_symm (ratAddRep L (ratNegRep L)) ratZeroRep
+                  (ratAdd_neg_gen L)))
+              (ratRel_trans_gen
+                (ratAddRep (ratAddRep L (q x)) (ratNegRep L))
+                (ratAddRep (ratAddRep (q x) L) (ratNegRep L))
+                (q x)
+                (ratAddRep_wd_gen (ratAddRep L (q x))
+                  (ratAddRep (q x) L) (ratNegRep L)
+                  (ratAdd_comm L (q x)))
+                (ratRel_trans_gen
+                  (ratAddRep (ratAddRep (q x) L) (ratNegRep L))
+                  (ratAddRep (q x) (ratAddRep L (ratNegRep L)))
+                  (q x)
+                  (ratAdd_assoc (q x) L (ratNegRep L))
+                  (ratRel_trans_gen
+                    (ratAddRep (q x) (ratAddRep L (ratNegRep L)))
+                    (ratAddRep (q x) ratZeroRep)
+                    (q x)
+                    (ratAddRep_wd_snd_gen (q x)
+                      (ratAddRep L (ratNegRep L)) ratZeroRep
+                      (ratAdd_neg_gen L))
+                    (ratAdd_zero (q x))))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 曲线在 a 的单侧抬高
+-- ─────────────────────────────────────────────────────────────
+
+-- 「曲线在 a 的右侧抬高」：有一个正半径，右侧邻域里的函数值都大于 f a。
+def RisesRight (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), ratLtRep a x → close x a delta →
+      ratLtRep (f a) (f x)
+
+-- 「曲线在 a 的左侧抬高」：左侧邻域里的函数值都大于 f a。
+def RisesLeft (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), ratLtRep x a → close x a delta →
+      ratLtRep (f a) (f x)
+
+-- `ratRel` 对称，否定的方向也能换。
+theorem not_ratRel_symm (x y : ratRep) (h : ¬ ratRel x y) :
+    ¬ ratRel y x :=
+  fun (hyx : ratRel y x) => h (ratRel_symm y x hyx)
+
+-- `IsSlope` 是定义，先展开成逐点命题再应用。
+theorem isSlope_apply (f : ratRep → ratRep) (a : ratRep)
+    (q : ratRep → ratRep) (h : IsSlope f a q) (x : ratRep)
+    (hne : ¬ ratRel x a) :
+    ratRel (ratMulRep (ratSubRep x a) (q x))
+      (ratSubRep (f x) (f a)) :=
+  (Iff.mp (isSlope_iff f a q) h) x hne
+
+-- 把「去心邻域里恒为正」这个合取拆开用：先取出半径与全称命题，再逐点应用。
+theorem posAt_apply (r : ratRep → ratRep) (a delta : ratRep)
+    (hd : ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+        ratLtRep ratZeroRep (r x))
+    (x : ratRep) (hx : close x a delta) (hne : ¬ ratRel x a) :
+    ratLtRep ratZeroRep (r x) :=
+  (And.right hd) x hx hne
+
+-- 导数为正时右侧抬高。取斜率函数 q；符号引理给出 q x > 0，`x - a > 0`
+-- 由 x 在 a 右侧给出，两者相乘为正，再沿斜率等式搬到 f x - f a。
+theorem risesRight_of_deriv_pos (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hL : ratLtRep ratZeroRep L) :
+    RisesRight f a :=
+  Exists.elim h
+    (fun (q : ratRep → ratRep)
+        (hq : IsSlope f a q ∧ TendsToAt q a L) =>
+      Exists.elim (Iff.mp (positiveNearPunct_iff q a)
+          (positiveNearPunct_of_tendsToAt q a L hL (And.right hq)))
+        (fun (delta : ratRep)
+            (hd : ratLtRep ratZeroRep delta ∧
+              ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+                ratLtRep ratZeroRep (q x)) =>
+          Exists.intro delta
+            (And.intro (And.left hd)
+              (fun (x : ratRep) (hax : ratLtRep a x)
+                  (hx : close x a delta) =>
+                ratLtRep_of_sub_pos (f x) (f a)
+                  (ratLtRep_congr_snd ratZeroRep
+                    (ratMulRep (q x) (ratSubRep x a))
+                    (ratSubRep (f x) (f a))
+                    (ratMul_pos (q x) (ratSubRep x a)
+                      (posAt_apply q a delta hd x hx (not_ratRel_symm a x (ratLtRep_right a x hax)))
+                      (ratLtRep_sub_pos x a hax))
+                    (ratRel_trans_gen
+                      (ratMulRep (q x) (ratSubRep x a))
+                      (ratMulRep (ratSubRep x a) (q x))
+                      (ratSubRep (f x) (f a))
+                      (ratMul_comm (q x) (ratSubRep x a))
+                      (isSlope_apply f a q (And.left hq) x (not_ratRel_symm a x (ratLtRep_right a x hax)))))))))
+
+-- `-(x - y) ~ y - x`：取负过减法之后把 `-(-y)` 收回 y，再交换两个加数。
+theorem ratNeg_sub_swap (x y : ratRep) :
+    ratRel (ratNegRep (ratSubRep x y)) (ratSubRep y x) :=
+  ratRel_trans_gen
+    (ratNegRep (ratSubRep x y))
+    (ratAddRep (ratNegRep x) y)
+    (ratSubRep y x)
+    (ratRel_trans_gen
+      (ratNegRep (ratSubRep x y))
+      (ratAddRep (ratNegRep x) (ratNegRep (ratNegRep y)))
+      (ratAddRep (ratNegRep x) y)
+      (ratNeg_sub x y)
+      (ratAddRep_wd_snd_gen (ratNegRep x)
+        (ratNegRep (ratNegRep y)) y (ratNegRep_invol y)))
+    (ratAdd_comm (ratNegRep x) y)
+
+-- 导数为负时左侧抬高。把 `-q` 看成斜率函数的极限 `-L`：它是正的，
+-- 符号引理给出 `-(q x) > 0`，也就是 `q x < 0`。x 在 a 左侧时 `x - a < 0`，
+-- 两个负数相乘为正，再沿斜率等式搬到 f x - f a。
+theorem risesLeft_of_deriv_neg (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hL : ratLtRep L ratZeroRep) :
+    RisesLeft f a :=
+  Exists.elim h
+    (fun (q : ratRep → ratRep)
+        (hq : IsSlope f a q ∧ TendsToAt q a L) =>
+      Exists.elim
+        (Iff.mp (positiveNearPunct_iff (fun (x : ratRep) => ratNegRep (q x)) a)
+          (positiveNearPunct_of_tendsToAt
+            (fun (x : ratRep) => ratNegRep (q x)) a (ratNegRep L)
+            (ratLtRep_pos_of_neg L hL) (tendsToAt_neg q a L (And.right hq))))
+        (fun (delta : ratRep)
+            (hd : ratLtRep ratZeroRep delta ∧
+              ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+                ratLtRep ratZeroRep (ratNegRep (q x))) =>
+          Exists.intro delta
+            (And.intro (And.left hd)
+              (fun (x : ratRep) (hxa : ratLtRep x a)
+                  (hx : close x a delta) =>
+                ratLtRep_of_sub_pos (f x) (f a)
+                  (ratLtRep_congr_snd ratZeroRep
+                    (ratMulRep (q x) (ratSubRep x a))
+                    (ratSubRep (f x) (f a))
+                    (ratMul_neg_neg (q x) (ratSubRep x a)
+                      (ratLtRep_of_neg_pos (q x)
+                        (posAt_apply (fun (x : ratRep) => ratNegRep (q x)) a delta hd x hx
+                          (ratLtRep_right x a hxa)))
+                      (ratLtRep_congr_fst (ratSubRep x a)
+                        (ratNegRep (ratSubRep a x)) ratZeroRep
+                        (ratLtRep_neg_of_pos (ratSubRep a x)
+                          (ratLtRep_sub_pos a x hxa))
+                        (ratRel_symm (ratNegRep (ratSubRep a x)) (ratSubRep x a)
+                          (ratNeg_sub_swap a x))))
+                    (ratRel_trans_gen
+                      (ratMulRep (q x) (ratSubRep x a))
+                      (ratMulRep (ratSubRep x a) (q x))
+                      (ratSubRep (f x) (f a))
+                      (ratMul_comm (q x) (ratSubRep x a))
+                      (isSlope_apply f a q (And.left hq) x (ratLtRep_right x a hxa))))))))

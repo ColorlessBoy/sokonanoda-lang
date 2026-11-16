@@ -1106,6 +1106,18 @@
               "title": "单元146 乘法的保序性：正因子不改变不等号",
               "title_en": "Unit 146 — Multiplication Preserves Order: Positive Factors Do Not Flip Inequalities",
               "unit": 146
+            },
+            {
+              "file": "units/III.7/unit147-mul-sign.sokonanoda",
+              "title": "单元147 乘法的符号：负因子把不等号翻过来",
+              "title_en": "Unit 147 — Signs of Products: Negative Factors Flip Inequalities",
+              "unit": 147
+            },
+            {
+              "file": "units/III.7/unit148-deriv-sign.sokonanoda",
+              "title": "单元148 导数的符号：曲线从切点往哪一边抬高",
+              "title_en": "Unit 148 — The Sign of the Derivative: Which Side of the Tangent Point Rises",
+              "unit": 148
             }
           ]
         }
