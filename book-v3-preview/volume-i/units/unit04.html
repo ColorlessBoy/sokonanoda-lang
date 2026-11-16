@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 4 — Extensionality &amp; Set Identities</p>
 <p class="unit-meta">11 个定理 · 7 道练习 · 24 条提示 · <a href="#appendix-unit-4">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="4" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-4" aria-label="复制单元 4 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit04.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-1.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit04.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p><strong>记法不用自己声明</strong>：<code>∈ ⊆ ∪ ∩ \ ∅</code> 由 <code>lib/Set</code> 提供、随 <code>import</code> 生效；逻辑连接符 <code>∧ ∨ ↔ ¬</code>、箭头 <code>→</code>、<strong>等号 <code>=</code> 与不等号 <code>≠</code></strong> 是<strong>语言内建</strong>（Lean core 级），任何文件直接写。所以下面看不到一条 <code>infix</code>/<code>notation</code>。</p></div></div></section>
 <div class="block prose intuition-only"><p>两处<strong>书写例外</strong>：① <code>∅</code> 是<strong>零元</strong>记法，落在「被应用」的记法位置时补不出类型参数（<code>(A \ A) x ↔ (∅) x</code>）——演示 3 先把 Iff 写成源形态再交给 <code>Set.ext</code>；② <code>\</code> 的左操作数本身是记法时（<code>(A ∪ B) \ B</code>）记法路径解不出类型参数，所以命题 8 的语句里 <code>\</code> 与 <code>∪</code> 仍写点名形式（<code>Set.sdiff</code> / <code>Set.union</code>）。其余位置一律记法。练习配额：X 类 4 条（形式<span class="math">↔</span>散文互译，散文写在题面注释里）<span class="math">· T</span> 类 2 条（项填空）<span class="math">·R</span> 类 2 条（读<span class="math">·</span>评译）—— 其中第 8 条承担本单元的 <strong>D 类必破</strong>：<code>(A ∪ B) \ B = A</code> 是<strong>假</strong>的，要给出反例并把"不相等"证出来。</p></div><h3 class="unit-subhead">4.1 外延证明套路：要证两个集合相等，就逐元素证 Iff</h3><div class="math-display intuition-only" role="math" aria-label="A = B  ⟺  ∀ x, (x ∈ A ↔ x ∈ B)"><math display="block" class="mathml"><mrow><mi>A</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>B</mi><mspace width="0.22em"/><mo>⟺</mo><mspace width="0.22em"/><mo>∀</mo><mspace width="0.22em"/><mi>x</mi><mo>,</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>x</mi><mspace width="0.22em"/><mo>∈</mo><mspace width="0.22em"/><mi>A</mi><mspace width="0.22em"/><mo>↔</mo><mspace width="0.22em"/><mi>x</mi><mspace width="0.22em"/><mo>∈</mo><mspace width="0.22em"/><mi>B</mi></mrow><mo>)</mo></mrow></mrow></math></div><div class="block prose intuition-only"><p>这就是公理 Set.ext 的形状。本单元后面每一条等式都走这一条路：先 <code>apply Set.ext</code> 把集合等式换成"对任意 x 的 Iff"，再 <code>constructor</code> 拆成两个方向，然后对 x 做命题逻辑。</p></div><div class="block prose intuition-only"><p>演示（已写好）：外延套路本身——逐元素 Iff 进，集合相等出。</p></div><article class="decl decl-theorem" id="decl-4-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_ext_pattern</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_ext_pattern (α : Type) (A B : Set α) (h : ∀ (x : α), x ∈ A ↔ x ∈ B) :
@@ -369,13 +369,23 @@ T 类：并交换律。逐元素是 <span class="math">(x ∈ A</span> ∪ <span
   intro ha
   exact Or.inl ha</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-4-1">4.1 外延证明套路：要证两个集合相等，就逐元素证 Iff</a></li>
-<li><a href="#ex-4-3">4.2 形式↔散文互译（X 类）怎么答</a></li>
-<li><a href="#decl-4-11">4.3 必破（D 类）：看起来像恒等式，其实是假的</a></li>
-<li><a href="#appendix-unit-4">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit01.html" aria-current="false"><span>01</span> 集合与隶属</a></li>
+<li><a href="../units/unit02.html" aria-current="false"><span>02</span> 子集、空集与包含三律</a></li>
+<li><a href="../units/unit03.html" aria-current="false"><span>03</span> 并、交、差与幂集</a></li>
+<li class="is-current"><a href="../units/unit04.html" aria-current="page"><span>04</span> 外延性与集合等式</a></li>
+<li><a href="../units/unit58.html" aria-current="false"><span>05</span> 差集的代数</a></li>
+<li><a href="../units/unit59.html" aria-current="false"><span>06</span> 差集的代数（二）</a></li>
+<li><a href="../units/unit60.html" aria-current="false"><span>07</span> 补集的代数</a></li>
+<li><a href="../units/unit61.html" aria-current="false"><span>08</span> 外延打包</a></li>
+<li><a href="../units/unit62.html" aria-current="false"><span>09</span> 外延性的推论</a></li>
+<li><a href="../units/unit63.html" aria-current="false"><span>10</span> 差集的等式层（打包续）</a></li>
+<li><a href="../units/unit64.html" aria-current="false"><span>11</span> 差集的等式层（三）：两步走</a></li>
+<li><a href="../units/unit65.html" aria-current="false"><span>12</span> 并的差分配律与减法反变</a></li>
+<li><a href="../units/unit66.html" aria-current="false"><span>13</span> 包含关系的代数</a></li>
+<li><a href="../units/unit104.html" aria-current="false"><span>14</span> 排中律与经典推论</a></li>
+<li><a href="../units/unit105.html" aria-current="false"><span>15</span> 经典等价三件套</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

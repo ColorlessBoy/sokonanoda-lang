@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 58 — Transitivity of Real Equality</p>
 <p class="unit-meta">4 个定理 · 4 道练习 · 12 条提示 · <a href="#appendix-unit-58">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="58" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-58" aria-label="复制单元 58 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit58.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-6.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit58.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元58 <code>realRel</code> 的传递性：逐点 <code>close</code> 与 Cauchy 的三段常数</p></div><div class="block prose intuition-only"><p>㊱ 把实数的相等定义成 Cauchy 序列的逐点接近：realRel x y 当且仅当 x、y 都是 Cauchy 序列，且对任意 eps&gt;0 存在 N，使 <span class="math">n ≥ N</span> 时 close (x n) (y n) eps。</p></div></div></section>
 <h3 class="unit-subhead">58.1 两个 <span class="math">ℕ</span> 阈值的合并</h3><article class="exercise" id="ex-58-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">leNat_max</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-58-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>要证 realRel x z 需要三件：Cauchy x 直接是 hxy 的第一分量，Cauchy z 直接是 hyz 的第二分量，逐点 close 才是这里的内容。逐点部分不能直接把 hxy 与 hyz 用在同一个 <span class="math">ε</span> 上：两个前提各给一个 N，而且分别只保证 <span class="math">ε</span>（而不是 <span class="math">ε/2</span>）的界。所以先对 <span class="math">ε/2</span> 取两个阈值（<span class="math">0 &lt; ε</span> 推出 <span class="math">0 &lt; ε/2</span>），再取一个同时大于等于两者的 N（<span class="math">ℕ</span> 的 <span class="math">≤</span> 全性与传递），最后在 <span class="math">n ≥ N</span> 上把两个 <span class="math">ε/2</span> 的界交给上一单元的 close 传递性。</p></div><div class="block prose intuition-only"><p>先证两个 <span class="math">ℕ</span> 阈值的合并，再证逐点部分，然后拼出主定理，最后落在常零序列上。用到的 close_trans 与 ratLtRep_half 已在 lib/RatCloseTrans 与 lib/RatClose 里。</p></div><div class="block prose intuition-only"><p>先把两个 <span class="math">ℕ</span> 阈值合并成一个。</p></div></div><pre class="exercise-statement"><code>theorem leNat_max (m n : Nat) : ∃ (N : Nat), LeNat m N ∧ LeNat n N :=
@@ -146,14 +146,22 @@
         (And.right (And.right hyz))))</code></pre></details><details class="appendix-solution" id="app-sol-58-4"><summary>练习 4 · demo_realRel_trans <span class="sol-meta">定理</span></summary><p class="solution-note">两次 <code>realRel_zero</code>（㊱ 已证明）就是传递性的两个前提。</p><pre><code>theorem demo_realRel_trans : realRel zeroSeq zeroSeq :=
   realRel_trans zeroSeq zeroSeq zeroSeq realRel_zero realRel_zero</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-58-1">58.1 两个 ℕ 阈值的合并</a></li>
-<li><a href="#ex-58-2">58.2 逐点 close 的传递</a></li>
-<li><a href="#ex-58-3">58.3 主定理：realRel 的传递性</a></li>
-<li><a href="#ex-58-4">58.4 具体：常零序列经由自身传递</a></li>
-<li><a href="#appendix-unit-58">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit55.html" aria-current="false"><span>55</span> 有理数的加法逆元：x + (-x) = 0</a></li>
+<li><a href="../units/unit56.html" aria-current="false"><span>56</span> 两次减法的相加：中间项消去</a></li>
+<li><a href="../units/unit57.html" aria-current="false"><span>57</span> close 的传递性：两个 ε/2 的界加起来</a></li>
+<li class="is-current"><a href="../units/unit58.html" aria-current="page"><span>58</span> 实数的相等：传递性</a></li>
+<li><a href="../units/unit59.html" aria-current="false"><span>59</span> 实数的取负：第一次把运算下降到商上</a></li>
+<li><a href="../units/unit60.html" aria-current="false"><span>60</span> 实数的加法：下降之前的两条义务</a></li>
+<li><a href="../units/unit61.html" aria-current="false"><span>61</span> 实数的加法：三元关系（存在 + 唯一）</a></li>
+<li><a href="../units/unit62.html" aria-current="false"><span>62</span> 实数的加法：交换律与零元（三元关系版）</a></li>
+<li><a href="../units/unit63.html" aria-current="false"><span>63</span> 实数的加法：结合律（三元关系版）</a></li>
+<li><a href="../units/unit64.html" aria-current="false"><span>64</span> 实数的序：代表元关系与自反性</a></li>
+<li><a href="../units/unit65.html" aria-current="false"><span>65</span> 实数的序：传递性</a></li>
+<li><a href="../units/unit66.html" aria-current="false"><span>66</span> 实数的序：沿 realRel 下降成 Real 上的关系</a></li>
+<li><a href="../units/unit67.html" aria-current="false"><span>67</span> 实数的序：自反、传递、反对称</a></li>
+<li><a href="../units/unit68.html" aria-current="false"><span>68</span> 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

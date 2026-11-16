@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 28 — Set Algebra: Distributivity and De Morgan</p>
 <p class="unit-meta">11 个定理 · 8 道练习 · 24 条提示 · <a href="#appendix-unit-28">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="28" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-28" aria-label="复制单元 28 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit28.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-11.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit28.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§5–6</strong>（并交差的代数律）<span class="math">·Enderton</span>《Elements of Set Theory》<strong>§1.8 / §2.2</strong>（集合运算律）。大纲：<code>set-theory-syllabus.md</code> §4.1（I.11 章「集合代数」开工）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>分配律两个方向</strong> <span class="math">·</span> <strong>De Morgan 的两条</strong>（哪一条能证、哪一条只有一半）<span class="math">·</span> <strong>吸收律</strong> <span class="math">·</span> <strong>逆否</strong>（<code>A ⊆ B ⇒ Bᶜ ⊆ Aᶜ</code>）<span class="math">·</span> <strong>差 <span class="math">=</span> 交补</strong> ✓</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><code>(A ∪ B)ᶜ = Aᶜ ∩ Bᶜ</code> <strong>整条都能证</strong> ✓</li><li><code>(A ∩ B)ᶜ = Aᶜ ∪ Bᶜ</code> <strong>只有一个方向能证</strong>（<code>Aᶜ ∪ Bᶜ ⊆ (A ∩ B)ᶜ</code>），另一个方向等价于"<code>¬(p ∧ q) → ¬p ∨ ¬q</code>" —— <strong>要排中律</strong> ✗（缺口 <strong>G-74</strong>）</li><li>同理 <code>Aᶜᶜ = A</code> 与 <code>A ∪ Aᶜ = Set.univ</code> 也<strong>做不了</strong>（都要排中律）<span class="math">⇒</span> <strong>如实不排</strong> ✓</li></ul></div><h3 class="unit-subhead">28.1 三条库引理（并、差、包含的展开）</h3><div class="block prose intuition-only"><p>演示：并的成员刻画。</p></div><article class="decl decl-theorem" id="decl-28-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_union</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
@@ -235,15 +235,15 @@
   fun (x : α) =&gt; fun (hb : ¬ (B x)) =&gt; fun (ha : A x) =&gt;
     hb ((fun (hs : ∀ (y : α), A y → B y) =&gt; hs x ha) h)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-28-1">28.1 三条库引理（并、差、包含的展开）</a></li>
-<li><a href="#ex-28-1">28.2 差与补：差就是交补</a></li>
-<li><a href="#ex-28-2">28.3 分配律：两个方向</a></li>
-<li><a href="#ex-28-4">28.4 De Morgan：能证的那条</a></li>
-<li><a href="#ex-28-6">28.5 吸收律与逆否</a></li>
-<li><a href="#appendix-unit-28">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li class="is-current"><a href="../units/unit28.html" aria-current="page"><span>91</span> 集合代数：分配律与 De Morgan</a></li>
+<li><a href="../units/unit29.html" aria-current="false"><span>92</span> 上界、下界与确界</a></li>
+<li><a href="../units/unit30.html" aria-current="false"><span>93</span> 格与对偶：确界的代数</a></li>
+<li><a href="../units/unit31.html" aria-current="false"><span>94</span> 单调函数与序同构保持确界</a></li>
+<li><a href="../units/unit32.html" aria-current="false"><span>95</span> 函数空间上的逐点序</a></li>
+<li><a href="../units/unit46.html" aria-current="false"><span>96</span> 对称差与布尔环</a></li>
+<li><a href="../units/unit50.html" aria-current="false"><span>97</span> 分配律族</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 25 — Transitivity of Rational Equality</p>
 <p class="unit-meta">18 个定义 · 56 个定理 · 6 道练习 · 44 条提示 · <a href="#appendix-unit-25">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="25" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-25" aria-label="复制单元 25 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit25.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-2.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit25.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元⑳ 把 <span class="math">ℚ</span> 建成 Quot ratRel，并结清了自反与对称；单元㉑–㉔ 把传递性拆成了三块地基：整数相等的传递、<span class="math">ℤ</span> 乘法结合律、<span class="math">ℕ</span> 正因子消去律。把三块拼起来，就得到 ratRel 是等价关系：ratRel x y 且 ratRel y z 推出 ratRel x z。</p></div></div></section>
 <div class="block prose intuition-only"><p>证明路线是「两边各乘一个正分母」：两条假设各乘一个正分母后，交叉乘积被接到同一条链上；链的两端都多出一个 <span class="math">(n+1)</span>，用单元㉔的 mul_cancel_pos 消掉。所有运算仍停在整数代表元层：不碰商、不碰函数外延性、不加公理——<span class="math">ℚ</span> 章一直沿用这个形式。</p></div><article class="decl decl-def" id="decl-25-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def intRel (a b : Prod Nat Nat) : Prop :=
@@ -1055,12 +1055,17 @@
               (Nat.succ m) Nat.zero h2)
             (mulRep_den_swap e f n m)))))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-25-65">⑱.1 整数相等的对称性</a></li>
-<li><a href="#decl-25-66">⑱.2 第二个因子也良定义</a></li>
-<li><a href="#appendix-unit-25">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit20.html" aria-current="false"><span>20</span> 有理数与商构造</a></li>
+<li><a href="../units/unit21.html" aria-current="false"><span>21</span> 整数相等的传递性</a></li>
+<li><a href="../units/unit22.html" aria-current="false"><span>22</span> ℕ 乘法的分配律与结合律</a></li>
+<li><a href="../units/unit23.html" aria-current="false"><span>23</span> ℤ 乘法的结合律（代表元层）</a></li>
+<li><a href="../units/unit24.html" aria-current="false"><span>24</span> ℕ 正因子的消去律</a></li>
+<li class="is-current"><a href="../units/unit25.html" aria-current="page"><span>25</span> 有理数相等的传递性</a></li>
+<li><a href="../units/unit26.html" aria-current="false"><span>26</span> 有理数加法的代表元公式与良定义性</a></li>
+<li><a href="../units/unit27.html" aria-current="false"><span>27</span> 有理数乘法的代表元公式与具体计算</a></li>
+<li><a href="../units/unit28.html" aria-current="false"><span>28</span> 有理数乘法的良定义性</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

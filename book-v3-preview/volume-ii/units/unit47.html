@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 47 — Uniqueness of the Absolute Value</p>
 <p class="unit-meta">3 个定理 · 3 道练习 · 9 条提示 · <a href="#appendix-unit-47">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="47" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-47" aria-label="复制单元 47 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit47.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-5.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit47.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㊺ 证了每个有理数都有绝对值，㊻ 证了序的反对称性。两者合起来就能回答绝对值是函数的那个问题：同一个 x 的两个见证 d、d' 相等。</p></div></div></section>
 <article class="exercise" id="ex-47-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratAbsRel_left_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-47-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>为什么它不是一句废话：ratAbsRel 是关系，定义是两个析取的并——<span class="math">(0 ≤ x</span> 且 d ~ x) 或 <span class="math">(x ≤ 0</span> 且 d ~ -x)。同一个 x 的两个见证可能落在不同分支（一个取 x、一个取 -x）。㊻ 的反对称性正好把「<span class="math">0 ≤ x</span> 与 <span class="math">x ≤ 0</span> 同时成立」压成 x ~ 0，于是 x ~ 0 ~ -x，两个分支的见证就接上了。</p></div><div class="block prose intuition-only"><p>先证异号两支相等（d ~ x 与 d' ~ -x），再把四个分支两两配对得到唯一性；最后在具体数字上验证 |-1/2| 的两个见证 1/2 与 2/4 相等。同号两支只是 ratRel 的传递；异号两支先用反对称性把 <span class="math">0 ≤ x ≤ 0</span> 压成 0 ~ x，再用 ratNegRep_wd 搬过去，最后用 ratRel_trans_gen 串起来。</p></div><div class="block prose intuition-only"><p>ratLeRep 与 leRep 只做头部展开；-0 是闭项，定义性归约回 0。</p></div><div class="block prose intuition-only"><p>㊼.1 异号两支：<code>d ~ x</code>、<code>d' ~ -x</code> 时 <code>d ~ d'</code></p></div><div class="block prose intuition-only"><p>先证异号两支相等：把 <span class="math">0 ≤ x ≤ 0</span> 压成 0 ~ x，再搬到 -x。</p></div></div><pre class="exercise-statement"><code>theorem ratAbsRel_left_right (x d d' : ratRep)
@@ -177,11 +177,18 @@
           (mulRep (@prod_mk Nat Nat 1 Nat.zero) (den 3))
           (Eq.refl (mulRep (@prod_mk Nat Nat 2 Nat.zero) (den 1))))))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-47-1">练习</a></li>
-<li><a href="#appendix-unit-47">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit45.html" aria-current="false"><span>45</span> 序的全性：每个有理数都有绝对值</a></li>
+<li><a href="../units/unit46.html" aria-current="false"><span>46</span> 序的反对称性：两边夹出相等</a></li>
+<li class="is-current"><a href="../units/unit47.html" aria-current="page"><span>47</span> 绝对值的唯一性：同一个数的两个见证相等</a></li>
+<li><a href="../units/unit48.html" aria-current="false"><span>48</span> 三角不等式：|u + v| ≤ |u| + |v|</a></li>
+<li><a href="../units/unit49.html" aria-current="false"><span>49</span> 严格序的传递与 close 对 ε 的单调性</a></li>
+<li><a href="../units/unit50.html" aria-current="false"><span>50</span> 严格序与加法相容：加法消去</a></li>
+<li><a href="../units/unit51.html" aria-current="false"><span>51</span> 严格序的传递与加法相容</a></li>
+<li><a href="../units/unit52.html" aria-current="false"><span>52</span> ε 折半：半数的存在与加倍</a></li>
+<li><a href="../units/unit53.html" aria-current="false"><span>53</span> 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li>
+<li><a href="../units/unit54.html" aria-current="false"><span>54</span> 有理数加法的结合律：公分母的三层嵌套</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

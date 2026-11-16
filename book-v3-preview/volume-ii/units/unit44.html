@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 44 — Order Compatible with Addition</p>
 <p class="unit-meta">5 个定理 · 5 道练习 · 15 条提示 · <a href="#appendix-unit-44">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="44" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-44" aria-label="复制单元 44 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit44.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-4.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit44.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元㊳ 结清了序的传递性，㊴ 结清了序与相等相容；但要把序用在 Cauchy 的三角不等式上，还差一条与加法相容：<span class="math">x ≤ y</span> 推出 <span class="math">x + z ≤ y + z</span>（右加）。</p></div></div></section>
 <article class="exercise" id="ex-44-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">mulRep_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-44-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>证明路线是把两边换到同一个公分母上比较。设 <span class="math">x = a/(m+1)</span>、<span class="math">y = c/(n+1)</span>、<span class="math">z = e/(k+1)</span>，<span class="math">x ≤ y</span> 交叉相乘后是 <span class="math">a(n+1) + d(m+1) ≤ c(m+1) + b(n+1)</span>；而 <span class="math">x+z</span> 与 <span class="math">y+z</span> 的分母分别是 <span class="math">(m+1)(k+1)</span> 与 <span class="math">(n+1)(k+1)</span>，交叉相乘再乘开，两边都带公共正因子 <span class="math">(k+1)</span> 与同一块 z 的贡献，消去后剩下的正是「上面的不等式两边同乘 <span class="math">(k+1)</span>」。</p></div><div class="block prose intuition-only"><p>为此先备三件工具：mulRep 对 addRep 的分配律（㊹.1）；den (ratDenRep m n) 与乘积分母的相等（㊹.2）；addRep 保 intRel（㊹.3）。最后把主定理层层化到「h 两边乘 <span class="math">(k+1)</span>」，再用 ㊲ 的 leRep_mul_den_right 与 leRep_add_right 收口。</p></div><div class="block prose intuition-only"><p>通用包装（_gen 系列）都先 match 到字面坐标再转发给 lib/Rat 的引理——ratRep 是定义别名，match 只认归纳类型本身，与 ㊷/㊸ 的 _aux 是同一写法。</p></div><div class="block prose intuition-only"><p>㊹.1 <code>mulRep</code> 对 <code>addRep</code> 的分配律</p></div><div class="block prose intuition-only"><p>先证分配律：两个坐标各自展开成两组乘积之和，再重新配对。</p></div></div><pre class="exercise-statement"><code>theorem mulRep_add (p q r : Prod Nat Nat) :
@@ -543,11 +543,18 @@
         (zero_add (myMul (Prod.snd Nat Nat (numOf x)) (Nat.succ (denOf z))))
         (zero_add (myMul (Prod.snd Nat Nat (numOf z)) (Nat.succ (denOf x))))))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-44-1">练习</a></li>
-<li><a href="#appendix-unit-44">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit35.html" aria-current="false"><span>35</span> 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li>
+<li><a href="../units/unit36.html" aria-current="false"><span>36</span> 实数的载体：Real := Quot realRel</a></li>
+<li><a href="../units/unit37.html" aria-current="false"><span>37</span> 序与正分母：乘法、消去与配对搬运</a></li>
+<li><a href="../units/unit38.html" aria-current="false"><span>38</span> 有理数的序：传递性</a></li>
+<li><a href="../units/unit39.html" aria-current="false"><span>39</span> 有理数的序与相等相容</a></li>
+<li><a href="../units/unit40.html" aria-current="false"><span>40</span> 实数的相等：自反性</a></li>
+<li><a href="../units/unit41.html" aria-current="false"><span>41</span> 取负与序：绝对值的对称性</a></li>
+<li><a href="../units/unit42.html" aria-current="false"><span>42</span> close 的对称性：实数的相等可以换方向</a></li>
+<li><a href="../units/unit43.html" aria-current="false"><span>43</span> 有理数加法的代表元律：交换与零元</a></li>
+<li class="is-current"><a href="../units/unit44.html" aria-current="page"><span>44</span> 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

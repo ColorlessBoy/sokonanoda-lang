@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 19 — Descending Negation with Quot.lift</p>
 <p class="unit-meta">5 个定义 · 11 个定理 · 2 道练习 · 6 条提示 · <a href="#appendix-unit-19">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="19" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-19" aria-label="复制单元 19 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit19.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-1.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit19.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>到单元⑱ 为止，Int 上的运算都只在代表元层陈述：mk (addRep p q)、int_add_comm 的等式两端都是 mk (…)。本单元第一次真正下降（Quot.lift）：取负是一元运算，义务只有一个参数，所以不需要函数外延性就能拿到一个货真价实的函数</p></div><div class="math-display intuition-only" role="math" aria-label="intNeg : Int → Int"><math display="block" class="mathml"><mrow><mi mathvariant="normal">intNeg</mi><mspace width="0.22em"/><mo>:</mo><mspace width="0.22em"/><mi mathvariant="normal">Int</mi><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mi mathvariant="normal">Int</mi></mrow></math></div><div class="block prose intuition-only"><p>下降的两条义务（Quot.lift 的签名）是：f 把代表元映到 Int（这里取 <span class="math">fun p =&gt; mk (negRep p)</span>）；h 说明换代表元值不变（这里就是 negRep_wd）。下降之后 intNeg (mk p) 与 mk (negRep p) 定义性相等（Quot.lift 的 <span class="math">ι</span> 归约），所以计算规则 intNeg_mk 只是一条 Eq.refl。</p></div></div></section>
 <div class="block prose intuition-only"><p>为什么二元运算（加法/乘法）不这样下降：intNeg 的返回类型是 Int，而 <span class="math">Int → Int</span> 的 Quot.lift 要求证明两个函数相等——那需要函数外延性 funext，本语言没有。所以加法、乘法继续停在代表元层（单元⑦–⑱ 的形式），<span class="math">ℚ</span> 章也在代表元层搭。</p></div><article class="decl decl-def" id="decl-19-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def intRel (a b : Prod Nat Nat) : Prop :=
@@ -176,12 +176,27 @@
         (@Eq.refl.{1} Nat (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))))
     z</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-19-1">⑲.1 Quot.lift 的义务：换代表元，取负的结果仍等价</a></li>
-<li><a href="#decl-19-11">⑲.2 下降：intNeg : Int → Int</a></li>
-<li><a href="#appendix-unit-19">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit01.html" aria-current="false"><span>01</span> 整数与商构造</a></li>
+<li><a href="../units/unit02.html" aria-current="false"><span>02</span> 商类型与良定义性（复习）</a></li>
+<li><a href="../units/unit03.html" aria-current="false"><span>03</span> ℕ 的算术律（复习）</a></li>
+<li><a href="../units/unit04.html" aria-current="false"><span>04</span> 整数加法 / 负 / 减的代表元公式</a></li>
+<li><a href="../units/unit05.html" aria-current="false"><span>05</span> 整数乘法的代表元公式</a></li>
+<li><a href="../units/unit06.html" aria-current="false"><span>06</span> 整数加法的良定义性</a></li>
+<li><a href="../units/unit07.html" aria-current="false"><span>07</span> 整数加法的交换律与结合律</a></li>
+<li><a href="../units/unit08.html" aria-current="false"><span>08</span> 整数加法的零元与负元</a></li>
+<li><a href="../units/unit09.html" aria-current="false"><span>09</span> 整数减法的良定义性与基本律</a></li>
+<li><a href="../units/unit10.html" aria-current="false"><span>10</span> 整数乘法的零元与单位元</a></li>
+<li><a href="../units/unit11.html" aria-current="false"><span>11</span> 整数乘法的良定义性</a></li>
+<li><a href="../units/unit12.html" aria-current="false"><span>12</span> 整数序的代表元公式</a></li>
+<li><a href="../units/unit13.html" aria-current="false"><span>13</span> ℕ 序的传递性与单调性</a></li>
+<li><a href="../units/unit14.html" aria-current="false"><span>14</span> ℕ 序的加法消去律</a></li>
+<li><a href="../units/unit15.html" aria-current="false"><span>15</span> 整数序的良定义性</a></li>
+<li><a href="../units/unit16.html" aria-current="false"><span>16</span> 整数序的传递性与加法单调</a></li>
+<li><a href="../units/unit17.html" aria-current="false"><span>17</span> 整数乘法的交换律（代表元层）</a></li>
+<li><a href="../units/unit18.html" aria-current="false"><span>18</span> 整数乘法的第二个因子良定义（代表元层）</a></li>
+<li class="is-current"><a href="../units/unit19.html" aria-current="page"><span>19</span> 把取负下降成函数（Quot.lift）</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

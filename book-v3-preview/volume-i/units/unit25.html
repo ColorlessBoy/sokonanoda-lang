@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 25 — Equivalence Relations and Partitions</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-25">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="25" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-25" aria-label="复制单元 25 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit25.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-10.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit25.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§3.5 Equivalence Relations</strong>；Halmos《Naive Set Theory》<strong>§10 / §18</strong>（等价类与商集那一节）。大纲：<code>set-theory-syllabus.md</code> §4.1（I.10 章第二个单元，<strong>本章收口</strong>）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"（<strong>等价关系 <span class="math">=</span> 划分</strong>这一定理的两半）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>同类点有同样的类</strong>（<code>r a b</code> <span class="math">⇒</span> <code>∀ c, r a c ↔ r b c</code>）；</li><li><strong>类相同 <span class="math">⟺</span> 相关</strong>（把两半合成一条 <code>↔</code>）；</li><li><strong>不同的类不交</strong>（<code>¬ r a b</code> <span class="math">⇒</span> 没有点同时在两个类里）；</li><li><strong>划分的三条</strong>：每个类<strong>非空</strong> <span class="math">·</span> 每个点<strong>落在某个类里</strong> <span class="math">·</span> 有公共点的两个类<strong>逐点相同</strong> ✓</li></ul></div><div class="block prose intuition-only"><p>读法：<code>Set α</code> 就是 <code>α → Prop</code> <span class="math">⇒</span> "等价类"直接写成<strong>谓词</strong> <code>Rel.EquivClass α r a</code>（"与 <code>a</code> 相关的那些点"），"商集"写成"是某个等价类"这条<strong>性质</strong> <code>Rel.Classes α r</code> ✓—— 于是整章<strong>不需要新类型</strong>（与 ST1 的谓词式口径一致）✓</p></div><div class="block prose intuition-only"><p><strong>写法约定（本单元特有）</strong>：几乎每条定理都要<strong>三次使用 <code>IsEquivalence</code> 的一条</strong> ——自反 / 对称 / 传递在库里都是<strong>定义头</strong>（<code>∀</code>）<span class="math">⇒</span> 用之前先 <code>fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt; …</code> 把类型写出来（G-73 形状 ①），或者直接用库里的三条取用子 ✓</p></div><h3 class="unit-subhead">25.1 三条库引理（等价类/商集的展开 <span class="math">+</span> 自反那一条的取用子）</h3><div class="block prose intuition-only"><p>演示：<strong>等价类的成员刻画</strong>（"与 <code>a</code> 相关"就是"属于 <code>[a]</code>"）。</p></div><article class="decl decl-theorem" id="decl-25-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_equivClass</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
@@ -195,15 +195,20 @@
           ((fun (hs : ∀ (p : α) (q : α), r p q → r q p) =&gt; hs b x (And.right hx))
             (equivalence_symm α r he))) (equivalence_trans α r he))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-25-1">25.1 三条库引理（等价类/商集的展开 + 自反那一条的取用子）</a></li>
-<li><a href="#ex-25-4">25.2 本单元的正题：同类点有同样的类</a></li>
-<li><a href="#ex-25-7">25.3 划分的第一条：不同的类不交</a></li>
-<li><a href="#ex-25-8">25.4 划分的另外两条：非空与覆盖</a></li>
-<li><a href="#ex-25-10">25.5 必破：有公共点的两个类必相同（划分的&quot;不交&quot;那一半的另一面）</a></li>
-<li><a href="#appendix-unit-25">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit24.html" aria-current="false"><span>79</span> 关系闭包</a></li>
+<li class="is-current"><a href="../units/unit25.html" aria-current="page"><span>80</span> 等价关系与划分</a></li>
+<li><a href="../units/unit26.html" aria-current="false"><span>81</span> 划分：等价关系的反方向</a></li>
+<li><a href="../units/unit27.html" aria-current="false"><span>82</span> 商类型与良定义性</a></li>
+<li><a href="../units/unit43.html" aria-current="false"><span>83</span> 等价类与商集的代数刻画</a></li>
+<li><a href="../units/unit76.html" aria-current="false"><span>84</span> 像的核关系</a></li>
+<li><a href="../units/unit77.html" aria-current="false"><span>85</span> 等价类的代数</a></li>
+<li><a href="../units/unit78.html" aria-current="false"><span>86</span> 划分与等价关系的往返</a></li>
+<li><a href="../units/unit79.html" aria-current="false"><span>87</span> 商集上的函数（well-defined）</a></li>
+<li><a href="../units/unit84.html" aria-current="false"><span>88</span> 商与像的往返</a></li>
+<li><a href="../units/unit85.html" aria-current="false"><span>89</span> 商到像的单射性</a></li>
+<li><a href="../units/unit86.html" aria-current="false"><span>90</span> 核与复合、单射</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

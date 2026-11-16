@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 71 — The Cost of Quotients: One Bridge and Two Bridges</p>
 <p class="unit-meta">2 个定义 · 7 个定理 · 6 道练习 · 18 条提示 · <a href="#appendix-unit-71">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="71" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-71" aria-label="复制单元 71 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit71.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-7.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit71.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>上一批单元把 <span class="math">ℤ→ℚ</span> 的函数 intToRat : <span class="math">Int → Rat</span> 下降了一次；而 <span class="math">ℝ</span> 的加法与序各下降了两次。两次不是笔误，是 Quot.lift 的类型决定的：它的签名是</p></div><div class="math-display intuition-only" role="math" aria-label="(f : α → β) → (∀ a b, r a b → f a = f b) → Quot r → β"><math display="block" class="mathml"><mrow><mrow><mo>(</mo><mrow><mi>f</mi><mspace width="0.22em"/><mo>:</mo><mspace width="0.22em"/><mo>α</mo><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mo>β</mo></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mo>∀</mo><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mi>b</mi><mo>,</mo><mspace width="0.22em"/><mi>r</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mi>b</mi><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mi>f</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>f</mi><mspace width="0.22em"/><mi>b</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mi mathvariant="normal">Quot</mi><mspace width="0.22em"/><mi>r</mi><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mo>β</mo></mrow></math></div><div class="block prose intuition-only"><p>当 <span class="math">β = Rat</span>（一个类型），lift 的返回值仍是元素，义务只有一条：换代表元后像相等。当 <span class="math">β = Real → Prop</span>（加法的三元关系、序），外层 lift 的 f 是 <span class="math">Real → (Real → Prop)</span>，于是「换代表元后像相等」变成了函数相等：把函数相等化成逐点相等要函数外延性，每个点上的命题相等要命题外延性。这正是那两个 def 里的两次 Quot.lift 与两条外延义务。</p></div></div></section>
 <h3 class="unit-subhead"><span class="math">71.0 ι</span> 规则：lift 作用在 mk 上回到代表元</h3><article class="exercise" id="ex-71-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">quot_lift_mk</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-71-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两件代价都不是新公理：函数外延性在本课程里是从 Quot.sound 证出的定理，命题外延性是已经声明的既有公理（只在命题层用）。所以「<span class="math">ℝ</span> 的加法是关系而不是函数」不是绕路：addRel a b c 正是两次 lift 之后能诚实拿到的全部。</p></div><div class="block prose intuition-only"><p>把这笔账拆成可证明的几件：先给 <span class="math">ι</span> 规则，再给两个 lift 相等的充分条件，然后用一座桥与两座桥的实例分别验证「过桥费就是良定义性」，最后落在常零序列上。</p></div><div class="block prose intuition-only"><p><span class="math">ι</span> 规则：lift 作用在 mk 上回到代表元。</p></div></div><pre class="exercise-statement"><code>theorem quot_lift_mk (α β : Type) (r : α → α → Prop)
@@ -174,16 +174,12 @@
           addRel (Real.mk zeroSeq) (Real.mk zeroSeq) c' → c' = c :=
   addRel_exists_unique zeroSeq zeroSeq cauchy_zero cauchy_zero</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-71-1">71.0 ι 规则：lift 作用在 mk 上回到代表元</a></li>
-<li><a href="#ex-71-2">71.1 两个 lift 相等：逐点相等就够了（funext）</a></li>
-<li><a href="#decl-71-3">71.2 一座桥：Int → Rat 的下降与它的过桥费</a></li>
-<li><a href="#ex-71-4">71.3 两座桥的代价：关系可以沿三个位置搬运</a></li>
-<li><a href="#ex-71-5">71.4 关系在 Cauchy 代表元上有输出</a></li>
-<li><a href="#ex-71-6">71.5 具体：常零序列上「存在且唯一」</a></li>
-<li><a href="#appendix-unit-71">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit69.html" aria-current="false"><span>69</span> 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li>
+<li><a href="../units/unit70.html" aria-current="false"><span>70</span> 数系链：加法在四层间的迁移</a></li>
+<li class="is-current"><a href="../units/unit71.html" aria-current="page"><span>71</span> 数系综合：商的代价——一座桥与两座桥</a></li>
+<li><a href="../units/unit72.html" aria-current="false"><span>72</span> 数系综合：完备性盘点——代表元层与集合层</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

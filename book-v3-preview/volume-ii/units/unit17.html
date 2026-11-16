@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 17 — Multiplication is Commutative</p>
 <p class="unit-meta">5 个定义 · 14 个定理 · 3 道练习 · 9 条提示 · <a href="#appendix-unit-17">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="17" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-17" aria-label="复制单元 17 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit17.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-1.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit17.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元⑪ 证完了「第一个因子换代表元不改变乘积」。要把乘法真正放到 Int 上，还差两件：第二个因子换代表元也不改变乘积（这要用交换律），以及乘法自身的交换、结合、分配律。先做第一件的一半：乘法的交换律。</p></div></div></section>
 <div class="block prose intuition-only"><p>路线全部先落在 <span class="math">ℕ</span> 上，再逐分量搬到代表元层：先证 <span class="math">0·a = 0</span> 与 <span class="math">(a+1)·b = a·b + b</span>，再用后者把 myMul a b 里多出来的那个 a 换掉，得到 <span class="math">a·b = b·a</span>；最后按定义逐分量得到 mulRep 的交换律。</p></div><div class="block prose intuition-only"><p>为什么先做交换律：mulRep_wd 固定的是第二个分量；要得到「第二个因子换代表元也不改变乘积」，必须先把乘法的两个分量对调（mulRep_comm 加 intRel 的对称性）。没有它，Int 上的乘法连「两个因子都良定义」都说不出口，更不用说后面的 <span class="math">ℚ</span>。</p></div><article class="decl decl-def" id="decl-17-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def intRel (a b : Prod Nat Nat) : Prop :=
@@ -316,12 +316,27 @@
           (congrArg.{1} (fun (y : Nat) =&gt; Nat.add (myMul d a) y) (myMul_comm b c)))
         (add_comm (myMul d a) (myMul c b))))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-17-1">定义与定理</a></li>
-<li><a href="#ex-17-1">练习</a></li>
-<li><a href="#appendix-unit-17">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit01.html" aria-current="false"><span>01</span> 整数与商构造</a></li>
+<li><a href="../units/unit02.html" aria-current="false"><span>02</span> 商类型与良定义性（复习）</a></li>
+<li><a href="../units/unit03.html" aria-current="false"><span>03</span> ℕ 的算术律（复习）</a></li>
+<li><a href="../units/unit04.html" aria-current="false"><span>04</span> 整数加法 / 负 / 减的代表元公式</a></li>
+<li><a href="../units/unit05.html" aria-current="false"><span>05</span> 整数乘法的代表元公式</a></li>
+<li><a href="../units/unit06.html" aria-current="false"><span>06</span> 整数加法的良定义性</a></li>
+<li><a href="../units/unit07.html" aria-current="false"><span>07</span> 整数加法的交换律与结合律</a></li>
+<li><a href="../units/unit08.html" aria-current="false"><span>08</span> 整数加法的零元与负元</a></li>
+<li><a href="../units/unit09.html" aria-current="false"><span>09</span> 整数减法的良定义性与基本律</a></li>
+<li><a href="../units/unit10.html" aria-current="false"><span>10</span> 整数乘法的零元与单位元</a></li>
+<li><a href="../units/unit11.html" aria-current="false"><span>11</span> 整数乘法的良定义性</a></li>
+<li><a href="../units/unit12.html" aria-current="false"><span>12</span> 整数序的代表元公式</a></li>
+<li><a href="../units/unit13.html" aria-current="false"><span>13</span> ℕ 序的传递性与单调性</a></li>
+<li><a href="../units/unit14.html" aria-current="false"><span>14</span> ℕ 序的加法消去律</a></li>
+<li><a href="../units/unit15.html" aria-current="false"><span>15</span> 整数序的良定义性</a></li>
+<li><a href="../units/unit16.html" aria-current="false"><span>16</span> 整数序的传递性与加法单调</a></li>
+<li class="is-current"><a href="../units/unit17.html" aria-current="page"><span>17</span> 整数乘法的交换律（代表元层）</a></li>
+<li><a href="../units/unit18.html" aria-current="false"><span>18</span> 整数乘法的第二个因子良定义（代表元层）</a></li>
+<li><a href="../units/unit19.html" aria-current="false"><span>19</span> 把取负下降成函数（Quot.lift）</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

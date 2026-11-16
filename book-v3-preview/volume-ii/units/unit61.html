@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 61 — Addition on the Reals: A Ternary Relation (Existence + Uniqueness)</p>
 <p class="unit-meta">3 个定义 · 6 个定理 · 6 道练习 · 18 条提示 · <a href="#appendix-unit-61">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="61" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-61" aria-label="复制单元 61 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit61.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-6.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit61.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>上一单元在代表元层建立了 addSeq，并交清了两条下降义务：cauchy_add（Cauchy 对加法封闭）与 realRel_add（realRel 对加法同余）。二元运算仍然不能直接写成 <span class="math">Real → Real → Real</span> 的函数：Quot.lift 的外层还要一次「函数相等」，而 realRel 只在 Cauchy 序列上自反——商里还有非 Cauchy 代表元形成的「杂点」，同一条 Cauchy 序列在杂点上的像不唯一。</p></div></div></section>
 <div class="block prose intuition-only"><p>于是把加法写成三元关系：addRel a b c 当且仅当 a、b 有 Cauchy 代表元 x、y，且 <span class="math">c = mk (x+y)</span>。这个关系在 Cauchy 代表元上存在且唯一；在杂点上没有输出——这是诚实的分关系，不是把洞绕过去。定义要经两次 Quot.lift，两次的良定义性就是两个 def 里的函数外延性与命题外延性义务，用的都是课程里已经有的东西，不新增信任。</p></div><div class="block prose intuition-only"><p>一个刻意留下的边界：<span class="math">mk z = mk (x+y)</span> 反推 <span class="math">realRel z (x+y)</span> 需要 Quot.exact，而它要求 realRel 在整个 Seq 上自反；本载体拿不到这条（杂点不自反）。所以这里只给「相关推出是同一个输出」的声音方向，反推留作已知边界，不写成公理。</p></div><div class="block prose intuition-only"><p>先给出关系在代表元上的形状与两次下降，再证存在、声音方向与唯一性，把它们拼成「存在且唯一」，最后落在常零序列上。</p></div><div class="block prose intuition-only"><p>关系在代表元上的形状</p></div><div class="block prose intuition-only"><p><code>addRelRep x y c</code> 读作「<code>c</code> 是 <code>x</code>、<code>y</code> 的和」。两个 <code>Cauchy</code> 守卫是必要的：没有它们，第二次 lift 在杂点上没有 <code>realRel y y</code> 可用。</p></div><article class="decl decl-def" id="decl-61-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">addRelRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def addRelRep (x y : Seq) (c : Real) : Prop :=
@@ -226,16 +226,22 @@
       (Real.mk (addSeq zeroSeq zeroSeq)) :=
   addRel_intro zeroSeq zeroSeq cauchy_zero cauchy_zero</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-61-1">61.1 ι 规则：关系作用在 mk 上回到代表元形状</a></li>
-<li><a href="#ex-61-2">61.2 引入：Cauchy 代表元的和是关系的一个输出</a></li>
-<li><a href="#ex-61-3">61.3 声音方向：与 addSeq 相关的实数就是那个输出</a></li>
-<li><a href="#ex-61-4">61.4 唯一性：关系的两个输出相等</a></li>
-<li><a href="#ex-61-5">61.5 存在且唯一</a></li>
-<li><a href="#ex-61-6">61.6 常零序列：关系确实有输出</a></li>
-<li><a href="#appendix-unit-61">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit55.html" aria-current="false"><span>55</span> 有理数的加法逆元：x + (-x) = 0</a></li>
+<li><a href="../units/unit56.html" aria-current="false"><span>56</span> 两次减法的相加：中间项消去</a></li>
+<li><a href="../units/unit57.html" aria-current="false"><span>57</span> close 的传递性：两个 ε/2 的界加起来</a></li>
+<li><a href="../units/unit58.html" aria-current="false"><span>58</span> 实数的相等：传递性</a></li>
+<li><a href="../units/unit59.html" aria-current="false"><span>59</span> 实数的取负：第一次把运算下降到商上</a></li>
+<li><a href="../units/unit60.html" aria-current="false"><span>60</span> 实数的加法：下降之前的两条义务</a></li>
+<li class="is-current"><a href="../units/unit61.html" aria-current="page"><span>61</span> 实数的加法：三元关系（存在 + 唯一）</a></li>
+<li><a href="../units/unit62.html" aria-current="false"><span>62</span> 实数的加法：交换律与零元（三元关系版）</a></li>
+<li><a href="../units/unit63.html" aria-current="false"><span>63</span> 实数的加法：结合律（三元关系版）</a></li>
+<li><a href="../units/unit64.html" aria-current="false"><span>64</span> 实数的序：代表元关系与自反性</a></li>
+<li><a href="../units/unit65.html" aria-current="false"><span>65</span> 实数的序：传递性</a></li>
+<li><a href="../units/unit66.html" aria-current="false"><span>66</span> 实数的序：沿 realRel 下降成 Real 上的关系</a></li>
+<li><a href="../units/unit67.html" aria-current="false"><span>67</span> 实数的序：自反、传递、反对称</a></li>
+<li><a href="../units/unit68.html" aria-current="false"><span>68</span> 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

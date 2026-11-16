@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 44 — Applying Extensionality (funext / propext)</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-44">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="44" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-44" aria-label="复制单元 44 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit44.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-12.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit44.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§1.2/§3.3</strong>（extensionality 与函数相等）；Halmos《Naive Set Theory》<strong>§1/§8</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.12 章 —— 也是 <code>lib/Extensionality</code> 文件头自己写下的路线：「有数学内容的（用它们推 <code>Set.ext</code>、函数相等的推理）属 <strong>L3</strong>」✓）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><details class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li>两条公理的<strong>取用子</strong>（依赖版 <code>funext</code> <span class="math">·</span> <code>propext</code>）；</li><li><strong>合成的结合律与恒等律</strong>（真正的等式 —— 单元㉞ 当时只写了逐点 ✓）；</li><li><strong>旗舰一：逐点序是偏序</strong>（<code>IsPartialOrder (α → β) (PointwiseLe α β r)</code>）——单元㉜ 当时把这一条判成"做不到" ✗，<strong>现在做到了</strong> ✓（关键就是外延 ✓）；</li><li><strong>旗舰二：双边逆唯一</strong>（函数等式 —— 单元㉟ 当时只写了逐点 ✓）；</li><li><strong>旗舰三：从两条公理推出集合外延与关系外延</strong>（<code>Set.ext</code> / <code>Rel.ext</code> 的<strong>推理</strong>）✓</li></ul></details><h3 class="unit-subhead">44.1 三条库引理（两条公理的取用子 <span class="math">·</span> 字面 <span class="math">λ</span> 的等式是自反的）</h3><div class="block prose intuition-only"><p>演示：<strong>依赖版函数外延</strong>（<code>funext</code> 的取用子；非依赖版 <span class="math">=</span> 族取常值 <code>fun _ =&gt; β</code>）。</p></div><article class="decl decl-theorem" id="decl-44-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_funext_spec</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_funext_spec (α : Type) (β : α → Type)
@@ -177,14 +177,15 @@
     (h : Function.RightInverse α β g f) (y : β) : @Eq.{1} β (f (g y)) y :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
   (fun (hu : ∀ (y1 : β), @Eq.{1} β (f (g y1)) y1) =&gt; hu y) h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-44-1">44.1 三条库引理（两条公理的取用子 · 字面 λ 的等式是自反的）</a></li>
-<li><a href="#ex-44-1">44.2 两条公理的取用子与合成的等式形态</a></li>
-<li><a href="#ex-44-6">44.3 旗舰：逐点序是偏序（单元㉜ 当时判成&quot;做不到&quot;的那一条）</a></li>
-<li><a href="#ex-44-8">44.4 旗舰：双边逆唯一 与 从两条公理推出两种外延</a></li>
-<li><a href="#appendix-unit-44">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit33.html" aria-current="false"><span>98</span> 幂集代数与特征函数</a></li>
+<li><a href="../units/unit34.html" aria-current="false"><span>99</span> 函数代数：合成与单满射</a></li>
+<li><a href="../units/unit35.html" aria-current="false"><span>100</span> 逆函数：左逆、右逆与双边逆</a></li>
+<li class="is-current"><a href="../units/unit44.html" aria-current="page"><span>101</span> 两条外延公理的应用</a></li>
+<li><a href="../units/unit51.html" aria-current="false"><span>102</span> 幂集的格性质</a></li>
+<li><a href="../units/unit68.html" aria-current="false"><span>103</span> 幂集是完备格</a></li>
+<li><a href="../units/unit70.html" aria-current="false"><span>104</span> 幂集对交并的分配</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

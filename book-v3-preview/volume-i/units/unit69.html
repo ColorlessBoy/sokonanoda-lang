@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 69 — Adjunction Laws for Union and Intersection</p>
 <p class="unit-meta">10 个定理 · 7 道练习 · 11 条提示 · <a href="#appendix-unit-69">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="69" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-69" aria-label="复制单元 69 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit69.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-7.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit69.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>取用子：<code>x ∈ ⋃F ↔ ∃A∈F, x ∈ A</code> ✓ <span class="math">·</span> <code>x ∈ ⋂F ↔ ∀A∈F, x ∈ A</code> ✓（两条顶层具名 ✓）；</li><li><strong>旗舰一：<code>⋃F ⊆ A ↔ ∀B∈F, B ⊆ A</code></strong> ✓（"并是<strong>最小上界</strong>" ✓）；</li><li><strong>旗舰二：<code>A ⊆ ⋂F ↔ ∀B∈F, A ⊆ B</code></strong> ✓（"交是<strong>最大下界</strong>" ✓）；</li><li><strong><code>A ∈ F ⇒ ⋂F ⊆ A</code></strong> ✓（下界性 ✓）</li></ul></div></div></section>
 <h3 class="unit-subhead">69.1 三条库引理（广义并 <span class="math">·</span> 广义交 <span class="math">·</span> 包含）</h3><div class="block prose intuition-only"><p>演示：广义并的成员刻画（"落在某个族成员里"）。</p></div><article class="decl decl-theorem" id="decl-69-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_sUnion</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
@@ -148,11 +148,15 @@
           Iff.mpr hu (fun (B : Set α) (hB : B ∈ F) =&gt; h B hB a ha))
           (Set.mem_sInter_iff α F a))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-69-1">69.1 三条库引理（广义并 · 广义交 · 包含）</a></li>
-<li><a href="#appendix-unit-69">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit17.html" aria-current="false"><span>65</span> 选择公理</a></li>
+<li><a href="../units/unit18.html" aria-current="false"><span>66</span> ZF 公理体系与正则性</a></li>
+<li><a href="../units/unit48.html" aria-current="false"><span>67</span> 覆盖与广义并</a></li>
+<li><a href="../units/unit49.html" aria-current="false"><span>68</span> 广义并的代数</a></li>
+<li class="is-current"><a href="../units/unit69.html" aria-current="page"><span>69</span> 并交的伴随刻画</a></li>
+<li><a href="../units/unit71.html" aria-current="false"><span>70</span> 并交与交的分配</a></li>
+<li><a href="../units/unit72.html" aria-current="false"><span>71</span> 广义并与交、单调与空族</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

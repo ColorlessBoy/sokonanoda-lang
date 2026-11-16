@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 74 — Preimages of Unions and Intersections</p>
 <p class="unit-meta">16 个定理 · 13 道练习 · 16 条提示 · <a href="#appendix-unit-74">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="74" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-74" aria-label="复制单元 74 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit74.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-3.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit74.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>原像的两条取用子（<code>x ∈ f ⁻¹' B ⇔ f x ∈ B</code> ✓）；</li><li><strong>旗舰一：<code>x ∈ f ⁻¹' (⋃F) ⇔ ∃A∈F, x ∈ f ⁻¹' A</code></strong> ✓（<strong>原像与并交换</strong> ✓）；</li><li><strong>旗舰二：<code>x ∈ f ⁻¹' (⋂F) ⇔ ∀A∈F, x ∈ f ⁻¹' A</code></strong> ✓（<strong>原像与交也交换</strong> ✓ ——与单元73 的"像与交只单向"<strong>正好对照</strong> ✓）；</li></ul></div></div></section>
 <h3 class="unit-subhead">74.1 三条库引理（原像 <span class="math">·</span> 广义并 <span class="math">·</span> 广义交）</h3><div class="block prose intuition-only"><p>演示：原像的成员刻画（<code>x ∈ f ⁻¹' B</code> 就是 <code>f x ∈ B</code>）。</p></div><article class="decl decl-theorem" id="decl-74-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_preimage</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_preimage (α : Type) (β : Type) (f : α → β) (B : Set β) (x : α) :
@@ -225,11 +225,24 @@
     (forall_of_mem_preimage_sInter α β f F x)
     (mem_preimage_sInter_of_forall α β f F x)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-74-1">74.1 三条库引理（原像 · 广义并 · 广义交）</a></li>
-<li><a href="#appendix-unit-74">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit08.html" aria-current="false"><span>20</span> 像与原像</a></li>
+<li><a href="../units/unit09.html" aria-current="false"><span>21</span> 等势（基数 Ⅰ）</a></li>
+<li><a href="../units/unit10.html" aria-current="false"><span>22</span> 可数与 Cantor 定理（基数 Ⅱ）</a></li>
+<li><a href="../units/unit73.html" aria-current="false"><span>23</span> 像与广义并交的分配</a></li>
+<li class="is-current"><a href="../units/unit74.html" aria-current="page"><span>24</span> 原像与广义并交的分配</a></li>
+<li><a href="../units/unit92.html" aria-current="false"><span>25</span> 等势的代数</a></li>
+<li><a href="../units/unit93.html" aria-current="false"><span>26</span> 等势的传递</a></li>
+<li><a href="../units/unit96.html" aria-current="false"><span>27</span> 势的比较（自反与传递）</a></li>
+<li><a href="../units/unit97.html" aria-current="false"><span>28</span> 等势 ⇒ 双向势比较</a></li>
+<li><a href="../units/unit98.html" aria-current="false"><span>29</span> 势比较的单调性</a></li>
+<li><a href="../units/unit99.html" aria-current="false"><span>30</span> 幂集的单调性</a></li>
+<li><a href="../units/unit100.html" aria-current="false"><span>31</span> 势比较的搬运</a></li>
+<li><a href="../units/unit101.html" aria-current="false"><span>32</span> 空集与子集的点态代数</a></li>
+<li><a href="../units/unit102.html" aria-current="false"><span>33</span> 相互包含与点态外延</a></li>
+<li><a href="../units/unit103.html" aria-current="false"><span>34</span> 双向势比较何时升级为等势</a></li>
+<li><a href="../units/unit112.html" aria-current="false"><span>35</span> Cantor–Bernstein 定理（经选择公理）</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

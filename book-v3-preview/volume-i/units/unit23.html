@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 23 — Arbitrary Products and Currying</p>
 <p class="unit-meta">2 个定义 · 13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-23">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="23" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-23" aria-label="复制单元 23 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit23.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-9.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit23.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§3.5 的"任意多个集合的笛卡尔积"</strong>；Halmos《Naive Set Theory》<strong>§9 Families 的收尾 <span class="math">+</span> §15 的积</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.9 章第三个单元 —— 补上本章标题里的"广义积"）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>积的成员刻画</strong>（"每个坐标都落在对应因子里"）<span class="math">·</span> <strong>积对族单调</strong> <span class="math">·</span><strong>某个因子空 <span class="math">⇒</span> 积空</strong> <span class="math">·</span> <strong>积与交可以互相拆装</strong> <span class="math">·</span> <strong>选择公理正是"每个因子非空 <span class="math">⇒</span> 积非空"</strong>（写在最后一道必破题里 —— 这正是选择公理最经典的形式之一）✓</p></div><div class="block prose intuition-only"><p>读法：<code>A : ι → Set α</code> 是<strong>索引族</strong>，<code>Set.pi ι α A</code> 是"每个坐标 <code>i</code> 都落在 <code>A i</code> 里"的 <strong>函数</strong>集合 —— 这就是"任意多个集合的笛卡尔积"在谓词式里的样子 ✓</p></div><div class="block prose intuition-only"><p><strong>写法约定（本单元特有）</strong>：积里的元素是<strong>函数</strong> <span class="math">⇒</span> 一切从"把函数用在某个坐标上"出发；库里的 <code>Set.mem_pi_elim</code> / <code>Set.mem_pi_intro</code> 就是这两招，<strong>别手写展开</strong> ✓</p></div><h3 class="unit-subhead">23.0 两个新词汇（画布给出，不是练习）：<strong>柯里化</strong>与<strong>反柯里化</strong></h3><div class="block prose intuition-only"><p>读法：<code>curry</code> 把"吃一个序对"的函数变成"吃两个参数"的函数，<code>uncurry</code> 反过来 ✓ 这一对就是"n 元关系 <span class="math">↔</span> 逐次一元关系"的翻译（Enderton §3.5 的 n 元关系那一节）✓</p></div><article class="decl decl-def" id="decl-23-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">curry</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def curry (A B C : Type) (f : Prod A B → C) : A → B → C :=
@@ -211,16 +211,11 @@
           (fun (i : ι) =&gt;
             (fun (hi : f i ∈ @Set.univ α ∧ f i ∈ A i) =&gt; And.right hi) (hf i (Set.mem_univ i)))))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-23-1">23.0 两个新词汇（画布给出，不是练习）：柯里化与反柯里化</a></li>
-<li><a href="#decl-23-3">23.1 积与两条库引理</a></li>
-<li><a href="#ex-23-4">23.2 常函数与特殊因子</a></li>
-<li><a href="#ex-23-7">23.3 积与交：两个方向</a></li>
-<li><a href="#ex-23-9">23.4 n 元关系：柯里化（把&quot;二元输入&quot;换成&quot;两次一元输入&quot;）</a></li>
-<li><a href="#ex-23-10">23.5 必破：选择公理正是&quot;非空族的积非空&quot;</a></li>
-<li><a href="#appendix-unit-23">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit21.html" aria-current="false"><span>76</span> 集族与广义并交</a></li>
+<li><a href="../units/unit22.html" aria-current="false"><span>77</span> 像、原像与广义并交</a></li>
+<li class="is-current"><a href="../units/unit23.html" aria-current="page"><span>78</span> 广义积与柯里化</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

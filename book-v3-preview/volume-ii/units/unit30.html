@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 30 — Strict Order on Rationals</p>
 <p class="unit-meta">2 个定义 · 4 个定理 · 4 道练习 · 8 条提示 · <a href="#appendix-unit-30">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="30" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-30" aria-label="复制单元 30 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit30.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-3.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit30.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元㉙ 定义了非严格序 ratLeRep。严格序在数学上是「<span class="math">≤</span> 且不等」，在商上「不等」仍然用 ratRel 的否定表达（Rat 的相等就是 ratRel）：ratLtRep x y 当且仅当 ratLeRep x y 且非 ratRel x y。</p></div></div></section>
 <div class="block prose intuition-only"><p>这里先结清严格序的三条定义展开级事实：它不是自反的；它蕴含非严格序；非严格序加上不相等就是它。再加一个具体计算 0 &lt; 1：序的部分用 ㉙ 的 le_succ，不等的部分把 ratRel 0 1 化成 <span class="math">0 = 1</span>，由 succ_ne_zero 否定。</p></div><div class="block prose intuition-only"><p>传递性、全序与加法/乘法相容仍要先通分，留给后续单元。</p></div><article class="decl decl-def" id="decl-30-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLeRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLeRep (x y : ratRep) : Prop :=
@@ -89,12 +89,14 @@
     (fun (h : ratRel (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero)) =&gt;
       succ_ne_zero Nat.zero (Eq.symm h))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-30-1">定义与定理</a></li>
-<li><a href="#ex-30-1">练习</a></li>
-<li><a href="#appendix-unit-30">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit29.html" aria-current="false"><span>29</span> 有理数的序：代表元公式与自反性</a></li>
+<li class="is-current"><a href="../units/unit30.html" aria-current="page"><span>30</span> 有理数的严格序：&lt; 与不相等</a></li>
+<li><a href="../units/unit31.html" aria-current="false"><span>31</span> 有理数的负元：代表元层定义与良定义性</a></li>
+<li><a href="../units/unit32.html" aria-current="false"><span>32</span> 有理数的减法：加法与负元的组合</a></li>
+<li><a href="../units/unit33.html" aria-current="false"><span>33</span> 有理数的绝对值：关系定义与两条引入规则</a></li>
+<li><a href="../units/unit34.html" aria-current="false"><span>34</span> 有理数的幂：定义与计算规则</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

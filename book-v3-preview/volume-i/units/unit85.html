@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 85 — The Quotient Maps Injectively onto the Image</p>
 <p class="unit-meta">1 个定义 · 9 个定理 · 6 道练习 · <a href="#appendix-unit-85">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="85" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-85" aria-label="复制单元 85 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit85.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-10.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit85.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>核的展开 ✓ <span class="math">·</span> <strong>同类点推出"类相互包含"</strong> ✓ <span class="math">·</span> <strong>两个类逐点相同</strong> ✓（单射性的逐点形态 ✓）；</li><li>核的像仍是单点（单元84 旗舰，本单元复用 ✓）；</li><li><strong>旗舰一：商到像单射</strong> ✓ —— <code>f a = f b ⇒ f '' [a]</code> 与 <code>f '' [b]</code> <strong>逐点相同</strong> ✓；</li><li><strong>旗舰二：逐点相同 <span class="math">⇔</span> 值相同</strong> ✓（<code>(∀ c, c ∈ [a] ↔ c ∈ [b]) ↔ f a = f b</code> ✓）——这就是"<strong>商集到像是一一对应</strong>" ✓，也把 <span class="math">76 → 77/78 → 84</span> 这条线<strong>闭环</strong> ✓。</li></ul></div></div></section>
 <article class="decl decl-def" id="decl-85-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">kernel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def kernel (α : Type) (β : Type) (f : α → β) : Rel α α :=
@@ -221,11 +221,20 @@
           (Rel.mem_equivClass α (kernel α β f) b a)))
     (fun (hab : f a = f b) =&gt; kernel_class_agree α β f a b hab)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-85-2">85.1 三条库引理（像的成员 · 等价类的成员 · 自反取用子）</a></li>
-<li><a href="#appendix-unit-85">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit24.html" aria-current="false"><span>79</span> 关系闭包</a></li>
+<li><a href="../units/unit25.html" aria-current="false"><span>80</span> 等价关系与划分</a></li>
+<li><a href="../units/unit26.html" aria-current="false"><span>81</span> 划分：等价关系的反方向</a></li>
+<li><a href="../units/unit27.html" aria-current="false"><span>82</span> 商类型与良定义性</a></li>
+<li><a href="../units/unit43.html" aria-current="false"><span>83</span> 等价类与商集的代数刻画</a></li>
+<li><a href="../units/unit76.html" aria-current="false"><span>84</span> 像的核关系</a></li>
+<li><a href="../units/unit77.html" aria-current="false"><span>85</span> 等价类的代数</a></li>
+<li><a href="../units/unit78.html" aria-current="false"><span>86</span> 划分与等价关系的往返</a></li>
+<li><a href="../units/unit79.html" aria-current="false"><span>87</span> 商集上的函数（well-defined）</a></li>
+<li><a href="../units/unit84.html" aria-current="false"><span>88</span> 商与像的往返</a></li>
+<li class="is-current"><a href="../units/unit85.html" aria-current="page"><span>89</span> 商到像的单射性</a></li>
+<li><a href="../units/unit86.html" aria-current="false"><span>90</span> 核与复合、单射</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

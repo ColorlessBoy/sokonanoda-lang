@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 105 — Classical Equivalences</p>
 <p class="unit-meta">9 个定理 · 6 道练习 · <a href="#appendix-unit-105">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="105" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-105" aria-label="复制单元 105 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit105.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-1.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit105.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"（<strong>命题层</strong>，全部按 <code>em</code> 分情况 ✓）：</p></div><details class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li><strong>按 <code>em</code> 分情况</strong>的通用子 ✓（<code>em_cases</code> ✓）；</li><li><strong>德摩根</strong>：<code>¬ (P ∨ Q) ↔ (¬ P ∧ ¬ Q)</code> ✓ —— <strong>两个方向都构造性可证</strong> ✓；而 <strong><code>¬ (P ∧ Q) ⇒ ¬ P ∨ ¬ Q</code></strong> ✓ <strong>需要排中律</strong> ✓（两者对照，正是本单元的教学点 ✓）；</li><li><strong><code>¬ (∃x, P x) ↔ ∀x, ¬ (P x)</code></strong> ✓（<strong>构造性</strong> ✓）；</li><li><strong><code>(P → Q) ↔ (¬ P ∨ Q)</code></strong> ✓（<strong><span class="math">→</span> 方向要排中律</strong> ✓）；</li><li><strong>Peirce 律</strong> ✓（<code>((P → Q) → P) → P</code> ✓ —— 经典逻辑的"试金石" ✓）。</li></ul></details></div></section>
 <article class="decl decl-theorem" id="decl-105-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_em</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_em (P : Prop) : P ∨ ¬ P :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Classical.em P</code></pre></li></ol></details></div></article>
@@ -131,12 +131,23 @@
   em_cases P P (fun (hp : P) =&gt; hp)
     (fun (hnp : ¬ P) =&gt; h (fun (hp : P) =&gt; @False.elim Q (hnp hp)))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-105-1">定义与定理</a></li>
-<li><a href="#ex-105-1">练习</a></li>
-<li><a href="#appendix-unit-105">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit01.html" aria-current="false"><span>01</span> 集合与隶属</a></li>
+<li><a href="../units/unit02.html" aria-current="false"><span>02</span> 子集、空集与包含三律</a></li>
+<li><a href="../units/unit03.html" aria-current="false"><span>03</span> 并、交、差与幂集</a></li>
+<li><a href="../units/unit04.html" aria-current="false"><span>04</span> 外延性与集合等式</a></li>
+<li><a href="../units/unit58.html" aria-current="false"><span>05</span> 差集的代数</a></li>
+<li><a href="../units/unit59.html" aria-current="false"><span>06</span> 差集的代数（二）</a></li>
+<li><a href="../units/unit60.html" aria-current="false"><span>07</span> 补集的代数</a></li>
+<li><a href="../units/unit61.html" aria-current="false"><span>08</span> 外延打包</a></li>
+<li><a href="../units/unit62.html" aria-current="false"><span>09</span> 外延性的推论</a></li>
+<li><a href="../units/unit63.html" aria-current="false"><span>10</span> 差集的等式层（打包续）</a></li>
+<li><a href="../units/unit64.html" aria-current="false"><span>11</span> 差集的等式层（三）：两步走</a></li>
+<li><a href="../units/unit65.html" aria-current="false"><span>12</span> 并的差分配律与减法反变</a></li>
+<li><a href="../units/unit66.html" aria-current="false"><span>13</span> 包含关系的代数</a></li>
+<li><a href="../units/unit104.html" aria-current="false"><span>14</span> 排中律与经典推论</a></li>
+<li class="is-current"><a href="../units/unit105.html" aria-current="page"><span>15</span> 经典等价三件套</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

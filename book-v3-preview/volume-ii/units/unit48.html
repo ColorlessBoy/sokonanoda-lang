@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 48 — Triangle Inequality</p>
 <p class="unit-meta">6 个定理 · 6 道练习 · 18 条提示 · <a href="#appendix-unit-48">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="48" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-48" aria-label="复制单元 48 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit48.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-5.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit48.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>先看一个反例：1 的绝对值见证是 1，-1/2 的见证是 -1/2；把两个见证相加得到 3/2，而 |<span class="math">1 + (-1/2)</span>| <span class="math">= 1/2</span>。见证相加得不到 <span class="math">x+y</span> 的见证。</p></div></div></section>
 <article class="exercise" id="ex-48-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratLeRep_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-48-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>我们证明 <span class="math">ℚ</span> 的三角不等式，它是 close 传递性（<span class="math">ε</span> 折半）唯一的数学内容：ratAbsRel x dx 且 ratAbsRel y dy 且 <span class="math">ratAbsRel (x+y) d</span> 推出 <span class="math">d ≤ dx+dy</span>。这里 ratAbsRel 是关系而不是函数，所以结论只能是 <span class="math">≤</span>，不能是等号。</p></div><div class="block prose intuition-only"><p>证明路线是把两边都化成「对 x、y 的四个界」：先证序对两个因子都单调（右加用 ㊹ 的加法相容，左加靠交换律转成右加）；再证 <span class="math">x ≤ d</span> 与 <span class="math">-x ≤ d</span>（把绝对值见证的两个分支分别压住）；然后证 <span class="math">-(x+y)</span> 与 <span class="math">(-x)+(-y)</span> 相等（代表元上逐坐标对调）；最后按 d 落在哪一支分两种情形收口，并具体算 |<span class="math">1/2 + 1/2</span>| <span class="math">= 1 ≤ 1/2 + 1/2</span>。</p></div><div class="block prose intuition-only"><p>ratLeRep 只做头部展开；序与加法的引擎来自 lib/RatAbs。</p></div><div class="block prose intuition-only"><p>㊽.1 序对两个因子都单调</p></div><div class="block prose intuition-only"><p>先证序对两个因子都单调：右加用加法相容，左加用交换律转成右加。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_add (a b c d : ratRep)
@@ -244,11 +244,18 @@
     | prod_mk (prod_mk c d) n =&gt;
       ratRel_refl (ratNegRep (ratAddRep (qrep a b m) (qrep c d n)))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-48-1">练习</a></li>
-<li><a href="#appendix-unit-48">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit45.html" aria-current="false"><span>45</span> 序的全性：每个有理数都有绝对值</a></li>
+<li><a href="../units/unit46.html" aria-current="false"><span>46</span> 序的反对称性：两边夹出相等</a></li>
+<li><a href="../units/unit47.html" aria-current="false"><span>47</span> 绝对值的唯一性：同一个数的两个见证相等</a></li>
+<li class="is-current"><a href="../units/unit48.html" aria-current="page"><span>48</span> 三角不等式：|u + v| ≤ |u| + |v|</a></li>
+<li><a href="../units/unit49.html" aria-current="false"><span>49</span> 严格序的传递与 close 对 ε 的单调性</a></li>
+<li><a href="../units/unit50.html" aria-current="false"><span>50</span> 严格序与加法相容：加法消去</a></li>
+<li><a href="../units/unit51.html" aria-current="false"><span>51</span> 严格序的传递与加法相容</a></li>
+<li><a href="../units/unit52.html" aria-current="false"><span>52</span> ε 折半：半数的存在与加倍</a></li>
+<li><a href="../units/unit53.html" aria-current="false"><span>53</span> 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li>
+<li><a href="../units/unit54.html" aria-current="false"><span>54</span> 有理数加法的结合律：公分母的三层嵌套</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

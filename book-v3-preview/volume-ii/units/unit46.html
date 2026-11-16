@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 46 — Antisymmetry of the Order</p>
 <p class="unit-meta">4 个定理 · 4 道练习 · 12 条提示 · <a href="#appendix-unit-46">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="46" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-46" aria-label="复制单元 46 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit46.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-5.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit46.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㊺ 结清了「<span class="math">ℚ</span> 的序是全序」，但要把序用在绝对值上还差一条反对称性：<span class="math">x ≤ y</span> 且 <span class="math">y ≤ x</span> 推出 x ~ y。</p></div></div></section>
 <article class="exercise" id="ex-46-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">leNat_succ_not_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-46-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>为什么它挡在三角不等式前面：㉝ 的绝对值是关系而不是函数；同一个 x 的两个绝对值见证 d、d' 可能落在不同分支上（一个取 x、一个取 -x）。要把它们认成同一个，必须先知道「<span class="math">0 ≤ x</span> 与 <span class="math">x ≤ 0</span> 同时成立时 x ~ 0」——这正是反对称性。</p></div><div class="block prose intuition-only"><p>先证一条辅助事实：<span class="math">n+1 ≤ n</span> 不成立（没有数严格大于自己）。做法是把它化成 <span class="math">n = (n+1)+k</span>，再用后继运算搬成 <span class="math">n = n+(k+1)</span>，交给对 n 归纳的辅助引理。再证 <span class="math">ℕ</span> 与 <span class="math">ℚ</span> 的反对称性：<span class="math">ℕ</span> 上把 <span class="math">a ≤ b</span> 拆成「<span class="math">a = b</span>」与「<span class="math">a+1 ≤ b</span>」，后者与 <span class="math">b ≤ a</span> 串起来就是矛盾；<span class="math">ℚ</span> 上交叉相乘后交给 <span class="math">ℕ</span> 的反对称性。最后在具体数字上验证 1/2 与 2/4 互相 <span class="math">≤</span> 所以相等。</p></div><div class="block prose intuition-only"><p>ratLeRep 只在头部展开成 leRep (leNum x y) (leNum y x)，再交给 leRep_antisymm；不把 leNum 再展开（Prod.fst 会卡在定义上，内核不归约）。</p></div><div class="block prose intuition-only"><p>㊻.1 <code>n + 1 ≤ n</code> 不成立</p></div><div class="block prose intuition-only"><p>先证没有数严格大于自己。</p></div></div><pre class="exercise-statement"><code>theorem leNat_succ_not_self (n : Nat) (h : LeNat (Nat.succ n) n) : False :=
@@ -162,11 +162,18 @@
     (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
     h1 h2</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-46-1">练习</a></li>
-<li><a href="#appendix-unit-46">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit45.html" aria-current="false"><span>45</span> 序的全性：每个有理数都有绝对值</a></li>
+<li class="is-current"><a href="../units/unit46.html" aria-current="page"><span>46</span> 序的反对称性：两边夹出相等</a></li>
+<li><a href="../units/unit47.html" aria-current="false"><span>47</span> 绝对值的唯一性：同一个数的两个见证相等</a></li>
+<li><a href="../units/unit48.html" aria-current="false"><span>48</span> 三角不等式：|u + v| ≤ |u| + |v|</a></li>
+<li><a href="../units/unit49.html" aria-current="false"><span>49</span> 严格序的传递与 close 对 ε 的单调性</a></li>
+<li><a href="../units/unit50.html" aria-current="false"><span>50</span> 严格序与加法相容：加法消去</a></li>
+<li><a href="../units/unit51.html" aria-current="false"><span>51</span> 严格序的传递与加法相容</a></li>
+<li><a href="../units/unit52.html" aria-current="false"><span>52</span> ε 折半：半数的存在与加倍</a></li>
+<li><a href="../units/unit53.html" aria-current="false"><span>53</span> 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li>
+<li><a href="../units/unit54.html" aria-current="false"><span>54</span> 有理数加法的结合律：公分母的三层嵌套</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

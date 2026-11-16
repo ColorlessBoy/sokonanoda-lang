@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 29 — Bounds and Suprema</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-29">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="29" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-29" aria-label="复制单元 29 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit29.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-11.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit29.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§7.1 Orderings</strong> 里的 least upper bound / greatest lower bound；Halmos《Naive Set Theory》<strong>§14 Order</strong> 同一批（sup / inf）。大纲：<code>set-theory-syllabus.md</code> §4.1（I.11 章第二个单元）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>四个定义</strong>（上界/下界/上确界/下确界）<span class="math">·</span> <strong>确界唯一</strong>（在偏序里用反对称）<span class="math">·</span> <strong>上确界的两条用法</strong>（它是上界 <span class="math">·</span> 它比任何上界都小）<span class="math">·</span><strong>旗舰</strong>：在 <code>(Set α, ⊆)</code> 这个偏序里 —— <strong><code>⋃₀ F</code> 就是 <code>F</code> 的上确界</strong>、<strong><code>⋂₀ F</code> 就是 <code>F</code> 的下确界</strong> ✓（把单元㉑ 的广义并交接进序论）</p></div><div class="block prose intuition-only"><p>读法：<code>A : α → Prop</code> 就是 <code>Set α</code>（本卷的谓词式口径）<span class="math">⇒</span> 四个定义都不必 <code>import lib.Set</code> ✓</p></div><h3 class="unit-subhead">29.1 三条库引理（下界的展开 <span class="math">·</span> 下确界的展开 <span class="math">·</span> 上确界的取用子）</h3><div class="block prose intuition-only"><p>演示：下界的展开（"<code>b</code> 在 <code>A</code> 的每个点下面"）。</p></div><article class="decl decl-theorem" id="decl-29-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_lowerBound_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_lowerBound_def (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α) :
@@ -183,14 +183,15 @@
     (h : IsSup α r A b) (ha : A a) : r a b :=
   (fun (hu : ∀ (x : α), A x → r x b) =&gt; hu a ha) (isSup_upper α r A b h)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-29-1">29.1 三条库引理（下界的展开 · 下确界的展开 · 上确界的取用子）</a></li>
-<li><a href="#ex-29-3">29.2 上确界的两条用法（最小性）与下确界的对偶</a></li>
-<li><a href="#ex-29-5">29.3 确界唯一</a></li>
-<li><a href="#ex-29-8">29.4 旗舰：在 (Set α, ⊆) 里，广义并就是上确界、广义交就是下确界</a></li>
-<li><a href="#appendix-unit-29">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit28.html" aria-current="false"><span>91</span> 集合代数：分配律与 De Morgan</a></li>
+<li class="is-current"><a href="../units/unit29.html" aria-current="page"><span>92</span> 上界、下界与确界</a></li>
+<li><a href="../units/unit30.html" aria-current="false"><span>93</span> 格与对偶：确界的代数</a></li>
+<li><a href="../units/unit31.html" aria-current="false"><span>94</span> 单调函数与序同构保持确界</a></li>
+<li><a href="../units/unit32.html" aria-current="false"><span>95</span> 函数空间上的逐点序</a></li>
+<li><a href="../units/unit46.html" aria-current="false"><span>96</span> 对称差与布尔环</a></li>
+<li><a href="../units/unit50.html" aria-current="false"><span>97</span> 分配律族</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

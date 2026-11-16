@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 16 — Transitivity and Translation Invariance</p>
 <p class="unit-meta">5 个定义 · 19 个定理 · 1 个归纳类型 · 2 道练习 · 7 条提示 · <a href="#appendix-unit-16">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="16" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-16" aria-label="复制单元 16 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit16.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-1.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit16.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元⑮ 把整数序证成了良定义的关系：换代表元不改变真假。既然真假稳定，就可以在代表元层谈序的性质。整数序的两条核心性质是传递性（<span class="math">a ≤ b</span> 且 <span class="math">b ≤ c</span> 推出 <span class="math">a ≤ c</span>）与平移不变（<span class="math">a ≤ b</span> 推出 <span class="math">a+r ≤ b+r</span>）；自反性已在单元⑫证过。本单元补上前两条，证明只用到单元⑬的 <span class="math">ℕ</span> 序传递与右加单调、单元⑭的序消去律，外加一条纯算术的四项交换引理 add4。</p></div></div></section>
 <div class="block prose intuition-only"><p>序公理仍在代表元层陈述：本语言没有函数外延，也还没把关系下降成 <span class="math">Int → Int → Prop</span> 的机制；这和单元⑦处理加法律的方式一致。</p></div><article class="decl decl-inductive" id="decl-16-1"><header class="decl-head"><span class="decl-kind kind-inductive">归纳类型</span><code class="decl-name">LeNat</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>inductive LeNat : Nat → Nat → Prop
@@ -282,12 +282,27 @@ end</code></pre></div></article>
       (add4 a d e f)
       (leNat_add_right (Nat.add a d) (Nat.add c b) (Nat.add e f) h))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-16-1">定义与定理</a></li>
-<li><a href="#ex-16-1">练习</a></li>
-<li><a href="#appendix-unit-16">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit01.html" aria-current="false"><span>01</span> 整数与商构造</a></li>
+<li><a href="../units/unit02.html" aria-current="false"><span>02</span> 商类型与良定义性（复习）</a></li>
+<li><a href="../units/unit03.html" aria-current="false"><span>03</span> ℕ 的算术律（复习）</a></li>
+<li><a href="../units/unit04.html" aria-current="false"><span>04</span> 整数加法 / 负 / 减的代表元公式</a></li>
+<li><a href="../units/unit05.html" aria-current="false"><span>05</span> 整数乘法的代表元公式</a></li>
+<li><a href="../units/unit06.html" aria-current="false"><span>06</span> 整数加法的良定义性</a></li>
+<li><a href="../units/unit07.html" aria-current="false"><span>07</span> 整数加法的交换律与结合律</a></li>
+<li><a href="../units/unit08.html" aria-current="false"><span>08</span> 整数加法的零元与负元</a></li>
+<li><a href="../units/unit09.html" aria-current="false"><span>09</span> 整数减法的良定义性与基本律</a></li>
+<li><a href="../units/unit10.html" aria-current="false"><span>10</span> 整数乘法的零元与单位元</a></li>
+<li><a href="../units/unit11.html" aria-current="false"><span>11</span> 整数乘法的良定义性</a></li>
+<li><a href="../units/unit12.html" aria-current="false"><span>12</span> 整数序的代表元公式</a></li>
+<li><a href="../units/unit13.html" aria-current="false"><span>13</span> ℕ 序的传递性与单调性</a></li>
+<li><a href="../units/unit14.html" aria-current="false"><span>14</span> ℕ 序的加法消去律</a></li>
+<li><a href="../units/unit15.html" aria-current="false"><span>15</span> 整数序的良定义性</a></li>
+<li class="is-current"><a href="../units/unit16.html" aria-current="page"><span>16</span> 整数序的传递性与加法单调</a></li>
+<li><a href="../units/unit17.html" aria-current="false"><span>17</span> 整数乘法的交换律（代表元层）</a></li>
+<li><a href="../units/unit18.html" aria-current="false"><span>18</span> 整数乘法的第二个因子良定义（代表元层）</a></li>
+<li><a href="../units/unit19.html" aria-current="false"><span>19</span> 把取负下降成函数（Quot.lift）</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

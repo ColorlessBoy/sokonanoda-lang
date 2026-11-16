@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 75 — Products Distribute over Union and Intersection</p>
 <p class="unit-meta">10 个定理 · 7 道练习 · 10 条提示 · <a href="#appendix-unit-75">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="75" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-75" aria-label="复制单元 75 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit75.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-2.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit75.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>积的三条取用子（第一坐标 <span class="math">·</span> 第二坐标 <span class="math">·</span> 合成 ✓ —— 都用<strong>投影</strong>表述 ✓）；</li><li><strong>旗舰一：<code>p ∈ s ×ˢ (t ∪ u) ⇔ p ∈ (s ×ˢ t) ∪ (s ×ˢ u)</code></strong> ✓（<strong>积对并分配</strong> ✓）；</li><li><strong>旗舰二：<code>p ∈ s ×ˢ (t ∩ u) ⇔ p ∈ (s ×ˢ t) ∩ (s ×ˢ u)</code></strong> ✓（<strong>积对交分配</strong> ✓）；</li><li><strong><code>s ×ˢ ∅</code> 没有成员</strong> ✓ <span class="math">·</span> <strong>单调</strong>（两个坐标各单调 ✓）</li></ul></div></div></section>
 <h3 class="unit-subhead">75.1 三条库引理（积的成员刻画 <span class="math">·</span> 序对形态 <span class="math">·</span> 并）</h3><div class="block prose intuition-only"><p>演示：积的成员刻画（<strong>用投影表述</strong> —— 这就是本单元避开 <span class="math">η</span> 引理的关键 ✓）。</p></div><article class="decl decl-theorem" id="decl-75-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_prod_iff</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_prod_iff (A : Type) (B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
@@ -260,11 +260,12 @@
       ((fun (hv : t₁ ⊆ t₂ ↔ ∀ (b : B), b ∈ t₁ → b ∈ t₂) =&gt; Iff.mp hv h2)
         (Set.subset_def t₁ t₂)))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-75-1">75.1 三条库引理（积的成员刻画 · 序对形态 · 并）</a></li>
-<li><a href="#appendix-unit-75">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit05.html" aria-current="false"><span>16</span> 序对与笛卡尔积</a></li>
+<li><a href="../units/unit06.html" aria-current="false"><span>17</span> 关系</a></li>
+<li><a href="../units/unit07.html" aria-current="false"><span>18</span> 函数</a></li>
+<li class="is-current"><a href="../units/unit75.html" aria-current="page"><span>19</span> 积对并交的分配</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 41 — Negation, Order and Absolute Value</p>
 <p class="unit-meta">5 个定理 · 5 道练习 · 15 条提示 · <a href="#appendix-unit-41">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="41" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-41" aria-label="复制单元 41 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit41.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-4.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit41.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㉛ 给了 <span class="math">ℚ</span> 的取负 ratNegRep（交换分子序对，分母不动），㊴ 给了序对相等代表元的替换律。现在把序与取负接上：<span class="math">x ≤ y</span> 推出 <span class="math">-y ≤ -x</span>（序被取负反转），以及 |x| 与 y 相等时 |-x| 与 y 也相等（绝对值对取负不变）。这两条是下一单元「close 的对称性」的引擎：close x y eps 说的是 x-y 的绝对值小于 eps，要换成 close y x eps，就得把 y-x 看成 -(x-y)，再用绝对值不变把负号去掉。</p></div></div></section>
 <article class="exercise" id="ex-41-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratLeRep_neg_lit</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-41-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>反转律先在字面三元组 qrep a b m 上做——这时两个不等式展开后只差几次加法交换；再把字面形式搬到任意代表元上。通用引理（相等对称、传递、取负对合）已收在 lib/Cauchy，这里直接引用。</p></div><div class="block prose intuition-only"><p>㊶.1 取负反转序（字面形式）</p></div><div class="block prose intuition-only"><p>先把反转律在字面三元组上做掉：两个不等式只差加法交换。</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_neg_lit (a b c d m n : Nat)
@@ -206,11 +206,18 @@
             (And.right h2)))
         h</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-41-1">练习</a></li>
-<li><a href="#appendix-unit-41">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit35.html" aria-current="false"><span>35</span> 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li>
+<li><a href="../units/unit36.html" aria-current="false"><span>36</span> 实数的载体：Real := Quot realRel</a></li>
+<li><a href="../units/unit37.html" aria-current="false"><span>37</span> 序与正分母：乘法、消去与配对搬运</a></li>
+<li><a href="../units/unit38.html" aria-current="false"><span>38</span> 有理数的序：传递性</a></li>
+<li><a href="../units/unit39.html" aria-current="false"><span>39</span> 有理数的序与相等相容</a></li>
+<li><a href="../units/unit40.html" aria-current="false"><span>40</span> 实数的相等：自反性</a></li>
+<li class="is-current"><a href="../units/unit41.html" aria-current="page"><span>41</span> 取负与序：绝对值的对称性</a></li>
+<li><a href="../units/unit42.html" aria-current="false"><span>42</span> close 的对称性：实数的相等可以换方向</a></li>
+<li><a href="../units/unit43.html" aria-current="false"><span>43</span> 有理数加法的代表元律：交换与零元</a></li>
+<li><a href="../units/unit44.html" aria-current="false"><span>44</span> 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

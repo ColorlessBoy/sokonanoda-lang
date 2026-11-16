@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 38 — Transitivity of the Order</p>
 <p class="unit-meta">3 个定理 · 3 道练习 · 9 条提示 · <a href="#appendix-unit-38">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="38" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-38" aria-label="复制单元 38 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit38.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-4.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit38.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元㉙ 用交叉相乘定义了 ratLeRep，单元㊲ 备好了「乘正分母保序 / 可消去」的引擎。把两者拼起来，就得到序的传递性：<span class="math">x ≤ y</span> 且 <span class="math">y ≤ z</span> 推出 <span class="math">x ≤ z</span>。</p></div></div></section>
 <article class="exercise" id="ex-38-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">mulRep_den_perm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-38-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>证明路线是「把两个不等式换到同一个公分母上再比较」：先把 <span class="math">x ≤ y</span> 两边乘 z 的分母，再把 <span class="math">y ≤ z</span> 两边乘 x 的分母，于是中间项只差两个分母的换位（㊳.1）；换位后用 leRep_trans 接成一条链；最后两边各换位一次，把 y 的分母挪到最外层，用 leRep_cancel_den 消去——剩下的正是 ratLeRep x z 展开后的形状。</p></div><div class="block prose intuition-only"><p>引擎（leRep_mul_den_right / leRep_cancel_den）已在单元㊲ 证明，收在 lib/RatOrder；这里的三个律留在正文里。</p></div><div class="block prose intuition-only"><p>㊳.1 两个正分母可以换位</p></div><div class="block prose intuition-only"><p>先证两个正分母可以换位：把它们挪到括号里面再交换。</p></div></div><pre class="exercise-statement"><code>theorem mulRep_den_perm (p : Prod Nat Nat) (m k : Nat) :
@@ -172,11 +172,18 @@
     (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
     (le_succ 4 5 (le_succ 4 4 (le_refl 4)))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-38-1">练习</a></li>
-<li><a href="#appendix-unit-38">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit35.html" aria-current="false"><span>35</span> 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li>
+<li><a href="../units/unit36.html" aria-current="false"><span>36</span> 实数的载体：Real := Quot realRel</a></li>
+<li><a href="../units/unit37.html" aria-current="false"><span>37</span> 序与正分母：乘法、消去与配对搬运</a></li>
+<li class="is-current"><a href="../units/unit38.html" aria-current="page"><span>38</span> 有理数的序：传递性</a></li>
+<li><a href="../units/unit39.html" aria-current="false"><span>39</span> 有理数的序与相等相容</a></li>
+<li><a href="../units/unit40.html" aria-current="false"><span>40</span> 实数的相等：自反性</a></li>
+<li><a href="../units/unit41.html" aria-current="false"><span>41</span> 取负与序：绝对值的对称性</a></li>
+<li><a href="../units/unit42.html" aria-current="false"><span>42</span> close 的对称性：实数的相等可以换方向</a></li>
+<li><a href="../units/unit43.html" aria-current="false"><span>43</span> 有理数加法的代表元律：交换与零元</a></li>
+<li><a href="../units/unit44.html" aria-current="false"><span>44</span> 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

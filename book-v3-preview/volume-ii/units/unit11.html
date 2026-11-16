@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 11 — Multiplication is Well-Defined</p>
 <p class="unit-meta">5 个定义 · 13 个定理 · 3 道练习 · 9 条提示 · <a href="#appendix-unit-11">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="11" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-11" aria-label="复制单元 11 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit11.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-1.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit11.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>乘法的代表元公式已经写下，零元与单位元也补齐了。要把 mulRep 搬上商，还差最后一步：证明它尊重代表元的替换——p 与 p' 差相等时，p 乘 q 与 p' 乘 q 也差相等。这一步和加法良定义性同一套路，但多了一个新工具：分配律</p></div><div class="math-display intuition-only" role="math" aria-label="mul_add : (a+b)·c = a·c + b·c"><math display="block" class="mathml"><mrow><mi mathvariant="normal">mul_add</mi><mspace width="0.22em"/><mo>:</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>a</mi><mo>+</mo><mi>b</mi></mrow><mo>)</mo></mrow><mo>·</mo><mi>c</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>a</mi><mo>·</mo><mi>c</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi>b</mi><mo>·</mo><mi>c</mi></mrow></math></div><div class="block prose intuition-only"><p>分配律把「乘开」变成合法动作：等价假设 <span class="math">a+b' = a'+b</span> 两边各乘 c 与 d，就得到两条可以相加的等式；剩下的全是 <span class="math">ℕ</span> 加法的搬运与重排。先把要用的 <span class="math">ℕ</span> 加法律与分配律都列出来，再证良定义性。</p></div></div></section>
 <article class="decl decl-def" id="decl-11-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def intRel (a b : Prod Nat Nat) : Prop :=
@@ -423,12 +423,27 @@
             (add_comm (myMul b c) (myMul a d))
             (@Eq.refl.{1} Nat (Nat.add (Nat.add (myMul a' c) (myMul b' d)) (Nat.add (myMul b c) (myMul a d))))))))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-11-1">定义与定理</a></li>
-<li><a href="#ex-11-1">练习</a></li>
-<li><a href="#appendix-unit-11">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit01.html" aria-current="false"><span>01</span> 整数与商构造</a></li>
+<li><a href="../units/unit02.html" aria-current="false"><span>02</span> 商类型与良定义性（复习）</a></li>
+<li><a href="../units/unit03.html" aria-current="false"><span>03</span> ℕ 的算术律（复习）</a></li>
+<li><a href="../units/unit04.html" aria-current="false"><span>04</span> 整数加法 / 负 / 减的代表元公式</a></li>
+<li><a href="../units/unit05.html" aria-current="false"><span>05</span> 整数乘法的代表元公式</a></li>
+<li><a href="../units/unit06.html" aria-current="false"><span>06</span> 整数加法的良定义性</a></li>
+<li><a href="../units/unit07.html" aria-current="false"><span>07</span> 整数加法的交换律与结合律</a></li>
+<li><a href="../units/unit08.html" aria-current="false"><span>08</span> 整数加法的零元与负元</a></li>
+<li><a href="../units/unit09.html" aria-current="false"><span>09</span> 整数减法的良定义性与基本律</a></li>
+<li><a href="../units/unit10.html" aria-current="false"><span>10</span> 整数乘法的零元与单位元</a></li>
+<li class="is-current"><a href="../units/unit11.html" aria-current="page"><span>11</span> 整数乘法的良定义性</a></li>
+<li><a href="../units/unit12.html" aria-current="false"><span>12</span> 整数序的代表元公式</a></li>
+<li><a href="../units/unit13.html" aria-current="false"><span>13</span> ℕ 序的传递性与单调性</a></li>
+<li><a href="../units/unit14.html" aria-current="false"><span>14</span> ℕ 序的加法消去律</a></li>
+<li><a href="../units/unit15.html" aria-current="false"><span>15</span> 整数序的良定义性</a></li>
+<li><a href="../units/unit16.html" aria-current="false"><span>16</span> 整数序的传递性与加法单调</a></li>
+<li><a href="../units/unit17.html" aria-current="false"><span>17</span> 整数乘法的交换律（代表元层）</a></li>
+<li><a href="../units/unit18.html" aria-current="false"><span>18</span> 整数乘法的第二个因子良定义（代表元层）</a></li>
+<li><a href="../units/unit19.html" aria-current="false"><span>19</span> 把取负下降成函数（Quot.lift）</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

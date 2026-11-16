@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 53 — Order Embeddings</p>
 <p class="unit-meta">1 个定义 · 12 个定理 · 9 道练习 · 15 条提示 · <a href="#appendix-unit-53">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="53" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-53" aria-label="复制单元 53 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit53.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-5.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit53.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§7.1</strong>（ordering relations 之后的"保序映射"）<span class="math">· Halmos</span>《Naive Set Theory》<strong>§14</strong>（order isomorphism 前夜）。大纲：<code>set-theory-syllabus.md</code> §4.1（<strong>I.5 章深化</strong> —— 单元⑬⑭ 讲序关系与良序的<strong>性质</strong>，本单元讲序之间的<strong>映射</strong>：嵌入保什么、反射什么 ✓）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>嵌入的定义与取用子</strong>；<strong>恒等映射是嵌入</strong>；</li><li><strong>旗舰一：嵌入的复合还是嵌入</strong>（逐点两向合起来 ✓）；</li><li><strong>旗舰二：嵌入"反射"序性质</strong> —— 自反 <span class="math">·</span> 对称 <span class="math">·</span> 传递 <span class="math">·</span> <strong>非自反</strong>（由 <code>r a b ⟺ s (f a) (f b)</code> 逐条搬过去 ✓）；</li><li>全部用<strong>点态形态</strong>（<code>∀ a b, …</code>），把 <code>def</code> 头留给前提 ✓（配方 ✓）。</li></ul></div><h3 class="unit-subhead">53.0 画布给的新词汇：<strong>序嵌入</strong> <code>IsEmbedding r s f</code></h3><div class="block prose intuition-only"><p>读法：<code>f</code> 把 <code>r</code> 序<strong>原样搬进</strong> <code>s</code> 序 —— 两个方向都要 ✓（只要求一个方向叫"保序"，那是本单元的练习 1/2 的强弱之别 ✓）</p></div><article class="decl decl-def" id="decl-53-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">IsEmbedding</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def IsEmbedding (α β : Type) (r : Rel α α) (s : Rel β β) (f : α → β) : Prop :=
@@ -190,14 +190,12 @@
         (embedding_mpr α β r s f h a2 a1 h21))
       (htotal (f a1) (f a2))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-53-1">53.0 画布给的新词汇：序嵌入 IsEmbedding r s f</a></li>
-<li><a href="#decl-53-2">53.1 三条库引理（展开 · 恒等 · 取用子）</a></li>
-<li><a href="#ex-53-1">53.2 两条取用子与复合</a></li>
-<li><a href="#ex-53-5">53.3 嵌入反射序性质（自反 · 对称 · 传递 · 非自反）</a></li>
-<li><a href="#appendix-unit-53">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit13.html" aria-current="false"><span>48</span> 偏序、全序与严格序</a></li>
+<li><a href="../units/unit14.html" aria-current="false"><span>49</span> 良序与良基</a></li>
+<li class="is-current"><a href="../units/unit53.html" aria-current="page"><span>50</span> 序嵌入</a></li>
+<li><a href="../units/unit67.html" aria-current="false"><span>51</span> ⊆ 是一个偏序</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

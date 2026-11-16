@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 3 — Nat Arithmetic Review</p>
 <p class="unit-meta">2 个定义 · 9 个定理 · 7 道练习 · <a href="#appendix-unit-3">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="3" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-3" aria-label="复制单元 3 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit03.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-1.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit03.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>卷 I 已经把自然数搭好：有 0、有后继，也有递归定理。但自然数上的加法与乘法不是天上掉下来的；后面的整数、有理数、实数，最后都要把等式落回这里。为了后面在代表元层反复使用这些律时，道理都在这里；先把它们亲手重造一遍：用 Nat.rec 定义 add 与 mul，再用归纳证明零元、后继、结合、交换与分配。</p></div></div></section>
 <div class="block prose intuition-only"><p>为什么不直接用 prelude 里现成的 Nat.add？因为后面在代表元层做的每一步计算，最后都要归结到「递归定义 <span class="math">+</span> 归纳证明」这个骨架上。把现成加法当黑箱，代表元计算就只剩符号操作；亲手造一遍，才知道归纳假设从哪里来、为什么搬得动。</p></div><div class="block prose intuition-only"><p>先看定义。add 对第二个参数递归：<span class="math">add a 0 = a</span>，<span class="math">add a (succ b) = succ (add a b)</span>。这两个等式是定义性相等，证明项就是 Eq.refl；mul 也照同样方式递归：</p></div><div class="math-display intuition-only" role="math" aria-label="mul a 0 = 0，mul a (succ b) = add a (mul a b)"><math display="block" class="mathml"><mrow><mi mathvariant="normal">mul</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mn>0</mn><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mn>0</mn><mo>，</mo><mi mathvariant="normal">mul</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi mathvariant="normal">succ</mi><mspace width="0.22em"/><mi>b</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi mathvariant="normal">add</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi mathvariant="normal">mul</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mi>b</mi></mrow><mo>)</mo></mrow></mrow></math></div><div class="block prose intuition-only"><p>定义直接给出四条定义性等式（add_zero、add_succ、mul_zero、mul_succ）：证明项就是 Eq.refl。真正要用归纳的是 zero_add、succ_add、add_assoc、add_comm，以及搬运助手 add_rotate 与分配律 mul_distrib。零情形通常定义性成立；后继情形把归纳假设沿 succ 搬过去，必要时用 Eq.subst 改写谓词。</p></div><div class="block prose intuition-only"><p>这七条律此后可以直接引用。<span class="math">ℤ</span>、<span class="math">ℚ</span>、<span class="math">ℝ</span> 的代表元层再写加法零元、交换加数时，用的就是这里证过的结果——它们不是新公理，而是自然数上归纳法的直接推论。</p></div><article class="decl decl-def" id="decl-3-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">add</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def add (a b : Nat) : Nat :=
@@ -199,12 +199,27 @@
   @Eq.refl.{1} Nat Nat.zero</code></pre></details><details class="appendix-solution" id="app-extra-3-2"><summary>补充 · mul_succ <span class="sol-meta">定理</span></summary><pre><code>theorem mul_succ (a b : Nat) : mul a (Nat.succ b) = add a (mul a b) :=
   @Eq.refl.{1} Nat (add a (mul a b))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-3-1">定义与定理</a></li>
-<li><a href="#ex-3-1">练习</a></li>
-<li><a href="#appendix-unit-3">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit01.html" aria-current="false"><span>01</span> 整数与商构造</a></li>
+<li><a href="../units/unit02.html" aria-current="false"><span>02</span> 商类型与良定义性（复习）</a></li>
+<li class="is-current"><a href="../units/unit03.html" aria-current="page"><span>03</span> ℕ 的算术律（复习）</a></li>
+<li><a href="../units/unit04.html" aria-current="false"><span>04</span> 整数加法 / 负 / 减的代表元公式</a></li>
+<li><a href="../units/unit05.html" aria-current="false"><span>05</span> 整数乘法的代表元公式</a></li>
+<li><a href="../units/unit06.html" aria-current="false"><span>06</span> 整数加法的良定义性</a></li>
+<li><a href="../units/unit07.html" aria-current="false"><span>07</span> 整数加法的交换律与结合律</a></li>
+<li><a href="../units/unit08.html" aria-current="false"><span>08</span> 整数加法的零元与负元</a></li>
+<li><a href="../units/unit09.html" aria-current="false"><span>09</span> 整数减法的良定义性与基本律</a></li>
+<li><a href="../units/unit10.html" aria-current="false"><span>10</span> 整数乘法的零元与单位元</a></li>
+<li><a href="../units/unit11.html" aria-current="false"><span>11</span> 整数乘法的良定义性</a></li>
+<li><a href="../units/unit12.html" aria-current="false"><span>12</span> 整数序的代表元公式</a></li>
+<li><a href="../units/unit13.html" aria-current="false"><span>13</span> ℕ 序的传递性与单调性</a></li>
+<li><a href="../units/unit14.html" aria-current="false"><span>14</span> ℕ 序的加法消去律</a></li>
+<li><a href="../units/unit15.html" aria-current="false"><span>15</span> 整数序的良定义性</a></li>
+<li><a href="../units/unit16.html" aria-current="false"><span>16</span> 整数序的传递性与加法单调</a></li>
+<li><a href="../units/unit17.html" aria-current="false"><span>17</span> 整数乘法的交换律（代表元层）</a></li>
+<li><a href="../units/unit18.html" aria-current="false"><span>18</span> 整数乘法的第二个因子良定义（代表元层）</a></li>
+<li><a href="../units/unit19.html" aria-current="false"><span>19</span> 把取负下降成函数（Quot.lift）</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

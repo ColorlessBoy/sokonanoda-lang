@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 51 — Lattice Properties of the Power Set</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 14 条提示 · <a href="#appendix-unit-51">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="51" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-51" aria-label="复制单元 51 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit51.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-12.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit51.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§5/§13</strong>（the algebra of sets / the powerset）；Enderton《Elements of Set Theory》<strong>§1.5/§2.1</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.12 章深化 —— 接单元㉝「幂集代数与特征函数」：本单元做<strong>格论那一侧</strong>：<code>𝒫(A ∩ B)</code> 与 <code>𝒫A ∩ 𝒫B</code> 的关系 ✓）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><details class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li><strong>幂集成员的两条取用子</strong>（<code>C ∈ 𝒫A ⟺ C ⊆ A</code> 的两个方向各一条）；</li><li><strong>单调</strong>：<code>A ⊆ B ⇒ 𝒫A ⊆ 𝒫B</code>（含<strong>显式复合</strong>的写法 ✓）；</li><li><strong><code>A ∈ 𝒫A</code></strong> <span class="math">·</span> <strong><code>A ∈ 𝒫(univ)</code></strong>；</li><li><strong>交的两条取用子</strong>（<code>(A ∩ B) x ⇒ A x</code> / <code>⇒ B x</code>）与它们的<strong>子集版</strong>；</li><li><strong><code>C ⊆ A ⇒ C ⊆ B ⇒ C ⊆ A ∩ B</code></strong>（合成一条 <span class="math">⇒</span> <strong>合起来就是 <code>𝒫(A ∩ B) = 𝒫A ∩ 𝒫B</code> 的两半</strong> ✓）</li></ul></details><h3 class="unit-subhead">51.1 三条库引理（幂集 <span class="math">·</span> 论域 <span class="math">·</span> 交 的成员刻画）</h3><div class="block prose intuition-only"><p>演示：幂集的成员刻画（<code>C ∈ 𝒫A</code> 就是 <code>C ⊆ A</code>）。</p></div><article class="decl decl-theorem" id="decl-51-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_powerset</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_powerset (α : Type) (A B : Set α) :
@@ -137,13 +137,15 @@
   fun (x : α) =&gt; fun (hx : C x) =&gt;
     And.intro (hA x hx) (hB x hx)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-51-1">51.1 三条库引理（幂集 · 论域 · 交 的成员刻画）</a></li>
-<li><a href="#ex-51-1">51.2 幂集：两条取用子 · 单调 · 自己 · 论域</a></li>
-<li><a href="#ex-51-6">51.3 交那一侧：两条取用子 + 子集版 + 合成</a></li>
-<li><a href="#appendix-unit-51">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit33.html" aria-current="false"><span>98</span> 幂集代数与特征函数</a></li>
+<li><a href="../units/unit34.html" aria-current="false"><span>99</span> 函数代数：合成与单满射</a></li>
+<li><a href="../units/unit35.html" aria-current="false"><span>100</span> 逆函数：左逆、右逆与双边逆</a></li>
+<li><a href="../units/unit44.html" aria-current="false"><span>101</span> 两条外延公理的应用</a></li>
+<li class="is-current"><a href="../units/unit51.html" aria-current="page"><span>102</span> 幂集的格性质</a></li>
+<li><a href="../units/unit68.html" aria-current="false"><span>103</span> 幂集是完备格</a></li>
+<li><a href="../units/unit70.html" aria-current="false"><span>104</span> 幂集对交并的分配</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

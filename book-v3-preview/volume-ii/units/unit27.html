@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 27 — Multiplication of Rationals</p>
 <p class="unit-meta">23 个定义 · 56 个定理 · 5 道练习 · 40 条提示 · <a href="#appendix-unit-27">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="27" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-27" aria-label="复制单元 27 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit27.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-2.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit27.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元⑳ 把 <span class="math">ℚ</span> 建成 Quot ratRel；㉑–㉕ 结清 ratRel 的等价关系；㉖ 定义了加法。现在定义 <span class="math">ℚ</span> 的乘法：<span class="math"><span class="frac-inline"><span class="num">a−b</span><span class="den">m+1</span></span></span> 乘 <span class="math"><span class="frac-inline"><span class="num">c−d</span><span class="den">n+1</span></span></span> 等于 <span class="math">[(ac+bd) - (ad+bc)] / ((m+1)(n+1))</span>。</p></div></div></section>
 <div class="block prose intuition-only"><p>分子正是整数代表元的乘法 mulRep；分母字段复用 ㉖.1 的 ratDenRep m n。本单元给出代表元公式、分母公式与交换性等具体计算，为下一单元的乘法良定义性铺路。</p></div><div class="block prose intuition-only"><p>全部停在整数代表元层：不把乘法下降成 <span class="math">Rat → Rat → Rat</span>（那需要函数外延性，本语言没有），也不加任何公理。</p></div><article class="decl decl-def" id="decl-27-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def intRel (a b : Prod Nat Nat) : Prop :=
@@ -860,12 +860,17 @@
       (qrep 1 0 1) :=
   @Eq.refl.{1} Nat 12</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-27-1">定义与定理</a></li>
-<li><a href="#ex-27-1">练习</a></li>
-<li><a href="#appendix-unit-27">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit20.html" aria-current="false"><span>20</span> 有理数与商构造</a></li>
+<li><a href="../units/unit21.html" aria-current="false"><span>21</span> 整数相等的传递性</a></li>
+<li><a href="../units/unit22.html" aria-current="false"><span>22</span> ℕ 乘法的分配律与结合律</a></li>
+<li><a href="../units/unit23.html" aria-current="false"><span>23</span> ℤ 乘法的结合律（代表元层）</a></li>
+<li><a href="../units/unit24.html" aria-current="false"><span>24</span> ℕ 正因子的消去律</a></li>
+<li><a href="../units/unit25.html" aria-current="false"><span>25</span> 有理数相等的传递性</a></li>
+<li><a href="../units/unit26.html" aria-current="false"><span>26</span> 有理数加法的代表元公式与良定义性</a></li>
+<li class="is-current"><a href="../units/unit27.html" aria-current="page"><span>27</span> 有理数乘法的代表元公式与具体计算</a></li>
+<li><a href="../units/unit28.html" aria-current="false"><span>28</span> 有理数乘法的良定义性</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

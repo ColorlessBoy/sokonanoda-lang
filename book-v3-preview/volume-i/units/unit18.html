@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 18 — The ZF Axioms and Regularity</p>
 <p class="unit-meta">16 个定理 · 12 道练习 · 30 条提示 · <a href="#appendix-unit-18">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="18" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-18" aria-label="复制单元 18 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit18.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-7.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit18.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§2.1 的六条公理表</strong>（<span class="math">+</span> §7.3 Regularity 一节）；Halmos《Naive Set Theory》<strong>§2 The Axiom of Specification</strong> 前后的公理表（<span class="math">+</span> §14 的 Regularity）。大纲：<code>set-theory-syllabus.md</code> §4.1（I.7 章第二个单元）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>正则性公理怎么说</strong>（每个<strong>非空</strong>集合都有 <code>∈</code>-极小元）<span class="math">·</span><strong>它怎么用</strong>（取出极小元、扔掉它的成员）<span class="math">·</span> <strong>外延性怎么用</strong>（空集唯一）<span class="math">·</span><strong>外延性的反向</strong>（相等 <span class="math">⇒</span> 元素相同）—— 两条合起来才是"元素相同 <span class="math">⟺</span> 相等" ✓</p></div><h3 class="unit-subhead">18.1 公理长什么样（三条演示 <span class="math">+</span> 一条正则性）</h3><div class="block prose intuition-only"><p>读法：整个论域是一个类型 <code>α</code>，成员关系是二元谓词 <code>E</code>（<code>E y x</code> 读作 <code>y ∈ x</code>）。<code>lib.ZF</code> 的公理表里<strong>只有三条必须外挂</strong>（外延性 / 正则性 / 选择），因为它们说的是 <strong>相等、良基、取数据</strong>；"某个谓词存在"那几条（空集、无序对、并）在本语言里 <strong>是定义</strong>（<code>IsEmpty</code> / <code>IsPair</code> / <code>IsUnionOf</code>）✓</p></div><div class="block prose intuition-only"><p>演示：<strong>正则性</strong>（每个非空集合有 <code>E</code>-极小元）—— <strong>它在这里是假设 <code>hreg</code></strong>：对<strong>任意</strong>关系断言这件事会立刻矛盾（取 <code>E</code> 恒真），所以它<strong>不是公理</strong> ✓</p></div><article class="decl decl-theorem" id="decl-18-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_regularity</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_regularity (α : Type) (E : α → α → Prop) (hreg : IsRegular α E) (A : α)
@@ -184,13 +184,15 @@
     (h : ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A) : IsUnionOf α E x F :=
   Iff.mpr (isUnionOf_def α E x F) h</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-18-1">18.1 公理长什么样（三条演示 + 一条正则性）</a></li>
-<li><a href="#ex-18-6">18.2 外延性的两个用法</a></li>
-<li><a href="#ex-18-8">18.3 必破：并集的刻画怎么用</a></li>
-<li><a href="#appendix-unit-18">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit17.html" aria-current="false"><span>65</span> 选择公理</a></li>
+<li class="is-current"><a href="../units/unit18.html" aria-current="page"><span>66</span> ZF 公理体系与正则性</a></li>
+<li><a href="../units/unit48.html" aria-current="false"><span>67</span> 覆盖与广义并</a></li>
+<li><a href="../units/unit49.html" aria-current="false"><span>68</span> 广义并的代数</a></li>
+<li><a href="../units/unit69.html" aria-current="false"><span>69</span> 并交的伴随刻画</a></li>
+<li><a href="../units/unit71.html" aria-current="false"><span>70</span> 并交与交的分配</a></li>
+<li><a href="../units/unit72.html" aria-current="false"><span>71</span> 广义并与交、单调与空族</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

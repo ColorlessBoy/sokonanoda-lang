@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 46 — Symmetric Difference and the Boolean Ring</p>
 <p class="unit-meta">1 个定义 · 13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-46">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="46" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-46" aria-label="复制单元 46 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit46.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-11.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit46.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§5</strong>（"the algebra of sets"一段里的 symmetric difference）；Enderton《Elements of Set Theory》<strong>§1.5/§6</strong>（set algebra 的布尔侧）。大纲：<code>set-theory-syllabus.md</code> §4.1（I.11 章深化 —— 把「集合代数」从 <code>∪ ∩ \</code> 推进到 <strong>对称差</strong>：它才是让 <code>𝒫 α</code> 变成<strong>布尔环</strong>的那条运算 ✓）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><details class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li><strong>成员刻画</strong>（<code>A △ B</code> 就是"恰在一个里"）；</li><li><strong>交换律</strong>（逐点 <span class="math">+</span> <strong>方程</strong>两种形态 —— 后者用 <code>Set.ext</code> 收口 ✓）；</li><li><strong>自己是空</strong>（<code>A △ A</code> 没有元素 / <code>A △ A = ∅</code>）；</li><li><strong>空集与全集</strong>（<code>A △ ∅ = A</code> <span class="math">·</span> <code>A △ univ = Aᶜ</code>）；</li><li><strong><code>A △ B ⊆ A ∪ B</code></strong> ✓</li></ul></details><h3 class="unit-subhead">46.0 画布给的新词汇：对称差 <code>A △ B</code></h3><div class="block prose intuition-only"><p>读法：<strong>恰好落在一个里面</strong>的那些点 —— 它让 <code>𝒫 α</code> 在 <code>△</code> 与 <code>∩</code> 下成为<strong>布尔环</strong> ✓（单元㊽ 会继续这条线：<code>△</code> 的结合律与 <code>∩</code> 对 <code>△</code> 的分配律 ✓）</p></div><article class="decl decl-def" id="decl-46-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">symmDiff</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def symmDiff (α : Type) (A B : Set α) : Set α :=
@@ -235,15 +235,15 @@
     (h : (symmDiff α A B) x) : A x ∨ B x :=
   symmDiff_subset_union α A B x h</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-46-1">46.0 画布给的新词汇：对称差 A △ B</a></li>
-<li><a href="#decl-46-2">46.1 三条库引理（∪/∩/\ 的成员刻画 —— 本单元的邻居运算）</a></li>
-<li><a href="#ex-46-1">46.2 成员刻画 · 交换律（逐点 ⇒ 方程）</a></li>
-<li><a href="#ex-46-4">46.3 自己 · 空集 · 全集</a></li>
-<li><a href="#ex-46-9">46.4 与并的关系</a></li>
-<li><a href="#appendix-unit-46">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit28.html" aria-current="false"><span>91</span> 集合代数：分配律与 De Morgan</a></li>
+<li><a href="../units/unit29.html" aria-current="false"><span>92</span> 上界、下界与确界</a></li>
+<li><a href="../units/unit30.html" aria-current="false"><span>93</span> 格与对偶：确界的代数</a></li>
+<li><a href="../units/unit31.html" aria-current="false"><span>94</span> 单调函数与序同构保持确界</a></li>
+<li><a href="../units/unit32.html" aria-current="false"><span>95</span> 函数空间上的逐点序</a></li>
+<li class="is-current"><a href="../units/unit46.html" aria-current="page"><span>96</span> 对称差与布尔环</a></li>
+<li><a href="../units/unit50.html" aria-current="false"><span>97</span> 分配律族</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

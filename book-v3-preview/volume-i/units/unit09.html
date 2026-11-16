@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 9 — Equinumerosity (Cardinality I)</p>
 <p class="unit-meta">3 个定义 · 10 个定理 · 7 道练习 · 21 条提示 · <a href="#appendix-unit-9">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="9" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-9" aria-label="复制单元 9 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit09.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-3.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit09.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>── 等势为什么是"数据"，不是"存在双射" ────────────────────────────────── 完整理由与读法在 lib/Equiv.sokonanoda 的文件头（先读它）。一句话版：若定义成 <span class="math">∃f (</span>单射 <span class="math">f ∧</span> 满射 f)，那么"对称"要从满射取回一个原像——那是选择公理，本单元没有，于是<strong>对称性根本证不出来</strong>。所以等势在这里是<strong>数据</strong>：一对互逆映射（f 去、g 回）<span class="math">+</span> 四条带域条件的命题，全部装在等势（记法 <code>A ≈ B</code>）里。拿数据的方法只有一条：Exists.elim 两次；造数据的方法是 Set.Equiv.mk。读法四条（造/用/展开）见 lib/Equiv 文件头，动手前务必先看一遍。</p></div></div></section>
 <div class="block prose intuition-only"><p>为什么每题都要求"亲手写出那对映射"（出处：Hamza &amp; O'Shea 2011, MEI 4:192–202）：该研究里<strong>援引"双射判据"的学生没有一个在所有题上都真的用它，且极少把映射写出来</strong>；所以本单元的 7 条练习没有一条能靠"显然存在双射"蒙过去——四条条件都要落地。</p></div><h3 class="unit-subhead">9.1 演示 1（必证①）：等势自反——恒等映射。</h3><div class="block prose intuition-only"><p>这是本单元第一次看等势（记法 <code>A ≈ B</code>）的数据形状：一对映射 <span class="math">+</span> 四条条件，交给 mk。两条互逆律在这里是一条计算（Eq.refl），因为 g (f x) 与 f (g x) 都算成 x。</p></div><article class="decl decl-theorem" id="decl-9-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">Set.Equiv.refl</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem Set.Equiv.refl (α : Type) (A : Set α) : A ≈ A :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 5 行</summary><ol class="proof-steps"><li><pre><code>  Set.Equiv.mk α α A A (fun (x : α) =&gt; x) (fun (x : α) =&gt; x)
@@ -571,14 +571,24 @@ zero 那一支被 <span class="math">x ∈ nonzero</span> 直接否掉（这就�
             x hx)
         (fun (y : Nat) =&gt; fun (hy : y ∈ @Set.univ Nat) =&gt; @Eq.refl.{1} Nat y)))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-9-1">9.1 演示 1（必证①）：等势自反——恒等映射。</a></li>
-<li><a href="#decl-9-2">9.2 演示 2（必证④）：从单射 + 满射（数据）构造等势。</a></li>
-<li><a href="#decl-9-3">9.3 反例脚手架（演示，已写好）：只为把&quot;无限集上的真子集&quot;陈述出来。</a></li>
-<li><a href="#ex-9-1">9.4 练习（7 条：T2 · L3 · D2）</a></li>
-<li><a href="#appendix-unit-9">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit08.html" aria-current="false"><span>20</span> 像与原像</a></li>
+<li class="is-current"><a href="../units/unit09.html" aria-current="page"><span>21</span> 等势（基数 Ⅰ）</a></li>
+<li><a href="../units/unit10.html" aria-current="false"><span>22</span> 可数与 Cantor 定理（基数 Ⅱ）</a></li>
+<li><a href="../units/unit73.html" aria-current="false"><span>23</span> 像与广义并交的分配</a></li>
+<li><a href="../units/unit74.html" aria-current="false"><span>24</span> 原像与广义并交的分配</a></li>
+<li><a href="../units/unit92.html" aria-current="false"><span>25</span> 等势的代数</a></li>
+<li><a href="../units/unit93.html" aria-current="false"><span>26</span> 等势的传递</a></li>
+<li><a href="../units/unit96.html" aria-current="false"><span>27</span> 势的比较（自反与传递）</a></li>
+<li><a href="../units/unit97.html" aria-current="false"><span>28</span> 等势 ⇒ 双向势比较</a></li>
+<li><a href="../units/unit98.html" aria-current="false"><span>29</span> 势比较的单调性</a></li>
+<li><a href="../units/unit99.html" aria-current="false"><span>30</span> 幂集的单调性</a></li>
+<li><a href="../units/unit100.html" aria-current="false"><span>31</span> 势比较的搬运</a></li>
+<li><a href="../units/unit101.html" aria-current="false"><span>32</span> 空集与子集的点态代数</a></li>
+<li><a href="../units/unit102.html" aria-current="false"><span>33</span> 相互包含与点态外延</a></li>
+<li><a href="../units/unit103.html" aria-current="false"><span>34</span> 双向势比较何时升级为等势</a></li>
+<li><a href="../units/unit112.html" aria-current="false"><span>35</span> Cantor–Bernstein 定理（经选择公理）</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 54 — Beginning the Algebra of Equinumerosity</p>
 <p class="unit-meta">10 个定理 · 7 道练习 · 12 条提示 · <a href="#appendix-unit-54">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="54" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-54" aria-label="复制单元 54 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit54.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-8.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit54.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§6.1</strong>（equinumerosity 的三条基本性质）；Halmos《Naive Set Theory》<strong>§22</strong> 前夜。大纲：<code>set-theory-syllabus.md</code> §4.1（<strong>I.8 章深化</strong> —— 单元⑲⑳ 只做了 <code>≼</code>（可数进），本单元做 <code>≈</code>（等势）这一侧的<strong>代数</strong>：自反 <span class="math">·</span> 对称 <span class="math">·</span> 与 <code>≼</code> 的关系 ✓）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>两条展开引理</strong>（<code>≼</code> 就是"存在单射"；<code>≈</code> 就是"存在互逆的一对"）；</li><li><strong>恒等映射在任意子集上单射</strong>（自造 —— 库里没有 ✓）；</li><li><strong><code>≼</code> 自反</strong> <span class="math">·</span> <strong>子集 <span class="math">⇒</span> <code>≼</code></strong>（<code>A ⊆ B ⇒ A ≼ B</code> ✓ 由恒等映射给出）；</li><li><strong>旗舰：<code>≈</code> 自反</strong>（单位映射自配 ✓）<span class="math">·</span> <strong><code>≈</code> 对称</strong>（把互逆的那一对<strong>对调</strong> ✓）。</li></ul></div><h3 class="unit-subhead">54.1 三条库引理（<code>≼</code> 的展开 <span class="math">·</span> <code>≈</code> 的构造子 <span class="math">·</span> 恒等映射的单射性）</h3><div class="block prose intuition-only"><p>演示：<code>≼</code> 的展开（"存在一把单射"）。</p></div><article class="decl decl-theorem" id="decl-54-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_le_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_le_def (α β : Type) (A : Set α) (B : Set β) :
@@ -180,13 +180,12 @@
             (fun (c : γ) (hc : c ∈ C) =&gt;
               Set.Equiv.comp_right_aux α β γ B C f1 g1 f2 g2 hfg1 hfg2 hg2 c hc)))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-54-1">54.1 三条库引理（≼ 的展开 · ≈ 的构造子 · 恒等映射的单射性）</a></li>
-<li><a href="#ex-54-1">54.2 恒等映射 · ≼ 自反 · 子集 ⇒ ≼</a></li>
-<li><a href="#ex-54-4">54.3 ≈ 的代数：自反 · 对称</a></li>
-<li><a href="#appendix-unit-54">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit19.html" aria-current="false"><span>72</span> 基数的比较</a></li>
+<li><a href="../units/unit20.html" aria-current="false"><span>73</span> 基数算术：积</a></li>
+<li class="is-current"><a href="../units/unit54.html" aria-current="page"><span>74</span> 等势的代数的开端</a></li>
+<li><a href="../units/unit113.html" aria-current="false"><span>75</span> 连续统假设（CH）与 Cantor 定理</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

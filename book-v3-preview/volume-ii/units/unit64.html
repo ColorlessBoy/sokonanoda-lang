@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 64 — Order on the Reals: Representative Relation and Reflexivity</p>
 <p class="unit-meta">1 个定义 · 3 个定理 · 3 道练习 · 9 条提示 · <a href="#appendix-unit-64">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="64" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-64" aria-label="复制单元 64 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit64.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-6.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit64.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>上一批单元把加法收成结合的三元关系。现在立序。Tao 的定义是对每个 eps&gt;0，最终有 <span class="math">x_n ≤ y_n + eps</span>；本课程用等价的减法写法：realLeRep x y 当且仅当 x、y 都是 Cauchy 序列，且对任意 eps&gt;0 存在 N，使 <span class="math">n ≥ N</span> 时 <span class="math">(x n - y n) ≤ eps</span>。</p></div></div></section>
 <div class="block prose intuition-only"><p>减法写法让下一单元的传递性直接对上 <span class="math">(x-y)+(y-z)</span> 与 x-z 相等这条恒等式：两个 eps 的界相加就落在 x-z 上，不必每次把 eps 加到代表元里再搬序。</p></div><div class="block prose intuition-only"><p>关系保留两个 Cauchy 守卫，与三元加法同一纪律：只有带 Cauchy 代表元的实数之间才断序，商里的「杂点」没有输出。序的下降（沿 realRel 良定义，再经 Quot.lift 得到 <span class="math">Real → Real → Prop</span>）更晚再做。</p></div><div class="block prose intuition-only"><p>先给定义，再证每个 Cauchy 序列 <span class="math">≤</span> 自己、相等推出序，最后在常零序列上落一个例子。传递性需要两个 eps/2 的界相加，放在下一单元。</p></div><h3 class="unit-subhead">64.0 定义：代表元层的序</h3><div class="block prose intuition-only"><p><code>realLeRep x y</code> 读作「<code>x</code> 的类 <span class="math">≤</span> <code>y</code> 的类」。两个 <code>Cauchy</code> 守卫是必要的：<code>realRel</code> 只在 Cauchy 序列上自反，没有守卫时杂点之间没有可比性，序就不是 <code>Real</code> 上的关系。</p></div><article class="decl decl-def" id="decl-64-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">realLeRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def realLeRep (x y : Seq) : Prop :=
@@ -128,14 +128,22 @@
                       (ratLtRep_le d eps (And.right hd)))))))</code></pre></details><details class="appendix-solution" id="app-sol-64-3"><summary>练习 3 · demo_realLe_zero <span class="sol-meta">定理</span></summary><pre><code>theorem demo_realLe_zero : realLeRep zeroSeq zeroSeq :=
   realLeRep_of_realRel zeroSeq zeroSeq realRel_zero</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-64-1">64.0 定义：代表元层的序</a></li>
-<li><a href="#ex-64-1">64.1 自反性：x ≤ x</a></li>
-<li><a href="#ex-64-2">64.2 相等 ⇒ 序：realRel x y → x ≤ y</a></li>
-<li><a href="#ex-64-3">64.3 具体：常零序列 ≤ 常零序列</a></li>
-<li><a href="#appendix-unit-64">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit55.html" aria-current="false"><span>55</span> 有理数的加法逆元：x + (-x) = 0</a></li>
+<li><a href="../units/unit56.html" aria-current="false"><span>56</span> 两次减法的相加：中间项消去</a></li>
+<li><a href="../units/unit57.html" aria-current="false"><span>57</span> close 的传递性：两个 ε/2 的界加起来</a></li>
+<li><a href="../units/unit58.html" aria-current="false"><span>58</span> 实数的相等：传递性</a></li>
+<li><a href="../units/unit59.html" aria-current="false"><span>59</span> 实数的取负：第一次把运算下降到商上</a></li>
+<li><a href="../units/unit60.html" aria-current="false"><span>60</span> 实数的加法：下降之前的两条义务</a></li>
+<li><a href="../units/unit61.html" aria-current="false"><span>61</span> 实数的加法：三元关系（存在 + 唯一）</a></li>
+<li><a href="../units/unit62.html" aria-current="false"><span>62</span> 实数的加法：交换律与零元（三元关系版）</a></li>
+<li><a href="../units/unit63.html" aria-current="false"><span>63</span> 实数的加法：结合律（三元关系版）</a></li>
+<li class="is-current"><a href="../units/unit64.html" aria-current="page"><span>64</span> 实数的序：代表元关系与自反性</a></li>
+<li><a href="../units/unit65.html" aria-current="false"><span>65</span> 实数的序：传递性</a></li>
+<li><a href="../units/unit66.html" aria-current="false"><span>66</span> 实数的序：沿 realRel 下降成 Real 上的关系</a></li>
+<li><a href="../units/unit67.html" aria-current="false"><span>67</span> 实数的序：自反、传递、反对称</a></li>
+<li><a href="../units/unit68.html" aria-current="false"><span>68</span> 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 11 — Universes &amp; Russell's Paradox</p>
 <p class="unit-meta">8 个定理 · 5 道练习 · 15 条提示 · <a href="#appendix-unit-11">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="11" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-11" aria-label="复制单元 11 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit11.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-4.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit11.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>演示 3 条（已写好、判卷通过）：<span class="math">subset_univ · univ_subset_iff · exists_univ</span>。练习 5 条：R 类 3 条（读<span class="math">·</span>评译，第 1 条承担本单元的<strong>必破</strong>——判断真假并证伪）</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>X 类 2 条（形式 <span class="math">↔</span> 散文互译，散文写在题面注释里）。</li></ul></div></div></section>
 <h3 class="unit-subhead">11.1 概括公理为什么在这里写不出来</h3><div class="block prose intuition-only"><p>概括公理（comprehension axiom）说：给定任何性质 P，都有集合</p></div><div class="block prose intuition-only"><p>{ x | P x }</p></div><div class="block prose intuition-only"><p>把恰好满足 P 的对象装起来。Tao §3.2 的 Russell 论证取</p></div><div class="block prose intuition-only"><p>P x :<span class="math">=</span> 「x 不属于 x」，</p></div><div class="block prose intuition-only"><p>得到 <span class="math">Ω = { x</span> | <span class="math">x ∉ x }</span>，然后问「<span class="math">Ω</span> 属不属于 <span class="math">Ω</span>」：答「属于」就说明 <span class="math">Ω</span> 满足 P，按定义它不该属于；答「不属于」就说明它不满足 P，按定义它该属于。</p></div><div class="block prose intuition-only"><p>这条论证在本语言里第一步就走不动。卡住的地方是记法：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>集合是 <code>Set α</code>，也就是 <code>α → Prop</code>：它总是<strong>某个固定类型 <span class="math">α</span> 的</strong>谓词。隶属判定 <code>x ∈ A</code> 要求 x : <span class="math">α</span>、A : <span class="math">Set α</span>，两个参数的类型必须对上。</li><li>于是「<span class="math">x ∈ x</span>」要成立，同一个 x 得同时是 <span class="math">α</span> 与 <span class="math">Set α</span>——两个不同的类型，写不出来。Russell 集 { x | <span class="math">x ∉ x }</span> 因此连<strong>写</strong>都写不出，更谈不上判真假。</li><li>「一切集合」同样不是一个类型：<span class="math">Set α</span> 与 <span class="math">Set β</span> 是两个类型，Type 不是 Type。「存在一个集合包含一切集合」这句里的量词没有落脚的地方。</li></ul></div><div class="block prose intuition-only"><p>类型论对「一切」的处置是<strong>逐层给全集</strong>：11.2 就是它。</p></div><h3 class="unit-subhead">11.2 类型论的答案：每个类型有自己的全集</h3><div class="block prose intuition-only"><p><code>@Set.univ α</code> 的定义是「不管来什么元素都答 True」，所以它是本类型里最大的集合（最大元），也就是这个类型的论域（universe of discourse）。下面三条把「最大」和「唯一」两件事做出来，第三条把 11.1 里写不出的那句话限制到一个类型内，于是它变成真的。</p></div><div class="block prose intuition-only"><p>演示 1（已写好）：本类型里每个集合都被 univ 包含——univ 是「<span class="math">⊆</span>」下的最大元。目标展开是 <span class="math">∀ x</span>, <span class="math">x ∈ A → x ∈</span> @<span class="math">Set.univ α</span>，而 <span class="math">x ∈</span> @<span class="math">Set.univ α</span> 就是 True，每个元素交 True.intro 即可（Set.mem_univ 正是这条）。</p></div><article class="decl decl-theorem" id="decl-11-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">subset_univ</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem subset_univ (α : Type) (A : Set α) : A ⊆ @Set.univ α :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 3 步 · 4 行</summary><ol class="proof-steps"><li><pre><code>  intro x</code></pre></li><li><pre><code>  intro hx</code></pre></li><li><pre><code>  exact Set.mem_univ x</code></pre></li></ol></details></div></article>
@@ -244,16 +244,20 @@ match / constructor / left / right / use / exfalso / cases / have / sorry）。
   intro h
   exact (Iff.mpr (Set.mem_powerset_iff (Set.univ) A)) (fun (x : α) =&gt; fun (hx : A x) =&gt; Set.mem_univ x)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-11-1">11.1 概括公理为什么在这里写不出来</a></li>
-<li><a href="#decl-11-1">11.2 类型论的答案：每个类型有自己的全集</a></li>
-<li><a href="#ex-11-1">11.3 必破（D 类）：把「一切」放大到跨论域，或者加强成「严格更大」</a></li>
-<li><a href="#ex-11-2">11.4 「一切集合」在类型论里的合法落点</a></li>
-<li><a href="#ex-11-3">11.5 与 ZF 的对照：没有那个 V，只有一条类型阶梯</a></li>
-<li><a href="#ex-11-4">11.6 形式 ↔ 散文互译（X 类）</a></li>
-<li><a href="#appendix-unit-11">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li class="is-current"><a href="../units/unit11.html" aria-current="page"><span>36</span> 论域与 Russell 悖论</a></li>
+<li><a href="../units/unit12.html" aria-current="false"><span>37</span> 综合与读证明</a></li>
+<li><a href="../units/unit55.html" aria-current="false"><span>38</span> 反例与不可证（一）</a></li>
+<li><a href="../units/unit56.html" aria-current="false"><span>39</span> 反例与不可证（二）</a></li>
+<li><a href="../units/unit57.html" aria-current="false"><span>40</span> 反例与不可证（三）</a></li>
+<li><a href="../units/unit87.html" aria-current="false"><span>41</span> 单射、满射与复合</a></li>
+<li><a href="../units/unit88.html" aria-current="false"><span>42</span> 满射与复合</a></li>
+<li><a href="../units/unit89.html" aria-current="false"><span>43</span> 双射与复合</a></li>
+<li><a href="../units/unit90.html" aria-current="false"><span>44</span> 复合层的等式与外层单射</a></li>
+<li><a href="../units/unit91.html" aria-current="false"><span>45</span> 逆映射与双射代数</a></li>
+<li><a href="../units/unit94.html" aria-current="false"><span>46</span> Cantor 对角线（函数版）</a></li>
+<li><a href="../units/unit95.html" aria-current="false"><span>47</span> 对角线的一般形态</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

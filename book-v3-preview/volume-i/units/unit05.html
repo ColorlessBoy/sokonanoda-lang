@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 5 — Ordered Pairs &amp; Cartesian Products</p>
 <p class="unit-meta">1 个定义 · 10 个定理 · 7 道练习 · 21 条提示 · <a href="#appendix-unit-5">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="5" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-5" aria-label="复制单元 5 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit05.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-2.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit05.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>── 本单元只允许用什么 ──────────────────────────────────────────────────</p></div></div></section>
 <details class="decl-index intuition-only"><summary>细节清单（6 项，展开）</summary><ul class="prose-list"><li>import lib.Logic / lib.Set / lib.Prod；</li><li>记法<strong>不用自己声明</strong>（随 import 生效）：<code>∈ ⊆ ∅</code> 与集合积 <code>×ˢ</code> 来自 lib/Set（<code>×ˢ</code> 的<strong>目标</strong> <code>Set.prod</code> 在 lib/Prod 里，E02 起就在库里 <span class="math">⇒</span> 从文件头可用）；连接符 <code>∧ ∨ ↔ ¬</code>、箭头 <code>→</code>、等号 <code>=</code> 与不等号 <code>≠</code> 是 <strong>语言内建</strong>；集合字面量 <code>{a}</code> / <code>{a, b}</code>（1–2 个元素）也是内建糖；</li><li>序对的全部词汇来自 lib/Prod：类型 Prod、构造子 prod_mk、投影 Prod.fst / Prod.snd，<strong>集合积 Set.prod</strong>（笛卡尔积，记法 <code>s ×ˢ t</code>），以及"投影算在构造子上"的展开引理 Prod.fst_mk / Prod.snd_mk / Prod.fst_snd_mk（L2 层，证明是 rfl 级或一行，直接点名用，不用自己写）；</li><li>逻辑库：And / Or / Iff / Eq / Not 及其引理；集合库：Set.* 与公理 Set.ext。<strong>引理名照旧点名写</strong>（<code>Or.inl</code>、<code>And.left</code>、<code>Eq.subst.{1}</code>、<code>Set.mem_singleton_self</code>…）——记法是<strong>连接符</strong>的糖，不是引理名的糖；</li><li>tactic（白名单）：intro / exact / apply / assumption / rfl / match / constructor / left / right / use / exfalso / cases / have / sorry——没有 rw / obtain / change / simp / induction / ⟨a, b⟩ <span class="math">/ ·</span>；练习一律 <code>:= by</code> <span class="math">+</span> 缩进两格的 <code>sorry</code>。</li><li>本文件<strong>给出</strong>的一个定义：def Set.graph（函数图）——它是本单元新引入的词汇，不用你写。（<code>Set.prod</code> 已收进 lib/Prod ✓）</li></ul></details><div class="block prose intuition-only"><p>── 本单元不用 ───────────────────────────────────────────────────────── 单射 / 满射 / 双射的正式定义（单元⑦ 与 ⑨ 才讲）、选择公理、证明无关性。</p></div><div class="block prose intuition-only"><p>── 记法提醒 ──────────────────────────────────────────────────────────── <code>s ×ˢ t</code> 是集合积记法（目标名 <code>Set.prod</code>，定义在 lib/Prod）；序对<strong>没有</strong>字面量记法，<code>(a, b)</code> 仍写 prod_mk A B a b；命题里的等式直接写 <code>=</code>（宇宙层级由判卷器按操作数类型解），只有<strong>引理名</strong>才显式写层级：Eq.subst.{1} / Eq.refl.{1} / Eq.symm.{1}。</p></div><h3 class="unit-subhead">5.0 序对是什么：lib/Prod 已经给好</h3><div class="block prose intuition-only"><p>inductive Prod (A B : Type)                -- 类型：<span class="math">A × B ctor prod_mk (a</span> : A) (b : B) : Prod A B    -- 构造子：(a, b) def Prod.fst (A B : Type) (p : Prod A B) : A def Prod.snd (A B : Type) (p : Prod A B) : B</p></div><div class="block prose intuition-only"><p>构造子叫 <code>prod_mk</code> 而不是 <code>mk</code>：本语言没有命名空间（台账 G-02），构造子是裸名、且全项目唯一；官方 Lean 4 / Mathlib 里它叫 <code>Prod.mk</code>。序对的<strong>全部</strong>信息就是这两个投影——所以"两个序对相等"这件事，只能靠投影来拆。</p></div><div class="block prose intuition-only"><p>演示 1（已写好）：库自检 —— 两个投影算在构造子上都还原（这是 iota 计算，不是数学内容）。</p></div><article class="decl decl-theorem" id="decl-5-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_fst_snd_mk</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_fst_snd_mk (A B : Type) (a : A) (b : B) :
@@ -260,17 +260,12 @@ Set.ext / Or.elim / Set.mem_singleton_self …），学习者不需要任何"额
   intro h1
   exact @Or.inl (x = {a}) (x = {a, b}) h1  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-5-1">5.0 序对是什么：lib/Prod 已经给好</a></li>
-<li><a href="#ex-5-1">5.1 序对唯一性（配对定理）：序对唯一决定它的两个坐标</a></li>
-<li><a href="#ex-5-5">5.2 笛卡尔积：s ×ˢ t 是 Prod A B 上的一个谓词</a></li>
-<li><a href="#ex-5-6">5.3 D 类：A × B = B × A 吗？</a></li>
-<li><a href="#decl-5-8">5.4 函数图</a></li>
-<li><a href="#decl-5-10">5.5 演示 3（已写好）：无序配对的成员刻画</a></li>
-<li><a href="#ex-5-7">5.6 阅读：Kuratowski 编码（Tao 习题 3.5.1）</a></li>
-<li><a href="#appendix-unit-5">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li class="is-current"><a href="../units/unit05.html" aria-current="page"><span>16</span> 序对与笛卡尔积</a></li>
+<li><a href="../units/unit06.html" aria-current="false"><span>17</span> 关系</a></li>
+<li><a href="../units/unit07.html" aria-current="false"><span>18</span> 函数</a></li>
+<li><a href="../units/unit75.html" aria-current="false"><span>19</span> 积对并交的分配</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

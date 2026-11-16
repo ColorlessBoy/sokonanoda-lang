@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 66 — Order on the Reals: Descending to a Relation on Real</p>
 <p class="unit-meta">2 个定义 · 4 个定理 · 4 道练习 · 12 条提示 · <a href="#appendix-unit-66">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="66" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-66" aria-label="复制单元 66 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit66.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-6.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit66.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>前两个单元在代表元层把序立起来，并证了自反与传递：realLeRep x y 当且仅当 x、y 都是 Cauchy 序列，且对任意 eps&gt;0 存在 N，使 <span class="math">n ≥ N</span> 时 <span class="math">(x n - y n) ≤ eps</span>。</p></div></div></section>
 <h3 class="unit-subhead">66.0 换左因子：<code>realRel x x' → (x ≤ y ↔ x' ≤ y)</code></h3><article class="exercise" id="ex-66-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">realLeRep_wd</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-66-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>但 def realLeRep : <span class="math">Seq → Seq → Prop</span> 还不是 Real 上的序：同一个实数可以换代表元，序必须与代表元的选取无关。现在补上这条良定义性，再经两次 Quot.lift 把序下降到 realLe : <span class="math">Real → Real → Prop</span>。两次 lift 与三元加法同一构造：内层把第二个因子送到 Prop（良定义性是 realLeRep_wd_snd），外层再把第一个因子送到 <span class="math">Real → Prop</span>（良定义性是 realLeRep_wd，对每个 b 用 Quot.ind 烧成代表元形状）。</p></div><div class="block prose intuition-only"><p>良定义性的证明本身很短：「相等推出序」把 realRel 的两个方向投成序，序的传递性把三段接起来。先证两条替换律（换左因子、换右因子），再做两次下降，给出 <span class="math">ι</span> 规则，最后在常零序列上落一个具体例。</p></div><div class="block prose intuition-only"><p>换左因子：两个方向都是「相等推出序」加传递。</p></div></div><pre class="exercise-statement"><code>theorem realLeRep_wd (x x' y : Seq) (hx : realRel x x') :
@@ -140,16 +140,22 @@
     (realLe_mk zeroSeq zeroSeq)
     (realLeRep_of_realRel zeroSeq zeroSeq realRel_zero)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-66-1">66.0 换左因子：realRel x x&#x27; → (x ≤ y ↔ x&#x27; ≤ y)</a></li>
-<li><a href="#ex-66-2">66.1 换右因子：realRel y y&#x27; → (x ≤ y ↔ x ≤ y&#x27;)</a></li>
-<li><a href="#decl-66-3">66.2 内层下降：固定 x，对 y 做 Quot.lift</a></li>
-<li><a href="#decl-66-4">66.3 外层下降：对 x 再做一次 Quot.lift</a></li>
-<li><a href="#ex-66-3">66.4 ι 规则：作用在 mk 上回到代表元形状</a></li>
-<li><a href="#ex-66-4">66.5 具体：常零序列 ≤ 常零序列</a></li>
-<li><a href="#appendix-unit-66">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit55.html" aria-current="false"><span>55</span> 有理数的加法逆元：x + (-x) = 0</a></li>
+<li><a href="../units/unit56.html" aria-current="false"><span>56</span> 两次减法的相加：中间项消去</a></li>
+<li><a href="../units/unit57.html" aria-current="false"><span>57</span> close 的传递性：两个 ε/2 的界加起来</a></li>
+<li><a href="../units/unit58.html" aria-current="false"><span>58</span> 实数的相等：传递性</a></li>
+<li><a href="../units/unit59.html" aria-current="false"><span>59</span> 实数的取负：第一次把运算下降到商上</a></li>
+<li><a href="../units/unit60.html" aria-current="false"><span>60</span> 实数的加法：下降之前的两条义务</a></li>
+<li><a href="../units/unit61.html" aria-current="false"><span>61</span> 实数的加法：三元关系（存在 + 唯一）</a></li>
+<li><a href="../units/unit62.html" aria-current="false"><span>62</span> 实数的加法：交换律与零元（三元关系版）</a></li>
+<li><a href="../units/unit63.html" aria-current="false"><span>63</span> 实数的加法：结合律（三元关系版）</a></li>
+<li><a href="../units/unit64.html" aria-current="false"><span>64</span> 实数的序：代表元关系与自反性</a></li>
+<li><a href="../units/unit65.html" aria-current="false"><span>65</span> 实数的序：传递性</a></li>
+<li class="is-current"><a href="../units/unit66.html" aria-current="page"><span>66</span> 实数的序：沿 realRel 下降成 Real 上的关系</a></li>
+<li><a href="../units/unit67.html" aria-current="false"><span>67</span> 实数的序：自反、传递、反对称</a></li>
+<li><a href="../units/unit68.html" aria-current="false"><span>68</span> 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

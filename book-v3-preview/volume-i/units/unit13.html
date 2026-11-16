@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 13 — Partial, Linear and Strict Orders</p>
 <p class="unit-meta">14 个定理 · 11 道练习 · 33 条提示 · <a href="#appendix-unit-13">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="13" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-13" aria-label="复制单元 13 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit13.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-5.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit13.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§3.7 Ordering Relations</strong> <span class="math">+</span> <strong>§7.1 Partial Orderings</strong>；Halmos《Naive Set Theory》<strong>§14 Order</strong>。大纲：<code>docs/design/set-theory-syllabus.md</code> §4.1（I.5 章的第一个单元）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>偏序 <span class="math">=</span> 自反 <span class="math">+</span> 反对称 <span class="math">+</span> 传递</strong>（三条各自是一条<strong>取用子</strong>）；<strong>全序</strong>比偏序多一条<strong>可比性</strong>；<strong>严格序</strong>把"相等那一份"切掉；而 <code>⊆</code> 是 <code>Set α</code> 上的<strong>标准偏序</strong>，却<strong>不是</strong>全序 —— 这是本章的必破题。</p></div><div class="block prose intuition-only"><p><strong>本单元只 <code>import</code> 三样</strong>：<code>lib.Order</code>（序的词汇与取用子）<span class="math">·</span> <code>lib.Set</code>（<code>⊆</code> 与 <code>{a}</code>）<span class="math">·</span> 以及 prelude（<code>∧ ∨ ¬ → = ≠</code> 与 <code>∀</code>，任何文件直接可用）。<strong>记法不用自己声明</strong>：<code>⊆</code>/<code>∈</code>/<code>{a}</code> 由 <code>lib.Set</code> 提供。</p></div><h3 class="unit-subhead">13.1 序的词汇：四个序类，六个性质</h3><div class="block prose intuition-only"><p>读法（<code>lib/Order</code> 文件头有完整出处）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><code>r : α → α → Prop</code> 是一个<strong>二元关系</strong>（<code>r a b</code> 读作 "a 排在 b 前面"）；</li><li>非严格序读 <code>a ≤ b</code>，严格序读 <code>a &lt; b</code> —— 下面全用 <code>r</code> 写，不含任何记法糖；</li><li>偏序 <span class="math">=</span> 自反 <span class="math">+</span> 反对称 <span class="math">+</span> 传递；全序 <span class="math">=</span> 偏序 <span class="math">+</span> 可比；严格序 <span class="math">=</span> 非自反 <span class="math">+</span> 传递。</li></ul></div><div class="block prose intuition-only"><p>演示（已写好）：偏序的<strong>定义展开</strong> —— 四个序类都有一条这样的展开引理。</p></div><article class="decl decl-theorem" id="decl-13-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_isPartialOrder_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_isPartialOrder_def (α : Type) (r : α → α → Prop) :
@@ -172,14 +172,12 @@
         (partialOrder_trans α r h a b c (And.left hab) (And.left hbc))
         (strictOf_neq α r h a b c hab hbc))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-13-1">13.1 序的词汇：四个序类，六个性质</a></li>
-<li><a href="#ex-13-1">13.2 把偏序拆开：三条取用子（先做这三题，后面每题都要用）</a></li>
-<li><a href="#ex-13-4">13.3 严格部分 / 非严格部分</a></li>
-<li><a href="#ex-13-9">13.4 必破：⊆ 是偏序，不是全序</a></li>
-<li><a href="#appendix-unit-13">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li class="is-current"><a href="../units/unit13.html" aria-current="page"><span>48</span> 偏序、全序与严格序</a></li>
+<li><a href="../units/unit14.html" aria-current="false"><span>49</span> 良序与良基</a></li>
+<li><a href="../units/unit53.html" aria-current="false"><span>50</span> 序嵌入</a></li>
+<li><a href="../units/unit67.html" aria-current="false"><span>51</span> ⊆ 是一个偏序</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

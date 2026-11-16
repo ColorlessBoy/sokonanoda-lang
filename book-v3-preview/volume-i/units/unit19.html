@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 19 — Comparing Cardinal Numbers</p>
 <p class="unit-meta">15 个定理 · 12 道练习 · 30 条提示 · <a href="#appendix-unit-19">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="19" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-19" aria-label="复制单元 19 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit19.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-8.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit19.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§6.4 Ordering Cardinal Numbers</strong>（<span class="math">+</span> §6.1 的基数读法）；Halmos《Naive Set Theory》<strong>§22 The Schröder–Bernstein Theorem</strong> 之前的"比较"一节。大纲：<code>set-theory-syllabus.md</code> §4.1（I.8 章第一个单元）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong><code>A ≼ B</code>（"<code>A</code> 不比 <code>B</code> 大"）怎么定义</strong>（存在从 <code>A</code> 到 <code>B</code> 的 <strong>单射</strong>）<span class="math">·</span> <strong>它是预序</strong>（自反 <span class="math">·</span> 传递）<span class="math">·</span> <strong>包含关系给出 <code>≼</code></strong> <span class="math">·</span> <strong>等势给出 <code>≼</code></strong> <span class="math">·</span><strong>空集是最小的</strong>（<code>∅ ≼ A</code>，且"不比空集大"的只有空集自己）。</p></div><div class="block prose intuition-only"><p>本单元的技术要点：<code>≼</code> 是<strong>存在命题</strong>（不是数据），所以本单元<strong>每一道题都只"往下顺 <code>∃</code>"</strong>：用库里的消去子 <code>Set.Le.elim</code> 把"存在一把单射"拆开用，拆出来的映射<strong>只活在证明里面</strong> ✓</p></div><h3 class="unit-subhead">19.1 两个新词：<code>Set.InjOn</code> 与 <code>A ≼ B</code></h3><div class="block prose intuition-only"><p>演示：<code>Set.InjOn</code> 的定义展开（<code>f</code> 在 <code>A</code> 上不会把两个<strong>属于 <code>A</code> 的</strong>点映到一起）。</p></div><article class="decl decl-theorem" id="decl-19-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_injOn_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_injOn_def (α β : Type) (f : α → β) (A : Set α) :
@@ -156,13 +156,12 @@
   Set.Le.mono Nat Nat A A' B hA h</code></pre></details><details class="appendix-solution" id="app-sol-19-12"><summary>练习 12 · le_mono_right <span class="sol-meta">定理</span></summary><pre><code>theorem le_mono_right (A B B' : Set Nat) (h : A ≼ B) (hB : B ⊆ B') : A ≼ B' :=
   Set.Le.mono_right Nat Nat A B B' h hB</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-19-1">19.1 两个新词：Set.InjOn 与 A ≼ B</a></li>
-<li><a href="#ex-19-7">19.2 本单元旗舰：≼ 是传递的</a></li>
-<li><a href="#ex-19-9">19.3 必破：&quot;不比空集大&quot;意味着什么</a></li>
-<li><a href="#appendix-unit-19">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li class="is-current"><a href="../units/unit19.html" aria-current="page"><span>72</span> 基数的比较</a></li>
+<li><a href="../units/unit20.html" aria-current="false"><span>73</span> 基数算术：积</a></li>
+<li><a href="../units/unit54.html" aria-current="false"><span>74</span> 等势的代数的开端</a></li>
+<li><a href="../units/unit113.html" aria-current="false"><span>75</span> 连续统假设（CH）与 Cantor 定理</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

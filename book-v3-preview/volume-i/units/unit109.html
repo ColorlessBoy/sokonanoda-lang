@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 109 — Recursion on Ordinals and Relational Addition</p>
 <p class="unit-meta">1 个定义 · 9 个定理 · 1 个归纳类型 · 6 道练习 · <a href="#appendix-unit-109">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="109" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-109" aria-label="复制单元 109 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit109.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-6.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit109.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>递归子</strong>（<code>ordinal_rec_nat</code> ✓ —— 沿良基关系定义到 <code>Nat</code> 的函数 ✓）；</li><li><strong>计算规则</strong>（<code>ordinal_rec_nat_eq</code> ✓ —— 对 <code>Acc.intro</code> 定义性地归约 ✓）；</li><li><strong>唯一性</strong>（<code>ordinal_rec_nat_unique</code> ✓ —— 同一递归方程的两条解相等 ✓，不需选择公理 ✓）；</li><li><strong>加法（关系版）</strong>（<code>AddsTo</code> ✓）：<code>zero</code> 与 <code>succ</code> 两条构造子 ✓</li></ul></div><div class="math-display intuition-only" role="math" aria-label="—— x + 0 = x ✓、x + (σ y) = σ (x + y) ✓"><math display="block" class="mathml"><mrow><mo>—</mo><mo>—</mo><mspace width="0.22em"/><mi>x</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mn>0</mn><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>x</mi><mspace width="0.22em"/><mo>✓</mo><mo>、</mo><mi>x</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mo>σ</mo><mspace width="0.22em"/><mi>y</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mo>σ</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>x</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi>y</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>✓</mo></mrow></math></div></div></section>
 <article class="decl decl-theorem" id="decl-109-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_acc_ind</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_acc_ind (α : Type) (r : α → α → Prop) (motive : α → Prop)
@@ -219,12 +219,21 @@ end</code></pre></div></article>
                   (And.right hu)))))
     z w v h2 x y h1</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-109-1">定义与定理</a></li>
-<li><a href="#ex-109-1">练习</a></li>
-<li><a href="#appendix-unit-109">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit15.html" aria-current="false"><span>52</span> 传递集与序数</a></li>
+<li><a href="../units/unit16.html" aria-current="false"><span>53</span> 序数的序：外延性、反对称与零序数</a></li>
+<li><a href="../units/unit42.html" aria-current="false"><span>54</span> 良序集的「最小元」</a></li>
+<li><a href="../units/unit80.html" aria-current="false"><span>55</span> 序数的元素仍是序数</a></li>
+<li><a href="../units/unit81.html" aria-current="false"><span>56</span> 后继的成员刻画</a></li>
+<li><a href="../units/unit82.html" aria-current="false"><span>57</span> 后继与序数的合流</a></li>
+<li><a href="../units/unit83.html" aria-current="false"><span>58</span> 序数的无环性</a></li>
+<li><a href="../units/unit106.html" aria-current="false"><span>59</span> 良基递归（Acc）</a></li>
+<li><a href="../units/unit107.html" aria-current="false"><span>60</span> ∈-归纳与序数三歧（上）</a></li>
+<li><a href="../units/unit108.html" aria-current="false"><span>61</span> 序数三歧（引理与装配）</a></li>
+<li class="is-current"><a href="../units/unit109.html" aria-current="page"><span>62</span> 序数上的递归与加法（关系版 · 逆引理与结合律）</a></li>
+<li><a href="../units/unit110.html" aria-current="false"><span>63</span> 选择公理的取数据（良序定理线入口）</a></li>
+<li><a href="../units/unit111.html" aria-current="false"><span>64</span> ℕ 的算术律（自建 add/mul）</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

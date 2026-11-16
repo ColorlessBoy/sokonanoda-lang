@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 72 — Completeness Inventory: Representatives and Sets</p>
 <p class="unit-meta">4 个定义 · 5 个定理 · 5 道练习 · 15 条提示 · <a href="#appendix-unit-72">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="72" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-72" aria-label="复制单元 72 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit72.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-7.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit72.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元72 完备性盘点：代表元层的结论，放到集合层还剩下多少</p></div><div class="block prose intuition-only"><p>前面证了：每个有理 Cauchy 序列 x 在 <span class="math">ℝ</span> 中收敛到自己的类。那是在代表元层说的话。到了集合层，上界、最小上界这些词要用 realLe 重新陈述；我们自然要问：这条完备性还能保住多少？</p></div></div></section>
 <div class="block prose intuition-only"><p>结论先说：能保住一个具体集合的 LUB——<span class="math">S = {x</span> | <span class="math">x ≤ 0}</span> 的最小上界是 0；但一般定理「每个非空有上界集合都有 LUB」需要选择公理，本课程没有，所以不能写。</p></div><div class="block prose intuition-only"><p>为什么只做具体集合？因为选择公理不在本课程里；与其把一般定理写成公理，不如把能构造性拿到的实例做干净：先定义零实数为常零序列的类，再证 0 是 S 的上界且最小，把两件事合成「有 LUB」，最后回到常序列版本的完备性。</p></div><div class="block prose intuition-only"><p>这一单元不是新造数，而是检查前面造好的 <span class="math">ℝ</span> 在集合语言里能说到哪一步；边界就是本课程与「完整实数完备性」之间的距离。</p></div><h3 class="unit-subhead">72.0 集合层的词汇：上界、最小上界、有 LUB</h3><article class="decl decl-def" id="decl-72-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">UpperBound</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def UpperBound (S : Real → Prop) (b : Real) : Prop :=
@@ -114,18 +114,12 @@
       (constSeq (qrep 1 Nat.zero Nat.zero)) :=
   const_tends_to_class (qrep 1 Nat.zero Nat.zero)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-72-1">72.0 集合层的词汇：上界、最小上界、有 LUB</a></li>
-<li><a href="#decl-72-4">72.1 zeroReal：常零序列的类</a></li>
-<li><a href="#ex-72-1">72.2 0 是 {x | x ≤ 0} 的上界</a></li>
-<li><a href="#ex-72-2">72.3 0 是最小上界</a></li>
-<li><a href="#ex-72-3">72.4 具体集合有 LUB：构造性的存在</a></li>
-<li><a href="#ex-72-4">72.5 代表元层完备性的常序列版</a></li>
-<li><a href="#ex-72-4">68.7 的 cauchy_tends_to_class 对任意 Cauchy 序列给 TendsTo x x；</a></li>
-<li><a href="#ex-72-5">72.6 具体：常 1 序列收敛到 1</a></li>
-<li><a href="#appendix-unit-72">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit69.html" aria-current="false"><span>69</span> 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li>
+<li><a href="../units/unit70.html" aria-current="false"><span>70</span> 数系链：加法在四层间的迁移</a></li>
+<li><a href="../units/unit71.html" aria-current="false"><span>71</span> 数系综合：商的代价——一座桥与两座桥</a></li>
+<li class="is-current"><a href="../units/unit72.html" aria-current="page"><span>72</span> 数系综合：完备性盘点——代表元层与集合层</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

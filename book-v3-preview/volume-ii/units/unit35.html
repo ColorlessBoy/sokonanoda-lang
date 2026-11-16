@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 35 — Cauchy Sequences: Definitions</p>
 <p class="unit-meta">9 个定义 · 4 个定理 · 3 道练习 · 9 条提示 · <a href="#appendix-unit-35">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="35" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-35" aria-label="复制单元 35 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit35.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-4.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit35.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p><span class="math">ℚ</span> 的加法、乘法与序已经搭好，但 <span class="math">ℚ</span> 还有洞：<span class="math">x²=2</span> 没有有理根，1/n 也没有有理极限。要造 <span class="math">ℝ</span>，得先抓住“序列的项最终挤在一起”这件事。直接说“越来越近”没有可检验的内容；我们把它拆成 close 与 Cauchy 两个定义。</p></div></div></section>
 <div class="block prose intuition-only"><p>close x y eps 说 x 与 y 的距离小于 eps。本语言没有可判定的绝对值函数，不能写 |x-y|；于是改用关系 ratAbsRel：存在一个 d，它等于 |x-y| 且 d&lt;eps。这是定义上最直接的写法，不是绕路。</p></div><div class="block prose intuition-only"><p>Cauchy x 说：任给 eps&gt;0，都存在 N，使得 n,<span class="math">m≥N</span> 时 close (x n) (x m) eps。量词顺序是先给 eps、再找 N、最后对 n,m；与 Tao 的定义一致。常零序列是最简单的例子：任给 eps&gt;0，取 <span class="math">N=0</span>，两项都是 0，close 0 0 eps 成立。</p></div><div class="block prose intuition-only"><p>我们把这些词汇立起来；有界性、等价关系与 <span class="math">ℝ</span> 的载体留给后面。下一步先看 Cauchy 序列怎样在等价关系下代表同一个实数。</p></div><article class="decl decl-def" id="decl-35-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratNegRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratNegRep (x : ratRep) : ratRep :=
@@ -111,12 +111,18 @@
       (fun (h : ratRel ratZeroRep (qrep 1 Nat.zero Nat.zero)) =&gt;
         succ_ne_zero Nat.zero (Eq.symm h)))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-35-1">定义与定理</a></li>
-<li><a href="#ex-35-1">练习</a></li>
-<li><a href="#appendix-unit-35">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li class="is-current"><a href="../units/unit35.html" aria-current="page"><span>35</span> 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li>
+<li><a href="../units/unit36.html" aria-current="false"><span>36</span> 实数的载体：Real := Quot realRel</a></li>
+<li><a href="../units/unit37.html" aria-current="false"><span>37</span> 序与正分母：乘法、消去与配对搬运</a></li>
+<li><a href="../units/unit38.html" aria-current="false"><span>38</span> 有理数的序：传递性</a></li>
+<li><a href="../units/unit39.html" aria-current="false"><span>39</span> 有理数的序与相等相容</a></li>
+<li><a href="../units/unit40.html" aria-current="false"><span>40</span> 实数的相等：自反性</a></li>
+<li><a href="../units/unit41.html" aria-current="false"><span>41</span> 取负与序：绝对值的对称性</a></li>
+<li><a href="../units/unit42.html" aria-current="false"><span>42</span> close 的对称性：实数的相等可以换方向</a></li>
+<li><a href="../units/unit43.html" aria-current="false"><span>43</span> 有理数加法的代表元律：交换与零元</a></li>
+<li><a href="../units/unit44.html" aria-current="false"><span>44</span> 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

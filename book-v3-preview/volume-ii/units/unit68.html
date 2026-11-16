@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 68 — Completeness: Rational Cauchy Sequences Converge in ℝ</p>
 <p class="unit-meta">3 个定义 · 7 个定理 · 7 道练习 · 21 条提示 · <a href="#appendix-unit-68">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="68" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-68" aria-label="复制单元 68 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit68.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-6.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit68.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>实数按 Cauchy 序列商构造。本单元证明这个构造的完备性在代表元层的形式：每个有理 Cauchy 序列 x，其类 Real.mk x 是常序列 n ↦ Real.mk (constSeq (x n)) 的极限。极限不引入 Real 上的绝对值或减法，而写成两条非严格界：<span class="math">a ≤ L + eps</span> 且</p></div><div class="math-display intuition-only" role="math" aria-label="L ≤ a + eps"><math display="block" class="mathml"><mrow><mi>L</mi><mspace width="0.22em"/><mo>≤</mo><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi mathvariant="normal">eps</mi></mrow></math></div><div class="block prose intuition-only"><p>两条界都归约到同一个代表元引理：<span class="math">a-b ≤ eps</span> 推出 <span class="math">a-(b+eps) ≤ e</span>（任意 e&gt;0）。Cauchy 性同时给出 <span class="math">x n - x k ≤ eps</span> 与 <span class="math">x k - x n ≤ eps</span>，正好供两条界使用；Real.mk 的 <span class="math">ι</span> 规则把代表元层的结论送回商。</p></div></div></section>
 <div class="block prose intuition-only"><p>一个明说的边界：本课程没有选择公理，「任意非空有上界集合有最小上界」的集合版 LUB 不在本单元；这里只做不需要选择的代表元序列完备性；不新增公理、不把 <span class="math">ℝ</span> 直接立成公理。</p></div><div class="block prose intuition-only"><p>先立常序列与它的 Cauchy 性，再证加常数仍 Cauchy、close 给减法界、减 eps 后仍非正，然后定义代表元层的收敛并证主定理与极限存在，最后落在常零序列上。</p></div><h3 class="unit-subhead">68.0 常序列</h3><article class="decl decl-def" id="decl-68-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">constSeq</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def constSeq (q : ratRep) : Seq := fun (_ : Nat) =&gt; q</code></pre></div></article>
@@ -284,20 +284,22 @@
   Exists.intro x (And.intro hx (cauchy_tends_to_class x hx))</code></pre></details><details class="appendix-solution" id="app-sol-68-7"><summary>练习 7 · demo_cauchy_limit <span class="sol-meta">定理</span></summary><pre><code>theorem demo_cauchy_limit : TendsTo zeroSeq zeroSeq :=
   cauchy_tends_to_class zeroSeq cauchy_zero</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-68-1">68.0 常序列</a></li>
-<li><a href="#ex-68-1">68.1 常序列是 Cauchy 的</a></li>
-<li><a href="#decl-68-3">68.2 给序列加一个常数</a></li>
-<li><a href="#ex-68-2">68.3 加常数保持 Cauchy</a></li>
-<li><a href="#ex-68-3">68.4 close 给减法界</a></li>
-<li><a href="#ex-68-4">68.5 减去 eps 之后落到 0 以下</a></li>
-<li><a href="#decl-68-7">68.6 代表元层的收敛</a></li>
-<li><a href="#ex-68-5">68.7 主定理：有理 Cauchy 序列收敛到自己的类</a></li>
-<li><a href="#ex-68-6">68.8 存在极限代表元</a></li>
-<li><a href="#ex-68-7">68.9 具体：常零序列收敛到零</a></li>
-<li><a href="#appendix-unit-68">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit55.html" aria-current="false"><span>55</span> 有理数的加法逆元：x + (-x) = 0</a></li>
+<li><a href="../units/unit56.html" aria-current="false"><span>56</span> 两次减法的相加：中间项消去</a></li>
+<li><a href="../units/unit57.html" aria-current="false"><span>57</span> close 的传递性：两个 ε/2 的界加起来</a></li>
+<li><a href="../units/unit58.html" aria-current="false"><span>58</span> 实数的相等：传递性</a></li>
+<li><a href="../units/unit59.html" aria-current="false"><span>59</span> 实数的取负：第一次把运算下降到商上</a></li>
+<li><a href="../units/unit60.html" aria-current="false"><span>60</span> 实数的加法：下降之前的两条义务</a></li>
+<li><a href="../units/unit61.html" aria-current="false"><span>61</span> 实数的加法：三元关系（存在 + 唯一）</a></li>
+<li><a href="../units/unit62.html" aria-current="false"><span>62</span> 实数的加法：交换律与零元（三元关系版）</a></li>
+<li><a href="../units/unit63.html" aria-current="false"><span>63</span> 实数的加法：结合律（三元关系版）</a></li>
+<li><a href="../units/unit64.html" aria-current="false"><span>64</span> 实数的序：代表元关系与自反性</a></li>
+<li><a href="../units/unit65.html" aria-current="false"><span>65</span> 实数的序：传递性</a></li>
+<li><a href="../units/unit66.html" aria-current="false"><span>66</span> 实数的序：沿 realRel 下降成 Real 上的关系</a></li>
+<li><a href="../units/unit67.html" aria-current="false"><span>67</span> 实数的序：自反、传递、反对称</a></li>
+<li class="is-current"><a href="../units/unit68.html" aria-current="page"><span>68</span> 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

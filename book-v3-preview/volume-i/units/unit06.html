@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 6 — Relations</p>
 <p class="unit-meta">10 个定义 · 13 个定理 · 8 道练习 · 24 条提示 · <a href="#appendix-unit-6">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="6" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-6" aria-label="复制单元 6 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit06.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-2.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit06.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p><strong>记法不用自己声明</strong>（随 <code>import</code> 生效，单元里一条 <code>infix</code>/<code>notation</code> 都不许写）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>集合（lib/Set）：<code>x ∈ A</code> / <code>A ⊆ B</code> / <code>A ∪ B</code> / <code>A ∩ B</code> / <code>A \ B</code> / <code>∅</code> / <code>𝒫 A</code>；</li><li>存在量词（lib/Exists）：<code>∃ (x : α), p x</code>（binder 记法，类型写在括号里）；</li><li>逻辑（语言内建，任何文件零声明）：<code>∧</code> / <code>∨</code> / <code>↔</code> / <code>¬</code> / <code>→</code> / <code>=</code> / <code>≠</code>，<code>∀</code> 是关键字（原生 Pi）。点名形式永久可用：记法是<strong>连接符</strong>的糖，不是引理名的糖——<code>Or.inl</code>、<code>And.left</code>、<code>Exists.intro</code>、<code>Eq.subst.{1}</code>、<code>Set.notMem_empty</code> 照旧点名写。</li></ul></div><div class="block prose intuition-only"><p>本单元的词汇（<strong>给好的，直接用</strong>，不算练习）：</p></div></div></section>
 <div class="block prose intuition-only"><ul class="prose-list"><li>三律与空关系：Reflexive / Symmetric / Transitive / EmptyRelation；</li><li>等价类与划分：EquivClass / classes / IsPartition；</li><li>6.1 的三条演示、6.6 的 <span class="math">ℕ</span> 判别工具箱（Nat.isZero / Nat.pred / Nat.zero_ne_succ / Nat.succ.inj）与反例关系 nearStep。</li></ul></div><div class="block prose intuition-only"><p>库与公理（lib/）：lib.Logic、lib.Exists、lib.Set、lib.Rel。关系一侧新解锁：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><code>Rel A B</code> / <code>Rel.inv</code> / <code>Rel.comp</code> 与展开引理 <code>Rel.inv_apply</code> / <code>Rel.comp_apply</code>；</li><li><strong>外延性公理 <code>Rel.ext</code></strong>——要证"两条关系相等"只能靠它（funext 与 propext 都不在语言里；它与 lib/Set 的 <code>Set.ext</code> 同款）；</li><li><code>Set.ext</code>（集合相等）、<code>Set.notMem_empty</code>、<code>Set.mem_singleton_iff</code> …</li></ul></div><div class="block prose intuition-only"><p>练习一览（共 8 题：<span class="math">T-4 · L-2 · D-2</span>）：</p></div><h3 class="unit-subhead">6.2 练习 1(T) 逆的逆            <span class="math">· 6.2</span> 练习 2(T) 复合结合律</h3><h3 class="unit-subhead">6.3 练习 3(T) 逆保持传递        <span class="math">· 6.4</span> 练习 4(T) 自己在自己的等价类里</h3><h3 class="unit-subhead">6.4 练习 5(L) 等价类相同 <span class="math">⟺</span> 相关 <span class="math">· 6.5</span> 练习 6(L) 等价类构成划分</h3><h3 class="unit-subhead">6.6 练习 7(D) 自反<span class="math">+</span>对称 ⇏ 传递  <span class="math">· 6.6</span> 练习 8(D) 对称<span class="math">+</span>传递 ⇏ 自反</h3><h3 class="unit-subhead">6.1 三律与三条演示</h3><div class="block prose intuition-only"><p>关系就是"两元谓词"：<code>Rel A B</code> 与 <code>A → B → Prop</code> 是同一个东西（lib/Rel 的定义等式）。Tao 说的"自反 / 对称 / 传递"在这里写成三个 def——它们是<strong>词汇</strong>，内容全在练习里。注意三律都是"对关系而言"的：同一个 r 换一个论域，三律的真假可以完全不同。</p></div><article class="decl decl-def" id="decl-6-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Reflexive</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def Reflexive (A : Type) (r : Rel A A) : Prop := ∀ (a : A), r a a</code></pre></div></article>
@@ -587,20 +587,12 @@ nearStep 是 <strong>def</strong> <span class="math">⇒</span> 目标上的三�
   exact h Nat (EmptyRelation Nat)
     (demo_empty_symmetric Nat) (demo_empty_transitive Nat) 0</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-6-1">6.2 练习 1(T) 逆的逆 · 6.2 练习 2(T) 复合结合律</a></li>
-<li><a href="#decl-6-1">6.3 练习 3(T) 逆保持传递 · 6.4 练习 4(T) 自己在自己的等价类里</a></li>
-<li><a href="#decl-6-1">6.4 练习 5(L) 等价类相同 ⟺ 相关 · 6.5 练习 6(L) 等价类构成划分</a></li>
-<li><a href="#decl-6-1">6.6 练习 7(D) 自反+对称 ⇏ 传递 · 6.6 练习 8(D) 对称+传递 ⇏ 自反</a></li>
-<li><a href="#decl-6-1">6.1 三律与三条演示</a></li>
-<li><a href="#ex-6-1">6.2 逆与复合（lib/Rel 给的两个运算）</a></li>
-<li><a href="#ex-6-3">6.3 三律的性质（等价关系的三条法则不是孤立的——先看&quot;逆&quot;对它们做了什么）</a></li>
-<li><a href="#decl-6-11">6.4 等价类</a></li>
-<li><a href="#decl-6-14">6.5 划分 ↔ 等价关系</a></li>
-<li><a href="#decl-6-17">6.6 两道 D 类题的 ℕ 判别工具箱</a></li>
-<li><a href="#appendix-unit-6">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit05.html" aria-current="false"><span>16</span> 序对与笛卡尔积</a></li>
+<li class="is-current"><a href="../units/unit06.html" aria-current="page"><span>17</span> 关系</a></li>
+<li><a href="../units/unit07.html" aria-current="false"><span>18</span> 函数</a></li>
+<li><a href="../units/unit75.html" aria-current="false"><span>19</span> 积对并交的分配</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

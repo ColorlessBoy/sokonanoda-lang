@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 37 — Algebraic Characterizations of Relation Properties</p>
 <p class="unit-meta">1 个定义 · 13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-37">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="37" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-37" aria-label="复制单元 37 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit37.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-13.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit37.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§10</strong>（复合与逆）与 <strong>§7</strong>（等价关系）；Enderton《Elements of Set Theory》<strong>§3.3 / §3.5</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.13 章第二个单元 —— 把 I.10 的闭包/等价关系与 I.13 的关系代数<strong>接起来</strong>）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"（把"自反/对称/传递"翻译成<strong>代数式子</strong>）：</p></div><details class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li><strong>自反 <span class="math">⟺</span> 恒等关系含于它</strong>（<code>idRel ⊆ r</code>）；</li><li><strong>对称 <span class="math">⟺</span> 逆关系含于它</strong>（<code>r ⁻¹ ⊆ r</code>）；</li><li><strong>传递 <span class="math">⟺</span> 自复合含于它</strong>（<code>r • r ⊆ r</code>）—— <strong>这才是"传递"的代数形状</strong>；</li><li><strong>旗舰：三条合起来就是等价关系</strong>（反方向：三个代数条件 <span class="math">⇒</span> 等价关系）；</li><li><strong>等价关系的自复合是幂等的</strong>（<code>r • r ⊆ r</code> 且 <code>r ⊆ r • r</code>）✓</li></ul></details><h3 class="unit-subhead">37.0 画布给的新词汇（与单元㊱ 同名同义）：<strong>恒等关系</strong></h3><article class="decl decl-def" id="decl-37-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">idRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def idRel (α : Type) : Rel α α :=
@@ -226,16 +226,16 @@
     ∀ (a : α) (c : α), (r • r) a c → r a c :=
   comp_self_subset_of_trans α r (equivalence_trans α r h)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-37-1">37.0 画布给的新词汇（与单元㊱ 同名同义）：恒等关系</a></li>
-<li><a href="#decl-37-2">37.1 三条库引理（自复合、逆、等价关系的展开）</a></li>
-<li><a href="#ex-37-1">37.2 三个刻画：把&quot;自反/对称/传递&quot;翻译成代数式子</a></li>
-<li><a href="#ex-37-4">37.3 三个方向的取用子（写成单独的定理，好用）</a></li>
-<li><a href="#ex-37-7">37.4 反方向：自反 ⇒ r ⊆ r • r（自复合变大）</a></li>
-<li><a href="#ex-37-9">37.5 旗舰：三个代数条件 ⇔ 等价关系（拆成两条，别写成一个巨大的 ↔）</a></li>
-<li><a href="#appendix-unit-37">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit36.html" aria-current="false"><span>105</span> 关系的代数</a></li>
+<li class="is-current"><a href="../units/unit37.html" aria-current="page"><span>106</span> 关系的代数刻画</a></li>
+<li><a href="../units/unit38.html" aria-current="false"><span>107</span> 序关系的关系代数视角</a></li>
+<li><a href="../units/unit39.html" aria-current="false"><span>108</span> 关系的像、原像与等价核</a></li>
+<li><a href="../units/unit40.html" aria-current="false"><span>109</span> 传递闭包的代数刻画</a></li>
+<li><a href="../units/unit41.html" aria-current="false"><span>110</span> 良基关系（极小元原理）</a></li>
+<li><a href="../units/unit45.html" aria-current="false"><span>111</span> 关系的单值性与函数的图</a></li>
+<li><a href="../units/unit52.html" aria-current="false"><span>112</span> 关系的复合：单位律与逐点形态</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

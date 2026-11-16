@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 14 — Well-Orderings and Well-Foundedness</p>
 <p class="unit-meta">1 个定义 · 12 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-14">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="14" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-14" aria-label="复制单元 14 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit14.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-5.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit14.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§7.2 Well Orderings</strong>（<span class="math">+</span> §9 Well-Founded Relations 的开头）；Halmos《Naive Set Theory》<strong>§17 Well Ordering</strong>。大纲：<code>docs/design/set-theory-syllabus.md</code> §4.1（I.5 章第二个单元）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>良基 <span class="math">=</span> 每个非空子集有极小元</strong>（本语言没有 <code>Acc</code>，所以取集合论里等价的这条形式，见 <code>lib/Order</code> 文件头的偏离 ③）；<strong>良序 <span class="math">=</span> 全序 <span class="math">+</span> 良基</strong>；由良基能推出三件硬事实 —— <strong>非自反</strong>、<strong>子关系仍良基</strong>、<strong>没有无穷下降链</strong>；而<strong>空关系是良基的却不自反</strong>（两道反例题，说明这两件事不互相包含）。</p></div><h3 class="unit-subhead">14.1 良基：<strong>每个非空子集都有极小元</strong></h3><div class="block prose intuition-only"><p>读法：<code>HasMin α r P</code> <span class="math">=</span> "P 里有一个元素 m，P 里没有元素排在 m 前面"（极小，不一定最小：偏序里"极小"与"最小"是两回事，全序里才重合）。<code>IsWellFounded α r</code> <span class="math">=</span> "对<strong>每个</strong>非空 P，<code>HasMin α r P</code> 都成立"。⚠ 本语言没有 <code>Acc</code>（台账 G-56）<span class="math">⇒</span> 上面这条就是我们的良基定义（Isabelle <code>wf</code> 的对应物）✓</p></div><div class="block prose intuition-only"><p>演示：<code>HasMin</code> 的<strong>定义展开</strong>（"极小元"到底在说什么）。</p></div><article class="decl decl-theorem" id="decl-14-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_hasMin_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_hasMin_def (α : Type) (r : α → α → Prop) (P : α → Prop) :
@@ -242,15 +242,12 @@
   fun (hr : Reflexive α (EmptyRelation α α)) =&gt;
     (fun (hall : ∀ (x : α), EmptyRelation α α x x) =&gt; hall a) hr</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-14-1">14.1 良基：每个非空子集都有极小元</a></li>
-<li><a href="#ex-14-1">14.2 把良基拆开用</a></li>
-<li><a href="#ex-14-6">14.3 良基的三条硬后果</a></li>
-<li><a href="#decl-14-10">14.4 必证（本单元旗舰）：良基 ⇒ 没有无穷下降链</a></li>
-<li><a href="#ex-14-9">14.5 必破：良基与自反互不包含</a></li>
-<li><a href="#appendix-unit-14">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit13.html" aria-current="false"><span>48</span> 偏序、全序与严格序</a></li>
+<li class="is-current"><a href="../units/unit14.html" aria-current="page"><span>49</span> 良序与良基</a></li>
+<li><a href="../units/unit53.html" aria-current="false"><span>50</span> 序嵌入</a></li>
+<li><a href="../units/unit67.html" aria-current="false"><span>51</span> ⊆ 是一个偏序</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

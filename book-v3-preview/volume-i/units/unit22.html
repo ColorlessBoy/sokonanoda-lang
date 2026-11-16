@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 22 — Images, Preimages and Arbitrary Unions/Intersections</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-22">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="22" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-22" aria-label="复制单元 22 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit22.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-9.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit22.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§3.3 Functions</strong> 里的像/原像对广义并交的交换律；Halmos《Naive Set Theory》<strong>§9–10</strong> 的同一批。大纲：<code>set-theory-syllabus.md</code> §4.1（I.9 章第二个单元，<strong>本章收口</strong>）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>像对广义并"可交换"</strong>（两个方向都对）<span class="math">·</span> <strong>原像对广义并、广义交都"可交换"</strong>（四个方向全对）<span class="math">·</span> <strong>像对广义交只有一半</strong>（<code>⊆</code>，反方向是<strong>假</strong>的）。一句话：<strong>原像是"好"的（<code>⁻¹'</code> 与 <code>⋃₀</code>/<code>⋂₀</code> 完全交换），像是"半好"的</strong> ✓</p></div><div class="block prose intuition-only"><p><strong>写法约定（本单元特有）</strong>：<code>⋃₀</code> 的消去子 <code>Set.mem_sUnion_elim</code> 把"存在"拆开、<code>Set.mem_image_elim</code> 把"在像里"拆开；要证"在像里"用 <code>Set.mem_image_intro</code> ✓ 这些都在库里（<strong>用它们，别手写嵌套 <code>Exists.elim</code></strong> —— 实测手写极易少数一个右括号）。</p></div><h3 class="unit-subhead">22.1 三条库引理（像的单调性 <span class="math">·</span> 像落点的改写 <span class="math">·</span> 广义交的落点）</h3><div class="block prose intuition-only"><p>演示：<strong>像对包含是单调的</strong>。</p></div><article class="decl decl-theorem" id="decl-22-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_image_mono</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_image_mono (α β : Type) (f : α → β) (A B : Set α)
@@ -275,14 +275,11 @@
                           (fun (h : x ∈ (⋂₀ F)) =&gt; h)))
                       (@Eq.refl.{1} β (f x)))))))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-22-1">22.1 三条库引理（像的单调性 · 像落点的改写 · 广义交的落点）</a></li>
-<li><a href="#ex-22-3">22.2 像与广义并：两个方向</a></li>
-<li><a href="#ex-22-5">22.3 原像与广义并交：四个方向全对（原像是&quot;好&quot;的）</a></li>
-<li><a href="#ex-22-9">22.4 必破：像是&quot;半好&quot;的</a></li>
-<li><a href="#appendix-unit-22">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit21.html" aria-current="false"><span>76</span> 集族与广义并交</a></li>
+<li class="is-current"><a href="../units/unit22.html" aria-current="page"><span>77</span> 像、原像与广义并交</a></li>
+<li><a href="../units/unit23.html" aria-current="false"><span>78</span> 广义积与柯里化</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

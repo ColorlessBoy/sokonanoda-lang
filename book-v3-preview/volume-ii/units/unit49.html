@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 49 — Transitivity of the Strict Order; Monotonicity of close in ε</p>
 <p class="unit-meta">4 个定理 · 4 道练习 · 12 条提示 · <a href="#appendix-unit-49">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="49" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-49" aria-label="复制单元 49 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit49.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-5.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit49.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㊽ 给了三角不等式，close 的传递性还差两件工程件：<span class="math">ε</span> 一旦定下来，往大走不改变 close；严格序 a &lt; b &lt; c 可以串起来——折半之后 <span class="math">0 &lt; ε/2</span>、<span class="math">ε/2 &lt; ε</span> 这类链条都要靠它。</p></div></div></section>
 <article class="exercise" id="ex-49-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratLtRep_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-49-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两条都不需要新的算术，只是把 ㉚ 的定义、㊻ 的反对称性与 ㊳ 的传递性拼起来。严格序的传递性唯一的「不相等」义务是：若 a ~ c，则 <span class="math">c ≤ a</span>，与 <span class="math">a ≤ b ≤ c</span> 一起把 b 夹成 b ~ c，正好撞上 b &lt; c 的第二分量。close 对 <span class="math">ε</span> 的单调性同理：<span class="math">d &lt; ε ≤ ε'</span> 的「不相等」义务是「d ~ <span class="math">ε'</span> 会把 <span class="math">ε'</span> 与 <span class="math">ε</span> 夹成相等，从而 d ~ <span class="math">ε</span>」。</p></div><div class="block prose intuition-only"><p>先取严格序的弱序部分，再证严格序传递；然后证 close 对 <span class="math">ε</span> 单调；最后算 close 0 0 1 放大成 close 0 0 2。ratLtRep 来自 lib/Cauchy，序的引擎来自 lib/RatAbs 与 lib/RatAbsOrder。</p></div><div class="block prose intuition-only"><p>㊾.1 严格序给出弱序</p></div><div class="block prose intuition-only"><p>严格序给出弱序：取合取式的第一分量。</p></div></div><pre class="exercise-statement"><code>theorem ratLtRep_le (a b : ratRep) (h : ratLtRep a b) : ratLeRep a b :=
@@ -141,11 +141,18 @@
             (@Eq.symm.{1} Nat Nat.zero (Nat.succ Nat.zero) h))))
     (le_succ 1 1 (le_refl 1))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-49-1">练习</a></li>
-<li><a href="#appendix-unit-49">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit45.html" aria-current="false"><span>45</span> 序的全性：每个有理数都有绝对值</a></li>
+<li><a href="../units/unit46.html" aria-current="false"><span>46</span> 序的反对称性：两边夹出相等</a></li>
+<li><a href="../units/unit47.html" aria-current="false"><span>47</span> 绝对值的唯一性：同一个数的两个见证相等</a></li>
+<li><a href="../units/unit48.html" aria-current="false"><span>48</span> 三角不等式：|u + v| ≤ |u| + |v|</a></li>
+<li class="is-current"><a href="../units/unit49.html" aria-current="page"><span>49</span> 严格序的传递与 close 对 ε 的单调性</a></li>
+<li><a href="../units/unit50.html" aria-current="false"><span>50</span> 严格序与加法相容：加法消去</a></li>
+<li><a href="../units/unit51.html" aria-current="false"><span>51</span> 严格序的传递与加法相容</a></li>
+<li><a href="../units/unit52.html" aria-current="false"><span>52</span> ε 折半：半数的存在与加倍</a></li>
+<li><a href="../units/unit53.html" aria-current="false"><span>53</span> 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li>
+<li><a href="../units/unit54.html" aria-current="false"><span>54</span> 有理数加法的结合律：公分母的三层嵌套</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

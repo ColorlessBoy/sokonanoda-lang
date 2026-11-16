@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 63 — Addition on the Reals: Associativity (Ternary Relation)</p>
 <p class="unit-meta">4 个定理 · 4 道练习 · 12 条提示 · <a href="#appendix-unit-63">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="63" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-63" aria-label="复制单元 63 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit63.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-6.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit63.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>上一单元给了三元关系 addRel 的交换律与零元。现在补上结合律：若 <span class="math">a+b = s</span> 且 <span class="math">s+c = t</span>，则 <span class="math">b+c</span> 有输出 u，且 <span class="math">a+u = t</span>。写成存在形式就是 addRel a b s 推出 addRel s c t 推出「存在 u，使 addRel b c u 且 addRel a u t」。</p></div></div></section>
 <h3 class="unit-subhead">63.1 代表元层：<code>(x + y) + z ~ x + (y + z)</code></h3><article class="exercise" id="ex-63-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">realRel_add_assoc</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-63-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>它是重括号的合法性：左边的 <span class="math">(a+b)+c</span> 与右边的 <span class="math">a+(b+c)</span> 落在同一个 t 上。注意右边不是函数，所以结论只能写成「存在 u」；而上单元的 addRel_unique 保证这样的 u 唯一。</p></div><div class="block prose intuition-only"><p>证明分两层。代表元层先证 <span class="math">(x+y)+z</span> 与 <span class="math">x+(y+z)</span> 相等（㉔ 的结合律经 close 的桥逐点搬到 realRel）；再把已知的 <span class="math">(x+y)+z = t</span> 换成 <span class="math">t = mk (x+(y+z))</span>；然后在商层对 a、b、c 各做一次 Quot.ind，用 mk 层的结果收口。</p></div><div class="block prose intuition-only"><p>边界仍是上一单元的部分关系：addRel a b s 的两个前提分量带着 Cauchy 守卫，所以 mk 层要显式接收 Cauchy x、Cauchy y；不新增信任。</p></div><div class="block prose intuition-only"><p>代表元层：<span class="math">(x+y)+z</span> 与 <span class="math">x+(y+z)</span> 相等。</p></div></div><pre class="exercise-statement"><code>theorem realRel_add_assoc (x y z : Seq) (hx : Cauchy x) (hy : Cauchy y)
@@ -234,14 +234,22 @@
     (addRel_zero_right zeroSeq cauchy_zero)
     (addRel_zero_right zeroSeq cauchy_zero)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-63-1">63.1 代表元层：(x + y) + z ~ x + (y + z)</a></li>
-<li><a href="#ex-63-2">63.2 mk 层：(x + y) + z = t ⇒ ∃ u, y + z = u ∧ x + u = t</a></li>
-<li><a href="#ex-63-3">63.3 商层：三元关系的结合律</a></li>
-<li><a href="#ex-63-4">63.4 具体：常零序列上的结合律</a></li>
-<li><a href="#appendix-unit-63">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit55.html" aria-current="false"><span>55</span> 有理数的加法逆元：x + (-x) = 0</a></li>
+<li><a href="../units/unit56.html" aria-current="false"><span>56</span> 两次减法的相加：中间项消去</a></li>
+<li><a href="../units/unit57.html" aria-current="false"><span>57</span> close 的传递性：两个 ε/2 的界加起来</a></li>
+<li><a href="../units/unit58.html" aria-current="false"><span>58</span> 实数的相等：传递性</a></li>
+<li><a href="../units/unit59.html" aria-current="false"><span>59</span> 实数的取负：第一次把运算下降到商上</a></li>
+<li><a href="../units/unit60.html" aria-current="false"><span>60</span> 实数的加法：下降之前的两条义务</a></li>
+<li><a href="../units/unit61.html" aria-current="false"><span>61</span> 实数的加法：三元关系（存在 + 唯一）</a></li>
+<li><a href="../units/unit62.html" aria-current="false"><span>62</span> 实数的加法：交换律与零元（三元关系版）</a></li>
+<li class="is-current"><a href="../units/unit63.html" aria-current="page"><span>63</span> 实数的加法：结合律（三元关系版）</a></li>
+<li><a href="../units/unit64.html" aria-current="false"><span>64</span> 实数的序：代表元关系与自反性</a></li>
+<li><a href="../units/unit65.html" aria-current="false"><span>65</span> 实数的序：传递性</a></li>
+<li><a href="../units/unit66.html" aria-current="false"><span>66</span> 实数的序：沿 realRel 下降成 Real 上的关系</a></li>
+<li><a href="../units/unit67.html" aria-current="false"><span>67</span> 实数的序：自反、传递、反对称</a></li>
+<li><a href="../units/unit68.html" aria-current="false"><span>68</span> 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

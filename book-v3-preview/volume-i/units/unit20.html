@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 20 — Cardinal Arithmetic: Products</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-20">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="20" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-20" aria-label="复制单元 20 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit20.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-8.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit20.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§6.1–6.3 的基数算术</strong>（乘法那一半）；Halmos《Naive Set Theory》<strong>§24 Cardinal Arithmetic</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.8 章第二个单元，<strong>本章收口</strong>）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>积集合怎么算</strong> —— <code>p ∈ s ×ˢ t</code> 读出两个坐标 <span class="math">·</span><strong>交换律</strong> <code>(s ×ˢ t) ≈ (t ×ˢ s)</code> <span class="math">·</span> <strong>包含关系的函子性</strong>（<code>⊆</code> 逐坐标传）<span class="math">·</span><strong>交换律与包含关系可交换</strong>。这些都是"基数乘法"在<strong>集合层</strong>的样子：真要说 <code>#(A × B) = #A · #B</code>，得先有"积对等势是良定义的"，而那要<strong>从 <code>∃</code> 取数据</strong> <span class="math">⇒</span> <strong>G-58</strong> <span class="math">⇒</span> <strong>如实不排</strong>（本单元只做"不需要取出映射"的那一半）✓</p></div><div class="block prose intuition-only"><p><strong>写法约定（本单元特有）</strong>：本单元到处是<strong>序对</strong>，所以三件套要背熟：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><code>prod_mk A B a b</code> 造序对（<strong>注意构造子叫 <code>prod_mk</code> 不是 <code>Prod.mk</code></strong> —— G-02）；</li><li><code>Prod.fst</code> / <code>Prod.snd</code> 取坐标；</li><li><code>Prod.eta</code>（任何序对等于"把两个投影再配起来"）—— 本语言<strong>没有 <span class="math">η</span> 转换</strong>，所以"两个序对相等"这一步<strong>必须显式用它</strong> ✓</li></ul></div><h3 class="unit-subhead">20.1 积集合的成员刻画（三条库引理）</h3><div class="block prose intuition-only"><p>演示：<strong>一般的成员刻画</strong> —— <code>p</code> 在积里 <span class="math">⟺</span> 它的两个投影各自落在对应的集合里。</p></div><article class="decl decl-theorem" id="decl-20-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_prod_iff</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
@@ -256,14 +256,12 @@
                 (And.right hq') (And.left hq')))) h))
       (Iff.mp (Set.mem_prod_iff B A t s q) hq)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-20-1">20.1 积集合的成员刻画（三条库引理）</a></li>
-<li><a href="#ex-20-6">20.2 包含关系的函子性（&quot;积对 ⊆ 单调&quot;）</a></li>
-<li><a href="#ex-20-8">20.3 本单元旗舰：交换律（基数乘法的 ab = ba 在集合层的样子）</a></li>
-<li><a href="#ex-20-10">20.4 必破：交换律与包含关系可以换位置</a></li>
-<li><a href="#appendix-unit-20">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit19.html" aria-current="false"><span>72</span> 基数的比较</a></li>
+<li class="is-current"><a href="../units/unit20.html" aria-current="page"><span>73</span> 基数算术：积</a></li>
+<li><a href="../units/unit54.html" aria-current="false"><span>74</span> 等势的代数的开端</a></li>
+<li><a href="../units/unit113.html" aria-current="false"><span>75</span> 连续统假设（CH）与 Cantor 定理</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

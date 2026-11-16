@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 50 — The Distributivity Family (Binary Operations)</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 18 条提示 · <a href="#appendix-unit-50">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="50" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-50" aria-label="复制单元 50 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit50.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-11.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit50.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§4–5</strong>（unions and intersections / the algebra of sets）；Enderton《Elements of Set Theory》<strong>§1.5</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.11 章深化 —— 接单元㊽/㊾ 的广义运算，本单元回到<strong>二元</strong>运算，把分配律与单调性做成一组<strong>包含</strong>引理 ✓）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>旗舰：<code>A ∩ (B ∪ C) ⊆ (A ∩ B) ∪ (A ∩ C)</code></strong>（分配的那一向 ✓）；</li><li><strong>反向：<code>(A ∩ B) ∪ (A ∩ C) ⊆ A ∩ (B ∪ C)</code></strong> —— 两条合起来就是<strong>分配律</strong> ✓；</li><li>两条的<strong>逐点形态</strong>（画布里的练习 3/4 ✓）；</li><li><strong>单调性</strong>：<code>A ⊆ B ⇒ C ⊆ D ⇒ A ∪ C ⊆ B ∪ D</code> 与 <code>A ∩ C ⊆ B ∩ D</code> ✓</li></ul></div><h3 class="unit-subhead">50.1 三条库引理（交 <span class="math">·</span> 并 <span class="math">·</span> 差 的成员刻画）</h3><div class="block prose intuition-only"><p>演示：交的成员刻画。</p></div><article class="decl decl-theorem" id="decl-50-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_inter</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_inter (α : Type) (x : α) (A B : Set α) :
@@ -203,13 +203,15 @@
       (fun (hb : B x) =&gt; Or.inl hb)
       ((fun (hv : (A ∪ B) x ↔ A x ∨ B x) =&gt; Iff.mp hv) (Set.mem_union x A B) h)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-50-1">50.1 三条库引理（交 · 并 · 差 的成员刻画）</a></li>
-<li><a href="#ex-50-1">50.2 分配律的两向（包含形态）</a></li>
-<li><a href="#ex-50-5">50.3 单调性：并与交对子集关系的作用</a></li>
-<li><a href="#appendix-unit-50">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit28.html" aria-current="false"><span>91</span> 集合代数：分配律与 De Morgan</a></li>
+<li><a href="../units/unit29.html" aria-current="false"><span>92</span> 上界、下界与确界</a></li>
+<li><a href="../units/unit30.html" aria-current="false"><span>93</span> 格与对偶：确界的代数</a></li>
+<li><a href="../units/unit31.html" aria-current="false"><span>94</span> 单调函数与序同构保持确界</a></li>
+<li><a href="../units/unit32.html" aria-current="false"><span>95</span> 函数空间上的逐点序</a></li>
+<li><a href="../units/unit46.html" aria-current="false"><span>96</span> 对称差与布尔环</a></li>
+<li class="is-current"><a href="../units/unit50.html" aria-current="page"><span>97</span> 分配律族</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 33 — Absolute Value of Rationals</p>
 <p class="unit-meta">4 个定义 · 4 个定理 · 4 道练习 · 8 条提示 · <a href="#appendix-unit-33">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="33" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-33" aria-label="复制单元 33 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit33.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-3.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit33.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>绝对值 |x| 在代表元上要按 <span class="math">x ≥ 0</span> 与 <span class="math">x ≤ 0</span> 分情况，但本语言没有可判定的序（也就没有 if），所以用关系而不是函数来定义它：ratAbsRel x y 当且仅当 <span class="math">(0 ≤ x</span> 且 y ~ x) 或 <span class="math">(x ≤ 0</span> 且 y ~ -x)。</p></div></div></section>
 <div class="block prose intuition-only"><p>读作「y 是 x 的绝对值」。两条引入规则正好对应两个分支；具体计算 |-1/2| <span class="math">= 1/2</span> 走右分支。唯一性（|x| 真的只有一个值）需要序的三歧性，留给后续单元；这里先把定义与两条引入规则立起来，供 Cauchy 序列的 |x_n - x_m| 使用。</p></div><article class="decl decl-def" id="decl-33-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLeRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLeRep (x y : ratRep) : Prop :=
@@ -102,12 +102,14 @@
       (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
       (ratRel_refl (qrep 1 Nat.zero 1)))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-33-1">定义与定理</a></li>
-<li><a href="#ex-33-1">练习</a></li>
-<li><a href="#appendix-unit-33">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit29.html" aria-current="false"><span>29</span> 有理数的序：代表元公式与自反性</a></li>
+<li><a href="../units/unit30.html" aria-current="false"><span>30</span> 有理数的严格序：&lt; 与不相等</a></li>
+<li><a href="../units/unit31.html" aria-current="false"><span>31</span> 有理数的负元：代表元层定义与良定义性</a></li>
+<li><a href="../units/unit32.html" aria-current="false"><span>32</span> 有理数的减法：加法与负元的组合</a></li>
+<li class="is-current"><a href="../units/unit33.html" aria-current="page"><span>33</span> 有理数的绝对值：关系定义与两条引入规则</a></li>
+<li><a href="../units/unit34.html" aria-current="false"><span>34</span> 有理数的幂：定义与计算规则</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

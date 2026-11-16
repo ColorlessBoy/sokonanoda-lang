@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 67 — Inclusion is a Partial Order</p>
 <p class="unit-meta">11 个定理 · 8 道练习 · 13 条提示 · <a href="#appendix-unit-67">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="67" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-67" aria-label="复制单元 67 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit67.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-5.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit67.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"（<strong>序论的三条 <span class="math">+</span> 一条刻画</strong>）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>自反</strong> ✓ <span class="math">·</span> <strong>传递</strong> ✓ <span class="math">·</span> <strong>反对称</strong>（用外延打包 ✓）<span class="math">⇒</span> <strong><code>⊆</code> 是偏序</strong> ✓；</li><li><strong><code>A = B ↔ A ⊆ B ∧ B ⊆ A</code></strong> ✓（教材里"证明两个集合相等"的<strong>标准套路</strong> ✓）；</li><li><strong><code>A = B ⇒ A ⊆ B</code></strong> ✓（等的左到右 ✓ —— 搬运 ✓）；</li><li><strong>幂等</strong>：<code>A ⊆ A ∩ A</code> ✓ <span class="math">·</span> <strong><code>A ∪ A = A</code></strong> ✓</li></ul></div></div></section>
 <h3 class="unit-subhead">67.1 三条库引理（包含的展开 <span class="math">+</span> 两条外延工具）</h3><div class="block prose intuition-only"><p>演示：包含的展开（<code>A ⊆ B</code> 就是"每个 <code>A</code> 的点都在 <code>B</code> 里"）。</p></div><article class="decl decl-theorem" id="decl-67-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_subset_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_subset_def (α : Type) (A B : Set α) :
@@ -151,11 +151,12 @@
             (fun (hu : a ∈ (A ∪ A) ↔ a ∈ A ∨ a ∈ A) =&gt;
               Iff.mpr hu (Or.inl h)) (Set.mem_union a A A))))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-67-1">67.1 三条库引理（包含的展开 + 两条外延工具）</a></li>
-<li><a href="#appendix-unit-67">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit13.html" aria-current="false"><span>48</span> 偏序、全序与严格序</a></li>
+<li><a href="../units/unit14.html" aria-current="false"><span>49</span> 良序与良基</a></li>
+<li><a href="../units/unit53.html" aria-current="false"><span>50</span> 序嵌入</a></li>
+<li class="is-current"><a href="../units/unit67.html" aria-current="page"><span>51</span> ⊆ 是一个偏序</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

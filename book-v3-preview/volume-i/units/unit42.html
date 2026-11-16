@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 42 — Least Elements in Well-Orders</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-42">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="42" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-42" aria-label="复制单元 42 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit42.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-6.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit42.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§7.1/§7.4</strong>（well orderings）；Halmos《Naive Set Theory》<strong>§17–18</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.6 章补强 —— 趁 <strong>L-07 修复</strong>（<code>lib/Order</code> 新增 <code>HasLeast</code>「最小」元版）把良序那一侧补上：单元⑭ 讲的是<strong>严格</strong>侧的「极小元」，本单元讲<strong>非严格</strong>侧的「最小元」✓）</p></div><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><details class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li><strong>四件套</strong>：取用子 <span class="math">·</span> 展开 <span class="math">·</span> 构造子 <span class="math">·</span> 见证；</li><li><strong>旗舰一：最小元唯一</strong>（在反对称下）—— <code>m ≤ m'</code> 与 <code>m' ≤ m</code> 逼出 <code>m = m'</code>；</li><li><strong>旗舰二：全序里"极小"就是"最小"</strong>（把单元⑭ 的 <code>HasMin</code> 与 <code>HasLeast</code> 接起来）；</li><li><strong>反方向：严格序（非自反 <span class="math">+</span> 传递）里"最小"就是"极小"</strong>；</li><li><strong>良序集本身、单点族、二元族都有最小元</strong> ✓</li></ul></details></div></section>
 <h3 class="unit-subhead">42.1 三条库引理（良序的三个取用子：线性 <span class="math">·</span> 全 <span class="math">·</span> 反对称）</h3><div class="block prose intuition-only"><p>演示：良序 <span class="math">⇒</span> 线性序。</p></div><article class="decl decl-theorem" id="decl-42-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_wellOrder_linear</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_wellOrder_linear (α : Type) (r : Rel α α) (h : IsWellOrder α r) :
@@ -177,14 +177,21 @@
     (Exists.intro a  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
       (@Or.inl (@Eq.{1} α a a) (@Eq.{1} α a b) (@Eq.refl.{1} α a)))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-42-1">42.1 三条库引理（良序的三个取用子：线性 · 全 · 反对称）</a></li>
-<li><a href="#ex-42-1">42.2 最小元的四件套（取用 · 展开 · 构造 · 见证）</a></li>
-<li><a href="#ex-42-5">42.3 旗舰：唯一性 与 两种&quot;最小&quot;的对译</a></li>
-<li><a href="#ex-42-8">42.4 三个例子：全集 · 单点族 · 二元族</a></li>
-<li><a href="#appendix-unit-42">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit15.html" aria-current="false"><span>52</span> 传递集与序数</a></li>
+<li><a href="../units/unit16.html" aria-current="false"><span>53</span> 序数的序：外延性、反对称与零序数</a></li>
+<li class="is-current"><a href="../units/unit42.html" aria-current="page"><span>54</span> 良序集的「最小元」</a></li>
+<li><a href="../units/unit80.html" aria-current="false"><span>55</span> 序数的元素仍是序数</a></li>
+<li><a href="../units/unit81.html" aria-current="false"><span>56</span> 后继的成员刻画</a></li>
+<li><a href="../units/unit82.html" aria-current="false"><span>57</span> 后继与序数的合流</a></li>
+<li><a href="../units/unit83.html" aria-current="false"><span>58</span> 序数的无环性</a></li>
+<li><a href="../units/unit106.html" aria-current="false"><span>59</span> 良基递归（Acc）</a></li>
+<li><a href="../units/unit107.html" aria-current="false"><span>60</span> ∈-归纳与序数三歧（上）</a></li>
+<li><a href="../units/unit108.html" aria-current="false"><span>61</span> 序数三歧（引理与装配）</a></li>
+<li><a href="../units/unit109.html" aria-current="false"><span>62</span> 序数上的递归与加法（关系版 · 逆引理与结合律）</a></li>
+<li><a href="../units/unit110.html" aria-current="false"><span>63</span> 选择公理的取数据（良序定理线入口）</a></li>
+<li><a href="../units/unit111.html" aria-current="false"><span>64</span> ℕ 的算术律（自建 add/mul）</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

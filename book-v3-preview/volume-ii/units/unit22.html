@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 22 — Distributivity and Associativity of Nat Multiplication</p>
 <p class="unit-meta">5 个定义 · 18 个定理 · 3 道练习 · 17 条提示 · <a href="#appendix-unit-22">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="22" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-22" aria-label="复制单元 22 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit22.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-2.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit22.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元㉑ 把 intRel 的传递性结清了，<span class="math">ℚ</span> 的传递性还差消去一个正分母。那条链的下一步是 <span class="math">ℤ</span> 乘法结合律：交叉相乘后要把 <span class="math">(a·d)·f</span> 与 <span class="math">a·(d·f)</span> 对齐。可 mulRep 只在代表元层展开成四项和，真正干活的是 <span class="math">ℕ</span> 乘法的分配律与结合律——II.1 只做了交换律、单位元与良定义，这两条从没证过。</p></div></div></section>
 <div class="block prose intuition-only"><p>先不碰商，只在 <span class="math">ℕ</span> 上证三条算术律：加法搬运 add_mid、左分配 mul_add（对 c 归纳）、右分配 mul_add_right（用交换律把问题化回左分配），再用它们证结合律 myMul_assoc（对 c 归纳，步例用左分配）。三条都不加公理。</p></div><div class="block prose intuition-only"><p>下一单元才把它们搬到 mulRep 上，得到 <span class="math">ℤ</span> 乘法结合律。</p></div><article class="decl decl-def" id="decl-22-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def intRel (a b : Prod Nat Nat) : Prop :=
@@ -329,12 +329,17 @@
           (mul_add a b (myMul b n))))
     c</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-22-1">定义与定理</a></li>
-<li><a href="#ex-22-1">练习</a></li>
-<li><a href="#appendix-unit-22">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit20.html" aria-current="false"><span>20</span> 有理数与商构造</a></li>
+<li><a href="../units/unit21.html" aria-current="false"><span>21</span> 整数相等的传递性</a></li>
+<li class="is-current"><a href="../units/unit22.html" aria-current="page"><span>22</span> ℕ 乘法的分配律与结合律</a></li>
+<li><a href="../units/unit23.html" aria-current="false"><span>23</span> ℤ 乘法的结合律（代表元层）</a></li>
+<li><a href="../units/unit24.html" aria-current="false"><span>24</span> ℕ 正因子的消去律</a></li>
+<li><a href="../units/unit25.html" aria-current="false"><span>25</span> 有理数相等的传递性</a></li>
+<li><a href="../units/unit26.html" aria-current="false"><span>26</span> 有理数加法的代表元公式与良定义性</a></li>
+<li><a href="../units/unit27.html" aria-current="false"><span>27</span> 有理数乘法的代表元公式与具体计算</a></li>
+<li><a href="../units/unit28.html" aria-current="false"><span>28</span> 有理数乘法的良定义性</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

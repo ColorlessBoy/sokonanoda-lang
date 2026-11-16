@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 64 — Two-Step Packing</p>
 <p class="unit-meta">11 个定理 · 8 道练习 · 12 条提示 · <a href="#appendix-unit-64">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="64" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-64" aria-label="复制单元 64 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit64.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-1.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit64.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元演示<strong>一条通用工作法</strong>（上一片踩出来的 ✓）：<strong>要证的集合等式里，只要有一支需要三层以上嵌套 <span class="math">⇒</span> 别一次写完</strong> ✗（第 604/619/625 轮<strong>三次</strong>括号配错 ✓）<span class="math">⇒</span> 走<strong>两步</strong> ✓：① 先写<strong>逐点 <code>↔</code> 小引理</strong>（<code>mem_inter_sdiff_iff</code> ✓ —— 每条都在两层以内 ✓，顶层判绿 ✓）；② 再用 <code>funext_spec</code> <span class="math">+</span> <code>propext_spec</code> <strong>打包</strong> ✓（那一支只调用小引理 ✓，一行 ✓）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>四条顶层取用子（出 <span class="math">·</span> 出 <span class="math">·</span> 进 <span class="math">·</span> 交的左/右/合成 ✓）；</li><li><strong>逐点 <code>↔</code></strong>：<code>a ∈ (A ∩ B) \ C ↔ a ∈ (A \ C) ∩ B</code> ✓；</li><li><strong>等式</strong>：<strong><code>(A ∩ B) \ C = (A \ C) ∩ B</code></strong> ✓（第 625 轮砍掉的那条 ✓ —— 两步走后一次判绿 ✓）。</li></ul></div><h3 class="unit-subhead">64.1 三条库引理（两条外延工具 <span class="math">+</span> 差集的成员刻画）</h3><div class="block prose intuition-only"><p>演示：<strong>函数外延</strong>（逐点相等 <span class="math">⇒</span> 函数相等）。</p></div><article class="decl decl-theorem" id="decl-64-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_funext</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_funext (α : Type) (β : α → Type)
@@ -152,13 +152,23 @@
       propext_spec (a ∈ ((A ∩ B) \ C)) (a ∈ ((A \ C) ∩ B))
         (mem_inter_sdiff_iff α A B C a))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-64-1">64.1 三条库引理（两条外延工具 + 差集的成员刻画）</a></li>
-<li><a href="#ex-64-1">64.2 顶层取用子（两步走的第一步：小引理都放顶层 ✓）</a></li>
-<li><a href="#ex-64-7">64.3 逐点 ↔ + 打包成等式（两步走的第二步 ✓）</a></li>
-<li><a href="#appendix-unit-64">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit01.html" aria-current="false"><span>01</span> 集合与隶属</a></li>
+<li><a href="../units/unit02.html" aria-current="false"><span>02</span> 子集、空集与包含三律</a></li>
+<li><a href="../units/unit03.html" aria-current="false"><span>03</span> 并、交、差与幂集</a></li>
+<li><a href="../units/unit04.html" aria-current="false"><span>04</span> 外延性与集合等式</a></li>
+<li><a href="../units/unit58.html" aria-current="false"><span>05</span> 差集的代数</a></li>
+<li><a href="../units/unit59.html" aria-current="false"><span>06</span> 差集的代数（二）</a></li>
+<li><a href="../units/unit60.html" aria-current="false"><span>07</span> 补集的代数</a></li>
+<li><a href="../units/unit61.html" aria-current="false"><span>08</span> 外延打包</a></li>
+<li><a href="../units/unit62.html" aria-current="false"><span>09</span> 外延性的推论</a></li>
+<li><a href="../units/unit63.html" aria-current="false"><span>10</span> 差集的等式层（打包续）</a></li>
+<li class="is-current"><a href="../units/unit64.html" aria-current="page"><span>11</span> 差集的等式层（三）：两步走</a></li>
+<li><a href="../units/unit65.html" aria-current="false"><span>12</span> 并的差分配律与减法反变</a></li>
+<li><a href="../units/unit66.html" aria-current="false"><span>13</span> 包含关系的代数</a></li>
+<li><a href="../units/unit104.html" aria-current="false"><span>14</span> 排中律与经典推论</a></li>
+<li><a href="../units/unit105.html" aria-current="false"><span>15</span> 经典等价三件套</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

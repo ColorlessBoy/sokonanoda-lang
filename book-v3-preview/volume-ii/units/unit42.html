@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 42 — Symmetry of Close and Real Equality</p>
 <p class="unit-meta">4 个定理 · 4 道练习 · 12 条提示 · <a href="#appendix-unit-42">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="42" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-42" aria-label="复制单元 42 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit42.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-4.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit42.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㊱ 把实数的相等定义成 realRel x y：x、y 都是 Cauchy 序列，且对任意 eps&gt;0 存在 N，使 <span class="math">n ≥ N</span> 时 close (x n) (y n) eps 成立。其中 close x y eps 说的是「x-y 的绝对值小于 eps」：存在一个 d，它等于 |x-y| 且 d &lt; eps。</p></div></div></section>
 <article class="exercise" id="ex-42-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratSubRep_neg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-42-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>㊵ 结清了自反性；要和它凑成等价关系，还差对称性：close x y eps 推出 close y x eps，以及 realRel x y 推出 realRel y x。</p></div><div class="block prose intuition-only"><p>直觉上「y-x 与 x-y 只差一个负号，绝对值一样」，但代表元层要真的搬过去：y-x 的代表元与 -(x-y) 的代表元并不相同（分母字段是 ratDenRep n m 与 ratDenRep m n），两者相等靠 ratDenRep_comm（㊷.1）；绝对值对取负不变由 ㊶ 提供，但要把它从 -(x-y) 搬到 y-x，还需要「ratAbsRel 只依赖第一个因子的等价类」（㊷.2）。把这两步拼起来就是 close 的对称性（㊷.3），逐点作用到 realRel 上就是实数相等的对称性（㊷.4）。</p></div><div class="block prose intuition-only"><p>序的通用替换律收在 lib/RatOrder：ratLeRep_congr 换第一个因子，ratLeRep_congr_snd 换第二个。</p></div><div class="block prose intuition-only"><p>㊷.1 减法的反交换：<code>y - x ~ -(x - y)</code></p></div><div class="block prose intuition-only"><p>先证减法的反交换：y-x 与 -(x-y) 相差两次加法交换与一次分母换位。</p></div></div><pre class="exercise-statement"><code>theorem ratSubRep_neg (x y : ratRep) :
@@ -282,11 +282,18 @@
           (fun (n : Nat) (hn : LeNat N n) =&gt;
             close_symm (x n) (y n) eps (hN n hn)))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-42-1">练习</a></li>
-<li><a href="#appendix-unit-42">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit35.html" aria-current="false"><span>35</span> 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li>
+<li><a href="../units/unit36.html" aria-current="false"><span>36</span> 实数的载体：Real := Quot realRel</a></li>
+<li><a href="../units/unit37.html" aria-current="false"><span>37</span> 序与正分母：乘法、消去与配对搬运</a></li>
+<li><a href="../units/unit38.html" aria-current="false"><span>38</span> 有理数的序：传递性</a></li>
+<li><a href="../units/unit39.html" aria-current="false"><span>39</span> 有理数的序与相等相容</a></li>
+<li><a href="../units/unit40.html" aria-current="false"><span>40</span> 实数的相等：自反性</a></li>
+<li><a href="../units/unit41.html" aria-current="false"><span>41</span> 取负与序：绝对值的对称性</a></li>
+<li class="is-current"><a href="../units/unit42.html" aria-current="page"><span>42</span> close 的对称性：实数的相等可以换方向</a></li>
+<li><a href="../units/unit43.html" aria-current="false"><span>43</span> 有理数加法的代表元律：交换与零元</a></li>
+<li><a href="../units/unit44.html" aria-current="false"><span>44</span> 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

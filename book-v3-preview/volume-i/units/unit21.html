@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 21 — Families, Arbitrary Unions and Intersections</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-21">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="21" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-21" aria-label="复制单元 21 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit21.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-9.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit21.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§2.2 Arbitrary Unions and Intersections</strong>；Halmos《Naive Set Theory》<strong>§9 Families</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.9 章第一个单元）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>广义并/交的成员刻画</strong>（存在 vs 全称）<span class="math">·</span><strong>两条刻画定理</strong>（<code>⋃₀ F ⊆ B</code> <span class="math">⟺</span> 族里每个 <code>A</code> 都 <code>⊆ B</code>；<code>B ⊆ ⋂₀ F</code> <span class="math">⟺</span> 族里每个 <code>A</code> 都 <code>⊇ B</code>）<span class="math">·</span><strong>单调 / 反单调</strong>（<code>F ⊆ G</code> 时 <code>⋃₀</code> 单调、<code>⋂₀</code> <strong>反</strong>单调 —— 这是本单元最反直觉的一条）。</p></div><div class="block prose intuition-only"><p><strong>写法约定（本单元特有）</strong>：目标几乎全是 <code>X ⊆ Y</code>（<strong>定义头</strong>）<span class="math">⇒</span> 一律 <code>fun (x : α) (hx : x ∈ X) =&gt; …</code> 起手；而"把 <code>⊆</code> 假设当函数用"要先 <code>fun (hs : ∀ z, z ∈ X → z ∈ Y) =&gt; …</code> 把类型写出来（G-73 形状 ①）。<code>Set.subset_sUnion</code> / <code>Set.sInter_subset</code> 的结论在库里写成<strong>展开形态</strong>（<code>∃</code>/<code>∀</code>），因为期望类型是 <code>Set.sUnion</code> 这个定义头时构造子解析不出来（见 <code>lib/SUnion</code> 的注释）✓</p></div><h3 class="unit-subhead">21.1 两个定义：<code>⋃₀ F</code> 与 <code>⋂₀ F</code></h3><div class="block prose intuition-only"><p>读法（对偶）：<code>⋃₀ F</code> 是"<strong>存在</strong>一个 <code>A ∈ F</code> 装得下 <code>x</code>"；<code>⋂₀ F</code> 是"<strong>每个</strong> <code>A ∈ F</code> 都装得下 <code>x</code>" —— 存在 vs 全称，广义并交的一切都从这儿来 ✓</p></div><div class="block prose intuition-only"><p>演示：广义并的成员刻画。</p></div><article class="decl decl-theorem" id="decl-21-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_sUnion_iff</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_sUnion_iff (α : Type) (F : Set (Set α)) (x : α) :
@@ -186,14 +186,11 @@
           @False.elim (x ∈ ∅)  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 补不出来，必须写全
             (And.left hA))) hx</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-21-1">21.1 两个定义：⋃₀ F 与 ⋂₀ F</a></li>
-<li><a href="#ex-21-3">21.2 本单元旗舰：两条刻画定理</a></li>
-<li><a href="#ex-21-7">21.3 单调与反单调</a></li>
-<li><a href="#ex-21-9">21.4 必破：空族与非空族</a></li>
-<li><a href="#appendix-unit-21">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li class="is-current"><a href="../units/unit21.html" aria-current="page"><span>76</span> 集族与广义并交</a></li>
+<li><a href="../units/unit22.html" aria-current="false"><span>77</span> 像、原像与广义并交</a></li>
+<li><a href="../units/unit23.html" aria-current="false"><span>78</span> 广义积与柯里化</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

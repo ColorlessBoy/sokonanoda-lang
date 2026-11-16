@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 77 — Algebra of Equivalence Classes</p>
 <p class="unit-meta">12 个定理 · 9 道练习 · 14 条提示 · <a href="#appendix-unit-77">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="77" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-77" aria-label="复制单元 77 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit77.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-10.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit77.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>等价类的两条取用子（进 <span class="math">·</span> 出 ✓ —— 就是 <code>r a b</code> 的两个说法 ✓）；</li><li><strong>自反性给出自身在类里</strong> ✓ <span class="math">·</span> <strong>对称/传递</strong> ✓ <span class="math">·</span> <strong>成员的可交换性</strong></li></ul></div><div class="math-display intuition-only" role="math" aria-label="（b ∈ [a] ↔ a ∈ [b] ✓）"><math display="block" class="mathml"><mrow><mo>（</mo><mi>b</mi><mspace width="0.22em"/><mo>∈</mo><mspace width="0.22em"/><mrow><mo>[</mo><mrow><mi>a</mi></mrow><mo>]</mo></mrow><mspace width="0.22em"/><mo>↔</mo><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mo>∈</mo><mspace width="0.22em"/><mrow><mo>[</mo><mrow><mi>b</mi></mrow><mo>]</mo></mrow><mspace width="0.22em"/><mo>✓</mo><mo>）</mo></mrow></math></div></div></section>
 <div class="block prose intuition-only"><ul class="prose-list"><li><strong>旗舰一：相关的点的类互相包含</strong>（<code>r a b ⇒ [a] ⊆ [b]</code> ✓）；</li><li><strong>旗舰二（构造性形态的"相等或不相交"）：不相关 <span class="math">⇒</span> 两个类没有公共点</strong> ✓（<code>¬ r a b ⇒ ¬ ∃ c, c ∈ [a] ∧ c ∈ [b]</code> ✓ —— 教材里"两个类要么相等要么不相交" ✓；这里写成<strong>构造性可证</strong>的形态 ✓，避开"类的相等"那条要外延的路 ✓）。</li></ul></div><h3 class="unit-subhead">77.1 三条库引理（等价类的成员 <span class="math">·</span> 等价的定义 <span class="math">·</span> 自反取用子）</h3><div class="block prose intuition-only"><p>演示：等价类的成员刻画（<code>b ∈ [a]</code> 就是 <code>r a b</code>）。</p></div><article class="decl decl-theorem" id="decl-77-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_equivClass</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
@@ -159,11 +159,20 @@
     (Rel.EquivClass α r b) ⊆ (Rel.EquivClass α r a) :=
   equivClass_subset_of_rel α r he b a (equivClass_symm α r he a b (rel_of_mem_equivClass α r a b h))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-77-1">77.1 三条库引理（等价类的成员 · 等价的定义 · 自反取用子）</a></li>
-<li><a href="#appendix-unit-77">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit24.html" aria-current="false"><span>79</span> 关系闭包</a></li>
+<li><a href="../units/unit25.html" aria-current="false"><span>80</span> 等价关系与划分</a></li>
+<li><a href="../units/unit26.html" aria-current="false"><span>81</span> 划分：等价关系的反方向</a></li>
+<li><a href="../units/unit27.html" aria-current="false"><span>82</span> 商类型与良定义性</a></li>
+<li><a href="../units/unit43.html" aria-current="false"><span>83</span> 等价类与商集的代数刻画</a></li>
+<li><a href="../units/unit76.html" aria-current="false"><span>84</span> 像的核关系</a></li>
+<li class="is-current"><a href="../units/unit77.html" aria-current="page"><span>85</span> 等价类的代数</a></li>
+<li><a href="../units/unit78.html" aria-current="false"><span>86</span> 划分与等价关系的往返</a></li>
+<li><a href="../units/unit79.html" aria-current="false"><span>87</span> 商集上的函数（well-defined）</a></li>
+<li><a href="../units/unit84.html" aria-current="false"><span>88</span> 商与像的往返</a></li>
+<li><a href="../units/unit85.html" aria-current="false"><span>89</span> 商到像的单射性</a></li>
+<li><a href="../units/unit86.html" aria-current="false"><span>90</span> 核与复合、单射</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

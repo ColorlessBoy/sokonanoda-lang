@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 36 — The Carrier of the Reals</p>
 <p class="unit-meta">13 个定义 · 6 个定理 · 3 道练习 · 9 条提示 · <a href="#appendix-unit-36">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="36" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-36" aria-label="复制单元 36 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit36.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-4.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit36.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元㉟ 有了 Cauchy 序列。两个 Cauchy 序列「等价」当且仅当它们逐项最终任意接近：realRel x y 当且仅当 x、y 都是 Cauchy 序列，且对任意 eps&gt;0 存在 N，使 <span class="math">n ≥ N</span> 时 close (x n) (y n) eps 成立。实数就是这些序列的商：Real :<span class="math">= Quot realRel</span>。</p></div></div></section>
 <div class="block prose intuition-only"><p>这里只立载体与构造子：Real.mk 把序列放进商；Real.sound 说相关的序列在商里相等（就是 Quot.sound）；realRel_zero 说常零序列与自身等价，推论是</p></div><div class="math-display intuition-only" role="math" aria-label="mk zero = mk zero"><math display="block" class="mathml"><mrow><mi mathvariant="normal">mk</mi><mspace width="0.22em"/><mi mathvariant="normal">zero</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi mathvariant="normal">mk</mi><mspace width="0.22em"/><mi mathvariant="normal">zero</mi></mrow></math></div><div class="block prose intuition-only"><p>等价关系的传递性（realRel_trans）与 Quot.exact 的反向消去都要三角不等式与序的加法相容，留给后续单元。</p></div><article class="decl decl-def" id="decl-36-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratNegRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratNegRep (x : ratRep) : ratRep :=
@@ -115,12 +115,18 @@
     Real.mk zeroSeq = Real.mk zeroSeq :=
   Real.sound zeroSeq zeroSeq realRel_zero</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-36-1">定义与定理</a></li>
-<li><a href="#ex-36-1">练习</a></li>
-<li><a href="#appendix-unit-36">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit35.html" aria-current="false"><span>35</span> 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li>
+<li class="is-current"><a href="../units/unit36.html" aria-current="page"><span>36</span> 实数的载体：Real := Quot realRel</a></li>
+<li><a href="../units/unit37.html" aria-current="false"><span>37</span> 序与正分母：乘法、消去与配对搬运</a></li>
+<li><a href="../units/unit38.html" aria-current="false"><span>38</span> 有理数的序：传递性</a></li>
+<li><a href="../units/unit39.html" aria-current="false"><span>39</span> 有理数的序与相等相容</a></li>
+<li><a href="../units/unit40.html" aria-current="false"><span>40</span> 实数的相等：自反性</a></li>
+<li><a href="../units/unit41.html" aria-current="false"><span>41</span> 取负与序：绝对值的对称性</a></li>
+<li><a href="../units/unit42.html" aria-current="false"><span>42</span> close 的对称性：实数的相等可以换方向</a></li>
+<li><a href="../units/unit43.html" aria-current="false"><span>43</span> 有理数加法的代表元律：交换与零元</a></li>
+<li><a href="../units/unit44.html" aria-current="false"><span>44</span> 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

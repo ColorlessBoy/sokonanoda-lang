@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 34 — Function Algebra: Composition, Injections, Surjections</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-34">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="34" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-34" aria-label="复制单元 34 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit34.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-12.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit34.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§3.3 Functions</strong> 的 composition/inverses 一段；Halmos《Naive Set Theory》<strong>§10 Inverses and Composites</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.12 章第二个单元）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>合成的基本律</strong>（结合律 <span class="math">·</span> 恒等律）<span class="math">·</span> <strong>单射/满射/双射的合成</strong> <span class="math">·</span><strong>两条消去律</strong>（<code>g ∘ f</code> 单射 <span class="math">⇒</span> <code>f</code> 单射；<code>g ∘ f</code> 满射 <span class="math">⇒</span> <code>g</code> 满射）<span class="math">·</span> 双射的两条取用子 ✓</p></div><div class="block prose intuition-only"><p><strong>写法约定</strong>：<code>Injective</code> / <code>Surjective</code> / <code>Bijective</code> 都是<strong>定义头</strong> <span class="math">⇒</span> 用之前先 <strong><span class="math">λ</span> 绑定</strong>（G-73 形状 ①）；<strong>"把 <code>g</code> 作用在等式两边"要用搬运引理 <code>rel_subst_right</code></strong>（关系取"<code>g</code> 两边相等"），<strong>别用 <code>congrArg</code></strong>（大/嵌套位置上解不出宇宙层级，实测）✓ <code>Exists.elim</code> / <code>Exists.intro</code> 的<strong>前导实参一律写全</strong>（G-73 形状 ②）✓</p></div><h3 class="unit-subhead">34.1 三条库引理（单射 / 满射 / 双射的展开）</h3><div class="block prose intuition-only"><p>演示：单射的展开（"像相等 <span class="math">⇒</span> 原像相等"）。</p></div><article class="decl decl-theorem" id="decl-34-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_injective_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_injective_def (α β : Type) (f : α → β) :
@@ -206,15 +206,15 @@
       (rel_subst_right β (fun (u : β) (v : β) =&gt; @Eq.{1} γ (g u) (g v)) (f a) (f a) b ha  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
         (@Eq.refl.{1} γ (g (f a)))) hb)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-34-1">34.1 三条库引理（单射 / 满射 / 双射的展开）</a></li>
-<li><a href="#ex-34-1">34.2 合成的基本律：本单元写逐点形态（等式形态见单元㊹）</a></li>
-<li><a href="#ex-34-4">34.3 单射 / 满射 / 双射的合成</a></li>
-<li><a href="#ex-34-7">34.4 两条消去律（从复合反推分量）</a></li>
-<li><a href="#ex-34-9">34.5 双射的两条取用子</a></li>
-<li><a href="#appendix-unit-34">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit33.html" aria-current="false"><span>98</span> 幂集代数与特征函数</a></li>
+<li class="is-current"><a href="../units/unit34.html" aria-current="page"><span>99</span> 函数代数：合成与单满射</a></li>
+<li><a href="../units/unit35.html" aria-current="false"><span>100</span> 逆函数：左逆、右逆与双边逆</a></li>
+<li><a href="../units/unit44.html" aria-current="false"><span>101</span> 两条外延公理的应用</a></li>
+<li><a href="../units/unit51.html" aria-current="false"><span>102</span> 幂集的格性质</a></li>
+<li><a href="../units/unit68.html" aria-current="false"><span>103</span> 幂集是完备格</a></li>
+<li><a href="../units/unit70.html" aria-current="false"><span>104</span> 幂集对交并的分配</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

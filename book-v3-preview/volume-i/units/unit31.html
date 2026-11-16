@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 31 — Monotone Maps and Preservation of Suprema</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-31">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="31" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-31" aria-label="复制单元 31 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit31.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-11.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit31.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§7.1 Orderings</strong> 的 order-preserving map 那一段；Halmos《Naive Set Theory》<strong>§14 Order</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.11 章第四个单元）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>单调的合成还是单调</strong> <span class="math">·</span> <strong>常函数单调</strong> <span class="math">·</span><strong>单调把上界/下界送到像上</strong> <span class="math">·</span> <strong>序反射（"像上有序 <span class="math">⇒</span> 原来有序"）</strong> <span class="math">·</span><strong>旗舰：序同构保持上确界</strong> —— 单调 <span class="math">+</span> 反射 <span class="math">+</span> 满射 <span class="math">⇒</span> <code>f (sup A)</code> 是像族的上确界 ✓</p></div><div class="block prose intuition-only"><p><strong>写法约定</strong>：<code>Monotone</code> / <code>OrderReflecting</code> / <code>IsSup</code> / <code>UpperBound</code> 都是<strong>定义头</strong> <span class="math">⇒</span> 用之前先 <strong><span class="math">λ</span> 绑定</strong>（G-73 形状 ①）；库里有取用子（<code>monotone_apply</code> / <code>reflecting_apply</code>）优先用 ✓ <strong>搬运等式要挑对引理与方向</strong>：<code>rel_subst_left</code> 改的是第二个坐标（向前），<code>rel_subst_right</code> 也是第二个坐标（向后）；<strong>要改第一个坐标就把关系翻过来</strong>（本单元实测）✓</p></div><h3 class="unit-subhead">31.1 三条库引理（单调/反射的展开 <span class="math">+</span> 单调的用法）</h3><div class="block prose intuition-only"><p>演示：单调的展开（"保序"）。</p></div><article class="decl decl-theorem" id="decl-31-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_monotone_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_monotone_def (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β) :
@@ -247,15 +247,15 @@
                 (isSup_least α r A b hb a0
                   (orderIso_upper_bound_pullback α β r s f hr A c a0 ha0 hc)))))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-31-1">31.1 三条库引理（单调/反射的展开 + 单调的用法）</a></li>
-<li><a href="#ex-31-1">31.2 单调的代数：恒等 · 合成 · 常函数</a></li>
-<li><a href="#ex-31-4">31.3 单调把界送到像上</a></li>
-<li><a href="#ex-31-6">31.4 反射：从像上的序回到原来的序</a></li>
-<li><a href="#ex-31-9">31.5 旗舰：序同构保持上确界</a></li>
-<li><a href="#appendix-unit-31">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit28.html" aria-current="false"><span>91</span> 集合代数：分配律与 De Morgan</a></li>
+<li><a href="../units/unit29.html" aria-current="false"><span>92</span> 上界、下界与确界</a></li>
+<li><a href="../units/unit30.html" aria-current="false"><span>93</span> 格与对偶：确界的代数</a></li>
+<li class="is-current"><a href="../units/unit31.html" aria-current="page"><span>94</span> 单调函数与序同构保持确界</a></li>
+<li><a href="../units/unit32.html" aria-current="false"><span>95</span> 函数空间上的逐点序</a></li>
+<li><a href="../units/unit46.html" aria-current="false"><span>96</span> 对称差与布尔环</a></li>
+<li><a href="../units/unit50.html" aria-current="false"><span>97</span> 分配律族</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

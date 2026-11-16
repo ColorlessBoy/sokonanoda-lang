@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 21 — Transitivity of Integer Equality</p>
 <p class="unit-meta">3 个定义 · 12 个定理 · 5 道练习 · 15 条提示 · <a href="#appendix-unit-21">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="21" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-21" aria-label="复制单元 21 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit21.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-2.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit21.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元⑳ 把 <span class="math">ℚ</span> 建成 Quot ratRel，并结清了自反与对称两条腿。要说明 ratRel 是等价关系（Quot 的商才有意义），还差传递性：ratRel x y 且 ratRel y z 推出 ratRel x z。</p></div></div></section>
 <div class="block prose intuition-only"><p>把 ratRel 展开就是「交叉相乘后的两个整数代表元相等」，所以第一块地基是整数相等的传递性：intRel p q 且 intRel q r 推出 intRel p r。它纯粹是 <span class="math">ℕ</span> 加法的活儿：两条假设各加一个数把中间项对齐，用 add_rotate 把同一个 d 转到最右边，再用加法消去律把它消掉。这一步不需要乘法，也不需要函数外延性，是整条链里唯一能单独成单元的。</p></div><div class="block prose intuition-only"><p>后面的顺序是：先证 <span class="math">ℤ</span> 乘法结合律（交叉相乘要把 <span class="math">(a·d)·f</span> 与 <span class="math">a·(d·f)</span> 对齐），再证 <span class="math">ℕ</span> 正因子消去，最后才是 ratRel 传递性。三项缺一项都走不通。</p></div><div class="block prose intuition-only"><p>「差相等」关系：<span class="math">a-b = c-d</span> 当且仅当 <span class="math">a+d = b+c</span>。</p></div><article class="decl decl-def" id="decl-21-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def intRel (a b : Prod Nat Nat) : Prop :=
@@ -237,12 +237,17 @@
     (@Eq.refl.{1} Nat 6)
     (@Eq.refl.{1} Nat 4)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-21-1">定义与定理</a></li>
-<li><a href="#ex-21-1">练习</a></li>
-<li><a href="#appendix-unit-21">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit20.html" aria-current="false"><span>20</span> 有理数与商构造</a></li>
+<li class="is-current"><a href="../units/unit21.html" aria-current="page"><span>21</span> 整数相等的传递性</a></li>
+<li><a href="../units/unit22.html" aria-current="false"><span>22</span> ℕ 乘法的分配律与结合律</a></li>
+<li><a href="../units/unit23.html" aria-current="false"><span>23</span> ℤ 乘法的结合律（代表元层）</a></li>
+<li><a href="../units/unit24.html" aria-current="false"><span>24</span> ℕ 正因子的消去律</a></li>
+<li><a href="../units/unit25.html" aria-current="false"><span>25</span> 有理数相等的传递性</a></li>
+<li><a href="../units/unit26.html" aria-current="false"><span>26</span> 有理数加法的代表元公式与良定义性</a></li>
+<li><a href="../units/unit27.html" aria-current="false"><span>27</span> 有理数乘法的代表元公式与具体计算</a></li>
+<li><a href="../units/unit28.html" aria-current="false"><span>28</span> 有理数乘法的良定义性</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

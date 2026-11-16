@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 35 — Inverse Functions</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-35">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="35" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-35" aria-label="复制单元 35 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit35.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-12.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit35.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§3.3 Functions</strong> 的 inverses 一段；Halmos《Naive Set Theory》<strong>§10 Inverses and Composites</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.12 章第三个单元，<strong>本章收口</strong>）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"（<strong>"数据版"的逆</strong> —— 逆函数由调用者<strong>交进来</strong>，而不是"存在"出来）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>左逆 <span class="math">⇒</span> 单射</strong> <span class="math">·</span> <strong>右逆 <span class="math">⇒</span> 满射</strong> <span class="math">·</span> <strong>双边逆 <span class="math">⇒</span> 双射</strong>（本单元旗舰）；</li><li><strong>左逆/右逆在合成下保持</strong>；</li><li><strong>左逆与右逆逐点相等</strong>（同一个 <code>f</code> 的左逆与右逆其实是同一个函数 —— 本单元写 <strong>逐点形态</strong>；函数相等的形态要外延，本语言<strong>有</strong>（<code>lib.Extensionality</code>）<span class="math">⇒</span> 见单元㊹）；</li><li><strong>逆的对称性</strong>（<code>f</code> 与 <code>g</code> 互为逆 <span class="math">⇔</span> <code>g</code> 与 <code>f</code> 互为逆）✓</li></ul></div><div class="block prose intuition-only"><p><strong>写法约定</strong>：「把 <code>g</code> 作用在等式两边」用<strong>搬运引理</strong> <code>rel_subst_left</code>/<code>rel_subst_right</code>（关系取"<code>g</code> 两边相等"）—— <strong>别用 <code>congrArg</code></strong>（这些位置解不出宇宙层级，实测）✓ 搬运的<strong>方向</strong>要按引理的两条形状挑：<code>rel_subst_right</code> 把第二个坐标<strong>向前</strong>换，<code>rel_subst_left</code> 把它<strong>向后</strong>换 ✓（本单元为此改了一次）</p></div><h3 class="unit-subhead">35.1 三条库引理（左逆 / 右逆 / 双边逆的展开）</h3><div class="block prose intuition-only"><p>演示：左逆的展开（"先 <code>f</code> 再 <code>g</code> 回到原地"）。</p></div><article class="decl decl-theorem" id="decl-35-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_leftInverse_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_leftInverse_def (α β : Type) (g : β → α) (f : α → β) :
@@ -193,15 +193,15 @@
     (h : Function.RightInverse α β g f) (y : β) : @Eq.{1} β (f (g y)) y :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
   (fun (hu : ∀ (y' : β), @Eq.{1} β (f (g y')) y') =&gt; hu y) h  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-35-1">35.1 三条库引理（左逆 / 右逆 / 双边逆的展开）</a></li>
-<li><a href="#ex-35-1">35.2 两个取用子与一条用法</a></li>
-<li><a href="#ex-35-4">35.3 逆给出单射 / 满射（本单元的正题）</a></li>
-<li><a href="#ex-35-7">35.4 逆在合成下保持</a></li>
-<li><a href="#ex-35-9">35.5 必破：左逆与右逆其实是同一个函数（逐点形态）</a></li>
-<li><a href="#appendix-unit-35">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit33.html" aria-current="false"><span>98</span> 幂集代数与特征函数</a></li>
+<li><a href="../units/unit34.html" aria-current="false"><span>99</span> 函数代数：合成与单满射</a></li>
+<li class="is-current"><a href="../units/unit35.html" aria-current="page"><span>100</span> 逆函数：左逆、右逆与双边逆</a></li>
+<li><a href="../units/unit44.html" aria-current="false"><span>101</span> 两条外延公理的应用</a></li>
+<li><a href="../units/unit51.html" aria-current="false"><span>102</span> 幂集的格性质</a></li>
+<li><a href="../units/unit68.html" aria-current="false"><span>103</span> 幂集是完备格</a></li>
+<li><a href="../units/unit70.html" aria-current="false"><span>104</span> 幂集对交并的分配</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

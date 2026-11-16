@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 40 — The Transitive Closure, Algebraically</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-40">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="40" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-40" aria-label="复制单元 40 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit40.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-13.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit40.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§10</strong> 与 <strong>§7</strong>；Enderton《Elements of Set Theory》<strong>§3.6</strong>（closure）。大纲：<code>set-theory-syllabus.md</code> §4.1（I.13 章第五个单元 —— 把单元㉔ 的<strong>交集式闭包</strong> 与单元㊲ 的<strong>代数刻画</strong>合起来）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>闭包的两端</strong>：<code>r ⊆ r⁺</code>（含）<span class="math">·</span> <code>r⁺</code> 传递（闭）<span class="math">·</span> <strong>最小性</strong>（任何传递的 <code>s ⊇ r</code> 都包含 <code>r⁺</code>）—— 这三条正是"最小传递关系"的定义 ✓</li><li><strong>旗舰一：<code>r</code> 传递 <span class="math">⟺</span> <code>r⁺ ⊆ r</code></strong>（"闭包不动 <span class="math">⟺</span> 已经传递"）；</li><li><strong>旗舰二：闭包幂等</strong>（<code>(r⁺)⁺ = r⁺</code>）；</li><li><strong>旗舰三：闭包对 <code>•</code> 封闭</strong>（<code>r • r⁺ ⊆ r⁺</code> 与 <code>r⁺ • r⁺ ⊆ r⁺</code> —— 把单元㊲ 的"传递 <span class="math">⟺</span> <code>r • r ⊆ r</code>"用在闭包上就是这两条）✓</li></ul></div><h3 class="unit-subhead">40.1 三条库引理（传递闭包的取用子 <span class="math">·</span> 另外两种闭包的展开）</h3><div class="block prose intuition-only"><p>演示：传递闭包的<strong>取用子</strong>（把 <code>r⁺ a b</code> 用在具体的传递关系 <code>s ⊇ r</code> 上）。</p></div><article class="decl decl-theorem" id="decl-40-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_transClosure_elim</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_transClosure_elim (α : Type) (r s : Rel α α) (a b : α)
@@ -256,14 +256,16 @@
       (fun (h : r a b) =&gt; Or.inr h)
       (fun (h : r b a) =&gt; Or.inl h) hab</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-40-1">40.1 三条库引理（传递闭包的取用子 · 另外两种闭包的展开）</a></li>
-<li><a href="#ex-40-1">40.2 闭包的两端：含（r ⊆ r⁺）· 闭（r⁺ 传递）· 最小</a></li>
-<li><a href="#ex-40-6">40.3 旗舰：传递 ⟺ 闭包不动 · 闭包幂等</a></li>
-<li><a href="#ex-40-8">40.4 旗舰：闭包对 • 封闭（把单元㊲ 的刻画用在闭包上）</a></li>
-<li><a href="#appendix-unit-40">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit36.html" aria-current="false"><span>105</span> 关系的代数</a></li>
+<li><a href="../units/unit37.html" aria-current="false"><span>106</span> 关系的代数刻画</a></li>
+<li><a href="../units/unit38.html" aria-current="false"><span>107</span> 序关系的关系代数视角</a></li>
+<li><a href="../units/unit39.html" aria-current="false"><span>108</span> 关系的像、原像与等价核</a></li>
+<li class="is-current"><a href="../units/unit40.html" aria-current="page"><span>109</span> 传递闭包的代数刻画</a></li>
+<li><a href="../units/unit41.html" aria-current="false"><span>110</span> 良基关系（极小元原理）</a></li>
+<li><a href="../units/unit45.html" aria-current="false"><span>111</span> 关系的单值性与函数的图</a></li>
+<li><a href="../units/unit52.html" aria-current="false"><span>112</span> 关系的复合：单位律与逐点形态</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 15 — Transitive Sets and Ordinals</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-15">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="15" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-15" aria-label="复制单元 15 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit15.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-6.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit15.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§7.6 Ordinal Numbers</strong>（<span class="math">+</span> §7.5 Isomorphisms 的前半）；Halmos《Naive Set Theory》<strong>§19 Ordinal Numbers</strong>（<span class="math">+</span> §20 Sets of Ordinal Numbers 的开头）。大纲：<code>set-theory-syllabus.md</code> §4.1（I.6 章）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>序数 <span class="math">=</span> 传递集 <span class="math">+</span> 它的元素都传递</strong>（Isabelle 的 <code>Ord</code>），再加上环境的良基性；由这三条能直接推出<strong>教材核心定理 —— 序数的元素是序数</strong>。还有两道<strong>必破题</strong>：一旦把"传递"错误地当成<strong>全局</strong>性质，整个序数谓词就退化成只剩良基那一半（这正是 <code>lib/Ordinal</code> 2026-10-01 重定形要修的那个坑，见该文件头的 ⚠）。</p></div><div class="block prose intuition-only"><p><strong>写法约定（本单元特有）</strong>：域是一个类型 <code>α</code>，成员关系是一个<strong>二元谓词</strong> <code>E : α → α → Prop</code>（<code>E y x</code> 读作 <code>y ∈ x</code>）—— 这就是"宇宙内化"的读法；序数写成<strong>谓词</strong> <code>α → Prop</code>，因为"全体序数"不是集合（Burali-Forti）✓</p></div><h3 class="unit-subhead">15.1 传递集与序数的定义</h3><div class="block prose intuition-only"><p>读法（逐条对 Isabelle <code>ZFC_in_HOL</code> §1.4，出处见 <code>lib/Ordinal</code> 文件头）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><code>IsTransitive α E x</code>："x 是传递集" —— x 的元素还是 x 的元素；</li><li><code>IsOrdinal α E x</code> <span class="math">=</span> 传递集 <span class="math">∧</span> <strong>元素都传递</strong> <span class="math">∧</span> 环境良基。</li></ul></div><div class="block prose intuition-only"><p>演示：传递集的定义展开。</p></div><article class="decl decl-theorem" id="decl-15-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_isTransitive_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_isTransitive_def (α : Type) (E : α → α → Prop) (x : α) :
@@ -171,16 +171,21 @@
             hasMin_intro α (EmptyRelation α α) P m hm
               (fun (y : α) (hy : P y) (hf : EmptyRelation α α y m) =&gt; hf))))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-15-1">15.1 传递集与序数的定义</a></li>
-<li><a href="#ex-15-1">15.2 把序数拆开用（三条取用子）</a></li>
-<li><a href="#ex-15-4">15.3 必证（本单元旗舰）：序数的元素是序数</a></li>
-<li><a href="#ex-15-5">15.4 后继序数</a></li>
-<li><a href="#ex-15-7">15.5 序数的传递性怎么用</a></li>
-<li><a href="#ex-15-8">15.6 必破：&quot;传递&quot;不能当成全局性质</a></li>
-<li><a href="#appendix-unit-15">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li class="is-current"><a href="../units/unit15.html" aria-current="page"><span>52</span> 传递集与序数</a></li>
+<li><a href="../units/unit16.html" aria-current="false"><span>53</span> 序数的序：外延性、反对称与零序数</a></li>
+<li><a href="../units/unit42.html" aria-current="false"><span>54</span> 良序集的「最小元」</a></li>
+<li><a href="../units/unit80.html" aria-current="false"><span>55</span> 序数的元素仍是序数</a></li>
+<li><a href="../units/unit81.html" aria-current="false"><span>56</span> 后继的成员刻画</a></li>
+<li><a href="../units/unit82.html" aria-current="false"><span>57</span> 后继与序数的合流</a></li>
+<li><a href="../units/unit83.html" aria-current="false"><span>58</span> 序数的无环性</a></li>
+<li><a href="../units/unit106.html" aria-current="false"><span>59</span> 良基递归（Acc）</a></li>
+<li><a href="../units/unit107.html" aria-current="false"><span>60</span> ∈-归纳与序数三歧（上）</a></li>
+<li><a href="../units/unit108.html" aria-current="false"><span>61</span> 序数三歧（引理与装配）</a></li>
+<li><a href="../units/unit109.html" aria-current="false"><span>62</span> 序数上的递归与加法（关系版 · 逆引理与结合律）</a></li>
+<li><a href="../units/unit110.html" aria-current="false"><span>63</span> 选择公理的取数据（良序定理线入口）</a></li>
+<li><a href="../units/unit111.html" aria-current="false"><span>64</span> ℕ 的算术律（自建 add/mul）</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

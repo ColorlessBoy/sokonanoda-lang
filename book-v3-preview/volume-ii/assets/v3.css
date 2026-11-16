@@ -431,3 +431,6 @@ html{scroll-behavior:smooth}
 
 /* chapter pages: skip off-screen unit rendering; keeps long chapters responsive */
 .chapter-unit{content-visibility:auto;contain-intrinsic-size:auto 800px}
+
+/* right rail on unit pages: chapter unit list, not page-section TOC */
+.unit-layout>.page-outline ol a[aria-current="page"]{color:var(--accent);font-weight:650;background:color-mix(in srgb,var(--accent) 9%,transparent)}

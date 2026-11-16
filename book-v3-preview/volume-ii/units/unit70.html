@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 70 — The Number Chain: Addition Across the Four Layers</p>
 <p class="unit-meta">3 个定义 · 6 个定理 · 6 道练习 · 18 条提示 · <a href="#appendix-unit-70">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="70" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-70" aria-label="复制单元 70 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit70.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-7.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit70.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>上一单元把序从 <span class="math">ℕ</span> 一路搬到 <span class="math">ℝ</span>。本单元搬加法：<span class="math">ℕ</span> 的 Nat.add 在 <span class="math">ℤ</span> 的代表元上就是 addRep；<span class="math">ℚ</span> 的代表元加法是 ratAddRep；<span class="math">ℝ</span> 的加法是三元关系 addRel a b c（存在且唯一），不是函数——Quot.lift 外层要函数相等，而杂点让像不唯一。</p></div></div></section>
 <div class="block prose intuition-only"><p>于是「嵌入保持加法」在 <span class="math">ℝ</span> 层写成 <span class="math">addRel (natToReal n) (natToReal m) (natToReal (n+m))</span>。每一层都只做定义性归约加一条已知律：addRep 在分母 0 的序对上归约成 <span class="math">(n+m</span>, 0)（<span class="math">0+0</span> 归约成 0）；ratAddRep 在分母 1 上归约成 <span class="math">(p+q)/1</span>；addRel 的引入规则直接给出和，两个 Cauchy 守卫由常序列引理付清；把这些合成就是整条链保持加法。</p></div><div class="block prose intuition-only"><p>代价说明：<span class="math">ℝ</span> 层是关系而不是函数，所以没有「嵌入是群同态」的函数等式可写；写成 addRel 的三元组正是上一批单元的诚实部分结论。</p></div><div class="block prose intuition-only"><p>先给两个代表元嵌入与两层加法保持，再合成 <span class="math">ℕ → ℝ</span> 并验证它保持加法，最后落在具体数字与和的唯一性上。</p></div><h3 class="unit-subhead">70.0 两个代表元嵌入（与 69 相同）</h3><article class="decl decl-def" id="decl-70-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">natToIntRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def natToIntRep (n : Nat) : Prod Nat Nat := @prod_mk Nat Nat n Nat.zero</code></pre></div></article>
@@ -123,18 +123,12 @@
   addRel_unique (natToReal 1) (natToReal 2) c (natToReal 3)
     h (natToReal_add 1 2)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-70-1">70.0 两个代表元嵌入（与 69 相同）</a></li>
-<li><a href="#ex-70-1">70.1 加法在 ℕ → ℤ 上保持</a></li>
-<li><a href="#ex-70-2">70.2 加法在 ℤ → ℚ 上保持</a></li>
-<li><a href="#decl-70-5">70.3 合成：ℕ → ℝ</a></li>
-<li><a href="#ex-70-3">70.4 加法在 ℚ → ℝ 上保持（三元关系版）</a></li>
-<li><a href="#ex-70-4">70.5 整条链：ℕ 的加法在 ℝ 里仍是加法</a></li>
-<li><a href="#ex-70-5">70.6 具体：1 + 2 = 3 在 ℝ 里成立</a></li>
-<li><a href="#ex-70-6">70.7 具体：和是唯一的</a></li>
-<li><a href="#appendix-unit-70">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit69.html" aria-current="false"><span>69</span> 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li>
+<li class="is-current"><a href="../units/unit70.html" aria-current="page"><span>70</span> 数系链：加法在四层间的迁移</a></li>
+<li><a href="../units/unit71.html" aria-current="false"><span>71</span> 数系综合：商的代价——一座桥与两座桥</a></li>
+<li><a href="../units/unit72.html" aria-current="false"><span>72</span> 数系综合：完备性盘点——代表元层与集合层</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

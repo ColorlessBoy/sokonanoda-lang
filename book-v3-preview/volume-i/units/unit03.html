@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 3 — Union, Intersection, Difference &amp; Powerset</p>
 <p class="unit-meta">14 个定理 · 11 道练习 · 33 条提示 · <a href="#appendix-unit-3">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="3" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-3" aria-label="复制单元 3 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit03.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-1.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit03.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>这一层是"定义展开"（L2，没有数学内容），所以直接交给你；练习从 3.1 起。三条演示都写成 <code>by</code> 块：目标用记法，证明体点名交出手里那条成员判定引理。差的成员判定 Set.mem_sdiff 形状相同，留给练习 8 自己展开着用。</p></div></div></section>
 <h3 class="unit-subhead">3.0 成员判定（演示，已写好）：运算与幂集"里面装的是什么"</h3><div class="block prose intuition-only"><p>演示：<span class="math">x ∈ A</span> ∪ B 当且仅当 <span class="math">x ∈ A</span> 或 <span class="math">x ∈ B</span>。</p></div><article class="decl decl-theorem" id="decl-3-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_union</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
@@ -256,16 +256,23 @@ match / constructor / left / right / use / exfalso / cases / have / sorry）。
     exact hx
   exact Iff.mpr (Set.mem_powerset_iff A A) hAA</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-3-1">3.0 成员判定（演示，已写好）：运算与幂集&quot;里面装的是什么&quot;</a></li>
-<li><a href="#ex-3-1">3.1 并：两个&quot;塞进去&quot;的包含，以及 ∪ 的泛性质（A ∪ B 是最小的公共上界）</a></li>
-<li><a href="#ex-3-4">3.2 交：与 3.1 恰好对偶（两条包含从 ∩ 出来，一条包含进 ∩，外加 ∩ 的泛性质）</a></li>
-<li><a href="#ex-3-8">3.3 差：A \ B 是 A 与&quot;B 的补&quot;的交，所以它当然落在 A 里</a></li>
-<li><a href="#ex-3-9">3.4 幂集：𝒫 关于 ⊆ 单调（幂集元素是上一层类型的集合，注意层数）</a></li>
-<li><a href="#ex-3-10">3.5 D 类：真假要自己判——两条都不能按字面写成 theorem</a></li>
-<li><a href="#appendix-unit-3">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit01.html" aria-current="false"><span>01</span> 集合与隶属</a></li>
+<li><a href="../units/unit02.html" aria-current="false"><span>02</span> 子集、空集与包含三律</a></li>
+<li class="is-current"><a href="../units/unit03.html" aria-current="page"><span>03</span> 并、交、差与幂集</a></li>
+<li><a href="../units/unit04.html" aria-current="false"><span>04</span> 外延性与集合等式</a></li>
+<li><a href="../units/unit58.html" aria-current="false"><span>05</span> 差集的代数</a></li>
+<li><a href="../units/unit59.html" aria-current="false"><span>06</span> 差集的代数（二）</a></li>
+<li><a href="../units/unit60.html" aria-current="false"><span>07</span> 补集的代数</a></li>
+<li><a href="../units/unit61.html" aria-current="false"><span>08</span> 外延打包</a></li>
+<li><a href="../units/unit62.html" aria-current="false"><span>09</span> 外延性的推论</a></li>
+<li><a href="../units/unit63.html" aria-current="false"><span>10</span> 差集的等式层（打包续）</a></li>
+<li><a href="../units/unit64.html" aria-current="false"><span>11</span> 差集的等式层（三）：两步走</a></li>
+<li><a href="../units/unit65.html" aria-current="false"><span>12</span> 并的差分配律与减法反变</a></li>
+<li><a href="../units/unit66.html" aria-current="false"><span>13</span> 包含关系的代数</a></li>
+<li><a href="../units/unit104.html" aria-current="false"><span>14</span> 排中律与经典推论</a></li>
+<li><a href="../units/unit105.html" aria-current="false"><span>15</span> 经典等价三件套</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

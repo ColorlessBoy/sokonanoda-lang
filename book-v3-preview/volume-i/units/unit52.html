@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 52 — Composition of Relations: Identity Laws, Pointwise</p>
 <p class="unit-meta">1 个定义 · 13 个定理 · 10 道练习 · 18 条提示 · <a href="#appendix-unit-52">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="52" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-52" aria-label="复制单元 52 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit52.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-13.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit52.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§10</strong>（inverses and composites）；Enderton《Elements of Set Theory》<strong>§3.4</strong>（compositions）。大纲：<code>set-theory-syllabus.md</code> §4.1（I.13 章补强 —— 接单元㊱㊲（结合律与逆）与单元㊺（单值性）：本单元做<strong>恒等关系的单位律</strong>与<strong>单调性</strong>的逐点形态 ✓）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>复合的成员刻画</strong>（两条取用子：造出中间点 / 拆出中间点）；</li><li><strong>旗舰：恒等关系的单位律</strong> —— <code>r • id = r</code> 与 <code>id • r = r</code> 的<strong>逐点形态</strong> ✓（见证分别取 <code>b</code> 与 <code>a</code> 自己 ✓）；</li><li><strong>单调</strong>：两个方向的"逐点包含"<span class="math">⇒</span> 复合的逐点包含（含<strong>单边单调</strong>的特例 ✓）。</li></ul></div><h3 class="unit-subhead">52.0 画布给的词汇：恒等关系 <code>idRel</code>（单元㊱ 起就在用 ✓）</h3><article class="decl decl-def" id="decl-52-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">idRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def idRel (α : Type) : Rel α α :=
@@ -190,14 +190,16 @@
         ((fun (hu : (s ⁻¹) c b ↔ s b c) =&gt; Iff.mp hu (And.left hb))
           (Rel.inv_apply β γ s c b)))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-52-1">52.0 画布给的词汇：恒等关系 idRel（单元㊱ 起就在用 ✓）</a></li>
-<li><a href="#decl-52-2">52.1 三条库引理（复合的成员 · 逆的成员 · 恒等关系落在自己上）</a></li>
-<li><a href="#ex-52-1">52.2 复合的两条取用子</a></li>
-<li><a href="#ex-52-3">52.3 单位律（逐点）与单调</a></li>
-<li><a href="#appendix-unit-52">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit36.html" aria-current="false"><span>105</span> 关系的代数</a></li>
+<li><a href="../units/unit37.html" aria-current="false"><span>106</span> 关系的代数刻画</a></li>
+<li><a href="../units/unit38.html" aria-current="false"><span>107</span> 序关系的关系代数视角</a></li>
+<li><a href="../units/unit39.html" aria-current="false"><span>108</span> 关系的像、原像与等价核</a></li>
+<li><a href="../units/unit40.html" aria-current="false"><span>109</span> 传递闭包的代数刻画</a></li>
+<li><a href="../units/unit41.html" aria-current="false"><span>110</span> 良基关系（极小元原理）</a></li>
+<li><a href="../units/unit45.html" aria-current="false"><span>111</span> 关系的单值性与函数的图</a></li>
+<li class="is-current"><a href="../units/unit52.html" aria-current="page"><span>112</span> 关系的复合：单位律与逐点形态</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

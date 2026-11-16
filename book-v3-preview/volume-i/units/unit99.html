@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 99 — Monotonicity of the Power Set</p>
 <p class="unit-meta">1 个定义 · 10 个定理 · 7 道练习 · <a href="#appendix-unit-99">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="99" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-99" aria-label="复制单元 99 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit99.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-3.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit99.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>局部幂集词汇</strong> <code>Pow α A</code>（<span class="math">=</span> "是 <code>A</code> 的子集" ✓ —— 与 <code>Set.powerset</code> 同义 ✓，但<strong>自带 apply 引理</strong> ✓，便于本单元自足 ✓）；</li><li><strong>成员 <span class="math">⇔</span> 子集</strong>（两个方向 ✓）<span class="math">·</span> <strong>子集传递</strong>（显式复合 ✓）；</li><li><strong>旗舰：幂集单调</strong> ✓（<code>A ⊆ B ⇒ Pow A ⊆ Pow B</code> ✓）；</li><li><strong><code>A ⊆ univ</code></strong> ✓ <span class="math">·</span> <strong><code>Pow A ⊆ Pow univ</code></strong> ✓ <span class="math">·</span> <strong><code>A ∈ Pow univ</code></strong> ✓。</li></ul></div></div></section>
 <article class="decl decl-def" id="decl-99-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Pow</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def Pow (α : Type) (A : Set α) : Set (Set α) :=
@@ -113,12 +113,24 @@
   pow_mono α A (@Set.univ α) (subset_univ α A)</code></pre></details><details class="appendix-solution" id="app-sol-99-7"><summary>练习 7 · univ_pow_mem <span class="sol-meta">定理</span></summary><pre><code>theorem univ_pow_mem (α : Type) (A : Set α) : A ∈ Pow α (@Set.univ α) :=
   subset_pow_mem α (@Set.univ α) A (subset_univ α A)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-99-1">定义与定理</a></li>
-<li><a href="#ex-99-1">练习</a></li>
-<li><a href="#appendix-unit-99">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit08.html" aria-current="false"><span>20</span> 像与原像</a></li>
+<li><a href="../units/unit09.html" aria-current="false"><span>21</span> 等势（基数 Ⅰ）</a></li>
+<li><a href="../units/unit10.html" aria-current="false"><span>22</span> 可数与 Cantor 定理（基数 Ⅱ）</a></li>
+<li><a href="../units/unit73.html" aria-current="false"><span>23</span> 像与广义并交的分配</a></li>
+<li><a href="../units/unit74.html" aria-current="false"><span>24</span> 原像与广义并交的分配</a></li>
+<li><a href="../units/unit92.html" aria-current="false"><span>25</span> 等势的代数</a></li>
+<li><a href="../units/unit93.html" aria-current="false"><span>26</span> 等势的传递</a></li>
+<li><a href="../units/unit96.html" aria-current="false"><span>27</span> 势的比较（自反与传递）</a></li>
+<li><a href="../units/unit97.html" aria-current="false"><span>28</span> 等势 ⇒ 双向势比较</a></li>
+<li><a href="../units/unit98.html" aria-current="false"><span>29</span> 势比较的单调性</a></li>
+<li class="is-current"><a href="../units/unit99.html" aria-current="page"><span>30</span> 幂集的单调性</a></li>
+<li><a href="../units/unit100.html" aria-current="false"><span>31</span> 势比较的搬运</a></li>
+<li><a href="../units/unit101.html" aria-current="false"><span>32</span> 空集与子集的点态代数</a></li>
+<li><a href="../units/unit102.html" aria-current="false"><span>33</span> 相互包含与点态外延</a></li>
+<li><a href="../units/unit103.html" aria-current="false"><span>34</span> 双向势比较何时升级为等势</a></li>
+<li><a href="../units/unit112.html" aria-current="false"><span>35</span> Cantor–Bernstein 定理（经选择公理）</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 38 — Order Relations, Algebraically</p>
 <p class="unit-meta">2 个定义 · 13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-38">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="38" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-38" aria-label="复制单元 38 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit38.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-13.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit38.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§10</strong> 与 <strong>§14</strong>；Enderton《Elements of Set Theory》<strong>§7.1 Orderings</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.13 章第三个单元 —— 把单元⑬ 的序论用单元㊱㊲ 的代数语言<strong>重述一遍</strong>）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"（把"反对称/非自反/非对称/偏序"翻译成代数式子）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>反对称 <span class="math">⟺</span> "两个方向同时成立 <span class="math">⇒</span> 相等"</strong>（<code>r ∩ r ⁻¹ ⊆ idRel</code> 的逐点形态）；</li><li><strong>非自反 <span class="math">⟺</span> 恒等关系那份被排除</strong>；<strong>非对称 <span class="math">⟺</span> 两个方向不能同时成立</strong>；</li><li><strong>旗舰：非自反 <span class="math">+</span> 传递 <span class="math">⇒</span> 非对称</strong>（经典的"从 <code>a &lt; b</code> 与 <code>b &lt; a</code> 用传递性逼出 <code>a &lt; a</code>"）；</li><li><strong>偏序 <span class="math">⟺</span> 三条代数条件</strong>（<code>idRel ⊆ r</code> <span class="math">·</span> 反对称 <span class="math">·</span> <code>r • r ⊆ r</code>），反方向也成立 ✓</li></ul></div><h3 class="unit-subhead">38.0 画布给的新词汇：<strong>恒等关系</strong> 与 <strong>非对称</strong></h3><article class="decl decl-def" id="decl-38-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">idRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def idRel (α : Type) : Rel α α :=
@@ -213,15 +213,16 @@
       h3 a c (Exists.intro b
         (And.intro hab hbc)))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-38-1">38.0 画布给的新词汇：恒等关系 与 非对称</a></li>
-<li><a href="#decl-38-3">38.1 三条库引理（严格序的展开 · 两种造法）</a></li>
-<li><a href="#ex-38-1">38.2 反对称 · 非自反：代数形态</a></li>
-<li><a href="#ex-38-3">38.3 非对称：取用子 · 与自反/传递的关系</a></li>
-<li><a href="#ex-38-7">38.4 偏序：三条代数条件（拆成四条定理，别写成一个巨大的 ↔）</a></li>
-<li><a href="#appendix-unit-38">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit36.html" aria-current="false"><span>105</span> 关系的代数</a></li>
+<li><a href="../units/unit37.html" aria-current="false"><span>106</span> 关系的代数刻画</a></li>
+<li class="is-current"><a href="../units/unit38.html" aria-current="page"><span>107</span> 序关系的关系代数视角</a></li>
+<li><a href="../units/unit39.html" aria-current="false"><span>108</span> 关系的像、原像与等价核</a></li>
+<li><a href="../units/unit40.html" aria-current="false"><span>109</span> 传递闭包的代数刻画</a></li>
+<li><a href="../units/unit41.html" aria-current="false"><span>110</span> 良基关系（极小元原理）</a></li>
+<li><a href="../units/unit45.html" aria-current="false"><span>111</span> 关系的单值性与函数的图</a></li>
+<li><a href="../units/unit52.html" aria-current="false"><span>112</span> 关系的复合：单位律与逐点形态</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

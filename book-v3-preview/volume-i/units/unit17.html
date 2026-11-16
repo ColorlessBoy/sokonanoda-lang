@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 17 — The Axiom of Choice</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-17">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="17" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-17" aria-label="复制单元 17 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit17.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-7.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit17.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§6.5 The Axiom of Choice</strong>（<span class="math">+</span> §6.4 的"无限公理"一节）；Halmos《Naive Set Theory》<strong>§15 The Axiom of Choice</strong>（<span class="math">+</span> §16 Zorn's Lemma 的开头）。大纲：<code>set-theory-syllabus.md</code> §4.1（I.7 章）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>选择公理怎么说</strong>（<code>choice</code> —— 它是<strong>外挂的公理</strong>，不是定理）<span class="math">·</span><strong>它给什么</strong>（一个<strong>选择函数</strong>）<span class="math">·</span> <strong>满射因此可以"裂开"</strong>（存在右逆）<span class="math">·</span><strong>右逆必是单射</strong>（这一半<strong>不需要</strong> AC，是纯逻辑）。</p></div><div class="block prose intuition-only"><p><strong>写法约定（本单元特有）</strong>：AC 的用法是"<strong>应用一次公理，再把它的 <code>∃</code> 往下顺</strong>"——所以本单元到处是 <code>Exists.elim</code>/<code>Exists.intro</code>，<strong>前导实参写全</strong>（G-73 形状 ②）。</p></div><h3 class="unit-subhead">17.1 公理长什么样</h3><div class="block prose intuition-only"><p>演示：<code>Nonempty</code> 的定义展开（"存在元素"）。</p></div><article class="decl decl-theorem" id="decl-17-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_nonempty_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_nonempty_def (α : Type) : Nonempty α ↔ ∃ (a : α), a = a :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  nonempty_def α</code></pre></li></ol></details></div></article>
@@ -249,13 +249,15 @@
   Exists.intro (fun (_ : α) =&gt; b)
     (fun (x : α) (hx : x ∈ {a}) =&gt; @Eq.refl.{1} β b)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-17-1">17.1 公理长什么样</a></li>
-<li><a href="#ex-17-5">17.2 本单元旗舰：满射可以裂开（用 AC 造右逆）</a></li>
-<li><a href="#ex-17-9">17.3 必破：AC 不是处处都要用</a></li>
-<li><a href="#appendix-unit-17">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li class="is-current"><a href="../units/unit17.html" aria-current="page"><span>65</span> 选择公理</a></li>
+<li><a href="../units/unit18.html" aria-current="false"><span>66</span> ZF 公理体系与正则性</a></li>
+<li><a href="../units/unit48.html" aria-current="false"><span>67</span> 覆盖与广义并</a></li>
+<li><a href="../units/unit49.html" aria-current="false"><span>68</span> 广义并的代数</a></li>
+<li><a href="../units/unit69.html" aria-current="false"><span>69</span> 并交的伴随刻画</a></li>
+<li><a href="../units/unit71.html" aria-current="false"><span>70</span> 并交与交的分配</a></li>
+<li><a href="../units/unit72.html" aria-current="false"><span>71</span> 广义并与交、单调与空族</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

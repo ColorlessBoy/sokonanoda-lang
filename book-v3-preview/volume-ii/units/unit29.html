@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 29 — Order on Rationals</p>
 <p class="unit-meta">2 个定义 · 4 个定理 · 4 道练习 · 8 条提示 · <a href="#appendix-unit-29">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="29" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-29" aria-label="复制单元 29 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit29.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-3.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit29.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>卷 II 把 <span class="math">ℚ</span> 建成 Quot ratRel（单元⑳），并在代表元层结清了加法与乘法的良定义性（㉖–㉘）。接下来进入 <span class="math">ℚ</span> 的性质：序、绝对值、幂、间隙。先做序，因为后面的绝对值与极限都要用它。</p></div></div></section>
 <div class="block prose intuition-only"><p>序的定义沿用整数序的同一套想法：<span class="math"><span class="frac-inline"><span class="num">a−b</span><span class="den">m+1</span></span> ≤ <span class="frac-inline"><span class="num">c−d</span><span class="den">n+1</span></span></span> 等价于交叉相乘后的 <span class="math">ℕ</span> 不等式 <span class="math">a·(n+1) + d·(m+1) ≤ c·(m+1) + b·(n+1)</span>。右边不是笔误：<span class="math">(a-b)(n+1) ≤ (c-d)(m+1)</span> 移项后，负部 <span class="math">-b(n+1)</span> 与 <span class="math">-d(m+1)</span> 都搬到对面。分母 <span class="math">(m+1)(n+1)</span> 是正的，所以交叉相乘不改变方向。</p></div><div class="block prose intuition-only"><p>这里先立起序的定义、自反、以及「相等蕴含序」；传递性、全序与加法/乘法相容都要先把两个代表元换到公分母，留给后续单元。</p></div><div class="block prose intuition-only"><p>有理数的非严格序：交叉相乘后的 <span class="math">ℕ</span> 不等式。</p></div><article class="decl decl-def" id="decl-29-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ratLeRep</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def ratLeRep (x y : ratRep) : Prop :=
@@ -101,12 +101,14 @@
     ratLeRep (qrep 1 Nat.zero 1) (qrep 3 Nat.zero 3) :=
   le_succ 4 5 (le_succ 4 4 (le_refl 4))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-29-1">定义与定理</a></li>
-<li><a href="#ex-29-1">练习</a></li>
-<li><a href="#appendix-unit-29">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li class="is-current"><a href="../units/unit29.html" aria-current="page"><span>29</span> 有理数的序：代表元公式与自反性</a></li>
+<li><a href="../units/unit30.html" aria-current="false"><span>30</span> 有理数的严格序：&lt; 与不相等</a></li>
+<li><a href="../units/unit31.html" aria-current="false"><span>31</span> 有理数的负元：代表元层定义与良定义性</a></li>
+<li><a href="../units/unit32.html" aria-current="false"><span>32</span> 有理数的减法：加法与负元的组合</a></li>
+<li><a href="../units/unit33.html" aria-current="false"><span>33</span> 有理数的绝对值：关系定义与两条引入规则</a></li>
+<li><a href="../units/unit34.html" aria-current="false"><span>34</span> 有理数的幂：定义与计算规则</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 59 — Difference Algebra II: Mixed Laws</p>
 <p class="unit-meta">8 个定理 · 5 道练习 · 9 条提示 · <a href="#appendix-unit-59">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="59" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-59" aria-label="复制单元 59 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit59.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-1.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit59.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>两条<strong>可复用</strong>取用子（与单元58 同形 ✓ —— 放这里是因为后面每题都要用 ✓）；</li><li><strong><code>(A ∩ B) \ C ⊆ A \ C</code></strong>（交之后变小 <span class="math">⇒</span> 差之后也变小 ✓）；</li><li><strong><code>(A \ B) ∪ (B \ A) ⊆ A ∪ B</code></strong>（<strong>对称差落在并里</strong> ✓ —— 接单元㊻ 对称差 ✓）；</li><li><strong><code>A \ B ⊆ A \ (B \ C)</code></strong>（"减得更多 <span class="math">⇒</span> 留得更多" ✓ —— 反变 ✓）。</li></ul></div></div></section>
 <h3 class="unit-subhead">59.1 三条库引理（差 <span class="math">·</span> 交 <span class="math">·</span> 并 的成员刻画）</h3><div class="block prose intuition-only"><p>演示：差集的成员刻画。</p></div><article class="decl decl-theorem" id="decl-59-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_sdiff</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_sdiff (α : Type) (a : α) (A B : Set α) :
@@ -128,13 +128,23 @@
           not_mem_of_mem_sdiff α A B a h (mem_of_mem_sdiff α B C a hbc))))
       (Set.mem_sdiff a A (B \ C))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-59-1">59.1 三条库引理（差 · 交 · 并 的成员刻画）</a></li>
-<li><a href="#ex-59-1">59.2 两条可复用取用子（后面每题都要用）</a></li>
-<li><a href="#ex-59-3">59.3 三条包含式（交后变小 · 对称差落在并里 · 减法反变）</a></li>
-<li><a href="#appendix-unit-59">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit01.html" aria-current="false"><span>01</span> 集合与隶属</a></li>
+<li><a href="../units/unit02.html" aria-current="false"><span>02</span> 子集、空集与包含三律</a></li>
+<li><a href="../units/unit03.html" aria-current="false"><span>03</span> 并、交、差与幂集</a></li>
+<li><a href="../units/unit04.html" aria-current="false"><span>04</span> 外延性与集合等式</a></li>
+<li><a href="../units/unit58.html" aria-current="false"><span>05</span> 差集的代数</a></li>
+<li class="is-current"><a href="../units/unit59.html" aria-current="page"><span>06</span> 差集的代数（二）</a></li>
+<li><a href="../units/unit60.html" aria-current="false"><span>07</span> 补集的代数</a></li>
+<li><a href="../units/unit61.html" aria-current="false"><span>08</span> 外延打包</a></li>
+<li><a href="../units/unit62.html" aria-current="false"><span>09</span> 外延性的推论</a></li>
+<li><a href="../units/unit63.html" aria-current="false"><span>10</span> 差集的等式层（打包续）</a></li>
+<li><a href="../units/unit64.html" aria-current="false"><span>11</span> 差集的等式层（三）：两步走</a></li>
+<li><a href="../units/unit65.html" aria-current="false"><span>12</span> 并的差分配律与减法反变</a></li>
+<li><a href="../units/unit66.html" aria-current="false"><span>13</span> 包含关系的代数</a></li>
+<li><a href="../units/unit104.html" aria-current="false"><span>14</span> 排中律与经典推论</a></li>
+<li><a href="../units/unit105.html" aria-current="false"><span>15</span> 经典等价三件套</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

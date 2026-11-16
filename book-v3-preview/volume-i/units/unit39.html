@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 39 — Images, Preimages and Equivalence Kernels</p>
 <p class="unit-meta">4 个定义 · 13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-39">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="39" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-39" aria-label="复制单元 39 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit39.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-13.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit39.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§10</strong>（像与原像的关系版）与 <strong>§7</strong>（等价关系）；Enderton《Elements of Set Theory》<strong>§3.3 / §3.6</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.13 章第四个单元 —— 把单元㉒ 的像/原像从「函数」推广到「关系」，并用等价核接上单元㉗ 的商）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的「该学的定理」：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>像与原像</strong>：成员刻画 <span class="math">·</span> 对集合单调 <span class="math">·</span> <strong>对关系单调</strong> <span class="math">·</span> 全集/空集两端；</li><li><strong>旗舰一：像穿过复合</strong>（<code>img (r • s) A = img s (img r A)</code>，原像对偶）；</li><li><strong>旗舰二：函数的等价核是等价关系</strong>（<code>kernel f a b</code> 读作 <code>f a = f b</code>）——这正是单元㉗「商掉核」那一步的来源 ✓</li><li><strong>旗舰三：单射 <span class="math">⟺</span> 核退化成恒等关系</strong>（<code>Injective f ↔ kernel f ⊆ idRel</code>）✓</li></ul></div><h3 class="unit-subhead">39.0 画布给的四个新词汇</h3><div class="block prose intuition-only"><p><code>idRel</code>：恒等关系（单元㊱㊳ 已用过）✓ <code>relImg r A</code>：<code>A</code> 在关系 <code>r</code> 下的<strong>像</strong>（<code>∃ a ∈ A, r a b</code>）✓ <code>relPre r B</code>：<code>B</code> 在关系 <code>r</code> 下的<strong>原像</strong>（<code>∃ b ∈ B, r a b</code>）✓ <code>kernel f</code>：函数 <code>f</code> 的<strong>等价核</strong>（<code>fun a b =&gt; f a = f b</code>）—— 单元㉗ 商掉的那个关系 ✓</p></div><article class="decl decl-def" id="decl-39-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">idRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def idRel (α : Type) : Rel α α :=
@@ -307,15 +307,16 @@
               (Exists.intro b
                 (And.intro (And.right hb) (And.right hc))))))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-39-1">39.0 画布给的四个新词汇</a></li>
-<li><a href="#decl-39-5">39.1 三个词汇的成员刻画（演示）</a></li>
-<li><a href="#ex-39-1">39.2 单调性（对集合 · 对关系）与两端</a></li>
-<li><a href="#ex-39-6">39.3 旗舰一：像穿过复合（原像对偶）</a></li>
-<li><a href="#ex-39-9">39.4 旗舰二/三：等价核（接单元㉗ 的商）</a></li>
-<li><a href="#appendix-unit-39">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit36.html" aria-current="false"><span>105</span> 关系的代数</a></li>
+<li><a href="../units/unit37.html" aria-current="false"><span>106</span> 关系的代数刻画</a></li>
+<li><a href="../units/unit38.html" aria-current="false"><span>107</span> 序关系的关系代数视角</a></li>
+<li class="is-current"><a href="../units/unit39.html" aria-current="page"><span>108</span> 关系的像、原像与等价核</a></li>
+<li><a href="../units/unit40.html" aria-current="false"><span>109</span> 传递闭包的代数刻画</a></li>
+<li><a href="../units/unit41.html" aria-current="false"><span>110</span> 良基关系（极小元原理）</a></li>
+<li><a href="../units/unit45.html" aria-current="false"><span>111</span> 关系的单值性与函数的图</a></li>
+<li><a href="../units/unit52.html" aria-current="false"><span>112</span> 关系的复合：单位律与逐点形态</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

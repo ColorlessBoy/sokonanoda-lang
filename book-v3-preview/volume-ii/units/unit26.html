@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 26 — Addition of Rationals</p>
 <p class="unit-meta">15 个定义 · 45 个定理 · 6 道练习 · 49 条提示 · <a href="#appendix-unit-26">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="26" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-26" aria-label="复制单元 26 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit26.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-2.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit26.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>两个分数相加，分母为什么会变成 <span class="math">(m+1)(n+1)</span>？因为两边的分母用 succ 编码，必须先通分；通分后的分子就是 <span class="math">(a(n+1)+c(m+1)) - (b(n+1)+d(m+1))</span>。把这条公式写成代表元层的 ratAddRep，再证明它对两个因子都良定义——这正是 Quot.lift 需要的两条义务。</p></div></div></section>
 <div class="block prose intuition-only"><p>分母字段用 succ 编码，所以取 <span class="math">m*n+m+n</span>（㉖.1）：它的 succ 正是公分母 <span class="math">(m+1)(n+1)</span>。整个构造停在整数代表元层：不把加法下降成 <span class="math">Rat → Rat → Rat</span>（那需要函数外延性，本语言没有），也不加任何公理。</p></div><article class="decl decl-def" id="decl-26-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def intRel (a b : Prod Nat Nat) : Prop :=
@@ -1162,12 +1162,17 @@
             (Nat.add (myMul b (Nat.succ n)) (myMul d' (Nat.succ m))))
           (ratDenRep m n))))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-26-1">定义与定理</a></li>
-<li><a href="#ex-26-1">练习</a></li>
-<li><a href="#appendix-unit-26">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit20.html" aria-current="false"><span>20</span> 有理数与商构造</a></li>
+<li><a href="../units/unit21.html" aria-current="false"><span>21</span> 整数相等的传递性</a></li>
+<li><a href="../units/unit22.html" aria-current="false"><span>22</span> ℕ 乘法的分配律与结合律</a></li>
+<li><a href="../units/unit23.html" aria-current="false"><span>23</span> ℤ 乘法的结合律（代表元层）</a></li>
+<li><a href="../units/unit24.html" aria-current="false"><span>24</span> ℕ 正因子的消去律</a></li>
+<li><a href="../units/unit25.html" aria-current="false"><span>25</span> 有理数相等的传递性</a></li>
+<li class="is-current"><a href="../units/unit26.html" aria-current="page"><span>26</span> 有理数加法的代表元公式与良定义性</a></li>
+<li><a href="../units/unit27.html" aria-current="false"><span>27</span> 有理数乘法的代表元公式与具体计算</a></li>
+<li><a href="../units/unit28.html" aria-current="false"><span>28</span> 有理数乘法的良定义性</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

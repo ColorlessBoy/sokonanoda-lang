@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 60 — The Algebra of Complements</p>
 <p class="unit-meta">11 个定理 · 8 道练习 · 12 条提示 · <a href="#appendix-unit-60">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="60" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-60" aria-label="复制单元 60 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit60.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-1.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit60.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>补集的两条取用子（<strong>就是定义</strong> ✓ —— <code>Aᶜ</code> 展开即 <code>¬ (∈ A)</code> ✓）；</li><li><strong>旗舰：<code>A ⊆ B ⇒ Bᶜ ⊆ Aᶜ</code></strong>（补集<strong>反变</strong> ✓ —— 集合代数里最常用的一条 ✓）；</li><li><strong>De Morgan 的构造性两半</strong>：<code>Aᶜ ⊆ (A ∩ B)ᶜ</code> ✓ <span class="math">·</span> <code>(A ∪ B)ᶜ ⊆ Aᶜ</code> ✓；</li><li><strong><code>A ⊆ Aᶜᶜ</code></strong>（双重补，<strong>只有一个方向</strong> ✓）<span class="math">·</span> <strong><code>A ∩ Aᶜ</code> 没有成员</strong> ✓ <span class="math">·</span></li></ul></div><div class="math-display intuition-only" role="math" aria-label="**univᶜ ⊆ ∅** ✓"><math display="block" class="mathml"><mrow><mo>×</mo><mo>×</mo><mi mathvariant="normal">univ</mi><mo>ᶜ</mo><mspace width="0.22em"/><mo>⊆</mo><mspace width="0.22em"/><mo>∅</mo><mo>×</mo><mo>×</mo><mspace width="0.22em"/><mo>✓</mo></mrow></math></div></div></section>
 <h3 class="unit-subhead">60.1 三条库引理（补 <span class="math">·</span> 并 <span class="math">·</span> 交 的成员刻画）</h3><div class="block prose intuition-only"><p>演示：补集的成员刻画（<strong>这一条就是定义展开</strong>：<code>Aᶜ</code> 是 <code>fun x =&gt; ¬ (x ∈ A)</code> ✓）。</p></div><article class="decl decl-theorem" id="decl-60-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_compl</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_compl (α : Type) (a : α) (A : Set α) : a ∈ (Aᶜ) ↔ ¬ (a ∈ A) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Iff.intro (fun (h : a ∈ (Aᶜ)) =&gt; h) (fun (h : ¬ (a ∈ A)) =&gt; h)</code></pre></li></ol></details></div></article>
@@ -134,14 +134,23 @@
     (@False.elim (a ∈ (∅)))
       (not_mem_of_mem_compl α (@Set.univ α) a h (Set.mem_univ a))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-60-1">60.1 三条库引理（补 · 并 · 交 的成员刻画）</a></li>
-<li><a href="#ex-60-1">60.2 两条取用子（正反两向）</a></li>
-<li><a href="#ex-60-3">60.3 反变 · De Morgan 的构造性两半 · 双重补</a></li>
-<li><a href="#ex-60-7">60.4 两条&quot;没有成员&quot;与&quot;论域的补&quot;</a></li>
-<li><a href="#appendix-unit-60">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit01.html" aria-current="false"><span>01</span> 集合与隶属</a></li>
+<li><a href="../units/unit02.html" aria-current="false"><span>02</span> 子集、空集与包含三律</a></li>
+<li><a href="../units/unit03.html" aria-current="false"><span>03</span> 并、交、差与幂集</a></li>
+<li><a href="../units/unit04.html" aria-current="false"><span>04</span> 外延性与集合等式</a></li>
+<li><a href="../units/unit58.html" aria-current="false"><span>05</span> 差集的代数</a></li>
+<li><a href="../units/unit59.html" aria-current="false"><span>06</span> 差集的代数（二）</a></li>
+<li class="is-current"><a href="../units/unit60.html" aria-current="page"><span>07</span> 补集的代数</a></li>
+<li><a href="../units/unit61.html" aria-current="false"><span>08</span> 外延打包</a></li>
+<li><a href="../units/unit62.html" aria-current="false"><span>09</span> 外延性的推论</a></li>
+<li><a href="../units/unit63.html" aria-current="false"><span>10</span> 差集的等式层（打包续）</a></li>
+<li><a href="../units/unit64.html" aria-current="false"><span>11</span> 差集的等式层（三）：两步走</a></li>
+<li><a href="../units/unit65.html" aria-current="false"><span>12</span> 并的差分配律与减法反变</a></li>
+<li><a href="../units/unit66.html" aria-current="false"><span>13</span> 包含关系的代数</a></li>
+<li><a href="../units/unit104.html" aria-current="false"><span>14</span> 排中律与经典推论</a></li>
+<li><a href="../units/unit105.html" aria-current="false"><span>15</span> 经典等价三件套</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

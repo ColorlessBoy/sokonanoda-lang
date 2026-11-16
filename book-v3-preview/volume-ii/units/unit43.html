@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 43 — Addition Laws on Representatives: Commutativity and Zero</p>
 <p class="unit-meta">6 个定理 · 6 道练习 · 18 条提示 · <a href="#appendix-unit-43">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="43" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-43" aria-label="复制单元 43 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit43.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-4.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit43.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>㉖ 立了 <span class="math">ℚ</span> 加法的代表元公式：<span class="math"><span class="frac-inline"><span class="num">a−b</span><span class="den">m+1</span></span> + <span class="frac-inline"><span class="num">c−d</span><span class="den">n+1</span></span></span> 等于 <span class="math">[a(n+1)+c(m+1) - (b(n+1)+d(m+1))] / ((m+1)(n+1))</span>，并结清了两条良定义义务；但运算律还没证。先证两条最常用的：交换律 <span class="math">x + y</span> 与 <span class="math">y + x</span> 相等；零元 <span class="math">x + 0</span> 与 x 相等、<span class="math">0 + x</span> 与 x 相等。</p></div></div></section>
 <article class="exercise" id="ex-43-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratAdd_zero_num</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-43-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>为什么先做它们：下一单元的「序与加法相容」要把 <span class="math">x ≤ y</span> 搬到 <span class="math">x+z ≤ y+z</span>，而左加（<span class="math">z+x ≤ z+y</span>）靠的是「先交换、用右加、再交换回来」——没有交换律就变不出左加版本。</p></div><div class="block prose intuition-only"><p>证明分两层。先是加零的算术小件：<span class="math">a·1</span> 定义性展开成 <span class="math">a+a*0</span>，再消掉 a*0；分母字段 ratDenRep m 0 同理退化成 m。然后在代表元层比较 <span class="math">x+y</span> 与 <span class="math">y+x</span>：两边用 mulRep_den_form 化成「分子乘正分母」的规范形，用 prod_mk_congr 与 congrArg 证成相等，最后 intRel_of_eq 收口。<span class="math">x+0</span> 则先把三元组搬成 qrep a b m（消掉零项），再用自反性。</p></div><div class="block prose intuition-only"><p>通用陈述要先在展开类型上 match 到字面三元组（ratRep 是定义别名，match 只认归纳类型本身），再把字面结果转发给通用陈述——与 ㊷ 的 ratSubRep_neg_aux 是同一写法。</p></div><div class="block prose intuition-only"><p>㊸.1 加零的分子形状：<code>a·1 + 0·(m+1) = a</code></p></div><div class="block prose intuition-only"><p>先算加零的分子形状：<span class="math">a·1</span> 展开后消掉零项。</p></div></div><pre class="exercise-statement"><code>theorem ratAdd_zero_num (a m : Nat) :
@@ -317,11 +317,18 @@
           (Eq.refl (qrep a b m)))))
       (ratRel_refl (qrep a b m))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-43-1">练习</a></li>
-<li><a href="#appendix-unit-43">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit35.html" aria-current="false"><span>35</span> 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li>
+<li><a href="../units/unit36.html" aria-current="false"><span>36</span> 实数的载体：Real := Quot realRel</a></li>
+<li><a href="../units/unit37.html" aria-current="false"><span>37</span> 序与正分母：乘法、消去与配对搬运</a></li>
+<li><a href="../units/unit38.html" aria-current="false"><span>38</span> 有理数的序：传递性</a></li>
+<li><a href="../units/unit39.html" aria-current="false"><span>39</span> 有理数的序与相等相容</a></li>
+<li><a href="../units/unit40.html" aria-current="false"><span>40</span> 实数的相等：自反性</a></li>
+<li><a href="../units/unit41.html" aria-current="false"><span>41</span> 取负与序：绝对值的对称性</a></li>
+<li><a href="../units/unit42.html" aria-current="false"><span>42</span> close 的对称性：实数的相等可以换方向</a></li>
+<li class="is-current"><a href="../units/unit43.html" aria-current="page"><span>43</span> 有理数加法的代表元律：交换与零元</a></li>
+<li><a href="../units/unit44.html" aria-current="false"><span>44</span> 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 41 — Well-Founded Relations</p>
 <p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-41">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="41" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-41" aria-label="复制单元 41 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit41.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-13.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit41.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§7.8 / §9.3</strong>（well-founded relations and the minimal-element principle）；Halmos《Naive Set Theory》<strong>§14 / §18</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.13 章第六个单元 —— 把单元⑬⑭ 的良基/良序做成"关系代数"的形态，并<strong>如实记下它的边界</strong>）。</p></div></div></section>
 <div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><details class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li><strong>展开与包装</strong>：<code>IsWellFounded</code> / <code>HasMin</code> 的两个方向 <span class="math">·</span> 取用子 <span class="math">·</span> 极小元的存在性；</li><li><strong>极小反例原理</strong>（<code>wf_minimal_counterexample</code>）—— 良基归纳<strong>能构造性地给出的那一半</strong>；</li><li><strong>旗舰一：良基 <span class="math">⇒</span> 非自反</strong>（<code>¬ r a a</code>）—— 直接用"单点集有极小元"✓</li><li><strong>旗舰二：良基 <span class="math">+</span> 自反 <span class="math">⇒</span> 空论域</strong>（<strong>本单元起草时发现的库缺陷</strong>，见下）✓</li><li><strong>良基性沿子关系保持</strong>（<code>r' ⊆ r</code> <span class="math">⇒</span> <code>r'</code> 良基）<span class="math">·</span> <strong>严格化 <code>strictOf r</code> 仍良基</strong> <span class="math">·</span><strong>空关系良基</strong> ✓</li></ul></details><h3 class="unit-subhead">41.1 三条库引理（良基与极小元的展开 <span class="math">·</span> 空关系上的极小元）</h3><div class="block prose intuition-only"><p>演示：良基的定义展开（"每个非空子集都有极小元"）。</p></div><article class="decl decl-theorem" id="decl-41-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_wellFounded_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_wellFounded_def (α : Type) (r : Rel α α) :
@@ -198,14 +198,16 @@
           (And.intro hx  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
             (fun (y : α) =&gt; fun (hy : P y) =&gt; fun (hf : False) =&gt; hf)))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-41-1">41.1 三条库引理（良基与极小元的展开 · 空关系上的极小元）</a></li>
-<li><a href="#ex-41-1">41.2 展开与包装 · 极小反例原理</a></li>
-<li><a href="#ex-41-6">41.3 旗舰：良基 ⇒ 非自反 与 库缺陷的证明</a></li>
-<li><a href="#ex-41-8">41.4 良基性的保持：子关系 · 严格化 · 空关系</a></li>
-<li><a href="#appendix-unit-41">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit36.html" aria-current="false"><span>105</span> 关系的代数</a></li>
+<li><a href="../units/unit37.html" aria-current="false"><span>106</span> 关系的代数刻画</a></li>
+<li><a href="../units/unit38.html" aria-current="false"><span>107</span> 序关系的关系代数视角</a></li>
+<li><a href="../units/unit39.html" aria-current="false"><span>108</span> 关系的像、原像与等价核</a></li>
+<li><a href="../units/unit40.html" aria-current="false"><span>109</span> 传递闭包的代数刻画</a></li>
+<li class="is-current"><a href="../units/unit41.html" aria-current="page"><span>110</span> 良基关系（极小元原理）</a></li>
+<li><a href="../units/unit45.html" aria-current="false"><span>111</span> 关系的单值性与函数的图</a></li>
+<li><a href="../units/unit52.html" aria-current="false"><span>112</span> 关系的复合：单位律与逐点形态</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

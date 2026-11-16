@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 1 — Sets &amp; Membership</p>
 <p class="unit-meta">8 个定理 · 5 道练习 · 18 条提示 · <a href="#appendix-unit-1">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="1" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-1" aria-label="复制单元 1 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit01.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-1.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit01.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p><strong>记法不用自己声明</strong>：<code>∈</code> / <code>⊆</code> / <code>{a}</code> 由 <code>lib/Set</code> 提供、随 <code>import</code> 生效；逻辑连接符 <code>∧ ∨ ↔ ¬</code> 与箭头 <code>→</code> 是<strong>语言内建</strong>（Lean core 级），任何文件直接写。所以下面看不到一条 <code>infix</code>/<code>notation</code>。</p></div></div></section>
 <h3 class="unit-subhead">1.1 集合就是"论域上的谓词"</h3><div class="math-display intuition-only" role="math" aria-label="x ∈ A   ↔  A x"><math display="block" class="mathml"><mrow><mi>x</mi><mspace width="0.22em"/><mo>∈</mo><mspace width="0.22em"/><mi>A</mi><mspace width="0.22em"/><mo>↔</mo><mspace width="0.22em"/><mi>A</mi><mspace width="0.22em"/><mi>x</mi></mrow></math></div><div class="math-display intuition-only" role="math" aria-label="A ⊆ B   ↔  ∀ (x : α), A x → B x"><math display="block" class="mathml"><mrow><mi>A</mi><mspace width="0.22em"/><mo>⊆</mo><mspace width="0.22em"/><mi>B</mi><mspace width="0.22em"/><mo>↔</mo><mspace width="0.22em"/><mo>∀</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>x</mi><mspace width="0.22em"/><mo>:</mo><mspace width="0.22em"/><mo>α</mo></mrow><mo>)</mo></mrow><mo>,</mo><mspace width="0.22em"/><mi>A</mi><mspace width="0.22em"/><mi>x</mi><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mi>B</mi><mspace width="0.22em"/><mi>x</mi></mrow></math></div><div class="block prose intuition-only"><p>于是"隶属"不是新东西，就是<strong>函数应用</strong>；"子集"就是<strong>全称箭头</strong>。符号只是把底下那层结构写短了——报错看不懂时，把它翻回点名形式就懂了。</p></div><div class="block prose intuition-only"><p>演示（已写好）：子集的定义展开是"定义上相等"。</p></div><article class="decl decl-theorem" id="decl-1-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_subset_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_subset_def (α : Type) (A B : Set α) :
@@ -181,11 +181,23 @@
                 (@Iff.mp (x ∈ {b}) (x = b) (Set.mem_singleton_iff x b) hx)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
                 (@Eq.symm.{1} α a b h)))))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-1-1">1.1 集合就是&quot;论域上的谓词&quot;</a></li>
-<li><a href="#appendix-unit-1">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li class="is-current"><a href="../units/unit01.html" aria-current="page"><span>01</span> 集合与隶属</a></li>
+<li><a href="../units/unit02.html" aria-current="false"><span>02</span> 子集、空集与包含三律</a></li>
+<li><a href="../units/unit03.html" aria-current="false"><span>03</span> 并、交、差与幂集</a></li>
+<li><a href="../units/unit04.html" aria-current="false"><span>04</span> 外延性与集合等式</a></li>
+<li><a href="../units/unit58.html" aria-current="false"><span>05</span> 差集的代数</a></li>
+<li><a href="../units/unit59.html" aria-current="false"><span>06</span> 差集的代数（二）</a></li>
+<li><a href="../units/unit60.html" aria-current="false"><span>07</span> 补集的代数</a></li>
+<li><a href="../units/unit61.html" aria-current="false"><span>08</span> 外延打包</a></li>
+<li><a href="../units/unit62.html" aria-current="false"><span>09</span> 外延性的推论</a></li>
+<li><a href="../units/unit63.html" aria-current="false"><span>10</span> 差集的等式层（打包续）</a></li>
+<li><a href="../units/unit64.html" aria-current="false"><span>11</span> 差集的等式层（三）：两步走</a></li>
+<li><a href="../units/unit65.html" aria-current="false"><span>12</span> 并的差分配律与减法反变</a></li>
+<li><a href="../units/unit66.html" aria-current="false"><span>13</span> 包含关系的代数</a></li>
+<li><a href="../units/unit104.html" aria-current="false"><span>14</span> 排中律与经典推论</a></li>
+<li><a href="../units/unit105.html" aria-current="false"><span>15</span> 经典等价三件套</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 65 — Difference Distributes over Union</p>
 <p class="unit-meta">12 个定理 · 9 道练习 · 13 条提示 · <a href="#appendix-unit-65">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="65" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-65" aria-label="复制单元 65 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit65.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-1.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit65.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>顶层取用子：差两条出 <span class="math">+</span> 一条进 ✓ <span class="math">·</span> 并的左/右进 ✓；</li><li><strong>逐点 <code>↔</code></strong>：<code>a ∈ (B ∪ C) \ A ↔ a ∈ (B \ A) ∪ (C \ A)</code> ✓（两个方向都是 <code>Or.elim</code> ✓）；</li><li><strong>等式</strong>：<strong><code>(B ∪ C) \ A = (B \ A) ∪ (C \ A)</code></strong> ✓（<strong>差对并分配</strong> ✓）；</li><li><strong><code>a ∈ A \ B ⇒ a ∈ A \ (B \ C)</code></strong> 与 <strong><code>A \ B ⊆ A \ (B \ C)</code></strong> ✓（"减法反变" ✓）。</li></ul></div></div></section>
 <h3 class="unit-subhead">65.1 三条库引理（两条外延工具 <span class="math">+</span> 差集的成员刻画）</h3><div class="block prose intuition-only"><p>演示：<strong>函数外延</strong>（逐点相等 <span class="math">⇒</span> 函数相等）。</p></div><article class="decl decl-theorem" id="decl-65-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_funext</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_funext (α : Type) (β : α → Type)
@@ -174,11 +174,23 @@
     (fun (hbc : a ∈ (B \ C)) =&gt; not_mem_of_mem_sdiff α A B a h (mem_of_mem_sdiff α B C a hbc))</code></pre></details><details class="appendix-solution" id="app-sol-65-9"><summary>练习 9 · sdiff_sdiff_subset <span class="sol-meta">定理</span></summary><pre><code>theorem sdiff_sdiff_subset (α : Type) (A B C : Set α) : A \ B ⊆ A \ (B \ C) :=
   fun (a : α) (h : a ∈ (A \ B)) =&gt; mem_sdiff_sdiff α A B C a h</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-65-1">65.1 三条库引理（两条外延工具 + 差集的成员刻画）</a></li>
-<li><a href="#appendix-unit-65">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit01.html" aria-current="false"><span>01</span> 集合与隶属</a></li>
+<li><a href="../units/unit02.html" aria-current="false"><span>02</span> 子集、空集与包含三律</a></li>
+<li><a href="../units/unit03.html" aria-current="false"><span>03</span> 并、交、差与幂集</a></li>
+<li><a href="../units/unit04.html" aria-current="false"><span>04</span> 外延性与集合等式</a></li>
+<li><a href="../units/unit58.html" aria-current="false"><span>05</span> 差集的代数</a></li>
+<li><a href="../units/unit59.html" aria-current="false"><span>06</span> 差集的代数（二）</a></li>
+<li><a href="../units/unit60.html" aria-current="false"><span>07</span> 补集的代数</a></li>
+<li><a href="../units/unit61.html" aria-current="false"><span>08</span> 外延打包</a></li>
+<li><a href="../units/unit62.html" aria-current="false"><span>09</span> 外延性的推论</a></li>
+<li><a href="../units/unit63.html" aria-current="false"><span>10</span> 差集的等式层（打包续）</a></li>
+<li><a href="../units/unit64.html" aria-current="false"><span>11</span> 差集的等式层（三）：两步走</a></li>
+<li class="is-current"><a href="../units/unit65.html" aria-current="page"><span>12</span> 并的差分配律与减法反变</a></li>
+<li><a href="../units/unit66.html" aria-current="false"><span>13</span> 包含关系的代数</a></li>
+<li><a href="../units/unit104.html" aria-current="false"><span>14</span> 排中律与经典推论</a></li>
+<li><a href="../units/unit105.html" aria-current="false"><span>15</span> 经典等价三件套</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

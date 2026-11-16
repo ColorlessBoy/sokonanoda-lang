@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 10 — Multiplication: Zero and One</p>
 <p class="unit-meta">6 个定义 · 9 个定理 · 4 道练习 · 12 条提示 · <a href="#appendix-unit-10">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="10" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-10" aria-label="复制单元 10 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit10.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-1.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit10.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>乘法在代表元上的公式已经写下，但一条乘法律都还没证。要把 mulRep 搬上商（下一单元的 mulRep_wd），先得把 <span class="math">ℕ</span> 上最小的乘法律补齐：乘零得零、乘一不变。这两条里，myMul_zero 与 myMul_succ 是定义性相等，只有 <span class="math">0·a = 0</span> 需要归纳——它是本课程第一条乘法归纳。</p></div></div></section>
 <div class="block prose intuition-only"><p>补齐之后再把它们用在代表元上：p 乘 0 与 0 差相等，p 乘 1 与 p 差相等。下一单元证乘法良定义性时还要分配律与交换律；那一步留到那时再补。</p></div><article class="decl decl-def" id="decl-10-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">intRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def intRel (a b : Prod Nat Nat) : Prop :=
@@ -150,12 +150,27 @@
     (@Eq.symm.{1} Nat (Nat.add Nat.zero b) b (zero_add b))
     (@Eq.refl.{1} Nat (Nat.add a b))</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-10-1">定义与定理</a></li>
-<li><a href="#ex-10-1">练习</a></li>
-<li><a href="#appendix-unit-10">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit01.html" aria-current="false"><span>01</span> 整数与商构造</a></li>
+<li><a href="../units/unit02.html" aria-current="false"><span>02</span> 商类型与良定义性（复习）</a></li>
+<li><a href="../units/unit03.html" aria-current="false"><span>03</span> ℕ 的算术律（复习）</a></li>
+<li><a href="../units/unit04.html" aria-current="false"><span>04</span> 整数加法 / 负 / 减的代表元公式</a></li>
+<li><a href="../units/unit05.html" aria-current="false"><span>05</span> 整数乘法的代表元公式</a></li>
+<li><a href="../units/unit06.html" aria-current="false"><span>06</span> 整数加法的良定义性</a></li>
+<li><a href="../units/unit07.html" aria-current="false"><span>07</span> 整数加法的交换律与结合律</a></li>
+<li><a href="../units/unit08.html" aria-current="false"><span>08</span> 整数加法的零元与负元</a></li>
+<li><a href="../units/unit09.html" aria-current="false"><span>09</span> 整数减法的良定义性与基本律</a></li>
+<li class="is-current"><a href="../units/unit10.html" aria-current="page"><span>10</span> 整数乘法的零元与单位元</a></li>
+<li><a href="../units/unit11.html" aria-current="false"><span>11</span> 整数乘法的良定义性</a></li>
+<li><a href="../units/unit12.html" aria-current="false"><span>12</span> 整数序的代表元公式</a></li>
+<li><a href="../units/unit13.html" aria-current="false"><span>13</span> ℕ 序的传递性与单调性</a></li>
+<li><a href="../units/unit14.html" aria-current="false"><span>14</span> ℕ 序的加法消去律</a></li>
+<li><a href="../units/unit15.html" aria-current="false"><span>15</span> 整数序的良定义性</a></li>
+<li><a href="../units/unit16.html" aria-current="false"><span>16</span> 整数序的传递性与加法单调</a></li>
+<li><a href="../units/unit17.html" aria-current="false"><span>17</span> 整数乘法的交换律（代表元层）</a></li>
+<li><a href="../units/unit18.html" aria-current="false"><span>18</span> 整数乘法的第二个因子良定义（代表元层）</a></li>
+<li><a href="../units/unit19.html" aria-current="false"><span>19</span> 把取负下降成函数（Quot.lift）</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 54 — Associativity of Rational Addition</p>
 <p class="unit-meta">5 个定理 · 5 道练习 · 15 条提示 · <a href="#appendix-unit-54">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="54" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-54" aria-label="复制单元 54 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit54.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-5.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit54.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>三个分数相加，先加哪两个，结果一样吗？在代表元层，答案取决于括号。要证 close 的传递性，得把两个距离 x-y、y-z 加起来，再认成 x-z。麻烦在于：这条等式不是定义性相等——三个分母相乘的顺序不同，ratDenRep 的嵌套就不同。这里补上 <span class="math">(x+y)+z</span> 与 <span class="math">x+(y+z)</span> 相等，以及它的两个算术零件：分母的结合律与分子的结合律。</p></div></div></section>
 <h3 class="unit-subhead">54.1 分母的结合律：<code>ratDenRep (ratDenRep m n) k = ratDenRep m (ratDenRep n k)</code></h3><article class="exercise" id="ex-54-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">den_assoc</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-54-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>证明全部停在代表元层，不碰商、不碰函数外延性、不加公理。分子部分先用分配律把 <span class="math">(aB+cA)C</span> 展开，两个乘积用乘法结合律归一到 a(BC) 与 c(AC)，最后把括号右结合；分母部分两边各用 ratDenRep_succ 化成 (AB)C 与 A(BC)，中间用乘法结合律，最后用 succ 单射剥掉一层。然后把这些零件装成嵌套 ratAddRep 的显式 qrep 相等，最后在展开类型上 match 到字面三元组、转发给通用陈述。</p></div><div class="block prose intuition-only"><p>ratAddRep、qrep、ratDenRep 来自 lib/Rat。</p></div><div class="block prose intuition-only"><p>分母的结合律：两边化成 (AB)C 与 A(BC)，剥掉 succ。</p></div></div><pre class="exercise-statement"><code>theorem den_assoc (m n k : Nat) :
@@ -694,15 +694,18 @@
       | prod_mk (prod_mk e f) k =&gt;
         ratAdd_assoc_mk a b c d e f m n k</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-54-1">54.1 分母的结合律：ratDenRep (ratDenRep m n) k = ratDenRep m (ratDenRep n k)</a></li>
-<li><a href="#ex-54-2">54.2 分子的结合律（上分量）</a></li>
-<li><a href="#ex-54-3">54.3 字面三元组上的结合律</a></li>
-<li><a href="#ex-54-4">54.4 任意代表元上的结合律</a></li>
-<li><a href="#ex-54-5">54.5 具体：1/2 + 1/3 + 1/4</a></li>
-<li><a href="#appendix-unit-54">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit45.html" aria-current="false"><span>45</span> 序的全性：每个有理数都有绝对值</a></li>
+<li><a href="../units/unit46.html" aria-current="false"><span>46</span> 序的反对称性：两边夹出相等</a></li>
+<li><a href="../units/unit47.html" aria-current="false"><span>47</span> 绝对值的唯一性：同一个数的两个见证相等</a></li>
+<li><a href="../units/unit48.html" aria-current="false"><span>48</span> 三角不等式：|u + v| ≤ |u| + |v|</a></li>
+<li><a href="../units/unit49.html" aria-current="false"><span>49</span> 严格序的传递与 close 对 ε 的单调性</a></li>
+<li><a href="../units/unit50.html" aria-current="false"><span>50</span> 严格序与加法相容：加法消去</a></li>
+<li><a href="../units/unit51.html" aria-current="false"><span>51</span> 严格序的传递与加法相容</a></li>
+<li><a href="../units/unit52.html" aria-current="false"><span>52</span> ε 折半：半数的存在与加倍</a></li>
+<li><a href="../units/unit53.html" aria-current="false"><span>53</span> 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li>
+<li class="is-current"><a href="../units/unit54.html" aria-current="page"><span>54</span> 有理数加法的结合律：公分母的三层嵌套</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

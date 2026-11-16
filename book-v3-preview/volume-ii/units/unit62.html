@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 62 — Addition on the Reals: Commutativity and Zero (Ternary Relation)</p>
 <p class="unit-meta">9 个定理 · 9 道练习 · 27 条提示 · <a href="#appendix-unit-62">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="62" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-62" aria-label="复制单元 62 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit62.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/ii-6.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit62.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>上一单元把加法写成了三元关系：addRel a b c 当且仅当 a、b 有 Cauchy 代表元 x、y，且 <span class="math">c = mk (x+y)</span>。现在把这个关系的代数律从代表元层搬上来。</p></div></div></section>
 <h3 class="unit-subhead">62.1 代表元层：<code>x ~ y ⇒ x - y ~ 0</code></h3><article class="exercise" id="ex-62-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratSubRep_ratRel_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-62-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>搬运的关键是一条桥：代表元相等（ratRel x y）推出任意 <span class="math">ε&gt;0</span> 时 <span class="math">close x y ε</span>。代表元相等是「差为零」，而 close 要求「差的绝对值小于 <span class="math">ε</span>」；差为零时取见证 d :<span class="math">= 0</span>，再用序的全性决定 x-y 落在零的哪一边，就能把「x-y 的绝对值等于 0」拼出来。有了这条桥，代表元层的加法交换律与零元律就能逐点搬成 realRel 的等式，再经 Real.sound 送进商。</p></div><div class="block prose intuition-only"><p>先证桥的两块（差为零、绝对值为零），再把它用在交换律上，然后把零元律搬上来、用交换律得到左零元，最后落在常零序列上。</p></div><div class="block prose intuition-only"><p>边界与上一单元相同：addRel 只对有 Cauchy 代表元的实数有输出，所以零元律的陈述带 Cauchy 假设（不把「每个 Real 都是 Cauchy 类」写成公理）；交换律本身不需要额外假设，因为两个前提分量就带着 Cauchy 守卫。addRel 的构造与五条基本律在 lib/RealAddRel。</p></div><div class="block prose intuition-only"><p>桥的第一块：x 与 y 相等时 x-y 与 0 相等。</p></div></div><pre class="exercise-statement"><code>theorem ratSubRep_ratRel_zero (x y : ratRep) (h : ratRel x y) :
@@ -269,19 +269,22 @@
     addRel (Real.mk zeroSeq) (Real.mk zeroSeq) (Real.mk zeroSeq) :=
   addRel_zero_right zeroSeq cauchy_zero</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#ex-62-1">62.1 代表元层：x ~ y ⇒ x - y ~ 0</a></li>
-<li><a href="#ex-62-2">62.2 绝对值：x ~ y ⇒ |x - y| ~ 0</a></li>
-<li><a href="#ex-62-3">62.3 桥：代表元相等 ⇒ 逐点 close</a></li>
-<li><a href="#ex-62-4">62.4 代表元层：(x + y) ~ (y + x)</a></li>
-<li><a href="#ex-62-5">62.5 三元关系的交换律</a></li>
-<li><a href="#ex-62-6">62.6 代表元层：(x + 0) ~ x</a></li>
-<li><a href="#ex-62-7">62.7 右零元：mk x + 0 = mk x</a></li>
-<li><a href="#ex-62-8">62.8 左零元：0 + mk x = mk x（交换律的直接推论）</a></li>
-<li><a href="#ex-62-9">62.9 具体：常零序列上的零元律</a></li>
-<li><a href="#appendix-unit-62">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit55.html" aria-current="false"><span>55</span> 有理数的加法逆元：x + (-x) = 0</a></li>
+<li><a href="../units/unit56.html" aria-current="false"><span>56</span> 两次减法的相加：中间项消去</a></li>
+<li><a href="../units/unit57.html" aria-current="false"><span>57</span> close 的传递性：两个 ε/2 的界加起来</a></li>
+<li><a href="../units/unit58.html" aria-current="false"><span>58</span> 实数的相等：传递性</a></li>
+<li><a href="../units/unit59.html" aria-current="false"><span>59</span> 实数的取负：第一次把运算下降到商上</a></li>
+<li><a href="../units/unit60.html" aria-current="false"><span>60</span> 实数的加法：下降之前的两条义务</a></li>
+<li><a href="../units/unit61.html" aria-current="false"><span>61</span> 实数的加法：三元关系（存在 + 唯一）</a></li>
+<li class="is-current"><a href="../units/unit62.html" aria-current="page"><span>62</span> 实数的加法：交换律与零元（三元关系版）</a></li>
+<li><a href="../units/unit63.html" aria-current="false"><span>63</span> 实数的加法：结合律（三元关系版）</a></li>
+<li><a href="../units/unit64.html" aria-current="false"><span>64</span> 实数的序：代表元关系与自反性</a></li>
+<li><a href="../units/unit65.html" aria-current="false"><span>65</span> 实数的序：传递性</a></li>
+<li><a href="../units/unit66.html" aria-current="false"><span>66</span> 实数的序：沿 realRel 下降成 Real 上的关系</a></li>
+<li><a href="../units/unit67.html" aria-current="false"><span>67</span> 实数的序：自反、传递、反对称</a></li>
+<li><a href="../units/unit68.html" aria-current="false"><span>68</span> 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

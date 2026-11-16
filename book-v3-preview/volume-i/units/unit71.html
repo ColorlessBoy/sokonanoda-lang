@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 71 — Intersection Distributes over Union/Intersection</p>
 <p class="unit-meta">12 个定理 · 9 道练习 · 12 条提示 · <a href="#appendix-unit-71">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="71" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-71" aria-label="复制单元 71 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit71.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-7.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit71.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>取用子：<code>x ∈ ⋃F ⇔ ∃A∈F, x ∈ A</code> ✓ <span class="math">·</span> <code>x ∈ ⋂F ⇔ ∀A∈F, x ∈ A</code> ✓ <span class="math">·</span> 交的三条 ✓；</li><li><strong>旗舰一：<code>c ∈ A ∩ ⋃F ↔ ∃B∈F, c ∈ A ∩ B</code></strong> ✓（<strong>交对并分配</strong> ✓）；</li><li><strong>旗舰二：<code>c ∈ A ∩ ⋂F ↔ c ∈ A ∧ ∀B∈F, c ∈ A ∩ B</code></strong> ✓（<strong>交对交分配</strong> ✓ ——右边必须<strong>留下 <code>c ∈ A</code> 这一支</strong> ✗：<code>F = ∅</code> 时 <code>⋂∅</code> 是全论域 ✓，没有它命题就不真 ✓ —— <strong>求真检查逮到的一处</strong> ✓）；</li><li><strong><code>univ ∩ A</code> 的成员刻画</strong> ✓ <span class="math">·</span> <strong><code>∅ ∩ A</code> 没有成员</strong> ✓</li></ul></div></div></section>
 <h3 class="unit-subhead">71.1 三条库引理（广义并 <span class="math">·</span> 广义交 <span class="math">·</span> 交）</h3><div class="block prose intuition-only"><p>演示：广义并的成员刻画（"落在某个族成员里"）。</p></div><article class="decl decl-theorem" id="decl-71-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_sUnion</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
@@ -209,11 +209,15 @@
   fun (h : c ∈ ((∅) ∩ A)) =&gt;
     (Iff.mp (Set.mem_empty_iff_false c)) (mem_inter_left α (∅) A c h)</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-71-1">71.1 三条库引理（广义并 · 广义交 · 交）</a></li>
-<li><a href="#appendix-unit-71">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit17.html" aria-current="false"><span>65</span> 选择公理</a></li>
+<li><a href="../units/unit18.html" aria-current="false"><span>66</span> ZF 公理体系与正则性</a></li>
+<li><a href="../units/unit48.html" aria-current="false"><span>67</span> 覆盖与广义并</a></li>
+<li><a href="../units/unit49.html" aria-current="false"><span>68</span> 广义并的代数</a></li>
+<li><a href="../units/unit69.html" aria-current="false"><span>69</span> 并交的伴随刻画</a></li>
+<li class="is-current"><a href="../units/unit71.html" aria-current="page"><span>70</span> 并交与交的分配</a></li>
+<li><a href="../units/unit72.html" aria-current="false"><span>71</span> 广义并与交、单调与空族</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">

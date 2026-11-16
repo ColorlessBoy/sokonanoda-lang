@@ -49,7 +49,7 @@
 <p class="unit-title-en">Unit 27 — Quotient Types and Well-Definedness</p>
 <p class="unit-meta">12 个定理 · 9 道练习 · 27 条提示 · <a href="#appendix-unit-27">解答附录</a></p>
 <div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="27" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-27" aria-label="复制单元 27 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
-<p class="unit-print-entry no-print"><a href="../print/unit27.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-10.html#units">↑ 目录</a>
+<p class="unit-print-entry no-print"><a href="../print/unit27.html">打印 / PDF 本单元</a></p>
 </header>
 <section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"（商的三件套 <span class="math">+</span> 它们的用法）：</p></div><details class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li><strong><code>Quot.sound</code></strong>：相关的代表元在商里<strong>相等</strong>；</li><li><strong><code>Quot.lift</code></strong>：<strong>良定义性</strong> —— 想从代表元定义商上的函数，必须证明它"对相关的代表元给同一个值"；证明给出来了，函数就存在（<strong>iota 归约</strong>：算得动 ✓）；</li><li><strong><code>Quot.ind</code></strong>：要证商上<strong>每个</strong>元素都有某性质，只需对代表元证 ✓</li><li><strong>唯一性</strong>（逐点形态，<strong>避开函数外延</strong> —— 本语言没有 funext）✓</li><li><strong>单射可以补救</strong>：没有 <code>Quot.exact</code>（见下），但"按相等作商"时用<strong>缩回技巧</strong>（把 <code>lift</code> 出来的缩回函数作用在等式两边）照样能证单射 ✓</li></ul></details></div></section>
 <h3 class="unit-subhead">27.1 商的三件套（三个演示 <span class="math">=</span> 三条内核原语）</h3><div class="block prose intuition-only"><p>演示：<strong><code>Quot.sound</code></strong> —— 相关的代表元在商里相等。⚠ 这条的<strong>结论是相等命题</strong>，而在这个位置<strong>等号的记法解不出宇宙层级</strong> <span class="math">⇒</span> 必须点名声明星（写全宇宙层级与论域，G-73 形状 ③）。</p></div><article class="decl decl-theorem" id="decl-27-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_quot_sound</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_quot_sound (α : Type) (r : α → α → Prop) (a b : α) (h : r a b) :
@@ -226,15 +226,20 @@
         q2)
     q1</code></pre></details></section></section>
   </article>
-  <aside class="page-outline no-print" aria-label="本单元小节目录">
-    <h2>本单元</h2>
-    <ol><li><a href="#unit-intro">导语</a></li>
-<li><a href="#decl-27-1">27.1 商的三件套（三个演示 = 三条内核原语）</a></li>
-<li><a href="#ex-27-1">27.2 良定义性：相关的代表元给同一个值</a></li>
-<li><a href="#ex-27-6">27.3 必破（一）：没有 Quot.exact，单射照样能证（缩回技巧）</a></li>
-<li><a href="#ex-27-7">27.4 必破（二）：恒真关系把一切粘成一点</a></li>
-<li><a href="#ex-27-8">27.5 全称性质：存在下降 + 唯一性（都写成逐点形态 —— 见文件头的边界 ②）</a></li>
-<li><a href="#appendix-unit-27">练习与解答</a></li></ol>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit24.html" aria-current="false"><span>79</span> 关系闭包</a></li>
+<li><a href="../units/unit25.html" aria-current="false"><span>80</span> 等价关系与划分</a></li>
+<li><a href="../units/unit26.html" aria-current="false"><span>81</span> 划分：等价关系的反方向</a></li>
+<li class="is-current"><a href="../units/unit27.html" aria-current="page"><span>82</span> 商类型与良定义性</a></li>
+<li><a href="../units/unit43.html" aria-current="false"><span>83</span> 等价类与商集的代数刻画</a></li>
+<li><a href="../units/unit76.html" aria-current="false"><span>84</span> 像的核关系</a></li>
+<li><a href="../units/unit77.html" aria-current="false"><span>85</span> 等价类的代数</a></li>
+<li><a href="../units/unit78.html" aria-current="false"><span>86</span> 划分与等价关系的往返</a></li>
+<li><a href="../units/unit79.html" aria-current="false"><span>87</span> 商集上的函数（well-defined）</a></li>
+<li><a href="../units/unit84.html" aria-current="false"><span>88</span> 商与像的往返</a></li>
+<li><a href="../units/unit85.html" aria-current="false"><span>89</span> 商到像的单射性</a></li>
+<li><a href="../units/unit86.html" aria-current="false"><span>90</span> 核与复合、单射</a></li></ol>
   </aside>
 </div>
 <nav class="pager" aria-label="单元导航">
