@@ -1,0 +1,126 @@
+-- 课程库：导数的定义与两个可算样本（III.7 的开篇）
+--
+-- 下面的词汇与样本来自单元140，141 起的单元直接引用，不再重抄。
+--
+--   · `IsSlope` —— 斜率函数：在 a 之外逐点满足 `q x · (x - a) ~ f x - f a`；
+--   · `HasDerivAt` —— 导数：存在一个斜率函数，它的函数极限是 L；
+--   · `DifferentiableAt` —— 可导：存在这样的 L；
+--   · 三条展开律、常函数与恒等函数的样本、以及它们的可导版本。
+--
+-- 为什么把差商写成「斜率函数」而不是 `(f x - f a) / (x - a)`：课程库到
+-- III.6 为止只有乘法与加法，没有有理数的倒数。把斜率作为函数交给定义，
+-- 既不需要构造除法，也不丢失信息——在 ℚ 里 `x - a` 非零时乘积等式唯一
+-- 决定 `q x`，一旦补上倒数就与差商逐字相同。这条边界写在单元140 的正文里。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层。不新增公理，也不碰
+-- kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatRing
+import lib.Bounded
+import lib.LimAt
+
+-- ─────────────────────────────────────────────────────────────
+-- 140.0 斜率函数、导数、可导
+-- ─────────────────────────────────────────────────────────────
+
+-- 斜率函数只在 a 之外有义务：a 本身让 `x - a` 变成零，乘积等式就没有
+-- 信息，而导数本来也只看 a 的邻域。
+
+def IsSlope (f : ratRep → ratRep) (a : ratRep) (q : ratRep → ratRep) : Prop :=
+  ∀ (x : ratRep), ¬ ratRel x a →
+    ratRel (ratMulRep (ratSubRep x a) (q x)) (ratSubRep (f x) (f a))
+
+-- 导数是斜率函数的极限。这里用的是函数极限 `TendsToAt`：它同样排掉 a
+-- 本身，于是「斜率函数在 a 处取什么值」不影响导数。
+
+def HasDerivAt (f : ratRep → ratRep) (a L : ratRep) : Prop :=
+  ∃ (q : ratRep → ratRep), IsSlope f a q ∧ TendsToAt q a L
+
+def DifferentiableAt (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (L : ratRep), HasDerivAt f a L
+
+-- ─────────────────────────────────────────────────────────────
+-- 140.1 三条展开律
+-- ─────────────────────────────────────────────────────────────
+
+theorem isSlope_iff (f : ratRep → ratRep) (a : ratRep)
+    (q : ratRep → ratRep) :
+    IsSlope f a q ↔
+      ∀ (x : ratRep), ¬ ratRel x a →
+        ratRel (ratMulRep (ratSubRep x a) (q x)) (ratSubRep (f x) (f a)) :=
+  Iff.intro
+    (fun (h : IsSlope f a q) => h)
+    (fun (h : ∀ (x : ratRep), ¬ ratRel x a →
+        ratRel (ratMulRep (ratSubRep x a) (q x)) (ratSubRep (f x) (f a))) => h)
+
+theorem hasDerivAt_iff (f : ratRep → ratRep) (a L : ratRep) :
+    HasDerivAt f a L ↔
+      ∃ (q : ratRep → ratRep), IsSlope f a q ∧ TendsToAt q a L :=
+  Iff.intro
+    (fun (h : HasDerivAt f a L) => h)
+    (fun (h : ∃ (q : ratRep → ratRep), IsSlope f a q ∧ TendsToAt q a L) => h)
+
+theorem differentiableAt_iff (f : ratRep → ratRep) (a : ratRep) :
+    DifferentiableAt f a ↔ ∃ (L : ratRep), HasDerivAt f a L :=
+  Iff.intro
+    (fun (h : DifferentiableAt f a) => h)
+    (fun (h : ∃ (L : ratRep), HasDerivAt f a L) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 140.2 常函数：斜率恒为零
+-- ─────────────────────────────────────────────────────────────
+
+theorem isSlope_const (c a : ratRep) :
+    IsSlope (fun (_ : ratRep) => c) a (fun (_ : ratRep) => ratZeroRep) :=
+  fun (x : ratRep) (_hne : ¬ ratRel x a) =>
+    ratRel_trans_gen
+      (ratMulRep (ratSubRep x a) ratZeroRep)
+      ratZeroRep
+      (ratSubRep c c)
+      (ratMul_zero_right (ratSubRep x a))
+      (ratRel_symm (ratSubRep c c) ratZeroRep (ratSubRep_self c))
+
+theorem hasDerivAt_const (c a : ratRep) :
+    HasDerivAt (fun (_ : ratRep) => c) a ratZeroRep :=
+  Exists.intro (fun (_ : ratRep) => ratZeroRep)
+    (And.intro (isSlope_const c a) (tendsToAt_const ratZeroRep a))
+
+theorem differentiableAt_const (c a : ratRep) :
+    DifferentiableAt (fun (_ : ratRep) => c) a :=
+  Exists.intro ratZeroRep (hasDerivAt_const c a)
+
+-- ─────────────────────────────────────────────────────────────
+-- 140.3 恒等函数：斜率恒为一
+-- ─────────────────────────────────────────────────────────────
+
+theorem isSlope_id (a : ratRep) :
+    IsSlope (fun (x : ratRep) => x) a (fun (_ : ratRep) => ratOneRep) :=
+  fun (x : ratRep) (_hne : ¬ ratRel x a) =>
+    ratMul_one_right (ratSubRep x a)
+
+theorem hasDerivAt_id (a : ratRep) :
+    HasDerivAt (fun (x : ratRep) => x) a ratOneRep :=
+  Exists.intro (fun (_ : ratRep) => ratOneRep)
+    (And.intro (isSlope_id a) (tendsToAt_const ratOneRep a))
+
+theorem differentiableAt_id (a : ratRep) :
+    DifferentiableAt (fun (x : ratRep) => x) a :=
+  Exists.intro ratOneRep (hasDerivAt_id a)
+
+-- ─────────────────────────────────────────────────────────────
+-- 140.4 两个具体读数
+-- ─────────────────────────────────────────────────────────────
+
+-- 恒等函数在零点与三处的导数都是一；常函数在零点与三处的导数都是零。
+-- 这几条只是把上面的样本带到具体数字上。
+
+theorem demo_deriv_id_zero :
+    HasDerivAt (fun (x : ratRep) => x) ratZeroRep ratOneRep :=
+  hasDerivAt_id ratZeroRep
+
+theorem demo_deriv_const_three :
+    HasDerivAt (fun (_ : ratRep) => qrep 2 Nat.zero Nat.zero) (qrep 3 Nat.zero Nat.zero)
+      ratZeroRep :=
+  hasDerivAt_const (qrep 2 Nat.zero Nat.zero) (qrep 3 Nat.zero Nat.zero)

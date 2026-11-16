@@ -1,0 +1,159 @@
+-- 课程库：有理数的非零因子消去
+--
+-- 有了整数代表元上的消去律，有理数层的消去只剩一件事：把
+-- `u * v ~ u * w` 里两侧的公共分母对齐。`ratRel` 的等式是交叉相乘后
+-- 的整数等式；两侧分别带着对方的分母，多出来的因子正是两个分母的
+-- 乘积 `(m+1)(n+1)` 与 `(m+1)(k+1)`。两边同乘 `(m+1)`，再用正分母的
+-- 交换律把 `(k+1)` 与 `(n+1)` 挪到一起去，公共因子就露出来了。
+--
+-- 最后一个细节是「乘数不为零」怎么交给消去律。代表元层的条件是
+-- `¬ intRel (p, q) 0`，而有理数层的条件是 `u` 不等于零；两者由
+-- `lib/RatZero` 的判别式互相翻译。
+--
+-- 边界：不构造倒数，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatOrder
+import lib.RatRing
+import lib.RatSub
+import lib.RatAbsOrder
+import lib.RatGroup
+import lib.RatZero
+import lib.IntCancel
+
+theorem mulRep_den_ratDenRep_swap (N : Prod Nat Nat) (m n : Nat) :
+    intRel (mulRep N (den (ratDenRep m n)))
+      (mulRep (mulRep N (den n)) (den m)) :=
+  intRel_trans
+    (mulRep N (den (ratDenRep m n)))
+    (mulRep (mulRep N (den m)) (den n))
+    (mulRep (mulRep N (den n)) (den m))
+    (mulRep_den_ratDenRep N m n)
+    (intRel_symm
+      (mulRep (mulRep N (den n)) (den m))
+      (mulRep (mulRep N (den m)) (den n))
+      (mulRep_den_swap_gen N n m))
+
+theorem mulRep_num_den_swap (p q c d m n : Nat) :
+    intRel
+      (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d))
+        (den (ratDenRep m n)))
+      (mulRep
+        (mulRep (@prod_mk Nat Nat p q)
+          (mulRep (@prod_mk Nat Nat c d) (den n)))
+        (den m)) :=
+  intRel_trans
+    (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d))
+      (den (ratDenRep m n)))
+    (mulRep
+      (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den n))
+      (den m))
+    (mulRep
+      (mulRep (@prod_mk Nat Nat p q)
+        (mulRep (@prod_mk Nat Nat c d) (den n)))
+      (den m))
+    (mulRep_den_ratDenRep_swap
+      (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) m n)
+    (mulRep_wd_gen
+      (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den n))
+      (mulRep (@prod_mk Nat Nat p q)
+        (mulRep (@prod_mk Nat Nat c d) (den n)))
+      (den m)
+      (mulRep_assoc_gen (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d) (den n)))
+
+
+theorem ratMul_cancel_aux (p q m c d n e f k : Nat)
+    (hne : ¬ intRel (@prod_mk Nat Nat p q) (@prod_mk Nat Nat Nat.zero Nat.zero))
+    (h : ratRel
+      (ratMulRep (qrep p q m) (qrep c d n))
+      (ratMulRep (qrep p q m) (qrep e f k))) :
+    ratRel (qrep c d n) (qrep e f k) :=
+  intRel_cancel_nonzero_gen p q
+    (mulRep (@prod_mk Nat Nat c d) (den k))
+    (mulRep (@prod_mk Nat Nat e f) (den n))
+    hne
+    (intRel_trans
+      (mulRep (@prod_mk Nat Nat p q)
+        (mulRep (@prod_mk Nat Nat c d) (den k)))
+      (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den k))
+      (mulRep (@prod_mk Nat Nat p q)
+        (mulRep (@prod_mk Nat Nat e f) (den n)))
+      (intRel_symm
+        (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den k))
+        (mulRep (@prod_mk Nat Nat p q)
+          (mulRep (@prod_mk Nat Nat c d) (den k)))
+        (mulRep_assoc_gen (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d) (den k)))
+      (intRel_trans
+        (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den k))
+        (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f)) (den n))
+        (mulRep (@prod_mk Nat Nat p q)
+          (mulRep (@prod_mk Nat Nat e f) (den n)))
+        (intRel_cancel_den
+          (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den k))
+          (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f)) (den n))
+          m
+          (intRel_trans
+            (mulRep (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den k)) (den m))
+            (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den (ratDenRep m k)))
+            (mulRep (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f)) (den n)) (den m))
+            (intRel_symm
+              (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den (ratDenRep m k)))
+              (mulRep (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den k)) (den m))
+              (intRel_trans
+                (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den (ratDenRep m k)))
+                (mulRep (mulRep (@prod_mk Nat Nat p q)
+                  (mulRep (@prod_mk Nat Nat c d) (den k))) (den m))
+                (mulRep (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den k)) (den m))
+                (mulRep_num_den_swap p q c d m k)
+                (mulRep_wd_gen
+                  (mulRep (@prod_mk Nat Nat p q)
+                    (mulRep (@prod_mk Nat Nat c d) (den k)))
+                  (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den k))
+                  (den m)
+                  (intRel_symm
+                    (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den k))
+                    (mulRep (@prod_mk Nat Nat p q)
+                      (mulRep (@prod_mk Nat Nat c d) (den k)))
+                    (mulRep_assoc_gen (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d) (den k))))))
+            (intRel_trans
+              (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d)) (den (ratDenRep m k)))
+              (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f)) (den (ratDenRep m n)))
+              (mulRep (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f)) (den n)) (den m))
+              h
+              (intRel_trans
+                (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f)) (den (ratDenRep m n)))
+                (mulRep (mulRep (@prod_mk Nat Nat p q)
+                  (mulRep (@prod_mk Nat Nat e f) (den n))) (den m))
+                (mulRep (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f)) (den n)) (den m))
+                (mulRep_num_den_swap p q e f m n)
+                (mulRep_wd_gen
+                  (mulRep (@prod_mk Nat Nat p q)
+                    (mulRep (@prod_mk Nat Nat e f) (den n)))
+                  (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f)) (den n))
+                  (den m)
+                  (intRel_symm
+                    (mulRep (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f)) (den n))
+                    (mulRep (@prod_mk Nat Nat p q)
+                      (mulRep (@prod_mk Nat Nat e f) (den n)))
+                    (mulRep_assoc_gen (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f) (den n))))))))
+        (mulRep_assoc_gen (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f) (den n))))
+
+theorem ratMul_cancel (u v w : Prod (Prod Nat Nat) Nat) :
+    ¬ ratRel u ratZeroRep →
+    ratRel (ratMulRep u v) (ratMulRep u w) → ratRel v w :=
+  match u with
+  | prod_mk (prod_mk p q) m =>
+    match v with
+    | prod_mk (prod_mk c d) n =>
+      match w with
+      | prod_mk (prod_mk e f) k =>
+        fun (hu : ¬ ratRel (qrep p q m) ratZeroRep)
+            (h : ratRel (ratMulRep (qrep p q m) (qrep c d n))
+                       (ratMulRep (qrep p q m) (qrep e f k))) =>
+          ratMul_cancel_aux p q m c d n e f k
+            (fun (hz : intRel (@prod_mk Nat Nat p q)
+                (@prod_mk Nat Nat Nat.zero Nat.zero)) =>
+              hu (Iff.mpr (ratRel_zero_iff_num_zero p q m) hz))
+            h
+

@@ -1,0 +1,130 @@
+-- 课程库：一致连续
+--
+-- 单元130 在画布上把「一个 δ 管住整片定义域」立成 `UniformlyContinuous`
+-- 并判卷；这里按「引擎进库」惯例收进 L2，131 起的单元直接引用：
+--
+--   · `UniformlyContinuous` —— 定义：ε 给定后有一个正 δ，定义域里任意两个
+--     相距小于 δ 的点都落进同一个 ε 界；
+--   · `uniformlyContinuous_iff` —— 定义与它的展开形式；
+--   · `uniformlyContinuous_const` / `uniformlyContinuous_id` —— 两个样本；
+--   · `continuousAt_of_uniformlyContinuous` / `continuous_of_uniformlyContinuous`
+--     —— 一致连续推出逐点连续；
+--   · `uniformlyContinuous_comp` —— 复合封闭；
+--   · `uniformlyContinuous_add_const` —— 平移是一致连续的。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层；「连续但不一致连续」的
+-- 具体反例要有乘法或倒数，不在本模块。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatClose
+import lib.RatHalf
+import lib.Bounded
+import lib.RealAdd
+import lib.LimAt
+import lib.Cont
+
+-- ─────────────────────────────────────────────────────────────
+-- 130.0 定义：一个 δ 管住整片定义域
+-- ─────────────────────────────────────────────────────────────
+
+def UniformlyContinuous (f : ratRep → ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x y : ratRep), close x y delta → close (f x) (f y) eps
+
+-- ─────────────────────────────────────────────────────────────
+-- 130.1 定义的展开形式
+-- ─────────────────────────────────────────────────────────────
+
+theorem uniformlyContinuous_iff (f : ratRep → ratRep) :
+    UniformlyContinuous f ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x y : ratRep), close x y delta → close (f x) (f y) eps :=
+  Iff.intro
+    (fun (h : UniformlyContinuous f) => h)
+    (fun (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x y : ratRep), close x y delta → close (f x) (f y) eps) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 130.2 常函数与恒等函数
+-- ─────────────────────────────────────────────────────────────
+
+theorem uniformlyContinuous_const (c : ratRep) :
+    UniformlyContinuous (fun (_ : ratRep) => c) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro ratOneRep
+      (And.intro ratLtRep_zero_one
+        (fun (x y : ratRep) (_hxy : close x y ratOneRep) =>
+          close_of_ratRel c c (ratRel_refl c) eps heps))
+
+theorem uniformlyContinuous_id :
+    UniformlyContinuous (fun (x : ratRep) => x) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro eps
+      (And.intro heps
+        (fun (x y : ratRep) (hxy : close x y eps) => hxy))
+
+-- ─────────────────────────────────────────────────────────────
+-- 130.3 一致连续推出逐点连续
+-- ─────────────────────────────────────────────────────────────
+
+-- 逐点连续的 δ 可以依赖基点；一致连续给的 δ 对所有点通用，把它原样交出去
+-- 就得到基点处的连续性。
+theorem continuousAt_of_uniformlyContinuous (f : ratRep → ratRep) (a : ratRep)
+    (hf : UniformlyContinuous f) : ContinuousAt f a :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hf eps heps)
+      (fun (delta : ratRep)
+          (hd : ratLtRep ratZeroRep delta ∧
+            ∀ (x y : ratRep), close x y delta → close (f x) (f y) eps) =>
+        Exists.intro delta
+          (And.intro (And.left hd)
+            (fun (x : ratRep) (hx : close x a delta) =>
+              (And.right hd) x a hx)))
+
+theorem continuous_of_uniformlyContinuous (f : ratRep → ratRep)
+    (hf : UniformlyContinuous f) : Continuous f :=
+  fun (a : ratRep) => continuousAt_of_uniformlyContinuous f a hf
+
+-- ─────────────────────────────────────────────────────────────
+-- 130.4 复合封闭
+-- ─────────────────────────────────────────────────────────────
+
+-- 外层 g 的 ε 先换成它的 δg，内层 f 再把这个 δg 换成 δf；两个 δ 都不依赖点，
+-- 所以复合之后仍然只用一个 δ。
+theorem uniformlyContinuous_comp (f g : ratRep → ratRep)
+    (hg : UniformlyContinuous g) (hf : UniformlyContinuous f) :
+    UniformlyContinuous (fun (x : ratRep) => g (f x)) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hg eps heps)
+      (fun (deltaG : ratRep)
+          (hdg : ratLtRep ratZeroRep deltaG ∧
+            ∀ (y z : ratRep), close y z deltaG → close (g y) (g z) eps) =>
+        Exists.elim (hf deltaG (And.left hdg))
+          (fun (deltaF : ratRep)
+              (hdf : ratLtRep ratZeroRep deltaF ∧
+                ∀ (x y : ratRep), close x y deltaF →
+                  close (f x) (f y) deltaG) =>
+            Exists.intro deltaF
+              (And.intro (And.left hdf)
+                (fun (x y : ratRep) (hxy : close x y deltaF) =>
+                  (And.right hdg) (f x) (f y)
+                    ((And.right hdf) x y hxy)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 130.5 平移是一致连续的
+-- ─────────────────────────────────────────────────────────────
+
+-- 半径取 ε/2：两个点各自平移 `c`，误差由 `close_add` 合成；常数那一半用
+-- 相等推出接近性。
+theorem uniformlyContinuous_add_const (c : ratRep) :
+    UniformlyContinuous (fun (x : ratRep) => ratAddRep x c) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro (ratHalf eps)
+      (And.intro (ratLtRep_half eps heps)
+        (fun (x y : ratRep) (hxy : close x y (ratHalf eps)) =>
+          close_add x y c c eps hxy
+            (close_of_ratRel c c (ratRel_refl c) (ratHalf eps)
+              (ratLtRep_half eps heps))))

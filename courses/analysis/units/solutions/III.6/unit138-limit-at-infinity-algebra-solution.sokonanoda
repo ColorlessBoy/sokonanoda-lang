@@ -1,0 +1,166 @@
+-- 单元138 无穷远处极限的代数与序列判据
+--
+-- 上一单元只立了定义，能算的例子还只有常函数与平移。若两个函数各自在
+-- 无穷远处靠近 L 与 M，它们的和是否靠近 L + M？把 x 一直往右推，两个
+-- 误差都变小，答案应当是肯定的。证明与一点处的和律同形：ε 折半，两个
+-- 分界线用序的全性合成一条，越过它之后两条接近性同时成立。
+--
+-- 取负、减法、加常数都是同一条和律的变形。真正把「无穷远处的极限」接回
+-- 序列语言的是下面这条判据：如果自变量序列 x_n 最终越过任何一条分界线，
+-- 那么 f(x_n) 就收敛到 L。它说明这里的极限仍然是 ε-N 式的极限，只不过
+-- 阈值从下标换成了数轴上的位置。
+--
+-- 边界：函数取 `ratRep → ratRep`，序列取 `Nat → ratRep`，都停在有理代表元
+-- 层；不把 ±∞ 当成数，也不讨论函数值趋于无穷。不新增公理，也不碰
+-- kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatClose
+import lib.RatHalf
+import lib.LimInfinity
+import lib.RealAdd
+import lib.RealNeg
+import lib.Limit
+
+-- ─────────────────────────────────────────────────────────────
+-- 序列趋于无穷
+-- ─────────────────────────────────────────────────────────────
+
+-- 读法：无论把分界线 M 放在哪里，序列最终都越过它。这里不说「极限是
+-- 无穷大」，只说「最终超过每个给定的有理数」，避免引入新的极限对象。
+def TendsToInfinity (x : Seq) : Prop :=
+  ∀ (M : ratRep), ∃ (N : Nat), ∀ (n : Nat), LeNat N n → ratLeRep M (x n)
+
+-- 定义与展开是同一个命题。
+theorem tendsToInfinity_iff (x : Seq) :
+    TendsToInfinity x ↔
+      ∀ (M : ratRep), ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+        ratLeRep M (x n) :=
+  Iff.intro (fun (h : TendsToInfinity x) => h)
+    (fun (h : ∀ (M : ratRep), ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+        ratLeRep M (x n)) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 和的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个 ε/2 的界分别由 f 与 g 给出；两条分界线并成 K，越过 K 的点同时
+-- 越过两条原线。`close_add` 把两个一半的误差合成 ε。
+theorem tendsToAtInfinity_add (f g : ratRep → ratRep) (L M : ratRep)
+    (hf : TendsToAtInfinity f L) (hg : TendsToAtInfinity g M) :
+    TendsToAtInfinity (fun (x : ratRep) => ratAddRep (f x) (g x))
+      (ratAddRep L M) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    @Exists.elim ratRep
+      (fun (Mf : ratRep) => ∀ (x : ratRep), ratLeRep Mf x →
+        close (f x) L (ratHalf eps))
+      (∃ (K : ratRep), ∀ (x : ratRep), ratLeRep K x →
+        close (ratAddRep (f x) (g x)) (ratAddRep L M) eps)
+      (hf (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (Mf : ratRep)
+          (hMf : ∀ (x : ratRep), ratLeRep Mf x →
+            close (f x) L (ratHalf eps)) =>
+        @Exists.elim ratRep
+          (fun (Mg : ratRep) => ∀ (x : ratRep), ratLeRep Mg x →
+            close (g x) M (ratHalf eps))
+          (∃ (K : ratRep), ∀ (x : ratRep), ratLeRep K x →
+            close (ratAddRep (f x) (g x)) (ratAddRep L M) eps)
+          (hg (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (Mg : ratRep)
+              (hMg : ∀ (x : ratRep), ratLeRep Mg x →
+                close (g x) M (ratHalf eps)) =>
+            @Exists.elim ratRep
+              (fun (K : ratRep) => ratLeRep Mf K ∧ ratLeRep Mg K)
+              (∃ (K : ratRep), ∀ (x : ratRep), ratLeRep K x →
+                close (ratAddRep (f x) (g x)) (ratAddRep L M) eps)
+              (exists_ge_both Mf Mg)
+              (fun (K : ratRep)
+                  (hK : ratLeRep Mf K ∧ ratLeRep Mg K) =>
+                Exists.intro K
+                  (fun (x : ratRep) (hx : ratLeRep K x) =>
+                    close_add (f x) L (g x) M eps
+                      (hMf x (ratLeRep_trans Mf K x (And.left hK) hx))
+                      (hMg x (ratLeRep_trans Mg K x (And.right hK) hx))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 取负
+-- ─────────────────────────────────────────────────────────────
+
+-- 分界线不变，逐点用 `close_neg` 把误差搬到相反数上。
+theorem tendsToAtInfinity_neg (f : ratRep → ratRep) (L : ratRep)
+    (hf : TendsToAtInfinity f L) :
+    TendsToAtInfinity (fun (x : ratRep) => ratNegRep (f x))
+      (ratNegRep L) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    @Exists.elim ratRep
+      (fun (M : ratRep) => ∀ (x : ratRep), ratLeRep M x →
+        close (f x) L eps)
+      (∃ (M : ratRep), ∀ (x : ratRep), ratLeRep M x →
+        close (ratNegRep (f x)) (ratNegRep L) eps)
+      (hf eps heps)
+      (fun (M : ratRep)
+          (hM : ∀ (x : ratRep), ratLeRep M x → close (f x) L eps) =>
+        Exists.intro M
+          (fun (x : ratRep) (hx : ratLeRep M x) =>
+            close_neg (f x) L eps (hM x hx)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 减法与加常数
+-- ─────────────────────────────────────────────────────────────
+
+-- 减法就是加负元：先取负，再交给和律；两个结论函数定义性相同。
+theorem tendsToAtInfinity_sub (f g : ratRep → ratRep) (L M : ratRep)
+    (hf : TendsToAtInfinity f L) (hg : TendsToAtInfinity g M) :
+    TendsToAtInfinity (fun (x : ratRep) => ratSubRep (f x) (g x))
+      (ratSubRep L M) :=
+  tendsToAtInfinity_add f (fun (x : ratRep) => ratNegRep (g x)) L
+    (ratNegRep M) hf (tendsToAtInfinity_neg g M hg)
+
+-- 常数项不随 x 变，直接当作常函数交给和律。
+theorem tendsToAtInfinity_add_const (f : ratRep → ratRep) (c L : ratRep)
+    (hf : TendsToAtInfinity f L) :
+    TendsToAtInfinity (fun (x : ratRep) => ratAddRep (f x) c)
+      (ratAddRep L c) :=
+  tendsToAtInfinity_add f (fun (_ : ratRep) => c) L c hf
+    (tendsToAtInfinity_const c)
+
+-- ─────────────────────────────────────────────────────────────
+-- 序列判据：把自变量换成一条趋于无穷的序列
+-- ─────────────────────────────────────────────────────────────
+
+-- 给定 ε，f 的极限给出一条分界线 M；序列的假设对同一条 M 给出阈值 N。
+-- N 之后每个 x n 都越过 M，于是 f (x n) 落在 ε 界内。
+theorem tendsToAtInfinity_comp (f : ratRep → ratRep) (L : ratRep)
+    (x : Seq) (hf : TendsToAtInfinity f L) (hx : TendsToInfinity x) :
+    Converges (fun (n : Nat) => f (x n)) L :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    @Exists.elim ratRep
+      (fun (M : ratRep) => ∀ (y : ratRep), ratLeRep M y →
+        close (f y) L eps)
+      (∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (f (x n)) L eps)
+      (hf eps heps)
+      (fun (M : ratRep)
+          (hM : ∀ (y : ratRep), ratLeRep M y → close (f y) L eps) =>
+        @Exists.elim Nat
+          (fun (N : Nat) => ∀ (n : Nat), LeNat N n → ratLeRep M (x n))
+          (∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (f (x n)) L eps)
+          (hx M)
+          (fun (N : Nat)
+              (hN : ∀ (n : Nat), LeNat N n → ratLeRep M (x n)) =>
+            Exists.intro N
+              (fun (n : Nat) (hn : LeNat N n) =>
+                hM (x n) (hN n hn))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 具体：和的像仍然收敛
+-- ─────────────────────────────────────────────────────────────
+
+-- 把「加常数」与序列判据串起来：f (x n) + c 收敛到 L + c。
+theorem demo_comp_add_const (f : ratRep → ratRep) (c L : ratRep) (x : Seq)
+    (hf : TendsToAtInfinity f L) (hx : TendsToInfinity x) :
+    Converges (fun (n : Nat) => ratAddRep (f (x n)) c)
+      (ratAddRep L c) :=
+  tendsToAtInfinity_comp (fun (y : ratRep) => ratAddRep (f y) c)
+    (ratAddRep L c) x (tendsToAtInfinity_add_const f c L hf) hx

@@ -1,0 +1,146 @@
+-- 单元140 导数的定义：斜率函数与它的极限
+--
+-- 序列的极限看下标往哪里走，函数的极限看自变量走近一个固定点时函数值往
+-- 哪里走。把「函数值」换成一个比率，就是微分要回答的问题：曲线在一点附近
+-- 最像哪一条直线？直线的斜率若记作 L，那么自变量挪动一小段 x - a 时，
+-- 函数值的改变应当与 L 乘上这一小段相差无几。差商 (f x - f a) / (x - a)
+-- 正是这个「相差无几」的度量，而导数是差商当 x 走近 a 时的极限。
+--
+-- 课程库到连续函数为止只有加法与乘法，有理数的倒数还没有构造出来，所以
+-- 这里不写商，改写成乘积等式：斜率函数 q 在 a 之外逐点满足
+-- `q x * (x - a) ~ f x - f a`。x 与 a 不同时，这条等式唯一决定 q x；一旦
+-- 补上倒数，它与 `q x ~ (f x - f a) / (x - a)` 逐字相同。把 q 作为函数交给
+-- 定义还有一个好处：极限的定义 `TendsToAt` 可以直接用在 q 上，不需要为
+-- 差商另起一套 ε-δ。
+--
+-- 两个样本可以直接算。常函数在任何一点的改变都是零，斜率函数取恒为零的
+-- 函数；恒等函数在 a 处的改变正好是 x - a，斜率函数取恒为一的函数。它们
+-- 分别是「导数零」与「导数一」的来源。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层；导数的唯一性要用
+-- 「非零因子可以消去」，乘法在代表元层还没有这条消去律，留到后面的单元。
+-- 不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatRing
+import lib.Bounded
+import lib.LimAt
+
+-- ─────────────────────────────────────────────────────────────
+-- 斜率函数、导数、可导
+-- ─────────────────────────────────────────────────────────────
+
+-- 斜率函数只在 a 之外有义务。a 本身让 `x - a` 变成零，乘积等式在那里
+-- 没有信息；导数本来也只看 a 的邻域。
+
+def IsSlope (f : ratRep → ratRep) (a : ratRep) (q : ratRep → ratRep) : Prop :=
+  ∀ (x : ratRep), ¬ ratRel x a →
+    ratRel (ratMulRep (ratSubRep x a) (q x)) (ratSubRep (f x) (f a))
+
+-- 导数是斜率函数的极限。`TendsToAt` 同样排掉 a 本身，于是斜率函数在 a
+-- 处取什么值不影响导数。
+
+def HasDerivAt (f : ratRep → ratRep) (a L : ratRep) : Prop :=
+  ∃ (q : ratRep → ratRep), IsSlope f a q ∧ TendsToAt q a L
+
+def DifferentiableAt (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (L : ratRep), HasDerivAt f a L
+
+-- ─────────────────────────────────────────────────────────────
+-- 三条展开律
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：定义就是右边那串量词，两个方向都直接返回假设。
+-- soko:hint 目标形态：`IsSlope f a q ↔ ∀ x, ¬ ratRel x a → ratRel (q x · (x - a)) (f x - f a)`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem isSlope_iff (f : ratRep → ratRep) (a : ratRep)
+    (q : ratRep → ratRep) :
+    IsSlope f a q ↔
+      ∀ (x : ratRep), ¬ ratRel x a →
+        ratRel (ratMulRep (ratSubRep x a) (q x)) (ratSubRep (f x) (f a)) :=
+  sorry
+
+-- soko:hint 思路：`HasDerivAt` 是一个存在量词句，展开后与右边逐字相同。
+-- soko:hint 目标形态：`HasDerivAt f a L ↔ ∃ q, IsSlope f a q ∧ TendsToAt q a L`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem hasDerivAt_iff (f : ratRep → ratRep) (a L : ratRep) :
+    HasDerivAt f a L ↔
+      ∃ (q : ratRep → ratRep), IsSlope f a q ∧ TendsToAt q a L :=
+  sorry
+
+-- soko:hint 思路：可导只是把「存在 L」放在导数前面，展开即得。
+-- soko:hint 目标形态：`DifferentiableAt f a ↔ ∃ L, HasDerivAt f a L`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem differentiableAt_iff (f : ratRep → ratRep) (a : ratRep) :
+    DifferentiableAt f a ↔ ∃ (L : ratRep), HasDerivAt f a L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 常函数：斜率恒为零
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：斜率乘 `x - a` 得零（乘零律），右边 `c - c` 也是零；两条零的等式接起来。
+-- soko:hint 目标形态：`IsSlope (fun _ => c) a (fun _ => 0)`。
+-- soko:hint 关键件：ratMul_zero_right · ratSubRep_self · ratRel_trans_gen · ratRel_symm。
+theorem isSlope_const (c a : ratRep) :
+    IsSlope (fun (_ : ratRep) => c) a (fun (_ : ratRep) => ratZeroRep) :=
+  sorry
+
+-- soko:hint 思路：斜率函数交给常函数的极限律，半径取一即可。
+-- soko:hint 目标形态：`HasDerivAt (fun _ => c) a 0`。
+-- soko:hint 关键件：Exists.intro · isSlope_const · tendsToAt_const · And.intro。
+theorem hasDerivAt_const (c a : ratRep) :
+    HasDerivAt (fun (_ : ratRep) => c) a ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：可导只需交出导数零与上一条。
+-- soko:hint 目标形态：`DifferentiableAt (fun _ => c) a`。
+-- soko:hint 关键件：Exists.intro · hasDerivAt_const。
+theorem differentiableAt_const (c a : ratRep) :
+    DifferentiableAt (fun (_ : ratRep) => c) a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 恒等函数：斜率恒为一
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：斜率乘 `x - a` 当且仅当乘一，乘一律直接把它还原成 `x - a`。
+-- soko:hint 目标形态：`IsSlope (fun x => x) a (fun _ => 1)`。
+-- soko:hint 关键件：ratMul_one_right · 假设的余下目标 `f x - f a` 就是 `x - a`。
+theorem isSlope_id (a : ratRep) :
+    IsSlope (fun (x : ratRep) => x) a (fun (_ : ratRep) => ratOneRep) :=
+  sorry
+
+-- soko:hint 思路：常函数一的极限是一，与斜率函数接上。
+-- soko:hint 目标形态：`HasDerivAt (fun x => x) a 1`。
+-- soko:hint 关键件：Exists.intro · isSlope_id · tendsToAt_const。
+theorem hasDerivAt_id (a : ratRep) :
+    HasDerivAt (fun (x : ratRep) => x) a ratOneRep :=
+  sorry
+
+-- soko:hint 思路：可导只需交出导数一与上一条。
+-- soko:hint 目标形态：`DifferentiableAt (fun x => x) a`。
+-- soko:hint 关键件：Exists.intro · hasDerivAt_id。
+theorem differentiableAt_id (a : ratRep) :
+    DifferentiableAt (fun (x : ratRep) => x) a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个具体读数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 a 取成零，直接引用恒等函数的导数。
+-- soko:hint 目标形态：`HasDerivAt (fun x => x) 0 1`。
+-- soko:hint 关键件：hasDerivAt_id。
+theorem demo_deriv_id_zero :
+    HasDerivAt (fun (x : ratRep) => x) ratZeroRep ratOneRep :=
+  sorry
+
+-- soko:hint 思路：常数取二、基点取三，直接引用常函数的导数。
+-- soko:hint 目标形态：`HasDerivAt (fun _ => 2) 3 0`。
+-- soko:hint 关键件：hasDerivAt_const · qrep。
+theorem demo_deriv_const_three :
+    HasDerivAt (fun (_ : ratRep) => qrep 2 Nat.zero Nat.zero)
+      (qrep 3 Nat.zero Nat.zero) ratZeroRep :=
+  sorry

@@ -1,0 +1,125 @@
+-- 单元127 函数极限的代数：和、差与取负
+--
+-- 两个函数各自趋近于 L 与 M，它们的和是否趋近于 L + M？把两个 ε-δ 定义并排，
+-- 会看到两块 δ 只能选一个：ε 折半之后，和的误差被三角不等式拆成两半，两个
+-- 半径取较小的那个就够了。取负不改变误差，只把方向翻过来；减法接在加法与
+-- 取负后面。
+--
+-- 这里唯一的工程件是半径的比较。有理数的序是全的，所以两个正半径里总有一个
+-- 不超过另一个；把小的那个交出去，再用「放大 ε 不破坏 close」把另一个函数
+-- 也纳入同一个半径。两条结论合起来，线性组合的极限就是极限的线性组合。
+--
+-- 边界：乘积与商需要先有「函数在 a 附近有界」与乘法对序的相容性，那条路
+-- 不在这一单元；本单元只做加法群这一半。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.RatHalf
+import lib.Bounded
+import lib.Limit
+import lib.RealAdd
+import lib.RealNeg
+import lib.LimAt
+
+-- ─────────────────────────────────────────────────────────────
+-- 放大 ε 不破坏接近性
+-- ─────────────────────────────────────────────────────────────
+
+-- `close x y ε` 的见证是某个 `d < ε`；只要 `ε ≤ ε'`，同一个 `d` 也满足
+-- `d < ε'`。这是后面把两个不同半径统一到一个半径的桥。
+theorem close_mono_eps (x y eps eps' : ratRep)
+    (h : close x y eps) (hle : ratLeRep eps eps') :
+    close x y eps' :=
+  Exists.elim h
+    (fun (d : ratRep)
+        (hd : ratAbsRel (ratSubRep x y) d ∧ ratLtRep d eps) =>
+      Exists.intro d
+        (And.intro (And.left hd)
+          (ratLtRep_of_lt_le d eps eps' (And.right hd) hle)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 和的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- ε 折半，两个函数各给一个正半径。序的全性把两个半径分成「δf ≤ δg」与
+-- 「δg ≤ δf」两支，两支都取较小的那个，较大的那个用 `close_mono_eps` 收进来，
+-- 最后交给 `close_add`。
+theorem tendsToAt_add (f g : ratRep → ratRep) (a L M : ratRep)
+    (hf : TendsToAt f a L) (hg : TendsToAt g a M) :
+    TendsToAt (fun (x : ratRep) => ratAddRep (f x) (g x)) a
+      (ratAddRep L M) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hf (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (df : ratRep)
+          (hdf : ratLtRep ratZeroRep df ∧
+            ∀ (x : ratRep), close x a df → ¬ ratRel x a →
+              close (f x) L (ratHalf eps)) =>
+        Exists.elim (hg (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (dg : ratRep)
+              (hdg : ratLtRep ratZeroRep dg ∧
+                ∀ (x : ratRep), close x a dg → ¬ ratRel x a →
+                  close (g x) M (ratHalf eps)) =>
+            Or.elim
+              (fun (hle : ratLeRep df dg) =>
+                Exists.intro df
+                  (And.intro (And.left hdf)
+                    (fun (x : ratRep) (hx : close x a df)
+                        (hne : ¬ ratRel x a) =>
+                      close_add (f x) L (g x) M eps
+                        ((And.right hdf) x hx hne)
+                        ((And.right hdg) x
+                          (close_mono_eps x a df dg hx hle) hne))))
+              (fun (hle : ratLeRep dg df) =>
+                Exists.intro dg
+                  (And.intro (And.left hdg)
+                    (fun (x : ratRep) (hx : close x a dg)
+                        (hne : ¬ ratRel x a) =>
+                      close_add (f x) L (g x) M eps
+                        ((And.right hdf) x
+                          (close_mono_eps x a dg df hx hle) hne)
+                        ((And.right hdg) x hx hne))))
+              (ratLeRep_total df dg)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 取负的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 取负把误差 `f x - L` 换成它的相反数，绝对值不变；半径原样沿用。
+theorem tendsToAt_neg (f : ratRep → ratRep) (a L : ratRep)
+    (hf : TendsToAt f a L) :
+    TendsToAt (fun (x : ratRep) => ratNegRep (f x)) a (ratNegRep L) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hf eps heps)
+      (fun (delta : ratRep)
+          (hd : ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+              close (f x) L eps) =>
+        Exists.intro delta
+          (And.intro (And.left hd)
+            (fun (x : ratRep) (hx : close x a delta)
+                (hne : ¬ ratRel x a) =>
+              close_neg (f x) L eps ((And.right hd) x hx hne))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 差的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- `f - g` 就是 `f + (-g)`，把上两条接起来。
+theorem tendsToAt_sub (f g : ratRep → ratRep) (a L M : ratRep)
+    (hf : TendsToAt f a L) (hg : TendsToAt g a M) :
+    TendsToAt (fun (x : ratRep) => ratSubRep (f x) (g x)) a
+      (ratSubRep L M) :=
+  tendsToAt_add f (fun (x : ratRep) => ratNegRep (g x)) a L (ratNegRep M)
+    hf (tendsToAt_neg g a M hg)
+
+-- ─────────────────────────────────────────────────────────────
+-- 具体：恒等函数加常数
+-- ─────────────────────────────────────────────────────────────
+
+-- 恒等函数在 a 处以 a 为极限，常函数以 c 为极限；和函数以 a + c 为极限。
+theorem demo_tendsToAt_add_const (c a : ratRep) :
+    TendsToAt (fun (x : ratRep) => ratAddRep x c) a (ratAddRep a c) :=
+  tendsToAt_add (fun (x : ratRep) => x) (fun (_ : ratRep) => c) a a c
+    (tendsToAt_id a) (tendsToAt_const c a)

@@ -1,0 +1,219 @@
+-- 单元129 单侧极限：只看一边
+--
+-- 函数在 a 的左右两侧可以走不同的路。符号函数在 0 的左边取负值、右边取正值，
+-- 它在 0 处没有双侧极限，但两侧各自的行为都很清楚。双侧极限把两边混在同一个
+-- 邻域里，正好丢掉了这种区分；闭区间的端点更麻烦，端点外侧根本没有定义，
+-- 双侧邻域无从谈起。
+--
+-- 单侧极限把「只看右边」与「只看左边」写成两条独立的 ε-δ：半径之外还要一条
+-- `a < x` 或 `x < a`。有了它，函数在端点处的连续性、单调函数的极限、介值定理
+-- 才有地方落脚。两条定义与双侧定义的差别只在方向条件，常函数与恒等函数的
+-- 单侧极限因此可以直接算出来。
+--
+-- 双侧极限推出两个单侧极限是直接的：把「x 不是 a」那条前提用方向条件消掉。
+-- 反方向要把两块半径拼成一块：邻域里的点要么在左边、要么在右边、要么与 a
+-- 相等。前两支交给两个单侧极限，第三支要靠函数在 a 处对代表元的选择不敏感，
+-- 否则 `x ~ a` 而 `f x` 与 `f a` 可以毫不相干。这条对等价的相容性写成显式
+-- 假设，定理对任意函数都成立。
+--
+-- 边界：函数取 `ratRep → ratRep`，左右极限都停在有理代表元层。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Bounded
+import lib.RatClose
+import lib.Limit
+import lib.LimitOrder
+import lib.LimAt
+import lib.LimAtAlgebra
+import lib.Cont
+
+-- ─────────────────────────────────────────────────────────────
+-- 左极限与右极限
+-- ─────────────────────────────────────────────────────────────
+
+def TendsToAtRight (f : ratRep → ratRep) (a L : ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), ratLtRep a x → close x a delta → close (f x) L eps
+
+def TendsToAtLeft (f : ratRep → ratRep) (a L : ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), ratLtRep x a → close x a delta → close (f x) L eps
+
+-- ─────────────────────────────────────────────────────────────
+-- 两条定义的展开形式
+-- ─────────────────────────────────────────────────────────────
+
+theorem tendsToAtRight_iff (f : ratRep → ratRep) (a L : ratRep) :
+    TendsToAtRight f a L ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), ratLtRep a x → close x a delta →
+            close (f x) L eps :=
+  Iff.intro
+    (fun (h : TendsToAtRight f a L) => h)
+    (fun (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), ratLtRep a x → close x a delta →
+            close (f x) L eps) => h)
+
+theorem tendsToAtLeft_iff (f : ratRep → ratRep) (a L : ratRep) :
+    TendsToAtLeft f a L ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), ratLtRep x a → close x a delta →
+            close (f x) L eps :=
+  Iff.intro
+    (fun (h : TendsToAtLeft f a L) => h)
+    (fun (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), ratLtRep x a → close x a delta →
+            close (f x) L eps) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 常函数与恒等函数的右极限
+-- ─────────────────────────────────────────────────────────────
+
+theorem tendsToAtRight_const (c a : ratRep) :
+    TendsToAtRight (fun (_ : ratRep) => c) a c :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro ratOneRep
+      (And.intro ratLtRep_zero_one
+        (fun (x : ratRep) (_hlt : ratLtRep a x)
+            (_hx : close x a ratOneRep) =>
+          close_of_ratRel c c (ratRel_refl c) eps heps))
+
+theorem tendsToAtRight_id (a : ratRep) :
+    TendsToAtRight (fun (x : ratRep) => x) a a :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro eps
+      (And.intro heps
+        (fun (x : ratRep) (_hlt : ratLtRep a x)
+            (hx : close x a eps) => hx))
+
+-- ─────────────────────────────────────────────────────────────
+-- 双侧极限给出两个单侧极限
+-- ─────────────────────────────────────────────────────────────
+
+theorem tendsToAtRight_of_tendsToAt (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L) : TendsToAtRight f a L :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (delta : ratRep)
+          (hd : ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+              close (f x) L eps) =>
+        Exists.intro delta
+          (And.intro (And.left hd)
+            (fun (x : ratRep) (hlt : ratLtRep a x)
+                (hx : close x a delta) =>
+              (And.right hd) x hx
+                (fun (hrel : ratRel x a) =>
+                  (ratLtRep_right a x hlt) (ratRel_symm x a hrel)))))
+
+theorem tendsToAtLeft_of_tendsToAt (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L) : TendsToAtLeft f a L :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (delta : ratRep)
+          (hd : ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+              close (f x) L eps) =>
+        Exists.intro delta
+          (And.intro (And.left hd)
+            (fun (x : ratRep) (hlt : ratLtRep x a)
+                (hx : close x a delta) =>
+              (And.right hd) x hx
+                (fun (hrel : ratRel x a) =>
+                  (ratLtRep_right x a hlt) hrel))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 两块单侧极限拼成双侧
+-- ─────────────────────────────────────────────────────────────
+
+theorem continuousAt_of_right_left (f : ratRep → ratRep) (a : ratRep)
+    (hcong : ∀ (x : ratRep), ratRel x a → ratRel (f x) (f a))
+    (hr : TendsToAtRight f a (f a)) (hl : TendsToAtLeft f a (f a)) :
+    ContinuousAt f a :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hr eps heps)
+      (fun (dr : ratRep)
+          (hdr : ratLtRep ratZeroRep dr ∧
+            ∀ (x : ratRep), ratLtRep a x → close x a dr →
+              close (f x) (f a) eps) =>
+        Exists.elim (hl eps heps)
+          (fun (dl : ratRep)
+              (hdl : ratLtRep ratZeroRep dl ∧
+                ∀ (x : ratRep), ratLtRep x a → close x a dl →
+                  close (f x) (f a) eps) =>
+            @Or.elim (ratLeRep dr dl) (ratLeRep dl dr)
+              (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+                ∀ (x : ratRep), close x a delta → close (f x) (f a) eps)
+              (fun (hle : ratLeRep dr dl) =>
+                Exists.intro dr
+                  (And.intro (And.left hdr)
+                    (fun (x : ratRep) (hx : close x a dr) =>
+                      @Or.elim (ratLeRep x a) (ratLeRep a x)
+                        (close (f x) (f a) eps)
+                        (fun (hxa : ratLeRep x a) =>
+                          @Or.elim (ratRel x a) (ratLtRep x a)
+                            (close (f x) (f a) eps)
+                            (fun (heq : ratRel x a) =>
+                              close_of_ratRel (f x) (f a)
+                                (hcong x heq) eps heps)
+                            (fun (hlt : ratLtRep x a) =>
+                              (And.right hdl) x hlt
+                                (close_mono_eps x a dr dl hx hle))
+                            (ratLeRep_eq_or_lt x a hxa))
+                        (fun (hax : ratLeRep a x) =>
+                          @Or.elim (ratRel a x) (ratLtRep a x)
+                            (close (f x) (f a) eps)
+                            (fun (heq : ratRel a x) =>
+                              close_of_ratRel (f x) (f a)
+                                (hcong x (ratRel_symm a x heq)) eps heps)
+                            (fun (hlt : ratLtRep a x) =>
+                              (And.right hdr) x hlt hx)
+                            (ratLeRep_eq_or_lt a x hax))
+                        (ratLeRep_total x a))))
+              (fun (hle : ratLeRep dl dr) =>
+                Exists.intro dl
+                  (And.intro (And.left hdl)
+                    (fun (x : ratRep) (hx : close x a dl) =>
+                      @Or.elim (ratLeRep x a) (ratLeRep a x)
+                        (close (f x) (f a) eps)
+                        (fun (hxa : ratLeRep x a) =>
+                          @Or.elim (ratRel x a) (ratLtRep x a)
+                            (close (f x) (f a) eps)
+                            (fun (heq : ratRel x a) =>
+                              close_of_ratRel (f x) (f a)
+                                (hcong x heq) eps heps)
+                            (fun (hlt : ratLtRep x a) =>
+                              (And.right hdl) x hlt hx)
+                            (ratLeRep_eq_or_lt x a hxa))
+                        (fun (hax : ratLeRep a x) =>
+                          @Or.elim (ratRel a x) (ratLtRep a x)
+                            (close (f x) (f a) eps)
+                            (fun (heq : ratRel a x) =>
+                              close_of_ratRel (f x) (f a)
+                                (hcong x (ratRel_symm a x heq)) eps heps)
+                            (fun (hlt : ratLtRep a x) =>
+                              (And.right hdr) x hlt
+                                (close_mono_eps x a dl dr hx hle))
+                            (ratLeRep_eq_or_lt a x hax))
+                        (ratLeRep_total x a))))
+              (ratLeRep_total dr dl)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 具体：恒等函数由两个单侧极限拼出连续
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_continuousAt_id_one_sided (a : ratRep) :
+    ContinuousAt (fun (x : ratRep) => x) a :=
+  continuousAt_of_right_left (fun (x : ratRep) => x) a
+    (fun (x : ratRep) (h : ratRel x a) => h)
+    (tendsToAtRight_of_tendsToAt (fun (x : ratRep) => x) a a
+      (tendsToAt_id a))
+    (tendsToAtLeft_of_tendsToAt (fun (x : ratRep) => x) a a
+      (tendsToAt_id a))

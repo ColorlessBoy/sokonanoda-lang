@@ -1,0 +1,101 @@
+-- 课程库：有理数乘法的符号表（单元147 的引擎）
+--
+-- 导数要判别极值，最后落在两个数相乘的符号上：正正得正、正负得负、
+-- 负负得正。这条常识在 ℚ 上不是定义性相等：乘法要先通分，取负要回到
+-- 整数代表元。下面的六条把符号表立起来，149 起的单元直接引用，不再重抄。
+--
+-- 骨架是 141 的 `ratMul_neg`：`x·(-y) ~ -(x·y)`。把 `(-x)·y` 交换成
+-- `y·(-x)` 就得到「负因子乘在左边」；「负数乘正数」由 `ratMul_pos` 与
+-- 取负反序两条接起来；「负负得正」则连翻两次。
+--
+-- 边界：只做正向的符号表，不从积的符号反推因子；那一步要用「积为零则
+-- 因子为零」，不在本模块。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatRing
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.LimitAbs
+import lib.LocalSign
+import lib.RatMulOrder
+import lib.DerivShift
+
+-- `0 < -z ⇒ z < 0`：把 `ratLtRep_neg_of_pos` 用在 `-z` 上，得到
+-- `-(-z) < 0`，再把左端点沿 `-(-z) ~ z` 换回来。
+theorem ratLtRep_of_neg_pos (z : ratRep)
+    (h : ratLtRep ratZeroRep (ratNegRep z)) :
+    ratLtRep z ratZeroRep :=
+  ratLtRep_congr_fst z (ratNegRep (ratNegRep z)) ratZeroRep
+    (ratLtRep_neg_of_pos (ratNegRep z) h)
+    (ratRel_symm z (ratNegRep (ratNegRep z)) (ratNegRep_invol z))
+
+-- 反方向：`-z < 0 ⇒ 0 < z`。同样先翻一次，再把右端点换回 z。
+theorem ratLtRep_of_neg_neg (z : ratRep)
+    (h : ratLtRep (ratNegRep z) ratZeroRep) :
+    ratLtRep ratZeroRep z :=
+  ratLtRep_congr_snd ratZeroRep (ratNegRep (ratNegRep z)) z
+    (ratLtRep_pos_of_neg (ratNegRep z) h)
+    (ratNegRep_invol z)
+
+-- ─────────────────────────────────────────────────────────────
+-- 负因子乘在左边
+-- ─────────────────────────────────────────────────────────────
+
+-- `(-x)·y ~ -(x·y)`：交换之后就是 `y·(-x)`，交给单元141 的 `ratMul_neg`，
+-- 最后把里面那个 `y·x` 换成 `x·y`。
+theorem ratMul_neg_left (x y : ratRep) :
+    ratRel (ratMulRep (ratNegRep x) y) (ratNegRep (ratMulRep x y)) :=
+  ratRel_trans_gen
+    (ratMulRep (ratNegRep x) y)
+    (ratNegRep (ratMulRep y x))
+    (ratNegRep (ratMulRep x y))
+    (ratRel_trans_gen
+      (ratMulRep (ratNegRep x) y)
+      (ratMulRep y (ratNegRep x))
+      (ratNegRep (ratMulRep y x))
+      (ratMul_comm (ratNegRep x) y)
+      (ratMul_neg y x))
+    (ratNegRep_wd (ratMulRep y x) (ratMulRep x y)
+      (ratRel_symm (ratMulRep x y) (ratMulRep y x) (ratMul_comm x y)))
+
+-- 负数乘正数得负数。`-x` 为正，正积 `(-x)·y` 为正，而它等于 `-(x·y)`；
+-- 最后一步把「积的相反数为正」翻成「积为负」。
+theorem ratMul_neg_pos (x y : ratRep)
+    (hx : ratLtRep x ratZeroRep) (hy : ratLtRep ratZeroRep y) :
+    ratLtRep (ratMulRep x y) ratZeroRep :=
+  ratLtRep_of_neg_pos (ratMulRep x y)
+    (ratLtRep_congr_snd ratZeroRep (ratMulRep (ratNegRep x) y)
+      (ratNegRep (ratMulRep x y))
+      (ratMul_pos (ratNegRep x) y (ratLtRep_pos_of_neg x hx) hy)
+      (ratMul_neg_left x y))
+
+-- 正的被乘数配负的乘数，同样得负数。交换一下乘积就是上一条。
+theorem ratMul_pos_neg (x y : ratRep)
+    (hx : ratLtRep ratZeroRep x) (hy : ratLtRep y ratZeroRep) :
+    ratLtRep (ratMulRep x y) ratZeroRep :=
+  ratLtRep_congr_fst (ratMulRep x y) (ratMulRep y x) ratZeroRep
+    (ratMul_neg_pos y x hy hx)
+    (ratMul_comm x y)
+
+-- 两个负数相乘得正数。`-x` 与 `-y` 都为正，积 `(-x)·(-y)` 为正；
+-- 它等于 `-(-(x·y))`，再沿双重负号回到 `x·y`。
+theorem ratMul_neg_neg (x y : ratRep)
+    (hx : ratLtRep x ratZeroRep) (hy : ratLtRep y ratZeroRep) :
+    ratLtRep ratZeroRep (ratMulRep x y) :=
+  ratLtRep_congr_snd ratZeroRep (ratMulRep (ratNegRep x) (ratNegRep y))
+    (ratMulRep x y)
+    (ratMul_pos (ratNegRep x) (ratNegRep y)
+      (ratLtRep_pos_of_neg x hx) (ratLtRep_pos_of_neg y hy))
+    (ratRel_trans_gen
+      (ratMulRep (ratNegRep x) (ratNegRep y))
+      (ratNegRep (ratMulRep x (ratNegRep y)))
+      (ratMulRep x y)
+      (ratMul_neg_left x (ratNegRep y))
+      (ratRel_trans_gen
+        (ratNegRep (ratMulRep x (ratNegRep y)))
+        (ratNegRep (ratNegRep (ratMulRep x y)))
+        (ratMulRep x y)
+        (ratNegRep_wd (ratMulRep x (ratNegRep y))
+          (ratNegRep (ratMulRep x y)) (ratMul_neg x y))
+        (ratNegRep_invol (ratMulRep x y))))

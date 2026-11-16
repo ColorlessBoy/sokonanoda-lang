@@ -1,0 +1,136 @@
+-- 单元150 单调与导数的符号：不下降的曲线不会往下斜
+--
+-- 曲线在一点附近如果从不下降，它的切线能有多陡？至少不能是负的：负斜率
+-- 意味着从切点往左走一小段，曲线反而更高（单元148 的左侧抬高），这与不
+-- 下降直接冲突。反方向——导数非负推出函数不下降——要中值定理，本阶段
+-- 还没有；这里只做前一方向。
+--
+-- 定义只要求局部：存在一个正半径，邻域内左边的点函数值不超过 a 点的值，
+-- 右边的点函数值不低于 a 点的值，就叫在 a 附近单调不减；两边对调则是单调
+-- 不增。证明用反证：若导数 L < 0，左侧抬高给出一个 x < a 使 f a < f x，
+-- 局部单调却给出 f x ≤ f a，两条不等式相撞。非增那一边把左右对调。
+--
+-- 边界：只做局部单调，不声称整段区间上的单调；反向的「导数非负推出单调」
+-- 需要中值定理，本阶段没有。恒等函数在零点附近单调不减却不单调不增，这条
+-- 读数说明两个方向不能互换。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatHalf
+import lib.Cauchy
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.LastNegative
+import lib.Monotone
+import lib.LimitOrder
+import lib.LimAt
+import lib.LimAtAlgebra
+import lib.Deriv
+import lib.DerivShift
+import lib.DerivSign
+
+-- ─────────────────────────────────────────────────────────────
+-- 局部单调
+-- ─────────────────────────────────────────────────────────────
+
+-- 「在 a 附近单调不减」：有一个正半径，邻域内左边的点不超过 a 处的值，
+-- 右边的点不低于 a 处的值。两条一起写，是因为「不下降」本来就同时管两侧。
+def NondecreasingNear (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    (∀ (x : ratRep), close x a delta → ratLeRep x a → ratLeRep (f x) (f a)) ∧
+    (∀ (x : ratRep), close x a delta → ratLeRep a x → ratLeRep (f a) (f x))
+
+-- 「在 a 附近单调不增」：左边的点不低于 a 处的值，右边的点不超过 a 处的值。
+def NonincreasingNear (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    (∀ (x : ratRep), close x a delta → ratLeRep x a → ratLeRep (f a) (f x)) ∧
+    (∀ (x : ratRep), close x a delta → ratLeRep a x → ratLeRep (f x) (f a))
+
+-- soko:hint 思路：定义就是右边那串量词，两个方向都直接返回假设。
+-- soko:hint 目标形态：`NondecreasingNear f a ↔ ∃ delta, 0 < delta ∧ （左侧条件）∧（右侧条件）`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem nondecreasingNear_iff (f : ratRep → ratRep) (a : ratRep) :
+    NondecreasingNear f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        (∀ (x : ratRep), close x a delta → ratLeRep x a →
+          ratLeRep (f x) (f a)) ∧
+        (∀ (x : ratRep), close x a delta → ratLeRep a x →
+          ratLeRep (f a) (f x)) :=
+  sorry
+
+-- soko:hint 思路：同上，把左右两条条件各自对调。
+-- soko:hint 目标形态：`NonincreasingNear f a ↔ ∃ delta, 0 < delta ∧ （左侧条件）∧（右侧条件）`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem nonincreasingNear_iff (f : ratRep → ratRep) (a : ratRep) :
+    NonincreasingNear f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        (∀ (x : ratRep), close x a delta → ratLeRep x a →
+          ratLeRep (f a) (f x)) ∧
+        (∀ (x : ratRep), close x a delta → ratLeRep a x →
+          ratLeRep (f x) (f a)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 单调挡住一侧的抬高
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：反证。取单调邻域与抬高邻域的较小半径 d，在 a 左侧取 x = a - d/2。单调给出 `f x ≤ f a`，抬高给出 `f a < f x`；反对称性把两条合成等式，与严格小的第二分量冲突。
+-- soko:hint 目标形态：`NondecreasingNear f a → ¬ RisesLeft f a`。
+-- soko:hint 关键件：exists_min_pos · close_sub_half · close_mono_eps · ratLtRep_self_sub_pos · ratLeRep_antisymm · And.right。
+theorem not_risesLeft_of_nondecreasingNear (f : ratRep → ratRep) (a : ratRep)
+    (h : NondecreasingNear f a) : ¬ RisesLeft f a :=
+  sorry
+
+-- soko:hint 思路：与上一条左右对调。这次在 a 右侧取 x = a + d/2；非增给出 `f x ≤ f a`，抬高给出 `f a < f x`，同样相撞。
+-- soko:hint 目标形态：`NonincreasingNear f a → ¬ RisesRight f a`。
+-- soko:hint 关键件：exists_min_pos · close_add_right · close_mono_eps · ratLtRep_self_add_pos · ratLeRep_antisymm · And.right。
+theorem not_risesRight_of_nonincreasingNear (f : ratRep → ratRep)
+    (a : ratRep) (h : NonincreasingNear f a) : ¬ RisesRight f a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 导数的符号
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：若 L < 0，`risesLeft_of_deriv_neg` 给出左侧抬高，与单调不减对应的「不抬高」冲突；所以 `¬ L < 0`。
+-- soko:hint 目标形态：`HasDerivAt f a L → NondecreasingNear f a → ¬ L < 0`。
+-- soko:hint 关键件：risesLeft_of_deriv_neg · not_risesLeft_of_nondecreasingNear。
+theorem deriv_nonneg_of_nondecreasingNear (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hmono : NondecreasingNear f a) :
+    ¬ ratLtRep L ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：若 0 < L，`risesRight_of_deriv_pos` 给出右侧抬高，与非增对应的「不抬高」冲突；所以 `¬ 0 < L`。
+-- soko:hint 目标形态：`HasDerivAt f a L → NonincreasingNear f a → ¬ 0 < L`。
+-- soko:hint 关键件：risesRight_of_deriv_pos · not_risesRight_of_nonincreasingNear。
+theorem deriv_nonpos_of_nonincreasingNear (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hmono : NonincreasingNear f a) :
+    ¬ ratLtRep ratZeroRep L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 三个读数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：半径取 1。两侧的条件经过恒等函数都变成 `x ≤ 0 → x ≤ 0` 与 `0 ≤ x → 0 ≤ x`，直接返回假设。
+-- soko:hint 目标形态：`NondecreasingNear (fun x => x) 0`。
+-- soko:hint 关键件：ratLtRep_zero_one · And.intro · Exists.intro。
+theorem demo_id_nondecreasingNear :
+    NondecreasingNear (fun (x : ratRep) => x) ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：恒等函数在零点的导数是 1（`hasDerivAt_id`），把上一条的单调性喂给 `deriv_nonneg_of_nondecreasingNear`。
+-- soko:hint 目标形态：`¬ 1 < 0`。
+-- soko:hint 关键件：hasDerivAt_id · demo_id_nondecreasingNear · deriv_nonneg_of_nondecreasingNear。
+theorem demo_id_deriv_nonneg :
+    ¬ ratLtRep ratOneRep ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：任取非增邻域的半径 delta，右侧点 0 + delta/2 落在邻域里。非增要求它 ≤ 0，而它严格大于 0；反对称性把两条合成 `0 ~ (0 + delta/2)`，与严格小的第二分量冲突。
+-- soko:hint 目标形态：`¬ NonincreasingNear (fun x => x) 0`。
+-- soko:hint 关键件：close_add_right · ratLtRep_self_add_pos · ratLeRep_antisymm · And.right。
+theorem demo_id_not_nonincreasing :
+    ¬ NonincreasingNear (fun (x : ratRep) => x) ratZeroRep :=
+  sorry

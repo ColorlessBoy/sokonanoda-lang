@@ -1,0 +1,290 @@
+-- 单元150 单调与导数的符号：不下降的曲线不会往下斜
+--
+-- 曲线在一点附近如果从不下降，它的切线能有多陡？至少不能是负的：负斜率
+-- 意味着从切点往左走一小段，曲线反而更高（单元148 的左侧抬高），这与不
+-- 下降直接冲突。反方向——导数非负推出函数不下降——要中值定理，本阶段
+-- 还没有；这里只做前一方向。
+--
+-- 定义只要求局部：存在一个正半径，邻域内左边的点函数值不超过 a 点的值，
+-- 右边的点函数值不低于 a 点的值，就叫在 a 附近单调不减；两边对调则是单调
+-- 不增。证明用反证：若导数 L < 0，左侧抬高给出一个 x < a 使 f a < f x，
+-- 局部单调却给出 f x ≤ f a，两条不等式相撞。非增那一边把左右对调。
+--
+-- 边界：只做局部单调，不声称整段区间上的单调；反向的「导数非负推出单调」
+-- 需要中值定理，本阶段没有。恒等函数在零点附近单调不减却不单调不增，这条
+-- 读数说明两个方向不能互换。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatHalf
+import lib.Cauchy
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.LastNegative
+import lib.Monotone
+import lib.LimitOrder
+import lib.LimAt
+import lib.LimAtAlgebra
+import lib.Deriv
+import lib.DerivShift
+import lib.DerivSign
+
+-- ─────────────────────────────────────────────────────────────
+-- 局部单调
+-- ─────────────────────────────────────────────────────────────
+
+-- 「在 a 附近单调不减」：有一个正半径，邻域内左边的点不超过 a 处的值，
+-- 右边的点不低于 a 处的值。两条一起写，是因为「不下降」本来就同时管两侧。
+def NondecreasingNear (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    (∀ (x : ratRep), close x a delta → ratLeRep x a → ratLeRep (f x) (f a)) ∧
+    (∀ (x : ratRep), close x a delta → ratLeRep a x → ratLeRep (f a) (f x))
+
+-- 「在 a 附近单调不增」：左边的点不低于 a 处的值，右边的点不超过 a 处的值。
+def NonincreasingNear (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    (∀ (x : ratRep), close x a delta → ratLeRep x a → ratLeRep (f a) (f x)) ∧
+    (∀ (x : ratRep), close x a delta → ratLeRep a x → ratLeRep (f x) (f a))
+
+theorem nondecreasingNear_iff (f : ratRep → ratRep) (a : ratRep) :
+    NondecreasingNear f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        (∀ (x : ratRep), close x a delta → ratLeRep x a →
+          ratLeRep (f x) (f a)) ∧
+        (∀ (x : ratRep), close x a delta → ratLeRep a x →
+          ratLeRep (f a) (f x)) :=
+  Iff.intro
+    (fun (h : NondecreasingNear f a) => h)
+    (fun (h : ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        (∀ (x : ratRep), close x a delta → ratLeRep x a →
+          ratLeRep (f x) (f a)) ∧
+        (∀ (x : ratRep), close x a delta → ratLeRep a x →
+          ratLeRep (f a) (f x))) => h)
+
+theorem nonincreasingNear_iff (f : ratRep → ratRep) (a : ratRep) :
+    NonincreasingNear f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        (∀ (x : ratRep), close x a delta → ratLeRep x a →
+          ratLeRep (f a) (f x)) ∧
+        (∀ (x : ratRep), close x a delta → ratLeRep a x →
+          ratLeRep (f x) (f a)) :=
+  Iff.intro
+    (fun (h : NonincreasingNear f a) => h)
+    (fun (h : ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        (∀ (x : ratRep), close x a delta → ratLeRep x a →
+          ratLeRep (f a) (f x)) ∧
+        (∀ (x : ratRep), close x a delta → ratLeRep a x →
+          ratLeRep (f x) (f a))) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 左侧的点与两个邻域的公共半径
+-- ─────────────────────────────────────────────────────────────
+
+-- 点 `a - d/2` 到 a 的距离是 d/2：`close_of_le_lb` 把它写成
+-- `a - d/2 ≤ a ≤ (a - d/2) + d/2`，最后一步是 `d/2 < d`。
+
+theorem close_sub_half (a d : ratRep) (hd : ratLtRep ratZeroRep d) :
+    close (ratSubRep a (ratHalf d)) a d :=
+  close_of_le_lb (ratSubRep a (ratHalf d)) a d (ratHalf d)
+    (ratLtRep_le (ratSubRep a (ratHalf d)) a
+      (ratLtRep_self_sub_pos a (ratHalf d) (ratLtRep_half d hd)))
+    (ratLeRep_of_ratRel a (ratAddRep (ratSubRep a (ratHalf d)) (ratHalf d))
+      (ratRel_symm (ratAddRep (ratSubRep a (ratHalf d)) (ratHalf d)) a
+        (ratSubRep_add_self a (ratHalf d))))
+    (ratHalf_lt_self d hd)
+
+-- 单调邻域与抬高邻域各取半径，`exists_min_pos` 给出公共半径 d。左侧点
+-- `a - d/2` 同时落在两个邻域里：单调给出 `f (a - d/2) ≤ f a`，抬高给出
+-- `f a < f (a - d/2)`，反对称性把两条合成等式，与严格小的第二分量相撞。
+
+theorem risesLeft_conflict_mono (f : ratRep → ratRep) (a dm dr : ratRep)
+    (hdm : ratLtRep ratZeroRep dm)
+    (hmono : ∀ (x : ratRep), close x a dm → ratLeRep x a →
+      ratLeRep (f x) (f a))
+    (hdr : ratLtRep ratZeroRep dr)
+    (hrise : ∀ (x : ratRep), ratLtRep x a → close x a dr →
+      ratLtRep (f a) (f x)) :
+    False :=
+  Exists.elim (exists_min_pos dm dr hdm hdr)
+    (fun (d : ratRep)
+        (hd : ratLtRep ratZeroRep d ∧ ratLeRep d dm ∧ ratLeRep d dr) =>
+      (And.right (hrise (ratSubRep a (ratHalf d))
+        (ratLtRep_self_sub_pos a (ratHalf d)
+          (ratLtRep_half d (And.left hd)))
+        (close_mono_eps (ratSubRep a (ratHalf d)) a d dr
+          (close_sub_half a d (And.left hd))
+          (And.right (And.right hd)))))
+        (ratLeRep_antisymm (f a) (f (ratSubRep a (ratHalf d)))
+          (And.left (hrise (ratSubRep a (ratHalf d))
+            (ratLtRep_self_sub_pos a (ratHalf d)
+              (ratLtRep_half d (And.left hd)))
+            (close_mono_eps (ratSubRep a (ratHalf d)) a d dr
+              (close_sub_half a d (And.left hd))
+              (And.right (And.right hd)))))
+          (hmono (ratSubRep a (ratHalf d))
+            (close_mono_eps (ratSubRep a (ratHalf d)) a d dm
+              (close_sub_half a d (And.left hd))
+              (And.left (And.right hd)))
+            (ratLtRep_le (ratSubRep a (ratHalf d)) a
+              (ratLtRep_self_sub_pos a (ratHalf d)
+                (ratLtRep_half d (And.left hd)))))))
+
+-- 右侧的同一段推理：点取 `a + d/2`，非增给出 `f (a + d/2) ≤ f a`，抬高
+-- 给出 `f a < f (a + d/2)`。
+
+theorem risesRight_conflict_mono (f : ratRep → ratRep) (a dm dr : ratRep)
+    (hdm : ratLtRep ratZeroRep dm)
+    (hmono : ∀ (x : ratRep), close x a dm → ratLeRep a x →
+      ratLeRep (f x) (f a))
+    (hdr : ratLtRep ratZeroRep dr)
+    (hrise : ∀ (x : ratRep), ratLtRep a x → close x a dr →
+      ratLtRep (f a) (f x)) :
+    False :=
+  Exists.elim (exists_min_pos dm dr hdm hdr)
+    (fun (d : ratRep)
+        (hd : ratLtRep ratZeroRep d ∧ ratLeRep d dm ∧ ratLeRep d dr) =>
+      (And.right (hrise (ratAddRep a (ratHalf d))
+        (ratLtRep_self_add_pos a (ratHalf d)
+          (ratLtRep_half d (And.left hd)))
+        (close_mono_eps (ratAddRep a (ratHalf d)) a d dr
+          (close_add_right a (ratHalf d) d (ratLtRep_half d (And.left hd))
+            (ratHalf_lt_self d (And.left hd)))
+          (And.right (And.right hd)))))
+        (ratLeRep_antisymm (f a) (f (ratAddRep a (ratHalf d)))
+          (And.left (hrise (ratAddRep a (ratHalf d))
+            (ratLtRep_self_add_pos a (ratHalf d)
+              (ratLtRep_half d (And.left hd)))
+            (close_mono_eps (ratAddRep a (ratHalf d)) a d dr
+              (close_add_right a (ratHalf d) d (ratLtRep_half d (And.left hd))
+                (ratHalf_lt_self d (And.left hd)))
+              (And.right (And.right hd)))))
+          (hmono (ratAddRep a (ratHalf d))
+            (close_mono_eps (ratAddRep a (ratHalf d)) a d dm
+              (close_add_right a (ratHalf d) d (ratLtRep_half d (And.left hd))
+                (ratHalf_lt_self d (And.left hd)))
+              (And.left (And.right hd)))
+            (ratLtRep_le a (ratAddRep a (ratHalf d))
+              (ratLtRep_self_add_pos a (ratHalf d)
+                (ratLtRep_half d (And.left hd)))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 单调挡住一侧的抬高
+-- ─────────────────────────────────────────────────────────────
+
+-- 把局部单调的存在性拆成半径、左侧条件与右侧条件，再把抬高的存在性拆开，
+-- 两个半径交给冲突引理。不减只用左侧条件。
+
+theorem not_risesLeft_of_nondecreasingNear (f : ratRep → ratRep) (a : ratRep)
+    (h : NondecreasingNear f a) : ¬ RisesLeft f a :=
+  fun (hr : RisesLeft f a) =>
+    Exists.elim h
+      (fun (dm : ratRep)
+          (hdm : ratLtRep ratZeroRep dm ∧
+            (∀ (x : ratRep), close x a dm → ratLeRep x a →
+              ratLeRep (f x) (f a)) ∧
+            (∀ (x : ratRep), close x a dm → ratLeRep a x →
+              ratLeRep (f a) (f x))) =>
+        Exists.elim hr
+          (fun (dr : ratRep)
+              (hdr : ratLtRep ratZeroRep dr ∧
+                ∀ (x : ratRep), ratLtRep x a → close x a dr →
+                  ratLtRep (f a) (f x)) =>
+            risesLeft_conflict_mono f a dm dr (And.left hdm)
+              (And.left (And.right hdm)) (And.left hdr) (And.right hdr)))
+
+-- 不增这一边用右侧条件，其余与上一条对称。
+
+theorem not_risesRight_of_nonincreasingNear (f : ratRep → ratRep) (a : ratRep)
+    (h : NonincreasingNear f a) : ¬ RisesRight f a :=
+  fun (hr : RisesRight f a) =>
+    Exists.elim h
+      (fun (dm : ratRep)
+          (hdm : ratLtRep ratZeroRep dm ∧
+            (∀ (x : ratRep), close x a dm → ratLeRep x a →
+              ratLeRep (f a) (f x)) ∧
+            (∀ (x : ratRep), close x a dm → ratLeRep a x →
+              ratLeRep (f x) (f a))) =>
+        Exists.elim hr
+          (fun (dr : ratRep)
+              (hdr : ratLtRep ratZeroRep dr ∧
+                ∀ (x : ratRep), ratLtRep a x → close x a dr →
+                  ratLtRep (f a) (f x)) =>
+            risesRight_conflict_mono f a dm dr (And.left hdm)
+              (And.right (And.right hdm)) (And.left hdr) (And.right hdr)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 导数的符号
+-- ─────────────────────────────────────────────────────────────
+
+-- 导数为负就落到左侧抬高，而单调不减不允许左侧抬高；两条一碰，负导数
+-- 就被排除。剩下的正是「导数不为负」。
+
+theorem deriv_nonneg_of_nondecreasingNear (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hmono : NondecreasingNear f a) :
+    ¬ ratLtRep L ratZeroRep :=
+  fun (hL : ratLtRep L ratZeroRep) =>
+    not_risesLeft_of_nondecreasingNear f a hmono
+      (risesLeft_of_deriv_neg f a L h hL)
+
+-- 对偶的一支：正导数给出右侧抬高，与非增冲突。
+
+theorem deriv_nonpos_of_nonincreasingNear (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hmono : NonincreasingNear f a) :
+    ¬ ratLtRep ratZeroRep L :=
+  fun (hL : ratLtRep ratZeroRep L) =>
+    not_risesRight_of_nonincreasingNear f a hmono
+      (risesRight_of_deriv_pos f a L h hL)
+
+-- ─────────────────────────────────────────────────────────────
+-- 三个读数
+-- ─────────────────────────────────────────────────────────────
+
+-- 恒等函数在零点附近单调不减：半径取 1，两侧的条件都退化成同一个不等式。
+
+theorem demo_id_nondecreasingNear :
+    NondecreasingNear (fun (x : ratRep) => x) ratZeroRep :=
+  Exists.intro ratOneRep
+    (And.intro ratLtRep_zero_one
+      (And.intro
+        (fun (x : ratRep) (_hx : close x ratZeroRep ratOneRep)
+            (hle : ratLeRep x ratZeroRep) => hle)
+        (fun (x : ratRep) (_hx : close x ratZeroRep ratOneRep)
+            (hle : ratLeRep ratZeroRep x) => hle)))
+
+-- 恒等函数的导数是 1，单调性把它抬成「1 不为负」。
+
+theorem demo_id_deriv_nonneg :
+    ¬ ratLtRep ratOneRep ratZeroRep :=
+  deriv_nonneg_of_nondecreasingNear (fun (x : ratRep) => x) ratZeroRep
+    ratOneRep (hasDerivAt_id ratZeroRep) demo_id_nondecreasingNear
+
+-- 恒等函数不是局部不增：任取半径 delta，右侧点 `0 + delta/2` 落在邻域里，
+-- 非增要求它不超过 0，它却严格大于 0。两条不等式合成 `0 ~ (0 + delta/2)`，
+-- 与严格小的第二分量相撞。
+
+theorem demo_id_not_nonincreasing :
+    ¬ NonincreasingNear (fun (x : ratRep) => x) ratZeroRep :=
+  fun (h : NonincreasingNear (fun (x : ratRep) => x) ratZeroRep) =>
+    Exists.elim h
+      (fun (delta : ratRep)
+          (hd : ratLtRep ratZeroRep delta ∧
+            (∀ (x : ratRep), close x ratZeroRep delta →
+              ratLeRep x ratZeroRep → ratLeRep ratZeroRep x) ∧
+            (∀ (x : ratRep), close x ratZeroRep delta →
+              ratLeRep ratZeroRep x → ratLeRep x ratZeroRep)) =>
+        (And.right (ratLtRep_self_add_pos ratZeroRep (ratHalf delta)
+          (ratLtRep_half delta (And.left hd))))
+          (ratLeRep_antisymm ratZeroRep (ratAddRep ratZeroRep (ratHalf delta))
+            (ratLtRep_le ratZeroRep (ratAddRep ratZeroRep (ratHalf delta))
+              (ratLtRep_self_add_pos ratZeroRep (ratHalf delta)
+                (ratLtRep_half delta (And.left hd))))
+            ((And.right (And.right hd))
+              (ratAddRep ratZeroRep (ratHalf delta))
+              (close_add_right ratZeroRep (ratHalf delta) delta
+                (ratLtRep_half delta (And.left hd))
+                (ratHalf_lt_self delta (And.left hd)))
+              (ratLtRep_le ratZeroRep (ratAddRep ratZeroRep (ratHalf delta))
+                (ratLtRep_self_add_pos ratZeroRep (ratHalf delta)
+                  (ratLtRep_half delta (And.left hd)))))))

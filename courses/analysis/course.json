@@ -948,6 +948,190 @@
               "unit": 123
             }
           ]
+        },
+        {
+          "id": "III.6",
+          "title": "连续函数",
+          "prereqs": ["III.5"],
+          "tags": ["continuity", "function-limit"],
+          "quota": {
+            "exercises": 60
+          },
+          "units": [
+            {
+              "file": "units/III.6/unit124-function-limit.sokonanoda",
+              "title": "单元124 函数极限：ε-δ 定义",
+              "title_en": "Unit 124 — Function Limits: The ε-δ Definition",
+              "unit": 124
+            },
+            {
+              "file": "units/III.6/unit125-continuity.sokonanoda",
+              "title": "单元125 连续：极限值就是函数值",
+              "title_en": "Unit 125 — Continuity: The Limit Is the Function Value",
+              "unit": 125
+            },
+            {
+              "file": "units/III.6/unit126-sequential-criterion.sokonanoda",
+              "title": "单元126 函数极限与序列：顺序判据",
+              "title_en": "Unit 126 — Function Limits and Sequences: The Sequential Criterion",
+              "unit": 126
+            },
+            {
+              "file": "units/III.6/unit127-limit-algebra.sokonanoda",
+              "title": "单元127 函数极限的代数：和、差与取负",
+              "title_en": "Unit 127 — Algebra of Function Limits: Sums, Differences, Negation",
+              "unit": 127
+            },
+            {
+              "file": "units/III.6/unit128-continuity-algebra.sokonanoda",
+              "title": "单元128 连续函数的代数：和、差与取负",
+              "title_en": "Unit 128 — Algebra of Continuous Functions: Sums, Differences, Negation",
+              "unit": 128
+            },
+            {
+              "file": "units/III.6/unit129-one-sided-limits.sokonanoda",
+              "title": "单元129 单侧极限：只看一边",
+              "title_en": "Unit 129 — One-Sided Limits: Looking Only One Way",
+              "unit": 129
+            },
+            {
+              "file": "units/III.6/unit130-uniform-continuity.sokonanoda",
+              "title": "单元130 一致连续：一个 δ 管住整片定义域",
+              "title_en": "Unit 130 — Uniform Continuity: One δ for the Whole Domain",
+              "unit": 130
+            },
+            {
+              "file": "units/III.6/unit131-uniform-continuity-sequences.sokonanoda",
+              "title": "单元131 一致连续与序列：Cauchy 序列的像",
+              "title_en": "Unit 131 — Uniform Continuity and Sequences: Images of Cauchy Sequences",
+              "unit": 131
+            },
+            {
+              "file": "units/III.6/unit132-local-boundedness.sokonanoda",
+              "title": "单元132 局部有界：极限给出的第一个盒子",
+              "title_en": "Unit 132 — Local Boundedness: The First Box a Limit Gives",
+              "unit": 132
+            },
+            {
+              "file": "units/III.6/unit133-local-sign.sokonanoda",
+              "title": "单元133 局部保号：连续函数在一点附近不变号",
+              "title_en": "Unit 133 — Local Sign Preservation: A Continuous Function Keeps Its Sign",
+              "unit": 133
+            },
+            {
+              "file": "units/III.6/unit134-extreme-values.sokonanoda",
+              "title": "单元134 闭区间上的最值：上确界与达到",
+              "title_en": "Unit 134 — Extreme Values on a Closed Interval: The Supremum Must Be Attained",
+              "unit": 134
+            },
+            {
+              "file": "units/III.6/unit135-last-negative.sokonanoda",
+              "title": "单元135 最后一个负点：保号性把负点往右推一步",
+              "title_en": "Unit 135 — The Last Negative Point: Sign Preservation Pushes It Right",
+              "unit": 135
+            },
+            {
+              "file": "units/III.6/unit136-ivt.sokonanoda",
+              "title": "单元136 介值定理：最后一个非正点",
+              "title_en": "Unit 136 — The Intermediate Value Theorem: The Last Nonpositive Point",
+              "unit": 136
+            },
+            {
+              "file": "units/III.6/unit137-limit-at-infinity.sokonanoda",
+              "title": "单元137 无穷远处的极限：越过分界线之后靠近 L",
+              "title_en": "Unit 137 — Limits at Infinity: Getting Close Beyond a Threshold",
+              "unit": 137
+            },
+            {
+              "file": "units/III.6/unit138-limit-at-infinity-algebra.sokonanoda",
+              "title": "单元138 无穷远处极限的代数与序列判据",
+              "title_en": "Unit 138 — Algebra of Limits at Infinity and the Sequential Criterion",
+              "unit": 138
+            },
+            {
+              "file": "units/III.6/unit139-monotone-ivp.sokonanoda",
+              "title": "单元139 单调函数：介值性反过来给出连续",
+              "title_en": "Unit 139 — Monotone Functions: Intermediate Values Force Continuity",
+              "unit": 139
+            }
+          ]
+        },
+        {
+          "id": "III.7",
+          "title": "微分",
+          "prereqs": ["III.6"],
+          "tags": ["derivative", "differentiation"],
+          "quota": {
+            "exercises": 40
+          },
+          "units": [
+            {
+              "file": "units/III.7/unit140-derivative-definition.sokonanoda",
+              "title": "单元140 导数的定义：斜率函数与它的极限",
+              "title_en": "Unit 140 — The Derivative: Slope Functions and Their Limits",
+              "unit": 140
+            },
+            {
+              "file": "units/III.7/unit141-deriv-shift-neg.sokonanoda",
+              "title": "单元141 导数的代数：垂直平移与取负",
+              "title_en": "Unit 141 — Algebra of Derivatives: Vertical Shifts and Negation",
+              "unit": 141
+            },
+            {
+              "file": "units/III.7/unit142-limit-unique.sokonanoda",
+              "title": "单元142 极限唯一：一条曲线不能同时逼近两个值",
+              "title_en": "Unit 142 — Uniqueness of the Limit: A Curve Cannot Approach Two Values at Once",
+              "unit": 142
+            },
+            {
+              "file": "units/III.7/unit143-limit-local.sokonanoda",
+              "title": "单元143 极限只看邻域：换掉远处的函数值",
+              "title_en": "Unit 143 — Limits Only See a Neighborhood: Changing Values Far Away",
+              "unit": 143
+            },
+            {
+              "file": "units/III.7/unit144-cancel-nonzero.sokonanoda",
+              "title": "单元144 非零因子消去：导数为什么只有一个值",
+              "title_en": "Unit 144 — Cancelling a Nonzero Factor: Why the Derivative Has One Value",
+              "unit": 144
+            },
+            {
+              "file": "units/III.7/unit145-deriv-sum.sokonanoda",
+              "title": "单元145 导数的和与差：先让乘法对加法分配",
+              "title_en": "Unit 145 — Sums and Differences of Derivatives: Distributing Multiplication Over Addition",
+              "unit": 145
+            },
+            {
+              "file": "units/III.7/unit146-mul-order.sokonanoda",
+              "title": "单元146 乘法的保序性：正因子不改变不等号",
+              "title_en": "Unit 146 — Multiplication Preserves Order: Positive Factors Do Not Flip Inequalities",
+              "unit": 146
+            },
+            {
+              "file": "units/III.7/unit147-mul-sign.sokonanoda",
+              "title": "单元147 乘法的符号：负因子把不等号翻过来",
+              "title_en": "Unit 147 — Signs of Products: Negative Factors Flip Inequalities",
+              "unit": 147
+            },
+            {
+              "file": "units/III.7/unit148-deriv-sign.sokonanoda",
+              "title": "单元148 导数的符号：曲线从切点往哪一边抬高",
+              "title_en": "Unit 148 — The Sign of the Derivative: Which Side of the Tangent Point Rises",
+              "unit": 148
+            },
+            {
+              "file": "units/III.7/unit149-local-extremum.sokonanoda",
+              "title": "单元149 极值点的导数为零：曲线在最高处没有斜率",
+              "title_en": "Unit 149 — The Derivative Vanishes at Interior Extrema",
+              "unit": 149
+            },
+            {
+              "file": "units/III.7/unit150-monotone-deriv.sokonanoda",
+              "title": "单元150 单调与导数的符号：不下降的曲线不会往下斜",
+              "title_en": "Unit 150 — Monotonicity and the Sign of the Derivative",
+              "unit": 150
+            }
+          ]
         }
       ]
     }

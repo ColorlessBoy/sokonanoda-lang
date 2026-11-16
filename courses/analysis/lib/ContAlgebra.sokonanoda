@@ -1,0 +1,102 @@
+-- 课程库：连续函数的加法群
+--
+-- 单元128 在画布上证明了和、取负与差的连续性；当时它们只在解答里，
+-- 133 起要做「连续函数在一点附近的比较」，需要把差 `g - f` 交给保号性，
+-- 于是这里按「引擎进库」的惯例把它们收进 L2。证明与单元128 的解答逐步
+-- 相同，只换了模块头：
+--
+--   · `continuousAt_add` —— ε 折半、两个半径取小者、`close_mono_eps`
+--     把另一个函数收进同一半径、`close_add` 合成；
+--   · `continuousAt_neg` —— 半径不变，`close_neg` 把误差换成相反数；
+--   · `continuousAt_sub` —— `f - g` 就是 `f + (-g)`；
+--   · 三条全局版本逐点复用。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层。不新增公理，
+-- 也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatHalf
+import lib.RealAdd
+import lib.RealNeg
+import lib.LimAtAlgebra
+import lib.Cont
+
+-- ─────────────────────────────────────────────────────────────
+-- 128：和、取负与差保持连续
+-- ─────────────────────────────────────────────────────────────
+
+-- ε 折半，两个函数各给一个正半径。序的全性把两个半径分成「δf ≤ δg」与
+-- 「δg ≤ δf」两支，两支都取较小的那个当公共半径，较大的那个用放大律收进
+-- 同一个半径，再交给 `close_add`。
+theorem continuousAt_add (f g : ratRep → ratRep) (a : ratRep)
+    (hf : ContinuousAt f a) (hg : ContinuousAt g a) :
+    ContinuousAt (fun (x : ratRep) => ratAddRep (f x) (g x)) a :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hf (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (df : ratRep)
+          (hdf : ratLtRep ratZeroRep df ∧
+            ∀ (x : ratRep), close x a df →
+              close (f x) (f a) (ratHalf eps)) =>
+        Exists.elim (hg (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (dg : ratRep)
+              (hdg : ratLtRep ratZeroRep dg ∧
+                ∀ (x : ratRep), close x a dg →
+                  close (g x) (g a) (ratHalf eps)) =>
+            Or.elim
+              (fun (hle : ratLeRep df dg) =>
+                Exists.intro df
+                  (And.intro (And.left hdf)
+                    (fun (x : ratRep) (hx : close x a df) =>
+                      close_add (f x) (f a) (g x) (g a) eps
+                        ((And.right hdf) x hx)
+                        ((And.right hdg) x
+                          (close_mono_eps x a df dg hx hle)))))
+              (fun (hle : ratLeRep dg df) =>
+                Exists.intro dg
+                  (And.intro (And.left hdg)
+                    (fun (x : ratRep) (hx : close x a dg) =>
+                      close_add (f x) (f a) (g x) (g a) eps
+                        ((And.right hdf) x
+                          (close_mono_eps x a dg df hx hle))
+                        ((And.right hdg) x hx))))
+              (ratLeRep_total df dg)))
+
+-- 取负把误差 `f x - f a` 换成它的相反数，绝对值不变；半径原样沿用。
+theorem continuousAt_neg (f : ratRep → ratRep) (a : ratRep)
+    (hf : ContinuousAt f a) :
+    ContinuousAt (fun (x : ratRep) => ratNegRep (f x)) a :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hf eps heps)
+      (fun (delta : ratRep)
+          (hd : ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x a delta →
+              close (f x) (f a) eps) =>
+        Exists.intro delta
+          (And.intro (And.left hd)
+            (fun (x : ratRep) (hx : close x a delta) =>
+              close_neg (f x) (f a) eps ((And.right hd) x hx))))
+
+-- `f - g` 就是 `f + (-g)`，把上两条接起来。
+theorem continuousAt_sub (f g : ratRep → ratRep) (a : ratRep)
+    (hf : ContinuousAt f a) (hg : ContinuousAt g a) :
+    ContinuousAt (fun (x : ratRep) => ratSubRep (f x) (g x)) a :=
+  continuousAt_add f (fun (x : ratRep) => ratNegRep (g x)) a hf
+    (continuousAt_neg g a hg)
+
+-- 每个点都用逐点的和律。
+theorem continuous_add (f g : ratRep → ratRep)
+    (hf : Continuous f) (hg : Continuous g) :
+    Continuous (fun (x : ratRep) => ratAddRep (f x) (g x)) :=
+  fun (a : ratRep) => continuousAt_add f g a (hf a) (hg a)
+
+-- 在每一点用逐点的取负律。
+theorem continuous_neg (f : ratRep → ratRep) (hf : Continuous f) :
+    Continuous (fun (x : ratRep) => ratNegRep (f x)) :=
+  fun (a : ratRep) => continuousAt_neg f a (hf a)
+
+-- 在每一点用逐点的差律。
+theorem continuous_sub (f g : ratRep → ratRep)
+    (hf : Continuous f) (hg : Continuous g) :
+    Continuous (fun (x : ratRep) => ratSubRep (f x) (g x)) :=
+  fun (a : ratRep) => continuousAt_sub f g a (hf a) (hg a)

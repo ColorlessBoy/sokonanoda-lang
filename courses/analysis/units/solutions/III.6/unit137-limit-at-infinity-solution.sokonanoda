@@ -1,0 +1,183 @@
+-- 单元137 无穷远处的极限：x 变大时靠近 L
+--
+-- 序列的极限只问下标越来越大时项往哪里去；函数没有下标，只有自变量。
+-- 若让自变量一直往右走，函数值会不会也停在某个数附近？这正是「无穷远处
+-- 的极限」要回答的问题。它把 ε-N 里的阈值 N 换成一条有理数的分界线 M：
+-- 只要 x 在 M 的右边，f x 就落在 L 的 ε 邻域里。
+--
+-- 与一点处的极限相比，这里没有「挖掉 a」的必要，因为 x 只从右边来，
+-- 而且没有一个特殊的点需要排除。δ 变成了朝一个方向的 M，量词顺序不变：
+-- 先给 ε，再找 M，最后对每个越过 M 的 x 给结论。
+--
+-- 常函数在任何 M 处都合格；把图像左右平移，极限不变；两个函数从某条
+-- 分界线起逐点相等，极限也相同。恒等函数则给出反例：它一直往右走，
+-- 不可能停在某个有理数 L 附近，所以「在无穷远处有有限极限」不是自动的。
+--
+-- 边界：函数取 `ratRep → ratRep`，极限停在有理代表元层；不把 ±∞ 当成
+-- 数，也不讨论函数值趋于无穷。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatClose
+import lib.RatAbsOrder
+import lib.RatCloseTrans
+import lib.Limit
+import lib.RatSub
+import lib.LocalSign
+import lib.LimitOrder
+import lib.RealAdd
+import lib.Tail
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义：越过某条线之后一直靠近 L
+-- ─────────────────────────────────────────────────────────────
+
+-- 阈值 M 是有理数，不要求为正：它只是数轴上的一条分界线。`ratLeRep M x`
+-- 读作「x 在 M 的右边或与 M 重合」，于是量词只朝一个方向走。
+def TendsToAtInfinity (f : ratRep → ratRep) (L : ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (M : ratRep), ∀ (x : ratRep), ratLeRep M x → close (f x) L eps
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义的展开形式
+-- ─────────────────────────────────────────────────────────────
+
+-- 定义与展开是同一个命题，两个方向都直接返回假设。
+theorem tendsToAtInfinity_iff (f : ratRep → ratRep) (L : ratRep) :
+    TendsToAtInfinity f L ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (M : ratRep), ∀ (x : ratRep), ratLeRep M x → close (f x) L eps :=
+  Iff.intro
+    (fun (h : TendsToAtInfinity f L) => h)
+    (fun (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (M : ratRep), ∀ (x : ratRep), ratLeRep M x →
+          close (f x) L eps) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个阈值可以合成一个
+-- ─────────────────────────────────────────────────────────────
+
+-- 全性只给「a ≤ b 或 b ≤ a」两支；两支各自挑较大的那个当 M，另一条
+-- 弱序由传递性补上。
+theorem exists_ge_both (a b : ratRep) :
+    ∃ (M : ratRep), ratLeRep a M ∧ ratLeRep b M :=
+  Or.elim
+    (fun (hab : ratLeRep a b) =>
+      Exists.intro b (And.intro hab (ratLeRep_refl b)))
+    (fun (hba : ratLeRep b a) =>
+      Exists.intro a (And.intro (ratLeRep_refl a) hba))
+    (ratLeRep_total a b)
+
+-- ─────────────────────────────────────────────────────────────
+-- 常函数
+-- ─────────────────────────────────────────────────────────────
+
+-- 常函数的输出与 L 相等，相等就落在每个正 ε 内；分界线取零即可。
+theorem tendsToAtInfinity_const (c : ratRep) :
+    TendsToAtInfinity (fun (_ : ratRep) => c) c :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro ratZeroRep
+      (fun (x : ratRep) (_hx : ratLeRep ratZeroRep x) =>
+        close_of_ratRel c c (ratRel_refl c) eps heps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 平移不改变无穷远处的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 若 f 在 M 之后靠近 L，那么 x + c 在 M - c 之后靠近 L。分界线往前挪
+-- 一个 c：`x ≥ M - c` 两边加 c，左端用 `(M - c) + c ~ M` 收回。
+theorem tendsToAtInfinity_shift (f : ratRep → ratRep) (c L : ratRep)
+    (h : TendsToAtInfinity f L) :
+    TendsToAtInfinity (fun (x : ratRep) => f (ratAddRep x c)) L :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (M : ratRep)
+          (hM : ∀ (x : ratRep), ratLeRep M x → close (f x) L eps) =>
+        Exists.intro (ratSubRep M c)
+          (fun (x : ratRep) (hx : ratLeRep (ratSubRep M c) x) =>
+            hM (ratAddRep x c)
+              (ratLeRep_congr_gen
+                (ratAddRep (ratSubRep M c) c) M
+                (ratAddRep x c) (ratAddRep x c)
+                (ratSubRep_add_self M c)
+                (ratRel_refl (ratAddRep x c))
+                (ratLeRep_add_right (ratSubRep M c) x c hx))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 从某条线起逐点相等，极限相同
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个阈值 Mf 与 M0 用 `exists_ge_both` 并成 M；越过 M 的点同时越过两者，
+-- 于是 f x 与 g x 相等，`close` 沿这个等式搬到 g 那一边。
+theorem tendsToAtInfinity_congr (f g : ratRep → ratRep) (L M0 : ratRep)
+    (h : ∀ (x : ratRep), ratLeRep M0 x → ratRel (f x) (g x))
+    (hf : TendsToAtInfinity f L) :
+    TendsToAtInfinity g L :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hf eps heps)
+      (fun (Mf : ratRep)
+          (hMf : ∀ (x : ratRep), ratLeRep Mf x → close (f x) L eps) =>
+        @Exists.elim ratRep
+          (fun (M : ratRep) => ratLeRep Mf M ∧ ratLeRep M0 M)
+          (∃ (M : ratRep), ∀ (x : ratRep), ratLeRep M x →
+            close (g x) L eps)
+          (exists_ge_both Mf M0)
+          (fun (M : ratRep) (hM : ratLeRep Mf M ∧ ratLeRep M0 M) =>
+            Exists.intro M
+              (fun (x : ratRep) (hx : ratLeRep M x) =>
+                close_wd_left (f x) (g x) L eps
+                  (h x (ratLeRep_trans M0 M x (And.right hM) hx))
+                  (hMf x (ratLeRep_trans Mf M x (And.left hM) hx)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 从接近性读出一条严格上界
+-- ─────────────────────────────────────────────────────────────
+
+-- 把接近性翻向，负侧给出 `x - L < ε`；两边加 L，左端用
+-- `(x - L) + L ~ x` 收回，右端交换成 L + ε。
+theorem close_lt_add_right (x L eps : ratRep) (h : close x L eps) :
+    ratLtRep x (ratAddRep L eps) :=
+  ratLtRep_congr_snd x
+    (ratAddRep eps L)
+    (ratAddRep L eps)
+    (ratLtRep_congr_fst x
+      (ratAddRep (ratSubRep x L) L)
+      (ratAddRep eps L)
+      (ratLtRep_add_right (ratSubRep x L) eps L
+        (close_neg_lt L x eps (close_symm x L eps h)))
+      (ratRel_symm (ratAddRep (ratSubRep x L) L) x
+        (ratSubRep_add_self x L)))
+    (ratAdd_comm eps L)
+
+-- ─────────────────────────────────────────────────────────────
+-- 恒等函数没有有限极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 反证：若恒等函数在无穷远处靠近 L，取 ε = 1，分界线 M。再取一个同时
+-- 越过 M 与 L + 1 的 x。`close x L 1` 给出 x < L + 1，而 x ≥ L + 1，
+-- 两条序相撞。
+theorem not_tendsToAtInfinity_id (L : ratRep) :
+    ¬ TendsToAtInfinity (fun (x : ratRep) => x) L :=
+  fun (h : TendsToAtInfinity (fun (x : ratRep) => x) L) =>
+    @Exists.elim ratRep
+      (fun (M : ratRep) => ∀ (x : ratRep), ratLeRep M x →
+        close x L ratOneRep)
+      False
+      (h ratOneRep ratLtRep_zero_one)
+      (fun (M : ratRep)
+          (hM : ∀ (x : ratRep), ratLeRep M x → close x L ratOneRep) =>
+        @Exists.elim ratRep
+          (fun (x : ratRep) => ratLeRep M x ∧
+            ratLeRep (ratAddRep L ratOneRep) x)
+          False
+          (exists_ge_both M (ratAddRep L ratOneRep))
+          (fun (x : ratRep)
+              (hx : ratLeRep M x ∧ ratLeRep (ratAddRep L ratOneRep) x) =>
+            ratLtRep_right x (ratAddRep L ratOneRep)
+              (close_lt_add_right x L ratOneRep (hM x (And.left hx)))
+              (ratRel_symm (ratAddRep L ratOneRep) x
+                (ratLeRep_antisymm (ratAddRep L ratOneRep) x
+                  (And.right hx)
+                  (ratLtRep_le x (ratAddRep L ratOneRep)
+                    (close_lt_add_right x L ratOneRep
+                      (hM x (And.left hx))))))))

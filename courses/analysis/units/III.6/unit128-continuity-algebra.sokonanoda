@@ -1,0 +1,111 @@
+-- 单元128 连续函数的代数：和、差与取负
+--
+-- 两个在 a 处连续的函数，相加之后还在 a 处连续吗？函数极限的和律已经回答过
+-- 类似的问题：ε 折半，两块正半径取小者，误差由三角不等式合成。连续是「极限
+-- 值就是函数值」的极限，所以同一套估计应该照搬；真正要检查的是连续的定义
+-- 没有把 a 排除在外，邻域里每一点都要照顾到。
+--
+-- 这件事反而让证明变短。函数极限的和律要单独处理「x 不是 a」，连续不需要：
+-- 给定 ε，两个函数各交出 ε 的一半作半径，序的全性保证其中一个不超过另一个，
+-- 把小的那个当公共半径，大的那个用放大律收进来，邻域里的每一点都直接交给
+-- `close_add`。取负只翻方向不动误差，减法接在加法与取负之后。
+--
+-- 逐点版本成立之后，全局版本只是把 a 换成全称量词。乘积与商会多出一层
+-- 「函数在 a 附近有界」的估计，那件事留到后面的单元；这里先把加法群这一半
+-- 做完。证明只用到两条已经判过的引擎：半径放大律与 `close_add`。
+--
+-- 边界：函数取 `ratRep → ratRep`，连续停在有理代表元层。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatHalf
+import lib.RealAdd
+import lib.RealNeg
+import lib.LimAtAlgebra
+import lib.Cont
+
+-- ─────────────────────────────────────────────────────────────
+-- 和保持连续
+-- ─────────────────────────────────────────────────────────────
+
+-- ε 折半，两个函数各给一个正半径。序的全性把两个半径分成「δf ≤ δg」与
+-- 「δg ≤ δf」两支，两支都取较小的那个当公共半径，较大的那个用放大律收进
+-- 同一个半径，再交给 `close_add`。
+--
+-- soko:hint 思路：ε 折半分别取两块半径；`ratLeRep_total` 分两支，取较小的半径，另一块用 `close_mono_eps` 放大；逐点用 `close_add` 合成 ε 的界。
+-- soko:hint 目标形态：`ContinuousAt (fun x => f x + g x) a`。
+-- soko:hint 关键件：ratLtRep_half · ratLeRep_total · close_mono_eps · close_add。
+theorem continuousAt_add (f g : ratRep → ratRep) (a : ratRep)
+    (hf : ContinuousAt f a) (hg : ContinuousAt g a) :
+    ContinuousAt (fun (x : ratRep) => ratAddRep (f x) (g x)) a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 取负保持连续
+-- ─────────────────────────────────────────────────────────────
+
+-- 取负把误差 `f x - f a` 换成它的相反数，绝对值不变；半径原样沿用。
+--
+-- soko:hint 思路：沿用原来的 δ；逐点把 `close (f x) (f a) ε` 经 `close_neg` 翻成 `close (-f x) (-f a) ε`。
+-- soko:hint 目标形态：`ContinuousAt (fun x => -(f x)) a`。
+-- soko:hint 关键件：close_neg · 定义性展开。
+theorem continuousAt_neg (f : ratRep → ratRep) (a : ratRep)
+    (hf : ContinuousAt f a) :
+    ContinuousAt (fun (x : ratRep) => ratNegRep (f x)) a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 差保持连续
+-- ─────────────────────────────────────────────────────────────
+
+-- `f - g` 就是 `f + (-g)`，把上两条接起来。
+--
+-- soko:hint 思路：把减法定性展开成「加负元」，交给 `continuousAt_add` 与 `continuousAt_neg`。
+-- soko:hint 目标形态：`ContinuousAt (fun x => f x - g x) a`。
+-- soko:hint 关键件：continuousAt_add · continuousAt_neg · ratSubRep 的定义。
+theorem continuousAt_sub (f g : ratRep → ratRep) (a : ratRep)
+    (hf : ContinuousAt f a) (hg : ContinuousAt g a) :
+    ContinuousAt (fun (x : ratRep) => ratSubRep (f x) (g x)) a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 全局连续的和、负与差
+-- ─────────────────────────────────────────────────────────────
+
+-- 每个点都用逐点的和律。
+--
+-- soko:hint 思路：在任意一点 a 用 `continuousAt_add`，两个前提由全局连续在该点给出。
+-- soko:hint 目标形态：`Continuous (fun x => f x + g x)`。
+-- soko:hint 关键件：continuousAt_add · 全称量词。
+theorem continuous_add (f g : ratRep → ratRep)
+    (hf : Continuous f) (hg : Continuous g) :
+    Continuous (fun (x : ratRep) => ratAddRep (f x) (g x)) :=
+  sorry
+
+-- soko:hint 思路：在每一点用逐点的取负律。
+-- soko:hint 目标形态：`Continuous (fun x => -(f x))`。
+-- soko:hint 关键件：continuousAt_neg · 全称量词。
+theorem continuous_neg (f : ratRep → ratRep) (hf : Continuous f) :
+    Continuous (fun (x : ratRep) => ratNegRep (f x)) :=
+  sorry
+
+-- soko:hint 思路：在每一点用逐点的差律。
+-- soko:hint 目标形态：`Continuous (fun x => f x - g x)`。
+-- soko:hint 关键件：continuousAt_sub · 全称量词。
+theorem continuous_sub (f g : ratRep → ratRep)
+    (hf : Continuous f) (hg : Continuous g) :
+    Continuous (fun (x : ratRep) => ratSubRep (f x) (g x)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 具体：恒等函数加常数
+-- ─────────────────────────────────────────────────────────────
+
+-- 恒等函数与常函数都连续，它们的和就是 `x ↦ x + c`。
+--
+-- soko:hint 思路：恒等函数连续取 `continuous_id`，常函数连续取 `continuous_const`，两条交给 `continuous_add`。
+-- soko:hint 目标形态：`Continuous (fun x => x + c)`。
+-- soko:hint 关键件：continuous_id · continuous_const · continuous_add。
+theorem demo_continuous_add_const (c : ratRep) :
+    Continuous (fun (x : ratRep) => ratAddRep x c) :=
+  sorry
