@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>05 序对与笛卡尔积 · 从集合论到实分析</title>
+<meta name="description" content="单元⑤ 序对与笛卡尔积：导语、定义与定理、练习与解答。Unit 5 — Ordered Pairs &amp; Cartesian Products">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit05.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li class="is-current"><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.2 单元</h3><ol><li class="is-current"><a href="../units/unit05.html">05 序对与笛卡尔积</a></li><li><a href="../units/unit06.html">06 关系</a></li><li><a href="../units/unit07.html">07 函数</a></li><li><a href="../units/unit75.html">75 积对并交的分配</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li aria-current="page">单元 05 序对与笛卡尔积</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-5-1">5.0 序对是什么：lib/Prod 已经给好</a></li>
+<li><a href="#ex-5-1">5.1 序对唯一性（配对定理）：序对唯一决定它的两个坐标</a></li>
+<li><a href="#ex-5-5">5.2 笛卡尔积：s ×ˢ t 是 Prod A B 上的一个谓词</a></li>
+<li><a href="#ex-5-6">5.3 D 类：A × B = B × A 吗？</a></li>
+<li><a href="#decl-5-8">5.4 函数图</a></li>
+<li><a href="#decl-5-10">5.5 演示 3（已写好）：无序配对的成员刻画</a></li>
+<li><a href="#ex-5-7">5.6 阅读：Kuratowski 编码（Tao 习题 3.5.1）</a></li>
+<li><a href="#appendix-unit-5">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-2.html#units">↑ 本章目录</a>
+      <a href="../print/unit05.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit first-of-chapter" id="unit-5">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-2.html">I.2</a> · 本章第 1 / 4 单元 · 全书第 5 / 112 单元</p>
+<h1><span class="unit-number">05</span> <span>序对与笛卡尔积</span></h1>
+<p class="unit-title-en">Unit 5 — Ordered Pairs &amp; Cartesian Products</p>
+<p class="unit-meta">1 个定义 · 10 个定理 · 7 道练习 · 21 条提示 · <a href="#appendix-unit-5">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="5" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-5" aria-label="复制单元 5 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit05.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-2.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>── 本单元只允许用什么 ──────────────────────────────────────────────────</p></div></div></section>
+<details class="decl-index intuition-only"><summary>细节清单（6 项，展开）</summary><ul class="prose-list"><li>import lib.Logic / lib.Set / lib.Prod；</li><li>记法<strong>不用自己声明</strong>（随 import 生效）：<code>∈ ⊆ ∅</code> 与集合积 <code>×ˢ</code> 来自 lib/Set（<code>×ˢ</code> 的<strong>目标</strong> <code>Set.prod</code> 在 lib/Prod 里，E02 起就在库里 <span class="math">⇒</span> 从文件头可用）；连接符 <code>∧ ∨ ↔ ¬</code>、箭头 <code>→</code>、等号 <code>=</code> 与不等号 <code>≠</code> 是 <strong>语言内建</strong>；集合字面量 <code>{a}</code> / <code>{a, b}</code>（1–2 个元素）也是内建糖；</li><li>序对的全部词汇来自 lib/Prod：类型 Prod、构造子 prod_mk、投影 Prod.fst / Prod.snd，<strong>集合积 Set.prod</strong>（笛卡尔积，记法 <code>s ×ˢ t</code>），以及"投影算在构造子上"的展开引理 Prod.fst_mk / Prod.snd_mk / Prod.fst_snd_mk（L2 层，证明是 rfl 级或一行，直接点名用，不用自己写）；</li><li>逻辑库：And / Or / Iff / Eq / Not 及其引理；集合库：Set.* 与公理 Set.ext。<strong>引理名照旧点名写</strong>（<code>Or.inl</code>、<code>And.left</code>、<code>Eq.subst.{1}</code>、<code>Set.mem_singleton_self</code>…）——记法是<strong>连接符</strong>的糖，不是引理名的糖；</li><li>tactic（白名单）：intro / exact / apply / assumption / rfl / match / constructor / left / right / use / exfalso / cases / have / sorry——没有 rw / obtain / change / simp / induction / ⟨a, b⟩ <span class="math">/ ·</span>；练习一律 <code>:= by</code> <span class="math">+</span> 缩进两格的 <code>sorry</code>。</li><li>本文件<strong>给出</strong>的一个定义：def Set.graph（函数图）——它是本单元新引入的词汇，不用你写。（<code>Set.prod</code> 已收进 lib/Prod ✓）</li></ul></details><div class="block prose intuition-only"><p>── 本单元不用 ───────────────────────────────────────────────────────── 单射 / 满射 / 双射的正式定义（单元⑦ 与 ⑨ 才讲）、选择公理、证明无关性。</p></div><div class="block prose intuition-only"><p>── 记法提醒 ──────────────────────────────────────────────────────────── <code>s ×ˢ t</code> 是集合积记法（目标名 <code>Set.prod</code>，定义在 lib/Prod）；序对<strong>没有</strong>字面量记法，<code>(a, b)</code> 仍写 prod_mk A B a b；命题里的等式直接写 <code>=</code>（宇宙层级由判卷器按操作数类型解），只有<strong>引理名</strong>才显式写层级：Eq.subst.{1} / Eq.refl.{1} / Eq.symm.{1}。</p></div><h3 class="unit-subhead">5.0 序对是什么：lib/Prod 已经给好</h3><div class="block prose intuition-only"><p>inductive Prod (A B : Type)                -- 类型：<span class="math">A × B ctor prod_mk (a</span> : A) (b : B) : Prod A B    -- 构造子：(a, b) def Prod.fst (A B : Type) (p : Prod A B) : A def Prod.snd (A B : Type) (p : Prod A B) : B</p></div><div class="block prose intuition-only"><p>构造子叫 <code>prod_mk</code> 而不是 <code>mk</code>：本语言没有命名空间（台账 G-02），构造子是裸名、且全项目唯一；官方 Lean 4 / Mathlib 里它叫 <code>Prod.mk</code>。序对的<strong>全部</strong>信息就是这两个投影——所以"两个序对相等"这件事，只能靠投影来拆。</p></div><div class="block prose intuition-only"><p>演示 1（已写好）：库自检 —— 两个投影算在构造子上都还原（这是 iota 计算，不是数学内容）。</p></div><article class="decl decl-theorem" id="decl-5-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_fst_snd_mk</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_fst_snd_mk (A B : Type) (a : A) (b : B) :
+    Prod.fst A B (@prod_mk A B a b) = a ∧ Prod.snd A B (@prod_mk A B a b) = b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  exact Prod.fst_snd_mk A B a b</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">5.1 序对唯一性（配对定理）：序对唯一决定它的两个坐标</h3><article class="exercise" id="ex-5-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">prod_fst_mk</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-5-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>这是 Tao §3.5 的第一条：<code>(a,b) = (a',b')</code> 当且仅当 <code>a = a'</code> 且 <code>b = b'</code>。没有它，序对就只是个"记号"，<code>Prod.fst</code> / <code>Prod.snd</code> 也拿不回来东西。第 3 题的证明只有一句话可做：把等式沿两个投影搬过去（投影就是取坐标的唯一动作）。</p></div><div class="block prose intuition-only"><p>练习 1（T 类）：第一个投影算在构造子上。</p></div></div><pre class="exercise-statement"><code>theorem prod_fst_mk (A B : Type) (a : A) (b : B) :
+    Prod.fst A B (@prod_mk A B a b) = a := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>这条是 lib/Prod 里现成的展开引理，照名字点名即可。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>目标就是 <code>Prod.fst A B (prod_mk A B a b) = a</code>，不需要 intro。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>lib/Prod 的 <code>Prod.fst_mk</code> 正是这个形状（A B a b 四个参数按序喂）。</p></div></details></div><details class="solution-panel" id="sol-5-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">unit05 解答钥匙（agent 专用；画布不 import 它，画布与它各自自足）
+
+与画布 courses/set-theory/units/unit05-pairs-products.sokonanoda 的练习<strong>同名一一对应</strong>：
+    <span class="math">prod_fst_mk · prod_snd_mk · prod_mk_inj · prod_mk_eq_iff ·</span>
+    <span class="math">mem_prod_iff · prod_set_swap_ne · kura_degenerate</span>
+
+<code>def Set.prod</code> <strong>不再自带</strong>：E02（0.74.0）把它收进了 <code>lib/Prod</code>，本文件 <code>import lib.Prod</code>
+就拿到它 <span class="math">⇒</span> 自己再抄一遍会撞 <code>import-name-collision</code>（同名重声明）。
+因此本文件的 <span class="math">decl_checked = 7</span> 条练习 <span class="math">+ 0</span> 条 <span class="math">def = 7</span>（比 E02 之前少 1 —— 那是<strong>副本消失</strong>，
+不是练习变少；课程门禁的总数随之 <span class="math">328 → 327</span>，已在 E02 的提交与台账里写明）。
+
+全部改写为 <strong>tactic 模式</strong>（设计 docs/design/course-lean-style.md R2）：语句与画布
+逐字一致，记法用 Lean core 的符号（<code>∈ ⊆ ×ˢ = ≠ ∧ ∨ ↔</code> 与集合字面量 <code>{a}</code> / <code>{a, b}</code>），
+证明用 <code>by</code> 块。引理名照旧点名（<code>Prod.fst_mk</code> / <code>Eq.subst.{1}</code> / <code>Or.elim</code> …）——
+记法是<strong>连接符</strong>的糖，不是引理名的糖。
+
+每条证明只用到 lib/ 与 prelude 里已备好的东西（Prod.fst_mk / Prod.snd_mk / Eq.subst /
+Set.ext / Or.elim / Set.mem_singleton_self …），学习者不需要任何"额外的数学"。
+
+画布 5.2 的给定定义（笛卡尔积）现在住在 <strong>lib/Prod</strong>（E02）；<code>×ˢ</code> 记法的目标就是它
+<span class="math">⇒</span> 本文件<strong>从文件头</strong>就能写 <code>s ×ˢ t</code>（不必再等某一行定义）。
+
+练习 1（T 类）：投影算在构造子上（直接点名库里的展开引理）。</p><pre><code>theorem prod_fst_mk (A B : Type) (a : A) (b : B) :
+    Prod.fst A B (@prod_mk A B a b) = a := by
+  exact Prod.fst_mk A B a b</code></pre></div></details></div></article>
+<article class="exercise" id="ex-5-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">prod_snd_mk</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-5-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：第二个投影算在构造子上。</p></div></div><pre class="exercise-statement"><code>theorem prod_snd_mk (A B : Type) (a : A) (b : B) :
+    Prod.snd A B (@prod_mk A B a b) = b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与第 1 题同款，换成第二个投影。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Prod.snd A B (prod_mk A B a b) = b</code>，不需要 intro。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>lib/Prod 的 <code>Prod.snd_mk</code>（A B a b 四个参数按序喂）。</p></div></details></div><details class="solution-panel" id="sol-5-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">练习 2（T 类）：第二个投影同款。</p><pre><code>theorem prod_snd_mk (A B : Type) (a : A) (b : B) :
+    Prod.snd A B (@prod_mk A B a b) = b := by
+  exact Prod.snd_mk A B a b</code></pre></div></details></div></article>
+<article class="exercise" id="ex-5-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">prod_mk_inj</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-5-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<strong>配对定理</strong> —— 两个序对相等推出两个坐标分别相等。</p></div></div><pre class="exercise-statement"><code>theorem prod_mk_inj (A B : Type) (a a1 : A) (b b1 : B) :
+    @prod_mk A B a b = @prod_mk A B a1 b1 → a = a1 ∧ b = b1 := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>序对没有别的结构可用；把等式沿两个投影各搬一次，就得到两个坐标的等式。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>intro 之后手里是 <code>h : prod_mk A B a b = prod_mk A B a1 b1</code>，目标是 <code>a = a1 ∧ b = b1</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>constructor</code> 拆开 <code>∧</code>；两个分支都用 <code>Eq.subst</code>，motive 分别是"第一个投影等于什么"与"第二个投影等于什么"；搬完两边会归约成同一个东西，所以起点是 <code>Eq.refl</code>；<code>Prod.fst_mk</code> / <code>Prod.snd_mk</code> 说明归约的结果长什么样。</p></div></details></div><details class="solution-panel" id="sol-5-3"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><p class="solution-note">练习 3（L 类）：配对定理 —— 序对相等沿两个投影各搬一次。</p><pre><code>theorem prod_mk_inj (A B : Type) (a a1 : A) (b b1 : B) :
+    @prod_mk A B a b = @prod_mk A B a1 b1 → a = a1 ∧ b = b1 := by
+  intro h
+  constructor
+  exact @Eq.subst.{1} (Prod A B) (fun (p : Prod A B) =&gt; a = Prod.fst A B p)
+    (@prod_mk A B a b) (@prod_mk A B a1 b1) h (@Eq.refl.{1} A a)
+  exact @Eq.subst.{1} (Prod A B) (fun (p : Prod A B) =&gt; b = Prod.snd A B p)
+    (@prod_mk A B a b) (@prod_mk A B a1 b1) h (@Eq.refl.{1} B b)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-5-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">prod_mk_eq_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-5-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：配对定理的完整形态（"当且仅当"）。</p></div></div><pre class="exercise-statement"><code>theorem prod_mk_eq_iff (A B : Type) (a a1 : A) (b b1 : B) :
+    (@prod_mk A B a b = @prod_mk A B a1 b1) ↔ (a = a1 ∧ b = b1) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>↔</code> 是两个方向：<span class="math">→</span> 就是第 3 题；<span class="math">←</span> 从两个坐标的等式反推出序对的等式。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(prod_mk A B a b = prod_mk A B a1 b1) ↔ (a = a1 ∧ b = b1)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>constructor</code> 拆 <code>↔</code>；<span class="math">→</span> 用 prod_mk_inj（第 3 题）；<span class="math">←</span> 对 <code>∧</code> 的两半各做一次 <code>Eq.subst</code>（先把第一个坐标换掉、再换第二个），起点是一条 rfl 级的等式（<code>Eq.refl</code>）。</p></div></details></div><details class="solution-panel" id="sol-5-4"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><p class="solution-note">练习 4（L 类）：配对定理的完整形态；<span class="math">←</span> 方向对两个坐标各做一次 Eq.subst。</p><pre><code>theorem prod_mk_eq_iff (A B : Type) (a a1 : A) (b b1 : B) :
+    (@prod_mk A B a b = @prod_mk A B a1 b1) ↔ (a = a1 ∧ b = b1) := by
+  constructor
+  exact prod_mk_inj A B a a1 b b1
+  intro h
+  have ha : a = a1 := And.left h
+  have hb : b = b1 := And.right h
+  exact @Eq.subst.{1} B (fun (y : B) =&gt; @prod_mk A B a b = @prod_mk A B a1 y) b b1 hb
+    (@Eq.subst.{1} A (fun (x : A) =&gt; @prod_mk A B a b = @prod_mk A B x b) a a1 ha
+      (@Eq.refl.{1} (Prod A B) (@prod_mk A B a b)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">5.2 笛卡尔积：<span class="math">s ×</span>ˢ t 是 Prod A B 上的一个谓词</h3><article class="exercise" id="ex-5-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">mem_prod_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-5-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>定义在 <strong>lib/Prod</strong>（E02 起；照抄 Mathlib 的 <code>Set.prod</code>，定义体点名写）：def Set.prod (A B : Type) (s : Set A) (t : Set B) : Set (Prod A B) :<span class="math">=  -- soko</span>:notation-ok: 注释里展示的<strong>定义</strong>（声明位），不是使用</p></div><div class="math-display intuition-only"><pre class="display-code"><code>fun (p : Prod A B) =&gt; (s (Prod.fst A B p)) ∧ (t (Prod.snd A B p))</code></pre></div><div class="block prose intuition-only"><p>注意返回值是 Set (Prod A B) —— 也就是谓词 <span class="math">Prod A B → Prop</span>。记法 <code>s ×ˢ t</code> 的目标就是它（由 lib/Set 声明）；<strong>收进库之后</strong>从文件头就可用 ✓（以前它定义在本画布里 <span class="math">⇒</span> 别的单元写 <code>×ˢ</code> 会报「目标 <code>Set.prod</code> 不存在」✗）。元素 <code>prod_mk A B a b</code> 属于 <code>s ×ˢ t</code>，展开后正好是"两个坐标分别满足 s 与 t"。</p></div><div class="block prose intuition-only"><p>练习 5（T 类）：<span class="math">s ×</span>ˢ t 的成员刻画（Tao §3.5 的第二条）。</p></div></div><pre class="exercise-statement"><code>theorem mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
+    p ∈ s ×ˢ t ↔ Prod.fst A B p ∈ s ∧ Prod.snd A B p ∈ t := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>集合积 <code>s ×ˢ t</code> 的定义就是"两个坐标分别满足 s 与 t"，两边定义上相等。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>p ∈ s ×ˢ t ↔ Prod.fst A B p ∈ s ∧ Prod.snd A B p ∈ t</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>constructor</code> 拆 <code>↔</code>，两个方向都是恒等函数（<code>∈</code> 与 <code>×ˢ</code> 展开即可），不需要任何引理。</p></div></details></div><details class="solution-panel" id="sol-5-5"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note">练习 5（T 类）：<span class="math">A ×</span>ˢ B 的成员刻画 —— 两边定义上相等，两个方向都是恒等函数。</p><pre><code>theorem mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
+    p ∈ s ×ˢ t ↔ Prod.fst A B p ∈ s ∧ Prod.snd A B p ∈ t := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h</code></pre></div></details></div></article>
+<h3 class="unit-subhead">5.3 D 类：<span class="math">A × B = B × A</span> 吗？</h3><article class="exercise" id="ex-5-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">prod_set_swap_ne</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-5-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>先看"等式"本身：<code>s ×ˢ t : Set (Prod A B)</code>，而 <code>t ×ˢ s : Set (Prod B A)</code>。两个类型不同 —— 只要 A 与 B 不是同一个类型，"<span class="math">A × B = B × A</span>" 这句话<strong>根本写不出来</strong>；换成数学语言：需要先有一个 <span class="math">A × B</span> 到 <span class="math">B × A</span> 的<strong>交换双射</strong></p></div><div class="math-display intuition-only"><pre class="display-code"><code>fun (p : Prod A B) =&gt; prod_mk B A (Prod.snd A B p) (Prod.fst A B p)</code></pre></div><div class="block prose intuition-only"><p>（双射的正式定义在单元⑦ 与 ⑨；这里只点名，不证。）</p></div><div class="block prose intuition-only"><p>退化情形（这时它才成立）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>A 与 B 取成同一个类型、并且 <span class="math">s = t</span>：两侧是同一个表达式，等式自明；</li><li>s 或 t 是空集：两侧都是空集（用上面那个交换映射 <span class="math">+</span> 空集成员刻画说明，本单元不证）。</li></ul></div><div class="block prose intuition-only"><p>但即使把类型取成同一个，<span class="math">s ≠ t</span> 时两侧一般也不相等 —— 底下的原因是序对<strong>连交换都做不到</strong>：只有 <span class="math">a = b</span> 时 <code>prod_mk A A a b</code> 与 <code>prod_mk A A b a</code> 才是同一个序对。下面的练习把这个反例证出来。（设计判断：有序对与 Kuratowski 编码没有实证研究支撑，此处不作"研究表明"的断言。）</p></div><div class="block prose intuition-only"><p>练习 6（D 类）：判断 <code>A × B = B × A</code> 并给出反例。</p></div></div><pre class="exercise-statement"><code>theorem prod_set_swap_ne (A : Type) (a b : A) (h : a ≠ b) :
+    {a} ×ˢ {b} ≠ {b} ×ˢ {a} := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>判"假"必须给反例：同一个类型上取 <span class="math">s = {a}</span>、<span class="math">t = {b}</span>，序对 <code>prod_mk A A a b</code> 只在 <code>{a} ×ˢ {b}</code> 里。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>目标是到 False 的箭头（<code>≠</code> 展开后就是）；intro 之后手里有两条集合相等的等式 <code>e : {a} ×ˢ {b} = {b} ×ˢ {a}</code>，目标是 False（前提里还有 <code>h : a ≠ b</code> 备用）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>先用 <code>And.intro</code> 与 <code>Set.mem_singleton_self</code> 造出 <code>prod_mk A A a b ∈ {a} ×ˢ {b}</code>；再用 <code>Eq.subst</code>（motive 是"这个序对落在哪张集合里"）沿 <code>e</code> 搬到 <code>{b} ×ˢ {a}</code> 上 —— 搬完它的类型就是 <code>a = b ∧ b = a</code>，用 <code>And.left</code> 取出来交给 <code>h</code>。</p></div></details></div><details class="solution-panel" id="sol-5-6"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><p class="solution-note">练习 6（D 类）：<span class="math">A ×</span>ˢ <span class="math">B = B ×</span>ˢ A 的反例（同一类型上 <span class="math">s = {a}</span>、<span class="math">t = {b}</span>）。
+把 <code>prod_mk A A a b ∈ {a} ×ˢ {b}</code> 沿假设的等式搬到 <code>{b} ×ˢ {a}</code> 上，
+搬完它就变成 <code>a = b ∧ b = a</code>。</p><pre><code>theorem prod_set_swap_ne (A : Type) (a b : A) (h : a ≠ b) :
+    {a} ×ˢ {b} ≠ {b} ×ˢ {a} := by
+  intro e
+  -- `And.left` 的隐式实参只能按「显式实参的类型 + 期望类型」**语法反解**，而
+  -- `@prod_mk A A a b ∈ ({b} ×ˢ {a})` 是 def 头（要 delta 展开才看得见 `∧`）⇒
+  -- 先用一个**带标注的 λ** 把它落成语法上的 `∧`，体内就能写短写 `And.left hm` ✓
+  exact h ((fun (hm : a = b ∧ b = a) =&gt; And.left hm)
+    (@Eq.subst.{1} (Set (Prod A A))
+      (fun (S : Set (Prod A A)) =&gt; @prod_mk A A a b ∈ S)
+      ({a} ×ˢ {b}) ({b} ×ˢ {a}) e
+      ((fun (hmem : a ∈ {a} ∧ b ∈ {b}) =&gt; hmem)
+        (And.intro (Set.mem_singleton_self a) (Set.mem_singleton_self b)))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">5.4 函数图</h3><div class="block prose intuition-only"><p>函数 f : <span class="math">A → B</span> 的<strong>图</strong>是 <span class="math">A × B</span> 的子集：</p></div><div class="math-display intuition-only"><pre class="display-code"><code>def Set.graph (A B : Type) (f : A → B) : Set (Prod A B) :=</code></pre></div><div class="math-display intuition-only"><pre class="display-code"><code>fun (p : Prod A B) =&gt; f (Prod.fst A B p) = Prod.snd A B p</code></pre></div><div class="block prose intuition-only"><p>读法："第二坐标就是函数在第一坐标处的值"。单元⑦ 会用它把函数看成关系；现在只要会算它的成员：把 p 写成构造子，两个投影都会归约。</p></div><article class="decl decl-def" id="decl-5-8"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Set.graph</code><span class="decl-where">声明 8</span></header><div class="decl-body"><pre class="decl-statement"><code>def Set.graph (A B : Type) (f : A → B) : Set (Prod A B) :=
+  fun (p : Prod A B) =&gt; f (Prod.fst A B p) = Prod.snd A B p</code></pre></div></article>
+<div class="block prose intuition-only"><p>演示 2（已写好）：图的成员刻画 —— <code>prod_mk A B a b</code> 在图里当且仅当 <code>f a = b</code>。两边在定义展开后是同一个命题（投影算在构造子上），所以 <code>↔</code> 的两个方向都是恒等函数。</p></div><article class="decl decl-theorem" id="decl-5-9"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_graph_mem</code><span class="decl-where">声明 9</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_graph_mem (A B : Type) (f : A → B) (a : A) (b : B) :
+    @prod_mk A B a b ∈ Set.graph A B f ↔ f a = b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 5 步 · 6 行</summary><ol class="proof-steps"><li><pre><code>  constructor</code></pre></li><li><pre><code>  intro h</code></pre></li><li><pre><code>  exact h</code></pre></li><li><pre><code>  intro h</code></pre></li><li><pre><code>  exact h</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">5.5 演示 3（已写好）：无序配对的成员刻画</h3><div class="block prose intuition-only"><p>下面 5.6 要读 Kuratowski 编码，读之前先把 <code>{a, b}</code> 的成员判定备好（lib/Set 里 <code>Set.pair</code> 的定义就是 <code>(x = a) ∨ (x = b)</code>，缺一条展开引理）。</p></div><article class="decl decl-theorem" id="decl-5-10"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_pair</code><span class="decl-where">声明 10</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_pair (α : Type) (x a b : α) :
+    x ∈ {a, b} ↔ x = a ∨ x = b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 5 步 · 6 行</summary><ol class="proof-steps"><li><pre><code>  constructor</code></pre></li><li><pre><code>  intro h</code></pre></li><li><pre><code>  exact h</code></pre></li><li><pre><code>  intro h</code></pre></li><li><pre><code>  exact h</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">5.6 阅读：Kuratowski 编码（Tao 习题 3.5.1）</h3><article class="exercise" id="ex-5-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">kura_degenerate</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-5-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>不用原语也能把有序对做成集合，定义是</p></div><div class="math-display intuition-only"><pre class="display-code"><code>(a, b) := {{a}, {a, b}}</code></pre></div><div class="block prose intuition-only"><p>写成我们的语言（集合字面量）就是 {{a}, {a, b}}      -- : <span class="math">Set (Set α)</span> 读法：<strong>两层</strong>。第一层 {a} 单独把第一个坐标记下来，第二层 {a, b} 把两个坐标都带上；由于 {a} 与 {a, b} 一般不相等，"谁在前"就能从集合里读回来。</p></div><div class="block prose intuition-only"><p>问：这样的编码要"够用"，哪条性质是必须的？答：<strong>配对映射的单射性</strong> —— 编码必须把"不同的坐标组合"送到不同的集合，否则 (a,<span class="math">b) = (a'</span>,b') 推不出 <span class="math">a = a' ∧ b = b'</span>，序对就丢信息了。我们原语版本的这条性质正是 5.1 的 prod_mk_inj；Kuratowski 编码要证的是 {{a},{a,<span class="math">b}} = {{a'}</span>,{a',<span class="math">b'}} → a = a' ∧ b = b'</span>（即 Tao 习题 3.5.1，可自行阅读）。顺带一句反面：无序配对 {a,b} <strong>不够用</strong> —— 它只记下"有哪些元素"，不记顺序。</p></div><div class="block prose intuition-only"><p>下面这题把编码最微妙的一幕读出来：两个坐标相同时，第二层塌缩进第一层。</p></div><div class="block prose intuition-only"><p>练习 7（R 类）：读 Kuratowski 编码 —— <span class="math">a = b</span> 时 {{a},{a,b}} 塌缩成 {{a}}。</p></div></div><pre class="exercise-statement"><code>theorem kura_degenerate (α : Type) (a b : α) (h : a = b) :
+    {{a}, {a, b}} = {{a}} := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>编码是"两层集合"；<span class="math">a = b</span> 时第二层 {a, b} 与第一层 {a} 重合，于是整个编码塌缩成 {{a}}。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>目标是集合层的等式 <code>{{a}, {a, b}} = {{a}}</code>（外层 <code>{ }</code> 装的是集合，里层的 <code>{a}</code> / <code>{a, b}</code> 才是元素）；套路是 <code>Set.ext</code>，再对每个 <code>x : Set α</code> 证 <code>↔</code> —— 展开后 <code>x ∈ {{a}, {a, b}}</code> 就是 <code>x = {a} ∨ x = {a, b}</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>apply Set.ext (Set α)</code>（外层集合的元素类型是 <code>Set α</code>，<code>Set.ext</code> 的类型参数要显式写出来）<span class="math">+</span> <code>constructor</code> 拆 <code>↔</code>；左到右对 <code>∨</code> 分情况（<code>cases</code>，臂体包在 <code>have … := by …</code> 里——<code>cases</code> 组装出的是 <code>match</code>，它需要一处<strong>有类型标注</strong>的位置），其中 <code>x = {a, b}</code> 那一支再用一次 <code>Set.ext</code>（把 <code>{a, b}</code> 与 <code>{a}</code> 逐点比较），搬 <code>x = b</code> 用的是 <code>h</code> 的对称版本 <code>Eq.symm</code>。</p></div></details></div><details class="solution-panel" id="sol-5-7"><summary>查看解答 <span class="sol-meta">定理 · 23 行</span></summary><div class="solution-body"><p class="solution-note">练习 7（R 类）：Kuratowski 编码的退化情形 —— <span class="math">a = b</span> 时 {{a},{a,b}} 塌缩成 {{a}}。
+外层 Set.ext 逐元素 x : <span class="math">Set α</span> 证 Iff；右到左直接 Or.inl；左到右 cases 分两支，
+其中 <span class="math">x = {a</span>, b} 那一支要再用一次 Set.ext（把 {a, b} 与 {a} 逐点比较）。
+<code>cases</code> 的臂体用 <code>have … := by …</code> 包一层：<code>cases</code> 组装出来的是 <code>match</code>，而
+<code>match</code> 需要一处<strong>有类型标注</strong>的位置（<code>have</code> 的标注正好提供它）。</p><pre><code>theorem kura_degenerate (α : Type) (a b : α) (h : a = b) :
+    {{a}, {a, b}} = {{a}} := by
+  apply Set.ext
+  intro x
+  constructor
+  intro hX
+  have hmem : x = {a} := by
+    cases hX with
+      | Or.inl h1 =&gt; exact h1
+      | Or.inr h2 =&gt;
+        exact @Eq.trans.{1} (Set α) x {a, b} {a} h2
+          (Set.ext {a, b} {a}
+            (fun (y : α) =&gt;
+              @Iff.intro (y = a ∨ y = b) (y = a)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+                (fun (hy : y = a ∨ y = b) =&gt;
+                  Or.elim  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+                    (fun (hya : y = a) =&gt; hya)
+                    (fun (hyb : y = b) =&gt; @Eq.trans.{1} α y b a hyb (Eq.symm h))
+                    hy)
+                (fun (hya : y = a) =&gt; Or.inl hya)))
+  exact hmem
+  intro h1
+  exact @Or.inl (x = {a}) (x = {a, b}) h1  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（1 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子：Tao《Analysis I》§3.5（有序对与笛卡尔积）。Kuratowski 编码 (a,b) :<span class="math">= {{a}</span>,{a,b}} 在本单元只作<strong>阅读题</strong>（5.6）；我们用的序对是语言原语 inductive Prod。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit105.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">经典等价三件套</span></a><a class="unit-nav-home" href="../chapters/i-2.html#units">目录</a><a class="unit-nav-link" href="../units/unit06.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">关系</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-5"><h3><a href="#top">序对与笛卡尔积</a></h3><p class="appendix-meta">7 道练习 · 7 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-5-1"><summary>练习 1 · prod_fst_mk <span class="sol-meta">定理</span></summary><p class="solution-note">unit05 解答钥匙（agent 专用；画布不 import 它，画布与它各自自足）
+
+与画布 courses/set-theory/units/unit05-pairs-products.sokonanoda 的练习<strong>同名一一对应</strong>：
+    <span class="math">prod_fst_mk · prod_snd_mk · prod_mk_inj · prod_mk_eq_iff ·</span>
+    <span class="math">mem_prod_iff · prod_set_swap_ne · kura_degenerate</span>
+
+<code>def Set.prod</code> <strong>不再自带</strong>：E02（0.74.0）把它收进了 <code>lib/Prod</code>，本文件 <code>import lib.Prod</code>
+就拿到它 <span class="math">⇒</span> 自己再抄一遍会撞 <code>import-name-collision</code>（同名重声明）。
+因此本文件的 <span class="math">decl_checked = 7</span> 条练习 <span class="math">+ 0</span> 条 <span class="math">def = 7</span>（比 E02 之前少 1 —— 那是<strong>副本消失</strong>，
+不是练习变少；课程门禁的总数随之 <span class="math">328 → 327</span>，已在 E02 的提交与台账里写明）。
+
+全部改写为 <strong>tactic 模式</strong>（设计 docs/design/course-lean-style.md R2）：语句与画布
+逐字一致，记法用 Lean core 的符号（<code>∈ ⊆ ×ˢ = ≠ ∧ ∨ ↔</code> 与集合字面量 <code>{a}</code> / <code>{a, b}</code>），
+证明用 <code>by</code> 块。引理名照旧点名（<code>Prod.fst_mk</code> / <code>Eq.subst.{1}</code> / <code>Or.elim</code> …）——
+记法是<strong>连接符</strong>的糖，不是引理名的糖。
+
+每条证明只用到 lib/ 与 prelude 里已备好的东西（Prod.fst_mk / Prod.snd_mk / Eq.subst /
+Set.ext / Or.elim / Set.mem_singleton_self …），学习者不需要任何"额外的数学"。
+
+画布 5.2 的给定定义（笛卡尔积）现在住在 <strong>lib/Prod</strong>（E02）；<code>×ˢ</code> 记法的目标就是它
+<span class="math">⇒</span> 本文件<strong>从文件头</strong>就能写 <code>s ×ˢ t</code>（不必再等某一行定义）。
+
+练习 1（T 类）：投影算在构造子上（直接点名库里的展开引理）。</p><pre><code>theorem prod_fst_mk (A B : Type) (a : A) (b : B) :
+    Prod.fst A B (@prod_mk A B a b) = a := by
+  exact Prod.fst_mk A B a b</code></pre></details><details class="appendix-solution" id="app-sol-5-2"><summary>练习 2 · prod_snd_mk <span class="sol-meta">定理</span></summary><p class="solution-note">练习 2（T 类）：第二个投影同款。</p><pre><code>theorem prod_snd_mk (A B : Type) (a : A) (b : B) :
+    Prod.snd A B (@prod_mk A B a b) = b := by
+  exact Prod.snd_mk A B a b</code></pre></details><details class="appendix-solution" id="app-sol-5-3"><summary>练习 3 · prod_mk_inj <span class="sol-meta">定理</span></summary><p class="solution-note">练习 3（L 类）：配对定理 —— 序对相等沿两个投影各搬一次。</p><pre><code>theorem prod_mk_inj (A B : Type) (a a1 : A) (b b1 : B) :
+    @prod_mk A B a b = @prod_mk A B a1 b1 → a = a1 ∧ b = b1 := by
+  intro h
+  constructor
+  exact @Eq.subst.{1} (Prod A B) (fun (p : Prod A B) =&gt; a = Prod.fst A B p)
+    (@prod_mk A B a b) (@prod_mk A B a1 b1) h (@Eq.refl.{1} A a)
+  exact @Eq.subst.{1} (Prod A B) (fun (p : Prod A B) =&gt; b = Prod.snd A B p)
+    (@prod_mk A B a b) (@prod_mk A B a1 b1) h (@Eq.refl.{1} B b)</code></pre></details><details class="appendix-solution" id="app-sol-5-4"><summary>练习 4 · prod_mk_eq_iff <span class="sol-meta">定理</span></summary><p class="solution-note">练习 4（L 类）：配对定理的完整形态；<span class="math">←</span> 方向对两个坐标各做一次 Eq.subst。</p><pre><code>theorem prod_mk_eq_iff (A B : Type) (a a1 : A) (b b1 : B) :
+    (@prod_mk A B a b = @prod_mk A B a1 b1) ↔ (a = a1 ∧ b = b1) := by
+  constructor
+  exact prod_mk_inj A B a a1 b b1
+  intro h
+  have ha : a = a1 := And.left h
+  have hb : b = b1 := And.right h
+  exact @Eq.subst.{1} B (fun (y : B) =&gt; @prod_mk A B a b = @prod_mk A B a1 y) b b1 hb
+    (@Eq.subst.{1} A (fun (x : A) =&gt; @prod_mk A B a b = @prod_mk A B x b) a a1 ha
+      (@Eq.refl.{1} (Prod A B) (@prod_mk A B a b)))</code></pre></details><details class="appendix-solution" id="app-sol-5-5"><summary>练习 5 · mem_prod_iff <span class="sol-meta">定理</span></summary><p class="solution-note">练习 5（T 类）：<span class="math">A ×</span>ˢ B 的成员刻画 —— 两边定义上相等，两个方向都是恒等函数。</p><pre><code>theorem mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
+    p ∈ s ×ˢ t ↔ Prod.fst A B p ∈ s ∧ Prod.snd A B p ∈ t := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h</code></pre></details><details class="appendix-solution" id="app-sol-5-6"><summary>练习 6 · prod_set_swap_ne <span class="sol-meta">定理</span></summary><p class="solution-note">练习 6（D 类）：<span class="math">A ×</span>ˢ <span class="math">B = B ×</span>ˢ A 的反例（同一类型上 <span class="math">s = {a}</span>、<span class="math">t = {b}</span>）。
+把 <code>prod_mk A A a b ∈ {a} ×ˢ {b}</code> 沿假设的等式搬到 <code>{b} ×ˢ {a}</code> 上，
+搬完它就变成 <code>a = b ∧ b = a</code>。</p><pre><code>theorem prod_set_swap_ne (A : Type) (a b : A) (h : a ≠ b) :
+    {a} ×ˢ {b} ≠ {b} ×ˢ {a} := by
+  intro e
+  -- `And.left` 的隐式实参只能按「显式实参的类型 + 期望类型」**语法反解**，而
+  -- `@prod_mk A A a b ∈ ({b} ×ˢ {a})` 是 def 头（要 delta 展开才看得见 `∧`）⇒
+  -- 先用一个**带标注的 λ** 把它落成语法上的 `∧`，体内就能写短写 `And.left hm` ✓
+  exact h ((fun (hm : a = b ∧ b = a) =&gt; And.left hm)
+    (@Eq.subst.{1} (Set (Prod A A))
+      (fun (S : Set (Prod A A)) =&gt; @prod_mk A A a b ∈ S)
+      ({a} ×ˢ {b}) ({b} ×ˢ {a}) e
+      ((fun (hmem : a ∈ {a} ∧ b ∈ {b}) =&gt; hmem)
+        (And.intro (Set.mem_singleton_self a) (Set.mem_singleton_self b)))))</code></pre></details><details class="appendix-solution" id="app-sol-5-7"><summary>练习 7 · kura_degenerate <span class="sol-meta">定理</span></summary><p class="solution-note">练习 7（R 类）：Kuratowski 编码的退化情形 —— <span class="math">a = b</span> 时 {{a},{a,b}} 塌缩成 {{a}}。
+外层 Set.ext 逐元素 x : <span class="math">Set α</span> 证 Iff；右到左直接 Or.inl；左到右 cases 分两支，
+其中 <span class="math">x = {a</span>, b} 那一支要再用一次 Set.ext（把 {a, b} 与 {a} 逐点比较）。
+<code>cases</code> 的臂体用 <code>have … := by …</code> 包一层：<code>cases</code> 组装出来的是 <code>match</code>，而
+<code>match</code> 需要一处<strong>有类型标注</strong>的位置（<code>have</code> 的标注正好提供它）。</p><pre><code>theorem kura_degenerate (α : Type) (a b : α) (h : a = b) :
+    {{a}, {a, b}} = {{a}} := by
+  apply Set.ext
+  intro x
+  constructor
+  intro hX
+  have hmem : x = {a} := by
+    cases hX with
+      | Or.inl h1 =&gt; exact h1
+      | Or.inr h2 =&gt;
+        exact @Eq.trans.{1} (Set α) x {a, b} {a} h2
+          (Set.ext {a, b} {a}
+            (fun (y : α) =&gt;
+              @Iff.intro (y = a ∨ y = b) (y = a)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+                (fun (hy : y = a ∨ y = b) =&gt;
+                  Or.elim  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+                    (fun (hya : y = a) =&gt; hya)
+                    (fun (hyb : y = b) =&gt; @Eq.trans.{1} α y b a hyb (Eq.symm h))
+                    hy)
+                (fun (hya : y = a) =&gt; Or.inl hya)))
+  exact hmem
+  intro h1
+  exact @Or.inl (x = {a}) (x = {a, b}) h1  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit105.html">← 105 经典等价三件套</a><a class="next" href="../units/unit06.html">06 关系 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

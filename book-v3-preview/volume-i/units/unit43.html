@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>43 等价类与商集的代数刻画 · 从集合论到实分析</title>
+<meta name="description" content="单元㊸ 等价类与商集的代数刻画：导语、定义与定理、练习与解答。Unit 43 — Equivalence Classes, Algebraically">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit43.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li class="is-current"><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.10 单元</h3><ol><li><a href="../units/unit24.html">24 关系闭包</a></li><li><a href="../units/unit25.html">25 等价关系与划分</a></li><li><a href="../units/unit26.html">26 划分：等价关系的反方向</a></li><li><a href="../units/unit27.html">27 商类型与良定义性</a></li><li class="is-current"><a href="../units/unit43.html">43 等价类与商集的代数刻画</a></li><li><a href="../units/unit76.html">76 像的核关系</a></li><li><a href="../units/unit77.html">77 等价类的代数</a></li><li><a href="../units/unit78.html">78 划分与等价关系的往返</a></li><li><a href="../units/unit79.html">79 商集上的函数（well-defined）</a></li><li><a href="../units/unit84.html">84 商与像的往返</a></li><li><a href="../units/unit85.html">85 商到像的单射性</a></li><li><a href="../units/unit86.html">86 核与复合、单射</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li aria-current="page">单元 43 等价类与商集的代数刻画</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-43-1">43.1 三条库引理（类的成员刻画 · 商集的展开 · 自反性取用子）</a></li>
+<li><a href="#ex-43-1">43.2 类的成员：自反 · 相关即属于 · 包含的两条</a></li>
+<li><a href="#ex-43-5">43.3 旗舰二：类相等 ⟺ 相关</a></li>
+<li><a href="#ex-43-6">43.4 商集：成员 · 非空 · 由相关性给出的包含 · 两类的关系</a></li>
+<li><a href="#appendix-unit-43">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-10.html#units">↑ 本章目录</a>
+      <a href="../print/unit43.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-43">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-10.html">I.10</a> · 本章第 5 / 12 单元 · 全书第 43 / 112 单元</p>
+<h1><span class="unit-number">43</span> <span>等价类与商集的代数刻画</span></h1>
+<p class="unit-title-en">Unit 43 — Equivalence Classes, Algebraically</p>
+<p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-43">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="43" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-43" aria-label="复制单元 43 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit43.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-10.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§7</strong>（等价关系与商）；Enderton《Elements of Set Theory》<strong>§3.5</strong> 的 equivalence classes 一段。大纲：<code>set-theory-syllabus.md</code> §4.1（I.10 章深化 —— 用 I.13 的<strong>代数语言</strong>把单元㉕㉖ 的「等价类/商集」重做一遍，两章就此接上）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的「该学的定理」（<strong>类相等的代数判据</strong>）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>成员刻画</strong> <span class="math">·</span> <strong>自己是自己的成员</strong>（自反）<span class="math">·</span> <strong>相关即属于</strong>；</li><li><strong>旗舰一：<code>[a] ⊆ [b] ⟺ r b a</code></strong>（包含关系用<strong>一次</strong>相关性就够）；</li><li><strong>旗舰二：<code>[a] = [b]</code>（逐点）<span class="math">⟺</span> <code>r a b</code></strong> —— 这是「Halmos §7：两个类要么相同要么不相交」的代数内核 ✓</li><li><strong>商集的成员是类</strong> <span class="math">·</span> <strong>类的非空性</strong> <span class="math">·</span> <strong>由相关性给出的包含</strong> <span class="math">·</span><strong>两个类要么相同要么不相交</strong> ✓</li></ul></div><h3 class="unit-subhead">43.1 三条库引理（类的成员刻画 <span class="math">·</span> 商集的展开 <span class="math">·</span> 自反性取用子）</h3><div class="block prose intuition-only"><p>演示：等价类的成员刻画（<code>[a]</code> 就是「与 <code>a</code> 相关的那些点」）。</p></div><article class="decl decl-theorem" id="decl-43-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_equivClass</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.mem_equivClass α r a b</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-43-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_classes</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_classes (α : Type) (r : Rel α α) (C : α → Prop) :
+    Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.mem_classes α r C</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-43-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_equivalence_refl</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_equivalence_refl (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a : α) :
+    r a a :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  equivalence_refl α r h a</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">43.2 类的成员：自反 <span class="math">·</span> 相关即属于 <span class="math">·</span> 包含的两条</h3><article class="exercise" id="ex-43-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">equivClass_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-43-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：<strong>类的成员刻画</strong>（库里现成的）。</p></div></div><pre class="exercise-statement"><code>theorem equivClass_mem (α : Type) (r : Rel α α) (a c : α) :
+    Rel.EquivClass α r a c ↔ r a c := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边逐字相同 <span class="math">⇒</span> 交给库里的展开引理。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>EquivClass r a c ↔ r a c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Rel.mem_equivClass</code> ✓</p></div></details></div><details class="solution-panel" id="sol-43-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem equivClass_mem (α : Type) (r : Rel α α) (a c : α) :
+    Rel.EquivClass α r a c ↔ r a c :=
+  Rel.mem_equivClass α r a c</code></pre></div></details></div></article>
+<article class="exercise" id="ex-43-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">equivClass_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-43-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong><code>a</code> 属于它自己的类</strong>（自反性的直接用处）。</p></div></div><pre class="exercise-statement"><code>theorem equivClass_self (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a : α) :
+    Rel.EquivClass α r a a := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把自反取用子用在 <code>a</code> 上。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsEquivalence r → EquivClass r a a</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>equivalence_refl</code>（<strong>参数：论域 <span class="math">·</span> 关系 <span class="math">·</span> 假设 <span class="math">·</span> 点</strong>）✓</p></div></details></div><details class="solution-panel" id="sol-43-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem equivClass_self (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a : α) :
+    Rel.EquivClass α r a a :=
+  equivalence_refl α r h a</code></pre></div></details></div></article>
+<article class="exercise" id="ex-43-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">related_mem_equivClass</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-43-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong>相关即属于</strong>（类的成员就是相关性本身）。</p></div></div><pre class="exercise-statement"><code>theorem related_mem_equivClass (α : Type) (r : Rel α α) (a b : α) (h : r a b) :
+    Rel.EquivClass α r a b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>假设就是结论 <span class="math">⇒</span> 直接交出去。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>r a b → EquivClass r a b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>恒等函数 ✓</p></div></details></div><details class="solution-panel" id="sol-43-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem related_mem_equivClass (α : Type) (r : Rel α α) (a b : α) (h : r a b) :
+    Rel.EquivClass α r a b :=
+  h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-43-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">equivClass_subset_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-43-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>旗舰之一</strong>）：<strong><code>[a] ⊆ [b] ⟺ r b a</code></strong>。</p></div></div><pre class="exercise-statement"><code>theorem equivClass_subset_iff (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α) :
+    (∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) ↔ r b a := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：把包含用在 <code>a</code>（它属于 <code>[a]</code>，由自反给出）<span class="math">⇒</span> 得 <code>r b a</code>；<span class="math">←</span>：给定 <code>r b a</code> 与 <code>r a c</code>，用传递性接成 <code>r b c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsEquivalence r → ((∀ c, [a] c → [b] c) ↔ r b a)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code>（前导 Prop 实参写全）<span class="math">·</span> 练习 <span class="math">2 ·</span> 传递性假设<strong>先 <span class="math">λ</span> 绑定再应用</strong> ⚠ <strong>注意右边是 <code>r b a</code>（反着的）</strong>：从 <code>[a] ⊆ [b]</code> 得到的是 <code>r b a</code> ✓</p></div></details></div><details class="solution-panel" id="sol-43-4"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem equivClass_subset_iff (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α) :
+    (∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) ↔ r b a :=
+  @Iff.intro (∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) (r b a)
+    (fun (hsub : ∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) =&gt;
+      hsub a (equivClass_self α r h a))
+    (fun (hba : r b a) =&gt; fun (c : α) =&gt; fun (hac : Rel.EquivClass α r a c) =&gt;
+      (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+        ht b a c hba hac) (equivalence_trans α r h))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">43.3 旗舰二：<strong>类相等 <span class="math">⟺</span> 相关</strong></h3><article class="exercise" id="ex-43-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">equivClass_eq_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-43-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>本单元旗舰</strong>）：<strong>两个类（逐点）相等 <span class="math">⟺</span> 两点相关</strong>。</p></div></div><pre class="exercise-statement"><code>theorem equivClass_eq_iff (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α) :
+    (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) ↔ r a b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：把逐点的 <code>↔</code> 用在 <code>a</code> 上（<code>a ∈ [a]</code> 由自反给出）<span class="math">⇒</span> 得 <code>r b a</code>，再<strong>掉头</strong>得 <code>r a b</code>；<span class="math">←</span>：给定 <code>r a b</code>，对每个 <code>c</code> 造双向（一族用「掉头 <span class="math">+</span> 传递」，另一族用「传递」）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsEquivalence r → ((∀ c, [a] c ↔ [b] c) ↔ r a b)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code>（<strong>两次</strong>：外层 <span class="math">+</span> 每个 <code>c</code> 内层）<span class="math">·</span> <code>equivalence_symm</code>（<strong>掉头时两个点的顺序要对调</strong> —— 实测踩过）<span class="math">·</span> 传递性假设先 <span class="math">λ</span> 绑定 ✓ ⚠ <strong>本练习写逐点</strong>；谓词相等要<strong>函数外延</strong>（本语言<strong>有</strong>）<span class="math">⇒</span> 那条在单元㊹ 的 <code>set_ext_of_funext</code> 里 ✓</p></div></details></div><details class="solution-panel" id="sol-43-5"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><pre><code>theorem equivClass_eq_iff (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α) :
+    (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) ↔ r a b :=
+  @Iff.intro (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) (r a b)
+    (fun (heq : ∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) =&gt;
+      (fun (hu : r b a) =&gt; equivalence_symm α r h b a hu)
+        (Iff.mp (heq a) (equivClass_self α r h a)))
+    (fun (hab : r a b) =&gt; fun (c : α) =&gt;
+      @Iff.intro (Rel.EquivClass α r a c) (Rel.EquivClass α r b c)
+        (fun (hac : Rel.EquivClass α r a c) =&gt;
+          (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+            ht b a c (equivalence_symm α r h a b hab) hac) (equivalence_trans α r h))
+        (fun (hbc : Rel.EquivClass α r b c) =&gt;
+          (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+            ht a b c hab hbc) (equivalence_trans α r h)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">43.4 商集：成员 <span class="math">·</span> 非空 <span class="math">·</span> 由相关性给出的包含 <span class="math">·</span> 两类的关系</h3><article class="exercise" id="ex-43-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">classes_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-43-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（T 类）：<strong>每个等价类都是商集的成员</strong>。</p></div></div><pre class="exercise-statement"><code>theorem classes_mem (α : Type) (r : Rel α α) (a : α) :
+    Rel.Classes α r (Rel.EquivClass α r a) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>商集展开是「存在一个点，使 <code>C c ↔ r a c</code>」<span class="math">⇒</span> 见证取 <code>a</code> 自己，逐点那一支就是库里的成员刻画。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Classes r [a]</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.intro</code>（<strong>前导实参写全</strong>）<span class="math">·</span> <code>Rel.mem_equivClass</code> ✓</p></div></details></div><details class="solution-panel" id="sol-43-6"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem classes_mem (α : Type) (r : Rel α α) (a : α) :
+    Rel.Classes α r (Rel.EquivClass α r a) :=
+  Exists.intro a
+    (fun (c : α) =&gt; Rel.mem_equivClass α r a c)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-43-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">classes_nonempty</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-43-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类）：<strong>商集的成员都非空</strong>（有见证点落在里面）。</p></div></div><pre class="exercise-statement"><code>theorem classes_nonempty (α : Type) (r : Rel α α) (heq : IsEquivalence α r) (C : α → Prop)
+    (h : Rel.Classes α r C) : ∃ (a : α), C a := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆开商集的成员性得到生成点 <code>b</code>；把逐点的 <code>↔</code> 用在 <code>b</code> 上，再用<strong>自反性</strong>给出 <code>r b b</code> <span class="math">⇒</span> 得 <code>C b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsEquivalence r → Classes r C → (∃ a, C a)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>/<code>Exists.intro</code>（前导实参写全）<span class="math">·</span> <code>Iff.mpr</code>（这一处方向对得上）<span class="math">·</span><code>equivalence_refl</code> ✓</p></div></details></div><details class="solution-panel" id="sol-43-7"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem classes_nonempty (α : Type) (r : Rel α α) (heq : IsEquivalence α r) (C : α → Prop)
+    (h : Rel.Classes α r C) : ∃ (a : α), C a :=
+  @Exists.elim α (fun (b : α) =&gt; ∀ (c : α), C c ↔ r b c) (∃ (a : α), C a) h
+    (fun (b : α) (hb : ∀ (c : α), C c ↔ r b c) =&gt;
+      Exists.intro b (Iff.mpr (hb b) (equivalence_refl α r heq b)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-43-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">equivClass_subset_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-43-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（T 类）：<strong>类包含自己</strong>（恒等那一支）。</p></div></div><pre class="exercise-statement"><code>theorem equivClass_subset_self (α : Type) (r : Rel α α) (a c : α)
+    (h : Rel.EquivClass α r a c) : Rel.EquivClass α r a c := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>假设就是结论 <span class="math">⇒</span> 恒等函数。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>[a] c → [a] c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>直接写恒等函数 ✓</p></div></details></div><details class="solution-panel" id="sol-43-8"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem equivClass_subset_self (α : Type) (r : Rel α α) (a c : α)
+    (h : Rel.EquivClass α r a c) : Rel.EquivClass α r a c :=
+  h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-43-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">related_equivClass_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-43-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（T 类）：<strong>由相关性给出的包含</strong>（练习 4 的「<span class="math">←</span>」方向单独用）。</p></div></div><pre class="exercise-statement"><code>theorem related_equivClass_subset (α : Type) (r : Rel α α) (h : IsEquivalence α r)
+    (a b : α) (hba : r b a) : ∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>给定 <code>r b a</code> 与 <code>r a c</code>，用传递性接成 <code>r b c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsEquivalence r → r b a → ∀ c, [a] c → [b] c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>传递性假设<strong>先 <span class="math">λ</span> 绑定再应用</strong>（三个点 <span class="math">+</span> 两条前提）✓</p></div></details></div><details class="solution-panel" id="sol-43-9"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem related_equivClass_subset (α : Type) (r : Rel α α) (h : IsEquivalence α r)
+    (a b : α) (hba : r b a) : ∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c :=
+  fun (c : α) =&gt; fun (hac : Rel.EquivClass α r a c) =&gt;
+    (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+      ht b a c hba hac) (equivalence_trans α r h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-43-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">equivClass_inter_nonempty_imp_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-43-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（L 类，<strong>本单元的"必破"改写</strong>）：<strong>两类只要有公共点，就逐点相同</strong>。</p></div></div><pre class="exercise-statement"><code>theorem equivClass_inter_nonempty_imp_eq (α : Type) (r : Rel α α) (h : IsEquivalence α r)
+    (a b : α) (hne : ∃ (c : α), Rel.EquivClass α r a c ∧ Rel.EquivClass α r b c) :
+    ∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>设公共点 <code>c0</code>（<code>r a c0</code> 与 <code>r b c0</code>）——由它先造出 <code>r b a</code>（传递 <span class="math">+</span> 掉头），再用两次传递分别给出两个方向。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsEquivalence r → (∃ c, [a] c ∧ [b] c) → ∀ c, [a] c ↔ [b] c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>（前导实参写全）<span class="math">·</span> 传递性假设<strong>先 <span class="math">λ</span> 绑定再应用</strong>（<strong>三次</strong>）<span class="math">·</span><code>equivalence_symm</code>（掉头时两个点对调）<span class="math">·</span> <code>And.left</code>/<code>And.right</code> ✓ ⚠ <strong>为什么不做成"要么相同要么不相交"的析取</strong>：那需要<strong>排中</strong>（判断"有没有公共点"）<span class="math">⇒</span> <strong>G-74</strong> 挡住；本语言只能给出<strong>有公共点 <span class="math">⇒</span> 相同</strong>这一半 ✓ 如实记在这里 ✓</p></div></details></div><details class="solution-panel" id="sol-43-10"><summary>查看解答 <span class="sol-meta">定理 · 24 行</span></summary><div class="solution-body"><pre><code>theorem equivClass_inter_nonempty_imp_eq (α : Type) (r : Rel α α) (h : IsEquivalence α r)
+    (a b : α) (hne : ∃ (c : α), Rel.EquivClass α r a c ∧ Rel.EquivClass α r b c) :
+    ∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c :=
+  @Exists.elim α (fun (c : α) =&gt; Rel.EquivClass α r a c ∧ Rel.EquivClass α r b c)
+    (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) hne
+    (fun (c0 : α) (hc : Rel.EquivClass α r a c0 ∧ Rel.EquivClass α r b c0) =&gt;
+      fun (c : α) =&gt;
+        @Iff.intro (Rel.EquivClass α r a c) (Rel.EquivClass α r b c)
+          (fun (hac : Rel.EquivClass α r a c) =&gt;
+            (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+              ht b a c
+                (ht b c0 a (And.right hc)
+                  ((fun (hs : ∀ (x : α) (y : α), r x y → r y x) =&gt;
+                    hs a c0 (And.left hc)) (equivalence_symm α r h)))
+                hac) (equivalence_trans α r h))
+          (fun (hbc : Rel.EquivClass α r b c) =&gt;
+            (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+              ht a b c
+                ((fun (hs : ∀ (x : α) (y : α), r x y → r y x) =&gt;
+                  hs b a (ht b c0 a (And.right hc)
+                    ((fun (hs2 : ∀ (x : α) (y : α), r x y → r y x) =&gt;
+                      hs2 a c0 (And.left hc)) (equivalence_symm α r h))))
+                  (equivalence_symm α r h))
+                hbc) (equivalence_trans α r h)))</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>「恰好相同」本单元写成逐点 <code>↔</code></strong>：谓词的<strong>相等</strong>要<strong>函数外延</strong>（<code>lib.Extensionality</code> ✓），所以旗舰二写成 <code>(∀ c, [a] c ↔ [b] c) ↔ r a b</code> ✓</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <code>lib.Set</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㉕㉖（等价关系与划分）<span class="math">·</span> 单元㊱㊲（关系的代数）—— 本单元把两条线合到一处。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit27.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">商类型与良定义性</span></a><a class="unit-nav-home" href="../chapters/i-10.html#units">目录</a><a class="unit-nav-link" href="../units/unit76.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">像的核关系</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-43"><h3><a href="#top">等价类与商集的代数刻画</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答 · 1 个解答独有声明</p><details class="appendix-solution" id="app-sol-43-1"><summary>练习 1 · equivClass_mem <span class="sol-meta">定理</span></summary><pre><code>theorem equivClass_mem (α : Type) (r : Rel α α) (a c : α) :
+    Rel.EquivClass α r a c ↔ r a c :=
+  Rel.mem_equivClass α r a c</code></pre></details><details class="appendix-solution" id="app-sol-43-2"><summary>练习 2 · equivClass_self <span class="sol-meta">定理</span></summary><pre><code>theorem equivClass_self (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a : α) :
+    Rel.EquivClass α r a a :=
+  equivalence_refl α r h a</code></pre></details><details class="appendix-solution" id="app-sol-43-3"><summary>练习 3 · related_mem_equivClass <span class="sol-meta">定理</span></summary><pre><code>theorem related_mem_equivClass (α : Type) (r : Rel α α) (a b : α) (h : r a b) :
+    Rel.EquivClass α r a b :=
+  h</code></pre></details><details class="appendix-solution" id="app-sol-43-4"><summary>练习 4 · equivClass_subset_iff <span class="sol-meta">定理</span></summary><pre><code>theorem equivClass_subset_iff (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α) :
+    (∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) ↔ r b a :=
+  @Iff.intro (∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) (r b a)
+    (fun (hsub : ∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c) =&gt;
+      hsub a (equivClass_self α r h a))
+    (fun (hba : r b a) =&gt; fun (c : α) =&gt; fun (hac : Rel.EquivClass α r a c) =&gt;
+      (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+        ht b a c hba hac) (equivalence_trans α r h))</code></pre></details><details class="appendix-solution" id="app-sol-43-5"><summary>练习 5 · equivClass_eq_iff <span class="sol-meta">定理</span></summary><pre><code>theorem equivClass_eq_iff (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α) :
+    (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) ↔ r a b :=
+  @Iff.intro (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) (r a b)
+    (fun (heq : ∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) =&gt;
+      (fun (hu : r b a) =&gt; equivalence_symm α r h b a hu)
+        (Iff.mp (heq a) (equivClass_self α r h a)))
+    (fun (hab : r a b) =&gt; fun (c : α) =&gt;
+      @Iff.intro (Rel.EquivClass α r a c) (Rel.EquivClass α r b c)
+        (fun (hac : Rel.EquivClass α r a c) =&gt;
+          (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+            ht b a c (equivalence_symm α r h a b hab) hac) (equivalence_trans α r h))
+        (fun (hbc : Rel.EquivClass α r b c) =&gt;
+          (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+            ht a b c hab hbc) (equivalence_trans α r h)))</code></pre></details><details class="appendix-solution" id="app-sol-43-6"><summary>练习 6 · classes_mem <span class="sol-meta">定理</span></summary><pre><code>theorem classes_mem (α : Type) (r : Rel α α) (a : α) :
+    Rel.Classes α r (Rel.EquivClass α r a) :=
+  Exists.intro a
+    (fun (c : α) =&gt; Rel.mem_equivClass α r a c)</code></pre></details><details class="appendix-solution" id="app-sol-43-7"><summary>练习 7 · classes_nonempty <span class="sol-meta">定理</span></summary><pre><code>theorem classes_nonempty (α : Type) (r : Rel α α) (heq : IsEquivalence α r) (C : α → Prop)
+    (h : Rel.Classes α r C) : ∃ (a : α), C a :=
+  @Exists.elim α (fun (b : α) =&gt; ∀ (c : α), C c ↔ r b c) (∃ (a : α), C a) h
+    (fun (b : α) (hb : ∀ (c : α), C c ↔ r b c) =&gt;
+      Exists.intro b (Iff.mpr (hb b) (equivalence_refl α r heq b)))</code></pre></details><details class="appendix-solution" id="app-sol-43-8"><summary>练习 8 · equivClass_subset_self <span class="sol-meta">定理</span></summary><pre><code>theorem equivClass_subset_self (α : Type) (r : Rel α α) (a c : α)
+    (h : Rel.EquivClass α r a c) : Rel.EquivClass α r a c :=
+  h</code></pre></details><details class="appendix-solution" id="app-sol-43-9"><summary>练习 9 · related_equivClass_subset <span class="sol-meta">定理</span></summary><pre><code>theorem related_equivClass_subset (α : Type) (r : Rel α α) (h : IsEquivalence α r)
+    (a b : α) (hba : r b a) : ∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c :=
+  fun (c : α) =&gt; fun (hac : Rel.EquivClass α r a c) =&gt;
+    (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+      ht b a c hba hac) (equivalence_trans α r h)</code></pre></details><details class="appendix-solution" id="app-sol-43-10"><summary>练习 10 · equivClass_inter_nonempty_imp_eq <span class="sol-meta">定理</span></summary><pre><code>theorem equivClass_inter_nonempty_imp_eq (α : Type) (r : Rel α α) (h : IsEquivalence α r)
+    (a b : α) (hne : ∃ (c : α), Rel.EquivClass α r a c ∧ Rel.EquivClass α r b c) :
+    ∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c :=
+  @Exists.elim α (fun (c : α) =&gt; Rel.EquivClass α r a c ∧ Rel.EquivClass α r b c)
+    (∀ (c : α), Rel.EquivClass α r a c ↔ Rel.EquivClass α r b c) hne
+    (fun (c0 : α) (hc : Rel.EquivClass α r a c0 ∧ Rel.EquivClass α r b c0) =&gt;
+      fun (c : α) =&gt;
+        @Iff.intro (Rel.EquivClass α r a c) (Rel.EquivClass α r b c)
+          (fun (hac : Rel.EquivClass α r a c) =&gt;
+            (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+              ht b a c
+                (ht b c0 a (And.right hc)
+                  ((fun (hs : ∀ (x : α) (y : α), r x y → r y x) =&gt;
+                    hs a c0 (And.left hc)) (equivalence_symm α r h)))
+                hac) (equivalence_trans α r h))
+          (fun (hbc : Rel.EquivClass α r b c) =&gt;
+            (fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+              ht a b c
+                ((fun (hs : ∀ (x : α) (y : α), r x y → r y x) =&gt;
+                  hs b a (ht b c0 a (And.right hc)
+                    ((fun (hs2 : ∀ (x : α) (y : α), r x y → r y x) =&gt;
+                      hs2 a c0 (And.left hc)) (equivalence_symm α r h))))
+                  (equivalence_symm α r h))
+                hbc) (equivalence_trans α r h)))</code></pre></details><details class="appendix-solution" id="app-extra-43-1"><summary>补充 · equivClass_eq_of_mem <span class="sol-meta">定理</span></summary><pre><code>theorem equivClass_eq_of_mem (α : Type) (r : Rel α α) (h : IsEquivalence α r) (a b : α)
+    (hab : r a b) : ∀ (c : α), Rel.EquivClass α r a c → Rel.EquivClass α r b c :=
+  Iff.mpr (equivClass_subset_iff α r h a b) (equivalence_symm α r h a b hab)</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit27.html">← 27 商类型与良定义性</a><a class="next" href="../units/unit76.html">76 像的核关系 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

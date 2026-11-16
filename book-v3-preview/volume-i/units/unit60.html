@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>60 补集的代数 · 从集合论到实分析</title>
+<meta name="description" content="单元60 补集的代数：导语、定义与定理、练习与解答。Unit 60 — The Algebra of Complements">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit60.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li class="is-current"><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.1 单元</h3><ol><li><a href="../units/unit01.html">01 集合与隶属</a></li><li><a href="../units/unit02.html">02 子集、空集与包含三律</a></li><li><a href="../units/unit03.html">03 并、交、差与幂集</a></li><li><a href="../units/unit04.html">04 外延性与集合等式</a></li><li><a href="../units/unit58.html">58 差集的代数</a></li><li><a href="../units/unit59.html">59 差集的代数（二）</a></li><li class="is-current"><a href="../units/unit60.html">60 补集的代数</a></li><li><a href="../units/unit61.html">61 外延打包</a></li><li><a href="../units/unit62.html">62 外延性的推论</a></li><li><a href="../units/unit63.html">63 差集的等式层（打包续）</a></li><li><a href="../units/unit64.html">64 差集的等式层（三）：两步走</a></li><li><a href="../units/unit65.html">65 并的差分配律与减法反变</a></li><li><a href="../units/unit66.html">66 包含关系的代数</a></li><li><a href="../units/unit104.html">104 排中律与经典推论</a></li><li><a href="../units/unit105.html">105 经典等价三件套</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li aria-current="page">单元 60 补集的代数</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-60-1">60.1 三条库引理（补 · 并 · 交 的成员刻画）</a></li>
+<li><a href="#ex-60-1">60.2 两条取用子（正反两向）</a></li>
+<li><a href="#ex-60-3">60.3 反变 · De Morgan 的构造性两半 · 双重补</a></li>
+<li><a href="#ex-60-7">60.4 两条&quot;没有成员&quot;与&quot;论域的补&quot;</a></li>
+<li><a href="#appendix-unit-60">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-1.html#units">↑ 本章目录</a>
+      <a href="../print/unit60.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-60">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-1.html">I.1</a> · 本章第 7 / 15 单元 · 全书第 60 / 112 单元</p>
+<h1><span class="unit-number">60</span> <span>补集的代数</span></h1>
+<p class="unit-title-en">Unit 60 — The Algebra of Complements</p>
+<p class="unit-meta">11 个定理 · 8 道练习 · 12 条提示 · <a href="#appendix-unit-60">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="60" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-60" aria-label="复制单元 60 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit60.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-1.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>补集的两条取用子（<strong>就是定义</strong> ✓ —— <code>Aᶜ</code> 展开即 <code>¬ (∈ A)</code> ✓）；</li><li><strong>旗舰：<code>A ⊆ B ⇒ Bᶜ ⊆ Aᶜ</code></strong>（补集<strong>反变</strong> ✓ —— 集合代数里最常用的一条 ✓）；</li><li><strong>De Morgan 的构造性两半</strong>：<code>Aᶜ ⊆ (A ∩ B)ᶜ</code> ✓ <span class="math">·</span> <code>(A ∪ B)ᶜ ⊆ Aᶜ</code> ✓；</li><li><strong><code>A ⊆ Aᶜᶜ</code></strong>（双重补，<strong>只有一个方向</strong> ✓）<span class="math">·</span> <strong><code>A ∩ Aᶜ</code> 没有成员</strong> ✓ <span class="math">·</span></li></ul></div><div class="math-display intuition-only" role="math" aria-label="**univᶜ ⊆ ∅** ✓"><math display="block" class="mathml"><mrow><mo>×</mo><mo>×</mo><mi mathvariant="normal">univ</mi><mo>ᶜ</mo><mspace width="0.22em"/><mo>⊆</mo><mspace width="0.22em"/><mo>∅</mo><mo>×</mo><mo>×</mo><mspace width="0.22em"/><mo>✓</mo></mrow></math></div></div></section>
+<h3 class="unit-subhead">60.1 三条库引理（补 <span class="math">·</span> 并 <span class="math">·</span> 交 的成员刻画）</h3><div class="block prose intuition-only"><p>演示：补集的成员刻画（<strong>这一条就是定义展开</strong>：<code>Aᶜ</code> 是 <code>fun x =&gt; ¬ (x ∈ A)</code> ✓）。</p></div><article class="decl decl-theorem" id="decl-60-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_compl</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_compl (α : Type) (a : α) (A : Set α) : a ∈ (Aᶜ) ↔ ¬ (a ∈ A) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Iff.intro (fun (h : a ∈ (Aᶜ)) =&gt; h) (fun (h : ¬ (a ∈ A)) =&gt; h)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-60-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_union</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_union a A B</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-60-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_inter</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_inter_iff a A B</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">60.2 两条取用子（正反两向）</h3><hr class="section-rule"><article class="exercise" id="ex-60-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">not_mem_of_mem_compl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-60-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：<strong>在补集里 <span class="math">⇒</span> 不在原集合里</strong>。</p></div><div class="block prose intuition-only"><p>（不需要任何引理 ✓ —— 但写成具名引理后，后面每题都能用 ✓）</p></div></div><pre class="exercise-statement"><code>theorem not_mem_of_mem_compl (α : Type) (A : Set α) (a : α) (h : a ∈ (Aᶜ)) : ¬ (a ∈ A) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Aᶜ</code> 是<strong>定义</strong>（<code>Set.compl</code> ✓）<span class="math">⇒</span> 这一条<strong>就是恒等函数</strong> ✓</p></div></details></div><details class="solution-panel" id="sol-60-1"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem not_mem_of_mem_compl (α : Type) (A : Set α) (a : α) (h : a ∈ (Aᶜ)) : ¬ (a ∈ A) :=
+  h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-60-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">mem_compl_of_not_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-60-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>不在原集合里 <span class="math">⇒</span> 在补集里</strong>（练习 1 的反向）。</p></div></div><pre class="exercise-statement"><code>theorem mem_compl_of_not_mem (α : Type) (A : Set α) (a : α) (h : ¬ (a ∈ A)) : a ∈ (Aᶜ) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>同练习 1（<strong>定义展开</strong> ✓）✓</p></div></details></div><details class="solution-panel" id="sol-60-2"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem mem_compl_of_not_mem (α : Type) (A : Set α) (a : α) (h : ¬ (a ∈ A)) : a ∈ (Aᶜ) :=
+  h</code></pre></div></details></div></article>
+<h3 class="unit-subhead">60.3 反变 <span class="math">· De Morgan</span> 的构造性两半 <span class="math">·</span> 双重补</h3><hr class="section-rule"><article class="exercise" id="ex-60-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">compl_subset_of_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-60-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类，<strong>旗舰</strong>）：<strong>补集反变</strong>（<code>A ⊆ B ⇒ Bᶜ ⊆ Aᶜ</code>）。</p></div><div class="block prose intuition-only"><p>由包含假设得 <code>a ∈ B</code>，与"在 <code>Bᶜ</code> 里"（练习 1）冲突。</p></div></div><pre class="exercise-statement"><code>theorem compl_subset_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) : Bᶜ ⊆ Aᶜ := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要证 <code>a ∈ Aᶜ</code>，用练习 2 转成"<code>a ∉ A</code>"；若 <code>a ∈ A</code>，</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A ⊆ B → Bᶜ ⊆ Aᶜ</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 1 / 练习 <span class="math">2 ·</span> 包含假设<strong>按 点 <span class="math">·</span> 前提 应用</strong>（<code>h a hA</code>）✓</p></div></details></div><details class="solution-panel" id="sol-60-3"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem compl_subset_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) : Bᶜ ⊆ Aᶜ :=
+  fun (a : α) (ha : a ∈ (Bᶜ)) =&gt;
+    mem_compl_of_not_mem α A a
+      (fun (hA : a ∈ A) =&gt; not_mem_of_mem_compl α B a ha (h a hA))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-60-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">union_compl_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-60-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>De Morgan 上半</strong>）：<strong><code>Aᶜ ⊆ (A ∩ B)ᶜ</code></strong>（"不在 <code>A</code> <span class="math">⇒</span> 不在 <code>A ∩ B</code>" ✓）。</p></div></div><pre class="exercise-statement"><code>theorem union_compl_subset (α : Type) (A B : Set α) : Aᶜ ⊆ (A ∩ B)ᶜ := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 1 / 练习 <span class="math">2 ·</span> <code>Set.mem_inter_iff</code> <span class="math">·</span> <code>And.left</code> ✓</p></div></details></div><details class="solution-panel" id="sol-60-4"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem union_compl_subset (α : Type) (A B : Set α) : Aᶜ ⊆ (A ∩ B)ᶜ :=
+  fun (a : α) (ha : a ∈ (Aᶜ)) =&gt;
+    mem_compl_of_not_mem α (A ∩ B) a
+      (fun (hab : a ∈ (A ∩ B)) =&gt;
+        not_mem_of_mem_compl α A a ha
+          (And.left ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =&gt; Iff.mp hu hab)
+            (Set.mem_inter_iff a A B))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-60-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">inter_compl_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-60-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>De Morgan 下半</strong>）：<strong><code>(A ∪ B)ᶜ ⊆ Aᶜ</code></strong>（"两个都不在 <span class="math">⇒</span> 不在 <code>A</code>" ✓）。</p></div></div><pre class="exercise-statement"><code>theorem inter_compl_subset (α : Type) (A B : Set α) : (A ∪ B)ᶜ ⊆ Aᶜ := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 1 / 练习 <span class="math">2 ·</span> <code>Set.mem_union</code> <span class="math">·</span> <code>Or.inl</code> ✓</p></div></details></div><details class="solution-panel" id="sol-60-5"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem inter_compl_subset (α : Type) (A B : Set α) : (A ∪ B)ᶜ ⊆ Aᶜ :=
+  fun (a : α) (h : a ∈ ((A ∪ B)ᶜ)) =&gt;
+    mem_compl_of_not_mem α A a
+      (fun (hA : a ∈ A) =&gt;
+        not_mem_of_mem_compl α (A ∪ B) a h
+          ((fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) =&gt; Iff.mpr hu (Or.inl hA))
+            (Set.mem_union a A B)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-60-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">compl_compl_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-60-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（T 类）：<strong><code>A ⊆ Aᶜᶜ</code></strong>（双重补 —— <strong>只有一个方向</strong> ✓）。</p></div><div class="block prose intuition-only"><p>由 <code>a ∈ A</code> 直接给出（把"否定假设"当函数用 ✓）。</p></div></div><pre class="exercise-statement"><code>theorem compl_compl_subset (α : Type) (A : Set α) : A ⊆ Aᶜᶜ := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>a ∈ Aᶜᶜ</code> 展开成 <code>¬ (a ∈ Aᶜ)</code>、再展开成 <code>¬ ¬ (a ∈ A)</code>；</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 1 / 练习 2（<strong>两次</strong>，一层套一层 ✓）✓</p></div></details></div><details class="solution-panel" id="sol-60-6"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem compl_compl_subset (α : Type) (A : Set α) : A ⊆ Aᶜᶜ :=
+  fun (a : α) (ha : a ∈ A) =&gt;
+    mem_compl_of_not_mem α (Aᶜ) a (fun (hna : a ∈ (Aᶜ)) =&gt; not_mem_of_mem_compl α A a hna ha)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">60.4 两条"没有成员"与"论域的补"</h3><hr class="section-rule"><article class="exercise" id="ex-60-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">not_mem_inter_compl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-60-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（T 类）：<strong><code>A ∩ Aᶜ</code> 没有成员</strong>。</p></div></div><pre class="exercise-statement"><code>theorem not_mem_inter_compl (α : Type) (A : Set α) (a : α) : ¬ (a ∈ (A ∩ Aᶜ)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_inter_iff</code> <span class="math">·</span> 练习 1（<strong>同一个 <code>h</code> 的两半互相冲突</strong> ✓）✓</p></div></details></div><details class="solution-panel" id="sol-60-7"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem not_mem_inter_compl (α : Type) (A : Set α) (a : α) : ¬ (a ∈ (A ∩ Aᶜ)) :=
+  fun (h : a ∈ (A ∩ Aᶜ)) =&gt;
+    not_mem_of_mem_compl α A a
+      (And.right ((fun (hu : a ∈ (A ∩ Aᶜ) ↔ a ∈ A ∧ a ∈ (Aᶜ)) =&gt; Iff.mp hu h)
+        (Set.mem_inter_iff a A (Aᶜ))))
+      (And.left ((fun (hu : a ∈ (A ∩ Aᶜ) ↔ a ∈ A ∧ a ∈ (Aᶜ)) =&gt; Iff.mp hu h)
+        (Set.mem_inter_iff a A (Aᶜ))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-60-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">compl_univ_subset_empty</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-60-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（T 类，<strong>收尾</strong>）：<strong><code>univᶜ ⊆ ∅</code></strong>。</p></div></div><pre class="exercise-statement"><code>theorem compl_univ_subset_empty (α : Type) : (@Set.univ α)ᶜ ⊆ (∅) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>由"在 <code>univᶜ</code> 里"得"不在论域里"，而库里说<strong>每个</strong> <code>a</code> 都在论域里 ✓ <span class="math">⇒</span> 矛盾。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_univ</code>（<strong>写全论域实参</strong> ✓）<span class="math">·</span> 练习 <span class="math">1 ·</span> <code>False.elim</code>（<strong>把目标写全</strong> ✓）✓</p></div></details></div><details class="solution-panel" id="sol-60-8"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem compl_univ_subset_empty (α : Type) : (@Set.univ α)ᶜ ⊆ (∅) :=
+  fun (a : α) (h : a ∈ ((@Set.univ α)ᶜ)) =&gt;
+    (@False.elim (a ∈ (∅)))
+      (not_mem_of_mem_compl α (@Set.univ α) a h (Set.mem_univ a))</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Halmos《Naive Set Theory》<strong>§5</strong>（complements）<span class="math">·Enderton</span>《Elements of Set Theory》<strong>§1.5</strong>（De Morgan 的两半）。大纲：<code>set-theory-syllabus.md</code> §4.1（<strong>I.1 章继续深化</strong> —— 接单元58/59 的差集线 ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>另外两半被挡在门外</strong> ✓（<strong>逻辑强度检查</strong> ✓）：<code>(A ∩ B)ᶜ ⊆ Aᶜ ∪ Bᶜ</code> 与 <code>Aᶜᶜ ⊆ A</code> 都要 <strong>De Morgan / 双重否定消去</strong> ✗（构造性不成立 ✓）——<strong>这正是本单元最好的教学点</strong> ✓：De Morgan 在构造性逻辑里<strong>只有一半</strong> ✓。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.SUnion</code> <span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元③（并交差）<span class="math">·</span> 单元58/59（差集的代数）<span class="math">·</span> 单元⑪（论域与悖论）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit59.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">差集的代数（二）</span></a><a class="unit-nav-home" href="../chapters/i-1.html#units">目录</a><a class="unit-nav-link" href="../units/unit61.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">外延打包</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-60"><h3><a href="#top">补集的代数</a></h3><p class="appendix-meta">8 道练习 · 8 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-60-1"><summary>练习 1 · not_mem_of_mem_compl <span class="sol-meta">定理</span></summary><pre><code>theorem not_mem_of_mem_compl (α : Type) (A : Set α) (a : α) (h : a ∈ (Aᶜ)) : ¬ (a ∈ A) :=
+  h</code></pre></details><details class="appendix-solution" id="app-sol-60-2"><summary>练习 2 · mem_compl_of_not_mem <span class="sol-meta">定理</span></summary><pre><code>theorem mem_compl_of_not_mem (α : Type) (A : Set α) (a : α) (h : ¬ (a ∈ A)) : a ∈ (Aᶜ) :=
+  h</code></pre></details><details class="appendix-solution" id="app-sol-60-3"><summary>练习 3 · compl_subset_of_subset <span class="sol-meta">定理</span></summary><pre><code>theorem compl_subset_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) : Bᶜ ⊆ Aᶜ :=
+  fun (a : α) (ha : a ∈ (Bᶜ)) =&gt;
+    mem_compl_of_not_mem α A a
+      (fun (hA : a ∈ A) =&gt; not_mem_of_mem_compl α B a ha (h a hA))</code></pre></details><details class="appendix-solution" id="app-sol-60-4"><summary>练习 4 · union_compl_subset <span class="sol-meta">定理</span></summary><pre><code>theorem union_compl_subset (α : Type) (A B : Set α) : Aᶜ ⊆ (A ∩ B)ᶜ :=
+  fun (a : α) (ha : a ∈ (Aᶜ)) =&gt;
+    mem_compl_of_not_mem α (A ∩ B) a
+      (fun (hab : a ∈ (A ∩ B)) =&gt;
+        not_mem_of_mem_compl α A a ha
+          (And.left ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =&gt; Iff.mp hu hab)
+            (Set.mem_inter_iff a A B))))</code></pre></details><details class="appendix-solution" id="app-sol-60-5"><summary>练习 5 · inter_compl_subset <span class="sol-meta">定理</span></summary><pre><code>theorem inter_compl_subset (α : Type) (A B : Set α) : (A ∪ B)ᶜ ⊆ Aᶜ :=
+  fun (a : α) (h : a ∈ ((A ∪ B)ᶜ)) =&gt;
+    mem_compl_of_not_mem α A a
+      (fun (hA : a ∈ A) =&gt;
+        not_mem_of_mem_compl α (A ∪ B) a h
+          ((fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) =&gt; Iff.mpr hu (Or.inl hA))
+            (Set.mem_union a A B)))</code></pre></details><details class="appendix-solution" id="app-sol-60-6"><summary>练习 6 · compl_compl_subset <span class="sol-meta">定理</span></summary><pre><code>theorem compl_compl_subset (α : Type) (A : Set α) : A ⊆ Aᶜᶜ :=
+  fun (a : α) (ha : a ∈ A) =&gt;
+    mem_compl_of_not_mem α (Aᶜ) a (fun (hna : a ∈ (Aᶜ)) =&gt; not_mem_of_mem_compl α A a hna ha)</code></pre></details><details class="appendix-solution" id="app-sol-60-7"><summary>练习 7 · not_mem_inter_compl <span class="sol-meta">定理</span></summary><pre><code>theorem not_mem_inter_compl (α : Type) (A : Set α) (a : α) : ¬ (a ∈ (A ∩ Aᶜ)) :=
+  fun (h : a ∈ (A ∩ Aᶜ)) =&gt;
+    not_mem_of_mem_compl α A a
+      (And.right ((fun (hu : a ∈ (A ∩ Aᶜ) ↔ a ∈ A ∧ a ∈ (Aᶜ)) =&gt; Iff.mp hu h)
+        (Set.mem_inter_iff a A (Aᶜ))))
+      (And.left ((fun (hu : a ∈ (A ∩ Aᶜ) ↔ a ∈ A ∧ a ∈ (Aᶜ)) =&gt; Iff.mp hu h)
+        (Set.mem_inter_iff a A (Aᶜ))))</code></pre></details><details class="appendix-solution" id="app-sol-60-8"><summary>练习 8 · compl_univ_subset_empty <span class="sol-meta">定理</span></summary><pre><code>theorem compl_univ_subset_empty (α : Type) : (@Set.univ α)ᶜ ⊆ (∅) :=
+  fun (a : α) (h : a ∈ ((@Set.univ α)ᶜ)) =&gt;
+    (@False.elim (a ∈ (∅)))
+      (not_mem_of_mem_compl α (@Set.univ α) a h (Set.mem_univ a))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit59.html">← 59 差集的代数（二）</a><a class="next" href="../units/unit61.html">61 外延打包 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

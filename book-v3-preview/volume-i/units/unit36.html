@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>36 关系的代数 · 从集合论到实分析</title>
+<meta name="description" content="单元㊱ 关系的代数：导语、定义与定理、练习与解答。Unit 36 — Algebra of Relations">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit36.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li class="is-current"><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.13 单元</h3><ol><li class="is-current"><a href="../units/unit36.html">36 关系的代数</a></li><li><a href="../units/unit37.html">37 关系的代数刻画</a></li><li><a href="../units/unit38.html">38 序关系的关系代数视角</a></li><li><a href="../units/unit39.html">39 关系的像、原像与等价核</a></li><li><a href="../units/unit40.html">40 传递闭包的代数刻画</a></li><li><a href="../units/unit41.html">41 良基关系（极小元原理）</a></li><li><a href="../units/unit45.html">45 关系的单值性与函数的图</a></li><li><a href="../units/unit52.html">52 关系的复合：单位律与逐点形态</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li><li aria-current="page">单元 36 关系的代数</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-36-1">36.0 画布给的新词汇：恒等关系（复合的单位元）</a></li>
+<li><a href="#decl-36-2">36.1 三条库引理（复合、逆、双逆的成员刻画）</a></li>
+<li><a href="#ex-36-1">36.2 逆：对合与反穿过复合（旗舰）</a></li>
+<li><a href="#ex-36-4">36.3 复合：结合律（拆成两个方向的辅助定理）</a></li>
+<li><a href="#ex-36-5">36.4 单调性（复合与逆对&quot;逐点蕴含&quot;单调）</a></li>
+<li><a href="#ex-36-8">36.5 单位元：恒等关系</a></li>
+<li><a href="#appendix-unit-36">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-13.html#units">↑ 本章目录</a>
+      <a href="../print/unit36.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit first-of-chapter" id="unit-36">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-13.html">I.13</a> · 本章第 1 / 8 单元 · 全书第 36 / 112 单元</p>
+<h1><span class="unit-number">36</span> <span>关系的代数</span></h1>
+<p class="unit-title-en">Unit 36 — Algebra of Relations</p>
+<p class="unit-meta">1 个定义 · 13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-36">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="36" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-36" aria-label="复制单元 36 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit36.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-13.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§10 Inverses and Composites</strong>（关系版的复合与逆）；Enderton《Elements of Set Theory》<strong>§3.3</strong> 的同一批。大纲：<code>set-theory-syllabus.md</code> §4.1（新章 <strong>I.13「关系的代数」</strong>开工）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"（关系构成一个<strong>代数</strong> —— 有乘法（复合）、有逆、有单位）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>结合律</strong>（<code>(r • s) • t = r • (s • t)</code>）<span class="math">·</span> <strong>逆的对合</strong>（<code>(r ⁻¹) ⁻¹ = r</code>）；</li><li><strong>旗舰：逆反穿过复合</strong>（<code>(r • s) ⁻¹ = s ⁻¹ • r ⁻¹</code> —— 顺序要反过来）；</li><li><strong>单位元</strong>（恒等关系 <code>idRel</code>：<code>idRel • r = r</code>、<code>r • idRel = r</code>）；</li><li><strong>单调性</strong>（复合与逆对"逐点蕴含"单调）✓</li></ul></div><div class="block prose intuition-only"><p><strong>写法约定</strong>：<code>∃</code> 的拆装<strong>前导实参一律写全</strong>（G-73 形状 ②）；嵌套太深就用<strong>辅助定理</strong>（本单元的 <code>comp_assoc_fwd</code> / <code>comp_assoc_bwd</code> 就是为此拆的 —— 实测一次写成会少数括号）✓ <strong>搬运等式时"第一个点"可以随便给</strong>（它在关系里是自由位），但<strong>类型要对</strong>（实测踩过）✓</p></div><h3 class="unit-subhead">36.0 画布给的新词汇：<strong>恒等关系</strong>（复合的单位元）</h3><div class="block prose intuition-only"><p>读法：<code>idRel α</code> 就是"两个点相等"这条关系 ✓ 它将是复合的单位元（练习 9、10）✓</p></div><article class="decl decl-def" id="decl-36-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">idRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def idRel (α : Type) : Rel α α :=
+  fun (a : α) (b : α) =&gt; a = b</code></pre></div></article>
+<h3 class="unit-subhead">36.1 三条库引理（复合、逆、双逆的成员刻画）</h3><div class="block prose intuition-only"><p>演示：复合的成员刻画（"中间有一个点接得上"）。</p></div><article class="decl decl-theorem" id="decl-36-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_comp</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_comp (A B C : Type) (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
+    (r • s) a c ↔ ∃ (b : B), r a b ∧ s b c :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.comp_apply r s a c</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：逆关系的成员刻画（把两个点掉头）。</p></div><article class="decl decl-theorem" id="decl-36-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_inv</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_inv (A B : Type) (r : Rel A B) (b : B) (a : A) :
+    (r ⁻¹) b a ↔ r a b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.inv_apply A B r b a</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：双逆的成员刻画（掉两次头回到原地）。</p></div><article class="decl decl-theorem" id="decl-36-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_inv_inv</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_inv_inv (A B : Type) (r : Rel A B) (a : A) (b : B) :
+    ((r ⁻¹) ⁻¹) a b ↔ r a b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.inv_inv_apply A B r a b</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">36.2 逆：<strong>对合</strong>与<strong>反穿过复合</strong>（旗舰）</h3><article class="exercise" id="ex-36-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">inv_inv</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-36-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（L 类）：<strong>逆的对合</strong>（<code>(r ⁻¹) ⁻¹ = r</code>）。</p></div></div><pre class="exercise-statement"><code>theorem inv_inv (A B : Type) (r : Rel A B) : ((r ⁻¹) ⁻¹) = r := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用<strong>关系外延公理</strong>（<code>Rel.ext</code>），逐点把"掉两次头"退回原关系（演示 3 就是那一步）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(r ⁻¹) ⁻¹ = r</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Rel.ext</code>（<strong>参数写全</strong>：两个类型 <span class="math">·</span> 两条关系 <span class="math">·</span> 逐点证明）<span class="math">·</span> 演示 3 ✓ ⚠ 关系相等<strong>可以</strong>写成 <code>=</code>（<code>Rel.ext</code> ✓；它也可由 <code>propext</code> <span class="math">+</span> <code>funext</code> 推出，见单元㊹）✓</p></div></details></div><details class="solution-panel" id="sol-36-1"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem inv_inv (A B : Type) (r : Rel A B) : @Eq.{1} (Rel A B) ((r ⁻¹) ⁻¹) r :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Rel.ext A B ((r ⁻¹) ⁻¹) r (fun (a : A) (b : B) =&gt; Rel.inv_inv_apply A B r a b)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-36-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">inv_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-36-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类，<strong>本单元旗舰之一</strong>）：<strong>逆反穿过复合</strong>：<code>(r • s) ⁻¹ = s ⁻¹ • r ⁻¹</code>（<strong>顺序反过来</strong>）。</p></div></div><pre class="exercise-statement"><code>theorem inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
+    ((r • s) ⁻¹) = (s ⁻¹ • r ⁻¹) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>逐点看，左边是 <code>∃ b, r a b ∧ s b c</code>，右边是 <code>∃ b, s b c ∧ r a b</code>—— <strong>把合取的两个支对调</strong>而已（见证取同一个 <code>b</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(r • s) ⁻¹ = s ⁻¹ • r ⁻¹</code>（注意两边都在 <code>Rel C A</code> 里）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Rel.ext</code> <span class="math">·</span> <code>Exists.elim</code>/<code>Exists.intro</code>（<strong>前导实参写全</strong>）<span class="math">·</span><code>And.left</code>/<code>And.right</code> <span class="math">·</span> <code>Iff.intro</code>（前导 Prop 实参写全）✓ ⚠ 两边<strong>定义上就等价</strong>（<code>⁻¹</code> 只是把两个点掉头、<code>•</code> 是 <code>∃</code>），所以<strong>不需要搬运引理</strong> ✓</p></div></details></div><details class="solution-panel" id="sol-36-2"><summary>查看解答 <span class="sol-meta">定理 · 16 行</span></summary><div class="solution-body"><pre><code>theorem inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
+    @Eq.{1} (Rel C A) ((r • s) ⁻¹) (s ⁻¹ • r ⁻¹) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Rel.ext C A ((r • s) ⁻¹) (s ⁻¹ • r ⁻¹) (fun (c : C) (a : A) =&gt;
+    @Iff.intro (((r • s) ⁻¹) c a) ((s ⁻¹ • r ⁻¹) c a)
+      (fun (h : ((r • s) ⁻¹) c a) =&gt;
+        @Exists.elim B (fun (b : B) =&gt; r a b ∧ s b c)
+          (∃ (b : B), (s ⁻¹) c b ∧ (r ⁻¹) b a) h
+          (fun (b : B) (hb : r a b ∧ s b c) =&gt;
+            Exists.intro b
+              (And.intro (And.right hb) (And.left hb))))
+      (fun (h : (s ⁻¹ • r ⁻¹) c a) =&gt;
+        @Exists.elim B (fun (b : B) =&gt; (s ⁻¹) c b ∧ (r ⁻¹) b a)
+          (∃ (b : B), r a b ∧ s b c) h
+          (fun (b : B) (hb : (s ⁻¹) c b ∧ (r ⁻¹) b a) =&gt;
+            Exists.intro b
+              (And.intro (And.right hb) (And.left hb)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-36-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">inv_comp_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-36-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：把练习 2 写成<strong>逐点</strong>形态（做题时更常用）。</p></div></div><pre class="exercise-statement"><code>theorem inv_comp_apply (A B C : Type) (r : Rel A B) (s : Rel B C) (c : C) (a : A) :
+    ((r • s) ⁻¹) c a ↔ (s ⁻¹ • r ⁻¹) c a := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与练习 2 的逐点证明逐字相同。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>((r • s) ⁻¹) c a ↔ (s ⁻¹ • r ⁻¹) c a</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code> <span class="math">·</span> <code>Exists.elim</code>/<code>Exists.intro</code>（前导实参写全）<span class="math">·</span> <code>And.left</code>/<code>And.right</code> ✓</p></div></details></div><details class="solution-panel" id="sol-36-3"><summary>查看解答 <span class="sol-meta">定理 · 15 行</span></summary><div class="solution-body"><pre><code>theorem inv_comp_apply (A B C : Type) (r : Rel A B) (s : Rel B C) (c : C) (a : A) :
+    ((r • s) ⁻¹) c a ↔ (s ⁻¹ • r ⁻¹) c a :=
+  @Iff.intro (((r • s) ⁻¹) c a) ((s ⁻¹ • r ⁻¹) c a)
+    (fun (h : ((r • s) ⁻¹) c a) =&gt;
+      @Exists.elim B (fun (b : B) =&gt; r a b ∧ s b c)
+        (∃ (b : B), (s ⁻¹) c b ∧ (r ⁻¹) b a) h
+        (fun (b : B) (hb : r a b ∧ s b c) =&gt;
+          Exists.intro b
+            (And.intro (And.right hb) (And.left hb))))
+    (fun (h : (s ⁻¹ • r ⁻¹) c a) =&gt;
+      @Exists.elim B (fun (b : B) =&gt; (s ⁻¹) c b ∧ (r ⁻¹) b a)
+        (∃ (b : B), r a b ∧ s b c) h
+        (fun (b : B) (hb : (s ⁻¹) c b ∧ (r ⁻¹) b a) =&gt;
+          Exists.intro b
+            (And.intro (And.right hb) (And.left hb))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">36.3 复合：<strong>结合律</strong>（拆成两个方向的辅助定理）</h3><article class="exercise" id="ex-36-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">comp_assoc</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-36-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>本单元旗舰之一</strong>）：<strong>结合律</strong>（<code>(r • s) • t = r • (s • t)</code>）。</p></div></div><pre class="exercise-statement"><code>theorem comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D) :
+    ((r • s) • t) = (r • (s • t)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>逐点看，两边都是"存在两个中间点把三段接起来"，只是<strong>归纳的顺序不同</strong> <span class="math">⇒</span> 两个方向各拆一次 <code>∃</code>、再各造一次 <code>∃</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(r • s) • t = r • (s • t)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Rel.ext</code> <span class="math">·</span> 两个方向各一个 <code>Exists.elim</code> 嵌套 <span class="math">·</span> <code>Exists.intro</code> <span class="math">·</span><code>And.intro</code>/<code>And.left</code>/<code>And.right</code> <span class="math">·</span> <strong>嵌套超过两层就拆成辅助定理</strong> ——本题的解答里 <code>comp_assoc_fwd</code>/<code>comp_assoc_bwd</code> 正是为此，<strong>一次写成实测会少数括号</strong> ✓</p></div></details></div><details class="solution-panel" id="sol-36-4"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D) :
+    @Eq.{1} (Rel A D) ((r • s) • t) (r • (s • t)) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Rel.ext A D ((r • s) • t) (r • (s • t)) (fun (a : A) (d : D) =&gt;
+    @Iff.intro (((r • s) • t) a d) ((r • (s • t)) a d)
+      (fun (h : ((r • s) • t) a d) =&gt; comp_assoc_fwd A B C D r s t a d h)
+      (fun (h : (r • (s • t)) a d) =&gt; comp_assoc_bwd A B C D r s t a d h))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">36.4 单调性（复合与逆对"逐点蕴含"单调）</h3><article class="exercise" id="ex-36-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">comp_mono_left</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-36-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：<strong>复合对左边单调</strong>。</p></div></div><pre class="exercise-statement"><code>theorem comp_mono_left (A B C : Type) (r r1 : Rel A B) (s : Rel B C)
+    (h : ∀ (a : A) (b : B), r a b → r1 a b) (a : A) (c : C)
+    (hac : (r • s) a c) : (r1 • s) a c := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆开左边的 <code>∃</code>，把中间点原样交出去，只把"第一个支"换成更强的那条。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ a b, r a b → r1 a b) → (r • s) a c → (r1 • s) a c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>/<code>Exists.intro</code>（前导实参写全）<span class="math">·</span> <code>And.intro</code> ✓</p></div></details></div><details class="solution-panel" id="sol-36-5"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem comp_mono_left (A B C : Type) (r r1 : Rel A B) (s : Rel B C)
+    (h : ∀ (a : A) (b : B), r a b → r1 a b) (a : A) (c : C)
+    (hac : (r • s) a c) : (r1 • s) a c :=
+  @Exists.elim B (fun (b : B) =&gt; r a b ∧ s b c)
+    (∃ (b : B), r1 a b ∧ s b c) hac
+    (fun (b : B) (hb : r a b ∧ s b c) =&gt;
+      Exists.intro b
+        (And.intro (h a b (And.left hb)) (And.right hb)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-36-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">comp_mono_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-36-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类）：<strong>复合对右边单调</strong>（与练习 5 对偶：换"第二个支"）。</p></div></div><pre class="exercise-statement"><code>theorem comp_mono_right (A B C : Type) (r : Rel A B) (s s1 : Rel B C)
+    (h : ∀ (b : B) (c : C), s b c → s1 b c) (a : A) (c : C)
+    (hac : (r • s) a c) : (r • s1) a c := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>同练习 5，把"第二个支"换掉。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ b c, s b c → s1 b c) → (r • s) a c → (r • s1) a c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>/<code>Exists.intro</code>（前导实参写全）<span class="math">·</span> <code>And.intro</code> ✓</p></div></details></div><details class="solution-panel" id="sol-36-6"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem comp_mono_right (A B C : Type) (r : Rel A B) (s s1 : Rel B C)
+    (h : ∀ (b : B) (c : C), s b c → s1 b c) (a : A) (c : C)
+    (hac : (r • s) a c) : (r • s1) a c :=
+  @Exists.elim B (fun (b : B) =&gt; r a b ∧ s b c)
+    (∃ (b : B), r a b ∧ s1 b c) hac
+    (fun (b : B) (hb : r a b ∧ s b c) =&gt;
+      Exists.intro b
+        (And.intro (And.left hb) (h b c (And.right hb))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-36-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">inv_mono</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-36-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（T 类）：<strong>逆对逐点蕴含单调</strong>（<code>⁻¹</code> 只是把两个点掉头 <span class="math">⇒</span> 什么都不用做）。</p></div></div><pre class="exercise-statement"><code>theorem inv_mono (A B : Type) (r r1 : Rel A B)
+    (h : ∀ (a : A) (b : B), r a b → r1 a b) (b : B) (a : A)
+    (hba : (r ⁻¹) b a) : (r1 ⁻¹) b a := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把假设用在掉头后的两个点上（<code>(r ⁻¹) b a</code> 定义上就是 <code>r a b</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ a b, r a b → r1 a b) → (r ⁻¹) b a → (r1 ⁻¹) b a</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>假设（当函数用，参数顺序是 <code>a</code> 再 <code>b</code>）✓</p></div></details></div><details class="solution-panel" id="sol-36-7"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem inv_mono (A B : Type) (r r1 : Rel A B)
+    (h : ∀ (a : A) (b : B), r a b → r1 a b) (b : B) (a : A)
+    (hba : (r ⁻¹) b a) : (r1 ⁻¹) b a :=
+  h a b hba</code></pre></div></details></div></article>
+<h3 class="unit-subhead">36.5 单位元：<strong>恒等关系</strong></h3><article class="exercise" id="ex-36-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">idRel_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-36-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（T 类）：<strong>恒等关系的成员刻画</strong>。</p></div></div><pre class="exercise-statement"><code>theorem idRel_apply (α : Type) (a b : α) :
+    (idRel α) a b ↔ a = b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边都是"两个点相等"这同一条命题。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(idRel α) a b ↔ a = b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code>（前导 Prop 实参写全）<span class="math">·</span> 等式的证明项<strong>点名声明星</strong>（G-73 形状 ③）✓</p></div></details></div><details class="solution-panel" id="sol-36-8"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem idRel_apply (α : Type) (a b : α) :
+    (idRel α) a b ↔ @Eq.{1} α a b :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Iff.intro ((idRel α) a b) (@Eq.{1} α a b)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (h : (idRel α) a b) =&gt; h) (fun (h : @Eq.{1} α a b) =&gt; h)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></div></details></div></article>
+<article class="exercise" id="ex-36-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">idRel_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-36-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（L 类）：<strong>恒等关系是左单位元</strong>（<code>idRel • r = r</code>）。</p></div></div><pre class="exercise-statement"><code>theorem idRel_comp (A B : Type) (r : Rel A B) : (idRel A • r) = r := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>逐点看，<code>∃ a1, a = a1 ∧ r a1 b</code> 与 <code>r a b</code> 是一回事 ——<span class="math">→</span>：沿 <code>a = a1</code> <strong>把 <code>r a1 b</code> 搬成 <code>r a b</code></strong>（注意要改的是<strong>第一个坐标</strong>）；<span class="math">←</span>：见证取 <code>a</code> 自己，等式那一条用自反。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>idRel • r = r</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Rel.ext</code> <span class="math">·</span> <code>Exists.elim</code>/<code>Exists.intro</code> <span class="math">·</span> <strong>改第一个坐标要把关系翻过来</strong>：用 <code>rel_subst_right</code>、关系取 <code>fun u v =&gt; r v b</code>、等式取 <code>Eq.symm</code>（实测：直接写会判红）<span class="math">·</span><code>Eq.refl</code>（写全宇宙层级与论域）✓</p></div></details></div><details class="solution-panel" id="sol-36-9"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem idRel_comp (A B : Type) (r : Rel A B) : @Eq.{1} (Rel A B) (idRel A • r) r :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Rel.ext A B (idRel A • r) r (fun (a : A) (b : B) =&gt;
+    @Iff.intro ((idRel A • r) a b) (r a b)
+      (fun (h : (idRel A • r) a b) =&gt;
+        @Exists.elim A (fun (a1 : A) =&gt; (idRel A) a a1 ∧ r a1 b) (r a b) h  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (a1 : A) (ha : (idRel A) a a1 ∧ r a1 b) =&gt;
+            rel_subst_right A (fun (u : A) (v : A) =&gt; r v b) a1 a1 a
+              (@Eq.symm.{1} A a a1 (And.left ha)) (And.right ha)))
+      (fun (h : r a b) =&gt;
+        Exists.intro a
+          (And.intro (@Eq.refl.{1} A a) h)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-36-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">comp_idRel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-36-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（L 类）：<strong>恒等关系是右单位元</strong>（<code>r • idRel = r</code>）。</p></div></div><pre class="exercise-statement"><code>theorem comp_idRel (A B : Type) (r : Rel A B) : (r • idRel B) = r := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与练习 9 对偶：<span class="math">→</span> 沿 <code>b1 = b</code> 把 <code>r a b1</code> 搬成 <code>r a b</code>（这次改的是<strong>第二个</strong>坐标，直接用 <code>rel_subst_right</code> 即可）；<span class="math">←</span> 见证取 <code>b</code> 自己。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>r • idRel = r</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Rel.ext</code> <span class="math">·</span> <code>rel_subst_right</code>（关系取 <code>fun u v =&gt; r a v</code>；<strong>"第一个点"那个自由位随便给，但类型必须是 <code>B</code></strong> —— 实测写成 <code>A</code> 会判红）<span class="math">·</span> <code>Eq.refl</code> ✓</p></div></details></div><details class="solution-panel" id="sol-36-10"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem comp_idRel (A B : Type) (r : Rel A B) : @Eq.{1} (Rel A B) (r • idRel B) r :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Rel.ext A B (r • idRel B) r (fun (a : A) (b : B) =&gt;
+    @Iff.intro ((r • idRel B) a b) (r a b)
+      (fun (h : (r • idRel B) a b) =&gt;
+        @Exists.elim B (fun (b1 : B) =&gt; r a b1 ∧ (idRel B) b1 b) (r a b) h  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (b1 : B) (hb : r a b1 ∧ (idRel B) b1 b) =&gt;
+            rel_subst_right B (fun (u : B) (v : B) =&gt; r a v) b1 b1 b (And.right hb)
+              (And.left hb)))
+      (fun (h : r a b) =&gt;
+        Exists.intro b
+          (And.intro h (@Eq.refl.{1} B b))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>本单元最大的写法红利（也是选型理由）</strong>：<strong>关系相等可以写成 <code>=</code></strong> ——库里有一条<strong>公理</strong> <code>Rel.ext</code>（数学上由 <span class="math">funext + propext</span> 推出 —— 两条本语言<strong>都有</strong>，见 <code>lib.Extensionality</code>；单元㊹ 里把这条推理证了一遍 ✓）✓ 所以本单元的定律是<strong>真正的等式</strong>（单元㉜㉞ 写逐点形态是<strong>教学次序</strong>的选择，不是限制 ✓）✓</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 两样</strong>：<code>lib.Rel</code>（关系与 <code>•</code>/<code>⁻¹</code>/<code>Rel.ext</code>）<span class="math">·</span> <code>lib.Set</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元⑥（关系的复合与逆）—— 本单元把它们做成"代数"。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit70.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">幂集对交并的分配</span></a><a class="unit-nav-home" href="../chapters/i-13.html#units">目录</a><a class="unit-nav-link" href="../units/unit37.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">关系的代数刻画</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-36"><h3><a href="#top">关系的代数</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答 · 2 个解答独有声明</p><details class="appendix-solution" id="app-sol-36-1"><summary>练习 1 · inv_inv <span class="sol-meta">定理</span></summary><pre><code>theorem inv_inv (A B : Type) (r : Rel A B) : @Eq.{1} (Rel A B) ((r ⁻¹) ⁻¹) r :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Rel.ext A B ((r ⁻¹) ⁻¹) r (fun (a : A) (b : B) =&gt; Rel.inv_inv_apply A B r a b)</code></pre></details><details class="appendix-solution" id="app-sol-36-2"><summary>练习 2 · inv_comp <span class="sol-meta">定理</span></summary><pre><code>theorem inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
+    @Eq.{1} (Rel C A) ((r • s) ⁻¹) (s ⁻¹ • r ⁻¹) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Rel.ext C A ((r • s) ⁻¹) (s ⁻¹ • r ⁻¹) (fun (c : C) (a : A) =&gt;
+    @Iff.intro (((r • s) ⁻¹) c a) ((s ⁻¹ • r ⁻¹) c a)
+      (fun (h : ((r • s) ⁻¹) c a) =&gt;
+        @Exists.elim B (fun (b : B) =&gt; r a b ∧ s b c)
+          (∃ (b : B), (s ⁻¹) c b ∧ (r ⁻¹) b a) h
+          (fun (b : B) (hb : r a b ∧ s b c) =&gt;
+            Exists.intro b
+              (And.intro (And.right hb) (And.left hb))))
+      (fun (h : (s ⁻¹ • r ⁻¹) c a) =&gt;
+        @Exists.elim B (fun (b : B) =&gt; (s ⁻¹) c b ∧ (r ⁻¹) b a)
+          (∃ (b : B), r a b ∧ s b c) h
+          (fun (b : B) (hb : (s ⁻¹) c b ∧ (r ⁻¹) b a) =&gt;
+            Exists.intro b
+              (And.intro (And.right hb) (And.left hb)))))</code></pre></details><details class="appendix-solution" id="app-sol-36-3"><summary>练习 3 · inv_comp_apply <span class="sol-meta">定理</span></summary><pre><code>theorem inv_comp_apply (A B C : Type) (r : Rel A B) (s : Rel B C) (c : C) (a : A) :
+    ((r • s) ⁻¹) c a ↔ (s ⁻¹ • r ⁻¹) c a :=
+  @Iff.intro (((r • s) ⁻¹) c a) ((s ⁻¹ • r ⁻¹) c a)
+    (fun (h : ((r • s) ⁻¹) c a) =&gt;
+      @Exists.elim B (fun (b : B) =&gt; r a b ∧ s b c)
+        (∃ (b : B), (s ⁻¹) c b ∧ (r ⁻¹) b a) h
+        (fun (b : B) (hb : r a b ∧ s b c) =&gt;
+          Exists.intro b
+            (And.intro (And.right hb) (And.left hb))))
+    (fun (h : (s ⁻¹ • r ⁻¹) c a) =&gt;
+      @Exists.elim B (fun (b : B) =&gt; (s ⁻¹) c b ∧ (r ⁻¹) b a)
+        (∃ (b : B), r a b ∧ s b c) h
+        (fun (b : B) (hb : (s ⁻¹) c b ∧ (r ⁻¹) b a) =&gt;
+          Exists.intro b
+            (And.intro (And.right hb) (And.left hb))))</code></pre></details><details class="appendix-solution" id="app-sol-36-4"><summary>练习 4 · comp_assoc <span class="sol-meta">定理</span></summary><pre><code>theorem comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D) :
+    @Eq.{1} (Rel A D) ((r • s) • t) (r • (s • t)) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Rel.ext A D ((r • s) • t) (r • (s • t)) (fun (a : A) (d : D) =&gt;
+    @Iff.intro (((r • s) • t) a d) ((r • (s • t)) a d)
+      (fun (h : ((r • s) • t) a d) =&gt; comp_assoc_fwd A B C D r s t a d h)
+      (fun (h : (r • (s • t)) a d) =&gt; comp_assoc_bwd A B C D r s t a d h))</code></pre></details><details class="appendix-solution" id="app-sol-36-5"><summary>练习 5 · comp_mono_left <span class="sol-meta">定理</span></summary><pre><code>theorem comp_mono_left (A B C : Type) (r r1 : Rel A B) (s : Rel B C)
+    (h : ∀ (a : A) (b : B), r a b → r1 a b) (a : A) (c : C)
+    (hac : (r • s) a c) : (r1 • s) a c :=
+  @Exists.elim B (fun (b : B) =&gt; r a b ∧ s b c)
+    (∃ (b : B), r1 a b ∧ s b c) hac
+    (fun (b : B) (hb : r a b ∧ s b c) =&gt;
+      Exists.intro b
+        (And.intro (h a b (And.left hb)) (And.right hb)))</code></pre></details><details class="appendix-solution" id="app-sol-36-6"><summary>练习 6 · comp_mono_right <span class="sol-meta">定理</span></summary><pre><code>theorem comp_mono_right (A B C : Type) (r : Rel A B) (s s1 : Rel B C)
+    (h : ∀ (b : B) (c : C), s b c → s1 b c) (a : A) (c : C)
+    (hac : (r • s) a c) : (r • s1) a c :=
+  @Exists.elim B (fun (b : B) =&gt; r a b ∧ s b c)
+    (∃ (b : B), r a b ∧ s1 b c) hac
+    (fun (b : B) (hb : r a b ∧ s b c) =&gt;
+      Exists.intro b
+        (And.intro (And.left hb) (h b c (And.right hb))))</code></pre></details><details class="appendix-solution" id="app-sol-36-7"><summary>练习 7 · inv_mono <span class="sol-meta">定理</span></summary><pre><code>theorem inv_mono (A B : Type) (r r1 : Rel A B)
+    (h : ∀ (a : A) (b : B), r a b → r1 a b) (b : B) (a : A)
+    (hba : (r ⁻¹) b a) : (r1 ⁻¹) b a :=
+  h a b hba</code></pre></details><details class="appendix-solution" id="app-sol-36-8"><summary>练习 8 · idRel_apply <span class="sol-meta">定理</span></summary><pre><code>theorem idRel_apply (α : Type) (a b : α) :
+    (idRel α) a b ↔ @Eq.{1} α a b :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Iff.intro ((idRel α) a b) (@Eq.{1} α a b)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (h : (idRel α) a b) =&gt; h) (fun (h : @Eq.{1} α a b) =&gt; h)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></details><details class="appendix-solution" id="app-sol-36-9"><summary>练习 9 · idRel_comp <span class="sol-meta">定理</span></summary><pre><code>theorem idRel_comp (A B : Type) (r : Rel A B) : @Eq.{1} (Rel A B) (idRel A • r) r :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Rel.ext A B (idRel A • r) r (fun (a : A) (b : B) =&gt;
+    @Iff.intro ((idRel A • r) a b) (r a b)
+      (fun (h : (idRel A • r) a b) =&gt;
+        @Exists.elim A (fun (a1 : A) =&gt; (idRel A) a a1 ∧ r a1 b) (r a b) h  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (a1 : A) (ha : (idRel A) a a1 ∧ r a1 b) =&gt;
+            rel_subst_right A (fun (u : A) (v : A) =&gt; r v b) a1 a1 a
+              (@Eq.symm.{1} A a a1 (And.left ha)) (And.right ha)))
+      (fun (h : r a b) =&gt;
+        Exists.intro a
+          (And.intro (@Eq.refl.{1} A a) h)))</code></pre></details><details class="appendix-solution" id="app-sol-36-10"><summary>练习 10 · comp_idRel <span class="sol-meta">定理</span></summary><pre><code>theorem comp_idRel (A B : Type) (r : Rel A B) : @Eq.{1} (Rel A B) (r • idRel B) r :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Rel.ext A B (r • idRel B) r (fun (a : A) (b : B) =&gt;
+    @Iff.intro ((r • idRel B) a b) (r a b)
+      (fun (h : (r • idRel B) a b) =&gt;
+        @Exists.elim B (fun (b1 : B) =&gt; r a b1 ∧ (idRel B) b1 b) (r a b) h  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (b1 : B) (hb : r a b1 ∧ (idRel B) b1 b) =&gt;
+            rel_subst_right B (fun (u : B) (v : B) =&gt; r a v) b1 b1 b (And.right hb)
+              (And.left hb)))
+      (fun (h : r a b) =&gt;
+        Exists.intro b
+          (And.intro h (@Eq.refl.{1} B b))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></details><details class="appendix-solution" id="app-extra-36-1"><summary>补充 · comp_assoc_fwd <span class="sol-meta">定理</span></summary><pre><code>theorem comp_assoc_fwd (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D)
+    (a : A) (d : D) (h : ((r • s) • t) a d) : (r • (s • t)) a d :=
+  @Exists.elim C (fun (c : C) =&gt; (r • s) a c ∧ t c d)
+    (∃ (b : B), r a b ∧ (s • t) b d) h
+    (fun (c : C) (hc : (r • s) a c ∧ t c d) =&gt;
+      @Exists.elim B (fun (b : B) =&gt; r a b ∧ s b c)
+        (∃ (b : B), r a b ∧ (s • t) b d) (And.left hc)
+        (fun (b : B) (hb : r a b ∧ s b c) =&gt;
+          Exists.intro b
+            (And.intro (And.left hb)
+              (Exists.intro c
+                (And.intro (And.right hb) (And.right hc))))))</code></pre></details><details class="appendix-solution" id="app-extra-36-2"><summary>补充 · comp_assoc_bwd <span class="sol-meta">定理</span></summary><pre><code>theorem comp_assoc_bwd (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D)
+    (a : A) (d : D) (h : (r • (s • t)) a d) : ((r • s) • t) a d :=
+  @Exists.elim B (fun (b : B) =&gt; r a b ∧ (s • t) b d)
+    (∃ (c : C), (r • s) a c ∧ t c d) h
+    (fun (b : B) (hb : r a b ∧ (s • t) b d) =&gt;
+      @Exists.elim C (fun (c : C) =&gt; s b c ∧ t c d)
+        (∃ (c : C), (r • s) a c ∧ t c d) (And.right hb)
+        (fun (c : C) (hc : s b c ∧ t c d) =&gt;
+          Exists.intro c
+            (And.intro
+              (Exists.intro b
+                (And.intro (And.left hb) (And.left hc)))
+              (And.right hc))))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit70.html">← 70 幂集对交并的分配</a><a class="next" href="../units/unit37.html">37 关系的代数刻画 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

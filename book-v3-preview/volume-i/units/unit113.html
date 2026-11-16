@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>113 连续统假设（CH）与 Cantor 定理 · 从集合论到实分析</title>
+<meta name="description" content="单元113 连续统假设（CH）与 Cantor 定理：导语、定义与定理、练习与解答。Unit 113 — The Continuum Hypothesis">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit113.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li class="is-current"><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.8 单元</h3><ol><li><a href="../units/unit19.html">19 基数的比较</a></li><li><a href="../units/unit20.html">20 基数算术：积</a></li><li><a href="../units/unit54.html">54 等势的代数的开端</a></li><li class="is-current"><a href="../units/unit113.html">113 连续统假设（CH）与 Cantor 定理</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li aria-current="page">单元 113 连续统假设（CH）与 Cantor 定理</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-113-1">定义与定理</a></li>
+<li><a href="#ex-113-1">练习</a></li>
+<li><a href="#appendix-unit-113">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-8.html#units">↑ 本章目录</a>
+      <a href="../print/unit113.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-113">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-8.html">I.8</a> · 本章第 4 / 4 单元 · 全书第 113 / 112 单元</p>
+<h1><span class="unit-number">113</span> <span>连续统假设（CH）与 Cantor 定理</span></h1>
+<p class="unit-title-en">Unit 113 — The Continuum Hypothesis</p>
+<p class="unit-meta">3 个定义 · 8 个定理 · 7 道练习 · 6 条提示 · <a href="#appendix-unit-113">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="113" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-113" aria-label="复制单元 113 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit113.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-8.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>单元113 连续统假设（CH）—— Enderton §6.8（卷 I 最后一个非内核墙缺口）</p></div><div class="block prose intuition-only"><p>── 演示（已给）────────────────────────────────────────────────────────── CH：没有严格介于 <span class="math">ℕ</span> 与 𝒫 <span class="math">ℕ</span> 之间的基数（用 ≼ <span class="math">+</span> ≈ 陈述；不用 ℵ —— 序数线仍在内核墙后）</p></div></div></section>
+<article class="decl decl-def" id="decl-113-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">CH</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def CH : Prop :=
+  ∀ (X : Set (Set Nat)), (@Set.univ Nat) ≼ X →
+    (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat))</code></pre></div></article>
+<div class="block prose intuition-only"><p>演示：CH 是 <code>def</code> <span class="math">⇒</span> 展开即得那条 <span class="math">∀</span> 命题（展开双向）</p></div><article class="decl decl-theorem" id="decl-113-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_ch_unfold</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_ch_unfold (h : CH) :
+    ∀ (X : Set (Set Nat)), (@Set.univ Nat) ≼ X →
+      (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat)) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  h</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：Cantor 对角线集的<strong>单点版定义</strong>（一个演示 def ✓；<strong>载不动</strong>下面的 Cantor 定理 ✗ ——由 <code>f A = m</code> 只能得 <code>f {m} ≠ m</code>，拿不到 <code>A = {m}</code>；判绿用的是下一条 <code>∃</code> 版 ✓）。读法：<code>diagonal f</code> 收集"被 <code>f</code> 映到别处"的那些单点集的名字，<code>f {n} = n</code> 时把 <code>n</code> 排除。</p></div><article class="decl decl-def" id="decl-113-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">diagonal</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def diagonal (f : Set Nat → Nat) : Set Nat :=
+  fun (n : Nat) =&gt; ¬ (f {n} = n)</code></pre></div></article>
+<div class="block prose intuition-only"><p>演示：<strong>对角线集（<code>∃</code> 版）</strong> —— "存在一个集合被 <code>f</code> 映到 <code>x</code>，而 <code>x</code> 不在它里面" ✓ 读法：<code>x ∈ cantorDiagonal f</code> <span class="math">⟺</span> <code>x</code> 是某个"把 <code>x</code> 排除在外"的集合的像 ✓ —— Cantor 定理用它 ✓。</p></div><article class="decl decl-def" id="decl-113-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">cantorDiagonal</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def cantorDiagonal (f : Set Nat → Nat) : Set Nat :=
+  fun (x : Nat) =&gt; ∃ (S : Set Nat), f S = x ∧ ¬ (x ∈ S)</code></pre></div></article>
+<article class="exercise" id="ex-113-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ch_unfold_ex</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-113-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>── 练习 ──────────────────────────────────────────────────────────────── 练习 1（T 项填空）：把 CH 展开成一条<strong>顶层 <span class="math">∀</span> 定理</strong>（<code>def</code> 的展开是双向的）</p></div></div><pre class="exercise-statement"><code>theorem ch_unfold_ex (h : CH) :
+    ∀ (X : Set (Set Nat)), (@Set.univ Nat) ≼ X →
+      (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat)) :=
+  sorry</code></pre><details class="solution-panel" id="sol-113-1"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem ch_unfold_ex (h : CH) :
+    ∀ (X : Set (Set Nat)), (@Set.univ Nat) ≼ X →
+      (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat)) :=
+  h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-113-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ch_independence_out_of_scope</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-113-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（X 形式<span class="math">↔</span>散文）：CH 的<strong>独立性</strong>不在本课范围内（要模型论 <span class="math">+</span> 力迫法）</p></div></div><pre class="exercise-statement"><code>theorem ch_independence_out_of_scope :
+    ∀ (P : Prop), P → P :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>这条的<strong>类型</strong>与 <code>h</code> 的类型逐字相同 <span class="math">⇒</span> 直接给 <code>h</code>。</p></div></details></div><details class="solution-panel" id="sol-113-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem ch_independence_out_of_scope :
+    ∀ (P : Prop), P → P :=
+  fun (P : Prop) =&gt; fun (h : P) =&gt; h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-113-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">le_of_subset_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-113-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>也不能被否证；本课只做<strong>陈述</strong>与<strong>展开</strong>，独立性属卷 I 之外（大纲 §5 排期）。</p></div><div class="block prose intuition-only"><p>练习 3（L 引理链）：把 <code>⊆</code> 与 <code>≼</code> 串起来（基数比较的常用一步）</p></div></div><pre class="exercise-statement"><code>theorem le_of_subset_le (A B C : Set Nat) (hAB : A ⊆ B) (h : B ≼ C) : A ≼ C :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>读评题 —— 证的是恒等命题。要理解的是：CH 既不能被 ZFC 证明、</p></div></details></div><details class="solution-panel" id="sol-113-3"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem le_of_subset_le (A B C : Set Nat) (hAB : A ⊆ B) (h : B ≼ C) : A ≼ C :=
+  Set.Le.trans Nat Nat Nat A B C (Set.Le.of_subset Nat A B hAB) h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-113-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">le_mono_both</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-113-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 引理链）：两侧同时放大 —— <code>mono</code>（左边）与 <code>mono_right</code>（右边）各一次</p></div></div><pre class="exercise-statement"><code>theorem le_mono_both (A A' B B' : Set Nat) (hA : A' ⊆ A) (h : A ≼ B) (hB : B ⊆ B') :
+    A' ≼ B' :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.Le.of_subset</code>（<code>⊆</code> <span class="math">⇒</span> <code>≼</code> ✓）与 <code>Set.Le.trans</code>（<code>≼</code> 传递 ✓）各用一次。</p></div></details></div><details class="solution-panel" id="sol-113-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem le_mono_both (A A' B B' : Set Nat) (hA : A' ⊆ A) (h : A ≼ B) (hB : B ⊆ B') :
+    A' ≼ B' :=
+  Set.Le.mono_right Nat Nat A' B B' (Set.Le.mono Nat Nat A A' B hA h) hB</code></pre></div></details></div></article>
+<article class="exercise" id="ex-113-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">le_of_subset_mono</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-113-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 引理链）：<code>⊆</code> 的两段接力 —— 先 <code>of_subset</code> 再 <code>mono</code></p></div></div><pre class="exercise-statement"><code>theorem le_of_subset_mono (A A' B : Set Nat) (hA : A' ⊆ A) (h : A ⊆ B) : A' ≼ B :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>先用 <code>Set.Le.mono</code>（<code>A' ⊆ A</code> <span class="math">⇒</span> <code>A' ≼ B</code> ✓），再用 <code>Set.Le.mono_right</code>（<code>B ⊆ B'</code> ✓）。</p></div></details></div><details class="solution-panel" id="sol-113-5"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem le_of_subset_mono (A A' B : Set Nat) (hA : A' ⊆ A) (h : A ⊆ B) : A' ≼ B :=
+  Set.Le.mono Nat Nat A A' B hA (Set.Le.of_subset Nat A B h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-113-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">le_trans_mono_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-113-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 引理链）：三段接力 —— <code>mono_right</code> 放大右边，再用 <code>trans</code> 接上</p></div></div><pre class="exercise-statement"><code>theorem le_trans_mono_right (A B B' C : Set Nat) (h1 : A ≼ B) (hB : B ⊆ B') (h2 : B' ≼ C) :
+    A ≼ C :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.Le.of_subset</code>（<code>A ⊆ B</code> <span class="math">⇒</span> <code>A ≼ B</code> ✓）后用 <code>Set.Le.mono</code>（<code>A' ⊆ A</code> ✓）。</p></div></details></div><details class="solution-panel" id="sol-113-6"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem le_trans_mono_right (A B B' C : Set Nat) (h1 : A ≼ B) (hB : B ⊆ B') (h2 : B' ≼ C) :
+    A ≼ C :=
+  Set.Le.trans Nat Nat Nat A B' C (Set.Le.mono_right Nat Nat A B B' h1 hB) h2</code></pre></div></details></div></article>
+<article class="exercise" id="ex-113-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">cantor_no_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-113-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（T 类，<strong>Cantor 定理</strong>）：<code>𝒫 ℕ</code> 不 ≼ <code>ℕ</code>（Enderton §6.4 定理 <span class="math">6A · Halmos</span> §22）。思路：设 <code>f</code> 单射、<code>A := cantorDiagonal f</code>。① 若 <code>f A ∈ A</code> <span class="math">⇒</span> 拆出见证 <code>S</code>，由<strong>单射</strong>得 <code>S = A</code>，把 <code>f A ∉ S</code> 搬成 <code>f A ∉ A</code> <span class="math">⇒</span> 矛盾；② 若 <code>f A ∉ A</code> <span class="math">⇒</span> <code>A</code> 自己就是见证 <span class="math">⇒</span> <code>f A ∈ A</code> <span class="math">⇒</span> 矛盾。关键件：<code>Set.Le.elim</code>（拆 <code>≼</code> 得 <code>f</code> 与 <code>Set.InjOn</code> ✓）<span class="math">·</span> <code>Set.InjOn</code> 用两次（两个成员前提 <span class="math">=</span> <code>S ∈ 𝒫 ℕ</code>，用一次 <span class="math">λ</span> 落地的局部成员条件 <code>Set.mem_powerset_iff</code> <span class="math">+</span> <code>Set.mem_univ</code> 供 ✓；同一条一般命题已在单元11 作过练习 ✓）<span class="math">·</span>一次等式搬运（沿 <code>S = A</code> 换"不在里面"的集合 ✓）<span class="math">·</span> <code>Exists.intro</code>/<code>Exists.elim</code>（<strong>见证位的类型要写全</strong> ✓）。⚠ 这是<strong>构造性</strong>证明（不用排中律 ✓）；注意 <code>diagonal</code>（单点版）<strong>载不动</strong>这一步 ✗。</p></div></div><pre class="exercise-statement"><code>theorem cantor_no_le : ¬ ((𝒫 (@Set.univ Nat)) ≼ (@Set.univ Nat)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.Le.mono_right</code>（<code>B ⊆ B'</code> <span class="math">⇒</span> <code>A ≼ B'</code> ✓）后接 <code>Set.Le.trans</code>（<code>A ≼ B'</code> 与 <code>B' ≼ C</code> ✓）。</p></div></details></div><details class="solution-panel" id="sol-113-7"><summary>查看解答 <span class="sol-meta">定理 · 21 行</span></summary><div class="solution-body"><p class="solution-note">练习 7：<strong>Cantor 定理</strong>（C-114 收口 ✓ 2026-10-08）—— <code>𝒫 ℕ</code> 不 ≼ <code>ℕ</code>，构造性证明 ✓。</p><pre><code>theorem cantor_no_le : ¬ ((𝒫 (@Set.univ Nat)) ≼ (@Set.univ Nat)) :=
+  fun (h : (𝒫 (@Set.univ Nat)) ≼ (@Set.univ Nat)) =&gt;
+    Set.Le.elim (Set Nat) Nat (𝒫 (@Set.univ Nat)) (@Set.univ Nat) False h
+      (fun (f : Set Nat → Nat)
+           (hf : Set.InjOn (Set Nat) Nat f (𝒫 (@Set.univ Nat)))
+           (_ : Set.MapsTo (Set Nat) Nat f (𝒫 (@Set.univ Nat)) (@Set.univ Nat)) =&gt;
+        (fun (hnot : ¬ (f (cantorDiagonal f) ∈ cantorDiagonal f)) =&gt;
+          hnot (Exists.intro (cantorDiagonal f)
+            (And.intro (@Eq.refl.{1} Nat (f (cantorDiagonal f))) hnot)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (fun (hA : f (cantorDiagonal f) ∈ cantorDiagonal f) =&gt;
+            @Exists.elim (Set Nat)
+              (fun (S : Set Nat) =&gt; f S = f (cantorDiagonal f) ∧ ¬ (f (cantorDiagonal f) ∈ S))
+              False hA
+              (fun (S : Set Nat) (hS : f S = f (cantorDiagonal f) ∧ ¬ (f (cantorDiagonal f) ∈ S)) =&gt;
+                (And.right hS)
+                  (@Eq.subst.{1} (Set Nat) (fun (T : Set Nat) =&gt; f (cantorDiagonal f) ∈ T)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                    (cantorDiagonal f) S
+                    (@Eq.symm.{1} (Set Nat) S (cantorDiagonal f)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                      (hf S (mem_powerset_univ_nat S) (cantorDiagonal f)
+                        (mem_powerset_univ_nat (cantorDiagonal f)) (And.left hS)))
+                    hA))))</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（1 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>本单元只允许用：<code>Set</code>（<span class="math">∈ ⊆</span> 𝒫）<span class="math">·</span> <code>Set.Equiv</code>（≈）<span class="math">·</span> <code>Set.Le</code>（≼）<span class="math">+</span> 内建逻辑。⚠ 「<span class="math">ℕ</span> 作为整体」的唯一写法是 <code>@Set.univ Nat</code> —— 不写 <code>@</code> 时隐式类型参数在期望位补不出。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit54.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">等势的代数的开端</span></a><a class="unit-nav-home" href="../chapters/i-8.html#units">目录</a><a class="unit-nav-link" href="../units/unit21.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">集族与广义并交</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-113"><h3><a href="#top">连续统假设（CH）与 Cantor 定理</a></h3><p class="appendix-meta">7 道练习 · 7 份按名匹配的解答 · 1 个解答独有声明</p><details class="appendix-solution" id="app-sol-113-1"><summary>练习 1 · ch_unfold_ex <span class="sol-meta">定理</span></summary><pre><code>theorem ch_unfold_ex (h : CH) :
+    ∀ (X : Set (Set Nat)), (@Set.univ Nat) ≼ X →
+      (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat)) :=
+  h</code></pre></details><details class="appendix-solution" id="app-sol-113-2"><summary>练习 2 · ch_independence_out_of_scope <span class="sol-meta">定理</span></summary><pre><code>theorem ch_independence_out_of_scope :
+    ∀ (P : Prop), P → P :=
+  fun (P : Prop) =&gt; fun (h : P) =&gt; h</code></pre></details><details class="appendix-solution" id="app-sol-113-3"><summary>练习 3 · le_of_subset_le <span class="sol-meta">定理</span></summary><pre><code>theorem le_of_subset_le (A B C : Set Nat) (hAB : A ⊆ B) (h : B ≼ C) : A ≼ C :=
+  Set.Le.trans Nat Nat Nat A B C (Set.Le.of_subset Nat A B hAB) h</code></pre></details><details class="appendix-solution" id="app-sol-113-4"><summary>练习 4 · le_mono_both <span class="sol-meta">定理</span></summary><pre><code>theorem le_mono_both (A A' B B' : Set Nat) (hA : A' ⊆ A) (h : A ≼ B) (hB : B ⊆ B') :
+    A' ≼ B' :=
+  Set.Le.mono_right Nat Nat A' B B' (Set.Le.mono Nat Nat A A' B hA h) hB</code></pre></details><details class="appendix-solution" id="app-sol-113-5"><summary>练习 5 · le_of_subset_mono <span class="sol-meta">定理</span></summary><pre><code>theorem le_of_subset_mono (A A' B : Set Nat) (hA : A' ⊆ A) (h : A ⊆ B) : A' ≼ B :=
+  Set.Le.mono Nat Nat A A' B hA (Set.Le.of_subset Nat A B h)</code></pre></details><details class="appendix-solution" id="app-sol-113-6"><summary>练习 6 · le_trans_mono_right <span class="sol-meta">定理</span></summary><pre><code>theorem le_trans_mono_right (A B B' C : Set Nat) (h1 : A ≼ B) (hB : B ⊆ B') (h2 : B' ≼ C) :
+    A ≼ C :=
+  Set.Le.trans Nat Nat Nat A B' C (Set.Le.mono_right Nat Nat A B B' h1 hB) h2</code></pre></details><details class="appendix-solution" id="app-sol-113-7"><summary>练习 7 · cantor_no_le <span class="sol-meta">定理</span></summary><p class="solution-note">练习 7：<strong>Cantor 定理</strong>（C-114 收口 ✓ 2026-10-08）—— <code>𝒫 ℕ</code> 不 ≼ <code>ℕ</code>，构造性证明 ✓。</p><pre><code>theorem cantor_no_le : ¬ ((𝒫 (@Set.univ Nat)) ≼ (@Set.univ Nat)) :=
+  fun (h : (𝒫 (@Set.univ Nat)) ≼ (@Set.univ Nat)) =&gt;
+    Set.Le.elim (Set Nat) Nat (𝒫 (@Set.univ Nat)) (@Set.univ Nat) False h
+      (fun (f : Set Nat → Nat)
+           (hf : Set.InjOn (Set Nat) Nat f (𝒫 (@Set.univ Nat)))
+           (_ : Set.MapsTo (Set Nat) Nat f (𝒫 (@Set.univ Nat)) (@Set.univ Nat)) =&gt;
+        (fun (hnot : ¬ (f (cantorDiagonal f) ∈ cantorDiagonal f)) =&gt;
+          hnot (Exists.intro (cantorDiagonal f)
+            (And.intro (@Eq.refl.{1} Nat (f (cantorDiagonal f))) hnot)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (fun (hA : f (cantorDiagonal f) ∈ cantorDiagonal f) =&gt;
+            @Exists.elim (Set Nat)
+              (fun (S : Set Nat) =&gt; f S = f (cantorDiagonal f) ∧ ¬ (f (cantorDiagonal f) ∈ S))
+              False hA
+              (fun (S : Set Nat) (hS : f S = f (cantorDiagonal f) ∧ ¬ (f (cantorDiagonal f) ∈ S)) =&gt;
+                (And.right hS)
+                  (@Eq.subst.{1} (Set Nat) (fun (T : Set Nat) =&gt; f (cantorDiagonal f) ∈ T)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                    (cantorDiagonal f) S
+                    (@Eq.symm.{1} (Set Nat) S (cantorDiagonal f)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                      (hf S (mem_powerset_univ_nat S) (cantorDiagonal f)
+                        (mem_powerset_univ_nat (cantorDiagonal f)) (And.left hS)))
+                    hA))))</code></pre></details><details class="appendix-solution" id="app-extra-113-1"><summary>补充 · mem_powerset_univ_nat <span class="sol-meta">定理</span></summary><pre><code>theorem mem_powerset_univ_nat (S : Set Nat) : S ∈ (𝒫 (@Set.univ Nat)) :=
+  Iff.mpr (Set.mem_powerset_iff (@Set.univ Nat) S)
+    (fun (x : Nat) =&gt; fun (_ : x ∈ S) =&gt; Set.mem_univ x)</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit54.html">← 54 等势的代数的开端</a><a class="next" href="../units/unit21.html">21 集族与广义并交 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

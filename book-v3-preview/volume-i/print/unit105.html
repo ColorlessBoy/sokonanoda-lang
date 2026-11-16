@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 105 经典等价三件套</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit105.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 105 经典等价三件套</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit105.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.1 集合、子集与集合运算 · 单元 105</p><h1>经典等价三件套</h1><p class="note">Unit 105 — Classical Equivalences</p></header><section class="unit" id="unit-105">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-1.html">I.1</a> · 本章第 15 / 15 单元 · 全书第 105 / 112 单元</p>
+<h2><span class="unit-number">105</span><span>经典等价三件套</span></h2>
+<p class="unit-title-en">Unit 105 — Classical Equivalences</p>
+<p class="unit-meta">9 个定理 · 6 道练习 · <a href="#appendix-unit-105">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"（<strong>命题层</strong>，全部按 <code>em</code> 分情况 ✓）：</p></div><details open class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li><strong>按 <code>em</code> 分情况</strong>的通用子 ✓（<code>em_cases</code> ✓）；</li><li><strong>德摩根</strong>：<code>¬ (P ∨ Q) ↔ (¬ P ∧ ¬ Q)</code> ✓ —— <strong>两个方向都构造性可证</strong> ✓；而 <strong><code>¬ (P ∧ Q) ⇒ ¬ P ∨ ¬ Q</code></strong> ✓ <strong>需要排中律</strong> ✓（两者对照，正是本单元的教学点 ✓）；</li><li><strong><code>¬ (∃x, P x) ↔ ∀x, ¬ (P x)</code></strong> ✓（<strong>构造性</strong> ✓）；</li><li><strong><code>(P → Q) ↔ (¬ P ∨ Q)</code></strong> ✓（<strong><span class="math">→</span> 方向要排中律</strong> ✓）；</li><li><strong>Peirce 律</strong> ✓（<code>((P → Q) → P) → P</code> ✓ —— 经典逻辑的"试金石" ✓）。</li></ul></details></div></section>
+<article class="decl decl-theorem" id="decl-105-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_em</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_em (P : Prop) : P ∨ ¬ P :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Classical.em P</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-105-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_byContradiction</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_byContradiction (P : Prop) (h : ¬ P → False) : P :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Classical.byContradiction P h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-105-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_not_def</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_not_def (P : Prop) : ¬ P ↔ (P → False) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Iff.intro (fun (h : ¬ P) =&gt; h) (fun (h : P → False) =&gt; h)</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-105-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">em_cases</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-105-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>关键件：<code>Classical.em</code>（两点 ✓）<span class="math">·</span> <code>Or.elim</code>（<strong>动机位放肯定命题 <code>Q</code></strong> ✓）</p></div></div><pre class="exercise-statement"><code>theorem em_cases (P : Prop) (Q : Prop) (h1 : P → Q) (h2 : ¬ P → Q) : Q := by
+  sorry</code></pre><details open class="solution-panel" id="sol-105-1"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem em_cases (P : Prop) (Q : Prop) (h1 : P → Q) (h2 : ¬ P → Q) : Q :=
+  Or.elim h1 h2 (Classical.em P)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-105-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">not_exists_iff_forall_not</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-105-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类，<strong>构造性</strong>）：<strong><code>¬(∃x, P x) ↔ ∀x, ¬P x</code></strong>。思路：两个方向。<span class="math">→</span>：给 <code>x</code> 与 <code>P x</code> 的证据，装出 <code>∃</code> 再与前提冲突；<span class="math">←</span>：把 <code>∃</code> 拆开，用假设在见证处打。关键件：<code>Exists.intro</code>（<strong>写全前导</strong> ✓）<span class="math">·</span> <code>Exists.elim</code>（<strong>动机位 <code>False</code></strong> —— 函数位置 ✓）</p></div></div><pre class="exercise-statement"><code>theorem not_exists_iff_forall_not (α : Type) (P : α → Prop) :
+    ¬ (∃ (x : α), P x) ↔ ∀ (x : α), ¬ (P x) := by
+  sorry</code></pre><details open class="solution-panel" id="sol-105-2"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem not_exists_iff_forall_not (α : Type) (P : α → Prop) :
+    ¬ (∃ (x : α), P x) ↔ ∀ (x : α), ¬ (P x) :=
+  @Iff.intro (¬ (∃ (x : α), P x)) (∀ (x : α), ¬ (P x))
+    (fun (h : ¬ (∃ (x : α), P x)) =&gt;
+      fun (x : α) (hx : P x) =&gt; h (Exists.intro x hx))
+    (fun (h : ∀ (x : α), ¬ (P x)) =&gt;
+      fun (hex : ∃ (x : α), P x) =&gt;
+        @Exists.elim α P False hex (fun (x : α) (hx : P x) =&gt; h x hx))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-105-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">not_or_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-105-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类，<strong>构造性德摩根</strong>）：<strong><code>¬(P ∨ Q) ↔ (¬P ∧ ¬Q)</code></strong>。思路：<span class="math">→</span>：分别用 <code>Or.inl</code>/<code>Or.inr</code> 造出析取再冲突；<span class="math">←</span>：把析取拆开，两边各用一条 <code>∧</code> 支。关键件：<code>And.intro</code> / <code>And.left</code> / <code>And.right</code>（写全 ✓）<span class="math">·</span> <code>Or.inl</code> / <code>Or.inr</code>（写全 ✓）<span class="math">·</span> <code>Or.elim</code>（<strong>动机位 <code>False</code></strong> 是函数位置 ✓ 或写全目标 ✓）</p></div></div><pre class="exercise-statement"><code>theorem not_or_iff (P : Prop) (Q : Prop) : ¬ (P ∨ Q) ↔ (¬ P ∧ ¬ Q) := by
+  sorry</code></pre><details open class="solution-panel" id="sol-105-3"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem not_or_iff (P : Prop) (Q : Prop) : ¬ (P ∨ Q) ↔ (¬ P ∧ ¬ Q) :=
+  @Iff.intro (¬ (P ∨ Q)) (¬ P ∧ ¬ Q)
+    (fun (h : ¬ (P ∨ Q)) =&gt;
+      And.intro
+        (fun (hp : P) =&gt; h (@Or.inl P Q hp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+        (fun (hq : Q) =&gt; h (@Or.inr P Q hq)))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    (fun (h : ¬ P ∧ ¬ Q) =&gt;
+      fun (hor : P ∨ Q) =&gt;
+        @Or.elim P Q False (fun (hp : P) =&gt; (@And.left (¬ P) (¬ Q) h) hp)  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+          (fun (hq : Q) =&gt; (And.right h) hq) hor)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-105-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">imp_iff_not_or</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-105-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>旗舰一</strong>）：<strong><code>(P → Q) ↔ (¬P ∨ Q)</code></strong>（<strong><span class="math">→</span> 方向要排中律</strong> ✓）。思路：<span class="math">→</span>：练习 1 分情况 —— 有 <code>P</code> 就给右边 <code>Q</code>，没有 <code>P</code> 就给左边 <code>¬P</code>；<span class="math">←</span>：拆析取，<code>¬P</code> 支与 <code>P</code> 冲突（<code>False.elim</code> <strong>写全目标</strong> ✓），<code>Q</code> 支直接给。关键件：练习 <span class="math">1 ·</span> <code>Or.inl</code> / <code>Or.inr</code> <span class="math">·</span> <code>Or.elim</code> <span class="math">·</span> <code>False.elim</code>（写全 ✓）</p></div></div><pre class="exercise-statement"><code>theorem imp_iff_not_or (P : Prop) (Q : Prop) : (P → Q) ↔ (¬ P ∨ Q) := by
+  sorry</code></pre><details open class="solution-panel" id="sol-105-4"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem imp_iff_not_or (P : Prop) (Q : Prop) : (P → Q) ↔ (¬ P ∨ Q) :=
+  @Iff.intro (P → Q) (¬ P ∨ Q)
+    (fun (h : P → Q) =&gt;
+      em_cases P (¬ P ∨ Q) (fun (hp : P) =&gt; @Or.inr (¬ P) Q (h hp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+        (fun (hnp : ¬ P) =&gt; @Or.inl (¬ P) Q hnp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    (fun (h : ¬ P ∨ Q) =&gt;
+      fun (hp : P) =&gt;
+        @Or.elim (¬ P) Q Q (fun (hnp : ¬ P) =&gt; False.elim (hnp hp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+          (fun (hq : Q) =&gt; hq) h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-105-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">not_and_imp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-105-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>旗舰二</strong>）：<strong><code>¬(P ∧ Q) ⇒ ¬P ∨ ¬Q</code></strong>（<strong>要排中律</strong> ✓ —— 与练习 3 对照 ✓）。思路：按 <code>P</code> 分情况：有 <code>P</code> 就得 <code>¬Q</code>（否则 <code>P ∧ Q</code> 与前提冲突）；没有 <code>P</code> 就直接给 <code>¬P</code>。关键件：练习 <span class="math">1 ·</span> <code>And.intro</code> <span class="math">·</span> <code>Or.inl</code> / <code>Or.inr</code></p></div></div><pre class="exercise-statement"><code>theorem not_and_imp (P : Prop) (Q : Prop) (h : ¬ (P ∧ Q)) : ¬ P ∨ ¬ Q := by
+  sorry</code></pre><details open class="solution-panel" id="sol-105-5"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem not_and_imp (P : Prop) (Q : Prop) (h : ¬ (P ∧ Q)) : ¬ P ∨ ¬ Q :=
+  em_cases P (¬ P ∨ ¬ Q) (fun (hp : P) =&gt; @Or.inr (¬ P) (¬ Q) (fun (hq : Q) =&gt; h (And.intro hp hq)))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    (fun (hnp : ¬ P) =&gt; @Or.inl (¬ P) (¬ Q) hnp)  -- soko:notation-ok: `False.elim` 的目标位（手册边界）</code></pre></div></details></div></article>
+<article class="exercise" id="ex-105-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">peirce</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-105-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类，<strong>旗舰三</strong>）：<strong>Peirce 律</strong>（<code>((P → Q) → P) → P</code>）。思路：按 <code>P</code> 分情况：有 <code>P</code> 就交出去；没有 <code>P</code> 时，把 <code>P → Q</code> 喂成假的（用 <code>False.elim</code> 写全目标 ✓）再交给前提。关键件：练习 <span class="math">1 ·</span> <code>False.elim</code>（<strong>写全目标</strong> ✓）</p></div></div><pre class="exercise-statement"><code>theorem peirce (P : Prop) (Q : Prop) (h : (P → Q) → P) : P := by
+  sorry</code></pre><details open class="solution-panel" id="sol-105-6"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem peirce (P : Prop) (Q : Prop) (h : (P → Q) → P) : P :=
+  em_cases P P (fun (hp : P) =&gt; hp)
+    (fun (hnp : ¬ P) =&gt; h (fun (hp : P) =&gt; @False.elim Q (hnp hp)))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（5 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§1.2</strong>（逻辑预备）<span class="math">·Halmos</span>《Naive Set Theory》<strong>§1</strong>。大纲 §4.1（<strong>接单元104</strong> ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>教学点</strong> ✓：<strong>哪些定律构造性可证、哪些要排中律</strong> —— 这是本单元的核心 ✓（<code>∨</code> 的德摩根 ✓ 构造性；<code>∧</code> 的德摩根 ✗ 要 EM；<code>→</code> 化 <code>∨</code> ✗ 要 EM ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>写法纪律</strong> ✓：<code>em_cases</code> 是关键件（<strong>一次分情况、两处交证明</strong> ✓）；<code>Or.elim</code> 的<strong>动机位仍是肯定命题</strong> ✓（铁律不变 ✓）；<code>False.elim</code> <strong>写全目标</strong> ✓。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理与 prelude 的 <code>Classical.*</code> ✓。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元104（排中律与经典推论）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit104.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">排中律与经典推论</span></a><a class="unit-nav-home" href="../chapters/i-1.html#units">目录</a><a class="unit-nav-link" href="../units/unit05.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">序对与笛卡尔积</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-105"><h3><a href="#top">经典等价三件套</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-105-1"><summary>练习 1 · em_cases <span class="sol-meta">定理</span></summary><pre><code>theorem em_cases (P : Prop) (Q : Prop) (h1 : P → Q) (h2 : ¬ P → Q) : Q :=
+  Or.elim h1 h2 (Classical.em P)</code></pre></details><details open class="appendix-solution" id="app-sol-105-2"><summary>练习 2 · not_exists_iff_forall_not <span class="sol-meta">定理</span></summary><pre><code>theorem not_exists_iff_forall_not (α : Type) (P : α → Prop) :
+    ¬ (∃ (x : α), P x) ↔ ∀ (x : α), ¬ (P x) :=
+  @Iff.intro (¬ (∃ (x : α), P x)) (∀ (x : α), ¬ (P x))
+    (fun (h : ¬ (∃ (x : α), P x)) =&gt;
+      fun (x : α) (hx : P x) =&gt; h (Exists.intro x hx))
+    (fun (h : ∀ (x : α), ¬ (P x)) =&gt;
+      fun (hex : ∃ (x : α), P x) =&gt;
+        @Exists.elim α P False hex (fun (x : α) (hx : P x) =&gt; h x hx))</code></pre></details><details open class="appendix-solution" id="app-sol-105-3"><summary>练习 3 · not_or_iff <span class="sol-meta">定理</span></summary><pre><code>theorem not_or_iff (P : Prop) (Q : Prop) : ¬ (P ∨ Q) ↔ (¬ P ∧ ¬ Q) :=
+  @Iff.intro (¬ (P ∨ Q)) (¬ P ∧ ¬ Q)
+    (fun (h : ¬ (P ∨ Q)) =&gt;
+      And.intro
+        (fun (hp : P) =&gt; h (@Or.inl P Q hp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+        (fun (hq : Q) =&gt; h (@Or.inr P Q hq)))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    (fun (h : ¬ P ∧ ¬ Q) =&gt;
+      fun (hor : P ∨ Q) =&gt;
+        @Or.elim P Q False (fun (hp : P) =&gt; (@And.left (¬ P) (¬ Q) h) hp)  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+          (fun (hq : Q) =&gt; (And.right h) hq) hor)</code></pre></details><details open class="appendix-solution" id="app-sol-105-4"><summary>练习 4 · imp_iff_not_or <span class="sol-meta">定理</span></summary><pre><code>theorem imp_iff_not_or (P : Prop) (Q : Prop) : (P → Q) ↔ (¬ P ∨ Q) :=
+  @Iff.intro (P → Q) (¬ P ∨ Q)
+    (fun (h : P → Q) =&gt;
+      em_cases P (¬ P ∨ Q) (fun (hp : P) =&gt; @Or.inr (¬ P) Q (h hp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+        (fun (hnp : ¬ P) =&gt; @Or.inl (¬ P) Q hnp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    (fun (h : ¬ P ∨ Q) =&gt;
+      fun (hp : P) =&gt;
+        @Or.elim (¬ P) Q Q (fun (hnp : ¬ P) =&gt; False.elim (hnp hp))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+          (fun (hq : Q) =&gt; hq) h)</code></pre></details><details open class="appendix-solution" id="app-sol-105-5"><summary>练习 5 · not_and_imp <span class="sol-meta">定理</span></summary><pre><code>theorem not_and_imp (P : Prop) (Q : Prop) (h : ¬ (P ∧ Q)) : ¬ P ∨ ¬ Q :=
+  em_cases P (¬ P ∨ ¬ Q) (fun (hp : P) =&gt; @Or.inr (¬ P) (¬ Q) (fun (hq : Q) =&gt; h (And.intro hp hq)))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    (fun (hnp : ¬ P) =&gt; @Or.inl (¬ P) (¬ Q) hnp)  -- soko:notation-ok: `False.elim` 的目标位（手册边界）</code></pre></details><details open class="appendix-solution" id="app-sol-105-6"><summary>练习 6 · peirce <span class="sol-meta">定理</span></summary><pre><code>theorem peirce (P : Prop) (Q : Prop) (h : (P → Q) → P) : P :=
+  em_cases P P (fun (hp : P) =&gt; hp)
+    (fun (hnp : ¬ P) =&gt; h (fun (hp : P) =&gt; @False.elim Q (hnp hp)))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

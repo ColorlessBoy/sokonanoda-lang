@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 30 格与对偶：确界的代数</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit30.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 30 格与对偶：确界的代数</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit30.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.11 集合代数 · 单元 30</p><h1>格与对偶：确界的代数</h1><p class="note">Unit 30 — Lattices and Duality</p></header><section class="unit" id="unit-30">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-11.html">I.11</a> · 本章第 3 / 7 单元 · 全书第 30 / 112 单元</p>
+<h2><span class="unit-number">30</span><span>格与对偶：确界的代数</span></h2>
+<p class="unit-title-en">Unit 30 — Lattices and Duality</p>
+<p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-30">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§7.1 Orderings</strong> 的完备性那一段；Halmos《Naive Set Theory》<strong>§14 Order</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.11 章第三个单元）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>单点的确界就是它自己</strong> <span class="math">·</span> <strong>空集的上确界 <span class="math">=</span> 最小元、下确界 <span class="math">=</span> 最大元</strong> <span class="math">·</span><strong>对偶原理</strong>（"上界集的下确界<strong>就是</strong>上确界"，反向亦然）<span class="math">·</span><strong>旗舰</strong>：<strong>广义并交的泛性质</strong> —— <code>⋃₀ F ⊆ C ⟺ F 的每个成员都含于 C</code>、<code>C ⊆ ⋂₀ F ⟺ F 的每个成员都包含 C</code> ✓</p></div><div class="block prose intuition-only"><p><strong>写法约定</strong>：四个确界谓词都是<strong>定义头</strong> <span class="math">⇒</span> 用它先 <strong><span class="math">λ</span> 绑定</strong>（G-73 形状 ①），库里给了取用子（<code>isSup_upper</code>/<code>isSup_least</code>/<code>isInf_lower</code>/<code>isInf_greatest</code>）与构造子优先用 ✓</p></div><h3 class="unit-subhead">30.1 三条库引理（上确界的最小性 <span class="math">·</span> 下确界的下界 <span class="math">·</span> 广义并的成员刻画）</h3><div class="block prose intuition-only"><p>演示：上确界的<strong>第二条</strong>取用子（"比任何上界都小"）。</p></div><article class="decl decl-theorem" id="decl-30-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_isSup_least</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_isSup_least (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (h : IsSup α r A b) : ∀ (c : α), UpperBound α r A c → r b c :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  isSup_least α r A b h</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：下确界的下界取用子。</p></div><article class="decl decl-theorem" id="decl-30-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_isInf_lower</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_isInf_lower (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (h : IsInf α r A b) : LowerBound α r A b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  isInf_lower α r A b h</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：广义并的成员刻画（"存在一个成员装得下它"）。</p></div><article class="decl decl-theorem" id="decl-30-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_sUnion_iff</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_sUnion_iff (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_sUnion_iff α F x</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">30.2 单点的确界：<strong>就是它自己</strong></h3><article class="exercise" id="ex-30-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">isSup_singleton</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-30-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（L 类）：<strong>单点的上确界就是那个点</strong>。</p></div></div><pre class="exercise-statement"><code>theorem isSup_singleton (α : Type) (r : α → α → Prop) (hrefl : Reflexive α r) (a : α) :
+    IsSup α r (fun (x : α) =&gt; x = a) a := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>①它是上界：<code>x</code> 与 <code>a</code> 相等时要把 <code>r a a</code> 沿等式搬到 <code>r x a</code>（用搬运引理，注意方向）；②它最小：上界条件用在 <code>a</code> 上（那条等式取自反）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsSup α r (fun x =&gt; x = a) a</code>（需要自反假设）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isSup_intro</code> <span class="math">·</span> <strong>自反是定义头 <span class="math">⇒</span> 先 <span class="math">λ</span> 绑定</strong> <span class="math">·</span> <code>rel_subst_right</code>（沿 <code>a = x</code> 把 <code>r a a</code> 搬到 <code>r x a</code>）<span class="math">·</span> 等式的记法在这里要<strong>点名</strong>（G-73 形状 ③）。</p></div></details></div><details open class="solution-panel" id="sol-30-1"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem isSup_singleton (α : Type) (r : α → α → Prop) (hrefl : Reflexive α r) (a : α) :
+    IsSup α r (fun (x : α) =&gt; @Eq.{1} α x a) a :=  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+  isSup_intro α r (fun (x : α) =&gt; @Eq.{1} α x a) a  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    (fun (x : α) =&gt; fun (hx : @Eq.{1} α x a) =&gt;  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+      rel_subst_right α (fun (u : α) (v : α) =&gt; r v a) a a x
+        (@Eq.symm.{1} α x a hx) ((fun (hu : ∀ (y : α), r y y) =&gt; hu a) hrefl))
+    (fun (c : α) =&gt; fun (hc : UpperBound α r (fun (x : α) =&gt; @Eq.{1} α x a) c) =&gt;  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+      (fun (hu : ∀ (x : α), @Eq.{1} α x a → r x c) =&gt; hu a (@Eq.refl.{1} α a)) hc)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名</code></pre></div></details></div></article>
+<article class="exercise" id="ex-30-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">isInf_singleton</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-30-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类）：<strong>单点的下确界就是那个点</strong>（与练习 1 对偶）。</p></div></div><pre class="exercise-statement"><code>theorem isInf_singleton (α : Type) (r : α → α → Prop) (hrefl : Reflexive α r) (a : α) :
+    IsInf α r (fun (x : α) =&gt; x = a) a := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>①它是下界：把 <code>r a a</code> 沿 <code>a = x</code> 搬到 <code>r a x</code>；②它最大：下界条件用在 <code>a</code> 上。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsInf α r (fun x =&gt; x = a) a</code>（需要自反假设）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isInf_intro</code> <span class="math">·</span> <code>rel_subst_right</code>（关系取"<code>r a</code> 与第二个参数"）<span class="math">·</span>自反先 <span class="math">λ</span> 绑定 <span class="math">·</span> <code>Eq.refl</code> 写全宇宙层级与论域。</p></div></details></div><details open class="solution-panel" id="sol-30-2"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem isInf_singleton (α : Type) (r : α → α → Prop) (hrefl : Reflexive α r) (a : α) :
+    IsInf α r (fun (x : α) =&gt; @Eq.{1} α x a) a :=  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+  isInf_intro α r (fun (x : α) =&gt; @Eq.{1} α x a) a  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    (fun (x : α) =&gt; fun (hx : @Eq.{1} α x a) =&gt;  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+      rel_subst_right α (fun (u : α) (v : α) =&gt; r a v) a a x
+        (@Eq.symm.{1} α x a hx) ((fun (hu : ∀ (y : α), r y y) =&gt; hu a) hrefl))
+    (fun (c : α) =&gt; fun (hc : LowerBound α r (fun (x : α) =&gt; @Eq.{1} α x a) c) =&gt;  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+      (fun (hu : ∀ (x : α), @Eq.{1} α x a → r c x) =&gt; hu a (@Eq.refl.{1} α a)) hc)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名</code></pre></div></details></div></article>
+<h3 class="unit-subhead">30.3 空集的确界：<strong>最小元与最大元</strong></h3><article class="exercise" id="ex-30-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">sup_empty_iff_bot</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-30-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<strong>空集的上确界就是最小元</strong>。</p></div></div><pre class="exercise-statement"><code>theorem sup_empty_iff_bot (α : Type) (r : α → α → Prop) (b : α) :
+    IsSup α r (fun (_ : α) =&gt; False) b ↔ ∀ (c : α), r b c := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>空集的"上界"条件是<strong>空的</strong>（没有任何点要检查）<span class="math">⇒</span> 上确界只剩"最小性"那一条，而它就是"比每个 <code>c</code> 都小"；反方向：给一个"比谁都小"的 <code>b</code>，最小性那一条直接就是它。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsSup α r (fun _ =&gt; False) b ↔ ∀ c, r b c</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isSup_intro</code>/<code>isSup_least</code> <span class="math">·</span> <strong>空的上界条件要写成一个 <span class="math">λ</span></strong>（用 <code>False.elim</code> 消掉那个不可能的假设）<span class="math">·</span> <code>Iff.intro</code>（前导 Prop 实参写全）。</p></div></details></div><details open class="solution-panel" id="sol-30-3"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem sup_empty_iff_bot (α : Type) (r : α → α → Prop) (b : α) :
+    IsSup α r (fun (_ : α) =&gt; False) b ↔ ∀ (c : α), r b c :=
+  @Iff.intro (IsSup α r (fun (_ : α) =&gt; False) b) (∀ (c : α), r b c)
+    (fun (h : IsSup α r (fun (_ : α) =&gt; False) b) =&gt;
+      (fun (hu : ∀ (c : α), UpperBound α r (fun (_ : α) =&gt; False) c → r b c) =&gt;
+        fun (c : α) =&gt; hu c (fun (a : α) =&gt; fun (hf : False) =&gt; @False.elim (r a c) hf))  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+        (isSup_least α r (fun (_ : α) =&gt; False) b h))
+    (fun (h : ∀ (c : α), r b c) =&gt;
+      isSup_intro α r (fun (_ : α) =&gt; False) b
+        (fun (a : α) =&gt; fun (hf : False) =&gt; @False.elim (r a b) hf)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+        (fun (c : α) =&gt; fun (hc : UpperBound α r (fun (_ : α) =&gt; False) c) =&gt; h c))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-30-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">inf_empty_iff_top</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-30-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：<strong>空集的下确界就是最大元</strong>（对偶）。</p></div></div><pre class="exercise-statement"><code>theorem inf_empty_iff_top (α : Type) (r : α → α → Prop) (b : α) :
+    IsInf α r (fun (_ : α) =&gt; False) b ↔ ∀ (c : α), r c b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>同练习 3，把"最小"换成"最大"。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsInf α r (fun _ =&gt; False) b ↔ ∀ c, r c b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isInf_intro</code>/<code>isInf_greatest</code> <span class="math">·</span> 空的下界条件写成 <span class="math">λ ·</span> <code>Iff.intro</code>。</p></div></details></div><details open class="solution-panel" id="sol-30-4"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem inf_empty_iff_top (α : Type) (r : α → α → Prop) (b : α) :
+    IsInf α r (fun (_ : α) =&gt; False) b ↔ ∀ (c : α), r c b :=
+  @Iff.intro (IsInf α r (fun (_ : α) =&gt; False) b) (∀ (c : α), r c b)
+    (fun (h : IsInf α r (fun (_ : α) =&gt; False) b) =&gt;
+      (fun (hu : ∀ (c : α), LowerBound α r (fun (_ : α) =&gt; False) c → r c b) =&gt;
+        fun (c : α) =&gt; hu c (fun (a : α) =&gt; fun (hf : False) =&gt; @False.elim (r c a) hf))  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+        (isInf_greatest α r (fun (_ : α) =&gt; False) b h))
+    (fun (h : ∀ (c : α), r c b) =&gt;
+      isInf_intro α r (fun (_ : α) =&gt; False) b
+        (fun (a : α) =&gt; fun (hf : False) =&gt; @False.elim (r b a) hf)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+        (fun (c : α) =&gt; fun (hc : LowerBound α r (fun (_ : α) =&gt; False) c) =&gt; h c))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-30-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">upper_bound_mono</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-30-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（T 类）：<strong>上界对大集合更强</strong>（集合变小，上界条件变弱）。</p></div></div><pre class="exercise-statement"><code>theorem upper_bound_mono (α : Type) (r : α → α → Prop) (A B : α → Prop) (u : α)
+    (hsub : ∀ (a : α), A a → B a) (hu : UpperBound α r B u) : UpperBound α r A u := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>A</code> 的点先经包含假设进 <code>B</code>，再用 <code>B</code> 的上界条件。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ a, A a → B a) → UpperBound α r B u → UpperBound α r A u</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>上界是<strong>定义头</strong> <span class="math">⇒</span> 先 <span class="math">λ</span> 绑定（G-73 形状 ①）。</p></div></details></div><details open class="solution-panel" id="sol-30-5"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem upper_bound_mono (α : Type) (r : α → α → Prop) (A B : α → Prop) (u : α)
+    (hsub : ∀ (a : α), A a → B a) (hu : UpperBound α r B u) : UpperBound α r A u :=
+  fun (a : α) =&gt; fun (ha : A a) =&gt;
+    (fun (hs : ∀ (x : α), B x → r x u) =&gt; hs a (hsub a ha)) hu</code></pre></div></details></div></article>
+<h3 class="unit-subhead">30.4 <strong>对偶原理</strong>：上界集的下确界就是上确界</h3><article class="exercise" id="ex-30-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">sup_of_upperBounds_inf</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-30-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类，<strong>本单元旗舰</strong>）：设 <code>b</code> 是"<code>A</code> 的所有上界"这一族的<strong>下确界</strong>，则 <code>b</code> 是 <code>A</code> 的上确界。</p></div></div><pre class="exercise-statement"><code>theorem sup_of_upperBounds_inf (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (hb : IsInf α r (fun (u : α) =&gt; UpperBound α r A u) b) : IsSup α r A b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>①<strong><code>b</code> 是 <code>A</code> 的上界</strong>：任取 <code>a ∈ A</code> —— 对<strong>每个</strong>上界 <code>u</code> 都有 <code>a ≤ u</code>（<code>a</code> 是一个下界）<span class="math">⇒</span> 由 <code>b</code> 的最大性得 <code>a ≤ b</code>；②<strong><code>b</code> 最小</strong>：<code>b</code> 是那一族的下界，直接用在具体上界 <code>c</code> 上。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsInf α r (fun u =&gt; UpperBound α r A u) b → IsSup α r A b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isSup_intro</code> <span class="math">·</span> <code>isInf_greatest</code>（最大性）<span class="math">·</span> <code>isInf_lower</code>（下界）<span class="math">·</span>两处定义头都要 <strong><span class="math">λ</span> 绑定</strong>（G-73 形状 ①）。</p></div></details></div><details open class="solution-panel" id="sol-30-6"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem sup_of_upperBounds_inf (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (hb : IsInf α r (fun (u : α) =&gt; UpperBound α r A u) b) : IsSup α r A b :=
+  isSup_intro α r A b
+    (fun (a : α) =&gt; fun (ha : A a) =&gt;
+      (fun (hg : ∀ (c : α), LowerBound α r (fun (u : α) =&gt; UpperBound α r A u) c → r c b) =&gt;
+        hg a (fun (u : α) =&gt; fun (hu : UpperBound α r A u) =&gt;
+          (fun (hs : ∀ (x : α), A x → r x u) =&gt; hs a ha) hu))
+        (isInf_greatest α r (fun (u : α) =&gt; UpperBound α r A u) b hb))
+    (fun (c : α) =&gt; fun (hc : UpperBound α r A c) =&gt;
+      (fun (hl : ∀ (u : α), UpperBound α r A u → r b u) =&gt; hl c hc)
+        (isInf_lower α r (fun (u : α) =&gt; UpperBound α r A u) b hb))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-30-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">inf_of_lowerBounds_sup</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-30-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类，<strong>旗舰的对偶</strong>）："<code>A</code> 的所有下界"这一族的<strong>上确界</strong>就是 <code>A</code> 的下确界。</p></div></div><pre class="exercise-statement"><code>theorem inf_of_lowerBounds_sup (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (hb : IsSup α r (fun (l : α) =&gt; LowerBound α r A l) b) : IsInf α r A b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与练习 6 逐字对偶（把"上界/下界""最小/最大"互换）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsSup α r (fun l =&gt; LowerBound α r A l) b → IsInf α r A b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isInf_intro</code> <span class="math">·</span> <code>isSup_least</code> <span class="math">·</span> <code>isSup_upper</code> <span class="math">·</span> 定义头先 <span class="math">λ</span> 绑定。</p></div></details></div><details open class="solution-panel" id="sol-30-7"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem inf_of_lowerBounds_sup (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (hb : IsSup α r (fun (l : α) =&gt; LowerBound α r A l) b) : IsInf α r A b :=
+  isInf_intro α r A b
+    (fun (a : α) =&gt; fun (ha : A a) =&gt;
+      (fun (hg : ∀ (c : α), UpperBound α r (fun (l : α) =&gt; LowerBound α r A l) c → r b c) =&gt;
+        hg a (fun (l : α) =&gt; fun (hl : LowerBound α r A l) =&gt;
+          (fun (hs : ∀ (x : α), A x → r l x) =&gt; hs a ha) hl))
+        (isSup_least α r (fun (l : α) =&gt; LowerBound α r A l) b hb))
+    (fun (c : α) =&gt; fun (hc : LowerBound α r A c) =&gt;
+      (fun (hu : ∀ (l : α), LowerBound α r A l → r l b) =&gt; hu c hc)
+        (isSup_upper α r (fun (l : α) =&gt; LowerBound α r A l) b hb))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">30.5 旗舰：<strong>广义并交的泛性质</strong>（"确界"视角下的并交）</h3><article class="exercise" id="ex-30-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">sUnion_subset_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-30-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类，<strong>本单元旗舰</strong>）：<strong><code>⋃₀ F</code> 是最小的"装得下 <code>F</code> 每个成员"的集合</strong>。</p></div></div><pre class="exercise-statement"><code>theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (C : Set α) :
+    (⋃₀ F) ⊆ C ↔ ∀ (A : Set α), A ∈ F → A ⊆ C := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：把 <code>A ∈ F</code> 的成员逐点送进广义并（库里的构造子）；<span class="math">←</span>：拆广义并的成员，得到某个 <code>B ∈ F</code> 装得下这个点，再用假设（那是"上界"）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(⋃₀ F) ⊆ C ↔ ∀ A, A ∈ F → A ⊆ C</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code>（前导 Prop 实参写全）<span class="math">·</span> <code>Set.mem_sUnion_intro</code>（造）<span class="math">·</span><code>Set.mem_sUnion_elim</code>（拆）<span class="math">·</span> 包含假设<strong>是定义头 <span class="math">⇒</span> 先 <span class="math">λ</span> 绑定</strong> ✓</p></div></details></div><details open class="solution-panel" id="sol-30-8"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><pre><code>theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (C : Set α) :
+    (⋃₀ F) ⊆ C ↔ ∀ (A : Set α), A ∈ F → A ⊆ C :=
+  @Iff.intro ((⋃₀ F) ⊆ C) (∀ (A : Set α), A ∈ F → A ⊆ C)
+    (fun (h : (⋃₀ F) ⊆ C) =&gt;
+      fun (A : Set α) =&gt; fun (hA : A ∈ F) =&gt;
+        fun (x : α) =&gt; fun (hx : A x) =&gt;
+          (fun (hs : ∀ (y : α), y ∈ (⋃₀ F) → y ∈ C) =&gt;
+            hs x (Set.mem_sUnion_intro α F A x hA hx)) h)
+    (fun (h : ∀ (A : Set α), A ∈ F → A ⊆ C) =&gt;
+      fun (x : α) =&gt; fun (hx : x ∈ (⋃₀ F)) =&gt;
+        Set.mem_sUnion_elim α F x (x ∈ C) hx
+          (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) =&gt;
+            (fun (hs : ∀ (y : α), A y → C y) =&gt; hs x hxA)
+              ((fun (hu : ∀ (A' : Set α), A' ∈ F → A' ⊆ C) =&gt; hu A hA) h)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-30-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">subset_sInter_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-30-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（L 类，<strong>旗舰的对偶</strong>）：<strong><code>⋂₀ F</code> 是最大的"被 <code>F</code> 每个成员装下"的集合</strong>。</p></div></div><pre class="exercise-statement"><code>theorem subset_sInter_iff (α : Type) (F : Set (Set α)) (C : Set α) :
+    C ⊆ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → C ⊆ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：包含关系逐点送进某个成员（<code>A ∈ F</code>）；<span class="math">←</span>：把点逐成员送进去 ——广义交的展开形态<strong>就是那条 <code>∀</code></strong>（用恒等把形态摆正，实测）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>C ⊆ (⋂₀ F) ↔ ∀ A, A ∈ F → C ⊆ A</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code> <span class="math">·</span> <code>(fun (h : ∀ …) =&gt; h)</code>（把 <code>∀</code> 形态当广义交的成员证据）<span class="math">·</span>包含假设先 <span class="math">λ</span> 绑定 ✓</p></div></details></div><details open class="solution-panel" id="sol-30-9"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><pre><code>theorem subset_sInter_iff (α : Type) (F : Set (Set α)) (C : Set α) :
+    C ⊆ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → C ⊆ A :=
+  @Iff.intro (C ⊆ (⋂₀ F)) (∀ (A : Set α), A ∈ F → C ⊆ A)
+    (fun (h : C ⊆ (⋂₀ F)) =&gt;
+      fun (A : Set α) =&gt; fun (hA : A ∈ F) =&gt;
+        fun (x : α) =&gt; fun (hx : C x) =&gt;
+          (fun (hs : ∀ (y : α), y ∈ C → y ∈ (⋂₀ F)) =&gt; hs x hx) h A hA)
+    (fun (h : ∀ (A : Set α), A ∈ F → C ⊆ A) =&gt;
+      fun (x : α) =&gt; fun (hx : C x) =&gt;
+        (fun (hu : ∀ (A : Set α), A ∈ F → x ∈ A) =&gt; hu)
+          (fun (A : Set α) (hA : A ∈ F) =&gt;
+            (fun (hs : ∀ (y : α), y ∈ C → y ∈ A) =&gt; hs x hx)
+              ((fun (hu : ∀ (A' : Set α), A' ∈ F → C ⊆ A') =&gt; hu A hA) h)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-30-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">subset_sUnion_of_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-30-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（D 类）：<strong>族里的成员含于广义并</strong> —— 练习 8 的"上界"那一半单独当定理用。</p></div></div><pre class="exercise-statement"><code>theorem subset_sUnion_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (hA : A ∈ F) :
+    A ⊆ (⋃₀ F) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>逐点用广义并的构造子。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A ∈ F → A ⊆ (⋃₀ F)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_sUnion_intro</code>（参数表：论域 <span class="math">·</span> 族 <span class="math">·</span> 成员 <span class="math">·</span> 点 <span class="math">·</span> 成员证据 <span class="math">·</span> 点的证据）✓ ⚠ <strong>不要</strong>走"从练习 8 的 <code>↔</code> 上取方向"：那条 <code>↔</code> 两侧都是定义头，实测取不出方向来（G-62 同族：「同字面却判不等」）<span class="math">⇒</span> <strong>直接证</strong>更短 ✓</p></div></details></div><details open class="solution-panel" id="sol-30-10"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem subset_sUnion_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (hA : A ∈ F) :
+    A ⊆ (⋃₀ F) :=
+  fun (x : α) =&gt; fun (hx : A x) =&gt; Set.mem_sUnion_intro α F A x hA hx</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>为什么"格运算"没做成</strong>（如实记下，免得反复试）：想定义 <code>a ⊔ b</code> 就得先<strong>证明二元上确界存在</strong>，再<strong>从存在里取出</strong>那个元素 —— 而本语言<strong>不能从 <code>Prop</code> 的 <code>∃</code> 里取数据</strong>（<strong>G-58</strong>：大消去不可用）。所以本单元的路线是<strong>只谈确界本身</strong>（谓词形态），不引入 <code>⊔</code>/<code>⊓</code> 两个运算 ✓ —— 这恰好也是教材里"先讲确界、再讲格"的顺序 ✓</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.Order</code> <span class="math">·</span> <code>lib.SUnion</code> <span class="math">·</span> <code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㉙（上界与确界）与单元㉑（广义并交）—— 本单元把两者做成"代数"。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit29.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">上界、下界与确界</span></a><a class="unit-nav-home" href="../chapters/i-11.html#units">目录</a><a class="unit-nav-link" href="../units/unit31.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">单调函数与序同构保持确界</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-30"><h3><a href="#top">格与对偶：确界的代数</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-30-1"><summary>练习 1 · isSup_singleton <span class="sol-meta">定理</span></summary><pre><code>theorem isSup_singleton (α : Type) (r : α → α → Prop) (hrefl : Reflexive α r) (a : α) :
+    IsSup α r (fun (x : α) =&gt; @Eq.{1} α x a) a :=  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+  isSup_intro α r (fun (x : α) =&gt; @Eq.{1} α x a) a  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    (fun (x : α) =&gt; fun (hx : @Eq.{1} α x a) =&gt;  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+      rel_subst_right α (fun (u : α) (v : α) =&gt; r v a) a a x
+        (@Eq.symm.{1} α x a hx) ((fun (hu : ∀ (y : α), r y y) =&gt; hu a) hrefl))
+    (fun (c : α) =&gt; fun (hc : UpperBound α r (fun (x : α) =&gt; @Eq.{1} α x a) c) =&gt;  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+      (fun (hu : ∀ (x : α), @Eq.{1} α x a → r x c) =&gt; hu a (@Eq.refl.{1} α a)) hc)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名</code></pre></details><details open class="appendix-solution" id="app-sol-30-2"><summary>练习 2 · isInf_singleton <span class="sol-meta">定理</span></summary><pre><code>theorem isInf_singleton (α : Type) (r : α → α → Prop) (hrefl : Reflexive α r) (a : α) :
+    IsInf α r (fun (x : α) =&gt; @Eq.{1} α x a) a :=  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+  isInf_intro α r (fun (x : α) =&gt; @Eq.{1} α x a) a  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+    (fun (x : α) =&gt; fun (hx : @Eq.{1} α x a) =&gt;  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+      rel_subst_right α (fun (u : α) (v : α) =&gt; r a v) a a x
+        (@Eq.symm.{1} α x a hx) ((fun (hu : ∀ (y : α), r y y) =&gt; hu a) hrefl))
+    (fun (c : α) =&gt; fun (hc : LowerBound α r (fun (x : α) =&gt; @Eq.{1} α x a) c) =&gt;  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+      (fun (hu : ∀ (x : α), @Eq.{1} α x a → r c x) =&gt; hu a (@Eq.refl.{1} α a)) hc)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名</code></pre></details><details open class="appendix-solution" id="app-sol-30-3"><summary>练习 3 · sup_empty_iff_bot <span class="sol-meta">定理</span></summary><pre><code>theorem sup_empty_iff_bot (α : Type) (r : α → α → Prop) (b : α) :
+    IsSup α r (fun (_ : α) =&gt; False) b ↔ ∀ (c : α), r b c :=
+  @Iff.intro (IsSup α r (fun (_ : α) =&gt; False) b) (∀ (c : α), r b c)
+    (fun (h : IsSup α r (fun (_ : α) =&gt; False) b) =&gt;
+      (fun (hu : ∀ (c : α), UpperBound α r (fun (_ : α) =&gt; False) c → r b c) =&gt;
+        fun (c : α) =&gt; hu c (fun (a : α) =&gt; fun (hf : False) =&gt; @False.elim (r a c) hf))  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+        (isSup_least α r (fun (_ : α) =&gt; False) b h))
+    (fun (h : ∀ (c : α), r b c) =&gt;
+      isSup_intro α r (fun (_ : α) =&gt; False) b
+        (fun (a : α) =&gt; fun (hf : False) =&gt; @False.elim (r a b) hf)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+        (fun (c : α) =&gt; fun (hc : UpperBound α r (fun (_ : α) =&gt; False) c) =&gt; h c))</code></pre></details><details open class="appendix-solution" id="app-sol-30-4"><summary>练习 4 · inf_empty_iff_top <span class="sol-meta">定理</span></summary><pre><code>theorem inf_empty_iff_top (α : Type) (r : α → α → Prop) (b : α) :
+    IsInf α r (fun (_ : α) =&gt; False) b ↔ ∀ (c : α), r c b :=
+  @Iff.intro (IsInf α r (fun (_ : α) =&gt; False) b) (∀ (c : α), r c b)
+    (fun (h : IsInf α r (fun (_ : α) =&gt; False) b) =&gt;
+      (fun (hu : ∀ (c : α), LowerBound α r (fun (_ : α) =&gt; False) c → r c b) =&gt;
+        fun (c : α) =&gt; hu c (fun (a : α) =&gt; fun (hf : False) =&gt; @False.elim (r c a) hf))  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+        (isInf_greatest α r (fun (_ : α) =&gt; False) b h))
+    (fun (h : ∀ (c : α), r c b) =&gt;
+      isInf_intro α r (fun (_ : α) =&gt; False) b
+        (fun (a : α) =&gt; fun (hf : False) =&gt; @False.elim (r b a) hf)  -- soko:notation-ok: G-73 形状 ③/②：`Eq` 或 `⋃₀`/`⋂₀` 在这些位置解不出，必须点名
+        (fun (c : α) =&gt; fun (hc : LowerBound α r (fun (_ : α) =&gt; False) c) =&gt; h c))</code></pre></details><details open class="appendix-solution" id="app-sol-30-5"><summary>练习 5 · upper_bound_mono <span class="sol-meta">定理</span></summary><pre><code>theorem upper_bound_mono (α : Type) (r : α → α → Prop) (A B : α → Prop) (u : α)
+    (hsub : ∀ (a : α), A a → B a) (hu : UpperBound α r B u) : UpperBound α r A u :=
+  fun (a : α) =&gt; fun (ha : A a) =&gt;
+    (fun (hs : ∀ (x : α), B x → r x u) =&gt; hs a (hsub a ha)) hu</code></pre></details><details open class="appendix-solution" id="app-sol-30-6"><summary>练习 6 · sup_of_upperBounds_inf <span class="sol-meta">定理</span></summary><pre><code>theorem sup_of_upperBounds_inf (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (hb : IsInf α r (fun (u : α) =&gt; UpperBound α r A u) b) : IsSup α r A b :=
+  isSup_intro α r A b
+    (fun (a : α) =&gt; fun (ha : A a) =&gt;
+      (fun (hg : ∀ (c : α), LowerBound α r (fun (u : α) =&gt; UpperBound α r A u) c → r c b) =&gt;
+        hg a (fun (u : α) =&gt; fun (hu : UpperBound α r A u) =&gt;
+          (fun (hs : ∀ (x : α), A x → r x u) =&gt; hs a ha) hu))
+        (isInf_greatest α r (fun (u : α) =&gt; UpperBound α r A u) b hb))
+    (fun (c : α) =&gt; fun (hc : UpperBound α r A c) =&gt;
+      (fun (hl : ∀ (u : α), UpperBound α r A u → r b u) =&gt; hl c hc)
+        (isInf_lower α r (fun (u : α) =&gt; UpperBound α r A u) b hb))</code></pre></details><details open class="appendix-solution" id="app-sol-30-7"><summary>练习 7 · inf_of_lowerBounds_sup <span class="sol-meta">定理</span></summary><pre><code>theorem inf_of_lowerBounds_sup (α : Type) (r : α → α → Prop) (A : α → Prop) (b : α)
+    (hb : IsSup α r (fun (l : α) =&gt; LowerBound α r A l) b) : IsInf α r A b :=
+  isInf_intro α r A b
+    (fun (a : α) =&gt; fun (ha : A a) =&gt;
+      (fun (hg : ∀ (c : α), UpperBound α r (fun (l : α) =&gt; LowerBound α r A l) c → r b c) =&gt;
+        hg a (fun (l : α) =&gt; fun (hl : LowerBound α r A l) =&gt;
+          (fun (hs : ∀ (x : α), A x → r l x) =&gt; hs a ha) hl))
+        (isSup_least α r (fun (l : α) =&gt; LowerBound α r A l) b hb))
+    (fun (c : α) =&gt; fun (hc : LowerBound α r A c) =&gt;
+      (fun (hu : ∀ (l : α), LowerBound α r A l → r l b) =&gt; hu c hc)
+        (isSup_upper α r (fun (l : α) =&gt; LowerBound α r A l) b hb))</code></pre></details><details open class="appendix-solution" id="app-sol-30-8"><summary>练习 8 · sUnion_subset_iff <span class="sol-meta">定理</span></summary><pre><code>theorem sUnion_subset_iff (α : Type) (F : Set (Set α)) (C : Set α) :
+    (⋃₀ F) ⊆ C ↔ ∀ (A : Set α), A ∈ F → A ⊆ C :=
+  @Iff.intro ((⋃₀ F) ⊆ C) (∀ (A : Set α), A ∈ F → A ⊆ C)
+    (fun (h : (⋃₀ F) ⊆ C) =&gt;
+      fun (A : Set α) =&gt; fun (hA : A ∈ F) =&gt;
+        fun (x : α) =&gt; fun (hx : A x) =&gt;
+          (fun (hs : ∀ (y : α), y ∈ (⋃₀ F) → y ∈ C) =&gt;
+            hs x (Set.mem_sUnion_intro α F A x hA hx)) h)
+    (fun (h : ∀ (A : Set α), A ∈ F → A ⊆ C) =&gt;
+      fun (x : α) =&gt; fun (hx : x ∈ (⋃₀ F)) =&gt;
+        Set.mem_sUnion_elim α F x (x ∈ C) hx
+          (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) =&gt;
+            (fun (hs : ∀ (y : α), A y → C y) =&gt; hs x hxA)
+              ((fun (hu : ∀ (A' : Set α), A' ∈ F → A' ⊆ C) =&gt; hu A hA) h)))</code></pre></details><details open class="appendix-solution" id="app-sol-30-9"><summary>练习 9 · subset_sInter_iff <span class="sol-meta">定理</span></summary><pre><code>theorem subset_sInter_iff (α : Type) (F : Set (Set α)) (C : Set α) :
+    C ⊆ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → C ⊆ A :=
+  @Iff.intro (C ⊆ (⋂₀ F)) (∀ (A : Set α), A ∈ F → C ⊆ A)
+    (fun (h : C ⊆ (⋂₀ F)) =&gt;
+      fun (A : Set α) =&gt; fun (hA : A ∈ F) =&gt;
+        fun (x : α) =&gt; fun (hx : C x) =&gt;
+          (fun (hs : ∀ (y : α), y ∈ C → y ∈ (⋂₀ F)) =&gt; hs x hx) h A hA)
+    (fun (h : ∀ (A : Set α), A ∈ F → C ⊆ A) =&gt;
+      fun (x : α) =&gt; fun (hx : C x) =&gt;
+        (fun (hu : ∀ (A : Set α), A ∈ F → x ∈ A) =&gt; hu)
+          (fun (A : Set α) (hA : A ∈ F) =&gt;
+            (fun (hs : ∀ (y : α), y ∈ C → y ∈ A) =&gt; hs x hx)
+              ((fun (hu : ∀ (A' : Set α), A' ∈ F → C ⊆ A') =&gt; hu A hA) h)))</code></pre></details><details open class="appendix-solution" id="app-sol-30-10"><summary>练习 10 · subset_sUnion_of_mem <span class="sol-meta">定理</span></summary><pre><code>theorem subset_sUnion_of_mem (α : Type) (F : Set (Set α)) (A : Set α) (hA : A ∈ F) :
+    A ⊆ (⋃₀ F) :=
+  fun (x : α) =&gt; fun (hx : A x) =&gt; Set.mem_sUnion_intro α F A x hA hx</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

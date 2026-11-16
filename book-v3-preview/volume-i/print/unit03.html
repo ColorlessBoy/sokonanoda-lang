@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 03 并、交、差与幂集</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit03.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 03 并、交、差与幂集</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit03.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.1 集合、子集与集合运算 · 单元 03</p><h1>并、交、差与幂集</h1><p class="note">Unit 3 — Union, Intersection, Difference &amp; Powerset</p></header><section class="unit" id="unit-3">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-1.html">I.1</a> · 本章第 3 / 15 单元 · 全书第 3 / 112 单元</p>
+<h2><span class="unit-number">03</span><span>并、交、差与幂集</span></h2>
+<p class="unit-title-en">Unit 3 — Union, Intersection, Difference &amp; Powerset</p>
+<p class="unit-meta">14 个定理 · 11 道练习 · 33 条提示 · <a href="#appendix-unit-3">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>这一层是"定义展开"（L2，没有数学内容），所以直接交给你；练习从 3.1 起。三条演示都写成 <code>by</code> 块：目标用记法，证明体点名交出手里那条成员判定引理。差的成员判定 Set.mem_sdiff 形状相同，留给练习 8 自己展开着用。</p></div></div></section>
+<h3 class="unit-subhead">3.0 成员判定（演示，已写好）：运算与幂集"里面装的是什么"</h3><div class="block prose intuition-only"><p>演示：<span class="math">x ∈ A</span> ∪ B 当且仅当 <span class="math">x ∈ A</span> 或 <span class="math">x ∈ B</span>。</p></div><article class="decl decl-theorem" id="decl-3-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_union</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    (a ∈ A ∪ B) ↔ (a ∈ A ∨ a ∈ B) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  exact Set.mem_union a A B</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：<span class="math">x ∈ A</span> ∩ B 当且仅当 <span class="math">x ∈ A</span> 且 <span class="math">x ∈ B</span>。</p></div><article class="decl decl-theorem" id="decl-3-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_inter</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
+    (a ∈ A ∩ B) ↔ (a ∈ A ∧ a ∈ B) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  exact Set.mem_inter_iff a A B</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：<span class="math">X ∈</span> 𝒫 A 当且仅当 <span class="math">X ⊆ A</span>（注意 X 与 A 同为 <span class="math">Set α</span>，而 𝒫 A 是 <span class="math">Set (Set α)</span>）。</p></div><article class="decl decl-theorem" id="decl-3-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_powerset</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_powerset (α : Type) (A B : Set α) :
+    (B ∈ 𝒫 A) ↔ (B ⊆ A) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  exact Set.mem_powerset_iff A B</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">3.1 并：两个"塞进去"的包含，以及 ∪ 的<strong>泛性质</strong>（A ∪ B 是最小的公共上界）</h3><article class="exercise" id="ex-3-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">subset_union_left</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-3-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>演示（记法即糖）：与上一条<strong>同一个命题</strong>，这次用 <code>constructor</code> 把两个方向拆开、<code>Iff.mp</code> / <code>Iff.mpr</code> 各交一次——说明 lib/Set 里<strong>点名写下的引理</strong> 直接适用于记法写下的目标（记法只是糖）。前缀记法 <code>prefix:100 " 𝒫 " =&gt; Set.powerset</code> 住在 <code>lib/Set.sokonanoda</code> 里，随 <code>import lib.Set</code> 带进来：<strong>本文件不重声明任何记法</strong>（同一个符号全课程只能声明一次）。前导类型参数 <code>α</code> 由记法路径自己从操作数解出（<code>A : Set α</code>）；点名调用则要写全前面的类型参数。写成 <code>example</code>（与单元⑧ 的"演示 8"同款）：演示不该往单元里塞具名声明，课程门禁的 <code>decl.checked</code> 计数因此<strong>一个都不动</strong>（记法本身也不是声明，N6）。</p></div><div class="block prose intuition-only"><p>练习 1（T 类）：左项被并包含。</p></div></div><pre class="exercise-statement"><code>theorem subset_union_left (α : Type) (A B : Set α) : A ⊆ A ∪ B := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>目标是全称命题——intro 一个元素 x 与"<span class="math">x ∈ A</span>"，要交出的结论是"或"。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">A ⊆ A</span> ∪ B，展开后是 <span class="math">∀ (x</span> : <span class="math">α)</span>, <span class="math">x ∈ A → x ∈ A</span> ∪ B。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Or 的构造子是点号名 Or.inl / Or.inr；左项走 Or.inl，把证据本身喂给它。</p></div></details></div><details open class="solution-panel" id="sol-3-1"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">unit03 解答钥匙（agent 专用；画布不 import 它）。
+靶子：Tao §3.1 后半（并/交/差 <span class="math">→</span> 幂集 <span class="math">→</span> 成员判定与单调性）。
+全部证明写成 <code>by</code> tactic 块（白名单：intro / exact / apply / assumption / rfl /
+match / constructor / left / right / use / exfalso / cases / have / sorry）。
+语句一律用记法（<code>∈ ⊆ ∪ ∩ \ ∅ 𝒫</code> 与 <code>∧ ∨ ↔ ¬</code>）；<strong>引理名照旧点名</strong>
+（<code>Or.inl</code>、<code>And.left</code>、<code>Set.mem_union</code>、<code>Eq.subst.{1} …</code>）——记法是连接符的糖，
+不是引理名的糖。
+
+── 3.1 并 ───────────────────────────────────────────────────────────────</p><pre><code>theorem subset_union_left (α : Type) (A B : Set α) : A ⊆ A ∪ B := by
+  intro x
+  intro hx
+  exact @Or.inl (A x) (B x) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）</code></pre></div></details></div></article>
+<article class="exercise" id="ex-3-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">subset_union_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-3-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：右项被并包含（与练习 1 对称，换一支构造子）。</p></div></div><pre class="exercise-statement"><code>theorem subset_union_right (α : Type) (A B : Set α) : B ⊆ A ∪ B := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与练习 1 同形，只是证据要放进"或"的右边。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">B ⊆ A</span> ∪ B，展开后是 <span class="math">∀ (x</span> : <span class="math">α)</span>, <span class="math">x ∈ B → x ∈ A</span> ∪ B。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Or.inr，把手里那条 <code>x ∈ B</code> 的证据喂给它。</p></div></details></div><details open class="solution-panel" id="sol-3-2"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem subset_union_right (α : Type) (A B : Set α) : B ⊆ A ∪ B := by
+  intro x
+  intro hx
+  exact @Or.inr (A x) (B x) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）</code></pre></div></details></div></article>
+<article class="exercise" id="ex-3-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">union_subset_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-3-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：并的<strong>泛性质</strong>——A ∪ <span class="math">B ⊆ C</span> 当且仅当 <span class="math">A ⊆ C</span> 且 <span class="math">B ⊆ C</span>。</p></div></div><pre class="exercise-statement"><code>theorem union_subset_iff (α : Type) (A B C : Set α) :
+    (A ∪ B ⊆ C) ↔ (A ⊆ C ∧ B ⊆ C) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个方向分开做——<span class="math">→</span> 把 h 分别用在"从 A 来"与"从 B 来"的元素上；<span class="math">←</span> 手里是一对包含，对 <span class="math">x ∈ A</span> ∪ B 分情况。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>(A ∪ <span class="math">B ⊆ C) ↔ (A ⊆ C ∧ B ⊆ C)</span>；<span class="math">→</span> 的目标是一个 <span class="math">∧</span>（两条都是全称），<span class="math">←</span> 的目标是 <span class="math">∀ (x</span> : <span class="math">α)</span>, <span class="math">x ∈ A</span> ∪ <span class="math">B → x ∈ C</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">→</span> 用 And.intro，两支分别把 Or.inl / Or.inr 造出的证据喂给 h；<span class="math">←</span> 用 Or.elim，两个包含用 And.left / And.right 取出。</p></div></details></div><details open class="solution-panel" id="sol-3-3"><summary>查看解答 <span class="sol-meta">定理 · 18 行</span></summary><div class="solution-body"><pre><code>theorem union_subset_iff (α : Type) (A B C : Set α) :
+    (A ∪ B ⊆ C) ↔ (A ⊆ C ∧ B ⊆ C) := by
+  constructor
+  intro h
+  constructor
+  intro x
+  intro hx
+  exact h x (@Or.inl (A x) (B x) hx)  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+  intro x
+  intro hx
+  exact h x (@Or.inr (A x) (B x) hx)  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+  intro h
+  intro x
+  intro hx
+  exact @Or.elim (A x) (B x) (C x)
+    (fun (ha : A x) =&gt; @And.left (A ⊆ C) (B ⊆ C) h x ha)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
+    (fun (hb : B x) =&gt; @And.right (A ⊆ C) (B ⊆ C) h x hb)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
+    hx</code></pre></div></details></div></article>
+<h3 class="unit-subhead">3.2 交：与 3.1 恰好对偶（两条包含从 ∩ 出来，一条包含进 ∩，外加 ∩ 的泛性质）</h3><article class="exercise" id="ex-3-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">inter_subset_left</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-3-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：交是左项的子集。</p></div></div><pre class="exercise-statement"><code>theorem inter_subset_left (α : Type) (A B : Set α) : A ∩ B ⊆ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">x ∈ A</span> ∩ B 是"一对证据"，目标只要其中左边那一半。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>A ∩ <span class="math">B ⊆ A</span>，展开后是 <span class="math">∀ (x</span> : <span class="math">α)</span>, <span class="math">x ∈ A</span> ∩ <span class="math">B → x ∈ A</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>成员判定 Set.mem_inter_iff 说 <span class="math">x ∈ A</span> ∩ B 展开就是 <span class="math">∧</span>；用 And.left 取前半。</p></div></details></div><details open class="solution-panel" id="sol-3-4"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">── 3.2 交 ───────────────────────────────────────────────────────────────</p><pre><code>theorem inter_subset_left (α : Type) (A B : Set α) : A ∩ B ⊆ A := by
+  intro x
+  intro hx
+  exact And.left hx</code></pre></div></details></div></article>
+<article class="exercise" id="ex-3-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">inter_subset_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-3-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（T 类）：交是右项的子集。</p></div></div><pre class="exercise-statement"><code>theorem inter_subset_right (α : Type) (A B : Set α) : A ∩ B ⊆ B := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与练习 4 同形，取"一对证据"里的另一半。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>A ∩ <span class="math">B ⊆ B</span>，展开后是 <span class="math">∀ (x</span> : <span class="math">α)</span>, <span class="math">x ∈ A</span> ∩ <span class="math">B → x ∈ B</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>用 And.right 取后半。</p></div></details></div><details open class="solution-panel" id="sol-3-5"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem inter_subset_right (α : Type) (A B : Set α) : A ∩ B ⊆ B := by
+  intro x
+  intro hx
+  exact And.right hx</code></pre></div></details></div></article>
+<article class="exercise" id="ex-3-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">subset_inter</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-3-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类）：两条包含给出到交的包含（<strong>练习 4/5 的逆向</strong>）。</p></div></div><pre class="exercise-statement"><code>theorem subset_inter (α : Type) (A B C : Set α)
+    (h1 : A ⊆ B) (h2 : A ⊆ C) : A ⊆ B ∩ C := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>目标是"且"——分别向两条假设要证据，再拼起来。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">A ⊆ B</span> ∩ C，展开后是 <span class="math">∀ (x</span> : <span class="math">α)</span>, <span class="math">x ∈ A → x ∈ B</span> ∩ C。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>h1 x hx : <span class="math">x ∈ B</span> 与 h2 x hx : <span class="math">x ∈ C</span>，交给 And.intro 拼起来。</p></div></details></div><details open class="solution-panel" id="sol-3-6"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><p class="solution-note">目标 <code>x ∈ B ∩ C</code> 的头是 <code>Set.inter</code>（不是 <code>And</code>），所以这里不用 <code>constructor</code>，
+直接把一对证据交给 <code>And.intro</code>。</p><pre><code>theorem subset_inter (α : Type) (A B C : Set α)
+    (h1 : A ⊆ B) (h2 : A ⊆ C) : A ⊆ B ∩ C := by
+  intro x
+  intro hx
+  exact And.intro (h1 x hx) (h2 x hx)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-3-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">subset_inter_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-3-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类）：∩ 的<strong>泛性质</strong>——练习 3 在交这边的对偶：<span class="math">A ⊆ B</span> ∩ C 当且仅当 <span class="math">A ⊆ B</span> 且 <span class="math">A ⊆ C</span>。（练习 6 正是这条的 <span class="math">←</span> 方向：拿到一对包含就能造出到交的包含。）</p></div></div><pre class="exercise-statement"><code>theorem subset_inter_iff (α : Type) (A B C : Set α) :
+    (A ⊆ B ∩ C) ↔ (A ⊆ B ∧ A ⊆ C) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个方向分开——<span class="math">→</span> 把"整条包含"按交的两个坐标劈成两条包含；<span class="math">←</span> 把一对包含合成一条"落进交里"的包含。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">(A ⊆ B</span> ∩ <span class="math">C) ↔ (A ⊆ B ∧ A ⊆ C)</span>；<span class="math">→</span> 的目标是一个 <span class="math">∧</span>（两条都是全称），<span class="math">←</span> 的目标是 <span class="math">∀ (x</span> : <span class="math">α)</span>, <span class="math">x ∈ A → x ∈ B</span> ∩ C。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">→</span> 任给 x 与 hx : <span class="math">x ∈ A</span>：h x hx 给出的是一对证据（成员判定 Set.mem_inter_iff 说 <span class="math">x ∈ B</span> ∩ C 展开就是 <span class="math">∧</span>），And.left / And.right 各取一半交出去；<span class="math">←</span> 两条包含用 And.left h / And.right h 取出，喂同一个 x hx 之后交给 And.intro 装回一对。</p></div></details></div><details open class="solution-panel" id="sol-3-7"><summary>查看解答 <span class="sol-meta">定理 · 17 行</span></summary><div class="solution-body"><p class="solution-note">∩ 的泛性质（练习 3 的对偶）：<span class="math">→</span> 把 h x hx : <span class="math">B x ∧ C x</span> 劈成两条包含；
+<span class="math">←</span> 把一对包含在同一 x hx 上取出来，再装回一对证据。</p><pre><code>theorem subset_inter_iff (α : Type) (A B C : Set α) :
+    (A ⊆ B ∩ C) ↔ (A ⊆ B ∧ A ⊆ C) := by
+  constructor
+  intro h
+  constructor
+  intro x
+  intro hx
+  exact And.left (h x hx)
+  intro x
+  intro hx
+  exact And.right (h x hx)
+  intro h
+  intro x
+  intro hx
+  exact And.intro
+    (@And.left (A ⊆ B) (A ⊆ C) h x hx)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
+    (@And.right (A ⊆ B) (A ⊆ C) h x hx)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）</code></pre></div></details></div></article>
+<h3 class="unit-subhead">3.3 差：A \ B 是 A 与"B 的补"的交，所以它当然落在 A 里</h3><article class="exercise" id="ex-3-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">sdiff_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-3-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（T 类）：差是左项的子集。</p></div></div><pre class="exercise-statement"><code>theorem sdiff_subset (α : Type) (A B : Set α) : A \ B ⊆ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">x ∈ A</span> \ B 也是"且"（<span class="math">x ∈ A</span> 的证据 <span class="math">+ x ∉ B</span> 的否证），目标只要前半。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>A \ <span class="math">B ⊆ A</span>，展开后是 <span class="math">∀ (x</span> : <span class="math">α)</span>, <span class="math">x ∈ A</span> \ <span class="math">B → x ∈ A</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Set.mem_sdiff α x A B</span> 是这一层的成员判定，展开后是一对证据（<code>x ∈ A</code> 与 <code>¬ (x ∈ B)</code>），用 And.left 取前半。</p></div></details></div><details open class="solution-panel" id="sol-3-8"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">── 3.3 差 ───────────────────────────────────────────────────────────────</p><pre><code>theorem sdiff_subset (α : Type) (A B : Set α) : A \ B ⊆ A := by
+  intro x
+  intro hx
+  exact And.left hx</code></pre></div></details></div></article>
+<h3 class="unit-subhead">3.4 幂集：𝒫 关于 <span class="math">⊆</span> <strong>单调</strong>（幂集元素是上一层类型的集合，注意层数）</h3><article class="exercise" id="ex-3-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">powerset_mono</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-3-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（T 类）：<span class="math">A ⊆ B</span> 推出 𝒫 <span class="math">A ⊆</span> 𝒫 B。</p></div></div><pre class="exercise-statement"><code>theorem powerset_mono (α : Type) (A B : Set α) (h : A ⊆ B) :
+    𝒫 A ⊆ 𝒫 B := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>𝒫 A 的元素是"A 的子集"；要证 𝒫 <span class="math">A ⊆</span> 𝒫 B，就是任给 <span class="math">X ⊆ A</span> 去证 <span class="math">X ⊆ B</span>——逐元素把 X 里的证据经 <span class="math">A ⊆ B</span> 送一程。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>𝒫 <span class="math">A ⊆</span> 𝒫 B；内层展开是 <span class="math">∀ (X</span> : <span class="math">Set α)</span>, <span class="math">X ⊆ A → X ⊆ B</span>，再展开是 <span class="math">∀ (x</span> : <span class="math">α)</span>, <span class="math">x ∈ X → x ∈ B</span>，手里有 h : <span class="math">A ⊆ B</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Set.mem_powerset_iff（成员判定，<strong>第一个参数是"大集合"</strong>）把两边的"<span class="math">X ∈</span> 𝒫 ?"换成包含，Iff.mp / Iff.mpr 各走一个方向；最后一步用 h x。注意 intro 只把目标展开一层（<code>∈</code> <span class="math">→</span> <code>𝒫</code>），所以内层包含要靠这条引理换出来。</p></div></details></div><details open class="solution-panel" id="sol-3-9"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><p class="solution-note">── 3.4 幂集单调 ─────────────────────────────────────────────────────────
+<code>𝒫 A ⊆ 𝒫 B</code> 的成员层要<strong>两层</strong>定义展开才到 <code>∀</code>（<code>Set.mem</code> <span class="math">→</span> <code>Set.powerset</code>
+<span class="math">→</span> <code>Set.subset</code>），而 <code>intro</code> 只展开一层；所以内层那条包含整条交给 <code>exact</code>
+一次判定：<code>Iff.mpr</code> 把 <code>X ∈ 𝒫 B</code> 换成 <code>X ⊆ B</code>，lambda 逐元素把证据经 <code>h</code> 送一程。</p><pre><code>theorem powerset_mono (α : Type) (A B : Set α) (h : A ⊆ B) :
+    𝒫 A ⊆ 𝒫 B := by
+  exact fun (X : Set α) =&gt; fun (hX : X ∈ 𝒫 A) =&gt;
+    Iff.mpr (Set.mem_powerset_iff B X)
+      (fun (x : α) =&gt; fun (hx : X x) =&gt; h x (hX x hx))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">3.5 D 类：真假要自己判——两条都<strong>不能</strong>按字面写成 theorem</h3><article class="exercise" id="ex-3-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">union_subset_inter_false</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-3-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（D 类）：判断真假，假的给出反例。</p></div><div class="block prose intuition-only"><p>命题："(A ∪ <span class="math">B) ⊆ (A</span> ∩ B)"（也就是 3.1/3.2 那两条包含的<strong>逆</strong>）。判断：<strong>假</strong>。反例：取 <span class="math">A =</span> 全集、<span class="math">B =</span> 空集——只要 <span class="math">α</span> 里有一个元素 a，它就在 A ∪ B 里，却不在 A ∩ B 里。下面把这条反例写成"原命题的否定"：假命题本身不能当 theorem 的靶子（那样只会留下一个永远填不上的 sorry）。</p></div></div><pre class="exercise-statement"><code>theorem union_subset_inter_false (α : Type) (a : α) :
+    ¬ ((@Set.univ α ∪ ∅) ⊆ (@Set.univ α ∩ ∅)) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>否定就是一个箭头——intro 假设 hsub（那条包含），目标是 False。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">¬ ((</span>@<span class="math">Set.univ α</span> ∪ ∅<span class="math">) ⊆ (</span>@<span class="math">Set.univ α</span> ∩ ∅))，展开之后目标是 False，手里有 hsub : (@<span class="math">Set.univ α</span> ∪ ∅<span class="math">) ⊆ (</span>@<span class="math">Set.univ α</span> ∩ ∅)。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>先造 <span class="math">a ∈</span> @<span class="math">Set.univ α</span> ∪ ∅——<span class="math">Set.mem_univ α a</span> 配上 Or.inl；把它喂给 hsub a 之后用 And.right 取出后半（展开即 False）。</p></div></details></div><details open class="solution-panel" id="sol-3-10"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><p class="solution-note">── 3.5 D 类 ─────────────────────────────────────────────────────────────
+
+反例：<span class="math">A = univ</span>、<span class="math">B = empty</span>（<span class="math">α</span> 非空时的最小反例）；原命题的否定。</p><pre><code>theorem union_subset_inter_false (α : Type) (a : α) :
+    ¬ ((@Set.univ α ∪ ∅) ⊆ (@Set.univ α ∩ ∅)) := by
+  intro hsub
+  -- 目标经 `intro` 展开（非语句层）后 `∧`/`∨` 的期望类型传不到，而 `And.right`/`Or.inl`
+  -- 的隐式实参只能**语法反解** ⇒ 先用两条带标注的 `have` 把 `∨`/`∧` 落成语法形态 ✓
+  have hmem : a ∈ @Set.univ α ∨ a ∈ ∅ := Or.inl (Set.mem_univ a)
+  have hm : a ∈ @Set.univ α ∧ a ∈ ∅ := hsub a hmem
+  exact And.right hm</code></pre></div></details></div></article>
+<article class="exercise" id="ex-3-11" data-exercise="11"><header class="exercise-head"><span class="exercise-badge">练习 11</span><code class="exercise-name">powerset_self_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-3-11">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 11（D 类）：判断真假并说明理由（本题把<strong>真的那条</strong>写成定理）。</p></div><div class="block prose intuition-only"><p>命题甲：<span class="math">A ∈</span> 𝒫 A。   命题乙：<span class="math">A ⊆</span> 𝒫 A。甲：<strong>真</strong>——<code>A ∈ 𝒫 A</code> 展开就是 <span class="math">A ⊆ A</span>。乙：<strong>连类型都不对</strong>——𝒫 A : <span class="math">Set (Set α)</span> 的元素类型是 <span class="math">Set α</span>，比 A : <span class="math">Set α</span> 高一层，所以它当不了 <span class="math">A ⊆</span> ? 的右参数。这正是"<span class="math">∈</span> 与 <span class="math">⊆</span> 混淆"在幂集上的样子：要写的是"属于"，不是"包含"。（Tao §3.1 的散文里 <span class="math">A ⊆</span> 𝒫A 有意义但一般不真；我们的编码用类型层把它提前挡住——本课程的设计判断。）（大纲单元③把"<span class="math">A ∈</span> 𝒫A"列为假命题：那是笔误，随本题解答一并更正。）</p></div></div><pre class="exercise-statement"><code>theorem powerset_self_mem (α : Type) (A : Set α) : A ∈ 𝒫 A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>目标展开就是 <span class="math">A ⊆ A</span>——先 <code>have</code> 一条包含（intro 一个元素与它的证据），再问自己还需要做什么。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">A ∈</span> 𝒫 A，展开是 <span class="math">∀ (x</span> : <span class="math">α)</span>, <span class="math">x ∈ A → x ∈ A</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Set.mem_powerset_iff α A A</span>（成员判定）把目标换成 <span class="math">A ⊆ A</span>；剩下的形状与单元②的子集自反同形，不需要新引理。</p></div></details></div><details open class="solution-panel" id="sol-3-11"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note">命题甲为真：<span class="math">A ∈</span> 𝒫 A（展开即 <span class="math">A ⊆ A</span>）；命题乙 <span class="math">A ⊆</span> 𝒫 A 连类型都不对（见画布注释）。</p><pre><code>theorem powerset_self_mem (α : Type) (A : Set α) : A ∈ 𝒫 A := by
+  have hAA : A ⊆ A := by
+    intro x
+    intro hx
+    exact hx
+  exact Iff.mpr (Set.mem_powerset_iff A A) hAA</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子：Tao《Analysis I》§3.1 后半。概念顺序：三个二元运算（并/交/差分别用 Or / And / Not 定义）<span class="math">→</span> 幂集（定义为"子集谓词"）<span class="math">→</span> 成员判定与单调性。题库参照 MIL 4.1 与 FM2024 Sheet1（<span class="math">A ⊆ A</span> ∪ B、A ∩ <span class="math">B ⊆ A</span>、<span class="math">A ⊆ B → A ⊆ C → A ⊆ B</span> ∩ C 同款）。</p></div><div class="block prose intuition-only"><p>本单元只允许用什么（逐步解锁，见 docs/design/set-theory-syllabus.md §2）：</p></div><details open class="decl-index intuition-only"><summary>细节清单（6 项，展开）</summary><ul class="prose-list"><li>证明：一律 <code>by</code> tactic 块，白名单<strong>只有</strong> intro / exact / apply / assumption / rfl / match / constructor / left / right / use / exfalso / cases / have / sorry——<strong>没有</strong> rw / obtain / change / simp / induction / calc / rintro，也没有匿名构造子 ⟨a, b⟩ 与 focus 点 <code>·</code>；</li><li>语句一律写<strong>记法</strong>：<code>x ∈ A</code> <span class="math">·</span> <code>A ⊆ B</code> <span class="math">·</span> <code>A ∪ B</code> <span class="math">·</span> <code>A ∩ B</code> <span class="math">·</span> <code>A \ B</code> <span class="math">·</span><code>∅</code> <span class="math">·</span> <code>𝒫 A</code>，集合字面量 <code>{a}</code> / <code>{a, b}</code>；逻辑连接符 <code>∧ ∨ ↔ ¬</code> 与 <code>→ = ≠</code> 是<strong>语言内建</strong>，任何文件零声明可用；</li><li>记法<strong>由 lib/Set 随 import 带来</strong>（<code>infix</code> / <code>notation</code> 写在 lib/Set.sokonanoda 里）：本文件一条记法声明都不写——同一个符号全课程只能声明一次；</li><li>记法只是<strong>连接符的糖</strong>，不是引理名的糖：引理照旧点名写——Or.inl / Or.inr / Or.elim / And.intro / And.left / And.right / Iff.intro / Iff.mp / Iff.mpr / Set.ext；</li><li>库里已备好、直接用（<span class="math">lib.Logic + lib.Set</span>）：True / True.intro / False / False.elim / Not / absurd / And / And.intro / And.left / And.right / And.elim / Or（构造子是<strong>点号名</strong> Or.inl / Or.inr）/ Or.elim / Iff / Iff.intro / Iff.mp / Iff.mpr / Iff.refl / Iff.symm / Iff.trans / Eq.symm / Eq.trans / congrArg / Eq.subst（<code>Eq.*</code> 是<strong>证明项</strong>：仍写显式宇宙）/ Set 与集合记法 <code>∈</code> <code>⊆</code> <code>∪</code> <code>∩</code> <code>\</code> <code>∅</code> <code>𝒫</code> <code>ᶜ</code> <code>{a}</code> <code>{a, b}</code>、<code>Set.univ</code>（无记法，写 <code>@Set.univ α</code>）、公理 Set.ext、以及展开引理 Set.subset_def / Set.mem_empty_iff_false / Set.notMem_empty / Set.mem_univ / Set.mem_singleton_iff / Set.mem_union / Set.mem_inter_iff / Set.mem_sdiff / Set.mem_powerset_iff；</li><li>只允许引用<strong>前面已经出现</strong>的声明（声明顺序 <span class="math">=</span> 依赖顺序）。</li></ul></details></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit02.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">子集、空集与包含三律</span></a><a class="unit-nav-home" href="../chapters/i-1.html#units">目录</a><a class="unit-nav-link" href="../units/unit04.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">外延性与集合等式</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-3"><h3><a href="#top">并、交、差与幂集</a></h3><p class="appendix-meta">11 道练习 · 11 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-3-1"><summary>练习 1 · subset_union_left <span class="sol-meta">定理</span></summary><p class="solution-note">unit03 解答钥匙（agent 专用；画布不 import 它）。
+靶子：Tao §3.1 后半（并/交/差 <span class="math">→</span> 幂集 <span class="math">→</span> 成员判定与单调性）。
+全部证明写成 <code>by</code> tactic 块（白名单：intro / exact / apply / assumption / rfl /
+match / constructor / left / right / use / exfalso / cases / have / sorry）。
+语句一律用记法（<code>∈ ⊆ ∪ ∩ \ ∅ 𝒫</code> 与 <code>∧ ∨ ↔ ¬</code>）；<strong>引理名照旧点名</strong>
+（<code>Or.inl</code>、<code>And.left</code>、<code>Set.mem_union</code>、<code>Eq.subst.{1} …</code>）——记法是连接符的糖，
+不是引理名的糖。
+
+── 3.1 并 ───────────────────────────────────────────────────────────────</p><pre><code>theorem subset_union_left (α : Type) (A B : Set α) : A ⊆ A ∪ B := by
+  intro x
+  intro hx
+  exact @Or.inl (A x) (B x) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）</code></pre></details><details open class="appendix-solution" id="app-sol-3-2"><summary>练习 2 · subset_union_right <span class="sol-meta">定理</span></summary><pre><code>theorem subset_union_right (α : Type) (A B : Set α) : B ⊆ A ∪ B := by
+  intro x
+  intro hx
+  exact @Or.inr (A x) (B x) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）</code></pre></details><details open class="appendix-solution" id="app-sol-3-3"><summary>练习 3 · union_subset_iff <span class="sol-meta">定理</span></summary><pre><code>theorem union_subset_iff (α : Type) (A B C : Set α) :
+    (A ∪ B ⊆ C) ↔ (A ⊆ C ∧ B ⊆ C) := by
+  constructor
+  intro h
+  constructor
+  intro x
+  intro hx
+  exact h x (@Or.inl (A x) (B x) hx)  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+  intro x
+  intro hx
+  exact h x (@Or.inr (A x) (B x) hx)  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+  intro h
+  intro x
+  intro hx
+  exact @Or.elim (A x) (B x) (C x)
+    (fun (ha : A x) =&gt; @And.left (A ⊆ C) (B ⊆ C) h x ha)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
+    (fun (hb : B x) =&gt; @And.right (A ⊆ C) (B ⊆ C) h x hb)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
+    hx</code></pre></details><details open class="appendix-solution" id="app-sol-3-4"><summary>练习 4 · inter_subset_left <span class="sol-meta">定理</span></summary><p class="solution-note">── 3.2 交 ───────────────────────────────────────────────────────────────</p><pre><code>theorem inter_subset_left (α : Type) (A B : Set α) : A ∩ B ⊆ A := by
+  intro x
+  intro hx
+  exact And.left hx</code></pre></details><details open class="appendix-solution" id="app-sol-3-5"><summary>练习 5 · inter_subset_right <span class="sol-meta">定理</span></summary><pre><code>theorem inter_subset_right (α : Type) (A B : Set α) : A ∩ B ⊆ B := by
+  intro x
+  intro hx
+  exact And.right hx</code></pre></details><details open class="appendix-solution" id="app-sol-3-6"><summary>练习 6 · subset_inter <span class="sol-meta">定理</span></summary><p class="solution-note">目标 <code>x ∈ B ∩ C</code> 的头是 <code>Set.inter</code>（不是 <code>And</code>），所以这里不用 <code>constructor</code>，
+直接把一对证据交给 <code>And.intro</code>。</p><pre><code>theorem subset_inter (α : Type) (A B C : Set α)
+    (h1 : A ⊆ B) (h2 : A ⊆ C) : A ⊆ B ∩ C := by
+  intro x
+  intro hx
+  exact And.intro (h1 x hx) (h2 x hx)</code></pre></details><details open class="appendix-solution" id="app-sol-3-7"><summary>练习 7 · subset_inter_iff <span class="sol-meta">定理</span></summary><p class="solution-note">∩ 的泛性质（练习 3 的对偶）：<span class="math">→</span> 把 h x hx : <span class="math">B x ∧ C x</span> 劈成两条包含；
+<span class="math">←</span> 把一对包含在同一 x hx 上取出来，再装回一对证据。</p><pre><code>theorem subset_inter_iff (α : Type) (A B C : Set α) :
+    (A ⊆ B ∩ C) ↔ (A ⊆ B ∧ A ⊆ C) := by
+  constructor
+  intro h
+  constructor
+  intro x
+  intro hx
+  exact And.left (h x hx)
+  intro x
+  intro hx
+  exact And.right (h x hx)
+  intro h
+  intro x
+  intro hx
+  exact And.intro
+    (@And.left (A ⊆ B) (A ⊆ C) h x hx)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
+    (@And.right (A ⊆ B) (A ⊆ C) h x hx)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）</code></pre></details><details open class="appendix-solution" id="app-sol-3-8"><summary>练习 8 · sdiff_subset <span class="sol-meta">定理</span></summary><p class="solution-note">── 3.3 差 ───────────────────────────────────────────────────────────────</p><pre><code>theorem sdiff_subset (α : Type) (A B : Set α) : A \ B ⊆ A := by
+  intro x
+  intro hx
+  exact And.left hx</code></pre></details><details open class="appendix-solution" id="app-sol-3-9"><summary>练习 9 · powerset_mono <span class="sol-meta">定理</span></summary><p class="solution-note">── 3.4 幂集单调 ─────────────────────────────────────────────────────────
+<code>𝒫 A ⊆ 𝒫 B</code> 的成员层要<strong>两层</strong>定义展开才到 <code>∀</code>（<code>Set.mem</code> <span class="math">→</span> <code>Set.powerset</code>
+<span class="math">→</span> <code>Set.subset</code>），而 <code>intro</code> 只展开一层；所以内层那条包含整条交给 <code>exact</code>
+一次判定：<code>Iff.mpr</code> 把 <code>X ∈ 𝒫 B</code> 换成 <code>X ⊆ B</code>，lambda 逐元素把证据经 <code>h</code> 送一程。</p><pre><code>theorem powerset_mono (α : Type) (A B : Set α) (h : A ⊆ B) :
+    𝒫 A ⊆ 𝒫 B := by
+  exact fun (X : Set α) =&gt; fun (hX : X ∈ 𝒫 A) =&gt;
+    Iff.mpr (Set.mem_powerset_iff B X)
+      (fun (x : α) =&gt; fun (hx : X x) =&gt; h x (hX x hx))</code></pre></details><details open class="appendix-solution" id="app-sol-3-10"><summary>练习 10 · union_subset_inter_false <span class="sol-meta">定理</span></summary><p class="solution-note">── 3.5 D 类 ─────────────────────────────────────────────────────────────
+
+反例：<span class="math">A = univ</span>、<span class="math">B = empty</span>（<span class="math">α</span> 非空时的最小反例）；原命题的否定。</p><pre><code>theorem union_subset_inter_false (α : Type) (a : α) :
+    ¬ ((@Set.univ α ∪ ∅) ⊆ (@Set.univ α ∩ ∅)) := by
+  intro hsub
+  -- 目标经 `intro` 展开（非语句层）后 `∧`/`∨` 的期望类型传不到，而 `And.right`/`Or.inl`
+  -- 的隐式实参只能**语法反解** ⇒ 先用两条带标注的 `have` 把 `∨`/`∧` 落成语法形态 ✓
+  have hmem : a ∈ @Set.univ α ∨ a ∈ ∅ := Or.inl (Set.mem_univ a)
+  have hm : a ∈ @Set.univ α ∧ a ∈ ∅ := hsub a hmem
+  exact And.right hm</code></pre></details><details open class="appendix-solution" id="app-sol-3-11"><summary>练习 11 · powerset_self_mem <span class="sol-meta">定理</span></summary><p class="solution-note">命题甲为真：<span class="math">A ∈</span> 𝒫 A（展开即 <span class="math">A ⊆ A</span>）；命题乙 <span class="math">A ⊆</span> 𝒫 A 连类型都不对（见画布注释）。</p><pre><code>theorem powerset_self_mem (α : Type) (A : Set α) : A ∈ 𝒫 A := by
+  have hAA : A ⊆ A := by
+    intro x
+    intro hx
+    exact hx
+  exact Iff.mpr (Set.mem_powerset_iff A A) hAA</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

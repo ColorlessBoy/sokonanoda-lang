@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>46 对称差与布尔环 · 从集合论到实分析</title>
+<meta name="description" content="单元㊻ 对称差与布尔环：导语、定义与定理、练习与解答。Unit 46 — Symmetric Difference and the Boolean Ring">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit46.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li class="is-current"><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.11 单元</h3><ol><li><a href="../units/unit28.html">28 集合代数：分配律与 De Morgan</a></li><li><a href="../units/unit29.html">29 上界、下界与确界</a></li><li><a href="../units/unit30.html">30 格与对偶：确界的代数</a></li><li><a href="../units/unit31.html">31 单调函数与序同构保持确界</a></li><li><a href="../units/unit32.html">32 函数空间上的逐点序</a></li><li class="is-current"><a href="../units/unit46.html">46 对称差与布尔环</a></li><li><a href="../units/unit50.html">50 分配律族</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li aria-current="page">单元 46 对称差与布尔环</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-46-1">46.0 画布给的新词汇：对称差 A △ B</a></li>
+<li><a href="#decl-46-2">46.1 三条库引理（∪/∩/\ 的成员刻画 —— 本单元的邻居运算）</a></li>
+<li><a href="#ex-46-1">46.2 成员刻画 · 交换律（逐点 ⇒ 方程）</a></li>
+<li><a href="#ex-46-4">46.3 自己 · 空集 · 全集</a></li>
+<li><a href="#ex-46-9">46.4 与并的关系</a></li>
+<li><a href="#appendix-unit-46">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-11.html#units">↑ 本章目录</a>
+      <a href="../print/unit46.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-46">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-11.html">I.11</a> · 本章第 6 / 7 单元 · 全书第 46 / 112 单元</p>
+<h1><span class="unit-number">46</span> <span>对称差与布尔环</span></h1>
+<p class="unit-title-en">Unit 46 — Symmetric Difference and the Boolean Ring</p>
+<p class="unit-meta">1 个定义 · 13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-46">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="46" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-46" aria-label="复制单元 46 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit46.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-11.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§5</strong>（"the algebra of sets"一段里的 symmetric difference）；Enderton《Elements of Set Theory》<strong>§1.5/§6</strong>（set algebra 的布尔侧）。大纲：<code>set-theory-syllabus.md</code> §4.1（I.11 章深化 —— 把「集合代数」从 <code>∪ ∩ \</code> 推进到 <strong>对称差</strong>：它才是让 <code>𝒫 α</code> 变成<strong>布尔环</strong>的那条运算 ✓）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><details class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li><strong>成员刻画</strong>（<code>A △ B</code> 就是"恰在一个里"）；</li><li><strong>交换律</strong>（逐点 <span class="math">+</span> <strong>方程</strong>两种形态 —— 后者用 <code>Set.ext</code> 收口 ✓）；</li><li><strong>自己是空</strong>（<code>A △ A</code> 没有元素 / <code>A △ A = ∅</code>）；</li><li><strong>空集与全集</strong>（<code>A △ ∅ = A</code> <span class="math">·</span> <code>A △ univ = Aᶜ</code>）；</li><li><strong><code>A △ B ⊆ A ∪ B</code></strong> ✓</li></ul></details><h3 class="unit-subhead">46.0 画布给的新词汇：对称差 <code>A △ B</code></h3><div class="block prose intuition-only"><p>读法：<strong>恰好落在一个里面</strong>的那些点 —— 它让 <code>𝒫 α</code> 在 <code>△</code> 与 <code>∩</code> 下成为<strong>布尔环</strong> ✓（单元㊽ 会继续这条线：<code>△</code> 的结合律与 <code>∩</code> 对 <code>△</code> 的分配律 ✓）</p></div><article class="decl decl-def" id="decl-46-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">symmDiff</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def symmDiff (α : Type) (A B : Set α) : Set α :=
+  fun (x : α) =&gt; (A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))</code></pre></div></article>
+<h3 class="unit-subhead">46.1 三条库引理（<code>∪</code>/<code>∩</code>/<code>\</code> 的成员刻画 —— 本单元的邻居运算）</h3><div class="block prose intuition-only"><p>演示：并的成员刻画。</p></div><article class="decl decl-theorem" id="decl-46-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_union</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_union (α : Type) (x : α) (A B : Set α) :
+    (A ∪ B) x ↔ A x ∨ B x :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_union x A B</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-46-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_inter</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_inter (α : Type) (x : α) (A B : Set α) :
+    (A ∩ B) x ↔ A x ∧ B x :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_inter_iff x A B</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-46-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_sdiff</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_sdiff (α : Type) (x : α) (A B : Set α) :
+    (A \ B) x ↔ A x ∧ ¬ (B x) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_sdiff x A B</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">46.2 成员刻画 <span class="math">·</span> 交换律（逐点 <span class="math">⇒</span> 方程）</h3><article class="exercise" id="ex-46-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">mem_symmDiff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-46-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：<strong>对称差的成员刻画</strong>（两边定义上相同 <span class="math">⇒</span> 交给恒等）。</p></div></div><pre class="exercise-statement"><code>theorem mem_symmDiff (α : Type) (A B : Set α) (x : α) :
+    (symmDiff α A B) x ↔ ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>Iff.intro</code> 两支都给恒等函数。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(A △ B) x ↔ (A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code>（<strong>前导 Prop 实参写全</strong>）✓</p></div></details></div><details class="solution-panel" id="sol-46-1"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem mem_symmDiff (α : Type) (A B : Set α) (x : α) :
+    (symmDiff α A B) x ↔ ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))) :=
+  @Iff.intro ((symmDiff α A B) x) ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x)))
+    (fun (h : (symmDiff α A B) x) =&gt; h)
+    (fun (h : (A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))) =&gt; h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-46-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">symmDiff_comm_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-46-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>交换律（逐点形态）</strong>。</p></div></div><pre class="exercise-statement"><code>theorem symmDiff_comm_apply (α : Type) (A B : Set α) (x : α) :
+    (symmDiff α A B) x ↔ (symmDiff α B A) x := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>∨</code> 两支互换 —— 两个分支各用 <code>Or.inl</code>/<code>Or.inr</code> 把"另一半"接上。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(A △ B) x ↔ (B △ A) x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Or.elim</code>（<strong>动机位放正命题</strong> ✓，前导实参写全）<span class="math">·</span> <code>Or.inl</code>/<code>Or.inr</code> ✓</p></div></details></div><details class="solution-panel" id="sol-46-2"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem symmDiff_comm_apply (α : Type) (A B : Set α) (x : α) :
+    (symmDiff α A B) x ↔ (symmDiff α B A) x :=
+  @Iff.intro ((symmDiff α A B) x) ((symmDiff α B A) x)
+    (fun (h : (symmDiff α A B) x) =&gt;
+      @Or.elim (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) ((B x ∧ ¬ (A x)) ∨ (A x ∧ ¬ (B x)))
+        (fun (h1 : A x ∧ ¬ (B x)) =&gt; Or.inr h1)
+        (fun (h2 : B x ∧ ¬ (A x)) =&gt; Or.inl h2) h)
+    (fun (h : (symmDiff α B A) x) =&gt;
+      @Or.elim (B x ∧ ¬ (A x)) (A x ∧ ¬ (B x)) ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x)))
+        (fun (h1 : B x ∧ ¬ (A x)) =&gt; Or.inr h1)
+        (fun (h2 : A x ∧ ¬ (B x)) =&gt; Or.inl h2) h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-46-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">symmDiff_comm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-46-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<strong>交换律（方程形态）</strong> —— 集合相等用外延收口。</p></div></div><pre class="exercise-statement"><code>theorem symmDiff_comm (α : Type) (A B : Set α) :
+    symmDiff α A B = symmDiff α B A := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>Set.ext</code> 要一个<strong>逐点</strong>的 <code>↔</code> <span class="math">⇒</span> <strong>直接交练习 2 的结果</strong>（别再手写 <code>Iff.intro</code> ✗）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A △ B = B △ A</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.ext</code>（<strong>参数：论域 <span class="math">·</span> 两个集合 <span class="math">·</span> 逐点证明</strong>）<span class="math">+</span> 练习 2 ✓</p></div></details></div><details class="solution-panel" id="sol-46-3"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem symmDiff_comm (α : Type) (A B : Set α) :
+    symmDiff α A B = symmDiff α B A :=
+  Set.ext (symmDiff α A B) (symmDiff α B A)
+    (fun (x : α) =&gt; symmDiff_comm_apply α A B x)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">46.3 自己 <span class="math">·</span> 空集 <span class="math">·</span> 全集</h3><article class="exercise" id="ex-46-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">symmDiff_self_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-46-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：<strong>自己与自己：没有元素</strong>。</p></div></div><pre class="exercise-statement"><code>theorem symmDiff_self_apply (α : Type) (A : Set α) (x : α) :
+    ¬ ((symmDiff α A A) x) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两支都给出 <code>A x</code> 与 <code>¬ (A x)</code> <span class="math">⇒</span> <strong>拆成两次 <code>Or.elim</code></strong>（动机分别是 <code>A x</code> 与 <code>¬ (A x)</code>，都是正命题 ✓），再让后者作用在前者上。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>¬ ((A △ A) x)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两次 <code>Or.elim</code>（<strong>动机位不能放 <code>False</code></strong> ✗ —— G-73 第十二例）<span class="math">·</span> <code>And.left</code>/<code>And.right</code> ✓</p></div></details></div><details class="solution-panel" id="sol-46-4"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem symmDiff_self_apply (α : Type) (A : Set α) (x : α) :
+    ¬ ((symmDiff α A A) x) :=
+  fun (h : (symmDiff α A A) x) =&gt;
+    (@Or.elim (A x ∧ ¬ (A x)) (A x ∧ ¬ (A x)) (¬ (A x))
+      (fun (h1 : A x ∧ ¬ (A x)) =&gt; And.right h1)
+      (fun (h2 : A x ∧ ¬ (A x)) =&gt; And.right h2) h)
+      (@Or.elim (A x ∧ ¬ (A x)) (A x ∧ ¬ (A x)) (A x)
+        (fun (h1 : A x ∧ ¬ (A x)) =&gt; And.left h1)
+        (fun (h2 : A x ∧ ¬ (A x)) =&gt; And.left h2) h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-46-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">symmDiff_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-46-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：<strong>自己是空集（方程形态）</strong>。</p></div></div><pre class="exercise-statement"><code>theorem symmDiff_self (α : Type) (A : Set α) :
+    symmDiff α A A = (fun (_ : α) =&gt; False) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>Set.ext</code> <span class="math">+</span> 逐点：左边没有元素 <span class="math">⇒</span> 两边都推不出来（空的一支用 <code>False.elim</code> <strong>把目标写全</strong> ✓）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A △ A = (fun _ =&gt; False)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.ext</code> <span class="math">·</span> 练习 <span class="math">4 ·</span> <code>False.elim</code>（<strong>给目标、不给宇宙实参</strong> ✓）✓</p></div></details></div><details class="solution-panel" id="sol-46-5"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem symmDiff_self (α : Type) (A : Set α) :
+    symmDiff α A A = (fun (_ : α) =&gt; False) :=
+  Set.ext (symmDiff α A A) (fun (_ : α) =&gt; False) (fun (x : α) =&gt;
+    @Iff.intro ((symmDiff α A A) x) ((fun (_ : α) =&gt; False) x)
+      (fun (h : (symmDiff α A A) x) =&gt;
+        False.elim (symmDiff_self_apply α A x h))
+      (fun (hf : (fun (_ : α) =&gt; False) x) =&gt;
+        False.elim hf))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-46-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">symmDiff_empty_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-46-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（T 类）：<strong>空集是单位元（逐点）</strong>。</p></div></div><pre class="exercise-statement"><code>theorem symmDiff_empty_apply (α : Type) (A : Set α) (x : α) :
+    (symmDiff α A (fun (_ : α) =&gt; False)) x ↔ A x := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：左边的第二支给出 <code>False</code> <span class="math">⇒</span> 用 <code>False.elim</code> 得到 <code>A x</code>；<span class="math">←</span>：直接走第一支，并证明"落在空集里"不可能。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(A △ ∅) x ↔ A x</code>（空集写成 <code>fun _ =&gt; False</code>，避开类型推断 ✗）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Or.elim</code>（正命题动机）<span class="math">·</span> <code>False.elim</code>（<strong>给目标</strong>）<span class="math">·</span> <code>And.intro</code> ✓</p></div></details></div><details class="solution-panel" id="sol-46-6"><summary>查看解答 <span class="sol-meta">定理 · 15 行</span></summary><div class="solution-body"><pre><code>theorem symmDiff_empty_apply (α : Type) (A : Set α) (x : α) :
+    (symmDiff α A (fun (_ : α) =&gt; False)) x ↔ A x :=
+  @Iff.intro ((symmDiff α A (fun (_ : α) =&gt; False)) x) (A x)
+    (fun (h : (symmDiff α A (fun (_ : α) =&gt; False)) x) =&gt;
+      @Or.elim (A x ∧ ¬ ((fun (_ : α) =&gt; False) x))
+        ((fun (_ : α) =&gt; False) x ∧ ¬ (A x)) (A x)
+        (fun (h1 : A x ∧ ¬ ((fun (_ : α) =&gt; False) x)) =&gt; And.left h1)
+        (fun (h2 : (fun (_ : α) =&gt; False) x ∧ ¬ (A x)) =&gt;
+          (fun (hf : (fun (_ : α) =&gt; False) x) =&gt;
+            (fun (hg : False) =&gt; @False.elim (A x) hg) hf) (And.left h2)) h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (h : A x) =&gt;
+      @Or.inl (A x ∧ ¬ ((fun (_ : α) =&gt; False) x))
+        ((fun (_ : α) =&gt; False) x ∧ ¬ (A x))
+        (And.intro h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (hf : (fun (_ : α) =&gt; False) x) =&gt; hf)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-46-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">symmDiff_univ_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-46-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（T 类）：<strong>全集是补（逐点）</strong>。</p></div></div><pre class="exercise-statement"><code>theorem symmDiff_univ_apply (α : Type) (A : Set α) (x : α) :
+    (symmDiff α A (@Set.univ α)) x ↔ ¬ (A x) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：第一支说"<code>A x</code> 且不在全集里"，而<strong>每个点都在全集里</strong> <span class="math">⇒</span> 矛盾；<span class="math">←</span>：给定 <code>¬ (A x)</code>，走第二支（"在全集里"由库引理给出）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(A △ univ) x ↔ ¬ (A x)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_univ</code>（<strong>取用子</strong>：先 <span class="math">λ</span> 绑定再应用）<span class="math">·</span> <code>Or.elim</code> <span class="math">·</span> <code>False.elim</code><span class="math">·</span> <code>And.intro</code> ✓</p></div></details></div><details class="solution-panel" id="sol-46-7"><summary>查看解答 <span class="sol-meta">定理 · 15 行</span></summary><div class="solution-body"><pre><code>theorem symmDiff_univ_apply (α : Type) (A : Set α) (x : α) :
+    (symmDiff α A (@Set.univ α)) x ↔ ¬ (A x) :=
+  @Iff.intro ((symmDiff α A (@Set.univ α)) x) (¬ (A x))
+    (fun (h : (symmDiff α A (@Set.univ α)) x) =&gt;
+      @Or.elim (A x ∧ ¬ ((@Set.univ α) x)) ((@Set.univ α) x ∧ ¬ (A x)) (¬ (A x))
+        (fun (h1 : A x ∧ ¬ ((@Set.univ α) x)) =&gt;
+          (fun (hnot : ¬ ((@Set.univ α) x)) =&gt;
+            (fun (hf : False) =&gt; @False.elim (¬ (A x)) hf)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+              (hnot ((fun (hu : ∀ (y : α), (@Set.univ α) y) =&gt; hu x) (@Set.mem_univ α))))
+            (And.right h1))
+        (fun (h2 : (@Set.univ α) x ∧ ¬ (A x)) =&gt; And.right h2) h)
+    (fun (h : ¬ (A x)) =&gt;
+      @Or.inr (A x ∧ ¬ ((@Set.univ α) x)) ((@Set.univ α) x ∧ ¬ (A x))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (And.intro
+          ((fun (hu : ∀ (y : α), (@Set.univ α) y) =&gt; hu x) (@Set.mem_univ α)) h))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-46-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">symmDiff_univ</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-46-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类）：<strong>全集是补（方程形态）</strong>。</p></div></div><pre class="exercise-statement"><code>theorem symmDiff_univ (α : Type) (A : Set α) :
+    symmDiff α A (@Set.univ α) = (fun (x : α) =&gt; ¬ (A x)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>Set.ext</code> <span class="math">+</span> 逐点 —— 右端写成 <code>fun x =&gt; ¬ (A x)</code>，正好与练习 7 的形状对上。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A △ univ = (fun x =&gt; ¬ (A x))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.ext</code> <span class="math">+</span> 练习 7（<strong>直接交出去</strong>）✓</p></div></details></div><details class="solution-panel" id="sol-46-8"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem symmDiff_univ (α : Type) (A : Set α) :
+    symmDiff α A (@Set.univ α) = (fun (x : α) =&gt; ¬ (A x)) :=
+  Set.ext (symmDiff α A (@Set.univ α)) (fun (x : α) =&gt; ¬ (A x))
+    (fun (x : α) =&gt; symmDiff_univ_apply α A x)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">46.4 与并的关系</h3><article class="exercise" id="ex-46-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">symmDiff_subset_union</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-46-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（L 类）：<strong>对称差含在并里</strong>（子集形态）。</p></div></div><pre class="exercise-statement"><code>theorem symmDiff_subset_union (α : Type) (A B : Set α) :
+    (symmDiff α A B) ⊆ (A ∪ B) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两支分别给 <code>Or.inl</code>/<code>Or.inr</code>（哪一支给哪个，看它是"在 <code>A</code> 里"还是"在 <code>B</code> 里"）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(A △ B) ⊆ (A ∪ B)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>⊆</code> 就是 <span class="math">λ</span>（<strong>成员直接就是 <code>∨</code></strong>）<span class="math">·</span> <code>Or.elim</code> <span class="math">·</span> <code>Or.inl</code>/<code>Or.inr</code> <span class="math">·</span> <code>And.left</code> ✓</p></div></details></div><details class="solution-panel" id="sol-46-9"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem symmDiff_subset_union (α : Type) (A B : Set α) :
+    (symmDiff α A B) ⊆ (A ∪ B) :=
+  fun (x : α) =&gt; fun (h : (symmDiff α A B) x) =&gt;
+    @Or.elim (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) (A x ∨ B x)
+      (fun (h1 : A x ∧ ¬ (B x)) =&gt; Or.inl (And.left h1))
+      (fun (h2 : B x ∧ ¬ (A x)) =&gt; Or.inr (And.left h2)) h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-46-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">symmDiff_subset_union_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-46-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（T 类）：<strong>把子集结论用在具体的点上</strong>。</p></div></div><pre class="exercise-statement"><code>theorem symmDiff_subset_union_apply (α : Type) (A B : Set α) (x : α)
+    (h : (symmDiff α A B) x) : A x ∨ B x := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>子集命题就是"对每个点，成员给成员" <span class="math">⇒</span> 直接应用。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(A △ B) x → A x ∨ B x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 9（<strong>按 论域 <span class="math">·</span> 两个集合 <span class="math">·</span> 点 <span class="math">·</span> 前提 的顺序应用</strong>）✓</p></div></details></div><details class="solution-panel" id="sol-46-10"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem symmDiff_subset_union_apply (α : Type) (A B : Set α) (x : α)
+    (h : (symmDiff α A B) x) : A x ∨ B x :=
+  symmDiff_subset_union α A B x h</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>本单元的两条实测边界</strong>（都写进 hint）：① <strong>逐点形态优先</strong>：把"集合相等"写成<strong>方程</strong>时要 <code>Set.ext</code> <span class="math">+</span> 一个<strong>逐点引理</strong> ✓；直接在 <code>Set.ext</code> 的 <span class="math">λ</span> 里写 <code>Iff.intro ((△ A B) x) …</code> 会判红 ✗（def-headed 期望类型补不出前导实参 <span class="math">⇒</span> <strong>G-73</strong>）—— 先证 <code>…_apply</code> 再用它收口，一次就过 ✓ ② <strong><code>Or.elim</code> 的动机位不能放 <code>False</code></strong> ✗（<strong>G-73 第十二例</strong>）<span class="math">⇒</span> 否定式要拆成 <strong>两次正命题动机</strong>（一次取 <code>A x</code>、一次取 <code>¬ (A x)</code>）再互相作用 ✓</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元⑨⑩（并与交）<span class="math">·</span> 单元⑪（差与补）<span class="math">·</span> 单元㉘（De Morgan 与分配律）<span class="math">·</span> 单元㊱㊲（代数语言）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit32.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">函数空间上的逐点序</span></a><a class="unit-nav-home" href="../chapters/i-11.html#units">目录</a><a class="unit-nav-link" href="../units/unit50.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">分配律族</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-46"><h3><a href="#top">对称差与布尔环</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-46-1"><summary>练习 1 · mem_symmDiff <span class="sol-meta">定理</span></summary><pre><code>theorem mem_symmDiff (α : Type) (A B : Set α) (x : α) :
+    (symmDiff α A B) x ↔ ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))) :=
+  @Iff.intro ((symmDiff α A B) x) ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x)))
+    (fun (h : (symmDiff α A B) x) =&gt; h)
+    (fun (h : (A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x))) =&gt; h)</code></pre></details><details class="appendix-solution" id="app-sol-46-2"><summary>练习 2 · symmDiff_comm_apply <span class="sol-meta">定理</span></summary><pre><code>theorem symmDiff_comm_apply (α : Type) (A B : Set α) (x : α) :
+    (symmDiff α A B) x ↔ (symmDiff α B A) x :=
+  @Iff.intro ((symmDiff α A B) x) ((symmDiff α B A) x)
+    (fun (h : (symmDiff α A B) x) =&gt;
+      @Or.elim (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) ((B x ∧ ¬ (A x)) ∨ (A x ∧ ¬ (B x)))
+        (fun (h1 : A x ∧ ¬ (B x)) =&gt; Or.inr h1)
+        (fun (h2 : B x ∧ ¬ (A x)) =&gt; Or.inl h2) h)
+    (fun (h : (symmDiff α B A) x) =&gt;
+      @Or.elim (B x ∧ ¬ (A x)) (A x ∧ ¬ (B x)) ((A x ∧ ¬ (B x)) ∨ (B x ∧ ¬ (A x)))
+        (fun (h1 : B x ∧ ¬ (A x)) =&gt; Or.inr h1)
+        (fun (h2 : A x ∧ ¬ (B x)) =&gt; Or.inl h2) h)</code></pre></details><details class="appendix-solution" id="app-sol-46-3"><summary>练习 3 · symmDiff_comm <span class="sol-meta">定理</span></summary><pre><code>theorem symmDiff_comm (α : Type) (A B : Set α) :
+    symmDiff α A B = symmDiff α B A :=
+  Set.ext (symmDiff α A B) (symmDiff α B A)
+    (fun (x : α) =&gt; symmDiff_comm_apply α A B x)</code></pre></details><details class="appendix-solution" id="app-sol-46-4"><summary>练习 4 · symmDiff_self_apply <span class="sol-meta">定理</span></summary><pre><code>theorem symmDiff_self_apply (α : Type) (A : Set α) (x : α) :
+    ¬ ((symmDiff α A A) x) :=
+  fun (h : (symmDiff α A A) x) =&gt;
+    (@Or.elim (A x ∧ ¬ (A x)) (A x ∧ ¬ (A x)) (¬ (A x))
+      (fun (h1 : A x ∧ ¬ (A x)) =&gt; And.right h1)
+      (fun (h2 : A x ∧ ¬ (A x)) =&gt; And.right h2) h)
+      (@Or.elim (A x ∧ ¬ (A x)) (A x ∧ ¬ (A x)) (A x)
+        (fun (h1 : A x ∧ ¬ (A x)) =&gt; And.left h1)
+        (fun (h2 : A x ∧ ¬ (A x)) =&gt; And.left h2) h)</code></pre></details><details class="appendix-solution" id="app-sol-46-5"><summary>练习 5 · symmDiff_self <span class="sol-meta">定理</span></summary><pre><code>theorem symmDiff_self (α : Type) (A : Set α) :
+    symmDiff α A A = (fun (_ : α) =&gt; False) :=
+  Set.ext (symmDiff α A A) (fun (_ : α) =&gt; False) (fun (x : α) =&gt;
+    @Iff.intro ((symmDiff α A A) x) ((fun (_ : α) =&gt; False) x)
+      (fun (h : (symmDiff α A A) x) =&gt;
+        False.elim (symmDiff_self_apply α A x h))
+      (fun (hf : (fun (_ : α) =&gt; False) x) =&gt;
+        False.elim hf))</code></pre></details><details class="appendix-solution" id="app-sol-46-6"><summary>练习 6 · symmDiff_empty_apply <span class="sol-meta">定理</span></summary><pre><code>theorem symmDiff_empty_apply (α : Type) (A : Set α) (x : α) :
+    (symmDiff α A (fun (_ : α) =&gt; False)) x ↔ A x :=
+  @Iff.intro ((symmDiff α A (fun (_ : α) =&gt; False)) x) (A x)
+    (fun (h : (symmDiff α A (fun (_ : α) =&gt; False)) x) =&gt;
+      @Or.elim (A x ∧ ¬ ((fun (_ : α) =&gt; False) x))
+        ((fun (_ : α) =&gt; False) x ∧ ¬ (A x)) (A x)
+        (fun (h1 : A x ∧ ¬ ((fun (_ : α) =&gt; False) x)) =&gt; And.left h1)
+        (fun (h2 : (fun (_ : α) =&gt; False) x ∧ ¬ (A x)) =&gt;
+          (fun (hf : (fun (_ : α) =&gt; False) x) =&gt;
+            (fun (hg : False) =&gt; @False.elim (A x) hg) hf) (And.left h2)) h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (h : A x) =&gt;
+      @Or.inl (A x ∧ ¬ ((fun (_ : α) =&gt; False) x))
+        ((fun (_ : α) =&gt; False) x ∧ ¬ (A x))
+        (And.intro h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (hf : (fun (_ : α) =&gt; False) x) =&gt; hf)))</code></pre></details><details class="appendix-solution" id="app-sol-46-7"><summary>练习 7 · symmDiff_univ_apply <span class="sol-meta">定理</span></summary><pre><code>theorem symmDiff_univ_apply (α : Type) (A : Set α) (x : α) :
+    (symmDiff α A (@Set.univ α)) x ↔ ¬ (A x) :=
+  @Iff.intro ((symmDiff α A (@Set.univ α)) x) (¬ (A x))
+    (fun (h : (symmDiff α A (@Set.univ α)) x) =&gt;
+      @Or.elim (A x ∧ ¬ ((@Set.univ α) x)) ((@Set.univ α) x ∧ ¬ (A x)) (¬ (A x))
+        (fun (h1 : A x ∧ ¬ ((@Set.univ α) x)) =&gt;
+          (fun (hnot : ¬ ((@Set.univ α) x)) =&gt;
+            (fun (hf : False) =&gt; @False.elim (¬ (A x)) hf)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+              (hnot ((fun (hu : ∀ (y : α), (@Set.univ α) y) =&gt; hu x) (@Set.mem_univ α))))
+            (And.right h1))
+        (fun (h2 : (@Set.univ α) x ∧ ¬ (A x)) =&gt; And.right h2) h)
+    (fun (h : ¬ (A x)) =&gt;
+      @Or.inr (A x ∧ ¬ ((@Set.univ α) x)) ((@Set.univ α) x ∧ ¬ (A x))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (And.intro
+          ((fun (hu : ∀ (y : α), (@Set.univ α) y) =&gt; hu x) (@Set.mem_univ α)) h))</code></pre></details><details class="appendix-solution" id="app-sol-46-8"><summary>练习 8 · symmDiff_univ <span class="sol-meta">定理</span></summary><pre><code>theorem symmDiff_univ (α : Type) (A : Set α) :
+    symmDiff α A (@Set.univ α) = (fun (x : α) =&gt; ¬ (A x)) :=
+  Set.ext (symmDiff α A (@Set.univ α)) (fun (x : α) =&gt; ¬ (A x))
+    (fun (x : α) =&gt; symmDiff_univ_apply α A x)</code></pre></details><details class="appendix-solution" id="app-sol-46-9"><summary>练习 9 · symmDiff_subset_union <span class="sol-meta">定理</span></summary><pre><code>theorem symmDiff_subset_union (α : Type) (A B : Set α) :
+    (symmDiff α A B) ⊆ (A ∪ B) :=
+  fun (x : α) =&gt; fun (h : (symmDiff α A B) x) =&gt;
+    @Or.elim (A x ∧ ¬ (B x)) (B x ∧ ¬ (A x)) (A x ∨ B x)
+      (fun (h1 : A x ∧ ¬ (B x)) =&gt; Or.inl (And.left h1))
+      (fun (h2 : B x ∧ ¬ (A x)) =&gt; Or.inr (And.left h2)) h</code></pre></details><details class="appendix-solution" id="app-sol-46-10"><summary>练习 10 · symmDiff_subset_union_apply <span class="sol-meta">定理</span></summary><pre><code>theorem symmDiff_subset_union_apply (α : Type) (A B : Set α) (x : α)
+    (h : (symmDiff α A B) x) : A x ∨ B x :=
+  symmDiff_subset_union α A B x h</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit32.html">← 32 函数空间上的逐点序</a><a class="next" href="../units/unit50.html">50 分配律族 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 89 双射与复合</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit89.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 89 双射与复合</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit89.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.4 论域、悖论与综合 · 单元 89</p><h1>双射与复合</h1><p class="note">Unit 89 — Bijections and Composition</p></header><section class="unit" id="unit-89">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-4.html">I.4</a> · 本章第 8 / 12 单元 · 全书第 89 / 112 单元</p>
+<h2><span class="unit-number">89</span><span>双射与复合</span></h2>
+<p class="unit-title-en">Unit 89 — Bijections and Composition</p>
+<p class="unit-meta">3 个定义 · 7 个定理 · 4 道练习 · <a href="#appendix-unit-89">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>满射的直接用法 ✓ <span class="math">·</span> <strong>单射的复合</strong> ✓ <span class="math">·</span> <strong>满射的复合</strong> ✓（单元87/88 已证，本单元合流 ✓）；</li><li><strong>旗舰：双射的复合还是双射</strong> ✓（<code>BijPair</code> <span class="math">=</span> 单射 <span class="math">∧</span> 满射 ✓）。</li></ul></div></div></section>
+<article class="decl decl-def" id="decl-89-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Injective</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def Injective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (a : α) (b : α), f a = f b → a = b</code></pre></div></article>
+<article class="decl decl-def" id="decl-89-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Surjective</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def Surjective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (b : β), ∃ (a : α), f a = b</code></pre></div></article>
+<article class="decl decl-def" id="decl-89-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">BijPair</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def BijPair (α : Type) (β : Type) (f : α → β) : Prop :=
+  Injective α β f ∧ Surjective α β f</code></pre></div></article>
+<h3 class="unit-subhead">89.1 三条定义展开与搬运（单射 <span class="math">·</span> 满射 <span class="math">·</span> 换"函数参数格"）</h3><div class="block prose intuition-only"><p>演示：<strong>换"函数参数格"的搬运</strong>（格位表的第二行 ✓ —— 跨类型必须用 <code>Eq.subst</code> <span class="math">+</span> 谓词 ✓）。</p></div><article class="decl decl-theorem" id="decl-89-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_inj_def</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_inj_def (α : Type) (β : Type) (f : α → β) :
+    Injective α β f ↔ ∀ (a : α) (b : α), f a = f b → a = b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  @Iff.intro (Injective α β f) (∀ (a : α) (b : α), f a = f b → a = b)
+    (fun (h : Injective α β f) =&gt; h) (fun (h : ∀ (a : α) (b : α), f a = f b → a = b) =&gt; h)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-89-5"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_surj_def</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_surj_def (α : Type) (β : Type) (f : α → β) :
+    Surjective α β f ↔ ∀ (b : β), ∃ (a : α), f a = b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  @Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
+    (fun (h : Surjective α β f) =&gt; h) (fun (h : ∀ (b : β), ∃ (a : α), f a = b) =&gt; h)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-89-6"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_arg_subst</code><span class="decl-where">声明 6</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_arg_subst (α : Type) (β : Type) (g : α → β) (a : α) (b : α) (d : β)
+    (h : b = a) (hd : g b = d) : g a = d :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.subst.{1} α (fun (x : α) =&gt; g x = d) b a h hd-- 练习 1（T 类）：**满射的直接用法**（给 `b` 取原像点）。</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-89-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">surj_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-89-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>关键件：假设直接作用（<code>hf b</code>）</p></div></div><pre class="exercise-statement"><code>theorem surj_apply (α : Type) (β : Type) (f : α → β) (b : β)
+    (hf : Surjective α β f) : ∃ (a : α), f a = b := by
+  sorry</code></pre><details open class="solution-panel" id="sol-89-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem surj_apply (α : Type) (β : Type) (f : α → β) (b : β)
+    (hf : Surjective α β f) : ∃ (a : α), f a = b :=
+  hf b</code></pre></div></details></div></article>
+<article class="exercise" id="ex-89-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">inj_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-89-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>单射的复合还是单射</strong>。思路：设 <code>g (f a) = g (f b)</code>，先用 <code>g</code> 的单射得 <code>f a = f b</code>，再用 <code>f</code> 的单射。关键件：两个 <code>Injective</code> 假设直接作用</p></div></div><pre class="exercise-statement"><code>theorem inj_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Injective α β f) (hg : Injective β γ g) :
+    Injective α γ (fun (x : α) =&gt; g (f x)) := by
+  sorry</code></pre><details open class="solution-panel" id="sol-89-2"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem inj_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Injective α β f) (hg : Injective β γ g) :
+    Injective α γ (fun (x : α) =&gt; g (f x)) :=
+  fun (a : α) (b : α) (h : g (f a) = g (f b)) =&gt; hf a b (hg (f a) (f b) h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-89-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">surj_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-89-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<strong>满射的复合还是满射</strong>。思路：给 <code>c</code>，用 <code>g</code> 的满射取 <code>b</code>、用 <code>f</code> 的满射取 <code>a</code>；最后把 <code>g b = c</code> 沿 <code>f a = b</code> 搬到 <code>g (f a) = c</code>。关键件：<code>Exists.elim</code> / <code>Exists.intro</code> <span class="math">·</span> <strong><code>Eq.subst</code> <span class="math">+</span> 谓词 <code>fun x =&gt; g x = c</code></strong>（跨类型搬运 ✓）</p></div></div><pre class="exercise-statement"><code>theorem surj_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Surjective α β f) (hg : Surjective β γ g) :
+    Surjective α γ (fun (x : α) =&gt; g (f x)) := by
+  sorry</code></pre><details open class="solution-panel" id="sol-89-3"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem surj_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Surjective α β f) (hg : Surjective β γ g) :
+    Surjective α γ (fun (x : α) =&gt; g (f x)) :=
+  fun (c : γ) =&gt;
+    @Exists.elim β (fun (b : β) =&gt; g b = c) (∃ (a : α), g (f a) = c) (hg c)
+      (fun (b : β) (hb : g b = c) =&gt;
+        @Exists.elim α (fun (a : α) =&gt; f a = b) (∃ (a : α), g (f a) = c) (hf b)
+          (fun (a : α) (ha : f a = b) =&gt;
+            Exists.intro a
+              (@Eq.subst.{1} β (fun (x : β) =&gt; g x = c) b (f a) (@Eq.symm.{1} β (f a) b ha)
+                hb)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-89-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">bij_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-89-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>旗舰</strong>）：<strong>双射的复合还是双射</strong>（单射 <span class="math">∧</span> 满射）。关键件：<code>And.intro</code>（<strong>前导命题写全</strong>）<span class="math">·</span> 练习 2 / 练习 3</p></div></div><pre class="exercise-statement"><code>theorem bij_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Injective α β f) (hfs : Surjective α β f)
+    (hg : Injective β γ g) (hgs : Surjective β γ g) :
+    BijPair α γ (fun (x : α) =&gt; g (f x)) := by
+  sorry</code></pre><details open class="solution-panel" id="sol-89-4"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem bij_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Injective α β f) (hfs : Surjective α β f)
+    (hg : Injective β γ g) (hgs : Surjective β γ g) :
+    BijPair α γ (fun (x : α) =&gt; g (f x)) :=
+  And.intro
+    (inj_comp α β γ f g hf hg) (surj_comp α β γ f g hfs hgs)</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（5 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§3.3/§3.6</strong> <span class="math">·Halmos</span>《Naive Set Theory》<strong>§8</strong>。大纲 §4.1（<strong>I.4 章收口片</strong> ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>格位表的用法</strong> ✓：本单元的搬运全部走 <strong><code>Eq.subst</code> <span class="math">+</span> 谓词</strong> ✓（<code>fun x =&gt; g x = c</code> 这种"换函数参数"的形态 ✓ —— 见手册「搬运的格位表」✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>如实标注范围</strong> ✓：<code>inj_of_comp_surj</code>（满射 <span class="math">+</span> 复合单射 <span class="math">⇒</span> <strong>外层</strong>单射 ✓）本轮<strong>第三次同形判红</strong> ✗ <span class="math">⇒</span> 按「连红三次必换招」✓ <strong>撤出本单元</strong> ✓，留待换招后再做（候选：先把 <code>g b = g b'</code> 沿两条 <code>f a = b</code> 转成"复合层的等式"再交给复合的单射性 —— 需要一条<strong>独立的中间引理</strong>承载那次三步 <code>Eq.trans</code> ✓）。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元⑪⑫（函数）<span class="math">·</span> 单元87（单射半边）<span class="math">·</span> 单元88（满射半边 <span class="math">+</span> 格位表）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit88.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">满射与复合</span></a><a class="unit-nav-home" href="../chapters/i-4.html#units">目录</a><a class="unit-nav-link" href="../units/unit90.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">复合层的等式与外层单射</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-89"><h3><a href="#top">双射与复合</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-89-1"><summary>练习 1 · surj_apply <span class="sol-meta">定理</span></summary><pre><code>theorem surj_apply (α : Type) (β : Type) (f : α → β) (b : β)
+    (hf : Surjective α β f) : ∃ (a : α), f a = b :=
+  hf b</code></pre></details><details open class="appendix-solution" id="app-sol-89-2"><summary>练习 2 · inj_comp <span class="sol-meta">定理</span></summary><pre><code>theorem inj_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Injective α β f) (hg : Injective β γ g) :
+    Injective α γ (fun (x : α) =&gt; g (f x)) :=
+  fun (a : α) (b : α) (h : g (f a) = g (f b)) =&gt; hf a b (hg (f a) (f b) h)</code></pre></details><details open class="appendix-solution" id="app-sol-89-3"><summary>练习 3 · surj_comp <span class="sol-meta">定理</span></summary><pre><code>theorem surj_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Surjective α β f) (hg : Surjective β γ g) :
+    Surjective α γ (fun (x : α) =&gt; g (f x)) :=
+  fun (c : γ) =&gt;
+    @Exists.elim β (fun (b : β) =&gt; g b = c) (∃ (a : α), g (f a) = c) (hg c)
+      (fun (b : β) (hb : g b = c) =&gt;
+        @Exists.elim α (fun (a : α) =&gt; f a = b) (∃ (a : α), g (f a) = c) (hf b)
+          (fun (a : α) (ha : f a = b) =&gt;
+            Exists.intro a
+              (@Eq.subst.{1} β (fun (x : β) =&gt; g x = c) b (f a) (@Eq.symm.{1} β (f a) b ha)
+                hb)))</code></pre></details><details open class="appendix-solution" id="app-sol-89-4"><summary>练习 4 · bij_comp <span class="sol-meta">定理</span></summary><pre><code>theorem bij_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Injective α β f) (hfs : Surjective α β f)
+    (hg : Injective β γ g) (hgs : Surjective β γ g) :
+    BijPair α γ (fun (x : α) =&gt; g (f x)) :=
+  And.intro
+    (inj_comp α β γ f g hf hg) (surj_comp α β γ f g hfs hgs)</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

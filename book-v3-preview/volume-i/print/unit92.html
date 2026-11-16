@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 92 等势的代数</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit92.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 92 等势的代数</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit92.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.3 像、原像与基数 · 单元 92</p><h1>等势的代数</h1><p class="note">Unit 92 — Algebra of Equinumerosity</p></header><section class="unit" id="unit-92">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-3.html">I.3</a> · 本章第 6 / 16 单元 · 全书第 92 / 112 单元</p>
+<h2><span class="unit-number">92</span><span>等势的代数</span></h2>
+<p class="unit-title-en">Unit 92 — Algebra of Equinumerosity</p>
+<p class="unit-meta">9 个定理 · 6 道练习 · <a href="#appendix-unit-92">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><details open class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li>等势的<strong>数据版定义</strong>展开 ✓（一对互逆映射 <span class="math">+</span> 四条件 ✓ —— 记法 <code>A ≈ B</code> ✓）；</li><li><code>Set.MapsTo</code> / <code>Set.LeftInvOn</code> 的定义展开 ✓ <span class="math">·</span> <strong>恒等映射在 <code>A</code> 上是 <code>A → A</code></strong> ✓；</li><li><strong>复合保 <code>MapsTo</code></strong> ✓（<code>A → B</code> 与 <code>B → C</code> 复合 <span class="math">⇒</span> <code>A → C</code> ✓）；</li><li><strong>旗舰一：等势自反</strong> ✓（<code>A ≈ A</code> ✓，用 <code>Set.Equiv.mk</code> ✓）；</li><li><strong>旗舰二：等势对称</strong> ✓（<code>A ≈ B ⇒ B ≈ A</code> ✓ —— <strong>把两把映射与两条互逆律"对调"</strong> ✓：<code>mk β α B A g f hg hf hfg hgf</code> ✓，注意后两条的<strong>顺序也换了</strong> ✓）。</li></ul></details></div></section>
+<h3 class="unit-subhead">92.1 三条定义展开（等势 <span class="math">·</span> 域条件 <span class="math">·</span> 左互逆律）</h3><div class="block prose intuition-only"><p>演示：等势是"一对互逆映射 <span class="math">+</span> 四条件"的打包（<strong>数据版</strong> ✓ —— 不是"存在双射"的 <span class="math">∃-</span>命题 ✓）。</p></div><article class="decl decl-theorem" id="decl-92-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_equiv_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_equiv_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
+    A ≈ B ↔ ∃ (f : α → β), Set.MapsTo α β f A B ∧
+      (∃ (g : β → α), Set.MapsTo β α g B A ∧
+        ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 7 行</summary><ol class="proof-steps"><li><pre><code>  @Iff.intro (A ≈ B) (∃ (f : α → β), Set.MapsTo α β f A B ∧
+      (∃ (g : β → α), Set.MapsTo β α g B A ∧
+        ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))))
+    (fun (h : A ≈ B) =&gt; h)
+    (fun (h : ∃ (f : α → β), Set.MapsTo α β f A B ∧
+        (∃ (g : β → α), Set.MapsTo β α g B A ∧
+          ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))) =&gt; h)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-92-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mapsTo_def</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  @Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+    (fun (h : Set.MapsTo α β f A B) =&gt; h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) =&gt; h)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-92-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_leftInv_def</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_leftInv_def (α : Type) (β : Type) (g : β → α) (f : α → β) (A : Set α) :
+    Set.LeftInvOn α β g f A ↔ ∀ (x : α), x ∈ A → g (f x) = x :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 3 行</summary><ol class="proof-steps"><li><pre><code>  @Iff.intro (Set.LeftInvOn α β g f A) (∀ (x : α), x ∈ A → g (f x) = x)
+    (fun (h : Set.LeftInvOn α β g f A) =&gt; h)
+    (fun (h : ∀ (x : α), x ∈ A → g (f x) = x) =&gt; h)-- 练习 1（T 类）：**恒等映射在 `A` 上是 `A → A`**。</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-92-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">mapsTo_id</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-92-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>关键件：定义展开（假设直接交出去）</p></div></div><pre class="exercise-statement"><code>theorem mapsTo_id (α : Type) (A : Set α) :
+    Set.MapsTo α α (fun (x : α) =&gt; x) A A := by
+  sorry</code></pre><details open class="solution-panel" id="sol-92-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem mapsTo_id (α : Type) (A : Set α) :
+    Set.MapsTo α α (fun (x : α) =&gt; x) A A :=
+  fun (x : α) (hx : x ∈ A) =&gt; hx</code></pre></div></details></div></article>
+<article class="exercise" id="ex-92-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">mapsTo_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-92-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类）：<strong>复合保 <code>MapsTo</code></strong>（<code>A → B</code> 与 <code>B → C</code> <span class="math">⇒</span> <code>A → C</code>）。思路：给 <code>x ∈ A</code>，先由前者得 <code>f x ∈ B</code>，再由后者得 <code>g (f x) ∈ C</code>。关键件：两个 <code>MapsTo</code> 假设按 点 <span class="math">·</span> 前提 作用</p></div></div><pre class="exercise-statement"><code>theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β) (C : Set γ)
+    (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β γ g B C) :
+    Set.MapsTo α γ (fun (x : α) =&gt; g (f x)) A C := by
+  sorry</code></pre><details open class="solution-panel" id="sol-92-2"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β) (C : Set γ)
+    (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β γ g B C) :
+    Set.MapsTo α γ (fun (x : α) =&gt; g (f x)) A C :=
+  fun (x : α) (hx : x ∈ A) =&gt; hg (f x) (hf x hx)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-92-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">leftInv_id</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-92-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong>恒等是恒等的左逆</strong>。关键件：<code>Eq.refl</code>（<strong>写全宇宙与类型</strong>）</p></div></div><pre class="exercise-statement"><code>theorem leftInv_id (α : Type) (A : Set α) :
+    Set.LeftInvOn α α (fun (x : α) =&gt; x) (fun (x : α) =&gt; x) A := by
+  sorry</code></pre><details open class="solution-panel" id="sol-92-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem leftInv_id (α : Type) (A : Set α) :
+    Set.LeftInvOn α α (fun (x : α) =&gt; x) (fun (x : α) =&gt; x) A :=
+  fun (x : α) (hx : x ∈ A) =&gt; @Eq.refl.{1} α x</code></pre></div></details></div></article>
+<article class="exercise" id="ex-92-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">equiv_refl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-92-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>旗舰一</strong>）：<strong>等势自反</strong>（<code>A ≈ A</code>）。关键件：<code>Set.Equiv.mk</code>（<strong>六实参按序给全</strong>：两把映射 <span class="math">+</span> 四条条件）<span class="math">·</span> 练习 1 / 练习 3（左右各一次）</p></div></div><pre class="exercise-statement"><code>theorem equiv_refl (α : Type) (A : Set α) : A ≈ A := by
+  sorry</code></pre><details open class="solution-panel" id="sol-92-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem equiv_refl (α : Type) (A : Set α) : A ≈ A :=
+  Set.Equiv.mk α α A A (fun (x : α) =&gt; x) (fun (x : α) =&gt; x)
+    (mapsTo_id α A) (mapsTo_id α A) (leftInv_id α A) (leftInv_id α A)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-92-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">equiv_symm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-92-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>旗舰二</strong>）：<strong>等势对称</strong>（<code>A ≈ B ⇒ B ≈ A</code>）。思路：用 <code>Set.Equiv.elim</code> 拆出 <code>f, g</code> 与四条条件，再用 <code>Set.Equiv.mk</code> 反过来装 —— <strong>两把映射对调、后两条互逆律也对调</strong>。关键件：<code>Set.Equiv.elim</code> <span class="math">·</span> <code>Set.Equiv.mk</code>（⚠ 参数顺序：<code>mk β α B A g f hg hf hfg hgf</code>）</p></div></div><pre class="exercise-statement"><code>theorem equiv_symm (α : Type) (β : Type) (A : Set α) (B : Set β) (h : A ≈ B) :
+    B ≈ A := by
+  sorry</code></pre><details open class="solution-panel" id="sol-92-5"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem equiv_symm (α : Type) (β : Type) (A : Set α) (B : Set β) (h : A ≈ B) :
+    B ≈ A :=
+  Set.Equiv.elim α β A B (B ≈ A) h
+    (fun (f : α → β) (g : β → α) (hf : Set.MapsTo α β f A B)
+      (hg : Set.MapsTo β α g B A) (hgf : Set.LeftInvOn α β g f A)
+      (hfg : Set.RightInvOn α β f g B) =&gt;
+      Set.Equiv.mk β α B A g f hg hf hfg hgf)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-92-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">equiv_elim_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-92-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（T 类）：<strong>把消去子原样交出去</strong>（参数一次给全）。关键件：<code>Set.Equiv.elim</code></p></div></div><pre class="exercise-statement"><code>theorem equiv_elim_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (C : Prop)
+    (h : A ≈ B)
+    (k : ∀ (f : α → β) (g : β → α), Set.MapsTo α β f A B → Set.MapsTo β α g B A →
+      Set.LeftInvOn α β g f A → Set.RightInvOn α β f g B → C) : C := by
+  sorry</code></pre><details open class="solution-panel" id="sol-92-6"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem equiv_elim_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (C : Prop)
+    (h : A ≈ B)
+    (k : ∀ (f : α → β) (g : β → α), Set.MapsTo α β f A B → Set.MapsTo β α g B A →
+      Set.LeftInvOn α β g f A → Set.RightInvOn α β f g B → C) : C :=
+  Set.Equiv.elim α β A B C h k</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§3.6 / §6.1</strong> <span class="math">·Halmos</span>《Naive Set Theory》<strong>§8 / §22</strong>。大纲 §4.1（<strong>把 I.4 的函数代数接到等势</strong> ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>写法要点</strong> ✓：<code>Set.Equiv.mk</code> <strong>内部是 <code>by exact …</code></strong> ✓（lib 的注释说明了原因 ✓）<span class="math">⇒</span> 当普通定理调用即可 ✓；拆 <code>A ≈ B</code> 用 <strong><code>Set.Equiv.elim</code></strong> ✓（它一次交出两把映射与四条条件 ✓，<code>C</code> 必须是 <code>Prop</code> ✓）。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <strong><code>lib.Equiv</code></strong>（<code>≈</code> 在这里 ✓）。</p></div><div class="block prose intuition-only"><p>依赖：单元⑨（等势）<span class="math">·</span> 单元87–91（单射/满射/双射/逆）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit74.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">原像与广义并交的分配</span></a><a class="unit-nav-home" href="../chapters/i-3.html#units">目录</a><a class="unit-nav-link" href="../units/unit93.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">等势的传递</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-92"><h3><a href="#top">等势的代数</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-92-1"><summary>练习 1 · mapsTo_id <span class="sol-meta">定理</span></summary><pre><code>theorem mapsTo_id (α : Type) (A : Set α) :
+    Set.MapsTo α α (fun (x : α) =&gt; x) A A :=
+  fun (x : α) (hx : x ∈ A) =&gt; hx</code></pre></details><details open class="appendix-solution" id="app-sol-92-2"><summary>练习 2 · mapsTo_comp <span class="sol-meta">定理</span></summary><pre><code>theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β) (C : Set γ)
+    (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β γ g B C) :
+    Set.MapsTo α γ (fun (x : α) =&gt; g (f x)) A C :=
+  fun (x : α) (hx : x ∈ A) =&gt; hg (f x) (hf x hx)</code></pre></details><details open class="appendix-solution" id="app-sol-92-3"><summary>练习 3 · leftInv_id <span class="sol-meta">定理</span></summary><pre><code>theorem leftInv_id (α : Type) (A : Set α) :
+    Set.LeftInvOn α α (fun (x : α) =&gt; x) (fun (x : α) =&gt; x) A :=
+  fun (x : α) (hx : x ∈ A) =&gt; @Eq.refl.{1} α x</code></pre></details><details open class="appendix-solution" id="app-sol-92-4"><summary>练习 4 · equiv_refl <span class="sol-meta">定理</span></summary><pre><code>theorem equiv_refl (α : Type) (A : Set α) : A ≈ A :=
+  Set.Equiv.mk α α A A (fun (x : α) =&gt; x) (fun (x : α) =&gt; x)
+    (mapsTo_id α A) (mapsTo_id α A) (leftInv_id α A) (leftInv_id α A)</code></pre></details><details open class="appendix-solution" id="app-sol-92-5"><summary>练习 5 · equiv_symm <span class="sol-meta">定理</span></summary><pre><code>theorem equiv_symm (α : Type) (β : Type) (A : Set α) (B : Set β) (h : A ≈ B) :
+    B ≈ A :=
+  Set.Equiv.elim α β A B (B ≈ A) h
+    (fun (f : α → β) (g : β → α) (hf : Set.MapsTo α β f A B)
+      (hg : Set.MapsTo β α g B A) (hgf : Set.LeftInvOn α β g f A)
+      (hfg : Set.RightInvOn α β f g B) =&gt;
+      Set.Equiv.mk β α B A g f hg hf hfg hgf)</code></pre></details><details open class="appendix-solution" id="app-sol-92-6"><summary>练习 6 · equiv_elim_apply <span class="sol-meta">定理</span></summary><pre><code>theorem equiv_elim_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (C : Prop)
+    (h : A ≈ B)
+    (k : ∀ (f : α → β) (g : β → α), Set.MapsTo α β f A B → Set.MapsTo β α g B A →
+      Set.LeftInvOn α β g f A → Set.RightInvOn α β f g B → C) : C :=
+  Set.Equiv.elim α β A B C h k</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

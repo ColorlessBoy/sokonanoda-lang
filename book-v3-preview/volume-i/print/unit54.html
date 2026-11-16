@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 54 等势的代数的开端</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit54.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 54 等势的代数的开端</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit54.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.8 基数与基数算术 · 单元 54</p><h1>等势的代数的开端</h1><p class="note">Unit 54 — Beginning the Algebra of Equinumerosity</p></header><section class="unit" id="unit-54">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-8.html">I.8</a> · 本章第 3 / 4 单元 · 全书第 54 / 112 单元</p>
+<h2><span class="unit-number">54</span><span>等势的代数的开端</span></h2>
+<p class="unit-title-en">Unit 54 — Beginning the Algebra of Equinumerosity</p>
+<p class="unit-meta">10 个定理 · 7 道练习 · 12 条提示 · <a href="#appendix-unit-54">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§6.1</strong>（equinumerosity 的三条基本性质）；Halmos《Naive Set Theory》<strong>§22</strong> 前夜。大纲：<code>set-theory-syllabus.md</code> §4.1（<strong>I.8 章深化</strong> —— 单元⑲⑳ 只做了 <code>≼</code>（可数进），本单元做 <code>≈</code>（等势）这一侧的<strong>代数</strong>：自反 <span class="math">·</span> 对称 <span class="math">·</span> 与 <code>≼</code> 的关系 ✓）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>两条展开引理</strong>（<code>≼</code> 就是"存在单射"；<code>≈</code> 就是"存在互逆的一对"）；</li><li><strong>恒等映射在任意子集上单射</strong>（自造 —— 库里没有 ✓）；</li><li><strong><code>≼</code> 自反</strong> <span class="math">·</span> <strong>子集 <span class="math">⇒</span> <code>≼</code></strong>（<code>A ⊆ B ⇒ A ≼ B</code> ✓ 由恒等映射给出）；</li><li><strong>旗舰：<code>≈</code> 自反</strong>（单位映射自配 ✓）<span class="math">·</span> <strong><code>≈</code> 对称</strong>（把互逆的那一对<strong>对调</strong> ✓）。</li></ul></div><h3 class="unit-subhead">54.1 三条库引理（<code>≼</code> 的展开 <span class="math">·</span> <code>≈</code> 的构造子 <span class="math">·</span> 恒等映射的单射性）</h3><div class="block prose intuition-only"><p>演示：<code>≼</code> 的展开（"存在一把单射"）。</p></div><article class="decl decl-theorem" id="decl-54-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_le_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_le_def (α β : Type) (A : Set α) (B : Set β) :
+    A ≼ B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.le_def α β A B</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-54-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_injOn_def</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_injOn_def (α β : Type) (f : α → β) (A : Set α) :
+    Set.InjOn α β f A ↔
+      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → @Eq.{1} β (f x) (f y) → @Eq.{1} α x y :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 2 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参</code></pre></li><li><pre><code>  Set.injOn_def α β f A-- 演示（**已在画布内证好**）：`≈` 的构造子（给一对互逆映射即可）。</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-54-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_equiv_mk</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_equiv_mk (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β α g B A)
+    (hgf : Set.LeftInvOn α β g f A) (hfg : Set.RightInvOn α β f g B) : A ≈ B :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.Equiv.mk α β A B f g hf hg hgf hfg</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">54.2 恒等映射 <span class="math">·</span> <code>≼</code> 自反 <span class="math">·</span> 子集 <span class="math">⇒</span> <code>≼</code></h3><hr class="section-rule"><article class="exercise" id="ex-54-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">injOn_id</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-54-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（L 类，<strong>自造引理</strong>）：<strong>恒等映射在任意子集上单射</strong>。</p></div><div class="block prose intuition-only"><p>库里的形态是 <code>∀ x, x ∈ A → ∀ y, y ∈ A → f x = f y → x = y</code> ✓ 别写错 ✗）</p></div></div><pre class="exercise-statement"><code>theorem injOn_id (α : Type) (A : Set α) : Set.InjOn α α (fun (x : α) =&gt; x) A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.injOn_def</code>（<strong>先 <span class="math">λ</span> 绑定、再 <code>Iff.mpr</code></strong> ✓ —— 配方 ✓；</p></div></details></div><details open class="solution-panel" id="sol-54-1"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem injOn_id (α : Type) (A : Set α) : Set.InjOn α α (fun (x : α) =&gt; x) A :=
+  (fun (hu : ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → @Eq.{1} α x y → @Eq.{1} α x y) =&gt; hu)  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+    ((fun (hv : Set.InjOn α α (fun (x : α) =&gt; x) A ↔
+        ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → @Eq.{1} α x y → @Eq.{1} α x y) =&gt; Iff.mpr hv)  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+      (Set.injOn_def α α (fun (x : α) =&gt; x) A)
+      (fun (x : α) (hx : x ∈ A) =&gt; fun (y : α) (hy : y ∈ A) =&gt;
+        fun (hxy : @Eq.{1} α x y) =&gt; hxy))  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参</code></pre></div></details></div></article>
+<article class="exercise" id="ex-54-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">le_refl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-54-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong><code>≼</code> 自反</strong>（恒等映射当见证）。</p></div></div><pre class="exercise-statement"><code>theorem le_refl (α : Type) (A : Set α) : A ≼ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.Le.intro</code>（<strong>参数：两个论域 <span class="math">·</span> 两个集合 <span class="math">·</span> 映射 <span class="math">·</span> 单射 <span class="math">·</span> 送进</strong> ✓）<span class="math">·</span> 练习 1 ✓</p></div></details></div><details open class="solution-panel" id="sol-54-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem le_refl (α : Type) (A : Set α) : A ≼ A :=
+  Set.Le.intro α α A A (fun (x : α) =&gt; x) (injOn_id α A)
+    (fun (x : α) (hx : x ∈ A) =&gt; hx)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-54-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">subset_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-54-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong>子集 <span class="math">⇒</span> <code>≼</code></strong>（同一把恒等映射，只是"送进"那一支改用包含假设）。</p></div></div><pre class="exercise-statement"><code>theorem subset_le (α : Type) (A B : Set α) (h : A ⊆ B) : A ≼ B := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.Le.intro</code> <span class="math">·</span> 练习 <span class="math">1 ·</span> 包含假设<strong>按 点 <span class="math">·</span> 前提 应用</strong> ✓</p></div></details></div><details open class="solution-panel" id="sol-54-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem subset_le (α : Type) (A B : Set α) (h : A ⊆ B) : A ≼ B :=
+  Set.Le.intro α α A B (fun (x : α) =&gt; x) (injOn_id α A)
+    (fun (x : α) (hx : x ∈ A) =&gt; h x hx)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">54.3 <code>≈</code> 的代数：自反 <span class="math">·</span> 对称</h3><hr class="section-rule"><article class="exercise" id="ex-54-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">equiv_refl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-54-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>旗舰一向</strong>）：<strong><code>≈</code> 自反</strong>（单位映射与它自己互逆）。</p></div><div class="block prose intuition-only"><p><code>Eq.refl</code>（<strong>写全宇宙层级与论域</strong>）✓</p></div></div><pre class="exercise-statement"><code>theorem equiv_refl (α : Type) (A : Set α) : A ≈ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.Equiv.mk</code>（<strong>要 4 条证明</strong>：两块 <code>MapsTo</code> <span class="math">+</span> 左逆 <span class="math">+</span> 右逆 ✗ 少一个就判红）<span class="math">·</span></p></div></details></div><details open class="solution-panel" id="sol-54-4"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem equiv_refl (α : Type) (A : Set α) : A ≈ A :=
+  Set.Equiv.mk α α A A (fun (x : α) =&gt; x) (fun (x : α) =&gt; x)
+    (fun (x : α) (hx : x ∈ A) =&gt; hx)
+    (fun (x : α) (hx : x ∈ A) =&gt; hx)
+    (fun (x : α) (hx : x ∈ A) =&gt; @Eq.refl.{1} α x)
+    (fun (x : α) (hx : x ∈ A) =&gt; @Eq.refl.{1} α x)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-54-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">equiv_symm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-54-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>旗舰另一向</strong>）：<strong><code>≈</code> 对称</strong>（把互逆的那一对<strong>对调</strong>）。</p></div><div class="block prose intuition-only"><p>把 <code>g</code>、<code>f</code> <strong>换个位置</strong>装回去（<strong>两条"逆"也要互换</strong> ✓）。</p></div><div class="block prose intuition-only"><p><code>Set.Equiv.mk</code>（四条证据的顺序：<code>hg hf hfg hgf</code> ✓ —— <strong>后两条要对调</strong> ✓）</p></div></div><pre class="exercise-statement"><code>theorem equiv_symm (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : B ≈ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用 <code>Set.Equiv.elim</code> 拆出 <code>f</code>、<code>g</code> 与四条证据；再用 <code>Set.Equiv.mk</code></p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.Equiv.elim</code>（<strong>参数：两个论域 <span class="math">·</span> 两个集合 <span class="math">·</span> 目标命题 <span class="math">·</span> 假设 <span class="math">·</span> 处理函数</strong>）<span class="math">·</span></p></div></details></div><details open class="solution-panel" id="sol-54-5"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem equiv_symm (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : B ≈ A :=
+  Set.Equiv.elim α β A B (B ≈ A) h
+    (fun (f : α → β) (g : β → α)
+      (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β α g B A)
+      (hgf : Set.LeftInvOn α β g f A) (hfg : Set.RightInvOn α β f g B) =&gt;
+      Set.Equiv.mk β α B A g f hg hf hfg hgf)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-54-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">le_of_equiv</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-54-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类）：<strong><code>≈</code> <span class="math">⇒</span> <code>≼</code></strong>（等势比单射更强 —— 把互逆的一对里的 <code>f</code> 交出去就行）。</p></div></div><pre class="exercise-statement"><code>theorem le_of_equiv (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : A ≼ B := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>Set.Equiv.elim</code> 拆出 <code>f</code>、<code>g</code> 与四条证据；要证 <code>f</code> 在 <code>A</code> 上单射：给定 <code>f x = f y</code>，先沿这个等式把 <code>g (f x) = g (f x)</code> <strong>搬运</strong>成 <code>g (f x) = g (f y)</code>，再用左逆律把两头换成 <code>x</code>、<code>y</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A ≈ B → A ≼ B</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.Equiv.elim</code> / <code>Set.Le.intro</code> <span class="math">·</span> <strong>搬运引理 <code>rel_subst_right</code></strong>（关系取 <code>fun u v =&gt; g u = g v</code> ✓ —— <strong>别用 <code>congrArg</code></strong> ✗：那个位置的宇宙层级解不出来，本单元实测判红过一次 ✓）<span class="math">·</span> 左逆律 <code>hgf</code>（两个点各用一次，一次正一次反）✓</p></div></details></div><details open class="solution-panel" id="sol-54-6"><summary>查看解答 <span class="sol-meta">定理 · 15 行</span></summary><div class="solution-body"><pre><code>theorem le_of_equiv (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : A ≼ B :=
+  Set.Equiv.elim α β A B (A ≼ B) h
+    (fun (f : α → β) (g : β → α)
+      (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β α g B A)
+      (hgf : Set.LeftInvOn α β g f A) (hfg : Set.RightInvOn α β f g B) =&gt;
+      Set.Le.intro α β A B f
+        (fun (x : α) (hx : x ∈ A) =&gt; fun (y : α) (hy : y ∈ A) =&gt;
+          fun (hxy : @Eq.{1} β (f x) (f y)) =&gt;  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+            @Eq.trans.{1} α x (g (f y)) y
+              (@Eq.trans.{1} α x (g (f x)) (g (f y))
+                (@Eq.symm.{1} α (g (f x)) x (hgf x hx))
+                (rel_subst_right β (fun (u : β) (v : β) =&gt; @Eq.{1} α (g u) (g v))  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+                  (f x) (f x) (f y) hxy (@Eq.refl.{1} α (g (f x)))))
+              (hgf y hy))
+        hf)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-54-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">equiv_trans</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-54-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类，<strong>收尾</strong>）：<strong><code>≈</code> 传递</strong>（复合两个互逆对 —— I.8 的三条等价律到此齐了 ✓）。</p></div></div><pre class="exercise-statement"><code>theorem equiv_trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (h1 : A ≈ B) (h2 : B ≈ C) : A ≈ C := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两次 <code>Set.Equiv.elim</code> 拆出两对互逆映射 <code>(f1,g1)</code>、<code>(f2,g2)</code>；用 <code>Set.Equiv.mk</code> 交出<strong>复合</strong>的那一对 <code>(f2 ∘ f1, g1 ∘ g2)</code>；剩下的两条逆律 <strong>不用手写搬运</strong> —— 库里已经备好 <strong><code>Set.Equiv.comp_left_aux</code></strong> / <strong><code>Set.Equiv.comp_right_aux</code></strong>（第 70–72 轮沉淀进去的"难写的那两步" ✓）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A ≈ B → B ≈ C → A ≈ C</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.Equiv.elim</code>（两次）<span class="math">·</span> <code>Set.Equiv.mk</code>（四条证据 ✓）<span class="math">·</span><strong><code>comp_left_aux</code> / <code>comp_right_aux</code></strong>（各一次，参数照库签名给 ✓）<span class="math">·</span> <code>MapsTo</code> 那两条靠"外层的送进 <span class="math">+</span> 内层的送进"直接喂 ✓</p></div></details></div><details open class="solution-panel" id="sol-54-7"><summary>查看解答 <span class="sol-meta">定理 · 17 行</span></summary><div class="solution-body"><pre><code>theorem equiv_trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (h1 : A ≈ B) (h2 : B ≈ C) : A ≈ C :=
+  Set.Equiv.elim α β A B (A ≈ C) h1
+    (fun (f1 : α → β) (g1 : β → α)
+      (hf1 : Set.MapsTo α β f1 A B) (hg1 : Set.MapsTo β α g1 B A)
+      (hgf1 : Set.LeftInvOn α β g1 f1 A) (hfg1 : Set.RightInvOn α β f1 g1 B) =&gt;
+      Set.Equiv.elim β γ B C (A ≈ C) h2
+        (fun (f2 : β → γ) (g2 : γ → β)
+          (hf2 : Set.MapsTo β γ f2 B C) (hg2 : Set.MapsTo γ β g2 C B)
+          (hgf2 : Set.LeftInvOn β γ g2 f2 B) (hfg2 : Set.RightInvOn β γ f2 g2 C) =&gt;
+          Set.Equiv.mk α γ A C (fun (a : α) =&gt; f2 (f1 a)) (fun (c : γ) =&gt; g1 (g2 c))
+            (fun (a : α) (ha : a ∈ A) =&gt; hf2 (f1 a) (hf1 a ha))
+            (fun (c : γ) (hc : c ∈ C) =&gt; hg1 (g2 c) (hg2 c hc))
+            (fun (a : α) (ha : a ∈ A) =&gt;
+              Set.Equiv.comp_left_aux α β γ A B f1 g1 f2 g2 hgf1 hgf2 hf1 a ha)
+            (fun (c : γ) (hc : c ∈ C) =&gt;
+              Set.Equiv.comp_right_aux α β γ B C f1 g1 f2 g2 hfg1 hfg2 hg2 c hc)))</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>本单元的写法纪律</strong>（第 601 轮换来的 ✓）：<strong>先读库签名，再写调用</strong> ——<code>lib/Equiv</code> 里<strong>只有</strong>这些名字：<code>Set.MapsTo</code> <span class="math">·</span> <code>Set.LeftInvOn</code> <span class="math">·</span> <code>Set.RightInvOn</code> <span class="math">·</span><code>Set.Equiv</code><span class="math">(+</span><code>mk</code>/<code>elim</code><span class="math">) ·</span> <code>Set.InjOn</code><span class="math">(+</span><code>injOn_def</code><span class="math">) ·</span> <code>Set.Le</code><span class="math">(+</span><code>le_def</code>/<code>intro</code>/<code>elim</code>) ✓（<strong>没有</strong> <code>equiv_def</code>、<strong>没有</strong> <code>mapsTo_def</code>、<strong>没有</strong> <code>Set.injOn_id</code> ✗ —— 本轮实测踩过 ✓）。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.Equiv</code> <span class="math">·</span> <code>lib.Set</code> <span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元⑲（<code>≼</code> 与基数比较）<span class="math">·</span> 单元⑳（基数算术）<span class="math">·</span> 单元⑨（等势与 Cantor）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit20.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">基数算术：积</span></a><a class="unit-nav-home" href="../chapters/i-8.html#units">目录</a><a class="unit-nav-link" href="../units/unit113.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">连续统假设（CH）与 Cantor 定理</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-54"><h3><a href="#top">等势的代数的开端</a></h3><p class="appendix-meta">7 道练习 · 7 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-54-1"><summary>练习 1 · injOn_id <span class="sol-meta">定理</span></summary><pre><code>theorem injOn_id (α : Type) (A : Set α) : Set.InjOn α α (fun (x : α) =&gt; x) A :=
+  (fun (hu : ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → @Eq.{1} α x y → @Eq.{1} α x y) =&gt; hu)  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+    ((fun (hv : Set.InjOn α α (fun (x : α) =&gt; x) A ↔
+        ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → @Eq.{1} α x y → @Eq.{1} α x y) =&gt; Iff.mpr hv)  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+      (Set.injOn_def α α (fun (x : α) =&gt; x) A)
+      (fun (x : α) (hx : x ∈ A) =&gt; fun (y : α) (hy : y ∈ A) =&gt;
+        fun (hxy : @Eq.{1} α x y) =&gt; hxy))  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参</code></pre></details><details open class="appendix-solution" id="app-sol-54-2"><summary>练习 2 · le_refl <span class="sol-meta">定理</span></summary><pre><code>theorem le_refl (α : Type) (A : Set α) : A ≼ A :=
+  Set.Le.intro α α A A (fun (x : α) =&gt; x) (injOn_id α A)
+    (fun (x : α) (hx : x ∈ A) =&gt; hx)</code></pre></details><details open class="appendix-solution" id="app-sol-54-3"><summary>练习 3 · subset_le <span class="sol-meta">定理</span></summary><pre><code>theorem subset_le (α : Type) (A B : Set α) (h : A ⊆ B) : A ≼ B :=
+  Set.Le.intro α α A B (fun (x : α) =&gt; x) (injOn_id α A)
+    (fun (x : α) (hx : x ∈ A) =&gt; h x hx)</code></pre></details><details open class="appendix-solution" id="app-sol-54-4"><summary>练习 4 · equiv_refl <span class="sol-meta">定理</span></summary><pre><code>theorem equiv_refl (α : Type) (A : Set α) : A ≈ A :=
+  Set.Equiv.mk α α A A (fun (x : α) =&gt; x) (fun (x : α) =&gt; x)
+    (fun (x : α) (hx : x ∈ A) =&gt; hx)
+    (fun (x : α) (hx : x ∈ A) =&gt; hx)
+    (fun (x : α) (hx : x ∈ A) =&gt; @Eq.refl.{1} α x)
+    (fun (x : α) (hx : x ∈ A) =&gt; @Eq.refl.{1} α x)</code></pre></details><details open class="appendix-solution" id="app-sol-54-5"><summary>练习 5 · equiv_symm <span class="sol-meta">定理</span></summary><pre><code>theorem equiv_symm (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : B ≈ A :=
+  Set.Equiv.elim α β A B (B ≈ A) h
+    (fun (f : α → β) (g : β → α)
+      (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β α g B A)
+      (hgf : Set.LeftInvOn α β g f A) (hfg : Set.RightInvOn α β f g B) =&gt;
+      Set.Equiv.mk β α B A g f hg hf hfg hgf)</code></pre></details><details open class="appendix-solution" id="app-sol-54-6"><summary>练习 6 · le_of_equiv <span class="sol-meta">定理</span></summary><pre><code>theorem le_of_equiv (α β : Type) (A : Set α) (B : Set β) (h : A ≈ B) : A ≼ B :=
+  Set.Equiv.elim α β A B (A ≼ B) h
+    (fun (f : α → β) (g : β → α)
+      (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β α g B A)
+      (hgf : Set.LeftInvOn α β g f A) (hfg : Set.RightInvOn α β f g B) =&gt;
+      Set.Le.intro α β A B f
+        (fun (x : α) (hx : x ∈ A) =&gt; fun (y : α) (hy : y ∈ A) =&gt;
+          fun (hxy : @Eq.{1} β (f x) (f y)) =&gt;  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+            @Eq.trans.{1} α x (g (f y)) y
+              (@Eq.trans.{1} α x (g (f x)) (g (f y))
+                (@Eq.symm.{1} α (g (f x)) x (hgf x hx))
+                (rel_subst_right β (fun (u : β) (v : β) =&gt; @Eq.{1} α (g u) (g v))  -- soko:notation-ok: G-73 形状 ②：`≼`/`≈`/`Set.*` 是 def 头，这些位置补不出前导实参
+                  (f x) (f x) (f y) hxy (@Eq.refl.{1} α (g (f x)))))
+              (hgf y hy))
+        hf)</code></pre></details><details open class="appendix-solution" id="app-sol-54-7"><summary>练习 7 · equiv_trans <span class="sol-meta">定理</span></summary><pre><code>theorem equiv_trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (h1 : A ≈ B) (h2 : B ≈ C) : A ≈ C :=
+  Set.Equiv.elim α β A B (A ≈ C) h1
+    (fun (f1 : α → β) (g1 : β → α)
+      (hf1 : Set.MapsTo α β f1 A B) (hg1 : Set.MapsTo β α g1 B A)
+      (hgf1 : Set.LeftInvOn α β g1 f1 A) (hfg1 : Set.RightInvOn α β f1 g1 B) =&gt;
+      Set.Equiv.elim β γ B C (A ≈ C) h2
+        (fun (f2 : β → γ) (g2 : γ → β)
+          (hf2 : Set.MapsTo β γ f2 B C) (hg2 : Set.MapsTo γ β g2 C B)
+          (hgf2 : Set.LeftInvOn β γ g2 f2 B) (hfg2 : Set.RightInvOn β γ f2 g2 C) =&gt;
+          Set.Equiv.mk α γ A C (fun (a : α) =&gt; f2 (f1 a)) (fun (c : γ) =&gt; g1 (g2 c))
+            (fun (a : α) (ha : a ∈ A) =&gt; hf2 (f1 a) (hf1 a ha))
+            (fun (c : γ) (hc : c ∈ C) =&gt; hg1 (g2 c) (hg2 c hc))
+            (fun (a : α) (ha : a ∈ A) =&gt;
+              Set.Equiv.comp_left_aux α β γ A B f1 g1 f2 g2 hgf1 hgf2 hf1 a ha)
+            (fun (c : γ) (hc : c ∈ C) =&gt;
+              Set.Equiv.comp_right_aux α β γ B C f1 g1 f2 g2 hfg1 hfg2 hg2 c hc)))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

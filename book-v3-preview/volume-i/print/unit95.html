@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 95 对角线的一般形态</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit95.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 95 对角线的一般形态</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit95.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.4 论域、悖论与综合 · 单元 95</p><h1>对角线的一般形态</h1><p class="note">Unit 95 — The Diagonal Argument, General Form</p></header><section class="unit" id="unit-95">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-4.html">I.4</a> · 本章第 12 / 12 单元 · 全书第 95 / 112 单元</p>
+<h2><span class="unit-number">95</span><span>对角线的一般形态</span></h2>
+<p class="unit-title-en">Unit 95 — The Diagonal Argument, General Form</p>
+<p class="unit-meta">1 个定义 · 8 个定理 · 5 道练习 · <a href="#appendix-unit-95">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>命题层的对角线</strong> ✓：<strong>没有命题是它自己的否定</strong> ✓（<code>(P → ¬ P) → (¬ P → P) → False</code> ✓，以及"不存在这样的 <code>P</code>" ✓）；</li><li><strong>函数层的对角线</strong>（单元94 的结论，本单元复用并<strong>内联</strong>写出 ✓）：<code>¬ SurjOnSets α S</code> ✓ <span class="math">=</span> <strong>Cantor 定理</strong> ✓。</li></ul></div></div></section>
+<article class="decl decl-def" id="decl-95-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">SurjOnSets</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def SurjOnSets (α : Type) (S : α → Set α) : Prop :=
+  ∀ (B : Set α), ∃ (a : α), ∀ (x : α), S a x ↔ B x</code></pre></div></article>
+<article class="decl decl-theorem" id="decl-95-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_not_def</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Iff.intro (fun (h : ¬ P) =&gt; h) (fun (h : P → False) =&gt; h)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-95-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_and_left</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_and_left (P : Prop) (Q : Prop) (h : P ∧ Q) : P :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  And.left h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-95-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_and_right</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_and_right (P : Prop) (Q : Prop) (h : P ∧ Q) : Q :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  And.right h</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-95-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">prop_neg_ev</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-95-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>思路：在 <code>P</code> 的假设下，先得 <code>¬ P</code>，再把它作用在同一个假设上。关键件：把 <code>h1</code> <strong>用一次后再作用一次</strong>（<code>(h1 hP) hP</code>）</p></div></div><pre class="exercise-statement"><code>theorem prop_neg_ev (P : Prop) (h1 : P → ¬ P) : P → False := by
+  sorry</code></pre><details open class="solution-panel" id="sol-95-1"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem prop_neg_ev (P : Prop) (h1 : P → ¬ P) : P → False :=
+  fun (hP : P) =&gt; (h1 hP) hP</code></pre></div></details></div></article>
+<article class="exercise" id="ex-95-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">no_prop_fixpoint</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-95-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类，<strong>旗舰一</strong>）：<strong>没有命题满足"是自身否定"</strong>（拆成两条蕴含的形态）。思路：由 <code>h2</code> 与练习 1 得 <code>P</code>，再由练习 1 打自己。关键件：练习 1（两次）<span class="math">·</span> <code>h2</code></p></div></div><pre class="exercise-statement"><code>theorem no_prop_fixpoint (P : Prop) (h1 : P → ¬ P) (h2 : ¬ P → P) : False := by
+  sorry</code></pre><details open class="solution-panel" id="sol-95-2"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem no_prop_fixpoint (P : Prop) (h1 : P → ¬ P) (h2 : ¬ P → P) : False :=
+  prop_neg_ev P h1 (h2 (prop_neg_ev P h1))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-95-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">no_prop_fixpoint_exists</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-95-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<strong>不存在这样的命题</strong>（把 <code>∃</code> 拆开）。关键件：<code>Exists.elim</code>（<strong>动机位放 <code>False</code></strong> —— 这是"函数位置"不是 <code>Or.elim</code> 的动机位 ✓）<span class="math">·</span> <code>And.left</code> / <code>And.right</code>（<strong>写全前导命题</strong>）<span class="math">·</span> 练习 2</p></div></div><pre class="exercise-statement"><code>theorem no_prop_fixpoint_exists :
+    ¬ (∃ (P : Prop), (P → ¬ P) ∧ (¬ P → P)) := by
+  sorry</code></pre><details open class="solution-panel" id="sol-95-3"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem no_prop_fixpoint_exists :
+    ¬ (∃ (P : Prop), (P → ¬ P) ∧ (¬ P → P)) :=
+  fun (h : ∃ (P : Prop), (P → ¬ P) ∧ (¬ P → P)) =&gt;
+    @Exists.elim Prop (fun (P : Prop) =&gt; (P → ¬ P) ∧ (¬ P → P)) False h  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+      (fun (P : Prop) (hh : (P → ¬ P) ∧ (¬ P → P)) =&gt;
+        no_prop_fixpoint P (And.left hh)
+          (And.right hh))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-95-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">surjOnSets_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-95-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：<strong>满射的直接用法</strong>（给 <code>B</code> 取原像）。关键件：把假设直接作用（<code>h B</code>）</p></div></div><pre class="exercise-statement"><code>theorem surjOnSets_apply (α : Type) (S : α → Set α) (h : SurjOnSets α S) (B : Set α) :
+    ∃ (a : α), ∀ (x : α), S a x ↔ B x := by
+  sorry</code></pre><details open class="solution-panel" id="sol-95-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem surjOnSets_apply (α : Type) (S : α → Set α) (h : SurjOnSets α S) (B : Set α) :
+    ∃ (a : α), ∀ (x : α), S a x ↔ B x :=
+  h B</code></pre></div></details></div></article>
+<article class="exercise" id="ex-95-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">diag_not_surj</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-95-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>旗舰二</strong>）：<strong>没有到幂集的满射</strong>（Cantor 定理）—— 本单元<strong>内联</strong>写出。思路：取对角线集 <code>fun x =&gt; ¬ (S x x)</code>；把满射给出的逐点 <code>↔</code> <strong>拆成两条蕴含</strong> <code>h1</code> / <code>h2</code>；<code>h1 a</code> 与 <code>h2 a</code> 互相打。关键件：练习 <span class="math">4 ·</span> <code>Exists.elim</code> <span class="math">·</span> <code>Iff.mp</code> / <code>Iff.mpr</code>（<strong>拆开用</strong> ✓）<span class="math">·</span> <code>h1</code> / <code>h2</code>（拆出来的两条蕴含 ✓）</p></div></div><pre class="exercise-statement"><code>theorem diag_not_surj (α : Type) (S : α → Set α) : ¬ (SurjOnSets α S) := by
+  sorry</code></pre><details open class="solution-panel" id="sol-95-5"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem diag_not_surj (α : Type) (S : α → Set α) : ¬ (SurjOnSets α S) :=
+  fun (h : SurjOnSets α S) =&gt;
+    @Exists.elim α (fun (a : α) =&gt; ∀ (x : α), S a x ↔ ¬ (S x x)) False
+      (surjOnSets_apply α S h (fun (x : α) =&gt; ¬ (S x x)))
+      (fun (a : α) (ha : ∀ (x : α), S a x ↔ ¬ (S x x)) =&gt;
+        (fun (h1 : ∀ (x : α), S a x → ¬ (S x x)) =&gt;
+          (fun (h2 : ∀ (x : α), ¬ (S x x) → S a x) =&gt;
+            (fun (hx : S a a) =&gt; (h1 a hx) hx) (h2 a (fun (hx : S a a) =&gt; (h1 a hx) hx)))
+            (fun (x : α) (hx : ¬ (S x x)) =&gt; Iff.mpr (ha x) hx))
+          (fun (x : α) (hx : S a x) =&gt; Iff.mp (ha x) hx))</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§6.1</strong> <span class="math">·Halmos</span>《Naive Set Theory》<strong>§22 / §23</strong>。大纲 §4.1（<strong>接单元94</strong> ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>写法纪律（承接单元94 ✓）</strong>：<strong>绑定注解里出现 <code>↔</code>、右边是 <code>¬</code> 时判红</strong> ✗ <span class="math">⇒</span> 一律<strong>拆成两条蕴含</strong>（<code>P → ¬ P</code> 与 <code>¬ P → P</code> ✓），<strong>用的时候</strong>才 <code>Iff.mp</code> / <code>Iff.mpr</code> ✓。本单元全部按这个配方写 <span class="math">⇒</span> <strong>一次判绿</strong> ✓。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元⑫/㊸（Cantor 与幂集）<span class="math">·</span> 单元94（对角线，函数版）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit94.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">Cantor 对角线（函数版）</span></a><a class="unit-nav-home" href="../chapters/i-4.html#units">目录</a><a class="unit-nav-link" href="../units/unit13.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">偏序、全序与严格序</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-95"><h3><a href="#top">对角线的一般形态</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-95-1"><summary>练习 1 · prop_neg_ev <span class="sol-meta">定理</span></summary><pre><code>theorem prop_neg_ev (P : Prop) (h1 : P → ¬ P) : P → False :=
+  fun (hP : P) =&gt; (h1 hP) hP</code></pre></details><details open class="appendix-solution" id="app-sol-95-2"><summary>练习 2 · no_prop_fixpoint <span class="sol-meta">定理</span></summary><pre><code>theorem no_prop_fixpoint (P : Prop) (h1 : P → ¬ P) (h2 : ¬ P → P) : False :=
+  prop_neg_ev P h1 (h2 (prop_neg_ev P h1))</code></pre></details><details open class="appendix-solution" id="app-sol-95-3"><summary>练习 3 · no_prop_fixpoint_exists <span class="sol-meta">定理</span></summary><pre><code>theorem no_prop_fixpoint_exists :
+    ¬ (∃ (P : Prop), (P → ¬ P) ∧ (¬ P → P)) :=
+  fun (h : ∃ (P : Prop), (P → ¬ P) ∧ (¬ P → P)) =&gt;
+    @Exists.elim Prop (fun (P : Prop) =&gt; (P → ¬ P) ∧ (¬ P → P)) False h  -- soko:notation-ok: `SurjOnSets` 是 def 头（手册边界）
+      (fun (P : Prop) (hh : (P → ¬ P) ∧ (¬ P → P)) =&gt;
+        no_prop_fixpoint P (And.left hh)
+          (And.right hh))</code></pre></details><details open class="appendix-solution" id="app-sol-95-4"><summary>练习 4 · surjOnSets_apply <span class="sol-meta">定理</span></summary><pre><code>theorem surjOnSets_apply (α : Type) (S : α → Set α) (h : SurjOnSets α S) (B : Set α) :
+    ∃ (a : α), ∀ (x : α), S a x ↔ B x :=
+  h B</code></pre></details><details open class="appendix-solution" id="app-sol-95-5"><summary>练习 5 · diag_not_surj <span class="sol-meta">定理</span></summary><pre><code>theorem diag_not_surj (α : Type) (S : α → Set α) : ¬ (SurjOnSets α S) :=
+  fun (h : SurjOnSets α S) =&gt;
+    @Exists.elim α (fun (a : α) =&gt; ∀ (x : α), S a x ↔ ¬ (S x x)) False
+      (surjOnSets_apply α S h (fun (x : α) =&gt; ¬ (S x x)))
+      (fun (a : α) (ha : ∀ (x : α), S a x ↔ ¬ (S x x)) =&gt;
+        (fun (h1 : ∀ (x : α), S a x → ¬ (S x x)) =&gt;
+          (fun (h2 : ∀ (x : α), ¬ (S x x) → S a x) =&gt;
+            (fun (hx : S a a) =&gt; (h1 a hx) hx) (h2 a (fun (hx : S a a) =&gt; (h1 a hx) hx)))
+            (fun (x : α) (hx : ¬ (S x x)) =&gt; Iff.mpr (ha x) hx))
+          (fun (x : α) (hx : S a x) =&gt; Iff.mp (ha x) hx))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>108 序数三歧（引理与装配） · 从集合论到实分析</title>
+<meta name="description" content="单元108 序数三歧（引理与装配）：导语、定义与定理、练习与解答。Unit 108 — Ordinal Trichotomy: Lemmas and Assembly">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit108.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li class="is-current"><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.6 单元</h3><ol><li><a href="../units/unit15.html">15 传递集与序数</a></li><li><a href="../units/unit16.html">16 序数的序：外延性、反对称与零序数</a></li><li><a href="../units/unit42.html">42 良序集的「最小元」</a></li><li><a href="../units/unit80.html">80 序数的元素仍是序数</a></li><li><a href="../units/unit81.html">81 后继的成员刻画</a></li><li><a href="../units/unit82.html">82 后继与序数的合流</a></li><li><a href="../units/unit83.html">83 序数的无环性</a></li><li><a href="../units/unit106.html">106 良基递归（Acc）</a></li><li><a href="../units/unit107.html">107 ∈-归纳与序数三歧（上）</a></li><li class="is-current"><a href="../units/unit108.html">108 序数三歧（引理与装配）</a></li><li><a href="../units/unit109.html">109 序数上的递归与加法（关系版 · 逆引理与结合律）</a></li><li><a href="../units/unit110.html">110 选择公理的取数据（良序定理线入口）</a></li><li><a href="../units/unit111.html">111 ℕ 的算术律（自建 add/mul）</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li aria-current="page">单元 108 序数三歧（引理与装配）</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-108-1">定义与定理</a></li>
+<li><a href="#ex-108-1">练习</a></li>
+<li><a href="#appendix-unit-108">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-6.html#units">↑ 本章目录</a>
+      <a href="../print/unit108.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-108">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-6.html">I.6</a> · 本章第 10 / 13 单元 · 全书第 108 / 112 单元</p>
+<h1><span class="unit-number">108</span> <span>序数三歧（引理与装配）</span></h1>
+<p class="unit-title-en">Unit 108 — Ordinal Trichotomy: Lemmas and Assembly</p>
+<p class="unit-meta">11 个定理 · 8 道练习 · <a href="#appendix-unit-108">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="108" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-108" aria-label="复制单元 108 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit108.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-6.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"（<strong>三歧「至少一个」这一半的全部零件</strong> ✓）：</p></div><details class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li><strong>元素的序数性</strong> ✓ <span class="math">·</span> <strong>桥</strong>（良基 <span class="math">⇒</span> 每点可达 <code>Acc</code> ✓）<span class="math">·</span> <strong><span class="math">∈-</span>归纳原理</strong> ✓；</li><li><strong>半边一</strong>（<code>pred_subset_of_not_mem</code> ✓）：若 <code>¬ E x y</code>，则 <code>y</code> 的元素都是 <code>x</code> 的元素 ✓—— 用<strong>内层归纳假设</strong> <span class="math">+</span> <code>y</code> 的传递性 ✓；</li><li><strong>半边二</strong>（<code>mem_of_exists_gap</code> ✓）：若 <code>x</code> 有元素不是 <code>y</code> 的元素（<strong>缺口见证</strong> ✓），则 <code>E y x</code> ✓ —— 用<strong>外层归纳假设</strong>三分情况 ✓；</li><li><strong>无缺口 <span class="math">⇒</span> 包含</strong>（<code>pred_subset_of_no_gap</code> ✓，用排中律逐点 ✓）；</li><li><strong>合起来</strong>（<code>mem_or_pred_subset</code> ✓）：<code>E y x ∨ (∀ w, E w x → E w y)</code> ✓。</li></ul></details></div></section>
+<article class="decl decl-theorem" id="decl-108-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_ordinal_isTransitive</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_ordinal_isTransitive (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  ordinal_isTransitive α E x h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-108-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_ordinal_wellFounded</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_ordinal_wellFounded (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsWellFounded α E :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  ordinal_wellFounded α E x h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-108-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_hasMin_elim</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_hasMin_elim (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : HasMin α r P) : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  hasMin_elim α r P h-- 练习 1（L 类）：**序数的元素还是序数**。</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-108-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ordinal_elems_ordinal</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-108-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>关键件：<code>isOrdinal_intro</code>（<strong>三点按序</strong> ✓）<span class="math">·</span> <code>ordinal_elems_isTransitive</code> <span class="math">·</span> <code>ordinal_isTransitive</code>（<strong>串两步</strong> ✓）<span class="math">·</span> <code>ordinal_wellFounded</code></p></div></div><pre class="exercise-statement"><code>theorem ordinal_elems_ordinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsOrdinal α E y := by
+  sorry</code></pre><details class="solution-panel" id="sol-108-1"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem ordinal_elems_ordinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsOrdinal α E y :=
+  isOrdinal_intro α E y
+    (ordinal_elems_isTransitive α E x hx y hy)
+    (fun (z : α) (hz : E z y) =&gt;
+      ordinal_elems_isTransitive α E x hx z
+        (ordinal_isTransitive α E x hx y hy z hz))
+    (ordinal_wellFounded α E x hx)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-108-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">acc_of_wellFounded</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-108-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类，<strong>桥</strong>）：<strong>良基 <span class="math">⇒</span> 每个点都可达</strong>。思路：反证；取 <code>P := fun z =&gt; ¬ Acc α r z</code>（非空 ✓），良基性给<strong>最小元</strong> <code>m</code>（<code>hasMin_elim</code> 拆 ✓）；<code>m</code> 的前驱都不是"不可达" <span class="math">⇒</span> 用排中律转成"可达" <span class="math">⇒</span> 装出 <code>Acc α r m</code> <span class="math">⇒</span> 与 <code>m</code> 冲突。关键件：<code>Classical.byContradiction</code>（<strong>两次</strong> ✓）<span class="math">·</span> <code>wellFounded_hasMin</code> <span class="math">·</span> <code>hasMin_elim</code> <span class="math">·</span> <code>Acc.intro</code> <span class="math">·</span> <code>And.left</code> / <code>And.right</code>（写全 ✓）</p></div></div><pre class="exercise-statement"><code>theorem acc_of_wellFounded (α : Type) (r : α → α → Prop) (hwf : IsWellFounded α r) :
+    ∀ (x : α), Acc α r x := by
+  sorry</code></pre><details class="solution-panel" id="sol-108-2"><summary>查看解答 <span class="sol-meta">定理 · 16 行</span></summary><div class="solution-body"><pre><code>theorem acc_of_wellFounded (α : Type) (r : α → α → Prop) (hwf : IsWellFounded α r) :
+    ∀ (x : α), Acc α r x :=
+  fun (x : α) =&gt;
+    Classical.byContradiction (Acc α r x)
+      (fun (hnx : ¬ Acc α r x) =&gt;
+        @Exists.elim α (fun (m : α) =&gt; ¬ Acc α r m ∧ ∀ (y : α), ¬ Acc α r y → ¬ (r y m)) False
+          (hasMin_elim α r (fun (z : α) =&gt; ¬ Acc α r z)
+            (wellFounded_hasMin α r hwf (fun (z : α) =&gt; ¬ Acc α r z)
+              (Exists.intro x hnx)))
+          (fun (m : α) (hm : ¬ Acc α r m ∧ ∀ (y : α), ¬ Acc α r y → ¬ (r y m)) =&gt;
+            (And.left hm)
+              (@Acc.intro α r m (fun (y : α) (hy : r y m) =&gt;
+                Classical.byContradiction (Acc α r y)
+                  (fun (hny : ¬ Acc α r y) =&gt;
+                    (@And.right (¬ Acc α r m) (∀ (y' : α), ¬ Acc α r y' → ¬ (r y' m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                      y hny hy)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-108-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ordinal_ind</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-108-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<strong><span class="math">∈-</span>归纳原理</strong>。关键件：<code>ordinal_wellFounded</code> <span class="math">·</span> 练习 <span class="math">2 ·</span> <code>acc_ind</code> <span class="math">·</span> 练习 <span class="math">1 · motive</span> 里带 <code>IsOrdinal</code> 前提 ✓</p></div></div><pre class="exercise-statement"><code>theorem ordinal_ind (α : Type) (E : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), IsOrdinal α E x → (∀ (y : α), E y x → motive y) → motive x) :
+    ∀ (x : α), IsOrdinal α E x → motive x := by
+  sorry</code></pre><details class="solution-panel" id="sol-108-3"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem ordinal_ind (α : Type) (E : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), IsOrdinal α E x → (∀ (y : α), E y x → motive y) → motive x) :
+    ∀ (x : α), IsOrdinal α E x → motive x :=
+  fun (x : α) (hx : IsOrdinal α E x) =&gt;
+    acc_ind α E (fun (z : α) =&gt; IsOrdinal α E z → motive z)
+      (fun (z : α) (ih : ∀ (y : α), E y z → (IsOrdinal α E y → motive y)) =&gt;
+        fun (hz : IsOrdinal α E z) =&gt;
+          step z hz (fun (y : α) (hy : E y z) =&gt;
+            ih y hy (ordinal_elems_ordinal α E z y hz hy)))
+      x (acc_of_wellFounded α E (ordinal_wellFounded α E x hx) x) hx</code></pre></div></details></div></article>
+<article class="exercise" id="ex-108-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">pred_subset_of_not_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-108-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>半边一</strong>）：<strong><code>¬ E x y</code> <span class="math">⇒</span> <code>y</code> 的元素都是 <code>x</code> 的元素</strong>。思路：给 <code>v ∈ y</code>，用<strong>内层归纳假设</strong>三分：<code>E x v</code> <span class="math">⇒</span> 由 <code>y</code> 的传递性得 <code>E x y</code>（与前提冲突 ✓）；<code>x = v</code> <span class="math">⇒</span> 沿等式把 <code>E v y</code> 搬成 <code>E x y</code>（<strong><code>Eq.subst</code></strong> ✓，谓词 <code>fun w =&gt; E w y</code> ✓）冲突；<code>E v x</code> <span class="math">⇒</span> 正是所求 ✓。关键件：<code>Or.elim</code>（<strong>动机位写肯定命题 <code>E v x</code></strong> ✓）<span class="math">·</span> <code>ordinal_isTransitive</code>（<strong>在 <code>y</code> 上、<code>v</code> 与 <code>x</code> 两处按序</strong> ✓）<span class="math">·</span> <code>Eq.subst</code> <span class="math">·</span> <code>False.elim</code>（<strong>写全目标</strong> ✓）<span class="math">·</span> <code>ordinal_elems_ordinal</code>（给 <code>v</code> 补序数性 ✓）</p></div></div><pre class="exercise-statement"><code>theorem pred_subset_of_not_mem (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihy : ∀ (v : α), E v y → IsOrdinal α E v → E x v ∨ x = v ∨ E v x)
+    (hxy : ¬ (E x y)) : ∀ (v : α), E v y → E v x := by
+  sorry</code></pre><details class="solution-panel" id="sol-108-4"><summary>查看解答 <span class="sol-meta">定理 · 15 行</span></summary><div class="solution-body"><pre><code>theorem pred_subset_of_not_mem (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihy : ∀ (v : α), E v y → IsOrdinal α E v → E x v ∨ x = v ∨ E v x)
+    (hxy : ¬ (E x y)) : ∀ (v : α), E v y → E v x :=
+  fun (v : α) (hvy : E v y) =&gt;
+    @Or.elim (E x v) (x = v ∨ E v x) (E v x)
+      (fun (hxv : E x v) =&gt;
+        False.elim (hxy (ordinal_isTransitive α E y hy v hvy x hxv)))
+      (fun (h : x = v ∨ E v x) =&gt;
+        @Or.elim (x = v) (E v x) (E v x)
+          (fun (heq : x = v) =&gt;
+            @False.elim (E v x)
+              (hxy (@Eq.subst.{1} α (fun (w : α) =&gt; E w y) v x (@Eq.symm.{1} α x v heq) hvy)))
+          (fun (hvx : E v x) =&gt; hvx) h)
+      (ihy v hvy (ordinal_elems_ordinal α E y v hy hvy))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-108-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">mem_of_exists_gap</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-108-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>半边二</strong>）：<strong>缺口见证 <span class="math">⇒</span> <code>E y x</code></strong>。思路：把见证 <code>w</code>（<code>E w x</code> 且 <code>¬ E w y</code>）交给<strong>外层归纳假设</strong>三分：<code>E w y</code> 与 <code>¬ E w y</code> 冲突；<code>w = y</code> <span class="math">⇒</span> 沿等式把 <code>E w x</code> 搬成 <code>E y x</code>（<strong><code>Eq.subst</code></strong> ✓）；<code>E y w</code> <span class="math">⇒</span> 与 <code>E w x</code> 用 <code>x</code> 的传递性得 <code>E y x</code> ✓。关键件：<code>Exists.elim</code> <span class="math">·</span> <code>Or.elim</code> <span class="math">·</span> <code>Eq.subst</code>（谓词 <code>fun z =&gt; E z x</code> ✓）<span class="math">·</span> <code>ordinal_isTransitive</code>（<strong>在 <code>x</code> 上</strong> ✓）<span class="math">·</span> 练习 1</p></div></div><pre class="exercise-statement"><code>theorem mem_of_exists_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihx : ∀ (w : α), E w x → IsOrdinal α E w → E w y ∨ w = y ∨ E y w)
+    (hex : ∃ (w : α), E w x ∧ ¬ (E w y)) : E y x := by
+  sorry</code></pre><details class="solution-panel" id="sol-108-5"><summary>查看解答 <span class="sol-meta">定理 · 18 行</span></summary><div class="solution-body"><pre><code>theorem mem_of_exists_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihx : ∀ (w : α), E w x → IsOrdinal α E w → E w y ∨ w = y ∨ E y w)
+    (hex : ∃ (w : α), E w x ∧ ¬ (E w y)) : E y x :=
+  @Exists.elim α (fun (w : α) =&gt; E w x ∧ ¬ (E w y)) (E y x) hex
+    (fun (w : α) (hw : E w x ∧ ¬ (E w y)) =&gt;
+      @Or.elim (E w y) (w = y ∨ E y w) (E y x)
+        (fun (hwy : E w y) =&gt;
+          @False.elim (E y x)
+            ((@And.right (E w x) (¬ (E w y)) hw) hwy))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (h : w = y ∨ E y w) =&gt;
+          @Or.elim (w = y) (E y w) (E y x)
+            (fun (heq : w = y) =&gt;
+              @Eq.subst.{1} α (fun (z : α) =&gt; E z x) w y heq (And.left hw))
+            (fun (hyw : E y w) =&gt;
+              ordinal_isTransitive α E x hx w (And.left hw) y hyw) h)
+        (ihx w (And.left hw)
+          (ordinal_elems_ordinal α E x w hx (And.left hw))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-108-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">pred_subset_of_no_gap</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-108-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类）：<strong>没有缺口 <span class="math">⇒</span> 包含</strong>。思路：给 <code>w ∈ x</code>；反证 —— 若 <code>¬ E w y</code> 则 <code>w</code> 就是缺口见证，与"没有缺口"冲突。关键件：<code>Classical.byContradiction</code> <span class="math">·</span> <code>Exists.intro</code> <span class="math">·</span> <code>And.intro</code>（写全 ✓）</p></div></div><pre class="exercise-statement"><code>theorem pred_subset_of_no_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hno : ¬ (∃ (w : α), E w x ∧ ¬ (E w y))) : ∀ (w : α), E w x → E w y := by
+  sorry</code></pre><details class="solution-panel" id="sol-108-6"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem pred_subset_of_no_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hno : ¬ (∃ (w : α), E w x ∧ ¬ (E w y))) : ∀ (w : α), E w x → E w y :=
+  fun (w : α) (hwx : E w x) =&gt;
+    Classical.byContradiction (E w y)
+      (fun (hnwy : ¬ (E w y)) =&gt;
+        hno (Exists.intro w
+          (And.intro hwx hnwy)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-108-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">mem_or_pred_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-108-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类，<strong>两条半边的合流</strong>）：<strong><code>E y x ∨ (∀ w, E w x → E w y)</code></strong>。思路：用排中律分「有没有缺口」；有缺口用练习 5 ✓，没有用练习 6 ✓。关键件：<code>Classical.em</code>（<strong><code>P ∨ ¬P</code></strong> ✓ —— <code>Or.elim</code> 的<strong>第二个命题位写 <code>¬ P</code></strong> ✓）<span class="math">·</span> <code>Or.elim</code> <span class="math">·</span> 练习 5 / 练习 6</p></div></div><pre class="exercise-statement"><code>theorem mem_or_pred_subset (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihx : ∀ (w : α), E w x → IsOrdinal α E w → E w y ∨ w = y ∨ E y w) :
+    E y x ∨ (∀ (w : α), E w x → E w y) := by
+  sorry</code></pre><details class="solution-panel" id="sol-108-7"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><pre><code>theorem mem_or_pred_subset (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihx : ∀ (w : α), E w x → IsOrdinal α E w → E w y ∨ w = y ∨ E y w) :
+    E y x ∨ (∀ (w : α), E w x → E w y) :=
+  @Or.elim (∃ (w : α), E w x ∧ ¬ (E w y)) (¬ (∃ (w : α), E w x ∧ ¬ (E w y)))
+    (E y x ∨ (∀ (w : α), E w x → E w y))
+    (fun (hex : ∃ (w : α), E w x ∧ ¬ (E w y)) =&gt;
+      @Or.inl (E y x) (∀ (w : α), E w x → E w y)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (mem_of_exists_gap α E x y hx hy ihx hex))
+    (fun (hno : ¬ (∃ (w : α), E w x ∧ ¬ (E w y))) =&gt;
+      @Or.inr (E y x) (∀ (w : α), E w x → E w y)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (pred_subset_of_no_gap α E x y hno))
+    (Classical.em (∃ (w : α), E w x ∧ ¬ (E w y)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-108-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">ordinal_trichotomy</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-108-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类，<strong>装配件 —— 本单元的落点</strong>）：<strong>序数三歧</strong>（<code>E x y ∨ x = y ∨ E y x</code>）。思路：<strong>两次归纳</strong>（外层对 <code>x</code>、内层对 <code>y</code>）—— 外层 step 要返回 <strong><code>∀ y'</code> 形式的 motive</strong> ✓（内层归纳用 <strong><span class="math">λ</span> 包住</strong>再交出去 ✗）；内层三分：<code>E z v</code> ✓ / <code>z = v</code> ✓ / 否则证 <code>E v z</code> ✓，最后一步用<strong>半边一</strong>（<code>pred_subset_of_not_mem</code> ✓）与<strong>合流</strong>（<code>mem_or_pred_subset</code> ✓）把两个包含关系交给<strong>外延性假设</strong> <code>hext</code> ✓（<strong>注意两个包含关系的顺序</strong> ✗ —— <code>hext x y A B</code> 里 <code>A : ∀z, E z x → E z y</code> ✓、<code>B : ∀z, E z y → E z x</code> ✓），与 <code>¬ (z = v)</code> 冲突 <span class="math">⇒</span> <code>False.elim</code> ✓。关键件：练习 3（<code>ordinal_ind</code> ✓）<span class="math">·</span> 练习 4 / 练习 <span class="math">7 ·</span> <code>Classical.em</code>（<strong>Q 位写 <code>¬ P</code></strong> ✗）<span class="math">·</span><code>hext</code>（<strong>外延性假设</strong> ✓）<span class="math">·</span> <code>Or.inl</code> / <code>Or.inr</code>（<strong>写全前导命题</strong> ✓）<span class="math">·</span> <code>False.elim</code>（写全目标 ✓）</p></div></div><pre class="exercise-statement"><code>theorem ordinal_trichotomy (α : Type) (E : α → α → Prop)
+    (hext : ∀ (x : α) (y : α), (∀ (z : α), E z x → E z y) →
+      (∀ (z : α), E z y → E z x) → x = y)
+    (x : α) (hx : IsOrdinal α E x) (y : α) (hy : IsOrdinal α E y) :
+    E x y ∨ x = y ∨ E y x  := by
+  sorry</code></pre><details class="solution-panel" id="sol-108-8"><summary>查看解答 <span class="sol-meta">定理 · 35 行</span></summary><div class="solution-body"><pre><code>theorem ordinal_trichotomy (α : Type) (E : α → α → Prop)
+    (hext : ∀ (x : α) (y : α), (∀ (z : α), E z x → E z y) →
+      (∀ (z : α), E z y → E z x) → x = y)
+    (x : α) (hx : IsOrdinal α E x) (y : α) (hy : IsOrdinal α E y) :
+    E x y ∨ x = y ∨ E y x :=
+  ordinal_ind α E (fun (z : α) =&gt; ∀ (y' : α), IsOrdinal α E y' → E z y' ∨ z = y' ∨ E y' z)
+    (fun (z : α) (hz : IsOrdinal α E z)
+      (ihz : ∀ (w : α), E w z → ∀ (y' : α), IsOrdinal α E y' → E w y' ∨ w = y' ∨ E y' w) =&gt;
+      fun (y' : α) (hy' : IsOrdinal α E y') =&gt;
+        ordinal_ind α E (fun (v : α) =&gt; E z v ∨ z = v ∨ E v z)
+          (fun (v : α) (hv : IsOrdinal α E v)
+            (ihv : ∀ (u : α), E u v → E z u ∨ z = u ∨ E u z) =&gt;
+            @Or.elim (E z v) (¬ (E z v)) (E z v ∨ z = v ∨ E v z)
+              (fun (hzv : E z v) =&gt; Or.inl hzv)
+              (fun (hnzv : ¬ (E z v)) =&gt;
+                @Or.inr (E z v) (z = v ∨ E v z)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                 (@Or.elim (z = v) (¬ (z = v)) (z = v ∨ E v z)
+                  (fun (heq : z = v) =&gt; Or.inl heq)
+                  (fun (hne : ¬ (z = v)) =&gt;
+                    @Or.inr (z = v) (E v z)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                      (@Or.elim (E v z) (∀ (w : α), E w z → E w v) (E v z)
+                        (fun (hvz : E v z) =&gt; hvz)
+                        (fun (hsub : ∀ (w : α), E w z → E w v) =&gt;
+                          @False.elim (E v z)
+                            (hne (hext z v hsub
+                              (pred_subset_of_not_mem α E z v hz hv
+                                (fun (u : α) (huv : E u v) (_hu : IsOrdinal α E u) =&gt; ihv u huv)
+                                hnzv))))
+                        (mem_or_pred_subset α E z v hz hv
+                          (fun (w : α) (hw : E w z) (_hwo : IsOrdinal α E w) =&gt;
+                            ihz w hw v hv))))
+                  (Classical.em (z = v))))
+              (Classical.em (E z v)))
+          y' hy')
+    x hx y hy</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（5 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§7.4 定理 7M</strong>（序数三歧）<span class="math">·Halmos</span>《Naive Set Theory》<strong>§18/§19</strong>。大纲 §4.1（<strong>卷 I 收官主线</strong> ✓ —— 接单元107 ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>本单元的边界（如实标注 ✓）</strong>：把上面两条半边<strong>装配</strong>成完整三歧（<code>E x y ∨ x = y ∨ E y x</code> ✓）还需要：<strong><code>E</code> 的外延性</strong>（<code>∀z, E z x ↔ E z y ⇒ x = y</code> ✓ ——本课里 <code>E</code> 是<strong>抽象关系</strong> ✓，外延性是<strong>假设</strong>而不是定理 ✓）<span class="math">+</span> 两次归纳的 motive 接线 ✓。装配件在<strong>下一单元</strong> ✓；本单元交付的六条零件<strong>全部判绿</strong> ✓。</p></div><div class="block prose intuition-only"><p>⚠ <strong>写法提醒</strong>（本单元判红三次换来 ✓，值得记住）：① <code>Classical.em P</code> 给的是 <strong><code>P ∨ ¬P</code></strong> ✓ <span class="math">⇒</span> <code>Or.elim</code> 的<strong>第二个命题位必须写 <code>¬ P</code></strong> ✗（写成别的命题会报类型不匹配 ✓）；② 外层归纳的 step 要返回 <strong><code>∀ y'</code> 形式的 motive</strong> ✓ <span class="math">⇒</span> 内层归纳必须<strong>用 <span class="math">λ</span> 包住</strong>再交出去 ✗；③ <code>Eq.subst</code> 的<strong>谓词</strong>要选对槽（要 <code>E x y</code> 就写 <code>fun w =&gt; E w y</code> ✓）。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理与 prelude 的 <code>Classical.*</code> ✓。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <code>lib.Ordinal</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元107（<span class="math">∈-</span>归纳与「至多一个」半边 ✓）<span class="math">·</span> 单元⑬⑭⑯㊵㊷ <span class="math">·</span> 单元106（<code>Acc</code> ✓）</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit107.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title"><span class="math">∈-</span>归纳与序数三歧（上）</span></a><a class="unit-nav-home" href="../chapters/i-6.html#units">目录</a><a class="unit-nav-link" href="../units/unit109.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">序数上的递归与加法（关系版 <span class="math">·</span> 逆引理与结合律）</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-108"><h3><a href="#top">序数三歧（引理与装配）</a></h3><p class="appendix-meta">8 道练习 · 8 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-108-1"><summary>练习 1 · ordinal_elems_ordinal <span class="sol-meta">定理</span></summary><pre><code>theorem ordinal_elems_ordinal (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : E y x) : IsOrdinal α E y :=
+  isOrdinal_intro α E y
+    (ordinal_elems_isTransitive α E x hx y hy)
+    (fun (z : α) (hz : E z y) =&gt;
+      ordinal_elems_isTransitive α E x hx z
+        (ordinal_isTransitive α E x hx y hy z hz))
+    (ordinal_wellFounded α E x hx)</code></pre></details><details class="appendix-solution" id="app-sol-108-2"><summary>练习 2 · acc_of_wellFounded <span class="sol-meta">定理</span></summary><pre><code>theorem acc_of_wellFounded (α : Type) (r : α → α → Prop) (hwf : IsWellFounded α r) :
+    ∀ (x : α), Acc α r x :=
+  fun (x : α) =&gt;
+    Classical.byContradiction (Acc α r x)
+      (fun (hnx : ¬ Acc α r x) =&gt;
+        @Exists.elim α (fun (m : α) =&gt; ¬ Acc α r m ∧ ∀ (y : α), ¬ Acc α r y → ¬ (r y m)) False
+          (hasMin_elim α r (fun (z : α) =&gt; ¬ Acc α r z)
+            (wellFounded_hasMin α r hwf (fun (z : α) =&gt; ¬ Acc α r z)
+              (Exists.intro x hnx)))
+          (fun (m : α) (hm : ¬ Acc α r m ∧ ∀ (y : α), ¬ Acc α r y → ¬ (r y m)) =&gt;
+            (And.left hm)
+              (@Acc.intro α r m (fun (y : α) (hy : r y m) =&gt;
+                Classical.byContradiction (Acc α r y)
+                  (fun (hny : ¬ Acc α r y) =&gt;
+                    (@And.right (¬ Acc α r m) (∀ (y' : α), ¬ Acc α r y' → ¬ (r y' m)) hm)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                      y hny hy)))))</code></pre></details><details class="appendix-solution" id="app-sol-108-3"><summary>练习 3 · ordinal_ind <span class="sol-meta">定理</span></summary><pre><code>theorem ordinal_ind (α : Type) (E : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), IsOrdinal α E x → (∀ (y : α), E y x → motive y) → motive x) :
+    ∀ (x : α), IsOrdinal α E x → motive x :=
+  fun (x : α) (hx : IsOrdinal α E x) =&gt;
+    acc_ind α E (fun (z : α) =&gt; IsOrdinal α E z → motive z)
+      (fun (z : α) (ih : ∀ (y : α), E y z → (IsOrdinal α E y → motive y)) =&gt;
+        fun (hz : IsOrdinal α E z) =&gt;
+          step z hz (fun (y : α) (hy : E y z) =&gt;
+            ih y hy (ordinal_elems_ordinal α E z y hz hy)))
+      x (acc_of_wellFounded α E (ordinal_wellFounded α E x hx) x) hx</code></pre></details><details class="appendix-solution" id="app-sol-108-4"><summary>练习 4 · pred_subset_of_not_mem <span class="sol-meta">定理</span></summary><pre><code>theorem pred_subset_of_not_mem (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihy : ∀ (v : α), E v y → IsOrdinal α E v → E x v ∨ x = v ∨ E v x)
+    (hxy : ¬ (E x y)) : ∀ (v : α), E v y → E v x :=
+  fun (v : α) (hvy : E v y) =&gt;
+    @Or.elim (E x v) (x = v ∨ E v x) (E v x)
+      (fun (hxv : E x v) =&gt;
+        False.elim (hxy (ordinal_isTransitive α E y hy v hvy x hxv)))
+      (fun (h : x = v ∨ E v x) =&gt;
+        @Or.elim (x = v) (E v x) (E v x)
+          (fun (heq : x = v) =&gt;
+            @False.elim (E v x)
+              (hxy (@Eq.subst.{1} α (fun (w : α) =&gt; E w y) v x (@Eq.symm.{1} α x v heq) hvy)))
+          (fun (hvx : E v x) =&gt; hvx) h)
+      (ihy v hvy (ordinal_elems_ordinal α E y v hy hvy))</code></pre></details><details class="appendix-solution" id="app-sol-108-5"><summary>练习 5 · mem_of_exists_gap <span class="sol-meta">定理</span></summary><pre><code>theorem mem_of_exists_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihx : ∀ (w : α), E w x → IsOrdinal α E w → E w y ∨ w = y ∨ E y w)
+    (hex : ∃ (w : α), E w x ∧ ¬ (E w y)) : E y x :=
+  @Exists.elim α (fun (w : α) =&gt; E w x ∧ ¬ (E w y)) (E y x) hex
+    (fun (w : α) (hw : E w x ∧ ¬ (E w y)) =&gt;
+      @Or.elim (E w y) (w = y ∨ E y w) (E y x)
+        (fun (hwy : E w y) =&gt;
+          @False.elim (E y x)
+            ((@And.right (E w x) (¬ (E w y)) hw) hwy))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (fun (h : w = y ∨ E y w) =&gt;
+          @Or.elim (w = y) (E y w) (E y x)
+            (fun (heq : w = y) =&gt;
+              @Eq.subst.{1} α (fun (z : α) =&gt; E z x) w y heq (And.left hw))
+            (fun (hyw : E y w) =&gt;
+              ordinal_isTransitive α E x hx w (And.left hw) y hyw) h)
+        (ihx w (And.left hw)
+          (ordinal_elems_ordinal α E x w hx (And.left hw))))</code></pre></details><details class="appendix-solution" id="app-sol-108-6"><summary>练习 6 · pred_subset_of_no_gap <span class="sol-meta">定理</span></summary><pre><code>theorem pred_subset_of_no_gap (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hno : ¬ (∃ (w : α), E w x ∧ ¬ (E w y))) : ∀ (w : α), E w x → E w y :=
+  fun (w : α) (hwx : E w x) =&gt;
+    Classical.byContradiction (E w y)
+      (fun (hnwy : ¬ (E w y)) =&gt;
+        hno (Exists.intro w
+          (And.intro hwx hnwy)))</code></pre></details><details class="appendix-solution" id="app-sol-108-7"><summary>练习 7 · mem_or_pred_subset <span class="sol-meta">定理</span></summary><pre><code>theorem mem_or_pred_subset (α : Type) (E : α → α → Prop) (x : α) (y : α)
+    (hx : IsOrdinal α E x) (hy : IsOrdinal α E y)
+    (ihx : ∀ (w : α), E w x → IsOrdinal α E w → E w y ∨ w = y ∨ E y w) :
+    E y x ∨ (∀ (w : α), E w x → E w y) :=
+  @Or.elim (∃ (w : α), E w x ∧ ¬ (E w y)) (¬ (∃ (w : α), E w x ∧ ¬ (E w y)))
+    (E y x ∨ (∀ (w : α), E w x → E w y))
+    (fun (hex : ∃ (w : α), E w x ∧ ¬ (E w y)) =&gt;
+      @Or.inl (E y x) (∀ (w : α), E w x → E w y)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (mem_of_exists_gap α E x y hx hy ihx hex))
+    (fun (hno : ¬ (∃ (w : α), E w x ∧ ¬ (E w y))) =&gt;
+      @Or.inr (E y x) (∀ (w : α), E w x → E w y)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (pred_subset_of_no_gap α E x y hno))
+    (Classical.em (∃ (w : α), E w x ∧ ¬ (E w y)))</code></pre></details><details class="appendix-solution" id="app-sol-108-8"><summary>练习 8 · ordinal_trichotomy <span class="sol-meta">定理</span></summary><pre><code>theorem ordinal_trichotomy (α : Type) (E : α → α → Prop)
+    (hext : ∀ (x : α) (y : α), (∀ (z : α), E z x → E z y) →
+      (∀ (z : α), E z y → E z x) → x = y)
+    (x : α) (hx : IsOrdinal α E x) (y : α) (hy : IsOrdinal α E y) :
+    E x y ∨ x = y ∨ E y x :=
+  ordinal_ind α E (fun (z : α) =&gt; ∀ (y' : α), IsOrdinal α E y' → E z y' ∨ z = y' ∨ E y' z)
+    (fun (z : α) (hz : IsOrdinal α E z)
+      (ihz : ∀ (w : α), E w z → ∀ (y' : α), IsOrdinal α E y' → E w y' ∨ w = y' ∨ E y' w) =&gt;
+      fun (y' : α) (hy' : IsOrdinal α E y') =&gt;
+        ordinal_ind α E (fun (v : α) =&gt; E z v ∨ z = v ∨ E v z)
+          (fun (v : α) (hv : IsOrdinal α E v)
+            (ihv : ∀ (u : α), E u v → E z u ∨ z = u ∨ E u z) =&gt;
+            @Or.elim (E z v) (¬ (E z v)) (E z v ∨ z = v ∨ E v z)
+              (fun (hzv : E z v) =&gt; Or.inl hzv)
+              (fun (hnzv : ¬ (E z v)) =&gt;
+                @Or.inr (E z v) (z = v ∨ E v z)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                 (@Or.elim (z = v) (¬ (z = v)) (z = v ∨ E v z)
+                  (fun (heq : z = v) =&gt; Or.inl heq)
+                  (fun (hne : ¬ (z = v)) =&gt;
+                    @Or.inr (z = v) (E v z)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+                      (@Or.elim (E v z) (∀ (w : α), E w z → E w v) (E v z)
+                        (fun (hvz : E v z) =&gt; hvz)
+                        (fun (hsub : ∀ (w : α), E w z → E w v) =&gt;
+                          @False.elim (E v z)
+                            (hne (hext z v hsub
+                              (pred_subset_of_not_mem α E z v hz hv
+                                (fun (u : α) (huv : E u v) (_hu : IsOrdinal α E u) =&gt; ihv u huv)
+                                hnzv))))
+                        (mem_or_pred_subset α E z v hz hv
+                          (fun (w : α) (hw : E w z) (_hwo : IsOrdinal α E w) =&gt;
+                            ihz w hw v hv))))
+                  (Classical.em (z = v))))
+              (Classical.em (E z v)))
+          y' hy')
+    x hx y hy</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit107.html">← 107 ∈-归纳与序数三歧（上）</a><a class="next" href="../units/unit109.html">109 序数上的递归与加法（关系版 · 逆引理与结合律） →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

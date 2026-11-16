@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>23 广义积与柯里化 · 从集合论到实分析</title>
+<meta name="description" content="单元㉓ 广义积与柯里化：导语、定义与定理、练习与解答。Unit 23 — Arbitrary Products and Currying">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit23.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li class="is-current"><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.9 单元</h3><ol><li><a href="../units/unit21.html">21 集族与广义并交</a></li><li><a href="../units/unit22.html">22 像、原像与广义并交</a></li><li class="is-current"><a href="../units/unit23.html">23 广义积与柯里化</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li aria-current="page">单元 23 广义积与柯里化</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-23-1">23.0 两个新词汇（画布给出，不是练习）：柯里化与反柯里化</a></li>
+<li><a href="#decl-23-3">23.1 积与两条库引理</a></li>
+<li><a href="#ex-23-4">23.2 常函数与特殊因子</a></li>
+<li><a href="#ex-23-7">23.3 积与交：两个方向</a></li>
+<li><a href="#ex-23-9">23.4 n 元关系：柯里化（把&quot;二元输入&quot;换成&quot;两次一元输入&quot;）</a></li>
+<li><a href="#ex-23-10">23.5 必破：选择公理正是&quot;非空族的积非空&quot;</a></li>
+<li><a href="#appendix-unit-23">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-9.html#units">↑ 本章目录</a>
+      <a href="../print/unit23.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-23">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-9.html">I.9</a> · 本章第 3 / 3 单元 · 全书第 23 / 112 单元</p>
+<h1><span class="unit-number">23</span> <span>广义积与柯里化</span></h1>
+<p class="unit-title-en">Unit 23 — Arbitrary Products and Currying</p>
+<p class="unit-meta">2 个定义 · 13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-23">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="23" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-23" aria-label="复制单元 23 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit23.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-9.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§3.5 的"任意多个集合的笛卡尔积"</strong>；Halmos《Naive Set Theory》<strong>§9 Families 的收尾 <span class="math">+</span> §15 的积</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.9 章第三个单元 —— 补上本章标题里的"广义积"）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>积的成员刻画</strong>（"每个坐标都落在对应因子里"）<span class="math">·</span> <strong>积对族单调</strong> <span class="math">·</span><strong>某个因子空 <span class="math">⇒</span> 积空</strong> <span class="math">·</span> <strong>积与交可以互相拆装</strong> <span class="math">·</span> <strong>选择公理正是"每个因子非空 <span class="math">⇒</span> 积非空"</strong>（写在最后一道必破题里 —— 这正是选择公理最经典的形式之一）✓</p></div><div class="block prose intuition-only"><p>读法：<code>A : ι → Set α</code> 是<strong>索引族</strong>，<code>Set.pi ι α A</code> 是"每个坐标 <code>i</code> 都落在 <code>A i</code> 里"的 <strong>函数</strong>集合 —— 这就是"任意多个集合的笛卡尔积"在谓词式里的样子 ✓</p></div><div class="block prose intuition-only"><p><strong>写法约定（本单元特有）</strong>：积里的元素是<strong>函数</strong> <span class="math">⇒</span> 一切从"把函数用在某个坐标上"出发；库里的 <code>Set.mem_pi_elim</code> / <code>Set.mem_pi_intro</code> 就是这两招，<strong>别手写展开</strong> ✓</p></div><h3 class="unit-subhead">23.0 两个新词汇（画布给出，不是练习）：<strong>柯里化</strong>与<strong>反柯里化</strong></h3><div class="block prose intuition-only"><p>读法：<code>curry</code> 把"吃一个序对"的函数变成"吃两个参数"的函数，<code>uncurry</code> 反过来 ✓ 这一对就是"n 元关系 <span class="math">↔</span> 逐次一元关系"的翻译（Enderton §3.5 的 n 元关系那一节）✓</p></div><article class="decl decl-def" id="decl-23-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">curry</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def curry (A B C : Type) (f : Prod A B → C) : A → B → C :=
+  fun (a : A) (b : B) =&gt; f (@prod_mk A B a b)</code></pre></div></article>
+<article class="decl decl-def" id="decl-23-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">uncurry</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def uncurry (A B C : Type) (g : A → B → C) : Prod A B → C :=
+  fun (p : Prod A B) =&gt; g (Prod.fst A B p) (Prod.snd A B p)</code></pre></div></article>
+<h3 class="unit-subhead">23.1 积与两条库引理</h3><div class="block prose intuition-only"><p>演示：积的成员刻画（"每个坐标都落在对应因子里"）。</p></div><article class="decl decl-theorem" id="decl-23-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_pi_iff</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_pi_iff (ι α : Type) (A : ι → Set α) (f : ι → α) :
+    f ∈ (Set.pi ι α A) ↔ ∀ (i : ι), f i ∈ A i :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_pi_iff ι α A f</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：<strong>把积里的函数用在某个坐标上</strong>（取用子）。</p></div><article class="decl decl-theorem" id="decl-23-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_pi_elim</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_pi_elim (ι α : Type) (A : ι → Set α) (f : ι → α) (i : ι)
+    (h : f ∈ (Set.pi ι α A)) : f i ∈ A i :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_pi_elim ι α A f i h</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：<strong>积对族单调</strong>（逐坐标包含 <span class="math">⇒</span> 积包含）。</p></div><article class="decl decl-theorem" id="decl-23-5"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_pi_mono</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_pi_mono (ι α : Type) (A B : ι → Set α) (h : ∀ (i : ι), A i ⊆ B i)
+    (f : ι → α) (hf : f ∈ (Set.pi ι α A)) : f ∈ (Set.pi ι α B) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.pi_mono ι α A B h f hf</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-23-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">pi_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-23-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：把取用子写成 <code>∀</code> 的形式。</p></div></div><pre class="exercise-statement"><code>theorem pi_apply (ι α : Type) (A : ι → Set α) (f : ι → α) (i : ι)
+    (hf : f ∈ (Set.pi ι α A)) : f i ∈ A i := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>库里的取用子就是这条；参数按顺序给（族 <span class="math">·</span> 函数 <span class="math">·</span> 坐标 <span class="math">·</span> 成员证据）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>f ∈ (Set.pi ι α A) → ∀ i, f i ∈ A i</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_pi_elim</code>。</p></div></details></div><details class="solution-panel" id="sol-23-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem pi_apply (ι α : Type) (A : ι → Set α) (f : ι → α) (i : ι)
+    (hf : f ∈ (Set.pi ι α A)) : f i ∈ A i :=
+  Set.mem_pi_elim ι α A f i hf</code></pre></div></details></div></article>
+<article class="exercise" id="ex-23-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">pi_intro</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-23-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：反方向的构造子（"每个坐标都在，就整个函数在"）。</p></div></div><pre class="exercise-statement"><code>theorem pi_intro (ι α : Type) (A : ι → Set α) (f : ι → α)
+    (h : ∀ (i : ι), f i ∈ A i) : f ∈ (Set.pi ι α A) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>库里的构造子；把那条 <code>∀</code> 交出去即可。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ i, f i ∈ A i) → f ∈ (Set.pi ι α A)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_pi_intro</code>。</p></div></details></div><details class="solution-panel" id="sol-23-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem pi_intro (ι α : Type) (A : ι → Set α) (f : ι → α)
+    (h : ∀ (i : ι), f i ∈ A i) : f ∈ (Set.pi ι α A) :=
+  Set.mem_pi_intro ι α A f h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-23-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">pi_mono_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-23-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：把演示里的单调性写成"作用在具体函数上"的版本。</p></div></div><pre class="exercise-statement"><code>theorem pi_mono_apply (ι α : Type) (A B : ι → Set α) (h : ∀ (i : ι), A i ⊆ B i)
+    (f : ι → α) (hf : f ∈ (Set.pi ι α A)) : f ∈ (Set.pi ι α B) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>直接调库里的单调性（参数表：族 <span class="math">A ·</span> 族 <span class="math">B ·</span> 逐坐标包含 <span class="math">·</span> 函数 <span class="math">·</span> 成员证据）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ i, A i ⊆ B i) → f ∈ pi A → f ∈ pi B</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.pi_mono</code>。</p></div></details></div><details class="solution-panel" id="sol-23-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem pi_mono_apply (ι α : Type) (A B : ι → Set α) (h : ∀ (i : ι), A i ⊆ B i)
+    (f : ι → α) (hf : f ∈ (Set.pi ι α A)) : f ∈ (Set.pi ι α B) :=
+  Set.pi_mono ι α A B h f hf</code></pre></div></details></div></article>
+<h3 class="unit-subhead">23.2 常函数与特殊因子</h3><article class="exercise" id="ex-23-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">pi_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-23-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：<strong>某个元素落在每个因子里，则常函数落在积里</strong>。</p></div></div><pre class="exercise-statement"><code>theorem pi_const (ι α : Type) (A : ι → Set α) (a : α) (h : ∀ (i : ι), a ∈ A i) :
+    (fun (_ : ι) =&gt; a) ∈ (Set.pi ι α A) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用构造子，逐坐标交出的就是假设在该坐标上的实例。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ i, a ∈ A i) → (fun _ =&gt; a) ∈ (Set.pi ι α A)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_pi_intro</code>（见证写成<strong>忽略参数的 <span class="math">λ</span></strong>）。</p></div></details></div><details class="solution-panel" id="sol-23-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem pi_const (ι α : Type) (A : ι → Set α) (a : α) (h : ∀ (i : ι), a ∈ A i) :
+    (fun (_ : ι) =&gt; a) ∈ (Set.pi ι α A) :=
+  Set.mem_pi_intro ι α A (fun (_ : ι) =&gt; a) (fun (i : ι) =&gt; h i)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-23-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">pi_univ_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-23-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（T 类）：<strong>积总在全集里</strong>（全集那一半）。</p></div></div><pre class="exercise-statement"><code>theorem pi_univ_subset (ι α : Type) :
+    @Set.univ (ι → α) ⊆ (Set.pi ι α (fun (_ : ι) =&gt; @Set.univ α)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用构造子，逐坐标用"任何元素都属于全集"。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Set.univ (ι → α) ⊆ (Set.pi ι α (fun _ =&gt; @Set.univ α))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_pi_intro</code> <span class="math">+</span> <code>Set.mem_univ</code>。</p></div></details></div><details class="solution-panel" id="sol-23-5"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem pi_univ_subset (ι α : Type) :
+    @Set.univ (ι → α) ⊆ (Set.pi ι α (fun (_ : ι) =&gt; @Set.univ α)) :=
+  fun (f : ι → α) (hf : f ∈ @Set.univ (ι → α)) =&gt;
+    Set.mem_pi_intro ι α (fun (_ : ι) =&gt; @Set.univ α) f
+      (fun (i : ι) =&gt; Set.mem_univ (f i))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-23-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">pi_empty_of_empty</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-23-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类，本单元旗舰）：<strong>某个因子空 <span class="math">⇒</span> 积空</strong>。</p></div></div><pre class="exercise-statement"><code>theorem pi_empty_of_empty (ι α : Type) (A : ι → Set α)
+    (h : ∃ (i : ι), ∀ (x : α), ¬ (x ∈ A i)) :
+    ∀ (f : ι → α), ¬ (f ∈ (Set.pi ι α A)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>反证。若积里有一个函数 <code>f</code>，把 <code>f</code> 用在那个空因子的坐标上 ——得到"某个元素落在空因子里"，与"空因子什么都没有"冲突。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∃ i, ∀ x, ¬ (x ∈ A i)) → ∀ f, ¬ (f ∈ (Set.pi ι α A))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>（<strong>前导实参写全</strong>，G-73 形状 ②）<span class="math">·</span> 练习 1 的取用子 <span class="math">·</span>把"空因子"那条 <code>∀</code> 用在 <code>f i</code> 上。</p></div></details></div><details class="solution-panel" id="sol-23-6"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem pi_empty_of_empty (ι α : Type) (A : ι → Set α)
+    (h : ∃ (i : ι), ∀ (x : α), ¬ (x ∈ A i)) :
+    ∀ (f : ι → α), ¬ (f ∈ (Set.pi ι α A)) :=
+  fun (f : ι → α) (hf : f ∈ (Set.pi ι α A)) =&gt;
+    @Exists.elim ι (fun (i : ι) =&gt; ∀ (x : α), ¬ (x ∈ A i)) False h
+      (fun (i : ι) (hi : ∀ (x : α), ¬ (x ∈ A i)) =&gt;
+        hi (f i) (Set.mem_pi_elim ι α A f i hf))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">23.3 积与交：<strong>两个方向</strong></h3><article class="exercise" id="ex-23-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">pi_inter_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-23-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类）：<code>pi (A ∩ B) ⊆ pi A ∩ pi B</code>（逐坐标取合取的左/右支）。</p></div></div><pre class="exercise-statement"><code>theorem pi_inter_subset (ι α : Type) (A B : ι → Set α) :
+    (Set.pi ι α (fun (i : ι) =&gt; A i ∩ B i)) ⊆ ((Set.pi ι α A) ∩ (Set.pi ι α B)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>f</code> 在交的积里 <span class="math">⇒</span> 每个坐标 <code>f i</code> 同时在两个因子里（合取的左支与右支）<span class="math">⇒</span> 于是 <code>f</code> 同时在两个积里（合取打包）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(Set.pi ι α (fun i =&gt; A i ∩ B i)) ⊆ ((Set.pi ι α A) ∩ (Set.pi ι α B))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_pi_elim</code>（取用子）<span class="math">·</span> <code>Set.mem_pi_intro</code>（构造子）<span class="math">·</span> <code>And.left</code>/<code>And.right</code><span class="math">·</span> <code>And.intro</code>（<strong>前导 Prop 实参可能补不出来时要写全</strong>，G-73 形状 ②）。</p></div></details></div><details class="solution-panel" id="sol-23-7"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem pi_inter_subset (ι α : Type) (A B : ι → Set α) :
+    (Set.pi ι α (fun (i : ι) =&gt; A i ∩ B i)) ⊆ ((Set.pi ι α A) ∩ (Set.pi ι α B)) :=
+  fun (f : ι → α) (hf : f ∈ (Set.pi ι α (fun (i : ι) =&gt; A i ∩ B i))) =&gt;
+    And.intro
+      (Set.mem_pi_intro ι α A f
+        (fun (i : ι) =&gt;
+          (fun (hi : f i ∈ (A i ∩ B i)) =&gt; And.left hi)
+            (Set.mem_pi_elim ι α (fun (i' : ι) =&gt; A i' ∩ B i') f i hf)))
+      (Set.mem_pi_intro ι α B f
+        (fun (i : ι) =&gt;
+          (fun (hi : f i ∈ (A i ∩ B i)) =&gt; And.right hi)
+            (Set.mem_pi_elim ι α (fun (i' : ι) =&gt; A i' ∩ B i') f i hf)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-23-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">pi_inter_subset_rev</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-23-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类）：<strong>反方向</strong> —— 两个积里的函数逐坐标合并。</p></div></div><pre class="exercise-statement"><code>theorem pi_inter_subset_rev (ι α : Type) (A B : ι → Set α) :
+    ((Set.pi ι α A) ∩ (Set.pi ι α B)) ⊆ (Set.pi ι α (fun (i : ι) =&gt; A i ∩ B i)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>f</code> 同时在两个积里 <span class="math">⇒</span> 每个坐标左支来自第一个积、右支来自第二个 <span class="math">⇒</span> <code>f i</code> 落在交里 <span class="math">⇒</span> <code>f</code> 在交的积里。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>((Set.pi ι α A) ∩ (Set.pi ι α B)) ⊆ (Set.pi ι α (fun i =&gt; A i ∩ B i))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>And.left</code>/<code>And.right</code>（<strong>先把交那条假设展开成合取</strong>）<span class="math">·</span> 两个取用子 <span class="math">·</span><code>Set.mem_pi_intro</code>。</p></div></details></div><details class="solution-panel" id="sol-23-8"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem pi_inter_subset_rev (ι α : Type) (A B : ι → Set α) :
+    ((Set.pi ι α A) ∩ (Set.pi ι α B)) ⊆ (Set.pi ι α (fun (i : ι) =&gt; A i ∩ B i)) :=
+  fun (f : ι → α) (hf : f ∈ ((Set.pi ι α A) ∩ (Set.pi ι α B))) =&gt;
+    Set.mem_pi_intro ι α (fun (i : ι) =&gt; A i ∩ B i) f
+      (fun (i : ι) =&gt;
+        And.intro
+          (Set.mem_pi_elim ι α A f i ((fun (hp : (Set.pi ι α A) f ∧ (Set.pi ι α B) f) =&gt; And.left hp) hf))
+          (Set.mem_pi_elim ι α B f i ((fun (hp : (Set.pi ι α A) f ∧ (Set.pi ι α B) f) =&gt; And.right hp) hf)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">23.4 n 元关系：<strong>柯里化</strong>（把"二元输入"换成"两次一元输入"）</h3><article class="exercise" id="ex-23-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">uncurry_curry</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-23-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>这一节的两个定义是<strong>画布给的</strong>（它们是新词汇）：<code>curry</code> 把 <code>Prod A B → C</code> 变成 <code>A → B → C</code>，<code>uncurry</code> 反过来 ✓</p></div><div class="block prose intuition-only"><p>练习 9（L 类）：<strong>先 <code>curry</code> 再 <code>uncurry</code> 回到原地</strong>。</p></div></div><pre class="exercise-statement"><code>theorem uncurry_curry (A B C : Type) (f : Prod A B → C) (a : A) (b : B) :
+    uncurry A B C (curry A B C f) (@prod_mk A B a b) = f (@prod_mk A B a b) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边<strong>定义上就是同一个东西</strong>（把两个定义各展开一次，计算就完成了）<span class="math">⇒</span> 自反那一条。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>uncurry (curry f) (prod_mk a b) = f (prod_mk a b)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.refl</code>（<strong>要写全宇宙层级与论域</strong>：结果的类型是 <code>C</code>）。</p></div></details></div><details class="solution-panel" id="sol-23-9"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem uncurry_curry (A B C : Type) (f : Prod A B → C) (a : A) (b : B) :
+    uncurry A B C (curry A B C f) (@prod_mk A B a b) = f (@prod_mk A B a b) :=
+  @Eq.refl.{1} C (f (@prod_mk A B a b))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">23.5 必破：<strong>选择公理正是"非空族的积非空"</strong></h3><article class="exercise" id="ex-23-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">pi_nonempty_of_choice</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-23-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>这是选择公理最经典的形式之一（Halmos §15 / Enderton §6.5）：要<strong>同时</strong>为所有因子挑元素，就得有一条"把 <code>∃</code> 兑现成函数"的规则 —— 本卷里那就是 <code>lib.Choice</code> 的 <code>choice</code> ✓</p></div><div class="block prose intuition-only"><p>练习 10（D 类，本单元旗舰）：<strong>每个因子非空 <span class="math">⇒</span> 积非空</strong>（用选择公理）。</p></div></div><pre class="exercise-statement"><code>theorem pi_nonempty_of_choice (ι α : Type) (A : ι → Set α)
+    (h : ∀ (i : ι), ∃ (x : α), x ∈ A i) :
+    ∃ (f : ι → α), f ∈ (Set.pi ι α A) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把选择公理用在关系"<code>x</code> 落在 <code>A i</code> 里"上（两侧集合都取全集）——它直接给你一个函数 <code>f</code> 与"逐点满足关系"；把"落在全集里"那一半丢掉，剩下的正是 <code>f ∈ pi A</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ i, ∃ x, x ∈ A i) → ∃ f, f ∈ (Set.pi ι α A)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>choice</code>（参数表：两个论域 <span class="math">·</span> 两侧集合 <span class="math">·</span> 关系 <span class="math">·</span> 逐点存在性）<span class="math">·</span><code>Exists.elim</code>（<strong>前导实参写全</strong>）<span class="math">·</span> <code>Set.mem_pi_intro</code> <span class="math">·</span> <code>And.right</code>。⚠ 这就是为什么"积非空"在本卷里<strong>不是</strong>一条无条件定理：没有选择公理时它不成立 ✓</p></div></details></div><details class="solution-panel" id="sol-23-10"><summary>查看解答 <span class="sol-meta">定理 · 19 行</span></summary><div class="solution-body"><pre><code>theorem pi_nonempty_of_choice (ι α : Type) (A : ι → Set α)
+    (h : ∀ (i : ι), ∃ (x : α), x ∈ A i) :
+    ∃ (f : ι → α), f ∈ (Set.pi ι α A) :=
+  @Exists.elim (ι → α)
+    (fun (f : ι → α) =&gt; ∀ (i : ι), i ∈ @Set.univ ι → f i ∈ @Set.univ α ∧ f i ∈ A i)
+    (∃ (f : ι → α), f ∈ (Set.pi ι α A))
+    (choice ι α (@Set.univ ι) (@Set.univ α) (fun (i : ι) (x : α) =&gt; x ∈ A i)
+      (fun (i : ι) (hi : i ∈ @Set.univ ι) =&gt;
+        @Exists.elim α (fun (x : α) =&gt; x ∈ A i)
+          (∃ (x : α), x ∈ @Set.univ α ∧ x ∈ A i) (h i)
+          (fun (x : α) (hx : x ∈ A i) =&gt;
+            Exists.intro x
+              (And.intro (Set.mem_univ x) hx))))
+    (fun (f : ι → α)
+      (hf : ∀ (i : ι), i ∈ @Set.univ ι → f i ∈ @Set.univ α ∧ f i ∈ A i) =&gt;
+      Exists.intro f
+        (Set.mem_pi_intro ι α A f
+          (fun (i : ι) =&gt;
+            (fun (hi : f i ∈ @Set.univ α ∧ f i ∈ A i) =&gt; And.right hi) (hf i (Set.mem_univ i)))))</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（2 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 五样</strong>：<code>lib.SUnion</code>（积）<span class="math">·</span> <code>lib.Choice</code>（最后一题要用）<span class="math">·</span> <code>lib.Set</code> <span class="math">·</span><code>lib.Prod</code>（柯里化）<span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㉑（集族）与单元⑤（序对与积）—— 本单元把"二元积"抬到"任意多个因子"。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit22.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">像、原像与广义并交</span></a><a class="unit-nav-home" href="../chapters/i-9.html#units">目录</a><a class="unit-nav-link" href="../units/unit24.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">关系闭包</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-23"><h3><a href="#top">广义积与柯里化</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-23-1"><summary>练习 1 · pi_apply <span class="sol-meta">定理</span></summary><pre><code>theorem pi_apply (ι α : Type) (A : ι → Set α) (f : ι → α) (i : ι)
+    (hf : f ∈ (Set.pi ι α A)) : f i ∈ A i :=
+  Set.mem_pi_elim ι α A f i hf</code></pre></details><details class="appendix-solution" id="app-sol-23-2"><summary>练习 2 · pi_intro <span class="sol-meta">定理</span></summary><pre><code>theorem pi_intro (ι α : Type) (A : ι → Set α) (f : ι → α)
+    (h : ∀ (i : ι), f i ∈ A i) : f ∈ (Set.pi ι α A) :=
+  Set.mem_pi_intro ι α A f h</code></pre></details><details class="appendix-solution" id="app-sol-23-3"><summary>练习 3 · pi_mono_apply <span class="sol-meta">定理</span></summary><pre><code>theorem pi_mono_apply (ι α : Type) (A B : ι → Set α) (h : ∀ (i : ι), A i ⊆ B i)
+    (f : ι → α) (hf : f ∈ (Set.pi ι α A)) : f ∈ (Set.pi ι α B) :=
+  Set.pi_mono ι α A B h f hf</code></pre></details><details class="appendix-solution" id="app-sol-23-4"><summary>练习 4 · pi_const <span class="sol-meta">定理</span></summary><pre><code>theorem pi_const (ι α : Type) (A : ι → Set α) (a : α) (h : ∀ (i : ι), a ∈ A i) :
+    (fun (_ : ι) =&gt; a) ∈ (Set.pi ι α A) :=
+  Set.mem_pi_intro ι α A (fun (_ : ι) =&gt; a) (fun (i : ι) =&gt; h i)</code></pre></details><details class="appendix-solution" id="app-sol-23-5"><summary>练习 5 · pi_univ_subset <span class="sol-meta">定理</span></summary><pre><code>theorem pi_univ_subset (ι α : Type) :
+    @Set.univ (ι → α) ⊆ (Set.pi ι α (fun (_ : ι) =&gt; @Set.univ α)) :=
+  fun (f : ι → α) (hf : f ∈ @Set.univ (ι → α)) =&gt;
+    Set.mem_pi_intro ι α (fun (_ : ι) =&gt; @Set.univ α) f
+      (fun (i : ι) =&gt; Set.mem_univ (f i))</code></pre></details><details class="appendix-solution" id="app-sol-23-6"><summary>练习 6 · pi_empty_of_empty <span class="sol-meta">定理</span></summary><pre><code>theorem pi_empty_of_empty (ι α : Type) (A : ι → Set α)
+    (h : ∃ (i : ι), ∀ (x : α), ¬ (x ∈ A i)) :
+    ∀ (f : ι → α), ¬ (f ∈ (Set.pi ι α A)) :=
+  fun (f : ι → α) (hf : f ∈ (Set.pi ι α A)) =&gt;
+    @Exists.elim ι (fun (i : ι) =&gt; ∀ (x : α), ¬ (x ∈ A i)) False h
+      (fun (i : ι) (hi : ∀ (x : α), ¬ (x ∈ A i)) =&gt;
+        hi (f i) (Set.mem_pi_elim ι α A f i hf))</code></pre></details><details class="appendix-solution" id="app-sol-23-7"><summary>练习 7 · pi_inter_subset <span class="sol-meta">定理</span></summary><pre><code>theorem pi_inter_subset (ι α : Type) (A B : ι → Set α) :
+    (Set.pi ι α (fun (i : ι) =&gt; A i ∩ B i)) ⊆ ((Set.pi ι α A) ∩ (Set.pi ι α B)) :=
+  fun (f : ι → α) (hf : f ∈ (Set.pi ι α (fun (i : ι) =&gt; A i ∩ B i))) =&gt;
+    And.intro
+      (Set.mem_pi_intro ι α A f
+        (fun (i : ι) =&gt;
+          (fun (hi : f i ∈ (A i ∩ B i)) =&gt; And.left hi)
+            (Set.mem_pi_elim ι α (fun (i' : ι) =&gt; A i' ∩ B i') f i hf)))
+      (Set.mem_pi_intro ι α B f
+        (fun (i : ι) =&gt;
+          (fun (hi : f i ∈ (A i ∩ B i)) =&gt; And.right hi)
+            (Set.mem_pi_elim ι α (fun (i' : ι) =&gt; A i' ∩ B i') f i hf)))</code></pre></details><details class="appendix-solution" id="app-sol-23-8"><summary>练习 8 · pi_inter_subset_rev <span class="sol-meta">定理</span></summary><pre><code>theorem pi_inter_subset_rev (ι α : Type) (A B : ι → Set α) :
+    ((Set.pi ι α A) ∩ (Set.pi ι α B)) ⊆ (Set.pi ι α (fun (i : ι) =&gt; A i ∩ B i)) :=
+  fun (f : ι → α) (hf : f ∈ ((Set.pi ι α A) ∩ (Set.pi ι α B))) =&gt;
+    Set.mem_pi_intro ι α (fun (i : ι) =&gt; A i ∩ B i) f
+      (fun (i : ι) =&gt;
+        And.intro
+          (Set.mem_pi_elim ι α A f i ((fun (hp : (Set.pi ι α A) f ∧ (Set.pi ι α B) f) =&gt; And.left hp) hf))
+          (Set.mem_pi_elim ι α B f i ((fun (hp : (Set.pi ι α A) f ∧ (Set.pi ι α B) f) =&gt; And.right hp) hf)))</code></pre></details><details class="appendix-solution" id="app-sol-23-9"><summary>练习 9 · uncurry_curry <span class="sol-meta">定理</span></summary><pre><code>theorem uncurry_curry (A B C : Type) (f : Prod A B → C) (a : A) (b : B) :
+    uncurry A B C (curry A B C f) (@prod_mk A B a b) = f (@prod_mk A B a b) :=
+  @Eq.refl.{1} C (f (@prod_mk A B a b))</code></pre></details><details class="appendix-solution" id="app-sol-23-10"><summary>练习 10 · pi_nonempty_of_choice <span class="sol-meta">定理</span></summary><pre><code>theorem pi_nonempty_of_choice (ι α : Type) (A : ι → Set α)
+    (h : ∀ (i : ι), ∃ (x : α), x ∈ A i) :
+    ∃ (f : ι → α), f ∈ (Set.pi ι α A) :=
+  @Exists.elim (ι → α)
+    (fun (f : ι → α) =&gt; ∀ (i : ι), i ∈ @Set.univ ι → f i ∈ @Set.univ α ∧ f i ∈ A i)
+    (∃ (f : ι → α), f ∈ (Set.pi ι α A))
+    (choice ι α (@Set.univ ι) (@Set.univ α) (fun (i : ι) (x : α) =&gt; x ∈ A i)
+      (fun (i : ι) (hi : i ∈ @Set.univ ι) =&gt;
+        @Exists.elim α (fun (x : α) =&gt; x ∈ A i)
+          (∃ (x : α), x ∈ @Set.univ α ∧ x ∈ A i) (h i)
+          (fun (x : α) (hx : x ∈ A i) =&gt;
+            Exists.intro x
+              (And.intro (Set.mem_univ x) hx))))
+    (fun (f : ι → α)
+      (hf : ∀ (i : ι), i ∈ @Set.univ ι → f i ∈ @Set.univ α ∧ f i ∈ A i) =&gt;
+      Exists.intro f
+        (Set.mem_pi_intro ι α A f
+          (fun (i : ι) =&gt;
+            (fun (hi : f i ∈ @Set.univ α ∧ f i ∈ A i) =&gt; And.right hi) (hf i (Set.mem_univ i)))))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit22.html">← 22 像、原像与广义并交</a><a class="next" href="../units/unit24.html">24 关系闭包 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

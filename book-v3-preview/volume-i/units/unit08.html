@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>08 像与原像 · 从集合论到实分析</title>
+<meta name="description" content="单元⑧ 像与原像：导语、定义与定理、练习与解答。Unit 8 — Images &amp; Preimages">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit08.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li class="is-current"><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.3 单元</h3><ol><li class="is-current"><a href="../units/unit08.html">08 像与原像</a></li><li><a href="../units/unit09.html">09 等势（基数 Ⅰ）</a></li><li><a href="../units/unit10.html">10 可数与 Cantor 定理（基数 Ⅱ）</a></li><li><a href="../units/unit73.html">73 像与广义并交的分配</a></li><li><a href="../units/unit74.html">74 原像与广义并交的分配</a></li><li><a href="../units/unit92.html">92 等势的代数</a></li><li><a href="../units/unit93.html">93 等势的传递</a></li><li><a href="../units/unit96.html">96 势的比较（自反与传递）</a></li><li><a href="../units/unit97.html">97 等势 ⇒ 双向势比较</a></li><li><a href="../units/unit98.html">98 势比较的单调性</a></li><li><a href="../units/unit99.html">99 幂集的单调性</a></li><li><a href="../units/unit100.html">100 势比较的搬运</a></li><li><a href="../units/unit101.html">101 空集与子集的点态代数</a></li><li><a href="../units/unit102.html">102 相互包含与点态外延</a></li><li><a href="../units/unit103.html">103 双向势比较何时升级为等势</a></li><li><a href="../units/unit112.html">112 Cantor–Bernstein 定理（经选择公理）</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li aria-current="page">单元 08 像与原像</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-8-1">8.1 演示：image / preimage 的定义就是&quot;存在&quot;与&quot;应用&quot;（lib/Image 已备好词汇）</a></li>
+<li><a href="#decl-8-1">8.2 原像：并、交、补全保（题 1–3）</a></li>
+<li><a href="#decl-8-1">8.3 像：只保并（题 4）→ image_subset_iff（题 5）</a></li>
+<li><a href="#decl-8-1">8.4 反例零件（已写好）：两点类型 Two、映射 f1、单元素集 {aa}/{bb}、值域 image_preimage</a></li>
+<li><a href="#decl-8-1">8.5 必破（题 6–9）：像不保交、像不还原，以及&quot;补上什么假设等号回来&quot;</a></li>
+<li><a href="#decl-8-1">8.1 演示：image / preimage 的定义就是&quot;存在&quot;与&quot;应用&quot;</a></li>
+<li><a href="#ex-8-1">8.2 原像：并、交、补全保（三条）</a></li>
+<li><a href="#ex-8-4">8.3 像：只保并（交不保——8.5 题 6 给反例；补同样不保，本单元不单独出题）</a></li>
+<li><a href="#decl-8-9">8.4 演示（已写好）：反例用的元素类型与映射——映射写在纸面上</a></li>
+<li><a href="#decl-8-19">8.5 必破（D 类）：判断真假并给反例或证明</a></li>
+<li><a href="#unit-8">8.6 本单元的收束（写给自己看的）</a></li>
+<li><a href="#appendix-unit-8">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-3.html#units">↑ 本章目录</a>
+      <a href="../print/unit08.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit first-of-chapter" id="unit-8">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-3.html">I.3</a> · 本章第 1 / 16 单元 · 全书第 8 / 112 单元</p>
+<h1><span class="unit-number">08</span> <span>像与原像</span></h1>
+<p class="unit-title-en">Unit 8 — Images &amp; Preimages</p>
+<p class="unit-meta">4 个定义 · 19 个定理 · 1 个归纳类型 · 9 道练习 · 27 条提示 · <a href="#appendix-unit-8">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="8" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-8" aria-label="复制单元 8 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit08.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-3.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>── 大纲条目（docs/design/set-theory-syllabus.md §3 第 8 行）──────────────── 单元号：卷 I ⑧（依赖树 … <span class="math">→ 6 → 7 → 8 → {9</span>, 10}）；先修：单元⑦（函数与复合——本单元的 <code>f : α → β</code> 就是那里解锁的原语）与单元③（并、交、差）。练习配额：<strong><span class="math">T-3 · L-3 · D-3 = 9</span> 题</strong>（本文件：<span class="math">T =</span> 题 1/2/4；<span class="math">L =</span> 题 3/5/8；<span class="math">D =</span> 题 6/7/9）。对大纲的差额（如实记）：§3 第 8 行写的是 <span class="math">T3 L2 D3 = 8</span> 题，本文件多出的一条 L 是题 8 <code>image_preimage_image_eq_preimage</code>——把两条"必破"闭环起来的桥（判卷实测它可证；没有它，反例只能停在"两边不等"，说不出"像那一侧到底是什么"）。</p></div></div></section>
+<div class="block prose intuition-only"><p>── 概念顺序（本文件的编排）──────────────────────────────────────────────</p></div><h3 class="unit-subhead">8.1 演示：image / preimage 的定义就是"存在"与"应用"（lib/Image 已备好词汇）</h3><h3 class="unit-subhead">8.2 原像：并、交、补<strong>全保</strong>（题 1–3）</h3><h3 class="unit-subhead">8.3 像：<strong>只保并</strong>（题 4）<span class="math">→ image_subset_iff</span>（题 5）</h3><h3 class="unit-subhead">8.4 反例零件（已写好）：两点类型 Two、映射 f1、单元素集 {aa}/{bb}、值域 image_preimage</h3><h3 class="unit-subhead">8.5 必破（题 6–9）：像不保交、像不还原，以及"补上什么假设等号回来"</h3><div class="block prose intuition-only"><p>── 本单元只允许用什么（stg4 的逐步解锁）──────────────────────────────────</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>语法：<code>fun</code> / <code>exact</code> / <code>intro</code> / <code>apply</code> / <code>assumption</code> / <code>rfl</code> / <code>match</code>（tactic 只在 <code>by</code> 块里；推荐 term 风格 <code>fun (x : A) =&gt; …</code>）；</li><li>库：lib/Logic（True/False/And/Or/Not/Iff/Eq.symm/Eq.trans/congrArg/absurd…）、其中 congrArg 就是"把等式送进函数"（8.4 的 <code>image_inter_singletons_empty</code> 用它把集合等式送进 Set.image）；lib/Exists（Exists / Exists.intro / Exists.elim / Exists.imp）、lib/Set（Set/mem/subset/union/inter/sdiff/compl/univ/empty/singleton… 与展开引理 Set.ext / Set.mem_union / Set.mem_inter_iff / Set.mem_sdiff / Set.mem_univ / Set.notMem_empty / Set.mem_singleton_self …）、<strong>lib/Image</strong>（<code>Set.image</code> / <code>Set.preimage</code> / <code>Set.mem_image</code> / <code>Set.mem_preimage</code> / <code>Set.image_subset_iff</code>）——本单元新解锁的模块；</li><li>记法：<strong>练习与定理一律写记法</strong>（<code>f '' A</code>、<code>f ⁻¹' B</code>、<code>a = b</code>）；8.1 末尾有一条 <strong>binder 记法演示</strong>（<code>binder_notation "∃" =&gt; Exists</code> <span class="math">+</span> <code>∃ (x : α), …</code>，G-04 第三刀）——演示不是练习，题意与数量不动。</li><li><strong>每道涉及映射的题都必须把映射写出来</strong>（<strong>设计判断</strong>，不是实证：本条的文献面是全卷最薄的一条——大纲 §1.3 给它的依据是"教材证据"，survey 的实测否定结果写明<strong>不存在</strong> 针对"像不保交"这个失败点的测量研究）。所以反例题用的 <code>f1</code> 与两个集合 {aa}、{bb} 都写在纸面上。</li></ul></div><h3 class="unit-subhead">8.1 演示：image / preimage 的定义就是"存在"与"应用"</h3><div class="block prose intuition-only"><p>演示 1（已写好）：y 落在像里 <span class="math">⟺</span> 有一个 x 在 A 里、且 <span class="math">f x = y</span>。这就是"前推"的全部内容：把 A 里的点一个个送过去，收回来的是像。</p></div><article class="decl decl-theorem" id="decl-8-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_image</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_image (α β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ f '' A ↔ ∃ (x : α), A x ∧ f x = y :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Set.mem_image α β f A y</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示 2（已写好）：x 落在原像里 <span class="math">⟺ f x</span> 落在 B 里。"回拉"没有存在量词，只有一个函数应用——<strong>这就是原像全保、像只保并的根源</strong>。</p></div><article class="decl decl-theorem" id="decl-8-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_preimage</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_preimage (α β : Type) (f : α → β) (B : Set β) (x : α) :
+    (x ∈ (f ⁻¹' B)) ↔ ((f x) ∈ B) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Set.mem_preimage α β f B x</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">8.2 原像：并、交、补<strong>全保</strong>（三条）</h3><article class="exercise" id="ex-8-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">preimage_union</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-8-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：原像与并交换。</p></div></div><pre class="exercise-statement"><code>theorem preimage_union (α β : Type) (f : α → β) (B C : Set β) :
+    (f ⁻¹' (B ∪ C)) = ((f ⁻¹' B) ∪ (f ⁻¹' C)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>集合等式先用 Set.ext 逐元素化；<code>f ⁻¹' (B ∪ C)</code> 展开后是 <code>Or</code>，<code>f ⁻¹' B ∪ f ⁻¹' C</code> 展开后也是 <code>Or</code>——两边是同一个 Or。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>Set.ext 之后目标是 <span class="math">∀ x</span>, <span class="math">((B (f x)) ∨ (C (f x))) ↔ ((B (f x)) ∨ (C (f x)))</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两个方向都用 Or.elim 分情况，再 Or.inl/Or.inr 交回去；Set.mem_preimage 把 <span class="math">∈</span> 原像换成 <span class="math">f x ∈</span> 原集。</p></div></details></div><details class="solution-panel" id="sol-8-1"><summary>查看解答 <span class="sol-meta">定理 · 24 行</span></summary><div class="solution-body"><p class="solution-note">练习 1（T 类）：原像保并</p><pre><code>theorem preimage_union (α β : Type) (f : α → β) (B C : Set β) :
+    @Eq.{1} (Set α) (f ⁻¹' (B ∪ C))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      ((f ⁻¹' B) ∪ (f ⁻¹' C)) := by
+  exact Set.ext (f ⁻¹' (B ∪ C))
+    ((f ⁻¹' B) ∪ (f ⁻¹' C))
+    (fun (x : α) =&gt;
+      @Iff.intro (x ∈ (f ⁻¹' (B ∪ C)))
+        ((x ∈ (f ⁻¹' B)) ∨ (x ∈ (f ⁻¹' C)))
+        (fun (h : x ∈ (f ⁻¹' (B ∪ C))) =&gt;
+          @Or.elim ((f x) ∈ B) ((f x) ∈ C)
+            ((x ∈ (f ⁻¹' B)) ∨ (x ∈ (f ⁻¹' C)))
+            (fun (hb : (f x) ∈ B) =&gt;
+              Or.inl hb)
+            (fun (hc : (f x) ∈ C) =&gt;
+              Or.inr hc)
+            h)
+        (fun (h : (x ∈ (f ⁻¹' B)) ∨ (x ∈ (f ⁻¹' C))) =&gt;
+          @Or.elim (x ∈ (f ⁻¹' B)) (x ∈ (f ⁻¹' C))
+            ((f x) ∈ (B ∪ C))
+            (fun (hb : x ∈ (f ⁻¹' B)) =&gt;
+              Or.inl hb)
+            (fun (hc : x ∈ (f ⁻¹' C)) =&gt;
+              Or.inr hc)
+            h))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-8-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">preimage_compl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-8-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：原像与补交换（<strong>全保</strong>的最后一条）。</p></div></div><pre class="exercise-statement"><code>theorem preimage_compl (α β : Type) (f : α → β) (B : Set β) :
+    (f ⁻¹' (Bᶜ)) = ((f ⁻¹' B)ᶜ) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与第 1 题同款：Set.ext 之后两边都是 <code>Not</code>（也就是 <span class="math">→ False</span>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>Set.ext 之后目标是 <span class="math">∀ x</span>, <span class="math">(¬ (B (f x))) ↔ (¬ (B (f x)))</span>，其中一边来自 Set.compl。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Iff.intro 的两个方向都是"把收到的函数原样再喂一次"；不需要 Or.elim。</p></div></details></div><details class="solution-panel" id="sol-8-2"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note">练习 2（T 类）：原像保补</p><pre><code>theorem preimage_compl (α β : Type) (f : α → β) (B : Set β) :
+    (f ⁻¹' (Bᶜ)) = ((f ⁻¹' B)ᶜ) := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-8-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">preimage_inter</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-8-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：原像保交（<strong>写出来</strong>：这道题要把 f 本身点出来）。</p></div></div><pre class="exercise-statement"><code>theorem preimage_inter (α β : Type) (f : α → β) (B C : Set β) :
+    (f ⁻¹' (B ∩ C)) = ((f ⁻¹' B) ∩ (f ⁻¹' C)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>Set.ext 逐元素；<code>f ⁻¹' (B ∩ C)</code> 展开是 And，右边也是 And。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="∀ x, ((B (f x)) ∧ (C (f x))) ↔ ((B (f x)) ∧ (C (f x)))"><math display="block" class="mathml"><mrow><mo>∀</mo><mspace width="0.22em"/><mi>x</mi><mo>,</mo><mspace width="0.22em"/><mo>(</mo><mo>(</mo><mi>B</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>f</mi><mspace width="0.22em"/><mi>x</mi></mrow><mo>)</mo></mrow><mo>)</mo><mspace width="0.22em"/><mo>∧</mo><mspace width="0.22em"/><mo>(</mo><mi>C</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>f</mi><mspace width="0.22em"/><mi>x</mi></mrow><mo>)</mo></mrow><mo>)</mo><mo>)</mo><mspace width="0.22em"/><mo>↔</mo><mspace width="0.22em"/><mo>(</mo><mo>(</mo><mi>B</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>f</mi><mspace width="0.22em"/><mi>x</mi></mrow><mo>)</mo></mrow><mo>)</mo><mspace width="0.22em"/><mo>∧</mo><mspace width="0.22em"/><mo>(</mo><mi>C</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>f</mi><mspace width="0.22em"/><mi>x</mi></mrow><mo>)</mo></mrow><mo>)</mo><mo>)</mo></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两个方向都用 And.intro / And.left / And.right（和 Iff.mp/mpr 一起用）。</p></div></details></div><details class="solution-panel" id="sol-8-3"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><p class="solution-note">练习 3（L 类）：原像保交</p><pre><code>theorem preimage_inter (α β : Type) (f : α → β) (B C : Set β) :
+    @Eq.{1} (Set α) (f ⁻¹' (B ∩ C))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      ((f ⁻¹' B) ∩ (f ⁻¹' C)) := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h</code></pre></div></details></div></article>
+<h3 class="unit-subhead">8.3 像：只保并（交不保——8.5 题 6 给反例；补同样不保，本单元不单独出题）</h3><article class="exercise" id="ex-8-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">image_union</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-8-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：像保并（<strong>写出来</strong>：f 要显式出现在两边）。</p></div></div><pre class="exercise-statement"><code>theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
+    (f '' (A ∪ B)) = ((f '' A) ∪ (f '' B)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span> 先 Exists.elim 取出原像点 x，再 Or.elim 分"x 在 A"还是"x 在 B"。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only"><pre class="display-code"><code>∀ y, (Exists α (fun x =&gt; ((A x) ∨ (B x)) ∧ ((f x) = y))) ↔ ((Exists α (fun x =&gt; (A x) ∧ ((f x) = y))) ∨ (Exists α (fun x =&gt; (B x) ∧ ((f x) = y))))。</code></pre></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">→</span> 用 Exists.intro 交回证人并 Or.inl/Or.inr；<span class="math">←</span> 用 Set.mem_image 把"<span class="math">∈</span> 像"换成 Exists 再合并（<span class="math">Exists.elim + Or.elim</span>）。</p></div></details></div><details class="solution-panel" id="sol-8-4"><summary>查看解答 <span class="sol-meta">定理 · 47 行</span></summary><div class="solution-body"><p class="solution-note">练习 4（T 类）：像保并</p><pre><code>theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
+    @Eq.{1} (Set β) (f '' (A ∪ B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      ((f '' A) ∪ (f '' B)) := by
+  exact Set.ext (f '' (A ∪ B))
+    ((f '' A) ∪ (f '' B))
+    (fun (y : β) =&gt;
+      @Iff.intro (y ∈ (f '' (A ∪ B)))
+        ((y ∈ (f '' A)) ∨ (y ∈ (f '' B)))
+        (fun (h : y ∈ (f '' (A ∪ B))) =&gt;
+          @Exists.elim α (fun (x : α) =&gt; (x ∈ (A ∪ B)) ∧ ((f x) = y))
+            ((y ∈ (f '' A)) ∨ (y ∈ (f '' B))) h
+            (fun (x : α) =&gt; fun (hx : (x ∈ (A ∪ B)) ∧ ((f x) = y)) =&gt;
+              @Or.elim (A x) (B x)
+                ((y ∈ (f '' A)) ∨ (y ∈ (f '' B)))
+                (fun (ha : A x) =&gt;
+                  @Or.inl (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    (@Exists.intro α (fun (x' : α) =&gt; (x' ∈ A) ∧ ((f x') = y)) x
+                      (@And.intro (x ∈ A) ((f x) = y) ha  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                        (And.right hx))))
+                (fun (hb : B x) =&gt;
+                  @Or.inr (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    (@Exists.intro α (fun (x' : α) =&gt; (x' ∈ B) ∧ ((f x') = y)) x
+                      (@And.intro (x ∈ B) ((f x) = y) hb  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                        (And.right hx))))
+                (And.left hx)))
+        (fun (h : (y ∈ (f '' A)) ∨ (y ∈ (f '' B))) =&gt;
+          @Or.elim (y ∈ (f '' A)) (y ∈ (f '' B))
+            (y ∈ (f '' (A ∪ B)))
+            (fun (ha : y ∈ (f '' A)) =&gt;
+              @Exists.elim α (fun (x : α) =&gt; (A x) ∧ ((f x) = y))
+                (y ∈ (f '' (A ∪ B))) ha
+                (fun (x : α) =&gt; fun (hx : (A x) ∧ ((f x) = y)) =&gt;
+                  @Exists.intro α (fun (x' : α) =&gt; (x' ∈ (A ∪ B)) ∧ ((f x') = y)) x
+                    (@And.intro (x ∈ (A ∪ B)) ((f x) = y)
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                      (@Or.inl (A x) (B x) (And.left hx))
+                      (And.right hx))))
+            (fun (hb : y ∈ (f '' B)) =&gt;
+              @Exists.elim α (fun (x : α) =&gt; (B x) ∧ ((f x) = y))
+                (y ∈ (f '' (A ∪ B))) hb
+                (fun (x : α) =&gt; fun (hx : (B x) ∧ ((f x) = y)) =&gt;
+                  @Exists.intro α (fun (x' : α) =&gt; (x' ∈ (A ∪ B)) ∧ ((f x') = y)) x
+                    (@And.intro (x ∈ (A ∪ B)) ((f x) = y)
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                      (@Or.inr (A x) (B x) (And.left hx))
+                      (And.right hx))))
+            h))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-8-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">image_subset_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-8-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：image_subset_iff——把"像落在 B 里"翻译成"每个点都被送进 B 里"。</p></div></div><pre class="exercise-statement"><code>theorem image_subset_iff (α β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    ((f '' A) ⊆ B) ↔ (A ⊆ (f ⁻¹' B)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span> 方向：给定 <span class="math">y = f x</span>，把"<span class="math">x ∈ A</span>"交出去就得到 <span class="math">y ∈</span> 像，再用假设；<span class="math">←</span> 方向：y 在像里就有证人 x 与 <code>f x = y</code>，把 <span class="math">y ∈ B</span> 沿这个等式搬回 <span class="math">f x ∈ B</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="((f &#x27;&#x27; A) ⊆ B) ↔ (A ⊆ (f ⁻¹&#x27; B))"><math display="block" class="mathml"><mrow><mo>(</mo><mrow><mo>(</mo><mrow><mi>f</mi><mspace width="0.22em"/><mo>′</mo><mo>′</mo><mspace width="0.22em"/><mi>A</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>⊆</mo><mspace width="0.22em"/><mi>B</mi><mo>)</mo><mspace width="0.22em"/><mo>↔</mo><mspace width="0.22em"/><mo>(</mo><mi>A</mi><mspace width="0.22em"/><mo>⊆</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>f</mi><msup><mspace width="0.22em"/><mrow><mo>-</mo><mn>1</mn></mrow></msup><mo>′</mo><mspace width="0.22em"/><mi>B</mi></mrow><mo>)</mo></mrow><mo>)</mo></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>库里有同款判据（名字就在本文件开头的 lib/Image 清单里，先认出它）；要自己走一遍：<span class="math">→</span> 用 Exists.intro 造 <code>f x ∈ f '' A</code>（<code>Eq.refl</code> 当等式）后喂给假设，<span class="math">←</span> 用 Exists.elim 取证人，再用 Eq.subst 沿 <code>f x = y</code> 改写。</p></div></details></div><details class="solution-panel" id="sol-8-5"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">练习 5（L 类）：image_subset_iff（库里的判据，直接引用）</p><pre><code>theorem image_subset_iff (α β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    ((f '' A) ⊆ B) ↔ (A ⊆ (f ⁻¹' B)) := by
+  exact @Set.image_subset_iff α β f A B</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>演示（已写好）：像的单调性——<code>A ⊆ B</code> 推出 <code>f '' A ⊆ f '' B</code>（真的那一半）。库里的同款（<code>fun</code> 而不是 <code>Set.subset</code> 版）：<code>Set.image_mono</code>。</p></div><article class="decl decl-theorem" id="decl-8-8"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">image_mono</code><span class="decl-where">声明 8</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem image_mono (α β : Type) (f : α → β) (A B : Set α)
+    (h : A ⊆ B) : (f '' A) ⊆ (f '' B) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Set.image_mono α β f A B h</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示（记法，G-04 第二刀）：同一句话用<strong>数学符号</strong>再写一遍——<code>f '' A</code> 是记法，点名形式 <code>Set.image</code> 就是它。中缀记法 <code>infixr:80 " '' " =&gt; Set.image</code> 写在 <code>lib/Set.sokonanoda</code> 里，随 import 带进来：<strong>本文件不重声明任何记法</strong>。两个前导类型参数由记法路径自己解出（<code>α</code> 来自 <code>A : Set α</code>、<code>β</code> 来自 <code>f : α → β</code> 的陪域）；点名形式则必须写全它们。写成 <code>example</code>（与本文件"演示 8"同款）：演示不该往单元里塞具名声明，课程门禁的 <code>decl.checked</code> 计数因此<strong>一个都不动</strong>。</p></div><div class="block prose intuition-only"><p>演示（记法，G-04 第三刀）：<strong>binder 记法</strong> <code>∃ (x : α), p</code>。<code>binder_notation "∃" =&gt; Exists</code> 声明的符号出现在 <strong>binder 位置</strong>：<code>∃ (x : α), p</code> 展开成点名形式 <code>Exists α (fun (x : α) =&gt; p)</code>——与本文件 8.1 演示 1 里的 <code>Exists α (fun (x : α) =&gt; …)</code> 逐字同义，只是写成了数学符号。三条边界（设计 docs/design/notation-subset.md §12.1）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>binder 的类型要写在括号里（本子集不引入元变量，<code>∃ x, p</code> 的 x 类型没有来源）；</li><li>记法<strong>不是声明</strong>（不产生 decl.checked/exercise.open）——课程门禁的计数不动；</li><li>点名形式 <code>Exists α (fun …)</code> 永久可用（本文件 8.1 与下面的练习都用它）。</li></ul></div><div class="block prose intuition-only"><p>（<code>∃</code> 的 binder 记法已搬进 <code>lib/Exists.sokonanoda</code>：全课程只能声明一次。）</p></div><h3 class="unit-subhead">8.4 演示（已写好）：反例用的元素类型与映射——<strong>映射写在纸面上</strong></h3><div class="block prose intuition-only"><p>语言限制（构造子是裸名且全项目唯一）：<code>zero</code>/<code>one</code>/<code>true</code>/<code>false</code> 已被 prelude 占用，所以这里用自己的构造子名 aa / bb。"aa 与 bb 是两个点"（<code>two_aa_ne_bb</code>）<strong>可以证</strong>：拿一个 <code>match</code> 出来的谓词 <code>isAa</code> 当 motive，沿等式把 <code>True</code> 搬到 <code>False</code> 上（只用 Eq.subst 与 True.intro）——复核轮实测：它不但判过，还能当函数用在后面所有地方。</p></div><article class="decl decl-inductive" id="decl-8-9"><header class="decl-head"><span class="decl-kind kind-inductive">归纳类型</span><code class="decl-name">Two</code><span class="decl-where">声明 9</span></header><div class="decl-body"><pre class="decl-statement"><code>inductive Two : Type
+ctor aa : Two
+ctor bb : Two
+end</code></pre></div></article>
+<div class="block prose intuition-only"><p><code>isAa</code>：aa 上真、bb 上假的谓词（<code>match</code> 当 motive 时必须放在<strong>有类型标注</strong>的位置）。</p></div><article class="decl decl-def" id="decl-8-10"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">isAa</code><span class="decl-where">声明 10</span></header><div class="decl-body"><pre class="decl-statement"><code>def isAa (t : Two) : Prop := match t with
+| aa =&gt; True
+| bb =&gt; False</code></pre></div></article>
+<div class="block prose intuition-only"><p>"Two 恰好有两个点"：两个构造子可分。</p></div><article class="decl decl-theorem" id="decl-8-11"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">two_aa_ne_bb</code><span class="decl-where">声明 11</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem two_aa_ne_bb : ¬ (aa = bb) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  fun (h : aa = bb) =&gt;
+    @Eq.subst.{1} Two (fun (t : Two) =&gt; isAa t) aa bb h True.intro</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示 3（已写好）：映射 <code>f1</code> —— 两个点都送到 aa（"塌成一个"）。</p></div><article class="decl decl-def" id="decl-8-12"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">f1</code><span class="decl-where">声明 12</span></header><div class="decl-body"><pre class="decl-statement"><code>def f1 (t : Two) : Two := match t with
+| aa =&gt; aa
+| bb =&gt; aa</code></pre></div></article>
+<div class="block prose intuition-only"><p>演示 4（已写好）：f1 在两个点上的值（<code>match</code> 两支都是 aa）。</p></div><article class="decl decl-theorem" id="decl-8-13"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">f1_eq_aa</code><span class="decl-where">声明 13</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem f1_eq_aa (x : Two) : (f1 x) = aa :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 3 步 · 3 行</summary><ol class="proof-steps"><li><pre><code> match x with</code></pre></li><li><pre><code>| aa =&gt; @Eq.refl.{1} Two aa</code></pre></li><li><pre><code>| bb =&gt; @Eq.refl.{1} Two aa</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示 5（已写好）：<code>U01 = {aa, bb}</code>（<code>Set.univ Two</code> 的摊开写法）。</p></div><article class="decl decl-def" id="decl-8-14"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">U01</code><span class="decl-where">声明 14</span></header><div class="decl-body"><pre class="decl-statement"><code>def U01 : Set Two := fun (x : Two) =&gt; (x = aa) ∨ (x = bb)</code></pre></div></article>
+<div class="block prose intuition-only"><p>演示（已写好）：<code>image_preimage</code> —— 被 f1 <strong>取到</strong>的那些点（f1 的值域）。在这个例子里它就是 {aa}（aa 与 bb 都被送到 aa）。题 7 说 <code>f1 '' (f1 ⁻¹' U01) ≠ U01</code>，题 8 说它恰好等于这个值域——两条合起来就是反例的闭环。（名字读作"像-原像那件事"：题 8 证的正是"像 ∘ 原像"落在哪里。）</p></div><article class="decl decl-def" id="decl-8-15"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">image_preimage</code><span class="decl-where">声明 15</span></header><div class="decl-body"><pre class="decl-statement"><code>def image_preimage : Set Two := fun (y : Two) =&gt; ∃ (x : Two), (f1 x) = y</code></pre></div></article>
+<div class="block prose intuition-only"><p>演示 6（已写好）：两个初等事实——<code>{aa} ∩ {bb} = ∅</code>、<code>f1 '' ∅ = ∅</code>。这两条就是"像不保交"反例的两个零件。</p></div><article class="decl decl-theorem" id="decl-8-16"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">inter_singletons_empty</code><span class="decl-where">声明 16</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem inter_singletons_empty :
+    @Eq.{1} (Set Two) (({aa}) ∩ ({bb}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (∅) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 15 行</summary><ol class="proof-steps"><li><pre><code>  Set.ext (({aa}) ∩ ({bb})) (∅)
+    (fun (x : Two) =&gt;
+      @Iff.intro (x ∈ (({aa}) ∩ ({bb})))
+        (x ∈ (∅))
+        (fun (hx : x ∈ (({aa}) ∩ ({bb}))) =&gt;
+          @False.elim (x ∈ (∅))
+            (two_aa_ne_bb
+              (@Eq.trans.{1} Two aa x bb
+                (@Eq.symm.{1} Two x aa
+                  (@And.left (x ∈ ({aa}))
+                    (x ∈ ({bb})) hx))
+                (@And.right (x ∈ ({aa}))
+                  (x ∈ ({bb})) hx))))
+        (fun (h0 : x ∈ (∅)) =&gt;
+          False.elim h0))</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-8-17"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">image_empty</code><span class="decl-where">声明 17</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem image_empty (A : Set Two) :
+    (f1 '' (∅)) = (∅) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 13 行</summary><ol class="proof-steps"><li><pre><code>  Set.ext (f1 '' (∅)) (∅)
+    (fun (y : Two) =&gt;
+      @Iff.intro (y ∈ (f1 '' (∅)))
+        (y ∈ (∅))
+        (fun (hy : y ∈ (f1 '' (∅))) =&gt;
+          @Exists.elim Two
+            (fun (x : Two) =&gt; (x ∈ (∅)) ∧ ((f1 x) = y))
+            (y ∈ (∅)) hy
+            (fun (x : Two) =&gt;
+              fun (hx : (x ∈ (∅)) ∧ ((f1 x) = y)) =&gt;
+                False.elim (And.left hx)))
+        (fun (h0 : y ∈ (∅)) =&gt;
+          False.elim h0))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示 7（已写好）：把"交集是空"送进 Set.image——这就是反例的左半边。</p></div><article class="decl decl-theorem" id="decl-8-18"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">image_inter_singletons_empty</code><span class="decl-where">声明 18</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem image_inter_singletons_empty :
+    @Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (f1 '' (({aa}) ∩ ({bb})))
+      (∅) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 6 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.trans.{1} (Set Two)
+    (f1 '' (({aa}) ∩ ({bb})))
+    (f1 '' (∅))
+    (∅)
+    (congrArg.{1} (fun (X : Set Two) =&gt; f1 '' X) inter_singletons_empty)
+    (image_empty (∅))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示 8（已写好）：反例的右半边——<code>aa</code> 同时落在 <code>f1 '' {aa}</code> 与 <code>f1 '' {bb}</code> 里。这就是"f1 不单射 <span class="math">⇒</span> 像不保交"的全部内容：交集里那个点是从<strong>两个不同的点</strong>塌过来的。</p></div><h3 class="unit-subhead">8.5 必破（D 类）：判断真假并给反例或证明</h3><div class="block prose intuition-only"><p>演示（已写好）：<code>f '' (A ∩ B) ⊆ f '' A ∩ f '' B</code>——"假的"那一半里真的方向。像把交集推过去只会更小：两个单点集都被 f1 压成 {aa} 时，右边比左边大出一截（练习 6）。</p></div><article class="decl decl-theorem" id="decl-8-19"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">image_inter_subset</code><span class="decl-where">声明 19</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem image_inter_subset (α β : Type) (f : α → β) (A B : Set α) :
+    @Set.subset β (f '' (A ∩ B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      ((f '' A) ∩ (f '' B)) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 16 行</summary><ol class="proof-steps"><li><pre><code>  fun (y : β) =&gt; fun (h : y ∈ (f '' (A ∩ B))) =&gt;
+    @Exists.elim α
+      (fun (x : α) =&gt; (x ∈ (A ∩ B)) ∧ ((f x) = y))
+      ((y ∈ (f '' A)) ∧ (y ∈ (f '' B))) h
+      (fun (x : α) =&gt; fun (hx : (x ∈ (A ∩ B)) ∧ ((f x) = y)) =&gt;
+        And.intro
+          (Exists.intro x
+            (And.intro
+              (@And.left (A x) (B x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                (And.left hx))
+              (And.right hx)))
+          (Exists.intro x
+            (And.intro  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@And.right (A x) (B x)
+                (And.left hx))
+              (And.right hx))))</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-8-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">not_image_inter_eq_image_inter</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-8-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（D 类）：反例——<code>f '' ({aa} ∩ {bb}) = f '' {aa} ∩ f '' {bb}</code> <strong>假</strong>。</p></div><div class="block prose intuition-only"><p>语言提示（实测，解答就是这么写的）：主定理写成 <code>fun (h : …) =&gt; …</code> 没问题，关键是<strong>零件</strong> 要各自做成结论具体的独立引理（"aa 落在右边""bb 不在像里"那一类），主定理只负责用 Eq.subst 把零件沿假设 h 搬过去——内核在需要化简 <code>match</code> 定义或公理应用的地方不化简，零件具体了就不必求它化简。</p></div><div class="block prose intuition-only"><p>反例的三件套（都写在纸面上）：映射 f1（两个点都送到 aa）、集合 {aa} 与 {bb}。左边 <code>f1 '' ({aa} ∩ {bb})</code>：交集是空集，由演示 6 得它是 ∅。右边 <code>f1 '' {aa} ∩ f1 '' {bb}</code>：aa 同时落在两边（<span class="math">f1 aa = aa</span>、<span class="math">f1 bb = aa</span>），所以非空。</p></div></div><pre class="exercise-statement"><code>theorem not_image_inter_eq_image_inter :
+    ¬ (@Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (f1 '' (({aa}) ∩ ({bb})))
+      (@Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        (f1 '' ({bb})))) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先证 <code>y ∈ f1 '' {aa}</code> 与 <code>y ∈ f1 '' {bb}</code> 都成立（都用 Exists.intro），再把它装成右式的一个元素；左边为空由演示 6 的等式搬过去即可。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>Not (Eq (Set Two) (Set.image Two Two f1 (Set.inter … {aa} … {bb})) (Set.inter … ))，展开是 (… <span class="math">=</span> …) -&gt; False。  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 <span class="math">λ</span> 里补不出）</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>把 <code>Set.inter {aa} {bb} = ∅</code>（演示 6）用 congrArg 送进 Set.image，再用 Eq.subst 把右式的元素沿等式搬到左式上，就得到 <code>aa ∈ ∅</code>（Set.notMem_empty）。</p></div></details></div><details class="solution-panel" id="sol-8-6"><summary>查看解答 <span class="sol-meta">定理 · 30 行</span></summary><div class="solution-body"><p class="solution-note">练习 6（D 类，必破）：两侧不等——左边是 ∅，右边含 aa。</p><pre><code>theorem not_image_inter_eq_image_inter :
+    ¬ (@Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (f1 '' (({aa}) ∩ ({bb})))
+      (@Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        (f1 '' ({bb})))) :=
+  fun (h : @Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+      (f1 '' (({aa}) ∩ ({bb})))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+      (@Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+        (f1 '' ({bb})))) =&gt;
+  Set.notMem_empty aa
+    (@Eq.subst.{1} (Set Two) (fun (X : Set Two) =&gt; aa ∈ X)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (@Set.inter Two (f1 '' ({aa}))
+        (f1 '' ({bb})))
+      (∅)
+      (@Eq.trans.{1} (Set Two)
+        (@Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (f1 '' ({bb})))
+        (f1 '' (({aa}) ∩ ({bb})))
+        (∅)
+        (@Eq.symm.{1} (Set Two)
+          (f1 '' (({aa}) ∩ ({bb})))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (@Set.inter Two (f1 '' ({aa}))
+            (f1 '' ({bb}))) h)
+        (image_inter_singletons_empty))
+      (@Iff.mpr
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+        (@Set.mem Two aa (@Set.inter Two (f1 '' ({aa})) (f1 '' ({bb}))))
+        ((aa ∈ (f1 '' ({aa}))) ∧ (aa ∈ (f1 '' ({bb}))))
+        (Set.mem_inter_iff aa (f1 '' ({aa})) (f1 '' ({bb})))
+        aa_mem_inter_image))</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>演示（已写好）：<code>f '' (f ⁻¹' C) ⊆ C</code>——方向一，<strong>无需任何假设</strong>。落进像的点必先落进 C：<span class="math">f ⁻¹' C</span> 的定义（演示 2）把这件事变成一次函数应用。</p></div><article class="decl decl-theorem" id="decl-8-21"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">image_preimage_subset</code><span class="decl-where">声明 21</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem image_preimage_subset (α β : Type) (f : α → β) (C : Set β) :
+    (f '' (f ⁻¹' C)) ⊆ C :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 8 行</summary><ol class="proof-steps"><li><pre><code>  fun (y : β) =&gt; fun (h : y ∈ (f '' (f ⁻¹' C))) =&gt;
+    @Exists.elim α
+      (fun (x : α) =&gt; (x ∈ (f ⁻¹' C)) ∧ ((f x) = y))
+      (y ∈ C) h
+      (fun (x : α) =&gt; fun (hx : (x ∈ (f ⁻¹' C)) ∧ ((f x) = y)) =&gt;
+        @Eq.subst.{1} β (fun (z : β) =&gt; z ∈ C) (f x) y
+          (And.right hx)
+          (And.left hx))</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-8-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">not_image_preimage_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-8-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（D 类）：方向二（假的）——反例：<code>bb ∈ U01</code>，但 <code>bb</code> 不在 <code>f1 '' (f1 ⁻¹' U01)</code> 里。先把零件（"bb 不在像里"）做成结论具体的独立引理，再沿假设的等号搬过去（见题 6 的语言提示）。</p></div></div><pre class="exercise-statement"><code>theorem not_image_preimage_eq :
+    ¬ ((f1 '' (f1 ⁻¹' U01)) = U01) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>若 <span class="math">∃ x</span>, <span class="math">f1 x = bb</span>，则 <span class="math">f1 x = aa</span>（演示 4）与 <span class="math">f1 x = bb</span> 合起来给出 <span class="math">aa = bb</span>，与 two_aa_ne_bb 矛盾；把这条矛盾单独写成引理，再据此证明等号不可能。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="¬ ((f1 &#x27;&#x27; (f1 ⁻¹&#x27; U01)) = U01)"><math display="block" class="mathml"><mrow><mo>¬</mo><mspace width="0.22em"/><mo>(</mo><mo>(</mo><mi mathvariant="normal">f1</mi><mspace width="0.22em"/><mo>′</mo><mo>′</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi mathvariant="normal">f1</mi><msup><mspace width="0.22em"/><mrow><mo>-</mo><mn>1</mn></mrow></msup><mo>′</mo><mspace width="0.22em"/><mi mathvariant="normal">U01</mi></mrow><mo>)</mo></mrow><mo>)</mo><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi mathvariant="normal">U01</mi><mo>)</mo></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>从假设的等号把 <code>bb ∈ U01</code>（用 Or.inr 造）搬到 <code>bb ∈ 像</code> 上（Eq.subst），而"<span class="math">bb ∉</span> 像"由你自己的引理给出。</p></div></details></div><details class="solution-panel" id="sol-8-7"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem not_image_preimage_eq :
+    ¬ ((f1 '' (f1 ⁻¹' U01)) = U01) := by
+  intro h
+  exact bb_not_mem_image_preimage
+    (@Eq.subst.{1} (Set Two) (fun (X : Set Two) =&gt; bb ∈ X)
+      (f1 '' (f1 ⁻¹' U01)) image_preimage
+      (@Eq.symm.{1} (Set Two) image_preimage
+        (f1 '' (f1 ⁻¹' U01)) image_preimage_eq_image)
+      (@Eq.subst.{1} (Set Two) (fun (X : Set Two) =&gt; bb ∈ X) U01
+        (f1 '' (f1 ⁻¹' U01))
+        (@Eq.symm.{1} (Set Two) (f1 '' (f1 ⁻¹' U01)) U01 h)
+        bb_mem_U01))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-8-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">image_preimage_image_eq_preimage</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-8-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类）：把题 7 的反例<strong>用起来</strong>——证 <code>f1 '' (f1 ⁻¹' U01) = image_preimage</code>。有了它，题 7 与这里合起来就是：<code>f1 '' (f1 ⁻¹' U01) = image_preimage = {aa} ≠ U01</code>，反例闭环。</p></div></div><pre class="exercise-statement"><code>theorem image_preimage_image_eq_preimage :
+    (f1 '' (f1 ⁻¹' U01)) = image_preimage := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两条包含互相凑相等（<span class="math">Set.ext + Iff.intro</span>，就是单元②的反对称套路）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="(f1 &#x27;&#x27; (f1 ⁻¹&#x27; U01)) = image_preimage"><math display="block" class="mathml"><mrow><mo>(</mo><mi mathvariant="normal">f1</mi><mspace width="0.22em"/><mo>′</mo><mo>′</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi mathvariant="normal">f1</mi><msup><mspace width="0.22em"/><mrow><mo>-</mo><mn>1</mn></mrow></msup><mo>′</mo><mspace width="0.22em"/><mi mathvariant="normal">U01</mi></mrow><mo>)</mo></mrow><mo>)</mo><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi mathvariant="normal">image_preimage</mi></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">→</span> 用 Exists.elim 取出 (x, ⟨<span class="math">x ∈ f ⁻¹' U01</span>, <span class="math">f1 x = y</span>⟩)，只留 <code>f1 x = y</code> 造 image_preimage 的证人；<span class="math">←</span> 从 <code>f1 x = y</code> 反过来造 image 的证人，<code>x ∈ f1 ⁻¹' U01</code> 由 f1_eq_aa（演示 4）配 Or.inl 给出。</p></div></details></div><details class="solution-panel" id="sol-8-8"><summary>查看解答 <span class="sol-meta">定理 · 25 行</span></summary><div class="solution-body"><p class="solution-note">练习 8（L 类）：反例闭环的桥（方向：左式 <span class="math">= image_preimage</span>）。</p><pre><code>theorem image_preimage_image_eq_preimage :
+    (f1 '' (f1 ⁻¹' U01)) = image_preimage := by
+  exact eq_of_subsets Two (f1 '' (f1 ⁻¹' U01)) image_preimage
+    (fun (y : Two) =&gt;
+      fun (hy : y ∈ (f1 '' (f1 ⁻¹' U01))) =&gt;
+        @Exists.elim Two
+          (fun (x : Two) =&gt; x ∈ (f1 ⁻¹' U01) ∧
+            (f1 x) = y)
+          (y ∈ image_preimage) hy
+          (fun (x : Two) =&gt; fun (hx : x ∈ (f1 ⁻¹' U01) ∧
+              (f1 x) = y) =&gt;
+            Exists.intro x
+              (And.right hx)))
+    (fun (y : Two) =&gt; fun (hy : y ∈ image_preimage) =&gt;
+      @Exists.elim Two (fun (x : Two) =&gt; (f1 x) = y)
+        (y ∈ (f1 '' (f1 ⁻¹' U01))) hy
+        (fun (x : Two) =&gt; fun (hx : (f1 x) = y) =&gt;
+          @Exists.intro Two
+            (fun (t : Two) =&gt; t ∈ (f1 ⁻¹' U01) ∧
+              (f1 t) = y)
+            x
+            (@And.intro (x ∈ (f1 ⁻¹' U01)) ((f1 x) = y)
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+              (@Or.inl ((f1 x) = aa) ((f1 x) = bb) (f1_eq_aa x))
+              hx)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-8-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">image_preimage_eq_of_subset_image_univ</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-8-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（D 类）：方向二在<strong>满射假设</strong>下成立：<code>C ⊆ f '' univ</code> 时等号回来（这就是"需要什么假设"）。</p></div></div><pre class="exercise-statement"><code>theorem image_preimage_eq_of_subset_image_univ (α β : Type) (f : α → β) (C : Set β)
+    (h : C ⊆ (f '' (@Set.univ α))) :
+    (f '' (f ⁻¹' C)) = C := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个方向：<span class="math">⊆</span> 由上面的演示（image_preimage_subset）；⊇ 用假设把每个 <span class="math">y ∈ C</span> 抬成"有 x 使 <span class="math">f x = y</span>"，再交给 image_subset_iff 的右到左（或直接造 Exists）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="(f &#x27;&#x27; (f ⁻¹&#x27; C)) = C"><math display="block" class="mathml"><mrow><mo>(</mo><mi>f</mi><mspace width="0.22em"/><mo>′</mo><mo>′</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>f</mi><msup><mspace width="0.22em"/><mrow><mo>-</mo><mn>1</mn></mrow></msup><mo>′</mo><mspace width="0.22em"/><mi>C</mi></mrow><mo>)</mo></mrow><mo>)</mo><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>C</mi></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Set.ext + Iff.intro</span>；⊇ 方向用 h y hy 取证人 x 与 <code>f x = y</code>，把 <code>y ∈ C</code> 沿这条等式搬成 <code>f x ∈ C</code>（即 <span class="math">x ∈ f ⁻¹' C</span>），再造 Exists。</p></div></details></div><details class="solution-panel" id="sol-8-9"><summary>查看解答 <span class="sol-meta">定理 · 22 行</span></summary><div class="solution-body"><p class="solution-note">练习 9（D 类）：<code>C ⊆ f '' univ</code>（满射性）时等号回来——"需要什么假设"的答案。</p><pre><code>theorem image_preimage_eq_of_subset_image_univ (α β : Type) (f : α → β) (C : Set β)
+    (h : C ⊆ (f '' (@Set.univ α))) :
+    (f '' (f ⁻¹' C)) = C := by
+  exact Set.ext (f '' (f ⁻¹' C)) C
+    (fun (y : β) =&gt;
+      @Iff.intro (y ∈ (f '' (f ⁻¹' C))) (y ∈ C)
+        (image_preimage_subset α β f C y)
+        (fun (hy : y ∈ C) =&gt;
+          @Iff.mpr (y ∈ (f '' (f ⁻¹' C)))
+            (∃ (x : α), (x ∈ (f ⁻¹' C)) ∧ ((f x) = y))
+            (@Set.mem_image α β f (f ⁻¹' C) y)
+            (@Exists.elim α (fun (x : α) =&gt; (x ∈ (@Set.univ α)) ∧ ((f x) = y))
+              (∃ (x : α), (x ∈ (f ⁻¹' C)) ∧ ((f x) = y))
+              (h y hy)
+              (fun (x : α) =&gt; fun (hx : (x ∈ (@Set.univ α)) ∧ ((f x) = y)) =&gt;
+                @Exists.intro α (fun (x' : α) =&gt; (x' ∈ (f ⁻¹' C)) ∧ ((f x') = y)) x
+                  (@And.intro (x ∈ (f ⁻¹' C)) ((f x) = y)
+                    (@Eq.subst.{1} β (fun (z : β) =&gt; z ∈ C) y (f x)
+                      (@Eq.symm.{1} β (f x) y
+                        (And.right hx))
+                      hy)
+                    (And.right hx))))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">8.6 本单元的收束（写给自己看的）</h3><div class="block prose intuition-only"><p>三条必须记住的对比：原像 <span class="math">f ⁻¹' _</span> ：并、交、补<strong>全保</strong>（因为它只是 <code>fun x =&gt; B (f x)</code>，没有任何"选择"）；像   f '' _  ：<strong>只保并</strong>——保并是因为 Or 可以跟着证人走；交会"塌"（题 6），"像把原像还原"也不取等（题 7——需要满射假设才回来，见题 9）。最后的 image_subset_iff 是把"像"的包含问题换回"点"的包含问题的判据：凡是不想直接操作 Exists 的时候，先把目标改成 <span class="math">A ⊆ (f ⁻¹' B)</span>。</p></div>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（1 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子：Tao《Analysis I》§3.4（前推 <code>f '' A</code> 与回拉 <code>f ⁻¹' B</code>，以及两者和并/交/补的关系）。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit75.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">积对并交的分配</span></a><a class="unit-nav-home" href="../chapters/i-3.html#units">目录</a><a class="unit-nav-link" href="../units/unit09.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">等势（基数 Ⅰ）</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-8"><h3><a href="#top">像与原像</a></h3><p class="appendix-meta">9 道练习 · 9 份按名匹配的解答 · 6 个解答独有声明</p><details class="appendix-solution" id="app-sol-8-1"><summary>练习 1 · preimage_union <span class="sol-meta">定理</span></summary><p class="solution-note">练习 1（T 类）：原像保并</p><pre><code>theorem preimage_union (α β : Type) (f : α → β) (B C : Set β) :
+    @Eq.{1} (Set α) (f ⁻¹' (B ∪ C))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      ((f ⁻¹' B) ∪ (f ⁻¹' C)) := by
+  exact Set.ext (f ⁻¹' (B ∪ C))
+    ((f ⁻¹' B) ∪ (f ⁻¹' C))
+    (fun (x : α) =&gt;
+      @Iff.intro (x ∈ (f ⁻¹' (B ∪ C)))
+        ((x ∈ (f ⁻¹' B)) ∨ (x ∈ (f ⁻¹' C)))
+        (fun (h : x ∈ (f ⁻¹' (B ∪ C))) =&gt;
+          @Or.elim ((f x) ∈ B) ((f x) ∈ C)
+            ((x ∈ (f ⁻¹' B)) ∨ (x ∈ (f ⁻¹' C)))
+            (fun (hb : (f x) ∈ B) =&gt;
+              Or.inl hb)
+            (fun (hc : (f x) ∈ C) =&gt;
+              Or.inr hc)
+            h)
+        (fun (h : (x ∈ (f ⁻¹' B)) ∨ (x ∈ (f ⁻¹' C))) =&gt;
+          @Or.elim (x ∈ (f ⁻¹' B)) (x ∈ (f ⁻¹' C))
+            ((f x) ∈ (B ∪ C))
+            (fun (hb : x ∈ (f ⁻¹' B)) =&gt;
+              Or.inl hb)
+            (fun (hc : x ∈ (f ⁻¹' C)) =&gt;
+              Or.inr hc)
+            h))</code></pre></details><details class="appendix-solution" id="app-sol-8-2"><summary>练习 2 · preimage_compl <span class="sol-meta">定理</span></summary><p class="solution-note">练习 2（T 类）：原像保补</p><pre><code>theorem preimage_compl (α β : Type) (f : α → β) (B : Set β) :
+    (f ⁻¹' (Bᶜ)) = ((f ⁻¹' B)ᶜ) := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h</code></pre></details><details class="appendix-solution" id="app-sol-8-3"><summary>练习 3 · preimage_inter <span class="sol-meta">定理</span></summary><p class="solution-note">练习 3（L 类）：原像保交</p><pre><code>theorem preimage_inter (α β : Type) (f : α → β) (B C : Set β) :
+    @Eq.{1} (Set α) (f ⁻¹' (B ∩ C))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      ((f ⁻¹' B) ∩ (f ⁻¹' C)) := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h</code></pre></details><details class="appendix-solution" id="app-sol-8-4"><summary>练习 4 · image_union <span class="sol-meta">定理</span></summary><p class="solution-note">练习 4（T 类）：像保并</p><pre><code>theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
+    @Eq.{1} (Set β) (f '' (A ∪ B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      ((f '' A) ∪ (f '' B)) := by
+  exact Set.ext (f '' (A ∪ B))
+    ((f '' A) ∪ (f '' B))
+    (fun (y : β) =&gt;
+      @Iff.intro (y ∈ (f '' (A ∪ B)))
+        ((y ∈ (f '' A)) ∨ (y ∈ (f '' B)))
+        (fun (h : y ∈ (f '' (A ∪ B))) =&gt;
+          @Exists.elim α (fun (x : α) =&gt; (x ∈ (A ∪ B)) ∧ ((f x) = y))
+            ((y ∈ (f '' A)) ∨ (y ∈ (f '' B))) h
+            (fun (x : α) =&gt; fun (hx : (x ∈ (A ∪ B)) ∧ ((f x) = y)) =&gt;
+              @Or.elim (A x) (B x)
+                ((y ∈ (f '' A)) ∨ (y ∈ (f '' B)))
+                (fun (ha : A x) =&gt;
+                  @Or.inl (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    (@Exists.intro α (fun (x' : α) =&gt; (x' ∈ A) ∧ ((f x') = y)) x
+                      (@And.intro (x ∈ A) ((f x) = y) ha  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                        (And.right hx))))
+                (fun (hb : B x) =&gt;
+                  @Or.inr (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    (@Exists.intro α (fun (x' : α) =&gt; (x' ∈ B) ∧ ((f x') = y)) x
+                      (@And.intro (x ∈ B) ((f x) = y) hb  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                        (And.right hx))))
+                (And.left hx)))
+        (fun (h : (y ∈ (f '' A)) ∨ (y ∈ (f '' B))) =&gt;
+          @Or.elim (y ∈ (f '' A)) (y ∈ (f '' B))
+            (y ∈ (f '' (A ∪ B)))
+            (fun (ha : y ∈ (f '' A)) =&gt;
+              @Exists.elim α (fun (x : α) =&gt; (A x) ∧ ((f x) = y))
+                (y ∈ (f '' (A ∪ B))) ha
+                (fun (x : α) =&gt; fun (hx : (A x) ∧ ((f x) = y)) =&gt;
+                  @Exists.intro α (fun (x' : α) =&gt; (x' ∈ (A ∪ B)) ∧ ((f x') = y)) x
+                    (@And.intro (x ∈ (A ∪ B)) ((f x) = y)
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                      (@Or.inl (A x) (B x) (And.left hx))
+                      (And.right hx))))
+            (fun (hb : y ∈ (f '' B)) =&gt;
+              @Exists.elim α (fun (x : α) =&gt; (B x) ∧ ((f x) = y))
+                (y ∈ (f '' (A ∪ B))) hb
+                (fun (x : α) =&gt; fun (hx : (B x) ∧ ((f x) = y)) =&gt;
+                  @Exists.intro α (fun (x' : α) =&gt; (x' ∈ (A ∪ B)) ∧ ((f x') = y)) x
+                    (@And.intro (x ∈ (A ∪ B)) ((f x) = y)
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                      (@Or.inr (A x) (B x) (And.left hx))
+                      (And.right hx))))
+            h))</code></pre></details><details class="appendix-solution" id="app-sol-8-5"><summary>练习 5 · image_subset_iff <span class="sol-meta">定理</span></summary><p class="solution-note">练习 5（L 类）：image_subset_iff（库里的判据，直接引用）</p><pre><code>theorem image_subset_iff (α β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    ((f '' A) ⊆ B) ↔ (A ⊆ (f ⁻¹' B)) := by
+  exact @Set.image_subset_iff α β f A B</code></pre></details><details class="appendix-solution" id="app-sol-8-6"><summary>练习 6 · not_image_inter_eq_image_inter <span class="sol-meta">定理</span></summary><p class="solution-note">练习 6（D 类，必破）：两侧不等——左边是 ∅，右边含 aa。</p><pre><code>theorem not_image_inter_eq_image_inter :
+    ¬ (@Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (f1 '' (({aa}) ∩ ({bb})))
+      (@Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        (f1 '' ({bb})))) :=
+  fun (h : @Eq.{1} (Set Two)  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+      (f1 '' (({aa}) ∩ ({bb})))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+      (@Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：这一条的目标/操作数拿不到期望类型（零元记法或 def-headed 形态）⇒ 保留点名写全前导类型参数
+        (f1 '' ({bb})))) =&gt;
+  Set.notMem_empty aa
+    (@Eq.subst.{1} (Set Two) (fun (X : Set Two) =&gt; aa ∈ X)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (@Set.inter Two (f1 '' ({aa}))
+        (f1 '' ({bb})))
+      (∅)
+      (@Eq.trans.{1} (Set Two)
+        (@Set.inter Two (f1 '' ({aa}))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (f1 '' ({bb})))
+        (f1 '' (({aa}) ∩ ({bb})))
+        (∅)
+        (@Eq.symm.{1} (Set Two)
+          (f1 '' (({aa}) ∩ ({bb})))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (@Set.inter Two (f1 '' ({aa}))
+            (f1 '' ({bb}))) h)
+        (image_inter_singletons_empty))
+      (@Iff.mpr
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+        (@Set.mem Two aa (@Set.inter Two (f1 '' ({aa})) (f1 '' ({bb}))))
+        ((aa ∈ (f1 '' ({aa}))) ∧ (aa ∈ (f1 '' ({bb}))))
+        (Set.mem_inter_iff aa (f1 '' ({aa})) (f1 '' ({bb})))
+        aa_mem_inter_image))</code></pre></details><details class="appendix-solution" id="app-sol-8-7"><summary>练习 7 · not_image_preimage_eq <span class="sol-meta">定理</span></summary><pre><code>theorem not_image_preimage_eq :
+    ¬ ((f1 '' (f1 ⁻¹' U01)) = U01) := by
+  intro h
+  exact bb_not_mem_image_preimage
+    (@Eq.subst.{1} (Set Two) (fun (X : Set Two) =&gt; bb ∈ X)
+      (f1 '' (f1 ⁻¹' U01)) image_preimage
+      (@Eq.symm.{1} (Set Two) image_preimage
+        (f1 '' (f1 ⁻¹' U01)) image_preimage_eq_image)
+      (@Eq.subst.{1} (Set Two) (fun (X : Set Two) =&gt; bb ∈ X) U01
+        (f1 '' (f1 ⁻¹' U01))
+        (@Eq.symm.{1} (Set Two) (f1 '' (f1 ⁻¹' U01)) U01 h)
+        bb_mem_U01))</code></pre></details><details class="appendix-solution" id="app-sol-8-8"><summary>练习 8 · image_preimage_image_eq_preimage <span class="sol-meta">定理</span></summary><p class="solution-note">练习 8（L 类）：反例闭环的桥（方向：左式 <span class="math">= image_preimage</span>）。</p><pre><code>theorem image_preimage_image_eq_preimage :
+    (f1 '' (f1 ⁻¹' U01)) = image_preimage := by
+  exact eq_of_subsets Two (f1 '' (f1 ⁻¹' U01)) image_preimage
+    (fun (y : Two) =&gt;
+      fun (hy : y ∈ (f1 '' (f1 ⁻¹' U01))) =&gt;
+        @Exists.elim Two
+          (fun (x : Two) =&gt; x ∈ (f1 ⁻¹' U01) ∧
+            (f1 x) = y)
+          (y ∈ image_preimage) hy
+          (fun (x : Two) =&gt; fun (hx : x ∈ (f1 ⁻¹' U01) ∧
+              (f1 x) = y) =&gt;
+            Exists.intro x
+              (And.right hx)))
+    (fun (y : Two) =&gt; fun (hy : y ∈ image_preimage) =&gt;
+      @Exists.elim Two (fun (x : Two) =&gt; (f1 x) = y)
+        (y ∈ (f1 '' (f1 ⁻¹' U01))) hy
+        (fun (x : Two) =&gt; fun (hx : (f1 x) = y) =&gt;
+          @Exists.intro Two
+            (fun (t : Two) =&gt; t ∈ (f1 ⁻¹' U01) ∧
+              (f1 t) = y)
+            x
+            (@And.intro (x ∈ (f1 ⁻¹' U01)) ((f1 x) = y)
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+              (@Or.inl ((f1 x) = aa) ((f1 x) = bb) (f1_eq_aa x))
+              hx)))</code></pre></details><details class="appendix-solution" id="app-sol-8-9"><summary>练习 9 · image_preimage_eq_of_subset_image_univ <span class="sol-meta">定理</span></summary><p class="solution-note">练习 9（D 类）：<code>C ⊆ f '' univ</code>（满射性）时等号回来——"需要什么假设"的答案。</p><pre><code>theorem image_preimage_eq_of_subset_image_univ (α β : Type) (f : α → β) (C : Set β)
+    (h : C ⊆ (f '' (@Set.univ α))) :
+    (f '' (f ⁻¹' C)) = C := by
+  exact Set.ext (f '' (f ⁻¹' C)) C
+    (fun (y : β) =&gt;
+      @Iff.intro (y ∈ (f '' (f ⁻¹' C))) (y ∈ C)
+        (image_preimage_subset α β f C y)
+        (fun (hy : y ∈ C) =&gt;
+          @Iff.mpr (y ∈ (f '' (f ⁻¹' C)))
+            (∃ (x : α), (x ∈ (f ⁻¹' C)) ∧ ((f x) = y))
+            (@Set.mem_image α β f (f ⁻¹' C) y)
+            (@Exists.elim α (fun (x : α) =&gt; (x ∈ (@Set.univ α)) ∧ ((f x) = y))
+              (∃ (x : α), (x ∈ (f ⁻¹' C)) ∧ ((f x) = y))
+              (h y hy)
+              (fun (x : α) =&gt; fun (hx : (x ∈ (@Set.univ α)) ∧ ((f x) = y)) =&gt;
+                @Exists.intro α (fun (x' : α) =&gt; (x' ∈ (f ⁻¹' C)) ∧ ((f x') = y)) x
+                  (@And.intro (x ∈ (f ⁻¹' C)) ((f x) = y)
+                    (@Eq.subst.{1} β (fun (z : β) =&gt; z ∈ C) y (f x)
+                      (@Eq.symm.{1} β (f x) y
+                        (And.right hx))
+                      hy)
+                    (And.right hx))))))</code></pre></details><details class="appendix-solution" id="app-extra-8-1"><summary>补充 · bb_mem_U01 <span class="sol-meta">定理</span></summary><pre><code>theorem bb_mem_U01 : bb ∈ U01 := by  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+  exact @Or.inr (bb = aa) (bb = bb) (@Eq.refl.{1} Two bb)</code></pre></details><details class="appendix-solution" id="app-extra-8-2"><summary>补充 · aa_mem_inter_image <span class="sol-meta">定理</span></summary><pre><code>theorem aa_mem_inter_image :
+    (aa ∈ (f1 '' ({aa}))) ∧ (aa ∈ (f1 '' ({bb}))) := by
+  exact (@And.intro
+    (aa ∈ (f1 '' ({aa})))
+    (aa ∈ (f1 '' ({bb})))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+    (@Exists.intro Two (fun (x : Two) =&gt; (x ∈ ({aa})) ∧ ((f1 x) = aa)) aa
+      (@And.intro (aa ∈ ({aa})) ((f1 aa) = aa)
+        (@Eq.refl.{1} Two aa) (@Eq.refl.{1} Two aa)))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+    (@Exists.intro Two (fun (x : Two) =&gt; (x ∈ ({bb})) ∧ ((f1 x) = aa)) bb
+      (@And.intro (bb ∈ ({bb})) ((f1 bb) = aa)
+        (@Eq.refl.{1} Two bb) (@Eq.refl.{1} Two aa))))</code></pre></details><details class="appendix-solution" id="app-extra-8-3"><summary>补充 · image_preimage_eq_aa <span class="sol-meta">定理</span></summary><pre><code>theorem image_preimage_eq_aa (y : Two) (hy : y ∈ image_preimage) :
+    y = aa := by
+  exact @Exists.elim Two (fun (x : Two) =&gt; (f1 x) = y) (y = aa) hy  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    (fun (x : Two) =&gt; fun (hx : (f1 x) = y) =&gt;
+      @Eq.trans.{1} Two y (f1 x) aa (@Eq.symm.{1} Two (f1 x) y hx) (f1_eq_aa x))</code></pre></details><details class="appendix-solution" id="app-extra-8-4"><summary>补充 · bb_not_mem_image_preimage <span class="sol-meta">定理</span></summary><pre><code>theorem bb_not_mem_image_preimage : ¬ (bb ∈ image_preimage) := by
+  intro h
+  exact Exists.elim h
+    (fun (x : Two) =&gt; fun (hx : (f1 x) = bb) =&gt;
+      two_aa_ne_bb
+        (@Eq.trans.{1} Two aa (f1 x) bb (@Eq.symm.{1} Two (f1 x) aa (f1_eq_aa x)) hx))</code></pre></details><details class="appendix-solution" id="app-extra-8-5"><summary>补充 · image_preimage_eq_image <span class="sol-meta">定理</span></summary><pre><code>theorem image_preimage_eq_image :
+    @Eq.{1} (Set Two) image_preimage  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (f1 '' (f1 ⁻¹' U01)) := by
+  exact Set.ext image_preimage (f1 '' (f1 ⁻¹' U01))
+    (fun (y : Two) =&gt;
+      @Iff.intro (y ∈ image_preimage)
+        (y ∈ (f1 '' (f1 ⁻¹' U01)))
+        (fun (hy : y ∈ image_preimage) =&gt;
+          @Exists.elim Two (fun (x : Two) =&gt; (f1 x) = y)
+            (y ∈ (f1 '' (f1 ⁻¹' U01))) hy
+            (fun (x : Two) =&gt; fun (hx : (f1 x) = y) =&gt;
+              @Exists.intro Two
+                (fun (t : Two) =&gt; t ∈ (f1 ⁻¹' U01) ∧
+                  (f1 t) = y)
+                x
+                (@And.intro (x ∈ (f1 ⁻¹' U01)) ((f1 x) = y)
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                  (@Or.inl ((f1 x) = aa) ((f1 x) = bb) (f1_eq_aa x))
+                  hx)))
+        (fun (hy : y ∈ (f1 '' (f1 ⁻¹' U01))) =&gt;
+          @Exists.elim Two
+            (fun (x : Two) =&gt; x ∈ (f1 ⁻¹' U01) ∧
+              (f1 x) = y)
+            (y ∈ image_preimage) hy
+            (fun (x : Two) =&gt; fun (hx : x ∈ (f1 ⁻¹' U01) ∧
+                (f1 x) = y) =&gt;
+              Exists.intro x
+                (And.right hx))))</code></pre></details><details class="appendix-solution" id="app-extra-8-6"><summary>补充 · eq_of_subsets <span class="sol-meta">定理</span></summary><pre><code>theorem eq_of_subsets (α : Type) (A B : Set α)
+    (h1 : A ⊆ B) (h2 : B ⊆ A) : A = B := by
+  exact Set.ext A B (fun (x : α) =&gt; Iff.intro (h1 x) (h2 x))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit75.html">← 75 积对并交的分配</a><a class="next" href="../units/unit09.html">09 等势（基数 Ⅰ） →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

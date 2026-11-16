@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>76 像的核关系 · 从集合论到实分析</title>
+<meta name="description" content="单元76 像的核关系：导语、定义与定理、练习与解答。Unit 76 — The Kernel of a Function">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit76.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li class="is-current"><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.10 单元</h3><ol><li><a href="../units/unit24.html">24 关系闭包</a></li><li><a href="../units/unit25.html">25 等价关系与划分</a></li><li><a href="../units/unit26.html">26 划分：等价关系的反方向</a></li><li><a href="../units/unit27.html">27 商类型与良定义性</a></li><li><a href="../units/unit43.html">43 等价类与商集的代数刻画</a></li><li class="is-current"><a href="../units/unit76.html">76 像的核关系</a></li><li><a href="../units/unit77.html">77 等价类的代数</a></li><li><a href="../units/unit78.html">78 划分与等价关系的往返</a></li><li><a href="../units/unit79.html">79 商集上的函数（well-defined）</a></li><li><a href="../units/unit84.html">84 商与像的往返</a></li><li><a href="../units/unit85.html">85 商到像的单射性</a></li><li><a href="../units/unit86.html">86 核与复合、单射</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li aria-current="page">单元 76 像的核关系</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-76-2">76.1 三条库引理（等价的定义 · 一条取用子 · 等价类的成员刻画）</a></li>
+<li><a href="#appendix-unit-76">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-10.html#units">↑ 本章目录</a>
+      <a href="../print/unit76.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-76">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-10.html">I.10</a> · 本章第 6 / 12 单元 · 全书第 76 / 112 单元</p>
+<h1><span class="unit-number">76</span> <span>像的核关系</span></h1>
+<p class="unit-title-en">Unit 76 — The Kernel of a Function</p>
+<p class="unit-meta">1 个定义 · 12 个定理 · 9 道练习 · 12 条提示 · <a href="#appendix-unit-76">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="76" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-76" aria-label="复制单元 76 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit76.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-10.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>核定义：<code>kernel f a b := f a = f b</code> ✓（<strong>同一条纤维上的点</strong> ✓）；</li><li><strong>自反 / 对称 / 传递</strong> ✓ <span class="math">⇒</span> <strong>旗舰：<code>IsEquivalence α (kernel f)</code></strong> ✓（<strong>每个函数都给出一个等价关系</strong> ✓ —— 这就是"纤维分解" ✓）；</li><li>与库里的等价类接口接上：<code>Rel.EquivClass α (kernel f) a b ↔ f a = f b</code> ✓；</li><li><strong>有共同像点 <span class="math">⇒</span> 同核</strong> ✓ <span class="math">·</span> <strong><code>a = b ⇒ 同核</code></strong> ✓ <span class="math">·</span> <strong>像点不等 <span class="math">⇒</span> 不同核</strong> ✓</li></ul></div></div></section>
+<article class="decl decl-def" id="decl-76-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">kernel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def kernel (α : Type) (β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) =&gt; f a = f b</code></pre></div></article>
+<h3 class="unit-subhead">76.1 三条库引理（等价的定义 <span class="math">·</span> 一条取用子 <span class="math">·</span> 等价类的成员刻画）</h3><div class="block prose intuition-only"><p>演示：<code>IsEquivalence</code> 展开成三条。</p></div><article class="decl decl-theorem" id="decl-76-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_equivalence_def</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_equivalence_def (α : Type) (r : Rel α α) :
+    IsEquivalence α r ↔ Reflexive α r ∧ Symmetric α r ∧ Transitive α r :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  isEquivalence_def α r</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-76-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_equivalence_symm</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_equivalence_symm (α : Type) (r : Rel α α) (he : IsEquivalence α r) :
+    Symmetric α r :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  equivalence_symm α r he</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-76-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_equivClass</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.mem_equivClass α r a b-- 练习 1（T 类，**第一条**）：核关系**自反**。</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-76-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">kernel_refl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-76-1">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem kernel_refl (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α), kernel α β f a a := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.refl</code>（<strong>写全宇宙与类型</strong> ✓）</p></div></details></div><details class="solution-panel" id="sol-76-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem kernel_refl (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α), kernel α β f a a :=
+  fun (a : α) =&gt; @Eq.refl.{1} β (f a)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-76-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">kernel_symm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-76-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类，<strong>第二条</strong>）：核关系<strong>对称</strong>。</p></div></div><pre class="exercise-statement"><code>theorem kernel_symm (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α) (b : α), kernel α β f a b → kernel α β f b a := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.symm</code>（<strong>写全宇宙与类型</strong> ✓）</p></div></details></div><details class="solution-panel" id="sol-76-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem kernel_symm (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α) (b : α), kernel α β f a b → kernel α β f b a :=
+  fun (a : α) (b : α) (h : kernel α β f a b) =&gt; @Eq.symm.{1} β (f a) (f b) h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-76-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">kernel_trans</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-76-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类，<strong>第三条</strong>）：核关系<strong>传递</strong>。</p></div></div><pre class="exercise-statement"><code>theorem kernel_trans (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α) (b : α) (c : α), kernel α β f a b → kernel α β f b c → kernel α β f a c := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.trans</code>（<strong>写全宇宙与类型与中间点</strong> ✓）</p></div></details></div><details class="solution-panel" id="sol-76-3"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem kernel_trans (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α) (b : α) (c : α), kernel α β f a b → kernel α β f b c → kernel α β f a c :=
+  fun (a : α) (b : α) (c : α) (h1 : kernel α β f a b) (h2 : kernel α β f b c) =&gt;
+    @Eq.trans.{1} β (f a) (f b) (f c) h1 h2</code></pre></div></details></div></article>
+<article class="exercise" id="ex-76-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">kernel_isEquivalence</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-76-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>旗舰</strong>）：<strong><code>IsEquivalence α (kernel f)</code></strong> —— 每个函数都给出等价关系。</p></div><div class="block prose intuition-only"><p>组装 —— 用 <code>isEquivalence_def</code> 的 <code>Iff.mpr</code> ✓，两个 <code>And.intro</code> ✓。</p></div><div class="block prose intuition-only"><p>（<strong>前导命题实参写全</strong> ✓ —— 手册 G-30 的例外 ✓）</p></div></div><pre class="exercise-statement"><code>theorem kernel_isEquivalence (α : Type) (β : Type) (f : α → β) :
+    IsEquivalence α (kernel α β f) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把三条按 <code>IsEquivalence</code> 的<strong>定义形状</strong>（<code>Reflexive ∧ Symmetric ∧ Transitive</code>）</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsEquivalence α (kernel α β f)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isEquivalence_def</code> <span class="math">·</span> 练习 1 / 练习 2 / 练习 <span class="math">3 ·</span> <code>And.intro</code></p></div></details></div><details class="solution-panel" id="sol-76-4"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem kernel_isEquivalence (α : Type) (β : Type) (f : α → β) :
+    IsEquivalence α (kernel α β f) :=
+  (fun (hu : IsEquivalence α (kernel α β f) ↔
+      Reflexive α (kernel α β f) ∧ Symmetric α (kernel α β f) ∧ Transitive α (kernel α β f)) =&gt;
+    Iff.mpr hu (And.intro
+      (kernel_refl α β f) (And.intro (kernel_symm α β f) (kernel_trans α β f))))
+    (isEquivalence_def α (kernel α β f))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-76-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">mem_equivClass_kernel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-76-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（T 类，<strong>与库接口对接</strong>）：核的<strong>等价类</strong>就是纤维。</p></div><div class="block prose intuition-only"><p>是<strong>同一个东西</strong> ✓，定义展开即可 ✓）</p></div></div><pre class="exercise-statement"><code>theorem mem_equivClass_kernel (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    Rel.EquivClass α (kernel α β f) a b ↔ f a = f b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Rel.mem_equivClass</code>（<strong>直接交出去</strong> ✓ —— <code>kernel f a b</code> 与 <code>f a = f b</code></p></div></details></div><details class="solution-panel" id="sol-76-5"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem mem_equivClass_kernel (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    Rel.EquivClass α (kernel α β f) a b ↔ f a = f b :=
+  Rel.mem_equivClass α (kernel α β f) a b</code></pre></div></details></div></article>
+<article class="exercise" id="ex-76-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">kernel_of_eq_fst_snd</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-76-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（T 类）：<strong>同一条等式就是同核</strong>（把假设直接交出去 ✓）。</p></div></div><pre class="exercise-statement"><code>theorem kernel_of_eq_fst_snd (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : f a = f b) : kernel α β f a b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>定义展开（<code>kernel f a b</code> <strong>就是</strong> <code>f a = f b</code> ✓）</p></div></details></div><details class="solution-panel" id="sol-76-6"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem kernel_of_eq_fst_snd (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : f a = f b) : kernel α β f a b :=
+  h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-76-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">kernel_preimage</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-76-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类）：<strong>有共同像点 <span class="math">⇒</span> 同核</strong>（两条纤维相交 <span class="math">⇒</span> 同一条纤维 ✓）。</p></div></div><pre class="exercise-statement"><code>theorem kernel_preimage (α : Type) (β : Type) (f : α → β) (a : α) (b : α) (y : β)
+    (h1 : f a = y) (h2 : f b = y) : kernel α β f a b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.trans</code> <span class="math">+</span> <code>Eq.symm</code>（<strong>写全宇宙与点</strong> ✓）</p></div></details></div><details class="solution-panel" id="sol-76-7"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem kernel_preimage (α : Type) (β : Type) (f : α → β) (a : α) (b : α) (y : β)
+    (h1 : f a = y) (h2 : f b = y) : kernel α β f a b :=
+  @Eq.trans.{1} β (f a) y (f b) h1 (@Eq.symm.{1} β (f b) y h2)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-76-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">kernel_of_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-76-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类）：<strong><code>a = b ⇒ 同核</code></strong>。</p></div><div class="block prose intuition-only"><p>（沿 <code>a = b</code> 把关系 <code>fun u v =&gt; f u = f v</code> 的第二槽搬过去 ✓，喂给它 <code>Eq.refl</code> ✓）。</p></div></div><pre class="exercise-statement"><code>theorem kernel_of_eq (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : a = b) : kernel α β f a b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">提示</span></summary><div class="hint-body"><p>⚠ <strong>别用 <code>congrArg</code></strong> ✗（宇宙层级是手册明说的边界 ✓）<span class="math">⇒</span> 用 <strong><code>rel_subst_right</code></strong></p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>rel_subst_right</code>（<strong>六个实参按序写全</strong> ✓）<span class="math">·</span> <code>Eq.refl</code>（<strong>写全</strong> ✓）</p></div></details></div><details class="solution-panel" id="sol-76-8"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem kernel_of_eq (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : a = b) : kernel α β f a b :=
+  rel_subst_right α (fun (u : α) (v : α) =&gt; f u = f v) a a b h (@Eq.refl.{1} β (f a))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-76-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">not_kernel_of_ne</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-76-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（T 类，<strong>收尾</strong>）：<strong>像点不等 <span class="math">⇒</span> 不同核</strong>。</p></div></div><pre class="exercise-statement"><code>theorem not_kernel_of_ne (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : ¬ (f a = f b)) : ¬ (kernel α β f a b) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>定义展开 <span class="math">+</span> 把否命题当函数用（<code>h hk</code> ✓）</p></div></details></div><details class="solution-panel" id="sol-76-9"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem not_kernel_of_ne (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : ¬ (f a = f b)) : ¬ (kernel α β f a b) :=
+  fun (hk : kernel α β f a b) =&gt; h hk</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（5 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§3.3</strong>（"the kernel of a function"）<span class="math">·Halmos</span>《Naive Set Theory》<strong>§10</strong>。大纲 §4.1（<strong>I.10 章补强</strong> —— 接单元㉕ 等价关系 ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>为什么值得单列</strong> ✓：核关系是"函数 <span class="math">→</span> 等价关系"这座桥 ✓ ——单元㉕㉖㉗ 讲的是"等价关系 <span class="math">→</span> 商集" ✓，本单元补上<strong>另一半</strong>（函数给出等价关系 ✓），两边合起来就是教材里 §<span class="math">3.3 +</span> §5 的完整往返 ✓。</p></div><div class="block prose intuition-only"><p>⚠ <strong>写法要点</strong> ✓：<code>a = b ⇒ kernel f a b</code> 这件小事<strong>不用 <code>congrArg</code></strong> ✗（它的宇宙层级是手册明说的边界 ✓）<span class="math">⇒</span> 改用 <strong><code>rel_subst_right</code></strong>（沿等式把关系搬过去 ✓）。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㉕（等价关系）<span class="math">·</span> 单元㉖（划分）<span class="math">·</span> 单元㉗（商集）<span class="math">·</span> 单元⑧（像与原像）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit43.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">等价类与商集的代数刻画</span></a><a class="unit-nav-home" href="../chapters/i-10.html#units">目录</a><a class="unit-nav-link" href="../units/unit77.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">等价类的代数</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-76"><h3><a href="#top">像的核关系</a></h3><p class="appendix-meta">9 道练习 · 9 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-76-1"><summary>练习 1 · kernel_refl <span class="sol-meta">定理</span></summary><pre><code>theorem kernel_refl (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α), kernel α β f a a :=
+  fun (a : α) =&gt; @Eq.refl.{1} β (f a)</code></pre></details><details class="appendix-solution" id="app-sol-76-2"><summary>练习 2 · kernel_symm <span class="sol-meta">定理</span></summary><pre><code>theorem kernel_symm (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α) (b : α), kernel α β f a b → kernel α β f b a :=
+  fun (a : α) (b : α) (h : kernel α β f a b) =&gt; @Eq.symm.{1} β (f a) (f b) h</code></pre></details><details class="appendix-solution" id="app-sol-76-3"><summary>练习 3 · kernel_trans <span class="sol-meta">定理</span></summary><pre><code>theorem kernel_trans (α : Type) (β : Type) (f : α → β) :
+    ∀ (a : α) (b : α) (c : α), kernel α β f a b → kernel α β f b c → kernel α β f a c :=
+  fun (a : α) (b : α) (c : α) (h1 : kernel α β f a b) (h2 : kernel α β f b c) =&gt;
+    @Eq.trans.{1} β (f a) (f b) (f c) h1 h2</code></pre></details><details class="appendix-solution" id="app-sol-76-4"><summary>练习 4 · kernel_isEquivalence <span class="sol-meta">定理</span></summary><pre><code>theorem kernel_isEquivalence (α : Type) (β : Type) (f : α → β) :
+    IsEquivalence α (kernel α β f) :=
+  (fun (hu : IsEquivalence α (kernel α β f) ↔
+      Reflexive α (kernel α β f) ∧ Symmetric α (kernel α β f) ∧ Transitive α (kernel α β f)) =&gt;
+    Iff.mpr hu (And.intro
+      (kernel_refl α β f) (And.intro (kernel_symm α β f) (kernel_trans α β f))))
+    (isEquivalence_def α (kernel α β f))</code></pre></details><details class="appendix-solution" id="app-sol-76-5"><summary>练习 5 · mem_equivClass_kernel <span class="sol-meta">定理</span></summary><pre><code>theorem mem_equivClass_kernel (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    Rel.EquivClass α (kernel α β f) a b ↔ f a = f b :=
+  Rel.mem_equivClass α (kernel α β f) a b</code></pre></details><details class="appendix-solution" id="app-sol-76-6"><summary>练习 6 · kernel_of_eq_fst_snd <span class="sol-meta">定理</span></summary><pre><code>theorem kernel_of_eq_fst_snd (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : f a = f b) : kernel α β f a b :=
+  h</code></pre></details><details class="appendix-solution" id="app-sol-76-7"><summary>练习 7 · kernel_preimage <span class="sol-meta">定理</span></summary><pre><code>theorem kernel_preimage (α : Type) (β : Type) (f : α → β) (a : α) (b : α) (y : β)
+    (h1 : f a = y) (h2 : f b = y) : kernel α β f a b :=
+  @Eq.trans.{1} β (f a) y (f b) h1 (@Eq.symm.{1} β (f b) y h2)</code></pre></details><details class="appendix-solution" id="app-sol-76-8"><summary>练习 8 · kernel_of_eq <span class="sol-meta">定理</span></summary><pre><code>theorem kernel_of_eq (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : a = b) : kernel α β f a b :=
+  rel_subst_right α (fun (u : α) (v : α) =&gt; f u = f v) a a b h (@Eq.refl.{1} β (f a))</code></pre></details><details class="appendix-solution" id="app-sol-76-9"><summary>练习 9 · not_kernel_of_ne <span class="sol-meta">定理</span></summary><pre><code>theorem not_kernel_of_ne (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : ¬ (f a = f b)) : ¬ (kernel α β f a b) :=
+  fun (hk : kernel α β f a b) =&gt; h hk</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit43.html">← 43 等价类与商集的代数刻画</a><a class="next" href="../units/unit77.html">77 等价类的代数 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>101 空集与子集的点态代数 · 从集合论到实分析</title>
+<meta name="description" content="单元101 空集与子集的点态代数：导语、定义与定理、练习与解答。Unit 101 — The Empty Set, Pointwise">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit101.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li class="is-current"><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.3 单元</h3><ol><li><a href="../units/unit08.html">08 像与原像</a></li><li><a href="../units/unit09.html">09 等势（基数 Ⅰ）</a></li><li><a href="../units/unit10.html">10 可数与 Cantor 定理（基数 Ⅱ）</a></li><li><a href="../units/unit73.html">73 像与广义并交的分配</a></li><li><a href="../units/unit74.html">74 原像与广义并交的分配</a></li><li><a href="../units/unit92.html">92 等势的代数</a></li><li><a href="../units/unit93.html">93 等势的传递</a></li><li><a href="../units/unit96.html">96 势的比较（自反与传递）</a></li><li><a href="../units/unit97.html">97 等势 ⇒ 双向势比较</a></li><li><a href="../units/unit98.html">98 势比较的单调性</a></li><li><a href="../units/unit99.html">99 幂集的单调性</a></li><li><a href="../units/unit100.html">100 势比较的搬运</a></li><li class="is-current"><a href="../units/unit101.html">101 空集与子集的点态代数</a></li><li><a href="../units/unit102.html">102 相互包含与点态外延</a></li><li><a href="../units/unit103.html">103 双向势比较何时升级为等势</a></li><li><a href="../units/unit112.html">112 Cantor–Bernstein 定理（经选择公理）</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li aria-current="page">单元 101 空集与子集的点态代数</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-101-1">定义与定理</a></li>
+<li><a href="#ex-101-1">练习</a></li>
+<li><a href="#appendix-unit-101">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-3.html#units">↑ 本章目录</a>
+      <a href="../print/unit101.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-101">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-3.html">I.3</a> · 本章第 13 / 16 单元 · 全书第 101 / 112 单元</p>
+<h1><span class="unit-number">101</span> <span>空集与子集的点态代数</span></h1>
+<p class="unit-title-en">Unit 101 — The Empty Set, Pointwise</p>
+<p class="unit-meta">8 个定理 · 5 道练习 · <a href="#appendix-unit-101">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="101" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-101" aria-label="复制单元 101 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit101.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-3.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>空集的成员刻画</strong>（<code>x ∈ ∅ ↔ False</code> ✓）；</li><li><strong>"含于空集"的两个方向</strong> ✓（<code>A ⊆ ∅ ⇒ ∀x, x ∈ A → False</code> ✓ 与反向 ✓，都写成<strong>两条蕴含</strong> ✓ —— 不用 <code>↔</code> 带 <code>¬</code> 的绑定注解 ✗）；</li><li><strong>含于空集 <span class="math">⇒</span> 无成员</strong> ✓ <span class="math">·</span> <strong>空集含于任何集合</strong> ✓ <span class="math">·</span> <strong>点态形态 <span class="math">⇔</span> 含于空集</strong> ✓。</li></ul></div></div></section>
+<article class="decl decl-theorem" id="decl-101-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_empty_iff_false</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_empty_iff_false (α : Type) (x : α) :
+    x ∈ (∅) ↔ False :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_empty_iff_false x</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-101-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_subset_def</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_subset_def (α : Type) (A : Set α) (B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.subset_def A B</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-101-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_not_def</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_not_def (α : Type) (P : Prop) : ¬ P ↔ (P → False) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Iff.intro (fun (h : ¬ P) =&gt; h) (fun (h : P → False) =&gt; h)</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-101-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">subset_empty_elim</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-101-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>思路：给 <code>x ∈ A</code>，用包含关系得 <code>x ∈ ∅</code>，再由空集的成员刻画得 <code>False</code>。关键件：<code>Set.mem_empty_iff_false</code>（<strong>先 <span class="math">λ</span> 绑定再 <code>Iff.mp</code></strong> ✓）<span class="math">·</span> <code>h</code>（点 <span class="math">·</span> 前提）</p></div></div><pre class="exercise-statement"><code>theorem subset_empty_elim (α : Type) (A : Set α) (h : A ⊆ ∅) :
+    ∀ (x : α), x ∈ A → False := by
+  sorry</code></pre><details class="solution-panel" id="sol-101-1"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem subset_empty_elim (α : Type) (A : Set α) (h : A ⊆ ∅) :
+    ∀ (x : α), x ∈ A → False :=
+  fun (x : α) (hx : x ∈ A) =&gt;
+    (fun (hu : x ∈ ∅ ↔ False) =&gt; Iff.mp hu (h x hx))
+      (Set.mem_empty_iff_false x)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-101-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">subset_empty_intro</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-101-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类）：<strong>点态为假 <span class="math">⇒</span> 含于空集</strong>。关键件：<code>Set.mem_empty_iff_false</code>（<code>Iff.mpr</code> ✓）<span class="math">·</span> <code>h</code>（点 <span class="math">·</span> 前提）</p></div></div><pre class="exercise-statement"><code>theorem subset_empty_intro (α : Type) (A : Set α) (h : ∀ (x : α), x ∈ A → False) :
+    A ⊆ ∅ := by
+  sorry</code></pre><details class="solution-panel" id="sol-101-2"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem subset_empty_intro (α : Type) (A : Set α) (h : ∀ (x : α), x ∈ A → False) :
+    A ⊆ ∅ :=
+  fun (x : α) (hx : x ∈ A) =&gt;
+    (fun (hu : x ∈ ∅ ↔ False) =&gt; Iff.mpr hu (h x hx))
+      (Set.mem_empty_iff_false x)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-101-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">not_mem_of_subset_empty</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-101-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong>含于空集 <span class="math">⇒</span> 无成员</strong>（把练习 1 交出去 ✓）。关键件：练习 1</p></div></div><pre class="exercise-statement"><code>theorem not_mem_of_subset_empty (α : Type) (A : Set α) (h : A ⊆ ∅) :
+    ∀ (x : α), x ∈ A → False := by
+  sorry</code></pre><details class="solution-panel" id="sol-101-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem not_mem_of_subset_empty (α : Type) (A : Set α) (h : A ⊆ ∅) :
+    ∀ (x : α), x ∈ A → False :=
+  subset_empty_elim α A h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-101-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">empty_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-101-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：<strong>空集含于任何集合</strong>。思路：给 <code>x ∈ ∅</code>；由成员刻画得 <code>False</code>，再用 <code>False.elim</code> 消去。关键件：<code>Set.mem_empty_iff_false</code>（<code>Iff.mp</code> ✓）<span class="math">·</span> <strong><code>False.elim</code> 要把目标写全</strong>（<code>False.elim (x ∈ A) …</code> ✓）</p></div></div><pre class="exercise-statement"><code>theorem empty_subset (α : Type) (A : Set α) : ∅ ⊆ A := by
+  sorry</code></pre><details class="solution-panel" id="sol-101-4"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem empty_subset (α : Type) (A : Set α) : ∅ ⊆ A :=
+  fun (x : α) (hx : x ∈ ∅) =&gt;  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    (fun (hu : x ∈ ∅ ↔ False) =&gt; @False.elim (x ∈ A) (Iff.mp hu hx))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+      (Set.mem_empty_iff_false x)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-101-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">subset_empty_iff_pointwise</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-101-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（T 类）：<strong>点态形态 <span class="math">⇔</span> 含于空集</strong>（一个方向 ✓）。关键件：练习 1（<strong>直接交出去</strong> ✓）</p></div></div><pre class="exercise-statement"><code>theorem subset_empty_iff_pointwise (α : Type) (A : Set α) :
+    (A ⊆ ∅) → (∀ (x : α), x ∈ A → False) := by
+  sorry</code></pre><details class="solution-panel" id="sol-101-5"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem subset_empty_iff_pointwise (α : Type) (A : Set α) :
+    (A ⊆ ∅) → (∀ (x : α), x ∈ A → False) :=
+  subset_empty_elim α A</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（5 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§1.2 / §1.3</strong> <span class="math">·Halmos</span>《Naive Set Theory》<strong>§2 / §3</strong>。大纲 §4.1（<strong>回到基础层收口</strong> ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>一条边界（值得记住 ✓）</strong>：<strong>"含于空集 <span class="math">⇒</span> <code>A ≼ B</code>"在这里证不出来</strong> ✗ ——因为 <code>LeOn</code> 要求一个<strong>全函数</strong> <code>α → β</code> ✓，而 <code>A ⊆ ∅</code> 时 <code>A</code> 无成员 ✓ <span class="math">⇒</span> <strong>没有 <code>β</code> 的元素就造不出映射</strong> ✗（构造性框架不含"从空集到任意集合的函数" ✓，除非已知 <code>β</code> 非空 ✓）。本单元只做<strong>点态</strong>结论 ✓，如实标注 ✓。</p></div><div class="block prose intuition-only"><p>⚠ <strong><code>False.elim</code> 要写全目标</strong> ✓：<code>False.elim (目标命题) h</code> ✓（诊断原文："把参数写全" ✓）  -- soko:notation-ok: <code>False.elim</code> 的目标位（手册边界）—— 只写 <code>False.elim h</code> 会报"隐式参数补不出来" ✗。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元②（空集）<span class="math">·</span> 单元④（子集）<span class="math">·</span> 单元94/95（对角线写法纪律）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit100.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">势比较的搬运</span></a><a class="unit-nav-home" href="../chapters/i-3.html#units">目录</a><a class="unit-nav-link" href="../units/unit102.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">相互包含与点态外延</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-101"><h3><a href="#top">空集与子集的点态代数</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-101-1"><summary>练习 1 · subset_empty_elim <span class="sol-meta">定理</span></summary><pre><code>theorem subset_empty_elim (α : Type) (A : Set α) (h : A ⊆ ∅) :
+    ∀ (x : α), x ∈ A → False :=
+  fun (x : α) (hx : x ∈ A) =&gt;
+    (fun (hu : x ∈ ∅ ↔ False) =&gt; Iff.mp hu (h x hx))
+      (Set.mem_empty_iff_false x)</code></pre></details><details class="appendix-solution" id="app-sol-101-2"><summary>练习 2 · subset_empty_intro <span class="sol-meta">定理</span></summary><pre><code>theorem subset_empty_intro (α : Type) (A : Set α) (h : ∀ (x : α), x ∈ A → False) :
+    A ⊆ ∅ :=
+  fun (x : α) (hx : x ∈ A) =&gt;
+    (fun (hu : x ∈ ∅ ↔ False) =&gt; Iff.mpr hu (h x hx))
+      (Set.mem_empty_iff_false x)</code></pre></details><details class="appendix-solution" id="app-sol-101-3"><summary>练习 3 · not_mem_of_subset_empty <span class="sol-meta">定理</span></summary><pre><code>theorem not_mem_of_subset_empty (α : Type) (A : Set α) (h : A ⊆ ∅) :
+    ∀ (x : α), x ∈ A → False :=
+  subset_empty_elim α A h</code></pre></details><details class="appendix-solution" id="app-sol-101-4"><summary>练习 4 · empty_subset <span class="sol-meta">定理</span></summary><pre><code>theorem empty_subset (α : Type) (A : Set α) : ∅ ⊆ A :=
+  fun (x : α) (hx : x ∈ ∅) =&gt;  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+    (fun (hu : x ∈ ∅ ↔ False) =&gt; @False.elim (x ∈ A) (Iff.mp hu hx))  -- soko:notation-ok: `False.elim` 的目标位（手册边界）
+      (Set.mem_empty_iff_false x)</code></pre></details><details class="appendix-solution" id="app-sol-101-5"><summary>练习 5 · subset_empty_iff_pointwise <span class="sol-meta">定理</span></summary><pre><code>theorem subset_empty_iff_pointwise (α : Type) (A : Set α) :
+    (A ⊆ ∅) → (∀ (x : α), x ∈ A → False) :=
+  subset_empty_elim α A</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit100.html">← 100 势比较的搬运</a><a class="next" href="../units/unit102.html">102 相互包含与点态外延 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

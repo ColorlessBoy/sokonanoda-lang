@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 44 两条外延公理的应用</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit44.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 44 两条外延公理的应用</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit44.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.12 幂集与函数空间 · 单元 44</p><h1>两条外延公理的应用</h1><p class="note">Unit 44 — Applying Extensionality (funext / propext)</p></header><section class="unit" id="unit-44">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-12.html">I.12</a> · 本章第 4 / 7 单元 · 全书第 44 / 112 单元</p>
+<h2><span class="unit-number">44</span><span>两条外延公理的应用</span></h2>
+<p class="unit-title-en">Unit 44 — Applying Extensionality (funext / propext)</p>
+<p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-44">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§1.2/§3.3</strong>（extensionality 与函数相等）；Halmos《Naive Set Theory》<strong>§1/§8</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.12 章 —— 也是 <code>lib/Extensionality</code> 文件头自己写下的路线：「有数学内容的（用它们推 <code>Set.ext</code>、函数相等的推理）属 <strong>L3</strong>」✓）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><details open class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li>两条公理的<strong>取用子</strong>（依赖版 <code>funext</code> <span class="math">·</span> <code>propext</code>）；</li><li><strong>合成的结合律与恒等律</strong>（真正的等式 —— 单元㉞ 当时只写了逐点 ✓）；</li><li><strong>旗舰一：逐点序是偏序</strong>（<code>IsPartialOrder (α → β) (PointwiseLe α β r)</code>）——单元㉜ 当时把这一条判成"做不到" ✗，<strong>现在做到了</strong> ✓（关键就是外延 ✓）；</li><li><strong>旗舰二：双边逆唯一</strong>（函数等式 —— 单元㉟ 当时只写了逐点 ✓）；</li><li><strong>旗舰三：从两条公理推出集合外延与关系外延</strong>（<code>Set.ext</code> / <code>Rel.ext</code> 的<strong>推理</strong>）✓</li></ul></details><h3 class="unit-subhead">44.1 三条库引理（两条公理的取用子 <span class="math">·</span> 字面 <span class="math">λ</span> 的等式是自反的）</h3><div class="block prose intuition-only"><p>演示：<strong>依赖版函数外延</strong>（<code>funext</code> 的取用子；非依赖版 <span class="math">=</span> 族取常值 <code>fun _ =&gt; β</code>）。</p></div><article class="decl decl-theorem" id="decl-44-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_funext_spec</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_funext_spec (α : Type) (β : α → Type)
+    (f : (x : α) → β x) (g : (x : α) → β x)
+    (h : ∀ (x : α), (f x) = (g x)) : @Eq.{1} ((x : α) → β x) f g :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 2 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></li><li><pre><code>  funext_spec α β f g h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-44-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_propext_spec</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_propext_spec (a b : Prop) (h : a ↔ b) : a = b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  propext_spec a b h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-44-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_comp_assoc_refl</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_comp_assoc_refl (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
+    ((fun (a : α) =&gt; h (g (f a)))) = (fun (a : α) =&gt; h (g (f a))) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.refl.{1} (α → δ) (fun (a : α) =&gt; h (g (f a)))</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">44.2 两条公理的取用子与<strong>合成的等式形态</strong></h3><article class="exercise" id="ex-44-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">funext_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-44-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：<strong>函数外延</strong>（非依赖版：族取常值）。</p></div></div><pre class="exercise-statement"><code>theorem funext_apply (α β : Type) (f g : α → β)
+    (h : ∀ (a : α), (f a) = (g a)) : @Eq.{1} (α → β) f g := by  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>funext</code> 的取用子用在"逐点相等"的假设上 —— 族参数写 <code>fun _ =&gt; β</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ a, f a = g a) → f = g</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>funext_spec</code>（<strong>参数：论域 <span class="math">·</span> 族 <span class="math">·</span> 两个函数 <span class="math">·</span> 逐点证据</strong>）✓ ⚠ 库里的是<strong>依赖版</strong>（族 <code>β : α → Type</code>）<span class="math">⇒</span> 非依赖情形要把族写成<strong>常值函数</strong> ✓</p></div></details></div><details open class="solution-panel" id="sol-44-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem funext_apply (α β : Type) (f g : α → β)
+    (h : ∀ (a : α), @Eq.{1} β (f a) (g a)) : @Eq.{1} (α → β) f g :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec α (fun (_ : α) =&gt; β) f g h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-44-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">propext_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-44-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>命题外延</strong>。</p></div></div><pre class="exercise-statement"><code>theorem propext_apply (a b : Prop) (h : a ↔ b) : a = b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>propext</code> 的取用子直接交出去。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(a ↔ b) → a = b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>propext_spec</code> ✓</p></div></details></div><details open class="solution-panel" id="sol-44-2"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem propext_apply (a b : Prop) (h : a ↔ b) : @Eq.{1} Prop a b :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  propext_spec a b h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-44-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">comp_assoc_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-44-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<strong>合成的结合律</strong>（真正的<strong>等式</strong> —— 单元㉞ 当时只写了逐点形态）。</p></div></div><pre class="exercise-statement"><code>theorem comp_assoc_eq (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
+    ((h ∘ g) ∘ f) = (h ∘ (g ∘ f)) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>(h ∘ g) ∘ f</code> 与 <code>h ∘ (g ∘ f)</code> 在<strong>计算上就是同一个函数</strong>（两边都是"把 <code>a</code> 依次喂给 <code>f</code>、<code>g</code>、<code>h</code>"）<span class="math">⇒</span> 自反那一条即可，<strong>不必动外延</strong> ✓</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(h ∘ g) ∘ f = h ∘ (g ∘ f)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.refl</code>（<strong>写全宇宙层级与论域</strong>）✓ ⚠ <strong>记法 <code>∘</code> 是右结合的</strong>（<code>infixr:90</code>）<span class="math">⇒</span> 左边一定要加括号 ✓</p></div></details></div><details open class="solution-panel" id="sol-44-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem comp_assoc_eq (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
+    @Eq.{1} (α → δ) ((h ∘ g) ∘ f) (h ∘ (g ∘ f)) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Eq.refl.{1} (α → δ) ((h ∘ g) ∘ f)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-44-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">comp_id_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-44-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：<strong>右恒等律</strong>（<code>f</code> 与 <code>fun a =&gt; f a</code> 是同一个函数）。</p></div></div><pre class="exercise-statement"><code>theorem comp_id_eq (α β : Type) (f : α → β) :
+    ((fun (a : α) =&gt; f a)) = f := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边计算上相同 <span class="math">⇒</span> 自反。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(fun a =&gt; f a) = f</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.refl</code>（写全层级与论域）✓</p></div></details></div><details open class="solution-panel" id="sol-44-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem comp_id_eq (α β : Type) (f : α → β) :
+    @Eq.{1} (α → β) ((fun (a : α) =&gt; f a)) f :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Eq.refl.{1} (α → β) f</code></pre></div></details></div></article>
+<article class="exercise" id="ex-44-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">id_comp_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-44-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：<strong>左恒等律</strong>（<code>fun a =&gt; (fun b =&gt; b) (f a)</code> 与 <code>f</code> 相等）。</p></div></div><pre class="exercise-statement"><code>theorem id_comp_eq (α β : Type) (f : α → β) :
+    ((fun (a : α) =&gt; (fun (b : β) =&gt; b) (f a))) = f := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边的 <span class="math">λ</span> 体相邻、只差一次 <span class="math">β-</span>归约 <span class="math">⇒</span> 用外延最稳（逐点给自反）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(fun a =&gt; (fun b =&gt; b) (f a)) = f</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>funext_spec</code>（族取 <code>fun _ =&gt; β</code>）<span class="math">+</span> 逐点给 <code>Eq.refl</code> ✓ ⚠ <strong>内层恒等函数的绑定变量类型要是 <code>β</code></strong>（写成 <code>α</code> 会判红 —— 单元㉞ 实测过）✓</p></div></details></div><details open class="solution-panel" id="sol-44-5"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem id_comp_eq (α β : Type) (f : α → β) :
+    @Eq.{1} (α → β) ((fun (a : α) =&gt; (fun (b : β) =&gt; b) (f a))) f :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec α (fun (_ : α) =&gt; β) (fun (a : α) =&gt; (fun (b : β) =&gt; b) (f a)) f
+    (fun (a : α) =&gt; @Eq.refl.{1} β (f a))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">44.3 旗舰：<strong>逐点序是偏序</strong>（单元㉜ 当时判成"做不到"的那一条）</h3><article class="exercise" id="ex-44-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">pointwiseLe_antisymm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-44-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类，<strong>旗舰</strong>）：<strong>逐点序的反对称</strong>（用外延把"逐点相等"升成"函数相等"）。</p></div></div><pre class="exercise-statement"><code>theorem pointwiseLe_antisymm (α β : Type) (r : Rel β β) (h : IsPartialOrder β r) :
+    Antisymmetric (α → β) (PointwiseLe α β r) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>给定两个方向，把<strong>陪域的反对称</strong>用在每个坐标上得到"逐点相等"，再用<strong>函数外延</strong>收成函数相等。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsPartialOrder β r → Antisymmetric (α → β) (PointwiseLe α β r)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>funext_spec</code>（族取 <code>fun _ =&gt; β</code>）<span class="math">·</span> <code>partialOrder_antisymm</code>（<strong>参数：论域 <span class="math">·</span> 关系 <span class="math">·</span> 假设 <span class="math">·</span> 两个点 <span class="math">·</span> 两条方向</strong>）<span class="math">·</span> <code>pointwiseLe_apply</code>（取用子）✓ ⚠ <strong>单元㉜ 把这一条判成"做不到"</strong> —— 那是<strong>误报</strong>：外延一直在库里（见文件头）✓</p></div></details></div><details open class="solution-panel" id="sol-44-6"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem pointwiseLe_antisymm (α β : Type) (r : Rel β β) (h : IsPartialOrder β r) :
+    Antisymmetric (α → β) (PointwiseLe α β r) :=
+  fun (f : α → β) =&gt; fun (g : α → β) =&gt; fun (hfg : PointwiseLe α β r f g) =&gt;
+    fun (hgf : PointwiseLe α β r g f) =&gt;
+      funext_spec α (fun (_ : α) =&gt; β) f g (fun (a : α) =&gt;
+        partialOrder_antisymm β r h (f a) (g a)
+          (pointwiseLe_apply α β r f g hfg a)
+          (pointwiseLe_apply α β r g f hgf a))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-44-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">pointwiseLe_isPartialOrder</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-44-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类，<strong>旗舰的收口</strong>）：<strong>逐点序是偏序</strong>（三条一起，单元㉜ 做不到的那条）。</p></div></div><pre class="exercise-statement"><code>theorem pointwiseLe_isPartialOrder (α β : Type) (r : Rel β β) (h : IsPartialOrder β r) :
+    IsPartialOrder (α → β) (PointwiseLe α β r) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用智能构造子打包 —— 自反：每个坐标各自自反；反对称：练习 6；传递：每个坐标各自传递。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsPartialOrder β r → IsPartialOrder (α → β) (PointwiseLe α β r)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isPartialOrder_intro</code>（<strong>参数：论域 <span class="math">·</span> 关系 <span class="math">·</span> 自反 <span class="math">·</span> 反对称 <span class="math">·</span> 传递</strong>）<span class="math">·</span>练习 <span class="math">6 ·</span> <code>partialOrder_refl</code> / <code>partialOrder_trans</code> <span class="math">·</span> <code>pointwiseLe_apply</code> ✓</p></div></details></div><details open class="solution-panel" id="sol-44-7"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem pointwiseLe_isPartialOrder (α β : Type) (r : Rel β β) (h : IsPartialOrder β r) :
+    IsPartialOrder (α → β) (PointwiseLe α β r) :=
+  isPartialOrder_intro (α → β) (PointwiseLe α β r)
+    (fun (f : α → β) =&gt; fun (a : α) =&gt; partialOrder_refl β r h (f a))
+    (pointwiseLe_antisymm α β r h)
+    (fun (f : α → β) =&gt; fun (g : α → β) =&gt; fun (k : α → β) =&gt;
+      fun (hfg : PointwiseLe α β r f g) =&gt; fun (hgk : PointwiseLe α β r g k) =&gt;
+        fun (a : α) =&gt;
+          partialOrder_trans β r h (f a) (g a) (k a)
+            (pointwiseLe_apply α β r f g hfg a)
+            (pointwiseLe_apply α β r g k hgk a))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">44.4 旗舰：<strong>双边逆唯一</strong> 与 <strong>从两条公理推出两种外延</strong></h3><article class="exercise" id="ex-44-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">inverse_unique_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-44-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类，<strong>旗舰</strong>）：<strong>双边逆唯一</strong>（函数等式 —— 单元㉟ 当时只写了逐点）。</p></div></div><pre class="exercise-statement"><code>theorem inverse_unique_eq (α β : Type) (f : α → β) (g g1 : β → α)
+    (hl : Function.LeftInverse α β g f) (hr : Function.RightInverse α β g1 f) :
+    g = g1 := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>逐点算 <code>g y = g (f (g1 y)) = g1 y</code>（第一步沿"<code>f</code> 与 <code>g1</code> 互逆"把 <code>y</code> 换成 <code>f (g1 y)</code>，第二步用"<code>g</code> 与 <code>f</code> 互逆"），再用<strong>外延</strong>收成函数相等。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LeftInverse g f → RightInverse g1 f → g = g1</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两个取用子（<strong>本题解答里自带</strong>，库里没有）<span class="math">·</span> <code>rel_subst_left</code>（<strong>搬运方向：把第二个坐标向后换</strong> —— 单元㉟ 的实测教训）<span class="math">·</span> <code>Eq.trans</code> <span class="math">·</span> <code>funext_spec</code> ✓</p></div></details></div><details open class="solution-panel" id="sol-44-8"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem inverse_unique_eq (α β : Type) (f : α → β) (g g1 : β → α)
+    (hl : Function.LeftInverse α β g f) (hr : Function.RightInverse α β g1 f) :
+    @Eq.{1} (β → α) g g1 :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec β (fun (_ : β) =&gt; α) g g1 (fun (y : β) =&gt;
+    @Eq.trans.{1} α (g y) (g (f (g1 y))) (g1 y)
+      (rel_subst_left β (fun (u : β) (v : β) =&gt; @Eq.{1} α (g u) (g v))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (f (g1 y)) y y (rightInverse_apply α β g1 f hr y) (@Eq.refl.{1} α (g y)))
+      (leftInverse_apply α β g f hl (g1 y)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-44-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">set_ext_of_funext</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-44-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（L 类）：<strong>从两条公理推出集合外延</strong>（<code>lib/Extensionality</code> 文件头点名的 L3 内容）。</p></div></div><pre class="exercise-statement"><code>theorem set_ext_of_funext (α : Type) (A B : Set α) (h : ∀ (x : α), A x ↔ B x) :
+    A = B := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>Set α</code> 就是 <code>α → Prop</code> <span class="math">⇒</span> 先对每个点用<strong>命题外延</strong>（把 <code>↔</code> 变成 <code>=</code>），再用<strong>函数外延</strong>（族取 <code>fun _ =&gt; Prop</code>）收成集合相等。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ x, A x ↔ B x) → A = B</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>funext_spec</code> <span class="math">·</span> <code>propext_spec</code> ✓ ⚠ 族要写成 <code>fun _ =&gt; Prop</code>（<code>Prop : Type</code> ✓）✓</p></div></details></div><details open class="solution-panel" id="sol-44-9"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem set_ext_of_funext (α : Type) (A B : Set α) (h : ∀ (x : α), A x ↔ B x) :
+    @Eq.{1} (Set α) A B :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec α (fun (_ : α) =&gt; Prop) A B (fun (x : α) =&gt; propext_spec (A x) (B x) (h x))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-44-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">rel_ext_of_funext</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-44-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（L 类）：<strong>从两条公理推出关系外延</strong>（同样的两步，做两次）。</p></div></div><pre class="exercise-statement"><code>theorem rel_ext_of_funext (A B : Type) (r s : Rel A B)
+    (h : ∀ (a : A) (b : B), r a b ↔ s a b) : r = s := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>Rel A B</code> 就是 <code>A → B → Prop</code> <span class="math">⇒</span> 外层函数外延，内层再用一次函数外延 <span class="math">+</span> 命题外延。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ a b, r a b ↔ s a b) → r = s</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>funext_spec</code>（<strong>用两次</strong>）<span class="math">·</span> <code>propext_spec</code> ✓</p></div></details></div><details open class="solution-panel" id="sol-44-10"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem rel_ext_of_funext (A B : Type) (r s : Rel A B)
+    (h : ∀ (a : A) (b : B), r a b ↔ s a b) : @Eq.{1} (Rel A B) r s :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec A (fun (_ : A) =&gt; B → Prop) r s (fun (a : A) =&gt;
+    funext_spec B (fun (_ : B) =&gt; Prop) (r a) (s a)
+      (fun (b : B) =&gt; propext_spec (r a b) (s a b) (h a b)))</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠⚠ <strong>本单元是一份"勘误 <span class="math">+</span> 升级"</strong>：单元㉜㉞㉟ 当时<strong>没 import <code>lib/Extensionality</code></strong>，于是把"函数相等要外延、本语言没有"写成了缺口 <strong>G-77</strong> ✗ —— 那是<strong>误报</strong>：<code>propext</code> 与 <code>funext</code> <strong>一直是库里的公理</strong>（<code>lib/Extensionality</code> ✓），只是没人 import 它 ✗ <span class="math">⇒</span> 本单元把它们用起来，并把当时只能写成"逐点"的结论<strong>升级成真正的等式</strong> ✓（台账 <strong>G-77 已改正</strong>为"误报"✓）</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 五样</strong>：<code>lib.Extensionality</code>（本次的主角）<span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <code>lib.Fun</code> <span class="math">·</span><code>lib.Rel</code> <span class="math">·</span> <code>lib.Set</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㉜（逐点序）<span class="math">·</span> 单元㉞（函数代数）<span class="math">·</span> 单元㉟（逆函数）—— 本单元把它们的"逐点形态"补成"等式形态" ✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit35.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">逆函数：左逆、右逆与双边逆</span></a><a class="unit-nav-home" href="../chapters/i-12.html#units">目录</a><a class="unit-nav-link" href="../units/unit51.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">幂集的格性质</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-44"><h3><a href="#top">两条外延公理的应用</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答 · 2 个解答独有声明</p><details open class="appendix-solution" id="app-sol-44-1"><summary>练习 1 · funext_apply <span class="sol-meta">定理</span></summary><pre><code>theorem funext_apply (α β : Type) (f g : α → β)
+    (h : ∀ (a : α), @Eq.{1} β (f a) (g a)) : @Eq.{1} (α → β) f g :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec α (fun (_ : α) =&gt; β) f g h</code></pre></details><details open class="appendix-solution" id="app-sol-44-2"><summary>练习 2 · propext_apply <span class="sol-meta">定理</span></summary><pre><code>theorem propext_apply (a b : Prop) (h : a ↔ b) : @Eq.{1} Prop a b :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  propext_spec a b h</code></pre></details><details open class="appendix-solution" id="app-sol-44-3"><summary>练习 3 · comp_assoc_eq <span class="sol-meta">定理</span></summary><pre><code>theorem comp_assoc_eq (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
+    @Eq.{1} (α → δ) ((h ∘ g) ∘ f) (h ∘ (g ∘ f)) :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Eq.refl.{1} (α → δ) ((h ∘ g) ∘ f)</code></pre></details><details open class="appendix-solution" id="app-sol-44-4"><summary>练习 4 · comp_id_eq <span class="sol-meta">定理</span></summary><pre><code>theorem comp_id_eq (α β : Type) (f : α → β) :
+    @Eq.{1} (α → β) ((fun (a : α) =&gt; f a)) f :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Eq.refl.{1} (α → β) f</code></pre></details><details open class="appendix-solution" id="app-sol-44-5"><summary>练习 5 · id_comp_eq <span class="sol-meta">定理</span></summary><pre><code>theorem id_comp_eq (α β : Type) (f : α → β) :
+    @Eq.{1} (α → β) ((fun (a : α) =&gt; (fun (b : β) =&gt; b) (f a))) f :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec α (fun (_ : α) =&gt; β) (fun (a : α) =&gt; (fun (b : β) =&gt; b) (f a)) f
+    (fun (a : α) =&gt; @Eq.refl.{1} β (f a))</code></pre></details><details open class="appendix-solution" id="app-sol-44-6"><summary>练习 6 · pointwiseLe_antisymm <span class="sol-meta">定理</span></summary><pre><code>theorem pointwiseLe_antisymm (α β : Type) (r : Rel β β) (h : IsPartialOrder β r) :
+    Antisymmetric (α → β) (PointwiseLe α β r) :=
+  fun (f : α → β) =&gt; fun (g : α → β) =&gt; fun (hfg : PointwiseLe α β r f g) =&gt;
+    fun (hgf : PointwiseLe α β r g f) =&gt;
+      funext_spec α (fun (_ : α) =&gt; β) f g (fun (a : α) =&gt;
+        partialOrder_antisymm β r h (f a) (g a)
+          (pointwiseLe_apply α β r f g hfg a)
+          (pointwiseLe_apply α β r g f hgf a))</code></pre></details><details open class="appendix-solution" id="app-sol-44-7"><summary>练习 7 · pointwiseLe_isPartialOrder <span class="sol-meta">定理</span></summary><pre><code>theorem pointwiseLe_isPartialOrder (α β : Type) (r : Rel β β) (h : IsPartialOrder β r) :
+    IsPartialOrder (α → β) (PointwiseLe α β r) :=
+  isPartialOrder_intro (α → β) (PointwiseLe α β r)
+    (fun (f : α → β) =&gt; fun (a : α) =&gt; partialOrder_refl β r h (f a))
+    (pointwiseLe_antisymm α β r h)
+    (fun (f : α → β) =&gt; fun (g : α → β) =&gt; fun (k : α → β) =&gt;
+      fun (hfg : PointwiseLe α β r f g) =&gt; fun (hgk : PointwiseLe α β r g k) =&gt;
+        fun (a : α) =&gt;
+          partialOrder_trans β r h (f a) (g a) (k a)
+            (pointwiseLe_apply α β r f g hfg a)
+            (pointwiseLe_apply α β r g k hgk a))</code></pre></details><details open class="appendix-solution" id="app-sol-44-8"><summary>练习 8 · inverse_unique_eq <span class="sol-meta">定理</span></summary><pre><code>theorem inverse_unique_eq (α β : Type) (f : α → β) (g g1 : β → α)
+    (hl : Function.LeftInverse α β g f) (hr : Function.RightInverse α β g1 f) :
+    @Eq.{1} (β → α) g g1 :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec β (fun (_ : β) =&gt; α) g g1 (fun (y : β) =&gt;
+    @Eq.trans.{1} α (g y) (g (f (g1 y))) (g1 y)
+      (rel_subst_left β (fun (u : β) (v : β) =&gt; @Eq.{1} α (g u) (g v))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (f (g1 y)) y y (rightInverse_apply α β g1 f hr y) (@Eq.refl.{1} α (g y)))
+      (leftInverse_apply α β g f hl (g1 y)))</code></pre></details><details open class="appendix-solution" id="app-sol-44-9"><summary>练习 9 · set_ext_of_funext <span class="sol-meta">定理</span></summary><pre><code>theorem set_ext_of_funext (α : Type) (A B : Set α) (h : ∀ (x : α), A x ↔ B x) :
+    @Eq.{1} (Set α) A B :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec α (fun (_ : α) =&gt; Prop) A B (fun (x : α) =&gt; propext_spec (A x) (B x) (h x))</code></pre></details><details open class="appendix-solution" id="app-sol-44-10"><summary>练习 10 · rel_ext_of_funext <span class="sol-meta">定理</span></summary><pre><code>theorem rel_ext_of_funext (A B : Type) (r s : Rel A B)
+    (h : ∀ (a : A) (b : B), r a b ↔ s a b) : @Eq.{1} (Rel A B) r s :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  funext_spec A (fun (_ : A) =&gt; B → Prop) r s (fun (a : A) =&gt;
+    funext_spec B (fun (_ : B) =&gt; Prop) (r a) (s a)
+      (fun (b : B) =&gt; propext_spec (r a b) (s a b) (h a b)))</code></pre></details><details open class="appendix-solution" id="app-extra-44-1"><summary>补充 · leftInverse_apply <span class="sol-meta">定理</span></summary><pre><code>theorem leftInverse_apply (α β : Type) (g : β → α) (f : α → β)
+    (h : Function.LeftInverse α β g f) (x : α) : @Eq.{1} α (g (f x)) x :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  (fun (hu : ∀ (x1 : α), @Eq.{1} α (g (f x1)) x1) =&gt; hu x) h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></details><details open class="appendix-solution" id="app-extra-44-2"><summary>补充 · rightInverse_apply <span class="sol-meta">定理</span></summary><pre><code>theorem rightInverse_apply (α β : Type) (g : β → α) (f : α → β)
+    (h : Function.RightInverse α β g f) (y : β) : @Eq.{1} β (f (g y)) y :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  (fun (hu : ∀ (y1 : β), @Eq.{1} β (f (g y1)) y1) =&gt; hu y) h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

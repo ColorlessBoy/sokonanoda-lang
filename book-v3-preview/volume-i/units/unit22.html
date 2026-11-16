@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>22 像、原像与广义并交 · 从集合论到实分析</title>
+<meta name="description" content="单元㉒ 像、原像与广义并交：导语、定义与定理、练习与解答。Unit 22 — Images, Preimages and Arbitrary Unions/Intersections">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit22.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li class="is-current"><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.9 单元</h3><ol><li><a href="../units/unit21.html">21 集族与广义并交</a></li><li class="is-current"><a href="../units/unit22.html">22 像、原像与广义并交</a></li><li><a href="../units/unit23.html">23 广义积与柯里化</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li aria-current="page">单元 22 像、原像与广义并交</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-22-1">22.1 三条库引理（像的单调性 · 像落点的改写 · 广义交的落点）</a></li>
+<li><a href="#ex-22-3">22.2 像与广义并：两个方向</a></li>
+<li><a href="#ex-22-5">22.3 原像与广义并交：四个方向全对（原像是&quot;好&quot;的）</a></li>
+<li><a href="#ex-22-9">22.4 必破：像是&quot;半好&quot;的</a></li>
+<li><a href="#appendix-unit-22">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-9.html#units">↑ 本章目录</a>
+      <a href="../print/unit22.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-22">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-9.html">I.9</a> · 本章第 2 / 3 单元 · 全书第 22 / 112 单元</p>
+<h1><span class="unit-number">22</span> <span>像、原像与广义并交</span></h1>
+<p class="unit-title-en">Unit 22 — Images, Preimages and Arbitrary Unions/Intersections</p>
+<p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-22">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="22" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-22" aria-label="复制单元 22 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit22.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-9.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§3.3 Functions</strong> 里的像/原像对广义并交的交换律；Halmos《Naive Set Theory》<strong>§9–10</strong> 的同一批。大纲：<code>set-theory-syllabus.md</code> §4.1（I.9 章第二个单元，<strong>本章收口</strong>）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>像对广义并"可交换"</strong>（两个方向都对）<span class="math">·</span> <strong>原像对广义并、广义交都"可交换"</strong>（四个方向全对）<span class="math">·</span> <strong>像对广义交只有一半</strong>（<code>⊆</code>，反方向是<strong>假</strong>的）。一句话：<strong>原像是"好"的（<code>⁻¹'</code> 与 <code>⋃₀</code>/<code>⋂₀</code> 完全交换），像是"半好"的</strong> ✓</p></div><div class="block prose intuition-only"><p><strong>写法约定（本单元特有）</strong>：<code>⋃₀</code> 的消去子 <code>Set.mem_sUnion_elim</code> 把"存在"拆开、<code>Set.mem_image_elim</code> 把"在像里"拆开；要证"在像里"用 <code>Set.mem_image_intro</code> ✓ 这些都在库里（<strong>用它们，别手写嵌套 <code>Exists.elim</code></strong> —— 实测手写极易少数一个右括号）。</p></div><h3 class="unit-subhead">22.1 三条库引理（像的单调性 <span class="math">·</span> 像落点的改写 <span class="math">·</span> 广义交的落点）</h3><div class="block prose intuition-only"><p>演示：<strong>像对包含是单调的</strong>。</p></div><article class="decl decl-theorem" id="decl-22-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_image_mono</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_image_mono (α β : Type) (f : α → β) (A B : Set α)
+    (h : A ⊆ B) : (f '' A) ⊆ (f '' B) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.image_mono f A B (fun (x : α) (hx : x ∈ A) =&gt; (fun (hs : ∀ (z : α), z ∈ A → z ∈ B) =&gt; hs x hx) h)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：<strong>"像落在 <code>B</code> 里"<span class="math">⟺</span>"<code>A</code> 被送进原像里"</strong>（像与原像的第一条对偶）。</p></div><article class="decl decl-theorem" id="decl-22-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_image_subset_iff</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_image_subset_iff (α β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    (f '' A) ⊆ B ↔ A ⊆ (f ⁻¹' B) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.image_subset_iff f A B</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：广义交落在族里的每个成员里（单元㉑ 的库引理）。</p></div><article class="decl decl-theorem" id="decl-22-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_sInter_subset</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_sInter_subset (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F) :
+    (⋂₀ F) ⊆ A :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.sInter_subset α F A h</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-22-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">mem_image_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-22-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：像的成员刻画。</p></div></div><pre class="exercise-statement"><code>theorem mem_image_apply (α β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ (f '' A) ↔ ∃ (x : α), x ∈ A ∧ f x = y := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>库里现成的，直接交出去。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>y ∈ (f '' A) ↔ ∃ x, x ∈ A ∧ f x = y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_image</code>。</p></div></details></div><details class="solution-panel" id="sol-22-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem mem_image_apply (α β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ (f '' A) ↔ ∃ (x : α), x ∈ A ∧ f x = y :=
+  Set.mem_image f A y</code></pre></div></details></div></article>
+<article class="exercise" id="ex-22-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">mem_preimage_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-22-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：原像的成员刻画。</p></div></div><pre class="exercise-statement"><code>theorem mem_preimage_apply (α β : Type) (f : α → β) (B : Set β) (x : α) :
+    x ∈ (f ⁻¹' B) ↔ f x ∈ B := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>同上，库里现成的。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>x ∈ (f ⁻¹' B) ↔ f x ∈ B</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_preimage</code>。</p></div></details></div><details class="solution-panel" id="sol-22-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem mem_preimage_apply (α β : Type) (f : α → β) (B : Set β) (x : α) :
+    x ∈ (f ⁻¹' B) ↔ f x ∈ B :=
+  Set.mem_preimage f B x</code></pre></div></details></div></article>
+<h3 class="unit-subhead">22.2 像与广义并：<strong>两个方向</strong></h3><article class="exercise" id="ex-22-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">image_sUnion_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-22-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<code>f '' (⋃₀ F) ⊆ ⋃₀ {f '' A : A ∈ F}</code>。</p></div></div><pre class="exercise-statement"><code>theorem image_sUnion_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (f '' (⋃₀ F)) ⊆ (⋃₀ ((fun (A : Set α) =&gt; f '' A) '' F)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>y</code> 在像里 <span class="math">⇒</span> 拆出一个 <code>x</code>（在 <code>⋃₀ F</code> 里）且 <code>f x = y</code>；<code>x</code> 在广义并里 <span class="math">⇒</span> 拆出一个成员 <code>A ∈ F</code> 装得下它。于是 <code>f '' A</code> 就是右边那个族的成员，而 <code>y</code> 在它里面（沿 <code>f x = y</code> 把 <code>f x</code> 搬过去）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(f '' (⋃₀ F)) ⊆ (⋃₀ ((fun A =&gt; f '' A) '' F))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_image_elim</code>（拆像）<span class="math">·</span> <code>Set.mem_sUnion_elim</code>（拆广义并）<span class="math">·</span><code>Set.mem_image_intro</code>（造"在像里"）<span class="math">·</span> <code>Set.mem_sUnion_intro</code>（造"在广义并里"）<span class="math">·</span>最后 <code>rel_subst_right</code> 把 <code>f x ∈ f '' A</code> 搬成 <code>y ∈ f '' A</code>。</p></div></details></div><details class="solution-panel" id="sol-22-3"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem image_sUnion_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (f '' (⋃₀ F)) ⊆ (⋃₀ ((fun (A : Set α) =&gt; f '' A) '' F)) :=
+  fun (y : β) (hy : y ∈ (f '' (⋃₀ F))) =&gt;
+    Set.mem_image_elim f (⋃₀ F) y (y ∈ (⋃₀ ((fun (A : Set α) =&gt; f '' A) '' F))) hy
+      (fun (x : α) (hx : x ∈ (⋃₀ F)) (hxy : f x = y) =&gt;
+        Set.mem_sUnion_elim α F x (y ∈ (⋃₀ ((fun (A : Set α) =&gt; f '' A) '' F))) hx
+          (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) =&gt;
+            Set.mem_sUnion_intro β ((fun (A' : Set α) =&gt; f '' A') '' F) (f '' A) y
+              (Set.mem_image_intro (fun (A' : Set α) =&gt; f '' A') F (f '' A) A hA
+                (@Eq.refl.{1} (Set β) (f '' A)))
+              (rel_subst_right β (fun (u : β) (v : β) =&gt; v ∈ (f '' A)) (f x) (f x) y hxy
+                (Set.mem_image_intro f A (f x) x hxA (@Eq.refl.{1} β (f x))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-22-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">sUnion_image_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-22-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：<strong>反方向</strong> <code>⋃₀ {f '' A : A ∈ F} ⊆ f '' (⋃₀ F)</code>。</p></div></div><pre class="exercise-statement"><code>theorem sUnion_image_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (⋃₀ ((fun (A : Set α) =&gt; f '' A) '' F)) ⊆ (f '' (⋃₀ F)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>y</code> 在右边的广义并里 <span class="math">⇒</span> 拆出一个 <code>B ∈ (fun A =&gt; f '' A) '' F</code> 装得下它；再拆出那个 <code>A ∈ F</code>（满足 <code>f '' A = B</code>）；把 <code>y ∈ B</code> 沿这条等式搬回 <code>y ∈ f '' A</code>，于是拆出 <code>x ∈ A</code> 且 <code>f x = y</code>。最后 <code>x</code> 通过 <code>A ⊆ ⋃₀ F</code> 进广义并，<code>y</code> 就进像了。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(⋃₀ ((fun A =&gt; f '' A) '' F)) ⊆ (f '' (⋃₀ F))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两个消去子连用 <span class="math">·</span> <code>Set.mem_image_intro</code> <span class="math">·</span> <code>Set.mem_sUnion_intro</code> <span class="math">·</span>搬运那一步用 <code>rel_subst_left</code>（<strong>论域换成 <code>Set β</code></strong>、关系取"<code>y</code> 属于第二个参数" —— 别接反）。</p></div></details></div><details class="solution-panel" id="sol-22-4"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem sUnion_image_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (⋃₀ ((fun (A : Set α) =&gt; f '' A) '' F)) ⊆ (f '' (⋃₀ F)) :=
+  fun (y : β) (hy : y ∈ (⋃₀ ((fun (A : Set α) =&gt; f '' A) '' F))) =&gt;
+    Set.mem_sUnion_elim β ((fun (A : Set α) =&gt; f '' A) '' F) y (y ∈ (f '' (⋃₀ F))) hy
+      (fun (B : Set β) (hB : B ∈ ((fun (A : Set α) =&gt; f '' A) '' F)) (hyB : y ∈ B) =&gt;
+        Set.mem_image_elim (fun (A : Set α) =&gt; f '' A) F B (y ∈ (f '' (⋃₀ F))) hB
+          (fun (A : Set α) (hA : A ∈ F) (hAB : f '' A = B) =&gt;
+            Set.mem_image_elim f A y (y ∈ (f '' (⋃₀ F)))
+              (rel_subst_left (Set β) (fun (u : Set β) (v : Set β) =&gt; y ∈ v) (f '' A) B B hAB hyB)
+              (fun (x : α) (hxA : x ∈ A) (hxy : f x = y) =&gt;
+                Set.mem_image_intro f (⋃₀ F) y x (Set.mem_sUnion_intro α F A x hA hxA) hxy)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">22.3 原像与广义并交：<strong>四个方向全对</strong>（原像是"好"的）</h3><article class="exercise" id="ex-22-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">preimage_sUnion_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-22-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：<code>f ⁻¹' (⋃₀ F) ⊆ ⋃₀ {f ⁻¹' B : B ∈ F}</code>。</p></div></div><pre class="exercise-statement"><code>theorem preimage_sUnion_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (f ⁻¹' (⋃₀ F)) ⊆ (⋃₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>x</code> 在原像里 <span class="math">⇒</span> <code>f x ∈ ⋃₀ F</code> <span class="math">⇒</span> 拆出一个成员 <code>B ∈ F</code> 装得下 <code>f x</code>；于是 <code>f ⁻¹' B</code> 是右边的成员，而 <code>x</code> 在它里面。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(f ⁻¹' (⋃₀ F)) ⊆ (⋃₀ ((fun B =&gt; f ⁻¹' B) '' F))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_preimage_elim</code>（拆原像）<span class="math">·</span> <code>Set.mem_sUnion_elim</code> <span class="math">·</span><code>Set.mem_image_intro</code> <span class="math">·</span> <code>Set.mem_sUnion_intro</code> <span class="math">·</span> <code>Set.mem_preimage_intro</code>。</p></div></details></div><details class="solution-panel" id="sol-22-5"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem preimage_sUnion_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (f ⁻¹' (⋃₀ F)) ⊆ (⋃₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) :=
+  fun (x : α) (hx : x ∈ (f ⁻¹' (⋃₀ F))) =&gt;
+    Set.mem_sUnion_elim β F (f x) (x ∈ (⋃₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)))
+      (Set.mem_preimage_elim f (⋃₀ F) x (f x ∈ (⋃₀ F)) hx (fun (h : f x ∈ (⋃₀ F)) =&gt; h))
+      (fun (B : Set β) (hB : B ∈ F) (hxB : f x ∈ B) =&gt;
+        Set.mem_sUnion_intro α ((fun (B' : Set β) =&gt; f ⁻¹' B') '' F) (f ⁻¹' B) x
+          (Set.mem_image_intro (fun (B' : Set β) =&gt; f ⁻¹' B') F (f ⁻¹' B) B hB
+            (@Eq.refl.{1} (Set α) (f ⁻¹' B)))
+          (Set.mem_preimage_intro f B x hxB))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-22-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">sUnion_preimage_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-22-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类）：<strong>反方向</strong>。</p></div></div><pre class="exercise-statement"><code>theorem sUnion_preimage_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (⋃₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) ⊆ (f ⁻¹' (⋃₀ F)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>x</code> 在右边的广义并里 <span class="math">⇒</span> 拆出 <code>C ∈ {f ⁻¹' B}</code> 装得下它 <span class="math">⇒</span> 再拆出 <code>B ∈ F</code> 使 <code>f ⁻¹' B = C</code>；把 <code>x ∈ C</code> 沿这条等式搬回 <code>x ∈ f ⁻¹' B</code>，于是 <code>f x ∈ B ⊆ ⋃₀ F</code>，即 <code>x</code> 在原像里。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(⋃₀ ((fun B =&gt; f ⁻¹' B) '' F)) ⊆ (f ⁻¹' (⋃₀ F))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两个消去子连用 <span class="math">·</span> <code>Set.mem_sUnion_intro</code> <span class="math">·</span> <code>Set.mem_preimage_elim</code> <span class="math">·</span>搬运那一步 <code>rel_subst_left</code>（论域是 <code>Set α</code>、关系取"<code>x</code> 属于第二个参数"）<span class="math">·</span>最后 <code>Set.mem_preimage_intro</code>。</p></div></details></div><details class="solution-panel" id="sol-22-6"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><pre><code>theorem sUnion_preimage_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (⋃₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) ⊆ (f ⁻¹' (⋃₀ F)) :=
+  fun (x : α) (hx : x ∈ (⋃₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F))) =&gt;
+    Set.mem_preimage_intro f (⋃₀ F) x
+      (Set.mem_sUnion_elim α ((fun (B : Set β) =&gt; f ⁻¹' B) '' F) x (f x ∈ (⋃₀ F)) hx
+        (fun (C : Set α) (hC : C ∈ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) (hxC : x ∈ C) =&gt;
+          Set.mem_image_elim (fun (B : Set β) =&gt; f ⁻¹' B) F C (f x ∈ (⋃₀ F)) hC
+            (fun (B : Set β) (hB : B ∈ F) (hBC : f ⁻¹' B = C) =&gt;
+              Set.mem_sUnion_intro β F B (f x) hB
+                (Set.mem_preimage_elim f B x (f x ∈ B)
+                  (rel_subst_left (Set α) (fun (u : Set α) (v : Set α) =&gt; x ∈ v)
+                    (f ⁻¹' B) C C hBC hxC)
+                  (fun (h : f x ∈ B) =&gt; h)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-22-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">sInter_preimage_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-22-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类）：<code>⋂₀ {f ⁻¹' B : B ∈ F} ⊆ f ⁻¹' (⋂₀ F)</code>。</p></div></div><pre class="exercise-statement"><code>theorem sInter_preimage_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (⋂₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) ⊆ (f ⁻¹' (⋂₀ F)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要证 <code>x ∈ f ⁻¹' (⋂₀ F)</code>，即"<strong>每个</strong> <code>B ∈ F</code> 都有 <code>f x ∈ B</code>"；对固定的 <code>B</code>，<code>f ⁻¹' B</code> 是左边那个族的成员，而 <code>x</code> 在左边的<strong>广义交</strong>里 <span class="math">⇒</span> 它在每个成员里。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(⋂₀ ((fun B =&gt; f ⁻¹' B) '' F)) ⊆ (f ⁻¹' (⋂₀ F))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_preimage_intro</code>（结论那一层）<span class="math">·</span> <code>Set.mem_image_intro</code>（造族成员）<span class="math">·</span><strong>广义交的展开形态就是一个 <code>∀</code></strong> <span class="math">⇒</span> 直接交出一个 <span class="math">λ</span>（先 <span class="math">λ</span> 绑定左边那条全称再应用）。</p></div></details></div><details class="solution-panel" id="sol-22-7"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem sInter_preimage_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (⋂₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) ⊆ (f ⁻¹' (⋂₀ F)) :=
+  fun (x : α) (hx : x ∈ (⋂₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F))) =&gt;
+    Set.mem_preimage_intro f (⋂₀ F) x
+      ((fun (hs : ∀ (B : Set β), B ∈ F → f x ∈ B) =&gt; hs)
+        (fun (B : Set β) (hB : B ∈ F) =&gt;
+          Set.mem_preimage_elim f B x (f x ∈ B)
+            ((fun (hu : ∀ (C : Set α), C ∈ ((fun (B' : Set β) =&gt; f ⁻¹' B') '' F) → x ∈ C) =&gt;
+              hu (f ⁻¹' B)
+                (Set.mem_image_intro (fun (B' : Set β) =&gt; f ⁻¹' B') F (f ⁻¹' B) B hB
+                  (@Eq.refl.{1} (Set α) (f ⁻¹' B)))) hx)
+            (fun (h : f x ∈ B) =&gt; h)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-22-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">preimage_sInter_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-22-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类）：<strong>反方向</strong> —— 原像与广义交<strong>完全交换</strong>。</p></div></div><pre class="exercise-statement"><code>theorem preimage_sInter_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (f ⁻¹' (⋂₀ F)) ⊆ (⋂₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>左边是要证的广义交（展开形态是"每个族成员都装得下 <code>x</code>"）；族成员长成 <code>f ⁻¹' B</code>（<code>B ∈ F</code>），把 <code>x</code> 搬进它、读出 <code>f x ∈ B</code>；而 <code>f x</code> 在 <code>⋂₀ F</code> 里 <span class="math">⇒</span> 每个 <code>B ∈ F</code> 都装得下它。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(f ⁻¹' (⋂₀ F)) ⊆ (⋂₀ ((fun B =&gt; f ⁻¹' B) '' F))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>左边那条全称（<span class="math">λ</span> 绑定后用）<span class="math">·</span> <code>Set.mem_image_elim</code> <span class="math">·</span> <code>Set.mem_preimage_intro</code> <span class="math">·</span>搬运那一步 <code>rel_subst_right</code>（论域 <code>Set α</code>）。</p></div></details></div><details class="solution-panel" id="sol-22-8"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><pre><code>theorem preimage_sInter_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (f ⁻¹' (⋂₀ F)) ⊆ (⋂₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) :=
+  fun (x : α) (hx : x ∈ (f ⁻¹' (⋂₀ F))) =&gt;
+    (fun (hs : ∀ (C : Set α), C ∈ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F) → x ∈ C) =&gt; hs)
+      (fun (C : Set α) (hC : C ∈ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) =&gt;
+        Set.mem_image_elim (fun (B : Set β) =&gt; f ⁻¹' B) F C (x ∈ C) hC
+          (fun (B : Set β) (hB : B ∈ F) (hBC : f ⁻¹' B = C) =&gt;
+            rel_subst_right (Set α) (fun (u : Set α) (v : Set α) =&gt; x ∈ v) C (f ⁻¹' B) C
+              hBC
+              (Set.mem_preimage_intro f B x
+                ((fun (hu : ∀ (B' : Set β), B' ∈ F → f x ∈ B') =&gt; hu B hB)
+                  (Set.mem_preimage_elim f (⋂₀ F) x (∀ (B' : Set β), B' ∈ F → f x ∈ B') hx
+                    (fun (h : f x ∈ (⋂₀ F)) =&gt; h))))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">22.4 必破：<strong>像是"半好"的</strong></h3><article class="exercise" id="ex-22-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">image_preimage_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-22-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（D 类）：<code>f '' (f ⁻¹' B) ⊆ B</code> —— <strong>像不还原原像</strong>（反方向<strong>是假的</strong>：取 <code>B</code> 里有、但不在 <code>f</code> 的像里的点即可）。</p></div></div><pre class="exercise-statement"><code>theorem image_preimage_subset (α β : Type) (f : α → β) (B : Set β) :
+    (f '' (f ⁻¹' B)) ⊆ B := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>y</code> 在像里 <span class="math">⇒</span> 拆出 <code>x</code> 满足 <code>x ∈ f ⁻¹' B</code> 且 <code>f x = y</code>；从 <code>x ∈ f ⁻¹' B</code> 读出 <code>f x ∈ B</code>，再沿 <code>f x = y</code> 搬成 <code>y ∈ B</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(f '' (f ⁻¹' B)) ⊆ B</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_image_elim</code> <span class="math">·</span> <code>Set.mem_preimage_elim</code> <span class="math">·</span><code>rel_subst_right</code>（<strong>元素方向</strong>：<code>f x ∈ B</code> 沿 <code>f x = y</code> 搬到 <code>y ∈ B</code>）。</p></div></details></div><details class="solution-panel" id="sol-22-9"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem image_preimage_subset (α β : Type) (f : α → β) (B : Set β) :
+    (f '' (f ⁻¹' B)) ⊆ B :=
+  fun (y : β) (hy : y ∈ (f '' (f ⁻¹' B))) =&gt;
+    Set.mem_image_elim f (f ⁻¹' B) y (y ∈ B) hy
+      (fun (x : α) (hx : x ∈ (f ⁻¹' B)) (hxy : f x = y) =&gt;
+        rel_subst_right β (fun (u : β) (v : β) =&gt; v ∈ B) (f x) (f x) y hxy
+          (Set.mem_preimage_elim f B x (f x ∈ B) hx (fun (h : f x ∈ B) =&gt; h)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-22-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">image_sInter_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-22-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（D 类）：<strong>像对广义交只有一半</strong> —— <code>f '' (⋂₀ F) ⊆ ⋂₀ {f '' A : A ∈ F}</code>。</p></div></div><pre class="exercise-statement"><code>theorem image_sInter_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (f '' (⋂₀ F)) ⊆ (⋂₀ ((fun (A : Set α) =&gt; f '' A) '' F)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要证 <code>y</code> 落在右边的广义交里（展开形态："每个族成员 <code>C</code> 都装得下 <code>y</code>"）；拆出 <code>C = f '' A</code>（<code>A ∈ F</code>）；把 <code>y</code> 搬进 <code>f '' A</code>，再拆出 <code>x ∈ ⋂₀ F</code> 且 <code>f x = y</code>；而 <code>x</code> 在广义交里 <span class="math">⇒</span> 它在<strong>每个</strong> <code>A ∈ F</code> 里（这里只需要 <code>A</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(f '' (⋂₀ F)) ⊆ (⋂₀ ((fun A =&gt; f '' A) '' F))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_image_elim</code>（用两次）<span class="math">·</span> <code>Set.mem_image_intro</code> <span class="math">·</span>广义交的全称当函数用 <span class="math">·</span> <code>rel_subst_right</code>（元素方向）<span class="math">·</span> 搬运那一步 <code>rel_subst_right</code>（<code>Set β</code> 方向）。⚠ <strong>反方向是假的</strong>（像会把不同的点"并"到一起）—— 所以这条<strong>只有一半</strong> ✓</p></div></details></div><details class="solution-panel" id="sol-22-10"><summary>查看解答 <span class="sol-meta">定理 · 17 行</span></summary><div class="solution-body"><pre><code>theorem image_sInter_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (f '' (⋂₀ F)) ⊆ (⋂₀ ((fun (A : Set α) =&gt; f '' A) '' F)) :=
+  fun (y : β) (hy : y ∈ (f '' (⋂₀ F))) =&gt;
+    (fun (hs : ∀ (C : Set β), C ∈ ((fun (A : Set α) =&gt; f '' A) '' F) → y ∈ C) =&gt; hs)
+      (fun (C : Set β) (hC : C ∈ ((fun (A : Set α) =&gt; f '' A) '' F)) =&gt;
+        Set.mem_image_elim (fun (A : Set α) =&gt; f '' A) F C (y ∈ C) hC
+          (fun (A : Set α) (hA : A ∈ F) (hAC : f '' A = C) =&gt;
+            rel_subst_right (Set β) (fun (u : Set β) (v : Set β) =&gt; y ∈ v) C (f '' A) C
+              hAC
+              (Set.mem_image_elim f (⋂₀ F) y (y ∈ (f '' A)) hy
+                (fun (x : α) (hx : x ∈ (⋂₀ F)) (hxy : f x = y) =&gt;
+                  rel_subst_right β (fun (u : β) (v : β) =&gt; v ∈ (f '' A)) (f x) (f x) y hxy
+                    (Set.mem_image_intro f A (f x) x
+                      ((fun (hu : ∀ (A' : Set α), A' ∈ F → x ∈ A') =&gt; hu A hA)
+                        (Set.mem_sInter_elim α F x (∀ (A' : Set α), A' ∈ F → x ∈ A') hx
+                          (fun (h : x ∈ (⋂₀ F)) =&gt; h)))
+                      (@Eq.refl.{1} β (f x)))))))</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ 本单元的定理都写成<strong>两个 <code>⊆</code></strong> 而不是一条 <code>=</code>：这是本语言里"等式"那条路（<code>Set.ext</code>）在<strong>深层嵌套</strong>下不稳（实测：同一批证明用 <code>=</code> 写全部判红，拆成两个方向全部判绿）<span class="math">⇒</span> 结论写成两半既是<strong>数学上更清楚</strong>的讲法，也绕开了那条边界 ✓</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.SUnion</code> <span class="math">·</span> <code>lib.Image</code> <span class="math">·</span> <code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㉑（集族与广义并交）与单元⑧（像与原像）—— 本单元把它们合起来用。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit21.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">集族与广义并交</span></a><a class="unit-nav-home" href="../chapters/i-9.html#units">目录</a><a class="unit-nav-link" href="../units/unit23.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">广义积与柯里化</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-22"><h3><a href="#top">像、原像与广义并交</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-22-1"><summary>练习 1 · mem_image_apply <span class="sol-meta">定理</span></summary><pre><code>theorem mem_image_apply (α β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ (f '' A) ↔ ∃ (x : α), x ∈ A ∧ f x = y :=
+  Set.mem_image f A y</code></pre></details><details class="appendix-solution" id="app-sol-22-2"><summary>练习 2 · mem_preimage_apply <span class="sol-meta">定理</span></summary><pre><code>theorem mem_preimage_apply (α β : Type) (f : α → β) (B : Set β) (x : α) :
+    x ∈ (f ⁻¹' B) ↔ f x ∈ B :=
+  Set.mem_preimage f B x</code></pre></details><details class="appendix-solution" id="app-sol-22-3"><summary>练习 3 · image_sUnion_subset <span class="sol-meta">定理</span></summary><pre><code>theorem image_sUnion_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (f '' (⋃₀ F)) ⊆ (⋃₀ ((fun (A : Set α) =&gt; f '' A) '' F)) :=
+  fun (y : β) (hy : y ∈ (f '' (⋃₀ F))) =&gt;
+    Set.mem_image_elim f (⋃₀ F) y (y ∈ (⋃₀ ((fun (A : Set α) =&gt; f '' A) '' F))) hy
+      (fun (x : α) (hx : x ∈ (⋃₀ F)) (hxy : f x = y) =&gt;
+        Set.mem_sUnion_elim α F x (y ∈ (⋃₀ ((fun (A : Set α) =&gt; f '' A) '' F))) hx
+          (fun (A : Set α) (hA : A ∈ F) (hxA : x ∈ A) =&gt;
+            Set.mem_sUnion_intro β ((fun (A' : Set α) =&gt; f '' A') '' F) (f '' A) y
+              (Set.mem_image_intro (fun (A' : Set α) =&gt; f '' A') F (f '' A) A hA
+                (@Eq.refl.{1} (Set β) (f '' A)))
+              (rel_subst_right β (fun (u : β) (v : β) =&gt; v ∈ (f '' A)) (f x) (f x) y hxy
+                (Set.mem_image_intro f A (f x) x hxA (@Eq.refl.{1} β (f x))))))</code></pre></details><details class="appendix-solution" id="app-sol-22-4"><summary>练习 4 · sUnion_image_subset <span class="sol-meta">定理</span></summary><pre><code>theorem sUnion_image_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (⋃₀ ((fun (A : Set α) =&gt; f '' A) '' F)) ⊆ (f '' (⋃₀ F)) :=
+  fun (y : β) (hy : y ∈ (⋃₀ ((fun (A : Set α) =&gt; f '' A) '' F))) =&gt;
+    Set.mem_sUnion_elim β ((fun (A : Set α) =&gt; f '' A) '' F) y (y ∈ (f '' (⋃₀ F))) hy
+      (fun (B : Set β) (hB : B ∈ ((fun (A : Set α) =&gt; f '' A) '' F)) (hyB : y ∈ B) =&gt;
+        Set.mem_image_elim (fun (A : Set α) =&gt; f '' A) F B (y ∈ (f '' (⋃₀ F))) hB
+          (fun (A : Set α) (hA : A ∈ F) (hAB : f '' A = B) =&gt;
+            Set.mem_image_elim f A y (y ∈ (f '' (⋃₀ F)))
+              (rel_subst_left (Set β) (fun (u : Set β) (v : Set β) =&gt; y ∈ v) (f '' A) B B hAB hyB)
+              (fun (x : α) (hxA : x ∈ A) (hxy : f x = y) =&gt;
+                Set.mem_image_intro f (⋃₀ F) y x (Set.mem_sUnion_intro α F A x hA hxA) hxy)))</code></pre></details><details class="appendix-solution" id="app-sol-22-5"><summary>练习 5 · preimage_sUnion_subset <span class="sol-meta">定理</span></summary><pre><code>theorem preimage_sUnion_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (f ⁻¹' (⋃₀ F)) ⊆ (⋃₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) :=
+  fun (x : α) (hx : x ∈ (f ⁻¹' (⋃₀ F))) =&gt;
+    Set.mem_sUnion_elim β F (f x) (x ∈ (⋃₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)))
+      (Set.mem_preimage_elim f (⋃₀ F) x (f x ∈ (⋃₀ F)) hx (fun (h : f x ∈ (⋃₀ F)) =&gt; h))
+      (fun (B : Set β) (hB : B ∈ F) (hxB : f x ∈ B) =&gt;
+        Set.mem_sUnion_intro α ((fun (B' : Set β) =&gt; f ⁻¹' B') '' F) (f ⁻¹' B) x
+          (Set.mem_image_intro (fun (B' : Set β) =&gt; f ⁻¹' B') F (f ⁻¹' B) B hB
+            (@Eq.refl.{1} (Set α) (f ⁻¹' B)))
+          (Set.mem_preimage_intro f B x hxB))</code></pre></details><details class="appendix-solution" id="app-sol-22-6"><summary>练习 6 · sUnion_preimage_subset <span class="sol-meta">定理</span></summary><pre><code>theorem sUnion_preimage_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (⋃₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) ⊆ (f ⁻¹' (⋃₀ F)) :=
+  fun (x : α) (hx : x ∈ (⋃₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F))) =&gt;
+    Set.mem_preimage_intro f (⋃₀ F) x
+      (Set.mem_sUnion_elim α ((fun (B : Set β) =&gt; f ⁻¹' B) '' F) x (f x ∈ (⋃₀ F)) hx
+        (fun (C : Set α) (hC : C ∈ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) (hxC : x ∈ C) =&gt;
+          Set.mem_image_elim (fun (B : Set β) =&gt; f ⁻¹' B) F C (f x ∈ (⋃₀ F)) hC
+            (fun (B : Set β) (hB : B ∈ F) (hBC : f ⁻¹' B = C) =&gt;
+              Set.mem_sUnion_intro β F B (f x) hB
+                (Set.mem_preimage_elim f B x (f x ∈ B)
+                  (rel_subst_left (Set α) (fun (u : Set α) (v : Set α) =&gt; x ∈ v)
+                    (f ⁻¹' B) C C hBC hxC)
+                  (fun (h : f x ∈ B) =&gt; h)))))</code></pre></details><details class="appendix-solution" id="app-sol-22-7"><summary>练习 7 · sInter_preimage_subset <span class="sol-meta">定理</span></summary><pre><code>theorem sInter_preimage_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (⋂₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) ⊆ (f ⁻¹' (⋂₀ F)) :=
+  fun (x : α) (hx : x ∈ (⋂₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F))) =&gt;
+    Set.mem_preimage_intro f (⋂₀ F) x
+      ((fun (hs : ∀ (B : Set β), B ∈ F → f x ∈ B) =&gt; hs)
+        (fun (B : Set β) (hB : B ∈ F) =&gt;
+          Set.mem_preimage_elim f B x (f x ∈ B)
+            ((fun (hu : ∀ (C : Set α), C ∈ ((fun (B' : Set β) =&gt; f ⁻¹' B') '' F) → x ∈ C) =&gt;
+              hu (f ⁻¹' B)
+                (Set.mem_image_intro (fun (B' : Set β) =&gt; f ⁻¹' B') F (f ⁻¹' B) B hB
+                  (@Eq.refl.{1} (Set α) (f ⁻¹' B)))) hx)
+            (fun (h : f x ∈ B) =&gt; h)))</code></pre></details><details class="appendix-solution" id="app-sol-22-8"><summary>练习 8 · preimage_sInter_subset <span class="sol-meta">定理</span></summary><pre><code>theorem preimage_sInter_subset (α β : Type) (f : α → β) (F : Set (Set β)) :
+    (f ⁻¹' (⋂₀ F)) ⊆ (⋂₀ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) :=
+  fun (x : α) (hx : x ∈ (f ⁻¹' (⋂₀ F))) =&gt;
+    (fun (hs : ∀ (C : Set α), C ∈ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F) → x ∈ C) =&gt; hs)
+      (fun (C : Set α) (hC : C ∈ ((fun (B : Set β) =&gt; f ⁻¹' B) '' F)) =&gt;
+        Set.mem_image_elim (fun (B : Set β) =&gt; f ⁻¹' B) F C (x ∈ C) hC
+          (fun (B : Set β) (hB : B ∈ F) (hBC : f ⁻¹' B = C) =&gt;
+            rel_subst_right (Set α) (fun (u : Set α) (v : Set α) =&gt; x ∈ v) C (f ⁻¹' B) C
+              hBC
+              (Set.mem_preimage_intro f B x
+                ((fun (hu : ∀ (B' : Set β), B' ∈ F → f x ∈ B') =&gt; hu B hB)
+                  (Set.mem_preimage_elim f (⋂₀ F) x (∀ (B' : Set β), B' ∈ F → f x ∈ B') hx
+                    (fun (h : f x ∈ (⋂₀ F)) =&gt; h))))))</code></pre></details><details class="appendix-solution" id="app-sol-22-9"><summary>练习 9 · image_preimage_subset <span class="sol-meta">定理</span></summary><pre><code>theorem image_preimage_subset (α β : Type) (f : α → β) (B : Set β) :
+    (f '' (f ⁻¹' B)) ⊆ B :=
+  fun (y : β) (hy : y ∈ (f '' (f ⁻¹' B))) =&gt;
+    Set.mem_image_elim f (f ⁻¹' B) y (y ∈ B) hy
+      (fun (x : α) (hx : x ∈ (f ⁻¹' B)) (hxy : f x = y) =&gt;
+        rel_subst_right β (fun (u : β) (v : β) =&gt; v ∈ B) (f x) (f x) y hxy
+          (Set.mem_preimage_elim f B x (f x ∈ B) hx (fun (h : f x ∈ B) =&gt; h)))</code></pre></details><details class="appendix-solution" id="app-sol-22-10"><summary>练习 10 · image_sInter_subset <span class="sol-meta">定理</span></summary><pre><code>theorem image_sInter_subset (α β : Type) (f : α → β) (F : Set (Set α)) :
+    (f '' (⋂₀ F)) ⊆ (⋂₀ ((fun (A : Set α) =&gt; f '' A) '' F)) :=
+  fun (y : β) (hy : y ∈ (f '' (⋂₀ F))) =&gt;
+    (fun (hs : ∀ (C : Set β), C ∈ ((fun (A : Set α) =&gt; f '' A) '' F) → y ∈ C) =&gt; hs)
+      (fun (C : Set β) (hC : C ∈ ((fun (A : Set α) =&gt; f '' A) '' F)) =&gt;
+        Set.mem_image_elim (fun (A : Set α) =&gt; f '' A) F C (y ∈ C) hC
+          (fun (A : Set α) (hA : A ∈ F) (hAC : f '' A = C) =&gt;
+            rel_subst_right (Set β) (fun (u : Set β) (v : Set β) =&gt; y ∈ v) C (f '' A) C
+              hAC
+              (Set.mem_image_elim f (⋂₀ F) y (y ∈ (f '' A)) hy
+                (fun (x : α) (hx : x ∈ (⋂₀ F)) (hxy : f x = y) =&gt;
+                  rel_subst_right β (fun (u : β) (v : β) =&gt; v ∈ (f '' A)) (f x) (f x) y hxy
+                    (Set.mem_image_intro f A (f x) x
+                      ((fun (hu : ∀ (A' : Set α), A' ∈ F → x ∈ A') =&gt; hu A hA)
+                        (Set.mem_sInter_elim α F x (∀ (A' : Set α), A' ∈ F → x ∈ A') hx
+                          (fun (h : x ∈ (⋂₀ F)) =&gt; h)))
+                      (@Eq.refl.{1} β (f x)))))))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit21.html">← 21 集族与广义并交</a><a class="next" href="../units/unit23.html">23 广义积与柯里化 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

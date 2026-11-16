@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>104 排中律与经典推论 · 从集合论到实分析</title>
+<meta name="description" content="单元104 排中律与经典推论：导语、定义与定理、练习与解答。Unit 104 — Excluded Middle and Its Classical Corollaries">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit104.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li class="is-current"><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.1 单元</h3><ol><li><a href="../units/unit01.html">01 集合与隶属</a></li><li><a href="../units/unit02.html">02 子集、空集与包含三律</a></li><li><a href="../units/unit03.html">03 并、交、差与幂集</a></li><li><a href="../units/unit04.html">04 外延性与集合等式</a></li><li><a href="../units/unit58.html">58 差集的代数</a></li><li><a href="../units/unit59.html">59 差集的代数（二）</a></li><li><a href="../units/unit60.html">60 补集的代数</a></li><li><a href="../units/unit61.html">61 外延打包</a></li><li><a href="../units/unit62.html">62 外延性的推论</a></li><li><a href="../units/unit63.html">63 差集的等式层（打包续）</a></li><li><a href="../units/unit64.html">64 差集的等式层（三）：两步走</a></li><li><a href="../units/unit65.html">65 并的差分配律与减法反变</a></li><li><a href="../units/unit66.html">66 包含关系的代数</a></li><li class="is-current"><a href="../units/unit104.html">104 排中律与经典推论</a></li><li><a href="../units/unit105.html">105 经典等价三件套</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li aria-current="page">单元 104 排中律与经典推论</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-104-1">定义与定理</a></li>
+<li><a href="#ex-104-1">练习</a></li>
+<li><a href="#appendix-unit-104">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-1.html#units">↑ 本章目录</a>
+      <a href="../print/unit104.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-104">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-1.html">I.1</a> · 本章第 14 / 15 单元 · 全书第 104 / 112 单元</p>
+<h1><span class="unit-number">104</span> <span>排中律与经典推论</span></h1>
+<p class="unit-title-en">Unit 104 — Excluded Middle and Its Classical Corollaries</p>
+<p class="unit-meta">9 个定理 · 6 道练习 · <a href="#appendix-unit-104">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="104" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-104" aria-label="复制单元 104 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit104.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-1.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>双重否定消去</strong> ✓（<code>¬¬P ⇒ P</code> ✓）<span class="math">·</span> <strong>按 <code>em</code> 分情况</strong>（<code>em_cases</code> ✓）；</li><li><strong><code>A \ B = ∅ ⇒ A ⊆ B</code></strong> ✓（<strong>单元57 删掉的那条</strong> ✓）；</li><li><strong>见证提取</strong> ✓（<code>¬ (∀ x, ¬ P x) ⇒ ∃ x, P x</code> ✓）。</li></ul></div></div></section>
+<article class="decl decl-theorem" id="decl-104-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_em</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_em (P : Prop) : P ∨ ¬ P :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Classical.em P</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-104-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_byContradiction</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_byContradiction (P : Prop) (h : ¬ P → False) : P :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Classical.byContradiction P h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-104-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_sdiff</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_sdiff (α : Type) (a : α) (A : Set α) (B : Set α) :
+    a ∈ (A \ B) ↔ (a ∈ A ∧ ¬ (a ∈ B)) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_sdiff a A B-- 练习 1（T 类，**经典第一件套**）：**双重否定消去**（`¬¬P ⇒ P`）。</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-104-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">not_not_elim</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-104-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>关键件：<code>Classical.byContradiction</code>（<strong>两点按序</strong>：命题与"否定给矛盾"的证明 ✓）</p></div></div><pre class="exercise-statement"><code>theorem not_not_elim (P : Prop) (h : ¬ ¬ P) : P := by
+  sorry</code></pre><details class="solution-panel" id="sol-104-1"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem not_not_elim (P : Prop) (h : ¬ ¬ P) : P :=
+  Classical.byContradiction P h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-104-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">em_cases</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-104-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类）：<strong>按排中律分情况</strong>（<code>P → Q</code>、<code>¬P → Q</code> <span class="math">⇒</span> <code>Q</code>）。关键件：<code>Classical.em</code>（两点 ✓）<span class="math">·</span> <code>Or.elim</code>（<strong>动机位放肯定命题 <code>Q</code></strong> ✓ 铁律 ✓）</p></div></div><pre class="exercise-statement"><code>theorem em_cases (P : Prop) (Q : Prop) (h1 : P → Q) (h2 : ¬ P → Q) : Q := by
+  sorry</code></pre><details class="solution-panel" id="sol-104-2"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem em_cases (P : Prop) (Q : Prop) (h1 : P → Q) (h2 : ¬ P → Q) : Q :=
+  Or.elim h1 h2 (Classical.em P)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-104-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">mem_sdiff_of_mem_not_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-104-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong>进差集</strong>（<code>x ∈ A</code>、<code>¬ x ∈ B</code> <span class="math">⇒</span> <code>x ∈ A \ B</code>）。关键件：<code>Set.mem_sdiff</code>（先 <span class="math">λ</span> 绑定再 <code>Iff.mpr</code> ✓）<span class="math">·</span> <code>And.intro</code>（写全 ✓）</p></div></div><pre class="exercise-statement"><code>theorem mem_sdiff_of_mem_not_mem (α : Type) (x : α) (A : Set α) (B : Set α)
+    (hx : x ∈ A) (hnb : ¬ (x ∈ B)) : x ∈ (A \ B) := by
+  sorry</code></pre><details class="solution-panel" id="sol-104-3"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem mem_sdiff_of_mem_not_mem (α : Type) (x : α) (A : Set α) (B : Set α)
+    (hx : x ∈ A) (hnb : ¬ (x ∈ B)) : x ∈ (A \ B) :=
+  (fun (hm : x ∈ (A \ B) ↔ (x ∈ A ∧ ¬ (x ∈ B))) =&gt;
+    Iff.mpr hm (And.intro hx hnb)) (Set.mem_sdiff x A B)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-104-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">not_mem_of_eq_empty</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-104-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>拆出来的小引理</strong>）：<strong><code>C = ∅</code> 与 <code>x ∈ C</code> 矛盾</strong>。思路：沿等式把 <code>x ∈ C</code> 搬到 <code>x ∈ ∅</code>（<strong>集合层 <code>Eq.subst</code></strong> <span class="math">+</span> 谓词 <code>fun D =&gt; x ∈ D</code>），再与空集刻画冲突。关键件：<strong><code>Eq.subst.{1} (Set α)</code></strong>（集合层替换 ✓）<span class="math">·</span> <code>Set.mem_empty_iff_false</code>（<code>Iff.mp</code> ✓）</p></div></div><pre class="exercise-statement"><code>theorem not_mem_of_eq_empty (α : Type) (x : α) (C : Set α) (h : C = ∅)
+    (hx : x ∈ C) : False := by
+  sorry</code></pre><details class="solution-panel" id="sol-104-4"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem not_mem_of_eq_empty (α : Type) (x : α) (C : Set α) (h : C = ∅)
+    (hx : x ∈ C) : False :=
+  (fun (hu : x ∈ ∅ ↔ False) =&gt; Iff.mp hu (@Eq.subst.{1} (Set α) (fun (D : Set α) =&gt; x ∈ D)
+    C (∅) h hx)) (Set.mem_empty_iff_false x)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-104-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">subset_of_sdiff_empty</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-104-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>旗舰一 —— 单元57 删掉的那条</strong>）：<strong><code>A \ B = ∅ ⇒ A ⊆ B</code></strong>。思路：给 <code>x ∈ A</code>，按 <code>x ∈ B</code> 分情况（练习 2）；否定支里由练习 3 得 <code>x ∈ A \ B</code>，与练习 4 冲突，<code>False.elim</code> 消去。关键件：练习 2 / 练习 3 / 练习 <span class="math">4 ·</span> <strong><code>False.elim</code> 要把目标写全</strong>（<code>False.elim (x ∈ B) …</code> ✓）</p></div></div><pre class="exercise-statement"><code>theorem subset_of_sdiff_empty (α : Type) (A : Set α) (B : Set α) (h : A \ B = ∅) :
+    A ⊆ B := by
+  sorry</code></pre><details class="solution-panel" id="sol-104-5"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem subset_of_sdiff_empty (α : Type) (A : Set α) (B : Set α) (h : A \ B = ∅) :
+    A ⊆ B :=
+  fun (x : α) (hx : x ∈ A) =&gt;
+    em_cases (x ∈ B) (x ∈ B) (fun (hb : x ∈ B) =&gt; hb)
+      (fun (hnb : ¬ (x ∈ B)) =&gt;
+        @False.elim (x ∈ B)
+          (not_mem_of_eq_empty α x (A \ B) h (mem_sdiff_of_mem_not_mem α x A B hx hnb)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-104-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">not_forall_imp_exists</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-104-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类，<strong>旗舰二</strong>）：<strong>见证提取</strong>（<code>¬ (∀x, ¬ P x) ⇒ ∃x, P x</code>）。思路：用 <code>Classical.byContradiction</code>；假设"不存在 <code>P</code> 的点"，则每个点都 <code>¬ P</code>，与前提冲突。关键件：<code>Classical.byContradiction</code> <span class="math">·</span> <code>Exists.intro</code>（写全 ✓）<span class="math">·</span> 把假设当函数作用</p></div></div><pre class="exercise-statement"><code>theorem not_forall_imp_exists (α : Type) (P : α → Prop) (h : ¬ (∀ (x : α), ¬ (P x))) :
+    ∃ (x : α), P x := by
+  sorry</code></pre><details class="solution-panel" id="sol-104-6"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem not_forall_imp_exists (α : Type) (P : α → Prop) (h : ¬ (∀ (x : α), ¬ (P x))) :
+    ∃ (x : α), P x :=
+  Classical.byContradiction (∃ (x : α), P x)
+    (fun (hne : ¬ (∃ (x : α), P x)) =&gt;
+      h (fun (x : α) (hx : P x) =&gt; hne (Exists.intro x hx)))</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（5 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§1.2 / §1.3</strong>（等价的证明方式）<span class="math">·Halmos</span>《Naive Set Theory》<strong>§1</strong>。大纲 §4.1（<strong>经典逻辑线开启</strong> ✓）。</p></div><div class="block prose intuition-only"><p>⚠⚠ <strong>本单元的背景（课程史上的一个转折 ✓）</strong>：本课此前是<strong>构造性</strong>的 ✓ <span class="math">⇒</span> 手册里明令<strong>不得</strong>写 <code>¬¬P ⇒ P</code>、<code>A \ B = ∅ ⇒ A ⊆ B</code>、<code>¬∀ ⇒ ∃</code> 这类<strong>经典等价</strong> ✗（单元57 就因此<strong>删掉</strong>了 <code>A \ B = ∅ ⇒ A ⊆ B</code> ✓，我当时还把它记成"本课是构造性的"✓）。<strong>现在内核线落地了 <code>Classical.em</code>（G-74 排中律）</strong> ✓ <span class="math">⇒</span> 这些定理<strong>可以证了</strong> ✓ <span class="math">⇒</span> 本单元把当年删掉的那条<strong>请回来</strong> ✓，并系统给出经典推论的三件套 ✓。</p></div><div class="block prose intuition-only"><p>⚠ <strong>写法纪律</strong>（本轮新增 ✓）：<code>False.elim</code> <strong>要把目标写全</strong> ✓（<code>False.elim (x ∈ B) …</code> ✓）；<strong>含于空集的成员是矛盾</strong>要经 <code>Eq.subst</code>（集合层替换 ✓）<span class="math">+</span> <code>Set.mem_empty_iff_false</code> ✓ <span class="math">⇒</span> 抽成小引理 <code>not_mem_of_eq_empty</code> ✓（<strong>先拆链</strong> ✓）。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理与 <strong>prelude 里的 <code>Classical.*</code></strong> ✓。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元③（差集）<span class="math">·</span> 单元57（当年删掉那条的单元）<span class="math">·</span> 内核线 <strong>G-74</strong> ✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit66.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">包含关系的代数</span></a><a class="unit-nav-home" href="../chapters/i-1.html#units">目录</a><a class="unit-nav-link" href="../units/unit105.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">经典等价三件套</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-104"><h3><a href="#top">排中律与经典推论</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-104-1"><summary>练习 1 · not_not_elim <span class="sol-meta">定理</span></summary><pre><code>theorem not_not_elim (P : Prop) (h : ¬ ¬ P) : P :=
+  Classical.byContradiction P h</code></pre></details><details class="appendix-solution" id="app-sol-104-2"><summary>练习 2 · em_cases <span class="sol-meta">定理</span></summary><pre><code>theorem em_cases (P : Prop) (Q : Prop) (h1 : P → Q) (h2 : ¬ P → Q) : Q :=
+  Or.elim h1 h2 (Classical.em P)</code></pre></details><details class="appendix-solution" id="app-sol-104-3"><summary>练习 3 · mem_sdiff_of_mem_not_mem <span class="sol-meta">定理</span></summary><pre><code>theorem mem_sdiff_of_mem_not_mem (α : Type) (x : α) (A : Set α) (B : Set α)
+    (hx : x ∈ A) (hnb : ¬ (x ∈ B)) : x ∈ (A \ B) :=
+  (fun (hm : x ∈ (A \ B) ↔ (x ∈ A ∧ ¬ (x ∈ B))) =&gt;
+    Iff.mpr hm (And.intro hx hnb)) (Set.mem_sdiff x A B)</code></pre></details><details class="appendix-solution" id="app-sol-104-4"><summary>练习 4 · not_mem_of_eq_empty <span class="sol-meta">定理</span></summary><pre><code>theorem not_mem_of_eq_empty (α : Type) (x : α) (C : Set α) (h : C = ∅)
+    (hx : x ∈ C) : False :=
+  (fun (hu : x ∈ ∅ ↔ False) =&gt; Iff.mp hu (@Eq.subst.{1} (Set α) (fun (D : Set α) =&gt; x ∈ D)
+    C (∅) h hx)) (Set.mem_empty_iff_false x)</code></pre></details><details class="appendix-solution" id="app-sol-104-5"><summary>练习 5 · subset_of_sdiff_empty <span class="sol-meta">定理</span></summary><pre><code>theorem subset_of_sdiff_empty (α : Type) (A : Set α) (B : Set α) (h : A \ B = ∅) :
+    A ⊆ B :=
+  fun (x : α) (hx : x ∈ A) =&gt;
+    em_cases (x ∈ B) (x ∈ B) (fun (hb : x ∈ B) =&gt; hb)
+      (fun (hnb : ¬ (x ∈ B)) =&gt;
+        @False.elim (x ∈ B)
+          (not_mem_of_eq_empty α x (A \ B) h (mem_sdiff_of_mem_not_mem α x A B hx hnb)))</code></pre></details><details class="appendix-solution" id="app-sol-104-6"><summary>练习 6 · not_forall_imp_exists <span class="sol-meta">定理</span></summary><pre><code>theorem not_forall_imp_exists (α : Type) (P : α → Prop) (h : ¬ (∀ (x : α), ¬ (P x))) :
+    ∃ (x : α), P x :=
+  Classical.byContradiction (∃ (x : α), P x)
+    (fun (hne : ¬ (∃ (x : α), P x)) =&gt;
+      h (fun (x : α) (hx : P x) =&gt; hne (Exists.intro x hx)))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit66.html">← 66 包含关系的代数</a><a class="next" href="../units/unit105.html">105 经典等价三件套 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

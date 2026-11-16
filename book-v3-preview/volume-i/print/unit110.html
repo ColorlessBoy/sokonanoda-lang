@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 110 选择公理的取数据（良序定理线入口）</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit110.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 110 选择公理的取数据（良序定理线入口）</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit110.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.6 序数 · 单元 110</p><h1>选择公理的取数据（良序定理线入口）</h1><p class="note">Unit 110 — Extracting Functions from the Axiom of Choice</p></header><section class="unit" id="unit-110">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-6.html">I.6</a> · 本章第 12 / 13 单元 · 全书第 110 / 112 单元</p>
+<h2><span class="unit-number">110</span><span>选择公理的取数据（良序定理线入口）</span></h2>
+<p class="unit-title-en">Unit 110 — Extracting Functions from the Axiom of Choice</p>
+<p class="unit-meta">4 个定理 · 3 道练习 · <a href="#appendix-unit-110">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"（<strong>都是"从 <code>∀∃</code> 取出函数"这一步的兑现</strong> ✓）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>选择公理</strong>（<code>lib/Choice</code> 的 <code>choice</code> ✓ —— 集合版：<code>∀ a ∈ A, ∃ b ∈ B, P a b</code></li></ul></div><div class="math-display intuition-only" role="math" aria-label="⇒ ∃ f, ∀ a ∈ A, f a ∈ B ∧ P a (f a) ✓）"><math display="block" class="mathml"><mrow><mo>⇒</mo><mspace width="0.22em"/><mo>∃</mo><mspace width="0.22em"/><mi>f</mi><mo>,</mo><mspace width="0.22em"/><mo>∀</mo><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mo>∈</mo><mspace width="0.22em"/><mi>A</mi><mo>,</mo><mspace width="0.22em"/><mi>f</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mo>∈</mo><mspace width="0.22em"/><mi>B</mi><mspace width="0.22em"/><mo>∧</mo><mspace width="0.22em"/><mi>P</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>f</mi><mspace width="0.22em"/><mi>a</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>✓</mo><mo>）</mo></mrow></math></div></div></section>
+<div class="block prose intuition-only"><ul class="prose-list"><li><strong>族版</strong>（<code>choice_family</code> ✓）：<code>∀ i ∈ I, ∃ x, x ∈ F i</code> <span class="math">⇒</span> <code>∃ f, ∀ i ∈ I, f i ∈ F i</code> ✓—— 这就是"选择函数"的标准陈述 ✓，也是<strong>良序定理/基数可比性</strong>的第一步 ✓；</li><li><strong>右逆形式</strong>（<code>choice_right_inverse</code> ✓）：满射在 <code>B</code> 上有右逆 ✓（AC 的经典等价形式 ✓）。</li></ul></div><article class="decl decl-theorem" id="decl-110-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_choice</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_choice (α : Type) (β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (h : ∀ (a : α), a ∈ A → ∃ (b : β), b ∈ B ∧ P a b) :
+    ∃ (f : α → β), ∀ (a : α), a ∈ A → f a ∈ B ∧ P a (f a) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  choice α β A B P h</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-110-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">choice_family</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-110-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（L 类，<strong>族版选择函数 —— 本单元落点</strong>）：<code>∀ i ∈ I, ∃ x, x ∈ F i</code> <span class="math">⇒</span> <code>∃ f, ∀ i ∈ I, f i ∈ F i</code>。思路：把 <code>choice</code> 的 <code>B</code> 取成 <code>Set.univ β</code>（全空间 ✓），谓词取 <code>fun i x =&gt; x ∈ F i</code> ✓；它给出的结论多带一个 <code>f i ∈ Set.univ β</code> 合取支 <span class="math">⇒</span> 用 <code>Exists.elim</code> <span class="math">+</span> <code>Exists.intro</code> <strong>重新打包</strong>去掉它 ✓。关键件：<code>choice</code>（<strong>六点按序</strong> ✓）<span class="math">·</span> <code>Set.mem_univ</code>（<strong>省前导类型实参</strong> ✓）<span class="math">·</span> <code>Exists.elim</code>（<strong>逐位写全</strong> <code>(A) (p) (Q) (h) (f)</code> ✓ —— 隐式补不出来时诊断会直说 ✓）<span class="math">·</span> <code>Exists.intro</code>（同样写全 ✓）<span class="math">·</span> <code>And.intro</code> / <code>And.right</code>（写全 ✓）</p></div></div><pre class="exercise-statement"><code>theorem choice_family (α : Type) (β : Type) (I : Set α) (F : α → Set β)
+    (h : ∀ (i : α), i ∈ I → ∃ (x : β), x ∈ F i) :
+    ∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i := by
+  sorry</code></pre><details open class="solution-panel" id="sol-110-1"><summary>查看解答 <span class="sol-meta">定理 · 18 行</span></summary><div class="solution-body"><pre><code>theorem choice_family (α : Type) (β : Type) (I : Set α) (F : α → Set β)
+    (h : ∀ (i : α), i ∈ I → ∃ (x : β), x ∈ F i) :
+    ∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i :=
+  @Exists.elim (α → β)
+    (fun (f : α → β) =&gt; ∀ (a : α), a ∈ I → f a ∈ @Set.univ β ∧ f a ∈ F a)
+    (∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i)
+    (choice α β I (@Set.univ β) (fun (i : α) (x : β) =&gt; x ∈ F i)
+      (fun (i : α) (hi : i ∈ I) =&gt;
+        @Exists.elim β (fun (x : β) =&gt; x ∈ F i)
+          (∃ (x : β), x ∈ @Set.univ β ∧ x ∈ F i)
+          (h i hi)
+          (fun (x : β) (hx : x ∈ F i) =&gt;
+            Exists.intro x
+              (And.intro (Set.mem_univ x) hx))))
+    (fun (f : α → β) (hf : ∀ (a : α), a ∈ I → f a ∈ @Set.univ β ∧ f a ∈ F a) =&gt;
+      Exists.intro f
+        (fun (i : α) (hi : i ∈ I) =&gt;
+          And.right (hf i hi)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-110-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">choice_family_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-110-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>族版的直接调用</strong>。关键件：练习 1（<strong>五点按序</strong> ✓）</p></div></div><pre class="exercise-statement"><code>theorem choice_family_apply (α : Type) (β : Type) (I : Set α) (F : α → Set β)
+    (h : ∀ (i : α), i ∈ I → ∃ (x : β), x ∈ F i) :
+    ∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i := by
+  sorry</code></pre><details open class="solution-panel" id="sol-110-2"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem choice_family_apply (α : Type) (β : Type) (I : Set α) (F : α → Set β)
+    (h : ∀ (i : α), i ∈ I → ∃ (x : β), x ∈ F i) :
+    ∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i :=
+  choice_family α β I F h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-110-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">choice_right_inverse</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-110-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类，<strong>右逆形式</strong>）：<code>B</code> 上的满射有右逆。思路：<code>choice</code> 的类型参数<strong>对调</strong>（<code>α := β</code>、<code>β := α</code> ✓），<code>A := B</code>、<code>B := A</code> ✓，谓词取 <code>fun b a =&gt; Eq.{1} β (f a) b</code> ✓ —— ⚠ <strong>别再写 <code>a ∈ A ∧</code></strong> ✗（<code>choice</code> 的结论自带 <code>g b ∈ A</code> ✓，写重了判红 ✓）。  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）关键件：<code>choice</code>（<strong>类型参数对调</strong> ✓）<span class="math">·</span> <code>Eq.{1}</code>（<strong>嵌套位置的等式要显式宇宙</strong> ✓）  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）</p></div></div><pre class="exercise-statement"><code>theorem choice_right_inverse (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (h : ∀ (b : β), b ∈ B → ∃ (a : α), a ∈ A ∧ @Eq.{1} β (f a) b) :  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    ∃ (g : β → α), ∀ (b : β), b ∈ B → g b ∈ A ∧ @Eq.{1} β (f (g b)) b := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry</code></pre><details open class="solution-panel" id="sol-110-3"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem choice_right_inverse (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (h : ∀ (b : β), b ∈ B → ∃ (a : α), a ∈ A ∧ @Eq.{1} β (f a) b) :  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    ∃ (g : β → α), ∀ (b : β), b ∈ B → g b ∈ A ∧ @Eq.{1} β (f (g b)) b :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  choice β α B A (fun (b : β) (a : α) =&gt; @Eq.{1} β (f a) b) h  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（5 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§6.1/§6.2</strong>（选择公理）<span class="math">·Halmos</span>《Naive Set Theory》<strong>§15</strong>。大纲 §4.1（<strong>卷 I 收官主线</strong> ✓ —— 接单元106–109 ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>这一族为什么以前写不了</strong> ✓：从 <code>∀ a, ∃ b, …</code> 里<strong>取出一个函数</strong>需要 <strong><span class="math">Prop → Type</span> 的取数据</strong> ✓ —— 台账 <strong>G-58</strong>（大消去）修好 <span class="math">+</span> <code>lib/Choice</code> 的公理到位之后，这一步才成立 ✓（判据：本单元 4 条<strong>全绿</strong> ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>写法要点（本单元换来 ✓）</strong>：① <code>Exists.elim</code> 的签名是 <code>{A : Type} → {p : A → Prop} → {Q : Prop} → (h) → (f) → Q</code> ✓ —— 隐式补不出来时<strong>逐位写全</strong>（诊断会直说"把参数写全" ✓）；② 谓词里<strong>别再写 <code>∈ B</code></strong> ✗ —— <code>choice</code> 的结论自带 <code>f a ∈ B</code> ✓（写重了会报类型不匹配 ✓）；③ 嵌套位置的等式要写 <strong><code>Eq.{1}</code></strong> ✓。  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理与 prelude 的 <code>Classical.*</code> ✓。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Fun</code> <span class="math">·</span> <code>lib.Choice</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元106–109（<code>Acc</code><span class="math">/∈-</span>归纳/递归/关系版加法 ✓）<span class="math">·</span> 单元⑱（选择公理作谓词 ✓）</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit109.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">序数上的递归与加法（关系版 <span class="math">·</span> 逆引理与结合律）</span></a><a class="unit-nav-home" href="../chapters/i-6.html#units">目录</a><a class="unit-nav-link" href="../units/unit111.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title"><span class="math">ℕ</span> 的算术律（自建 add/mul）</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-110"><h3><a href="#top">选择公理的取数据（良序定理线入口）</a></h3><p class="appendix-meta">3 道练习 · 3 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-110-1"><summary>练习 1 · choice_family <span class="sol-meta">定理</span></summary><pre><code>theorem choice_family (α : Type) (β : Type) (I : Set α) (F : α → Set β)
+    (h : ∀ (i : α), i ∈ I → ∃ (x : β), x ∈ F i) :
+    ∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i :=
+  @Exists.elim (α → β)
+    (fun (f : α → β) =&gt; ∀ (a : α), a ∈ I → f a ∈ @Set.univ β ∧ f a ∈ F a)
+    (∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i)
+    (choice α β I (@Set.univ β) (fun (i : α) (x : β) =&gt; x ∈ F i)
+      (fun (i : α) (hi : i ∈ I) =&gt;
+        @Exists.elim β (fun (x : β) =&gt; x ∈ F i)
+          (∃ (x : β), x ∈ @Set.univ β ∧ x ∈ F i)
+          (h i hi)
+          (fun (x : β) (hx : x ∈ F i) =&gt;
+            Exists.intro x
+              (And.intro (Set.mem_univ x) hx))))
+    (fun (f : α → β) (hf : ∀ (a : α), a ∈ I → f a ∈ @Set.univ β ∧ f a ∈ F a) =&gt;
+      Exists.intro f
+        (fun (i : α) (hi : i ∈ I) =&gt;
+          And.right (hf i hi)))</code></pre></details><details open class="appendix-solution" id="app-sol-110-2"><summary>练习 2 · choice_family_apply <span class="sol-meta">定理</span></summary><pre><code>theorem choice_family_apply (α : Type) (β : Type) (I : Set α) (F : α → Set β)
+    (h : ∀ (i : α), i ∈ I → ∃ (x : β), x ∈ F i) :
+    ∃ (f : α → β), ∀ (i : α), i ∈ I → f i ∈ F i :=
+  choice_family α β I F h</code></pre></details><details open class="appendix-solution" id="app-sol-110-3"><summary>练习 3 · choice_right_inverse <span class="sol-meta">定理</span></summary><pre><code>theorem choice_right_inverse (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (h : ∀ (b : β), b ∈ B → ∃ (a : α), a ∈ A ∧ @Eq.{1} β (f a) b) :  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    ∃ (g : β → α), ∀ (b : β), b ∈ B → g b ∈ A ∧ @Eq.{1} β (f (g b)) b :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  choice β α B A (fun (b : β) (a : α) =&gt; @Eq.{1} β (f a) b) h  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

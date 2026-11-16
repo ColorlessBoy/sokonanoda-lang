@@ -1,0 +1,1081 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 12 综合与读证明</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit12.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 12 综合与读证明</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit12.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.4 论域、悖论与综合 · 单元 12</p><h1>综合与读证明</h1><p class="note">Unit 12 — Synthesis &amp; Reading Proofs</p></header><section class="unit" id="unit-12">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-4.html">I.4</a> · 本章第 2 / 12 单元 · 全书第 12 / 112 单元</p>
+<h2><span class="unit-number">12</span><span>综合与读证明</span></h2>
+<p class="unit-title-en">Unit 12 — Synthesis &amp; Reading Proofs</p>
+<p class="unit-meta">12 个定理 · 9 道练习 · 24 条提示 · <a href="#appendix-unit-12">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>概念顺序（本文件的编排）：</p></div></div></section>
+<h3 class="unit-subhead">12.0 演示（已写好，3 条）：关系复合结合律 <span class="math">·</span> 单射假设的展开读法 <span class="math">·</span> 复合算在点上</h3><h3 class="unit-subhead">12.1 形式<span class="math">↔</span>散文互译（X 类 4 题）：散文写在题面注释里，形式版判卷通过</h3><h3 class="unit-subhead">12.2 给错证明找错 <span class="math">·</span> 法证式评阅（R 类 3 题，其中第 7 题承担 D 类必破）</h3><h3 class="unit-subhead">12.3 期末小项目（P 类 2 题）：串起「集合 <span class="math">→</span> 关系 <span class="math">→</span> 函数 <span class="math">→</span> 基数」的一条链</h3><div class="block prose intuition-only"><p>（7 环：环 1–5 见 12.0–12.2，环 6 是等势的复合，环 7 是基数收口题）</p></div><div class="block prose intuition-only"><p>练习配额：<strong><span class="math">X 4 · R 3 · P 2 = 9</span> 题</strong>（<span class="math">X =</span> 题 1/2/3/4；<span class="math">R =</span> 题 5/6/7；<span class="math">P =</span> 题 8/9）。</p></div><div class="block prose intuition-only"><p>── 两条"看起来对"的错证明（12.2 要评的对象；名字都是本课程真有的）──────────────</p></div><div class="block prose intuition-only"><p>【错证明 A】命题：对任意 f : <span class="math">α → β</span> 与 C : <span class="math">Set β</span>，有</p></div><div class="math-display intuition-only" role="math" aria-label="f &#x27;&#x27; (f ⁻¹&#x27; C) = C"><math display="block" class="mathml"><mrow><mi>f</mi><mspace width="0.22em"/><mo>′</mo><mo>′</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>f</mi><msup><mspace width="0.22em"/><mrow><mo>-</mo><mn>1</mn></mrow></msup><mo>′</mo><mspace width="0.22em"/><mi>C</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>C</mi></mrow></math></div><div class="block prose intuition-only"><p>证明（<strong>错</strong>）："<span class="math">→</span>"：设 <span class="math">y ∈ f '' (f ⁻¹' C)</span>。按 Set.mem_image 展开，存在 x 使 <span class="math">x ∈ f ⁻¹' C</span> 且 <span class="math">f x = y</span>；按 Set.mem_preimage，<span class="math">x ∈ f ⁻¹' C</span> 就是 <span class="math">f x ∈ C</span>。沿 <span class="math">f x = y</span> 用 Eq.subst 搬过去，得 <span class="math">y ∈ C</span>。✓"<span class="math">←</span>"：设 <span class="math">y ∈ C</span>。<strong>取 x 使 <span class="math">f x = y</span></strong>（"y 的原像"），则 <span class="math">f x ∈ C</span>，即 <span class="math">x ∈ f ⁻¹' C</span>，于是 <span class="math">y = f x ∈ f '' (f ⁻¹' C)</span>。✓ 两边互相包含，故相等。∎</p></div><div class="block prose intuition-only"><p>【错证明 B】命题：对任意 f : <span class="math">α → β</span> 与 A B : <span class="math">Set α</span>，有</p></div><div class="math-display intuition-only" role="math" aria-label="f &#x27;&#x27; (A ∩ B) = f &#x27;&#x27; A ∩ f &#x27;&#x27; B"><math display="block" class="mathml"><mrow><mi>f</mi><mspace width="0.22em"/><mo>′</mo><mo>′</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>A</mi><mspace width="0.22em"/><mo>∩</mo><mspace width="0.22em"/><mi>B</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>f</mi><mspace width="0.22em"/><mo>′</mo><mo>′</mo><mspace width="0.22em"/><mi>A</mi><mspace width="0.22em"/><mo>∩</mo><mspace width="0.22em"/><mi>f</mi><mspace width="0.22em"/><mo>′</mo><mo>′</mo><mspace width="0.22em"/><mi>B</mi></mrow></math></div><div class="block prose intuition-only"><p>证明（<strong>错</strong>）："<span class="math">→</span>"：设 <span class="math">y ∈ f '' (A</span> ∩ B)。存在 <span class="math">x ∈ A</span> ∩ B 使 <span class="math">f x = y</span>；由 Set.mem_inter_iff，<span class="math">x ∈ A</span> 且 <span class="math">x ∈ B</span>，于是 y 同时落在 f '' A 与 f '' B 里。✓"<span class="math">←</span>"：设 <span class="math">y ∈ f '' A</span> ∩ f '' B。存在 <span class="math">x1 ∈ A</span> 与 <span class="math">x2 ∈ B</span> 使 <span class="math">f x1 = y</span>、<span class="math">f x2 = y</span>。由 <span class="math">f x1 = y = f x2</span> <strong>得 <span class="math">x1 = x2</span></strong>，这个点既在 A 里又在 B 里，所以 <span class="math">y ∈ f '' (A</span> ∩ B)。✓ 两边互相包含，故相等。∎</p></div><div class="block prose intuition-only"><p>评阅任务（12.2）：两条都<strong>假</strong>。错在"哪一条推理"上、反例长什么样，由下面三道题（练习 5、6、7）分别负责：改正版 <span class="math">+</span> 证伪。</p></div><hr class="section-rule"><div class="block prose intuition-only"><p>── 已知边界（本轮实测，<strong>环 6 因此从画布移除</strong>）──────────────────────────────「等势的复合仍是等势」这条本身成立，但它的证明要<strong>把两把复合映射当 lambda 证人交出去</strong>，而判卷器今天在这一形状上撞两条边界：① 内核不做 beta 转换（<code>(fun (c : γ) =&gt; g (g2 c)) ((fun (a : α) =&gt; f2 (f a)) a)</code> 与 <code>g (g2 (f2 (f a)))</code> 在它眼里不是同一个类型）；② <code>cases</code> 拆 <code>Set.Equiv</code> 之后臂里假设的变量编号会与目标对不上（内核原文 <code>expected="$28"actual="$27"</code>）。前端已经把代入后的 redex 消掉（<code>spine::beta_normalize</code>），① 那一半已修；② 仍是开口，记录在 <code>docs/design/course-lean-style.md</code> §9。结论：环 6 的<strong>事实</strong>留在散文里，证明不进画布；练习 9 的两半不受影响。</p></div><h3 class="unit-subhead">12.0 演示（已写好）：三条读法，后面 9 道题反复用</h3><div class="block prose intuition-only"><p>演示 1（已写好）：<strong>关系复合结合律</strong>——期末小项目那条链的第一环。它是"两个方向的 <span class="math">∃</span> 拆装"的样板：关系等式先用公理 Rel.ext 换成"逐点的 Iff"，每个方向再用 Exists.elim 拆证人（Q 取目标那个 <span class="math">∃</span>）、Exists.intro 装回去。注意两边<strong>不是</strong>定义相等：把 <span class="math">∃</span> 从"先 c 后 b"换成"先 b 后 c"，是要证的数学内容。写法：<code>cases</code> 需要一个已知的结果类型，所以它写在 <code>have h1 : … := by cases h with …</code> 里（<code>have</code> 的类型标注定住它）；拆出来的两条证据用 And.left / And.right 取用。</p></div><article class="decl decl-theorem" id="decl-12-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_rel_comp_assoc</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D) :
+    (r • s) • t = r • (s • t) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 10 步 · 31 行</summary><ol class="proof-steps"><li><pre><code>  apply Rel.ext A D</code></pre></li><li><pre><code>  intro a</code></pre></li><li><pre><code>  intro d</code></pre></li><li><pre><code>  constructor</code></pre></li><li><pre><code>  intro h</code></pre></li><li><pre><code>  have h1 : ∃ (b : B), r a b ∧ (∃ (c : C), s b c ∧ t c d) :=
+    @Exists.elim C (fun (c : C) =&gt; ((r • s) a c) ∧ (t c d))
+      (∃ (b : B), r a b ∧ (∃ (c2 : C), s b c2 ∧ t c2 d)) h
+      (fun (c : C) =&gt; fun (hc : ((r • s) a c) ∧ (t c d)) =&gt;
+        @Exists.elim B (fun (b : B) =&gt; r a b ∧ s b c)
+          (∃ (b : B), r a b ∧ (∃ (c2 : C), s b c2 ∧ t c2 d)) (And.left hc)
+          (fun (b : B) =&gt; fun (hb2 : r a b ∧ s b c) =&gt;
+            Exists.intro b (And.intro (And.left hb2) (Exists.intro c (And.intro (And.right hb2) (And.right hc))))))</code></pre></li><li><pre><code>  exact h1</code></pre></li><li><pre><code>  intro h</code></pre></li><li><pre><code>  have h2 : ∃ (c : C), (∃ (b : B), r a b ∧ s b c) ∧ t c d :=
+    @Exists.elim B (fun (b : B) =&gt; r a b ∧ (∃ (c : C), s b c ∧ t c d))
+      (∃ (c : C), (∃ (b2 : B), r a b2 ∧ s b2 c) ∧ t c d) h
+      (fun (b : B) =&gt; fun (hb : r a b ∧ (∃ (c : C), s b c ∧ t c d)) =&gt;
+        @Exists.elim C (fun (c : C) =&gt; s b c ∧ t c d)
+          (∃ (c : C), (∃ (b2 : B), r a b2 ∧ s b2 c) ∧ t c d) (And.right hb)
+          (fun (c : C) =&gt; fun (hc2 : s b c ∧ t c d) =&gt;
+            Exists.intro c
+              (And.intro
+                (Exists.intro b
+                  (And.intro
+                    (And.left hb)
+                    (And.left hc2)))
+                (And.right hc2))))</code></pre></li><li><pre><code>  exact h2</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示 2（已写好）：<strong>单射假设怎么"读"</strong>——<code>Function.Injective α β f</code> 展开后就是 <code>∀ x y, f x = f y → x = y</code>，所以它本身就是"吃两个点加一条等式"的函数。后面凡是手里有单射、又要用它降一层的地方（练习 3、练习 6）都是这个读法。</p></div><article class="decl decl-theorem" id="decl-12-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_injective_unpack</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_injective_unpack (α β : Type) (f : α → β)
+    (hf : Function.Injective α β f) :
+    ∀ (x : α), ∀ (y : α), f x = f y → x = y :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 4 步 · 5 行</summary><ol class="proof-steps"><li><pre><code>  intro x</code></pre></li><li><pre><code>  intro y</code></pre></li><li><pre><code>  intro h</code></pre></li><li><pre><code>  exact hf x y h</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示 3（已写好）：<strong>复合算在点上</strong>——<code>(g ∘ f) x</code> 就是 <code>g (f x)</code>（库里的 Function.comp_apply 是 rfl 级）。所以"复合相等"与"<span class="math">g (f x) = g (f y)</span>"定义上就是同一句话，用的时候不必先改写（练习 3 就靠这一条省掉一次搬运）。</p></div><article class="decl decl-theorem" id="decl-12-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_fun_comp_apply</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_fun_comp_apply (α β γ : Type) (f : α → β) (g : β → γ) (x : α) :
+    (g ∘ f) x = g (f x) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  exact @Function.comp_apply α β γ g f x</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">12.1 形式<span class="math">↔</span>散文互译（X 类 4 题）</h3><article class="exercise" id="ex-12-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">xlat_compl_union</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-12-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>怎么答：题面给一句中文散文；签名里的形式版已经替你写好（不许改），你要做的是"读懂它"，然后把值位置上的 sorry 换成真的证明项。读法提示：散文里的"并且/或者/不是"对应 <span class="math">∧/∨/¬</span>，"存在"对应 <span class="math">∃</span>，"相等"要看成两个方向（Iff / Set.ext / Rel.ext）。</p></div><div class="block prose intuition-only"><p>练习 1（X 类：形式<span class="math">↔</span>散文互译）。散文：</p></div><div class="block prose intuition-only"><p>「x 既不在 A 里、也不在 B 里」与「x 不在 A ∪ B 里」是同一句话。</p></div><div class="block prose intuition-only"><p>（这就是 De Morgan 律在集合上的那一半；形式版已经在签名里。）</p></div></div><pre class="exercise-statement"><code>theorem xlat_compl_union (α : Type) (A B : Set α) :
+    (A ∪ B)ᶜ = Aᶜ ∩ Bᶜ := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>集合等式先走外延，再在同一个 x 上做命题逻辑——两个方向各是一次"否定与或"的拆装。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>(A ∪ B)ᶜ <span class="math">= A</span>ᶜ ∩ Bᶜ；apply Set.ext 之后逐元素是 <span class="math">x ∈ (A</span> ∪ B)ᶜ <span class="math">↔ x ∈ A</span>ᶜ ∩ Bᶜ（展开即 <span class="math">¬ (x ∈ A ∨ x ∈ B) ↔ (¬ x ∈ A ∧ ¬ x ∈ B)</span>）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>触发条件是"目标已经是逐元素 Iff"（Set.ext 只吃这个）；<span class="math">→</span> 方向把 Or.inl / Or.inr 分别喂给那个否定，<span class="math">←</span> 方向对 <span class="math">x ∈ A ∨ x ∈ B</span> 用 Or.elim 拆两支（目标取 False），两支分别交给 And.left / And.right。</p></div></details></div><details open class="solution-panel" id="sol-12-1"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><p class="solution-note">unit12 解答钥匙（agent 专用；画布不 import 它）。
+
+与 unit12-synthesis.sokonanoda 的 9 条练习<strong>同名一一对应</strong>（X 类 <span class="math">4 · R</span> 类 <span class="math">3 · P</span> 类 2）：
+  X：<span class="math">xlat_compl_union · xlat_rel_inv_comp · xlat_injective_comp · xlat_preimage_comp</span>
+  R：<span class="math">fix_image_preimage · fix_image_inter · flawed_equalities_refuted</span>（必破 D 类）
+  P：project_chain（期末小项目：集合 <span class="math">→</span> 关系 <span class="math">→</span> 函数的串联）
+     project_chain_cardinal（期末小项目 <span class="math">·</span> 基数环：等势搬运 <span class="math">+ Cantor</span>，串单元⑨⑩）
+
+全部证明写成 <code>by</code> tactic 块（白名单：intro / exact / apply / assumption / rfl /
+match / constructor / left / right / use / exfalso / cases / have / sorry），
+且<strong>不引入任何辅助声明</strong>——声明数 <span class="math">=</span> 练习数 <span class="math">= 9</span>。
+语句一律用记法（<code>∈ ⊆ ∪ ∩ \ ∅ 𝒫 '' ⁻¹'</code> 与 <code>∧ ∨ ↔ ¬ = ≠ →</code>、<code>∃ (x : α), …</code>）；
+<strong>引理名照旧点名</strong>（<code>Or.inl</code>、<code>And.left</code>、<code>Set.mem_union</code>、<code>@Eq.subst.{1} …</code>）
+——记法是连接符的糖，不是引理名的糖。
+画布 12.3 的环 6 <code>demo_equiv_comp</code>（等势的复合仍是等势）是<strong>演示</strong>、画布上已写好，
+本文件不重复它；它是环 7 那道题的读法样板（本文件里 <code>≈</code> 的用法与它同款）。
+
+反例一律落在 <code>Set Nat</code> 上（∅ 与 univ 两个元素现成可分辨：Set.mem_univ / Set.notMem_empty），
+这样既不用新增归纳类型，也不需要 Decidable/classical（语言里都没有）。
+
+五条<strong>书写纪律</strong>（都是判卷器的实测边界，不是风格偏好）：
+
+<code>cases</code> 只吃<strong>局部假设名</strong>——<code>cases hC y hy</code> 这种<strong>应用</strong>要先摊开
+（本文件写成 <code>Exists.elim</code> 项）；；<code>cases</code> 不吃 <strong><code>have</code> 绑定</strong>的假设（类型要两层 delta 才到 <code>Exists</code> 的更不行）
+<span class="math">⇒</span> 先 <code>have hex : ∃ (x : Set Nat), … := hmem</code>，再 <code>cases hex</code>
+（<code>hmem</code> 那条 <code>∈ 像</code> 的类型照旧由内核 delta 合一）；；<strong>嵌套</strong> <code>cases</code> 的内层会错位 <span class="math">⇒</span> 内层改写 <code>Exists.elim</code> 项；；<code>cases</code> 也吃 <strong>binder 记法</strong> <code>∃ (x : α), …</code> 的假设（书写类型写成点名
+<code>Exists α (fun (x : α) =&gt; …)</code> 或记法 <code>∃ (x : α), …</code> 都行）；；记法 <code>''</code> / <code>⁻¹'</code> 的前导类型参数<strong>只按操作数的类型</strong>补：题 7 的常函数是 <span class="math">λ</span>，
+补不出类型参数（语言也没有类型标注 <code>(e : T)</code>），所以那一条的像/原像/交写点名形式。
+
+（直接写在 <code>constructor</code> / <code>apply</code> 拆出来的子目标上的 <code>cases</code> <strong>现在可以了</strong>：
+  §9「R2 修边刀」的 ①③⑤ 修掉了那条路上的三个静默错。）
+
+X1：De Morgan——"既不 A 也不 B"就是"不（A 或 B）"。逐元素做命题逻辑。</p><pre><code>theorem xlat_compl_union (α : Type) (A B : Set α) :
+    (A ∪ B)ᶜ = Aᶜ ∩ Bᶜ :=
+  Set.ext ((A ∪ B)ᶜ) (Aᶜ ∩ Bᶜ) (fun (x : α) =&gt;
+    @Iff.intro (¬ ((A ∪ B) x)) ((Aᶜ ∩ Bᶜ) x)
+      (fun (h : ¬ ((A ∪ B) x)) =&gt;
+        And.intro
+          (fun (ha : A x) =&gt; h (@Or.inl (A x) (B x) ha))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (fun (hb : B x) =&gt; h (@Or.inr (A x) (B x) hb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (fun (h : (Aᶜ ∩ Bᶜ) x) =&gt; fun (hor : (A ∪ B) x) =&gt;
+        @Or.elim (A x) (B x) False
+          (fun (ha : A x) =&gt; And.left h ha)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (fun (hb : B x) =&gt; And.right h hb)
+          hor))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-12-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">xlat_rel_inv_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-12-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（X 类：形式<span class="math">↔</span>散文互译）。散文：</p></div><div class="block prose intuition-only"><p>「关系先复合、再取逆，等于把两个关系各自取逆、再按<strong>相反的顺序</strong>复合。」</p></div><div class="block prose intuition-only"><p>（读法：<code>r • s</code> 里 r : Rel A B 先走、s : Rel B C 后走；<code>⁻¹</code> 把两个参数对调。所以形式版右边先出现 s 的逆、后出现 r 的逆——顺序正是"相反"。）</p></div></div><pre class="exercise-statement"><code>theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
+    (r • s) ⁻¹ = (s ⁻¹) • (r ⁻¹) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个关系相等只能用公理 Rel.ext 逐点证 Iff；把"逆"与"复合"都展开成 <span class="math">∃</span> 之后，剩下的只是 <span class="math">∧</span> 的两支换序。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>(r • <span class="math">s) ⁻¹ = (s ⁻¹)</span> • <span class="math">(r ⁻¹)</span>；逐点是 <span class="math">(∃ (b</span> : B), <span class="math">r a b ∧ s b c) ↔ (∃ (b</span> : B), <span class="math">s b c ∧ r a b)</span>——参数顺序是 c a，与 <code>⁻¹</code> 对调有关。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>触发条件是"要证的是两个 Rel 相等"<span class="math">⇒ Rel.ext</span>（它吃"每个 c a 的 Iff"）；每个方向一次 Exists.elim 拆证人（Q 取目标那个 <span class="math">∃</span>），再用 And.left / And.right 换序、Exists.intro 装回；展开可用 Rel.comp_apply / Rel.inv_apply，也可以直接让定义展开。</p></div></details></div><details open class="solution-panel" id="sol-12-2"><summary>查看解答 <span class="sol-meta">定理 · 22 行</span></summary><div class="solution-body"><p class="solution-note">X2：复合的逆 <span class="math">=</span> 逆的反序复合。两个方向都是"拆一个 <span class="math">∃</span>、换序 <span class="math">∧</span>、再装回 <span class="math">∃</span>"。
+<code>Rel.ext C A</code> 逐点给的是 <code>c a</code> 上的 Iff（参数顺序与 <code>⁻¹</code> 对调有关）。</p><pre><code>theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
+    (r • s) ⁻¹ = (s ⁻¹) • (r ⁻¹) :=
+  Rel.ext C A ((r • s) ⁻¹) ((s ⁻¹) • (r ⁻¹))
+    (fun (c : C) =&gt; fun (a : A) =&gt;
+      @Iff.intro (((r • s) ⁻¹) c a)
+        (((s ⁻¹) • (r ⁻¹)) c a)
+        (fun (h : ((r • s) ⁻¹) c a) =&gt;
+          @Exists.elim B (fun (b : B) =&gt; r a b ∧ s b c)
+            (∃ (b : B), s b c ∧ r a b) h
+            (fun (b : B) =&gt; fun (hb : r a b ∧ s b c) =&gt;
+              Exists.intro b
+                (And.intro
+                  (And.right hb)
+                  (And.left hb))))
+        (fun (h : ((s ⁻¹) • (r ⁻¹)) c a) =&gt;
+          @Exists.elim B (fun (b : B) =&gt; s b c ∧ r a b)
+            (∃ (b : B), r a b ∧ s b c) h
+            (fun (b : B) =&gt; fun (hb : s b c ∧ r a b) =&gt;
+              Exists.intro b
+                (And.intro
+                  (And.right hb)
+                  (And.left hb)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-12-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">xlat_injective_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-12-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（X 类：形式<span class="math">↔</span>散文互译）。散文：</p></div><div class="block prose intuition-only"><p>「单射复合单射，还是单射。」</p></div><div class="block prose intuition-only"><p>（先作用的 f : <span class="math">α → β</span>，后作用的 g : <span class="math">β → γ</span>；复合写作 <code>g ∘ f</code>。）</p></div></div><pre class="exercise-statement"><code>theorem xlat_injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Injective α β f) (hg : Function.Injective β γ g) :
+    Function.Injective α γ (g ∘ f) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>单射是全称命题：先 intro 两个点，再 intro"它们在复合下相等"这条假设，然后从外到内用掉两个单射。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">Function.Injective α γ (g</span> ∘ f)；intro 之后手里是 <span class="math">g (f x) = g (f y)</span>（<code>g ∘ f</code> 展开后的样子），目标是 <span class="math">x = y</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>触发条件是假设形如"复合相等"；<code>hg (f x) (f y) …</code> 把它降到 <span class="math">f x = f y</span>，再交给 <code>hf x y …</code>——复合相等与 <span class="math">g (f x) = g (f y)</span> 定义上相等，不必先搬运（见演示 2、演示 3）。</p></div></details></div><details open class="solution-panel" id="sol-12-3"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note">X3：单射在复合下封闭——先用外层的单射把等式降一层，再交给内层。</p><pre><code>theorem xlat_injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Injective α β f) (hg : Function.Injective β γ g) :
+    Function.Injective α γ (g ∘ f) :=
+  fun (x : α) =&gt; fun (y : α) =&gt;
+    fun (h : (g ∘ f) x = (g ∘ f) y) =&gt;
+      hf x y (hg (f x) (f y) h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-12-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">xlat_preimage_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-12-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（X 类：形式<span class="math">↔</span>散文互译）。散文：</p></div><div class="block prose intuition-only"><p>「复合函数的原像，就是先把外层拉回来、再把内层拉回来。」</p></div><div class="block prose intuition-only"><p>（<span class="math">f ⁻¹' B</span> 是回拉：<span class="math">x ∈ f ⁻¹' B</span> 当且仅当 <span class="math">f x ∈ B</span>。）</p></div></div><pre class="exercise-statement"><code>theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C : Set γ) :
+    f ⁻¹' (g ⁻¹' C) = (g ∘ f) ⁻¹' C := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边展开后逐点是同一个命题，不需要真的"推理"——外延加 Iff.rfl 就够。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">f ⁻¹' (g ⁻¹' C) = (g</span> ∘ <span class="math">f) ⁻¹' C</span>；逐元素时两边都展开成 C (g (f x))。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>触发条件是"两边定义上相等"（<code>Set.preimage</code> 与函数复合都是 <span class="math">λ</span>）；apply Set.ext 之后逐元素交 Iff.rfl 就行了（这是本单元唯一不用拆 <span class="math">∃</span> 的题）。</p></div></details></div><details open class="solution-panel" id="sol-12-4"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note">X4：复合的原像 <span class="math">=</span> 先拉后拉。两边展开后是同一个命题，所以逐元素是 Iff.rfl。</p><pre><code>theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C : Set γ) :
+    f ⁻¹' (g ⁻¹' C) = (g ∘ f) ⁻¹' C :=
+  -- **A′（2026-11-03）**：`α` 显式给出（`@` 关掉自动补）—— 这一处原先靠"回落老路"才过，
+  -- 而那条回落正是 G-30 那 4,640 字节的来源。显式写出来后两种模式都判 0（实测）。
+  -- soko:notation-ok: `α` 在这里**推不出来**（`⁻¹'` 的两个操作数都要它），不是"可推出的前导隐式"
+  @Set.ext α (f ⁻¹' (g ⁻¹' C)) ((g ∘ f) ⁻¹' C)
+    (fun (x : α) =&gt; Iff.rfl )</code></pre></div></details></div></article>
+<h3 class="unit-subhead">12.2 给错证明找错 <span class="math">·</span> 法证式评阅（R 类 3 题）</h3><article class="exercise" id="ex-12-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">fix_image_preimage</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-12-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>评阅的规矩（本单元的训练目标）：1. 先判<strong>真假</strong>（假命题再漂亮的推理也是白搭）；2. 再定位<strong>哪一条推理</strong>坏了——要能指出"这一步用了一个没有的前提"；3. 最后给<strong>改正版</strong>（补上前提/换掉结论）或<strong>反例</strong>（把它形式化，判卷通过）。上头【错证明 A】【错证明 B】就是评阅对象；练习 5、6 写改正版，练习 7 写证伪。</p></div><div class="block prose intuition-only"><p>练习 5（R 类：读<span class="math">·</span>评译 <span class="math">+</span> 改正）。【错证明 A】的"<span class="math">←</span>"方向靠的是"<span class="math">y ∈ C ⇒</span> 取 x 使 <span class="math">f x = y</span>"——这一步需要 <code>C</code> 的每个点都在 f 的像里。改正的做法就是<strong>把这个前提摆到台面上</strong>（签名里的 hC），再走两个方向。</p></div></div><pre class="exercise-statement"><code>theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
+    (hC : C ⊆ f '' @Set.univ α) :
+    f '' (f ⁻¹' C) = C := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先判 A 的错在哪：假的是"<span class="math">←</span>"（反向）——它偷用了"C 里每个点都有原像"；把它写成参数 hC 之后，<span class="math">→</span> 方向照旧、<span class="math">←</span> 方向由 hC 供料。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">f '' (f ⁻¹' C) = C</span>，前提 hC : <span class="math">C ⊆ f ''</span> @<span class="math">Set.univ α</span>；逐元素是 <span class="math">y ∈ f '' (f ⁻¹' C) ↔ y ∈ C</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">→</span> 方向用 Exists.elim 拆出 x 与 <span class="math">(x ∈ f ⁻¹' C) ∧ (f x = y)</span>，再用 Eq.subst 沿 <span class="math">f x = y</span> 把 <span class="math">x ∈ f ⁻¹' C</span> 搬到 y 上（注意搬的方向）；<span class="math">←</span> 方向 hC y hy 本身就是目标那个 <span class="math">∃</span>（univ 那一支永远成立），装回像里时 <strong><span class="math">f x = y</span> 与 <span class="math">y ∈ C</span> 不能直接互换</strong>，要用 Eq.subst（这一步正是错证明里被跳过的地方）。</p></div></details></div><details open class="solution-panel" id="sol-12-5"><summary>查看解答 <span class="sol-meta">定理 · 22 行</span></summary><div class="solution-body"><p class="solution-note">R1：错证明 A 的改正版——"反向显然"里偷用的前提被摆到台面上（hC）。
+<span class="math">→</span> 方向把 <code>f x = y</code> 沿 Eq.subst 搬到 y 上；<span class="math">←</span> 方向由 hC 供料，
+装回像里时 <code>f x = y</code> 与 <code>y ∈ C</code> 用 Eq.subst 互换（错证明跳过的那一步）。</p><pre><code>theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
+    (hC : C ⊆ f '' @Set.univ α) :
+    f '' (f ⁻¹' C) = C :=
+  Set.ext (f '' (f ⁻¹' C)) C (fun (y : β) =&gt;
+    @Iff.intro (y ∈ f '' (f ⁻¹' C)) (y ∈ C)
+      (fun (hy : y ∈ f '' (f ⁻¹' C)) =&gt;
+        @Exists.elim α (fun (x : α) =&gt; (x ∈ f ⁻¹' C) ∧ (f x = y)) (y ∈ C) hy
+          (fun (x : α) =&gt; fun (hx : (x ∈ f ⁻¹' C) ∧ (f x = y)) =&gt;
+            @Eq.subst.{1} β (fun (z : β) =&gt; z ∈ C) (f x) y
+              (And.right hx)
+              (And.left hx)))
+      (fun (hy : y ∈ C) =&gt;
+        -- `cases` 只吃**局部假设名**；`hC y hy` 是应用，所以用 `Exists.elim` 摊开。
+        @Exists.elim α
+          (fun (x : α) =&gt; (@Set.univ α x) ∧ ((f x) = y))
+          (y ∈ f '' (f ⁻¹' C)) (hC y hy)
+          (fun (x : α) =&gt; fun (hx : (@Set.univ α x) ∧ ((f x) = y)) =&gt;
+            Exists.intro x
+              (And.intro
+                (@Eq.subst.{1} β (fun (z : β) =&gt; z ∈ C) y (f x)
+                  (@Eq.symm.{1} β (f x) y (And.right hx)) hy)
+                (And.right hx)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-12-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">fix_image_inter</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-12-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（R 类：读<span class="math">·</span>评译 <span class="math">+</span> 改正）。【错证明 B】的"<span class="math">←</span>"方向靠的是"<span class="math">f x1 = y</span> 且 <span class="math">f x2 = y ⇒ x1 = x2</span>"——这一步正是<strong>单射</strong>。改正的做法：把缺的前提（签名里的 hf）补上，等号才是真的。</p></div></div><pre class="exercise-statement"><code>theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
+    (hf : Function.Injective α β f) :
+    f '' (A ∩ B) = f '' A ∩ f '' B := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先指出坏掉的那一步是"<span class="math">f x1 = f x2</span> ⟹ <span class="math">x1 = x2</span>"（那需要单射）；补上 hf 后，<span class="math">→</span> 方向照旧，<span class="math">←</span> 方向用它把两个不同的原像捏成同一个。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>f '' (A ∩ <span class="math">B) = f '' A</span> ∩ f '' B，前提 hf : <span class="math">Function.Injective α β f</span>；逐元素是 <span class="math">y ∈ f '' (A</span> ∩ <span class="math">B) ↔ (y ∈ f '' A ∧ y ∈ f '' B)</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">→</span> 方向把 <span class="math">x ∈ A</span> ∩ B 用 And.left / And.right 拆给两个 Exists.intro；<span class="math">←</span> 方向两次 Exists.elim（<span class="math">x1 ∈ A</span> 与 <span class="math">x2 ∈ B</span> 各一次，Q 都取目标那个 <span class="math">∃</span>），先由 <span class="math">f x1 = y</span>、<span class="math">f x2 = y</span> 经 Eq.trans / Eq.symm 凑出 <span class="math">f x1 = f x2</span> 交给 hf，再用 Eq.subst 沿 <span class="math">x2 = x1</span> 把 B x2 搬到 B x1，最后 And.intro 现装 <span class="math">x1 ∈ A</span> ∩ B。</p></div></details></div><details open class="solution-panel" id="sol-12-6"><summary>查看解答 <span class="sol-meta">定理 · 38 行</span></summary><div class="solution-body"><p class="solution-note">R2：错证明 B 的改正版——补上偷用的单射假设 hf，等号才是真的。
+<span class="math">←</span> 方向两次 Exists.elim 拆出两个原像，用 hf 把它们捏成同一个点。</p><pre><code>theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
+    (hf : Function.Injective α β f) :
+    f '' (A ∩ B) = f '' A ∩ f '' B :=
+  Set.ext (f '' (A ∩ B)) (f '' A ∩ f '' B) (fun (y : β) =&gt;
+    @Iff.intro (y ∈ f '' (A ∩ B)) (y ∈ f '' A ∩ f '' B)
+      (fun (hy : y ∈ f '' (A ∩ B)) =&gt;
+        @Exists.elim α (fun (x : α) =&gt; ((A ∩ B) x) ∧ (f x = y)) (y ∈ f '' A ∧ y ∈ f '' B) hy
+          (fun (x : α) =&gt; fun (hx : (x ∈ A ∩ B) ∧ (f x = y)) =&gt;
+            And.intro
+              (Exists.intro x
+                (And.intro
+                  (And.left (@And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  (And.right hx)))
+              (Exists.intro x
+                (And.intro
+                  (And.right (And.left hx))
+                  (And.right hx)))))
+      (fun (hy : y ∈ f '' A ∩ f '' B) =&gt;
+        -- `cases` 不吃 `have` 绑定的 `∈ 像` 假设（要两层 delta 才到 `Exists`），
+        -- 两次消去都写成 `Exists.elim` 项。
+        @Exists.elim α (fun (x : α) =&gt; (A x) ∧ ((f x) = y)) (y ∈ f '' (A ∩ B))
+          (And.left hy)
+          (fun (x1 : α) =&gt; fun (hx1 : (A x1) ∧ ((f x1) = y)) =&gt;
+            @Exists.elim α (fun (x : α) =&gt; (B x) ∧ ((f x) = y)) (y ∈ f '' (A ∩ B))
+              (And.right hy)
+              (fun (x2 : α) =&gt; fun (hx2 : (B x2) ∧ ((f x2) = y)) =&gt;
+                Exists.intro x1
+                  (And.intro
+                    (And.intro
+                      (And.left hx1)
+                      (@Eq.subst.{1} α (fun (t : α) =&gt; B t) x2 x1
+                        (@Eq.symm.{1} α x1 x2
+                          (hf x1 x2
+                            (@Eq.trans.{1} β (f x1) y (f x2)
+                              (And.right hx1)
+                              (@Eq.symm.{1} β (f x2) y (And.right hx2)))))
+                        (And.left hx2)))
+                    (And.right hx1))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-12-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">flawed_equalities_refuted</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-12-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（D 类：必破——判断真假并给反例）。请对【错证明 A】【错证明 B】的结论各判一次，并把两个反例<strong>形式化</strong>成下面这条合取（签名不许改）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>第一条反例：f 取常函数 <code>fun (_ : Set Nat) =&gt; ∅</code>（把一切都送到 ∅），C 取 <code>Set.univ (Set Nat)</code>；此时 <code>Set.univ Nat</code> 是 C 的点，却<strong>没有原像</strong>；</li><li>第二条反例：同一个 f，A 取 <code>{∅}</code>、B 取 <code>{(Set.univ Nat)}</code>；此时 A ∩ <span class="math">B =</span> ∅，两个像却都含 ∅。</li></ul></div><div class="block prose intuition-only"><p>判词：两条等式<strong>都假</strong>（详情与"错在哪一步"写在上面 12.2 的评阅规矩里）。写法提醒：像/原像/交一律写<strong>记法</strong>（<span class="math">λ</span> <strong>操作数</strong>本身没问题：<code>(fun …) '' A</code> 与 <code>⁻¹'</code> 都 elaborate 得出来 ✓ —— R5 修好后连 <code>{∅} ∩ {(Set.univ Nat)}</code> 这种嵌套也解得出来 ✓）。唯一剩下的是<strong>常函数体那一处</strong>：<span class="math">λ</span> <strong>体内</strong>的零元记法没有类型来源（语言还没有类型标注 <code>(e : T)</code>）<span class="math">⇒</span> 那里写成空集的点名展开（行内标记说明）。</p></div></div><pre class="exercise-statement"><code>theorem flawed_equalities_refuted :
+    (fun (_ : Set Nat) =&gt; ∅) '' ((fun (_ : Set Nat) =&gt; ∅) ⁻¹' (@Set.univ (Set Nat)))
+      ≠ @Set.univ (Set Nat)
+    ∧ (fun (_ : Set Nat) =&gt; @Set.empty Nat) '' ({∅} ∩ {(@Set.univ Nat)})  -- soko:notation-ok: λ 体内的零元记法没有类型来源（这一条合取里没有任何约束定得出它的元素类型）
+      ≠ ((fun (_ : Set Nat) =&gt; @Set.empty Nat) '' {∅}) ∩ ((fun (_ : Set Nat) =&gt; @Set.empty Nat) '' {(@Set.univ Nat)})  -- soko:notation-ok: 同上
+      := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>每条都是 intro 一个等式假设、再从"某个元素被搬过去"造出 False：第一条用 Set.univ Nat（它不在像里），第二条用 ∅（两个像的共同点）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>两个 <span class="math">≠</span> 的合取；每个 <span class="math">≠</span> 展开后目标都是 False，手里是一条把两个集合划等号的假设。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>触发条件是"等式两边只差一个具体元素"<span class="math">⇒</span> 先备好成员证据（第一条 Set.mem_univ (Set Nat) (Set.univ Nat)，第二条两个 <span class="math">Exists.intro + Eq.refl</span> 打进 ∩），再沿 Eq.symm 过的等式用 Eq.subst 搬成员关系，最后 Exists.elim 拆出"∅ 与 univ 撞上"：第一条用 Set.notMem_empty Nat 0 与 Set.mem_univ Nat 0，第二条由 <span class="math">x =</span> ∅、<span class="math">x = univ</span> 经 Eq.trans / Eq.symm 合成 ∅ <span class="math">= univ</span> 再照第一条收尾。</p></div></details></div><details open class="solution-panel" id="sol-12-7"><summary>查看解答 <span class="sol-meta">定理 · 151 行</span></summary><div class="solution-body"><p class="solution-note">R3（必破 D 类）：两条"看起来对"的等式都是假的。反例里的 f 一律取常函数
+    fc :<span class="math">= fun (_</span> : <span class="math">Set Nat) =&gt;</span> ∅   （把一切都送到 ∅）
+第一条（像 ∘ 原像）：C 取 univ——<code>@Set.univ Nat</code> 是 C 的点，却没有原像；
+第二条（像保交）：A 取 {∅}、B 取 {univ}——A ∩ <span class="math">B =</span> ∅，两个像却都含 ∅。
+两处的矛盾都由 "∅ <span class="math">≠ univ</span>" 提供：Set.mem_univ Nat 0 把 0 送进 univ，
+Set.notMem_empty Nat 0 再把它挡回来（本语言没有 Decidable，这是最省的分辨手段）。
+常函数是 <span class="math">λ</span>，记法 <code>''</code> / <code>⁻¹'</code> / <code>∩</code> 补不出它的前导类型参数 <span class="math">⇒</span> 这一条写点名形式。</p><pre><code>theorem flawed_equalities_refuted :
+    (fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) ⁻¹' (@Set.univ (Set Nat)))  -- soko:notation-ok: λ 体内的零元记法没有类型来源（与 unit12-synthesis 同一形状，strict 要求 @ 写全）
+      ≠ @Set.univ (Set Nat)
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+    ∧ (fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' ((@Set.singleton (Set Nat) (∅)) ∩ (@Set.singleton (Set Nat) (@Set.univ Nat)))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+      ≠ ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' (@Set.singleton (Set Nat) (∅))) ∩ ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' (@Set.singleton (Set Nat) (@Set.univ Nat))) :=
+  @And.intro
+    ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) ⁻¹' (@Set.univ (Set Nat)))  -- soko:notation-ok: λ 体内的零元记法没有类型来源（与 unit12-synthesis 同一形状，strict 要求 @ 写全）
+      ≠ @Set.univ (Set Nat))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+    ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' ((@Set.singleton (Set Nat) (∅)) ∩ (@Set.singleton (Set Nat) (@Set.univ Nat)))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+      ≠ ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' (@Set.singleton (Set Nat) (∅))) ∩ ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' (@Set.singleton (Set Nat) (@Set.univ Nat))))
+    (fun (h :
+      (fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) ⁻¹' (@Set.univ (Set Nat)))  -- soko:notation-ok: λ 体内的零元记法没有类型来源（与 unit12-synthesis 同一形状，strict 要求 @ 写全）
+        = @Set.univ (Set Nat)
+    ) =&gt;
+      -- `cases` 吃不了 `have` 绑定的 `∈ 像` 假设本身（类型要 delta 两步才到 `Exists`）；
+      -- 先用一条**命名**的中间假设把类型摊开，臂体照旧（`r3` 实测的最小改法）。
+      @Exists.elim (Set Nat)
+        (fun (x : Set Nat) =&gt;
+          (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@Set.univ (Set Nat)) x) ∧
+            (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        )
+        False
+        (@Eq.subst.{1} (Set (Set Nat)) (fun (X : Set (Set Nat)) =&gt; @Set.univ Nat ∈ X)
+          (@Set.univ (Set Nat))
+          (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))
+              (@Set.univ (Set Nat))))
+          (@Eq.symm.{1} (Set (Set Nat))
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))
+                (@Set.univ (Set Nat))))
+            (@Set.univ (Set Nat)) h)
+          (Set.mem_univ (@Set.univ Nat)))
+        (fun (x : Set Nat) =&gt;
+          fun (hx :
+          (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@Set.univ (Set Nat)) x) ∧
+            (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          ) =&gt;
+          Set.notMem_empty 0
+            (@Eq.subst.{1} (Set Nat) (fun (Z : Set Nat) =&gt; 0 ∈ Z)
+              (@Set.univ Nat) (∅)
+              (@Eq.symm.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.univ Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                (@And.right
+                  (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    (@Set.univ (Set Nat)) x)
+                  (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.univ Nat)) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (Set.mem_univ 0))))
+    (fun (h :
+      @Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (@Set.inter (Set Nat) (@Set.singleton (Set Nat) (∅))
+            ((@Set.singleton (Set Nat) (@Set.univ Nat))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        = @Set.inter (Set Nat)
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@Set.singleton (Set Nat) (∅)))
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              ((@Set.singleton (Set Nat) (@Set.univ Nat))))
+    ) =&gt;
+      @Exists.elim (Set Nat)
+        (fun (x : Set Nat) =&gt;
+          (@Set.inter (Set Nat) ((@Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              ((@Set.singleton (Set Nat) (@Set.univ Nat))) x) ∧
+            (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        )
+        False
+        (@Eq.subst.{1} (Set (Set Nat)) (fun (X : Set (Set Nat)) =&gt; ∅ ∈ X)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (@Set.inter (Set Nat)
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              ((@Set.singleton (Set Nat) (∅))))
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              ((@Set.singleton (Set Nat) (@Set.univ Nat)))))
+          (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (@Set.inter (Set Nat) ((@Set.singleton (Set Nat) (∅)))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+              ((@Set.singleton (Set Nat) (@Set.univ Nat)))))
+          (@Eq.symm.{1} (Set (Set Nat))
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@Set.inter (Set Nat) ((@Set.singleton (Set Nat) (∅)))
+                ((@Set.singleton (Set Nat) (@Set.univ Nat)))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (@Set.inter (Set Nat)
+              (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                ((@Set.singleton (Set Nat) (∅))))
+              (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                ((@Set.singleton (Set Nat) (@Set.univ Nat)))))
+            h)
+         (@And.intro
+           (@Set.mem (Set Nat) (∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+             (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))
+               ((@Set.singleton (Set Nat) (∅)))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+           (@Set.mem (Set Nat) (∅)
+             (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+               ((@Set.singleton (Set Nat) (@Set.univ Nat)))))
+           (@Exists.intro (Set Nat)
+             (fun (x : Set Nat) =&gt;
+               x ∈ ((@Set.singleton (Set Nat) (∅))) ∧  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                 @Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.empty Nat))
+             (∅)
+             (@And.intro
+               (@Set.mem (Set Nat) (∅) (@Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+               (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) (@Set.empty Nat))
+                 (∅))
+               (@Eq.refl.{1} (Set Nat) (∅))
+               (@Eq.refl.{1} (Set Nat) (∅))))
+           (@Exists.intro (Set Nat)
+             (fun (x : Set Nat) =&gt;
+               x ∈ ((@Set.singleton (Set Nat) (@Set.univ Nat))) ∧  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                 @Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.empty Nat))
+             (@Set.univ Nat)
+             (@And.intro
+               ((@Set.univ Nat) ∈ ((@Set.singleton (Set Nat) (@Set.univ Nat))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+               (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) (@Set.univ Nat))
+                 (∅))
+               (@Eq.refl.{1} (Set Nat) (@Set.univ Nat))
+               (@Eq.refl.{1} (Set Nat) (∅))))
+         )
+        )
+        (fun (x : Set Nat) =&gt;
+          fun (hx :
+          (@Set.inter (Set Nat) ((@Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              ((@Set.singleton (Set Nat) (@Set.univ Nat))) x) ∧
+            (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          ) =&gt;
+          Set.notMem_empty 0
+            (@Eq.subst.{1} (Set Nat) (fun (Z : Set Nat) =&gt; 0 ∈ Z)
+              (@Set.univ Nat) (∅)
+              (@Eq.trans.{1} (Set Nat) (@Set.univ Nat) x (∅)
+                (@Eq.symm.{1} (Set Nat) x (@Set.univ Nat)
+                  (@And.right
+                    ((fun (s : Set (Set Nat)) =&gt; s x) (@Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    ((fun (s : Set (Set Nat)) =&gt; s x) (@Set.singleton (Set Nat) (@Set.univ Nat)))
+                    (@And.left
+                      (@Set.inter (Set Nat) ((@Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                        ((@Set.singleton (Set Nat) (@Set.univ Nat))) x)
+                      (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                        (∅))
+                      hx)))
+                (@And.left
+                  ((fun (s : Set (Set Nat)) =&gt; s x) (@Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  ((fun (s : Set (Set Nat)) =&gt; s x) (@Set.singleton (Set Nat) (@Set.univ Nat)))
+                  (@And.left
+                    (@Set.inter (Set Nat) ((@Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                      ((@Set.singleton (Set Nat) (@Set.univ Nat))) x)
+                    (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                      (∅))
+                    hx)))
+              (Set.mem_univ 0))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-12-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">project_chain</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-12-8">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set α) :
+    (fun (a : α) =&gt; fun (b : β) =&gt; f a = b) • (fun (b : β) =&gt; fun (c : γ) =&gt; g b = c)
+      = (fun (a : α) =&gt; fun (c : γ) =&gt; g (f a) = c)
+    ∧ (g ∘ f) '' A = g '' (f '' A) := by
+  sorry</code></pre><details open class="solution-panel" id="sol-12-8"><summary>查看解答 <span class="sol-meta">定理 · 52 行</span></summary><div class="solution-body"><p class="solution-note">P1（期末小项目）：一条链把三层串起来。
+  关系层：函数的图像（<code>fun a b =&gt; f a = b</code>）也是关系，复合图像的<strong>关系复合</strong> <span class="math">=</span> 复合函数的图像；
+  集合层：复合函数的<strong>像</strong> <span class="math">=</span> 先取内层像、再取外层像。</p><pre><code>theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set α) :
+    (fun (a : α) =&gt; fun (b : β) =&gt; f a = b) • (fun (b : β) =&gt; fun (c : γ) =&gt; g b = c)
+      = (fun (a : α) =&gt; fun (c : γ) =&gt; g (f a) = c)
+    ∧ (g ∘ f) '' A = g '' (f '' A) :=
+  @And.intro
+    ((fun (a : α) =&gt; fun (b : β) =&gt; f a = b) • (fun (b : β) =&gt; fun (c : γ) =&gt; g b = c)
+      = (fun (a : α) =&gt; fun (c : γ) =&gt; g (f a) = c))
+    ((g ∘ f) '' A = g '' (f '' A))
+    (Rel.ext α γ
+      ((fun (a : α) =&gt; fun (b : β) =&gt; f a = b) • (fun (b : β) =&gt; fun (c : γ) =&gt; g b = c))
+      (fun (a : α) =&gt; fun (c : γ) =&gt; g (f a) = c)
+      (fun (a : α) =&gt; fun (c : γ) =&gt;
+        @Iff.intro
+          (((fun (a : α) =&gt; fun (b : β) =&gt; f a = b) • (fun (b : β) =&gt; fun (c : γ) =&gt; g b = c)) a c)
+          ((fun (a : α) =&gt; fun (c : γ) =&gt; g (f a) = c) a c)
+          (fun (h : ((fun (a : α) =&gt; fun (b : β) =&gt; f a = b) • (fun (b : β) =&gt; fun (c : γ) =&gt; g b = c)) a c) =&gt;
+            @Exists.elim β (fun (b : β) =&gt; f a = b ∧ g b = c) (g (f a) = c) h
+              (fun (b : β) =&gt; fun (hb : f a = b ∧ g b = c) =&gt;
+                @Eq.trans.{1} γ (g (f a)) (g b) c
+                  (congrArg.{1} g (And.left hb))
+                  (And.right hb)))
+          (fun (h : (fun (a : α) =&gt; fun (c : γ) =&gt; g (f a) = c) a c) =&gt;
+            Exists.intro (f a)
+              (And.intro (@Eq.refl.{1} β (f a)) h))))
+    (Set.ext ((g ∘ f) '' A) (g '' (f '' A)) (fun (y : γ) =&gt;
+      @Iff.intro (y ∈ (g ∘ f) '' A) (y ∈ g '' (f '' A))
+        (fun (hy : y ∈ (g ∘ f) '' A) =&gt;
+          @Exists.elim α (fun (x : α) =&gt; (A x) ∧ (((g ∘ f) x) = y))
+            (y ∈ g '' (f '' A)) hy
+            (fun (x : α) =&gt; fun (hx : (x ∈ A) ∧ ((g ∘ f) x = y)) =&gt;
+              Exists.intro (f x)
+                (And.intro
+                  (Exists.intro x
+                    (And.intro
+                      (And.left hx)
+                      (@Eq.refl.{1} β (f x))))
+                  (And.right hx))))
+        (fun (hy : y ∈ g '' (f '' A)) =&gt;
+          @Exists.elim β (fun (b : β) =&gt; ((f '' A) b) ∧ ((g b) = y))
+            (y ∈ (g ∘ f) '' A) hy
+            (fun (b : β) =&gt; fun (hb : ((f '' A) b) ∧ ((g b) = y)) =&gt;
+              -- 嵌套 `cases` 里再 `cases` 会错位，内层改成 `Exists.elim` 项。
+              @Exists.elim α (fun (x : α) =&gt; (A x) ∧ ((f x) = b))
+                (y ∈ (g ∘ f) '' A)
+                (And.left hb)
+                (fun (x : α) =&gt; fun (hx : (A x) ∧ ((f x) = b)) =&gt;
+                  Exists.intro x
+                    (And.intro
+                      (And.left hx)
+                      (@Eq.trans.{1} γ (g (f x)) (g b) y
+                        (congrArg.{1} g (And.right hx))
+                        (And.right hb))))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-12-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">project_chain_cardinal</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-12-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（P 类：期末小项目 <span class="math">·</span> 基数环）。把单元⑨ 的等势与单元⑩ 的 Cantor 钉在一起，两半：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>① <strong>搬运</strong>：<code>h : A ≈ C</code> 与 <code>hC : C = C'</code> 给出 <code>A ≈ C'</code>。<strong>这不是单元⑨ 练习 4 的重复</strong>：那里两边同论域、来回都取恒等映射，要搬的只是成员关系；这里 h 给的那两把映射<strong>照用</strong>（不必重新挑映射），只有"落在哪一侧"的域条件沿 hC 搬家，两条互逆律原样交回——是那条练习的<strong>跨论域 ＋ 真映射</strong>版。</li><li>② <strong>天花板</strong>：<code>C'</code> 与它的幂集 𝒫C' 不等势（⑩ 的对角线论证）。<strong>这也不是单元⑩ 练习 4 的重复</strong>：那里集合固定为 univ（对角线集直接写成 <code>fun (y : γ) =&gt; ¬ (f y y)</code>）；这里集合是<strong>任意</strong> C'，于是对角线集必须先把自己约束成 C' 的子集，才够格当 𝒫C' 的元素——差集 <code>C' \ (fun (y : γ) =&gt; f y y)</code> 正好是这个形状；代价是反向映射的域条件<strong>第一次真的用上</strong>（它保证 <code>g D</code> 落在 C' 里，缺了它矛盾合不上）。</li></ul></div><div class="block prose intuition-only"><p>两半合起来说的一句话：等势对复合与搬运封闭，但对幂集永远差一档。</p></div></div><pre class="exercise-statement"><code>theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
+    (h : A ≈ C) (hC : C = C') :
+    A ≈ C' ∧ ¬ (C' ≈ (𝒫 C')) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>① 走"拆 h 拿两把映射、再 mk 重新打包"，只在成员关系上用 hC 搬三处；② 反证——假设有等势，取对角线集 D，用反向映射把它拉回一点，撞出"某个命题等于自己的否定"。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>A ≈ <span class="math">C' ∧ ¬ (C'</span> ≈ (𝒫 C'))；② 拆开后目标是 False，手里有 f : <span class="math">γ → Set γ</span>、g : <span class="math">Set γ → γ</span> 与四条条件，对角线集取 D :<span class="math">= C'</span> \ (fun (y : <span class="math">γ) =&gt; f y y)</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>① 触发条件是"两个集合只差一条等式"<span class="math">⇒</span> 成员关系用 Eq.subst 搬（motive 取 fun (X : <span class="math">Set γ) =&gt; z ∈ X</span>），反侧那一处先把 hC 用 Eq.symm 掉头；打包仍用 Set.Equiv.mk（两条互逆律不必动）。② D 属于 𝒫C' 的证据是一行 And.left（D y 展开就是 <span class="math">C' y ∧ ¬ (f y y)</span>）；④号互逆律在 D 上给出 <span class="math">f (g D) = D</span>，用 congrArg 把它作用到 g D 上，得到"(f (g D)) (g D) 与 D (g D) 相等"这条<strong>命题等式</strong>，再用 Eq.subst 两个方向互喂（D (g D) 展开后用 And.right 取否定那一半；反向映射的域条件给出 C' (g D)，正是 And.intro 缺的那一半）。</p></div></details></div><details open class="solution-panel" id="sol-12-9"><summary>查看解答 <span class="sol-meta">定理 · 114 行</span></summary><div class="solution-body"><p class="solution-note">P2（期末小项目 <span class="math">·</span> 基数环）：把单元⑨ 的等势与单元⑩ 的 Cantor 钉在一起。
+  ① 搬运：h 给的两把映射<strong>照用</strong>，只有"落在哪一侧"的域条件沿 hC 搬家
+     （三处 Eq.subst：正向一处、反向两处；两条互逆律原样交回，不必动）；
+  ② Cantor 推广到<strong>任意</strong> C'（单元⑩ 练习 4 的 univ 版是它的特例）：
+     对角线集取差集 D :<span class="math">= C'</span> \ (fun (y : <span class="math">γ) =&gt; f y y)</span>（<code>Set.sdiff</code> 展开正好是
+     <code>C' y ∧ ¬ (f y y)</code>）；<span class="math">D ⊆ C'</span> 让它有资格当 𝒫C' 的元素（hD 一行 And.left），
+     ④号互逆律在 D 上把 <code>f (g D)</code> 与 <code>D</code> 接起来，congrArg 作用到 <code>g D</code> 上得到
+     "<code>(f (g D)) (g D)</code> 与 <code>D (g D)</code> 相等"这条<strong>命题等式</strong>，于是 <code>P ↔ ¬P</code>：
+     从 P 得 <span class="math">¬P</span>（And.right），从 <span class="math">¬P</span> 得 P（And.intro 补上域条件再搬回去），
+     两者互喂即 False。
+
+写法提醒（本文件里最容易踩的一条，实测）：<strong>应用脊是平的</strong>——一个参数本身若是应用，
+必须用括号整个包住（<code>(Exists.elim …)</code>、<code>(And.right … hg D hD)</code> 都算），
+否则那些参数会散成外层脊上的参数，内核报出来的是一条"类型不匹配"的怪消息。</p><pre><code>theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
+    (h : A ≈ C) (hC : C = C') :
+    A ≈ C' ∧ ¬ (C' ≈ (𝒫 C')) :=
+  @And.intro
+    (A ≈ C')
+    (¬ (C' ≈ (𝒫 C')))
+    -- `cases` 需要一条**命名**的局部假设（类型要 delta 两步才到 `Exists` 的那种
+    -- 假设它吃不下），所以先用 `have` 把类型摊开——记法写 `∃` 即可。
+    (@Exists.elim (α → γ)
+      (fun (f : α → γ) =&gt;
+        Set.MapsTo α γ f A C ∧
+          (∃ (g : γ → α),
+            Set.MapsTo γ α g C A ∧
+              ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C))))
+      (A ≈ C') h
+      (fun (f : α → γ) =&gt;
+        fun (hf :
+          Set.MapsTo α γ f A C ∧
+            (∃ (g : γ → α),
+              Set.MapsTo γ α g C A ∧
+                ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)))
+        ) =&gt;
+          @Exists.elim (γ → α)
+            (fun (g : γ → α) =&gt;
+              Set.MapsTo γ α g C A ∧
+                ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)))
+            (A ≈ C')
+            (@And.right (Set.MapsTo α γ f A C)
+              (∃ (g : γ → α),
+                Set.MapsTo γ α g C A ∧
+                  ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C))) hf)
+            (fun (g : γ → α) =&gt;
+              fun (hg2 :
+                Set.MapsTo γ α g C A ∧
+                  ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C))
+              ) =&gt;
+                Set.Equiv.mk α γ A C' f g
+                  (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt;
+                    @Eq.subst.{1} (Set γ) (fun (X : Set γ) =&gt; f x ∈ X) C C' hC
+                      (@And.left (Set.MapsTo α γ f A C)
+                        (∃ (g2 : γ → α),
+                          Set.MapsTo γ α g2 C A ∧
+                            (Set.LeftInvOn α γ g2 f A) ∧ (Set.RightInvOn α γ f g2 C)) hf x hx))
+                  (fun (z : γ) =&gt; fun (hz : z ∈ C') =&gt;
+                    @And.left (Set.MapsTo γ α g C A)
+                      ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)) hg2 z
+                      (@Eq.subst.{1} (Set γ) (fun (X : Set γ) =&gt; z ∈ X) C' C
+                        (@Eq.symm.{1} (Set γ) C C' hC) hz))
+                  (@And.left (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    (@And.right (Set.MapsTo γ α g C A)
+                      ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)) hg2))
+                  (fun (z : γ) =&gt; fun (hz : z ∈ C') =&gt;
+                    @And.right (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                      (@And.right (Set.MapsTo γ α g C A)
+                        ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)) hg2)
+                      z
+                      (@Eq.subst.{1} (Set γ) (fun (X : Set γ) =&gt; z ∈ X) C' C
+                        (@Eq.symm.{1} (Set γ) C C' hC) hz)))))
+    (fun (h2 : C' ≈ (𝒫 C')) =&gt;
+      @Exists.elim (γ → Set γ)
+        (fun (f : γ → Set γ) =&gt;
+          Set.MapsTo γ (Set γ) f C' (𝒫 C') ∧
+            (∃ (g : Set γ → γ),
+              Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
+                ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))))
+        False h2
+        (fun (f : γ → Set γ) =&gt;
+          fun (hf :
+            Set.MapsTo γ (Set γ) f C' (𝒫 C') ∧
+              (∃ (g : Set γ → γ),
+                Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
+                  ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C'))))
+          ) =&gt;
+            @Exists.elim (Set γ → γ)
+              (fun (g : Set γ → γ) =&gt;
+                Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
+                  ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C'))))
+              False
+              (@And.right (Set.MapsTo γ (Set γ) f C' (𝒫 C'))
+                (∃ (g : Set γ → γ),
+                  Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
+                    ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))) hf)
+              (fun (g : Set γ → γ) =&gt;
+                fun (hg2 :
+                  Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
+                    ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))
+                ) =&gt;
+                  let hD : C' \ (fun (y : γ) =&gt; f y y) ∈ 𝒫 C' :=
+                    fun (y : γ) =&gt; fun (hy : C' y ∧ ¬ (f y y)) =&gt; And.left hy;
+                  let hC'gD : C' (g (C' \ (fun (y : γ) =&gt; f y y))) :=
+                    @And.left (Set.MapsTo (Set γ) γ g (𝒫 C') C')
+                      ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))
+                      hg2 (C' \ (fun (y : γ) =&gt; f y y)) hD;
+                  let hfg : (f (g (C' \ (fun (y : γ) =&gt; f y y)))) = (C' \ (fun (y : γ) =&gt; f y y)) :=  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    @And.right (Set.LeftInvOn γ (Set γ) g f C') (Set.RightInvOn γ (Set γ) f g (𝒫 C'))
+                      (@And.right (Set.MapsTo (Set γ) γ g (𝒫 C') C')
+                        ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))
+                        hg2)
+                      (C' \ (fun (y : γ) =&gt; f y y)) hD;
+                  let hprop : ((f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y)))) = ((C' \ (fun (y : γ) =&gt; f y y)) (g (C' \ (fun (y : γ) =&gt; f y y)))) :=
+                    congrArg.{1} (fun (S : Set γ) =&gt; S (g (C' \ (fun (y : γ) =&gt; f y y)))) hfg;
+                  let hnot : ¬ ((f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y)))) :=
+                    fun (p : (f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y)))) =&gt;
+                      @And.right (C' (g (C' \ (fun (y : γ) =&gt; f y y))))
+                        (¬ ((f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y)))))
+                        (@Eq.subst.{1} Prop (fun (Q : Prop) =&gt; Q)
+                          ((f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y)))) ((C' \ (fun (y : γ) =&gt; f y y)) (g (C' \ (fun (y : γ) =&gt; f y y)))) hprop p)
+                        p;
+                  let hp : (f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y))) :=
+                    @Eq.subst.{1} Prop (fun (Q : Prop) =&gt; Q)
+                      ((C' \ (fun (y : γ) =&gt; f y y)) (g (C' \ (fun (y : γ) =&gt; f y y)))) ((f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y))))
+                      (@Eq.symm.{1} Prop ((f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y)))) ((C' \ (fun (y : γ) =&gt; f y y)) (g (C' \ (fun (y : γ) =&gt; f y y)))) hprop)
+                      (And.intro hC'gD hnot);
+                  hnot hp)))</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子：Tao《Analysis I》§3 全书（§3.1 集合 <span class="math">·</span> §3.3 关系与函数 <span class="math">·</span> §3.4 像与原像 <span class="math">·</span>§3.6 等势与 Cantor——基数那一环由 12.3 的小项目补上）。先修：单元①–⑪（本单元是它们的<strong>综合</strong>，不引入任何新概念）。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：</p></div><details open class="decl-index intuition-only"><summary>细节清单（7 项，展开）</summary><ul class="prose-list"><li>证明：一律 <code>by</code> tactic 块，白名单<strong>只有</strong> intro / exact / apply / assumption / rfl / match / constructor / left / right / use / exfalso / cases / have / sorry——<strong>没有</strong> rw / obtain / change / simp / induction / calc / rintro / <code>·</code>；便利：匿名构造子 <code>⟨a, b⟩</code>（用哪个构造子由<strong>期望类型</strong>定：<code>∧</code> / <code>↔</code> / <code>∃</code> 都行）；</li><li>语句一律写<strong>记法</strong>：<code>x ∈ A</code> <span class="math">·</span> <code>A ⊆ B</code> <span class="math">·</span> <code>A ∪ B</code> <span class="math">·</span> <code>A ∩ B</code> <span class="math">·</span> <code>A \ B</code> <span class="math">·</span><code>∅</code> <span class="math">·</span> <code>𝒫 A</code> <span class="math">·</span> <code>Aᶜ</code> <span class="math">·</span> <code>f '' A</code> <span class="math">·</span> <code>f ⁻¹' B</code> <span class="math">·</span> <code>r • s</code>（关系复合，lib.Rel）<span class="math">·</span><code>g ∘ f</code>（函数复合，lib.Fun）；逻辑连接符 <code>∧ ∨ ↔ ¬</code> 与 <code>→ = ≠</code> 是<strong>语言内建</strong>，任何文件零声明可用；<code>∃ (x : α), …</code> 随 <code>import lib.Exists</code> 生效（本单元 import 了它）；</li><li>记法<strong>由 lib 随 import 带来</strong>（<code>infix</code> / <code>notation</code> / <code>binder_notation</code> 写在 lib/Set.sokonanoda、lib/Exists.sokonanoda、lib/Rel.sokonanoda 与 lib/Fun.sokonanoda 里）：本文件一条记法声明都不写——同一个符号全课程只能声明一次；</li><li>记法只是<strong>连接符的糖</strong>，不是引理名的糖：引理照旧点名写——Or.inl / Or.inr / Or.elim / And.intro / And.left / And.right / Iff.intro / Iff.mp / Iff.mpr / Set.ext / Rel.ext / Exists.intro / Exists.elim；</li><li>库里已备好、直接用（<span class="math">lib.Logic + lib.Set + lib.Exists + lib.Equiv + lib.Rel + lib.Fun + lib.Image</span>）：True / True.intro / False / False.elim / Not / absurd / And / And.intro / And.left / And.right / And.elim / Or（构造子是<strong>点号名</strong> Or.inl / Or.inr）/ Or.elim / Iff / Iff.intro / Iff.mp / Iff.mpr / Iff.refl / Iff.symm / Iff.trans / Eq.symm / Eq.trans / congrArg / Eq.subst（<strong>类型位</strong>的等式写记法 <code>a = b</code>；证明项 <code>Eq.subst.{1}</code> 仍显式宇宙）/ <code>Set</code> 一族（<code>Set.mem</code> / <code>Set.subset</code> / <code>Set.empty</code> / <code>Set.univ</code> / <code>Set.singleton</code> / <code>Set.pair</code> / <code>Set.union</code> / <code>Set.inter</code> / <code>Set.sdiff</code> / <code>Set.compl</code> / <code>Set.powerset</code> / <code>Set.image</code> / <code>Set.preimage</code>）<span class="math">+</span> 公理 <code>Set.ext</code> <span class="math">+</span> 展开引理 <span class="math">Set.subset_def ·Set.mem_empty_iff_false · Set.notMem_empty · Set.mem_univ · Set.mem_singleton_iff ·Set.mem_singleton_self · Set.mem_union · Set.mem_inter_iff · Set.mem_sdiff ·Set.mem_powerset_iff · Set.mem_image · Set.mem_preimage · Set.image_subset_iff ·Set.image_mono</span>；Exists / Exists.intro / Exists.elim / Exists.imp；<span class="math">Set.MapsTo / Set.LeftInvOn / Set.RightInvOn ·</span> 等势（记法 <code>A ≈ B</code>）<span class="math">·</span> 构造子 Set.Equiv.mk（读法见 lib/Equiv.sokonanoda 文件头：<strong>拿</strong>数据靠 Exists.elim 两次，<strong>造</strong>数据靠 mk）；Rel / 逆关系（记法 <code>r ⁻¹</code>）/ 关系复合（记法 <code>r • s</code>）/ <strong>公理 Rel.ext</strong> <span class="math">/ Rel.inv_apply · Rel.comp_apply ·Rel.inv_inv_apply</span>；函数复合（记法 <code>g ∘ f</code>）/ Injective / Surjective / Bijective / LeftInverse / RightInverse / Inverse 及它们的定义展开引理；</li><li>本单元<strong>不 import 别的单元</strong>（units/ 之间互相独立），也<strong>不新建概念</strong>（def / inductive / 公理一律不加；12.3 的环 6 是等势复合这一条<strong>已知事实</strong>，不是新概念）：反例一律落在 <code>Set Nat</code> 上——∅ 与 univ 现成可分辨（Set.mem_univ 把 0 送进 univ，Set.notMem_empty 挡住 ∅），既不用新增归纳类型，也不需要 Decidable。</li><li>语言里<strong>不存在</strong>的（别去找）：funext、propext、Classical.choice、Decidable、obtain；<code>let</code> 存在（term 位置 <code>let x : T := v; body</code>，能过内核），但本单元的子集不含它——卷 I 一律不用。四条后果：(a) 两个<strong>函数</strong>相等只能靠"两边展开后是同一个 <span class="math">λ</span>"（定义相等），不许逐点证；(b) 两个<strong>关系</strong>相等用公理 Rel.ext 逐点证 Iff，两个<strong>集合</strong>相等用 Set.ext 逐点证 Iff；(c) 证明项里不能像 Lean 的 <code>obtain</code> 那样"拆开再命名"——<code>cases</code> 降低成 <code>match</code>，需要一个<strong>已知的结果类型</strong>，所以它写在 <code>have h : T := by cases …</code> 的 <code>by</code> 块里（<code>have</code> 的类型标注定住它），<strong>不能</strong>直接写在 <code>constructor</code> / <code>apply</code> 拆出来的子目标上（12.2 的长证明项靠这一条读）；(d) 记法 <code>''</code> / <code>⁻¹'</code> 的前导类型参数<strong>只按操作数的类型</strong>补：操作数写成 <span class="math">λ</span> 时补不出来（题 7 的常函数因此只出现在点名 <code>Set.image</code> 的实参位上），语言也没有类型标注 <code>(e : T)</code> 可以救它。</li></ul></details></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit11.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">论域与 Russell 悖论</span></a><a class="unit-nav-home" href="../chapters/i-4.html#units">目录</a><a class="unit-nav-link" href="../units/unit55.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">反例与不可证（一）</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-12"><h3><a href="#top">综合与读证明</a></h3><p class="appendix-meta">9 道练习 · 9 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-12-1"><summary>练习 1 · xlat_compl_union <span class="sol-meta">定理</span></summary><p class="solution-note">unit12 解答钥匙（agent 专用；画布不 import 它）。
+
+与 unit12-synthesis.sokonanoda 的 9 条练习<strong>同名一一对应</strong>（X 类 <span class="math">4 · R</span> 类 <span class="math">3 · P</span> 类 2）：
+  X：<span class="math">xlat_compl_union · xlat_rel_inv_comp · xlat_injective_comp · xlat_preimage_comp</span>
+  R：<span class="math">fix_image_preimage · fix_image_inter · flawed_equalities_refuted</span>（必破 D 类）
+  P：project_chain（期末小项目：集合 <span class="math">→</span> 关系 <span class="math">→</span> 函数的串联）
+     project_chain_cardinal（期末小项目 <span class="math">·</span> 基数环：等势搬运 <span class="math">+ Cantor</span>，串单元⑨⑩）
+
+全部证明写成 <code>by</code> tactic 块（白名单：intro / exact / apply / assumption / rfl /
+match / constructor / left / right / use / exfalso / cases / have / sorry），
+且<strong>不引入任何辅助声明</strong>——声明数 <span class="math">=</span> 练习数 <span class="math">= 9</span>。
+语句一律用记法（<code>∈ ⊆ ∪ ∩ \ ∅ 𝒫 '' ⁻¹'</code> 与 <code>∧ ∨ ↔ ¬ = ≠ →</code>、<code>∃ (x : α), …</code>）；
+<strong>引理名照旧点名</strong>（<code>Or.inl</code>、<code>And.left</code>、<code>Set.mem_union</code>、<code>@Eq.subst.{1} …</code>）
+——记法是连接符的糖，不是引理名的糖。
+画布 12.3 的环 6 <code>demo_equiv_comp</code>（等势的复合仍是等势）是<strong>演示</strong>、画布上已写好，
+本文件不重复它；它是环 7 那道题的读法样板（本文件里 <code>≈</code> 的用法与它同款）。
+
+反例一律落在 <code>Set Nat</code> 上（∅ 与 univ 两个元素现成可分辨：Set.mem_univ / Set.notMem_empty），
+这样既不用新增归纳类型，也不需要 Decidable/classical（语言里都没有）。
+
+五条<strong>书写纪律</strong>（都是判卷器的实测边界，不是风格偏好）：
+
+<code>cases</code> 只吃<strong>局部假设名</strong>——<code>cases hC y hy</code> 这种<strong>应用</strong>要先摊开
+（本文件写成 <code>Exists.elim</code> 项）；；<code>cases</code> 不吃 <strong><code>have</code> 绑定</strong>的假设（类型要两层 delta 才到 <code>Exists</code> 的更不行）
+<span class="math">⇒</span> 先 <code>have hex : ∃ (x : Set Nat), … := hmem</code>，再 <code>cases hex</code>
+（<code>hmem</code> 那条 <code>∈ 像</code> 的类型照旧由内核 delta 合一）；；<strong>嵌套</strong> <code>cases</code> 的内层会错位 <span class="math">⇒</span> 内层改写 <code>Exists.elim</code> 项；；<code>cases</code> 也吃 <strong>binder 记法</strong> <code>∃ (x : α), …</code> 的假设（书写类型写成点名
+<code>Exists α (fun (x : α) =&gt; …)</code> 或记法 <code>∃ (x : α), …</code> 都行）；；记法 <code>''</code> / <code>⁻¹'</code> 的前导类型参数<strong>只按操作数的类型</strong>补：题 7 的常函数是 <span class="math">λ</span>，
+补不出类型参数（语言也没有类型标注 <code>(e : T)</code>），所以那一条的像/原像/交写点名形式。
+
+（直接写在 <code>constructor</code> / <code>apply</code> 拆出来的子目标上的 <code>cases</code> <strong>现在可以了</strong>：
+  §9「R2 修边刀」的 ①③⑤ 修掉了那条路上的三个静默错。）
+
+X1：De Morgan——"既不 A 也不 B"就是"不（A 或 B）"。逐元素做命题逻辑。</p><pre><code>theorem xlat_compl_union (α : Type) (A B : Set α) :
+    (A ∪ B)ᶜ = Aᶜ ∩ Bᶜ :=
+  Set.ext ((A ∪ B)ᶜ) (Aᶜ ∩ Bᶜ) (fun (x : α) =&gt;
+    @Iff.intro (¬ ((A ∪ B) x)) ((Aᶜ ∩ Bᶜ) x)
+      (fun (h : ¬ ((A ∪ B) x)) =&gt;
+        And.intro
+          (fun (ha : A x) =&gt; h (@Or.inl (A x) (B x) ha))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (fun (hb : B x) =&gt; h (@Or.inr (A x) (B x) hb)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (fun (h : (Aᶜ ∩ Bᶜ) x) =&gt; fun (hor : (A ∪ B) x) =&gt;
+        @Or.elim (A x) (B x) False
+          (fun (ha : A x) =&gt; And.left h ha)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (fun (hb : B x) =&gt; And.right h hb)
+          hor))</code></pre></details><details open class="appendix-solution" id="app-sol-12-2"><summary>练习 2 · xlat_rel_inv_comp <span class="sol-meta">定理</span></summary><p class="solution-note">X2：复合的逆 <span class="math">=</span> 逆的反序复合。两个方向都是"拆一个 <span class="math">∃</span>、换序 <span class="math">∧</span>、再装回 <span class="math">∃</span>"。
+<code>Rel.ext C A</code> 逐点给的是 <code>c a</code> 上的 Iff（参数顺序与 <code>⁻¹</code> 对调有关）。</p><pre><code>theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
+    (r • s) ⁻¹ = (s ⁻¹) • (r ⁻¹) :=
+  Rel.ext C A ((r • s) ⁻¹) ((s ⁻¹) • (r ⁻¹))
+    (fun (c : C) =&gt; fun (a : A) =&gt;
+      @Iff.intro (((r • s) ⁻¹) c a)
+        (((s ⁻¹) • (r ⁻¹)) c a)
+        (fun (h : ((r • s) ⁻¹) c a) =&gt;
+          @Exists.elim B (fun (b : B) =&gt; r a b ∧ s b c)
+            (∃ (b : B), s b c ∧ r a b) h
+            (fun (b : B) =&gt; fun (hb : r a b ∧ s b c) =&gt;
+              Exists.intro b
+                (And.intro
+                  (And.right hb)
+                  (And.left hb))))
+        (fun (h : ((s ⁻¹) • (r ⁻¹)) c a) =&gt;
+          @Exists.elim B (fun (b : B) =&gt; s b c ∧ r a b)
+            (∃ (b : B), r a b ∧ s b c) h
+            (fun (b : B) =&gt; fun (hb : s b c ∧ r a b) =&gt;
+              Exists.intro b
+                (And.intro
+                  (And.right hb)
+                  (And.left hb)))))</code></pre></details><details open class="appendix-solution" id="app-sol-12-3"><summary>练习 3 · xlat_injective_comp <span class="sol-meta">定理</span></summary><p class="solution-note">X3：单射在复合下封闭——先用外层的单射把等式降一层，再交给内层。</p><pre><code>theorem xlat_injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Injective α β f) (hg : Function.Injective β γ g) :
+    Function.Injective α γ (g ∘ f) :=
+  fun (x : α) =&gt; fun (y : α) =&gt;
+    fun (h : (g ∘ f) x = (g ∘ f) y) =&gt;
+      hf x y (hg (f x) (f y) h)</code></pre></details><details open class="appendix-solution" id="app-sol-12-4"><summary>练习 4 · xlat_preimage_comp <span class="sol-meta">定理</span></summary><p class="solution-note">X4：复合的原像 <span class="math">=</span> 先拉后拉。两边展开后是同一个命题，所以逐元素是 Iff.rfl。</p><pre><code>theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C : Set γ) :
+    f ⁻¹' (g ⁻¹' C) = (g ∘ f) ⁻¹' C :=
+  -- **A′（2026-11-03）**：`α` 显式给出（`@` 关掉自动补）—— 这一处原先靠"回落老路"才过，
+  -- 而那条回落正是 G-30 那 4,640 字节的来源。显式写出来后两种模式都判 0（实测）。
+  -- soko:notation-ok: `α` 在这里**推不出来**（`⁻¹'` 的两个操作数都要它），不是"可推出的前导隐式"
+  @Set.ext α (f ⁻¹' (g ⁻¹' C)) ((g ∘ f) ⁻¹' C)
+    (fun (x : α) =&gt; Iff.rfl )</code></pre></details><details open class="appendix-solution" id="app-sol-12-5"><summary>练习 5 · fix_image_preimage <span class="sol-meta">定理</span></summary><p class="solution-note">R1：错证明 A 的改正版——"反向显然"里偷用的前提被摆到台面上（hC）。
+<span class="math">→</span> 方向把 <code>f x = y</code> 沿 Eq.subst 搬到 y 上；<span class="math">←</span> 方向由 hC 供料，
+装回像里时 <code>f x = y</code> 与 <code>y ∈ C</code> 用 Eq.subst 互换（错证明跳过的那一步）。</p><pre><code>theorem fix_image_preimage (α β : Type) (f : α → β) (C : Set β)
+    (hC : C ⊆ f '' @Set.univ α) :
+    f '' (f ⁻¹' C) = C :=
+  Set.ext (f '' (f ⁻¹' C)) C (fun (y : β) =&gt;
+    @Iff.intro (y ∈ f '' (f ⁻¹' C)) (y ∈ C)
+      (fun (hy : y ∈ f '' (f ⁻¹' C)) =&gt;
+        @Exists.elim α (fun (x : α) =&gt; (x ∈ f ⁻¹' C) ∧ (f x = y)) (y ∈ C) hy
+          (fun (x : α) =&gt; fun (hx : (x ∈ f ⁻¹' C) ∧ (f x = y)) =&gt;
+            @Eq.subst.{1} β (fun (z : β) =&gt; z ∈ C) (f x) y
+              (And.right hx)
+              (And.left hx)))
+      (fun (hy : y ∈ C) =&gt;
+        -- `cases` 只吃**局部假设名**；`hC y hy` 是应用，所以用 `Exists.elim` 摊开。
+        @Exists.elim α
+          (fun (x : α) =&gt; (@Set.univ α x) ∧ ((f x) = y))
+          (y ∈ f '' (f ⁻¹' C)) (hC y hy)
+          (fun (x : α) =&gt; fun (hx : (@Set.univ α x) ∧ ((f x) = y)) =&gt;
+            Exists.intro x
+              (And.intro
+                (@Eq.subst.{1} β (fun (z : β) =&gt; z ∈ C) y (f x)
+                  (@Eq.symm.{1} β (f x) y (And.right hx)) hy)
+                (And.right hx)))))</code></pre></details><details open class="appendix-solution" id="app-sol-12-6"><summary>练习 6 · fix_image_inter <span class="sol-meta">定理</span></summary><p class="solution-note">R2：错证明 B 的改正版——补上偷用的单射假设 hf，等号才是真的。
+<span class="math">←</span> 方向两次 Exists.elim 拆出两个原像，用 hf 把它们捏成同一个点。</p><pre><code>theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
+    (hf : Function.Injective α β f) :
+    f '' (A ∩ B) = f '' A ∩ f '' B :=
+  Set.ext (f '' (A ∩ B)) (f '' A ∩ f '' B) (fun (y : β) =&gt;
+    @Iff.intro (y ∈ f '' (A ∩ B)) (y ∈ f '' A ∩ f '' B)
+      (fun (hy : y ∈ f '' (A ∩ B)) =&gt;
+        @Exists.elim α (fun (x : α) =&gt; ((A ∩ B) x) ∧ (f x = y)) (y ∈ f '' A ∧ y ∈ f '' B) hy
+          (fun (x : α) =&gt; fun (hx : (x ∈ A ∩ B) ∧ (f x = y)) =&gt;
+            And.intro
+              (Exists.intro x
+                (And.intro
+                  (And.left (@And.left (x ∈ A ∩ B) (f x = y) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  (And.right hx)))
+              (Exists.intro x
+                (And.intro
+                  (And.right (And.left hx))
+                  (And.right hx)))))
+      (fun (hy : y ∈ f '' A ∩ f '' B) =&gt;
+        -- `cases` 不吃 `have` 绑定的 `∈ 像` 假设（要两层 delta 才到 `Exists`），
+        -- 两次消去都写成 `Exists.elim` 项。
+        @Exists.elim α (fun (x : α) =&gt; (A x) ∧ ((f x) = y)) (y ∈ f '' (A ∩ B))
+          (And.left hy)
+          (fun (x1 : α) =&gt; fun (hx1 : (A x1) ∧ ((f x1) = y)) =&gt;
+            @Exists.elim α (fun (x : α) =&gt; (B x) ∧ ((f x) = y)) (y ∈ f '' (A ∩ B))
+              (And.right hy)
+              (fun (x2 : α) =&gt; fun (hx2 : (B x2) ∧ ((f x2) = y)) =&gt;
+                Exists.intro x1
+                  (And.intro
+                    (And.intro
+                      (And.left hx1)
+                      (@Eq.subst.{1} α (fun (t : α) =&gt; B t) x2 x1
+                        (@Eq.symm.{1} α x1 x2
+                          (hf x1 x2
+                            (@Eq.trans.{1} β (f x1) y (f x2)
+                              (And.right hx1)
+                              (@Eq.symm.{1} β (f x2) y (And.right hx2)))))
+                        (And.left hx2)))
+                    (And.right hx1))))))</code></pre></details><details open class="appendix-solution" id="app-sol-12-7"><summary>练习 7 · flawed_equalities_refuted <span class="sol-meta">定理</span></summary><p class="solution-note">R3（必破 D 类）：两条"看起来对"的等式都是假的。反例里的 f 一律取常函数
+    fc :<span class="math">= fun (_</span> : <span class="math">Set Nat) =&gt;</span> ∅   （把一切都送到 ∅）
+第一条（像 ∘ 原像）：C 取 univ——<code>@Set.univ Nat</code> 是 C 的点，却没有原像；
+第二条（像保交）：A 取 {∅}、B 取 {univ}——A ∩ <span class="math">B =</span> ∅，两个像却都含 ∅。
+两处的矛盾都由 "∅ <span class="math">≠ univ</span>" 提供：Set.mem_univ Nat 0 把 0 送进 univ，
+Set.notMem_empty Nat 0 再把它挡回来（本语言没有 Decidable，这是最省的分辨手段）。
+常函数是 <span class="math">λ</span>，记法 <code>''</code> / <code>⁻¹'</code> / <code>∩</code> 补不出它的前导类型参数 <span class="math">⇒</span> 这一条写点名形式。</p><pre><code>theorem flawed_equalities_refuted :
+    (fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) ⁻¹' (@Set.univ (Set Nat)))  -- soko:notation-ok: λ 体内的零元记法没有类型来源（与 unit12-synthesis 同一形状，strict 要求 @ 写全）
+      ≠ @Set.univ (Set Nat)
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+    ∧ (fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' ((@Set.singleton (Set Nat) (∅)) ∩ (@Set.singleton (Set Nat) (@Set.univ Nat)))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+      ≠ ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' (@Set.singleton (Set Nat) (∅))) ∩ ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' (@Set.singleton (Set Nat) (@Set.univ Nat))) :=
+  @And.intro
+    ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) ⁻¹' (@Set.univ (Set Nat)))  -- soko:notation-ok: λ 体内的零元记法没有类型来源（与 unit12-synthesis 同一形状，strict 要求 @ 写全）
+      ≠ @Set.univ (Set Nat))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+    ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' ((@Set.singleton (Set Nat) (∅)) ∩ (@Set.singleton (Set Nat) (@Set.univ Nat)))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+      ≠ ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' (@Set.singleton (Set Nat) (∅))) ∩ ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' (@Set.singleton (Set Nat) (@Set.univ Nat))))
+    (fun (h :
+      (fun (_ : Set Nat) =&gt; (@Set.empty Nat)) '' ((fun (_ : Set Nat) =&gt; (@Set.empty Nat)) ⁻¹' (@Set.univ (Set Nat)))  -- soko:notation-ok: λ 体内的零元记法没有类型来源（与 unit12-synthesis 同一形状，strict 要求 @ 写全）
+        = @Set.univ (Set Nat)
+    ) =&gt;
+      -- `cases` 吃不了 `have` 绑定的 `∈ 像` 假设本身（类型要 delta 两步才到 `Exists`）；
+      -- 先用一条**命名**的中间假设把类型摊开，臂体照旧（`r3` 实测的最小改法）。
+      @Exists.elim (Set Nat)
+        (fun (x : Set Nat) =&gt;
+          (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@Set.univ (Set Nat)) x) ∧
+            (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        )
+        False
+        (@Eq.subst.{1} (Set (Set Nat)) (fun (X : Set (Set Nat)) =&gt; @Set.univ Nat ∈ X)
+          (@Set.univ (Set Nat))
+          (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))
+              (@Set.univ (Set Nat))))
+          (@Eq.symm.{1} (Set (Set Nat))
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))
+                (@Set.univ (Set Nat))))
+            (@Set.univ (Set Nat)) h)
+          (Set.mem_univ (@Set.univ Nat)))
+        (fun (x : Set Nat) =&gt;
+          fun (hx :
+          (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@Set.univ (Set Nat)) x) ∧
+            (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          ) =&gt;
+          Set.notMem_empty 0
+            (@Eq.subst.{1} (Set Nat) (fun (Z : Set Nat) =&gt; 0 ∈ Z)
+              (@Set.univ Nat) (∅)
+              (@Eq.symm.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.univ Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                (@And.right
+                  (@Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    (@Set.univ (Set Nat)) x)
+                  (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.univ Nat)) hx))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (Set.mem_univ 0))))
+    (fun (h :
+      @Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (@Set.inter (Set Nat) (@Set.singleton (Set Nat) (∅))
+            ((@Set.singleton (Set Nat) (@Set.univ Nat))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        = @Set.inter (Set Nat)
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@Set.singleton (Set Nat) (∅)))
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              ((@Set.singleton (Set Nat) (@Set.univ Nat))))
+    ) =&gt;
+      @Exists.elim (Set Nat)
+        (fun (x : Set Nat) =&gt;
+          (@Set.inter (Set Nat) ((@Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              ((@Set.singleton (Set Nat) (@Set.univ Nat))) x) ∧
+            (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        )
+        False
+        (@Eq.subst.{1} (Set (Set Nat)) (fun (X : Set (Set Nat)) =&gt; ∅ ∈ X)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          (@Set.inter (Set Nat)
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              ((@Set.singleton (Set Nat) (∅))))
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              ((@Set.singleton (Set Nat) (@Set.univ Nat)))))
+          (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (@Set.inter (Set Nat) ((@Set.singleton (Set Nat) (∅)))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+              ((@Set.singleton (Set Nat) (@Set.univ Nat)))))
+          (@Eq.symm.{1} (Set (Set Nat))
+            (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              (@Set.inter (Set Nat) ((@Set.singleton (Set Nat) (∅)))
+                ((@Set.singleton (Set Nat) (@Set.univ Nat)))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (@Set.inter (Set Nat)
+              (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                ((@Set.singleton (Set Nat) (∅))))
+              (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                ((@Set.singleton (Set Nat) (@Set.univ Nat)))))
+            h)
+         (@And.intro
+           (@Set.mem (Set Nat) (∅)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+             (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))
+               ((@Set.singleton (Set Nat) (∅)))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+           (@Set.mem (Set Nat) (∅)
+             (@Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) =&gt; (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+               ((@Set.singleton (Set Nat) (@Set.univ Nat)))))
+           (@Exists.intro (Set Nat)
+             (fun (x : Set Nat) =&gt;
+               x ∈ ((@Set.singleton (Set Nat) (∅))) ∧  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                 @Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.empty Nat))
+             (∅)
+             (@And.intro
+               (@Set.mem (Set Nat) (∅) (@Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+               (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) (@Set.empty Nat))
+                 (∅))
+               (@Eq.refl.{1} (Set Nat) (∅))
+               (@Eq.refl.{1} (Set Nat) (∅))))
+           (@Exists.intro (Set Nat)
+             (fun (x : Set Nat) =&gt;
+               x ∈ ((@Set.singleton (Set Nat) (@Set.univ Nat))) ∧  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                 @Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.empty Nat))
+             (@Set.univ Nat)
+             (@And.intro
+               ((@Set.univ Nat) ∈ ((@Set.singleton (Set Nat) (@Set.univ Nat))))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+               (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) (@Set.univ Nat))
+                 (∅))
+               (@Eq.refl.{1} (Set Nat) (@Set.univ Nat))
+               (@Eq.refl.{1} (Set Nat) (∅))))
+         )
+        )
+        (fun (x : Set Nat) =&gt;
+          fun (hx :
+          (@Set.inter (Set Nat) ((@Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+              ((@Set.singleton (Set Nat) (@Set.univ Nat))) x) ∧
+            (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x) (@Set.empty Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+          ) =&gt;
+          Set.notMem_empty 0
+            (@Eq.subst.{1} (Set Nat) (fun (Z : Set Nat) =&gt; 0 ∈ Z)
+              (@Set.univ Nat) (∅)
+              (@Eq.trans.{1} (Set Nat) (@Set.univ Nat) x (∅)
+                (@Eq.symm.{1} (Set Nat) x (@Set.univ Nat)
+                  (@And.right
+                    ((fun (s : Set (Set Nat)) =&gt; s x) (@Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    ((fun (s : Set (Set Nat)) =&gt; s x) (@Set.singleton (Set Nat) (@Set.univ Nat)))
+                    (@And.left
+                      (@Set.inter (Set Nat) ((@Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                        ((@Set.singleton (Set Nat) (@Set.univ Nat))) x)
+                      (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                        (∅))
+                      hx)))
+                (@And.left
+                  ((fun (s : Set (Set Nat)) =&gt; s x) (@Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                  ((fun (s : Set (Set Nat)) =&gt; s x) (@Set.singleton (Set Nat) (@Set.univ Nat)))
+                  (@And.left
+                    (@Set.inter (Set Nat) ((@Set.singleton (Set Nat) (∅)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                      ((@Set.singleton (Set Nat) (@Set.univ Nat))) x)
+                    (@Eq.{1} (Set Nat) ((fun (_ : Set Nat) =&gt; @Set.empty Nat) x)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                      (∅))
+                    hx)))
+              (Set.mem_univ 0))))</code></pre></details><details open class="appendix-solution" id="app-sol-12-8"><summary>练习 8 · project_chain <span class="sol-meta">定理</span></summary><p class="solution-note">P1（期末小项目）：一条链把三层串起来。
+  关系层：函数的图像（<code>fun a b =&gt; f a = b</code>）也是关系，复合图像的<strong>关系复合</strong> <span class="math">=</span> 复合函数的图像；
+  集合层：复合函数的<strong>像</strong> <span class="math">=</span> 先取内层像、再取外层像。</p><pre><code>theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set α) :
+    (fun (a : α) =&gt; fun (b : β) =&gt; f a = b) • (fun (b : β) =&gt; fun (c : γ) =&gt; g b = c)
+      = (fun (a : α) =&gt; fun (c : γ) =&gt; g (f a) = c)
+    ∧ (g ∘ f) '' A = g '' (f '' A) :=
+  @And.intro
+    ((fun (a : α) =&gt; fun (b : β) =&gt; f a = b) • (fun (b : β) =&gt; fun (c : γ) =&gt; g b = c)
+      = (fun (a : α) =&gt; fun (c : γ) =&gt; g (f a) = c))
+    ((g ∘ f) '' A = g '' (f '' A))
+    (Rel.ext α γ
+      ((fun (a : α) =&gt; fun (b : β) =&gt; f a = b) • (fun (b : β) =&gt; fun (c : γ) =&gt; g b = c))
+      (fun (a : α) =&gt; fun (c : γ) =&gt; g (f a) = c)
+      (fun (a : α) =&gt; fun (c : γ) =&gt;
+        @Iff.intro
+          (((fun (a : α) =&gt; fun (b : β) =&gt; f a = b) • (fun (b : β) =&gt; fun (c : γ) =&gt; g b = c)) a c)
+          ((fun (a : α) =&gt; fun (c : γ) =&gt; g (f a) = c) a c)
+          (fun (h : ((fun (a : α) =&gt; fun (b : β) =&gt; f a = b) • (fun (b : β) =&gt; fun (c : γ) =&gt; g b = c)) a c) =&gt;
+            @Exists.elim β (fun (b : β) =&gt; f a = b ∧ g b = c) (g (f a) = c) h
+              (fun (b : β) =&gt; fun (hb : f a = b ∧ g b = c) =&gt;
+                @Eq.trans.{1} γ (g (f a)) (g b) c
+                  (congrArg.{1} g (And.left hb))
+                  (And.right hb)))
+          (fun (h : (fun (a : α) =&gt; fun (c : γ) =&gt; g (f a) = c) a c) =&gt;
+            Exists.intro (f a)
+              (And.intro (@Eq.refl.{1} β (f a)) h))))
+    (Set.ext ((g ∘ f) '' A) (g '' (f '' A)) (fun (y : γ) =&gt;
+      @Iff.intro (y ∈ (g ∘ f) '' A) (y ∈ g '' (f '' A))
+        (fun (hy : y ∈ (g ∘ f) '' A) =&gt;
+          @Exists.elim α (fun (x : α) =&gt; (A x) ∧ (((g ∘ f) x) = y))
+            (y ∈ g '' (f '' A)) hy
+            (fun (x : α) =&gt; fun (hx : (x ∈ A) ∧ ((g ∘ f) x = y)) =&gt;
+              Exists.intro (f x)
+                (And.intro
+                  (Exists.intro x
+                    (And.intro
+                      (And.left hx)
+                      (@Eq.refl.{1} β (f x))))
+                  (And.right hx))))
+        (fun (hy : y ∈ g '' (f '' A)) =&gt;
+          @Exists.elim β (fun (b : β) =&gt; ((f '' A) b) ∧ ((g b) = y))
+            (y ∈ (g ∘ f) '' A) hy
+            (fun (b : β) =&gt; fun (hb : ((f '' A) b) ∧ ((g b) = y)) =&gt;
+              -- 嵌套 `cases` 里再 `cases` 会错位，内层改成 `Exists.elim` 项。
+              @Exists.elim α (fun (x : α) =&gt; (A x) ∧ ((f x) = b))
+                (y ∈ (g ∘ f) '' A)
+                (And.left hb)
+                (fun (x : α) =&gt; fun (hx : (A x) ∧ ((f x) = b)) =&gt;
+                  Exists.intro x
+                    (And.intro
+                      (And.left hx)
+                      (@Eq.trans.{1} γ (g (f x)) (g b) y
+                        (congrArg.{1} g (And.right hx))
+                        (And.right hb))))))))</code></pre></details><details open class="appendix-solution" id="app-sol-12-9"><summary>练习 9 · project_chain_cardinal <span class="sol-meta">定理</span></summary><p class="solution-note">P2（期末小项目 <span class="math">·</span> 基数环）：把单元⑨ 的等势与单元⑩ 的 Cantor 钉在一起。
+  ① 搬运：h 给的两把映射<strong>照用</strong>，只有"落在哪一侧"的域条件沿 hC 搬家
+     （三处 Eq.subst：正向一处、反向两处；两条互逆律原样交回，不必动）；
+  ② Cantor 推广到<strong>任意</strong> C'（单元⑩ 练习 4 的 univ 版是它的特例）：
+     对角线集取差集 D :<span class="math">= C'</span> \ (fun (y : <span class="math">γ) =&gt; f y y)</span>（<code>Set.sdiff</code> 展开正好是
+     <code>C' y ∧ ¬ (f y y)</code>）；<span class="math">D ⊆ C'</span> 让它有资格当 𝒫C' 的元素（hD 一行 And.left），
+     ④号互逆律在 D 上把 <code>f (g D)</code> 与 <code>D</code> 接起来，congrArg 作用到 <code>g D</code> 上得到
+     "<code>(f (g D)) (g D)</code> 与 <code>D (g D)</code> 相等"这条<strong>命题等式</strong>，于是 <code>P ↔ ¬P</code>：
+     从 P 得 <span class="math">¬P</span>（And.right），从 <span class="math">¬P</span> 得 P（And.intro 补上域条件再搬回去），
+     两者互喂即 False。
+
+写法提醒（本文件里最容易踩的一条，实测）：<strong>应用脊是平的</strong>——一个参数本身若是应用，
+必须用括号整个包住（<code>(Exists.elim …)</code>、<code>(And.right … hg D hD)</code> 都算），
+否则那些参数会散成外层脊上的参数，内核报出来的是一条"类型不匹配"的怪消息。</p><pre><code>theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
+    (h : A ≈ C) (hC : C = C') :
+    A ≈ C' ∧ ¬ (C' ≈ (𝒫 C')) :=
+  @And.intro
+    (A ≈ C')
+    (¬ (C' ≈ (𝒫 C')))
+    -- `cases` 需要一条**命名**的局部假设（类型要 delta 两步才到 `Exists` 的那种
+    -- 假设它吃不下），所以先用 `have` 把类型摊开——记法写 `∃` 即可。
+    (@Exists.elim (α → γ)
+      (fun (f : α → γ) =&gt;
+        Set.MapsTo α γ f A C ∧
+          (∃ (g : γ → α),
+            Set.MapsTo γ α g C A ∧
+              ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C))))
+      (A ≈ C') h
+      (fun (f : α → γ) =&gt;
+        fun (hf :
+          Set.MapsTo α γ f A C ∧
+            (∃ (g : γ → α),
+              Set.MapsTo γ α g C A ∧
+                ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)))
+        ) =&gt;
+          @Exists.elim (γ → α)
+            (fun (g : γ → α) =&gt;
+              Set.MapsTo γ α g C A ∧
+                ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)))
+            (A ≈ C')
+            (@And.right (Set.MapsTo α γ f A C)
+              (∃ (g : γ → α),
+                Set.MapsTo γ α g C A ∧
+                  ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C))) hf)
+            (fun (g : γ → α) =&gt;
+              fun (hg2 :
+                Set.MapsTo γ α g C A ∧
+                  ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C))
+              ) =&gt;
+                Set.Equiv.mk α γ A C' f g
+                  (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt;
+                    @Eq.subst.{1} (Set γ) (fun (X : Set γ) =&gt; f x ∈ X) C C' hC
+                      (@And.left (Set.MapsTo α γ f A C)
+                        (∃ (g2 : γ → α),
+                          Set.MapsTo γ α g2 C A ∧
+                            (Set.LeftInvOn α γ g2 f A) ∧ (Set.RightInvOn α γ f g2 C)) hf x hx))
+                  (fun (z : γ) =&gt; fun (hz : z ∈ C') =&gt;
+                    @And.left (Set.MapsTo γ α g C A)
+                      ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)) hg2 z
+                      (@Eq.subst.{1} (Set γ) (fun (X : Set γ) =&gt; z ∈ X) C' C
+                        (@Eq.symm.{1} (Set γ) C C' hC) hz))
+                  (@And.left (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    (@And.right (Set.MapsTo γ α g C A)
+                      ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)) hg2))
+                  (fun (z : γ) =&gt; fun (hz : z ∈ C') =&gt;
+                    @And.right (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                      (@And.right (Set.MapsTo γ α g C A)
+                        ((Set.LeftInvOn α γ g f A) ∧ (Set.RightInvOn α γ f g C)) hg2)
+                      z
+                      (@Eq.subst.{1} (Set γ) (fun (X : Set γ) =&gt; z ∈ X) C' C
+                        (@Eq.symm.{1} (Set γ) C C' hC) hz)))))
+    (fun (h2 : C' ≈ (𝒫 C')) =&gt;
+      @Exists.elim (γ → Set γ)
+        (fun (f : γ → Set γ) =&gt;
+          Set.MapsTo γ (Set γ) f C' (𝒫 C') ∧
+            (∃ (g : Set γ → γ),
+              Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
+                ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))))
+        False h2
+        (fun (f : γ → Set γ) =&gt;
+          fun (hf :
+            Set.MapsTo γ (Set γ) f C' (𝒫 C') ∧
+              (∃ (g : Set γ → γ),
+                Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
+                  ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C'))))
+          ) =&gt;
+            @Exists.elim (Set γ → γ)
+              (fun (g : Set γ → γ) =&gt;
+                Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
+                  ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C'))))
+              False
+              (@And.right (Set.MapsTo γ (Set γ) f C' (𝒫 C'))
+                (∃ (g : Set γ → γ),
+                  Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
+                    ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))) hf)
+              (fun (g : Set γ → γ) =&gt;
+                fun (hg2 :
+                  Set.MapsTo (Set γ) γ g (𝒫 C') C' ∧
+                    ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))
+                ) =&gt;
+                  let hD : C' \ (fun (y : γ) =&gt; f y y) ∈ 𝒫 C' :=
+                    fun (y : γ) =&gt; fun (hy : C' y ∧ ¬ (f y y)) =&gt; And.left hy;
+                  let hC'gD : C' (g (C' \ (fun (y : γ) =&gt; f y y))) :=
+                    @And.left (Set.MapsTo (Set γ) γ g (𝒫 C') C')
+                      ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))
+                      hg2 (C' \ (fun (y : γ) =&gt; f y y)) hD;
+                  let hfg : (f (g (C' \ (fun (y : γ) =&gt; f y y)))) = (C' \ (fun (y : γ) =&gt; f y y)) :=  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                    @And.right (Set.LeftInvOn γ (Set γ) g f C') (Set.RightInvOn γ (Set γ) f g (𝒫 C'))
+                      (@And.right (Set.MapsTo (Set γ) γ g (𝒫 C') C')
+                        ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))
+                        hg2)
+                      (C' \ (fun (y : γ) =&gt; f y y)) hD;
+                  let hprop : ((f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y)))) = ((C' \ (fun (y : γ) =&gt; f y y)) (g (C' \ (fun (y : γ) =&gt; f y y)))) :=
+                    congrArg.{1} (fun (S : Set γ) =&gt; S (g (C' \ (fun (y : γ) =&gt; f y y)))) hfg;
+                  let hnot : ¬ ((f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y)))) :=
+                    fun (p : (f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y)))) =&gt;
+                      @And.right (C' (g (C' \ (fun (y : γ) =&gt; f y y))))
+                        (¬ ((f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y)))))
+                        (@Eq.subst.{1} Prop (fun (Q : Prop) =&gt; Q)
+                          ((f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y)))) ((C' \ (fun (y : γ) =&gt; f y y)) (g (C' \ (fun (y : γ) =&gt; f y y)))) hprop p)
+                        p;
+                  let hp : (f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y))) :=
+                    @Eq.subst.{1} Prop (fun (Q : Prop) =&gt; Q)
+                      ((C' \ (fun (y : γ) =&gt; f y y)) (g (C' \ (fun (y : γ) =&gt; f y y)))) ((f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y))))
+                      (@Eq.symm.{1} Prop ((f (g (C' \ (fun (y : γ) =&gt; f y y)))) (g (C' \ (fun (y : γ) =&gt; f y y)))) ((C' \ (fun (y : γ) =&gt; f y y)) (g (C' \ (fun (y : γ) =&gt; f y y)))) hprop)
+                      (And.intro hC'gD hnot);
+                  hnot hp)))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

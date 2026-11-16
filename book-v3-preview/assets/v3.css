@@ -211,3 +211,64 @@ code,pre,pre code{font-family:var(--font-code);font-size:.84em}
 .unit-head h1,.unit-head h2{line-height:1.35}
 .cover h1{line-height:1.25}
 @media (max-width:620px){body{font-size:17px;line-height:1.8}.block.prose p,.unit-intro-body p{line-height:1.85}}
+
+/* ---------- research-backed rail (v3.4): one 13rem rail, no right TOC ---------- */
+:root{--rail-w:13rem;--gap:1.25rem;--header-h:var(--head-h);--prose:68ch;--maxw:72rem}
+.site-shell{grid-template-columns:var(--rail-w) minmax(0,1fr)!important;gap:var(--gap)!important;max-width:var(--maxw)!important;padding:0 1rem!important}
+.site-side{top:calc(var(--header-h) + 1rem)!important;max-height:calc(100dvh - var(--header-h) - 2rem)!important}
+.page{max-width:none!important}
+.block.prose,.unit-intro,.unit-intro-body,.exercise-prompt,.hint-body,.decl-body,.exercise-body{max-width:var(--prose)}
+.side-chapters,.side-units{margin:0 0 .8rem}
+.side-chapters h3,.side-units h3{margin:.4rem 0 .25rem;font-size:.72rem;letter-spacing:.08em;color:var(--muted);font-weight:600;text-transform:uppercase}
+.side-chapters ul,.side-units ol{list-style:none;margin:0;padding:0}
+.side-chapters li a,.side-units li a{display:block;padding:.16rem .3rem;border-radius:4px;color:var(--muted);text-decoration:none;line-height:1.45}
+.side-units li a{font-size:.82rem}
+.side-chapters li a:hover,.side-units li a:hover{background:var(--panel);color:var(--ink)}
+.side-chapters li.is-current a,.side-units li.is-current a{color:var(--accent);font-weight:650;background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.side-close{display:none}
+@media (max-width:1279px){
+  .site-shell{display:block!important;padding:0 1rem!important}
+  .site-side{display:none!important;position:fixed!important;z-index:70;top:var(--header-h);left:0;bottom:0;width:82vw;max-width:320px;background:var(--bg);border-right:0;padding:0 1rem 1rem;overflow:auto!important;max-height:none!important}
+  .site-side.is-open{display:block!important}
+  .side-close{display:block;border:0;background:none;font-size:1.4rem;line-height:1;cursor:pointer;color:var(--ink);padding:.3rem .5rem;min-width:44px;min-height:44px}
+  .side-toggle{display:inline-flex!important;align-items:center;min-height:38px}
+  body.side-open{overflow:hidden}
+  body.side-open::before{content:"";position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.28)}
+}
+@media (min-width:1280px){.side-toggle{display:none!important}}
+@media (max-width:1119px){.site-side{width:82vw;max-width:320px}}
+
+/* ---------- standard textbook theorem/definition environments (v3.5) ---------- */
+.decl{background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;margin:1.5rem 0!important}
+.decl-head{display:block!important;background:none!important;border:0!important;padding:0!important;margin:0 0 .3rem!important;min-height:0!important}
+.decl-kind{display:inline!important;background:none!important;border:0!important;border-radius:0!important;padding:0!important;margin:0 .3em 0 0!important;color:var(--ink)!important;font-family:var(--font-body)!important;font-size:1em!important;font-weight:700!important;letter-spacing:0!important;text-transform:none!important}
+.decl-kind::after{content:"."}
+.decl-name{display:inline!important;background:none!important;border:0!important;padding:0!important;margin:0!important;color:var(--ink)!important;font-family:var(--font-body)!important;font-size:1em!important;font-weight:400!important;font-style:italic!important}
+.decl-name::before{content:"(";font-style:normal;font-weight:400}
+.decl-name::after{content:")";font-style:normal;font-weight:400}
+.decl-where{display:none!important}
+.decl-body{padding:0!important}
+.decl-statement{background:none!important;border:0!important;border-radius:0!important;padding:0!important;margin:.15rem 0 .35rem!important;font-family:var(--font-code)!important;font-size:.84em!important;line-height:1.65!important;overflow:visible!important;white-space:pre-wrap!important}
+.decl-statement code{font-family:var(--font-code)!important;font-size:1em!important;background:none!important;padding:0!important}
+.decl-def .decl-statement{border-left:0!important}
+.code-panel,.proof-panel{margin:.35rem 0 0!important;font-size:.86em!important}
+.exercise-kind{display:inline!important;background:none!important;border:0!important;border-radius:0!important;padding:0!important;margin:0 0 0 .25em!important;color:var(--muted)!important;font-family:var(--font-body)!important;font-size:.85em!important;font-weight:400!important;letter-spacing:0!important;text-transform:none!important}
+.exercise-kind::before{content:"（"}
+.exercise-kind::after{content:"）"}
+.exercise-head{background:none!important;border:0!important;padding:0!important;margin-bottom:.3rem!important}
+.unit-page .exercise{background:none!important;border:0!important;border-radius:0!important;padding:0!important;margin:1.4rem 0!important}
+
+/* ---------- volume switch on cover ---------- */
+.volumes{max-width:var(--prose);margin:1.6rem 0}
+.volume-links{display:grid;gap:.6rem;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr))}
+.volume-card{display:block;border:1px solid var(--line);border-radius:var(--radius);padding:.8rem 1rem;text-decoration:none;color:var(--ink);background:var(--panel)}
+.volume-card strong{display:block;font-size:1rem}
+.volume-card span{display:block;color:var(--muted);font-size:.86rem;margin-top:.15rem}
+.volume-card:hover{border-color:var(--accent)}
+
+/* long formulas/code must not widen a phone page */
+.page,#main,.unit-page,.unit-layout,.decl,.exercise,.prose{min-width:0}
+pre,code,.math,.math-display{max-width:100%;overflow-wrap:anywhere;word-break:break-word}
+.math-display{overflow-x:auto}
+table{display:block;max-width:100%;overflow-x:auto}
+.block.prose p,.unit-intro-body p,.exercise-prompt p,.hint-body p{overflow-wrap:anywhere;word-break:break-word}

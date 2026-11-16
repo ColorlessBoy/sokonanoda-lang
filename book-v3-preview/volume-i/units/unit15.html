@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>15 传递集与序数 · 从集合论到实分析</title>
+<meta name="description" content="单元⑮ 传递集与序数：导语、定义与定理、练习与解答。Unit 15 — Transitive Sets and Ordinals">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit15.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li class="is-current"><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.6 单元</h3><ol><li class="is-current"><a href="../units/unit15.html">15 传递集与序数</a></li><li><a href="../units/unit16.html">16 序数的序：外延性、反对称与零序数</a></li><li><a href="../units/unit42.html">42 良序集的「最小元」</a></li><li><a href="../units/unit80.html">80 序数的元素仍是序数</a></li><li><a href="../units/unit81.html">81 后继的成员刻画</a></li><li><a href="../units/unit82.html">82 后继与序数的合流</a></li><li><a href="../units/unit83.html">83 序数的无环性</a></li><li><a href="../units/unit106.html">106 良基递归（Acc）</a></li><li><a href="../units/unit107.html">107 ∈-归纳与序数三歧（上）</a></li><li><a href="../units/unit108.html">108 序数三歧（引理与装配）</a></li><li><a href="../units/unit109.html">109 序数上的递归与加法（关系版 · 逆引理与结合律）</a></li><li><a href="../units/unit110.html">110 选择公理的取数据（良序定理线入口）</a></li><li><a href="../units/unit111.html">111 ℕ 的算术律（自建 add/mul）</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li aria-current="page">单元 15 传递集与序数</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-15-1">15.1 传递集与序数的定义</a></li>
+<li><a href="#ex-15-1">15.2 把序数拆开用（三条取用子）</a></li>
+<li><a href="#ex-15-4">15.3 必证（本单元旗舰）：序数的元素是序数</a></li>
+<li><a href="#ex-15-5">15.4 后继序数</a></li>
+<li><a href="#ex-15-7">15.5 序数的传递性怎么用</a></li>
+<li><a href="#ex-15-8">15.6 必破：&quot;传递&quot;不能当成全局性质</a></li>
+<li><a href="#appendix-unit-15">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-6.html#units">↑ 本章目录</a>
+      <a href="../print/unit15.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit first-of-chapter" id="unit-15">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-6.html">I.6</a> · 本章第 1 / 13 单元 · 全书第 15 / 112 单元</p>
+<h1><span class="unit-number">15</span> <span>传递集与序数</span></h1>
+<p class="unit-title-en">Unit 15 — Transitive Sets and Ordinals</p>
+<p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-15">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="15" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-15" aria-label="复制单元 15 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit15.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-6.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§7.6 Ordinal Numbers</strong>（<span class="math">+</span> §7.5 Isomorphisms 的前半）；Halmos《Naive Set Theory》<strong>§19 Ordinal Numbers</strong>（<span class="math">+</span> §20 Sets of Ordinal Numbers 的开头）。大纲：<code>set-theory-syllabus.md</code> §4.1（I.6 章）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>序数 <span class="math">=</span> 传递集 <span class="math">+</span> 它的元素都传递</strong>（Isabelle 的 <code>Ord</code>），再加上环境的良基性；由这三条能直接推出<strong>教材核心定理 —— 序数的元素是序数</strong>。还有两道<strong>必破题</strong>：一旦把"传递"错误地当成<strong>全局</strong>性质，整个序数谓词就退化成只剩良基那一半（这正是 <code>lib/Ordinal</code> 2026-10-01 重定形要修的那个坑，见该文件头的 ⚠）。</p></div><div class="block prose intuition-only"><p><strong>写法约定（本单元特有）</strong>：域是一个类型 <code>α</code>，成员关系是一个<strong>二元谓词</strong> <code>E : α → α → Prop</code>（<code>E y x</code> 读作 <code>y ∈ x</code>）—— 这就是"宇宙内化"的读法；序数写成<strong>谓词</strong> <code>α → Prop</code>，因为"全体序数"不是集合（Burali-Forti）✓</p></div><h3 class="unit-subhead">15.1 传递集与序数的定义</h3><div class="block prose intuition-only"><p>读法（逐条对 Isabelle <code>ZFC_in_HOL</code> §1.4，出处见 <code>lib/Ordinal</code> 文件头）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><code>IsTransitive α E x</code>："x 是传递集" —— x 的元素还是 x 的元素；</li><li><code>IsOrdinal α E x</code> <span class="math">=</span> 传递集 <span class="math">∧</span> <strong>元素都传递</strong> <span class="math">∧</span> 环境良基。</li></ul></div><div class="block prose intuition-only"><p>演示：传递集的定义展开。</p></div><article class="decl decl-theorem" id="decl-15-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_isTransitive_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_isTransitive_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsTransitive α E x ↔ ∀ (y : α), E y x → ∀ (z : α), E z y → E z x :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  isTransitive_def α E x</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：序数的定义展开（三条）。</p></div><article class="decl decl-theorem" id="decl-15-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_isOrdinal_def</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_isOrdinal_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsOrdinal α E x ↔
+      IsTransitive α E x ∧ (∀ (y : α), E y x → IsTransitive α E y) ∧ IsWellFounded α E :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  isOrdinal_def α E x</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：后继的定义展开（<code>x</code> 是 <code>y</code> 的后继 <span class="math">⟺ x</span> 的元素恰好是 y 的元素加上 y）。</p></div><article class="decl decl-theorem" id="decl-15-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_isSuccOf_def</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_isSuccOf_def (α : Type) (E : α → α → Prop) (x y : α) :
+    IsSuccOf α E x y ↔
+      IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  isSuccOf_def α E x y</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">15.2 把序数拆开用（三条取用子）</h3><article class="exercise" id="ex-15-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ordinal_isTransitive_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-15-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：序数 <span class="math">⇒</span> <strong>传递集</strong>。</p></div></div><pre class="exercise-statement"><code>theorem ordinal_isTransitive_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>三条里的第一条，库里的取用子直接交出来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsTransitive α E x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>ordinal_isTransitive</code>（参数表：论域 <span class="math">·</span> 关系 <span class="math">·</span> 元素 <span class="math">·</span> 序数证据）。</p></div></details></div><details class="solution-panel" id="sol-15-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 1–3（T 类）：三条取用子 ──────────────────────────────────────────</p><pre><code>theorem ordinal_isTransitive_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x :=
+  ordinal_isTransitive α E x h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-15-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ordinal_elems_isTransitive_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-15-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：序数 <span class="math">⇒</span> <strong>它的每个元素都传递</strong>。</p></div></div><pre class="exercise-statement"><code>theorem ordinal_elems_isTransitive_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) (y : α) : E y x → IsTransitive α E y := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>三条里的第二条 —— 注意它多带一个"哪个元素"的参数。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>E y x → IsTransitive α E y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>ordinal_elems_isTransitive</code>（最后那个 <code>y</code> 由调用方给）。</p></div></details></div><details class="solution-panel" id="sol-15-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem ordinal_elems_isTransitive_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) (y : α) : E y x → IsTransitive α E y :=
+  ordinal_elems_isTransitive α E x h y</code></pre></div></details></div></article>
+<article class="exercise" id="ex-15-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ordinal_wellFounded_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-15-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：序数 <span class="math">⇒</span> <strong>环境的良基性</strong>。</p></div></div><pre class="exercise-statement"><code>theorem ordinal_wellFounded_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsWellFounded α E := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>三条里的第三条。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsWellFounded α E</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>ordinal_wellFounded</code>。</p></div></details></div><details class="solution-panel" id="sol-15-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem ordinal_wellFounded_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsWellFounded α E :=
+  ordinal_wellFounded α E x h</code></pre></div></details></div></article>
+<h3 class="unit-subhead">15.3 必证（本单元旗舰）：<strong>序数的元素是序数</strong></h3><article class="exercise" id="ex-15-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">ordinal_elem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-15-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>这是教材里"序数"这个概念<strong>之所以好用</strong>的根源：序数类对 <code>∈</code> 封闭。证明之所以短，正是因为定义的第二条把"元素传递"直接写进去了 ✓</p></div><div class="block prose intuition-only"><p>练习 4（L 类）：<strong>序数的元素是序数</strong>。</p></div></div><pre class="exercise-statement"><code>theorem ordinal_elem (α : Type) (E : α → α → Prop) (x y : α)
+    (hy : IsOrdinal α E y) (hxy : E x y) : IsOrdinal α E x := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要证 <code>IsOrdinal α E x</code> 的三条：(a) <code>x</code> 传递 —— 由 <code>y</code> 的<strong>元素传递</strong>（第二条）作用在 <code>x ∈ y</code> 上直接得到；(b) <code>x</code> 的元素都传递 —— 先由 <code>y</code> 的<strong>传递性</strong>把 <code>z ∈ x ∈ y</code> 接成 <code>z ∈ y</code>，再用 <code>y</code> 的元素传递性；(c) 良基 —— 与 <code>y</code> 共用一个环境，直接取。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsOrdinal α E x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isOrdinal_intro</code>（三条证据一次给全）<span class="math">·</span> 练习 1/2/3 的三条取用子 <span class="math">·</span>注意 (b) 里要用 <code>ordinal_isTransitive</code> <strong>先 <code>fun (ht : …) =&gt; …</code> 把类型写出来</strong>再应用（G-73）。</p></div></details></div><details class="solution-panel" id="sol-15-4"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 4（L 类）：序数的元素是序数（本单元旗舰）─────────────────────────</p><pre><code>theorem ordinal_elem (α : Type) (E : α → α → Prop) (x y : α)
+    (hy : IsOrdinal α E y) (hxy : E x y) : IsOrdinal α E x :=
+  isOrdinal_intro α E x
+    (ordinal_elems_isTransitive α E y hy x hxy)
+    (fun (z : α) (hzx : E z x) =&gt;
+      ordinal_elems_isTransitive α E y hy z
+        ((fun (ht : ∀ (a : α), E a y → ∀ (b : α), E b a → E b y) =&gt; ht x hxy z hzx)
+          (ordinal_isTransitive α E y hy)))
+    (ordinal_wellFounded α E y hy)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">15.4 后继序数</h3><article class="exercise" id="ex-15-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">succ_isOrdinal</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-15-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（T 类）：后继序数是<strong>序数</strong>。</p></div></div><pre class="exercise-statement"><code>theorem succ_isOrdinal (α : Type) (E : α → α → Prop) (x y : α)
+    (h : IsSuccOf α E x y) : IsOrdinal α E x := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>IsSuccOf</code> 的定义是一个合取，取左支。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsOrdinal α E x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>And.left</code>（<code>IsSuccOf</code> 的定义体<strong>就是</strong>一个合取，可以直接取支）。</p></div></details></div><details class="solution-panel" id="sol-15-5"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 5–6（T/L 类）：后继 ──────────────────────────────────────────────</p><pre><code>theorem succ_isOrdinal (α : Type) (E : α → α → Prop) (x y : α)
+    (h : IsSuccOf α E x y) : IsOrdinal α E x :=
+  And.left h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-15-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">succ_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-15-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类）：<strong>后继的元素刻画</strong> —— <code>x</code> 的元素恰好是 <code>y</code> 的元素加上 <code>y</code> 自己。</p></div></div><pre class="exercise-statement"><code>theorem succ_mem (α : Type) (E : α → α → Prop) (x y z : α)
+    (h : IsSuccOf α E x y) : E z x ↔ (E z y ∨ z = y) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>IsSuccOf</code> 那个合取的右支就是一条 <code>↔</code>，把 <code>z</code> 代进去。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>E z x ↔ (E z y ∨ z = y)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>And.right</code> 拿到的是<strong>定义头</strong>类型（一个 <code>∀</code>），不能直接应用 —— 先 <code>fun (h2 : ∀ (z' : α), …) =&gt; h2 z</code> 把类型写出来（G-73 形状 ①）。</p></div></details></div><details class="solution-panel" id="sol-15-6"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem succ_mem (α : Type) (E : α → α → Prop) (x y z : α)
+    (h : IsSuccOf α E x y) : E z x ↔ (E z y ∨ z = y) :=
+  (fun (h2 : ∀ (z' : α), E z' x ↔ (E z' y ∨ z' = y)) =&gt; h2 z) (And.right h)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">15.5 序数的传递性怎么用</h3><article class="exercise" id="ex-15-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">ordinal_trans_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-15-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类）：<strong><code>∈</code> 在序数内部是可以接的</strong> —— <code>x ∈ y</code> 且 <code>z ∈ x</code> 则 <code>z ∈ y</code>。</p></div></div><pre class="exercise-statement"><code>theorem ordinal_trans_mem (α : Type) (E : α → α → Prop) (x y z : α)
+    (hy : IsOrdinal α E y) (hxy : E x y) : E z x → E z y := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>这正是"<code>y</code> 是传递集"这条的展开形式，把两条证据喂进去。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>E z x → E z y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>ordinal_isTransitive</code>（参数表：论域 <span class="math">·</span> 关系 <span class="math">·</span> 元素 <span class="math">·</span> 序数证据 <span class="math">·</span>第一个元素 <span class="math">·</span> 它在里面 <span class="math">·</span> 第二个元素 <span class="math">·</span> 它也在里面）。</p></div></details></div><details class="solution-panel" id="sol-15-7"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 7（L 类）：<code>∈</code> 在序数内部可以接 ──────────────────────────────────</p><pre><code>theorem ordinal_trans_mem (α : Type) (E : α → α → Prop) (x y z : α)
+    (hy : IsOrdinal α E y) (hxy : E x y) : E z x → E z y :=
+  fun (hzx : E z x) =&gt; ordinal_isTransitive α E y hy x hxy z hzx</code></pre></div></details></div></article>
+<h3 class="unit-subhead">15.6 必破：<strong>"传递"不能当成全局性质</strong></h3><article class="exercise" id="ex-15-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">global_transitive_vacuous</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-15-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><code>lib/Ordinal</code> 2026-10-01 重定形之前的定义把「<code>E</code> 全局传递」也写进了序数谓词，那会让整个谓词<strong>退化</strong>（与 <code>x</code> 无关）。下面两题把这个后果<strong>证出来</strong>：一旦 <code>E</code> 全局传递，则（8）每个 <code>x</code> 都是传递集、（9）序数谓词只剩良基那一半。</p></div><div class="block prose intuition-only"><p>练习 8（D 类）：<strong>全局传递 <span class="math">⇒</span> "传递集"这个概念就废了</strong>（每个元素都传递）。</p></div></div><pre class="exercise-statement"><code>theorem global_transitive_vacuous (α : Type) (E : α → α → Prop)
+    (h : Transitive α E) (x : α) : IsTransitive α E x := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要证 <code>x</code> 传递，就是"两条 <code>E</code> 证据接起来"—— 全局传递正好提供这条规则，注意参数顺序：<code>E y x</code> 与 <code>E z y</code> 要给成 <code>E z y → E y x → E z x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsTransitive α E x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Transitive α E</code> 的展开是 <code>∀ a b c, E a b → E b c → E a c</code>（<strong><span class="math">a→b→c</span> 的方向</strong>，别接反）。</p></div></details></div><details class="solution-panel" id="sol-15-8"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 8（D 类）：全局传递 <span class="math">⇒</span> 每个元素都是传递集 ─────────────────────────</p><pre><code>theorem global_transitive_vacuous (α : Type) (E : α → α → Prop)
+    (h : Transitive α E) (x : α) : IsTransitive α E x :=
+  fun (y : α) (hyx : E y x) (z : α) (hzy : E z y) =&gt; h z y x hzy hyx</code></pre></div></details></div></article>
+<article class="exercise" id="ex-15-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">global_transitive_ordinal_trivial</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-15-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（D 类）：<strong>全局传递 <span class="math">⇒</span> 序数谓词只剩良基那一半</strong>（与 <code>x</code> 无关）。</p></div></div><pre class="exercise-statement"><code>theorem global_transitive_ordinal_trivial (α : Type) (E : α → α → Prop)
+    (h : Transitive α E) (x : α) : IsOrdinal α E x ↔ IsWellFounded α E := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个方向。<span class="math">→</span> 方向取序数的第三条；<span class="math">←</span> 方向用练习 8 造前两条（第二条也要"每个 <code>y</code> 都传递"，同样是练习 8 的实例）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsOrdinal α E x ↔ IsWellFounded α E</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isOrdinal_intro</code>（三条证据）<span class="math">+</span> <code>ordinal_wellFounded</code> <span class="math">+</span> 练习 8。</p></div></details></div><details class="solution-panel" id="sol-15-9"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 9（D 类）：全局传递 <span class="math">⇒</span> 序数谓词只剩良基那一半 ─────────────────────</p><pre><code>theorem global_transitive_ordinal_trivial (α : Type) (E : α → α → Prop)
+    (h : Transitive α E) (x : α) : IsOrdinal α E x ↔ IsWellFounded α E :=
+  Iff.intro (fun (ho : IsOrdinal α E x) =&gt; ordinal_wellFounded α E x ho)
+    (fun (hwf : IsWellFounded α E) =&gt;
+      isOrdinal_intro α E x (global_transitive_vacuous α E h x)
+        (fun (y : α) (hyx : E y x) =&gt; global_transitive_vacuous α E h y) hwf)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-15-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">emptyRelation_all_ordinals</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-15-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（D 类）：<strong>空关系下每个元素都是序数</strong> —— 三条里前两条在空关系下<strong>真空成立</strong>。</p></div></div><pre class="exercise-statement"><code>theorem emptyRelation_all_ordinals (α : Type) (x : α) :
+    IsOrdinal α (EmptyRelation α α) x := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>三条分别给证据：前两条都是"拿到一条 <code>E</code> 证据就交出去"（那种证据本身就是 <code>False</code>，真空地成立）；第三条是空关系良基（单元⑭ 练习 9 证过）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsOrdinal α (EmptyRelation α α) x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isOrdinal_intro</code> <span class="math">+</span> <code>isWellFounded_intro</code> <span class="math">+</span> <code>hasMin_intro</code> <span class="math">+</span> <code>Exists.elim</code>（<strong>前导实参要写全</strong>，G-73 形状 ②）。</p></div></details></div><details class="solution-panel" id="sol-15-10"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 10（D 类）：空关系下每个元素都是序数 ─────────────────────────────</p><pre><code>theorem emptyRelation_all_ordinals (α : Type) (x : α) :
+    IsOrdinal α (EmptyRelation α α) x :=
+  isOrdinal_intro α (EmptyRelation α α) x
+    (fun (y : α) (hy : EmptyRelation α α y x) (z : α) (hz : EmptyRelation α α z y) =&gt; hy)
+    (fun (y : α) (hy : EmptyRelation α α y x) =&gt;
+      fun (a : α) (ha : EmptyRelation α α a y) (b : α) (hb : EmptyRelation α α b a) =&gt; ha)
+    (isWellFounded_intro α (EmptyRelation α α)
+      (fun (P : α → Prop) (hP : ∃ (m : α), P m) =&gt;
+        @Exists.elim α P (HasMin α (EmptyRelation α α) P) hP  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+          (fun (m : α) (hm : P m) =&gt;
+            hasMin_intro α (EmptyRelation α α) P m hm
+              (fun (y : α) (hy : P y) (hf : EmptyRelation α α y m) =&gt; hf))))</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元只 <code>import</code> 一样</strong>：<code>lib.Ordinal</code>（它自己 <code>import lib.Order</code>，于是良基的取用子/智能构造子也能用）。</p></div><div class="block prose intuition-only"><p>依赖：单元⑭（良序与良基）—— 本单元的良基那一半直接用它的词汇。</p></div><div class="block prose intuition-only"><p>⚠ 第二条<strong>不能省</strong>：它是「序数的元素是序数」这条定理<strong>直接可证</strong>的原因 ✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit67.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title"><span class="math">⊆</span> 是一个偏序</span></a><a class="unit-nav-home" href="../chapters/i-6.html#units">目录</a><a class="unit-nav-link" href="../units/unit16.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">序数的序：外延性、反对称与零序数</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-15"><h3><a href="#top">传递集与序数</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-15-1"><summary>练习 1 · ordinal_isTransitive_apply <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 1–3（T 类）：三条取用子 ──────────────────────────────────────────</p><pre><code>theorem ordinal_isTransitive_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsTransitive α E x :=
+  ordinal_isTransitive α E x h</code></pre></details><details class="appendix-solution" id="app-sol-15-2"><summary>练习 2 · ordinal_elems_isTransitive_apply <span class="sol-meta">定理</span></summary><pre><code>theorem ordinal_elems_isTransitive_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) (y : α) : E y x → IsTransitive α E y :=
+  ordinal_elems_isTransitive α E x h y</code></pre></details><details class="appendix-solution" id="app-sol-15-3"><summary>练习 3 · ordinal_wellFounded_apply <span class="sol-meta">定理</span></summary><pre><code>theorem ordinal_wellFounded_apply (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsOrdinal α E x) : IsWellFounded α E :=
+  ordinal_wellFounded α E x h</code></pre></details><details class="appendix-solution" id="app-sol-15-4"><summary>练习 4 · ordinal_elem <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 4（L 类）：序数的元素是序数（本单元旗舰）─────────────────────────</p><pre><code>theorem ordinal_elem (α : Type) (E : α → α → Prop) (x y : α)
+    (hy : IsOrdinal α E y) (hxy : E x y) : IsOrdinal α E x :=
+  isOrdinal_intro α E x
+    (ordinal_elems_isTransitive α E y hy x hxy)
+    (fun (z : α) (hzx : E z x) =&gt;
+      ordinal_elems_isTransitive α E y hy z
+        ((fun (ht : ∀ (a : α), E a y → ∀ (b : α), E b a → E b y) =&gt; ht x hxy z hzx)
+          (ordinal_isTransitive α E y hy)))
+    (ordinal_wellFounded α E y hy)</code></pre></details><details class="appendix-solution" id="app-sol-15-5"><summary>练习 5 · succ_isOrdinal <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 5–6（T/L 类）：后继 ──────────────────────────────────────────────</p><pre><code>theorem succ_isOrdinal (α : Type) (E : α → α → Prop) (x y : α)
+    (h : IsSuccOf α E x y) : IsOrdinal α E x :=
+  And.left h</code></pre></details><details class="appendix-solution" id="app-sol-15-6"><summary>练习 6 · succ_mem <span class="sol-meta">定理</span></summary><pre><code>theorem succ_mem (α : Type) (E : α → α → Prop) (x y z : α)
+    (h : IsSuccOf α E x y) : E z x ↔ (E z y ∨ z = y) :=
+  (fun (h2 : ∀ (z' : α), E z' x ↔ (E z' y ∨ z' = y)) =&gt; h2 z) (And.right h)</code></pre></details><details class="appendix-solution" id="app-sol-15-7"><summary>练习 7 · ordinal_trans_mem <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 7（L 类）：<code>∈</code> 在序数内部可以接 ──────────────────────────────────</p><pre><code>theorem ordinal_trans_mem (α : Type) (E : α → α → Prop) (x y z : α)
+    (hy : IsOrdinal α E y) (hxy : E x y) : E z x → E z y :=
+  fun (hzx : E z x) =&gt; ordinal_isTransitive α E y hy x hxy z hzx</code></pre></details><details class="appendix-solution" id="app-sol-15-8"><summary>练习 8 · global_transitive_vacuous <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 8（D 类）：全局传递 <span class="math">⇒</span> 每个元素都是传递集 ─────────────────────────</p><pre><code>theorem global_transitive_vacuous (α : Type) (E : α → α → Prop)
+    (h : Transitive α E) (x : α) : IsTransitive α E x :=
+  fun (y : α) (hyx : E y x) (z : α) (hzy : E z y) =&gt; h z y x hzy hyx</code></pre></details><details class="appendix-solution" id="app-sol-15-9"><summary>练习 9 · global_transitive_ordinal_trivial <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 9（D 类）：全局传递 <span class="math">⇒</span> 序数谓词只剩良基那一半 ─────────────────────</p><pre><code>theorem global_transitive_ordinal_trivial (α : Type) (E : α → α → Prop)
+    (h : Transitive α E) (x : α) : IsOrdinal α E x ↔ IsWellFounded α E :=
+  Iff.intro (fun (ho : IsOrdinal α E x) =&gt; ordinal_wellFounded α E x ho)
+    (fun (hwf : IsWellFounded α E) =&gt;
+      isOrdinal_intro α E x (global_transitive_vacuous α E h x)
+        (fun (y : α) (hyx : E y x) =&gt; global_transitive_vacuous α E h y) hwf)</code></pre></details><details class="appendix-solution" id="app-sol-15-10"><summary>练习 10 · emptyRelation_all_ordinals <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 10（D 类）：空关系下每个元素都是序数 ─────────────────────────────</p><pre><code>theorem emptyRelation_all_ordinals (α : Type) (x : α) :
+    IsOrdinal α (EmptyRelation α α) x :=
+  isOrdinal_intro α (EmptyRelation α α) x
+    (fun (y : α) (hy : EmptyRelation α α y x) (z : α) (hz : EmptyRelation α α z y) =&gt; hy)
+    (fun (y : α) (hy : EmptyRelation α α y x) =&gt;
+      fun (a : α) (ha : EmptyRelation α α a y) (b : α) (hb : EmptyRelation α α b a) =&gt; ha)
+    (isWellFounded_intro α (EmptyRelation α α)
+      (fun (P : α → Prop) (hP : ∃ (m : α), P m) =&gt;
+        @Exists.elim α P (HasMin α (EmptyRelation α α) P) hP  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+          (fun (m : α) (hm : P m) =&gt;
+            hasMin_intro α (EmptyRelation α α) P m hm
+              (fun (y : α) (hy : P y) (hf : EmptyRelation α α y m) =&gt; hf))))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit67.html">← 67 ⊆ 是一个偏序</a><a class="next" href="../units/unit16.html">16 序数的序：外延性、反对称与零序数 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 28 集合代数：分配律与 De Morgan</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit28.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 28 集合代数：分配律与 De Morgan</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit28.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.11 集合代数 · 单元 28</p><h1>集合代数：分配律与 De Morgan</h1><p class="note">Unit 28 — Set Algebra: Distributivity and De Morgan</p></header><section class="unit first-of-chapter" id="unit-28">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-11.html">I.11</a> · 本章第 1 / 7 单元 · 全书第 28 / 112 单元</p>
+<h2><span class="unit-number">28</span><span>集合代数：分配律与 De Morgan</span></h2>
+<p class="unit-title-en">Unit 28 — Set Algebra: Distributivity and De Morgan</p>
+<p class="unit-meta">11 个定理 · 8 道练习 · 24 条提示 · <a href="#appendix-unit-28">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§5–6</strong>（并交差的代数律）<span class="math">·Enderton</span>《Elements of Set Theory》<strong>§1.8 / §2.2</strong>（集合运算律）。大纲：<code>set-theory-syllabus.md</code> §4.1（I.11 章「集合代数」开工）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>分配律两个方向</strong> <span class="math">·</span> <strong>De Morgan 的两条</strong>（哪一条能证、哪一条只有一半）<span class="math">·</span> <strong>吸收律</strong> <span class="math">·</span> <strong>逆否</strong>（<code>A ⊆ B ⇒ Bᶜ ⊆ Aᶜ</code>）<span class="math">·</span> <strong>差 <span class="math">=</span> 交补</strong> ✓</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><code>(A ∪ B)ᶜ = Aᶜ ∩ Bᶜ</code> <strong>整条都能证</strong> ✓</li><li><code>(A ∩ B)ᶜ = Aᶜ ∪ Bᶜ</code> <strong>只有一个方向能证</strong>（<code>Aᶜ ∪ Bᶜ ⊆ (A ∩ B)ᶜ</code>），另一个方向等价于"<code>¬(p ∧ q) → ¬p ∨ ¬q</code>" —— <strong>要排中律</strong> ✗（缺口 <strong>G-74</strong>）</li><li>同理 <code>Aᶜᶜ = A</code> 与 <code>A ∪ Aᶜ = Set.univ</code> 也<strong>做不了</strong>（都要排中律）<span class="math">⇒</span> <strong>如实不排</strong> ✓</li></ul></div><h3 class="unit-subhead">28.1 三条库引理（并、差、包含的展开）</h3><div class="block prose intuition-only"><p>演示：并的成员刻画。</p></div><article class="decl decl-theorem" id="decl-28-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_union</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∪ B) ↔ (a ∈ A ∨ a ∈ B) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_union a A B</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：差的成员刻画。</p></div><article class="decl decl-theorem" id="decl-28-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_sdiff</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_sdiff (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A \ B) ↔ (a ∈ A ∧ ¬ (a ∈ B)) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_sdiff a A B</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：包含的展开（"每个点"形态）。</p></div><article class="decl decl-theorem" id="decl-28-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_subset_def</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_subset_def (α : Type) (A B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.subset_def A B</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">28.2 差与补：<strong>差就是交补</strong></h3><article class="exercise" id="ex-28-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">sdiff_eq_inter_compl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-28-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：<code>A \ B = A ∩ Bᶜ</code>（两个方向都是"把合取的两个支换个说法"）。</p></div></div><pre class="exercise-statement"><code>theorem sdiff_eq_inter_compl (α : Type) (A B : Set α) :
+    A \ B = A ∩ Bᶜ := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>逐点证 <code>↔</code>（用外延公理）；两个方向各自把 <code>A x ∧ ¬ (B x)</code> 原样交出去（<code>Bᶜ</code> 展开就是 <code>¬ (B x)</code>）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A \ B = A ∩ Bᶜ</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.ext</code>（<strong>要写全论域</strong>）<span class="math">·</span> <code>Iff.intro</code>（<strong>前导 Prop 实参写全</strong>）<span class="math">·</span><code>And.intro</code>/<code>And.left</code>/<code>And.right</code> <span class="math">·</span> <strong>后缀记法要加括号</strong>（写 <code>(Bᶜ) x</code>）✓</p></div></details></div><details open class="solution-panel" id="sol-28-1"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem sdiff_eq_inter_compl (α : Type) (A B : Set α) :
+    A \ B = A ∩ Bᶜ :=
+  Set.ext (A \ B) (A ∩ Bᶜ) (fun (x : α) =&gt;
+    @Iff.intro ((A \ B) x) ((A ∩ Bᶜ) x)
+      (fun (h : A x ∧ ¬ (B x)) =&gt; And.intro (And.left h) (And.right h))
+      (fun (h : A x ∧ ¬ (B x)) =&gt; And.intro (And.left h) (And.right h)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">28.3 分配律：<strong>两个方向</strong></h3><article class="exercise" id="ex-28-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">union_inter_distrib_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-28-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类，旗舰之一）：<code>(A ∪ B) ∩ C = (A ∩ C) ∪ (B ∩ C)</code>。</p></div></div><pre class="exercise-statement"><code>theorem union_inter_distrib_right (α : Type) (A B C : Set α) :
+    (A ∪ B) ∩ C = (A ∩ C) ∪ (B ∩ C) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：把交的两个支拆开，左边那个析取用 <code>Or.elim</code> 分两支，各自造出右边的析取；<span class="math">←</span>：把右边的析取分两支，每支都能给出"在并里"与"在 <code>C</code> 里"。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(A ∪ B) ∩ C = (A ∩ C) ∪ (B ∩ C)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.ext</code> <span class="math">·</span> <code>Or.elim</code>/<code>Or.inl</code>/<code>Or.inr</code>（<strong>前导 Prop 实参写全</strong>）<span class="math">·</span><code>And.intro</code>/<code>And.left</code>/<code>And.right</code>（<strong>注意合取是右嵌套</strong>）。</p></div></details></div><details open class="solution-panel" id="sol-28-2"><summary>查看解答 <span class="sol-meta">定理 · 16 行</span></summary><div class="solution-body"><pre><code>theorem union_inter_distrib_right (α : Type) (A B C : Set α) :
+    (A ∪ B) ∩ C = (A ∩ C) ∪ (B ∩ C) :=
+  Set.ext ((A ∪ B) ∩ C) ((A ∩ C) ∪ (B ∩ C)) (fun (x : α) =&gt;
+    @Iff.intro (((A ∪ B) ∩ C) x) (((A ∩ C) ∪ (B ∩ C)) x)
+      (fun (h : (A x ∨ B x) ∧ C x) =&gt;
+        @Or.elim (A x) (B x) ((A x ∧ C x) ∨ (B x ∧ C x))
+          (fun (ha : A x) =&gt; @Or.inl (A x ∧ C x) (B x ∧ C x) (And.intro ha (And.right h)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (fun (hb : B x) =&gt; @Or.inr (A x ∧ C x) (B x ∧ C x) (And.intro hb (And.right h)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (And.left h))
+      (fun (h : (A x ∧ C x) ∨ (B x ∧ C x)) =&gt;
+        @Or.elim (A x ∧ C x) (B x ∧ C x) ((A x ∨ B x) ∧ C x)
+          (fun (ha : A x ∧ C x) =&gt;
+            And.intro (@Or.inl (A x) (B x) (And.left ha)) (And.right ha))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (fun (hb : B x ∧ C x) =&gt;
+            And.intro (@Or.inr (A x) (B x) (And.left hb)) (And.right hb))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          h))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-28-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">inter_union_distrib_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-28-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类，旗舰之一）：<strong>对偶的那一条</strong> <code>(A ∩ B) ∪ C = (A ∪ C) ∩ (B ∪ C)</code>。</p></div></div><pre class="exercise-statement"><code>theorem inter_union_distrib_right (α : Type) (A B C : Set α) :
+    (A ∩ B) ∪ C = (A ∪ C) ∩ (B ∪ C) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：把左边的析取分开，<code>C</code> 那一支直接给两个"在并里"；<span class="math">←</span>：右边是两个析取，需要<strong>双重 <code>Or.elim</code></strong>（先拆 <code>A ∨ C</code>，再拆 <code>B ∨ C</code>），其中两支直接给 <code>C</code>，剩下两支合成交。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(A ∩ B) ∪ C = (A ∪ C) ∩ (B ∪ C)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.ext</code> <span class="math">·</span> 两次 <code>Or.elim</code> <span class="math">·</span> <code>Or.inl</code>/<code>Or.inr</code> <span class="math">·</span> <code>And.intro</code>。</p></div></details></div><details open class="solution-panel" id="sol-28-3"><summary>查看解答 <span class="sol-meta">定理 · 22 行</span></summary><div class="solution-body"><pre><code>theorem inter_union_distrib_right (α : Type) (A B C : Set α) :
+    (A ∩ B) ∪ C = (A ∪ C) ∩ (B ∪ C) :=
+  Set.ext ((A ∩ B) ∪ C) ((A ∪ C) ∩ (B ∪ C)) (fun (x : α) =&gt;
+    @Iff.intro (((A ∩ B) ∪ C) x) (((A ∪ C) ∩ (B ∪ C)) x)
+      (fun (h : (A x ∧ B x) ∨ C x) =&gt;
+        @Or.elim (A x ∧ B x) (C x) ((A x ∨ C x) ∧ (B x ∨ C x))
+          (fun (ha : A x ∧ B x) =&gt;
+            And.intro
+              (@Or.inl (A x) (C x) (And.left ha)) (@Or.inl (B x) (C x) (And.right ha)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (fun (hc : C x) =&gt;
+            And.intro
+              (@Or.inr (A x) (C x) hc) (@Or.inr (B x) (C x) hc))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          h)
+      (fun (h : (A x ∨ C x) ∧ (B x ∨ C x)) =&gt;
+        @Or.elim (A x) (C x) ((A x ∧ B x) ∨ C x)
+          (fun (ha : A x) =&gt;
+            @Or.elim (B x) (C x) ((A x ∧ B x) ∨ C x)
+              (fun (hb : B x) =&gt; @Or.inl (A x ∧ B x) (C x) (And.intro ha hb))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+              (fun (hc : C x) =&gt; Or.inr hc)
+              (And.right h))
+          (fun (hc : C x) =&gt; Or.inr hc)
+          (And.left h)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">28.4 De Morgan：<strong>能证的那条</strong></h3><article class="exercise" id="ex-28-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">compl_union</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-28-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>本单元旗舰</strong>）：<code>(A ∪ B)ᶜ = Aᶜ ∩ Bᶜ</code>（<strong>整条都能证</strong>）。</p></div></div><pre class="exercise-statement"><code>theorem compl_union (α : Type) (A B : Set α) :
+    (A ∪ B)ᶜ = Aᶜ ∩ Bᶜ := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：假设 <code>¬(A x ∨ B x)</code>，两个方向各自"把析取的左/右支喂给假设"；<span class="math">←</span>：假设 <code>¬A x ∧ ¬B x</code>，反过来对 <code>A x ∨ B x</code> 做 <code>Or.elim</code>，两支分别撞上两个否定。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(A ∪ B)ᶜ = Aᶜ ∩ Bᶜ</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.ext</code> <span class="math">·</span> <code>Or.elim</code>/<code>Or.inl</code>/<code>Or.inr</code> <span class="math">·</span> <strong>否定是函数</strong> ——"用假设消掉一个析取支"就是<strong>把它当函数应用</strong> ✓</p></div></details></div><details open class="solution-panel" id="sol-28-4"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem compl_union (α : Type) (A B : Set α) :
+    (A ∪ B)ᶜ = Aᶜ ∩ Bᶜ :=
+  Set.ext ((A ∪ B)ᶜ) (Aᶜ ∩ Bᶜ) (fun (x : α) =&gt;
+    @Iff.intro (¬ (A x ∨ B x)) (¬ (A x) ∧ ¬ (B x))
+      (fun (h : ¬ (A x ∨ B x)) =&gt;
+        And.intro
+          (fun (ha : A x) =&gt; h (@Or.inl (A x) (B x) ha))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (fun (hb : B x) =&gt; h (@Or.inr (A x) (B x) hb)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+      (fun (h : ¬ (A x) ∧ ¬ (B x)) =&gt;
+        fun (hab : A x ∨ B x) =&gt;
+          @Or.elim (A x) (B x) False (And.left h) (And.right h) hab))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全</code></pre></div></details></div></article>
+<article class="exercise" id="ex-28-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">compl_inter_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-28-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：<strong>De Morgan 的另一条只有一半</strong>：<code>Aᶜ ∪ Bᶜ ⊆ (A ∩ B)ᶜ</code>。</p></div></div><pre class="exercise-statement"><code>theorem compl_inter_subset (α : Type) (A B : Set α) :
+    Aᶜ ∪ Bᶜ ⊆ (A ∩ B)ᶜ := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把左边的析取分开，两支各自"把交的一个支喂给对应的否定"。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Aᶜ ∪ Bᶜ ⊆ (A ∩ B)ᶜ</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Or.elim</code> <span class="math">·</span> <code>And.left</code>/<code>And.right</code> <span class="math">·</span> 否定当函数用。⚠ <strong>反方向要排中律</strong> <span class="math">⇒</span> 本单元<strong>如实不排</strong>（G-74）✓</p></div></details></div><details open class="solution-panel" id="sol-28-5"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem compl_inter_subset (α : Type) (A B : Set α) :
+    Aᶜ ∪ Bᶜ ⊆ (A ∩ B)ᶜ :=
+  fun (x : α) (h : (Aᶜ) x ∨ (Bᶜ) x) =&gt;
+    @Or.elim ((Aᶜ) x) ((Bᶜ) x) (¬ (A x ∧ B x))
+      (fun (ha : ¬ (A x)) =&gt; fun (hab : A x ∧ B x) =&gt; ha (And.left hab))
+      (fun (hb : ¬ (B x)) =&gt; fun (hab : A x ∧ B x) =&gt; hb (And.right hab))
+      h</code></pre></div></details></div></article>
+<h3 class="unit-subhead">28.5 吸收律与逆否</h3><article class="exercise" id="ex-28-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">union_absorb</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-28-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类）：<code>A ∪ (A ∩ B) = A</code>（吸收律）。</p></div></div><pre class="exercise-statement"><code>theorem union_absorb (α : Type) (A B : Set α) :
+    A ∪ (A ∩ B) = A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：左边的析取分两支，第二支取合取的左支；<span class="math">←</span>：右边直接用析取的左支。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A ∪ (A ∩ B) = A</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.ext</code> <span class="math">·</span> <code>Or.elim</code> <span class="math">·</span> <code>Or.inl</code> <span class="math">·</span> <code>And.left</code>。</p></div></details></div><details open class="solution-panel" id="sol-28-6"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem union_absorb (α : Type) (A B : Set α) :
+    A ∪ (A ∩ B) = A :=
+  Set.ext (A ∪ (A ∩ B)) A (fun (x : α) =&gt;
+    @Iff.intro (A x ∨ (A x ∧ B x)) (A x)
+      (fun (h : A x ∨ (A x ∧ B x)) =&gt;
+        @Or.elim (A x) (A x ∧ B x) (A x)
+          (fun (ha : A x) =&gt; ha)
+          (fun (hab : A x ∧ B x) =&gt; And.left hab)
+          h)
+      (fun (ha : A x) =&gt; @Or.inl (A x) (A x ∧ B x) ha))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全</code></pre></div></details></div></article>
+<article class="exercise" id="ex-28-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">inter_absorb</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-28-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类）：<code>A ∩ (A ∪ B) = A</code>（对偶的吸收律）。</p></div></div><pre class="exercise-statement"><code>theorem inter_absorb (α : Type) (A B : Set α) :
+    A ∩ (A ∪ B) = A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：直接取交的左支；<span class="math">←</span>：用右边那个点同时造出"在 <code>A</code> 里"与"在并里"。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A ∩ (A ∪ B) = A</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.ext</code> <span class="math">·</span> <code>And.intro</code>/<code>And.left</code> <span class="math">·</span> <code>Or.inl</code>。</p></div></details></div><details open class="solution-panel" id="sol-28-7"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem inter_absorb (α : Type) (A B : Set α) :
+    A ∩ (A ∪ B) = A :=
+  Set.ext (A ∩ (A ∪ B)) A (fun (x : α) =&gt;
+    @Iff.intro (A x ∧ (A x ∨ B x)) (A x)
+      (fun (h : A x ∧ (A x ∨ B x)) =&gt; And.left h)
+      (fun (ha : A x) =&gt; And.intro ha (@Or.inl (A x) (B x) ha)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全</code></pre></div></details></div></article>
+<article class="exercise" id="ex-28-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">compl_subset_of_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-28-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（D 类）：<strong>逆否</strong>：<code>A ⊆ B ⇒ Bᶜ ⊆ Aᶜ</code>。</p></div></div><pre class="exercise-statement"><code>theorem compl_subset_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) :
+    Bᶜ ⊆ Aᶜ := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要证"不在 <code>B</code> 里 <span class="math">⇒</span> 不在 <code>A</code> 里"：反设"在 <code>A</code> 里"，由包含假设得到"在 <code>B</code> 里"，与手上的否定撞上。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A ⊆ B → Bᶜ ⊆ Aᶜ</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><strong>包含假设是定义头 <span class="math">⇒</span> 先 <span class="math">λ</span> 绑定再应用</strong>（G-73 形状 ①）<span class="math">·</span> 否定当函数用 <span class="math">·</span>⚠ 反方向（<code>Bᶜ ⊆ Aᶜ → A ⊆ B</code>）同样要<strong>排中律</strong> <span class="math">⇒</span> 如实不排 ✓</p></div></details></div><details open class="solution-panel" id="sol-28-8"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem compl_subset_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) :
+    Bᶜ ⊆ Aᶜ :=
+  fun (x : α) =&gt; fun (hb : ¬ (B x)) =&gt; fun (ha : A x) =&gt;
+    hb ((fun (hs : ∀ (y : α), A y → B y) =&gt; hs x ha) h)</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>本单元最值得学的一件事：De Morgan 的两条在直觉主义下不对称</strong> ——</p></div><div class="block prose intuition-only"><p>⚠ <strong>两条写码边界（本单元实测，写题时会踩）</strong>：① <strong>后缀记法不能直接应用</strong>：<code>Bᶜ x</code> 解析失败 <span class="math">⇒</span> 要写 <code>(Bᶜ) x</code>；② <strong><code>∅</code> 出现在 <code>=</code> 或 <code>⊆</code> 的右侧时类型推不出来</strong> <span class="math">⇒</span> 那两条如实写成"成员层面"的形态 ✓</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 两样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元②③④（子集、并交差、外延性恒等式）—— 本单元把那些恒等式补全成"代数"。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit86.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">核与复合、单射</span></a><a class="unit-nav-home" href="../chapters/i-11.html#units">目录</a><a class="unit-nav-link" href="../units/unit29.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">上界、下界与确界</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-28"><h3><a href="#top">集合代数：分配律与 De Morgan</a></h3><p class="appendix-meta">8 道练习 · 8 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-28-1"><summary>练习 1 · sdiff_eq_inter_compl <span class="sol-meta">定理</span></summary><pre><code>theorem sdiff_eq_inter_compl (α : Type) (A B : Set α) :
+    A \ B = A ∩ Bᶜ :=
+  Set.ext (A \ B) (A ∩ Bᶜ) (fun (x : α) =&gt;
+    @Iff.intro ((A \ B) x) ((A ∩ Bᶜ) x)
+      (fun (h : A x ∧ ¬ (B x)) =&gt; And.intro (And.left h) (And.right h))
+      (fun (h : A x ∧ ¬ (B x)) =&gt; And.intro (And.left h) (And.right h)))</code></pre></details><details open class="appendix-solution" id="app-sol-28-2"><summary>练习 2 · union_inter_distrib_right <span class="sol-meta">定理</span></summary><pre><code>theorem union_inter_distrib_right (α : Type) (A B C : Set α) :
+    (A ∪ B) ∩ C = (A ∩ C) ∪ (B ∩ C) :=
+  Set.ext ((A ∪ B) ∩ C) ((A ∩ C) ∪ (B ∩ C)) (fun (x : α) =&gt;
+    @Iff.intro (((A ∪ B) ∩ C) x) (((A ∩ C) ∪ (B ∩ C)) x)
+      (fun (h : (A x ∨ B x) ∧ C x) =&gt;
+        @Or.elim (A x) (B x) ((A x ∧ C x) ∨ (B x ∧ C x))
+          (fun (ha : A x) =&gt; @Or.inl (A x ∧ C x) (B x ∧ C x) (And.intro ha (And.right h)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (fun (hb : B x) =&gt; @Or.inr (A x ∧ C x) (B x ∧ C x) (And.intro hb (And.right h)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (And.left h))
+      (fun (h : (A x ∧ C x) ∨ (B x ∧ C x)) =&gt;
+        @Or.elim (A x ∧ C x) (B x ∧ C x) ((A x ∨ B x) ∧ C x)
+          (fun (ha : A x ∧ C x) =&gt;
+            And.intro (@Or.inl (A x) (B x) (And.left ha)) (And.right ha))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (fun (hb : B x ∧ C x) =&gt;
+            And.intro (@Or.inr (A x) (B x) (And.left hb)) (And.right hb))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          h))</code></pre></details><details open class="appendix-solution" id="app-sol-28-3"><summary>练习 3 · inter_union_distrib_right <span class="sol-meta">定理</span></summary><pre><code>theorem inter_union_distrib_right (α : Type) (A B C : Set α) :
+    (A ∩ B) ∪ C = (A ∪ C) ∩ (B ∪ C) :=
+  Set.ext ((A ∩ B) ∪ C) ((A ∪ C) ∩ (B ∪ C)) (fun (x : α) =&gt;
+    @Iff.intro (((A ∩ B) ∪ C) x) (((A ∪ C) ∩ (B ∪ C)) x)
+      (fun (h : (A x ∧ B x) ∨ C x) =&gt;
+        @Or.elim (A x ∧ B x) (C x) ((A x ∨ C x) ∧ (B x ∨ C x))
+          (fun (ha : A x ∧ B x) =&gt;
+            And.intro
+              (@Or.inl (A x) (C x) (And.left ha)) (@Or.inl (B x) (C x) (And.right ha)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (fun (hc : C x) =&gt;
+            And.intro
+              (@Or.inr (A x) (C x) hc) (@Or.inr (B x) (C x) hc))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          h)
+      (fun (h : (A x ∨ C x) ∧ (B x ∨ C x)) =&gt;
+        @Or.elim (A x) (C x) ((A x ∧ B x) ∨ C x)
+          (fun (ha : A x) =&gt;
+            @Or.elim (B x) (C x) ((A x ∧ B x) ∨ C x)
+              (fun (hb : B x) =&gt; @Or.inl (A x ∧ B x) (C x) (And.intro ha hb))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+              (fun (hc : C x) =&gt; Or.inr hc)
+              (And.right h))
+          (fun (hc : C x) =&gt; Or.inr hc)
+          (And.left h)))</code></pre></details><details open class="appendix-solution" id="app-sol-28-4"><summary>练习 4 · compl_union <span class="sol-meta">定理</span></summary><pre><code>theorem compl_union (α : Type) (A B : Set α) :
+    (A ∪ B)ᶜ = Aᶜ ∩ Bᶜ :=
+  Set.ext ((A ∪ B)ᶜ) (Aᶜ ∩ Bᶜ) (fun (x : α) =&gt;
+    @Iff.intro (¬ (A x ∨ B x)) (¬ (A x) ∧ ¬ (B x))
+      (fun (h : ¬ (A x ∨ B x)) =&gt;
+        And.intro
+          (fun (ha : A x) =&gt; h (@Or.inl (A x) (B x) ha))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+          (fun (hb : B x) =&gt; h (@Or.inr (A x) (B x) hb)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全
+      (fun (h : ¬ (A x) ∧ ¬ (B x)) =&gt;
+        fun (hab : A x ∨ B x) =&gt;
+          @Or.elim (A x) (B x) False (And.left h) (And.right h) hab))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全</code></pre></details><details open class="appendix-solution" id="app-sol-28-5"><summary>练习 5 · compl_inter_subset <span class="sol-meta">定理</span></summary><pre><code>theorem compl_inter_subset (α : Type) (A B : Set α) :
+    Aᶜ ∪ Bᶜ ⊆ (A ∩ B)ᶜ :=
+  fun (x : α) (h : (Aᶜ) x ∨ (Bᶜ) x) =&gt;
+    @Or.elim ((Aᶜ) x) ((Bᶜ) x) (¬ (A x ∧ B x))
+      (fun (ha : ¬ (A x)) =&gt; fun (hab : A x ∧ B x) =&gt; ha (And.left hab))
+      (fun (hb : ¬ (B x)) =&gt; fun (hab : A x ∧ B x) =&gt; hb (And.right hab))
+      h</code></pre></details><details open class="appendix-solution" id="app-sol-28-6"><summary>练习 6 · union_absorb <span class="sol-meta">定理</span></summary><pre><code>theorem union_absorb (α : Type) (A B : Set α) :
+    A ∪ (A ∩ B) = A :=
+  Set.ext (A ∪ (A ∩ B)) A (fun (x : α) =&gt;
+    @Iff.intro (A x ∨ (A x ∧ B x)) (A x)
+      (fun (h : A x ∨ (A x ∧ B x)) =&gt;
+        @Or.elim (A x) (A x ∧ B x) (A x)
+          (fun (ha : A x) =&gt; ha)
+          (fun (hab : A x ∧ B x) =&gt; And.left hab)
+          h)
+      (fun (ha : A x) =&gt; @Or.inl (A x) (A x ∧ B x) ha))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全</code></pre></details><details open class="appendix-solution" id="app-sol-28-7"><summary>练习 7 · inter_absorb <span class="sol-meta">定理</span></summary><pre><code>theorem inter_absorb (α : Type) (A B : Set α) :
+    A ∩ (A ∪ B) = A :=
+  Set.ext (A ∩ (A ∪ B)) A (fun (x : α) =&gt;
+    @Iff.intro (A x ∧ (A x ∨ B x)) (A x)
+      (fun (h : A x ∧ (A x ∨ B x)) =&gt; And.left h)
+      (fun (ha : A x) =&gt; And.intro ha (@Or.inl (A x) (B x) ha)))  -- soko:notation-ok: G-73 形状 ②/③：前导 Prop 实参或 `Eq` 宇宙层级在这些位置补不出来，必须写全</code></pre></details><details open class="appendix-solution" id="app-sol-28-8"><summary>练习 8 · compl_subset_of_subset <span class="sol-meta">定理</span></summary><pre><code>theorem compl_subset_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) :
+    Bᶜ ⊆ Aᶜ :=
+  fun (x : α) =&gt; fun (hb : ¬ (B x)) =&gt; fun (ha : A x) =&gt;
+    hb ((fun (hs : ∀ (y : α), A y → B y) =&gt; hs x ha) h)</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

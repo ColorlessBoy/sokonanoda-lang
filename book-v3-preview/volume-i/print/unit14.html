@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 14 良序与良基</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit14.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 14 良序与良基</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit14.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.5 序关系与良序 · 单元 14</p><h1>良序与良基</h1><p class="note">Unit 14 — Well-Orderings and Well-Foundedness</p></header><section class="unit" id="unit-14">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-5.html">I.5</a> · 本章第 2 / 4 单元 · 全书第 14 / 112 单元</p>
+<h2><span class="unit-number">14</span><span>良序与良基</span></h2>
+<p class="unit-title-en">Unit 14 — Well-Orderings and Well-Foundedness</p>
+<p class="unit-meta">1 个定义 · 12 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-14">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§7.2 Well Orderings</strong>（<span class="math">+</span> §9 Well-Founded Relations 的开头）；Halmos《Naive Set Theory》<strong>§17 Well Ordering</strong>。大纲：<code>docs/design/set-theory-syllabus.md</code> §4.1（I.5 章第二个单元）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>良基 <span class="math">=</span> 每个非空子集有极小元</strong>（本语言没有 <code>Acc</code>，所以取集合论里等价的这条形式，见 <code>lib/Order</code> 文件头的偏离 ③）；<strong>良序 <span class="math">=</span> 全序 <span class="math">+</span> 良基</strong>；由良基能推出三件硬事实 —— <strong>非自反</strong>、<strong>子关系仍良基</strong>、<strong>没有无穷下降链</strong>；而<strong>空关系是良基的却不自反</strong>（两道反例题，说明这两件事不互相包含）。</p></div><h3 class="unit-subhead">14.1 良基：<strong>每个非空子集都有极小元</strong></h3><div class="block prose intuition-only"><p>读法：<code>HasMin α r P</code> <span class="math">=</span> "P 里有一个元素 m，P 里没有元素排在 m 前面"（极小，不一定最小：偏序里"极小"与"最小"是两回事，全序里才重合）。<code>IsWellFounded α r</code> <span class="math">=</span> "对<strong>每个</strong>非空 P，<code>HasMin α r P</code> 都成立"。⚠ 本语言没有 <code>Acc</code>（台账 G-56）<span class="math">⇒</span> 上面这条就是我们的良基定义（Isabelle <code>wf</code> 的对应物）✓</p></div><div class="block prose intuition-only"><p>演示：<code>HasMin</code> 的<strong>定义展开</strong>（"极小元"到底在说什么）。</p></div><article class="decl decl-theorem" id="decl-14-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_hasMin_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_hasMin_def (α : Type) (r : α → α → Prop) (P : α → Prop) :
+    HasMin α r P ↔ ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  hasMin_def α r P</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：良序蕴含良基（全序那一半见单元⑬ 练习 8）。</p></div><article class="decl decl-theorem" id="decl-14-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_strictWellOrder_wellFounded</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_strictWellOrder_wellFounded (α : Type) (r : α → α → Prop)</code></pre></div></article>
+<h3 class="unit-subhead">14.2 把良基拆开用</h3><article class="exercise" id="ex-14-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">hasMin_intro_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-14-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：<strong>造一个极小元</strong> —— 给定见证 <code>m</code>、<code>m ∈ P</code>、以及"没有 P 里的元素排在 m 前面"，交出 <code>HasMin α r P</code>。</p></div></div><pre class="exercise-statement"><code>theorem hasMin_intro_apply (α : Type) (r : α → α → Prop) (P : α → Prop) (m : α)
+    (hm : P m) (hmin : ∀ (y : α), P y → ¬ (r y m)) : HasMin α r P := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>HasMin</code> 是定义头，直接写存在构造子会反解失败（台账 G-73 形状 ②）<span class="math">⇒</span> 库里的智能构造子 <code>hasMin_intro</code> 正好吃这四个参数。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasMin α r P</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>参数表是「论域 <span class="math">·</span> 关系 <span class="math">·</span> 谓词 <span class="math">·</span> 见证 <span class="math">·</span> 见证在谓词里 <span class="math">·</span> 极小性」。</p></div></details></div><details open class="solution-panel" id="sol-14-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 1–2（T 类）：<code>HasMin</code> 的造与拆 ───────────────────────────────────</p><pre><code>theorem hasMin_intro_apply (α : Type) (r : α → α → Prop) (P : α → Prop) (m : α)
+    (hm : P m) (hmin : ∀ (y : α), P y → ¬ (r y m)) : HasMin α r P :=
+  hasMin_intro α r P m hm hmin</code></pre></div></details></div></article>
+<article class="exercise" id="ex-14-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">hasMin_elim_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-14-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>把 <code>HasMin</code> 拆开</strong> —— 极小元连同它的两条性质。</p></div></div><pre class="exercise-statement"><code>theorem hasMin_elim_apply (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : HasMin α r P) : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>HasMin</code> 的定义体就是一个存在式，库里的展开引理把它交出来。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ m, P m ∧ ∀ y, P y → ¬ (r y m)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>hasMin_elim</code>（参数表是「论域 <span class="math">·</span> 关系 <span class="math">·</span> 谓词 <span class="math">·</span> 极小元证据」）。</p></div></details></div><details open class="solution-panel" id="sol-14-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem hasMin_elim_apply (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : HasMin α r P) : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=
+  hasMin_elim α r P h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-14-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">wellFounded_least</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-14-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong>良基的直接用法</strong> —— 非空谓词必有极小元。</p></div></div><pre class="exercise-statement"><code>theorem wellFounded_least (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : IsWellFounded α r) : (∃ (x : α), P x) → HasMin α r P := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>良基的定义就是这一条，库里的取用子把参数一次收全。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∃ x, P x) → HasMin α r P</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>wellFounded_hasMin</code>（参数表是「论域 <span class="math">·</span> 关系 <span class="math">·</span> 良基证据 <span class="math">·</span> 谓词」）。</p></div></details></div><details open class="solution-panel" id="sol-14-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 3–5（T/L 类）：良基 / 良序的取用子，以及两者的合成 ────────────────</p><pre><code>theorem wellFounded_least (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : IsWellFounded α r) : (∃ (x : α), P x) → HasMin α r P :=
+  wellFounded_hasMin α r h P</code></pre></div></details></div></article>
+<article class="exercise" id="ex-14-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">strictWellOrder_wellFounded_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-14-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：全序的良基那一半（取用子）。</p></div></div><pre class="exercise-statement"><code>theorem strictWellOrder_wellFounded_apply (α : Type) (r : α → α → Prop)
+    (h : IsStrictWellOrder α r) : IsWellFounded α r := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与单元⑬ 练习 8 同形，取的是合取的<strong>右支</strong>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsStrictWellOrder α r → IsWellFounded α r</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>strictWellOrder_wellFounded</code>。</p></div></details></div><details open class="solution-panel" id="sol-14-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem strictWellOrder_wellFounded_apply (α : Type) (r : α → α → Prop)
+    (h : IsStrictWellOrder α r) : IsWellFounded α r :=
+  strictWellOrder_wellFounded α r h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-14-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">strictWellOrder_least</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-14-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：<strong>良序里每个非空子集有极小元</strong>（练习 3 与 4 的合成）。</p></div></div><pre class="exercise-statement"><code>theorem strictWellOrder_least (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : IsStrictWellOrder α r) : (∃ (x : α), P x) → HasMin α r P := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先把良序降成良基，再交给良基的取用子 —— 两步都是现成的。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsStrictWellOrder α r → (∃ x, P x) → HasMin α r P</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>strictWellOrder_wellFounded</code> 的输出正好是 <code>wellFounded_hasMin</code> 的第三个参数。</p></div></details></div><details open class="solution-panel" id="sol-14-5"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem strictWellOrder_least (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : IsStrictWellOrder α r) : (∃ (x : α), P x) → HasMin α r P :=
+  wellFounded_hasMin α r (strictWellOrder_wellFounded α r h) P</code></pre></div></details></div></article>
+<h3 class="unit-subhead">14.3 良基的三条硬后果</h3><article class="exercise" id="ex-14-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">wellFounded_irrefl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-14-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类）：<strong>良基 <span class="math">⇒</span> 非自反</strong> —— 没有一个元素排在自己前面。</p></div></div><pre class="exercise-statement"><code>theorem wellFounded_irrefl (α : Type) (r : α → α → Prop)
+    (h : IsWellFounded α r) : Irreflexive α r := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>反证。取谓词 <code>r a</code>（"排在 a 前面"），它非空（<code>a</code> 自己在里面，这正是假设）。良基给它一个极小元 <code>m</code>；<code>m</code> 的属性之一就是"没有 <code>r a</code> 里的元素排在 <code>m</code> 前面"。另一方面 <code>a</code> 在 <code>r a</code> 里，于是"<code>a</code> 排在 <code>m</code> 前面"与它冲突。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Irreflexive α r</code>，展开后是 <code>∀ a, r a a → False</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>谓词写成<strong>部分应用</strong> <code>r a</code>（少写一个 <span class="math">λ</span>，也少一个 G-73 的坑）；<code>hasMin_elim</code> 拆极小元；极小性那一条要<strong>先 <code>fun (hall : …) =&gt; …</code> 把类型写出来</strong>再应用。</p></div></details></div><details open class="solution-panel" id="sol-14-6"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 6（L 类）：良基 <span class="math">⇒</span> 非自反 ─────────────────────────────────────────
+取谓词 <code>r a</code>（"排在 a 前面"），它非空（<code>a</code> 自己在里面）；极小元 m 的极小性
+与 <code>a</code> 落在 <code>r a</code> 里直接冲突。</p><pre><code>theorem wellFounded_irrefl (α : Type) (r : α → α → Prop)
+    (h : IsWellFounded α r) : Irreflexive α r :=
+  fun (a : α) (haa : r a a) =&gt;
+    (fun (hm : HasMin α r (r a)) =&gt;
+      (fun (hel : ∃ (m : α), (r a) m ∧ ∀ (y : α), (r a) y → ¬ (r y m)) =&gt;
+        @Exists.elim α (fun (m : α) =&gt; (r a) m ∧ ∀ (y : α), (r a) y → ¬ (r y m)) False hel
+          (fun (m : α) (hmm : (r a) m ∧ ∀ (y : α), (r a) y → ¬ (r y m)) =&gt;
+            (fun (hnot : ¬ (r a m)) =&gt; (fun (ham : r a m) =&gt; hnot ham) (And.left hmm))
+              ((fun (hall : ∀ (y : α), (r a) y → ¬ (r y m)) =&gt; hall a haa) (And.right hmm))))
+        (hasMin_elim α r (r a) hm))
+      (wellFounded_hasMin α r h (r a) (Exists.intro a haa))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-14-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">wellFounded_of_subrelation</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-14-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类）：<strong>子关系保持良基</strong> —— 若 <code>s</code> 蕴含在 <code>r</code> 里，而 <code>r</code> 良基，则 <code>s</code> 也良基。</p></div></div><pre class="exercise-statement"><code>theorem wellFounded_of_subrelation (α : Type) (r s : α → α → Prop)
+    (hsub : ∀ (a b : α), s a b → r a b) (hr : IsWellFounded α r) :
+    IsWellFounded α s := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用良基的<strong>智能构造子</strong>。给定非空 <code>P</code>，先用 <code>r</code> 的良基拿到极小元 <code>m</code>，再说明它对 <code>s</code> 也极小：若 <code>s y m</code> 则 <code>r y m</code>（子关系假设），与 <code>m</code> 的极小性冲突。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsWellFounded α s</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isWellFounded_intro</code>（吃一个"对每个非空 P 都给出 HasMin"的函数）<span class="math">+</span> <code>hasMin_intro</code>（在 <code>s</code> 这一侧重新装配极小元）。</p></div></details></div><details open class="solution-panel" id="sol-14-7"><summary>查看解答 <span class="sol-meta">定理 · 17 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 7（L 类）：子关系保持良基 ─────────────────────────────────────────</p><pre><code>theorem wellFounded_of_subrelation (α : Type) (r s : α → α → Prop)
+    (hsub : ∀ (a b : α), s a b → r a b) (hr : IsWellFounded α r) :
+    IsWellFounded α s :=
+  isWellFounded_intro α s
+    (fun (P : α → Prop) (hP : ∃ (x : α), P x) =&gt;
+      (fun (hm : HasMin α r P) =&gt;
+        (fun (hel : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m)) =&gt;
+          @Exists.elim α (fun (m : α) =&gt; P m ∧ ∀ (y : α), P y → ¬ (r y m))
+            (HasMin α s P) hel
+            (fun (m : α) (hmm : P m ∧ ∀ (y : α), P y → ¬ (r y m)) =&gt;
+              hasMin_intro α s P m (And.left hmm)
+                (fun (y : α) (hy : P y) (hsy : s y m) =&gt;
+                  (fun (hnot : ¬ (r y m)) =&gt; hnot (hsub y m hsy))
+                    ((fun (hall : ∀ (y' : α), P y' → ¬ (r y' m)) =&gt; hall y hy)
+                      (And.right hmm)))))
+          (hasMin_elim α r P hm))
+        (wellFounded_hasMin α r hr P hP))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">14.4 必证（本单元旗舰）：<strong>良基 <span class="math">⇒</span> 没有无穷下降链</strong></h3><div class="block prose intuition-only"><p>下面这个 <code>SeqImage</code> 只是把"序列的像"写成一个谓词 —— 极小元要作用在它上面。</p></div><div class="block prose intuition-only"><p>演示（定义）：序列 <code>f</code> 的像 —— "存在 n 使 <span class="math">x = f n</span>"。</p></div><article class="decl decl-def" id="decl-14-10"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">SeqImage</code><span class="decl-where">声明 10</span></header><div class="decl-body"><pre class="decl-statement"><code>def SeqImage (α : Type) (f : Nat → α) : α → Prop :=
+  fun (x : α) =&gt; ∃ (n : Nat), x = f n</code></pre></div></article>
+<article class="exercise" id="ex-14-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">no_descending_chain</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-14-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类）：<strong>没有无穷下降链</strong> —— 若每一步都更靠前，就不可能无限走下去。</p></div></div><pre class="exercise-statement"><code>theorem no_descending_chain (α : Type) (r : α → α → Prop)
+    (h : IsWellFounded α r) (f : Nat → α)
+    (hstep : ∀ (n : Nat), r (f (Nat.succ n)) (f n)) : False := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把良基作用在 <code>SeqImage α f</code> 上（它非空：<code>f 0</code> 在里面）。拿到极小元 <code>m</code> 与它的极小性；<code>m</code> 在像里 <span class="math">⇒</span> 有 <code>n</code> 使 <code>m = f n</code>；而链的第 <code>n+1</code> 项也在像里，于是极小性说"它不排在 <code>m</code> 前面"——但它排在 <code>f n</code> 前面，也就是排在 <code>m</code> 前面（沿 <code>m = f n</code> 搬）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>False</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>SeqImage</code>（像）<span class="math">·</span> <code>hasMin_elim</code>（拆极小元）<span class="math">·</span> <code>rel_subst_right</code>（把"排在 <code>f n</code> 前面"沿 <code>m = f n</code> 搬成"排在 <code>m</code> 前面"）<span class="math">·</span>以及<strong>存在消去要把前导实参写全</strong>（<code>Exists.elim α P Q …</code>，台账 G-73 形状 ②）。</p></div></details></div><details open class="solution-panel" id="sol-14-8"><summary>查看解答 <span class="sol-meta">定理 · 25 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 8（L 类）：没有无穷下降链（本单元旗舰）───────────────────────────
+极小元作用在 <code>SeqImage α f</code> 上：<code>m = f n</code> 极小 <span class="math">⇒</span> 链的第 <span class="math">n+1</span> 项不能排在它前面，
+而它按定义就排在 <code>f n</code>（也就是 <code>m</code>）前面 —— 沿 <code>m = f n</code> 搬过去即矛盾。</p><pre><code>theorem no_descending_chain (α : Type) (r : α → α → Prop)
+    (h : IsWellFounded α r) (f : Nat → α)
+    (hstep : ∀ (n : Nat), r (f (Nat.succ n)) (f n)) : False :=
+  (fun (hm : HasMin α r (SeqImage α f)) =&gt;
+    (fun (hel : ∃ (m : α), SeqImage α f m ∧ ∀ (y : α), SeqImage α f y → ¬ (r y m)) =&gt;
+      @Exists.elim α (fun (m : α) =&gt; SeqImage α f m ∧ ∀ (y : α), SeqImage α f y → ¬ (r y m))
+        False hel
+        (fun (m : α) (hmm : SeqImage α f m ∧ ∀ (y : α), SeqImage α f y → ¬ (r y m)) =&gt;
+          (fun (hPm : SeqImage α f m) =&gt;
+            @Exists.elim Nat (fun (k : Nat) =&gt; m = f k) False hPm  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+              (fun (n : Nat) (hn : m = f n) =&gt;
+                (fun (hnot : ¬ (r (f (Nat.succ n)) m)) =&gt;
+                  (fun (hrr : r (f (Nat.succ n)) m) =&gt; hnot hrr)
+                    (rel_subst_right α r (f (Nat.succ n)) (f n) m
+                      (@Eq.symm.{1} α m (f n) hn) (hstep n)))
+                  ((fun (hall : ∀ (y : α), SeqImage α f y → ¬ (r y m)) =&gt;
+                    hall (f (Nat.succ n))
+                      (Exists.intro (Nat.succ n)
+                        (@Eq.refl.{1} α (f (Nat.succ n))))) (And.right hmm))))
+            (And.left hmm)))
+        (hasMin_elim α r (SeqImage α f) hm))
+      (wellFounded_hasMin α r h (SeqImage α f)
+        (Exists.intro (f Nat.zero)
+          (Exists.intro Nat.zero
+            (@Eq.refl.{1} α (f Nat.zero)))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">14.5 必破：良基与自反<strong>互不包含</strong></h3><article class="exercise" id="ex-14-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">emptyRelation_wellFounded</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-14-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>空关系既不成立任何一步，也就无所谓"更靠前" —— 它是良基的；但它同时<strong>不是</strong>自反的。这两道题说明"良基"与"自反/非自反"是两件独立的事。</p></div><div class="block prose intuition-only"><p>练习 9（D 类）：<strong>空关系是良基的</strong>。</p></div></div><pre class="exercise-statement"><code>theorem emptyRelation_wellFounded (α : Type) :
+    IsWellFounded α (EmptyRelation α α) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>任取非空 <code>P</code>，从假设里取出一个元素 <code>m</code>；极小性那一半是"若 <code>y</code> 排在 <code>m</code> 前面就……"—— 而空关系里那种证据本身就是 <code>False</code>，直接交出去。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsWellFounded α (EmptyRelation α α)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isWellFounded_intro</code> <span class="math">+</span> <code>hasMin_intro</code> <span class="math">+</span> <code>Exists.elim</code>（前导实参写全）。</p></div></details></div><details open class="solution-panel" id="sol-14-9"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 9（D 类）：空关系是良基的 ────────────────────────────────────────</p><pre><code>theorem emptyRelation_wellFounded (α : Type) :
+    IsWellFounded α (EmptyRelation α α) :=
+  isWellFounded_intro α (EmptyRelation α α)
+    (fun (P : α → Prop) (hP : ∃ (x : α), P x) =&gt;
+      @Exists.elim α P (HasMin α (EmptyRelation α α) P) hP
+        (fun (m : α) (hm : P m) =&gt;
+          hasMin_intro α (EmptyRelation α α) P m hm
+            (fun (y : α) (hy : P y) (hf : EmptyRelation α α y m) =&gt; hf)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-14-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">emptyRelation_not_reflexive</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-14-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（D 类）：<strong>空关系不是自反的</strong> —— 只要论域里有一个元素。</p></div></div><pre class="exercise-statement"><code>theorem emptyRelation_not_reflexive (α : Type) (a : α) :
+    ¬ Reflexive α (EmptyRelation α α) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>自反说"每个元素都与自己有关系"，把它展开成显式的 <code>∀</code> 再喂进一个元素。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>¬ Reflexive α (EmptyRelation α α)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><strong>别直接应用定义头类型的假设</strong>（G-73 形状 ①）——先 <code>fun (hall : ∀ (x : α), …) =&gt; …</code> 把类型写出来。</p></div></details></div><details open class="solution-panel" id="sol-14-10"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 10（D 类）：空关系不是自反的 ─────────────────────────────────────</p><pre><code>theorem emptyRelation_not_reflexive (α : Type) (a : α) :
+    ¬ Reflexive α (EmptyRelation α α) :=
+  fun (hr : Reflexive α (EmptyRelation α α)) =&gt;
+    (fun (hall : ∀ (x : α), EmptyRelation α α x x) =&gt; hall a) hr</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>（tactic 白名单）：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元只 <code>import</code> 两样</strong>：<code>lib.Order</code>（良基/良序词汇 <span class="math">+</span> 取用子 <span class="math">+</span> 智能构造子）与 prelude。</p></div><div class="block prose intuition-only"><p>依赖：单元⑬（偏序/全序/严格序）—— 本单元把"序"里<strong>良基</strong>那一半做完。</p></div><div class="block prose intuition-only"><p>⚠ <strong>为什么这里用"严格"良序</strong>（2026-10-01 <strong>L-07 修复</strong>）：<code>IsWellOrder</code> 是<strong>非严格</strong>版（线性序，含自反），它配的是"<strong>最小</strong>元"版 <code>HasLeast</code>；本单元要证的"非空子集有<strong>极小</strong>元"是"极小"版 <code>HasMin</code> —— 非严格序配"极小"版会与自反性直接矛盾（只在空论域上可满足 ✗）<span class="math">⇒</span> 这一半内容改用 <strong><code>IsStrictWellOrder</code>（严格序 <span class="math">+</span> 良基）</strong>，数学内容一字未改 ✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit13.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">偏序、全序与严格序</span></a><a class="unit-nav-home" href="../chapters/i-5.html#units">目录</a><a class="unit-nav-link" href="../units/unit53.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">序嵌入</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-14"><h3><a href="#top">良序与良基</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-14-1"><summary>练习 1 · hasMin_intro_apply <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 1–2（T 类）：<code>HasMin</code> 的造与拆 ───────────────────────────────────</p><pre><code>theorem hasMin_intro_apply (α : Type) (r : α → α → Prop) (P : α → Prop) (m : α)
+    (hm : P m) (hmin : ∀ (y : α), P y → ¬ (r y m)) : HasMin α r P :=
+  hasMin_intro α r P m hm hmin</code></pre></details><details open class="appendix-solution" id="app-sol-14-2"><summary>练习 2 · hasMin_elim_apply <span class="sol-meta">定理</span></summary><pre><code>theorem hasMin_elim_apply (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : HasMin α r P) : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m) :=
+  hasMin_elim α r P h</code></pre></details><details open class="appendix-solution" id="app-sol-14-3"><summary>练习 3 · wellFounded_least <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 3–5（T/L 类）：良基 / 良序的取用子，以及两者的合成 ────────────────</p><pre><code>theorem wellFounded_least (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : IsWellFounded α r) : (∃ (x : α), P x) → HasMin α r P :=
+  wellFounded_hasMin α r h P</code></pre></details><details open class="appendix-solution" id="app-sol-14-4"><summary>练习 4 · strictWellOrder_wellFounded_apply <span class="sol-meta">定理</span></summary><pre><code>theorem strictWellOrder_wellFounded_apply (α : Type) (r : α → α → Prop)
+    (h : IsStrictWellOrder α r) : IsWellFounded α r :=
+  strictWellOrder_wellFounded α r h</code></pre></details><details open class="appendix-solution" id="app-sol-14-5"><summary>练习 5 · strictWellOrder_least <span class="sol-meta">定理</span></summary><pre><code>theorem strictWellOrder_least (α : Type) (r : α → α → Prop) (P : α → Prop)
+    (h : IsStrictWellOrder α r) : (∃ (x : α), P x) → HasMin α r P :=
+  wellFounded_hasMin α r (strictWellOrder_wellFounded α r h) P</code></pre></details><details open class="appendix-solution" id="app-sol-14-6"><summary>练习 6 · wellFounded_irrefl <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 6（L 类）：良基 <span class="math">⇒</span> 非自反 ─────────────────────────────────────────
+取谓词 <code>r a</code>（"排在 a 前面"），它非空（<code>a</code> 自己在里面）；极小元 m 的极小性
+与 <code>a</code> 落在 <code>r a</code> 里直接冲突。</p><pre><code>theorem wellFounded_irrefl (α : Type) (r : α → α → Prop)
+    (h : IsWellFounded α r) : Irreflexive α r :=
+  fun (a : α) (haa : r a a) =&gt;
+    (fun (hm : HasMin α r (r a)) =&gt;
+      (fun (hel : ∃ (m : α), (r a) m ∧ ∀ (y : α), (r a) y → ¬ (r y m)) =&gt;
+        @Exists.elim α (fun (m : α) =&gt; (r a) m ∧ ∀ (y : α), (r a) y → ¬ (r y m)) False hel
+          (fun (m : α) (hmm : (r a) m ∧ ∀ (y : α), (r a) y → ¬ (r y m)) =&gt;
+            (fun (hnot : ¬ (r a m)) =&gt; (fun (ham : r a m) =&gt; hnot ham) (And.left hmm))
+              ((fun (hall : ∀ (y : α), (r a) y → ¬ (r y m)) =&gt; hall a haa) (And.right hmm))))
+        (hasMin_elim α r (r a) hm))
+      (wellFounded_hasMin α r h (r a) (Exists.intro a haa))</code></pre></details><details open class="appendix-solution" id="app-sol-14-7"><summary>练习 7 · wellFounded_of_subrelation <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 7（L 类）：子关系保持良基 ─────────────────────────────────────────</p><pre><code>theorem wellFounded_of_subrelation (α : Type) (r s : α → α → Prop)
+    (hsub : ∀ (a b : α), s a b → r a b) (hr : IsWellFounded α r) :
+    IsWellFounded α s :=
+  isWellFounded_intro α s
+    (fun (P : α → Prop) (hP : ∃ (x : α), P x) =&gt;
+      (fun (hm : HasMin α r P) =&gt;
+        (fun (hel : ∃ (m : α), P m ∧ ∀ (y : α), P y → ¬ (r y m)) =&gt;
+          @Exists.elim α (fun (m : α) =&gt; P m ∧ ∀ (y : α), P y → ¬ (r y m))
+            (HasMin α s P) hel
+            (fun (m : α) (hmm : P m ∧ ∀ (y : α), P y → ¬ (r y m)) =&gt;
+              hasMin_intro α s P m (And.left hmm)
+                (fun (y : α) (hy : P y) (hsy : s y m) =&gt;
+                  (fun (hnot : ¬ (r y m)) =&gt; hnot (hsub y m hsy))
+                    ((fun (hall : ∀ (y' : α), P y' → ¬ (r y' m)) =&gt; hall y hy)
+                      (And.right hmm)))))
+          (hasMin_elim α r P hm))
+        (wellFounded_hasMin α r hr P hP))</code></pre></details><details open class="appendix-solution" id="app-sol-14-8"><summary>练习 8 · no_descending_chain <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 8（L 类）：没有无穷下降链（本单元旗舰）───────────────────────────
+极小元作用在 <code>SeqImage α f</code> 上：<code>m = f n</code> 极小 <span class="math">⇒</span> 链的第 <span class="math">n+1</span> 项不能排在它前面，
+而它按定义就排在 <code>f n</code>（也就是 <code>m</code>）前面 —— 沿 <code>m = f n</code> 搬过去即矛盾。</p><pre><code>theorem no_descending_chain (α : Type) (r : α → α → Prop)
+    (h : IsWellFounded α r) (f : Nat → α)
+    (hstep : ∀ (n : Nat), r (f (Nat.succ n)) (f n)) : False :=
+  (fun (hm : HasMin α r (SeqImage α f)) =&gt;
+    (fun (hel : ∃ (m : α), SeqImage α f m ∧ ∀ (y : α), SeqImage α f y → ¬ (r y m)) =&gt;
+      @Exists.elim α (fun (m : α) =&gt; SeqImage α f m ∧ ∀ (y : α), SeqImage α f y → ¬ (r y m))
+        False hel
+        (fun (m : α) (hmm : SeqImage α f m ∧ ∀ (y : α), SeqImage α f y → ¬ (r y m)) =&gt;
+          (fun (hPm : SeqImage α f m) =&gt;
+            @Exists.elim Nat (fun (k : Nat) =&gt; m = f k) False hPm  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+              (fun (n : Nat) (hn : m = f n) =&gt;
+                (fun (hnot : ¬ (r (f (Nat.succ n)) m)) =&gt;
+                  (fun (hrr : r (f (Nat.succ n)) m) =&gt; hnot hrr)
+                    (rel_subst_right α r (f (Nat.succ n)) (f n) m
+                      (@Eq.symm.{1} α m (f n) hn) (hstep n)))
+                  ((fun (hall : ∀ (y : α), SeqImage α f y → ¬ (r y m)) =&gt;
+                    hall (f (Nat.succ n))
+                      (Exists.intro (Nat.succ n)
+                        (@Eq.refl.{1} α (f (Nat.succ n))))) (And.right hmm))))
+            (And.left hmm)))
+        (hasMin_elim α r (SeqImage α f) hm))
+      (wellFounded_hasMin α r h (SeqImage α f)
+        (Exists.intro (f Nat.zero)
+          (Exists.intro Nat.zero
+            (@Eq.refl.{1} α (f Nat.zero)))))</code></pre></details><details open class="appendix-solution" id="app-sol-14-9"><summary>练习 9 · emptyRelation_wellFounded <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 9（D 类）：空关系是良基的 ────────────────────────────────────────</p><pre><code>theorem emptyRelation_wellFounded (α : Type) :
+    IsWellFounded α (EmptyRelation α α) :=
+  isWellFounded_intro α (EmptyRelation α α)
+    (fun (P : α → Prop) (hP : ∃ (x : α), P x) =&gt;
+      @Exists.elim α P (HasMin α (EmptyRelation α α) P) hP
+        (fun (m : α) (hm : P m) =&gt;
+          hasMin_intro α (EmptyRelation α α) P m hm
+            (fun (y : α) (hy : P y) (hf : EmptyRelation α α y m) =&gt; hf)))</code></pre></details><details open class="appendix-solution" id="app-sol-14-10"><summary>练习 10 · emptyRelation_not_reflexive <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 10（D 类）：空关系不是自反的 ─────────────────────────────────────</p><pre><code>theorem emptyRelation_not_reflexive (α : Type) (a : α) :
+    ¬ Reflexive α (EmptyRelation α α) :=
+  fun (hr : Reflexive α (EmptyRelation α α)) =&gt;
+    (fun (hall : ∀ (x : α), EmptyRelation α α x x) =&gt; hall a) hr</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

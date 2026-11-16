@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 37 关系的代数刻画</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit37.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 37 关系的代数刻画</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit37.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.13 关系的代数 · 单元 37</p><h1>关系的代数刻画</h1><p class="note">Unit 37 — Algebraic Characterizations of Relation Properties</p></header><section class="unit" id="unit-37">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-13.html">I.13</a> · 本章第 2 / 8 单元 · 全书第 37 / 112 单元</p>
+<h2><span class="unit-number">37</span><span>关系的代数刻画</span></h2>
+<p class="unit-title-en">Unit 37 — Algebraic Characterizations of Relation Properties</p>
+<p class="unit-meta">1 个定义 · 13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-37">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§10</strong>（复合与逆）与 <strong>§7</strong>（等价关系）；Enderton《Elements of Set Theory》<strong>§3.3 / §3.5</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.13 章第二个单元 —— 把 I.10 的闭包/等价关系与 I.13 的关系代数<strong>接起来</strong>）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"（把"自反/对称/传递"翻译成<strong>代数式子</strong>）：</p></div><details open class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li><strong>自反 <span class="math">⟺</span> 恒等关系含于它</strong>（<code>idRel ⊆ r</code>）；</li><li><strong>对称 <span class="math">⟺</span> 逆关系含于它</strong>（<code>r ⁻¹ ⊆ r</code>）；</li><li><strong>传递 <span class="math">⟺</span> 自复合含于它</strong>（<code>r • r ⊆ r</code>）—— <strong>这才是"传递"的代数形状</strong>；</li><li><strong>旗舰：三条合起来就是等价关系</strong>（反方向：三个代数条件 <span class="math">⇒</span> 等价关系）；</li><li><strong>等价关系的自复合是幂等的</strong>（<code>r • r ⊆ r</code> 且 <code>r ⊆ r • r</code>）✓</li></ul></details><h3 class="unit-subhead">37.0 画布给的新词汇（与单元㊱ 同名同义）：<strong>恒等关系</strong></h3><article class="decl decl-def" id="decl-37-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">idRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def idRel (α : Type) : Rel α α :=
+  fun (a : α) (b : α) =&gt; a = b</code></pre></div></article>
+<h3 class="unit-subhead">37.1 三条库引理（自复合、逆、等价关系的展开）</h3><div class="block prose intuition-only"><p>演示：自复合的成员刻画（"中间有一个点接得上"）。</p></div><article class="decl decl-theorem" id="decl-37-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_comp</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_comp (α : Type) (r : Rel α α) (a c : α) :
+    (r • r) a c ↔ ∃ (b : α), r a b ∧ r b c :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.comp_apply r r a c</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：逆关系的成员刻画。</p></div><article class="decl decl-theorem" id="decl-37-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_inv</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_inv (α : Type) (r : Rel α α) (b a : α) :
+    (r ⁻¹) b a ↔ r a b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.inv_apply α α r b a</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：等价关系的展开（自反 <span class="math">∧</span> 对称 <span class="math">∧</span> 传递）。</p></div><article class="decl decl-theorem" id="decl-37-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_isEquivalence_def</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_isEquivalence_def (α : Type) (r : Rel α α) :
+    IsEquivalence α r ↔ (Reflexive α r ∧ Symmetric α r ∧ Transitive α r) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  isEquivalence_def α r</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">37.2 三个刻画：<strong>把"自反/对称/传递"翻译成代数式子</strong></h3><article class="exercise" id="ex-37-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">refl_iff_idRel_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-37-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（L 类，旗舰之一）：<strong>自反 <span class="math">⟺</span> 恒等关系含于它</strong>。</p></div></div><pre class="exercise-statement"><code>theorem refl_iff_idRel_subset (α : Type) (r : Rel α α) :
+    Reflexive α r ↔ ∀ (a : α), (idRel α) a a → r a a := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：自反在每个点上给出 <code>r a a</code>；<span class="math">←</span>：把假设用在 <code>a = a</code>（自反）上。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Reflexive α r ↔ ∀ a, (idRel α) a a → r a a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code>（<strong>前导 Prop 实参写全</strong>）<span class="math">·</span> 自反假设<strong>先 <span class="math">λ</span> 绑定再应用</strong>（G-73 形状 ①）<span class="math">·</span><code>Eq.refl</code>（写全宇宙层级与论域）✓</p></div></details></div><details open class="solution-panel" id="sol-37-1"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem refl_iff_idRel_subset (α : Type) (r : Rel α α) :
+    Reflexive α r ↔ ∀ (a : α), (idRel α) a a → r a a :=
+  @Iff.intro (Reflexive α r) (∀ (a : α), (idRel α) a a → r a a)
+    (fun (h : Reflexive α r) =&gt; fun (a : α) =&gt; fun (ha : (idRel α) a a) =&gt;
+      (fun (hu : ∀ (x : α), r x x) =&gt; hu a) h)
+    (fun (h : ∀ (a : α), (idRel α) a a → r a a) =&gt; fun (a : α) =&gt;
+      h a (@Eq.refl.{1} α a))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-37-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">symm_iff_inv_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-37-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类，旗舰之一）：<strong>对称 <span class="math">⟺</span> 逆关系含于它</strong>。</p></div></div><pre class="exercise-statement"><code>theorem symm_iff_inv_subset (α : Type) (r : Rel α α) :
+    Symmetric α r ↔ ∀ (a : α) (b : α), (r ⁻¹) a b → r a b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：给定 <code>r b a</code>（即 <code>(r ⁻¹) a b</code>），用对称性掉头；<span class="math">←</span>：给定 <code>r a b</code>，把假设用在<strong>掉头后的那一对</strong>上。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Symmetric α r ↔ ∀ a b, (r ⁻¹) a b → r a b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code> <span class="math">·</span> 对称假设<strong>先 <span class="math">λ</span> 绑定再应用</strong> <span class="math">·</span> 注意两个方向里 <strong>点的顺序要换</strong>（一侧是 <code>(a, b)</code>、另一侧是 <code>(b, a)</code>）✓</p></div></details></div><details open class="solution-panel" id="sol-37-2"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem symm_iff_inv_subset (α : Type) (r : Rel α α) :
+    Symmetric α r ↔ ∀ (a : α) (b : α), (r ⁻¹) a b → r a b :=
+  @Iff.intro (Symmetric α r) (∀ (a : α) (b : α), (r ⁻¹) a b → r a b)
+    (fun (h : Symmetric α r) =&gt; fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : (r ⁻¹) a b) =&gt;
+      (fun (hu : ∀ (x : α) (y : α), r x y → r y x) =&gt; hu b a hab) h)
+    (fun (h : ∀ (a : α) (b : α), (r ⁻¹) a b → r a b) =&gt;
+      fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt; h b a hab)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-37-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">trans_iff_comp_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-37-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类，<strong>本单元旗舰之一</strong>）：<strong>传递 <span class="math">⟺</span> 自复合含于它</strong>。</p></div></div><pre class="exercise-statement"><code>theorem trans_iff_comp_subset (α : Type) (r : Rel α α) :
+    Transitive α r ↔ ∀ (a : α) (c : α), (r • r) a c → r a c := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：把 <code>∃ b, r a b ∧ r b c</code> 拆出来，用传递性接上；<span class="math">←</span>：给定 <code>r a b</code> 与 <code>r b c</code>，用 <code>b</code> 当见证造出那个 <code>∃</code>，再交给假设。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Transitive α r ↔ ∀ a c, (r • r) a c → r a c</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code> <span class="math">·</span> <code>Exists.elim</code>/<code>Exists.intro</code>（<strong>前导实参写全</strong>）<span class="math">·</span>传递假设<strong>先 <span class="math">λ</span> 绑定再应用</strong>（它有三个点参数 <span class="math">·</span> 两条前提）<span class="math">·</span> <code>And.left</code>/<code>And.right</code> ✓</p></div></details></div><details open class="solution-panel" id="sol-37-3"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem trans_iff_comp_subset (α : Type) (r : Rel α α) :
+    Transitive α r ↔ ∀ (a : α) (c : α), (r • r) a c → r a c :=
+  @Iff.intro (Transitive α r) (∀ (a : α) (c : α), (r • r) a c → r a c)
+    (fun (h : Transitive α r) =&gt; fun (a : α) =&gt; fun (c : α) =&gt; fun (hac : (r • r) a c) =&gt;
+      @Exists.elim α (fun (b : α) =&gt; r a b ∧ r b c) (r a c) hac
+        (fun (b : α) (hb : r a b ∧ r b c) =&gt;
+          (fun (hu : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+            hu a b c (And.left hb) (And.right hb)) h))
+    (fun (h : ∀ (a : α) (c : α), (r • r) a c → r a c) =&gt;
+      fun (a : α) =&gt; fun (b : α) =&gt; fun (c : α) =&gt; fun (hab : r a b) =&gt; fun (hbc : r b c) =&gt;
+        h a c (Exists.intro b
+          (And.intro hab hbc)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">37.3 三个方向的取用子（写成单独的定理，好用）</h3><article class="exercise" id="ex-37-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">comp_self_subset_of_trans</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-37-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：<strong>传递 <span class="math">⇒</span> 自复合含于它</strong>（练习 3 的正方向）。</p></div></div><pre class="exercise-statement"><code>theorem comp_self_subset_of_trans (α : Type) (r : Rel α α) (h : Transitive α r) :
+    ∀ (a : α) (c : α), (r • r) a c → r a c := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><strong>不要走 <code>Iff.mp</code></strong> —— 实测那里解不出（「期望 <code>Sort(1)</code>，实际是 <code>Rel α α</code>」）；直接把练习 3 正方向的证明重写一遍即可（只有一行 <code>Exists.elim</code>）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Transitive α r → ∀ a c, (r • r) a c → r a c</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>（前导实参写全）<span class="math">·</span> 传递假设先 <span class="math">λ</span> 绑定 ✓</p></div></details></div><details open class="solution-panel" id="sol-37-4"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem comp_self_subset_of_trans (α : Type) (r : Rel α α) (h : Transitive α r) :
+    ∀ (a : α) (c : α), (r • r) a c → r a c :=
+  fun (a : α) =&gt; fun (c : α) =&gt; fun (hac : (r • r) a c) =&gt;
+    @Exists.elim α (fun (b : α) =&gt; r a b ∧ r b c) (r a c) hac
+      (fun (b : α) (hb : r a b ∧ r b c) =&gt;
+        (fun (hu : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+          hu a b c (And.left hb) (And.right hb)) h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-37-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">inv_subset_of_symm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-37-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（T 类）：<strong>对称 <span class="math">⇒</span> 逆关系含于它</strong>（练习 2 的正方向；同样直接重证）。</p></div></div><pre class="exercise-statement"><code>theorem inv_subset_of_symm (α : Type) (r : Rel α α) (h : Symmetric α r) :
+    ∀ (a : α) (b : α), (r ⁻¹) a b → r a b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>给定 <code>(r ⁻¹) a b</code>（定义上就是 <code>r b a</code>），用对称性掉头。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Symmetric α r → ∀ a b, (r ⁻¹) a b → r a b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>对称假设先 <span class="math">λ</span> 绑定 ✓</p></div></details></div><details open class="solution-panel" id="sol-37-5"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem inv_subset_of_symm (α : Type) (r : Rel α α) (h : Symmetric α r) :
+    ∀ (a : α) (b : α), (r ⁻¹) a b → r a b :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : (r ⁻¹) a b) =&gt;
+    (fun (hu : ∀ (x : α) (y : α), r x y → r y x) =&gt; hu b a hab) h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-37-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">idRel_subset_of_refl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-37-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（T 类）：<strong>自反 <span class="math">⇒</span> 恒等关系含于它</strong>（练习 1 的正方向）。</p></div></div><pre class="exercise-statement"><code>theorem idRel_subset_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α), (idRel α) a a → r a a := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>自反在每个点上给出 <code>r a a</code>，与那个等式无关（等式位是自由位）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Reflexive α r → ∀ a, (idRel α) a a → r a a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>自反假设先 <span class="math">λ</span> 绑定再应用 ✓</p></div></details></div><details open class="solution-panel" id="sol-37-6"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem idRel_subset_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α), (idRel α) a a → r a a :=
+  fun (a : α) =&gt; fun (ha : (idRel α) a a) =&gt;
+    (fun (hu : ∀ (x : α), r x x) =&gt; hu a) h</code></pre></div></details></div></article>
+<h3 class="unit-subhead">37.4 反方向：<strong>自反 <span class="math">⇒</span> <code>r ⊆ r • r</code></strong>（自复合变大）</h3><article class="exercise" id="ex-37-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">subset_comp_self_of_refl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-37-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类）：<strong>自反 <span class="math">⇒</span> <code>r</code> 含于自复合</strong>（见证取点自己）。</p></div></div><pre class="exercise-statement"><code>theorem subset_comp_self_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α) (c : α), r a c → (r • r) a c := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>给定 <code>r a c</code>，见证取 <code>a</code>：需要 <code>r a a</code>（自反）与 <code>r a c</code>（假设）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Reflexive α r → ∀ a c, r a c → (r • r) a c</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.intro</code>（<strong>前导实参写全</strong>）<span class="math">·</span> <code>And.intro</code>（前导 Prop 实参写全）<span class="math">·</span>自反假设先 <span class="math">λ</span> 绑定 ✓</p></div></details></div><details open class="solution-panel" id="sol-37-7"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem subset_comp_self_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α) (c : α), r a c → (r • r) a c :=
+  fun (a : α) =&gt; fun (c : α) =&gt; fun (hac : r a c) =&gt;
+    Exists.intro a
+      (And.intro ((fun (hu : ∀ (x : α), r x x) =&gt; hu a) h) hac)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-37-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">comp_idRel_subset_of_refl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-37-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类）：<strong>自反 <span class="math">⇒</span> <code>idRel • r ⊆ r</code></strong>（把单位元那一侧消化掉）—— 单元㊱ 练习 9 的同款。</p></div></div><pre class="exercise-statement"><code>theorem comp_idRel_subset_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α) (b : α), (idRel α • r) a b → r a b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆开 <code>∃</code>，沿 <code>a = a1</code> 把 <code>r a1 b</code> 搬成 <code>r a b</code>（改的是<strong>第一个坐标</strong>）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Reflexive α r → ∀ a b, (idRel α • r) a b → r a b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>（前导实参写全）<span class="math">·</span> <strong>改第一个坐标要把关系翻过来</strong>：用 <code>rel_subst_right</code>、关系取 <code>fun u v =&gt; r v b</code>、等式取 <code>Eq.symm</code>（实测直接写会判红）✓</p></div></details></div><details open class="solution-panel" id="sol-37-8"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem comp_idRel_subset_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α) (b : α), (idRel α • r) a b → r a b :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : (idRel α • r) a b) =&gt;
+    @Exists.elim α (fun (a1 : α) =&gt; (idRel α) a a1 ∧ r a1 b) (r a b) hab
+      (fun (a1 : α) (ha : (idRel α) a a1 ∧ r a1 b) =&gt;
+        rel_subst_right α (fun (u : α) (v : α) =&gt; r v b) a1 a1 a
+          (@Eq.symm.{1} α a a1 (And.left ha)) (And.right ha))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">37.5 旗舰：<strong>三个代数条件 <span class="math">⇔</span> 等价关系</strong>（拆成两条，别写成一个巨大的 <code>↔</code>）</h3><article class="exercise" id="ex-37-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">algebraic_is_equivalence</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-37-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（D 类，<strong>本单元旗舰</strong>）：<strong>三个代数条件合起来 <span class="math">⇒</span> 等价关系</strong>。</p></div></div><pre class="exercise-statement"><code>theorem algebraic_is_equivalence (α : Type) (r : Rel α α)
+    (h1 : ∀ (a : α), (idRel α) a a → r a a)
+    (h2 : ∀ (a : α) (b : α), (r ⁻¹) a b → r a b)
+    (h3 : ∀ (a : α) (c : α), (r • r) a c → r a c) :
+    IsEquivalence α r := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用智能构造子把三条打包 ——①自反：把条件 1 用在 <code>a</code> 与 <code>a = a</code> 上；②对称：把条件 2 用在<strong>掉头的</strong>一对上；③传递：先造出 <code>∃ b, r a b ∧ r b c</code>（见证取 <code>b</code>），再交给条件 3。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>`<span class="math">(∀ a</span>, <span class="math">idRel a a → r a a) → (∀ a b</span>, <span class="math">(r ⁻¹) a b → r a b) →</span></p><div class="math-display intuition-only" role="math" aria-label="(∀ a c, (r • r) a c → r a c) → IsEquivalence α r"><math display="block" class="mathml"><mrow><mo>(</mo><mo>∀</mo><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mi>c</mi><mo>,</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>r</mi><mspace width="0.22em"/><mo>•</mo><mspace width="0.22em"/><mi>r</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mi>c</mi><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mi>r</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mi>c</mi><mo>)</mo><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mi mathvariant="normal">IsEquivalence</mi><mspace width="0.22em"/><mo>α</mo><mspace width="0.22em"/><mi>r</mi></mrow></math></div></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isEquivalence_intro</code>（参数：论域 <span class="math">·</span> 关系 <span class="math">·</span> 自反 <span class="math">·</span> 对称 <span class="math">·</span> 传递）<span class="math">·</span><code>Exists.intro</code>/<code>And.intro</code>（前导实参写全）<span class="math">·</span> <code>Eq.refl</code> ✓ ⚠ <strong>不要把三条打包成一个巨大的 <code>↔</code></strong>（右边还套三层 <code>∧</code>）—— 实测那个形态<strong>写不出来</strong> <span class="math">⇒</span> 解答里拆成了"三个取用子 <span class="math">+</span> 本定理"四条 ✓</p></div></details></div><details open class="solution-panel" id="sol-37-9"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem algebraic_is_equivalence (α : Type) (r : Rel α α)
+    (h1 : ∀ (a : α), (idRel α) a a → r a a)
+    (h2 : ∀ (a : α) (b : α), (r ⁻¹) a b → r a b)
+    (h3 : ∀ (a : α) (c : α), (r • r) a c → r a c) :
+    IsEquivalence α r :=
+  isEquivalence_intro α r
+    (fun (a : α) =&gt; h1 a (@Eq.refl.{1} α a))
+    (fun (a : α) (b : α) =&gt; fun (hab : r a b) =&gt; h2 b a hab)
+    (fun (a : α) (b : α) (c : α) =&gt; fun (hab : r a b) =&gt; fun (hbc : r b c) =&gt;
+      h3 a c (Exists.intro b
+        (And.intro hab hbc)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-37-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">equivalence_comp_idempotent</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-37-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（D 类）：<strong>等价关系的自复合是幂等的</strong>（两个方向都成立）。</p></div></div><pre class="exercise-statement"><code>theorem equivalence_comp_idempotent (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
+    (∀ (a : α) (c : α), (r • r) a c → r a c) ∧ (∀ (a : α) (c : α), r a c → (r • r) a c) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：传递性（练习 4 那条取用子的等价物，这里可直接用 <code>equivalence_trans</code>）；<span class="math">←</span>：自反性（练习 7）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsEquivalence α r → (∀ a c, (r • r) a c → r a c) ∧ (∀ a c, r a c → (r • r) a c)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>And.intro</code>（前导 Prop 实参写全）<span class="math">·</span> <strong>等价关系的三条取用子</strong>（<code>equivalence_refl</code> / <code>equivalence_trans</code>，都是定义头 <span class="math">⇒</span> 先 <span class="math">λ</span> 绑定）<span class="math">·</span> 练习 <span class="math">4 ·</span> 练习 7 ✓ ⚠ 标题里的"幂等"是<strong>集合层面的等式</strong>（<code>r • r = r</code>，要 <code>Rel.ext</code>）；本练习写成<strong>两个方向的逐点形态</strong>，因为那是下面最常用的形状 ✓</p></div></details></div><details open class="solution-panel" id="sol-37-10"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem equivalence_comp_idempotent (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
+    (∀ (a : α) (c : α), (r • r) a c → r a c) ∧ (∀ (a : α) (c : α), r a c → (r • r) a c) :=
+  @And.intro (∀ (a : α) (c : α), (r • r) a c → r a c)
+    (∀ (a : α) (c : α), r a c → (r • r) a c)
+    (equivalence_comp_subset α r h)
+    (subset_comp_self_of_refl α r (equivalence_refl α r h))</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>本单元的"读法"</strong>：<code>idRel</code> 是画布给的（复合的单位元，单元㊱ 已用）；三个刻画都写成 <strong>逐点</strong>形态（<code>∀ a b, … → …</code>），因为它们要与 <code>Reflexive</code>/<code>Symmetric</code>/<code>Transitive</code>（都是 <code>∀</code>）对接 ✓ 想要"关系相等"的写法就套 <code>Rel.ext</code>（库里的公理）✓</p></div><div class="block prose intuition-only"><p>⚠ <strong>实测的写法教训（都写进 hint）</strong>：① <strong><code>Iff.mp</code> / <code>Iff.mpr</code> 在这些位置解不出</strong>（「期望 <code>Sort(1)</code>，实际是 <code>Rel α α</code>」）<span class="math">⇒</span> 取用子<strong>直接重证一遍</strong>更稳（本单元的 <code>comp_self_subset_of_trans</code> 等三条就是这么写的）；② <strong>一个巨大的 <code>↔</code>（右边还套三层 <code>∧</code>）写不出来</strong> <span class="math">⇒</span> 拆成"四个小定理"（三个取用子 <span class="math">+</span> 一个反方向）✓</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Rel</code>（<code>•</code>/<code>⁻¹</code>）<span class="math">·</span> <code>lib.Order</code>（自反/对称/传递/等价）<span class="math">·</span> <code>lib.Set</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㊱（关系的代数）与单元㉕（等价关系）—— 本单元把两者接起来。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit36.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">关系的代数</span></a><a class="unit-nav-home" href="../chapters/i-13.html#units">目录</a><a class="unit-nav-link" href="../units/unit38.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">序关系的关系代数视角</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-37"><h3><a href="#top">关系的代数刻画</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答 · 4 个解答独有声明</p><details open class="appendix-solution" id="app-sol-37-1"><summary>练习 1 · refl_iff_idRel_subset <span class="sol-meta">定理</span></summary><pre><code>theorem refl_iff_idRel_subset (α : Type) (r : Rel α α) :
+    Reflexive α r ↔ ∀ (a : α), (idRel α) a a → r a a :=
+  @Iff.intro (Reflexive α r) (∀ (a : α), (idRel α) a a → r a a)
+    (fun (h : Reflexive α r) =&gt; fun (a : α) =&gt; fun (ha : (idRel α) a a) =&gt;
+      (fun (hu : ∀ (x : α), r x x) =&gt; hu a) h)
+    (fun (h : ∀ (a : α), (idRel α) a a → r a a) =&gt; fun (a : α) =&gt;
+      h a (@Eq.refl.{1} α a))</code></pre></details><details open class="appendix-solution" id="app-sol-37-2"><summary>练习 2 · symm_iff_inv_subset <span class="sol-meta">定理</span></summary><pre><code>theorem symm_iff_inv_subset (α : Type) (r : Rel α α) :
+    Symmetric α r ↔ ∀ (a : α) (b : α), (r ⁻¹) a b → r a b :=
+  @Iff.intro (Symmetric α r) (∀ (a : α) (b : α), (r ⁻¹) a b → r a b)
+    (fun (h : Symmetric α r) =&gt; fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : (r ⁻¹) a b) =&gt;
+      (fun (hu : ∀ (x : α) (y : α), r x y → r y x) =&gt; hu b a hab) h)
+    (fun (h : ∀ (a : α) (b : α), (r ⁻¹) a b → r a b) =&gt;
+      fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt; h b a hab)</code></pre></details><details open class="appendix-solution" id="app-sol-37-3"><summary>练习 3 · trans_iff_comp_subset <span class="sol-meta">定理</span></summary><pre><code>theorem trans_iff_comp_subset (α : Type) (r : Rel α α) :
+    Transitive α r ↔ ∀ (a : α) (c : α), (r • r) a c → r a c :=
+  @Iff.intro (Transitive α r) (∀ (a : α) (c : α), (r • r) a c → r a c)
+    (fun (h : Transitive α r) =&gt; fun (a : α) =&gt; fun (c : α) =&gt; fun (hac : (r • r) a c) =&gt;
+      @Exists.elim α (fun (b : α) =&gt; r a b ∧ r b c) (r a c) hac
+        (fun (b : α) (hb : r a b ∧ r b c) =&gt;
+          (fun (hu : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+            hu a b c (And.left hb) (And.right hb)) h))
+    (fun (h : ∀ (a : α) (c : α), (r • r) a c → r a c) =&gt;
+      fun (a : α) =&gt; fun (b : α) =&gt; fun (c : α) =&gt; fun (hab : r a b) =&gt; fun (hbc : r b c) =&gt;
+        h a c (Exists.intro b
+          (And.intro hab hbc)))</code></pre></details><details open class="appendix-solution" id="app-sol-37-4"><summary>练习 4 · comp_self_subset_of_trans <span class="sol-meta">定理</span></summary><pre><code>theorem comp_self_subset_of_trans (α : Type) (r : Rel α α) (h : Transitive α r) :
+    ∀ (a : α) (c : α), (r • r) a c → r a c :=
+  fun (a : α) =&gt; fun (c : α) =&gt; fun (hac : (r • r) a c) =&gt;
+    @Exists.elim α (fun (b : α) =&gt; r a b ∧ r b c) (r a c) hac
+      (fun (b : α) (hb : r a b ∧ r b c) =&gt;
+        (fun (hu : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+          hu a b c (And.left hb) (And.right hb)) h)</code></pre></details><details open class="appendix-solution" id="app-sol-37-5"><summary>练习 5 · inv_subset_of_symm <span class="sol-meta">定理</span></summary><pre><code>theorem inv_subset_of_symm (α : Type) (r : Rel α α) (h : Symmetric α r) :
+    ∀ (a : α) (b : α), (r ⁻¹) a b → r a b :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : (r ⁻¹) a b) =&gt;
+    (fun (hu : ∀ (x : α) (y : α), r x y → r y x) =&gt; hu b a hab) h</code></pre></details><details open class="appendix-solution" id="app-sol-37-6"><summary>练习 6 · idRel_subset_of_refl <span class="sol-meta">定理</span></summary><pre><code>theorem idRel_subset_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α), (idRel α) a a → r a a :=
+  fun (a : α) =&gt; fun (ha : (idRel α) a a) =&gt;
+    (fun (hu : ∀ (x : α), r x x) =&gt; hu a) h</code></pre></details><details open class="appendix-solution" id="app-sol-37-7"><summary>练习 7 · subset_comp_self_of_refl <span class="sol-meta">定理</span></summary><pre><code>theorem subset_comp_self_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α) (c : α), r a c → (r • r) a c :=
+  fun (a : α) =&gt; fun (c : α) =&gt; fun (hac : r a c) =&gt;
+    Exists.intro a
+      (And.intro ((fun (hu : ∀ (x : α), r x x) =&gt; hu a) h) hac)</code></pre></details><details open class="appendix-solution" id="app-sol-37-8"><summary>练习 8 · comp_idRel_subset_of_refl <span class="sol-meta">定理</span></summary><pre><code>theorem comp_idRel_subset_of_refl (α : Type) (r : Rel α α) (h : Reflexive α r) :
+    ∀ (a : α) (b : α), (idRel α • r) a b → r a b :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : (idRel α • r) a b) =&gt;
+    @Exists.elim α (fun (a1 : α) =&gt; (idRel α) a a1 ∧ r a1 b) (r a b) hab
+      (fun (a1 : α) (ha : (idRel α) a a1 ∧ r a1 b) =&gt;
+        rel_subst_right α (fun (u : α) (v : α) =&gt; r v b) a1 a1 a
+          (@Eq.symm.{1} α a a1 (And.left ha)) (And.right ha))</code></pre></details><details open class="appendix-solution" id="app-sol-37-9"><summary>练习 9 · algebraic_is_equivalence <span class="sol-meta">定理</span></summary><pre><code>theorem algebraic_is_equivalence (α : Type) (r : Rel α α)
+    (h1 : ∀ (a : α), (idRel α) a a → r a a)
+    (h2 : ∀ (a : α) (b : α), (r ⁻¹) a b → r a b)
+    (h3 : ∀ (a : α) (c : α), (r • r) a c → r a c) :
+    IsEquivalence α r :=
+  isEquivalence_intro α r
+    (fun (a : α) =&gt; h1 a (@Eq.refl.{1} α a))
+    (fun (a : α) (b : α) =&gt; fun (hab : r a b) =&gt; h2 b a hab)
+    (fun (a : α) (b : α) (c : α) =&gt; fun (hab : r a b) =&gt; fun (hbc : r b c) =&gt;
+      h3 a c (Exists.intro b
+        (And.intro hab hbc)))</code></pre></details><details open class="appendix-solution" id="app-sol-37-10"><summary>练习 10 · equivalence_comp_idempotent <span class="sol-meta">定理</span></summary><pre><code>theorem equivalence_comp_idempotent (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
+    (∀ (a : α) (c : α), (r • r) a c → r a c) ∧ (∀ (a : α) (c : α), r a c → (r • r) a c) :=
+  @And.intro (∀ (a : α) (c : α), (r • r) a c → r a c)
+    (∀ (a : α) (c : α), r a c → (r • r) a c)
+    (equivalence_comp_subset α r h)
+    (subset_comp_self_of_refl α r (equivalence_refl α r h))</code></pre></details><details open class="appendix-solution" id="app-extra-37-1"><summary>补充 · equivalence_refl_algebraic <span class="sol-meta">定理</span></summary><pre><code>theorem equivalence_refl_algebraic (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
+    ∀ (a : α), (idRel α) a a → r a a :=
+  idRel_subset_of_refl α r (equivalence_refl α r h)</code></pre></details><details open class="appendix-solution" id="app-extra-37-2"><summary>补充 · equivalence_symm_algebraic <span class="sol-meta">定理</span></summary><pre><code>theorem equivalence_symm_algebraic (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
+    ∀ (a : α) (b : α), (r ⁻¹) a b → r a b :=
+  inv_subset_of_symm α r (equivalence_symm α r h)</code></pre></details><details open class="appendix-solution" id="app-extra-37-3"><summary>补充 · equivalence_trans_algebraic <span class="sol-meta">定理</span></summary><pre><code>theorem equivalence_trans_algebraic (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
+    ∀ (a : α) (c : α), (r • r) a c → r a c :=
+  comp_self_subset_of_trans α r (equivalence_trans α r h)</code></pre></details><details open class="appendix-solution" id="app-extra-37-4"><summary>补充 · equivalence_comp_subset <span class="sol-meta">定理</span></summary><pre><code>theorem equivalence_comp_subset (α : Type) (r : Rel α α) (h : IsEquivalence α r) :
+    ∀ (a : α) (c : α), (r • r) a c → r a c :=
+  comp_self_subset_of_trans α r (equivalence_trans α r h)</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>从集合论到实分析 · 交互读本 v3</title>
+<meta name="description" content="卷 II 数系与实数：7 章 72 单元，多页读本。">
+<link rel="canonical" href="https://example.invalid/book-v3/index.html">
+<link rel="stylesheet" href="./assets/book-components.css">
+<link rel="stylesheet" href="./assets/v3.css">
+<script defer src="./assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="cover">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="./index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="./index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="./sitemap.html">目录</a>
+      <a href="./search.html">搜索</a>
+      <a href="./sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="chapters/i-6.html">I.6 序数</a></li><li><a href="chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="chapters/i-11.html">I.11 集合代数</a></li><li><a href="chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<header class="cover"><p class="cover-kicker">sokonanoda · analysis · interactive book · v2</p><h1>卷 I《集合论》</h1><p class="cover-en">卷 I 集合论 · 第 I.1–I.13 章 · 13 章 112 单元 · M1+M2 全书</p><p class="cover-lede">把「直觉」与「形式」放在同一页：先读中文讲解、动机与提示，再展开声明、证明步骤、完整代码和解答。所有内容来自课程画布与解答文件；这不是 II.1 的样章，而是当前课程清单里全部章节的连续读本。</p><p class="cover-cta"><a class="cover-start" href="units/unit01.html">开始阅读 → 单元 1</a><a class="plain" href="#path">先看目录</a></p><ul class="cover-stats"><li><strong>13</strong><span>章</span></li><li><strong>112</strong><span>单元</span></li><li><strong>1344</strong><span>声明</span></li><li><strong>910</strong><span>练习</span></li><li><strong>1760</strong><span>提示</span></li><li><strong>910</strong><span>解答</span></li></ul><div class="reading-guide" aria-label="阅读方式"><div class="guide-card"><span class="guide-name">直觉</span><p>中文讲解、动机与 <code>soko:hint</code> 提示；先建立图景。</p></div><div class="guide-card"><span class="guide-name">形式</span><p>声明签名、证明步骤与完整代码；核对每一步。</p></div><div class="guide-card"><span class="guide-name">并读</span><p>两层同页对照；工具栏切换，浏览器会记住你的选择。</p></div></div><p class="cover-note">范围：卷 I 集合论 的 13 章 112 个单元（I.1–I.13）。M3 及以后单元加入 <code>course.json</code> 后会在下一次构建自动出现。工具栏可搜索全书、记录阅读进度；每个单元标题下可「标记已读」与「复制链接」。数学 = Unicode 衬线体 + 原生 MathML（简单分式/上标结构化，复杂或代码式公式回退为 Unicode / 等宽，不丢内容）；无 CDN、无 Web 字体。证明、提示、解答均可折叠；打印按 A4 分页，每个单元另起一页。</p></header>
+<section id="path" class="path">
+  <h2>学习路径</h2>
+  <p class="lede">按章顺序读。每章先看章导览，再进单元；每单元一页，可标记已读、可就地打印。全书 7 章 72 单元。</p>
+  <ol class="path-list">
+<li><a href="chapters/i-1.html"><span class="path-num">I.1</span>集合、子集与集合运算</a><span class="path-meta">15 单元 · 112 道练习 · 157 个声明 · 204 条提示 · 从「集合与隶属」到「经典等价三件套」</span></li>
+<li><a href="chapters/i-2.html"><span class="path-num">I.2</span>序对、关系与函数</a><span class="path-meta">4 单元 · 31 道练习 · 56 个声明 · 82 条提示 · 从「序对与笛卡尔积」到「积对并交的分配」</span></li>
+<li><a href="chapters/i-3.html"><span class="path-num">I.3</span>像、原像与基数</a><span class="path-meta">16 单元 · 122 道练习 · 211 个声明 · 107 条提示 · 从「像与原像」到「Cantor–Bernstein 定理（经选择公理）」</span></li>
+<li><a href="chapters/i-4.html"><span class="path-num">I.4</span>论域、悖论与综合</a><span class="path-meta">12 单元 · 60 道练习 · 112 个声明 · 70 条提示 · 从「论域与 Russell 悖论」到「对角线的一般形态」</span></li>
+<li><a href="chapters/i-5.html"><span class="path-num">I.5</span>序关系与良序</a><span class="path-meta">4 单元 · 38 道练习 · 51 个声明 · 91 条提示 · 从「偏序、全序与严格序」到「⊆ 是一个偏序」</span></li>
+<li><a href="chapters/i-6.html"><span class="path-num">I.6</span>序数</a><span class="path-meta">13 单元 · 90 道练习 · 130 个声明 · 125 条提示 · 从「传递集与序数」到「ℕ 的算术律（自建 add/mul）」</span></li>
+<li><a href="chapters/i-7.html"><span class="path-num">I.7</span>选择公理与 ZF 公理体系</a><span class="path-meta">7 单元 · 67 道练习 · 89 个声明 · 134 条提示 · 从「选择公理」到「广义并与交、单调与空族」</span></li>
+<li><a href="chapters/i-8.html"><span class="path-num">I.8</span>基数与基数算术</a><span class="path-meta">4 单元 · 36 道练习 · 49 个声明 · 78 条提示 · 从「基数的比较」到「连续统假设（CH）与 Cantor 定理」</span></li>
+<li><a href="chapters/i-9.html"><span class="path-num">I.9</span>集族、广义积与 n 元关系</a><span class="path-meta">3 单元 · 30 道练习 · 41 个声明 · 90 条提示 · 从「集族与广义并交」到「广义积与柯里化」</span></li>
+<li><a href="chapters/i-10.html"><span class="path-num">I.10</span>关系闭包与等价关系</a><span class="path-meta">12 单元 · 110 道练习 · 153 个声明 · 203 条提示 · 从「关系闭包」到「核与复合、单射」</span></li>
+<li><a href="chapters/i-11.html"><span class="path-num">I.11</span>集合代数</a><span class="path-meta">7 单元 · 68 道练习 · 90 个声明 · 192 条提示 · 从「集合代数：分配律与 De Morgan」到「分配律族」</span></li>
+<li><a href="chapters/i-12.html"><span class="path-num">I.12</span>幂集与函数空间</a><span class="path-meta">7 单元 · 66 道练习 · 88 个声明 · 156 条提示 · 从「幂集代数与特征函数」到「幂集对交并的分配」</span></li>
+<li><a href="chapters/i-13.html"><span class="path-num">I.13</span>关系的代数</a><span class="path-meta">8 单元 · 80 道练习 · 117 个声明 · 228 条提示 · 从「关系的代数」到「关系的复合：单位律与逐点形态」</span></li>
+  </ol>
+</section>
+<section class="volumes" aria-labelledby="volumes-title">
+  <h2 id="volumes-title">两卷</h2>
+  <p class="lede">从集合论到实分析：卷 I 先建集合语言与证明习惯，卷 II 进入数系与实数。</p>
+  <div class="volume-links"><a class="volume-card" href="../index.html"><strong>卷 II 数系与实数</strong><span>72 单元 · 7 章</span></a></div>
+</section>
+<section aria-labelledby="howto" class="howto">
+  <h2 id="howto">怎么用这个读本</h2>
+  <ul>
+    <li><strong>一章一页</strong>：章页给出本章单元表与进度；点任意单元进单元页。</li>
+    <li><strong>一单元一 URL</strong>：`/units/unit35.html` 可收藏、可分享；页内目录跳到小节。</li>
+    <li><strong>搜索</strong>：全书标题、声明、练习、正文小标题共 1910 条索引，结果直达页面锚点。</li>
+    <li><strong>进度</strong>：标记已读只存本机；旧单页版的进度会自动迁移。</li>
+    <li><strong>打印 / PDF</strong>：每单元页右上角「打印 / PDF」，另有干净打印页；整本 PDF 见 <a href="sitemap.html#print">站点地图</a>。</li>
+  </ul>
+</section>
+<section class="search-teaser" aria-labelledby="search-teaser-title">
+  <h2 id="search-teaser-title">搜索全书</h2>
+  <form class="search-form" action="search.html" method="get" role="search">
+    <label for="cover-q">搜索单元 / 声明 / 练习 / 小标题</label>
+    <input id="cover-q" name="q" type="search" placeholder="例：Cauchy、反对称、unit72" autocomplete="off">
+    <button type="submit">搜索</button>
+  </form>
+  <p class="note">索引内嵌在搜索页里，离线可用；共 1910 条。</p>
+</section>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="./sitemap.html">站点地图</a> · <a href="./index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

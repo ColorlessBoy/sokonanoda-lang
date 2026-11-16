@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 79 商集上的函数（well-defined）</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit79.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 79 商集上的函数（well-defined）</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit79.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.10 关系闭包与等价关系 · 单元 79</p><h1>商集上的函数（well-defined）</h1><p class="note">Unit 79 — Well-Defined Functions on Quotients</p></header><section class="unit" id="unit-79">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-10.html">I.10</a> · 本章第 9 / 12 单元 · 全书第 79 / 112 单元</p>
+<h2><span class="unit-number">79</span><span>商集上的函数（well-defined）</span></h2>
+<p class="unit-title-en">Unit 79 — Well-Defined Functions on Quotients</p>
+<p class="unit-meta">2 个定义 · 11 个定理 · 8 道练习 · 11 条提示 · <a href="#appendix-unit-79">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>两个定义</strong>：<code>kernel f</code>（同像）✓ <span class="math">·</span> <code>respects r f</code>（<strong>尊重关系</strong> ✓ ——即"同类点给同值" ✓，这就是 well-defined 的课程形态 ✓）；</li><li><code>respects</code> 的<strong>两种说法等价</strong>：逐点 <code>r a b</code> <span class="math">⇔</span> 逐类 <code>b ∈ [a]</code> ✓；</li><li><strong>旗舰：<code>class_value_unique</code></strong> ✓ —— 若 <code>f</code> 尊重 <code>r</code>，则<strong>同一个块里任意两个代表给同一个值</strong> ✓（这正是"商集上的函数是良定义的" ✓）；</li><li><strong>常值函数尊重任何关系</strong> ✓ <span class="math">·</span> <strong><code>respects</code> 对关系单调</strong> ✓ <span class="math">·</span><strong>交 / 并保持 <code>respects</code></strong> ✓</li></ul></div></div></section>
+<article class="decl decl-def" id="decl-79-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">kernel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def kernel (α : Type) (β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) =&gt; f a = f b</code></pre></div></article>
+<article class="decl decl-def" id="decl-79-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">respects</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def respects (α : Type) (β : Type) (r : Rel α α) (f : α → β) : Prop :=
+  ∀ (a : α) (b : α), r a b → f a = f b</code></pre></div></article>
+<h3 class="unit-subhead">79.1 三条库引理（等价类 <span class="math">·</span> 商集 <span class="math">·</span> 对称取用子）</h3><div class="block prose intuition-only"><p>演示：等价类的成员刻画（<code>b ∈ [a]</code> 就是 <code>r a b</code>）。</p></div><article class="decl decl-theorem" id="decl-79-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_equivClass</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.mem_equivClass α r a b</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-79-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_classes</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_classes (α : Type) (r : Rel α α) (C : α → Prop) :
+    Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.mem_classes α r C</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-79-5"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_equivalence_symm</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_equivalence_symm (α : Type) (r : Rel α α) (he : IsEquivalence α r) :
+    Symmetric α r :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  equivalence_symm α r he-- 练习 1（T 类）：核的展开（`kernel f a b ↔ f a = f b`）。</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-79-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">kernel_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-79-1">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem kernel_apply (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    kernel α β f a b ↔ f a = f b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>定义展开（<code>Iff.intro</code> 两个方向都是恒等 ✓）</p></div></details></div><details open class="solution-panel" id="sol-79-1"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem kernel_apply (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    kernel α β f a b ↔ f a = f b :=
+  @Iff.intro (kernel α β f a b) (f a = f b)
+    (fun (h : kernel α β f a b) =&gt; h) (fun (h : f a = f b) =&gt; h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-79-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">respects_kernel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-79-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>任何函数都尊重自己的核</strong>。</p></div></div><pre class="exercise-statement"><code>theorem respects_kernel (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : kernel α β f a b) : f a = f b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>定义展开（直接把假设交出去 ✓）</p></div></details></div><details open class="solution-panel" id="sol-79-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem respects_kernel (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : kernel α β f a b) : f a = f b :=
+  h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-79-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">constant_respects</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-79-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong>常值函数尊重任何关系</strong>（具体例子 ✓）。</p></div></div><pre class="exercise-statement"><code>theorem constant_respects (α : Type) (β : Type) (r : Rel α α) (y : β) :
+    respects α β r (fun (_ : α) =&gt; y) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.refl</code>（<strong>写全宇宙与类型</strong> ✓）</p></div></details></div><details open class="solution-panel" id="sol-79-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem constant_respects (α : Type) (β : Type) (r : Rel α α) (y : β) :
+    respects α β r (fun (_ : α) =&gt; y) :=
+  fun (a : α) (b : α) (hab : r a b) =&gt; @Eq.refl.{1} β y</code></pre></div></details></div></article>
+<article class="exercise" id="ex-79-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">respects_iff_on_classes</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-79-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：<strong><code>respects</code> 的两种说法等价</strong>（逐点 <span class="math">⇔</span> 逐类）。</p></div></div><pre class="exercise-statement"><code>theorem respects_iff_on_classes (α : Type) (β : Type) (r : Rel α α)
+    (he : IsEquivalence α r) (f : α → β) :
+    respects α β r f ↔ ∀ (a : α) (b : α), b ∈ (Rel.EquivClass α r a) → f a = f b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个方向都用 <code>Rel.mem_equivClass</code> 把 <code>∈ [a]</code> 与 <code>r a b</code> 互转 ✓。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Rel.mem_equivClass</code> <span class="math">·</span> <code>Iff.mp</code> / <code>Iff.mpr</code> <span class="math">·</span> <code>Iff.intro</code>（<strong>两类实参都要</strong> ✓）</p></div></details></div><details open class="solution-panel" id="sol-79-4"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem respects_iff_on_classes (α : Type) (β : Type) (r : Rel α α)
+    (he : IsEquivalence α r) (f : α → β) :
+    respects α β r f ↔ ∀ (a : α) (b : α), b ∈ (Rel.EquivClass α r a) → f a = f b :=
+  @Iff.intro (respects α β r f) (∀ (a : α) (b : α), b ∈ (Rel.EquivClass α r a) → f a = f b)
+    (fun (hf : respects α β r f) =&gt;
+      fun (a : α) (b : α) (hb : b ∈ (Rel.EquivClass α r a)) =&gt;
+        hf a b ((fun (hu : Rel.EquivClass α r a b ↔ r a b) =&gt; Iff.mp hu hb)
+          (Rel.mem_equivClass α r a b)))
+    (fun (hf : ∀ (a : α) (b : α), b ∈ (Rel.EquivClass α r a) → f a = f b) =&gt;
+      fun (a : α) (b : α) (hab : r a b) =&gt;
+        hf a b ((fun (hu : Rel.EquivClass α r a b ↔ r a b) =&gt; Iff.mpr hu hab)
+          (Rel.mem_equivClass α r a b)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-79-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">class_value_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-79-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>旗舰</strong>）：<strong>同块代表同值</strong>（well-defined 的核心 ✓）。</p></div><div class="block prose intuition-only"><p><span class="math">⇒</span> 用 <code>hf</code> 得 <code>f a = f x</code>（<strong>注意方向</strong> ✓）与 <code>f x = f b</code>，再 <code>Eq.trans</code> ✓。</p></div></div><pre class="exercise-statement"><code>theorem class_value_unique (α : Type) (β : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (f : α → β) (hf : respects α β r f) (C : α → Prop) (a : α) (b : α)
+    (hC : Rel.Classes α r C) (ha : C a) (hb : C b) : f a = f b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>块 <code>C</code> 有代表 <code>x</code>（<code>C c ↔ r x c</code> ✓）<span class="math">⇒</span> <code>r x a</code>、<code>r x b</code> ✓</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>f a = f b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Rel.mem_classes</code> <span class="math">·</span> <code>Exists.elim</code> <span class="math">·</span> <code>hf</code> <span class="math">·</span> <code>Eq.symm</code> / <code>Eq.trans</code>（<strong>写全</strong> ✓）</p></div></details></div><details open class="solution-panel" id="sol-79-5"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem class_value_unique (α : Type) (β : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (f : α → β) (hf : respects α β r f) (C : α → Prop) (a : α) (b : α)
+    (hC : Rel.Classes α r C) (ha : C a) (hb : C b) : f a = f b :=
+  @Exists.elim α (fun (x : α) =&gt; ∀ (c : α), C c ↔ r x c) (f a = f b)
+    ((fun (hu : Rel.Classes α r C ↔ ∃ (x : α), ∀ (c : α), C c ↔ r x c) =&gt; Iff.mp hu hC)
+      (Rel.mem_classes α r C))
+    (fun (x : α) (hx : ∀ (c : α), C c ↔ r x c) =&gt;
+      @Eq.trans.{1} β (f a) (f x) (f b)
+        (@Eq.symm.{1} β (f x) (f a) (hf x a ((Iff.mp (hx a)) ha)))
+        (hf x b ((Iff.mp (hx b)) hb)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-79-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">respects_of_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-79-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类）：<strong>关系变小 <span class="math">⇒</span> 更容易尊重</strong>（单调 ✓）。</p></div></div><pre class="exercise-statement"><code>theorem respects_of_subset (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hsub : ∀ (a : α) (b : α), r a b → s a b) (hf : respects α β s f) :
+    respects α β r f := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>hsub</code>（<strong>按 点 <span class="math">·</span> 点 <span class="math">·</span> 前提 应用</strong> ✓）<span class="math">·</span> <code>hf</code> ✓</p></div></details></div><details open class="solution-panel" id="sol-79-6"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem respects_of_subset (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hsub : ∀ (a : α) (b : α), r a b → s a b) (hf : respects α β s f) :
+    respects α β r f :=
+  fun (a : α) (b : α) (hab : r a b) =&gt; hf a b (hsub a b hab)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-79-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">respects_inter</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-79-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（T 类）：<strong>交保持 <code>respects</code></strong>（取前一半 ✓）。</p></div></div><pre class="exercise-statement"><code>theorem respects_inter (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hr : respects α β r f) (hs : respects α β s f) :
+    respects α β (fun (a : α) (b : α) =&gt; r a b ∧ s a b) f := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>And.left</code>（<strong>写全前导实参</strong> ✓）<span class="math">·</span> <code>hr</code> ✓</p></div></details></div><details open class="solution-panel" id="sol-79-7"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem respects_inter (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hr : respects α β r f) (hs : respects α β s f) :
+    respects α β (fun (a : α) (b : α) =&gt; r a b ∧ s a b) f :=
+  fun (a : α) (b : α) (h : r a b ∧ s a b) =&gt; hr a b (And.left h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-79-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">respects_union</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-79-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类，<strong>收尾</strong>）：<strong>并保持 <code>respects</code></strong>（两支各用一次 ✓）。</p></div></div><pre class="exercise-statement"><code>theorem respects_union (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hr : respects α β r f) (hs : respects α β s f) :
+    respects α β (fun (a : α) (b : α) =&gt; r a b ∨ s a b) f := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Or.elim</code>（<strong>动机位放肯定命题</strong> ✓ 铁律）<span class="math">·</span> <code>hr</code> / <code>hs</code> ✓</p></div></details></div><details open class="solution-panel" id="sol-79-8"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem respects_union (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hr : respects α β r f) (hs : respects α β s f) :
+    respects α β (fun (a : α) (b : α) =&gt; r a b ∨ s a b) f :=
+  fun (a : α) (b : α) (h : r a b ∨ s a b) =&gt;
+    @Or.elim (r a b) (s a b) (f a = f b)
+      (fun (hr' : r a b) =&gt; hr a b hr')
+      (fun (hs' : s a b) =&gt; hs a b hs')
+      h</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§3.4/§3.6</strong>（functions on quotients）<span class="math">·Halmos</span>《Naive Set Theory》<strong>§7</strong>。大纲 §4.1（<strong>I.10 章再深化</strong> —— 接单元76–78 ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>为什么这样写才构造性可用</strong> ✓：真正的"商集上的函数"要<strong>从类里选代表</strong> ✗（要选择公理 ✓）；而"<strong>同类点同值</strong>"这条<strong>不需要选择</strong> ✓ <span class="math">⇒</span> 本单元把它做成主角 ✓（与单元76 的"核"、78 的"划分往返"合起来：函数 <span class="math">→</span> 核 <span class="math">→</span> 商，且<strong>降落到商上是良定义的</strong> ✓）。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㉕（等价关系）<span class="math">·</span> 单元76（核）<span class="math">·</span> 单元77/78（等价类与划分往返）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit78.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">划分与等价关系的往返</span></a><a class="unit-nav-home" href="../chapters/i-10.html#units">目录</a><a class="unit-nav-link" href="../units/unit84.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">商与像的往返</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-79"><h3><a href="#top">商集上的函数（well-defined）</a></h3><p class="appendix-meta">8 道练习 · 8 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-79-1"><summary>练习 1 · kernel_apply <span class="sol-meta">定理</span></summary><pre><code>theorem kernel_apply (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    kernel α β f a b ↔ f a = f b :=
+  @Iff.intro (kernel α β f a b) (f a = f b)
+    (fun (h : kernel α β f a b) =&gt; h) (fun (h : f a = f b) =&gt; h)</code></pre></details><details open class="appendix-solution" id="app-sol-79-2"><summary>练习 2 · respects_kernel <span class="sol-meta">定理</span></summary><pre><code>theorem respects_kernel (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (h : kernel α β f a b) : f a = f b :=
+  h</code></pre></details><details open class="appendix-solution" id="app-sol-79-3"><summary>练习 3 · constant_respects <span class="sol-meta">定理</span></summary><pre><code>theorem constant_respects (α : Type) (β : Type) (r : Rel α α) (y : β) :
+    respects α β r (fun (_ : α) =&gt; y) :=
+  fun (a : α) (b : α) (hab : r a b) =&gt; @Eq.refl.{1} β y</code></pre></details><details open class="appendix-solution" id="app-sol-79-4"><summary>练习 4 · respects_iff_on_classes <span class="sol-meta">定理</span></summary><pre><code>theorem respects_iff_on_classes (α : Type) (β : Type) (r : Rel α α)
+    (he : IsEquivalence α r) (f : α → β) :
+    respects α β r f ↔ ∀ (a : α) (b : α), b ∈ (Rel.EquivClass α r a) → f a = f b :=
+  @Iff.intro (respects α β r f) (∀ (a : α) (b : α), b ∈ (Rel.EquivClass α r a) → f a = f b)
+    (fun (hf : respects α β r f) =&gt;
+      fun (a : α) (b : α) (hb : b ∈ (Rel.EquivClass α r a)) =&gt;
+        hf a b ((fun (hu : Rel.EquivClass α r a b ↔ r a b) =&gt; Iff.mp hu hb)
+          (Rel.mem_equivClass α r a b)))
+    (fun (hf : ∀ (a : α) (b : α), b ∈ (Rel.EquivClass α r a) → f a = f b) =&gt;
+      fun (a : α) (b : α) (hab : r a b) =&gt;
+        hf a b ((fun (hu : Rel.EquivClass α r a b ↔ r a b) =&gt; Iff.mpr hu hab)
+          (Rel.mem_equivClass α r a b)))</code></pre></details><details open class="appendix-solution" id="app-sol-79-5"><summary>练习 5 · class_value_unique <span class="sol-meta">定理</span></summary><pre><code>theorem class_value_unique (α : Type) (β : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (f : α → β) (hf : respects α β r f) (C : α → Prop) (a : α) (b : α)
+    (hC : Rel.Classes α r C) (ha : C a) (hb : C b) : f a = f b :=
+  @Exists.elim α (fun (x : α) =&gt; ∀ (c : α), C c ↔ r x c) (f a = f b)
+    ((fun (hu : Rel.Classes α r C ↔ ∃ (x : α), ∀ (c : α), C c ↔ r x c) =&gt; Iff.mp hu hC)
+      (Rel.mem_classes α r C))
+    (fun (x : α) (hx : ∀ (c : α), C c ↔ r x c) =&gt;
+      @Eq.trans.{1} β (f a) (f x) (f b)
+        (@Eq.symm.{1} β (f x) (f a) (hf x a ((Iff.mp (hx a)) ha)))
+        (hf x b ((Iff.mp (hx b)) hb)))</code></pre></details><details open class="appendix-solution" id="app-sol-79-6"><summary>练习 6 · respects_of_subset <span class="sol-meta">定理</span></summary><pre><code>theorem respects_of_subset (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hsub : ∀ (a : α) (b : α), r a b → s a b) (hf : respects α β s f) :
+    respects α β r f :=
+  fun (a : α) (b : α) (hab : r a b) =&gt; hf a b (hsub a b hab)</code></pre></details><details open class="appendix-solution" id="app-sol-79-7"><summary>练习 7 · respects_inter <span class="sol-meta">定理</span></summary><pre><code>theorem respects_inter (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hr : respects α β r f) (hs : respects α β s f) :
+    respects α β (fun (a : α) (b : α) =&gt; r a b ∧ s a b) f :=
+  fun (a : α) (b : α) (h : r a b ∧ s a b) =&gt; hr a b (And.left h)</code></pre></details><details open class="appendix-solution" id="app-sol-79-8"><summary>练习 8 · respects_union <span class="sol-meta">定理</span></summary><pre><code>theorem respects_union (α : Type) (β : Type) (r : Rel α α) (s : Rel α α) (f : α → β)
+    (hr : respects α β r f) (hs : respects α β s f) :
+    respects α β (fun (a : α) (b : α) =&gt; r a b ∨ s a b) f :=
+  fun (a : α) (b : α) (h : r a b ∨ s a b) =&gt;
+    @Or.elim (r a b) (s a b) (f a = f b)
+      (fun (hr' : r a b) =&gt; hr a b hr')
+      (fun (hs' : s a b) =&gt; hs a b hs')
+      h</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>18 ZF 公理体系与正则性 · 从集合论到实分析</title>
+<meta name="description" content="单元⑱ ZF 公理体系与正则性：导语、定义与定理、练习与解答。Unit 18 — The ZF Axioms and Regularity">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit18.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li class="is-current"><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.7 单元</h3><ol><li><a href="../units/unit17.html">17 选择公理</a></li><li class="is-current"><a href="../units/unit18.html">18 ZF 公理体系与正则性</a></li><li><a href="../units/unit48.html">48 覆盖与广义并</a></li><li><a href="../units/unit49.html">49 广义并的代数</a></li><li><a href="../units/unit69.html">69 并交的伴随刻画</a></li><li><a href="../units/unit71.html">71 并交与交的分配</a></li><li><a href="../units/unit72.html">72 广义并与交、单调与空族</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li aria-current="page">单元 18 ZF 公理体系与正则性</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-18-1">18.1 公理长什么样（三条演示 + 一条正则性）</a></li>
+<li><a href="#ex-18-6">18.2 外延性的两个用法</a></li>
+<li><a href="#ex-18-8">18.3 必破：并集的刻画怎么用</a></li>
+<li><a href="#appendix-unit-18">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-7.html#units">↑ 本章目录</a>
+      <a href="../print/unit18.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-18">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-7.html">I.7</a> · 本章第 2 / 7 单元 · 全书第 18 / 112 单元</p>
+<h1><span class="unit-number">18</span> <span>ZF 公理体系与正则性</span></h1>
+<p class="unit-title-en">Unit 18 — The ZF Axioms and Regularity</p>
+<p class="unit-meta">16 个定理 · 12 道练习 · 30 条提示 · <a href="#appendix-unit-18">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="18" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-18" aria-label="复制单元 18 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit18.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-7.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§2.1 的六条公理表</strong>（<span class="math">+</span> §7.3 Regularity 一节）；Halmos《Naive Set Theory》<strong>§2 The Axiom of Specification</strong> 前后的公理表（<span class="math">+</span> §14 的 Regularity）。大纲：<code>set-theory-syllabus.md</code> §4.1（I.7 章第二个单元）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>正则性公理怎么说</strong>（每个<strong>非空</strong>集合都有 <code>∈</code>-极小元）<span class="math">·</span><strong>它怎么用</strong>（取出极小元、扔掉它的成员）<span class="math">·</span> <strong>外延性怎么用</strong>（空集唯一）<span class="math">·</span><strong>外延性的反向</strong>（相等 <span class="math">⇒</span> 元素相同）—— 两条合起来才是"元素相同 <span class="math">⟺</span> 相等" ✓</p></div><h3 class="unit-subhead">18.1 公理长什么样（三条演示 <span class="math">+</span> 一条正则性）</h3><div class="block prose intuition-only"><p>读法：整个论域是一个类型 <code>α</code>，成员关系是二元谓词 <code>E</code>（<code>E y x</code> 读作 <code>y ∈ x</code>）。<code>lib.ZF</code> 的公理表里<strong>只有三条必须外挂</strong>（外延性 / 正则性 / 选择），因为它们说的是 <strong>相等、良基、取数据</strong>；"某个谓词存在"那几条（空集、无序对、并）在本语言里 <strong>是定义</strong>（<code>IsEmpty</code> / <code>IsPair</code> / <code>IsUnionOf</code>）✓</p></div><div class="block prose intuition-only"><p>演示：<strong>正则性</strong>（每个非空集合有 <code>E</code>-极小元）—— <strong>它在这里是假设 <code>hreg</code></strong>：对<strong>任意</strong>关系断言这件事会立刻矛盾（取 <code>E</code> 恒真），所以它<strong>不是公理</strong> ✓</p></div><article class="decl decl-theorem" id="decl-18-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_regularity</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_regularity (α : Type) (E : α → α → Prop) (hreg : IsRegular α E) (A : α)
+    (h : ∃ (x : α), E x A) :
+    ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  (fun (hu : ∀ (A1 : α), (∃ (x : α), E x A1) →
+      ∃ (m : α), E m A1 ∧ ∀ (z : α), E z m → ¬ (E z A1)) =&gt; hu A h) hreg</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：空集的刻画展开。</p></div><article class="decl decl-theorem" id="decl-18-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_isEmpty_def</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_isEmpty_def (α : Type) (E : α → α → Prop) (x : α) :
+    IsEmpty α E x ↔ ∀ (y : α), ¬ (E y x) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  isEmpty_def α E x</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：无序对的刻画展开（<code>s</code> 恰好由 <code>a</code>、<code>b</code> 组成）。</p></div><article class="decl decl-theorem" id="decl-18-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_isPair_def</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_isPair_def (α : Type) (E : α → α → Prop) (x a b : α) :
+    IsPair α E x a b ↔ ∀ (z : α), E z x ↔ (z = a ∨ z = b) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  isPair_def α E x a b</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：并集的刻画展开（<code>x</code> 恰好是族 <code>F</code> 里所有集合的并）。</p></div><article class="decl decl-theorem" id="decl-18-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_isUnionOf_def</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_isUnionOf_def (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop) :
+    IsUnionOf α E x F ↔ ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  isUnionOf_def α E x F</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-18-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">regularity_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-18-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：<strong>正则性怎么用</strong> —— 给一个非空集合，拿到它的极小元。</p></div></div><pre class="exercise-statement"><code>theorem regularity_apply (α : Type) (E : α → α → Prop) (hreg : IsRegular α E) (A : α)
+    (h : ∃ (x : α), E x A) :
+    ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>公理本身就是一条函数（给"非空"的证据，还你一个极小元）；直接应用它。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>IsRegular</code>（<strong>定义头</strong>：对每个非空集合给极小元）—— 它是<strong>假设</strong>（不是公理：对任意关系说这句话会矛盾，见 <code>lib/ZF</code> 的说明）<span class="math">⇒</span> 先 <span class="math">λ</span> 绑定再应用 ✓</p></div></details></div><details class="solution-panel" id="sol-18-1"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem regularity_apply (α : Type) (E : α → α → Prop) (hreg : IsRegular α E) (A : α)
+    (h : ∃ (x : α), E x A) :
+    ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A) :=
+  (fun (hu : ∀ (A1 : α), (∃ (x : α), E x A1) →
+      ∃ (m : α), E m A1 ∧ ∀ (z : α), E z m → ¬ (E z A1)) =&gt; hu A h) hreg</code></pre></div></details></div></article>
+<article class="exercise" id="ex-18-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">regularity_minimal</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-18-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>只要极小性那一半</strong>（"它的成员都不在 <code>A</code> 里"）。</p></div></div><pre class="exercise-statement"><code>theorem regularity_minimal (α : Type) (E : α → α → Prop) (A m : α)
+    (h : E m A ∧ ∀ (z : α), E z m → ¬ (E z A)) :
+    ∀ (z : α), E z m → ¬ (E z A) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>极小元证据是一个合取，取右支。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∀ (z : α), E z m → ¬ (E z A)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>And.right</code> 拿到的是<strong>定义头</strong>（<code>∀</code>）—— 先 <code>fun (hm : ∀ (z : α), …) =&gt; hm</code> 把类型写出来（G-73 形状 ①）。</p></div></details></div><details class="solution-panel" id="sol-18-2"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem regularity_minimal (α : Type) (E : α → α → Prop) (A m : α)
+    (h : E m A ∧ ∀ (z : α), E z m → ¬ (E z A)) :
+    ∀ (z : α), E z m → ¬ (E z A) :=
+  (fun (hm : ∀ (z : α), E z m → ¬ (E z A)) =&gt; hm) (And.right h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-18-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">isEmpty_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-18-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：空集"没有元素"这条展开出来就能用。</p></div></div><pre class="exercise-statement"><code>theorem isEmpty_apply (α : Type) (E : α → α → Prop) (x : α) (h : IsEmpty α E x) :
+    ∀ (y : α), ¬ (E y x) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>IsEmpty</code> 是定义头，同样先 <span class="math">λ</span> 绑定再应用。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∀ (y : α), ¬ (E y x)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>IsEmpty</code> 的定义体（就是那条 <code>∀</code>）。</p></div></details></div><details class="solution-panel" id="sol-18-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem isEmpty_apply (α : Type) (E : α → α → Prop) (x : α) (h : IsEmpty α E x) :
+    ∀ (y : α), ¬ (E y x) :=
+  (fun (he : ∀ (y : α), ¬ (E y x)) =&gt; he) h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-18-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">empty_no_self_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-18-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：<strong>空集不属于自己</strong>（练习 3 的直接实例）。</p></div></div><pre class="exercise-statement"><code>theorem empty_no_self_mem (α : Type) (E : α → α → Prop) (x : α) (h : IsEmpty α E x) :
+    ¬ (E x x) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把练习 3 里的"哪个元素"取成 <code>x</code> 自己。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>¬ (E x x)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 3 的那条 <code>∀</code>（把 <code>x</code> 代进去）。</p></div></details></div><details class="solution-panel" id="sol-18-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem empty_no_self_mem (α : Type) (E : α → α → Prop) (x : α) (h : IsEmpty α E x) :
+    ¬ (E x x) :=
+  (fun (he : ∀ (y : α), ¬ (E y x)) =&gt; he x) h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-18-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">isEmpty_intro</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-18-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（T 类）：反过来 —— <strong>"没有元素"就能给出空集</strong>。</p></div></div><pre class="exercise-statement"><code>theorem isEmpty_intro (α : Type) (E : α → α → Prop) (x : α)
+    (h : ∀ (y : α), ¬ (E y x)) : IsEmpty α E x := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>定义的<strong>另一个方向</strong>（库里有现成的 <code>isEmpty_def</code>），交给它。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsEmpty α E x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isEmpty_def</code>（<code>↔</code>）<span class="math">+</span> <code>Iff.mpr</code>（<strong>要在库层做掉这一步</strong>——使用点直接写它会判红，G-73 形状 ③）。</p></div></details></div><details class="solution-panel" id="sol-18-5"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem isEmpty_intro (α : Type) (E : α → α → Prop) (x : α)
+    (h : ∀ (y : α), ¬ (E y x)) : IsEmpty α E x :=
+  Iff.mpr (isEmpty_def α E x) h</code></pre></div></details></div></article>
+<h3 class="unit-subhead">18.2 外延性的两个用法</h3><article class="exercise" id="ex-18-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">empty_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-18-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类，本单元旗舰之一）：<strong>空集唯一</strong> —— 两个空集相等。</p></div></div><pre class="exercise-statement"><code>theorem empty_unique (α : Type) (E : α → α → Prop) (he : Extensional α E) (x y : α)
+    (hx : IsEmpty α E x) (hy : IsEmpty α E y) : x = y := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用<strong>外延性</strong>："元素相同 <span class="math">⇒</span> 相等"。两边都没有元素，所以"元素相同"那条 <code>↔</code> 的两个方向都是<strong>从矛盾里推</strong>（各自由"没有元素"消掉）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>x = y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>extensional_apply</code>（论域 <span class="math">·</span> 关系 <span class="math">·</span> 外延性证据 <span class="math">·</span> 两个元素 <span class="math">·</span>元素相同的证明）<span class="math">·</span> <code>Iff.intro</code>（<strong>前导 Prop 实参写全</strong>，G-73 形状 ②）<span class="math">·</span>练习 3 的两条 <code>∀</code> <span class="math">·</span> <code>False.elim</code>。</p></div></details></div><details class="solution-panel" id="sol-18-6"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem empty_unique (α : Type) (E : α → α → Prop) (he : Extensional α E) (x y : α)
+    (hx : IsEmpty α E x) (hy : IsEmpty α E y) : x = y :=
+  extensional_apply α E he x y (fun (z : α) =&gt;
+    @Iff.intro (E z x) (E z y)
+      (fun (hzx : E z x) =&gt; False.elim ((fun (he' : ∀ (y' : α), ¬ (E y' x)) =&gt; he' z) hx hzx))
+      (fun (hzy : E z y) =&gt; False.elim ((fun (he' : ∀ (y' : α), ¬ (E y' y)) =&gt; he' z) hy hzy)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-18-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">extensional_sound</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-18-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类，本单元旗舰之二）：<strong>外延性的反向</strong> —— 相等 <span class="math">⇒</span> 元素相同。</p></div></div><pre class="exercise-statement"><code>theorem extensional_sound (α : Type) (E : α → α → Prop) (x y : α) (h : x = y) :
+    ∀ (z : α), E z x ↔ E z y := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把等式沿两个方向各搬运一次（"<code>z</code> 属于左边"搬成"属于右边"，以及反过来）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∀ (z : α), E z x ↔ E z y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>lib.Rel</code> 的两条搬运引理 —— <code>rel_subst_right</code>（沿 <code>x = y</code> 把 <strong>右边</strong> 换掉：<code>E z x → E z y</code>）与 <code>rel_subst_left</code>（把 <strong>左边</strong> 换掉：注意它的等式参数要写成 <code>x = y</code>、被搬的是第二个位置的元素，别把方向接反）<span class="math">·</span><code>Iff.intro</code>。</p></div></details></div><details class="solution-panel" id="sol-18-7"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem extensional_sound (α : Type) (E : α → α → Prop) (x y : α) (h : x = y) :
+    ∀ (z : α), E z x ↔ E z y :=
+  fun (z : α) =&gt;
+    @Iff.intro (E z x) (E z y)
+      (fun (hzx : E z x) =&gt; rel_subst_right α E z x y h hzx)
+      (fun (hzy : E z y) =&gt; rel_subst_left α E x z y h hzy)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">18.3 必破：<strong>并集的刻画怎么用</strong></h3><article class="exercise" id="ex-18-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">union_empty_family</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-18-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>三个"存在性谓词"（空集 / 无序对 / 并）在本语言里<strong>是定义</strong>，不是公理；它们的用法就是把刻画<strong>读出来</strong>。上面 18.1 已经读了空集，这里读并集 ✓</p></div><div class="block prose intuition-only"><p>练习 8（L 类）：<strong>空族的并是空集</strong>。</p></div></div><pre class="exercise-statement"><code>theorem union_empty_family (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsUnionOf α E x ∅) : IsEmpty α E x := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要证 <code>x</code> 没有元素。若 <code>z ∈ x</code>，把刻画读出来得到"存在 <code>A</code> 属于空族且 <code>z ∈ A</code>" —— 但空族里<strong>没有</strong> <code>A</code>，于是矛盾。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsEmpty α E x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>IsUnionOf</code> 的刻画（<strong>先 <span class="math">λ</span> 绑定再应用</strong>，G-73 形状 ①）<span class="math">·</span><code>Iff.mp</code> <span class="math">·</span> <code>Exists.elim</code>（前导实参写全）<span class="math">·</span> <code>And.left</code>（空族那一条是 <code>False</code>）。</p></div></details></div><details class="solution-panel" id="sol-18-8"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem union_empty_family (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsUnionOf α E x ∅) : IsEmpty α E x :=
+  fun (z : α) (hzx : E z x) =&gt;
+    @Exists.elim α (fun (A : α) =&gt; False ∧ E z A) False
+      (Iff.mp ((fun (hs : ∀ (z' : α), E z' x ↔ ∃ (A : α), A ∈ ∅ ∧ E z' A) =&gt; hs z) h)
+        hzx)  -- soko:notation-ok: G-73 形状 ①：定义头类型的假设必须先 λ 绑定再应用
+      (fun (A : α) (hA : False ∧ E z A) =&gt; And.left hA)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-18-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">union_empty_family_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-18-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（D 类）：<strong>空族的并唯一</strong>（练习 6 与练习 8 的合成）。</p></div></div><pre class="exercise-statement"><code>theorem union_empty_family_unique (α : Type) (E : α → α → Prop) (he : Extensional α E)
+    (x x' : α) (h : IsUnionOf α E x ∅)
+    (h' : IsUnionOf α E x' ∅) : x = x' := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个都满足"是空族的并"的集合，先各自化归成"是空集"，再用空集唯一。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>x = x'</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 8（用两次）<span class="math">+</span> 练习 6。</p></div></details></div><details class="solution-panel" id="sol-18-9"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem union_empty_family_unique (α : Type) (E : α → α → Prop) (he : Extensional α E)
+    (x x' : α) (h : IsUnionOf α E x ∅)
+    (h' : IsUnionOf α E x' ∅) : x = x' :=
+  empty_unique α E he x x' (union_empty_family α E x h)
+    (union_empty_family α E x' h')</code></pre></div></details></div></article>
+<article class="exercise" id="ex-18-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">union_empty_family_no_self_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-18-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（D 类）：<strong>空族的并也不属于自己</strong>（练习 8 与练习 4 的合成）。</p></div></div><pre class="exercise-statement"><code>theorem union_empty_family_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsUnionOf α E x ∅) : ¬ (E x x) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先把它变成"是空集"，再对空集用"不属于自己"。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>¬ (E x x)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 <span class="math">8 +</span> 练习 4。</p></div></details></div><details class="solution-panel" id="sol-18-10"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem union_empty_family_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsUnionOf α E x ∅) : ¬ (E x x) :=
+  empty_no_self_mem α E x (union_empty_family α E x h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-18-11" data-exercise="11"><header class="exercise-head"><span class="exercise-badge">练习 11</span><code class="exercise-name">union_elim</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-18-11">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习（L 引理链）：<strong>一般并的消去子</strong> —— 元素的来源可拆出具体的族成员</p></div></div><pre class="exercise-statement"><code>theorem union_elim (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop) (z : α)
+    (h : IsUnionOf α E x F) (hz : E z x) : ∃ (A : α), F A ∧ E z A := by
+  sorry</code></pre><details class="solution-panel" id="sol-18-11"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem union_elim (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop) (z : α)
+    (h : IsUnionOf α E x F) (hz : E z x) : ∃ (A : α), F A ∧ E z A :=
+  isUnionOf_elim α E x F z h hz</code></pre></div></details></div></article>
+<article class="exercise" id="ex-18-12" data-exercise="12"><header class="exercise-head"><span class="exercise-badge">练习 12</span><code class="exercise-name">union_intro</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-18-12">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习（L 引理链）：<strong>并的构造子</strong> —— 逐点刻画 <span class="math">⇒</span> <code>IsUnionOf</code>（与 <code>isEmpty_intro</code> 同形）</p></div></div><pre class="exercise-statement"><code>theorem union_intro (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop)
+    (h : ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A) : IsUnionOf α E x F := by
+  sorry</code></pre><details class="solution-panel" id="sol-18-12"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem union_intro (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop)
+    (h : ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A) : IsUnionOf α E x F :=
+  Iff.mpr (isUnionOf_def α E x F) h</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>本单元有意不含「无序对唯一」「并唯一」「无序对的对称」</strong>：它们的证明要在 <code>↔</code> 两侧含 <code>=</code> 的命题上<strong>取方向/做改写</strong>（<code>Iff.mpr (hs z) …</code>、<code>Or.elim (z = a) …</code>），本语言在那处一律判红 <span class="math">⇒</span> 已并进台账 <strong>G-73</strong>（实例 ⑦⑧）✓ <strong>如实不排</strong>，等语言侧关账再补（<strong>不改成弱命题糊过去</strong>）✗</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 两样</strong>：<code>lib.ZF</code>（公理与三个存在性谓词）<span class="math">·</span> <code>lib.Set</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元④（外延性与空集）—— 本单元的 <code>Extensional</code> 就是那条公理在谓词层的写法。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit17.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">选择公理</span></a><a class="unit-nav-home" href="../chapters/i-7.html#units">目录</a><a class="unit-nav-link" href="../units/unit48.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">覆盖与广义并</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-18"><h3><a href="#top">ZF 公理体系与正则性</a></h3><p class="appendix-meta">12 道练习 · 12 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-18-1"><summary>练习 1 · regularity_apply <span class="sol-meta">定理</span></summary><pre><code>theorem regularity_apply (α : Type) (E : α → α → Prop) (hreg : IsRegular α E) (A : α)
+    (h : ∃ (x : α), E x A) :
+    ∃ (m : α), E m A ∧ ∀ (z : α), E z m → ¬ (E z A) :=
+  (fun (hu : ∀ (A1 : α), (∃ (x : α), E x A1) →
+      ∃ (m : α), E m A1 ∧ ∀ (z : α), E z m → ¬ (E z A1)) =&gt; hu A h) hreg</code></pre></details><details class="appendix-solution" id="app-sol-18-2"><summary>练习 2 · regularity_minimal <span class="sol-meta">定理</span></summary><pre><code>theorem regularity_minimal (α : Type) (E : α → α → Prop) (A m : α)
+    (h : E m A ∧ ∀ (z : α), E z m → ¬ (E z A)) :
+    ∀ (z : α), E z m → ¬ (E z A) :=
+  (fun (hm : ∀ (z : α), E z m → ¬ (E z A)) =&gt; hm) (And.right h)</code></pre></details><details class="appendix-solution" id="app-sol-18-3"><summary>练习 3 · isEmpty_apply <span class="sol-meta">定理</span></summary><pre><code>theorem isEmpty_apply (α : Type) (E : α → α → Prop) (x : α) (h : IsEmpty α E x) :
+    ∀ (y : α), ¬ (E y x) :=
+  (fun (he : ∀ (y : α), ¬ (E y x)) =&gt; he) h</code></pre></details><details class="appendix-solution" id="app-sol-18-4"><summary>练习 4 · empty_no_self_mem <span class="sol-meta">定理</span></summary><pre><code>theorem empty_no_self_mem (α : Type) (E : α → α → Prop) (x : α) (h : IsEmpty α E x) :
+    ¬ (E x x) :=
+  (fun (he : ∀ (y : α), ¬ (E y x)) =&gt; he x) h</code></pre></details><details class="appendix-solution" id="app-sol-18-5"><summary>练习 5 · isEmpty_intro <span class="sol-meta">定理</span></summary><pre><code>theorem isEmpty_intro (α : Type) (E : α → α → Prop) (x : α)
+    (h : ∀ (y : α), ¬ (E y x)) : IsEmpty α E x :=
+  Iff.mpr (isEmpty_def α E x) h</code></pre></details><details class="appendix-solution" id="app-sol-18-6"><summary>练习 6 · empty_unique <span class="sol-meta">定理</span></summary><pre><code>theorem empty_unique (α : Type) (E : α → α → Prop) (he : Extensional α E) (x y : α)
+    (hx : IsEmpty α E x) (hy : IsEmpty α E y) : x = y :=
+  extensional_apply α E he x y (fun (z : α) =&gt;
+    @Iff.intro (E z x) (E z y)
+      (fun (hzx : E z x) =&gt; False.elim ((fun (he' : ∀ (y' : α), ¬ (E y' x)) =&gt; he' z) hx hzx))
+      (fun (hzy : E z y) =&gt; False.elim ((fun (he' : ∀ (y' : α), ¬ (E y' y)) =&gt; he' z) hy hzy)))</code></pre></details><details class="appendix-solution" id="app-sol-18-7"><summary>练习 7 · extensional_sound <span class="sol-meta">定理</span></summary><pre><code>theorem extensional_sound (α : Type) (E : α → α → Prop) (x y : α) (h : x = y) :
+    ∀ (z : α), E z x ↔ E z y :=
+  fun (z : α) =&gt;
+    @Iff.intro (E z x) (E z y)
+      (fun (hzx : E z x) =&gt; rel_subst_right α E z x y h hzx)
+      (fun (hzy : E z y) =&gt; rel_subst_left α E x z y h hzy)</code></pre></details><details class="appendix-solution" id="app-sol-18-8"><summary>练习 8 · union_empty_family <span class="sol-meta">定理</span></summary><pre><code>theorem union_empty_family (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsUnionOf α E x ∅) : IsEmpty α E x :=
+  fun (z : α) (hzx : E z x) =&gt;
+    @Exists.elim α (fun (A : α) =&gt; False ∧ E z A) False
+      (Iff.mp ((fun (hs : ∀ (z' : α), E z' x ↔ ∃ (A : α), A ∈ ∅ ∧ E z' A) =&gt; hs z) h)
+        hzx)  -- soko:notation-ok: G-73 形状 ①：定义头类型的假设必须先 λ 绑定再应用
+      (fun (A : α) (hA : False ∧ E z A) =&gt; And.left hA)</code></pre></details><details class="appendix-solution" id="app-sol-18-9"><summary>练习 9 · union_empty_family_unique <span class="sol-meta">定理</span></summary><pre><code>theorem union_empty_family_unique (α : Type) (E : α → α → Prop) (he : Extensional α E)
+    (x x' : α) (h : IsUnionOf α E x ∅)
+    (h' : IsUnionOf α E x' ∅) : x = x' :=
+  empty_unique α E he x x' (union_empty_family α E x h)
+    (union_empty_family α E x' h')</code></pre></details><details class="appendix-solution" id="app-sol-18-10"><summary>练习 10 · union_empty_family_no_self_mem <span class="sol-meta">定理</span></summary><pre><code>theorem union_empty_family_no_self_mem (α : Type) (E : α → α → Prop) (x : α)
+    (h : IsUnionOf α E x ∅) : ¬ (E x x) :=
+  empty_no_self_mem α E x (union_empty_family α E x h)</code></pre></details><details class="appendix-solution" id="app-sol-18-11"><summary>练习 11 · union_elim <span class="sol-meta">定理</span></summary><pre><code>theorem union_elim (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop) (z : α)
+    (h : IsUnionOf α E x F) (hz : E z x) : ∃ (A : α), F A ∧ E z A :=
+  isUnionOf_elim α E x F z h hz</code></pre></details><details class="appendix-solution" id="app-sol-18-12"><summary>练习 12 · union_intro <span class="sol-meta">定理</span></summary><pre><code>theorem union_intro (α : Type) (E : α → α → Prop) (x : α) (F : α → Prop)
+    (h : ∀ (z : α), E z x ↔ ∃ (A : α), F A ∧ E z A) : IsUnionOf α E x F :=
+  Iff.mpr (isUnionOf_def α E x F) h</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit17.html">← 17 选择公理</a><a class="next" href="../units/unit48.html">48 覆盖与广义并 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

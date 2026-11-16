@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 39 关系的像、原像与等价核</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit39.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 39 关系的像、原像与等价核</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit39.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.13 关系的代数 · 单元 39</p><h1>关系的像、原像与等价核</h1><p class="note">Unit 39 — Images, Preimages and Equivalence Kernels</p></header><section class="unit" id="unit-39">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-13.html">I.13</a> · 本章第 4 / 8 单元 · 全书第 39 / 112 单元</p>
+<h2><span class="unit-number">39</span><span>关系的像、原像与等价核</span></h2>
+<p class="unit-title-en">Unit 39 — Images, Preimages and Equivalence Kernels</p>
+<p class="unit-meta">4 个定义 · 13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-39">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§10</strong>（像与原像的关系版）与 <strong>§7</strong>（等价关系）；Enderton《Elements of Set Theory》<strong>§3.3 / §3.6</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.13 章第四个单元 —— 把单元㉒ 的像/原像从「函数」推广到「关系」，并用等价核接上单元㉗ 的商）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的「该学的定理」：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>像与原像</strong>：成员刻画 <span class="math">·</span> 对集合单调 <span class="math">·</span> <strong>对关系单调</strong> <span class="math">·</span> 全集/空集两端；</li><li><strong>旗舰一：像穿过复合</strong>（<code>img (r • s) A = img s (img r A)</code>，原像对偶）；</li><li><strong>旗舰二：函数的等价核是等价关系</strong>（<code>kernel f a b</code> 读作 <code>f a = f b</code>）——这正是单元㉗「商掉核」那一步的来源 ✓</li><li><strong>旗舰三：单射 <span class="math">⟺</span> 核退化成恒等关系</strong>（<code>Injective f ↔ kernel f ⊆ idRel</code>）✓</li></ul></div><h3 class="unit-subhead">39.0 画布给的四个新词汇</h3><div class="block prose intuition-only"><p><code>idRel</code>：恒等关系（单元㊱㊳ 已用过）✓ <code>relImg r A</code>：<code>A</code> 在关系 <code>r</code> 下的<strong>像</strong>（<code>∃ a ∈ A, r a b</code>）✓ <code>relPre r B</code>：<code>B</code> 在关系 <code>r</code> 下的<strong>原像</strong>（<code>∃ b ∈ B, r a b</code>）✓ <code>kernel f</code>：函数 <code>f</code> 的<strong>等价核</strong>（<code>fun a b =&gt; f a = f b</code>）—— 单元㉗ 商掉的那个关系 ✓</p></div><article class="decl decl-def" id="decl-39-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">idRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def idRel (α : Type) : Rel α α :=
+  fun (a : α) (b : α) =&gt; a = b</code></pre></div></article>
+<article class="decl decl-def" id="decl-39-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">relImg</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def relImg (α β : Type) (r : Rel α β) (A : Set α) : Set β :=
+  fun (b : β) =&gt; ∃ (a : α), A a ∧ r a b</code></pre></div></article>
+<article class="decl decl-def" id="decl-39-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">relPre</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def relPre (α β : Type) (r : Rel α β) (B : Set β) : Set α :=
+  fun (a : α) =&gt; ∃ (b : β), B b ∧ r a b</code></pre></div></article>
+<article class="decl decl-def" id="decl-39-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">kernel</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def kernel (α β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) =&gt; (f a) = (f b)</code></pre></div></article>
+<h3 class="unit-subhead">39.1 三个词汇的成员刻画（演示）</h3><div class="block prose intuition-only"><p>演示：像的成员刻画（「存在一个原像落在 <code>A</code> 里」）。</p></div><article class="decl decl-theorem" id="decl-39-5"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_relImg</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_relImg (α β : Type) (r : Rel α β) (A : Set α) (b : β) :
+    b ∈ (relImg α β r A) ↔ ∃ (a : α), A a ∧ r a b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  @Iff.intro (b ∈ (relImg α β r A)) (∃ (a : α), A a ∧ r a b)
+    (fun (h : b ∈ (relImg α β r A)) =&gt; h) (fun (h : ∃ (a : α), A a ∧ r a b) =&gt; h)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：原像的成员刻画。</p></div><article class="decl decl-theorem" id="decl-39-6"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_relPre</code><span class="decl-where">声明 6</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_relPre (α β : Type) (r : Rel α β) (B : Set β) (a : α) :
+    a ∈ (relPre α β r B) ↔ ∃ (b : β), B b ∧ r a b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  @Iff.intro (a ∈ (relPre α β r B)) (∃ (b : β), B b ∧ r a b)
+    (fun (h : a ∈ (relPre α β r B)) =&gt; h) (fun (h : ∃ (b : β), B b ∧ r a b) =&gt; h)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：核的成员刻画（「两个点被 <code>f</code> 送到同一个地方」）。</p></div><article class="decl decl-theorem" id="decl-39-7"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_kernel</code><span class="decl-where">声明 7</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_kernel (α β : Type) (f : α → β) (a b : α) :
+    kernel α β f a b ↔ (f a) = (f b) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  @Iff.intro (kernel α β f a b) ((f a) = (f b))
+    (fun (h : kernel α β f a b) =&gt; h) (fun (h : (f a) = (f b)) =&gt; h)</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">39.2 单调性（对集合 <span class="math">·</span> 对关系）与两端</h3><article class="exercise" id="ex-39-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">relImg_mono</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-39-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（L 类）：<strong>像对集合单调</strong>。</p></div></div><pre class="exercise-statement"><code>theorem relImg_mono (α β : Type) (r : Rel α β) (A B : Set α) (h : A ⊆ B) :
+    (relImg α β r A) ⊆ (relImg α β r B) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆开 <code>∃</code>，把「在 <code>A</code> 里」换成「在 <code>B</code> 里」（假设就是那条蕴含），其余照抄。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A ⊆ B → relImg r A ⊆ relImg r B</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>/<code>Exists.intro</code>（<strong>前导实参写全</strong>）<span class="math">·</span> <code>And.intro</code>/<code>And.left</code>/<code>And.right</code> <span class="math">·</span>包含假设<strong>先 <span class="math">λ</span> 绑定再应用</strong>（G-73 形状 ①）✓</p></div></details></div><details open class="solution-panel" id="sol-39-1"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem relImg_mono (α β : Type) (r : Rel α β) (A B : Set α) (h : A ⊆ B) :
+    (relImg α β r A) ⊆ (relImg α β r B) :=
+  fun (b : β) =&gt; fun (hb : b ∈ (relImg α β r A)) =&gt;
+    @Exists.elim α (fun (a : α) =&gt; A a ∧ r a b)
+      (∃ (a : α), B a ∧ r a b) hb
+      (fun (a : α) (ha : A a ∧ r a b) =&gt;
+        Exists.intro a
+          (And.intro
+            ((fun (hu : ∀ (x : α), A x → B x) =&gt; hu a (And.left ha)) h) (And.right ha)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-39-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">relPre_mono</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-39-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类）：<strong>原像对集合单调</strong>（与练习 1 逐字对偶）。</p></div></div><pre class="exercise-statement"><code>theorem relPre_mono (α β : Type) (r : Rel α β) (A B : Set β) (h : A ⊆ B) :
+    (relPre α β r A) ⊆ (relPre α β r B) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>同练习 1，只是 <code>∃</code> 里换成了 <code>β</code> 一侧的点。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A ⊆ B → relPre r A ⊆ relPre r B</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>/<code>Exists.intro</code> <span class="math">·</span> <code>And.intro</code> <span class="math">·</span> 包含假设先 <span class="math">λ</span> 绑定 ✓</p></div></details></div><details open class="solution-panel" id="sol-39-2"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem relPre_mono (α β : Type) (r : Rel α β) (A B : Set β) (h : A ⊆ B) :
+    (relPre α β r A) ⊆ (relPre α β r B) :=
+  fun (a : α) =&gt; fun (ha : a ∈ (relPre α β r A)) =&gt;
+    @Exists.elim β (fun (b : β) =&gt; A b ∧ r a b)
+      (∃ (b : β), B b ∧ r a b) ha
+      (fun (b : β) (hb : A b ∧ r a b) =&gt;
+        Exists.intro b
+          (And.intro
+            ((fun (hu : ∀ (x : β), A x → B x) =&gt; hu b (And.left hb)) h) (And.right hb)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-39-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">relImg_mono_rel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-39-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong>像对关系单调</strong>。</p></div></div><pre class="exercise-statement"><code>theorem relImg_mono_rel (α β : Type) (r r1 : Rel α β) (A : Set α)
+    (h : ∀ (a : α) (b : β), r a b → r1 a b) :
+    (relImg α β r A) ⊆ (relImg α β r1 A) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆开 <code>∃</code>，把 <code>r a b</code> 换成 <code>r1 a b</code>（假设就是那条蕴含），其余照抄。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ a b, r a b → r1 a b) → relImg r A ⊆ relImg r1 A</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>/<code>Exists.intro</code> <span class="math">·</span> <code>And.intro</code> <span class="math">·</span> 假设当函数用（参数是 <code>a</code> 再 <code>b</code>）✓</p></div></details></div><details open class="solution-panel" id="sol-39-3"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem relImg_mono_rel (α β : Type) (r r1 : Rel α β) (A : Set α)
+    (h : ∀ (a : α) (b : β), r a b → r1 a b) :
+    (relImg α β r A) ⊆ (relImg α β r1 A) :=
+  fun (b : β) =&gt; fun (hb : b ∈ (relImg α β r A)) =&gt;
+    @Exists.elim α (fun (a : α) =&gt; A a ∧ r a b)
+      (∃ (a : α), A a ∧ r1 a b) hb
+      (fun (a : α) (ha : A a ∧ r a b) =&gt;
+        Exists.intro a
+          (And.intro (And.left ha) (h a b (And.right ha))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-39-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">relImg_univ_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-39-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：<strong>全集上的像就是关系的值域</strong>。</p></div></div><pre class="exercise-statement"><code>theorem relImg_univ_mem (α β : Type) (r : Rel α β) (b : β) :
+    b ∈ (relImg α β r (@Set.univ α)) ↔ ∃ (a : α), r a b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：拆 <code>∃</code>，把「在全集里」那一支丢掉；<span class="math">←</span>：拆 <code>∃</code>，那一支用<strong>全集的成员引理</strong>补上。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>b ∈ relImg r univ ↔ ∃ a, r a b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>/<code>Exists.intro</code>（前导实参写全）<span class="math">·</span> <code>Set.mem_univ</code>（<strong>参数是论域</strong>）✓</p></div></details></div><details open class="solution-panel" id="sol-39-4"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><pre><code>theorem relImg_univ_mem (α β : Type) (r : Rel α β) (b : β) :
+    b ∈ (relImg α β r (@Set.univ α)) ↔ ∃ (a : α), r a b :=
+  @Iff.intro (b ∈ (relImg α β r (@Set.univ α))) (∃ (a : α), r a b)
+    (fun (h : b ∈ (relImg α β r (@Set.univ α))) =&gt;
+      @Exists.elim α (fun (a : α) =&gt; (@Set.univ α) a ∧ r a b) (∃ (a1 : α), r a1 b) h
+        (fun (a : α) (ha : (@Set.univ α) a ∧ r a b) =&gt;
+          Exists.intro a (And.right ha)))
+    (fun (h : ∃ (a : α), r a b) =&gt;
+      @Exists.elim α (fun (a : α) =&gt; r a b)
+        (b ∈ (relImg α β r (@Set.univ α))) h
+        (fun (a : α) (ha : r a b) =&gt;
+          Exists.intro a
+            (And.intro
+              ((fun (hu : ∀ (x : α), (@Set.univ α) x) =&gt; hu a) (@Set.mem_univ α)) ha)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-39-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">relImg_empty</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-39-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（T 类）：<strong>空集上的像是空的</strong>（画布给的是「没有点落在里面」的写法）。</p></div></div><pre class="exercise-statement"><code>theorem relImg_empty (α β : Type) (r : Rel α β) (b : β) :
+    ¬ (b ∈ (relImg α β r (∅))) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆 <code>∃</code>，得到一个点「落在空集里」，与空集没有点冲突。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>¬ (b ∈ relImg r ∅)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>（<strong>目标直接写 <code>False</code></strong>，前导实参写全）<span class="math">·</span><code>Set.notMem_empty</code>（<strong>大写 M</strong>，参数是那个点）✓</p></div></details></div><details open class="solution-panel" id="sol-39-5"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem relImg_empty (α β : Type) (r : Rel α β) (b : β) :
+    ¬ (b ∈ (relImg α β r (∅))) :=
+  fun (h : b ∈ (relImg α β r (∅))) =&gt;
+    @Exists.elim α (fun (a : α) =&gt; (∅) a ∧ r a b) False h
+      (fun (a : α) (ha : (∅) a ∧ r a b) =&gt;
+        (fun (hu : ¬ ((∅) a)) =&gt; hu (And.left ha)) (Set.notMem_empty a))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">39.3 旗舰一：<strong>像穿过复合</strong>（原像对偶）</h3><article class="exercise" id="ex-39-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">relImg_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-39-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类，<strong>旗舰</strong>）：<strong>像与复合交换</strong>（<code>img (r • s) A = img s (img r A)</code>）。</p></div></div><pre class="exercise-statement"><code>theorem relImg_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : Set α) :
+    relImg α γ (r • s) A = relImg β γ s (relImg α β r A) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>逐点看，两边都是「存在一条两步的路」，只是<strong>先拆哪一步的顺序不同</strong> ——<span class="math">→</span>：先拆 <code>∃ a</code>，再拆 <code>∃ b</code>，然后按「先造 <code>b</code>、再造 <code>a</code>」的顺序造回去；<span class="math">←</span>：反过来。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>relImg (r • s) A = relImg s (relImg r A)</code>（<strong>集合等式</strong> <span class="math">⇒</span> <code>Set.ext</code>）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.ext</code>（<strong>写全论域与两个集合</strong>）<span class="math">·</span> 两个方向各拆一次嵌套 <code>∃</code> <span class="math">·</span><code>Exists.elim</code>/<code>Exists.intro</code>（前导实参写全）<span class="math">·</span> <code>And.intro</code>/<code>And.left</code>/<code>And.right</code> <span class="math">·</span>⚠ <strong>嵌套超过两层就拆辅助定理</strong>（单元㊱ 的教训；解答里 <code>relImg_comp_fwd</code>/<code>_bwd</code> 就是为此）✓</p></div></details></div><details open class="solution-panel" id="sol-39-6"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem relImg_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : Set α) :
+    relImg α γ (r • s) A = relImg β γ s (relImg α β r A) :=
+  Set.ext (relImg α γ (r • s) A) (relImg β γ s (relImg α β r A)) (fun (c : γ) =&gt;
+    @Iff.intro (c ∈ (relImg α γ (r • s) A)) (c ∈ (relImg β γ s (relImg α β r A)))
+      (fun (h : c ∈ (relImg α γ (r • s) A)) =&gt; relImg_comp_fwd α β γ r s A c h)
+      (fun (h : c ∈ (relImg β γ s (relImg α β r A))) =&gt; relImg_comp_bwd α β γ r s A c h))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-39-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">relPre_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-39-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类，<strong>旗舰的对偶</strong>）：<strong>原像与复合交换</strong>（顺序与像相反）。</p></div></div><pre class="exercise-statement"><code>theorem relPre_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : Set γ) :
+    relPre α γ (r • s) C = relPre α β r (relPre β γ s C) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与练习 6 逐字对偶（把 <code>A</code> 换成 <code>C</code>、把 <code>∃</code> 里两侧的类型对调）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>relPre (r • s) C = relPre r (relPre s C)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.ext</code> <span class="math">·</span> 嵌套 <code>Exists.elim</code>/<code>Exists.intro</code> <span class="math">·</span> <code>And.intro</code> ✓</p></div></details></div><details open class="solution-panel" id="sol-39-7"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem relPre_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : Set γ) :
+    relPre α γ (r • s) C = relPre α β r (relPre β γ s C) :=
+  Set.ext (relPre α γ (r • s) C) (relPre α β r (relPre β γ s C)) (fun (a : α) =&gt;
+    @Iff.intro (a ∈ (relPre α γ (r • s) C)) (a ∈ (relPre α β r (relPre β γ s C)))
+      (fun (h : a ∈ (relPre α γ (r • s) C)) =&gt; relPre_comp_fwd α β γ r s C a h)
+      (fun (h : a ∈ (relPre α β r (relPre β γ s C))) =&gt; relPre_comp_bwd α β γ r s C a h))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-39-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">relImg_idRel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-39-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类）：<strong>恒等关系的像是原来的集合</strong>。</p></div></div><pre class="exercise-statement"><code>theorem relImg_idRel (α : Type) (A : Set α) :
+    relImg α α (idRel α) A = A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：拆 <code>∃</code>，沿「<code>a</code> 与 <code>b</code> 相等」把 <code>A a</code> <strong>搬成</strong> <code>A b</code>（改的是<strong>第二个</strong>坐标）；<span class="math">←</span>：见证取 <code>b</code> 自己，等式那一条用自反。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>relImg (idRel α) A = A</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.ext</code> <span class="math">·</span> <code>Exists.elim</code>/<code>Exists.intro</code> <span class="math">·</span> <code>rel_subst_right</code>（关系取 <code>fun u v =&gt; A v</code>、等式取「那个相等」、输入取 <code>A a</code> —— <strong>第一个点是自由位</strong>）<span class="math">·</span><code>Eq.refl</code>（写全宇宙层级与论域）✓</p></div></details></div><details open class="solution-panel" id="sol-39-8"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem relImg_idRel (α : Type) (A : Set α) :
+    relImg α α (idRel α) A = A :=
+  Set.ext (relImg α α (idRel α) A) A (fun (b : α) =&gt;
+    @Iff.intro (b ∈ (relImg α α (idRel α) A)) (A b)
+      (fun (h : b ∈ (relImg α α (idRel α) A)) =&gt;
+        @Exists.elim α (fun (a : α) =&gt; A a ∧ (idRel α) a b) (A b) h
+          (fun (a : α) (ha : A a ∧ (idRel α) a b) =&gt;
+            rel_subst_right α (fun (u : α) (v : α) =&gt; A v) b a b
+              (And.right ha) (And.left ha)))
+      (fun (h : A b) =&gt;
+        Exists.intro b
+          (And.intro h (@Eq.refl.{1} α b))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></div></details></div></article>
+<h3 class="unit-subhead">39.4 旗舰二/三：<strong>等价核</strong>（接单元㉗ 的商）</h3><article class="exercise" id="ex-39-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">kernel_is_equivalence</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-39-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（L 类，<strong>旗舰</strong>）：<strong>函数的等价核是等价关系</strong>（单元㉗ 商掉的就是它）。</p></div></div><pre class="exercise-statement"><code>theorem kernel_is_equivalence (α β : Type) (f : α → β) :
+    IsEquivalence α (kernel α β f) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>三条各自来自等式的性质 —— 自反用自反、对称用对称、传递用传递（都在 <code>f a</code>、<code>f b</code>、<code>f c</code> 上做，与 <code>a</code>、<code>b</code>、<code>c</code> 本身无关）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsEquivalence α (kernel f)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isEquivalence_intro</code>（<strong>参数：论域 <span class="math">·</span> 关系 <span class="math">·</span> 自反 <span class="math">·</span> 对称 <span class="math">·</span> 传递</strong>）<span class="math">·</span><code>Eq.refl</code>/<code>Eq.symm</code>/<code>Eq.trans</code>（<strong>都要写全宇宙层级与论域</strong>）✓</p></div></details></div><details open class="solution-panel" id="sol-39-9"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem kernel_is_equivalence (α β : Type) (f : α → β) :
+    IsEquivalence α (kernel α β f) :=
+  isEquivalence_intro α (kernel α β f)
+    (fun (a : α) =&gt; @Eq.refl.{1} β (f a))
+    (fun (a : α) (b : α) =&gt; fun (h : @Eq.{1} β (f a) (f b)) =&gt; @Eq.symm.{1} β (f a) (f b) h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (a : α) (b : α) (c : α) =&gt; fun (hab : @Eq.{1} β (f a) (f b)) =&gt;  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      fun (hbc : @Eq.{1} β (f b) (f c)) =&gt; @Eq.trans.{1} β (f a) (f b) (f c) hab hbc)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></div></details></div></article>
+<article class="exercise" id="ex-39-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">injective_iff_kernel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-39-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（D 类，<strong>旗舰</strong>）：<strong>单射 <span class="math">⟺</span> 核退化成恒等关系</strong>（<code>kernel f ⊆ idRel</code>）。</p></div></div><pre class="exercise-statement"><code>theorem injective_iff_kernel (α β : Type) (f : α → β) :
+    Function.Injective α β f ↔ ∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：核的成员就是 <code>f a = f b</code>，交给单射；<span class="math">←</span>：把假设用在 <code>a</code>、<code>b</code> 与 <code>f a = f b</code> 上，得到 <code>a = b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Injective f ↔ ∀ a b, kernel f a b → (idRel α) a b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code>（前导 Prop 实参写全）<span class="math">·</span> 单射假设<strong>先 <span class="math">λ</span> 绑定再应用</strong> <span class="math">·</span>等式的证明项<strong>点名声明星</strong>（G-73 形状 ③）✓ ⚠ <strong>再往前一步</strong>（「<code>f</code> 是单射 <span class="math">⇒</span> 商 <code>α/kernel f</code> 与像同构」）要<strong>商的一般性质</strong> ——本语言在这条线上受限（<strong>G-75</strong>，<code>Quot</code> 缺 <code>exact</code>）<span class="math">⇒</span> 本单元到此为止 ✓</p></div></details></div><details open class="solution-panel" id="sol-39-10"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem injective_iff_kernel (α β : Type) (f : α → β) :
+    Function.Injective α β f ↔ ∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b :=
+  @Iff.intro (Function.Injective α β f)
+    (∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b)
+    (fun (h : Function.Injective α β f) =&gt; fun (a : α) =&gt; fun (b : α) =&gt;
+      fun (hab : kernel α β f a b) =&gt;
+        (fun (hu : ∀ (x : α) (y : α), @Eq.{1} β (f x) (f y) → @Eq.{1} α x y) =&gt;  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          hu a b hab) h)
+    (fun (h : ∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b) =&gt;
+      fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : @Eq.{1} β (f a) (f b)) =&gt; h a b hab)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>本单元的「读法」</strong>：像/原像是<strong>给关系的</strong>（<code>Rel α β</code>），与单元㉒ 给<strong>函数</strong>的 <code>Set.image</code> / <code>Set.preimage</code> 不是一回事（后者写 <code>f '' A</code>，要求 <code>f</code> 是函数）✓ 两者在「单值关系」上重合 —— 这就是「函数是特殊的关系」的代数形态 ✓ 本单元旗舰一写成<strong>集合等式</strong>（<code>Set.ext</code> 在库里 ✓；关系等式另有 <code>Rel.ext</code> ✓）</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.Rel</code> <span class="math">·</span> <code>lib.Set</code> <span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <code>lib.Fun</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㉒（像与原像）<span class="math">·</span> 单元㊱㊲㊳（关系的代数）<span class="math">·</span> 单元㉗（商）—— 本单元把三线合一。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit38.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">序关系的关系代数视角</span></a><a class="unit-nav-home" href="../chapters/i-13.html#units">目录</a><a class="unit-nav-link" href="../units/unit40.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">传递闭包的代数刻画</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-39"><h3><a href="#top">关系的像、原像与等价核</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答 · 4 个解答独有声明</p><details open class="appendix-solution" id="app-sol-39-1"><summary>练习 1 · relImg_mono <span class="sol-meta">定理</span></summary><pre><code>theorem relImg_mono (α β : Type) (r : Rel α β) (A B : Set α) (h : A ⊆ B) :
+    (relImg α β r A) ⊆ (relImg α β r B) :=
+  fun (b : β) =&gt; fun (hb : b ∈ (relImg α β r A)) =&gt;
+    @Exists.elim α (fun (a : α) =&gt; A a ∧ r a b)
+      (∃ (a : α), B a ∧ r a b) hb
+      (fun (a : α) (ha : A a ∧ r a b) =&gt;
+        Exists.intro a
+          (And.intro
+            ((fun (hu : ∀ (x : α), A x → B x) =&gt; hu a (And.left ha)) h) (And.right ha)))</code></pre></details><details open class="appendix-solution" id="app-sol-39-2"><summary>练习 2 · relPre_mono <span class="sol-meta">定理</span></summary><pre><code>theorem relPre_mono (α β : Type) (r : Rel α β) (A B : Set β) (h : A ⊆ B) :
+    (relPre α β r A) ⊆ (relPre α β r B) :=
+  fun (a : α) =&gt; fun (ha : a ∈ (relPre α β r A)) =&gt;
+    @Exists.elim β (fun (b : β) =&gt; A b ∧ r a b)
+      (∃ (b : β), B b ∧ r a b) ha
+      (fun (b : β) (hb : A b ∧ r a b) =&gt;
+        Exists.intro b
+          (And.intro
+            ((fun (hu : ∀ (x : β), A x → B x) =&gt; hu b (And.left hb)) h) (And.right hb)))</code></pre></details><details open class="appendix-solution" id="app-sol-39-3"><summary>练习 3 · relImg_mono_rel <span class="sol-meta">定理</span></summary><pre><code>theorem relImg_mono_rel (α β : Type) (r r1 : Rel α β) (A : Set α)
+    (h : ∀ (a : α) (b : β), r a b → r1 a b) :
+    (relImg α β r A) ⊆ (relImg α β r1 A) :=
+  fun (b : β) =&gt; fun (hb : b ∈ (relImg α β r A)) =&gt;
+    @Exists.elim α (fun (a : α) =&gt; A a ∧ r a b)
+      (∃ (a : α), A a ∧ r1 a b) hb
+      (fun (a : α) (ha : A a ∧ r a b) =&gt;
+        Exists.intro a
+          (And.intro (And.left ha) (h a b (And.right ha))))</code></pre></details><details open class="appendix-solution" id="app-sol-39-4"><summary>练习 4 · relImg_univ_mem <span class="sol-meta">定理</span></summary><pre><code>theorem relImg_univ_mem (α β : Type) (r : Rel α β) (b : β) :
+    b ∈ (relImg α β r (@Set.univ α)) ↔ ∃ (a : α), r a b :=
+  @Iff.intro (b ∈ (relImg α β r (@Set.univ α))) (∃ (a : α), r a b)
+    (fun (h : b ∈ (relImg α β r (@Set.univ α))) =&gt;
+      @Exists.elim α (fun (a : α) =&gt; (@Set.univ α) a ∧ r a b) (∃ (a1 : α), r a1 b) h
+        (fun (a : α) (ha : (@Set.univ α) a ∧ r a b) =&gt;
+          Exists.intro a (And.right ha)))
+    (fun (h : ∃ (a : α), r a b) =&gt;
+      @Exists.elim α (fun (a : α) =&gt; r a b)
+        (b ∈ (relImg α β r (@Set.univ α))) h
+        (fun (a : α) (ha : r a b) =&gt;
+          Exists.intro a
+            (And.intro
+              ((fun (hu : ∀ (x : α), (@Set.univ α) x) =&gt; hu a) (@Set.mem_univ α)) ha)))</code></pre></details><details open class="appendix-solution" id="app-sol-39-5"><summary>练习 5 · relImg_empty <span class="sol-meta">定理</span></summary><pre><code>theorem relImg_empty (α β : Type) (r : Rel α β) (b : β) :
+    ¬ (b ∈ (relImg α β r (∅))) :=
+  fun (h : b ∈ (relImg α β r (∅))) =&gt;
+    @Exists.elim α (fun (a : α) =&gt; (∅) a ∧ r a b) False h
+      (fun (a : α) (ha : (∅) a ∧ r a b) =&gt;
+        (fun (hu : ¬ ((∅) a)) =&gt; hu (And.left ha)) (Set.notMem_empty a))</code></pre></details><details open class="appendix-solution" id="app-sol-39-6"><summary>练习 6 · relImg_comp <span class="sol-meta">定理</span></summary><pre><code>theorem relImg_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : Set α) :
+    relImg α γ (r • s) A = relImg β γ s (relImg α β r A) :=
+  Set.ext (relImg α γ (r • s) A) (relImg β γ s (relImg α β r A)) (fun (c : γ) =&gt;
+    @Iff.intro (c ∈ (relImg α γ (r • s) A)) (c ∈ (relImg β γ s (relImg α β r A)))
+      (fun (h : c ∈ (relImg α γ (r • s) A)) =&gt; relImg_comp_fwd α β γ r s A c h)
+      (fun (h : c ∈ (relImg β γ s (relImg α β r A))) =&gt; relImg_comp_bwd α β γ r s A c h))</code></pre></details><details open class="appendix-solution" id="app-sol-39-7"><summary>练习 7 · relPre_comp <span class="sol-meta">定理</span></summary><pre><code>theorem relPre_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : Set γ) :
+    relPre α γ (r • s) C = relPre α β r (relPre β γ s C) :=
+  Set.ext (relPre α γ (r • s) C) (relPre α β r (relPre β γ s C)) (fun (a : α) =&gt;
+    @Iff.intro (a ∈ (relPre α γ (r • s) C)) (a ∈ (relPre α β r (relPre β γ s C)))
+      (fun (h : a ∈ (relPre α γ (r • s) C)) =&gt; relPre_comp_fwd α β γ r s C a h)
+      (fun (h : a ∈ (relPre α β r (relPre β γ s C))) =&gt; relPre_comp_bwd α β γ r s C a h))</code></pre></details><details open class="appendix-solution" id="app-sol-39-8"><summary>练习 8 · relImg_idRel <span class="sol-meta">定理</span></summary><pre><code>theorem relImg_idRel (α : Type) (A : Set α) :
+    relImg α α (idRel α) A = A :=
+  Set.ext (relImg α α (idRel α) A) A (fun (b : α) =&gt;
+    @Iff.intro (b ∈ (relImg α α (idRel α) A)) (A b)
+      (fun (h : b ∈ (relImg α α (idRel α) A)) =&gt;
+        @Exists.elim α (fun (a : α) =&gt; A a ∧ (idRel α) a b) (A b) h
+          (fun (a : α) (ha : A a ∧ (idRel α) a b) =&gt;
+            rel_subst_right α (fun (u : α) (v : α) =&gt; A v) b a b
+              (And.right ha) (And.left ha)))
+      (fun (h : A b) =&gt;
+        Exists.intro b
+          (And.intro h (@Eq.refl.{1} α b))))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></details><details open class="appendix-solution" id="app-sol-39-9"><summary>练习 9 · kernel_is_equivalence <span class="sol-meta">定理</span></summary><pre><code>theorem kernel_is_equivalence (α β : Type) (f : α → β) :
+    IsEquivalence α (kernel α β f) :=
+  isEquivalence_intro α (kernel α β f)
+    (fun (a : α) =&gt; @Eq.refl.{1} β (f a))
+    (fun (a : α) (b : α) =&gt; fun (h : @Eq.{1} β (f a) (f b)) =&gt; @Eq.symm.{1} β (f a) (f b) h)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (a : α) (b : α) (c : α) =&gt; fun (hab : @Eq.{1} β (f a) (f b)) =&gt;  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      fun (hbc : @Eq.{1} β (f b) (f c)) =&gt; @Eq.trans.{1} β (f a) (f b) (f c) hab hbc)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></details><details open class="appendix-solution" id="app-sol-39-10"><summary>练习 10 · injective_iff_kernel <span class="sol-meta">定理</span></summary><pre><code>theorem injective_iff_kernel (α β : Type) (f : α → β) :
+    Function.Injective α β f ↔ ∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b :=
+  @Iff.intro (Function.Injective α β f)
+    (∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b)
+    (fun (h : Function.Injective α β f) =&gt; fun (a : α) =&gt; fun (b : α) =&gt;
+      fun (hab : kernel α β f a b) =&gt;
+        (fun (hu : ∀ (x : α) (y : α), @Eq.{1} β (f x) (f y) → @Eq.{1} α x y) =&gt;  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          hu a b hab) h)
+    (fun (h : ∀ (a : α) (b : α), kernel α β f a b → (idRel α) a b) =&gt;
+      fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : @Eq.{1} β (f a) (f b)) =&gt; h a b hab)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></details><details open class="appendix-solution" id="app-extra-39-1"><summary>补充 · relImg_comp_fwd <span class="sol-meta">定理</span></summary><pre><code>theorem relImg_comp_fwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : Set α) (c : γ)
+    (h : c ∈ (relImg α γ (r • s) A)) : c ∈ (relImg β γ s (relImg α β r A)) :=
+  @Exists.elim α (fun (a : α) =&gt; A a ∧ (r • s) a c)
+    (∃ (b : β), (relImg α β r A) b ∧ s b c) h
+    (fun (a : α) (ha : A a ∧ (r • s) a c) =&gt;
+      @Exists.elim β (fun (b : β) =&gt; r a b ∧ s b c)
+        (∃ (b : β), (relImg α β r A) b ∧ s b c) (And.right ha)
+        (fun (b : β) (hb : r a b ∧ s b c) =&gt;
+          Exists.intro b
+            (And.intro
+              (Exists.intro a
+                (And.intro (And.left ha) (And.left hb)))
+              (And.right hb))))</code></pre></details><details open class="appendix-solution" id="app-extra-39-2"><summary>补充 · relImg_comp_bwd <span class="sol-meta">定理</span></summary><pre><code>theorem relImg_comp_bwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (A : Set α) (c : γ)
+    (h : c ∈ (relImg β γ s (relImg α β r A))) : c ∈ (relImg α γ (r • s) A) :=
+  @Exists.elim β (fun (b : β) =&gt; (relImg α β r A) b ∧ s b c)
+    (∃ (a : α), A a ∧ (r • s) a c) h
+    (fun (b : β) (hb : (relImg α β r A) b ∧ s b c) =&gt;
+      @Exists.elim α (fun (a : α) =&gt; A a ∧ r a b)
+        (∃ (a : α), A a ∧ (r • s) a c) (And.left hb)
+        (fun (a : α) (ha : A a ∧ r a b) =&gt;
+          Exists.intro a
+            (And.intro (And.left ha)
+              (Exists.intro b
+                (And.intro (And.right ha) (And.right hb))))))</code></pre></details><details open class="appendix-solution" id="app-extra-39-3"><summary>补充 · relPre_comp_fwd <span class="sol-meta">定理</span></summary><pre><code>theorem relPre_comp_fwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : Set γ) (a : α)
+    (h : a ∈ (relPre α γ (r • s) C)) : a ∈ (relPre α β r (relPre β γ s C)) :=
+  @Exists.elim γ (fun (c : γ) =&gt; C c ∧ (r • s) a c)
+    (∃ (b : β), (relPre β γ s C) b ∧ r a b) h
+    (fun (c : γ) (hc : C c ∧ (r • s) a c) =&gt;
+      @Exists.elim β (fun (b : β) =&gt; r a b ∧ s b c)
+        (∃ (b : β), (relPre β γ s C) b ∧ r a b) (And.right hc)
+        (fun (b : β) (hb : r a b ∧ s b c) =&gt;
+          Exists.intro b
+            (And.intro
+              (Exists.intro c
+                (And.intro (And.left hc) (And.right hb)))
+              (And.left hb))))</code></pre></details><details open class="appendix-solution" id="app-extra-39-4"><summary>补充 · relPre_comp_bwd <span class="sol-meta">定理</span></summary><pre><code>theorem relPre_comp_bwd (α β γ : Type) (r : Rel α β) (s : Rel β γ) (C : Set γ) (a : α)
+    (h : a ∈ (relPre α β r (relPre β γ s C))) : a ∈ (relPre α γ (r • s) C) :=
+  @Exists.elim β (fun (b : β) =&gt; (relPre β γ s C) b ∧ r a b)
+    (∃ (c : γ), C c ∧ (r • s) a c) h
+    (fun (b : β) (hb : (relPre β γ s C) b ∧ r a b) =&gt;
+      @Exists.elim γ (fun (c : γ) =&gt; C c ∧ s b c)
+        (∃ (c : γ), C c ∧ (r • s) a c) (And.left hb)
+        (fun (c : γ) (hc : C c ∧ s b c) =&gt;
+          Exists.intro c
+            (And.intro (And.left hc)
+              (Exists.intro b
+                (And.intro (And.right hb) (And.right hc))))))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

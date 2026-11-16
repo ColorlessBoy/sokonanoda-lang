@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>73 像与广义并交的分配 · 从集合论到实分析</title>
+<meta name="description" content="单元73 像与广义并交的分配：导语、定义与定理、练习与解答。Unit 73 — Images of Unions and Intersections">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit73.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li class="is-current"><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.3 单元</h3><ol><li><a href="../units/unit08.html">08 像与原像</a></li><li><a href="../units/unit09.html">09 等势（基数 Ⅰ）</a></li><li><a href="../units/unit10.html">10 可数与 Cantor 定理（基数 Ⅱ）</a></li><li class="is-current"><a href="../units/unit73.html">73 像与广义并交的分配</a></li><li><a href="../units/unit74.html">74 原像与广义并交的分配</a></li><li><a href="../units/unit92.html">92 等势的代数</a></li><li><a href="../units/unit93.html">93 等势的传递</a></li><li><a href="../units/unit96.html">96 势的比较（自反与传递）</a></li><li><a href="../units/unit97.html">97 等势 ⇒ 双向势比较</a></li><li><a href="../units/unit98.html">98 势比较的单调性</a></li><li><a href="../units/unit99.html">99 幂集的单调性</a></li><li><a href="../units/unit100.html">100 势比较的搬运</a></li><li><a href="../units/unit101.html">101 空集与子集的点态代数</a></li><li><a href="../units/unit102.html">102 相互包含与点态外延</a></li><li><a href="../units/unit103.html">103 双向势比较何时升级为等势</a></li><li><a href="../units/unit112.html">112 Cantor–Bernstein 定理（经选择公理）</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li aria-current="page">单元 73 像与广义并交的分配</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-73-1">73.1 三条库引理（像的成员刻画 · 像的进 · 广义并）</a></li>
+<li><a href="#appendix-unit-73">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-3.html#units">↑ 本章目录</a>
+      <a href="../print/unit73.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-73">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-3.html">I.3</a> · 本章第 4 / 16 单元 · 全书第 73 / 112 单元</p>
+<h1><span class="unit-number">73</span> <span>像与广义并交的分配</span></h1>
+<p class="unit-title-en">Unit 73 — Images of Unions and Intersections</p>
+<p class="unit-meta">16 个定理 · 13 道练习 · 16 条提示 · <a href="#appendix-unit-73">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="73" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-73" aria-label="复制单元 73 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit73.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-3.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>像的三条取用子（<code>y ∈ f '' A ⇔ ∃x∈A, f x = y</code> ✓ <span class="math">·</span> 进 ✓ <span class="math">·</span> 消 ✓）；</li><li><strong>旗舰一：<code>y ∈ f '' (⋃F) ⇔ ∃A∈F, y ∈ f '' A</code></strong> ✓（<strong>像与并交换</strong> ✓）；</li><li><strong>旗舰二（一半）：<code>y ∈ f '' (⋂F) ⇒ ∀A∈F, y ∈ f '' A</code></strong> ✓（<strong>像与交只能单向</strong> ✗ ——反向要 <code>f</code> <strong>单射</strong> ✓，那属于单元53 的嵌入语言 ✓）；</li><li><code>y ∈ f '' (A ∪ B) ⇔ y ∈ f '' A ∪ f '' B</code> ✓ <span class="math">·</span> <strong>单调</strong> <code>A ⊆ B ⇒ f '' A ⊆ f '' B</code> ✓ <span class="math">·</span><strong><code>f '' ∅</code> 没有成员</strong> ✓ <span class="math">·</span> <strong><code>A ⊆ f 原像 (f '' A)</code></strong> ✓（原像记法见下 ✓）</li></ul></div></div></section>
+<h3 class="unit-subhead">73.1 三条库引理（像的成员刻画 <span class="math">·</span> 像的进 <span class="math">·</span> 广义并）</h3><div class="block prose intuition-only"><p>演示：像的成员刻画（<code>y ∈ f '' A</code> 就是"有原像在 <code>A</code> 里"）。</p></div><article class="decl decl-theorem" id="decl-73-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_image</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_image (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ (f '' A) ↔ ∃ (x : α), x ∈ A ∧ f x = y :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_image f A y</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-73-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_image_intro</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_image_intro (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β)
+    (x : α) (hx : x ∈ A) (hxy : f x = y) : y ∈ (f '' A) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_image_intro f A y x hx hxy</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-73-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_sUnion</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_sUnion (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_sUnion_iff α F x-- 练习 1（T 类）：**进像**（`x ∈ A ⇒ f x ∈ f '' A`）。</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-73-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">mem_image_of_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-73-1">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem mem_image_of_mem (α : Type) (β : Type) (f : α → β) (A : Set α) (x : α)
+    (hx : x ∈ A) : f x ∈ (f '' A) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_image_intro</code> <span class="math">·</span> <code>Eq.refl</code>（<strong>写全宇宙与类型</strong> ✓）</p></div></details></div><details class="solution-panel" id="sol-73-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem mem_image_of_mem (α : Type) (β : Type) (f : α → β) (A : Set α) (x : α)
+    (hx : x ∈ A) : f x ∈ (f '' A) :=
+  Set.mem_image_intro f A (f x) x hx (@Eq.refl.{1} β (f x))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-73-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">mem_of_mem_image</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-73-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>从像里取出原像</strong>。</p></div></div><pre class="exercise-statement"><code>theorem mem_of_mem_image (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β)
+    (h : y ∈ (f '' A)) : ∃ (x : α), x ∈ A ∧ f x = y := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_image</code> <span class="math">·</span> <code>Iff.mp</code> ✓</p></div></details></div><details class="solution-panel" id="sol-73-2"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem mem_of_mem_image (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β)
+    (h : y ∈ (f '' A)) : ∃ (x : α), x ∈ A ∧ f x = y :=
+  (fun (hu : y ∈ (f '' A) ↔ ∃ (x : α), x ∈ A ∧ f x = y) =&gt; Iff.mp hu h)
+    (Set.mem_image f A y)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-73-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">mem_image_union</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-73-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<strong>像与并交换</strong>（成员层级 ✓）。</p></div><div class="block prose intuition-only"><p>（<strong>动机位放肯定命题</strong> ✓ 铁律）<span class="math">·</span> <code>Or.inl</code>/<code>Or.inr</code> <span class="math">·</span> 练习 1 ✓</p></div></div><pre class="exercise-statement"><code>theorem mem_image_union (α : Type) (β : Type) (f : α → β) (A B : Set α) (y : β) :
+    y ∈ (f '' (A ∪ B)) ↔ y ∈ ((f '' A) ∪ (f '' B)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_image_elim</code>（<strong>消去子</strong> ✓）<span class="math">·</span> <code>Set.mem_union</code> <span class="math">·</span> <code>Or.elim</code></p></div></details></div><details class="solution-panel" id="sol-73-3"><summary>查看解答 <span class="sol-meta">定理 · 29 行</span></summary><div class="solution-body"><pre><code>theorem mem_image_union (α : Type) (β : Type) (f : α → β) (A B : Set α) (y : β) :
+    y ∈ (f '' (A ∪ B)) ↔ y ∈ ((f '' A) ∪ (f '' B)) :=
+  @Iff.intro (y ∈ (f '' (A ∪ B))) (y ∈ ((f '' A) ∪ (f '' B)))
+    (fun (h : y ∈ (f '' (A ∪ B))) =&gt;
+      Set.mem_image_elim f (A ∪ B) y (y ∈ ((f '' A) ∪ (f '' B))) h
+        (fun (x : α) (hx : x ∈ (A ∪ B)) (hxy : f x = y) =&gt;
+          @Or.elim (x ∈ A) (x ∈ B) (y ∈ ((f '' A) ∪ (f '' B)))
+            (fun (hA : x ∈ A) =&gt; @Or.inl (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+              (Set.mem_image_intro f A y x hA hxy))
+            (fun (hB : x ∈ B) =&gt; @Or.inr (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+              (Set.mem_image_intro f B y x hB hxy))
+            ((fun (hu : x ∈ (A ∪ B) ↔ x ∈ A ∨ x ∈ B) =&gt; Iff.mp hu hx)
+              (Set.mem_union x A B))))
+    (fun (h : y ∈ ((f '' A) ∪ (f '' B))) =&gt;
+      @Or.elim (y ∈ (f '' A)) (y ∈ (f '' B)) (y ∈ (f '' (A ∪ B)))
+        (fun (hA : y ∈ (f '' A)) =&gt;
+          Set.mem_image_elim f A y (y ∈ (f '' (A ∪ B))) hA
+            (fun (x : α) (hx : x ∈ A) (hxy : f x = y) =&gt;
+              Set.mem_image_intro f (A ∪ B) y x
+                ((fun (hu : x ∈ (A ∪ B) ↔ x ∈ A ∨ x ∈ B) =&gt;
+                  Iff.mpr hu (Or.inl hx)) (Set.mem_union x A B)) hxy))
+        (fun (hB : y ∈ (f '' B)) =&gt;
+          Set.mem_image_elim f B y (y ∈ (f '' (A ∪ B))) hB
+            (fun (x : α) (hx : x ∈ B) (hxy : f x = y) =&gt;
+              Set.mem_image_intro f (A ∪ B) y x
+                ((fun (hu : x ∈ (A ∪ B) ↔ x ∈ A ∨ x ∈ B) =&gt;
+                  Iff.mpr hu (Or.inr hx)) (Set.mem_union x A B)) hxy))
+        ((fun (hu : y ∈ ((f '' A) ∪ (f '' B)) ↔ y ∈ (f '' A) ∨ y ∈ (f '' B)) =&gt; Iff.mp hu h)
+          (Set.mem_union y (f '' A) (f '' B))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-73-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">mem_sUnion_of_mem_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-73-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类，<strong>链条第一环</strong>）：<code>A ∈ F ⇒ x ∈ A ⇒ x ∈ ⋃F</code>。</p></div></div><pre class="exercise-statement"><code>theorem mem_sUnion_of_mem_mem (α : Type) (F : Set (Set α)) (A : Set α) (x : α)
+    (hA : A ∈ F) (hx : x ∈ A) : x ∈ (⋃₀ F) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_sUnion_iff</code> <span class="math">·</span> <code>Iff.mpr</code> <span class="math">·</span> <code>Exists.intro</code>（<strong>写全前导实参</strong> ✓）</p></div></details></div><details class="solution-panel" id="sol-73-4"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem mem_sUnion_of_mem_mem (α : Type) (F : Set (Set α)) (A : Set α) (x : α)
+    (hA : A ∈ F) (hx : x ∈ A) : x ∈ (⋃₀ F) :=
+  (fun (hu : x ∈ (⋃₀ F) ↔ ∃ (D : Set α), D ∈ F ∧ x ∈ D) =&gt;
+    Iff.mpr hu (Exists.intro A
+      (And.intro hA hx))) (Set.mem_sUnion_iff α F x)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-73-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">exists_mem_of_mem_sUnion</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-73-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（T 类，<strong>另一方向的第一环</strong>）：<code>x ∈ ⋃F ⇒ ∃A∈F, x ∈ A</code>。</p></div></div><pre class="exercise-statement"><code>theorem exists_mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (⋃₀ F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_sUnion_iff</code> <span class="math">·</span> <code>Iff.mp</code> ✓</p></div></details></div><details class="solution-panel" id="sol-73-5"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem exists_mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (⋃₀ F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A :=
+  (fun (hu : x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A) =&gt; Iff.mp hu h)
+    (Set.mem_sUnion_iff α F x)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-73-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">mem_image_sUnion_of_mem_image</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-73-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类，<strong>链条第二环</strong>）：<code>A ∈ F ⇒ y ∈ f '' A ⇒ y ∈ f '' (⋃F)</code>。</p></div></div><pre class="exercise-statement"><code>theorem mem_image_sUnion_of_mem_image (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set α)) (A : Set α) (y : β) (hA : A ∈ F) (hy : y ∈ (f '' A)) :
+    y ∈ (f '' (⋃₀ F)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_image_elim</code>（取出 <code>x ∈ A</code> 与 <code>f x = y</code> ✓）<span class="math">·</span> 练习 <span class="math">4 ·</span> 练习 1 ✓</p></div></details></div><details class="solution-panel" id="sol-73-6"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem mem_image_sUnion_of_mem_image (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set α)) (A : Set α) (y : β) (hA : A ∈ F) (hy : y ∈ (f '' A)) :
+    y ∈ (f '' (⋃₀ F)) :=
+  Set.mem_image_elim f A y (y ∈ (f '' (⋃₀ F))) hy
+    (fun (x : α) (hx : x ∈ A) (hxy : f x = y) =&gt;
+      Set.mem_image_intro f (⋃₀ F) y x
+        (mem_sUnion_of_mem_mem α F A x hA hx) hxy)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-73-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">mem_image_sUnion_of_exists</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-73-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类，<strong>链条第三环</strong>）：<code>(∃A∈F, y ∈ f '' A) ⇒ y ∈ f '' (⋃F)</code>。</p></div></div><pre class="exercise-statement"><code>theorem mem_image_sUnion_of_exists (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set α)) (y : β)
+    (h : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A)) : y ∈ (f '' (⋃₀ F)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code> <span class="math">·</span> 练习 <span class="math">6 ·</span> <code>And.left</code>/<code>And.right</code> ✓</p></div></details></div><details class="solution-panel" id="sol-73-7"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem mem_image_sUnion_of_exists (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set α)) (y : β)
+    (h : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A)) : y ∈ (f '' (⋃₀ F)) :=
+  @Exists.elim (Set α) (fun (A : Set α) =&gt; A ∈ F ∧ y ∈ (f '' A))
+    (y ∈ (f '' (⋃₀ F))) h
+    (fun (A : Set α) (hA : A ∈ F ∧ y ∈ (f '' A)) =&gt;
+      mem_image_sUnion_of_mem_image α β f F A y
+        (And.left hA) (And.right hA))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-73-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">mem_of_mem_image_sUnion</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-73-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类，<strong>反向</strong>）：<code>y ∈ f '' (⋃F) ⇒ ∃A∈F, y ∈ f '' A</code>。</p></div></div><pre class="exercise-statement"><code>theorem mem_of_mem_image_sUnion (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set α)) (y : β)
+    (h : y ∈ (f '' (⋃₀ F))) : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_image_elim</code> <span class="math">·</span> 练习 <span class="math">5 ·</span> <code>Exists.elim</code>/<code>Exists.intro</code> <span class="math">·</span> 练习 1 ✓</p></div></details></div><details class="solution-panel" id="sol-73-8"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><pre><code>theorem mem_of_mem_image_sUnion (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set α)) (y : β)
+    (h : y ∈ (f '' (⋃₀ F))) : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) :=
+  Set.mem_image_elim f (⋃₀ F) y
+    (∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A)) h
+    (fun (x : α) (hx : x ∈ (⋃₀ F)) (hxy : f x = y) =&gt;
+      @Exists.elim (Set α) (fun (A : Set α) =&gt; A ∈ F ∧ x ∈ A)
+        (∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A))
+        (exists_mem_of_mem_sUnion α F x hx)
+        (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) =&gt;
+          Exists.intro A  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+            (@And.intro (A ∈ F) (y ∈ (f '' A)) (And.left hA)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+              (Set.mem_image_intro f A y x (And.right hA) hxy))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-73-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">mem_image_sUnion_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-73-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（L 类，<strong>旗舰一</strong>）：<strong>像与并交换</strong>（<code>↔</code> ✓）。</p></div><div class="block prose intuition-only"><p>（<strong>先拆链、再打包</strong> ✓ —— 这就是手册的"两步走" ✓）。</p></div></div><pre class="exercise-statement"><code>theorem mem_image_sUnion_iff (α : Type) (β : Type) (f : α → β) (F : Set (Set α))
+    (y : β) :
+    y ∈ (f '' (⋃₀ F)) ↔ ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><strong>一行打包</strong> —— 两个方向分别就是练习 8 与练习 7 ✓</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>y ∈ f '' (⋃F) ↔ ∃ (A : Set α), A ∈ F ∧ y ∈ f '' A</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code>（<strong>两种写法都要</strong> ✓）<span class="math">·</span> 练习 7 / 练习 8 ✓</p></div></details></div><details class="solution-panel" id="sol-73-9"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem mem_image_sUnion_iff (α : Type) (β : Type) (f : α → β) (F : Set (Set α))
+    (y : β) :
+    y ∈ (f '' (⋃₀ F)) ↔ ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) :=
+  @Iff.intro (y ∈ (f '' (⋃₀ F))) (∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A))
+    (mem_of_mem_image_sUnion α β f F y)
+    (mem_image_sUnion_of_exists α β f F y)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-73-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">mem_image_mono</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-73-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（T 类，<strong>单调</strong>）：<code>A ⊆ B ⇒ y ∈ f '' A ⇒ y ∈ f '' B</code>。</p></div></div><pre class="exercise-statement"><code>theorem mem_image_mono (α : Type) (β : Type) (f : α → β) (A B : Set α) (h : A ⊆ B)
+    (y : β) (hy : y ∈ (f '' A)) : y ∈ (f '' B) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_image_elim</code> <span class="math">·</span> <code>Set.subset_def</code> <span class="math">·</span> <code>Iff.mp</code> <span class="math">·</span> 练习 1 ✓</p></div></details></div><details class="solution-panel" id="sol-73-10"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem mem_image_mono (α : Type) (β : Type) (f : α → β) (A B : Set α) (h : A ⊆ B)
+    (y : β) (hy : y ∈ (f '' A)) : y ∈ (f '' B) :=
+  Set.mem_image_elim f A y (y ∈ (f '' B)) hy
+    (fun (x : α) (hx : x ∈ A) (hxy : f x = y) =&gt;
+      Set.mem_image_intro f B y x
+        ((fun (hu : ∀ (u : α), u ∈ A → u ∈ B) =&gt; hu x hx)
+          ((fun (hv : A ⊆ B ↔ ∀ (u : α), u ∈ A → u ∈ B) =&gt; Iff.mp hv h)
+            (Set.subset_def A B))) hxy)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-73-11" data-exercise="11"><header class="exercise-head"><span class="exercise-badge">练习 11</span><code class="exercise-name">not_mem_image_empty</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-73-11">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 11（T 类）：<strong><code>f '' ∅</code> 没有成员</strong>。</p></div></div><pre class="exercise-statement"><code>theorem not_mem_image_empty (α : Type) (β : Type) (f : α → β) (y : β) :
+    ¬ (y ∈ (f '' (∅))) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_image_elim</code>（<strong>消到 <code>False</code></strong> ✓）<span class="math">·</span> <code>Set.mem_empty_iff_false</code> ✓</p></div></details></div><details class="solution-panel" id="sol-73-11"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem not_mem_image_empty (α : Type) (β : Type) (f : α → β) (y : β) :
+    ¬ (y ∈ (f '' (∅))) :=
+  fun (h : y ∈ (f '' (∅))) =&gt;
+    Set.mem_image_elim f (∅) y False h
+      (fun (x : α) (hx : x ∈ (∅)) (hxy : f x = y) =&gt;
+        (Iff.mp (Set.mem_empty_iff_false x)) hx)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-73-12" data-exercise="12"><header class="exercise-head"><span class="exercise-badge">练习 12</span><code class="exercise-name">mem_preimage_image</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-73-12">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 12（T 类）：<strong><code>A</code> 含在 <code>f</code> 的原像（<code>f '' A</code>）里</strong>（成员层级 ✓）。</p></div></div><pre class="exercise-statement"><code>theorem mem_preimage_image (α : Type) (β : Type) (f : α → β) (A : Set α) (x : α)
+    (hx : x ∈ A) : x ∈ (f ⁻¹' (f '' A)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_preimage</code> <span class="math">·</span> <code>Iff.mpr</code> <span class="math">·</span> 练习 1 ✓</p></div></details></div><details class="solution-panel" id="sol-73-12"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem mem_preimage_image (α : Type) (β : Type) (f : α → β) (A : Set α) (x : α)
+    (hx : x ∈ A) : x ∈ (f ⁻¹' (f '' A)) :=
+  (fun (hu : x ∈ (f ⁻¹' (f '' A)) ↔ f x ∈ (f '' A)) =&gt; Iff.mpr hu (mem_image_of_mem α β f A x hx))
+    (Set.mem_preimage f (f '' A) x)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-73-13" data-exercise="13"><header class="exercise-head"><span class="exercise-badge">练习 13</span><code class="exercise-name">mem_image_sInter_of_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-73-13">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 13（L 类，<strong>旗舰二（一半）</strong>）：<strong>像与交只能单向</strong>。</p></div></div><pre class="exercise-statement"><code>theorem mem_image_sInter_of_mem (α : Type) (β : Type) (f : α → β) (F : Set (Set α))
+    (y : β) (h : y ∈ (f '' (⋂₀ F))) : ∀ (A : Set α), A ∈ F → y ∈ (f '' A) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">提示</span></summary><div class="hint-body"><p>⚠ 只证<strong>这个方向</strong> ✓ —— 反向要 <code>f</code> <strong>单射</strong> ✗（属单元53 的嵌入语言 ✓）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_image_elim</code> <span class="math">·</span> <code>Set.mem_sInter_iff</code> <span class="math">·</span> <code>Iff.mp</code> <span class="math">·</span> 练习 1 ✓</p></div></details></div><details class="solution-panel" id="sol-73-13"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem mem_image_sInter_of_mem (α : Type) (β : Type) (f : α → β) (F : Set (Set α))
+    (y : β) (h : y ∈ (f '' (⋂₀ F))) : ∀ (A : Set α), A ∈ F → y ∈ (f '' A) :=
+  fun (A : Set α) (hA : A ∈ F) =&gt;
+    Set.mem_image_elim f (⋂₀ F) y (y ∈ (f '' A)) h
+      (fun (x : α) (hx : x ∈ (⋂₀ F)) (hxy : f x = y) =&gt;
+        Set.mem_image_intro f A y x
+          ((fun (hu : ∀ (B : Set α), B ∈ F → x ∈ B) =&gt; hu A hA)
+            ((fun (hv : x ∈ (⋂₀ F) ↔ ∀ (B : Set α), B ∈ F → x ∈ B) =&gt; Iff.mp hv hx)
+              (Set.mem_sInter_iff α F x))) hxy)</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（5 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§3.5</strong>（images of families）<span class="math">·Halmos</span>《Naive Set Theory》<strong>§9/§10</strong>。大纲 §4.1（<strong>把 I.3 与 I.7 接起来</strong> ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>写法纪律</strong> ✓（本轮实测）：旗舰一<strong>一次写完括号配错</strong> ✗（parse error ✓）<span class="math">⇒</span> 按手册「<strong>深嵌套一律拆辅助引理</strong>」拆成<strong>链式小引理</strong> ✓：<code>mem_sUnion_of_mem_mem</code> <span class="math">→</span> <code>mem_image_sUnion_of_mem_image</code> <span class="math">→</span> <code>mem_image_sUnion_of_exists</code>（另一个方向 <code>exists_mem_of_mem_sUnion</code> <span class="math">→</span> <code>mem_of_mem_image_sUnion</code> ✓），最后由两条方向<strong>一行打包</strong>成 <code>↔</code> ✓ <span class="math">⇒</span> <strong>一次判绿</strong> ✓。</p></div><div class="block prose intuition-only"><p>⚠ <strong>点名写法</strong> ✓：<code>⋃</code>/<code>⋂</code> 无记法 <span class="math">⇒</span> <code>Set.sUnion</code>/<code>Set.sInter</code> ✓；<code>f '' A</code> 有记法 ✓。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.SUnion</code> <span class="math">·</span> <code>lib.Image</code> <span class="math">·</span> <code>lib.Order</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元⑧（像与原像）<span class="math">·</span> 单元㉑（广义并）<span class="math">·</span> 单元㊽（覆盖演算）<span class="math">·</span> 单元69/71/72 ✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit10.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">可数与 Cantor 定理（基数 Ⅱ）</span></a><a class="unit-nav-home" href="../chapters/i-3.html#units">目录</a><a class="unit-nav-link" href="../units/unit74.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">原像与广义并交的分配</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-73"><h3><a href="#top">像与广义并交的分配</a></h3><p class="appendix-meta">13 道练习 · 13 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-73-1"><summary>练习 1 · mem_image_of_mem <span class="sol-meta">定理</span></summary><pre><code>theorem mem_image_of_mem (α : Type) (β : Type) (f : α → β) (A : Set α) (x : α)
+    (hx : x ∈ A) : f x ∈ (f '' A) :=
+  Set.mem_image_intro f A (f x) x hx (@Eq.refl.{1} β (f x))</code></pre></details><details class="appendix-solution" id="app-sol-73-2"><summary>练习 2 · mem_of_mem_image <span class="sol-meta">定理</span></summary><pre><code>theorem mem_of_mem_image (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β)
+    (h : y ∈ (f '' A)) : ∃ (x : α), x ∈ A ∧ f x = y :=
+  (fun (hu : y ∈ (f '' A) ↔ ∃ (x : α), x ∈ A ∧ f x = y) =&gt; Iff.mp hu h)
+    (Set.mem_image f A y)</code></pre></details><details class="appendix-solution" id="app-sol-73-3"><summary>练习 3 · mem_image_union <span class="sol-meta">定理</span></summary><pre><code>theorem mem_image_union (α : Type) (β : Type) (f : α → β) (A B : Set α) (y : β) :
+    y ∈ (f '' (A ∪ B)) ↔ y ∈ ((f '' A) ∪ (f '' B)) :=
+  @Iff.intro (y ∈ (f '' (A ∪ B))) (y ∈ ((f '' A) ∪ (f '' B)))
+    (fun (h : y ∈ (f '' (A ∪ B))) =&gt;
+      Set.mem_image_elim f (A ∪ B) y (y ∈ ((f '' A) ∪ (f '' B))) h
+        (fun (x : α) (hx : x ∈ (A ∪ B)) (hxy : f x = y) =&gt;
+          @Or.elim (x ∈ A) (x ∈ B) (y ∈ ((f '' A) ∪ (f '' B)))
+            (fun (hA : x ∈ A) =&gt; @Or.inl (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+              (Set.mem_image_intro f A y x hA hxy))
+            (fun (hB : x ∈ B) =&gt; @Or.inr (y ∈ (f '' A)) (y ∈ (f '' B))  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+              (Set.mem_image_intro f B y x hB hxy))
+            ((fun (hu : x ∈ (A ∪ B) ↔ x ∈ A ∨ x ∈ B) =&gt; Iff.mp hu hx)
+              (Set.mem_union x A B))))
+    (fun (h : y ∈ ((f '' A) ∪ (f '' B))) =&gt;
+      @Or.elim (y ∈ (f '' A)) (y ∈ (f '' B)) (y ∈ (f '' (A ∪ B)))
+        (fun (hA : y ∈ (f '' A)) =&gt;
+          Set.mem_image_elim f A y (y ∈ (f '' (A ∪ B))) hA
+            (fun (x : α) (hx : x ∈ A) (hxy : f x = y) =&gt;
+              Set.mem_image_intro f (A ∪ B) y x
+                ((fun (hu : x ∈ (A ∪ B) ↔ x ∈ A ∨ x ∈ B) =&gt;
+                  Iff.mpr hu (Or.inl hx)) (Set.mem_union x A B)) hxy))
+        (fun (hB : y ∈ (f '' B)) =&gt;
+          Set.mem_image_elim f B y (y ∈ (f '' (A ∪ B))) hB
+            (fun (x : α) (hx : x ∈ B) (hxy : f x = y) =&gt;
+              Set.mem_image_intro f (A ∪ B) y x
+                ((fun (hu : x ∈ (A ∪ B) ↔ x ∈ A ∨ x ∈ B) =&gt;
+                  Iff.mpr hu (Or.inr hx)) (Set.mem_union x A B)) hxy))
+        ((fun (hu : y ∈ ((f '' A) ∪ (f '' B)) ↔ y ∈ (f '' A) ∨ y ∈ (f '' B)) =&gt; Iff.mp hu h)
+          (Set.mem_union y (f '' A) (f '' B))))</code></pre></details><details class="appendix-solution" id="app-sol-73-4"><summary>练习 4 · mem_sUnion_of_mem_mem <span class="sol-meta">定理</span></summary><pre><code>theorem mem_sUnion_of_mem_mem (α : Type) (F : Set (Set α)) (A : Set α) (x : α)
+    (hA : A ∈ F) (hx : x ∈ A) : x ∈ (⋃₀ F) :=
+  (fun (hu : x ∈ (⋃₀ F) ↔ ∃ (D : Set α), D ∈ F ∧ x ∈ D) =&gt;
+    Iff.mpr hu (Exists.intro A
+      (And.intro hA hx))) (Set.mem_sUnion_iff α F x)</code></pre></details><details class="appendix-solution" id="app-sol-73-5"><summary>练习 5 · exists_mem_of_mem_sUnion <span class="sol-meta">定理</span></summary><pre><code>theorem exists_mem_of_mem_sUnion (α : Type) (F : Set (Set α)) (x : α)
+    (h : x ∈ (⋃₀ F)) : ∃ (A : Set α), A ∈ F ∧ x ∈ A :=
+  (fun (hu : x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A) =&gt; Iff.mp hu h)
+    (Set.mem_sUnion_iff α F x)</code></pre></details><details class="appendix-solution" id="app-sol-73-6"><summary>练习 6 · mem_image_sUnion_of_mem_image <span class="sol-meta">定理</span></summary><pre><code>theorem mem_image_sUnion_of_mem_image (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set α)) (A : Set α) (y : β) (hA : A ∈ F) (hy : y ∈ (f '' A)) :
+    y ∈ (f '' (⋃₀ F)) :=
+  Set.mem_image_elim f A y (y ∈ (f '' (⋃₀ F))) hy
+    (fun (x : α) (hx : x ∈ A) (hxy : f x = y) =&gt;
+      Set.mem_image_intro f (⋃₀ F) y x
+        (mem_sUnion_of_mem_mem α F A x hA hx) hxy)</code></pre></details><details class="appendix-solution" id="app-sol-73-7"><summary>练习 7 · mem_image_sUnion_of_exists <span class="sol-meta">定理</span></summary><pre><code>theorem mem_image_sUnion_of_exists (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set α)) (y : β)
+    (h : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A)) : y ∈ (f '' (⋃₀ F)) :=
+  @Exists.elim (Set α) (fun (A : Set α) =&gt; A ∈ F ∧ y ∈ (f '' A))
+    (y ∈ (f '' (⋃₀ F))) h
+    (fun (A : Set α) (hA : A ∈ F ∧ y ∈ (f '' A)) =&gt;
+      mem_image_sUnion_of_mem_image α β f F A y
+        (And.left hA) (And.right hA))</code></pre></details><details class="appendix-solution" id="app-sol-73-8"><summary>练习 8 · mem_of_mem_image_sUnion <span class="sol-meta">定理</span></summary><pre><code>theorem mem_of_mem_image_sUnion (α : Type) (β : Type) (f : α → β)
+    (F : Set (Set α)) (y : β)
+    (h : y ∈ (f '' (⋃₀ F))) : ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) :=
+  Set.mem_image_elim f (⋃₀ F) y
+    (∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A)) h
+    (fun (x : α) (hx : x ∈ (⋃₀ F)) (hxy : f x = y) =&gt;
+      @Exists.elim (Set α) (fun (A : Set α) =&gt; A ∈ F ∧ x ∈ A)
+        (∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A))
+        (exists_mem_of_mem_sUnion α F x hx)
+        (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) =&gt;
+          Exists.intro A  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+            (@And.intro (A ∈ F) (y ∈ (f '' A)) (And.left hA)  -- soko:notation-ok: `⋃`/`⋂` 无记法（点名写法）+ `∈`/`` 是 def 头（手册边界）
+              (Set.mem_image_intro f A y x (And.right hA) hxy))))</code></pre></details><details class="appendix-solution" id="app-sol-73-9"><summary>练习 9 · mem_image_sUnion_iff <span class="sol-meta">定理</span></summary><pre><code>theorem mem_image_sUnion_iff (α : Type) (β : Type) (f : α → β) (F : Set (Set α))
+    (y : β) :
+    y ∈ (f '' (⋃₀ F)) ↔ ∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A) :=
+  @Iff.intro (y ∈ (f '' (⋃₀ F))) (∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A))
+    (mem_of_mem_image_sUnion α β f F y)
+    (mem_image_sUnion_of_exists α β f F y)</code></pre></details><details class="appendix-solution" id="app-sol-73-10"><summary>练习 10 · mem_image_mono <span class="sol-meta">定理</span></summary><pre><code>theorem mem_image_mono (α : Type) (β : Type) (f : α → β) (A B : Set α) (h : A ⊆ B)
+    (y : β) (hy : y ∈ (f '' A)) : y ∈ (f '' B) :=
+  Set.mem_image_elim f A y (y ∈ (f '' B)) hy
+    (fun (x : α) (hx : x ∈ A) (hxy : f x = y) =&gt;
+      Set.mem_image_intro f B y x
+        ((fun (hu : ∀ (u : α), u ∈ A → u ∈ B) =&gt; hu x hx)
+          ((fun (hv : A ⊆ B ↔ ∀ (u : α), u ∈ A → u ∈ B) =&gt; Iff.mp hv h)
+            (Set.subset_def A B))) hxy)</code></pre></details><details class="appendix-solution" id="app-sol-73-11"><summary>练习 11 · not_mem_image_empty <span class="sol-meta">定理</span></summary><pre><code>theorem not_mem_image_empty (α : Type) (β : Type) (f : α → β) (y : β) :
+    ¬ (y ∈ (f '' (∅))) :=
+  fun (h : y ∈ (f '' (∅))) =&gt;
+    Set.mem_image_elim f (∅) y False h
+      (fun (x : α) (hx : x ∈ (∅)) (hxy : f x = y) =&gt;
+        (Iff.mp (Set.mem_empty_iff_false x)) hx)</code></pre></details><details class="appendix-solution" id="app-sol-73-12"><summary>练习 12 · mem_preimage_image <span class="sol-meta">定理</span></summary><pre><code>theorem mem_preimage_image (α : Type) (β : Type) (f : α → β) (A : Set α) (x : α)
+    (hx : x ∈ A) : x ∈ (f ⁻¹' (f '' A)) :=
+  (fun (hu : x ∈ (f ⁻¹' (f '' A)) ↔ f x ∈ (f '' A)) =&gt; Iff.mpr hu (mem_image_of_mem α β f A x hx))
+    (Set.mem_preimage f (f '' A) x)</code></pre></details><details class="appendix-solution" id="app-sol-73-13"><summary>练习 13 · mem_image_sInter_of_mem <span class="sol-meta">定理</span></summary><pre><code>theorem mem_image_sInter_of_mem (α : Type) (β : Type) (f : α → β) (F : Set (Set α))
+    (y : β) (h : y ∈ (f '' (⋂₀ F))) : ∀ (A : Set α), A ∈ F → y ∈ (f '' A) :=
+  fun (A : Set α) (hA : A ∈ F) =&gt;
+    Set.mem_image_elim f (⋂₀ F) y (y ∈ (f '' A)) h
+      (fun (x : α) (hx : x ∈ (⋂₀ F)) (hxy : f x = y) =&gt;
+        Set.mem_image_intro f A y x
+          ((fun (hu : ∀ (B : Set α), B ∈ F → x ∈ B) =&gt; hu A hA)
+            ((fun (hv : x ∈ (⋂₀ F) ↔ ∀ (B : Set α), B ∈ F → x ∈ B) =&gt; Iff.mp hv hx)
+              (Set.mem_sInter_iff α F x))) hxy)</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit10.html">← 10 可数与 Cantor 定理（基数 Ⅱ）</a><a class="next" href="../units/unit74.html">74 原像与广义并交的分配 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

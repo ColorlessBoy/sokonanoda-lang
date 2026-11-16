@@ -112,21 +112,49 @@
 
   /* ---------- unit sidebar (mobile) ---------- */
   var sideToggle = $("[data-side-toggle]");
-  if (sideToggle) {
+  var sideEl = document.getElementById("site-side");
+  function closeSide(restore) {
+    if (!sideEl) return;
+    sideEl.classList.remove("is-open");
+    document.body.classList.remove("side-open");
+    if (sideToggle) sideToggle.setAttribute("aria-expanded", "false");
+    if (restore && sideToggle) sideToggle.focus();
+  }
+  if (sideToggle && sideEl) {
     sideToggle.addEventListener("click", function () {
-      var side = document.getElementById("site-side");
-      if (!side) return;
-      var open = side.classList.toggle("is-open");
+      var open = !sideEl.classList.contains("is-open");
+      sideEl.classList.toggle("is-open", open);
+      document.body.classList.toggle("side-open", open);
       sideToggle.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) {
+        var first = sideEl.querySelector("a,button");
+        if (first) first.focus();
+      }
     });
     $$("#site-side a").forEach(function (a) {
-      a.addEventListener("click", function () {
-        var side = document.getElementById("site-side");
-        if (side) side.classList.remove("is-open");
-        sideToggle.setAttribute("aria-expanded", "false");
-      });
+      a.addEventListener("click", function () { closeSide(false); });
     });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && sideEl.classList.contains("is-open")) closeSide(true);
+      if (e.key === "Tab" && sideEl.classList.contains("is-open")) {
+        var f = $$("#site-side a,#site-side button").filter(function (x) { return x.offsetParent !== null; });
+        if (!f.length) return;
+        var first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
+    var backdrop = document.createElement("div");
+    backdrop.className = "side-backdrop";
+    backdrop.addEventListener("click", function () { closeSide(false); });
+    sideEl.addEventListener("click", function (e) { if (e.target === sideEl) closeSide(false); });
   }
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || "")) {
+      e.preventDefault();
+      location.href = (document.body.getAttribute("data-page") === "search" ? "" : (document.querySelector('a[href$="search.html"]') || {}).href) || "search.html";
+    }
+  });
 
   /* ---------- mobile menu ---------- */
   var menu = $("[data-menu]");

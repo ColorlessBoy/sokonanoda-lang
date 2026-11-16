@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 70 幂集对交并的分配</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit70.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 70 幂集对交并的分配</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit70.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.12 幂集与函数空间 · 单元 70</p><h1>幂集对交并的分配</h1><p class="note">Unit 70 — Power Set Distributes over Intersection</p></header><section class="unit" id="unit-70">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-12.html">I.12</a> · 本章第 7 / 7 单元 · 全书第 70 / 112 单元</p>
+<h2><span class="unit-number">70</span><span>幂集对交并的分配</span></h2>
+<p class="unit-title-en">Unit 70 — Power Set Distributes over Intersection</p>
+<p class="unit-meta">11 个定理 · 8 道练习 · 10 条提示 · <a href="#appendix-unit-70">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>取用子：<code>A ⊆ B</code> 用在点上 ✓ <span class="math">·</span> 交的两条出 <span class="math">+</span> 一条进 ✓；</li><li><strong>旗舰：<code>C ∈ 𝒫A ∩ 𝒫B ↔ C ∈ 𝒫(A ∩ B)</code></strong> ✓（<strong>幂集对交分配</strong> ✓——教材里"幂集把交变成交"那条 ✓）；</li><li><strong><code>C ∈ 𝒫A ∪ 𝒫B ⇒ C ∈ 𝒫(A ∪ B)</code></strong> ✓（<strong>反向为假</strong> ✗ —— 教学点：取 <code>A={0}, B={1}</code> 时 <code>{0,1} ∈ 𝒫(A ∪ B)</code> 却不在任何一边 ✓）；</li><li><strong>幂等</strong>：<code>C ∈ 𝒫A ∩ 𝒫A ↔ C ∈ 𝒫A</code> ✓ <span class="math">·</span> <strong>只有空集</strong>：<code>C ∈ 𝒫∅ ↔ ∀c, c ∉ C</code> ✓</li></ul></div></div></section>
+<h3 class="unit-subhead">70.1 三条库引理（幂集 <span class="math">·</span> 交 <span class="math">·</span> 并）</h3><div class="block prose intuition-only"><p>演示：幂集的成员刻画（<code>C ∈ 𝒫A</code> 就是 <code>C ⊆ A</code>）。</p></div><article class="decl decl-theorem" id="decl-70-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_powerset</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_powerset (α : Type) (A C : Set α) :
+    C ∈ (𝒫 A) ↔ C ⊆ A :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_powerset_iff A C</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-70-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_inter</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_inter_iff a A B</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-70-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_union</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_union a A B-- 练习 1（T 类，**中心工具**）：`A ⊆ B` 用在点上。</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-70-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">mem_of_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-70-1">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) : a ∈ B := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.subset_def</code>（<strong>先 <span class="math">λ</span> 绑定、再 <code>Iff.mp</code></strong> ✓）✓</p></div></details></div><details open class="solution-panel" id="sol-70-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) : a ∈ B :=
+  (fun (hu : ∀ (x : α), x ∈ A → x ∈ B) =&gt; hu a ha)
+    ((fun (hv : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) =&gt; Iff.mp hv h) (Set.subset_def A B))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-70-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">mem_inter_intro</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-70-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>交的合成</strong>。</p></div></div><pre class="exercise-statement"><code>theorem mem_inter_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hb : a ∈ B) :
+    a ∈ (A ∩ B) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_inter_iff</code> <span class="math">·</span> <code>Iff.mpr</code> <span class="math">·</span> <code>And.intro</code>（<strong>写全前导实参</strong> ✓）</p></div></details></div><details open class="solution-panel" id="sol-70-2"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem mem_inter_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hb : a ∈ B) :
+    a ∈ (A ∩ B) :=
+  (fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =&gt;
+    Iff.mpr hu (And.intro ha hb)) (Set.mem_inter_iff a A B)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-70-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">mem_inter_left</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-70-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong>交的左取用子</strong>。</p></div></div><pre class="exercise-statement"><code>theorem mem_inter_left (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_inter_iff</code> <span class="math">·</span> <code>Iff.mp</code> <span class="math">·</span> <code>And.left</code>（<strong>写全</strong> ✓）</p></div></details></div><details open class="solution-panel" id="sol-70-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem mem_inter_left (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ A :=
+  @And.left (a ∈ A) (a ∈ B)  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =&gt; Iff.mp hu h) (Set.mem_inter_iff a A B))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-70-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">mem_inter_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-70-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：<strong>交的右取用子</strong>。</p></div></div><pre class="exercise-statement"><code>theorem mem_inter_right (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ B := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_inter_iff</code> <span class="math">·</span> <code>Iff.mp</code> <span class="math">·</span> <code>And.right</code>（<strong>写全</strong> ✓）</p></div></details></div><details open class="solution-panel" id="sol-70-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem mem_inter_right (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ B :=
+  @And.right (a ∈ A) (a ∈ B)  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =&gt; Iff.mp hu h) (Set.mem_inter_iff a A B))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-70-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">mem_powerset_inter_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-70-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>旗舰</strong>）：<strong>幂集对交分配</strong>（成员层级 ✓）。</p></div><div class="block prose intuition-only"><p>对每个 <code>c ∈ C</code> 用一次取用子，最后折回 <code>C ∈ 𝒫(A ∩ B)</code> ✓。</p></div></div><pre class="exercise-statement"><code>theorem mem_powerset_inter_iff (α : Type) (A B C : Set α) :
+    C ∈ (𝒫 A ∩ 𝒫 B) ↔ C ∈ 𝒫 (A ∩ B) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个方向都在 <code>Set α</code> 层级做 —— 把 <code>C ∈ 𝒫A</code> 拆成 <code>C ⊆ A</code>，</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>C ∈ 𝒫A ∩ 𝒫B ↔ C ∈ 𝒫(A ∩ B)</code>（<strong>别写 <code>⊆</code></strong> ✗ —— 见画布头的边界 ✓）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_powerset_iff</code> <span class="math">·</span> 练习 1–<span class="math">4 ·</span> <code>Iff.intro</code>（两种写法都要 ✓）✓</p></div></details></div><details open class="solution-panel" id="sol-70-5"><summary>查看解答 <span class="sol-meta">定理 · 32 行</span></summary><div class="solution-body"><pre><code>theorem mem_powerset_inter_iff (α : Type) (A B C : Set α) :
+    C ∈ (𝒫 A ∩ 𝒫 B) ↔ C ∈ 𝒫 (A ∩ B) :=
+  @Iff.intro (C ∈ (𝒫 A ∩ 𝒫 B)) (C ∈ 𝒫 (A ∩ B))
+    (fun (h : C ∈ (𝒫 A ∩ 𝒫 B)) =&gt;
+      (fun (hu : C ∈ 𝒫 (A ∩ B) ↔ C ⊆ (A ∩ B)) =&gt;
+        Iff.mpr hu (fun (c : α) (hc : c ∈ C) =&gt;
+          mem_inter_intro α A B c
+            (mem_of_subset α C A
+              ((fun (hv : C ∈ 𝒫 A ↔ C ⊆ A) =&gt;
+                Iff.mp hv (mem_inter_left (Set α) (𝒫 A) (𝒫 B) C h))
+                (Set.mem_powerset_iff A C)) c hc)
+            (mem_of_subset α C B
+              ((fun (hv : C ∈ 𝒫 B ↔ C ⊆ B) =&gt;
+                Iff.mp hv (mem_inter_right (Set α) (𝒫 A) (𝒫 B) C h))
+                (Set.mem_powerset_iff B C)) c hc)))
+        (Set.mem_powerset_iff (A ∩ B) C))
+    (fun (h : C ∈ 𝒫 (A ∩ B)) =&gt;
+      mem_inter_intro (Set α) (𝒫 A) (𝒫 B) C
+        ((fun (hu : C ∈ 𝒫 A ↔ C ⊆ A) =&gt;
+          Iff.mpr hu (fun (c : α) (hc : c ∈ C) =&gt;
+            mem_inter_left α A B c
+              (mem_of_subset α C (A ∩ B)
+                ((fun (hv : C ∈ 𝒫 (A ∩ B) ↔ C ⊆ (A ∩ B)) =&gt; Iff.mp hv h)
+                  (Set.mem_powerset_iff (A ∩ B) C)) c hc)))
+          (Set.mem_powerset_iff A C))
+        ((fun (hu : C ∈ 𝒫 B ↔ C ⊆ B) =&gt;
+          Iff.mpr hu (fun (c : α) (hc : c ∈ C) =&gt;
+            mem_inter_right α A B c
+              (mem_of_subset α C (A ∩ B)
+                ((fun (hv : C ∈ 𝒫 (A ∩ B) ↔ C ⊆ (A ∩ B)) =&gt; Iff.mp hv h)
+                  (Set.mem_powerset_iff (A ∩ B) C)) c hc)))
+          (Set.mem_powerset_iff B C)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-70-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">mem_powerset_union_of_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-70-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类）：<strong><code>C ∈ 𝒫A ∪ 𝒫B ⇒ C ∈ 𝒫(A ∪ B)</code></strong>（<strong>反向为假</strong> ✗）。</p></div><div class="block prose intuition-only"><p><code>Or.inl</code>/<code>Or.inr</code> <span class="math">·</span> 练习 <span class="math">1 ·</span> <code>Set.mem_powerset_iff</code> ✓</p></div></div><pre class="exercise-statement"><code>theorem mem_powerset_union_of_mem (α : Type) (A B C : Set α)
+    (h : C ∈ (𝒫 A ∪ 𝒫 B)) : C ∈ 𝒫 (A ∪ B) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_union</code> <span class="math">·</span> <code>Or.elim</code>（<strong>动机位放肯定命题</strong> ✓ 铁律）<span class="math">·</span></p></div></details></div><details open class="solution-panel" id="sol-70-6"><summary>查看解答 <span class="sol-meta">定理 · 26 行</span></summary><div class="solution-body"><pre><code>theorem mem_powerset_union_of_mem (α : Type) (A B C : Set α)
+    (h : C ∈ (𝒫 A ∪ 𝒫 B)) : C ∈ 𝒫 (A ∪ B) :=
+  @Or.elim (C ∈ 𝒫 A) (C ∈ 𝒫 B) (C ∈ 𝒫 (A ∪ B))
+    (fun (hA : C ∈ 𝒫 A) =&gt;
+      (fun (hu : C ∈ 𝒫 (A ∪ B) ↔ C ⊆ (A ∪ B)) =&gt;
+        Iff.mpr hu (fun (c : α) (hc : c ∈ C) =&gt;
+          (fun (hw : c ∈ (A ∪ B) ↔ c ∈ A ∨ c ∈ B) =&gt;
+            Iff.mpr hw (@Or.inl (c ∈ A) (c ∈ B)  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+              (mem_of_subset α C A
+                ((fun (hv : C ∈ 𝒫 A ↔ C ⊆ A) =&gt; Iff.mp hv hA)
+                  (Set.mem_powerset_iff A C)) c hc)))
+            (Set.mem_union c A B)))
+        (Set.mem_powerset_iff (A ∪ B) C))
+    (fun (hB : C ∈ 𝒫 B) =&gt;
+      (fun (hu : C ∈ 𝒫 (A ∪ B) ↔ C ⊆ (A ∪ B)) =&gt;
+        Iff.mpr hu (fun (c : α) (hc : c ∈ C) =&gt;
+          (fun (hw : c ∈ (A ∪ B) ↔ c ∈ A ∨ c ∈ B) =&gt;
+            Iff.mpr hw (@Or.inr (c ∈ A) (c ∈ B)  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+              (mem_of_subset α C B
+                ((fun (hv : C ∈ 𝒫 B ↔ C ⊆ B) =&gt; Iff.mp hv hB)
+                  (Set.mem_powerset_iff B C)) c hc)))
+            (Set.mem_union c A B)))
+        (Set.mem_powerset_iff (A ∪ B) C))
+    ((fun (hu : C ∈ (𝒫 A ∪ 𝒫 B) ↔
+        C ∈ 𝒫 A ∨ C ∈ 𝒫 B) =&gt; Iff.mp hu h)
+      (Set.mem_union C (𝒫 A) (𝒫 B)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-70-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">mem_powerset_inter_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-70-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（T 类，<strong>幂等</strong>）：<strong><code>C ∈ 𝒫A ∩ 𝒫A ↔ C ∈ 𝒫A</code></strong>。</p></div></div><pre class="exercise-statement"><code>theorem mem_powerset_inter_self (α : Type) (A C : Set α) :
+    C ∈ (𝒫 A ∩ 𝒫 A) ↔ C ∈ 𝒫 A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 2 / 练习 3（<strong>同一个 <code>h</code> 用两次</strong> ✓）✓</p></div></details></div><details open class="solution-panel" id="sol-70-7"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem mem_powerset_inter_self (α : Type) (A C : Set α) :
+    C ∈ (𝒫 A ∩ 𝒫 A) ↔ C ∈ 𝒫 A :=
+  @Iff.intro (C ∈ (𝒫 A ∩ 𝒫 A)) (C ∈ 𝒫 A)
+    (fun (h : C ∈ (𝒫 A ∩ 𝒫 A)) =&gt;
+      mem_inter_left (Set α) (𝒫 A) (𝒫 A) C h)
+    (fun (h : C ∈ 𝒫 A) =&gt;
+      mem_inter_intro (Set α) (𝒫 A) (𝒫 A) C h h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-70-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">mem_powerset_empty_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-70-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类，<strong>收尾</strong>）：<strong><code>C ∈ 𝒫∅ ↔ ∀c, c ∉ C</code></strong>（幂集里只有空集 ✓）。</p></div><div class="block prose intuition-only"><p><strong><code>False.elim</code>（把目标写全</strong> ✓）<span class="math">·</span> 练习 1 ✓</p></div></div><pre class="exercise-statement"><code>theorem mem_powerset_empty_iff (α : Type) (C : Set α) :
+    C ∈ 𝒫 (∅) ↔ ∀ (c : α), ¬ (c ∈ C) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_powerset_iff</code> <span class="math">·</span> <code>Set.mem_empty_iff_false</code> <span class="math">·</span></p></div></details></div><details open class="solution-panel" id="sol-70-8"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><pre><code>theorem mem_powerset_empty_iff (α : Type) (C : Set α) :
+    C ∈ 𝒫 (∅) ↔ ∀ (c : α), ¬ (c ∈ C) :=
+  @Iff.intro (C ∈ 𝒫 (∅)) (∀ (c : α), ¬ (c ∈ C))
+    (fun (h : C ∈ 𝒫 (∅)) =&gt;
+      fun (c : α) (hc : c ∈ C) =&gt;
+        (Iff.mp (Set.mem_empty_iff_false c))
+          (mem_of_subset α C (∅)
+            ((fun (hu : C ∈ 𝒫 (∅) ↔ C ⊆ (∅)) =&gt; Iff.mp hu h)
+              (Set.mem_powerset_iff (∅) C)) c hc))
+    (fun (h : ∀ (c : α), ¬ (c ∈ C)) =&gt;
+      (fun (hu : C ∈ 𝒫 (∅) ↔ C ⊆ (∅)) =&gt;
+        Iff.mpr hu (fun (c : α) (hc : c ∈ C) =&gt;
+          (@False.elim (c ∈ (∅))) (h c hc)))
+        (Set.mem_powerset_iff (∅) C))</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§1.6</strong> <span class="math">· Halmos</span> <strong>§5</strong>。大纲 §4.1（<strong>I.12 章深化</strong> ✓ —— 把单元68/69 与单元㉞ 接起来 ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>为什么全部写成"成员层级"</strong> ✓：本单元是<strong>成员刻画</strong>单元（<code>C ∈ …</code> 的取用子）✓ ——<strong>教学选择</strong>，不是引擎所迫 ✓。✓ <strong>订正（2026-10-13 实测）</strong>：旧注说"<code>⊆</code> 记法在 <code>Set (Set α)</code> 层级补不出前导类型参数（点名 <code>Set.subset</code> 也判红 —— <strong>G-73 第二十例</strong>）"<strong>已过期</strong> ✗ ——<code>F ⊆ G</code>（两侧 <code>Set (Set α)</code>）与 <code>(⋂₀ F) ⊆ (⋂₀ G)</code> 都判绿 ✓ <span class="math">⇒</span> 成员层级保留为<strong>设计判断</strong> ✓。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.SUnion</code> <span class="math">·</span> <code>lib.Order</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元③（幂集）<span class="math">·</span> 单元㉞（幂集代数）<span class="math">·</span> 单元66/68/69 ✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit68.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">幂集是完备格</span></a><a class="unit-nav-home" href="../chapters/i-12.html#units">目录</a><a class="unit-nav-link" href="../units/unit36.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">关系的代数</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-70"><h3><a href="#top">幂集对交并的分配</a></h3><p class="appendix-meta">8 道练习 · 8 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-70-1"><summary>练习 1 · mem_of_subset <span class="sol-meta">定理</span></summary><pre><code>theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) : a ∈ B :=
+  (fun (hu : ∀ (x : α), x ∈ A → x ∈ B) =&gt; hu a ha)
+    ((fun (hv : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) =&gt; Iff.mp hv h) (Set.subset_def A B))</code></pre></details><details open class="appendix-solution" id="app-sol-70-2"><summary>练习 2 · mem_inter_intro <span class="sol-meta">定理</span></summary><pre><code>theorem mem_inter_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hb : a ∈ B) :
+    a ∈ (A ∩ B) :=
+  (fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =&gt;
+    Iff.mpr hu (And.intro ha hb)) (Set.mem_inter_iff a A B)</code></pre></details><details open class="appendix-solution" id="app-sol-70-3"><summary>练习 3 · mem_inter_left <span class="sol-meta">定理</span></summary><pre><code>theorem mem_inter_left (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ A :=
+  @And.left (a ∈ A) (a ∈ B)  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =&gt; Iff.mp hu h) (Set.mem_inter_iff a A B))</code></pre></details><details open class="appendix-solution" id="app-sol-70-4"><summary>练习 4 · mem_inter_right <span class="sol-meta">定理</span></summary><pre><code>theorem mem_inter_right (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ B :=
+  @And.right (a ∈ A) (a ∈ B)  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+    ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =&gt; Iff.mp hu h) (Set.mem_inter_iff a A B))</code></pre></details><details open class="appendix-solution" id="app-sol-70-5"><summary>练习 5 · mem_powerset_inter_iff <span class="sol-meta">定理</span></summary><pre><code>theorem mem_powerset_inter_iff (α : Type) (A B C : Set α) :
+    C ∈ (𝒫 A ∩ 𝒫 B) ↔ C ∈ 𝒫 (A ∩ B) :=
+  @Iff.intro (C ∈ (𝒫 A ∩ 𝒫 B)) (C ∈ 𝒫 (A ∩ B))
+    (fun (h : C ∈ (𝒫 A ∩ 𝒫 B)) =&gt;
+      (fun (hu : C ∈ 𝒫 (A ∩ B) ↔ C ⊆ (A ∩ B)) =&gt;
+        Iff.mpr hu (fun (c : α) (hc : c ∈ C) =&gt;
+          mem_inter_intro α A B c
+            (mem_of_subset α C A
+              ((fun (hv : C ∈ 𝒫 A ↔ C ⊆ A) =&gt;
+                Iff.mp hv (mem_inter_left (Set α) (𝒫 A) (𝒫 B) C h))
+                (Set.mem_powerset_iff A C)) c hc)
+            (mem_of_subset α C B
+              ((fun (hv : C ∈ 𝒫 B ↔ C ⊆ B) =&gt;
+                Iff.mp hv (mem_inter_right (Set α) (𝒫 A) (𝒫 B) C h))
+                (Set.mem_powerset_iff B C)) c hc)))
+        (Set.mem_powerset_iff (A ∩ B) C))
+    (fun (h : C ∈ 𝒫 (A ∩ B)) =&gt;
+      mem_inter_intro (Set α) (𝒫 A) (𝒫 B) C
+        ((fun (hu : C ∈ 𝒫 A ↔ C ⊆ A) =&gt;
+          Iff.mpr hu (fun (c : α) (hc : c ∈ C) =&gt;
+            mem_inter_left α A B c
+              (mem_of_subset α C (A ∩ B)
+                ((fun (hv : C ∈ 𝒫 (A ∩ B) ↔ C ⊆ (A ∩ B)) =&gt; Iff.mp hv h)
+                  (Set.mem_powerset_iff (A ∩ B) C)) c hc)))
+          (Set.mem_powerset_iff A C))
+        ((fun (hu : C ∈ 𝒫 B ↔ C ⊆ B) =&gt;
+          Iff.mpr hu (fun (c : α) (hc : c ∈ C) =&gt;
+            mem_inter_right α A B c
+              (mem_of_subset α C (A ∩ B)
+                ((fun (hv : C ∈ 𝒫 (A ∩ B) ↔ C ⊆ (A ∩ B)) =&gt; Iff.mp hv h)
+                  (Set.mem_powerset_iff (A ∩ B) C)) c hc)))
+          (Set.mem_powerset_iff B C)))</code></pre></details><details open class="appendix-solution" id="app-sol-70-6"><summary>练习 6 · mem_powerset_union_of_mem <span class="sol-meta">定理</span></summary><pre><code>theorem mem_powerset_union_of_mem (α : Type) (A B C : Set α)
+    (h : C ∈ (𝒫 A ∪ 𝒫 B)) : C ∈ 𝒫 (A ∪ B) :=
+  @Or.elim (C ∈ 𝒫 A) (C ∈ 𝒫 B) (C ∈ 𝒫 (A ∪ B))
+    (fun (hA : C ∈ 𝒫 A) =&gt;
+      (fun (hu : C ∈ 𝒫 (A ∪ B) ↔ C ⊆ (A ∪ B)) =&gt;
+        Iff.mpr hu (fun (c : α) (hc : c ∈ C) =&gt;
+          (fun (hw : c ∈ (A ∪ B) ↔ c ∈ A ∨ c ∈ B) =&gt;
+            Iff.mpr hw (@Or.inl (c ∈ A) (c ∈ B)  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+              (mem_of_subset α C A
+                ((fun (hv : C ∈ 𝒫 A ↔ C ⊆ A) =&gt; Iff.mp hv hA)
+                  (Set.mem_powerset_iff A C)) c hc)))
+            (Set.mem_union c A B)))
+        (Set.mem_powerset_iff (A ∪ B) C))
+    (fun (hB : C ∈ 𝒫 B) =&gt;
+      (fun (hu : C ∈ 𝒫 (A ∪ B) ↔ C ⊆ (A ∪ B)) =&gt;
+        Iff.mpr hu (fun (c : α) (hc : c ∈ C) =&gt;
+          (fun (hw : c ∈ (A ∪ B) ↔ c ∈ A ∨ c ∈ B) =&gt;
+            Iff.mpr hw (@Or.inr (c ∈ A) (c ∈ B)  -- soko:notation-ok: `𝒫`/`⋃` 无记法（点名写法）+ `∈`/`⊆` 是 def 头（手册边界）
+              (mem_of_subset α C B
+                ((fun (hv : C ∈ 𝒫 B ↔ C ⊆ B) =&gt; Iff.mp hv hB)
+                  (Set.mem_powerset_iff B C)) c hc)))
+            (Set.mem_union c A B)))
+        (Set.mem_powerset_iff (A ∪ B) C))
+    ((fun (hu : C ∈ (𝒫 A ∪ 𝒫 B) ↔
+        C ∈ 𝒫 A ∨ C ∈ 𝒫 B) =&gt; Iff.mp hu h)
+      (Set.mem_union C (𝒫 A) (𝒫 B)))</code></pre></details><details open class="appendix-solution" id="app-sol-70-7"><summary>练习 7 · mem_powerset_inter_self <span class="sol-meta">定理</span></summary><pre><code>theorem mem_powerset_inter_self (α : Type) (A C : Set α) :
+    C ∈ (𝒫 A ∩ 𝒫 A) ↔ C ∈ 𝒫 A :=
+  @Iff.intro (C ∈ (𝒫 A ∩ 𝒫 A)) (C ∈ 𝒫 A)
+    (fun (h : C ∈ (𝒫 A ∩ 𝒫 A)) =&gt;
+      mem_inter_left (Set α) (𝒫 A) (𝒫 A) C h)
+    (fun (h : C ∈ 𝒫 A) =&gt;
+      mem_inter_intro (Set α) (𝒫 A) (𝒫 A) C h h)</code></pre></details><details open class="appendix-solution" id="app-sol-70-8"><summary>练习 8 · mem_powerset_empty_iff <span class="sol-meta">定理</span></summary><pre><code>theorem mem_powerset_empty_iff (α : Type) (C : Set α) :
+    C ∈ 𝒫 (∅) ↔ ∀ (c : α), ¬ (c ∈ C) :=
+  @Iff.intro (C ∈ 𝒫 (∅)) (∀ (c : α), ¬ (c ∈ C))
+    (fun (h : C ∈ 𝒫 (∅)) =&gt;
+      fun (c : α) (hc : c ∈ C) =&gt;
+        (Iff.mp (Set.mem_empty_iff_false c))
+          (mem_of_subset α C (∅)
+            ((fun (hu : C ∈ 𝒫 (∅) ↔ C ⊆ (∅)) =&gt; Iff.mp hu h)
+              (Set.mem_powerset_iff (∅) C)) c hc))
+    (fun (h : ∀ (c : α), ¬ (c ∈ C)) =&gt;
+      (fun (hu : C ∈ 𝒫 (∅) ↔ C ⊆ (∅)) =&gt;
+        Iff.mpr hu (fun (c : α) (hc : c ∈ C) =&gt;
+          (@False.elim (c ∈ (∅))) (h c hc)))
+        (Set.mem_powerset_iff (∅) C))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

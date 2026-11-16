@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>112 Cantor–Bernstein 定理（经选择公理） · 从集合论到实分析</title>
+<meta name="description" content="单元112 Cantor–Bernstein 定理（经选择公理）：导语、定义与定理、练习与解答。Unit 112 — Cantor–Bernstein (via Choice)">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit112.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li class="is-current"><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.3 单元</h3><ol><li><a href="../units/unit08.html">08 像与原像</a></li><li><a href="../units/unit09.html">09 等势（基数 Ⅰ）</a></li><li><a href="../units/unit10.html">10 可数与 Cantor 定理（基数 Ⅱ）</a></li><li><a href="../units/unit73.html">73 像与广义并交的分配</a></li><li><a href="../units/unit74.html">74 原像与广义并交的分配</a></li><li><a href="../units/unit92.html">92 等势的代数</a></li><li><a href="../units/unit93.html">93 等势的传递</a></li><li><a href="../units/unit96.html">96 势的比较（自反与传递）</a></li><li><a href="../units/unit97.html">97 等势 ⇒ 双向势比较</a></li><li><a href="../units/unit98.html">98 势比较的单调性</a></li><li><a href="../units/unit99.html">99 幂集的单调性</a></li><li><a href="../units/unit100.html">100 势比较的搬运</a></li><li><a href="../units/unit101.html">101 空集与子集的点态代数</a></li><li><a href="../units/unit102.html">102 相互包含与点态外延</a></li><li><a href="../units/unit103.html">103 双向势比较何时升级为等势</a></li><li class="is-current"><a href="../units/unit112.html">112 Cantor–Bernstein 定理（经选择公理）</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li aria-current="page">单元 112 Cantor–Bernstein 定理（经选择公理）</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-112-1">定义与定理</a></li>
+<li><a href="#ex-112-1">练习</a></li>
+<li><a href="#appendix-unit-112">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-3.html#units">↑ 本章目录</a>
+      <a href="../print/unit112.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-112">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-3.html">I.3</a> · 本章第 16 / 16 单元 · 全书第 112 / 112 单元</p>
+<h1><span class="unit-number">112</span> <span>Cantor–Bernstein 定理（经选择公理）</span></h1>
+<p class="unit-title-en">Unit 112 — Cantor–Bernstein (via Choice)</p>
+<p class="unit-meta">8 个定义 · 24 个定理 · 12 道练习 · 6 条提示 · <a href="#appendix-unit-112">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="112" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-112" aria-label="复制单元 112 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit112.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-3.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>两条单射</strong>（<code>f</code> 把 <code>A</code> 送进 <code>B</code>、<code>g</code> 把 <code>B</code> 送进 <code>A</code>，各自单射）<span class="math">⇒</span> <strong><code>A ≈ B</code></strong>。造法是三段：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>链核</strong> <code>C₀ = ⋂{C | C ⊆ A ∧ K(C) ⊆ C}</code>（<code>K(C) = A ∖ g '' (B ∖ f '' C)</code>）——它的<strong>不动点</strong>性质（<code>K(C₀) = C₀</code> ✓）是全部功夫所在；</li><li><strong>关系版图</strong> <code>R(x,y) = (x ∈ C₀ ∧ f x = y) ∨ (x ∉ C₀ ∧ g y = x)</code> ——在 <code>Prop</code> 层说清"哪一半走 <code>f</code>、哪一半走 <code>g</code>"（<strong>不做 Type 层分支</strong> ✓，那会撞 C-04 ✗）；</li><li><strong>四件</strong>（全 / 单值 / 单射 / 满）<span class="math">⇒</span> 用 <strong><code>choice</code></strong> 把关系<strong>取出成函数</strong> <span class="math">⇒</span> 装配 ✓。</li></ul></div></div></section>
+<article class="decl decl-def" id="decl-112-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">cbK</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def cbK (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (C : Set α) : Set α :=
+  A \ g '' (B \ f '' C)</code></pre></div></article>
+<article class="decl decl-def" id="decl-112-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">cbFix</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def cbFix (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    Set (Set α) :=
+  fun (C : Set α) =&gt;
+    (∀ (x : α), x ∈ C → x ∈ A) ∧ (∀ (x : α), x ∈ cbK α β A B f g C → x ∈ C)</code></pre></div></article>
+<article class="decl decl-def" id="decl-112-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">cbC0</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def cbC0 (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) : Set α :=
+  ⋂₀ (cbFix α β A B f g)</code></pre></div></article>
+<article class="decl decl-theorem" id="decl-112-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_cbK_mono</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_cbK_mono (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (C1 : Set α) (C2 : Set α) (h : ∀ (x : α), x ∈ C1 → x ∈ C2) :
+    ∀ (x : α), x ∈ cbK α β A B f g C1 → x ∈ cbK α β A B f g C2 :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 13 行</summary><ol class="proof-steps"><li><pre><code>  fun (x : α) (hx : x ∈ cbK α β A B f g C1) =&gt;
+    @And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C2)))
+      (And.left hx)
+      (fun (h2 : x ∈ g '' (B \ f '' C2)) =&gt;
+        (And.right hx)
+          (Set.image_mono g (B \ f '' C2) (B \ f '' C1)
+            (fun (b : β) (hb : b ∈ B \ f '' C2) =&gt;
+              @And.intro (b ∈ B) (¬ (b ∈ f '' C1))
+                (And.left hb)
+                (fun (h1 : b ∈ f '' C1) =&gt;
+                  (And.right hb)
+                    (Set.image_mono f C1 C2 h b h1)))
+            x h2))</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-112-5"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_cbC0_least</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_cbC0_least (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (C : Set α) (hC : C ∈ cbFix α β A B f g) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → x ∈ C :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  fun (x : α) (hx : x ∈ cbC0 α β A B f g) =&gt; hx C hC</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-112-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">cbC0_in_fix</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-112-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1：（L 类）<strong><code>C₀</code> 是不动点</strong>：<code>K(C₀) ⊆ C₀</code>。关键件：<code>demo_cbC0_least</code> 把 <code>⋂𝓕 ∈ 𝓕</code> 的第 2 条取出来用 ✓、<code>demo_cbK_mono</code> 把 <code>C₀ ⊆ C</code> 推过 <code>K</code> ✓。</p></div></div><pre class="exercise-statement"><code>theorem cbC0_in_fix (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ cbK α β A B f g (cbC0 α β A B f g) → x ∈ cbC0 α β A B f g := by
+  sorry</code></pre><details class="solution-panel" id="sol-112-1"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem cbC0_in_fix (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ cbK α β A B f g (cbC0 α β A B f g) → x ∈ cbC0 α β A B f g :=
+  fun (x : α) (hx : x ∈ cbK α β A B f g (cbC0 α β A B f g)) =&gt;
+    fun (C : Set α) (hC : C ∈ cbFix α β A B f g) =&gt;
+      @And.right (∀ (y : α), y ∈ C → y ∈ A)
+        (∀ (y : α), y ∈ cbK α β A B f g C → y ∈ C) hC x
+        (demo_cbK_mono α β A B f g (cbC0 α β A B f g) C
+          (demo_cbC0_least α β A B f g C hC) x hx)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-112-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">cbC0_sdiff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-112-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2：（L 类）<strong>最小性给的下界</strong>：<code>A ∖ g '' B ⊆ C₀</code>。关键件：<code>x ∈ A ∖ g '' B</code> 拆两半；若 <code>x ∈ g '' (B ∖ f '' C)</code> 则 <code>image_mono</code> 把它拉回 <code>g '' B</code> <span class="math">⇒</span> 与 <code>∉</code> 矛盾 ✓</p></div></div><pre class="exercise-statement"><code>theorem cbC0_sdiff (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ A \ g '' B → x ∈ cbC0 α β A B f g := by
+  sorry</code></pre><details class="solution-panel" id="sol-112-2"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem cbC0_sdiff (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ A \ g '' B → x ∈ cbC0 α β A B f g :=
+  fun (x : α) (hx : x ∈ A \ g '' B) =&gt;
+    fun (C : Set α) (hC : C ∈ cbFix α β A B f g) =&gt;
+      @And.right (∀ (y : α), y ∈ C → y ∈ A)
+        (∀ (y : α), y ∈ cbK α β A B f g C → y ∈ C) hC x
+        (@And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C)))
+          (And.left hx)
+          (fun (h2 : x ∈ g '' (B \ f '' C)) =&gt;</code></pre></div></details></div></article>
+<article class="decl decl-theorem" id="decl-112-8"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_cbA_in_fix</code><span class="decl-where">声明 8</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_cbA_in_fix (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    A ∈ cbFix α β A B f g :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 5 行</summary><ol class="proof-steps"><li><pre><code>  @And.intro (∀ (x : α), x ∈ A → x ∈ A)
+    (∀ (x : α), x ∈ cbK α β A B f g A → x ∈ A)
+    (fun (x : α) (hx : x ∈ A) =&gt; hx)
+    (fun (x : α) (hx : x ∈ cbK α β A B f g A) =&gt;
+      And.left hx)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-112-9"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_cbC0_subset_A</code><span class="decl-where">声明 9</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_cbC0_subset_A (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → x ∈ A :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  fun (x : α) (hx : x ∈ cbC0 α β A B f g) =&gt;
+    demo_cbC0_least α β A B f g A (demo_cbA_in_fix α β A B f g) x hx</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-112-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">cbC0_subset_K</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-112-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3：（L 类）<strong><code>C₀ ⊆ K(C₀)</code></strong> —— 与练习 1 合起来就是 <code>K(C₀) = C₀</code>。关键件：<code>K</code> 单调（<code>demo_cbK_mono</code>）<span class="math">+</span> <code>K(C₀) ⊆ C₀</code>（练习 1）<span class="math">⇒</span> <code>K(C₀) ∈ 𝓕</code> <span class="math">⇒</span> 用 <code>demo_cbC0_least</code> ✓</p></div></div><pre class="exercise-statement"><code>theorem cbC0_subset_K (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → x ∈ cbK α β A B f g (cbC0 α β A B f g) := by
+  sorry</code></pre><details class="solution-panel" id="sol-112-3"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem cbC0_subset_K (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → x ∈ cbK α β A B f g (cbC0 α β A B f g) :=
+  demo_cbC0_least α β A B f g (cbK α β A B f g (cbC0 α β A B f g))
+    (@And.intro
+      (∀ (x : α), x ∈ cbK α β A B f g (cbC0 α β A B f g) → x ∈ A)
+      (∀ (x : α), x ∈ cbK α β A B f g (cbK α β A B f g (cbC0 α β A B f g)) →
+        x ∈ cbK α β A B f g (cbC0 α β A B f g))
+      (fun (x : α) (hx : x ∈ cbK α β A B f g (cbC0 α β A B f g)) =&gt;
+        And.left hx)
+      (demo_cbK_mono α β A B f g (cbK α β A B f g (cbC0 α β A B f g)) (cbC0 α β A B f g)
+        (cbC0_in_fix α β A B f g)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-112-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">cbC0_gf</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-112-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4：（L 类）<strong>唯一还缺的零件</strong>：<code>C₀</code> 对 <code>g ∘ f</code> 封闭。关键件：只需 <code>g (f x) ∈ K(C₀)</code>（练习 1 反向用 ✓）；<code>∉ g '' (B ∖ f '' C₀)</code> 用<strong>反证</strong> <span class="math">+</span> <code>hg_inj</code> ✓</p></div></div><pre class="exercise-statement"><code>theorem cbC0_gf (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → g (f x) ∈ cbC0 α β A B f g := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">用到</span></summary><div class="hint-body"><p><code>demo_cbC0_subset_A</code>（<code>C₀ ⊆ A</code>，从 <code>demo_cbA_in_fix</code> 来 ✓）<span class="math">·</span> <code>Set.mem_image_elim</code> <span class="math">·</span> <code>Set.mem_image_intro</code></p></div></details></div><details class="solution-panel" id="sol-112-4"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem cbC0_gf (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → g (f x) ∈ cbC0 α β A B f g :=
+  fun (x : α) (hx : x ∈ cbC0 α β A B f g) =&gt;
+    cbC0_in_fix α β A B f g (g (f x))
+      (@And.intro (g (f x) ∈ A) (¬ (g (f x) ∈ g '' (B \ f '' (cbC0 α β A B f g))))
+        (hgA (f x) (hfB x (demo_cbC0_subset_A α β A B f g x hx)))
+        (fun (h2 : g (f x) ∈ g '' (B \ f '' (cbC0 α β A B f g))) =&gt;
+          Set.mem_image_elim g (B \ f '' (cbC0 α β A B f g)) (g (f x)) False h2
+            (fun (b : β) (hb : b ∈ B \ f '' (cbC0 α β A B f g)) (hgb : g b = g (f x)) =&gt;</code></pre></div></details></div></article>
+<article class="exercise" id="ex-112-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">cbC0_gfy</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-112-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5：（L 类）<strong>零件 4 的等式版</strong>：<code>f x = y</code> 时把结论搬到 <code>g y</code> 上（<code>Eq.subst</code> 一次 ✓）。关键件：<code>Eq.subst.{1} β (fun (w : β) =&gt; g w ∈ cbC0 …) (f x) y hxy</code> 作用在练习 4 的结论上 ✓</p></div></div><pre class="exercise-statement"><code>theorem cbC0_gfy (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hg_inj : Set.InjOn β α g B) (x : α) (y : β)
+    (hx : x ∈ cbC0 α β A B f g) (hxy : f x = y) :
+    g y ∈ cbC0 α β A B f g := by
+  sorry</code></pre><details class="solution-panel" id="sol-112-5"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note">soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）</p><pre><code>theorem cbC0_gfy (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hg_inj : Set.InjOn β α g B) (x : α) (y : β)
+    (hx : x ∈ cbC0 α β A B f g) (hxy : f x = y) :
+    g y ∈ cbC0 α β A B f g :=
+  @Eq.subst.{1} β (fun (w : β) =&gt; g w ∈ cbC0 α β A B f g) (f x) y hxy
+    (cbC0_gf α β A B f g hfB hgA hg_inj x hx)</code></pre></div></details></div></article>
+<article class="decl decl-theorem" id="decl-112-13"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_cbC0_subst</code><span class="decl-where">声明 13</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_cbC0_subst (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (u v : α) (h : u = v) : u ∈ cbC0 α β A B f g → v ∈ cbC0 α β A B f g :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.subst.{1} α (fun (z : α) =&gt; z ∈ cbC0 α β A B f g) u v h</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>── 关系版图（第 5 步）：拆成两条「半关系」再取并 ───────────────────────── 左半：<code>x</code> 在 <code>C₀</code> 里 <span class="math">⇒</span> 走 <code>f</code>（像就是 <code>y</code>）；右半：<code>x</code> 不在 <code>C₀</code> 里 <span class="math">⇒</span> 走 <code>g</code> 的前像（<code>g y = x</code>）✓</p></div><article class="decl decl-def" id="decl-112-14"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">cbRelL</code><span class="decl-where">声明 14</span></header><div class="decl-body"><pre class="decl-statement"><code>def cbRelL (α : Type) (β : Type) (C : Set α) (f : α → β) : α → β → Prop :=
+  fun (x : α) (y : β) =&gt; x ∈ C ∧ f x = y</code></pre></div></article>
+<article class="decl decl-def" id="decl-112-15"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">cbRelR</code><span class="decl-where">声明 15</span></header><div class="decl-body"><pre class="decl-statement"><code>def cbRelR (α : Type) (β : Type) (C : Set α) (g : β → α) : α → β → Prop :=
+  fun (x : α) (y : β) =&gt; ¬ (x ∈ C) ∧ g y = x</code></pre></div></article>
+<article class="decl decl-def" id="decl-112-16"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">cbRel</code><span class="decl-where">声明 16</span></header><div class="decl-body"><pre class="decl-statement"><code>def cbRel (α : Type) (β : Type) (C : Set α) (f : α → β) (g : β → α) : α → β → Prop :=
+  fun (x : α) (y : β) =&gt; cbRelL α β C f x y ∨ cbRelR α β C g x y</code></pre></div></article>
+<article class="decl decl-theorem" id="decl-112-17"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_cbRelL_intro</code><span class="decl-where">声明 17</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_cbRelL_intro (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
+    (hC : x ∈ C) (hxy : (f x) = y) : cbRelL α β C f x y :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  And.intro hC hxy</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-112-18"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_cbRelR_intro</code><span class="decl-where">声明 18</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_cbRelR_intro (α β : Type) (C : Set α) (g : β → α) (x : α) (y : β)
+    (hC : ¬ (x ∈ C)) (hyx : (g y) = x) : cbRelR α β C g x y :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  And.intro hC hyx</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-112-19"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_cbRelL_mem</code><span class="decl-where">声明 19</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_cbRelL_mem (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
+    (h : cbRelL α β C f x y) : x ∈ C :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  And.left h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-112-20"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_cbRelL_eq</code><span class="decl-where">声明 20</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_cbRelL_eq (α β : Type) (C : Set α) (f : α → β) (x : α) (y : β)
+    (h : cbRelL α β C f x y) : (f x) = y :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  And.right h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-112-21"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_cbRelR_not</code><span class="decl-where">声明 21</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_cbRelR_not (α β : Type) (C : Set α) (g : β → α) (x : α) (y : β)
+    (h : cbRelR α β C g x y) : ¬ (x ∈ C) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  And.left h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-112-22"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_cbRelR_eq</code><span class="decl-where">声明 22</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_cbRelR_eq (α β : Type) (C : Set α) (g : β → α) (x : α) (y : β)
+    (h : cbRelR α β C g x y) : (g y) = x :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  And.right h</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>具名谓词（<code>Exists.intro</code> 的 <span class="math">λ</span> 谓词在本子集判红 <span class="math">⇒</span> 用 def 包一层，见台账）</p></div><article class="decl decl-def" id="decl-112-23"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">cbTotal</code><span class="decl-where">声明 23</span></header><div class="decl-body"><pre class="decl-statement"><code>def cbTotal (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (x : α) : β → Prop :=
+  fun (y : β) =&gt; y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y</code></pre></div></article>
+<article class="decl decl-def" id="decl-112-24"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">cbSurj</code><span class="decl-where">声明 24</span></header><div class="decl-body"><pre class="decl-statement"><code>def cbSurj (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (y : β) : α → Prop :=
+  fun (x : α) =&gt; x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y</code></pre></div></article>
+<article class="exercise" id="ex-112-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">cbRel_total</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-112-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>四件之一 <span class="math">·</span> <strong>全</strong> ✓</p></div><div class="block prose intuition-only"><p>练习 6：（L 类）四件之一 <span class="math">·</span> <strong>全</strong>：<code>A</code> 里每个点在 <code>B</code> 里都有关系像。关键件：二分 <code>x ∈ C₀</code>（<code>Classical.em</code>）；<code>x ∉ C₀</code> 那支要从 <code>demo_cbC0_sdiff</code> 逼出 <code>x ∈ g '' B</code> <span class="math">⇒</span> <code>Classical.byContradiction</code> ✓</p></div></div><pre class="exercise-statement"><code>theorem cbRel_total (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) :
+    ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">提示</span></summary><div class="hint-body"><p>关系值用 <code>demo_cbRelL_intro</code> / <code>demo_cbRelR_intro</code> 造（<code>Or.inl</code> / <code>Or.inr</code> 写全前导命题 ✓）</p></div></details></div><details class="solution-panel" id="sol-112-6"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem cbRel_total (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) :
+    ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y :=
+  fun (x : α) (hx : x ∈ A) =&gt;
+    @Or.elim (x ∈ cbC0 α β A B f g) (¬ (x ∈ cbC0 α β A B f g))
+      (∃ (y : β), y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y)
+      (fun (hxC0 : x ∈ cbC0 α β A B f g) =&gt;
+        Exists.intro (f x)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-112-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">cbRel_single</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-112-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7：（L 类）四件之二 <span class="math">·</span> <strong>单值</strong>：同一个 <code>x</code> 不能既走 <code>f</code> 又走 <code>g</code>。关键件：跨分支<strong>直接矛盾</strong>（<code>x ∈ C₀</code> 与 <code>x ∉ C₀</code> ✗）<span class="math">⇒</span> <code>False.elim</code> ✓；同分支用 <code>demo_cbRelL_eq</code> / <code>demo_cbRelR_eq</code> <span class="math">+</span> <code>hg_inj</code> ✓</p></div></div><pre class="exercise-statement"><code>theorem cbRel_single (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α) (y : β), y ∈ B → ∀ (v : β), v ∈ B →
+      cbRel α β (cbC0 α β A B f g) f g x y →
+      cbRel α β (cbC0 α β A B f g) f g x v → y = v := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">提示</span></summary><div class="hint-body"><p>本子集里「两条臂都嵌 cases」会被吞 <span class="math">⇒</span> 写成 <code>Or.elim</code> 证明项 ✓</p></div></details></div><details class="solution-panel" id="sol-112-7"><summary>查看解答 <span class="sol-meta">定理 · 38 行</span></summary><div class="solution-body"><p class="solution-note">soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
+
+soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
+
+四件之二 <span class="math">·</span> <strong>单值</strong> ✓（跨分支直接矛盾：<code>x ∈ C₀</code> 与 <code>x ∉ C₀</code> 不能同真）</p><pre><code>theorem cbRel_single (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α) (y : β), y ∈ B → ∀ (v : β), v ∈ B →
+      cbRel α β (cbC0 α β A B f g) f g x y →
+      cbRel α β (cbC0 α β A B f g) f g x v → y = v :=
+  fun (x : α) (y : β) (hy : y ∈ B) (v : β) (hv : v ∈ B) =&gt;
+    fun (h : cbRel α β (cbC0 α β A B f g) f g x y)
+        (h' : cbRel α β (cbC0 α β A B f g) f g x v) =&gt;
+      @Or.elim (cbRelL α β (cbC0 α β A B f g) f x y)
+        (cbRelR α β (cbC0 α β A B f g) g x y) (y = v)
+        (fun (h1 : cbRelL α β (cbC0 α β A B f g) f x y) =&gt;
+          @Or.elim (cbRelL α β (cbC0 α β A B f g) f x v)
+            (cbRelR α β (cbC0 α β A B f g) g x v) (y = v)
+            (fun (h2 : cbRelL α β (cbC0 α β A B f g) f x v) =&gt;
+              @Eq.trans.{1} β y (f x) v
+                (@Eq.symm.{1} β (f x) y
+                  (demo_cbRelL_eq α β (cbC0 α β A B f g) f x y h1))
+                (demo_cbRelL_eq α β (cbC0 α β A B f g) f x v h2))
+            (fun (h2 : cbRelR α β (cbC0 α β A B f g) g x v) =&gt;
+              False.elim
+                ((demo_cbRelR_not α β (cbC0 α β A B f g) g x v h2)
+                  (demo_cbRelL_mem α β (cbC0 α β A B f g) f x y h1)))
+            h')
+        (fun (h1 : cbRelR α β (cbC0 α β A B f g) g x y) =&gt;
+          @Or.elim (cbRelL α β (cbC0 α β A B f g) f x v)
+            (cbRelR α β (cbC0 α β A B f g) g x v) (y = v)
+            (fun (h2 : cbRelL α β (cbC0 α β A B f g) f x v) =&gt;
+              False.elim
+                ((demo_cbRelR_not α β (cbC0 α β A B f g) g x y h1)
+                  (demo_cbRelL_mem α β (cbC0 α β A B f g) f x v h2)))
+            (fun (h2 : cbRelR α β (cbC0 α β A B f g) g x v) =&gt;
+              hg_inj y hy v hv
+                (@Eq.trans.{1} α (g y) x (g v)
+                  (demo_cbRelR_eq α β (cbC0 α β A B f g) g x y h1)
+                  (@Eq.symm.{1} α (g v) x
+                    (demo_cbRelR_eq α β (cbC0 α β A B f g) g x v h2))))
+            h')
+        h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-112-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">cbRel_inj</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-112-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8：（L 类）四件之三 <span class="math">·</span> <strong>单射</strong>：同一个 <code>y</code> 不能有两支原像。关键件：跨分支时 <code>z = g y = g (f x)</code> <span class="math">∈</span> <code>C₀</code>（练习 5 ✓）<span class="math">⇒</span> 与 <code>z ∉ C₀</code> 矛盾 ✓</p></div></div><pre class="exercise-statement"><code>theorem cbRel_inj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α), x ∈ A → ∀ (z : α), z ∈ A → ∀ (y : β), y ∈ B →
+      cbRel α β (cbC0 α β A B f g) f g x y →
+      cbRel α β (cbC0 α β A B f g) f g z y → x = z := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">提示</span></summary><div class="hint-body"><p>等式搬运用 <code>demo_cbC0_subst</code>（沿 <code>g y = z</code> 搬 <code>∈ C₀</code> ✓）</p></div></details></div><details class="solution-panel" id="sol-112-8"><summary>查看解答 <span class="sol-meta">定理 · 47 行</span></summary><div class="solution-body"><p class="solution-note">四件之三 <span class="math">·</span> <strong>单射</strong> ✓（跨分支用 <code>cbC0_gf</code> 把 <code>g (f x)</code> 拉回 <code>C₀</code> <span class="math">⇒</span> 矛盾）</p><pre><code>theorem cbRel_inj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α), x ∈ A → ∀ (z : α), z ∈ A → ∀ (y : β), y ∈ B →
+      cbRel α β (cbC0 α β A B f g) f g x y →
+      cbRel α β (cbC0 α β A B f g) f g z y → x = z :=
+  fun (x : α) (hx : x ∈ A) (z : α) (hz : z ∈ A) (y : β) (hy : y ∈ B) =&gt;
+    fun (h : cbRel α β (cbC0 α β A B f g) f g x y)
+        (h' : cbRel α β (cbC0 α β A B f g) f g z y) =&gt;
+      @Or.elim (cbRelL α β (cbC0 α β A B f g) f x y)
+        (cbRelR α β (cbC0 α β A B f g) g x y) (x = z)
+        (fun (h1 : cbRelL α β (cbC0 α β A B f g) f x y) =&gt;
+          @Or.elim (cbRelL α β (cbC0 α β A B f g) f z y)
+            (cbRelR α β (cbC0 α β A B f g) g z y) (x = z)
+            (fun (h2 : cbRelL α β (cbC0 α β A B f g) f z y) =&gt;
+              hf_inj x hx z hz
+                (@Eq.trans.{1} β (f x) y (f z)
+                  (demo_cbRelL_eq α β (cbC0 α β A B f g) f x y h1)
+                  (@Eq.symm.{1} β (f z) y
+                    (demo_cbRelL_eq α β (cbC0 α β A B f g) f z y h2))))
+            (fun (h2 : cbRelR α β (cbC0 α β A B f g) g z y) =&gt;
+              False.elim
+                ((demo_cbRelR_not α β (cbC0 α β A B f g) g z y h2)
+                  (demo_cbC0_subst α β A B f g (g y) z
+                    (demo_cbRelR_eq α β (cbC0 α β A B f g) g z y h2)
+                    (cbC0_gfy α β A B f g hfB hgA hg_inj x y
+                      (demo_cbRelL_mem α β (cbC0 α β A B f g) f x y h1)
+                      (demo_cbRelL_eq α β (cbC0 α β A B f g) f x y h1)))))
+            h')
+        (fun (h1 : cbRelR α β (cbC0 α β A B f g) g x y) =&gt;
+          @Or.elim (cbRelL α β (cbC0 α β A B f g) f z y)
+            (cbRelR α β (cbC0 α β A B f g) g z y) (x = z)
+            (fun (h2 : cbRelL α β (cbC0 α β A B f g) f z y) =&gt;
+              False.elim
+                ((demo_cbRelR_not α β (cbC0 α β A B f g) g x y h1)
+                  (demo_cbC0_subst α β A B f g (g y) x
+                    (demo_cbRelR_eq α β (cbC0 α β A B f g) g x y h1)
+                    (cbC0_gfy α β A B f g hfB hgA hg_inj z y
+                      (demo_cbRelL_mem α β (cbC0 α β A B f g) f z y h2)
+                      (demo_cbRelL_eq α β (cbC0 α β A B f g) f z y h2)))))
+            (fun (h2 : cbRelR α β (cbC0 α β A B f g) g z y) =&gt;
+              @Eq.trans.{1} α x (g y) z
+                (@Eq.symm.{1} α (g y) x
+                  (demo_cbRelR_eq α β (cbC0 α β A B f g) g x y h1))
+                (demo_cbRelR_eq α β (cbC0 α β A B f g) g z y h2))
+            h')
+        h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-112-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">cbRel_surj</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-112-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9：（L 类）四件之四 <span class="math">·</span> <strong>满</strong>：<code>B</code> 里每个点都有原像。关键件：二分 <code>g y ∈ C₀</code>。在 <span class="math">⇒</span> 要证 <code>y ∈ f '' C₀</code>（若 <code>y ∉ f '' C₀</code> 则 <code>g y ∈ g '' (B ∖ f '' C₀)</code>，而练习 3 说 <code>C₀ ⊆ K(C₀) = A ∖ g '' (B ∖ f '' C₀)</code> ✗ 矛盾 ✓）；不在 <span class="math">⇒</span> 取 <code>x := g y</code> ✓</p></div></div><pre class="exercise-statement"><code>theorem cbRel_surj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hgA : Set.MapsTo β α g B A) :
+    ∀ (y : β), y ∈ B → ∃ (x : α), x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y := by
+  sorry</code></pre><details class="solution-panel" id="sol-112-9"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><p class="solution-note">四件之四 <span class="math">·</span> <strong>满</strong> ✓（二分 <code>g y ∈ C₀</code>：在 <span class="math">⇒</span> 用 <code>cbC0_subset_K</code> 逼出 <code>y ∈ f '' C₀</code>）</p><pre><code>theorem cbRel_surj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hgA : Set.MapsTo β α g B A) :
+    ∀ (y : β), y ∈ B → ∃ (x : α), x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y :=
+  fun (y : β) (hy : y ∈ B) =&gt;
+    @Or.elim (g y ∈ cbC0 α β A B f g) (¬ (g y ∈ cbC0 α β A B f g))
+      (∃ (x : α), x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y)
+      (fun (hgy : g y ∈ cbC0 α β A B f g) =&gt;
+        Set.mem_image_elim f (cbC0 α β A B f g) y
+          (∃ (x : α), x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y)
+          (Classical.byContradiction (y ∈ f '' (cbC0 α β A B f g))
+            (fun (hny : ¬ (y ∈ f '' (cbC0 α β A B f g))) =&gt;</code></pre></div></details></div></article>
+<article class="decl decl-theorem" id="decl-112-29"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_cbChoice_elim</code><span class="decl-where">声明 29</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_cbChoice_elim (α β : Type) (A : Set α) (B : Set β) (P : α → β → Prop)
+    (Q : Prop)
+    (h : ∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x))
+    (k : ∀ (f : α → β), (∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x)) → Q) : Q :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  @Exists.elim (α → β) (fun (f : α → β) =&gt; ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x))
+    Q h k</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-112-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">cbLeftInv</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-112-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两条互逆律（把 <code>Set.Equiv.mk</code> 的四个实参拆成具名定理，读起来也清楚 ✓）</p></div><div class="block prose intuition-only"><p>练习 10：（L 类）左互逆律：<code>k (h x) = x</code>（在 <code>A</code> 上）。关键件：练习 8（单射）对两个关系值 <code>R x (h x)</code> 与 <code>R (k (h x)) (h x)</code> 用一次 ✓ 再 <code>Eq.symm</code> ✓</p></div></div><pre class="exercise-statement"><code>theorem cbLeftInv (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B)
+    (h : α → β) (k : β → α)
+    (hh : ∀ (x : α), x ∈ A → h x ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x (h x))
+    (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g (k y) y) :
+    ∀ (x : α), x ∈ A → k (h x) = x := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">提示</span></summary><div class="hint-body"><p><code>hh</code> / <code>hk</code> 的右半正是两条关系值（<code>And.right</code> ✓）</p></div></details></div><details class="solution-panel" id="sol-112-10"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><pre><code>theorem cbLeftInv (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B)
+    (h : α → β) (k : β → α)
+    (hh : ∀ (x : α), x ∈ A → h x ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x (h x))
+    (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g (k y) y) :
+    ∀ (x : α), x ∈ A → k (h x) = x :=
+  fun (x : α) (hx : x ∈ A) =&gt;
+    @Eq.symm.{1} α x (k (h x))
+      (cbRel_inj α β A B f g hfB hgA hf_inj hg_inj x hx (k (h x))
+        (And.left (hk (h x) (And.left (hh x hx))))
+        (h x) (And.left (hh x hx))
+        (And.right (hh x hx))
+        (And.right (hk (h x) (And.left (hh x hx)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-112-11" data-exercise="11"><header class="exercise-head"><span class="exercise-badge">练习 11</span><code class="exercise-name">cbRightInv</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-112-11">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 11：（L 类）右互逆律：<code>h (k y) = y</code>（在 <code>B</code> 上）。关键件：练习 7（单值）对 <code>R (k y) y</code> 与 <code>R (k y) (h (k y))</code> 用一次 <span class="math">⇒</span> <code>y = h (k y)</code> <span class="math">⇒</span> <code>Eq.symm</code> ✓</p></div></div><pre class="exercise-statement"><code>theorem cbRightInv (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hg_inj : Set.InjOn β α g B)
+    (h : α → β) (k : β → α)
+    (hh : ∀ (x : α), x ∈ A → h x ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x (h x))
+    (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g (k y) y) :
+    ∀ (y : β), y ∈ B → h (k y) = y := by
+  sorry</code></pre><details class="solution-panel" id="sol-112-11"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem cbRightInv (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hg_inj : Set.InjOn β α g B)
+    (h : α → β) (k : β → α)
+    (hh : ∀ (x : α), x ∈ A → h x ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x (h x))
+    (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g (k y) y) :
+    ∀ (y : β), y ∈ B → h (k y) = y :=
+  fun (y : β) (hy : y ∈ B) =&gt;
+    @Eq.symm.{1} β y (h (k y))
+      (cbRel_single α β A B f g hg_inj (k y) y hy (h (k y))
+        (And.left (hh (k y) (And.left (hk y hy))))
+        (And.right (hk y hy))
+        (And.right (hh (k y) (And.left (hk y hy)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-112-12" data-exercise="12"><header class="exercise-head"><span class="exercise-badge">练习 12</span><code class="exercise-name">cantor_bernstein</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-112-12">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 12：（<strong>旗舰</strong>）<strong>Cantor–Bernstein</strong>：两条单射 <span class="math">⇒</span> 等势（<strong>经 <code>choice</code></strong> —— 见文件头偏离标注 ✓）。关键件：<code>choice</code> 两次（前向用练习 6，反向用练习 9）<span class="math">⇒</span> <code>Set.Equiv.mk</code> 四件齐（两条域条件直接来自两次 <code>choice</code> 的规范 ✓）</p></div></div><pre class="exercise-statement"><code>theorem cantor_bernstein (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B) : A ≈ B := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">提示</span></summary><div class="hint-body"><p>取用子 <code>demo_cbChoice_elim</code> 把「取出的函数 <span class="math">+</span> 它的规范」一次拆开 ✓；两条互逆律就是练习 10 / 11 ✓</p></div></details></div><details class="solution-panel" id="sol-112-12"><summary>查看解答 <span class="sol-meta">定理 · 21 行</span></summary><div class="solution-body"><p class="solution-note">── 旗舰：Cantor–Bernstein（<strong>经选择公理</strong> —— 见文件头偏离标注）────────────</p><pre><code>theorem cantor_bernstein (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B) : A ≈ B :=
+  demo_cbChoice_elim α β A B (cbRel α β (cbC0 α β A B f g) f g) (A ≈ B)
+    (choice α β A B (cbRel α β (cbC0 α β A B f g) f g)
+      (cbRel_total α β A B f g hfB))
+    (fun (h : α → β)
+        (hh : ∀ (x : α), x ∈ A → h x ∈ B ∧
+          cbRel α β (cbC0 α β A B f g) f g x (h x)) =&gt;
+      demo_cbChoice_elim β α B A (fun (y : β) (x : α) =&gt; cbRel α β (cbC0 α β A B f g) f g x y)
+        (A ≈ B)
+        (choice β α B A (fun (y : β) (x : α) =&gt; cbRel α β (cbC0 α β A B f g) f g x y)
+          (cbRel_surj α β A B f g hgA))
+        (fun (k : β → α)
+            (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧
+              cbRel α β (cbC0 α β A B f g) f g (k y) y) =&gt;
+          Set.Equiv.mk α β A B h k
+            (fun (x : α) (hx : x ∈ A) =&gt; And.left (hh x hx))
+            (fun (y : β) (hy : y ∈ B) =&gt; And.left (hk y hy))
+            (cbLeftInv α β A B f g hfB hgA hf_inj hg_inj h k hh hk)
+            (cbRightInv α β A B f g hg_inj h k hh hk)))</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§6.4 定理 6B</strong> <span class="math">·Halmos</span>《Naive Set Theory》<strong>§22</strong>。大纲 <code>docs/design/set-theory-unlocked.md</code> §四 第 6 项 ✓。</p></div><div class="block prose intuition-only"><p>⚠⚠ <strong>偏离标注（如实写，不许弱化）</strong>：本课的 CB <strong>经选择公理</strong> —— 装配那一步用 <code>choice</code> 从"全 <span class="math">+</span> 单值"的关系里<strong>取出</strong>双射函数 ✓。而 <strong>CB 数学上不需要选择</strong>（<code>g</code> 单射 <span class="math">⇒</span> 前像唯一 <span class="math">⇒</span> 确定摹状词即可 ✓）<span class="math">⇒</span> <strong>这是偏离，不是"标准证法"</strong> ✗。零公理的 CB 要 <code>Exists</code> <span class="math">→</span> <code>Type</code> 的安全消去（台账 <strong>G-6</strong> 一族，仍 open ✗）。⚠ <strong>本课程没有"<code>A → B</code> 的函数"类型</strong> <span class="math">⇒</span> 四条前提（<code>hfB</code>/<code>hgA</code>/<code>hf_inj</code>/<code>hg_inj</code>）<strong>逐条显式写</strong> ✓。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答以 term 风格为主</strong>（分支多的用 <code>Or.elim</code> 证明项 ✓）—— 本子集里「同一个 <code>cases</code> 的两条臂都再嵌一个 <code>cases</code>」会把声明吞掉（实测 ✗），所以嵌套分支一律写成 <code>Or.elim</code> 证明项 ✓。<strong>本单元 <code>import</code> 六样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Image</code> <span class="math">·</span> <code>lib.SUnion</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Equiv</code> <span class="math">·</span> <code>lib.Choice</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元96–100（<code>≼</code> 及其代数）<span class="math">·</span> 单元103（双向 <code>≼</code> <span class="math">+</span> 互逆律 <span class="math">⇒</span> <code>≈</code>）<span class="math">·</span> 单元110（选择公理）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit103.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">双向势比较何时升级为等势</span></a><a class="unit-nav-home" href="../chapters/i-3.html#units">目录</a><a class="unit-nav-link" href="../units/unit11.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">论域与 Russell 悖论</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-112"><h3><a href="#top">Cantor–Bernstein 定理（经选择公理）</a></h3><p class="appendix-meta">12 道练习 · 12 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-112-1"><summary>练习 1 · cbC0_in_fix <span class="sol-meta">定理</span></summary><pre><code>theorem cbC0_in_fix (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ cbK α β A B f g (cbC0 α β A B f g) → x ∈ cbC0 α β A B f g :=
+  fun (x : α) (hx : x ∈ cbK α β A B f g (cbC0 α β A B f g)) =&gt;
+    fun (C : Set α) (hC : C ∈ cbFix α β A B f g) =&gt;
+      @And.right (∀ (y : α), y ∈ C → y ∈ A)
+        (∀ (y : α), y ∈ cbK α β A B f g C → y ∈ C) hC x
+        (demo_cbK_mono α β A B f g (cbC0 α β A B f g) C
+          (demo_cbC0_least α β A B f g C hC) x hx)</code></pre></details><details class="appendix-solution" id="app-sol-112-2"><summary>练习 2 · cbC0_sdiff <span class="sol-meta">定理</span></summary><pre><code>theorem cbC0_sdiff (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ A \ g '' B → x ∈ cbC0 α β A B f g :=
+  fun (x : α) (hx : x ∈ A \ g '' B) =&gt;
+    fun (C : Set α) (hC : C ∈ cbFix α β A B f g) =&gt;
+      @And.right (∀ (y : α), y ∈ C → y ∈ A)
+        (∀ (y : α), y ∈ cbK α β A B f g C → y ∈ C) hC x
+        (@And.intro (x ∈ A) (¬ (x ∈ g '' (B \ f '' C)))
+          (And.left hx)
+          (fun (h2 : x ∈ g '' (B \ f '' C)) =&gt;</code></pre></details><details class="appendix-solution" id="app-sol-112-3"><summary>练习 3 · cbC0_subset_K <span class="sol-meta">定理</span></summary><pre><code>theorem cbC0_subset_K (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → x ∈ cbK α β A B f g (cbC0 α β A B f g) :=
+  demo_cbC0_least α β A B f g (cbK α β A B f g (cbC0 α β A B f g))
+    (@And.intro
+      (∀ (x : α), x ∈ cbK α β A B f g (cbC0 α β A B f g) → x ∈ A)
+      (∀ (x : α), x ∈ cbK α β A B f g (cbK α β A B f g (cbC0 α β A B f g)) →
+        x ∈ cbK α β A B f g (cbC0 α β A B f g))
+      (fun (x : α) (hx : x ∈ cbK α β A B f g (cbC0 α β A B f g)) =&gt;
+        And.left hx)
+      (demo_cbK_mono α β A B f g (cbK α β A B f g (cbC0 α β A B f g)) (cbC0 α β A B f g)
+        (cbC0_in_fix α β A B f g)))</code></pre></details><details class="appendix-solution" id="app-sol-112-4"><summary>练习 4 · cbC0_gf <span class="sol-meta">定理</span></summary><pre><code>theorem cbC0_gf (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α), x ∈ cbC0 α β A B f g → g (f x) ∈ cbC0 α β A B f g :=
+  fun (x : α) (hx : x ∈ cbC0 α β A B f g) =&gt;
+    cbC0_in_fix α β A B f g (g (f x))
+      (@And.intro (g (f x) ∈ A) (¬ (g (f x) ∈ g '' (B \ f '' (cbC0 α β A B f g))))
+        (hgA (f x) (hfB x (demo_cbC0_subset_A α β A B f g x hx)))
+        (fun (h2 : g (f x) ∈ g '' (B \ f '' (cbC0 α β A B f g))) =&gt;
+          Set.mem_image_elim g (B \ f '' (cbC0 α β A B f g)) (g (f x)) False h2
+            (fun (b : β) (hb : b ∈ B \ f '' (cbC0 α β A B f g)) (hgb : g b = g (f x)) =&gt;</code></pre></details><details class="appendix-solution" id="app-sol-112-5"><summary>练习 5 · cbC0_gfy <span class="sol-meta">定理</span></summary><p class="solution-note">soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）</p><pre><code>theorem cbC0_gfy (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hg_inj : Set.InjOn β α g B) (x : α) (y : β)
+    (hx : x ∈ cbC0 α β A B f g) (hxy : f x = y) :
+    g y ∈ cbC0 α β A B f g :=
+  @Eq.subst.{1} β (fun (w : β) =&gt; g w ∈ cbC0 α β A B f g) (f x) y hxy
+    (cbC0_gf α β A B f g hfB hgA hg_inj x hx)</code></pre></details><details class="appendix-solution" id="app-sol-112-6"><summary>练习 6 · cbRel_total <span class="sol-meta">定理</span></summary><pre><code>theorem cbRel_total (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) :
+    ∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y :=
+  fun (x : α) (hx : x ∈ A) =&gt;
+    @Or.elim (x ∈ cbC0 α β A B f g) (¬ (x ∈ cbC0 α β A B f g))
+      (∃ (y : β), y ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x y)
+      (fun (hxC0 : x ∈ cbC0 α β A B f g) =&gt;
+        Exists.intro (f x)</code></pre></details><details class="appendix-solution" id="app-sol-112-7"><summary>练习 7 · cbRel_single <span class="sol-meta">定理</span></summary><p class="solution-note">soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
+
+soko:notation-ok: 引擎边界：前导命题在 def-headed 假设/期望类型上补不出来（逐处实测判红）
+
+四件之二 <span class="math">·</span> <strong>单值</strong> ✓（跨分支直接矛盾：<code>x ∈ C₀</code> 与 <code>x ∉ C₀</code> 不能同真）</p><pre><code>theorem cbRel_single (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α) (y : β), y ∈ B → ∀ (v : β), v ∈ B →
+      cbRel α β (cbC0 α β A B f g) f g x y →
+      cbRel α β (cbC0 α β A B f g) f g x v → y = v :=
+  fun (x : α) (y : β) (hy : y ∈ B) (v : β) (hv : v ∈ B) =&gt;
+    fun (h : cbRel α β (cbC0 α β A B f g) f g x y)
+        (h' : cbRel α β (cbC0 α β A B f g) f g x v) =&gt;
+      @Or.elim (cbRelL α β (cbC0 α β A B f g) f x y)
+        (cbRelR α β (cbC0 α β A B f g) g x y) (y = v)
+        (fun (h1 : cbRelL α β (cbC0 α β A B f g) f x y) =&gt;
+          @Or.elim (cbRelL α β (cbC0 α β A B f g) f x v)
+            (cbRelR α β (cbC0 α β A B f g) g x v) (y = v)
+            (fun (h2 : cbRelL α β (cbC0 α β A B f g) f x v) =&gt;
+              @Eq.trans.{1} β y (f x) v
+                (@Eq.symm.{1} β (f x) y
+                  (demo_cbRelL_eq α β (cbC0 α β A B f g) f x y h1))
+                (demo_cbRelL_eq α β (cbC0 α β A B f g) f x v h2))
+            (fun (h2 : cbRelR α β (cbC0 α β A B f g) g x v) =&gt;
+              False.elim
+                ((demo_cbRelR_not α β (cbC0 α β A B f g) g x v h2)
+                  (demo_cbRelL_mem α β (cbC0 α β A B f g) f x y h1)))
+            h')
+        (fun (h1 : cbRelR α β (cbC0 α β A B f g) g x y) =&gt;
+          @Or.elim (cbRelL α β (cbC0 α β A B f g) f x v)
+            (cbRelR α β (cbC0 α β A B f g) g x v) (y = v)
+            (fun (h2 : cbRelL α β (cbC0 α β A B f g) f x v) =&gt;
+              False.elim
+                ((demo_cbRelR_not α β (cbC0 α β A B f g) g x y h1)
+                  (demo_cbRelL_mem α β (cbC0 α β A B f g) f x v h2)))
+            (fun (h2 : cbRelR α β (cbC0 α β A B f g) g x v) =&gt;
+              hg_inj y hy v hv
+                (@Eq.trans.{1} α (g y) x (g v)
+                  (demo_cbRelR_eq α β (cbC0 α β A B f g) g x y h1)
+                  (@Eq.symm.{1} α (g v) x
+                    (demo_cbRelR_eq α β (cbC0 α β A B f g) g x v h2))))
+            h')
+        h</code></pre></details><details class="appendix-solution" id="app-sol-112-8"><summary>练习 8 · cbRel_inj <span class="sol-meta">定理</span></summary><p class="solution-note">四件之三 <span class="math">·</span> <strong>单射</strong> ✓（跨分支用 <code>cbC0_gf</code> 把 <code>g (f x)</code> 拉回 <code>C₀</code> <span class="math">⇒</span> 矛盾）</p><pre><code>theorem cbRel_inj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B) :
+    ∀ (x : α), x ∈ A → ∀ (z : α), z ∈ A → ∀ (y : β), y ∈ B →
+      cbRel α β (cbC0 α β A B f g) f g x y →
+      cbRel α β (cbC0 α β A B f g) f g z y → x = z :=
+  fun (x : α) (hx : x ∈ A) (z : α) (hz : z ∈ A) (y : β) (hy : y ∈ B) =&gt;
+    fun (h : cbRel α β (cbC0 α β A B f g) f g x y)
+        (h' : cbRel α β (cbC0 α β A B f g) f g z y) =&gt;
+      @Or.elim (cbRelL α β (cbC0 α β A B f g) f x y)
+        (cbRelR α β (cbC0 α β A B f g) g x y) (x = z)
+        (fun (h1 : cbRelL α β (cbC0 α β A B f g) f x y) =&gt;
+          @Or.elim (cbRelL α β (cbC0 α β A B f g) f z y)
+            (cbRelR α β (cbC0 α β A B f g) g z y) (x = z)
+            (fun (h2 : cbRelL α β (cbC0 α β A B f g) f z y) =&gt;
+              hf_inj x hx z hz
+                (@Eq.trans.{1} β (f x) y (f z)
+                  (demo_cbRelL_eq α β (cbC0 α β A B f g) f x y h1)
+                  (@Eq.symm.{1} β (f z) y
+                    (demo_cbRelL_eq α β (cbC0 α β A B f g) f z y h2))))
+            (fun (h2 : cbRelR α β (cbC0 α β A B f g) g z y) =&gt;
+              False.elim
+                ((demo_cbRelR_not α β (cbC0 α β A B f g) g z y h2)
+                  (demo_cbC0_subst α β A B f g (g y) z
+                    (demo_cbRelR_eq α β (cbC0 α β A B f g) g z y h2)
+                    (cbC0_gfy α β A B f g hfB hgA hg_inj x y
+                      (demo_cbRelL_mem α β (cbC0 α β A B f g) f x y h1)
+                      (demo_cbRelL_eq α β (cbC0 α β A B f g) f x y h1)))))
+            h')
+        (fun (h1 : cbRelR α β (cbC0 α β A B f g) g x y) =&gt;
+          @Or.elim (cbRelL α β (cbC0 α β A B f g) f z y)
+            (cbRelR α β (cbC0 α β A B f g) g z y) (x = z)
+            (fun (h2 : cbRelL α β (cbC0 α β A B f g) f z y) =&gt;
+              False.elim
+                ((demo_cbRelR_not α β (cbC0 α β A B f g) g x y h1)
+                  (demo_cbC0_subst α β A B f g (g y) x
+                    (demo_cbRelR_eq α β (cbC0 α β A B f g) g x y h1)
+                    (cbC0_gfy α β A B f g hfB hgA hg_inj z y
+                      (demo_cbRelL_mem α β (cbC0 α β A B f g) f z y h2)
+                      (demo_cbRelL_eq α β (cbC0 α β A B f g) f z y h2)))))
+            (fun (h2 : cbRelR α β (cbC0 α β A B f g) g z y) =&gt;
+              @Eq.trans.{1} α x (g y) z
+                (@Eq.symm.{1} α (g y) x
+                  (demo_cbRelR_eq α β (cbC0 α β A B f g) g x y h1))
+                (demo_cbRelR_eq α β (cbC0 α β A B f g) g z y h2))
+            h')
+        h</code></pre></details><details class="appendix-solution" id="app-sol-112-9"><summary>练习 9 · cbRel_surj <span class="sol-meta">定理</span></summary><p class="solution-note">四件之四 <span class="math">·</span> <strong>满</strong> ✓（二分 <code>g y ∈ C₀</code>：在 <span class="math">⇒</span> 用 <code>cbC0_subset_K</code> 逼出 <code>y ∈ f '' C₀</code>）</p><pre><code>theorem cbRel_surj (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hgA : Set.MapsTo β α g B A) :
+    ∀ (y : β), y ∈ B → ∃ (x : α), x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y :=
+  fun (y : β) (hy : y ∈ B) =&gt;
+    @Or.elim (g y ∈ cbC0 α β A B f g) (¬ (g y ∈ cbC0 α β A B f g))
+      (∃ (x : α), x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y)
+      (fun (hgy : g y ∈ cbC0 α β A B f g) =&gt;
+        Set.mem_image_elim f (cbC0 α β A B f g) y
+          (∃ (x : α), x ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g x y)
+          (Classical.byContradiction (y ∈ f '' (cbC0 α β A B f g))
+            (fun (hny : ¬ (y ∈ f '' (cbC0 α β A B f g))) =&gt;</code></pre></details><details class="appendix-solution" id="app-sol-112-10"><summary>练习 10 · cbLeftInv <span class="sol-meta">定理</span></summary><pre><code>theorem cbLeftInv (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B)
+    (h : α → β) (k : β → α)
+    (hh : ∀ (x : α), x ∈ A → h x ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x (h x))
+    (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g (k y) y) :
+    ∀ (x : α), x ∈ A → k (h x) = x :=
+  fun (x : α) (hx : x ∈ A) =&gt;
+    @Eq.symm.{1} α x (k (h x))
+      (cbRel_inj α β A B f g hfB hgA hf_inj hg_inj x hx (k (h x))
+        (And.left (hk (h x) (And.left (hh x hx))))
+        (h x) (And.left (hh x hx))
+        (And.right (hh x hx))
+        (And.right (hk (h x) (And.left (hh x hx)))))</code></pre></details><details class="appendix-solution" id="app-sol-112-11"><summary>练习 11 · cbRightInv <span class="sol-meta">定理</span></summary><pre><code>theorem cbRightInv (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hg_inj : Set.InjOn β α g B)
+    (h : α → β) (k : β → α)
+    (hh : ∀ (x : α), x ∈ A → h x ∈ B ∧ cbRel α β (cbC0 α β A B f g) f g x (h x))
+    (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧ cbRel α β (cbC0 α β A B f g) f g (k y) y) :
+    ∀ (y : β), y ∈ B → h (k y) = y :=
+  fun (y : β) (hy : y ∈ B) =&gt;
+    @Eq.symm.{1} β y (h (k y))
+      (cbRel_single α β A B f g hg_inj (k y) y hy (h (k y))
+        (And.left (hh (k y) (And.left (hk y hy))))
+        (And.right (hk y hy))
+        (And.right (hh (k y) (And.left (hk y hy)))))</code></pre></details><details class="appendix-solution" id="app-sol-112-12"><summary>练习 12 · cantor_bernstein <span class="sol-meta">定理</span></summary><p class="solution-note">── 旗舰：Cantor–Bernstein（<strong>经选择公理</strong> —— 见文件头偏离标注）────────────</p><pre><code>theorem cantor_bernstein (α β : Type) (A : Set α) (B : Set β) (f : α → β) (g : β → α)
+    (hfB : Set.MapsTo α β f A B) (hgA : Set.MapsTo β α g B A)
+    (hf_inj : Set.InjOn α β f A) (hg_inj : Set.InjOn β α g B) : A ≈ B :=
+  demo_cbChoice_elim α β A B (cbRel α β (cbC0 α β A B f g) f g) (A ≈ B)
+    (choice α β A B (cbRel α β (cbC0 α β A B f g) f g)
+      (cbRel_total α β A B f g hfB))
+    (fun (h : α → β)
+        (hh : ∀ (x : α), x ∈ A → h x ∈ B ∧
+          cbRel α β (cbC0 α β A B f g) f g x (h x)) =&gt;
+      demo_cbChoice_elim β α B A (fun (y : β) (x : α) =&gt; cbRel α β (cbC0 α β A B f g) f g x y)
+        (A ≈ B)
+        (choice β α B A (fun (y : β) (x : α) =&gt; cbRel α β (cbC0 α β A B f g) f g x y)
+          (cbRel_surj α β A B f g hgA))
+        (fun (k : β → α)
+            (hk : ∀ (y : β), y ∈ B → k y ∈ A ∧
+              cbRel α β (cbC0 α β A B f g) f g (k y) y) =&gt;
+          Set.Equiv.mk α β A B h k
+            (fun (x : α) (hx : x ∈ A) =&gt; And.left (hh x hx))
+            (fun (y : β) (hy : y ∈ B) =&gt; And.left (hk y hy))
+            (cbLeftInv α β A B f g hfB hgA hf_inj hg_inj h k hh hk)
+            (cbRightInv α β A B f g hg_inj h k hh hk)))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit103.html">← 103 双向势比较何时升级为等势</a><a class="next" href="../units/unit11.html">11 论域与 Russell 悖论 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

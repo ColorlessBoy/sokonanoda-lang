@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 90 复合层的等式与外层单射</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit90.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 90 复合层的等式与外层单射</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit90.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.4 论域、悖论与综合 · 单元 90</p><h1>复合层的等式与外层单射</h1><p class="note">Unit 90 — Equality at the Composite Layer</p></header><section class="unit" id="unit-90">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-4.html">I.4</a> · 本章第 9 / 12 单元 · 全书第 90 / 112 单元</p>
+<h2><span class="unit-number">90</span><span>复合层的等式与外层单射</span></h2>
+<p class="unit-title-en">Unit 90 — Equality at the Composite Layer</p>
+<p class="unit-meta">3 个定义 · 7 个定理 · 4 道练习 · <a href="#appendix-unit-90">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><code>BijPair</code> 的定义展开 ✓ <span class="math">·</span> <strong>换"函数参数格"的搬运</strong>（<code>arg_subst_id</code> ✓）；</li><li><strong>旗舰一（拆链换来的）：复合层的等式</strong> ✓ ——<code>f a = b ⇒ f a' = b' ⇒ g b = g b' ⇒ g (f a) = g (f a')</code> ✓（把三层 <code>Eq.trans</code> 独立成一条引理 ✓ —— 这就是第 657 轮换招的做法 ✓）；</li><li><strong>旗舰二：满射 <span class="math">+</span> 复合单射 <span class="math">⇒</span> 外层单射</strong> ✓ ——<strong>跨三轮判红三次的欠债，本轮还清</strong> ✓（<code>inj_of_comp_surj</code> ✓）。</li></ul></div></div></section>
+<article class="decl decl-def" id="decl-90-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Injective</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def Injective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (a : α) (b : α), f a = f b → a = b</code></pre></div></article>
+<article class="decl decl-def" id="decl-90-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Surjective</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def Surjective (α : Type) (β : Type) (f : α → β) : Prop :=
+  ∀ (b : β), ∃ (a : α), f a = b</code></pre></div></article>
+<article class="decl decl-def" id="decl-90-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">BijPair</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def BijPair (α : Type) (β : Type) (f : α → β) : Prop :=
+  Injective α β f ∧ Surjective α β f</code></pre></div></article>
+<h3 class="unit-subhead">90.1 三条定义展开与搬运（双射 <span class="math">·</span> 满射 <span class="math">·</span> 换"函数参数格"）</h3><div class="block prose intuition-only"><p>演示：满射的定义展开（<code>Surjective f</code> 就是"每个点都有原像" ✓）。</p></div><article class="decl decl-theorem" id="decl-90-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_bij_def</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_bij_def (α : Type) (β : Type) (f : α → β) :
+    BijPair α β f ↔ Injective α β f ∧ Surjective α β f :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  @Iff.intro (BijPair α β f) (Injective α β f ∧ Surjective α β f)
+    (fun (h : BijPair α β f) =&gt; h) (fun (h : Injective α β f ∧ Surjective α β f) =&gt; h)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-90-5"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_surj_def</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_surj_def (α : Type) (β : Type) (f : α → β) :
+    Surjective α β f ↔ ∀ (b : β), ∃ (a : α), f a = b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  @Iff.intro (Surjective α β f) (∀ (b : β), ∃ (a : α), f a = b)
+    (fun (h : Surjective α β f) =&gt; h) (fun (h : ∀ (b : β), ∃ (a : α), f a = b) =&gt; h)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-90-6"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_arg_subst</code><span class="decl-where">声明 6</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_arg_subst (α : Type) (β : Type) (g : α → β) (a : α) (b : α) (d : β)
+    (h : b = a) (hd : g b = d) : g a = d :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.subst.{1} α (fun (x : α) =&gt; g x = d) b a h hd-- 练习 1（T 类）：`BijPair` 就是单射 ∧ 满射（定义展开）。</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-90-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">bij_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-90-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>关键件：两个方向都是恒等（<code>Iff.intro</code> 两类实参写全）</p></div></div><pre class="exercise-statement"><code>theorem bij_iff (α : Type) (β : Type) (f : α → β) :
+    BijPair α β f ↔ Injective α β f ∧ Surjective α β f := by
+  sorry</code></pre><details open class="solution-panel" id="sol-90-1"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem bij_iff (α : Type) (β : Type) (f : α → β) :
+    BijPair α β f ↔ Injective α β f ∧ Surjective α β f :=
+  @Iff.intro (BijPair α β f) (Injective α β f ∧ Surjective α β f)
+    (fun (h : BijPair α β f) =&gt; h) (fun (h : Injective α β f ∧ Surjective α β f) =&gt; h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-90-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">arg_subst_id</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-90-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>换"函数参数格"的搬运</strong>（格位表第二行）。关键件：<strong><code>Eq.subst</code> <span class="math">+</span> 谓词 <code>fun x =&gt; g x = d</code></strong>（⚠ 不是 <code>rel_subst_*</code>）</p></div></div><pre class="exercise-statement"><code>theorem arg_subst_id (α : Type) (β : Type) (g : α → β) (a : α) (b : α) (d : β)
+    (h : b = a) (hd : g b = d) : g a = d := by
+  sorry</code></pre><details open class="solution-panel" id="sol-90-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem arg_subst_id (α : Type) (β : Type) (g : α → β) (a : α) (b : α) (d : β)
+    (h : b = a) (hd : g b = d) : g a = d :=
+  @Eq.subst.{1} α (fun (x : α) =&gt; g x = d) b a h hd</code></pre></div></details></div></article>
+<article class="exercise" id="ex-90-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">comp_eq_of_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-90-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类，<strong>旗舰一</strong>）：<strong>复合层的等式</strong>（<code>f a = b ⇒ f a' = b' ⇒ g b = g b' ⇒ g (f a) = g (f a')</code>）。思路：两段各用一次 <code>Eq.subst</code> 把 <code>g b</code> / <code>g b'</code> 换成 <code>g (f a)</code> / <code>g (f a')</code>（谓词方向：<code>fun x =&gt; g x = g b</code> 与 <code>fun x =&gt; g b' = g x</code>），中间夹 <code>h</code>。关键件：<code>Eq.subst</code>（两次）<span class="math">·</span> <code>Eq.trans</code>（两次）<span class="math">·</span> <code>Eq.refl</code> <span class="math">·</span> <code>Eq.symm</code></p></div></div><pre class="exercise-statement"><code>theorem comp_eq_of_eq (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (a : α) (a' : α) (b : β) (b' : β)
+    (ha : f a = b) (ha' : f a' = b') (h : g b = g b') :
+    g (f a) = g (f a') := by
+  sorry</code></pre><details open class="solution-panel" id="sol-90-3"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem comp_eq_of_eq (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (a : α) (a' : α) (b : β) (b' : β)
+    (ha : f a = b) (ha' : f a' = b') (h : g b = g b') :
+    g (f a) = g (f a') :=
+  @Eq.trans.{1} γ (g (f a)) (g b) (g (f a'))
+    (@Eq.subst.{1} β (fun (x : β) =&gt; g x = g b) b (f a) (@Eq.symm.{1} β (f a) b ha)
+      (@Eq.refl.{1} γ (g b)))
+    (@Eq.trans.{1} γ (g b) (g b') (g (f a')) h
+      (@Eq.subst.{1} β (fun (x : β) =&gt; g b' = g x) b' (f a') (@Eq.symm.{1} β (f a') b' ha')
+        (@Eq.refl.{1} γ (g b'))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-90-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">inj_of_comp_surj</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-90-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>旗舰二，还三轮的债</strong>）：<strong>满射 <span class="math">+</span> 复合单射 <span class="math">⇒</span> 外层单射</strong>。思路：给 <code>g b = g b'</code>，用满射取 <code>a</code>、<code>a'</code> <span class="math">⇒</span> 练习 3 得 <code>g (f a) = g (f a')</code> <span class="math">⇒</span> 复合单射给 <strong><code>a = a'</code></strong> <span class="math">⇒</span> 再用一次 <code>Eq.subst</code>（谓词 <code>fun x =&gt; f a = f x</code>）把它变成 <code>f a = f a'</code> <span class="math">⇒</span> 最后 <code>Eq.trans</code> 串成 <code>b = b'</code>。关键件：练习 <span class="math">3 ·</span> <code>Exists.elim</code> <span class="math">·</span> <strong><code>Eq.subst</code> <span class="math">+</span> 谓词 <code>fun x =&gt; f a = f x</code></strong>（⚠ <code>hgf</code> 给的是 <code>a = a'</code>，不是 <code>f a = f a'</code>！）<span class="math">·</span> <code>Eq.trans</code> / <code>Eq.symm</code></p></div></div><pre class="exercise-statement"><code>theorem inj_of_comp_surj (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Surjective α β f) (hgf : Injective α γ (fun (x : α) =&gt; g (f x))) :
+    Injective β γ g := by
+  sorry</code></pre><details open class="solution-panel" id="sol-90-4"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><pre><code>theorem inj_of_comp_surj (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Surjective α β f) (hgf : Injective α γ (fun (x : α) =&gt; g (f x))) :
+    Injective β γ g :=
+  fun (b : β) (b' : β) (h : g b = g b') =&gt;
+    @Exists.elim α (fun (a : α) =&gt; f a = b) (b = b') (hf b)
+      (fun (a : α) (ha : f a = b) =&gt;
+        @Exists.elim α (fun (a' : α) =&gt; f a' = b') (b = b') (hf b')
+          (fun (a' : α) (ha' : f a' = b') =&gt;
+            @Eq.trans.{1} β b (f a) b' (@Eq.symm.{1} β (f a) b ha)
+              (@Eq.trans.{1} β (f a) (f a') b'
+                (@Eq.subst.{1} α (fun (x : α) =&gt; f a = f x) a a'
+                  (hgf a a' (comp_eq_of_eq α β γ f g a a' b b' ha ha' h))
+                  (@Eq.refl.{1} β (f a)))
+                ha')))</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§3.3/§3.6</strong> <span class="math">·Halmos</span>《Naive Set Theory》<strong>§8</strong>。大纲 §4.1（<strong>I.4 章补完片</strong> ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>还债的关键两招</strong> ✓（值得记住）：1. <strong>先拆链</strong>：把"三步 <code>Eq.trans</code>"从主证明里搬出来做<strong>独立引理</strong>（旗舰一 ✓），主证明只剩"两步接起来" ✓；2. <strong>看清给的是什么</strong>：<code>hgf a a' …</code> 的类型是 <strong><code>a = a'</code></strong>（不是 <code>f a = f a'</code> ✗！）<span class="math">⇒</span> 还要一条 <strong><code>Eq.subst</code> <span class="math">+</span> 谓词 <code>fun x =&gt; f a = f x</code></strong> 才能得到 <code>f a = f a'</code> ✓（跨三轮回踩的就是这一格 ✓）。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元87（单射半边）<span class="math">·</span> 单元88（满射半边 <span class="math">+</span> 格位表）<span class="math">·</span> 单元89（双射复合）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit89.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">双射与复合</span></a><a class="unit-nav-home" href="../chapters/i-4.html#units">目录</a><a class="unit-nav-link" href="../units/unit91.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">逆映射与双射代数</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-90"><h3><a href="#top">复合层的等式与外层单射</a></h3><p class="appendix-meta">4 道练习 · 4 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-90-1"><summary>练习 1 · bij_iff <span class="sol-meta">定理</span></summary><pre><code>theorem bij_iff (α : Type) (β : Type) (f : α → β) :
+    BijPair α β f ↔ Injective α β f ∧ Surjective α β f :=
+  @Iff.intro (BijPair α β f) (Injective α β f ∧ Surjective α β f)
+    (fun (h : BijPair α β f) =&gt; h) (fun (h : Injective α β f ∧ Surjective α β f) =&gt; h)</code></pre></details><details open class="appendix-solution" id="app-sol-90-2"><summary>练习 2 · arg_subst_id <span class="sol-meta">定理</span></summary><pre><code>theorem arg_subst_id (α : Type) (β : Type) (g : α → β) (a : α) (b : α) (d : β)
+    (h : b = a) (hd : g b = d) : g a = d :=
+  @Eq.subst.{1} α (fun (x : α) =&gt; g x = d) b a h hd</code></pre></details><details open class="appendix-solution" id="app-sol-90-3"><summary>练习 3 · comp_eq_of_eq <span class="sol-meta">定理</span></summary><pre><code>theorem comp_eq_of_eq (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (a : α) (a' : α) (b : β) (b' : β)
+    (ha : f a = b) (ha' : f a' = b') (h : g b = g b') :
+    g (f a) = g (f a') :=
+  @Eq.trans.{1} γ (g (f a)) (g b) (g (f a'))
+    (@Eq.subst.{1} β (fun (x : β) =&gt; g x = g b) b (f a) (@Eq.symm.{1} β (f a) b ha)
+      (@Eq.refl.{1} γ (g b)))
+    (@Eq.trans.{1} γ (g b) (g b') (g (f a')) h
+      (@Eq.subst.{1} β (fun (x : β) =&gt; g b' = g x) b' (f a') (@Eq.symm.{1} β (f a') b' ha')
+        (@Eq.refl.{1} γ (g b'))))</code></pre></details><details open class="appendix-solution" id="app-sol-90-4"><summary>练习 4 · inj_of_comp_surj <span class="sol-meta">定理</span></summary><pre><code>theorem inj_of_comp_surj (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (hf : Surjective α β f) (hgf : Injective α γ (fun (x : α) =&gt; g (f x))) :
+    Injective β γ g :=
+  fun (b : β) (b' : β) (h : g b = g b') =&gt;
+    @Exists.elim α (fun (a : α) =&gt; f a = b) (b = b') (hf b)
+      (fun (a : α) (ha : f a = b) =&gt;
+        @Exists.elim α (fun (a' : α) =&gt; f a' = b') (b = b') (hf b')
+          (fun (a' : α) (ha' : f a' = b') =&gt;
+            @Eq.trans.{1} β b (f a) b' (@Eq.symm.{1} β (f a) b ha)
+              (@Eq.trans.{1} β (f a) (f a') b'
+                (@Eq.subst.{1} α (fun (x : α) =&gt; f a = f x) a a'
+                  (hgf a a' (comp_eq_of_eq α β γ f g a a' b b' ha ha' h))
+                  (@Eq.refl.{1} β (f a)))
+                ha')))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

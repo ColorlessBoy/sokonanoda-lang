@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>56 反例与不可证（二） · 从集合论到实分析</title>
+<meta name="description" content="单元56 反例与不可证（二）：导语、定义与定理、练习与解答。Unit 56 — Refutation (II): Refuting ∃ and =">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit56.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li class="is-current"><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.4 单元</h3><ol><li><a href="../units/unit11.html">11 论域与 Russell 悖论</a></li><li><a href="../units/unit12.html">12 综合与读证明</a></li><li><a href="../units/unit55.html">55 反例与不可证（一）</a></li><li class="is-current"><a href="../units/unit56.html">56 反例与不可证（二）</a></li><li><a href="../units/unit57.html">57 反例与不可证（三）</a></li><li><a href="../units/unit87.html">87 单射、满射与复合</a></li><li><a href="../units/unit88.html">88 满射与复合</a></li><li><a href="../units/unit89.html">89 双射与复合</a></li><li><a href="../units/unit90.html">90 复合层的等式与外层单射</a></li><li><a href="../units/unit91.html">91 逆映射与双射代数</a></li><li><a href="../units/unit94.html">94 Cantor 对角线（函数版）</a></li><li><a href="../units/unit95.html">95 对角线的一般形态</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li aria-current="page">单元 56 反例与不可证（二）</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-56-1">56.1 三条库引理（空集的成员刻画 · 空集没有成员 · 包含的展开）</a></li>
+<li><a href="#ex-56-1">56.2 总纲三：驳倒 ∃（要与每个 x 打交道）</a></li>
+<li><a href="#ex-56-3">56.3 等式搬运与总纲四：驳倒 A = B</a></li>
+<li><a href="#appendix-unit-56">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-4.html#units">↑ 本章目录</a>
+      <a href="../print/unit56.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-56">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-4.html">I.4</a> · 本章第 4 / 12 单元 · 全书第 56 / 112 单元</p>
+<h1><span class="unit-number">56</span> <span>反例与不可证（二）</span></h1>
+<p class="unit-title-en">Unit 56 — Refutation (II): Refuting ∃ and =</p>
+<p class="unit-meta">8 个定理 · 5 道练习 · 11 条提示 · <a href="#appendix-unit-56">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="56" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-56" aria-label="复制单元 56 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit56.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-4.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理/手法"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>总纲三</strong>：驳倒 <code>∃</code> —— 要说明"没有那样的 x"，得对<strong>每个</strong> x 都排除 ✓（<code>(∀ x, ¬ P x) → ¬ (∃ x, P x)</code> ✓ —— 与总纲一（驳倒 <code>∀</code> 只需一个反例 ✓）<strong>对偶</strong> ✓）；</li><li><strong>等式搬运</strong>：从 <code>A = B</code> 与 <code>a ∈ A</code> 得 <code>a ∈ B</code> ✓（外延推理的地基 ✓）；</li><li><strong>总纲四</strong>：驳倒 <code>A = B</code> —— 给一个"<strong>在 A 里、不在 B 里</strong>"的见证即可 ✓（这是外延公理的<strong>逆否用法</strong>，教材里最常出现的"集合不等"证法 ✓）；</li><li><strong>实例</strong>：<code>∄ x, x ∈ ∅</code> ✓ <span class="math">·</span> <code>a ∈ A ⇒ A ≠ ∅</code> ✓</li></ul></div></div></section>
+<h3 class="unit-subhead">56.1 三条库引理（空集的成员刻画 <span class="math">·</span> 空集没有成员 <span class="math">·</span> 包含的展开）</h3><div class="block prose intuition-only"><p>演示：空集的成员刻画（定义展开，没有数学内容）。</p></div><article class="decl decl-theorem" id="decl-56-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_empty_iff_false</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_empty_iff_false (α : Type) (a : α) :
+    a ∈ (∅) ↔ False :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_empty_iff_false a</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-56-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_not_mem_empty</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_not_mem_empty (α : Type) (a : α) : ¬ (a ∈ (∅)) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  fun (h : a ∈ (∅)) =&gt; (Iff.mp (Set.mem_empty_iff_false a) h)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-56-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_subset_def</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_subset_def (α : Type) (A B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.subset_def A B</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">56.2 总纲三：驳倒 <code>∃</code>（要与每个 x 打交道）</h3><hr class="section-rule"><article class="exercise" id="ex-56-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">not_exists_of_all_not</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-56-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（L 类，<strong>总纲三</strong>）：<strong>驳倒 <code>∃</code> 要对每个 x 都排除</strong>。</p></div><div class="block prose intuition-only"><p>再用"每个 x 都 <span class="math">¬ P x</span>"的假设把它否掉。</p></div><div class="block prose intuition-only"><p>铁律"动机位只放肯定形状"是 <strong><code>Or.elim</code> 专有</strong> ✓，<code>Exists.elim</code> 不受限 ✓）</p></div></div><pre class="exercise-statement"><code>theorem not_exists_of_all_not (α : Type) (P : α → Prop) (h : ∀ (x : α), ¬ (P x)) :
+    ¬ (∃ (x : α), P x) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>假设 <code>∃ x, P x</code>；把它拆出一个见证 <code>x</code> 与 <code>P x</code>，</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ x, ¬ (P x)) → ¬ (∃ x, P x)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>（<strong>动机位放 <code>False</code> 是可以的</strong> ✓ ——</p></div></details></div><details class="solution-panel" id="sol-56-1"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem not_exists_of_all_not (α : Type) (P : α → Prop) (h : ∀ (x : α), ¬ (P x)) :
+    ¬ (∃ (x : α), P x) :=
+  fun (he : ∃ (x : α), P x) =&gt;
+    @Exists.elim α P False he (fun (x : α) (hx : P x) =&gt; h x hx)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-56-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">not_exists_mem_empty</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-56-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类，<strong>实例</strong>）：<strong>「存在属于空集的元素」是假的</strong>。</p></div></div><pre class="exercise-statement"><code>theorem not_exists_mem_empty (α : Type) : ¬ (∃ (x : α), x ∈ (∅)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 1（总纲三）<span class="math">·</span> 演示 2（空集没有成员）✓</p></div></details></div><details class="solution-panel" id="sol-56-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem not_exists_mem_empty (α : Type) : ¬ (∃ (x : α), x ∈ (∅)) :=
+  not_exists_of_all_not α (fun (x : α) =&gt; x ∈ (∅))
+    (fun (x : α) =&gt; demo_not_mem_empty α x)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">56.3 等式搬运与总纲四：驳倒 <code>A = B</code></h3><hr class="section-rule"><article class="exercise" id="ex-56-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">mem_of_eq_of_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-56-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类，<strong>地基</strong>）：<strong>等式搬运</strong>（<code>A = B</code> 与 <code>a ∈ A</code> <span class="math">⇒</span> <code>a ∈ B</code>）。</p></div><div class="block prose intuition-only"><p>关系取 <code>fun u v =&gt; a ∈ v</code> ✓；四步：<code>(Set α) r A A B heq ha</code> ✓）</p></div></div><pre class="exercise-statement"><code>theorem mem_of_eq_of_mem (α : Type) (A B : Set α) (a : α) (heq : A = B)
+    (ha : a ∈ A) : a ∈ B := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>沿等式把"属于"这件事从左搬到右。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A = B → a ∈ A → a ∈ B</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><strong>搬运引理 <code>rel_subst_right</code></strong>（<strong>第一个类型实参是 <code>Set α</code></strong> ✓ ——</p></div></details></div><details class="solution-panel" id="sol-56-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem mem_of_eq_of_mem (α : Type) (A B : Set α) (a : α) (heq : @Eq.{1} (Set α) A B)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+    (ha : a ∈ A) : a ∈ B :=
+  rel_subst_right (Set α) (fun (u : Set α) (v : Set α) =&gt; a ∈ v) A A B heq ha</code></pre></div></details></div></article>
+<article class="exercise" id="ex-56-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">ne_of_mem_not_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-56-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>总纲四</strong>）：<strong>驳倒 <code>A = B</code>：给一个只在一边的见证</strong>。</p></div></div><pre class="exercise-statement"><code>theorem ne_of_mem_not_mem (α : Type) (A B : Set α) (a : α) (ha : a ∈ A)
+    (hna : ¬ (a ∈ B)) : ¬ (A = B) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>假设 <code>A = B</code>，用练习 3 把 <code>a ∈ A</code> 搬成 <code>a ∈ B</code>，与 <code>¬ (a ∈ B)</code> 冲突。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>a ∈ A → ¬ (a ∈ B) → ¬ (A = B)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 <span class="math">3 ·</span> 见证的否定假设当函数用 ✓（<strong>这就是外延公理的逆否用法</strong> ✓）</p></div></details></div><details class="solution-panel" id="sol-56-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem ne_of_mem_not_mem (α : Type) (A B : Set α) (a : α) (ha : a ∈ A)
+    (hna : ¬ (a ∈ B)) : ¬ (@Eq.{1} (Set α) A B) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  fun (heq : @Eq.{1} (Set α) A B) =&gt; hna (mem_of_eq_of_mem α A B a heq ha)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参</code></pre></div></details></div></article>
+<article class="exercise" id="ex-56-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">not_eq_empty_of_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-56-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（T 类，<strong>实例</strong>）：<strong>含成员的集合不是空集</strong>。</p></div></div><pre class="exercise-statement"><code>theorem not_eq_empty_of_mem (α : Type) (A : Set α) (a : α) (ha : a ∈ A) :
+    ¬ (A = (∅)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 4（总纲四，把 <code>B</code> 取成 <code>∅</code>）<span class="math">·</span> 演示 2 ✓</p></div></details></div><details class="solution-panel" id="sol-56-5"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem not_eq_empty_of_mem (α : Type) (A : Set α) (a : α) (ha : a ∈ A) :
+    ¬ (@Eq.{1} (Set α) A (∅)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  ne_of_mem_not_mem α A (∅) a ha (demo_not_mem_empty α a)</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§1.5</strong>（refuting statements 的续）<span class="math">·</span><strong>§1.4 外延公理</strong>（"两个集合不等"最常用的证法：<strong>指出一个只在一边的见证</strong> ✓）。大纲：<code>set-theory-syllabus.md</code> §4.1（<strong>I.4 章继续深化</strong> —— 接单元55 的两条总纲 ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>仍然全程 <code>Prop</code> 层</strong> ✓ <span class="math">⇒</span> 不需要"归纳命题消去到 <code>Type</code>"（<strong>G-58</strong>）✓；被 G-58 挡住的是"用 <code>Nat.rec</code>/<code>Bool.rec</code> 造<strong>判别谓词</strong>"（如 <code>0 ≠ 1</code> ✓）—— 那是单元57 ✓。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.SUnion</code> <span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元①（集合与成员）<span class="math">·</span> 单元②（子集与空集）<span class="math">·</span> 单元④（外延与恒等式）<span class="math">·</span> 单元55 ✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit55.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">反例与不可证（一）</span></a><a class="unit-nav-home" href="../chapters/i-4.html#units">目录</a><a class="unit-nav-link" href="../units/unit57.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">反例与不可证（三）</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-56"><h3><a href="#top">反例与不可证（二）</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-56-1"><summary>练习 1 · not_exists_of_all_not <span class="sol-meta">定理</span></summary><pre><code>theorem not_exists_of_all_not (α : Type) (P : α → Prop) (h : ∀ (x : α), ¬ (P x)) :
+    ¬ (∃ (x : α), P x) :=
+  fun (he : ∃ (x : α), P x) =&gt;
+    @Exists.elim α P False he (fun (x : α) (hx : P x) =&gt; h x hx)</code></pre></details><details class="appendix-solution" id="app-sol-56-2"><summary>练习 2 · not_exists_mem_empty <span class="sol-meta">定理</span></summary><pre><code>theorem not_exists_mem_empty (α : Type) : ¬ (∃ (x : α), x ∈ (∅)) :=
+  not_exists_of_all_not α (fun (x : α) =&gt; x ∈ (∅))
+    (fun (x : α) =&gt; demo_not_mem_empty α x)</code></pre></details><details class="appendix-solution" id="app-sol-56-3"><summary>练习 3 · mem_of_eq_of_mem <span class="sol-meta">定理</span></summary><pre><code>theorem mem_of_eq_of_mem (α : Type) (A B : Set α) (a : α) (heq : @Eq.{1} (Set α) A B)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+    (ha : a ∈ A) : a ∈ B :=
+  rel_subst_right (Set α) (fun (u : Set α) (v : Set α) =&gt; a ∈ v) A A B heq ha</code></pre></details><details class="appendix-solution" id="app-sol-56-4"><summary>练习 4 · ne_of_mem_not_mem <span class="sol-meta">定理</span></summary><pre><code>theorem ne_of_mem_not_mem (α : Type) (A B : Set α) (a : α) (ha : a ∈ A)
+    (hna : ¬ (a ∈ B)) : ¬ (@Eq.{1} (Set α) A B) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  fun (heq : @Eq.{1} (Set α) A B) =&gt; hna (mem_of_eq_of_mem α A B a heq ha)  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参</code></pre></details><details class="appendix-solution" id="app-sol-56-5"><summary>练习 5 · not_eq_empty_of_mem <span class="sol-meta">定理</span></summary><pre><code>theorem not_eq_empty_of_mem (α : Type) (A : Set α) (a : α) (ha : a ∈ A) :
+    ¬ (@Eq.{1} (Set α) A (∅)) :=  -- soko:notation-ok: G-73 形状 ②：`∈`/`⊆`/`Set.*` 是 def 头，这些位置补不出前导实参
+  ne_of_mem_not_mem α A (∅) a ha (demo_not_mem_empty α a)</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit55.html">← 55 反例与不可证（一）</a><a class="next" href="../units/unit57.html">57 反例与不可证（三） →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

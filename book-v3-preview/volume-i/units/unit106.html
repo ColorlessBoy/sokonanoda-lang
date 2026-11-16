@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>106 良基递归（Acc） · 从集合论到实分析</title>
+<meta name="description" content="单元106 良基递归（Acc）：导语、定义与定理、练习与解答。Unit 106 — Well-Founded Recursion (Acc)">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit106.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li class="is-current"><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.6 单元</h3><ol><li><a href="../units/unit15.html">15 传递集与序数</a></li><li><a href="../units/unit16.html">16 序数的序：外延性、反对称与零序数</a></li><li><a href="../units/unit42.html">42 良序集的「最小元」</a></li><li><a href="../units/unit80.html">80 序数的元素仍是序数</a></li><li><a href="../units/unit81.html">81 后继的成员刻画</a></li><li><a href="../units/unit82.html">82 后继与序数的合流</a></li><li><a href="../units/unit83.html">83 序数的无环性</a></li><li class="is-current"><a href="../units/unit106.html">106 良基递归（Acc）</a></li><li><a href="../units/unit107.html">107 ∈-归纳与序数三歧（上）</a></li><li><a href="../units/unit108.html">108 序数三歧（引理与装配）</a></li><li><a href="../units/unit109.html">109 序数上的递归与加法（关系版 · 逆引理与结合律）</a></li><li><a href="../units/unit110.html">110 选择公理的取数据（良序定理线入口）</a></li><li><a href="../units/unit111.html">111 ℕ 的算术律（自建 add/mul）</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li aria-current="page">单元 106 良基递归（Acc）</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-106-1">定义与定理</a></li>
+<li><a href="#ex-106-1">练习</a></li>
+<li><a href="#appendix-unit-106">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-6.html#units">↑ 本章目录</a>
+      <a href="../print/unit106.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-106">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-6.html">I.6</a> · 本章第 8 / 13 单元 · 全书第 106 / 112 单元</p>
+<h1><span class="unit-number">106</span> <span>良基递归（Acc）</span></h1>
+<p class="unit-title-en">Unit 106 — Well-Founded Recursion (Acc)</p>
+<p class="unit-meta">8 个定理 · 5 道练习 · <a href="#appendix-unit-106">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="106" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-106" aria-label="复制单元 106 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit106.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-6.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>引入</strong>（<code>Acc.intro</code> ✓）<span class="math">·</span> <strong>归纳原理</strong>（<code>acc_ind</code> ✓）<span class="math">·</span> <strong>唯一性</strong>（<code>acc_unique</code> ✓）；</li><li><strong>旗舰一：取用子</strong> ✓（<code>Acc α r x</code> <span class="math">⇒</span> 前驱都可达 ✓）；</li><li><strong>旗舰二：没有自环</strong> ✓（<code>Acc α r x ⇒ ¬ r x x</code> ✓ —— 只用归纳原理 ✓）。</li></ul></div></div></section>
+<article class="decl decl-theorem" id="decl-106-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_acc_intro</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_acc_intro (α : Type) (r : α → α → Prop) (x : α)
+    (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Acc.intro α r x h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-106-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_acc_ind</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_acc_ind (α : Type) (r : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x) :
+    ∀ (x : α), Acc α r x → motive x :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  acc_ind α r motive step</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-106-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_acc_unique</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_acc_unique (α : Type) (β : Type) (r : α → α → Prop) (f : α → β) (g : α → β)
+    (spec : ∀ (x : α), (∀ (y : α), r y x → f y = g y) → f x = g x) :
+    ∀ (x : α), Acc α r x → f x = g x :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  acc_unique α β r f g spec-- 练习 1（T 类）：**引入**（把"前驱都可达"装成 `Acc`）。</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-106-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">acc_intro_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-106-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>关键件：<code>Acc.intro</code>（<strong>四点按序</strong>：类型 <span class="math">·</span> 关系 <span class="math">·</span> 点 <span class="math">·</span> 前提 ✓）</p></div></div><pre class="exercise-statement"><code>theorem acc_intro_apply (α : Type) (r : α → α → Prop) (x : α)
+    (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x := by
+  sorry</code></pre><details class="solution-panel" id="sol-106-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem acc_intro_apply (α : Type) (r : α → α → Prop) (x : α)
+    (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x :=
+  @Acc.intro α r x h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-106-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">acc_ind_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-106-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>归纳原理的直接用法</strong>。关键件：<code>acc_ind</code>（<strong>五点按序</strong> ✓）</p></div></div><pre class="exercise-statement"><code>theorem acc_ind_apply (α : Type) (r : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x)
+    (x : α) (h : Acc α r x) : motive x := by
+  sorry</code></pre><details class="solution-panel" id="sol-106-2"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem acc_ind_apply (α : Type) (r : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x)
+    (x : α) (h : Acc α r x) : motive x :=
+  acc_ind α r motive step x h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-106-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">acc_unique_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-106-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong>唯一性的直接用法</strong>。关键件：<code>acc_unique</code>（<strong>六点按序</strong> ✓）</p></div></div><pre class="exercise-statement"><code>theorem acc_unique_apply (α : Type) (β : Type) (r : α → α → Prop) (f : α → β) (g : α → β)
+    (spec : ∀ (x : α), (∀ (y : α), r y x → f y = g y) → f x = g x)
+    (x : α) (h : Acc α r x) : f x = g x := by
+  sorry</code></pre><details class="solution-panel" id="sol-106-3"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem acc_unique_apply (α : Type) (β : Type) (r : α → α → Prop) (f : α → β) (g : α → β)
+    (spec : ∀ (x : α), (∀ (y : α), r y x → f y = g y) → f x = g x)
+    (x : α) (h : Acc α r x) : f x = g x :=
+  acc_unique α β r f g spec x h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-106-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">acc_inv_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-106-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类，<strong>旗舰一</strong>）：<strong>取用子</strong>（<code>Acc α r x</code> <span class="math">⇒</span> 前驱都可达）。关键件：<code>acc_inv</code>（库里的 ✓ —— 注意它<strong>不能</strong>由练习 2 得到 ✓）</p></div></div><pre class="exercise-statement"><code>theorem acc_inv_apply (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) :
+    ∀ (y : α), r y x → Acc α r y := by
+  sorry</code></pre><details class="solution-panel" id="sol-106-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem acc_inv_apply (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) :
+    ∀ (y : α), r y x → Acc α r y :=
+  acc_inv α r x h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-106-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">acc_no_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-106-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>旗舰二</strong>）：<strong>没有自环</strong>（<code>Acc α r x ⇒ ¬ r x x</code>）。思路：用练习 2（motive 取 <code>fun z =&gt; ¬ r z z</code>）；归纳假设在 <code>z</code> 与 <code>r z z</code> 处给出 <code>¬ r z z</code>，把它作用在 <code>r z z</code> 上即得矛盾。关键件：练习 <span class="math">2 ·</span> 归纳假设<strong>在 <code>z</code> 处自用</strong>（<code>ih z hzz hzz</code> ✓）</p></div></div><pre class="exercise-statement"><code>theorem acc_no_self (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) :
+    ¬ (r x x) := by
+  sorry</code></pre><details class="solution-panel" id="sol-106-5"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem acc_no_self (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) :
+    ¬ (r x x) :=
+  acc_ind α r (fun (z : α) =&gt; ¬ (r z z))
+    (fun (z : α) (ih : ∀ (y : α), r y z → ¬ (r y y)) (hzz : r z z) =&gt; ih z hzz hzz) x h</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（7 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§4.3 / §7.4</strong>（递归定理的良基版本）<span class="math">·Halmos</span>《Naive Set Theory》<strong>§18</strong>。大纲 §4.1（<strong>接单元⑬⑭⑯㊵㊷ 的良基/良序线</strong> ✓）。</p></div><div class="block prose intuition-only"><p>⚠⚠ <strong>本单元是新解锁的能力</strong> ✓：台账 <strong>G-56</strong>（「<code>Acc</code> 立不起来 <span class="math">⇒</span> 语言里没有良基递归」）<strong>已修</strong>（内核线 7/9 ✓）<span class="math">⇒</span> 现在可以在库里声明 <code>Acc</code>、并用它的<strong>递归子</strong>做证明 ✓。库（<code>lib/Order</code> ✓）已备好三件 ✓：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><code>Acc</code>（带索引归纳：<code>Acc α r : α → Prop</code> ✓）<span class="math">·</span> <code>acc_ind</code>（归纳原理 ✓）<span class="math">·</span></li><li><code>acc_unique</code>（<strong>递归定义的唯一性</strong> ✓ —— 教科书定理 ✓）<span class="math">·</span> <code>acc_inv</code>（取用子 ✓）。</li></ul></div><div class="block prose intuition-only"><p>⚠ <strong>一条关键分辨（本轮判红换来 ✓）</strong>：<code>acc_ind</code> 的 motive <strong>只吃 <code>x</code></strong> <span class="math">⇒</span> 用它的归纳假设<strong>拿不到"前驱的 <code>Acc</code>"</strong> ✗ <span class="math">⇒</span> <code>acc_inv</code> 必须用 <code>Acc.rec</code> 的<strong>下标感知</strong> motive（吃 <code>x</code> 与 <code>Acc α r x</code> 两个参数 ✓）<span class="math">⇒</span> 已放进<strong>库</strong> ✓，本单元只调用 ✓。</p></div><div class="block prose intuition-only"><p>⚠ <strong>写法提醒</strong>：<code>∀ …</code> 用<strong>逗号</strong>收尾（<code>∀ (x : α), …</code> ✓）—— 写成 <code>=&gt;</code> 会解析失败 ✗。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元⑬⑭（良基/良序）<span class="math">·</span> 单元㊵㊷（传递闭包/最小元）<span class="math">·</span> 台账 <strong>G-56 已修</strong> ✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit83.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">序数的无环性</span></a><a class="unit-nav-home" href="../chapters/i-6.html#units">目录</a><a class="unit-nav-link" href="../units/unit107.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title"><span class="math">∈-</span>归纳与序数三歧（上）</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-106"><h3><a href="#top">良基递归（Acc）</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-106-1"><summary>练习 1 · acc_intro_apply <span class="sol-meta">定理</span></summary><pre><code>theorem acc_intro_apply (α : Type) (r : α → α → Prop) (x : α)
+    (h : ∀ (y : α), r y x → Acc α r y) : Acc α r x :=
+  @Acc.intro α r x h</code></pre></details><details class="appendix-solution" id="app-sol-106-2"><summary>练习 2 · acc_ind_apply <span class="sol-meta">定理</span></summary><pre><code>theorem acc_ind_apply (α : Type) (r : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x)
+    (x : α) (h : Acc α r x) : motive x :=
+  acc_ind α r motive step x h</code></pre></details><details class="appendix-solution" id="app-sol-106-3"><summary>练习 3 · acc_unique_apply <span class="sol-meta">定理</span></summary><pre><code>theorem acc_unique_apply (α : Type) (β : Type) (r : α → α → Prop) (f : α → β) (g : α → β)
+    (spec : ∀ (x : α), (∀ (y : α), r y x → f y = g y) → f x = g x)
+    (x : α) (h : Acc α r x) : f x = g x :=
+  acc_unique α β r f g spec x h</code></pre></details><details class="appendix-solution" id="app-sol-106-4"><summary>练习 4 · acc_inv_apply <span class="sol-meta">定理</span></summary><pre><code>theorem acc_inv_apply (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) :
+    ∀ (y : α), r y x → Acc α r y :=
+  acc_inv α r x h</code></pre></details><details class="appendix-solution" id="app-sol-106-5"><summary>练习 5 · acc_no_self <span class="sol-meta">定理</span></summary><pre><code>theorem acc_no_self (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) :
+    ¬ (r x x) :=
+  acc_ind α r (fun (z : α) =&gt; ¬ (r z z))
+    (fun (z : α) (ih : ∀ (y : α), r y z → ¬ (r y y)) (hzz : r z z) =&gt; ih z hzz hzz) x h</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit83.html">← 83 序数的无环性</a><a class="next" href="../units/unit107.html">107 ∈-归纳与序数三歧（上） →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

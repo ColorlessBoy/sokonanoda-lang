@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>111 ℕ 的算术律（自建 add/mul） · 从集合论到实分析</title>
+<meta name="description" content="单元111 ℕ 的算术律（自建 add/mul）：导语、定义与定理、练习与解答。Unit 111 — Arithmetic Laws for Nat (self-built add/mul)">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit111.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li class="is-current"><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.6 单元</h3><ol><li><a href="../units/unit15.html">15 传递集与序数</a></li><li><a href="../units/unit16.html">16 序数的序：外延性、反对称与零序数</a></li><li><a href="../units/unit42.html">42 良序集的「最小元」</a></li><li><a href="../units/unit80.html">80 序数的元素仍是序数</a></li><li><a href="../units/unit81.html">81 后继的成员刻画</a></li><li><a href="../units/unit82.html">82 后继与序数的合流</a></li><li><a href="../units/unit83.html">83 序数的无环性</a></li><li><a href="../units/unit106.html">106 良基递归（Acc）</a></li><li><a href="../units/unit107.html">107 ∈-归纳与序数三歧（上）</a></li><li><a href="../units/unit108.html">108 序数三歧（引理与装配）</a></li><li><a href="../units/unit109.html">109 序数上的递归与加法（关系版 · 逆引理与结合律）</a></li><li><a href="../units/unit110.html">110 选择公理的取数据（良序定理线入口）</a></li><li class="is-current"><a href="../units/unit111.html">111 ℕ 的算术律（自建 add/mul）</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li aria-current="page">单元 111 ℕ 的算术律（自建 add/mul）</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-111-1">定义与定理</a></li>
+<li><a href="#ex-111-1">练习</a></li>
+<li><a href="#appendix-unit-111">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-6.html#units">↑ 本章目录</a>
+      <a href="../print/unit111.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-111">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-6.html">I.6</a> · 本章第 13 / 13 单元 · 全书第 111 / 112 单元</p>
+<h1><span class="unit-number">111</span> <span><span class="math">ℕ</span> 的算术律（自建 add/mul）</span></h1>
+<p class="unit-title-en">Unit 111 — Arithmetic Laws for Nat (self-built add/mul)</p>
+<p class="unit-meta">2 个定义 · 9 个定理 · 7 道练习 · <a href="#appendix-unit-111">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="111" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-111" aria-label="复制单元 111 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit111.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-6.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"（11 条）：</p></div><details class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li>定义：<code>add</code>（对<strong>第二个</strong>参数递归 ✓）<span class="math">·</span> <code>mul</code>（同 ✓）；</li><li><strong>定义性等式</strong>（<span class="math">ι</span> 归约，证明项就是 <code>Eq.refl</code> ✓）：<code>add_zero</code> <span class="math">·</span> <code>add_succ</code> <span class="math">·</span> <code>mul_zero</code> <span class="math">·</span> <code>mul_succ</code>；</li><li><strong>归纳律</strong>：<code>zero_add</code> <span class="math">·</span> <code>succ_add</code> <span class="math">·</span> <code>add_assoc</code> <span class="math">·</span> <code>add_comm</code>；</li><li><strong>搬运助手</strong>：<code>add_rotate</code>（<code>a+(b+c) = b+(a+c)</code> ✓ —— 由结合 <span class="math">+</span> 交换两步接起来 ✓）；</li><li><strong>乘法</strong>：<code>zero_mul</code> <span class="math">·</span> <strong><code>mul_distrib</code></strong>（分配律 <code>a·(b+c) = a·b + a·c</code> ✓）。</li></ul></details></div></section>
+<article class="decl decl-def" id="decl-111-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">add</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def add (a b : Nat) : Nat :=
+  Nat.rec (fun (_ : Nat) =&gt; Nat) a (fun (n : Nat) (ih : Nat) =&gt; Nat.succ ih) b</code></pre></div></article>
+<article class="decl decl-def" id="decl-111-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">mul</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def mul (a b : Nat) : Nat :=
+  Nat.rec (fun (_ : Nat) =&gt; Nat) Nat.zero (fun (n : Nat) (ih : Nat) =&gt; add a ih) b</code></pre></div></article>
+<article class="decl decl-theorem" id="decl-111-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_zero</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_zero (a : Nat) : @Eq.{1} Nat (add a Nat.zero) a :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 2 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）</code></pre></li><li><pre><code>  @Eq.refl.{1} Nat a</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-111-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">add_succ</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem add_succ (a b : Nat) : @Eq.{1} Nat (add a (Nat.succ b)) (Nat.succ (add a b)) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 2 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）</code></pre></li><li><pre><code>  @Eq.refl.{1} Nat (Nat.succ (add a b))</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-111-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">zero_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-111-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（L 类）：<strong><code>0 + b = b</code></strong>。思路：对 <code>b</code> 归纳（<code>Nat.rec</code> <span class="math">+ Prop</span> 动机 ✓）；零情形<strong>定义性成立</strong>（<code>Eq.refl</code> ✓）；后继情形把归纳假设沿 <code>Nat.succ</code> 搬过去（<strong><code>Eq.subst</code> <span class="math">+</span> 谓词</strong> ✓）。关键件：<code>Nat.rec</code>（<strong>动机 <span class="math">·</span> 零情形 <span class="math">·</span> 后继情形 <span class="math">·</span> 被归纳项</strong> ✓）<span class="math">·</span> <code>Eq.{1}</code> / <code>Eq.refl.{1}</code> / <code>Eq.subst.{1}</code> ✓  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）</p></div></div><pre class="exercise-statement"><code>theorem zero_add (b : Nat) : @Eq.{1} Nat (add Nat.zero b) b := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry</code></pre><details class="solution-panel" id="sol-111-1"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem zero_add (b : Nat) : @Eq.{1} Nat (add Nat.zero b) b :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) =&gt; @Eq.{1} Nat (add Nat.zero n) n)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : @Eq.{1} Nat (add Nat.zero n) n) =&gt;  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.subst.{1} Nat (fun (m : Nat) =&gt; @Eq.{1} Nat (Nat.succ (add Nat.zero n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (add Nat.zero n) n ih (@Eq.refl.{1} Nat (Nat.succ (add Nat.zero n))))
+    b</code></pre></div></details></div></article>
+<article class="exercise" id="ex-111-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">succ_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-111-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类）：<strong><code>(s a) + b = s (a + b)</code></strong>。思路：同练习 1 的归纳骨架，但零情形是 <code>s a = s a</code> ✓、后继情形把假设搬过一层 <code>Nat.succ</code> ✓。关键件：同练习 1 ✓</p></div></div><pre class="exercise-statement"><code>theorem succ_add (a b : Nat) : @Eq.{1} Nat (add (Nat.succ a) b) (Nat.succ (add a b)) := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry</code></pre><details class="solution-panel" id="sol-111-2"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem succ_add (a b : Nat) : @Eq.{1} Nat (add (Nat.succ a) b) (Nat.succ (add a b)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) =&gt; @Eq.{1} Nat (add (Nat.succ a) n) (Nat.succ (add a n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat (Nat.succ a))
+    (fun (n : Nat) (ih : @Eq.{1} Nat (add (Nat.succ a) n) (Nat.succ (add a n))) =&gt;  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; @Eq.{1} Nat (Nat.succ (add (Nat.succ a) n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (add (Nat.succ a) n) (Nat.succ (add a n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (add (Nat.succ a) n))))
+    b</code></pre></div></details></div></article>
+<article class="exercise" id="ex-111-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">add_assoc</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-111-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<strong>加法结合律</strong> <code>(a+b)+c = a+(b+c)</code>。思路：对 <code>c</code> 归纳；后继情形两边都变成 <code>Nat.succ</code> 套同一个中间项 <span class="math">⇒</span> 搬运归纳假设 ✓。关键件：同练习 1 ✓</p></div></div><pre class="exercise-statement"><code>theorem add_assoc (a b c : Nat) :
+    @Eq.{1} Nat (add (add a b) c) (add a (add b c)) := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry</code></pre><details class="solution-panel" id="sol-111-3"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem add_assoc (a b c : Nat) :
+    @Eq.{1} Nat (add (add a b) c) (add a (add b c)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) =&gt; @Eq.{1} Nat (add (add a b) n) (add a (add b n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat (add a b))
+    (fun (n : Nat) (ih : @Eq.{1} Nat (add (add a b) n) (add a (add b n))) =&gt;  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; @Eq.{1} Nat (Nat.succ (add (add a b) n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (add (add a b) n) (add a (add b n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (add (add a b) n))))
+    c</code></pre></div></details></div></article>
+<article class="exercise" id="ex-111-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">add_comm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-111-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：<strong>加法交换律</strong> <code>a+b = b+a</code>。思路：对 <code>b</code> 归纳。零情形要 <strong><code>zero_add</code> 的对称</strong>（<code>Eq.symm</code> ✓）；后继情形用<strong>两步 <code>Eq.trans</code></strong>：先把归纳假设搬到 <code>Nat.succ</code> 下 ✓，再用 <strong><code>succ_add</code> 的对称</strong>把 <code>s (b+a)</code> 换成 <code>(s b)+a</code> ✓。关键件：练习 <span class="math">1 ·</span> 练习 <span class="math">2 ·</span> <code>Eq.symm.{1}</code> <span class="math">·</span> <code>Eq.trans.{1}</code>（<strong>三步要写清中间项</strong> ✓）</p></div></div><pre class="exercise-statement"><code>theorem add_comm (a b : Nat) : @Eq.{1} Nat (add a b) (add b a) := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry</code></pre><details class="solution-panel" id="sol-111-4"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem add_comm (a b : Nat) : @Eq.{1} Nat (add a b) (add b a) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) =&gt; @Eq.{1} Nat (add a n) (add n a))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.symm.{1} Nat (add Nat.zero a) a (zero_add a))
+    (fun (n : Nat) (ih : @Eq.{1} Nat (add a n) (add n a)) =&gt;  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.trans.{1} Nat (Nat.succ (add a n)) (Nat.succ (add n a)) (add (Nat.succ n) a)
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; @Eq.{1} Nat (Nat.succ (add a n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (add a n) (add n a) ih
+          (@Eq.refl.{1} Nat (Nat.succ (add a n))))
+        (@Eq.symm.{1} Nat (add (Nat.succ n) a) (Nat.succ (add n a)) (succ_add n a)))
+    b</code></pre></div></details></div></article>
+<article class="exercise" id="ex-111-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">add_rotate</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-111-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>搬运助手</strong>）：<strong><code>a+(b+c) = b+(a+c)</code></strong>。思路：<strong>先拆链</strong> ✓ —— <code>a+(b+c) = (a+b)+c</code>（结合律的对称 ✓）<span class="math">⇒</span> <code>= (b+a)+c</code>（把内层交换 ✓，用 <code>Eq.subst</code> <span class="math">+</span> 谓词 ✓）<span class="math">⇒</span> <code>= b+(a+c)</code>（结合律 ✓）。关键件：练习 3（<strong>两次</strong>，一次取对称 ✓）<span class="math">·</span> 练习 <span class="math">4 ·</span> <code>Eq.subst.{1}</code>（<strong>谓词 <code>fun m =&gt; (a+b)+c = m+c</code></strong> ✓）<span class="math">·</span> <code>Eq.trans.{1}</code></p></div></div><pre class="exercise-statement"><code>theorem add_rotate (a b c : Nat) :
+    @Eq.{1} Nat (add a (add b c)) (add b (add a c)) := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry</code></pre><details class="solution-panel" id="sol-111-5"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem add_rotate (a b c : Nat) :
+    @Eq.{1} Nat (add a (add b c)) (add b (add a c)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  @Eq.trans.{1} Nat (add a (add b c)) (add (add a b) c) (add b (add a c))
+    (@Eq.symm.{1} Nat (add (add a b) c) (add a (add b c)) (add_assoc a b c))
+    (@Eq.trans.{1} Nat (add (add a b) c) (add (add b a) c) (add b (add a c))
+      (@Eq.subst.{1} Nat (fun (m : Nat) =&gt; @Eq.{1} Nat (add (add a b) c) (add m c))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (add a b) (add b a) (add_comm a b) (@Eq.refl.{1} Nat (add (add a b) c)))
+      (add_assoc b a c))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-111-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">zero_mul</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-111-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类）：<strong><code>0 · b = 0</code></strong>。思路：对 <code>b</code> 归纳；后继情形 <code>0·(s n) = 0 + 0·n</code>（<strong><span class="math">ι</span> 归约</strong> ✓）<span class="math">⇒</span> 用归纳假设把第二项换成 <code>0</code> ✓ <span class="math">⇒</span> 再用 <strong><code>zero_add</code></strong> 收尾。关键件：<code>Eq.subst.{1}</code>（谓词 <code>fun m =&gt; 0 + 0·n = 0 + m</code> ✓）<span class="math">·</span> 练习 <span class="math">1 ·</span> <code>Eq.trans.{1}</code></p></div></div><pre class="exercise-statement"><code>theorem zero_mul (b : Nat) : @Eq.{1} Nat (mul Nat.zero b) Nat.zero := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry</code></pre><details class="solution-panel" id="sol-111-6"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem zero_mul (b : Nat) : @Eq.{1} Nat (mul Nat.zero b) Nat.zero :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) =&gt; @Eq.{1} Nat (mul Nat.zero n) Nat.zero)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : @Eq.{1} Nat (mul Nat.zero n) Nat.zero) =&gt;  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.trans.{1} Nat (add Nat.zero (mul Nat.zero n)) (add Nat.zero Nat.zero) Nat.zero
+        (@Eq.subst.{1} Nat (fun (m : Nat) =&gt; @Eq.{1} Nat (add Nat.zero (mul Nat.zero n)) (add Nat.zero m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (mul Nat.zero n) Nat.zero ih (@Eq.refl.{1} Nat (add Nat.zero (mul Nat.zero n))))
+        (zero_add Nat.zero))
+    b</code></pre></div></details></div></article>
+<article class="exercise" id="ex-111-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">mul_distrib</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-111-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类，<strong>分配律</strong>）：<strong><code>a·(b+c) = a·b + a·c</code></strong>。思路：对 <code>c</code> 归纳。零情形<strong>定义性成立</strong> ✓；后继情形：左边 <span class="math">ι</span> 归约成 <code>a + a·(b+n)</code> ✓，用归纳假设替换内层 ✓，再用 <strong><code>add_rotate</code></strong> 把 <code>a + (a·b + a·n)</code> 旋成 <code>a·b + (a + a·n)</code> ✓ —— 右边正好 <span class="math">ι</span> 归约成它 ✓。关键件：练习 <span class="math">5 ·</span> <code>Eq.subst.{1}</code> <span class="math">·</span> <code>Eq.trans.{1}</code> <span class="math">·</span> <code>Eq.refl.{1}</code>（零情形 ✓）</p></div></div><pre class="exercise-statement"><code>theorem mul_distrib (a b c : Nat) :
+    @Eq.{1} Nat (mul a (add b c)) (add (mul a b) (mul a c)) := by  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  sorry</code></pre><details class="solution-panel" id="sol-111-7"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem mul_distrib (a b c : Nat) :
+    @Eq.{1} Nat (mul a (add b c)) (add (mul a b) (mul a c)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) =&gt; @Eq.{1} Nat (mul a (add b n)) (add (mul a b) (mul a n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat (mul a b))
+    (fun (n : Nat) (ih : @Eq.{1} Nat (mul a (add b n)) (add (mul a b) (mul a n))) =&gt;  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.trans.{1} Nat (add a (mul a (add b n))) (add a (add (mul a b) (mul a n)))
+        (add (mul a b) (add a (mul a n)))
+        (@Eq.subst.{1} Nat (fun (m : Nat) =&gt; @Eq.{1} Nat (add a (mul a (add b n))) (add a m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (mul a (add b n)) (add (mul a b) (mul a n)) ih
+          (@Eq.refl.{1} Nat (add a (mul a (add b n)))))
+        (add_rotate a (mul a b) (mul a n)))
+    c</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（5 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§4.1–§4.3</strong>（自然数与递归定理）<span class="math">·Halmos</span>《Naive Set Theory》<strong>§11/§12</strong>。大纲 §4.1（<strong>卷 I 收官主线</strong> ✓ —— 接单元106–110 ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>本单元为什么必须"自建"算术</strong> ✓：本语言的 prelude <strong>只有 <code>Nat</code> 的构造子</strong>（<code>Nat.zero</code> / <code>Nat.succ</code> ✓）与 <code>Nat.rec</code> ✓ —— <strong>没有 <code>Nat.add</code> / <code>Nat.mul</code></strong> ✗ <span class="math">⇒</span> 课程<strong>自己用 <code>Nat.rec</code> 定义</strong>它们 ✓，再用<strong>归纳</strong>证律 ✓。这正是台账 <strong>G-76</strong>（Nat 算术律展开）修好之后的兑现 ✓。</p></div><div class="block prose intuition-only"><p>⚠ <strong>写法要点（本单元一次判绿 ✓，值得照抄）</strong>：① 返回 <code>Nat</code> 的声明写 <strong><code>def</code></strong> ✗（<code>theorem</code> 只收 <code>Prop</code>）；② 等式一律写 <strong><code>Eq.{1}</code></strong> ✓、证明项写 <code>Eq.refl.{1}</code> / <code>Eq.subst.{1}</code> / <code>Eq.trans.{1}</code> / <code>Eq.symm.{1}</code> ✓  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）（嵌套位置的等式不给宇宙会判红 ✓）；③ <strong>归纳 <span class="math">=</span> <code>Nat.rec</code> <span class="math">+ Prop</span> 动机</strong> ✓（动机写 <code>fun (n : Nat) =&gt; Eq.{1} Nat …</code> ✓）；④ 归纳步用 <strong><code>Eq.subst</code> <span class="math">+</span> 谓词</strong> ✓  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）（谓词方向决定结果方向 ✓）。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理与 prelude 的 <code>Classical.*</code> ✓。<strong>本单元 <code>import</code> 一样</strong>：<code>lib.Set</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元106–110 ✓（<code>Acc</code>/递归/选择公理线 ✓）</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit110.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">选择公理的取数据（良序定理线入口）</span></a><a class="unit-nav-home" href="../chapters/i-6.html#units">目录</a><a class="unit-nav-link" href="../units/unit17.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">选择公理</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-111"><h3><a href="#top"><span class="math">ℕ</span> 的算术律（自建 add/mul）</a></h3><p class="appendix-meta">7 道练习 · 7 份按名匹配的解答 · 2 个解答独有声明</p><details class="appendix-solution" id="app-sol-111-1"><summary>练习 1 · zero_add <span class="sol-meta">定理</span></summary><pre><code>theorem zero_add (b : Nat) : @Eq.{1} Nat (add Nat.zero b) b :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) =&gt; @Eq.{1} Nat (add Nat.zero n) n)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : @Eq.{1} Nat (add Nat.zero n) n) =&gt;  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.subst.{1} Nat (fun (m : Nat) =&gt; @Eq.{1} Nat (Nat.succ (add Nat.zero n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (add Nat.zero n) n ih (@Eq.refl.{1} Nat (Nat.succ (add Nat.zero n))))
+    b</code></pre></details><details class="appendix-solution" id="app-sol-111-2"><summary>练习 2 · succ_add <span class="sol-meta">定理</span></summary><pre><code>theorem succ_add (a b : Nat) : @Eq.{1} Nat (add (Nat.succ a) b) (Nat.succ (add a b)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) =&gt; @Eq.{1} Nat (add (Nat.succ a) n) (Nat.succ (add a n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat (Nat.succ a))
+    (fun (n : Nat) (ih : @Eq.{1} Nat (add (Nat.succ a) n) (Nat.succ (add a n))) =&gt;  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; @Eq.{1} Nat (Nat.succ (add (Nat.succ a) n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (add (Nat.succ a) n) (Nat.succ (add a n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (add (Nat.succ a) n))))
+    b</code></pre></details><details class="appendix-solution" id="app-sol-111-3"><summary>练习 3 · add_assoc <span class="sol-meta">定理</span></summary><pre><code>theorem add_assoc (a b c : Nat) :
+    @Eq.{1} Nat (add (add a b) c) (add a (add b c)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) =&gt; @Eq.{1} Nat (add (add a b) n) (add a (add b n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat (add a b))
+    (fun (n : Nat) (ih : @Eq.{1} Nat (add (add a b) n) (add a (add b n))) =&gt;  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) =&gt; @Eq.{1} Nat (Nat.succ (add (add a b) n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (add (add a b) n) (add a (add b n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (add (add a b) n))))
+    c</code></pre></details><details class="appendix-solution" id="app-sol-111-4"><summary>练习 4 · add_comm <span class="sol-meta">定理</span></summary><pre><code>theorem add_comm (a b : Nat) : @Eq.{1} Nat (add a b) (add b a) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) =&gt; @Eq.{1} Nat (add a n) (add n a))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.symm.{1} Nat (add Nat.zero a) a (zero_add a))
+    (fun (n : Nat) (ih : @Eq.{1} Nat (add a n) (add n a)) =&gt;  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.trans.{1} Nat (Nat.succ (add a n)) (Nat.succ (add n a)) (add (Nat.succ n) a)
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) =&gt; @Eq.{1} Nat (Nat.succ (add a n)) (Nat.succ m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (add a n) (add n a) ih
+          (@Eq.refl.{1} Nat (Nat.succ (add a n))))
+        (@Eq.symm.{1} Nat (add (Nat.succ n) a) (Nat.succ (add n a)) (succ_add n a)))
+    b</code></pre></details><details class="appendix-solution" id="app-sol-111-5"><summary>练习 5 · add_rotate <span class="sol-meta">定理</span></summary><pre><code>theorem add_rotate (a b c : Nat) :
+    @Eq.{1} Nat (add a (add b c)) (add b (add a c)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  @Eq.trans.{1} Nat (add a (add b c)) (add (add a b) c) (add b (add a c))
+    (@Eq.symm.{1} Nat (add (add a b) c) (add a (add b c)) (add_assoc a b c))
+    (@Eq.trans.{1} Nat (add (add a b) c) (add (add b a) c) (add b (add a c))
+      (@Eq.subst.{1} Nat (fun (m : Nat) =&gt; @Eq.{1} Nat (add (add a b) c) (add m c))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+        (add a b) (add b a) (add_comm a b) (@Eq.refl.{1} Nat (add (add a b) c)))
+      (add_assoc b a c))</code></pre></details><details class="appendix-solution" id="app-sol-111-6"><summary>练习 6 · zero_mul <span class="sol-meta">定理</span></summary><pre><code>theorem zero_mul (b : Nat) : @Eq.{1} Nat (mul Nat.zero b) Nat.zero :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) =&gt; @Eq.{1} Nat (mul Nat.zero n) Nat.zero)  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : @Eq.{1} Nat (mul Nat.zero n) Nat.zero) =&gt;  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.trans.{1} Nat (add Nat.zero (mul Nat.zero n)) (add Nat.zero Nat.zero) Nat.zero
+        (@Eq.subst.{1} Nat (fun (m : Nat) =&gt; @Eq.{1} Nat (add Nat.zero (mul Nat.zero n)) (add Nat.zero m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (mul Nat.zero n) Nat.zero ih (@Eq.refl.{1} Nat (add Nat.zero (mul Nat.zero n))))
+        (zero_add Nat.zero))
+    b</code></pre></details><details class="appendix-solution" id="app-sol-111-7"><summary>练习 7 · mul_distrib <span class="sol-meta">定理</span></summary><pre><code>theorem mul_distrib (a b c : Nat) :
+    @Eq.{1} Nat (mul a (add b c)) (add (mul a b) (mul a c)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  Nat.rec (fun (n : Nat) =&gt; @Eq.{1} Nat (mul a (add b n)) (add (mul a b) (mul a n)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (@Eq.refl.{1} Nat (mul a b))
+    (fun (n : Nat) (ih : @Eq.{1} Nat (mul a (add b n)) (add (mul a b) (mul a n))) =&gt;  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+      @Eq.trans.{1} Nat (add a (mul a (add b n))) (add a (add (mul a b) (mul a n)))
+        (add (mul a b) (add a (mul a n)))
+        (@Eq.subst.{1} Nat (fun (m : Nat) =&gt; @Eq.{1} Nat (add a (mul a (add b n))) (add a m))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+          (mul a (add b n)) (add (mul a b) (mul a n)) ih
+          (@Eq.refl.{1} Nat (add a (mul a (add b n)))))
+        (add_rotate a (mul a b) (mul a n)))
+    c</code></pre></details><details class="appendix-solution" id="app-extra-111-1"><summary>补充 · mul_zero <span class="sol-meta">定理</span></summary><pre><code>theorem mul_zero (a : Nat) : @Eq.{1} Nat (mul a Nat.zero) Nat.zero :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  @Eq.refl.{1} Nat Nat.zero</code></pre></details><details class="appendix-solution" id="app-extra-111-2"><summary>补充 · mul_succ <span class="sol-meta">定理</span></summary><pre><code>theorem mul_succ (a b : Nat) : @Eq.{1} Nat (mul a (Nat.succ b)) (add a (mul a b)) :=  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+  @Eq.refl.{1} Nat (add a (mul a b))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit110.html">← 110 选择公理的取数据（良序定理线入口）</a><a class="next" href="../units/unit17.html">17 选择公理 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

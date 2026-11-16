@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>109 序数上的递归与加法（关系版 · 逆引理与结合律） · 从集合论到实分析</title>
+<meta name="description" content="单元109 序数上的递归与加法（关系版 · 逆引理与结合律）：导语、定义与定理、练习与解答。Unit 109 — Recursion on Ordinals and Relational Addition">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit109.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li class="is-current"><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.6 单元</h3><ol><li><a href="../units/unit15.html">15 传递集与序数</a></li><li><a href="../units/unit16.html">16 序数的序：外延性、反对称与零序数</a></li><li><a href="../units/unit42.html">42 良序集的「最小元」</a></li><li><a href="../units/unit80.html">80 序数的元素仍是序数</a></li><li><a href="../units/unit81.html">81 后继的成员刻画</a></li><li><a href="../units/unit82.html">82 后继与序数的合流</a></li><li><a href="../units/unit83.html">83 序数的无环性</a></li><li><a href="../units/unit106.html">106 良基递归（Acc）</a></li><li><a href="../units/unit107.html">107 ∈-归纳与序数三歧（上）</a></li><li><a href="../units/unit108.html">108 序数三歧（引理与装配）</a></li><li class="is-current"><a href="../units/unit109.html">109 序数上的递归与加法（关系版 · 逆引理与结合律）</a></li><li><a href="../units/unit110.html">110 选择公理的取数据（良序定理线入口）</a></li><li><a href="../units/unit111.html">111 ℕ 的算术律（自建 add/mul）</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li aria-current="page">单元 109 序数上的递归与加法（关系版 · 逆引理与结合律）</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-109-1">定义与定理</a></li>
+<li><a href="#ex-109-1">练习</a></li>
+<li><a href="#appendix-unit-109">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-6.html#units">↑ 本章目录</a>
+      <a href="../print/unit109.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-109">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-6.html">I.6</a> · 本章第 11 / 13 单元 · 全书第 109 / 112 单元</p>
+<h1><span class="unit-number">109</span> <span>序数上的递归与加法（关系版 <span class="math">·</span> 逆引理与结合律）</span></h1>
+<p class="unit-title-en">Unit 109 — Recursion on Ordinals and Relational Addition</p>
+<p class="unit-meta">1 个定义 · 9 个定理 · 1 个归纳类型 · 6 道练习 · <a href="#appendix-unit-109">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="109" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-109" aria-label="复制单元 109 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit109.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-6.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>递归子</strong>（<code>ordinal_rec_nat</code> ✓ —— 沿良基关系定义到 <code>Nat</code> 的函数 ✓）；</li><li><strong>计算规则</strong>（<code>ordinal_rec_nat_eq</code> ✓ —— 对 <code>Acc.intro</code> 定义性地归约 ✓）；</li><li><strong>唯一性</strong>（<code>ordinal_rec_nat_unique</code> ✓ —— 同一递归方程的两条解相等 ✓，不需选择公理 ✓）；</li><li><strong>加法（关系版）</strong>（<code>AddsTo</code> ✓）：<code>zero</code> 与 <code>succ</code> 两条构造子 ✓</li></ul></div><div class="math-display intuition-only" role="math" aria-label="—— x + 0 = x ✓、x + (σ y) = σ (x + y) ✓"><math display="block" class="mathml"><mrow><mo>—</mo><mo>—</mo><mspace width="0.22em"/><mi>x</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mn>0</mn><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>x</mi><mspace width="0.22em"/><mo>✓</mo><mo>、</mo><mi>x</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mo>σ</mo><mspace width="0.22em"/><mi>y</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mo>σ</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>x</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi>y</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>✓</mo></mrow></math></div></div></section>
+<article class="decl decl-theorem" id="decl-109-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_acc_ind</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_acc_ind (α : Type) (r : α → α → Prop) (motive : α → Prop)
+    (step : ∀ (x : α), (∀ (y : α), r y x → motive y) → motive x) :
+    ∀ (x : α), Acc α r x → motive x :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  acc_ind α r motive step</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-109-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_acc_inv</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_acc_inv (α : Type) (r : α → α → Prop) (x : α) (h : Acc α r x) :
+    ∀ (y : α), r y x → Acc α r y :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  acc_inv α r x h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-109-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_acc_unique</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_acc_unique (α : Type) (β : Type) (r : α → α → Prop) (f : α → β) (g : α → β)
+    (spec : ∀ (x : α), (∀ (y : α), r y x → f y = g y) → f x = g x) :
+    ∀ (x : α), Acc α r x → f x = g x :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  acc_unique α β r f g spec</code></pre></li></ol></details></div></article>
+<article class="decl decl-inductive" id="decl-109-4"><header class="decl-head"><span class="decl-kind kind-inductive">归纳类型</span><code class="decl-name">AddsTo</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>inductive AddsTo (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α) : α → α → α → Prop
+ctor zero (x : α) : AddsTo α E σ zero x zero x
+ctor succ (x : α) (y : α) (z : α) (h : AddsTo α E σ zero x y z) :
+  AddsTo α E σ zero x (σ y) (σ z)
+end</code></pre></div></article>
+<div class="block prose intuition-only"><p>练习 1（L 类，<strong>递归子</strong>）：<strong>沿良基关系定义到 <code>Nat</code> 的函数</strong>（返回 <code>Nat</code> <span class="math">⇒</span> 写 <code>def</code> ✗）。思路：直接用 <code>Acc.rec</code>，motive 取具体类型 <code>Nat</code>（<strong>变量 <code>β : Type</code> 会撞宇宙边界</strong> ✗），把"前驱的递归值"函数交给调用方给的 <code>step</code>。关键件：<strong><code>Acc.rec</code></strong>（motive 写 <code>fun z _ =&gt; Nat</code> ✓）<span class="math">·</span> <code>step</code> 的<strong>两个参数</strong>（点 <span class="math">·</span> 前驱递归值函数 ✓）</p></div><article class="decl decl-def" id="decl-109-5"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ordinal_rec_nat</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>def ordinal_rec_nat (α : Type) (E : α → α → Prop) (x : α)
+    (step : ∀ (z : α), (∀ (w : α), E w z → Nat) → Nat) (h : Acc α E x) : Nat :=
+  Acc.rec α E (fun (z : α) (_ : Acc α E z) =&gt; Nat)
+    (fun (z : α) (hz : ∀ (w : α), E w z → Acc α E w)
+      (ih : ∀ (w : α) (hw : E w z), Nat) =&gt; step z ih) x h</code></pre></div></article>
+<article class="exercise" id="ex-109-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ordinal_rec_nat_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-109-1">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem ordinal_rec_nat_eq (α : Type) (E : α → α → Prop) (x : α)
+    (step : ∀ (z : α), (∀ (w : α), E w z → Nat) → Nat)
+    (hr : ∀ (w : α), E w x → Acc α E w) :
+    @Eq.{1} Nat (ordinal_rec_nat α E x step (@Acc.intro α E x hr))  -- soko:notation-ok: 等式族证明项的宇宙层级 / inductive 头（手册边界）
+      (step x (fun (w : α) (hw : E w x) =&gt; ordinal_rec_nat α E w step (hr w hw))) := by
+  sorry</code></pre><details class="solution-panel" id="sol-109-1"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem ordinal_rec_nat_eq (α : Type) (E : α → α → Prop) (x : α)
+    (step : ∀ (z : α), (∀ (w : α), E w z → Nat) → Nat)
+    (hr : ∀ (w : α), E w x → Acc α E w) :
+    @Eq.{1} Nat (ordinal_rec_nat α E x step (@Acc.intro α E x hr))  -- soko:notation-ok: 等式族证明项的宇宙层级 / inductive 头（手册边界）
+      (step x (fun (w : α) (hw : E w x) =&gt; ordinal_rec_nat α E w step (hr w hw))) :=
+  @Eq.refl.{1} Nat (step x (fun (w : α) (hw : E w x) =&gt; ordinal_rec_nat α E w step (hr w hw)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-109-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ordinal_rec_nat_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-109-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类，<strong>唯一性</strong>）：<strong>同一递归方程的两条解相等</strong>。关键件：<code>acc_unique</code>（库 ✓，<strong>六点按序</strong> ✓）</p></div></div><pre class="exercise-statement"><code>theorem ordinal_rec_nat_unique (α : Type) (E : α → α → Prop)
+    (f : α → Nat) (g : α → Nat)
+    (spec : ∀ (x : α), (∀ (y : α), E y x → f y = g y) → f x = g x) :
+    ∀ (x : α), Acc α E x → f x = g x := by
+  sorry</code></pre><details class="solution-panel" id="sol-109-2"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem ordinal_rec_nat_unique (α : Type) (E : α → α → Prop)
+    (f : α → Nat) (g : α → Nat)
+    (spec : ∀ (x : α), (∀ (y : α), E y x → f y = g y) → f x = g x) :
+    ∀ (x : α), Acc α E x → f x = g x :=
+  acc_unique α Nat E f g spec</code></pre></div></details></div></article>
+<article class="exercise" id="ex-109-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">addsTo_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-109-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：<strong>加法关系：<code>x + 0 = x</code></strong>。关键件：<code>AddsTo.zero</code>（<strong>五点按序</strong>：类型 <span class="math">·</span> 关系 <span class="math">·</span> 后继算子 <span class="math">·</span> 零 <span class="math">·</span> 点 ✓）</p></div></div><pre class="exercise-statement"><code>theorem addsTo_zero (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α) (x : α) :
+    AddsTo α E σ zero x zero x := by
+  sorry</code></pre><details class="solution-panel" id="sol-109-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem addsTo_zero (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α) (x : α) :
+    AddsTo α E σ zero x zero x :=
+  @AddsTo.zero α E σ zero x</code></pre></div></details></div></article>
+<article class="exercise" id="ex-109-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">addsTo_succ</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-109-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（T 类）：<strong>加法关系：<code>x + (σ y) = σ (x + y)</code></strong>。关键件：<code>AddsTo.succ</code>（<strong>七点按序</strong> ✓）</p></div></div><pre class="exercise-statement"><code>theorem addsTo_succ (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (x : α) (y : α) (z : α) (h : AddsTo α E σ zero x y z) :
+    AddsTo α E σ zero x (σ y) (σ z) := by
+  sorry</code></pre><details class="solution-panel" id="sol-109-4"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem addsTo_succ (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (x : α) (y : α) (z : α) (h : AddsTo α E σ zero x y z) :
+    AddsTo α E σ zero x (σ y) (σ z) :=
+  @AddsTo.succ α E σ zero x y z h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-109-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">addsTo_succ_inv</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-109-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（T 类，<strong>逆引理</strong>）：把 <code>x + (σ y) = v</code> 的 <code>v</code> 取成<strong>后继</strong>，并交出前驱那一半。思路：对<strong>推导</strong> <code>h</code> 做归纳（<code>AddsTo.rec</code>）—— <code>zero</code> 构造子与"<code>σ y = zero</code>"矛盾，<code>succ</code> 构造子要用单射性对齐索引。关键件：<code>AddsTo.rec</code>（motive 取 <code>∀ (y : α), b = σ y → …</code>，<strong>索引参数化</strong>）<span class="math">·</span> <code>hne</code>/<code>hinj</code> 两条假设 <span class="math">·</span> <code>False.elim</code>（目标写全）<span class="math">·</span> 一次搬运把 <code>x + b = c</code> 换成 <code>x + y = c</code>。⚠ 两条假设是<strong>命题本身需要</strong>的（不是排版）：<code>AddsTo</code> 对任意 <code>σ</code>/<code>zero</code> 定义 —— <code>σ</code> 恒取 <code>zero</code> 时 <code>v</code> 可以不是后继；非单射的 <code>σ</code> 会让索引对不齐。序数上它们分别是「<code>∅</code> 不是后继」与「后继单射」。</p></div></div><pre class="exercise-statement"><code>theorem addsTo_succ_inv (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (hne : ∀ (w : α), σ w ≠ zero) (hinj : ∀ (a : α) (b : α), σ a = σ b → a = b)
+    (x : α) (y : α) (v : α) (h : AddsTo α E σ zero x (σ y) v) :
+    ∃ (z : α), v = σ z ∧ AddsTo α E σ zero x y z :=
+  sorry</code></pre><details class="solution-panel" id="sol-109-5"><summary>查看解答 <span class="sol-meta">定理 · 18 行</span></summary><div class="solution-body"><p class="solution-note">── C-05 装配（2026-10-08）：逆引理与结合律（G-73 家族修好后可写 ✓）─────────
+逆引理：<code>AddsTo x (σ y) v ⇒ v</code> 是后继、且前驱那一半成立。
+<code>hne</code>/<code>hinj</code> 是<strong>命题本身需要</strong>的（<code>AddsTo</code> 对任意 <code>σ</code>/<code>zero</code> 定义）。</p><pre><code>theorem addsTo_succ_inv (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (hne : ∀ (w : α), σ w ≠ zero) (hinj : ∀ (a : α) (b : α), σ a = σ b → a = b)
+    (x : α) (y : α) (v : α) (h : AddsTo α E σ zero x (σ y) v) :
+    ∃ (z : α), v = σ z ∧ AddsTo α E σ zero x y z :=
+  AddsTo.rec α E σ zero
+    (fun (a : α) (b : α) (c : α) (_ : AddsTo α E σ zero a b c) =&gt;
+      ∀ (y : α), b = σ y → ∃ (z : α), c = σ z ∧ AddsTo α E σ zero a y z)
+    (fun (a : α) =&gt; fun (y : α) (he : zero = σ y) =&gt;
+      @False.elim (∃ (z : α), a = σ z ∧ AddsTo α E σ zero a y z)
+        (hne y (@Eq.symm.{1} α zero (σ y) he)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (a : α) (b : α) (c : α) (hh : AddsTo α E σ zero a b c)
+        (ih : ∀ (y : α), b = σ y → ∃ (z : α), c = σ z ∧ AddsTo α E σ zero a y z) =&gt;
+      fun (y : α) (he : σ b = σ y) =&gt;
+        Exists.intro c
+          (And.intro (@Eq.refl.{1} α (σ c))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+            (@Eq.subst.{1} α (fun (t : α) =&gt; AddsTo α E σ zero a t c) b y  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+              (@Eq.symm.{1} α y b (hinj y b (@Eq.symm.{1} α (σ b) (σ y) he))) hh)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    x (σ y) v h y (@Eq.refl.{1} α (σ y))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）</code></pre></div></details></div></article>
+<article class="exercise" id="ex-109-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">addsTo_assoc</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-109-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（T 类，<strong>装配</strong>）：关系版加法的<strong>结合律</strong> —— <code>(x + y) + w = x + (y + w)</code>（Enderton §8.1）。思路：对<strong>第二条推导</strong>做归纳（第一条推导的实例作为一般化参数）—— 零情形取 <code>u := y</code>；后继情形把归纳得到的 <code>u</code> 再套一层 <code>σ</code>。关键件：<code>AddsTo.rec</code>（motive 里把 <code>x y</code> 与 <code>h1</code> 一并 <code>∀</code> 出来）<span class="math">·</span> <code>Exists.elim</code> <span class="math">·</span> <code>And.left</code>/<code>And.right</code> <span class="math">·</span> 两次 <code>AddsTo.succ</code>。⚠ 对<strong>第二条</strong>推导归纳时不需要练习 6 的逆引理（逆引理是独立有用的一条）。</p></div></div><pre class="exercise-statement"><code>theorem addsTo_assoc (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (x : α) (y : α) (z : α) (v : α) (w : α)
+    (h1 : AddsTo α E σ zero x y z) (h2 : AddsTo α E σ zero z w v) :
+    ∃ (u : α), AddsTo α E σ zero y w u ∧ AddsTo α E σ zero x u v :=
+  sorry</code></pre><details class="solution-panel" id="sol-109-6"><summary>查看解答 <span class="sol-meta">定理 · 26 行</span></summary><div class="solution-body"><p class="solution-note">结合律：对<strong>第二条推导</strong> <code>h2</code> 归纳（<code>h1</code> 的实例作为一般化参数）；零情形取 <code>u := y</code>，后继情形再套一层 <code>σ</code>。</p><pre><code>theorem addsTo_assoc (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (x : α) (y : α) (z : α) (v : α) (w : α)
+    (h1 : AddsTo α E σ zero x y z) (h2 : AddsTo α E σ zero z w v) :
+    ∃ (u : α), AddsTo α E σ zero y w u ∧ AddsTo α E σ zero x u v :=
+  AddsTo.rec α E σ zero
+    (fun (a : α) (b : α) (c : α) (_ : AddsTo α E σ zero a b c) =&gt;
+      ∀ (x : α) (y : α), AddsTo α E σ zero x y a →
+        ∃ (u : α), AddsTo α E σ zero y b u ∧ AddsTo α E σ zero x u c)
+    (fun (a : α) =&gt; fun (x : α) (y : α) (h : AddsTo α E σ zero x y a) =&gt;
+      Exists.intro
+        y (And.intro
+          (@AddsTo.zero α E σ zero y) h))
+    (fun (a : α) (b : α) (c : α) (hh : AddsTo α E σ zero a b c)
+        (ih : ∀ (x : α) (y : α), AddsTo α E σ zero x y a →
+          ∃ (u : α), AddsTo α E σ zero y b u ∧ AddsTo α E σ zero x u c) =&gt;
+      fun (x : α) (y : α) (hxy : AddsTo α E σ zero x y a) =&gt;
+        Exists.elim (ih x y hxy)
+          (fun (u : α) (hu : AddsTo α E σ zero y b u ∧ AddsTo α E σ zero x u c) =&gt;
+            Exists.intro
+              (σ u)
+              (And.intro
+                (@AddsTo.succ α E σ zero y b u
+                  (And.left hu))
+                (@AddsTo.succ α E σ zero x u c
+                  (And.right hu)))))
+    z w v h2 x y h1</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（6 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§4.3</strong>（递归定理）<span class="math">·</span> <strong>§8.1</strong>（序数加法）<span class="math">·Halmos</span>《Naive Set Theory》<strong>§18/§19</strong>。大纲 §4.1（<strong>卷 I 收官主线</strong> ✓ —— 接单元106/107/108 ✓）。</p></div><div class="block prose intuition-only"><p>⚠⚠ <strong>本单元是新解锁的兑现</strong> ✓：台账 <strong>G-58</strong>（<span class="math">Prop→Type</span> 大消去）修好之后，递归子<strong>能消去到 <code>Type</code></strong> ✓ <span class="math">⇒</span> 序数上的递归<strong>可以定义函数</strong>了 ✓（单元106 只到"归纳" ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>写法要点（本轮换来 ✓）</strong>：① 返回<strong>非 Prop</strong>（如 <code>Nat</code>）的声明必须写 <strong><code>def</code></strong> ✗（写成 <code>theorem</code> 会报「theorem type must be Prop」✓）；② 把递归子的<strong>计算规则</strong>写成定理时，等式要写<strong>显式宇宙</strong> <code>Eq.{1}</code> / <code>Eq.refl.{1}</code> ✓  -- soko:notation-ok: 等式族证明项的宇宙层级 / inductive 头（手册边界）（只写 <code>Eq</code> 会报「期望 Sort(0)，实际是 Sort(1)」✓ —— 台账 <strong>C-02</strong> 的拼法边界 ✓）；③ <code>∀ …</code> 用<strong>逗号</strong>收尾 ✓。</p></div><div class="block prose intuition-only"><p>⚠ <strong>本单元的分工（如实标注 ✓）</strong>：<strong>函数版</strong>加法（按"是不是零 / 是不是后继"分支定义 ✗）需要 <strong><span class="math">Prop→Type</span> 的情形分析</strong> ✓ —— 实测<strong>判红</strong> ✗（台账 <strong>C-04</strong> ✓）<span class="math">⇒</span> 本单元交<strong>关系版</strong> ✓；<strong>结合律</strong>要先用推导子的<strong>逆引理</strong>（<code>AddsTo x (σ y) v ⇒ v 是某个 σ z</code> ✓）<span class="math">⇒</span> 留下一单元 ✓（<strong>C-05</strong> ✓）。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理与 prelude 的 <code>Classical.*</code> ✓。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <code>lib.Ordinal</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元106（<code>Acc</code>/<code>acc_ind</code>/<code>acc_unique</code> ✓）<span class="math">·</span> 单元107（<span class="math">∈-</span>归纳 ✓）<span class="math">·</span> 单元108（三歧半边 ✓）</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit108.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">序数三歧（引理与装配）</span></a><a class="unit-nav-home" href="../chapters/i-6.html#units">目录</a><a class="unit-nav-link" href="../units/unit110.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">选择公理的取数据（良序定理线入口）</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-109"><h3><a href="#top">序数上的递归与加法（关系版 <span class="math">·</span> 逆引理与结合律）</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-109-1"><summary>练习 1 · ordinal_rec_nat_eq <span class="sol-meta">定理</span></summary><pre><code>theorem ordinal_rec_nat_eq (α : Type) (E : α → α → Prop) (x : α)
+    (step : ∀ (z : α), (∀ (w : α), E w z → Nat) → Nat)
+    (hr : ∀ (w : α), E w x → Acc α E w) :
+    @Eq.{1} Nat (ordinal_rec_nat α E x step (@Acc.intro α E x hr))  -- soko:notation-ok: 等式族证明项的宇宙层级 / inductive 头（手册边界）
+      (step x (fun (w : α) (hw : E w x) =&gt; ordinal_rec_nat α E w step (hr w hw))) :=
+  @Eq.refl.{1} Nat (step x (fun (w : α) (hw : E w x) =&gt; ordinal_rec_nat α E w step (hr w hw)))</code></pre></details><details class="appendix-solution" id="app-sol-109-2"><summary>练习 2 · ordinal_rec_nat_unique <span class="sol-meta">定理</span></summary><pre><code>theorem ordinal_rec_nat_unique (α : Type) (E : α → α → Prop)
+    (f : α → Nat) (g : α → Nat)
+    (spec : ∀ (x : α), (∀ (y : α), E y x → f y = g y) → f x = g x) :
+    ∀ (x : α), Acc α E x → f x = g x :=
+  acc_unique α Nat E f g spec</code></pre></details><details class="appendix-solution" id="app-sol-109-3"><summary>练习 3 · addsTo_zero <span class="sol-meta">定理</span></summary><pre><code>theorem addsTo_zero (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α) (x : α) :
+    AddsTo α E σ zero x zero x :=
+  @AddsTo.zero α E σ zero x</code></pre></details><details class="appendix-solution" id="app-sol-109-4"><summary>练习 4 · addsTo_succ <span class="sol-meta">定理</span></summary><pre><code>theorem addsTo_succ (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (x : α) (y : α) (z : α) (h : AddsTo α E σ zero x y z) :
+    AddsTo α E σ zero x (σ y) (σ z) :=
+  @AddsTo.succ α E σ zero x y z h</code></pre></details><details class="appendix-solution" id="app-sol-109-5"><summary>练习 5 · addsTo_succ_inv <span class="sol-meta">定理</span></summary><p class="solution-note">── C-05 装配（2026-10-08）：逆引理与结合律（G-73 家族修好后可写 ✓）─────────
+逆引理：<code>AddsTo x (σ y) v ⇒ v</code> 是后继、且前驱那一半成立。
+<code>hne</code>/<code>hinj</code> 是<strong>命题本身需要</strong>的（<code>AddsTo</code> 对任意 <code>σ</code>/<code>zero</code> 定义）。</p><pre><code>theorem addsTo_succ_inv (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (hne : ∀ (w : α), σ w ≠ zero) (hinj : ∀ (a : α) (b : α), σ a = σ b → a = b)
+    (x : α) (y : α) (v : α) (h : AddsTo α E σ zero x (σ y) v) :
+    ∃ (z : α), v = σ z ∧ AddsTo α E σ zero x y z :=
+  AddsTo.rec α E σ zero
+    (fun (a : α) (b : α) (c : α) (_ : AddsTo α E σ zero a b c) =&gt;
+      ∀ (y : α), b = σ y → ∃ (z : α), c = σ z ∧ AddsTo α E σ zero a y z)
+    (fun (a : α) =&gt; fun (y : α) (he : zero = σ y) =&gt;
+      @False.elim (∃ (z : α), a = σ z ∧ AddsTo α E σ zero a y z)
+        (hne y (@Eq.symm.{1} α zero (σ y) he)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    (fun (a : α) (b : α) (c : α) (hh : AddsTo α E σ zero a b c)
+        (ih : ∀ (y : α), b = σ y → ∃ (z : α), c = σ z ∧ AddsTo α E σ zero a y z) =&gt;
+      fun (y : α) (he : σ b = σ y) =&gt;
+        Exists.intro c
+          (And.intro (@Eq.refl.{1} α (σ c))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+            (@Eq.subst.{1} α (fun (t : α) =&gt; AddsTo α E σ zero a t c) b y  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+              (@Eq.symm.{1} α y b (hinj y b (@Eq.symm.{1} α (σ b) (σ y) he))) hh)))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+    x (σ y) v h y (@Eq.refl.{1} α (σ y))  -- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）</code></pre></details><details class="appendix-solution" id="app-sol-109-6"><summary>练习 6 · addsTo_assoc <span class="sol-meta">定理</span></summary><p class="solution-note">结合律：对<strong>第二条推导</strong> <code>h2</code> 归纳（<code>h1</code> 的实例作为一般化参数）；零情形取 <code>u := y</code>，后继情形再套一层 <code>σ</code>。</p><pre><code>theorem addsTo_assoc (α : Type) (E : α → α → Prop) (σ : α → α) (zero : α)
+    (x : α) (y : α) (z : α) (v : α) (w : α)
+    (h1 : AddsTo α E σ zero x y z) (h2 : AddsTo α E σ zero z w v) :
+    ∃ (u : α), AddsTo α E σ zero y w u ∧ AddsTo α E σ zero x u v :=
+  AddsTo.rec α E σ zero
+    (fun (a : α) (b : α) (c : α) (_ : AddsTo α E σ zero a b c) =&gt;
+      ∀ (x : α) (y : α), AddsTo α E σ zero x y a →
+        ∃ (u : α), AddsTo α E σ zero y b u ∧ AddsTo α E σ zero x u c)
+    (fun (a : α) =&gt; fun (x : α) (y : α) (h : AddsTo α E σ zero x y a) =&gt;
+      Exists.intro
+        y (And.intro
+          (@AddsTo.zero α E σ zero y) h))
+    (fun (a : α) (b : α) (c : α) (hh : AddsTo α E σ zero a b c)
+        (ih : ∀ (x : α) (y : α), AddsTo α E σ zero x y a →
+          ∃ (u : α), AddsTo α E σ zero y b u ∧ AddsTo α E σ zero x u c) =&gt;
+      fun (x : α) (y : α) (hxy : AddsTo α E σ zero x y a) =&gt;
+        Exists.elim (ih x y hxy)
+          (fun (u : α) (hu : AddsTo α E σ zero y b u ∧ AddsTo α E σ zero x u c) =&gt;
+            Exists.intro
+              (σ u)
+              (And.intro
+                (@AddsTo.succ α E σ zero y b u
+                  (And.left hu))
+                (@AddsTo.succ α E σ zero x u c
+                  (And.right hu)))))
+    z w v h2 x y h1</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit108.html">← 108 序数三歧（引理与装配）</a><a class="next" href="../units/unit110.html">110 选择公理的取数据（良序定理线入口） →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>01 集合与隶属 · 从集合论到实分析</title>
+<meta name="description" content="单元① 集合与隶属：导语、定义与定理、练习与解答。Unit 1 — Sets &amp; Membership">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit01.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li class="is-current"><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.1 单元</h3><ol><li class="is-current"><a href="../units/unit01.html">01 集合与隶属</a></li><li><a href="../units/unit02.html">02 子集、空集与包含三律</a></li><li><a href="../units/unit03.html">03 并、交、差与幂集</a></li><li><a href="../units/unit04.html">04 外延性与集合等式</a></li><li><a href="../units/unit58.html">58 差集的代数</a></li><li><a href="../units/unit59.html">59 差集的代数（二）</a></li><li><a href="../units/unit60.html">60 补集的代数</a></li><li><a href="../units/unit61.html">61 外延打包</a></li><li><a href="../units/unit62.html">62 外延性的推论</a></li><li><a href="../units/unit63.html">63 差集的等式层（打包续）</a></li><li><a href="../units/unit64.html">64 差集的等式层（三）：两步走</a></li><li><a href="../units/unit65.html">65 并的差分配律与减法反变</a></li><li><a href="../units/unit66.html">66 包含关系的代数</a></li><li><a href="../units/unit104.html">104 排中律与经典推论</a></li><li><a href="../units/unit105.html">105 经典等价三件套</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li aria-current="page">单元 01 集合与隶属</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-1-1">1.1 集合就是&quot;论域上的谓词&quot;</a></li>
+<li><a href="#appendix-unit-1">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-1.html#units">↑ 本章目录</a>
+      <a href="../print/unit01.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit first-of-chapter" id="unit-1">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-1.html">I.1</a> · 本章第 1 / 15 单元 · 全书第 1 / 112 单元</p>
+<h1><span class="unit-number">01</span> <span>集合与隶属</span></h1>
+<p class="unit-title-en">Unit 1 — Sets &amp; Membership</p>
+<p class="unit-meta">8 个定理 · 5 道练习 · 18 条提示 · <a href="#appendix-unit-1">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="1" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-1" aria-label="复制单元 1 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit01.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-1.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p><strong>记法不用自己声明</strong>：<code>∈</code> / <code>⊆</code> / <code>{a}</code> 由 <code>lib/Set</code> 提供、随 <code>import</code> 生效；逻辑连接符 <code>∧ ∨ ↔ ¬</code> 与箭头 <code>→</code> 是<strong>语言内建</strong>（Lean core 级），任何文件直接写。所以下面看不到一条 <code>infix</code>/<code>notation</code>。</p></div></div></section>
+<h3 class="unit-subhead">1.1 集合就是"论域上的谓词"</h3><div class="math-display intuition-only" role="math" aria-label="x ∈ A   ↔  A x"><math display="block" class="mathml"><mrow><mi>x</mi><mspace width="0.22em"/><mo>∈</mo><mspace width="0.22em"/><mi>A</mi><mspace width="0.22em"/><mo>↔</mo><mspace width="0.22em"/><mi>A</mi><mspace width="0.22em"/><mi>x</mi></mrow></math></div><div class="math-display intuition-only" role="math" aria-label="A ⊆ B   ↔  ∀ (x : α), A x → B x"><math display="block" class="mathml"><mrow><mi>A</mi><mspace width="0.22em"/><mo>⊆</mo><mspace width="0.22em"/><mi>B</mi><mspace width="0.22em"/><mo>↔</mo><mspace width="0.22em"/><mo>∀</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>x</mi><mspace width="0.22em"/><mo>:</mo><mspace width="0.22em"/><mo>α</mo></mrow><mo>)</mo></mrow><mo>,</mo><mspace width="0.22em"/><mi>A</mi><mspace width="0.22em"/><mi>x</mi><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mi>B</mi><mspace width="0.22em"/><mi>x</mi></mrow></math></div><div class="block prose intuition-only"><p>于是"隶属"不是新东西，就是<strong>函数应用</strong>；"子集"就是<strong>全称箭头</strong>。符号只是把底下那层结构写短了——报错看不懂时，把它翻回点名形式就懂了。</p></div><div class="block prose intuition-only"><p>演示（已写好）：子集的定义展开是"定义上相等"。</p></div><article class="decl decl-theorem" id="decl-1-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_subset_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_subset_def (α : Type) (A B : Set α) :
+    (A ⊆ B) ↔ ∀ (x : α), A x → B x :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  exact Set.subset_def A B</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示（已写好）：隶属 <span class="math">=</span> 应用。</p></div><article class="decl decl-theorem" id="decl-1-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_def</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_def (α : Type) (a : α) (A : Set α) : (a ∈ A) ↔ A a :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 5 步 · 6 行</summary><ol class="proof-steps"><li><pre><code>  constructor</code></pre></li><li><pre><code>  intro h</code></pre></li><li><pre><code>  exact h</code></pre></li><li><pre><code>  intro h</code></pre></li><li><pre><code>  exact h</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-1-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">mem_of_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-1-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：元素落在子集里。</p></div></div><pre class="exercise-statement"><code>theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) :
+    a ∈ A → a ∈ B := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>手里 h 是 <span class="math">A ⊆ B</span>，目标是一个元素命题；把 h 当函数用。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>目标是 <span class="math">a ∈ B</span>（也就是 B a）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>先 intro 掉 <span class="math">a ∈ A</span>；此时 h a 的类型正是 <span class="math">a ∈ A → a ∈ B</span>，喂进去即可。</p></div></details></div><details class="solution-panel" id="sol-1-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">unit01 解答钥匙（agent 专用；画布不 import 它）。
+判据：全部引理只用 lib/ 与 prelude 里已备好的东西——学习者的负担只有"集合论内容"。
+
+<strong>写法：项风格（lambda / 直接给证明项），不用 <code>by</code> 块</strong>（2026-09-21 用户拍板）。
+为什么：<code>by</code> 块的判定代价是 O(前缀 <span class="math">×</span> <code>by</code> 块数)——每个 <code>by</code> 块都要把整份前缀
+重新 elaborate 一遍（实测 <code>unit12-solution</code> 25 个块 <span class="math">= 25</span> 次、合计处理 1MB 前缀，
+见 <code>docs/PERF.md</code>）。同一批定理写成项风格实测快 <strong><span class="math">8.4×</span></strong>，单元⑫ 那种大文件 <span class="math">25×</span>。
+
+<strong>这份文件同时是"提示"</strong>：学习者做画布上的题卡住时，老师（LLM）读这里拿到
+<strong>证明骨架与关键件</strong>，再用 tactic 写法讲给学习者听——两边是一一对应的：
+  项风格                          tactic 写法
+  <code>fun (h : P) =&gt; e</code>              <code>intro h; exact e</code>
+  <code>f a b</code>                         <code>apply f; exact a; exact b</code>（或 <code>exact f a b</code>）
+  <code>Iff.intro h1 h2</code>               <code>constructor; exact h1; exact h2</code>
+  <code>Set.ext α A B (fun x =&gt; ..)</code>   <code>apply Set.ext; intro x; ..</code></p><pre><code>theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) :
+    a ∈ A → a ∈ B :=
+  fun (ha : a ∈ A) =&gt; h a ha</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>练习 2（X 类：形式 <span class="math">↔</span> 散文）：把下面这句散文翻译成定理并证明。</p></div><div class="block prose intuition-only"><p>"A set is determined by its elements: if two sets have exactly the same elements, they are equal."</p></div><article class="decl decl-theorem" id="decl-1-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">eq_of_same_elements</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem eq_of_same_elements (α : Type) (A B : Set α) (h : ∀ (x : α), A x ↔ B x) :
+    A = B :=</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>这句话就是外延性；库里已作为公理 Set.ext 备好。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>目标是 <span class="math">A = B</span>，前提是 <span class="math">∀ (x</span> : <span class="math">α)</span>, <span class="math">A x ↔ B x</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>apply Set.ext 会把目标换成逐元素的 <span class="math">∀</span> 命题，再 intro 一个 x，交给 h。</p></div></details></div><details class="proof-panel formal-only"><summary>证明 · 2 步 · 3 行</summary><ol class="proof-steps"><li><pre><code>  apply Set.ext</code></pre></li><li><pre><code>  exact h</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-1-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">mem_of_subset_singleton</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-1-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<span class="math">{a} ⊆ A</span> 推出 <span class="math">a ∈ A</span>。（<strong>这一步用不到第 4 题</strong>）</p></div></div><pre class="exercise-statement"><code>theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α)
+    (h : {a} ⊆ A) : a ∈ A := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>子集给每个元素一条通道；把 a 自己喂进去。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>目标是 <span class="math">a ∈ A</span>；手里 h 的类型是 <span class="math">{a} ⊆ A</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>apply h 把目标换成 <span class="math">a ∈ {a}</span>——那正是 <span class="math">Set.mem_singleton_self α a</span>（库里）。</p></div></details></div><details class="solution-panel" id="sol-1-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α)
+    (h : {a} ⊆ A) : a ∈ A :=
+  h a (Set.mem_singleton_self a)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-1-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">subset_of_mem_singleton</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-1-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：<span class="math">a ∈ A</span> 推出 <span class="math">{a} ⊆ A</span>。</p></div></div><pre class="exercise-statement"><code>theorem subset_of_mem_singleton (α : Type) (A : Set α) (a : α) (h : a ∈ A) :
+    {a} ⊆ A := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>目标是全称命题；intro 一个元素与"它在 {a} 里"。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>intro 之后手里有 hx : <span class="math">x ∈ {a}</span>，目标是 A x。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Set.mem_singleton_iff 把 hx 变成等式 <span class="math">x = a</span>；再用 Eq.symm 与 lib.Rel 的 rel_subst_mem 把这个等式搬进目标（本单元还没有 rw，所以写成 exact 的实参）。</p></div></details></div><details class="solution-panel" id="sol-1-3"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note">本单元还没有 <code>rw</code>/<code>subst</code>，所以"把等式搬进目标"这一步是 <code>Eq.subst</code> 的实参位。
+项风格下它就是一个嵌套的应用项；等 <code>rw</code> 落地后这条会显著变短。</p><pre><code>theorem subset_of_mem_singleton (α : Type) (A : Set α) (a : α) (h : a ∈ A) :
+    {a} ⊆ A :=
+  fun (x : α) (hx : x ∈ {a}) =&gt;
+    @Eq.subst.{1} α (fun (y : α) =&gt; A y) a x
+      (@Eq.symm.{1} α x a
+        (@Iff.mp (x ∈ {a}) (x = a) (Set.mem_singleton_iff x a) hx))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+      h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-1-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">singleton_subset_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-1-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：把练习 3 与 4 合成一条"当且仅当"。</p></div></div><pre class="exercise-statement"><code>theorem singleton_subset_iff (α : Type) (a : α) (A : Set α) :
+    ({a} ⊆ A) ↔ a ∈ A := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">↔</span> 就是一对箭头，两边分别用前两题。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="({a} ⊆ A) ↔ a ∈ A"><math display="block" class="mathml"><mrow><mrow><mo>(</mo><mrow><mo>{</mo><mi>a</mi><mo>}</mo><mspace width="0.22em"/><mo>⊆</mo><mspace width="0.22em"/><mi>A</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>↔</mo><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mo>∈</mo><mspace width="0.22em"/><mi>A</mi></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>constructor 会把目标拆成两个方向；两个方向分别就是 mem_of_subset_singleton 与 subset_of_mem_singleton 本身。</p></div></details></div><details class="solution-panel" id="sol-1-4"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem singleton_subset_iff (α : Type) (a : α) (A : Set α) :
+    ({a} ⊆ A) ↔ a ∈ A :=
+  -- `Iff.intro` 的显式 Prop 实参**不能省**：期望类型不会传播到嵌套应用的实参里，
+  -- 而 `({a} ⊆ A)` 里的集合字面量正需要它（否则报 `期望 Sort(0)，实际是 Set.[] $2`
+  -- —— 缺口 G-30）。
+  @Iff.intro ({a} ⊆ A) (a ∈ A)
+    (mem_of_subset_singleton α A a) (subset_of_mem_singleton α A a)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-1-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">singleton_eq_singleton_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-1-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（D 类）：下面两条哪条为真？(i)  若 <span class="math">{a} = {b}</span>，则 <span class="math">a = b</span>。(ii) 若 <span class="math">a = b</span>，则 <span class="math">{a} = {b}</span>。为真的证明，为假的说明理由（写在注释里）。</p></div></div><pre class="exercise-statement"><code>theorem singleton_eq_singleton_iff (α : Type) (a b : α) :
+    ({a} = {b}) ↔ a = b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>(i) 用"<span class="math">a ∈ {a}</span>"沿等式搬过去再展开；(ii) 两个集合相等就逐元素证 <span class="math">↔</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>目标是 <span class="math">({a} = {b}) ↔ a = b</span>，两个方向分别如上。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>(i) lib.Rel 的 rel_subst_mem 把 <span class="math">a ∈ {a}</span> 搬到 {b} 上，再用 Set.mem_singleton_iff 取出等式；(ii) apply Set.ext 之后对每个 x 用 constructor，两边各用一次 Set.mem_singleton_iff 与 Eq.trans。</p></div></details></div><details class="solution-panel" id="sol-1-5"><summary>查看解答 <span class="sol-meta">定理 · 22 行</span></summary><div class="solution-body"><pre><code>theorem singleton_eq_singleton_iff (α : Type) (a b : α) :
+    ({a} = {b}) ↔ a = b :=
+  -- 同样要显式 Prop 实参（G-30）：两个分支里都有集合字面量。
+  @Iff.intro ({a} = {b}) (a = b)
+    -- (i) `{a} = {b}` ⇒ `a = b`：把 `a ∈ {a}` 沿等式搬到 `{b}` 上，再展开。
+    (fun (h : {a} = {b}) =&gt;
+      @Iff.mp (a ∈ {b}) (a = b) (Set.mem_singleton_iff a b)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+        (@Eq.subst.{1} (Set α) (fun (X : Set α) =&gt; a ∈ X) {a} {b} h
+          (Set.mem_singleton_self a)))
+    -- (ii) `a = b` ⇒ `{a} = {b}`：外延 + 逐元素两个方向。
+    (fun (h : a = b) =&gt;
+      Set.ext {a} {b} (fun (x : α) =&gt;
+        @Iff.intro (x ∈ {a}) (x ∈ {b})
+          (fun (hx : x ∈ {a}) =&gt;
+            @Iff.mpr (x ∈ {b}) (x = b) (Set.mem_singleton_iff x b)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+              (@Eq.trans.{1} α x a b
+                (@Iff.mp (x ∈ {a}) (x = a) (Set.mem_singleton_iff x a) hx) h))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+          (fun (hx : x ∈ {b}) =&gt;
+            @Iff.mpr (x ∈ {a}) (x = a) (Set.mem_singleton_iff x a)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+              (@Eq.trans.{1} α x b a
+                (@Iff.mp (x ∈ {b}) (x = b) (Set.mem_singleton_iff x b) hx)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+                (@Eq.symm.{1} α a b h)))))</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（1 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>（tactic 白名单）：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>assumption</code> / <code>rfl</code> / <code>constructor</code> / <code>cases</code> 加 lib/ 里已备好的引理（<code>Set.subset_def</code>、<code>Set.mem_singleton_iff</code>、…）。<strong>不需要</strong>自己写 <code>Eq.symm</code>/<code>Or.elim</code>/<code>Iff.mp</code> 这类东西——那是标准库的一部分（见 docs/design/course-stdlib.md）。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><span class="unit-nav-link is-disabled"><span class="unit-nav-label">上一单元</span><span class="unit-nav-title">没有更多单元</span></span><a class="unit-nav-home" href="../chapters/i-1.html#units">目录</a><a class="unit-nav-link" href="../units/unit02.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">子集、空集与包含三律</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-1"><h3><a href="#top">集合与隶属</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-1-1"><summary>练习 1 · mem_of_subset <span class="sol-meta">定理</span></summary><p class="solution-note">unit01 解答钥匙（agent 专用；画布不 import 它）。
+判据：全部引理只用 lib/ 与 prelude 里已备好的东西——学习者的负担只有"集合论内容"。
+
+<strong>写法：项风格（lambda / 直接给证明项），不用 <code>by</code> 块</strong>（2026-09-21 用户拍板）。
+为什么：<code>by</code> 块的判定代价是 O(前缀 <span class="math">×</span> <code>by</code> 块数)——每个 <code>by</code> 块都要把整份前缀
+重新 elaborate 一遍（实测 <code>unit12-solution</code> 25 个块 <span class="math">= 25</span> 次、合计处理 1MB 前缀，
+见 <code>docs/PERF.md</code>）。同一批定理写成项风格实测快 <strong><span class="math">8.4×</span></strong>，单元⑫ 那种大文件 <span class="math">25×</span>。
+
+<strong>这份文件同时是"提示"</strong>：学习者做画布上的题卡住时，老师（LLM）读这里拿到
+<strong>证明骨架与关键件</strong>，再用 tactic 写法讲给学习者听——两边是一一对应的：
+  项风格                          tactic 写法
+  <code>fun (h : P) =&gt; e</code>              <code>intro h; exact e</code>
+  <code>f a b</code>                         <code>apply f; exact a; exact b</code>（或 <code>exact f a b</code>）
+  <code>Iff.intro h1 h2</code>               <code>constructor; exact h1; exact h2</code>
+  <code>Set.ext α A B (fun x =&gt; ..)</code>   <code>apply Set.ext; intro x; ..</code></p><pre><code>theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) :
+    a ∈ A → a ∈ B :=
+  fun (ha : a ∈ A) =&gt; h a ha</code></pre></details><details class="appendix-solution" id="app-sol-1-2"><summary>练习 2 · mem_of_subset_singleton <span class="sol-meta">定理</span></summary><pre><code>theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α)
+    (h : {a} ⊆ A) : a ∈ A :=
+  h a (Set.mem_singleton_self a)</code></pre></details><details class="appendix-solution" id="app-sol-1-3"><summary>练习 3 · subset_of_mem_singleton <span class="sol-meta">定理</span></summary><p class="solution-note">本单元还没有 <code>rw</code>/<code>subst</code>，所以"把等式搬进目标"这一步是 <code>Eq.subst</code> 的实参位。
+项风格下它就是一个嵌套的应用项；等 <code>rw</code> 落地后这条会显著变短。</p><pre><code>theorem subset_of_mem_singleton (α : Type) (A : Set α) (a : α) (h : a ∈ A) :
+    {a} ⊆ A :=
+  fun (x : α) (hx : x ∈ {a}) =&gt;
+    @Eq.subst.{1} α (fun (y : α) =&gt; A y) a x
+      (@Eq.symm.{1} α x a
+        (@Iff.mp (x ∈ {a}) (x = a) (Set.mem_singleton_iff x a) hx))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+      h</code></pre></details><details class="appendix-solution" id="app-sol-1-4"><summary>练习 4 · singleton_subset_iff <span class="sol-meta">定理</span></summary><pre><code>theorem singleton_subset_iff (α : Type) (a : α) (A : Set α) :
+    ({a} ⊆ A) ↔ a ∈ A :=
+  -- `Iff.intro` 的显式 Prop 实参**不能省**：期望类型不会传播到嵌套应用的实参里，
+  -- 而 `({a} ⊆ A)` 里的集合字面量正需要它（否则报 `期望 Sort(0)，实际是 Set.[] $2`
+  -- —— 缺口 G-30）。
+  @Iff.intro ({a} ⊆ A) (a ∈ A)
+    (mem_of_subset_singleton α A a) (subset_of_mem_singleton α A a)</code></pre></details><details class="appendix-solution" id="app-sol-1-5"><summary>练习 5 · singleton_eq_singleton_iff <span class="sol-meta">定理</span></summary><pre><code>theorem singleton_eq_singleton_iff (α : Type) (a b : α) :
+    ({a} = {b}) ↔ a = b :=
+  -- 同样要显式 Prop 实参（G-30）：两个分支里都有集合字面量。
+  @Iff.intro ({a} = {b}) (a = b)
+    -- (i) `{a} = {b}` ⇒ `a = b`：把 `a ∈ {a}` 沿等式搬到 `{b}` 上，再展开。
+    (fun (h : {a} = {b}) =&gt;
+      @Iff.mp (a ∈ {b}) (a = b) (Set.mem_singleton_iff a b)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+        (@Eq.subst.{1} (Set α) (fun (X : Set α) =&gt; a ∈ X) {a} {b} h
+          (Set.mem_singleton_self a)))
+    -- (ii) `a = b` ⇒ `{a} = {b}`：外延 + 逐元素两个方向。
+    (fun (h : a = b) =&gt;
+      Set.ext {a} {b} (fun (x : α) =&gt;
+        @Iff.intro (x ∈ {a}) (x ∈ {b})
+          (fun (hx : x ∈ {a}) =&gt;
+            @Iff.mpr (x ∈ {b}) (x = b) (Set.mem_singleton_iff x b)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+              (@Eq.trans.{1} α x a b
+                (@Iff.mp (x ∈ {a}) (x = a) (Set.mem_singleton_iff x a) hx) h))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+          (fun (hx : x ∈ {b}) =&gt;
+            @Iff.mpr (x ∈ {a}) (x = a) (Set.mem_singleton_iff x a)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+              (@Eq.trans.{1} α x b a
+                (@Iff.mp (x ∈ {b}) (x = b) (Set.mem_singleton_iff x b) hx)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+                (@Eq.symm.{1} α a b h)))))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <span class="empty">本章到头了</span><a class="next" href="../units/unit02.html">02 子集、空集与包含三律 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

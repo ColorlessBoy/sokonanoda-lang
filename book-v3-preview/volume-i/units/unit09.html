@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>09 等势（基数 Ⅰ） · 从集合论到实分析</title>
+<meta name="description" content="单元⑨ 等势（基数 Ⅰ）：导语、定义与定理、练习与解答。Unit 9 — Equinumerosity (Cardinality I)">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit09.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li class="is-current"><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.3 单元</h3><ol><li><a href="../units/unit08.html">08 像与原像</a></li><li class="is-current"><a href="../units/unit09.html">09 等势（基数 Ⅰ）</a></li><li><a href="../units/unit10.html">10 可数与 Cantor 定理（基数 Ⅱ）</a></li><li><a href="../units/unit73.html">73 像与广义并交的分配</a></li><li><a href="../units/unit74.html">74 原像与广义并交的分配</a></li><li><a href="../units/unit92.html">92 等势的代数</a></li><li><a href="../units/unit93.html">93 等势的传递</a></li><li><a href="../units/unit96.html">96 势的比较（自反与传递）</a></li><li><a href="../units/unit97.html">97 等势 ⇒ 双向势比较</a></li><li><a href="../units/unit98.html">98 势比较的单调性</a></li><li><a href="../units/unit99.html">99 幂集的单调性</a></li><li><a href="../units/unit100.html">100 势比较的搬运</a></li><li><a href="../units/unit101.html">101 空集与子集的点态代数</a></li><li><a href="../units/unit102.html">102 相互包含与点态外延</a></li><li><a href="../units/unit103.html">103 双向势比较何时升级为等势</a></li><li><a href="../units/unit112.html">112 Cantor–Bernstein 定理（经选择公理）</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li aria-current="page">单元 09 等势（基数 Ⅰ）</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-9-1">9.1 演示 1（必证①）：等势自反——恒等映射。</a></li>
+<li><a href="#decl-9-2">9.2 演示 2（必证④）：从单射 + 满射（数据）构造等势。</a></li>
+<li><a href="#decl-9-3">9.3 反例脚手架（演示，已写好）：只为把&quot;无限集上的真子集&quot;陈述出来。</a></li>
+<li><a href="#ex-9-1">9.4 练习（7 条：T2 · L3 · D2）</a></li>
+<li><a href="#appendix-unit-9">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-3.html#units">↑ 本章目录</a>
+      <a href="../print/unit09.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-9">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-3.html">I.3</a> · 本章第 2 / 16 单元 · 全书第 9 / 112 单元</p>
+<h1><span class="unit-number">09</span> <span>等势（基数 Ⅰ）</span></h1>
+<p class="unit-title-en">Unit 9 — Equinumerosity (Cardinality I)</p>
+<p class="unit-meta">3 个定义 · 10 个定理 · 7 道练习 · 21 条提示 · <a href="#appendix-unit-9">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="9" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-9" aria-label="复制单元 9 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit09.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-3.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>── 等势为什么是"数据"，不是"存在双射" ────────────────────────────────── 完整理由与读法在 lib/Equiv.sokonanoda 的文件头（先读它）。一句话版：若定义成 <span class="math">∃f (</span>单射 <span class="math">f ∧</span> 满射 f)，那么"对称"要从满射取回一个原像——那是选择公理，本单元没有，于是<strong>对称性根本证不出来</strong>。所以等势在这里是<strong>数据</strong>：一对互逆映射（f 去、g 回）<span class="math">+</span> 四条带域条件的命题，全部装在等势（记法 <code>A ≈ B</code>）里。拿数据的方法只有一条：Exists.elim 两次；造数据的方法是 Set.Equiv.mk。读法四条（造/用/展开）见 lib/Equiv 文件头，动手前务必先看一遍。</p></div></div></section>
+<div class="block prose intuition-only"><p>为什么每题都要求"亲手写出那对映射"（出处：Hamza &amp; O'Shea 2011, MEI 4:192–202）：该研究里<strong>援引"双射判据"的学生没有一个在所有题上都真的用它，且极少把映射写出来</strong>；所以本单元的 7 条练习没有一条能靠"显然存在双射"蒙过去——四条条件都要落地。</p></div><h3 class="unit-subhead">9.1 演示 1（必证①）：等势自反——恒等映射。</h3><div class="block prose intuition-only"><p>这是本单元第一次看等势（记法 <code>A ≈ B</code>）的数据形状：一对映射 <span class="math">+</span> 四条条件，交给 mk。两条互逆律在这里是一条计算（Eq.refl），因为 g (f x) 与 f (g x) 都算成 x。</p></div><article class="decl decl-theorem" id="decl-9-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">Set.Equiv.refl</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem Set.Equiv.refl (α : Type) (A : Set α) : A ≈ A :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 5 行</summary><ol class="proof-steps"><li><pre><code>  Set.Equiv.mk α α A A (fun (x : α) =&gt; x) (fun (x : α) =&gt; x)
+    (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt; hx)
+    (fun (y : α) =&gt; fun (hy : y ∈ A) =&gt; hy)
+    (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt; @Eq.refl.{1} α x)
+    (fun (y : α) =&gt; fun (hy : y ∈ A) =&gt; @Eq.refl.{1} α y)</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">9.2 演示 2（必证④）：从单射 <span class="math">+</span> 满射（<strong>数据</strong>）构造等势。</h3><div class="block prose intuition-only"><p>注意"满射"在这里给的是<strong>右逆</strong>（hsec：先 g 后 f 回到原地），不是 <span class="math">∃-</span>形式：<span class="math">∃-</span>形式要挑原像（选择公理）。有了右逆，缺的那条左互逆律由单射补：<span class="math">f (g (f x)) = f x</span> 用 hsec，再把 hinj 用在 g (f x) 与 x 上。这条演示同时示范：hinj、hsec 都是普通的函数/命题参数，不需要拆 Exists。</p></div><article class="decl decl-theorem" id="decl-9-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">Set.Equiv.of_inj_surj</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem Set.Equiv.of_inj_surj (α β : Type) (A : Set α) (B : Set β)
+    (f : α → β) (g : β → α)
+    (hf : Set.MapsTo α β f A B)
+    (hg : Set.MapsTo β α g B A)
+    (hinj : ∀ (x1 x2 : α), (f x1) = (f x2) → x1 = x2)
+    (hsec : Set.RightInvOn α β f g B) :
+    A ≈ B :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 4 行</summary><ol class="proof-steps"><li><pre><code>  Set.Equiv.mk α β A B f g hf hg
+    (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt;
+      hinj (g (f x)) x (hsec (f x) (hf x hx)))
+    hsec</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">9.3 反例脚手架（演示，已写好）：只为把"无限集上的真子集"陈述出来。</h3><div class="block prose intuition-only"><p>「真子集一定严格更小」在无限集上是<strong>假</strong>的，而本语言没有基数序，"更小"只能表述成"不等势"。要给出反例就需要 Nat 上的"减一"与"succ 不为 0"：这两条<strong>不是本单元的内容</strong>，属于脚手架（单元⑥ 的 match/Nat.rec 手法）。</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>Nat.isZero：把"是不是 0"做成一个 Prop 值的谓词（succ 支给 True，zero 支给 False）——它是下面 <span class="math">succ ≠ 0</span> 的搬运工具；</li><li>Nat.pred：前驱（zero 支给 zero，succ k 支给 k）；</li><li>Nat.succ_ne_zero：<span class="math">succ n ≠ 0</span>（把 Eq.subst 沿 Nat.isZero 走一趟）；</li><li>nonzero：非零自然数之集（自定名：Mathlib 里没有这个名字的 Set Nat），就是反例里的"真子集"那一半。</li></ul></div><article class="decl decl-def" id="decl-9-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Nat.isZero</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def Nat.isZero (n : Nat) : Prop := match n with
+  | Nat.zero =&gt; False
+  | Nat.succ k =&gt; True</code></pre></div></article>
+<article class="decl decl-def" id="decl-9-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Nat.pred</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def Nat.pred (n : Nat) : Nat := match n with
+  | Nat.zero =&gt; Nat.zero
+  | Nat.succ k =&gt; k</code></pre></div></article>
+<article class="decl decl-theorem" id="decl-9-5"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">Nat.succ_ne_zero</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem Nat.succ_ne_zero (n : Nat) : ¬ ((Nat.succ n) = Nat.zero) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  fun (h : (Nat.succ n) = Nat.zero) =&gt;
+    @Eq.subst.{1} Nat (fun (k : Nat) =&gt; Nat.isZero k) (Nat.succ n) Nat.zero h True.intro</code></pre></li></ol></details></div></article>
+<article class="decl decl-def" id="decl-9-6"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">nonzero</code><span class="decl-where">声明 6</span></header><div class="decl-body"><pre class="decl-statement"><code>def nonzero : Set Nat := fun (n : Nat) =&gt; ¬ (n = Nat.zero)</code></pre></div></article>
+<h3 class="unit-subhead">9.4 练习（7 条：<span class="math">T2 · L3 · D2</span>）</h3><article class="exercise" id="ex-9-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">Set.Equiv.symm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-9-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>═════════════════════════════════════════════════════════════</p></div><div class="block prose intuition-only"><p>把 sorry 换成你的答案；判定永远走完整内核。═════════════════════════════════════════════════════════════</p></div><div class="block prose intuition-only"><p>练习 1（T 类，必证②）：等势是对称的——交换两把映射。</p></div></div><pre class="exercise-statement"><code>theorem Set.Equiv.symm (α β : Type) (A : Set α) (B : Set β)
+    (h : A ≈ B) : B ≈ A := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先把 h 拆开拿到两把映射与它们的四条条件，再用 mk 以"反向的那把"去、"正向的那把"回，重新打包。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>B ≈ A——展开后仍是一对映射 <span class="math">+</span> 四条条件，只是 <span class="math">α</span> 与 <span class="math">β</span>、A 与 B 整体对调（<span class="math">A ⊆</span> ? 里的记法跟着换边）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>外层连用两次 Exists.elim 取证人（结论 B ≈ A 不提证人，合法）；四条件用 And.left/And.right 拆；装配用 Set.Equiv.mk，注意两条互逆律的位置要对调。</p></div></details></div><details class="solution-panel" id="sol-9-1"><summary>查看解答 <span class="sol-meta">定理 · 16 行</span></summary><div class="solution-body"><p class="solution-note">练习 1（T 类，必证②）：等势对称——交换两把映射。
+结论 <code>B ≈ A</code> 里不出现 f、g，正好满足 Exists.elim 的纪律。</p><pre><code>theorem Set.Equiv.symm (α β : Type) (A : Set α) (B : Set β)
+    (h : A ≈ B) : B ≈ A := by
+  exact Exists.elim h (fun (f : α → β) =&gt;
+      fun (hf : Set.MapsTo α β f A B ∧
+          (∃ (g : β → α), Set.MapsTo β α g B A ∧
+            (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))) =&gt;
+        Exists.elim (And.right hf) (fun (g : β → α) =&gt;
+            fun (hg : Set.MapsTo β α g B A ∧
+                (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) =&gt;
+              Set.Equiv.mk β α B A g f
+                (And.left hg)
+                (And.left hf)
+                (And.right
+                  (And.right hg))
+                (And.left
+                  (And.right hg))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-9-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">Set.Equiv.trans</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-9-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类，必证③）：等势是传递的——复合两把映射。</p></div></div><pre class="exercise-statement"><code>theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (h1 : A ≈ B) (h2 : B ≈ C) : A ≈ C := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两条等势各自拆成 (f1,g1) 与 (f2,g2)，复合出正向 f2 ∘ f1、反向 g1 ∘ g2，再打包。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>A ≈ C；拿 h1 : A ≈ B 与 h2 : B ≈ C，四条条件都要自己接起来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>四次 Exists.elim 取四个证人（每层的结论 A ≈ C 都不提证人）；两条互逆律中间那一步要用 congrArg 把内层等式推到外层映射下，再用 Eq.trans 接另一条律。</p></div></details></div><details class="solution-panel" id="sol-9-2"><summary>查看解答 <span class="sol-meta">定理 · 82 行</span></summary><div class="solution-body"><pre><code>theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (h1 : A ≈ B) (h2 : B ≈ C) : A ≈ C := by
+  exact @Exists.elim (α → β)
+    (fun (f1 : α → β) =&gt;
+      Set.MapsTo α β f1 A B ∧
+        (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
+            (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)))
+    (A ≈ C)
+    h1
+    (fun (f1 : α → β) =&gt;
+      fun (hf1 : Set.MapsTo α β f1 A B ∧
+                     (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
+                         (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B))) =&gt;
+        @Exists.elim (β → α)
+          (fun (g1 : β → α) =&gt;
+            Set.MapsTo β α g1 B A ∧
+              (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B))
+          (A ≈ C)
+          (@And.right (Set.MapsTo α β f1 A B)
+            (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
+                (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hf1)
+          (fun (g1 : β → α) =&gt;
+            fun (hg1 : Set.MapsTo β α g1 B A ∧
+                           (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) =&gt;
+              @Exists.elim (β → γ)
+                (fun (f2 : β → γ) =&gt;
+                  Set.MapsTo β γ f2 B C ∧
+                    (∃ (g2 : γ → β), Set.MapsTo γ β g2 C B ∧
+                        (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)))
+                (A ≈ C)
+                h2
+                (fun (f2 : β → γ) =&gt;
+                  fun (hf2 : Set.MapsTo β γ f2 B C ∧
+                                 (∃ (g2 : γ → β), Set.MapsTo γ β g2 C B ∧
+                                     (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C))) =&gt;
+                    @Exists.elim (γ → β)
+                      (fun (g2 : γ → β) =&gt;
+                        Set.MapsTo γ β g2 C B ∧
+                          (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C))
+                      (A ≈ C)
+                      (@And.right (Set.MapsTo β γ f2 B C)
+                        (∃ (g2 : γ → β), Set.MapsTo γ β g2 C B ∧
+                            (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hf2)
+                      (fun (g2 : γ → β) =&gt;
+                        fun (hg2 : Set.MapsTo γ β g2 C B ∧
+                                       (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) =&gt;
+                          Set.Equiv.mk α γ A C
+                            (fun (x : α) =&gt; f2 (f1 x))
+                            (fun (z : γ) =&gt; g1 (g2 z))
+                            (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt;
+                              @And.left (Set.MapsTo β γ f2 B C)
+                                (∃ (g2 : γ → β), Set.MapsTo γ β g2 C B ∧
+                                    (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hf2
+                                (f1 x)
+                                (@And.left (Set.MapsTo α β f1 A B)
+                                  (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
+                                      (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hf1
+                                  x hx))
+                            (fun (z : γ) =&gt; fun (hz : z ∈ C) =&gt;
+                              @And.left (Set.MapsTo β α g1 B A)
+                                ((Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B))
+                                hg1
+                                (g2 z)
+                                (@And.left (Set.MapsTo γ β g2 C B)
+                                  ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C))
+                                  hg2 z hz))
+                            (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt;
+                              @Eq.trans.{1} α (g1 (g2 (f2 (f1 x)))) (g1 (f1 x)) x
+                                (@congrArg.{1} β α (g2 (f2 (f1 x))) (f1 x) g1
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                                  ((fun (h' : (Set.LeftInvOn β γ g2 f2 B)) =&gt; h' (f1 x) ((fun (h' : (Set.MapsTo α β f1 A B)) =&gt; h' x hx) (@And.left (Set.MapsTo α β f1 A B) (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                                          (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hf1))) (@And.left (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C) (@And.right (Set.MapsTo γ β g2 C B) ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hg2))))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                                ((fun (h' : (Set.LeftInvOn α β g1 f1 A)) =&gt; h' x hx) (@And.left (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B) (@And.right (Set.MapsTo β α g1 B A) ((Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hg1))))
+                            (fun (z : γ) =&gt; fun (hz : z ∈ C) =&gt;
+                              @Eq.trans.{1} γ (f2 (f1 (g1 (g2 z)))) (f2 (g2 z)) z
+                                (@congrArg.{1} β γ (f1 (g1 (g2 z))) (g2 z) f2
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                                  ((fun (h' : (Set.RightInvOn α β f1 g1 B)) =&gt; h' (g2 z) ((fun (h' : (Set.MapsTo γ β g2 C B)) =&gt; h' z hz) (@And.left (Set.MapsTo γ β g2 C B) ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hg2))) (@And.right (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B) (@And.right (Set.MapsTo β α g1 B A) ((Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hg1))))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                                ((fun (h' : (Set.RightInvOn β γ f2 g2 C)) =&gt; h' z hz) (@And.right (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C) (@And.right (Set.MapsTo γ β g2 C B) ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hg2))))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-9-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">Set.Equiv.singleton</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-9-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：任意两个单元素集都等势——亲手写出那对映射。</p></div></div><pre class="exercise-statement"><code>theorem Set.Equiv.singleton (α β : Type) (a : α) (b : β) :
+    {a} ≈ {b} := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>单元素集之间的映射没得挑：正向把一切都送到 b，反向把一切都送回 a。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>{a} ≈ {b}；两条"送进"条件是展开后的一行。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两条互逆律的前提 hx : <span class="math">x ∈ {a}</span> 展开就是 <span class="math">x = a</span>，要用 Eq.symm 掉头（另一侧同理）；四条条件交给 Set.Equiv.mk。</p></div></details></div><details class="solution-panel" id="sol-9-3"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note">练习 3（L 类）：任意两个单元素集都等势——亲手写那对映射。
+正向是常函数 x ↦ b，反向是常函数 y ↦ a；两条互逆律都要把
+"<span class="math">x ∈ {a}</span>"（就是一个等式 <span class="math">x = a</span>）掉个头。</p><pre><code>theorem Set.Equiv.singleton (α β : Type) (a : α) (b : β) :
+    {a} ≈ {b} := by
+  exact Set.Equiv.mk α β {a} {b} (fun (x : α) =&gt; b) (fun (y : β) =&gt; a)
+    (fun (x : α) =&gt; fun (hx : x ∈ {a}) =&gt; @Eq.refl.{1} β b)
+    (fun (y : β) =&gt; fun (hy : y ∈ {b}) =&gt; @Eq.refl.{1} α a)
+    (fun (x : α) =&gt; fun (hx : x ∈ {a}) =&gt; @Eq.symm.{1} α x a hx)
+    (fun (y : β) =&gt; fun (hy : y ∈ {b}) =&gt; @Eq.symm.{1} β y b hy)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-9-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">Set.equivOfEq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-9-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：集合相等蕴涵等势（Mathlib 真名 Set.equivOfEq）。</p></div></div><pre class="exercise-statement"><code>theorem Set.equivOfEq (α : Type) (A B : Set α) (h : A = B) :
+    A ≈ B := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">A = B</span> 时两把映射都可以取恒等；要做的是把成员关系沿等式搬运。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>A ≈ B，四条条件里两条互逆律是计算（恒等复合恒等）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>成员关系要沿等式从 A 挪到 B，得用 Eq.subst 且 motive 自己写（一个 <span class="math">Set α → Prop</span> 的谓词，问 x 属不属于它）；<span class="math">B → A</span> 那一侧搬的等式先用 Eq.symm 掉头；装配用 Set.Equiv.mk。</p></div></details></div><details class="solution-panel" id="sol-9-4"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><p class="solution-note">练习 4（L 类）：集合相等蕴涵等势（Mathlib 真名 <code>Set.equivOfEq</code>）。
+两把映射都取恒等，四条条件里"送进"的两条要把成员关系沿等式搬过去
+（Eq.subst），反向那条搬的是 Eq.symm 过的等式。</p><pre><code>theorem Set.equivOfEq (α : Type) (A B : Set α) (h : A = B) :
+    A ≈ B := by
+  exact Set.Equiv.mk α α A B (fun (x : α) =&gt; x) (fun (x : α) =&gt; x)
+    (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt;
+      @Eq.subst.{1} (Set α) (fun (X : Set α) =&gt; x ∈ X) A B h hx)
+    (fun (y : α) =&gt; fun (hy : y ∈ B) =&gt;
+      @Eq.subst.{1} (Set α) (fun (X : Set α) =&gt; y ∈ X) B A
+        (@Eq.symm.{1} (Set α) A B h) hy)
+    (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt; @Eq.refl.{1} α x)
+    (fun (y : α) =&gt; fun (hy : y ∈ B) =&gt; @Eq.refl.{1} α y)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-9-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">not_equiv_empty_singleton</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-9-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：空集与单元素集不等势——用等势的数据去反驳。</p></div></div><pre class="exercise-statement"><code>theorem not_equiv_empty_singleton (α β : Type) (b : β) :
+    ¬ (Set.Equiv α β ∅ {b}) := by  -- soko:notation-ok: `∅`/`{b}` 两侧都是零元糖 ⇒ `≈` 补不出论域（G-48）；点名形式把 α β 写在参数位上
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>假设有等势，把它的反向映射用在 <span class="math">b ∈ {b}</span> 上，就把 b 推进了空集，撞 False。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">¬</span> <code>Set.Equiv</code>（点名写法，<span class="math">α β</span> 写在参数位上），展开后是"等势 <span class="math">→ False</span>"。⚠ <strong>为什么这一条不写 <code>≈</code> 记法</strong>（E03 实测的新边界）：<code>∅</code> 与 <code>{b}</code> 都是<strong>零元糖</strong>（<code>Set.empty</code> / <code>Set.singleton</code>），做记法操作数时<strong>两边都补不出论域</strong> <span class="math">⇒</span> 报 <code>elab-notation-argument-unsolved</code>（「记法 <code>∅</code> 展开成 <code>Set.empty</code> 时补不出前面的类型参数」）。点名形式把 <span class="math">α β</span> 写在 <code>Set.Equiv</code> 的参数位上，两侧的期望类型就都有了 ✓。同族边界见 G-19（零元记法落在被应用的位置）与 G-48（本次登记）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两次 Exists.elim 的结论都取 False（不提证人，合法）；反向那条 MapsTo 作用在 b 上、前提是 <span class="math">Set.mem_singleton_self β b</span>；它吐出的 <span class="math">g b ∈</span> ∅ 展开就是 False。</p></div></details></div><details class="solution-panel" id="sol-9-5"><summary>查看解答 <span class="sol-meta">定理 · 28 行</span></summary><div class="solution-body"><p class="solution-note">练习 5（L 类）：空集与单元素集不等势——用数据反驳。
+假设有等势，把反向映射用在 <span class="math">b ∈ {b}</span> 上，得到 <span class="math">g b ∈</span> ∅，而 ∅ 没有元素。
+结论 False 里不出现 f、g，所以两次 Exists.elim 都合法。</p><pre><code>theorem not_equiv_empty_singleton (α β : Type) (b : β) :
+    ¬ (Set.Equiv α β ∅ {b}) := by  -- soko:notation-ok: `∅`/`{b}` 两侧都是零元糖 ⇒ `≈` 补不出论域（G-48）；点名形式把 α β 写在参数位上
+  exact fun (h : Set.Equiv α β ∅ {b}) =&gt;
+    @Exists.elim (α → β)
+      (fun (f : α → β) =&gt;
+        Set.MapsTo α β f ∅ {b} ∧
+          (∃ (g : β → α), Set.MapsTo β α g {b} ∅ ∧
+              (Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b})))
+      False
+      h
+      (fun (f : α → β) =&gt;
+        fun (hf : Set.MapsTo α β f ∅ {b} ∧
+                      (∃ (g : β → α), Set.MapsTo β α g {b} ∅ ∧
+                          (Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b}))) =&gt;
+          @Exists.elim (β → α)
+            (fun (g : β → α) =&gt;
+              Set.MapsTo β α g {b} ∅ ∧
+                (Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b}))
+            False
+            (@And.right (Set.MapsTo α β f ∅ {b})
+              (∃ (g : β → α), Set.MapsTo β α g {b} ∅ ∧
+                  (Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b})) hf)
+            (fun (g : β → α) =&gt;
+              fun (hg : Set.MapsTo β α g {b} ∅ ∧
+                            (Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b})) =&gt;
+                @And.left (Set.MapsTo β α g {b} ∅)
+                  ((Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b})) hg
+                  b (Set.mem_singleton_self b)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-9-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">equiv_nonempty_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-9-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（D 类，先判断再证明）：「两个集合等势，则它们同时空、同时不空」。判断：<strong>真</strong>。这是"等势搬运什么"的第一个例子：它把"有元素"搬过去也搬回来。</p></div></div><pre class="exercise-statement"><code>theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
+    (h : A ≈ B) :
+    (∃ (x : α), x ∈ A) ↔ (∃ (y : β), y ∈ B) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个方向各用等势的一把映射：A 有元素 x 就送成 <span class="math">f x ∈ B</span>；B 有元素 y 就送回 <span class="math">g y ∈ A</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">∃ (x</span> : <span class="math">α)</span>, <span class="math">x ∈ A ↔ ∃ (y</span> : <span class="math">β)</span>, <span class="math">y ∈ B</span>——注意 <span class="math">∃</span> 的论域就是 <span class="math">α</span> 与 <span class="math">β</span>，集合本身就是谓词。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Iff.intro 分两个方向；每个方向都要 Exists.elim 两次（先取元素、再取映射），结论里不出现证人；交出元素用 Exists.intro 配上那条 MapsTo。</p></div></details></div><details class="solution-panel" id="sol-9-6"><summary>查看解答 <span class="sol-meta">定理 · 50 行</span></summary><div class="solution-body"><p class="solution-note">练习 6（D 类，判断：<strong>真</strong>）：等势的集合同时空、同时不空。
+两个方向各用一次"用等势"：正向把 A 的元素推到 B，反向把 B 的元素推回 A。
+每个方向的结论（<span class="math">∃ (y</span> : <span class="math">β)</span>, <span class="math">y ∈ B</span> 或 <span class="math">∃ (x</span> : <span class="math">α)</span>, <span class="math">x ∈ A</span>）都不提证人，两次嵌套 elim 都合法。</p><pre><code>theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
+    (h : A ≈ B) :
+    (∃ (x : α), x ∈ A) ↔ (∃ (y : β), y ∈ B) := by
+  exact @Iff.intro (∃ (x : α), x ∈ A) (∃ (y : β), y ∈ B)
+    (fun (ha : ∃ (x : α), x ∈ A) =&gt;
+      @Exists.elim α A (∃ (y : β), y ∈ B) ha
+        (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt;
+          @Exists.elim (α → β)
+            (fun (f : α → β) =&gt;
+              Set.MapsTo α β f A B ∧
+                (∃ (g : β → α), Set.MapsTo β α g B A ∧
+                    (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))
+            (∃ (y : β), y ∈ B)
+            h
+            (fun (f : α → β) =&gt;
+              fun (hf : Set.MapsTo α β f A B ∧
+                            (∃ (g : β → α), Set.MapsTo β α g B A ∧
+                                (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))) =&gt;
+                Exists.intro (f x)
+                  (@And.left (Set.MapsTo α β f A B)
+                    (∃ (g : β → α), Set.MapsTo β α g B A ∧
+                        (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) hf x hx))))
+    (fun (hb : ∃ (y : β), y ∈ B) =&gt;
+      @Exists.elim β B (∃ (x : α), x ∈ A) hb
+        (fun (y : β) =&gt; fun (hy : y ∈ B) =&gt;
+          @Exists.elim (α → β)
+            (fun (f : α → β) =&gt;
+              Set.MapsTo α β f A B ∧
+                (∃ (g : β → α), Set.MapsTo β α g B A ∧
+                    (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))
+            (∃ (x : α), x ∈ A)
+            h
+            (fun (f : α → β) =&gt;
+              fun (hf : Set.MapsTo α β f A B ∧
+                            (∃ (g : β → α), Set.MapsTo β α g B A ∧
+                                (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))) =&gt;
+                @Exists.elim (β → α)
+                  (fun (g : β → α) =&gt;
+                    Set.MapsTo β α g B A ∧
+                      (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))
+                  (∃ (x : α), x ∈ A)
+                  (@And.right (Set.MapsTo α β f A B)
+                    (∃ (g : β → α), Set.MapsTo β α g B A ∧
+                        (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) hf)
+                  (fun (g : β → α) =&gt;
+                    fun (hg : Set.MapsTo β α g B A ∧
+                                  (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) =&gt;
+                      Exists.intro (g y)
+                        (@And.left (Set.MapsTo β α g B A)
+                          ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) hg y hy)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-9-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">proper_subset_counterexample</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-9-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（D 类，先判断再证明）：「真子集一定严格更小」。判断：<strong>假</strong>（无限集上）。本语言没有基数序，"严格更小"只能写成"真子集且不等势"，于是反例要三段一起给：<span class="math">nonzero ⊆ Nat</span>（包含）、<span class="math">nonzero ≠ Nat</span>（真）、nonzero ≈ Nat（等势）。这就是"整体与真部分一样大"在本语言里的第一个可判例子（<strong>设计判断</strong>：先给反例，不在这里谈"无限"的定义——那需要"有限"，本语言还没有）。</p></div></div><pre class="exercise-statement"><code>theorem proper_subset_counterexample :
+    nonzero ⊆ (@Set.univ Nat) ∧
+      (nonzero ≠ @Set.univ Nat ∧ nonzero ≈ (@Set.univ Nat)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>反例取 nonzero 与 Set.univ Nat：正向映射做"减一"（Nat.pred），反向映射做"加一"（Nat.succ）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>nonzero ⊆ (Set.univ Nat) ∧ (nonzero ≠ Set.univ Nat ∧ nonzero ≈ (Set.univ Nat))</code>——第一段是"包含"（✓ <strong><code>⊆</code> 记法直接可用</strong> ✓，2026-10-13 实测 ✓；旧注"补不出论域 <span class="math">⇒</span> 点名"已过期 ✗）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>① 目标是 Set.univ，True.intro 即可；② 拿 0 做见证——用 Eq.subst 与 Eq.symm 沿假设把 Set.mem_univ 搬成 <span class="math">0 ∈ nonzero</span>，再喂 Eq.refl；③ 反向那条 MapsTo 用 Nat.succ_ne_zero，左互逆律要对 x 分情况：Nat.rec.{0} 配依赖 motive（zero 支被 hx 直接否掉，succ 支靠 Nat.pred 的 iota 算）。</p></div></details></div><details class="solution-panel" id="sol-9-7"><summary>查看解答 <span class="sol-meta">定理 · 30 行</span></summary><div class="solution-body"><p class="solution-note">练习 7（D 类，判断：<strong>假</strong>）："真子集一定严格更小"——反例。
+本语言没有基数序，"严格更小"只能表述成"真子集且不等势"；于是反例要三段：
+  ① 非零自然数之集 <span class="math">⊆ Nat</span>（真子集那一半的包含）；
+  ② 它 <span class="math">≠ Nat</span>（真子集那一半的严格性：0 在右边不在左边）；
+  ③ 它与 Nat 等势（正向 pred、反向 succ——无限集上的"整体与真部分一样大"）。
+左互逆律 <span class="math">pred (succ x) = x</span> 要对 x 分情况：succ 那一支靠 iota 直接算，
+zero 那一支被 <span class="math">x ∈ nonzero</span> 直接否掉（这就是为什么脚手架里要有 succ_ne_zero）。
+第一段用<strong>记法</strong> <code>nonzero ⊆ (@Set.univ Nat)</code> ✓（2026-10-13 实测判绿 ✓ ——
+旧注说"<span class="math">⊆</span> 记法补不出论域 <span class="math">⇒</span> 点名"<strong>已过期</strong> ✗，按实际订正 ✓）。</p><pre><code>theorem proper_subset_counterexample :
+    nonzero ⊆ (@Set.univ Nat) ∧
+      (nonzero ≠ @Set.univ Nat ∧ nonzero ≈ (@Set.univ Nat)) := by
+  exact @And.intro (nonzero ⊆ (@Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    (¬ (@Eq.{1} (Set Nat) nonzero (@Set.univ Nat)) ∧
+         nonzero ≈ (@Set.univ Nat))
+    (fun (x : Nat) =&gt; fun (hx : x ∈ nonzero) =&gt; True.intro)
+    (@And.intro (¬ (@Eq.{1} (Set Nat) nonzero (@Set.univ Nat)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (nonzero ≈ (@Set.univ Nat))
+      (fun (h : @Eq.{1} (Set Nat) nonzero (@Set.univ Nat)) =&gt;  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        (fun (h0 : Nat.zero ∈ nonzero) =&gt; h0 (@Eq.refl.{1} Nat Nat.zero))
+          (@Eq.subst.{1} (Set Nat) (fun (X : Set Nat) =&gt; Nat.zero ∈ X)
+            (@Set.univ Nat) nonzero
+            (@Eq.symm.{1} (Set Nat) nonzero (@Set.univ Nat) h)
+            (Set.mem_univ Nat.zero)))
+      (Set.Equiv.mk Nat Nat nonzero (@Set.univ Nat) Nat.pred Nat.succ
+        (fun (x : Nat) =&gt; fun (hx : x ∈ nonzero) =&gt; True.intro)
+        (fun (y : Nat) =&gt; fun (hy : y ∈ @Set.univ Nat) =&gt; Nat.succ_ne_zero y)
+        (fun (x : Nat) =&gt; fun (hx : x ∈ nonzero) =&gt;
+          Nat.rec.{0}
+            (fun (k : Nat) =&gt; k ∈ nonzero → @Eq.{1} Nat (Nat.succ (Nat.pred k)) k)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (fun (hz : Nat.zero ∈ nonzero) =&gt;
+              @False.elim (@Eq.{1} Nat (Nat.succ (Nat.pred Nat.zero)) Nat.zero)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                (hz (@Eq.refl.{1} Nat Nat.zero)))
+            (fun (k : Nat) =&gt;
+              fun (ih : k ∈ nonzero → @Eq.{1} Nat (Nat.succ (Nat.pred k)) k) =&gt;  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                fun (hs : Nat.succ k ∈ nonzero) =&gt;
+                  @Eq.refl.{1} Nat (Nat.succ k))
+            x hx)
+        (fun (y : Nat) =&gt; fun (hy : y ∈ @Set.univ Nat) =&gt; @Eq.refl.{1} Nat y)))</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>本单元<strong>不做什么</strong>（写下来免得以为漏了）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>Schröder–Bernstein（A ↪ B 且 B ↪ A ⟹ A ≈ B）：要不动点构造与Type 层的重写，本语言都还没有（台账 L-03/L-06），留到卷 II；</li><li>选择公理与"满射 ⟹ 有右逆"：那是单元⑩ 的正题；</li><li>有限集与鸽笼原理：需要枚举/Fin 式结构，本单元只做等势（基数 Ⅰ）。</li></ul></div><div class="block prose intuition-only"><p>另外，"真子集一定严格更小"这句话在<strong>有限</strong>集上是真的——但"有限"这个概念本语言今天还没有，所以练习 7 只破无限集那一半。</p></div>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（5 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子：Tao《Analysis I》§3.6 前半（等势 / 基数的开头）。先修：单元①② 的集合词汇（本单元只用 lib.Logic / lib.Exists / lib.Set / lib.Equiv）。</p></div><div class="block prose intuition-only"><p>本单元只允许用什么（逐步解锁，见 docs/design/set-theory-syllabus.md §2）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>证明：一律 <code>by</code> tactic 块，白名单<strong>只有</strong> intro / exact / apply / assumption / rfl / match / constructor / left / right / use / exfalso / cases / have / sorry 加<strong>匿名构造子</strong> <code>⟨a, b⟩</code>（期望类型决定用哪个构造子）；——<strong>没有</strong> rw / obtain / change / simp / induction / calc / rintro，也没有 focus 点 <code>·</code>；</li><li>语句一律写<strong>记法</strong>：<code>x ∈ A</code> <span class="math">·</span> <code>A ⊆ B</code> <span class="math">·</span> <code>A ∪ B</code> <span class="math">·</span> <code>A ∩ B</code> <span class="math">·</span> <code>A \ B</code> <span class="math">·</span><code>∅</code> <span class="math">·</span> <code>𝒫 A</code>，集合字面量 <code>{a}</code> / <code>{a, b}</code>，存在量词 <code>∃ (x : α), p x</code>；逻辑连接符 <code>∧ ∨ ↔ ¬</code> 与 <code>→ = ≠</code> 是<strong>语言内建</strong>，任何文件零声明可用；</li><li>记法<strong>由 lib/Set 与 lib/Exists 随 import 带来</strong>（<code>infix</code> / <code>notation</code> / <code>binder_notation</code> 写在库里）：本文件一条记法声明都不写——同一个符号全课程只能声明一次；</li><li>记法只是<strong>连接符的糖</strong>，不是引理名的糖：引理照旧点名写——Or.inl / Or.inr / Or.elim / And.intro / And.left / And.right / Iff.intro / Iff.mp / Iff.mpr / Set.ext / Exists.intro / Exists.elim / Eq.refl / Eq.symm / Eq.trans / congrArg / Eq.subst（等式一律写<strong>显式宇宙</strong>：</li></ul></div><div class="math-display intuition-only" role="math" aria-label="a = b）/ Nat.rec / False.elim / absurd"><math display="block" class="mathml"><mfrac><mrow><mi>a</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>b</mi><mo>）</mo></mrow><mfrac><mrow><mi mathvariant="normal">Nat.rec</mi></mrow><mfrac><mrow><mi mathvariant="normal">False.elim</mi></mrow><mrow><mi mathvariant="normal">absurd</mi></mrow></mfrac></mfrac></mfrac></math></div><div class="block prose intuition-only"><ul class="prose-list"><li>库里已备好、直接用（<span class="math">lib.Logic + lib.Exists + lib.Set + lib.Equiv</span>）：True / True.intro / False / False.elim / Not / absurd、And / Or / Iff 全家、Eq 全家、congrArg、Eq.subst、Set 与 mem/subset/empty/univ/singleton/pair/union/inter/sdiff/ compl/powerset、公理 Set.ext、全部展开引理、Exists / Exists.intro / Exists.elim、Set.MapsTo / Set.LeftInvOn / Set.RightInvOn、等势（记法 <code>A ≈ B</code>）/ Set.Equiv.mk；</li><li>只允许引用<strong>前面已经出现</strong>的声明（声明顺序 <span class="math">=</span> 依赖顺序）。</li></ul></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit08.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">像与原像</span></a><a class="unit-nav-home" href="../chapters/i-3.html#units">目录</a><a class="unit-nav-link" href="../units/unit10.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">可数与 Cantor 定理（基数 Ⅱ）</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-9"><h3><a href="#top">等势（基数 Ⅰ）</a></h3><p class="appendix-meta">7 道练习 · 7 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-9-1"><summary>练习 1 · Set.Equiv.symm <span class="sol-meta">定理</span></summary><p class="solution-note">练习 1（T 类，必证②）：等势对称——交换两把映射。
+结论 <code>B ≈ A</code> 里不出现 f、g，正好满足 Exists.elim 的纪律。</p><pre><code>theorem Set.Equiv.symm (α β : Type) (A : Set α) (B : Set β)
+    (h : A ≈ B) : B ≈ A := by
+  exact Exists.elim h (fun (f : α → β) =&gt;
+      fun (hf : Set.MapsTo α β f A B ∧
+          (∃ (g : β → α), Set.MapsTo β α g B A ∧
+            (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))) =&gt;
+        Exists.elim (And.right hf) (fun (g : β → α) =&gt;
+            fun (hg : Set.MapsTo β α g B A ∧
+                (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) =&gt;
+              Set.Equiv.mk β α B A g f
+                (And.left hg)
+                (And.left hf)
+                (And.right
+                  (And.right hg))
+                (And.left
+                  (And.right hg))))</code></pre></details><details class="appendix-solution" id="app-sol-9-2"><summary>练习 2 · Set.Equiv.trans <span class="sol-meta">定理</span></summary><pre><code>theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (h1 : A ≈ B) (h2 : B ≈ C) : A ≈ C := by
+  exact @Exists.elim (α → β)
+    (fun (f1 : α → β) =&gt;
+      Set.MapsTo α β f1 A B ∧
+        (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
+            (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)))
+    (A ≈ C)
+    h1
+    (fun (f1 : α → β) =&gt;
+      fun (hf1 : Set.MapsTo α β f1 A B ∧
+                     (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
+                         (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B))) =&gt;
+        @Exists.elim (β → α)
+          (fun (g1 : β → α) =&gt;
+            Set.MapsTo β α g1 B A ∧
+              (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B))
+          (A ≈ C)
+          (@And.right (Set.MapsTo α β f1 A B)
+            (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
+                (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hf1)
+          (fun (g1 : β → α) =&gt;
+            fun (hg1 : Set.MapsTo β α g1 B A ∧
+                           (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) =&gt;
+              @Exists.elim (β → γ)
+                (fun (f2 : β → γ) =&gt;
+                  Set.MapsTo β γ f2 B C ∧
+                    (∃ (g2 : γ → β), Set.MapsTo γ β g2 C B ∧
+                        (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)))
+                (A ≈ C)
+                h2
+                (fun (f2 : β → γ) =&gt;
+                  fun (hf2 : Set.MapsTo β γ f2 B C ∧
+                                 (∃ (g2 : γ → β), Set.MapsTo γ β g2 C B ∧
+                                     (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C))) =&gt;
+                    @Exists.elim (γ → β)
+                      (fun (g2 : γ → β) =&gt;
+                        Set.MapsTo γ β g2 C B ∧
+                          (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C))
+                      (A ≈ C)
+                      (@And.right (Set.MapsTo β γ f2 B C)
+                        (∃ (g2 : γ → β), Set.MapsTo γ β g2 C B ∧
+                            (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hf2)
+                      (fun (g2 : γ → β) =&gt;
+                        fun (hg2 : Set.MapsTo γ β g2 C B ∧
+                                       (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) =&gt;
+                          Set.Equiv.mk α γ A C
+                            (fun (x : α) =&gt; f2 (f1 x))
+                            (fun (z : γ) =&gt; g1 (g2 z))
+                            (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt;
+                              @And.left (Set.MapsTo β γ f2 B C)
+                                (∃ (g2 : γ → β), Set.MapsTo γ β g2 C B ∧
+                                    (Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hf2
+                                (f1 x)
+                                (@And.left (Set.MapsTo α β f1 A B)
+                                  (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
+                                      (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hf1
+                                  x hx))
+                            (fun (z : γ) =&gt; fun (hz : z ∈ C) =&gt;
+                              @And.left (Set.MapsTo β α g1 B A)
+                                ((Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B))
+                                hg1
+                                (g2 z)
+                                (@And.left (Set.MapsTo γ β g2 C B)
+                                  ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C))
+                                  hg2 z hz))
+                            (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt;
+                              @Eq.trans.{1} α (g1 (g2 (f2 (f1 x)))) (g1 (f1 x)) x
+                                (@congrArg.{1} β α (g2 (f2 (f1 x))) (f1 x) g1
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                                  ((fun (h' : (Set.LeftInvOn β γ g2 f2 B)) =&gt; h' (f1 x) ((fun (h' : (Set.MapsTo α β f1 A B)) =&gt; h' x hx) (@And.left (Set.MapsTo α β f1 A B) (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                                          (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hf1))) (@And.left (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C) (@And.right (Set.MapsTo γ β g2 C B) ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hg2))))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                                ((fun (h' : (Set.LeftInvOn α β g1 f1 A)) =&gt; h' x hx) (@And.left (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B) (@And.right (Set.MapsTo β α g1 B A) ((Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hg1))))
+                            (fun (z : γ) =&gt; fun (hz : z ∈ C) =&gt;
+                              @Eq.trans.{1} γ (f2 (f1 (g1 (g2 z)))) (f2 (g2 z)) z
+                                (@congrArg.{1} β γ (f1 (g1 (g2 z))) (g2 z) f2
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                                  ((fun (h' : (Set.RightInvOn α β f1 g1 B)) =&gt; h' (g2 z) ((fun (h' : (Set.MapsTo γ β g2 C B)) =&gt; h' z hz) (@And.left (Set.MapsTo γ β g2 C B) ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hg2))) (@And.right (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B) (@And.right (Set.MapsTo β α g1 B A) ((Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hg1))))
+  -- soko:notation-ok: 严格档要求显式前导参数（strict @）
+                                ((fun (h' : (Set.RightInvOn β γ f2 g2 C)) =&gt; h' z hz) (@And.right (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C) (@And.right (Set.MapsTo γ β g2 C B) ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hg2))))))))</code></pre></details><details class="appendix-solution" id="app-sol-9-3"><summary>练习 3 · Set.Equiv.singleton <span class="sol-meta">定理</span></summary><p class="solution-note">练习 3（L 类）：任意两个单元素集都等势——亲手写那对映射。
+正向是常函数 x ↦ b，反向是常函数 y ↦ a；两条互逆律都要把
+"<span class="math">x ∈ {a}</span>"（就是一个等式 <span class="math">x = a</span>）掉个头。</p><pre><code>theorem Set.Equiv.singleton (α β : Type) (a : α) (b : β) :
+    {a} ≈ {b} := by
+  exact Set.Equiv.mk α β {a} {b} (fun (x : α) =&gt; b) (fun (y : β) =&gt; a)
+    (fun (x : α) =&gt; fun (hx : x ∈ {a}) =&gt; @Eq.refl.{1} β b)
+    (fun (y : β) =&gt; fun (hy : y ∈ {b}) =&gt; @Eq.refl.{1} α a)
+    (fun (x : α) =&gt; fun (hx : x ∈ {a}) =&gt; @Eq.symm.{1} α x a hx)
+    (fun (y : β) =&gt; fun (hy : y ∈ {b}) =&gt; @Eq.symm.{1} β y b hy)</code></pre></details><details class="appendix-solution" id="app-sol-9-4"><summary>练习 4 · Set.equivOfEq <span class="sol-meta">定理</span></summary><p class="solution-note">练习 4（L 类）：集合相等蕴涵等势（Mathlib 真名 <code>Set.equivOfEq</code>）。
+两把映射都取恒等，四条条件里"送进"的两条要把成员关系沿等式搬过去
+（Eq.subst），反向那条搬的是 Eq.symm 过的等式。</p><pre><code>theorem Set.equivOfEq (α : Type) (A B : Set α) (h : A = B) :
+    A ≈ B := by
+  exact Set.Equiv.mk α α A B (fun (x : α) =&gt; x) (fun (x : α) =&gt; x)
+    (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt;
+      @Eq.subst.{1} (Set α) (fun (X : Set α) =&gt; x ∈ X) A B h hx)
+    (fun (y : α) =&gt; fun (hy : y ∈ B) =&gt;
+      @Eq.subst.{1} (Set α) (fun (X : Set α) =&gt; y ∈ X) B A
+        (@Eq.symm.{1} (Set α) A B h) hy)
+    (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt; @Eq.refl.{1} α x)
+    (fun (y : α) =&gt; fun (hy : y ∈ B) =&gt; @Eq.refl.{1} α y)</code></pre></details><details class="appendix-solution" id="app-sol-9-5"><summary>练习 5 · not_equiv_empty_singleton <span class="sol-meta">定理</span></summary><p class="solution-note">练习 5（L 类）：空集与单元素集不等势——用数据反驳。
+假设有等势，把反向映射用在 <span class="math">b ∈ {b}</span> 上，得到 <span class="math">g b ∈</span> ∅，而 ∅ 没有元素。
+结论 False 里不出现 f、g，所以两次 Exists.elim 都合法。</p><pre><code>theorem not_equiv_empty_singleton (α β : Type) (b : β) :
+    ¬ (Set.Equiv α β ∅ {b}) := by  -- soko:notation-ok: `∅`/`{b}` 两侧都是零元糖 ⇒ `≈` 补不出论域（G-48）；点名形式把 α β 写在参数位上
+  exact fun (h : Set.Equiv α β ∅ {b}) =&gt;
+    @Exists.elim (α → β)
+      (fun (f : α → β) =&gt;
+        Set.MapsTo α β f ∅ {b} ∧
+          (∃ (g : β → α), Set.MapsTo β α g {b} ∅ ∧
+              (Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b})))
+      False
+      h
+      (fun (f : α → β) =&gt;
+        fun (hf : Set.MapsTo α β f ∅ {b} ∧
+                      (∃ (g : β → α), Set.MapsTo β α g {b} ∅ ∧
+                          (Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b}))) =&gt;
+          @Exists.elim (β → α)
+            (fun (g : β → α) =&gt;
+              Set.MapsTo β α g {b} ∅ ∧
+                (Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b}))
+            False
+            (@And.right (Set.MapsTo α β f ∅ {b})
+              (∃ (g : β → α), Set.MapsTo β α g {b} ∅ ∧
+                  (Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b})) hf)
+            (fun (g : β → α) =&gt;
+              fun (hg : Set.MapsTo β α g {b} ∅ ∧
+                            (Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b})) =&gt;
+                @And.left (Set.MapsTo β α g {b} ∅)
+                  ((Set.LeftInvOn α β g f ∅) ∧ (Set.RightInvOn α β f g {b})) hg
+                  b (Set.mem_singleton_self b)))</code></pre></details><details class="appendix-solution" id="app-sol-9-6"><summary>练习 6 · equiv_nonempty_iff <span class="sol-meta">定理</span></summary><p class="solution-note">练习 6（D 类，判断：<strong>真</strong>）：等势的集合同时空、同时不空。
+两个方向各用一次"用等势"：正向把 A 的元素推到 B，反向把 B 的元素推回 A。
+每个方向的结论（<span class="math">∃ (y</span> : <span class="math">β)</span>, <span class="math">y ∈ B</span> 或 <span class="math">∃ (x</span> : <span class="math">α)</span>, <span class="math">x ∈ A</span>）都不提证人，两次嵌套 elim 都合法。</p><pre><code>theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
+    (h : A ≈ B) :
+    (∃ (x : α), x ∈ A) ↔ (∃ (y : β), y ∈ B) := by
+  exact @Iff.intro (∃ (x : α), x ∈ A) (∃ (y : β), y ∈ B)
+    (fun (ha : ∃ (x : α), x ∈ A) =&gt;
+      @Exists.elim α A (∃ (y : β), y ∈ B) ha
+        (fun (x : α) =&gt; fun (hx : x ∈ A) =&gt;
+          @Exists.elim (α → β)
+            (fun (f : α → β) =&gt;
+              Set.MapsTo α β f A B ∧
+                (∃ (g : β → α), Set.MapsTo β α g B A ∧
+                    (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))
+            (∃ (y : β), y ∈ B)
+            h
+            (fun (f : α → β) =&gt;
+              fun (hf : Set.MapsTo α β f A B ∧
+                            (∃ (g : β → α), Set.MapsTo β α g B A ∧
+                                (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))) =&gt;
+                Exists.intro (f x)
+                  (@And.left (Set.MapsTo α β f A B)
+                    (∃ (g : β → α), Set.MapsTo β α g B A ∧
+                        (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) hf x hx))))
+    (fun (hb : ∃ (y : β), y ∈ B) =&gt;
+      @Exists.elim β B (∃ (x : α), x ∈ A) hb
+        (fun (y : β) =&gt; fun (hy : y ∈ B) =&gt;
+          @Exists.elim (α → β)
+            (fun (f : α → β) =&gt;
+              Set.MapsTo α β f A B ∧
+                (∃ (g : β → α), Set.MapsTo β α g B A ∧
+                    (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))
+            (∃ (x : α), x ∈ A)
+            h
+            (fun (f : α → β) =&gt;
+              fun (hf : Set.MapsTo α β f A B ∧
+                            (∃ (g : β → α), Set.MapsTo β α g B A ∧
+                                (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))) =&gt;
+                @Exists.elim (β → α)
+                  (fun (g : β → α) =&gt;
+                    Set.MapsTo β α g B A ∧
+                      (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))
+                  (∃ (x : α), x ∈ A)
+                  (@And.right (Set.MapsTo α β f A B)
+                    (∃ (g : β → α), Set.MapsTo β α g B A ∧
+                        (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) hf)
+                  (fun (g : β → α) =&gt;
+                    fun (hg : Set.MapsTo β α g B A ∧
+                                  (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) =&gt;
+                      Exists.intro (g y)
+                        (@And.left (Set.MapsTo β α g B A)
+                          ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) hg y hy)))))</code></pre></details><details class="appendix-solution" id="app-sol-9-7"><summary>练习 7 · proper_subset_counterexample <span class="sol-meta">定理</span></summary><p class="solution-note">练习 7（D 类，判断：<strong>假</strong>）："真子集一定严格更小"——反例。
+本语言没有基数序，"严格更小"只能表述成"真子集且不等势"；于是反例要三段：
+  ① 非零自然数之集 <span class="math">⊆ Nat</span>（真子集那一半的包含）；
+  ② 它 <span class="math">≠ Nat</span>（真子集那一半的严格性：0 在右边不在左边）；
+  ③ 它与 Nat 等势（正向 pred、反向 succ——无限集上的"整体与真部分一样大"）。
+左互逆律 <span class="math">pred (succ x) = x</span> 要对 x 分情况：succ 那一支靠 iota 直接算，
+zero 那一支被 <span class="math">x ∈ nonzero</span> 直接否掉（这就是为什么脚手架里要有 succ_ne_zero）。
+第一段用<strong>记法</strong> <code>nonzero ⊆ (@Set.univ Nat)</code> ✓（2026-10-13 实测判绿 ✓ ——
+旧注说"<span class="math">⊆</span> 记法补不出论域 <span class="math">⇒</span> 点名"<strong>已过期</strong> ✗，按实际订正 ✓）。</p><pre><code>theorem proper_subset_counterexample :
+    nonzero ⊆ (@Set.univ Nat) ∧
+      (nonzero ≠ @Set.univ Nat ∧ nonzero ≈ (@Set.univ Nat)) := by
+  exact @And.intro (nonzero ⊆ (@Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+    (¬ (@Eq.{1} (Set Nat) nonzero (@Set.univ Nat)) ∧
+         nonzero ≈ (@Set.univ Nat))
+    (fun (x : Nat) =&gt; fun (hx : x ∈ nonzero) =&gt; True.intro)
+    (@And.intro (¬ (@Eq.{1} (Set Nat) nonzero (@Set.univ Nat)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+      (nonzero ≈ (@Set.univ Nat))
+      (fun (h : @Eq.{1} (Set Nat) nonzero (@Set.univ Nat)) =&gt;  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+        (fun (h0 : Nat.zero ∈ nonzero) =&gt; h0 (@Eq.refl.{1} Nat Nat.zero))
+          (@Eq.subst.{1} (Set Nat) (fun (X : Set Nat) =&gt; Nat.zero ∈ X)
+            (@Set.univ Nat) nonzero
+            (@Eq.symm.{1} (Set Nat) nonzero (@Set.univ Nat) h)
+            (Set.mem_univ Nat.zero)))
+      (Set.Equiv.mk Nat Nat nonzero (@Set.univ Nat) Nat.pred Nat.succ
+        (fun (x : Nat) =&gt; fun (hx : x ∈ nonzero) =&gt; True.intro)
+        (fun (y : Nat) =&gt; fun (hy : y ∈ @Set.univ Nat) =&gt; Nat.succ_ne_zero y)
+        (fun (x : Nat) =&gt; fun (hx : x ∈ nonzero) =&gt;
+          Nat.rec.{0}
+            (fun (k : Nat) =&gt; k ∈ nonzero → @Eq.{1} Nat (Nat.succ (Nat.pred k)) k)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+            (fun (hz : Nat.zero ∈ nonzero) =&gt;
+              @False.elim (@Eq.{1} Nat (Nat.succ (Nat.pred Nat.zero)) Nat.zero)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                (hz (@Eq.refl.{1} Nat Nat.zero)))
+            (fun (k : Nat) =&gt;
+              fun (ih : k ∈ nonzero → @Eq.{1} Nat (Nat.succ (Nat.pred k)) k) =&gt;  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
+                fun (hs : Nat.succ k ∈ nonzero) =&gt;
+                  @Eq.refl.{1} Nat (Nat.succ k))
+            x hx)
+        (fun (y : Nat) =&gt; fun (hy : y ∈ @Set.univ Nat) =&gt; @Eq.refl.{1} Nat y)))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit08.html">← 08 像与原像</a><a class="next" href="../units/unit10.html">10 可数与 Cantor 定理（基数 Ⅱ） →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

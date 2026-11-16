@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 04 外延性与集合等式</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit04.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 04 外延性与集合等式</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit04.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.1 集合、子集与集合运算 · 单元 04</p><h1>外延性与集合等式</h1><p class="note">Unit 4 — Extensionality &amp; Set Identities</p></header><section class="unit" id="unit-4">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-1.html">I.1</a> · 本章第 4 / 15 单元 · 全书第 4 / 112 单元</p>
+<h2><span class="unit-number">04</span><span>外延性与集合等式</span></h2>
+<p class="unit-title-en">Unit 4 — Extensionality &amp; Set Identities</p>
+<p class="unit-meta">11 个定理 · 7 道练习 · 24 条提示 · <a href="#appendix-unit-4">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p><strong>记法不用自己声明</strong>：<code>∈ ⊆ ∪ ∩ \ ∅</code> 由 <code>lib/Set</code> 提供、随 <code>import</code> 生效；逻辑连接符 <code>∧ ∨ ↔ ¬</code>、箭头 <code>→</code>、<strong>等号 <code>=</code> 与不等号 <code>≠</code></strong> 是<strong>语言内建</strong>（Lean core 级），任何文件直接写。所以下面看不到一条 <code>infix</code>/<code>notation</code>。</p></div></div></section>
+<div class="block prose intuition-only"><p>两处<strong>书写例外</strong>：① <code>∅</code> 是<strong>零元</strong>记法，落在「被应用」的记法位置时补不出类型参数（<code>(A \ A) x ↔ (∅) x</code>）——演示 3 先把 Iff 写成源形态再交给 <code>Set.ext</code>；② <code>\</code> 的左操作数本身是记法时（<code>(A ∪ B) \ B</code>）记法路径解不出类型参数，所以命题 8 的语句里 <code>\</code> 与 <code>∪</code> 仍写点名形式（<code>Set.sdiff</code> / <code>Set.union</code>）。其余位置一律记法。练习配额：X 类 4 条（形式<span class="math">↔</span>散文互译，散文写在题面注释里）<span class="math">· T</span> 类 2 条（项填空）<span class="math">·R</span> 类 2 条（读<span class="math">·</span>评译）—— 其中第 8 条承担本单元的 <strong>D 类必破</strong>：<code>(A ∪ B) \ B = A</code> 是<strong>假</strong>的，要给出反例并把"不相等"证出来。</p></div><h3 class="unit-subhead">4.1 外延证明套路：要证两个集合相等，就逐元素证 Iff</h3><div class="math-display intuition-only" role="math" aria-label="A = B  ⟺  ∀ x, (x ∈ A ↔ x ∈ B)"><math display="block" class="mathml"><mrow><mi>A</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>B</mi><mspace width="0.22em"/><mo>⟺</mo><mspace width="0.22em"/><mo>∀</mo><mspace width="0.22em"/><mi>x</mi><mo>,</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>x</mi><mspace width="0.22em"/><mo>∈</mo><mspace width="0.22em"/><mi>A</mi><mspace width="0.22em"/><mo>↔</mo><mspace width="0.22em"/><mi>x</mi><mspace width="0.22em"/><mo>∈</mo><mspace width="0.22em"/><mi>B</mi></mrow><mo>)</mo></mrow></mrow></math></div><div class="block prose intuition-only"><p>这就是公理 Set.ext 的形状。本单元后面每一条等式都走这一条路：先 <code>apply Set.ext</code> 把集合等式换成"对任意 x 的 Iff"，再 <code>constructor</code> 拆成两个方向，然后对 x 做命题逻辑。</p></div><div class="block prose intuition-only"><p>演示（已写好）：外延套路本身——逐元素 Iff 进，集合相等出。</p></div><article class="decl decl-theorem" id="decl-4-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_ext_pattern</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_ext_pattern (α : Type) (A B : Set α) (h : ∀ (x : α), x ∈ A ↔ x ∈ B) :
+    A = B :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 3 步 · 4 行</summary><ol class="proof-steps"><li><pre><code>  apply Set.ext</code></pre></li><li><pre><code>  intro x</code></pre></li><li><pre><code>  exact h x</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示（已写好）：X 类长什么样——散文「A 与全集的并还是全集」译成形式等式。</p></div><article class="decl decl-theorem" id="decl-4-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_union_univ</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_union_univ (α : Type) (A : Set α) :
+    A ∪ @Set.univ α = @Set.univ α :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 7 步 · 12 行</summary><ol class="proof-steps"><li><pre><code>  apply Set.ext</code></pre></li><li><pre><code>  intro x</code></pre></li><li><pre><code>  have h1 : x ∈ A ∪ @Set.univ α → x ∈ @Set.univ α := by
+    intro h
+    cases h with
+      | inl ha =&gt; exact Set.mem_univ x
+      | inr hu =&gt; exact hu</code></pre></li><li><pre><code>  constructor</code></pre></li><li><pre><code>  exact h1</code></pre></li><li><pre><code>  intro hu</code></pre></li><li><pre><code>  exact Or.inr hu</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示（已写好）：散文「A 去掉自己什么都不剩」译成形式等式。注意套路：这里先把逐元素的 Iff 用 <code>have</code> 写成<strong>源形态</strong>（<code>x ∈ A \ A ↔ x ∈ ∅</code>），再交给 <code>Set.ext</code>。<strong>这条绕法现在只是对照</strong>：早先 <code>apply Set.ext</code> 会把子目标写成"记法被应用"的 <code>(A \ A) x ↔ ∅ x</code>（<code>∅</code> 那个位置回读不出类型参数）；issue #10 修好 <code>Set.ext</code> 的陈述之后，直接 <code>apply Set.ext</code> 就得到源形态 ✓。</p></div><article class="decl decl-theorem" id="decl-4-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_sdiff_self</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_sdiff_self (α : Type) (A : Set α) :
+    A \ A = ∅ :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 2 步 · 9 行</summary><ol class="proof-steps"><li><pre><code>  have h : ∀ (x : α), x ∈ A \ A ↔ x ∈ ∅ := by
+    intro x
+    constructor
+    intro hx
+    exact And.right hx (And.left hx)  -- soko:notation-ok: 目标经 \ 展开后期望类型传不到 + And.right 续应用（引擎边界）
+    intro hf
+    exact And.intro (False.elim hf) (fun (ha : x ∈ A) =&gt; hf)</code></pre></li><li><pre><code>  exact Set.ext (A \ A) ∅ h</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-4-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">union_comm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-4-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：并交换律。</p></div></div><pre class="exercise-statement"><code>theorem union_comm (α : Type) (A B : Set α) :
+    A ∪ B = B ∪ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>集合等式先走外延，再把"两支谁在前"互换。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>A ∪ <span class="math">B = B</span> ∪ A；逐元素是 <span class="math">x ∈ A</span> ∪ <span class="math">B ↔ x ∈ B</span> ∪ A。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>apply Set.ext 吃逐元素 Iff；每个方向 intro 进并集假设后，对 Or 用 Or.elim，左支交 Or.inr、右支交 Or.inl（构造子要写全两支的类型）。</p></div></details></div><details open class="solution-panel" id="sol-4-1"><summary>查看解答 <span class="sol-meta">定理 · 15 行</span></summary><div class="solution-body"><p class="solution-note">unit04 解答钥匙（agent 专用；画布不 import 它）。
+
+与 unit04-extensionality-identities.sokonanoda 的 8 条练习<strong>同名一一对应</strong>：
+  T 类 2 条：union_comm、inter_comm
+  R 类 2 条：union_inter_idem（幂等律打包成一条 And）、union_sdiff_univ_ne_univ（必破：证伪）
+  X 类 4 条：inter_union_distrib_left、union_inter_self、sdiff_sdiff、union_empty
+
+全部改写为 <strong>tactic 模式</strong>（设计 docs/design/course-lean-style.md R2）：
+记法用 <code>∈ ∪ ∩ \ ∅ = ∧ ∨ ↔ ¬</code>（集合符号由 <code>lib/Set</code> 声明、随 import 生效，
+连接符是语言内建），证明只用白名单 tactic：<code>apply</code> / <code>intro</code> / <code>exact</code> /
+<code>constructor</code>，项位照旧可写 <code>fun</code> 与点名引理（<code>Or.inl</code> / <code>Or.elim</code> /
+<code>And.left</code> / <code>Eq.subst.{1}</code> …）——与单元② 的解答同一风格。
+等式不再需要写宇宙：<code>=</code> 记法由判卷器按操作数的 sort 定层级。
+
+一条<strong>书写纪律</strong>（判卷器的实测边界，不是风格偏好）：<code>∅</code> 是零元记法，落在
+「被应用」的位置（<code>(∅) x</code>）补不出类型参数 <span class="math">⇒</span> 第 8 题的语句里 <code>\</code> 与 <code>∪</code>
+写点名形式（<code>Set.sdiff</code> / <code>Set.union</code>）。画布 <code>demo_sdiff_self</code> 那条
+<code>have</code> 绕法（逐元素 Iff 写源形态再交给 <code>Set.ext</code>）<strong>现在只是对照</strong>：
+issue #10 修好 <code>Set.ext</code> 的陈述后，<code>apply Set.ext</code> 直接产源形态
+<code>x ∈ A \ A ↔ x ∈ ∅</code>（早先是 <code>(A \ A) x ↔ ∅ x</code>）。
+
+T 类：并交换律。逐元素是 <span class="math">(x ∈ A</span> ∪ <span class="math">B) ↔ (x ∈ B</span> ∪ A)。</p><pre><code>theorem union_comm (α : Type) (A B : Set α) :
+    A ∪ B = B ∪ A := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact @Or.elim (x ∈ A) (x ∈ B) (x ∈ B ∪ A)
+    (fun (ha : x ∈ A) =&gt; Or.inr ha)
+    (fun (hb : x ∈ B) =&gt; Or.inl hb)
+    h
+  intro h
+  exact @Or.elim (x ∈ B) (x ∈ A) (x ∈ A ∪ B)
+    (fun (hb : x ∈ B) =&gt; Or.inr hb)
+    (fun (ha : x ∈ A) =&gt; Or.inl ha)
+    h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-4-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">inter_comm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-4-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：交交换律。</p></div></div><pre class="exercise-statement"><code>theorem inter_comm (α : Type) (A B : Set α) :
+    A ∩ B = B ∩ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与练习 1 同构，只是 <span class="math">∨</span> 换成 <span class="math">∧</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>逐元素是 <span class="math">x ∈ A</span> ∩ <span class="math">B ↔ x ∈ B</span> ∩ A。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>And.left 换序装回。</p></div></details></div><details open class="solution-panel" id="sol-4-2"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><p class="solution-note">T 类：交交换律。逐元素是 <span class="math">(x ∈ A</span> ∩ <span class="math">B) ↔ (x ∈ B</span> ∩ A)。</p><pre><code>theorem inter_comm (α : Type) (A B : Set α) :
+    A ∩ B = B ∩ A := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact And.intro
+    (And.right h)
+    (And.left h)
+  intro h
+  exact And.intro
+    (And.right h)
+    (And.left h)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">4.2 形式<span class="math">↔</span>散文互译（X 类）怎么答</h3><article class="exercise" id="ex-4-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">union_inter_idem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-4-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>题面给一条等式 <span class="math">+</span> 一句中文散文（"并交分配律"这种）。要求两边互译：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>散文 <span class="math">→</span> 形式：读注释里的那句话，说出它对应哪条等式（本题已替你写好签名）；</li><li>形式 <span class="math">→</span> 散文：证完之后能反过来把等式读成那句话（写在笔记里，不必进文件）。</li></ul></div><div class="block prose intuition-only"><p>判卷只看形式证明：签名不许动，把 <code>by</code> 块里的 <code>sorry</code> 换成真的 tactic。</p></div><div class="block prose intuition-only"><p>练习 3（R 类：读<span class="math">·</span>评译）：幂等律。</p></div><div class="block prose intuition-only"><p>"一个集合与它自己的并、与它自己的交，都还是它自己。"</p></div><div class="block prose intuition-only"><p>请把这句话拆成两条等式（打包成一条 And 陈述），并证明。</p></div></div><pre class="exercise-statement"><code>theorem union_inter_idem (α : Type) (A : Set α) :
+    (A ∪ A = A) ∧ (A ∩ A = A) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>散文里是"并与交两个动作各说一遍"——先用 constructor 分成两条，每条各自走外延。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="(A ∪ A = A) ∧ (A ∩ A = A)"><math display="block" class="mathml"><mrow><mrow><mo>(</mo><mrow><mi>A</mi><mspace width="0.22em"/><mo>∪</mo><mspace width="0.22em"/><mi>A</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>A</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>∧</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>A</mi><mspace width="0.22em"/><mo>∩</mo><mspace width="0.22em"/><mi>A</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>A</mi></mrow><mo>)</mo></mrow></mrow></math></div></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>并那条的逐元素目标是 <span class="math">x ∈ A</span> ∪ <span class="math">A ↔ x ∈ A</span>，两支同一目标（Or.elim A ∩ <span class="math">A ↔ x ∈ A</span>，用 And.left 取一支即可。</p></div></details></div><details open class="solution-panel" id="sol-4-3"><summary>查看解答 <span class="sol-meta">定理 · 20 行</span></summary><div class="solution-body"><p class="solution-note">R 类（读<span class="math">·</span>评译）：幂等律打包 —— A ∪ <span class="math">A = A</span> 与 A ∩ <span class="math">A = A</span>。</p><pre><code>theorem union_inter_idem (α : Type) (A : Set α) :
+    (A ∪ A = A) ∧ (A ∩ A = A) := by
+  constructor
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact Or.elim
+    (fun (ha : x ∈ A) =&gt; ha)
+    (fun (ha : x ∈ A) =&gt; ha)
+    h
+  intro ha
+  exact Or.inl ha
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact And.left h
+  intro ha
+  exact And.intro ha ha</code></pre></div></details></div></article>
+<article class="exercise" id="ex-4-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">inter_union_distrib_left</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-4-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（X 类）：交对并分配律。</p></div><div class="block prose intuition-only"><p>"交对并分配：A ∩ (B ∪ <span class="math">C) = (A</span> ∩ B) ∪ (A ∩ C)。"</p></div></div><pre class="exercise-statement"><code>theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
+    A ∩ (B ∪ C) = (A ∩ B) ∪ (A ∩ C) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>外延之后两边都是复合命题——<span class="math">→</span> 方向先取出交点里的 <span class="math">x ∈ A</span>，再对 B ∪ C 分情况；<span class="math">←</span> 方向对 (A ∩ B) ∪ (A ∩ C) 分情况。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>逐元素是 <span class="math">x ∈ A</span> ∩ (B ∪ <span class="math">C) ↔ x ∈ (A</span> ∩ B) ∪ (A ∩ C)。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>And.left 装回。</p></div></details></div><details open class="solution-panel" id="sol-4-4"><summary>查看解答 <span class="sol-meta">定理 · 25 行</span></summary><div class="solution-body"><p class="solution-note">X 类：交对并分配 —— A ∩ (B ∪ <span class="math">C) = (A</span> ∩ B) ∪ (A ∩ C)。</p><pre><code>theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
+    A ∩ (B ∪ C) = (A ∩ B) ∪ (A ∩ C) := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact @Or.elim (x ∈ B) (x ∈ C) (x ∈ (A ∩ B) ∪ (A ∩ C))
+    (fun (hb : x ∈ B) =&gt;
+      Or.inl
+        (And.intro (And.left h) hb))
+    (fun (hc : x ∈ C) =&gt;
+      Or.inr
+        (And.intro (And.left h) hc))
+    (And.right h)
+  intro h
+  exact @Or.elim (x ∈ A ∩ B) (x ∈ A ∩ C) (x ∈ A ∩ (B ∪ C))
+    (fun (hab : x ∈ A ∩ B) =&gt;
+      And.intro
+        (And.left hab)
+        (Or.inl (And.right hab)))
+    (fun (hac : x ∈ A ∩ C) =&gt;
+      And.intro
+        (And.left hac)
+        (Or.inr (And.right hac)))
+    h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-4-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">union_inter_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-4-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（X 类）：吸收律。</p></div><div class="block prose intuition-only"><p>"吸收律：A ∪ (A ∩ <span class="math">B) = A</span>——交出来的东西本来就在 A 里，并回去等于没加。"</p></div></div><pre class="exercise-statement"><code>theorem union_inter_self (α : Type) (A B : Set α) :
+    A ∪ (A ∩ B) = A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span> 方向从 A ∪ (A ∩ B) 出来只有两种可能，第二种自带 <span class="math">x ∈ A</span>；<span class="math">←</span> 方向把 <span class="math">x ∈ A</span> 放进并的左支。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>逐元素是 <span class="math">x ∈ A</span> ∪ (A ∩ <span class="math">B) ↔ x ∈ A</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Or.elim</p></div></details></div><details open class="solution-panel" id="sol-4-5"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><p class="solution-note">X 类：吸收律 —— A ∪ (A ∩ <span class="math">B) = A</span>。</p><pre><code>theorem union_inter_self (α : Type) (A B : Set α) :
+    A ∪ (A ∩ B) = A := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact Or.elim
+    (fun (ha : x ∈ A) =&gt; ha)
+    (fun (hab : x ∈ A ∩ B) =&gt; And.left hab)
+    h
+  intro ha
+  exact Or.inl ha</code></pre></div></details></div></article>
+<article class="exercise" id="ex-4-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">sdiff_sdiff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-4-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（X 类）：差的差。</p></div><div class="block prose intuition-only"><p>"(A \ B) \ <span class="math">C = A</span> \ (B ∪ C)：先去掉 B 再去掉 C，等于一次去掉 B 与 C 的并。"</p></div></div><pre class="exercise-statement"><code>theorem sdiff_sdiff (α : Type) (A B C : Set α) :
+    (A \ B) \ C = A \ (B ∪ C) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边展开都是"<span class="math">x ∈ A</span> 加若干否定"；<span class="math">→</span> 方向要把 <span class="math">¬ (x ∈ B)</span> 与 <span class="math">¬ (x ∈ C)</span> 合成"连 B ∪ C 都不在"，<span class="math">←</span> 方向反过来把那个否定拆给两支。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>逐元素是 <span class="math">x ∈ (A</span> \ B) \ <span class="math">C ↔ x ∈ A</span> \ (B ∪ C)。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>合取用 And.intro 对假设的 Or 用 Or.elim 喂给这个否定。</p></div></details></div><details open class="solution-panel" id="sol-4-6"><summary>查看解答 <span class="sol-meta">定理 · 25 行</span></summary><div class="solution-body"><p class="solution-note">X 类：差的差 —— (A \ B) \ <span class="math">C = A</span> \ (B ∪ C)。</p><pre><code>theorem sdiff_sdiff (α : Type) (A B C : Set α) :
+    (A \ B) \ C = A \ (B ∪ C) := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact And.intro
+    (@And.left (x ∈ A) (¬ (x ∈ B))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+      (And.left h))
+    (fun (hbc : x ∈ B ∪ C) =&gt;
+      @Or.elim (x ∈ B) (x ∈ C) False
+        (fun (hb : x ∈ B) =&gt;
+          And.right  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+            (And.left h) hb)
+        (fun (hcx : x ∈ C) =&gt;
+          And.right h hcx)  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+        hbc)
+  intro h
+  exact And.intro
+    (And.intro
+      (And.left h)
+      (fun (hb : x ∈ B) =&gt;
+        And.right h (Or.inl hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+    (fun (hc : x ∈ C) =&gt;
+      And.right h (Or.inr hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）</code></pre></div></details></div></article>
+<article class="exercise" id="ex-4-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">union_empty</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-4-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（X 类）：空集是并的单位元。</p></div><div class="block prose intuition-only"><p>"A ∪ ∅ <span class="math">= A</span>——把空集并进来，等于什么都没加。"</p></div></div><pre class="exercise-statement"><code>theorem union_empty (α : Type) (A : Set α) :
+    A ∪ ∅ = A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span> 方向从 A ∪ ∅ 出来，右支是"<span class="math">x ∈</span> ∅"；<span class="math">←</span> 方向走左支。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>逐元素是 <span class="math">x ∈ A</span> ∪ ∅ <span class="math">↔ x ∈ A</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Or.elim ∈</span> ∅ 展开就是 False，用 False.elim）；反方向用 Or.inl。</p></div></details></div><details open class="solution-panel" id="sol-4-7"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><p class="solution-note">X 类：∅ 是并的单位元 —— A ∪ ∅ <span class="math">= A</span>。</p><pre><code>theorem union_empty (α : Type) (A : Set α) :
+    A ∪ ∅ = A := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact @Or.elim (x ∈ A) (x ∈ ∅) (x ∈ A)
+    (fun (ha : x ∈ A) =&gt; ha)
+    (fun (hf : x ∈ ∅) =&gt; False.elim hf)
+    h
+  intro ha
+  exact Or.inl ha</code></pre></div></details></div></article>
+<h3 class="unit-subhead">4.3 必破（D 类）：看起来像恒等式，其实是假的</h3><div class="block prose intuition-only"><p>下面这句话在课堂上出现频率极高：</p></div><div class="block prose intuition-only"><p>"(A ∪ B) \ <span class="math">B = A</span>：把 A ∪ B 里属于 B 的部分抹掉，就回到 A。"</p></div><div class="block prose intuition-only"><p>请判断真假。若为假，就给出<strong>反例</strong>——并把"这两边确实不相等"落成下面这条形式定理（反例已经固定在签名里：<span class="math">α = Nat</span>、<span class="math">A = B = Set.univ Nat</span>）。提醒：否定一条集合等式 <span class="math">=</span> 假设它成立、再推出 False（矛盾）。</p></div><div class="block prose intuition-only"><p>练习 8（R/D 类：读<span class="math">·</span>评译 <span class="math">+</span> 证伪）。</p></div><article class="decl decl-theorem" id="decl-4-11"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">union_sdiff_univ_ne_univ</code><span class="decl-where">声明 11</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem union_sdiff_univ_ne_univ :
+    ¬ (((@Set.univ Nat) ∪ (@Set.univ Nat)) \ (@Set.univ Nat)
+        = @Set.univ Nat) :=</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>这条<strong>是假的</strong>——A 与 B 相交时，(A ∪ B) \ B 会把 A 里落在 B 上的元素也一起抹掉；反例里左右差在哪个元素，就是矛盾的来源。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">¬ (((Set.univ Nat)</span> ∪ (Set.univ Nat)) \ <span class="math">(Set.univ Nat) = Set.univ Nat)</span>，即"假设相等 <span class="math">→ False</span>"。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>intro 那个等式假设；用 <span class="math">Eq.symm + Eq.subst</span> 把一个具体元素（Set.mem_univ Nat Nat.zero）沿假设搬到左边；左边展开后是 And … (Not …)，用 And.right 取出矛盾再应用一次。</p></div></details></div><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code> by</code></pre></li></ol></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（2 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子：Tao §3.1（Avigad《Logic and Proof》11.2 的布尔恒等式表）。概念顺序：外延证明套路（<span class="math">Set.ext +</span> 逐元素 Iff）<span class="math">→</span> 布尔代数恒等式表 <span class="math">→</span> 形式<span class="math">↔</span>散文互译。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>（tactic 白名单）：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>assumption</code> / <code>rfl</code> / <code>match</code> / <code>constructor</code> / <code>left</code> / <code>right</code> / <code>use</code> / <code>exfalso</code> / <code>cases</code> / <code>have</code> 加 lib/ 里已备好的引理（<code>Set.ext</code>、<code>Set.mem_union</code>、<code>And.left</code>、<code>Or.elim</code>、<code>Eq.subst</code>、<code>False.elim</code>、…）。<strong>没有</strong> <code>rw</code> / <code>obtain</code> / <code>change</code> / <code>simp</code> / <code>⟨a, b⟩</code> / <code>·</code>——本单元一律用上面这些。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit03.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">并、交、差与幂集</span></a><a class="unit-nav-home" href="../chapters/i-1.html#units">目录</a><a class="unit-nav-link" href="../units/unit58.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">差集的代数</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-4"><h3><a href="#top">外延性与集合等式</a></h3><p class="appendix-meta">7 道练习 · 7 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-4-1"><summary>练习 1 · union_comm <span class="sol-meta">定理</span></summary><p class="solution-note">unit04 解答钥匙（agent 专用；画布不 import 它）。
+
+与 unit04-extensionality-identities.sokonanoda 的 8 条练习<strong>同名一一对应</strong>：
+  T 类 2 条：union_comm、inter_comm
+  R 类 2 条：union_inter_idem（幂等律打包成一条 And）、union_sdiff_univ_ne_univ（必破：证伪）
+  X 类 4 条：inter_union_distrib_left、union_inter_self、sdiff_sdiff、union_empty
+
+全部改写为 <strong>tactic 模式</strong>（设计 docs/design/course-lean-style.md R2）：
+记法用 <code>∈ ∪ ∩ \ ∅ = ∧ ∨ ↔ ¬</code>（集合符号由 <code>lib/Set</code> 声明、随 import 生效，
+连接符是语言内建），证明只用白名单 tactic：<code>apply</code> / <code>intro</code> / <code>exact</code> /
+<code>constructor</code>，项位照旧可写 <code>fun</code> 与点名引理（<code>Or.inl</code> / <code>Or.elim</code> /
+<code>And.left</code> / <code>Eq.subst.{1}</code> …）——与单元② 的解答同一风格。
+等式不再需要写宇宙：<code>=</code> 记法由判卷器按操作数的 sort 定层级。
+
+一条<strong>书写纪律</strong>（判卷器的实测边界，不是风格偏好）：<code>∅</code> 是零元记法，落在
+「被应用」的位置（<code>(∅) x</code>）补不出类型参数 <span class="math">⇒</span> 第 8 题的语句里 <code>\</code> 与 <code>∪</code>
+写点名形式（<code>Set.sdiff</code> / <code>Set.union</code>）。画布 <code>demo_sdiff_self</code> 那条
+<code>have</code> 绕法（逐元素 Iff 写源形态再交给 <code>Set.ext</code>）<strong>现在只是对照</strong>：
+issue #10 修好 <code>Set.ext</code> 的陈述后，<code>apply Set.ext</code> 直接产源形态
+<code>x ∈ A \ A ↔ x ∈ ∅</code>（早先是 <code>(A \ A) x ↔ ∅ x</code>）。
+
+T 类：并交换律。逐元素是 <span class="math">(x ∈ A</span> ∪ <span class="math">B) ↔ (x ∈ B</span> ∪ A)。</p><pre><code>theorem union_comm (α : Type) (A B : Set α) :
+    A ∪ B = B ∪ A := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact @Or.elim (x ∈ A) (x ∈ B) (x ∈ B ∪ A)
+    (fun (ha : x ∈ A) =&gt; Or.inr ha)
+    (fun (hb : x ∈ B) =&gt; Or.inl hb)
+    h
+  intro h
+  exact @Or.elim (x ∈ B) (x ∈ A) (x ∈ A ∪ B)
+    (fun (hb : x ∈ B) =&gt; Or.inr hb)
+    (fun (ha : x ∈ A) =&gt; Or.inl ha)
+    h</code></pre></details><details open class="appendix-solution" id="app-sol-4-2"><summary>练习 2 · inter_comm <span class="sol-meta">定理</span></summary><p class="solution-note">T 类：交交换律。逐元素是 <span class="math">(x ∈ A</span> ∩ <span class="math">B) ↔ (x ∈ B</span> ∩ A)。</p><pre><code>theorem inter_comm (α : Type) (A B : Set α) :
+    A ∩ B = B ∩ A := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact And.intro
+    (And.right h)
+    (And.left h)
+  intro h
+  exact And.intro
+    (And.right h)
+    (And.left h)</code></pre></details><details open class="appendix-solution" id="app-sol-4-3"><summary>练习 3 · union_inter_idem <span class="sol-meta">定理</span></summary><p class="solution-note">R 类（读<span class="math">·</span>评译）：幂等律打包 —— A ∪ <span class="math">A = A</span> 与 A ∩ <span class="math">A = A</span>。</p><pre><code>theorem union_inter_idem (α : Type) (A : Set α) :
+    (A ∪ A = A) ∧ (A ∩ A = A) := by
+  constructor
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact Or.elim
+    (fun (ha : x ∈ A) =&gt; ha)
+    (fun (ha : x ∈ A) =&gt; ha)
+    h
+  intro ha
+  exact Or.inl ha
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact And.left h
+  intro ha
+  exact And.intro ha ha</code></pre></details><details open class="appendix-solution" id="app-sol-4-4"><summary>练习 4 · inter_union_distrib_left <span class="sol-meta">定理</span></summary><p class="solution-note">X 类：交对并分配 —— A ∩ (B ∪ <span class="math">C) = (A</span> ∩ B) ∪ (A ∩ C)。</p><pre><code>theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
+    A ∩ (B ∪ C) = (A ∩ B) ∪ (A ∩ C) := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact @Or.elim (x ∈ B) (x ∈ C) (x ∈ (A ∩ B) ∪ (A ∩ C))
+    (fun (hb : x ∈ B) =&gt;
+      Or.inl
+        (And.intro (And.left h) hb))
+    (fun (hc : x ∈ C) =&gt;
+      Or.inr
+        (And.intro (And.left h) hc))
+    (And.right h)
+  intro h
+  exact @Or.elim (x ∈ A ∩ B) (x ∈ A ∩ C) (x ∈ A ∩ (B ∪ C))
+    (fun (hab : x ∈ A ∩ B) =&gt;
+      And.intro
+        (And.left hab)
+        (Or.inl (And.right hab)))
+    (fun (hac : x ∈ A ∩ C) =&gt;
+      And.intro
+        (And.left hac)
+        (Or.inr (And.right hac)))
+    h</code></pre></details><details open class="appendix-solution" id="app-sol-4-5"><summary>练习 5 · union_inter_self <span class="sol-meta">定理</span></summary><p class="solution-note">X 类：吸收律 —— A ∪ (A ∩ <span class="math">B) = A</span>。</p><pre><code>theorem union_inter_self (α : Type) (A B : Set α) :
+    A ∪ (A ∩ B) = A := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact Or.elim
+    (fun (ha : x ∈ A) =&gt; ha)
+    (fun (hab : x ∈ A ∩ B) =&gt; And.left hab)
+    h
+  intro ha
+  exact Or.inl ha</code></pre></details><details open class="appendix-solution" id="app-sol-4-6"><summary>练习 6 · sdiff_sdiff <span class="sol-meta">定理</span></summary><p class="solution-note">X 类：差的差 —— (A \ B) \ <span class="math">C = A</span> \ (B ∪ C)。</p><pre><code>theorem sdiff_sdiff (α : Type) (A B C : Set α) :
+    (A \ B) \ C = A \ (B ∪ C) := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact And.intro
+    (@And.left (x ∈ A) (¬ (x ∈ B))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+      (And.left h))
+    (fun (hbc : x ∈ B ∪ C) =&gt;
+      @Or.elim (x ∈ B) (x ∈ C) False
+        (fun (hb : x ∈ B) =&gt;
+          And.right  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+            (And.left h) hb)
+        (fun (hcx : x ∈ C) =&gt;
+          And.right h hcx)  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+        hbc)
+  intro h
+  exact And.intro
+    (And.intro
+      (And.left h)
+      (fun (hb : x ∈ B) =&gt;
+        And.right h (Or.inl hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+    (fun (hc : x ∈ C) =&gt;
+      And.right h (Or.inr hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）</code></pre></details><details open class="appendix-solution" id="app-sol-4-7"><summary>练习 7 · union_empty <span class="sol-meta">定理</span></summary><p class="solution-note">X 类：∅ 是并的单位元 —— A ∪ ∅ <span class="math">= A</span>。</p><pre><code>theorem union_empty (α : Type) (A : Set α) :
+    A ∪ ∅ = A := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact @Or.elim (x ∈ A) (x ∈ ∅) (x ∈ A)
+    (fun (ha : x ∈ A) =&gt; ha)
+    (fun (hf : x ∈ ∅) =&gt; False.elim hf)
+    h
+  intro ha
+  exact Or.inl ha</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

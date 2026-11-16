@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>34 函数代数：合成与单满射 · 从集合论到实分析</title>
+<meta name="description" content="单元㉞ 函数代数：合成与单满射：导语、定义与定理、练习与解答。Unit 34 — Function Algebra: Composition, Injections, Surjections">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit34.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li class="is-current"><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.12 单元</h3><ol><li><a href="../units/unit33.html">33 幂集代数与特征函数</a></li><li class="is-current"><a href="../units/unit34.html">34 函数代数：合成与单满射</a></li><li><a href="../units/unit35.html">35 逆函数：左逆、右逆与双边逆</a></li><li><a href="../units/unit44.html">44 两条外延公理的应用</a></li><li><a href="../units/unit51.html">51 幂集的格性质</a></li><li><a href="../units/unit68.html">68 幂集是完备格</a></li><li><a href="../units/unit70.html">70 幂集对交并的分配</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li aria-current="page">单元 34 函数代数：合成与单满射</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-34-1">34.1 三条库引理（单射 / 满射 / 双射的展开）</a></li>
+<li><a href="#ex-34-1">34.2 合成的基本律：本单元写逐点形态（等式形态见单元㊹）</a></li>
+<li><a href="#ex-34-4">34.3 单射 / 满射 / 双射的合成</a></li>
+<li><a href="#ex-34-7">34.4 两条消去律（从复合反推分量）</a></li>
+<li><a href="#ex-34-9">34.5 双射的两条取用子</a></li>
+<li><a href="#appendix-unit-34">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-12.html#units">↑ 本章目录</a>
+      <a href="../print/unit34.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-34">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-12.html">I.12</a> · 本章第 2 / 7 单元 · 全书第 34 / 112 单元</p>
+<h1><span class="unit-number">34</span> <span>函数代数：合成与单满射</span></h1>
+<p class="unit-title-en">Unit 34 — Function Algebra: Composition, Injections, Surjections</p>
+<p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-34">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="34" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-34" aria-label="复制单元 34 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit34.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-12.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§3.3 Functions</strong> 的 composition/inverses 一段；Halmos《Naive Set Theory》<strong>§10 Inverses and Composites</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.12 章第二个单元）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>合成的基本律</strong>（结合律 <span class="math">·</span> 恒等律）<span class="math">·</span> <strong>单射/满射/双射的合成</strong> <span class="math">·</span><strong>两条消去律</strong>（<code>g ∘ f</code> 单射 <span class="math">⇒</span> <code>f</code> 单射；<code>g ∘ f</code> 满射 <span class="math">⇒</span> <code>g</code> 满射）<span class="math">·</span> 双射的两条取用子 ✓</p></div><div class="block prose intuition-only"><p><strong>写法约定</strong>：<code>Injective</code> / <code>Surjective</code> / <code>Bijective</code> 都是<strong>定义头</strong> <span class="math">⇒</span> 用之前先 <strong><span class="math">λ</span> 绑定</strong>（G-73 形状 ①）；<strong>"把 <code>g</code> 作用在等式两边"要用搬运引理 <code>rel_subst_right</code></strong>（关系取"<code>g</code> 两边相等"），<strong>别用 <code>congrArg</code></strong>（大/嵌套位置上解不出宇宙层级，实测）✓ <code>Exists.elim</code> / <code>Exists.intro</code> 的<strong>前导实参一律写全</strong>（G-73 形状 ②）✓</p></div><h3 class="unit-subhead">34.1 三条库引理（单射 / 满射 / 双射的展开）</h3><div class="block prose intuition-only"><p>演示：单射的展开（"像相等 <span class="math">⇒</span> 原像相等"）。</p></div><article class="decl decl-theorem" id="decl-34-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_injective_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_injective_def (α β : Type) (f : α → β) :
+    Function.Injective α β f ↔ ∀ (x : α) (y : α), (f x) = (f y) → @Eq.{1} α x y :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 2 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></li><li><pre><code>  Function.injective_def α β f</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：满射的展开（"每个点都有原像"）。</p></div><article class="decl decl-theorem" id="decl-34-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_surjective_def</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_surjective_def (α β : Type) (f : α → β) :
+    Function.Surjective α β f ↔ ∀ (y : β), ∃ (x : α), (f x) = y :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Function.surjective_def α β f</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：双射的展开（单射 <span class="math">∧</span> 满射）。</p></div><article class="decl decl-theorem" id="decl-34-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_bijective_def</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_bijective_def (α β : Type) (f : α → β) :
+    Function.Bijective α β f ↔
+      (Function.Injective α β f ∧ Function.Surjective α β f) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Function.bijective_def α β f</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">34.2 合成的基本律：<strong>本单元写逐点形态</strong>（等式形态见单元㊹）</h3><article class="exercise" id="ex-34-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">comp_apply_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-34-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：<strong>合成的计算律</strong>（<code>(g ∘ f) x</code> 算成 <code>g (f x)</code>）。</p></div></div><pre class="exercise-statement"><code>theorem comp_apply_apply (α β γ : Type) (f : α → β) (g : β → γ) (x : α) :
+    ((fun (a : α) =&gt; g (f a)) x) = (g (f x)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边<strong>计算上就是同一个东西</strong> <span class="math">⇒</span> 自反那一条。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(fun a =&gt; g (f a)) x = g (f x)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.refl</code>（<strong>要写全宇宙层级与论域</strong>）✓</p></div></details></div><details class="solution-panel" id="sol-34-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem comp_apply_apply (α β γ : Type) (f : α → β) (g : β → γ) (x : α) :
+    @Eq.{1} γ ((fun (a : α) =&gt; g (f a)) x) (g (f x)) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Eq.refl.{1} γ (g (f x))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-34-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">comp_assoc_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-34-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类）：<strong>结合律</strong>（本单元写逐点形态；等式形态见单元㊹）。</p></div></div><pre class="exercise-statement"><code>theorem comp_assoc_apply (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) (x : α) :
+    @Eq.{1} δ ((fun (a : α) =&gt; h (g (f a))) x)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      ((fun (b : α) =&gt; (fun (c : β) =&gt; h (g c)) (f b)) x) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边计算上都是 <code>h (g (f x))</code> <span class="math">⇒</span> 自反。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(fun a =&gt; h (g (f a))) x = (fun b =&gt; (fun c =&gt; h (g c)) (f b)) x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.refl</code>（写全宇宙层级与论域）✓ ⚠ 换成"函数相等"的写法要<strong>函数外延</strong> —— 本语言<strong>有</strong>（<code>lib.Extensionality</code>）<span class="math">⇒</span> 那条见<strong>单元㊹</strong> ✓</p></div></details></div><details class="solution-panel" id="sol-34-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem comp_assoc_apply (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) (x : α) :
+    @Eq.{1} δ ((fun (a : α) =&gt; h (g (f a))) x) ((fun (b : α) =&gt; (fun (c : β) =&gt; h (g c)) (f b)) x) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Eq.refl.{1} δ (h (g (f x)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-34-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">id_comp_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-34-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong>左恒等律</strong>（先恒等再 <code>f</code>，还是 <code>f</code>）。</p></div></div><pre class="exercise-statement"><code>theorem id_comp_apply (α β : Type) (f : α → β) (x : α) :
+    ((fun (a : α) =&gt; f a) x) = (f x) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>计算上就是 <code>f x</code> <span class="math">⇒</span> 自反。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(fun a =&gt; f a) x = f x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.refl</code> ✓</p></div></details></div><details class="solution-panel" id="sol-34-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem id_comp_apply (α β : Type) (f : α → β) (x : α) :
+    @Eq.{1} β ((fun (a : α) =&gt; f a) x) (f x) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Eq.refl.{1} β (f x)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">34.3 单射 / 满射 / 双射的<strong>合成</strong></h3><article class="exercise" id="ex-34-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">injective_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-34-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，旗舰之一）：<strong>两个单射的合成是单射</strong>。</p></div></div><pre class="exercise-statement"><code>theorem injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Injective α β f) (hg : Function.Injective β γ g) :
+    Function.Injective α γ (fun (a : α) =&gt; g (f a)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>设 <code>g (f a) = g (f b)</code>；先用 <code>g</code> 的单射得 <code>f a = f b</code>，再用 <code>f</code> 的单射。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Injective f → Injective g → Injective (fun a =&gt; g (f a))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两个单射假设都是<strong>定义头 <span class="math">⇒</span> 先 <span class="math">λ</span> 绑定再应用</strong>（G-73 形状 ①）✓</p></div></details></div><details class="solution-panel" id="sol-34-4"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Injective α β f) (hg : Function.Injective β γ g) :
+    Function.Injective α γ (fun (a : α) =&gt; g (f a)) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (h : @Eq.{1} γ (g (f a)) (g (f b))) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (hu : ∀ (x : α) (y : α), @Eq.{1} β (f x) (f y) → @Eq.{1} α x y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      hu a b ((fun (hv : ∀ (x : β) (y : β), @Eq.{1} γ (g x) (g y) → @Eq.{1} β x y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        hv (f a) (f b) h) hg)) hf</code></pre></div></details></div></article>
+<article class="exercise" id="ex-34-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">surjective_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-34-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，旗舰之一）：<strong>两个满射的合成是满射</strong>。</p></div></div><pre class="exercise-statement"><code>theorem surjective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Surjective α β f) (hg : Function.Surjective β γ g) :
+    Function.Surjective α γ (fun (a : α) =&gt; g (f a)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>给定 <code>c</code>，先用 <code>g</code> 的满射取 <code>b</code> 使 <code>g b = c</code>，再用 <code>f</code> 的满射取 <code>a</code> 使 <code>f a = b</code> <span class="math">⇒</span> 见证取 <code>a</code>，要证 <code>g (f a) = c</code>：把 <code>g</code> 作用在 <code>f a = b</code> 两边，再与 <code>g b = c</code> 接起来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Surjective f → Surjective g → Surjective (fun a =&gt; g (f a))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>/<code>Exists.intro</code>（<strong>前导实参写全</strong>）<span class="math">·</span> <code>Eq.trans</code> <span class="math">·</span><strong>"把 <code>g</code> 作用在等式两边"要用搬运引理 <code>rel_subst_right</code></strong>（关系取"<code>g</code> 两边相等"、沿 <code>f a = b</code> 把 <code>g (f a) = g (f a)</code> 搬成 <code>g (f a) = g b</code>）—— <strong>别用 <code>congrArg</code></strong>（实测解不出）✓</p></div></details></div><details class="solution-panel" id="sol-34-5"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem surjective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Surjective α β f) (hg : Function.Surjective β γ g) :
+    Function.Surjective α γ (fun (a : α) =&gt; g (f a)) :=
+  fun (c : γ) =&gt;
+    @Exists.elim β (fun (b : β) =&gt; @Eq.{1} γ (g b) c) (∃ (a : α), @Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      ((fun (hu : ∀ (y : γ), ∃ (b : β), @Eq.{1} γ (g b) y) =&gt; hu c) hg)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (b : β) (hb : @Eq.{1} γ (g b) c) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        @Exists.elim α (fun (a : α) =&gt; @Eq.{1} β (f a) b)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (∃ (a : α), @Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          ((fun (hu : ∀ (y : β), ∃ (x : α), @Eq.{1} β (f x) y) =&gt; hu b) hf)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (a : α) (ha : @Eq.{1} β (f a) b) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            surjective_comp_core α β γ f g c a b ha hb))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-34-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">bijective_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-34-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类）：<strong>两个双射的合成是双射</strong>（把练习 4 与练习 5 打包）。</p></div></div><pre class="exercise-statement"><code>theorem bijective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Bijective α β f) (hg : Function.Bijective β γ g) :
+    Function.Bijective α γ (fun (a : α) =&gt; g (f a)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>双射展开成合取，两个方向分别交给练习 4 与练习 5。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Bijective f → Bijective g → Bijective (fun a =&gt; g (f a))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>And.intro</code>/<code>And.left</code>/<code>And.right</code>（<strong>前导 Prop 实参写全</strong>；双射的展开是定义头 <span class="math">⇒</span> 先 <span class="math">λ</span> 绑定）<span class="math">·</span> 练习 <span class="math">4 ·</span> 练习 5 ✓</p></div></details></div><details class="solution-panel" id="sol-34-6"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem bijective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Bijective α β f) (hg : Function.Bijective β γ g) :
+    Function.Bijective α γ (fun (a : α) =&gt; g (f a)) :=
+  And.intro
+    (injective_comp α β γ f g
+      ((fun (hp : Function.Injective α β f ∧ Function.Surjective α β f) =&gt; And.left hp) hf)
+      ((fun (hp : Function.Injective β γ g ∧ Function.Surjective β γ g) =&gt; And.left hp) hg))
+    (surjective_comp α β γ f g
+      ((fun (hp : Function.Injective α β f ∧ Function.Surjective α β f) =&gt; And.right hp) hf)
+      ((fun (hp : Function.Injective β γ g ∧ Function.Surjective β γ g) =&gt; And.right hp) hg))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">34.4 两条<strong>消去律</strong>（从复合反推分量）</h3><article class="exercise" id="ex-34-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">injective_of_comp_injective</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-34-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类，<strong>本单元旗舰</strong>）：<strong><code>g ∘ f</code> 单射 <span class="math">⇒</span> <code>f</code> 单射</strong>（左消去）。</p></div></div><pre class="exercise-statement"><code>theorem injective_of_comp_injective (α β γ : Type) (f : α → β) (g : β → γ)
+    (h : Function.Injective α γ (fun (a : α) =&gt; g (f a))) :
+    Function.Injective α β f := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>设 <code>f a = f b</code>；把 <code>g</code> 作用在两边得到 <code>g (f a) = g (f b)</code>，再用复合的单射性 <span class="math">⇒</span> <code>a = b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Injective (fun a =&gt; g (f a)) → Injective f</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><strong>复合的单射假设是定义头 <span class="math">⇒</span> 先 <span class="math">λ</span> 绑定</strong> <span class="math">·</span><code>rel_subst_right</code>（"把 <code>g</code> 作用在等式两边"，见练习 5 的写法）✓</p></div></details></div><details class="solution-panel" id="sol-34-7"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem injective_of_comp_injective (α β γ : Type) (f : α → β) (g : β → γ)
+    (h : Function.Injective α γ (fun (a : α) =&gt; g (f a))) :
+    Function.Injective α β f :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : @Eq.{1} β (f a) (f b)) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (hu : ∀ (x : α) (y : α), @Eq.{1} γ (g (f x)) (g (f y)) → @Eq.{1} α x y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      hu a b (rel_subst_right β (fun (u : β) (v : β) =&gt; @Eq.{1} γ (g u) (g v))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        (f a) (f a) (f b) hab (@Eq.refl.{1} γ (g (f a))))) h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-34-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">surjective_of_comp_surjective</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-34-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类，<strong>旗舰的对偶</strong>）：<strong><code>g ∘ f</code> 满射 <span class="math">⇒</span> <code>g</code> 满射</strong>（右消去）。</p></div></div><pre class="exercise-statement"><code>theorem surjective_of_comp_surjective (α β γ : Type) (f : α → β) (g : β → γ)
+    (h : Function.Surjective α γ (fun (a : α) =&gt; g (f a))) :
+    Function.Surjective β γ g := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>给定 <code>c</code>，复合的满射性给出 <code>a</code> 使 <code>g (f a) = c</code> <span class="math">⇒</span> 见证取 <code>f a</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Surjective (fun a =&gt; g (f a)) → Surjective g</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>/<code>Exists.intro</code>（前导实参写全）<span class="math">·</span> 复合的满射假设先 <span class="math">λ</span> 绑定 ✓ ⚠ <strong>反过来（<code>g ∘ f</code> 满射 <span class="math">⇒</span> <code>f</code> 满射）是假的</strong> —— 而举反例要区分构造子，本语言证不出来（<strong>G-58</strong>）✓</p></div></details></div><details class="solution-panel" id="sol-34-8"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem surjective_of_comp_surjective (α β γ : Type) (f : α → β) (g : β → γ)
+    (h : Function.Surjective α γ (fun (a : α) =&gt; g (f a))) :
+    Function.Surjective β γ g :=
+  fun (c : γ) =&gt;
+    @Exists.elim α (fun (a : α) =&gt; @Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (∃ (b : β), @Eq.{1} γ (g b) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      ((fun (hu : ∀ (y : γ), ∃ (a : α), @Eq.{1} γ (g (f a)) y) =&gt; hu) h c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (a : α) (ha : @Eq.{1} γ (g (f a)) c) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        Exists.intro (f a) ha)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">34.5 双射的两条取用子</h3><article class="exercise" id="ex-34-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">bijective_injective</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-34-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（T 类）：<strong>双射是单射</strong>。</p></div></div><pre class="exercise-statement"><code>theorem bijective_injective (α β : Type) (f : α → β) (h : Function.Bijective α β f) :
+    Function.Injective α β f := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>双射展开成合取，取左边。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Bijective f → Injective f</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>双射假设是<strong>定义头 <span class="math">⇒</span> 先 <span class="math">λ</span> 绑定</strong>，再 <code>And.left</code> ✓</p></div></details></div><details class="solution-panel" id="sol-34-9"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem bijective_injective (α β : Type) (f : α → β) (h : Function.Bijective α β f) :
+    Function.Injective α β f :=
+  (fun (hp : Function.Injective α β f ∧ Function.Surjective α β f) =&gt; And.left hp) h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-34-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">bijective_surjective</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-34-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（T 类）：<strong>双射是满射</strong>。</p></div></div><pre class="exercise-statement"><code>theorem bijective_surjective (α β : Type) (f : α → β) (h : Function.Bijective α β f) :
+    Function.Surjective α β f := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>同练习 9，取右边。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Bijective f → Surjective f</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>先 <span class="math">λ</span> 绑定，再 <code>And.right</code> ✓</p></div></details></div><details class="solution-panel" id="sol-34-10"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem bijective_surjective (α β : Type) (f : α → β) (h : Function.Bijective α β f) :
+    Function.Surjective α β f :=
+  (fun (hp : Function.Injective α β f ∧ Function.Surjective α β f) =&gt; And.right hp) h</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>本单元的"读法"（也是选型理由）</strong>：<strong>结合律与恒等律只能写成"逐点"形态</strong> ——<code>(h ∘ g) ∘ f = h ∘ (g ∘ f)</code> 这种<strong>函数相等</strong>的陈述要<strong>函数外延</strong>（本语言<strong>有</strong>，见 <code>lib.Extensionality</code> ✓）—— 本单元<strong>刻意先写逐点形态</strong>，等式形态见<strong>单元㊹</strong> ✓ <span class="math">⇒</span> 本单元一律写成 <code>∀ x, … x = … x</code> ✓ 与单元㉜ 同一口径 ✓ <strong>另一件做不到的事</strong>：<strong>满射 <span class="math">⇒</span> 有右逆</strong>（<code>Surjective f → ∃ g, RightInverse g f</code>）——见证是<strong>函数</strong>，而本语言的 <code>∃</code> <strong>构造不出函数见证</strong>（<code>lib/Cardinal</code> 文件头已记 L-06）✗</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Fun</code>（复合与单满射）<span class="math">·</span> <code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元⑥⑦（函数与单满射）—— 本单元把函数的"代数"补全。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit33.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">幂集代数与特征函数</span></a><a class="unit-nav-home" href="../chapters/i-12.html#units">目录</a><a class="unit-nav-link" href="../units/unit35.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">逆函数：左逆、右逆与双边逆</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-34"><h3><a href="#top">函数代数：合成与单满射</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答 · 1 个解答独有声明</p><details class="appendix-solution" id="app-sol-34-1"><summary>练习 1 · comp_apply_apply <span class="sol-meta">定理</span></summary><pre><code>theorem comp_apply_apply (α β γ : Type) (f : α → β) (g : β → γ) (x : α) :
+    @Eq.{1} γ ((fun (a : α) =&gt; g (f a)) x) (g (f x)) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Eq.refl.{1} γ (g (f x))</code></pre></details><details class="appendix-solution" id="app-sol-34-2"><summary>练习 2 · comp_assoc_apply <span class="sol-meta">定理</span></summary><pre><code>theorem comp_assoc_apply (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) (x : α) :
+    @Eq.{1} δ ((fun (a : α) =&gt; h (g (f a))) x) ((fun (b : α) =&gt; (fun (c : β) =&gt; h (g c)) (f b)) x) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Eq.refl.{1} δ (h (g (f x)))</code></pre></details><details class="appendix-solution" id="app-sol-34-3"><summary>练习 3 · id_comp_apply <span class="sol-meta">定理</span></summary><pre><code>theorem id_comp_apply (α β : Type) (f : α → β) (x : α) :
+    @Eq.{1} β ((fun (a : α) =&gt; f a) x) (f x) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Eq.refl.{1} β (f x)</code></pre></details><details class="appendix-solution" id="app-sol-34-4"><summary>练习 4 · injective_comp <span class="sol-meta">定理</span></summary><pre><code>theorem injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Injective α β f) (hg : Function.Injective β γ g) :
+    Function.Injective α γ (fun (a : α) =&gt; g (f a)) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (h : @Eq.{1} γ (g (f a)) (g (f b))) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (hu : ∀ (x : α) (y : α), @Eq.{1} β (f x) (f y) → @Eq.{1} α x y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      hu a b ((fun (hv : ∀ (x : β) (y : β), @Eq.{1} γ (g x) (g y) → @Eq.{1} β x y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        hv (f a) (f b) h) hg)) hf</code></pre></details><details class="appendix-solution" id="app-sol-34-5"><summary>练习 5 · surjective_comp <span class="sol-meta">定理</span></summary><pre><code>theorem surjective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Surjective α β f) (hg : Function.Surjective β γ g) :
+    Function.Surjective α γ (fun (a : α) =&gt; g (f a)) :=
+  fun (c : γ) =&gt;
+    @Exists.elim β (fun (b : β) =&gt; @Eq.{1} γ (g b) c) (∃ (a : α), @Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      ((fun (hu : ∀ (y : γ), ∃ (b : β), @Eq.{1} γ (g b) y) =&gt; hu c) hg)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (b : β) (hb : @Eq.{1} γ (g b) c) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        @Exists.elim α (fun (a : α) =&gt; @Eq.{1} β (f a) b)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (∃ (a : α), @Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          ((fun (hu : ∀ (y : β), ∃ (x : α), @Eq.{1} β (f x) y) =&gt; hu b) hf)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (a : α) (ha : @Eq.{1} β (f a) b) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            surjective_comp_core α β γ f g c a b ha hb))</code></pre></details><details class="appendix-solution" id="app-sol-34-6"><summary>练习 6 · bijective_comp <span class="sol-meta">定理</span></summary><pre><code>theorem bijective_comp (α β γ : Type) (f : α → β) (g : β → γ)
+    (hf : Function.Bijective α β f) (hg : Function.Bijective β γ g) :
+    Function.Bijective α γ (fun (a : α) =&gt; g (f a)) :=
+  And.intro
+    (injective_comp α β γ f g
+      ((fun (hp : Function.Injective α β f ∧ Function.Surjective α β f) =&gt; And.left hp) hf)
+      ((fun (hp : Function.Injective β γ g ∧ Function.Surjective β γ g) =&gt; And.left hp) hg))
+    (surjective_comp α β γ f g
+      ((fun (hp : Function.Injective α β f ∧ Function.Surjective α β f) =&gt; And.right hp) hf)
+      ((fun (hp : Function.Injective β γ g ∧ Function.Surjective β γ g) =&gt; And.right hp) hg))</code></pre></details><details class="appendix-solution" id="app-sol-34-7"><summary>练习 7 · injective_of_comp_injective <span class="sol-meta">定理</span></summary><pre><code>theorem injective_of_comp_injective (α β γ : Type) (f : α → β) (g : β → γ)
+    (h : Function.Injective α γ (fun (a : α) =&gt; g (f a))) :
+    Function.Injective α β f :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : @Eq.{1} β (f a) (f b)) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (hu : ∀ (x : α) (y : α), @Eq.{1} γ (g (f x)) (g (f y)) → @Eq.{1} α x y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      hu a b (rel_subst_right β (fun (u : β) (v : β) =&gt; @Eq.{1} γ (g u) (g v))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        (f a) (f a) (f b) hab (@Eq.refl.{1} γ (g (f a))))) h</code></pre></details><details class="appendix-solution" id="app-sol-34-8"><summary>练习 8 · surjective_of_comp_surjective <span class="sol-meta">定理</span></summary><pre><code>theorem surjective_of_comp_surjective (α β γ : Type) (f : α → β) (g : β → γ)
+    (h : Function.Surjective α γ (fun (a : α) =&gt; g (f a))) :
+    Function.Surjective β γ g :=
+  fun (c : γ) =&gt;
+    @Exists.elim α (fun (a : α) =&gt; @Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (∃ (b : β), @Eq.{1} γ (g b) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      ((fun (hu : ∀ (y : γ), ∃ (a : α), @Eq.{1} γ (g (f a)) y) =&gt; hu) h c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (a : α) (ha : @Eq.{1} γ (g (f a)) c) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        Exists.intro (f a) ha)</code></pre></details><details class="appendix-solution" id="app-sol-34-9"><summary>练习 9 · bijective_injective <span class="sol-meta">定理</span></summary><pre><code>theorem bijective_injective (α β : Type) (f : α → β) (h : Function.Bijective α β f) :
+    Function.Injective α β f :=
+  (fun (hp : Function.Injective α β f ∧ Function.Surjective α β f) =&gt; And.left hp) h</code></pre></details><details class="appendix-solution" id="app-sol-34-10"><summary>练习 10 · bijective_surjective <span class="sol-meta">定理</span></summary><pre><code>theorem bijective_surjective (α β : Type) (f : α → β) (h : Function.Bijective α β f) :
+    Function.Surjective α β f :=
+  (fun (hp : Function.Injective α β f ∧ Function.Surjective α β f) =&gt; And.right hp) h</code></pre></details><details class="appendix-solution" id="app-extra-34-1"><summary>补充 · surjective_comp_core <span class="sol-meta">定理</span></summary><pre><code>theorem surjective_comp_core (α β γ : Type) (f : α → β) (g : β → γ) (c : γ)
+    (a : α) (b : β) (ha : @Eq.{1} β (f a) b) (hb : @Eq.{1} γ (g b) c) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    ∃ (a1 : α), @Eq.{1} γ (g (f a1)) c :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  Exists.intro a
+    (@Eq.trans.{1} γ (g (f a)) (g b) c
+      (rel_subst_right β (fun (u : β) (v : β) =&gt; @Eq.{1} γ (g u) (g v)) (f a) (f a) b ha  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        (@Eq.refl.{1} γ (g (f a)))) hb)</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit33.html">← 33 幂集代数与特征函数</a><a class="next" href="../units/unit35.html">35 逆函数：左逆、右逆与双边逆 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

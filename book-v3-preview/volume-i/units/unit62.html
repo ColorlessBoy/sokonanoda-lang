@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>62 外延性的推论 · 从集合论到实分析</title>
+<meta name="description" content="单元62 外延性的推论：导语、定义与定理、练习与解答。Unit 62 — Consequences of Extensionality">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit62.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li class="is-current"><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.1 单元</h3><ol><li><a href="../units/unit01.html">01 集合与隶属</a></li><li><a href="../units/unit02.html">02 子集、空集与包含三律</a></li><li><a href="../units/unit03.html">03 并、交、差与幂集</a></li><li><a href="../units/unit04.html">04 外延性与集合等式</a></li><li><a href="../units/unit58.html">58 差集的代数</a></li><li><a href="../units/unit59.html">59 差集的代数（二）</a></li><li><a href="../units/unit60.html">60 补集的代数</a></li><li><a href="../units/unit61.html">61 外延打包</a></li><li class="is-current"><a href="../units/unit62.html">62 外延性的推论</a></li><li><a href="../units/unit63.html">63 差集的等式层（打包续）</a></li><li><a href="../units/unit64.html">64 差集的等式层（三）：两步走</a></li><li><a href="../units/unit65.html">65 并的差分配律与减法反变</a></li><li><a href="../units/unit66.html">66 包含关系的代数</a></li><li><a href="../units/unit104.html">104 排中律与经典推论</a></li><li><a href="../units/unit105.html">105 经典等价三件套</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li aria-current="page">单元 62 外延性的推论</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-62-1">62.1 三条库引理（两条外延工具 + 包含的展开）</a></li>
+<li><a href="#appendix-unit-62">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-1.html#units">↑ 本章目录</a>
+      <a href="../print/unit62.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-62">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-1.html">I.1</a> · 本章第 9 / 15 单元 · 全书第 62 / 112 单元</p>
+<h1><span class="unit-number">62</span> <span>外延性的推论</span></h1>
+<p class="unit-title-en">Unit 62 — Consequences of Extensionality</p>
+<p class="unit-meta">11 个定理 · 8 道练习 · 10 条提示 · <a href="#appendix-unit-62">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="62" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-62" aria-label="复制单元 62 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit62.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-1.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><details class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li><strong>取用子</strong>：<code>A ⊆ B</code> <span class="math">+</span> <code>a ∈ A</code> <span class="math">⇒</span> <code>a ∈ B</code> ✓（顶层具名 —— 打包的前件 ✓）；</li><li><strong><code>A = B ⇒ A ⊆ B</code></strong>（等的左到右 ✓ —— 用 <code>rel_subst_right</code> 在 <code>Set α</code> 上搬 ✓）；</li><li><strong>交/并的三条取用子</strong>（左取 <span class="math">·</span> 合成 ✓ <span class="math">·</span> 并的"用包含假设消去" ✓ —— 都顶层具名 ✓）；</li><li><strong>旗舰：<code>A ⊆ B → B ⊆ A → A = B</code></strong>（<strong>互相包含 <span class="math">⇒</span> 相等</strong> ✓ —— 教材里最常用的一条 ✓）；</li><li><strong>推论</strong>：<code>A ⊆ B ⇒ A ∩ B = A</code> ✓ <span class="math">·</span> <code>A ⊆ B ⇒ A ∪ B = B</code> ✓</li></ul></details></div></section>
+<h3 class="unit-subhead">62.1 三条库引理（两条外延工具 <span class="math">+</span> 包含的展开）</h3><div class="block prose intuition-only"><p>演示：<strong>函数外延</strong>（逐点相等 <span class="math">⇒</span> 函数相等）。</p></div><article class="decl decl-theorem" id="decl-62-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_funext</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_funext (α : Type) (β : α → Type)
+    (f : (x : α) → β x) (g : (x : α) → β x) (h : ∀ (x : α), (f x) = (g x)) :
+    f = g :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  funext_spec α β f g h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-62-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_propext</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_propext (a b : Prop) (h : a ↔ b) : a = b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  propext_spec a b h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-62-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_subset_def</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_subset_def (α : Type) (A B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.subset_def A B -- 练习 1（T 类，**前件**）：`A ⊆ B` 用在点上。</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-62-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">mem_of_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-62-1">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) :
+    a ∈ B := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.subset_def</code>（<strong>先 <span class="math">λ</span> 绑定、再 <code>Iff.mp</code></strong> ✓）<span class="math">·</span> 按 点 <span class="math">·</span> 前提 应用 ✓</p></div></details></div><details class="solution-panel" id="sol-62-1"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) :
+    a ∈ B :=
+  (fun (hu : ∀ (x : α), x ∈ A → x ∈ B) =&gt; hu a ha)
+    ((fun (hv : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) =&gt; Iff.mp hv h) (Set.subset_def A B))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-62-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">subset_of_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-62-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类）：<strong>相等 <span class="math">⇒</span> 包含</strong>（沿等式把"属于"搬过去）。</p></div></div><pre class="exercise-statement"><code>theorem subset_of_eq (α : Type) (A B : Set α) (h : A = B) : A ⊆ B := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><strong><code>rel_subst_right</code></strong>（第一个类型实参 <code>Set α</code> ✓、关系 <code>fun u v =&gt; a ∈ v</code> ✓）</p></div></details></div><details class="solution-panel" id="sol-62-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem subset_of_eq (α : Type) (A B : Set α) (h : @Eq.{1} (Set α) A B) : A ⊆ B :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+  fun (a : α) (ha : a ∈ A) =&gt;
+    rel_subst_right (Set α) (fun (u : Set α) (v : Set α) =&gt; a ∈ v) A A B h ha</code></pre></div></details></div></article>
+<article class="exercise" id="ex-62-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">mem_inter_left</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-62-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：交的左取用子。</p></div></div><pre class="exercise-statement"><code>theorem mem_inter_left (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ A := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_inter_iff</code> <span class="math">·</span> <code>Iff.mp</code> <span class="math">·</span> <code>And.left</code>（<strong>前导 Prop 实参写全</strong> ✓）</p></div></details></div><details class="solution-panel" id="sol-62-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem mem_inter_left (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ A :=
+  @And.left (a ∈ A) (a ∈ B)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+    ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =&gt; Iff.mp hu h) (Set.mem_inter_iff a A B))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-62-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">mem_inter_intro</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-62-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：交的合成（两条前提 <span class="math">⇒</span> 进交）。</p></div></div><pre class="exercise-statement"><code>theorem mem_inter_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hb : a ∈ B) :
+    a ∈ (A ∩ B) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_inter_iff</code> <span class="math">·</span> <code>Iff.mpr</code> <span class="math">·</span> <code>And.intro</code>（<strong>写全</strong> ✓）</p></div></details></div><details class="solution-panel" id="sol-62-4"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem mem_inter_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hb : a ∈ B) :
+    a ∈ (A ∩ B) :=
+  (fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =&gt;
+    Iff.mpr hu (And.intro ha hb)) (Set.mem_inter_iff a A B)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-62-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">mem_union_of_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-62-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：<strong>用包含假设消去并</strong>（<code>a ∈ A ∪ B</code> <span class="math">+</span> <code>A ⊆ B</code> <span class="math">⇒</span> <code>a ∈ B</code>）。</p></div></div><pre class="exercise-statement"><code>theorem mem_union_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α)
+    (hu : a ∈ (A ∪ B)) : a ∈ B := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_union</code> <span class="math">·</span> <code>Or.elim</code>（<strong>动机位放肯定命题</strong> ✓ 铁律）<span class="math">·</span> 练习 1 ✓</p></div></details></div><details class="solution-panel" id="sol-62-5"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem mem_union_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α)
+    (hu : a ∈ (A ∪ B)) : a ∈ B :=
+  @Or.elim (a ∈ A) (a ∈ B) (a ∈ B)
+    (fun (ha : a ∈ A) =&gt; mem_of_subset α A B h a ha)
+    (fun (hb : a ∈ B) =&gt; hb)
+    ((fun (hw : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) =&gt; Iff.mp hw hu) (Set.mem_union a A B))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-62-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">subset_antisymm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-62-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类，<strong>旗舰</strong>）：<strong>互相包含 <span class="math">⇒</span> 相等</strong>。</p></div></div><pre class="exercise-statement"><code>theorem subset_antisymm (α : Type) (A B : Set α) (h1 : A ⊆ B) (h2 : B ⊆ A) :
+    A = B := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>逐点做 <code>↔</code>（两个方向各用一次包含假设 ✓），再 <code>funext_spec</code> <span class="math">+</span> <code>propext_spec</code> 打包。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>A ⊆ B → B ⊆ A → A = B</code>（<strong>集合等式</strong> ✓）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 1（两次）<span class="math">·</span> <code>funext_spec</code>（第二实参 <code>fun _ =&gt; Prop</code> ✓）<span class="math">·</span> <code>propext_spec</code> <span class="math">·</span> <code>Iff.intro</code> ✓</p></div></details></div><details class="solution-panel" id="sol-62-6"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem subset_antisymm (α : Type) (A B : Set α) (h1 : A ⊆ B) (h2 : B ⊆ A) :
+    @Eq.{1} (Set α) A B :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+  funext_spec α (fun (_ : α) =&gt; Prop) A B
+    (fun (a : α) =&gt;
+      propext_spec (a ∈ A) (a ∈ B)
+        (@Iff.intro (a ∈ A) (a ∈ B)
+          (fun (ha : a ∈ A) =&gt; mem_of_subset α A B h1 a ha)
+          (fun (hb : a ∈ B) =&gt; mem_of_subset α B A h2 a hb)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-62-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">inter_eq_left_of_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-62-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类，<strong>推论一</strong>）：<strong><code>A ⊆ B ⇒ A ∩ B = A</code></strong>。</p></div></div><pre class="exercise-statement"><code>theorem inter_eq_left_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) :
+    (A ∩ B) = A := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 3 / 练习 4 / 练习 <span class="math">1 ·</span> 两条外延 ✓</p></div></details></div><details class="solution-panel" id="sol-62-7"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem inter_eq_left_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) :
+    @Eq.{1} (Set α) (A ∩ B) A :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+  funext_spec α (fun (_ : α) =&gt; Prop) (A ∩ B) A
+    (fun (a : α) =&gt;
+      propext_spec (a ∈ (A ∩ B)) (a ∈ A)
+        (@Iff.intro (a ∈ (A ∩ B)) (a ∈ A)
+          (fun (hc : a ∈ (A ∩ B)) =&gt; mem_inter_left α A B a hc)
+          (fun (ha : a ∈ A) =&gt; mem_inter_intro α A B a ha (mem_of_subset α A B h a ha))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-62-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">union_eq_right_of_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-62-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类，<strong>推论二</strong>）：<strong><code>A ⊆ B ⇒ A ∪ B = B</code></strong>。</p></div></div><pre class="exercise-statement"><code>theorem union_eq_right_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) :
+    (A ∪ B) = B := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 <span class="math">5 ·</span> <code>Set.mem_union</code> <span class="math">·</span> <code>Or.inr</code> <span class="math">·</span> 两条外延 ✓</p></div></details></div><details class="solution-panel" id="sol-62-8"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem union_eq_right_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) :
+    @Eq.{1} (Set α) (A ∪ B) B :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+  funext_spec α (fun (_ : α) =&gt; Prop) (A ∪ B) B
+    (fun (a : α) =&gt;
+      propext_spec (a ∈ (A ∪ B)) (a ∈ B)
+        (@Iff.intro (a ∈ (A ∪ B)) (a ∈ B)
+          (fun (hu : a ∈ (A ∪ B)) =&gt; mem_union_of_subset α A B h a hu)
+          (fun (hb : a ∈ B) =&gt;
+            (fun (hw : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) =&gt;
+              Iff.mpr hw (Or.inr hb)) (Set.mem_union a A B))))</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§1.4</strong>（外延公理的推论）<span class="math">·Halmos</span>《Naive Set Theory》<strong>§1/§3</strong>。大纲 §4.1（<strong>I.1 章继续收口</strong> ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>写法纪律</strong>：全程 helper-first ✓ —— 先在<strong>顶层</strong>把取用子写成具名引理 ✓，再在 <code>propext_spec</code> / <code>funext_spec</code> 的实参位<strong>只调用它们</strong> ✓（第 622 轮教训 ✓）。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 五样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.SUnion</code> <span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Extensionality</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元①（集合与成员）<span class="math">·</span> 单元④（外延与恒等式）<span class="math">·</span> 单元61（外延打包）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit61.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">外延打包</span></a><a class="unit-nav-home" href="../chapters/i-1.html#units">目录</a><a class="unit-nav-link" href="../units/unit63.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">差集的等式层（打包续）</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-62"><h3><a href="#top">外延性的推论</a></h3><p class="appendix-meta">8 道练习 · 8 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-62-1"><summary>练习 1 · mem_of_subset <span class="sol-meta">定理</span></summary><pre><code>theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) (ha : a ∈ A) :
+    a ∈ B :=
+  (fun (hu : ∀ (x : α), x ∈ A → x ∈ B) =&gt; hu a ha)
+    ((fun (hv : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) =&gt; Iff.mp hv h) (Set.subset_def A B))</code></pre></details><details class="appendix-solution" id="app-sol-62-2"><summary>练习 2 · subset_of_eq <span class="sol-meta">定理</span></summary><pre><code>theorem subset_of_eq (α : Type) (A B : Set α) (h : @Eq.{1} (Set α) A B) : A ⊆ B :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+  fun (a : α) (ha : a ∈ A) =&gt;
+    rel_subst_right (Set α) (fun (u : Set α) (v : Set α) =&gt; a ∈ v) A A B h ha</code></pre></details><details class="appendix-solution" id="app-sol-62-3"><summary>练习 3 · mem_inter_left <span class="sol-meta">定理</span></summary><pre><code>theorem mem_inter_left (α : Type) (A B : Set α) (a : α) (h : a ∈ (A ∩ B)) : a ∈ A :=
+  @And.left (a ∈ A) (a ∈ B)  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+    ((fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =&gt; Iff.mp hu h) (Set.mem_inter_iff a A B))</code></pre></details><details class="appendix-solution" id="app-sol-62-4"><summary>练习 4 · mem_inter_intro <span class="sol-meta">定理</span></summary><pre><code>theorem mem_inter_intro (α : Type) (A B : Set α) (a : α) (ha : a ∈ A) (hb : a ∈ B) :
+    a ∈ (A ∩ B) :=
+  (fun (hu : a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B) =&gt;
+    Iff.mpr hu (And.intro ha hb)) (Set.mem_inter_iff a A B)</code></pre></details><details class="appendix-solution" id="app-sol-62-5"><summary>练习 5 · mem_union_of_subset <span class="sol-meta">定理</span></summary><pre><code>theorem mem_union_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α)
+    (hu : a ∈ (A ∪ B)) : a ∈ B :=
+  @Or.elim (a ∈ A) (a ∈ B) (a ∈ B)
+    (fun (ha : a ∈ A) =&gt; mem_of_subset α A B h a ha)
+    (fun (hb : a ∈ B) =&gt; hb)
+    ((fun (hw : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) =&gt; Iff.mp hw hu) (Set.mem_union a A B))</code></pre></details><details class="appendix-solution" id="app-sol-62-6"><summary>练习 6 · subset_antisymm <span class="sol-meta">定理</span></summary><pre><code>theorem subset_antisymm (α : Type) (A B : Set α) (h1 : A ⊆ B) (h2 : B ⊆ A) :
+    @Eq.{1} (Set α) A B :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+  funext_spec α (fun (_ : α) =&gt; Prop) A B
+    (fun (a : α) =&gt;
+      propext_spec (a ∈ A) (a ∈ B)
+        (@Iff.intro (a ∈ A) (a ∈ B)
+          (fun (ha : a ∈ A) =&gt; mem_of_subset α A B h1 a ha)
+          (fun (hb : a ∈ B) =&gt; mem_of_subset α B A h2 a hb)))</code></pre></details><details class="appendix-solution" id="app-sol-62-7"><summary>练习 7 · inter_eq_left_of_subset <span class="sol-meta">定理</span></summary><pre><code>theorem inter_eq_left_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) :
+    @Eq.{1} (Set α) (A ∩ B) A :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+  funext_spec α (fun (_ : α) =&gt; Prop) (A ∩ B) A
+    (fun (a : α) =&gt;
+      propext_spec (a ∈ (A ∩ B)) (a ∈ A)
+        (@Iff.intro (a ∈ (A ∩ B)) (a ∈ A)
+          (fun (hc : a ∈ (A ∩ B)) =&gt; mem_inter_left α A B a hc)
+          (fun (ha : a ∈ A) =&gt; mem_inter_intro α A B a ha (mem_of_subset α A B h a ha))))</code></pre></details><details class="appendix-solution" id="app-sol-62-8"><summary>练习 8 · union_eq_right_of_subset <span class="sol-meta">定理</span></summary><pre><code>theorem union_eq_right_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) :
+    @Eq.{1} (Set α) (A ∪ B) B :=  -- soko:notation-ok: 等式族宇宙层级 + `∈`/`∩`/`∪` 是 def 头（手册边界）
+  funext_spec α (fun (_ : α) =&gt; Prop) (A ∪ B) B
+    (fun (a : α) =&gt;
+      propext_spec (a ∈ (A ∪ B)) (a ∈ B)
+        (@Iff.intro (a ∈ (A ∪ B)) (a ∈ B)
+          (fun (hu : a ∈ (A ∪ B)) =&gt; mem_union_of_subset α A B h a hu)
+          (fun (hb : a ∈ B) =&gt;
+            (fun (hw : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) =&gt;
+              Iff.mpr hw (Or.inr hb)) (Set.mem_union a A B))))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit61.html">← 61 外延打包</a><a class="next" href="../units/unit63.html">63 差集的等式层（打包续） →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

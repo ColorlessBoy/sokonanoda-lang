@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>32 函数空间上的逐点序 · 从集合论到实分析</title>
+<meta name="description" content="单元㉜ 函数空间上的逐点序：导语、定义与定理、练习与解答。Unit 32 — The Pointwise Order on Function Spaces">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit32.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li class="is-current"><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.11 单元</h3><ol><li><a href="../units/unit28.html">28 集合代数：分配律与 De Morgan</a></li><li><a href="../units/unit29.html">29 上界、下界与确界</a></li><li><a href="../units/unit30.html">30 格与对偶：确界的代数</a></li><li><a href="../units/unit31.html">31 单调函数与序同构保持确界</a></li><li class="is-current"><a href="../units/unit32.html">32 函数空间上的逐点序</a></li><li><a href="../units/unit46.html">46 对称差与布尔环</a></li><li><a href="../units/unit50.html">50 分配律族</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li aria-current="page">单元 32 函数空间上的逐点序</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-32-1">32.1 三条库引理（逐点序的展开 · 逐点用法 · 单调的用法）</a></li>
+<li><a href="#ex-32-1">32.2 逐点序的三条基本律</a></li>
+<li><a href="#ex-32-5">32.3 反对称：本单元只做到逐点（等式形态留到单元㊹）</a></li>
+<li><a href="#ex-32-7">32.4 逐点序与单调</a></li>
+<li><a href="#ex-32-9">32.5 旗舰：逐点上确界 = 逐点取上确界</a></li>
+<li><a href="#appendix-unit-32">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-11.html#units">↑ 本章目录</a>
+      <a href="../print/unit32.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-32">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-11.html">I.11</a> · 本章第 5 / 7 单元 · 全书第 32 / 112 单元</p>
+<h1><span class="unit-number">32</span> <span>函数空间上的逐点序</span></h1>
+<p class="unit-title-en">Unit 32 — The Pointwise Order on Function Spaces</p>
+<p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-32">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="32" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-32" aria-label="复制单元 32 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit32.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-11.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§7.1 Orderings</strong> 里"函数空间上的序"那一类练习；Halmos《Naive Set Theory》<strong>§14 Order</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.11 章第五个单元）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>逐点序的三条基本律</strong>（自反 <span class="math">·</span> 传递 <span class="math">·</span> 与常函数的关系）<span class="math">·</span><strong>逐点相等给出逐点序</strong> <span class="math">·</span> <strong>单调函数逐点作用于两边</strong> <span class="math">·</span><strong>旗舰：逐点上确界就是"逐点取上确界"</strong> —— 若<strong>每个坐标</strong>的上确界都存在，那么把它们拼起来的那个函数就是函数族在逐点序下的上确界（下确界同理）✓</p></div><div class="block prose intuition-only"><p><strong>写法约定</strong>：<code>PointwiseLe</code> / <code>IsSup</code> / <code>UpperBound</code> / <code>Monotone</code> 都是<strong>定义头</strong> <span class="math">⇒</span> 用之前先 <strong><span class="math">λ</span> 绑定</strong>（G-73 形状 ①）；库里有取用子（<code>pointwiseLe_apply</code> / <code>monotone_apply</code> / <code>isSup_upper</code> / <code>isSup_least</code>）优先用 ✓ <strong>标识符里不要用撇号</strong>（<code>f'</code> 解析不了，实测 —— 用 <code>f1</code> / <code>f2</code> 之类）✓</p></div><h3 class="unit-subhead">32.1 三条库引理（逐点序的展开 <span class="math">·</span> 逐点用法 <span class="math">·</span> 单调的用法）</h3><div class="block prose intuition-only"><p>演示：逐点序的展开（"每个坐标都成立"）。</p></div><article class="decl decl-theorem" id="decl-32-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_pointwiseLe_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_pointwiseLe_def (α β : Type) (r : β → β → Prop) (f g : α → β) :
+    PointwiseLe α β r f g ↔ ∀ (a : α), r (f a) (g a) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  pointwiseLe_def α β r f g</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：把逐点序用在<strong>一个具体坐标</strong>上。</p></div><article class="decl decl-theorem" id="decl-32-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_pointwiseLe_apply</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_pointwiseLe_apply (α β : Type) (r : β → β → Prop) (f g : α → β)
+    (h : PointwiseLe α β r f g) (a : α) : r (f a) (g a) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  pointwiseLe_apply α β r f g h a</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：把单调用在具体的两个点上（上一单元的取用子，本单元要用）。</p></div><article class="decl decl-theorem" id="decl-32-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_monotone_apply</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_monotone_apply (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β)
+    (h : Monotone α β r s f) (a b : α) (hab : r a b) : s (f a) (f b) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  monotone_apply α β r s f h a b hab</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">32.2 逐点序的三条基本律</h3><article class="exercise" id="ex-32-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">pointwiseLe_def_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-32-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：逐点序的展开（库里现成的）。</p></div></div><pre class="exercise-statement"><code>theorem pointwiseLe_def_apply (α β : Type) (r : β → β → Prop) (f g : α → β) :
+    PointwiseLe α β r f g ↔ ∀ (a : α), r (f a) (g a) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>直接交出去。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>PointwiseLe α β r f g ↔ ∀ a, r (f a) (g a)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>pointwiseLe_def</code>。</p></div></details></div><details class="solution-panel" id="sol-32-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem pointwiseLe_def_apply (α β : Type) (r : β → β → Prop) (f g : α → β) :
+    PointwiseLe α β r f g ↔ ∀ (a : α), r (f a) (g a) :=
+  pointwiseLe_def α β r f g</code></pre></div></details></div></article>
+<article class="exercise" id="ex-32-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">pointwiseLe_refl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-32-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类）：<strong>陪域自反 <span class="math">⇒</span> 逐点序自反</strong>。</p></div></div><pre class="exercise-statement"><code>theorem pointwiseLe_refl (α β : Type) (r : β → β → Prop) (hrefl : Reflexive β r)
+    (f : α → β) : PointwiseLe α β r f f := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>每个坐标各自用一次自反（自反是定义头 <span class="math">⇒</span> 先 <span class="math">λ</span> 绑定再应用）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Reflexive β r → PointwiseLe α β r f f</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>自反假设先 <span class="math">λ</span> 绑定 ✓</p></div></details></div><details class="solution-panel" id="sol-32-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem pointwiseLe_refl (α β : Type) (r : β → β → Prop) (hrefl : Reflexive β r)
+    (f : α → β) : PointwiseLe α β r f f :=
+  fun (a : α) =&gt; (fun (hu : ∀ (y : β), r y y) =&gt; hu (f a)) hrefl</code></pre></div></details></div></article>
+<article class="exercise" id="ex-32-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">pointwiseLe_trans</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-32-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<strong>陪域传递 <span class="math">⇒</span> 逐点序传递</strong>。</p></div></div><pre class="exercise-statement"><code>theorem pointwiseLe_trans (α β : Type) (r : β → β → Prop) (htrans : Transitive β r)
+    (f g h : α → β) (hfg : PointwiseLe α β r f g) (hgh : PointwiseLe α β r g h) :
+    PointwiseLe α β r f h := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>在<strong>同一个坐标</strong>上把两条逐点序接起来（取用子拿坐标上的证据，再用传递性）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Transitive β r → PointwiseLe … f g → PointwiseLe … g h → PointwiseLe … f h</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>pointwiseLe_apply</code>（取用子）<span class="math">·</span> 传递假设<strong>先 <span class="math">λ</span> 绑定再应用</strong> ✓</p></div></details></div><details class="solution-panel" id="sol-32-3"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem pointwiseLe_trans (α β : Type) (r : β → β → Prop) (htrans : Transitive β r)
+    (f g h : α → β) (hfg : PointwiseLe α β r f g) (hgh : PointwiseLe α β r g h) :
+    PointwiseLe α β r f h :=
+  fun (a : α) =&gt;
+    (fun (hu : ∀ (x : β) (y : β) (z : β), r x y → r y z → r x z) =&gt;
+      hu (f a) (g a) (h a) (pointwiseLe_apply α β r f g hfg a)
+        (pointwiseLe_apply α β r g h hgh a)) htrans</code></pre></div></details></div></article>
+<article class="exercise" id="ex-32-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">pointwiseLe_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-32-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：<strong>常函数之间的逐点序就是值之间的序</strong>。</p></div></div><pre class="exercise-statement"><code>theorem pointwiseLe_const (α β : Type) (r : β → β → Prop) (c d : β) (a : α) :
+    PointwiseLe α β r (fun (_ : α) =&gt; c) (fun (_ : α) =&gt; d) ↔ r c d := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span> 把逐点序用在给定的那个点上；<span class="math">←</span> 那个值上的序对<strong>每个</strong>坐标都成立（因为常函数在每个坐标取值相同）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>PointwiseLe α β r (fun _ =&gt; c) (fun _ =&gt; d) ↔ r c d</code>（<strong>需要 <code>α</code> 的一个点</strong> ——<code>α</code> 可能是空类型，那时左边空真 ✓ 所以要把见证当参数）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>pointwiseLe_apply</code> <span class="math">·</span> <code>Iff.intro</code>（前导 Prop 实参写全）✓</p></div></details></div><details class="solution-panel" id="sol-32-4"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem pointwiseLe_const (α β : Type) (r : β → β → Prop) (c d : β) (a : α) :
+    PointwiseLe α β r (fun (_ : α) =&gt; c) (fun (_ : α) =&gt; d) ↔ r c d :=
+  @Iff.intro (PointwiseLe α β r (fun (_ : α) =&gt; c) (fun (_ : α) =&gt; d)) (r c d)
+    (fun (h : PointwiseLe α β r (fun (_ : α) =&gt; c) (fun (_ : α) =&gt; d)) =&gt;
+      pointwiseLe_apply α β r (fun (_ : α) =&gt; c) (fun (_ : α) =&gt; d) h a)
+    (fun (h : r c d) =&gt; fun (a : α) =&gt; h)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">32.3 反对称：<strong>本单元只做到逐点</strong>（等式形态留到单元㊹）</h3><article class="exercise" id="ex-32-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">pointwiseLe_antisymm_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-32-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>本单元的"必破"</strong>）：陪域反对称 <span class="math">⇒</span> <strong>逐点</strong>相等（不是函数相等）。</p></div></div><pre class="exercise-statement"><code>theorem pointwiseLe_antisymm_apply (α β : Type) (r : β → β → Prop) (hanti : Antisymmetric β r)
+    (f g : α → β) (hfg : PointwiseLe α β r f g) (hgf : PointwiseLe α β r g f) (a : α) :
+    (f a) = (g a) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>在每个坐标上用陪域的反对称（两条方向各来自一条逐点序）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Antisymmetric β r → PointwiseLe … f g → PointwiseLe … g f → ∀ a, f a = g a</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>本单元取用子 <span class="math">·</span> 反对称<strong>先 <span class="math">λ</span> 绑定再应用</strong> <span class="math">·</span>等式的证明项<strong>点名声明星</strong>（G-73 形状 ③）。⚠ <strong>再往前一步</strong>（"逐点相等 <span class="math">⇒</span> <code>f = g</code>"）要<strong>函数外延</strong> —— 本语言<strong>有</strong>（<code>lib.Extensionality</code>）<span class="math">⇒</span> 那一步在<strong>单元㊹</strong>里做（本单元先讲逐点形态）✓</p></div></details></div><details class="solution-panel" id="sol-32-5"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem pointwiseLe_antisymm_apply (α β : Type) (r : β → β → Prop) (hanti : Antisymmetric β r)
+    (f g : α → β) (hfg : PointwiseLe α β r f g) (hgf : PointwiseLe α β r g f) (a : α) :
+    @Eq.{1} β (f a) (g a) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  (fun (hu : ∀ (x : β) (y : β), r x y → r y x → @Eq.{1} β x y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    hu (f a) (g a) (pointwiseLe_apply α β r f g hfg a)
+      (pointwiseLe_apply α β r g f hgf a)) hanti</code></pre></div></details></div></article>
+<article class="exercise" id="ex-32-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">pointwiseLe_of_pointwise_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-32-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（T 类）：<strong>逐点相等给出逐点序</strong>（要陪域自反）。</p></div></div><pre class="exercise-statement"><code>theorem pointwiseLe_of_pointwise_eq (α β : Type) (r : β → β → Prop) (hrefl : Reflexive β r)
+    (f g : α → β) (h : ∀ (a : α), (f a) = (g a)) : PointwiseLe α β r f g := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先把 <code>r (f a) (f a)</code> 用自反拿出来，再沿 <code>f a = g a</code> 把第二个坐标换掉。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Reflexive β r → (∀ a, f a = g a) → PointwiseLe α β r f g</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>rel_subst_right</code>（关系取"<code>r (f a) ·</code>"、沿 <code>f a = g a</code> 搬）<span class="math">·</span> 自反先 <span class="math">λ</span> 绑定 ✓</p></div></details></div><details class="solution-panel" id="sol-32-6"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem pointwiseLe_of_pointwise_eq (α β : Type) (r : β → β → Prop) (hrefl : Reflexive β r)
+    (f g : α → β) (h : ∀ (a : α), @Eq.{1} β (f a) (g a)) : PointwiseLe α β r f g :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (a : α) =&gt;
+    rel_subst_right β (fun (p : β) (q : β) =&gt; r (f a) q) (f a) (f a) (g a) (h a)
+      ((fun (hu : ∀ (y : β), r y y) =&gt; hu (f a)) hrefl)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">32.4 逐点序与单调</h3><article class="exercise" id="ex-32-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">pointwiseLe_of_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-32-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（T 类）：<strong>"每个坐标都在 <code>c</code> 下面"就是逐点序</strong>（把 <code>∀</code> 形态摆正）。</p></div></div><pre class="exercise-statement"><code>theorem pointwiseLe_of_le (α β : Type) (r : β → β → Prop) (c : β)
+    (f : α → β) (h : ∀ (a : α), r (f a) c) :
+    PointwiseLe α β r f (fun (_ : α) =&gt; c) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>假设本身就是结论（逐点序的展开形态就是一个 <code>∀</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ a, r (f a) c) → PointwiseLe α β r f (fun _ =&gt; c)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>直接写 <span class="math">λ</span> ✓</p></div></details></div><details class="solution-panel" id="sol-32-7"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem pointwiseLe_of_le (α β : Type) (r : β → β → Prop) (c : β)
+    (f : α → β) (h : ∀ (a : α), r (f a) c) :
+    PointwiseLe α β r f (fun (_ : α) =&gt; c) :=
+  fun (a : α) =&gt; h a</code></pre></div></details></div></article>
+<article class="exercise" id="ex-32-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">pointwiseLe_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-32-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类）：<strong>单调函数逐点作用于两边</strong>（逐点序被"映射后的序"保持）。</p></div></div><pre class="exercise-statement"><code>theorem pointwiseLe_comp (α β γ : Type) (r : β → β → Prop) (s : γ → γ → Prop)
+    (k : β → γ) (hk : Monotone β γ r s k) (f g : α → β)
+    (hfg : PointwiseLe α β r f g) :
+    PointwiseLe α γ s (fun (a : α) =&gt; k (f a)) (fun (a : α) =&gt; k (g a)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>每个坐标上用一次单调性（陪域上的序由此从 <code>r</code> 变成 <code>s</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>`<span class="math">Monotone β γ r s k → PointwiseLe α β r f g →</span></p><div class="math-display intuition-only"><pre class="display-code"><code>PointwiseLe α γ s (fun a =&gt; k (f a)) (fun a =&gt; k (g a))`。</code></pre></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>monotone_apply</code> 取用子 <span class="math">·</span> <code>pointwiseLe_apply</code> 取用子 ✓</p></div></details></div><details class="solution-panel" id="sol-32-8"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem pointwiseLe_comp (α β γ : Type) (r : β → β → Prop) (s : γ → γ → Prop)
+    (k : β → γ) (hk : Monotone β γ r s k) (f g : α → β)
+    (hfg : PointwiseLe α β r f g) :
+    PointwiseLe α γ s (fun (a : α) =&gt; k (f a)) (fun (a : α) =&gt; k (g a)) :=
+  fun (a : α) =&gt;
+    monotone_apply β γ r s k hk (f a) (g a) (pointwiseLe_apply α β r f g hfg a)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">32.5 旗舰：<strong>逐点上确界 <span class="math">=</span> 逐点取上确界</strong></h3><article class="exercise" id="ex-32-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">isSup_pointwise</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-32-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（L 类，<strong>本单元旗舰</strong>）：<strong>每个坐标的上确界都存在 <span class="math">⇒</span> 拼起来的函数是函数族的上确界</strong>。</p></div></div><pre class="exercise-statement"><code>theorem isSup_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β) → Prop) (h : α → β)
+    (hh : ∀ (a : α),
+      IsSup β r (fun (y : β) =&gt; ∃ (f : α → β), F f ∧ (f a) = y) (h a)) :
+    IsSup (α → β) (PointwiseLe α β r) F h := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>①<strong>上界</strong>：给定族里一个函数 <code>f</code> 与前坐标 <code>a</code> —— <code>f a</code> 是坐标那一族的元素（见证取 <code>f</code> 自己，等式的见证是自反）<span class="math">⇒</span> 由该坐标的上界性得 <code>r (f a) (h a)</code>；②<strong>最小</strong>：给定逐点上界 <code>g</code> 与坐标 <code>a</code>，坐标那一族的上界条件取 <code>g a</code>（对族里每个 <code>f</code>，逐点上界给出 <code>r (f a) (g a)</code>）<span class="math">⇒</span> 由该坐标的最小性得 <code>r (h a) (g a)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ a, IsSup β r (坐标族) (h a)) → IsSup (α → β) (PointwiseLe α β r) F h</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isSup_intro</code> <span class="math">·</span> <code>isSup_upper</code> / <code>isSup_least</code> 取用子 <span class="math">·</span><code>Exists.intro</code> / <code>Exists.elim</code>（<strong>前导实参写全</strong>）<span class="math">·</span> <code>rel_subst_right</code>（沿 <code>f a = y</code> 搬）<span class="math">·</span>逐点上界假设先 <span class="math">λ</span> 绑定（G-73 形状 ①）✓ ⚠ <strong>标识符不要带撇号</strong>（<code>f'</code> 解析不了，用 <code>f1</code>）✓</p></div></details></div><details class="solution-panel" id="sol-32-9"><summary>查看解答 <span class="sol-meta">定理 · 23 行</span></summary><div class="solution-body"><pre><code>theorem isSup_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β) → Prop) (h : α → β)
+    (hh : ∀ (a : α),
+      IsSup β r (fun (y : β) =&gt; ∃ (f : α → β), F f ∧ @Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    IsSup (α → β) (PointwiseLe α β r) F h :=
+  isSup_intro (α → β) (PointwiseLe α β r) F h
+    (fun (f : α → β) =&gt; fun (hf : F f) =&gt; fun (a : α) =&gt;
+      (fun (hu : ∀ (y : β), (∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) → r y (h a)) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        hu (f a) (@Exists.intro (α → β) (fun (f1 : α → β) =&gt; F f1 ∧ @Eq.{1} β (f1 a) (f a))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          f (@And.intro (F f) (@Eq.{1} β (f a) (f a)) hf (@Eq.refl.{1} β (f a)))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        (isSup_upper β r (fun (y : β) =&gt; ∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) (h a) (hh a)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (g : α → β) =&gt;
+      fun (hg : UpperBound (α → β) (PointwiseLe α β r) F g) =&gt;
+        fun (a : α) =&gt;
+          isSup_least β r (fun (y : β) =&gt; ∃ (f : α → β), F f ∧ @Eq.{1} β (f a) y) (h a) (hh a)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            (g a)
+            (fun (y : β) =&gt;
+              fun (hy : ∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                @Exists.elim (α → β) (fun (f1 : α → β) =&gt; F f1 ∧ @Eq.{1} β (f1 a) y) (r y (g a)) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                  (fun (f1 : α → β) (hf1 : F f1 ∧ @Eq.{1} β (f1 a) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                    rel_subst_right β (fun (p : β) (q : β) =&gt; r q (g a)) y (f1 a) y
+                      (And.right hf1)
+                      ((fun (hu : ∀ (f2 : α → β), F f2 → PointwiseLe α β r f2 g) =&gt;
+                        pointwiseLe_apply α β r f1 g (hu f1 (And.left hf1)) a) hg))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-32-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">isInf_pointwise</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-32-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（L 类，<strong>旗舰的对偶</strong>）：<strong>下确界同理</strong>（逐点取）。</p></div></div><pre class="exercise-statement"><code>theorem isInf_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β) → Prop) (h : α → β)
+    (hh : ∀ (a : α),
+      IsInf β r (fun (y : β) =&gt; ∃ (f : α → β), F f ∧ (f a) = y) (h a)) :
+    IsInf (α → β) (PointwiseLe α β r) F h := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与练习 9 逐字对偶（上界<span class="math">↔</span>下界、最小<span class="math">↔</span>最大）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ a, IsInf β r (坐标族) (h a)) → IsInf (α → β) (PointwiseLe α β r) F h</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isInf_intro</code> <span class="math">·</span> <code>isInf_lower</code> / <code>isInf_greatest</code> <span class="math">·</span> <code>Exists.intro</code>/<code>Exists.elim</code> <span class="math">·</span><code>rel_subst_right</code>（关系取"<code>r (g a) ·</code>"）✓</p></div></details></div><details class="solution-panel" id="sol-32-10"><summary>查看解答 <span class="sol-meta">定理 · 23 行</span></summary><div class="solution-body"><pre><code>theorem isInf_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β) → Prop) (h : α → β)
+    (hh : ∀ (a : α),
+      IsInf β r (fun (y : β) =&gt; ∃ (f : α → β), F f ∧ @Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    IsInf (α → β) (PointwiseLe α β r) F h :=
+  isInf_intro (α → β) (PointwiseLe α β r) F h
+    (fun (f : α → β) =&gt; fun (hf : F f) =&gt; fun (a : α) =&gt;
+      (fun (hu : ∀ (y : β), (∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) → r (h a) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        hu (f a) (@Exists.intro (α → β) (fun (f1 : α → β) =&gt; F f1 ∧ @Eq.{1} β (f1 a) (f a))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          f (@And.intro (F f) (@Eq.{1} β (f a) (f a)) hf (@Eq.refl.{1} β (f a)))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        (isInf_lower β r (fun (y : β) =&gt; ∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) (h a) (hh a)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (g : α → β) =&gt;
+      fun (hg : LowerBound (α → β) (PointwiseLe α β r) F g) =&gt;
+        fun (a : α) =&gt;
+          isInf_greatest β r (fun (y : β) =&gt; ∃ (f : α → β), F f ∧ @Eq.{1} β (f a) y) (h a) (hh a)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            (g a)
+            (fun (y : β) =&gt;
+              fun (hy : ∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                @Exists.elim (α → β) (fun (f1 : α → β) =&gt; F f1 ∧ @Eq.{1} β (f1 a) y) (r (g a) y) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                  (fun (f1 : α → β) (hf1 : F f1 ∧ @Eq.{1} β (f1 a) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                    rel_subst_right β (fun (p : β) (q : β) =&gt; r (g a) q) (g a) (f1 a) y
+                      (And.right hf1)
+                      ((fun (hu : ∀ (f2 : α → β), F f2 → PointwiseLe α β r g f2) =&gt;
+                        pointwiseLe_apply α β r g f1 (hu f1 (And.left hf1)) a) hg))))</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>本单元的"读法"（也是选型理由）</strong>：<strong>逐点序是不是偏序，取决于有没有函数外延</strong> ——反对称要"逐点相等 <span class="math">⇒</span> 函数相等"，而那正是<strong>函数外延</strong>（<code>funext</code> ✓）。⚠ <strong>本语言有它</strong>（<code>lib.Extensionality</code> ✓）—— 本单元<strong>刻意先只证逐点形态</strong>：反对称只做到 <code>∀ a, f a = g a</code>（练习 5）✓ 等式形态（<code>IsPartialOrder (α → β) …</code>）见<strong>单元㊹</strong> ✓（早先这里写成"本语言没有外延（G-77）"是<strong>误报</strong>，已改正 ✓）</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Order</code>（逐点序与确界）<span class="math">·</span> <code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㉙㉚㉛（确界、格、单调）—— 本单元把它们搬到<strong>函数空间</strong>上。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit31.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">单调函数与序同构保持确界</span></a><a class="unit-nav-home" href="../chapters/i-11.html#units">目录</a><a class="unit-nav-link" href="../units/unit46.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">对称差与布尔环</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-32"><h3><a href="#top">函数空间上的逐点序</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-32-1"><summary>练习 1 · pointwiseLe_def_apply <span class="sol-meta">定理</span></summary><pre><code>theorem pointwiseLe_def_apply (α β : Type) (r : β → β → Prop) (f g : α → β) :
+    PointwiseLe α β r f g ↔ ∀ (a : α), r (f a) (g a) :=
+  pointwiseLe_def α β r f g</code></pre></details><details class="appendix-solution" id="app-sol-32-2"><summary>练习 2 · pointwiseLe_refl <span class="sol-meta">定理</span></summary><pre><code>theorem pointwiseLe_refl (α β : Type) (r : β → β → Prop) (hrefl : Reflexive β r)
+    (f : α → β) : PointwiseLe α β r f f :=
+  fun (a : α) =&gt; (fun (hu : ∀ (y : β), r y y) =&gt; hu (f a)) hrefl</code></pre></details><details class="appendix-solution" id="app-sol-32-3"><summary>练习 3 · pointwiseLe_trans <span class="sol-meta">定理</span></summary><pre><code>theorem pointwiseLe_trans (α β : Type) (r : β → β → Prop) (htrans : Transitive β r)
+    (f g h : α → β) (hfg : PointwiseLe α β r f g) (hgh : PointwiseLe α β r g h) :
+    PointwiseLe α β r f h :=
+  fun (a : α) =&gt;
+    (fun (hu : ∀ (x : β) (y : β) (z : β), r x y → r y z → r x z) =&gt;
+      hu (f a) (g a) (h a) (pointwiseLe_apply α β r f g hfg a)
+        (pointwiseLe_apply α β r g h hgh a)) htrans</code></pre></details><details class="appendix-solution" id="app-sol-32-4"><summary>练习 4 · pointwiseLe_const <span class="sol-meta">定理</span></summary><pre><code>theorem pointwiseLe_const (α β : Type) (r : β → β → Prop) (c d : β) (a : α) :
+    PointwiseLe α β r (fun (_ : α) =&gt; c) (fun (_ : α) =&gt; d) ↔ r c d :=
+  @Iff.intro (PointwiseLe α β r (fun (_ : α) =&gt; c) (fun (_ : α) =&gt; d)) (r c d)
+    (fun (h : PointwiseLe α β r (fun (_ : α) =&gt; c) (fun (_ : α) =&gt; d)) =&gt;
+      pointwiseLe_apply α β r (fun (_ : α) =&gt; c) (fun (_ : α) =&gt; d) h a)
+    (fun (h : r c d) =&gt; fun (a : α) =&gt; h)</code></pre></details><details class="appendix-solution" id="app-sol-32-5"><summary>练习 5 · pointwiseLe_antisymm_apply <span class="sol-meta">定理</span></summary><pre><code>theorem pointwiseLe_antisymm_apply (α β : Type) (r : β → β → Prop) (hanti : Antisymmetric β r)
+    (f g : α → β) (hfg : PointwiseLe α β r f g) (hgf : PointwiseLe α β r g f) (a : α) :
+    @Eq.{1} β (f a) (g a) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  (fun (hu : ∀ (x : β) (y : β), r x y → r y x → @Eq.{1} β x y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    hu (f a) (g a) (pointwiseLe_apply α β r f g hfg a)
+      (pointwiseLe_apply α β r g f hgf a)) hanti</code></pre></details><details class="appendix-solution" id="app-sol-32-6"><summary>练习 6 · pointwiseLe_of_pointwise_eq <span class="sol-meta">定理</span></summary><pre><code>theorem pointwiseLe_of_pointwise_eq (α β : Type) (r : β → β → Prop) (hrefl : Reflexive β r)
+    (f g : α → β) (h : ∀ (a : α), @Eq.{1} β (f a) (g a)) : PointwiseLe α β r f g :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (a : α) =&gt;
+    rel_subst_right β (fun (p : β) (q : β) =&gt; r (f a) q) (f a) (f a) (g a) (h a)
+      ((fun (hu : ∀ (y : β), r y y) =&gt; hu (f a)) hrefl)</code></pre></details><details class="appendix-solution" id="app-sol-32-7"><summary>练习 7 · pointwiseLe_of_le <span class="sol-meta">定理</span></summary><pre><code>theorem pointwiseLe_of_le (α β : Type) (r : β → β → Prop) (c : β)
+    (f : α → β) (h : ∀ (a : α), r (f a) c) :
+    PointwiseLe α β r f (fun (_ : α) =&gt; c) :=
+  fun (a : α) =&gt; h a</code></pre></details><details class="appendix-solution" id="app-sol-32-8"><summary>练习 8 · pointwiseLe_comp <span class="sol-meta">定理</span></summary><pre><code>theorem pointwiseLe_comp (α β γ : Type) (r : β → β → Prop) (s : γ → γ → Prop)
+    (k : β → γ) (hk : Monotone β γ r s k) (f g : α → β)
+    (hfg : PointwiseLe α β r f g) :
+    PointwiseLe α γ s (fun (a : α) =&gt; k (f a)) (fun (a : α) =&gt; k (g a)) :=
+  fun (a : α) =&gt;
+    monotone_apply β γ r s k hk (f a) (g a) (pointwiseLe_apply α β r f g hfg a)</code></pre></details><details class="appendix-solution" id="app-sol-32-9"><summary>练习 9 · isSup_pointwise <span class="sol-meta">定理</span></summary><pre><code>theorem isSup_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β) → Prop) (h : α → β)
+    (hh : ∀ (a : α),
+      IsSup β r (fun (y : β) =&gt; ∃ (f : α → β), F f ∧ @Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    IsSup (α → β) (PointwiseLe α β r) F h :=
+  isSup_intro (α → β) (PointwiseLe α β r) F h
+    (fun (f : α → β) =&gt; fun (hf : F f) =&gt; fun (a : α) =&gt;
+      (fun (hu : ∀ (y : β), (∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) → r y (h a)) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        hu (f a) (@Exists.intro (α → β) (fun (f1 : α → β) =&gt; F f1 ∧ @Eq.{1} β (f1 a) (f a))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          f (@And.intro (F f) (@Eq.{1} β (f a) (f a)) hf (@Eq.refl.{1} β (f a)))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        (isSup_upper β r (fun (y : β) =&gt; ∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) (h a) (hh a)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (g : α → β) =&gt;
+      fun (hg : UpperBound (α → β) (PointwiseLe α β r) F g) =&gt;
+        fun (a : α) =&gt;
+          isSup_least β r (fun (y : β) =&gt; ∃ (f : α → β), F f ∧ @Eq.{1} β (f a) y) (h a) (hh a)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            (g a)
+            (fun (y : β) =&gt;
+              fun (hy : ∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                @Exists.elim (α → β) (fun (f1 : α → β) =&gt; F f1 ∧ @Eq.{1} β (f1 a) y) (r y (g a)) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                  (fun (f1 : α → β) (hf1 : F f1 ∧ @Eq.{1} β (f1 a) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                    rel_subst_right β (fun (p : β) (q : β) =&gt; r q (g a)) y (f1 a) y
+                      (And.right hf1)
+                      ((fun (hu : ∀ (f2 : α → β), F f2 → PointwiseLe α β r f2 g) =&gt;
+                        pointwiseLe_apply α β r f1 g (hu f1 (And.left hf1)) a) hg))))</code></pre></details><details class="appendix-solution" id="app-sol-32-10"><summary>练习 10 · isInf_pointwise <span class="sol-meta">定理</span></summary><pre><code>theorem isInf_pointwise (α β : Type) (r : β → β → Prop) (F : (α → β) → Prop) (h : α → β)
+    (hh : ∀ (a : α),
+      IsInf β r (fun (y : β) =&gt; ∃ (f : α → β), F f ∧ @Eq.{1} β (f a) y) (h a)) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    IsInf (α → β) (PointwiseLe α β r) F h :=
+  isInf_intro (α → β) (PointwiseLe α β r) F h
+    (fun (f : α → β) =&gt; fun (hf : F f) =&gt; fun (a : α) =&gt;
+      (fun (hu : ∀ (y : β), (∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) → r (h a) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        hu (f a) (@Exists.intro (α → β) (fun (f1 : α → β) =&gt; F f1 ∧ @Eq.{1} β (f1 a) (f a))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          f (@And.intro (F f) (@Eq.{1} β (f a) (f a)) hf (@Eq.refl.{1} β (f a)))))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        (isInf_lower β r (fun (y : β) =&gt; ∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) (h a) (hh a)))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (g : α → β) =&gt;
+      fun (hg : LowerBound (α → β) (PointwiseLe α β r) F g) =&gt;
+        fun (a : α) =&gt;
+          isInf_greatest β r (fun (y : β) =&gt; ∃ (f : α → β), F f ∧ @Eq.{1} β (f a) y) (h a) (hh a)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            (g a)
+            (fun (y : β) =&gt;
+              fun (hy : ∃ (f1 : α → β), F f1 ∧ @Eq.{1} β (f1 a) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                @Exists.elim (α → β) (fun (f1 : α → β) =&gt; F f1 ∧ @Eq.{1} β (f1 a) y) (r (g a) y) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                  (fun (f1 : α → β) (hf1 : F f1 ∧ @Eq.{1} β (f1 a) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+                    rel_subst_right β (fun (p : β) (q : β) =&gt; r (g a) q) (g a) (f1 a) y
+                      (And.right hf1)
+                      ((fun (hu : ∀ (f2 : α → β), F f2 → PointwiseLe α β r g f2) =&gt;
+                        pointwiseLe_apply α β r g f1 (hu f1 (And.left hf1)) a) hg))))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit31.html">← 31 单调函数与序同构保持确界</a><a class="next" href="../units/unit46.html">46 对称差与布尔环 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

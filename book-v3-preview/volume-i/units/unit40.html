@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>40 传递闭包的代数刻画 · 从集合论到实分析</title>
+<meta name="description" content="单元㊵ 传递闭包的代数刻画：导语、定义与定理、练习与解答。Unit 40 — The Transitive Closure, Algebraically">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit40.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li class="is-current"><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.13 单元</h3><ol><li><a href="../units/unit36.html">36 关系的代数</a></li><li><a href="../units/unit37.html">37 关系的代数刻画</a></li><li><a href="../units/unit38.html">38 序关系的关系代数视角</a></li><li><a href="../units/unit39.html">39 关系的像、原像与等价核</a></li><li class="is-current"><a href="../units/unit40.html">40 传递闭包的代数刻画</a></li><li><a href="../units/unit41.html">41 良基关系（极小元原理）</a></li><li><a href="../units/unit45.html">45 关系的单值性与函数的图</a></li><li><a href="../units/unit52.html">52 关系的复合：单位律与逐点形态</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li><li aria-current="page">单元 40 传递闭包的代数刻画</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-40-1">40.1 三条库引理（传递闭包的取用子 · 另外两种闭包的展开）</a></li>
+<li><a href="#ex-40-1">40.2 闭包的两端：含（r ⊆ r⁺）· 闭（r⁺ 传递）· 最小</a></li>
+<li><a href="#ex-40-6">40.3 旗舰：传递 ⟺ 闭包不动 · 闭包幂等</a></li>
+<li><a href="#ex-40-8">40.4 旗舰：闭包对 • 封闭（把单元㊲ 的刻画用在闭包上）</a></li>
+<li><a href="#appendix-unit-40">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-13.html#units">↑ 本章目录</a>
+      <a href="../print/unit40.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-40">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-13.html">I.13</a> · 本章第 5 / 8 单元 · 全书第 40 / 112 单元</p>
+<h1><span class="unit-number">40</span> <span>传递闭包的代数刻画</span></h1>
+<p class="unit-title-en">Unit 40 — The Transitive Closure, Algebraically</p>
+<p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-40">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="40" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-40" aria-label="复制单元 40 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit40.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-13.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§10</strong> 与 <strong>§7</strong>；Enderton《Elements of Set Theory》<strong>§3.6</strong>（closure）。大纲：<code>set-theory-syllabus.md</code> §4.1（I.13 章第五个单元 —— 把单元㉔ 的<strong>交集式闭包</strong> 与单元㊲ 的<strong>代数刻画</strong>合起来）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>闭包的两端</strong>：<code>r ⊆ r⁺</code>（含）<span class="math">·</span> <code>r⁺</code> 传递（闭）<span class="math">·</span> <strong>最小性</strong>（任何传递的 <code>s ⊇ r</code> 都包含 <code>r⁺</code>）—— 这三条正是"最小传递关系"的定义 ✓</li><li><strong>旗舰一：<code>r</code> 传递 <span class="math">⟺</span> <code>r⁺ ⊆ r</code></strong>（"闭包不动 <span class="math">⟺</span> 已经传递"）；</li><li><strong>旗舰二：闭包幂等</strong>（<code>(r⁺)⁺ = r⁺</code>）；</li><li><strong>旗舰三：闭包对 <code>•</code> 封闭</strong>（<code>r • r⁺ ⊆ r⁺</code> 与 <code>r⁺ • r⁺ ⊆ r⁺</code> —— 把单元㊲ 的"传递 <span class="math">⟺</span> <code>r • r ⊆ r</code>"用在闭包上就是这两条）✓</li></ul></div><h3 class="unit-subhead">40.1 三条库引理（传递闭包的取用子 <span class="math">·</span> 另外两种闭包的展开）</h3><div class="block prose intuition-only"><p>演示：传递闭包的<strong>取用子</strong>（把 <code>r⁺ a b</code> 用在具体的传递关系 <code>s ⊇ r</code> 上）。</p></div><article class="decl decl-theorem" id="decl-40-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_transClosure_elim</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_transClosure_elim (α : Type) (r s : Rel α α) (a b : α)
+    (h : Rel.transClosure α r a b)
+    (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z)
+    (hr : ∀ (x : α) (y : α), r x y → s x y) : s a b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.transClosure_elim α r s a b h hs hr</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：自反闭包的展开（<code>r a b ∨ a = b</code>）。</p></div><article class="decl decl-theorem" id="decl-40-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_reflClosure_apply</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_reflClosure_apply (α : Type) (r : Rel α α) (a b : α) :
+    Rel.reflClosure α r a b ↔ (r a b ∨ a = b) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.reflClosure_apply α r a b</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：对称闭包的展开（<code>r a b ∨ r b a</code>）。</p></div><article class="decl decl-theorem" id="decl-40-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_symClosure_apply</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_symClosure_apply (α : Type) (r : Rel α α) (a b : α) :
+    Rel.symClosure α r a b ↔ (r a b ∨ r b a) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.symClosure_apply α r a b</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">40.2 闭包的<strong>两端</strong>：含（<code>r ⊆ r⁺</code>）<span class="math">·</span> 闭（<code>r⁺</code> 传递）<span class="math">·</span> <strong>最小</strong></h3><article class="exercise" id="ex-40-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">transClosure_intro</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-40-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（L 类）：<strong>闭包的构造子</strong>（库里的取用子是"用"，这是"造"）。</p></div></div><pre class="exercise-statement"><code>theorem transClosure_intro (α : Type) (r : Rel α α) (a b : α)
+    (h : ∀ (s : Rel α α), (∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) →
+      (∀ (x : α) (y : α), r x y → s x y) → s a b) :
+    Rel.transClosure α r a b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>r⁺ a b</code> 定义上就是"对所有传递的 <code>s ⊇ r</code> 都有 <code>s a b</code>" ——假设给的就是这件事，直接交出去即可（把 <code>h</code> 用在给定的 <code>s</code> 与两条前提上）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ s, Transitive s → r ⊆ s → s a b) → r⁺ a b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Rel.transClosure</code> 的定义体就是一个带两条前提的 <code>∀</code> <span class="math">⇒</span> 写 <code>fun (s) (hs) (hr) =&gt; h s hs hr</code>（<code>hs</code>/<code>hr</code> 的形态与定义体逐字相同）✓</p></div></details></div><details class="solution-panel" id="sol-40-1"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem transClosure_intro (α : Type) (r : Rel α α) (a b : α)
+    (h : ∀ (s : Rel α α), (∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) →
+      (∀ (x : α) (y : α), r x y → s x y) → s a b) :
+    Rel.transClosure α r a b :=
+  fun (s : Rel α α) =&gt;
+    fun (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) =&gt;
+      fun (hr : ∀ (x : α) (y : α), r x y → s x y) =&gt; h s hs hr</code></pre></div></details></div></article>
+<article class="exercise" id="ex-40-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">subset_transClosure</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-40-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类）：<strong><code>r</code> 含于它的传递闭包</strong>。</p></div></div><pre class="exercise-statement"><code>theorem subset_transClosure (α : Type) (r : Rel α α) :
+    ∀ (a : α) (b : α), r a b → Rel.transClosure α r a b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用练习 1 造一条闭包成员：给定传递的 <code>s ⊇ r</code>，把"含"那条前提用在 <code>r a b</code> 上。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>r a b → r⁺ a b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 <span class="math">1 ·</span> 第三条前提（<code>r ⊆ s</code>）当函数用 ✓</p></div></details></div><details class="solution-panel" id="sol-40-2"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem subset_transClosure (α : Type) (r : Rel α α) :
+    ∀ (a : α) (b : α), r a b → Rel.transClosure α r a b :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt;
+    transClosure_intro α r a b
+      (fun (s : Rel α α) =&gt;
+        fun (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) =&gt;
+          fun (hr : ∀ (x : α) (y : α), r x y → s x y) =&gt; hr a b hab)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-40-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">transClosure_transitive</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-40-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类，<strong>旗舰</strong>）：<strong>传递闭包是传递的</strong>。</p></div></div><pre class="exercise-statement"><code>theorem transClosure_transitive (α : Type) (r : Rel α α) :
+    Transitive α (Rel.transClosure α r) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要造 <code>r⁺ a c</code> <span class="math">⇒</span> 用练习 1：给定传递的 <code>s ⊇ r</code>，把 <code>r⁺ a b</code> 与 <code>r⁺ b c</code> <strong>各自用取用子</strong>变成 <code>s a b</code>、<code>s b c</code>，再用 <code>s</code> 的传递性接起来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Transitive (r⁺)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 <span class="math">1 ·</span> <code>Rel.transClosure_elim</code>（<strong>参数：论域 <span class="math">·</span> 源关系 <span class="math">·</span> 目标关系 <span class="math">·</span>两个点 <span class="math">·</span> 闭包成员 <span class="math">·</span> <code>s</code> 的传递性 <span class="math">·</span> 含入</strong>）<span class="math">·</span> <code>s</code> 的传递性当函数用（三个点 <span class="math">+</span> 两条前提）✓</p></div></details></div><details class="solution-panel" id="sol-40-3"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem transClosure_transitive (α : Type) (r : Rel α α) :
+    Transitive α (Rel.transClosure α r) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (c : α) =&gt;
+    fun (hab : Rel.transClosure α r a b) =&gt; fun (hbc : Rel.transClosure α r b c) =&gt;
+      transClosure_intro α r a c
+        (fun (s : Rel α α) =&gt;
+          fun (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) =&gt;
+            fun (hr : ∀ (x : α) (y : α), r x y → s x y) =&gt;
+              hs a b c (Rel.transClosure_elim α r s a b hab hs hr)
+                (Rel.transClosure_elim α r s b c hbc hs hr))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-40-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">transClosure_least</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-40-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：<strong>最小性</strong>（任何传递的 <code>s ⊇ r</code> 都包含 <code>r⁺</code>）。</p></div></div><pre class="exercise-statement"><code>theorem transClosure_least (α : Type) (r s : Rel α α)
+    (hs : Transitive α s) (hr : ∀ (x : α) (y : α), r x y → s x y) :
+    ∀ (a : α) (b : α), Rel.transClosure α r a b → s a b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>这就是取用子本身（把闭包成员用在 <code>s</code> 与两条前提上）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Transitive s → (∀ x y, r x y → s x y) → ∀ a b, r⁺ a b → s a b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Rel.transClosure_elim</code> —— 也可以先用 <code>fun</code> 把闭包成员<strong>绑定成 h</strong> 再套用（<code>r⁺ a b</code> 是<strong>定义头类型</strong> <span class="math">⇒</span> 直接当函数应用会判红，见 G-73 形状 ①）✓</p></div></details></div><details class="solution-panel" id="sol-40-4"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem transClosure_least (α : Type) (r s : Rel α α)
+    (hs : Transitive α s) (hr : ∀ (x : α) (y : α), r x y → s x y) :
+    ∀ (a : α) (b : α), Rel.transClosure α r a b → s a b :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : Rel.transClosure α r a b) =&gt;
+    (fun (hu : ∀ (t : Rel α α),
+        (∀ (x : α) (y : α) (z : α), t x y → t y z → t x z) →
+        (∀ (x : α) (y : α), r x y → t x y) → t a b) =&gt;
+      hu s hs hr) hab</code></pre></div></details></div></article>
+<article class="exercise" id="ex-40-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">transClosure_mono</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-40-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：<strong>闭包对"包含"单调</strong>。</p></div></div><pre class="exercise-statement"><code>theorem transClosure_mono (α : Type) (r r1 : Rel α α)
+    (h : ∀ (a : α) (b : α), r a b → r1 a b) :
+    ∀ (a : α) (b : α), Rel.transClosure α r a b → Rel.transClosure α r1 a b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要造 <code>r1⁺ a b</code> <span class="math">⇒</span> 用练习 1（取 <code>s := r1⁺</code>）：含入那一条把 <code>r</code> 的成员先升成 <code>r1</code> 的成员（用假设）、再升成 <code>r1⁺</code> 的成员（用练习 2）；<code>r1⁺</code> 的传递性用练习 3。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ a b, r a b → r1 a b) → ∀ a b, r⁺ a b → r1⁺ a b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Rel.transClosure_elim</code>（取 <code>s := r1⁺</code>）<span class="math">·</span> 练习 <span class="math">2 ·</span> 练习 <span class="math">3 ·</span> 假设当函数用 ✓</p></div></details></div><details class="solution-panel" id="sol-40-5"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem transClosure_mono (α : Type) (r r1 : Rel α α)
+    (h : ∀ (a : α) (b : α), r a b → r1 a b) :
+    ∀ (a : α) (b : α), Rel.transClosure α r a b → Rel.transClosure α r1 a b :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : Rel.transClosure α r a b) =&gt;
+    Rel.transClosure_elim α r (Rel.transClosure α r1) a b hab
+      (transClosure_transitive α r1)
+      (fun (x : α) (y : α) =&gt; fun (hxy : r x y) =&gt;
+        subset_transClosure α r1 x y (h x y hxy))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">40.3 旗舰：<strong>传递 <span class="math">⟺</span> 闭包不动</strong> <span class="math">·</span> <strong>闭包幂等</strong></h3><article class="exercise" id="ex-40-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">trans_iff_transClosure_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-40-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类，<strong>旗舰</strong>）：<strong><code>r</code> 传递 <span class="math">⟺</span> <code>r⁺ ⊆ r</code></strong>（"闭包不动 <span class="math">⟺</span> 已经传递"）。</p></div></div><pre class="exercise-statement"><code>theorem trans_iff_transClosure_subset (α : Type) (r : Rel α α) :
+    Transitive α r ↔ ∀ (a : α) (b : α), Rel.transClosure α r a b → r a b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：给定 <code>r⁺ a b</code>，用取用子取 <code>s := r</code>（传递性就是假设、含入是恒等）；<span class="math">←</span>：给定 <code>r a b</code> 与 <code>r b c</code>，用练习 2 升成闭包成员，再用练习 3 接起来，最后用假设降回 <code>r</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Transitive r ↔ ∀ a b, r⁺ a b → r a b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code>（前导 Prop 实参写全）<span class="math">·</span> <code>Rel.transClosure_elim</code> <span class="math">·</span>练习 <span class="math">2 ·</span> 练习 <span class="math">3 ·</span> 含入那一条写恒等函数 ✓</p></div></details></div><details class="solution-panel" id="sol-40-6"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem trans_iff_transClosure_subset (α : Type) (r : Rel α α) :
+    Transitive α r ↔ ∀ (a : α) (b : α), Rel.transClosure α r a b → r a b :=
+  @Iff.intro (Transitive α r)
+    (∀ (a : α) (b : α), Rel.transClosure α r a b → r a b)
+    (fun (ht : Transitive α r) =&gt; fun (a : α) =&gt; fun (b : α) =&gt;
+      fun (hab : Rel.transClosure α r a b) =&gt;
+        Rel.transClosure_elim α r r a b hab ht (fun (x : α) (y : α) =&gt; fun (h : r x y) =&gt; h))
+    (fun (hsub : ∀ (a : α) (b : α), Rel.transClosure α r a b → r a b) =&gt;
+      fun (a : α) =&gt; fun (b : α) =&gt; fun (c : α) =&gt;
+        fun (hab : r a b) =&gt; fun (hbc : r b c) =&gt;
+          hsub a c (transClosure_transitive α r a b c
+            (subset_transClosure α r a b hab) (subset_transClosure α r b c hbc)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-40-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">transClosure_idempotent</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-40-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类，<strong>旗舰</strong>）：<strong>闭包幂等</strong>（<code>(r⁺)⁺ = r⁺</code>）。</p></div></div><pre class="exercise-statement"><code>theorem transClosure_idempotent (α : Type) (r : Rel α α) :
+    Rel.transClosure α (Rel.transClosure α r) = Rel.transClosure α r := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>关系等式用 <code>Rel.ext</code>；两个方向：<span class="math">→</span> 用练习 4（最小性，取 <code>s := r⁺</code>，含入写恒等、传递性用练习 3）；<span class="math">←</span> 用练习 2。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Rel.transClosure α (Rel.transClosure α r) = Rel.transClosure α r</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Rel.ext</code>（<strong>参数：两个类型 <span class="math">·</span> 两条关系 <span class="math">·</span> 逐点证明</strong>）<span class="math">·</span> <code>Iff.intro</code> <span class="math">·</span>练习 <span class="math">2 ·</span> 练习 <span class="math">3 ·</span> 练习 4 ——⚠ 练习 4 的<strong>源关系</strong>这次是 <code>r⁺</code>（不是 <code>r</code>），含入那一条要写<strong>恒等函数</strong>（实测踩过）✓</p></div></details></div><details class="solution-panel" id="sol-40-7"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem transClosure_idempotent (α : Type) (r : Rel α α) :
+    Rel.transClosure α (Rel.transClosure α r) = Rel.transClosure α r :=
+  Rel.ext α α (Rel.transClosure α (Rel.transClosure α r)) (Rel.transClosure α r)
+    (fun (a : α) (b : α) =&gt;
+      @Iff.intro (Rel.transClosure α (Rel.transClosure α r) a b)
+        (Rel.transClosure α r a b)
+        (fun (h : Rel.transClosure α (Rel.transClosure α r) a b) =&gt;
+          transClosure_least α (Rel.transClosure α r) (Rel.transClosure α r)
+            (transClosure_transitive α r)
+            (fun (x : α) (y : α) =&gt; fun (hxy : Rel.transClosure α r x y) =&gt; hxy) a b h)
+        (fun (h : Rel.transClosure α r a b) =&gt;
+          subset_transClosure α (Rel.transClosure α r) a b h))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">40.4 旗舰：<strong>闭包对 <code>•</code> 封闭</strong>（把单元㊲ 的刻画用在闭包上）</h3><article class="exercise" id="ex-40-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">comp_transClosure_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-40-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（T 类）：<strong><code>r • r⁺ ⊆ r⁺</code></strong>（"再走一步 <code>r</code> 也出不去"）。</p></div></div><pre class="exercise-statement"><code>theorem comp_transClosure_subset (α : Type) (r : Rel α α) :
+    ∀ (a : α) (c : α), (r • Rel.transClosure α r) a c → Rel.transClosure α r a c := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆开 <code>∃</code>：得到一个中间点 <code>b</code>，<code>r a b</code> 升成闭包成员（练习 2），再与 <code>r⁺ b c</code> 用闭包的传递性（练习 3）接起来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∀ a c, (r • r⁺) a c → r⁺ a c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>（前导实参写全）<span class="math">·</span> 练习 <span class="math">2 ·</span> 练习 <span class="math">3 ·</span> <code>And.left</code>/<code>And.right</code> ✓</p></div></details></div><details class="solution-panel" id="sol-40-8"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem comp_transClosure_subset (α : Type) (r : Rel α α) :
+    ∀ (a : α) (c : α), (r • Rel.transClosure α r) a c → Rel.transClosure α r a c :=
+  fun (a : α) =&gt; fun (c : α) =&gt;
+    fun (hac : (r • Rel.transClosure α r) a c) =&gt;
+      @Exists.elim α (fun (b : α) =&gt; r a b ∧ Rel.transClosure α r b c)
+        (Rel.transClosure α r a c) hac
+        (fun (b : α) (hb : r a b ∧ Rel.transClosure α r b c) =&gt;
+          transClosure_transitive α r a b c
+            (subset_transClosure α r a b (And.left hb)) (And.right hb))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-40-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">transClosure_comp_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-40-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（T 类）：<strong><code>r⁺ • r⁺ ⊆ r⁺</code></strong>（单元㊲"传递 <span class="math">⟺</span> <code>r • r ⊆ r</code>"在闭包上的样子）。</p></div></div><pre class="exercise-statement"><code>theorem transClosure_comp_subset (α : Type) (r : Rel α α) :
+    ∀ (a : α) (c : α),
+      (Rel.transClosure α r • Rel.transClosure α r) a c → Rel.transClosure α r a c := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆开 <code>∃</code>，两条闭包成员直接用闭包的传递性接起来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∀ a c, (r⁺ • r⁺) a c → r⁺ a c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>（前导实参写全）<span class="math">·</span> 练习 <span class="math">3 ·</span> <code>And.left</code>/<code>And.right</code> ✓</p></div></details></div><details class="solution-panel" id="sol-40-9"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem transClosure_comp_subset (α : Type) (r : Rel α α) :
+    ∀ (a : α) (c : α),
+      (Rel.transClosure α r • Rel.transClosure α r) a c → Rel.transClosure α r a c :=
+  fun (a : α) =&gt; fun (c : α) =&gt;
+    fun (hac : (Rel.transClosure α r • Rel.transClosure α r) a c) =&gt;
+      @Exists.elim α (fun (b : α) =&gt; Rel.transClosure α r a b ∧ Rel.transClosure α r b c)
+        (Rel.transClosure α r a c) hac
+        (fun (b : α) (hb : Rel.transClosure α r a b ∧ Rel.transClosure α r b c) =&gt;
+          transClosure_transitive α r a b c (And.left hb) (And.right hb))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-40-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">symClosure_symmetric</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-40-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（T 类）：<strong>对称闭包是对称的</strong>（另一种闭包的"闭"这一端）。</p></div></div><pre class="exercise-statement"><code>theorem symClosure_symmetric (α : Type) (r : Rel α α) :
+    Symmetric α (Rel.symClosure α r) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对称闭包展开是"<code>r a b ∨ r b a</code>" <span class="math">⇒</span> 把析取<strong>调个头</strong>即可（左支进右边、右支进左边）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Symmetric (Rel.symClosure α r)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Or.elim</code>（<strong>前导 Prop 实参写全</strong>）<span class="math">·</span> <code>Or.inl</code>/<code>Or.inr</code>（前导 Prop 实参写全）<span class="math">·</span><code>Rel.symClosure_apply</code> 的展开形态（定义体就是那个析取，可以直接当析取用）✓</p></div></details></div><details class="solution-panel" id="sol-40-10"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem symClosure_symmetric (α : Type) (r : Rel α α) :
+    Symmetric α (Rel.symClosure α r) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : Rel.symClosure α r a b) =&gt;
+    @Or.elim (r a b) (r b a) (r b a ∨ r a b)
+      (fun (h : r a b) =&gt; Or.inr h)
+      (fun (h : r b a) =&gt; Or.inl h) hab</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>本单元的"读法"</strong>：<code>Rel.transClosure</code> 的定义是<strong>交集式/泛性质式</strong>的（"对所有传递的 <code>s ⊇ r</code> 都成立"）—— 它的取用子 <code>Rel.transClosure_elim</code> <strong>一条就够</strong>（库里有 ✓），而<strong>造</strong>一条闭包成员要用<strong>构造子</strong>（本单元练习 1：<code>transClosure_intro</code>）✓ 这两条合起来就是"最小性"的两个方向 ✓ <strong>本单元不引入"<code>rⁿ</code> 的并"那种写法</strong> —— 那要递推/自然数算术，本语言做不了（<strong>G-76</strong>）✓</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code>（传递）<span class="math">·</span> <code>lib.Set</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㉔（关系闭包）<span class="math">·</span> 单元㊱㊲（关系的代数）—— 本单元把两者合起来。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit39.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">关系的像、原像与等价核</span></a><a class="unit-nav-home" href="../chapters/i-13.html#units">目录</a><a class="unit-nav-link" href="../units/unit41.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">良基关系（极小元原理）</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-40"><h3><a href="#top">传递闭包的代数刻画</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-40-1"><summary>练习 1 · transClosure_intro <span class="sol-meta">定理</span></summary><pre><code>theorem transClosure_intro (α : Type) (r : Rel α α) (a b : α)
+    (h : ∀ (s : Rel α α), (∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) →
+      (∀ (x : α) (y : α), r x y → s x y) → s a b) :
+    Rel.transClosure α r a b :=
+  fun (s : Rel α α) =&gt;
+    fun (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) =&gt;
+      fun (hr : ∀ (x : α) (y : α), r x y → s x y) =&gt; h s hs hr</code></pre></details><details class="appendix-solution" id="app-sol-40-2"><summary>练习 2 · subset_transClosure <span class="sol-meta">定理</span></summary><pre><code>theorem subset_transClosure (α : Type) (r : Rel α α) :
+    ∀ (a : α) (b : α), r a b → Rel.transClosure α r a b :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt;
+    transClosure_intro α r a b
+      (fun (s : Rel α α) =&gt;
+        fun (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) =&gt;
+          fun (hr : ∀ (x : α) (y : α), r x y → s x y) =&gt; hr a b hab)</code></pre></details><details class="appendix-solution" id="app-sol-40-3"><summary>练习 3 · transClosure_transitive <span class="sol-meta">定理</span></summary><pre><code>theorem transClosure_transitive (α : Type) (r : Rel α α) :
+    Transitive α (Rel.transClosure α r) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (c : α) =&gt;
+    fun (hab : Rel.transClosure α r a b) =&gt; fun (hbc : Rel.transClosure α r b c) =&gt;
+      transClosure_intro α r a c
+        (fun (s : Rel α α) =&gt;
+          fun (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) =&gt;
+            fun (hr : ∀ (x : α) (y : α), r x y → s x y) =&gt;
+              hs a b c (Rel.transClosure_elim α r s a b hab hs hr)
+                (Rel.transClosure_elim α r s b c hbc hs hr))</code></pre></details><details class="appendix-solution" id="app-sol-40-4"><summary>练习 4 · transClosure_least <span class="sol-meta">定理</span></summary><pre><code>theorem transClosure_least (α : Type) (r s : Rel α α)
+    (hs : Transitive α s) (hr : ∀ (x : α) (y : α), r x y → s x y) :
+    ∀ (a : α) (b : α), Rel.transClosure α r a b → s a b :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : Rel.transClosure α r a b) =&gt;
+    (fun (hu : ∀ (t : Rel α α),
+        (∀ (x : α) (y : α) (z : α), t x y → t y z → t x z) →
+        (∀ (x : α) (y : α), r x y → t x y) → t a b) =&gt;
+      hu s hs hr) hab</code></pre></details><details class="appendix-solution" id="app-sol-40-5"><summary>练习 5 · transClosure_mono <span class="sol-meta">定理</span></summary><pre><code>theorem transClosure_mono (α : Type) (r r1 : Rel α α)
+    (h : ∀ (a : α) (b : α), r a b → r1 a b) :
+    ∀ (a : α) (b : α), Rel.transClosure α r a b → Rel.transClosure α r1 a b :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : Rel.transClosure α r a b) =&gt;
+    Rel.transClosure_elim α r (Rel.transClosure α r1) a b hab
+      (transClosure_transitive α r1)
+      (fun (x : α) (y : α) =&gt; fun (hxy : r x y) =&gt;
+        subset_transClosure α r1 x y (h x y hxy))</code></pre></details><details class="appendix-solution" id="app-sol-40-6"><summary>练习 6 · trans_iff_transClosure_subset <span class="sol-meta">定理</span></summary><pre><code>theorem trans_iff_transClosure_subset (α : Type) (r : Rel α α) :
+    Transitive α r ↔ ∀ (a : α) (b : α), Rel.transClosure α r a b → r a b :=
+  @Iff.intro (Transitive α r)
+    (∀ (a : α) (b : α), Rel.transClosure α r a b → r a b)
+    (fun (ht : Transitive α r) =&gt; fun (a : α) =&gt; fun (b : α) =&gt;
+      fun (hab : Rel.transClosure α r a b) =&gt;
+        Rel.transClosure_elim α r r a b hab ht (fun (x : α) (y : α) =&gt; fun (h : r x y) =&gt; h))
+    (fun (hsub : ∀ (a : α) (b : α), Rel.transClosure α r a b → r a b) =&gt;
+      fun (a : α) =&gt; fun (b : α) =&gt; fun (c : α) =&gt;
+        fun (hab : r a b) =&gt; fun (hbc : r b c) =&gt;
+          hsub a c (transClosure_transitive α r a b c
+            (subset_transClosure α r a b hab) (subset_transClosure α r b c hbc)))</code></pre></details><details class="appendix-solution" id="app-sol-40-7"><summary>练习 7 · transClosure_idempotent <span class="sol-meta">定理</span></summary><pre><code>theorem transClosure_idempotent (α : Type) (r : Rel α α) :
+    Rel.transClosure α (Rel.transClosure α r) = Rel.transClosure α r :=
+  Rel.ext α α (Rel.transClosure α (Rel.transClosure α r)) (Rel.transClosure α r)
+    (fun (a : α) (b : α) =&gt;
+      @Iff.intro (Rel.transClosure α (Rel.transClosure α r) a b)
+        (Rel.transClosure α r a b)
+        (fun (h : Rel.transClosure α (Rel.transClosure α r) a b) =&gt;
+          transClosure_least α (Rel.transClosure α r) (Rel.transClosure α r)
+            (transClosure_transitive α r)
+            (fun (x : α) (y : α) =&gt; fun (hxy : Rel.transClosure α r x y) =&gt; hxy) a b h)
+        (fun (h : Rel.transClosure α r a b) =&gt;
+          subset_transClosure α (Rel.transClosure α r) a b h))</code></pre></details><details class="appendix-solution" id="app-sol-40-8"><summary>练习 8 · comp_transClosure_subset <span class="sol-meta">定理</span></summary><pre><code>theorem comp_transClosure_subset (α : Type) (r : Rel α α) :
+    ∀ (a : α) (c : α), (r • Rel.transClosure α r) a c → Rel.transClosure α r a c :=
+  fun (a : α) =&gt; fun (c : α) =&gt;
+    fun (hac : (r • Rel.transClosure α r) a c) =&gt;
+      @Exists.elim α (fun (b : α) =&gt; r a b ∧ Rel.transClosure α r b c)
+        (Rel.transClosure α r a c) hac
+        (fun (b : α) (hb : r a b ∧ Rel.transClosure α r b c) =&gt;
+          transClosure_transitive α r a b c
+            (subset_transClosure α r a b (And.left hb)) (And.right hb))</code></pre></details><details class="appendix-solution" id="app-sol-40-9"><summary>练习 9 · transClosure_comp_subset <span class="sol-meta">定理</span></summary><pre><code>theorem transClosure_comp_subset (α : Type) (r : Rel α α) :
+    ∀ (a : α) (c : α),
+      (Rel.transClosure α r • Rel.transClosure α r) a c → Rel.transClosure α r a c :=
+  fun (a : α) =&gt; fun (c : α) =&gt;
+    fun (hac : (Rel.transClosure α r • Rel.transClosure α r) a c) =&gt;
+      @Exists.elim α (fun (b : α) =&gt; Rel.transClosure α r a b ∧ Rel.transClosure α r b c)
+        (Rel.transClosure α r a c) hac
+        (fun (b : α) (hb : Rel.transClosure α r a b ∧ Rel.transClosure α r b c) =&gt;
+          transClosure_transitive α r a b c (And.left hb) (And.right hb))</code></pre></details><details class="appendix-solution" id="app-sol-40-10"><summary>练习 10 · symClosure_symmetric <span class="sol-meta">定理</span></summary><pre><code>theorem symClosure_symmetric (α : Type) (r : Rel α α) :
+    Symmetric α (Rel.symClosure α r) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : Rel.symClosure α r a b) =&gt;
+    @Or.elim (r a b) (r b a) (r b a ∨ r a b)
+      (fun (h : r a b) =&gt; Or.inr h)
+      (fun (h : r b a) =&gt; Or.inl h) hab</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit39.html">← 39 关系的像、原像与等价核</a><a class="next" href="../units/unit41.html">41 良基关系（极小元原理） →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

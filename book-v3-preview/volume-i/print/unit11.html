@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 11 论域与 Russell 悖论</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit11.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 11 论域与 Russell 悖论</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit11.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.4 论域、悖论与综合 · 单元 11</p><h1>论域与 Russell 悖论</h1><p class="note">Unit 11 — Universes &amp; Russell&#x27;s Paradox</p></header><section class="unit first-of-chapter" id="unit-11">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-4.html">I.4</a> · 本章第 1 / 12 单元 · 全书第 11 / 112 单元</p>
+<h2><span class="unit-number">11</span><span>论域与 Russell 悖论</span></h2>
+<p class="unit-title-en">Unit 11 — Universes &amp; Russell's Paradox</p>
+<p class="unit-meta">8 个定理 · 5 道练习 · 15 条提示 · <a href="#appendix-unit-11">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>演示 3 条（已写好、判卷通过）：<span class="math">subset_univ · univ_subset_iff · exists_univ</span>。练习 5 条：R 类 3 条（读<span class="math">·</span>评译，第 1 条承担本单元的<strong>必破</strong>——判断真假并证伪）</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>X 类 2 条（形式 <span class="math">↔</span> 散文互译，散文写在题面注释里）。</li></ul></div></div></section>
+<h3 class="unit-subhead">11.1 概括公理为什么在这里写不出来</h3><div class="block prose intuition-only"><p>概括公理（comprehension axiom）说：给定任何性质 P，都有集合</p></div><div class="block prose intuition-only"><p>{ x | P x }</p></div><div class="block prose intuition-only"><p>把恰好满足 P 的对象装起来。Tao §3.2 的 Russell 论证取</p></div><div class="block prose intuition-only"><p>P x :<span class="math">=</span> 「x 不属于 x」，</p></div><div class="block prose intuition-only"><p>得到 <span class="math">Ω = { x</span> | <span class="math">x ∉ x }</span>，然后问「<span class="math">Ω</span> 属不属于 <span class="math">Ω</span>」：答「属于」就说明 <span class="math">Ω</span> 满足 P，按定义它不该属于；答「不属于」就说明它不满足 P，按定义它该属于。</p></div><div class="block prose intuition-only"><p>这条论证在本语言里第一步就走不动。卡住的地方是记法：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>集合是 <code>Set α</code>，也就是 <code>α → Prop</code>：它总是<strong>某个固定类型 <span class="math">α</span> 的</strong>谓词。隶属判定 <code>x ∈ A</code> 要求 x : <span class="math">α</span>、A : <span class="math">Set α</span>，两个参数的类型必须对上。</li><li>于是「<span class="math">x ∈ x</span>」要成立，同一个 x 得同时是 <span class="math">α</span> 与 <span class="math">Set α</span>——两个不同的类型，写不出来。Russell 集 { x | <span class="math">x ∉ x }</span> 因此连<strong>写</strong>都写不出，更谈不上判真假。</li><li>「一切集合」同样不是一个类型：<span class="math">Set α</span> 与 <span class="math">Set β</span> 是两个类型，Type 不是 Type。「存在一个集合包含一切集合」这句里的量词没有落脚的地方。</li></ul></div><div class="block prose intuition-only"><p>类型论对「一切」的处置是<strong>逐层给全集</strong>：11.2 就是它。</p></div><h3 class="unit-subhead">11.2 类型论的答案：每个类型有自己的全集</h3><div class="block prose intuition-only"><p><code>@Set.univ α</code> 的定义是「不管来什么元素都答 True」，所以它是本类型里最大的集合（最大元），也就是这个类型的论域（universe of discourse）。下面三条把「最大」和「唯一」两件事做出来，第三条把 11.1 里写不出的那句话限制到一个类型内，于是它变成真的。</p></div><div class="block prose intuition-only"><p>演示 1（已写好）：本类型里每个集合都被 univ 包含——univ 是「<span class="math">⊆</span>」下的最大元。目标展开是 <span class="math">∀ x</span>, <span class="math">x ∈ A → x ∈</span> @<span class="math">Set.univ α</span>，而 <span class="math">x ∈</span> @<span class="math">Set.univ α</span> 就是 True，每个元素交 True.intro 即可（Set.mem_univ 正是这条）。</p></div><article class="decl decl-theorem" id="decl-11-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">subset_univ</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem subset_univ (α : Type) (A : Set α) : A ⊆ @Set.univ α :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 3 步 · 4 行</summary><ol class="proof-steps"><li><pre><code>  intro x</code></pre></li><li><pre><code>  intro hx</code></pre></li><li><pre><code>  exact Set.mem_univ x</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示 2（已写好）：反方向也成立——能包含 univ 的集合只有 univ 自己。两条合起来读：本类型内「包含一切集合的集合」只有一个，就是 univ。<span class="math">→</span> 方向走 Set.ext，逐元素证 <span class="math">(A x) ↔ (x ∈</span> @<span class="math">Set.univ α)</span>：左到右交 True.intro，右到左把 h 用到 x 与 True.intro 上；<span class="math">←</span> 方向把 <span class="math">x ∈ univ</span> 沿 Eq.symm 搬回 A。</p></div><article class="decl decl-theorem" id="decl-11-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">univ_subset_iff</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem univ_subset_iff (α : Type) (A : Set α) :
+    (@Set.univ α ⊆ A) ↔ (A = @Set.univ α) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 13 步 · 15 行</summary><ol class="proof-steps"><li><pre><code>  constructor</code></pre></li><li><pre><code>  intro h</code></pre></li><li><pre><code>  apply Set.ext</code></pre></li><li><pre><code>  intro x</code></pre></li><li><pre><code>  constructor</code></pre></li><li><pre><code>  intro ha</code></pre></li><li><pre><code>  exact Set.mem_univ x</code></pre></li><li><pre><code>  intro hu</code></pre></li><li><pre><code>  exact h x hu</code></pre></li><li><pre><code>  intro h</code></pre></li><li><pre><code>  intro x</code></pre></li><li><pre><code>  intro hu</code></pre></li><li><pre><code>  exact @Eq.subst.{1} (Set α) (fun (X : Set α) =&gt; x ∈ X)
+    (@Set.univ α) A (@Eq.symm.{1} (Set α) A (@Set.univ α) h) hu</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示 3（已写好）：把 11.1 里那句话限制在<strong>一个类型内</strong>，它确实成立——本类型内存在一个包含一切（本类型）集合的集合，证人就是 @<span class="math">Set.univ α</span>。存在量词用 <code>∃ (U : Set α), …</code> 写，构造用 Exists.intro，两项都要把类型与谓词写全。</p></div><article class="decl decl-theorem" id="decl-11-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">exists_univ</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem exists_univ (α : Type) :
+    ∃ (U : Set α), ∀ (A : Set α), A ⊆ U :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  exact ⟨@Set.univ α, fun (A : Set α) =&gt; subset_univ α A⟩</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">11.3 必破（D 类）：把「一切」放大到跨论域，或者加强成「严格更大」</h3><article class="exercise" id="ex-11-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">no_univ_strictly_larger</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-11-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>题面就是 Tao §3.2 的那句话：</p></div><div class="block prose intuition-only"><p>「存在一个集合，它包含一切集合。」</p></div><div class="block prose intuition-only"><p>请分三层回答，答案本身就是这道题的收获：</p></div><div class="block prose intuition-only"><p>① 跨论域读法（「一切集合」<span class="math">=</span> 所有类型的集合）：<strong>写不出来</strong>。集合总是 <code>Set α</code>，量词必须先固定一个 <span class="math">α</span>；没有一个类型能装下所有类型的集合。② 类型内读法（「一切集合」<span class="math">=</span> 本类型的集合）：<strong>真</strong>，就是演示 3。③ 类型内，但把「包含」加强成「严格大于每个集合」：<strong>假</strong>。这就是练习 1，它的证明里藏着 Russell 论证的那一步——把候选者自己代进去。</p></div><div class="block prose intuition-only"><p>练习 1（R/D 类：必破的证伪落点）。</p></div></div><pre class="exercise-statement"><code>theorem no_univ_strictly_larger (α : Type) :
+    ¬ (∃ (U : Set α), ∀ (A : Set α), A ⊆ U ∧ A ≠ U) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要证一个否定，先把里面的存在命题 intro 进来，再消去存在量词，拿到候选者 U 与它的承诺。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">¬ (∃ (U</span> : <span class="math">Set α)</span>, <span class="math">∀ (A</span> : <span class="math">Set α)</span>, <span class="math">A ⊆ U ∧ A ≠ U)</span>；消去之后手上有 U : <span class="math">Set α</span> 与 hU : <span class="math">∀ (A</span> : <span class="math">Set α)</span>, <span class="math">A ⊆ U ∧ A ≠ U</span>，目标是 False。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>触发条件是「hU 对<strong>每个</strong>集合都成立，而 U 自己也是本类型的一个集合」；消去存在量词用 Exists.elim（结论位置写 False），矛盾那一击来自 And.right 与 <span class="math">Eq.refl.{1} (Set α) U</span>。</p></div></details></div><details open class="solution-panel" id="sol-11-1"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><p class="solution-note">unit11 解答钥匙（agent 专用；画布不 import 它）。
+
+与 unit11-universe-russell.sokonanoda 的 5 条练习<strong>同名一一对应</strong>：
+  R 类 3 条：no_univ_strictly_larger（必破「存在包含一切的集合」的证伪落点）、
+             mem_powerset_univ、univ_mem_univ_of_sets
+  X 类 2 条：univ_top_iff、powerset_univ_eq_univ_of_sets
+
+本文件只放这 5 条（decl_checked 应当正好是 5）。画布里的三条演示
+（subset_univ / univ_subset_iff / exists_univ）在这里<strong>用不到就不放</strong>，
+需要它们的地方就地展开——钥匙应当是能独立判卷的完整证明。
+
+全部证明写成 <code>by</code> tactic 块（白名单：intro / exact / apply / assumption / rfl /
+match / constructor / left / right / use / exfalso / cases / have / sorry）。
+语句一律用<strong>记法</strong>（<code>∈ ⊆ ∪ ∩ \ ∅ 𝒫</code> 与 <code>∧ ∨ ↔ ¬ = ≠ → ∃</code>）；<strong>引理名照旧点名</strong>
+（<code>And.right</code>、<code>Iff.mpr</code>、<code>Set.mem_univ</code>、<code>Eq.subst.{1} …</code>）——记法是连接符的糖，
+不是引理名的糖。
+
+<strong>类型位</strong>的等式写记法 <code>a = b</code> / <code>a ≠ b</code>；<strong>证明项</strong> <code>Eq.refl.{1}</code> / <code>Eq.subst.{1}</code> /
+<code>Eq.trans.{1}</code> 一族仍显式宇宙（裸 <code>Eq.subst</code> 默认 <span class="math">u=0</span>，会被内核拒）。
+
+── 练习 1（R/D 类：必破的证伪落点）────────────────────────────────────────
+「存在一个集合对本类型每个集合都<strong>严格</strong>更大」为假：把那个 U 自己代进去，
+得到 <span class="math">U ⊆ U</span> 与 <span class="math">U ≠ U</span>，后者与 Eq.refl 冲突。
+消去存在量词用点名的 Exists.elim（三项写全：类型、谓词、结论 False）。
+注意证明体<strong>从 <code>exact</code> 开始、不写 <code>intro</code></strong>：<code>intro</code> 不展开目标里的 <code>¬</code>
+（记法节点），会把整条 <code>(∃ …) → False</code> 当假设塞进来、目标仍是 <code>¬ (∃ …)</code>；
+用一条带标注的 lambda 把「假设 <span class="math">→ False</span>」一次交出去，语义相同（见报告里的阻塞条）。</p><pre><code>theorem no_univ_strictly_larger (α : Type) :
+    ¬ (∃ (U : Set α), ∀ (A : Set α), A ⊆ U ∧ A ≠ U) := by
+  exact (fun (h : ∃ (U : Set α), ∀ (A : Set α), A ⊆ U ∧ A ≠ U) =&gt;
+    @Exists.elim (Set α)
+      (fun (U : Set α) =&gt; ∀ (A : Set α), (A ⊆ U) ∧ (¬ (A = U)))
+      False h
+      (fun (U : Set α) =&gt; fun (hU : ∀ (A : Set α),
+          (A ⊆ U) ∧ (¬ (A = U))) =&gt;
+        @And.right (U ⊆ U) (¬ (U = U)) (hU U)  -- soko:notation-ok: R1：合取藏在 hU 的 ∀ 后，短写补不出
+          (@Eq.refl.{1} (Set α) U)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">11.4 「一切集合」在类型论里的合法落点</h3><article class="exercise" id="ex-11-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">mem_powerset_univ</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-11-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>概括公理要的是「把满足性质 P 的对象收成一个集合」。类型论里能收的只有 <strong>本类型</strong>的对象；要收「本类型的一切集合」，收出来的东西类型就升一层：</p></div><div class="block prose intuition-only"><p>𝒫 (@<span class="math">Set.univ α)</span> : <span class="math">Set (Set α)</span></p></div><div class="block prose intuition-only"><p>它就是「一切集合的集合」在这里的合法读音：里面装着本类型的每个集合，而它自己属于 <span class="math">Set (Set α)</span>，不是 <span class="math">α</span> 的元素。于是「它属不属于它自己」这句话不成形。这里绕开 Russell 的办法就是让自指落不到类型上。</p></div><div class="block prose intuition-only"><p>练习 2（R 类：读<span class="math">·</span>评译）。</p></div></div><pre class="exercise-statement"><code>theorem mem_powerset_univ (α : Type) (A : Set α) :
+    A ∈ 𝒫 (@Set.univ α) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>目标是「A 属于 𝒫(univ)」，而库里已经把幂集隶属换成了包含关系，先把这步换算用掉。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">A ∈</span> 𝒫 (@<span class="math">Set.univ α)</span>，它展开后就是 <span class="math">A ⊆</span> @<span class="math">Set.univ α</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>触发条件是「目标形如 <span class="math">A ∈</span> 𝒫 B」；用 Set.mem_powerset_iff 换成 <span class="math">A ⊆ B</span>，再把 <span class="math">A ⊆ univ</span> 这一步交出去（演示 1，或就地 intro 后给 True.intro）。</p></div></details></div><details open class="solution-panel" id="sol-11-2"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 2（R 类：概括公理在类型论里的合法替身）────────────────────────────
+本类型的每个集合 A 都是 𝒫(univ) 的元素；𝒫(univ) 自己属于上一层类型
+<span class="math">Set (Set α)</span>，所以「一切集合」在这里有一个不自我指涉的落点。
+幂集隶属用 Set.mem_powerset_iff 换成包含，再把 <span class="math">A ⊆ univ</span> 交出去
+（<span class="math">A ⊆ univ</span> 就是「每个 <span class="math">x ∈ A</span> 都有 True.intro」）。</p><pre><code>theorem mem_powerset_univ (α : Type) (A : Set α) :
+    A ∈ 𝒫 (Set.univ) := by
+  have hsub : A ⊆ Set.univ := by
+    intro x
+    intro hx
+    exact Set.mem_univ x
+  exact (Iff.mpr (Set.mem_powerset_iff (Set.univ) A)) hsub</code></pre></div></details></div></article>
+<h3 class="unit-subhead">11.5 与 ZF 的对照：没有那个 V，只有一条类型阶梯</h3><article class="exercise" id="ex-11-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">univ_mem_univ_of_sets</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-11-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>ZF 里没有「一切集合的集合」：<span class="math">V = { x</span> | <span class="math">x = x }</span> 是真类（proper class），不是集合（Tao 的 epilogue 另起一套公理化的 ZF 集合论，Mathlib 里对应 ZFSet）。本语言的处置不同：<strong>每一层都有自己的全集</strong>，没有一个「太大」的东西需要被排除在集合之外——</p></div><div class="block prose intuition-only"><p>@<span class="math">Set.univ α</span>              : <span class="math">Set α</span>          （<span class="math">α</span> 的一切元素）<span class="math">Set.univ (Set α)</span>        : <span class="math">Set (Set α)</span>    （<span class="math">α</span> 的一切集合）<span class="math">Set.univ (Set (Set α))</span>  : <span class="math">Set (Set (Set α))</span></p></div><div class="block prose intuition-only"><p>每一层的全集都是<strong>上一层</strong>的一个元素，所以「一切」这个词永远要先回答「哪一层的一切」。（设计判断）这条阶梯与 ZF 的累积层做的是同一件事：把「一切」分层。</p></div><div class="block prose intuition-only"><p>练习 3（R 类：读<span class="math">·</span>评译）。</p></div></div><pre class="exercise-statement"><code>theorem univ_mem_univ_of_sets (α : Type) :
+    @Set.univ (Set α) ∈ @Set.univ (Set (Set α)) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>本题问的是「<span class="math">Set α</span> 的全集」在<strong>上一层类型</strong>里算不算成员，而上层的隶属判定由上一层的全集给出。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">Set.univ (Set α) ∈ Set.univ (Set (Set α))</span>，两边的东西都属于类型 <span class="math">Set (Set α)</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>触发条件是「目标是『某元素属于该类型的 Set.univ』」；用 Set.mem_univ，类型参数写 <span class="math">Set (Set α)</span>，元素参数写 <span class="math">Set.univ (Set α)</span>。</p></div></details></div><details open class="solution-panel" id="sol-11-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 3（R 类：与 ZF 的对照 / 类型阶梯）──────────────────────────────────
+<span class="math">Set α</span> 的全集是上一层类型 <span class="math">Set (Set α)</span> 的<strong>元素</strong>；它自己的全集又在更上一层。
+上一层类型里的隶属判定就是由该层全集给出的：Set.mem_univ 一步到。</p><pre><code>theorem univ_mem_univ_of_sets (α : Type) :
+    @Set.univ (Set α) ∈ @Set.univ (Set (Set α)) := by
+  exact Set.mem_univ (@Set.univ (Set α))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">11.6 形式 <span class="math">↔</span> 散文互译（X 类）</h3><article class="exercise" id="ex-11-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">univ_top_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-11-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>每题给一句中文，要求把它的形式版写出来并证明；证完再反过来把形式读回中文（反向那半写在笔记里就行，判卷只看形式证明）。签名已经替你写好，别改类型，只把值位置上的 <code>sorry</code> 换成真的证明项。</p></div><div class="block prose intuition-only"><p>练习 4（X 类）：把下面这句散文译成一条 And 陈述并证明。</p></div><div class="block prose intuition-only"><p>「全集装得下每一个集合；反过来，装得下全集的集合只能是全集自己。」</p></div></div><pre class="exercise-statement"><code>theorem univ_top_iff (α : Type) (A : Set α) :
+    (A ⊆ @Set.univ α) ∧ ((@Set.univ α ⊆ A) ↔ (A = @Set.univ α)) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>散文两个分句分别对应 And 的两支——第一支是包含，第二支是 Iff（互为条件），不是等式。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">(A ⊆</span> @<span class="math">Set.univ α) ∧ ((</span>@<span class="math">Set.univ α ⊆ A) ↔ (A =</span> @<span class="math">Set.univ α))</span>，逐元素展开都发生在第二支里面。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>And.intro 要吃齐四样（两个命题各写一遍，再交两个证明）；两个证明分别就是演示 1 与演示 2 的名字。</p></div></details></div><details open class="solution-panel" id="sol-11-4"><summary>查看解答 <span class="sol-meta">定理 · 20 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 4（X 类：散文 <span class="math">→</span> 形式）─────────────────────────────────────────────
+「univ 装得下每个集合；反过来装得下 univ 的只有 univ」打包成一条 And。
+前半是逐元素的 True.intro；后半 <span class="math">→</span> 方向走 Set.ext（逐元素 <span class="math">(A x) ↔ True</span>），
+<span class="math">←</span> 方向把 <span class="math">x ∈ univ</span> 沿 Eq.symm 搬到 A 上。</p><pre><code>theorem univ_top_iff (α : Type) (A : Set α) :
+    (A ⊆ Set.univ) ∧ ((Set.univ ⊆ A) ↔ (A = Set.univ)) := by
+  constructor
+  intro x
+  intro hx
+  exact Set.mem_univ x
+  constructor
+  intro h
+  apply Set.ext
+  intro x
+  constructor
+  intro ha
+  exact Set.mem_univ x
+  intro hu
+  exact h x hu
+  intro h
+  intro x
+  intro hu
+  exact @Eq.subst.{1} (Set α) (fun (X : Set α) =&gt; x ∈ X)
+    (@Set.univ α) A (@Eq.symm.{1} (Set α) A (@Set.univ α) h) hu  -- soko:notation-ok: G-21 边界：`Eq.subst` 的实参位（显式实参写在隐式位上）拿不到期望类型 ⇒ 零元常量必须点名写全</code></pre></div></details></div></article>
+<article class="exercise" id="ex-11-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">powerset_univ_eq_univ_of_sets</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-11-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（X 类）：把下面这句散文译成一条等式并证明。</p></div><div class="block prose intuition-only"><p>「全集的幂集就是上一层的全集：本类型的每个集合都在它里面，而它自己到了上一层只是一个元素。」</p></div></div><pre class="exercise-statement"><code>theorem powerset_univ_eq_univ_of_sets (α : Type) :
+    𝒫 (@Set.univ α) = @Set.univ (Set α) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边都是 <span class="math">Set (Set α)</span> 的集合，用外延性把集合等式化成逐元素的 Iff，再分别对付两个方向。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>𝒫 (@<span class="math">Set.univ α) = Set.univ (Set α)</span>，逐元素是 <span class="math">(A ⊆</span> @<span class="math">Set.univ α) ↔ True</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>触发条件是「目标是两个 <span class="math">Set (Set α)</span> 的等式」；用 Set.ext（第一个参数写 <span class="math">Set α</span>），左到右一步到 True（Set.mem_univ），右到左要交出 <span class="math">A ⊆ univ</span>（演示 1，或就地 intro 给 True.intro）。</p></div></details></div><details open class="solution-panel" id="sol-11-5"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note">── 练习 5（X 类：散文 <span class="math">→</span> 形式）─────────────────────────────────────────────
+𝒫(univ) 就是上一层类型的全集：逐元素看，左边是「<span class="math">A ⊆ univ</span>」（由 A 的每个
+元素给出 True.intro），右边是 True，两个方向各自一步。
+<code>Set.ext</code> 要写全类型参数（<code>apply Set.ext (Set α)</code>）：不写时元素类型不是签名里
+的裸 <span class="math">α</span>，会造出坏子目标。</p><pre><code>theorem powerset_univ_eq_univ_of_sets (α : Type) :
+    𝒫 (@Set.univ α) = @Set.univ (Set α) := by  -- soko:notation-ok: `𝒫` 的操作数是零元隐式常量且无期望类型 ⇒ 解不出前导参数（E19/E20 元变量领地）
+  apply Set.ext
+  intro A
+  constructor
+  intro h
+  exact Set.mem_univ A
+  intro h
+  exact (Iff.mpr (Set.mem_powerset_iff (Set.univ) A)) (fun (x : α) =&gt; fun (hx : A x) =&gt; Set.mem_univ x)</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子：Tao《Analysis》§3.2（Russell 悖论，标 Optional）<span class="math">+ epilogue</span>（ZFSet 对照）。概念顺序：概括公理为什么不能在类型论里写 <span class="math">→ Russell</span> 集 <span class="math">→</span> 类型论的答案（每个类型有自己的全集 @<span class="math">Set.univ α</span>，所以「包含一切集合的集合」只在类型内成立）<span class="math">→</span> 与 ZF 的对照。</p></div><div class="block prose intuition-only"><p>本单元只允许用什么（逐步解锁，见 docs/design/set-theory-syllabus.md §2）：</p></div><details open class="decl-index intuition-only"><summary>细节清单（6 项，展开）</summary><ul class="prose-list"><li>证明：一律 <code>by</code> tactic 块，白名单<strong>只有</strong> intro / exact / apply / assumption / rfl / match / constructor / left / right / use / exfalso / cases / have / sorry——<strong>没有</strong> rw / obtain / change / simp / induction / calc / rintro，也没有 focus 点 <code>·</code>；匿名构造子 <code>⟨a, b⟩</code> 可用（<code>∧</code> / <code>↔</code> / <code>∃</code> 的期望类型）；</li><li>语句一律写<strong>记法</strong>：<code>x ∈ A</code> <span class="math">·</span> <code>A ⊆ B</code> <span class="math">·</span> <code>A ∪ B</code> <span class="math">·</span> <code>A ∩ B</code> <span class="math">·</span> <code>A \ B</code> <span class="math">·</span><code>∅</code> <span class="math">·</span> <code>𝒫 A</code>，集合字面量 <code>{a}</code> / <code>{a, b}</code>；逻辑连接符 <code>∧ ∨ ↔ ¬</code> 与 <code>→ = ≠</code> 是<strong>语言内建</strong>，任何文件零声明可用；存在量词写 <code>∃ (x : α), …</code>（由 lib.Exists 的 binder 记法提供，本文件 import 它）；</li><li>记法<strong>由 lib/Set 与 lib/Exists 随 import 带来</strong>（<code>infix</code> / <code>notation</code> / <code>binder_notation</code> 写在 lib/ 里）：本文件一条记法声明都不写——同一个符号全课程只能声明一次；</li><li>记法只是<strong>连接符的糖</strong>，不是引理名的糖：引理照旧点名写——Not.elim / And.intro / And.left / And.right / Iff.intro / Iff.mp / Iff.mpr / Set.ext / Exists.intro / Exists.elim / Eq.symm / Eq.subst；</li><li>库里已备好、直接用（<span class="math">lib.Logic + lib.Set + lib.Exists</span>）：True / True.intro / False / False.elim / Not / Not.elim / absurd / And / Or（构造子是点号名 Or.inl / Or.inr）/ Iff / Eq.symm / Eq.trans / congrArg / Eq.subst（<strong>类型位</strong>的等式写记法 <code>a = b</code>；证明项 <code>Eq.subst.{1}</code> 仍显式宇宙）/ <code>Set</code> 一族（<code>Set.mem</code> / <code>Set.subset</code> / <code>Set.empty</code> / <code>Set.univ</code> / <code>Set.singleton</code> / <code>Set.pair</code> / <code>Set.union</code> / <code>Set.inter</code> / <code>Set.sdiff</code> / <code>Set.compl</code> / <code>Set.powerset</code>）、公理 <code>Set.ext</code>、以及展开引理 Set.mem_univ / Set.mem_powerset_iff / Set.notMem_empty / Set.subset_def；存在量词三件套 Exists / Exists.intro / Exists.elim；</li><li>本单元不 import 别的单元，也不借前几单元的结论：用到的包含关系都在这里现推（演示 1 起头），这样单元⑪ 可以插在单元④ 之后的任何位置。</li></ul></details></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit112.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">Cantor–Bernstein 定理（经选择公理）</span></a><a class="unit-nav-home" href="../chapters/i-4.html#units">目录</a><a class="unit-nav-link" href="../units/unit12.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">综合与读证明</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-11"><h3><a href="#top">论域与 Russell 悖论</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-11-1"><summary>练习 1 · no_univ_strictly_larger <span class="sol-meta">定理</span></summary><p class="solution-note">unit11 解答钥匙（agent 专用；画布不 import 它）。
+
+与 unit11-universe-russell.sokonanoda 的 5 条练习<strong>同名一一对应</strong>：
+  R 类 3 条：no_univ_strictly_larger（必破「存在包含一切的集合」的证伪落点）、
+             mem_powerset_univ、univ_mem_univ_of_sets
+  X 类 2 条：univ_top_iff、powerset_univ_eq_univ_of_sets
+
+本文件只放这 5 条（decl_checked 应当正好是 5）。画布里的三条演示
+（subset_univ / univ_subset_iff / exists_univ）在这里<strong>用不到就不放</strong>，
+需要它们的地方就地展开——钥匙应当是能独立判卷的完整证明。
+
+全部证明写成 <code>by</code> tactic 块（白名单：intro / exact / apply / assumption / rfl /
+match / constructor / left / right / use / exfalso / cases / have / sorry）。
+语句一律用<strong>记法</strong>（<code>∈ ⊆ ∪ ∩ \ ∅ 𝒫</code> 与 <code>∧ ∨ ↔ ¬ = ≠ → ∃</code>）；<strong>引理名照旧点名</strong>
+（<code>And.right</code>、<code>Iff.mpr</code>、<code>Set.mem_univ</code>、<code>Eq.subst.{1} …</code>）——记法是连接符的糖，
+不是引理名的糖。
+
+<strong>类型位</strong>的等式写记法 <code>a = b</code> / <code>a ≠ b</code>；<strong>证明项</strong> <code>Eq.refl.{1}</code> / <code>Eq.subst.{1}</code> /
+<code>Eq.trans.{1}</code> 一族仍显式宇宙（裸 <code>Eq.subst</code> 默认 <span class="math">u=0</span>，会被内核拒）。
+
+── 练习 1（R/D 类：必破的证伪落点）────────────────────────────────────────
+「存在一个集合对本类型每个集合都<strong>严格</strong>更大」为假：把那个 U 自己代进去，
+得到 <span class="math">U ⊆ U</span> 与 <span class="math">U ≠ U</span>，后者与 Eq.refl 冲突。
+消去存在量词用点名的 Exists.elim（三项写全：类型、谓词、结论 False）。
+注意证明体<strong>从 <code>exact</code> 开始、不写 <code>intro</code></strong>：<code>intro</code> 不展开目标里的 <code>¬</code>
+（记法节点），会把整条 <code>(∃ …) → False</code> 当假设塞进来、目标仍是 <code>¬ (∃ …)</code>；
+用一条带标注的 lambda 把「假设 <span class="math">→ False</span>」一次交出去，语义相同（见报告里的阻塞条）。</p><pre><code>theorem no_univ_strictly_larger (α : Type) :
+    ¬ (∃ (U : Set α), ∀ (A : Set α), A ⊆ U ∧ A ≠ U) := by
+  exact (fun (h : ∃ (U : Set α), ∀ (A : Set α), A ⊆ U ∧ A ≠ U) =&gt;
+    @Exists.elim (Set α)
+      (fun (U : Set α) =&gt; ∀ (A : Set α), (A ⊆ U) ∧ (¬ (A = U)))
+      False h
+      (fun (U : Set α) =&gt; fun (hU : ∀ (A : Set α),
+          (A ⊆ U) ∧ (¬ (A = U))) =&gt;
+        @And.right (U ⊆ U) (¬ (U = U)) (hU U)  -- soko:notation-ok: R1：合取藏在 hU 的 ∀ 后，短写补不出
+          (@Eq.refl.{1} (Set α) U)))</code></pre></details><details open class="appendix-solution" id="app-sol-11-2"><summary>练习 2 · mem_powerset_univ <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 2（R 类：概括公理在类型论里的合法替身）────────────────────────────
+本类型的每个集合 A 都是 𝒫(univ) 的元素；𝒫(univ) 自己属于上一层类型
+<span class="math">Set (Set α)</span>，所以「一切集合」在这里有一个不自我指涉的落点。
+幂集隶属用 Set.mem_powerset_iff 换成包含，再把 <span class="math">A ⊆ univ</span> 交出去
+（<span class="math">A ⊆ univ</span> 就是「每个 <span class="math">x ∈ A</span> 都有 True.intro」）。</p><pre><code>theorem mem_powerset_univ (α : Type) (A : Set α) :
+    A ∈ 𝒫 (Set.univ) := by
+  have hsub : A ⊆ Set.univ := by
+    intro x
+    intro hx
+    exact Set.mem_univ x
+  exact (Iff.mpr (Set.mem_powerset_iff (Set.univ) A)) hsub</code></pre></details><details open class="appendix-solution" id="app-sol-11-3"><summary>练习 3 · univ_mem_univ_of_sets <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 3（R 类：与 ZF 的对照 / 类型阶梯）──────────────────────────────────
+<span class="math">Set α</span> 的全集是上一层类型 <span class="math">Set (Set α)</span> 的<strong>元素</strong>；它自己的全集又在更上一层。
+上一层类型里的隶属判定就是由该层全集给出的：Set.mem_univ 一步到。</p><pre><code>theorem univ_mem_univ_of_sets (α : Type) :
+    @Set.univ (Set α) ∈ @Set.univ (Set (Set α)) := by
+  exact Set.mem_univ (@Set.univ (Set α))</code></pre></details><details open class="appendix-solution" id="app-sol-11-4"><summary>练习 4 · univ_top_iff <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 4（X 类：散文 <span class="math">→</span> 形式）─────────────────────────────────────────────
+「univ 装得下每个集合；反过来装得下 univ 的只有 univ」打包成一条 And。
+前半是逐元素的 True.intro；后半 <span class="math">→</span> 方向走 Set.ext（逐元素 <span class="math">(A x) ↔ True</span>），
+<span class="math">←</span> 方向把 <span class="math">x ∈ univ</span> 沿 Eq.symm 搬到 A 上。</p><pre><code>theorem univ_top_iff (α : Type) (A : Set α) :
+    (A ⊆ Set.univ) ∧ ((Set.univ ⊆ A) ↔ (A = Set.univ)) := by
+  constructor
+  intro x
+  intro hx
+  exact Set.mem_univ x
+  constructor
+  intro h
+  apply Set.ext
+  intro x
+  constructor
+  intro ha
+  exact Set.mem_univ x
+  intro hu
+  exact h x hu
+  intro h
+  intro x
+  intro hu
+  exact @Eq.subst.{1} (Set α) (fun (X : Set α) =&gt; x ∈ X)
+    (@Set.univ α) A (@Eq.symm.{1} (Set α) A (@Set.univ α) h) hu  -- soko:notation-ok: G-21 边界：`Eq.subst` 的实参位（显式实参写在隐式位上）拿不到期望类型 ⇒ 零元常量必须点名写全</code></pre></details><details open class="appendix-solution" id="app-sol-11-5"><summary>练习 5 · powerset_univ_eq_univ_of_sets <span class="sol-meta">定理</span></summary><p class="solution-note">── 练习 5（X 类：散文 <span class="math">→</span> 形式）─────────────────────────────────────────────
+𝒫(univ) 就是上一层类型的全集：逐元素看，左边是「<span class="math">A ⊆ univ</span>」（由 A 的每个
+元素给出 True.intro），右边是 True，两个方向各自一步。
+<code>Set.ext</code> 要写全类型参数（<code>apply Set.ext (Set α)</code>）：不写时元素类型不是签名里
+的裸 <span class="math">α</span>，会造出坏子目标。</p><pre><code>theorem powerset_univ_eq_univ_of_sets (α : Type) :
+    𝒫 (@Set.univ α) = @Set.univ (Set α) := by  -- soko:notation-ok: `𝒫` 的操作数是零元隐式常量且无期望类型 ⇒ 解不出前导参数（E19/E20 元变量领地）
+  apply Set.ext
+  intro A
+  constructor
+  intro h
+  exact Set.mem_univ A
+  intro h
+  exact (Iff.mpr (Set.mem_powerset_iff (Set.univ) A)) (fun (x : α) =&gt; fun (hx : A x) =&gt; Set.mem_univ x)</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

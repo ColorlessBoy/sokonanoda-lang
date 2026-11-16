@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 31 单调函数与序同构保持确界</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit31.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 31 单调函数与序同构保持确界</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit31.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.11 集合代数 · 单元 31</p><h1>单调函数与序同构保持确界</h1><p class="note">Unit 31 — Monotone Maps and Preservation of Suprema</p></header><section class="unit" id="unit-31">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-11.html">I.11</a> · 本章第 4 / 7 单元 · 全书第 31 / 112 单元</p>
+<h2><span class="unit-number">31</span><span>单调函数与序同构保持确界</span></h2>
+<p class="unit-title-en">Unit 31 — Monotone Maps and Preservation of Suprema</p>
+<p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-31">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§7.1 Orderings</strong> 的 order-preserving map 那一段；Halmos《Naive Set Theory》<strong>§14 Order</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.11 章第四个单元）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>单调的合成还是单调</strong> <span class="math">·</span> <strong>常函数单调</strong> <span class="math">·</span><strong>单调把上界/下界送到像上</strong> <span class="math">·</span> <strong>序反射（"像上有序 <span class="math">⇒</span> 原来有序"）</strong> <span class="math">·</span><strong>旗舰：序同构保持上确界</strong> —— 单调 <span class="math">+</span> 反射 <span class="math">+</span> 满射 <span class="math">⇒</span> <code>f (sup A)</code> 是像族的上确界 ✓</p></div><div class="block prose intuition-only"><p><strong>写法约定</strong>：<code>Monotone</code> / <code>OrderReflecting</code> / <code>IsSup</code> / <code>UpperBound</code> 都是<strong>定义头</strong> <span class="math">⇒</span> 用之前先 <strong><span class="math">λ</span> 绑定</strong>（G-73 形状 ①）；库里有取用子（<code>monotone_apply</code> / <code>reflecting_apply</code>）优先用 ✓ <strong>搬运等式要挑对引理与方向</strong>：<code>rel_subst_left</code> 改的是第二个坐标（向前），<code>rel_subst_right</code> 也是第二个坐标（向后）；<strong>要改第一个坐标就把关系翻过来</strong>（本单元实测）✓</p></div><h3 class="unit-subhead">31.1 三条库引理（单调/反射的展开 <span class="math">+</span> 单调的用法）</h3><div class="block prose intuition-only"><p>演示：单调的展开（"保序"）。</p></div><article class="decl decl-theorem" id="decl-31-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_monotone_def</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_monotone_def (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β) :
+    Monotone α β r s f ↔ ∀ (a b : α), r a b → s (f a) (f b) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  monotone_def α β r s f</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：反射的展开（"像上有序 <span class="math">⇒</span> 原来有序"）。</p></div><article class="decl decl-theorem" id="decl-31-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_orderReflecting_def</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_orderReflecting_def (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) :
+    OrderReflecting α β r s f ↔ ∀ (a b : α), s (f a) (f b) → r a b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  orderReflecting_def α β r s f</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：把单调用在具体的两个点上。</p></div><article class="decl decl-theorem" id="decl-31-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_monotone_apply</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_monotone_apply (α β : Type) (r : α → α → Prop) (s : β → β → Prop) (f : α → β)
+    (h : Monotone α β r s f) (a b : α) (hab : r a b) : s (f a) (f b) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  monotone_apply α β r s f h a b hab</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">31.2 单调的<strong>代数</strong>：恒等 <span class="math">·</span> 合成 <span class="math">·</span> 常函数</h3><article class="exercise" id="ex-31-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">monotone_id</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-31-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：<strong>恒等是单调的</strong>（假设就是结论）。</p></div></div><pre class="exercise-statement"><code>theorem monotone_id (α : Type) (r : α → α → Prop) : Monotone α α r r (fun (a : α) =&gt; a) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>逐点交出去 —— 三个 <span class="math">λ</span> 之后剩下的就是那条假设。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Monotone α α r r (fun a =&gt; a)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>直接写 <span class="math">λ</span>（<code>Monotone</code> 是定义头，<span class="math">λ</span> 形态正好对得上）✓</p></div></details></div><details open class="solution-panel" id="sol-31-1"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem monotone_id (α : Type) (r : α → α → Prop) : Monotone α α r r (fun (a : α) =&gt; a) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt; hab</code></pre></div></details></div></article>
+<article class="exercise" id="ex-31-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">monotone_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-31-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类）：<strong>单调的合成还是单调</strong>（先用内层，再用外层）。</p></div></div><pre class="exercise-statement"><code>theorem monotone_comp (α β γ : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (t : γ → γ → Prop) (f : α → β) (g : β → γ)
+    (hf : Monotone α β r s f) (hg : Monotone β γ s t g) :
+    Monotone α γ r t (fun (a : α) =&gt; g (f a)) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>给定 <code>r a b</code>，先用 <code>f</code> 的单调性得 <code>s (f a) (f b)</code>，再用 <code>g</code> 的单调性。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Monotone α β r s f → Monotone β γ s t g → Monotone α γ r t (fun a =&gt; g (f a))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两处的单调假设都是<strong>定义头</strong> <span class="math">⇒</span> 先 <span class="math">λ</span> 绑定（或直接用库里取用子 <code>monotone_apply</code>，参数表：两个论域 <span class="math">·</span> 两个关系 <span class="math">·</span> 函数 <span class="math">·</span> 假设 <span class="math">·</span> 两个点 <span class="math">·</span> 序证据）✓</p></div></details></div><details open class="solution-panel" id="sol-31-2"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem monotone_comp (α β γ : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (t : γ → γ → Prop) (f : α → β) (g : β → γ)
+    (hf : Monotone α β r s f) (hg : Monotone β γ s t g) :
+    Monotone α γ r t (fun (a : α) =&gt; g (f a)) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt;
+    monotone_apply β γ s t g hg (f a) (f b) (monotone_apply α β r s f hf a b hab)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-31-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">monotone_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-31-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong>常函数单调</strong>（要陪域自反）。</p></div></div><pre class="exercise-statement"><code>theorem monotone_const (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (hrefl : Reflexive β s) (c : β) : Monotone α β r s (fun (_ : α) =&gt; c) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>s c c</code> 由自反给出（自反是定义头 <span class="math">⇒ λ</span> 绑定后应用）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Reflexive β s → Monotone α β r s (fun _ =&gt; c)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>自反假设先 <span class="math">λ</span> 绑定再应用 ✓</p></div></details></div><details open class="solution-panel" id="sol-31-3"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem monotone_const (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (hrefl : Reflexive β s) (c : β) : Monotone α β r s (fun (_ : α) =&gt; c) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt;
+    (fun (hu : ∀ (y : β), s y y) =&gt; hu c) hrefl</code></pre></div></details></div></article>
+<h3 class="unit-subhead">31.3 单调把界送到<strong>像</strong>上</h3><article class="exercise" id="ex-31-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">monotone_upper_bound</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-31-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：<strong>单调把上界送到像族的上界上</strong>。</p></div></div><pre class="exercise-statement"><code>theorem monotone_upper_bound (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hf : Monotone α β r s f) (A : α → Prop) (u : α)
+    (hu : UpperBound α r A u) :
+    UpperBound β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ (f x) = y) (f u) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>像族的元素长成 <code>f x</code>（<code>x</code> 在 <code>A</code> 里）；先用 <code>x ≤ u</code> 得 <code>f x ≤ f u</code>，再沿"<code>f x = y</code>"把左边换成 <code>y</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>UpperBound α r A u → UpperBound β s (fun y =&gt; ∃ x, A x ∧ f x = y) (f u)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>（<strong>前导实参写全</strong>）<span class="math">·</span> <code>monotone_apply</code> 取用子 <span class="math">·</span><code>rel_subst_right</code>（关系取"<code>s · (f u)</code>"、沿 <code>f x = y</code> 把 <code>s (f x) (f u)</code> 搬成 <code>s y (f u)</code>；<strong>方向别接反</strong>）✓</p></div></details></div><details open class="solution-panel" id="sol-31-4"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem monotone_upper_bound (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hf : Monotone α β r s f) (A : α → Prop) (u : α)
+    (hu : UpperBound α r A u) :
+    UpperBound β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) (f u) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (y : β) =&gt; fun (hy : ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    @Exists.elim α (fun (x : α) =&gt; A x ∧ @Eq.{1} β (f x) y) (s y (f u)) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (x : α) (hx : A x ∧ @Eq.{1} β (f x) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        rel_subst_right β (fun (p : β) (q : β) =&gt; s q (f u)) y (f x) y
+          (And.right hx)
+          (monotone_apply α β r s f hf x u
+            ((fun (hu' : ∀ (a : α), A a → r a u) =&gt; hu' x (And.left hx)) hu)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-31-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">monotone_lower_bound</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-31-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：<strong>下界的对偶</strong>（同形，关系方向反过来）。</p></div></div><pre class="exercise-statement"><code>theorem monotone_lower_bound (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hf : Monotone α β r s f) (A : α → Prop) (l : α)
+    (hl : LowerBound α r A l) :
+    LowerBound β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ (f x) = y) (f l) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与练习 4 逐字对偶。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LowerBound α r A l → LowerBound β s (fun y =&gt; ∃ x, A x ∧ f x = y) (f l)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code> <span class="math">·</span> <code>monotone_apply</code> <span class="math">·</span> <code>rel_subst_right</code>（关系取"<code>s (f l) ·</code>"）✓</p></div></details></div><details open class="solution-panel" id="sol-31-5"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem monotone_lower_bound (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hf : Monotone α β r s f) (A : α → Prop) (l : α)
+    (hl : LowerBound α r A l) :
+    LowerBound β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) (f l) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (y : β) =&gt; fun (hy : ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    @Exists.elim α (fun (x : α) =&gt; A x ∧ @Eq.{1} β (f x) y) (s (f l) y) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (x : α) (hx : A x ∧ @Eq.{1} β (f x) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        rel_subst_right β (fun (p : β) (q : β) =&gt; s (f l) q) (f l) (f x) y
+          (And.right hx)
+          (monotone_apply α β r s f hf l x
+            ((fun (hl' : ∀ (a : α), A a → r l a) =&gt; hl' x (And.left hx)) hl)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">31.4 反射：<strong>从像上的序回到原来的序</strong></h3><article class="exercise" id="ex-31-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">orderReflecting_id</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-31-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（T 类）：<strong>恒等是反射的</strong>。</p></div></div><pre class="exercise-statement"><code>theorem orderReflecting_id (α : Type) (r : α → α → Prop) :
+    OrderReflecting α α r r (fun (a : α) =&gt; a) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>假设就是结论。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>OrderReflecting α α r r (fun a =&gt; a)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>直接写 <span class="math">λ</span> ✓</p></div></details></div><details open class="solution-panel" id="sol-31-6"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem orderReflecting_id (α : Type) (r : α → α → Prop) :
+    OrderReflecting α α r r (fun (a : α) =&gt; a) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt; hab</code></pre></div></details></div></article>
+<article class="exercise" id="ex-31-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">orderReflecting_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-31-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类）：<strong>反射的合成还是反射</strong>（与练习 2 对偶：先拆外层，再拆内层）。</p></div></div><pre class="exercise-statement"><code>theorem orderReflecting_comp (α β γ : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (t : γ → γ → Prop) (f : α → β) (g : β → γ)
+    (hf : OrderReflecting α β r s f) (hg : OrderReflecting β γ s t g) :
+    OrderReflecting α γ r t (fun (a : α) =&gt; g (f a)) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>给定 <code>t (g (f a)) (g (f b))</code>，先用 <code>g</code> 的反射得 <code>s (f a) (f b)</code>，再用 <code>f</code> 的反射得 <code>r a b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>`<span class="math">OrderReflecting α β r s f → OrderReflecting β γ s t g →</span></p><div class="math-display intuition-only"><pre class="display-code"><code>OrderReflecting α γ r t (fun a =&gt; g (f a))`。</code></pre></div></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>库里取用子 <code>reflecting_apply</code>（参数表同 <code>monotone_apply</code>）✓</p></div></details></div><details open class="solution-panel" id="sol-31-7"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem orderReflecting_comp (α β γ : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (t : γ → γ → Prop) (f : α → β) (g : β → γ)
+    (hf : OrderReflecting α β r s f) (hg : OrderReflecting β γ s t g) :
+    OrderReflecting α γ r t (fun (a : α) =&gt; g (f a)) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : t (g (f a)) (g (f b))) =&gt;
+    reflecting_apply α β r s f hf a b
+      (reflecting_apply β γ s t g hg (f a) (f b) hab)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-31-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">orderReflecting_of_monotone_inverse</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-31-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类，旗舰之一）：<strong>单调的左逆给出反射</strong>（若 <code>g</code> 单调且 <code>g (f a) = a</code>，则 <code>f</code> 反射序）。</p></div></div><pre class="exercise-statement"><code>theorem orderReflecting_of_monotone_inverse (α β : Type) (r : α → α → Prop)
+    (s : β → β → Prop) (f : α → β) (g : β → α)
+    (hg : Monotone β α s r g) (hgf : ∀ (a : α), (g (f a)) = a) :
+    OrderReflecting α β r s f := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>s (f a) (f b)</code> 经 <code>g</code> 的单调性得 <code>r (g (f a)) (g (f b))</code>；再把<strong>两个坐标</strong>分别沿 <code>g (f a) = a</code>、<code>g (f b) = b</code> 换掉 <span class="math">⇒</span> <code>r a b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Monotone β α s r g → (∀ a, g (f a) = a) → OrderReflecting α β r s f</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>monotone_apply</code> <span class="math">·</span> <code>rel_subst_right</code>（改<strong>第二个</strong>坐标）<span class="math">·</span><strong>改第一个坐标要把关系翻过来</strong>再走 <code>rel_subst_left</code>（本单元实测的用法）<span class="math">·</span><code>Eq.symm</code>（搬运要的是"旧 <span class="math">=</span> 新"那个方向）✓</p></div></details></div><details open class="solution-panel" id="sol-31-8"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem orderReflecting_of_monotone_inverse (α β : Type) (r : α → α → Prop)
+    (s : β → β → Prop) (f : α → β) (g : β → α)
+    (hg : Monotone β α s r g) (hgf : ∀ (a : α), @Eq.{1} α (g (f a)) a) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    OrderReflecting α β r s f :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : s (f a) (f b)) =&gt;
+    rel_subst_left α (fun (p : α) (q : α) =&gt; r q p) a b (g (f a))
+      (@Eq.symm.{1} α (g (f a)) a (hgf a))
+      (rel_subst_right α r (g (f a)) (g (f b)) b (hgf b)
+        (monotone_apply β α s r g hg (f a) (f b) hab))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">31.5 旗舰：<strong>序同构保持上确界</strong></h3><article class="exercise" id="ex-31-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">orderIso_upper_bound_pullback</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-31-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（L 类，<strong>本单元收尾的引理</strong>）：把像族的上界<strong>拉回原域</strong>。</p></div></div><pre class="exercise-statement"><code>theorem orderIso_upper_bound_pullback (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hr : OrderReflecting α β r s f)
+    (A : α → Prop) (c : β) (a0 : α) (ha0 : (f a0) = c)
+    (hc : UpperBound β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ (f x) = y) c) :
+    UpperBound α r A a0 := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>给定 <code>f a₀ = c</code>（满射给的）与"<code>c</code> 是像族的上界"，要证 <code>a₀</code> 是 <code>A</code> 的上界：对 <code>a ∈ A</code>，像族里有 <code>f a</code> 这个元素 <span class="math">⇒</span> <code>s (f a) c</code>；沿 <code>f a₀ = c</code> 换成 <code>s (f a) (f a₀)</code>；再用<strong>反射</strong>得 <code>r a a₀</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>OrderReflecting α β r s f → UpperBound β s (像族) c → f a₀ = c → UpperBound α r A a₀</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>reflecting_apply</code> <span class="math">·</span> <code>rel_subst_left</code>（关系取"<code>s (f a) ·</code>"、沿 <code>f a₀ = c</code> 把第二个坐标从 <code>c</code> 换回 <code>f a₀</code>）<span class="math">·</span> <code>Exists.intro</code>（像族的见证取 <code>a</code> 自己，等式的见证是自反）✓</p></div></details></div><details open class="solution-panel" id="sol-31-9"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem orderIso_upper_bound_pullback (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hr : OrderReflecting α β r s f)
+    (A : α → Prop) (c : β) (a0 : α) (ha0 : @Eq.{1} β (f a0) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (hc : UpperBound β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) c) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    UpperBound α r A a0 :=
+  fun (a : α) =&gt; fun (ha : A a) =&gt;
+    reflecting_apply α β r s f hr a a0
+      (rel_subst_left β (fun (p : β) (q : β) =&gt; s (f a) q) (f a0) (f a) c ha0
+        ((fun (hu : ∀ (y : β), (∃ (x : α), A x ∧ @Eq.{1} β (f x) y) → s y c) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          hu (f a) (Exists.intro a
+            (And.intro ha (@Eq.refl.{1} β (f a))))) hc))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></div></details></div></article>
+<article class="exercise" id="ex-31-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">orderIso_isSup</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-31-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（L 类，<strong>本单元旗舰</strong>）：<strong>序同构把上确界送到上确界</strong>。</p></div></div><pre class="exercise-statement"><code>theorem orderIso_isSup (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hm : Monotone α β r s f) (hr : OrderReflecting α β r s f)
+    (hsurj : ∀ (y : β), ∃ (x : α), (f x) = y)
+    (A : α → Prop) (b : α) (hb : IsSup α r A b) :
+    IsSup β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ (f x) = y) (f b) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>①<strong>是上界</strong>：练习 4；②<strong>最小</strong>：设 <code>c</code> 是像族的上界，由满射取 <code>a₀</code> 使 <code>f a₀ = c</code>，用练习 9 把 <code>c</code> 拉回成 <code>a₀</code> 是 <code>A</code> 的上界 <span class="math">⇒</span> 由 <code>b</code> 的最小性得 <code>b ≤ a₀</code> <span class="math">⇒</span> 单调送过去 <span class="math">⇒</span> <code>f b ≤ f a₀</code>，再沿 <code>f a₀ = c</code> 换成 <code>f b ≤ c</code> ✓</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Monotone … → OrderReflecting … → (∀ y, ∃ x, f x = y) → IsSup α r A b → IsSup β s (像族) (f b)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isSup_intro</code> <span class="math">·</span> 练习 <span class="math">4 ·</span> 练习 <span class="math">9 ·</span> <code>isSup_least</code>/<code>isSup_upper</code> 取用子 <span class="math">·</span><code>Exists.elim</code>（满射）<span class="math">·</span> <code>monotone_apply</code> <span class="math">·</span> <code>rel_subst_right</code>（最后换第二个坐标）✓ ⚠ <strong>三条假设缺一不可</strong>（单调不够 —— 见文件头）✓</p></div></details></div><details open class="solution-panel" id="sol-31-10"><summary>查看解答 <span class="sol-meta">定理 · 15 行</span></summary><div class="solution-body"><pre><code>theorem orderIso_isSup (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hm : Monotone α β r s f) (hr : OrderReflecting α β r s f)
+    (hsurj : ∀ (y : β), ∃ (x : α), @Eq.{1} β (f x) y)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (A : α → Prop) (b : α) (hb : IsSup α r A b) :
+    IsSup β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) (f b) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  isSup_intro β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) (f b)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (monotone_upper_bound α β r s f hm A b (isSup_upper α r A b hb))
+    (fun (c : β) =&gt;
+      fun (hc : UpperBound β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) c) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        @Exists.elim α (fun (a0 : α) =&gt; @Eq.{1} β (f a0) c) (s (f b) c) (hsurj c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (a0 : α) (ha0 : @Eq.{1} β (f a0) c) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            rel_subst_right β (fun (p : β) (q : β) =&gt; s (f b) q) (f b) (f a0) c ha0
+              (monotone_apply α β r s f hm b a0
+                (isSup_least α r A b hb a0
+                  (orderIso_upper_bound_pullback α β r s f hr A c a0 ha0 hc)))))</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>为什么旗舰要三条假设</strong>（这是本单元最值得学的一课）：<strong>光有单调不够</strong> ——设 <code>c</code> 是像族的上界，要证 <code>f b ≤ c</code>，得<strong>把 <code>c</code> 拉回原域</strong>（取 <code>a₀</code> 使 <code>f a₀ = c</code>）才用得上 <code>b</code> 的最小性 <span class="math">⇒</span> 所以要<strong>满射</strong>；而拉回来之后还要把 <code>f a ≤ f a₀</code> <strong>反转</strong>成 <code>a ≤ a₀</code> <span class="math">⇒</span> 所以要<strong>反射</strong> ✓ 三条假设合起来正是"序同构"（§7.1 的定义）✓</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Order</code>（单调/反射/确界）<span class="math">·</span> <code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㉙㉚（确界与格）—— 本单元研究"什么函数<strong>保持</strong>确界"。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit30.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">格与对偶：确界的代数</span></a><a class="unit-nav-home" href="../chapters/i-11.html#units">目录</a><a class="unit-nav-link" href="../units/unit32.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">函数空间上的逐点序</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-31"><h3><a href="#top">单调函数与序同构保持确界</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-31-1"><summary>练习 1 · monotone_id <span class="sol-meta">定理</span></summary><pre><code>theorem monotone_id (α : Type) (r : α → α → Prop) : Monotone α α r r (fun (a : α) =&gt; a) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt; hab</code></pre></details><details open class="appendix-solution" id="app-sol-31-2"><summary>练习 2 · monotone_comp <span class="sol-meta">定理</span></summary><pre><code>theorem monotone_comp (α β γ : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (t : γ → γ → Prop) (f : α → β) (g : β → γ)
+    (hf : Monotone α β r s f) (hg : Monotone β γ s t g) :
+    Monotone α γ r t (fun (a : α) =&gt; g (f a)) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt;
+    monotone_apply β γ s t g hg (f a) (f b) (monotone_apply α β r s f hf a b hab)</code></pre></details><details open class="appendix-solution" id="app-sol-31-3"><summary>练习 3 · monotone_const <span class="sol-meta">定理</span></summary><pre><code>theorem monotone_const (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (hrefl : Reflexive β s) (c : β) : Monotone α β r s (fun (_ : α) =&gt; c) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt;
+    (fun (hu : ∀ (y : β), s y y) =&gt; hu c) hrefl</code></pre></details><details open class="appendix-solution" id="app-sol-31-4"><summary>练习 4 · monotone_upper_bound <span class="sol-meta">定理</span></summary><pre><code>theorem monotone_upper_bound (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hf : Monotone α β r s f) (A : α → Prop) (u : α)
+    (hu : UpperBound α r A u) :
+    UpperBound β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) (f u) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (y : β) =&gt; fun (hy : ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    @Exists.elim α (fun (x : α) =&gt; A x ∧ @Eq.{1} β (f x) y) (s y (f u)) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (x : α) (hx : A x ∧ @Eq.{1} β (f x) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        rel_subst_right β (fun (p : β) (q : β) =&gt; s q (f u)) y (f x) y
+          (And.right hx)
+          (monotone_apply α β r s f hf x u
+            ((fun (hu' : ∀ (a : α), A a → r a u) =&gt; hu' x (And.left hx)) hu)))</code></pre></details><details open class="appendix-solution" id="app-sol-31-5"><summary>练习 5 · monotone_lower_bound <span class="sol-meta">定理</span></summary><pre><code>theorem monotone_lower_bound (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hf : Monotone α β r s f) (A : α → Prop) (l : α)
+    (hl : LowerBound α r A l) :
+    LowerBound β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) (f l) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  fun (y : β) =&gt; fun (hy : ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    @Exists.elim α (fun (x : α) =&gt; A x ∧ @Eq.{1} β (f x) y) (s (f l) y) hy  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+      (fun (x : α) (hx : A x ∧ @Eq.{1} β (f x) y) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        rel_subst_right β (fun (p : β) (q : β) =&gt; s (f l) q) (f l) (f x) y
+          (And.right hx)
+          (monotone_apply α β r s f hf l x
+            ((fun (hl' : ∀ (a : α), A a → r l a) =&gt; hl' x (And.left hx)) hl)))</code></pre></details><details open class="appendix-solution" id="app-sol-31-6"><summary>练习 6 · orderReflecting_id <span class="sol-meta">定理</span></summary><pre><code>theorem orderReflecting_id (α : Type) (r : α → α → Prop) :
+    OrderReflecting α α r r (fun (a : α) =&gt; a) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt; hab</code></pre></details><details open class="appendix-solution" id="app-sol-31-7"><summary>练习 7 · orderReflecting_comp <span class="sol-meta">定理</span></summary><pre><code>theorem orderReflecting_comp (α β γ : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (t : γ → γ → Prop) (f : α → β) (g : β → γ)
+    (hf : OrderReflecting α β r s f) (hg : OrderReflecting β γ s t g) :
+    OrderReflecting α γ r t (fun (a : α) =&gt; g (f a)) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : t (g (f a)) (g (f b))) =&gt;
+    reflecting_apply α β r s f hf a b
+      (reflecting_apply β γ s t g hg (f a) (f b) hab)</code></pre></details><details open class="appendix-solution" id="app-sol-31-8"><summary>练习 8 · orderReflecting_of_monotone_inverse <span class="sol-meta">定理</span></summary><pre><code>theorem orderReflecting_of_monotone_inverse (α β : Type) (r : α → α → Prop)
+    (s : β → β → Prop) (f : α → β) (g : β → α)
+    (hg : Monotone β α s r g) (hgf : ∀ (a : α), @Eq.{1} α (g (f a)) a) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    OrderReflecting α β r s f :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : s (f a) (f b)) =&gt;
+    rel_subst_left α (fun (p : α) (q : α) =&gt; r q p) a b (g (f a))
+      (@Eq.symm.{1} α (g (f a)) a (hgf a))
+      (rel_subst_right α r (g (f a)) (g (f b)) b (hgf b)
+        (monotone_apply β α s r g hg (f a) (f b) hab))</code></pre></details><details open class="appendix-solution" id="app-sol-31-9"><summary>练习 9 · orderIso_upper_bound_pullback <span class="sol-meta">定理</span></summary><pre><code>theorem orderIso_upper_bound_pullback (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hr : OrderReflecting α β r s f)
+    (A : α → Prop) (c : β) (a0 : α) (ha0 : @Eq.{1} β (f a0) c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (hc : UpperBound β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) c) :  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    UpperBound α r A a0 :=
+  fun (a : α) =&gt; fun (ha : A a) =&gt;
+    reflecting_apply α β r s f hr a a0
+      (rel_subst_left β (fun (p : β) (q : β) =&gt; s (f a) q) (f a0) (f a) c ha0
+        ((fun (hu : ∀ (y : β), (∃ (x : α), A x ∧ @Eq.{1} β (f x) y) → s y c) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          hu (f a) (Exists.intro a
+            (And.intro ha (@Eq.refl.{1} β (f a))))) hc))  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来</code></pre></details><details open class="appendix-solution" id="app-sol-31-10"><summary>练习 10 · orderIso_isSup <span class="sol-meta">定理</span></summary><pre><code>theorem orderIso_isSup (α β : Type) (r : α → α → Prop) (s : β → β → Prop)
+    (f : α → β) (hm : Monotone α β r s f) (hr : OrderReflecting α β r s f)
+    (hsurj : ∀ (y : β), ∃ (x : α), @Eq.{1} β (f x) y)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (A : α → Prop) (b : α) (hb : IsSup α r A b) :
+    IsSup β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) (f b) :=  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+  isSup_intro β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) (f b)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+    (monotone_upper_bound α β r s f hm A b (isSup_upper α r A b hb))
+    (fun (c : β) =&gt;
+      fun (hc : UpperBound β s (fun (y : β) =&gt; ∃ (x : α), A x ∧ @Eq.{1} β (f x) y) c) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+        @Exists.elim α (fun (a0 : α) =&gt; @Eq.{1} β (f a0) c) (s (f b) c) (hsurj c)  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (a0 : α) (ha0 : @Eq.{1} β (f a0) c) =&gt;  -- soko:notation-ok: G-73 形状 ②/③：前导实参或 `Eq` 层级在这些位置补不出来
+            rel_subst_right β (fun (p : β) (q : β) =&gt; s (f b) q) (f b) (f a0) c ha0
+              (monotone_apply α β r s f hm b a0
+                (isSup_least α r A b hb a0
+                  (orderIso_upper_bound_pullback α β r s f hr A c a0 ha0 hc)))))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

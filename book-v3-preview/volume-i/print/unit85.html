@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 85 商到像的单射性</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit85.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 85 商到像的单射性</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit85.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.10 关系闭包与等价关系 · 单元 85</p><h1>商到像的单射性</h1><p class="note">Unit 85 — The Quotient Maps Injectively onto the Image</p></header><section class="unit" id="unit-85">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-10.html">I.10</a> · 本章第 11 / 12 单元 · 全书第 85 / 112 单元</p>
+<h2><span class="unit-number">85</span><span>商到像的单射性</span></h2>
+<p class="unit-title-en">Unit 85 — The Quotient Maps Injectively onto the Image</p>
+<p class="unit-meta">1 个定义 · 9 个定理 · 6 道练习 · <a href="#appendix-unit-85">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>核的展开 ✓ <span class="math">·</span> <strong>同类点推出"类相互包含"</strong> ✓ <span class="math">·</span> <strong>两个类逐点相同</strong> ✓（单射性的逐点形态 ✓）；</li><li>核的像仍是单点（单元84 旗舰，本单元复用 ✓）；</li><li><strong>旗舰一：商到像单射</strong> ✓ —— <code>f a = f b ⇒ f '' [a]</code> 与 <code>f '' [b]</code> <strong>逐点相同</strong> ✓；</li><li><strong>旗舰二：逐点相同 <span class="math">⇔</span> 值相同</strong> ✓（<code>(∀ c, c ∈ [a] ↔ c ∈ [b]) ↔ f a = f b</code> ✓）——这就是"<strong>商集到像是一一对应</strong>" ✓，也把 <span class="math">76 → 77/78 → 84</span> 这条线<strong>闭环</strong> ✓。</li></ul></div></div></section>
+<article class="decl decl-def" id="decl-85-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">kernel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def kernel (α : Type) (β : Type) (f : α → β) : Rel α α :=
+  fun (a : α) (b : α) =&gt; f a = f b</code></pre></div></article>
+<h3 class="unit-subhead">85.1 三条库引理（像的成员 <span class="math">·</span> 等价类的成员 <span class="math">·</span> 自反取用子）</h3><div class="block prose intuition-only"><p>演示：像的成员刻画（存在式 ✓ —— 拆的时候用 <code>Exists.elim</code> ✓）。</p></div><article class="decl decl-theorem" id="decl-85-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_image</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_image (α : Type) (β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ f '' A ↔ ∃ (x : α), A x ∧ f x = y :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_image f A y</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-85-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_equivClass</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.mem_equivClass α r a b</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-85-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_equivalence_refl</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_equivalence_refl (α : Type) (r : Rel α α) (he : IsEquivalence α r) :
+    Reflexive α r :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  equivalence_refl α r he-- 练习 1（T 类）：核的展开（`kernel f a b ↔ f a = f b`）。</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-85-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">kernel_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-85-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>关键件：定义展开（两个方向都是恒等）</p></div></div><pre class="exercise-statement"><code>theorem kernel_apply (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    kernel α β f a b ↔ f a = f b := by
+  sorry</code></pre><details open class="solution-panel" id="sol-85-1"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem kernel_apply (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    kernel α β f a b ↔ f a = f b :=
+  @Iff.intro (kernel α β f a b) (f a = f b)
+    (fun (h : kernel α β f a b) =&gt; h) (fun (h : f a = f b) =&gt; h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-85-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">mem_class_of_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-85-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>同类点：一边的成员也在另一边</strong>。关键件：<code>Rel.mem_equivClass</code> <span class="math">·</span> <code>Eq.trans</code> / <code>Eq.symm</code>（写全宇宙与点）<span class="math">·</span> <code>Iff.mp</code> / <code>Iff.mpr</code>（<span class="math">λ</span> 落地）</p></div></div><pre class="exercise-statement"><code>theorem mem_class_of_eq (α : Type) (β : Type) (f : α → β) (a : α) (b : α) (c : α)
+    (hab : f a = f b) (hc : c ∈ (Rel.EquivClass α (kernel α β f) a)) :
+    c ∈ (Rel.EquivClass α (kernel α β f) b) := by
+  sorry</code></pre><details open class="solution-panel" id="sol-85-2"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem mem_class_of_eq (α : Type) (β : Type) (f : α → β) (a : α) (b : α) (c : α)
+    (hab : f a = f b) (hc : c ∈ (Rel.EquivClass α (kernel α β f) a)) :
+    c ∈ (Rel.EquivClass α (kernel α β f) b) :=
+  (fun (hu : Rel.EquivClass α (kernel α β f) b c ↔ kernel α β f b c) =&gt;
+    Iff.mpr hu (@Eq.trans.{1} β (f b) (f a) (f c) (@Eq.symm.{1} β (f a) (f b) hab)
+      ((fun (hv : Rel.EquivClass α (kernel α β f) a c ↔ kernel α β f a c) =&gt; Iff.mp hv hc)
+        (Rel.mem_equivClass α (kernel α β f) a c))))
+    (Rel.mem_equivClass α (kernel α β f) b c)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-85-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">kernel_class_agree</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-85-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<strong>两个类逐点相同</strong>（<code>f a = f b</code> <span class="math">⇒</span> 全 <code>c</code> 双向）。关键件：练习 2（两个方向各用一次，其中一次要把等式 <code>Eq.symm</code>）</p></div></div><pre class="exercise-statement"><code>theorem kernel_class_agree (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (hab : f a = f b) : ∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+      c ∈ (Rel.EquivClass α (kernel α β f) b) := by
+  sorry</code></pre><details open class="solution-panel" id="sol-85-3"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem kernel_class_agree (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (hab : f a = f b) : ∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+      c ∈ (Rel.EquivClass α (kernel α β f) b) :=
+  fun (c : α) =&gt;
+    @Iff.intro (c ∈ (Rel.EquivClass α (kernel α β f) a))
+      (c ∈ (Rel.EquivClass α (kernel α β f) b))
+      (fun (hc : c ∈ (Rel.EquivClass α (kernel α β f) a)) =&gt;
+        mem_class_of_eq α β f a b c hab hc)
+      (fun (hc : c ∈ (Rel.EquivClass α (kernel α β f) b)) =&gt;
+        mem_class_of_eq α β f b a c (@Eq.symm.{1} β (f a) (f b) hab) hc)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-85-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">mem_image_kernel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-85-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：<strong>核的像仍是单点</strong>（单元84 旗舰）。关键件：<code>Set.mem_image</code> / <code>Set.mem_image_intro</code> <span class="math">·</span> <code>Rel.mem_equivClass</code> <span class="math">·</span> <code>Exists.elim</code></p></div></div><pre class="exercise-statement"><code>theorem mem_image_kernel (α : Type) (β : Type) (f : α → β) (a : α) (y : β) :
+    y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔ f a = y := by
+  sorry</code></pre><details open class="solution-panel" id="sol-85-4"><summary>查看解答 <span class="sol-meta">定理 · 19 行</span></summary><div class="solution-body"><pre><code>theorem mem_image_kernel (α : Type) (β : Type) (f : α → β) (a : α) (y : β) :
+    y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔ f a = y :=
+  @Iff.intro (y ∈ f '' (Rel.EquivClass α (kernel α β f) a)) (f a = y)
+    (fun (h : y ∈ f '' (Rel.EquivClass α (kernel α β f) a)) =&gt;
+      @Exists.elim α (fun (x : α) =&gt; x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) (f a = y)
+        ((fun (hu : y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔
+            ∃ (x : α), x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) =&gt; Iff.mp hu h)
+          (Set.mem_image f (Rel.EquivClass α (kernel α β f) a) y))
+        (fun (x : α) (hx : x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) =&gt;
+          @Eq.trans.{1} β (f a) (f x) y
+            ((fun (hu : Rel.EquivClass α (kernel α β f) a x ↔ kernel α β f a x) =&gt;
+              Iff.mp hu (And.left hx))
+              (Rel.mem_equivClass α (kernel α β f) a x))
+            (And.right hx)))
+    (fun (h : f a = y) =&gt;
+      Set.mem_image_intro f (Rel.EquivClass α (kernel α β f) a) y a
+        ((fun (hu : Rel.EquivClass α (kernel α β f) a a ↔ kernel α β f a a) =&gt;
+          Iff.mpr hu (@Eq.refl.{1} β (f a))) (Rel.mem_equivClass α (kernel α β f) a a))
+        h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-85-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">kernel_image_injective</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-85-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>旗舰一</strong>）：<strong>商到像单射</strong> —— <code>f a = f b</code> <span class="math">⇒</span> 两个像逐点相同。思路：两边都化归到"等于 <code>f a</code> / <code>f b</code>"（练习 4），再用 <code>Eq.trans</code> / <code>Eq.symm</code> 接起来。关键件：练习 <span class="math">4 ·</span> <code>Iff.intro</code> <span class="math">·</span> <code>Eq.trans</code> / <code>Eq.symm</code></p></div></div><pre class="exercise-statement"><code>theorem kernel_image_injective (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (hab : f a = f b) : ∀ (y : β), y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔
+      y ∈ f '' (Rel.EquivClass α (kernel α β f) b) := by
+  sorry</code></pre><details open class="solution-panel" id="sol-85-5"><summary>查看解答 <span class="sol-meta">定理 · 18 行</span></summary><div class="solution-body"><pre><code>theorem kernel_image_injective (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (hab : f a = f b) : ∀ (y : β), y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔
+      y ∈ f '' (Rel.EquivClass α (kernel α β f) b) :=
+  fun (y : β) =&gt;
+    @Iff.intro (y ∈ f '' (Rel.EquivClass α (kernel α β f) a))
+      (y ∈ f '' (Rel.EquivClass α (kernel α β f) b))
+      (fun (h : y ∈ f '' (Rel.EquivClass α (kernel α β f) a)) =&gt;
+        (fun (hu : y ∈ f '' (Rel.EquivClass α (kernel α β f) b) ↔ f b = y) =&gt;
+          Iff.mpr hu (@Eq.trans.{1} β (f b) (f a) y (@Eq.symm.{1} β (f a) (f b) hab)
+            ((fun (hv : y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔ f a = y) =&gt; Iff.mp hv h)
+              (mem_image_kernel α β f a y))))
+          (mem_image_kernel α β f b y))
+      (fun (h : y ∈ f '' (Rel.EquivClass α (kernel α β f) b)) =&gt;
+        (fun (hu : y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔ f a = y) =&gt;
+          Iff.mpr hu (@Eq.trans.{1} β (f a) (f b) y hab
+            ((fun (hv : y ∈ f '' (Rel.EquivClass α (kernel α β f) b) ↔ f b = y) =&gt; Iff.mp hv h)
+              (mem_image_kernel α β f b y))))
+          (mem_image_kernel α β f a y))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-85-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">kernel_class_eq_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-85-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类，<strong>旗舰二</strong>）：<strong>逐点相同 <span class="math">⇔</span> 值相同</strong>。思路：左到右 —— 用 <code>a</code> 自己在 <code>[a]</code> 里（<code>Eq.refl</code>）转到 <code>[b]</code>，读值得 <code>f b = f a</code> 再 <code>Eq.symm</code>；右到左 —— 练习 3 直接交出去。关键件：<code>Rel.mem_equivClass</code> <span class="math">·</span> 练习 <span class="math">3 ·</span> <code>Eq.refl</code> / <code>Eq.symm</code> <span class="math">·</span> <code>Iff.mp</code> / <code>Iff.mpr</code></p></div></div><pre class="exercise-statement"><code>theorem kernel_class_eq_iff (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    (∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+      c ∈ (Rel.EquivClass α (kernel α β f) b)) ↔ f a = f b := by
+  sorry</code></pre><details open class="solution-panel" id="sol-85-6"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><pre><code>theorem kernel_class_eq_iff (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    (∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+      c ∈ (Rel.EquivClass α (kernel α β f) b)) ↔ f a = f b :=
+  @Iff.intro (∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+      c ∈ (Rel.EquivClass α (kernel α β f) b)) (f a = f b)
+    (fun (h : ∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+        c ∈ (Rel.EquivClass α (kernel α β f) b)) =&gt;
+      (fun (hu : f b = f a) =&gt; @Eq.symm.{1} β (f b) (f a) hu)
+        ((fun (hv : Rel.EquivClass α (kernel α β f) b a ↔ kernel α β f b a) =&gt;
+          Iff.mp hv ((Iff.mp (h a))
+            ((fun (hw : Rel.EquivClass α (kernel α β f) a a ↔ kernel α β f a a) =&gt;
+              Iff.mpr hw (@Eq.refl.{1} β (f a))) (Rel.mem_equivClass α (kernel α β f) a a))))
+          (Rel.mem_equivClass α (kernel α β f) b a)))
+    (fun (hab : f a = f b) =&gt; kernel_class_agree α β f a b hab)</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§3.3/§3.6</strong> <span class="math">·Halmos</span>《Naive Set Theory》<strong>§10</strong>。大纲 §4.1（<strong>把 76–84 这条线闭环</strong> ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>为什么写成逐点</strong> ✓：集合（谓词）相等要外延（<code>lib.Extensionality</code> ✓）；而"逐点相同"就是 <code>Rel.Partition</code> / <code>Rel.Classes</code> 用的形态 ✓ <span class="math">⇒</span> 构造性可用 ✓。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <code>lib.Image</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元76（核）<span class="math">·</span> 单元77/78（等价类与划分）<span class="math">·</span> 单元79（well-defined）<span class="math">·</span> 单元84（核的像）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit84.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">商与像的往返</span></a><a class="unit-nav-home" href="../chapters/i-10.html#units">目录</a><a class="unit-nav-link" href="../units/unit86.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">核与复合、单射</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-85"><h3><a href="#top">商到像的单射性</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-85-1"><summary>练习 1 · kernel_apply <span class="sol-meta">定理</span></summary><pre><code>theorem kernel_apply (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    kernel α β f a b ↔ f a = f b :=
+  @Iff.intro (kernel α β f a b) (f a = f b)
+    (fun (h : kernel α β f a b) =&gt; h) (fun (h : f a = f b) =&gt; h)</code></pre></details><details open class="appendix-solution" id="app-sol-85-2"><summary>练习 2 · mem_class_of_eq <span class="sol-meta">定理</span></summary><pre><code>theorem mem_class_of_eq (α : Type) (β : Type) (f : α → β) (a : α) (b : α) (c : α)
+    (hab : f a = f b) (hc : c ∈ (Rel.EquivClass α (kernel α β f) a)) :
+    c ∈ (Rel.EquivClass α (kernel α β f) b) :=
+  (fun (hu : Rel.EquivClass α (kernel α β f) b c ↔ kernel α β f b c) =&gt;
+    Iff.mpr hu (@Eq.trans.{1} β (f b) (f a) (f c) (@Eq.symm.{1} β (f a) (f b) hab)
+      ((fun (hv : Rel.EquivClass α (kernel α β f) a c ↔ kernel α β f a c) =&gt; Iff.mp hv hc)
+        (Rel.mem_equivClass α (kernel α β f) a c))))
+    (Rel.mem_equivClass α (kernel α β f) b c)</code></pre></details><details open class="appendix-solution" id="app-sol-85-3"><summary>练习 3 · kernel_class_agree <span class="sol-meta">定理</span></summary><pre><code>theorem kernel_class_agree (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (hab : f a = f b) : ∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+      c ∈ (Rel.EquivClass α (kernel α β f) b) :=
+  fun (c : α) =&gt;
+    @Iff.intro (c ∈ (Rel.EquivClass α (kernel α β f) a))
+      (c ∈ (Rel.EquivClass α (kernel α β f) b))
+      (fun (hc : c ∈ (Rel.EquivClass α (kernel α β f) a)) =&gt;
+        mem_class_of_eq α β f a b c hab hc)
+      (fun (hc : c ∈ (Rel.EquivClass α (kernel α β f) b)) =&gt;
+        mem_class_of_eq α β f b a c (@Eq.symm.{1} β (f a) (f b) hab) hc)</code></pre></details><details open class="appendix-solution" id="app-sol-85-4"><summary>练习 4 · mem_image_kernel <span class="sol-meta">定理</span></summary><pre><code>theorem mem_image_kernel (α : Type) (β : Type) (f : α → β) (a : α) (y : β) :
+    y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔ f a = y :=
+  @Iff.intro (y ∈ f '' (Rel.EquivClass α (kernel α β f) a)) (f a = y)
+    (fun (h : y ∈ f '' (Rel.EquivClass α (kernel α β f) a)) =&gt;
+      @Exists.elim α (fun (x : α) =&gt; x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) (f a = y)
+        ((fun (hu : y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔
+            ∃ (x : α), x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) =&gt; Iff.mp hu h)
+          (Set.mem_image f (Rel.EquivClass α (kernel α β f) a) y))
+        (fun (x : α) (hx : x ∈ (Rel.EquivClass α (kernel α β f) a) ∧ f x = y) =&gt;
+          @Eq.trans.{1} β (f a) (f x) y
+            ((fun (hu : Rel.EquivClass α (kernel α β f) a x ↔ kernel α β f a x) =&gt;
+              Iff.mp hu (And.left hx))
+              (Rel.mem_equivClass α (kernel α β f) a x))
+            (And.right hx)))
+    (fun (h : f a = y) =&gt;
+      Set.mem_image_intro f (Rel.EquivClass α (kernel α β f) a) y a
+        ((fun (hu : Rel.EquivClass α (kernel α β f) a a ↔ kernel α β f a a) =&gt;
+          Iff.mpr hu (@Eq.refl.{1} β (f a))) (Rel.mem_equivClass α (kernel α β f) a a))
+        h)</code></pre></details><details open class="appendix-solution" id="app-sol-85-5"><summary>练习 5 · kernel_image_injective <span class="sol-meta">定理</span></summary><pre><code>theorem kernel_image_injective (α : Type) (β : Type) (f : α → β) (a : α) (b : α)
+    (hab : f a = f b) : ∀ (y : β), y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔
+      y ∈ f '' (Rel.EquivClass α (kernel α β f) b) :=
+  fun (y : β) =&gt;
+    @Iff.intro (y ∈ f '' (Rel.EquivClass α (kernel α β f) a))
+      (y ∈ f '' (Rel.EquivClass α (kernel α β f) b))
+      (fun (h : y ∈ f '' (Rel.EquivClass α (kernel α β f) a)) =&gt;
+        (fun (hu : y ∈ f '' (Rel.EquivClass α (kernel α β f) b) ↔ f b = y) =&gt;
+          Iff.mpr hu (@Eq.trans.{1} β (f b) (f a) y (@Eq.symm.{1} β (f a) (f b) hab)
+            ((fun (hv : y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔ f a = y) =&gt; Iff.mp hv h)
+              (mem_image_kernel α β f a y))))
+          (mem_image_kernel α β f b y))
+      (fun (h : y ∈ f '' (Rel.EquivClass α (kernel α β f) b)) =&gt;
+        (fun (hu : y ∈ f '' (Rel.EquivClass α (kernel α β f) a) ↔ f a = y) =&gt;
+          Iff.mpr hu (@Eq.trans.{1} β (f a) (f b) y hab
+            ((fun (hv : y ∈ f '' (Rel.EquivClass α (kernel α β f) b) ↔ f b = y) =&gt; Iff.mp hv h)
+              (mem_image_kernel α β f b y))))
+          (mem_image_kernel α β f a y))</code></pre></details><details open class="appendix-solution" id="app-sol-85-6"><summary>练习 6 · kernel_class_eq_iff <span class="sol-meta">定理</span></summary><pre><code>theorem kernel_class_eq_iff (α : Type) (β : Type) (f : α → β) (a : α) (b : α) :
+    (∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+      c ∈ (Rel.EquivClass α (kernel α β f) b)) ↔ f a = f b :=
+  @Iff.intro (∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+      c ∈ (Rel.EquivClass α (kernel α β f) b)) (f a = f b)
+    (fun (h : ∀ (c : α), c ∈ (Rel.EquivClass α (kernel α β f) a) ↔
+        c ∈ (Rel.EquivClass α (kernel α β f) b)) =&gt;
+      (fun (hu : f b = f a) =&gt; @Eq.symm.{1} β (f b) (f a) hu)
+        ((fun (hv : Rel.EquivClass α (kernel α β f) b a ↔ kernel α β f b a) =&gt;
+          Iff.mp hv ((Iff.mp (h a))
+            ((fun (hw : Rel.EquivClass α (kernel α β f) a a ↔ kernel α β f a a) =&gt;
+              Iff.mpr hw (@Eq.refl.{1} β (f a))) (Rel.mem_equivClass α (kernel α β f) a a))))
+          (Rel.mem_equivClass α (kernel α β f) b a)))
+    (fun (hab : f a = f b) =&gt; kernel_class_agree α β f a b hab)</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

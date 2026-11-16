@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 26 划分：等价关系的反方向</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit26.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 26 划分：等价关系的反方向</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit26.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.10 关系闭包与等价关系 · 单元 26</p><h1>划分：等价关系的反方向</h1><p class="note">Unit 26 — Partitions: the Converse Direction</p></header><section class="unit" id="unit-26">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-10.html">I.10</a> · 本章第 3 / 12 单元 · 全书第 26 / 112 单元</p>
+<h2><span class="unit-number">26</span><span>划分：等价关系的反方向</span></h2>
+<p class="unit-title-en">Unit 26 — Partitions: the Converse Direction</p>
+<p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-26">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§3.5 的后半</strong>（"等价关系 <span class="math">=</span> 划分"这一定理的<strong>反方向</strong>）；Halmos《Naive Set Theory》<strong>§10 / §18</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.10 章第三个单元）。</p></div></div></section>
+<div class="block prose intuition-only"><p>单元㉕ 做的是"<strong>等价关系 <span class="math">⇒</span> 划分</strong>"（等价类构成划分）。本单元做<strong>反方向</strong>：<strong>划分 <span class="math">⇒</span> 等价关系</strong>（"落在同一个块里"），并且证明<strong>往返回到原地</strong> ✓—— 两条合起来才是教科书里那句"<strong>等价关系与划分是同一件事的两种说法</strong>" ✓</p></div><div class="block prose intuition-only"><p>读法：划分 <code>P</code> 是一族集合（写成 <code>(α → Prop) → Prop</code>），三条是 ① 每块<strong>非空</strong> <span class="math">·</span> ② 每点<strong>落在某块里</strong> <span class="math">·</span> ③ 有公共点的两块<strong>逐点相同</strong> ✓</p></div><div class="block prose intuition-only"><p><strong>写法约定（本单元特有）</strong>：一切都从 <code>Rel.ofPartition α P a b</code> 展开出来的那个 <code>∃ A</code> 出发 <span class="math">⇒</span> <code>Exists.elim</code>/<code>Exists.intro</code> 的<strong>前导实参一律写全</strong>（G-73 形状 ②）；要注意 <strong>"两块相同"只能拿到逐点的 <code>↔</code></strong>，要让"某块属于 <code>P</code>"这条性质搬过去，必须先用 <code>Set.ext</code>（外延公理）把它变成<strong>集合相等</strong>，再沿等式搬运 ✓</p></div><h3 class="unit-subhead">26.1 三条库引理（"同块"关系的展开 <span class="math">·</span> 划分的展开 <span class="math">·</span> "不交"那一条的取用子）</h3><div class="block prose intuition-only"><p>演示：<strong>"落在同一个块里"的展开</strong>。</p></div><article class="decl decl-theorem" id="decl-26-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_ofPartition_apply</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_ofPartition_apply (α : Type) (P : (α → Prop) → Prop) (a b : α) :
+    Rel.ofPartition α P a b ↔ ∃ (A : α → Prop), P A ∧ A a ∧ A b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.ofPartition_apply α P a b</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：划分的三条展开。</p></div><article class="decl decl-theorem" id="decl-26-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_partition_def</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_partition_def (α : Type) (P : (α → Prop) → Prop) :
+    Rel.Partition α P ↔
+      (∀ (A : α → Prop), P A → ∃ (a : α), A a) ∧
+      (∀ (a : α), ∃ (A : α → Prop), P A ∧ A a) ∧
+      (∀ (A B : α → Prop), P A → P B → (∃ (x : α), A x ∧ B x) →
+        ∀ (c : α), A c ↔ B c) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.partition_def α P</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：<strong>"不交"那一条的取用子</strong>（有公共点的两块逐点相同）。</p></div><article class="decl decl-theorem" id="decl-26-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_partition_disjoint</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_partition_disjoint (α : Type) (P : (α → Prop) → Prop)
+    (h : Rel.Partition α P) :
+    ∀ (A B : α → Prop), P A → P B → (∃ (x : α), A x ∧ B x) → ∀ (c : α), A c ↔ B c :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  partition_disjoint α P h</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-26-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">mem_ofPartition</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-26-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：<strong>"同块"关系的成员刻画</strong>（库里现成的）。</p></div></div><pre class="exercise-statement"><code>theorem mem_ofPartition (α : Type) (P : (α → Prop) → Prop) (a b : α) :
+    Rel.ofPartition α P a b ↔ ∃ (A : α → Prop), P A ∧ A a ∧ A b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>直接交出去。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Rel.ofPartition α P a b ↔ ∃ A, P A ∧ A a ∧ A b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Rel.ofPartition_apply</code>。</p></div></details></div><details open class="solution-panel" id="sol-26-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem mem_ofPartition (α : Type) (P : (α → Prop) → Prop) (a b : α) :
+    Rel.ofPartition α P a b ↔ ∃ (A : α → Prop), P A ∧ A a ∧ A b :=
+  Rel.ofPartition_apply α P a b</code></pre></div></details></div></article>
+<h3 class="unit-subhead">26.2 <strong>划分 <span class="math">⇒</span> 等价关系</strong>（三条各一道）</h3><article class="exercise" id="ex-26-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ofPartition_refl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-26-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类）：<strong>自反</strong>（每个点都与自己同块）。</p></div></div><pre class="exercise-statement"><code>theorem ofPartition_refl (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (a : α) : Rel.ofPartition α P a a := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>由"覆盖"拿到一个装着 <code>a</code> 的块 <code>A</code>，见证就取 <code>A</code>；两个 <code>A a</code> 都要交出去。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Rel.ofPartition α P a a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>partition_cover</code>（取用子）<span class="math">·</span> <code>Exists.elim</code>/<code>Exists.intro</code>（<strong>前导实参写全</strong>）<span class="math">·</span><code>And.left</code>/<code>And.right</code> <span class="math">·</span> <code>And.intro</code>（<strong>前导 Prop 实参写全</strong>）。</p></div></details></div><details open class="solution-panel" id="sol-26-2"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem ofPartition_refl (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (a : α) : Rel.ofPartition α P a a :=
+  @Exists.elim (α → Prop) (fun (A : α → Prop) =&gt; P A ∧ A a)
+    (Rel.ofPartition α P a a)
+    (partition_cover α P hP a)
+    (fun (A : α → Prop) (hA : P A ∧ A a) =&gt;
+      Exists.intro A
+        (And.intro (And.left hA)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+          (And.intro (And.right hA) (And.right hA))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-26-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ofPartition_symm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-26-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<strong>对称</strong>（"同块"里两个点的位置可以换）。</p></div></div><pre class="exercise-statement"><code>theorem ofPartition_symm (α : Type) (P : (α → Prop) → Prop) (a b : α)
+    (h : Rel.ofPartition α P a b) : Rel.ofPartition α P b a := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆开那个 <code>∃ A</code>，把 <code>A a ∧ A b</code> 的两个合取支<strong>换个位置</strong>再装回去。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Rel.ofPartition α P a b → Rel.ofPartition α P b a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>/<code>Exists.intro</code>（前导实参写全）<span class="math">·</span> <code>And.left</code>/<code>And.right</code>（注意这里合取是<strong>右嵌套</strong>的：<code>P A ∧ (A a ∧ A b)</code>）。</p></div></details></div><details open class="solution-panel" id="sol-26-3"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem ofPartition_symm (α : Type) (P : (α → Prop) → Prop) (a b : α)
+    (h : Rel.ofPartition α P a b) : Rel.ofPartition α P b a :=
+  @Exists.elim (α → Prop) (fun (A : α → Prop) =&gt; P A ∧ A a ∧ A b)
+    (Rel.ofPartition α P b a) h
+    (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =&gt;
+      Exists.intro A
+        (And.intro (And.left hA)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+          (And.intro (And.right (And.right hA)) (And.left (And.right hA)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-26-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">ofPartition_trans</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-26-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，旗舰之一）：<strong>传递</strong>（<code>a</code>、<code>b</code> 同块且 <code>b</code>、<code>c</code> 同块 <span class="math">⇒</span> <code>a</code>、<code>c</code> 同块）。</p></div></div><pre class="exercise-statement"><code>theorem ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (a b c : α) (hab : Rel.ofPartition α P a b) (hbc : Rel.ofPartition α P b c) :
+    Rel.ofPartition α P a c := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆出两块 <code>A</code>（含 <code>a,b</code>）与 <code>B</code>（含 <code>b,c</code>）；它们<strong>有公共点 <code>b</code></strong>，于是由"不交"那一条得到逐点的 <code>A d ↔ B d</code>；见证取 <code>A</code>，把 <code>c ∈ B</code> <strong>搬</strong>成 <code>A c</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Rel.ofPartition α P a b → Rel.ofPartition α P b c → Rel.ofPartition α P a c</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>partition_disjoint</code>（<strong>结论是 <code>∀ d, …</code> <span class="math">⇒</span> 用在具体的 <code>d := c</code> 上</strong>，注意它给的 <code>↔</code> 方向：<code>B c → A c</code> 要走 <strong><code>Iff.mp</code></strong> 那一侧，别接反）<span class="math">·</span> 三个 <code>Exists.elim</code>（前导实参写全）<span class="math">·</span> <code>And.left</code>/<code>And.right</code>。</p></div></details></div><details open class="solution-panel" id="sol-26-4"><summary>查看解答 <span class="sol-meta">定理 · 17 行</span></summary><div class="solution-body"><pre><code>theorem ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (a b c : α) (hab : Rel.ofPartition α P a b) (hbc : Rel.ofPartition α P b c) :
+    Rel.ofPartition α P a c :=
+  @Exists.elim (α → Prop) (fun (A : α → Prop) =&gt; P A ∧ A a ∧ A b)
+    (Rel.ofPartition α P a c) hab
+    (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =&gt;
+      @Exists.elim (α → Prop) (fun (B : α → Prop) =&gt; P B ∧ B b ∧ B c)
+        (Rel.ofPartition α P a c) hbc
+        (fun (B : α → Prop) (hB : P B ∧ B b ∧ B c) =&gt;
+          (fun (hAB : ∀ (d : α), A d ↔ B d) =&gt;
+            @Exists.intro (α → Prop) (fun (A' : α → Prop) =&gt; P A' ∧ A' a ∧ A' c) A  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+              (And.intro (And.left hA)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+                (And.intro (And.left (And.right hA))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+                  (Iff.mpr (hAB c) (And.right (And.right hB))))))
+            (partition_disjoint α P hP A B (And.left hA) (And.left hB)
+              (Exists.intro b
+                (And.intro (And.right (And.right hA)) (And.left (And.right hB)))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-26-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">equivalence_ofPartition</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-26-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>本单元旗舰</strong>）：<strong>划分给出等价关系</strong>（把练习 2–4 用智能构造子打包）。</p></div></div><pre class="exercise-statement"><code>theorem equivalence_ofPartition (α : Type) (P : (α → Prop) → Prop)
+    (hP : Rel.Partition α P) : IsEquivalence α (Rel.ofPartition α P) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>三条各交一次 —— 注意智能构造子的参数顺序是 <strong>自反 <span class="math">·</span> 对称 <span class="math">·</span> 传递</strong>，而它们内部都是"先 <span class="math">λ</span> 绑定再应用"的形态。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsEquivalence α (Rel.ofPartition α P)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isEquivalence_intro</code>（参数：论域 <span class="math">·</span> 关系 <span class="math">·</span> 三条）<span class="math">·</span> 练习 2/3/4。</p></div></details></div><details open class="solution-panel" id="sol-26-5"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem equivalence_ofPartition (α : Type) (P : (α → Prop) → Prop)
+    (hP : Rel.Partition α P) : IsEquivalence α (Rel.ofPartition α P) :=
+  isEquivalence_intro α (Rel.ofPartition α P)
+    (fun (a : α) =&gt; ofPartition_refl α P hP a)
+    (fun (a : α) (b : α) (h : Rel.ofPartition α P a b) =&gt; ofPartition_symm α P a b h)
+    (fun (a : α) (b : α) (c : α) (hab : Rel.ofPartition α P a b)
+      (hbc : Rel.ofPartition α P b c) =&gt; ofPartition_trans α P hP a b c hab hbc)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">26.3 等价类<strong>恰好</strong>是块（对应定理的核心）</h3><article class="exercise" id="ex-26-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">equivClass_of_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-26-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类）：<strong><code>a</code> 的等价类就是"装着 <code>a</code> 的那个块"</strong>（逐点相同）。</p></div></div><pre class="exercise-statement"><code>theorem equivClass_of_mem (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (A : α → Prop) (hA : P A) (a : α) (ha : A a) :
+    ∀ (c : α), Rel.EquivClass α (Rel.ofPartition α P) a c ↔ A c := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个方向。<span class="math">→</span>：<code>[a] c</code> 就是 <code>a</code>、<code>c</code> 同块 <span class="math">⇒</span> 拆出某块 <code>B</code>（含 <code>a,c</code>）；<code>B</code> 与手上的 <code>A</code>（也含 <code>a</code>）<strong>有公共点 <code>a</code></strong> <span class="math">⇒</span> 由"不交"把 <code>B c</code> 搬成 <code>A c</code>。<span class="math">←</span>：<code>A c</code> 直接给出见证 <code>A</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>P A → A a → ∀ c, Rel.EquivClass α (Rel.ofPartition α P) a c ↔ A c</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>partition_disjoint</code>（<strong>注意方向：<code>B c → A c</code> 用 <code>Iff.mp</code></strong>）<span class="math">·</span><code>Exists.elim</code>/<code>Exists.intro</code>（前导实参写全）<span class="math">·</span> <code>Iff.intro</code>（前导 Prop 实参写全）。</p></div></details></div><details open class="solution-panel" id="sol-26-6"><summary>查看解答 <span class="sol-meta">定理 · 15 行</span></summary><div class="solution-body"><pre><code>theorem equivClass_of_mem (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (A : α → Prop) (hA : P A) (a : α) (ha : A a) :
+    ∀ (c : α), Rel.EquivClass α (Rel.ofPartition α P) a c ↔ A c :=
+  fun (c : α) =&gt;
+    @Iff.intro (Rel.EquivClass α (Rel.ofPartition α P) a c) (A c)
+      (fun (h : Rel.ofPartition α P a c) =&gt;
+        @Exists.elim (α → Prop) (fun (B : α → Prop) =&gt; P B ∧ B a ∧ B c) (A c) h  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+          (fun (B : α → Prop) (hB : P B ∧ B a ∧ B c) =&gt;
+            Iff.mp ((partition_disjoint α P hP B A (And.left hB) hA
+              (Exists.intro a
+                (And.intro (And.left (And.right hB)) ha))) c)
+              (And.right (And.right hB))))
+      (fun (hc : A c) =&gt;
+        Exists.intro A
+          (And.intro hA (And.intro ha hc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全</code></pre></div></details></div></article>
+<article class="exercise" id="ex-26-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">class_is_block</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-26-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类，旗舰之一）：<strong>每个等价类都是块</strong>。</p></div></div><pre class="exercise-statement"><code>theorem class_is_block (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (C : α → Prop) (hC : Rel.Classes α (Rel.ofPartition α P) C) : P C := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆出代表性元 <code>a</code> 与那句逐点刻画；由"覆盖"拿到装着 <code>a</code> 的块 <code>A</code>；于是 <code>A</code> 与 <code>C</code> <strong>逐点相同</strong> —— 但要让"<code>C</code> 属于 <code>P</code>"成立，得<strong>先把它变成集合相等</strong>（用<strong>外延公理</strong> <code>Set.ext</code>），再沿等式把 <code>P A</code> 搬成 <code>P C</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Rel.Classes α (Rel.ofPartition α P) C → P C</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两个 <code>Exists.elim</code>（前导实参写全）<span class="math">·</span> 练习 <span class="math">6 ·</span> <code>Set.ext</code>（<strong>要写全论域</strong>）<span class="math">·</span><code>rel_subst_right</code>（<strong>论域是 <code>α → Prop</code></strong>、关系取"落在第二个参数里"，别把类型写错）。</p></div></details></div><details open class="solution-panel" id="sol-26-7"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem class_is_block (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (C : α → Prop) (hC : Rel.Classes α (Rel.ofPartition α P) C) : P C :=
+  @Exists.elim α (fun (a : α) =&gt; ∀ (c : α), C c ↔ Rel.ofPartition α P a c) (P C)
+    ((fun (hs : ∃ (a : α), ∀ (c : α), C c ↔ Rel.ofPartition α P a c) =&gt; hs) hC)
+    (fun (a : α) (ha : ∀ (c : α), C c ↔ Rel.ofPartition α P a c) =&gt;
+      @Exists.elim (α → Prop) (fun (A : α → Prop) =&gt; P A ∧ A a) (P C)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+        (partition_cover α P hP a)
+        (fun (A : α → Prop) (hA : P A ∧ A a) =&gt;
+          rel_subst_right (α → Prop) (fun (u : α → Prop) (v : α → Prop) =&gt; P v) A A C
+            (Set.ext A C
+              (class_eq_block_core α P hP A C a (And.left hA) (And.right hA) ha))
+            (And.left hA)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-26-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">block_is_class</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-26-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类，旗舰之一）：<strong>每个块都是等价类</strong>。</p></div></div><pre class="exercise-statement"><code>theorem block_is_class (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (C : α → Prop) (hC : P C) : Rel.Classes α (Rel.ofPartition α P) C := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>块<strong>非空</strong> <span class="math">⇒</span> 取一个代表元 <code>a</code>；见证取 <code>a</code>，逐点那一条用练习 6 的<strong>反方向</strong>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>P C → Rel.Classes α (Rel.ofPartition α P) C</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>partition_nonempty</code>（取用子）<span class="math">·</span> <code>Exists.intro</code>（<strong>推断"是某个类"那句展开形态时别走 <code>Iff.mpr</code></strong> —— <strong>G-62 同族</strong>：同字面却判不等，实测）<span class="math">·</span> 练习 6。</p></div></details></div><details open class="solution-panel" id="sol-26-8"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><pre><code>theorem block_is_class (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (C : α → Prop) (hC : P C) : Rel.Classes α (Rel.ofPartition α P) C :=
+  @Exists.elim α (fun (a : α) =&gt; C a) (Rel.Classes α (Rel.ofPartition α P) C)
+    (partition_nonempty α P hP C hC)
+    (fun (a : α) (ha : C a) =&gt;
+      (fun (h : ∃ (b : α), ∀ (c : α), C c ↔ Rel.ofPartition α P b c) =&gt; h)
+        (Exists.intro a
+          (fun (c : α) =&gt;
+            @Iff.intro (C c) (Rel.ofPartition α P a c)
+              (fun (hCc : C c) =&gt;
+                Exists.intro C
+                  (And.intro hC (And.intro ha hCc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+              (fun (hac : Rel.ofPartition α P a c) =&gt;
+                Iff.mp (equivClass_of_mem α P hP C hC a ha c) hac))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-26-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">classes_iff_blocks</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-26-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（D 类）：<strong>对应定理</strong>：等价类族<strong>恰好</strong>是划分的块（练习 7 与练习 8 合成一条 <code>↔</code>）。</p></div></div><pre class="exercise-statement"><code>theorem classes_iff_blocks (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (C : α → Prop) : Rel.Classes α (Rel.ofPartition α P) C ↔ P C := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个方向分别就是练习 7 与练习 8。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Rel.Classes α (Rel.ofPartition α P) C ↔ P C</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 <span class="math">7 ·</span> 练习 <span class="math">8 ·</span> <code>Iff.intro</code>（前导 Prop 实参写全）。</p></div></details></div><details open class="solution-panel" id="sol-26-9"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem classes_iff_blocks (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (C : α → Prop) : Rel.Classes α (Rel.ofPartition α P) C ↔ P C :=
+  @Iff.intro (Rel.Classes α (Rel.ofPartition α P) C) (P C)
+    (fun (h : Rel.Classes α (Rel.ofPartition α P) C) =&gt; class_is_block α P hP C h)
+    (fun (h : P C) =&gt; block_is_class α P hP C h)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">26.4 往返：<strong>从等价关系造划分、再回去，得到原关系</strong></h3><article class="exercise" id="ex-26-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">ofPartition_of_classes</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-26-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（D 类，本单元收尾）：<strong>往返恒等</strong> —— 用单元㉕ 的等价类族当划分，再造出关系，得到的正是原来的关系。</p></div></div><pre class="exercise-statement"><code>theorem ofPartition_of_classes (α : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (a b : α) : Rel.ofPartition α (Rel.Classes α r) a b ↔ r a b := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：<code>a</code>、<code>b</code> 同在某块 <code>C</code> 里，而 <code>C</code> 是某个点 <code>x</code> 的等价类 <span class="math">⇒</span> <code>r x a</code> 且 <code>r x b</code> <span class="math">⇒</span> 把第一个<strong>掉头</strong>成 <code>r a x</code>，再与第二个<strong>接起来</strong>得 <code>r a b</code>。<span class="math">←</span>：<code>r a b</code> 时见证取 <code>[a]</code> 本身（它是个类、"<code>a</code> 在里面"、<code>b</code> 也在里面）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Rel.ofPartition α (Rel.Classes α r) a b ↔ r a b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code>（前导 Prop 实参写全）<span class="math">·</span> <code>Exists.elim</code>/<code>Exists.intro</code>（前导实参写全）<span class="math">·</span>对称与传递的取用子（<strong>先 <span class="math">λ</span> 绑定</strong>，注意 <code>trans a x b</code> 要 <code>r a x</code> 配 <code>r x b</code>）<span class="math">·</span> 自反。</p></div></details></div><details open class="solution-panel" id="sol-26-10"><summary>查看解答 <span class="sol-meta">定理 · 26 行</span></summary><div class="solution-body"><pre><code>theorem ofPartition_of_classes (α : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (a b : α) : Rel.ofPartition α (Rel.Classes α r) a b ↔ r a b :=
+  @Iff.intro (Rel.ofPartition α (Rel.Classes α r) a b) (r a b)
+    (fun (h : Rel.ofPartition α (Rel.Classes α r) a b) =&gt;
+      @Exists.elim (α → Prop) (fun (C : α → Prop) =&gt; Rel.Classes α r C ∧ C a ∧ C b)
+        (r a b) h
+        (fun (C : α → Prop) (hC : Rel.Classes α r C ∧ C a ∧ C b) =&gt;
+          @Exists.elim α (fun (x : α) =&gt; ∀ (c : α), C c ↔ r x c) (r a b)
+            ((fun (hs : ∃ (x : α), ∀ (c : α), C c ↔ r x c) =&gt; hs) (And.left hC))
+            (fun (x : α) (hx : ∀ (c : α), C c ↔ r x c) =&gt;
+              (fun (hxa : r x a) =&gt;
+                (fun (hxb : r x b) =&gt;
+                  (fun (ht : ∀ (p : α) (q : α) (s : α), r p q → r q s → r p s) =&gt;
+                    ht a x b ((fun (hs : ∀ (p : α) (q : α), r p q → r q p) =&gt; hs x a hxa)
+                      (equivalence_symm α r he)) hxb) (equivalence_trans α r he))
+                  (Iff.mp (hx b) (And.right (And.right hC))))
+                (Iff.mp (hx a) (And.left (And.right hC))))))
+    (fun (hab : r a b) =&gt;
+      Exists.intro (Rel.EquivClass α r a)
+        (And.intro
+          ((fun (h : ∃ (x : α), ∀ (c : α), Rel.EquivClass α r a c ↔ r x c) =&gt; h)
+            (Exists.intro a
+              (fun (c : α) =&gt; @Iff.intro (Rel.EquivClass α r a c) (r a c)
+                (fun (h : Rel.EquivClass α r a c) =&gt; h) (fun (h : r a c) =&gt; h))))
+          (And.intro
+            ((fun (hu : ∀ (x : α), r x x) =&gt; hu a) (equivalence_refl α r he)) hab)))</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（2 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Rel</code>（划分与"同块"关系）<span class="math">·</span> <code>lib.Order</code>（等价关系）<span class="math">·</span> <code>lib.Set</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㉕（等价关系与划分）与单元㉔（关系闭包）—— 本单元把对应定理补全。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit25.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">等价关系与划分</span></a><a class="unit-nav-home" href="../chapters/i-10.html#units">目录</a><a class="unit-nav-link" href="../units/unit27.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">商类型与良定义性</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-26"><h3><a href="#top">划分：等价关系的反方向</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答 · 1 个解答独有声明</p><details open class="appendix-solution" id="app-sol-26-1"><summary>练习 1 · mem_ofPartition <span class="sol-meta">定理</span></summary><pre><code>theorem mem_ofPartition (α : Type) (P : (α → Prop) → Prop) (a b : α) :
+    Rel.ofPartition α P a b ↔ ∃ (A : α → Prop), P A ∧ A a ∧ A b :=
+  Rel.ofPartition_apply α P a b</code></pre></details><details open class="appendix-solution" id="app-sol-26-2"><summary>练习 2 · ofPartition_refl <span class="sol-meta">定理</span></summary><pre><code>theorem ofPartition_refl (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (a : α) : Rel.ofPartition α P a a :=
+  @Exists.elim (α → Prop) (fun (A : α → Prop) =&gt; P A ∧ A a)
+    (Rel.ofPartition α P a a)
+    (partition_cover α P hP a)
+    (fun (A : α → Prop) (hA : P A ∧ A a) =&gt;
+      Exists.intro A
+        (And.intro (And.left hA)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+          (And.intro (And.right hA) (And.right hA))))</code></pre></details><details open class="appendix-solution" id="app-sol-26-3"><summary>练习 3 · ofPartition_symm <span class="sol-meta">定理</span></summary><pre><code>theorem ofPartition_symm (α : Type) (P : (α → Prop) → Prop) (a b : α)
+    (h : Rel.ofPartition α P a b) : Rel.ofPartition α P b a :=
+  @Exists.elim (α → Prop) (fun (A : α → Prop) =&gt; P A ∧ A a ∧ A b)
+    (Rel.ofPartition α P b a) h
+    (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =&gt;
+      Exists.intro A
+        (And.intro (And.left hA)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+          (And.intro (And.right (And.right hA)) (And.left (And.right hA)))))</code></pre></details><details open class="appendix-solution" id="app-sol-26-4"><summary>练习 4 · ofPartition_trans <span class="sol-meta">定理</span></summary><pre><code>theorem ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (a b c : α) (hab : Rel.ofPartition α P a b) (hbc : Rel.ofPartition α P b c) :
+    Rel.ofPartition α P a c :=
+  @Exists.elim (α → Prop) (fun (A : α → Prop) =&gt; P A ∧ A a ∧ A b)
+    (Rel.ofPartition α P a c) hab
+    (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =&gt;
+      @Exists.elim (α → Prop) (fun (B : α → Prop) =&gt; P B ∧ B b ∧ B c)
+        (Rel.ofPartition α P a c) hbc
+        (fun (B : α → Prop) (hB : P B ∧ B b ∧ B c) =&gt;
+          (fun (hAB : ∀ (d : α), A d ↔ B d) =&gt;
+            @Exists.intro (α → Prop) (fun (A' : α → Prop) =&gt; P A' ∧ A' a ∧ A' c) A  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+              (And.intro (And.left hA)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+                (And.intro (And.left (And.right hA))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+                  (Iff.mpr (hAB c) (And.right (And.right hB))))))
+            (partition_disjoint α P hP A B (And.left hA) (And.left hB)
+              (Exists.intro b
+                (And.intro (And.right (And.right hA)) (And.left (And.right hB)))))))</code></pre></details><details open class="appendix-solution" id="app-sol-26-5"><summary>练习 5 · equivalence_ofPartition <span class="sol-meta">定理</span></summary><pre><code>theorem equivalence_ofPartition (α : Type) (P : (α → Prop) → Prop)
+    (hP : Rel.Partition α P) : IsEquivalence α (Rel.ofPartition α P) :=
+  isEquivalence_intro α (Rel.ofPartition α P)
+    (fun (a : α) =&gt; ofPartition_refl α P hP a)
+    (fun (a : α) (b : α) (h : Rel.ofPartition α P a b) =&gt; ofPartition_symm α P a b h)
+    (fun (a : α) (b : α) (c : α) (hab : Rel.ofPartition α P a b)
+      (hbc : Rel.ofPartition α P b c) =&gt; ofPartition_trans α P hP a b c hab hbc)</code></pre></details><details open class="appendix-solution" id="app-sol-26-6"><summary>练习 6 · equivClass_of_mem <span class="sol-meta">定理</span></summary><pre><code>theorem equivClass_of_mem (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (A : α → Prop) (hA : P A) (a : α) (ha : A a) :
+    ∀ (c : α), Rel.EquivClass α (Rel.ofPartition α P) a c ↔ A c :=
+  fun (c : α) =&gt;
+    @Iff.intro (Rel.EquivClass α (Rel.ofPartition α P) a c) (A c)
+      (fun (h : Rel.ofPartition α P a c) =&gt;
+        @Exists.elim (α → Prop) (fun (B : α → Prop) =&gt; P B ∧ B a ∧ B c) (A c) h  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+          (fun (B : α → Prop) (hB : P B ∧ B a ∧ B c) =&gt;
+            Iff.mp ((partition_disjoint α P hP B A (And.left hB) hA
+              (Exists.intro a
+                (And.intro (And.left (And.right hB)) ha))) c)
+              (And.right (And.right hB))))
+      (fun (hc : A c) =&gt;
+        Exists.intro A
+          (And.intro hA (And.intro ha hc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全</code></pre></details><details open class="appendix-solution" id="app-sol-26-7"><summary>练习 7 · class_is_block <span class="sol-meta">定理</span></summary><pre><code>theorem class_is_block (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (C : α → Prop) (hC : Rel.Classes α (Rel.ofPartition α P) C) : P C :=
+  @Exists.elim α (fun (a : α) =&gt; ∀ (c : α), C c ↔ Rel.ofPartition α P a c) (P C)
+    ((fun (hs : ∃ (a : α), ∀ (c : α), C c ↔ Rel.ofPartition α P a c) =&gt; hs) hC)
+    (fun (a : α) (ha : ∀ (c : α), C c ↔ Rel.ofPartition α P a c) =&gt;
+      @Exists.elim (α → Prop) (fun (A : α → Prop) =&gt; P A ∧ A a) (P C)  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+        (partition_cover α P hP a)
+        (fun (A : α → Prop) (hA : P A ∧ A a) =&gt;
+          rel_subst_right (α → Prop) (fun (u : α → Prop) (v : α → Prop) =&gt; P v) A A C
+            (Set.ext A C
+              (class_eq_block_core α P hP A C a (And.left hA) (And.right hA) ha))
+            (And.left hA)))</code></pre></details><details open class="appendix-solution" id="app-sol-26-8"><summary>练习 8 · block_is_class <span class="sol-meta">定理</span></summary><pre><code>theorem block_is_class (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (C : α → Prop) (hC : P C) : Rel.Classes α (Rel.ofPartition α P) C :=
+  @Exists.elim α (fun (a : α) =&gt; C a) (Rel.Classes α (Rel.ofPartition α P) C)
+    (partition_nonempty α P hP C hC)
+    (fun (a : α) (ha : C a) =&gt;
+      (fun (h : ∃ (b : α), ∀ (c : α), C c ↔ Rel.ofPartition α P b c) =&gt; h)
+        (Exists.intro a
+          (fun (c : α) =&gt;
+            @Iff.intro (C c) (Rel.ofPartition α P a c)
+              (fun (hCc : C c) =&gt;
+                Exists.intro C
+                  (And.intro hC (And.intro ha hCc)))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+              (fun (hac : Rel.ofPartition α P a c) =&gt;
+                Iff.mp (equivClass_of_mem α P hP C hC a ha c) hac))))</code></pre></details><details open class="appendix-solution" id="app-sol-26-9"><summary>练习 9 · classes_iff_blocks <span class="sol-meta">定理</span></summary><pre><code>theorem classes_iff_blocks (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (C : α → Prop) : Rel.Classes α (Rel.ofPartition α P) C ↔ P C :=
+  @Iff.intro (Rel.Classes α (Rel.ofPartition α P) C) (P C)
+    (fun (h : Rel.Classes α (Rel.ofPartition α P) C) =&gt; class_is_block α P hP C h)
+    (fun (h : P C) =&gt; block_is_class α P hP C h)</code></pre></details><details open class="appendix-solution" id="app-sol-26-10"><summary>练习 10 · ofPartition_of_classes <span class="sol-meta">定理</span></summary><pre><code>theorem ofPartition_of_classes (α : Type) (r : Rel α α) (he : IsEquivalence α r)
+    (a b : α) : Rel.ofPartition α (Rel.Classes α r) a b ↔ r a b :=
+  @Iff.intro (Rel.ofPartition α (Rel.Classes α r) a b) (r a b)
+    (fun (h : Rel.ofPartition α (Rel.Classes α r) a b) =&gt;
+      @Exists.elim (α → Prop) (fun (C : α → Prop) =&gt; Rel.Classes α r C ∧ C a ∧ C b)
+        (r a b) h
+        (fun (C : α → Prop) (hC : Rel.Classes α r C ∧ C a ∧ C b) =&gt;
+          @Exists.elim α (fun (x : α) =&gt; ∀ (c : α), C c ↔ r x c) (r a b)
+            ((fun (hs : ∃ (x : α), ∀ (c : α), C c ↔ r x c) =&gt; hs) (And.left hC))
+            (fun (x : α) (hx : ∀ (c : α), C c ↔ r x c) =&gt;
+              (fun (hxa : r x a) =&gt;
+                (fun (hxb : r x b) =&gt;
+                  (fun (ht : ∀ (p : α) (q : α) (s : α), r p q → r q s → r p s) =&gt;
+                    ht a x b ((fun (hs : ∀ (p : α) (q : α), r p q → r q p) =&gt; hs x a hxa)
+                      (equivalence_symm α r he)) hxb) (equivalence_trans α r he))
+                  (Iff.mp (hx b) (And.right (And.right hC))))
+                (Iff.mp (hx a) (And.left (And.right hC))))))
+    (fun (hab : r a b) =&gt;
+      Exists.intro (Rel.EquivClass α r a)
+        (And.intro
+          ((fun (h : ∃ (x : α), ∀ (c : α), Rel.EquivClass α r a c ↔ r x c) =&gt; h)
+            (Exists.intro a
+              (fun (c : α) =&gt; @Iff.intro (Rel.EquivClass α r a c) (r a c)
+                (fun (h : Rel.EquivClass α r a c) =&gt; h) (fun (h : r a c) =&gt; h))))
+          (And.intro
+            ((fun (hu : ∀ (x : α), r x x) =&gt; hu a) (equivalence_refl α r he)) hab)))</code></pre></details><details open class="appendix-solution" id="app-extra-26-1"><summary>补充 · class_eq_block_core <span class="sol-meta">定理</span></summary><pre><code>theorem class_eq_block_core (α : Type) (P : (α → Prop) → Prop) (hP : Rel.Partition α P)
+    (A C : α → Prop) (a : α) (hA : P A) (ha : A a)
+    (hC : ∀ (c : α), C c ↔ Rel.ofPartition α P a c) : ∀ (c : α), A c ↔ C c :=
+  fun (c : α) =&gt;
+    @Iff.intro (A c) (C c)
+      (fun (hAc : A c) =&gt;
+        Iff.mpr (hC c)
+          (Exists.intro A
+            (And.intro hA (And.intro ha hAc))))  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头/嵌套时前导实参必须写全
+      (fun (hCc : C c) =&gt; Iff.mp (equivClass_of_mem α P hP A hA a ha c) (Iff.mp (hC c) hCc))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

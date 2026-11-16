@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 21 集族与广义并交</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit21.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 21 集族与广义并交</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit21.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.9 集族、广义积与 n 元关系 · 单元 21</p><h1>集族与广义并交</h1><p class="note">Unit 21 — Families, Arbitrary Unions and Intersections</p></header><section class="unit first-of-chapter" id="unit-21">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-9.html">I.9</a> · 本章第 1 / 3 单元 · 全书第 21 / 112 单元</p>
+<h2><span class="unit-number">21</span><span>集族与广义并交</span></h2>
+<p class="unit-title-en">Unit 21 — Families, Arbitrary Unions and Intersections</p>
+<p class="unit-meta">13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-21">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Enderton《Elements of Set Theory》<strong>§2.2 Arbitrary Unions and Intersections</strong>；Halmos《Naive Set Theory》<strong>§9 Families</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.9 章第一个单元）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：<strong>广义并/交的成员刻画</strong>（存在 vs 全称）<span class="math">·</span><strong>两条刻画定理</strong>（<code>⋃₀ F ⊆ B</code> <span class="math">⟺</span> 族里每个 <code>A</code> 都 <code>⊆ B</code>；<code>B ⊆ ⋂₀ F</code> <span class="math">⟺</span> 族里每个 <code>A</code> 都 <code>⊇ B</code>）<span class="math">·</span><strong>单调 / 反单调</strong>（<code>F ⊆ G</code> 时 <code>⋃₀</code> 单调、<code>⋂₀</code> <strong>反</strong>单调 —— 这是本单元最反直觉的一条）。</p></div><div class="block prose intuition-only"><p><strong>写法约定（本单元特有）</strong>：目标几乎全是 <code>X ⊆ Y</code>（<strong>定义头</strong>）<span class="math">⇒</span> 一律 <code>fun (x : α) (hx : x ∈ X) =&gt; …</code> 起手；而"把 <code>⊆</code> 假设当函数用"要先 <code>fun (hs : ∀ z, z ∈ X → z ∈ Y) =&gt; …</code> 把类型写出来（G-73 形状 ①）。<code>Set.subset_sUnion</code> / <code>Set.sInter_subset</code> 的结论在库里写成<strong>展开形态</strong>（<code>∃</code>/<code>∀</code>），因为期望类型是 <code>Set.sUnion</code> 这个定义头时构造子解析不出来（见 <code>lib/SUnion</code> 的注释）✓</p></div><h3 class="unit-subhead">21.1 两个定义：<code>⋃₀ F</code> 与 <code>⋂₀ F</code></h3><div class="block prose intuition-only"><p>读法（对偶）：<code>⋃₀ F</code> 是"<strong>存在</strong>一个 <code>A ∈ F</code> 装得下 <code>x</code>"；<code>⋂₀ F</code> 是"<strong>每个</strong> <code>A ∈ F</code> 都装得下 <code>x</code>" —— 存在 vs 全称，广义并交的一切都从这儿来 ✓</p></div><div class="block prose intuition-only"><p>演示：广义并的成员刻画。</p></div><article class="decl decl-theorem" id="decl-21-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_sUnion_iff</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_sUnion_iff (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (⋃₀ F) ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_sUnion_iff α F x</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：广义交的成员刻画。</p></div><article class="decl decl-theorem" id="decl-21-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_sInter_iff</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_sInter_iff (α : Type) (F : Set (Set α)) (x : α) :
+    x ∈ (⋂₀ F) ↔ ∀ (A : Set α), A ∈ F → x ∈ A :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_sInter_iff α F x</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：族里的每个 <code>A</code> 都装进 <code>⋃₀ F</code>（库里写成展开形态）。</p></div><article class="decl decl-theorem" id="decl-21-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_subset_sUnion</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_subset_sUnion (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F) :
+    ∀ (x : α), x ∈ A → ∃ (B : Set α), B ∈ F ∧ x ∈ B :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.subset_sUnion α F A h</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-21-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">subset_sUnion_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-21-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：<strong>族里的 <code>A</code> 都包含在广义并里</strong>（把库引理用在具体的点上）。</p></div></div><pre class="exercise-statement"><code>theorem subset_sUnion_apply (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F)
+    (x : α) (hx : x ∈ A) : x ∈ (⋃₀ F) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>库里的 <code>Set.subset_sUnion</code> 就是这条（注意它的结论是展开形态的 <code>∃</code>）；参数按顺序给：族 <span class="math">·</span> 那个 <code>A</code> <span class="math">·</span> <code>A ∈ F</code> <span class="math">·</span> 元素 <span class="math">·</span> 元素在 <code>A</code> 里。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>x ∈ A → x ∈ (⋃₀ F)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.subset_sUnion</code>（返回的是 <code>∃</code>，与 <code>x ∈ ⋃₀ F</code> 定义相等）。</p></div></details></div><details open class="solution-panel" id="sol-21-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem subset_sUnion_apply (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F)
+    (x : α) (hx : x ∈ A) : x ∈ (⋃₀ F) :=
+  Set.subset_sUnion α F A h x hx</code></pre></div></details></div></article>
+<article class="exercise" id="ex-21-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">sInter_subset_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-21-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>广义交包含在族里的每个 <code>A</code> 里</strong>（与练习 1 对偶）。</p></div></div><pre class="exercise-statement"><code>theorem sInter_subset_apply (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F) :
+    (⋂₀ F) ⊆ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>库里现成的，直接交出去。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(⋂₀ F) ⊆ A</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.sInter_subset</code>。</p></div></details></div><details open class="solution-panel" id="sol-21-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem sInter_subset_apply (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F) :
+    (⋂₀ F) ⊆ A :=
+  Set.sInter_subset α F A h</code></pre></div></details></div></article>
+<h3 class="unit-subhead">21.2 本单元旗舰：<strong>两条刻画定理</strong></h3><article class="exercise" id="ex-21-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">sUnion_subset_elim</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-21-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><code>⋃₀ F ⊆ B</code> <span class="math">⟺</span> 族里每个 <code>A</code> 都 <code>⊆ B</code>（<strong>存在</strong>那一侧：把见证喂进去）<code>B ⊆ ⋂₀ F</code> <span class="math">⟺</span> 族里每个 <code>A</code> 都 <code>⊇ B</code>（<strong>全称</strong>那一侧：把假设喂给每个成员）</p></div><div class="block prose intuition-only"><p>练习 3（L 类）：<strong>从"广义并包含于 <code>B</code>"读出族里每个成员都包含于 <code>B</code></strong>。</p></div></div><pre class="exercise-statement"><code>theorem sUnion_subset_elim (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : (⋃₀ F) ⊆ B) (A : Set α) (hA : A ∈ F) : A ⊆ B := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>任取 <code>A ∈ F</code> 与 <code>x ∈ A</code>；由练习 1 得 <code>x ∈ ⋃₀ F</code>，再由假设送到 <code>B</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(⋃₀ F) ⊆ B → A ∈ F → A ⊆ B</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 <span class="math">1 ·</span> 那条 <code>⊆</code> 假设（<strong>先 <span class="math">λ</span> 绑定</strong>，G-73 形状 ①）。</p></div></details></div><details open class="solution-panel" id="sol-21-3"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem sUnion_subset_elim (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : (⋃₀ F) ⊆ B) (A : Set α) (hA : A ∈ F) : A ⊆ B :=
+  fun (x : α) (hx : x ∈ A) =&gt;
+    (fun (hs : ∀ (y : α), y ∈ (⋃₀ F) → y ∈ B) =&gt; hs x (Set.subset_sUnion α F A hA x hx)) h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-21-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">sUnion_subset_intro</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-21-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，旗舰）：<strong>反过来</strong> —— 族里每个成员都包含于 <code>B</code>，则广义并也包含于 <code>B</code>。</p></div></div><pre class="exercise-statement"><code>theorem sUnion_subset_intro (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : ∀ (A : Set α), A ∈ F → A ⊆ B) : (⋃₀ F) ⊆ B := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>x ∈ ⋃₀ F</code> 读成"存在 <code>A ∈ F</code> 且 <code>x ∈ A</code>"（存在量化：<strong>拆开它</strong>），把那个 <code>A</code> 的包含关系用上。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ A, A ∈ F → A ⊆ B) → (⋃₀ F) ⊆ B</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_sUnion_iff</code>（<strong>正向</strong>：<code>Iff.mp</code>）<span class="math">·</span> <code>Exists.elim</code>（<strong>前导实参写全</strong>，G-73 形状 ②）<span class="math">·</span> <code>And.left</code>/<code>And.right</code> <span class="math">·</span> 最后把 <code>A ⊆ B</code>（定义头）<span class="math">λ</span> 绑定后应用。</p></div></details></div><details open class="solution-panel" id="sol-21-4"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem sUnion_subset_intro (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : ∀ (A : Set α), A ∈ F → A ⊆ B) : (⋃₀ F) ⊆ B :=
+  fun (x : α) (hx : x ∈ (⋃₀ F)) =&gt;
+    (fun (hx' : ∃ (A : Set α), A ∈ F ∧ x ∈ A) =&gt;
+      @Exists.elim (Set α) (fun (A : Set α) =&gt; A ∈ F ∧ x ∈ A) (x ∈ B) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+        (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) =&gt;
+          (fun (hAB : A ⊆ B) =&gt; (fun (hu : ∀ (y : α), y ∈ A → y ∈ B) =&gt; hu x (And.right hA)) hAB)
+            (h A (And.left hA)))) hx</code></pre></div></details></div></article>
+<article class="exercise" id="ex-21-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">subset_sInter_elim</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-21-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：<strong>从"<code>B</code> 包含于广义交"读出每个成员都包含 <code>B</code></strong>（练习 3 的对偶）。</p></div></div><pre class="exercise-statement"><code>theorem subset_sInter_elim (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : B ⊆ (⋂₀ F)) (A : Set α) (hA : A ∈ F) : B ⊆ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>任取 <code>A ∈ F</code> 与 <code>x ∈ B</code>；由假设得 <code>x ∈ ⋂₀ F</code>，而它在 <code>F</code> 的<strong>每个</strong>成员里—— 把 <code>A ∈ F</code> 喂进去。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>B ⊆ (⋂₀ F) → A ∈ F → B ⊆ A</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>那条 <code>⊆</code> 假设（先 <span class="math">λ</span> 绑定）<span class="math">·</span> <code>⋂₀</code> 的<strong>展开形态是一个 <code>∀</code></strong> ——目标 <code>x ∈ ⋂₀ F</code> 可以直接用"给我 <code>A</code>、给我 <code>A ∈ F</code>"的 <span class="math">λ</span> 交付（它定义相等）。</p></div></details></div><details open class="solution-panel" id="sol-21-5"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem subset_sInter_elim (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : B ⊆ (⋂₀ F)) (A : Set α) (hA : A ∈ F) : B ⊆ A :=
+  fun (x : α) (hx : x ∈ B) =&gt;
+    (fun (hs : ∀ (y : α), y ∈ B → y ∈ (⋂₀ F)) =&gt;
+      (fun (hxB : x ∈ (⋂₀ F)) =&gt;
+        (fun (hu : ∀ (C : Set α), C ∈ F → x ∈ C) =&gt; hu A hA) hxB) (hs x hx)) h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-21-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">subset_sInter_intro</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-21-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类，旗舰）：<strong>反过来</strong> —— 族里每个成员都包含 <code>B</code>，则广义交也包含 <code>B</code>。</p></div></div><pre class="exercise-statement"><code>theorem subset_sInter_intro (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : ∀ (A : Set α), A ∈ F → B ⊆ A) : B ⊆ (⋂₀ F) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要证 <code>x ∈ ⋂₀ F</code>，展开形态是"<strong>每个</strong> <code>A ∈ F</code> 都有 <code>x ∈ A</code>" ——交出一个 <span class="math">λ</span>，逐个 <code>A</code> 用假设。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ A, A ∈ F → B ⊆ A) → B ⊆ (⋂₀ F)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>⋂₀</code> 的展开形态（一个 <code>∀</code>，可以直接当目标交付）<span class="math">·</span> 逐个成员 <span class="math">λ</span> 绑定后应用。</p></div></details></div><details open class="solution-panel" id="sol-21-6"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem subset_sInter_intro (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : ∀ (A : Set α), A ∈ F → B ⊆ A) : B ⊆ (⋂₀ F) :=
+  fun (x : α) (hx : x ∈ B) =&gt;
+    (fun (hs : ∀ (A : Set α), A ∈ F → x ∈ A) =&gt; hs)
+      (fun (A : Set α) (hA : A ∈ F) =&gt;
+        (fun (hBA : B ⊆ A) =&gt; (fun (hu : ∀ (y : α), y ∈ B → y ∈ A) =&gt; hu x hx) hBA) (h A hA))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">21.3 单调与<strong>反</strong>单调</h3><article class="exercise" id="ex-21-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">sUnion_mono</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-21-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类）：<strong>广义并对族是单调的</strong> —— 族变大，并变大。</p></div></div><pre class="exercise-statement"><code>theorem sUnion_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) : (⋃₀ F) ⊆ (⋃₀ G) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>x ∈ ⋃₀ F</code> 拆出一个见证 <code>A ∈ F</code> 且 <code>x ∈ A</code>；<code>A</code> 也在 <code>G</code> 里（族包含），于是同一个 <code>A</code> 就是 <code>⋃₀ G</code> 的见证。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>F ⊆ G → (⋃₀ F) ⊆ (⋃₀ G)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_sUnion_iff</code>（正向）<span class="math">·</span> <code>Exists.elim</code>/<code>Exists.intro</code>（前导实参写全）<span class="math">·</span>族包含假设（先 <span class="math">λ</span> 绑定）<span class="math">·</span> <code>Set.subset_sUnion</code>。</p></div></details></div><details open class="solution-panel" id="sol-21-7"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem sUnion_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) : (⋃₀ F) ⊆ (⋃₀ G) :=
+  fun (x : α) (hx : x ∈ (⋃₀ F)) =&gt;
+    (fun (hx' : ∃ (A : Set α), A ∈ F ∧ x ∈ A) =&gt;
+      @Exists.elim (Set α) (fun (A : Set α) =&gt; A ∈ F ∧ x ∈ A) (x ∈ (⋃₀ G)) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+        (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) =&gt;
+          Set.subset_sUnion α G A
+            ((fun (hu : ∀ (C : Set α), C ∈ F → C ∈ G) =&gt; hu A (And.left hA)) h) x (And.right hA)))
+      hx</code></pre></div></details></div></article>
+<article class="exercise" id="ex-21-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">sInter_anti</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-21-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（D 类，本单元最反直觉的一条）：<strong>广义交对族是"反"单调的</strong> ——族变大，交变<strong>小</strong>（成员越多，能同时落在所有成员里的点越少）。</p></div></div><pre class="exercise-statement"><code>theorem sInter_anti (α : Type) (F G : Set (Set α)) (h : F ⊆ G) : (⋂₀ G) ⊆ (⋂₀ F) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>任取 <code>x ∈ ⋂₀ G</code>（它在 <code>G</code> 的<strong>每个</strong>成员里）；要证它在 <code>F</code> 的每个成员里—— 而 <code>F</code> 的成员都是 <code>G</code> 的成员，喂给假设即可。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>F ⊆ G → (⋂₀ G) ⊆ (⋂₀ F)</code>（<strong>注意方向与练习 7 相反</strong>）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>⋂₀</code> 的展开形态（两侧都是 <code>∀</code>）<span class="math">·</span> 族包含假设（先 <span class="math">λ</span> 绑定）<span class="math">·</span>把 <code>G</code> 那一侧的全称当成函数用。</p></div></details></div><details open class="solution-panel" id="sol-21-8"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem sInter_anti (α : Type) (F G : Set (Set α)) (h : F ⊆ G) : (⋂₀ G) ⊆ (⋂₀ F) :=
+  fun (x : α) (hx : x ∈ (⋂₀ G)) =&gt;
+    (fun (hs : ∀ (A : Set α), A ∈ F → x ∈ A) =&gt; hs)
+      (fun (A : Set α) (hA : A ∈ F) =&gt;
+        (fun (hu : ∀ (C : Set α), C ∈ G → x ∈ C) =&gt; hu A
+          ((fun (hv : ∀ (C : Set α), C ∈ F → C ∈ G) =&gt; hv A hA) h)) hx)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">21.4 必破：<strong>空族与非空族</strong></h3><article class="exercise" id="ex-21-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">sInter_subset_sUnion</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-21-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（L 类）：<strong>非空族的交包含在并里</strong>（空族时<strong>不成立</strong> —— 所以"非空"这条假设不能省）。</p></div></div><pre class="exercise-statement"><code>theorem sInter_subset_sUnion (α : Type) (F : Set (Set α)) (h : ∃ (A : Set α), A ∈ F) :
+    (⋂₀ F) ⊆ (⋃₀ F) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>从"非空"里取一个成员 <code>A</code>：交里的点都在 <code>A</code> 里（练习 2），而 <code>A</code> 里的点都在并里（练习 1）—— 接起来。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∃ A, A ∈ F) → (⋂₀ F) ⊆ (⋃₀ F)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>（前导实参写全）<span class="math">·</span> 练习 <span class="math">2 ·</span> 练习 <span class="math">1 ·</span> <code>⋂₀</code> 展开形态当函数用。</p></div></details></div><details open class="solution-panel" id="sol-21-9"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem sInter_subset_sUnion (α : Type) (F : Set (Set α)) (h : ∃ (A : Set α), A ∈ F) :
+    (⋂₀ F) ⊆ (⋃₀ F) :=
+  fun (x : α) (hx : x ∈ (⋂₀ F)) =&gt;
+    @Exists.elim (Set α) (fun (A : Set α) =&gt; A ∈ F) (x ∈ (⋃₀ F)) h  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+      (fun (A : Set α) (hA : A ∈ F) =&gt;
+        Set.subset_sUnion α F A hA x
+          ((fun (hs : ∀ (C : Set α), C ∈ F → x ∈ C) =&gt; hs A hA) hx))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-21-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">sUnion_empty</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-21-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（D 类）：<strong>空族的并是空的</strong> —— 并里的点必须由某个成员见证，而空族没有成员。</p></div></div><pre class="exercise-statement"><code>theorem sUnion_empty (α : Type) : (⋃₀ (fun (A : Set α) =&gt; False)) ⊆ ∅ :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆开 <code>x ∈ ⋃₀ ∅</code> 得到"存在 <code>A ∈ ∅</code> 且 <code>x ∈ A</code>"，而 <code>A ∈ ∅</code> 本身就不可能。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>空族的并包含于空集（<strong>注意</strong>：<code>⋃₀</code> <strong>里面</strong>推不出空集的类型参数 <span class="math">⇒</span> 空族那一处写成"恒假的谓词" <code>fun (A : Set α) =&gt; False</code> —— 它就是空集，但类型当场可读 ✓）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_sUnion_iff</code>（正向）<span class="math">·</span> <code>Exists.elim</code>（前导实参写全）<span class="math">·</span><code>Set.notMem_empty</code> <span class="math">·</span> <code>False.elim</code>（<strong>隐式结论 <code>C</code> 补不出来时要写全</strong>，G-73 形状 ②）。</p></div></details></div><details open class="solution-panel" id="sol-21-10"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem sUnion_empty (α : Type) : (⋃₀ (fun (A : Set α) =&gt; False)) ⊆ ∅ :=
+  fun (x : α) (hx : x ∈ (⋃₀ (fun (A : Set α) =&gt; False))) =&gt;
+    (fun (hx' : ∃ (A : Set α), (fun (A' : Set α) =&gt; False) A ∧ x ∈ A) =&gt;
+      @Exists.elim (Set α) (fun (A : Set α) =&gt; (fun (A' : Set α) =&gt; False) A ∧ x ∈ A) (x ∈ ∅) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+        (fun (A : Set α) (hA : (fun (A' : Set α) =&gt; False) A ∧ x ∈ A) =&gt;
+          @False.elim (x ∈ ∅)  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 补不出来，必须写全
+            (And.left hA))) hx</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ 本单元的记法是 <code>⋃₀</code> / <code>⋂₀</code>（Mathlib 同款）。它与单元③ 的<strong>二元</strong> <code>∪</code> / <code>∩</code> 是两回事：二元版吃<strong>两个集合</strong>，广义版吃<strong>一个集合族</strong>（<code>Set (Set α)</code>）✓</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.SUnion</code>（广义并交）<span class="math">·</span> <code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元③（二元并交）与单元⑧（像与原像）—— 本单元把它们抬到"族"这一层。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit113.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">连续统假设（CH）与 Cantor 定理</span></a><a class="unit-nav-home" href="../chapters/i-9.html#units">目录</a><a class="unit-nav-link" href="../units/unit22.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">像、原像与广义并交</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-21"><h3><a href="#top">集族与广义并交</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-21-1"><summary>练习 1 · subset_sUnion_apply <span class="sol-meta">定理</span></summary><pre><code>theorem subset_sUnion_apply (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F)
+    (x : α) (hx : x ∈ A) : x ∈ (⋃₀ F) :=
+  Set.subset_sUnion α F A h x hx</code></pre></details><details open class="appendix-solution" id="app-sol-21-2"><summary>练习 2 · sInter_subset_apply <span class="sol-meta">定理</span></summary><pre><code>theorem sInter_subset_apply (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F) :
+    (⋂₀ F) ⊆ A :=
+  Set.sInter_subset α F A h</code></pre></details><details open class="appendix-solution" id="app-sol-21-3"><summary>练习 3 · sUnion_subset_elim <span class="sol-meta">定理</span></summary><pre><code>theorem sUnion_subset_elim (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : (⋃₀ F) ⊆ B) (A : Set α) (hA : A ∈ F) : A ⊆ B :=
+  fun (x : α) (hx : x ∈ A) =&gt;
+    (fun (hs : ∀ (y : α), y ∈ (⋃₀ F) → y ∈ B) =&gt; hs x (Set.subset_sUnion α F A hA x hx)) h</code></pre></details><details open class="appendix-solution" id="app-sol-21-4"><summary>练习 4 · sUnion_subset_intro <span class="sol-meta">定理</span></summary><pre><code>theorem sUnion_subset_intro (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : ∀ (A : Set α), A ∈ F → A ⊆ B) : (⋃₀ F) ⊆ B :=
+  fun (x : α) (hx : x ∈ (⋃₀ F)) =&gt;
+    (fun (hx' : ∃ (A : Set α), A ∈ F ∧ x ∈ A) =&gt;
+      @Exists.elim (Set α) (fun (A : Set α) =&gt; A ∈ F ∧ x ∈ A) (x ∈ B) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+        (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) =&gt;
+          (fun (hAB : A ⊆ B) =&gt; (fun (hu : ∀ (y : α), y ∈ A → y ∈ B) =&gt; hu x (And.right hA)) hAB)
+            (h A (And.left hA)))) hx</code></pre></details><details open class="appendix-solution" id="app-sol-21-5"><summary>练习 5 · subset_sInter_elim <span class="sol-meta">定理</span></summary><pre><code>theorem subset_sInter_elim (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : B ⊆ (⋂₀ F)) (A : Set α) (hA : A ∈ F) : B ⊆ A :=
+  fun (x : α) (hx : x ∈ B) =&gt;
+    (fun (hs : ∀ (y : α), y ∈ B → y ∈ (⋂₀ F)) =&gt;
+      (fun (hxB : x ∈ (⋂₀ F)) =&gt;
+        (fun (hu : ∀ (C : Set α), C ∈ F → x ∈ C) =&gt; hu A hA) hxB) (hs x hx)) h</code></pre></details><details open class="appendix-solution" id="app-sol-21-6"><summary>练习 6 · subset_sInter_intro <span class="sol-meta">定理</span></summary><pre><code>theorem subset_sInter_intro (α : Type) (F : Set (Set α)) (B : Set α)
+    (h : ∀ (A : Set α), A ∈ F → B ⊆ A) : B ⊆ (⋂₀ F) :=
+  fun (x : α) (hx : x ∈ B) =&gt;
+    (fun (hs : ∀ (A : Set α), A ∈ F → x ∈ A) =&gt; hs)
+      (fun (A : Set α) (hA : A ∈ F) =&gt;
+        (fun (hBA : B ⊆ A) =&gt; (fun (hu : ∀ (y : α), y ∈ B → y ∈ A) =&gt; hu x hx) hBA) (h A hA))</code></pre></details><details open class="appendix-solution" id="app-sol-21-7"><summary>练习 7 · sUnion_mono <span class="sol-meta">定理</span></summary><pre><code>theorem sUnion_mono (α : Type) (F G : Set (Set α)) (h : F ⊆ G) : (⋃₀ F) ⊆ (⋃₀ G) :=
+  fun (x : α) (hx : x ∈ (⋃₀ F)) =&gt;
+    (fun (hx' : ∃ (A : Set α), A ∈ F ∧ x ∈ A) =&gt;
+      @Exists.elim (Set α) (fun (A : Set α) =&gt; A ∈ F ∧ x ∈ A) (x ∈ (⋃₀ G)) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+        (fun (A : Set α) (hA : A ∈ F ∧ x ∈ A) =&gt;
+          Set.subset_sUnion α G A
+            ((fun (hu : ∀ (C : Set α), C ∈ F → C ∈ G) =&gt; hu A (And.left hA)) h) x (And.right hA)))
+      hx</code></pre></details><details open class="appendix-solution" id="app-sol-21-8"><summary>练习 8 · sInter_anti <span class="sol-meta">定理</span></summary><pre><code>theorem sInter_anti (α : Type) (F G : Set (Set α)) (h : F ⊆ G) : (⋂₀ G) ⊆ (⋂₀ F) :=
+  fun (x : α) (hx : x ∈ (⋂₀ G)) =&gt;
+    (fun (hs : ∀ (A : Set α), A ∈ F → x ∈ A) =&gt; hs)
+      (fun (A : Set α) (hA : A ∈ F) =&gt;
+        (fun (hu : ∀ (C : Set α), C ∈ G → x ∈ C) =&gt; hu A
+          ((fun (hv : ∀ (C : Set α), C ∈ F → C ∈ G) =&gt; hv A hA) h)) hx)</code></pre></details><details open class="appendix-solution" id="app-sol-21-9"><summary>练习 9 · sInter_subset_sUnion <span class="sol-meta">定理</span></summary><pre><code>theorem sInter_subset_sUnion (α : Type) (F : Set (Set α)) (h : ∃ (A : Set α), A ∈ F) :
+    (⋂₀ F) ⊆ (⋃₀ F) :=
+  fun (x : α) (hx : x ∈ (⋂₀ F)) =&gt;
+    @Exists.elim (Set α) (fun (A : Set α) =&gt; A ∈ F) (x ∈ (⋃₀ F)) h  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+      (fun (A : Set α) (hA : A ∈ F) =&gt;
+        Set.subset_sUnion α F A hA x
+          ((fun (hs : ∀ (C : Set α), C ∈ F → x ∈ C) =&gt; hs A hA) hx))</code></pre></details><details open class="appendix-solution" id="app-sol-21-10"><summary>练习 10 · sUnion_empty <span class="sol-meta">定理</span></summary><pre><code>theorem sUnion_empty (α : Type) : (⋃₀ (fun (A : Set α) =&gt; False)) ⊆ ∅ :=
+  fun (x : α) (hx : x ∈ (⋃₀ (fun (A : Set α) =&gt; False))) =&gt;
+    (fun (hx' : ∃ (A : Set α), (fun (A' : Set α) =&gt; False) A ∧ x ∈ A) =&gt;
+      @Exists.elim (Set α) (fun (A : Set α) =&gt; (fun (A' : Set α) =&gt; False) A ∧ x ∈ A) (x ∈ ∅) hx'  -- soko:notation-ok: G-73 形状 ②：期望类型是定义头时前导实参必须写全
+        (fun (A : Set α) (hA : (fun (A' : Set α) =&gt; False) A ∧ x ∈ A) =&gt;
+          @False.elim (x ∈ ∅)  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 补不出来，必须写全
+            (And.left hA))) hx</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

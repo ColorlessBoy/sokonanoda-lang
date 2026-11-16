@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>27 商类型与良定义性 · 从集合论到实分析</title>
+<meta name="description" content="单元㉗ 商类型与良定义性：导语、定义与定理、练习与解答。Unit 27 — Quotient Types and Well-Definedness">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit27.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li class="is-current"><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.10 单元</h3><ol><li><a href="../units/unit24.html">24 关系闭包</a></li><li><a href="../units/unit25.html">25 等价关系与划分</a></li><li><a href="../units/unit26.html">26 划分：等价关系的反方向</a></li><li class="is-current"><a href="../units/unit27.html">27 商类型与良定义性</a></li><li><a href="../units/unit43.html">43 等价类与商集的代数刻画</a></li><li><a href="../units/unit76.html">76 像的核关系</a></li><li><a href="../units/unit77.html">77 等价类的代数</a></li><li><a href="../units/unit78.html">78 划分与等价关系的往返</a></li><li><a href="../units/unit79.html">79 商集上的函数（well-defined）</a></li><li><a href="../units/unit84.html">84 商与像的往返</a></li><li><a href="../units/unit85.html">85 商到像的单射性</a></li><li><a href="../units/unit86.html">86 核与复合、单射</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li aria-current="page">单元 27 商类型与良定义性</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-27-1">27.1 商的三件套（三个演示 = 三条内核原语）</a></li>
+<li><a href="#ex-27-1">27.2 良定义性：相关的代表元给同一个值</a></li>
+<li><a href="#ex-27-6">27.3 必破（一）：没有 Quot.exact，单射照样能证（缩回技巧）</a></li>
+<li><a href="#ex-27-7">27.4 必破（二）：恒真关系把一切粘成一点</a></li>
+<li><a href="#ex-27-8">27.5 全称性质：存在下降 + 唯一性（都写成逐点形态 —— 见文件头的边界 ②）</a></li>
+<li><a href="#appendix-unit-27">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-10.html#units">↑ 本章目录</a>
+      <a href="../print/unit27.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-27">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-10.html">I.10</a> · 本章第 4 / 12 单元 · 全书第 27 / 112 单元</p>
+<h1><span class="unit-number">27</span> <span>商类型与良定义性</span></h1>
+<p class="unit-title-en">Unit 27 — Quotient Types and Well-Definedness</p>
+<p class="unit-meta">12 个定理 · 9 道练习 · 27 条提示 · <a href="#appendix-unit-27">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="27" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-27" aria-label="复制单元 27 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit27.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-10.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"（商的三件套 <span class="math">+</span> 它们的用法）：</p></div><details class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li><strong><code>Quot.sound</code></strong>：相关的代表元在商里<strong>相等</strong>；</li><li><strong><code>Quot.lift</code></strong>：<strong>良定义性</strong> —— 想从代表元定义商上的函数，必须证明它"对相关的代表元给同一个值"；证明给出来了，函数就存在（<strong>iota 归约</strong>：算得动 ✓）；</li><li><strong><code>Quot.ind</code></strong>：要证商上<strong>每个</strong>元素都有某性质，只需对代表元证 ✓</li><li><strong>唯一性</strong>（逐点形态，<strong>避开函数外延</strong> —— 本语言没有 funext）✓</li><li><strong>单射可以补救</strong>：没有 <code>Quot.exact</code>（见下），但"按相等作商"时用<strong>缩回技巧</strong>（把 <code>lift</code> 出来的缩回函数作用在等式两边）照样能证单射 ✓</li></ul></details></div></section>
+<h3 class="unit-subhead">27.1 商的三件套（三个演示 <span class="math">=</span> 三条内核原语）</h3><div class="block prose intuition-only"><p>演示：<strong><code>Quot.sound</code></strong> —— 相关的代表元在商里相等。⚠ 这条的<strong>结论是相等命题</strong>，而在这个位置<strong>等号的记法解不出宇宙层级</strong> <span class="math">⇒</span> 必须点名声明星（写全宇宙层级与论域，G-73 形状 ③）。</p></div><article class="decl decl-theorem" id="decl-27-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_quot_sound</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_quot_sound (α : Type) (r : α → α → Prop) (a b : α) (h : r a b) :
+    @Eq.{1} (@Quot.{1} α r) (@Quot.mk.{1} α r a) (@Quot.mk.{1} α r b) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 2 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星</code></pre></li><li><pre><code>  @Quot.sound.{1} α r a b h</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：<strong><code>Quot.lift</code> 的 iota 归约</strong> —— 下降后的函数作用在 <code>mk a</code> 上<strong>算得动</strong>（<code>Eq.refl</code> 就能证 <span class="math">⇒</span> 这正是 ST2 判据的实战检验）。</p></div><article class="decl decl-theorem" id="decl-27-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_quot_lift_iota</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_quot_lift_iota (α β : Type) (r : α → α → Prop) (f : α → β)
+    (h : ∀ (a b : α), r a b → f a = f b) (a : α) :
+    @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r a) = f a :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.refl.{1} β (f a)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：<strong><code>Quot.ind</code></strong> —— 要证商上每个元素都有某性质，只需对代表元证。</p></div><article class="decl decl-theorem" id="decl-27-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_quot_ind</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_quot_ind (α : Type) (r : α → α → Prop) (C : @Quot.{1} α r → Prop)
+    (k : ∀ (a : α), C (@Quot.mk.{1} α r a)) (q : @Quot.{1} α r) : C q :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Quot.ind.{1} α r C k q</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">27.2 良定义性：<strong>相关的代表元给同一个值</strong></h3><article class="exercise" id="ex-27-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">quot_lift_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-27-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（L 类，本单元旗舰之一）：<strong>下降函数在相关代表元上取同一个值</strong>。</p></div></div><pre class="exercise-statement"><code>theorem quot_lift_eq (α β : Type) (r : α → α → Prop) (f : α → β)
+    (h : ∀ (a b : α), r a b → f a = f b) (a b : α) (hab : r a b) :
+    @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r a)
+      = @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r b) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边都<strong>算得动</strong> —— 各自 iota 成 <code>f a</code> 与 <code>f b</code>，而 <code>f a = f b</code> 正是良定义性假设在 <code>a</code>、<code>b</code> 上的实例 <span class="math">⇒</span> <strong>一行</strong>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>lift f h (mk a) = lift f h (mk b)</code>（假设 <code>r a b</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>良定义性假设 <code>h</code>（三条实参：<code>a</code> <span class="math">·</span> <code>b</code> <span class="math">·</span> 相关性证明）。</p></div></details></div><details class="solution-panel" id="sol-27-1"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem quot_lift_eq (α β : Type) (r : α → α → Prop) (f : α → β)
+    (h : ∀ (a b : α), r a b → f a = f b) (a b : α) (hab : r a b) :
+    @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r a)
+      = @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r b) :=
+  h a b hab</code></pre></div></details></div></article>
+<article class="exercise" id="ex-27-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">quot_lift_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-27-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类）：<strong>常函数总能下降</strong>（它的良定义性义务是自反那一条）。</p></div></div><pre class="exercise-statement"><code>theorem quot_lift_const (α β : Type) (r : α → α → Prop) (b : β) (a : α) :
+    @Quot.lift.{1, 1} α r β (fun (_ : α) =&gt; b)
+      (fun (a1 : α) (a2 : α) (h : r a1 a2) =&gt; @Eq.refl.{1} β b)
+      (@Quot.mk.{1} α r a) = b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>iota 之后两边都是同一个 <code>b</code> <span class="math">⇒</span> 自反。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>lift (fun _ =&gt; b) … (mk a) = b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.refl</code>（<strong>要写全宇宙层级与论域</strong>）<span class="math">·</span> 良定义性那一项写成忽略两个代表元的 <span class="math">λ</span>。</p></div></details></div><details class="solution-panel" id="sol-27-2"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem quot_lift_const (α β : Type) (r : α → α → Prop) (b : β) (a : α) :
+    @Quot.lift.{1, 1} α r β (fun (_ : α) =&gt; b)
+      (fun (a1 : α) (a2 : α) (h : r a1 a2) =&gt; @Eq.refl.{1} β b) (@Quot.mk.{1} α r a)
+      = b :=
+  @Eq.refl.{1} β b</code></pre></div></details></div></article>
+<article class="exercise" id="ex-27-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">quot_lift_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-27-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<strong>下降函数与 <code>mk</code> 复合回到原函数</strong>（逐点形态 —— 本语言没有函数外延，所以"函数相等"一律写成 <code>∀ a, …</code>）。</p></div></div><pre class="exercise-statement"><code>theorem quot_lift_comp (α β : Type) (r : α → α → Prop) (f : α → β)
+    (h : ∀ (a b : α), r a b → f a = f b) (a : α) :
+    (fun (q : @Quot.{1} α r) =&gt; @Quot.lift.{1, 1} α r β f h q) (@Quot.mk.{1} α r a) = f a := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把那个 <code>λ q</code> 作用在 <code>mk a</code> 上，剩下的就是 <span class="math">iota ⇒</span> 自反。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(fun q =&gt; lift f h q) (mk a) = f a</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.refl</code>（写全宇宙层级与论域）。</p></div></details></div><details class="solution-panel" id="sol-27-3"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem quot_lift_comp (α β : Type) (r : α → α → Prop) (f : α → β)
+    (h : ∀ (a b : α), r a b → f a = f b) (a : α) :
+    (fun (q : @Quot.{1} α r) =&gt; @Quot.lift.{1, 1} α r β f h q) (@Quot.mk.{1} α r a) = f a :=
+  @Eq.refl.{1} β (f a)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-27-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">quot_eq_rel_id</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-27-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：<strong>按相等作商时，恒等函数尊重那个关系</strong>（这就是"恒等能下降"的义务）。</p></div></div><pre class="exercise-statement"><code>theorem quot_eq_rel_id (α : Type) (a b : α) (h : a = b) : a = b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>假设本身就是结论 <span class="math">⇒</span> 交出去。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>a</code> 与 <code>b</code> 相等（假设也是它）—— 这是「按相等作商」的良定义义务。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>直接把假设当证明项 ✓</p></div></details></div><details class="solution-panel" id="sol-27-4"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem quot_eq_rel_id (α : Type) (a b : α) (h : @Eq.{1} α a b) : @Eq.{1} α a b :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+  h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-27-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">quot_lift_id</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-27-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：<strong>恒等函数下降回恒等</strong>（iota 的直接实例，后面练习 6 就靠它）。</p></div></div><pre class="exercise-statement"><code>theorem quot_lift_id (α : Type) (a : α) :
+    @Quot.lift.{1, 1} α (fun (x y : α) =&gt; x = y) α (fun (x : α) =&gt; x)
+      (fun (x y : α) (hxy : x = y) =&gt; hxy)
+      (@Quot.mk.{1} α (fun (x y : α) =&gt; x = y) a) = a := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">iota ⇒</span> 自反。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>lift id (…) (mk a) = a</code>（关系取"相等"）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.refl</code>（写全宇宙层级与论域）<span class="math">·</span> 关系那一处写成「两个参数相等」那个函数（同样要点名声明星）。</p></div></details></div><details class="solution-panel" id="sol-27-5"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem quot_lift_id (α : Type) (a : α) :
+    @Quot.lift.{1, 1} α (fun (x y : α) =&gt; @Eq.{1} α x y) α (fun (x : α) =&gt; x)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (fun (x y : α) (hxy : @Eq.{1} α x y) =&gt; hxy)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (@Quot.mk.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y) a) = a :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+  @Eq.refl.{1} α a</code></pre></div></details></div></article>
+<h3 class="unit-subhead">27.3 必破（一）：<strong>没有 <code>Quot.exact</code>，单射照样能证</strong>（缩回技巧）</h3><article class="exercise" id="ex-27-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">quot_mk_injective</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-27-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类，<strong>本单元旗舰</strong>）：<strong>按相等作商，<code>mk</code> 是单射</strong>。</p></div></div><pre class="exercise-statement"><code>theorem quot_mk_injective (α : Type) (a b : α)
+    (h : @Eq.{1} (@Quot.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (@Quot.mk.{1} α (fun (x y : α) =&gt; x = y) a)
+      (@Quot.mk.{1} α (fun (x y : α) =&gt; x = y) b)) : a = b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路（<strong>缩回技巧</strong>）</span></summary><div class="hint-body"><p>练习 5 的那个下降函数是"缩回"（作用在 <code>mk a</code> 上给出 <code>a</code>）；把<strong>它</strong>分别作用在两个代表元上，等式就变成"缩回值相等" —— 再用本课的搬运引理 <code>rel_subst_right</code> 沿 <code>mk a = mk b</code> 把 <code>缩回 (mk a) = 缩回 (mk a)</code> 搬成 <code>缩回 (mk a) = 缩回 (mk b)</code>，而它<strong>算一算正是</strong> <code>a = b</code> ✓</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>商里相等的两个元素 <span class="math">⇒</span> 两个代表元相等（关系取"相等"）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>rel_subst_right</code>（论域写 <strong>那个商的类型</strong>（点名声明星）、关系取"两边的缩回值相等"、<code>a b c</code> 三个点按 <code>(mk a) (mk a) (mk b)</code> 给、等式是那条假设）<span class="math">·</span><code>Eq.refl</code>（写全宇宙层级与论域）<span class="math">·</span> <strong>别用 <code>congrArg</code></strong>（大类型上解不出宇宙层级，实测）✓</p></div></details></div><details class="solution-panel" id="sol-27-6"><summary>查看解答 <span class="sol-meta">定理 · 19 行</span></summary><div class="solution-body"><pre><code>theorem quot_mk_injective (α : Type) (a b : α)
+    (h : @Eq.{1} (@Quot.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (@Quot.mk.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y) a)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (@Quot.mk.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y) b)) : @Eq.{1} α a b :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+  rel_subst_right (@Quot.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    (fun (u : @Quot.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (v : @Quot.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y)) =&gt;  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      @Eq.{1} α  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+        (@Quot.lift.{1, 1} α (fun (x y : α) =&gt; @Eq.{1} α x y) α (fun (x : α) =&gt; x)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+          (fun (x y : α) (hxy : @Eq.{1} α x y) =&gt; hxy) u)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+        (@Quot.lift.{1, 1} α (fun (x y : α) =&gt; @Eq.{1} α x y) α (fun (x : α) =&gt; x)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+          (fun (x y : α) (hxy : @Eq.{1} α x y) =&gt; hxy) v))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    (@Quot.mk.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y) a)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    (@Quot.mk.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y) a)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    (@Quot.mk.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y) b) h  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    (@Eq.refl.{1} α
+      (@Quot.lift.{1, 1} α (fun (x y : α) =&gt; @Eq.{1} α x y) α (fun (x : α) =&gt; x)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+        (fun (x y : α) (hxy : @Eq.{1} α x y) =&gt; hxy)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+        (@Quot.mk.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y) a)))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星</code></pre></div></details></div></article>
+<h3 class="unit-subhead">27.4 必破（二）：<strong>恒真关系把一切粘成一点</strong></h3><article class="exercise" id="ex-27-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">quot_all_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-27-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（D 类）：<strong>按"恒真"作商，任何两个代表元在商里相等</strong>。</p></div></div><pre class="exercise-statement"><code>theorem quot_all_eq (α : Type) (a b : α) :
+    @Eq.{1} (@Quot.{1} α (fun (_ _ : α) =&gt; True))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (@Quot.mk.{1} α (fun (_ _ : α) =&gt; True) a)
+      (@Quot.mk.{1} α (fun (_ _ : α) =&gt; True) b) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>Quot.sound</code> 要的那条相关性证明是"恒真"<span class="math">⇒</span> 交出一个 <code>True</code> 的证明（它没有参数）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>mk a = mk b</code>（关系取 <code>fun _ _ =&gt; True</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Quot.sound</code>（<strong>结论含 <code>Eq</code> <span class="math">⇒</span> 点名声明星</strong>）<span class="math">·</span> <code>True.intro</code>。</p></div></details></div><details class="solution-panel" id="sol-27-7"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem quot_all_eq (α : Type) (a b : α) :
+    @Eq.{1} (@Quot.{1} α (fun (_ _ : α) =&gt; True))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (@Quot.mk.{1} α (fun (_ _ : α) =&gt; True) a)
+      (@Quot.mk.{1} α (fun (_ _ : α) =&gt; True) b) :=
+  @Quot.sound.{1} α (fun (_ _ : α) =&gt; True) a b True.intro</code></pre></div></details></div></article>
+<h3 class="unit-subhead">27.5 全称性质：<strong>存在下降 <span class="math">+</span> 唯一性</strong>（都写成逐点形态 —— 见文件头的边界 ②）</h3><article class="exercise" id="ex-27-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">quot_lift_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-27-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类，旗舰之一）：<strong>唯一性</strong> —— 任何在代表元上与 <code>f</code> 一致的商上函数，都逐点等于 <code>lift f h</code>。</p></div></div><pre class="exercise-statement"><code>theorem quot_lift_unique (α β : Type) (r : α → α → Prop) (f : α → β)
+    (h : ∀ (a b : α), r a b → f a = f b) (g : @Quot.{1} α r → β)
+    (hg : ∀ (a : α), g (@Quot.mk.{1} α r a) = f a) (q : @Quot.{1} α r) :
+    g q = @Quot.lift.{1, 1} α r β f h q := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对商元素做归纳（<code>Quot.ind</code>）；代表元那一步就是"两个东西都等于 <code>f a</code>"，而 <code>lift f h (mk a)</code> <strong>算得动</strong>成 <code>f a</code> <span class="math">⇒</span> 直接把假设交出去。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ a, g (mk a) = f a) → ∀ q, g q = lift f h q</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Quot.ind</code>（<strong>动机写成 <span class="math">λ</span>，里面出现 <code>g</code>、<code>f</code>、<code>h</code> 这些固定参数</strong>）<span class="math">·</span> 假设 <code>hg</code>。</p></div></details></div><details class="solution-panel" id="sol-27-8"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem quot_lift_unique (α β : Type) (r : α → α → Prop) (f : α → β)
+    (h : ∀ (a b : α), r a b → f a = f b) (g : @Quot.{1} α r → β)
+    (hg : ∀ (a : α), g (@Quot.mk.{1} α r a) = f a) (q : @Quot.{1} α r) :
+    g q = @Quot.lift.{1, 1} α r β f h q :=
+  @Quot.ind.{1} α r (fun (q' : @Quot.{1} α r) =&gt; g q' = @Quot.lift.{1, 1} α r β f h q')
+    (fun (a : α) =&gt; hg a) q</code></pre></div></details></div></article>
+<article class="exercise" id="ex-27-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">quot_lift_const_all</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-27-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（D 类，本单元收尾）：<strong>商是"单点"的</strong>（恒真关系的商上，下降函数是常值）。</p></div></div><pre class="exercise-statement"><code>theorem quot_lift_const_all (α β : Type) (f : α → β)
+    (h : ∀ (a b : α), (fun (_ _ : α) =&gt; True) a b → f a = f b)
+    (q1 q2 : @Quot.{1} α (fun (_ _ : α) =&gt; True)) :
+    @Quot.lift.{1, 1} α (fun (_ _ : α) =&gt; True) β f h q1
+      = @Quot.lift.{1, 1} α (fun (_ _ : α) =&gt; True) β f h q2 := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对两个商元素<strong>各做一次归纳</strong>（<code>Quot.ind</code> 用两次）；两个代表元那一步直接由良定义性假设给出（相关性证明取 <code>True</code> 的证明）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∀ q1 q2, lift f h q1 = lift f h q2</code>（关系取 <code>fun _ _ =&gt; True</code>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Quot.ind</code>（两次；<strong>外层动机里出现 <code>q2</code>、内层动机里出现 <code>mk a</code></strong> ——它们都是固定项，可以出现在动机里）<span class="math">·</span> 良定义性假设 <code>h</code>（三个实参：两个代表元 <span class="math">+</span> <code>True.intro</code>）。</p></div></details></div><details class="solution-panel" id="sol-27-9"><summary>查看解答 <span class="sol-meta">定理 · 18 行</span></summary><div class="solution-body"><pre><code>theorem quot_lift_const_all (α β : Type) (f : α → β)
+    (h : ∀ (a b : α), (fun (_ _ : α) =&gt; True) a b → f a = f b)
+    (q1 q2 : @Quot.{1} α (fun (_ _ : α) =&gt; True)) :
+    @Quot.lift.{1, 1} α (fun (_ _ : α) =&gt; True) β f h q1
+      = @Quot.lift.{1, 1} α (fun (_ _ : α) =&gt; True) β f h q2 :=
+  @Quot.ind.{1} α (fun (_ _ : α) =&gt; True)
+    (fun (q1' : @Quot.{1} α (fun (_ _ : α) =&gt; True)) =&gt;
+      @Quot.lift.{1, 1} α (fun (_ _ : α) =&gt; True) β f h q1'
+        = @Quot.lift.{1, 1} α (fun (_ _ : α) =&gt; True) β f h q2)
+    (fun (a : α) =&gt;
+      @Quot.ind.{1} α (fun (_ _ : α) =&gt; True)
+        (fun (q2' : @Quot.{1} α (fun (_ _ : α) =&gt; True)) =&gt;
+          @Quot.lift.{1, 1} α (fun (_ _ : α) =&gt; True) β f h
+            (@Quot.mk.{1} α (fun (_ _ : α) =&gt; True) a)
+            = @Quot.lift.{1, 1} α (fun (_ _ : α) =&gt; True) β f h q2')
+        (fun (b : α) =&gt; h a b True.intro)
+        q2)
+    q1</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子：<strong>不是</strong>教材某一节，而是本语言 <strong>ST2 装进内核的 <code>Quot</code></strong>（Mathlib 的 <code>Quotient</code> 那一层；本语言没有 <code>Quotient</code>/<code>Setoid</code> 包装 —— 理由见 <code>lib/Cardinal</code> 头部与缺口 <strong>G-61</strong>）。它是"实数构造"（<span class="math">ℤ = ℕ×ℕ/</span>∼ 之类）真正要用到的<strong>基础设施</strong> ✓ 大纲：<code>set-theory-syllabus.md</code> §4.1（I.10 章第四个单元）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>如实记下三条边界</strong>（都在本单元里真咬到人）：① <strong>没有 <code>Quot.exact</code></strong>（<code>mk a = mk b → r a b</code>）<span class="math">⇒</span> 商与等价类的"往返"暂时做不了；② <code>∃ (g : Quot r → β), …</code> 这种<strong>见证是函数类型</strong>的存在量词<strong>构造不出来</strong>（<code>Exists.intro</code> 在这里只吃 <code>Sort 0</code> 的见证）<span class="math">⇒</span> 全称性质只能写成<strong>逐点形态</strong>；③ <code>congrArg</code> 在"大类型"上解不出宇宙层级 <span class="math">⇒</span> 单射那条改用<strong>本课的搬运引理</strong> <code>rel_subst_right</code>（它本来就是为这类场合准备的）✓</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong><code>Quot</code> 的宇宙层级要写全</strong>：<code>Quot.{1}</code> / <code>Quot.mk.{1}</code> / <code>Quot.sound.{1}</code> / <code>Quot.lift.{1, 1}</code> / <code>Quot.ind.{1}</code>（<code>Quot.{u}</code> 取 <code>A : Sort u</code>、返回 <code>Sort u</code>）✓</p></div><div class="block prose intuition-only"><p>依赖：单元㉕㉖（等价关系与划分）与本卷的 <code>lib.Rel</code>（搬运引理）。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit26.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">划分：等价关系的反方向</span></a><a class="unit-nav-home" href="../chapters/i-10.html#units">目录</a><a class="unit-nav-link" href="../units/unit43.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">等价类与商集的代数刻画</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-27"><h3><a href="#top">商类型与良定义性</a></h3><p class="appendix-meta">9 道练习 · 9 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-27-1"><summary>练习 1 · quot_lift_eq <span class="sol-meta">定理</span></summary><pre><code>theorem quot_lift_eq (α β : Type) (r : α → α → Prop) (f : α → β)
+    (h : ∀ (a b : α), r a b → f a = f b) (a b : α) (hab : r a b) :
+    @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r a)
+      = @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r b) :=
+  h a b hab</code></pre></details><details class="appendix-solution" id="app-sol-27-2"><summary>练习 2 · quot_lift_const <span class="sol-meta">定理</span></summary><pre><code>theorem quot_lift_const (α β : Type) (r : α → α → Prop) (b : β) (a : α) :
+    @Quot.lift.{1, 1} α r β (fun (_ : α) =&gt; b)
+      (fun (a1 : α) (a2 : α) (h : r a1 a2) =&gt; @Eq.refl.{1} β b) (@Quot.mk.{1} α r a)
+      = b :=
+  @Eq.refl.{1} β b</code></pre></details><details class="appendix-solution" id="app-sol-27-3"><summary>练习 3 · quot_lift_comp <span class="sol-meta">定理</span></summary><pre><code>theorem quot_lift_comp (α β : Type) (r : α → α → Prop) (f : α → β)
+    (h : ∀ (a b : α), r a b → f a = f b) (a : α) :
+    (fun (q : @Quot.{1} α r) =&gt; @Quot.lift.{1, 1} α r β f h q) (@Quot.mk.{1} α r a) = f a :=
+  @Eq.refl.{1} β (f a)</code></pre></details><details class="appendix-solution" id="app-sol-27-4"><summary>练习 4 · quot_eq_rel_id <span class="sol-meta">定理</span></summary><pre><code>theorem quot_eq_rel_id (α : Type) (a b : α) (h : @Eq.{1} α a b) : @Eq.{1} α a b :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+  h</code></pre></details><details class="appendix-solution" id="app-sol-27-5"><summary>练习 5 · quot_lift_id <span class="sol-meta">定理</span></summary><pre><code>theorem quot_lift_id (α : Type) (a : α) :
+    @Quot.lift.{1, 1} α (fun (x y : α) =&gt; @Eq.{1} α x y) α (fun (x : α) =&gt; x)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (fun (x y : α) (hxy : @Eq.{1} α x y) =&gt; hxy)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (@Quot.mk.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y) a) = a :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+  @Eq.refl.{1} α a</code></pre></details><details class="appendix-solution" id="app-sol-27-6"><summary>练习 6 · quot_mk_injective <span class="sol-meta">定理</span></summary><pre><code>theorem quot_mk_injective (α : Type) (a b : α)
+    (h : @Eq.{1} (@Quot.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (@Quot.mk.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y) a)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (@Quot.mk.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y) b)) : @Eq.{1} α a b :=  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+  rel_subst_right (@Quot.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    (fun (u : @Quot.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (v : @Quot.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y)) =&gt;  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      @Eq.{1} α  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+        (@Quot.lift.{1, 1} α (fun (x y : α) =&gt; @Eq.{1} α x y) α (fun (x : α) =&gt; x)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+          (fun (x y : α) (hxy : @Eq.{1} α x y) =&gt; hxy) u)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+        (@Quot.lift.{1, 1} α (fun (x y : α) =&gt; @Eq.{1} α x y) α (fun (x : α) =&gt; x)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+          (fun (x y : α) (hxy : @Eq.{1} α x y) =&gt; hxy) v))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    (@Quot.mk.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y) a)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    (@Quot.mk.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y) a)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    (@Quot.mk.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y) b) h  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+    (@Eq.refl.{1} α
+      (@Quot.lift.{1, 1} α (fun (x y : α) =&gt; @Eq.{1} α x y) α (fun (x : α) =&gt; x)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+        (fun (x y : α) (hxy : @Eq.{1} α x y) =&gt; hxy)  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+        (@Quot.mk.{1} α (fun (x y : α) =&gt; @Eq.{1} α x y) a)))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星</code></pre></details><details class="appendix-solution" id="app-sol-27-7"><summary>练习 7 · quot_all_eq <span class="sol-meta">定理</span></summary><pre><code>theorem quot_all_eq (α : Type) (a b : α) :
+    @Eq.{1} (@Quot.{1} α (fun (_ _ : α) =&gt; True))  -- soko:notation-ok: G-73 形状 ③：`Eq` 在 `Quot`/嵌套位置上解不出宇宙层级，必须点名声明星
+      (@Quot.mk.{1} α (fun (_ _ : α) =&gt; True) a)
+      (@Quot.mk.{1} α (fun (_ _ : α) =&gt; True) b) :=
+  @Quot.sound.{1} α (fun (_ _ : α) =&gt; True) a b True.intro</code></pre></details><details class="appendix-solution" id="app-sol-27-8"><summary>练习 8 · quot_lift_unique <span class="sol-meta">定理</span></summary><pre><code>theorem quot_lift_unique (α β : Type) (r : α → α → Prop) (f : α → β)
+    (h : ∀ (a b : α), r a b → f a = f b) (g : @Quot.{1} α r → β)
+    (hg : ∀ (a : α), g (@Quot.mk.{1} α r a) = f a) (q : @Quot.{1} α r) :
+    g q = @Quot.lift.{1, 1} α r β f h q :=
+  @Quot.ind.{1} α r (fun (q' : @Quot.{1} α r) =&gt; g q' = @Quot.lift.{1, 1} α r β f h q')
+    (fun (a : α) =&gt; hg a) q</code></pre></details><details class="appendix-solution" id="app-sol-27-9"><summary>练习 9 · quot_lift_const_all <span class="sol-meta">定理</span></summary><pre><code>theorem quot_lift_const_all (α β : Type) (f : α → β)
+    (h : ∀ (a b : α), (fun (_ _ : α) =&gt; True) a b → f a = f b)
+    (q1 q2 : @Quot.{1} α (fun (_ _ : α) =&gt; True)) :
+    @Quot.lift.{1, 1} α (fun (_ _ : α) =&gt; True) β f h q1
+      = @Quot.lift.{1, 1} α (fun (_ _ : α) =&gt; True) β f h q2 :=
+  @Quot.ind.{1} α (fun (_ _ : α) =&gt; True)
+    (fun (q1' : @Quot.{1} α (fun (_ _ : α) =&gt; True)) =&gt;
+      @Quot.lift.{1, 1} α (fun (_ _ : α) =&gt; True) β f h q1'
+        = @Quot.lift.{1, 1} α (fun (_ _ : α) =&gt; True) β f h q2)
+    (fun (a : α) =&gt;
+      @Quot.ind.{1} α (fun (_ _ : α) =&gt; True)
+        (fun (q2' : @Quot.{1} α (fun (_ _ : α) =&gt; True)) =&gt;
+          @Quot.lift.{1, 1} α (fun (_ _ : α) =&gt; True) β f h
+            (@Quot.mk.{1} α (fun (_ _ : α) =&gt; True) a)
+            = @Quot.lift.{1, 1} α (fun (_ _ : α) =&gt; True) β f h q2')
+        (fun (b : α) =&gt; h a b True.intro)
+        q2)
+    q1</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit26.html">← 26 划分：等价关系的反方向</a><a class="next" href="../units/unit43.html">43 等价类与商集的代数刻画 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 58 差集的代数</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit58.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 58 差集的代数</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit58.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.1 集合、子集与集合运算 · 单元 58</p><h1>差集的代数</h1><p class="note">Unit 58 — The Algebra of Set Difference</p></header><section class="unit" id="unit-58">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-1.html">I.1</a> · 本章第 5 / 15 单元 · 全书第 58 / 112 单元</p>
+<h2><span class="unit-number">58</span><span>差集的代数</span></h2>
+<p class="unit-title-en">Unit 58 — The Algebra of Set Difference</p>
+<p class="unit-meta">11 个定理 · 8 道练习 · 15 条提示 · <a href="#appendix-unit-58">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>差集的两条取用子</strong>（本次做成<strong>可复用</strong>的具名引理 ✓）<span class="math">+</span> <strong><code>A \ B ⊆ A</code></strong> ✓；</li><li><strong><code>A \ B = A ∩ Bᶜ</code></strong>（逐点形态 ✓ —— 教材里"差就是交补"那条恒等式 ✓）；</li><li><strong><code>A \ (B ∪ C) = (A \ B) ∩ (A \ C)</code></strong>（逐点形态 ✓ —— 差对并的分配律 ✓）；</li><li><strong><code>A \ ∅ = A</code></strong> ✓ <span class="math">·</span> <strong><code>A \ A</code> 没有成员</strong> ✓ <span class="math">·</span> <strong><code>(A ∪ B) \ B ⊆ A</code></strong> ✓</li></ul></div></div></section>
+<h3 class="unit-subhead">58.1 三条库引理（差 <span class="math">·</span> 交 <span class="math">·</span> 并 的成员刻画）</h3><div class="block prose intuition-only"><p>演示：差集的成员刻画。</p></div><article class="decl decl-theorem" id="decl-58-1"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_sdiff</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_sdiff (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B) :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_sdiff a A B</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-58-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_inter</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∩ B) ↔ a ∈ A ∧ a ∈ B :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_inter_iff a A B</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-58-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_union</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.mem_union a A B</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">58.2 两条<strong>可复用</strong>取用子 <span class="math">+</span> <code>A \ B ⊆ A</code></h3><hr class="section-rule"><article class="exercise" id="ex-58-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">mem_of_mem_sdiff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-58-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类，<strong>可复用左取用子</strong>）：进差集 <span class="math">⇒</span> 在 <code>A</code> 里。</p></div></div><pre class="exercise-statement"><code>theorem mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) : a ∈ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_sdiff</code>（<strong>先 <span class="math">λ</span> 绑定再取用</strong> ✓）<span class="math">·</span> <code>Iff.mp</code> <span class="math">·</span> <code>And.left</code> ✓</p></div></details></div><details open class="solution-panel" id="sol-58-1"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) : a ∈ A :=
+  And.left ((fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) =&gt; Iff.mp hu h) (Set.mem_sdiff a A B))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-58-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">not_mem_of_mem_sdiff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-58-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类，<strong>可复用右取用子</strong>）：进差集 <span class="math">⇒</span> 不在 <code>B</code> 里。</p></div></div><pre class="exercise-statement"><code>theorem not_mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) :
+    ¬ (a ∈ B) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_sdiff</code> <span class="math">·</span> <code>Iff.mp</code> <span class="math">·</span> <code>And.right</code> ✓</p></div></details></div><details open class="solution-panel" id="sol-58-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem not_mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) :
+    ¬ (a ∈ B) :=
+  And.right ((fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) =&gt; Iff.mp hu h) (Set.mem_sdiff a A B))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-58-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">sdiff_subset_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-58-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong><code>A \ B ⊆ A</code></strong>。</p></div></div><pre class="exercise-statement"><code>theorem sdiff_subset_self (α : Type) (A B : Set α) : A \ B ⊆ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 1（<strong>按 点 <span class="math">·</span> 前提 应用</strong> ✓）✓</p></div></details></div><details open class="solution-panel" id="sol-58-3"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem sdiff_subset_self (α : Type) (A B : Set α) : A \ B ⊆ A :=
+  fun (a : α) (h : a ∈ (A \ B)) =&gt; mem_of_mem_sdiff α A B a h</code></pre></div></details></div></article>
+<h3 class="unit-subhead">58.3 三条恒等式（逐点）：交补 <span class="math">·</span> 对并分配 <span class="math">·</span> 减空集</h3><hr class="section-rule"><article class="exercise" id="ex-58-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">mem_sdiff_compl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-58-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>恒等式一</strong>）：<strong><code>A \ B = A ∩ Bᶜ</code></strong>（逐点）。</p></div><div class="block prose intuition-only"><p>（<code>Set.compl</code> 是定义 ✓，不需要引理 ✓）。</p></div></div><pre class="exercise-statement"><code>theorem mem_sdiff_compl (α : Type) (A B : Set α) (a : α) :
+    a ∈ (A \ B) ↔ a ∈ (A ∩ Bᶜ) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个方向都是"把 <code>∧</code> 的两半换个说法" —— 注意 <code>∈ Bᶜ</code> <strong>就是</strong> <code>¬ (∈ B)</code></p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>a ∈ A \ B ↔ a ∈ A ∩ Bᶜ</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_inter_iff</code> <span class="math">·</span> <code>Set.mem_sdiff</code> <span class="math">·</span> 练习 1 / 练习 <span class="math">2 ·</span> <code>Iff.intro</code>（两种写法都要 ✓）</p></div></details></div><details open class="solution-panel" id="sol-58-4"><summary>查看解答 <span class="sol-meta">定理 · 16 行</span></summary><div class="solution-body"><pre><code>theorem mem_sdiff_compl (α : Type) (A B : Set α) (a : α) :
+    a ∈ (A \ B) ↔ a ∈ (A ∩ Bᶜ) :=
+  @Iff.intro (a ∈ (A \ B)) (a ∈ (A ∩ Bᶜ))
+    (fun (h : a ∈ (A \ B)) =&gt;
+      (fun (hu : a ∈ (A ∩ Bᶜ) ↔ a ∈ A ∧ a ∈ Bᶜ) =&gt;
+        Iff.mpr hu (And.intro
+          (mem_of_mem_sdiff α A B a h) (not_mem_of_mem_sdiff α A B a h)))
+        (Set.mem_inter_iff a A (Bᶜ)))
+    (fun (h : a ∈ (A ∩ Bᶜ)) =&gt;
+      (fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) =&gt;
+        Iff.mpr hu (And.intro
+          (And.left ((fun (hv : a ∈ (A ∩ Bᶜ) ↔ a ∈ A ∧ a ∈ Bᶜ) =&gt; Iff.mp hv h)
+            (Set.mem_inter_iff a A (Bᶜ))))
+          (And.right ((fun (hv : a ∈ (A ∩ Bᶜ) ↔ a ∈ A ∧ a ∈ Bᶜ) =&gt; Iff.mp hv h)
+            (Set.mem_inter_iff a A (Bᶜ))))))
+        (Set.mem_sdiff a A B))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-58-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">mem_sdiff_union</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-58-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>旗舰</strong>）：<strong>差对并的分配律</strong>（逐点）。</p></div><div class="block prose intuition-only"><p>右到左 —— 假设"在 <code>B ∪ C</code>"，用 <code>Or.elim</code> 分两支，各与一边的否定冲突 ✓。</p></div><div class="block prose intuition-only"><p><code>Or.inl</code>/<code>Or.inr</code> <span class="math">·</span> 练习 1 / 练习 2 ✓</p></div></div><pre class="exercise-statement"><code>theorem mem_sdiff_union (α : Type) (A B C : Set α) (a : α) :
+    a ∈ (A \ (B ∪ C)) ↔ a ∈ (A \ B) ∧ a ∈ (A \ C) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>左到右 —— "不在 <code>B ∪ C</code>" 拆成"不在 <code>B</code>"与"不在 <code>C</code>"两支 ✓；</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>a ∈ A \ (B ∪ C) ↔ (a ∈ A \ B) ∧ (a ∈ A \ C)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_union</code> <span class="math">·</span> <code>Or.elim</code>（<strong>动机位放目标准确的正命题</strong> ✓ —— 铁律 ✓）<span class="math">·</span></p></div></details></div><details open class="solution-panel" id="sol-58-5"><summary>查看解答 <span class="sol-meta">定理 · 31 行</span></summary><div class="solution-body"><pre><code>theorem mem_sdiff_union (α : Type) (A B C : Set α) (a : α) :
+    a ∈ (A \ (B ∪ C)) ↔ a ∈ (A \ B) ∧ a ∈ (A \ C) :=
+  @Iff.intro (a ∈ (A \ (B ∪ C))) (a ∈ (A \ B) ∧ a ∈ (A \ C))
+    (fun (h : a ∈ (A \ (B ∪ C))) =&gt;
+      And.intro
+        ((fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) =&gt;
+          Iff.mpr hu (And.intro
+            (mem_of_mem_sdiff α A (B ∪ C) a h)
+            (fun (hb : a ∈ B) =&gt;
+              not_mem_of_mem_sdiff α A (B ∪ C) a h
+                ((fun (hv : a ∈ (B ∪ C) ↔ a ∈ B ∨ a ∈ C) =&gt; Iff.mpr hv (Or.inl hb))
+                  (Set.mem_union a B C)))))
+          (Set.mem_sdiff a A B))
+        ((fun (hu : a ∈ (A \ C) ↔ a ∈ A ∧ ¬ (a ∈ C)) =&gt;
+          Iff.mpr hu (And.intro
+            (mem_of_mem_sdiff α A (B ∪ C) a h)
+            (fun (hc : a ∈ C) =&gt;
+              not_mem_of_mem_sdiff α A (B ∪ C) a h
+                ((fun (hv : a ∈ (B ∪ C) ↔ a ∈ B ∨ a ∈ C) =&gt; Iff.mpr hv (Or.inr hc))
+                  (Set.mem_union a B C)))))
+          (Set.mem_sdiff a A C)))
+    (fun (h : a ∈ (A \ B) ∧ a ∈ (A \ C)) =&gt;
+      (fun (hu : a ∈ (A \ (B ∪ C)) ↔ a ∈ A ∧ ¬ (a ∈ (B ∪ C))) =&gt;
+        Iff.mpr hu (And.intro
+          (mem_of_mem_sdiff α A B a (And.left h))
+          (fun (hbc : a ∈ (B ∪ C)) =&gt;
+            @Or.elim (a ∈ B) (a ∈ C) False
+              (fun (hb : a ∈ B) =&gt; not_mem_of_mem_sdiff α A B a (And.left h) hb)
+              (fun (hc : a ∈ C) =&gt; not_mem_of_mem_sdiff α A C a (And.right h) hc)
+              ((fun (hv : a ∈ (B ∪ C) ↔ a ∈ B ∨ a ∈ C) =&gt; Iff.mp hv hbc) (Set.mem_union a B C)))))
+        (Set.mem_sdiff a A (B ∪ C)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-58-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">mem_sdiff_empty</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-58-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（T 类，<strong>恒等式二</strong>）：<strong><code>A \ ∅ = A</code></strong>（逐点）。</p></div></div><pre class="exercise-statement"><code>theorem mem_sdiff_empty (α : Type) (A : Set α) (a : α) :
+    a ∈ (A \ (∅)) ↔ a ∈ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_sdiff</code> <span class="math">·</span> <code>Set.mem_empty_iff_false</code>（<strong>否定那一半自动成立</strong> ✓）✓</p></div></details></div><details open class="solution-panel" id="sol-58-6"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem mem_sdiff_empty (α : Type) (A : Set α) (a : α) :
+    a ∈ (A \ (∅)) ↔ a ∈ A :=
+  @Iff.intro (a ∈ (A \ (∅))) (a ∈ A)
+    (fun (h : a ∈ (A \ (∅))) =&gt; mem_of_mem_sdiff α A (∅) a h)
+    (fun (h : a ∈ A) =&gt;
+      (fun (hu : a ∈ (A \ (∅)) ↔ a ∈ A ∧ ¬ (a ∈ (∅))) =&gt;  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参
+        Iff.mpr hu (And.intro h  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参
+          (fun (he : a ∈ (∅)) =&gt; (Iff.mp (Set.mem_empty_iff_false a) he))))
+        (Set.mem_sdiff a A (∅)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">58.4 两条"没有成员"与"并后减"</h3><hr class="section-rule"><article class="exercise" id="ex-58-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">not_mem_sdiff_self</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-58-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（T 类）：<strong><code>A \ A</code> 没有成员</strong>。</p></div></div><pre class="exercise-statement"><code>theorem not_mem_sdiff_self (α : Type) (A : Set α) (a : α) : ¬ (a ∈ (A \ A)) := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把同一个假设当两条取用子的输入 —— 一边说"在 <code>A</code> 里"、一边说"不在 <code>A</code> 里"。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 1 / 练习 2（<strong>同一个 <code>h</code> 用两次</strong> ✓）✓</p></div></details></div><details open class="solution-panel" id="sol-58-7"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem not_mem_sdiff_self (α : Type) (A : Set α) (a : α) : ¬ (a ∈ (A \ A)) :=
+  fun (h : a ∈ (A \ A)) =&gt; not_mem_of_mem_sdiff α A A a h (mem_of_mem_sdiff α A A a h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-58-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">mem_union_sdiff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-58-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类，<strong>收尾</strong>）：<strong><code>(A ∪ B) \ B ⊆ A</code></strong>（逐点）。</p></div></div><pre class="exercise-statement"><code>theorem mem_union_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ ((A ∪ B) \ B)) : a ∈ A := by
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>由"在 <code>A ∪ B</code> 里"用 <code>Or.elim</code> 分两支；<code>B</code> 那一支与"不在 <code>B</code> 里"冲突。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>a ∈ (A ∪ B) \ B → a ∈ A</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Set.mem_union</code> <span class="math">·</span> <code>Or.elim</code> <span class="math">·</span> <code>False.elim</code>（<strong>把目标写全</strong> ✓）<span class="math">·</span> 练习 1 / 练习 2 ✓</p></div></details></div><details open class="solution-panel" id="sol-58-8"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem mem_union_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ ((A ∪ B) \ B)) : a ∈ A :=
+  @Or.elim (a ∈ A) (a ∈ B) (a ∈ A)
+    (fun (ha : a ∈ A) =&gt; ha)
+    (fun (hb : a ∈ B) =&gt; False.elim (not_mem_of_mem_sdiff α (A ∪ B) B a h hb))
+    ((fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) =&gt; Iff.mp hu (mem_of_mem_sdiff α (A ∪ B) B a h))
+      (Set.mem_union a A B))</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Halmos《Naive Set Theory》<strong>§5</strong>（the algebra of sets 里的差与补）<span class="math">·Enderton</span>《Elements of Set Theory》<strong>§1.5 / §2.1</strong>（difference 与 complement）。大纲：<code>set-theory-syllabus.md</code> §4.1（<strong>I.1 章深化</strong> —— 接单元③④ 的并交差与恒等式 ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>全部写成逐点 / <code>↔</code> 形态</strong> ✓ —— 课程库里没有 <code>Set.ext</code>，集合相等要走 <code>funext</code>（<code>lib.Extensionality</code>）✗ <span class="math">⇒</span> 教学上先用"逐点等价"把恒等式的<strong>内容</strong>讲清楚 ✓，等外延单元再用 <code>funext</code> 打包成等式 ✓。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.SUnion</code> <span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元③（并交差）<span class="math">·</span> 单元④（外延与恒等式）<span class="math">·</span> 单元57（差集 <span class="math">=</span> 见证集合）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit04.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">外延性与集合等式</span></a><a class="unit-nav-home" href="../chapters/i-1.html#units">目录</a><a class="unit-nav-link" href="../units/unit59.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">差集的代数（二）</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-58"><h3><a href="#top">差集的代数</a></h3><p class="appendix-meta">8 道练习 · 8 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-58-1"><summary>练习 1 · mem_of_mem_sdiff <span class="sol-meta">定理</span></summary><pre><code>theorem mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) : a ∈ A :=
+  And.left ((fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) =&gt; Iff.mp hu h) (Set.mem_sdiff a A B))</code></pre></details><details open class="appendix-solution" id="app-sol-58-2"><summary>练习 2 · not_mem_of_mem_sdiff <span class="sol-meta">定理</span></summary><pre><code>theorem not_mem_of_mem_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ (A \ B)) :
+    ¬ (a ∈ B) :=
+  And.right ((fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) =&gt; Iff.mp hu h) (Set.mem_sdiff a A B))</code></pre></details><details open class="appendix-solution" id="app-sol-58-3"><summary>练习 3 · sdiff_subset_self <span class="sol-meta">定理</span></summary><pre><code>theorem sdiff_subset_self (α : Type) (A B : Set α) : A \ B ⊆ A :=
+  fun (a : α) (h : a ∈ (A \ B)) =&gt; mem_of_mem_sdiff α A B a h</code></pre></details><details open class="appendix-solution" id="app-sol-58-4"><summary>练习 4 · mem_sdiff_compl <span class="sol-meta">定理</span></summary><pre><code>theorem mem_sdiff_compl (α : Type) (A B : Set α) (a : α) :
+    a ∈ (A \ B) ↔ a ∈ (A ∩ Bᶜ) :=
+  @Iff.intro (a ∈ (A \ B)) (a ∈ (A ∩ Bᶜ))
+    (fun (h : a ∈ (A \ B)) =&gt;
+      (fun (hu : a ∈ (A ∩ Bᶜ) ↔ a ∈ A ∧ a ∈ Bᶜ) =&gt;
+        Iff.mpr hu (And.intro
+          (mem_of_mem_sdiff α A B a h) (not_mem_of_mem_sdiff α A B a h)))
+        (Set.mem_inter_iff a A (Bᶜ)))
+    (fun (h : a ∈ (A ∩ Bᶜ)) =&gt;
+      (fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) =&gt;
+        Iff.mpr hu (And.intro
+          (And.left ((fun (hv : a ∈ (A ∩ Bᶜ) ↔ a ∈ A ∧ a ∈ Bᶜ) =&gt; Iff.mp hv h)
+            (Set.mem_inter_iff a A (Bᶜ))))
+          (And.right ((fun (hv : a ∈ (A ∩ Bᶜ) ↔ a ∈ A ∧ a ∈ Bᶜ) =&gt; Iff.mp hv h)
+            (Set.mem_inter_iff a A (Bᶜ))))))
+        (Set.mem_sdiff a A B))</code></pre></details><details open class="appendix-solution" id="app-sol-58-5"><summary>练习 5 · mem_sdiff_union <span class="sol-meta">定理</span></summary><pre><code>theorem mem_sdiff_union (α : Type) (A B C : Set α) (a : α) :
+    a ∈ (A \ (B ∪ C)) ↔ a ∈ (A \ B) ∧ a ∈ (A \ C) :=
+  @Iff.intro (a ∈ (A \ (B ∪ C))) (a ∈ (A \ B) ∧ a ∈ (A \ C))
+    (fun (h : a ∈ (A \ (B ∪ C))) =&gt;
+      And.intro
+        ((fun (hu : a ∈ (A \ B) ↔ a ∈ A ∧ ¬ (a ∈ B)) =&gt;
+          Iff.mpr hu (And.intro
+            (mem_of_mem_sdiff α A (B ∪ C) a h)
+            (fun (hb : a ∈ B) =&gt;
+              not_mem_of_mem_sdiff α A (B ∪ C) a h
+                ((fun (hv : a ∈ (B ∪ C) ↔ a ∈ B ∨ a ∈ C) =&gt; Iff.mpr hv (Or.inl hb))
+                  (Set.mem_union a B C)))))
+          (Set.mem_sdiff a A B))
+        ((fun (hu : a ∈ (A \ C) ↔ a ∈ A ∧ ¬ (a ∈ C)) =&gt;
+          Iff.mpr hu (And.intro
+            (mem_of_mem_sdiff α A (B ∪ C) a h)
+            (fun (hc : a ∈ C) =&gt;
+              not_mem_of_mem_sdiff α A (B ∪ C) a h
+                ((fun (hv : a ∈ (B ∪ C) ↔ a ∈ B ∨ a ∈ C) =&gt; Iff.mpr hv (Or.inr hc))
+                  (Set.mem_union a B C)))))
+          (Set.mem_sdiff a A C)))
+    (fun (h : a ∈ (A \ B) ∧ a ∈ (A \ C)) =&gt;
+      (fun (hu : a ∈ (A \ (B ∪ C)) ↔ a ∈ A ∧ ¬ (a ∈ (B ∪ C))) =&gt;
+        Iff.mpr hu (And.intro
+          (mem_of_mem_sdiff α A B a (And.left h))
+          (fun (hbc : a ∈ (B ∪ C)) =&gt;
+            @Or.elim (a ∈ B) (a ∈ C) False
+              (fun (hb : a ∈ B) =&gt; not_mem_of_mem_sdiff α A B a (And.left h) hb)
+              (fun (hc : a ∈ C) =&gt; not_mem_of_mem_sdiff α A C a (And.right h) hc)
+              ((fun (hv : a ∈ (B ∪ C) ↔ a ∈ B ∨ a ∈ C) =&gt; Iff.mp hv hbc) (Set.mem_union a B C)))))
+        (Set.mem_sdiff a A (B ∪ C)))</code></pre></details><details open class="appendix-solution" id="app-sol-58-6"><summary>练习 6 · mem_sdiff_empty <span class="sol-meta">定理</span></summary><pre><code>theorem mem_sdiff_empty (α : Type) (A : Set α) (a : α) :
+    a ∈ (A \ (∅)) ↔ a ∈ A :=
+  @Iff.intro (a ∈ (A \ (∅))) (a ∈ A)
+    (fun (h : a ∈ (A \ (∅))) =&gt; mem_of_mem_sdiff α A (∅) a h)
+    (fun (h : a ∈ A) =&gt;
+      (fun (hu : a ∈ (A \ (∅)) ↔ a ∈ A ∧ ¬ (a ∈ (∅))) =&gt;  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参
+        Iff.mpr hu (And.intro h  -- soko:notation-ok: G-73 形状 ②：`∈`/`\`/`∩`/`ᶜ`/`Set.*` 是 def 头，这些位置补不出前导实参
+          (fun (he : a ∈ (∅)) =&gt; (Iff.mp (Set.mem_empty_iff_false a) he))))
+        (Set.mem_sdiff a A (∅)))</code></pre></details><details open class="appendix-solution" id="app-sol-58-7"><summary>练习 7 · not_mem_sdiff_self <span class="sol-meta">定理</span></summary><pre><code>theorem not_mem_sdiff_self (α : Type) (A : Set α) (a : α) : ¬ (a ∈ (A \ A)) :=
+  fun (h : a ∈ (A \ A)) =&gt; not_mem_of_mem_sdiff α A A a h (mem_of_mem_sdiff α A A a h)</code></pre></details><details open class="appendix-solution" id="app-sol-58-8"><summary>练习 8 · mem_union_sdiff <span class="sol-meta">定理</span></summary><pre><code>theorem mem_union_sdiff (α : Type) (A B : Set α) (a : α) (h : a ∈ ((A ∪ B) \ B)) : a ∈ A :=
+  @Or.elim (a ∈ A) (a ∈ B) (a ∈ A)
+    (fun (ha : a ∈ A) =&gt; ha)
+    (fun (hb : a ∈ B) =&gt; False.elim (not_mem_of_mem_sdiff α (A ∪ B) B a h hb))
+    ((fun (hu : a ∈ (A ∪ B) ↔ a ∈ A ∨ a ∈ B) =&gt; Iff.mp hu (mem_of_mem_sdiff α (A ∪ B) B a h))
+      (Set.mem_union a A B))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

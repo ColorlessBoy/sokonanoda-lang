@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>02 子集、空集与包含三律 · 从集合论到实分析</title>
+<meta name="description" content="单元② 子集、空集与包含三律：导语、定义与定理、练习与解答。Unit 2 — Subsets, the Empty Set, and the Three Laws of ⊆">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit02.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li class="is-current"><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.1 单元</h3><ol><li><a href="../units/unit01.html">01 集合与隶属</a></li><li class="is-current"><a href="../units/unit02.html">02 子集、空集与包含三律</a></li><li><a href="../units/unit03.html">03 并、交、差与幂集</a></li><li><a href="../units/unit04.html">04 外延性与集合等式</a></li><li><a href="../units/unit58.html">58 差集的代数</a></li><li><a href="../units/unit59.html">59 差集的代数（二）</a></li><li><a href="../units/unit60.html">60 补集的代数</a></li><li><a href="../units/unit61.html">61 外延打包</a></li><li><a href="../units/unit62.html">62 外延性的推论</a></li><li><a href="../units/unit63.html">63 差集的等式层（打包续）</a></li><li><a href="../units/unit64.html">64 差集的等式层（三）：两步走</a></li><li><a href="../units/unit65.html">65 并的差分配律与减法反变</a></li><li><a href="../units/unit66.html">66 包含关系的代数</a></li><li><a href="../units/unit104.html">104 排中律与经典推论</a></li><li><a href="../units/unit105.html">105 经典等价三件套</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li aria-current="page">单元 02 子集、空集与包含三律</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#ex-2-1">2.1 包含三律：⊆ 是偏序（先做这三题，后面的题会用到）</a></li>
+<li><a href="#decl-2-4">2.2 空集：没有任何元素，因而被一切集合包含</a></li>
+<li><a href="#ex-2-6">2.3 单元素集与配对集</a></li>
+<li><a href="#ex-2-9">2.4 元素 vs 单元素（实证上最脆弱的一点）</a></li>
+<li><a href="#appendix-unit-2">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-1.html#units">↑ 本章目录</a>
+      <a href="../print/unit02.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-2">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-1.html">I.1</a> · 本章第 2 / 15 单元 · 全书第 2 / 112 单元</p>
+<h1><span class="unit-number">02</span> <span>子集、空集与包含三律</span></h1>
+<p class="unit-title-en">Unit 2 — Subsets, the Empty Set, and the Three Laws of ⊆</p>
+<p class="unit-meta">11 个定理 · 9 道练习 · 30 条提示 · <a href="#appendix-unit-2">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="2" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-2" aria-label="复制单元 2 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit02.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-1.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：<span class="math">⊆</span> 是<strong>偏序</strong>（自反/传递/反对称）、空集是<strong>最小元</strong>、单元素集与配对集的成员判定。</p></div></div></section>
+<h3 class="unit-subhead">2.1 包含三律：<span class="math">⊆</span> 是偏序（先做这三题，后面的题会用到）</h3><article class="exercise" id="ex-2-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">subset_refl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-2-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><strong>记法不用自己声明</strong>：<code>∈ ⊆ ∅</code> 由 <code>lib/Set</code> 提供、随 <code>import</code> 生效；逻辑连接符 <code>∧ ∨ ↔ ¬</code>、箭头 <code>→</code>、<strong>等号 <code>=</code> 与不等号 <code>≠</code></strong> 是<strong>语言内建</strong>（Lean core 级），任何文件直接写。所以下面看不到一条 <code>infix</code>/<code>notation</code>。</p></div><div class="block prose intuition-only"><p>注意（分层，见 docs/design/course-stdlib.md）：本单元前 6 题<strong>曾经被我放进 lib</strong>，那是错的——Mathlib 有它们，但它们<strong>有数学内容</strong>，所以属于练习（台账 L-05）。</p></div><div class="block prose intuition-only"><p>练习 1（L 类）：自反。</p></div></div><pre class="exercise-statement"><code>theorem subset_refl (α : Type) (A : Set α) : A ⊆ A := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>目标是全称命题，intro 一个元素与"它在 A 里"。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">A ⊆ A</span>，展开后是 <span class="math">∀ x</span>, <span class="math">x ∈ A → x ∈ A</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>intros 之后手里就是目标，直接交出去。</p></div></details></div><details class="solution-panel" id="sol-2-1"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><p class="solution-note">unit02 解答钥匙（agent 专用）。
+前 6 题的证明<strong>原先住在 lib/Set.sokonanoda 里</strong>——那是分层错误（台账 L-05）：
+Mathlib 有它们，但它们有数学内容，属于练习。现在它们只在这里与画布里。
+
+<strong>写法：项风格（lambda / 直接给证明项），不用 <code>by</code></strong>（2026-09-21 用户拍板，
+见 <code>courses/set-theory/AGENTS.md</code>「解答写法」）——<code>by</code> 块的判定代价是
+O(前缀 <span class="math">×</span> <code>by</code> 块数)，实测差 8–<span class="math">25×</span>。
+这份文件同时是<strong>提示</strong>：老师据此把骨架翻成 tactic 讲给学习者。
+记法用 Lean core 的符号（<code>∈ ⊆ ∅ {a} {a, b} = ≠ ∧ ↔ ¬</code>）。</p><pre><code>theorem subset_refl (α : Type) (A : Set α) : A ⊆ A :=
+  fun (x : α) (hx : x ∈ A) =&gt; hx</code></pre></div></details></div></article>
+<article class="exercise" id="ex-2-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">subset_trans</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-2-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（L 类）：传递。</p></div></div><pre class="exercise-statement"><code>theorem subset_trans (α : Type) (A B C : Set α)
+    (h1 : A ⊆ B) (h2 : B ⊆ C) : A ⊆ C := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>目标要 A x；先把 x 交给第一条包含，再交给第二条。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">A ⊆ C</span>，即 <span class="math">∀ x</span>, <span class="math">x ∈ A → x ∈ C</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>h1 x hx : B x，再 h2 x (h1 x hx) : C x。</p></div></details></div><details class="solution-panel" id="sol-2-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem subset_trans (α : Type) (A B C : Set α)
+    (h1 : A ⊆ B) (h2 : B ⊆ C) : A ⊆ C :=
+  fun (x : α) (hx : x ∈ A) =&gt; h2 x (h1 x hx)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-2-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">subset_antisymm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-2-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：反对称——两条包含给出相等（<strong>外延性的第一个用法</strong>）。</p></div></div><pre class="exercise-statement"><code>theorem subset_antisymm (α : Type) (A B : Set α)
+    (h1 : A ⊆ B) (h2 : B ⊆ A) : A = B := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>集合相等用 Set.ext，逐元素把两条包含拼成 Iff。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="A = B"><math display="block" class="mathml"><mrow><mi>A</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mi>B</mi></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>apply Set.ext 把目标换成 <span class="math">∀ x</span>, <span class="math">x ∈ A ↔ x ∈ B</span>；constructor 拆成两个方向，正好是 h1 x 与 h2 x。</p></div></details></div><details class="solution-panel" id="sol-2-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem subset_antisymm (α : Type) (A B : Set α)
+    (h1 : A ⊆ B) (h2 : B ⊆ A) : A = B :=
+  Set.ext A B (fun (x : α) =&gt; Iff.intro (h1 x) (h2 x))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">2.2 空集：没有任何元素，因而被一切集合包含</h3><div class="block prose intuition-only"><p>实证提醒（Hendriyanto et al. 2024）：许多学生<strong>不接受 ∅ 是集合</strong>，理由是"里面没有元素可以被指认"。所以这两题不是形式练习，是要把"∅ 是集合"这件事做实。</p></div><div class="block prose intuition-only"><p>演示（已写好）：空集没有元素。</p></div><article class="decl decl-theorem" id="decl-2-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_notMem_empty</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_notMem_empty (α : Type) (a : α) : ¬ (a ∈ ∅) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  exact Set.notMem_empty a</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-2-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">empty_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-2-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：∅ <span class="math">⊆ A</span>（<strong>空洞蕴含</strong>：前提永远不成立）。</p></div></div><pre class="exercise-statement"><code>theorem empty_subset (α : Type) (A : Set α) : ∅ ⊆ A := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>目标是 <span class="math">∀ x</span>, <span class="math">x ∈</span> ∅ <span class="math">→ A x</span>；把前提拿进来，它其实是 False。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>intro 之后手里有 hx : <span class="math">x ∈</span> ∅，目标是 <span class="math">x ∈ A</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>hx 展开就是 False；用 <span class="math">False.elim (x ∈ A) hx</span> 交出目标。</p></div></details></div><details class="solution-panel" id="sol-2-4"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem empty_subset (α : Type) (A : Set α) : ∅ ⊆ A :=
+  fun (x : α) (hx : x ∈ ∅) =&gt; @False.elim (x ∈ A) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>练习 5（L 类）：<span class="math">A ⊆</span> ∅ 当且仅当 <span class="math">A =</span> ∅（<strong>用第 3 题的反对称</strong>）。</p></div><article class="decl decl-theorem" id="decl-2-6"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">subset_empty_iff</code><span class="decl-where">声明 6</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem subset_empty_iff (α : Type) (A : Set α) :
+    (A ⊆ ∅) ↔ (A = ∅) :=</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>一边是"互相包含"；另一边是把 <span class="math">A =</span> ∅ 代进自反性。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="A ⊆ ∅ ↔ A = ∅"><math display="block" class="mathml"><mrow><mi>A</mi><mspace width="0.22em"/><mo>⊆</mo><mspace width="0.22em"/><mo>∅</mo><mspace width="0.22em"/><mo>↔</mo><mspace width="0.22em"/><mi>A</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mo>∅</mo></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">→</span> 用 subset_antisymm（第 3 题）<span class="math">+ empty_subset</span>（第 4 题）； <span class="math">←</span> 用 Eq.subst 与 Eq.symm 把 <span class="math">A =</span> ∅ 代进 subset_refl（第 1 题）。</p></div></details></div><details class="proof-panel formal-only"><summary>证明 · 2 步 · 9 行</summary><ol class="proof-steps"><li><pre><code>  constructor
+  · intro h
+    apply subset_antisymm 
+    exact h
+    exact empty_subset α A
+  intro h x hx
+  apply Eq.subst h hx</code></pre></li><li><pre><code>#print subset_empty_iff</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-2-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">eq_empty_iff_forall_notMem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-2-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类）：<span class="math">A =</span> ∅ 当且仅当 A 没有元素。</p></div></div><pre class="exercise-statement"><code>theorem eq_empty_iff_forall_notMem (α : Type) (A : Set α) :
+    (A = ∅) ↔ (∀ (x : α), ¬ (x ∈ A)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span> 方向把 <span class="math">A =</span> ∅ 代进"∅ 没有元素"；<span class="math">←</span> 方向用反对称 <span class="math">+</span> 空洞蕴含。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="A = ∅ ↔ ∀ (x : α), ¬ (x ∈ A)"><math display="block" class="mathml"><mrow><mi>A</mi><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mo>∅</mo><mspace width="0.22em"/><mo>↔</mo><mspace width="0.22em"/><mo>∀</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>x</mi><mspace width="0.22em"/><mo>:</mo><mspace width="0.22em"/><mo>α</mo></mrow><mo>)</mo></mrow><mo>,</mo><mspace width="0.22em"/><mo>¬</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>x</mi><mspace width="0.22em"/><mo>∈</mo><mspace width="0.22em"/><mi>A</mi></mrow><mo>)</mo></mrow></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">→</span> 用 Eq.subst 与 Set.notMem_empty；<span class="math">←</span> 用 <span class="math">subset_antisymm + empty_subset</span>， 其中 <span class="math">A ⊆</span> ∅ 这一步要 man 每 x 把"没有元素"变成 False（False.elim）。</p></div></details></div><details class="solution-panel" id="sol-2-5"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem eq_empty_iff_forall_notMem (α : Type) (A : Set α) :
+    (A = ∅) ↔ (∀ (x : α), ¬ (x ∈ A)) :=
+  @Iff.intro (A = ∅) (∀ (x : α), ¬ (x ∈ A))  -- soko:notation-ok: G-30：分支含 `∅`，前导实参必须写全
+    (fun (h : A = ∅) =&gt; fun (x : α) (hx : x ∈ A) =&gt;
+      Set.notMem_empty x (@Eq.subst.{1} (Set α) (fun (X : Set α) =&gt; x ∈ X) A ∅ h hx))
+    (fun (h : ∀ (x : α), ¬ (x ∈ A)) =&gt;
+      subset_antisymm α A ∅
+        (fun (x : α) (hx : x ∈ A) =&gt; @absurd (x ∈ A) (x ∈ ∅) hx (h x))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+        (empty_subset α A))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">2.3 单元素集与配对集</h3><article class="exercise" id="ex-2-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">singleton_ne_empty</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-2-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类）：单元素集不是空集。</p></div></div><pre class="exercise-statement"><code>theorem singleton_ne_empty (α : Type) (a : α) : {a} ≠ ∅ := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要证"不相等"，就假设相等，然后制造矛盾。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">{a} ≠</span> ∅——<code>≠</code> 展开后就是 <code>{a} = ∅ → False</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>intro 之后假设就是 <code>{a} = ∅</code>；把 <span class="math">a ∈ {a}</span>（Set.mem_singleton_self）沿它搬到 <span class="math">a ∈</span> ∅，再交给 Set.notMem_empty 得到 False。</p></div></details></div><details class="solution-panel" id="sol-2-6"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><p class="solution-note">后四条的语句一度只能写<strong>点名形式</strong>（<code>¬ (… = …)</code>），因为 <code>≠</code> 展开成 <code>Ne</code>
+之后定义体里的宇宙变量 <code>u</code> 没人实例化（源 AST 是记法节点、内核 pp 又是裸名，
+两条路都不带 <code>.{u}</code>）<span class="math">⇒</span> <code>intro</code> 报 <code>unknown universe level u</code>。判卷器现在按
+<strong>操作数的 sort</strong> 算层级提示（与 <code>elab_notation</code> 给记法求层级同一条规则），
+所以下面四题与画布逐字一致。</p><pre><code>theorem singleton_ne_empty (α : Type) (a : α) : {a} ≠ ∅ :=
+  fun (h : {a} = ∅) =&gt;
+    Set.notMem_empty a
+      (@Eq.subst.{1} (Set α) (fun (X : Set α) =&gt; a ∈ X) {a} ∅ h
+        (Set.mem_singleton_self a))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-2-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">pair_subset_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-2-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类）：{a, <span class="math">b} ⊆ A</span> 当且仅当 <span class="math">a ∈ A</span> 且 <span class="math">b ∈ A</span>。</p></div></div><pre class="exercise-statement"><code>theorem pair_subset_iff (α : Type) (a b : α) (A : Set α) :
+    {a, b} ⊆ A ↔ a ∈ A ∧ b ∈ A := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>配对集展开是"两个等式取或"；<span class="math">→</span> 方向分别喂 a、b；<span class="math">←</span> 方向对 Or 分情况。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="{a, b} ⊆ A ↔ a ∈ A ∧ b ∈ A"><math display="block" class="mathml"><mrow><mo>{</mo><mi>a</mi><mo>,</mo><mspace width="0.22em"/><mi>b</mi><mo>}</mo><mspace width="0.22em"/><mo>⊆</mo><mspace width="0.22em"/><mi>A</mi><mspace width="0.22em"/><mo>↔</mo><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mo>∈</mo><mspace width="0.22em"/><mi>A</mi><mspace width="0.22em"/><mo>∧</mo><mspace width="0.22em"/><mi>b</mi><mspace width="0.22em"/><mo>∈</mo><mspace width="0.22em"/><mi>A</mi></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">→</span> 用 Or.inl/Or.inr 造出 <span class="math">a ∈ {a</span>,b} 与 <span class="math">b ∈ {a</span>,b}； <span class="math">←</span> 用 Or.elim（库里）配合 Eq.subst 把等式搬到 A 上。</p></div></details></div><details class="solution-panel" id="sol-2-7"><summary>查看解答 <span class="sol-meta">定理 · 16 行</span></summary><div class="solution-body"><pre><code>theorem pair_subset_iff (α : Type) (a b : α) (A : Set α) :
+    {a, b} ⊆ A ↔ a ∈ A ∧ b ∈ A :=
+  Iff.intro  -- soko:notation-ok: 这里可以省前导实参（分支的期望类型传得进去）
+    (fun (h : {a, b} ⊆ A) =&gt;
+      And.intro
+        (h a (@Or.inl (a = a) (a = b) (@Eq.refl.{1} α a)))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+        (h b (@Or.inr (b = a) (b = b) (@Eq.refl.{1} α b))))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+    (fun (h : a ∈ A ∧ b ∈ A) =&gt; fun (x : α) (hx : x ∈ {a, b}) =&gt;
+      @Or.elim (x = a) (x = b) (A x)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+        (fun (hxa : x = a) =&gt;
+          @Eq.subst.{1} α (fun (y : α) =&gt; A y) a x (@Eq.symm.{1} α x a hxa)
+            (And.left h))
+        (fun (hxb : x = b) =&gt;
+          @Eq.subst.{1} α (fun (y : α) =&gt; A y) b x (@Eq.symm.{1} α x b hxb)
+            (And.right h))
+        hx)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-2-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">pair_comm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-2-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（L 类）：{a, <span class="math">b} = {b</span>, a}。</p></div></div><pre class="exercise-statement"><code>theorem pair_comm (α : Type) (a b : α) : {a, b} = {b, a} := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>外延 <span class="math">+</span> 逐元素把"两个等式取或"的两支互换。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="{a, b} = {b, a}"><math display="block" class="mathml"><mrow><mo>{</mo><mi>a</mi><mo>,</mo><mspace width="0.22em"/><mi>b</mi><mo>}</mo><mspace width="0.22em"/><mo>=</mo><mspace width="0.22em"/><mo>{</mo><mi>b</mi><mo>,</mo><mspace width="0.22em"/><mi>a</mi><mo>}</mo></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Set.ext + Iff.intro</span>，两边都用 Or.elim 把 Or.inl 换成 Or.inr、Or.inr 换成 Or.inl。</p></div></details></div><details class="solution-panel" id="sol-2-8"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><pre><code>theorem pair_comm (α : Type) (a b : α) : {a, b} = {b, a} :=
+  Set.ext {a, b} {b, a} (fun (x : α) =&gt;
+    @Iff.intro (x ∈ {a, b}) (x ∈ {b, a})  -- soko:notation-ok: G-30：分支含集合字面量，前导实参必须写全
+      (fun (h : x ∈ {a, b}) =&gt;
+        @Or.elim (x = a) (x = b) ((x = b) ∨ (x = a))  -- soko:notation-ok: λ 体要靠这个显式调用拿到期望类型（引擎边界）
+          (fun (ha : x = a) =&gt; Or.inr ha)
+          (fun (hb : x = b) =&gt; Or.inl hb)
+          h)
+      (fun (h : x ∈ {b, a}) =&gt;
+        @Or.elim (x = b) (x = a) ((x = a) ∨ (x = b))  -- soko:notation-ok: λ 体要靠这个显式调用拿到期望类型（引擎边界）
+          (fun (hb : x = b) =&gt; Or.inr hb)
+          (fun (ha : x = a) =&gt; Or.inl ha)
+          h))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">2.4 元素 vs 单元素（<strong>实证上最脆弱的一点</strong>）</h3><article class="exercise" id="ex-2-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">singleton_of_singleton</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-2-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>Hendriyanto et al. 2024（183 名学生）：<code>r ∈ M</code> / <code>s ∉ M</code> 几乎人人答对，但 <strong><code>{r} ∈ M</code> 没有一个人给出正确理由</strong>。所以这里单独练它。</p></div><div class="block prose intuition-only"><p>练习 10（D/R 类）：下面这条是学生最常写错的形状——它<strong>连类型都不对</strong>：</p></div><div class="math-display intuition-only"><pre class="display-code"><code>theorem wrong (a : Nat) : {a} ∈ {a} := sorry</code></pre></div><div class="block prose intuition-only"><p>请回答：(1) 为什么它类型不对（写在注释里）；(2) 写出<strong>正确</strong>的那条并证明它——"<code>{a}</code> 是 <code>{{a}}</code> 的元素"。</p></div></div><pre class="exercise-statement"><code>theorem singleton_of_singleton (a : Nat) : {a} ∈ {{a}} := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>x ∈ A</code> 要求 x 与 A 的元素<strong>同型</strong>；这里 A 是 Set Nat，所以 x 必须是 Set Nat， 而 <code>{a}</code> 恰好是 Set Nat——目标只能是"<code>{a}</code> 属于一个<strong>装着集合</strong>的集合"。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">{a} ∈ {{a}}</span>——外层的 <code>{ }</code> 装的是集合，里层的 <code>{a}</code> 才是元素。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Eq.refl.{1} (Set Nat) {a}。</p></div></details></div><details class="solution-panel" id="sol-2-9"><summary>查看解答 <span class="sol-meta">定理 · 2 行</span></summary><div class="solution-body"><pre><code>theorem singleton_of_singleton (a : Nat) : {a} ∈ {{a}} :=
+  @Eq.refl.{1} (Set Nat) {a}</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（1 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>（tactic 白名单）：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>assumption</code> / <code>rfl</code> / <code>constructor</code> / <code>cases</code> / <code>have</code> 加 lib/ 里已备好的引理（<code>Set.subset_def</code>、<code>Set.mem_singleton_iff</code>、…）。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit01.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">集合与隶属</span></a><a class="unit-nav-home" href="../chapters/i-1.html#units">目录</a><a class="unit-nav-link" href="../units/unit03.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">并、交、差与幂集</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-2"><h3><a href="#top">子集、空集与包含三律</a></h3><p class="appendix-meta">9 道练习 · 9 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-2-1"><summary>练习 1 · subset_refl <span class="sol-meta">定理</span></summary><p class="solution-note">unit02 解答钥匙（agent 专用）。
+前 6 题的证明<strong>原先住在 lib/Set.sokonanoda 里</strong>——那是分层错误（台账 L-05）：
+Mathlib 有它们，但它们有数学内容，属于练习。现在它们只在这里与画布里。
+
+<strong>写法：项风格（lambda / 直接给证明项），不用 <code>by</code></strong>（2026-09-21 用户拍板，
+见 <code>courses/set-theory/AGENTS.md</code>「解答写法」）——<code>by</code> 块的判定代价是
+O(前缀 <span class="math">×</span> <code>by</code> 块数)，实测差 8–<span class="math">25×</span>。
+这份文件同时是<strong>提示</strong>：老师据此把骨架翻成 tactic 讲给学习者。
+记法用 Lean core 的符号（<code>∈ ⊆ ∅ {a} {a, b} = ≠ ∧ ↔ ¬</code>）。</p><pre><code>theorem subset_refl (α : Type) (A : Set α) : A ⊆ A :=
+  fun (x : α) (hx : x ∈ A) =&gt; hx</code></pre></details><details class="appendix-solution" id="app-sol-2-2"><summary>练习 2 · subset_trans <span class="sol-meta">定理</span></summary><pre><code>theorem subset_trans (α : Type) (A B C : Set α)
+    (h1 : A ⊆ B) (h2 : B ⊆ C) : A ⊆ C :=
+  fun (x : α) (hx : x ∈ A) =&gt; h2 x (h1 x hx)</code></pre></details><details class="appendix-solution" id="app-sol-2-3"><summary>练习 3 · subset_antisymm <span class="sol-meta">定理</span></summary><pre><code>theorem subset_antisymm (α : Type) (A B : Set α)
+    (h1 : A ⊆ B) (h2 : B ⊆ A) : A = B :=
+  Set.ext A B (fun (x : α) =&gt; Iff.intro (h1 x) (h2 x))</code></pre></details><details class="appendix-solution" id="app-sol-2-4"><summary>练习 4 · empty_subset <span class="sol-meta">定理</span></summary><pre><code>theorem empty_subset (α : Type) (A : Set α) : ∅ ⊆ A :=
+  fun (x : α) (hx : x ∈ ∅) =&gt; @False.elim (x ∈ A) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）</code></pre></details><details class="appendix-solution" id="app-sol-2-5"><summary>练习 5 · eq_empty_iff_forall_notMem <span class="sol-meta">定理</span></summary><pre><code>theorem eq_empty_iff_forall_notMem (α : Type) (A : Set α) :
+    (A = ∅) ↔ (∀ (x : α), ¬ (x ∈ A)) :=
+  @Iff.intro (A = ∅) (∀ (x : α), ¬ (x ∈ A))  -- soko:notation-ok: G-30：分支含 `∅`，前导实参必须写全
+    (fun (h : A = ∅) =&gt; fun (x : α) (hx : x ∈ A) =&gt;
+      Set.notMem_empty x (@Eq.subst.{1} (Set α) (fun (X : Set α) =&gt; x ∈ X) A ∅ h hx))
+    (fun (h : ∀ (x : α), ¬ (x ∈ A)) =&gt;
+      subset_antisymm α A ∅
+        (fun (x : α) (hx : x ∈ A) =&gt; @absurd (x ∈ A) (x ∈ ∅) hx (h x))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
+        (empty_subset α A))</code></pre></details><details class="appendix-solution" id="app-sol-2-6"><summary>练习 6 · singleton_ne_empty <span class="sol-meta">定理</span></summary><p class="solution-note">后四条的语句一度只能写<strong>点名形式</strong>（<code>¬ (… = …)</code>），因为 <code>≠</code> 展开成 <code>Ne</code>
+之后定义体里的宇宙变量 <code>u</code> 没人实例化（源 AST 是记法节点、内核 pp 又是裸名，
+两条路都不带 <code>.{u}</code>）<span class="math">⇒</span> <code>intro</code> 报 <code>unknown universe level u</code>。判卷器现在按
+<strong>操作数的 sort</strong> 算层级提示（与 <code>elab_notation</code> 给记法求层级同一条规则），
+所以下面四题与画布逐字一致。</p><pre><code>theorem singleton_ne_empty (α : Type) (a : α) : {a} ≠ ∅ :=
+  fun (h : {a} = ∅) =&gt;
+    Set.notMem_empty a
+      (@Eq.subst.{1} (Set α) (fun (X : Set α) =&gt; a ∈ X) {a} ∅ h
+        (Set.mem_singleton_self a))</code></pre></details><details class="appendix-solution" id="app-sol-2-7"><summary>练习 7 · pair_subset_iff <span class="sol-meta">定理</span></summary><pre><code>theorem pair_subset_iff (α : Type) (a b : α) (A : Set α) :
+    {a, b} ⊆ A ↔ a ∈ A ∧ b ∈ A :=
+  Iff.intro  -- soko:notation-ok: 这里可以省前导实参（分支的期望类型传得进去）
+    (fun (h : {a, b} ⊆ A) =&gt;
+      And.intro
+        (h a (@Or.inl (a = a) (a = b) (@Eq.refl.{1} α a)))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+        (h b (@Or.inr (b = a) (b = b) (@Eq.refl.{1} α b))))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+    (fun (h : a ∈ A ∧ b ∈ A) =&gt; fun (x : α) (hx : x ∈ {a, b}) =&gt;
+      @Or.elim (x = a) (x = b) (A x)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+        (fun (hxa : x = a) =&gt;
+          @Eq.subst.{1} α (fun (y : α) =&gt; A y) a x (@Eq.symm.{1} α x a hxa)
+            (And.left h))
+        (fun (hxb : x = b) =&gt;
+          @Eq.subst.{1} α (fun (y : α) =&gt; A y) b x (@Eq.symm.{1} α x b hxb)
+            (And.right h))
+        hx)</code></pre></details><details class="appendix-solution" id="app-sol-2-8"><summary>练习 8 · pair_comm <span class="sol-meta">定理</span></summary><pre><code>theorem pair_comm (α : Type) (a b : α) : {a, b} = {b, a} :=
+  Set.ext {a, b} {b, a} (fun (x : α) =&gt;
+    @Iff.intro (x ∈ {a, b}) (x ∈ {b, a})  -- soko:notation-ok: G-30：分支含集合字面量，前导实参必须写全
+      (fun (h : x ∈ {a, b}) =&gt;
+        @Or.elim (x = a) (x = b) ((x = b) ∨ (x = a))  -- soko:notation-ok: λ 体要靠这个显式调用拿到期望类型（引擎边界）
+          (fun (ha : x = a) =&gt; Or.inr ha)
+          (fun (hb : x = b) =&gt; Or.inl hb)
+          h)
+      (fun (h : x ∈ {b, a}) =&gt;
+        @Or.elim (x = b) (x = a) ((x = a) ∨ (x = b))  -- soko:notation-ok: λ 体要靠这个显式调用拿到期望类型（引擎边界）
+          (fun (hb : x = b) =&gt; Or.inr hb)
+          (fun (ha : x = a) =&gt; Or.inl ha)
+          h))</code></pre></details><details class="appendix-solution" id="app-sol-2-9"><summary>练习 9 · singleton_of_singleton <span class="sol-meta">定理</span></summary><pre><code>theorem singleton_of_singleton (a : Nat) : {a} ∈ {{a}} :=
+  @Eq.refl.{1} (Set Nat) {a}</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit01.html">← 01 集合与隶属</a><a class="next" href="../units/unit03.html">03 并、交、差与幂集 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

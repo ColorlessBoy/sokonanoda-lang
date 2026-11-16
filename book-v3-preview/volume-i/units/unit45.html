@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>45 关系的单值性与函数的图 · 从集合论到实分析</title>
+<meta name="description" content="单元㊺ 关系的单值性与函数的图：导语、定义与定理、练习与解答。Unit 45 — Single-Valued Relations and Graphs of Functions">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit45.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li class="is-current"><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.13 单元</h3><ol><li><a href="../units/unit36.html">36 关系的代数</a></li><li><a href="../units/unit37.html">37 关系的代数刻画</a></li><li><a href="../units/unit38.html">38 序关系的关系代数视角</a></li><li><a href="../units/unit39.html">39 关系的像、原像与等价核</a></li><li><a href="../units/unit40.html">40 传递闭包的代数刻画</a></li><li><a href="../units/unit41.html">41 良基关系（极小元原理）</a></li><li class="is-current"><a href="../units/unit45.html">45 关系的单值性与函数的图</a></li><li><a href="../units/unit52.html">52 关系的复合：单位律与逐点形态</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li><li aria-current="page">单元 45 关系的单值性与函数的图</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-45-1">45.0 画布给的四个新词汇</a></li>
+<li><a href="#decl-45-5">45.1 三条库引理（• 与 ⁻¹ 的成员刻画）</a></li>
+<li><a href="#ex-45-1">45.2 两条定义与函数图的例子</a></li>
+<li><a href="#ex-45-5">45.3 旗舰：单值 ⟺ r ⁻¹ • r ⊆ idRel（与它的对偶）</a></li>
+<li><a href="#ex-45-7">45.4 复合 · 恒等 · 图的复合</a></li>
+<li><a href="#appendix-unit-45">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-13.html#units">↑ 本章目录</a>
+      <a href="../print/unit45.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-45">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-13.html">I.13</a> · 本章第 7 / 8 单元 · 全书第 45 / 112 单元</p>
+<h1><span class="unit-number">45</span> <span>关系的单值性与函数的图</span></h1>
+<p class="unit-title-en">Unit 45 — Single-Valued Relations and Graphs of Functions</p>
+<p class="unit-meta">4 个定义 · 13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-45">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="45" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-45" aria-label="复制单元 45 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit45.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-13.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§8–10</strong>（functions as relations / inverses and composites）；Enderton《Elements of Set Theory》<strong>§3.3</strong> 的 "functions as relations" 一段。大纲：<code>set-theory-syllabus.md</code> §4.1（I.13 章收尾 —— 用单元㊱㊲ 的<strong>代数语言</strong> 把「函数 <span class="math">=</span> 单值 <span class="math">+</span> 全的关系」这句话<strong>证出来</strong> ✓）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>单值</strong>与<strong>全</strong>两条定义 <span class="math">+</span> 取用子；<strong>函数的图</strong>单值且全；</li><li><strong>旗舰一：单值 <span class="math">⟺</span> <code>r ⁻¹ • r ⊆ idRel</code></strong> —— "同一个点的两个像相等" ✓</li><li><strong>旗舰二（对偶）：<code>r ⁻¹</code> 单值 <span class="math">⟺</span> <code>r • r ⁻¹ ⊆ idRel</code></strong> —— "有共同像的两点相等"<span class="math">=</span> 图<strong>单射</strong> ✓（<strong>注意这两条容易写反</strong>：<code>⁻¹</code> 放左边管"单值"、放右边管"单射"✓）</li><li><strong>单值/全 在复合下保持</strong>；<strong>恒等关系单值</strong>；<strong>函数图的复合 <span class="math">=</span> 复合函数的图</strong> ✓</li></ul></div><h3 class="unit-subhead">45.0 画布给的四个新词汇</h3><div class="block prose intuition-only"><p><code>idRel</code>：恒等关系（单元㊱ 起就在用 ✓）<code>SingleValued r</code>：<strong>单值</strong> —— 同一个点的两个像相等（函数的图满足它 ✓）<code>TotalRel r</code>：<strong>全</strong> —— 每个点都有像 ⚠ 注意<strong>不叫 <code>Total</code></strong>：那个名字 <code>lib/Order</code> 已经用了 ✗ <code>graph f</code>：函数 <code>f</code> 的<strong>图</strong>（<code>fun a b =&gt; f a = b</code>）✓</p></div><article class="decl decl-def" id="decl-45-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">idRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def idRel (α : Type) : Rel α α :=
+  fun (a : α) (b : α) =&gt; a = b</code></pre></div></article>
+<article class="decl decl-def" id="decl-45-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">SingleValued</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def SingleValued (α β : Type) (r : Rel α β) : Prop :=
+  ∀ (a : α) (b : β) (b1 : β), r a b → r a b1 → b = b1</code></pre></div></article>
+<article class="decl decl-def" id="decl-45-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">TotalRel</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def TotalRel (α β : Type) (r : Rel α β) : Prop :=
+  ∀ (a : α), ∃ (b : β), r a b</code></pre></div></article>
+<article class="decl decl-def" id="decl-45-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">graph</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def graph (α β : Type) (f : α → β) : Rel α β :=
+  fun (a : α) (b : β) =&gt; (f a) = b</code></pre></div></article>
+<h3 class="unit-subhead">45.1 三条库引理（<code>•</code> 与 <code>⁻¹</code> 的成员刻画）</h3><div class="block prose intuition-only"><p>演示：复合的成员刻画。</p></div><article class="decl decl-theorem" id="decl-45-5"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_comp</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ) :
+    (r • s) a c ↔ ∃ (b : β), r a b ∧ s b c :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.comp_apply r s a c</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-45-6"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_inv</code><span class="decl-where">声明 6</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_inv (α β : Type) (r : Rel α β) (b : β) (a : α) :
+    (r ⁻¹) b a ↔ r a b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.inv_apply α β r b a</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-45-7"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mem_inv_inv</code><span class="decl-where">声明 7</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mem_inv_inv (α β : Type) (r : Rel α β) (a : α) (b : β) :
+    ((r ⁻¹) ⁻¹) a b ↔ r a b :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Rel.inv_inv_apply α β r a b</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">45.2 两条定义与<strong>函数图的例子</strong></h3><article class="exercise" id="ex-45-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">singleValued_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-45-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：<strong>单值用在具体的点上</strong>。</p></div></div><pre class="exercise-statement"><code>theorem singleValued_apply (α β : Type) (r : Rel α β) (h : SingleValued α β r)
+    (a : α) (b b1 : β) (h1 : r a b) (h2 : r a b1) : b = b1 := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>单值的展开形态是"两个点 <span class="math">+</span> 两条证据 <span class="math">→</span> 两个像相等"的 <code>∀</code>，直接应用。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>SingleValued r → r a b → r a b1 → b = b1</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>单值假设<strong>先 <span class="math">λ</span> 绑定再应用</strong>（G-73 形状 ①）✓</p></div></details></div><details class="solution-panel" id="sol-45-1"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem singleValued_apply (α β : Type) (r : Rel α β) (h : SingleValued α β r)
+    (a : α) (b b1 : β) (h1 : r a b) (h2 : r a b1) : @Eq.{1} β b b1 :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  (fun (hu : ∀ (a1 : α) (b2 : β) (b3 : β), r a1 b2 → r a1 b3 → @Eq.{1} β b2 b3) =&gt;  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    hu a b b1 h1 h2) h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-45-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">totalRel_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-45-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>全性用在具体的点上</strong>。</p></div></div><pre class="exercise-statement"><code>theorem totalRel_apply (α β : Type) (r : Rel α β) (h : TotalRel α β r) (a : α) :
+    ∃ (b : β), r a b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>全的展开形态是 <code>∀ a, ∃ b, …</code>，直接应用。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>TotalRel r → ∃ b, r a b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>全性假设<strong>先 <span class="math">λ</span> 绑定再应用</strong> ✓</p></div></details></div><details class="solution-panel" id="sol-45-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem totalRel_apply (α β : Type) (r : Rel α β) (h : TotalRel α β r) (a : α) :
+    ∃ (b : β), r a b :=
+  (fun (hu : ∀ (a1 : α), ∃ (b : β), r a1 b) =&gt; hu a) h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-45-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">graph_singleValued</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-45-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong>函数的图是单值的</strong>。</p></div></div><pre class="exercise-statement"><code>theorem graph_singleValued (α β : Type) (f : α → β) :
+    SingleValued α β (graph α β f) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两条证据分别是 <code>f a = b</code> 与 <code>f a = b1</code> <span class="math">⇒</span> 先把第一条<strong>掉头</strong>，再与第二条接起来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>SingleValued (graph f)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.symm</code>/<code>Eq.trans</code>（<strong>写全宇宙层级与论域</strong>）✓</p></div></details></div><details class="solution-panel" id="sol-45-3"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem graph_singleValued (α β : Type) (f : α → β) :
+    SingleValued α β (graph α β f) :=
+  fun (a : α) =&gt; fun (b : β) =&gt; fun (b1 : β) =&gt;
+    fun (h1 : @Eq.{1} β (f a) b) =&gt; fun (h2 : @Eq.{1} β (f a) b1) =&gt;  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      @Eq.trans.{1} β b (f a) b1 (@Eq.symm.{1} β (f a) b h1) h2</code></pre></div></details></div></article>
+<article class="exercise" id="ex-45-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">graph_totalRel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-45-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（T 类）：<strong>函数的图是全的</strong>（见证取 <code>f a</code> 自己）。</p></div></div><pre class="exercise-statement"><code>theorem graph_totalRel (α β : Type) (f : α → β) : TotalRel α β (graph α β f) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>见证取 <code>f a</code>，"像等于 <code>f a</code>" 由自反给出。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>TotalRel (graph f)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.intro</code>（<strong>前导实参写全</strong>）<span class="math">·</span> <code>Eq.refl</code>（写全层级与论域）✓</p></div></details></div><details class="solution-panel" id="sol-45-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem graph_totalRel (α β : Type) (f : α → β) : TotalRel α β (graph α β f) :=
+  fun (a : α) =&gt;
+    Exists.intro (f a) (@Eq.refl.{1} β (f a))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">45.3 旗舰：<strong>单值 <span class="math">⟺</span> <code>r ⁻¹ • r ⊆ idRel</code></strong>（与它的对偶）</h3><article class="exercise" id="ex-45-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">singleValued_iff_inv_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-45-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>本单元旗舰</strong>）：<strong>单值 <span class="math">⟺</span> <code>r ⁻¹ • r ⊆ idRel</code></strong>。</p></div></div><pre class="exercise-statement"><code>theorem singleValued_iff_inv_comp (α β : Type) (r : Rel α β) :
+    SingleValued α β r ↔ ∀ (b b1 : β), (r ⁻¹ • r) b b1 → (idRel β) b b1 := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>逐点看 <code>(r ⁻¹ • r) b b1</code> 就是 <code>∃ a, r a b ∧ r a b1</code> ——<span class="math">→</span>：拆 <code>∃</code> 得同一个点的两个像 <span class="math">⇒</span> 用单值性 <span class="math">⇒</span> <code>b = b1</code>；<span class="math">←</span>：给定 <code>r a b</code> 与 <code>r a b1</code>，造出那个 <code>∃</code>（见证取 <code>a</code>）<span class="math">⇒</span> 假设给出 <code>b = b1</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>SingleValued r ↔ ∀ b b1, (r ⁻¹ • r) b b1 → (idRel β) b b1</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code>（前导 Prop 实参写全）<span class="math">·</span> <code>Exists.elim</code>/<code>Exists.intro</code>（写全）<span class="math">·</span>练习 <span class="math">1 ·</span> <code>And.left</code>/<code>And.right</code> ✓ ⚠ <strong><code>⁻¹</code> 放左边管"单值"</strong>（同一个点的两个像），放右边管"<strong>单射</strong>"（练习 6）——这两条<strong>极易写反</strong> ✗</p></div></details></div><details class="solution-panel" id="sol-45-5"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><pre><code>theorem singleValued_iff_inv_comp (α β : Type) (r : Rel α β) :
+    SingleValued α β r ↔ ∀ (b b1 : β), (r ⁻¹ • r) b b1 → (idRel β) b b1 :=
+  @Iff.intro (SingleValued α β r) (∀ (b b1 : β), (r ⁻¹ • r) b b1 → (idRel β) b b1)
+    (fun (h : SingleValued α β r) =&gt; fun (b : β) =&gt; fun (b1 : β) =&gt;
+      fun (hbb : (r ⁻¹ • r) b b1) =&gt;
+        @Exists.elim α (fun (a : α) =&gt; r a b ∧ r a b1) (@Eq.{1} β b b1) hbb  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (a : α) (ha : r a b ∧ r a b1) =&gt;
+            singleValued_apply α β r h a b b1 (And.left ha) (And.right ha)))
+    (fun (h : ∀ (b b1 : β), (r ⁻¹ • r) b b1 → (idRel β) b b1) =&gt;
+      fun (a : α) =&gt; fun (b : β) =&gt; fun (b1 : β) =&gt;
+        fun (h1 : r a b) =&gt; fun (h2 : r a b1) =&gt;
+          h b b1 (Exists.intro a
+            (And.intro h1 h2)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-45-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">inv_singleValued_iff_comp_inv</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-45-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（L 类，<strong>旗舰的对偶</strong>）：<strong><code>r ⁻¹</code> 单值 <span class="math">⟺</span> <code>r • r ⁻¹ ⊆ idRel</code></strong>。</p></div></div><pre class="exercise-statement"><code>theorem inv_singleValued_iff_comp_inv (α β : Type) (r : Rel α β) :
+    SingleValued β α (r ⁻¹) ↔ ∀ (a a1 : α), (r • r ⁻¹) a a1 → (idRel α) a a1 := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与练习 5 逐字对偶（把 <code>r</code> 换成 <code>r ⁻¹</code>、把两个点的位置对调）——逐点看 <code>(r • r ⁻¹) a a1</code> 就是 <code>∃ b, r a b ∧ r a1 b</code>（<strong>有共同的像</strong>）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>SingleValued (r ⁻¹) ↔ ∀ a a1, (r • r ⁻¹) a a1 → (idRel α) a a1</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code> <span class="math">·</span> <code>Exists.elim</code>/<code>Exists.intro</code> <span class="math">·</span> 练习 1 ✓ ⚠ <strong>两处"定义头"的坑</strong>：<code>(r ⁻¹) b a</code> 与 <code>r a b</code> 定义上相同，但<strong>别套 <span class="math">λ</span> 去"换形"</strong>（<code>fun (hu : r a b) =&gt; hu</code> 反而判红 ✗）—— <strong>直接把证据交出去</strong>即可 ✓</p></div></details></div><details class="solution-panel" id="sol-45-6"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><pre><code>theorem inv_singleValued_iff_comp_inv (α β : Type) (r : Rel α β) :
+    SingleValued β α (r ⁻¹) ↔ ∀ (a a1 : α), (r • r ⁻¹) a a1 → (idRel α) a a1 :=
+  @Iff.intro (SingleValued β α (r ⁻¹)) (∀ (a a1 : α), (r • r ⁻¹) a a1 → (idRel α) a a1)
+    (fun (h : SingleValued β α (r ⁻¹)) =&gt; fun (a : α) =&gt; fun (a1 : α) =&gt;
+      fun (haa : (r • r ⁻¹) a a1) =&gt;
+        @Exists.elim β (fun (b : β) =&gt; r a b ∧ (r ⁻¹) b a1) (@Eq.{1} α a a1) haa  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (b : β) (hb : r a b ∧ (r ⁻¹) b a1) =&gt;
+            singleValued_apply β α (r ⁻¹) h b a a1 (And.left hb) (And.right hb)))
+    (fun (h : ∀ (a a1 : α), (r • r ⁻¹) a a1 → (idRel α) a a1) =&gt;
+      fun (b : β) =&gt; fun (a : α) =&gt; fun (a1 : α) =&gt;
+        fun (h1 : (r ⁻¹) b a) =&gt; fun (h2 : (r ⁻¹) b a1) =&gt;
+          h a a1 (Exists.intro b
+            (And.intro h1 h2)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">45.4 复合 <span class="math">·</span> 恒等 <span class="math">·</span> 图的复合</h3><article class="exercise" id="ex-45-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">singleValued_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-45-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类）：<strong>单值的复合还是单值</strong>。</p></div></div><pre class="exercise-statement"><code>theorem singleValued_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
+    (hr : SingleValued α β r) (hs : SingleValued β γ s) :
+    SingleValued α γ (r • s) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两条 <code>(r • s) a ·</code> 的成员各拆出一个中间点 <code>b</code>、<code>b1</code>；先用 <code>r</code> 的单值性得 <code>b = b1</code>，再把 <code>s b c</code> <strong>沿这个等式搬到</strong> <code>s b1 c</code>，最后用 <code>s</code> 的单值性收尾。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>SingleValued r → SingleValued s → SingleValued (r • s)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两层 <code>Exists.elim</code> <span class="math">·</span> 练习 <span class="math">1 ·</span> <strong>搬运引理 <code>rel_subst_right</code></strong>：要改的是 <code>s</code> 的<strong>第一个坐标</strong> <span class="math">⇒</span> 关系取<strong>翻过来</strong>的 <code>fun u v =&gt; s v c</code> ✓（关系取 <code>fun u v =&gt; s u c</code> 会判红 ✗ —— 单元㊳ 的实测教训）<span class="math">·</span> <code>And.left</code>/<code>And.right</code> ✓</p></div></details></div><details class="solution-panel" id="sol-45-7"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><pre><code>theorem singleValued_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
+    (hr : SingleValued α β r) (hs : SingleValued β γ s) :
+    SingleValued α γ (r • s) :=
+  fun (a : α) =&gt; fun (c : γ) =&gt; fun (c1 : γ) =&gt;
+    fun (h1 : (r • s) a c) =&gt; fun (h2 : (r • s) a c1) =&gt;
+      @Exists.elim β (fun (b : β) =&gt; r a b ∧ s b c) (@Eq.{1} γ c c1) h1  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (fun (b : β) (hb : r a b ∧ s b c) =&gt;
+          @Exists.elim β (fun (b1 : β) =&gt; r a b1 ∧ s b1 c1) (@Eq.{1} γ c c1) h2  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+            (fun (b1 : β) (hb1 : r a b1 ∧ s b1 c1) =&gt;
+              hs b1 c c1
+                (rel_subst_right β (fun (u : β) (v : β) =&gt; s v c) b b b1
+                  (singleValued_apply α β r hr a b b1 (And.left hb) (And.left hb1))
+                  (And.right hb))
+                (And.right hb1)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-45-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">totalRel_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-45-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类）：<strong>全的复合还是全</strong>（两次取像）。</p></div></div><pre class="exercise-statement"><code>theorem totalRel_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
+    (hr : TotalRel α β r) (hs : TotalRel β γ s) : TotalRel α γ (r • s) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>给定 <code>a</code>，先用 <code>r</code> 的全性取 <code>b</code>，再用 <code>s</code> 的全性取 <code>c</code> <span class="math">⇒</span> 见证取 <code>c</code>，并把 <code>b</code> 作为复合的中间点造出来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>TotalRel r → TotalRel s → TotalRel (r • s)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两层 <code>Exists.elim</code> <span class="math">·</span> 两层 <code>Exists.intro</code>（<strong>前导实参写全</strong>）<span class="math">·</span> 练习 2 ✓</p></div></details></div><details class="solution-panel" id="sol-45-8"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem totalRel_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
+    (hr : TotalRel α β r) (hs : TotalRel β γ s) : TotalRel α γ (r • s) :=
+  fun (a : α) =&gt;
+    @Exists.elim β (fun (b : β) =&gt; r a b)
+      (∃ (c : γ), (r • s) a c) (totalRel_apply α β r hr a)
+      (fun (b : β) (hb : r a b) =&gt;
+        @Exists.elim γ (fun (c : γ) =&gt; s b c)
+          (∃ (c : γ), (r • s) a c) (totalRel_apply β γ s hs b)
+          (fun (c : γ) (hc : s b c) =&gt;
+            Exists.intro c
+              (Exists.intro b
+                (And.intro hb hc))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-45-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">singleValued_idRel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-45-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（T 类）：<strong>恒等关系是单值的</strong>（两条证据都是"与 <code>a</code> 相等"）。</p></div></div><pre class="exercise-statement"><code>theorem singleValued_idRel (α : Type) : SingleValued α α (idRel α) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两条证据分别是 <code>a = b</code> 与 <code>a = b1</code> <span class="math">⇒</span> 掉头再接力。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>SingleValued (idRel α)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Eq.symm</code>/<code>Eq.trans</code>（写全层级与论域）—— 与练习 3 同一手法 ✓</p></div></details></div><details class="solution-panel" id="sol-45-9"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem singleValued_idRel (α : Type) : SingleValued α α (idRel α) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (b1 : α) =&gt;
+    fun (h1 : @Eq.{1} α a b) =&gt; fun (h2 : @Eq.{1} α a b1) =&gt;  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      @Eq.trans.{1} α b a b1 (@Eq.symm.{1} α a b h1) h2</code></pre></div></details></div></article>
+<article class="exercise" id="ex-45-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">graph_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-45-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（L 类）：<strong>函数图的复合就是复合函数的图</strong>（把"关系版"与"函数版"对上）。</p></div></div><pre class="exercise-statement"><code>theorem graph_comp (α β γ : Type) (f : α → β) (g : β → γ) (a : α) (c : γ) :
+    (graph α β f • graph β γ g) a c ↔ (g (f a)) = c := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：拆 <code>∃ b</code>，把 <code>g</code> 作用在 <code>f a = b</code> 上（<strong>搬运引理</strong>），再与 <code>g b = c</code> 接起来；<span class="math">←</span>：见证取 <code>f a</code>，两条证据分别是自反与假设。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(graph f • graph g) a c ↔ g (f a) = c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code> <span class="math">·</span> <code>Exists.elim</code>/<code>Exists.intro</code> <span class="math">·</span> <code>rel_subst_right</code>（关系取 <code>fun u v =&gt; g u = g v</code>、沿 <code>f a = b</code> 把 <code>g (f a) = g (f a)</code> 搬成 <code>g (f a) = g b</code> ✓—— <strong>别用 <code>congrArg</code></strong>，那个位置解不出宇宙层级 ✗）<span class="math">·</span> <code>Eq.refl</code>/<code>Eq.trans</code> ✓</p></div></details></div><details class="solution-panel" id="sol-45-10"><summary>查看解答 <span class="sol-meta">定理 · 15 行</span></summary><div class="solution-body"><pre><code>theorem graph_comp (α β γ : Type) (f : α → β) (g : β → γ) (a : α) (c : γ) :
+    (graph α β f • graph β γ g) a c ↔ @Eq.{1} γ (g (f a)) c :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Iff.intro ((graph α β f • graph β γ g) a c) (@Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (h : (graph α β f • graph β γ g) a c) =&gt;
+      @Exists.elim β (fun (b : β) =&gt; (graph α β f) a b ∧ (graph β γ g) b c)
+        (@Eq.{1} γ (g (f a)) c) h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (fun (b : β) (hb : (graph α β f) a b ∧ (graph β γ g) b c) =&gt;
+          @Eq.trans.{1} γ (g (f a)) (g b) c
+            (rel_subst_right β (fun (u : β) (v : β) =&gt; @Eq.{1} γ (g u) (g v))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+              (f a) (f a) b (And.left hb) (@Eq.refl.{1} γ (g (f a))))
+            (And.right hb)))
+    (fun (h : @Eq.{1} γ (g (f a)) c) =&gt;  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      Exists.intro (f a)
+        (And.intro
+          (@Eq.refl.{1} β (f a)) h))</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>本单元的一处命名教训</strong>（写进 hint）：<strong><code>Total</code> 这个名字已经被 <code>lib/Order</code> 用了</strong>（序的全性：<code>∀ a b, r a b ∨ r b a</code>）✗ <span class="math">⇒</span> 本单元的关系层全性叫 <strong><code>TotalRel</code></strong> ✓（判卷器当场报「<code>Total</code> 在 <code>lib.Order</code> 与 …里各声明了一次」——正是 <strong>L-09</strong> 那条纪律在起作用 ✓）</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.Rel</code>（<code>•</code>/<code>⁻¹</code>）<span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <code>lib.Fun</code> <span class="math">·</span> <code>lib.Set</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㊱㊲（关系的代数与刻画）<span class="math">·</span> 单元㊾…不对，是单元⑦⑧（函数）—— 本单元把两者接上。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit41.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">良基关系（极小元原理）</span></a><a class="unit-nav-home" href="../chapters/i-13.html#units">目录</a><a class="unit-nav-link" href="../units/unit52.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">关系的复合：单位律与逐点形态</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-45"><h3><a href="#top">关系的单值性与函数的图</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-45-1"><summary>练习 1 · singleValued_apply <span class="sol-meta">定理</span></summary><pre><code>theorem singleValued_apply (α β : Type) (r : Rel α β) (h : SingleValued α β r)
+    (a : α) (b b1 : β) (h1 : r a b) (h2 : r a b1) : @Eq.{1} β b b1 :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  (fun (hu : ∀ (a1 : α) (b2 : β) (b3 : β), r a1 b2 → r a1 b3 → @Eq.{1} β b2 b3) =&gt;  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    hu a b b1 h1 h2) h</code></pre></details><details class="appendix-solution" id="app-sol-45-2"><summary>练习 2 · totalRel_apply <span class="sol-meta">定理</span></summary><pre><code>theorem totalRel_apply (α β : Type) (r : Rel α β) (h : TotalRel α β r) (a : α) :
+    ∃ (b : β), r a b :=
+  (fun (hu : ∀ (a1 : α), ∃ (b : β), r a1 b) =&gt; hu a) h</code></pre></details><details class="appendix-solution" id="app-sol-45-3"><summary>练习 3 · graph_singleValued <span class="sol-meta">定理</span></summary><pre><code>theorem graph_singleValued (α β : Type) (f : α → β) :
+    SingleValued α β (graph α β f) :=
+  fun (a : α) =&gt; fun (b : β) =&gt; fun (b1 : β) =&gt;
+    fun (h1 : @Eq.{1} β (f a) b) =&gt; fun (h2 : @Eq.{1} β (f a) b1) =&gt;  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      @Eq.trans.{1} β b (f a) b1 (@Eq.symm.{1} β (f a) b h1) h2</code></pre></details><details class="appendix-solution" id="app-sol-45-4"><summary>练习 4 · graph_totalRel <span class="sol-meta">定理</span></summary><pre><code>theorem graph_totalRel (α β : Type) (f : α → β) : TotalRel α β (graph α β f) :=
+  fun (a : α) =&gt;
+    Exists.intro (f a) (@Eq.refl.{1} β (f a))</code></pre></details><details class="appendix-solution" id="app-sol-45-5"><summary>练习 5 · singleValued_iff_inv_comp <span class="sol-meta">定理</span></summary><pre><code>theorem singleValued_iff_inv_comp (α β : Type) (r : Rel α β) :
+    SingleValued α β r ↔ ∀ (b b1 : β), (r ⁻¹ • r) b b1 → (idRel β) b b1 :=
+  @Iff.intro (SingleValued α β r) (∀ (b b1 : β), (r ⁻¹ • r) b b1 → (idRel β) b b1)
+    (fun (h : SingleValued α β r) =&gt; fun (b : β) =&gt; fun (b1 : β) =&gt;
+      fun (hbb : (r ⁻¹ • r) b b1) =&gt;
+        @Exists.elim α (fun (a : α) =&gt; r a b ∧ r a b1) (@Eq.{1} β b b1) hbb  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (a : α) (ha : r a b ∧ r a b1) =&gt;
+            singleValued_apply α β r h a b b1 (And.left ha) (And.right ha)))
+    (fun (h : ∀ (b b1 : β), (r ⁻¹ • r) b b1 → (idRel β) b b1) =&gt;
+      fun (a : α) =&gt; fun (b : β) =&gt; fun (b1 : β) =&gt;
+        fun (h1 : r a b) =&gt; fun (h2 : r a b1) =&gt;
+          h b b1 (Exists.intro a
+            (And.intro h1 h2)))</code></pre></details><details class="appendix-solution" id="app-sol-45-6"><summary>练习 6 · inv_singleValued_iff_comp_inv <span class="sol-meta">定理</span></summary><pre><code>theorem inv_singleValued_iff_comp_inv (α β : Type) (r : Rel α β) :
+    SingleValued β α (r ⁻¹) ↔ ∀ (a a1 : α), (r • r ⁻¹) a a1 → (idRel α) a a1 :=
+  @Iff.intro (SingleValued β α (r ⁻¹)) (∀ (a a1 : α), (r • r ⁻¹) a a1 → (idRel α) a a1)
+    (fun (h : SingleValued β α (r ⁻¹)) =&gt; fun (a : α) =&gt; fun (a1 : α) =&gt;
+      fun (haa : (r • r ⁻¹) a a1) =&gt;
+        @Exists.elim β (fun (b : β) =&gt; r a b ∧ (r ⁻¹) b a1) (@Eq.{1} α a a1) haa  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          (fun (b : β) (hb : r a b ∧ (r ⁻¹) b a1) =&gt;
+            singleValued_apply β α (r ⁻¹) h b a a1 (And.left hb) (And.right hb)))
+    (fun (h : ∀ (a a1 : α), (r • r ⁻¹) a a1 → (idRel α) a a1) =&gt;
+      fun (b : β) =&gt; fun (a : α) =&gt; fun (a1 : α) =&gt;
+        fun (h1 : (r ⁻¹) b a) =&gt; fun (h2 : (r ⁻¹) b a1) =&gt;
+          h a a1 (Exists.intro b
+            (And.intro h1 h2)))</code></pre></details><details class="appendix-solution" id="app-sol-45-7"><summary>练习 7 · singleValued_comp <span class="sol-meta">定理</span></summary><pre><code>theorem singleValued_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
+    (hr : SingleValued α β r) (hs : SingleValued β γ s) :
+    SingleValued α γ (r • s) :=
+  fun (a : α) =&gt; fun (c : γ) =&gt; fun (c1 : γ) =&gt;
+    fun (h1 : (r • s) a c) =&gt; fun (h2 : (r • s) a c1) =&gt;
+      @Exists.elim β (fun (b : β) =&gt; r a b ∧ s b c) (@Eq.{1} γ c c1) h1  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (fun (b : β) (hb : r a b ∧ s b c) =&gt;
+          @Exists.elim β (fun (b1 : β) =&gt; r a b1 ∧ s b1 c1) (@Eq.{1} γ c c1) h2  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+            (fun (b1 : β) (hb1 : r a b1 ∧ s b1 c1) =&gt;
+              hs b1 c c1
+                (rel_subst_right β (fun (u : β) (v : β) =&gt; s v c) b b b1
+                  (singleValued_apply α β r hr a b b1 (And.left hb) (And.left hb1))
+                  (And.right hb))
+                (And.right hb1)))</code></pre></details><details class="appendix-solution" id="app-sol-45-8"><summary>练习 8 · totalRel_comp <span class="sol-meta">定理</span></summary><pre><code>theorem totalRel_comp (α β γ : Type) (r : Rel α β) (s : Rel β γ)
+    (hr : TotalRel α β r) (hs : TotalRel β γ s) : TotalRel α γ (r • s) :=
+  fun (a : α) =&gt;
+    @Exists.elim β (fun (b : β) =&gt; r a b)
+      (∃ (c : γ), (r • s) a c) (totalRel_apply α β r hr a)
+      (fun (b : β) (hb : r a b) =&gt;
+        @Exists.elim γ (fun (c : γ) =&gt; s b c)
+          (∃ (c : γ), (r • s) a c) (totalRel_apply β γ s hs b)
+          (fun (c : γ) (hc : s b c) =&gt;
+            Exists.intro c
+              (Exists.intro b
+                (And.intro hb hc))))</code></pre></details><details class="appendix-solution" id="app-sol-45-9"><summary>练习 9 · singleValued_idRel <span class="sol-meta">定理</span></summary><pre><code>theorem singleValued_idRel (α : Type) : SingleValued α α (idRel α) :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (b1 : α) =&gt;
+    fun (h1 : @Eq.{1} α a b) =&gt; fun (h2 : @Eq.{1} α a b1) =&gt;  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      @Eq.trans.{1} α b a b1 (@Eq.symm.{1} α a b h1) h2</code></pre></details><details class="appendix-solution" id="app-sol-45-10"><summary>练习 10 · graph_comp <span class="sol-meta">定理</span></summary><pre><code>theorem graph_comp (α β γ : Type) (f : α → β) (g : β → γ) (a : α) (c : γ) :
+    (graph α β f • graph β γ g) a c ↔ @Eq.{1} γ (g (f a)) c :=  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+  @Iff.intro ((graph α β f • graph β γ g) a c) (@Eq.{1} γ (g (f a)) c)  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+    (fun (h : (graph α β f • graph β γ g) a c) =&gt;
+      @Exists.elim β (fun (b : β) =&gt; (graph α β f) a b ∧ (graph β γ g) b c)
+        (@Eq.{1} γ (g (f a)) c) h  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+        (fun (b : β) (hb : (graph α β f) a b ∧ (graph β γ g) b c) =&gt;
+          @Eq.trans.{1} γ (g (f a)) (g b) c
+            (rel_subst_right β (fun (u : β) (v : β) =&gt; @Eq.{1} γ (g u) (g v))  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+              (f a) (f a) b (And.left hb) (@Eq.refl.{1} γ (g (f a))))
+            (And.right hb)))
+    (fun (h : @Eq.{1} γ (g (f a)) c) =&gt;  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+      Exists.intro (f a)
+        (And.intro
+          (@Eq.refl.{1} β (f a)) h))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit41.html">← 41 良基关系（极小元原理）</a><a class="next" href="../units/unit52.html">52 关系的复合：单位律与逐点形态 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

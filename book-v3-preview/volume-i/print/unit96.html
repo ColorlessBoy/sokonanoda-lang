@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 96 势的比较（自反与传递）</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit96.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 96 势的比较（自反与传递）</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit96.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">I.3 像、原像与基数 · 单元 96</p><h1>势的比较（自反与传递）</h1><p class="note">Unit 96 — Comparing Sizes: Reflexivity and Transitivity</p></header><section class="unit" id="unit-96">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-3.html">I.3</a> · 本章第 8 / 16 单元 · 全书第 96 / 112 单元</p>
+<h2><span class="unit-number">96</span><span>势的比较（自反与传递）</span></h2>
+<p class="unit-title-en">Unit 96 — Comparing Sizes: Reflexivity and Transitivity</p>
+<p class="unit-meta">1 个定义 · 11 个定理 · 8 道练习 · <a href="#appendix-unit-96">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>本单元的"该学的定理"：</p></div><details open class="decl-index intuition-only"><summary>细节清单（5 项，展开）</summary><ul class="prose-list"><li><strong><code>LeOn</code>（势的比较，局部词汇）</strong> ✓：<code>A ≼ B</code> 就是"存在一个把 <code>A</code> <strong>单射进</strong> <code>B</code> 的映射" ✓（数据版 ✓ —— 与 <code>≈</code> 一样不需要选择公理 ✓）；</li><li><strong>取用子</strong> ✓ <span class="math">·</span> <strong>恒等单射</strong> ✓ <span class="math">·</span> <strong>自反</strong> ✓ <span class="math">·</span> <strong>子集 <span class="math">⇒</span> <code>≼</code></strong> ✓；</li><li><strong>单射的复合仍单射</strong> ✓（限制在 <code>A</code> 上 ✓，要用一次 <code>MapsTo</code> 把中间点送进 <code>B</code> ✓）；</li><li><strong>复合保 <code>MapsTo</code></strong> ✓ <span class="math">·</span> <strong>打包子</strong>（把两条条件装成 <code>LeOn</code> ✓）；</li><li><strong>旗舰：<code>≼</code> 传递</strong> ✓（把两把映射复合起来 ✓）。</li></ul></details></div></section>
+<article class="decl decl-def" id="decl-96-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">LeOn</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=
+  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B</code></pre></div></article>
+<article class="decl decl-theorem" id="decl-96-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_injOn_def</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_injOn_def (α : Type) (β : Type) (f : α → β) (A : Set α) :
+    Set.InjOn α β f A ↔
+      ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → f x = f y → x = y :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  Set.injOn_def α β f A</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-96-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_mapsTo_def</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_mapsTo_def (α : Type) (β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    Set.MapsTo α β f A B ↔ ∀ (x : α), x ∈ A → f x ∈ B :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  @Iff.intro (Set.MapsTo α β f A B) (∀ (x : α), x ∈ A → f x ∈ B)
+    (fun (h : Set.MapsTo α β f A B) =&gt; h) (fun (h : ∀ (x : α), x ∈ A → f x ∈ B) =&gt; h)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-96-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_leOn_def</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_leOn_def (α : Type) (β : Type) (A : Set α) (B : Set β) :
+    LeOn α β A B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 3 行</summary><ol class="proof-steps"><li><pre><code>  @Iff.intro (LeOn α β A B) (∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (fun (h : LeOn α β A B) =&gt; h)
+    (fun (h : ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B) =&gt; h)-- 练习 1（T 类）：**取用子**（把 `LeOn` 的存在式交出去）。</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-96-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">leOn_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-96-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>关键件：把假设直接作用（<code>h</code>）</p></div></div><pre class="exercise-statement"><code>theorem leOn_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B) :
+    ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B := by
+  sorry</code></pre><details open class="solution-panel" id="sol-96-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem leOn_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B) :
+    ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-96-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">injOn_id</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-96-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>恒等映射在 <code>A</code> 上单射</strong>。关键件：假设直接交出去</p></div></div><pre class="exercise-statement"><code>theorem injOn_id (α : Type) (A : Set α) :
+    Set.InjOn α α (fun (x : α) =&gt; x) A := by
+  sorry</code></pre><details open class="solution-panel" id="sol-96-2"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem injOn_id (α : Type) (A : Set α) :
+    Set.InjOn α α (fun (x : α) =&gt; x) A :=
+  fun (x : α) (hx : x ∈ A) (y : α) (hy : y ∈ A) (h : x = y) =&gt; h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-96-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">leOn_refl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-96-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（L 类）：<strong>势的比较自反</strong>（<code>A ≼ A</code>）。关键件：<code>Exists.intro</code>（见证取恒等 ✓）<span class="math">·</span> <code>And.intro</code>（<strong>前导命题写全</strong>）<span class="math">·</span> 练习 <span class="math">2 ·</span> <code>MapsTo</code> 的定义展开（<code>fun x hx =&gt; hx</code> ✓）</p></div></div><pre class="exercise-statement"><code>theorem leOn_refl (α : Type) (A : Set α) : LeOn α α A A := by
+  sorry</code></pre><details open class="solution-panel" id="sol-96-3"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem leOn_refl (α : Type) (A : Set α) : LeOn α α A A :=
+  Exists.intro (fun (x : α) =&gt; x)
+    (@And.intro (Set.InjOn α α (fun (x : α) =&gt; x) A) (Set.MapsTo α α (fun (x : α) =&gt; x) A A)
+      (injOn_id α A) (fun (x : α) (hx : x ∈ A) =&gt; hx))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-96-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">injOn_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-96-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类，<strong>拆出来的小引理</strong>）：<strong>单射（限制在 <code>A</code> 上）的复合仍单射</strong>。思路：设 <code>g (f x) = g (f y)</code>；先用 <code>MapsTo</code> 把 <code>f x</code>、<code>f y</code> 送进 <code>B</code>（这是 <code>g</code> 的单射性前提 ✓），得 <code>f x = f y</code>，再用 <code>f</code> 的单射性。关键件：<code>hg</code>（在 <code>f x</code>、<code>f y</code> 处）<span class="math">·</span> <code>hfm</code>（把两点送进 <code>B</code>）<span class="math">·</span> <code>hf</code></p></div></div><pre class="exercise-statement"><code>theorem injOn_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β)
+    (hf : Set.InjOn α β f A) (hg : Set.InjOn β γ g B) (hfm : Set.MapsTo α β f A B) :
+    Set.InjOn α γ (fun (x : α) =&gt; g (f x)) A := by
+  sorry</code></pre><details open class="solution-panel" id="sol-96-4"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem injOn_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β)
+    (hf : Set.InjOn α β f A) (hg : Set.InjOn β γ g B) (hfm : Set.MapsTo α β f A B) :
+    Set.InjOn α γ (fun (x : α) =&gt; g (f x)) A :=
+  fun (x : α) (hx : x ∈ A) (y : α) (hy : y ∈ A) (h : g (f x) = g (f y)) =&gt;
+    hf x hx y hy (hg (f x) (hfm x hx) (f y) (hfm y hy) h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-96-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">leOn_of_subset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-96-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类）：<strong>子集 <span class="math">⇒</span> <code>≼</code></strong>（用恒等映射）。关键件：<code>Set.subset_def</code>（<strong>先 <span class="math">λ</span> 绑定再 <code>Iff.mp</code></strong> ✓）<span class="math">·</span> 练习 <span class="math">2 ·</span> <code>Exists.intro</code> / <code>And.intro</code></p></div></div><pre class="exercise-statement"><code>theorem leOn_of_subset (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) : LeOn α α A B := by
+  sorry</code></pre><details open class="solution-panel" id="sol-96-5"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem leOn_of_subset (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) : LeOn α α A B :=
+  (fun (hs : ∀ (x : α), x ∈ A → x ∈ B) =&gt;
+    @Exists.intro (α → α) (fun (f : α → α) =&gt; Set.InjOn α α f A ∧ Set.MapsTo α α f A B)
+      (fun (x : α) =&gt; x)
+      (And.intro
+        (injOn_id α A) hs))
+    ((fun (hu : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) =&gt; Iff.mp hu h) (Set.subset_def A B))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-96-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">mapsTo_comp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-96-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（T 类，<strong>拆出来的小引理</strong>）：<strong>复合保 <code>MapsTo</code></strong>。关键件：两个 <code>MapsTo</code> 假设按 点 <span class="math">·</span> 前提 作用</p></div></div><pre class="exercise-statement"><code>theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β) (C : Set γ)
+    (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β γ g B C) :
+    Set.MapsTo α γ (fun (x : α) =&gt; g (f x)) A C := by
+  sorry</code></pre><details open class="solution-panel" id="sol-96-6"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β) (C : Set γ)
+    (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β γ g B C) :
+    Set.MapsTo α γ (fun (x : α) =&gt; g (f x)) A C :=
+  fun (x : α) (hx : x ∈ A) =&gt; hg (f x) (hf x hx)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-96-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">leOn_intro</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-96-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（T 类，<strong>拆出来的打包子</strong>）：两条条件装成 <code>LeOn</code>。关键件：<code>Exists.intro</code> <span class="math">·</span> <code>And.intro</code>（<strong>写全前导命题</strong>）</p></div></div><pre class="exercise-statement"><code>theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B := by
+  sorry</code></pre><details open class="solution-panel" id="sol-96-7"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
+  Exists.intro f
+    (And.intro hf hfm)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-96-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">leOn_trans</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-96-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（L 类，<strong>旗舰</strong>）：<strong><code>≼</code> 传递</strong>（<code>A ≼ B ⇒ B ≼ C ⇒ A ≼ C</code>）。思路：两次 <code>Exists.elim</code> 拆出两把映射与四条条件；用练习 7 把<strong>复合映射</strong>打包，两条条件分别是练习 4 与练习 6。关键件：练习 1（两次）<span class="math">·</span> <code>Exists.elim</code> <span class="math">·</span> 练习 <span class="math">7 ·</span> 练习 4 / 练习 <span class="math">6 ·</span> <code>And.left</code> / <code>And.right</code>（<strong>写全</strong> ✓）</p></div></div><pre class="exercise-statement"><code>theorem leOn_trans (α : Type) (β : Type) (γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (hAB : LeOn α β A B) (hBC : LeOn β γ B C) : LeOn α γ A C := by
+  sorry</code></pre><details open class="solution-panel" id="sol-96-8"><summary>查看解答 <span class="sol-meta">定理 · 16 行</span></summary><div class="solution-body"><pre><code>theorem leOn_trans (α : Type) (β : Type) (γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (hAB : LeOn α β A B) (hBC : LeOn β γ B C) : LeOn α γ A C :=
+  @Exists.elim (α → β) (fun (f : α → β) =&gt; Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (LeOn α γ A C) (leOn_apply α β A B hAB)
+    (fun (f : α → β) (hf : Set.InjOn α β f A ∧ Set.MapsTo α β f A B) =&gt;
+      @Exists.elim (β → γ) (fun (g : β → γ) =&gt; Set.InjOn β γ g B ∧ Set.MapsTo β γ g B C)
+        (LeOn α γ A C) (leOn_apply β γ B C hBC)
+        (fun (g : β → γ) (hg : Set.InjOn β γ g B ∧ Set.MapsTo β γ g B C) =&gt;
+          leOn_intro α γ A C (fun (x : α) =&gt; g (f x))
+            (injOn_comp α β γ f g A B
+              (And.left hf)
+              (And.left hg)
+              (And.right hf))
+            (mapsTo_comp α β γ f g A B C
+              (And.right hf)
+              (And.right hg))))</code></pre></div></details></div></article>
+<details open class="unit-notes"><summary>编写注记 · 教材对照与课程边界（4 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子（教材）：Enderton《Elements of Set Theory》<strong>§6.1 / §6.2</strong> <span class="math">·Halmos</span>《Naive Set Theory》<strong>§22</strong>。大纲 §4.1（<strong>接单元⑨ 与 92–95</strong> ✓）。</p></div><div class="block prose intuition-only"><p>⚠ <strong>拆链纪律（本会话第 7 次兑现 ✓）</strong>：<code>leOn_trans</code> 一次写完整（两层 <code>Exists.elim</code> <span class="math">+</span> 两处打包）<strong>直接 parse error</strong> ✗（括号配错 ✓）<span class="math">⇒</span> 抽出 <code>mapsTo_comp</code> 与 <code>leOn_intro</code> 两条小引理后，主定理只剩"两次 <code>Exists.elim</code> <span class="math">+</span> 一次调用" ✓ <span class="math">⇒</span> <strong>一次判绿</strong> ✓。</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code> <span class="math">·</span> <code>lib.Order</code> <span class="math">·</span> <code>lib.Equiv</code>（用 <code>Set.InjOn</code>/<code>Set.MapsTo</code> ✓）。</p></div><div class="block prose intuition-only"><p>依赖：单元⑨（等势）<span class="math">·</span> 单元87–93（函数与等势代数）<span class="math">·</span> 单元94/95（对角线）✓</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit93.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">等势的传递</span></a><a class="unit-nav-home" href="../chapters/i-3.html#units">目录</a><a class="unit-nav-link" href="../units/unit97.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">等势 <span class="math">⇒</span> 双向势比较</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-96"><h3><a href="#top">势的比较（自反与传递）</a></h3><p class="appendix-meta">8 道练习 · 8 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-96-1"><summary>练习 1 · leOn_apply <span class="sol-meta">定理</span></summary><pre><code>theorem leOn_apply (α : Type) (β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B) :
+    ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=
+  h</code></pre></details><details open class="appendix-solution" id="app-sol-96-2"><summary>练习 2 · injOn_id <span class="sol-meta">定理</span></summary><pre><code>theorem injOn_id (α : Type) (A : Set α) :
+    Set.InjOn α α (fun (x : α) =&gt; x) A :=
+  fun (x : α) (hx : x ∈ A) (y : α) (hy : y ∈ A) (h : x = y) =&gt; h</code></pre></details><details open class="appendix-solution" id="app-sol-96-3"><summary>练习 3 · leOn_refl <span class="sol-meta">定理</span></summary><pre><code>theorem leOn_refl (α : Type) (A : Set α) : LeOn α α A A :=
+  Exists.intro (fun (x : α) =&gt; x)
+    (@And.intro (Set.InjOn α α (fun (x : α) =&gt; x) A) (Set.MapsTo α α (fun (x : α) =&gt; x) A A)
+      (injOn_id α A) (fun (x : α) (hx : x ∈ A) =&gt; hx))</code></pre></details><details open class="appendix-solution" id="app-sol-96-4"><summary>练习 4 · injOn_comp <span class="sol-meta">定理</span></summary><pre><code>theorem injOn_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β)
+    (hf : Set.InjOn α β f A) (hg : Set.InjOn β γ g B) (hfm : Set.MapsTo α β f A B) :
+    Set.InjOn α γ (fun (x : α) =&gt; g (f x)) A :=
+  fun (x : α) (hx : x ∈ A) (y : α) (hy : y ∈ A) (h : g (f x) = g (f y)) =&gt;
+    hf x hx y hy (hg (f x) (hfm x hx) (f y) (hfm y hy) h)</code></pre></details><details open class="appendix-solution" id="app-sol-96-5"><summary>练习 5 · leOn_of_subset <span class="sol-meta">定理</span></summary><pre><code>theorem leOn_of_subset (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) : LeOn α α A B :=
+  (fun (hs : ∀ (x : α), x ∈ A → x ∈ B) =&gt;
+    @Exists.intro (α → α) (fun (f : α → α) =&gt; Set.InjOn α α f A ∧ Set.MapsTo α α f A B)
+      (fun (x : α) =&gt; x)
+      (And.intro
+        (injOn_id α A) hs))
+    ((fun (hu : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B) =&gt; Iff.mp hu h) (Set.subset_def A B))</code></pre></details><details open class="appendix-solution" id="app-sol-96-6"><summary>练习 6 · mapsTo_comp <span class="sol-meta">定理</span></summary><pre><code>theorem mapsTo_comp (α : Type) (β : Type) (γ : Type) (f : α → β) (g : β → γ)
+    (A : Set α) (B : Set β) (C : Set γ)
+    (hf : Set.MapsTo α β f A B) (hg : Set.MapsTo β γ g B C) :
+    Set.MapsTo α γ (fun (x : α) =&gt; g (f x)) A C :=
+  fun (x : α) (hx : x ∈ A) =&gt; hg (f x) (hf x hx)</code></pre></details><details open class="appendix-solution" id="app-sol-96-7"><summary>练习 7 · leOn_intro <span class="sol-meta">定理</span></summary><pre><code>theorem leOn_intro (α : Type) (β : Type) (A : Set α) (B : Set β) (f : α → β)
+    (hf : Set.InjOn α β f A) (hfm : Set.MapsTo α β f A B) : LeOn α β A B :=
+  Exists.intro f
+    (And.intro hf hfm)</code></pre></details><details open class="appendix-solution" id="app-sol-96-8"><summary>练习 8 · leOn_trans <span class="sol-meta">定理</span></summary><pre><code>theorem leOn_trans (α : Type) (β : Type) (γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (hAB : LeOn α β A B) (hBC : LeOn β γ B C) : LeOn α γ A C :=
+  @Exists.elim (α → β) (fun (f : α → β) =&gt; Set.InjOn α β f A ∧ Set.MapsTo α β f A B)
+    (LeOn α γ A C) (leOn_apply α β A B hAB)
+    (fun (f : α → β) (hf : Set.InjOn α β f A ∧ Set.MapsTo α β f A B) =&gt;
+      @Exists.elim (β → γ) (fun (g : β → γ) =&gt; Set.InjOn β γ g B ∧ Set.MapsTo β γ g B C)
+        (LeOn α γ A C) (leOn_apply β γ B C hBC)
+        (fun (g : β → γ) (hg : Set.InjOn β γ g B ∧ Set.MapsTo β γ g B C) =&gt;
+          leOn_intro α γ A C (fun (x : α) =&gt; g (f x))
+            (injOn_comp α β γ f g A B
+              (And.left hf)
+              (And.left hg)
+              (And.right hf))
+            (mapsTo_comp α β γ f g A B C
+              (And.right hf)
+              (And.right hg))))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

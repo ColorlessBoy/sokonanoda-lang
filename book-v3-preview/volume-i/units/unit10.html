@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10 可数与 Cantor 定理（基数 Ⅱ） · 从集合论到实分析</title>
+<meta name="description" content="单元⑩ 可数与 Cantor 定理（基数 Ⅱ）：导语、定义与定理、练习与解答。Unit 10 — Countability &amp; Cantor&#x27;s Theorem (Cardinality II)">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit10.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li class="is-current"><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.3 单元</h3><ol><li><a href="../units/unit08.html">08 像与原像</a></li><li><a href="../units/unit09.html">09 等势（基数 Ⅰ）</a></li><li class="is-current"><a href="../units/unit10.html">10 可数与 Cantor 定理（基数 Ⅱ）</a></li><li><a href="../units/unit73.html">73 像与广义并交的分配</a></li><li><a href="../units/unit74.html">74 原像与广义并交的分配</a></li><li><a href="../units/unit92.html">92 等势的代数</a></li><li><a href="../units/unit93.html">93 等势的传递</a></li><li><a href="../units/unit96.html">96 势的比较（自反与传递）</a></li><li><a href="../units/unit97.html">97 等势 ⇒ 双向势比较</a></li><li><a href="../units/unit98.html">98 势比较的单调性</a></li><li><a href="../units/unit99.html">99 幂集的单调性</a></li><li><a href="../units/unit100.html">100 势比较的搬运</a></li><li><a href="../units/unit101.html">101 空集与子集的点态代数</a></li><li><a href="../units/unit102.html">102 相互包含与点态外延</a></li><li><a href="../units/unit103.html">103 双向势比较何时升级为等势</a></li><li><a href="../units/unit112.html">112 Cantor–Bernstein 定理（经选择公理）</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li aria-current="page">单元 10 可数与 Cantor 定理（基数 Ⅱ）</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-10-1">10.1 假的枚举：先看它坏在哪</a></li>
+<li><a href="#decl-10-3">10.2 对角线法（通用形式）</a></li>
+<li><a href="#ex-10-1">10.3 可数：定义</a></li>
+<li><a href="#ex-10-2">10.4 亲手写出那个映射：ℕ 与自己的等势</a></li>
+<li><a href="#ex-10-5">10.5 两条&quot;判断真假&quot;：都是假的，请证否定</a></li>
+<li><a href="#decl-10-10">10.6 选择公理：本卷唯一一次动手用它</a></li>
+<li><a href="#appendix-unit-10">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-3.html#units">↑ 本章目录</a>
+      <a href="../print/unit10.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-10">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-3.html">I.3</a> · 本章第 3 / 16 单元 · 全书第 10 / 112 单元</p>
+<h1><span class="unit-number">10</span> <span>可数与 Cantor 定理（基数 Ⅱ）</span></h1>
+<p class="unit-title-en">Unit 10 — Countability &amp; Cantor's Theorem (Cardinality II)</p>
+<p class="unit-meta">2 个定义 · 8 个定理 · 2 个公理 · 7 道练习 · 21 条提示 · <a href="#appendix-unit-10">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="10" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-10" aria-label="复制单元 10 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit10.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-3.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>讲 Cantor 之前先给一个<strong>假的枚举</strong>让你找矛盾（Zazkis &amp; Mamolo 2009 的实证：学过 Cantor 定理的学生面对假的 <span class="math">ℝ</span> 枚举只会说 "Cool!"——所以我们这里不放 <span class="math">ℝ</span>，放 <span class="math">α → Set α</span> 的假枚举，逼你指出那个漏掉的集合）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元<strong>不用</strong>：Set.ext（一条集合等式都不证）、funext / propext（语言里根本没有）——对角线论证不需要外延性，也不需要 choice；choice 只在"从满射里挑原像"那一步上场。</p></div><div class="block prose intuition-only"><p>注：练习 2 起都把「可数」按定义<strong>展开</strong>写成等势，不点名 Set.Countable——本单元的每条练习都独立判卷，不依赖前面那条是否已经填好。</p></div><h3 class="unit-subhead">10.1 假的枚举：先看它坏在哪</h3><div class="block prose intuition-only"><p>有人递给你一张"𝒫<span class="math">ℕ</span> 的清单"：第 n 项就是单元素集 {n}。每项都在清单上，看起来挺像样。要戳穿它，只需指出一个<strong>永远不在清单上</strong>的集合：</p></div><div class="math-display intuition-only"><pre class="display-code"><code>D := fun (y : Nat) =&gt; ¬ (y = y)</code></pre></div><div class="block prose intuition-only"><p>它把"第 y 项含不含 y"逐项反过来，于是第 k 项 {k} 含 k，D 不含 k——两者不可能相等。</p></div><article class="decl decl-def" id="decl-10-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">fake_enum</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def fake_enum (n : Nat) : Set Nat := {n}</code></pre></div></article>
+<div class="block prose intuition-only"><p>演示（已写好）：D 不等于清单里的任何一项——这就是对角线法在假枚举上的样子。证明走 <code>by</code> 块：假设 <span class="math">D = fake_enum k</span>，把 <code>k ∈ {k}</code>（Set.mem_singleton_self）沿等式搬到 D 上，得到 <code>¬ (k = k)</code>，与 <code>Eq.refl k</code> 相撞（absurd）。</p></div><article class="decl decl-theorem" id="decl-10-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_fake_enum_escapes</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_fake_enum_escapes (k : Nat) :
+    ¬ ((fun (y : Nat) =&gt; ¬ (y = y)) = fake_enum k) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 2 步 · 7 行</summary><ol class="proof-steps"><li><pre><code>  intro h</code></pre></li><li><pre><code>  exact @absurd (k = k) False (@Eq.refl.{1} Nat k)  -- soko:notation-ok: R4：absurd 短写在 exact 里补不出 {a}{b}
+    (@Eq.subst.{1} (Set Nat) (fun (X : Set Nat) =&gt; X k)
+      (fake_enum k) (fun (y : Nat) =&gt; ¬ (y = y))
+      (@Eq.symm.{1} (Set Nat) (fun (y : Nat) =&gt; ¬ (y = y)) (fake_enum k) h)
+      (Set.mem_singleton_self k))</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">10.2 对角线法（通用形式）</h3><div class="block prose intuition-only"><p>把 10.1 的动作从"清单 {n}"升级成任意 f : <span class="math">α → Set α</span>：取</p></div><div class="math-display intuition-only"><pre class="display-code"><code>D := fun (y : α) =&gt; ¬ (f y y)</code></pre></div><div class="block prose intuition-only"><p>则 D 不在 f 的像里——这就是对角线法，也是 Cantor 定理的全部内容。</p></div><div class="block prose intuition-only"><p>证明的关键只有一句逻辑：<span class="math">D x = ¬ (f x x)</span> 与 <span class="math">(f x) x = f x x</span>，所以"D x 等于 f x 那一点的值"会给出 <code>¬ P 等于 P</code>，而命题不可能与自己的否定等价。</p></div><div class="block prose intuition-only"><p>演示（已写好）：对角线集合 D 不等于 f 的<strong>任何</strong>一项 f x。证明走 <code>by</code> 块：把假设 <span class="math">D = f x</span> 经 congrArg 抬到"在 x 上取值"这一层，得到 <code>¬ (f x x) = f x x</code>；于是 <code>¬ (f x x)</code> 与 <code>f x x</code> 互相推出，撞出 False。</p></div><article class="decl decl-theorem" id="decl-10-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_diag</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_diag (α : Type) (f : α → Set α) (x : α) :
+    ¬ ((fun (y : α) =&gt; ¬ (f y y)) = f x) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 4 步 · 9 行</summary><ol class="proof-steps"><li><pre><code>  intro h</code></pre></li><li><pre><code>  have e : (¬ (f x x)) = (f x x) :=
+    congrArg.{1} (fun (A : Set α) =&gt; A x) h</code></pre></li><li><pre><code>  have hnp : ¬ (f x x) := by
+    intro p
+    exact @Eq.subst.{1} Prop (fun (Q : Prop) =&gt; Q → ¬ (f x x))
+      (¬ (f x x)) (f x x) e (fun (np : ¬ (f x x)) =&gt; np) p p</code></pre></li><li><pre><code>  exact @absurd (f x x) False (@Eq.subst.{1} Prop (fun (Q : Prop) =&gt; Q) (¬ (f x x)) (f x x) e hnp) hnp  -- soko:notation-ok: R4：absurd 短写在 exact 里补不出 {a}{b}</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">10.3 可数：定义</h3><article class="exercise" id="ex-10-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">Set.Countable</code><span class="exercise-kind">定义</span><a class="exercise-appendix" href="#app-sol-10-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（T 类）：把「可数」的定义填出来。Tao 的用法：X 可数 <span class="math">⟺ X</span> 与 <span class="math">ℕ</span> <strong>等势</strong>（"能排成一列"只是它的白话版；有限集的可数是单元⑨ 处理过的另一回事，本单元只做无限可数）。</p></div></div><pre class="exercise-statement"><code>def Set.Countable (α : Type) : Prop := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>可数不是描述句，而是一次等势断言——用单元⑨ 备好的等势记法 <code>A ≈ B</code> 写。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>目标类型是 Prop（定义体的类型），形状为 <code>A ≈ B</code>（两侧各一个集合）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>A ≈ B</code> 的两侧各自带论域（A : <span class="math">Set α</span>、B : <span class="math">Set β</span>）；两侧集合都取"整个类型"，用 Set.univ。</p></div></details></div><details class="solution-panel" id="sol-10-1"><summary>查看解答 <span class="sol-meta">定义 · 2 行</span></summary><div class="solution-body"><p class="solution-note">unit10 解答钥匙（agent 专用；画布不 import 它）。
+
+全部证明写成 <code>by</code> tactic 块（白名单：intro / exact / apply / assumption / rfl /
+match / constructor / left / right / use / exfalso / cases / have / sorry）——
+<strong>没有</strong> rw / obtain / change / simp / induction / calc / rintro / <code>·</code>。
+语句一律用<strong>记法</strong>（<code>∈ ↔ ¬ ∃ =</code> 与 <code>Set Nat</code> 上的集合符号）；<strong>引理名照旧点名</strong>
+（<code>Eq.symm</code>、<code>Eq.trans</code>、<code>congrArg</code>、<code>Exists.intro</code>、<code>Exists.elim</code>、<code>And.left</code>、
+<code>And.right</code>、<code>Set.Equiv.mk</code>、<code>Set.mem_univ</code>…）——记法是连接符的糖，不是引理名的糖。
+
+拆 <span class="math">∃</span> 的写法（本文件统一）：等势是<strong>数据版</strong>（一对互逆映射 <span class="math">+</span> 四条条件），
+拆包一律<strong>点名</strong> <code>Exists.elim</code>（结论 False 里不许出现证人 f / g），四条条件用
+<code>And.left</code> / <code>And.right</code> 取。对角线矛盾先写成一条<strong>局部引理</strong>
+（<code>have diag : ∀ (f) (D) (g), D = fun y =&gt; ¬ (f y y) → … → False</code>）：把 f、g 与
+那条互逆律都当<strong>参数</strong>收下，证明体里就只剩集合层计算（<code>congrArg</code> <span class="math">+</span> <code>Eq.subst</code>）。
+
+三条纪律：
+
+lib/Equiv 的等势是<strong>数据版</strong>（一对互逆映射 <span class="math">+</span> 四条条件），不是"存在双射"：
+用它只能一层层拆，而且结论里不许提到证人 f / g；；对角线论证不需要外延性、也不需要选择公理——练习 1–6 一条新公理都没引；；<strong>练习 7 是唯一的例外</strong>：它正面用一次选择公理（Exists.choose 与成对的
+Exists.choose_spec，见文件末尾），把单元⑦ 只能写成数据版的那条补成存在版
+（台账 L-06 的边界就记在这里）。
+
+练习 1（T）：可数的定义 <span class="math">=</span> 与 <span class="math">ℕ</span> 等势。</p><pre><code>def Set.Countable (α : Type) : Prop :=
+  @Set.univ Nat ≈ @Set.univ α</code></pre></div></details></div></article>
+<h3 class="unit-subhead">10.4 亲手写出那个映射：<span class="math">ℕ</span> 与自己的等势</h3><article class="exercise" id="ex-10-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">nat_equiv_nat</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-10-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>lib/Equiv 的等势是<strong>数据版</strong>：交出一对互逆映射 f、g 与四条条件（进集合、回集合、g∘<span class="math">f = id</span>、f∘<span class="math">g = id</span>）。所以"等势"这道题永远从"写下那个映射"开始（Hamza &amp; O'Shea 2011：援引双射判据的学生极少真的把映射写出来）。</p></div><div class="block prose intuition-only"><p>练习 2（L 类）：恒等映射给出 <span class="math">ℕ</span> 与自己的等势——这就是「<span class="math">ℕ</span> 可数」的实例。</p></div></div><pre class="exercise-statement"><code>theorem nat_equiv_nat : (@Set.univ Nat) ≈ (@Set.univ Nat) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>来回都用恒等函数（最省的一对互逆映射），再逐条交四样证据。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>(Set.univ Nat) ≈ (Set.univ Nat)；四条条件都只谈全集：两条"进集合"是 True 的证明，两条互逆律是 rfl 级。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Set.Equiv.mk 依次吃 f、g、①进集合、②回集合、③g∘<span class="math">f=id</span>、④f∘<span class="math">g=id</span>；全集的成员判定交给 Set.mem_univ，等式交给 Eq.refl。</p></div></details></div><details class="solution-panel" id="sol-10-2"><summary>查看解答 <span class="sol-meta">定理 · 15 行</span></summary><div class="solution-body"><p class="solution-note">练习 2（L）：恒等映射给出 <span class="math">ℕ</span> 与自己的等势（<span class="math">=</span>「<span class="math">ℕ</span> 可数」的实例）。
+两条"进集合"的域条件是 True 的证明，两条互逆律是 rfl 级。
+<code>apply Set.Equiv.mk</code> 把四条条件留成子目标；映射本身（两把恒等函数）写在 apply 行上。</p><pre><code>theorem nat_equiv_nat : (@Set.univ Nat) ≈ (@Set.univ Nat) := by
+  apply Set.Equiv.mk Nat Nat (@Set.univ Nat) (@Set.univ Nat)
+    (fun (n : Nat) =&gt; n) (fun (n : Nat) =&gt; n)
+  intro x
+  intro hx
+  exact True.intro
+  intro y
+  intro hy
+  exact True.intro
+  intro x
+  intro hx
+  exact @Eq.refl.{1} Nat x
+  intro y
+  intro hy
+  exact @Eq.refl.{1} Nat y</code></pre></div></details></div></article>
+<article class="exercise" id="ex-10-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">diag_mem_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-10-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：对角线集合的成员判定——把 D :<span class="math">= fun (y</span> : <span class="math">α) =&gt; ¬ (f y y)</span> 写开。</p></div></div><pre class="exercise-statement"><code>theorem diag_mem_iff (α : Type) (f : α → Set α) (x : α) :
+    (x ∈ (fun (y : α) =&gt; ¬ (f y y))) ↔ (¬ (f x x)) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>∈</code> 就是函数应用（<code>x ∈ A</code> 即 <code>A x</code>），D 本身又是一个 <span class="math">λ</span>：两边都是"算一下"。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only"><pre class="display-code"><code>(x ∈ (fun (y : α) =&gt; ¬ (f y y))) ↔ (¬ (f x x))。</code></pre></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>这是定义层面的相等，直接交 Iff.rfl（隐式版；Lean core 的 <code>rfl</code> 就是 <code>exact Iff.rfl</code>）。</p></div></details></div><details class="solution-panel" id="sol-10-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">练习 3（T）：对角线集合的成员判定——定义层面的相等。
+<code>x ∈ (fun y =&gt; ¬ (f y y))</code> 与 <code>¬ (f x x)</code> 是同一个命题（beta），
+所以 <code>Iff.rfl</code>（隐式版 <code>Iff.refl</code> 的兄弟）就是全部证明。</p><pre><code>theorem diag_mem_iff (α : Type) (f : α → Set α) (x : α) :
+    (x ∈ (fun (y : α) =&gt; ¬ (f y y))) ↔ (¬ (f x x)) := by
+  exact Iff.rfl</code></pre></div></details></div></article>
+<article class="exercise" id="ex-10-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">cantor</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-10-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：Cantor 定理——<span class="math">α</span> 与 𝒫<span class="math">α</span> 不等势。给定 f : <span class="math">α → Set α</span>，取 D :<span class="math">= fun (x</span> : <span class="math">α) =&gt; ¬ (f x x)</span>，证 D 不在 f 的像里。</p></div></div><pre class="exercise-statement"><code>theorem cantor (α : Type) :
+    ¬ ((@Set.univ α) ≈ (@Set.univ (Set α))) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先 intro 假设的等势；等势里裹着正向映射 f 与反向映射 g，把两层 <span class="math">∃</span> 与两层 <span class="math">∧</span> 逐层拆开（结论只能是 False——证人 f、g 不许出现在结论里）。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">¬ ((</span>@<span class="math">Set.univ α)</span> ≈ <span class="math">(Set.univ (Set α)))</span>；intro 之后手里是 h : A ≈ B，目标是 False。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>拆 <span class="math">∃</span> 用 cases（或点名的 Exists.elim），两层 <span class="math">∧</span> 用 And.left / And.right 取；④号互逆律（两层 And.right 之后那条）在 y :<span class="math">= D</span> 上给出 <span class="math">(f (g D)) = D</span>；用 Eq.symm 调成 <span class="math">D = (f (g D))</span>，交给演示 demo_diag 收尾。</p></div></details></div><details class="solution-panel" id="sol-10-4"><summary>查看解答 <span class="sol-meta">定理 · 39 行</span></summary><div class="solution-body"><pre><code>theorem cantor (α : Type) :
+    ¬ ((@Set.univ α) ≈ (@Set.univ (Set α))) :=
+  fun (h : (@Set.univ α) ≈ (@Set.univ (Set α))) =&gt;
+    @Exists.elim (α → Set α)
+    (fun (f : α → Set α) =&gt;
+      Set.MapsTo α (Set α) f (@Set.univ α) (@Set.univ (Set α)) ∧
+      (∃ (g : (Set α) → α), Set.MapsTo (Set α) α g (@Set.univ (Set α)) (@Set.univ α) ∧
+        (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
+         Set.RightInvOn α (Set α) f g (@Set.univ (Set α)))))
+    False h
+    (fun (f : α → Set α) =&gt;
+      fun (hf : Set.MapsTo α (Set α) f (@Set.univ α) (@Set.univ (Set α)) ∧
+                (∃ (g : (Set α) → α), Set.MapsTo (Set α) α g (@Set.univ (Set α)) (@Set.univ α) ∧
+                  (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
+                   Set.RightInvOn α (Set α) f g (@Set.univ (Set α))))) =&gt;
+        @Exists.elim ((Set α) → α)
+          (fun (g : (Set α) → α) =&gt;
+            Set.MapsTo (Set α) α g (@Set.univ (Set α)) (@Set.univ α) ∧
+            (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
+             Set.RightInvOn α (Set α) f g (@Set.univ (Set α))))
+          False
+          (@And.right (Set.MapsTo α (Set α) f (@Set.univ α) (@Set.univ (Set α)))
+            (∃ (g : (Set α) → α), Set.MapsTo (Set α) α g (@Set.univ (Set α)) (@Set.univ α) ∧
+              (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
+               Set.RightInvOn α (Set α) f g (@Set.univ (Set α))))
+            hf)
+          (fun (g : (Set α) → α) =&gt;
+            fun (hg : Set.MapsTo (Set α) α g (@Set.univ (Set α)) (@Set.univ α) ∧
+                      (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
+                       Set.RightInvOn α (Set α) f g (@Set.univ (Set α)))) =&gt;
+              diag_helper α f (fun (y : α) =&gt; ¬ (f y y)) g
+                (@Eq.refl.{1} (Set α) (fun (y : α) =&gt; ¬ (f y y)))
+                (@And.right (Set.LeftInvOn α (Set α) g f (@Set.univ α))
+                  (Set.RightInvOn α (Set α) f g (@Set.univ (Set α)))
+                  (@And.right (Set.MapsTo (Set α) α g (@Set.univ (Set α)) (@Set.univ α))
+                    (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
+                     Set.RightInvOn α (Set α) f g (@Set.univ (Set α)))
+                    hg)
+                  (fun (y : α) =&gt; ¬ (f y y)) True.intro)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">10.5 两条"判断真假"：都是假的，请证否定</h3><article class="exercise" id="ex-10-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">powerset_nat_not_countable</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-10-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（D 类）：判断真假——「𝒫<span class="math">ℕ</span> 可数」。可数 <span class="math">=</span> 与 <span class="math">ℕ</span> 等势（练习 1），展开写就是下面的类型。它<strong>为假</strong>：请证它的否定。</p></div></div><pre class="exercise-statement"><code>theorem powerset_nat_not_countable :
+    ¬ ((@Set.univ Nat) ≈ (@Set.univ (Set Nat))) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>这正是 Cantor 定理在 <span class="math">α</span> :<span class="math">= Nat</span> 上的实例——对角线集合就是那个漏掉的集合。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><div class="math-display intuition-only" role="math" aria-label="¬ ((Set.univ Nat) ≈ (Set.univ (Set Nat)))"><math display="block" class="mathml"><mrow><mo>¬</mo><mspace width="0.22em"/><mo>(</mo><mrow><mo>(</mo><mrow><mi mathvariant="normal">Set.univ</mi><mspace width="0.22em"/><mi mathvariant="normal">Nat</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mo>≈</mo><mspace width="0.22em"/><mo>(</mo><mi mathvariant="normal">Set.univ</mi><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi mathvariant="normal">Set</mi><mspace width="0.22em"/><mi mathvariant="normal">Nat</mi></mrow><mo>)</mo></mrow><mo>)</mo><mo>)</mo></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 4 的 cantor 作用在 Nat 上，目标逐字相同。</p></div></details></div><details class="solution-panel" id="sol-10-5"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">练习 5（D）：「𝒫<span class="math">ℕ</span> 可数」为假——Cantor 定理在 <span class="math">α</span> :<span class="math">= Nat</span> 上的实例。</p><pre><code>theorem powerset_nat_not_countable :
+    ¬ ((@Set.univ Nat) ≈ (@Set.univ (Set Nat))) := by
+  exact cantor Nat</code></pre></div></details></div></article>
+<article class="exercise" id="ex-10-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">no_surjection_powerset</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-10-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（D 类）：判断真假——「存在满射 <span class="math">α → Set α</span>」（假的枚举想补成满射）。它<strong>为假</strong>。与练习 4 的差别：这里只有满射，没有单射/等势的包装，所以拆包少一层、对角线要自己接。</p></div></div><pre class="exercise-statement"><code>theorem no_surjection_powerset (α : Type) :
+    ¬ (∃ (f : α → Set α), Function.Surjective α (Set α) f) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>intro 之后把映射 f 与它的满射性 hf 拆出来；把对角线集合交给 hf 得到原像。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">¬ (∃ (f</span> : <span class="math">α → Set α)</span>, <span class="math">Function.Surjective α (Set α) f)</span>；拆完之后目标是 False，手里有 hf : <span class="math">Function.Surjective α (Set α) f</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>hf D 给出 <span class="math">∃ (x</span> : <span class="math">α)</span>, <span class="math">f x = D</span>，再把这条 <span class="math">∃</span> 拆开取出 x 与那个等式；方向调过来（Eq.symm）才是 demo_diag 要的等式。</p></div></details></div><details class="solution-panel" id="sol-10-6"><summary>查看解答 <span class="sol-meta">定理 · 25 行</span></summary><div class="solution-body"><p class="solution-note">练习 6（D）：不存在 <span class="math">α → Set α</span> 的满射（假的枚举补不成满射）。
+只有满射可拆，所以对角线这里自己接：把对角线集合交给满射性拿到原像 x 与
+<code>f x = D</code>，再制造 <span class="math">P ↔ ¬P</span> 的矛盾（与练习 4 的 diag 同款，只是少了等势那层包装）。</p><pre><code>theorem no_surjection_powerset (α : Type) :
+    ¬ (∃ (f : α → Set α), Function.Surjective α (Set α) f) := by
+  have diag : ∀ (f : α → Set α) (D : Set α) (x : α),
+      D = (fun (y : α) =&gt; ¬ (f y y)) → f x = D → False := by
+    intro f D x hDL hxD
+    have hL : f x = (fun (y : α) =&gt; ¬ (f y y)) :=
+      @Eq.trans.{1} (Set α) (f x) D (fun (y : α) =&gt; ¬ (f y y)) hxD hDL
+    have e : f x x = ¬ (f x x) :=
+      congrArg.{1} (fun (X : Set α) =&gt; X x) hL
+    have np : ¬ (f x x) := by
+      intro p
+      exact (@Eq.subst.{1} Prop (fun (Q : Prop) =&gt; Q) (f x x)
+        (¬ (f x x)) e p) p
+    exact np (@Eq.subst.{1} Prop (fun (Q : Prop) =&gt; Q) (¬ (f x x))
+      (f x x) (@Eq.symm.{1} Prop (f x x) (¬ (f x x)) e) np)
+  intro h
+  exact @Exists.elim (α → Set α)
+    (fun (f : α → Set α) =&gt; Function.Surjective α (Set α) f)
+    False h
+    (fun (f : α → Set α) =&gt; fun (hf : Function.Surjective α (Set α) f) =&gt;
+      @Exists.elim α (fun (x : α) =&gt; f x = (fun (y : α) =&gt; ¬ (f y y))) False
+        (hf (fun (y : α) =&gt; ¬ (f y y)))
+        (fun (x : α) =&gt; fun (hx : f x = (fun (y : α) =&gt; ¬ (f y y))) =&gt;
+          diag f (fun (y : α) =&gt; ¬ (f y y)) x
+            (@Eq.refl.{1} (Set α) (fun (y : α) =&gt; ¬ (f y y))) hx))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">10.6 选择公理：本卷唯一一次动手用它</h3><div class="block prose intuition-only"><p>lib/Exists 的文件头把这条留给了本单元：从"存在一个满足 p 的元素"<strong>取出</strong>一个元素。官方 Lean 里它是 <code>Classical.choice</code>（Mathlib 的基数理论建立在它之上）；本卷到单元⑩ 才正面碰上它，而卷 I 的证明<strong>一条都没用它</strong>——等势之所以定义成"一对互逆映射"的数据（lib/Equiv 文件头），就是为了让对称性与传递性不必挑原像。</p></div><div class="block prose intuition-only"><p>选择公理在官方 Lean 4 里是<strong>成对</strong>的两条：<code>Exists.choose</code> 只交出元素，<code>Exists.choose_spec</code> 才说明<strong>所选的那个元素确实满足性质</strong>（Avigad《Logic and Proof》§16.4 的写法就是 <code>choose h</code> 配 <code>choose_spec h</code>）。为什么必须成对：没有后者，<code>Exists.choose …</code> 就只是一个来路不明的元素——既不知道它是谁，也用不上它的任何性质。</p></div><div class="block prose intuition-only"><p>Förster 2006 观察到教学惯于略过选择公理的应用，学生因此没有形成它的心智图像、日后也认不出何时被使用（<strong>这是作者观点，不是实证研究</strong>）。</p></div><article class="decl decl-axiom" id="decl-10-10"><header class="decl-head"><span class="decl-kind kind-axiom">公理</span><code class="decl-name">Exists.choose</code><span class="decl-where">声明 10</span></header><div class="decl-body"><pre class="decl-statement"><code>axiom Exists.choose : (A : Type) → (p : A → Prop) → (∃ (x : A), p x) → A</code></pre></div></article>
+<article class="decl decl-axiom" id="decl-10-11"><header class="decl-head"><span class="decl-kind kind-axiom">公理</span><code class="decl-name">Exists.choose_spec</code><span class="decl-where">声明 11</span></header><div class="decl-body"><pre class="decl-statement"><code>axiom Exists.choose_spec : (A : Type) → (p : A → Prop) → (h : ∃ (x : A), p x) →
+  p (Exists.choose A p h)</code></pre></div></article>
+<article class="exercise" id="ex-10-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">choice_split</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-10-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（L 类）：满射 <span class="math">⇒</span> 存在右逆函数——<strong>本单元唯一允许用选择公理的题</strong>。</p></div><div class="block prose intuition-only"><p>这正是单元⑦ 只能写成数据版的那条（unit07 题 4/5/6 与 lib/Fun 文件头 §逆 的 (a)/(b)）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li>没有选择公理，能证的只有 (a)：逆函数 g 与"它是右逆"的证据<strong>由调用者交出来</strong>（unit07 题 6 的 bijective_iff_inverse 就是这么立的前提）；</li><li>(b)"满射 <span class="math">⇒</span> 存在 g 使 f ∘ <span class="math">g = id</span>"（满射可裂）要求替<strong>每个</strong> y 从"有原像"里挑定一个、还要让这个挑选本身是一个<strong>函数</strong>——那就是选择公理。台账 L-06 记的正是这条边界："本语言接受签名但证不出来"；今天补上它，也就看清了没有它时缺的是什么。对照单元⑦ 题 5（右逆 <span class="math">⇒</span> 满射，数据版）：练习 7 正是它的<strong>逆方向</strong>——没有选择公理，这个方向在本语言里一步也走不动。</li></ul></div><div class="block prose intuition-only"><p>出处：一份纯 Lean 4 集合论讲义里这条叫 surj_iff_exists_right_inverse（<code>surjective f ↔ ∃ f', f ∘ f' = id</code>），注释注明其中一个方向要用 Classical.choose 与 Classical.choose_spec（docs/notes/settheory-survey/lean4-sets-functions-prior-art.md §6.1）。</p></div><div class="block prose intuition-only"><p>边界（务必看清）：全卷只有这一题用选择公理。练习 1–6 与卷 I 其它单元的每条证明都没用它——等势的数据版、对角线法、Cantor 定理都不需要 choice。</p></div></div><pre class="exercise-statement"><code>theorem choice_split (α β : Type) (f : α → β)
+    (hf : Function.Surjective α β f) :
+    ∃ (g : β → α), Function.RightInverse α β g f := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要交的是一个<strong>函数</strong> <span class="math">β → α</span>，外加它逐点满足的等式；满射性对每个 y 都恰好给出一条"存在原像"的命题，从这条命题里挑出元素就是选择公理上场的那一刻。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><span class="math">∃ (g</span> : <span class="math">β → α)</span>, <span class="math">Function.RightInverse α β g f</span>；展开成数据版就是"先交一个 g，再交 <span class="math">∀ (y</span> : <span class="math">β)</span>, <span class="math">f (g y) = y</span>"。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>挑元素用 Exists.choose（触发条件：手里有一条 <span class="math">∃</span>，而你要用它的证人去填一个<strong>函数</strong>体）；挑完还要用与它成对的 Exists.choose_spec，才能拿到"所选元素满足性质"那条等式——两条都在上面 §10.6，缺后一条证明走不动。</p></div></details></div><details class="solution-panel" id="sol-10-7"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">证人（那把右逆 g）直接写成 <span class="math">λ</span> 交出去（<code>Exists.intro</code> 四样写全），逐点等式由
+choose_spec 交——两处都用同一把 <code>fun y =&gt; Exists.choose …</code>，beta 之后逐字对上。</p><pre><code>theorem choice_split (α β : Type) (f : α → β)
+    (hf : Function.Surjective α β f) :
+    ∃ (g : β → α), Function.RightInverse α β g f := by
+  exact Exists.intro (fun (y : β) =&gt; Exists.choose α (fun (x : α) =&gt; f x = y) (hf y)) (fun (y : β) =&gt; Exists.choose_spec α (fun (x : α) =&gt; f x = y) (hf y))</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>靶子：Tao §3.6 后半。概念顺序：可数的定义（与 <span class="math">ℕ</span> 等势）<span class="math">→</span> 对角线法 <span class="math">→ Cantor</span> 定理（𝒫<span class="math">α</span> 不与 <span class="math">α</span> 等势）<span class="math">→</span> 选择公理（本卷唯一一次动手用它：满射 <span class="math">⇒</span> 存在右逆函数，练习 7）。</p></div><div class="block prose intuition-only"><p>本单元只允许用什么（逐步解锁，见 docs/design/set-theory-syllabus.md §2）：</p></div><details class="decl-index intuition-only"><summary>细节清单（6 项，展开）</summary><ul class="prose-list"><li>证明：一律 <code>by</code> tactic 块，白名单<strong>只有</strong> intro / exact / apply / assumption / rfl / match / constructor / left / right / use / exfalso / cases / have / sorry——<strong>没有</strong> rw / obtain / change / simp / induction / calc / rintro，也没有 focus 点 <code>·</code>；匿名构造子 ⟨a, b⟩ 可用；</li><li>语句一律写<strong>记法</strong>：<code>x ∈ A</code> <span class="math">·</span> <code>A ⊆ B</code> <span class="math">·</span> <code>A ∪ B</code> <span class="math">·</span> <code>A ∩ B</code> <span class="math">·</span> <code>A \ B</code> <span class="math">·</span><code>∅</code> <span class="math">·</span> <code>𝒫 A</code>，逻辑连接符 <code>∧ ∨ ↔ ¬</code> 与 <code>→ = ≠</code> 是<strong>语言内建</strong>，任何文件零声明可用；存在量词写 binder 记法 <code>∃ (x : α), p x</code>（由 lib/Exists 随 import 带来）；</li><li>记法<strong>由 lib/ 随 import 带来</strong>（<code>∈</code> 等在 lib/Set、<code>∃</code> 在 lib/Exists）：本文件一条记法声明都不写——同一个符号全课程只能声明一次；</li><li>记法只是<strong>连接符的糖</strong>，不是引理名的糖：引理照旧点名写——等势（记法 <code>A ≈ B</code>）/ Set.Equiv.mk / Set.MapsTo / Set.LeftInvOn / Set.RightInvOn / Exists.intro / Exists.elim / Set.mem_univ / Set.mem_singleton_self / Eq.symm / Eq.subst / congrArg / absurd / Iff.refl / And.left / And.right；</li><li>lib/Set 给集合词汇与成员判定；lib/Exists 给 Exists 与 <code>∃</code> 记法；lib/Fun 给 Function.Surjective / Function.RightInverse；lib/Equiv 给 Set.Equiv（<strong>数据版</strong>：一对互逆映射 <span class="math">+</span> 四条条件）与构造子 Set.Equiv.mk；</li><li><strong>选择公理（整个单元只准出现在练习 7 这一处）</strong>：文件末尾 §10.6 的 Exists.choose 与 Exists.choose_spec 这一对。练习 1–6 与卷 I 先修单元的每条证明<strong>一条都没用它</strong>（与台账 L-06 的边界一致）。</li></ul></details></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit09.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">等势（基数 Ⅰ）</span></a><a class="unit-nav-home" href="../chapters/i-3.html#units">目录</a><a class="unit-nav-link" href="../units/unit73.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">像与广义并交的分配</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-10"><h3><a href="#top">可数与 Cantor 定理（基数 Ⅱ）</a></h3><p class="appendix-meta">7 道练习 · 7 份按名匹配的解答 · 1 个解答独有声明</p><details class="appendix-solution" id="app-sol-10-1"><summary>练习 1 · Set.Countable <span class="sol-meta">定义</span></summary><p class="solution-note">unit10 解答钥匙（agent 专用；画布不 import 它）。
+
+全部证明写成 <code>by</code> tactic 块（白名单：intro / exact / apply / assumption / rfl /
+match / constructor / left / right / use / exfalso / cases / have / sorry）——
+<strong>没有</strong> rw / obtain / change / simp / induction / calc / rintro / <code>·</code>。
+语句一律用<strong>记法</strong>（<code>∈ ↔ ¬ ∃ =</code> 与 <code>Set Nat</code> 上的集合符号）；<strong>引理名照旧点名</strong>
+（<code>Eq.symm</code>、<code>Eq.trans</code>、<code>congrArg</code>、<code>Exists.intro</code>、<code>Exists.elim</code>、<code>And.left</code>、
+<code>And.right</code>、<code>Set.Equiv.mk</code>、<code>Set.mem_univ</code>…）——记法是连接符的糖，不是引理名的糖。
+
+拆 <span class="math">∃</span> 的写法（本文件统一）：等势是<strong>数据版</strong>（一对互逆映射 <span class="math">+</span> 四条条件），
+拆包一律<strong>点名</strong> <code>Exists.elim</code>（结论 False 里不许出现证人 f / g），四条条件用
+<code>And.left</code> / <code>And.right</code> 取。对角线矛盾先写成一条<strong>局部引理</strong>
+（<code>have diag : ∀ (f) (D) (g), D = fun y =&gt; ¬ (f y y) → … → False</code>）：把 f、g 与
+那条互逆律都当<strong>参数</strong>收下，证明体里就只剩集合层计算（<code>congrArg</code> <span class="math">+</span> <code>Eq.subst</code>）。
+
+三条纪律：
+
+lib/Equiv 的等势是<strong>数据版</strong>（一对互逆映射 <span class="math">+</span> 四条条件），不是"存在双射"：
+用它只能一层层拆，而且结论里不许提到证人 f / g；；对角线论证不需要外延性、也不需要选择公理——练习 1–6 一条新公理都没引；；<strong>练习 7 是唯一的例外</strong>：它正面用一次选择公理（Exists.choose 与成对的
+Exists.choose_spec，见文件末尾），把单元⑦ 只能写成数据版的那条补成存在版
+（台账 L-06 的边界就记在这里）。
+
+练习 1（T）：可数的定义 <span class="math">=</span> 与 <span class="math">ℕ</span> 等势。</p><pre><code>def Set.Countable (α : Type) : Prop :=
+  @Set.univ Nat ≈ @Set.univ α</code></pre></details><details class="appendix-solution" id="app-sol-10-2"><summary>练习 2 · nat_equiv_nat <span class="sol-meta">定理</span></summary><p class="solution-note">练习 2（L）：恒等映射给出 <span class="math">ℕ</span> 与自己的等势（<span class="math">=</span>「<span class="math">ℕ</span> 可数」的实例）。
+两条"进集合"的域条件是 True 的证明，两条互逆律是 rfl 级。
+<code>apply Set.Equiv.mk</code> 把四条条件留成子目标；映射本身（两把恒等函数）写在 apply 行上。</p><pre><code>theorem nat_equiv_nat : (@Set.univ Nat) ≈ (@Set.univ Nat) := by
+  apply Set.Equiv.mk Nat Nat (@Set.univ Nat) (@Set.univ Nat)
+    (fun (n : Nat) =&gt; n) (fun (n : Nat) =&gt; n)
+  intro x
+  intro hx
+  exact True.intro
+  intro y
+  intro hy
+  exact True.intro
+  intro x
+  intro hx
+  exact @Eq.refl.{1} Nat x
+  intro y
+  intro hy
+  exact @Eq.refl.{1} Nat y</code></pre></details><details class="appendix-solution" id="app-sol-10-3"><summary>练习 3 · diag_mem_iff <span class="sol-meta">定理</span></summary><p class="solution-note">练习 3（T）：对角线集合的成员判定——定义层面的相等。
+<code>x ∈ (fun y =&gt; ¬ (f y y))</code> 与 <code>¬ (f x x)</code> 是同一个命题（beta），
+所以 <code>Iff.rfl</code>（隐式版 <code>Iff.refl</code> 的兄弟）就是全部证明。</p><pre><code>theorem diag_mem_iff (α : Type) (f : α → Set α) (x : α) :
+    (x ∈ (fun (y : α) =&gt; ¬ (f y y))) ↔ (¬ (f x x)) := by
+  exact Iff.rfl</code></pre></details><details class="appendix-solution" id="app-sol-10-4"><summary>练习 4 · cantor <span class="sol-meta">定理</span></summary><pre><code>theorem cantor (α : Type) :
+    ¬ ((@Set.univ α) ≈ (@Set.univ (Set α))) :=
+  fun (h : (@Set.univ α) ≈ (@Set.univ (Set α))) =&gt;
+    @Exists.elim (α → Set α)
+    (fun (f : α → Set α) =&gt;
+      Set.MapsTo α (Set α) f (@Set.univ α) (@Set.univ (Set α)) ∧
+      (∃ (g : (Set α) → α), Set.MapsTo (Set α) α g (@Set.univ (Set α)) (@Set.univ α) ∧
+        (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
+         Set.RightInvOn α (Set α) f g (@Set.univ (Set α)))))
+    False h
+    (fun (f : α → Set α) =&gt;
+      fun (hf : Set.MapsTo α (Set α) f (@Set.univ α) (@Set.univ (Set α)) ∧
+                (∃ (g : (Set α) → α), Set.MapsTo (Set α) α g (@Set.univ (Set α)) (@Set.univ α) ∧
+                  (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
+                   Set.RightInvOn α (Set α) f g (@Set.univ (Set α))))) =&gt;
+        @Exists.elim ((Set α) → α)
+          (fun (g : (Set α) → α) =&gt;
+            Set.MapsTo (Set α) α g (@Set.univ (Set α)) (@Set.univ α) ∧
+            (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
+             Set.RightInvOn α (Set α) f g (@Set.univ (Set α))))
+          False
+          (@And.right (Set.MapsTo α (Set α) f (@Set.univ α) (@Set.univ (Set α)))
+            (∃ (g : (Set α) → α), Set.MapsTo (Set α) α g (@Set.univ (Set α)) (@Set.univ α) ∧
+              (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
+               Set.RightInvOn α (Set α) f g (@Set.univ (Set α))))
+            hf)
+          (fun (g : (Set α) → α) =&gt;
+            fun (hg : Set.MapsTo (Set α) α g (@Set.univ (Set α)) (@Set.univ α) ∧
+                      (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
+                       Set.RightInvOn α (Set α) f g (@Set.univ (Set α)))) =&gt;
+              diag_helper α f (fun (y : α) =&gt; ¬ (f y y)) g
+                (@Eq.refl.{1} (Set α) (fun (y : α) =&gt; ¬ (f y y)))
+                (@And.right (Set.LeftInvOn α (Set α) g f (@Set.univ α))
+                  (Set.RightInvOn α (Set α) f g (@Set.univ (Set α)))
+                  (@And.right (Set.MapsTo (Set α) α g (@Set.univ (Set α)) (@Set.univ α))
+                    (Set.LeftInvOn α (Set α) g f (@Set.univ α) ∧
+                     Set.RightInvOn α (Set α) f g (@Set.univ (Set α)))
+                    hg)
+                  (fun (y : α) =&gt; ¬ (f y y)) True.intro)))</code></pre></details><details class="appendix-solution" id="app-sol-10-5"><summary>练习 5 · powerset_nat_not_countable <span class="sol-meta">定理</span></summary><p class="solution-note">练习 5（D）：「𝒫<span class="math">ℕ</span> 可数」为假——Cantor 定理在 <span class="math">α</span> :<span class="math">= Nat</span> 上的实例。</p><pre><code>theorem powerset_nat_not_countable :
+    ¬ ((@Set.univ Nat) ≈ (@Set.univ (Set Nat))) := by
+  exact cantor Nat</code></pre></details><details class="appendix-solution" id="app-sol-10-6"><summary>练习 6 · no_surjection_powerset <span class="sol-meta">定理</span></summary><p class="solution-note">练习 6（D）：不存在 <span class="math">α → Set α</span> 的满射（假的枚举补不成满射）。
+只有满射可拆，所以对角线这里自己接：把对角线集合交给满射性拿到原像 x 与
+<code>f x = D</code>，再制造 <span class="math">P ↔ ¬P</span> 的矛盾（与练习 4 的 diag 同款，只是少了等势那层包装）。</p><pre><code>theorem no_surjection_powerset (α : Type) :
+    ¬ (∃ (f : α → Set α), Function.Surjective α (Set α) f) := by
+  have diag : ∀ (f : α → Set α) (D : Set α) (x : α),
+      D = (fun (y : α) =&gt; ¬ (f y y)) → f x = D → False := by
+    intro f D x hDL hxD
+    have hL : f x = (fun (y : α) =&gt; ¬ (f y y)) :=
+      @Eq.trans.{1} (Set α) (f x) D (fun (y : α) =&gt; ¬ (f y y)) hxD hDL
+    have e : f x x = ¬ (f x x) :=
+      congrArg.{1} (fun (X : Set α) =&gt; X x) hL
+    have np : ¬ (f x x) := by
+      intro p
+      exact (@Eq.subst.{1} Prop (fun (Q : Prop) =&gt; Q) (f x x)
+        (¬ (f x x)) e p) p
+    exact np (@Eq.subst.{1} Prop (fun (Q : Prop) =&gt; Q) (¬ (f x x))
+      (f x x) (@Eq.symm.{1} Prop (f x x) (¬ (f x x)) e) np)
+  intro h
+  exact @Exists.elim (α → Set α)
+    (fun (f : α → Set α) =&gt; Function.Surjective α (Set α) f)
+    False h
+    (fun (f : α → Set α) =&gt; fun (hf : Function.Surjective α (Set α) f) =&gt;
+      @Exists.elim α (fun (x : α) =&gt; f x = (fun (y : α) =&gt; ¬ (f y y))) False
+        (hf (fun (y : α) =&gt; ¬ (f y y)))
+        (fun (x : α) =&gt; fun (hx : f x = (fun (y : α) =&gt; ¬ (f y y))) =&gt;
+          diag f (fun (y : α) =&gt; ¬ (f y y)) x
+            (@Eq.refl.{1} (Set α) (fun (y : α) =&gt; ¬ (f y y))) hx))</code></pre></details><details class="appendix-solution" id="app-sol-10-7"><summary>练习 7 · choice_split <span class="sol-meta">定理</span></summary><p class="solution-note">证人（那把右逆 g）直接写成 <span class="math">λ</span> 交出去（<code>Exists.intro</code> 四样写全），逐点等式由
+choose_spec 交——两处都用同一把 <code>fun y =&gt; Exists.choose …</code>，beta 之后逐字对上。</p><pre><code>theorem choice_split (α β : Type) (f : α → β)
+    (hf : Function.Surjective α β f) :
+    ∃ (g : β → α), Function.RightInverse α β g f := by
+  exact Exists.intro (fun (y : β) =&gt; Exists.choose α (fun (x : α) =&gt; f x = y) (hf y)) (fun (y : β) =&gt; Exists.choose_spec α (fun (x : α) =&gt; f x = y) (hf y))</code></pre></details><details class="appendix-solution" id="app-extra-10-1"><summary>补充 · diag_helper <span class="sol-meta">定理</span></summary><pre><code>theorem diag_helper (α : Type) (f : α → Set α) (D : Set α) (g : (Set α) → α) :
+    D = (fun (y : α) =&gt; ¬ (f y y)) → f (g D) = D → False := by
+  intro hDL hgD
+  have hL : f (g D) = (fun (y : α) =&gt; ¬ (f y y)) :=
+    @Eq.trans.{1} (Set α) (f (g D)) D (fun (y : α) =&gt; ¬ (f y y)) hgD hDL
+  have e : f (g D) (g D) = ¬ (f (g D) (g D)) :=
+    congrArg.{1} (fun (X : Set α) =&gt; X (g D)) hL
+  have np : ¬ (f (g D) (g D)) := by
+    intro p
+    exact (@Eq.subst.{1} Prop (fun (Q : Prop) =&gt; Q) (f (g D) (g D))
+      (¬ (f (g D) (g D))) e p) p
+  exact np (@Eq.subst.{1} Prop (fun (Q : Prop) =&gt; Q) (¬ (f (g D) (g D)))
+    (f (g D) (g D)) (@Eq.symm.{1} Prop (f (g D) (g D)) (¬ (f (g D) (g D))) e) np)</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit09.html">← 09 等势（基数 Ⅰ）</a><a class="next" href="../units/unit73.html">73 像与广义并交的分配 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

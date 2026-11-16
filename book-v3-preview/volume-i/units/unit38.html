@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>38 序关系的关系代数视角 · 从集合论到实分析</title>
+<meta name="description" content="单元㊳ 序关系的关系代数视角：导语、定义与定理、练习与解答。Unit 38 — Order Relations, Algebraically">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit38.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li class="is-current"><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section><section class="side-units"><h3>I.13 单元</h3><ol><li><a href="../units/unit36.html">36 关系的代数</a></li><li><a href="../units/unit37.html">37 关系的代数刻画</a></li><li class="is-current"><a href="../units/unit38.html">38 序关系的关系代数视角</a></li><li><a href="../units/unit39.html">39 关系的像、原像与等价核</a></li><li><a href="../units/unit40.html">40 传递闭包的代数刻画</a></li><li><a href="../units/unit41.html">41 良基关系（极小元原理）</a></li><li><a href="../units/unit45.html">45 关系的单值性与函数的图</a></li><li><a href="../units/unit52.html">52 关系的复合：单位律与逐点形态</a></li></ol></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li><li aria-current="page">单元 38 序关系的关系代数视角</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <aside class="unit-side no-print" aria-label="页内目录">
+    <details class="toc-details" data-toc>
+      <summary>本单元目录</summary>
+      <nav aria-label="本单元小节">
+        <ol>
+<li><a href="#unit-intro">导语</a></li>
+<li><a href="#decl-38-1">38.0 画布给的新词汇：恒等关系 与 非对称</a></li>
+<li><a href="#decl-38-3">38.1 三条库引理（严格序的展开 · 两种造法）</a></li>
+<li><a href="#ex-38-1">38.2 反对称 · 非自反：代数形态</a></li>
+<li><a href="#ex-38-3">38.3 非对称：取用子 · 与自反/传递的关系</a></li>
+<li><a href="#ex-38-7">38.4 偏序：三条代数条件（拆成四条定理，别写成一个巨大的 ↔）</a></li>
+<li><a href="#appendix-unit-38">练习与解答</a></li>
+        </ol>
+      </nav>
+    </details>
+    <p class="side-links">
+      <a href="../chapters/i-13.html#units">↑ 本章目录</a>
+      <a href="../print/unit38.html">打印 / PDF</a>
+    </p>
+  </aside>
+  <article class="unit-page">
+<section class="unit" id="unit-38">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/i-13.html">I.13</a> · 本章第 3 / 8 单元 · 全书第 38 / 112 单元</p>
+<h1><span class="unit-number">38</span> <span>序关系的关系代数视角</span></h1>
+<p class="unit-title-en">Unit 38 — Order Relations, Algebraically</p>
+<p class="unit-meta">2 个定义 · 13 个定理 · 10 道练习 · 30 条提示 · <a href="#appendix-unit-38">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="38" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-38" aria-label="复制单元 38 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit38.html">打印 / PDF 本单元</a></p><a class="back-to-toc" href="../chapters/i-13.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>靶子（教材，逐条查过目录页）：Halmos《Naive Set Theory》<strong>§10</strong> 与 <strong>§14</strong>；Enderton《Elements of Set Theory》<strong>§7.1 Orderings</strong>。大纲：<code>set-theory-syllabus.md</code> §4.1（I.13 章第三个单元 —— 把单元⑬ 的序论用单元㊱㊲ 的代数语言<strong>重述一遍</strong>）。</p></div></div></section>
+<div class="block prose intuition-only"><p>本单元的"该学的定理"（把"反对称/非自反/非对称/偏序"翻译成代数式子）：</p></div><div class="block prose intuition-only"><ul class="prose-list"><li><strong>反对称 <span class="math">⟺</span> "两个方向同时成立 <span class="math">⇒</span> 相等"</strong>（<code>r ∩ r ⁻¹ ⊆ idRel</code> 的逐点形态）；</li><li><strong>非自反 <span class="math">⟺</span> 恒等关系那份被排除</strong>；<strong>非对称 <span class="math">⟺</span> 两个方向不能同时成立</strong>；</li><li><strong>旗舰：非自反 <span class="math">+</span> 传递 <span class="math">⇒</span> 非对称</strong>（经典的"从 <code>a &lt; b</code> 与 <code>b &lt; a</code> 用传递性逼出 <code>a &lt; a</code>"）；</li><li><strong>偏序 <span class="math">⟺</span> 三条代数条件</strong>（<code>idRel ⊆ r</code> <span class="math">·</span> 反对称 <span class="math">·</span> <code>r • r ⊆ r</code>），反方向也成立 ✓</li></ul></div><h3 class="unit-subhead">38.0 画布给的新词汇：<strong>恒等关系</strong> 与 <strong>非对称</strong></h3><article class="decl decl-def" id="decl-38-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">idRel</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def idRel (α : Type) : Rel α α :=
+  fun (a : α) (b : α) =&gt; a = b</code></pre></div></article>
+<div class="block prose intuition-only"><p>读法：<code>Asymmetric α r</code> <span class="math">=</span> "两个方向不能同时成立" ✓ 它比"反对称"强：反对称允许"两个方向同时成立时两边相等"，非对称则<strong>一律不允许</strong> ✓</p></div><article class="decl decl-def" id="decl-38-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Asymmetric</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def Asymmetric (α : Type) (r : Rel α α) : Prop :=
+  ∀ (a : α) (b : α), r a b → ¬ (r b a)</code></pre></div></article>
+<h3 class="unit-subhead">38.1 三条库引理（严格序的展开 <span class="math">·</span> 两种造法）</h3><div class="block prose intuition-only"><p>演示：严格序 <span class="math">=</span> 非自反 <span class="math">+</span> 传递（库里现成的展开）。</p></div><article class="decl decl-theorem" id="decl-38-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_strictOrder_iff</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_strictOrder_iff (α : Type) (r : Rel α α) :
+    IsStrictOrder α r ↔ (Irreflexive α r ∧ Transitive α r) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  isStrictOrder_def α r</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：<strong>把序的"相等那一份"切掉，一定非自反</strong>（不需要任何假设）。</p></div><article class="decl decl-theorem" id="decl-38-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_strictOf_irreflexive</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_strictOf_irreflexive (α : Type) (r : Rel α α) :
+    Irreflexive α (strictOf α r) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  fun (a : α) =&gt; fun (haa : strictOf α r a a) =&gt;
+    (fun (hu : ¬ (a = a)) =&gt; hu (@Eq.refl.{1} α a)) (And.right haa)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>演示：<strong>传递 <span class="math">+</span> 反对称 <span class="math">⇒</span> 切掉相等之后仍传递</strong>（"严格序"的造法）。⚠ 光有传递<strong>不够</strong>（<code>r</code> 若允许两个方向同时成立，切掉相等后就不传递了）——所以这里要<strong>反对称</strong>（实测：这条假设不能省）✓</p></div><article class="decl decl-theorem" id="decl-38-5"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">demo_strictOf_transitive</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem demo_strictOf_transitive (α : Type) (r : Rel α α)
+    (htrans : Transitive α r) (hanti : Antisymmetric α r) :
+    Transitive α (strictOf α r) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 11 行</summary><ol class="proof-steps"><li><pre><code>  fun (a : α) =&gt; fun (b : α) =&gt; fun (c : α) =&gt;
+    fun (hab : strictOf α r a b) =&gt; fun (hbc : strictOf α r b c) =&gt;
+      And.intro
+        ((fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+          ht a b c (And.left hab) (And.left hbc)) htrans)
+        (fun (hac : a = c) =&gt;
+          (fun (hu : ¬ (a = b)) =&gt;
+            hu ((fun (hv : ∀ (x : α) (y : α), r x y → r y x → x = y) =&gt;
+              hv a b (And.left hab)
+                (rel_subst_right α (fun (u : α) (v : α) =&gt; r b v) b c a
+                  (@Eq.symm.{1} α a c hac) (And.left hbc))) hanti)) (And.right hab))</code></pre></li></ol></details></div></article>
+<h3 class="unit-subhead">38.2 反对称 <span class="math">·</span> 非自反：<strong>代数形态</strong></h3><article class="exercise" id="ex-38-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">antisymm_algebraic</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-38-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 1（L 类，旗舰之一）：<strong>反对称的代数形态</strong>（"两个方向同时成立 <span class="math">⇒</span> 相等"）。</p></div></div><pre class="exercise-statement"><code>theorem antisymm_algebraic (α : Type) (r : Rel α α) :
+    Antisymmetric α r ↔ ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：把 <code>(r ⁻¹) a b</code> 看成 <code>r b a</code>，直接交给反对称；<span class="math">←</span>：把假设交给两个方向的两条证据。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Antisymmetric α r ↔ ∀ a b, r a b → (r ⁻¹) a b → (idRel α) a b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code>（<strong>前导 Prop 实参写全</strong>）<span class="math">·</span> 反对称假设<strong>先 <span class="math">λ</span> 绑定再应用</strong>（G-73 形状 ①）✓</p></div></details></div><details class="solution-panel" id="sol-38-1"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem antisymm_algebraic (α : Type) (r : Rel α α) :
+    Antisymmetric α r ↔ ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b :=
+  @Iff.intro (Antisymmetric α r)
+    (∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b)
+    (fun (h : Antisymmetric α r) =&gt; fun (a : α) =&gt; fun (b : α) =&gt;
+      fun (hab : r a b) =&gt; fun (hba : (r ⁻¹) a b) =&gt;
+        (fun (hu : ∀ (x : α) (y : α), r x y → r y x → @Eq.{1} α x y) =&gt;  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          hu a b hab hba) h)
+    (fun (h : ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b) =&gt;
+      fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt; fun (hba : r b a) =&gt;
+        h a b hab hba)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-38-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">irrefl_algebraic</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-38-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 2（T 类）：<strong>非自反的代数形态</strong>（恒等关系那份被排除）。</p></div></div><pre class="exercise-statement"><code>theorem irrefl_algebraic (α : Type) (r : Rel α α) :
+    Irreflexive α r ↔ ∀ (a : α), (idRel α) a a → ¬ (r a a) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">→</span>：把 <code>r a a</code> 交给非自反；<span class="math">←</span>：把假设用在 <code>a = a</code> 上。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Irreflexive α r ↔ ∀ a, (idRel α) a a → ¬ (r a a)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code> <span class="math">·</span> 非自反假设<strong>先 <span class="math">λ</span> 绑定再应用</strong> <span class="math">·</span> <code>Eq.refl</code>（写全层级与论域）✓</p></div></details></div><details class="solution-panel" id="sol-38-2"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem irrefl_algebraic (α : Type) (r : Rel α α) :
+    Irreflexive α r ↔ ∀ (a : α), (idRel α) a a → ¬ (r a a) :=
+  @Iff.intro (Irreflexive α r) (∀ (a : α), (idRel α) a a → ¬ (r a a))
+    (fun (h : Irreflexive α r) =&gt; fun (a : α) =&gt; fun (ha : (idRel α) a a) =&gt;
+      (fun (hu : ∀ (x : α), ¬ (r x x)) =&gt; hu a) h)
+    (fun (h : ∀ (a : α), (idRel α) a a → ¬ (r a a)) =&gt; fun (a : α) =&gt;
+      h a (@Eq.refl.{1} α a))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">38.3 非对称：<strong>取用子</strong> <span class="math">·</span> <strong>与自反/传递的关系</strong></h3><article class="exercise" id="ex-38-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">asymmetric_apply</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-38-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 3（T 类）：<strong>非对称用在具体的一对上</strong>。</p></div></div><pre class="exercise-statement"><code>theorem asymmetric_apply (α : Type) (r : Rel α α) (h : Asymmetric α r) (a b : α)
+    (hab : r a b) : ¬ (r b a) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>非对称展开形态就是一个"两个点 <span class="math">+</span> 一条证据 <span class="math">→</span> 否定"的 <code>∀</code>，直接应用。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Asymmetric α r → r a b → ¬ (r b a)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>非对称假设<strong>先 <span class="math">λ</span> 绑定再应用</strong> ✓</p></div></details></div><details class="solution-panel" id="sol-38-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem asymmetric_apply (α : Type) (r : Rel α α) (h : Asymmetric α r) (a b : α)
+    (hab : r a b) : ¬ (r b a) :=
+  (fun (hu : ∀ (x : α) (y : α), r x y → ¬ (r y x)) =&gt; hu a b hab) h</code></pre></div></details></div></article>
+<article class="exercise" id="ex-38-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">asymmetric_imp_irreflexive</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-38-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 4（L 类）：<strong>非对称 <span class="math">⇒</span> 非自反</strong>（把两个点取成同一个）。</p></div></div><pre class="exercise-statement"><code>theorem asymmetric_imp_irreflexive (α : Type) (r : Rel α α) (h : Asymmetric α r) :
+    Irreflexive α r := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>若 <code>r a a</code>，非对称在同一对点上要求 <code>¬ (r a a)</code> <span class="math">⇒</span> 矛盾。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Asymmetric α r → Irreflexive α r</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>练习 3（<strong>两个点都给 <code>a</code></strong>）<span class="math">·</span> <code>fun</code> 直接写矛盾 ✓</p></div></details></div><details class="solution-panel" id="sol-38-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem asymmetric_imp_irreflexive (α : Type) (r : Rel α α) (h : Asymmetric α r) :
+    Irreflexive α r :=
+  fun (a : α) =&gt; fun (haa : r a a) =&gt; asymmetric_apply α r h a a haa haa</code></pre></div></details></div></article>
+<article class="exercise" id="ex-38-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">irrefl_trans_imp_asymmetric</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-38-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 5（L 类，<strong>本单元旗舰</strong>）：<strong>非自反 <span class="math">+</span> 传递 <span class="math">⇒</span> 非对称</strong>（经典一步）。</p></div></div><pre class="exercise-statement"><code>theorem irrefl_trans_imp_asymmetric (α : Type) (r : Rel α α)
+    (hirr : Irreflexive α r) (htrans : Transitive α r) : Asymmetric α r := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>设 <code>r a b</code> 与 <code>r b a</code>，用<strong>传递性</strong>在 <code>a</code>、<code>b</code>、<code>a</code> 三点上接起来得到 <code>r a a</code>，与非自反矛盾。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Irreflexive α r → Transitive α r → Asymmetric α r</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两条假设都<strong>先 <span class="math">λ</span> 绑定再应用</strong>（传递有三个点参数、两条前提）✓</p></div></details></div><details class="solution-panel" id="sol-38-5"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem irrefl_trans_imp_asymmetric (α : Type) (r : Rel α α)
+    (hirr : Irreflexive α r) (htrans : Transitive α r) : Asymmetric α r :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt; fun (hba : r b a) =&gt;
+    (fun (hu : ∀ (x : α), ¬ (r x x)) =&gt;
+      hu a ((fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+        ht a b a hab hba) htrans)) hirr</code></pre></div></details></div></article>
+<article class="exercise" id="ex-38-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">asymmetric_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-38-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 6（T 类）：<strong>非对称的展开</strong>（库里没有这条，本单元自己立一条）。</p></div></div><pre class="exercise-statement"><code>theorem asymmetric_iff (α : Type) (r : Rel α α) :
+    Asymmetric α r ↔ ∀ (a : α) (b : α), r a b → ¬ (r b a) := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两边逐字相同 <span class="math">⇒</span> 两个方向都是恒等函数。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Asymmetric α r ↔ ∀ a b, r a b → ¬ (r b a)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Iff.intro</code>（前导 Prop 实参写全）<span class="math">·</span> 两个方向各一个恒等函数 ✓</p></div></details></div><details class="solution-panel" id="sol-38-6"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem asymmetric_iff (α : Type) (r : Rel α α) :
+    Asymmetric α r ↔ ∀ (a : α) (b : α), r a b → ¬ (r b a) :=
+  @Iff.intro (Asymmetric α r) (∀ (a : α) (b : α), r a b → ¬ (r b a))
+    (fun (h : Asymmetric α r) =&gt; h)
+    (fun (h : ∀ (a : α) (b : α), r a b → ¬ (r b a)) =&gt; h)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">38.4 偏序：<strong>三条代数条件</strong>（拆成四条定理，别写成一个巨大的 <code>↔</code>）</h3><article class="exercise" id="ex-38-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">partialOrder_refl_algebraic</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-38-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 7（T 类）：<strong>偏序 <span class="math">⇒</span> 恒等关系含于它</strong>（自反那一份）。</p></div></div><pre class="exercise-statement"><code>theorem partialOrder_refl_algebraic (α : Type) (r : Rel α α) (h : IsPartialOrder α r) :
+    ∀ (a : α), (idRel α) a a → r a a := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把库里的自反取用子（<code>partialOrder_refl</code>）用在点上。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsPartialOrder α r → ∀ a, (idRel α) a a → r a a</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>partialOrder_refl</code>（<strong>参数：论域 <span class="math">·</span> 关系 <span class="math">·</span> 假设 <span class="math">·</span> 点</strong>）✓</p></div></details></div><details class="solution-panel" id="sol-38-7"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem partialOrder_refl_algebraic (α : Type) (r : Rel α α) (h : IsPartialOrder α r) :
+    ∀ (a : α), (idRel α) a a → r a a :=
+  fun (a : α) =&gt; fun (ha : (idRel α) a a) =&gt; partialOrder_refl α r h a</code></pre></div></details></div></article>
+<article class="exercise" id="ex-38-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">partialOrder_antisymm_algebraic</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-38-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 8（T 类）：<strong>偏序 <span class="math">⇒</span> 反对称那一份</strong>（代数形态）。</p></div></div><pre class="exercise-statement"><code>theorem partialOrder_antisymm_algebraic (α : Type) (r : Rel α α)
+    (h : IsPartialOrder α r) :
+    ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把库里的反对称取用子（<code>partialOrder_antisymm</code>）交给两个方向的两条证据。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsPartialOrder α r → ∀ a b, r a b → (r ⁻¹) a b → (idRel α) a b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>partialOrder_antisymm</code>（参数：论域 <span class="math">·</span> 关系 <span class="math">·</span> 假设 <span class="math">·</span> 两个点 <span class="math">·</span> 两条证据）✓</p></div></details></div><details class="solution-panel" id="sol-38-8"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem partialOrder_antisymm_algebraic (α : Type) (r : Rel α α)
+    (h : IsPartialOrder α r) :
+    ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt; fun (hba : (r ⁻¹) a b) =&gt;
+    partialOrder_antisymm α r h a b hab hba</code></pre></div></details></div></article>
+<article class="exercise" id="ex-38-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">partialOrder_trans_algebraic</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-38-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 9（L 类）：<strong>偏序 <span class="math">⇒</span> 自复合含于它</strong>（传递那一份）。</p></div></div><pre class="exercise-statement"><code>theorem partialOrder_trans_algebraic (α : Type) (r : Rel α α) (h : IsPartialOrder α r) :
+    ∀ (a : α) (c : α), (r • r) a c → r a c := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆开 <code>∃ b, r a b ∧ r b c</code>，用库里的传递取用子接上。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsPartialOrder α r → ∀ a c, (r • r) a c → r a c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>Exists.elim</code>（<strong>前导实参写全</strong>）<span class="math">·</span> <code>partialOrder_trans</code>（论域 <span class="math">·</span> 关系 <span class="math">·</span> 假设 <span class="math">·</span>三个点 <span class="math">·</span> 两条前提）<span class="math">·</span> <code>And.left</code>/<code>And.right</code> ✓</p></div></details></div><details class="solution-panel" id="sol-38-9"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem partialOrder_trans_algebraic (α : Type) (r : Rel α α) (h : IsPartialOrder α r) :
+    ∀ (a : α) (c : α), (r • r) a c → r a c :=
+  fun (a : α) =&gt; fun (c : α) =&gt; fun (hac : (r • r) a c) =&gt;
+    @Exists.elim α (fun (b : α) =&gt; r a b ∧ r b c) (r a c) hac
+      (fun (b : α) (hb : r a b ∧ r b c) =&gt;
+        partialOrder_trans α r h a b c (And.left hb) (And.right hb))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-38-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">algebraic_is_partialOrder</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-38-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>练习 10（D 类，<strong>本单元旗舰</strong>）：<strong>三条代数条件合起来 <span class="math">⇒</span> 偏序</strong>（反方向）。</p></div></div><pre class="exercise-statement"><code>theorem algebraic_is_partialOrder (α : Type) (r : Rel α α)
+    (h1 : ∀ (a : α), (idRel α) a a → r a a)
+    (h2 : ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b)
+    (h3 : ∀ (a : α) (c : α), (r • r) a c → r a c) :
+    IsPartialOrder α r := by
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用智能构造子打包三条 —— ①自反：条件 1 用在 <code>a = a</code> 上；②反对称：条件 2 交出等式；③传递：先造出 <code>∃ b, r a b ∧ r b c</code>（见证取 <code>b</code>）再交给条件 3。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>`<span class="math">(∀ a</span>, <span class="math">idRel a a → r a a) → (∀ a b</span>, <span class="math">r a b → (r ⁻¹) a b → idRel a b) →</span></p><div class="math-display intuition-only" role="math" aria-label="(∀ a c, (r • r) a c → r a c) → IsPartialOrder α r"><math display="block" class="mathml"><mrow><mo>(</mo><mo>∀</mo><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mi>c</mi><mo>,</mo><mspace width="0.22em"/><mrow><mo>(</mo><mrow><mi>r</mi><mspace width="0.22em"/><mo>•</mo><mspace width="0.22em"/><mi>r</mi></mrow><mo>)</mo></mrow><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mi>c</mi><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mi>r</mi><mspace width="0.22em"/><mi>a</mi><mspace width="0.22em"/><mi>c</mi><mo>)</mo><mspace width="0.22em"/><mo>→</mo><mspace width="0.22em"/><mi mathvariant="normal">IsPartialOrder</mi><mspace width="0.22em"/><mo>α</mo><mspace width="0.22em"/><mi>r</mi></mrow></math></div></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><code>isPartialOrder_intro</code>（<strong>参数：论域 <span class="math">·</span> 关系 <span class="math">·</span> 自反 <span class="math">·</span> 反对称 <span class="math">·</span> 传递</strong>）<span class="math">·</span><code>Exists.intro</code>/<code>And.intro</code>（前导实参写全）<span class="math">·</span> <code>Eq.refl</code> ✓ ⚠ <strong>不要把三条打包成一个巨大的 <code>↔</code></strong>（右边套三层 <code>∧</code> <span class="math">+</span> <code>∀</code>）—— 实测那个形态<strong>写不出来</strong>，本单元因此拆成"练习 7–<span class="math">9 +</span> 练习 10"四条 ✓</p></div></details></div><details class="solution-panel" id="sol-38-10"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem algebraic_is_partialOrder (α : Type) (r : Rel α α)
+    (h1 : ∀ (a : α), (idRel α) a a → r a a)
+    (h2 : ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b)
+    (h3 : ∀ (a : α) (c : α), (r • r) a c → r a c) :
+    IsPartialOrder α r :=
+  isPartialOrder_intro α r
+    (fun (a : α) =&gt; h1 a (@Eq.refl.{1} α a))
+    (fun (a : α) (b : α) =&gt; fun (hab : r a b) =&gt; fun (hba : r b a) =&gt; h2 a b hab hba)
+    (fun (a : α) (b : α) (c : α) =&gt; fun (hab : r a b) =&gt; fun (hbc : r b c) =&gt;
+      h3 a c (Exists.intro b
+        (And.intro hab hbc)))</code></pre></div></details></div></article>
+<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ <strong>实测的三条写法教训（都写进 hint）</strong>：① <strong>一个巨大的 <code>↔</code>（右边还套三层 <code>∧</code>）写不出来</strong>（单元㊲ 已记）<span class="math">⇒</span> 拆成"三个取用子 <span class="math">+</span> 一个反方向"四条小定理（本单元的偏序部分就是这么落地的）；② <strong><code>Iff.mp</code> / <code>Iff.mpr</code> 在这些位置解不出</strong>（「期望 <code>Sort(1)</code>，实际是 <code>Rel α α</code>」）<span class="math">⇒</span> 取用子直接重证更稳；③ <strong>新发现（本单元实测）</strong>：<code>And.right h</code> <strong>单独写没问题</strong>，但<strong>把它直接当函数用在实参位</strong>（<code>And.right h (Eq.refl …)</code>）会判红（「期望 <code>Sort(0)</code>，实际是 <code>strictOf α r a a</code>」）  -- soko:notation-ok: 这里是<strong>反例式说明</strong>（讲"续应用会判红"），不是要写的代码 <span class="math">⇒</span> <strong>中间套一层 <span class="math">λ</span></strong>：<code>(fun (hu : ¬ (a = a)) =&gt; hu (Eq.refl a)) (And.right h)</code> ✓</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.Rel</code>（<code>•</code>/<code>⁻¹</code>）<span class="math">·</span> <code>lib.Order</code>（序与严格序）<span class="math">·</span> <code>lib.Set</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元⑬（序关系）<span class="math">·</span> 单元㊱㊲（关系的代数）—— 本单元把两条线合起来。</p></div></div></details>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit37.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">关系的代数刻画</span></a><a class="unit-nav-home" href="../chapters/i-13.html#units">目录</a><a class="unit-nav-link" href="../units/unit39.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">关系的像、原像与等价核</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-38"><h3><a href="#top">序关系的关系代数视角</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-38-1"><summary>练习 1 · antisymm_algebraic <span class="sol-meta">定理</span></summary><pre><code>theorem antisymm_algebraic (α : Type) (r : Rel α α) :
+    Antisymmetric α r ↔ ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b :=
+  @Iff.intro (Antisymmetric α r)
+    (∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b)
+    (fun (h : Antisymmetric α r) =&gt; fun (a : α) =&gt; fun (b : α) =&gt;
+      fun (hab : r a b) =&gt; fun (hba : (r ⁻¹) a b) =&gt;
+        (fun (hu : ∀ (x : α) (y : α), r x y → r y x → @Eq.{1} α x y) =&gt;  -- soko:notation-ok: G-30/G-73 形状 ②③：前导实参或 `Eq` 层级在这些位置补不出来
+          hu a b hab hba) h)
+    (fun (h : ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b) =&gt;
+      fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt; fun (hba : r b a) =&gt;
+        h a b hab hba)</code></pre></details><details class="appendix-solution" id="app-sol-38-2"><summary>练习 2 · irrefl_algebraic <span class="sol-meta">定理</span></summary><pre><code>theorem irrefl_algebraic (α : Type) (r : Rel α α) :
+    Irreflexive α r ↔ ∀ (a : α), (idRel α) a a → ¬ (r a a) :=
+  @Iff.intro (Irreflexive α r) (∀ (a : α), (idRel α) a a → ¬ (r a a))
+    (fun (h : Irreflexive α r) =&gt; fun (a : α) =&gt; fun (ha : (idRel α) a a) =&gt;
+      (fun (hu : ∀ (x : α), ¬ (r x x)) =&gt; hu a) h)
+    (fun (h : ∀ (a : α), (idRel α) a a → ¬ (r a a)) =&gt; fun (a : α) =&gt;
+      h a (@Eq.refl.{1} α a))</code></pre></details><details class="appendix-solution" id="app-sol-38-3"><summary>练习 3 · asymmetric_apply <span class="sol-meta">定理</span></summary><pre><code>theorem asymmetric_apply (α : Type) (r : Rel α α) (h : Asymmetric α r) (a b : α)
+    (hab : r a b) : ¬ (r b a) :=
+  (fun (hu : ∀ (x : α) (y : α), r x y → ¬ (r y x)) =&gt; hu a b hab) h</code></pre></details><details class="appendix-solution" id="app-sol-38-4"><summary>练习 4 · asymmetric_imp_irreflexive <span class="sol-meta">定理</span></summary><pre><code>theorem asymmetric_imp_irreflexive (α : Type) (r : Rel α α) (h : Asymmetric α r) :
+    Irreflexive α r :=
+  fun (a : α) =&gt; fun (haa : r a a) =&gt; asymmetric_apply α r h a a haa haa</code></pre></details><details class="appendix-solution" id="app-sol-38-5"><summary>练习 5 · irrefl_trans_imp_asymmetric <span class="sol-meta">定理</span></summary><pre><code>theorem irrefl_trans_imp_asymmetric (α : Type) (r : Rel α α)
+    (hirr : Irreflexive α r) (htrans : Transitive α r) : Asymmetric α r :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt; fun (hba : r b a) =&gt;
+    (fun (hu : ∀ (x : α), ¬ (r x x)) =&gt;
+      hu a ((fun (ht : ∀ (x : α) (y : α) (z : α), r x y → r y z → r x z) =&gt;
+        ht a b a hab hba) htrans)) hirr</code></pre></details><details class="appendix-solution" id="app-sol-38-6"><summary>练习 6 · asymmetric_iff <span class="sol-meta">定理</span></summary><pre><code>theorem asymmetric_iff (α : Type) (r : Rel α α) :
+    Asymmetric α r ↔ ∀ (a : α) (b : α), r a b → ¬ (r b a) :=
+  @Iff.intro (Asymmetric α r) (∀ (a : α) (b : α), r a b → ¬ (r b a))
+    (fun (h : Asymmetric α r) =&gt; h)
+    (fun (h : ∀ (a : α) (b : α), r a b → ¬ (r b a)) =&gt; h)</code></pre></details><details class="appendix-solution" id="app-sol-38-7"><summary>练习 7 · partialOrder_refl_algebraic <span class="sol-meta">定理</span></summary><pre><code>theorem partialOrder_refl_algebraic (α : Type) (r : Rel α α) (h : IsPartialOrder α r) :
+    ∀ (a : α), (idRel α) a a → r a a :=
+  fun (a : α) =&gt; fun (ha : (idRel α) a a) =&gt; partialOrder_refl α r h a</code></pre></details><details class="appendix-solution" id="app-sol-38-8"><summary>练习 8 · partialOrder_antisymm_algebraic <span class="sol-meta">定理</span></summary><pre><code>theorem partialOrder_antisymm_algebraic (α : Type) (r : Rel α α)
+    (h : IsPartialOrder α r) :
+    ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b :=
+  fun (a : α) =&gt; fun (b : α) =&gt; fun (hab : r a b) =&gt; fun (hba : (r ⁻¹) a b) =&gt;
+    partialOrder_antisymm α r h a b hab hba</code></pre></details><details class="appendix-solution" id="app-sol-38-9"><summary>练习 9 · partialOrder_trans_algebraic <span class="sol-meta">定理</span></summary><pre><code>theorem partialOrder_trans_algebraic (α : Type) (r : Rel α α) (h : IsPartialOrder α r) :
+    ∀ (a : α) (c : α), (r • r) a c → r a c :=
+  fun (a : α) =&gt; fun (c : α) =&gt; fun (hac : (r • r) a c) =&gt;
+    @Exists.elim α (fun (b : α) =&gt; r a b ∧ r b c) (r a c) hac
+      (fun (b : α) (hb : r a b ∧ r b c) =&gt;
+        partialOrder_trans α r h a b c (And.left hb) (And.right hb))</code></pre></details><details class="appendix-solution" id="app-sol-38-10"><summary>练习 10 · algebraic_is_partialOrder <span class="sol-meta">定理</span></summary><pre><code>theorem algebraic_is_partialOrder (α : Type) (r : Rel α α)
+    (h1 : ∀ (a : α), (idRel α) a a → r a a)
+    (h2 : ∀ (a : α) (b : α), r a b → (r ⁻¹) a b → (idRel α) a b)
+    (h3 : ∀ (a : α) (c : α), (r • r) a c → r a c) :
+    IsPartialOrder α r :=
+  isPartialOrder_intro α r
+    (fun (a : α) =&gt; h1 a (@Eq.refl.{1} α a))
+    (fun (a : α) (b : α) =&gt; fun (hab : r a b) =&gt; fun (hba : r b a) =&gt; h2 a b hab hba)
+    (fun (a : α) (b : α) (c : α) =&gt; fun (hab : r a b) =&gt; fun (hbc : r b c) =&gt;
+      h3 a c (Exists.intro b
+        (And.intro hab hbc)))</code></pre></details></section></section>
+  </article>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit37.html">← 37 关系的代数刻画</a><a class="next" href="../units/unit39.html">39 关系的像、原像与等价核 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

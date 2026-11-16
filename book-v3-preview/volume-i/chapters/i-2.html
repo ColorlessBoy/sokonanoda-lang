@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>I.2 序对、关系与函数 · 从集合论到实分析</title>
+<meta name="description" content="序对、关系与函数：4 单元。">
+<link rel="canonical" href="https://example.invalid/book-v3/chapters/i-2.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="intuition" data-page="chapter">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../index.html">从集合论到实分析<span class="brand-sub">卷 II · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <a href="../index.html">首页</a>
+      <span class="view-switch" role="group" aria-label="阅读层：直觉 / 并读 / 形式">
+        <button type="button" data-view-btn="intuition" aria-pressed="true">直觉</button>
+        <button type="button" data-view-btn="both" aria-pressed="false">并读</button>
+        <button type="button" data-view-btn="formal" aria-pressed="false">形式</button>
+      </span>
+      <a href="../sitemap.html">目录</a>
+      <a href="../search.html">搜索</a>
+      <a href="../sitemap.html#print">打印 / PDF</a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="112">已读 0 / 112</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><section class="side-chapters"><h3>章</h3><ul><li><a href="../chapters/i-1.html">I.1 集合、子集与集合运算</a></li><li><a href="../chapters/i-2.html">I.2 序对、关系与函数</a></li><li><a href="../chapters/i-3.html">I.3 像、原像与基数</a></li><li><a href="../chapters/i-4.html">I.4 论域、悖论与综合</a></li><li><a href="../chapters/i-5.html">I.5 序关系与良序</a></li><li><a href="../chapters/i-6.html">I.6 序数</a></li><li><a href="../chapters/i-7.html">I.7 选择公理与 ZF 公理体系</a></li><li><a href="../chapters/i-8.html">I.8 基数与基数算术</a></li><li><a href="../chapters/i-9.html">I.9 集族、广义积与 n 元关系</a></li><li><a href="../chapters/i-10.html">I.10 关系闭包与等价关系</a></li><li><a href="../chapters/i-11.html">I.11 集合代数</a></li><li><a href="../chapters/i-12.html">I.12 幂集与函数空间</a></li><li><a href="../chapters/i-13.html">I.13 关系的代数</a></li></ul></section></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li aria-current="page">I.2 序对、关系与函数</li></ol></nav>
+<main id="main" class="page ">
+<header class="page-head">
+  <p class="kicker">卷 I 集合论 · 第 2 章</p>
+  <h1><span class="chapter-id">I.2</span> 序对、关系与函数</h1>
+  <p class="meta">4 单元 · 31 道练习 · 56 个声明 · 82 条提示</p>
+  <p class="lede">本章共 4 单元，从「序对与笛卡尔积」到「积对并交的分配」。按顺序读；每单元一页，含导语、定义/定理、练习与解答。</p>
+</header>
+<section class="chapter-progress" aria-label="本章进度">
+  <div class="progress-row">
+    <span class="progress-label">本章进度</span>
+    <strong data-progress-count data-progress-total="4">已读 0 / 4</strong>
+  </div>
+  <span class="progress-track" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0" data-progressbar><span class="progress-fill" data-progress-fill></span></span>
+</section>
+<nav id="units" class="chapter-units" aria-label="本章单元">
+  <h2>本章单元（4）</h2>
+  <ol>
+<li><article class="unit-card" data-unit="5"><a class="unit-card-title" href="../units/unit05.html"><span class="num">05</span><span>序对与笛卡尔积</span></a><span class="en">Unit 5 — Ordered Pairs &amp; Cartesian Products</span><p class="summary">── 本单元只允许用什么 ──────────────────────────────────────────────────</p><div class="row"><span class="counts">1 个定义 · 10 个定理 · 7 道练习 · 21 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="5" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="6"><a class="unit-card-title" href="../units/unit06.html"><span class="num">06</span><span>关系</span></a><span class="en">Unit 6 — Relations</span><p class="summary">记法不用自己声明（随 import 生效，单元里一条 infix/notation 都不许写）：</p><div class="row"><span class="counts">10 个定义 · 13 个定理 · 8 道练习 · 24 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="6" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="7"><a class="unit-card-title" href="../units/unit07.html"><span class="num">07</span><span>函数</span></a><span class="en">Unit 7 — Functions</span><p class="summary">── 大纲条目（docs/design/set-theory-syllabus.md §3 第 7 行）──────────────── 单元号：卷 I ⑦（依赖树 1 → 2 → … → 6 → 7）；先修：单元②（子集/空集——第 9 题的反例要用 ∈ 的两条引理）与单元⑥（…</p><div class="row"><span class="counts">12 个定理 · 9 道练习 · 27 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="7" aria-pressed="false">标记已读</button></div></article></li>
+<li><article class="unit-card" data-unit="75"><a class="unit-card-title" href="../units/unit75.html"><span class="num">75</span><span>积对并交的分配</span></a><span class="en">Unit 75 — Products Distribute over Union and Intersection</span><p class="summary">本单元的&quot;该学的定理&quot;：</p><div class="row"><span class="counts">10 个定理 · 7 道练习 · 10 条提示</span><button type="button" class="card-progress" data-card-progress data-unit="75" aria-pressed="false">标记已读</button></div></article></li>
+  </ol>
+</nav>
+<nav class="pager" aria-label="章间导航">
+  <a href="../chapters/i-1.html">← I.1 集合、子集与集合运算</a><a class="next" href="../chapters/i-3.html">I.3 像、原像与基数 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 112 单元 / 13 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>
