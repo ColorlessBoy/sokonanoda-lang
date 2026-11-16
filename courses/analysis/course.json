@@ -1118,6 +1118,18 @@
               "title": "单元148 导数的符号：曲线从切点往哪一边抬高",
               "title_en": "Unit 148 — The Sign of the Derivative: Which Side of the Tangent Point Rises",
               "unit": 148
+            },
+            {
+              "file": "units/III.7/unit149-local-extremum.sokonanoda",
+              "title": "单元149 极值点的导数为零：曲线在最高处没有斜率",
+              "title_en": "Unit 149 — The Derivative Vanishes at Interior Extrema",
+              "unit": 149
+            },
+            {
+              "file": "units/III.7/unit150-monotone-deriv.sokonanoda",
+              "title": "单元150 单调与导数的符号：不下降的曲线不会往下斜",
+              "title_en": "Unit 150 — Monotonicity and the Sign of the Derivative",
+              "unit": 150
             }
           ]
         }
