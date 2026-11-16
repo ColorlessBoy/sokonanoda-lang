@@ -344,4 +344,25 @@ html{scroll-behavior:smooth}
 .chapter-unit .unit-head{scroll-margin-top:calc(var(--header-h) + 1.2rem)}
 @media print{.chapter-unit + .chapter-unit{break-before:page}}
 
-.library-back{position:fixed;left:1rem;bottom:1rem;z-index:50;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:.45rem .8rem;color:var(--ink);text-decoration:none;font-size:.85rem}
+/* ---------- reconcile with math-textbook spec: no cards, top rule only ---------- */
+.decl,.exercise{background:none!important;box-shadow:none!important;border-radius:0!important;border:0!important;padding:0!important}
+.decl{border-top:1px solid var(--line)!important;padding-top:.62rem!important;margin:1.75rem 0 1.5rem!important}
+.decl-def,.decl-theorem,.decl-axiom,.decl-inductive{border-left:0!important}
+.decl-head{display:block!important;border:0!important;border-bottom:0!important;margin:0 0 .28rem!important;padding:0!important;background:none!important}
+.decl-kind{display:inline!important;background:none!important;border:0!important;border-radius:0!important;padding:0!important;font-family:var(--font-body)!important;font-size:1rem!important;font-weight:650!important;letter-spacing:0!important;text-transform:none!important;color:var(--ink)!important}
+.decl-kind::after{content:" "}
+.decl-name{display:inline!important;background:none!important;border:0!important;padding:0!important;font-family:var(--font-body)!important;font-size:1rem!important;font-weight:400!important;font-style:italic!important;color:var(--ink)!important}
+.decl-statement{background:var(--code-bg)!important;border:0!important;border-left:2px solid var(--line)!important;border-radius:0!important;padding:.55rem .7rem!important;margin:.5rem 0 0!important;font-family:var(--font-code)!important;font-size:.82rem!important;line-height:1.6!important}
+.decl-statement code{font-family:var(--font-code)!important;font-size:1em!important;background:none!important;padding:0!important}
+.decl-body p,.decl-body .prose{font-style:normal}
+.proof-panel{margin:.85rem 0 1.4rem!important;padding:0!important;border:0!important;background:none!important}
+.proof-panel[open]::after{content:"∎";display:block;text-align:right;margin-top:.35rem;color:var(--muted);font-size:.95em}
+.proof-panel summary{font-weight:650;font-style:normal}
+.exercise{border-top:0!important;margin:1.1rem 0 1.1rem 1.25rem!important;padding:0!important}
+.exercise-head{border:0!important;padding:0!important;margin:0 0 .28rem!important;background:none!important}
+.exercise-badge{background:none!important;border:0!important;padding:0!important;font-family:var(--font-body)!important;font-weight:650!important;color:var(--ink)!important}
+.exercise-kind{display:inline!important;background:none!important;border:0!important;padding:0!important;font-family:var(--font-body)!important;font-size:.92em!important;color:var(--muted)!important}
+.exercise-kind::before{content:"（"} .exercise-kind::after{content:"）"}
+.decl-example .decl-body,.decl-example body{font-style:normal}
+.decl-remark{font-size:.94em!important;color:var(--muted)!important}
+.decl-remark .decl-kind{font-size:.94em!important;font-weight:600!important;color:var(--muted)!important}
