@@ -386,3 +386,37 @@ html{scroll-behavior:smooth}
 .icon-link{display:inline-flex;align-items:center;justify-content:center;min-width:34px;min-height:34px;color:var(--ink);text-decoration:none}
 .icon-link svg{display:block}
 .icon-link:hover{color:var(--accent)}
+
+/* right-hand chapter outline */
+.chapter-layout{display:grid;grid-template-columns:minmax(0,1fr) 14rem;gap:1.6rem;align-items:start}
+.chapter-main{min-width:0}
+.page-outline{position:sticky;top:calc(var(--header-h) + 1rem);max-height:calc(100dvh - var(--header-h) - 2rem);overflow:auto;border-left:1px solid var(--line);padding:.2rem 0 .6rem 1rem;font-size:.82rem}
+.page-outline h2{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:.3rem 0 .5rem;font-weight:650}
+.page-outline ol{list-style:none;margin:0;padding:0}
+.page-outline li a{display:block;padding:.2rem .25rem;border-radius:4px;color:var(--muted);text-decoration:none;line-height:1.45}
+.page-outline li a:hover{background:var(--panel);color:var(--ink)}
+.page-outline li a[aria-current="location"]{color:var(--accent);font-weight:650;background:color-mix(in srgb,var(--accent) 9%,transparent)}
+@media (max-width:1279px){.chapter-layout{display:block}.page-outline{display:none}}
+@media print{.page-outline{display:none!important}}
+
+/* ---------- amsthm-like environments: label + rules, no cards ---------- */
+.decl{background:none!important;border:0!important;border-top:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;box-shadow:none!important;padding:.55rem 0 .7rem!important;margin:1.6rem 0!important}
+.decl-head{display:block!important;background:none!important;border:0!important;padding:0!important;margin:0 0 .2rem!important}
+.decl-kind{display:inline!important;background:none!important;border:0!important;border-radius:0!important;padding:0!important;color:var(--ink)!important;font-family:var(--font-body)!important;font-size:1rem!important;font-weight:700!important;letter-spacing:0!important;text-transform:none!important}
+.decl-kind::after{content:"."}
+.decl-name{display:inline!important;background:none!important;border:0!important;padding:0!important;color:var(--ink)!important;font-family:var(--font-body)!important;font-size:1rem!important;font-weight:400!important;font-style:italic!important}
+.decl-name::before{content:"（";font-style:normal}
+.decl-name::after{content:"）";font-style:normal}
+.decl-where{display:inline!important;margin-left:.35em!important;color:var(--muted)!important;font-size:.85em!important}
+.decl-statement{background:var(--code-bg)!important;border:0!important;border-left:2px solid var(--line)!important;border-radius:0!important;padding:.5rem .7rem!important;margin:.5rem 0 .1rem!important;font-family:var(--font-code)!important;font-size:.82rem!important;line-height:1.6!important}
+.decl-statement code{font-family:var(--font-code)!important;background:none!important;padding:0!important}
+.proof-panel{border:0!important;background:none!important;margin:.7rem 0 1.2rem!important;padding:0!important}
+.proof-panel[open]::after{content:"∎";display:block;text-align:right;margin-top:.3rem;color:var(--muted)}
+.proof-panel summary{font-weight:700!important;font-style:normal!important}
+.exercise{background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;margin:1.1rem 0 1.1rem 1.25rem!important}
+.exercise-head{display:flex!important;flex-wrap:wrap!important;align-items:baseline!important;gap:.35rem!important;background:none!important;border:0!important;padding:0!important;margin:0 0 .2rem!important}
+.exercise-badge{background:none!important;border:0!important;border-radius:0!important;padding:0!important;color:var(--ink)!important;font-family:var(--font-body)!important;font-weight:700!important;font-size:1rem!important;letter-spacing:0!important;text-transform:none!important}
+.exercise-name{font-family:var(--font-code)!important;font-size:.9em!important;background:none!important;padding:0!important}
+.exercise-kind{display:inline!important;background:none!important;border:0!important;border-radius:0!important;padding:0!important;color:var(--muted)!important;font-size:.85em!important;font-weight:400!important}
+.exercise-kind::before{content:"（"} .exercise-kind::after{content:"）"}
+.exercise-prompt{font-style:normal}
