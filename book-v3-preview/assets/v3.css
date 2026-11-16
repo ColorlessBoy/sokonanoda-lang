@@ -189,3 +189,25 @@ img{max-width:100%;height:auto}
 /* cover: no decorative vertical rule next to the start button */
 .cover::before{display:none!important}
 .cover > *{margin-left:0!important}
+
+/* ---------- Chinese typography + math harmony (v3.3) ---------- */
+:root{
+  --font-body:"Iowan Old Style","Palatino Linotype","Songti SC","STSong","Noto Serif CJK SC","Source Han Serif SC",Georgia,serif;
+  --font-ui:-apple-system,"Avenir Next","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Helvetica Neue",Arial,sans-serif;
+  --font-math:"STIX Two Text","STIX Two Math","Cambria Math","Latin Modern Math","STIXGeneral","Times New Roman","Songti SC",serif;
+  --font-code:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+body{font-family:var(--font-body);font-size:18px;line-height:1.85;font-kerning:normal;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+.site-head,.site-nav,.breadcrumb,.site-side,.site-foot,.btn,.cover-cta,.cover-stats,.view-switch,.side-toggle,.menu-btn,.search-form,.pager,.unit-actions,.unit-kicker,.unit-title-en,.unit-meta,.decl-kind,.exercise-kind,.hint-label,.sol-meta,.kicker{font-family:var(--font-ui)}
+h1,h2,h3,h4{font-family:var(--font-body);letter-spacing:.005em}
+h1{line-height:1.3}
+.page,.unit-page,.unit-intro-body,.prose,.decl-body,.exercise-body,.hint-body,.solution-body,.appendix,.cover{font-family:var(--font-body)}
+.block.prose p,.unit-intro-body p,.exercise-prompt p,.hint-body p{line-height:1.92;margin:.72em 0;text-align:justify;text-justify:inter-ideograph;hanging-punctuation:allow-end}
+.math{font-family:var(--font-math);font-size:1.03em;letter-spacing:.005em;margin-inline:.09em;font-variant-numeric:lining-nums}
+.math-display{font-family:var(--font-math);margin:1.05rem 0;line-height:1.55}
+code,pre,pre code{font-family:var(--font-code);font-size:.84em}
+.decl-statement{font-family:var(--font-code);font-size:.86em;line-height:1.65}
+.decl-name,.exercise-name{font-family:var(--font-code);font-size:.92em}
+.unit-head h1,.unit-head h2{line-height:1.35}
+.cover h1{line-height:1.25}
+@media (max-width:620px){body{font-size:17px;line-height:1.8}.block.prose p,.unit-intro-body p{line-height:1.85}}
