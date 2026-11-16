@@ -68,6 +68,24 @@
     });
   });
 
+  /* ---------- unit sidebar (mobile) ---------- */
+  var sideToggle = $("[data-side-toggle]");
+  if (sideToggle) {
+    sideToggle.addEventListener("click", function () {
+      var side = document.getElementById("site-side");
+      if (!side) return;
+      var open = side.classList.toggle("is-open");
+      sideToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    $$("#site-side a").forEach(function (a) {
+      a.addEventListener("click", function () {
+        var side = document.getElementById("site-side");
+        if (side) side.classList.remove("is-open");
+        sideToggle.setAttribute("aria-expanded", "false");
+      });
+    });
+  }
+
   /* ---------- mobile menu ---------- */
   var menu = $("[data-menu]");
   if (menu) {

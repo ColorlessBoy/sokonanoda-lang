@@ -140,3 +140,27 @@ img{max-width:100%;height:auto}
   .appendix-unit{break-before:page}
 }
 @media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* ---------- global unit sidebar (v3.1) ---------- */
+.site-shell{max-width:var(--maxw);margin:0 auto;padding:0 1rem;display:grid;grid-template-columns:17rem minmax(0,1fr);gap:1.4rem;align-items:start}
+.site-side{position:sticky;top:calc(var(--head-h) + .6rem);max-height:calc(100vh - var(--head-h) - 1.2rem);overflow:auto;border-right:1px solid var(--line);padding:.2rem 1rem .8rem 0;font-size:.86rem}
+.side-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.4rem 0 .6rem;border-bottom:1px solid var(--line)}
+.side-close{display:none;border:0;background:none;font-size:1.2rem;line-height:1;cursor:pointer;color:var(--ink)}
+.side-chapter{margin:.7rem 0}
+.side-chapter h3{margin:0;font-size:.88rem;font-weight:650}
+.side-chapter h3 a{text-decoration:none;color:var(--ink)}
+.side-chapter ul{list-style:none;margin:.25rem 0 0;padding:0}
+.side-chapter li{margin:0}
+.side-chapter li a{display:block;padding:.18rem .35rem;border-radius:5px;color:var(--muted);text-decoration:none;line-height:1.45}
+.side-chapter li a:hover{background:var(--panel);color:var(--ink)}
+.side-chapter li.is-current > a,.side-chapter.is-current > h3 a{color:var(--accent);font-weight:650;background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.side-toggle{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:.3rem .7rem;font:inherit;font-size:.82rem;cursor:pointer;display:none}
+@media (max-width:960px){
+  .site-shell{display:block;padding:0}
+  .site-side{display:none;position:fixed;z-index:60;top:calc(var(--head-h));left:0;right:0;bottom:0;max-height:none;background:var(--bg);padding:0 1rem 1rem;border-right:0;overflow:auto}
+  .site-side.is-open{display:block}
+  .side-close{display:block}
+  .side-toggle{display:inline-flex;align-items:center;min-height:38px}
+  .site-content{padding:0 1rem}
+}
+@media print{.site-side{display:none!important}.site-shell{display:block!important;padding:0!important}}
