@@ -1208,6 +1208,12 @@
               "title": "单元161 上和与下和的加法：先分开算再相加",
               "title_en": "Unit 161 — Adding Upper and Lower Sums: Computing the Pieces Separately",
               "unit": 161
+            },
+            {
+              "file": "units/III.8/unit162-vertical-shift.sokonanoda",
+              "title": "单元162 整条曲线抬高：面积差只认起伏",
+              "title_en": "Unit 162 — Lifting the Whole Curve: The Area Gap Only Sees Oscillation",
+              "unit": 162
             }
           ]
         }

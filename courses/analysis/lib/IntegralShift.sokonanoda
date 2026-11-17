@@ -1,0 +1,336 @@
+-- 课程库：整条曲线抬高（单元162 的引擎）
+--
+-- 单元161 把同一分割上的两块台阶加起来。把曲线整体抬高一个常数，是另一种
+-- 变形：每一段上的上界与下界都跟着抬高同一个数，矩形的高多了一截，宽没变，
+-- 于是上和与下和都多出「常数乘区间长度」这一块。两个和抬高的是同一个数，
+-- 差不变。
+--
+-- 库里收进来的东西：
+--
+--   · `sumTo_segLen` / `sumTo_const_len` / `stepSum_const` —— 单元156 的
+--     常值面积读数（宽的和只剩两端，常数从每一项里提出来）；
+--   · `segLen_mul_add_const` —— 一段上「高度加常数」的分配律；
+--   · `stepSum_add_const` —— 矩形和抬高常数乘区间长度；
+--   · `upperStep_add_const` / `lowerStep_add_const` —— 两摞台阶一起抬高；
+--   · `upperSum_add_const` / `lowerSum_add_const` —— 上和与下和各抬一截；
+--   · `stepGap_add_const` —— 两个和之差不变；
+--   · `integrable_add_const` / `integrable_add_const_iff` —— 可积性在垂直
+--     平移下不变。
+--
+-- 边界：只做垂直平移，不做正数倍（那要一条把常数与 ε 放在一起估计的
+-- 阿基米德性质，库里还没有）。函数取 `ratRep → ratRep`，停在有理代表元层。
+-- 不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.Cauchy
+import lib.RatSub
+import lib.RatRing
+import lib.RatAssoc
+import lib.RatGroup
+import lib.RatHalf
+import lib.DerivAlgebra
+import lib.DerivShift
+import lib.Bounded
+import lib.MaxOn
+import lib.Sum
+import lib.SumSplit
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralNeg
+
+-- ─────────────────────────────────────────────────────────────
+-- 单元156 已判卷事实进库：宽的和与常值矩形和
+-- ─────────────────────────────────────────────────────────────
+
+-- 宽是相邻切点之差，逐项相加时中间项两两抵消，只剩最后一个切点减第一个。
+theorem sumTo_segLen (p : Partition) (n : Nat) :
+    ratRel (sumTo (fun (i : Nat) => segLen p i) n)
+      (ratSubRep (partPoint p n) (partPoint p Nat.zero)) :=
+  sumTo_telescope (fun (i : Nat) => partPoint p i) n
+
+-- 常数乘宽的和：每一项先用乘法对减法的分配律拆成两个乘积之差，整条和变成
+-- 望远镜，中间项抵消后只剩 `k·x n - k·x 0`，再合回 `k·(x n - x 0)`。
+theorem sumTo_const_len (x : Nat → ratRep) (k : ratRep) (n : Nat) :
+    ratRel (sumTo (fun (i : Nat) => ratMulRep k
+      (ratSubRep (x (Nat.succ i)) (x i))) n)
+      (ratMulRep k (ratSubRep (x n) (x Nat.zero))) :=
+  ratRel_trans_gen
+    (sumTo (fun (i : Nat) => ratMulRep k
+      (ratSubRep (x (Nat.succ i)) (x i))) n)
+    (sumTo (fun (i : Nat) => ratSubRep (ratMulRep k (x (Nat.succ i)))
+      (ratMulRep k (x i))) n)
+    (ratMulRep k (ratSubRep (x n) (x Nat.zero)))
+    (sumTo_congr
+      (fun (i : Nat) => ratMulRep k
+        (ratSubRep (x (Nat.succ i)) (x i)))
+      (fun (i : Nat) => ratSubRep (ratMulRep k (x (Nat.succ i)))
+        (ratMulRep k (x i)))
+      n
+      (fun (i : Nat) => ratMul_sub k (x (Nat.succ i)) (x i)))
+    (ratRel_trans_gen
+      (sumTo (fun (i : Nat) => ratSubRep (ratMulRep k (x (Nat.succ i)))
+        (ratMulRep k (x i))) n)
+      (ratSubRep (ratMulRep k (x n)) (ratMulRep k (x Nat.zero)))
+      (ratMulRep k (ratSubRep (x n) (x Nat.zero)))
+      (sumTo_telescope (fun (i : Nat) => ratMulRep k (x i)) n)
+      (ratRel_symm
+        (ratMulRep k (ratSubRep (x n) (x Nat.zero)))
+        (ratSubRep (ratMulRep k (x n)) (ratMulRep k (x Nat.zero)))
+        (ratMul_sub k (x n) (x Nat.zero))))
+
+-- 常值高度的矩形和只由总长度决定。端点用分割的两条投影换掉。
+theorem stepSum_const (a b : ratRep) (p : Partition) (hp : IsPartition a b p)
+    (k : ratRep) :
+    ratRel (stepSum p (fun (_ : Nat) => k))
+      (ratMulRep k (ratSubRep b a)) :=
+  @Eq.subst.{1} ratRep
+    (fun (z : ratRep) => ratRel (stepSum p (fun (_ : Nat) => k))
+      (ratMulRep k (ratSubRep z a)))
+    (partPoint p (partCount p)) b
+    (isPartition_right a b p hp)
+    (@Eq.subst.{1} ratRep
+      (fun (z : ratRep) => ratRel (stepSum p (fun (_ : Nat) => k))
+        (ratMulRep k (ratSubRep (partPoint p (partCount p)) z)))
+      (partPoint p Nat.zero) a
+      (isPartition_left a b p hp)
+      (sumTo_const_len (fun (i : Nat) => partPoint p i) k (partCount p)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 一段上高度加常数
+-- ─────────────────────────────────────────────────────────────
+
+-- 高是 `h + k`、宽不变，一块矩形按分配律拆成两块：原来的矩形，加上常数
+-- 乘同一段宽。宽写在右边，先交换成「宽乘高度和」，拆完再逐项交换回来。
+theorem segLen_mul_add_const (p : Partition) (i : Nat) (h k : ratRep) :
+    ratRel (ratMulRep (ratAddRep h k) (segLen p i))
+      (ratAddRep (ratMulRep h (segLen p i))
+        (ratMulRep k (segLen p i))) :=
+  ratRel_trans_gen
+    (ratMulRep (ratAddRep h k) (segLen p i))
+    (ratMulRep (segLen p i) (ratAddRep h k))
+    (ratAddRep (ratMulRep h (segLen p i))
+      (ratMulRep k (segLen p i)))
+    (ratMul_comm (ratAddRep h k) (segLen p i))
+    (ratRel_trans_gen
+      (ratMulRep (segLen p i) (ratAddRep h k))
+      (ratAddRep (ratMulRep (segLen p i) h)
+        (ratMulRep (segLen p i) k))
+      (ratAddRep (ratMulRep h (segLen p i))
+        (ratMulRep k (segLen p i)))
+      (ratMul_add (segLen p i) h k)
+      (ratRel_trans_gen
+        (ratAddRep (ratMulRep (segLen p i) h)
+          (ratMulRep (segLen p i) k))
+        (ratAddRep (ratMulRep h (segLen p i))
+          (ratMulRep (segLen p i) k))
+        (ratAddRep (ratMulRep h (segLen p i))
+          (ratMulRep k (segLen p i)))
+        (ratAddRep_wd_gen (ratMulRep (segLen p i) h)
+          (ratMulRep h (segLen p i)) (ratMulRep (segLen p i) k)
+          (ratMul_comm (segLen p i) h))
+        (ratAddRep_wd_snd_gen (ratMulRep h (segLen p i))
+          (ratMulRep (segLen p i) k) (ratMulRep k (segLen p i))
+          (ratMul_comm (segLen p i) k))))
+
+-- 逐段拆开，再把有限和按函数分成两摞；第二摞是常值乘宽的和，由单元156 的
+-- 读数收成 `k·(b - a)`。
+theorem stepSum_add_const (a b : ratRep) (p : Partition)
+    (hp : IsPartition a b p) (h : Nat → ratRep) (k : ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratAddRep (h i) k))
+      (ratAddRep (stepSum p h) (ratMulRep k (ratSubRep b a))) :=
+  ratRel_trans_gen
+    (stepSum p (fun (i : Nat) => ratAddRep (h i) k))
+    (sumTo (fun (i : Nat) =>
+      ratAddRep (ratMulRep (h i) (segLen p i))
+        (ratMulRep k (segLen p i))) (partCount p))
+    (ratAddRep (stepSum p h) (ratMulRep k (ratSubRep b a)))
+    (sumTo_congr (fun (i : Nat) =>
+        ratMulRep (ratAddRep (h i) k) (segLen p i))
+      (fun (i : Nat) =>
+        ratAddRep (ratMulRep (h i) (segLen p i))
+          (ratMulRep k (segLen p i)))
+      (partCount p)
+      (fun (i : Nat) => segLen_mul_add_const p i (h i) k))
+    (ratRel_trans_gen
+      (sumTo (fun (i : Nat) =>
+        ratAddRep (ratMulRep (h i) (segLen p i))
+          (ratMulRep k (segLen p i))) (partCount p))
+      (ratAddRep
+        (sumTo (fun (i : Nat) => ratMulRep (h i) (segLen p i))
+          (partCount p))
+        (sumTo (fun (i : Nat) => ratMulRep k (segLen p i))
+          (partCount p)))
+      (ratAddRep (stepSum p h) (ratMulRep k (ratSubRep b a)))
+      (sumTo_add (fun (i : Nat) => ratMulRep (h i) (segLen p i))
+        (fun (i : Nat) => ratMulRep k (segLen p i)) (partCount p))
+      (ratAddRep_wd_snd_gen (stepSum p h)
+        (sumTo (fun (i : Nat) => ratMulRep k (segLen p i))
+          (partCount p))
+        (ratMulRep k (ratSubRep b a))
+        (stepSum_const a b p hp k)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 两摞台阶一起抬高
+-- ─────────────────────────────────────────────────────────────
+
+-- 上界压住函数值，两边加同一个常数，不等号不动。
+theorem upperStep_add_const (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (u : Nat → ratRep) (k : ratRep)
+    (h : UpperStep a b p f u) :
+    UpperStep a b p (fun (x : ratRep) => ratAddRep (f x) k)
+      (fun (i : Nat) => ratAddRep (u i) k) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    ratLeRep_add (f x) (u i) k k (h i hi x hx) (ratLeRep_refl k)
+
+-- 下界垫在函数值下面，两边加同一个常数，不等号同样不动。
+theorem lowerStep_add_const (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (l : Nat → ratRep) (k : ratRep)
+    (h : LowerStep a b p f l) :
+    LowerStep a b p (fun (x : ratRep) => ratAddRep (f x) k)
+      (fun (i : Nat) => ratAddRep (l i) k) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    ratLeRep_add (l i) (f x) k k (h i hi x hx) (ratLeRep_refl k)
+
+-- ─────────────────────────────────────────────────────────────
+-- 上和与下和各抬一截
+-- ─────────────────────────────────────────────────────────────
+
+-- 从上和里取出那摞上界，整体抬高；候选值同时抬高 `k·(b - a)`。
+theorem upperSum_add_const (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (U : ratRep) (k : ratRep)
+    (hp : IsPartition a b p) (h : UpperSum a b p f U) :
+    UpperSum a b p (fun (x : ratRep) => ratAddRep (f x) k)
+      (ratAddRep U (ratMulRep k (ratSubRep b a))) :=
+  Exists.elim (upperSum_witness a b p f U h)
+    (fun (u : Nat → ratRep)
+        (hu : UpperStep a b p f u ∧ ratRel U (stepSum p u)) =>
+      Exists.intro (fun (i : Nat) => ratAddRep (u i) k)
+        (And.intro
+          (upperStep_add_const a b p f u k (And.left hu))
+          (ratRel_trans_gen
+            (ratAddRep U (ratMulRep k (ratSubRep b a)))
+            (ratAddRep (stepSum p u) (ratMulRep k (ratSubRep b a)))
+            (stepSum p (fun (i : Nat) => ratAddRep (u i) k))
+            (ratAddRep_wd_gen U (stepSum p u)
+              (ratMulRep k (ratSubRep b a)) (And.right hu))
+            (ratRel_symm
+              (stepSum p (fun (i : Nat) => ratAddRep (u i) k))
+              (ratAddRep (stepSum p u) (ratMulRep k (ratSubRep b a)))
+              (stepSum_add_const a b p hp u k)))))
+
+-- 下和同形，把下界那摞整体抬高。
+theorem lowerSum_add_const (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L : ratRep) (k : ratRep)
+    (hp : IsPartition a b p) (h : LowerSum a b p f L) :
+    LowerSum a b p (fun (x : ratRep) => ratAddRep (f x) k)
+      (ratAddRep L (ratMulRep k (ratSubRep b a))) :=
+  Exists.elim (lowerSum_witness a b p f L h)
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p f l ∧ ratRel L (stepSum p l)) =>
+      Exists.intro (fun (i : Nat) => ratAddRep (l i) k)
+        (And.intro
+          (lowerStep_add_const a b p f l k (And.left hl))
+          (ratRel_trans_gen
+            (ratAddRep L (ratMulRep k (ratSubRep b a)))
+            (ratAddRep (stepSum p l) (ratMulRep k (ratSubRep b a)))
+            (stepSum p (fun (i : Nat) => ratAddRep (l i) k))
+            (ratAddRep_wd_gen L (stepSum p l)
+              (ratMulRep k (ratSubRep b a)) (And.right hl))
+            (ratRel_symm
+              (stepSum p (fun (i : Nat) => ratAddRep (l i) k))
+              (ratAddRep (stepSum p l) (ratMulRep k (ratSubRep b a)))
+              (stepSum_add_const a b p hp l k)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个和之差不变
+-- ─────────────────────────────────────────────────────────────
+
+-- `(U + K) - (L + K)` 与 `U - L` 只差一次消去公共加数。
+theorem stepGap_add_const (p : Partition) (L U k : ratRep) :
+    ratRel (ratSubRep (ratAddRep U k) (ratAddRep L k))
+      (ratSubRep U L) :=
+  ratSubRep_add_cancel U L k
+
+-- ─────────────────────────────────────────────────────────────
+-- 可积性在垂直平移下不变
+-- ─────────────────────────────────────────────────────────────
+
+-- 给定 ε，取原来的分割与两个和，两个都抬高 `k·(b - a)`；差由
+-- `stepGap_add_const` 换回原来的差，仍然小于 ε。
+theorem integrable_add_const (a b : ratRep) (f : ratRep → ratRep)
+    (k : ratRep) (h : Integrable a b f) :
+    Integrable a b (fun (x : ratRep) => ratAddRep (f x) k) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (p : Partition)
+          (hp : IsPartition a b p ∧
+            ∃ (L : ratRep), ∃ (U : ratRep),
+              LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                ratLtRep (ratSubRep U L) eps) =>
+        Exists.elim (And.right hp)
+          (fun (L : ratRep) (hL : ∃ (U : ratRep),
+              LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                ratLtRep (ratSubRep U L) eps) =>
+            Exists.elim hL
+              (fun (U : ratRep)
+                  (hU : LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                    ratLtRep (ratSubRep U L) eps) =>
+                Exists.intro p
+                  (And.intro (And.left hp)
+                    (Exists.intro
+                      (ratAddRep L (ratMulRep k (ratSubRep b a)))
+                      (Exists.intro
+                        (ratAddRep U (ratMulRep k (ratSubRep b a)))
+                        (And.intro
+                          (lowerSum_add_const a b p f L k
+                            (And.left hp) (And.left hU))
+                          (And.intro
+                            (upperSum_add_const a b p f U k
+                              (And.left hp) (And.left (And.right hU)))
+                            (ratLtRep_congr_fst
+                              (ratSubRep
+                                (ratAddRep U (ratMulRep k (ratSubRep b a)))
+                                (ratAddRep L (ratMulRep k (ratSubRep b a))))
+                              (ratSubRep U L) eps
+                              (And.right (And.right hU))
+                              (stepGap_add_const p L U
+                                (ratMulRep k (ratSubRep b a))))))))))))
+
+-- 反方向不必重做一遍估计：把 `f + k` 再抬高 `-k`，点式相等把它换回 `f`。
+theorem integrable_add_const_iff (a b : ratRep) (f : ratRep → ratRep)
+    (k : ratRep) :
+    Integrable a b f ↔ Integrable a b (fun (x : ratRep) => ratAddRep (f x) k) :=
+  Iff.intro
+    (integrable_add_const a b f k)
+    (fun (h : Integrable a b (fun (x : ratRep) => ratAddRep (f x) k)) =>
+      Iff.mp
+        (integrable_congr_fun a b
+          (fun (x : ratRep) =>
+            ratAddRep (ratAddRep (f x) k) (ratNegRep k))
+          f
+          (fun (x : ratRep) =>
+            ratRel_trans_gen
+              (ratAddRep (ratAddRep (f x) k) (ratNegRep k))
+              (ratAddRep (f x) (ratAddRep k (ratNegRep k)))
+              (f x)
+              (ratAdd_assoc (f x) k (ratNegRep k))
+              (ratRel_trans_gen
+                (ratAddRep (f x) (ratAddRep k (ratNegRep k)))
+                (ratAddRep (f x) ratZeroRep)
+                (f x)
+                (ratAddRep_wd_snd_gen (f x)
+                  (ratAddRep k (ratNegRep k)) ratZeroRep
+                  (ratAdd_neg_gen k))
+                (ratAdd_zero (f x)))))
+        (integrable_add_const a b
+          (fun (x : ratRep) => ratAddRep (f x) k) (ratNegRep k) h))
