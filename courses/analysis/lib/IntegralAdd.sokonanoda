@@ -1,0 +1,359 @@
+-- 课程库：上和与下和的加法（单元161 的引擎）
+--
+-- 单元161 在画布上把「同一个分割上的两块面积」接起来：每一段上两个上界相加
+-- 仍然压住和，宽乘两个高度之和等于两块矩形面积之和，于是一个分割上的上和与
+-- 下和各自分成两个，两个差相加恰好是和的差。这里把定义与九条判过卷的引理收
+-- 进 L2，供后续把两个函数搬到同一组切点上时直接引用：
+--
+--   · `segLen_mul_add` —— 一段上宽乘高度和的分配律；
+--   · `stepSum_add` —— 矩形和按函数分开；
+--   · `upperStep_add` / `lowerStep_add` —— 两个界逐段相加；
+--   · `upperSum_add` / `lowerSum_add` —— 上和与下和各自分开；
+--   · `stepGap_add` / `stepGap_add_lt` —— 两块面积之差的和；
+--   · `integrable_add_of_gap` —— 同一个分割上的可加性。
+--
+-- 边界：只谈同一个分割上的加法，不加细，也不把两个不同分割的上下和搬到
+-- 一起。函数取 `ratRep → ratRep`，停在有理代表元层。不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.Cauchy
+import lib.RatSub
+import lib.RatRing
+import lib.RatHalf
+import lib.DerivAlgebra
+import lib.Bounded
+import lib.MaxOn
+import lib.Sum
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralGap
+
+-- ─────────────────────────────────────────────────────────────
+-- 一段上的分配律
+-- ─────────────────────────────────────────────────────────────
+
+-- 宽写在右边，先交换成「宽乘高度和」。分配律把「宽乘和」拆成两个乘积，
+-- 再逐项交换回高度在前。两条交换加一次分配，就是这一段上的全部内容。
+theorem segLen_mul_add (p : Partition) (i : Nat) (h1 h2 : ratRep) :
+    ratRel (ratMulRep (ratAddRep h1 h2) (segLen p i))
+      (ratAddRep (ratMulRep h1 (segLen p i)) (ratMulRep h2 (segLen p i))) :=
+  ratRel_trans_gen
+    (ratMulRep (ratAddRep h1 h2) (segLen p i))
+    (ratMulRep (segLen p i) (ratAddRep h1 h2))
+    (ratAddRep (ratMulRep h1 (segLen p i)) (ratMulRep h2 (segLen p i)))
+    (ratMul_comm (ratAddRep h1 h2) (segLen p i))
+    (ratRel_trans_gen
+      (ratMulRep (segLen p i) (ratAddRep h1 h2))
+      (ratAddRep (ratMulRep (segLen p i) h1) (ratMulRep (segLen p i) h2))
+      (ratAddRep (ratMulRep h1 (segLen p i)) (ratMulRep h2 (segLen p i)))
+      (ratMul_add (segLen p i) h1 h2)
+      (ratRel_trans_gen
+        (ratAddRep (ratMulRep (segLen p i) h1)
+          (ratMulRep (segLen p i) h2))
+        (ratAddRep (ratMulRep h1 (segLen p i))
+          (ratMulRep (segLen p i) h2))
+        (ratAddRep (ratMulRep h1 (segLen p i))
+          (ratMulRep h2 (segLen p i)))
+        (ratAddRep_wd_gen (ratMulRep (segLen p i) h1)
+          (ratMulRep h1 (segLen p i)) (ratMulRep (segLen p i) h2)
+          (ratMul_comm (segLen p i) h1))
+        (ratAddRep_wd_snd_gen (ratMulRep h1 (segLen p i))
+          (ratMulRep (segLen p i) h2) (ratMulRep h2 (segLen p i))
+          (ratMul_comm (segLen p i) h2))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 矩形和按函数分开
+-- ─────────────────────────────────────────────────────────────
+
+-- 和的每个矩形项都换成两个乘积之和，逐项相等把整条和搬过去；搬完的序列
+-- 正是「两摞高度各自的矩形和」逐项相加，有限和的加法律把它拆成两个和。
+theorem stepSum_add (p : Partition) (u v : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratAddRep (u i) (v i)))
+      (ratAddRep (stepSum p u) (stepSum p v)) :=
+  ratRel_trans_gen
+    (stepSum p (fun (i : Nat) => ratAddRep (u i) (v i)))
+    (sumTo (fun (i : Nat) =>
+        ratAddRep (ratMulRep (u i) (segLen p i))
+          (ratMulRep (v i) (segLen p i))) (partCount p))
+    (ratAddRep (stepSum p u) (stepSum p v))
+    (sumTo_congr
+      (fun (i : Nat) => ratMulRep (ratAddRep (u i) (v i)) (segLen p i))
+      (fun (i : Nat) =>
+        ratAddRep (ratMulRep (u i) (segLen p i))
+          (ratMulRep (v i) (segLen p i)))
+      (partCount p)
+      (fun (i : Nat) => segLen_mul_add p i (u i) (v i)))
+    (sumTo_add
+      (fun (i : Nat) => ratMulRep (u i) (segLen p i))
+      (fun (i : Nat) => ratMulRep (v i) (segLen p i))
+      (partCount p))
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个界逐段相加
+-- ─────────────────────────────────────────────────────────────
+
+-- 段与点都由同一份数据给出，两条假设在同一个 `i`、`hi`、`x`、`hx` 上成立；
+-- 加法保序把两个上界并成一个。
+theorem upperStep_add (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (u v : Nat → ratRep)
+    (hu : UpperStep a b p f u) (hv : UpperStep a b p g v) :
+    UpperStep a b p (fun (x : ratRep) => ratAddRep (f x) (g x))
+      (fun (i : Nat) => ratAddRep (u i) (v i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    ratLeRep_add (f x) (u i) (g x) (v i)
+      (hu i hi x hx) (hv i hi x hx)
+
+-- 下界的方向相同：两个下界各垫在自己那一项下面，加法保序把和垫在两者的和
+-- 下面。
+theorem lowerStep_add (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (l m : Nat → ratRep)
+    (hl : LowerStep a b p f l) (hm : LowerStep a b p g m) :
+    LowerStep a b p (fun (x : ratRep) => ratAddRep (f x) (g x))
+      (fun (i : Nat) => ratAddRep (l i) (m i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    ratLeRep_add (l i) (f x) (m i) (g x)
+      (hl i hi x hx) (hm i hi x hx)
+
+-- ─────────────────────────────────────────────────────────────
+-- 上和与下和各自分开
+-- ─────────────────────────────────────────────────────────────
+
+-- 从两个上和里各取出一摞上界。逐段相加就是和的上界；矩形和按 `stepSum_add`
+-- 分成两个，候选值也随之相加。两处候选值都只是等价写法，用一次两边同加的
+-- 搬运把它们接到 `U + V` 上。
+theorem upperSum_add (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (U V : ratRep)
+    (hU : UpperSum a b p f U) (hV : UpperSum a b p g V) :
+    UpperSum a b p (fun (x : ratRep) => ratAddRep (f x) (g x))
+      (ratAddRep U V) :=
+  Exists.elim (upperSum_witness a b p f U hU)
+    (fun (u : Nat → ratRep)
+        (hu : UpperStep a b p f u ∧ ratRel U (stepSum p u)) =>
+      Exists.elim (upperSum_witness a b p g V hV)
+        (fun (v : Nat → ratRep)
+            (hv : UpperStep a b p g v ∧ ratRel V (stepSum p v)) =>
+          Exists.intro (fun (i : Nat) => ratAddRep (u i) (v i))
+            (And.intro
+              (upperStep_add a b p f g u v (And.left hu) (And.left hv))
+              (ratRel_trans_gen
+                (ratAddRep U V)
+                (ratAddRep (stepSum p u) (stepSum p v))
+                (stepSum p (fun (i : Nat) => ratAddRep (u i) (v i)))
+                (ratRel_trans_gen
+                  (ratAddRep U V)
+                  (ratAddRep (stepSum p u) V)
+                  (ratAddRep (stepSum p u) (stepSum p v))
+                  (ratAddRep_wd_gen U (stepSum p u) V (And.right hu))
+                  (ratAddRep_wd_snd_gen (stepSum p u) V (stepSum p v)
+                    (And.right hv)))
+                (ratRel_symm
+                  (stepSum p (fun (i : Nat) => ratAddRep (u i) (v i)))
+                  (ratAddRep (stepSum p u) (stepSum p v))
+                  (stepSum_add p u v))))))
+
+-- 下和同形：两摞下界逐段相加，矩形和分成两个，候选值相加。
+theorem lowerSum_add (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (L M : ratRep)
+    (hL : LowerSum a b p f L) (hM : LowerSum a b p g M) :
+    LowerSum a b p (fun (x : ratRep) => ratAddRep (f x) (g x))
+      (ratAddRep L M) :=
+  Exists.elim (lowerSum_witness a b p f L hL)
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p f l ∧ ratRel L (stepSum p l)) =>
+      Exists.elim (lowerSum_witness a b p g M hM)
+        (fun (m : Nat → ratRep)
+            (hm : LowerStep a b p g m ∧ ratRel M (stepSum p m)) =>
+          Exists.intro (fun (i : Nat) => ratAddRep (l i) (m i))
+            (And.intro
+              (lowerStep_add a b p f g l m (And.left hl) (And.left hm))
+              (ratRel_trans_gen
+                (ratAddRep L M)
+                (ratAddRep (stepSum p l) (stepSum p m))
+                (stepSum p (fun (i : Nat) => ratAddRep (l i) (m i)))
+                (ratRel_trans_gen
+                  (ratAddRep L M)
+                  (ratAddRep (stepSum p l) M)
+                  (ratAddRep (stepSum p l) (stepSum p m))
+                  (ratAddRep_wd_gen L (stepSum p l) M (And.right hl))
+                  (ratAddRep_wd_snd_gen (stepSum p l) M (stepSum p m)
+                    (And.right hm)))
+                (ratRel_symm
+                  (stepSum p (fun (i : Nat) => ratAddRep (l i) (m i)))
+                  (ratAddRep (stepSum p l) (stepSum p m))
+                  (stepSum_add p l m))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 两块面积之差的和
+-- ─────────────────────────────────────────────────────────────
+
+-- 「两个差相加成一个大差」的反方向就是这一条：和的差拆成两个差的和。
+theorem stepGap_add (p : Partition) (l u m v : Nat → ratRep) :
+    ratRel
+      (ratSubRep (ratAddRep (stepSum p u) (stepSum p v))
+        (ratAddRep (stepSum p l) (stepSum p m)))
+      (ratAddRep (ratSubRep (stepSum p u) (stepSum p l))
+        (ratSubRep (stepSum p v) (stepSum p m))) :=
+  ratRel_symm
+    (ratAddRep (ratSubRep (stepSum p u) (stepSum p l))
+      (ratSubRep (stepSum p v) (stepSum p m)))
+    (ratSubRep (ratAddRep (stepSum p u) (stepSum p v))
+      (ratAddRep (stepSum p l) (stepSum p m)))
+    (ratAdd_sub_sub (stepSum p u) (stepSum p l) (stepSum p v)
+      (stepSum p m))
+
+-- 两个差相加先小于 ε/2 + ε/2，再沿「半数加半数等于 ε」把右端换成 ε。左边
+-- 是「两个差的和」，先把和的差拆成它，才能接上两个已知的严格界。
+theorem stepGap_add_lt (p : Partition) (l u m v : Nat → ratRep)
+    (eps : ratRep)
+    (hf : ratLtRep (ratSubRep (stepSum p u) (stepSum p l))
+      (ratHalf eps))
+    (hg : ratLtRep (ratSubRep (stepSum p v) (stepSum p m))
+      (ratHalf eps)) :
+    ratLtRep
+      (ratSubRep (stepSum p (fun (i : Nat) => ratAddRep (u i) (v i)))
+        (stepSum p (fun (i : Nat) => ratAddRep (l i) (m i)))) eps :=
+  ratLtRep_congr_fst
+    (ratSubRep (stepSum p (fun (i : Nat) => ratAddRep (u i) (v i)))
+      (stepSum p (fun (i : Nat) => ratAddRep (l i) (m i))))
+    (ratAddRep (ratSubRep (stepSum p u) (stepSum p l))
+      (ratSubRep (stepSum p v) (stepSum p m)))
+    eps
+    (ratLtRep_congr_snd
+      (ratAddRep (ratSubRep (stepSum p u) (stepSum p l))
+        (ratSubRep (stepSum p v) (stepSum p m)))
+      (ratAddRep (ratHalf eps) (ratHalf eps))
+      eps
+      (ratLtRep_add (ratSubRep (stepSum p u) (stepSum p l))
+        (ratHalf eps) (ratSubRep (stepSum p v) (stepSum p m))
+        (ratHalf eps) hf hg)
+      (ratHalf_add_self eps))
+    (ratRel_trans_gen
+      (ratSubRep (stepSum p (fun (i : Nat) => ratAddRep (u i) (v i)))
+        (stepSum p (fun (i : Nat) => ratAddRep (l i) (m i))))
+      (ratSubRep (ratAddRep (stepSum p u) (stepSum p v))
+        (ratAddRep (stepSum p l) (stepSum p m)))
+      (ratAddRep (ratSubRep (stepSum p u) (stepSum p l))
+        (ratSubRep (stepSum p v) (stepSum p m)))
+      (ratSubRep_wd
+        (stepSum p (fun (i : Nat) => ratAddRep (u i) (v i)))
+        (ratAddRep (stepSum p u) (stepSum p v))
+        (stepSum p (fun (i : Nat) => ratAddRep (l i) (m i)))
+        (ratAddRep (stepSum p l) (stepSum p m))
+        (stepSum_add p u v) (stepSum_add p l m))
+      (ratRel_symm
+        (ratAddRep (ratSubRep (stepSum p u) (stepSum p l))
+          (ratSubRep (stepSum p v) (stepSum p m)))
+        (ratSubRep (ratAddRep (stepSum p u) (stepSum p v))
+          (ratAddRep (stepSum p l) (stepSum p m)))
+        (ratAdd_sub_sub (stepSum p u) (stepSum p l) (stepSum p v)
+          (stepSum p m))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 同一个分割上的可加性
+-- ─────────────────────────────────────────────────────────────
+
+-- 判据要的是「每个正 ε 都有一套台阶」。假设正好给出这一套：分割、两条下界、
+-- 两条上界、两个差各自小于 ε/2。四条台阶逐段相加，得到和的下界与上界；
+-- 两个差由上一节压成和的一个差，仍然小于 ε。于是判据的另一个方向接上了。
+theorem integrable_add_of_gap (a b : ratRep)
+    (f g : ratRep → ratRep)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (p : Partition), IsPartition a b p ∧
+        ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+          ∃ (m : Nat → ratRep), ∃ (v : Nat → ratRep),
+            LowerStep a b p f l ∧ UpperStep a b p f u ∧
+            LowerStep a b p g m ∧ UpperStep a b p g v ∧
+            ratLtRep (ratSubRep (stepSum p u) (stepSum p l))
+              (ratHalf eps) ∧
+            ratLtRep (ratSubRep (stepSum p v) (stepSum p m))
+              (ratHalf eps)) :
+    Integrable a b (fun (x : ratRep) => ratAddRep (f x) (g x)) :=
+  integrable_of_gap a b (fun (x : ratRep) => ratAddRep (f x) (g x))
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+      Exists.elim (h eps heps)
+        (fun (p : Partition)
+            (hp : IsPartition a b p ∧
+              ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+                ∃ (m : Nat → ratRep), ∃ (v : Nat → ratRep),
+                  LowerStep a b p f l ∧ UpperStep a b p f u ∧
+                  LowerStep a b p g m ∧ UpperStep a b p g v ∧
+                  ratLtRep (ratSubRep (stepSum p u) (stepSum p l))
+                    (ratHalf eps) ∧
+                  ratLtRep (ratSubRep (stepSum p v) (stepSum p m))
+                    (ratHalf eps)) =>
+          Exists.elim (And.right hp)
+            (fun (l : Nat → ratRep)
+                (hl : ∃ (u : Nat → ratRep), ∃ (m : Nat → ratRep),
+                  ∃ (v : Nat → ratRep),
+                    LowerStep a b p f l ∧ UpperStep a b p f u ∧
+                    LowerStep a b p g m ∧ UpperStep a b p g v ∧
+                    ratLtRep (ratSubRep (stepSum p u) (stepSum p l))
+                      (ratHalf eps) ∧
+                    ratLtRep (ratSubRep (stepSum p v) (stepSum p m))
+                      (ratHalf eps)) =>
+              Exists.elim hl
+                (fun (u : Nat → ratRep)
+                    (hu : ∃ (m : Nat → ratRep), ∃ (v : Nat → ratRep),
+                      LowerStep a b p f l ∧ UpperStep a b p f u ∧
+                      LowerStep a b p g m ∧ UpperStep a b p g v ∧
+                      ratLtRep (ratSubRep (stepSum p u) (stepSum p l))
+                        (ratHalf eps) ∧
+                      ratLtRep (ratSubRep (stepSum p v) (stepSum p m))
+                        (ratHalf eps)) =>
+                  Exists.elim hu
+                    (fun (m : Nat → ratRep)
+                        (hm : ∃ (v : Nat → ratRep),
+                          LowerStep a b p f l ∧ UpperStep a b p f u ∧
+                          LowerStep a b p g m ∧ UpperStep a b p g v ∧
+                          ratLtRep (ratSubRep (stepSum p u) (stepSum p l))
+                            (ratHalf eps) ∧
+                          ratLtRep (ratSubRep (stepSum p v) (stepSum p m))
+                            (ratHalf eps)) =>
+                      Exists.elim hm
+                        (fun (v : Nat → ratRep)
+                            (hv : LowerStep a b p f l ∧
+                              UpperStep a b p f u ∧
+                              LowerStep a b p g m ∧
+                              UpperStep a b p g v ∧
+                              ratLtRep (ratSubRep (stepSum p u) (stepSum p l))
+                                (ratHalf eps) ∧
+                              ratLtRep (ratSubRep (stepSum p v) (stepSum p m))
+                                (ratHalf eps)) =>
+                          Exists.intro p
+                            (And.intro (And.left hp)
+                              (Exists.intro
+                                (fun (i : Nat) => ratAddRep (l i) (m i))
+                                (Exists.intro
+                                  (fun (i : Nat) => ratAddRep (u i) (v i))
+                                  (And.intro
+                                    (lowerStep_add a b p f g l m
+                                      (And.left hv)
+                                      (And.left
+                                        (And.right (And.right hv))) )
+                                    (And.intro
+                                      (upperStep_add a b p f g u v
+                                        (And.left (And.right hv))
+                                        (And.left
+                                          (And.right
+                                            (And.right (And.right hv)))))
+                                      (stepGap_add_lt p l u m v eps
+                                        (And.left
+                                          (And.right
+                                            (And.right
+                                              (And.right
+                                                (And.right hv)))))
+                                        (And.right
+                                          (And.right
+                                            (And.right
+                                              (And.right
+                                                (And.right hv)))))))))))))))))

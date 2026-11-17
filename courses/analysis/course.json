@@ -1202,6 +1202,13 @@
               "title_en": "Unit 160 — Negation and Pointwise Equality Preserve Integrability",
               "unit": 160
             }
+,
+            {
+              "file": "units/III.8/unit161-sum-add.sokonanoda",
+              "title": "单元161 上和与下和的加法：先分开算再相加",
+              "title_en": "Unit 161 — Adding Upper and Lower Sums: Computing the Pieces Separately",
+              "unit": 161
+            }
           ]
         }
       ]

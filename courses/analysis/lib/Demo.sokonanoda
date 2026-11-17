@@ -76,6 +76,7 @@ import lib.IntegralStep
 import lib.IntegralSum
 import lib.IntegralGap
 import lib.IntegralNeg
+import lib.IntegralAdd
 
 theorem demo_lib_closure : True := True.intro
 
@@ -463,3 +464,16 @@ theorem demo_lib_integrable_neg (a b k : ratRep) (hab : ratLtRep a b) :
     Integrable a b (fun (_ : ratRep) => ratNegRep k) :=
   integrable_neg a b (fun (_ : ratRep) => k)
     (integrable_const a b k hab)
+
+theorem demo_lib_stepSum_add (p : Partition) (u v : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratAddRep (u i) (v i)))
+      (ratAddRep (stepSum p u) (stepSum p v)) :=
+  stepSum_add p u v
+
+theorem demo_lib_stepGap_add (p : Partition) (l u m v : Nat → ratRep) :
+    ratRel
+      (ratSubRep (ratAddRep (stepSum p u) (stepSum p v))
+        (ratAddRep (stepSum p l) (stepSum p m)))
+      (ratAddRep (ratSubRep (stepSum p u) (stepSum p l))
+        (ratSubRep (stepSum p v) (stepSum p m))) :=
+  stepGap_add p l u m v

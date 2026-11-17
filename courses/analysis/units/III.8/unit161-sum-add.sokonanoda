@@ -1,0 +1,176 @@
+-- 单元161 上和与下和的加法：先分开算再相加
+--
+-- 可积性的判据只对单个函数说话：任给正 ε，找得到一个分割，使这个分割的上和
+-- 与下和之差小于 ε。两条曲线各自可积，意思是各自有各自的分割。要把两块面积
+-- 合起来算，第一个问题是：在同一组切点上，和的上下界是什么样子？
+--
+-- 每一段上的两条不等式一相加，答案就出来了。第一条曲线压在常数 `u i` 下面，
+-- 第二条压在 `v i` 下面，两个函数值相加就压在 `u i + v i` 下面；下界的方向
+-- 相同，`l i + m i` 垫在两个函数值之和的下面。这一步不需要新的估计。
+--
+-- 面积这边要换一次写法。一个矩形的高是两个数之和，宽是这一段的长度，于是
+-- 这块矩形的面积等于两块矩形面积之和，靠的是乘法对加法的分配律。有限和的
+-- 加法律再把段数那么多项按函数分成两摞，上和与下和就各自分成了两个。两条合
+-- 起来，同一个分割上两块面积之差的和恰好是和的面积之差——这是等式，不是估计。
+--
+-- 有了这条等式，若两块在同一个分割上的差都小于 ε 的一半，它们的和就可积。
+-- 但两条曲线各自可积只给出各自的分割，两摞台阶一般不在同一组切点上。把它们
+-- 搬到同一组切点上，要先说明在分割里补切点不改变面积，这一步还没有做。
+--
+-- 边界：只做同一个分割上的加法，不做常数倍，也不把两个不同分割的上下和搬到
+-- 一起。函数取 `ratRep → ratRep`，停在有理代表元层。不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.Cauchy
+import lib.RatSub
+import lib.RatRing
+import lib.RatHalf
+import lib.DerivAlgebra
+import lib.Bounded
+import lib.MaxOn
+import lib.Sum
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralGap
+
+-- ─────────────────────────────────────────────────────────────
+-- 一段上的分配律
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：宽在右边，先交换成「宽乘高度和」，用分配律拆开，再逐项交换回高度在前。两条交换与一次分配拼成一条链。
+-- soko:hint 目标形态：`ratRel ((h1 + h2) · 宽) (h1 · 宽 + h2 · 宽)`。
+-- soko:hint 关键件：ratMul_comm · ratMul_add · ratAddRep_wd_gen · ratAddRep_wd_snd_gen。
+theorem segLen_mul_add (p : Partition) (i : Nat) (h1 h2 : ratRep) :
+    ratRel (ratMulRep (ratAddRep h1 h2) (segLen p i))
+      (ratAddRep (ratMulRep h1 (segLen p i)) (ratMulRep h2 (segLen p i))) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 矩形和按函数分开
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：矩形和的每一项是「(u i + v i) 乘宽」，先逐项用上一条换成两个乘积之和；这样整条和变成两个序列之和，交给有限和的加法律。
+-- soko:hint 目标形态：`ratRel (stepSum p (fun i => u i + v i)) (stepSum p u + stepSum p v)`。
+-- soko:hint 关键件：sumTo_congr · segLen_mul_add · sumTo_add · ratRel_trans_gen。
+theorem stepSum_add (p : Partition) (u v : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratAddRep (u i) (v i)))
+      (ratAddRep (stepSum p u) (stepSum p v)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个界逐段相加
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两个函数值各自被自己的上界压住，把两条弱序用加法保序加起来；段的索引与前提在两边是同一个。
+-- soko:hint 目标形态：`UpperStep a b p (fun x => f x + g x) (fun i => u i + v i)`。
+-- soko:hint 关键件：ratLeRep_add · hu i hi x hx · hv i hi x hx。
+theorem upperStep_add (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (u v : Nat → ratRep)
+    (hu : UpperStep a b p f u) (hv : UpperStep a b p g v) :
+    UpperStep a b p (fun (x : ratRep) => ratAddRep (f x) (g x))
+      (fun (i : Nat) => ratAddRep (u i) (v i)) :=
+  sorry
+
+-- soko:hint 思路：与上界同形，只是两条不等式的方向相反：下界在左、函数值在右。
+-- soko:hint 目标形态：`LowerStep a b p (fun x => f x + g x) (fun i => l i + m i)`。
+-- soko:hint 关键件：ratLeRep_add · hl i hi x hx · hm i hi x hx。
+theorem lowerStep_add (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (l m : Nat → ratRep)
+    (hl : LowerStep a b p f l) (hm : LowerStep a b p g m) :
+    LowerStep a b p (fun (x : ratRep) => ratAddRep (f x) (g x))
+      (fun (i : Nat) => ratAddRep (l i) (m i)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 上和与下和各自分开
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：从上和里取出上界 `u`，从第二条里取出 `v`；两摞逐段相加就是和的上界，矩形和按 `stepSum_add` 分成两个，两个候选值也相应相加。
+-- soko:hint 目标形态：`UpperSum a b p (fun x => f x + g x) (U + V)`。
+-- soko:hint 关键件：upperSum_witness · upperStep_add · stepSum_add · ratAddRep_wd_gen · ratAddRep_wd_snd_gen。
+theorem upperSum_add (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (U V : ratRep)
+    (hU : UpperSum a b p f U) (hV : UpperSum a b p g V) :
+    UpperSum a b p (fun (x : ratRep) => ratAddRep (f x) (g x))
+      (ratAddRep U V) :=
+  sorry
+
+-- soko:hint 思路：与上和同形，把下界 `l`、`m` 逐段相加。
+-- soko:hint 目标形态：`LowerSum a b p (fun x => f x + g x) (L + M)`。
+-- soko:hint 关键件：lowerSum_witness · lowerStep_add · stepSum_add · ratAddRep_wd_gen · ratAddRep_wd_snd_gen。
+theorem lowerSum_add (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (L M : ratRep)
+    (hL : LowerSum a b p f L) (hM : LowerSum a b p g M) :
+    LowerSum a b p (fun (x : ratRep) => ratAddRep (f x) (g x))
+      (ratAddRep L M) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两块面积之差的和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`(U + V) - (L + M)` 与 `(U - L) + (V - M)` 只差一次重排；两个差相加成一个大差的那条引理反过来用。
+-- soko:hint 目标形态：`ratRel ((U + V) - (L + M)) ((U - L) + (V - M))`。
+-- soko:hint 关键件：ratAdd_sub_sub · ratRel_symm。
+theorem stepGap_add (p : Partition) (l u m v : Nat → ratRep) :
+    ratRel
+      (ratSubRep (ratAddRep (stepSum p u) (stepSum p v))
+        (ratAddRep (stepSum p l) (stepSum p m)))
+      (ratAddRep (ratSubRep (stepSum p u) (stepSum p l))
+        (ratSubRep (stepSum p v) (stepSum p m))) :=
+  sorry
+
+-- soko:hint 思路：两个差都小于 ε/2，加起来就小于 ε/2 + ε/2；而 ε/2 + ε/2 等于 ε，最后沿等式把右端换成 ε。左边是「和的差」，先换成「两个差的和」，再接上两个已知的严格界。
+-- soko:hint 目标形态：`ratLtRep (stepSum (fun i => u i + v i) - stepSum (fun i => l i + m i)) eps`。
+-- soko:hint 关键件：ratLtRep_add · ratHalf_add_self · ratSubRep_wd · ratAdd_sub_sub · ratLtRep_congr_fst · ratLtRep_congr_snd。
+theorem stepGap_add_lt (p : Partition) (l u m v : Nat → ratRep)
+    (eps : ratRep)
+    (hf : ratLtRep (ratSubRep (stepSum p u) (stepSum p l))
+      (ratHalf eps))
+    (hg : ratLtRep (ratSubRep (stepSum p v) (stepSum p m))
+      (ratHalf eps)) :
+    ratLtRep
+      (ratSubRep (stepSum p (fun (i : Nat) => ratAddRep (u i) (v i)))
+        (stepSum p (fun (i : Nat) => ratAddRep (l i) (m i)))) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 同一个分割上的可加性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把可积性的判据拆开：给定 ε，取出分割与四条台阶；和的下界取 `l + m`、上界取 `u + v`，两条台阶引理给出它们夹住和，差由 `stepGap_add_lt` 压到 ε 以下。最后把两个「存在」交给判据的另一个方向。
+-- soko:hint 目标形态：`Integrable a b (fun x => f x + g x)`。
+-- soko:hint 关键件：integrable_of_gap · upperStep_add · lowerStep_add · stepGap_add_lt · Exists.elim · Exists.intro。
+theorem integrable_add_of_gap (a b : ratRep)
+    (f g : ratRep → ratRep)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (p : Partition), IsPartition a b p ∧
+        ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+          ∃ (m : Nat → ratRep), ∃ (v : Nat → ratRep),
+            LowerStep a b p f l ∧ UpperStep a b p f u ∧
+            LowerStep a b p g m ∧ UpperStep a b p g v ∧
+            ratLtRep (ratSubRep (stepSum p u) (stepSum p l))
+              (ratHalf eps) ∧
+            ratLtRep (ratSubRep (stepSum p v) (stepSum p m))
+              (ratHalf eps)) :
+    Integrable a b (fun (x : ratRep) => ratAddRep (f x) (g x)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个常值函数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两条常值曲线在两切点分割上的上和分别是 `k1 · (b - a)` 与 `k2 · (b - a)`；把 `upperSum_add` 用在它们上面，和就是常值 `k1 + k2` 的上和，值是两值相加。
+-- soko:hint 目标形态：`UpperSum a b (twoPoint a b) (fun _ => k1 + k2) (k1 · (b - a) + k2 · (b - a))`。
+-- soko:hint 关键件：upperSum_twoPoint_const · upperSum_add。
+theorem demo_upperSum_add_const (a b k1 k2 : ratRep) :
+    UpperSum a b (twoPoint a b) (fun (_ : ratRep) => ratAddRep k1 k2)
+      (ratAddRep (ratMulRep k1 (ratSubRep b a))
+        (ratMulRep k2 (ratSubRep b a))) :=
+  sorry
