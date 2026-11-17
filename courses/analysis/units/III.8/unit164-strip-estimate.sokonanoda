@@ -1,0 +1,172 @@
+-- 单元164 细分割上的振幅：一致连续把曲线压成窄带
+--
+-- 一致连续说的是：只要两点足够靠近，它们的函数值就足够靠近。要把这句话
+-- 用在面积上，还得把它落到分割的每一段里。一段的左端点是这一段的起点，
+-- 段里的任何一点到它的距离都不超过段长；如果每一段都短于 δ，那么整段上
+-- 的函数值与左端点处的值之差就都小于 η。
+--
+-- 于是每一段的上方可以架一条常数上界 f(左端点) + η，下方可以垫一条常数
+-- 下界 f(左端点) - η。曲线被夹在两条台阶之间，两条台阶的差只由 η 与区间
+-- 长度决定：每一段的高度差都是 η + η，乘上段宽再逐段相加，就是 (η + η)
+-- 乘总长。
+--
+-- 这条估计是可积性证明的核心：只要能把分割造得足够细，上下和之差就能压
+-- 到任意小。造分割要用阿基米德性质把区间等分，这一步留给下一单元。
+--
+-- 分割固定不动，函数取 `ratRep → ratRep`，停在有理代表元层。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.Cauchy
+import lib.RatSub
+import lib.RatRing
+import lib.RatAssoc
+import lib.RatGroup
+import lib.RatHalf
+import lib.RatMulOrder
+import lib.Bounded
+import lib.MaxOn
+import lib.Monotone
+import lib.LimitOrder
+import lib.LimitAbs
+import lib.LimInfinity
+import lib.Sum
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralShift
+import lib.Uniform
+
+-- ─────────────────────────────────────────────────────────────
+-- 每段都短于 delta
+-- ─────────────────────────────────────────────────────────────
+
+-- 「分割够细」的可判读形式：每一段的宽都小于 delta。
+def MeshBelow (p : Partition) (delta : ratRep) : Prop :=
+  ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) → ratLtRep (segLen p i) delta
+
+-- 左端点处的下界：函数值减去 eta。
+def leftLower (f : ratRep → ratRep) (p : Partition) (eta : ratRep)
+    (i : Nat) : ratRep :=
+  ratAddRep (f (partPoint p i)) (ratNegRep eta)
+
+-- 左端点处的上界：函数值加上 eta。
+def leftUpper (f : ratRep → ratRep) (p : Partition) (eta : ratRep)
+    (i : Nat) : ratRep :=
+  ratAddRep (f (partPoint p i)) eta
+
+-- ─────────────────────────────────────────────────────────────
+-- 一段的右端是左端加段宽
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把段宽展开成「右端减左端」；`(x - y) + y ~ x` 把减法收回，注意加法要交换到「差在左」的形状。
+-- soko:hint 目标形态：`ratRel (partPoint p i + segLen p i) (partPoint p (succ i))`。
+-- soko:hint 关键件：ratAdd_comm · ratAddRep_wd_gen · ratSubRep_add_self。
+theorem segLen_add_point (p : Partition) (i : Nat) :
+    ratRel (ratAddRep (partPoint p i) (segLen p i))
+      (partPoint p (Nat.succ i)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 段里的点靠近左端点
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：段里的点不小于左端、不大于右端，而右端等于左端加段宽；两侧一夹得到「左端 ≤ x ≤ 左端 + 段宽」，段宽又小于 delta，于是 `close x 左端 delta`。
+-- soko:hint 目标形态：`close x (partPoint p i) delta`。
+-- soko:hint 关键件：inClosed_left · inClosed_right · segLen_add_point · ratLeRep_congr_gen · close_of_le_ub。
+theorem close_point_left (a b : ratRep) (p : Partition) (delta : ratRep)
+    (hm : MeshBelow p delta) (i : Nat)
+    (hi : LeNat (Nat.succ i) (partCount p)) (x : ratRep)
+    (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) :
+    close x (partPoint p i) delta :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两条台阶
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：由段里的点靠近左端点与一致连续的 delta-eta 条件，得到函数值靠近左端点处的值；`close_lt_add_right` 把接近性换成严格上界，再投成弱序。
+-- soko:hint 目标形态：`UpperStep a b p f (leftUpper f p eta)`。
+-- soko:hint 关键件：close_point_left · hu · close_lt_add_right · ratLtRep_le。
+theorem upperStep_leftUpper (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (eta delta : ratRep) (hm : MeshBelow p delta)
+    (hu : ∀ (x y : ratRep), close x y delta → close (f x) (f y) eta) :
+    UpperStep a b p f (leftUpper f p eta) :=
+  sorry
+
+-- soko:hint 思路：同样的接近性把左端点处的值压在函数值上方 eta 以内；`close_neg_bound` 给出「左端点的值减函数值 ≤ eta」，再用「L - x ≤ eta ⇒ L - eta ≤ x」把它翻成下界。
+-- soko:hint 目标形态：`LowerStep a b p f (leftLower f p eta)`。
+-- soko:hint 关键件：close_point_left · hu · close_symm · close_neg_bound · le_sub_of_sub_le。
+theorem lowerStep_leftLower (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (eta delta : ratRep) (hm : MeshBelow p delta)
+    (hu : ∀ (x y : ratRep), close x y delta → close (f x) (f y) eta) :
+    LowerStep a b p f (leftLower f p eta) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 一个顺序小工具
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：从 `L - x ≤ eta` 出发，两边加 x 得到 L ≤ x + eta；再在右边减去 eta。右端 `(x + eta) - eta` 先交换中间项，结合后 `eta + (-eta)` 收成零，再加零。
+-- soko:hint 目标形态：`ratLeRep (L - eta) x`。
+-- soko:hint 关键件：le_add_of_sub_le · ratLeRep_add_right · ratAdd_comm · ratAdd_assoc · ratNegRep_add_self · ratAdd_zero。
+theorem le_sub_of_sub_le (L x eta : ratRep)
+    (h : ratLeRep (ratSubRep L x) eta) :
+    ratLeRep (ratSubRep L eta) x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两条台阶的差
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把上和分成「左端点值之和」加「常值 eta 之和」，下和分成「左端点值之和」加「常值 -eta 之和」；两个常值面积都化成 eta 乘 (b - a)，差的公共部分消掉，剩下 eta(b-a) 减去 -eta(b-a)，即两段相加。
+-- soko:hint 目标形态：`ratRel (stepSum p (leftUpper f p eta) - stepSum p (leftLower f p eta)) (eta(b-a) + eta(b-a))`。
+-- soko:hint 关键件：stepSum_add · stepSum_const · ratSubRep_add_cancel · ratAdd_comm · ratMul_neg · ratNegRep_invol · ratAddRep_wd_snd_gen。
+theorem stepSum_left_gap (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (hp : IsPartition a b p) (eta : ratRep) :
+    ratRel
+      (ratSubRep (stepSum p (leftUpper f p eta))
+        (stepSum p (leftLower f p eta)))
+      (ratAddRep (ratMulRep eta (ratSubRep b a))
+        (ratMulRep eta (ratSubRep b a))) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 夹住曲线的一对台阶
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把上面三条合起来：下界、上界都由同一段估计给出，两个矩形和之差由差公式收成两段 eta 乘总长。
+-- soko:hint 目标形态：存在两条台阶 l、u，它们分别是下界与上界，且 `stepSum u - stepSum l ~ eta(b-a) + eta(b-a)`。
+-- soko:hint 关键件：lowerStep_leftLower · upperStep_leftUpper · stepSum_left_gap · Exists.intro · And.intro。
+theorem strip_of_mesh (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (hp : IsPartition a b p) (eta delta : ratRep) (hm : MeshBelow p delta)
+    (hu : ∀ (x y : ratRep), close x y delta → close (f x) (f y) eta) :
+    ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+      LowerStep a b p f l ∧ UpperStep a b p f u ∧
+        ratRel (ratSubRep (stepSum p u) (stepSum p l))
+          (ratAddRep (ratMulRep eta (ratSubRep b a))
+            (ratMulRep eta (ratSubRep b a))) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 可算的读数：常数曲线在两点分割上
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常数函数没有起伏，两条台阶的高就是正负 eta；两点分割只有一段，宽是 b - a。矩形和之差是 eta(b-a) 加 eta(b-a)，而 eta 取一半时两半相加正好是 1。
+-- soko:hint 目标形态：`ratRel (stepSum (twoPoint 0 1) 上半 - stepSum (twoPoint 0 1) 下半) 1`。
+-- soko:hint 关键件：stepSum_left_gap · twoPoint_isPartition · ratLtRep_zero_one · ratMul_one_right · ratHalf_add_self · ratSubRep_self。
+theorem demo_twoPoint_half :
+    ratRel
+      (ratSubRep
+        (stepSum (twoPoint ratZeroRep ratOneRep)
+          (leftUpper (fun (_ : ratRep) => ratZeroRep)
+            (twoPoint ratZeroRep ratOneRep) (ratHalf ratOneRep)))
+        (stepSum (twoPoint ratZeroRep ratOneRep)
+          (leftLower (fun (_ : ratRep) => ratZeroRep)
+            (twoPoint ratZeroRep ratOneRep) (ratHalf ratOneRep))))
+      ratOneRep :=
+  sorry

@@ -1220,6 +1220,12 @@
               "title": "单元163 阿基米德性质：反复相加总能超过",
               "title_en": "Unit 163 — The Archimedean Property: Repeated Addition Eventually Wins",
               "unit": 163
+            },
+            {
+              "file": "units/III.8/unit164-strip-estimate.sokonanoda",
+              "title": "单元164 细分割上的振幅：一致连续把曲线压成窄带",
+              "title_en": "Unit 164 — Oscillation on a Fine Partition: Uniform Continuity Traps the Curve in a Strip",
+              "unit": 164
             }
           ]
         }

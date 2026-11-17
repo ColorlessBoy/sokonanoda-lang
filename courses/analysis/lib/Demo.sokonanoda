@@ -79,6 +79,7 @@ import lib.IntegralNeg
 import lib.IntegralAdd
 import lib.IntegralShift
 import lib.RatArch
+import lib.IntegralStrip
 
 theorem demo_lib_closure : True := True.intro
 
@@ -499,3 +500,32 @@ theorem demo_lib_arch_lt (x c : ratRep) (hx : ratLtRep ratZeroRep x)
     (hc : ratLeRep ratZeroRep c) :
     ∃ (n : Nat), ratLtRep c (ratMulRep (natToRat n) x) :=
   arch_lt_of_nonneg x c hx hc
+
+theorem demo_lib_strip_gap (a b k eta : ratRep) (p : Partition)
+    (hp : IsPartition a b p) :
+    ratRel
+      (ratSubRep
+        (stepSum p (leftUpper (fun (_ : ratRep) => k) p eta))
+        (stepSum p (leftLower (fun (_ : ratRep) => k) p eta)))
+      (ratAddRep (ratMulRep eta (ratSubRep b a))
+        (ratMulRep eta (ratSubRep b a))) :=
+  stepSum_left_gap a b p (fun (_ : ratRep) => k) hp eta
+
+theorem demo_lib_strip_mesh (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (eta delta : ratRep) (hp : IsPartition a b p)
+    (hm : MeshBelow p delta)
+    (hu : ∀ (x y : ratRep), close x y delta → close (f x) (f y) eta) :
+    ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+      LowerStep a b p f l ∧ UpperStep a b p f u :=
+  Exists.elim (strip_of_mesh a b p f hp eta delta hm hu)
+    (fun (l : Nat → ratRep) (hl : ∃ (u : Nat → ratRep),
+        LowerStep a b p f l ∧ UpperStep a b p f u ∧
+          ratRel (ratSubRep (stepSum p u) (stepSum p l))
+            (ratAddRep (ratMulRep eta (ratSubRep b a))
+              (ratMulRep eta (ratSubRep b a)))) =>
+      Exists.elim hl
+        (fun (u : Nat → ratRep) (hu2 : LowerStep a b p f l ∧ UpperStep a b p f u ∧
+            ratRel (ratSubRep (stepSum p u) (stepSum p l))
+              (ratAddRep (ratMulRep eta (ratSubRep b a))
+                (ratMulRep eta (ratSubRep b a)))) =>
+          Exists.intro l (Exists.intro u (And.intro (And.left hu2) (And.left (And.right hu2))))))
