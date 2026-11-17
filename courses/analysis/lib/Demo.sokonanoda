@@ -78,6 +78,7 @@ import lib.IntegralGap
 import lib.IntegralNeg
 import lib.IntegralAdd
 import lib.IntegralShift
+import lib.RatArch
 
 theorem demo_lib_closure : True := True.intro
 
@@ -488,3 +489,13 @@ theorem demo_lib_integrable_add_const (a b : ratRep) (f : ratRep → ratRep)
     (k : ratRep) (h : Integrable a b f) :
     Integrable a b (fun (x : ratRep) => ratAddRep (f x) k) :=
   integrable_add_const a b f k h
+
+theorem demo_lib_arch_le (x c : ratRep) (hx : ratLtRep ratZeroRep x)
+    (hc : ratLeRep ratZeroRep c) :
+    ∃ (n : Nat), ratLeRep c (ratMulRep (natToRat n) x) :=
+  arch_le x c hx hc
+
+theorem demo_lib_arch_lt (x c : ratRep) (hx : ratLtRep ratZeroRep x)
+    (hc : ratLeRep ratZeroRep c) :
+    ∃ (n : Nat), ratLtRep c (ratMulRep (natToRat n) x) :=
+  arch_lt_of_nonneg x c hx hc
