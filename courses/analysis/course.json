@@ -952,8 +952,13 @@
         {
           "id": "III.6",
           "title": "连续函数",
-          "prereqs": ["III.5"],
-          "tags": ["continuity", "function-limit"],
+          "prereqs": [
+            "III.5"
+          ],
+          "tags": [
+            "continuity",
+            "function-limit"
+          ],
           "quota": {
             "exercises": 60
           },
@@ -1059,8 +1064,13 @@
         {
           "id": "III.7",
           "title": "微分",
-          "prereqs": ["III.6"],
-          "tags": ["derivative", "differentiation"],
+          "prereqs": [
+            "III.6"
+          ],
+          "tags": [
+            "derivative",
+            "differentiation"
+          ],
           "quota": {
             "exercises": 40
           },
@@ -1136,8 +1146,14 @@
         {
           "id": "III.8",
           "title": "Riemann 积分",
-          "prereqs": ["III.7"],
-          "tags": ["riemann-integral", "partition", "integrability"],
+          "prereqs": [
+            "III.7"
+          ],
+          "tags": [
+            "riemann-integral",
+            "partition",
+            "integrability"
+          ],
           "quota": {
             "exercises": 50
           },
@@ -1201,8 +1217,7 @@
               "title": "单元160 取负与逐点等价：可积性只看函数值",
               "title_en": "Unit 160 — Negation and Pointwise Equality Preserve Integrability",
               "unit": 160
-            }
-,
+            },
             {
               "file": "units/III.8/unit161-sum-add.sokonanoda",
               "title": "单元161 上和与下和的加法：先分开算再相加",
@@ -1226,6 +1241,12 @@
               "title": "单元164 细分割上的振幅：一致连续把曲线压成窄带",
               "title_en": "Unit 164 — Oscillation on a Fine Partition: Uniform Continuity Traps the Curve in a Strip",
               "unit": 164
+            },
+            {
+              "file": "units/III.8/unit165-uniform-partition.sokonanoda",
+              "title": "单元165 等分分割：把区间切得足够细",
+              "title_en": "Unit 165 — Uniform Partitions: Cutting the Interval Fine Enough",
+              "unit": 165
             }
           ]
         }

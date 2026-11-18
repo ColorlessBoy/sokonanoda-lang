@@ -80,6 +80,7 @@ import lib.IntegralAdd
 import lib.IntegralShift
 import lib.RatArch
 import lib.IntegralStrip
+import lib.IntegralMesh
 
 theorem demo_lib_closure : True := True.intro
 
@@ -529,3 +530,13 @@ theorem demo_lib_strip_mesh (a b : ratRep) (p : Partition)
               (ratAddRep (ratMulRep eta (ratSubRep b a))
                 (ratMulRep eta (ratSubRep b a)))) =>
           Exists.intro l (Exists.intro u (And.intro (And.left hu2) (And.left (And.right hu2))))))
+
+theorem demo_lib_exists_mesh (a b delta : ratRep)
+    (hab : ratLtRep a b) (hdelta : ratLtRep ratZeroRep delta) :
+    ∃ (p : Partition), IsPartition a b p ∧ MeshBelow p delta :=
+  exists_mesh_partition a b delta hab hdelta
+
+theorem demo_lib_uniform_mesh (a b : ratRep) (k : Nat) (delta : ratRep)
+    (h : ratLtRep (meshStep a b k) delta) :
+    MeshBelow (uniformPartition a b k) delta :=
+  uniformPartition_mesh a b k delta h
