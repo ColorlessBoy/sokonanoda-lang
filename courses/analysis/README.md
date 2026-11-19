@@ -5,6 +5,8 @@
 
 ## 状态
 
+- **M5 单元167（2026-11-19）**：**面积值：把上下和钉在同一个数上**。167 问「可积性只说上下和能靠得任意近，这块面积到底是不是一个数」。把候选值写成 `HasIntegral a b f I`：I 不低于任何分割的下和、不高于任何分割的上和，并且 f 可积。三条投影给出可积性与两侧的界；`sub_le_of_pin` 说明同一个分割夹住两个候选时，它们的差被这个分割的宽度压住；于是可积性给的那个窄分割把两个候选同时夹住，`hasIntegral_unique` 收出 `ratRel I J`。常值曲线给出第一个读数：任何下界不超过 k、任何上界不小于 k，故 `hasIntegral_const` 的值是 k·(b−a)。正文 1 定义 + 6 题，0 rejected；解答 7 checked、0 open。**引擎进库**：新建 `lib/IntegralValue`（7 条），`lib/Demo` 补 import 与一条自检。边界：只断言「若有这样的数，它是谁」；存在性要有理数的完备性，留到 FTC 与综合单元。不新增公理，也不碰 kernel/front。
+
 - **M5 单元166（2026-11-18）**：**一致连续函数可积**。166 把网格细化与台阶估计接起来：给定 ε，阿基米德性质取 N 使 2(b−a) < N（`exists_nat_gt_double`），令 η=ε/N；一致连续给网格 δ，等分分割给每段短于 δ 的分割（`exists_mesh_partition`）；`strip_of_mesh` 把曲线夹在两条台阶之间，差是 2η(b−a)；`div_gap_lt` 把它压到 ε 以下，于是 `Integrable a b f`（`uniformlyContinuous_integrable`）。恒等函数是样本（`demo_integrable_id`）。正文 5 题，0 rejected；解答 5 checked、0 open。**引擎进库**：新建 `lib/IntegralContinuous`（4 条）。边界：一致连续是假设；闭区间上的逐点连续要一致连续（Heine–Cantor）需要紧性或完备性，课程目前的完备性只到代表元层的 Cauchy 序列。不新增公理，也不碰 kernel/front。
 
 - **M5 单元164（2026-11-18）**：**细分割上的振幅**。164 问「一致连续怎么落到分割的每一段上」：一段里任意一点到左端点的距离不超过段宽，所以只要每段都短于 δ，函数值与左端点处的值之差就小于 η（`close_point_left`）。于是每段上方架 `f(左端点)+η`、下方垫 `f(左端点)-η`，两条台阶确实是上界与下界（`upperStep_leftUpper` / `lowerStep_leftLower`）；两条台阶的矩形和之差是两段 η 乘区间长度（`stepSum_left_gap`），一对台阶夹住曲线（`strip_of_mesh`）。常数曲线在两点分割上的读数是 1（`demo_twoPoint_half`）。正文 8 题，0 rejected；解答 11 checked、0 open。**引擎进库**：新建 `lib/IntegralStrip`（细分割、两条台阶、三条界与差公式，10 条），`lib/Demo` 补 import 与两条自检。边界：分割固定不动，只做估计，不构造分割；一致连续 ⇒ 可积还差「把区间等分」这一步，留给下一单元。不新增公理，也不碰 kernel/front。

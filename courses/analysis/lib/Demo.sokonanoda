@@ -78,6 +78,7 @@ import lib.IntegralGap
 import lib.IntegralNeg
 import lib.IntegralAdd
 import lib.IntegralShift
+import lib.IntegralValue
 import lib.RatArch
 import lib.IntegralStrip
 import lib.IntegralMesh
@@ -540,3 +541,7 @@ theorem demo_lib_uniform_mesh (a b : ratRep) (k : Nat) (delta : ratRep)
     (h : ratLtRep (meshStep a b k) delta) :
     MeshBelow (uniformPartition a b k) delta :=
   uniformPartition_mesh a b k delta h
+
+theorem demo_lib_hasIntegral_const (a b k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) => k) (ratMulRep k (ratSubRep b a)) :=
+  hasIntegral_const a b k hab

@@ -1255,6 +1255,29 @@
               "unit": 166
             }
           ]
+        },
+        {
+          "id": "III.9",
+          "title": "综合、读证明、小项目",
+          "prereqs": [
+            "III.8"
+          ],
+          "tags": [
+            "synthesis",
+            "integral",
+            "capstone"
+          ],
+          "quota": {
+            "exercises": 25
+          },
+          "units": [
+            {
+              "file": "units/III.9/unit167-integral-value.sokonanoda",
+              "title": "单元167 面积值：把上下和钉在同一个数上",
+              "title_en": "Unit 167 — The Integral Value: Pinning Upper and Lower Sums",
+              "unit": 167
+            }
+          ]
         }
       ]
     }
