@@ -1,4 +1,4 @@
--- 课程库：面积值的比较（单元170 的引擎）
+-- 课程库：面积值的比较（单元170）
 --
 -- 两条曲线在同一条区间上，一条处处不低于另一条，它们的面积值也按同一个
 -- 方向排列。面积值不能直接相减，只能回到上下和：可积性给一条很窄的分割，
@@ -116,7 +116,7 @@ theorem hasIntegral_bounds (a b : ratRep) (f : ratRep → ratRep)
 -- ─────────────────────────────────────────────────────────────
 
 -- 逐点相等的两条曲线各比一次：`I ≤ J` 与 `J ≤ I`，反对称性把两个候选
--- 收成一个。等号两边都先换成非严格序，比较的引擎不必知道等号。
+-- 收成一个。等号两边都先换成非严格序，比较的引理不必知道等号。
 theorem hasIntegral_congr_fun (a b : ratRep) (f g : ratRep → ratRep)
     (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b g J)
     (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :

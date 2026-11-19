@@ -1,8 +1,8 @@
--- 课程库：上和、下和与可积性（单元158 的引擎）
+-- 课程库：上和、下和与可积性（单元158）
 --
--- 单元158 在画布上把「一摞上界的矩形和」写成 `UpperSum`，「一摞下界的矩形
--- 和」写成 `LowerSum`，再用一条 ε 判据定义 `Integrable`。这里把定义与九条
--- 判过卷的引理收进 L2，供后续单元直接引用：
+-- 单元158 把「一摞上界的矩形和」写成 `UpperSum`，「一摞下界的矩形和」写成
+-- `LowerSum`，再用一条 ε 判据定义 `Integrable`。下面这些定义与九条引理供
+-- 后续单元直接引用：
 --
 --   · `UpperSum` / `LowerSum` / `Integrable` —— 三个定义；
 --   · `upperSum_twoPoint_const` / `lowerSum_twoPoint_const` —— 常值曲线的读数；
