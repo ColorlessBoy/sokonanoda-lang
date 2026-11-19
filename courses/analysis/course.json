@@ -1276,6 +1276,12 @@
               "title": "单元167 面积值：把上下和钉在同一个数上",
               "title_en": "Unit 167 — The Integral Value: Pinning Upper and Lower Sums",
               "unit": 167
+            },
+            {
+              "file": "units/III.9/unit168-integral-neg.sokonanoda",
+              "title": "单元168 面积值的取负：把曲线翻到轴下方",
+              "title_en": "Unit 168 — Negating the Integral Value: Flipping the Curve Below the Axis",
+              "unit": 168
             }
           ]
         }

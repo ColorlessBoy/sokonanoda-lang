@@ -5,6 +5,8 @@
 
 ## 状态
 
+- **M5 单元168（2026-11-19）**：**面积值的取负**。168 问「把曲线翻到轴下方，面积值怎么变」：`HasIntegral` 有两组量词，取负把「下和」与「上和」互换。一段上，`-f` 的下界取负是 `f` 的上界（`upperStep_neg_rev`），上和同理（`lowerStep_neg_rev`）；矩形和的负号由 `stepSum_neg` 搬到外面，于是 `-f` 的下和取负是 `f` 的上和（`lowerSum_neg_rev` / `upperSum_neg_rev`）；`hasIntegral_neg` 把两边接起来，面积值变成 `-I`。常值曲线的负数读数是 `-(k·(b−a))`（`hasIntegral_neg_const`）。正文 6 题，0 rejected；解答 6 checked、0 open。**引擎进库**：新建 `lib/IntegralValueNeg`（6 条），`lib/Demo` 补 import 与一条自检。边界：只做取负；加法与数乘要用乘积对同余因子的不变性，课程库还没有这条引擎。不新增公理，也不碰 kernel/front。
+
 - **M5 单元167（2026-11-19）**：**面积值：把上下和钉在同一个数上**。167 问「可积性只说上下和能靠得任意近，这块面积到底是不是一个数」。把候选值写成 `HasIntegral a b f I`：I 不低于任何分割的下和、不高于任何分割的上和，并且 f 可积。三条投影给出可积性与两侧的界；`sub_le_of_pin` 说明同一个分割夹住两个候选时，它们的差被这个分割的宽度压住；于是可积性给的那个窄分割把两个候选同时夹住，`hasIntegral_unique` 收出 `ratRel I J`。常值曲线给出第一个读数：任何下界不超过 k、任何上界不小于 k，故 `hasIntegral_const` 的值是 k·(b−a)。正文 1 定义 + 6 题，0 rejected；解答 7 checked、0 open。**引擎进库**：新建 `lib/IntegralValue`（7 条），`lib/Demo` 补 import 与一条自检。边界：只断言「若有这样的数，它是谁」；存在性要有理数的完备性，留到 FTC 与综合单元。不新增公理，也不碰 kernel/front。
 
 - **M5 单元166（2026-11-18）**：**一致连续函数可积**。166 把网格细化与台阶估计接起来：给定 ε，阿基米德性质取 N 使 2(b−a) < N（`exists_nat_gt_double`），令 η=ε/N；一致连续给网格 δ，等分分割给每段短于 δ 的分割（`exists_mesh_partition`）；`strip_of_mesh` 把曲线夹在两条台阶之间，差是 2η(b−a)；`div_gap_lt` 把它压到 ε 以下，于是 `Integrable a b f`（`uniformlyContinuous_integrable`）。恒等函数是样本（`demo_integrable_id`）。正文 5 题，0 rejected；解答 5 checked、0 open。**引擎进库**：新建 `lib/IntegralContinuous`（4 条）。边界：一致连续是假设；闭区间上的逐点连续要一致连续（Heine–Cantor）需要紧性或完备性，课程目前的完备性只到代表元层的 Cauchy 序列。不新增公理，也不碰 kernel/front。
