@@ -1,36 +1,19 @@
 -- 单元67 实数的序：自反、传递、反对称
 --
--- 单元66 已经把代表元层的序下降到实数上：
+-- 上一单元已经把代表元层的序下降到实数上：realLe (Real.mk x) (Real.mk y) 当且仅当
+-- realLeRep x y，其中 realLeRep 仍带两个 Cauchy 守卫。现在把 realLe 收成偏序，
+-- 三条公理各有各的难点。
 --
---   realLe (Real.mk x) (Real.mk y)  ↔  realLeRep x y
+-- 自反只在「有 Cauchy 代表元」的实数上成立：Real 是商，商里的非 Cauchy「杂点」让
+-- realLe 没有输出，所以自反写成代表元形式 realLe (mk x) (mk x) 并假设 Cauchy x，
+-- 不把「每个 Real 都是 Cauchy 类」写成公理。传递对任意三个实数成立：两个前提本身
+-- 就是 realLe，经 ι 规则回到代表元层后 Cauchy 守卫已由前提付清，接力棒交给序的
+-- 传递性。反对称是三条里唯一需要新证明的：x ≤ y 与 y ≤ x 只给出每个 eps 下的近似
+-- 界，要得到 x 与 y 相等，必须把两个界折半，再让 |x n - y n| 小于任意 eps；折半之后
+-- 还需要 eps/2 < eps 这条严格不等式（半数只给了 0 < eps/2），用加法消去补上。
 --
--- 其中 `realLeRep x y` 仍带两个 `Cauchy` 守卫。本单元把 `realLe` 收成
--- **偏序**，三条公理各有各的难点：
---
---   · **自反**只在「有 Cauchy 代表元」的实数上成立：`Real` 是商，商里的
---     非 Cauchy「杂点」让 `realLe` 没有输出。所以自反写成代表元形式
---     `realLe (mk x) (mk x)`，假设 `Cauchy x`——不把「每个 Real 都是
---     Cauchy 类」写成公理。
---   · **传递**对任意三个实数成立：两个前提本身就是 `realLe`，经 66 的
---     ι 规则回到代表元层后，`Cauchy` 守卫已经由前提付清；接力棒交给
---     65.2 的 `realLeRep_trans`。
---   · **反对称**是真正的数学内容：`x ≤ y` 与 `y ≤ x` 只给出
---       `x n - y n ≤ eps` 与 `y n - x n ≤ eps`，
---     要得到 `realRel x y` 的第三分量（`close`），必须把两个界折半，
---     再用绝对值的两分支把 `|x n - y n|` 夹到 `eps` 以下。折半之后
---     还需要 `eps/2 < eps` 这条**严格**不等式（52 只给了 `0 < eps/2`），
---     本单元用加法消去补上（67.0）。
---
---   · 67.0 `ratHalf_lt_self` —— `0 < eps ⇒ eps/2 < eps`；
---   · 67.1 `ratAbsRel_lt_of_bounds` —— 两侧界 `< eps` ⇒ 绝对值 `< eps`；
---   · 67.2 `realLe_refl_mk` —— 代表元层的自反；
---   · 67.3 `realLe_trans` —— 传递；
---   · 67.4 `realLe_antisymm_mk` —— 代表元层的反对称（给出 `realRel`）；
---   · 67.5 `realLe_antisymm` —— 商上的反对称；
---   · 67.6 常零序列上的具体例。
---
--- 全程只用已判卷的库引理（64/65 的序、52/53 的半数、56 的加法消去），
--- 不新增信任，也不碰 kernel/front。
+-- 先证 eps/2 < eps 与「两侧界推出绝对值界」，再依次证自反、传递、反对称（先代表元
+-- 层、再商上），最后在常零序列上落一个具体例。全程只用已证明的库引理。
 
 import lib.RealOrderLift
 import lib.RatAbsOrder
@@ -41,6 +24,7 @@ import lib.RatClose
 -- 67.0 半数严格小于自身
 -- ─────────────────────────────────────────────────────────────
 
+-- 半数严格小于自身：0 < eps 推出 eps/2 < eps。
 -- soko:hint 思路：先证 `eps/2 ≤ eps`：把 53 的 `ratLeRep_half_of_lt` 右加 `eps/2`，左边用 `ratAdd_zero_left`、右边用 52 的 `ratHalf_add_self` 认成 `eps`。再证 `¬ eps/2 ~ eps`：若相等，两边同加 `eps/2`，左边是 `eps/2+eps/2 ~ eps`，右边用交换律，于是 `eps ~ eps + eps/2`；与 `eps ~ eps + 0` 一起交给 ㊿ 的 `ratRel_add_cancel_gen` 消去 `eps`，得 `0 ~ eps/2`，撞上 53 的 `ratLtRep_half`。
 -- soko:hint 目标形态：`ratLtRep (ratHalf eps) eps`（即 `eps/2 < eps`）。
 -- soko:hint 关键件：ratLeRep_congr_gen · ratAdd_zero_left · ratHalf_add_self · ratLeRep_add_right · ratRel_add_cancel_gen · ratAddRep_wd_gen · ratAdd_comm · ratLtRep_half。
@@ -52,6 +36,7 @@ theorem ratHalf_lt_self (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
 -- 67.1 两侧界给出绝对值严格小于
 -- ─────────────────────────────────────────────────────────────
 
+-- 两侧界推出绝对值界。
 -- soko:hint 思路：`ratAbsRel z d` 分两支。正支有 `d ~ z`，负支有 `d ~ -z`；把 `d` 沿 `ratLeRep_of_ratRel` 换成对应见证，再用 `ratLeRep_trans` 接到 `b`，最后 `ratLtRep_of_le_lt` 与 `hb : b < eps` 夹出 `d < eps`。`Or.elim` 要写全三个显式命题（`ratAbsRel` 是定义别名，推断不会替你展开）。
 -- soko:hint 目标形态：`ratAbsRel z d → z ≤ b → -z ≤ b → b < eps → d < eps`。
 -- soko:hint 关键件：Or.elim · ratLeRep_of_ratRel · ratLeRep_trans · ratLtRep_of_le_lt。
@@ -65,6 +50,7 @@ theorem ratAbsRel_lt_of_bounds (z d b eps : ratRep)
 -- 67.2 自反（代表元层）
 -- ─────────────────────────────────────────────────────────────
 
+-- 代表元层的自反。
 -- soko:hint 思路：用 66.4 的 `realLe_mk` 把目标搬回代表元层，再交给 64.1 的 `realLeRep_refl`。注意自反需要 `Cauchy x`：没有它，`realLeRep x x` 的第一分量就立不起来。
 -- soko:hint 目标形态：`Cauchy x → realLe (Real.mk x) (Real.mk x)`。
 -- soko:hint 关键件：realLe_mk · Iff.mpr · realLeRep_refl。
@@ -76,6 +62,7 @@ theorem realLe_refl_mk (x : Seq) (hx : Cauchy x) :
 -- 67.3 传递
 -- ─────────────────────────────────────────────────────────────
 
+-- 传递：Cauchy 守卫由前提付清。
 -- soko:hint 思路：对 `a`、`b`、`c` 各做一次 `Quot.ind`，把三个实数烧成 `mk x`、`mk y`、`mk z`；两个前提经 66.4 的 ι 规则回到 `realLeRep x y` / `realLeRep y z`，结论用 65.2 的 `realLeRep_trans` 接起来，再经 ι 规则送回 `realLe`。
 -- soko:hint 目标形态：`realLe a b → realLe b c → realLe a c`。
 -- soko:hint 关键件：Quot.ind（三次）· realLe_mk · Iff.mp · Iff.mpr · realLeRep_trans。
@@ -87,6 +74,7 @@ theorem realLe_trans (a b c : Real)
 -- 67.4 反对称（代表元层）
 -- ─────────────────────────────────────────────────────────────
 
+-- 代表元层的反对称：给出 realRel。
 -- soko:hint 思路：`realRel x y` 的前两个分量直接来自 `h1` 与 `h2`（注意 `h2 : realLeRep y x` 的第一个分量是 `Cauchy y`，不是第二个）。第三分量对 `eps > 0` 取两个 `eps/2` 的界（53 的 `ratLtRep_half`），用 58 的 `leNat_max` 合并阈值；逐点用 ㊺ 的 `ratAbsRel_total` 取出 `d`，把 `y n - x n` 沿 ㊷ 的 `ratSubRep_neg` 认成 `-(x n - y n)`，交给 67.1 与 67.0 得 `d < eps`。
 -- soko:hint 目标形态：`realLeRep x y → realLeRep y x → realRel x y`。
 -- soko:hint 关键件：realLeRep_close · ratLtRep_half · leNat_max · ratAbsRel_total · ratSubRep_neg · ratAbsRel_lt_of_bounds · ratHalf_lt_self。
@@ -98,6 +86,7 @@ theorem realLe_antisymm_mk (x y : Seq)
 -- 67.5 反对称（商上）
 -- ─────────────────────────────────────────────────────────────
 
+-- 商上的反对称。
 -- soko:hint 思路：对 `a`、`b` 各做一次 `Quot.ind`，把两个前提经 66.4 搬回代表元层，交给 67.4 得 `realRel x y`，再用 ㊱.2 的 `Real.sound` 得到 `mk x = mk y`。
 -- soko:hint 目标形态：`realLe a b → realLe b a → a = b`。
 -- soko:hint 关键件：Quot.ind（两次）· realLe_mk · Iff.mp · realLe_antisymm_mk · Real.sound。
@@ -109,8 +98,10 @@ theorem realLe_antisymm (a b : Real)
 -- 67.6 具体：常零序列的序是自反的
 -- ─────────────────────────────────────────────────────────────
 
+-- 具体：常零序列上的例子。
 -- soko:hint 思路：直接用 67.2，`Cauchy zeroSeq` 是 ㊱ 的 `cauchy_zero`。
 -- soko:hint 目标形态：`realLe (Real.mk zeroSeq) (Real.mk zeroSeq)`。
 -- soko:hint 关键件：realLe_refl_mk · cauchy_zero。
 theorem demo_realLe_self : realLe (Real.mk zeroSeq) (Real.mk zeroSeq) :=
   sorry
+-- 实数序的三条公理到手；下一单元证完备性（每个 Cauchy 序列收敛到自己的类）。

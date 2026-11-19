@@ -1,25 +1,19 @@
 -- 单元㉟ 有理 Cauchy 序列：`close` 与 `Cauchy` 的定义
 --
--- 从本单元起进入 **II.4：有理 Cauchy 序列**，终点是 ℝ 的商构造。
+-- ℚ 的加法、乘法与序已经搭好，但 ℚ 还有洞：x²=2 没有有理根，1/n 也没有
+-- 有理极限。要造 ℝ，得先抓住“序列的项最终挤在一起”这件事。直接说“越来越近”
+-- 没有可检验的内容；我们把它拆成 close 与 Cauchy 两个定义。
 --
--- 一个实数是「有理数 Cauchy 序列」的等价类。本单元只立三个词汇：
+-- close x y eps 说 x 与 y 的距离小于 eps。本语言没有可判定的绝对值函数，
+-- 不能写 |x-y|；于是改用关系 ratAbsRel：存在一个 d，它等于 |x-y| 且 d<eps。
+-- 这是定义上最直接的写法，不是绕路。
 --
---   Seq      := Nat → ratRep
---   close x y eps  :⟺  ∃ d, |x - y| ~ d ∧ d < eps
---   Cauchy x       :⟺  ∀ eps > 0, ∃ N, ∀ n m ≥ N, close (x n) (x m) eps
+-- Cauchy x 说：任给 eps>0，都存在 N，使得 n,m≥N 时 close (x n) (x m) eps。
+-- 量词顺序是先给 eps、再找 N、最后对 n,m；与 Tao 的定义一致。常零序列是最
+-- 简单的例子：任给 eps>0，取 N=0，两项都是 0，close 0 0 eps 成立。
 --
--- `close` 用**关系** `ratAbsRel` 而不是函数：绝对值在本语言里没有可判定的
--- 序（单元㉝），所以「存在一个 d，它等于 |x-y| 且 d < eps」是唯一诚实的写法。
--- `Cauchy` 的量词顺序与 Tao 的定义一致：先给 eps，再找 N，最后对 n,m。
---
--- 本单元结清：
---   · 常零序列是 Cauchy；
---   · `close zero zero eps`（只需 eps > 0）；
---   · 具体 eps = 1 时 `close zero zero 1`。
---
--- 有界性、等价关系与 ℝ 的载体留给后续单元。
---
--- 本单元自带定义与前序地基（L3：律必须留在单元里）。
+-- 我们把这些词汇立起来；有界性、等价关系与 ℝ 的载体留给后面。下一步先看
+-- Cauchy 序列怎样在等价关系下代表同一个实数。
 
 import lib.Rat
 
@@ -65,6 +59,7 @@ theorem ratAbsRel_zero : ratAbsRel ratZeroRep ratZeroRep :=
 -- ㉟.1 两个零是 close 的
 -- ─────────────────────────────────────────────────────────────
 
+-- 先看最平凡的一步：两个零是 close 的（取 d = 0）。
 -- soko:hint 思路：取 `d = 0`；`|0-0| = 0` 用 ㉟.0（`ratSubRep 0 0` 定义性就是 0），`0 < eps` 就是假设。
 -- soko:hint 目标形态：`ratLtRep ratZeroRep eps → close ratZeroRep ratZeroRep eps`。
 -- soko:hint 关键件：Exists.intro · And.intro · ratAbsRel_zero。
@@ -76,6 +71,7 @@ theorem close_zero_zero (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
 -- ㉟.2 常零序列是 Cauchy 序列
 -- ─────────────────────────────────────────────────────────────
 
+-- 再证常零序列是 Cauchy：任给 eps>0 取 N=0，逐项都是 0。
 -- soko:hint 思路：对任意 eps > 0，取 N = 0；`x n = 0` 对一切 n 成立，所以 `close 0 0 eps` 与 n,m 无关，直接用 ㉟.1。
 -- soko:hint 目标形态：`Cauchy (fun _ => ratZeroRep)`。
 -- soko:hint 关键件：Exists.intro（N = 0）· close_zero_zero。
@@ -89,6 +85,7 @@ theorem cauchy_zero : Cauchy (fun (_ : Nat) => ratZeroRep) :=
 -- ㉟.3 具体 eps = 1：两个零是 close 的
 -- ─────────────────────────────────────────────────────────────
 
+-- 具体算 eps=1 时 close 0 0 1：先用上一题，再证 0 < 1。
 -- soko:hint 思路：先用 ㉟.1，再证 `0 < 1`：序用 `le_succ 0 0 (le_refl 0)`；不等的部分把 `ratRel 0 1` 化成 `0 = 1` 交给 `succ_ne_zero`。
 -- soko:hint 目标形态：`close ratZeroRep ratZeroRep (qrep 1 0 0)`。
 -- soko:hint 关键件：close_zero_zero · And.intro · le_succ · succ_ne_zero。

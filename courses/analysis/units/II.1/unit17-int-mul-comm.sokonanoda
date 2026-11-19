@@ -1,20 +1,16 @@
 -- 单元⑰ 整数乘法的交换律（代表元层）
 --
--- 单元⑪ 证完了「第一个因子换代表元不改变乘积」。要把乘法真正放到 `Int` 上，
--- 还差两件：**第二个因子**换代表元也不改变乘积（这要用交换律），以及乘法自身的
--- 交换 / 结合 / 分配律。本单元先做第一件的一半：**乘法的交换律**。
+-- 单元⑪ 证完了「第一个因子换代表元不改变乘积」。要把乘法真正放到 Int 上，还差
+-- 两件：第二个因子换代表元也不改变乘积（这要用交换律），以及乘法自身的交换、
+-- 结合、分配律。先做第一件的一半：乘法的交换律。
 --
--- 路线（全部先落在 ℕ 上，再逐分量搬到代表元层）：
---   zero_mul    : 0 * a = 0
---   succ_mul    : (a+1) * b = a*b + b        （对 b 归纳）
---   myMul_comm  : a * b = b * a              （用 succ_mul 换掉左边多出来的那个 a）
---   mulRep_comm : (a,b) * (c,d) = (c,d) * (a,b)（按定义逐分量，用 myMul_comm）
+-- 路线全部先落在 ℕ 上，再逐分量搬到代表元层：先证 0·a = 0 与 (a+1)·b = a·b + b，
+-- 再用后者把 myMul a b 里多出来的那个 a 换掉，得到 a·b = b·a；最后按定义逐分量
+-- 得到 mulRep 的交换律。
 --
--- 为什么先做这个：`mulRep_wd` 固定的是**第二个**分量；要得到「第二个因子换代表元
--- 也不改变乘积」，必须先把乘法的两个分量对调（`mulRep_comm` + `intRel` 的对称性）。
--- 没有它，`Int` 上的乘法连「两个因子都良定义」都说不出口，更不用说 ℚ。
---
--- 本单元自带全部 ℕ 加法律（L3：律必须留在单元里；它们来自单元③）。
+-- 为什么先做交换律：mulRep_wd 固定的是第二个分量；要得到「第二个因子换代表元
+-- 也不改变乘积」，必须先把乘法的两个分量对调（mulRep_comm 加 intRel 的对称性）。
+-- 没有它，Int 上的乘法连「两个因子都良定义」都说不出口，更不用说后面的 ℚ。
 import lib.Logic
 import lib.Prod
 
@@ -27,8 +23,8 @@ def Int : Type := @Quot.{1} (Prod Nat Nat) intRel
 def intOfNat (n : Nat) : Int :=
   @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat n Nat.zero)
 
--- 递归步直接用 prelude 的 Nat.add（与单元⑤的 myAdd 逐点相等；
--- 本语言里 Nat.add 是原生自指定义，两者不是定义性相等）。
+-- 递归步直接用 prelude 的 Nat.add（与单元⑤的 myAdd 逐点相等）；
+-- 在本语言里 Nat.add 是原生自指定义，两者不是定义性相等。
 def myMul (a b : Nat) : Nat :=
   Nat.rec (fun (_ : Nat) => Nat) Nat.zero
     (fun (n : Nat) (ih : Nat) => Nat.add a ih) b
@@ -40,9 +36,9 @@ def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
     (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.snd Nat Nat b))
              (myMul (Prod.snd Nat Nat a) (Prod.fst Nat Nat b)))
 
--- 单元③的 ℕ 零元律，本单元自用（L3：律必须留在单元里）。
+-- 下面列出单元③证过的 ℕ 零元律。
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+-- 下面四条是单元③证过的 ℕ 加法律，这里重新列出；后面的证明直接引用。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
@@ -95,7 +91,7 @@ theorem add_assoc (a b c : Nat) :
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
     c
 
--- 搬运律：把两个和里的加法因子换个配对，值不变。
+-- 搬运律把两个和里的加数重新配对，值不变；后面的重排要用它。
 theorem add_shift (a b c d : Nat) :
     Nat.add (Nat.add a c) (Nat.add b d) =
     Nat.add (Nat.add a b) (Nat.add c d) :=
@@ -137,12 +133,12 @@ theorem add_shift (a b c d : Nat) :
             (add_assoc a b (Nat.add c d))))))
 
 
--- 定义性相等：myMul 在第二个参数上递归，base 就是 0。
+-- myMul 在第二个参数上递归，base 就是 0：乘零是定义性相等。
 theorem myMul_zero (a : Nat) :
     myMul a Nat.zero = Nat.zero :=
   Eq.refl Nat.zero
 
--- 定义性相等：递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)。
+-- 递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)，也是定义性相等。
 theorem myMul_succ (a b : Nat) :
     myMul a (Nat.succ b) = Nat.add a (myMul a b) :=
   Eq.refl (Nat.add a (myMul a b))
@@ -157,6 +153,7 @@ theorem zero_mul (a : Nat) : myMul Nat.zero a = Nat.zero :=
           (zero_add (myMul Nat.zero n)) ih))
     a
 
+-- 先证乘一个后继：(a+1)·b = a·b + b，对 b 归纳。
 -- soko:hint 思路：对 b 归纳。零情形两边都归约成 0；后继情形把左边展开成 (a+1) + myMul (a+1) n，用 ih 把 myMul (a+1) n 换成 a*n + n，再用 succ_add / add_assoc 把两边对到 succ (a + (a*n + n))。
 -- soko:hint 目标形态：(a+1) * b = a*b + b。
 -- soko:hint 关键件：Nat.rec · Eq.subst（把 ih 换进 add (a+1) 的第二个位置）· succ_add · add_assoc · Eq.refl（add x (succ n) 定义性归约）。
@@ -164,6 +161,7 @@ theorem succ_mul (a b : Nat) :
     myMul (Nat.succ a) b = Nat.add (myMul a b) b :=
   sorry
 
+-- 再用它把 myMul a b 里多出来的那个 a 换掉，得到乘法交换律。
 -- soko:hint 思路：对 b 归纳。零情形用 zero_mul 把两边都变成 0；后继情形 myMul a (n+1) = a + myMul a n，用 ih 换成 a + myMul n a，再用 add_comm 换成 myMul n a + a，最后用 succ_mul 的对称收口。
 -- soko:hint 目标形态：myMul a b = myMul b a。
 -- soko:hint 关键件：Nat.rec · congrArg（在 add a 下改写 ih）· add_comm · succ_mul（取对称）。
@@ -171,6 +169,7 @@ theorem myMul_comm (a b : Nat) :
     myMul a b = myMul b a :=
   sorry
 
+-- 按定义逐分量：交换两个因子的分量，用 myMul_comm 与加法交换把它们对上。
 -- soko:hint 思路：逐分量证明两个 prod_mk 相等。第一个分量用两次 congrArg（myMul_comm a c 与 myMul_comm b d）；第二个分量先把 a*d 与 b*c 对调，再用 add_comm 把两个加数顺序换过来；最后两次 congrArg 把分量相等装回序对。
 -- soko:hint 目标形态：mulRep (a,b) (c,d) = mulRep (c,d) (a,b)。
 -- soko:hint 关键件：congrArg（作用在 fun x => prod_mk x … 与 fun y => prod_mk … y 上）· myMul_comm · add_comm · Eq.trans。
@@ -179,13 +178,13 @@ theorem mulRep_comm (a b c d : Nat) :
       mulRep (@prod_mk Nat Nat c d) (@prod_mk Nat Nat a b) :=
   sorry
 
--- 演示：具体数字上交换一次 —— (2,5) * (3,1) 与 (3,1) * (2,5) 是同一个序对。
+-- 具体例子：(2,5) 乘 (3,1) 与 (3,1) 乘 (2,5) 是同一个序对。
 theorem demo_mulRep_comm :
     mulRep (@prod_mk Nat Nat 2 5) (@prod_mk Nat Nat 3 1) =
       mulRep (@prod_mk Nat Nat 3 1) (@prod_mk Nat Nat 2 5) :=
   mulRep_comm 2 5 3 1
 
--- 演示：ℕ 上 3 * 4 = 4 * 3。
+-- 具体例子：ℕ 上 3·4 = 4·3。
 theorem demo_myMul_comm :
     myMul 3 4 = myMul 4 3 :=
   myMul_comm 3 4

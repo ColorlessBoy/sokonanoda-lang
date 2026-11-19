@@ -1,28 +1,16 @@
--- 单元65 实数的序：传递性（解答）
+-- 单元65 实数的序：传递性
 --
--- 64 立了代表元层的序
+-- 上一单元立了代表元层的序：realLeRep x y 当且仅当 x、y 都是 Cauchy 序列，且对
+-- 任意 eps>0 存在 N，使 n ≥ N 时 (x n - y n) ≤ eps；并结清了自反性与「相等推出
+-- 序」。现在补上传递性：x ≤ y 且 y ≤ z 推出 x ≤ z。
 --
---   realLeRep x y  :⟺  Cauchy x ∧ Cauchy y ∧
---                        ∀ eps > 0, ∃ N, ∀ n ≥ N, (x n - y n) ≤ eps
+-- 证明是 eps 折半的标准拼装，两块地基都在前序单元：(x-y)+(y-z) 与 x-z 相等，
+-- 以及半数加倍 eps/2 + eps/2 与 eps 相等。两个 eps/2 的减法界相加得到
+-- (x-z) ≤ eps/2 + eps/2，再沿这两条等价关系搬到 (x-z) ≤ eps；阈值用阈值的合并
+-- 引理。0 < eps 推出 0 < eps/2 也在前序单元。
 --
--- 并结清了自反性与「相等 ⇒ 序」。本单元补上**传递性**：
---
---   x ≤ y  →  y ≤ z  →  x ≤ z
---
--- 证明是 eps 折半的标准拼装，两块地基都在前序单元：
---   · 56 的 `ratSubRep_add`：`(x - y) + (y - z) ~ x - z`；
---   · 52 的 `ratHalf_add_self`：`eps/2 + eps/2 ~ eps`；
---   · 51 的 `ratLtRep_half`：`0 < eps ⇒ 0 < eps/2`。
---
--- 两个 eps/2 的减法界相加得到 `(x - z) ≤ eps/2 + eps/2`，再沿上面两条
--- 等价关系搬到 `(x - z) ≤ eps`。阈值用 58 的 `leNat_max` 合并。
---
---   · 65.1 `ratLeRep_sub_add` —— 代表元层的拼装件；
---   · 65.2 `realLeRep_trans` —— 序的传递性；
---   · 65.3 常零序列上的具体例。
---
--- 下一步（66）把 `realLeRep` 沿 `realRel` 证明良定义，再经 `Quot.lift`
--- 下降到 `Real → Real → Prop`。
+-- 先在代表元层把两个减法界相加，再证序的传递性，最后在常零序列上落一个具体例。
+-- 下一步把代表元层的序沿 realRel 证良定义，再经 Quot.lift 下降到 Real 上的关系。
 
 import lib.RealOrder
 import lib.RatSub

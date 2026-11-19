@@ -1,18 +1,12 @@
 -- 单元⑫ 整数序的代表元公式
 --
--- 单元④–⑪ 把 ℤ 的加法与乘法写成了代表元公式，并在代表元层证了良定义性
--- 与基本律。本单元转到**序**：整数 a - b 不大于 c - d，当且仅当
---   a + d ≤ c + b
--- （两边同加 b + d，把「减」消掉）。这样 ℤ 上的序就化归成 ℕ 上的序。
+-- 加法和乘法都在代表元上安顿好了，现在轮到序。整数 a-b 不大于 c-d，两边同加
+-- b+d 就能把减法消掉：它等价于 a+d ≤ c+b。于是 ℤ 上的序化归成 ℕ 上的序——
+-- 但 ℕ 上的 ≤ 本语言也没有内建，得先自己造一个。
 --
--- 本语言没有内建的 `≤`，所以先按通常的归纳定义自己造一个：
---   LeNat : ℕ → ℕ → Prop
---   le_refl n        : LeNat n n
---   le_succ m n h    : LeNat m n → LeNat m (succ n)
--- 后一条就是「n ≤ n+1，再往上传递一层」。有了它，序是**命题**而不是布尔值：
--- 证明 `leRep p q` 就是给出这条构造子链。
---
--- 本单元只做**代表元公式**（与单元④平行）：序的良定义性与序公理留给后续单元。
+-- 造法沿用通常的归纳定义：LeNat 有两条构造规则——自反，以及从 m ≤ n 得到
+-- m ≤ n+1。序因此是命题而不是布尔值：证明 leRep p q，就是给出这条构造子链。
+-- 有了它，代表元层的序就取 a+d ≤ c+b；它的良定义性与序公理留给后续单元。
 import lib.Logic
 import lib.Prod
 
@@ -27,20 +21,21 @@ def intRel (a b : Prod Nat Nat) : Prop :=
 
 def Int : Type := @Quot.{1} (Prod Nat Nat) intRel
 
--- 代表元层的序：a - b ≤ c - d  ⇔  a + d ≤ c + b。
+-- 代表元层的序：a-b ≤ c-d 当且仅当 a+d ≤ c+b。
 def leRep (p q : Prod Nat Nat) : Prop :=
   LeNat (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
         (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
 
--- 演示：每个自然数都不大于它的后继。
+-- 先看构造子本身：每个自然数都不大于它的后继。
 theorem demo_leNat_succ_self (n : Nat) : LeNat n (Nat.succ n) :=
   le_succ n n (le_refl n)
 
--- 演示：0 - 0 ≤ 1 - 0，因为 0 + 0 ≤ 1 + 0。
+-- 具体例子：0-0 ≤ 1-0，因为 0+0 ≤ 1+0。
 theorem demo_leRep_zero_one :
     leRep (@prod_mk Nat Nat Nat.zero Nat.zero) (@prod_mk Nat Nat 1 Nat.zero) :=
   le_succ Nat.zero Nat.zero (le_refl Nat.zero)
 
+-- 先确认 leRep 只是 LeNat 的改名：代进去两边定义性相等。
 -- soko:hint 思路：`leRep` 是定义，把 `prod_mk a b` 与 `prod_mk c d` 代进去就是右边的形状，两边定义性相等。
 -- soko:hint 目标形态：leRep (a,b) (c,d) = LeNat (a+d) (c+b)。
 -- soko:hint 关键件：Eq.refl（定义性相等，不需要归纳）。
@@ -49,12 +44,14 @@ theorem leRep_mk (a b c d : Nat) :
     LeNat (Nat.add a d) (Nat.add c b) :=
   sorry
 
+-- 每个差都不大于自己：任意序对 p 都是某个 (a,b)，两边都是 a+b。
 -- soko:hint 思路：任意 p 都是某个序对 prod_mk a b；此时 leRep p p 的两边都是 a+b。
 -- soko:hint 目标形态：leRep (a,b) (a,b)，即 LeNat (a+b) (a+b)。
 -- soko:hint 关键件：对 p 做 match（拆成 prod_mk a b）· le_refl。
 theorem leRep_refl (p : Prod Nat Nat) : leRep p p :=
   sorry
 
+-- 具体例子：1-0 ≤ 2-0 即 1 ≤ 2，从 1 ≤ 1 往上抬一层。
 -- soko:hint 思路：1 - 0 ≤ 2 - 0 即 1 + 0 ≤ 2 + 0，也就是 1 ≤ 2；从 1 ≤ 1 往上抬一层。
 -- soko:hint 目标形态：LeNat (Nat.add 1 Nat.zero) (Nat.add 2 Nat.zero)，字面量会算成 LeNat 1 2。
 -- soko:hint 关键件：le_succ 1 1 (le_refl 1)。
@@ -62,6 +59,7 @@ theorem leRep_one_two :
     leRep (@prod_mk Nat Nat 1 Nat.zero) (@prod_mk Nat Nat 2 Nat.zero) :=
   sorry
 
+-- 把 leRep 拆回 LeNat：定义直接展开，假设 h 就是目标。
 -- soko:hint 思路：leRep 在序对上就是 LeNat，定义直接展开，假设 h 的类型正是目标。
 -- soko:hint 目标形态：leRep (a,b) (c,d) ⇒ LeNat (a+d) (c+b)。
 -- soko:hint 关键件：h（类型已定义性相等）。
@@ -70,6 +68,7 @@ theorem leRep_to_leNat (a b c d : Nat)
     LeNat (Nat.add a d) (Nat.add c b) :=
   sorry
 
+-- 反方向同理：LeNat 的证明就是 leRep 的证明。
 -- soko:hint 思路：反方向同理，LeNat 的证明就是 leRep 的证明。
 -- soko:hint 目标形态：LeNat (a+d) (c+b) ⇒ leRep (a,b) (c,d)。
 -- soko:hint 关键件：h（定义性相等，直接给）。
@@ -78,6 +77,7 @@ theorem leRep_of_leNat (a b c d : Nat)
     leRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d) :=
   sorry
 
+-- 再证基本事实：0 不大于任何自然数（对 n 归纳）。
 -- soko:hint 思路：对 n 归纳。零情形用 le_refl；后继情形把归纳假设 ih : LeNat 0 k 用 le_succ 抬一层。
 -- soko:hint 目标形态：LeNat Nat.zero n（n = 0 与 n = succ k 两个分支）。
 -- soko:hint 关键件：match n（后继分支自动带 ih）· le_refl · le_succ。

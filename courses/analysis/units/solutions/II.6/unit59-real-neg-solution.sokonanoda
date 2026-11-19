@@ -1,24 +1,18 @@
--- 单元59 实数的取负：第一次把运算下降到商上（解答）
+-- 单元59 实数的取负：第一次把运算下降到商上
 --
--- 58 与 `lib/RealEq` 备齐了 `realRel` 的三条腿（传递 / 自反 / 对称；注意
--- 自反性只在 Cauchy 序列上成立）。现在可以把**第一个运算**从代表元搬到商上：
+-- 上一批单元与 lib/RealEq 备齐了 realRel 的三条腿（传递、自反、对称）。注意自反性
+-- 只在 Cauchy 序列上成立：realRel x x 的第一个分量就是 Cauchy x。所以 realRel 是
+-- Cauchy 序列上的等价关系，而不是整个 Seq 上的；Quot.exact 要求每个代表元都自反，
+-- 本课程拿不到这条假设，反向消去留到需要时再处理。
 --
---   negSeq x      := fun n => -(x n)
---   Real.neg      := Quot.lift (fun x => Real.mk (negSeq x)) …
+-- 现在可以把第一个运算从代表元搬到商上：negSeq x := fun n => -(x n)，
+-- Real.neg := Quot.lift (fun x => Real.mk (negSeq x)) …。要交的两条良定义义务是
+-- Cauchy x 推出 Cauchy (negSeq x)，以及 realRel x y 推出 realRel (negSeq x)
+-- (negSeq y)。关键是绝对值对取负不变：代表元层 (-x)-(-y) 与 -(x-y) 只差分子序对的
+-- 交换与加法交换，所以 close 可以在取负下原样搬过去。
 --
--- 要交的两条良定义义务是：
---
---   · `cauchy_neg`  : Cauchy x → Cauchy (negSeq x)
---   · `realRel_neg` : realRel x y → realRel (negSeq x) (negSeq y)
---
--- 关键是**绝对值对取负不变**（㊶ 的 `ratAbsRel_neg_gen`）：代表元层
--- `(-x) - (-y)` 与 `-(x - y)` 只差分子序对的交换与加法交换（㊷ 的
--- `ratSubRep_neg`），所以 `close` 可以在取负下原样搬过去。
---
--- 59.1 是代表元层的形状，59.2 是 `close` 的搬运，59.3/59.4 是两条良定义
--- 义务，59.5 是 `Quot.lift` 的 ι 规则，59.6 落在常零序列上。
---
--- 本单元不引入新公理；`Quot.lift` 就是 ㊱ 立载体时用的那条下降通道。
+-- 先看代表元层的形状，再证 close 的搬运，然后交两条良定义义务，最后给出 Quot.lift 的
+-- ι 规则并落在常零序列上。negSeq 与 Real.neg 是本单元给出的定义；其余是练习。
 
 import lib.RealEq
 import lib.RatSub

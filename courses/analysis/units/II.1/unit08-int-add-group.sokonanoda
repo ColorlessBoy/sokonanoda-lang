@@ -1,13 +1,14 @@
 -- 单元⑧ 整数加法的零元与负元
 --
--- 单元⑥/⑦ 把加法搬到 Int 上并证了交换律与结合律。本单元补上单位元与逆元：
---   (a-b) + (0-0) = a-b      （加法零元）
---   (a-b) + (b-a) = 0-0      （加法逆元）
--- 再把这两条代表元事实用 `Quot.sound` 搬到商上。最后 `negRep` 是「交换两个分量」，
--- 做两次回到原处（定义性相等）。
+-- 加法在 ℤ 上已经有了交换律与结合律，但还没有「加什么也不变」的元素，也没有
+-- 「加了之后回到零」的元素。ℕ 里没有负数，零也只有一个；直到整数，加法的群
+-- 结构才完整。这个单元补上单位元与逆元。
 --
--- 本语言没有 `funext` / 类型类，所以「零元」「负元」都是对**代表元给出的整数**
--- 陈述等式；这也是后面 ℚ / ℝ 章一直沿用的形式。
+-- 代表元上的两条事实是：(a-b) 加 (0-0) 仍是 a-b；(a-b) 加 (b-a) 是 0-0。
+-- 第二条的意思是一个差加上它的相反差得到零——正是逆元。两条都先在代表元上
+-- 证成「差相等」，再用商的相等规则搬上去。
+--
+-- 最后看取负的对合：取负只是把两个分量对调，做两次当然回到原处（定义性相等）。
 import lib.Logic
 import lib.Prod
 
@@ -25,7 +26,7 @@ def addRep (a b : Prod Nat Nat) : Prod Nat Nat :=
 def negRep (p : Prod Nat Nat) : Prod Nat Nat :=
   @prod_mk Nat Nat (Prod.snd Nat Nat p) (Prod.fst Nat Nat p)
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+-- 下面四条是单元③证过的 ℕ 加法律，这里重新列出；后面的证明直接引用。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
@@ -67,6 +68,7 @@ theorem add_zero (a : Nat) :
     (add_comm a Nat.zero)
     (zero_add a)
 
+-- 先证代表元上的零元：两个 +0 分别用 add_zero 消掉。
 -- soko:hint 思路：把两个 +0 分别用 add_zero 消掉（左边 a+0 → a，右边 b+0 → b），中间用 Eq.subst 改写。
 -- soko:hint 目标形态：(a+0)+b = a+(b+0)。
 -- soko:hint 关键件：add_zero a · add_zero b · Eq.subst · Eq.symm · Eq.trans。
@@ -75,6 +77,7 @@ theorem zero_rep (a b : Nat) :
            (@prod_mk Nat Nat a b) :=
   sorry
 
+-- 搬到商上：商里的相等只能由 Quot.sound 得到，把 zero_rep 作为相关性证明交出去。
 -- soko:hint 思路：商里的等式只有一个来源 —— 把 zero_rep 作为相关性证明交给 Quot.sound。
 -- soko:hint 目标形态：mk (addRep p 0) = mk p。
 -- soko:hint 关键件：Quot.sound（宇宙层级与两个代表元都写全）· zero_rep。
@@ -84,6 +87,7 @@ theorem int_add_zero (a b : Nat) :
       @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b) :=
   sorry
 
+-- 取负也要尊重差相等：negRep 把 (a,b) 换成 (b,a)，把 h 的两边交换再各用一次交换律。
 -- soko:hint 思路：negRep 把 (a,b) 换成 (b,a)。目标变成 b+a' = b'+a；先用交换律把两边都翻成 a'+b 与 a+b'，再用 h 的对称接上。
 -- soko:hint 目标形态：b+a' = b'+a（h 是 a+b' = a'+b）。
 -- soko:hint 关键件：add_comm b a' · Eq.symm h · Eq.symm (add_comm b' a) · Eq.trans。
@@ -92,6 +96,7 @@ theorem negRep_wd (a b a' b' : Nat)
     intRel (negRep (@prod_mk Nat Nat a b)) (negRep (@prod_mk Nat Nat a' b')) :=
   sorry
 
+-- 代表元上的逆元：(a,b) 加 (b,a) 的两个分量是 a+b 与 b+a，要证它们与 (0,0) 差相等。
 -- soko:hint 思路：addRep (a,b) (b,a) 的两个分量是 a+b 与 b+a；目标把 (a+b)+0 与 0+(b+a) 接起来，中间用交换律。
 -- soko:hint 目标形态：(a+b)+0 = 0+(b+a)。
 -- soko:hint 关键件：add_zero (a+b) · add_comm a b · Eq.symm (zero_add (b+a)) · Eq.trans。
@@ -100,6 +105,7 @@ theorem add_neg_rep (a b : Nat) :
            (@prod_mk Nat Nat Nat.zero Nat.zero) :=
   sorry
 
+-- 搬到商上：这次交出去的是 add_neg_rep，得到 mk (p + (-p)) = mk 0。
 -- soko:hint 思路：与 int_add_zero 同形；这次交出去的是 add_neg_rep。
 -- soko:hint 目标形态：mk (addRep p (negRep p)) = mk (0,0)。
 -- soko:hint 关键件：Quot.sound（写全宇宙层级）· add_neg_rep。
@@ -109,6 +115,7 @@ theorem int_add_neg (a b : Nat) :
       @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat Nat.zero Nat.zero) :=
   sorry
 
+-- 取负的对合：negRep 交换两个分量，做两次回到 (a,b)，这是定义性相等。
 -- soko:hint 思路：negRep 交换两个分量；做两次就回到 (a,b)，这是定义性相等。
 -- soko:hint 目标形态：negRep (negRep (a,b)) = (a,b)，即 (a,b) = (a,b)。
 -- soko:hint 关键件：Eq.refl（定义直接归约）。
@@ -116,6 +123,7 @@ theorem negRep_neg (a b : Nat) :
     negRep (negRep (@prod_mk Nat Nat a b)) = @prod_mk Nat Nat a b :=
   sorry
 
+-- 搬到商上：两个代表元定义性相等，商里的两个点自然也是同一个点。
 -- soko:hint 思路：两边定义性相等 —— negRep (negRep p) 归约回 p，所以商里的两个点也是同一个点。
 -- soko:hint 目标形态：mk (negRep (negRep p)) = mk p。
 -- soko:hint 关键件：Eq.refl（不用 Quot.sound；也可用 Quot.sound + add_comm 绕一圈）。
@@ -125,14 +133,17 @@ theorem int_neg_neg (a b : Nat) :
       @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b) :=
   sorry
 
--- 演示：具体数字上零元可计算 —— (2-5)+(0-0) 与 (2-5) 在 (7,7) 处等价。
+-- 具体数字上核对零元：2-5 加 0 仍是 2-5（两边都算得 7）。
 theorem demo_zero_rep :
     intRel (addRep (@prod_mk Nat Nat 2 5) (@prod_mk Nat Nat Nat.zero Nat.zero))
            (@prod_mk Nat Nat 2 5) :=
   @Eq.refl.{1} Nat 7
 
--- 演示：(2-5)+(5-2) = 0-0，两边都算成 7 = 7。
+-- 具体数字上核对逆元：2-5 加 5-2 得到 0（两边都算得 7）。
 theorem demo_add_neg :
     intRel (addRep (@prod_mk Nat Nat 2 5) (negRep (@prod_mk Nat Nat 2 5)))
            (@prod_mk Nat Nat Nat.zero Nat.zero) :=
   @Eq.refl.{1} Nat 7
+
+-- ℤ 的加法到这里凑齐了交换群的四条：结合、交换、零元、逆元。下一单元把减法
+-- 作为「加负元」接进来——减法只是加法的一次应用，但它的良定义性要单独再证一遍。

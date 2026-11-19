@@ -1,22 +1,16 @@
 -- 单元55 有理数的加法逆元：`x + (-x) = 0`
 --
--- `close` 的传递性要把 `x - y` 与 `y - z` 加起来，再把 `x - z` 认成
--- `(x - y) + (y - z)`。这条等式在代表元层要先把 `-y + y` 收成 `0`，
--- 也就是本单元要证的加法逆元律：
+-- close 的传递性要把 x-y 与 y-z 加起来，再把 x-z 认成 (x-y)+(y-z)。这条等式在
+-- 代表元层要先把 -y+y 收成 0，也就是这里要证的加法逆元律：x 加自己的负元与 0 相等。
 --
---   ratAddNeg : x + (-x) ~ 0
+-- 它看着「显然」，但在商构造里要穿过三层。第一层是 ratNegRep 只是把分子序对交换
+-- （分母字段不动）；第二层是相加后公分母是 ratDenRep m m，交叉乘积会把
+-- myMul 0 (succ D) 带进来（内核不替你归约 0*n，要用 zero_mul）；第三层是两个坐标
+-- 只差加法交换，但 ratRel 要的是交叉和相等，两边的 x+0、0+0 尾巴都得用 add_zero
+-- 或 zero_add 显式收掉。
 --
--- 它看着"显然"，但在商构造里要穿过三层：
---   1. `ratNegRep` 只是把分子序对交换（分母字段不动）；
---   2. 相加后公分母是 `ratDenRep m m`，交叉乘积把 `myMul 0 (succ D)`
---      带进来（内核不替你归约 `0 * n`，要用 `zero_mul`）；
---   3. 两个坐标只差 `add_comm`，但 `ratRel` 要的是交叉和相等，
---      两边的 `x + 0`、`0 + 0` 尾巴都得用 `add_zero` / `zero_add` 显式收掉。
---
--- 55.1 先在字面三元组上把这条律证出来；55.2/55.3 搬到任意代表元；
--- 55.4 把减法读成"加负元"；55.5 落在 `1/2 - 1/2`。
---
--- 本单元不引入新定义，全部停在代表元层，不碰商、不碰 `funext`、不加公理。
+-- 先在字面三元组上把这条律证出来，再搬到任意代表元；然后把减法读成「加负元」，
+-- 最后落在 1/2 - 1/2 上。全部停在代表元层，不碰商、不碰函数外延性、不加公理。
 
 import lib.Cauchy
 
@@ -24,6 +18,7 @@ import lib.Cauchy
 -- 55.1 字面三元组：`qrep a b m + -(qrep a b m) ~ 0`
 -- ─────────────────────────────────────────────────────────────
 
+-- 先在字面三元组上展开，把零尾巴收掉。
 -- soko:hint 思路：先展开。`ratAddRep (qrep a b m) (ratNegRep (qrep a b m))` 的分子是 `(A, B)`，其中 `A = a·(m+1) + b·(m+1)`、`B = b·(m+1) + a·(m+1)`，分母字段是 `ratDenRep m m`。`ratRel` 的交叉乘积把 `den 0 = (1,0)` 与 `den (ratDenRep m m)` 带进来，于是左边多出 `(x+0)+0` 的尾巴、右边多出 `myMul 0 (succ D)`。
 -- soko:hint 关键件：`zero_mul`（把 `myMul Nat.zero (Nat.succ D)` 换成 `0`；`Eq.subst` 的方向要写成 `0 = z`）· `zero_add` / `add_zero`（收掉零尾巴）· `add_comm`（两个分子坐标交换）· `Eq.trans`。
 -- soko:hint 目标形态：`ratRel (ratAddRep (qrep a b m) (ratNegRep (qrep a b m))) ratZeroRep`。
@@ -35,6 +30,7 @@ theorem ratAdd_neg_mk (a b m : Nat) :
 -- 55.2 任意代表元上的逆元律（先 match 到展开类型）
 -- ─────────────────────────────────────────────────────────────
 
+-- 再搬到任意代表元：先在展开类型上 match 到字面坐标。
 -- soko:hint 思路：`ratRep` 是 `Prod (Prod Nat Nat) Nat` 的定义别名，`match` 只认归纳类型本身；在展开类型上对 `x` 匹配到 `prod_mk (prod_mk a b) m`，再转发 55.1。
 -- soko:hint 目标形态：`ratRel (ratAddRep x (ratNegRep x)) ratZeroRep`。
 theorem ratAdd_neg_aux (x : Prod (Prod Nat Nat) Nat) :
@@ -45,6 +41,7 @@ theorem ratAdd_neg_aux (x : Prod (Prod Nat Nat) Nat) :
 -- 55.3 任意代表元上的逆元律（转发）
 -- ─────────────────────────────────────────────────────────────
 
+-- 负元的良定义性：换代表元不改变 x 加自己的负元。
 -- soko:hint 思路：直接调用 55.2。
 -- soko:hint 目标形态：`ratRel (ratAddRep x (ratNegRep x)) ratZeroRep`。
 theorem ratAdd_neg (x : ratRep) :
@@ -55,6 +52,7 @@ theorem ratAdd_neg (x : ratRep) :
 -- 55.4 减法与自身：`x - x ~ 0`
 -- ─────────────────────────────────────────────────────────────
 
+-- 把减法读成「加负元」。
 -- soko:hint 思路：`ratSubRep x x` 定义性展开就是 `ratAddRep x (ratNegRep x)`，转发 55.3。
 -- soko:hint 目标形态：`ratRel (ratSubRep x x) ratZeroRep`。
 theorem ratSubRep_self (x : ratRep) :
@@ -65,8 +63,10 @@ theorem ratSubRep_self (x : ratRep) :
 -- 55.5 具体：`1/2 - 1/2 ~ 0`
 -- ─────────────────────────────────────────────────────────────
 
+-- 具体算 1/2 - 1/2 = 0。
 -- soko:hint 思路：`1/2` 写成 `qrep 1 Nat.zero 1`，交给 55.4。
 -- soko:hint 目标形态：`ratRel (ratSubRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1)) ratZeroRep`。
 theorem demo_neg_self :
     ratRel (ratSubRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1)) ratZeroRep :=
   sorry
+-- 加法逆元到手；下一单元用它把两个距离加起来，中间项就能消去。

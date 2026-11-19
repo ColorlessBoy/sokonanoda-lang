@@ -1,13 +1,13 @@
 -- 单元⑭ ℕ 序的加法消去律
 --
--- 单元⑬ 证了「同加一个数保持序」（leNat_add_right）。要把序良定义地搬到 ℤ 上，
--- 还需要**反方向**的消去律：
---   m + k ≤ n + k  ⇒  m ≤ n
--- 直接对 k 归纳走不通：归纳到后继会卡在「succ m ≤ succ n ⇒ m ≤ n」——
--- LeNat 的证明没法直接拆掉一层。所以改走两步：
---   ① 把序**刻画**成「存在一个加数」：LeNat m n ⇔ ∃ k, n = m + k；
---   ② 消去律落到等式层：a + k = b + k ⇒ a = b（对 k 归纳，用 Nat.succ.inj）。
--- 下一单元用这条消去律证整数序的良定义性（leRep_wd）。
+-- 单元⑬ 证了「同加一个数保持序」：m+k ≤ n+k。要把序良定义地搬到 ℤ 上，还需要
+-- 反方向的消去律：m+k ≤ n+k 推出 m ≤ n。
+--
+-- 直接对 k 归纳走不通：归纳到后继会卡在「succ m ≤ succ n ⇒ m ≤ n」——LeNat 的
+-- 证明没法直接拆掉一层。于是换一条路：先把序刻画成「存在一个加数」
+-- （LeNat m n 当且仅当存在 k 使 n = m+k），再把消去律落到等式层
+-- （a+k = b+k 推出 a = b，对 k 归纳，用 succ 的单射）。等式链算完，序的消去律
+-- 只是把刻画翻译回去。
 import lib.Logic
 import lib.Exists
 import lib.Prod
@@ -27,7 +27,7 @@ def leRep (p q : Prod Nat Nat) : Prop :=
   LeNat (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
         (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
 
--- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+-- 下面四条是单元③证过的 ℕ 加法律，这里重新列出；后面的证明直接引用。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
@@ -74,7 +74,7 @@ theorem add_comm (a b : Nat) :
         (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
     b
 
--- 前驱：`pred (succ n) = n` 是定义性相等；用于从前驱等式换回原等式。
+-- 前驱 `pred (succ n) = n` 是定义性相等：用它把前驱等式换回原等式。
 def Nat.pred (n : Nat) : Nat := match n with
 | zero => Nat.zero
 | succ m => m
@@ -84,7 +84,7 @@ theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) :
     a = b :=
   congrArg.{1} Nat.pred h
 
--- 转动加数：把 (a+k)+j 换成 (a+j)+k（消去律最后一步要用）。
+-- 转动加数把 (a+k)+j 换成 (a+j)+k；消去律最后一步要用它。
 theorem add_rotate (a k j : Nat) :
     Nat.add (Nat.add a k) j = Nat.add (Nat.add a j) k :=
   @Eq.trans.{1} Nat (Nat.add (Nat.add a k) j) (Nat.add a (Nat.add k j)) (Nat.add (Nat.add a j) k)
@@ -93,11 +93,11 @@ theorem add_rotate (a k j : Nat) :
       (congrArg.{1} (fun (x : Nat) => Nat.add a x) (add_comm k j))
       (@Eq.symm.{1} Nat (Nat.add (Nat.add a j) k) (Nat.add a (Nat.add j k)) (add_assoc a j k)))
 
--- 演示：前驱把 succ 的等式还原。
+-- 具体例子：前驱把 succ 的等式还原。
 theorem demo_succ_inj : 1 = 1 :=
   Nat.succ.inj 1 1 (@Eq.refl.{1} Nat 2)
 
--- 演示：2 - 0 ≤ 4 - 2 就是 2 + 2 ≤ 4 + 0，两边都是 4。
+-- 具体例子：2-0 ≤ 4-2 就是 2+2 ≤ 4+0，两边都是 4。
 theorem demo_leRep_two_four :
     leRep (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 4 2) :=
   le_refl 4
@@ -151,6 +151,6 @@ theorem leNat_add_cancel_right (a b k : Nat)
               hj
               (add_rotate a k j)))))
 
--- 演示：2 + 3 ≤ 2 + 3 消去 3 得 2 ≤ 2。
+-- 具体例子：2+3 ≤ 2+3 消去 3 得 2 ≤ 2。
 theorem demo_leNat_cancel : LeNat 2 2 :=
   leNat_add_cancel_right 2 2 3 (le_refl 5)

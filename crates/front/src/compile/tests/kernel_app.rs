@@ -415,6 +415,18 @@ const PROBE_SRC: &str = "def Set (α : Type) : Type := α -> Prop\n\
      axiom U25 : Type\naxiom S25 : Set (Set U25)\n\
      theorem ne25 : (fun (x : Set U25) => ∅) '' S25 ≠ @Set.univ (Set U25) := sorry\n";
 
+/// 反向验证专用形状：与 [`PROBE_SRC`] 同构，但声明名不同 ⇒ `judge_infer` 缓存键不同。
+/// 两个 probe 测试若共用同一源码，先跑的那个会预热缓存，后跑的反向验证会看到
+/// `misses = 0`（CI 上偶发）；这里把反向验证的源码隔开。
+const PROBE_SRC_OFF: &str = "def Set (α : Type) : Type := α -> Prop\n\
+     def Set.empty {α : Type} : Set α := fun (x : α) => False\n\
+     notation \"∅\" => Set.empty\n\
+     def Set.univ {α : Type} : Set α := fun (x : α) => True\n\
+     def Set.image {α β : Type} (f : α -> β) (A : Set α) : Set β := fun (y : β) => True\n\
+     infixr:80 \" '' \" => Set.image\n\
+     axiom U26 : Type\naxiom S26 : Set (Set U26)\n\
+     theorem ne26 : (fun (x : Set U26) => ∅) '' S26 ≠ @Set.univ (Set U26) := sorry\n";
+
 /// `(errors, solved, fallback, unsolved 未命中)`：闸门强制开、strict；`probe = false` ⇒ P2-5 之前的行为。
 fn run_probe(src: &str, probe: bool) -> (Vec<String>, u64, u64, u64) {
     let src = src.to_string();
@@ -459,13 +471,13 @@ fn probe_pass_skips_speculative_old_path_for_nested_arg() {
 #[test]
 fn probe_pass_off_pays_unsolved_miss() {
     // 反向验证：关掉探测（P2-5 之前）⇒ 内层 `''` 在第一趟里回落老路 ⇒ 至少一次 unsolved 未命中；判卷不变。
-    let (errors, _, fallback, misses) = run_probe(PROBE_SRC, false);
+    let (errors, _, fallback, misses) = run_probe(PROBE_SRC_OFF, false);
     assert_eq!(errors, Vec::<String>::new());
     assert!(
         misses > 0 && fallback > 0,
         "关掉探测 ⇒ 必须付出 unsolved 未命中（misses={misses} fallback={fallback}）"
     );
-    let (_, _, fallback_on, _) = run_probe(PROBE_SRC, true);
+    let (_, _, fallback_on, _) = run_probe(PROBE_SRC_OFF, true);
     assert!(
         fallback_on <= fallback,
         "探测只减不增：on={fallback_on} off={fallback}"

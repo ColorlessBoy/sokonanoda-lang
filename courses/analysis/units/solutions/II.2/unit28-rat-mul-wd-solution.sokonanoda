@@ -1,25 +1,16 @@
 -- 单元㉘ 有理数乘法的良定义性（第一、第二因子两条义务）
 --
--- 单元⑳ 把 ℚ 建成 `Quot ratRel`；㉑–㉕ 结清 `ratRel`；㉖ 定义加法；
--- ㉗ 给出乘法的代表元公式：
+-- 单元⑳ 把 ℚ 建成 Quot ratRel；㉑–㉕ 结清 ratRel；㉖ 定义加法；㉗ 给出乘法的代表元
+-- 公式：(a-b)/(m+1) 乘 (c-d)/(n+1) = [(ac+bd) - (ad+bc)] / ((m+1)(n+1))。
 --
---   (a-b)/(m+1) * (c-d)/(n+1)
---     = [(ac + bd) - (ad + bc)] / ((m+1)(n+1))
+-- 现在把乘法在代表元层结清：固定一个因子，另一个因子换成 ratRel 等价但不同的代表元
+-- 时，乘积仍等价。两条义务是 ratMulRep_wd（x ~ x' 推出 x·y ~ x'·y）与
+-- ratMulRep_wd_snd（y ~ y' 推出 x·y ~ x·y'）。
 --
--- 本单元把乘法**在代表元层**结清：固定一个因子，另一个因子换成 `ratRel`
--- 等价但不同的代表元时，乘积仍等价。
---
---   `ratMulRep_wd`      : x ~ x' ⇒ x*y ~ x'*y
---   `ratMulRep_wd_snd`  : y ~ y' ⇒ x*y ~ x*y'
---
--- 两条都化归到整数层已经证过的 `mulRep_wd` / `mulRep_wd_snd`：先用
--- `ratAdd_cross`（同分母的 `ratRel` 可消去正分母）把假设化成整数代表元
--- 的相等，再让整数乘法把这份相等搬到两个分子上，最后乘回公分母。
---
--- 仍然停在**整数代表元**层：不把乘法下降成 `Rat → Rat → Rat`（那需要
--- `funext`，本语言没有，见 issue #28），也不加任何公理。
---
--- 本单元自带全部 ℕ 加/乘法律与前序地基（L3：律必须留在单元里）。
+-- 两条都化归到整数层已经证过的 mulRep_wd 与 mulRep_wd_snd：先用 ratAdd_cross（同分母
+-- 的 ratRel 可消去正分母）把假设化成整数代表元的相等，再让整数乘法把这份相等搬到
+-- 两个分子上，最后乘回公分母。仍然停在整数代表元层：不把乘法下降成 Rat → Rat → Rat
+-- （那需要函数外延性，本语言没有），也不加任何公理。
 
 import lib.Logic
 import lib.Prod
@@ -111,7 +102,7 @@ theorem add_assoc (a b c : Nat) :
         (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
     c
 
--- 搬运律：把两个和里的加法因子换个配对，值不变。
+-- 搬运律把两个和里的加数重新配对，值不变；后面的重排要用它。
 
 theorem add_shift (a b c d : Nat) :
     Nat.add (Nat.add a c) (Nat.add b d) =
@@ -154,13 +145,13 @@ theorem add_shift (a b c d : Nat) :
             (add_assoc a b (Nat.add c d))))))
 
 
--- 定义性相等：myMul 在第二个参数上递归，base 就是 0。
+-- myMul 在第二个参数上递归，base 就是 0：乘零是定义性相等。
 
 theorem myMul_zero (a : Nat) :
     myMul a Nat.zero = Nat.zero :=
   Eq.refl Nat.zero
 
--- 定义性相等：递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)。
+-- 递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)，也是定义性相等。
 
 theorem myMul_succ (a b : Nat) :
     myMul a (Nat.succ b) = Nat.add a (myMul a b) :=
@@ -247,7 +238,7 @@ theorem add_mid (a x y : Nat) :
       (add_assoc x a y))
 
 -- ─────────────────────────────────────────────────────────────
--- ㉒.2 左分配律：a * (b + c) = a*b + a*c（对 c 归纳）
+-- ㉒.2 左分配律（对 c 归纳）
 -- ─────────────────────────────────────────────────────────────
 
 -- soko:hint 思路：对 c 归纳。基例 c = 0 时 `b + 0` 定义性等于 b、`a * 0` 定义性等于 0，两边都是 `a*b`，`Eq.refl` 即可；步例把 `a * (b + succ n)` 展开成 `a + a*(b+n)`，用 ih 换成 `a + (a*b + a*n)`，再交给 add_mid 换成 `a*b + (a + a*n)`。
@@ -274,7 +265,7 @@ theorem mul_add (a b c : Nat) :
     c
 
 -- ─────────────────────────────────────────────────────────────
--- ㉒.3 右分配律：(a + b) * c = a*c + b*c
+-- ㉒.3 右分配律（用交换律化回左分配）
 -- ─────────────────────────────────────────────────────────────
 
 -- soko:hint 思路：把左边用 myMul_comm 翻成 `c * (a+b)`，交给 mul_add 展开，再用两次 myMul_comm（一次对 c a，一次对 c b）把因子顺序摆回来。
@@ -301,7 +292,7 @@ theorem mul_add_right (a b c : Nat) :
         (congrArg.{1} (fun (m : Nat) => Nat.add (myMul a c) m) (myMul_comm c b))))
 
 -- ─────────────────────────────────────────────────────────────
--- ㉒.4 结合律：(a * b) * c = a * (b * c)（对 c 归纳）
+-- ㉒.4 结合律（对 c 归纳，步例用左分配）
 -- ─────────────────────────────────────────────────────────────
 
 -- soko:hint 思路：对 c 归纳。基例两边都归约成 0；步例把左边展开成 `(a*b) + (a*b)*n`，用 ih 把第二个加数换成 `a*(b*n)`，右边展开成 `a * (b + b*n)`，交给 mul_add 的对称收口。
@@ -326,19 +317,18 @@ theorem myMul_assoc (a b c : Nat) :
     c
 
 -- ─────────────────────────────────────────────────────────────
--- ─────────────────────────────────────────────────────────────
--- ㉓.1 两个加数同时改写（congrArg 两次装成一个引理）
+-- ㉓.1 两个加数同时改写
 -- ─────────────────────────────────────────────────────────────
 
 -- ─────────────────────────────────────────────────────────────
--- ㉔.1 加法：`Nat.add a (succ b)` 定义性展开成 `succ (Nat.add a b)`
+-- ㉔.1 加法的后继展开（消去律的脚手架）
 -- ─────────────────────────────────────────────────────────────
 
 theorem add_succ (a b : Nat) :
     Nat.add a (Nat.succ b) = Nat.succ (Nat.add a b) :=
   Eq.refl (Nat.succ (Nat.add a b))
 
--- 前驱：`pred (succ n) = n` 是定义性相等；用于从前驱等式换回原等式。
+-- 前驱 pred (succ n) = n 是定义性相等：用它把前驱等式换回原等式。
 
 def Nat.pred (n : Nat) : Nat := match n with
 | zero => Nat.zero
@@ -350,7 +340,7 @@ theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) :
     a = b :=
   congrArg.{1} Nat.pred h
 
--- 单元⑭的加法消去律，本单元自用（L3：律必须留在单元里）。
+-- 下面重新列出单元⑭证过的加法消去律。
 
 theorem nat_add_cancel_right (a b k : Nat) :
     Nat.add a k = Nat.add b k → a = b :=
@@ -499,7 +489,6 @@ theorem add_rotate (a k j : Nat) :
       (congrArg.{1} (fun (x : Nat) => Nat.add a x) (add_comm k j))
       (@Eq.symm.{1} Nat (Nat.add (Nat.add a j) k) (Nat.add a (Nat.add j k)) (add_assoc a j k)))
 
--- 前驱：`pred (succ n) = n` 是定义性相等；用于从前驱等式换回原等式。
 
 theorem intRel_trans_mid (a b c d e f : Nat)
     (h1 : Nat.add a d = Nat.add c b)
@@ -550,7 +539,7 @@ theorem mul_congr (a b a' b' c : Nat)
     (Nat.add a b') (Nat.add a' b) h
     (@Eq.refl.{1} Nat (myMul (Nat.add a b') c))
 
--- h 乘开：a·c + b'·c = a'·c + b·c。
+-- 有了分配律，等价假设就能「乘开」：h 两边各乘 c 与 d，得到两条可相加的等式。
 
 theorem mul_shift_c (a b a' b' c : Nat)
     (h : Nat.add a b' = Nat.add a' b) :
@@ -589,7 +578,7 @@ theorem mulRep_den (p : Prod Nat Nat) (n : Nat) :
       (zero_add (myMul (Prod.snd Nat Nat p) (Nat.succ n))))
 
 
--- 把「两边都乘上同一正分母」的等价假设化成一条 ℕ 加法等式。
+-- 先把「两边都乘上同一正分母」的等价假设化成一条 ℕ 加法等式。
 
 theorem mulRep_den_mid (u v : Prod Nat Nat) (n : Nat)
     (h : intRel (mulRep u (den n)) (mulRep v (den n))) :
@@ -612,7 +601,7 @@ theorem mulRep_den_mid (u v : Prod Nat Nat) (n : Nat)
                           (myMul (Prod.snd Nat Nat v) (Nat.succ n)))
       h (mulRep_den v n))
 
--- 正分母可消去：mulRep u (n+1,0) ~ mulRep v (n+1,0) ⇒ u ~ v。
+-- 再证正分母可消去：mulRep u (n+1,0) 与 mulRep v (n+1,0) 差相等时，u 与 v 也差相等。
 -- soko:hint 思路：先把 `mulRep u (den n)` 与 `mulRep v (den n)` 化到规范形 `(u1·d, u2·d)`、`(v1·d, v2·d)`（`d = n+1`），假设就变成 `u1·d + v2·d = v1·d + u2·d`；两边分别用 `mul_add_right` 收成 `(u1+v2)·d` 与 `(v1+u2)·d`，最后用 `mul_cancel_pos` 消去正因子 `d`。
 -- soko:hint 目标形态：mulRep u (den n) ~ mulRep v (den n) ⇒ u ~ v。
 
@@ -630,7 +619,7 @@ theorem intRel_refl (p : Prod Nat Nat) : intRel p p :=
 def ratDenRep (m n : Nat) : Nat :=
   Nat.add (Nat.add (myMul m n) m) n
 
--- 把有理数写成「分子序对 + 分母字段」的规范形状（只为本单元的陈述好读）。
+-- 把有理数写成「分子序对 + 分母字段」的规范形状，陈述会好读一些。
 
 def qrep (a b m : Nat) : ratRep :=
   @prod_mk (Prod Nat Nat) Nat (@prod_mk Nat Nat a b) m
@@ -689,7 +678,7 @@ def T8 (b d f : Nat) : Nat := myMul b (myMul d f)
 -- ㉓.2 第一个分量：两边各自展开，再在规范形上换配对
 -- ─────────────────────────────────────────────────────────────
 
--- 左边：((a*c + b*d)*e + (a*d + b*c)*f) 展开成四个乘积。
+-- 先把左边 ((a·c + b·d)·e + (a·d + b·c)·f) 展开成四个乘积。
 
 theorem fst_expand_left (a b c d e f : Nat) :
     Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) e)
@@ -700,7 +689,7 @@ theorem fst_expand_left (a b c d e f : Nat) :
     (mul_add_right (myMul a c) (myMul b d) e)
     (mul_add_right (myMul a d) (myMul b c) f)
 
--- 右边：a*(c*e + d*f) + b*(c*f + d*e) 展开成四个乘积。
+-- 右边 a·(c·e + d·f) + b·(c·f + d·e) 同样展开成四个乘积。
 
 theorem fst_expand_right (a b c d e f : Nat) :
     Nat.add (myMul a (Nat.add (myMul c e) (myMul d f)))
@@ -711,7 +700,7 @@ theorem fst_expand_right (a b c d e f : Nat) :
     (mul_add a (myMul c e) (myMul d f))
     (mul_add b (myMul c f) (myMul d e))
 
--- 左边四个乘积用结合律改成规范形。
+-- 再把左边四个乘积用结合律改成规范形。
 
 theorem fst_normalize (a b c d e f : Nat) :
     Nat.add (Nat.add (myMul (myMul a c) e) (myMul (myMul b d) e))
@@ -869,8 +858,8 @@ theorem mulRep_assoc (a b c d e f : Nat) :
     (mulRep_assoc_fst a b c d e f)
     (Eq.symm (mulRep_assoc_snd a b c d e f))
 
--- 具体数字上走一遍：(2,1)*(3,1) 得 (7,5)，再乘 (4,1)；
--- 与 2 先乘 ((3,1)*(4,1)) 的结果代表元相等。
+-- 具体例子：(2,1)·(3,1) 得 (7,5)，再乘 (4,1)；
+-- 与先乘 (3,1)·(4,1) 的结果代表元相等。
 
 theorem mulRep_comm (a b c d : Nat) :
     mulRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat c d) =
@@ -1013,10 +1002,10 @@ theorem mulRep_wd_snd (a b a' b' c d : Nat)
         (mulRep_comm c d a b))
       (mulRep_wd a b a' b' c d h))
 
--- 演示：具体数字上走一遍 —— (2-0) ~ (3-1)，都用 (4-1) 乘在前面，结果仍等价。
--- (4,1)*(2,0) = (8,2)，(4,1)*(3,1) = (13,7)，而 8+7 = 13+2 = 15。
+-- 具体例子：2-0 与 3-1 差相等，都用 4-1 乘在前面，结果仍差相等——
+-- (4,1)*(2,0) = (8,2)、(4,1)*(3,1) = (13,7)，而 8+7 = 13+2 = 15。
 
--- den 乘法的规范形：mulRep p (n+1,0) 与 (p1·(n+1), p2·(n+1)) 差相等。
+-- 先把「分母的整数代表元乘一个正整数」化成规范形：mulRep p (n+1,0) 与 (p1·(n+1), p2·(n+1)) 差相等。
 -- soko:hint 思路：`mulRep p (n+1,0)` 的定义性展开是 `(p1·(n+1) + p2·0, p1·0 + p2·(n+1))`；把 `p2·0` 与 `p1·0` 归约成 0，再用 `zero_add` 把右边第二分量的 `0 + p2·(n+1)` 搬到 `p2·(n+1)`。
 -- soko:hint 目标形态：mulRep p (den n) ~ (p1·(n+1), p2·(n+1))。
 -- soko:hint 关键件：congrArg · Eq.symm · zero_add（乘零由定义性归约）。

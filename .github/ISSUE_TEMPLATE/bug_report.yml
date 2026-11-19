@@ -1,0 +1,22 @@
+name: Bug report
+description: Something is broken or behaves differently from the documented contract.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A minimal reproduction (commands, file contents, expected vs actual).
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: `scripts/soko version --json` or the commit SHA.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant `--json` output or diagnostics.

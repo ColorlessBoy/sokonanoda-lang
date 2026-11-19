@@ -1,13 +1,12 @@
 -- 单元⑩ 整数乘法：零元与单位元
 --
--- 单元⑤ 只写下了代表元公式 mulRep，还没有任何乘法律。
--- 要把它 lift 到商 Int 上（单元⑪的 mulRep_wd），先得把 ℕ 的乘法律补齐。
--- 本单元做最小的一段：乘法的零元与单位元。
---   myMul_zero : a * 0 = 0      （定义性相等）
---   myMul_one  : a * 1 = a
---   zero_mul   : 0 * a = 0      （对 a 归纳，是本章第一条乘法归纳）
--- 再把它们用在代表元上：p * 0 ~ 0 与 p * 1 ~ p。
--- 下一步（单元⑪）才证 mulRep_wd，那需要分配律与交换律。
+-- 乘法在代表元上的公式已经写下，但一条乘法律都还没证。要把 mulRep 搬上商
+-- （下一单元的 mulRep_wd），先得把 ℕ 上最小的乘法律补齐：乘零得零、乘一不变。
+-- 这两条里，myMul_zero 与 myMul_succ 是定义性相等，只有 0·a = 0 需要归纳——
+-- 它是本课程第一条乘法归纳。
+--
+-- 补齐之后再把它们用在代表元上：p 乘 0 与 0 差相等，p 乘 1 与 p 差相等。
+-- 下一单元证乘法良定义性时还要分配律与交换律；那一步留到那时再补。
 import lib.Logic
 import lib.Prod
 
@@ -34,7 +33,7 @@ def mulRep (a b : Prod Nat Nat) : Prod Nat Nat :=
     (Nat.add (myMul (Prod.fst Nat Nat a) (Prod.snd Nat Nat b))
              (myMul (Prod.snd Nat Nat a) (Prod.fst Nat Nat b)))
 
--- 单元③的 ℕ 零元律，本单元自用（L3：律必须留在单元里）。
+-- 下面列出单元③证过的 ℕ 零元律；乘法的两条律要用它。
 theorem zero_add (b : Nat) :
     Nat.add Nat.zero b = b :=
   Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
@@ -47,16 +46,17 @@ theorem zero_add (b : Nat) :
     b
 
 
--- 定义性相等：myMul 在第二个参数上递归，base 就是 0。
+-- myMul 在第二个参数上递归，base 就是 0：乘零是定义性相等。
 theorem myMul_zero (a : Nat) :
     myMul a Nat.zero = Nat.zero :=
   Eq.refl Nat.zero
 
--- 定义性相等：递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)。
+-- 递归步把 myMul a (succ b) 展开成 myAdd a (myMul a b)，也是定义性相等。
 theorem myMul_succ (a b : Nat) :
     myMul a (Nat.succ b) = myAdd a (myMul a b) :=
   Eq.refl (myAdd a (myMul a b))
 
+-- 先证乘一不变：myMul a 1 展开成 myAdd a 0，再归约成 a。
 -- soko:hint 思路：myMul a 1 展开成 myAdd a (myMul a 0) = myAdd a 0 = a。
 -- soko:hint 目标形态：myMul a 1 = a。
 -- soko:hint 关键件：Eq.refl a（两边定义性相等）。
@@ -64,6 +64,7 @@ theorem myMul_one (a : Nat) :
     myMul a (Nat.succ Nat.zero) = a :=
   sorry
 
+-- 0 乘任何数得 0：对 a 归纳，这是第一条乘法归纳。
 -- soko:hint 思路：对 a 归纳。base：myMul 0 0 定义性等于 0。
 -- soko:hint 目标形态：myMul 0 (succ n) = 0；它定义性等于 myMyMul 0 n，用 ih 改写。
 -- soko:hint 关键件：Nat.rec · Eq.subst · Eq.refl。
@@ -71,6 +72,7 @@ theorem zero_mul (a : Nat) :
     myMul Nat.zero a = Nat.zero :=
   sorry
 
+-- 代表元上的乘零：p 乘 0 的两个分量都是 0，与 (0,0) 差相等。
 -- soko:hint 思路：mulRep (a,b) (0,0) 的两个分量都是 a*0+b*0，定义性归约为 0。
 -- soko:hint 目标形态：intRel (0,0) (0,0)，即 0+0 = 0+0。
 -- soko:hint 关键件：Eq.refl 0。
@@ -78,6 +80,7 @@ theorem mulRep_zero_rep (a b : Nat) :
     intRel (mulRep (@prod_mk Nat Nat a b) (@prod_mk Nat Nat Nat.zero Nat.zero))
            (@prod_mk Nat Nat Nat.zero Nat.zero) :=  sorry
 
+-- 代表元上的乘一：p 乘 1 的两个分量用 myMul_one 与 myMul_zero 化简后与 (a,b) 差相等。
 -- soko:hint 思路：mulRep (a,b) (1,0) = (a*1+b*0, a*0+b*1)；myMul_one / myMul_zero 后与 (a,b) 相等。
 -- soko:hint 目标形态：intRel (a,b) (a,b)，即 a+b = a+b。
 -- soko:hint 关键件：Eq.refl (Nat.add a b)。
@@ -86,14 +89,14 @@ theorem mulRep_one_rep (a b : Nat) :
                   (@prod_mk Nat Nat (Nat.succ Nat.zero) Nat.zero))
            (@prod_mk Nat Nat a b) :=  sorry
 
--- 演示：(2-5) * 1 = 2-5，两边都算成 2+5 = 5+2。
+-- 具体数字上核对乘一：2-5 乘 1 仍是 2-5（两边都算得 7）。
 theorem demo_mulRep_one :
     intRel (mulRep (@prod_mk Nat Nat 2 5)
                   (@prod_mk Nat Nat (Nat.succ Nat.zero) Nat.zero))
            (@prod_mk Nat Nat 2 5) :=
   Eq.refl (Nat.add 2 5)
 
--- 演示：0 * (3-1) = 0-0，两边都算成 0+0 = 0+0。
+-- 具体数字上核对乘零：0 乘 3-1 得到 0（两边都算得 0）。
 theorem demo_mulRep_zero_left :
     intRel (mulRep (@prod_mk Nat Nat Nat.zero Nat.zero) (@prod_mk Nat Nat 3 1))
            (@prod_mk Nat Nat Nat.zero Nat.zero) :=

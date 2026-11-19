@@ -1,27 +1,22 @@
 -- 单元61 实数的加法：三元关系（存在 + 唯一）
 --
--- 60 在代表元层建立了 `addSeq`，并交清了两条下降义务：
--- `cauchy_add`（Cauchy 对加法封闭）与 `realRel_add`（`realRel` 对加法同余）。
--- 二元运算仍然不能直接写成 `Real → Real → Real` 的函数：`Quot.lift` 的外层
--- 还要一次「函数相等」，而 `realRel` 只在 Cauchy 序列上自反 —— 商里还有
--- 非 Cauchy 代表元形成的「杂点」，同一条 Cauchy 序列在杂点上的像不唯一。
+-- 上一单元在代表元层建立了 addSeq，并交清了两条下降义务：cauchy_add（Cauchy 对
+-- 加法封闭）与 realRel_add（realRel 对加法同余）。二元运算仍然不能直接写成
+-- Real → Real → Real 的函数：Quot.lift 的外层还要一次「函数相等」，而 realRel
+-- 只在 Cauchy 序列上自反——商里还有非 Cauchy 代表元形成的「杂点」，同一条
+-- Cauchy 序列在杂点上的像不唯一。
 --
--- 本单元把加法写成 **三元关系**：
+-- 于是把加法写成三元关系：addRel a b c 当且仅当 a、b 有 Cauchy 代表元 x、y，且
+-- c = mk (x+y)。这个关系在 Cauchy 代表元上存在且唯一；在杂点上没有输出——这是
+-- 诚实的分关系，不是把洞绕过去。定义要经两次 Quot.lift，两次的良定义性就是两个
+-- def 里的函数外延性与命题外延性义务，用的都是课程里已经有的东西，不新增信任。
 --
---   addRel a b c  :⟺  a、b 有 Cauchy 代表元 x、y，且 c = mk (x + y)
+-- 一个刻意留下的边界：mk z = mk (x+y) 反推 realRel z (x+y) 需要 Quot.exact，
+-- 而它要求 realRel 在整个 Seq 上自反；本载体拿不到这条（杂点不自反）。所以这里
+-- 只给「相关推出是同一个输出」的声音方向，反推留作已知边界，不写成公理。
 --
--- 这个关系在 Cauchy 代表元上**存在且唯一**；在杂点上没有输出（这是诚实的
--- 部分关系，不是把洞绕过去）。定义要经两次 `Quot.lift`；两次的良定义性
--- 就是两个 `def` 里的 `funext` + `propext` 义务，代价是 L2 既有的
--- `funext`（定理）与 `propext`（既有 axiom）——不新增任何信任。
---
--- 一个刻意留下的边界：`mk z = mk (x + y)` 反推 `realRel z (x + y)` 需要
--- `Quot.exact`，而它要求 `realRel` 在整个 `Seq` 上自反；本载体拿不到这条
--- （杂点不自反）。所以本单元只给「相关 ⇒ 是同一个输出」的**声音方向**
--- （61.3），反推留作已知边界，不写成公理。
---
--- 61.1 是 ι 规则，61.2/61.3 是存在与声音方向，61.4 是唯一性，
--- 61.5 是「存在且唯一」，61.6 落在常零序列上。
+-- 先给出关系在代表元上的形状与两次下降，再证存在、声音方向与唯一性，把它们拼成
+-- 「存在且唯一」，最后落在常零序列上。
 
 import lib.RealAdd
 import lib.Extensionality
@@ -109,6 +104,7 @@ def addRel (a : Real) : Real → Real → Prop :=
 -- 61.1 ι 规则：关系作用在 `mk` 上回到代表元形状
 -- ─────────────────────────────────────────────────────────────
 
+-- ι 规则：addRel 作用在 Cauchy 代表元上按定义归约。
 -- soko:hint 思路：`addRel` 与 `addRelY` 都是 `Quot.lift`；作用到 `Real.mk x` / `Real.mk y` 上按 ι 归约成 `addRelRep x y c`。因此两边是**定义性相等**的命题，两个方向都取恒等函数。
 -- soko:hint 目标形态：`(addRel (Real.mk x) (Real.mk y) c) ↔ (addRelRep x y c)`。
 -- soko:hint 关键件：Iff.intro · ι 归约（两处 Quot.lift 都要真的烧掉）。
@@ -120,6 +116,7 @@ theorem addRel_mk (x y : Seq) (c : Real) :
 -- 61.2 引入：Cauchy 代表元的和是关系的一个输出
 -- ─────────────────────────────────────────────────────────────
 
+-- 存在性：两个 Cauchy 代表元的和是关系的输出。
 -- soko:hint 思路：`addRel` 在 `mk` 上归约成 `addRelRep`，于是要交的就是三元组 `Cauchy x`、`Cauchy y` 与 `mk (addSeq x y) = mk (addSeq x y)`；前两个是假设，第三个是 `Eq.refl`。
 -- soko:hint 目标形态：`addRel (mk x) (mk y) (mk (addSeq x y))`。
 -- soko:hint 关键件：And.intro（两次）· Eq.refl · ι 归约。
@@ -131,6 +128,7 @@ theorem addRel_intro (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
 -- 61.3 声音方向：与 `addSeq` 相关的实数就是那个输出
 -- ─────────────────────────────────────────────────────────────
 
+-- 声音方向：相关的输出互相连到同一个 c。
 -- soko:hint 思路：`hx`、`hy` 填前两个守卫；`hz : realRel z (addSeq x y)` 经 `Real.sound` 给出 `mk z = mk (addSeq x y)`，正好是第三个分量。
 -- soko:hint 目标形态：`realRel z (addSeq x y) → addRel (mk x) (mk y) (mk z)`。
 -- soko:hint 关键件：And.intro（两次）· Real.sound。
@@ -143,6 +141,7 @@ theorem addRel_sound (x y z : Seq) (hx : Cauchy x) (hy : Cauchy y)
 -- 61.4 唯一性：关系的两个输出相等
 -- ─────────────────────────────────────────────────────────────
 
+-- 唯一性：同一个和的两个输出相等。
 -- soko:hint 思路：对 `a` 做一次 `Quot.ind`（动机是「对一切 b c c'，两个输出相等」），进入 `mk x` 后对 `b` 再做一次 `Quot.ind`（动机把 c、c' 一起量化）。两次 ι 归约把 `h`、`h'` 都变成 `c = mk (x+y)` 与 `c' = mk (x+y)`，用 `Eq.trans` 与 `Eq.symm` 接起来。
 -- soko:hint 目标形态：`addRel a b c → addRel a b c' → c = c'`。
 -- soko:hint 关键件：Quot.ind（两次，动机都写在 Real 上）· ι 归约 · Eq.trans · Eq.symm · And.right。
@@ -155,6 +154,7 @@ theorem addRel_unique (a b c c' : Real)
 -- 61.5 存在且唯一
 -- ─────────────────────────────────────────────────────────────
 
+-- 存在且唯一装成一个命题。
 -- soko:hint 思路：见证取 `mk (addSeq x y)`。存在分量是 61.2；唯一分量对任意 `c'` 用 61.4，把 `c'` 与见证的两个证明接起来（注意 61.4 的结论方向是 `c' = c`）。
 -- soko:hint 目标形态：`∃ c, addRel (mk x) (mk y) c ∧ ∀ c', addRel (mk x) (mk y) c' → c' = c`。
 -- soko:hint 关键件：Exists.intro · And.intro · addRel_intro · addRel_unique。
@@ -168,6 +168,7 @@ theorem addRel_exists_unique (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
 -- 61.6 常零序列：关系确实有输出
 -- ─────────────────────────────────────────────────────────────
 
+-- 具体落在常零序列上。
 -- soko:hint 思路：把 61.2 用在 `zeroSeq` 上；两个 `Cauchy` 守卫都是 ㉟.1 的 `cauchy_zero`。
 -- soko:hint 目标形态：`addRel (mk zeroSeq) (mk zeroSeq) (mk (addSeq zeroSeq zeroSeq))`。
 -- soko:hint 关键件：addRel_intro · cauchy_zero。
@@ -175,3 +176,4 @@ theorem demo_addRel_zero :
     addRel (Real.mk zeroSeq) (Real.mk zeroSeq)
       (Real.mk (addSeq zeroSeq zeroSeq)) :=
   sorry
+-- 三元关系与「存在且唯一」立起来了；下一单元把代表元层的交换律与零元搬上来。

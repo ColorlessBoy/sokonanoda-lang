@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest a focused improvement with a concrete use case.
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What can a user not do today? Include a real example.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: The smallest change that solves it; mention alternatives considered.
+    validations:
+      required: true
