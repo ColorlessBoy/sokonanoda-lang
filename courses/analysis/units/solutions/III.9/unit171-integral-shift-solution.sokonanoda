@@ -1,0 +1,245 @@
+-- 单元171 面积值的平移：整条曲线抬高，面积也抬高一块矩形
+--
+-- 面积值已经会随曲线取负，也会按逐点序比较。还有一个变形值得问：把整条
+-- 曲线抬高同一个常数 k，每一段的高度都多了 k，宽没变，面积值会怎样？
+--
+-- 答案是多出一块 k(b-a)。理由不在图形上，而在两摞台阶上：抬高后的曲线
+-- 有一摞下界，把这摞下界整体减去 k，它又垫回原曲线下面；反过来，原曲线
+-- 的每一摞下界整体加上 k，也仍然垫在抬高后的曲线下面。两个方向都成立，
+-- 所以抬高前后的下和只差 k(b-a)。上界同理。
+--
+-- 矩形和这一块由分配律给出：一段上「高度加 k」乘宽，等于原来的矩形加上
+-- k 乘这段宽；整条和加起来，多出的正是 k 乘区间总长。
+--
+-- 最后拿常值曲线试一次：常值 c 抬高 k 变成 c+k，面积值从 c(b-a) 变成
+-- (c+k)(b-a)，正好多出 k(b-a)。
+--
+-- 函数取 ratRep → ratRep，停在有理代表元层；不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatSub
+import lib.RatRing
+import lib.Cauchy
+import lib.LimitClass
+import lib.Integral
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralShift
+import lib.IntegralValue
+
+-- ─────────────────────────────────────────────────────────────
+-- 先理清代数：加一个数再减掉它
+-- ─────────────────────────────────────────────────────────────
+
+-- `x + k` 先交换成 `k + x`；「先加再减同一个数」的引理把它收回 `x`。
+theorem sub_add_cancel (x k : ratRep) :
+    ratRel (ratSubRep (ratAddRep x k) k) x :=
+  ratRel_trans_gen
+    (ratSubRep (ratAddRep x k) k)
+    (ratSubRep (ratAddRep k x) k)
+    x
+    (ratAddRep_wd_gen (ratAddRep x k) (ratAddRep k x) (ratNegRep k)
+      (ratAdd_comm x k))
+    (ratSubRep_add_self_sub k x)
+
+-- ─────────────────────────────────────────────────────────────
+-- 台阶整体减去同一个常数
+-- ─────────────────────────────────────────────────────────────
+
+-- 段里的点满足 `f x + k ≤ u i`。两边同时减去 k，左边用 `sub_add_cancel`
+-- 收回 `f x`，右边就是 `u i - k`。
+theorem upperStep_sub_const (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (u : Nat → ratRep) (k : ratRep)
+    (h : UpperStep a b p (fun (x : ratRep) => ratAddRep (f x) k) u) :
+    UpperStep a b p f (fun (i : Nat) => ratSubRep (u i) k) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    ratLeRep_congr_gen
+      (ratSubRep (ratAddRep (f x) k) k) (f x)
+      (ratSubRep (u i) k) (ratSubRep (u i) k)
+      (sub_add_cancel (f x) k)
+      (ratRel_refl (ratSubRep (u i) k))
+      (ratLeRep_add_right (ratAddRep (f x) k) (u i) (ratNegRep k)
+        (h i hi x hx))
+
+-- 方向相反：`l i ≤ f x + k`，两边减去 k，右边收回 `f x`。
+theorem lowerStep_sub_const (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (l : Nat → ratRep) (k : ratRep)
+    (h : LowerStep a b p (fun (x : ratRep) => ratAddRep (f x) k) l) :
+    LowerStep a b p f (fun (i : Nat) => ratSubRep (l i) k) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    ratLeRep_congr_gen
+      (ratSubRep (l i) k) (ratSubRep (l i) k)
+      (ratSubRep (ratAddRep (f x) k) k) (f x)
+      (ratRel_refl (ratSubRep (l i) k))
+      (sub_add_cancel (f x) k)
+      (ratLeRep_add_right (l i) (ratAddRep (f x) k) (ratNegRep k)
+        (h i hi x hx))
+
+-- ─────────────────────────────────────────────────────────────
+-- 矩形和的逐项改写
+-- ─────────────────────────────────────────────────────────────
+
+-- 逐项相等时整条和相等：两个方向各用一次逐项保序，反对称性收成等价。
+theorem stepSum_congr_point (a b : ratRep) (p : Partition)
+    (hp : IsPartition a b p) (c d : Nat → ratRep)
+    (h : ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) → ratRel (c i) (d i)) :
+    ratRel (stepSum p c) (stepSum p d) :=
+  ratLeRep_antisymm (stepSum p c) (stepSum p d)
+    (stepSum_mono a b p hp c d
+      (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =>
+        ratLeRep_of_ratRel (c i) (d i) (h i hi)))
+    (stepSum_mono a b p hp d c
+      (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =>
+        ratLeRep_of_ratRel (d i) (c i) (ratRel_symm (c i) (d i) (h i hi))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 矩形和抬高一块
+-- ─────────────────────────────────────────────────────────────
+
+-- 每一段的高度 `l i` 都等于 `(l i - k) + k`。逐项改写之后，整条和正是
+-- 「减去 k 那摞的矩形和」再加 `k(b-a)`。
+theorem stepSum_sub_const (a b : ratRep) (p : Partition)
+    (hp : IsPartition a b p) (l : Nat → ratRep) (k : ratRep) :
+    ratRel (stepSum p l)
+      (ratAddRep
+        (stepSum p (fun (i : Nat) => ratSubRep (l i) k))
+        (ratMulRep k (ratSubRep b a))) :=
+  ratRel_trans_gen
+    (stepSum p l)
+    (stepSum p (fun (i : Nat) => ratAddRep (ratSubRep (l i) k) k))
+    (ratAddRep
+      (stepSum p (fun (i : Nat) => ratSubRep (l i) k))
+      (ratMulRep k (ratSubRep b a)))
+    (stepSum_congr_point a b p hp l
+      (fun (i : Nat) => ratAddRep (ratSubRep (l i) k) k)
+      (fun (i : Nat) (_ : LeNat (Nat.succ i) (partCount p)) =>
+        ratRel_symm (ratAddRep (ratSubRep (l i) k) k) (l i)
+          (ratSubRep_add_self (l i) k)))
+    (stepSum_add_const a b p hp
+      (fun (i : Nat) => ratSubRep (l i) k) k)
+
+-- ─────────────────────────────────────────────────────────────
+-- 下和与上和各抬一块
+-- ─────────────────────────────────────────────────────────────
+
+-- 取出下界的见证 `l`。`l - k` 垫在原曲线下面，所以它的矩形和不超过 I；
+-- 两边加 `k(b-a)`，再用 `stepSum_sub_const` 把 L 接到同一个数上。
+theorem lowerSum_add_const_le (a b : ratRep) (f : ratRep → ratRep)
+    (I k L : ratRep) (h : HasIntegral a b f I) (p : Partition)
+    (hp : IsPartition a b p)
+    (hL : LowerSum a b p (fun (x : ratRep) => ratAddRep (f x) k) L) :
+    ratLeRep L (ratAddRep I (ratMulRep k (ratSubRep b a))) :=
+  Exists.elim
+    (lowerSum_witness a b p (fun (x : ratRep) => ratAddRep (f x) k) L hL)
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p (fun (x : ratRep) => ratAddRep (f x) k) l ∧
+          ratRel L (stepSum p l)) =>
+      ratLeRep_congr_gen (stepSum p l) L
+        (ratAddRep I (ratMulRep k (ratSubRep b a)))
+        (ratAddRep I (ratMulRep k (ratSubRep b a)))
+        (ratRel_symm L (stepSum p l) (And.right hl))
+        (ratRel_refl (ratAddRep I (ratMulRep k (ratSubRep b a))))
+        (ratLeRep_trans (stepSum p l)
+          (ratAddRep
+            (stepSum p (fun (i : Nat) => ratSubRep (l i) k))
+            (ratMulRep k (ratSubRep b a)))
+          (ratAddRep I (ratMulRep k (ratSubRep b a)))
+          (ratLeRep_of_ratRel
+            (stepSum p l)
+            (ratAddRep
+              (stepSum p (fun (i : Nat) => ratSubRep (l i) k))
+              (ratMulRep k (ratSubRep b a)))
+            (stepSum_sub_const a b p hp l k))
+          (ratLeRep_add
+            (stepSum p (fun (i : Nat) => ratSubRep (l i) k)) I
+            (ratMulRep k (ratSubRep b a))
+            (ratMulRep k (ratSubRep b a))
+            (hasIntegral_lower a b f I h p
+              (stepSum p (fun (i : Nat) => ratSubRep (l i) k)) hp
+              (Exists.intro (fun (i : Nat) => ratSubRep (l i) k)
+                (And.intro
+                  (lowerStep_sub_const a b p f l k (And.left hl))
+                  (ratRel_refl
+                    (stepSum p (fun (i : Nat) => ratSubRep (l i) k))))))
+            (ratLeRep_refl (ratMulRep k (ratSubRep b a))))))
+
+-- 取出上界的见证 `u`。`u - k` 压住原曲线，所以 I 不超过它的矩形和；
+-- 两边加 `k(b-a)`，再把 U 接到同一个数上。
+theorem upperSum_add_const_ge (a b : ratRep) (f : ratRep → ratRep)
+    (I k U : ratRep) (h : HasIntegral a b f I) (p : Partition)
+    (hp : IsPartition a b p)
+    (hU : UpperSum a b p (fun (x : ratRep) => ratAddRep (f x) k) U) :
+    ratLeRep (ratAddRep I (ratMulRep k (ratSubRep b a))) U :=
+  Exists.elim
+    (upperSum_witness a b p (fun (x : ratRep) => ratAddRep (f x) k) U hU)
+    (fun (u : Nat → ratRep)
+        (hu : UpperStep a b p (fun (x : ratRep) => ratAddRep (f x) k) u ∧
+          ratRel U (stepSum p u)) =>
+      ratLeRep_congr_gen
+        (ratAddRep I (ratMulRep k (ratSubRep b a)))
+        (ratAddRep I (ratMulRep k (ratSubRep b a)))
+        (ratAddRep
+          (stepSum p (fun (i : Nat) => ratSubRep (u i) k))
+          (ratMulRep k (ratSubRep b a)))
+        U
+        (ratRel_refl (ratAddRep I (ratMulRep k (ratSubRep b a))))
+        (ratRel_trans_gen
+          (ratAddRep
+            (stepSum p (fun (i : Nat) => ratSubRep (u i) k))
+            (ratMulRep k (ratSubRep b a)))
+          (stepSum p u) U
+          (ratRel_symm
+            (stepSum p u)
+            (ratAddRep
+              (stepSum p (fun (i : Nat) => ratSubRep (u i) k))
+              (ratMulRep k (ratSubRep b a)))
+            (stepSum_sub_const a b p hp u k))
+          (ratRel_symm U (stepSum p u) (And.right hu)))
+        (ratLeRep_add I
+          (stepSum p (fun (i : Nat) => ratSubRep (u i) k))
+          (ratMulRep k (ratSubRep b a))
+          (ratMulRep k (ratSubRep b a))
+          (hasIntegral_upper a b f I h p
+            (stepSum p (fun (i : Nat) => ratSubRep (u i) k)) hp
+            (Exists.intro (fun (i : Nat) => ratSubRep (u i) k)
+              (And.intro
+                (upperStep_sub_const a b p f u k (And.left hu))
+                (ratRel_refl
+                  (stepSum p (fun (i : Nat) => ratSubRep (u i) k))))))
+          (ratLeRep_refl (ratMulRep k (ratSubRep b a)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 面积值随整条曲线平移
+-- ─────────────────────────────────────────────────────────────
+
+-- 三条并起来：下界的界由 `lowerSum_add_const_le` 给，上界的界由
+-- `upperSum_add_const_ge` 给，可积性由 `integrable_add_const` 给。
+theorem hasIntegral_add_const (a b : ratRep) (f : ratRep → ratRep)
+    (I k : ratRep) (h : HasIntegral a b f I) :
+    HasIntegral a b (fun (x : ratRep) => ratAddRep (f x) k)
+      (ratAddRep I (ratMulRep k (ratSubRep b a))) :=
+  And.intro
+    (fun (p : Partition) (L : ratRep) (hp : IsPartition a b p)
+        (hL : LowerSum a b p (fun (x : ratRep) => ratAddRep (f x) k) L) =>
+      lowerSum_add_const_le a b f I k L h p hp hL)
+    (And.intro
+      (fun (p : Partition) (U : ratRep) (hp : IsPartition a b p)
+          (hU : UpperSum a b p (fun (x : ratRep) => ratAddRep (f x) k) U) =>
+        upperSum_add_const_ge a b f I k U h p hp hU)
+      (integrable_add_const a b f k (hasIntegral_integrable a b f I h)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 常值曲线上的读数
+-- ─────────────────────────────────────────────────────────────
+
+-- 常值 c 的面积值是 `c(b-a)`；平移定理把它换成 `c(b-a) + k(b-a)`。
+theorem demo_hasIntegral_shift_const (a b c k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) => ratAddRep c k)
+      (ratAddRep (ratMulRep c (ratSubRep b a))
+        (ratMulRep k (ratSubRep b a))) :=
+  hasIntegral_add_const a b (fun (_ : ratRep) => c)
+    (ratMulRep c (ratSubRep b a)) k (hasIntegral_const a b c hab)

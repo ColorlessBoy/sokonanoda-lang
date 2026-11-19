@@ -1294,6 +1294,12 @@
               "title": "单元170 面积值的比较：曲线更高，面积不会更小",
               "title_en": "Unit 170 — Comparing Integral Values: A Higher Curve Has No Smaller Area",
               "unit": 170
+            },
+            {
+              "file": "units/III.9/unit171-integral-shift.sokonanoda",
+              "title": "单元171 面积值的平移：整条曲线抬高一块矩形",
+              "title_en": "Unit 171 — Shifting the Integral Value: Lifting the Whole Curve by a Rectangle",
+              "unit": 171
             }
           ]
         }
