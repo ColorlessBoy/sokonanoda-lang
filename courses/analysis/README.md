@@ -5,6 +5,8 @@
 
 ## 状态
 
+- **M5 单元169（2026-11-19）**：**面积值的符号**。169 问「曲线整条在轴上方，面积值会不会算出负数」。`HasIntegral` 用两组量词把候选值夹在所有分割的上下和之间，符号只能从其中一个和来比。曲线非负时，常值零台阶逐点垫在函数值下面，零是下界；零乘宽逐项为零，矩形和是零（`stepSum_zero`），所以零是下和（`lowerStep_nonneg` / `lowerSum_zero`）。下和不大于 I，于是 0 ≤ I（`hasIntegral_nonneg`）；曲线非正时同一句话翻过来，I ≤ 0（`upperStep_nonpos` / `upperSum_zero` / `hasIntegral_nonpos`）。两条论证都只用两切点分割。候选值换成相等的代表元不改变面积值（`hasIntegral_congr_value`），零曲线的读数于是从 0·(b−a) 落到 0（`hasIntegral_zero`）。正文 9 题，0 rejected；解答 9 checked、0 open。**引擎进库**：新建 `lib/IntegralSign`（9 条），`lib/Demo` 补 import 与一条自检。边界：只谈符号；面积值的加法仍缺「两个分割搬到同一组切点」的加细引擎。不新增公理，也不碰 kernel/front。
+
 - **M5 单元168（2026-11-19）**：**面积值的取负**。168 问「把曲线翻到轴下方，面积值怎么变」：`HasIntegral` 有两组量词，取负把「下和」与「上和」互换。一段上，`-f` 的下界取负是 `f` 的上界（`upperStep_neg_rev`），上和同理（`lowerStep_neg_rev`）；矩形和的负号由 `stepSum_neg` 搬到外面，于是 `-f` 的下和取负是 `f` 的上和（`lowerSum_neg_rev` / `upperSum_neg_rev`）；`hasIntegral_neg` 把两边接起来，面积值变成 `-I`。常值曲线的负数读数是 `-(k·(b−a))`（`hasIntegral_neg_const`）。正文 6 题，0 rejected；解答 6 checked、0 open。**引擎进库**：新建 `lib/IntegralValueNeg`（6 条），`lib/Demo` 补 import 与一条自检。边界：只做取负；加法与数乘要用乘积对同余因子的不变性，课程库还没有这条引擎。不新增公理，也不碰 kernel/front。
 
 - **M5 单元167（2026-11-19）**：**面积值：把上下和钉在同一个数上**。167 问「可积性只说上下和能靠得任意近，这块面积到底是不是一个数」。把候选值写成 `HasIntegral a b f I`：I 不低于任何分割的下和、不高于任何分割的上和，并且 f 可积。三条投影给出可积性与两侧的界；`sub_le_of_pin` 说明同一个分割夹住两个候选时，它们的差被这个分割的宽度压住；于是可积性给的那个窄分割把两个候选同时夹住，`hasIntegral_unique` 收出 `ratRel I J`。常值曲线给出第一个读数：任何下界不超过 k、任何上界不小于 k，故 `hasIntegral_const` 的值是 k·(b−a)。正文 1 定义 + 6 题，0 rejected；解答 7 checked、0 open。**引擎进库**：新建 `lib/IntegralValue`（7 条），`lib/Demo` 补 import 与一条自检。边界：只断言「若有这样的数，它是谁」；存在性要有理数的完备性，留到 FTC 与综合单元。不新增公理，也不碰 kernel/front。

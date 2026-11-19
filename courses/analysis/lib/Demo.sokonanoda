@@ -83,6 +83,7 @@ import lib.IntegralValueNeg
 import lib.RatArch
 import lib.IntegralStrip
 import lib.IntegralMesh
+import lib.IntegralSign
 
 theorem demo_lib_closure : True := True.intro
 
@@ -551,3 +552,7 @@ theorem demo_lib_hasIntegral_neg_const (a b k : ratRep) (hab : ratLtRep a b) :
     HasIntegral a b (fun (_ : ratRep) => ratNegRep k)
       (ratNegRep (ratMulRep k (ratSubRep b a))) :=
   hasIntegral_neg_const a b k hab
+
+theorem demo_lib_hasIntegral_zero (a b : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) => ratZeroRep) ratZeroRep :=
+  hasIntegral_zero a b hab
