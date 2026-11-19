@@ -5,6 +5,8 @@
 
 ## 状态
 
+- **M5 单元170（2026-11-19）**：**面积值的比较**。170 问「曲线处处更高，面积值会不会反而更小」。面积值只是夹在上下和之间的一个数，两个这样的数要比较，只能回到那些和。`sub_le_sub` 先把两条不等式相减；`hasIntegral_mono` 对任意正 ε 取出 g 的窄分割，g 的上界也是 f 的上界（`upperSum_mono_fun`），所以 I ≤ U，而 L ≤ J，于是 I−J ≤ U−L < ε，`ratLeRep_of_sub_le_all` 收成 I ≤ J。常数界是推论：`hasIntegral_le_const` / `hasIntegral_const_le`，两条合成 `hasIntegral_bounds`；逐点相等的曲线有同一个面积值（`hasIntegral_congr_fun`）。正文 6 题，0 rejected；解答 6 checked、0 open。**引擎进库**：新建 `lib/IntegralMono`（6 条），`lib/Demo` 补 import 与两条自检。边界：只比较已经存在的面积值，不证存在性，也不构造积分函数；面积值的加法仍缺「两个分割搬到同一组切点」的加细引擎。不新增公理，也不碰 kernel/front。
+
 - **M5 单元169（2026-11-19）**：**面积值的符号**。169 问「曲线整条在轴上方，面积值会不会算出负数」。`HasIntegral` 用两组量词把候选值夹在所有分割的上下和之间，符号只能从其中一个和来比。曲线非负时，常值零台阶逐点垫在函数值下面，零是下界；零乘宽逐项为零，矩形和是零（`stepSum_zero`），所以零是下和（`lowerStep_nonneg` / `lowerSum_zero`）。下和不大于 I，于是 0 ≤ I（`hasIntegral_nonneg`）；曲线非正时同一句话翻过来，I ≤ 0（`upperStep_nonpos` / `upperSum_zero` / `hasIntegral_nonpos`）。两条论证都只用两切点分割。候选值换成相等的代表元不改变面积值（`hasIntegral_congr_value`），零曲线的读数于是从 0·(b−a) 落到 0（`hasIntegral_zero`）。正文 9 题，0 rejected；解答 9 checked、0 open。**引擎进库**：新建 `lib/IntegralSign`（9 条），`lib/Demo` 补 import 与一条自检。边界：只谈符号；面积值的加法仍缺「两个分割搬到同一组切点」的加细引擎。不新增公理，也不碰 kernel/front。
 
 - **M5 单元168（2026-11-19）**：**面积值的取负**。168 问「把曲线翻到轴下方，面积值怎么变」：`HasIntegral` 有两组量词，取负把「下和」与「上和」互换。一段上，`-f` 的下界取负是 `f` 的上界（`upperStep_neg_rev`），上和同理（`lowerStep_neg_rev`）；矩形和的负号由 `stepSum_neg` 搬到外面，于是 `-f` 的下和取负是 `f` 的上和（`lowerSum_neg_rev` / `upperSum_neg_rev`）；`hasIntegral_neg` 把两边接起来，面积值变成 `-I`。常值曲线的负数读数是 `-(k·(b−a))`（`hasIntegral_neg_const`）。正文 6 题，0 rejected；解答 6 checked、0 open。**引擎进库**：新建 `lib/IntegralValueNeg`（6 条），`lib/Demo` 补 import 与一条自检。边界：只做取负；加法与数乘要用乘积对同余因子的不变性，课程库还没有这条引擎。不新增公理，也不碰 kernel/front。

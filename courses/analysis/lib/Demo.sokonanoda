@@ -84,6 +84,7 @@ import lib.RatArch
 import lib.IntegralStrip
 import lib.IntegralMesh
 import lib.IntegralSign
+import lib.IntegralMono
 
 theorem demo_lib_closure : True := True.intro
 
@@ -556,3 +557,17 @@ theorem demo_lib_hasIntegral_neg_const (a b k : ratRep) (hab : ratLtRep a b) :
 theorem demo_lib_hasIntegral_zero (a b : ratRep) (hab : ratLtRep a b) :
     HasIntegral a b (fun (_ : ratRep) => ratZeroRep) ratZeroRep :=
   hasIntegral_zero a b hab
+
+theorem demo_lib_hasIntegral_mono (a b : ratRep) (f g : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b g J)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x)) :
+    ratLeRep I J :=
+  hasIntegral_mono a b f g I J hI hJ hfg
+
+theorem demo_lib_hasIntegral_bounds (a b : ratRep) (f : ratRep → ratRep)
+    (I lo hi : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hlo : ∀ (x : ratRep), ratLeRep lo (f x))
+    (hhi : ∀ (x : ratRep), ratLeRep (f x) hi) :
+    ratLeRep (ratMulRep lo (ratSubRep b a)) I ∧
+      ratLeRep I (ratMulRep hi (ratSubRep b a)) :=
+  hasIntegral_bounds a b f I lo hi hab h hlo hhi

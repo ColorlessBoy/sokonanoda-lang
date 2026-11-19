@@ -1288,6 +1288,12 @@
               "title": "单元169 面积值的符号：非负曲线不会算出负面积",
               "title_en": "Unit 169 — The Sign of the Integral Value: Nonnegative Curves Give Nonnegative Area",
               "unit": 169
+            },
+            {
+              "file": "units/III.9/unit170-integral-mono.sokonanoda",
+              "title": "单元170 面积值的比较：曲线更高，面积不会更小",
+              "title_en": "Unit 170 — Comparing Integral Values: A Higher Curve Has No Smaller Area",
+              "unit": 170
             }
           ]
         }

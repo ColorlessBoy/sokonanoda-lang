@@ -1,0 +1,130 @@
+-- 课程库：面积值的比较（单元170 的引擎）
+--
+-- 两条曲线在同一条区间上，一条处处不低于另一条，它们的面积值也按同一个
+-- 方向排列。面积值不能直接相减，只能回到上下和：可积性给一条很窄的分割，
+-- 高曲线的上界也是低曲线的上界，低曲线的下界也是高曲线的下界，两条不等式
+-- 相减，差的差就被这条分割的宽度压住。
+--
+--   · `sub_le_sub` —— 两条不等式相减；
+--   · `hasIntegral_mono` —— 曲线更高，面积值不会更小；
+--   · `hasIntegral_le_const` / `hasIntegral_const_le` —— 常数上界与下界；
+--   · `hasIntegral_bounds` —— 两条常数界合成一对；
+--   · `hasIntegral_congr_fun` —— 逐点相等的曲线有同一个面积值。
+--
+-- 边界：只比较已经存在的面积值，不证存在性，也不构造积分函数。函数取
+-- `ratRep → ratRep`，停在有理代表元层。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatHalf
+import lib.RatSub
+import lib.Cauchy
+import lib.LimitLe
+import lib.Integral
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralValue
+
+-- ─────────────────────────────────────────────────────────────
+-- 两条不等式相减
+-- ─────────────────────────────────────────────────────────────
+
+-- 从 `I ≤ U` 出发，两边同加 `-J`，得到 `I - J ≤ U - J`；从 `L ≤ J` 出发，
+-- 取负翻成 `-J ≤ -L`，两边同加 `U`，得到 `U - J ≤ U - L`。两段接起来。
+theorem sub_le_sub (I U L J : ratRep) (hIU : ratLeRep I U)
+    (hLJ : ratLeRep L J) :
+    ratLeRep (ratSubRep I J) (ratSubRep U L) :=
+  ratLeRep_trans (ratSubRep I J) (ratSubRep U J) (ratSubRep U L)
+    (ratLeRep_add_right I U (ratNegRep J) hIU)
+    (ratLeRep_add_left (ratNegRep J) (ratNegRep L) U
+      (ratLeRep_neg_gen L J hLJ))
+
+-- ─────────────────────────────────────────────────────────────
+-- 面积值的比较
+-- ─────────────────────────────────────────────────────────────
+
+-- 可积性给一个分割，它的上和 `U` 与下和 `L` 相差不到 ε。`g` 的上界原样
+-- 也是 `f` 的上界，所以面积值 `I` 不超过 `U`；`f` 的下界原样也是 `g` 的
+-- 下界，所以 `L` 不超过面积值 `J`。两条不等式相减，`I - J` 被 `U - L`
+-- 压住，而后者小于 ε。ε 任意，故 `I ≤ J`。
+theorem hasIntegral_mono (a b : ratRep) (f g : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b g J)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x)) :
+    ratLeRep I J :=
+  ratLeRep_of_sub_le_all I J
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+      Exists.elim (hasIntegral_integrable a b g J hJ eps heps)
+        (fun (p : Partition)
+            (hp : IsPartition a b p ∧
+              ∃ (L : ratRep), ∃ (U : ratRep),
+                LowerSum a b p g L ∧ UpperSum a b p g U ∧
+                  ratLtRep (ratSubRep U L) eps) =>
+          Exists.elim (And.right hp)
+            (fun (L : ratRep)
+                (hL : ∃ (U : ratRep),
+                  LowerSum a b p g L ∧ UpperSum a b p g U ∧
+                    ratLtRep (ratSubRep U L) eps) =>
+              Exists.elim hL
+                (fun (U : ratRep)
+                    (hU : LowerSum a b p g L ∧ UpperSum a b p g U ∧
+                      ratLtRep (ratSubRep U L) eps) =>
+                  ratLeRep_trans (ratSubRep I J) (ratSubRep U L) eps
+                    (sub_le_sub I U L J
+                      (hasIntegral_upper a b f I hI p U (And.left hp)
+                        (upperSum_mono_fun a b p f g U hfg
+                          (And.left (And.right hU))))
+                      (hasIntegral_lower a b g J hJ p L (And.left hp)
+                        (And.left hU)))
+                    (ratLtRep_le (ratSubRep U L) eps
+                      (And.right (And.right hU)))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 常数界
+-- ─────────────────────────────────────────────────────────────
+
+-- 常值曲线 `k` 的面积值是 `k·(b-a)`。曲线不超过 `k`，就是它不高于这条
+-- 常值曲线，比较给出 `I ≤ k·(b-a)`。
+theorem hasIntegral_le_const (a b : ratRep) (f : ratRep → ratRep)
+    (I k : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hfk : ∀ (x : ratRep), ratLeRep (f x) k) :
+    ratLeRep I (ratMulRep k (ratSubRep b a)) :=
+  hasIntegral_mono a b f (fun (_ : ratRep) => k) I
+    (ratMulRep k (ratSubRep b a)) h (hasIntegral_const a b k hab) hfk
+
+-- 下界反过来：曲线不低于常值 `k`，常值曲线的面积值不超过 `I`。
+theorem hasIntegral_const_le (a b : ratRep) (f : ratRep → ratRep)
+    (I k : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hkf : ∀ (x : ratRep), ratLeRep k (f x)) :
+    ratLeRep (ratMulRep k (ratSubRep b a)) I :=
+  hasIntegral_mono a b (fun (_ : ratRep) => k) f
+    (ratMulRep k (ratSubRep b a)) I (hasIntegral_const a b k hab) h hkf
+
+-- 把两条界合成一对：下界 `lo` 给出左端，上界 `hi` 给出右端。
+theorem hasIntegral_bounds (a b : ratRep) (f : ratRep → ratRep)
+    (I lo hi : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hlo : ∀ (x : ratRep), ratLeRep lo (f x))
+    (hhi : ∀ (x : ratRep), ratLeRep (f x) hi) :
+    ratLeRep (ratMulRep lo (ratSubRep b a)) I ∧
+      ratLeRep I (ratMulRep hi (ratSubRep b a)) :=
+  And.intro
+    (hasIntegral_const_le a b f I lo hab h hlo)
+    (hasIntegral_le_const a b f I hi hab h hhi)
+
+-- ─────────────────────────────────────────────────────────────
+-- 逐点相等
+-- ─────────────────────────────────────────────────────────────
+
+-- 逐点相等的两条曲线各比一次：`I ≤ J` 与 `J ≤ I`，反对称性把两个候选
+-- 收成一个。等号两边都先换成非严格序，比较的引擎不必知道等号。
+theorem hasIntegral_congr_fun (a b : ratRep) (f g : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b g J)
+    (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :
+    ratRel I J :=
+  ratLeRep_antisymm I J
+    (hasIntegral_mono a b f g I J hI hJ
+      (fun (x : ratRep) => ratLeRep_of_ratRel (f x) (g x) (hfg x)))
+    (hasIntegral_mono a b g f J I hJ hI
+      (fun (x : ratRep) =>
+        ratLeRep_of_ratRel (g x) (f x)
+          (ratRel_symm (f x) (g x) (hfg x))))
