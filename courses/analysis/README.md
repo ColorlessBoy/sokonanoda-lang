@@ -5,6 +5,8 @@
 
 ## 状态
 
+- **M5 单元166（2026-11-18）**：**一致连续函数可积**。166 把网格细化与台阶估计接起来：给定 ε，阿基米德性质取 N 使 2(b−a) < N（`exists_nat_gt_double`），令 η=ε/N；一致连续给网格 δ，等分分割给每段短于 δ 的分割（`exists_mesh_partition`）；`strip_of_mesh` 把曲线夹在两条台阶之间，差是 2η(b−a)；`div_gap_lt` 把它压到 ε 以下，于是 `Integrable a b f`（`uniformlyContinuous_integrable`）。恒等函数是样本（`demo_integrable_id`）。正文 5 题，0 rejected；解答 5 checked、0 open。**引擎进库**：新建 `lib/IntegralContinuous`（4 条）。边界：一致连续是假设；闭区间上的逐点连续要一致连续（Heine–Cantor）需要紧性或完备性，课程目前的完备性只到代表元层的 Cauchy 序列。不新增公理，也不碰 kernel/front。
+
 - **M5 单元164（2026-11-18）**：**细分割上的振幅**。164 问「一致连续怎么落到分割的每一段上」：一段里任意一点到左端点的距离不超过段宽，所以只要每段都短于 δ，函数值与左端点处的值之差就小于 η（`close_point_left`）。于是每段上方架 `f(左端点)+η`、下方垫 `f(左端点)-η`，两条台阶确实是上界与下界（`upperStep_leftUpper` / `lowerStep_leftLower`）；两条台阶的矩形和之差是两段 η 乘区间长度（`stepSum_left_gap`），一对台阶夹住曲线（`strip_of_mesh`）。常数曲线在两点分割上的读数是 1（`demo_twoPoint_half`）。正文 8 题，0 rejected；解答 11 checked、0 open。**引擎进库**：新建 `lib/IntegralStrip`（细分割、两条台阶、三条界与差公式，10 条），`lib/Demo` 补 import 与两条自检。边界：分割固定不动，只做估计，不构造分割；一致连续 ⇒ 可积还差「把区间等分」这一步，留给下一单元。不新增公理，也不碰 kernel/front。
 
 - **M5 单元163（2026-11-18）**：**阿基米德性质**。163 问「要把区间切得足够细，切多细才够」——这要求一个正数反复相加能超过区间长度。先把「一个有理数不超过另一个」翻译成整数乘法的大小比较：`0 ≤ (p-q)/(m+1)` 当且仅当分子第二格不超过第一格（`ratLeRep_zero_lit`），正性再把第二格压低一格（`ratLtRep_zero_num`）。倍数取 n = (r+1)(m+1)，代进交叉相乘的形式后，待证的不等式化成「u(m+1) ≤ n(k+1)(j+1)」，由 u ≤ r < r+1 ≤ n 与两个至少为 1 的因子乘出来（`arch_le_lit` / `arch_le`）；严格版本把待超过的量换成它加一（`arch_lt_of_nonneg`），2·(1/2) = 1 给出可算读数（`demo_arch_two`）。正文 7 题，0 rejected；解答 26 checked、0 open。**引擎进库**：新建 `lib/RatArch`（比较、ℕ 算术、交叉相乘的估计与主定理，26 条），`lib/Demo` 补 import 与两条自检。边界：只证倍数能超过，不构造倒数，也不谈倍数能任意接近某个数；停在有理代表元层。不新增公理，也不碰 kernel/front。

@@ -1247,6 +1247,12 @@
               "title": "单元165 等分分割：把区间切得足够细",
               "title_en": "Unit 165 — Uniform Partitions: Cutting the Interval Fine Enough",
               "unit": 165
+            },
+            {
+              "file": "units/III.8/unit166-uniformly-continuous-integrable.sokonanoda",
+              "title": "单元166 一致连续函数可积：把误差分给段数",
+              "title_en": "Unit 166 — Integrability of Uniformly Continuous Functions: Sharing the Error Among Segments",
+              "unit": 166
             }
           ]
         }
