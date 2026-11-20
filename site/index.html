@@ -187,7 +187,7 @@ code sokonanoda-lang/courses/quick-start/unit1-propositions-proofs.sokonanoda</p
       <h2><span class="num">03</span><span data-i18n="coursesHeading">教材</span></h2>
 
       <p data-i18n="coursesIntro">
-        两门课，都在仓库里，都能离线做：每个单元是一份<strong>可编译的画布</strong>
+        三门课，都在仓库里，都能离线做：每个单元是一份<strong>可编译的画布</strong>
         （讲解 + 带 <code>sorry</code> 的练习 + 提示），旁边配一份同构的解答。
       </p>
 
@@ -215,6 +215,17 @@ code sokonanoda-lang/courses/quick-start/unit1-propositions-proofs.sokonanoda</p
           <p class="goto">
             <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/courses/set-theory" data-i18n="course2link">打开 <code>courses/set-theory/</code></a>
             <span class="tag" data-i18n="course2tag">13 章 · 112 个单元</span>
+          </p>
+        </li>
+        <li>
+          <h3 data-i18n="course3t">卷 II/III《从集合论到实分析》</h3>
+          <p data-i18n="course3p">
+            从 ℤ、ℚ、ℝ 的构造出发，经过序列与级数、连续与微分，走到 Riemann 积分。
+            两卷 16 章、171 个单元画布，配课程标准库与同构解答。
+          </p>
+          <p class="goto">
+            <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/agent/real-analysis-integration/courses/analysis" data-i18n="course3link">预览 <code>courses/analysis/</code></a>
+            <span class="tag" data-i18n="course3tag">2 卷 · 16 章 · 171 个单元</span>
           </p>
         </li>
       </ul>
@@ -312,7 +323,7 @@ code sokonanoda-lang/courses/quick-start/unit1-propositions-proofs.sokonanoda</p
   "step3t": "Turn sorry into a proof",
   "step3p": "Put the caret on <code>sorry</code> to see the goal, then write line by line: the kernel lets you through when it is right and says what is wrong when it is not. Stuck? Read the hints in the file, or open the solution next to it.",
   "coursesHeading": "Courses",
-  "coursesIntro": "Two courses, both in the repository and both usable offline: every unit is a <strong>compilable canvas</strong> (explanations + exercises with <code>sorry</code> + hints) with a matching solution beside it.",
+  "coursesIntro": "Three courses, all in the repository and all usable offline: every unit is a <strong>compilable canvas</strong> (explanations + exercises with <code>sorry</code> + hints) with a matching solution beside it.",
   "course1t": "Intro course · eleven units",
   "course1p": "From \"propositions and proof terms\" and \"equality and <code>rfl</code>\" through functions, <code>by</code> tactics, universes, induction and recursion, quantifiers, relations and connectives, and finally modules and projects. Start here if formal proofs are new to you.",
   "course1link": "Open <code>courses/quick-start/</code>",
@@ -321,6 +332,10 @@ code sokonanoda-lang/courses/quick-start/unit1-propositions-proofs.sokonanoda</p
   "course2p": "13 chapters, 112 unit canvases: sets, subsets and set operations → relations, functions and cardinality → order relations and ordinals → the axiom of choice and ZF → set algebra → the algebra of relations. Comes with a course library <code>lib/</code> (lemma names taken from Mathlib) and runs all the way to Cantor's theorem and Russell's paradox. Do the intro course first.",
   "course2link": "Open <code>courses/set-theory/</code>",
   "course2tag": "13 chapters · 112 units",
+  "course3t": "Volumes II–III: From Set Theory to Real Analysis",
+  "course3p": "From the construction of ℤ, ℚ and ℝ through sequences and series, continuity and differentiation, to the Riemann integral. Two volumes, 16 chapters and 171 unit canvases, with a course library and matching solutions.",
+  "course3link": "Preview <code>courses/analysis/</code>",
+  "course3tag": "2 volumes · 16 chapters · 171 units",
   "lean4Heading": "How it relates to Lean 4",
   "lean4p1": "The teaching syntax here is a <strong>subset of real Lean 4</strong>: <code>∀ ∃ ∧ ∨ ¬ → ↔</code>, notation such as <code>a ∈ A</code> / <code>A ⊆ B</code> / <code>A ∩ B</code>, <code>by</code> with <code>intro</code> / <code>exact</code> / <code>apply</code> / <code>cases</code> / <code>constructor</code>, inductive types and recursion, universes <code>Type u</code>, multi-file <code>import</code> — all written the way Lean 4 writes them.",
   "lean4p2": "The difference is <strong>scope</strong>: only the part one lesson needs is here (no type classes, no tactic macros, no mathlib), and the verdict comes from this project's kernel. So <strong>what you practise here holds in Lean 4</strong>; where it does not, the documentation says so.",
