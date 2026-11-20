@@ -64,9 +64,13 @@ fn frontmatter_value(frontmatter: &str, key: &str) -> Option<String> {
 /// Path-like tokens the skills may point at; each must exist in the repo.
 /// `scripts/` is included because the harness-neutral launcher (`scripts/soko`)
 /// is the command every skill is written against (docs/design/deepseek-harness.md).
-const PATH_PREFIXES: [&str; 6] = [
+/// The analysis course is checked alongside the intro course: the teacher skill
+/// points learners at its canvases and solutions, so a renamed unit must fail
+/// this guard instead of leaving a dead path in the skill.
+const PATH_PREFIXES: [&str; 7] = [
     "docs/",
     "courses/quick-start/",
+    "courses/analysis/",
     "crates/",
     "examples/",
     "skills/",
