@@ -1,7 +1,7 @@
 ## M6 P4：教师路径核对与文档修正（2026-11-20 · issue #22）
-- 零 cargo 路径实测通过。`scripts/soko setup` rc=0，`doctor --json` 报 `ready:true`（v0.98.4）；`grade playground.sokonanoda --json` rc=0，得 23 条 `decl.checked`、4 条 `exercise.open` 与 1 条 `reserved-declaration-name` warning（画布自带的 `Prop` 占位）；`query hints --line 376 --col 3` 返回三条提示，旧示例行 323 返回空数组。
-- 分析课同一条路。`grade units/II.1/unit10-int-mul-identity.sokonanoda --json` rc=0（11 checked、4 open），`query holes` 四个洞，第 65 行取到三条提示；解答 `units/solutions/II.1/unit10-solution.sokonanoda` rc=0（15 checked、0 open）；`course courses/analysis/course.json --json` 报 171 单元、0 failed。
-- 只改 `skills/sokonanoda-teacher/SKILL.md`，补上学习者路径（setup → 画布 → grade → hints → solution）、分析课 course 命令与解答目录、`project` MCP 工具，并把 hints 示例行 323 改成 376，行号漂移先找 `sorry` 行。
+- 零 cargo 路径实测通过。`setup` rc=0，`doctor --json` 报 `ready:true`（v0.98.4）；`grade playground.sokonanoda --json` rc=0（23 checked、4 open、1 条 `reserved-declaration-name` warning，画布自带的 `Prop` 占位）；`query hints --line 376 --col 3` 三条，旧行 323 空数组。
+- 分析课同一条路。`unit10-int-mul-identity.sokonanoda` rc=0（11 checked、4 open），`query holes` 四个洞，第 65 行三条提示；解答 `unit10-solution.sokonanoda` rc=0（15 checked、0 open）；技能举例的 `unit01-int-quotient.sokonanoda` 同样 rc=0（5 checked、4 open）；`course .../analysis/course.json --json` 报 171 单元、0 failed。
+- 只改 `skills/sokonanoda-teacher/SKILL.md`：补学习者路径（setup → 画布 → grade → hints → solution）、分析课 course 命令与解答目录、`project` MCP 工具，hints 示例行 323 → 376；解答文件名按实测改成「以 `-solution.sokonanoda` 结尾」（171 个里只有 13 个恰好是 `unitNN-solution.sokonanoda`）。
 - 门禁复跑全绿，`check.py --json` 报 457 目标、4512 checked、0 rejected、0 solutions_open、0 lib_open，`notation-lint` 扫 470 文件、15 处豁免，`cargo test -p sokonanoda-cli --test skill` 5/5，`docs-lint` 与 `status-lint` 均 rc=0。
 - 边界：只核对路径与改文档；未动课程内容、kernel/front；书页与双语仍未开工。
 ## M6 P2：文档对齐 171/171 与 M6 状态（2026-11-20 · issue #22）

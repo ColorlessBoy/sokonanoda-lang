@@ -379,7 +379,8 @@ warning；**failed** 声明才不进环境。后续声明仍会被检查并得�
 共享库的单元也认，见 §1）；`courses/set-theory/units/solutions/`、
 `courses/analysis/units/solutions/` 与 `courses/quick-start/solutions/` 有全部练习的、
 经完整内核验证的钥匙。分析课的画布在 `courses/analysis/units/<章>/`，解答按章放在
-`courses/analysis/units/solutions/<章>/`，文件名是 `unitNN-solution.sokonanoda`。
+`courses/analysis/units/solutions/<章>/`，文件名以 `-solution.sokonanoda` 结尾
+（常见 `unitNN-solution.sokonanoda`，带主题后缀的如 `unit14-leNat-cancel-solution.sokonanoda`）。
 **agent 专用**：用于核对「这题确实可解」和给多层提示；只有用户明确要求
 答案、或同一关卡反复卡住（≥3 轮）时才逐层揭底，永远不要一次性贴出
 完整钥匙。
