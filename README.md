@@ -88,17 +88,17 @@ platform-specific package ships both the language server and the `sokonanoda`
 CLI, so checking, the goal view and the course map work offline out of the
 box.
 
-**In this repo**: the `sokonanoda` binary is the single entrypoint (the
-opencode plugin provisions it and puts it on PATH; contributors can
-`cargo build -p sokonanoda-cli` and run `target/debug/sokonanoda`). Design:
-`docs/design/binary-cli.md`（**已删档**，原文 ⇒ `git log --all -- docs/design/binary-cli.md`）.
+**In this repo**: `scripts/soko` is the harness-neutral entrypoint (version-matched
+build, cache, extension, or pinned download). Design: `docs/design/binary-cli.md`
+(archived; see `git log --all -- docs/design/binary-cli.md`).
 
 ```bash
-sokonanoda setup && sokonanoda doctor
+scripts/soko setup && scripts/soko doctor
 ```
 
-opencode users get the same via `/sokonanoda/setup` + `/sokonanoda/doctor`
-(the startup plugin provisions automatically and puts the binaries on PATH).
+With the binaries on PATH (the opencode plugin does this), `sokonanoda setup` and
+`sokonanoda doctor` behave the same; opencode also has `/sokonanoda/setup` +
+`/sokonanoda/doctor`.
 
 **Command line / agents**: download the version-pinned binaries from GitHub
 Releases (the tarballs contain runnable executables — no cargo, no checkout):

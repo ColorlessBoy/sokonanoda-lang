@@ -1,7 +1,7 @@
 ## M6 P4：教师路径核对与文档修正（2026-11-20 · issue #22）
 - 零 cargo 路径实测：`setup` rc=0，`doctor --json` 报 `ready:true`（v0.98.4）；`grade playground.sokonanoda --json` rc=0（23 checked、4 open、1 条 `reserved-declaration-name` warning，画布自带的 `Prop` 占位）；`query hints --line 376 --col 3` 三条，旧行 323 空数组。
 - 分析课同一条路：`unit10-int-mul-identity` rc=0（11 checked、4 open），`query holes` 四个洞，第 65 行三条提示；解答 rc=0（15 checked、0 open）；`unit01-int-quotient` rc=0（5 checked、4 open）；`course courses/analysis/course.json --json` 报 171 单元、0 failed。
-- 只改 `skills/sokonanoda-teacher/SKILL.md` 与 `docs/teaching-session.md`：补学习者路径、分析课 course 命令与解答目录、`project` MCP 工具，hints 示例行 323 → 376；解答文件名按实测改成「以 `-solution.sokonanoda` 结尾」（171 个里只有 13 个恰好是 `unitNN-solution.sokonanoda`）。开课手册改用 `scripts/soko grade`，补三门课解答目录。
+- 改 `README.md`、`skills/sokonanoda-teacher/SKILL.md` 与 `docs/teaching-session.md`：仓库内的零 cargo 起点改成 `scripts/soko setup`（不再假设 `sokonanoda` 已在 PATH）；补学习者路径、分析课 course 命令与解答目录、`project` MCP 工具，hints 示例行 323 → 376；解答文件名按实测改成「以 `-solution.sokonanoda` 结尾」（171 个里只有 13 个恰好是 `unitNN-solution.sokonanoda`）。开课手册改用 `scripts/soko grade`，补三门课解答目录。
 - 门禁：`check.py --json` 457 目标、4512 checked、0 rejected、0 solutions_open、0 lib_open；`notation-lint` 470 文件、15 处豁免；`cargo test -p sokonanoda-cli --test skill` 5/5；`docs-lint`、`status-lint` rc=0。
 - 边界：只核对路径与改文档；未动课程内容、kernel/front；书页与双语仍未开工。
 ## M6 P2：文档对齐 171/171 与 M6 状态（2026-11-20 · issue #22）
