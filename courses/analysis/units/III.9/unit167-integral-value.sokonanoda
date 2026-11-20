@@ -1,0 +1,108 @@
+-- 单元167 面积值：把上下和钉在同一个数上
+--
+-- 可积性说上和与下和能靠得任意近，可是「这块面积是多少」还没有答案。一列
+-- 越来越窄的区间围住的是一个数，还是一族数？如果围住的是一个数，它该满足
+-- 什么条件？
+--
+-- 一个候选值 I 要同时满足三件事：它不低于任何分割的下和，不高于任何分割
+-- 的上和，并且曲线可积。前两条把它钉在所有分割之间，第三条保证这些分割
+-- 之间的缝能任意窄。这样的 I 至多有一个：可积性给一个缝比 ε 窄的分割，
+-- 两个候选同时被这个分割夹住，它们的差就不超过 ε。
+--
+-- 常值曲线给出第一个可算的读数。k 的任何下界不超过 k，任何上界不小于 k，
+-- 所以 k·(b-a) 符合规格。
+--
+-- 这里没有断言这样的 I 一定存在。有理数里，一列越来越窄的区间可以围住一
+-- 个无理数；上下和共同靠近的数未必落在有理数里。存在性要等实数完备性，
+-- 而唯一性已经让「面积值」成为一个确定的对象：若它存在，它是谁已经定死。
+--
+-- 函数取 ratRep → ratRep，停在有理代表元层；不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatSub
+import lib.RatRing
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+
+-- ─────────────────────────────────────────────────────────────
+-- 面积值
+-- ─────────────────────────────────────────────────────────────
+
+-- 一个数 I 是曲线在 [a,b] 上的面积值，当它夹在所有分割的上下和之间，并且
+-- 曲线确实可积。两条「所有分割」把数钉住，可积性保证这些区间能任意窄；
+-- 缺了后者，任何小于所有下和的数都能混进来。
+def HasIntegral (a b : ratRep) (f : ratRep → ratRep) (I : ratRep) : Prop :=
+  (∀ (p : Partition) (L : ratRep),
+    IsPartition a b p → LowerSum a b p f L → ratLeRep L I) ∧
+  (∀ (p : Partition) (U : ratRep),
+    IsPartition a b p → UpperSum a b p f U → ratLeRep I U) ∧
+  Integrable a b f
+
+-- ─────────────────────────────────────────────────────────────
+-- 三条投影
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：面积值是三件事的合取，可积性排在最后一块；两块 `And.right` 把它取出来。
+-- soko:hint 目标形态：`Integrable a b f`。
+-- soko:hint 关键件：And.right。
+theorem hasIntegral_integrable (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) : Integrable a b f :=
+  sorry
+
+-- soko:hint 思路：下界那条是第一块，直接交给 `And.left`。
+-- soko:hint 目标形态：`ratLeRep L I`。
+-- soko:hint 关键件：And.left。
+theorem hasIntegral_lower (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) (p : Partition) (L : ratRep)
+    (hp : IsPartition a b p) (hL : LowerSum a b p f L) :
+    ratLeRep L I :=
+  sorry
+
+-- soko:hint 思路：先取第二块（上界那条），再从中取出它的第一块。
+-- soko:hint 目标形态：`ratLeRep I U`。
+-- soko:hint 关键件：And.right · And.left。
+theorem hasIntegral_upper (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) (p : Partition) (U : ratRep)
+    (hp : IsPartition a b p) (hU : UpperSum a b p f U) :
+    ratLeRep I U :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个候选被同一个分割夹住
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先对 `I ≤ U` 两边减去 J；再从 `L ≤ J` 取负得 `-J ≤ -L`，在左边加 U 得 `U-J ≤ U-L`；两段传递一下就得到 `I-J ≤ U-L`，最后用 `U-L < ε` 收到 ε。
+-- soko:hint 目标形态：`ratLeRep (ratSubRep I J) eps`。
+-- soko:hint 关键件：ratLeRep_add_right · ratLeRep_neg_gen · ratLeRep_add_left · ratLeRep_trans · ratLtRep_le。
+theorem sub_le_of_pin (I J L U eps : ratRep)
+    (hLI : ratLeRep L I) (hIU : ratLeRep I U) (hLJ : ratLeRep L J)
+    (hgap : ratLtRep (ratSubRep U L) eps) :
+    ratLeRep (ratSubRep I J) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 唯一性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对每个正 ε，用 I 的可积性取一个缝小于 ε 的分割，它把 I 与 J 同时夹住（四个界分别来自两个候选），于是 `I-J ≤ ε`；ε 任意给出 `I ≤ J`。把 I 与 J 对调再走一遍得 `J ≤ I`，最后用反对称性收成 `ratRel`。
+-- soko:hint 目标形态：`ratRel I J`。
+-- soko:hint 关键件：ratLeRep_of_sub_le_all · sub_le_of_pin · hasIntegral_lower · hasIntegral_upper · hasIntegral_integrable · ratLeRep_antisymm。
+theorem hasIntegral_unique (a b : ratRep) (f : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b f J) :
+    ratRel I J :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 常值曲线
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把下和拆成一摞下界 l 与它的矩形和；逐段 l i ≤ k，所以 `stepSum l ≤ stepSum (常值 k)`，而后者等价于 `k·(b-a)`，沿等价关系搬过去。上界那条对称：逐段 k ≤ u，`stepSum (常值 k) ≤ stepSum u`，再把 `k·(b-a)` 与 U 接上。可积性交给 `integrable_const`。
+-- soko:hint 目标形态：`HasIntegral a b (fun _ => k) (ratMulRep k (ratSubRep b a))`。
+-- soko:hint 关键件：lowerSum_witness · upperSum_witness · stepSum_mono · stepSum_const · lowerStep_value · upperStep_value · ratLeRep_congr_gen · integrable_const。
+theorem hasIntegral_const (a b k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) => k)
+      (ratMulRep k (ratSubRep b a)) :=
+  sorry

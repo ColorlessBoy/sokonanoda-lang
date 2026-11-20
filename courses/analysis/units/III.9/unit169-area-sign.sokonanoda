@@ -1,0 +1,118 @@
+-- 单元169 面积值的符号：非负曲线不会算出负面积
+--
+-- 一条曲线如果整条都在轴上方，它的面积值会不会算出负数？直觉说不会，
+-- 但 HasIntegral 并没有把面积当成一块可以量的图形：它说的是候选值 I 夹在
+-- 所有分割的上下和之间。要确认符号，只能从这些和里取一个来比。
+--
+-- 取常值零台阶。曲线非负时，零逐段垫在函数值下面，所以零是一个下界；零乘
+-- 宽逐项为零，矩形和就是零，于是零是一个下和。下和不大于 I，符号就到手了。
+-- 曲线非正时把同一句话翻过来：零是上界，零是上和，I 不超过零。
+--
+-- 两条论证都只用两切点分割：区间非空时，切点 a、b 构成一个合法分割。最后
+-- 把候选值换成与它相等的代表元，零曲线的读数就从 0·(b-a) 落到 0。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatSub
+import lib.RatRing
+import lib.Cauchy
+import lib.Sum
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralValue
+
+-- ─────────────────────────────────────────────────────────────
+-- 零台阶的矩形和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把矩形和展开成有限和，每一项是 0 乘段宽；逐项用 `ratMul_zero_left` 换成 0，全零项的和由 `sumTo_zero_fun` 收口。
+-- soko:hint 目标形态：`ratRel (stepSum p (fun _ => ratZeroRep)) ratZeroRep`。
+-- soko:hint 关键件：sumTo_congr · ratMul_zero_left · sumTo_zero_fun。
+theorem stepSum_zero (p : Partition) :
+    ratRel (stepSum p (fun (_ : Nat) => ratZeroRep)) ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 零是下界，也是上和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：下界要在每一段、每一点不超过函数值；常值零台阶正好由非负假设逐点给出，段与点的前提用不上。
+-- soko:hint 目标形态：`LowerStep a b p f (fun _ => ratZeroRep)`。
+-- soko:hint 关键件：非负假设 `hf`。
+theorem lowerStep_nonneg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    LowerStep a b p f (fun (_ : Nat) => ratZeroRep) :=
+  sorry
+
+-- soko:hint 思路：下和是「一摞下界 + 这摞下界的矩形和」。零台阶已经是下界，`stepSum_zero` 把它的矩形和认成零，方向用 `ratRel_symm` 翻过来。
+-- soko:hint 目标形态：`LowerSum a b p f ratZeroRep`。
+-- soko:hint 关键件：lowerStep_nonneg · stepSum_zero · ratRel_symm。
+theorem lowerSum_zero (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    LowerSum a b p f ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：上界要在每一点压住函数值；曲线非正时零正是这样一个上界。
+-- soko:hint 目标形态：`UpperStep a b p f (fun _ => ratZeroRep)`。
+-- soko:hint 关键件：非正假设 `hf`。
+theorem upperStep_nonpos (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    UpperStep a b p f (fun (_ : Nat) => ratZeroRep) :=
+  sorry
+
+-- soko:hint 思路：零台阶作上界，矩形和由 `stepSum_zero` 收回零。
+-- soko:hint 目标形态：`UpperSum a b p f ratZeroRep`。
+-- soko:hint 关键件：upperStep_nonpos · stepSum_zero · ratRel_symm。
+theorem upperSum_zero (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    UpperSum a b p f ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 面积值的符号
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`HasIntegral` 的第一条量词说每个下和都不超过 I；两切点分割是合法分割，零是这条分割上的下和，于是 0 ≤ I。
+-- soko:hint 目标形态：`ratLeRep ratZeroRep I`。
+-- soko:hint 关键件：hasIntegral_lower · twoPoint_isPartition · lowerSum_zero。
+theorem hasIntegral_nonneg (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    ratLeRep ratZeroRep I :=
+  sorry
+
+-- soko:hint 思路：第二条量词说 I 不超过每个上和；同一条两切点分割上零是上和，于是 I ≤ 0。
+-- soko:hint 目标形态：`ratLeRep I ratZeroRep`。
+-- soko:hint 关键件：hasIntegral_upper · twoPoint_isPartition · upperSum_zero。
+theorem hasIntegral_nonpos (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    ratLeRep I ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 换一个相等的候选值
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：三条分量分别搬运。下界那半只换右边的候选值，上界那半只换左边的候选值；可积性不依赖候选值，原样保留。两边都用 `ratLeRep_congr_gen`。
+-- soko:hint 目标形态：`HasIntegral a b f J`。
+-- soko:hint 关键件：hasIntegral_lower · hasIntegral_upper · hasIntegral_integrable · ratLeRep_congr_gen。
+theorem hasIntegral_congr_value (a b : ratRep) (f : ratRep → ratRep)
+    (I J : ratRep) (h : HasIntegral a b f I) (hIJ : ratRel I J) :
+    HasIntegral a b f J :=
+  sorry
+
+-- soko:hint 思路：常值曲线的读数给候选值 0·(b-a)，把它用 `ratMul_zero_left` 换成 0，再交给候选值替换。
+-- soko:hint 目标形态：`HasIntegral a b (fun _ => ratZeroRep) ratZeroRep`。
+-- soko:hint 关键件：hasIntegral_const · ratMul_zero_left · hasIntegral_congr_value。
+theorem hasIntegral_zero (a b : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) => ratZeroRep) ratZeroRep :=
+  sorry

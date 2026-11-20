@@ -1,0 +1,111 @@
+-- 单元155 矩形和保持加法与取负：面积可以拆开算
+--
+-- 两块阶梯叠在同一组切点上，如果每一段的高度都写成两个高度之和，那么底下
+-- 的面积是不是正好等于两块面积之和？这个问题不能靠直觉回答：面积被定义成
+-- 一串乘积的和，而乘积只对一个因子分配，不会自动对两个高度函数分配。要把
+-- 它拆开，得先在一段上把乘积拆成两份，再把每一份分别求和。
+--
+-- 高度全为零时，每一项都是零乘宽，整条和为零。高度相加时，第 i 段的乘积
+-- 先换成两份乘积之和，有限和的加法律再把它们按段分开，收成两个矩形和。
+-- 高度取负时，乘积的负号可以搬到和的外面，因为取负对加法分配。有了加法与
+-- 取负两条，矩形和对高度就是一个加群同态：先拆高度再算面积，与先算面积再
+-- 拆，结果相同。差是加法的特例，于是同一高度减去自己，面积为零。
+--
+-- 边界：只谈同一个分割上的矩形和，不在两个分割之间作比较，也不谈加细；
+-- 高度取有理代表元，停在 `ratRep` 层。不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Cauchy
+import lib.RatSub
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.Sum
+import lib.RatRing
+import lib.RatMulSign
+import lib.DerivAlgebra
+
+-- ─────────────────────────────────────────────────────────────
+-- 矩形的宽与面积
+-- ─────────────────────────────────────────────────────────────
+
+-- 第 i 段的宽：右切点减左切点。段数记作 n 时，第 i 段只在 i < n 时存在。
+def segLen (p : Partition) (i : Nat) : ratRep :=
+  ratSubRep (partPoint p (Nat.succ i)) (partPoint p i)
+
+-- 阶梯函数的矩形和：每段的高度乘上那一段的宽，再把段数那么多项加起来。
+def stepSum (p : Partition) (c : Nat → ratRep) : ratRep :=
+  sumTo (fun (i : Nat) => ratMulRep (c i) (segLen p i)) (partCount p)
+
+-- ─────────────────────────────────────────────────────────────
+-- 零高度
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：逐项把 `0 · 宽` 换成 `0`，再用「全零项的和是零」。乘积那一步是左零元，方向正好是从 `0 · 宽` 到 `0`。
+-- soko:hint 目标形态：`ratRel (stepSum p (fun _ => 0)) 0`。
+-- soko:hint 关键件：sumTo_congr · ratMul_zero_left · sumTo_zero_fun · ratRel_trans_gen。
+theorem stepSum_zero (p : Partition) :
+    ratRel (stepSum p (fun (_ : Nat) => ratZeroRep)) ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 高度相加
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：第 i 段的乘积是 `(c i + d i) · 宽`。先交换乘法，把 `(c i + d i) · 宽` 写成 `宽 · (c i + d i)`，再用分配律拆成 `宽 · c i + 宽 · d i`，最后把两个因子各自换回 `c i · 宽` 与 `d i · 宽`。
+-- soko:hint 目标形态：`ratRel ((c i + d i) · 宽) (c i · 宽 + d i · 宽)`。
+-- soko:hint 关键件：ratMul_comm · ratMul_add · ratAddRep_wd_gen · ratAddRep_wd_snd_gen · ratRel_trans_gen。
+theorem segLen_mul_add (p : Partition) (c d : Nat → ratRep) (i : Nat) :
+    ratRel (ratMulRep (ratAddRep (c i) (d i)) (segLen p i))
+      (ratAddRep (ratMulRep (c i) (segLen p i))
+        (ratMulRep (d i) (segLen p i))) :=
+  sorry
+
+-- soko:hint 思路：把上一条逐项用一次，再用有限和的加法律把整条和按段分开。
+-- soko:hint 目标形态：`ratRel (stepSum p (fun i => c i + d i)) (stepSum p c + stepSum p d)`。
+-- soko:hint 关键件：sumTo_congr · segLen_mul_add · sumTo_add · ratRel_trans_gen。
+theorem stepSum_add (p : Partition) (c d : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratAddRep (c i) (d i)))
+      (ratAddRep (stepSum p c) (stepSum p d)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 高度取负
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：第 i 段的乘积是 `(-c i) · 宽`，取负与乘法的交换律把它换成 `-(c i · 宽)`；逐项换好之后，把取负搬到和外面的引理直接给出结论。
+-- soko:hint 目标形态：`ratRel (stepSum p (fun i => - c i)) (- stepSum p c)`。
+-- soko:hint 关键件：sumTo_congr · ratMul_neg_left · sumTo_neg · ratRel_trans_gen。
+theorem stepSum_neg (p : Partition) (c : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratNegRep (c i)))
+      (ratNegRep (stepSum p c)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 差是加法的特例
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：减法按定义是加上取负，于是 `stepSum (c - d)` 就是 `stepSum (c + (-d))`；加法律给出 `stepSum c + stepSum (-d)`，再把第二项沿取负律换成 `-stepSum d`。
+-- soko:hint 目标形态：`ratRel (stepSum p (fun i => c i - d i)) (stepSum p c - stepSum p d)`。
+-- soko:hint 关键件：stepSum_add · stepSum_neg · ratAddRep_wd_snd_gen · ratRel_trans_gen。
+theorem stepSum_sub (p : Partition) (c d : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratSubRep (c i) (d i)))
+      (ratSubRep (stepSum p c) (stepSum p d)) :=
+  sorry
+
+-- soko:hint 思路：先把差写成两个和相减，再把被减数与减数相同的那个差收成零。
+-- soko:hint 目标形态：`ratRel (stepSum p (fun i => c i - c i)) 0`。
+-- soko:hint 关键件：stepSum_sub · ratSubRep_self · ratRel_trans_gen。
+theorem demo_stepSum_cancel (p : Partition) (c : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratSubRep (c i) (c i))) ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：把高度加上零不改变高度，矩形和沿加法律分成原和与零和两块，再用零高度那一条把第二块收掉，最后右零元收尾。
+-- soko:hint 目标形态：`ratRel (stepSum p (fun i => c i + 0)) (stepSum p c)`。
+-- soko:hint 关键件：stepSum_add · stepSum_zero · ratAddRep_wd_snd_gen · ratAdd_zero · ratRel_trans_gen。
+theorem demo_stepSum_add_zero (p : Partition) (c : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratAddRep (c i) ratZeroRep))
+      (stepSum p c) :=
+  sorry

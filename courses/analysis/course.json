@@ -952,8 +952,13 @@
         {
           "id": "III.6",
           "title": "连续函数",
-          "prereqs": ["III.5"],
-          "tags": ["continuity", "function-limit"],
+          "prereqs": [
+            "III.5"
+          ],
+          "tags": [
+            "continuity",
+            "function-limit"
+          ],
           "quota": {
             "exercises": 60
           },
@@ -1059,8 +1064,13 @@
         {
           "id": "III.7",
           "title": "微分",
-          "prereqs": ["III.6"],
-          "tags": ["derivative", "differentiation"],
+          "prereqs": [
+            "III.6"
+          ],
+          "tags": [
+            "derivative",
+            "differentiation"
+          ],
           "quota": {
             "exercises": 40
           },
@@ -1130,6 +1140,166 @@
               "title": "单元150 单调与导数的符号：不下降的曲线不会往下斜",
               "title_en": "Unit 150 — Monotonicity and the Sign of the Derivative",
               "unit": 150
+            }
+          ]
+        },
+        {
+          "id": "III.8",
+          "title": "Riemann 积分",
+          "prereqs": [
+            "III.7"
+          ],
+          "tags": [
+            "riemann-integral",
+            "partition",
+            "integrability"
+          ],
+          "quota": {
+            "exercises": 50
+          },
+          "units": [
+            {
+              "file": "units/III.8/unit151-partition.sokonanoda",
+              "title": "单元151 分割：把区间切成有限段",
+              "title_en": "Unit 151 — Partitions: Cutting an Interval into Finitely Many Pieces",
+              "unit": 151
+            },
+            {
+              "file": "units/III.8/unit152-partition-order.sokonanoda",
+              "title": "单元152 切点只往前走：分割上的序",
+              "title_en": "Unit 152 — Partition Points Move Forward: Order on a Partition",
+              "unit": 152
+            },
+            {
+              "file": "units/III.8/unit153-step-function.sokonanoda",
+              "title": "单元153 阶梯函数：每一段上取常值",
+              "title_en": "Unit 153 — Step Functions: Constant on Each Piece",
+              "unit": 153
+            },
+            {
+              "file": "units/III.8/unit154-rectangle-sum.sokonanoda",
+              "title": "单元154 矩形和：把每一段的面积加起来",
+              "title_en": "Unit 154 — The Rectangle Sum: Adding Up the Area of Each Piece",
+              "unit": 154
+            },
+            {
+              "file": "units/III.8/unit155-sum-linearity.sokonanoda",
+              "title": "单元155 矩形和保持加法与取负",
+              "title_en": "Unit 155 — Rectangular Sums Preserve Addition and Negation",
+              "unit": 155
+            },
+            {
+              "file": "units/III.8/unit156-constant-area.sokonanoda",
+              "title": "单元156 常值函数的面积：与分割无关",
+              "title_en": "Unit 156 — The Area of a Constant Function Is Independent of the Partition",
+              "unit": 156
+            },
+            {
+              "file": "units/III.8/unit157-step-bounds.sokonanoda",
+              "title": "单元157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间",
+              "title_en": "Unit 157 — Upper and Lower Step Bounds: Trapping a Curve Between Two Staircases",
+              "unit": 157
+            },
+            {
+              "file": "units/III.8/unit158-upper-lower-sums.sokonanoda",
+              "title": "单元158 上下和与可积性：两条台阶之间的宽度",
+              "title_en": "Unit 158 — Upper and Lower Sums: Integrability as a Small Gap",
+              "unit": 158
+            },
+            {
+              "file": "units/III.8/unit159-integrability-criterion.sokonanoda",
+              "title": "单元159 可积性的直接判据：把上下和搬到台阶上",
+              "title_en": "Unit 159 — A Direct Criterion for Integrability",
+              "unit": 159
+            },
+            {
+              "file": "units/III.8/unit160-integrability-neg.sokonanoda",
+              "title": "单元160 取负与逐点等价：可积性只看函数值",
+              "title_en": "Unit 160 — Negation and Pointwise Equality Preserve Integrability",
+              "unit": 160
+            },
+            {
+              "file": "units/III.8/unit161-sum-add.sokonanoda",
+              "title": "单元161 上和与下和的加法：先分开算再相加",
+              "title_en": "Unit 161 — Adding Upper and Lower Sums: Computing the Pieces Separately",
+              "unit": 161
+            },
+            {
+              "file": "units/III.8/unit162-vertical-shift.sokonanoda",
+              "title": "单元162 整条曲线抬高：面积差只认起伏",
+              "title_en": "Unit 162 — Lifting the Whole Curve: The Area Gap Only Sees Oscillation",
+              "unit": 162
+            },
+            {
+              "file": "units/III.8/unit163-archimedean.sokonanoda",
+              "title": "单元163 阿基米德性质：反复相加总能超过",
+              "title_en": "Unit 163 — The Archimedean Property: Repeated Addition Eventually Wins",
+              "unit": 163
+            },
+            {
+              "file": "units/III.8/unit164-strip-estimate.sokonanoda",
+              "title": "单元164 细分割上的振幅：一致连续把曲线压成窄带",
+              "title_en": "Unit 164 — Oscillation on a Fine Partition: Uniform Continuity Traps the Curve in a Strip",
+              "unit": 164
+            },
+            {
+              "file": "units/III.8/unit165-uniform-partition.sokonanoda",
+              "title": "单元165 等分分割：把区间切得足够细",
+              "title_en": "Unit 165 — Uniform Partitions: Cutting the Interval Fine Enough",
+              "unit": 165
+            },
+            {
+              "file": "units/III.8/unit166-uniformly-continuous-integrable.sokonanoda",
+              "title": "单元166 一致连续函数可积：把误差分给段数",
+              "title_en": "Unit 166 — Integrability of Uniformly Continuous Functions: Sharing the Error Among Segments",
+              "unit": 166
+            }
+          ]
+        },
+        {
+          "id": "III.9",
+          "title": "综合、读证明、小项目",
+          "prereqs": [
+            "III.8"
+          ],
+          "tags": [
+            "synthesis",
+            "integral",
+            "capstone"
+          ],
+          "quota": {
+            "exercises": 25
+          },
+          "units": [
+            {
+              "file": "units/III.9/unit167-integral-value.sokonanoda",
+              "title": "单元167 面积值：把上下和钉在同一个数上",
+              "title_en": "Unit 167 — The Integral Value: Pinning Upper and Lower Sums",
+              "unit": 167
+            },
+            {
+              "file": "units/III.9/unit168-integral-neg.sokonanoda",
+              "title": "单元168 面积值的取负：把曲线翻到轴下方",
+              "title_en": "Unit 168 — Negating the Integral Value: Flipping the Curve Below the Axis",
+              "unit": 168
+            },
+            {
+              "file": "units/III.9/unit169-area-sign.sokonanoda",
+              "title": "单元169 面积值的符号：非负曲线不会算出负面积",
+              "title_en": "Unit 169 — The Sign of the Integral Value: Nonnegative Curves Give Nonnegative Area",
+              "unit": 169
+            },
+            {
+              "file": "units/III.9/unit170-integral-mono.sokonanoda",
+              "title": "单元170 面积值的比较：曲线更高，面积不会更小",
+              "title_en": "Unit 170 — Comparing Integral Values: A Higher Curve Has No Smaller Area",
+              "unit": 170
+            },
+            {
+              "file": "units/III.9/unit171-integral-shift.sokonanoda",
+              "title": "单元171 面积值的平移：整条曲线抬高一块矩形",
+              "title_en": "Unit 171 — Shifting the Integral Value: Lifting the Whole Curve by a Rectangle",
+              "unit": 171
             }
           ]
         }

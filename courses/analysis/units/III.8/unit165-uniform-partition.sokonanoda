@@ -1,0 +1,98 @@
+-- 单元165 等分分割：把区间切得足够细
+--
+-- 要把上下和之差压到 ε 以下，得先有一个分割，使每一段都短于给定的 δ。
+-- 区间长度 b - a 是固定的，段数可以自己选。段数取得够多，每段就够短；
+-- 但「够多」不是一个数字，而是一条依赖 δ 的条件。
+--
+-- 把区间等分是最省事的造法。取 N 段，每段的宽是 (b-a)/N。阿基米德性质
+-- 给出 N，使 N·δ 超过 b-a；除回来，每段的宽就短于 δ。剩下的问题是端点：
+-- 前 N-1 个点是 a + i·(b-a)/N，最后一个点必须正好是 b，不能只是与 b
+-- 相等。构造用一个按步数递减的行走函数：走完 N-1 步就停在 b，于是端点
+-- 由构造保证，不需要在函数里比较下标。
+--
+-- 三段的样本 [0,1] 最能看清这件事：步长 1/3，切点是 0、1/3、2/3、1，
+-- 每段都短于 1。一般情形由同一条构造给出，δ 取什么都可以。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.RatArch
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStrip
+import lib.IntegralMesh
+
+-- ─────────────────────────────────────────────────────────────
+-- 三段的样本
+-- ─────────────────────────────────────────────────────────────
+
+-- 把 [0,1] 等分成三段：段数是 3，切点是 0、1/3、2/3、1。
+def threePartition : Partition :=
+  uniformPartition ratZeroRep ratOneRep (Nat.succ (Nat.succ Nat.zero))
+
+-- soko:hint 思路：把 `meshStep`、`ratDiv`、`divDen` 依次展开，分子是 1、分母字段是 2，两边化成同一个 `qrep`。
+-- soko:hint 目标形态：`ratRel (meshStep 0 1 2) (qrep 1 0 2)`。
+-- soko:hint 关键件：ratRel_refl（具体数字全部归约）。
+theorem meshStep_three :
+    ratRel (meshStep ratZeroRep ratOneRep (Nat.succ (Nat.succ Nat.zero)))
+      (qrep 1 Nat.zero 2) :=
+  sorry
+
+-- soko:hint 思路：弱序用 `ratLeRep_lit`，交叉相乘后是 1 ≤ 3；严格性假设 1/3 = 1，用 `intRel_to_eq` 读出 1 = 3，再用 `Nat.succ.inj` 与 `succ_ne_zero` 收掉。
+-- soko:hint 目标形态：`ratLtRep (qrep 1 0 2) (qrep 1 0 0)`。
+-- soko:hint 关键件：ratLeRep_lit · leNat_succ_succ · leNat_zero_le · intRel_to_eq · Nat.succ.inj · succ_ne_zero。
+theorem meshStep_three_lt_one :
+    ratLtRep (meshStep ratZeroRep ratOneRep (Nat.succ (Nat.succ Nat.zero)))
+      ratOneRep :=
+  sorry
+
+-- soko:hint 思路：直接交给等分分割的构造定理；非退化条件 `0 < 1` 由 `ratLtRep_zero_one` 提供。
+-- soko:hint 目标形态：`IsPartition 0 1 threePartition`。
+-- soko:hint 关键件：uniformPartition_isPartition · ratLtRep_zero_one。
+theorem threePartition_isPartition :
+    IsPartition ratZeroRep ratOneRep threePartition :=
+  sorry
+
+-- soko:hint 思路：每段的宽都等于步长，步长又小于 1；把上一条的严格不等式交给网格定理。
+-- soko:hint 目标形态：`MeshBelow threePartition 1`。
+-- soko:hint 关键件：uniformPartition_mesh · meshStep_three_lt_one。
+theorem threePartition_mesh :
+    MeshBelow threePartition ratOneRep :=
+  sorry
+
+-- soko:hint 思路：第 1 个点是 `a + 1·step`，用等分分割的读数定理；具体数字归约后两边都是 1/3。
+-- soko:hint 目标形态：`ratRel (partPoint threePartition 1) (qrep 1 0 2)`。
+-- soko:hint 关键件：uniformPartition_le · ratRel_refl。
+theorem threePartition_point_one :
+    ratRel (partPoint threePartition (Nat.succ Nat.zero))
+      (qrep 1 Nat.zero 2) :=
+  sorry
+
+-- soko:hint 思路：第 2 个点是 `a + 2·step`；2/3 的代表元是 `qrep 2 0 2`。
+-- soko:hint 目标形态：`ratRel (partPoint threePartition 2) (qrep 2 0 2)`。
+-- soko:hint 关键件：uniformPartition_le · ratRel_refl。
+theorem threePartition_point_two :
+    ratRel (partPoint threePartition (Nat.succ (Nat.succ Nat.zero)))
+      (qrep 2 Nat.zero 2) :=
+  sorry
+
+-- soko:hint 思路：最后一个下标是段数 3，行走函数走完就停在右端点，直接交给端点定理。
+-- soko:hint 目标形态：`partPoint threePartition 3 = 1`。
+-- soko:hint 关键件：uniformPartition_last。
+theorem threePartition_last :
+    partPoint threePartition (Nat.succ (Nat.succ (Nat.succ Nat.zero))) =
+      ratOneRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 任意 delta
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把区间端点取成 0 与 1，非退化条件用 `0 < 1`，再把 δ 的正性原样交给存在性定理。
+-- soko:hint 目标形态：`∃ (p : Partition), IsPartition 0 1 p ∧ MeshBelow p delta`。
+-- soko:hint 关键件：exists_mesh_partition · ratLtRep_zero_one。
+theorem exists_mesh_unit (delta : ratRep)
+    (hdelta : ratLtRep ratZeroRep delta) :
+    ∃ (p : Partition), IsPartition ratZeroRep ratOneRep p ∧ MeshBelow p delta :=
+  sorry

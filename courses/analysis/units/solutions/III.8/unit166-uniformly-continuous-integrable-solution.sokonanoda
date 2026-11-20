@@ -1,0 +1,192 @@
+-- 单元166 一致连续函数可积：把误差分给段数
+--
+-- 一条曲线被两摞台阶夹住时，上下和之差只取决于每段的振幅与区间长度。
+-- 网格越细，振幅越小；网格细化已经能造出任意细的分割。把这两件事接起来，
+-- 一致连续的函数就落在可积的那一类里：给定 ε，先把 ε 分给段数得到每段
+-- 容许的振幅 η，一致连续性再把 η 换成网格 δ，等分分割保证每段短于 δ。
+--
+-- 这里真正起作用的是量词顺序。逐点连续对每个点给一个 δ，而分割的段数又
+-- 依赖 δ；调换这两个量词，每段上的振幅就无法用同一个 η 控制。一致连续把
+-- δ 提到点之前，于是有限个段可以共用同一个振幅界。
+--
+-- 闭区间上的连续函数确实一致连续，但这条桥（Heine–Cantor）要用到区间的
+-- 紧性或完备性。课程目前的完备性只到代表元层的 Cauchy 序列；有理代表元上
+-- 的闭区间不是紧的，逐点连续的函数可以在这类区间上无界。因此这里把一致
+-- 连续作为假设，得到的是它的积分形式，而不是用一条未经证明的定理把假设
+-- 藏起来。
+--
+-- 算术部分只有一步：选段数 N 使 2(b-a) < N，再把 ε 除以 N。每段的振幅
+-- 取 η = ε/N，整条曲线的上下和之差不超过 2η(b-a)，而 2(b-a) < N 保证
+-- 它小于 ε。段数由阿基米德性质给出，除以 N 由等分分割那边的除法给出。
+--
+-- 函数取 ratRep → ratRep，停在有理代表元层；不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.RatSub
+import lib.RatRing
+import lib.RatArch
+import lib.RatMulOrder
+import lib.Uniform
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralGap
+import lib.IntegralStrip
+import lib.IntegralMesh
+
+-- ─────────────────────────────────────────────────────────────
+-- 自然数在有理数里的顺序
+-- ─────────────────────────────────────────────────────────────
+
+-- `n ≤ n+1` 在有理代表元上只是分子那一格的 `le_succ`。
+theorem natToRat_le_succ (n : Nat) :
+    ratLeRep (natToRat n) (natToRat (Nat.succ n)) :=
+  Iff.mpr (ratLeRep_lit n Nat.zero Nat.zero (Nat.succ n) Nat.zero Nat.zero)
+    (leNat_congr
+      (Nat.add (myMul n (Nat.succ Nat.zero))
+        (myMul Nat.zero (Nat.succ Nat.zero)))
+      (Nat.add (myMul (Nat.succ n) (Nat.succ Nat.zero))
+        (myMul Nat.zero (Nat.succ Nat.zero)))
+      n (Nat.succ n)
+      (add_zero n) (add_zero (Nat.succ n))
+      (le_succ n n (le_refl n)))
+
+-- 阿基米德性质取 x=1：任何非负的 `d+d` 都有一个自然数 n+1 超过它。
+-- 先把 `n·1` 换成 n，再用 `n ≤ n+1` 把严格界推到后继。
+theorem exists_nat_gt_double (d : ratRep) (hd : ratLeRep ratZeroRep d) :
+    ∃ (n : Nat), ratLtRep (ratAddRep d d) (natToRat (Nat.succ n)) :=
+  Exists.elim
+    (arch_lt_of_nonneg ratOneRep (ratAddRep d d) ratLtRep_zero_one
+      (ratLeRep_zero_add_nonneg d d hd hd))
+    (fun (n : Nat)
+        (hn : ratLtRep (ratAddRep d d)
+          (ratMulRep (natToRat n) ratOneRep)) =>
+      Exists.intro n
+        (ratLtRep_of_lt_le (ratAddRep d d)
+          (ratMulRep (natToRat n) ratOneRep) (natToRat (Nat.succ n)) hn
+          (ratLeRep_trans (ratMulRep (natToRat n) ratOneRep)
+            (natToRat n) (natToRat (Nat.succ n))
+            (ratLeRep_of_ratRel (ratMulRep (natToRat n) ratOneRep)
+              (natToRat n) (ratMul_one_right (natToRat n)))
+            (natToRat_le_succ n))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 把 2ηd 压到 ε 以下
+-- ─────────────────────────────────────────────────────────────
+
+-- 两块 `η·d` 先按分配律合成 `η·(d+d)`；η 为正，把 `d+d < N` 乘成
+-- `η·(d+d) < η·N`；最后用 `N·η ~ ε` 换到右边。
+theorem div_gap_lt (d eps eta : ratRep) (n : Nat)
+    (heta : ratLtRep ratZeroRep eta)
+    (hN : ratRel (ratMulRep (natToRat (Nat.succ n)) eta) eps)
+    (hd : ratLtRep (ratAddRep d d) (natToRat (Nat.succ n))) :
+    ratLtRep
+      (ratAddRep (ratMulRep eta d) (ratMulRep eta d)) eps :=
+  ratLtRep_congr_snd
+    (ratAddRep (ratMulRep eta d) (ratMulRep eta d))
+    (ratMulRep eta (natToRat (Nat.succ n)))
+    eps
+    (ratLtRep_congr_fst
+      (ratAddRep (ratMulRep eta d) (ratMulRep eta d))
+      (ratMulRep eta (ratAddRep d d))
+      (ratMulRep eta (natToRat (Nat.succ n)))
+      (ratLtRep_mul_pos_left (ratAddRep d d) (natToRat (Nat.succ n))
+        eta hd heta)
+      (ratRel_symm (ratMulRep eta (ratAddRep d d))
+        (ratAddRep (ratMulRep eta d) (ratMulRep eta d))
+        (ratMul_add eta d d)))
+    (ratRel_trans_gen
+      (ratMulRep eta (natToRat (Nat.succ n)))
+      (ratMulRep (natToRat (Nat.succ n)) eta)
+      eps
+      (ratMul_comm eta (natToRat (Nat.succ n)))
+      hN)
+
+-- ─────────────────────────────────────────────────────────────
+-- 一致连续推出可积
+-- ─────────────────────────────────────────────────────────────
+
+-- 主定理。给定 ε，取 N 使 `2(b-a) < N`，令 η=ε/N；一致连续把 η 换成
+-- 网格 δ；等分分割给一个每段短于 δ 的分割；`strip_of_mesh` 把曲线夹在
+-- 两条台阶之间，差是 2η(b-a)；`div_gap_lt` 把它压到 ε 以下。
+theorem uniformlyContinuous_integrable (a b : ratRep)
+    (f : ratRep → ratRep) (hab : ratLtRep a b)
+    (hf : UniformlyContinuous f) : Integrable a b f :=
+  integrable_of_gap a b f
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+      Exists.elim
+        (exists_nat_gt_double (ratSubRep b a)
+          (ratLtRep_le ratZeroRep (ratSubRep b a)
+            (ratLtRep_sub_pos b a hab)))
+        (fun (n : Nat)
+            (hn : ratLtRep
+              (ratAddRep (ratSubRep b a) (ratSubRep b a))
+              (natToRat (Nat.succ n))) =>
+          Exists.elim
+            (hf (ratDiv n eps) (ratDiv_pos n eps heps))
+            (fun (delta : ratRep)
+                (hdelta : ratLtRep ratZeroRep delta ∧
+                  ∀ (x y : ratRep),
+                    close x y delta → close (f x) (f y) (ratDiv n eps)) =>
+              Exists.elim
+                (exists_mesh_partition a b delta hab (And.left hdelta))
+                (fun (p : Partition)
+                    (hp : IsPartition a b p ∧ MeshBelow p delta) =>
+                  Exists.elim
+                    (strip_of_mesh a b p f (And.left hp) (ratDiv n eps)
+                      delta (And.right hp) (And.right hdelta))
+                    (fun (l : Nat → ratRep)
+                        (hlu : ∃ (u : Nat → ratRep),
+                          LowerStep a b p f l ∧ UpperStep a b p f u ∧
+                            ratRel
+                              (ratSubRep (stepSum p u) (stepSum p l))
+                              (ratAddRep
+                                (ratMulRep (ratDiv n eps) (ratSubRep b a))
+                                (ratMulRep (ratDiv n eps)
+                                  (ratSubRep b a)))) =>
+                      Exists.elim hlu
+                        (fun (u : Nat → ratRep)
+                            (hu : LowerStep a b p f l ∧
+                              UpperStep a b p f u ∧
+                                ratRel
+                                  (ratSubRep (stepSum p u) (stepSum p l))
+                                  (ratAddRep
+                                    (ratMulRep (ratDiv n eps)
+                                      (ratSubRep b a))
+                                    (ratMulRep (ratDiv n eps)
+                                      (ratSubRep b a)))) =>
+                          Exists.intro p
+                            (And.intro (And.left hp)
+                              (Exists.intro l
+                                (Exists.intro u
+                                  (And.intro (And.left hu)
+                                    (And.intro (And.left (And.right hu))
+                                      (ratLtRep_congr_fst
+                                        (ratSubRep (stepSum p u)
+                                          (stepSum p l))
+                                        (ratAddRep
+                                          (ratMulRep (ratDiv n eps)
+                                            (ratSubRep b a))
+                                          (ratMulRep (ratDiv n eps)
+                                            (ratSubRep b a)))
+                                        eps
+                                        (div_gap_lt (ratSubRep b a) eps
+                                          (ratDiv n eps) n
+                                          (ratDiv_pos n eps heps)
+                                          (ratDiv_mul n eps) hn)
+                                        (And.right (And.right hu))))))))))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 一个样本
+-- ─────────────────────────────────────────────────────────────
+
+-- 恒等函数在任意非退化区间上可积。
+theorem demo_integrable_id (a b : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (x : ratRep) => x) :=
+  uniformlyContinuous_integrable a b (fun (x : ratRep) => x)
+    hab uniformlyContinuous_id

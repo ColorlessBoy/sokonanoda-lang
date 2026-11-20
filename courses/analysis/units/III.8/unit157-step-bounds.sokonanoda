@@ -1,0 +1,133 @@
+-- 单元157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间
+--
+-- 矩形和能算，是因为每一段的高度是一个常数；一般的曲线在每一段上都在变，
+-- 没有「这一段的高」可取。面积仍然可以估：在每一段上面压一个常数上界、下
+-- 面垫一个常数下界，整条曲线就被两摞台阶夹住，台阶底下的面积之差就是这次
+-- 估计的误差。上界与下界分别只要求「这一段里每个点都不超过它」和「每个点
+-- 都不低于它」，端点也算在内，因为闭区间上的值同样要受约束。
+--
+-- 有了这两摞台阶，比较就分成两件事：把曲线整体抬高，上界仍然管用；把上界
+-- 自己抬高，也仍然管用。前者是逐点的传递，后者是常数列之间的传递，两条都
+-- 只是把定义里的那条不等式接长。常值曲线是最简单的一摞台阶，取负则把上下
+-- 两摞对调：曲线在上界的下面，取负之后就在下界的上面。
+--
+-- 边界：只谈每一段上的点式上下界，不谈把它们乘上宽再求和，也不谈加细与可
+-- 积性。函数取 `ratRep → ratRep`，停在有理代表元层。不新增公理，也不碰
+-- kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.Cauchy
+import lib.RatSub
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+
+-- ─────────────────────────────────────────────────────────────
+-- 一摞上界与一摞下界
+-- ─────────────────────────────────────────────────────────────
+
+-- 第 i 段上的常数 `u i` 压住这一段里的每个函数值。段只在 i < n 时存在，
+-- 所以量词带着「第 i 段存在」的前提；闭区间把两个端点都收进来。
+def UpperStep (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (u : Nat → ratRep) : Prop :=
+  ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+    ∀ (x : ratRep), InClosed (partPoint p i) (partPoint p (Nat.succ i)) x →
+      ratLeRep (f x) (u i)
+
+-- 下界的方向相反：每一段里的每个函数值都不低于 `l i`。
+def LowerStep (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (l : Nat → ratRep) : Prop :=
+  ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+    ∀ (x : ratRep), InClosed (partPoint p i) (partPoint p (Nat.succ i)) x →
+      ratLeRep (l i) (f x)
+
+-- soko:hint 思路：左端点落在自己那一段的闭区间里——左边是自反的弱序，右边是相邻切点的严格上升投成弱序；把这点代进上界定义。
+-- soko:hint 目标形态：`f (point i) ≤ u i`。
+-- soko:hint 关键件：定义性展开 · ratLeRep_refl · ratLtRep_le · isPartition_step · And.intro。
+theorem upperStep_value (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (u : Nat → ratRep) (h : UpperStep a b p f u) (hp : IsPartition a b p)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLeRep (f (partPoint p i)) (u i) :=
+  sorry
+
+-- soko:hint 思路：与上一条同一件事，只是不等号的方向反过来：把左端点代进下界定义。
+-- soko:hint 目标形态：`l i ≤ f (point i)`。
+-- soko:hint 关键件：定义性展开 · ratLeRep_refl · ratLtRep_le · isPartition_step · And.intro。
+theorem lowerStep_value (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (l : Nat → ratRep) (h : LowerStep a b p f l) (hp : IsPartition a b p)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLeRep (l i) (f (partPoint p i)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 曲线整体抬高
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：上界对 g 成立，要证它对 f 成立；逐点用 `f x ≤ g x ≤ u i` 把两条弱序接起来。
+-- soko:hint 目标形态：`UpperStep a b p f u`。
+-- soko:hint 关键件：ratLeRep_trans · 定义性展开。
+theorem upperStep_mono (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (u : Nat → ratRep)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x))
+    (h : UpperStep a b p g u) : UpperStep a b p f u :=
+  sorry
+
+-- soko:hint 思路：下界对 f 成立，要证它对更高的 g 成立；逐点用 `l i ≤ f x ≤ g x`。
+-- soko:hint 目标形态：`LowerStep a b p g l`。
+-- soko:hint 关键件：ratLeRep_trans · 定义性展开。
+theorem lowerStep_mono (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (l : Nat → ratRep)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x))
+    (h : LowerStep a b p f l) : LowerStep a b p g l :=
+  sorry
+
+-- soko:hint 思路：把每一段的上界从 `u i` 换成更大的 `v i`；逐点用 `f x ≤ u i ≤ v i`。
+-- soko:hint 目标形态：`UpperStep a b p f v`。
+-- soko:hint 关键件：ratLeRep_trans · 定义性展开。
+theorem upperStep_weaken (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (u v : Nat → ratRep)
+    (huv : ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+      ratLeRep (u i) (v i))
+    (h : UpperStep a b p f u) : UpperStep a b p f v :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 常值曲线与取负
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常值曲线的每一段都取同一个 k，上界也取 k，目标退化成 `k ~ k`。
+-- soko:hint 目标形态：`UpperStep a b p (fun _ => k) (fun _ => k)`。
+-- soko:hint 关键件：ratLeRep_refl · 逐层写 `fun`。
+theorem upperStep_const (a b : ratRep) (p : Partition) (k : ratRep) :
+    UpperStep a b p (fun (_ : ratRep) => k) (fun (_ : Nat) => k) :=
+  sorry
+
+-- soko:hint 思路：与上一条同形，下界也取同一个 k。
+-- soko:hint 目标形态：`LowerStep a b p (fun _ => k) (fun _ => k)`。
+-- soko:hint 关键件：ratLeRep_refl · 逐层写 `fun`。
+theorem lowerStep_const (a b : ratRep) (p : Partition) (k : ratRep) :
+    LowerStep a b p (fun (_ : ratRep) => k) (fun (_ : Nat) => k) :=
+  sorry
+
+-- soko:hint 思路：曲线在上界下面，取负把不等号翻过来，于是它在下界的上面；每一段用同一块 `u i`。
+-- soko:hint 目标形态：`LowerStep a b p (fun x => - f x) (fun i => - u i)`。
+-- soko:hint 关键件：ratLeRep_neg_gen · 逐层写 `fun`。
+theorem upperStep_neg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (u : Nat → ratRep)
+    (h : UpperStep a b p f u) :
+    LowerStep a b p (fun (x : ratRep) => ratNegRep (f x))
+      (fun (i : Nat) => ratNegRep (u i)) :=
+  sorry
+
+-- soko:hint 思路：下界垫在曲线下面，取负之后曲线垫在 `- l i` 下面；不等号由取负翻转。
+-- soko:hint 目标形态：`UpperStep a b p (fun x => - f x) (fun i => - l i)`。
+-- soko:hint 关键件：ratLeRep_neg_gen · 逐层写 `fun`。
+theorem lowerStep_neg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (l : Nat → ratRep)
+    (h : LowerStep a b p f l) :
+    UpperStep a b p (fun (x : ratRep) => ratNegRep (f x))
+      (fun (i : Nat) => ratNegRep (l i)) :=
+  sorry

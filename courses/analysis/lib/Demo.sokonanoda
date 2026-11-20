@@ -70,6 +70,21 @@ import lib.DerivAlgebra
 import lib.RatMulOrder
 import lib.RatMulSign
 import lib.DerivSign
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralGap
+import lib.IntegralNeg
+import lib.IntegralAdd
+import lib.IntegralShift
+import lib.IntegralValue
+import lib.IntegralValueNeg
+import lib.RatArch
+import lib.IntegralStrip
+import lib.IntegralMesh
+import lib.IntegralSign
+import lib.IntegralMono
 
 theorem demo_lib_closure : True := True.intro
 
@@ -421,3 +436,138 @@ theorem demo_lib_risesRight_id :
     RisesRight (fun (x : ratRep) => x) ratZeroRep :=
   risesRight_of_deriv_pos (fun (x : ratRep) => x) ratZeroRep ratOneRep
     (hasDerivAt_id ratZeroRep) ratLtRep_zero_one
+
+theorem demo_lib_twoPoint_isPartition (a b : ratRep) (h : ratLtRep a b) :
+    IsPartition a b (twoPoint a b) :=
+  twoPoint_isPartition a b h
+
+theorem demo_lib_point_mono (a b : ratRep) (p : Partition) (hp : IsPartition a b p)
+    (i j : Nat) (hij : LeNat i j) (hj : LeNat j (partCount p)) :
+    ratLeRep (partPoint p i) (partPoint p j) :=
+  point_mono a b p hp i j hij hj
+
+theorem demo_lib_stepSum_mono (a b : ratRep) (p : Partition)
+    (hp : IsPartition a b p) (c d : Nat → ratRep)
+    (hcd : ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+      ratLeRep (c i) (d i)) :
+    ratLeRep (stepSum p c) (stepSum p d) :=
+  stepSum_mono a b p hp c d hcd
+
+theorem demo_lib_upperStep_const (a b : ratRep) (p : Partition) (k : ratRep) :
+    UpperStep a b p (fun (_ : ratRep) => k) (fun (_ : Nat) => k) :=
+  upperStep_const a b p k
+
+theorem demo_lib_upperStep_value (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (u : Nat → ratRep) (h : UpperStep a b p f u)
+    (hp : IsPartition a b p) (i : Nat)
+    (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLeRep (f (partPoint p i)) (u i) :=
+  upperStep_value a b p f u h hp i hi
+
+theorem demo_lib_integrable_const (a b k : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) => k) :=
+  integrable_const a b k hab
+
+theorem demo_lib_integrable_neg (a b k : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) => ratNegRep k) :=
+  integrable_neg a b (fun (_ : ratRep) => k)
+    (integrable_const a b k hab)
+
+theorem demo_lib_stepSum_add (p : Partition) (u v : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratAddRep (u i) (v i)))
+      (ratAddRep (stepSum p u) (stepSum p v)) :=
+  stepSum_add p u v
+
+theorem demo_lib_stepGap_add (p : Partition) (l u m v : Nat → ratRep) :
+    ratRel
+      (ratSubRep (ratAddRep (stepSum p u) (stepSum p v))
+        (ratAddRep (stepSum p l) (stepSum p m)))
+      (ratAddRep (ratSubRep (stepSum p u) (stepSum p l))
+        (ratSubRep (stepSum p v) (stepSum p m))) :=
+  stepGap_add p l u m v
+
+theorem demo_lib_stepGap_add_const (p : Partition) (L U k : ratRep) :
+    ratRel (ratSubRep (ratAddRep U k) (ratAddRep L k))
+      (ratSubRep U L) :=
+  stepGap_add_const p L U k
+
+theorem demo_lib_integrable_add_const (a b : ratRep) (f : ratRep → ratRep)
+    (k : ratRep) (h : Integrable a b f) :
+    Integrable a b (fun (x : ratRep) => ratAddRep (f x) k) :=
+  integrable_add_const a b f k h
+
+theorem demo_lib_arch_le (x c : ratRep) (hx : ratLtRep ratZeroRep x)
+    (hc : ratLeRep ratZeroRep c) :
+    ∃ (n : Nat), ratLeRep c (ratMulRep (natToRat n) x) :=
+  arch_le x c hx hc
+
+theorem demo_lib_arch_lt (x c : ratRep) (hx : ratLtRep ratZeroRep x)
+    (hc : ratLeRep ratZeroRep c) :
+    ∃ (n : Nat), ratLtRep c (ratMulRep (natToRat n) x) :=
+  arch_lt_of_nonneg x c hx hc
+
+theorem demo_lib_strip_gap (a b k eta : ratRep) (p : Partition)
+    (hp : IsPartition a b p) :
+    ratRel
+      (ratSubRep
+        (stepSum p (leftUpper (fun (_ : ratRep) => k) p eta))
+        (stepSum p (leftLower (fun (_ : ratRep) => k) p eta)))
+      (ratAddRep (ratMulRep eta (ratSubRep b a))
+        (ratMulRep eta (ratSubRep b a))) :=
+  stepSum_left_gap a b p (fun (_ : ratRep) => k) hp eta
+
+theorem demo_lib_strip_mesh (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (eta delta : ratRep) (hp : IsPartition a b p)
+    (hm : MeshBelow p delta)
+    (hu : ∀ (x y : ratRep), close x y delta → close (f x) (f y) eta) :
+    ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+      LowerStep a b p f l ∧ UpperStep a b p f u :=
+  Exists.elim (strip_of_mesh a b p f hp eta delta hm hu)
+    (fun (l : Nat → ratRep) (hl : ∃ (u : Nat → ratRep),
+        LowerStep a b p f l ∧ UpperStep a b p f u ∧
+          ratRel (ratSubRep (stepSum p u) (stepSum p l))
+            (ratAddRep (ratMulRep eta (ratSubRep b a))
+              (ratMulRep eta (ratSubRep b a)))) =>
+      Exists.elim hl
+        (fun (u : Nat → ratRep) (hu2 : LowerStep a b p f l ∧ UpperStep a b p f u ∧
+            ratRel (ratSubRep (stepSum p u) (stepSum p l))
+              (ratAddRep (ratMulRep eta (ratSubRep b a))
+                (ratMulRep eta (ratSubRep b a)))) =>
+          Exists.intro l (Exists.intro u (And.intro (And.left hu2) (And.left (And.right hu2))))))
+
+theorem demo_lib_exists_mesh (a b delta : ratRep)
+    (hab : ratLtRep a b) (hdelta : ratLtRep ratZeroRep delta) :
+    ∃ (p : Partition), IsPartition a b p ∧ MeshBelow p delta :=
+  exists_mesh_partition a b delta hab hdelta
+
+theorem demo_lib_uniform_mesh (a b : ratRep) (k : Nat) (delta : ratRep)
+    (h : ratLtRep (meshStep a b k) delta) :
+    MeshBelow (uniformPartition a b k) delta :=
+  uniformPartition_mesh a b k delta h
+
+theorem demo_lib_hasIntegral_const (a b k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) => k) (ratMulRep k (ratSubRep b a)) :=
+  hasIntegral_const a b k hab
+
+theorem demo_lib_hasIntegral_neg_const (a b k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) => ratNegRep k)
+      (ratNegRep (ratMulRep k (ratSubRep b a))) :=
+  hasIntegral_neg_const a b k hab
+
+theorem demo_lib_hasIntegral_zero (a b : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) => ratZeroRep) ratZeroRep :=
+  hasIntegral_zero a b hab
+
+theorem demo_lib_hasIntegral_mono (a b : ratRep) (f g : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b g J)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x)) :
+    ratLeRep I J :=
+  hasIntegral_mono a b f g I J hI hJ hfg
+
+theorem demo_lib_hasIntegral_bounds (a b : ratRep) (f : ratRep → ratRep)
+    (I lo hi : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hlo : ∀ (x : ratRep), ratLeRep lo (f x))
+    (hhi : ∀ (x : ratRep), ratLeRep (f x) hi) :
+    ratLeRep (ratMulRep lo (ratSubRep b a)) I ∧
+      ratLeRep I (ratMulRep hi (ratSubRep b a)) :=
+  hasIntegral_bounds a b f I lo hi hab h hlo hhi

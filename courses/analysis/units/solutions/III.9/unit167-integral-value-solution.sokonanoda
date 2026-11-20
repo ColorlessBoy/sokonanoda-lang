@@ -1,0 +1,189 @@
+-- 单元167 面积值：把上下和钉在同一个数上
+--
+-- 可积性说上和与下和能靠得任意近，可是「这块面积是多少」还没有答案。一列
+-- 越来越窄的区间围住的是一个数，还是一族数？如果围住的是一个数，它该满足
+-- 什么条件？
+--
+-- 一个候选值 I 要同时满足三件事：它不低于任何分割的下和，不高于任何分割
+-- 的上和，并且曲线可积。前两条把它钉在所有分割之间，第三条保证这些分割
+-- 之间的缝能任意窄。这样的 I 至多有一个：可积性给一个缝比 ε 窄的分割，
+-- 两个候选同时被这个分割夹住，它们的差就不超过 ε。
+--
+-- 常值曲线给出第一个可算的读数。k 的任何下界不超过 k，任何上界不小于 k，
+-- 所以 k·(b-a) 符合规格。
+--
+-- 这里没有断言这样的 I 一定存在。有理数里，一列越来越窄的区间可以围住一
+-- 个无理数；上下和共同靠近的数未必落在有理数里。存在性要等实数完备性，
+-- 而唯一性已经让「面积值」成为一个确定的对象：若它存在，它是谁已经定死。
+--
+-- 函数取 ratRep → ratRep，停在有理代表元层；不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatHalf
+import lib.RatSub
+import lib.RatRing
+import lib.Cauchy
+import lib.LimitLe
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralShift
+
+-- ─────────────────────────────────────────────────────────────
+-- 面积值
+-- ─────────────────────────────────────────────────────────────
+
+-- 一个数 `I` 是曲线在 `[a,b]` 上的面积值，当它夹在所有分割的上下和之间，
+-- 并且曲线确实可积。两条「所有分割」把数钉住，可积性保证这些区间能任意
+-- 窄；缺了后者，任何小于所有下和的数都能混进来。
+def HasIntegral (a b : ratRep) (f : ratRep → ratRep) (I : ratRep) : Prop :=
+  (∀ (p : Partition) (L : ratRep),
+    IsPartition a b p → LowerSum a b p f L → ratLeRep L I) ∧
+  (∀ (p : Partition) (U : ratRep),
+    IsPartition a b p → UpperSum a b p f U → ratLeRep I U) ∧
+  Integrable a b f
+
+-- 投影：面积值给出可积性。
+theorem hasIntegral_integrable (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) : Integrable a b f :=
+  And.right (And.right h)
+
+-- 投影：面积值不低于任何下和。
+theorem hasIntegral_lower (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) (p : Partition) (L : ratRep)
+    (hp : IsPartition a b p) (hL : LowerSum a b p f L) :
+    ratLeRep L I :=
+  (And.left h) p L hp hL
+
+-- 投影：面积值不高于任何上和。
+theorem hasIntegral_upper (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) (p : Partition) (U : ratRep)
+    (hp : IsPartition a b p) (hU : UpperSum a b p f U) :
+    ratLeRep I U :=
+  (And.left (And.right h)) p U hp hU
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个候选被同一个分割夹住
+-- ─────────────────────────────────────────────────────────────
+
+-- `I` 与 `J` 都落在同一个分割的和 `L`、`U` 之间。先对 `I ≤ U` 两边减去
+-- `J`，再从 `L ≤ J` 得到 `U - J ≤ U - L`；两段接起来，`I - J ≤ U - L`，
+-- 而后者小于 ε。
+theorem sub_le_of_pin (I J L U eps : ratRep)
+    (hLI : ratLeRep L I) (hIU : ratLeRep I U) (hLJ : ratLeRep L J)
+    (hgap : ratLtRep (ratSubRep U L) eps) :
+    ratLeRep (ratSubRep I J) eps :=
+  ratLeRep_trans (ratSubRep I J) (ratSubRep U J) eps
+    (ratLeRep_add_right I U (ratNegRep J) hIU)
+    (ratLeRep_trans (ratSubRep U J) (ratSubRep U L) eps
+      (ratLeRep_add_left (ratNegRep J) (ratNegRep L) U
+        (ratLeRep_neg_gen L J hLJ))
+      (ratLtRep_le (ratSubRep U L) eps hgap))
+
+-- ─────────────────────────────────────────────────────────────
+-- 唯一性
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个候选 `I`、`J` 都夹在每一个分割的上下和之间。可积性给一个上下和
+-- 相差小于 ε 的分割，这个分割把两个候选同时夹住，于是 `I - J ≤ ε`。
+-- ε 任意，故 `I ≤ J`；把两个候选对调再走一遍，得 `J ≤ I`。
+theorem hasIntegral_unique (a b : ratRep) (f : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b f J) :
+    ratRel I J :=
+  ratLeRep_antisymm I J
+    (ratLeRep_of_sub_le_all I J
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim (hasIntegral_integrable a b f I hI eps heps)
+          (fun (p : Partition)
+              (hp : IsPartition a b p ∧
+                ∃ (L : ratRep), ∃ (U : ratRep),
+                  LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                    ratLtRep (ratSubRep U L) eps) =>
+            Exists.elim (And.right hp)
+              (fun (L : ratRep)
+                  (hL : ∃ (U : ratRep),
+                    LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                      ratLtRep (ratSubRep U L) eps) =>
+                Exists.elim hL
+                  (fun (U : ratRep)
+                      (hU : LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                        ratLtRep (ratSubRep U L) eps) =>
+                    sub_le_of_pin I J L U eps
+                      (hasIntegral_lower a b f I hI p L
+                        (And.left hp) (And.left hU))
+                      (hasIntegral_upper a b f I hI p U
+                        (And.left hp) (And.left (And.right hU)))
+                      (hasIntegral_lower a b f J hJ p L
+                        (And.left hp) (And.left hU))
+                      (And.right (And.right hU)))))))
+    (ratLeRep_of_sub_le_all J I
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim (hasIntegral_integrable a b f I hI eps heps)
+          (fun (p : Partition)
+              (hp : IsPartition a b p ∧
+                ∃ (L : ratRep), ∃ (U : ratRep),
+                  LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                    ratLtRep (ratSubRep U L) eps) =>
+            Exists.elim (And.right hp)
+              (fun (L : ratRep)
+                  (hL : ∃ (U : ratRep),
+                    LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                      ratLtRep (ratSubRep U L) eps) =>
+                Exists.elim hL
+                  (fun (U : ratRep)
+                      (hU : LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                        ratLtRep (ratSubRep U L) eps) =>
+                    sub_le_of_pin J I L U eps
+                      (hasIntegral_lower a b f J hJ p L
+                        (And.left hp) (And.left hU))
+                      (hasIntegral_upper a b f J hJ p U
+                        (And.left hp) (And.left (And.right hU)))
+                      (hasIntegral_lower a b f I hI p L
+                        (And.left hp) (And.left hU))
+                      (And.right (And.right hU)))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 常值曲线
+-- ─────────────────────────────────────────────────────────────
+
+-- 常值 `k` 的任何下界都不超过 `k`，所以任何下和都不超过 `k·(b-a)`；任何
+-- 上界都不小于 `k`，所以任何上和都不小于同一个数。可积性来自常值曲线的
+-- 那条判据。
+theorem hasIntegral_const (a b k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) => k)
+      (ratMulRep k (ratSubRep b a)) :=
+  And.intro
+    (fun (p : Partition) (L : ratRep) (hp : IsPartition a b p)
+        (hL : LowerSum a b p (fun (_ : ratRep) => k) L) =>
+      Exists.elim (lowerSum_witness a b p (fun (_ : ratRep) => k) L hL)
+        (fun (l : Nat → ratRep)
+            (hl : LowerStep a b p (fun (_ : ratRep) => k) l ∧
+              ratRel L (stepSum p l)) =>
+          ratLeRep_congr_gen (stepSum p l) L
+            (stepSum p (fun (_ : Nat) => k)) (ratMulRep k (ratSubRep b a))
+            (ratRel_symm L (stepSum p l) (And.right hl))
+            (stepSum_const a b p hp k)
+            (stepSum_mono a b p hp l (fun (_ : Nat) => k)
+              (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =>
+                lowerStep_value a b p (fun (_ : ratRep) => k) l
+                  (And.left hl) hp i hi))))
+    (And.intro
+      (fun (p : Partition) (U : ratRep) (hp : IsPartition a b p)
+          (hU : UpperSum a b p (fun (_ : ratRep) => k) U) =>
+        Exists.elim (upperSum_witness a b p (fun (_ : ratRep) => k) U hU)
+          (fun (u : Nat → ratRep)
+              (hu : UpperStep a b p (fun (_ : ratRep) => k) u ∧
+                ratRel U (stepSum p u)) =>
+            ratLeRep_congr_gen (stepSum p (fun (_ : Nat) => k))
+              (ratMulRep k (ratSubRep b a)) (stepSum p u) U
+              (stepSum_const a b p hp k)
+              (ratRel_symm U (stepSum p u) (And.right hu))
+              (stepSum_mono a b p hp (fun (_ : Nat) => k) u
+                (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =>
+                  upperStep_value a b p (fun (_ : ratRep) => k) u
+                    (And.left hu) hp i hi))))
+      (integrable_const a b k hab))

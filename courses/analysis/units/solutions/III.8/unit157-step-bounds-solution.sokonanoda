@@ -1,0 +1,144 @@
+-- 单元157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间
+--
+-- 矩形和能算，是因为每一段的高度是一个常数；一般的曲线在每一段上都在变，
+-- 没有「这一段的高」可取。面积仍然可以估：在每一段上面压一个常数上界、下
+-- 面垫一个常数下界，整条曲线就被两摞台阶夹住，台阶底下的面积之差就是这次
+-- 估计的误差。上界与下界分别只要求「这一段里每个点都不超过它」和「每个点
+-- 都不低于它」，端点也算在内，因为闭区间上的值同样要受约束。
+--
+-- 有了这两摞台阶，比较就分成两件事：把曲线整体抬高，上界仍然管用；把上界
+-- 自己抬高，也仍然管用。前者是逐点的传递，后者是常数列之间的传递，两条都
+-- 只是把定义里的那条不等式接长。常值曲线是最简单的一摞台阶，取负则把上下
+-- 两摞对调：曲线在上界的下面，取负之后就在下界的上面。
+--
+-- 边界：只谈每一段上的点式上下界，不谈把它们乘上宽再求和，也不谈加细与可
+-- 积性。函数取 `ratRep → ratRep`，停在有理代表元层。不新增公理，也不碰
+-- kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.Cauchy
+import lib.RatSub
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+
+-- ─────────────────────────────────────────────────────────────
+-- 一摞上界与一摞下界
+-- ─────────────────────────────────────────────────────────────
+
+-- 第 i 段上的常数 `u i` 压住这一段里的每个函数值。段只在 i < n 时存在，
+-- 所以量词带着「第 i 段存在」的前提；闭区间把两个端点都收进来。
+def UpperStep (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (u : Nat → ratRep) : Prop :=
+  ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+    ∀ (x : ratRep), InClosed (partPoint p i) (partPoint p (Nat.succ i)) x →
+      ratLeRep (f x) (u i)
+
+-- 下界的方向相反：每一段里的每个函数值都不低于 `l i`。
+def LowerStep (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (l : Nat → ratRep) : Prop :=
+  ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+    ∀ (x : ratRep), InClosed (partPoint p i) (partPoint p (Nat.succ i)) x →
+      ratLeRep (l i) (f x)
+
+-- 左端点落在自己那一段的闭区间里：左边是自反的弱序，右边是相邻切点的严格
+-- 上升投成弱序。把它代进上界定义，就得到这一段上界的一个具体读数。
+theorem upperStep_value (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (u : Nat → ratRep) (h : UpperStep a b p f u) (hp : IsPartition a b p)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLeRep (f (partPoint p i)) (u i) :=
+  h i hi (partPoint p i)
+    (And.intro
+      (ratLeRep_refl (partPoint p i))
+      (ratLtRep_le (partPoint p i) (partPoint p (Nat.succ i))
+        (isPartition_step a b p hp i hi)))
+
+-- 同一件事换成下界的方向：左端点同样落在这一段里，把点代进 `LowerStep`。
+theorem lowerStep_value (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (l : Nat → ratRep) (h : LowerStep a b p f l) (hp : IsPartition a b p)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLeRep (l i) (f (partPoint p i)) :=
+  h i hi (partPoint p i)
+    (And.intro
+      (ratLeRep_refl (partPoint p i))
+      (ratLtRep_le (partPoint p i) (partPoint p (Nat.succ i))
+        (isPartition_step a b p hp i hi)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 曲线整体抬高
+-- ─────────────────────────────────────────────────────────────
+
+-- 上界对 g 成立，要证它对更低的 f 成立。逐点把 `f x ≤ g x` 与 `g x ≤ u i`
+-- 接起来，传递性是唯一的证明步骤。
+theorem upperStep_mono (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (u : Nat → ratRep)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x))
+    (h : UpperStep a b p g u) : UpperStep a b p f u :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep) (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    ratLeRep_trans (f x) (g x) (u i) (hfg x) (h i hi x hx)
+
+-- 下界对 f 成立，要证它对更高的 g 成立。逐点把 `l i ≤ f x` 与 `f x ≤ g x`
+-- 接起来。
+theorem lowerStep_mono (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (l : Nat → ratRep)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x))
+    (h : LowerStep a b p f l) : LowerStep a b p g l :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep) (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    ratLeRep_trans (l i) (f x) (g x) (h i hi x hx) (hfg x)
+
+-- 把每一段的上界从 `u i` 换成更大的 `v i`：先由曲线不超过 `u i`，再由
+-- `u i` 不超过 `v i`。
+theorem upperStep_weaken (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (u v : Nat → ratRep)
+    (huv : ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+      ratLeRep (u i) (v i))
+    (h : UpperStep a b p f u) : UpperStep a b p f v :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep) (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    ratLeRep_trans (f x) (u i) (v i) (h i hi x hx) (huv i hi)
+
+-- ─────────────────────────────────────────────────────────────
+-- 常值曲线与取负
+-- ─────────────────────────────────────────────────────────────
+
+-- 常值曲线的每一段都取同一个 k，上界也取 k，要证的只是 `k ≤ k`。
+theorem upperStep_const (a b : ratRep) (p : Partition) (k : ratRep) :
+    UpperStep a b p (fun (_ : ratRep) => k) (fun (_ : Nat) => k) :=
+  fun (_i : Nat) (_hi : LeNat (Nat.succ _i) (partCount p))
+      (_x : ratRep)
+      (_hx : InClosed (partPoint p _i) (partPoint p (Nat.succ _i)) _x) =>
+    ratLeRep_refl k
+
+-- 下界同样取 k，方向也还是 `k ≤ k`。
+theorem lowerStep_const (a b : ratRep) (p : Partition) (k : ratRep) :
+    LowerStep a b p (fun (_ : ratRep) => k) (fun (_ : Nat) => k) :=
+  fun (_i : Nat) (_hi : LeNat (Nat.succ _i) (partCount p))
+      (_x : ratRep)
+      (_hx : InClosed (partPoint p _i) (partPoint p (Nat.succ _i)) _x) =>
+    ratLeRep_refl k
+
+-- 曲线在上界下面，取负把不等号翻过来，于是它在下界的上面；每一段用的是
+-- 同一块 `u i`，只是它也取了负。
+theorem upperStep_neg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (u : Nat → ratRep)
+    (h : UpperStep a b p f u) :
+    LowerStep a b p (fun (x : ratRep) => ratNegRep (f x))
+      (fun (i : Nat) => ratNegRep (u i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep) (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    ratLeRep_neg_gen (f x) (u i) (h i hi x hx)
+
+-- 下界垫在曲线下面，取负之后曲线垫在 `- l i` 下面；不等号同样翻转。
+theorem lowerStep_neg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (l : Nat → ratRep)
+    (h : LowerStep a b p f l) :
+    UpperStep a b p (fun (x : ratRep) => ratNegRep (f x))
+      (fun (i : Nat) => ratNegRep (l i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep) (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    ratLeRep_neg_gen (l i) (f x) (h i hi x hx)
