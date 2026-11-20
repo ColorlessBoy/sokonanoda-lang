@@ -26,7 +26,8 @@ description: Operate the sokonanoda teaching loop - act as the teacher on the pl
 2. `sorry`（含 `by` 块里的）是**合法开放状态**，不是错误；
 3. 出题必配 2–3 条 `-- soko:hint` 阶梯（思路 → 目标形态 → 关键件），
    答案绝不进提示；
-4. 解答钥匙（`courses/quick-start/solutions/`）只在学生明确要求或卡壳 ≥3 轮时揭示；
+4. 解答钥匙（`courses/quick-start/solutions/` 与分析课的
+   `courses/analysis/units/solutions/`）只在学生明确要求或卡壳 ≥3 轮时揭示；
 5. 具体执行层按学生实时适配（错误历史、节奏、兴趣），`courses/quick-start/` 只是素材库，
    不是要照着念的固定课程。
 
@@ -55,12 +56,22 @@ scripts/soko doctor --json    # 就绪诊断，0=就绪 3=未就绪
 scripts/soko grade playground.sokonanoda        # 人类可读
 scripts/soko grade playground.sokonanoda --json # JSON 事件（全量事件流）
 scripts/soko course "$PWD/courses/set-theory/course.json" --json  # 整门课进度（每单元一行 + summary）
+scripts/soko course "$PWD/courses/analysis/course.json" --json    # 卷 II/III：171 单元 + summary
 ```
 
 - `course` 的**有 `import` 的单元**走项目闭包（与 `grade`/`query check` 同一份闭包、
   同一个模块根、同一份缓存）：`failed == 0` ⇔ `grade <该单元>` exit 0，计数只算入口
   模块自己的声明/练习；无 `import` 的单元仍走单文件（数字与 `grade` 逐字节同源）。
   模块根 = 单元最近的 `sokonanoda.toml`，没有则 `course.json` 所在目录。
+
+学习者的最小路径不需要 cargo。`scripts/soko setup` 装好版本锁定的二进制，
+`scripts/soko doctor --json` 返回 0 之后，打开一张画布（仓库根的
+`playground.sokonanoda`，或分析课的 `courses/analysis/units/II.1/unit01-int-quotient.sokonanoda`
+这类单元），用 `scripts/soko grade <画布>` 判卷。带洞的画布同样返回 0
+（洞是合法状态），未作答的声明在 `exercise.open` 事件里。卡住时先找到画布里的
+`sorry` 行，用 `scripts/soko query hints --file <画布> --line <行> --col 3` 取提示；
+提示只在还开着的洞上非空。答案在对应的 `-solution.sokonanoda`（分析课在
+`courses/analysis/units/solutions/<章>/`），只在学习者明确要求或卡壳三轮后打开。
 
 **先问，别扫**——需要"某处还差什么 / 下一个洞在哪 / 这题的提示是什么"时用
 `query`（单 JSON 对象，一次解析；与事件流同源，计数由契约测试钉死一致）：
@@ -69,10 +80,13 @@ scripts/soko course "$PWD/courses/set-theory/course.json" --json  # 整门课进
 scripts/soko query check --file playground.sokonanoda               # 计数 + 失败 + 告警
 scripts/soko query state --file playground.sokonanoda --line 327 --col 4
 scripts/soko query holes --file playground.sokonanoda               # 全部洞（稳定 id）
-scripts/soko query hints --file playground.sokonanoda --line 323 --col 3
+scripts/soko query hints --file playground.sokonanoda --line 376 --col 3
 scripts/soko query goals --file playground.sokonanoda               # 全文件声明概览
 ```
 
+- `hints` 的 `--line`/`--col` 要落在**还开着的洞**上；示例的 376 行是 playground
+  当前的第一个洞，返回三条提示。落在已判过的声明上会得到空数组，那不是"这题没有
+  提示"。行号会随画布改写漂移，取提示前先看画布里的 `sorry` 行；
 - 洞级「多余的 `sorry`」也有标记：`query holes`/`goals` 的 `redundant: true`
   = 答案已经写全、只多留了这一行（要说"删掉它"，不是"还没证出来"）；
 - **解析失败不假绿**（≥0.59.0）：文本解析不了时 `check` 的 `failed[]` 里是 parse
@@ -83,7 +97,7 @@ scripts/soko query goals --file playground.sokonanoda               # 全文件�
   退出码 0=答上了、1=有拒绝（内核拒绝**或**解析失败）、2=用法错误——**判据看 JSON，
   不看退出码**；
 - DeepSeek Harness 里这七个查询还包成了 MCP 工具
-  （`mcp__sokonanoda__{check,state,goals,holes,hints,reduce}`，需
+  （`mcp__sokonanoda__{check,state,goals,holes,hints,reduce,project}`，需
   `dsh web --patch ./dsh/cordis.patch.yml`）：**有 MCP 工具就直接调，别绕 shell**。
 
 - 若 `sokonanoda` 已经在 PATH 上（opencode 启动插件会注入缓存目录），
@@ -361,10 +375,12 @@ warning；**failed** 声明才不进环境。后续声明仍会被检查并得�
 
 ## 5. 解答钥匙（**项风格**，2026-09-21 起）
 
-单元地图在 `courses/quick-start/course.json`（整门课的进度一条命令：
-`scripts/soko course <course.json> --json`——`import` 共享库的单元也认，见 §1）；
-`courses/set-theory/units/solutions/` 与 `courses/quick-start/solutions/` 有全部练习的、
-经完整内核验证的钥匙。
+单元地图在 `courses/quick-start/course.json` 与 `courses/analysis/course.json`
+（整门课的进度一条命令：`scripts/soko course <course.json> --json`——`import`
+共享库的单元也认，见 §1）；`courses/set-theory/units/solutions/`、
+`courses/analysis/units/solutions/` 与 `courses/quick-start/solutions/` 有全部练习的、
+经完整内核验证的钥匙。分析课的画布在 `courses/analysis/units/<章>/`，解答按章放在
+`courses/analysis/units/solutions/<章>/`，文件名是 `unitNN-solution.sokonanoda`。
 **agent 专用**：用于核对「这题确实可解」和给多层提示；只有用户明确要求
 答案、或同一关卡反复卡住（≥3 轮）时才逐层揭底，永远不要一次性贴出
 完整钥匙。
