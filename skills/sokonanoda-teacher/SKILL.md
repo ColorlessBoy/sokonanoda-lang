@@ -26,8 +26,7 @@ description: Operate the sokonanoda teaching loop - act as the teacher on the pl
 2. `sorry`（含 `by` 块里的）是**合法开放状态**，不是错误；
 3. 出题必配 2–3 条 `-- soko:hint` 阶梯（思路 → 目标形态 → 关键件），
    答案绝不进提示；
-4. 解答钥匙（`courses/quick-start/solutions/` 与分析课的
-   `courses/analysis/units/solutions/`）只在学生明确要求或卡壳 ≥3 轮时揭示；
+4. 解答钥匙（各课的解答目录，清单见 §5）只在学生明确要求或卡壳 ≥3 轮时揭示；
 5. 具体执行层按学生实时适配（错误历史、节奏、兴趣），`courses/quick-start/` 只是素材库，
    不是要照着念的固定课程。
 
