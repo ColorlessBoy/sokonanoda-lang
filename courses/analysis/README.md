@@ -5,7 +5,9 @@
 
 ## 状态
 
-- **M5 单元171（2026-11-19）**：**面积值的平移**。171 问「把整条曲线抬高同一个常数 k，面积值会怎样」。每一段的高度都多了 k，宽没变，所以面积值应当多出 k(b−a)。证明回到两摞台阶：抬高后的下界整体减去 k 又垫回原曲线下面（`lowerStep_sub_const`），原曲线的下界整体加上 k 也仍然垫在抬高后的曲线下面；矩形和这边，一段上「高度加 k」乘宽按分配律拆开，整条和多出 k(b−a)（`stepSum_sub_const`）。于是抬高后的下和不超过 I + k(b−a)（`lowerSum_add_const_le`），上和不低于 I + k(b−a)（`upperSum_add_const_ge`），可积性由 `integrable_add_const` 给，三条并成 `hasIntegral_add_const`。常值曲线 c 抬高 k 后读数是 (c+k)(b−a)（`demo_hasIntegral_shift_const`）。正文 8 题，0 rejected；解答 9 checked、0 open。边界：只做垂直平移；面积值的加法仍缺「两个分割搬到同一组切点」的加细引擎，FTC 需要中值定理与积分函数，卷 III 的收口留到 M6。不新增公理，也不碰 kernel/front。
+课程共 171 个单元（卷 II 72、卷 III 99），M1–M5 已在 2026-11-19 全部落盘，`course.json` 与 `units/` 一致。M6 只做 QA、文档、站点与发布，全量课程门禁复跑为 0 rejected、0 solutions_open、0 lib_open，`notation-lint` rc=0；书页媒介与双语范围待用户拍板，尚未开工。下面按时间倒序保留各单元的写作记录。
+
+- **M5 单元171（2026-11-19）**：**面积值的平移**。171 问「把整条曲线抬高同一个常数 k，面积值会怎样」。每一段的高度都多了 k，宽没变，所以面积值应当多出 k(b−a)。证明回到两摞台阶：抬高后的下界整体减去 k 又垫回原曲线下面（`lowerStep_sub_const`），原曲线的下界整体加上 k 也仍然垫在抬高后的曲线下面；矩形和这边，一段上「高度加 k」乘宽按分配律拆开，整条和多出 k(b−a)（`stepSum_sub_const`）。于是抬高后的下和不超过 I + k(b−a)（`lowerSum_add_const_le`），上和不低于 I + k(b−a)（`upperSum_add_const_ge`），可积性由 `integrable_add_const` 给，三条并成 `hasIntegral_add_const`。常值曲线 c 抬高 k 后读数是 (c+k)(b−a)（`demo_hasIntegral_shift_const`）。正文 8 题，0 rejected；解答 9 checked、0 open。边界：只做垂直平移；面积值的加法仍缺「两个分割搬到同一组切点」的加细引擎，FTC 需要中值定理与积分函数，卷 III 的收口留作后续课程内容。不新增公理，也不碰 kernel/front。
 
 - **M5 单元170（2026-11-19）**：**面积值的比较**。170 问「曲线处处更高，面积值会不会反而更小」。面积值只是夹在上下和之间的一个数，两个这样的数要比较，只能回到那些和。`sub_le_sub` 先把两条不等式相减；`hasIntegral_mono` 对任意正 ε 取出 g 的窄分割，g 的上界也是 f 的上界（`upperSum_mono_fun`），所以 I ≤ U，而 L ≤ J，于是 I−J ≤ U−L < ε，`ratLeRep_of_sub_le_all` 收成 I ≤ J。常数界是推论：`hasIntegral_le_const` / `hasIntegral_const_le`，两条合成 `hasIntegral_bounds`；逐点相等的曲线有同一个面积值（`hasIntegral_congr_fun`）。正文 6 题，0 rejected；解答 6 checked、0 open。**引擎进库**：新建 `lib/IntegralMono`（6 条），`lib/Demo` 补 import 与两条自检。边界：只比较已经存在的面积值，不证存在性，也不构造积分函数；面积值的加法仍缺「两个分割搬到同一组切点」的加细引擎。不新增公理，也不碰 kernel/front。
 
@@ -92,7 +94,7 @@
 - **M2 单元70（2026-11-13）**：**数系链：加法在四层间的迁移**。ℕ→ℤ：`addRep (n,0) (m,0)` 与 `(n+m, 0)` 定义性相等（`0+0` 归约成 0）；ℤ→ℚ：分母 1 上 `ratAddRep` 归约成 `(p+q)/1`；ℚ→ℝ：`addRel_intro` 给出三元关系 `addRel (mk (constSeq x)) (mk (constSeq y)) (mk (constSeq (x+y)))`，两个 `Cauchy` 守卫由 68.1 付清；`natToReal_add` 把整条链接起来，`demo_add_unique` 用 61.4 的 `addRel_unique` 说明和唯一。ℝ 层没有「嵌入是函数」的等式可写，写成 `addRel` 三元组是 61 的诚实部分结论。画布 3 checked / 6 open / 0 rejected，解答 9 checked / 0 open。
 - **M2 单元69（2026-11-13）**：**数系链：从 ℕ 到 ℝ 的保序嵌入**。`natToIntRep n := (n, 0)`；`intToRatRep p := (p, 0)`（分母字段 0 就是除以 1）；ℤ→ℚ 这一段把代表元映射**下降**成 `Int → Rat`——`intToRatRep_wd` 交给 `mulRep_wd`，`Quot.lift` + `Quot.sound` 下降，`intToRat_mk` 是 ι 规则。序分三段：`natToInt_le` 用 `leNat_add_right`；`intToRat_le` 用 `leRep_mul_den_right`；`ratLeRep_sub_nonpos` 把 `x ≤ y` 右加 `-y` 收成「差 ≤ 0」；`ratToReal_le` 用 66 的 `realLe_mk` + 68.1 的 `cauchy_const` 把逐点差界送进 `realLe`。`natToReal` 合成整条链，`natToReal_le` 把 ℕ 的 `≤` 一路送到 ℝ。**边界**：本单元只下降**函数**，不替 ℤ 的序再下降一次（前两段的序保持停在代表元层）。画布 5 checked / 7 open / 0 rejected，解答 12 checked / 0 open。
 - **C0（M0）完成并 merge 进 `agent/real-analysis-integration`**：P1–P5 可行性探针 + `ROUTE.md`。
-- **M1 单元写作完成（28/28）**：ℤ + ℚ，**28 单元**（II.1 19 + II.2 9）；当前 **II.1 19/19 · II.2 9/9**。已落 `course.json`、`lib/`（10 个模块 + Demo）、单元①–㉘（画布 + 解答）。**M1 仍未收口**：`notation-lint --root courses/analysis` 仍 rc=1（issue #29），审计遗留项也另跟踪；在两者清零前不宣称 M1 完成。
+- **M1 收口（28/28）**：ℤ + ℚ，**28 单元**（II.1 19 + II.2 9）。`course.json`、`lib/`（10 个模块 + Demo）、单元①–㉘（画布 + 解答）已落盘；`notation-lint --root courses/analysis` 在 issue #29 修复后转绿，审计遗留项另行跟踪。
 - **单元⑲ `unit19-quot-lift`**：第一次真正下降 —— 取负经 `Quot.lift` 成为 `Int → Int` 的函数（`intNeg`），并说明**二元**运算为何仍留在代表元层（`Int → Int` 的 lift 需要 `funext`，本语言没有）。
 - **单元⑳ `unit20-rat-quotient`**：ℚ 的载体 `Rat := Quot ratRel`，分母用 `Nat.succ n` 编码成正整数（分母永不为 0），`ratRel` 在**整数代表元**上交叉相乘；本单元结清自反与对称两条腿，**传递性**（交叉相乘后消去正因子）留给单元㉕。
 - **单元㉑ `unit21-int-rel-trans`**：`intRel` 的传递性（`intRel p q ⇒ intRel q r ⇒ intRel p r`）——两条假设各加一个数把中间项对齐，`add_rotate` 把同一 `d` 转到最右，`nat_add_cancel_right` 消掉。这是 `ratRel_trans` 依赖链的**第一块**，也是唯一能独立成单元的一块。
@@ -162,12 +164,14 @@
 - `units/III.2/`：M3 的扩展实数、上下确界与单调收敛（当前 7 个：上确界——唯一性与比较；下确界——唯一性与比较；扩展实数 ±∞ 与序；扩展实数上的上界与上确界；实数上确界与扩展上确界的相容；扩展实数上的下界与下确界；实数下确界与扩展下确界的相容）；解答在 `units/solutions/III.2/`。
 - `units/III.3/`：M3 的子序列、极限点与上下极限（当前 9 个：子序列；极限点；上极限；下极限；子序列与上下极限；上下极限与常数界；上下极限只看尾部；上下极限与收敛；Cauchy 序列与极限点）；解答在 `units/solutions/III.3/`。
 - `units/III.4/`：M3 的 Cauchy 序列与完备性（当前 9 个：Cauchy 序列的尾部刻画；Cauchy 序列有界；Cauchy 性的等价写法；实数相等与差趋于零；极限类的唯一性；极限加法的估计；极限类的加法；极限类的取负；极限类的减法）；解答在 `units/solutions/III.4/`。
+- `units/III.9/`：M5 的综合（5 个：面积值；面积值的取负；面积值的符号；面积值的比较；面积值的平移）；解答在 `units/solutions/III.9/`。
+- `units/III.8/`：M5 的 Riemann 积分（16 个：分割；切点序；阶梯函数；矩形和；矩形和的加法与取负；常值面积；上下界阶梯；上下和与可积性；可积性的直接判据；取负与逐点等价；上下和的加法；整条曲线抬高；阿基米德性质；细分割上的振幅；等分分割；一致连续函数可积）；解答在 `units/solutions/III.8/`。
 - `units/III.7/`：M4 的微分（当前 5 个：导数的定义——斜率函数与它的极限；导数的代数——垂直平移与取负；极限唯一——一条曲线不能同时逼近两个值；极限只看邻域——换掉远处的函数值；非零因子消去——导数为什么只有一个值）；解答在 `units/solutions/III.7/`。
 - `units/III.6/`：M4 的连续函数（当前 16 个：函数极限的 ε-δ 定义；连续——常函数、恒等函数与复合；函数极限的序列判据；函数极限的代数——和、差与取负；连续函数的代数——和、差与取负；单侧极限——只看一边；一致连续——一个 δ 管住整片定义域；一致连续与序列——Cauchy 序列的像；局部有界——极限给出的第一个盒子；局部保号——连续函数在一点附近不变号；闭区间上的最值——上确界与达到；最后一个负点；介值定理；无穷远处的极限；无穷远处极限的代数与序列判据；单调函数——介值性反过来给出连续）；解答在 `units/solutions/III.6/`。
 - `units/III.5/`：M3 的级数（当前 12 个：有限和；有限和的拆分与望远镜；级数的部分和与和类；收敛级数的通项趋于零；级数的尾块与 Cauchy 判别；可和级数的加法、取负与减法；非负项的部分和不会下降；有限和的绝对值；比较判别法；绝对收敛推出收敛；望远镜级数；级数的尾块；尾块判别（反方向）；级数的重排——交换前两项）；解答在 `units/solutions/III.5/`。
 - `units/II.5/`：M2 的 ℝ 的商、代数与序（当前 10 个：序的全性与绝对值的存在性；序的反对称性；绝对值的唯一性；三角不等式；严格序的传递与 `close` 对 `ε` 的单调性；严格序与加法相容（加法消去）；严格序的传递与加法相容；`ε` 折半；半数的正性；有理数加法的结合律）；解答在 `units/solutions/II.5/`。
 - `units/II.2/`：M1 的有理数单元（9 个：ℚ 的商载体与相等的自反/对称；整数相等的传递性；ℕ 乘法分配律与结合律；ℤ 乘法结合律；ℕ 正因子消去律；`ratRel` 的传递性；ℚ 加法的代表元公式与良定义性；ℚ 乘法的代表元公式与具体计算；ℚ 乘法的良定义性）；解答在 `units/solutions/II.2/`。
-- `course.json`：课程清单（M1 + M2 已落地单元；随写作增长）。
+- `course.json`：课程清单，收录 171 个单元（卷 II 72、卷 III 99）。
 
 ## 边界
 
