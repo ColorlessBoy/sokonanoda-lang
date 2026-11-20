@@ -409,6 +409,10 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 
 ### 10.2 未收口（**验收口径在这里**；顺序与入口见 `docs/ONBOARDING.md` §0.2）
 
+#### C8 —— 分析课（卷 II/III）的 QA、文档、站点与发布（M6，进行中）
+
+卷 II/III《从集合论到实分析》M5 的 21 个单元在 2026-11-19 落盘，分析课 171/171 单元；全量课程门禁 0 rejected、0 solutions_open、0 lib_open，`notation-lint` rc=0。M6 只做 QA、文档、站点与发布，书页媒介与双语范围待用户拍板。路线、单元表与风险见 `courses/analysis/ROUTE.md`，逐单元记录见 `courses/analysis/README.md`。
+
 #### I14 —— DeepSeek Harness 适配（**H0–H4 ✅ 已落地；H6-E = backlog**）
 
 > 设计 + 计划：**`docs/design/deepseek-harness.md`**。一句话：产品内核与 harness 无关，

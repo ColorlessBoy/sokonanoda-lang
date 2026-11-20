@@ -18,7 +18,7 @@
 # ## 用法
 #
 #     scripts/release-preflight.sh              # 全套（约 10–15 分钟）
-#     scripts/release-preflight.sh --fast       # 只跑 ④ docs-lint + ① 版本钉一致性
+#     scripts/release-preflight.sh --fast       # 只跑 ② docs-lint + ① 版本钉一致性
 #     scripts/release-preflight.sh --sweep      # 额外跑全课程 --json 逐字节对拍（要基线）
 #
 # ⚠ **不要**用 `--no-verify` 绕过任何一步：仓规要求把理由写进 `STATUS.md` ✓。
@@ -35,13 +35,16 @@ done
 step() { echo; echo "── $* ─────────────────────────────"; }
 
 # ① 版本钉一致性（两处版本 + 课程 requires）
+# ⚠ **第三门课的钉也要在这里**：`courses/analysis/` 是独立模块根，`scripts/soko` 按它的
+#   `sokonanoda.toml` 的 `requires` 选二进制；bump 时漏改这一处，课本身会拒绝启动（G-16），
+#   而 `scripts/soko gate` 只跑卷 I 的课程门禁 ⇒ 不列在这里就没有任何本地判据会红。
 step "① 版本钉一致性"
 VER=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
 EXT=$(grep -m1 '"version"' editor/vscode/package.json | sed 's/.*"\(.*\)".*/\1/')
 echo "Cargo.toml=$VER · package.json=$EXT"
 [ "$VER" = "$EXT" ] || { echo "✗ 两处版本不一致（CI 强制相等）" >&2; exit 1; }
-for f in courses/quick-start/shared/sokonanoda.toml courses/set-theory/sokonanoda.toml; do
-  [ -f "$f" ] || continue
+for f in courses/quick-start/shared/sokonanoda.toml courses/set-theory/sokonanoda.toml courses/analysis/sokonanoda.toml; do
+  [ -f "$f" ] || { echo "✗ 模块根清单不见了：$f" >&2; exit 1; }
   req=$(grep -m1 'requires' "$f" | sed 's/.*"\(.*\)".*/\1/')
   echo "$f requires=$req"
   [ "$req" = "$VER" ] || { echo "✗ $f 的 requires 与版本不一致" >&2; exit 1; }
@@ -79,9 +82,19 @@ python3 scripts/gen-site-data.py --check || { echo "✗ site/data/site.json 与 
 step "⑤ scripts/soko gate（锚点 = 仓库 release 构建）"
 SOKONANODA_BIN="$BIN" scripts/soko gate || { echo "✗ gate 判红" >&2; exit 1; }
 
-# ⑥ 可选：全课程 --json 逐字节（要一份"已发布 tag 的构建"当基线）
+# ⑥ 分析课课程门禁（卷 II/III）
+# ⚠ `scripts/soko gate` 的课程层只跑 `courses/set-theory/tools/check.py`（卷 I）；
+#   卷 II/III 在 CI 里是**独立一步**（ci.yml 的 `Course gate (analysis, G1–G6)`）⇒
+#   发版预检在这里补同一条，否则 171 个单元的内容坏了只有 CI 才看得见。
+#   缓存目录与 `scripts/soko gate` 同一个（`target/gate-cache`）⇒ 暖跑复用。
+step "⑥ 分析课课程门禁（卷 II/III · G1–G6）"
+SOKONANODA_BIN="$BIN" \
+  SOKONANODA_CACHE_DIR="${SOKONANODA_CACHE_DIR:-$PWD/target/gate-cache}" \
+  python3 courses/analysis/tools/check.py || { echo "✗ 分析课门禁判红" >&2; exit 1; }
+
+# ⑦ 可选：全课程 --json 逐字节（要一份"已发布 tag 的构建"当基线）
 if [ "$SWEEP" = 1 ]; then
-  step "⑥ 全课程 --json 逐字节对拍"
+  step "⑦ 全课程 --json 逐字节对拍"
   BASE=${SOKO_BASELINE_BIN:-/tmp/target-v852/debug/sokonanoda}
   [ -x "$BASE" ] || { echo "✗ 基线不可执行：$BASE（先按 check-json-identity.py 文件头建）" >&2; exit 3; }
   python3 scripts/check-json-identity.py --baseline "$BASE" --new "$BIN" || exit 1
