@@ -228,10 +228,12 @@ fi
 # ⇒ **远端 CI 有对应 job 兜底** ✓ ⇒ 本地快层跳过它**不会摘掉唯一守卫** ✓
 #（区别于「时序证据守卫」那种只在本地有牙的 ✗ —— 那条**不动** ✓）。
 if [ "$FAST" = 0 ]; then
-  run "gates：课程门禁" "gates" python3 courses/set-theory/tools/check.py
+  # CI 的 `gates` job 跑**两门课**（卷 I + 卷 II/III，各自一条 step）⇒ 本地镜像也跑两条，
+  # 否则分析课的 457 个目标只在远端才被判（本地全绿 ≠ CI 全绿 ✗）。
+  run "gates：课程门禁（卷 I 集合论）" "gates" python3 courses/set-theory/tools/check.py
+  run "gates：课程门禁（卷 II/III 实分析）" "gates" python3 courses/analysis/tools/check.py
 else
-  printf '\n▶ gates：课程门禁  —— **--fast 跳过** ✓（**本轮未验证** ✗；远端 CI 的 `gates` job 会跑 ✓）\n'
-  printf '   上次读数：250 个目标 —— 2076 checked · 903 open · 0 个被判负（2026-10-03 15:40 ✓）\n'
+  printf '\n▶ gates：课程门禁（两门课）  —— **--fast 跳过** ✓（**本轮未验证** ✗；远端 CI 的 `gates` job 会跑 ✓）\n'
 fi
 # **缺口台账带 `--strict`**（2026-09-25 ✓）：CI 上超时**跳过**（慢 runner 是环境事实 ✓），
 # 但**快机器上必须跑完** ✓ —— 否则守卫就被"跳过"架空了 ✗（用户："每次都是它出问题，
