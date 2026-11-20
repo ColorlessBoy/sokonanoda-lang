@@ -52,6 +52,7 @@
 见 §0–§2）：入门课在 `courses/quick-start/` 与 `courses/quick-start/solutions/`，
 卷 I 在 `courses/set-theory/units/` 与 `courses/set-theory/units/solutions/`，
 卷 II/III 在 `courses/analysis/units/<章>/` 与 `courses/analysis/units/solutions/<章>/`。
+解答文件名以 `-solution.sokonanoda` 结尾，多数带主题后缀，如 `unit14-leNat-cancel-solution.sokonanoda`。
 分析课整门进度用 `scripts/soko course "$PWD/courses/analysis/course.json" --json`。
 **不要**把答案直接丢给学习者：按 §1 的三步循环一次只给一层提示。
 
