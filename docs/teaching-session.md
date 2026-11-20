@@ -2,7 +2,7 @@
 
 > 画布：仓库根 `playground.sokonanoda`（学习者与 agent 共同编辑）。
 > 依据：`REQUIREMENTS.md` §6（教学工作流）；事件协议：`docs/protocol.md`。
-> 本文档 = 开课手册 + 事件决策表 + 全部练习的解答钥匙（agent 专用，勿直接给学习者）。
+> 本文档 = 开课手册 + 事件决策表 + 解答钥匙的位置（agent 专用，勿直接给学习者）。
 
 ## 0. 课程层与执行层的关系（用户原则，2026-09-07）
 
@@ -23,12 +23,13 @@
    语法点永远先出现在讲解注释里，再出现在练习里（白名单即课程）。
 2. **作答**：学习者编辑画布填洞（支持部分作答：先写几层 fun，最后一层留
    `sorry`，剩余目标会显示在 hover/诊断里）。
-3. **判卷**：agent 跑
+3. **判卷**：agent 在仓库根跑
    ```bash
-   SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"   # Release 二进制，零 cargo
-   "$SOKO" --json playground.sokonanoda
+   scripts/soko grade playground.sokonanoda --json
    ```
-   （二进制的获取见 `skills/sokonanoda-teacher` §1。）
+   （`scripts/soko` 是 harness 中立的零 cargo 启动器：解析版本匹配的仓库构建 →
+   缓存 → VS Code 扩展自带 → 版本锁定下载；获取与排障见
+   `skills/sokonanoda-teacher` §1。）
    读结构化事件（不是 exit code）决定反馈；一个练习红了不影响其他练习
    （逐声明容错）。然后再回到第 1 步追加内容。
 
@@ -47,9 +48,12 @@
 
 ## 3. 第一课练习清单与解答钥匙
 
-课程练习与解答钥匙已迁到入门课的 unit 文件与 `solutions/`（本表 2026-10-22
-收口；开课手册与事件决策表见 §0–§2）。**不要**把答案直接丢给学习者：按 §1 的
-三步循环一次只给一层提示。
+课程练习与解答钥匙在各自的课程目录（本表 2026-10-22 收口；开课手册与事件决策表
+见 §0–§2）：入门课在 `courses/quick-start/` 与 `courses/quick-start/solutions/`，
+卷 I 在 `courses/set-theory/units/` 与 `courses/set-theory/units/solutions/`，
+卷 II/III 在 `courses/analysis/units/<章>/` 与 `courses/analysis/units/solutions/<章>/`。
+分析课整门进度用 `scripts/soko course "$PWD/courses/analysis/course.json" --json`。
+**不要**把答案直接丢给学习者：按 §1 的三步循环一次只给一层提示。
 
 ## 4. Gotchas（全部验证过，别踩）
 
