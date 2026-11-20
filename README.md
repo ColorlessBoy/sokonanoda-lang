@@ -17,6 +17,7 @@
   远大目标 · 当前进度）
 - [Quickstart](editor/vscode/README.md) — 装上 VS Code 扩展即可用，零工具链
 - [Course](courses/quick-start/README.md) — 逻辑与证明课（单元数与顺序见同目录 `course.json`），判卷由真内核完成
+- [Analysis](courses/analysis/README.md) — 卷 II/III《从集合论到实分析》，171/171 单元；M5 的 21 个单元已在 2026-11-19 落盘，M6 正在做 QA 与发布
 - [Documentation](docs/README.md) — 架构 / 协议 / 测试地图 / 发布手册
 - [Agent Skills](skills/README.md) — 给 code agent 的教学与开发技能
 
@@ -59,6 +60,7 @@ crates/cli      `sokonanoda` command-line front-end for .sokonanoda files
 crates/lsp      `sokonanoda-lsp` language server (tower-lsp)
 editor/vscode   VS Code extension (bundles the LSP + CLI, Marketplace)
 skills/         Agent Skills for code agents (teacher + developer)
+courses/        Three courses: quick-start, set-theory, and analysis
 examples/       Sample .sokonanoda lesson files
 ```
 
