@@ -64,7 +64,7 @@ def render(data: dict) -> str:
     return "\n".join(
         [
             BEGIN,
-            f"**Latest gate:** Lean Kernel Arena `master@{short}` (run `{run_id}`, {date}) — "
+            f"**Last release gate:** Lean Kernel Arena `master@{short}` (run `{run_id}`, {date}) — "
             f"**{accepted}/{good}** accept ({slow_note}), "
             f"**{rejected}/{bad}** reject ({declined} known unsupported declined).",
             "Reproduce `python3 scripts/arena-gate.py`; public artifact = scored tests "

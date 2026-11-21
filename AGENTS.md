@@ -211,8 +211,8 @@ DSH 侧无消费者（属于 `docs/design/deepseek-harness.md` 的 H5 backlog）
 （各 8 个；CLI tarball 里就是可直接执行的二进制，agent 无需 cargo）与
 VSIX（9 个，平台包内嵌 LSP 与 CLI），供自动下载与 headless 手动安装；
 **下载一律按仓库版本锁定，禁用 `latest`**。
-**发版已全自动**：bump 两处版本 → push main → `ci.yml` 的 auto-tag 自动打
-tag 并 dispatch release（见 `docs/RELEASE.md`；手动推 tag 仅应急）。
+**发版已全自动**：`python3 scripts/bump.py X.Y.Z` 一次写全版本（`Cargo.lock`、清单 `requires`、
+站点数据；写前过 Lean Kernel Arena 门禁）→ push main → auto-tag 打 tag 并 dispatch release（见 `docs/RELEASE.md`）。
 
 ## VS Code 扩展改动
 
