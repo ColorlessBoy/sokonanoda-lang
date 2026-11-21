@@ -245,9 +245,10 @@ Release 资产：**26 个**——`sokonanoda-lsp-<rust-triple>.tar.gz` ×8 +
 `sokonanoda-cli-<rust-triple>.tar.gz` ×8（后者就是可直接执行的 CLI）+ VSIX ×9
 （8 平台包内嵌两者 + universal 回退包）+ `SHA256SUMS`，每资产另附 SLSA
 provenance。不要用 `releases/latest`——下载 URL 按仓库版本锁定，版本错配是
-明确要避免的故障。**发版已全自动**：bump 两处版本（`Cargo.toml` +
-`editor/vscode/package.json`）→ push main → `ci.yml` auto-tag 自动打 tag 并
-dispatch `release.yml`（手动推 tag 仅应急，见 `docs/RELEASE.md`）。
+明确要避免的故障。**发版已全自动**：`python3 scripts/bump.py X.Y.Z` 写版本
+（`Cargo.toml` + `editor/vscode/package.json` + `Cargo.lock` + 各清单 `requires`
+与站点数据；写前先过 Lean Kernel Arena 门禁）→ push main → `ci.yml` auto-tag
+自动打 tag 并 dispatch `release.yml`（手动推 tag 仅应急，见 `docs/RELEASE.md`）。
 完整入门设计见 `docs/design/deepseek-harness.md`。
 
 ## 5. VS Code 扩展开发规范
