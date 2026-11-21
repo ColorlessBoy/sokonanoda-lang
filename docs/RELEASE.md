@@ -141,7 +141,7 @@ auto-tag 的显式比对）。手动推 tag 应急后，核对双页见
 
 ### 5.1 内核可信度门禁（Lean Kernel Arena，2026-10-24）
 
-`bump.py` 写版本前强制 `python3 scripts/arena-gate.py`（最新 master 语料；`release-preflight.sh` ④ 复核）；失败不写版本。结果写 README + 官网；设计 `docs/design/arena-gate.md`。2026-11-21 构建 `b60796a9` 判负：两条递归规则用例该拒却接受，`perf/ite-taken-branch` 超时；内核修复前不写 `0.99.0`（issue #22）。
+`bump.py` 写版本前强制 `python3 scripts/arena-gate.py`（最新 master 语料；`release-preflight.sh` ④ 复核）；失败不写版本。结果写 README + 官网；设计 `docs/design/arena-gate.md`。2026-11-21 `b178b663` 复跑仍判负：两条递归规则用例该拒却接受，`perf/ite-taken-branch` 超时；内核修复前不写 `0.99.0`（issue #22）。
 
 ## 6. 完整性校验与来源证明（0.35.1 起）
 
