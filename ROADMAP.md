@@ -411,7 +411,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 
 #### C8 —— 分析课（卷 II/III）的 QA、文档、站点与发布（M6，进行中）
 
-卷 II/III《从集合论到实分析》M5 的 21 个单元在 2026-11-19 落盘，分析课 171/171 单元；全量课程门禁 0 rejected、0 solutions_open、0 lib_open，`notation-lint` rc=0。M6 的 QA 工作已完成：文档与站点入口对齐 171/171，零 cargo 启动器实测通过，发版预检覆盖分析课。站点入口当前指向 `agent/real-analysis-integration` 分支，分析课合并到 `main` 后要改回 `main`。发版节点仍被 Lean Kernel Arena 门禁挡住：`python3 scripts/arena-gate.py` 在 `b178b663` 上用最新 master 语料（`fdc02dedb`，run 44898970323）复跑 226 条用例，仍报两条递归规则伪造被接受（`bugs/rec-rule-proof-irrel`、`bugs/rec-rule-proof-irrel-nested`）与一条性能用例超时（`perf/ite-taken-branch`），内核修复前版本号不写。书页媒介与双语范围待用户拍板，尚未开工。路线、单元表与风险见 `courses/analysis/ROUTE.md`，逐单元记录见 `courses/analysis/README.md`。
+卷 II/III《从集合论到实分析》M5 的 21 个单元在 2026-11-19 落盘，分析课 171/171 单元；全量课程门禁 0 rejected、0 solutions_open、0 lib_open，`notation-lint` rc=0。M6 的 QA 工作已完成：文档与站点入口对齐 171/171，零 cargo 启动器实测通过，发版预检覆盖分析课。站点入口当前指向 `agent/real-analysis-integration` 分支，分析课合并到 `main` 后要改回 `main`。发版节点仍被 Lean Kernel Arena 门禁挡住：`python3 scripts/arena-gate.py` 在 `70ddfbad` 上用最新 master 语料（`5a4c1f054`，run 44950251345）复跑 226 条用例，仍报两条递归规则伪造被接受（`bugs/rec-rule-proof-irrel`、`bugs/rec-rule-proof-irrel-nested`）与一条性能用例超时（`perf/ite-taken-branch`），内核修复前版本号不写。书页媒介与双语范围待用户拍板，尚未开工。路线、单元表与风险见 `courses/analysis/ROUTE.md`，逐单元记录见 `courses/analysis/README.md`。
 
 #### I14 —— DeepSeek Harness 适配（**H0–H4 ✅ 已落地；H6-E = backlog**）
 
