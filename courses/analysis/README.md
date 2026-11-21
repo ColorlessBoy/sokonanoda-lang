@@ -5,7 +5,7 @@
 
 ## 状态
 
-课程共 171 个单元（卷 II 72、卷 III 99），M1–M5 已在 2026-11-19 全部落盘，`course.json` 与 `units/` 一致。M6 只做 QA、文档、站点与发布，全量课程门禁复跑为 0 rejected、0 solutions_open、0 lib_open，`notation-lint` rc=0；书页媒介与双语范围待用户拍板，尚未开工。下面按时间倒序保留各单元的写作记录。
+课程共 171 个单元（卷 II 72、卷 III 99），M1–M5 已在 2026-11-19 全部落盘，`course.json` 与 `units/` 一致。M6 的 QA、文档与站点入口已收口：全量课程门禁复跑为 0 rejected、0 solutions_open、0 lib_open，`notation-lint` rc=0；发版节点仍被 Lean Kernel Arena 门禁挡住（两条递归规则伪造被接受、一条性能用例超时），内核修复前版本号不写。书页媒介与双语范围待用户拍板，尚未开工。下面按时间倒序保留各单元的写作记录。
 
 - **M5 单元171（2026-11-19）**：**面积值的平移**。171 问「把整条曲线抬高同一个常数 k，面积值会怎样」。每一段的高度都多了 k，宽没变，所以面积值应当多出 k(b−a)。证明回到两摞台阶：抬高后的下界整体减去 k 又垫回原曲线下面（`lowerStep_sub_const`），原曲线的下界整体加上 k 也仍然垫在抬高后的曲线下面；矩形和这边，一段上「高度加 k」乘宽按分配律拆开，整条和多出 k(b−a)（`stepSum_sub_const`）。于是抬高后的下和不超过 I + k(b−a)（`lowerSum_add_const_le`），上和不低于 I + k(b−a)（`upperSum_add_const_ge`），可积性由 `integrable_add_const` 给，三条并成 `hasIntegral_add_const`。常值曲线 c 抬高 k 后读数是 (c+k)(b−a)（`demo_hasIntegral_shift_const`）。正文 8 题，0 rejected；解答 9 checked、0 open。边界：只做垂直平移；面积值的加法仍缺「两个分割搬到同一组切点」的加细引擎，FTC 需要中值定理与积分函数，卷 III 的收口留作后续课程内容。不新增公理，也不碰 kernel/front。
 
