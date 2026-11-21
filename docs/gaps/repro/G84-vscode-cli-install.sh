@@ -31,10 +31,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$ROOT"
 
 command -v node >/dev/null 2>&1 || { echo "G-84: 需要 node" >&2; exit 2; }
-command -v rustc >/dev/null 2>&1 || {
-  echo "G-84: 找不到 rustc（stage-lsp 用 rustc -vV 定位 host triple）—— 若已装 Rust，把 ~/.cargo/bin 加进 PATH 再跑" >&2
-  exit 2
-}
 [ -f editor/vscode/package.json ] || { echo "G-84: 找不到 editor/vscode/package.json" >&2; exit 2; }
 VERSION="$(node -p "require('./editor/vscode/package.json').version" 2>/dev/null)" || VERSION=""
 [ -n "$VERSION" ] || { echo "G-84: 读不出 editor/vscode/package.json 的 version" >&2; exit 2; }
@@ -61,6 +57,10 @@ for f in $(staged_clis); do
   [ "$(cli_ver "$f")" = "$VERSION" ] || need_stage=1
 done
 if [ "$need_stage" = 1 ]; then
+  command -v rustc >/dev/null 2>&1 || {
+    echo "G-84: 找不到 rustc（stage-lsp 用 rustc -vV 定位 host triple）—— 若已装 Rust，把 ~/.cargo/bin 加进 PATH 再跑" >&2
+    exit 2
+  }
   stage_log="$(mktemp)"
   echo "· 暂存的自带 CLI 缺失或版本 ≠ 插件 $VERSION ⇒ 重新暂存（node editor/vscode/scripts/stage-lsp.js）"
   if ! timeout 180 node editor/vscode/scripts/stage-lsp.js >"$stage_log" 2>&1; then
