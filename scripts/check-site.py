@@ -12,7 +12,7 @@
 |---|---|
 | `pages`     | `site/` 下恰好这一页，没有 `_partials/` 之类的内部目录 |
 | `sitemap`   | `sitemap.xml` 与真实页面集合**双向相等**（不悬空、不漏页） |
-| `links`     | 每页的 `href`/`src` 都解析得到：相对路径文件存在；锚点（含跨页锚点）有对应 `id` |
+| `links`     | 每页的 `href`/`src` 都解析得到：相对路径文件存在；锚点（含跨页锚点）有对应 `id`；本仓 GitHub `tree`/`blob` 链接的路径存在 |
 | `css-urls`  | CSS 里每个 `url(...)` 指向的文件存在（自托管字体） |
 | `version`   | 每页都有版本回填钩子；除生成物外**没有写死的版本号**（`0.x.y` 字面量） |
 | `meta`      | 每页 head 里 `lang`/`title`/`description`/`canonical`/`viewport`/`favicon`/`og:*` 齐全，且**可执行**内联 script 只有 head 那一段（文案字典是 `application/json`，不算） |\n| `i18n`      | 每页引用 `assets/i18n.js`（内含 `navigator.languages` 的 zh 判定）；英文文案字典是合法 JSON，且**与页面 `data-i18n*` 键逐个对齐**（漏译/多译都判红） |
@@ -24,7 +24,7 @@
 用法：
 
 ```bash
-python3 scripts/check-site.py              # 默认 11 项（不需要浏览器）
+python3 scripts/check-site.py              # 默认 10 项（不需要浏览器）
 python3 scripts/check-site.py --browser    # 额外跑渲染实跑（要 Chrome）
 python3 scripts/check-site.py --json       # 机器可读
 ```
@@ -42,6 +42,7 @@ import struct
 import subprocess
 import sys
 from html.parser import HTMLParser
+from urllib.parse import unquote
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(REPO_ROOT, "site")
@@ -51,6 +52,12 @@ DATA = os.path.join(SITE, "data", "site.json")
 # 页面集合：**恰好这一页**（2026-10-09 起单页）。加页面的时候，sitemap 与这里要一起改
 # （check_sitemap 会双向对账）。
 PAGES = ["index.html"]
+
+# 站点指向本仓的 GitHub 链接：`tree`/`blob` 后面的路径必须在工作树里存在。
+# 这类链接是**外部 URL**，相对路径判据看不见；路径写错或课程搬走时，只有人点开
+# 才会发现 404。这里把「路径存在」变成离线判据；分支是否还在不在范围内不归本脚本
+# 管（分支可能在合并后删除，那需要联网才知道）。
+REPO_GITHUB = "https://github.com/ColorlessBoy/sokonanoda-lang"
 
 # 体积预算（原始字节，不含字体）。它是"再加一个页面/一个库之前，先想想"的闸门。
 #
@@ -302,10 +309,46 @@ def check_sitemap(files: list[str]) -> str:
     return f"{len(locs)} 条，与页面集合双向相等"
 
 
+def repo_link_exists(value: str) -> bool | None:
+    """本仓 `tree`/`blob` URL 的路径存在吗？不是这类 URL 则返回 None。
+
+    分支名可以带 `/`（`agent/real-analysis-integration`），URL 语法分不清哪一段是
+    ref、哪一段是路径 ⇒ 从最短的路径后缀开始试，**存在即算命中**。这样判的是
+    "这个 URL 指向仓库里的一个真实路径"，不猜分支；分支被删仍可能 404，但那要联网
+    才能知道，不在本脚本的范围里。
+    """
+    if not value.startswith(REPO_GITHUB + "/"):
+        return None
+    rest = value[len(REPO_GITHUB):]
+    if rest.startswith("/tree/"):
+        marker = "/tree/"
+    elif rest.startswith("/blob/"):
+        marker = "/blob/"
+    else:
+        return None
+    tail = rest[len(marker):].split("#", 1)[0].split("?", 1)[0].strip("/")
+    parts = tail.split("/") if tail else []
+    if len(parts) <= 1:
+        return True                     # 只指向分支本身，没有路径可判
+    for split in range(1, len(parts)):
+        path = unquote("/".join(parts[split:]))
+        resolved = os.path.normpath(os.path.join(REPO_ROOT, path))
+        if resolved.startswith(REPO_ROOT + os.sep) and os.path.exists(resolved):
+            return True
+    return False
+
+
 def check_links(pages: dict[str, PageParser]) -> str:
     checked = 0
+    repo_checked = 0
     for name, parser in pages.items():
         for attr, value, line in parser.refs:
+            repo_hit = repo_link_exists(value)
+            if repo_hit is not None:
+                if not repo_hit:
+                    raise Failure(f"{name}:{line}：{attr}=\"{value}\" 指向仓库里不存在的路径")
+                repo_checked += 1
+                continue
             if value.startswith(("http://", "https://", "mailto:", "data:")):
                 continue
             if value.startswith("#"):
@@ -325,7 +368,8 @@ def check_links(pages: dict[str, PageParser]) -> str:
                 if anchor not in pages[os.path.basename(resolved)].ids:
                     raise Failure(f"{name}:{line}：{target}#{anchor} 的目标页里没有 id={anchor}")
             checked += 1
-    return f"{checked} 条站内引用全部可解析（含跨页锚点）"
+    return (f"{checked} 条站内引用全部可解析（含跨页锚点）"
+            f"；{repo_checked} 条本仓 GitHub 路径存在")
 
 
 def check_css_urls(files: list[str]) -> str:

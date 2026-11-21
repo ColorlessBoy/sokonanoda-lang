@@ -42,7 +42,7 @@ site/
 （3 条，每条只回答一个"凭什么"：真内核判定 / 目标实时可见 / 语法是 Lean 4 子集）→
 **怎么开始**（3 步：装插件 → `git clone` 打开第一个课程文件 → 把 `sorry` 填成证明）→
 **教材**（入门课 `courses/quick-start/` 11 单元 · 卷 I《集合论》`courses/set-theory/` 13 章 112 个
-单元画布）→ **它和 Lean 4 的关系**（写法是 Lean 4 的子集，练的写法在 Lean 4 里成立；
+单元画布 · 卷 II/III `courses/analysis/` 171 单元，入口暂指 `agent/real-analysis-integration`，合并后改回 `main`）→ **它和 Lean 4 的关系**（写法是 Lean 4 的子集，练的写法在 Lean 4 里成立；
 没有类型类 / tactic 宏 / mathlib 也说清楚）。
 
 2026-10-24：**「它是什么」末尾一行可信度**（不新开节）：数字由 `site/data/site.json`
@@ -83,18 +83,15 @@ VSIX** → 干净 profile 起真 VS Code → 把光标停在课程单元里 `int
 |---|---|---|
 | 版本号只有一个来源 | `gen-site-data.py` → `site/data/site.json` → `site.js` 回填 | 站点写的是**已发布版本**的事实；手写会写出"没有 tag、没有产物"的版本 |
 | 已发布 = 最新 `vX.Y.Z` tag | 同上（**不是** `Cargo.toml`） | 本仓库常有并行开发，`Cargo.toml` 会先于 tag bump |
-| 更新日志逐字节对账 | `changelog` 项（重生成再比） | 生成物一样会腐烂，只是腐烂方式是"悄悄停在旧版本" |
+| 站内课程链接的路径存在 | `links` 项（本仓 GitHub `tree`/`blob` 路径必须在仓库里存在） | 路径写错或课程搬走时，外部链接不会在本地判据里报红 |
 | 头图宽高比与 `<img>` 一致 | `assets` 项（读 PNG 头 + `<img width/height>`） | 图被压扁这件事，光看页面看不出来 |
 | **两版头图同尺寸**且都被页面指到 | `assets` 项（两张 PNG 的 IHDR 相等 + `<img data-hero-*>`） | 尺寸不同 ⇒ 其中一张是别的什么截的；漏指 ⇒ 那版是死图 |
 | 横向溢出 | `layout` 项（`--browser`） | 实测抓到两个：CHANGELOG 里 836px 不可断行的测试路径、`.wide` 被组件 `margin` 简写覆盖 |
 
-`check-site.py` 的 11 项（`--browser` 另加 2 项）：`pages`（恰好这两页、无内部目录）·
-`sitemap`（与页面集合**双向**相等）· `links`（站内引用与锚点可解析，**含跨页锚点**）·
-`css-urls` · `version`（每页有回填钩子 + 除生成物外零写死版本号）· `meta`（head 元数据齐全 +
-每页只允许一段**可执行**内联 script）· `i18n`（字典合法 + **与 DOM 的 `data-i18n*` 键逐个对齐**，
-漏译/多译判红；topbar 语言按钮恰好 1 个）· `markup` · `assets`（位图**只允许两版头图**、有预算、宽高比一致、两版同尺寸；html+css+js
-≤ 120 KB）· `data`（与最新 tag 一致）· `changelog`（逐字节）· `render` / `layout`（真 Chrome；
-`render` 用 `--accept-lang` 跑**两种浏览器语言**，判"中文读者看中文 / 其它语言看英文"）。
+`check-site.py` 的 10 项（`--browser` 另加 2 项）：`pages`（只有一页）· `sitemap`（双向相等）·
+`links`（站内引用与锚点可解析；本仓 GitHub 路径存在）· `css-urls` · `version`（回填钩子，零写死）·
+`meta`（head 齐全）· `i18n`（字典与 DOM 键对齐）· `markup` · `assets`（两版头图 + 两版 GIF，预算/尺寸）·
+`data`（与最新 tag 一致）· `render` / `layout`（真 Chrome：两语言 / 四宽度）。
 
 **发布之后**：先 `git fetch --tags`（`gen-site-data.py` 只看**本地 tag**，不 fetch 会静默停在旧版本 ✗），再跑 `gen-site-data.py` 把新版本写进数据（`--check` 会因此判红，这是有意的：本地绿必须意味着"仓库里写的就是线上写的"）。头图不必每次重截 —— 只在 UI 变化时重跑 `node scripts/site-screenshot.mjs [--theme dark]`（两版：同一 VSIX、同一靶子、同一裁切几何，只换 `workbench.colorTheme`）。
 
@@ -102,5 +99,5 @@ VSIX** → 干净 profile 起真 VS Code → 把光标停在课程单元里 `int
 
 - **单页放不下细节**：tactic 白名单、诊断码表、语言子集的完整边界仍只在仓库文档里。
   页面只给"是什么 + 怎么开始"，不试图成为手册。
-- **中英双语是"识别"不是"开关"**：没有切换按钮、不做两个页面、不加 `?lang=`；字典与页面文案的键对齐由 `i18n` 项判死，两种语言的渲染由 `render` 项在真浏览器里判 ✓。**子页只有更新日志**：不做文档站，真要加先问"谁来同步这个事实"。
+- **中英双语默认是"识别"**：自动识别是默认路径，topbar 语言按钮只写 `localStorage` 覆盖值；不做两个页面、不加 `?lang=`，`i18n` 判键对齐、`render` 判两种语言的渲染 ✓。**没有子页**：更新日志直链 GitHub，不做文档站。
 - **`--browser` 不在 CI 里跑**：收益不如留作发布前的本地门禁。
