@@ -1,7 +1,7 @@
 # 发布手册（RELEASE.md） <!-- 本文提到的 `docs/**` 指针都是**历史位置**（那批设计文档已收口删除）：原文 ⇒ `git log --all -- <path>`。doc-refs: history-only -->
 
 发布流水线：`.github/workflows/release.yml`（tag 触发 + `workflow_dispatch`
-dry-run）。**发布已全自动**：bump 两处版本 → commit 推 main → `ci.yml` 的
+dry-run）。**发布已全自动**：`bump.py` 写版本 → commit 推 main → `ci.yml` 的
 `auto-tag` job（lint+test 全绿后）自动打 `v<version>` tag 并 dispatch
 release——人不再需要手打 tag。手动推 tag 仅作应急/重发备用路径。
 
@@ -86,12 +86,11 @@ push tag v* ──► job build（matrix：8 平台）
 
 ## 3. 发布步骤
 
-1. **改版本**：`Cargo.toml` 的 `[workspace.package].version` +
-   `editor/vscode/package.json` 的 `version`，两处一致（如 `0.7.0`）；
-   跑一次 `cargo check` 让 `Cargo.lock` 跟上。
+1. **改版本**：`scripts/bump.py X.Y.Z`（同时写 Cargo.lock、各清单 requires
+   与站点数据；写前跑 LKA 门禁，失败不写）。
 2. **补 CHANGELOG**：`editor/vscode/CHANGELOG.md` 加对应条目；
    门面（README/description）与行为同步（`docs/vscode-dev-guide.md` §7）。
-3. **跑校验清单**（见 §5），全绿后 commit + push。
+3. **跑发版预检**：`scripts/release-preflight.sh`（含 §5、§5.1 与课程门禁），全绿后 commit + push。
 4. **发布（自动）**：上面的 commit 推上 main 后，`ci.yml` 的 `auto-tag`
    会自动打 `vX.Y.Z` 并 dispatch release——无需手动操作。手动推 tag 仅在
    auto-tag 不可用时应急（如跨版本热修）：
@@ -99,11 +98,12 @@ push tag v* ──► job build（matrix：8 平台）
    git tag vX.Y.Z && git push origin vX.Y.Z
    ```
 5. **看 CI**：Actions → `release`。`build`、`package-vsix` 绿后，
-   到 GitHub Releases 确认资产齐全（共 25 个）：
+   到 GitHub Releases 确认 26 个资产：
    - `sokonanoda-lsp-<rust-target>.tar.gz` ×8（回退下载）
    - `sokonanoda-cli-<rust-target>.tar.gz` ×8（agent/headless 直接执行）
    - `sokonanoda-{linux-x64,linux-arm64,alpine-x64,alpine-arm64,darwin-arm64,darwin-x64,win32-x64,win32-arm64}.vsix` ×8
    - `sokonanoda-universal.vsix`
+   - `SHA256SUMS`
 6. **看 Marketplace**：版本、平台包与 universal 包都应在（`vsce show` 或
    网页端 Files 列表核对）。
 
