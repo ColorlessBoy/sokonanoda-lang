@@ -17,7 +17,7 @@
   远大目标 · 当前进度）
 - [Quickstart](editor/vscode/README.md) — 装上 VS Code 扩展即可用，零工具链
 - [Course](courses/quick-start/README.md) — 逻辑与证明课（单元数与顺序见同目录 `course.json`），判卷由真内核完成
-- [Analysis](courses/analysis/README.md) — 卷 II/III《从集合论到实分析》，171/171 单元；M5 的 21 个单元已在 2026-11-19 落盘，M6 正在做 QA 与发布
+- [Analysis](courses/analysis/README.md) — 卷 II/III《从集合论到实分析》，171/171 单元；M5 的 21 个单元已在 2026-11-19 落盘，M6 的 QA 已完成，发版待内核修复
 - [Documentation](docs/README.md) — 架构 / 协议 / 测试地图 / 发布手册
 - [Agent Skills](skills/README.md) — 给 code agent 的教学与开发技能
 
@@ -72,12 +72,8 @@ Documentation:
   first if you are picking the project up);
 - [docs/architecture.md](docs/architecture.md) — deep architecture + kernel
   tour;
-- [docs/notes/research.md](docs/notes/research.md) — survey of teaching-oriented proof
-  languages and infrastructure lessons;
-- [docs/design/infrastructure.md](docs/design/infrastructure.md) — gap
-  analysis and design brainstorm for the next milestones;
-- [docs/notes/inductive.md](docs/notes/inductive.md) — what `inductive/ctor/rec/iota` mean
-  and how the kernel reduces them;
+- [docs/README.md](docs/README.md) — documentation map: core references, design
+  records, research notes and the archive;
 - [docs/protocol.md](docs/protocol.md) — CLI/editor/agent feedback protocol
   (human text lines + JSON Lines).
 
