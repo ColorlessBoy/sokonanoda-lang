@@ -5,15 +5,8 @@
 #   「vscode 命令安装的 sokonanoda cli 版本不对，也缺少 uninstall 命令」
 #
 # ── 复测到的盘上事实（2026-10-02，本机）──
-#   ① `~/.local/share/sokonanoda/bin/sokonanoda` 自述 **0.73.0**（09-27 的文件），
-#      而插件早已 0.81.0 ⇒ 这就是"版本不对"；
-#   ② 全仓 `uninstall` 在 `editor/vscode/{package.json,extension.js}` 里 **0 命中**
-#      ⇒ 只有安装、没有卸载；盘上还留着 `sokonanoda-lsp.bak-0.55.0`（09-24）✗；
-#   ③ 装到 `~/.local/share/sokonanoda/bin/`，而**该目录不在 PATH 上**
-#      ⇒ 成功提示"重新打开终端后即可用"**是假的** ✗（`bash -lc 'command -v sokonanoda'` 空 ✓）；
-#   ④ `sokonanoda.version` 内容是 `0.73.0 darwin-arm64`，与代码写的 `${version}\n`
-#      **格式都对不上** ⇒ 更老路径留下的，之后从未成功覆盖 ✗；
-#   ⑤ 假绿：`crates/cli/tests/extension.rs` 的值断言比的是**它自己刚拷的文件** ⇒ 天然相等 ✗。
+# 安装位自述 0.73.0（插件已 0.81.0）、没有 uninstall、装到不在 PATH 的目录、
+# 版本标记格式对不上，`extension.rs` 的值断言比的是自己刚拷的文件（假绿）。
 #
 # ── 判据（四条，全部由 `G84-vscode-cli-install.js` 在**用户动作级**重放）──
 #   ① 版本不匹配即重装（幂等）：安装位先塞一只旧版（自述 0.0.1）⇒ 跑一次
@@ -38,6 +31,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$ROOT"
 
 command -v node >/dev/null 2>&1 || { echo "G-84: 需要 node" >&2; exit 2; }
+command -v rustc >/dev/null 2>&1 || {
+  echo "G-84: 找不到 rustc（stage-lsp 用 rustc -vV 定位 host triple）—— 若已装 Rust，把 ~/.cargo/bin 加进 PATH 再跑" >&2
+  exit 2
+}
 [ -f editor/vscode/package.json ] || { echo "G-84: 找不到 editor/vscode/package.json" >&2; exit 2; }
 VERSION="$(node -p "require('./editor/vscode/package.json').version" 2>/dev/null)" || VERSION=""
 [ -n "$VERSION" ] || { echo "G-84: 读不出 editor/vscode/package.json 的 version" >&2; exit 2; }
@@ -51,6 +48,8 @@ VERSION="$(node -p "require('./editor/vscode/package.json').version" 2>/dev/null
 # ⇒ **2 条判据不成立** ✗ —— 那不是产品缺口，是**环境前提不成立** ✗。
 # ⇒ 这里先**把陈旧暂存清掉、重新暂存一份**（`stage-lsp.js` 默认取 host **release** 构建；
 # CI 的 ledger job 也是同一条命令 ✓，所以两条路的产物口径一致）。
+# 暂存要两只 release 二进制（`sokonanoda-lsp` 与 `sokonanoda`），且 `rustc` 在 PATH 上；
+# 缺一只只报环境不齐，不把环境问题当产品回归。
 # ⚠ **判据一条都没放水** ✗：暂存更新后照样跑那四条；更新不到插件版本 ⇒ **exit 2**
 # （环境不齐），绝不许报「已修」或「缺口仍在」 ✗。这也**不是**「期望判红」✗。
 staged_clis() { ls editor/vscode/bin/*/sokonanoda 2>/dev/null; }
@@ -65,7 +64,7 @@ if [ "$need_stage" = 1 ]; then
   stage_log="$(mktemp)"
   echo "· 暂存的自带 CLI 缺失或版本 ≠ 插件 $VERSION ⇒ 重新暂存（node editor/vscode/scripts/stage-lsp.js）"
   if ! timeout 180 node editor/vscode/scripts/stage-lsp.js >"$stage_log" 2>&1; then
-    echo "G-84: 重新暂存失败（先 cargo build --release -p sokonanoda-cli）—— 末行：$(tail -n 1 "$stage_log")" >&2
+    echo "G-84: 重新暂存失败（先 cargo build --release -p sokonanoda-lsp -p sokonanoda-cli，并确认 rustc 在 PATH 上）—— 末行：$(tail -n 1 "$stage_log")" >&2
     rm -f "$stage_log"
     exit 2
   fi
