@@ -101,30 +101,29 @@
 > **索引** ✓：`docs/archive/README.md`（**每个归档文件都在那里被点名** ——
 > `scripts/docs-lint.py` 判据 ⑥ 机械检查 ✗）。读法：`gunzip -c <文件> | less` ✓。
 >
-> **布局** ✓：`docs/archive/<批次>-<日期>/<原文件名>.gz`（**保留原相对路径** ⇒
-> 映射机械可算 ✓）。**全局规则** ✓（2026-09-30 激进删档后**一句话覆盖全部历史指针**）：
+> **布局**：`docs/archive/<批次>-<日期>/<原文件名>.gz`（保留原相对路径 ⇒
+> 映射机械可算）。**全局规则**（2026-09-30 激进删档后一句话覆盖全部历史指针）：
 > **任何指向已删/已归档路径的引用**（含 `docs/design/**` 里**不在下面设计清单**的 64 份、
 > `docs/perf/*.md`、`docs/gaps/{criteria-census,spike}/**`、`docs/e2e/logs/**`）⇒ `git log --all -- <原路径>` /
 > `git show <旧提交>:<原路径>` 取原文 ✓ —— **历史由 git 追溯**，不再单独归档 ✗。
 > 归档目录只留**最近 3 轮**（`docs/archive/README.md` 逐个点名 ✓）。
 >
-> **已删除（不归档）** ✗：2026-09-29 的计划/交接类（`docs/HANDOVER.md`、`docs/E2-HANDOVER.md`、
-> `docs/NEXT.md`、`docs/PLAN-0.74-0.79.md` 等）—— 内容已并入 `docs/ONBOARDING.md` 与 `docs/archive/status-removed-rounds-2026-10-13.md.gz`。
+> **已删除（不归档）**：2026-09-29 的计划/交接类（`HANDOVER.md`、`E2-HANDOVER.md`、
+> `NEXT.md`、`PLAN-0.74-0.79.md` 等）—— 内容已并入 `docs/ONBOARDING.md` 与 `docs/archive/status-removed-rounds-2026-10-13.md.gz`。
 >
-> **不许动的例外** ✗（有真消费者，动了就判红）：`docs/gaps/repro/**`（复现被
-> `gap.py check` 在 gate + CI 三片矩阵里真跑 ✓）、`docs/protocol.md`
-> （**4 个测试读它正文并断言** ✗）、`docs/perf/ledger.jsonl` / `docs/gaps/ledger.jsonl` /
-> `docs/courses/ledger.jsonl`（门禁基线 ✓）。设计与判据：`docs/design/docs-diet.md` ✓。
+> **不许动的例外**（有真消费者，动了就判红）：`docs/gaps/repro/**`（`gap.py check`
+> 在 gate + CI 三片矩阵真跑）、`docs/protocol.md`（4 个测试读正文并断言）、
+> `docs/perf/ledger.jsonl` / `docs/gaps/ledger.jsonl` / `docs/courses/ledger.jsonl`
+> （门禁基线）。设计与判据：`docs/design/docs-diet.md`。
 >
-> **已删（机器产物，不归档）** ✗：`docs/e2e/logs/**`（**206 个**测试日志）—— 活台账里指向它们的
-> `log` 字段**同轮摘掉**（`e2e-merge.py --check` 校验"记录引用的日志必须存在" ⇒ 留着就是死指针 ✗）。
+> **已删（机器产物，不归档）**：`docs/e2e/logs/**`（206 个测试日志）—— 活台账里指向它们的
+> `log` 字段同轮摘掉（`e2e-merge.py --check` 校验"记录引用的日志必须存在" ⇒ 留着就是死指针）。
 >
-> ✅ **2026-10-15 已做轮换**（洞 `E2E-LEDGER-LOGS-TRANSITIVE-FREEZE`）：日志曾回涨到 **219 份 / 5.5 MB**，
-> 且 **219 份全被 `docs/e2e/ledger.jsonl` 逐条点名** —— `scripts/e2e-merge.py --check`
-> （**CI 真跑**：`.github/workflows/ci.yml` 的 e2e-ledger job）要求每条记录的 `log` 路径**存在** ⇒
-> 日志**传递性冻结**。正解 = **轮换台账**（2026-09-26 先例 `71f017b2`：留最近 50 条 + 其余记录**连同其
-> 点名的日志**进 `docs/archive/e2e-2026-10-15/`）⇒ 台账 621 → **50** 条 · 日志 219 → **34** 份 ·
-> 判据 ① **9.90 → 5.18 MB**（余量 **98 KB → 4.82 MB**），而 `--check` 仍 rc=0 ✓。
+> ✅ **2026-10-15 已做轮换**（洞 `E2E-LEDGER-LOGS-TRANSITIVE-FREEZE`）：日志曾回涨到 219 份 / 5.5 MB，
+> 且全被 `docs/e2e/ledger.jsonl` 逐条点名 —— `scripts/e2e-merge.py --check`（CI 的 e2e-ledger
+> job 真跑）要求每条记录的 `log` 路径存在 ⇒ 日志传递性冻结。正解 = 轮换台账（先例 `71f017b2`：
+> 留最近 50 条 + 其余记录连同日志进 `docs/archive/e2e-2026-10-15/`）⇒ 台账 621 → 50 条 ·
+> 日志 219 → 34 份 · 判据 ① 9.90 → 5.18 MB（余量 98 KB → 4.82 MB），`--check` 仍 rc=0。
 > ⚠ **轮换 ≠ 归档守卫输入** ✗：台账仍在**原路径**、仍是那个守卫**唯一**的输入，只有保留窗口变短 ✓。
 
 ## 关联目录
@@ -133,9 +132,11 @@
 - `skills/` — 角色技能（`sokonanoda-teacher` / `-dev` / `-ci`）；**DeepSeek Harness 通过
   skill 名即斜杠命令直接消费**（`/sokonanoda-teacher` 等），适配见 `docs/design/deepseek-harness.md`
 - `courses/quick-start/` — 入门课（11 单元，agent 用）
-- **`courses/set-theory/`** — **卷 I《集合论》**（第二大课，已建）：`lib/`（L2 课程标准库）+
+- **`courses/set-theory/`** — **卷 I《集合论》**（第二大课）：`lib/`（L2 课程标准库）+
   `units/`（画布与解答）+ `gaps/`（发现端）+ `tools/check.py`（本地门禁）；
   入口/工程 `courses/set-theory/{README,ENGINEERING}.md`
+- **`courses/analysis/`** — **卷 II/III《从集合论到实分析》**（171 单元）：
+  `lib/` + `units/`（画布/解答）+ `tools/check.py`（门禁）；入口/路线 `courses/analysis/{README,ROUTE}.md`
 - `docs/gaps/` — **课程驱动的缺口台账**（`ledger.jsonl` + `repro/` 最小复现 +
   `WO-*.md` 工作单）；协议见 `docs/design/teaching-project.md` §6
 - `playground.sokonanoda`（仓库根）— 共享教学画布
