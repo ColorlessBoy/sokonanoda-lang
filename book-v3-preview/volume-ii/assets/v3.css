@@ -494,3 +494,8 @@ html{scroll-behavior:smooth}
   .site-head{--head-h:50px}
   .site-nav{padding:.4rem .6rem}
 }
+
+/* unify English/body typography: one UI family for prose/headings/labels; math and code stay distinct */
+:root{--font-body:var(--font-ui)}
+body,h1,h2,h3,h4,.page,.unit-page,.unit-intro-body,.prose,.decl-body,.exercise-body,.hint-body,.solution-body,.appendix,.cover{font-family:var(--font-ui)}
+.decl-name,.unit-title-en,.cover-en,.unit-en,.cover-lede,.lede{font-style:normal!important}
